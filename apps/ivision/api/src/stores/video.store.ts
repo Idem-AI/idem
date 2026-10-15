@@ -7,8 +7,8 @@
  * passerelle d'IDEM (mêmes configurations, mêmes étages que dans IDEM).
  */
 import crypto from 'crypto';
-import type { MotionVideo } from '../../../core/src/video/video.model';
-import type { VideoBrandContext, VideoStore, VideoTier } from '../../../core/src/video/video.store';
+import type { MotionVideo } from '../../../core/src/video/contracts/model';
+import type { VideoBrandContext, VideoStore, VideoTier } from '../../../core/src/video/contracts/store';
 import { collection } from '../config/db';
 import type { IvisionBrand, IvisionVideoDoc } from '../models';
 import { idem } from '../services/idem.client';

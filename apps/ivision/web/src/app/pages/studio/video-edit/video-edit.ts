@@ -3,11 +3,12 @@ import { RouterLink } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 import { IdemVideoEditorComponent } from '@idem/shared-video-editor/angular';
+import { editorScenes, SceneAction } from '@idem/shared-video-editor';
 import { Subscription, timer } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { ApiService } from '../../../core/api.service';
 import { LanguageService } from '../../../core/language.service';
-import { MotionVideo, VideoOptions } from '../../../core/models';
+import { MotionVideo } from '../../../core/models';
 import { StudioState } from '../../../core/studio.state';
 import { Illustration } from '../../../shared/components/illustration';
 
@@ -16,12 +17,13 @@ const FORMATS = ['story', 'square', 'portrait', 'landscape'];
 const QUALITIES = ['standard', 'hd', 'premium'];
 const MOODS = ['auto', 'upbeat', 'afro', 'calm', 'epic', 'corporate', 'none'];
 
-/** Le minutage d'une vidéo : s'il change après une retouche (temps de lecture), l'aperçu est recomposé. */
-const timing = (v: MotionVideo | null) => (v?.storyboard.scenes ?? []).map((s) => `${s.key}:${s.start}:${s.duration}`).join('|');
+/** Ce que l'aperçu montre (minutage, code des scènes) : s'il change après une retouche, l'aperçu est recomposé. */
+const timing = (v: MotionVideo | null) => (v?.film?.scenes ?? []).map((s) => `${s.key}:${s.start}:${s.duration}:${s.code?.length ?? 0}:${s.author?.at ?? ''}`).join('|');
 
 /**
- * Retoucher une vidéo : l'éditeur partagé avec IDEM (aperçu + textes en direct), la musique, les
- * effets sonores, et l'export MP4 (le premier inclus dans le prix de la vidéo).
+ * Retoucher une vidéo : l'éditeur partagé avec IDEM (aperçu Motion Canvas, textes en direct, et
+ * demandes de réécriture d'une scène par l'IA), la musique, les effets sonores, la voix, et l'export
+ * MP4 (le premier inclus dans le prix de la vidéo). Une scène en erreur se corrige avant l'export.
  */
 @Component({
   selector: 'iv-video-edit',
@@ -41,7 +43,6 @@ export class VideoEditPage {
   private readonly editor = viewChild(IdemVideoEditorComponent);
 
   protected readonly video = signal<MotionVideo | null>(null);
-  protected readonly options = signal<VideoOptions | null>(null);
   protected readonly html = signal<string | null>(null);
   protected readonly loading = signal(true);
   protected readonly failed = signal(false);
@@ -61,14 +62,16 @@ export class VideoEditPage {
   protected readonly qualities = QUALITIES;
   protected readonly moods = MOODS;
   protected readonly ratio = computed(() => RATIOS[this.previewFormat()] ?? 9 / 16);
-  protected readonly scenes = computed(() => this.video()?.storyboard.scenes ?? []);
+  protected readonly scenes = computed(() => editorScenes(this.video()));
+  protected readonly broken = computed(() => this.scenes().filter((s) => s.status === 'error').length);
+  /** Les scènes que l'IA réécrit. */
+  protected readonly rewriting = signal<string[]>([]);
   protected readonly renders = computed(() => (this.video()?.renders ?? []).filter((r) => r.status === 'done' && r.url && !r.prerender));
   protected readonly rendering = computed(() => this.video()?.status === 'rendering');
 
   private poll: Subscription | null = null;
 
   constructor() {
-    this.api.videoOptions().subscribe({ next: (o) => this.options.set(o), error: () => undefined });
     effect(() => {
       const brandId = this.brandId();
       const videoId = this.videoId();
@@ -93,7 +96,7 @@ export class VideoEditPage {
         this.exportFormats.set([...video.scope.formats]);
         this.exportQuality.set(video.scope.quality);
         this.loading.set(false);
-        this.loadPreview();
+        if (!video.legacy) this.loadPreview();
       },
       error: () => {
         this.loading.set(false);
@@ -140,7 +143,27 @@ export class VideoEditPage {
   }
 
   protected saveTexts(edits: Record<string, Record<string, string>>): void {
-    this.save('texts', { slots: edits });
+    this.save('texts', { texts: edits });
+  }
+
+  /** Réécrire une scène (consigne), en faire une nouvelle version, ou corriger son code : l'IA ne touche qu'à elle. */
+  protected sceneAction(action: SceneAction): void {
+    const v = this.video();
+    if (!v || this.rewriting().includes(action.key)) return;
+    const patch = action.kind === 'revise' ? { visual: { [action.key]: action.instruction } } : action.kind === 'fix' ? { fix: [action.key] } : { regenerate: [action.key] };
+    this.rewriting.update((keys) => [...keys, action.key]);
+    this.api.updateVideo(this.brandId(), v.id, patch).subscribe({
+      next: (next) => {
+        this.rewriting.update((keys) => keys.filter((k) => k !== action.key));
+        const moved = timing(next) !== timing(this.video());
+        this.apply(next);
+        if (moved) this.loadPreview();
+      },
+      error: () => {
+        this.rewriting.update((keys) => keys.filter((k) => k !== action.key));
+        this.failed.set(true);
+      },
+    });
   }
 
   protected setMood(mood: string): void {

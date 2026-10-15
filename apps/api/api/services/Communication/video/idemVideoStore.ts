@@ -8,7 +8,7 @@
  */
 import type { MotionVideo } from '../../../models/motionVideo.model';
 import type { ContentIdea } from '../../../models/communication.model';
-import type { ContentBrief, VideoBrandContext, VideoStore, VideoTier } from '../../../../../ivision/core/src/video/video.store';
+import type { ContentBrief, VideoBrandContext, VideoStore, VideoTier } from '../../../../../ivision/core/src/video/contracts/store';
 import { objectiveForContent } from './video.calendar';
 
 /** Ce que l'adaptateur lit du module Communication (le service réel, ou son double dans les contrôles). */
@@ -20,7 +20,7 @@ export interface CommunicationVideoSource {
   removeVideo(userId: string, projectId: string, videoId: string): Promise<boolean>;
   findPlanItem?(userId: string, projectId: string, contentId: string): Promise<ContentIdea | null>;
   linkVideoToContent?(userId: string, projectId: string, contentId: string, videoId: string): Promise<void>;
-  runVideoTieredPrompt?(userId: string, system: string, user: string, tier: VideoTier, kind?: 'copy' | 'agents'): Promise<string>;
+  runVideoTieredPrompt?(userId: string, system: string, user: string, tier: VideoTier, kind?: 'copy' | 'agents', role?: string): Promise<string>;
   runVideoCopyPrompt?(userId: string, system: string, user: string): Promise<string>;
   runVideoAgentPrompt?(userId: string, system: string, user: string): Promise<string>;
 }

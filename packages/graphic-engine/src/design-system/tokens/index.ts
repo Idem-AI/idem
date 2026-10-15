@@ -67,6 +67,11 @@ export interface DirectionInput {
   /** Densité imposée (sinon celle du style). */
   density?: Density;
   keywords?: string[];
+  /**
+   * La GRAMMAIRE DE COMPOSITION de la charte (grille, geste signature, recettes de mise en page, typographie,
+   * répartition des couleurs, éléments graphiques, à faire / à éviter), en texte compact : l'auteur la suit.
+   */
+  grammar?: string;
 }
 
 export interface TokenInput {

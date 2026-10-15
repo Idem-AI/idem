@@ -6,8 +6,7 @@
   "main": "dist/apps/ivision/api/src/index.js",
   "scripts": {
     "dev": "nodemon",
-    "build": "tsc -p tsconfig.json && npm run build:video-engine",
-    "build:video-engine": "ts-node --transpile-only scripts/build-video-engine.ts",
+    "build": "tsc -p tsconfig.json",
     "start": "node dist/apps/ivision/api/src/index.js",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "check": "ts-node --transpile-only scripts/check-api.ts",

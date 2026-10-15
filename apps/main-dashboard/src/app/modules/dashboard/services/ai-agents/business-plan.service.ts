@@ -350,4 +350,9 @@ export class BusinessPlanService {
         }),
       );
   }
+
+  /** Nouvelle mise en page du plan depuis son contenu gardé (aucun texte réécrit). */
+  relayoutBusinessPlan(projectId: string, documentId: string | null | undefined, body: { creativity?: string; note?: string }): Observable<{ relaid: string[]; kept: string[]; failed: string[] }> {
+    return this.http.post<{ relaid: string[]; kept: string[]; failed: string[] }>(`${this.apiUrl}/${projectId}/relayout${documentIdQuery(documentId)}`, body);
+  }
 }

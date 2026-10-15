@@ -20,16 +20,16 @@ import { brandSheet } from '../creativity/agent-io';
 import { CreativityLevel, creativityCost, normalizeCreativity } from '../creativity/levels';
 import { coreHost, requirePort } from '../runtime/host';
 import logger from '../runtime/logger';
-import { tierFor } from '../video/motionVideo.service';
-import type { CopyWriter } from '../video/video.copy';
-import { generateClip, generateStill, searchPexelsPhotos } from '../video/video.media';
-import { VIDEO_FORMATS, VideoFormat } from '../video/video.model';
-import type { VideoStore } from '../video/video.store';
-import { attributionLine, fetchTrack, pickTrack, resolveMood, searchMusic } from '../video/video.music';
-import { VIDEO_PRICING } from '../video/video.pricing';
-import { cleanupRender, probe, renderVideo } from '../video/video.renderer';
-import { frameSpec } from '../video/video.composer';
-import { buildVideoTheme } from '../video/video.theme';
+import { tierFor } from '../video/agents';
+import type { CopyWriter } from '../video/request/facts';
+import { generateClip, generateStill, searchPexelsPhotos } from '../video/assets/media';
+import { VIDEO_FORMATS, VideoFormat } from '../video/contracts/model';
+import type { VideoStore } from '../video/contracts/store';
+import { attributionLine, fetchTrack, pickTrack, resolveMood, searchMusic } from '../video/audio/music';
+import { VIDEO_PRICING } from '../video/pricing';
+import { cleanupRender, probe, renderVideo } from './montage.renderer';
+import { frameSpec } from '../video/rendering/formats';
+import { buildVideoTheme } from './montage.theme';
 import { composeMontageHtml } from './montage.composer';
 import { cutVideo, editedDuration, keepRanges, retimeWords } from './montage.cuts';
 import { assembleInputs } from './montage.assemble';
@@ -381,7 +381,7 @@ export class MontageService {
     const out: MontageElement[] = [];
     const generate = !!coreHost().generateImage;
     const canVideo = !!coreHost().generateVideo;
-    const genFirst = level === 'high' || level === 'max' || level === 'ultra';
+    const genFirst = level === 'high' || level === 'ultra';
     const CHARACTER_TERMS = /\b(personnage|personnages|character|characters|person|personne|personnes|acteur|acteurs|actrice|actrices|homme|femme|enfant|speaker|presenter|portrait|visage)\b/i;
     for (const el of elements) {
       if (el.type !== 'broll' || el.image || el.video || el.clip) {

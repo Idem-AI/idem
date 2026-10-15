@@ -25,7 +25,7 @@ import { installRenderNetworkGuard, isRenderUrlAllowed, RENDER_BROWSER_ARGS } fr
 import type { ArtDirectionModel, ArtDirectionStyleId } from '../brand/art-direction.model';
 import type { BrandKit, BrandPalette, BrandVoice } from '../brand/brand-kit';
 import { clusterColors, ColorCluster, PaletteProposal, paletteFromClusters, paletteProposals, SeenColor } from './palette';
-import { firstFamily, SeenFont, typographyProposals, TypographyProposal } from './typography';
+import { cleanFamilyName, firstFamily, SeenFont, typographyProposals, TypographyProposal } from './typography';
 
 export type SiteScanStep = 'open' | 'colors' | 'fonts' | 'logo' | 'content' | 'voice' | 'art' | 'done';
 
@@ -49,6 +49,16 @@ export interface SiteLogo {
   source: 'inline-svg' | 'img' | 'icon' | 'og-image' | 'none';
 }
 
+/** Un fichier de police du site (règle `@font-face`, sous-ensemble latin) : de quoi l'héberger chez nous. */
+export interface SiteFontFace {
+  family: string;
+  weight: number;
+  style: 'normal' | 'italic';
+  /** URL absolue (ou `data:` base64) du fichier. */
+  url: string;
+  format: 'woff2' | 'woff' | 'ttf' | 'otf';
+}
+
 export interface SiteScanResult {
   url: string;
   finalUrl: string;
@@ -61,6 +71,16 @@ export interface SiteScanResult {
   colors: ColorCluster[];
   typography: { display: string; body: string; original: { display?: string; body?: string } };
   typographies: TypographyProposal[];
+  /** Les fichiers des polices de titre et de texte du site, tels que le site les sert. */
+  fontFaces: SiteFontFace[];
+  /**
+   * Ce que le site MONTRE de son style, relevé (typographie, formes, couleurs par usage) et lu sur la capture
+   * (composition, gestes, images) : la matière de sa direction artistique — on codifie la marque, on ne
+   * l'invente pas.
+   */
+  styleEvidence: string;
+  /** Les textes du site (titres, paragraphes) : de quoi décrire le projet de la marque. */
+  texts: { headings: string[]; paragraphs: string[] };
   logo: SiteLogo;
   /** Grandes images du site (URL absolues) : l'hôte les recopie dans son stockage. */
   images: string[];
@@ -112,6 +132,14 @@ interface PageFacts {
   headings: string[];
   paragraphs: string[];
   links: { href: string; text: string }[];
+  /** Les titres (h1, h2) : taille, graisse, casse, approche (em) ; et la taille du texte courant. */
+  titleStyles: { size: number; weight: number; transform: string; tracking: number }[];
+  bodySizes: number[];
+  /** Les arrondis vus (px) et la forme des boutons. */
+  radii: number[];
+  buttons: string[];
+  /** Le CSS en ligne (`<style>`) : les `@font-face` des polices auto-hébergées. */
+  inlineCss: string;
 }
 
 /* eslint-disable no-var */
@@ -147,6 +175,10 @@ function readPage(): PageFacts {
     const fold = top < vh ? 2 : top < vh * 3 ? 1 : 0.5;
     return { r, s, area: Math.min(r.width, vw) * Math.min(r.height, vh * 2) * fold };
   };
+  const titleStyles: PageFacts['titleStyles'] = [];
+  const bodySizes: number[] = [];
+  const radii: number[] = [];
+  const buttons: string[] = [];
   const all = Array.from(document.querySelectorAll('body, body *')).slice(0, 4000) as any[];
   for (const el of all) {
     const v = visible(el);
@@ -157,6 +189,17 @@ function readPage(): PageFacts {
     const bg = toHex(v.s.backgroundColor);
     if (bg) colors.push({ hex: bg, weight: v.area, role: isButton ? 'action' : tag === 'body' || tag === 'main' ? 'background' : 'surface' });
     const ownText = Array.from(el.childNodes).some((n: any) => n.nodeType === 3 && (n.textContent || '').trim().length > 1);
+    // La FORME de la marque : arrondis des boutons, des images, des cartes ; boutons pleins, pilules ou filets.
+    const radius = parseFloat(v.s.borderTopLeftRadius) || 0;
+    if (isButton && buttons.length < 40) {
+      radii.push(radius);
+      buttons.push(bg ? (radius >= v.r.height / 2 - 1 ? 'pill' : 'filled') : parseFloat(v.s.borderTopWidth) >= 1 ? 'outline' : 'text');
+    } else if (radii.length < 200 && (tag === 'img' || (bg && v.r.width > 120 && v.r.height > 80 && tag !== 'body' && tag !== 'main' && tag !== 'html'))) radii.push(radius);
+    if (ownText && /^h[12]$/.test(tag) && titleStyles.length < 20) {
+      const px = parseFloat(v.s.fontSize) || 16;
+      titleStyles.push({ size: px, weight: parseInt(v.s.fontWeight, 10) || 400, transform: v.s.textTransform || 'none', tracking: v.s.letterSpacing === 'normal' ? 0 : (parseFloat(v.s.letterSpacing) || 0) / px });
+    }
+    if (ownText && tag === 'p' && bodySizes.length < 60) bodySizes.push(parseFloat(v.s.fontSize) || 16);
     if (ownText) {
       const fg = toHex(v.s.color);
       const textArea = Math.min(v.area, (el.textContent || '').trim().length * parseFloat(v.s.fontSize) * parseFloat(v.s.fontSize) * 0.6);
@@ -253,6 +296,15 @@ function readPage(): PageFacts {
       .map((a) => ({ href: abs(a.getAttribute('href')) || '', text: (a.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 40) }))
       .filter((l) => l.href && l.text)
       .slice(0, 120),
+    titleStyles,
+    bodySizes,
+    radii,
+    buttons,
+    inlineCss: (Array.from(document.querySelectorAll('style')) as any[])
+      .map((st) => st.textContent || '')
+      .filter((css: string) => css.indexOf('@font-face') >= 0)
+      .join('\n')
+      .slice(0, 600000),
   };
 }
 
@@ -275,8 +327,22 @@ function pickInnerPages(links: { href: string; text: string }[], origin: string,
   return out;
 }
 
-async function openPage(browser: Browser, url: string, timeoutMs: number): Promise<Page> {
+/** Les feuilles de style que la page a chargées (pour leurs `@font-face`). */
+type Sheets = { url: string; css: string }[];
+
+async function openPage(browser: Browser, url: string, timeoutMs: number, sheets?: Sheets): Promise<Page> {
   const page = await browser.newPage();
+  if (sheets) {
+    page.on('response', (res) => {
+      if (res.request().resourceType() !== 'stylesheet' || sheets.length >= 30 || !res.ok()) return;
+      res
+        .text()
+        .then((css) => {
+          if (css.length < 800_000 && css.includes('@font-face')) sheets.push({ url: res.url(), css });
+        })
+        .catch(() => undefined);
+    });
+  }
   await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 1 });
   await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36 iVision/1.0');
   // Garde réseau : jamais d'adresse privée ; ni vidéo ni sons (inutiles au scan).
@@ -340,16 +406,25 @@ async function readVoice(facts: PageFacts, brandName: string, model?: SiteScanOp
   }
 }
 
+/** Ce que la vision lit sur la capture, en plus de l'ébauche : la composition, les formes, les gestes. */
+interface SeenArt {
+  composition?: string;
+  shapes?: string;
+  ornaments?: string;
+  typography?: string;
+}
+
 /** Une ébauche de direction artistique, lue sur la capture du haut de page. */
-async function readArtDirection(screenshot: Buffer, brandName: string, vision?: SiteScanOptions['vision']): Promise<Partial<ArtDirectionModel> | undefined> {
+async function readArtDirection(screenshot: Buffer, brandName: string, vision?: SiteScanOptions['vision']): Promise<(Partial<ArtDirectionModel> & { seen?: SeenArt }) | undefined> {
   if (!vision) return undefined;
   const instruction = [
-    `This is the top of the website of the brand "${brandName}". Describe its art direction for a motion designer. Answer ONLY JSON:`,
-    `{"styleId": one of ${STYLE_IDS.join('|')}, "keywords": ["4 words"], "density": "airy|balanced|dense", "contrast": "soft|balanced|strong", "imagery": "photography|illustration|3d|mixed|none", "treatment": "how photos are treated, 6 words", "signature": "the most recognisable graphic device, 8 words", "avoid": ["2 things this brand would never do"]}`,
+    `This is the top of the website of the brand "${brandName}". Describe its art direction precisely enough for a designer to make social-media visuals that look like they come from the same studio. Answer ONLY JSON:`,
+    `{"styleId": one of ${STYLE_IDS.join('|')}, "keywords": ["4 concrete words: materials, light, objects"], "density": "airy|balanced|dense", "contrast": "soft|balanced|strong", "imagery": "photography|illustration|3d|mixed|none", "treatment": "how photos are treated (crop, colour grade, masks, overlays), 10 words", "composition": "how the hero is laid out: where the title, the image, the buttons sit and how much is empty, 25 words", "shapes": "rounded|sharp|organic|mixed, and where (buttons, images, sections), 12 words", "ornaments": "recurring graphic devices (rules, shapes, badges, patterns, gradients, outlines), 15 words", "typography": "how titles are set (case, weight, size contrast, tight or loose), 12 words", "signature": "the most recognisable graphic device, 8 words", "avoid": ["2 things this brand would never do"]}`,
   ].join('\n');
   try {
     const json = parseJson(await vision(screenshot.toString('base64'), 'image/jpeg', instruction));
     if (!json) return undefined;
+    const said = (v: unknown, max: number) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : undefined);
     const styleId = STYLE_IDS.includes(json.styleId) ? (json.styleId as ArtDirectionStyleId) : 'minimalism';
     const keywords = Array.isArray(json.keywords) ? json.keywords.map(String).slice(0, 5) : [];
     return {
@@ -366,6 +441,7 @@ async function readArtDirection(screenshot: Buffer, brandName: string, vision?: 
       dos: [],
       donts: Array.isArray(json.avoid) ? json.avoid.map(String).slice(0, 3) : [],
       imagePromptModifier: String(json.treatment || ''),
+      seen: { composition: said(json.composition, 240), shapes: said(json.shapes, 140), ornaments: said(json.ornaments, 180), typography: said(json.typography, 140) },
     };
   } catch (error) {
     logger.warn('site.art_failed', { event: 'site.art_failed', error });
@@ -393,6 +469,104 @@ function brandNameOf(facts: PageFacts, host: string): string {
   return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
+const FORMATS: Record<string, SiteFontFace['format']> = { woff2: 'woff2', woff: 'woff', truetype: 'ttf', ttf: 'ttf', opentype: 'otf', otf: 'otf' };
+const FORMAT_RANK: SiteFontFace['format'][] = ['woff2', 'woff', 'ttf', 'otf'];
+
+/**
+ * Les `@font-face` des feuilles du site : un fichier par famille, graisse et style (le meilleur format), le
+ * sous-ensemble LATIN seulement — une police découpée par alphabets (cyrillique, grec…) n'a besoin que de lui
+ * pour nos rendus. Une police variable (« font-weight: 100 900 ») sert à chacune des graisses utiles.
+ */
+export function parseFontFaces(sheets: { url: string; css: string }[]): SiteFontFace[] {
+  const out = new Map<string, SiteFontFace>();
+  for (const sheet of sheets) {
+    for (const match of sheet.css.matchAll(/@font-face\s*\{([^}]*)\}/gi)) {
+      const body = match[1];
+      const prop = (name: string) => body.match(new RegExp(`(?:^|[;{\\s])${name}\\s*:\\s*([^;]+)`, 'i'))?.[1]?.trim();
+      const family = cleanFamilyName(prop('font-family') || '');
+      if (!family || /fallback/i.test(prop('font-family') || '')) continue;
+      const range = prop('unicode-range');
+      if (range && !/U\+0{0,4}(?:0|20)-0{0,2}(?:7E|7F|FF)\b/i.test(range.replace(/\s+/g, ''))) continue;
+      const style: SiteFontFace['style'] = /italic|oblique/i.test(prop('font-style') || '') ? 'italic' : 'normal';
+      const declared = (prop('font-weight') || '400').replace(/\bnormal\b/i, '400').replace(/\bbold\b/i, '700').split(/\s+/).map(Number).filter((n) => n >= 100 && n <= 1000);
+      const lo = declared[0] ?? 400;
+      const hi = declared[1] ?? lo;
+      // Un même fichier variable pour chaque graisse utile : texte (400), titre (700), affiche (900).
+      const weights = hi > lo ? [...new Set([400, 700, 900].filter((w) => w >= lo && w <= hi))] : [lo];
+      if (!weights.length) weights.push(lo);
+      const sources = [...(prop('src') || '').matchAll(/url\(\s*(['"]?)([^'")]+)\1\s*\)\s*(?:format\(\s*['"]?([\w-]+)['"]?\s*\))?/gi)]
+        .map((m) => {
+          const raw = m[2].trim();
+          const ext = (raw.match(/\.(woff2|woff|ttf|otf)(?:[?#]|$)/i)?.[1] || '').toLowerCase();
+          const format = FORMATS[(m[3] || ext || (raw.startsWith('data:') ? (raw.match(/font\/(woff2|woff|ttf|otf)/)?.[1] ?? '') : '')).toLowerCase()];
+          let url = raw;
+          if (!raw.startsWith('data:')) {
+            try {
+              url = new URL(raw, sheet.url).toString();
+            } catch {
+              return null;
+            }
+          }
+          return format && (url.startsWith('https://') || url.startsWith('http://') || /^data:[^;]+;base64,/.test(url)) ? { url, format } : null;
+        })
+        .filter((x): x is { url: string; format: SiteFontFace['format'] } => !!x)
+        .sort((a, b) => FORMAT_RANK.indexOf(a.format) - FORMAT_RANK.indexOf(b.format));
+      if (!sources.length) continue;
+      for (const weight of weights) {
+        const key = `${family.toLowerCase()}|${weight}|${style}`;
+        if (!out.has(key)) out.set(key, { family, weight, style, url: sources[0].url, format: sources[0].format });
+      }
+    }
+  }
+  return [...out.values()].slice(0, 24);
+}
+
+const median = (values: number[]): number => {
+  const sorted = values.filter((v) => Number.isFinite(v)).sort((a, b) => a - b);
+  return sorted.length ? sorted[Math.floor(sorted.length / 2)] : 0;
+};
+
+/**
+ * Ce que le site montre de son style, en lignes factuelles : la direction artistique de la marque est tirée
+ * de LUI (le site existe, on le codifie), pas d'un catalogue.
+ */
+function styleEvidenceOf(facts: PageFacts, palette: BrandPalette, typo: { display: string; body: string; original: { display?: string; body?: string } }, art: (Partial<ArtDirectionModel> & { seen?: SeenArt }) | undefined, voice: BrandVoice): string {
+  const lines: string[] = [];
+  const titles = facts.titleStyles;
+  if (titles.length) {
+    const upper = titles.filter((t) => t.transform === 'uppercase').length / titles.length > 0.5;
+    const tracking = median(titles.map((t) => t.tracking));
+    const ratio = median(titles.map((t) => t.size)) / Math.max(10, median(facts.bodySizes) || 16);
+    lines.push(`Typography seen: titles in ${typo.original.display || typo.display} weight ${median(titles.map((t) => t.weight))}${upper ? ', UPPERCASE' : ', sentence case'}${Math.abs(tracking) >= 0.01 ? `, letter-spacing ${tracking > 0 ? '+' : ''}${tracking.toFixed(2)}em` : ''}; body in ${typo.original.body || typo.body}; title/body size ratio ${ratio.toFixed(1)}.`);
+  }
+  if (facts.radii.length) {
+    const r = median(facts.radii);
+    const kinds = facts.buttons.reduce<Record<string, number>>((acc, b) => ({ ...acc, [b]: (acc[b] || 0) + 1 }), {});
+    const button = Object.entries(kinds).sort((a, b) => b[1] - a[1])[0]?.[0];
+    lines.push(`Shapes seen: corner radius ~${Math.round(r)}px (${r < 2 ? 'square corners' : r < 10 ? 'slightly rounded' : r < 24 ? 'rounded' : 'very rounded'})${button ? `; buttons are mostly ${button}` : ''}.`);
+  }
+  lines.push(`Colours as used on the site: background ${palette.background}, text ${palette.text}, primary ${palette.primary}, secondary ${palette.secondary}, accent ${palette.accent}.`);
+  if (art) {
+    const seen = art.seen ?? {};
+    lines.push(
+      [
+        `Read on the homepage: ${art.styleId ? `closest style ${art.styleId}` : ''}${art.layout?.density ? `, density ${art.layout.density}` : ''}${art.color?.contrast ? `, contrast ${art.color.contrast}` : ''}.`,
+        seen.composition ? `Composition: ${seen.composition}.` : '',
+        seen.typography ? `Titles: ${seen.typography}.` : '',
+        seen.shapes ? `Shapes: ${seen.shapes}.` : '',
+        seen.ornaments ? `Graphic devices: ${seen.ornaments}.` : '',
+        art.layout?.signatureMove ? `Signature: ${art.layout.signatureMove}.` : '',
+        art.imagery?.medium ? `Imagery: ${art.imagery.medium}${art.imagery.treatment ? `, ${art.imagery.treatment}` : ''}.` : '',
+        art.donts?.length ? `Never: ${art.donts.join('; ')}.` : '',
+      ]
+        .filter(Boolean)
+        .join(' ')
+    );
+  }
+  if (voice.tone || voice.keywords?.length) lines.push(`Voice: ${[voice.tone, voice.keywords?.join(', ')].filter(Boolean).join(' — ')}.`);
+  return lines.join('\n').slice(0, 2400);
+}
+
 /** Le scan complet. */
 export async function scanWebsite(options: SiteScanOptions): Promise<SiteScanResult> {
   const url = normalizeSiteUrl(options.url);
@@ -406,13 +580,15 @@ export async function scanWebsite(options: SiteScanOptions): Promise<SiteScanRes
   try {
     progress('open', { url });
     let home: Page;
+    const sheets: Sheets = [];
     try {
-      home = await openPage(browser, url, timeout);
+      home = await openPage(browser, url, timeout, sheets);
     } catch (error) {
       throw new SiteScanError('unreachable', `Le site ne répond pas (${(error as Error).message.slice(0, 80)}).`);
     }
     const finalUrl = home.url();
     const facts: PageFacts = await home.evaluate(readPage);
+    if (facts.inlineCss) sheets.push({ url: finalUrl, css: facts.inlineCss });
     const screenshot = Buffer.from(await home.screenshot({ type: 'jpeg', quality: 80, clip: { x: 0, y: 0, width: 1440, height: 900 } }));
     await home.close();
 
@@ -420,8 +596,13 @@ export async function scanWebsite(options: SiteScanOptions): Promise<SiteScanRes
     const inner = pickInnerPages(facts.links, new URL(finalUrl).origin, Math.max(0, Math.min(2, options.maxPages ?? 2)));
     for (const pageUrl of inner) {
       try {
-        const page = await openPage(browser, pageUrl, Math.min(timeout, 15_000));
+        const page = await openPage(browser, pageUrl, Math.min(timeout, 15_000), sheets);
         const more: PageFacts = await page.evaluate(readPage);
+        if (more.inlineCss) sheets.push({ url: pageUrl, css: more.inlineCss });
+        facts.titleStyles.push(...more.titleStyles);
+        facts.bodySizes.push(...more.bodySizes);
+        facts.radii.push(...more.radii);
+        facts.buttons.push(...more.buttons);
         await page.close();
         facts.colors.push(...more.colors.map((c) => ({ ...c, weight: c.weight * 0.4 })));
         facts.fonts.push(...more.fonts.map((f) => ({ ...f, area: f.area * 0.4 })));
@@ -448,7 +629,10 @@ export async function scanWebsite(options: SiteScanOptions): Promise<SiteScanRes
     const brandName = brandNameOf(facts, new URL(finalUrl).hostname);
     progress('content', { brandName, headings: facts.headings.length });
     progress('voice');
-    const [voice, artDirection] = await Promise.all([readVoice(facts, brandName, options.textModel), (progress('art'), readArtDirection(screenshot, brandName, options.vision))]);
+    const [voice, read] = await Promise.all([readVoice(facts, brandName, options.textModel), (progress('art'), readArtDirection(screenshot, brandName, options.vision))]);
+    const { seen, ...artDirection } = read ?? {};
+    const wanted = new Set([typo.site.original.display, typo.site.original.body].filter((f): f is string => !!f).map((f) => cleanFamilyName(f).toLowerCase()));
+    const fontFaces = parseFontFaces(sheets).filter((f) => wanted.has(f.family.toLowerCase()));
     progress('done');
     return {
       url,
@@ -462,10 +646,13 @@ export async function scanWebsite(options: SiteScanOptions): Promise<SiteScanRes
       colors: clusters.slice(0, 12),
       typography: { display: typo.site.display, body: typo.site.body, original: typo.site.original },
       typographies: typo.proposals,
+      fontFaces,
+      styleEvidence: styleEvidenceOf(facts, palette, typo.site, read ? { ...artDirection, seen } : undefined, voice),
+      texts: { headings: facts.headings.slice(0, 10), paragraphs: facts.paragraphs.slice(0, 14) },
       logo: facts.logo,
       images: facts.images.slice(0, 8),
       voice,
-      artDirection,
+      artDirection: read ? (artDirection as Partial<ArtDirectionModel>) : undefined,
       screenshot,
       pages: [finalUrl, ...inner],
       warnings,

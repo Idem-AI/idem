@@ -424,7 +424,7 @@ async function main(): Promise<void> {
     }
     return '';
   };
-  const run = async (level: 'low' | 'medium' | 'high' | 'max' | 'ultra', call?: AgentCall, vision?: (png: Buffer, i: string) => Promise<string>) => {
+  const run = async (level: 'low' | 'medium' | 'high' | 'ultra', call?: AgentCall, vision?: (png: Buffer, i: string) => Promise<string>) => {
     log.length = 0;
     return designLogos(agentInput(level), BUILD, { call, vision });
   };
@@ -439,13 +439,13 @@ async function main(): Promise<void> {
   const types3 = new Set(high.logos.map((l) => l.type));
   check('high : trois catégories différentes', types3.size === 3, [...types3].join(', '));
   check('high : le générateur choisi par le directeur est respecté', high.logos.some((l) => l.doc.layers.some((x) => x.kind === 'generator')), '');
-  const max = await run('max', simulated());
-  check('max : l\'IA écrit le Logo IR (2 brouillons par direction) et le jury départage', log.filter((l) => l.role === 'logoAuthor').length === 6 && log.some((l) => l.role === 'logoJury') && max.logos.length === 3);
-  check('max : l\'auteur utilise le profil « coder » (sortie longue), les choix le profil léger', profiles.logoAuthor === 'coder' && profiles.logoDirector === 'agents' && profiles.logoJury === 'critic', JSON.stringify(profiles));
-  check('max : les brouillons de l\'IA passent par le pipeline qualité', max.logos.every((l) => l.report.ok), max.logos.map((l) => `${l.recipe}:${l.report.score}`).join(' '));
+  const max = await run('ultra', simulated());
+  check('ultra : l\'IA écrit le Logo IR (3 brouillons par direction) et le jury départage', log.filter((l) => l.role === 'logoAuthor').length === 9 && log.some((l) => l.role === 'logoJury') && max.logos.length === 3);
+  check('ultra : l\'auteur utilise le profil « coder » (sortie longue), les choix le profil léger', profiles.logoAuthor === 'coder' && profiles.logoDirector === 'agents' && profiles.logoJury === 'critic', JSON.stringify(profiles));
+  check('ultra : les brouillons de l\'IA passent par le pipeline qualité', max.logos.every((l) => l.report.ok), max.logos.map((l) => `${l.recipe}:${l.report.score}`).join(' '));
 
   // Replis et garde-fous
-  const mute = await run('max', async () => '');
+  const mute = await run('ultra', async () => '');
   check('modèle muet : le planificateur décide, aucune erreur', mute.logos.length === 3 && mute.logos.every((l) => l.report.ok) && mute.decisions.every((d) => d.source === 'code'));
   const throws = await run('ultra', async () => {
     throw new Error('429');
@@ -457,14 +457,14 @@ async function main(): Promise<void> {
   check('directions inventées (générateurs inconnus) : catégories gardées, choix du code', invented.logos.length === 3);
   const badType = await run('high', simulated({ logoDirector: () => '1: sculpture | x | y\n2: sculpture | x | y\n3: sculpture | x | y' }));
   check('directions hors menu : refusées, repli', badType.decisions.find((d) => d.stage === 'directions')?.source === 'code' && badType.logos.length === 3);
-  const garbled = await run('max', simulated({ logoAuthor: () => '{"layers": [oops' }));
+  const garbled = await run('ultra', simulated({ logoAuthor: () => '{"layers": [oops' }));
   check('JSON d\'auteur illisible : brouillon du planificateur', garbled.logos.length === 3 && garbled.decisions.filter((d) => d.stage === 'author').every((d) => d.source === 'code'));
-  const foreign = await run('max', simulated({ logoAuthor: () => JSON.stringify({ layers: [{ kind: 'generator', id: 'sym', generator: 'orbit' }, { kind: 'text', id: 'name', role: 'wordmark', content: 'ACHETEZ MAINTENANT -50 %' }] }) }));
+  const foreign = await run('ultra', simulated({ logoAuthor: () => JSON.stringify({ layers: [{ kind: 'generator', id: 'sym', generator: 'orbit' }, { kind: 'text', id: 'name', role: 'wordmark', content: 'ACHETEZ MAINTENANT -50 %' }] }) }));
   const foreignTexts = foreign.logos.flatMap((l) => l.doc.layers.filter((x) => x.kind === 'text').map((x) => (x as { content: string }).content));
   check('texte étranger à la marque remplacé par son nom (garde-fou)', !foreignTexts.some((t) => /ACHETEZ|50/.test(t)), foreignTexts.join(' | '));
-  const palettePush = await run('max', simulated({ logoAuthor: () => JSON.stringify({ layers: [{ kind: 'generator', id: 'sym', generator: 'orbit', fill: '#ff00ff' }], palette: { ink: '#ff00ff' } }) }));
+  const palettePush = await run('ultra', simulated({ logoAuthor: () => JSON.stringify({ layers: [{ kind: 'generator', id: 'sym', generator: 'orbit', fill: '#ff00ff' }], palette: { ink: '#ff00ff' } }) }));
   check('la palette est celle de la charte, jamais celle du modèle', palettePush.logos.every((l) => l.doc.palette.ink !== '#ff00ff'));
-  const freePath = await run('max', simulated({ logoAuthor: () => JSON.stringify({ layers: [{ kind: 'shape', id: 'x', geometry: { type: 'path', d: 'M10 10L90 10L50 90Z' } }] }) }));
+  const freePath = await run('high', simulated({ logoAuthor: () => JSON.stringify({ layers: [{ kind: 'shape', id: 'x', geometry: { type: 'path', d: 'M10 10L90 10L50 90Z' } }] }) }));
   check('dessin libre refusé hors Ultra', freePath.logos.length === 3 && freePath.logos.every((l) => !JSON.stringify(l.doc.layers).includes('"path"')));
 
   // Ultra : critique visuelle et patch ciblé
@@ -500,11 +500,11 @@ async function main(): Promise<void> {
   const tok = (r: { tokens: { input: number; output: number } }) => r.tokens.input + r.tokens.output;
   console.log(`    ancien pipeline : prompt ≈ ${legacyPrompt} tokens (+ ${LEGACY_OUT} de SVG dessiné) par brouillon`);
   console.log(`    ancien « medium » ≈ ${Math.round(legacy.medium)} tokens · ancien « ultra » ≈ ${Math.round(legacy.ultra)} tokens`);
-  console.log(`    moteur : low ${tok(low)} · medium ${tok(med)} · high ${tok(high)} · max ${tok(max)} · ultra ${tok(ultra)} tokens (estimés)`);
+  console.log(`    moteur : low ${tok(low)} · medium ${tok(med)} · high ${tok(high)} · ultra ${tok(ultra)} tokens (estimés)`);
   check('low : 0 token', tok(low) === 0);
   check('medium : au moins 10× moins que l\'ancien medium', tok(med) * 10 < legacy.medium, `${tok(med)} vs ${Math.round(legacy.medium)}`);
   check('ultra : au moins 5× moins que l\'ancien ultra', tok(ultra) * 5 < legacy.ultra, `${tok(ultra)} vs ${Math.round(legacy.ultra)}`);
-  const author = log.find((l) => l.role === 'logoAuthor') ?? (await (async () => { await run('max', simulated()); return log.find((l) => l.role === 'logoAuthor')!; })());
+  const author = log.find((l) => l.role === 'logoAuthor') ?? (await (async () => { await run('ultra', simulated()); return log.find((l) => l.role === 'logoAuthor')!; })());
   check('prompt de l\'auteur (mémento + générateur) < 1 500 tokens', estimateTokens(author.system + author.user) < 1500, `${estimateTokens(author.system + author.user)} tokens`);
   check('l\'ancien prompt est le double ou plus', legacyPrompt > 1.5 * estimateTokens(author.system + author.user), `${legacyPrompt} vs ${estimateTokens(author.system + author.user)}`);
   const irTokens = estimateTokens(JSON.stringify(max.logos[0].doc.layers));

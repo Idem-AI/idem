@@ -24,15 +24,16 @@ import { ProjectModel } from '../types/project.js';
 import { renderLibraryMenu } from './libraries.js';
 import type { BrandLogoSource } from './shared.js';
 import { buildMobileScaffold } from './mobileApp.js';
-import { buildSiteViteScaffold } from './siteVite.js';
 import { buildWebAppScaffold } from './webApp.js';
+import { buildSiteScaffold } from '../siteEngine/project.js';
+import { renderContract, OPTIONAL_MODULES } from '../siteEngine/catalog.js';
 
 /**
  * Version du starter. À incrémenter dès que le contenu d'un fichier verrouillé
  * change : le client s'en sert pour savoir qu'un espace de travail ouvert
  * tourne sur un socle périmé.
  */
-export const SCAFFOLD_VERSION = '6';
+export const SCAFFOLD_VERSION = '7';
 
 export interface Scaffold {
   version: string;
@@ -63,9 +64,11 @@ export function buildScaffold(options: ScaffoldOptions): Scaffold {
   const system = options.system ?? forgeDesignSystem(projectData);
   const language = (options.language ?? 'fr').toLowerCase().startsWith('fr') ? 'fr' : 'en';
 
+  // Le site vitrine part du template central de son moteur (siteEngine) : ses
+  // composants ne dépendent pas de la charte, son design system de départ si.
   const { files, locked } =
     target === 'site'
-      ? buildSiteViteScaffold(system, projectData, language, options.brand)
+      ? buildSiteScaffold(projectData, language, options.brand)
       : target === 'mobile-app'
         ? buildMobileScaffold(system, projectData, language)
         : buildWebAppScaffold(system, projectData, language);
@@ -87,6 +90,16 @@ export function buildScaffold(options: ScaffoldOptions): Scaffold {
  * préfixe système mis en cache. Ici, seulement ce qui dépend du projet.
  */
 export function renderScaffoldNotice(scaffold: Scaffold): string {
+  if (scaffold.target === 'site') {
+    return [
+      '## SITE IN PLACE — CONFIRMED FOR THIS WORKSPACE',
+      `The site template (v${scaffold.version}) and the generated site are in \`/home/project\` and it runs. Its appearance is \`src/design-system/design-system.json\`; its facts are \`src/site/data.ts\`.`,
+      'Write only the files the request needs. Never emit a configuration file or a design system component: the workspace drops those writes.',
+      '',
+      '## DESIGN SYSTEM COMPONENTS (import from @/components/ui/<module>)',
+      renderContract(OPTIONAL_MODULES),
+    ].join('\n');
+  }
   return [
     '## STARTER IN PLACE — CONFIRMED FOR THIS WORKSPACE',
     `The preconfigured starter listed in the build contract above is mounted in \`/home/project\` (v${scaffold.version}, ${scaffold.locked.length} locked files) and the project already starts.`,

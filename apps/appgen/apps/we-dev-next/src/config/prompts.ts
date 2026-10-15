@@ -120,8 +120,10 @@ export function assembleBuilderPrompt(options: AssembleOptions): AssembledPrompt
     getLanguageDirective(language),
   ].join('\n');
 
+  // Un site vitrine porte son design system dans le projet (design-system.json) :
+  // le brief de la forge décrirait des jetons qui n'y existent pas.
   const user = [
-    renderDesignBrief(designSystem, { scaffolded: !!scaffold }),
+    target === 'site' ? '' : renderDesignBrief(designSystem, { scaffolded: !!scaffold }),
     scaffold ? `\n${renderScaffoldNotice(scaffold)}` : '',
     unmounted ? `\n${renderUnmountedScaffold(unmounted)}` : '',
     brandLockup ? `\n${brandLockup}` : '',

@@ -396,3 +396,25 @@ export const generatePitchDeckPdfController = async (
     res.status(500).json({ message: 'Error generating pitch deck PDF', error: error.message });
   }
 };
+
+/**
+ * Export PowerPoint d'un deck (`?mode=fidelity|editable`, `documentId`). Le HTML reste la source ; le fichier est
+ * produit à la demande.
+ */
+export const generatePitchDeckPptxController = async (req: CustomRequest, res: Response): Promise<void> => {
+  const userId = req.user?.uid;
+  const { projectId } = req.params;
+  try {
+    if (!userId) { res.status(401).json({ message: 'User not authenticated' }); return; }
+    const mode = req.query.mode === 'editable' ? 'editable' : 'fidelity';
+    const file = await pitchDeckService.generatePitchDeckPptx(userId, projectId as string, readDocumentId(req.query.documentId), mode);
+    if (!file) { res.status(404).json({ message: 'No pitch deck found' }); return; }
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
+    res.setHeader('Content-Disposition', `attachment; filename="${file.name}"`);
+    res.setHeader('Content-Length', file.buffer.length);
+    res.send(file.buffer);
+  } catch (error: any) {
+    logger.error(`generatePitchDeckPptxController error: ${error.message}`, { stack: error.stack });
+    res.status(500).json({ message: 'Error generating pitch deck PowerPoint', error: error.message });
+  }
+};

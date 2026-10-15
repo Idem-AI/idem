@@ -404,7 +404,7 @@ export class LandingArt {
   ].join(' ');
 
   // Échelle dogon : 5 crans, du bas (Low) vers le haut (Ultra).
-  protected readonly ladderNotches = [560, 455, 350, 245, 140];
+  protected readonly ladderNotches = [560, 420, 280, 140];
   protected readonly ladderGrain = [
     'M106 600 C104 580 108 520 104 500',
     'M134 590 C136 560 132 520 136 490',

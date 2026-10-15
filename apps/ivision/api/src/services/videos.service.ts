@@ -5,13 +5,13 @@
  */
 import { normalizeCreativity } from '../../../core/src/creativity/levels';
 import { MotionVideoService, VideoProgressListener } from '../../../core/src/video/motionVideo.service';
-import type { MotionVideo, VideoMediaAsset, VideoType } from '../../../core/src/video/video.model';
-import { normalizeScope } from '../../../core/src/video/video.pricing';
-import { VIDEO_TYPES } from '../../../core/src/video/video.model';
+import type { MotionVideo, VideoMediaAsset, VideoType } from '../../../core/src/video/contracts/model';
+import { normalizeScope } from '../../../core/src/video/pricing';
+import { VIDEO_TYPES } from '../../../core/src/video/contracts/model';
 import { IvisionVideoStore } from '../stores/video.store';
 import type { ChatOptions } from '../models';
 import type { ReferenceBlueprint } from '../../../core/src/reference/reference.analyzer';
-import { MAX_REQUEST_CHARS, parseRequest, requestMessage } from '../../../core/src/video/video.request';
+import { MAX_REQUEST_CHARS, parseRequest, requestMessage } from '../../../core/src/video/request/request';
 
 export const motionVideos = new MotionVideoService(new IvisionVideoStore());
 

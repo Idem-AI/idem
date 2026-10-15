@@ -1,10 +1,21 @@
 {
   "$comment": "Ce que chaque exemple invalide doit déclencher (code du constat). Vérifié par `npm run check`.",
-  "invalid/content-unknown-key.json": { "contract": "content", "codes": ["unknown_key"] },
-  "invalid/content-chart-series.json": { "contract": "content", "codes": ["custom"] },
-  "invalid/content-duplicate-block.json": { "contract": "content", "codes": ["duplicate_block"] },
-  "invalid/design-spec-free-css.json": { "contract": "design-spec", "codes": ["unknown_key"] },
-  "invalid/design-spec-free-color.json": { "contract": "design-spec", "codes": ["invalid_value"] },
-  "invalid/design-spec-unknown-block.json": { "contract": "design-spec", "with": "valid/content-pitch-deck.json", "codes": ["unknown_block", "block_not_placed"] },
-  "invalid/design-spec-block-twice.json": { "contract": "design-spec", "with": "valid/content-pitch-deck.json", "codes": ["block_placed_twice"] }
+  "invalid/content-unknown-key.json": {
+    "contract": "content",
+    "codes": [
+      "unknown_key"
+    ]
+  },
+  "invalid/content-chart-series.json": {
+    "contract": "content",
+    "codes": [
+      "custom"
+    ]
+  },
+  "invalid/content-duplicate-block.json": {
+    "contract": "content",
+    "codes": [
+      "duplicate_block"
+    ]
+  }
 }

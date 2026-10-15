@@ -204,6 +204,12 @@ export const BUSINESS_CREDIT_COSTS = {
   /** Kit juridique OHADA : statuts, pacte d'associés, CGV/CGU. */
   legal_kit: 65,
   business_plan: 70,
+  /**
+   * NOUVELLE MISE EN PAGE d'un document déjà rédigé : seul l'auteur des pages travaille (aucun texte réécrit, aucune
+   * recherche) — environ le tiers du livrable, modulé par le cran de créativité.
+   */
+  business_plan_relayout: 25,
+  pitch_deck_relayout: 12,
 } as const;
 
 /**

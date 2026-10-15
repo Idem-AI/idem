@@ -13,6 +13,7 @@
  */
 import { z } from 'zod/v4';
 import { DocumentType, Hex, Id, Locale, text, Url } from './common';
+import { SlideIntent } from './slide-intent';
 
 export const Origin = z.enum(['model', 'system']);
 export type Origin = z.infer<typeof Origin>;
@@ -139,6 +140,32 @@ export const BusinessModelBlock = z.strictObject({
   ...base,
   kind: z.literal('businessModel'),
   cells: z.array(z.strictObject({ key: z.enum(['partners', 'activities', 'resources', 'value', 'relations', 'channels', 'segments', 'costs', 'revenues']), items: z.array(S(160)).min(1).max(4) })).min(3).max(9),
+});
+
+/**
+ * Des POINTS que l'on MONTRE plutôt qu'on ne les décrit : un libellé court, un détail d'une ligne, et ce
+ * que leur image doit représenter (`visual`, un ou deux noms concrets). Le code y pose l'icône locale
+ * (`icon`) ou le média trouvé (`media`) — jamais le modèle. C'est la forme d'une diapositive qui illustre
+ * trois difficultés au lieu de les écrire en trois paragraphes.
+ */
+export const PointsBlock = z.strictObject({
+  ...base,
+  kind: z.literal('points'),
+  items: z
+    .array(
+      z.strictObject({
+        label: S(80),
+        detail: S(160).optional(),
+        /** Un chiffre qui porte le point (« 92 % »), s'il y en a un. */
+        value: S(32).optional(),
+        /** Ce que l'image du point représente, en un ou deux noms concrets (« truck », « coffee beans »). */
+        visual: S(60).optional(),
+        icon: z.string().regex(/^[a-z0-9-]{1,64}$/).optional(),
+        media: z.strictObject({ url: Url, alt: S(200) }).optional(),
+      })
+    )
+    .min(2)
+    .max(6),
 });
 
 // ── Blocs SPÉCIMENS (jamais produits par un modèle : posés par le code, valeurs exactes) ────
@@ -331,6 +358,7 @@ export const Block = z.discriminatedUnion('kind', [
   PersonaBlock,
   RiskMatrixBlock,
   BusinessModelBlock,
+  PointsBlock,
   SwatchesBlock,
   TypeSpecimenBlock,
   LogoDisplayBlock,
@@ -371,11 +399,19 @@ export const SectionContent = z.strictObject({
   /** Une phrase qui ÉNONCE le constat. Jamais « dans cette section, nous allons… ». */
   lede: S(320).optional(),
   blocks: z.array(Block).max(40),
+  /** Ce que la page doit faire comprendre et comment le montrer (stratégie visuelle, budget de texte, image). */
+  intent: SlideIntent.optional(),
+  /**
+   * Les NOTES DE L'ORATEUR (diapositives) : ce qui se dit à l'oral — explications, contexte, sources. Jamais
+   * montrées sur la page : « le détail va dans votre voix ». Le régime de texte y range ce qui déborde.
+   */
+  notes: S(4000).optional(),
 });
 export type SectionContent = z.infer<typeof SectionContent>;
 
 export const ContentModel = z.strictObject({
-  version: z.literal('1.0'),
+  /** 1.1 : l'intention de page (`intent`) et le bloc `points`. Un contenu 1.0 reste valide. */
+  version: z.enum(['1.0', '1.1']),
   documentType: DocumentType,
   locale: Locale,
   title: S(160).optional(),
@@ -400,6 +436,7 @@ export const MODEL_BLOCK_KINDS: ReadonlySet<BlockKind> = new Set<BlockKind>([
   'persona',
   'riskMatrix',
   'businessModel',
+  'points',
 ]);
 
 /** Les blocs qui n'ont de sens qu'avec une valeur EXACTE : le moteur les restitue à l'identique. */

@@ -150,6 +150,8 @@ export class DocumentPreviewComponent implements OnInit, OnDestroy {
    *    elle, ne défile pas.
    */
   readonly variant = input<'page' | 'panel'>('page');
+  /** Le cran de créativité choisi sur la page : la nouvelle mise en page le suit. */
+  readonly creativity = input<string | null>(null);
 
   /** Régénérer une section (nom canonique). */
   readonly regenerateSection = output<string>();
@@ -170,6 +172,7 @@ export class DocumentPreviewComponent implements OnInit, OnDestroy {
   private readonly popoverEdit = viewChild<ElementRef<HTMLButtonElement>>('popoverEdit');
   private readonly pagesControl = viewChild<ElementRef<HTMLElement>>('pagesControl');
   private readonly regenControl = viewChild<ElementRef<HTMLElement>>('regenControl');
+  private readonly downloadControl = viewChild<ElementRef<HTMLElement>>('downloadControl');
 
   protected readonly dockInset = DOCK_INSET_PX;
   /** Le canvas défile avec la page (aperçu de page) ou sur lui-même (panneau). */
@@ -190,6 +193,13 @@ export class DocumentPreviewComponent implements OnInit, OnDestroy {
   protected readonly confirmRegenerateAll = signal(false);
   protected readonly downloadState = signal<DownloadState>('idle');
   protected readonly canDownload = signal(false);
+  /** Le document s'exporte aussi en PowerPoint (pitch deck) : le bouton ouvre un choix de format. */
+  protected readonly canPptx = signal(false);
+  protected readonly downloadMenuOpen = signal(false);
+  /** Nouvelle mise en page depuis le contenu gardé (business plan, pitch deck). */
+  protected readonly canRelayout = signal(false);
+  protected readonly relayoutState = signal<'idle' | 'working' | 'done' | 'partial' | 'nothing' | 'credits' | 'error'>('idle');
+  protected readonly relayoutNote = signal('');
 
   /** Pages dans l'ordre du document, pages de remplacement comprises. */
   protected readonly pages = computed(() =>
@@ -385,6 +395,8 @@ export class DocumentPreviewComponent implements OnInit, OnDestroy {
     this.multiPage.set(adapter.multiPage);
     this.pageFormat.set(adapter.pageFormat);
     this.canDownload.set(!!adapter.downloadPdf);
+    this.canPptx.set(!!adapter.downloadPptx);
+    this.canRelayout.set(!!adapter.relayout);
 
     this.projectId = this.cookieService.get('projectId');
     if (!this.projectId) {
@@ -394,6 +406,13 @@ export class DocumentPreviewComponent implements OnInit, OnDestroy {
     }
 
     await this.tokenService.waitForAuthReady();
+    this.loadSections();
+  }
+
+  /** Charge (ou recharge, après une nouvelle mise en page) les sections du document. */
+  private loadSections(): void {
+    const adapter = this.adapter;
+    if (!adapter || !this.projectId) return;
     adapter
       .load(this.projectId, this.documentId())
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -549,6 +568,9 @@ export class DocumentPreviewComponent implements OnInit, OnDestroy {
     if (this.pagesMenuOpen() && !this.pagesControl()?.nativeElement.contains(target)) {
       this.pagesMenuOpen.set(false);
     }
+    if (this.downloadMenuOpen() && !this.downloadControl()?.nativeElement.contains(target)) {
+      this.downloadMenuOpen.set(false);
+    }
     if (this.regenMenuOpen() && !this.regenControl()?.nativeElement.contains(target)) {
       this.regenMenuOpen.set(false);
       this.confirmRegenerateAll.set(false);
@@ -576,6 +598,62 @@ export class DocumentPreviewComponent implements OnInit, OnDestroy {
           this.setDownloadState('error');
         },
       });
+  }
+
+  /** Le bouton de téléchargement : direct pour un PDF seul, un choix de format quand le PowerPoint existe. */
+  protected onDownloadClick(): void {
+    if (this.canPptx()) this.downloadMenuOpen.update((open) => !open);
+    else this.download();
+  }
+
+  /** Le PowerPoint, produit à la demande depuis le HTML du document (qui reste la source). */
+  protected downloadPptx(mode: 'fidelity' | 'editable'): void {
+    const adapter = this.adapter;
+    this.downloadMenuOpen.set(false);
+    if (!adapter?.downloadPptx || !this.projectId || this.downloadState() === 'working') return;
+    this.setDownloadState('working');
+    adapter
+      .downloadPptx(this.projectId, this.documentId(), mode)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (blob) => {
+          const name = adapter.pptxFileName ?? 'presentation.pptx';
+          this.saveBlob(blob, mode === 'editable' ? name.replace(/\.pptx$/, '-modifiable.pptx') : name);
+          this.setDownloadState('done');
+        },
+        error: (err) => {
+          console.error('PowerPoint download failed:', err);
+          this.setDownloadState('error');
+        },
+      });
+  }
+
+  /** Nouvelle mise en page : les pages sont réécrites depuis leur contenu gardé, puis rechargées. */
+  protected relayout(): void {
+    const adapter = this.adapter;
+    if (!adapter?.relayout || !this.projectId || this.relayoutState() === 'working') return;
+    this.regenMenuOpen.set(false);
+    this.relayoutState.set('working');
+    const note = this.relayoutNote().trim();
+    adapter
+      .relayout(this.projectId, this.documentId(), { ...(this.creativity() ? { creativity: this.creativity()! } : {}), ...(note ? { note } : {}) })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (report) => {
+          this.relayoutState.set(report.kept.length || report.failed.length ? 'partial' : 'done');
+          this.relayoutNote.set('');
+          this.renderedKey = '';
+          this.loadSections();
+        },
+        error: (err) => {
+          console.error('Relayout failed:', err);
+          this.relayoutState.set(err?.status === 409 ? 'nothing' : err?.status === 402 ? 'credits' : 'error');
+        },
+      });
+  }
+
+  protected onRelayoutNote(event: Event): void {
+    this.relayoutNote.set((event.target as HTMLInputElement).value.slice(0, 600));
   }
 
   private setDownloadState(state: DownloadState): void {

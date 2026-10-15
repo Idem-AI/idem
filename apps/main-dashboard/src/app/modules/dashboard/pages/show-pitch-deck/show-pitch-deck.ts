@@ -93,12 +93,20 @@ export class ShowPitchDeck implements OnInit {
   private autoStart = this.route.snapshot.queryParamMap.get('generate') === 'true';
 
   /**
-   * Cran de la jauge de créativité : celui choisi à la création du deck (`?creativity=`),
-   * sinon Medium. Les reprises et régénérations de la page le réutilisent.
+   * Cran de la jauge de créativité : celui choisi à la création du deck (`?creativity=`), sinon celui
+   * de sa dernière génération, sinon Medium. Il se règle aussi dans la barre de l'aperçu : reprises et
+   * régénérations (tout le deck ou une slide) partent avec lui.
    */
-  protected readonly creativity = signal<CreativityLevel>(
-    normalizeCreativity(this.route.snapshot.queryParamMap.get('creativity')),
-  );
+  private readonly levelFromUrl = this.route.snapshot.queryParamMap.get('creativity');
+  protected readonly creativity = signal<CreativityLevel>(normalizeCreativity(this.levelFromUrl));
+  /** Le cran a été changé sur la page : un rechargement du deck ne l'écrase plus. */
+  private levelTouched = false;
+
+  protected setCreativity(level: CreativityLevel): void {
+    this.levelTouched = true;
+    this.creativity.set(level);
+  }
+
   /** Prix du deck au cran Low / Medium pour ce projet (null : prix non affiché). */
   protected readonly creativityBaseCost = signal<number | null>(null);
 
@@ -183,6 +191,8 @@ export class ShowPitchDeck implements OnInit {
       .subscribe({
         next: (deck) => {
           this.pitchDeck.set(deck);
+          // Le cran du deck, tant que l'utilisateur n'en a pas choisi un autre sur la page.
+          if (!this.levelFromUrl && !this.levelTouched && deck.design?.level) this.creativity.set(normalizeCreativity(deck.design.level));
           this.notFound.set(false);
           this.isLoading.set(false);
           this.startIfJustCreated(deck);

@@ -44,12 +44,12 @@ export function logoDirectionsTask(sheet: string, type: LogoType, count: number,
 /** Le SVG soumis au jury : l'icône seule quand le lockup est composé (le nom est déterministe). */
 const juryArtwork = (logo: LogoModel) => ((logo.lockup && logo.iconSvg) || logo.svg || '').replace(/\s+/g, ' ').slice(0, 5000);
 
-/** Max+ : le jury départage les brouillons d'une proposition (déjà passés par svgGate). */
+/** Ultra : le jury départage les brouillons d'une proposition (déjà passés par svgGate). */
 export function logoJuryTask(sheet: string, drafts: LogoModel[], index: number): AgentTask<number> {
   return {
     role: 'logoJury',
     key: `logoJury:${index + 1}`,
-    minLevel: 'max',
+    minLevel: 'ultra',
     profile: 'critic',
     prompt: () =>
       drafts.length < 2
@@ -71,4 +71,4 @@ export function logoJuryTask(sheet: string, drafts: LogoModel[], index: number):
 }
 
 /** Nombre de brouillons dessinés par proposition, selon le cran. */
-export const logoDraftCount = (level: string) => (level === 'ultra' ? 3 : level === 'max' ? 2 : 1);
+export const logoDraftCount = (level: string) => (level === 'ultra' ? 3 : 1);

@@ -1,4 +1,4 @@
-import { CreativityLevel } from '../../models/creativity.model';
+import { CreativityLevel, normalizeCreativity } from '../../models/creativity.model';
 import { runtimeCall } from '../creativity/orchestrator';
 import crypto from 'crypto';
 import logger from '../../config/logger';
@@ -50,6 +50,7 @@ import {
 import { GenericService } from '../common/generic.service';
 import { AIChatMessage, PromptConfig, PromptService } from '../prompt.service';
 import { AI_CONFIG, FeatureAIConfig } from '../../config/ai.config';
+import { hasRoleRouting, roleConfig } from '../../config/creative-roles';
 import { AGENT_COMMUNICATION_STRATEGY_PROMPT } from './prompts/agent-communication-strategy.prompt';
 import { AGENT_CONTEXT_EXTRACTION_PROMPT } from './prompts/agent-context-extraction.prompt';
 import { AGENT_EDITORIAL_CALENDAR_PROMPT } from './prompts/agent-editorial-calendar.prompt';
@@ -72,7 +73,8 @@ import {
   renderVisualHtml,
   VisualPorts,
 } from '../../../../ivision/core/src/visual/visual.composer';
-import { parseVisualEdit, visualEditPrompt, WrittenCopy } from '../../../../ivision/core/src/visual/visual.copy';
+import { WrittenCopy } from '../../../../ivision/core/src/visual/visual.copy';
+import { editVisual } from '../../../../ivision/core/src/visual/visual.edit';
 import { visualBrandingFromKit } from '../../../../ivision/core/src/visual/visual.context';
 import { ImageSourcingPreferences } from './imageSourcing.service';
 import { ensureProjectArtDirection } from '../brand/artDirection.provider';
@@ -315,9 +317,12 @@ export class CommunicationService extends GenericService {
    * panne passagère (quota, réseau) ou une réponse vide est retentée une fois : un agent qui
    * tombe en repli ramène le film au choix du code, et les crans finissent par se ressembler.
    */
-  async runVideoTieredPrompt(userId: string, system: string, user: string, tier: 'mechanical' | 'writing' | 'reasoning', kind: 'copy' | 'agents' = 'copy'): Promise<string> {
-    const base =
-      tier === 'reasoning' ? AI_CONFIG.communication.videoReasoning : tier === 'writing' ? AI_CONFIG.communication.videoWriting : kind === 'agents' ? AI_CONFIG.communication.videoAgents : AI_CONFIG.communication.video;
+  async runVideoTieredPrompt(userId: string, system: string, user: string, tier: 'mechanical' | 'writing' | 'reasoning', kind: 'copy' | 'agents' = 'copy', role?: string): Promise<string> {
+    // Un rôle logique configuré (modèle ou point d'accès dédiés, `config/creative-roles.ts`) l'emporte sur l'étage.
+    const routed = role && hasRoleRouting(role) ? roleConfig(role, 'coder') : null;
+    const base = routed
+      ? routed
+      : tier === 'reasoning' ? AI_CONFIG.communication.videoReasoning : tier === 'writing' ? AI_CONFIG.communication.videoWriting : kind === 'agents' ? AI_CONFIG.communication.videoAgents : AI_CONFIG.communication.video;
     const config = kind === 'agents' && tier !== 'mechanical' ? { ...base, promptType: 'communication_video_agents', llmOptions: { ...base.llmOptions, maxOutputTokens: Math.min(base.llmOptions?.maxOutputTokens ?? 1200, 1200) } } : base;
     const messages = [
       { role: 'system' as const, content: system },
@@ -1457,7 +1462,7 @@ export class CommunicationService extends GenericService {
       'communication-flyer',
       userId,
       projectId,
-      this.shortHash({ contentId, format, content, brand: context.branding, creativity: opts.creativity || 'max' })
+      this.shortHash({ contentId, format, content, brand: context.branding, creativity: opts.creativity || 'high' })
     );
     if (!opts.force) {
       const cached = await cacheService.get<Flyer>(cacheKey, { prefix: 'ai', ttl: 7200 });
@@ -1504,6 +1509,8 @@ export class CommunicationService extends GenericService {
       copy: parsed.copy,
       ...(parsed.photo ? { photo: parsed.photo } : {}),
       seed: parsed.seed,
+      // Le code de la page (auteur du moteur graphique) : une retouche le rejoue ou le fait réécrire.
+      ...((parsed as Partial<Flyer>).spec ? { spec: (parsed as Partial<Flyer>).spec } : {}),
       creativity: (parsed as Partial<Flyer>).creativity,
       agents: (parsed as Partial<Flyer>).agents,
       concept: parsed.concept || '',
@@ -1690,6 +1697,8 @@ export class CommunicationService extends GenericService {
       copy: parsed.copy,
       ...(parsed.photo ? { photo: parsed.photo } : {}),
       seed: parsed.seed,
+      // Le code de la page (auteur du moteur graphique) : une retouche le rejoue ou le fait réécrire.
+      ...((parsed as Partial<Flyer>).spec ? { spec: (parsed as Partial<Flyer>).spec } : {}),
       creativity: (parsed as Partial<Flyer>).creativity,
       agents: (parsed as Partial<Flyer>).agents,
       concept: parsed.concept || '',
@@ -2457,9 +2466,9 @@ export class CommunicationService extends GenericService {
   }
 
   /**
-   * Retouche IA d'un visuel : l'instruction est appliquée à ses MOTS (le modèle n'écrit jamais de HTML),
-   * puis le moteur graphique recompose la page — même graine quand la mise en page doit rester, une
-   * autre quand l'utilisateur en demande une nouvelle. Renvoie le visuel modifié, déjà persisté.
+   * Retouche IA d'un visuel — le même code qu'iVision (`editVisual`) : les mots ou la photo changent, la page
+   * gardée est rejouée sans modèle ; la forme change, l'auteur du moteur graphique réécrit SA page avec la
+   * consigne ; une autre mise en page est demandée, la page est réécrite. Renvoie le visuel, déjà persisté.
    */
   async aiEditFlyer(
     userId: string,
@@ -2485,30 +2494,46 @@ export class CommunicationService extends GenericService {
     };
     const photo = flyer.photo ?? (flyer.backgroundImageUrl ? { url: flyer.backgroundImageUrl } : undefined);
 
-    const raw = await withAiUsage(
-      { userId, projectId, feature: 'communication', element: flyerId, operation: 'edit' },
-      () =>
-        this.promptService.runPrompt(
-          // Retouche, pas composition : config dédiée, moins chère (cf. AI_CONFIG.communication.flyerEdit).
-          promptConfigFor(AI_CONFIG.communication.flyerEdit, userId, { language }),
-          [{ role: 'user', content: visualEditPrompt({ instruction, copy: previous, brandName: context.brandName, language: lang, hasPhoto: !!photo }) }]
-        )
+    const result = await editVisual(
+      {
+        text: async (system, user) =>
+          this.promptService.getCleanAIText(
+            await withAiUsage({ userId, projectId, feature: 'communication', element: flyerId, operation: 'edit' }, () =>
+              this.promptService.runPrompt(
+                // Retouche, pas composition : config dédiée, moins chère (cf. AI_CONFIG.communication.flyerEdit).
+                promptConfigFor(AI_CONFIG.communication.flyerEdit, userId, { language }),
+                [
+                  { role: 'system', content: system },
+                  { role: 'user', content: user },
+                ]
+              )
+            )
+          ),
+      },
+      {
+        instruction,
+        language: lang,
+        context,
+        format: flyer.format,
+        level: normalizeCreativity(flyer.creativity),
+        copy: previous,
+        ...(photo ? { photo } : {}),
+        ...(flyer.spec ? { spec: flyer.spec } : {}),
+        seed: flyer.seed ?? flyer.id,
+        userId,
+        projectId,
+        tag: `communication:${projectId}`,
+        imageColors: flyer.imageAnalysis?.dominantColors,
+      }
     );
-    const edit = parseVisualEdit(this.promptService.getCleanAIText(raw), previous, { instruction, language: lang, brandName: context.brandName });
-    if (!edit) {
-      logger.warn(`[Communication] AI edit returned no usable words for flyer ${flyerId}`);
+    if ((result.outcome !== 'edited' && result.outcome !== 'recomposed') || !result.out) {
+      logger.warn(`[Communication] AI edit not applied to flyer ${flyerId}`, { outcome: result.outcome });
       return null;
     }
-
-    const keptPhoto = edit.photo === 'remove' ? undefined : photo;
-    const seed = edit.layout === 'change' || !flyer.seed ? `${flyer.seed ?? flyer.id}:edit:${Date.now().toString(36)}` : flyer.seed;
-    const out = await renderVisual(context, flyer.format, edit.copy, keptPhoto, {
-      level: flyer.creativity ?? 'medium',
-      seed,
-      userId,
-      projectId,
-      imageColors: flyer.imageAnalysis?.dominantColors,
-    });
+    const out = result.out;
+    const edit = { copy: result.copy, layout: result.outcome === 'recomposed' ? 'change' : 'keep', photo: result.photo ? 'keep' : 'remove' };
+    const keptPhoto = result.photo;
+    const seed = result.seed;
     const html = sectionHtml(out);
 
     markRevisionAsAI(`Édition IA – visuel ${flyerId}: ${instruction}`.slice(0, 280));
@@ -2522,6 +2547,7 @@ export class CommunicationService extends GenericService {
               copy: edit.copy,
               seed,
               layout: out.spec.pattern.id,
+              spec: out.spec,
               photo: keptPhoto,
               ...(keptPhoto ? {} : { backgroundImageUrl: undefined }),
               marketingText: { headline: edit.copy.headline, subheadline: edit.copy.sub, body: edit.copy.facts.map((f) => f.text).join(' · ') },

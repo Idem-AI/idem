@@ -1,0 +1,239 @@
+/**
+ * Ce que le code écrit dans un site : le socle (template + design system de
+ * départ) et l'assemblage des pages.
+ *
+ * Assembler une page n'est pas la composer : la page importe ses sections dans
+ * l'ordre du manifeste, entre l'en-tête et le pied de page, chacune isolée par
+ * une frontière d'erreur. Tout ce qui se voit est écrit par les agents.
+ */
+
+import { ProjectModel } from '../types/project.js';
+import { packageName, projectTitle } from '../scaffold/shared.js';
+import { seedDesignSystemFiles } from './designConfig.js';
+import { ManifestPage, SiteManifest } from './manifest.js';
+import { renderBrandModule, BrandSource } from './siteData.js';
+import {
+  DESIGN_SYSTEM_PATHS,
+  FUNCTIONAL_DEPENDENCIES,
+  SITE_DEPENDENCIES,
+  SITE_DEV_DEPENDENCIES,
+  templateFiles,
+} from './template.js';
+
+const escapeHtml = (value: string): string =>
+  value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+const sortKeys = (record: Record<string, string>) =>
+  Object.fromEntries(Object.entries(record).sort(([a], [b]) => a.localeCompare(b)));
+
+export function renderPackageJson(projectData: ProjectModel | undefined, dependencies: string[] = []): string {
+  const extra = Object.fromEntries(
+    dependencies.filter((name) => name in FUNCTIONAL_DEPENDENCIES).map((name) => [name, FUNCTIONAL_DEPENDENCIES[name]])
+  );
+  return `${JSON.stringify(
+    {
+      name: packageName(projectData),
+      private: true,
+      version: '0.0.0',
+      type: 'module',
+      scripts: {
+        dev: 'vite',
+        build: 'vite build && node scripts/prerender.mjs',
+        preview: 'vite preview',
+      },
+      dependencies: sortKeys({ ...SITE_DEPENDENCIES, ...extra }),
+      devDependencies: sortKeys(SITE_DEV_DEPENDENCIES),
+    },
+    null,
+    2
+  )}\n`;
+}
+
+/** Le document HTML d'une page : titre, description et balises de partage écrits dans le HTML servi. */
+export function renderDocument(options: {
+  language: string;
+  siteName: string;
+  title: string;
+  description: string;
+  entry: string;
+  themeColor?: string;
+}): string {
+  const title = escapeHtml(options.title);
+  const description = escapeHtml(options.description);
+  return `<!doctype html>
+<html lang="${options.language}">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>${title}</title>
+    <meta name="description" content="${description}" />
+${options.themeColor ? `    <meta name="theme-color" content="${options.themeColor}" />\n` : ''}    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="${escapeHtml(options.siteName)}" />
+    <meta property="og:title" content="${title}" />
+    <meta property="og:description" content="${description}" />
+    <meta property="og:locale" content="${options.language}" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <!-- idem:fonts -->
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="${options.entry}"></script>
+  </body>
+</html>
+`;
+}
+
+/** Point d'entrée d'une page : reprend le HTML pré-rendu s'il existe, sinon rend. */
+export function renderEntry(pageKey: string): string {
+  return `import { StrictMode } from 'react';
+import { createRoot, hydrateRoot } from 'react-dom/client';
+import { MotionConfig } from 'motion/react';
+import { motionTokens } from '@/design-system';
+import Page from '../pages/${pageKey}.tsx';
+import '../styles/index.css';
+
+const root = document.getElementById('root')!;
+const app = (
+  <StrictMode>
+    <MotionConfig reducedMotion={motionTokens.respectReducedMotion ? 'user' : 'never'}>
+      <Page />
+    </MotionConfig>
+  </StrictMode>
+);
+
+if (root.hasChildNodes()) hydrateRoot(root, app);
+else createRoot(root).render(app);
+`;
+}
+
+const PLACEHOLDER_PAGE = `/* idem:placeholder — remplacé par la première génération */
+import { Container } from '@/components/ui/container';
+import { Text } from '@/components/ui/text';
+
+export default function Page() {
+  return (
+    <main className="flex min-h-screen items-center">
+      <Container>
+        <Text variant="muted">Espace de travail prêt.</Text>
+      </Container>
+    </main>
+  );
+}
+`;
+
+/**
+ * Une page assemblée. `sections` : les composants réellement écrits, dans
+ * l'ordre ; `skipped` : ceux conservés sans être affichés (ils ne compilaient pas).
+ */
+export function renderPage(
+  page: ManifestPage,
+  sections: string[],
+  skipped: string[],
+  frame: { header: boolean; footer: boolean } = { header: true, footer: true }
+): string {
+  const imports = sections.map((name) => `import ${name} from '@/sections/${page.key}/${name}.tsx';`);
+  const notes = skipped.map(
+    (name) => `// ${name} : conservé dans src/sections/${page.key}/${name}.tsx, mais pas affiché (il ne compile pas). Demandez sa correction dans la conversation.`
+  );
+  const body = sections.map((name) => `        <SectionBoundary name="${name}">\n          <${name} />\n        </SectionBoundary>`);
+
+  return `/**
+ * Page « ${page.label.replace(/\*\//g, '')} » (${page.path}), assemblée par IDEM : ses sections, dans l'ordre.
+ */
+${frame.header ? "import SiteHeader from '@/components/site/SiteHeader.tsx';\n" : ''}${frame.footer ? "import SiteFooter from '@/components/site/SiteFooter.tsx';\n" : ''}import SectionBoundary from '@/components/site/section-boundary';
+${imports.join('\n')}
+${notes.length ? `\n${notes.join('\n')}\n` : ''}
+export default function ${pageComponentName(page)}() {
+  return (
+    <>
+${frame.header ? `      <SectionBoundary name="SiteHeader">\n        <SiteHeader current="${page.path}" />\n      </SectionBoundary>\n` : ''}      <main id="contenu">
+${body.join('\n')}
+      </main>
+${frame.footer ? '      <SectionBoundary name="SiteFooter">\n        <SiteFooter />\n      </SectionBoundary>\n' : ''}    </>
+  );
+}
+`;
+}
+
+const pageComponentName = (page: ManifestPage) =>
+  `${page.key
+    .split('-')
+    .map((part) => part[0].toUpperCase() + part.slice(1))
+    .join('')
+    .replace(/^(\d)/, 'P$1')}Page`;
+
+/** Documents, points d'entrée et manifeste de pré-rendu de toutes les pages. */
+export function renderPageShells(options: {
+  manifest: SiteManifest;
+  language: string;
+  siteName: string;
+  description: string;
+  themeColor?: string;
+}): Record<string, string> {
+  const files: Record<string, string> = {};
+  for (const page of options.manifest.pages) {
+    const html = page.key === 'home' ? 'index.html' : `${page.key}/index.html`;
+    files[html] = renderDocument({
+      language: options.language,
+      siteName: options.siteName,
+      title: page.seoTitle || (page.key === 'home' ? options.siteName : `${page.label} | ${options.siteName}`),
+      description: page.seoDescription || options.description,
+      entry: `/src/entries/${page.key}.tsx`,
+      themeColor: options.themeColor,
+    });
+    files[`src/entries/${page.key}.tsx`] = renderEntry(page.key);
+  }
+  files['idem.pages.json'] = `${JSON.stringify(
+    {
+      pages: options.manifest.pages.map((page) => ({
+        path: page.path,
+        module: `src/pages/${page.key}.tsx`,
+        html: page.key === 'home' ? 'index.html' : `${page.key}/index.html`,
+      })),
+    },
+    null,
+    2
+  )}\n`;
+  return files;
+}
+
+export interface SiteScaffold {
+  files: Record<string, string>;
+  /** Écrits par le code, jamais par le modèle. */
+  locked: string[];
+}
+
+/**
+ * Le socle monté dans l'atelier avant la génération : le template, un design
+ * system de départ tiré de la charte, la marque, une page d'attente.
+ */
+export function buildSiteScaffold(
+  projectData: ProjectModel | undefined,
+  language: string,
+  brand?: { source?: BrandSource; file?: { path: string; content: string } }
+): SiteScaffold {
+  const name = projectTitle(projectData);
+  const description = (projectData?.description ?? '').trim().slice(0, 300) || name;
+  const template = templateFiles();
+
+  const locked: Record<string, string> = {
+    ...template,
+    'package.json': renderPackageJson(projectData),
+    'src/site/brand.tsx': renderBrandModule(projectData, name, brand?.source),
+    ...(brand?.file ? { [brand.file.path]: brand.file.content } : {}),
+  };
+
+  return {
+    files: {
+      ...locked,
+      ...seedDesignSystemFiles(projectData),
+      'index.html': renderDocument({ language, siteName: name, title: name, description, entry: '/src/entries/home.tsx' }),
+      'src/entries/home.tsx': renderEntry('home'),
+      'src/pages/home.tsx': PLACEHOLDER_PAGE,
+      'src/site/data.ts': `export const site = ${JSON.stringify({ name, description }, null, 2)};\n`,
+    },
+    // Le design system du projet n'est pas verrouillé : design-system.json se
+    // modifie dans la conversation, et ses fichiers compilés suivent.
+    locked: Object.keys(locked).filter((path) => !Object.values(DESIGN_SYSTEM_PATHS).includes(path as never)),
+  };
+}

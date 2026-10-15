@@ -67,7 +67,8 @@ import {
 } from './prompts/page-briefs.prompt';
 import { inspectSvg } from '../brand/svgGate';
 import { logAIEvent } from '../../utils/ai-trace.util';
-import { brandPatternSvg, planBrandPatterns, type BrandPatternKind } from '../../../../ivision/core/src/design/brandPatterns';
+import { type BrandPatternKind } from '../../../../ivision/core/src/design/brandPatterns';
+import { iconSymbol, sanitizeAuthoredTile, signaturePatterns } from '../../../../ivision/core/src/design/signaturePatterns';
 import { buildComposedCharterPages, clip } from './charterComposedPages';
 import { coverDateLabel, openGraphicDocument, pageCanvasOf as charterCanvasOf, pageId, projectBrand, renderGraphicPage } from '../graphic/graphic.service';
 import { atLeast, CreativityLevel, normalizeCreativity } from '../../models/creativity.model';
@@ -129,6 +130,9 @@ import { summarizeLogoForPrompt } from '../../utils/logo-context.util';
 import { LOGO_VARIATION_RECOLOR_PROMPT } from './prompts/singleGenerations/logo-variation-recolor.prompt';
 import { PdfService, PAGE_FORMATS } from '../pdf.service';
 import { cacheService } from '../cache.service';
+
+/** La mémoire des grammaires de composition déjà données (toutes marques) : la suivante ne les répète pas. */
+const RECENT_GRAMMARS_KEY = 'art-direction:recent-grammars';
 import crypto from 'crypto';
 import { projectService } from '../project.service';
 import { LogoJsonToSvgService } from './logoJsonToSvg.service';
@@ -2279,6 +2283,10 @@ export class BrandingService extends GenericService {
         density: str(raw?.layout?.density, 'balanced'),
         whitespace: str(raw?.layout?.whitespace, 'marges généreuses et régulières'),
         signatureMove: str(raw?.layout?.signatureMove, style.devices),
+        recipes: (Array.isArray(raw?.layout?.recipes) ? raw.layout.recipes : [])
+          .map((r: any) => ({ name: String(r?.name || '').trim().slice(0, 60), use: String(r?.use || '').trim().slice(0, 40), zones: String(r?.zones || '').trim().slice(0, 400) }))
+          .filter((r: { name: string; zones: string }) => r.name && r.zones)
+          .slice(0, 4),
       },
       color: {
         distribution: str(raw?.color?.distribution, '60 / 30 / 10'),
@@ -2318,7 +2326,9 @@ export class BrandingService extends GenericService {
   async generateArtDirection(
     userId: string,
     project: ProjectModel,
-    excludeStyleIds: string[] = []
+    excludeStyleIds: string[] = [],
+    /** Le style relevé sur le site de la marque (projet créé depuis un site) : la direction le codifie. */
+    siteEvidence?: string
   ): Promise<ArtDirectionModel> {
     const projectDescription = this.extractProjectDescription(project);
     const projectContext = this.extractProjectContext(projectDescription);
@@ -2337,6 +2347,10 @@ export class BrandingService extends GenericService {
       logoConcept: branding?.logo?.concept,
       logoType: branding?.logo?.type,
       excludeStyleIds,
+      // La mémoire des grammaires déjà données (toutes marques) : la prochaine ne les répète pas.
+      recentGrammars: (await cacheService.get<string[]>(RECENT_GRAMMARS_KEY, { prefix: 'branding' }).catch(() => null)) ?? [],
+      // Une marque importée de son site garde ce style comme référence, régénération comprise.
+      ...((siteEvidence || branding?.siteSource?.evidence) ? { siteEvidence: siteEvidence || branding?.siteSource?.evidence } : {}),
     });
 
     setAiUsageContext({ feature: 'branding', element: 'art-direction' });
@@ -2354,6 +2368,11 @@ export class BrandingService extends GenericService {
 
     const parsed = parseLlmJson<any>(raw);
     const direction = this.normalizeArtDirection(parsed, 'editorial');
+    // Le geste et la grille retenus rejoignent la mémoire (30 derniers, 90 jours).
+    const recent = (await cacheService.get<string[]>(RECENT_GRAMMARS_KEY, { prefix: 'branding' }).catch(() => null)) ?? [];
+    await cacheService
+      .set(RECENT_GRAMMARS_KEY, [`${direction.layout.signatureMove} — ${direction.layout.grid}`.slice(0, 240), ...recent].slice(0, 30), { prefix: 'branding', ttl: 90 * 24 * 3600 })
+      .catch(() => undefined);
     logger.info(`[ArtDirection] Direction retenue: ${direction.styleId} (${direction.styleName})`, {
       projectId: project.id,
       tagline: direction.tagline,
@@ -2373,7 +2392,7 @@ export class BrandingService extends GenericService {
     userId: string,
     projectId: string,
     project: ProjectModel,
-    opts: { force?: boolean; persist?: boolean } = {}
+    opts: { force?: boolean; persist?: boolean; siteEvidence?: string } = {}
   ): Promise<ArtDirectionModel | null> {
     const branding = project.analysisResultModel?.branding;
     if (!branding) return null;
@@ -2384,7 +2403,7 @@ export class BrandingService extends GenericService {
     try {
       const excluded =
         opts.force && branding.artDirection?.styleId ? [branding.artDirection.styleId] : [];
-      const direction = await this.generateArtDirection(userId, project, excluded);
+      const direction = await this.generateArtDirection(userId, project, excluded, opts.siteEvidence);
       direction.createdAt = branding.artDirection?.createdAt || new Date();
 
       // Mutation en mémoire d'abord : la génération en cours doit utiliser la
@@ -4732,40 +4751,60 @@ export class BrandingService extends GenericService {
     if (!branding?.colors) throw new Error(`No palette found for project ${projectId}`);
 
     const artDirection = branding.artDirection ?? null;
-    // Les encres de la charte (celles de toutes ses pages) et le répertoire de motifs du style.
+    // Les encres de la charte (celles de toutes ses pages), le symbole du logo et le répertoire du style.
     const { brand, direction } = projectBrand(project);
     const tokens = buildTokens({ brand: { ...brand, patterns: undefined }, direction, format: 'a4-portrait' });
-    const plans = planBrandPatterns({
-      repertoire: styleMotifs(artDirection?.styleId) as BrandPatternKind[],
-      primary: tokens.color.primary,
-      accent: tokens.color.accent,
-      surface: tokens.color.ground,
-      subtle: tokens.color.neutral['100'] ?? tokens.color.ground,
-    });
-    const key = crypto.createHash('sha256').update(JSON.stringify({ v: 1, plans })).digest('hex').slice(0, 24);
+    const logo: any = (branding as any).logo ?? {};
+    const iconSvg = await resolveSvgContent(String(logo.iconSvg || logo.svg || '')).catch(() => '');
+    const symbol = iconSymbol(iconSvg);
+    const colors = { primary: tokens.color.primary, accent: tokens.color.accent, surface: tokens.color.ground, subtle: tokens.color.neutral['100'] ?? tokens.color.ground };
+    const repertoire = styleMotifs(artDirection?.styleId) as BrandPatternKind[];
+    // v2 : les motifs SIGNATURE (symbole du logo, tuile de l'IA) — un logo ou une palette qui change les renouvelle.
+    const logoHash = crypto.createHash('sha256').update(iconSvg || 'no-logo').digest('hex').slice(0, 16);
+    const key = crypto.createHash('sha256').update(JSON.stringify({ v: 2, logoHash, colors, repertoire })).digest('hex').slice(0, 24);
     if (branding.patterns?.key === key && branding.patterns.items.length > 0) return branding.patterns.items;
 
-    logger.info(`[ASSETS] Dépôt des motifs de la marque - projectId: ${projectId}`);
+    logger.info(`[ASSETS] Dépôt des motifs signature de la marque - projectId: ${projectId}`);
+    // La tuile DESSINÉE pour la marque (IA), validée par le code ; sans elle, une géométrie dans le langage du logo.
+    const authoredTile = await this.designPatternTile(userId, projectId, project, symbol?.rounded).catch((error: any) => {
+      logger.warn('[ASSETS] Tuile de motif non dessinée — géométrie générée', { error: error?.message });
+      return null;
+    });
+    const plans = signaturePatterns({ seed: `${projectId}:${logoHash}`, iconSvg, colors, authoredTile, repertoire });
     const stamp = Date.now();
     const items: BrandPatternFileModel[] = await Promise.all(
       plans.map(async (plan) => {
-        const svg = brandPatternSvg({ kind: plan.kind, ink: plan.ink, ground: plan.ground, tile: plan.tile });
-        const upload = await this.storageService.uploadFile(
-          Buffer.from(svg, 'utf8'),
-          `pattern-${plan.id}-${stamp}.svg`,
-          `projects/${projectId}/BrandBook/patterns`,
-          'image/svg+xml'
-        );
-        return { id: plan.id, label: plan.label, role: plan.role, kind: plan.kind, ink: plan.ink, ground: plan.ground, tile: plan.tile, url: upload.downloadURL };
+        const upload = await this.storageService.uploadFile(Buffer.from(plan.svg, 'utf8'), `pattern-${plan.id}-${stamp}.svg`, `projects/${projectId}/BrandBook/patterns`, 'image/svg+xml');
+        return { id: plan.id, label: plan.label, role: plan.role, kind: plan.kind, ink: plan.ink, ground: plan.ground, tile: plan.tile, url: upload.downloadURL, source: plan.source };
       })
     );
 
-    await this.projectRepository.update(
-      projectId,
-      { 'analysisResultModel.branding.patterns': { key, generatedAt: new Date(), items } } as any,
-      `users/${userId}/projects`
-    );
+    await this.projectRepository.update(projectId, { 'analysisResultModel.branding.patterns': { key, generatedAt: new Date(), items } } as any, `users/${userId}/projects`);
     return items;
+  }
+
+  /**
+   * La tuile de motif DESSINÉE pour la marque par l'IA (`graphic.pattern-designer`) : des formes vectorielles
+   * dans un cadre 100 × 100, inspirées du projet et du langage de son logo. Le code la nettoie et la rend
+   * répétable ; `null` si rien d'exploitable.
+   */
+  private async designPatternTile(userId: string, projectId: string, project: any, rounded?: boolean): Promise<string | null> {
+    const call = runtimeCall({ userId, projectId, element: 'brand-patterns' });
+    const art = project.analysisResultModel?.branding?.artDirection ?? {};
+    const system = [
+      'You design ONE seamless repeat-pattern tile for a brand, as SVG shapes in a 100 x 100 frame.',
+      'Use ONLY <g>, <path>, <circle>, <ellipse>, <rect>, <line>, <polyline>, <polygon>; fill and stroke "currentColor" or "none". No text, no image, no gradient.',
+      'Draw a motif that belongs to THIS brand — its activity, its culture, its logo\'s shape language — not a generic stripe, grid or dot field. 4 to 25 shapes, keep a calm rhythm with breathing room.',
+      'Answer with the SVG only: <svg viewBox="0 0 100 100"> … </svg>.',
+    ].join('\n');
+    const user = [
+      `Brand: ${project.name}`,
+      project.description ? `Activity: ${String(project.description).slice(0, 300)}` : '',
+      art.styleId ? `Art direction: ${art.styleId}${Array.isArray(art.keywords) ? ` — ${art.keywords.slice(0, 6).join(', ')}` : ''}` : '',
+      rounded === undefined ? '' : `The logo is made of ${rounded ? 'curves and round forms' : 'straight lines and sharp angles'}: echo that language.`,
+    ].filter(Boolean).join('\n');
+    const raw = await call({ role: 'graphic.pattern-designer', profile: 'coder', system, user, level: 'high', validate: (r) => sanitizeAuthoredTile(r) !== null });
+    return sanitizeAuthoredTile(raw);
   }
 
   /** Un fichier de bannière, servi en pièce jointe (le bucket est d'une autre origine). */
@@ -4919,6 +4958,25 @@ export class BrandingService extends GenericService {
     await section('05-mises-en-situation — photographies de la marque sur ses supports', () =>
       addImages(imagesUnder('Mockups'), '05-mises-en-situation', 'mise-en-situation')
     );
+
+    // ── 07 · Motifs — les tuiles SVG répétables de la marque, et leur aperçu ─
+    await section('07-motifs — les motifs de la marque (SVG répétables) et leur aperçu', async () => {
+      const patterns = await this.getBrandPatterns(userId, projectId);
+      const sharp = require('sharp');
+      let count = 0;
+      for (const [i, p] of patterns.entries()) {
+        const svg = await resolveSvgContent(p.url);
+        if (!svg) continue;
+        const slug = `${String(i + 1).padStart(2, '0')}-${slugify(p.label)}`;
+        zip.file(`07-motifs/${slug}.svg`, svg);
+        const tile = await sharp(Buffer.from(svg)).png().toBuffer();
+        const preview = await sharp({ create: { width: 1200, height: 800, channels: 4, background: '#ffffff' } }).composite([{ input: tile, tile: true, top: 0, left: 0 }]).png().toBuffer();
+        zip.file(`07-motifs/apercus/${slug}.png`, preview);
+        count += 2;
+      }
+      if (count) zip.file('07-motifs/LISEZ-MOI.txt', 'Chaque motif est une tuile SVG qui se répète sans raccord (background-repeat: repeat).\nLe motif principal et le motif inversé reprennent le symbole du logo ; la trame fine se pose en fond discret.\n');
+      return count;
+    });
 
     // ── 06 · Charte PDF ───────────────────────────────────────────────────
     await section('06-charte — la charte graphique complète en PDF', async () => {

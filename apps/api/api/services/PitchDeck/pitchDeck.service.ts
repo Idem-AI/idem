@@ -1,5 +1,5 @@
 import { normalizeCreativity, CreativityLevel } from '../../models/creativity.model';
-import { coverContent, WRITING_RULES } from '@idem/graphic-engine';
+import { coverContent, exportPptx, PptxMode, sectionHtml, TEXT_BUDGETS, WRITING_RULES } from '@idem/graphic-engine';
 import crypto from 'crypto';
 import { PromptConfig, PromptService } from '../prompt.service';
 import { AI_CONFIG } from '../../config/ai.config';
@@ -17,9 +17,9 @@ import { SectionModel } from '../../models/section.model';
 import { PdfService, PAGE_FORMATS } from '../pdf.service';
 import { cacheService } from '../cache.service';
 
-import { composeSlideBrief } from './prompts/slide-briefs.prompt';
+import { composeSlideBrief, SLIDE_VISUAL_PLANS } from './prompts/slide-briefs.prompt';
 import { CoverBriefService } from '../common/coverBrief.service';
-import { coverDateLabel, openGraphicDocument, pageId, renderGraphicPage, withProjectArtDirection } from '../graphic/graphic.service';
+import { composeGraphicPage, coverDateLabel, GenerationJournal, openGraphicDocument, pageComposition, pageId, speakerNotesHtml, withProjectArtDirection } from '../graphic/graphic.service';
 import type { PitchDeckAudience } from './deck-types';
 
 /** Mention de destinataire sur la couverture du deck. */
@@ -268,11 +268,12 @@ export class PitchDeckService extends GenericService {
     // être le premier livrable produit, et ses slides ont besoin d'un style.
     const graphicProject = await withProjectArtDirection(this.promptService, userId, projectId, project);
 
-    // LE DOCUMENT GRAPHIQUE du deck (@idem/graphic-engine) : la charte, le plan des slides — chacune reçoit
-    // d'avance une composition distincte de ses voisines —, la jauge de créativité. La clé est propre au
-    // deck : deux decks du projet ne se ressemblent pas slide pour slide.
+    // LE DOCUMENT GRAPHIQUE du deck (@idem/graphic-engine) : la charte, la liste des slides (le directeur en
+    // écrit la bible), la jauge de créativité — qui choisit les modèles.
     const designKey = documentDesignKey('pitchdeck', projectId, deck.id);
     const level: CreativityLevel = normalizeCreativity(creativity);
+    // Le journal de la génération : chaque slide y verse sa trace ; l'enregistrement est gardé avec le deck.
+    const journal = new GenerationJournal('pitch-deck', level);
     const total = deckSlides.length;
     const graphic = await openGraphicDocument({
       project: graphicProject,
@@ -280,7 +281,8 @@ export class PitchDeckService extends GenericService {
       format: 'slide-16x9',
       seed: designKey,
       creativity: level,
-      sections: deckSlides.map((definition) => ({ id: pageId(definition.name), role: definition.freeform ? ('cover' as const) : undefined })),
+      // Ce que chaque slide doit faire (sa stratégie visuelle) : le directeur en tire le plan du deck.
+      sections: deckSlides.map((definition) => ({ id: pageId(definition.name), role: definition.freeform ? ('cover' as const) : undefined, purpose: [definition.name, SLIDE_VISUAL_PLANS[definition.name]?.strategy].filter(Boolean).join(' — ') })),
       documentLabel: 'Pitch deck',
       userId,
     });
@@ -294,6 +296,13 @@ export class PitchDeckService extends GenericService {
     // marque et les règles d'écriture. La composition est celle du moteur.
     const stablePrefix = [projectDescription, `BRAND FACTS:\nBrand: ${brandName}`, WRITING_RULES].join('\n\n');
 
+    const renderPage = async (content: Parameters<typeof composeGraphicPage>[1], position: { index: number; total: number }) => sectionHtml(journal.page(await composeGraphicPage(graphic, content, position)));
+    /** L'enregistrement de la génération, gardé avec le deck (décisions, médias, réparations, replis, constats). */
+    const keepRecord = () =>
+      deliverableDocumentStore
+        .update(userId, projectId, 'pitchDeck', deck.id, (current) => ({ ...current, design: { ...(current.design ?? { level, pages: {} }), record: journal.finish() } }), { touch: false })
+        .catch((error: any) => logger.warn('[DECK] Enregistrement de génération non gardé', { error: error?.message }));
+
     const steps: IPromptStep[] = deckSlides.map((definition, index) => {
       const position = { index: index + 1, total };
       // La couverture est dessinée par le moteur : le modèle n'en écrit que les mots, une fois par
@@ -304,8 +313,7 @@ export class PitchDeckService extends GenericService {
           promptConstant: '',
           execute: async () => {
             const brief = await new CoverBriefService(this.promptService).resolve(userId, projectId, project);
-            return renderGraphicPage(
-              graphic,
+            return renderPage(
               coverContent({
                 id: pageId(definition.name),
                 brandName,
@@ -321,8 +329,14 @@ export class PitchDeckService extends GenericService {
         };
       }
       // Le brief ne porte QUE le contenu, lu par le destinataire du deck. Une slide est une toile fixe :
-      // le volume est bas (3 à 4 blocs), et le moteur mesure, resserre et répare avant de rendre.
-      const brief = composeSlideBrief(definition.name, deckType.audience) ?? `Write the "${definition.name}" slide of this pitch deck: one idea, three to four blocks.`;
+      // le volume est bas (1 à 3 blocs) ; l'auteur du moteur graphique la compose librement.
+      const brief = composeSlideBrief(definition.name, deckType.audience) ?? `Write the "${definition.name}" slide of this pitch deck: one idea, one to three blocks.`;
+      // L'INTENTION de la slide : comment elle démontre son message et ce qu'elle peut porter de texte — une
+      // indication pour le rédacteur et l'auteur (à tous les crans), jamais un contrôle.
+      const plan = SLIDE_VISUAL_PLANS[definition.name];
+      const intent = plan
+        ? { visualStrategy: plan.strategy, textBudget: TEXT_BUDGETS[plan.budget], allowStrategies: [plan.strategy, ...plan.alternatives] }
+        : undefined;
       return {
         stepName: definition.name,
         promptConstant: brief,
@@ -330,9 +344,14 @@ export class PitchDeckService extends GenericService {
         template: {
           deliverable: 'pitch-deck',
           sectionId: pageId(definition.name),
-          volume: '3 to 4',
+          // Une slide porte une idée : un à trois blocs, jamais plus.
+          volume: '1 to 3',
           contentBrief: brief,
-          render: (content) => renderGraphicPage(graphic, content, position),
+          ...(intent ? { intent } : {}),
+          render: async (slide) => {
+            const html = sectionHtml(journal.page(await composeGraphicPage(graphic, slide, position)));
+            return slide.notes ? `${html}\n${speakerNotesHtml(slide.notes)}` : html;
+          },
         },
       };
     });
@@ -400,11 +419,13 @@ export class PitchDeckService extends GenericService {
             return;
           }
 
+          const composition = pageComposition(graphic, result.name);
           const section: SectionModel = {
             name: result.name,
             type: result.type,
             data: result.data,
             summary: result.summary,
+            ...(composition ? { composition } : {}),
           };
 
           // Add or replace in sections array to avoid duplicates
@@ -432,6 +453,7 @@ export class PitchDeckService extends GenericService {
 
       // Les empreintes des slides rejoignent la mémoire de la marque : le prochain document ne les répète pas.
       await graphic.remember();
+      await keepRecord();
 
       // The stored PDF no longer matches the regenerated sections
       await cacheService.delete(pdfCacheKey(userId, projectId, deck.id), { prefix: 'pdf' });
@@ -441,6 +463,7 @@ export class PitchDeckService extends GenericService {
 
     const stepResults = await this.processSteps(configuredSteps, project, promptConfig);
     await graphic.remember();
+    await keepRecord();
     sectionResults = stepResults.map((r) => ({ name: r.name, type: r.type, data: r.data, summary: r.summary }));
 
     const updated = await persist();
@@ -449,6 +472,28 @@ export class PitchDeckService extends GenericService {
       await cacheService.delete(pdfCacheKey(userId, projectId, deck.id), { prefix: 'pdf' });
     }
     return updated;
+  }
+
+  /**
+   * L'EXPORT POWERPOINT d'un deck : le HTML des slides reste la source ; le `.pptx` est produit à la demande, en mode
+   * `fidelity` (une image haute résolution par slide, rendu identique à l'aperçu) ou `editable` (textes en zones
+   * PowerPoint natives sur le fond des visuels). Les notes de l'orateur suivent. `null` : aucun deck.
+   */
+  async generatePitchDeckPptx(userId: string, projectId: string, documentId: string | undefined, mode: PptxMode): Promise<{ buffer: Buffer; name: string } | null> {
+    const project = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
+    const deck = project ? findDocument(project.analysisResultModel, 'pitchDeck', documentId) : null;
+    if (!project || !deck?.sections?.length) return null;
+    const order = getPitchDeckType(deck.type).slides as readonly string[];
+    const rank = (name: string) => (order.indexOf(name) >= 0 ? order.indexOf(name) : order.length);
+    const slides = [...deck.sections]
+      .filter((s) => typeof s.data === 'string' && s.data.trim())
+      .sort((a, b) => rank(a.name) - rank(b.name))
+      .map((s) => ({ html: s.data as string }));
+    const startedAt = Date.now();
+    const report = await exportPptx(slides, { mode, title: `${project.name || 'Pitch deck'} — Pitch deck`, company: project.name || undefined, author: 'IDEM' });
+    logger.info('pitchdeck.pptx', { event: 'pitchdeck.pptx', projectId, documentId: deck.id, mode, slides: report.slides, textBoxes: report.textBoxes, notes: report.notes, ms: Date.now() - startedAt });
+    const slug = (project.name || 'pitch-deck').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-|-$/g, '').toLowerCase() || 'pitch-deck';
+    return { buffer: report.buffer, name: `${slug}-pitch-deck${mode === 'editable' ? '-modifiable' : ''}.pptx` };
   }
 
   /**

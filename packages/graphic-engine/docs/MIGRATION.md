@@ -1,4 +1,57 @@
-# Migration vers @idem/graphic-engine (octobre 2026)
+# Migrations du moteur graphique
+
+## 2.2 — retouche et remise en page sans réécriture, export PowerPoint (15 octobre 2026)
+
+- Le document garde le contenu et le code de chaque page (`page(id)`) ; IDEM les enregistre dans
+  `SectionModel.composition` (business plan, pitch deck).
+- La retouche par instruction d'une page (`POST …/sections/:id/ai-edit`) passe par le moteur : mots par clé et page
+  rejouée, forme par l'auteur ; l'ancienne réécriture du HTML ne sert plus qu'aux pages sans contenu gardé — sans
+  la feuille compilée envoyée au modèle, et feuille recompilée au retour (les classes ajoutées s'affichaient mal).
+- Nouvelle mise en page : `POST /businessPlans/:projectId/relayout`, `POST /pitchDecks/:projectId/relayout`
+  (`{ creativity, note }`) — 25 et 12 crédits × le cran.
+- Export PowerPoint du deck : `GET /pitchDecks/pptx/:projectId?mode=fidelity|editable` (PptxGenJS 4.0.1).
+
+## 2.1 — langage de marque, plan de document, rendu professionnel (14 octobre 2026)
+
+- Le directeur écrit le **langage visuel de la marque** une fois par charte (port `brandMemory` : Redis chez IDEM,
+  Mongo `brand_memory` chez iVision) ; tous les livrables le relisent, flyers et cartes compris.
+- Pour un document de plusieurs pages, il écrit un **plan** (une idée, une ligne par page, à partir de ce que chaque
+  page doit faire : `sections[].purpose`) au lieu d'une bible ; chaque page reçoit sa ligne et celles de ses voisines.
+- Consigne **professionnelle** (aucune décoration gratuite), consigne système stable, outils documentés à la demande,
+  HTML compact ; graphiques : `data-type` et `data-highlight`.
+- Entrée par page ≈ −18 % (`npm run prompt-size`), plus le cache de la consigne système et un appel de directeur
+  par marque au lieu d'un par document pour les pages seules.
+
+## 2.0 — l'IA écrit les pages en Tailwind (14 octobre 2026)
+
+Même philosophie que le moteur vidéo Motion Canvas : **l'IA conçoit librement, le code garantit
+l'exactitude et l'affichage, la jauge choisit le modèle**.
+
+| | 1.x | 2.0 |
+|---|---|---|
+| Qui compose | le code (motifs classés, menus) ; l'IA choisit, règle ou écrit un ARBRE de primitives selon le cran | l'IA, à tous les crans : un directeur écrit la bible du document, un auteur écrit chaque page en HTML Tailwind |
+| Le cran | décide qui compose et combien de révisions | choisit le MODÈLE (`graphic.director` sur l'échelle « design », `graphic.author` sur l'échelle « code ») |
+| Le style | compilé par le moteur, en ligne, depuis des jetons | classes Tailwind de l'auteur, compilées côté serveur avec le thème de la marque ; CSS natif interdit (retiré et signalé) |
+| Contrôles | mesure, ajustement au pixel, contraste, décors, repli sur la composition suivante, réparation ciblée, critique visuelle, révisions | **un seul** : la page s'affiche-t-elle ? Sinon correction bornée (corriger › réécrire au cran au-dessus › minimale), puis `GraphicRenderError` |
+| Textes et chiffres | désignés par référence dans l'arbre | placés par l'auteur par leurs clés `{{…}}`, remplis par le code |
+| Graphiques, tableaux | composants du compilateur | primitives `<idem-chart>`, `<idem-table>` dessinées par le code ; `<idem-logo>`, `<idem-icon>`, `<idem-pattern>` |
+| Page gardée (`SectionSpec`) | v1 : l'arbre | v2 : le code de l'auteur (rejoué sans modèle pour une retouche de texte ; donné à l'auteur pour une retouche de forme) |
+| Crans | Low, Medium, High, Max, Ultra | Low, Medium, High, Ultra (« max » gardé = High) |
+
+Supprimé : `composition-engine/` (sauf l'analyse de texte, déplacée dans `content/`), `design-system/components`,
+`design-system/patterns`, `design-system/look.ts`, `design-system/kit/shapes.ts`, `html-css-compiler/`,
+`quality-engine/` (mesure et réparation ; le navigateur est passé dans `runtime/browser.ts`), `orchestrator/`,
+`capability-registry/` (sauf les icônes locales) et son client MCP, les agents `creative-planner`, `critic`,
+`targeted-repair`, `spec-edit`, `logo-guard`, `content-planner` ; les rôles `graphic.artDirector`,
+`visual.critic`, `generation.repair` ; le port `analyzeImage` ; les scripts `benchmark`, `preview`,
+`mcp-sync` et les contrôles API `checkCovers`, `previewCharterPages`. Côté services : la réécriture
+automatique des slides trop textuelles (`slide-condense`) et le déplacement vers les notes, la grille
+`verifySection` sur les pages du moteur, la retouche des visuels par opérations sur l'arbre
+(`applySpecOps`).
+
+Une page gardée en v1 ne se rejoue plus : elle est réécrite à la retouche suivante.
+
+## 1.0 — Migration vers @idem/graphic-engine (octobre 2026)
 
 L'ancienne génération graphique d'IDEM — un modèle qui écrivait le HTML des pages, des posters et des
 cartes, puis des linters et des réparateurs qui tentaient de rattraper ce qu'il avait produit — est

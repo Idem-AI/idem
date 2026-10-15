@@ -50,7 +50,7 @@ export const FormatId = z.enum([
 ]);
 export type FormatId = z.infer<typeof FormatId>;
 
-export const CreativityLevel = z.enum(['low', 'medium', 'high', 'max', 'ultra']);
+export const CreativityLevel = z.enum(['low', 'medium', 'high', 'ultra']);
 export type CreativityLevel = z.infer<typeof CreativityLevel>;
 
 /** Gravité d'un constat : `blocking` rend la page fausse, `advisory` la rend perfectible. */

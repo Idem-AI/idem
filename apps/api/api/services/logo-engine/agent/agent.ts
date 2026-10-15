@@ -35,10 +35,10 @@ import { assembleAuthored, authorTask, CRITIC_INSTRUCTION, critiqueScore, direct
 import type { AuthoredLogo, Direction } from './tasks';
 
 /** Largeur du tirage du planificateur par cran. */
-export const EXPLORATION: Record<CreativityLevel, number> = { low: 0.15, medium: 0.35, high: 0.5, max: 0.65, ultra: 0.8 };
+export const EXPLORATION: Record<CreativityLevel, number> = { low: 0.15, medium: 0.35, high: 0.5, ultra: 0.8 };
 
 /** Brouillons écrits par l'IA par direction. */
-export const DRAFTS: Record<CreativityLevel, number> = { low: 0, medium: 0, high: 0, max: 2, ultra: 3 };
+export const DRAFTS: Record<CreativityLevel, number> = { low: 0, medium: 0, high: 0, ultra: 3 };
 
 export interface AgentDeps {
   /** L'appel de modèle de l'hôte (runtime d'agents d'IDEM). Absent : le planificateur décide de tout. */

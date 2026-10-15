@@ -133,7 +133,7 @@
           "end": "."
         }
       ],
-      "text": "Choisissez combien l’IA décide. En bas, des règles sûres. En haut, une composition d’auteur. Le prix suit le cran.",
+      "text": "Choisissez la puissance du modèle qui crée. En bas, un modèle léger et rapide. En haut, le plus puissant. Le prix suit le cran.",
       "ladder": "Cran de créativité",
       "default": "Par défaut",
       "price": "Prix",
@@ -142,27 +142,22 @@
         "low": {
           "name": "Low",
           "mult": "×1",
-          "text": "Des règles sûres : une mise en page classique, sans surprise."
+          "text": "Un modèle léger compose votre visuel : rapide, au prix de base."
         },
         "medium": {
           "name": "Medium",
           "mult": "×1",
-          "text": "Le bon équilibre : iVision choisit ce qu’il faut mettre en avant."
+          "text": "Un modèle intermédiaire : le bon équilibre, conseillé."
         },
         "high": {
           "name": "High",
           "mult": "×1,25",
-          "text": "Un directeur artistique regarde le visuel et décide de la composition."
-        },
-        "max": {
-          "name": "Max",
-          "mult": "×1,5",
-          "text": "L’IA compose toute la page et ose les très grands formats."
+          "text": "Un modèle avancé : des compositions plus fines et plus audacieuses."
         },
         "ultra": {
           "name": "Ultra",
           "mult": "×2",
-          "text": "Une création d’auteur, écrite par l’IA puis critiquée à l’œil jusqu’à être juste."
+          "text": "Le modèle le plus puissant, pour une vraie création d’auteur."
         }
       }
     },
@@ -308,13 +303,19 @@
   },
   "creativity": {
     "label": "Créativité",
-    "hint": "Plus le cran est haut, plus l’IA décide (et plus le prix monte).",
+    "hint": "Plus le cran est haut, plus le modèle qui conçoit le visuel est puissant (et plus le prix monte).",
     "levels": {
-      "low": "Low ×1",
-      "medium": "Medium ×1",
-      "high": "High ×1,25",
-      "max": "Max ×1,5",
-      "ultra": "Ultra ×2"
+      "low": "Low ×1 · modèle léger",
+      "medium": "Medium ×1 · modèle intermédiaire",
+      "high": "High ×1,25 · modèle avancé",
+      "ultra": "Ultra ×2 · le plus puissant"
+    },
+    "videoHint": "Plus le cran est haut, plus le modèle qui conçoit et écrit la vidéo est puissant (et plus le prix monte).",
+    "videoLevels": {
+      "low": "Low ×1 · modèle léger",
+      "medium": "Medium ×1 · modèle intermédiaire",
+      "high": "High ×1,25 · modèle avancé",
+      "ultra": "Ultra ×2 · le plus puissant"
     }
   },
   "formats": {
@@ -350,7 +351,10 @@
       "empty": "Aucune marque prête.",
       "add": "Ajouter une marque",
       "applied": "J’ai lu votre site : j’utilise ses couleurs, ses polices, son logo et ses photos. Vous pouvez changer la palette dans « Marques ».",
-      "appliedNoLogo": "J’ai lu votre site : j’utilise ses couleurs, ses polices et ses photos. Vous pouvez changer la palette dans « Marques »."
+      "appliedNoLogo": "J’ai lu votre site : j’utilise ses couleurs, ses polices et ses photos. Vous pouvez changer la palette dans « Marques ».",
+      "project": "J’ai lu votre site et créé votre projet sur IDEM, avec votre charte graphique : votre logo et ses déclinaisons, vos couleurs, vos polices, votre direction artistique et vos motifs. Je l’applique à tout ce que je crée.",
+      "projectNoLogo": "J’ai lu votre site et créé votre projet sur IDEM, avec votre charte graphique : vos couleurs, vos polices, votre direction artistique. Ajoutez votre logo dans IDEM pour le voir sur vos créations.",
+      "openIdem": "Voir ma charte sur IDEM"
     },
     "empty": {
       "videoTitle": "Quelle vidéo voulez-vous ?",
@@ -424,30 +428,14 @@
       "visualFromReference": "Voici votre visuel, composé comme le modèle, à votre marque.",
       "montage": "Je monte votre vidéo : je coupe les blancs, j’ajoute les sous-titres et j’anime ce que vous dites. Vous pouvez quitter la page, je continue.",
       "fidelityTitle": "Ce que la vidéo n’a pas pu suivre",
-      "fidelity": {
-        "4k": "La 4K n’est pas disponible : la vidéo est rendue en 1080p, la meilleure qualité proposée.",
-        "fps": "{{fps}} images par seconde n’est pas disponible : la vidéo est rendue à 30 images par seconde.",
-        "duration": "Votre scénario dure {{asked}} s et la vidéo {{made}} s (durée choisie) : chaque scène a gardé sa part du temps.",
-        "textsMissing": "{{count}} texte(s) de votre demande n’ont pas pu être placés : vérifiez-les dans la retouche.",
-        "textsAdded": "{{count}} texte(s) ont été ajoutés à votre scénario : vérifiez-les dans la retouche.",
-        "language": "Certains textes ne sont pas dans la langue de votre demande : vérifiez-les avant l’export.",
-        "voice": "La voix off n’a pas pu être générée dans la langue de la vidéo.",
-        "scenes": "{{count}} scène(s) de votre scénario manquent : vérifiez le découpage dans la retouche.",
-        "footageBlocked": {
-          "payment": "Le service de génération vidéo n’a plus de crédits : les plans filmés ont été remplacés. Relancez la création quand il sera rechargé.",
-          "unavailable": "Le service de génération vidéo est indisponible : les plans filmés ont été remplacés. Relancez la création quand il sera revenu."
-        },
-        "footageStock": "{{count}} plan(s) filmé(s) remplacé(s) par des vidéos libres de droits.",
-        "footageStills": "{{count}} plan(s) filmé(s) montré(s) en images animées.",
-        "footageMissing": "{{count}} plan(s) filmé(s) composé(s) en motion design, faute de vidéo."
-      },
       "preparing": "Chargement des sons et de la voix off… {{percent}} %",
       "watchVideo": "Voir la vidéo",
       "downloadFormat": "Choisissez le format",
       "downloadReady": "Prêt",
       "downloadIncluded": "Inclus",
       "downloadPrice": "{{cost}} crédits",
-      "downloadPreparing": "Préparation du MP4… {{percent}} %"
+      "downloadPreparing": "Préparation du MP4… {{percent}} %",
+      "broken": "{{count}} scène(s) ne s’exécute(nt) pas : ouvrez « Modifier » et appuyez sur « Corriger » avant de télécharger."
     },
     "payment": {
       "cta": "Recharger mes crédits",
@@ -458,21 +446,16 @@
       "label": "Étapes de la création",
       "stages": {
         "plan": "Plan de la vidéo",
-        "copy": "Textes",
-        "layout": "Mises en page",
         "media": "Images et clips",
         "music": "Musique",
-        "sfx": "Effets sonores",
         "voice": "Voix off",
-        "storyboard": "Montage",
-        "animation": "Animations",
-        "critique": "Relecture",
-        "code": "Plans sur mesure",
-        "direction": "Direction du film",
-        "shots": "Plans du film",
-        "concept": "Concepts créatifs",
+        "storyboard": "Storyboard",
+        "code": "Écriture des scènes",
+        "concept": "Concept du film",
         "design": "Conception du visuel",
-        "photo": "Choix de la photo"
+        "photo": "Choix de la photo",
+        "check": "Contrôle des scènes",
+        "repair": "Correction automatique des scènes"
       }
     },
     "composer": {
@@ -527,7 +510,12 @@
         "voice": "Je saisis votre ton…",
         "art": "Je regarde votre direction artistique…",
         "done": "Lecture terminée.",
-        "copy": "Je garde vos images…"
+        "copy": "Je garde vos images…",
+        "project": "Je crée votre projet sur IDEM…",
+        "logo-variations": "Je décline votre logo…",
+        "typography": "Je récupère vos polices…",
+        "art-direction": "J’écris votre direction artistique…",
+        "patterns": "Je dessine vos motifs…"
       },
       "reference": {
         "probe": "J’ouvre le modèle…",
@@ -540,7 +528,8 @@
         "start": "Je prépare votre vidéo…"
       },
       "visual": {
-        "start": "Je compose votre visuel…"
+        "start": "Je compose votre visuel…",
+        "retouch": "Je retouche votre visuel…"
       },
       "videos": "Je prépare vos vidéos…",
       "montage": {
@@ -576,6 +565,9 @@
     "video": {
       "notUnderstood": "Je n’ai pas compris ce qu’il faut changer. Dites par exemple « change le titre en … », « plus sobre », « sans musique » ou « ajoute une voix off ».",
       "revised": "C’est fait. Regardez la nouvelle version."
+    },
+    "visual": {
+      "notUnderstood": "Je n’ai pas compris ce qu’il faut changer. Dites par exemple « change le prix en 4 500 F », « agrandis le titre » ou « enlève le sous-titre »."
     }
   },
   "edit": {
@@ -601,7 +593,10 @@
     "exportCta": "Exporter",
     "included": "Inclus",
     "price": "{{cost}} crédits",
-    "rendering": "Rendu en cours — {{percent}} %"
+    "rendering": "Rendu en cours — {{percent}} %",
+    "legacyTitle": "Vidéo de l’ancien moteur",
+    "legacyBody": "Cette vidéo a été faite avant le nouveau moteur : elle se télécharge depuis la conversation, mais ne se retouche plus. Demandez une nouvelle vidéo pour la changer.",
+    "broken": "{{count}} scène(s) ne s’exécute(nt) pas : appuyez sur « Corriger » dans la scène avant d’exporter."
   },
   "brands": {
     "title": "Marques",

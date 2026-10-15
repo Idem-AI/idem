@@ -15,9 +15,10 @@ import logger from '../../config/logger';
 import { BUSINESS_CREDIT_COSTS } from '../../models/billing.model';
 import { configureCore, ImageOptions, SpeechRequest, SynthesizedSpeech, VideoClipRequest, VisionOptions } from '../../../../ivision/core/src/runtime/host';
 import { AI_CONFIG } from '../../config/ai.config';
-import { setVideoPricingBase } from '../../../../ivision/core/src/video/video.pricing';
+import { setVideoPricingBase } from '../../../../ivision/core/src/video/pricing';
 import { apiBaseUrl } from '../Communication/visualUrl';
 import { runtimeCall } from '../creativity/orchestrator';
+import { idemAssetRegistry } from '../graphic/asset-registry';
 
 let configured = false;
 
@@ -91,6 +92,8 @@ export function configureIvisionCoreForIdem(): void {
     generateVideo: idemGenerateVideo,
     synthesizeSpeech: idemSynthesizeSpeech,
     agentCall: (ctx) => runtimeCall(ctx),
+    // Le registre des ressources du projet, le même que celui du moteur graphique (deck, visuels).
+    assetRegistry: idemAssetRegistry,
     refundCredits: async (userId, cost, meta) => {
       const { creditLedgerService } = await import('../billing/credit-ledger.service');
       const { entitlementsService } = await import('../billing/entitlements.service');

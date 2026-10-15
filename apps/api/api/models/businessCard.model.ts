@@ -88,7 +88,7 @@ export interface BusinessCardTemplateMeta {
   concept: string;
   orientation: BusinessCardOrientation;
   /** Cran de la jauge de créativité de la génération (Low → Ultra). */
-  creativity?: 'low' | 'medium' | 'high' | 'max' | 'ultra';
+  creativity?: 'low' | 'medium' | 'high' | 'ultra';
   /** Mise en page du code retenue (« recto/verso »), absente quand l'IA a écrit les faces. */
   layout?: string;
   /** Champs réellement utilisés par le template → pilote le formulaire. */

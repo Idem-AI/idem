@@ -154,3 +154,46 @@ export function flyer(withPhoto: boolean, p: { a: string; b: string; c: string }
     ],
   };
 }
+
+// ── Le deck VISUEL : des pages qui montrent au lieu d'écrire (intention de page, points, médias) ──
+
+/** Une « capture » de test : un écran d'application dessiné (barre, cartes, graphique), sans texte. */
+export function capture(primary: string, soft: string): string {
+  return svg(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 800"><rect width="1280" height="800" fill="#ffffff"/><rect width="1280" height="64" fill="${primary}"/><rect x="0" y="64" width="240" height="736" fill="#f3f4f6"/>${[0, 1, 2, 3, 4].map((i) => `<rect x="32" y="${110 + i * 56}" width="176" height="20" rx="6" fill="${i === 1 ? primary : '#d1d5db'}"/>`).join('')}${[0, 1, 2].map((i) => `<rect x="${280 + i * 320}" y="104" width="296" height="140" rx="14" fill="${soft}"/>`).join('')}<rect x="280" y="276" width="936" height="480" rx="14" fill="#f9fafb" stroke="#e5e7eb"/><polyline points="320,700 460,620 600,650 740,520 880,540 1020,410 1160,360" fill="none" stroke="${primary}" stroke-width="8"/></svg>`);
+}
+
+export const PROBLEM_VISUAL: SectionContent = {
+  id: 'problem-visual',
+  kicker: 'Problème',
+  title: 'Le café camerounais part vert et revient torréfié',
+  intent: { visualStrategy: 'illustration', keyMessage: 'La valeur du café quitte le pays avant d’être transformée.', textBudget: { headlineWords: 12, bodyWords: 60, maxBullets: 4 } },
+  blocks: [{ id: 'b1', kind: 'points', items: [{ label: 'La valeur part', detail: '92 % de la récolte exportée sans transformation.', value: '92 %', visual: 'ship' }, { label: 'L’offre locale est pauvre', detail: 'Solubles importés, vracs sans traçabilité.', visual: 'coffee' }, { label: 'Les producteurs sont isolés', detail: 'Ni marque, ni accès direct aux clients.', visual: 'farmer' }] }],
+};
+
+export const MODEL_HUB: SectionContent = {
+  id: 'model-hub',
+  kicker: 'Modèle',
+  title: 'Un comptoir qui relie la terre à la ville',
+  intent: { visualStrategy: 'diagram', keyMessage: 'Kora capte la marge de torréfaction et la partage avec les coopératives.' },
+  blocks: [{ id: 'b1', kind: 'points', items: [{ label: 'Coopératives', detail: 'Achat direct, prix garanti', visual: 'farmer' }, { label: 'Torréfaction', detail: 'Chaque semaine, à Douala', visual: 'flame' }, { label: 'Comptoirs', detail: 'Bonanjo, puis Yaoundé', visual: 'store' }, { label: 'Abonnements', detail: 'Livrés en bureau', visual: 'delivery' }] }],
+};
+
+export const VISION_BLEED = (photoUrl: string): SectionContent => ({
+  id: 'vision',
+  kicker: 'Vision',
+  title: 'Le café d’ici, bu ici',
+  lede: 'Faire du café camerounais torréfié le premier choix des bureaux de Douala d’ici 2028.',
+  intent: { visualStrategy: 'full-bleed', keyMessage: 'Le café local devient le choix évident en ville.', textBudget: { headlineWords: 12, bodyWords: 30, maxBullets: 0 } },
+  blocks: [{ id: 'b1', kind: 'figure', url: photoUrl, alt: 'Une plantation de café au lever du jour' }],
+});
+
+export const PRODUCT_CAPTURE = (captureUrl: string): SectionContent => ({
+  id: 'product',
+  kicker: 'Produit',
+  title: 'L’abonnement se gère en trois gestes',
+  intent: { visualStrategy: 'product-capture', keyMessage: 'Commander, suivre, renouveler : depuis le téléphone.' },
+  blocks: [
+    { id: 'shot', kind: 'figure', url: captureUrl, alt: 'Le tableau de bord des abonnés Kora' },
+    { id: 'b1', kind: 'points', items: [{ label: 'Choisir sa mouture', detail: 'Grains, filtre ou expresso' }, { label: 'Suivre la livraison', detail: 'Le jour et l’heure du passage' }, { label: 'Ajuster sa quantité', detail: 'D’un mois à l’autre, sans frais' }] },
+  ],
+});

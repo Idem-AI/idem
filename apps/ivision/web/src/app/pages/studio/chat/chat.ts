@@ -30,7 +30,7 @@ const DURATIONS = [6, 15, 30, 60];
 /**
  * La durée et le format écrits dans la demande (« Durée : 60 secondes », « Format : 16:9 ») : ils
  * règlent le compositeur, et le prix affiché suit — la demande n'est plus contredite par les
- * réglages par défaut. Même lecture que le moteur (`core/src/video/video.request.ts#durationIn`,
+ * réglages par défaut. Même lecture que le moteur (`core/src/video/request/request.ts#durationIn`,
  * `#formatIn`) ; un ratio seul compte partout, un mot (« paysage ») seulement sur la ligne « Format ».
  */
 export function settingsInRequest(text: string): { durationSec?: number; format?: string } {
@@ -75,6 +75,11 @@ export class ChatPage {
   protected readonly state = inject(StudioState);
   private readonly tours = inject(TourService);
   protected readonly accountUrl = `${environment.services.dashboard.url}/account`;
+
+  /** La charte du projet IDEM né d'un site : la page « Marque » du projet, ouvert d'office. */
+  protected idemBrandUrl(projectId: string): string {
+    return `${environment.services.dashboard.url}/project/branding?projectId=${encodeURIComponent(projectId)}`;
+  }
 
   /** Paramètres de route (liaison des entrées du routeur). */
   readonly modeParam = input<string>('video', { alias: 'mode' });

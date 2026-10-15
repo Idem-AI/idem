@@ -32,6 +32,7 @@ import {
   describeSectionPlan,
   normalizeSectionPlan,
   sectionFromModel,
+  type SectionFromModelOptions,
   SectionContent,
   sectionPlanContract,
   volumeDirective,
@@ -65,6 +66,12 @@ export interface SectionTemplate {
   heading?: { title: string; kicker?: string };
   /** Recompose les blocs (spécimens compris) avant le rendu : le logo et son explication dans UN objet. */
   composeBlocks?: (blocks: Block[]) => Block[];
+  /**
+   * L'INTENTION de la page (diapositives) : sa stratégie visuelle et son budget de texte, décidés par le
+   * code, et les stratégies que le rédacteur peut leur substituer (la jauge en décide). Présente, le contrat
+   * de sortie demande la clé `visual` (message à retenir, image voulue) et le moteur planifie les médias.
+   */
+  intent?: SectionFromModelOptions['intent'];
   /** La page : le moteur compose, mesure et répare la section, puis rend son fragment HTML autonome. */
   render: (section: SectionContent) => Promise<string>;
 }
@@ -604,7 +611,12 @@ export class GenericService {
             // donc le comblement — disparaît.
             planDirective,
             volumeDirective(step.template.volume),
-            contentContract({ deliverable: step.template.deliverable }),
+            contentContract({
+              deliverable: step.template.deliverable,
+              ...(step.template.intent
+                ? { visual: { strategies: step.template.intent.allowStrategies ?? [step.template.intent.visualStrategy] } }
+                : {}),
+            }),
           ]
             .filter(Boolean)
             .join('\n\n')
@@ -669,7 +681,7 @@ export class GenericService {
         // n'existe plus. Le balisage, lui, est garanti par le rendu.
         validate: step.template
           ? (text: string) =>
-              sectionFromModel(parseLlmJson(text) ?? text, { id: step.template!.sectionId, fallbackTitle: step.stepName }).section
+              sectionFromModel(parseLlmJson(text) ?? text, { id: step.template!.sectionId, fallbackTitle: step.stepName, intent: step.template!.intent }).section
                 ? { ok: true }
                 : { ok: false, reason: 'contenu de section illisible ou vide' }
           : step.quality
@@ -696,9 +708,9 @@ export class GenericService {
 
     let content = result.text;
 
-    // RENDU. Le modèle a produit du contenu ; la page est fabriquée par le moteur graphique, avec la
-    // palette, la grille, la typographie, les contrastes et le logo du document. Rien de tout cela ne
-    // dépend plus de ce que le modèle a bien voulu suivre.
+    // RENDU. Le modèle a produit du contenu ; la page est écrite par l'auteur du moteur graphique (HTML
+    // Tailwind), remplie par le code avec les textes et chiffres exacts, et contrôlée à l'affichage seulement.
+    let composedByEngine = false;
     if (step.template) {
       // Une sortie mal formatée coûte sa mise en page, jamais son contenu : un JSON abîmé est réparé, une
       // page HTML rendue par erreur voit son texte récupéré, et le moteur refait la forme.
@@ -710,12 +722,14 @@ export class GenericService {
         heading: step.template.heading,
         compose: step.template.composeBlocks,
         fallbackTitle: step.stepName,
+        intent: step.template.intent,
       });
       if (read.section) {
         if (read.salvaged) {
           logger.warn(`Section '${step.stepName}' : sortie en HTML au lieu du contenu structuré — texte RÉCUPÉRÉ, page recomposée par le moteur.`);
         }
         content = await step.template.render(read.section);
+        composedByEngine = true;
         logger.info(`Section '${step.stepName}' composée par le moteur graphique (${read.section.blocks.length} blocs, ${content.length} car.)`);
       } else {
         // ── LA SORTIE BRUTE NE DEVIENT JAMAIS UNE PAGE ────────────────────
@@ -734,9 +748,9 @@ export class GenericService {
       }
     }
 
-    // Contrôle + réparation bornée. `verifySection` sort immédiatement si la
-    // grille déterministe ne trouve rien : le cas nominal ne coûte rien.
-    if (step.quality) {
+    // Contrôle + réparation bornée des pages ÉCRITES EN HTML PAR LE RÉDACTEUR (chemin sans moteur). Une page
+    // du moteur graphique n'y passe jamais : sa seule vérification est son affichage, déjà faite.
+    if (step.quality && !composedByEngine) {
       const outcome = await verifySection(content, step.quality, {
         userId,
         projectId: project.id,

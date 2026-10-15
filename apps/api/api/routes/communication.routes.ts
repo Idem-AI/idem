@@ -43,15 +43,17 @@ import {
   motionVideoService,
   previewVideoController,
   updateVideoController,
+  reviseVideoController,
   uploadVideoPhotosController,
   uploadVideoMediaController,
   createVideoStreamController,
+  interpretVideoController,
   sfxFileController,
   videoMusicController,
   videoOptionsController,
   enhanceVideoRequestController,
 } from '../controllers/motionVideo.controller';
-import { normalizeScope, videoCost } from '../../../ivision/core/src/video/video.pricing';
+import { normalizeScope, videoCost } from '../../../ivision/core/src/video/pricing';
 import multer from 'multer';
 import { authenticate } from '../services/auth.service';
 import { checkPolicyAcceptance } from '../middleware/policyCheck.middleware';
@@ -784,6 +786,16 @@ communicationRoutes.post(
 
 /**
  * @openapi
+ * /project/communication/{projectId}/videos/interpret:
+ *   post:
+ *     tags: [Communication]
+ *     summary: Interpret a video request before creating it (free) — objective, material, motion language, and the one question to ask when a decision that changes the pipeline is missing.
+ *     security: [{ bearerAuth: [] }]
+ */
+communicationRoutes.post(`/${resource}/:projectId/videos/interpret`, authenticate, interpretVideoController);
+
+/**
+ * @openapi
  * /project/communication/{projectId}/videos/stream:
  *   post:
  *     tags: [Communication]
@@ -821,14 +833,14 @@ communicationRoutes.post(
  *     security: [{ bearerAuth: [] }]
  */
 /**
- * Médias importés pour les vidéos : photos, clips (réencodés en WebM 720p),
- * modèles 3D (GLB, 20 Mo), animations Lottie (JSON ou .lottie, 3 Mo) et Rive (.riv, 6 Mo).
+ * Médias importés pour les vidéos : photos et clips (réencodés en WebM 720p). Le moteur Motion
+ * Canvas ne lit ni modèle 3D, ni Lottie, ni Rive : ils sont refusés dès l'envoi.
  */
 const videoMediaUpload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 80 * 1024 * 1024, files: 8 },
   fileFilter: (_req, file, cb) =>
-    cb(null, /^(image\/(jpeg|png|webp|heic|heif)|video\/(mp4|quicktime|webm|x-m4v)|model\/gltf-binary|application\/(json|octet-stream|zip))$/.test(file.mimetype) || /\.(glb|json|lottie|riv)$/i.test(file.originalname)),
+    cb(null, /^(image\/(jpeg|png|webp|heic|heif)|video\/(mp4|quicktime|webm|x-m4v))$/.test(file.mimetype)),
 });
 communicationRoutes.post(
   `/${resource}/:projectId/videos/media`,
@@ -863,6 +875,15 @@ communicationRoutes.post(
  */
 communicationRoutes.get(`/${resource}/:projectId/videos/:videoId`, authenticate, getVideoController);
 communicationRoutes.patch(`/${resource}/:projectId/videos/:videoId`, authenticate, extendedTimeout, updateVideoController);
+
+/**
+ * @openapi
+ * /project/communication/{projectId}/videos/{videoId}/revise:
+ *   post:
+ *     tags: [Communication]
+ *     summary: Revise a video from a written request (free) — texts, voice lines, music, or a visual change rewritten by the scene author.
+ */
+communicationRoutes.post(`/${resource}/:projectId/videos/:videoId/revise`, authenticate, extendedTimeout, reviseVideoController);
 communicationRoutes.delete(`/${resource}/:projectId/videos/:videoId`, authenticate, deleteVideoController);
 
 /**

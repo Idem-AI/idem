@@ -21,9 +21,9 @@ import type { MontageVideo, MontageWord } from '../src/montage/montage.model';
 import { rulesPlan, validateElement, PlannerInput } from '../src/montage/montage.planner';
 import { elementWindows } from '../src/montage/montage.timeline';
 import { transcribe, transcriptionAvailable, wordsFromWhisperJson } from '../src/montage/montage.transcribe';
-import { frameSpec } from '../src/video/video.composer';
-import { closeRenderBrowser, probe, renderVideo } from '../src/video/video.renderer';
-import { buildVideoTheme } from '../src/video/video.theme';
+import { frameSpec } from '../src/video/rendering/formats';
+import { closeRenderBrowser, probe, renderVideo } from '../src/montage/montage.renderer';
+import { buildVideoTheme } from '../src/montage/montage.theme';
 
 let failures = 0;
 let passes = 0;

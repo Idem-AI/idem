@@ -70,6 +70,10 @@ export function visualBrandingFromKit(branding: BrandKit | null | undefined): Vi
           iconOnly: pair('iconOnly'),
         }
       : undefined,
+    // Les motifs de la charte (déposés dans le stockage) : un visuel qui pose un motif pose CEUX-LÀ.
+    ...(Array.isArray((branding as any)?.patterns?.items) && (branding as any).patterns.items.length
+      ? { patterns: (branding as any).patterns.items.filter((p: any) => typeof p?.url === 'string').map((p: any) => ({ url: p.url, tile: p.tile, ground: p.ground, kind: p.kind })) }
+      : {}),
   };
 }
 

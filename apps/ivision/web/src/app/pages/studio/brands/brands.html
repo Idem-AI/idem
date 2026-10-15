@@ -115,6 +115,11 @@
                 {{ 'brands.addPhotos' | translate }}
                 <input type="file" class="sr-only" multiple accept="image/jpeg,image/png,image/webp" (change)="addPhotos(b, $event)" />
               </label>
+              @if (b.idemProjectId) {
+                <a class="outer-button button-sm" [href]="idemBrandUrl(b.idemProjectId)" target="_blank" rel="noopener">
+                  <i class="pi pi-external-link" aria-hidden="true"></i> {{ 'chat.brand.openIdem' | translate }}
+                </a>
+              }
               <button type="button" class="button-ghost button-sm" (click)="remove(b)">
                 {{ (confirmDelete() === b.id ? 'brands.confirmDelete' : 'brands.delete') | translate }}
               </button>

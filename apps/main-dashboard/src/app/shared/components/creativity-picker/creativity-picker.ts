@@ -41,6 +41,12 @@ export class CreativityPickerComponent {
   readonly align = input<'start' | 'end'>('start');
   /** Affiche le prix du cran dans le bouton (quand le bouton de génération ne peut pas le porter). */
   readonly showCost = input(false);
+  /**
+   * Le livrable : pour une vidéo, le cran choisit la PUISSANCE DU MODÈLE (même travail à tous les crans),
+   * et le menu le dit avec ses propres textes (`common.creativity.video`).
+   */
+  readonly kind = input<'default' | 'video'>('default');
+  protected readonly texts = computed(() => (this.kind() === 'video' ? 'common.creativity.video' : 'common.creativity'));
 
   protected readonly levels = CREATIVITY_LEVELS;
   protected readonly uid = `cp-${++nextId}`;

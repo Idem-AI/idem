@@ -22,6 +22,7 @@
  * libre (la couverture) et comme repli si le mode gabarit est coupé.
  */
 
+import { TEXT_BUDGETS, type TextBudgetKind, type VisualStrategy } from '@idem/graphic-engine';
 import type { PitchDeckAudience } from '../deck-types';
 
 /** Cadre de lecture, par destinataire du deck. */
@@ -46,14 +47,16 @@ the team's ability to deliver and exactly what the prize or the grant will pay f
 };
 
 /** Ce qu'est un slide, quel que soit son sujet et son lecteur. */
-const SLIDE_RULES = `A slide carries ONE idea. Three to five blocks, never more: a slide is read in
-twenty seconds, from a distance, by someone who did not ask for it.
+const SLIDE_RULES = `A slide carries ONE idea and is read in ten seconds from the back of the room. The
+TITLE is a full-sentence assertion of 10 words or fewer; the blocks are its EVIDENCE — a figure, a chart, a
+picture, three short labels. One to three blocks. Everything you would EXPLAIN goes in "notes" (what the
+speaker says aloud), never on the slide.
 
-- The title states the CONCLUSION, not the topic. "Le marché double d'ici 2028",
-  never "Analyse du marché".
-- The lede is one sentence, 20 words maximum, that a reader could quote.
-- Every figure carries a unit and a period. A figure with no source is noise.
-- No sentence that would survive a change of company name.`;
+- Title: the conclusion, not the topic. "Le marché double d'ici 2028", never "Analyse du marché".
+- On the slide: about 30 words in total besides the title. "points" labels of 3 to 6 words; a detail line
+  only when it carries a figure.
+- No lede, no paragraph, unless nothing else can carry the proof — then one sentence.
+- Every figure carries a unit and a period.`;
 
 export interface SlideBriefParts {
   objective: string;
@@ -68,7 +71,8 @@ export const SLIDE_BRIEF_PARTS: Record<string, SlideBriefParts> = {
 - Who suffers it, in numbers: how many, where, how often.
 - What it costs them today — money, time, or opportunity forgone.
 - Why the existing answers do not solve it. One line each, at most three.
-Blocks: a "metrics" row of 2-3 figures, one "prose" block, optionally one "quote".`,
+Blocks: one "points" block of 2-3 pains (label, one-line detail, the figure that proves it,
+and what pictures it), optionally one "quote" from someone who lives it.`,
   },
 
   Solution: {
@@ -76,7 +80,8 @@ Blocks: a "metrics" row of 2-3 figures, one "prose" block, optionally one "quote
     mustCover: `- One sentence that a non-specialist could repeat correctly.
 - The three moves the product makes, and what each one removes from the problem.
 - What is genuinely different from the existing answers — a mechanism, not an adjective.
-Blocks: one "prose" block, one "cards" block of 3 items with the strongest set to emphasis.`,
+Blocks: one "points" block of the three moves (what each removes from the problem),
+optionally one "metrics" row of the gain it brings.`,
   },
 
   Market: {
@@ -93,8 +98,8 @@ one "table" for the TAM/SAM/SOM breakdown, one "assumption" for the derivation.`
     mustCover: `- What the user actually does, step by step, in three steps at most.
 - The single capability competitors cannot copy quickly, and why.
 - Where it stands today: shipped, in beta, in design.
-Blocks: one "timeline" of the user journey OR a "cards" block of capabilities,
-plus one "prose" block on the state of the build.`,
+Blocks: one "points" block of the user's steps or of the key capabilities,
+plus one "metrics" row or one short "prose" block on the state of the build.`,
   },
 
   'Business Model': {
@@ -102,8 +107,8 @@ plus one "prose" block on the state of the build.`,
     mustCover: `- Who pays, how much, how often.
 - Unit economics: revenue per unit, cost per unit, margin. Real numbers.
 - What makes the margin improve with scale — a mechanism, not a hope.
-Blocks: one "table" of the pricing or unit economics, one "metrics" row for the
-headline margin, one "prose" block on the scaling mechanism.`,
+Blocks: one "points" block of how money flows (who pays, for what, how often, what it costs),
+one "metrics" row for the headline margin, optionally one "table" of the unit economics.`,
   },
 
   Traction: {
@@ -128,7 +133,8 @@ one "prose" block naming your own weakness.`,
     objective: 'Answer one question: why these people, for this problem.',
     mustCover: `- Each founder: what they did before that bears DIRECTLY on this problem.
 - The gap in the team, and how it is being filled.
-Blocks: one "cards" block, one card per person, plus one "prose" block on the gap.`,
+Blocks: one "points" block, one point per person (label "Name — role", detail: the one prior
+experience that matters), optionally one "prose" sentence on the gap.`,
   },
 
   Financials: {
@@ -155,8 +161,8 @@ one "table" of the allocation, one "timeline" of the milestones.`,
     mustCover: `- What the company does, in one sentence a non-specialist could repeat.
 - Legal form, creation date, location and headcount — the facts a file reviewer checks first.
 - The milestones already reached, dated.
-Blocks: one "metrics" row of 2-3 facts (founded, team, customers), one "prose" block,
-optionally one "timeline" of the milestones.`,
+Blocks: one "metrics" row of 2-3 facts (founded, team, customers), one "points" block of
+what the company does, optionally one "timeline" of the milestones.`,
   },
 
   'Funding Request': {
@@ -182,7 +188,8 @@ one "table" of the yearly figures, one "assumption" block for the downside case.
     mustCover: `- The guarantees offered — collateral, personal guarantee, guarantee fund, insurance — each with its value.
 - The main risks of the project, and the measure that contains each one.
 - What is already committed: signed orders, contracts, grants.
-Blocks: one "table" of the guarantees and their value, one "cards" block of risks and mitigations.`,
+Blocks: one "table" of the guarantees and their value, one "points" block of risks and the
+measure that contains each.`,
   },
 
   // ── Présentation commerciale ──────────────────────────────────────────────
@@ -191,7 +198,7 @@ Blocks: one "table" of the guarantees and their value, one "cards" block of risk
     mustCover: `- The two or three gains that matter to this buyer: money saved, time saved, revenue added, risk removed.
 - Each gain quantified, with its unit and the period over which it is obtained.
 - The payback period of the purchase.
-Blocks: one "metrics" row of the quantified gains, one "prose" block on how they are obtained.`,
+Blocks: one "metrics" row of the quantified gains, one "points" block on how each is obtained.`,
   },
 
   'Case Studies': {
@@ -199,7 +206,7 @@ Blocks: one "metrics" row of the quantified gains, one "prose" block on how they
     mustCover: `- One to three real references: who, the situation before, the result after, in figures.
 - A short testimonial when one exists. Never an invented name or quote.
 - Without customers yet: the pilot, the test or the letter of intent that stands in for them.
-Blocks: one "cards" block, one card per reference, optionally one "quote".`,
+Blocks: one "points" block, one point per reference (who, before, after in figures), optionally one "quote".`,
   },
 
   Pricing: {
@@ -215,7 +222,7 @@ Blocks: one "table" comparing the offers, one "prose" block on the recommended o
     mustCover: `- The concrete next step proposed, who takes it and by when.
 - The path from agreement to the first result, in three dated steps at most.
 - The person who follows up: name, role and contact details.
-Blocks: one "timeline" of the next steps, one "prose" block with the contact.`,
+Blocks: one "points" block of the next steps, each dated, one short "prose" block with the contact.`,
   },
 
   // ── Partenariat ───────────────────────────────────────────────────────────
@@ -224,7 +231,7 @@ Blocks: one "timeline" of the next steps, one "prose" block with the contact.`,
     mustCover: `- What each party brings: customers, distribution, technology, capital, expertise.
 - How value is shared: revenue split, fees, exclusivity, duration.
 - How it runs day to day: who decides, who delivers, how results are measured.
-Blocks: one "table" of contributions by party, one "cards" block of the operating rules.`,
+Blocks: one "points" block of what each party brings and gets, one "table" of the operating rules.`,
   },
 
   'Partner Benefits': {
@@ -232,7 +239,7 @@ Blocks: one "table" of contributions by party, one "cards" block of the operatin
     mustCover: `- The gains for the partner — new revenue, new customers, costs avoided, reputation — quantified.
 - Why now, and what waiting costs the partner.
 - The first measurable result, and when it can be expected.
-Blocks: one "metrics" row of the partner's gains, one "prose" block on timing.`,
+Blocks: one "metrics" row of the partner's gains, one "points" block of the first results and when.`,
   },
 
   // ── Concours, incubateur, subvention ──────────────────────────────────────
@@ -241,7 +248,7 @@ Blocks: one "metrics" row of the partner's gains, one "prose" block on timing.`,
     mustCover: `- The social, economic or environmental outcome, with its indicator and its target value.
 - Who benefits, how many, where.
 - How the impact is measured and reported, and the Sustainable Development Goals it serves when relevant.
-Blocks: one "metrics" row of impact indicators, one "prose" block on the measurement method.`,
+Blocks: one "metrics" row of impact indicators, one "points" block of who benefits and how it is measured.`,
   },
 
   Milestones: {
@@ -261,6 +268,54 @@ Blocks: one "metrics" row for the amount, one "table" of the allocation, one "pr
   },
 };
 
+/**
+ * Le PLAN VISUEL de chaque slide (`SlideIntentPlan`) : comment elle démontre son message, ce qu'elle peut
+ * porter de texte, et les autres stratégies que le rédacteur peut proposer quand la jauge le laisse choisir
+ * (High et au-delà). Aux crans Low et Medium, la stratégie est celle-ci, décidée par le code.
+ *
+ * Une stratégie dont le média manque (une capture du produit qu'on n'a pas) retombe d'elle-même sur les
+ * points illustrés : le plan dit ce qui SERAIT le mieux, le moteur fait avec ce qui existe.
+ */
+export interface SlideVisualPlan {
+  strategy: VisualStrategy;
+  budget: TextBudgetKind;
+  alternatives: VisualStrategy[];
+}
+
+export const SLIDE_VISUAL_PLANS: Record<string, SlideVisualPlan> = {
+  Problem: { strategy: 'illustration', budget: 'points', alternatives: ['full-bleed', 'diagram'] },
+  Solution: { strategy: 'illustration', budget: 'points', alternatives: ['product-capture', 'diagram', 'full-bleed'] },
+  Market: { strategy: 'data-visualization', budget: 'data', alternatives: ['editorial'] },
+  Product: { strategy: 'product-capture', budget: 'demonstration', alternatives: ['illustration', 'diagram'] },
+  'Business Model': { strategy: 'diagram', budget: 'points', alternatives: ['illustration', 'data-visualization'] },
+  Traction: { strategy: 'data-visualization', budget: 'data', alternatives: ['editorial'] },
+  Competition: { strategy: 'editorial', budget: 'data', alternatives: ['data-visualization'] },
+  Team: { strategy: 'illustration', budget: 'points', alternatives: ['editorial'] },
+  Financials: { strategy: 'data-visualization', budget: 'data', alternatives: ['editorial'] },
+  Ask: { strategy: 'data-visualization', budget: 'data', alternatives: ['editorial', 'diagram'] },
+  'Company Overview': { strategy: 'full-bleed', budget: 'points', alternatives: ['illustration', 'editorial'] },
+  'Funding Request': { strategy: 'data-visualization', budget: 'data', alternatives: ['editorial'] },
+  'Repayment Capacity': { strategy: 'data-visualization', budget: 'data', alternatives: ['editorial'] },
+  Guarantees: { strategy: 'illustration', budget: 'data', alternatives: ['editorial'] },
+  'Customer Benefits': { strategy: 'illustration', budget: 'points', alternatives: ['full-bleed', 'data-visualization'] },
+  'Case Studies': { strategy: 'illustration', budget: 'points', alternatives: ['editorial', 'full-bleed'] },
+  Pricing: { strategy: 'editorial', budget: 'data', alternatives: ['data-visualization'] },
+  'Next Steps': { strategy: 'diagram', budget: 'points', alternatives: ['illustration', 'editorial'] },
+  'Partnership Model': { strategy: 'diagram', budget: 'points', alternatives: ['illustration'] },
+  'Partner Benefits': { strategy: 'illustration', budget: 'points', alternatives: ['data-visualization'] },
+  Impact: { strategy: 'full-bleed', budget: 'points', alternatives: ['illustration', 'data-visualization'] },
+  Milestones: { strategy: 'editorial', budget: 'data', alternatives: ['diagram'] },
+  'Use of Funds': { strategy: 'data-visualization', budget: 'data', alternatives: ['editorial'] },
+};
+
+/** La consigne de volume en MOTS, tirée du budget de la slide (une seule, exprimée en nombres). */
+function wordBudget(name: string): string {
+  const plan = SLIDE_VISUAL_PLANS[name];
+  if (!plan) return '';
+  const b = TEXT_BUDGETS[plan.budget];
+  return `<word_budget>Title: ${b.headlineWords} words at most. Everything else on the slide together: ${b.bodyWords} words at most${b.maxBullets ? `, in ${b.maxBullets} points or fewer` : ''}. Over budget, change how the idea is shown or drop the weakest point — never squeeze more text in.</word_budget>`;
+}
+
 /** Brief complet d'une slide pour un destinataire ; `undefined` hors catalogue. */
 export function composeSlideBrief(
   name: string,
@@ -268,7 +323,8 @@ export function composeSlideBrief(
 ): string | undefined {
   const parts = SLIDE_BRIEF_PARTS[name];
   if (!parts) return undefined;
-  return `${DECK_READER_FRAMES[audience]}\n\n${SLIDE_RULES}\n\n<objective>${parts.objective}</objective>\n\n<must_cover>\n${parts.mustCover}\n</must_cover>`;
+  const budget = wordBudget(name);
+  return `${DECK_READER_FRAMES[audience]}\n\n${SLIDE_RULES}\n\n<objective>${parts.objective}</objective>\n\n<must_cover>\n${parts.mustCover}\n</must_cover>${budget ? `\n\n${budget}` : ''}`;
 }
 
 /**

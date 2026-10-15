@@ -241,6 +241,8 @@
       <span class="dp-sep" aria-hidden="true"></span>
 
       @if (tracksGeneration()) {
+        <!-- Réglage fourni par la page pour ses régénérations (ex. le cran de créativité). -->
+        <ng-content select="[previewActions]" />
         <div #regenControl class="dp-regen">
           <button
             type="button"
@@ -335,6 +337,30 @@
                   </span>
                 </span>
               </button>
+              @if (canRelayout()) {
+                <!-- Nouvelle mise en page : les pages sont réécrites depuis leur contenu, aucun texte n'est réécrit. -->
+                <div class="dp-menu-item dp-menu-rich dp-relayout" role="group" [attr.aria-label]="'dashboard.documentPreview.relayout.title' | translate">
+                  <i class="pi pi-th-large dp-menu-icon" aria-hidden="true"></i>
+                  <span class="dp-menu-text">
+                    <span class="dp-menu-title">{{ 'dashboard.documentPreview.relayout.title' | translate }}</span>
+                    <span class="dp-menu-desc">{{ 'dashboard.documentPreview.relayout.desc' | translate }}</span>
+                    <label class="sr-only" for="dp-relayout-note">{{ 'dashboard.documentPreview.relayout.noteLabel' | translate }}</label>
+                    <input
+                      id="dp-relayout-note"
+                      type="text"
+                      class="mt-2 w-full"
+                      maxlength="600"
+                      [value]="relayoutNote()"
+                      [placeholder]="'dashboard.documentPreview.relayout.notePlaceholder' | translate"
+                      (input)="onRelayoutNote($event)"
+                      (keydown.enter)="relayout()"
+                    />
+                    <button type="button" class="inner-button button-sm mt-2 self-start" [disabled]="relayoutState() === 'working'" (click)="relayout()">
+                      {{ 'dashboard.documentPreview.relayout.run' | translate }}
+                    </button>
+                  </span>
+                </div>
+              }
             </div>
           }
         </div>
@@ -352,15 +378,28 @@
       <span class="dp-action-label">{{ 'dashboard.documentPreview.dock.edit' | translate }}</span>
     </button>
 
+    @if (relayoutState() !== 'idle') {
+      <span class="dp-relayout-status" role="status" aria-live="polite">
+        @if (relayoutState() === 'working') {
+          <idem-loader size="xs" />
+        }
+        {{ 'dashboard.documentPreview.relayout.state.' + relayoutState() | translate }}
+      </span>
+    }
+
     @if (canDownload()) {
+      <div #downloadControl class="dp-download-wrap">
       <button
         type="button"
         class="dp-action dp-download"
         [attr.data-state]="downloadState()"
         [attr.aria-busy]="downloadState() === 'working'"
         [attr.aria-label]="downloadLabel() | translate"
+        [attr.aria-haspopup]="canPptx() ? 'menu' : null"
+        [attr.aria-expanded]="canPptx() ? downloadMenuOpen() : null"
         [disabled]="loading() || downloadState() === 'working'"
-        (click)="download()"
+        (click)="onDownloadClick()"
+        (keydown.escape)="downloadMenuOpen.set(false)"
       >
         <span class="dp-download-icon" aria-hidden="true">
           @switch (downloadState()) {
@@ -379,7 +418,36 @@
           }
         </span>
         <span class="dp-action-label">{{ downloadLabel() | translate }}</span>
+        @if (canPptx()) {
+          <i class="pi pi-angle-down dp-caret" aria-hidden="true"></i>
+        }
       </button>
+      @if (downloadMenuOpen()) {
+        <div class="dp-menu dp-menu-download" role="menu" (keydown.escape)="downloadMenuOpen.set(false)">
+          <button type="button" role="menuitem" class="dp-menu-item dp-menu-rich" (click)="downloadMenuOpen.set(false); download()">
+            <i class="pi pi-file-pdf dp-menu-icon" aria-hidden="true"></i>
+            <span class="dp-menu-text">
+              <span class="dp-menu-title">{{ 'dashboard.documentPreview.download.pdf' | translate }}</span>
+              <span class="dp-menu-desc">{{ 'dashboard.documentPreview.download.pdfDesc' | translate }}</span>
+            </span>
+          </button>
+          <button type="button" role="menuitem" class="dp-menu-item dp-menu-rich" (click)="downloadPptx('fidelity')">
+            <i class="pi pi-images dp-menu-icon" aria-hidden="true"></i>
+            <span class="dp-menu-text">
+              <span class="dp-menu-title">{{ 'dashboard.documentPreview.download.pptxFidelity' | translate }}</span>
+              <span class="dp-menu-desc">{{ 'dashboard.documentPreview.download.pptxFidelityDesc' | translate }}</span>
+            </span>
+          </button>
+          <button type="button" role="menuitem" class="dp-menu-item dp-menu-rich" (click)="downloadPptx('editable')">
+            <i class="pi pi-pencil dp-menu-icon" aria-hidden="true"></i>
+            <span class="dp-menu-text">
+              <span class="dp-menu-title">{{ 'dashboard.documentPreview.download.pptxEditable' | translate }}</span>
+              <span class="dp-menu-desc">{{ 'dashboard.documentPreview.download.pptxEditableDesc' | translate }}</span>
+            </span>
+          </button>
+        </div>
+      }
+      </div>
       <span class="sr-only" aria-live="polite">
         @if (downloadState() !== 'idle') {
           {{ downloadLabel() | translate }}

@@ -105,6 +105,8 @@ export interface BrandIdentityModel {
     generatedAt: Date;
     items: BrandPatternFileModel[];
   };
+  /** Le site d'où la marque a été importée (iVision) : son style relevé nourrit la direction artistique. */
+  siteSource?: { url: string; evidence?: string; importedAt: Date };
 }
 
 /** Un motif de marque déposé dans le stockage : une tuile SVG qui se répète. */
@@ -119,6 +121,8 @@ export interface BrandPatternFileModel {
   /** Côté de la tuile en px : l'échelle d'affichage s'en déduit. */
   tile: number;
   url: string;
+  /** D'où vient le motif : le symbole du logo, la tuile dessinée par l'IA, ou une géométrie générée. */
+  source?: 'logo' | 'ai' | 'geometry';
 }
 
 /** Un fichier de bannière ou de photo de profil, déposé dans le stockage. */

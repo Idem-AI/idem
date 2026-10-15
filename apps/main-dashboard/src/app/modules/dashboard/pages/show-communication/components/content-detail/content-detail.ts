@@ -140,12 +140,10 @@ export class ContentDetail {
   /** Un contenu vidéo montre sa vidéo, pas un visuel ; l'utilisateur peut basculer. */
   protected readonly isVideo = computed(() => VIDEO_CONTENT_FORMATS.includes(this.item().format) || !!this.item().videoType);
   protected readonly preferVisual = signal(false);
-  protected readonly videoType = computed<VideoType>(() => this.item().videoType ?? 'mix');
   protected readonly videoOptions = signal<VideoOptions | null>(null);
   protected readonly videoBusy = signal(false);
   protected readonly videoProgress = signal<VideoProgressState>({});
   protected readonly videoFormat = computed<VideoFormat>(() => VIDEO_FORMAT_BY_CHANNEL[this.item().channel] ?? 'story');
-  protected readonly videoTypes = computed(() => this.videoOptions()?.types ?? []);
   /** La jauge de créativité de ce contenu (visuel et vidéo) ; Medium par défaut. */
   protected readonly creativity = signal<CreativityLevel>(DEFAULT_CREATIVITY);
   /** Prix du visuel au cran Low / Medium pour ce projet (lu sur l'API). */
@@ -159,8 +157,6 @@ export class ContentDetail {
     return base == null ? null : creativityCost(base, this.creativity());
   });
   protected readonly lastVideoId = computed(() => (this.item().videoIds ?? []).slice(-1)[0] ?? null);
-  protected readonly choosingVideoType = signal(false);
-  protected readonly videoTypeIcon = computed(() => this.videoTypes().find((t) => t.id === this.videoType())?.icon ?? 'pi pi-video');
 
   private optionsRequested = false;
   private visualPriceRequested = false;
@@ -314,20 +310,7 @@ export class ContentDetail {
     });
   }
 
-  /** Le type de vidéo se change d'un clic (enregistré sur le contenu). */
-  protected setVideoType(type: VideoType): void {
-    this.choosingVideoType.set(false);
-    if (type === this.item().videoType) return;
-    this.communication.updatePlanItem(this.projectId(), this.planId(), this.item().id, { videoType: type }).subscribe({
-      next: (plan) => {
-        const updated = plan.items.find((candidate) => candidate.id === this.item().id);
-        if (updated) this.itemChange.emit(updated);
-      },
-      error: (err) => this.failed.emit(err?.error?.message || 'content-update'),
-    });
-  }
-
-  /** Génère LA vidéo de ce contenu : son type, son brief (accroche, angle, appel à l'action). */
+  /** Génère LA vidéo de ce contenu : son brief (accroche, angle, appel à l'action). */
   protected createVideo(): void {
     if (this.videoBusy()) return;
     this.videoBusy.set(true);
@@ -337,7 +320,8 @@ export class ContentDetail {
       .createStream(this.projectId(), {
         brief: { musicMood: 'auto', sfx: true, allowStock: true, allowGenerate: true },
         scope: { durationSec: 15, formats: [this.videoFormat()], quality: 'hd' },
-        type: this.videoType(),
+        // Le type n'est plus imposé : l'intention (objectif, matière, mouvement) est lue dans le contenu.
+        type: 'auto',
         contentId: this.item().id,
         creativity: this.creativity(),
       })

@@ -2,7 +2,7 @@
 
 `apps/api/api/services/logo-engine/` — un moteur TypeScript autonome (Node seul, ni React ni navigateur) qui génère les 11 catégories de logos et livre un vrai SVG vectoriel, vérifié.
 
-Il reprend les principes du moteur vidéo (voir [VIDEO_ENGINE.md](VIDEO_ENGINE.md)) : **une représentation intermédiaire structurée, des outils spécialisés, un rendu déterministe, une boucle de contrôle qualité, un modèle qui décide mais ne construit pas**.
+Il repose sur ces principes : **une représentation intermédiaire structurée, des outils spécialisés, un rendu déterministe, une boucle de contrôle qualité, un modèle qui décide mais ne construit pas**.
 
 Avant : le modèle dessinait le SVG (≈ 3 400 tokens de consigne + 3 500 de SVG par brouillon, trois brouillons au cran Ultra, plus critique et révision). Maintenant : le modèle choisit et décrit (quelques centaines de tokens) ; le code construit le SVG, le mesure et le corrige.
 
@@ -139,8 +139,9 @@ La méthode change avec le cran de la jauge ; la qualité reste dans le code (vo
 | Low | rien : le planificateur | 15 % | 0 |
 | Medium | **sélecteur** : choisit 3 propositions parmi 9 candidats déjà construits et mesurés | 35 % | ≈ 400 |
 | High | + **directeur** : trois directions (catégorie, générateur, idée) tirées d'un menu filtré par le brief ; le code les construit | 50 % | ≈ 400 |
-| Max | + **auteur** : écrit le Logo IR de chaque direction (2 brouillons), le **jury** départage (mesures à l'appui) | 65 % | ≈ 4 900 |
-| Ultra | + 3 brouillons, dessin libre autorisé, **critique visuelle** (le modèle regarde le rendu et répond par un **patch**, 2 tours) | 80 % | ≈ 14 500 |
+| Ultra | + **auteur** : écrit le Logo IR de chaque direction (3 brouillons, dessin libre autorisé), le **jury** départage (mesures à l'appui), **critique visuelle** (le modèle regarde le rendu et répond par un **patch**, 2 tours) | 80 % | ≈ 14 500 |
+
+Le cran Max a été retiré le 14 octobre 2026 : l'auteur et le jury, qu'il ouvrait, sont réservés à Ultra — le cran auquel le logo est toujours généré. Le moteur de logos garde ses méthodes (il n'est pas passé au moteur graphique Tailwind).
 
 Garde-fous en code, à tous les crans :
 - le modèle ne reçoit qu'un menu filtré, la signature d'UN générateur et un mémento de ~400 tokens ; jamais le catalogue ;

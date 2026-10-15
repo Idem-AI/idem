@@ -317,6 +317,7 @@ export class SocialMockupService {
       brand: kit.brand,
       direction: kit.direction,
       seed: `avatar:${kit.projectKey}`,
+      memoryScope: { documentType: 'brand-charter', key: kit.projectKey },
       png: true,
       content: { id: 'avatar', role: 'visual', title: kit.brandName.slice(0, 160) || 'Marque', blocks: [] },
     });
@@ -366,6 +367,7 @@ export class SocialMockupService {
       brand: kit.brand,
       direction: kit.direction,
       seed: `banner:${kit.projectKey}:${format}`,
+      memoryScope: { documentType: 'brand-charter', key: kit.projectKey },
       png: true,
       content,
       ...(target.canonical ? {} : { size: { width, height } }),

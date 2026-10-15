@@ -15,7 +15,8 @@ import { screenshotOne } from '../utils/screenshotone.js';
 import { ProjectPromptService } from '../services/projectPromptService.js';
 import { ChatLogger } from '../utils/logger.js';
 import { streamResponse } from '../utils/streamResponse.js';
-import { createSiteBuildStream, shouldOrchestrateSite } from '../orchestrator/siteBuilder.js';
+import { createSiteEngineStream, shouldGenerateSite } from '../siteEngine/orchestrator.js';
+import { SCAFFOLD_VERSION } from '../scaffold/index.js';
 
 /** Past this, the existing project is summarised rather than sent whole. */
 const CONTEXT_TOKEN_LIMIT = 128000;
@@ -129,24 +130,24 @@ export async function handleBuilderMode(
   // throws that instruction away.
   const isFirstTurn = !messages.some((message) => message.role === 'assistant');
 
-  // Premier tour d'un site vitrine, starter monté : le site est rédigé section
-  // par section par l'orchestrateur, et non plus d'un seul jet. Les tours
-  // suivants (« change le titre », « ajoute une page ») restent au modèle, qui
-  // modifie alors des contenus déjà en place.
-  if (
-    shouldOrchestrateSite({ target, scaffoldVersion, isFirstTurn, projectData, outOfBand: qualityRepair })
-  ) {
-    ChatLogger.info('SITE_ORCHESTRATOR', 'Site rédigé section par section', {
+  // Premier tour d'un site vitrine : le moteur de sites (siteEngine) conçoit
+  // l'architecture et le design system, puis fait écrire chaque composant.
+  // Les tours suivants (« change le titre », « ajoute une page ») restent au
+  // modèle, qui modifie un site déjà en place avec le même contrat.
+  if (shouldGenerateSite({ target, isFirstTurn, projectData, outOfBand: qualityRepair })) {
+    ChatLogger.info('SITE_ENGINE', 'Site généré par le moteur de design system', {
       project: projectData?.name,
       language,
+      scaffold: scaffoldVersion ?? 'absent',
     });
     ChatLogger.stepEnd('handleBuilderMode', Date.now() - startTime);
-    return createSiteBuildStream({
+    return createSiteEngineStream({
       projectData: projectData!,
       language: language === 'en' ? 'en' : 'fr',
       request: rawRequest,
       model,
       userId,
+      scaffoldMounted: scaffoldVersion === SCAFFOLD_VERSION,
       credentials,
     });
   }

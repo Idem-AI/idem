@@ -12,7 +12,7 @@
  * les instants sont recalculés à chaque composition depuis les mots retimés par les coupes.
  */
 import type { CreativityLevel } from '../creativity/levels';
-import type { VideoFormat, VideoQuality, VideoRender } from '../video/video.model';
+import type { VideoFormat, VideoQuality, VideoRender } from '../video/contracts/model';
 
 /** Un mot transcrit, dans le temps de l'ORIGINAL (avant coupes). */
 export interface MontageWord {

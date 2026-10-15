@@ -35,4 +35,8 @@ export class BusinessPlanEditorAdapter extends HtmlSectionsEditorAdapter {
   downloadPdf(projectId: string, documentId?: string | null): Observable<Blob> {
     return this.businessPlanService.downloadBusinessPlanPdf(projectId, documentId);
   }
+
+  relayout(projectId: string, documentId: string | null | undefined, body: { creativity?: string; note?: string }) {
+    return this.businessPlanService.relayoutBusinessPlan(projectId, documentId, body);
+  }
 }

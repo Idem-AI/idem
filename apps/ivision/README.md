@@ -45,9 +45,9 @@ flowchart LR
 
 ### One engine, two hosts
 
-`core/` contains every piece of creative logic: the video service (`src/video`), the React video
-engine (`engine/src`), the visual composer (`src/visual`), the website scanner (`src/site`), the
-model analyser and its reproduction plan (`src/reference`), the design rules (`src/design`) and the
+`core/` contains every piece of creative logic: the video service (`src/video`), the Motion Canvas
+runtime played in the browser and in Chromium (`motion/`), the visual composer (`src/visual`), the
+website scanner (`src/site`), the model analyser (`src/reference`), the design rules (`src/design`) and the
 agent orchestrator (`src/creativity`). It knows nothing about MongoDB, projects or providers: each host
 plugs its **ports** with `configureCore()`.
 
@@ -86,8 +86,8 @@ iVision has no sign-in screen, no model provider and no wallet:
 `api/src/services/chat.service.ts`. A request is read **in full** (up to 20,000 characters — a one-page script is
 never cut) and the video is made in the language the user WRITES: an explicit instruction (« Langue : français »,
 « in English ») › the language of the text › the interface language › the brand language. A written script is followed
-scene by scene, its on-screen texts word for word, and each shot gets the tool its content needs (generated filmed shot,
-the brand's own screenshots, motion design, signature) — see `apps/api/docs/MOTION_VIDEO.md` (« La demande suivie à la
+scene by scene, its on-screen texts word for word; the AI designs the film and writes every scene in Motion Canvas code
+(generated filmed shots and the brand's own screenshots are its media) — see `apps/api/docs/MOTION_VIDEO.md` (« La demande suivie à la
 lettre »). Duration and format written in the request (« 60 secondes », « 16:9 ») set the composer before the price is
 shown; a web address written inside a long request is content, not a site to scan.
 

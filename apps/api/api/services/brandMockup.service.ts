@@ -332,17 +332,24 @@ export class BrandMockupService {
         throw new Error('OpenRouter is not configured. Cannot generate mockup images.');
       }
 
-      // Le modèle d'image photographie une scène NUE, relue par la vision (des
-      // lettres ? où imprimer ?), puis le vrai logo est incrusté par composition :
-      // un modèle d'image ne reproduit pas un logo fidèlement.
-      const { scene, reading } = await this.stageCleanScene(request, mockupName);
-      // Une page d'univers visuel ne porte PAS le logo : la scène nue EST le
-      // livrable. `printLogo` rend du PNG : la transparence du logo doit
-      // survivre à la composition, et le JPEG l'aurait aplatie.
-      const imageBuffer = request.selectedSupport.skipLogo
-        ? scene.buffer
-        : await this.printLogo(scene.buffer, request.logos, reading.zone, mockupName);
-      const imageMimeType = request.selectedSupport.skipLogo ? scene.mimeType : 'image/png';
+      // Le modèle d'image reçoit le LOGO avec le prompt et photographie le support
+      // déjà marqué (encre, broderie, gaufrage selon la matière) ; la vision vérifie
+      // que c'est bien le logo, fidèle, et rien d'autre d'écrit. Deux essais manqués :
+      // dernier recours, la scène nue et le logo incrusté par composition. Une page
+      // d'univers visuel ne porte pas de logo : la scène nue EST le livrable.
+      const printed = request.selectedSupport.skipLogo ? null : await this.stagePrintedScene(request, mockupName);
+      let imageBuffer: Buffer;
+      let imageMimeType: string;
+      if (printed) {
+        imageBuffer = printed.buffer;
+        imageMimeType = printed.mimeType;
+      } else {
+        const { scene, reading } = await this.stageCleanScene(request, mockupName);
+        // `printLogo` rend du PNG : la transparence du logo doit survivre à la
+        // composition, et le JPEG l'aurait aplatie.
+        imageBuffer = request.selectedSupport.skipLogo ? scene.buffer : await this.printLogo(scene.buffer, request.logos, reading.zone, mockupName);
+        imageMimeType = request.selectedSupport.skipLogo ? scene.mimeType : 'image/png';
+      }
 
       console.log(
         `[MOCKUP] ✅ Mockup ready for ${request.selectedSupport.mockupIndex} (${Math.round(imageBuffer.length / 1024)}KB) — now uploading to storage...`
@@ -434,6 +441,90 @@ export class BrandMockupService {
       artDirectionNegative: buildImageNegativePrompt(request.artDirection),
       imagerySubjects: request.artDirection?.imagery?.subjects,
     });
+  }
+
+  /**
+   * La scène IMPRIMÉE : le logo (déclinaison pour fond clair, posé sur un blanc avec de l'air) part en image de
+   * référence avec le prompt ; le modèle le reproduit sur la face du support. La vision compare côte à côte le
+   * logo et la photo : reconnaissable (7/10 au moins) et rien d'autre d'écrit, la photo est gardée. `null`
+   * après `SCENE_ATTEMPTS` essais (ou sans modèle joignable) : l'appelant retombe sur l'incrustation.
+   */
+  private async stagePrintedScene(request: MockupGenerationRequest, mockupName: string): Promise<GeneratedImage | null> {
+    const config = AI_CONFIG.branding.brandMockup;
+    let reference: Buffer;
+    try {
+      const art = await sharp(request.logos.light).trim().resize({ width: 820, height: 820, fit: 'inside', withoutEnlargement: false }).png().toBuffer();
+      reference = await sharp({ create: { width: 1024, height: 1024, channels: 3, background: '#ffffff' } })
+        .composite([{ input: art, gravity: 'center' }])
+        .png()
+        .toBuffer();
+    } catch (error: any) {
+      logger.warn(`[MOCKUP][${mockupName}] Logo reference unreadable (${error?.message}) — composition fallback`);
+      return null;
+    }
+    const prompt = MOCKUP_GENERATION_PROMPT.buildPrintedScenePrompt({
+      brandColors: request.brandColors,
+      selectedSupport: request.selectedSupport,
+      pdfFormat: request.pdfFormat,
+      brandName: request.brandName,
+      artDirectionModifier: buildImageStyleModifier(request.artDirection),
+      artDirectionNegative: buildImageNegativePrompt(request.artDirection),
+      imagerySubjects: request.artDirection?.imagery?.subjects,
+    });
+    const attempts = Math.max(1, MOCKUP_CONFIG.SCENE_ATTEMPTS);
+    for (let attempt = 1; attempt <= attempts; attempt++) {
+      const startedAt = Date.now();
+      try {
+        const scene = await generateImage(prompt, {
+          model: config.imageModel,
+          fallbackModel: config.imageFallbackModel,
+          tag: `${mockupName}#printed${attempt}`,
+          references: [`data:image/png;base64,${reference.toString('base64')}`],
+        });
+        const check = await this.checkPrintedLogo(reference, scene, mockupName);
+        if (check.faithful >= 7 && !check.otherMarkings) {
+          logger.info(`[MOCKUP][${mockupName}] Scene printed with the logo`, { attempt, model: scene.model, faithful: check.faithful, durationMs: Date.now() - startedAt });
+          return scene;
+        }
+        logger.warn(`[MOCKUP][${mockupName}] Printed scene ${attempt}/${attempts} rejected`, { faithful: check.faithful, otherMarkings: check.otherMarkings });
+      } catch (error: any) {
+        logger.warn(`[MOCKUP][${mockupName}] Printed scene ${attempt}/${attempts} failed (${error?.message})`);
+      }
+    }
+    logger.warn(`[MOCKUP][${mockupName}] No faithful printed scene — composition fallback`, { event: 'mockup.logo_fallback' });
+    return null;
+  }
+
+  /** La vision compare le logo (à gauche) et la photo (à droite). Lecture impossible : refusée (0). */
+  private async checkPrintedLogo(reference: Buffer, scene: GeneratedImage, mockupName: string): Promise<{ faithful: number; otherMarkings: boolean }> {
+    const config = AI_CONFIG.branding.brandMockup;
+    try {
+      const photo = await sharp(scene.buffer).resize({ height: 1024, width: 1600, fit: 'inside' }).png().toBuffer();
+      const meta = await sharp(photo).metadata();
+      const w = meta.width ?? 1024;
+      const h = meta.height ?? 1024;
+      const left = await sharp(reference).resize({ width: h, height: h, fit: 'contain', background: '#ffffff' }).png().toBuffer();
+      const board = await sharp({ create: { width: h + 24 + w, height: h, channels: 3, background: '#808080' } })
+        .composite([
+          { input: left, left: 0, top: 0 },
+          { input: photo, left: h + 24, top: 0 },
+        ])
+        .jpeg({ quality: 85 })
+        .toBuffer();
+      const raw = await analyzeImage(board.toString('base64'), 'image/jpeg', MOCKUP_GENERATION_PROMPT.logoCheckVision, {
+        model: config.visionModel,
+        fallbackModel: config.visionFallbackModel,
+        maxOutputTokens: config.visionMaxOutputTokens,
+        temperature: 0,
+      });
+      const parsed = parseLlmJson<Record<string, unknown>>(raw) ?? {};
+      const faithful = Number(parsed.faithful ?? raw.match(/"faithful"\s*:\s*(\d+)/)?.[1] ?? 0);
+      const otherMarkings = typeof parsed.otherMarkings === 'boolean' ? parsed.otherMarkings : /"otherMarkings"\s*:\s*true/i.test(raw);
+      return { faithful: Number.isFinite(faithful) ? faithful : 0, otherMarkings };
+    } catch (error: any) {
+      logger.warn(`[MOCKUP][${mockupName}] Printed logo check failed (${error?.message})`);
+      return { faithful: 0, otherMarkings: true };
+    }
   }
 
   /**

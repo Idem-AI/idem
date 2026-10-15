@@ -40,70 +40,6 @@
   }
 }
 
-.vcm-thumbs {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-auto-rows: 1fr;
-  gap: 3px;
-  opacity: 0.55;
-}
-
-.vcm-thumbs-1 {
-  grid-template-columns: 1fr;
-}
-
-.vcm-thumb {
-  position: relative;
-  overflow: hidden;
-  animation: vcm-in 0.5s ease both;
-}
-
-.vcm-thumb img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-.vcm-thumb-play {
-  position: absolute;
-  right: 0.35rem;
-  bottom: 0.35rem;
-  font-size: 0.7rem;
-  color: var(--color-text-primary);
-}
-
-.vcm-searching {
-  position: absolute;
-  left: 50%;
-  top: 22%;
-  display: inline-flex;
-  max-width: 85%;
-  transform: translateX(-50%);
-  align-items: center;
-  gap: 0.4rem;
-  border-radius: 999px;
-  background: var(--glass-bg-light);
-  padding: 0.25rem 0.65rem;
-  font-size: 0.68rem;
-  color: var(--color-text-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.vcm-searching .pi {
-  animation: vcm-search 1.2s ease-in-out infinite;
-}
-
-@keyframes vcm-search {
-  50% {
-    transform: translateX(3px) rotate(-12deg);
-  }
-}
-
 .vcm-copy {
   position: absolute;
   left: 9%;
@@ -118,6 +54,13 @@
   color: var(--color-text-primary);
   /* Le texte se dévoile comme dans la vidéo : un volet qui glisse. */
   animation: vcm-reveal 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.vcm-concept {
+  margin-top: 0.4rem;
+  font-size: 0.7rem;
+  line-height: 1.35;
+  color: var(--color-text-secondary);
 }
 
 @keyframes vcm-reveal {
@@ -151,26 +94,6 @@
   50% {
     opacity: 0.4;
   }
-}
-
-.vcm-sfx {
-  position: absolute;
-  left: 8%;
-  right: 8%;
-  top: 8%;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.25rem;
-}
-
-.vcm-chip {
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--color-primary) 22%, var(--glass-bg-light));
-  padding: 0.1rem 0.45rem;
-  font-size: 0.58rem;
-  font-weight: 700;
-  color: var(--color-text-primary);
-  animation: vcm-in 0.35s ease both;
 }
 
 .vcm-music {
@@ -244,8 +167,12 @@
   animation: vcm-in 0.4s ease both;
 }
 
-.vcm-timed .vcm-seg {
-  background: color-mix(in srgb, var(--color-primary) 55%, var(--glass-bg-light));
+.vcm-seg-ok {
+  background: color-mix(in srgb, var(--color-primary) 60%, var(--glass-bg-light));
+}
+
+.vcm-seg-error {
+  background: color-mix(in srgb, var(--color-danger) 45%, var(--glass-bg-light));
 }
 
 .vcm-seg-label {
@@ -349,15 +276,12 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .vcm-thumb,
   .vcm-title,
-  .vcm-chip,
   .vcm-track,
   .vcm-seg,
   .vcm-step-detail,
   .vcm-line,
-  .vcm-eq span,
-  .vcm-searching .pi {
+  .vcm-eq span {
     animation: none;
   }
 }

@@ -1,3 +1,4 @@
+import type { SectionContent, SectionSpec } from '@idem/graphic-engine';
 /**
  * @openapi
  * components:
@@ -54,5 +55,19 @@ export interface SectionModel {
   sources?: SectionSource[];
   /** Verdict du vérificateur (présent pour les sections issues de recherche). */
   verification?: SectionVerification;
+  /**
+   * La page telle que le moteur graphique l'a écrite : son contenu (textes, chiffres, médias) et son code. Elle permet
+   * une nouvelle mise en page SANS réécrire le contenu, et des retouches de mots sans modèle d'écriture. Absente sur
+   * les sections d'avant octobre 2026, ou modifiées à la main.
+   */
+  composition?: SectionComposition;
   updatedAt?: Date;
+}
+
+export interface SectionComposition {
+  engine: 'graphic-engine';
+  content: SectionContent;
+  spec?: SectionSpec;
+  /** Le cran qui a écrit la page. */
+  level?: string;
 }

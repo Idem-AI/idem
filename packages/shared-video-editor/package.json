@@ -1,7 +1,7 @@
 {
   "name": "@idem/shared-video-editor",
   "version": "1.0.0",
-  "description": "L'éditeur de vidéo motion design d'IDEM et d'iVision : l'aperçu (le moteur du MP4, joué dans le navigateur) et les textes et images modifiables, vus en direct à l'instant où ils s'affichent",
+  "description": "L’éditeur de vidéo motion design d’IDEM et d’iVision : l’aperçu Motion Canvas (le même paquet que le MP4), les textes et photos de chaque scène vus en direct, et les demandes de réécriture d’une scène par l’IA",
   "type": "module",
   "main": "src/index.ts",
   "types": "src/index.ts",
@@ -24,6 +24,7 @@
   "license": "MIT",
   "peerDependencies": {
     "@angular/core": ">=20",
-    "@angular/platform-browser": ">=20"
+    "@angular/platform-browser": ">=20",
+    "@idem/shared-loader": "*"
   }
 }

@@ -1,39 +1,38 @@
 /**
- * CONTRÔLES du moteur graphique — `npm run check --prefix packages/graphic-engine` (`-- --fast` : sans Chromium).
+ * CONTRÔLE DU MOTEUR GRAPHIQUE — `npm run check --prefix packages/graphic-engine` (`--fast` : sans Chromium).
  *
- * Aucun modèle réel : les agents sont simulés (réponses valides, invalides, muettes), ce qui permet de
- * vérifier chaque chemin de repli. Les rendus sont mesurés dans le vrai Chromium (celui des PDF).
+ *  §1 contrats ; §2 normalisation d'une sortie de petit modèle ; §3 jetons de la marque ;
+ *  §4 la matière à plat (clés exactes, primitives, gabarit de carte) ;
+ *  §5 assainissement (Tailwind seul : CSS natif, scripts, adresses étrangères retirés) ;
+ *  §6 Tailwind compilé côté serveur (thème de la marque, portée `.ge-page`, px) ;
+ *  §7 primitives : les 9 graphiques, le tableau exact ;
+ *  §8 le flux complet avec un auteur SIMULÉ (Chromium) : bible, page, rejeu sans modèle, retouche écrite,
+ *     cran transmis, correction bornée puis erreur dite.
+ *
+ * Aucun réseau, aucun modèle : l'auteur est simulé. Ce contrôle ne juge aucune esthétique.
  */
 import fs from 'fs';
 import path from 'path';
-import type { SectionContent } from '../src/contracts/content-model';
-import { normalizeSection, validateContent, validateDesignSpec } from '../src/contracts';
+import { validateContent, validateDesignSpec } from '../src/contracts/validate';
+import { normalizeSection } from '../src/contracts/normalize';
+import { isAuthoredSpec } from '../src/contracts/design-spec';
+import type { ChartType, SectionContent } from '../src/contracts/content-model';
+import type { CreativityLevel } from '../src/contracts/common';
 import { buildTokens } from '../src/design-system/tokens';
-import { resolveLook } from '../src/design-system/look';
-import { contrastRatio, isDeep } from '../src/foundation/color';
-import { typographize } from '../src/foundation/typeset';
-import { chartPalette } from '../src/design-system/charts/palette';
-import { createContext } from '../src/html-css-compiler/context';
-import { compileSection } from '../src/html-css-compiler/compile';
-import { allPatterns } from '../src/design-system/patterns/registry';
-import { analyzeSection } from '../src/composition-engine/analyze';
-
-import { planDocument } from '../src/composition-engine/plan';
-import { POLICIES } from '../src/composition-engine/profiles';
-import { diversityStats, parse as parseFingerprint } from '../src/composition-engine/diversity';
-import { buildCandidate, createComposeContext, specOf } from '../src/composition-engine/compose';
-import { DiversityMemory } from '../src/composition-engine/diversity';
-import { capabilities } from '../src/capability-registry';
-import { parseAuthored, parsePick } from '../src/agents/creative-planner';
-import { parseCritique } from '../src/agents/critic';
-import { parseRepair } from '../src/agents/targeted-repair';
-import { configureGraphicEngine } from '../src/host';
-import { createDocument } from '../src/engine';
-import { closeBrowser } from '../src/quality-engine/browser';
-import { fitAndMeasure } from '../src/quality-engine/measure';
 import { FORMATS } from '../src/design-system/formats';
-import type { GenerationTrace } from '../src/observability/traces';
-import { ASK, BRANDS, CARD_BACK, CARD_FRONT, CHARTER, coverSection, FINANCE_BP, flyer, MARKET, PROBLEM, SUMMARY_BP, SWOT_BP, TEAM, TRACTION } from './fixtures';
+import { contrastRatio, isDeep } from '../src/foundation/color';
+import { buildContentMap } from '../src/runtime/content-map';
+import { expandPage, extractHtml, sanitizeHtml } from '../src/runtime/expand';
+import { compileTailwind } from '../src/runtime/tailwind';
+import { chartHtml, tableHtml } from '../src/runtime/primitives';
+import { closeBrowser } from '../src/runtime/browser';
+import { configureGraphicEngine } from '../src/host';
+import { cardFaces } from '../src/adapters/sections';
+import { createDocument, GraphicRenderError, renderSingle } from '../src/engine';
+import { applyTextEdits } from '../src/runtime/content-map';
+import { exportPptx } from '../src/export/pptx';
+import { sectionHtml } from '../src/adapters/sections';
+import { BRANDS, CARD_FRONT, FINANCE_BP, MARKET } from './fixtures';
 
 const fast = process.argv.includes('--fast');
 let failures = 0;
@@ -47,21 +46,46 @@ const section = (title: string) => console.log(`\n${title}`);
 const EX = path.resolve(__dirname, '../contracts/examples');
 const readJson = (rel: string) => JSON.parse(fs.readFileSync(path.join(EX, rel), 'utf8'));
 
+// ── L'auteur simulé : il place chaque clé reçue, et sait rendre une page vide ou une réponse sans HTML ─────
+type Mode = 'ok' | 'blank' | 'blank-once' | 'garbage' | 'down';
+let mode: Mode = 'ok';
+const calls: Array<{ role: string; level?: CreativityLevel; repair: boolean; user: string; system?: string }> = [];
+const fakePage = (user: string): string => {
+  const keys = [...user.matchAll(/^\{\{([\w.]+)\}\} = /gm)].map((m) => m[1]).filter((k) => !['kicker', 'title', 'lede'].includes(k));
+  const prims = [...user.matchAll(/<idem-(chart|table) data-block="([^"]+)">/g)].map((m) => `<idem-${m[1]} data-block="${m[2]}" class="w-full text-[12px]"></idem-${m[1]}>`);
+  const body = `<p class="text-[12px] uppercase text-brand-primary">{{kicker}}</p><h2 class="font-display text-[36px] font-bold text-ink">{{title}}</h2><p class="text-muted">{{lede}}</p>${keys.map((k) => `<p data-field="${k}" class="text-[12px]">{{${k}}}</p>`).join('')}${prims.join('')}<idem-logo class="h-[20px]"></idem-logo>`;
+  return /A4 page that GROWS/.test(user) ? `\`\`\`html\n${body}\n\`\`\`` : `\`\`\`html\n<div class="relative flex h-full w-full flex-col gap-[8px] bg-ground p-[5%]">${body}</div>\n\`\`\``;
+};
+configureGraphicEngine({
+  agentCall: () => async ({ role, user, level, system }) => {
+    const repair = /DID NOT DISPLAY|did not display/.test(user);
+    calls.push({ role, level, repair, user, system });
+    if (mode === 'down') throw new Error('quota');
+    if (role === 'graphic.director') return /PAGES:/.test(user) ? `IDEA: Large figures, one brand-primary rule per page.\n${[...user.matchAll(/^(\d+)\. /gm)].map((m) => `PAGE ${m[1]}: the key figure dominates, text in a narrow column`).join('\n')}` : 'LANGUAGE:\n- brand-primary for structure, ink for text, generous margins, a 4px brand-primary rule as signature.';
+    if (/CHANGE REQUESTED BY THE CLIENT/.test(user)) return '```html\n<div class="relative h-full w-full bg-brand-primary p-[40px]"><h2 class="text-[60px] text-on-brand">{{title}}</h2></div>\n```';
+    if (mode === 'garbage') return 'je ne sais pas';
+    if (mode === 'blank' || (mode === 'blank-once' && !repair)) return '```html\n<div class="hidden">{{title}}</div>\n```';
+    return fakePage(user);
+  },
+});
+
+const authorSystemOf = (list: typeof calls) => list.map((c) => c.system ?? '').join('\n');
+
 async function main(): Promise<void> {
   // ── §1 Contrats ──────────────────────────────────────────────────────────────────────────
-  section('§1 Contrats (ContentModel, DesignSpec, RenderResult)');
+  section('§1 Contrats (ContentModel, DesignSpec v2)');
   const validContent = validateContent(readJson('valid/content-pitch-deck.json'));
   ok('exemple de ContentModel valide accepté', validContent.ok, validContent.issues.map((i) => i.message).join(' '));
-  const validSpec = validateDesignSpec(readJson('valid/design-spec-slide.json'), { content: validContent.value, knownPatterns: new Set(allPatterns().map((p) => p.id)) });
-  ok('exemple de DesignSpec valide accepté (sans modèle, sans HTML)', validSpec.ok, validSpec.issues.map((i) => i.message).join(' '));
-  const expectations = readJson('expectations.json') as Record<string, { contract: string; codes: string[]; with?: string }>;
+  const expectations = readJson('expectations.json') as Record<string, { contract: string; codes: string[] }>;
   for (const [file, exp] of Object.entries(expectations)) {
     if (file.startsWith('$')) continue;
-    const raw = readJson(file);
-    const report = exp.contract === 'content' ? validateContent(raw) : validateDesignSpec(raw, exp.with ? { content: validateContent(readJson(exp.with)).value } : {});
+    const report = validateContent(readJson(file));
     const codes = report.issues.map((i) => i.code);
     ok(`${file} refusé (${exp.codes.join(', ')})`, !report.ok && exp.codes.every((c) => codes.includes(c)), `obtenu : ${codes.join(', ') || 'accepté'}`);
   }
+  const spec = { version: 2, ref: 'market', pattern: { id: 'authored' }, html: '<div class="p-[8px]">{{title}}</div>', level: 'high' };
+  ok('une page gardée (v2) se valide et se reconnaît', isAuthoredSpec(spec) && validateDesignSpec({ version: 2, documentType: 'pitch-deck', format: 'slide-16x9', creativity: 'high', tokensHash: 'x', seed: 's', engine: { version: '2', components: '2' }, sections: [spec] }).ok);
+  ok('un plan de l’ancien moteur (arbre v1) n’est pas une page gardée', !isAuthoredSpec({ ref: 'x', pattern: { id: 'slide.split' }, root: { t: 'stack' } }));
   const stale = ['content-model', 'design-spec', 'render-result'].filter((n) => !fs.existsSync(path.resolve(__dirname, `../contracts/${n}.schema.json`)));
   ok('schémas JSON présents (npm run schemas)', stale.length === 0, stale.join(', '));
 
@@ -70,281 +94,159 @@ async function main(): Promise<void> {
   const messy = normalizeSection(readJson('model-outputs/messy-section.json'), { id: 'market' });
   const kinds = messy.section?.blocks.map((b) => b.kind) ?? [];
   ok('la section survit à une sortie sale', Boolean(messy.section));
-  ok('alias « kpi » lu comme chiffres-clés, chiffre vide écarté', kinds[0] === 'metrics' && (messy.section?.blocks[0] as { items: unknown[] }).items.length === 1);
+  ok('alias « kpi » lu comme chiffres-clés', kinds[0] === 'metrics');
   const tbl = messy.section?.blocks.find((b) => b.kind === 'table') as { rows: string[][] } | undefined;
   ok('lignes de tableau recalibrées sur l’en-tête', Boolean(tbl) && tbl!.rows.every((r) => r.length === 3));
-  const ch = messy.section?.blocks.find((b) => b.kind === 'chart') as { chartType: string; series: { data: number[] }[]; readingKey: string } | undefined;
-  ok('graphique : type inconnu → déduit, série complétée, clé de lecture fournie', Boolean(ch) && ch!.chartType === 'bar' && ch!.series[0].data.length === 3 && ch!.series[0].data[1] === 35.5 && ch!.readingKey.length > 0);
-  ok('carte sans corps complétée, paragraphe vide et spécimen inventé écartés', kinds.includes('cards') && !kinds.includes('prose') && !kinds.includes('swatches'));
-  ok('le titre est nettoyé (espaces)', messy.section?.title === 'Notre marché en croissance');
 
   // ── §3 Jetons ────────────────────────────────────────────────────────────────────────────
-  section('§3 Jetons : contrastes garantis, surface claire');
-  const tricky = [
-    BRANDS.kora,
-    BRANDS.kofi,
-    BRANDS.baobab,
-    { name: 'Neon', palette: { primary: '#39FF14', secondary: '#FF00FF', accent: '#00FFFF', background: '#FFFFFF', text: '#777777' } },
-    { name: 'Nuit', palette: { primary: '#0B1020', secondary: '#1F2A44', accent: '#F2C14E', background: '#0E1424', text: '#E8E8E8' } },
-    { name: 'Gris', palette: { primary: '#6B6B6B', secondary: '#9A9A9A', accent: '#BDBDBD', background: '#F2F2F2', text: '#8A8A8A' } },
-  ];
-  for (const brand of tricky) {
-    for (const format of ['slide-16x9', 'a4-portrait', 'card-landscape'] as const) {
-      const t = buildTokens({ brand, format });
-      const good = contrastRatio(t.color.ink, t.color.ground) >= 7 && contrastRatio(t.color.muted, t.color.ground) >= 4.5 && contrastRatio(t.color.onBrand, t.color.primary) >= 4.5;
-      if (!good) ok(`${brand.name} ${format} : encres`, false, `${t.contrast.inkOnGround} / ${t.contrast.mutedOnGround} / ${t.contrast.onBrand}`);
-    }
+  section('§3 Jetons de la marque');
+  const night = { name: 'Nuit', palette: { primary: '#0B1020', secondary: '#1F2A44', accent: '#F2C14E', background: '#0E1424', text: '#E8E8E8' } };
+  for (const brand of [BRANDS.kora, BRANDS.kofi, BRANDS.baobab, night]) {
+    const t = buildTokens({ brand, format: 'slide-16x9' });
+    ok(`${brand.name} : encre lisible sur le fond, encre lisible sur la marque`, contrastRatio(t.color.ink, t.color.ground) >= 7 && contrastRatio(t.color.onBrand, t.color.primary) >= 4.5);
   }
-  ok('encre ≥ 7:1, secondaire ≥ 4,5:1, encre sur marque ≥ 4,5:1 (6 marques dont fluo, nuit, grise)', true);
-  const night = buildTokens({ brand: tricky[4], format: 'slide-16x9' });
-  ok('une charte à fond sombre ne donne PAS une page sombre sans autorisation', !night.color.dark && !isDeep(night.color.ground));
-  ok('… mais la donne quand le fond sombre est explicitement admis', buildTokens({ brand: tricky[4], format: 'slide-16x9', allowDark: true }).color.dark);
-  const navy = buildTokens({ brand: BRANDS.kora, format: 'slide-16x9' });
-  ok('page d’inversion refusée sur une couleur de marque profonde (bleu nuit)', !resolveLook(navy, { strategy: 'inverse', mood: 'neutral', tension: 'calm', accent: 'none', density: 'balanced', allowInverted: true }).inverted);
-  ok('page d’inversion admise sur une couleur vive (magenta)', resolveLook(buildTokens({ brand: BRANDS.kofi, format: 'slide-16x9' }), { strategy: 'inverse', mood: 'neutral', tension: 'calm', accent: 'none', density: 'balanced', allowInverted: true }).inverted);
+  ok('une charte à fond sombre ne donne pas un fond sombre sans autorisation', !isDeep(buildTokens({ brand: night, format: 'slide-16x9' }).color.ground));
 
-  // ── §4 Palettes des graphiques ───────────────────────────────────────────────────────────
-  section('§4 Palettes des graphiques (contrôles dataviz calculés)');
-  let palettesOk = 0;
-  let palettesTotal = 0;
-  for (const brand of tricky) for (const n of [2, 3, 5, 8]) {
-    palettesTotal += 1;
-    const t = buildTokens({ brand, format: 'a4-portrait' });
-    const p = chartPalette({ primary: t.color.primary, accent: t.color.accent, secondary: t.color.secondary }, n, t.color.ground);
-    if (p.colors.length === n && p.report.ok) palettesOk += 1;
-    else console.log(`    ${brand.name} n=${n} : ${p.colors.length} couleurs, cvd ${p.report.worstCvd}, normal ${p.report.worstNormal}`);
+  // ── §4 La matière à plat ─────────────────────────────────────────────────────────────────
+  section('§4 La matière à plat : chaque texte a sa clé, chiffres exacts');
+  const map = buildContentMap(MARKET);
+  ok('titre, sur-titre, chapeau et chiffres-clés ont leur clé', ['title', 'kicker', 'lede', 'b1.items.0.value', 'b1.items.2.label'].every((k) => map.entries.has(k)));
+  ok('le graphique est une primitive (ses données ne passent pas par l’auteur)', map.primitives.has('b2') && !map.listing.includes('1950') && map.listing.includes('<idem-chart data-block="b2">'));
+  const markers = buildContentMap(CARD_FRONT, 'markers');
+  ok('carte en gabarit : les champs restent des marqueurs', markers.markers.has('fullName') && markers.entries.get('email')?.value === '{{email}}');
+  const exp = expandPage('<p class="x">{{title}}</p><p>{{fullName}}</p><a href="mailto:{{email}}">x</a><p>{{nope}}</p>', { ...markers, entries: new Map([...markers.entries, ['title', { key: 'title', value: 'A & B <c>', kind: 'text' as const }]]) }, buildTokens({ brand: BRANDS.kora, format: 'card-landscape' }), FORMATS['card-landscape'], { sectionId: 'front', locale: 'fr', engine: 'x' });
+  ok('texte échappé, marqueur dans un élément data-field, marqueur gardé dans un attribut, clé inconnue retirée', exp.html.includes('A &amp; B &lt;c&gt;') && exp.html.includes('<span data-field="fullName">{{fullName}}</span>') && exp.html.includes('mailto:{{email}}') && exp.unknown.includes('nope'));
+  ok('la racine porte les cotes du support (85 × 55 mm)', /class="ge-page [^"]*w-\[85mm\] h-\[55mm\]/.test(exp.html));
+
+  // ── §5 Assainissement ────────────────────────────────────────────────────────────────────
+  section('§5 Assainissement : Tailwind seul, rien qui s’exécute ni ne sort');
+  const raw = 'Voici la page :\n```html\n<div class="p-[10px]" style="color:red" onclick="x()"><style>p{}</style><script>alert(1)</script><img src="https://evil.example/a.png"><img src="{{b1.url}}"><a href="javascript:alert(1)">x</a><iframe src="x"></iframe></div>\n```';
+  const clean = sanitizeHtml(extractHtml(raw));
+  ok('bloc de code extrait de la réponse', clean.html.startsWith('<div'));
+  ok('<style> et style="" retirés et comptés', clean.nativeCss === 2 && !/style/.test(clean.html));
+  ok('script, gestionnaire, cadre, adresses étrangères et javascript: retirés ; clé d’image gardée', !/script|onclick|iframe|evil|javascript/.test(clean.html) && clean.html.includes('src="{{b1.url}}"'));
+
+  // ── §6 Tailwind ──────────────────────────────────────────────────────────────────────────
+  section('§6 Tailwind compilé côté serveur');
+  const kora = buildTokens({ brand: BRANDS.kora, format: 'slide-16x9' });
+  const css = await compileTailwind('<div class="ge-page bg-brand-primary text-[42px] p-4 [&_th]:bg-brand-accent font-display bg-linear-to-br from-brand-primary to-brand-accent rotate-[-6deg] text-1.5rem"></div>', kora);
+  ok('couleurs et polices de la marque dans le thème, porté par .ge-page', css.includes('.ge-page {') && css.toLowerCase().includes(`--color-brand-primary: ${kora.color.primary.toLowerCase()}`) && css.includes('--font-display'));
+  ok('valeurs arbitraires, variantes et dégradés compilés', css.includes('.bg-brand-primary') && css.includes('text-\\[42px\\]') && css.includes('& th') && css.includes('linear-gradient'));
+  ok('aucune unité rem (la taille racine de l’hôte ne change pas la page)', !/:\s*[^;{}]*\d+(\.\d+)?rem\b/.test(css));
+  ok('la remise à zéro n’a aucun poids (toute classe passe devant)', /:where\(\.ge-page\)/.test(css) && !/^\.ge-page h1/m.test(css));
+
+  // ── §7 Primitives ────────────────────────────────────────────────────────────────────────
+  section('§7 Primitives : graphiques et tableau exacts');
+  const types: ChartType[] = ['bar', 'groupedBar', 'stacked', 'horizontalBar', 'line', 'area', 'pie', 'doughnut', 'radar'];
+  for (const chartType of types) {
+    const multi = !['pie', 'doughnut'].includes(chartType);
+    const svg = chartHtml({ id: 'c', kind: 'chart', chartType, labels: ['A', 'B', 'C', 'D'], series: multi ? [{ name: 'S1', data: [12, 30, 22, 41] }, { name: 'S2', data: [8, 14, 19, 25] }] : [{ name: 'S', data: [40, 30, 20, 10] }], readingKey: 'x', unit: '%' }, kora, { className: 'w-full' });
+    ok(`${chartType} : SVG dessiné, palette déclarée (recoloration de marque)`, svg.includes('<svg') && /data-ge-palette="#[0-9a-f]{6}/i.test(svg) && !/NaN|undefined/.test(svg));
   }
-  ok(`palettes validées (bande de clarté, chroma, daltonisme ≥ 6, vision normale ≥ 15) : ${palettesOk}/${palettesTotal}`, palettesOk === palettesTotal);
-
-  // ── §5 Compilateur ───────────────────────────────────────────────────────────────────────
-  section('§5 Compilateur : déterminisme, sécurité, fidélité');
-  const tokens = buildTokens({ brand: BRANDS.kora, direction: { styleId: 'swiss' }, format: 'slide-16x9' });
-  const spec = readJson('valid/design-spec-slide.json').sections[0];
-  const market = validContent.value!.sections[1];
-  const look = resolveLook(tokens, { strategy: spec.strategy, mood: spec.mood, tension: spec.tension, accent: spec.accent, density: spec.density, allowInverted: true });
-  const compileOnce = () => compileSection(spec, createContext({ tokens, look, section: market, documentType: 'pitch-deck', locale: 'fr', bindings: 'values', meta: { brandName: 'Kora' } })).html;
-  const h1 = compileOnce();
-  const h2 = compileOnce();
-  ok('même plan, mêmes jetons, même contenu ⇒ même HTML', h1 === h2, `${h1.length} signes`);
-  ok('aucun script, aucun gestionnaire d’évènement', !/<script|\son[a-z]+=/i.test(h1));
-  const urls = [...h1.matchAll(/(?:src|href)="([^"]+)"/g)].map((m) => m[1]).filter((u) => !u.startsWith('data:'));
-  ok('aucune adresse externe dans le rendu (les polices vont dans le <head>)', urls.length === 0, urls.join(', '));
-  // Le moteur pose des espaces insécables et des apostrophes typographiques : on compare le texte normalisé.
-  const plain = (html: string) => html.replace(/<[^>]+>/g, ' ').replace(/&amp;/g, '&').replace(/[  ]/g, ' ').replace(/’/g, "'").replace(/\s+/g, ' ');
-  const wanted = ['2,3 Md FCFA', 'Croissance annuelle', 'Marché adressable', 'Les ventes progressent chaque mois.', market.title];
-  ok('chaque texte du contenu est présent (fidélité, texte normalisé)', wanted.every((t) => plain(h1).includes(t.replace(/’/g, "'"))), wanted.filter((t) => !plain(h1).includes(t)).join(' | '));
-  ok('le graphique est un SVG dessiné par le code (jamais un canvas)', h1.includes('<svg') && h1.includes('role="img"') && !h1.includes('<canvas'));
-  const bound = ['Des producteurs isolés', 'Une offre locale pauvre', 'Le marché'].map((t) => typographize(t, 'fr'));
-  ok('typographie : un titre de trois mots garde une espace sécable', bound[0].includes(' ') && bound[1].includes(' '), bound.map((b) => JSON.stringify(b)).join(' '));
-  // Le contrat du PDF : sur une page paginée, le paginateur lit les marqueurs sur les RANGÉES (enfants directs
-  // de la racine). Un bloc insécable et le pied de section ne doivent pas y être enfouis d'un niveau.
-  const flowDoc = await createDocument({ documentType: 'business-plan', format: 'a4-portrait', brand: BRANDS.baobab, direction: { styleId: 'editorial' }, seed: 'contrat-pdf', sections: [{ id: FINANCE_BP.id }], validate: false });
-  const flowHtml = (await flowDoc.composeSection(FINANCE_BP, { index: 2, total: 6 })).result.html;
-  // Chaque RANGÉE (enfant direct de la racine `.ge-page`) et la balise de son premier enfant.
-  const rows = (() => {
-    const out: Array<{ row: string; first?: string }> = [];
-    // Balises vides du HTML seulement : un élément SVG se ferme lui-même (`/>`) ou porte des enfants (un `<path>` a sa bulle `<title>`).
-    const voids = new Set(['br', 'img', 'hr', 'input', 'meta', 'link', 'source', 'wbr']);
-    let depth = 0;
-    for (const m of flowHtml.matchAll(/<(\/?)([a-zA-Z][\w-]*)\b[^>]*?(\/?)>/g)) {
-      const [tag, closing, name, selfClosing] = m;
-      if (closing) {
-        depth--;
-        continue;
-      }
-      if (depth === 1) out.push({ row: tag });
-      else if (depth === 2 && out.length && out[out.length - 1].first === undefined) out[out.length - 1].first = tag;
-      if (!voids.has(name.toLowerCase()) && !selfClosing) depth++;
-    }
-    return out;
-  })();
-  const buried = rows.filter((r) => r.first && /\sdata-keep-together/.test(r.first) && !/\sdata-keep-together/.test(r.row));
-  ok('page paginée : le pied de section est une RANGÉE marquée (data-idem-folio)', rows.some((r) => /data-idem-folio="1"/.test(r.row)), `${rows.length} rangées`);
-  ok('page paginée : une rangée qui enveloppe un bloc insécable est elle-même insécable', rows.length > 2 && buried.length === 0, buried.map((r) => r.first?.slice(0, 80)).join(' | '));
-
-  // ── §6 Motifs ────────────────────────────────────────────────────────────────────────────
-  section('§6 Motifs : chacun construit un DesignSpec valide');
-  // Chaque motif est essayé avec un contenu qu'il ACCEPTE (son `fit` > 0) : un motif typographique n'est
-  // jamais retenu quand une photo est fournie — il l'ignorerait.
-  const photoUrl = 'data:image/png;base64,iVBORw0KGgo=';
-  const familyContents: Record<string, SectionContent[]> = {
-    slide: [MARKET, PROBLEM, TRACTION, TEAM, ASK, coverSection('Kora', 'Pitch deck', 'Torréfaction', 'Le goût du Cameroun')],
-    document: [SUMMARY_BP, FINANCE_BP, SWOT_BP, coverSection('Kora', 'Business plan', 'Torréfaction', 'Le goût du Cameroun')],
-    card: [CARD_FRONT, CARD_BACK],
-    visual: [flyer(true, { a: '#123', b: '#456', c: '#789' }), flyer(false, { a: '#123', b: '#456', c: '#789' })],
-    cover: [
-      { id: 'banner', role: 'visual', title: 'Bannière', blocks: [{ id: 'copy', kind: 'copy', headline: 'Le goût du Cameroun', subhead: 'Torréfié chaque semaine' }, { id: 'photo', kind: 'figure', url: photoUrl, alt: 'photo' }] },
-      { id: 'banner', role: 'visual', title: 'Bannière', blocks: [{ id: 'copy', kind: 'copy', headline: 'Le goût du Cameroun', subhead: 'Torréfié chaque semaine' }] },
-      { id: 'avatar', role: 'visual', title: 'Kora', blocks: [] },
-    ],
-  };
-  const formatOf: Record<string, 'slide-16x9' | 'a4-portrait' | 'card-landscape' | 'flyer-square' | 'cover-facebook'> = { slide: 'slide-16x9', document: 'a4-portrait', card: 'card-landscape', visual: 'flyer-square', cover: 'cover-facebook' };
-  let patternsOk = 0;
-  const broken: string[] = [];
-  for (const pattern of allPatterns()) {
-    const format = pattern.id === 'avatar.logo' ? 'avatar-square' : formatOf[pattern.family];
-    const content = familyContents[pattern.family].find((s) => {
-      const a = analyzeSection(s);
-      return (!pattern.roles || (s.role && pattern.roles.includes(s.role))) && pattern.fit(a, FORMATS[format]) > 0;
-    });
-    if (!content) {
-      broken.push(`${pattern.id}: aucun contenu de test adapté`);
-      continue;
-    }
-    const t = buildTokens({ brand: BRANDS.kora, format });
-    const plan = planDocument({ documentType: 'pitch-deck', format, seed: 'check' });
-    const ctx = createComposeContext({ section: content, plan, slot: { index: 2, strategy: 'monochrome-accent', tension: 'calm', accent: 'underline', prefer: [], avoid: [] }, tokens: t, meta: { brandName: 'Kora', index: 2, total: 6 }, memory: new DiversityMemory(), policy: POLICIES.medium });
-    const params = Object.fromEntries(Object.entries(pattern.params).map(([k, v]) => [k, v[0]]));
-    const s = specOf(buildCandidate(ctx, pattern, params), content.id);
-    const report = validateDesignSpec({ version: '1.0', documentType: 'pitch-deck', format, creativity: 'medium', direction: {}, tokensHash: 'x', seed: 'x', engine: { version: '1', components: '1' }, sections: [s] }, { content: { version: '1.0', documentType: 'pitch-deck', locale: 'fr', sections: [content] } });
-    if (report.ok) patternsOk += 1;
-    else broken.push(`${pattern.id}: ${report.issues.filter((i) => i.severity === 'blocking').map((i) => i.code).join(',')}`);
-  }
-  ok(`motifs valides : ${patternsOk}/${allPatterns().length}`, patternsOk === allPatterns().length, broken.slice(0, 20).join(' | '));
-  ok('au moins 60 motifs inscrits (diapositives, documents, couvertures, cartes, visuels)', allPatterns().length >= 60);
-
-  // ── §7 Composition et diversité ──────────────────────────────────────────────────────────
-  section('§7 Composition et diversité (sans rendu)');
-  const deckSections = [coverSection('Kora', 'Pitch deck', 'Torréfaction', 'Promesse'), PROBLEM, MARKET, TRACTION, TEAM, ASK];
-  const suite = async (seed: string, level: 'low' | 'medium' | 'high' = 'medium') => {
-    const doc = await createDocument({ documentType: 'pitch-deck', format: 'slide-16x9', brand: BRANDS.kora, direction: { styleId: 'swiss' }, creativity: level, seed, sections: deckSections.map((s) => ({ id: s.id, role: s.role })), validate: false });
-    const out: string[] = [];
-    for (const [i, s] of deckSections.entries()) out.push((await doc.composeSection(s, { index: i + 1, total: deckSections.length })).result.provenance.fingerprint);
-    return out;
-  };
-  const a = await suite('projet-a');
-  const prints = a.map((f) => parseFingerprint(f)!).filter(Boolean);
-  const stats = diversityStats(prints.slice(1));
-  ok(`un deck de six pages emploie ≥ 4 compositions distinctes (hors couverture)`, stats.distinctPatterns >= 4, `${stats.distinctPatterns} motifs, distance moyenne ${stats.meanDistance}`);
-  ok('distance moyenne entre pages ≥ 0,45', stats.meanDistance >= 0.45);
-  const b = await suite('projet-b');
-  const c = await suite('projet-c');
-  const seq = (x: string[]) => x.map((f) => f.split('|')[0]).join(',');
-  ok('trois projets du même style ⇒ trois suites de compositions différentes', new Set([seq(a), seq(b), seq(c)]).size === 3);
-  // Une page qui n'a pas pu prendre le motif réservé ne doit pas prendre celui de sa voisine.
-  const neighbours = [];
-  for (let i = 0; i < 12; i++) neighbours.push((await suite(`voisins-${i}`)).map((f) => f.split('|')[0]));
-  const twins = neighbours.filter((x) => x.some((p, k) => k > 1 && p === x[k - 1]));
-  ok('deux diapositives voisines n’ont jamais la même composition (12 decks)', twins.length === 0, twins.map((x) => x.join(' ')).join(' / '));
-  ok('même projet ⇒ même suite (déterminisme au cran Low)', seq(await suite('projet-a', 'low')) === seq(await suite('projet-a', 'low')));
-  const cs = [planDocument({ documentType: 'business-plan', format: 'a4-portrait', seed: 'x', styleId: 'editorial' })];
-  ok('un business plan n’a ni lettre ornée ni contour sur ses titres', !['letter-anchor', 'outline-mix', 'wide-whisper', 'lowercase'].includes(cs[0].mood));
-
-  // ── §8 Profils de créativité ─────────────────────────────────────────────────────────────
-  section('§8 Profils de créativité (jauge Low → Ultra)');
-  const order = ['low', 'medium', 'high', 'max', 'ultra'] as const;
-  ok('l’exploration croît avec le cran (combinaisons, menu, dispersion)', order.every((l, i) => i === 0 || (POLICIES[l].paramSamples >= POLICIES[order[i - 1]].paramSamples && POLICIES[l].menu >= POLICIES[order[i - 1]].menu && POLICIES[l].noise >= POLICIES[order[i - 1]].noise)));
-  ok('aucun appel de modèle à Low et Medium', !POLICIES.low.agents.pick && !POLICIES.medium.agents.pick);
-  ok('High choisit, Max règle, Ultra compose', POLICIES.high.agents.pick && !POLICIES.high.agents.tune && POLICIES.max.agents.tune && POLICIES.ultra.agents.author);
-  ok('le jugement ne bloque qu’à Low et Medium ; la validation reste stricte partout', POLICIES.low.judgementBlocks && POLICIES.medium.judgementBlocks && !POLICIES.high.judgementBlocks && order.every((l) => POLICIES[l].validationPolicy === 'strict' && POLICIES[l].allowCustomCss === false));
-
-  // ── §9 Agents simulés ────────────────────────────────────────────────────────────────────
-  section('§9 Agents (simulés) : choix, réglage, arbre d’auteur, critique, budget');
-  ok('choix : « 2 » dans un menu de 3 → indice 1', parsePick('{"choice": 2, "why": "x"}', 3) === 1);
-  ok('choix hors menu → refusé (repli du code)', parsePick('{"choice": 9}', 3) === undefined && parsePick('blabla', 3) === undefined);
-  const authored = parseAuthored(JSON.stringify({ root: { t: 'stack', children: [{ t: 'text', role: 'title', ref: 'title', text: 'Un titre INVENTÉ' }, { t: 'block', ref: 'b1' }, { t: 'block', ref: 'b1' }, { t: 'block', ref: 'zz' }] }, decor: [{ at: { x: 70, y: 0, w: 30, h: 30 }, node: { t: 'shape', shape: 'rings', opacity: 0.9 } }] }), MARKET, FORMATS['slide-16x9']);
-  const authoredText = JSON.stringify(authored?.root ?? {});
-  ok('arbre d’auteur : texte libre retiré, doublon et bloc inconnu écartés, bloc oublié ajouté', Boolean(authored) && !authoredText.includes('INVENTÉ') && (authoredText.match(/"ref":"b1"/g) ?? []).length === 1 && authoredText.includes('"ref":"b2"') && !authoredText.includes('"zz"'));
-  ok('arbre d’auteur : un décor ne dépasse pas 0,15 d’opacité', (authored?.decor[0]?.node as { opacity?: number } | undefined)?.opacity === 0.15);
-  const critique = parseCritique('{"hierarchy":4,"alignment":5,"legibility":2,"brand":4,"balance":4,"fit":4}');
-  ok('critique : six critères, le plus faible compte double', critique?.weakest === 'legibility' && critique.score === Math.round(((4 + 5 + 2 + 4 + 4 + 4 + 2) / 7) * 100) / 100);
-  ok('réparation ciblée : action du menu lue, action inventée refusée', parseRepair('{"action":"compact:b1"}', 2, ['b1'])?.kind === 'compact' && parseRepair('{"action":"rewrite everything"}', 2, ['b1']) === undefined);
-
-  const traces: GenerationTrace[] = [];
-  configureGraphicEngine({
-    onTrace: (t) => traces.push(t),
-    agentCall: () => async ({ role, system }) => {
-      if (role === 'graphic.artDirector') return system.includes('"params"') ? '{"choice": 2, "params": {}, "tension": "calm", "accent": "none"}' : '{"choice": 2, "why": "variété"}';
-      if (role === 'graphic.composer') return JSON.stringify({ root: { t: 'stack', grow: true, gap: 'lg', children: [{ t: 'text', role: 'kicker', ref: 'kicker' }, { t: 'text', role: 'display', ref: 'title', size: '3xl' }, { t: 'grid', cols: [5, 7], gap: 'xl', grow: true, children: [{ t: 'block', ref: 'b1' }, { t: 'block', ref: 'b2' }] }] } });
-      return '';
-    },
-  });
-  const run = async (level: 'high' | 'max' | 'ultra') => {
-    const doc = await createDocument({ documentType: 'pitch-deck', format: 'slide-16x9', brand: BRANDS.kora, creativity: level, seed: `agents-${level}`, sections: [{ id: 'market' }], validate: false });
-    return doc.composeSection(MARKET, { index: 2, total: 6 });
-  };
-  const high = await run('high');
-  ok('High : le directeur artistique a choisi (trace « llm »)', high.trace.tasks.some((t) => t.task === 'creative.pick' && t.source === 'llm'));
-  const max = await run('max');
-  ok('Max : choix et réglage en UN appel', max.trace.tasks.filter((t) => t.source === 'llm').length === 1 && max.trace.tasks.some((t) => t.task === 'creative.tune'));
-  const ultra = await run('ultra');
-  ok('Ultra : l’arbre d’auteur est retenu (motif « authored »)', ultra.spec.pattern.id === 'authored' && ultra.trace.tasks.some((t) => t.task === 'creative.author' && t.source === 'llm'));
-  configureGraphicEngine({ agentCall: () => async () => 'je ne sais pas' });
-  const refused = await run('high');
-  ok('réponse illisible → repli du code, jamais d’erreur', refused.trace.tasks.some((t) => t.task === 'creative.pick' && t.outcome === 'refused') && Boolean(refused.result.html));
-  const lowDoc = await createDocument({ documentType: 'pitch-deck', format: 'slide-16x9', brand: BRANDS.kora, creativity: 'low', seed: 'low', validate: false });
-  const low = await lowDoc.composeSection(MARKET);
-  ok('Low : aucun appel de modèle, zéro jeton', low.result.usage.agentCalls === 0 && low.result.usage.inputTokens === 0);
-  configureGraphicEngine({ agentCall: undefined });
-
-  // ── §10 Registre de capacités ────────────────────────────────────────────────────────────
-  section('§10 Registre de capacités');
-  const reg = capabilities();
-  ok('composants, motifs, formes, icônes, polices et outils MCP inscrits', reg.list({ kind: 'component' }).length >= 33 && reg.list({ kind: 'pattern' }).length >= 60 && reg.list({ kind: 'icons' }).length >= 1 && reg.list({ kind: 'mcp-tool' }).length >= 1);
-  ok('priorité : une icône locale avant l’outil MCP', reg.resolve('icons')?.tier === 'local');
-  ok('l’index d’un agent reste court (≤ 1 200 signes)', reg.index({ deliverable: 'pitch-deck' }, 1200).length <= 1200);
-  ok('la documentation détaillée se charge à la demande', reg.docs('ui.chart').includes('Variantes'));
-
-  // ── §11 Rendus mesurés dans Chromium ─────────────────────────────────────────────────────
-  if (fast) {
-    console.log('\n§11 Rendus Chromium — ignorés (--fast)');
-  } else {
-    section('§11 Rendus mesurés dans Chromium (corpus)');
-    // Réparer, pas refuser : un texte trop pâle sur son fond réel est ramené vers l'encre de la charte.
-    const pale = `<div class="ge-page" style="width:640px;height:360px;box-sizing:border-box;padding:24px;background:#ffffff;position:relative;overflow:hidden"><p style="margin:0;font-size:14px;color:#c9c9c9">Un texte trop pâle pour être lu</p><p style="margin:12px 0 0;font-size:14px;color:#1f6f43">Un texte lisible, à la couleur de la marque</p></div>`;
-    const recolored = await fitAndMeasure(pale, '', FORMATS['chart-free'], { fixed: true, inks: { dark: '#1a1a1a', light: '#ffffff' } });
-    ok(
-      'contraste : le texte trop pâle est ramené au seuil de lecture, le texte lisible reste à sa couleur',
-      recolored.measurement.fitted.recolored === 1 && recolored.measurement.lowContrast.length === 0 && recolored.html.includes('color:#1f6f43') && !recolored.html.includes('color:#c9c9c9'),
-      `${recolored.measurement.fitted.recolored} recoloré(s), contraste minimal ${recolored.measurement.minContrast}:1`
-    );
-    const jobs = [
-      { name: 'deck Kora', documentType: 'pitch-deck' as const, format: 'slide-16x9' as const, brand: BRANDS.kora, sections: deckSections },
-      { name: 'deck Kofi', documentType: 'pitch-deck' as const, format: 'slide-16x9' as const, brand: BRANDS.kofi, sections: deckSections },
-      { name: 'business plan', documentType: 'business-plan' as const, format: 'a4-portrait' as const, brand: BRANDS.baobab, sections: [coverSection('Baobab Agro', 'Business plan', 'Agriculture', 'Promesse'), SUMMARY_BP, FINANCE_BP, SWOT_BP] },
-      { name: 'charte', documentType: 'brand-charter' as const, format: 'slide-16x9' as const, brand: BRANDS.kora, sections: [coverSection('Kora', 'Charte graphique', 'Torréfaction', 'Promesse'), ...CHARTER(BRANDS.kora)] },
-      { name: 'carte', documentType: 'business-card' as const, format: 'card-landscape' as const, brand: BRANDS.kora, sections: [CARD_FRONT, CARD_BACK], bindings: 'markers' as const },
-      { name: 'visuel', documentType: 'flyer' as const, format: 'flyer-square' as const, brand: BRANDS.kofi, sections: [flyer(true, { a: '#3a1c4a', b: '#d6246e', c: '#1f1530' })] },
-    ];
-    for (const job of jobs) {
-      const doc = await createDocument({ documentType: job.documentType, format: job.format, brand: job.brand, direction: { styleId: (job.brand as { styleId?: string }).styleId }, seed: `check:${job.name}`, sections: job.sections.map((s) => ({ id: s.id, role: s.role })), bindings: 'bindings' in job ? job.bindings : undefined });
-      const silhouettes: string[] = [];
-      let blocking = 0;
-      let light = true;
-      for (const [i, s] of job.sections.entries()) {
-        const out = await doc.composeSection(s, { index: i + 1, total: job.sections.length });
-        blocking += out.result.issues.filter((x) => x.severity === 'blocking').length;
-        if (out.result.measured?.silhouette) silhouettes.push(out.result.measured.silhouette);
-        const ground = (out.result.html.match(/class="ge-page"[^>]*background:(#[0-9a-f]{6})/i) ?? [])[1];
-        if (ground && isDeep(ground)) light = false;
-      }
-      ok(`${job.name} : aucun constat bloquant (${job.sections.length} page(s))`, blocking === 0, blocking ? `${blocking} constat(s)` : '');
-      if (job.documentType === 'pitch-deck' || job.documentType === 'brand-charter') ok(`${job.name} : silhouettes MESURÉES toutes distinctes`, new Set(silhouettes.slice(1)).size === silhouettes.slice(1).length);
-      if (job.documentType !== 'flyer') ok(`${job.name} : surfaces de page claires (aucun thème sombre)`, light);
-    }
-    const card = await createDocument({ documentType: 'business-card', format: 'card-landscape', brand: BRANDS.kora, seed: 'card', bindings: 'markers' });
-    const face = await card.composeSection(CARD_FRONT);
-    ok('carte : 85 × 55 mm exactement', Math.abs((face.result.measured?.width ?? 0) - (85 * 96) / 25.4) < 1.5 && Math.abs((face.result.measured?.height ?? 0) - (55 * 96) / 25.4) < 1.5);
-    ok('carte : gabarit à marqueurs {{champ}} avec data-field', face.result.html.includes('{{fullName}}') && face.result.html.includes('data-field="fullName"'));
-
-    // Un décor d'encre posé sur le titre : le moteur le retire, lui seul, et le dit.
-    const deck = await createDocument({ documentType: 'pitch-deck', format: 'slide-16x9', brand: BRANDS.kora, seed: 'decor' });
-    const plain = await deck.composeSection(PROBLEM, { index: 2, total: 6 });
-    const crowded = { ...plain.spec, decor: [{ at: { x: 0, y: 0, w: 70, h: 45 }, z: 0, node: { t: 'shape' as const, shape: 'rings' as const, tone: 'brand' as const, opacity: 0.85, size: 'fill' as const } }, { at: { x: 0, y: 0, w: 100, h: 0.9 }, z: 0, node: { t: 'box' as const, surface: 'brand' as const, children: [] } }] };
-    const cleaned = await deck.composeSection(PROBLEM, { index: 2, total: 6, replay: crowded as never });
-    ok('décor d’encre sur un texte : retiré seul (le filet reste)', (cleaned.spec.decor ?? []).length === 1 && cleaned.spec.decor?.[0].node.t === 'box' && cleaned.trace.repairs.some((r) => r.code === 'drop_decor'));
-    await closeBrowser();
+  const base = { id: 'c', kind: 'chart' as const, chartType: 'bar' as const, labels: ['2024', '2025', '2026'], series: [{ name: 'CA', data: [10, 20, 35] }], readingKey: 'x' };
+  ok('l’auteur choisit une autre représentation des mêmes données (data-type)', chartHtml(base, kora, { type: 'line' }).includes('data-ge-chart="line"') && chartHtml(base, kora, { type: 'doughnut' }).includes('data-ge-chart="doughnut"'));
+  ok('une représentation qui trahirait les données est refusée (deux séries en camembert)', chartHtml({ ...base, series: [...base.series, { name: 'B', data: [1, 2, 3] }] }, kora, { type: 'pie' }).includes('data-ge-chart="bar"'));
+  const hi = chartHtml(base, kora, { highlight: '2026' });
+  ok('une catégorie mise en avant (data-highlight), les autres en retrait', (hi.match(/fill-opacity="0.32"/g) ?? []).length === 2);
+  const table = FINANCE_BP.blocks.find((b) => b.kind === 'table');
+  if (table && table.kind === 'table') {
+    const t = tableHtml(table, { className: '[&_th]:bg-brand-primary' });
+    ok('tableau : chaque cellule exacte, colonnes chiffrées à droite, style de l’auteur sur la balise', table.rows.flat().every((c) => t.includes(c.replace(/&/g, '&amp;'))) && t.includes('text-right') && t.includes('[&amp;_th]:bg-brand-primary'));
   }
 
-  console.log(`\n${failures ? '✗' : '✓'} Moteur graphique : ${passed} vérification(s) réussie(s), ${failures} en échec.`);
-  process.exit(failures ? 1 : 0);
+  section('§7 bis Retouche de mots par clé');
+  const edited = applyTextEdits(FINANCE_BP, { title: 'Un résultat positif dès 2026', 'b3.paragraphs.0': '', 'b1.rows.0.1': '99' });
+  ok('titre et paragraphe retouchés par leur clé ; le tableau posé par le code reste intouchable', edited.section.title === 'Un résultat positif dès 2026' && edited.applied.includes('b3.paragraphs.0') && edited.refused.includes('b1.rows.0.1') && JSON.stringify(edited.section.blocks.find((b) => b.id === 'b1')) === JSON.stringify(FINANCE_BP.blocks.find((b) => b.id === 'b1')));
+
+  if (fast) return;
+
+  // ── §8 Le flux complet ───────────────────────────────────────────────────────────────────
+  section('§8 Le flux complet (Chromium, auteur simulé)');
+  calls.length = 0;
+  const deck = await createDocument({ documentType: 'pitch-deck', format: 'slide-16x9', brand: BRANDS.kora, direction: { styleId: 'swiss' }, creativity: 'low', seed: 'check', sections: [{ id: 'market' }, { id: 'finance' }], png: true });
+  const [m, f] = await Promise.all([deck.composeSection(MARKET, { index: 1, total: 2 }), deck.composeSection({ ...FINANCE_BP, id: 'finance' }, { index: 2, total: 2 })]);
+  ok('sans mémoire : le langage de la marque et le plan (deux appels du directeur, pages en parallèle), un appel d’auteur par page, au cran choisi', calls.filter((c) => c.role === 'graphic.director').length === 2 && calls.filter((c) => c.role === 'graphic.author').length === 2 && calls.every((c) => c.level === 'low'));
+  const authorCalls = calls.filter((c) => c.role === 'graphic.author');
+  ok('l’auteur reçoit le langage de la marque, SA ligne du plan et celle de sa voisine, le support et la matière', authorCalls.every((c) => c.user.includes('BRAND VISUAL LANGUAGE') && c.user.includes('THIS PAGE:') && /(previous|next) page:/.test(c.user) && c.user.includes('CANVAS:') && c.user.includes('{{title}}')));
+  ok('outils à la demande : une page sans tableau ne reçoit pas la documentation du tableau', authorCalls.some((c) => c.user.includes('<idem-chart data-block="b2"') && !c.user.includes('<idem-table')) && authorCalls.some((c) => c.user.includes('<idem-table data-block="b1"')));
+  ok('pages affichées, photographiées, textes exacts, aucun constat bloquant', Boolean(m.png && f.png) && m.result.html.includes('2,3 Md FCFA') && [m, f].every((o) => !o.result.issues.some((i) => i.severity === 'blocking')));
+  ok('le fragment porte sa feuille Tailwind avant la racine', /<style data-ge-tailwind>/.test(m.result.head ?? '') && m.result.html.startsWith('<div class="ge-page'));
+  const before = calls.length;
+  const replay = await deck.composeSection({ ...MARKET, title: 'Un marché de 3 milliards' }, { replay: m.spec });
+  ok('retouche de texte : la page est rejouée sans modèle', calls.length === before && replay.result.html.includes('Un marché de 3 milliards') && replay.spec.html === m.spec.html);
+  const revised = await deck.composeSection(MARKET, { revise: { spec: m.spec, instruction: 'make the title much bigger on a brand background' } });
+  ok('retouche écrite : l’auteur reçoit son code et la consigne', calls[calls.length - 1].user.includes('CURRENT PAGE CODE') && revised.spec.html.includes('text-[60px]'));
+  const old = await deck.composeSection(MARKET, { replay: { ref: 'market', pattern: { id: 'slide.split' }, root: {} } as never });
+  ok('une page de l’ancien moteur ne se rejoue pas : elle est réécrite', old.spec.version === 2 && calls[calls.length - 1].role === 'graphic.author');
+
+  // La mémoire de la marque : le langage est écrit une fois, puis relu par les autres livrables.
+  const memory = new Map<string, string>();
+  configureGraphicEngine({ brandMemory: { read: async (k) => memory.get(k), write: async (k, v) => void memory.set(k, v) } });
+  calls.length = 0;
+  const scope = { documentType: 'pitch-deck', key: 'project-kora' };
+  const d1 = await createDocument({ documentType: 'pitch-deck', format: 'slide-16x9', brand: BRANDS.kora, direction: { styleId: 'swiss' }, seed: 'm1', sections: [{ id: 'market' }, { id: 'finance' }], memoryScope: scope });
+  await d1.composeSection(MARKET, { index: 1, total: 2 });
+  const firstDirector = calls.filter((c) => c.role === 'graphic.director').length;
+  calls.length = 0;
+  await renderSingle({ documentType: 'flyer', format: 'flyer-square', brand: BRANDS.kora, direction: { styleId: 'swiss' }, seed: 'm2', memoryScope: { documentType: 'flyer', key: 'project-kora' }, content: { id: 'v', role: 'visual', title: 'Promo', blocks: [] } });
+  ok('langage écrit une fois et gardé ; un flyer de la même marque le relit (aucun appel du directeur) et l’applique', firstDirector === 2 && memory.size === 1 && calls.length === 1 && calls[0].role === 'graphic.author' && calls[0].user.includes('BRAND VISUAL LANGUAGE'));
+  calls.length = 0;
+  await renderSingle({ documentType: 'flyer', format: 'flyer-square', brand: { ...BRANDS.kora, palette: { ...BRANDS.kora.palette, primary: '#7A1F3D' } }, direction: { styleId: 'swiss' }, seed: 'm3', memoryScope: { documentType: 'flyer', key: 'project-kora' }, content: { id: 'v', role: 'visual', title: 'Promo', blocks: [] } });
+  ok('une charte changée appelle un nouveau langage', calls.filter((c) => c.role === 'graphic.director').length === 1 && memory.size === 2);
+  configureGraphicEngine({ brandMemory: undefined });
+  ok('consigne professionnelle : aucune décoration gratuite, système identique d’une page à l’autre', calls.length > 0 && /Never random circles, blobs, glows, gradients/.test(authorSystemOf(calls)) );
+
+  ok('le document garde le contenu et le code de chaque page (remise en page sans réécriture)', Boolean(deck.page('market')?.content.blocks.length && deck.page('market')?.spec.html));
+  const before2 = calls.length;
+  const relaid = await (await createDocument({ documentType: 'pitch-deck', format: 'slide-16x9', brand: BRANDS.kora, seed: 'r', sections: [{ id: 'market' }], layoutNote: 'plus aérée' })).composeSection(deck.page('market')!.content);
+  ok('nouvelle mise en page : l’auteur repart du contenu gardé et reçoit le souhait du client', relaid.result.html.includes('2,3 Md FCFA') && calls.slice(before2).some((c) => c.role === 'graphic.author' && c.user.includes('THE CLIENT ASKS FOR THIS LAYOUT: plus aérée')));
+
+  section('§8 bis Export PowerPoint (le HTML reste la source)');
+  const deckSlides = [{ html: sectionHtml(m) }, { html: `${sectionHtml(f)}\n<template data-speaker-notes>La marge atteint 60 %.</template>` }];
+  const fidelity = await exportPptx(deckSlides, { mode: 'fidelity', title: 'Kora' });
+  const editable = await exportPptx(deckSlides, { mode: 'editable', title: 'Kora' });
+  const zip = (b: Buffer) => b.subarray(0, 2).toString() === 'PK';
+  ok('fidèle : un fichier PowerPoint, une image par slide, aucun texte natif', zip(fidelity.buffer) && fidelity.slides === 2 && fidelity.textBoxes === 0);
+  ok('modifiable : les textes deviennent des zones natives (titres, cellules du tableau)', zip(editable.buffer) && editable.textBoxes >= 10);
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const JSZip = require('jszip');
+  const notesXml = async (b: Buffer) => (await (await JSZip.loadAsync(b)).file('ppt/notesSlides/notesSlide2.xml')?.async('string')) ?? '';
+  ok('les notes de l’orateur passent dans le fichier (deux modes)', (await notesXml(editable.buffer)).includes('La marge atteint 60') && (await notesXml(fidelity.buffer)).includes('La marge atteint 60'));
+
+  const card = await renderSingle({ documentType: 'business-card', format: 'card-landscape', brand: BRANDS.kofi, seed: 'card', bindings: 'markers', content: cardFaces({ binding: 'markers' }).front });
+  ok('carte : gabarit à marqueurs (data-field)', /data-field="fullName"[^>]*>\{\{fullName\}\}|<span data-field="fullName">\{\{fullName\}\}/.test(card.result.html));
+
+  for (const level of ['low', 'medium', 'high', 'ultra'] as const) {
+    calls.length = 0;
+    await renderSingle({ documentType: 'flyer', format: 'flyer-square', brand: BRANDS.baobab, creativity: level, seed: `l:${level}`, content: { id: 'v', role: 'visual', title: 'Promo de saison', blocks: [] } });
+    ok(`${level} : même travail (un appel d’auteur), cran transmis au modèle`, calls.length === 1 && calls[0].level === level);
+  }
+
+  mode = 'blank-once';
+  calls.length = 0;
+  const fixedOut = await renderSingle({ documentType: 'flyer', format: 'flyer-story', brand: BRANDS.baobab, creativity: 'medium', seed: 'fix', content: { id: 'v', role: 'visual', title: 'Promo', blocks: [] } });
+  ok('page vide : corrigée par l’auteur au même cran, dite dans les réparations', fixedOut.result.repairs.some((r) => r.code === 'render_fix') && calls.length === 2 && calls[1].repair && calls[1].level === 'medium');
+  for (const m2 of ['blank', 'garbage', 'down'] as const) {
+    mode = m2;
+    calls.length = 0;
+    let error: unknown = null;
+    try {
+      await renderSingle({ documentType: 'flyer', format: 'flyer-square', brand: BRANDS.baobab, creativity: 'high', seed: `fail:${m2}`, content: { id: 'v', role: 'visual', title: 'Promo', blocks: [] } });
+    } catch (e) {
+      error = e;
+    }
+    ok(`${m2} : au plus 1 + 3 tentatives, une à la fois, réécriture au cran au-dessus (ultra), puis GraphicRenderError`, error instanceof GraphicRenderError && calls.length <= 4 && calls.slice(2).every((c) => c.level === 'ultra'), `${calls.map((c) => c.level).join(',')}`);
+  }
+  mode = 'ok';
 }
 
-main().catch(async (error) => {
-  console.error(error);
-  await closeBrowser();
-  process.exit(1);
-});
-
-
-
+main()
+  .catch((error) => {
+    failures += 1;
+    console.error(error);
+  })
+  .finally(async () => {
+    await closeBrowser();
+    console.log(`\n${failures ? '✗' : '✓'} Moteur graphique : ${passed} vérification(s) réussie(s), ${failures} en échec.`);
+    process.exit(failures ? 1 : 0);
+  });

@@ -14,6 +14,11 @@ import {
  */
 export enum LLMProvider {
   OPENROUTER = 'OPENROUTER',
+  /**
+   * Modèles servis par NOS machines (vLLM, SGLang, TGI : API compatible OpenAI) — `IDEM_SELFHOSTED_BASE_URL`.
+   * Aucune feature ne le nomme : un RÔLE créatif y est aiguillé par configuration (`creative-roles.ts`).
+   */
+  SELFHOSTED = 'SELFHOSTED',
 }
 
 /**
@@ -1397,8 +1402,9 @@ export const AI_CONFIG = {
      * centre géométrique de l'image, souvent à côté du support.
      */
     brandMockup: {
-      // Un support nu est photographié, puis le logo est composé par le code : le
-      // modèle d'image n'imprime jamais le logo lui-même.
+      // Le LOGO part en image de référence avec le prompt : le modèle photographie le
+      // support déjà marqué, la vision vérifie la fidélité. Dernier recours seulement :
+      // support nu photographié, logo composé par le code.
       //
       // Seules les mises en situation produit passent ici : les mockups de
       // réseaux sociaux et les bannières sont des gabarits HTML, sans IA.

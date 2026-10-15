@@ -64,6 +64,8 @@ export interface BrandKit {
   } | null;
   logo?: BrandLogo | null;
   artDirection?: Partial<ArtDirectionModel> | null;
+  /** Les motifs signature de la charte (tuiles SVG déposées dans le stockage). */
+  patterns?: { items?: Array<{ url: string; tile?: number; ground?: string; kind?: string }> } | null;
 }
 
 const HEX6 = /^#[0-9a-f]{6}$/;

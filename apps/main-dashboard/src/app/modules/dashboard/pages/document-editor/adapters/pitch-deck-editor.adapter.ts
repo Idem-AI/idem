@@ -16,6 +16,7 @@ export class PitchDeckEditorAdapter extends HtmlSectionsEditorAdapter {
   readonly backRoute = '/project/pitch-deck';
   readonly editRoute = '/project/pitch-deck/edit';
   readonly pdfFileName = 'pitch-deck.pdf';
+  readonly pptxFileName = 'pitch-deck.pptx';
   protected readonly resource = 'pitchDecks';
   protected readonly analysisKey = 'pitchDeck' as const;
 
@@ -31,5 +32,13 @@ export class PitchDeckEditorAdapter extends HtmlSectionsEditorAdapter {
 
   downloadPdf(projectId: string, documentId?: string | null): Observable<Blob> {
     return this.pitchDeckService.downloadPitchDeckPdf(projectId, documentId);
+  }
+
+  downloadPptx(projectId: string, documentId: string | null | undefined, mode: 'fidelity' | 'editable'): Observable<Blob> {
+    return this.pitchDeckService.downloadPitchDeckPptx(projectId, documentId, mode);
+  }
+
+  relayout(projectId: string, documentId: string | null | undefined, body: { creativity?: string; note?: string }) {
+    return this.pitchDeckService.relayoutPitchDeck(projectId, documentId, body);
   }
 }

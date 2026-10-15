@@ -19,6 +19,16 @@
         <a class="outer-button button-sm mt-4" routerLink="/studio/video">{{ 'common.back' | translate }}</a>
       </div>
     } @else if (video(); as v) {
+      @if (v.legacy) {
+        <div class="glass-card flex flex-col items-center p-8 text-center">
+          <p class="font-semibold">{{ 'edit.legacyTitle' | translate }}</p>
+          <p class="mt-2 max-w-md text-sm text-[var(--color-text-secondary)]">{{ 'edit.legacyBody' | translate }}</p>
+          <a class="outer-button button-sm mt-4" routerLink="/studio/video">{{ 'common.back' | translate }}</a>
+        </div>
+      } @else {
+      @if (broken() > 0) {
+        <p class="mb-3 flex items-center gap-2 text-sm text-[var(--color-danger)]" role="alert"><i class="pi pi-exclamation-triangle" aria-hidden="true"></i> {{ 'edit.broken' | translate: { count: broken() } }}</p>
+      }
       @if ((v.scope.formats.length) > 1) {
         <div class="mb-3 flex gap-2" role="group" [attr.aria-label]="'edit.previewFormat' | translate">
           @for (f of v.scope.formats; track f) {
@@ -31,11 +41,12 @@
         <idem-video-editor
           [html]="h"
           [scenes]="scenes()"
-          [slotDefs]="options()?.scenes ?? {}"
           [ratio]="ratio()"
           [lang]="language.current()"
+          [busy]="rewriting()"
           (edit)="saveTexts($event)"
           (replaceImage)="pickPhoto($event.key, photoInput)"
+          (action)="sceneAction($event)"
         />
       } @else {
         <idem-loader block [label]="'edit.preparingPreview' | translate" />
@@ -94,7 +105,7 @@
             </select>
           </label>
           <div class="mt-4 flex flex-wrap items-center gap-3">
-            <button type="button" class="inner-button button-sm" [disabled]="exporting() || rendering() || !exportFormats().length" (click)="exportVideo()">
+            <button type="button" class="inner-button button-sm" [disabled]="exporting() || rendering() || !exportFormats().length || broken() > 0" (click)="exportVideo()">
               @if (exporting()) { <idem-loader size="xs" /> }
               {{ 'edit.exportCta' | translate }}
             </button>
@@ -120,6 +131,7 @@
           }
         </section>
       </div>
+      }
     }
   </div>
 </div>

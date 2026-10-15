@@ -14,7 +14,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 import { CreativityLevel, creativityCost, DEFAULT_CREATIVITY } from '@idem/shared-models';
 import { CreativityPickerComponent } from '../../../../../../shared/components/creativity-picker/creativity-picker';
-import { MotionVideoService } from '../../../../services/ai-agents/motion-video.service';
+import { MOTION_LANGUAGES, MotionLanguage, MotionVideoService, PRODUCTION_MODES, ProductionMode, VIDEO_GOALS, VideoGoal, VideoInterpretation, VideoIntentOverride } from '../../../../services/ai-agents/motion-video.service';
 import { VideoComposing, VideoProgressState } from '../video-composing/video-composing';
 import {
   MotionVideo,
@@ -48,14 +48,11 @@ const MOODS: { id: MusicMood; icon: string }[] = [
   { id: 'none', icon: 'pi pi-volume-off' },
 ];
 
-/** Tout ce que la vidéo sait utiliser, en un seul bouton « joindre ». */
-const MEDIA_ACCEPT = 'image/jpeg,image/png,image/webp,video/mp4,video/quicktime,video/webm,.glb,.json,.lottie,.riv';
+/** Ce que la vidéo sait utiliser (photos et clips), en un seul bouton « joindre ». */
+const MEDIA_ACCEPT = 'image/jpeg,image/png,image/webp,video/mp4,video/quicktime,video/webm';
 const MEDIA_ICON: Record<VideoMediaKind, string> = {
   image: 'pi pi-image',
   video: 'pi pi-video',
-  model3d: 'pi pi-box',
-  lottie: 'pi pi-sparkles',
-  rive: 'pi pi-play-circle',
 };
 
 const MAX_MEDIA = 8;
@@ -68,8 +65,11 @@ const EXAMPLES = ['ex1', 'ex2', 'ex3'];
  *    mots, et joint ses médias. Le modèle choisit le type de vidéo — ou en combine
  *    plusieurs, une partie en 3D, une autre en clips… — d'après la demande.
  * 2. Configurer : où la publier, combien de temps, quelle qualité, quelle musique.
- *    Le reste (direction de motion, effets, banques d'images) est replié : les
- *    bons réglages sont déjà posés. Le prix se met à jour en direct.
+ *    Le reste (effets, voix, banques d'images) est replié : les bons réglages sont
+ *    déjà posés. Le prix se met à jour en direct.
+ *
+ * La vidéo est ensuite conçue par l'IA (concept, storyboard) et chaque scène est écrite en
+ * code Motion Canvas : aucune mise en page n'est choisie à l'avance.
  */
 @Component({
   selector: 'app-video-builder',
@@ -103,17 +103,16 @@ export class VideoBuilder {
   protected readonly request = signal('');
   protected readonly media = signal<VideoMediaAsset[]>([]);
   protected readonly uploading = signal(false);
-  /** « auto » : le modèle choisit. Un type précis seulement si l'utilisateur l'impose. */
+  /**
+   * Plus de type à choisir (plan directeur) : l'objectif, la matière et le mouvement sont lus dans la demande
+   * et les médias, puis montrés à l'étape 2 où l'utilisateur peut les corriger.
+   */
   protected readonly type = signal<VideoType | 'auto'>('auto');
-  protected readonly showTypes = signal(false);
-  protected readonly types = computed(() => this.options().types);
 
   protected readonly duration = signal<VideoDuration>(15);
   protected readonly formats = signal<VideoFormat[]>(['story']);
   protected readonly quality = signal<VideoQuality>('hd');
   protected readonly mood = signal<MusicMood>('auto');
-  protected readonly direction = signal<string>('auto');
-  protected readonly directions = computed(() => this.options().directions ?? ['auto']);
   protected readonly sfx = signal(true);
   /** Voix off : choisie par l'utilisateur, jamais imposée. */
   protected readonly voice = signal(false);
@@ -121,15 +120,27 @@ export class VideoBuilder {
   protected readonly allowGenerate = signal(true);
   protected readonly showMore = signal(false);
 
+  // ── L'interprétation (request/intent.ts) : lue par le serveur en passant à l'étape 2, corrigeable. ──
+  protected readonly goals = VIDEO_GOALS;
+  protected readonly productionModes = PRODUCTION_MODES.filter((m) => m !== 'hybrid');
+  protected readonly motionLanguages = MOTION_LANGUAGES;
+  protected readonly interpretation = signal<VideoInterpretation | null>(null);
+  protected readonly interpreting = signal(false);
+  protected readonly correcting = signal(false);
+  /** Les corrections de l'utilisateur (objectif, matière, mouvement) : elles l'emportent sur la lecture. */
+  protected readonly override = signal<VideoIntentOverride>({});
+  /** La réponse à la question de clarification, si le serveur en a posé une. */
+  protected readonly answer = signal<string | null>(null);
+  protected readonly shownGoal = computed<VideoGoal | undefined>(() => this.override().objective ?? this.interpretation()?.intent.objective);
+  protected readonly shownMode = computed<ProductionMode | undefined>(() => (this.override().productionModes ?? this.interpretation()?.intent.productionModes)?.find((m) => m !== 'hybrid'));
+  protected readonly shownMotion = computed<MotionLanguage | undefined>(() => (this.override().motionDirection ?? this.interpretation()?.intent.motionDirection)?.[0]);
+  protected readonly corrected = computed(() => Object.keys(this.override()).length > 0);
+
   protected readonly busy = signal(false);
   /** Étapes réelles reçues du serveur pendant la création. */
   protected readonly progress = signal<VideoProgressState>({});
 
-  protected readonly durations = computed<VideoDuration[]>(() => {
-    const t = this.type();
-    const forced = t !== 'auto' ? this.types().find((d) => d.id === t)?.durations : undefined;
-    return forced ?? this.options().pricing.durations;
-  });
+  protected readonly durations = computed<VideoDuration[]>(() => this.options().pricing.durations);
 
   protected readonly scope = computed<VideoScope>(() => ({
     durationSec: this.duration(),
@@ -184,12 +195,6 @@ export class VideoBuilder {
     this.previousRequest.set(null);
   }
 
-  protected chooseType(id: VideoType | 'auto'): void {
-    this.type.set(id);
-    const allowed = this.durations();
-    if (!allowed.includes(this.duration())) this.duration.set(allowed[allowed.length - 1]);
-  }
-
   protected onFiles(event: Event): void {
     const inputEl = event.target as HTMLInputElement;
     const files = Array.from(inputEl.files || []).slice(0, MAX_MEDIA - this.media().length);
@@ -216,7 +221,44 @@ export class VideoBuilder {
   }
 
   protected next(): void {
-    if (this.canNext()) this.step.set(2);
+    if (!this.canNext()) return;
+    this.step.set(2);
+    this.interpret();
+  }
+
+  /** La demande relue par le serveur (gratuit) : trois étiquettes, une phrase, et la question si une décision manque. */
+  private interpret(): void {
+    const text = this.request().trim();
+    this.interpreting.set(true);
+    this.override.set({});
+    this.answer.set(null);
+    this.correcting.set(false);
+    this.videos
+      .interpret(this.projectId(), { brief: { message: text.slice(0, 400), details: text.length > 400 ? text.slice(0, 800) : undefined, request: text, media: this.media() }, type: this.type(), creativity: this.creativity() })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (result) => {
+          this.interpretation.set(result);
+          this.interpreting.set(false);
+        },
+        // Sans interprétation, la création reste possible : le serveur relira la demande.
+        error: () => {
+          this.interpretation.set(null);
+          this.interpreting.set(false);
+        },
+      });
+  }
+
+  protected setGoal(value: string): void {
+    this.override.update((o) => ({ ...o, objective: value as VideoGoal }));
+  }
+
+  protected setMode(value: string): void {
+    this.override.update((o) => ({ ...o, productionModes: [value as ProductionMode] }));
+  }
+
+  protected setMotion(value: string): void {
+    this.override.update((o) => ({ ...o, motionDirection: [value as MotionLanguage] }));
   }
 
   protected back(): void {
@@ -249,8 +291,9 @@ export class VideoBuilder {
         brief: {
           message,
           details: text.length > message.length ? text.slice(0, 800) : undefined,
+          // La demande en entier : un scénario écrit scène par scène est suivi mot pour mot.
+          request: text,
           musicMood: this.mood(),
-          direction: this.direction() === 'auto' ? undefined : this.direction(),
           media: this.media(),
           allowStock: this.allowStock(),
           allowGenerate: this.allowGenerate(),
@@ -260,12 +303,20 @@ export class VideoBuilder {
         scope: this.scope(),
         type: this.type(),
         creativity: this.creativity(),
+        ...(this.corrected() ? { intent: this.override() } : {}),
+        ...(this.answer() && this.interpretation()?.clarification ? { clarification: { id: this.interpretation()!.clarification!.id, option: this.answer()! } } : {}),
       })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (event) => {
           if (event.type === 'progress') {
-            this.progress.update((p) => ({ ...p, [event.stage]: { state: event.state, data: event.data } }));
+            const scene = event.stage === 'code' ? event.data?.scene : undefined;
+            this.progress.update((p) => ({
+              ...p,
+              [event.stage]: { state: event.state, data: event.data },
+              // La frise s'allume scène par scène, au fil de l'écriture de leur code.
+              ...(scene ? { authored: { ...(p.authored ?? {}), [scene]: event.data?.ok !== false } } : {}),
+            }));
           } else if (event.type === 'complete') {
             finished = true;
             this.busy.set(false);
@@ -277,7 +328,7 @@ export class VideoBuilder {
               this.needsCredits.emit({ cost: event.cost ?? this.price(), balance: event.balance ?? 0 });
               return;
             }
-            this.failed.emit('dashboard.showCommunication.video.errors.create');
+            this.failed.emit(event.error === 'model_unavailable' ? 'dashboard.showCommunication.video.errors.modelUnavailable' : 'dashboard.showCommunication.video.errors.create');
           }
         },
         complete: () => {

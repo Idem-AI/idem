@@ -12,6 +12,7 @@
  */
 import { Issue } from './common';
 import { Block, BlockKind, MODEL_BLOCK_KINDS, SectionContent, SectionRole, CARD_FIELDS, ChartType } from './content-model';
+import { SlideIntent, TextBudget, VISUAL_STRATEGIES, VisualStrategy } from './slide-intent';
 
 export interface NormalizeOptions {
   /** Identifiant imposé de la section (sinon dérivé du titre). */
@@ -19,6 +20,11 @@ export interface NormalizeOptions {
   role?: SectionRole;
   /** `model` (défaut) : seuls les blocs qu'un modèle peut produire ; `all` : tous (contenu posé par le code). */
   allow?: 'model' | 'all' | ReadonlySet<BlockKind>;
+  /**
+   * L'intention de la page. `visualStrategy` est la stratégie du CODE ; celle que le modèle propose (clé
+   * `visual` de sa sortie) ne l'emporte que si elle figure dans `allowStrategies` (la jauge en décide).
+   */
+  intent?: { visualStrategy: VisualStrategy; textBudget?: TextBudget; allowStrategies?: readonly VisualStrategy[] };
 }
 
 export interface NormalizeReport {
@@ -205,6 +211,25 @@ function buildBlock(kind: string, b: Record<string, unknown>): Record<string, un
         .slice(0, 9);
       return cells.length >= 3 ? { cells } : null;
     }
+    case 'points': {
+      const items = records(b.items)
+        .map((i) => {
+          const media = i.media && typeof i.media === 'object' ? (i.media as Record<string, unknown>) : null;
+          const url = media && typeof media.url === 'string' && URL_RE.test(media.url) ? media.url : '';
+          const icon = typeof i.icon === 'string' && /^[a-z0-9-]{1,64}$/.test(i.icon) ? i.icon : '';
+          return {
+            label: clip(i.label ?? i.title, 80),
+            ...(clip(i.detail ?? i.body, 160) ? { detail: clip(i.detail ?? i.body, 160) } : {}),
+            ...(clip(i.value, 32) ? { value: clip(i.value, 32) } : {}),
+            ...(clip(i.visual, 60) ? { visual: clip(i.visual, 60) } : {}),
+            ...(icon ? { icon } : {}),
+            ...(url ? { media: { url, alt: clip(media?.alt, 200) || clip(i.label ?? i.title, 80) || 'Illustration' } } : {}),
+          };
+        })
+        .filter((i) => i.label)
+        .slice(0, 6);
+      return items.length >= 2 ? { items } : null;
+    }
     case 'figure': {
       const url = typeof b.url === 'string' && URL_RE.test(b.url) ? b.url : '';
       const focal = b.focal && typeof b.focal === 'object' ? (b.focal as Record<string, unknown>) : null;
@@ -309,7 +334,40 @@ export function normalizeSection(raw: unknown, options: NormalizeOptions = {}): 
     ...(clip(input.lede, 320) ? { lede: clip(input.lede, 320) } : {}),
     blocks: blocks.slice(0, 40),
   };
+  const intent = normalizeIntent(input.intent ?? input.visual, options.intent, notes);
+  if (intent) section.intent = intent;
+  const spoken = typeof input.notes === 'string' ? input.notes.replace(/\s+/g, ' ').trim().slice(0, 4000) : '';
+  if (spoken) section.notes = spoken;
   return { section, notes };
+}
+
+/**
+ * L'intention d'une page : celle du code, que la proposition du modèle (`visual` : stratégie, message,
+ * image) complète. La stratégie du modèle n'est retenue que si elle est admise — aux crans où le code
+ * décide, la liste admise ne contient que la sienne.
+ */
+export function normalizeIntent(raw: unknown, base: NormalizeOptions['intent'], notes: Issue[] = []): SlideIntent | undefined {
+  const o = raw && typeof raw === 'object' && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {};
+  const asked = String(o.strategy ?? o.visualStrategy ?? '').trim() as VisualStrategy;
+  const known = (VISUAL_STRATEGIES as readonly string[]).includes(asked);
+  const allowed = base?.allowStrategies ?? (base ? [base.visualStrategy] : VISUAL_STRATEGIES);
+  let strategy: VisualStrategy | undefined = base?.visualStrategy;
+  if (known && allowed.includes(asked)) strategy = asked;
+  else if (known && base && asked !== base.visualStrategy) notes.push(advisory('strategy_refused', `Stratégie « ${asked} » proposée par le modèle : non admise à ce cran, « ${base.visualStrategy} » gardée.`));
+  if (!strategy) return undefined;
+  const image = o.image && typeof o.image === 'object' ? (o.image as Record<string, unknown>) : typeof o.image === 'string' ? { subject: o.image } : null;
+  const subject = image ? clip(image.subject, 240) : '';
+  const keyMessage = clip(o.keyMessage ?? o.message, 200);
+  // Une intention déjà normalisée (seconde passe, contenu rejoué) garde son budget et ses preuves.
+  const budget = base?.textBudget ?? (TextBudget.safeParse(o.textBudget).success ? (o.textBudget as TextBudget) : undefined);
+  const evidence = Array.isArray(o.evidenceRefs) ? o.evidenceRefs.filter((r): r is string => typeof r === 'string' && ID_RE.test(r)).slice(0, 8) : [];
+  return {
+    visualStrategy: strategy,
+    ...(keyMessage ? { keyMessage } : {}),
+    ...(budget ? { textBudget: budget } : {}),
+    ...(evidence.length ? { evidenceRefs: evidence } : {}),
+    ...(subject ? { image: { subject, ...(clip(image?.framing, 80) ? { framing: clip(image?.framing, 80) } : {}), ...(clip(image?.mood, 80) ? { mood: clip(image?.mood, 80) } : {}) } } : {}),
+  };
 }
 
 /** Une couleur hexadécimale valide, ou le repli. */

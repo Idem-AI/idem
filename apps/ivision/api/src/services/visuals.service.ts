@@ -9,6 +9,7 @@ import type { CreativityLevel } from '../../../core/src/creativity/levels';
 import { coreHost } from '../../../core/src/runtime/host';
 import type { ReferenceImage } from '../../../core/src/reference/reference.analyzer';
 import { composeVisual, renderVisualHtml } from '../../../core/src/visual/visual.composer';
+import { editVisual } from '../../../core/src/visual/visual.edit';
 import { sanitizeSectionHtml, stripActiveContent } from '../../../core/src/render/sanitize-html';
 import { classifyImage } from '../../../core/src/visual/visual.images';
 import { visualContextFromBrand } from '../../../core/src/visual/visual.context';
@@ -127,6 +128,10 @@ export async function createVisual(
     ...(input.reference ? { referenceId: input.reference.id } : {}),
     audit: { score: composed.audit.score, blocking: composed.audit.blocking },
     paidCredits,
+    copy: composed.parsed.copy,
+    ...(composed.parsed.photo ? { photo: composed.parsed.photo } : {}),
+    seed: composed.parsed.seed,
+    spec: composed.parsed.spec,
     createdAt: new Date().toISOString(),
   };
   await visuals().insertOne(visual);
@@ -142,7 +147,7 @@ export async function getVisual(userId: string, id: string): Promise<IvisionVisu
 
 export async function listVisuals(userId: string, brandId?: string): Promise<IvisionVisual[]> {
   return visuals()
-    .find({ userId, ...(brandId ? { brandId } : {}) }, { projection: { html: 0 } })
+    .find({ userId, ...(brandId ? { brandId } : {}) }, { projection: { html: 0, spec: 0 } })
     .sort({ createdAt: -1 })
     .limit(60)
     .toArray();
@@ -169,9 +174,70 @@ export async function updateVisualHtml(userId: string, brand: IvisionBrand, id: 
   // Un nouveau nom à chaque version : aucun cache (navigateur, CDN) ne garde l'ancienne image.
   const uploaded = await storage.uploadFile(png, `${id}-${Date.now().toString(36)}.png`, `users/${userId}/brands/${visual.brandId}/visuals`, 'image/png');
   const updatedAt = new Date().toISOString();
-  await visuals().updateOne({ _id: id, userId }, { $set: { html: cleaned, imageUrl: uploaded.downloadURL, updatedAt } });
+  await visuals().updateOne({ _id: id, userId }, { $set: { html: cleaned, imageUrl: uploaded.downloadURL, updatedAt, handEdited: true } });
   logger.info('visual.edited', { event: 'visual.edited', visualId: id, brandId: visual.brandId, bytes: cleaned.length });
   return { ...visual, html: cleaned, imageUrl: uploaded.downloadURL, updatedAt };
+}
+
+/**
+ * La RETOUCHE écrite d'un visuel (« change le prix », « agrandis le titre ») : la même page, modifiée là où
+ * l'utilisateur le dit, enregistrée comme une nouvelle version (le fil garde la précédente). Gratuite, comme la
+ * retouche d'une vidéo. `new-request` : le message demandait en fait un autre visuel.
+ */
+export async function retouchVisual(
+  userId: string,
+  brand: IvisionBrand,
+  previous: IvisionVisual,
+  instruction: string,
+  o: { language: string; photoUrl?: string; sessionId?: string }
+): Promise<{ outcome: 'edited' | 'recomposed' | 'new-request' | 'not-understood'; visual?: IvisionVisual; reply: string; rejected: string[]; handEdited: boolean }> {
+  const context = visualContextFromBrand({ brandName: brand.name, voice: brand.voice, branding: brand.kit });
+  const copy = previous.copy ?? { headline: previous.prompt.slice(0, 60), facts: [] };
+  const result = await editVisual(
+    { text: (system, user) => idem.ai.text({ userId, system, user, tier: 'writing', kind: 'copy' }) },
+    {
+      instruction,
+      language: o.language,
+      context,
+      format: previous.format,
+      level: previous.creativity,
+      copy,
+      ...(previous.photo ? { photo: previous.photo } : {}),
+      ...(previous.spec ? { spec: previous.spec } : {}),
+      seed: previous.seed || `${brand._id}:${previous._id}`,
+      userId,
+      projectId: brand._id,
+      tag: `ivision:${brand._id}`,
+      ...(o.photoUrl ? { newPhotoUrl: o.photoUrl } : {}),
+    }
+  );
+  if ((result.outcome !== 'edited' && result.outcome !== 'recomposed') || !result.png || !result.html) return { outcome: result.outcome, reply: result.reply, rejected: result.rejected, handEdited: !!previous.handEdited };
+  const id = `vis_${Date.now().toString(36)}${crypto.randomBytes(4).toString('hex')}`;
+  const uploaded = await storage.uploadFile(result.png, `${id}.png`, `users/${userId}/brands/${brand._id}/visuals`, 'image/png');
+  const visual: IvisionVisual = {
+    _id: id,
+    userId,
+    brandId: brand._id,
+    ...(o.sessionId ? { sessionId: o.sessionId } : {}),
+    prompt: previous.prompt,
+    format: previous.format,
+    imageUrl: uploaded.downloadURL,
+    html: result.html,
+    layout: result.spec?.pattern.id,
+    creativity: previous.creativity,
+    ...(previous.referenceId ? { referenceId: previous.referenceId } : {}),
+    audit: { score: 100, blocking: !!result.out?.result.issues.some((x) => x.severity === 'blocking') },
+    paidCredits: 0,
+    copy: result.copy,
+    ...(result.photo ? { photo: result.photo } : {}),
+    seed: result.seed,
+    ...(result.spec ? { spec: result.spec } : {}),
+    parentId: previous._id,
+    createdAt: new Date().toISOString(),
+  };
+  await visuals().insertOne(visual);
+  logger.info('visual.retouched', { event: 'visual.retouched', visualId: id, parentId: previous._id, outcome: result.outcome, applied: result.applied.length, rejected: result.rejected.length });
+  return { outcome: result.outcome, visual, reply: result.reply, rejected: result.rejected, handEdited: !!previous.handEdited };
 }
 
 export function visualView(v: IvisionVisual) {

@@ -53,7 +53,20 @@ export interface TypographyProposal {
 
 /** Le nom de famille propre (« "Helvetica Neue", Arial, sans-serif » → « Helvetica Neue »). */
 export function firstFamily(stack: string): string {
-  return (stack || '').split(',')[0].replace(/["']/g, '').trim();
+  return cleanFamilyName((stack || '').split(',')[0]);
+}
+
+/**
+ * Le VRAI nom d'une famille vue sur un site. Les cadriciels renomment les polices qu'ils auto-hébergent :
+ * next/font écrit « __Inter_d65c78 » (et « __Playfair_Display_Fallback_a1b2c3 » pour son repli local) ; d'autres
+ * ajoutent « var » ou « Variable ». Sans ce nettoyage, une police Google servie par le site passait pour une
+ * police inconnue et était remplacée par une autre.
+ */
+export function cleanFamilyName(raw: string): string {
+  let family = String(raw || '').replace(/["']/g, '').trim();
+  const next = family.match(/^__(.+?)(?:_Fallback)?_[0-9a-f]{5,8}$/i);
+  if (next) family = next[1].replace(/_/g, ' ');
+  return family.replace(/\s+(?:var|variable|vf)$/i, '').replace(/\s+/g, ' ').trim();
 }
 
 export function categoryOf(family: string, stack = ''): FontCategory {
@@ -79,6 +92,8 @@ const css = (family: string) => buildGoogleFontsHref([family]);
 
 /** Les polices du site (titres, texte), et trois propositions. */
 export function typographyProposals(seen: SeenFont[], stacks: Record<string, string> = {}): { site: { display: string; body: string; exactDisplay: boolean; exactBody: boolean; original: { display?: string; body?: string } }; proposals: TypographyProposal[] } {
+  seen = seen.map((f) => ({ ...f, family: cleanFamilyName(f.family) }));
+  stacks = Object.fromEntries(Object.entries(stacks).map(([k, v]) => [cleanFamilyName(k), v]));
   const score = (usage: SeenFont['usage']) => {
     const by = new Map<string, number>();
     for (const f of seen) if (f.usage === usage && f.family) by.set(f.family, (by.get(f.family) || 0) + f.area + (usage === 'heading' ? f.weight * 10 : 0));

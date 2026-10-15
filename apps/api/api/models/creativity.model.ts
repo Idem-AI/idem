@@ -14,4 +14,6 @@ export interface SavedDocumentDesign {
   level: import('../../../../packages/shared-models/src/creativity/creativity').CreativityLevel;
   family?: string;
   pages: Record<string, { archetype?: string; imagePosition?: string; contentDensity?: string; layoutTension?: string }>;
+  /** L'enregistrement de la génération : décisions, médias, réparations, replis, constats (@idem/graphic-engine). */
+  record?: import('@idem/graphic-engine').GenerationRecord;
 }

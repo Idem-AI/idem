@@ -156,66 +156,6 @@
         </div>
       }
 
-      <!-- Le type : choisi par IDEM ; imposable, mais replié. -->
-      <div class="vdb-type-line">
-        <span class="vdb-type-current">
-          <i class="pi pi-sparkles" aria-hidden="true"></i>
-          @if (type() === 'auto') {
-            {{ 'dashboard.showCommunication.video.builder.chat.autoType' | translate }}
-          } @else {
-            {{ 'dashboard.showCommunication.video.types.' + type() + '.label' | translate }}
-          }
-        </span>
-        <button
-          type="button"
-          class="vdb-link"
-          [attr.aria-expanded]="showTypes()"
-          (click)="showTypes.set(!showTypes())"
-        >
-          {{
-            (showTypes()
-              ? 'dashboard.showCommunication.video.builder.chat.hideTypes'
-              : 'dashboard.showCommunication.video.builder.chat.forceType'
-            ) | translate
-          }}
-        </button>
-      </div>
-      @if (showTypes()) {
-        <div class="vdb-chips vdb-type-chips">
-          <button
-            type="button"
-            class="vdb-chip"
-            [class.vb-active]="type() === 'auto'"
-            [attr.aria-pressed]="type() === 'auto'"
-            (click)="chooseType('auto')"
-          >
-            <span class="vdb-chip-main"
-              ><i class="pi pi-sparkles" aria-hidden="true"></i>
-              {{ 'dashboard.showCommunication.video.builder.chat.autoShort' | translate }}</span
-            >
-            <span class="vdb-chip-hint">{{
-              'dashboard.showCommunication.video.builder.chat.autoHint' | translate
-            }}</span>
-          </button>
-          @for (t of types(); track t.id) {
-            <button
-              type="button"
-              class="vdb-chip"
-              [class.vb-active]="type() === t.id"
-              [attr.aria-pressed]="type() === t.id"
-              (click)="chooseType(t.id)"
-            >
-              <span class="vdb-chip-main"
-                ><i [class]="t.icon" aria-hidden="true"></i>
-                {{ 'dashboard.showCommunication.video.types.' + t.id + '.label' | translate }}</span
-              >
-              <span class="vdb-chip-hint">{{
-                'dashboard.showCommunication.video.types.' + t.id + '.uses' | translate
-              }}</span>
-            </button>
-          }
-        </div>
-      }
     }
 
     <!-- ═══════════ 2. Configurer ═══════════ -->
@@ -226,6 +166,72 @@
       <p class="vb-help">
         {{ 'dashboard.showCommunication.video.builder.config.help' | translate }}
       </p>
+
+      <!-- L'interprétation de la demande : ce que l'IA a compris, corrigeable avant de générer. -->
+      <section class="vdb-intent" aria-labelledby="vdb-intent-title" aria-live="polite">
+        <div class="vdb-intent-head">
+          <h3 id="vdb-intent-title" class="vdb-label">{{ 'dashboard.showCommunication.video.builder.intent.title' | translate }}</h3>
+          @if (interpretation() && !interpreting()) {
+            <button type="button" class="vdb-link" [attr.aria-expanded]="correcting()" (click)="correcting.set(!correcting())">
+              {{ (correcting() ? 'dashboard.showCommunication.video.builder.intent.done' : 'dashboard.showCommunication.video.builder.intent.correct') | translate }}
+            </button>
+          }
+        </div>
+        @if (interpreting()) {
+          <p class="vdb-group-hint"><idem-loader size="xs" /> {{ 'dashboard.showCommunication.video.builder.intent.loading' | translate }}</p>
+        } @else if (interpretation(); as it) {
+          <p class="vdb-intent-kicker">{{ 'dashboard.showCommunication.video.builder.intent.proposal' | translate }}</p>
+          <ul class="vdb-intent-tags" role="list">
+            @if (shownGoal(); as g) { <li class="vdb-intent-tag">{{ 'dashboard.showCommunication.video.builder.intent.goals.' + g | translate }}</li> }
+            @if (shownMode(); as m) { <li class="vdb-intent-tag">{{ 'dashboard.showCommunication.video.builder.intent.modes.' + m | translate }}</li> }
+            @if (shownMotion(); as mo) { <li class="vdb-intent-tag">{{ 'dashboard.showCommunication.video.builder.intent.motions.' + mo | translate }}</li> }
+            @for (tag of it.interpretation.tags.slice(3); track tag) { <li class="vdb-intent-tag vdb-intent-tag-soft">{{ tag }}</li> }
+          </ul>
+          @if (!corrected()) { <p class="vdb-group-hint">{{ it.interpretation.summary }}</p> }
+
+          @if (correcting()) {
+            <div class="vdb-intent-edit">
+              <label class="vdb-intent-field">
+                <span>{{ 'dashboard.showCommunication.video.builder.intent.objective' | translate }}</span>
+                <select class="input" [value]="shownGoal()" (change)="setGoal($any($event.target).value)">
+                  @for (g of goals; track g) { <option [value]="g">{{ 'dashboard.showCommunication.video.builder.intent.goals.' + g | translate }}</option> }
+                </select>
+              </label>
+              <label class="vdb-intent-field">
+                <span>{{ 'dashboard.showCommunication.video.builder.intent.mode' | translate }}</span>
+                <select class="input" [value]="shownMode()" (change)="setMode($any($event.target).value)">
+                  @for (m of productionModes; track m) { <option [value]="m">{{ 'dashboard.showCommunication.video.builder.intent.modes.' + m | translate }}</option> }
+                </select>
+              </label>
+              <label class="vdb-intent-field">
+                <span>{{ 'dashboard.showCommunication.video.builder.intent.motion' | translate }}</span>
+                <select class="input" [value]="shownMotion()" (change)="setMotion($any($event.target).value)">
+                  @for (mo of motionLanguages; track mo) { <option [value]="mo">{{ 'dashboard.showCommunication.video.builder.intent.motions.' + mo | translate }}</option> }
+                </select>
+              </label>
+            </div>
+          }
+
+          <!-- Une seule question, seulement quand la réponse change le résultat. -->
+          @if (it.clarification; as q) {
+            <fieldset class="vdb-intent-question">
+              <legend class="vdb-label">{{ q.question }}</legend>
+              @if (q.options.length) {
+                <div class="vdb-chips">
+                  @for (o of q.options; track o.id) {
+                    <button type="button" class="vdb-chip" [class.vb-active]="answer() === o.id" [attr.aria-pressed]="answer() === o.id" (click)="answer.set(o.id)">
+                      <span class="vdb-chip-main">{{ o.label }}</span>
+                      <span class="vdb-chip-hint">{{ o.description }}</span>
+                    </button>
+                  }
+                </div>
+              } @else {
+                <p class="vdb-group-hint">{{ 'dashboard.showCommunication.video.builder.intent.fieldsHint' | translate }}</p>
+              }
+            </fieldset>
+          }
+        }
+      </section>
 
       <div class="vdb-config">
         <div class="vdb-config-main">
@@ -359,30 +365,6 @@
             </button>
             @if (showMore()) {
               <div class="vdb-more-body">
-                <label class="vdb-label" for="vdb-direction">
-                  {{ 'dashboard.showCommunication.video.builder.scope.direction' | translate }}
-                </label>
-                <select
-                  id="vdb-direction"
-                  [ngModel]="direction()"
-                  (ngModelChange)="direction.set($event)"
-                  name="vdbDirection"
-                >
-                  @for (d of directions(); track d) {
-                    <option [value]="d">
-                      {{
-                        'dashboard.showCommunication.video.directions.' + d + '.label' | translate
-                      }}
-                    </option>
-                  }
-                </select>
-                <p class="vdb-group-hint">
-                  {{
-                    'dashboard.showCommunication.video.directions.' + direction() + '.hint'
-                      | translate
-                  }}
-                </p>
-
                 <label class="vdb-switch">
                   <input
                     type="checkbox"
@@ -522,7 +504,7 @@
       } @else {
         <!-- Le cran de créativité se choisit au moment de lancer : à côté du bouton, prix compris. -->
         <div class="vb-footer-go">
-          <app-creativity-picker [(value)]="creativity" [baseCost]="basePrice()" [disabled]="busy()" placement="top" align="end" />
+          <app-creativity-picker kind="video" [(value)]="creativity" [baseCost]="basePrice()" [disabled]="busy()" placement="top" align="end" />
           <button type="button" class="inner-button" [disabled]="!canSubmit()" (click)="submit()">
             <i class="pi pi-video" aria-hidden="true"></i>
             {{ 'dashboard.showCommunication.video.builder.submit' | translate: { price: price() } }}

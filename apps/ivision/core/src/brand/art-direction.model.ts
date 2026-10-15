@@ -63,6 +63,8 @@ export interface ArtDirectionLayout {
   whitespace: string;
   /** Le geste de composition signature (bleed, décalage, superposition…). */
   signatureMove: string;
+  /** Trois mises en page types de la marque (post, flyer, slide…), décrites en zones : la grammaire appliquée. */
+  recipes?: Array<{ name: string; use: string; zones: string }>;
 }
 
 export interface ArtDirectionTypography {

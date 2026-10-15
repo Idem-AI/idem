@@ -1,0 +1,57 @@
+/* Feuille de base du site, posée par IDEM — NE PAS MODIFIER.
+   Le thème (couleurs, polices, rayons, ombres…) vient de design-system.json. */
+@import '../design-system/theme.generated.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-background font-body text-body text-foreground antialiased;
+    font-weight: var(--font-body-weight);
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-heading);
+    font-weight: var(--font-heading-weight);
+    letter-spacing: var(--tracking-heading);
+    line-height: var(--leading-heading);
+    text-transform: var(--heading-transform);
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  img,
+  video {
+    max-width: 100%;
+  }
+
+  :focus-visible {
+    outline: 2px solid rgb(var(--ring));
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+  }
+}

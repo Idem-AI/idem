@@ -1,41 +1,38 @@
 /**
  * LE FLUX D'UNE GÉNÉRATION — l'orchestrateur du moteur.
  *
- *   contenu → validation → structure sémantique → candidats → choix (code ou agent selon le cran)
- *   → DesignSpec → compilation → mesure → réparation (code, puis agent ciblé) → critique (High+)
- *   → RenderResult versionné + trace de coûts
+ *   contenu → médias → matière à plat (clés) → langage visuel de la MARQUE (une fois par marque, gardé) → plan du
+ *   DOCUMENT (une ligne par page) → page écrite en HTML
+ *   Tailwind (auteur) → assainie, remplie, compilée → « s'affiche-t-elle ? » → RenderResult + trace
  *
- * Un `GraphicDocument` porte ce qui est commun aux sections d'un livrable : les jetons, le plan, la
- * mémoire de diversité, le budget. Ses sections peuvent être composées EN PARALLÈLE (le plan a déjà
- * réservé à chacune ses motifs) ; leur rendu est déterministe pour un même plan et un même contenu.
+ * Aucun gabarit, aucune note esthétique, aucune critique, aucune réécriture automatique : le rendu est celui que
+ * l'auteur a écrit. La seule correction est TECHNIQUE et bornée — une page qui ne s'affiche pas (réponse
+ * inutilisable, rien de visible, rendu impossible) : corriger › réécrire autrement (modèle du cran au-dessus) ›
+ * version minimale ; une tentative à la fois, jamais deux fois la même approche, dans un budget par document.
+ * Ce qui résiste lève `GraphicRenderError` : l'hôte le dit, rien n'est remplacé en silence.
+ *
+ * La jauge de créativité choisit le MODÈLE (`level` transmis à l'hôte, qui résout le rôle sur son échelle) :
+ * mêmes étapes et même contexte à tous les crans.
  */
 import type { CreativityLevel, DocumentType, FormatId, Issue } from './contracts/common';
-import type { SectionContent, SectionRole } from './contracts/content-model';
+import type { SectionContent } from './contracts/content-model';
 import type { DesignSpec, SectionSpec } from './contracts/design-spec';
+import { isAuthoredSpec } from './contracts/design-spec';
 import type { RenderResult } from './contracts/render-result';
 import { validateSectionContent } from './contracts/validate';
-import { analyzeSection } from './composition-engine/analyze';
-import { buildCandidate, Candidate, choose, createComposeContext, generateCandidates, lookInputFor, menu, rank, specOf } from './composition-engine/compose';
-import { DiversityMemory, fingerprintOf, serialize } from './composition-engine/diversity';
-import { DocumentPlan, planDocument, slotFor } from './composition-engine/plan';
-import { CreativityPolicy, policyFor } from './composition-engine/profiles';
-import { resolveLook } from './design-system/look';
+import { applyAssets, GENERATION_CAP, planAssets, resolveAssets } from './asset-planner';
 import { BrandInput, buildTokens, DesignTokens, DirectionInput } from './design-system/tokens';
+import { FORMATS } from './design-system/formats';
 import { stableHash } from './foundation/hash';
-import { compileSection } from './html-css-compiler/compile';
-import { createContext, SectionMeta } from './html-css-compiler/context';
-import { authorPrompt, describeSection, parseAuthored, parsePick, parsePickTune, pickPrompt, pickTunePrompt } from './agents/creative-planner';
-import { CRITIC_INSTRUCTION, parseCritique, visionCall } from './agents/critic';
-import { planContent } from './agents/content-planner';
-import { COMPACT_VARIANTS, parseRepair, repairPrompt } from './agents/targeted-repair';
 import { AgentCall, engineHost, FingerprintScope, log } from './host';
-import { budgetFor, TASK_POLICIES, TokenBudget, atLeast } from './orchestrator/policies';
-import { runTask } from './orchestrator/run-task';
 import { GenerationTrace, TraceRecorder } from './observability/traces';
-import { fitAndMeasure, Measurement } from './quality-engine/measure';
-import { decide, issuesOf, measuredScore } from './quality-engine/repair';
-import { COMPONENT_LIBRARY_VERSION, ENGINE_VERSION } from './version';
-import { walk } from './contracts/validate';
+import { ENGINE_VERSION, COMPONENT_LIBRARY_VERSION } from './version';
+import { authorSystem, authorUser, DocumentContext, DocumentPlan, languagePrompt, parseLanguage, parsePlan, planPrompt, PlannedPage, ReferenceComposition, RepairStrategy, repairUser, reviseUser, toolLines } from './author/prompts';
+import { callModel, levelUp } from './author/model';
+import { buildContentMap, ContentMap } from './runtime/content-map';
+import { expandPage, extractHtml, sanitizeHtml, withSize } from './runtime/expand';
+import { compileTailwind } from './runtime/tailwind';
+import { checkRender } from './runtime/check';
 
 export interface DocumentOptions {
   documentType: DocumentType;
@@ -45,22 +42,31 @@ export interface DocumentOptions {
   direction?: DirectionInput;
   allowDark?: boolean;
   creativity?: CreativityLevel;
-  /** La clé du livrable : elle sème tous les tirages (même projet, même suite ; autre projet, autre suite). */
+  /** La clé du livrable (journaux). */
   seed: string;
   documentLabel?: string;
-  /** Les sections attendues, dans l'ordre : le plan leur réserve des compositions distinctes. */
-  sections?: Array<{ id: string; role?: SectionRole }>;
+  /** Les pages attendues, dans l'ordre (`purpose` : ce que la page doit faire) : le directeur écrit le plan pour elles. */
+  sections?: PlannedPage[];
+  /** Le langage visuel de la marque, s'il est déjà connu de l'hôte (sinon lu ou écrit par `brandMemory`). */
+  brandLanguage?: string;
   bindings?: 'values' | 'markers';
   imageColors?: string[];
-  /** Mesurer et réparer dans Chromium (défaut : oui). */
+  /** Contrôler l'affichage dans Chromium (défaut : oui). */
   validate?: boolean;
-  /** Photographier la page (visuels, cartes, critique). */
+  /** Photographier la page (visuels, cartes). */
   png?: boolean;
-  /** Portée de la mémoire de diversité entre documents (marque, projet). */
+  /** Portée de la mémoire entre documents (marque, projet) : langage visuel de la marque, idées déjà employées. */
   memoryScope?: FingerprintScope;
   user?: { userId?: string; projectId?: string };
   size?: { width: number; height: number };
+  /** Ancien réglage du pied de page : la page est désormais écrite par l'auteur (ignoré). */
   footer?: 'full' | 'logo' | 'none';
+  /** Une composition MODÈLE (image de référence de l'utilisateur, analysée) : l'auteur la reproduit. */
+  reference?: ReferenceComposition;
+  /** Ce que l'hôte sait du projet (activité, public), donné au directeur et à l'auteur. */
+  brief?: string;
+  /** Le souhait du client pour la mise en page (« plus aérée », « plus sobre ») : une nouvelle mise en page le suit. */
+  layoutNote?: string;
 }
 
 export interface SectionOutput {
@@ -76,287 +82,383 @@ export class ContentError extends Error {
   }
 }
 
-interface Attempt {
-  spec: SectionSpec;
-  candidate?: Candidate;
+/** Une page qui n'a pas pu s'afficher, même après la correction bornée — une erreur TECHNIQUE, dite. */
+export class GraphicRenderError extends Error {
+  constructor(
+    readonly sectionId: string,
+    readonly reason: string,
+    readonly attempts: string[] = []
+  ) {
+    super(`La page « ${sectionId} » ne s'affiche pas : ${reason}`);
+  }
+}
+
+/** Les bornes de la correction technique, par document. */
+export function repairLimits(): { attempts: number; tokenBudget: number; maxMs: number } {
+  const n = (v: string | undefined, d: number) => (v !== undefined && v !== '' && Number.isFinite(Number(v)) ? Math.max(0, Number(v)) : d);
+  return { attempts: Math.min(3, n(process.env.GRAPHIC_REPAIR_ATTEMPTS, 3)), tokenBudget: n(process.env.GRAPHIC_REPAIR_TOKEN_BUDGET, 60000), maxMs: n(process.env.GRAPHIC_REPAIR_MAX_MS, 240000) };
+}
+
+const REPAIR_PLAN: RepairStrategy[] = ['fix', 'rewrite', 'minimal'];
+const AUTHOR_TIMEOUT = 150_000;
+const DIRECTOR_TIMEOUT = 60_000;
+
+interface Rendered {
+  template: string;
   html: string;
-  scale: number;
-  measurement?: Measurement;
+  head: string;
   png?: Buffer;
-  score: number;
+  width?: number;
+  height?: number;
   issues: Issue[];
-  critique?: number;
 }
 
 export class GraphicDocument {
   readonly tokens: DesignTokens;
-  readonly plan: DocumentPlan;
-  readonly policy: CreativityPolicy;
-  readonly budget: TokenBudget;
-  private readonly memory: DiversityMemory;
+  /** Le cran de la jauge : il choisit le modèle de chaque rôle (l'hôte résout l'échelle). */
+  readonly policy: { level: CreativityLevel };
   private readonly specs = new Map<string, SectionSpec>();
+  /** Le contenu final de chaque page (médias posés) : gardé par l'hôte, il permet de refaire la mise en page sans réécrire. */
+  private readonly contents = new Map<string, SectionContent>();
   private readonly generationId: string;
+  private generatedAssets = 0;
+  private languagePromise: Promise<string | undefined> | null = null;
+  private languageText: string | undefined;
+  private planPromise: Promise<DocumentPlan | undefined> | null = null;
+  private planValue: DocumentPlan | undefined;
+  /** Le budget de correction de tout le document (jetons, durée). */
+  private repairSpent = { tokens: 0, started: 0 };
 
-  private constructor(readonly options: DocumentOptions, recent: string[]) {
+  private constructor(
+    readonly options: DocumentOptions,
+    private readonly previousIdeas: string[]
+  ) {
     this.tokens = buildTokens({ brand: options.brand, direction: options.direction, format: options.format, allowDark: options.allowDark, size: options.size });
-    this.plan = planDocument({ documentType: options.documentType, format: options.format, seed: options.seed, creativity: options.creativity, styleId: options.direction?.styleId, density: options.direction?.density, sections: options.sections, hasImage: Boolean(options.imageColors?.length) });
-    this.policy = policyFor(options.creativity);
-    this.budget = new TokenBudget(budgetFor(options.documentType, this.policy.level, options.sections?.length ?? 1));
-    this.memory = new DiversityMemory(recent);
+    this.policy = { level: options.creativity === ('max' as CreativityLevel) ? 'high' : options.creativity ?? 'medium' };
     this.generationId = `${options.documentType}:${stableHash([options.seed, Date.now()], 10)}`;
   }
 
   static async create(options: DocumentOptions): Promise<GraphicDocument> {
     const host = engineHost();
     const recent = options.memoryScope && host.recentFingerprints ? await host.recentFingerprints(options.memoryScope).catch(() => []) : [];
-    return new GraphicDocument(options, recent);
+    return new GraphicDocument(options, recent.filter((r) => r.startsWith('idea:') || r.startsWith('bible:')).map((r) => r.replace(/^(idea|bible):/, '')));
   }
 
-  /** Le bloc `<head>` de l'assembleur (polices de la marque). */
+  /** Les polices de la marque (le `<style>` Tailwind de chaque page est dans son `result.head`). */
   get head(): string {
     return this.tokens.font.headHtml;
+  }
+
+  /** L'idée du document (son plan), sinon le langage de la marque : ce qui a guidé ses pages. */
+  get bible(): string | undefined {
+    return this.planValue?.idea || this.languageText;
+  }
+
+  /** Le plan du document, une fois écrit. */
+  get plan(): DocumentPlan | undefined {
+    return this.planValue;
+  }
+
+  private get format() {
+    return withSize(FORMATS[this.options.format], this.options.size);
+  }
+
+  private context(): DocumentContext {
+    return {
+      documentType: this.options.documentType,
+      documentLabel: this.options.documentLabel,
+      locale: this.options.locale ?? 'fr',
+      tokens: this.tokens,
+      format: this.format,
+      direction: this.options.direction,
+      allowDark: this.options.allowDark === true,
+      brief: this.options.brief,
+      layoutNote: this.options.layoutNote,
+      bindings: this.options.bindings ?? 'values',
+    };
   }
 
   private agent(): AgentCall | undefined {
     return engineHost().agentCall?.({ ...this.options.user, element: `graphic:${this.options.documentType}` });
   }
 
-  private compile(spec: SectionSpec, section: SectionContent, meta: SectionMeta, scale: number, fingerprint: string): { html: string; issues: Issue[] } {
-    const look = resolveLook(this.tokens, { strategy: spec.strategy, mood: spec.mood, tension: spec.tension, accent: spec.accent, density: spec.density, allowInverted: this.tokens.format.kind === 'fixed' && this.tokens.format.family !== 'card', imageColors: this.options.imageColors });
-    const ctx = createContext({ tokens: this.tokens, look, section, documentType: this.options.documentType, locale: this.options.locale ?? 'fr', bindings: this.options.bindings ?? 'values', meta });
-    const { html } = compileSection(spec, ctx, { fitScale: scale, fingerprint, specHash: stableHash(spec, 12) });
-    return { html, issues: ctx.issues };
+  /** La clé du langage de la marque : la portée (projet) et l'identité de la charte (une nouvelle charte, un nouveau langage). */
+  private languageKey(): string | undefined {
+    const scope = this.options.memoryScope?.key;
+    if (!scope) return undefined;
+    const b = this.options.brand;
+    const d = this.options.direction;
+    return `${scope}:${stableHash([b.name, b.palette, b.fonts?.display, b.fonts?.body, d?.styleId, d?.grammar], 12)}`;
   }
 
   /**
-   * Compiler, puis ajuster et mesurer dans Chromium (titres au pixel, texte dans son aplat, diapositive trop
-   * vide agrandie), puis corriger par le code (échelle bornée) ; la meilleure tentative est gardée.
+   * Le LANGAGE VISUEL de la marque : donné par l'hôte, sinon relu dans sa mémoire, sinon écrit UNE fois par le
+   * directeur et gardé — tous les livrables de la marque le reprennent (cohérence, et un appel par marque au lieu
+   * d'un par document). Sans mémoire, une page seule s'en passe (la direction brute de la charte suffit).
    */
-  private async renderAttempt(spec: SectionSpec, section: SectionContent, meta: SectionMeta, fingerprint: string, recorder: TraceRecorder, light: boolean, shoot: boolean): Promise<Attempt> {
-    const fixed = this.tokens.format.kind === 'fixed';
-    const validate = this.options.validate !== false;
-    const grow = fixed && this.tokens.format.family === 'slide';
-    let scale = 1;
-    let best: Attempt | null = null;
-    for (let round = 0; round < 5; round++) {
-      const compiled = this.compile(spec, section, meta, scale, fingerprint);
-      if (!validate) return { spec, html: compiled.html, scale, score: 100, issues: compiled.issues };
-      const t0 = Date.now();
-      const run = await fitAndMeasure(compiled.html, this.head, this.tokens.format, { fixed, grow: grow && scale === 1, minPx: Math.max(7, this.tokens.format.minSize * 0.9), floor: 0.74, inks: { dark: this.tokens.color.ink, light: this.tokens.color.onDeep } }, { lang: this.options.locale, shoot });
-      const measurement: Measurement = run.measurement;
-      recorder.task({ task: 'measure', source: 'code', inputTokens: 0, outputTokens: 0, ms: Date.now() - t0, outcome: 'accepted' });
-      if (measurement.fitted.shrunk) recorder.repair({ code: 'fit_text', detail: `textes ajustés (${measurement.fitted.shrunk} pas) — échelle finale ${Math.round(measurement.fitted.textScale * 100)} %`, by: 'code' });
-      if (measurement.fitted.grown) recorder.repair({ code: 'fit_grow', detail: `page trop vide : textes agrandis de ${measurement.fitted.grown} %`, by: 'code' });
-      if (measurement.fitted.recolored) recorder.repair({ code: 'fix_contrast', detail: `${measurement.fitted.recolored} texte(s) ramené(s) au contraste de lecture (encre de la charte)`, by: 'code' });
-      const score = measuredScore(measurement, scale, fixed);
-      const attempt: Attempt = { spec, html: run.html, scale, measurement, png: run.png, score, issues: [...compiled.issues, ...issuesOf(measurement, fixed, scale, this.policy.judgementBlocks, light)] };
-      if (!best || attempt.score > best.score) best = attempt;
-      // Un décor d'encre posé sur un texte s'efface — lui seul : le contenu passe avant l'ornement.
-      if (measurement.decorOverText.length && spec.decor?.length) {
-        const drop = new Set(measurement.decorOverText);
-        recorder.repair({ code: 'drop_decor', detail: `${drop.size} décor(s) posé(s) sur un texte : retiré(s)`, by: 'code' });
-        spec = { ...spec, decor: spec.decor.filter((_, i) => !drop.has(i)) };
-        continue;
-      }
-      const action = decide(measurement, scale, fixed);
-      if (action.kind !== 'zoom') return best;
-      recorder.repair({ code: 'fit_scale', detail: `mise à l'échelle ${Math.round(scale * 100)} % → ${Math.round(action.scale * 100)} % (débordement ${measurement.overflowPx} px)`, by: 'code' });
-      scale = action.scale;
+  private ensureLanguage(recorder: TraceRecorder): Promise<string | undefined> {
+    if (!this.languagePromise) {
+      this.languagePromise = (async () => {
+        if (this.options.brandLanguage?.trim()) return (this.languageText = this.options.brandLanguage.trim().slice(0, 1400));
+        const host = engineHost();
+        const key = this.languageKey();
+        if (key && host.brandMemory) {
+          const known = await host.brandMemory.read(key).catch(() => undefined);
+          if (known?.trim()) return (this.languageText = known.trim().slice(0, 1400));
+        }
+        const multi = (this.options.sections?.length ?? 0) >= 2;
+        const call = this.agent();
+        if (!call || (!multi && !(key && host.brandMemory))) return undefined;
+        const { system, user } = languagePrompt(this.context());
+        const run = await callModel({ call, recorder, task: 'direct', role: 'graphic.director', profile: 'agents', level: this.policy.level, system, user, timeoutMs: DIRECTOR_TIMEOUT, validate: (raw) => parseLanguage(raw) !== null });
+        // Sans langage, chaque page reste écrite : il sert la cohérence, il n'est pas une condition.
+        this.languageText = run.ok ? parseLanguage(run.raw) ?? undefined : undefined;
+        if (this.languageText && key && host.brandMemory) await host.brandMemory.write(key, this.languageText).catch(() => undefined);
+        return this.languageText;
+      })();
     }
-    return best as Attempt;
+    return this.languagePromise;
   }
 
-  async composeSection(content: SectionContent, o: { index?: number; total?: number; replay?: SectionSpec } = {}): Promise<SectionOutput> {
+  /** Le PLAN du document (une idée, une ligne par page) : une fois par document de plusieurs pages, partagé par ses pages. */
+  private ensurePlan(recorder: TraceRecorder, language: string | undefined): Promise<DocumentPlan | undefined> {
+    const pages = this.options.sections ?? [];
+    if (pages.length < 2) return Promise.resolve(undefined);
+    if (!this.planPromise) {
+      const call = this.agent();
+      this.planPromise = (async () => {
+        if (!call) return undefined;
+        const { system, user } = planPrompt(this.context(), pages, language, this.previousIdeas);
+        const run = await callModel({ call, recorder, task: 'direct', role: 'graphic.director', profile: 'agents', level: this.policy.level, system, user, timeoutMs: DIRECTOR_TIMEOUT, validate: (raw) => parsePlan(raw, pages.length) !== null });
+        this.planValue = run.ok ? parsePlan(run.raw, pages.length) ?? undefined : undefined;
+        return this.planValue;
+      })();
+    }
+    return this.planPromise;
+  }
+
+  /** Ce que le plan dit de CETTE page et de ses voisines. */
+  private planFor(sectionId: string, index: number): { idea?: string; page?: string; previous?: string; next?: string } | undefined {
+    const plan = this.planValue;
+    if (!plan) return undefined;
+    const ids = (this.options.sections ?? []).map((s) => s.id);
+    const at = ids.indexOf(sectionId) >= 0 ? ids.indexOf(sectionId) : index - 1;
+    return { idea: plan.idea || undefined, page: plan.pages[at] || undefined, previous: plan.pages[at - 1] || undefined, next: plan.pages[at + 1] || undefined };
+  }
+
+  /**
+   * Compose une page. `replay` : la page déjà écrite, rejouée avec un contenu retouché (aucun modèle) ;
+   * `revise` : une retouche ÉCRITE (« le titre plus grand ») — l'auteur réécrit la page avec la consigne.
+   */
+  async composeSection(content: SectionContent, o: { index?: number; total?: number; replay?: SectionSpec; revise?: { spec?: SectionSpec; instruction: string } } = {}): Promise<SectionOutput> {
     const checked = validateSectionContent(content);
     if (!checked.ok || !checked.value) throw new ContentError(checked.issues);
     const level = this.policy.level;
     const recorder = new TraceRecorder({ generationId: this.generationId, documentType: this.options.documentType, format: this.options.format, level, sectionId: content.id });
-    const analysis0 = analyzeSection(checked.value);
-    const section = planContent(checked.value, analysis0);
-    const analysis = { ...analysis0, role: section.role };
-    const slot = slotFor(this.plan, section.id, o.index);
-    const meta: SectionMeta = { brandName: this.options.brand.name, documentLabel: this.options.documentLabel, index: slot.index, total: o.total ?? (this.plan.order.length || undefined), footer: this.options.footer ?? this.plan.footer };
-    const ctx = createComposeContext({ section, analysis, plan: this.plan, slot, tokens: this.tokens, meta, memory: this.memory, policy: this.policy, imageColors: this.options.imageColors });
-    const fixed = this.tokens.format.kind === 'fixed';
-    const critic = atLeast(level, 'high') && fixed && Boolean(engineHost().analyzeImage) && this.budget.allows(TASK_POLICIES.critic.maxTokens);
-    const shoot = Boolean(this.options.png) || critic;
-    const call = this.agent();
-    const brandName = this.options.brand.name;
-    const summary = describeSection(section, analysis);
-    const previous = this.memory.snapshot().map((f) => f.split('|')[0]);
+    const { section, assets } = await this.prepareAssets(checked.value, recorder);
+    const map = buildContentMap(section, this.options.bindings ?? 'values');
+    const index = o.index ?? 1;
+    const total = o.total ?? (this.options.sections?.length || 1);
 
-    // ── 1. Le choix de la composition ─────────────────────────────────────────────────────
-    let ranked: Candidate[] = [];
-    let chosen: Candidate | null = null;
-    let authored: SectionSpec | null = null;
-    if (o.replay) {
-      authored = o.replay;
-      recorder.task({ task: 'compose', source: 'code', inputTokens: 0, outputTokens: 0, ms: 0, outcome: 'accepted', reason: 'nothing-to-decide' });
-    } else {
-      ranked = rank(generateCandidates(ctx), ctx);
-      const fallback = choose(ranked, ctx);
-      const options = menu(ranked, this.policy.menu);
-      recorder.task({ task: 'compose', source: 'code', inputTokens: 0, outputTokens: 0, ms: 0, outcome: 'accepted' });
-      chosen = fallback;
-      if (this.policy.agents.tune) {
-        const tuned = await runTask({ policy: TASK_POLICIES.pickTune, level, call, budget: this.budget, recorder, prompt: () => pickTunePrompt(this.plan, brandName, this.tokens.format, summary, options, previous), parse: (raw) => parsePickTune(raw, options, this.plan), fallback: () => null });
-        if (tuned.value) {
-          const base = options[tuned.value.index];
-          const lookInput = { ...lookInputFor(ctx), ...(tuned.value.tension ? { tension: tuned.value.tension } : {}), ...(tuned.value.accent ? { accent: tuned.value.accent } : {}) };
-          chosen = buildCandidate(ctx, base.pattern, tuned.value.params, lookInput);
-        }
-      } else if (this.policy.agents.pick) {
-        const picked = await runTask({ policy: TASK_POLICIES.pick, level, call, budget: this.budget, recorder, prompt: () => pickPrompt(this.plan, brandName, this.tokens.format, summary, options, previous), parse: (raw) => parsePick(raw, options.length), fallback: () => -1 });
-        if (picked.value >= 0) chosen = options[picked.value];
-      }
-      if (this.policy.agents.author) {
-        const result = await runTask({ policy: TASK_POLICIES.author, level, call, budget: this.budget, recorder, prompt: () => authorPrompt(this.plan, brandName, this.tokens.format, section, analysis, previous), parse: (raw) => parseAuthored(raw, section, this.tokens.format), fallback: () => undefined });
-        if (result.value) {
-          const look = chosen ? chosen.lookInput : lookInputFor(ctx);
-          authored = { ref: section.id, pattern: { id: 'authored', params: {} }, density: look.density, strategy: look.strategy, mood: look.mood, tension: look.tension, accent: look.accent, root: result.value.root, ...(result.value.decor.length ? { decor: result.value.decor } : {}) };
-          for (const r of result.value.repaired) recorder.repair({ code: 'author_tree', detail: r, by: 'code' });
-        }
-      }
+    let rendered: Rendered | null = null;
+    /** Ce qui a guidé la page (gardé avec elle) : le langage de la marque et la ligne du plan. */
+    let bible: string | undefined;
+    // 1. Une page rejouée : son code, le nouveau contenu, aucun modèle.
+    if (o.replay && isAuthoredSpec(o.replay) && !o.revise) {
+      const r = await this.render(o.replay.html, map, section.id, recorder);
+      if (r.ok) rendered = r.page;
+      else recorder.repair({ code: 'replay_failed', detail: `la page gardée ne s'affiche plus (${r.error.slice(0, 160)}) : réécrite`, by: 'code' });
+      bible = o.replay.bible;
+    }
+    if (!rendered) {
+      const call = this.agent();
+      if (!call) throw new GraphicRenderError(section.id, 'aucun modèle n’est branché (port agentCall absent)');
+      const language = (await this.ensureLanguage(recorder)) ?? (bible || undefined);
+      await this.ensurePlan(recorder, language);
+      const plan = this.planFor(section.id, index);
+      bible = [language, plan?.idea && `idea: ${plan.idea}`, plan?.page && `this page: ${plan.page}`].filter(Boolean).join('\n') || undefined;
+      const ctx = this.context();
+      const system = authorSystem(ctx);
+      const blocks = [...map.primitives.values()];
+      const tools = toolLines(ctx, { charts: blocks.filter((b) => b.kind === 'chart').map((b) => b.id), tables: blocks.filter((b) => b.kind === 'table').map((b) => b.id), icons: [...map.entries.values()].some((e) => e.kind === 'icon') });
+      const base = authorUser(ctx, { section, listing: map.listing, tools, index, total, language, plan, reference: this.options.reference });
+      const revising = o.revise?.instruction && o.revise.spec && isAuthoredSpec(o.revise.spec) ? o.revise : undefined;
+      const user = revising ? reviseUser(base, (revising.spec as SectionSpec).html, revising.instruction) : base;
+      rendered = await this.author(section.id, map, recorder, { system, base, user, level, task: revising ? 'revise' : 'author' });
     }
 
-    // ── 2. Rendu mesuré, avec repli sur les compositions suivantes ────────────────────────
-    const queue: Array<{ spec: SectionSpec; candidate?: Candidate }> = [];
-    if (authored) queue.push({ spec: authored });
-    if (chosen) queue.push({ spec: specOf(chosen, section.id), candidate: chosen });
-    for (const c of menu(ranked, 4)) if (!chosen || c.pattern.id !== chosen.pattern.id) queue.push({ spec: specOf(c, section.id), candidate: c });
-
-    let best: Attempt | null = null;
-    const isBlocking = (a: Attempt) => a.issues.some((i) => i.severity === 'blocking');
-    for (const item of queue.slice(0, 4)) {
-      recorder.attempts += 1;
-      const fp = item.candidate ? serialize(item.candidate.fingerprint) : `authored|||||`;
-      let attempt = await this.renderAttempt(item.spec, section, meta, fp, recorder, analysis.light, shoot);
-      attempt.candidate = item.candidate;
-      // Avant de changer de composition : les décors cèdent la place au contenu (accent et tension retirés).
-      const c = item.candidate;
-      if (isBlocking(attempt) && c && (c.lookInput.accent !== 'none' || c.lookInput.tension !== 'calm')) {
-        const simple = buildCandidate(ctx, c.pattern, c.params, { ...c.lookInput, accent: 'none', tension: 'calm' });
-        const retry = await this.renderAttempt(specOf(simple, section.id), section, meta, serialize(simple.fingerprint), recorder, analysis.light, shoot);
-        retry.candidate = simple;
-        recorder.repair({ code: 'simplify_chrome', detail: `${c.pattern.id} : accent « ${c.lookInput.accent} » et tension « ${c.lookInput.tension} » retirés`, by: 'code' });
-        if (retry.score >= attempt.score) attempt = retry;
-      }
-      if (!best || attempt.score > best.score) best = attempt;
-      if (!isBlocking(attempt)) break;
-      recorder.repair({ code: 'next_candidate', detail: `${item.spec.pattern.id} : ${attempt.issues.filter((i) => i.severity === 'blocking').map((i) => i.code).join(', ')}`, by: 'code' });
-    }
-    let final = best as Attempt;
-
-    // ── 3. Réparation ciblée (High+) quand le code n'a pas su ─────────────────────────────
-    const blocking = final.issues.filter((i) => i.severity === 'blocking');
-    if (blocking.length && this.policy.agents.repair && final.candidate) {
-      const alternatives = menu(ranked, 4).filter((c) => c.pattern.id !== final.candidate?.pattern.id);
-      const blockIds = section.blocks.map((b) => b.id);
-      const choice = await runTask({ policy: TASK_POLICIES.repair, level, call, budget: this.budget, recorder, prompt: () => repairPrompt(blocking, alternatives, blockIds), parse: (raw) => parseRepair(raw, alternatives.length, blockIds), fallback: () => undefined });
-      if (choice.value) {
-        let spec = final.spec;
-        if (choice.value.kind === 'switch') spec = specOf(alternatives[choice.value.index], section.id);
-        if (choice.value.kind === 'dense') spec = { ...spec, density: 'dense' };
-        if (choice.value.kind === 'drop-decor') spec = { ...spec, decor: [] };
-        if (choice.value.kind === 'compact') {
-          const target = choice.value.blockId;
-          const root = JSON.parse(JSON.stringify(spec.root));
-          walk(root, (node) => {
-            if (node.t === 'block' && node.ref === target) {
-              const kind = section.blocks.find((b) => b.id === target)?.kind ?? '';
-              node.variant = { ...(node.variant ?? {}), ...(COMPACT_VARIANTS[kind] ?? {}) };
-            }
-          });
-          spec = { ...spec, root };
-        }
-        const retry = await this.renderAttempt(spec, section, meta, serialize(final.candidate.fingerprint), recorder, analysis.light, shoot);
-        if (retry.score > final.score) {
-          final = { ...retry, candidate: final.candidate };
-          recorder.repair({ code: 'targeted_repair', detail: `réparation ciblée : ${choice.value.kind}`, by: 'agent' });
-        }
-      }
-    }
-
-    // ── 4. Critique visuelle (High+) : départager des rendus que le moteur a tous su produire ──
-    const analyze = engineHost().analyzeImage;
-    if (critic && analyze && final.png && !final.issues.some((i) => i.severity === 'blocking')) {
-      const judge = async (png: Buffer): Promise<number | undefined> => {
-        const r = await runTask({ policy: TASK_POLICIES.critic, level, call: visionCall(analyze, png), budget: this.budget, recorder, prompt: () => ({ system: CRITIC_INSTRUCTION, user: 'image' }), parse: (raw) => parseCritique(raw)?.score, fallback: () => undefined });
-        return r.value;
-      };
-      final.critique = await judge(final.png);
-      const extra = level === 'high' ? 1 : 2;
-      if (final.critique !== undefined && final.critique < 3.6 && !authored) {
-        for (const alt of menu(ranked, 1 + extra).filter((c) => c.pattern.id !== final.candidate?.pattern.id).slice(0, extra)) {
-          const attempt = await this.renderAttempt(specOf(alt, section.id), section, meta, serialize(alt.fingerprint), recorder, analysis.light, true);
-          if (attempt.issues.some((i) => i.severity === 'blocking') || !attempt.png) continue;
-          attempt.candidate = alt;
-          attempt.critique = await judge(attempt.png);
-          if ((attempt.critique ?? 0) > (final.critique ?? 0)) {
-            recorder.repair({ code: 'critic_choice', detail: `la critique préfère ${alt.pattern.id} (${attempt.critique} contre ${final.critique})`, by: 'agent' });
-            final = attempt;
-          }
-        }
-      }
-    }
-
-    // ── 5. Résultat ────────────────────────────────────────────────────────────────────────
-    const fingerprint = final.candidate ? final.candidate.fingerprint : fingerprintOf('authored', {}, { strategy: final.spec.strategy, tension: final.spec.tension, accent: final.spec.accent }, []);
-    // Un arbre d'auteur n'a pas de régions déclarées : sa silhouette est celle MESURÉE sur la page rendue.
-    if (!final.candidate && final.measurement) fingerprint.silhouette = final.measurement.silhouette;
-    this.memory.add(fingerprint, slot.index);
-    this.specs.set(section.id, final.spec);
+    const spec: SectionSpec = { version: 2, ref: section.id, pattern: { id: 'authored' }, html: rendered.template, ...(bible ? { bible } : {}), level };
+    this.specs.set(section.id, spec);
+    this.contents.set(section.id, section);
     const usage = recorder.usage();
-    const trace = recorder.finish({ pattern: final.spec.pattern.id, quality: Math.round(final.score) });
+    const trace = recorder.finish({ pattern: 'authored', ...(assets.length ? { assets } : {}) });
     engineHost().onTrace?.(trace);
-    if (final.issues.some((i) => i.severity === 'blocking')) log().warn('graphic.section_blocking', { event: 'graphic.section_blocking', section: section.id, pattern: final.spec.pattern.id, issues: final.issues.map((i) => i.code) });
-    const m = final.measurement;
     const result: RenderResult = {
       version: '1.0',
       documentType: this.options.documentType,
       format: this.options.format,
       sectionId: section.id,
-      html: final.html,
-      ...(this.head ? { head: this.head } : {}),
-      provenance: { engine: ENGINE_VERSION, components: COMPONENT_LIBRARY_VERSION, specHash: stableHash(final.spec, 12), tokensHash: this.tokens.hash, pattern: final.spec.pattern.id, fingerprint: serialize(fingerprint) },
-      ...(m ? { measured: { width: Math.round(m.width), height: Math.round(m.height), fill: Math.round(m.fill * 100) / 100, overflowPx: m.overflowPx, minContrast: m.minContrast, silhouette: m.silhouette } } : {}),
+      html: rendered.html,
+      head: rendered.head,
+      provenance: { engine: ENGINE_VERSION, components: COMPONENT_LIBRARY_VERSION, specHash: stableHash(spec.html, 12), tokensHash: this.tokens.hash, pattern: 'authored', fingerprint: `authored|${level}` },
+      ...(rendered.width ? { measured: { width: rendered.width, height: rendered.height ?? 0 } } : {}),
       repairs: recorder.repairs,
-      issues: final.issues,
+      issues: rendered.issues,
       usage: { agentCalls: usage.agentCalls, inputTokens: usage.inputTokens, outputTokens: usage.outputTokens, ms: usage.ms },
     };
-    return { spec: final.spec, result, png: final.png, trace };
+    return { spec, result, png: rendered.png, trace };
   }
 
-  /** Le DesignSpec du document (les sections composées jusqu'ici, dans l'ordre du plan). */
+  /**
+   * L'auteur écrit la page ; si elle ne s'affiche pas, la correction bornée : une tentative à la fois, une
+   * approche différente à chaque fois, le modèle du cran au-dessus dès la réécriture.
+   */
+  private async author(sectionId: string, map: ContentMap, recorder: TraceRecorder, p: { system: string; base: string; user: string; level: CreativityLevel; task: 'author' | 'revise' }): Promise<Rendered> {
+    const call = this.agent() as AgentCall;
+    const valid = (raw: string) => /<[a-z][\s\S]*>/i.test(extractHtml(raw));
+    const first = await callModel({ call, recorder, task: p.task, role: 'graphic.author', profile: 'coder', level: p.level, system: p.system, user: p.user, timeoutMs: AUTHOR_TIMEOUT, validate: valid });
+    let code = first.ok ? extractHtml(first.raw) : '';
+    let error = first.ok ? '' : `the answer contained no HTML (${first.failure})`;
+    if (code) {
+      const r = await this.render(code, map, sectionId, recorder);
+      if (r.ok) return r.page;
+      error = r.error;
+      code = r.template;
+    }
+    const limits = repairLimits();
+    const history: string[] = [error];
+    if (!this.repairSpent.started) this.repairSpent.started = Date.now();
+    for (let i = 0; i < Math.min(limits.attempts, REPAIR_PLAN.length); i++) {
+      const strategy = REPAIR_PLAN[i];
+      if (this.repairSpent.tokens >= limits.tokenBudget) {
+        history.push('budget de correction du document épuisé');
+        break;
+      }
+      if (Date.now() - this.repairSpent.started > limits.maxMs) {
+        history.push('temps de correction du document épuisé');
+        break;
+      }
+      const level = strategy === 'fix' ? p.level : levelUp(p.level);
+      const user = repairUser(p.base, strategy, { code: strategy === 'fix' ? code : undefined, error, history: history.slice(-3) });
+      const run = await callModel({ call, recorder, task: 'repair', role: 'graphic.author', profile: 'coder', level, system: p.system, user, timeoutMs: AUTHOR_TIMEOUT, validate: valid });
+      this.repairSpent.tokens += run.tokens;
+      if (!run.ok) {
+        error = `the answer contained no HTML (${run.failure})`;
+        history.push(`${strategy}: ${error}`);
+        continue;
+      }
+      const r = await this.render(extractHtml(run.raw), map, sectionId, recorder);
+      if (r.ok) {
+        recorder.repair({ code: `render_${strategy}`, detail: `page corrigée (${strategy}, cran ${level}) après : ${history[history.length - 1].slice(0, 160)}`, by: 'agent' });
+        return r.page;
+      }
+      error = r.error;
+      code = r.template;
+      history.push(`${strategy}: ${error}`);
+    }
+    log().warn('graphic.page_failed', { event: 'graphic.page_failed', documentType: this.options.documentType, section: sectionId, attempts: history });
+    throw new GraphicRenderError(sectionId, history[history.length - 1] ?? error, history);
+  }
+
+  /** Assainir, remplir, compiler, puis demander à Chromium si la page s'affiche. Rien n'est jugé d'autre. */
+  private async render(raw: string, map: ContentMap, sectionId: string, recorder: TraceRecorder): Promise<{ ok: true; page: Rendered } | { ok: false; error: string; template: string }> {
+    const t0 = Date.now();
+    const clean = sanitizeHtml(raw);
+    if (!clean.html.trim()) return { ok: false, error: 'the page is empty after removing what is not allowed (scripts, styles, external resources)', template: clean.html };
+    const issues: Issue[] = [];
+    if (clean.nativeCss) issues.push({ code: 'native_css_removed', severity: 'advisory', message: `${clean.nativeCss} style(s) CSS natif(s) retiré(s) : la page est en Tailwind.` });
+    const page = expandPage(clean.html, map, this.tokens, this.format, { sectionId, locale: this.options.locale ?? 'fr', engine: ENGINE_VERSION });
+    if (page.unknown.length) issues.push({ code: 'unknown_keys', severity: 'advisory', message: `Clés inconnues ignorées : ${page.unknown.slice(0, 8).join(', ')}` });
+    if (page.orphans.length) issues.push({ code: 'unknown_blocks', severity: 'advisory', message: `Primitives sans bloc : ${page.orphans.slice(0, 6).join(', ')}` });
+    const unused = [...map.entries.keys()].filter((k) => !page.used.has(k));
+    const unusedBlocks = [...map.primitives.keys()].filter((id) => !page.used.has(`#${id}`));
+    if (unused.length || unusedBlocks.length) issues.push({ code: 'content_not_shown', severity: 'advisory', message: `Contenu non placé par l'auteur : ${[...unusedBlocks.map((b) => `#${b}`), ...unused].slice(0, 12).join(', ')}` });
+    let css: string;
+    try {
+      css = await compileTailwind(page.html, this.tokens);
+    } catch (error) {
+      return { ok: false, error: `Tailwind could not compile the classes: ${String((error as Error)?.message ?? error).slice(0, 200)}`, template: clean.html };
+    }
+    const head = `${this.head ? `${this.head}\n` : ''}<style data-ge-tailwind>${css}</style>`;
+    if (this.options.validate === false) {
+      recorder.task({ task: 'render', source: 'code', inputTokens: 0, outputTokens: 0, ms: Date.now() - t0, outcome: 'skipped' });
+      return { ok: true, page: { template: clean.html, html: page.html, head, issues } };
+    }
+    const check = await checkRender(page.html, head, this.format, { lang: this.options.locale, shoot: Boolean(this.options.png) });
+    recorder.task({ task: 'render', source: 'code', inputTokens: 0, outputTokens: 0, ms: Date.now() - t0, outcome: check.ok ? 'accepted' : 'refused' });
+    if (check.infra) log().warn('graphic.render_unchecked', { event: 'graphic.render_unchecked', section: sectionId, reason: check.error });
+    if (!check.ok) return { ok: false, error: check.error ?? 'the page did not display', template: clean.html };
+    return { ok: true, page: { template: clean.html, html: page.html, head, png: check.png, width: check.width, height: check.height, issues } };
+  }
+
+  /**
+   * Planifie, résout et pose les médias de la section (`asset-planner`). Une section sans intention, ou dont
+   * les médias sont déjà là (contenu rejoué), passe telle quelle. Un média introuvable applique son repli.
+   */
+  private async prepareAssets(content: SectionContent, recorder: TraceRecorder): Promise<{ section: SectionContent; assets: string[] }> {
+    const requirements = planAssets(content, this.tokens.format);
+    if (!requirements.length) return { section: content, assets: [] };
+    const t0 = Date.now();
+    const host = engineHost();
+    const resolution = await resolveAssets(
+      requirements,
+      host.assetProviders ?? {},
+      { level: this.policy.level, documentType: this.options.documentType, locale: this.options.locale, userId: this.options.user?.userId, projectId: this.options.user?.projectId, brandName: this.options.brand.name, styleId: this.options.direction?.styleId, keywords: this.options.direction?.keywords },
+      { generationLeft: Math.max(0, GENERATION_CAP[this.policy.level] - this.generatedAssets), registry: host.assetRegistry }
+    );
+    this.generatedAssets += resolution.generated;
+    const applied = applyAssets(content, resolution, requirements);
+    recorder.task({ task: 'asset.resolve', source: 'code', inputTokens: 0, outputTokens: 0, ms: Date.now() - t0, outcome: resolution.missing.length ? 'skipped' : 'accepted' });
+    for (const note of applied.notes) recorder.repair({ code: 'asset_fallback', detail: note.slice(0, 240), by: 'code' });
+    const rechecked = validateSectionContent(applied.section);
+    if (!rechecked.ok || !rechecked.value) {
+      // Un média mal formé ne coûte jamais la page : on la compose sans lui.
+      log().warn('graphic.assets_refused', { event: 'graphic.assets_refused', section: content.id, issues: rechecked.issues.map((i) => i.code) });
+      return { section: content, assets: resolution.log };
+    }
+    return { section: rechecked.value, assets: resolution.log };
+  }
+
+  /**
+   * Ce qu'il faut garder d'une page pour la refaire sans modèle de rédaction : son contenu (textes, chiffres, médias
+   * déjà posés) et son code. Une nouvelle mise en page repart du contenu ; une retouche de mots rejoue le code.
+   */
+  page(sectionId: string): { content: SectionContent; spec: SectionSpec } | undefined {
+    const content = this.contents.get(sectionId);
+    const spec = this.specs.get(sectionId);
+    return content && spec ? { content, spec } : undefined;
+  }
+
+  /** Le DesignSpec du document : les pages écrites jusqu'ici, dans l'ordre annoncé. */
   designSpec(): DesignSpec {
-    const order = this.plan.order.length ? this.plan.order : [...this.specs.keys()];
-    const sections = [...order.filter((id) => this.specs.has(id)), ...[...this.specs.keys()].filter((id) => !order.includes(id))].map((id) => this.specs.get(id) as SectionSpec);
+    const order = (this.options.sections ?? []).map((s) => s.id);
+    const ids = [...order.filter((id) => this.specs.has(id)), ...[...this.specs.keys()].filter((id) => !order.includes(id))];
     return {
-      version: '1.0',
+      version: 2,
       documentType: this.options.documentType,
       format: this.options.format,
       creativity: this.policy.level,
-      direction: { styleId: this.plan.styleId, ...(this.options.direction?.keywords?.length ? { keywords: this.options.direction.keywords.slice(0, 10) } : {}) },
+      ...(this.bible ? { bible: this.bible.slice(0, 2400) } : {}),
       tokensHash: this.tokens.hash,
       seed: this.options.seed.slice(0, 120),
       engine: { version: ENGINE_VERSION, components: COMPONENT_LIBRARY_VERSION },
-      sections,
+      sections: ids.map((id) => this.specs.get(id) as SectionSpec),
     };
   }
 
-  /** Les empreintes de ce document, confiées à la mémoire de l'hôte (diversité entre documents). */
+  /** L'idée de ce document, confiée à la mémoire de l'hôte : le prochain document de la marque fera autrement. */
   async remember(): Promise<void> {
     const host = engineHost();
-    if (this.options.memoryScope && host.rememberFingerprints) await host.rememberFingerprints(this.options.memoryScope, this.memory.snapshot()).catch(() => undefined);
+    if (this.options.memoryScope && host.rememberFingerprints && this.planValue?.idea) await host.rememberFingerprints(this.options.memoryScope, [`idea:${this.planValue.idea.slice(0, 300)}`]).catch(() => undefined);
   }
 }
 
 export const createDocument = (options: DocumentOptions): Promise<GraphicDocument> => GraphicDocument.create(options);
 
 /** Une toile d'une seule section (une face de carte, un visuel, une couverture de réseau). */
-export async function renderSingle(options: DocumentOptions & { content: SectionContent }): Promise<SectionOutput> {
+export async function renderSingle(options: DocumentOptions & { content: SectionContent; replay?: SectionSpec; revise?: { spec?: SectionSpec; instruction: string } }): Promise<SectionOutput> {
   const doc = await createDocument({ ...options, sections: [{ id: options.content.id, role: options.content.role }] });
-  const out = await doc.composeSection(options.content, { index: 1, total: 1 });
+  const out = await doc.composeSection(options.content, { index: 1, total: 1, ...(options.replay ? { replay: options.replay } : {}), ...(options.revise ? { revise: options.revise } : {}) });
   await doc.remember();
   return out;
 }

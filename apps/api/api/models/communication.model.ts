@@ -37,6 +37,7 @@ import { MotionVideo, VideoType } from './motionVideo.model';
  * convertis une fois par `migrateLegacyCommunication` — aucune perte.
  */
 import { ArtDirectionModel } from './art-direction.model';
+import type { SectionSpec } from '@idem/graphic-engine';
 
 export interface CommunicationContext {
   brandName: string;
@@ -359,8 +360,10 @@ export interface Flyer {
   photo?: { url: string; focal?: { x: number; y: number }; subject?: string };
   /** La graine de la composition : une retouche de texte garde la même mise en page. */
   seed?: string;
+  /** L'arbre de la page (moteur graphique) : une retouche le modifie et REJOUE la même page. */
+  spec?: SectionSpec;
   /** Cran de la jauge de créativité choisi pour ce visuel. */
-  creativity?: 'low' | 'medium' | 'high' | 'max' | 'ultra';
+  creativity?: 'low' | 'medium' | 'high' | 'ultra';
   /** Ce que chaque agent a décidé (source modèle ou code, tokens). */
   agents?: { agent: string; source: 'llm' | 'graph'; tokens: { input: number; output: number }; ms: number; reason?: string }[];
   /** La page du visuel (fragment autonome du moteur graphique : polices puis page) ; l'éditeur la retouche. */

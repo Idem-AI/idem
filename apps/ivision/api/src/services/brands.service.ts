@@ -17,7 +17,7 @@ import crypto from 'crypto';
 import sharp from 'sharp';
 import { BrandKit, BrandVoice, isHex6, normalizeHex, PALETTE_ROLES } from '../../../core/src/brand/brand-kit';
 import { safeFetch } from '../../../core/src/render/safe-fetch';
-import { brandKitFromScan, scanWebsite, SiteScanResult, SiteScanStep, standaloneSvg } from '../../../core/src/site/site-scanner';
+import { brandKitFromScan, scanWebsite, SiteScanError, SiteScanResult, SiteScanStep, standaloneSvg } from '../../../core/src/site/site-scanner';
 import { readCharterFile } from '../../../core/src/site/charter-file';
 import { paletteFromNamed } from '../../../core/src/brand/color-words';
 import { collection } from '../config/db';
@@ -25,7 +25,7 @@ import logger from '../config/logger';
 import { storage } from '../config/storage';
 import { HttpError } from '../middleware/error';
 import type { IvisionBrand } from '../models';
-import { idem } from './idem.client';
+import { idem, IdemGatewayError } from './idem.client';
 
 const brands = () => collection<IvisionBrand>('brands');
 const now = () => new Date().toISOString();
@@ -181,6 +181,57 @@ export async function scanBrand(userId: string, rawUrl: string, onProgress: (ste
   else await brands().insertOne(brand);
   logger.info('brand.scanned', { event: 'brand.scanned', brandId: id, host: new URL(scan.finalUrl).hostname, photos: brand.photos.length, logo: scan.logo.source });
   return brand;
+}
+
+/** Les étapes de la création d'un projet IDEM depuis un site, en plus de celles du scan. */
+export type SiteBrandStep = SiteScanStep | 'copy' | 'project' | 'logo-variations' | 'typography' | 'art-direction' | 'patterns';
+
+const SCAN_CODES = new Set(['invalid_url', 'blocked_url', 'unreachable', 'timeout']);
+
+/**
+ * La marque d'un site, faite par IDEM : le site devient un PROJET IDEM complet — fiche du projet, logo et
+ * déclinaisons, palettes, typographie (les fichiers du site recopiés si la police n'est dans aucun catalogue
+ * public), direction artistique tirée du site, motifs signature. La marque iVision est la charte de ce projet
+ * (mêmes rendus qu'IDEM) ; l'utilisateur peut l'ouvrir dans IDEM et continuer (business plan, deck, site…).
+ * IDEM injoignable : le scan local d'avant, pour ne jamais bloquer la création.
+ */
+export async function brandFromSite(userId: string, rawUrl: string, onProgress: (step: SiteBrandStep, data?: Record<string, unknown>) => void): Promise<IvisionBrand> {
+  let job: Awaited<ReturnType<typeof idem.projects.fromSite>>;
+  try {
+    job = await idem.projects.fromSite(userId, rawUrl);
+  } catch (error) {
+    logger.warn('brand.site_project_unavailable', { event: 'brand.site_project_unavailable', error });
+    return scanBrand(userId, rawUrl, onProgress);
+  }
+  const deadline = Date.now() + 300_000;
+  let last = '';
+  for (;;) {
+    await new Promise((r) => setTimeout(r, 1500));
+    const state = await idem.projects.fromSiteJob(userId, job.jobId).catch((error: unknown) => {
+      if (error instanceof IdemGatewayError && error.status === 404) throw error;
+      return null;
+    });
+    if (state && state.step !== last) {
+      last = state.step;
+      onProgress(state.step as SiteBrandStep);
+    }
+    if (state?.status === 'failed') {
+      if (SCAN_CODES.has(state.error?.code || '')) throw new SiteScanError(state.error!.code as SiteScanError['code'], state.error!.message);
+      logger.warn('brand.site_project_failed', { event: 'brand.site_project_failed', error: state.error });
+      return scanBrand(userId, rawUrl, onProgress);
+    }
+    if (state?.status === 'done' && state.result) {
+      const result = state.result;
+      const brand = await importIdemProject(userId, result.projectId);
+      // Les grandes photos du site : la matière des visuels, recopiées chez nous.
+      onProgress('copy', { images: result.images.length });
+      const photos = (await Promise.all(result.images.slice(0, 8).map((u, i) => hostImage(userId, u, `${brand._id}-photo-${i}`)))).filter((u): u is string => !!u);
+      await brands().updateOne({ _id: brand._id, userId }, { $set: { siteUrl: result.siteUrl, ...(photos.length ? { photos: [...new Set([...photos, ...brand.photos])].slice(0, 40) } : {}), updatedAt: now() } });
+      logger.info('brand.from_site_project', { event: 'brand.from_site_project', brandId: brand._id, projectId: result.projectId, reused: result.reused, fontsCopied: result.fonts.copied });
+      return getBrand(userId, brand._id);
+    }
+    if (Date.now() > deadline) throw new SiteScanError('timeout', 'La lecture du site prend trop de temps.');
+  }
 }
 
 /** Le choix de l'utilisateur parmi les propositions du scan ; la marque devient prête. */

@@ -5,14 +5,14 @@ import { InView } from './in-view';
 import { Wrap } from './wrap';
 import { LandingArt } from './landing-art';
 
-const LEVELS = ['low', 'medium', 'high', 'max', 'ultra'] as const;
+const LEVELS = ['low', 'medium', 'high', 'ultra'] as const;
 /** Hauteur de chaque cran sur l'échelle dogon (`landing-art`, viewBox de 640), du bas vers le haut. */
-const NOTCH_TOP = [560, 455, 350, 245, 140].map((y) => (y / 640) * 100);
+const NOTCH_TOP = [560, 420, 280, 140].map((y) => (y / 640) * 100);
 
 /**
  * « Montez d'un cran » : l'échelle dogon, taillée cran par cran, sert de sélecteur. Chaque cran
- * est un vrai bouton radio ; à côté, le même visuel recomposé au cran choisi, de la mise en page
- * sûre (Low) à la composition d'auteur (Ultra), et le prix qui suit (×1 → ×2).
+ * est un vrai bouton radio ; à côté, le même visuel tel qu'un modèle de plus en plus puissant le
+ * compose, du modèle léger (Low) au plus puissant (Ultra), et le prix qui suit (×1 → ×2).
  */
 @Component({
   selector: 'iv-landing-creativity',
@@ -74,12 +74,6 @@ const NOTCH_TOP = [560, 455, 350, 245, 140].map((y) => (y / 640) * 100);
                   <span class="c">{{ 'landing.demo.offerText' | translate }}</span>
                   <span class="d">{{ 'landing.demo.when' | translate }} {{ 'landing.demo.date' | translate }}</span>
                 </span>
-              </div>
-              <div class="p max" [class.is-current]="key() === 'max'">
-                <span class="hook">{{ 'landing.demo.hook' | translate }}</span>
-                <span class="pct">%</span>
-                <span class="giant">−30</span>
-                <span class="foot">{{ 'landing.demo.when' | translate }} {{ 'landing.demo.date' | translate }}</span>
               </div>
               <div class="p ultra" [class.is-current]="key() === 'ultra'">
                 <span class="pct">%</span>
@@ -248,36 +242,6 @@ const NOTCH_TOP = [560, 455, 350, 245, 140].map((y) => (y / 640) * 100);
     }
     .high .c {
       margin-top: 4cqmin;
-    }
-
-    /* Max : le chiffre dépasse du cadre. */
-    .max {
-      background: var(--color-primary-500);
-      color: var(--color-on-primary);
-    }
-    .max .hook {
-      max-width: 7ch;
-      font-size: 10cqmin;
-    }
-    .max .giant {
-      position: absolute;
-      right: -7cqmin;
-      bottom: 6cqmin;
-      font-size: 62cqmin;
-      line-height: 0.8;
-      white-space: nowrap;
-    }
-    .max .pct {
-      position: absolute;
-      top: 10cqmin;
-      right: 9cqmin;
-      font-size: 22cqmin;
-      color: var(--color-accent-300);
-    }
-    .max .foot {
-      position: absolute;
-      bottom: 6cqmin;
-      left: 10cqmin;
     }
 
     /* Ultra : le signe « % » devient l'image, le reste se range autour. */

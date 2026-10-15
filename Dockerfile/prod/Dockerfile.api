@@ -31,7 +31,7 @@ WORKDIR /app
 COPY ./apps/api ./apps/api
 
 # Le moteur créatif partagé avec iVision (vidéos, visuels, scan de site) : compilé avec l'API
-# (imports relatifs) et source du moteur vidéo empaqueté par `build:video-engine`.
+# (imports relatifs). Son dossier `motion/` (runtime Motion Canvas) est compilé à la demande avec chaque film.
 COPY ./apps/ivision/core ./apps/ivision/core
 
 # Prepare directory structure
@@ -42,7 +42,7 @@ RUN npm install --legacy-peer-deps --force && npm cache clean --force
 
 # Install missing dependencies manually at root level
 WORKDIR /app
-RUN npm install fs-extra @modelcontextprotocol/sdk --legacy-peer-deps --save
+RUN npm install fs-extra --legacy-peer-deps --save
 
 # Return to API directory
 WORKDIR /app/apps/api
@@ -95,6 +95,8 @@ ENV NODE_ENV=${BUILD_ENV:-production}
 COPY --from=builder --chown=apiuser:nodejs /app/apps/api/package*.json ./
 COPY --from=builder --chown=apiuser:nodejs /app/apps/api/dist ./dist
 COPY --from=builder --chown=apiuser:nodejs /app/apps/api/public ./public
+# Les sources du runtime vidéo (kit, harnais, lecteur, exemples) : esbuild les compile avec chaque film.
+COPY --from=builder --chown=apiuser:nodejs /app/apps/ivision/core/motion ./dist/apps/ivision/core/motion
 
 # Copy node_modules from root (npm installs them there in monorepo)
 COPY --from=builder --chown=apiuser:nodejs /app/node_modules ./node_modules

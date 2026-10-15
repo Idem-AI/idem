@@ -107,6 +107,11 @@ export interface GenerateImageOptions {
   fallbackModel?: string;
   /** Étiquette de journalisation, pour retrouver l'appel dans les traces. */
   tag?: string;
+  /**
+   * Images de RÉFÉRENCE (https ou data-URI) : le modèle les reprend dans l'image (le logo d'une marque imprimé
+   * sur un support). FLUX.2 klein en lit 4, Gemini 14 (`input_references` de l'API Images d'OpenRouter).
+   */
+  references?: string[];
 }
 
 export interface AnalyzeImageOptions {
@@ -152,6 +157,7 @@ export async function generateImage(
           n: 1,
           aspect_ratio: aspectRatioFor(options.size),
           output_format: 'png',
+          ...(options.references?.length ? { input_references: options.references.slice(0, 4).map((url) => ({ type: 'image_url', image_url: { url } })) } : {}),
           ...openRouterRouting(),
         },
         { headers: headers(), timeout: IMAGE_TIMEOUT_MS }

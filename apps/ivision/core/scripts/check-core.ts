@@ -7,11 +7,11 @@
  *  1. Scan de site : une page locale (couleurs, variables CSS, polices, logo SVG, images, textes)
  *     → palette, trois propositions, typographie, logo, ton (modèle simulé).
  *  2. Vidéo modèle : une vidéo synthétique (ffmpeg) à trois plans coupés net → trois plans aux
- *     bonnes durées ; la vision simulée les décrit ; le plan de reproduction en tire les scènes.
- *  3. Reproduction : une vidéo créée par le service du core avec ce modèle garde ses plans, ses
- *     durées (à l'échelle), ses mises en page et ses coupes.
- *  4. Visuel : un flyer composé par le moteur graphique (cran Low), mesuré, photographié ; les mots
- *     (rédaction et retouche contrôlées) et la photo (point d'intérêt).
+ *     bonnes durées ; la vision simulée les décrit ; le résumé donné au directeur en tire les plans.
+ *  3. Reproduction : une vidéo créée par le service du core (moteur Motion Canvas, planificateur et
+ *     auteur simulés) avec ce modèle garde son nombre de plans et leurs proportions.
+ *  4. Visuel : un flyer écrit par l'auteur du moteur graphique (simulé, cran Low), affiché, photographié ;
+ *     les mots (rédaction et retouche contrôlées) et la photo (point d'intérêt transmis à l'auteur).
  */
 process.env.VIDEO_MUSIC_OPENVERSE = 'off';
 process.env.VIDEO_MUSIC_CCMIXTER = 'off';
@@ -26,12 +26,13 @@ import path from 'path';
 import { configureCore } from '../src/runtime/host';
 import { brandKitFromScan, scanWebsite } from '../src/site/site-scanner';
 import { analyzeReferenceVideo, shotsFromCuts } from '../src/reference/reference.analyzer';
-import { planFromBlueprint } from '../src/reference/reference.plan';
+import { blueprintForDirector } from '../src/reference/reference.plan';
 import { MotionVideoService } from '../src/video/motionVideo.service';
-import type { VideoStore } from '../src/video/video.store';
-import type { MotionVideo } from '../src/video/video.model';
-import { extractFacts } from '../src/video/video.copy';
+import { closeFilmBrowser } from '../src/video/rendering/runner';
+import type { VideoStore } from '../src/video/contracts/store';
+import type { MotionVideo } from '../src/video/contracts/model';
 import { composeVisual } from '../src/visual/visual.composer';
+import { configureGraphicEngine } from '@idem/graphic-engine';
 import { contrastRatio } from '../src/design/color';
 
 let failures = 0;
@@ -113,10 +114,6 @@ class MemoryStore implements VideoStore {
   async removeVideo() {
     return true;
   }
-  async runVideoTieredPrompt(_u: string, _s: string, user: string) {
-    // Rédacteur simulé : chaque case demandée reçoit un texte court et fondé.
-    return [...user.matchAll(/^(\d+)\.([a-zA-Z0-9]+) \(max (\d+)/gm)].map((m) => `${m[1]}.${m[2]}: ${({ title: 'Le café qui réveille', sub: 'Torréfié chaque lundi', action: 'Commander', tagline: 'Kora Café', l1: 'Frais', l2: 'Local', label: 'livré à Abidjan', value: '24 h' } as Record<string, string>)[m[2]] || 'Café frais'}`.slice(0, Number(m[3]))).join('\n');
-  }
 }
 
 (async () => {
@@ -161,29 +158,45 @@ class MemoryStore implements VideoStore {
   check(`${blueprint.shots.length} plans aux bonnes durées (${blueprint.shots.map((s) => s.duration.toFixed(1)).join(' + ')} s)`, blueprint.shots.length === 3 && Math.abs(blueprint.shots[0].duration - 2) < 0.2 && Math.abs(blueprint.shots[1].duration - 3) < 0.2 && Math.abs(blueprint.shots[2].duration - 2.5) < 0.25);
   check('lu par la vision dans le vocabulaire du moteur (mises en page, entrées, coupes)', blueprint.source === 'vision' && blueprint.shots[0].layout === 'poster-stack' && blueprint.shots[1].transitionIn === 'flashCut' && blueprint.shots[0].textMotion === 'stackPush');
   check('une planche par plan (aperçu, critique comparée)', blueprint.shots.every((s) => (s.sheet?.length || 0) > 2000));
-  const facts = extractFacts('Plus de 500 clients chaque mois, café livré à Abidjan');
-  const refPlan = planFromBlueprint(blueprint, { facts, media: { images: 0, videos: 0, models: 0, lotties: 0 }, durationSec: 15 });
-  check(`plan de reproduction : ${refPlan.sceneIds.join(' › ')}, ${refPlan.durations.join(' + ')} = 15 s`, refPlan.sceneIds.join() === 'hook,stat,logo' && Math.abs(refPlan.durations.reduce((a, b) => a + b, 0) - 15) < 0.01 && refPlan.patterns[0] === 'posterStack');
+  const told = blueprintForDirector(blueprint, 15);
+  check('résumé donné au directeur : trois plans à l’échelle de 15 s, avec ce qu’on y voit', (told.match(/^\d\. /gm) || []).length === 3 && /Huge stacked words/.test(told), told.slice(0, 300));
 
   // ── 3 ──
   section('3. Reproduction par le service vidéo du core');
   const store = new MemoryStore(kit);
-  const service = new MotionVideoService(store, undefined, () => async () => '', () => undefined, undefined);
+  const author = fs.readFileSync(path.join(__dirname, '../motion/examples/typography.tsx'), 'utf8');
+  const service = new MotionVideoService(store, async ({ role }) =>
+    role === 'video.planner'
+      ? ['TITLE: Kora', 'CONCEPT: Le café qui réveille.', 'BIBLE: crème et brun.', 'SCENE 1 | 4', 'visual: mots empilés', 'motion: claquent un à un', 'text.headline: Le café qui réveille', 'SCENE 2 | 6', 'visual: un chiffre géant', 'motion: défile', 'text.headline: Plus de 500 clients chaque mois', 'SCENE 3 | 5', 'visual: le logo', 'motion: se dessine'].join('\n')
+      : role === 'video.author'
+        ? '```tsx\n' + author + '\n```'
+        : ''
+  );
   const video = await service.createVideo(
     'u',
     'brand-1',
     { brief: { message: 'Plus de 500 clients chaque mois : notre café livré à Abidjan', musicMood: 'none', sfx: false, allowStock: false, allowGenerate: false } as any, scope: { durationSec: 15, formats: ['story'], quality: 'standard' }, creativity: 'low', reference: blueprint },
     0
   );
-  const scenes = video.storyboard.scenes;
-  check(`mêmes plans que le modèle : ${scenes.map((s) => s.sceneId).join(' › ')}`, scenes.map((s) => s.sceneId).join() === 'hook,stat,logo');
-  check(`mêmes proportions : ${scenes.map((s) => s.duration.toFixed(1)).join(' + ')} s`, Math.abs(scenes[1].duration / scenes[0].duration - 1.5) < 0.35);
-  check(`mises en page du modèle : ${scenes.map((s) => s.layout || '-').join(', ')}`, scenes[0].layout === 'wordStack' && scenes[1].layout === 'bigNumber');
-  check(`coupes du modèle : ${scenes.map((s) => s.motion?.transition || '-').join(', ')}`, scenes[1].motion?.transition === 'flashCut' && scenes[2].motion?.transition === 'iris');
-  check('rapport : la vidéo modèle est notée', video.storyboard.creative?.reference?.shots === 3 && !video.storyboard.creative?.accent);
+  const scenes = video.film!.scenes;
+  check(`mêmes plans que le modèle : ${scenes.length}`, scenes.length === 3);
+  check(`mêmes proportions : ${scenes.map((s) => s.duration.toFixed(1)).join(' + ')} s`, Math.abs(scenes[1].duration / scenes[0].duration - 1.5) < 0.35 && Math.abs(scenes.reduce((a, s) => a + s.duration, 0) - 15) < 0.01);
+  check('rapport : la vidéo modèle est notée', !!video.film?.reference?.summary);
+  check('chaque scène s’exécute (Motion Canvas)', scenes.every((s) => s.status === 'ready'), JSON.stringify(scenes.map((s) => s.error)));
 
   // ── 4 ──
-  section('4. Visuel composé par le moteur graphique (cran Low), sans IDEM');
+  section('4. Visuel écrit par l’auteur du moteur graphique (simulé, cran Low), sans IDEM');
+  // L'auteur simulé : il place chaque clé reçue ; une photo est recadrée sur le point d'intérêt donné.
+  const authorPrompts: string[] = [];
+  configureGraphicEngine({
+    agentCall: () => async ({ user }) => {
+      authorPrompts.push(user);
+      const keys = [...user.matchAll(/^\{\{([\w.]+)\}\} = /gm)].map((m) => m[1]);
+      const crop = user.match(/object-\[(\d+%_\d+%)\]/)?.[1];
+      const body = keys.map((k) => (/\.url$/.test(k) ? `<img src="{{${k}}}" alt="" class="absolute inset-0 h-full w-full object-cover${crop ? ` object-[${crop}]` : ''}">` : `<p class="relative text-[40px] font-bold text-ink">{{${k}}}</p>`)).join('');
+      return `\`\`\`html\n<div class="relative flex h-full w-full flex-col justify-end gap-[16px] bg-ground p-[64px]">${body}<idem-logo class="relative h-[48px]"></idem-logo></div>\n\`\`\``;
+    },
+  });
   const context = {
     brandName: 'Kora Café',
     businessType: 'torréfacteur',
@@ -195,7 +208,7 @@ class MemoryStore implements VideoStore {
   const composed = await composeVisual({ runPrompt: async () => '' }, 'u', 'brand-1', { id: 'c1', title: 'Le café qui réveille Abidjan', description: 'Torréfié chaque lundi, livré en 24 h.' }, context, 'square', 'check', 'check:1', undefined, true, { creativity: 'low' });
   fs.writeFileSync(path.join(OUT, 'visual.png'), composed.png);
   const visualText = composed.html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
-  check(`visuel rendu et mesuré (${composed.png.length} octets, score ${composed.audit.score}/100)`, composed.png.length > 10000 && composed.audit.score >= 70 && /café qui r(é|&eacute;)veille/i.test(visualText), visualText.slice(0, 160));
+  check(`visuel écrit, affiché et photographié (${composed.png.length} octets, page ${composed.parsed.layout})`, composed.png.length > 10000 && !composed.audit.blocking && /café qui r(é|&eacute;)veille/i.test(visualText) && composed.parsed.layout === 'authored', visualText.slice(0, 160));
 
   section('Photos d’un visuel');
   {
@@ -213,7 +226,7 @@ class MemoryStore implements VideoStore {
     const photoUrl = `data:image/jpeg;base64,${fs.readFileSync(photoFile).toString('base64')}`;
     const withPhoto = await composeVisual({ runPrompt: async () => '' }, 'u', 'brand-1', { id: 'c2', title: 'Le café qui réveille Abidjan', description: 'Torréfié chaque lundi, livré en 24 h.' }, context, 'story', 'check', 'check:2', undefined, false, { creativity: 'low', image: { url: photoUrl } });
     fs.writeFileSync(path.join(OUT, 'visual-photo.png'), withPhoto.png);
-    check(`story avec la photo de l’utilisateur, cadrée sur son sujet (${withPhoto.parsed.layout}, score ${withPhoto.audit.score}/100)`, !!withPhoto.parsed.photo && /object-position/.test(withPhoto.html) && !withPhoto.audit.blocking);
+    check(`story avec la photo de l’utilisateur : son point d’intérêt est donné à l’auteur (${withPhoto.parsed.layout})`, !!withPhoto.parsed.photo && /its subject is at \d+% × \d+%/.test(authorPrompts[authorPrompts.length - 1] ?? '') && /object-\[\d+%_\d+%\]/.test(withPhoto.html) && !withPhoto.audit.blocking);
   }
 
   section('Les mots d’un visuel');
@@ -236,6 +249,7 @@ class MemoryStore implements VideoStore {
     check('retouche : une réponse en HTML est refusée (jamais posée sur le visuel)', noHtml === null);
   }
 
+  await closeFilmBrowser();
   console.log(`\n${passes} vérifications réussies, ${failures} en échec · fichiers : ${OUT}`);
   process.exit(failures ? 1 : 0);
 })().catch((error) => {

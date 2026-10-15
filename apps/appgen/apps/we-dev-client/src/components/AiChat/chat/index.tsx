@@ -48,18 +48,7 @@ import { currentPlatform, currentProduct } from '@/utils/product';
 import { fetchScaffold } from '@/api/scaffold';
 import { prewarmInstall, resetPrewarm } from '../utils/prewarmInstall';
 import { resetInstallRepair } from '../utils/ensurePreview';
-import {
-  applySeoAnswer,
-  buildContentRequest,
-  buildSeoRequest,
-  extractFilesFromText,
-  extractPlanFromText,
-  extractSeoFromText,
-  missingContentModules,
-  readSeoAnswer,
-  seoNeedsFilling,
-} from '@/utils/planRecovery';
-import { isOrchestratedSite } from '@/utils/pageComposer';
+import { extractFilesFromText, isEngineSite, isGeneratedSite } from '@/utils/siteEngine';
 import { internalMessage } from '@/utils/stepLabels';
 import {
   clearScaffold,
@@ -382,37 +371,11 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       // Only worth linting a finished artifact: a truncated one trips rules that
       // the continuation would have fixed on its own.
       if (isComplete) {
-        // Avant la passe qualité : un plan sans ses contenus donne une page
-        // vide, et il n'y a rien à juger sur une page vide. On redemande les
-        // modules manquants — une seule fois, et seulement ceux-là.
-        const missing = missingContentModules(useFileStore.getState().files);
-
-        const files = useFileStore.getState().files;
-
-        if (isOrchestratedSite(files)) {
-          // Site rédigé section par section par le serveur : contenus vérifiés,
-          // référencement écrit, pages assemblées par le code. Ni relance ni
-          // revue de design à faire — la revue renvoyait le modèle réécrire des
-          // fichiers qui n'avaient rien à corriger, et c'est là qu'il se
-          // mettait à recopier ses consignes.
-        } else if (missing.length && !contentRetryRef.current) {
-          contentRetryRef.current = true;
-          append(
-            {
-              role: 'user',
-              content: internalMessage(t('chatWorkspace.completingContent', { count: missing.length })),
-            },
-            { body: { followUp: buildContentRequest(missing) } }
-          );
-        } else if (!seoRetryRef.current && seoNeedsFilling(files)) {
-          // Le référencement vient APRÈS : les mots-clés et les descriptions se
-          // tirent du contenu réellement écrit, pas d'un site imaginé.
-          seoRetryRef.current = true;
-          append(
-            { role: 'user', content: internalMessage(t('chatWorkspace.configuringSeo')) },
-            { body: { followUp: buildSeoRequest(files) } }
-          );
-        } else {
+        // Un site vitrine généré par le serveur est montré tel qu'il a été
+        // produit : ni revue de design, ni relance, ni réécriture. Une erreur
+        // technique s'affiche dans l'aperçu, et c'est l'utilisateur qui demande
+        // la correction.
+        if (!isGeneratedSite(useFileStore.getState().files)) {
           runQualityPass(chatUuid, messages, append, t, projectData);
         }
       }
@@ -500,8 +463,6 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
           // resterait vide. L'effet de montage le reposera.
           clearScaffold();
           setScaffoldReady(null);
-          contentRetryRef.current = false;
-          seoRetryRef.current = false;
         }
       }
     });
@@ -539,11 +500,6 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
   const [regenerating, setRegenerating] = useState(false);
   // Vrai après une suppression : le bouton de lancement dit « Régénérer ».
   const [wasReset, setWasReset] = useState(false);
-  // Une seule relance de contenu par conversation : si le modèle n'y arrive pas
-  // au deuxième tour, un troisième ne fera que brûler des jetons.
-  const contentRetryRef = useRef(false);
-  // Le référencement ne se demande qu'une fois par conversation lui aussi.
-  const seoRetryRef = useRef(false);
   const [showStartButton, setShowStartButton] = useState(false);
   const [hasGeneration, setHasGeneration] = useState(false);
   const [isGenerationComplete, setIsGenerationComplete] = useState(false);
@@ -731,36 +687,6 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
             if (messagefiles[path] === undefined) {
               console.warn(`[rattrapage] ${path} répondu en texte, enregistré comme fichier`);
               messagefiles[path] = content;
-            }
-          }
-
-          // Le référencement arrive en données : c'est le code qui écrit
-          // `src/seo.js`, dont la forme est lue par la mise en page. Une
-          // accolade de travers suffirait à faire tomber le site entier.
-          const seoFile = messagefiles['idem.seo.json'];
-          let seoAnswer = null;
-          try {
-            seoAnswer = seoFile ? readSeoAnswer(JSON.parse(seoFile)) : null;
-          } catch {
-            seoAnswer = null;
-          }
-          seoAnswer = seoAnswer ?? extractSeoFromText(message.content);
-
-          if (seoAnswer) {
-            delete messagefiles['idem.seo.json'];
-            const current = useFileStore.getState().files['src/seo.js'];
-            if (typeof current === 'string') {
-              messagefiles['src/seo.js'] = applySeoAnswer(current, seoAnswer);
-              console.log('[seo] référencement appliqué');
-            }
-          }
-
-          // Idem pour un plan répondu sans bloc de code du tout.
-          if (!messagefiles['idem.plan.json']) {
-            const recovered = extractPlanFromText(message.content);
-            if (recovered) {
-              console.warn('[plan] plan répondu en texte, enregistré comme fichier');
-              messagefiles['idem.plan.json'] = recovered;
             }
           }
 
@@ -1210,7 +1136,15 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
         // sa première ouverture : ancienne charte, anciennes polices, ancienne
         // configuration Vite, et kit de sections absent s'il n'existait pas
         // encore. La page affichait le bon texte dans la mauvaise identité.
-        if (hasScaffoldSignature(workspace)) {
+        // Site vitrine : un site déjà généré garde le template de sa génération
+        // (nouvelle version = migration demandée, jamais d'écrasement). Seul un
+        // espace encore vierge, monté sur un ancien socle, est remplacé.
+        if (scaffold.target === 'site') {
+          if (isStarterOnly(workspace) && !isEngineSite(workspace)) {
+            console.log('[scaffold] espace vierge : socle du site remplacé par le template actuel');
+            await setFiles(scaffold.files);
+          }
+        } else if (hasScaffoldSignature(workspace)) {
           const refresh: Record<string, string> = {};
 
           for (const path of scaffold.locked) {

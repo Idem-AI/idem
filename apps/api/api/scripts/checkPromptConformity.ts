@@ -30,12 +30,12 @@
 
 import {
   BLOCKS_BY_DELIVERABLE,
-  componentFor,
   contentContract,
   normalizeSectionPlan,
   sectionPlanContract,
   volumeDirective,
   WRITING_RULES,
+  MODEL_BLOCK_KINDS,
 } from '@idem/graphic-engine';
 import { BP_SECTION_BRIEFS } from '../services/BusinessPlan/prompts/section-briefs.prompt';
 import {
@@ -256,10 +256,10 @@ console.log('\n4. L\'étape de plan (décomposition)');
     // Le plan doit nommer les blocs disponibles, sinon le modèle en invente.
     const plannable = BLOCKS_BY_DELIVERABLE[deliverable];
     check(`${deliverable} : le contrat de plan énumère les blocs autorisés`, plannable.every((block) => contract.includes(block)));
-    // Les types de blocs prescriptibles doivent être ceux que le moteur sait dessiner — un plan qui
-    // prescrit un bloc sans composant fait écrire dans le vide.
-    const orphan = plannable.filter((block) => !componentFor(block));
-    check(`${deliverable} : tout bloc prescriptible a son composant dans le moteur`, orphan.length === 0, orphan.join(', '));
+    // Les types de blocs prescriptibles doivent être ceux que le contrat de contenu connaît — un plan qui
+    // prescrit un bloc inconnu fait écrire dans le vide.
+    const orphan = plannable.filter((block) => !MODEL_BLOCK_KINDS.has(block));
+    check(`${deliverable} : tout bloc prescriptible est un bloc du contrat de contenu`, orphan.length === 0, orphan.join(', '));
     // Et le contrat de sortie montre la forme de chacun : un bloc prescrit sans exemple est un bloc mal rempli.
     const contractText = contentContract({ deliverable });
     const undocumented = plannable.filter((block) => !contractText.includes(`"kind":"${block}"`));

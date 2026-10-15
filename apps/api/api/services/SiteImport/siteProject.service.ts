@@ -1,0 +1,322 @@
+/**
+ * UN PROJET IDEM À PARTIR D'UN SITE — l'utilisateur colle le lien de son site (iVision), IDEM en fait un
+ * projet complet, comme s'il l'avait créé lui-même :
+ *
+ *   1. le site est lu (moteur partagé `apps/ivision/core/src/site`) : couleurs par usage, polices et leurs
+ *      fichiers `@font-face`, logo, textes, style relevé (typographie, formes) et lu sur la capture ;
+ *   2. le PROJET : nom, description courte et détaillée, type, cible, portée — rédigés depuis les textes du
+ *      site, jamais inventés ;
+ *   3. l'IDENTITÉ : le logo du site vectorisé (couleurs gardées) et ses déclinaisons (texte / icône × fond
+ *      clair, sombre, monochrome) ; les trois palettes ; la typographie — la police du site si un catalogue
+ *      public la sert (Google, Fontshare, Fontsource), sinon SES FICHIERS recopiés dans notre stockage
+ *      (`customFontService`) ; la direction artistique, qui CODIFIE le style du site ; les motifs signature ;
+ *   4. le document de la charte se génère dans IDEM, quand l'utilisateur l'ouvre (parcours et prix habituels).
+ *
+ * Le même site relu rouvre le même projet (aucun doublon). L'avancement est tenu dans le cache partagé :
+ * iVision le suit étape par étape (`siteImportJobs`).
+ */
+import crypto from 'crypto';
+import logger from '../../config/logger';
+import type { ProjectModel } from '../../models/project.model';
+import type { BrandFontModel, ColorModel, TypographyModel } from '../../models/brand-identity.model';
+import type { LogoModel } from '../../models/logo.model';
+import { cacheService } from '../cache.service';
+import { customFontService, detectFormat } from '../customFont.service';
+import { fontCatalogService } from '../font-catalog.service';
+import { processLogoImport } from '../logo-import.service';
+import { generateLogoVariations } from '../logoVariationEngine.service';
+import { projectService } from '../project.service';
+import { PromptService } from '../prompt.service';
+import { storageService } from '../storage.service';
+import { BrandingService } from '../BandIdentity/branding.service';
+import { parseLlmJson } from '../../utils/llm-json.util';
+import { normalizeSiteUrl, scanWebsite, SiteFontFace, SiteScanResult } from '../../../../ivision/core/src/site/site-scanner';
+import { safeFetch } from '../../../../ivision/core/src/render/safe-fetch';
+
+/** Les modèles de l'hôte (passerelle iVision : mêmes étages, même suivi d'usage). */
+export interface SiteImportPorts {
+  text: (system: string, user: string, tier: 'mechanical' | 'writing') => Promise<string>;
+  vision: (base64: string, mimeType: string, instruction: string) => Promise<string>;
+}
+
+export type SiteImportStep = 'open' | 'colors' | 'fonts' | 'logo' | 'content' | 'voice' | 'art' | 'done' | 'project' | 'logo-variations' | 'typography' | 'art-direction' | 'patterns';
+
+export interface SiteImportResult {
+  projectId: string;
+  /** Le projet existait déjà pour ce site : rouvert, pas recréé. */
+  reused: boolean;
+  name: string;
+  siteUrl: string;
+  /** Les grandes images du site (URL d'origine) : l'hôte les recopie s'il en a l'usage. */
+  images: string[];
+  logo: boolean;
+  /** Les polices : d'un catalogue public, ou recopiées depuis le site. */
+  fonts: { display: string; body: string; copied: string[] };
+  warnings: string[];
+}
+
+const PROJECT_TYPES: ProjectModel['type'][] = ['enterprise', 'ecommerce', 'web', 'mobile', 'iot', 'desktop', 'api', 'ai', 'blockchain', 'landing', 'other'];
+const TARGETS = ['business', 'students', 'general-public', 'government', 'healthcare'];
+const SCOPES = ['local', 'departmental', 'regional', 'national', 'international'];
+
+const originOf = (url: string): string => {
+  try {
+    return new URL(url).origin.replace(/^http:/, 'https:').replace('://www.', '://');
+  } catch {
+    return '';
+  }
+};
+
+/** Le projet de l'utilisateur déjà né de ce site, s'il existe. */
+async function projectForSite(userId: string, url: string): Promise<ProjectModel | null> {
+  const origin = originOf(url);
+  if (!origin) return null;
+  const projects = await projectService.getAllUserProjects(userId);
+  return projects.find((p) => originOf((p.analysisResultModel?.branding as { siteSource?: { url?: string } } | undefined)?.siteSource?.url || '') === origin) ?? null;
+}
+
+/** La fiche du projet, rédigée depuis les textes du site (langue du site, aucun fait inventé). */
+async function describeProject(scan: SiteScanResult, ports: SiteImportPorts): Promise<Pick<ProjectModel, 'name' | 'description' | 'longDescription' | 'type' | 'targets' | 'scope'> & { city?: string; country?: string }> {
+  const fallback = {
+    name: scan.brandName.slice(0, 80) || 'Mon entreprise',
+    description: (scan.voice.valueProposition || scan.description || scan.title).slice(0, 190),
+    longDescription: [scan.voice.valueProposition, scan.description, ...scan.texts.paragraphs.slice(0, 4)].filter(Boolean).join('\n\n').slice(0, 3000),
+    type: 'enterprise' as ProjectModel['type'],
+    targets: 'general-public',
+    scope: 'national',
+  };
+  const system = [
+    'You turn a company website into the project sheet of a business-building platform. Answer ONLY a JSON object:',
+    '{"name": "the brand name", "description": "one sentence, at most 180 characters: what the company does and for whom", "longDescription": "120 to 250 words: the activity, the offer (products or services), the clients, where it operates, what makes it different — only what the site says", "type": "enterprise|ecommerce|web|mobile|ai|other", "targets": "business|general-public|students|government|healthcare", "scope": "local|regional|national|international", "city": "city if the site states it, else null", "country": "country if the site states it, else null"}',
+    `Write the texts in the language of the site (${scan.language}). Never invent a figure, a client, a date, an award or an address.`,
+  ].join('\n');
+  const user = [
+    `SITE: ${scan.finalUrl}`,
+    `NAME: ${scan.brandName}`,
+    `TITLE: ${scan.title}`,
+    scan.description ? `DESCRIPTION: ${scan.description}` : '',
+    scan.voice.businessType ? `ACTIVITY: ${scan.voice.businessType}` : '',
+    scan.voice.valueProposition ? `PROMISE: ${scan.voice.valueProposition}` : '',
+    `HEADINGS: ${scan.texts.headings.join(' | ')}`,
+    `TEXT: ${scan.texts.paragraphs.join(' ')}`,
+  ]
+    .filter(Boolean)
+    .join('\n')
+    .slice(0, 6000);
+  try {
+    const json = parseLlmJson<Record<string, unknown>>(await ports.text(system, user, 'writing'));
+    if (!json) return fallback;
+    const str = (v: unknown, max: number) => (typeof v === 'string' && v.trim() && !/^null$/i.test(v.trim()) ? v.trim().slice(0, max) : undefined);
+    return {
+      name: str(json.name, 80) || fallback.name,
+      description: str(json.description, 195) || fallback.description,
+      longDescription: str(json.longDescription, 6000) || fallback.longDescription,
+      type: PROJECT_TYPES.includes(json.type as ProjectModel['type']) ? (json.type as ProjectModel['type']) : fallback.type,
+      targets: TARGETS.includes(String(json.targets)) ? String(json.targets) : fallback.targets,
+      scope: SCOPES.includes(String(json.scope)) ? String(json.scope) : fallback.scope,
+      ...(str(json.city, 60) ? { city: str(json.city, 60) } : {}),
+      ...(str(json.country, 60) ? { country: str(json.country, 60) } : {}),
+    };
+  } catch (error: any) {
+    logger.warn('site_import.describe_failed', { event: 'site_import.describe_failed', error: error?.message });
+    return fallback;
+  }
+}
+
+/** Le logo du site, vectorisé (couleurs gardées), avec ses déclinaisons hébergées. */
+async function importLogo(userId: string, projectId: string, scan: SiteScanResult): Promise<LogoModel | null> {
+  let buffer: Buffer | null = null;
+  let name = 'logo.svg';
+  if (scan.logo.svg) buffer = Buffer.from(scan.logo.svg);
+  else if (scan.logo.url) {
+    const file = await safeFetch(scan.logo.url, { accept: ['image/'], maxBytes: 8 * 1024 * 1024, timeoutMs: 20_000 }).catch(() => null);
+    if (file) {
+      buffer = file.buffer;
+      name = file.mimeType === 'image/svg+xml' ? 'logo.svg' : `logo.${(file.mimeType.split('/')[1] || 'png').replace('jpeg', 'jpg')}`;
+    }
+  }
+  if (!buffer) return null;
+  const imported = await processLogoImport(buffer, name);
+  const variations = await generateLogoVariations(imported.svg);
+  const folder = `users/${userId}/projects/${projectId}/logos`;
+  const stamp = Date.now().toString(36);
+  const upload = (content: string | undefined, file: string) => (content && content.trim() ? storageService.uploadSvgFile(content, file, folder).catch(() => content) : Promise.resolve(undefined));
+  const set = async (kind: 'withText' | 'iconOnly', slug: string) => {
+    const v = variations[kind];
+    const [lightBackground, darkBackground, monochrome] = await Promise.all([upload(v?.lightBackground, `logo-${slug}-light-${stamp}.svg`), upload(v?.darkBackground, `logo-${slug}-dark-${stamp}.svg`), upload(v?.monochrome, `logo-${slug}-mono-${stamp}.svg`)]);
+    return { lightBackground, darkBackground, monochrome };
+  };
+  const [svg, withText, iconOnly] = await Promise.all([upload(imported.svg, `logo-site-${stamp}.svg`), set('withText', 'text'), set('iconOnly', 'icon')]);
+  return {
+    id: `site-${stamp}`,
+    name: 'Logo du site',
+    svg: svg || imported.svg,
+    iconSvg: iconOnly.lightBackground || svg || imported.svg,
+    concept: `Logo de la marque, repris de son site (${new URL(scan.finalUrl).hostname}).`,
+    colors: imported.extractedColors.slice(0, 4),
+    fonts: [],
+    variations: { withText, iconOnly },
+  } as unknown as LogoModel;
+}
+
+/**
+ * Une police du site : celle d'un catalogue public si elle y est (Google, Fontshare, Fontsource), sinon SES
+ * fichiers, recopiés dans notre stockage — la marque garde sa typographie au lieu d'une approximation.
+ */
+async function brandFont(userId: string, family: string, faces: SiteFontFace[], fallback: string, copied: string[]): Promise<BrandFontModel> {
+  const found = family ? await fontCatalogService.resolve(family, undefined, userId).catch(() => null) : null;
+  if (found) return fontCatalogService.toBrandFont(found.family, found.source, userId);
+  const own = faces.filter((f) => f.family.toLowerCase() === family.toLowerCase()).slice(0, 6);
+  if (own.length) {
+    const files = (
+      await Promise.all(
+        own.map(async (face) => {
+          try {
+            const buffer = face.url.startsWith('data:')
+              ? Buffer.from(face.url.slice(face.url.indexOf(',') + 1), 'base64')
+              : (await safeFetch(face.url, { accept: ['font/', 'application/', 'binary/'], maxBytes: 4 * 1024 * 1024, timeoutMs: 20_000 })).buffer;
+            const format = detectFormat(buffer);
+            return format ? { originalname: `${family}-${face.weight}-${face.style}.${format}`, buffer } : null;
+          } catch {
+            return null;
+          }
+        })
+      )
+    ).filter((f): f is { originalname: string; buffer: Buffer } => !!f);
+    if (files.length) {
+      try {
+        const font = await customFontService.importFont(userId, family, files);
+        copied.push(font.family);
+        return { family: font.family, source: 'custom', cssUrl: font.cssUrl, weights: font.weights, customFontId: font.id, files: font.files };
+      } catch (error: any) {
+        logger.warn('site_import.font_copy_failed', { event: 'site_import.font_copy_failed', family, error: error?.message });
+      }
+    }
+  }
+  return fontCatalogService.toBrandFont(fallback, undefined, userId);
+}
+
+async function typographyOf(userId: string, scan: SiteScanResult, copied: string[]): Promise<{ chosen: TypographyModel; proposals: TypographyModel[] }> {
+  const display = scan.typography.original.display || scan.typography.display;
+  const body = scan.typography.original.body || scan.typography.body;
+  const [primary, secondary] = await Promise.all([brandFont(userId, display, scan.fontFaces, scan.typography.display, copied), brandFont(userId, body, scan.fontFaces, scan.typography.body, copied)]);
+  const model = (id: string, name: string, p: BrandFontModel, s: BrandFontModel, description: string): TypographyModel => ({ id, name, url: p.cssUrl || '', primaryFont: p.family, secondaryFont: s.family, primary: p, secondary: s, description });
+  const chosen = model('site', 'Typographie du site', primary, secondary, 'Les polices de votre site.');
+  const others = await Promise.all(
+    scan.typographies
+      .filter((t) => t.id !== 'site')
+      .map(async (t) => {
+        const [p, s] = await Promise.all([fontCatalogService.toBrandFont(t.display, undefined, userId), fontCatalogService.toBrandFont(t.body, undefined, userId)]);
+        return model(t.id, t.label, p, s, t.rationale);
+      })
+  );
+  return { chosen, proposals: [chosen, ...others] };
+}
+
+/** Crée (ou rouvre) le projet IDEM d'un site, identité visuelle comprise. */
+export async function createProjectFromSite(userId: string, rawUrl: string, ports: SiteImportPorts, onStep: (step: SiteImportStep) => void = () => undefined): Promise<SiteImportResult> {
+  const url = normalizeSiteUrl(rawUrl);
+  const existing = await projectForSite(userId, url);
+  if (existing?.id && existing.analysisResultModel?.branding?.colors?.colors) {
+    onStep('done');
+    const b = existing.analysisResultModel.branding;
+    return { projectId: existing.id, reused: true, name: existing.name, siteUrl: (b as { siteSource?: { url: string } }).siteSource?.url || url, images: [], logo: !!b.logo?.svg, fonts: { display: b.typography?.primaryFont || '', body: b.typography?.secondaryFont || '', copied: [] }, warnings: [] };
+  }
+
+  const scan = await scanWebsite({ url, maxPages: 2, timeoutMs: 25_000, textModel: (s, u) => ports.text(s, u, 'mechanical'), vision: ports.vision, onProgress: (step) => onStep(step) });
+  const warnings = [...scan.warnings];
+
+  onStep('project');
+  const sheet = await describeProject(scan, ports);
+  const created = await projectService.createUserProject(userId, {
+    name: sheet.name,
+    description: sheet.description,
+    longDescription: sheet.longDescription,
+    type: sheet.type,
+    targets: sheet.targets,
+    scope: sheet.scope,
+    teamSize: '',
+    constraints: [],
+    selectedPhases: [],
+    analysisResultModel: {} as ProjectModel['analysisResultModel'],
+    deployments: [],
+    activeChatMessages: [],
+    additionalInfos: { email: '', phone: '', address: '', city: sheet.city || '', country: sheet.country || '', zipCode: '', teamMembers: [] },
+    project: undefined,
+  });
+  const projectId = created.id as string;
+
+  onStep('logo-variations');
+  const logo = await importLogo(userId, projectId, scan).catch((error: any) => {
+    logger.warn('site_import.logo_failed', { event: 'site_import.logo_failed', projectId, error: error?.message });
+    return null;
+  });
+  if (!logo) warnings.push('Logo introuvable ou illisible sur le site : ajoutez-le dans IDEM.');
+
+  onStep('typography');
+  const copied: string[] = [];
+  const typography = await typographyOf(userId, scan, copied);
+  const colors: ColorModel[] = scan.palettes.map((p) => ({ id: p.id, name: p.label, url: '', colors: { ...p.colors } }));
+
+  const branding = {
+    ...(logo ? { logo, generatedLogos: [logo] } : { generatedLogos: [] }),
+    colors: colors[0],
+    generatedColors: colors,
+    typography: typography.chosen,
+    generatedTypography: typography.proposals,
+    sections: [],
+    siteSource: { url: scan.finalUrl, evidence: scan.styleEvidence, importedAt: new Date() },
+  };
+  await projectService.editUserProject(userId, projectId, { analysisResultModel: { ...(created.analysisResultModel || {}), branding } as unknown as ProjectModel['analysisResultModel'] });
+
+  // La direction artistique CODIFIE le site (relevés + capture), puis les motifs sont dessinés d'après le logo.
+  onStep('art-direction');
+  const brandingService = new BrandingService(new PromptService());
+  const project = await projectService.getUserProjectById(userId, projectId);
+  if (project) await brandingService.ensureArtDirection(userId, projectId, project, { siteEvidence: scan.styleEvidence });
+  if (logo) {
+    onStep('patterns');
+    await brandingService.getBrandPatterns(userId, projectId).catch((error: any) => logger.warn('site_import.patterns_failed', { event: 'site_import.patterns_failed', projectId, error: error?.message }));
+  }
+  onStep('done');
+  logger.info('site_import.project_created', { event: 'site_import.project_created', projectId, host: new URL(scan.finalUrl).hostname, logo: !!logo, fontsCopied: copied, display: typography.chosen.primaryFont, body: typography.chosen.secondaryFont });
+  return { projectId, reused: false, name: sheet.name, siteUrl: scan.finalUrl, images: scan.images, logo: !!logo, fonts: { display: typography.chosen.primaryFont, body: typography.chosen.secondaryFont, copied }, warnings };
+}
+
+// ─── Le suivi (iVision interroge l'avancement) ─────────────────────────────────
+
+export interface SiteImportJob {
+  id: string;
+  userId: string;
+  status: 'running' | 'done' | 'failed';
+  step: SiteImportStep;
+  result?: SiteImportResult;
+  error?: { code: string; message: string };
+}
+
+const JOB_TTL = 3600;
+const save = (job: SiteImportJob) => cacheService.set(`site-import:${job.id}`, job, { prefix: 'jobs', ttl: JOB_TTL }).catch(() => false);
+
+export const siteImportJobs = {
+  /** Lance l'import en tâche de fond ; l'avancement est relu par `get`. */
+  async start(userId: string, url: string, ports: SiteImportPorts): Promise<SiteImportJob> {
+    const job: SiteImportJob = { id: crypto.randomUUID(), userId, status: 'running', step: 'open' };
+    await save(job);
+    void createProjectFromSite(userId, url, ports, (step) => {
+      job.step = step;
+      void save(job);
+    })
+      .then(async (result) => {
+        await save({ ...job, status: 'done', step: 'done', result });
+      })
+      .catch(async (error: any) => {
+        logger.error('site_import.failed', { event: 'site_import.failed', userId, error });
+        await save({ ...job, status: 'failed', error: { code: error?.code || 'import_failed', message: String(error?.message || 'import_failed').slice(0, 300) } });
+      });
+    return job;
+  },
+  async get(userId: string, id: string): Promise<SiteImportJob | null> {
+    const job = await cacheService.get<SiteImportJob>(`site-import:${id}`, { prefix: 'jobs' });
+    return job && job.userId === userId ? job : null;
+  },
+};

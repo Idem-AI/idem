@@ -38,7 +38,7 @@ export type AgentProfile = 'agents' | 'critic' | 'coder';
 export type AgentSource = 'llm' | 'graph';
 
 /** Un appel de modèle. `validate` permet au runtime d'escalader d'un étage si la réponse est illisible. */
-export type AgentCall = (request: { role: string; profile: AgentProfile; system: string; user: string; validate?: (raw: string) => boolean }) => Promise<string>;
+export type AgentCall = (request: { role: string; profile: AgentProfile; system: string; user: string; validate?: (raw: string) => boolean; level?: CreativityLevel }) => Promise<string>;
 
 export interface AgentTask<T> {
   /** Rôle lisible (« artDirector », « animator »…). */
@@ -50,7 +50,7 @@ export interface AgentTask<T> {
   prompt: () => { system: string; user: string } | null;
   parse: (raw: string) => T | undefined;
   fallback: () => T;
-  /** Tirages parallèles à partir de `bestOfFrom` (défaut : max), départagés par `score` (plus bas = meilleur). */
+  /** Tirages parallèles à partir de `bestOfFrom` (défaut : high), départagés par `score` (plus bas = meilleur). */
   samples?: number;
   bestOfFrom?: CreativityLevel;
   score?: (value: T) => number;
@@ -117,12 +117,12 @@ export class CreativeOrchestrator {
 
     this.opts.onEvent?.({ agent, state: 'running' });
     const profile = task.profile || 'agents';
-    const n = task.score && task.samples && task.samples > 1 && this.enabled(task.bestOfFrom || 'max') ? Math.min(4, task.samples) : 1;
+    const n = task.score && task.samples && task.samples > 1 && this.enabled(task.bestOfFrom || 'high') ? Math.min(4, task.samples) : 1;
     const timeout = this.opts.timeoutMs?.[profile] ?? DEFAULT_TIMEOUT[profile];
     const one = async (): Promise<string> => {
       try {
         return await Promise.race([
-          this.opts.call!({ role: task.role, profile, system: prompt.system, user: prompt.user, validate: (raw) => task.parse(raw) !== undefined }),
+          this.opts.call!({ role: task.role, profile, system: prompt.system, user: prompt.user, validate: (raw) => task.parse(raw) !== undefined, level: this.opts.level }),
           new Promise<string>((_, reject) => setTimeout(() => reject(new Error('agent_timeout')), timeout)),
         ]);
       } catch {

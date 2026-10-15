@@ -1,679 +1,249 @@
-# Environnement du moteur vidéo
-
-Ce document décrit **ce qui est installé, configuré et prêt** pour produire les vidéos motion design
-du module Communication, et comment l'IA s'en sert : par des choix dans des menus (crans Low à Max), ou en
-écrivant elle-même chaque plan avec le kit du moteur (cran Ultra).
-
-- Pipeline produit (crans, types, directions, musique, effets sonores, prix) : [MOTION_VIDEO.md](MOTION_VIDEO.md)
-- Jauge de créativité, film d'auteur et code écrit par l'IA : [CREATIVITY.md](CREATIVITY.md)
-- Graphe de capacités, généré depuis le code : [VIDEO_CAPABILITIES.md](VIDEO_CAPABILITIES.md)
-
-## 1. Principe
-
-Tout ce qui peut être écrit à l'avance l'est : composants, animations, bibliothèques, concepts narratifs, effets,
-règles de motion design, traduction de la charte. La part laissée au modèle dépend du **cran de créativité** :
-
-- **de Low à Max**, le modèle ne code pas la vidéo. Il fait des **choix**, dans des **menus courts** que le graphe a
-  filtrés pour le projet ; le code valide chaque choix et le remplace par celui du graphe s'il est absent, faux ou
-  inventé. Plus le cran monte, plus il y a de choix confiés au modèle (§14) ;
-- **au cran Ultra**, le modèle invente le film et écrit le composant React de chaque plan avec le kit (§16). Le
-  code ne choisit plus : il valide, rend, mesure, fait critiquer, et ne reprend un plan qu'après trois échecs.
-
-Dans le pipeline des menus, pour chaque vidéo :
-
-1. **La charte** (`video.artdirection.ts`) : la direction artistique devient des paramètres de motion — directions
-   admises, casse des titres, rythme, stratégie de couleur, décor, bonus et interdits du graphe, rendu des images
-   générées (`imagePromptModifier`). Voir §10.
-2. **La direction de motion** est tirée parmi celles de la DA, différente des dernières vidéos du projet.
-3. **La direction créative** (`video.storyline.ts`, un appel court, dès Medium) : le modèle choisit le **concept**
-   (parmi les 5 que le graphe juge pertinents, ceux des 3 dernières vidéos exclus), **l'enchaînement** des scènes
-   (parmi celles que le projet peut montrer), **le grand moment**, jusqu'à 3 **entrées** de texte (parmi celles de la
-   direction) et **l'animation du logo** (parmi les 3 ou 4 que le graphe recommande). Type imposé (choix explicite,
-   calendrier) : l'appel a lieu quand même et le modèle choisit **dans** ce type. Au cran Low, le graphe choisit.
-   Voir §11.
-4. **La copie** (`video.copy.ts`, un appel, à tous les crans) : les textes en cases `N.clé: texte`, avec les
-   consignes du concept (« une question que le public se pose », « la preuve »…) et un mot d'icône par avantage.
-
-   Puis **le moteur créatif** (`video.planner.ts`, zéro token, §17) : un motif par scène (intention → motif →
-   mise en page, entrée du titre), l'ADN de mouvement, l'accent créatif et les menus des agents ; après les
-   agents, le contrôle créatif et l'empreinte de la vidéo.
-5. **Le kit** (`resolveKit`, déterministe) : fond, annotation, icônes, logo pendant la vidéo, ressort, effets 3D,
-   addons à charger.
-6. **Le compositeur** assemble une page autonome : données + runtime React + **seulement** les addons retenus +
-   moteur. Puppeteer la capture image par image, ffmpeg encode.
-
-Coût IA d'une vidéo : au cran Low, un appel (la copie) ; au cran Medium, ~950 tokens en entrée et ~250 en sortie
-pour le stratège et la copie, plus le sound designer ; dès High, les agents du §14 ; au cran Ultra, le film d'auteur
-(§16). Un modèle très faible, ou aucun modèle, donne une vidéo complète : chaque ligne de réponse est lue seule et
-validée.
-
-## 2. Paquets du moteur
-
-`npm run build:video-engine` (appelé par `npm run build`) produit `public/video-engine/` :
-
-| Paquet | Taille | Contenu | Chargé |
-|---|---|---|---|
-| `runtime.js` | ~190 ko | React 19 + ReactDOM, la seule copie de la page (`window.__IDEM_RT__`) | toujours |
-| `engine.js` | ~215 ko | scènes, techniques de texte, transitions, mises en page, kit Tailwind, CSS compilée | toujours |
-| `addon-three.js` | ~1,2 Mo | three.js + React Three Fiber v9 + drei + postprocessing | scène 3D |
-| `addon-gsap.js` | ~110 ko | GSAP + DrawSVG, MorphSVG, MotionPath, CustomEase | logo « plume » |
-| `addon-anime.js` | ~40 ko | anime.js v4 (timelines, stagger en grille, svg) | fond « vague » |
-| `addon-flubber.js` | ~50 ko | flubber (morphose de formes) | logo « point → logo » |
-| `addon-lottie.js` | ~170 ko | lottie-web light (sans moteur d'expressions) | scène Lottie |
-| `addon-rive.js` | ~2,8 Mo | runtime Rive + WebAssembly embarqué | fichier .riv importé |
-| `addon-chart.js` | ~280 ko | Chart.js 4 + datalabels, annotation, treemap, sankey, matrix | mise en page `chartRing` / `barCompare`, plan codé qui l'importe |
-| `addon-viz.js` | ~350 ko | visx (composants de data-visualisation) + d3 (interpolate, delaunay, geo) + carte du monde | `dataArc`, fond `voronoi`, carte de l'Afrique, plan codé |
-| `addon-draw.js` | ~35 ko | rough.js + perfect-freehand + simplex-noise | fonds `flow-field` / `sketch-shapes`, annotations `sketch-circle` / `brush`, plan codé |
-| `addon-zdog.js` | ~30 ko | Zdog (pseudo-3D plate en SVG) | fond `flat3d`, plan codé |
-| `addon-ogl.js` | ~50 ko | OGL (WebGL minimal) + les 8 shaders de matière | fonds `aurora`, `silk`, `plasma`, `fluid`, `mesh`, `topology`, `waves`, `blobs`, `<Shader>` d'un plan codé |
-| `addon-pixi.js` | ~540 ko | PixiJS 7 + pixi-filters : les 9 effets sur une photo | effet photo retenu par le graphe, `<ImageFx>` d'un plan codé |
-
-Ordre dans la page : runtime → addons → moteur. Les addons importent `react` : au paquet, ces imports sont
-redirigés vers le runtime (plugin `shared-react` de `video.engine.ts`), une seule instance de React existe.
-En développement, les paquets se reconstruisent seuls quand une source change ; `manifest.json` donne les tailles.
-
-## 3. Bibliothèques installées
-
-Choisies parmi les plus utilisées de l'écosystème (Motion ~35 M de téléchargements par semaine, GSAP, anime.js,
-react-spring ; sources en fin de document), **puis filtrées sur un critère** : pouvoir calculer l'image à un instant t
-donné, dans n'importe quel ordre (rendu en onglets parallèles). Une bibliothèque qui anime « en temps réel » est
-écartée ou réduite à ses fonctions pures.
-
-| Bibliothèque | Version | Usage | Rendu image par image |
-|---|---|---|---|
-| React / ReactDOM | 19 | tout le moteur | `flushSync(render(<Video t/>))` |
-| Tailwind CSS | 4 | utilitaires du kit | compilé au paquet |
-| clsx + tailwind-merge | 2 / 3 | `cn()` du kit | — |
-| motion (ex-Framer Motion) | 13 | ressort physique, images clés | fonctions pures (`spring`, `interpolate`) |
-| GSAP + plugins | 3.15 | tracé (DrawSVG), morphose 1→1, courbes « main » | timeline en pause, `seek(t)`, horloge endormie |
-| anime.js | 4 | stagger en grille, svg | `autoplay:false`, `seek(ms)`, boucle coupée |
-| flubber | 0.4 | morphose 1→N, cercle → tracé | fonction pure |
-| three.js + R3F + drei + postprocessing | 0.180 / 9 / 10 / 3 | 3D : modèle, cartes, logo extrudé, formes | `frameloop:'never'` + `advance(t)`, horloge posée sur t |
-| lottie-web (light) | 5 | Lottie intégrées et importées (.json, .lottie) | `goToAndStop(trame)` |
-| @rive-app/canvas | 2 | animations Rive importées | `scrub(animation, t)` |
-| lucide-static, @tabler/icons, @phosphor-icons/core, heroicons | — | pictogrammes | SVG lus côté serveur |
-| Chart.js + plugins | 4.5 | graphiques : barres, lignes, anneaux, radar, aires polaires, bulles, treemap, sankey, matrice ; étiquettes, repères | `animation:false`, `responsive:false` ; valeurs de l'instant posées puis `update('none')` |
-| visx | 4 | **librairie de composants** de data-visualisation (formes, échelles, dégradés, motifs, courbes, hiérarchies, projections, axes) | rendu React en SVG, sans animation propre |
-| d3-interpolate, d3-delaunay, d3-geo, topojson-client, world-atlas | 3 / 6 / 3 / 3 / 2 | interpolations, mosaïques de Voronoï, carte de l'Afrique (pays nommés dans le texte) | fonctions pures |
-| rough.js | 4.6 | formes dessinées à la main | générateur à graine fixe, tracé révélé par `stroke-dashoffset` |
-| perfect-freehand | 1.2 | traits de pinceau à pression | fonction pure |
-| simplex-noise | 4 | bruit continu (champs de flux, mouvements organiques) | graine du moteur (`hash`), jamais `Math.random` |
-| Zdog | 1.1 | objets 3D plats et ronds en SVG | rotation posée puis `updateRenderGraph()` |
-| OGL | 1 | shaders plein cadre (8 fonds de matière) | un triangle, un programme, `uTime` posé par le moteur ; **aucune boucle** ; toile créée à l'apparition de la scène, libérée à son départ (16 contextes WebGL au plus) |
-| PixiJS + pixi-filters | 7.4 / 5.3 | 9 effets sur une photo (canaux, onde de choc, bulbe, torsion, flou de zoom, pixels, glitch, ondulation, CRT) | ticker arrêté, `app.render()` à la demande, paramètres posés par le moteur ; PixiJS 7 car son constructeur est synchrone |
-| simple-icons | 16 | logos des marques NOMMÉES dans un texte (WhatsApp, Orange Money…) | SVG lus côté serveur (`video.brands.ts`), jamais embarqués en bloc |
-
-**Licences.** Chaque bibliothèque porte sa licence dans le graphe (`license`, SPDX) et `check:video:engine` la compare au
-`package.json` réellement installé : une mise à jour qui change de licence fait échouer le contrôle. Toutes autorisent
-l'usage commercial (MIT, ISC, Zlib pour `postprocessing`, MIT pour `jszip` qui est publié « MIT OR GPL-3.0-or-later »).
-La seule à relire est **GSAP** : sa licence « no charge » couvre l'usage commercial et tous les plugins (DrawSVG,
-MorphSVG, SplitText…), mais interdit une solution qui concurrence l'éditeur d'animation visuel de Webflow
-(<https://gsap.com/standard-license>). iVision génère des vidéos par IA ; si l'éditeur en direct devenait un outil de
-création d'animations sans code, il faudrait la faire revalider. Les licences des assets (polices embarquées, musique
-CC0 / PD / CC BY) sont suivies à part (`video.fonts.ts`, `video.music.ts`).
-
-**Replis.** Tout nœud de coût ≥ 2 (3D, post-traitement, Rive) déclare son repli (`fallback`) : une variante moins chère,
-du même rôle et sans horloge posée (`logo:extrude` → `logo:wipe`, `lib:three` → `lib:zdog`), ou, à défaut, l'effet est
-omis et la scène garde son texte (`media:cards3d`, `media:model3d`, `postfx:bloom`, Rive). Le contrôle vérifie la règle ;
-le moteur applique déjà l'omission quand l'addon manque, mais **aucun code ne remplace encore automatiquement un nœud par
-son repli en cas d'échec de rendu** : la déclaration est la règle du catalogue, pas encore un mécanisme.
-
-Écartées, avec la raison : voir la table « Bibliothèques écartées » de [VIDEO_CAPABILITIES.md](VIDEO_CAPABILITIES.md)
-(react-spring, animate() de motion, auto-animate, Remotion, Theatre.js, dotlottie-web, Vivus, Rough Notation, mo.js,
-lucide-react…). Les collections à copier-coller (Magic UI, React Bits, Aceternity, Motion Primitives) ne sont pas
-des paquets : leurs meilleures idées (marquee, grille de points, halo, formes, surligneur) sont **réécrites dans le
-kit** en fonctions du temps, aux couleurs de la charte.
-
-## 4. Tailwind : la charte dans les classes
-
-`apps/ivision/core/engine/src/tailwind.css`, compilé par `buildEngineCss` à partir des classes réellement écrites dans les sources.
-
-- **Palette par défaut retirée** (`--color-*: initial`) : `bg-blue-500` n'existe pas. Seules existent
-  - les couleurs de la surface courante, qui changent à chaque scène : `bg`, `ink`, `muted`, `hl`, `hl-ink`,
-    `hl-text`, `hl-soft`, `soft` ;
-  - la charte, fixe : `primary`, `secondary`, `accent`, `paper`, `text`.
-- **Unités relatives à l'image** : 1 pas = 1 % du petit côté (`p-4`, `size-8`, `gap-3`). Un composant est juste en
-  story, carré, portrait et paysage.
-- Typo : `font-display`, `font-body` (polices de la charte) ; tailles `text-caption` → `text-giant`.
-- Rayons : `rounded-brand` (celui de la direction : 0 en suisse ou brutaliste, arrondi en cinétique), `rounded-pill`.
-- Pas de preflight ; couches dans l'ordre `theme, engine, utilities`.
-- **Garde-fou** : si une classe d'`engine.css` porte le nom d'un utilitaire Tailwind, le paquet refuse de se
-  construire (cas vécu : `.list-item`, que Tailwind redéfinit en `display: list-item`).
-- Classes écrites en entier dans le code (pas de `bg-${x}`), sinon Tailwind ne les voit pas.
-
-## 5. Le kit (`apps/ivision/core/engine/src/kit/`)
-
-| Composant | Rôle | Nœuds du graphe |
-|---|---|---|
-| `LogoMotion` | anime le logo vectoriel posé en ligne : `draw`, `trace`, `morph`, `assemble`, `wipe` | `logo:*` |
-| `Backdrop` | fond de deux scènes au plus : `dot-grid`, `halftone`, `shape-field`, `stagger-grid`, `marquee`, `spotlight`, `ticks`, `flow-field`, `sketch-shapes`, `voronoi`, `flat3d`, `motes`, `embers`, `confetti`, `aurora`, `silk`, `plasma`, `fluid`, `mesh`, `topology`, `waves`, `blobs`, `network`, `gradient` | `bg:*` |
-| `Em` / `EmDecor` | annotation du mot mis en valeur, une scène par vidéo : `marker`, `underline`, `circle`, `sketch-circle`, `brush` | `annotate:*` |
-| `Icon` | pictogramme SVG choisi par le serveur, couleur héritée | `icons:*` |
-| `ChartJs` | graphique Chart.js piloté par le temps (`grow` : rise, sweep, reveal), couleurs `var(--…)` résolues, valeurs exposées dans `data-chart-values` | `layout:chartRing`, `layout:barCompare` |
-| `useViz`, `DataArc`, `GrowArea`, `AfricaMap`, `VoronoiField` | visx + d3 pour l'agent codeur ; jauge, aire qui se dessine, carte de l'Afrique (seuls les pays **nommés** dans le texte s'allument), mosaïque | `layout:dataArc`, `bg:voronoi` |
-| `Sketch`, `Brush`, `useNoise`, `FlowField` | croquis rough.js, pinceau, bruit simplex, lignes de flux | `bg:flow-field`, `bg:sketch-shapes`, `annotate:sketch-circle`, `annotate:brush` |
-| `Flat3D` | objets Zdog (boîte, cylindre, cône, anneau, sphère…) | `bg:flat3d` |
-| `Shader` | fond de matière en shader OGL : `aurora`, `silk`, `plasma`, `fluid`, `mesh`, `topology`, `waves`, `blobs` ; 4 couleurs de la surface, `strength` (0 → 1) teinte la surface au lieu de la remplacer | `bg:aurora` … `bg:blobs` |
-| `Gradient`, `Network` | dégradé qui passe d'un état de couleurs à l'autre (CSS pur) ; points qui dérivent et se relient (SVG pur) | `bg:gradient`, `bg:network` |
-| `LiquidGlass` | verre réfractif : filtre SVG de déplacement appliqué à l'arrière-plan (`backdrop-filter: url()`), flou et saturation DANS le filtre | mise en page `glassPanel` |
-| `ImageFx` | une photo et un effet PixiJS ; `PhotoEl` choisit entre la photo simple et l'effet retenu par le graphe | `imagefx:*` |
-| `Morph` | formes qui se transforment (13 formes prêtes, ou un tracé 100 × 100), flubber | motif Ultra `shapeMorph` |
-| `IconMotion` | pictogramme SVG animé forme par forme : `draw`, `stagger`, `pop`, `pulse`, `wiggle`, `morph` ; posé, il est EXACTEMENT l'icône fixe | `iconmotion:*`, `Icon` (via `kit.iconMotion`), logos de marques |
-| `Bg` | n'importe lequel des fonds de la bibliothèque, pour un plan codé | `bg:*` |
-| `Particles` | particules à graine, **sans bibliothèque** : `drift` (poussière), `rise` (braises), `fall` (confettis), `burst` (éclat depuis un point), `converge` (rassemblement), `dissolve` (un bloc de texte qui se défait de gauche à droite). La pose de la particule i est une fonction pure de la graine, de i et du temps (`particles.math.ts`), au plus 120, aux couleurs de la charte ; `data-particles` expose le nombre de visibles | `bg:motes`, `bg:embers`, `bg:confetti`, `accent:burst` |
-| `numbersIn`, `percentIn`, `countriesIn` | les chiffres et les pays des TEXTES de la scène : un graphique n'en montre pas d'autres (contrôlé au rendu des plans codés) | — |
-| `cn` | classes conditionnelles sans doublon | — |
-
-Animations du logo (`LogoMotion`, sur le SVG de la charte) :
-
-- `draw` : contours tracés (longueur réelle de chaque forme), puis remplissage ;
-- `trace` : une plume suit le contour en cours (GSAP DrawSVG + CustomEase), forme après forme ;
-- `morph` : un point grossit puis prend la forme exacte de chaque partie du logo (flubber `fromCircle`) ;
-- `assemble` : chaque forme arrive d'une direction différente et s'emboîte (ressort si la direction rebondit) ;
-- `wipe` : balayage oblique, accepte tout SVG.
-
-En plus, côté scène : `split` (le symbole se pose, le nom glisse de derrière lui), `extrude` (logo extrudé en 3D,
-type « logo »), `classic` (la signature propre à la direction).
-
-Le SVG passe par SVGO avec une règle de sécurité (`video.logo.ts`) : scripts, `foreignObject`, animations SMIL,
-attributs `on*`, liens externes retirés ; identifiants préfixés ; styles repliés en attributs. Un logo qui contient
-du `<text>` (police peut-être absente) laisse la place à son symbole, et le nom est écrit par le moteur dans la
-police de la charte.
-
-Icônes (`video.icons.ts`) : 62 **concepts** (livraison, prix, paiement, qualité, sécurité…) traduits vers les quatre
-bibliothèques. La bibliothèque suit la direction : Lucide (précision), Tabler (suisse), Phosphor thin / light / bold /
-fill / duotone (cinématique, éditorial, brutaliste, cinétique, collage), Heroicons pleins (trempé). Le modèle propose un
-concept par avantage ; un concept inconnu ou déjà pris est remplacé par le repli par mots-clés (le mot-clé le plus tôt
-dans le texte l'emporte : « Qualité garantie » donne `quality`, pas `secure`).
-
-## 6. Règles pour écrire dans le moteur
-
-1. **Tout est fonction du temps.** Un style se calcule depuis `t` (ou `useLocalTime()`), jamais en accumulant d'une
-   image à l'autre. Pas de `setTimeout`, de `requestAnimationFrame`, de CSS `transition` ni d'`animation`.
-2. **Bibliothèques à timeline** (GSAP, anime.js) : timeline créée une fois dans un `useLayoutEffect`, en pause, puis
-   `seek(lt)` dans un `useLayoutEffect` sans dépendances (il s'exécute dans le `flushSync` de l'image). Borner le
-   `seek` à la durée de la timeline.
-3. **3D** : props `t` uniquement, pas de `useFrame` avec delta, pas de Suspense (ressources chargées avant la
-   première image par `loadAssets`), pas de fichier distant (lumière par `Lightformer`).
-4. **`dangerouslySetInnerHTML`** : objet mémorisé (`useMemo`). React 19 réécrit `innerHTML` dès que l'objet change ;
-   sans mémo, un SVG animé est remplacé à chaque image par un neuf (défaut vécu, détecté par `check:video:engine`).
-5. **Anti-slop** (règles iCode, appliquées en code) : pas de capitales espacées, pas de 01/02/03, pas de filet
-   latéral coloré, pas de glassmorphism, pas de décor par défaut (le fond du kit ne va que sur deux scènes de texte),
-   une seule annotation par vidéo, jamais la même entrée partout.
-6. **Surface claire** : aucun fond sombre par défaut ; les couleurs viennent des jetons de surface.
-7. Addon absent = repli : `addon('gsap')` peut être `undefined` ; la scène se replie (ex. `trace` → `wipe`,
-   `stagger-grid` calculé sans anime.js).
-
-## 7. Ajouter une capacité
-
-1. Installer le paquet dans `apps/api`, vérifier qu'il se pilote à un instant t (sinon : fonctions pures seulement,
-   ou l'écarter et l'ajouter à `EXCLUDED_LIBRARIES`).
-2. Lourd ? Créer `apps/ivision/core/engine/src/addons/<id>.ts` qui appelle `registerAddon`, ajouter `<id>` à `ADDON_IDS`
-   (`video.engine.ts`) et son type à `shared.ts`.
-3. Écrire le composant dans `apps/ivision/core/engine/src/kit/` (Tailwind, jetons de surface, fonction du temps).
-4. Déclarer le nœud dans `video.capabilities.ts` : `requires`, `when`, `suits`, `cost`, `determinism`, `impl` ; pour une bibliothèque, sa `license` (`LIBRARY_LICENSES`, relue dans le `package.json` installé) ; pour un nœud de coût ≥ 2, son `fallback` (`FALLBACKS`).
-5. Pour que les codeurs du cran Ultra s'en servent : l'exporter dans `kit-api.ts`, ajouter son nom à `KIT_NAMES` et,
-   s'il dépend d'un addon, à `KIT_ADDONS` (`video.coder.ts`), puis le décrire dans `KIT_MANIFEST`.
-6. `npm run check:video:engine` (ajouter le cas au rendu du kit), puis `npm run docs:video-graph`.
-
-## 8. Contrôles
-
-| Commande | Ce qu'elle vérifie |
-|---|---|
-| `npm run check:video:engine` | paquets et addons, Tailwind (charte, collisions), icônes, nettoyage du logo, graphe (arêtes, implémentations, paquets installés, **licences** comparées aux `package.json`, **replis** des nœuds coûteux, **particules** pures et bornées, routeur déterministe, choix possibles, variété, qualité, retouches), rendu de chaque animation de logo, fond, annotation et bibliothèque d'icônes, des 17 mises en page × 3 formats, de plans codés qui utilisent Chart.js, visx, la carte, les croquis et Zdog (valeurs des graphiques issues des textes) : aucune erreur, même image à l'aller et au retour, animation qui progresse. Planche : `tmp/video-engine-kit/index.html`. `--online` : un vrai fichier Rive. |
-| `npm run check:video:creative` | concepts dépliés (13 × 4 durées × 6 profils de médias), modèles faibles (JSON, bavard, inventé, vide, en panne), médias de l'utilisateur garantis, variété sur 12 vidéos, budget de tokens, traduction de la charte, « Améliorer ma demande », part de vidéos du calendrier |
-| `npm run check:video:variety` | 12 vidéos rendues d'une même marque (dont 6 dans la même direction) : distances d'image et de structure, bonnes pratiques |
-| `npm run check:video:novelty` | le moteur créatif (§17) : motifs résolus en briques existantes, empreinte (déterminisme, symétrie, vidéos anciennes), exploration par cran, accent unique hors ADN, 10 vidéos par cran et 8 en direction imposée par le vrai pipeline (aucune à moins de 0,30 d'une précédente), contrôle créatif, mémoire d'expérience, univers et manifeste restreint d'Ultra, budgets |
-| `npm run docs:video-graph` | régénère `docs/VIDEO_CAPABILITIES.md` |
-| `npm run check:video` | pipeline complet (copie, médias, musique, rendu MP4) à chaque cran ; §9 bis : la même vidéo aux cinq crans, l'IA décide davantage à chaque cran ; film d'auteur simulé (directeur, codeurs, critique visuelle), plans réellement lintés, compilés et rendus |
-| `npm run check:video:layouts` | chaque mise en page × chaque scène acceptée × 4 formats, textes au plus long : rien hors cadre, rien de trop large |
-| `npm run check:video:types` | les 8 types de vidéo avec vrais médias et vraie musique |
-| `npm run check:video:directions` | diversité des 8 directions |
-| `npm run demo:video-tools` | **vidéos de démonstration de tous les outils** (voir §18) : `-- --only=03,05`, `-- --quality=hd`, `-- --format=story` |
-
-## 9. API
-
-- `GET /project/communication/:projectId/videos/options` → `kit` : les valeurs de chaque genre (logo, fond,
-  annotation, icônes).
-- `PATCH /project/communication/:projectId/videos/:videoId` avec `kit: { logo?, background?, annotate?, iconSet? }` :
-  une valeur n'est retenue que si le graphe la permet dans le contexte de la vidéo (sinon ignorée, avec sa raison
-  dans `applyKitOverrides`). Changer de direction recalcule le kit.
-- Chaque vidéo garde son kit et sa trace (`storyboard.kit.trace` : nœud retenu, score, raisons, nœuds écartés).
-- `capabilityCard(ctx)` : la carte compacte (~250 tokens) de ce qui est possible pour un projet, destinée à un
-  modèle plus capable qui composerait une scène sur mesure.
-
-## 10. La charte et sa direction artistique
-
-`video.artdirection.ts` traduit la DA de la charte, sans modèle :
-
-| Dans la charte | Dans la vidéo |
-|---|---|
-| style du catalogue (`styleId`) | directions **préférées** (poids) et **exclues** (`ART_EXCLUDES`) : la DA écarte ce qui trahit son esprit sans enfermer la marque dans 2-3 directions (`pickDirection`) |
-| style du catalogue, « à éviter » | transitions et mises en page **exclues** (`ART_TRANSITION_EXCLUDES`, `ART_LAYOUT_EXCLUDES`, regex sur les « à éviter » : glitch, flash, « criard », 3D, promo) — jamais proposées aux agents |
-| mots-clés, éléments graphiques | bonus de transitions et de mises en page (cercle → disque de marque et cercle ; rayures → lames obliques et bandeau diagonal ; grille → grille de cartes ; typo géante → pile de mots) |
-| casse et interlettrage | casse des titres |
-| densité, espace négatif | rythme des entrées (aéré : ×1,15 ; dense : ×0,9) |
-| contraste, application des couleurs | stratégie de couleur des scènes (retenue, engagée) |
-| traitement d'image (grain, papier) | décor de la direction |
-| éléments graphiques, geste signature | bonus des nœuds du graphe (grille → trame de points, trame → demi-teinte, surligné → surligneur…) |
-| « à éviter » | malus (pas de décor si la charte refuse l'ornement, pas de ressort si elle refuse le rebond) |
-| médium d'image | découpage privilégié (3D, illustration, photo, combiné) |
-| `imagePromptModifier` | rendu des images et clips générés (FLUX.2, Seedance), repris par le directeur photo |
-
-Le logo pendant la vidéo n'est plus une pastille blanche en haut à droite : c'est un nœud du graphe
-(`brandmark:none` ou `brandmark:corner`). En coin, il est monochrome (couleur du texte de la scène visible), sans
-conteneur, dans le coin que les compositions occupent le moins (jamais en bas en story), masqué sur les plans plein
-cadre et sur la signature.
-
-## 11. Direction créative bornée
-
-**Statique (code et graphe)** : 13 concepts narratifs (`video.concepts.ts` : question → réponse, problème →
-solution, le produit en héros, manifeste, offre choc, la preuve d'abord, sur le terrain, teaser, invitation,
-vitrine, les raisons, célébration, signature), leur dépliage en scènes selon les médias et la durée, 4 effets de
-grand moment (coup de poing, titre géant, temps suspendu, bascule de couleur, éclat de particules), les menus, la validation.
-
-**Choisi par le modèle, dans des menus** : concept, enchaînement, grand moment, objectif si l'utilisateur ne l'a pas
-dit (le stratège) ; mises en page, transitions, entrées de texte, caméra, animation du logo, musique (les autres
-agents, §14).
-
-**Garanties, quel que soit le modèle** (pipeline des menus ; le film d'auteur a les siennes, §16) :
-
-- une ligne absente, fausse, inventée ou hors menu est remplacée par le choix du graphe (réponses en JSON, bavardes,
-  en gras, avec synonymes comme « 3D » ou « video » : comprises) ;
-- les médias fournis par l'utilisateur sont toujours montrés (3D, clips, photos, animation, dans la limite de la
-  durée), même si le modèle les oublie ;
-- les scènes du modèle ne valent que si son concept est retenu, et jamais si elles recopient une vidéo récente ;
-- le contrôle anti-réflexe (`lintMotion`) repasse après les choix du modèle : pas de répétition, pas de tout-centré ;
-- l'effet du grand moment vient de la direction, donc de la charte (cinéma : temps suspendu ; brutal : coup de poing).
-
-**Variété** : concepts des 3 dernières vidéos exclus du menu, directions et kits des dernières vidéos évités, logos
-récents retirés du menu du modèle, enchaînements récents refusés. Mesuré par `check:video:creative` : 12 vidéos du
-même brief donnent au moins 4 concepts et 10 combinaisons distinctes, même avec un modèle qui répond toujours pareil.
-La variété évite la répétition ; la **nouveauté** (moteur créatif, §17) cherche ce qui reste à explorer, et
-l'empreinte mesure si deux vidéos sont réellement différentes, pas seulement si leurs identifiants diffèrent.
-
-## 12. Créer une vidéo, calendrier éditorial
-
-- **Créer** : deux étapes. *Décrire* : un espace de discussion (demande libre + fichiers joints), un bouton
-  **Améliorer ma demande** (`POST …/videos/enhance`, gratuit : un appel court, faits gardés, chiffres inventés
-  retirés par le code, gabarit sans modèle), le type choisi par IDEM (imposable, replié). *Configurer* : où publier,
-  durée, qualité, ambiance sonore ; le reste replié ; récapitulatif et prix toujours visibles. À côté du bouton
-  de création, le **sélecteur de créativité** (« ✦ Créativité · Medium ▾ ») ; le bouton affiche le prix du cran
-  retenu. Le détail d'une vidéo dit ce que l'IA a décidé (« décidé par l'IA : textes, structure, mises en page… »,
-  ou « Film d'auteur · 7 plans sur 8 créés par l'IA »).
-- **Calendrier** : au moins un contenu sur trois est une vidéo sur les réseaux qui les mettent en avant
-  (`video.calendar.ts`), chacune avec son **type** (proposé par le planificateur, validé, sinon déduit du contenu).
-  La carte affiche le type ; « Générer la vidéo » crée **ce** type, avec le brief du contenu (accroche, angle, appel
-  à l'action), au format du réseau, et rattache la vidéo au contenu (`contentId`). Le détail du contenu porte
-  aussi le sélecteur de créativité.
-
-## 13. Variété réelle et bonnes pratiques toujours appliquées
-
-**Pourquoi les vidéos se ressemblaient** : dans une direction, toutes les vidéos avaient le même tempo, les mêmes
-3-4 entrées de texte, les mêmes entrées d'éléments, la même caméra et, pour les clips, la même mise en scène
-(« fond + dégradé + boîte »). La DA de la charte limitant une marque à 2-3 directions, ses vidéos se ressemblaient.
-
-**Ce qui varie désormais, vidéo par vidéo** (graphe + mémoire du projet, sans token sauf les choix du modèle) :
-
-| Axe | Valeurs | Choisi par |
-|---|---|---|
-| concept | 13 récits | modèle (menu de 5) / graphe |
-| rythme | steady, crescendo, staccato, breathe, drop — courbe des durées, tempo des entrées, grille des coupes (`video.rhythm.ts`) | modèle (menu de 3) / graphe |
-| entrées de texte | 6 à 8 par direction (dont springUp, wave, stretch — ressorts motion —, rotateX 3D, zoomWords, skewIn, scatter, outlineFill) ; celles de la vidéo précédente évitées | plan de mouvement (LRU) + modèle (3 au plus) |
-| entrées des éléments | rise, spring, flip, unfold, skew, iris, drop, pop, slideLeft (puces, boutons, prix, rangées) | graphe |
-| caméra | still, push, pull, drift, rise, tilt (3D) | graphe |
-| mises en scène des plans | split, window, blinds, magazine, knockout, inline, duotone, broadcast, cinema (`treatments.tsx`) | graphe, une par plan |
-| mises en page des scènes de texte | 17 archétypes + la composition de la direction (§15) | agent directeur artistique, une scène à la fois |
-| transitions | catalogue de 17, filtré par la direction et la DA (§15) | agent animateur, coupe par coupe |
-| musique, intensité des effets | piste parmi les 6 meilleures, discrète / normale / appuyée | agent sound designer |
-| grand moment, fond, annotation, logo, icônes | voir §5, §11 | graphe / modèle |
-
-Mesuré par `npm run check:video:variety` : même marque, même brief, 6 vidéos à la suite (parcours normal), puis
-6 vidéos dans la **même direction** : distances d'image (vignettes du MP4) et de structure (enchaînement, durées,
-entrées, caméra, rythme, mises en scène, fond, logo), planche `tmp/motion-variety/index.html`.
-
-**Bonnes pratiques** (`video.rules.ts`), vérifiées et réparées sur CHAQUE vidéo, à la création et après chaque
-retouche ; le rapport est gardé dans `storyboard.qa` et `check:video` exige zéro écart :
-
-| Règle | Seuil | Réparation |
-|---|---|---|
-| hook-first-seconds | accroche lisible tout de suite, 1,6 à 4 s | durées |
-| reading-time | ≤ 3 mots/s, entrée comprise (un nombre et son unité = un mot) | durées, puis texte secondaire retiré, puis scène la moins utile retirée, puis titre raccourci au mot |
-| min-hold | texte 1,6 à 7 s, média jusqu'à 9 s | durées, scènes de texte ajoutées au plan si la vidéo est longue |
-| logo-hold | ≥ 1,5 s (2,2 s dès 15 s) | durées |
-| entrance-duration | 0,3 à 1,2 s | tempo de la scène |
-| exit-shorter, no-linear | sortie ≈ 2/3 de l'entrée, courbes amorties | garanti par le moteur et les directions |
-| one-accent | un grand moment | les autres retirés |
-| call-to-action | objectif vente, événement, ouverture, produit, recrutement (≥ 15 s) | scène d'appel ajoutée au plan |
-| sound-off | chaque scène porte son texte | signalé |
-| cuts-on-beat | coupes sur le temps | recalées si la lecture le permet ; sinon avertissement (la lecture prime) |
-| ends-on-brand | fin sur la signature | signalé |
-
-Règles du moteur apprises en route (chacune a causé un défaut réel, détecté par les contrôles) :
-
-- jamais de transformation 3D sur un texte posé, jamais de `will-change` sur un texte ou une scène : le calque
-  serait rastérisé à une échelle qui dépend de l'historique (images différentes selon l'ordre de rendu, texte flou) ;
-- un clip n'est jamais découpé (`clip-path`) ni redimensionné : une fenêtre, un partage ou une révélation se font
-  par un cache de la couleur de la surface posé au-dessus (sinon image de retard au compositeur) ;
-- un enfant ne déclare jamais `visibility: visible` (il passerait au-dessus des autres scènes) : `inherit` ;
-- la taille d'un titre se mesure sans les transformations d'entrée ;
-- un clip est posé au milieu d'une image (30 i/s), puis on attend deux images d'affichage après `seeked` ;
-- les entrées lettre à lettre sont plafonnées (brouillage ≤ 0,9 s, machine à écrire ≤ 1,2 s) pour que le texte soit
-  lisible avant la fin de la scène ;
-- un flou n'est jamais négatif (`blur(${Math.max(0, …)})`) : avec une courbe à rebond, `1 - p` passe sous zéro, la
-  valeur CSS est invalide et l'élément garde le flou de l'image précédente (rendu qui dépend de l'ordre) ;
-- un conteneur flex n'étire jamais un odomètre au point de tasser ses colonnes de chiffres (`.kt-odo>*{flex:none}`) :
-  l'ajustement ne voyait pas le débordement et le chiffre sortait du cadre ;
-- dans un odomètre, une espace est insécable (en `inline-flex`, une espace seule disparaît : « 15 000 F » s'affichait
-  « 15000F ») et chaque colonne prend la largeur de SON chiffre (le « 1 » étroit ne laisse plus de trou) ;
-- une scène qui déborde de sa zone sûre réduit d'abord ses textes, puis tout son bloc (`useShrinkOverflow`, App.tsx) :
-  la mesure porte sur les boîtes de TOUS les textes de chaque `.safe`, pas sur le seul premier bloc. Elle voit donc
-  une colonne cercle + texte, ou des cartes dont la hauteur vient des icônes et des marges. Mesurée une fois, sans
-  les transformations d'animation, elle donne la même image quel que soit l'instant ;
-- en colonne, le cercle de `circleStage` occupe au plus 42 % de la hauteur du cadre (64 unités débordaient en carré) ;
-- en rendu, les polices de la charte sont embarquées dans la page (`video.fonts.ts` : feuilles lues côté serveur,
-  en cache, sous-ensembles latins, « vietnamese » seulement si le texte a des voyelles pointées) : une feuille Google
-  Fonts qui tardait bloquait l'événement `load` et faisait échouer l'export après 60 s ;
-- la bande de chiffres d'un odomètre se déplace par `top`, pas par une transformation, et chaque colonne prend sa
-  largeur d'un chiffre invisible (`.kt-odo-size`) ;
-- une animation ne démarre jamais pile sur un instant sondé par les contrôles : l'odomètre de la jauge `dataArc`
-  partait à 0,2 s, l'instant de l'image sondée, et l'image différait selon l'ordre de rendu (écart 0,29 %). Il part
-  désormais à 0,1 s ;
-- un tracé SVG qui apparaît en cours de scène reste monté et passe d'une opacité nulle à pleine (`DataArc`) : retiré
-  puis remis, il laissait une trace qui dépendait de l'ordre de rendu ;
-- Chart.js dessine sur une toile et Zdog écrit ses couleurs en attributs : ni l'un ni l'autre ne lit le CSS. Les
-  couleurs `var(--…)` sont donc résolues sur la scène avant de leur être passées (`Chart.tsx#resolveColors`,
-  `Zdog.tsx#resolve`) ;
-- le `<svg>` de Zdog porte `width` et `height` (100 × 100) : Zdog en tire son cadre (−50 → 50), et le CSS étire le
-  dessin à la boîte.
-
-Sources des seuils : [University of Melbourne — Video captioning style guide](https://www.unimelb.edu.au/accessibility/video-captioning/style-guide) ·
-[Subtitle reading speed (CPS)](https://dev.to/ray_mac/subtitle-reading-speed-cps-the-limits-and-why-ai-subtitles-break-them-892) ·
-[Material Design 3 — Easing and duration](https://m3.material.io/styles/motion/easing-and-duration/applying-easing-and-duration) ·
-[LottieFiles — motion design skill](https://github.com/LottieFiles/motion-design-skill/blob/main/skills/motion-design/SKILL.md) ·
-[Short-form video strategy 2026](https://www.teleprompter.com/blog/short-form-video-strategy) ·
-[Hooks des 3 premières secondes](https://www.capcut.com/create/short-form-video-hooks-first-3-second-patterns).
-
-## 14. L'équipe d'agents (`video.agents.ts`)
-
-> Les agents s'activent selon la **jauge de créativité** choisie avant la génération (Low → Ultra) :
-> le rédacteur, le directeur photo et le narrateur (voix off demandée) à tous les crans, le stratège et le sound designer dès Medium, la composition
-> (directeurs artistiques, animateur, critique) dès High, les réglages bornés au cran Max. Au cran
-> Ultra, ces agents cèdent la place au film d'auteur : un directeur et un codeur par plan (§16).
-> Voir [CREATIVITY.md](CREATIVITY.md).
-
-Une seule grosse tâche (« fais la vidéo ») est mal faite par un petit modèle ; une tâche étroite (« choisis la mise
-en page de CETTE scène parmi ces trois ») est bien faite. La vidéo est donc partagée entre agents spécialisés,
-chacun avec un prompt court, une responsabilité, et des menus que le graphe a filtrés par la direction ET la DA :
-
-| Agent | Décide | Appels | Entrée ≈ |
-|---|---|---|---|
-| Stratège (`video.storyline.ts`) | objectif, concept, enchaînement, grand moment, rythme ; au cran Max, la direction créative parmi trois (§17) | 1 | 550 tokens (+ 40 en Max) |
-| Rédacteur (`video.copy.ts`) | textes à l'écran, mots-clés des médias | 1 | 700 tokens |
-| Directeur artistique | le **motif** de sa scène, parmi 3 à 5 que le moteur créatif a classés (§17), + mot mis en valeur ; le code résout le motif en mise en page et entrée de titre | 1 par scène de contenu, en parallèle (4 à la fois), pendant la recherche des médias | 230 tokens |
-| Sound designer | la piste parmi les 6 meilleures candidates, l'intensité des effets (−4 / 0 / +3 dB) | 1, dans la recherche de musique | 220 tokens |
-| Directeur photo (`video.sourcing.ts`) | un plan par média que l'utilisateur n'a pas fourni (au texte de sa scène), le look commun, le mouvement de caméra d'un clip (menu de 8), la requête de banque — à tous les crans | 1, pendant la musique | 350 tokens |
-| Narrateur (`video.voice.ts`) | si la voix off est demandée : une ligne parlée par scène (mots bornés au temps de la scène), le personnage de voix (menu de 3), le jeu — à tous les crans | 1, pendant les médias | 380 tokens |
-| Animateur | transition de chaque coupe, ≤ 3 entrées de titre, caméra, famille d'entrée, animation du logo | 1 | 400 tokens |
-| Critique | relit le film résumé (mises en page, coupes, entrées, avertissements des règles) : ≤ 5 corrections `N.layout=` / `N.cut=` / `N.title=` | 1 | 440 tokens |
-
-Tous reçoivent la même **fiche de marque** (`brandSheet`) : couleurs de la charte, polices, DA (style, intention,
-mots-clés), « à faire », « à éviter ».
-
-**L'étage du modèle monte avec le cran** (`motionVideo.service.ts#tierFor`, configurations dans
-`AI_CONFIG.communication`). Sans cela, les agents des crans hauts tournaient sur le modèle le moins cher, et les crans
-finissaient par se ressembler :
-
-| Appel | Low | Medium | High | Max | Ultra |
-|---|---|---|---|---|---|
-| Rédacteur | mécanique (`video`) | rédaction (`videoWriting`) | rédaction | rédaction | — (le directeur écrit les textes) |
-| Stratège | — | rédaction | rédaction | raisonnement (`videoReasoning`) | — |
-| Directeur photo, narrateur | mécanique (`video`) | rédaction (`videoWriting`) | rédaction | rédaction | rédaction |
-| Sound designer | — | mécanique (`videoAgents`) | rédaction | rédaction | rédaction |
-| Directeurs artistiques, animateur, critique | — | — | rédaction | rédaction | — |
-| Directeur du film, codeurs de plans, critique visuelle | — | — | — | — | §16 |
-
-Les étages mécaniques sont sans raisonnement, 300 à 900 tokens de sortie ; rédaction : 1 600 (1 200 pour un agent) ;
-raisonnement : 4 000, sans réflexion (elle viderait le budget). Si le directeur du film échoue au cran Ultra, la
-vidéo passe par le pipeline des menus avec les étages du cran Ultra (comme Max). Garanties :
-
-- chaque réponse est lue ligne à ligne (lettres, identifiants, JSON, gras, majuscules) et chaque choix est validé
-  contre le menu de sa scène ; inventé, hors menu, répété ou hors bornes = remplacé par le choix du graphe ;
-- chaque appel est retenté une fois, 1,5 s plus tard, sur panne passagère ou réponse vide
-  (`communication.service.ts#runVideoTieredPrompt`) ;
-- un agent toujours en panne (quota, délai de 25 s, réponse vide) ne bloque jamais : la vidéo est faite par le graphe ;
-- après les agents, le code repasse : contrôle anti-réflexe (`lintMotion`), bonnes pratiques (`applyRules`), puis
-  revalidation des mises en page (un texte retiré par les règles fait repasser la scène en composition classique) ;
-- `storyboard.agents` garde, par agent, la source (modèle ou graphe), les tokens et le nombre de décisions retenues ;
-  le flux SSE montre trois étapes de plus (mise en page, mouvement, relecture).
-
-## 15. Mises en page et transitions
-
-**Mises en page** (`apps/ivision/core/engine/src/layouts.tsx`, catalogue `video.layouts.ts`) : pile de mots (affiche
-typographique, lignes pleines et en contour), mot géant défilant derrière le titre, chiffre géant qui remplit le
-cadre (jamais rogné), bandeau diagonal, cercle de la marque (photo, chiffre ou symbole, anneau qui tourne), deux blocs de couleur,
-cartes superposées qui flottent, grille de cartes (le regard passe de case en case), liste cochée (coches tracées,
-fil qui les relie), grande citation, prix en étoile qui tourne, bandeaux défilants, mot sous le projecteur, bloc et
-cadre décalés. Trois mises en page de **données** chargent leur addon (`LayoutDef.addon`) et ne sont proposées que si
-la scène porte le chiffre qu'il faut : anneau Chart.js qui se remplit jusqu'au pourcentage, compteur au centre
-(`chartRing`, scène chiffre) ; ancien et nouveau prix en deux barres Chart.js, l'économie rendue visible
-(`barCompare`, scène offre, seulement si l'ancien prix dépasse le nouveau) ; jauge visx de 270° et compteur
-(`dataArc`, scène chiffre). Chacune : tous formats, deux plans au moins qui dérivent en sens contraire (profondeur), du
-mouvement pendant la tenue, une pulsation sur le temps de la musique (`data.beat`), ses propres sons.
-Règles de film : jamais deux fois de suite la même mise en page, chaque archétype au plus une fois (deux au-delà
-de neuf scènes), la composition de la direction au plus sur un tiers des scènes, celles des dernières vidéos du
-projet reculent dans les menus. Clips, galeries, 3D, animations et signature gardent leurs propres compositions.
-
-**Transitions** : un catalogue de 17 (coupe, coupe éclair, glitch, fondu, zoom flou, traversée, filé, cube 3D,
-poussée, glissé, iris, volet, bandes, disque de marque, lames obliques, panneaux, vague) avec, pour chacune, son
-caractère et les directions qui la portent. `transitionMenu` en tire 6 pour la vidéo : signature de la direction
-(bonus), exclusions et bonus de la DA, celles des 3 dernières vidéos en recul. Dans un film, une transition sert au
-plus sur un tiers des coupes, jamais deux fois de suite ; la signature s'ouvre sur une transition douce ou graphique.
-Chaque transition a son son (tic, souffle, whoosh, impact). Les transitions « couvrantes » (disque, lames,
-panneaux, vague) couvrent tout le cadre à l'instant exact de la coupe.
-
-Contrôles : `check:video:engine` rend les 17 mises en page × 3 formats (déterminisme, aucun texte hors cadre,
-mouvement réel) et les 7 transitions du catalogue élargi ; `check:video:layouts` rend chaque mise en page, pour chaque scène
-qu'elle accepte, avec des textes à la longueur MAXIMALE de leurs cases et les icônes de production, dans les quatre
-formats (le pipeline tirant sa graine au hasard, `check:video` n'essaie qu'une combinaison par passage) ; `check:video:creative` §8 éprouve les agents (réponses parfaites,
-lettres seules, JSON, inventions, vides, pannes ; budgets ; menus fidèles à la DA pour toutes les directions × DA).
-
-## 16. Les plans écrits par l'IA (cran Ultra)
-
-Au cran Ultra, un directeur IA invente le film et un codeur IA écrit chaque plan (`video.author.ts`). Le
-déroulé, les validations du directeur et la boucle de qualité sont décrits dans [CREATIVITY.md](CREATIVITY.md)
-(« Le film d'auteur ») et [MOTION_VIDEO.md](MOTION_VIDEO.md). Cette section dit ce que le moteur fait d'un plan
-écrit par l'IA.
-
-**Où vit le code.** Chaque plan reste une scène du storyboard (`footage` pour un plan filmé ou une photo, `screen`
-pour l'interface du produit, `statement`, `kinetic`, `cta` ou `logo`), avec ses cases de texte, sa durée, sa surface,
-son clip ou sa capture, et son rattachement au scénario (`scene.script`). Son composant est remplacé par le code du codeur,
-rangé dans `scene.code.tsx` (`agent: 'shotCoder'`). Montage, aperçu, retouches et export s'en servent tels quels. Le
-plan lit ses cases au rendu : une retouche de texte s'y affiche.
-
-**Ce que le codeur reçoit.** Plus la documentation entière du moteur : le directeur a nommé un **motif** par plan
-dans l'univers créatif (§17), ou une **exploration** (« explore Flat3D+FlowField ») ; le codeur ne reçoit que le
-cœur du manifeste (contrat, données de la scène, couleurs, texte, mouvement, règles) et les sections des briques de
-ce motif (`scopedKitManifest`) : ≈ 1 170 tokens pour un plan typographique au lieu de 1 710, à chaque tour. Sans
-motif reconnu, le manifeste complet. Le lint, lui, accepte toujours tout le kit.
-
-**Ce que le codeur peut importer** : `react` et `@idem/kit` (`apps/ivision/core/engine/src/kit-api.ts`, décrit au codeur par
-`KIT_MANIFEST`) :
-
-| Famille | Exports |
-|---|---|
-| temps et scène | `useScene`, `useLocalTime`, `useEngine`, `useSceneProgress`, `useExitAt`, `useExitFactor`, `useBeatPulse`, `useCamera`, `contentOf` |
-| entrées et composition | `useEnter`, `useFamilyKind`, `Composition`, `ANCHOR_STYLE` |
-| typographie ajustée au cadre | `Kinetic`, `Odometer`, `Headline`, `Support`, `ActionButton`, `LabelBlock`, `stackLines`, `useHeadlineSound` |
-| signes et son | `Icon`, `LogoMotion`, `cue` |
-| fonctions pures du temps | `clamp`, `mix`, `progress`, `hash`, `keyframes`, `springEase`, `ease`, `easeIn`, `back` |
-| chiffres et pays des textes | `numbersIn`, `slotNumbers`, `percentIn`, `countriesIn` |
-| graphiques et data-viz | `ChartJs`, `useViz`, `DataArc`, `GrowArea`, `AfricaMap`, `VoronoiField` |
-| dessin et 3D plate | `Sketch`, `Brush`, `useNoise`, `FlowField`, `Flat3D` |
-| média du plan, interface du produit | `SceneMedia` (le clip ou la photo du plan, posé image par image), `ScreenFrame` (capture dans une fenêtre de navigateur qui se charge), `TypedPrompt`, `FileList`, `BrandSplash` (`engine/src/kit/Screen.tsx`) |
-| noms usuels des courbes | `easeOut`, `easeOutCubic`, `easeInCubic`, `easeInOut`, `easeInOutCubic`, `easeOutBack`, `smoothstep`, `linear`, `lerp`, `inverseLerp`, `interpolate` |
-
-Le lint refuse un nom que le kit n'exporte pas et le nomme au codeur. Cas vécus : `ease` et `back`, puis `easeOut`,
-que les codeurs importaient spontanément, manquaient au kit et faisaient refuser des plans ; ils y sont désormais.
-La CSS animée se lit dans l'arbre syntaxique (une propriété `transition`/`animation` avec une valeur, une chaîne CSS
-avec `@keyframes`) et non plus dans le texte du code : un commentaire « Transition: … » faisait refuser des plans entiers.
-Avant le lint, `autoFixSceneCode` répare ce qui n'est qu'une maladresse (une transition CSS laissée dans un style, un
-nom voisin du kit). Un plan qui porte un clip ou une capture doit les montrer : le contrôle mesuré refuse un plan où
-ils occupent moins de 12 % du cadre au milieu du plan.
-
-**Addons à la demande.** `addonsOfSceneCode` lit les imports du plan et charge les addons correspondants
-(`KIT_ADDONS` : `ChartJs` → chart ; `useViz`, `DataArc`, `GrowArea`, `AfricaMap`, `VoronoiField` → viz ; `Sketch`,
-`Brush`, `useNoise`, `FlowField` → draw ; `Flat3D` → zdog). Une vidéo sans graphique ne charge pas Chart.js.
-
-**Exécution.** Le code est linté (acorn), compilé par esbuild de TSX vers CommonJS, puis évalué dans la page avec un
-`require` limité au kit et à React. Un plan qui lève une erreur au rendu retombe sur la composition de sa scène
-(`SceneBoundary`). Sécurité (CSP, garde réseau, iframe isolée) : [CREATIVITY.md](CREATIVITY.md).
-
-**Le contrôle mesuré** (`video.coder.ts#inspectRenderedScene`). Le plan contrôlé passe seul en code, les autres
-gardent leur composition. La page réelle est rendue avec le garde réseau strict, à trois instants : début (+0,12 s),
-45 % de la durée, fin (−0,55 s). Sont refusés :
-
-- une erreur d'exécution, ou un composant qui ne s'affiche pas ;
-- un texte des cases invisible à la fin du plan, ou hors du cadre ;
-- un graphique qui montre un nombre absent des textes (valeurs de `data-chart-values`, le reste d'un pourcentage
-  `100 − k` étant admis) ;
-- un plan immobile (première et dernière images identiques) ;
-- une image qui dépend de l'ordre de rendu (plus de 0,2 % de pixels d'écart quand on revient en arrière).
-
-Un plan qui passe ces contrôles est jugé sur ses trois images, assemblées en planche (`contactSheet`, 360 px de
-haut), par le modèle de vision, sauf au dernier tour. Chaque refus et chaque critique reviennent au codeur, avec son
-code, pour le tour suivant ; la critique reste un conseil, le dernier code qui a passé les contrôles est gardé.
-
-**Ce que le moteur ne fait plus en Ultra.** Le kit ne pose ni fond ni annotation et n'attribue pas d'icônes :
-l'IA dessine les siens. Il garde l'animation du logo pour le repli de la signature. Les plans s'enchaînent par une
-coupe franche : chaque plan fait lui-même l'entrée et la sortie imaginées par le directeur. Le minutage du directeur
-n'est ni recalé sur la musique ni réparé par les règles de §13.
-
-## 17. Le moteur créatif
-
-La variété évitait la répétition ; elle ne produisait pas de **nouveauté**. Deux vidéos aux choix tous « différents »
-(Editorial · question · pile de mots · masque montant · fondu, puis Swiss · preuve · deux blocs · resserrement ·
-poussée) donnaient encore le même film : gros texte → entrée → élément central → transition → gros texte → appel.
-Le moteur créatif transforme l'espace des capacités en espace de **possibilités**, que chaque cran explore avec le
-niveau de modèle qui lui revient. Rien de ce qui suit n'appelle un modèle.
-
-**La couche des motifs** (`video.patterns.ts`, 67 motifs, table générée dans [VIDEO_CAPABILITIES.md](VIDEO_CAPABILITIES.md)) :
-intention (croissance, preuve, question, urgence, lieu…) → capacité (compteur, graphique, carte, croquis, 3D plate…)
-→ motif (« le compteur qui accélère », « l'anneau qui se remplit », « la carte qui s'allume ») → outil (nœuds du graphe)
-→ primitive (briques du kit). Un motif a une famille (typographie, données, graphique, dessiné, spatial, photo,
-marque), un rôle (scène, surcouche, lu sur le kit, Ultra seulement) et un statut : **éprouvé**, ou **expérimental**
-(marqué tel, ou porté par une direction qui l'emploie peu : affinité < 1,5). La mémoire globale « diplôme » une
-combinaison expérimentale qui a réussi 15 fois dans une direction.
-
-**Trois mémoires** : projet (empreintes des 10 dernières vidéos), globale (`video.experience.ts`, MongoDB
-`video_experience`, compteurs `$inc` : retenu, réparé, replié, critique, exporté), session (ce que le film a déjà
-utilisé).
-
-**Le score créatif** d'un motif sur une scène : 0,35 × pertinence (son intention) + 0,25 × qualité (a priori +
-expérience, ±0,25) + 0,20 × nouveauté (sous-exploré dans le projet) + 0,10 × fidélité (direction, DA) + 0,10 ×
-faisabilité (coût de rendu), plus le bonus d'exploration, moins les répétitions dans le film. Tirage déterministe
-parmi les motifs à moins de 0,05 du meilleur. Le routeur du kit (§9) reçoit les mêmes signaux : nouveauté (+0,6 au
-plus), expérience (±0,4, taux d'export), exploration du cran.
-
-**L'exploration, par le graphe et non par des tokens** : part des scènes qui portent une combinaison peu courante,
-Low 5 % · Medium 15 % · High 25 % · Max 40 % · Ultra 70 %. Le planificateur choisit les scènes où l'exploration coûte
-le moins (jamais plus de 0,2 de score perdu) ; mesuré : 3 % · 21 % · 23 % · 36 % · 43 % dans les menus (plafonné par les
-combinaisons compatibles disponibles), le directeur d'Ultra explorant lui-même avec ce budget.
-
-**L'ADN et l'accent.** Le planificateur propose trois directions créatives (signature, contraste, exploration) : une
-ou deux familles que le film garde partout (l'ADN, avec la direction et le rythme) et la famille de l'**accent** — une
-seule scène, ni l'ouverture ni la signature, 25 % du film au plus, qui casse l'ADN exprès : Swiss, grille et coupes
-nettes… et, scène 4, une annotation au crayon. L'accent est un motif de scène d'une autre famille, ou une surcouche
-(fond, annotation sur la composition de la direction, traversée) ; en Low et Medium il reste éprouvé. Au cran Max, le
-stratège choisit la direction créative (une ligne de plus, ≈ 40 tokens) ; en dessous, le planificateur.
-
-**Les menus des agents** : au cran High, le directeur artistique d'une scène choisit parmi 3 à 5 **motifs** (le choix
-du graphe d'abord, une option sobre comprise) au lieu de 4 mises en page ; un motif déjà servi dans le film n'est pas
-repris même si l'agent le choisit. En dessous de High, le motif du planificateur décide : **Low = créativité
-algorithmique**, pas vidéo basique.
-
-**L'empreinte** (`video.fingerprint.ts`) : récit, concept, motifs, mises en page, entrées, coupes, composition,
-direction, outils, caméra, entrées des éléments, tempo, densité, contraste, kit, surfaces ; distance pondérée de 0 à 1
-(< 0,30 trop proche, > 0,55 réellement différente). Elle se calcule sur toute vidéo, y compris celles créées avant elle.
-
-**Le contrôle créatif** (`video.creativeLint.ts`), après l'anti-réflexe et les bonnes pratiques : récit identique à
-une vidéo récente, même composition sur trois scènes, une entrée sur plus de la moitié des scènes, une coupe sur plus
-d'un tiers des coupes, motifs répétés, un seul vocabulaire d'outils, tempo uniforme, courbe d'attention (accroche
-molle, plateau, coupe douce avant le grand moment), accent ; et l'empreinte trop proche (< 0,30) de la vidéo la plus
-proche : coupes, entrées, caméra, mises en page sont changées dans les menus de la direction et de la DA, **jusqu'au
-seuil, pas au-delà** (la créativité n'est pas la distance maximale). En Ultra, il signale sans réparer.
-
-**Cran Ultra** : le directeur reçoit l'**univers créatif** (≈ 260 tokens : motifs par famille, ceux de la marque
-récemment, les sous-explorés, des combinaisons compatibles à explorer, l'ADN, l'accent, le budget d'exploration) au
-lieu de la liste des outils, et nomme un motif par plan (`PATTERN:`), ou une exploration (`PATTERN: explore A+B`,
-chaque brique validée contre le kit) ; sinon le motif est lu dans sa consigne visuelle. Un plan qui explore passe une
-validation renforcée : un tour de plus (4 au plus) et la critique visuelle relit aussi le dernier tour. Chaque plan,
-son motif, ses tours, son repli et sa critique alimentent la mémoire globale.
-
-**Le rapport** (`storyboard.creative`) : exploration (budget, scènes expérimentales), ADN, direction créative et qui
-l'a choisie, accent, intention (récit, stratégie visuelle et de mouvement, surprise), empreinte, nouveauté (écart à la
-vidéo la plus proche, verdict), contrôle (écarts, réparations). Le détail d'une vidéo dans le tableau de bord affiche
-l'écart et la touche inattendue. Une retouche recalcule l'empreinte ; le premier export inscrit le signal de
-l'utilisateur dans la mémoire globale.
-
-Mesuré par `npm run check:video:novelty` (vrai pipeline, agents simulés, même marque, même brief) : écart minimal à la
-vidéo la plus proche ≥ 0,30 à chaque cran, écart moyen ≈ 0,6 entre deux vidéos ; ≈ 0,43 dans le cas le plus dur
-(8 vidéos dans la direction imposée « swiss »).
-
-## 18. La boîte à outils d'abord, et les vidéos de démonstration
-
-**Règle.** Avant de dessiner ou d'inventer quoi que ce soit, le modèle regarde si le graphe le fait déjà. Trois endroits :
-
-- le **codeur du cran Ultra** (`video.coder.ts`) reçoit en tête de son manifeste « TOOLBOX FIRST » : fond vivant → `Shader`, `Gradient`, `Network`, `Particles` ; photo avec effet → `ImageFx` ; verre → `LiquidGlass` ; forme ou icône qui devient une autre → `Morph`, `IconMotion mode="morph"` ; icône ou logo de marque animé → `IconMotion` ; chiffres → `Odometer`, `ChartJs`… ; texte → `Kinetic` (24 techniques) ;
-- le **lint** refuse un tracé SVG écrit à la main de plus de 60 caractères : c'est le signe d'une forme « abstraite » inventée à l'aveugle ;
-- le **directeur du film d'auteur** (`video.author.ts`) doit NOMMER l'outil dans chaque `VISUAL` et n'invente une forme que si aucun outil ne convient.
-
-Aux crans inférieurs, le modèle ne code pas : il choisit dans des menus filtrés par le graphe, donc il ne peut rien demander que le moteur ne sache faire.
-
-**Les vidéos d'essai** (`npm run demo:video-tools`, `api/scripts/demoVideoTools.ts`) sont rendues par le vrai moteur, une scène par outil, avec une étiquette en haut à droite qui nomme l'outil et dit à quoi il sert (`scene.demo`, jamais posé par la création). Elles sont construites à partir du graphe lui-même (fonds, transitions, annotations, mises en page, résumés des nœuds) : un outil ajouté au graphe y apparaît sans rien écrire. Sortie : `tmp/tools-demo/*.mp4` et `index.html` (lecteur + chapitres cliquables).
-
-| Film | Contenu |
-|---|---|
-| 01 typographie | les 24 techniques d'entrée du texte, le compteur à rouleaux, les 5 annotations, « kinetic » et « wordswap » |
-| 02 fonds | les 24 fonds du graphe |
-| 03 matière & verre | particules (6 modes), shaders plein cadre + verre, verre sur une photo, dégradés, réseau, morphose |
-| 04 icônes & données | icônes SVG animées (Lucide, Tabler, Phosphor, Heroicons ; tracé, assemblage, jaillissement, battement, morphose), logos de marques, 6 graphiques Chart.js, jauge, aire, carte de l'Afrique, croquis, pinceau, flux, 3D plate, mosaïque |
-| 05 photos | 9 effets PixiJS, photo cadrée, 9 mises en scène de plans, galerie |
-| 06 3D, Lottie, logo | scènes 3D et leurs effets (bloom, franges, profondeur de champ, vignettage), cartes de photos, 6 Lottie, 8 animations de logo |
-| 07 mises en page | les 18 archétypes |
-| 08 transitions | toutes les transitions du catalogue |
-| 09 caméra & grands moments | 6 caméras, 9 familles d'entrée, 5 grands moments |
-
-Limites : les photos sont des images de test dessinées en SVG ; les chiffres des graphiques sont des données d'exemple ; **Rive** (fichier `.riv`) et **le modèle 3D importé** (GLB) ne sont pas montrés, faute de fichier libre de droits dans le dépôt. Rendu : environ 5 à 6 s de calcul par seconde de vidéo en 720p (WebGL logiciel).
-
-## 19. La demande suivie à la lettre
-
-La demande de l'utilisateur est lue en entier et devient un cahier des charges (`video.request.ts`, `RequestSpec`),
-gardé avec la vidéo : langue (`text/language.ts` : consigne explicite › langue du texte › interface › marque),
-scénario (scènes, minutage, textes à l'écran mot pour mot, textes DANS l'image, voix off écrite), périmètre (durée,
-format, 4K et images par seconde non tenus), consignes (interdits, couleurs, musique, personnage), et le **support** de
-chaque scène — donc l'outil qui la produit (plan filmé → générateur vidéo ; interface → capture de la marque ;
-motion → moteur ; signature → logo). Le code lit tout ce qui se lit sans modèle ; un agent **lecteur** (dès Medium,
-hors Ultra) complète les supports, la description anglaise des plans filmés, le personnage et la lumière, sans pouvoir
-réécrire un texte ni ajouter une scène.
-
-Avec un scénario, le film n'est plus inventé mais découpé : par le code aux crans Low à Max
-(`video.script.ts#planScriptShots` — un plan par support, un plan par mot pour une rafale de mots courts, un texte
-seul posé sur son plan filmé, les plans de motion sans texte supprimés), par le directeur au cran Ultra
-(`video.author.ts`, sous les mêmes règles). Les images de la marque sont décrites une fois par la vision
-(`video.brandmedia.ts`, descriptions gardées par l'hôte : `VideoStore.saveMediaNotes`) et choisies par sens
-(`pickScreens` ; une interface que la demande décrit avec ses mots se dessine avec eux). La nouvelle scène `screen`
-(`engine/src/scenes.tsx#Screen`) montre une capture dans une fenêtre de navigateur, une saisie tapée lettre à lettre,
-un dossier et ses fichiers, ou l'écran d'accueil à la marque. `storyboard.fidelity` (`checkFidelity`) dit ce qui a
-été suivi et ce qui ne l'a pas été. Contrôle : `npm run check:request --prefix apps/ivision/core`.
-
-## Sources
-
-- [Chart.js](https://www.chartjs.org/docs/latest/) · [visx](https://airbnb.io/visx/) · [d3-geo](https://d3js.org/d3-geo) · [rough.js](https://roughjs.com/) · [perfect-freehand](https://github.com/steveruizok/perfect-freehand) · [simplex-noise](https://github.com/jwagner/simplex-noise.js) · [Zdog](https://zzz.dog/)
-- [LogRocket — Comparing the best React animation libraries for 2026](https://blog.logrocket.com/best-react-animation-libraries/)
-- [PkgPulse — Best React Animation Libraries in 2026](https://www.pkgpulse.com/guides/best-react-animation-libraries-2026)
-- [GSAP 3.13 — tous les plugins gratuits](https://gsap.com/blog/3-13/) · [Webflow : GSAP 100 % gratuit](https://webflow.com/blog/gsap-becomes-free)
-- [anime.js v4 — SVG (createDrawable, morphTo, createMotionPath)](https://animejs.com/documentation/svg) · [Release v4.0.0](https://github.com/juliangarnier/anime/releases/tag/v4.0.0)
-- [React Three Fiber — Canvas (`frameloop`)](https://r3f.docs.pmnd.rs/api/canvas) · [Hooks](https://r3f.docs.pmnd.rs/api/hooks) · [Prendre la main sur la boucle de rendu](https://github.com/pmndrs/react-three-fiber/discussions/1339)
-- [PkgPulse — Lucide vs Heroicons vs Phosphor 2026](https://www.pkgpulse.com/guides/lucide-vs-heroicons-vs-phosphor-react-icon-libraries-2026) · [OpenReplay — SVG icon libraries](https://blog.openreplay.com/svg-icon-libraries-web-apps/)
-- [PkgPulse — react-bits vs Aceternity vs Magic UI 2026](https://www.pkgpulse.com/guides/react-bits-vs-aceternity-magic-ui-2026) · [Magic UI alternatives](https://designrevision.com/alternatives/magic-ui)
+# Le moteur vidéo — Motion Canvas
+
+> Depuis le 14 octobre 2026, toute vidéo motion design d'IDEM et d'iVision est composée et animée par
+> **Motion Canvas 3.17.2** (MIT). L'ancien moteur React (layouts, motifs, graphe de capacités, critique
+> visuelle, film d'auteur) est supprimé ; son dernier état est conservé par le tag Git
+> `video-engine-legacy`. Produit, prix et crans : [MOTION_VIDEO.md](MOTION_VIDEO.md).
+
+## 1. Les quatre principes
+
+1. **Motion Canvas est le seul moteur de composition et d'animation.** Rien d'autre ne dessine une
+   scène. Les outils externes ont des rôles distincts : capturer une interface, générer une image ou un
+   clip, dire une voix, encoder (ffmpeg).
+2. **L'IA est libre.** Aucun catalogue de mises en page, de motifs, de concepts ou de transitions. Le
+   directeur invente le film ; l'auteur écrit le code de chaque scène comme il l'entend.
+3. **Pas de contrôle esthétique.** Le code rendu par le modèle n'est jamais critiqué ni remplacé par une
+   composition de secours. Seules les erreurs TECHNIQUES déclenchent une correction, bornée (§9 bis).
+4. **La qualité vient de l'amont** : un problème précis par appel, un contexte compact, la référence
+   d'API exacte de la version installée, des exemples techniques, des fonctions réutilisables.
+
+Ce qui reste vérifié est **technique** : le code compile-t-il, s'exécute-t-il, le MP4 est-il lisible ?
+Une erreur technique est attribuée à sa scène, corrigée automatiquement dans des bornes strictes, et ce
+qui résiste reste montré sur sa scène (« Corriger » relance la même boucle bornée).
+
+## 2. Le pipeline
+
+```
+demande ─► compréhension ─► directeur ─► planificateur ─► médias / musique / voix ─► auteur (×N) ─► contrôle
+            (code + lecteur)   (concept)    (storyboard)                                (code TSX)     (Chromium)
+```
+
+| Étape | Fichier | Rôle de modèle | Ce qu'elle produit |
+| --- | --- | --- | --- |
+| Compréhension | `request/request.ts`, `request/intent.ts` | `video.reader`, `video.intent-classifier` (dès Medium) | `RequestSpec` : langue, scénario scène par scène, textes **mot pour mot**, voix écrite, durée, format, interdits ; l'intention (objectif, matière, mouvement) |
+| Direction | `director/concept.agent.ts` | `video.concept` | titre, concept, **bible visuelle**, une idée par scène |
+| Storyboard | `director/storyboard.agent.ts` | `video.planner` | par scène : durée, intention, idée visuelle, idée de mouvement, entrée, textes exacts (par clé), médias, médias à produire, ligne de voix. Sans concept (directeur en panne), il invente aussi le film |
+| Médias | `assets/sourcing.ts`, `assets/media.ts`, `assets/brandmedia.ts` | — (génération FLUX → Seedance, puis Pexels) | imports d'abord, captures de la marque, puis les médias demandés par le storyboard |
+| Musique, sons | `audio/music.ts`, `audio/beats.ts`, `audio/sfx.ts` | — | piste libre et son tempo ; sonothèque CC0 |
+| Voix | `audio/voice.ts` | — (voix de l'hôte) | lignes dites, scènes calées sur elles sans changer la durée achetée |
+| Auteur | `author/motion-canvas.author.ts` | `video.author` | le **code TSX** de chaque scène, compilé |
+| Contrôle | `rendering/runner.ts#probeFilm` | — | chaque scène exécutée : erreurs d'exécution, vignettes, effets sonores posés |
+| Autocorrection | `author/repair.ts`, `motionVideo.service.ts#repairScenes` | `video.author` (cran, puis cran au-dessus) | les scènes en erreur corrigées avant livraison, dans des bornes strictes (§9 bis) |
+
+L'orchestrateur est `motionVideo.service.ts` ; les appels de modèles passent tous par
+`agents.ts#callFilmModel` (rôle logique + cran → l'hôte choisit le modèle sur l'**échelle** du rôle,
+`apps/api/api/config/creative-roles.ts#MODEL_LADDERS`). **Les étapes et le contexte sont les mêmes à tous les
+crans : la jauge de créativité choisit la puissance des modèles** (voir [MOTION_VIDEO.md](MOTION_VIDEO.md)).
+
+### Ce que le code garantit sans toucher à la création
+
+- les durées font la durée achetée (mise à l'échelle) ;
+- un **scénario écrit par l'utilisateur** garde ses scènes, ses textes et sa voix mot pour mot ; le
+  planificateur n'y décide que du visuel et du mouvement (scènes retrouvées par leur numéro) ;
+- un nombre, une date ou une adresse absents de la demande ne s'affichent pas (`request/facts.ts#isGrounded`) ;
+- les médias cités existent, les médias à produire tiennent dans les plafonds ;
+- chaque écart est **dit** (`film.fidelity.notes`, dans la langue de la vidéo) : texte retiré, média
+  introuvable, 4K demandé, voix non dite.
+
+Une réponse **illisible** (format) du planificateur est redemandée une fois avec le rappel du format ;
+une réponse **sans code** de l'auteur (panne, délai, réponse vide) est redemandée une fois. Un code qui
+ne compile pas ou plante à l'exécution passe par l'**autocorrection bornée** (§9 bis) — jamais par une
+critique esthétique.
+
+## 3. Le contrat d'une scène
+
+Le modèle écrit exactement ceci :
+
+```tsx
+import { Rect, Txt, View2D } from '@motion-canvas/2d';
+import { all, createRef, easeOutCubic, waitFor } from '@motion-canvas/core';
+import { SceneContext, safeArea, readableOn } from '@idem/motion';
+
+export default function* (view: View2D, ctx: SceneContext) {
+  // …
+  yield* waitFor(ctx.duration);
+}
+```
+
+- Trois modules seulement : `@motion-canvas/core`, `@motion-canvas/2d`, `@idem/motion`. Tout autre
+  import est refusé à la compilation (`rendering/compiler.ts`).
+- **Les textes, les médias et la marque ne sont jamais écrits dans le code** : ils sont lus dans
+  `ctx.texts`, `ctx.media`, `ctx.brand`. C'est ce qui permet de retoucher un texte ou une photo sans
+  toucher au code.
+- `ctx` (`motion/kit/context.ts`) : clé, rang, format, taille de composition (`width`, `height`,
+  origine au centre), `unit` (1 % du petit côté), durée, cadence, textes, médias (URL, dimensions,
+  description), marque (couleurs, polices, logo clair/sombre/SVG), voix (`text`, `at`, `duration`),
+  tempo (`bpm`, premier temps), `sfx(kind)`.
+
+### La taille de composition
+
+Chaque format a une taille fixe : story 1080×1920, carré 1080×1080, portrait 1080×1350, paysage
+1920×1080 (`rendering/formats.ts#COMPOSITION`). La qualité ne change que l'**échelle de sortie**
+(`resolutionScale` de Motion Canvas : 2/3 en standard, 1/2 en aperçu) et la cadence (60 i/s en
+premium). Le code d'une scène ne dépend donc jamais de la qualité exportée.
+
+## 4. Le harnais (`motion/runtime/harness.tsx`)
+
+Chaque scène du film est une scène Motion Canvas créée par `makeScene2D`, qui enveloppe le code de
+l'IA **sans le modifier** :
+
+- **durée exacte** : le code tourne en tâche fille (`yield`), le harnais attend la durée prévue puis la
+  scène se termine — ce qui dépasse est coupé, ce qui manque est tenu sur la dernière image. Une image
+  de plus est attendue pour toute scène suivie d'une autre (Motion Canvas remplace la dernière image
+  d'une scène par la première de la suivante) : le film garde sa durée à l'image près ;
+- **erreurs** : une exception est attribuée à SA scène et montrée à sa place (carte d'erreur explicite,
+  jamais une autre composition) ; les autres scènes continuent ;
+- **sons** : `ctx.sfx(kind)` note l'instant ; le serveur mixe ces effets au rendu (`refineCues` n'y
+  applique que l'hygiène du mixage : espacement, saturation) ;
+- **sous-titres** de la voix off, posés au-dessus des scènes quand ils sont demandés ;
+- **données vivantes** : les textes et médias sont relus à chaque passage — l'aperçu montre une retouche
+  sans recompiler.
+
+`motion/runtime/engine.ts` pilote Motion Canvas **sans son éditeur** (ni Vite, ni fichiers `.meta`) :
+il instancie les scènes comme le `Renderer` de Motion Canvas, puis les avance image par image (rendu)
+ou en temps réel (aperçu).
+
+## 5. Le kit `@idem/motion` (`motion/kit`)
+
+Des **outils**, jamais des compositions : `safeArea`, `grid`, `circlePoints`, `fitMedia`
+(cover/contain), `measureText`, `fitFontSize`, `words`, `readableOn`, `contrast`, `mix`, `alpha`,
+`beatTime`, `sceneTime`, `waitUntilTime`, `random` (déterministe), `lerp`, `clamp`. Le code d'une
+scène s'en sert s'il veut, les combine, ou les ignore.
+
+Les **exemples** (`motion/examples/*.tsx` : typographie, photo, infographie, interface, logo et
+transition, clip) montrent des techniques correctes. Chacun déclare `@tags` et `@shows` ; le
+constructeur de contexte en joint 1 à 3 selon la scène. Ce ne sont pas des gabarits : le prompt le dit.
+
+## 6. Le contexte de l'auteur (`author/context-builder.ts`)
+
+Un appel par scène, avec seulement :
+
+1. la **référence d'API** (`author/api-reference.ts`) : forme du fichier, coordonnées, contexte, nœuds
+   et leurs propriétés, refs, règles du temps, transitions, kit, interdits ;
+2. 1 à 3 **exemples** choisis par les mots de la scène et ses médias ;
+3. la **fiche** : film (titre, concept, bible), cadre (format, taille, rang, durée), marque, scènes
+   voisines, intention, idées visuelle et de mouvement, entrée, textes exacts par clé, médias (index
+   `ctx.media[i]`, dimensions, description), voix et son instant, tempo ;
+4. les **fonctions réutilisables** des vidéos précédentes de la marque
+   (`author/snippets.ts` : fonctions de premier niveau du code des scènes déjà prêtes, choisies par
+   leur nom et leur commentaire) ;
+5. pour une retouche : le code actuel et la demande ; pour une correction : la stratégie (§9 bis), l'erreur
+   et les erreurs déjà rencontrées (le code seulement pour « corriger »).
+
+`MC_SYMBOLS` liste chaque nom cité par la référence ; `npm run check:video` compile une scène qui les
+importe **tous** depuis les paquets installés. Une montée de version qui retire un nom fait échouer le
+contrôle, pas une vidéo. Mettre à jour `MOTION_CANVAS_VERSION` avec `package.json`.
+
+## 7. Le rendu (`rendering/`)
+
+| Fichier | Rôle |
+| --- | --- |
+| `compiler.ts` | `compileScene` (une scène : syntaxe, imports, `export default`) ; `buildFilmBundle` (runtime + scènes, IIFE, minifié pour l'aperçu). Une scène qui ne compile pas n'entre pas dans le paquet : le harnais montre son erreur |
+| `runner.ts` | Chromium partagé ; page servie depuis l'origine fictive `https://film.idem.local` (page, paquet, médias répondus depuis la mémoire, plages HTTP pour les clips) ; **tout autre accès réseau est refusé** ; `probeFilm` (contrôle + vignettes), `renderFilm` (tronçons rendus en parallèle, JPEG → ffmpeg, recollés, son mixé, affiche) |
+| `ffmpeg.ts` | encodage H.264, mixage (musique, effets posés par les scènes, voix ; compresseurs ; −14 LUFS), `probe` |
+| `preview.ts` | la page d'aperçu autonome : même paquet, lecteur temps réel, CSP stricte (`connect-src 'none'`), images embarquées (data URI : `Img` charge en CORS) |
+| `formats.ts` | taille de composition et sortie de chaque format |
+
+Mesures (poste de développement) : contrôle de 7 scènes ≈ 3 s ; MP4 de 15 s en 720p ≈ 7 s. Le drapeau
+Chromium `--disable-accelerated-2d-canvas` est essentiel : sans lui, la relecture GPU logicielle porte
+l'encodage JPEG d'une image 1080p à ~200 ms (≈ 40 ms avec).
+
+### Sécurité du code exécuté
+
+Le code écrit par l'IA ne s'exécute **que dans un navigateur** : jamais dans Node.
+
+- Rendu serveur : origine fictive, interception de toutes les requêtes, réseau coupé hors de la page et
+  de ses médias (déjà téléchargés par le serveur avec `safeFetch`, anti-SSRF).
+- Aperçu : iframe `sandbox="allow-scripts"` (origine opaque) et CSP qui interdit toute connexion.
+- Imports limités aux trois modules ; aucun accès aux secrets, au système de fichiers ou au réseau.
+
+## 8. L'aperçu et l'éditeur
+
+`motion/runtime/player.ts` joue le film en temps réel (musique, voix et effets calés sur la lecture,
+préchargés avant de proposer la lecture). Protocole avec l'éditeur parent
+(`packages/shared-video-editor`) :
+
+- vers l'éditeur : `ivision:ready` (durée, scènes, erreurs), `ivision:loading`, `ivision:playable`,
+  `ivision:time`, `ivision:errors` ;
+- vers l'aperçu : `ivision:play`, `ivision:pause`, `ivision:seek`, `ivision:focus`, `ivision:edit`
+  (textes ou média d'une scène : la donnée change, le code non).
+
+L'éditeur montre, par scène : son état (une scène en erreur affiche son message et **Corriger**), ses
+textes, sa photo, et « Changer cette scène » (consigne en clair → l'auteur réécrit SEULEMENT cette
+scène ; **Nouvelle version** → réécriture depuis la fiche). Une réécriture qui ne compile pas ne
+remplace jamais un code qui marchait : l'échec est rendu dans le rapport.
+
+## 9. Retouches et export
+
+`MotionVideoService.updateVideo(patch)` (`sanitizeVideoPatch` valide le corps HTTP, IDEM et iVision) :
+
+| Champ | Effet |
+| --- | --- |
+| `texts`, `images` | données des scènes (le code ne change pas) |
+| `visual` | `{ s2: "plus lent" }` ou `{ all: … }` : l'auteur réécrit le code de la scène |
+| `fix` | correction volontaire d'une scène en erreur (code + erreur donnés à l'auteur) |
+| `regenerate` | nouvelle version d'une scène, depuis sa fiche |
+| `voice`, `voiceLines`, `captions` | voix off (dite, recalée), lignes, sous-titres |
+| `musicMood`, `musicTrackId`, `sfx`, `scope` | musique, effets, périmètre |
+
+`reviseFromText` lit une retouche écrite (`revise.ts`) : textes, voix, demande visuelle par scène,
+réglages, ou « c'est une nouvelle vidéo ». Route IDEM `POST …/videos/:id/revise`, conversation iVision.
+
+L'export est **refusé tant qu'une scène est en erreur** (`scene_errors`). Une scène qui échoue pendant
+le rendu (cas rare : erreur apparue après le contrôle) fait échouer ce format (`scene_error`) et
+marque la scène ; le fichier n'est pas livré. La file de rendu, les rendus d'avance, les signatures de
+fraîcheur et les remboursements sont inchangés.
+
+## 9 bis. L'autocorrection bornée
+
+`author/repair.ts` (stratégies, budget, journal) et `motionVideo.service.ts#repairScenes` (la boucle) :
+
+- trois approches, dans l'ordre, une par tentative : `fix` (modèle du cran, code + erreur), `rewrite` (modèle du
+  cran au-dessus, depuis la fiche, plus simple, erreurs passées connues), `minimal` (même modèle, version la plus
+  simple : formes, textes, médias ; opacité, position, échelle) ;
+- **une tentative à la fois par scène** (les scènes différentes avancent en parallèle, 3 au plus), jamais deux fois
+  la même approche ; après chaque tour, `probeFilm` réexécute le film et donne le verdict ;
+- budget du film : jetons (`VIDEO_REPAIR_TOKEN_BUDGET`, 80 000) et temps (`VIDEO_REPAIR_MAX_MS`, 240 s) ; budget
+  épuisé = arrêt net, noté `film.repair.stopped` ;
+- sortie : `film.repair` (tentatives, scènes corrigées, scènes restées en erreur, jetons) et `scene.author.repairs`.
+
+Elle tourne à la création, après toute réécriture demandée (consigne, nouvelle version) et sur « Corriger ».
+Une retouche visuelle qui ne s'exécute toujours pas après correction rend l'ancien code.
+
+## 10. Les vidéos de l'ancien moteur
+
+Une vidéo sans `film` (créée avant la migration) est marquée `legacy` : ses MP4 se téléchargent, elle
+ne se prévisualise ni ne se retouche plus (`legacy_video`). Les deux interfaces le disent.
+
+## 11. Contrôles
+
+| Commande | Ce qu'elle prouve |
+| --- | --- |
+| `npm run check:video` (apps/api) = `npm run check:motion` (apps/ivision/core) | exemples compilés ; imports interdits refusés ; erreur de syntaxe localisée ; film contrôlé (seule la scène fautive en erreur, effets relevés, vignettes) ; MP4 à la durée exacte ; référence d'API présente dans la version installée ; création complète avec modèles simulés (textes, chiffre inventé retiré et signalé, autocorrection : erreur de compilation et d'exécution corrigées, scène récalcitrante arrêtée après trois approches avec montée de modèle, budget de jetons, « Corriger », retouches, aperçu, export, ancienne vidéo en lecture seule) |
+| `npm run check:roles` (apps/api) | les échelles de modèles : barreaux autorisés, un modèle par cran, surcharges par l'environnement |
+| `npm run check:request` (apps/ivision/core) | la demande suivie à la lettre : lecture, langue, storyboard tenu par le scénario, disjoncteur des médias, création de bout en bout sur le vrai script d'un utilisateur |
+| `npm run check` (apps/ivision/core) | scan de site, vidéo modèle et reproduction, visuels |
+| `npm run typecheck` (apps/ivision/core) | Node **et** navigateur (`motion/tsconfig.json` : kit, harnais, lecteur, exemples typés contre Motion Canvas) |
+
+## 12. Faire évoluer le moteur
+
+- **Une nouvelle technique** : un exemple court dans `motion/examples` (avec `@tags`, `@shows`), compilé
+  et rendu par `check:motion`. Jamais un gabarit à choisir.
+- **Un nouvel outil** : une fonction du kit (`motion/kit/helpers.ts`), exportée par `motion/kit/index.ts`,
+  ajoutée à la référence d'API et à `MC_SYMBOLS`.
+- **Une montée de Motion Canvas** : changer la version exacte (`apps/api/package.json`,
+  `apps/ivision/core/package.json`, `MOTION_CANVAS_VERSION`), lancer `npm run typecheck` et
+  `npm run check:motion` dans le core.
+- **Un autre modèle à un cran** : `IDEM_LADDER_CODE_<CRAN>`, `IDEM_LADDER_DESIGN_<CRAN>` (barreau de l'échelle),
+  `IDEM_ROLE_VIDEO_AUTHOR_MODEL_<CRAN>` (un rôle, un cran), `IDEM_ROLE_VIDEO_AUTHOR_MODEL` (un rôle, tous les
+  crans — l'échelle ne joue plus), ou `…_ENDPOINT=selfhosted`. Modèles de la liste blanche OpenRouter.

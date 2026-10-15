@@ -10,49 +10,70 @@
     <header class="mb-4 mt-2">
       <h2 class="text-lg font-bold text-[var(--color-text-primary)]">{{ v.title }}</h2>
       <p class="mt-1 text-sm text-[var(--color-text-secondary)]">
-        {{ v.scope.durationSec }} s ·
-        {{ 'dashboard.showCommunication.video.objectives.' + v.brief.objective + '.label' | translate }} ·
-        {{ 'dashboard.showCommunication.video.styles.' + v.storyboard.style | translate }}
-        @if (v.type) {
-          · {{ 'dashboard.showCommunication.video.types.' + v.type + '.label' | translate }}
+        {{ v.scope.durationSec }} s
+        @if (v.brief.objective) {
+          · {{ 'dashboard.showCommunication.video.objectives.' + v.brief.objective + '.label' | translate }}
         }
-        @if (v.storyboard.concept && !v.storyboard.authored) {
-          · {{ 'dashboard.showCommunication.video.concepts.' + v.storyboard.concept | translate }}
+        @if (v.creativity) {
+          · {{ 'common.creativity.levels.' + v.creativity + '.label' | translate }}
         }
       </p>
-      <!-- Ce que l'IA a décidé : le film entier (Ultra), sinon les décisions retenues de ses agents. -->
-      @if (v.storyboard.authored; as a) {
+      @if (v.film?.concept; as concept) {
         <p class="vd-ai">
           <i class="pi pi-sparkles" aria-hidden="true"></i>
-          {{ 'dashboard.showCommunication.video.detail.ai.authored' | translate: { coded: a.coded, shots: a.shots } }}
-          @if (a.concept) {
-            <span class="vd-ai-concept">— {{ a.concept }}</span>
-          }
-        </p>
-      } @else if (aiDecisions().length) {
-        <p class="vd-ai">
-          <i class="pi pi-sparkles" aria-hidden="true"></i>
-          @if (v.creativity) {
-            {{ 'common.creativity.levels.' + v.creativity + '.label' | translate }} ·
-          }
-          {{ 'dashboard.showCommunication.video.detail.ai.decided' | translate }}
-          @for (d of aiDecisions(); track d; let last = $last) {
-            {{ 'dashboard.showCommunication.video.detail.ai.roles.' + d | translate }}{{ last ? '' : ', ' }}
-          }
-        </p>
-      }
-      <!-- Le moteur créatif : l'écart à la vidéo la plus proche de la marque et la touche inattendue. -->
-      @if (novelty(); as n) {
-        <p class="vd-ai">
-          <i class="pi pi-compass" aria-hidden="true"></i>
-          {{ 'dashboard.showCommunication.video.detail.creative.' + n.verdict | translate: { percent: n.percent } }}
-          @if (n.family) {
-            · {{ 'dashboard.showCommunication.video.detail.creative.accent' | translate }}
-            {{ 'dashboard.showCommunication.video.detail.creative.families.' + n.family | translate }}
-          }
+          {{ concept }}
         </p>
       }
     </header>
+
+    @if (legacy()) {
+      <!-- Vidéo de l'ancien moteur : téléchargeable, plus retouchable. -->
+      <section class="glass-card vd-card" aria-labelledby="vd-legacy-title">
+        <h3 id="vd-legacy-title" class="vd-card-title">
+          <i class="pi pi-history" aria-hidden="true"></i>
+          {{ 'dashboard.showCommunication.video.legacy.title' | translate }}
+        </h3>
+        <p class="mt-2 text-sm text-[var(--color-text-secondary)]">{{ 'dashboard.showCommunication.video.legacy.body' | translate }}</p>
+        @if (doneRenders().length) {
+          <ul class="mt-3 space-y-2">
+            @for (r of doneRenders(); track r.format) {
+              <li class="vd-file">
+                @if (r.posterUrl) {
+                  <img class="vd-file-poster" [src]="r.posterUrl" alt="" />
+                }
+                <p class="min-w-0 flex-1 text-sm font-semibold text-[var(--color-text-primary)]">
+                  {{ 'dashboard.showCommunication.video.formats.' + r.format + '.label' | translate }}
+                </p>
+                <a class="inner-button button-sm" [href]="r.url" target="_blank" rel="noopener" download>
+                  <i class="pi pi-download" aria-hidden="true"></i>
+                  {{ 'dashboard.showCommunication.video.export.download' | translate }}
+                </a>
+              </li>
+            }
+          </ul>
+        }
+        <div class="mt-4 flex justify-end">
+          <button type="button" class="button-ghost button-sm" (click)="confirmDelete() ? remove() : confirmDelete.set(true)">
+            <i class="pi pi-trash" aria-hidden="true"></i>
+            {{ (confirmDelete() ? 'dashboard.showCommunication.video.detail.deleteConfirm' : 'dashboard.showCommunication.video.detail.delete') | translate }}
+          </button>
+        </div>
+      </section>
+    } @else {
+
+    @if (broken().length) {
+      <p class="vd-note vd-note-error mb-4" role="alert">
+        <i class="pi pi-exclamation-triangle" aria-hidden="true"></i>
+        {{ 'dashboard.showCommunication.video.detail.broken' | translate: { count: broken().length } }}
+      </p>
+    }
+    @if (notes().length) {
+      <ul class="vd-notes mb-4">
+        @for (n of notes(); track $index) {
+          <li><i class="pi pi-info-circle" aria-hidden="true"></i> {{ n }}</li>
+        }
+      </ul>
+    }
 
     <!-- ═══════════ Aperçu et textes : l'éditeur partagé avec iVision ═══════════ -->
     @if (v.scope.formats.length > 1) {
@@ -76,11 +97,12 @@
         <idem-video-editor
           [html]="html"
           [scenes]="scenes()"
-          [slotDefs]="options().scenes"
           [ratio]="ratio()"
           [lang]="editorLang()"
+          [busy]="rewriting()"
           (edit)="saveTexts($event)"
           (replaceImage)="pickPhoto($event.key, photoInput)"
+          (action)="sceneAction($event)"
         />
       } @else {
         <idem-loader block [label]="'common.loading' | translate" />
@@ -97,6 +119,36 @@
     <div class="vd-settings mt-6">
       <!-- ═══════════ Réglages ═══════════ -->
       <div class="vd-side vd-side--grid">
+        <!-- Retoucher en écrivant : l'IA lit la demande et change textes, voix, musique ou le code des scènes visées. -->
+        <section class="glass-card vd-card" aria-labelledby="vd-revise-title">
+          <h3 id="vd-revise-title" class="vd-card-title">
+            <i class="pi pi-comment" aria-hidden="true"></i>
+            {{ 'dashboard.showCommunication.video.revise.title' | translate }}
+          </h3>
+          <label class="sr-only" for="vd-revise">{{ 'dashboard.showCommunication.video.revise.title' | translate }}</label>
+          <textarea
+            id="vd-revise"
+            class="mt-2 w-full"
+            rows="3"
+            maxlength="2000"
+            [placeholder]="'dashboard.showCommunication.video.revise.placeholder' | translate"
+            [ngModel]="instruction()"
+            (ngModelChange)="instruction.set($event)"
+            name="vdRevise"
+          ></textarea>
+          <button type="button" class="inner-button mt-3 w-full" [disabled]="instruction().trim().length < 3 || saving() !== null" (click)="sendInstruction()">
+            @if (saving() === 'revise') {
+              <idem-loader size="xs" />
+            } @else {
+              <i class="pi pi-sparkles" aria-hidden="true"></i>
+            }
+            {{ 'dashboard.showCommunication.video.revise.send' | translate }}
+          </button>
+          @if (reply(); as r) {
+            <p class="vd-note mt-3" role="status"><i class="pi pi-check" aria-hidden="true"></i> {{ r }}</p>
+          }
+        </section>
+
         <!-- Export -->
         <section class="glass-card vd-card" aria-labelledby="vd-export-title">
           <h3 id="vd-export-title" class="vd-card-title">
@@ -184,7 +236,13 @@
               }
             </select>
 
-            <button type="button" class="inner-button mt-4 w-full" [disabled]="exporting()" (click)="startExport()">
+            @if (broken().length) {
+              <p class="vd-note vd-note-error mt-3">
+                <i class="pi pi-exclamation-triangle" aria-hidden="true"></i>
+                {{ 'dashboard.showCommunication.video.export.blocked' | translate }}
+              </p>
+            }
+            <button type="button" class="inner-button mt-4 w-full" [disabled]="exporting() || broken().length > 0" (click)="startExport()">
               @if (exporting()) {
                 <idem-loader size="xs" />
               } @else {
@@ -335,6 +393,13 @@
                       }
               }}
             </p>
+            <label class="vd-check mt-2">
+              <input type="checkbox" [checked]="!!v.film?.captions" [disabled]="saving() !== null" (change)="toggleCaptions(!v.film?.captions)" />
+              {{ 'dashboard.showCommunication.video.voice.captions' | translate }}
+              @if (saving() === 'captions') {
+                <idem-loader size="xs" />
+              }
+            </label>
           } @else if (v.voice?.unavailable) {
             <p class="mt-2 text-xs text-[var(--color-text-tertiary)]">
               {{ 'dashboard.showCommunication.video.voice.unavailable' | translate }}
@@ -360,32 +425,6 @@
           </section>
         }
 
-        <!-- Style -->
-        <section class="glass-card vd-card" aria-labelledby="vd-style-title">
-          <h3 id="vd-style-title" class="vd-card-title">
-            <i class="pi pi-sparkles" aria-hidden="true"></i>
-            {{ 'dashboard.showCommunication.video.builder.scope.direction' | translate }}
-          </h3>
-          <p class="mt-1 text-xs text-[var(--color-text-tertiary)]">
-            {{ 'dashboard.showCommunication.video.directions.help' | translate }}
-          </p>
-          <div class="vd-checks mt-3">
-            @for (dir of directionChoices(); track dir) {
-              <button
-                type="button"
-                class="vd-style"
-                [class.vd-style-active]="v.storyboard.direction === dir"
-                [attr.aria-pressed]="v.storyboard.direction === dir"
-                [attr.title]="'dashboard.showCommunication.video.directions.' + dir + '.hint' | translate"
-                [disabled]="saving() !== null"
-                (click)="changeDirection(dir)"
-              >
-                {{ 'dashboard.showCommunication.video.directions.' + dir + '.label' | translate }}
-              </button>
-            }
-          </div>
-        </section>
-
         <!-- Suppression -->
         <div class="flex justify-end">
           @if (confirmDelete()) {
@@ -408,5 +447,6 @@
         </div>
       </div>
     </div>
+    }
   }
 </section>

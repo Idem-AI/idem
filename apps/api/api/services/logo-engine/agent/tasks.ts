@@ -265,14 +265,14 @@ export function assembleAuthored(raw: unknown, ctx: AuthorContext, palette: Logo
 }
 
 /**
- * Max+ : l'IA écrit le Logo IR de la direction. `validate` (le schéma + les garde-fous) est donné
+ * Ultra : l'IA écrit le Logo IR de la direction. `validate` (le schéma + les garde-fous) est donné
  * à l'orchestrateur : une réponse illisible fait monter le modèle d'un étage avant de céder au repli.
  */
 export function authorTask(ctx: AuthorContext, palette: LogoPalette, seed: number, key: string, check: (assembled: AuthoredLogo) => boolean, fallback: () => AuthoredLogo | null): AgentTask<AuthoredLogo | null> {
   return {
     role: 'logoAuthor',
     key,
-    minLevel: 'max',
+    minLevel: 'ultra',
     // Un JSON de plusieurs centaines de tokens : le profil « agents » plafonne la sortie à 400 et le tronquerait.
     profile: 'coder',
     prompt: () => ({
@@ -296,13 +296,13 @@ export function authorTask(ctx: AuthorContext, palette: LogoPalette, seed: numbe
   };
 }
 
-// ─── Jury (Max+) ────────────────────────────────────────────────────────────
+// ─── Jury (Ultra) ────────────────────────────────────────────────────────────
 
 export function juryTask(sheet: string, drafts: PlannedLogo[], index: number): AgentTask<number> {
   return {
     role: 'logoJury',
     key: `logoJury:${index + 1}`,
-    minLevel: 'max',
+    minLevel: 'ultra',
     profile: 'critic',
     prompt: () =>
       drafts.length < 2

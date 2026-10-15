@@ -51,41 +51,52 @@
     "confirm": "Confirm",
     "creativity": {
       "title": "Creativity",
-      "help": "The higher you go, the more decisions the AI makes — and the more credits the generation uses.",
+      "help": "The higher you go, the more powerful the AI model that designs your deliverable — and the more credits the generation uses.",
       "cost": "{{cost}} credits",
       "levels": {
         "low": {
           "label": "Low",
-          "hint": "Proven",
-          "description": "Proven layouts, adapted to your brand guidelines and their art direction. The AI writes the copy.",
-          "line": "Proven layouts adapted to your brand. The AI writes the copy."
+          "hint": "Light",
+          "description": "A light model designs and writes your deliverable: fast and economical.",
+          "line": "Light model: fast and economical."
         },
         "medium": {
           "label": "Medium",
-          "hint": "Guided",
-          "description": "The AI also picks the structure (sections, scenes, slides) among validated options. The safest at the usual price.",
-          "line": "The AI also picks the structure and the sequence."
+          "hint": "Balanced",
+          "description": "An intermediate model: the right balance between quality and price. The recommended choice.",
+          "line": "Intermediate model: the right balance."
         },
         "high": {
           "label": "High",
-          "hint": "Inspired",
-          "description": "The AI composes each part — layouts, transitions, sequencing — among options filtered by your art direction.",
-          "line": "The AI composes each part: layouts, transitions."
-        },
-        "max": {
-          "label": "Max",
-          "hint": "Bold",
-          "description": "The AI also tunes the details — emphasis, colours, rhythm, density — within bounds that keep everything legible.",
-          "line": "The AI also tunes the details: emphasis, colours, rhythm."
+          "hint": "Advanced",
+          "description": "An advanced model: sharper ideas, more crafted layouts.",
+          "line": "Advanced model: sharper ideas, more crafted pages."
         },
         "ultra": {
           "label": "Ultra",
-          "hint": "Free",
-          "description": "The AI invents and creates everything: the composition, every part, the animations. Your brand guidelines and best practices stay guaranteed: each part is checked, critiqued and corrected before delivery.",
-          "line": "The AI invents and creates everything, checked and corrected before delivery."
+          "hint": "Most powerful",
+          "description": "The most powerful model designs and writes your deliverable. Your brand and your figures stay exact at every level.",
+          "line": "The most powerful model."
         }
       },
-      "withCost": "{{label}} · {{cost}} credits"
+      "withCost": "{{label}} · {{cost}} credits",
+      "video": {
+        "help": "The higher you go, the more powerful the model that designs and writes your video — and the more credits it uses.",
+        "levels": {
+          "low": {
+            "line": "Light models: fast and economical."
+          },
+          "medium": {
+            "line": "Mid-size models: the right balance."
+          },
+          "high": {
+            "line": "Advanced models: sharper ideas, safer code."
+          },
+          "ultra": {
+            "line": "The most powerful models."
+          }
+        }
+      }
     }
   },
   "dashboard": {
@@ -2402,12 +2413,18 @@
         "a4Portrait": {
           "title": "A4 portrait",
           "description": "A document to print, bind or attach to an email.",
-          "uses": ["Printing and sending by email", "Page-by-page reading, like a booklet"]
+          "uses": [
+            "Printing and sending by email",
+            "Page-by-page reading, like a booklet"
+          ]
         },
         "landscape": {
           "title": "Landscape 16:9",
           "description": "A presentation read on screen and projected in meetings.",
-          "uses": ["Projection and screen sharing", "Comfortable reading on a computer"]
+          "uses": [
+            "Projection and screen sharing",
+            "Comfortable reading on a computer"
+          ]
         },
         "startGeneration": "Generate my guidelines",
         "changeLater": "You can regenerate the guidelines in the other format later."
@@ -4196,13 +4213,6 @@
           "corporate": "Motivating",
           "none": "No music"
         },
-        "styles": {
-          "auto": "Picked for your brand",
-          "energetic": "Energetic",
-          "premium": "Elegant",
-          "playful": "Playful",
-          "corporate": "Sober"
-        },
         "builder": {
           "steps": {
             "1": "Type",
@@ -4239,8 +4249,7 @@
             "formats": "Formats (several allowed)",
             "quality": "Quality",
             "music": "Music",
-            "style": "Animation style",
-            "direction": "Motion direction"
+            "style": "Animation style"
           },
           "price": {
             "total": "Price: {{price}} credits",
@@ -4318,6 +4327,48 @@
           "voice": {
             "label": "Voice-over",
             "hint": "A voice tells the message, scene by scene, in your language. The scenes follow it."
+          },
+          "intent": {
+            "title": "How I read your request",
+            "proposal": "AI proposal",
+            "correct": "Adjust",
+            "done": "Done",
+            "loading": "Reading your request…",
+            "objective": "Goal",
+            "mode": "Material",
+            "motion": "Motion",
+            "goals": {
+              "conversion": "Conversion",
+              "product-demo": "Product demo",
+              "website-tour": "Website tour",
+              "explainer": "Explainer",
+              "brand-film": "Brand film",
+              "event": "Event",
+              "story": "Customer story",
+              "announcement": "Announcement",
+              "repurpose": "Short formats"
+            },
+            "modes": {
+              "app-presentation": "Real captures",
+              "footage-edit": "Filmed footage",
+              "pure-motion": "Motion design",
+              "hybrid": "Hybrid",
+              "product-showcase": "Product photos",
+              "data-story": "Data"
+            },
+            "motions": {
+              "kinetic-type": "Kinetic type",
+              "editorial": "Editorial",
+              "geometric": "Geometric",
+              "illustration-2d": "Illustration",
+              "spatial-3d": "3D",
+              "interface": "Motion UI",
+              "cinematic": "Cinematic",
+              "data-led": "Data motion",
+              "collage": "Collage",
+              "minimal-broadcast": "Minimal"
+            },
+            "fieldsHint": "Add these details to your request (step 1), then come back."
           }
         },
         "detail": {
@@ -4328,36 +4379,7 @@
           "delete": "Delete video",
           "deleteAsk": "Delete for good?",
           "deleteConfirm": "Delete",
-          "ai": {
-            "authored": "Authored film · {{coded}} of {{shots}} shots created by the AI",
-            "decided": "decided by the AI:",
-            "roles": {
-              "writer": "copy",
-              "strategist": "structure",
-              "mediaDirector": "images and clips",
-              "narrator": "voice-over",
-              "soundDesigner": "music",
-              "artDirector": "layouts",
-              "animator": "transitions and motion",
-              "critic": "review"
-            }
-          },
-          "creative": {
-            "first": "The brand’s first video: the next ones will be compared with it",
-            "distinct": "Truly different from your previous videos ({{percent}} % apart)",
-            "acceptable": "Different from your previous videos ({{percent}} % apart)",
-            "too-close": "Close to a previous video ({{percent}} % apart)",
-            "accent": "unexpected touch:",
-            "families": {
-              "type": "typographic",
-              "data": "data",
-              "graphic": "graphic",
-              "drawn": "hand-drawn",
-              "spatial": "spatial",
-              "photo": "photographic",
-              "brand": "logo"
-            }
-          }
+          "broken": "{{count}} scene(s) do not run: find it below and press “Fix”."
         },
         "texts": {
           "title": "On-screen text",
@@ -4391,57 +4413,8 @@
             "rendering": "{{percent}}%",
             "done": "Ready",
             "failed": "Failed"
-          }
-        },
-        "scenes": {
-          "hook": "Hook",
-          "statement": "Message",
-          "product": "Product",
-          "benefits": "Strengths",
-          "stat": "Figure",
-          "offer": "Offer",
-          "quote": "Review",
-          "event": "Event",
-          "gallery": "Gallery",
-          "wordswap": "Keywords",
-          "cta": "Call to action",
-          "logo": "Sign-off",
-          "footage": "Video",
-          "kinetic": "Animated words",
-          "lottie": "Animation",
-          "showcase3d": "3D scene"
-        },
-        "slots": {
-          "kicker": "Small title",
-          "title": "Title",
-          "sub": "Subtitle",
-          "name": "Name",
-          "tagline": "Line",
-          "price": "Price",
-          "b1": "Strength 1",
-          "b2": "Strength 2",
-          "b3": "Strength 3",
-          "value": "Figure",
-          "label": "What it means",
-          "oldPrice": "Previous price",
-          "badge": "Badge",
-          "note": "Condition",
-          "quote": "Quote",
-          "author": "Customer",
-          "date": "Date",
-          "time": "Time",
-          "place": "Place",
-          "caption": "Caption",
-          "lead": "Lead-in",
-          "w1": "Word 1",
-          "w2": "Word 2",
-          "w3": "Word 3",
-          "action": "Button",
-          "contact": "Contact",
-          "l1": "Word 1",
-          "l2": "Word 2",
-          "l3": "Word 3",
-          "l4": "Final line"
+          },
+          "blocked": "A scene must be fixed before exporting."
         },
         "errors": {
           "load": "Your videos could not be loaded.",
@@ -4451,8 +4424,10 @@
           "music": "Tracks could not be loaded.",
           "export": "The export could not start.",
           "delete": "The video could not be deleted.",
-          "upload": "The file could not be uploaded (photo 12 MB, video 80 MB, 3D 20 MB, Lottie 3 MB).",
-          "enhance": "The request could not be improved. Try again in a moment."
+          "upload": "The file could not be uploaded (photo 12 MB, video 80 MB).",
+          "enhance": "The request could not be improved. Try again in a moment.",
+          "modelUnavailable": "The model that designs videos is unavailable right now. Your credits were refunded.",
+          "sceneErrors": "A scene does not run: fix it before exporting."
         },
         "types": {
           "kinetic": {
@@ -4520,152 +4495,41 @@
           "title": "Media credits"
         },
         "composing": {
-          "title": "Your video is being edited…",
-          "note": "You can stay on this screen: each step shows up as soon as it’s done.",
+          "title": "Your video is being made…",
+          "note": "You can stay on this screen: each step shows as soon as it is done.",
           "stages": {
-            "plan": "Scene breakdown",
-            "copy": "On-screen text",
-            "layout": "Each scene's layout",
+            "plan": "Reading your request",
+            "concept": "The film concept",
+            "storyboard": "The storyboard, scene by scene",
             "media": "Images and clips",
-            "music": "Music",
-            "sfx": "Sound effects",
-            "storyboard": "Edit, synced to the beat",
-            "animation": "Motion and transitions",
-            "critique": "Final review",
-            "code": "Writing the scenes (Ultra)",
-            "direction": "The film imagined by the AI director",
-            "shots": "Every shot created by the AI, reviewed and corrected",
-            "voice": "Voice-over"
+            "music": "The music",
+            "voice": "The voice-over",
+            "code": "Writing each scene",
+            "check": "Checking each scene",
+            "repair": "Automatic scene fixing"
           },
           "details": {
-            "plan": "{{count}} scenes for {{seconds}} s",
-            "copyLlm": "{{lines}} lines written",
-            "copyHeuristic": "{{lines}} lines taken from your message",
-            "media": "{{own}} yours · {{generated}} generated · Pexels: {{photos}} photo(s), {{videos}} clip(s)",
-            "mediaNone": "No images needed",
+            "plan": "{{media}} media available · texts in {{language}}",
+            "planScripted": "Your script will be followed word for word · {{media}} media",
+            "concept": "“{{title}}”",
+            "conceptFailed": "The director did not answer: the storyboard invents the film",
+            "storyboard": "{{count}} scenes",
+            "media": "{{count}} media obtained",
+            "mediaMissing": "{{missing}} media not found: this is noted on the video",
+            "mediaGenerating": "Generating: {{done}} / {{total}}",
             "music": "“{{title}}” — {{artist}} · {{bpm}} BPM",
             "musicNone": "No music",
-            "sfx": "{{count}} sounds picked",
-            "storyboard": "{{count}} scenes, cuts on the beat ({{bpm}} BPM)",
-            "planType": "{{type}} · {{count}} scenes for {{seconds}} s",
-            "planConcept": "{{type}} · {{concept}} · {{count}} scenes for {{seconds}} s",
-            "layout": "{{count}} layouts: {{names}}",
-            "layoutClassic": "The direction's own compositions",
-            "animation": "Cuts: {{names}} · {{camera}} camera",
-            "critique": "{{count}} fix(es) from the creative director",
-            "critiqueOk": "Approved without changes",
-            "musicAgent": "“{{title}}” — {{artist}} · {{bpm}} BPM · picked for your brand",
-            "code": "{{coded}} of {{tried}} scene(s) written by the AI and validated",
-            "direction": "“{{title}}” · {{count}} shots",
-            "directionFallback": "Fell back to the guided composition",
-            "shotsStart": "{{total}} shots to write",
-            "shots_writing": "Shot {{current}}/{{total}}: writing · {{done}} done",
-            "shots_review": "Shot {{current}}/{{total}}: visual review · {{done}} done",
-            "shots_revise": "Shot {{current}}/{{total}}: correcting · {{done}} done",
-            "shots_done": "{{done}} of {{total}} shots done",
-            "shots": "{{coded}} of {{total}} shots created by the AI · {{reviewed}} reviewed by the art director",
-            "voice": "{{count}} line(s) spoken in {{language}}, scenes synced to the voice",
+            "voice": "{{count}} line(s) spoken, scenes synced to the voice",
             "voiceUnavailable": "Voice unavailable for this language: video without voice",
-            "mediaGenerating": "Generating: {{done}} / {{total}} shot(s)"
+            "codeRunning": "{{done}} / {{total}} scene(s) written",
+            "code": "{{ready}} scene(s) written",
+            "codeErrors": "{{ready}} scene(s) ready · {{errors}} to fix",
+            "checkOk": "Every scene runs",
+            "checkErrors": "{{errors}} scene(s) do not run: fix them in the editor",
+            "repair": "{{fixed}} scene(s) fixed",
+            "repairPartial": "{{fixed}} fixed · {{unresolved}} to fix in the editor",
+            "repairRunning": "Attempt {{round}} of 3 at most"
           }
-        },
-        "directions": {
-          "help": "Each direction changes composition, text entrances, transitions and colour. Free.",
-          "auto": {
-            "label": "Picked for your brand",
-            "hint": "IDEM picks from your brand charter and avoids repeating your last videos."
-          },
-          "editorial": {
-            "label": "Editorial",
-            "hint": "Flush-left text, hairlines, dissolves: a magazine feel."
-          },
-          "swiss": {
-            "label": "Swiss grid",
-            "hint": "Grid, hard cuts on the beat, tight type."
-          },
-          "brutal": {
-            "label": "Brutal block",
-            "hint": "Huge uppercase type, colour blocks, hard cuts."
-          },
-          "kinetic": {
-            "label": "Kinetic",
-            "hint": "Bursting letters, zoom-throughs, bold colours."
-          },
-          "cinematic": {
-            "label": "Cinematic",
-            "hint": "Letterbox bars, slow dissolves, one idea at a time."
-          },
-          "collage": {
-            "label": "Collage",
-            "hint": "Paper, polaroids, stickers, stop-motion movement."
-          },
-          "precision": {
-            "label": "Precision",
-            "hint": "Studio backdrop, crisp cards, iris openings."
-          },
-          "drenched": {
-            "label": "Monochrome",
-            "hint": "One hue in light and deep, duotone images."
-          }
-        },
-        "concepts": {
-          "question": "Question → answer",
-          "problem-solution": "Problem → solution",
-          "product-hero": "Product as the hero",
-          "manifesto": "Manifesto",
-          "offer-blast": "Offer blast",
-          "proof": "Proof first",
-          "journey": "In the field",
-          "teaser": "Teaser",
-          "invitation": "Invitation",
-          "showcase": "Showcase",
-          "reasons": "Reasons to choose us",
-          "celebration": "Celebration",
-          "logo-sting": "Signature"
-        },
-        "layouts": {
-          "classic": "classic composition",
-          "wordStack": "word stack",
-          "marqueeBack": "scrolling word",
-          "bigNumber": "giant number",
-          "diagonalBand": "diagonal band",
-          "circleStage": "circle",
-          "splitBlock": "split blocks",
-          "layeredCards": "layered cards",
-          "gridCards": "card grid",
-          "checklist": "checklist",
-          "quoteBig": "big quote",
-          "priceBurst": "price burst",
-          "ticker": "tickers",
-          "spotlightWord": "spotlight word",
-          "frameOverlap": "block and frame"
-        },
-        "transitions": {
-          "cut": "cut",
-          "flashCut": "flash cut",
-          "glitch": "glitch",
-          "dissolve": "dissolve",
-          "zoomBlur": "zoom blur",
-          "zoomThrough": "zoom through",
-          "whip": "whip pan",
-          "cube": "3D cube",
-          "push": "push",
-          "slideOver": "slide over",
-          "iris": "iris",
-          "wipe": "wipe",
-          "blockStack": "color blocks",
-          "shapeWipe": "brand circle",
-          "stripes": "diagonal stripes",
-          "split": "split panels",
-          "liquid": "wave"
-        },
-        "cameras": {
-          "still": "still",
-          "push": "slow push",
-          "pull": "pull back",
-          "drift": "drift",
-          "rise": "rise",
-          "tilt": "tilt"
         },
         "voice": {
           "title": "Voice-over",
@@ -4681,7 +4545,20 @@
             "friendly": "friendly",
             "deep": "deep",
             "energetic": "energetic"
-          }
+          },
+          "captions": "Voice-over subtitles"
+        },
+        "legacy": {
+          "title": "Video from the previous engine",
+          "body": "This video was made before the new engine: its files can still be downloaded, but it can no longer be edited. To change it, create a new video."
+        },
+        "revise": {
+          "title": "Edit by writing",
+          "placeholder": "E.g. “scene 2 slower”, “the title in yellow”, “no music”…",
+          "send": "Apply",
+          "done": "Done. Watch the new version.",
+          "notUnderstood": "I did not understand what to change. Say for instance “scene 2 more dynamic” or “no music”.",
+          "newRequest": "This sounds like a new video: create it from “New video”."
         }
       }
     },
@@ -5001,7 +4878,13 @@
         "idle": "Download",
         "working": "Preparing…",
         "done": "Downloaded",
-        "error": "Failed, retry"
+        "error": "Failed, retry",
+        "pdf": "PDF",
+        "pdfDesc": "The document as previewed, ready to print or send.",
+        "pptxFidelity": "PowerPoint (exact)",
+        "pptxFidelityDesc": "Each slide exactly as previewed (one image per slide).",
+        "pptxEditable": "PowerPoint (editable)",
+        "pptxEditableDesc": "Texts become editable in PowerPoint; visuals stay as images."
       },
       "status": {
         "complete": "Generation complete",
@@ -5047,6 +4930,21 @@
         "later": "Later",
         "messageOne": "1 page is missing from this document.",
         "messageMany": "{{count}} pages are missing from this document."
+      },
+      "relayout": {
+        "title": "New layout",
+        "desc": "The AI recomposes each page from the existing content: no text is rewritten.",
+        "noteLabel": "Your wish for the layout (optional)",
+        "notePlaceholder": "E.g. more airy, more sober…",
+        "run": "Apply a new layout",
+        "state": {
+          "working": "New layout in progress…",
+          "done": "New layout applied.",
+          "partial": "Layout applied; some pages could not be redone (edited by hand or too old).",
+          "nothing": "This document has no kept content: regenerate it to be able to relayout it.",
+          "credits": "Not enough credits for the new layout.",
+          "error": "The new layout failed. Your credits were refunded."
+        }
       }
     },
     "deliverableList": {

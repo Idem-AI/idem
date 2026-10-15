@@ -6,13 +6,14 @@ import { SseClient } from 'ngx-sse-client';
 import { TokenService } from '../../../../shared/services/token.service';
 import { environment } from '../../../../../environments/environment';
 import {
-  MotionStyle,
   MotionVideo,
   MusicMood,
   MusicTrack,
   VideoBrief,
   VideoFormat,
   VideoOptions,
+  VideoPatch,
+  VideoRevisionResult,
   VideoScope,
   VideoMediaAsset,
   VideoType,
@@ -59,7 +60,7 @@ export class MotionVideoService {
    * choisit le type (ou en combine plusieurs) d'après la demande ; `contentId` :
    * vidéo d'un contenu du calendrier (brief et type viennent du contenu).
    */
-  createStream(projectId: string, input: { brief: Partial<VideoBrief>; scope: VideoScope; type: VideoType | 'auto'; contentId?: string; creativity?: CreativityLevel }): Observable<VideoStreamEvent> {
+  createStream(projectId: string, input: { brief: Partial<VideoBrief>; scope: VideoScope; type: VideoType | 'auto'; contentId?: string; creativity?: CreativityLevel; intent?: VideoIntentOverride; clarification?: { id: string; option: string } }): Observable<VideoStreamEvent> {
     return from(this.tokenService.getTokenAsync()).pipe(
       switchMap(
         (token: string | null) =>
@@ -103,24 +104,17 @@ export class MotionVideoService {
     );
   }
 
-  update(
-    projectId: string,
-    videoId: string,
-    patch: {
-      slots?: Record<string, Record<string, string>>;
-      style?: MotionStyle;
-      musicMood?: MusicMood;
-      musicTrackId?: string;
-      scope?: Partial<VideoScope>;
-      sfx?: boolean;
-      /** Voix off : coupée, ou ajoutée (écrite et dite dans la langue de la vidéo). */
-      voice?: boolean;
-      direction?: string;
-      /** Clé de scène → nouvelle photo (URL importée). */
-      images?: Record<string, string>;
-    },
-  ): Observable<MotionVideo> {
+  /**
+   * Retouche gratuite : textes et photos (données, le code des scènes ne change pas), musique,
+   * effets, voix, sous-titres — ou une nouvelle version du code d'une scène (`visual`, `fix`, `regenerate`).
+   */
+  update(projectId: string, videoId: string, patch: VideoPatch): Observable<MotionVideo> {
     return this.http.patch<MotionVideo>(`${this.apiUrl}/${projectId}/videos/${videoId}`, patch);
+  }
+
+  /** Une retouche écrite en clair (« la scène 2 plus lente », « sans musique ») : l'IA dit ce qui change. */
+  revise(projectId: string, videoId: string, text: string): Observable<VideoRevisionResult> {
+    return this.http.post<VideoRevisionResult>(`${this.apiUrl}/${projectId}/videos/${videoId}/revise`, { text });
   }
 
   /** HTML autonome du lecteur : le même moteur que le MP4. */
@@ -142,7 +136,7 @@ export class MotionVideoService {
     return this.http.delete<void>(`${this.apiUrl}/${projectId}/videos/${videoId}`);
   }
 
-  /** Photos, clips vidéo, modèles 3D (GLB) et animations Lottie (JSON). */
+  /** Photos et clips vidéo. */
   uploadMedia(projectId: string, files: File[]): Observable<{ assets: VideoMediaAsset[] }> {
     const form = new FormData();
     files.slice(0, 8).forEach((file) => form.append('files', file));
@@ -150,6 +144,11 @@ export class MotionVideoService {
   }
 
   /** « Améliorer ma demande » : réécriture précise, faits conservés (gratuit). */
+  /** L'interprétation d'une demande avant création (gratuite) : objectif, matière, mouvement, et la question éventuelle. */
+  interpret(projectId: string, input: { brief: Partial<VideoBrief>; type: VideoType | 'auto'; creativity?: CreativityLevel }): Observable<VideoInterpretation> {
+    return this.http.post<VideoInterpretation>(`${this.apiUrl}/${projectId}/videos/interpret`, input);
+  }
+
   enhanceRequest(projectId: string, text: string, media: VideoMediaAsset[]): Observable<{ prompt: string; source: 'llm' | 'template' }> {
     return this.http.post<{ prompt: string; source: 'llm' | 'template' }>(`${this.apiUrl}/${projectId}/videos/enhance`, {
       text,
@@ -170,4 +169,31 @@ function safeJson(text: string): any {
   } catch {
     return null;
   }
+}
+
+export const VIDEO_GOALS = ['conversion', 'product-demo', 'website-tour', 'explainer', 'brand-film', 'event', 'story', 'announcement', 'repurpose'] as const;
+export const PRODUCTION_MODES = ['app-presentation', 'footage-edit', 'pure-motion', 'hybrid', 'product-showcase', 'data-story'] as const;
+export const MOTION_LANGUAGES = ['kinetic-type', 'editorial', 'geometric', 'illustration-2d', 'spatial-3d', 'interface', 'cinematic', 'data-led', 'collage', 'minimal-broadcast'] as const;
+export type VideoGoal = (typeof VIDEO_GOALS)[number];
+export type ProductionMode = (typeof PRODUCTION_MODES)[number];
+export type MotionLanguage = (typeof MOTION_LANGUAGES)[number];
+
+/** L'intention lue par le serveur (request/intent.ts) : seuls les champs que l'interface affiche ou corrige. */
+export interface VideoIntent {
+  objective: VideoGoal;
+  productionModes: ProductionMode[];
+  motionDirection: MotionLanguage[];
+  voiceover: 'yes' | 'no' | 'ask';
+  subtitles: 'yes' | 'no' | 'ask';
+  confidence: number;
+  pipeline: 'motion' | 'montage';
+}
+
+/** Ce que l'utilisateur corrige dans l'interprétation. */
+export type VideoIntentOverride = Partial<Pick<VideoIntent, 'objective' | 'productionModes' | 'motionDirection'>>;
+
+export interface VideoInterpretation {
+  intent: VideoIntent;
+  interpretation: { tags: string[]; summary: string };
+  clarification: { id: string; question: string; options: { id: string; label: string; description: string }[]; fields?: string[] } | null;
 }

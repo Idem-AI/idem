@@ -3,7 +3,7 @@
  * iVision exécutent le même. Ce module le réexporte et ajoute l'appel propre à IDEM : le runtime
  * d'agents (étages, escalade, suivi d'usage).
  */
-import { AI_CONFIG } from '../../config/ai.config';
+import { roleConfig, roleOf } from '../../config/creative-roles';
 import { RunBudget, runAgent } from '../agents/agent-runtime';
 import type { AgentCall } from '../../../../ivision/core/src/creativity/orchestrator';
 
@@ -18,11 +18,13 @@ export * from '../../../../ivision/core/src/creativity/orchestrator';
  * pas le contrôle de quota appel par appel (un livrable ne doit pas s'arrêter au milieu).
  */
 export function runtimeCall(ctx: { userId?: string; projectId?: string; element?: string; language?: string; budget?: RunBudget }): AgentCall {
-  return async ({ role, profile, system, user, validate }) => {
-    const feature = AI_CONFIG.creative[profile];
+  return async ({ role, profile, system, user, validate, level }) => {
+    // Le RÔLE logique choisit le modèle (profil par défaut, modèle ou point d'accès configurés —
+    // `config/creative-roles.ts`) et son plafond au cran : aucun nom de modèle n'est écrit par un moteur.
+    const feature = roleConfig(role, profile, level);
     const res = await runAgent(
       {
-        role: `creative.${role}`,
+        role: `creative.${roleOf(role)}`,
         task: profile === 'coder' ? 'creative' : profile === 'critic' ? 'verify' : 'classify',
         baseConfig: feature,
         llmOptions: feature.llmOptions,

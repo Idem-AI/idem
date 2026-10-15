@@ -131,6 +131,27 @@ export class ImageSourcingService {
     return this.generateAndAnalyze(brief, opts);
   }
 
+  /**
+   * Une photo de BANQUE seulement — sans génération en repli : le planificateur de médias du moteur
+   * graphique ordonne lui-même ses sources. `null` sans clé, sans résultat ou en cas d'erreur.
+   */
+  async stockImage(brief: ImageBrief): Promise<Omit<SourcedImage, 'analysis'> | null> {
+    if (!process.env.PEXELS_API_KEY) return null;
+    const hit = await this.searchPexels(brief).catch((err: any) => {
+      logger.warn('Pexels search failed', { error: err?.message });
+      return null;
+    });
+    return hit ? { url: hit.url, source: 'stock', attribution: hit.attribution } : null;
+  }
+
+  /** Une image GÉNÉRÉE seulement (sans texte, relue par la vision, stockée dans `folder`). */
+  async generatedImage(
+    brief: ImageBrief,
+    opts: { userId: string; projectId: string; tag: string; folder?: string } & ImageSourcingPreferences
+  ): Promise<SourcedImage> {
+    return this.generateAndAnalyze(brief, opts);
+  }
+
   // ─────────────────────────────────────────────────────────────────────────
   // 1. PEXELS STOCK SEARCH
   //    Returns both a full-res URL (flyer) and a medium URL (analysis).
@@ -184,7 +205,7 @@ export class ImageSourcingService {
 
   private async generateAndAnalyze(
     brief: ImageBrief,
-    opts: { userId: string; projectId: string; tag: string } & ImageSourcingPreferences
+    opts: { userId: string; projectId: string; tag: string; folder?: string } & ImageSourcingPreferences
   ): Promise<SourcedImage> {
     logger.info(`[ImageSourcing] Generating`, { tag: opts.tag, model: opts.imageModel || 'host default' });
     const start = Date.now();
@@ -229,7 +250,7 @@ export class ImageSourcingService {
     });
 
     const fileName = `flyer-bg-${opts.tag}-${Date.now()}.png`;
-    const folderPath = `users/${opts.userId}/projects/${opts.projectId}/communication/flyer-images`;
+    const folderPath = `users/${opts.userId}/projects/${opts.projectId}/${opts.folder ?? 'communication/flyer-images'}`;
     const upload = await requirePort('storage').uploadFile(buffer, fileName, folderPath, mimeType);
 
     logger.info(`[ImageSourcing] AI-generated image sourced`, {

@@ -7,7 +7,7 @@
  * refus 402 avec offres). Une génération qui échoue après le débit est restituée.
  */
 import { creativityCost, CreativityLevel } from '../../../core/src/creativity/levels';
-import { normalizeScope, videoCost } from '../../../core/src/video/video.pricing';
+import { normalizeScope, videoCost } from '../../../core/src/video/pricing';
 import logger from '../config/logger';
 import { IdemGatewayError, idem } from './idem.client';
 

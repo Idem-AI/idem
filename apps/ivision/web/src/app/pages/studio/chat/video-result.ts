@@ -141,13 +141,16 @@ interface DownloadOption {
       } @else if (downloadFailed()) {
         <p class="text-sm" role="alert">{{ 'chat.result.downloadFailed' | translate }}</p>
       }
-      @if (video()?.storyboard?.creative?.reference; as ref) {
-        <p class="text-xs text-[var(--color-text-tertiary)]">{{ 'chat.result.fromReference' | translate: { shots: ref.shots } }}</p>
+      @if (video()?.film?.reference) {
+        <p class="text-xs text-[var(--color-text-tertiary)]">{{ 'chat.result.fromReference' | translate: { shots: video()?.film?.scenes?.length ?? 0 } }}</p>
+      }
+      @if (broken() > 0) {
+        <p class="flex items-start gap-1.5 text-xs text-[var(--color-danger)]" role="alert"><i class="pi pi-exclamation-triangle mt-0.5" aria-hidden="true"></i><span>{{ 'chat.result.broken' | translate: { count: broken() } }}</span></p>
       }
       @if (fidelity().length) {
         <ul class="flex max-w-[34rem] flex-col gap-1 text-xs text-[var(--color-text-tertiary)]" [attr.aria-label]="'chat.result.fidelityTitle' | translate">
-          @for (note of fidelity(); track note.key) {
-            <li class="flex items-start gap-1.5"><i class="pi pi-info-circle mt-0.5" aria-hidden="true"></i><span>{{ note.key | translate: note.params }}</span></li>
+          @for (note of fidelity(); track $index) {
+            <li class="flex items-start gap-1.5"><i class="pi pi-info-circle mt-0.5" aria-hidden="true"></i><span>{{ note }}</span></li>
           }
         </ul>
       }
@@ -194,7 +197,9 @@ export class VideoResult implements OnInit {
     return `min(100%, 34rem, calc(26rem * ${(w / h).toFixed(4)}))`;
   });
   /** Ce que la vidéo n'a pas pu suivre de la demande (4K, plans filmés non générés…), dit à l'utilisateur. */
-  protected readonly fidelity = computed(() => (this.video()?.storyboard?.fidelity?.codes ?? []).map((c) => ({ key: `chat.result.${c.key}`, params: c.params ?? {} })));
+  protected readonly fidelity = computed(() => this.video()?.film?.fidelity?.notes ?? []);
+  /** Scènes dont le code ne s'exécute pas : à corriger dans l'éditeur avant l'export. */
+  protected readonly broken = computed(() => (this.video()?.film?.scenes ?? []).filter((s) => s.status === 'error').length);
   /** Le MP4 du format principal, s'il reflète la dernière retouche et qu'il est déjà un export. */
   protected readonly mp4 = computed(() => {
     const v = this.video();
@@ -219,7 +224,7 @@ export class VideoResult implements OnInit {
 
   ngOnInit(): void {
     // Le composant n'est créé qu'une fois visible (`@defer (on viewport)` dans la conversation).
-    if (!this.mp4()) this.loadPreview();
+    if (!this.mp4() && !this.video()?.legacy) this.loadPreview();
     // La première création prête : le guide montre comment la changer et la télécharger.
     void this.tours.maybeStart('result');
   }
