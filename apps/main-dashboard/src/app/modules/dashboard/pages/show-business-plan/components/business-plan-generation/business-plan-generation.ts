@@ -176,9 +176,11 @@ export class BusinessPlanGenerationComponent implements OnInit, OnDestroy {
         ? sectionsParam.split(',').filter(Boolean)
         : [];
 
-    // Régénération ciblée : la structure et les infos additionnelles existent
-    // déjà côté projet, on saute les deux étapes et on relance directement.
-    if (this.targetSections.length > 0) {
+    // Régénération (ciblée ou complète d'un plan existant) : la structure et
+    // les infos additionnelles sont déjà enregistrées, on saute les deux étapes
+    // et on relance directement le même plan avec les mêmes données.
+    const isRegeneratingExistingPlan = this.isForcingRegeneration && !!this.documentId();
+    if (this.targetSections.length > 0 || isRegeneratingExistingPlan) {
       this.showStructureSelector.set(false);
       this.showAdditionalInfoForm.set(false);
       this.generateBusinessPlanWithoutAdditionalInfo();
