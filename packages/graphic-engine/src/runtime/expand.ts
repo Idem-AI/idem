@@ -38,7 +38,7 @@ export interface Sanitized {
   removed: string[];
 }
 
-const SAFE_URL = /^\s*(\{\{\s*[\w.]+\s*\}\}|#[\w-]*|data:image\/(png|jpe?g|gif|webp|svg\+xml|avif)[;,])/i;
+const SAFE_URL = /^\s*(\{\{\s*[\w.:-]+\s*\}\}|#[\w-]*|data:image\/(png|jpe?g|gif|webp|svg\+xml|avif)[;,])/i;
 
 export function sanitizeHtml(input: string): Sanitized {
   const removed: string[] = [];
@@ -130,7 +130,7 @@ export function expandPage(template: string, map: ContentMap, tokens: DesignToke
     if (k === 'logo') return logoHtml(tokens, attrOf(attrs, 'variant') ?? 'primary', { className });
     if (k === 'icon') {
       let name = attrOf(attrs, 'name') ?? '';
-      const key = name.match(/^\{\{\s*([\w.]+)\s*\}\}$/)?.[1];
+      const key = name.match(/^\{\{\s*([\w.:-]+)\s*\}\}$/)?.[1];
       if (key) {
         used.add(key);
         name = map.entries.get(key)?.value ?? '';
@@ -151,7 +151,7 @@ export function expandPage(template: string, map: ContentMap, tokens: DesignToke
   });
   // 2. Les clés : dans une balise (attribut) ou dans le texte.
   const fill = (segment: string, inTag: boolean) =>
-    segment.replace(/\{\{\s*([\w.]+)\s*\}\}/g, (_m, key: string) => {
+    segment.replace(/\{\{\s*([\w.:-]+)\s*\}\}/g, (_m, key: string) => {
       const entry = map.entries.get(key);
       if (!entry) {
         unknown.push(key);
@@ -166,6 +166,8 @@ export function expandPage(template: string, map: ContentMap, tokens: DesignToke
     .split(/(<[^>]*>)/)
     .map((part, i) => fill(part, i % 2 === 1))
     .join('');
-  const attrs = [`class="${rootClasses(format)}"`, `lang="${esc(frame.locale)}"`, `data-ge-engine="${esc(frame.engine)}"`, `data-ge-pattern="authored"`, `data-ge-section="${esc(frame.sectionId)}"`, `data-ge-format="${esc(format.id)}"`];
+  // Une image sans adresse (clé inconnue, adresse retirée) ne s'affiche jamais : retirée plutôt que laissée cassée.
+  html = html.replace(/<img\b[^>]*>/gi, (tag) => (/\ssrc\s*=\s*"(?!\s*")[^"]+"/i.test(tag) ? tag : (orphans.push('img:no-src'), '')));
+  const attrs = [`class="${rootClasses(format)}"`, ...(format.kind === 'fixed' ? ['data-ge-fixed="1"'] : []), `lang="${esc(frame.locale)}"`, `data-ge-engine="${esc(frame.engine)}"`, `data-ge-pattern="authored"`, `data-ge-section="${esc(frame.sectionId)}"`, `data-ge-format="${esc(format.id)}"`];
   return { html: `<div ${attrs.join(' ')}>${html}</div>`, used, unknown: [...new Set(unknown)], orphans };
 }

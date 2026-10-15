@@ -109,7 +109,7 @@ const run = (n: number) => !only.length || only.includes(n);
   const engineCalls: Array<{ role: string; level?: CreativityLevel; repair: boolean }> = [];
   let agentMode: 'ok' | 'blank' | 'blank-once' | 'garbage' | 'down' = 'ok';
   const PAGE = (user: string) => {
-    const keys = [...user.matchAll(/^\{\{([\w.]+)\}\} = /gm)].map((m) => m[1]);
+    const keys = [...user.matchAll(/^\{\{([\w.:-]+)\}\} = /gm)].map((m) => m[1]);
     const fields = keys.filter((k) => !k.includes('.') && !['kicker', 'title', 'lede'].includes(k));
     const prims = [...user.matchAll(/<idem-(chart|table) data-block="([^"]+)">/g)].map((m) => `<idem-${m[1]} data-block="${m[2]}" class="w-full text-[13px]"></idem-${m[1]}>`);
     const flow = /A4 page that GROWS/.test(user);

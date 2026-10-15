@@ -173,7 +173,10 @@ avec un `@theme` tiré des jetons de la marque. La feuille obtenue :
 ## La seule vérification : l'affichage
 
 `src/runtime/check.ts` ouvre la page dans Chromium (le moteur de l'impression PDF) : racine présente, taille non
-nulle, quelque chose de visible dans la toile. Une ressource lente (police distante) ne fait jamais échouer
+nulle, quelque chose de visible dans la toile, et — sur une toile fixe — aucun texte coupé par le bord (il ne
+s'afficherait pas en entier). Un texte encore coupé après la correction bornée n'efface pas la page : elle est livrée
+avec le constat bloquant `text_cut` (réparation `render_partial`). Une image dont la clé n'existe pas est retirée au
+remplissage, jamais laissée cassée. Les clés acceptent `-` et `:` (médias `asset-1`, blocs du code `sys-1`). Une ressource lente (police distante) ne fait jamais échouer
 le rendu ; un navigateur absent n'est pas une faute de la page (`infra`).
 
 Ce qui ne s'affiche pas — réponse sans HTML, rien de visible, rendu impossible — passe par la **correction
@@ -208,7 +211,7 @@ Les constats non bloquants restent dans `result.issues` comme conseils, sans rie
 ## Contrôles
 
 ```
-npm run check --prefix packages/graphic-engine        # 66 vérifications, auteur simulé, Chromium
+npm run check --prefix packages/graphic-engine        # 74 vérifications, auteur simulé, Chromium
 npm run check:fast --prefix packages/graphic-engine   # sans Chromium
 npm run schemas --prefix packages/graphic-engine      # régénère contracts/*.schema.json
 ```

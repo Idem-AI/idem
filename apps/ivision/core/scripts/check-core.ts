@@ -191,7 +191,7 @@ class MemoryStore implements VideoStore {
   configureGraphicEngine({
     agentCall: () => async ({ user }) => {
       authorPrompts.push(user);
-      const keys = [...user.matchAll(/^\{\{([\w.]+)\}\} = /gm)].map((m) => m[1]);
+      const keys = [...user.matchAll(/^\{\{([\w.:-]+)\}\} = /gm)].map((m) => m[1]);
       const crop = user.match(/object-\[(\d+%_\d+%)\]/)?.[1];
       const body = keys.map((k) => (/\.url$/.test(k) ? `<img src="{{${k}}}" alt="" class="absolute inset-0 h-full w-full object-cover${crop ? ` object-[${crop}]` : ''}">` : `<p class="relative text-[40px] font-bold text-ink">{{${k}}}</p>`)).join('');
       return `\`\`\`html\n<div class="relative flex h-full w-full flex-col justify-end gap-[16px] bg-ground p-[64px]">${body}<idem-logo class="relative h-[48px]"></idem-logo></div>\n\`\`\``;

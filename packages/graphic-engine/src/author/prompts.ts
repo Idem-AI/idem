@@ -127,6 +127,10 @@ const PROFESSIONAL = [
   '- Decoration only when it carries the brand (its logo, its pattern, the graphic devices of its visual language). Never random circles, blobs, glows, gradients, drop shadows, emojis, ornaments, tilted text or filler shapes.',
   '- Few type sizes, the brand fonts only. Colour with intent: mostly ground and ink, brand colours for emphasis and structure.',
   '- Data is shown plainly: charts and tables large enough to read, one highlighted message at most.',
+  '- The logo sits in the SAME place on every page (the one the brand language gives), small, with clear space — never on or against a title or text.',
+  '- No giant faded numerals or watermark words. Numbering (01, 02) only for a real sequence of steps.',
+  '- Images: only the image keys of the CONTENT list. No image key, no image zone — never leave an empty frame for a picture.',
+  '- Everything fits inside the canvas: nothing cut by the edge; keep a safe margin.',
 ].join('\n');
 
 // ── Le langage visuel de la marque (une fois par marque) ─────────────────────────────────────
@@ -242,7 +246,7 @@ export function authorSystem(ctx: DocumentContext): string {
     '',
     TAILWIND_SHEET,
     '',
-    'CONTENT — every visible word comes from the CONTENT list: write {{key}} where its text goes. Never retype, translate, shorten or invent a text. Show every key (exact data blocks complete, in order). You may add only non-verbal elements (rules, the brand devices, icons, numbering 01, 02).',
+    'CONTENT — every visible word comes from the CONTENT list: write {{key}} where its text goes. Never retype, translate, shorten or invent a text. Show every key (exact data blocks complete, in order). You may add only non-verbal elements (rules, the brand devices, icons that match the meaning of their text, numbering of real steps).',
     ctx.bindings === 'markers' ? 'This card is a TEMPLATE shared by several people: each field key in its own element, one line each — lines without a value are removed when printing.' : '',
     '',
     `SYNTAX EXAMPLE (syntax only — compose your own page):\n\`\`\`html\n${flow ? FLOW_EXAMPLE : FIXED_EXAMPLE}\n\`\`\``,
@@ -259,8 +263,8 @@ export function toolLines(ctx: DocumentContext, o: { charts: string[]; tables: s
       `- <idem-chart data-block="${o.charts[0]}" class="w-full text-ink"></idem-chart> the exact chart of a block, drawn from its data. Optional: data-aspect="16/9"; data-type="bar|horizontalBar|line|area|groupedBar|stacked|pie|doughnut|radar" to choose another representation; data-highlight="<label>" to bring one category forward.`
     );
   if (o.tables.length) lines.push(`- <idem-table data-block="${o.tables[0]}" class="w-full text-[13px] [&_th]:bg-brand-primary [&_th]:text-on-brand"></idem-table> the exact table of a block, styled from the tag.`);
-  if (o.icons) lines.push('- <idem-icon name="{{…icon}}" class="size-[32px] text-brand-primary"></idem-icon> a line icon (an English noun or an icon key).');
-  if (ctx.tokens.brand.patterns.length) lines.push('- <idem-pattern index="0" class="absolute inset-0 opacity-[0.08]"></idem-pattern> the brand pattern, only where the brand language uses it.');
+  if (o.icons) lines.push('- <idem-icon name="{{…icon}}" class="size-[32px] text-brand-primary"></idem-icon> a line icon: use the icon keys of the CONTENT (chosen for each item); an English noun only if it literally matches the text.');
+  if (ctx.tokens.brand.patterns.length) lines.push('- <idem-pattern index="0" class="absolute right-0 top-0 h-full w-[18%] opacity-[0.12]"></idem-pattern> the brand pattern: a band, a panel or a corner, on a few pages only — never the whole page background.');
   return lines.join('\n');
 }
 

@@ -189,7 +189,8 @@ function representable(c: Chart, wanted: string | undefined): Chart['chartType']
 }
 
 /**
- * Un graphique : une figure SVG qui prend la place que l'auteur lui donne (`class`, `data-aspect="16/9"`). L'auteur
+ * Un graphique : une figure SVG qui prend la place que l'auteur lui donne (`class`, `data-aspect="16/9"`), sans
+ * jamais la dépasser (sa hauteur suit sa largeur, plafonnée par son conteneur). L'auteur
  * peut choisir une autre représentation des MÊMES données (`data-type`) et mettre une catégorie en avant
  * (`data-highlight`) ; les valeurs, elles, ne passent jamais par lui.
  */
@@ -206,7 +207,7 @@ export function chartHtml(block: Chart, tokens: DesignTokens, o: { className?: s
   const W = 640;
   const H = aw > 0 && ah > 0 ? Math.round(Math.min(1200, Math.max(200, (W * ah) / aw))) : pie ? 300 : c.chartType === 'radar' ? 420 : 360;
   const body = pie ? radial(c, palette.colors, W, H, hi) : c.chartType === 'radar' ? radar(c, palette.colors, W, H) : cartesian(c, palette.colors, W, H, hi);
-  return `<figure data-ge-chart="${esc(c.chartType)}" data-ge-block="${esc(c.id)}" data-ge-palette="${palette.colors.join(',')}" data-ge-palette-mode="${mode}" data-ge-surface="${surface}"${cls(o.className)}><svg viewBox="0 0 ${W} ${H}" width="100%" height="100%" preserveAspectRatio="xMidYMid meet" role="img" aria-label="${esc(c.title ?? c.readingKey)}" class="block overflow-visible">${body}</svg></figure>`;
+  return `<figure data-ge-chart="${esc(c.chartType)}" data-ge-block="${esc(c.id)}" data-ge-palette="${palette.colors.join(',')}" data-ge-palette-mode="${mode}" data-ge-surface="${surface}" class="${esc(`flex min-h-0 min-w-0 items-center justify-center ${o.className ?? ''}`.trim())}"><svg viewBox="0 0 ${W} ${H}" width="100%" preserveAspectRatio="xMidYMid meet" role="img" aria-label="${esc(c.title ?? c.readingKey)}" class="block h-auto max-h-full w-full overflow-visible">${body}</svg></figure>`;
 }
 
 const NUMERIC = /^[\s(+−-]*[\d\s.,]+\s*(%|[A-Za-z€$£₦]{0,4}|F\s?CFA|FCFA|XAF|XOF)?\)?\s*$/;

@@ -22,6 +22,7 @@ import { buildTokens } from '../src/design-system/tokens';
 import { FORMATS } from '../src/design-system/formats';
 import { contrastRatio, isDeep } from '../src/foundation/color';
 import { buildContentMap } from '../src/runtime/content-map';
+import { authorSystem } from '../src/author/prompts';
 import { expandPage, extractHtml, sanitizeHtml } from '../src/runtime/expand';
 import { compileTailwind } from '../src/runtime/tailwind';
 import { chartHtml, tableHtml } from '../src/runtime/primitives';
@@ -47,13 +48,14 @@ const EX = path.resolve(__dirname, '../contracts/examples');
 const readJson = (rel: string) => JSON.parse(fs.readFileSync(path.join(EX, rel), 'utf8'));
 
 // ── L'auteur simulé : il place chaque clé reçue, et sait rendre une page vide ou une réponse sans HTML ─────
-type Mode = 'ok' | 'blank' | 'blank-once' | 'garbage' | 'down';
+type Mode = 'ok' | 'blank' | 'blank-once' | 'garbage' | 'down' | 'cut-once' | 'cut';
 let mode: Mode = 'ok';
 const calls: Array<{ role: string; level?: CreativityLevel; repair: boolean; user: string; system?: string }> = [];
 const fakePage = (user: string): string => {
-  const keys = [...user.matchAll(/^\{\{([\w.]+)\}\} = /gm)].map((m) => m[1]).filter((k) => !['kicker', 'title', 'lede'].includes(k));
+  const keys = [...user.matchAll(/^\{\{([\w.:-]+)\}\} = /gm)].map((m) => m[1]).filter((k) => !['kicker', 'title', 'lede'].includes(k));
   const prims = [...user.matchAll(/<idem-(chart|table) data-block="([^"]+)">/g)].map((m) => `<idem-${m[1]} data-block="${m[2]}" class="w-full text-[12px]"></idem-${m[1]}>`);
   const body = `<p class="text-[12px] uppercase text-brand-primary">{{kicker}}</p><h2 class="font-display text-[36px] font-bold text-ink">{{title}}</h2><p class="text-muted">{{lede}}</p>${keys.map((k) => `<p data-field="${k}" class="text-[12px]">{{${k}}}</p>`).join('')}${prims.join('')}<idem-logo class="h-[20px]"></idem-logo>`;
+  if (/business card/.test(user)) return `\`\`\`html\n<div class="grid h-full w-full grid-cols-2 gap-x-[8px] bg-ground p-[12px] text-[8.5px] leading-[1.15]"><idem-logo class="h-[14px]"></idem-logo><div>${keys.map((k) => `<p data-field="${k}" class="break-all">{{${k}}}</p>`).join('')}</div></div>\n\`\`\``;
   return /A4 page that GROWS/.test(user) ? `\`\`\`html\n${body}\n\`\`\`` : `\`\`\`html\n<div class="relative flex h-full w-full flex-col gap-[8px] bg-ground p-[5%]">${body}</div>\n\`\`\``;
 };
 configureGraphicEngine({
@@ -65,6 +67,7 @@ configureGraphicEngine({
     if (/CHANGE REQUESTED BY THE CLIENT/.test(user)) return '```html\n<div class="relative h-full w-full bg-brand-primary p-[40px]"><h2 class="text-[60px] text-on-brand">{{title}}</h2></div>\n```';
     if (mode === 'garbage') return 'je ne sais pas';
     if (mode === 'blank' || (mode === 'blank-once' && !repair)) return '```html\n<div class="hidden">{{title}}</div>\n```';
+    if (mode === 'cut' || (mode === 'cut-once' && !repair)) return '```html\n<div class="relative h-full w-full bg-ground p-[40px]"><h2 class="absolute left-[40px] top-[1050px] text-[48px]">{{title}}</h2></div>\n```';
     return fakePage(user);
   },
 });
@@ -158,6 +161,20 @@ async function main(): Promise<void> {
   const edited = applyTextEdits(FINANCE_BP, { title: 'Un résultat positif dès 2026', 'b3.paragraphs.0': '', 'b1.rows.0.1': '99' });
   ok('titre et paragraphe retouchés par leur clé ; le tableau posé par le code reste intouchable', edited.section.title === 'Un résultat positif dès 2026' && edited.applied.includes('b3.paragraphs.0') && edited.refused.includes('b1.rows.0.1') && JSON.stringify(edited.section.blocks.find((b) => b.id === 'b1')) === JSON.stringify(FINANCE_BP.blocks.find((b) => b.id === 'b1')));
 
+  section('§7 ter Défauts relevés sur un deck réel (15/10/2026)');
+  const real: SectionContent = { id: 'vision', title: 'LIGTH comble le vide entre motivation et action', blocks: [{ id: 'asset-1', kind: 'figure', origin: 'system', url: 'data:image/png;base64,iVBORw0KGgo=', alt: 'Étudiante qui écrit' }, { id: 'sys-1', kind: 'metrics', origin: 'system', items: [{ value: '350', label: 'Unités pour rentabilité' }] }] };
+  const realMap = buildContentMap(real);
+  const realPage = expandPage('<div><img src="{{asset-1.url}}" alt="{{asset-1.alt}}"><p>{{sys-1.items.0.value}}</p><img src="{{nope.url}}"></div>', realMap, kora, FORMATS['slide-16x9'], { sectionId: 'vision', locale: 'fr', engine: 'x' });
+  ok('les clés à tiret (médias `asset-1`, blocs du code `sys-1`) sont remplies : photo et chiffre affichés, aucune clé en clair', realPage.html.includes('src="data:image/png') && realPage.html.includes('>350<') && !realPage.html.includes('{{'));
+  ok('une image sans adresse est retirée, jamais laissée cassée', (realPage.html.match(/<img/g) ?? []).length === 1);
+  ok('assainir garde l’adresse d’une image à clé à tiret', sanitizeHtml('<img src="{{asset-1.url}}">').html.includes('{{asset-1.url}}'));
+  const { fixBrandNameTypos } = await import('../src/runtime/content-map');
+  const typo = fixBrandNameTypos(real, 'Light');
+  ok('coquille du nom de marque (« LIGTH ») corrigée ; un mot seulement proche reste intact', typo.section.title.startsWith('LIGHT comble') && typo.fixed === 1 && fixBrandNameTypos({ ...real, title: 'Night shift' }, 'Light').fixed === 0);
+  ok('un graphique ne dépasse jamais sa place (hauteur plafonnée par son conteneur)', chartHtml(base, kora, {}).includes('max-h-full'));
+  const sys = authorSystem({ documentType: 'pitch-deck', locale: 'fr', tokens: kora, format: FORMATS['slide-16x9'], allowDark: false, bindings: 'values' });
+  ok('consignes : logo à la même place, pas de numéros géants, pas de cadre vide pour une image absente, rien coupé par le bord', /SAME place/.test(sys) && /No giant faded numerals/.test(sys) && /never leave an empty frame/.test(sys) && /nothing cut by the edge/.test(sys));
+
   if (fast) return;
 
   // ── §8 Le flux complet ───────────────────────────────────────────────────────────────────
@@ -221,6 +238,15 @@ async function main(): Promise<void> {
     await renderSingle({ documentType: 'flyer', format: 'flyer-square', brand: BRANDS.baobab, creativity: level, seed: `l:${level}`, content: { id: 'v', role: 'visual', title: 'Promo de saison', blocks: [] } });
     ok(`${level} : même travail (un appel d’auteur), cran transmis au modèle`, calls.length === 1 && calls[0].level === level);
   }
+
+  mode = 'cut-once';
+  calls.length = 0;
+  const cutFixed = await renderSingle({ documentType: 'flyer', format: 'flyer-square', brand: BRANDS.baobab, creativity: 'medium', seed: 'cut', content: { id: 'v', role: 'visual', title: 'Promo de saison', blocks: [] } });
+  ok('un texte coupé par le bord de la toile ne s’affiche pas : corrigé par l’auteur (même cran), avec le texte en cause', cutFixed.result.repairs.some((r) => r.code === 'render_fix') && calls[1]?.repair && /cut off by the edge/.test(calls[1].user) && /Promo de saison/.test(calls[1].user));
+
+  mode = 'cut';
+  const stillCut = await renderSingle({ documentType: 'flyer', format: 'flyer-square', brand: BRANDS.baobab, creativity: 'medium', seed: 'cut2', png: true, content: { id: 'v', role: 'visual', title: 'Promo de saison', blocks: [] } });
+  ok('un texte toujours coupé après la correction : la page est livrée (photographiée) et le défaut SIGNALÉ, jamais la slide perdue', Boolean(stillCut.png) && stillCut.result.issues.some((i) => i.code === 'text_cut' && i.severity === 'blocking') && stillCut.result.repairs.some((r) => r.code === 'render_partial'));
 
   mode = 'blank-once';
   calls.length = 0;

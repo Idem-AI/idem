@@ -147,3 +147,43 @@ export function applyTextEdits(section: SectionContent, edits: Record<string, st
   for (const r of removals.sort((a, b) => b.index - a.index)) r.parent.splice(r.index, 1);
   return { section: next, applied, refused };
 }
+
+/** Deux lettres voisines inversées (« LIGTH » pour « LIGHT ») : la seule coquille corrigée sans ambiguïté. */
+function isTransposition(word: string, name: string): boolean {
+  if (word.length !== name.length || word === name) return false;
+  const diff: number[] = [];
+  for (let i = 0; i < word.length; i++) if (word[i] !== name[i]) diff.push(i);
+  return diff.length === 2 && diff[1] === diff[0] + 1 && word[diff[0]] === name[diff[1]] && word[diff[1]] === name[diff[0]];
+}
+
+/**
+ * Le NOM DE LA MARQUE écrit juste partout : une coquille par inversion de deux lettres voisines, dans un texte du
+ * rédacteur, est remplacée par le nom (dans la casse du mot). Rien d'autre n'est touché — un mot seulement proche
+ * (« Night » pour « Light ») reste ce qu'il est. Rend la section et le nombre de corrections.
+ */
+export function fixBrandNameTypos(section: SectionContent, brandName: string): { section: SectionContent; fixed: number } {
+  const names = brandName
+    .split(/\s+/)
+    .map((n) => n.replace(/[^\p{L}\p{N}]/gu, ''))
+    .filter((n) => n.length >= 4);
+  if (!names.length) return { section, fixed: 0 };
+  let fixed = 0;
+  const fixText = (text: string) =>
+    text.replace(/[\p{L}\p{N}]{4,}/gu, (word) => {
+      for (const name of names) {
+        if (isTransposition(word.toLowerCase(), name.toLowerCase())) {
+          fixed++;
+          return word === word.toUpperCase() ? name.toUpperCase() : word[0] === word[0].toUpperCase() ? name[0].toUpperCase() + name.slice(1) : name.toLowerCase();
+        }
+      }
+      return word;
+    });
+  const walk = (value: unknown, key = ''): unknown => {
+    if (typeof value === 'string') return URL_KEYS.has(key) || key === 'icon' || key === 'id' || key === 'kind' ? value : fixText(value);
+    if (Array.isArray(value)) return value.map((v) => walk(v, key));
+    if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value as Record<string, unknown>).map(([k, v]) => [k, walk(v, k)]));
+    return value;
+  };
+  const next = walk(section) as SectionContent;
+  return { section: fixed ? next : section, fixed };
+}
