@@ -531,6 +531,7 @@
       "buildTarget": "Étape de build",
       "buildTargetHint": "Facultatif : l’étape d’un Dockerfile multi-étapes à construire.",
       "watchPaths": "Chemins surveillés",
+      "commandsHint": "Vides : nixpacks les détecte. Dans un monorepo, elles choisissent l’application : build pnpm --filter <nom>... run build, démarrage pnpm --filter <nom> run start, dossier racine laissé à ./ pour construire les paquets partagés.",
       "watchPathsHint": "Un push ne redéploie cette application que s’il modifie l’un de ces fichiers — un motif par ligne (apps/api/**, packages/**, !**/*.md). Vide : à chaque push.",
       "imageName": "Image",
       "imageTag": "Tag",
