@@ -1,5 +1,5 @@
 import { normalizeCreativity, CreativityLevel } from '../../models/creativity.model';
-import { coverContent, exportPptx, PptxMode, sectionHtml, TEXT_BUDGETS, WRITING_RULES } from '@idem/graphic-engine';
+import { coverContent, exportPptx, PptxMode, sectionHtml, slideEssentials, TEXT_BUDGETS, WRITING_RULES } from '@idem/graphic-engine';
 import crypto from 'crypto';
 import { PromptConfig, PromptService } from '../prompt.service';
 import { AI_CONFIG } from '../../config/ai.config';
@@ -329,8 +329,8 @@ export class PitchDeckService extends GenericService {
         };
       }
       // Le brief ne porte QUE le contenu, lu par le destinataire du deck. Une slide est une toile fixe :
-      // le volume est bas (1 à 3 blocs) ; l'auteur du moteur graphique la compose librement.
-      const brief = composeSlideBrief(definition.name, deckType.audience) ?? `Write the "${definition.name}" slide of this pitch deck: one idea, one to three blocks.`;
+      // le volume est bas (1 ou 2 blocs) ; l'auteur du moteur graphique la compose librement.
+      const brief = composeSlideBrief(definition.name, deckType.audience) ?? `Write the "${definition.name}" slide of this pitch deck: one idea, one or two blocks.`;
       // L'INTENTION de la slide : comment elle démontre son message et ce qu'elle peut porter de texte — une
       // indication pour le rédacteur et l'auteur (à tous les crans), jamais un contrôle.
       const plan = SLIDE_VISUAL_PLANS[definition.name];
@@ -344,11 +344,14 @@ export class PitchDeckService extends GenericService {
         template: {
           deliverable: 'pitch-deck',
           sectionId: pageId(definition.name),
-          // Une slide porte une idée : un à trois blocs, jamais plus.
-          volume: '1 to 3',
+          // Une slide porte une idée : un ou deux blocs, jamais plus.
+          volume: '1 to 2',
           contentBrief: brief,
           ...(intent ? { intent } : {}),
-          render: async (slide) => {
+          render: async (written) => {
+            // L'essentiel seulement, garanti par le code : ni chapô, deux blocs de preuve, trois points ; le reste
+            // part dans les notes de l'orateur (rien n'est perdu).
+            const { section: slide } = slideEssentials(written);
             const html = sectionHtml(journal.page(await composeGraphicPage(graphic, slide, position)));
             return slide.notes ? `${html}\n${speakerNotesHtml(slide.notes)}` : html;
           },

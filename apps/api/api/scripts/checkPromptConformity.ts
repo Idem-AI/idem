@@ -157,10 +157,11 @@ console.log('1. Les briefs de gabarit ne décrivent aucune composition');
 
   // Un brief doit nommer les blocs disponibles, sinon le modèle invente une
   // structure que la normalisation écartera.
-  const blockName = new RegExp(`"(${BLOCKS_BY_DELIVERABLE['business-plan'].join('|')})"`);
-  const withoutBlocks = Object.entries({ ...BP_SECTION_BRIEFS, ...SLIDE_BRIEFS })
-    .filter(([, text]) => !blockName.test(text))
-    .map(([name]) => name);
+  const blockName = (deliverable: 'business-plan' | 'pitch-deck') => new RegExp(`"(${BLOCKS_BY_DELIVERABLE[deliverable].join('|')})"`);
+  const withoutBlocks = [
+    ...Object.entries(BP_SECTION_BRIEFS).filter(([, text]) => !blockName('business-plan').test(text)),
+    ...Object.entries(SLIDE_BRIEFS).filter(([, text]) => !blockName('pitch-deck').test(text)),
+  ].map(([name]) => name);
   check('chaque brief nomme les blocs attendus', withoutBlocks.length === 0,
     withoutBlocks.join(', '));
 }

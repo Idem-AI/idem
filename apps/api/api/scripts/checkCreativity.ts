@@ -204,7 +204,7 @@ const run = (n: number) => !only.length || only.includes(n);
             const label = `${orientation}, projet ${project}, ${face.id === 'front' ? 'recto' : 'verso'} (${out.spec.pattern.id})`;
             const html = `${out.result.head ?? ''}${out.result.html}`;
             const markers = [...html.matchAll(/data-field="(\w+)"[^>]*>\{\{(\w+)\}\}/g)];
-            check(`${label} : gabarit à marqueurs, affiché, sans constat bloquant`, (face.id === 'back' || markers.some((m) => m[1] === 'fullName')) && markers.every((m) => m[1] === m[2]) && blockingOf(out).length === 0, blockingOf(out).join(',') || `${markers.length} marqueur(s)`);
+            check(`${label} : gabarit à marqueurs, affiché, sans constat bloquant`, (face.id === 'front' ? markers.every((m) => m[1] === 'tagline') : markers.some((m) => m[1] === 'fullName')) && markers.every((m) => m[1] === m[2]) && blockingOf(out).length === 0, blockingOf(out).join(',') || `${markers.length} marqueur(s)`);
             // Les VRAIES valeurs, plus longues que leurs marqueurs : la carte imprimée doit les tenir.
             const page = await browser.newPage();
             await page.setViewport({ width: orientation === 'landscape' ? 322 : 208, height: orientation === 'landscape' ? 208 : 322 });

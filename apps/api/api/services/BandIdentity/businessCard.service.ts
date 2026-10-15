@@ -44,6 +44,12 @@ export interface GenerateTemplateOptions {
  * mêmes conventions que les autres documents HTML, ce qui permet de réutiliser
  * `sectionEditingService` (sauvegarde + édition IA) sans code spécifique.
  */
+/** La signature de la carte : la première phrase de la description, si elle tient en une ligne (60 signes). */
+function shortTagline(text: string | undefined): string | undefined {
+  const first = (text ?? '').split(/(?<=[.!?])\s/)[0]?.replace(/[.!?]+$/, '').trim();
+  return first && first.length <= 60 ? first : undefined;
+}
+
 export class BusinessCardService extends GenericService {
   private readonly collection = (userId: string) => `users/${userId}/projects`;
 
@@ -291,7 +297,8 @@ export class BusinessCardService extends GenericService {
     const branding = (project.analysisResultModel as any)?.branding;
     const values: Record<string, string | undefined> = {
       companyName: project.name,
-      tagline: (project.longDescription || (project.description ?? '')).split('.')[0],
+      // Une signature, pas une description : la première phrase seulement si elle est courte.
+      tagline: shortTagline(project.longDescription || project.description),
     };
     for (const field of BUSINESS_CARD_FIELDS) {
       const value = (holder as unknown as Record<string, unknown>)[field];

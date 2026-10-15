@@ -252,6 +252,9 @@ export function authorSystem(ctx: DocumentContext): string {
     TAILWIND_SHEET,
     '',
     'CONTENT — every visible word comes from the CONTENT list: write {{key}} where its text goes. Never retype, translate, shorten or invent a text. Show every key (exact data blocks complete, in order). You may add only non-verbal elements (rules, the brand devices, icons that match the meaning of their text, numbering of real steps).',
+    ctx.documentType === 'business-card'
+      ? 'A BUSINESS CARD shows only the essential. Front: the logo, large, centred or on the grid, with at most the tagline. Back: the name, the role and the contact lines in ONE aligned column, the logo small. No icons, no shapes, no pattern band, no QR code, no invented text; generous margins.'
+      : '',
     ctx.bindings === 'markers' ? 'This card is a TEMPLATE shared by several people: each field key in its own element, one line each — lines without a value are removed when printing.' : '',
     '',
     `SYNTAX EXAMPLE (syntax only — compose your own page):\n\`\`\`html\n${flow ? FLOW_EXAMPLE : FIXED_EXAMPLE}\n\`\`\``,

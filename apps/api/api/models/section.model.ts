@@ -61,6 +61,11 @@ export interface SectionModel {
    * les sections d'avant octobre 2026, ou modifiées à la main.
    */
   composition?: SectionComposition;
+  /**
+   * La recherche web qui a nourri la section (sources + synthèse). Une régénération la relit : elle change la
+   * forme, jamais les faits, et ne refait pas d'appel web.
+   */
+  research?: { sources: Array<SectionSource & { snippet?: string; retrievedAt: string }>; digest: string };
   updatedAt?: Date;
 }
 

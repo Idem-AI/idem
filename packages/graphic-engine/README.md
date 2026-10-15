@@ -145,6 +145,15 @@ cadre ni légende ; la palette en aplats avec nom, code et rôle ; l'échelle ty
 Décision du 15/10/2026, après des chartes où l'auteur ajoutait tuiles inventées, cadres et logos minuscules.
 Les textes restent des clés : ces pages se rejouent et se retouchent comme les autres.
 
+### L'essentiel du pitch deck et de la carte de visite
+
+- **Slide** (`slideEssentials`, `src/content/slide-diet.ts`, appelé par l'API avant chaque slide) : pas de chapô,
+  deux blocs au plus (la donnée d'abord : graphique › chiffres › tableau › points ; l'explication en dernier),
+  trois ou quatre points au plus, puis le régime de texte. Ce qui quitte la slide part dans les notes de
+  l'orateur : rien n'est perdu. Budgets resserrés (`TEXT_BUDGETS`) : ~25 mots hors titre.
+- **Carte** : l'essentiel par face, dans la matière même — le recto ne reçoit que la signature (le logo en
+  grand), le verso la personne et ses coordonnées ; ni icône, ni forme, ni QR code.
+
 ## Ce que l'auteur reçoit (contexte compact, identique à tous les crans)
 
 `src/author/prompts.ts` :
@@ -224,7 +233,7 @@ Les constats non bloquants restent dans `result.issues` comme conseils, sans rie
 ## Contrôles
 
 ```
-npm run check --prefix packages/graphic-engine        # 86 vérifications, auteur simulé, Chromium
+npm run check --prefix packages/graphic-engine        # 91 vérifications, auteur simulé, Chromium
 npm run check:fast --prefix packages/graphic-engine   # sans Chromium
 npm run schemas --prefix packages/graphic-engine      # régénère contracts/*.schema.json
 ```

@@ -33,7 +33,9 @@ import { createDocument, GraphicRenderError, renderSingle } from '../src/engine'
 import { applyTextEdits } from '../src/runtime/content-map';
 import { exportPptx } from '../src/export/pptx';
 import { sectionHtml } from '../src/adapters/sections';
-import { BRANDS, CARD_FRONT, FINANCE_BP, MARKET } from './fixtures';
+import { BRANDS, CARD_BACK, CARD_FRONT, FINANCE_BP, MARKET } from './fixtures';
+import { slideEssentials } from '../src/content/slide-diet';
+import { TEXT_BUDGETS } from '../src/content/analyze';
 
 const fast = process.argv.includes('--fast');
 let failures = 0;
@@ -116,8 +118,10 @@ async function main(): Promise<void> {
   const map = buildContentMap(MARKET);
   ok('titre, sur-titre, chapeau et chiffres-clés ont leur clé', ['title', 'kicker', 'lede', 'b1.items.0.value', 'b1.items.2.label'].every((k) => map.entries.has(k)));
   ok('le graphique est une primitive (ses données ne passent pas par l’auteur)', map.primitives.has('b2') && !map.listing.includes('1950') && map.listing.includes('<idem-chart data-block="b2">'));
-  const markers = buildContentMap(CARD_FRONT, 'markers');
+  const markers = buildContentMap(CARD_BACK, 'markers');
   ok('carte en gabarit : les champs restent des marqueurs', markers.markers.has('fullName') && markers.entries.get('email')?.value === '{{email}}');
+  const recto = buildContentMap(CARD_FRONT, 'markers');
+  ok('carte : l’essentiel par face — le recto montre la marque (signature au plus), le verso la personne et ses coordonnées', [...recto.markers].join() === 'tagline' && !markers.markers.has('tagline') && !markers.markers.has('companyName'));
   const exp = expandPage('<p class="x">{{title}}</p><p>{{fullName}}</p><a href="mailto:{{email}}">x</a><p>{{nope}}</p>', { ...markers, entries: new Map([...markers.entries, ['title', { key: 'title', value: 'A & B <c>', kind: 'text' as const }]]) }, buildTokens({ brand: BRANDS.kora, format: 'card-landscape' }), FORMATS['card-landscape'], { sectionId: 'front', locale: 'fr', engine: 'x' });
   ok('texte échappé, marqueur dans un élément data-field, marqueur gardé dans un attribut, clé inconnue retirée', exp.html.includes('A &amp; B &lt;c&gt;') && exp.html.includes('<span data-field="fullName">{{fullName}}</span>') && exp.html.includes('mailto:{{email}}') && exp.unknown.includes('nope'));
   ok('la racine porte les cotes du support (85 × 55 mm)', /class="ge-page [^"]*w-\[85mm\] h-\[55mm\]/.test(exp.html));
@@ -145,13 +149,13 @@ async function main(): Promise<void> {
   for (const chartType of types) {
     const multi = !['pie', 'doughnut'].includes(chartType);
     const svg = chartHtml({ id: 'c', kind: 'chart', chartType, labels: ['A', 'B', 'C', 'D'], series: multi ? [{ name: 'S1', data: [12, 30, 22, 41] }, { name: 'S2', data: [8, 14, 19, 25] }] : [{ name: 'S', data: [40, 30, 20, 10] }], readingKey: 'x', unit: '%' }, kora, { className: 'w-full' });
-    ok(`${chartType} : SVG dessiné, palette déclarée (recoloration de marque)`, svg.includes('<svg') && /data-ge-palette="#[0-9a-f]{6}/i.test(svg) && !/NaN|undefined/.test(svg));
+    ok(`${chartType} : Chart.js seul (aucun SVG de repli), palette déclarée (recoloration de marque)`, svg.includes('<canvas data-idem-chart=') && !svg.includes('<svg') && /data-ge-palette="#[0-9a-f]{6}/i.test(svg) && !/NaN|undefined/.test(svg));
   }
   const base = { id: 'c', kind: 'chart' as const, chartType: 'bar' as const, labels: ['2024', '2025', '2026'], series: [{ name: 'CA', data: [10, 20, 35] }], readingKey: 'x' };
   ok('l’auteur choisit une autre représentation des mêmes données (data-type)', chartHtml(base, kora, { type: 'line' }).includes('data-ge-chart="line"') && chartHtml(base, kora, { type: 'doughnut' }).includes('data-ge-chart="doughnut"'));
   ok('une représentation qui trahirait les données est refusée (deux séries en camembert)', chartHtml({ ...base, series: [...base.series, { name: 'B', data: [1, 2, 3] }] }, kora, { type: 'pie' }).includes('data-ge-chart="bar"'));
   const hi = chartHtml(base, kora, { highlight: '2026' });
-  ok('une catégorie mise en avant (data-highlight), les autres en retrait', (hi.match(/fill-opacity="0.32"/g) ?? []).length === 2);
+  ok('une catégorie mise en avant (data-highlight), les autres en retrait', (hi.match(/#[0-9a-f]{6}52&quot;/g) ?? []).length === 2);
   const table = FINANCE_BP.blocks.find((b) => b.kind === 'table');
   if (table && table.kind === 'table') {
     const t = tableHtml(table, { className: '[&_th]:bg-brand-primary' });
@@ -175,6 +179,19 @@ async function main(): Promise<void> {
   ok('un graphique ne dépasse jamais sa place (hauteur plafonnée par son conteneur)', chartHtml(base, kora, {}).includes('max-h-full'));
   const sys = authorSystem({ documentType: 'pitch-deck', locale: 'fr', tokens: kora, format: FORMATS['slide-16x9'], allowDark: false, bindings: 'values' });
   ok('consignes : logo à la même place, pas de numéros géants, pas de cadre vide pour une image absente, rien coupé par le bord', /SAME place/.test(sys) && /No giant faded numerals/.test(sys) && /never leave an empty frame/.test(sys) && /nothing cut by the edge/.test(sys));
+
+  section('§7 quinquies L’essentiel d’une slide, garanti par le code');
+  const heavy: SectionContent = { id: 'fin', title: 'Le chiffre d’affaires triple en trois ans', lede: 'Une explication de trop.', blocks: [
+    { id: 'a1', kind: 'assumption', statement: 'Panier moyen stable', basis: 'Observé sur six mois.' },
+    { id: 'c1', kind: 'chart', chartType: 'bar', labels: ['2026', '2027', '2028'], series: [{ name: 'CA', values: [10, 20, 30] }] },
+    { id: 'p1', kind: 'points', items: [{ label: 'Un' }, { label: 'Deux' }, { label: 'Trois' }, { label: 'Quatre' }, { label: 'Cinq' }] },
+    { id: 'q1', kind: 'quote', text: 'Une citation en plus.' },
+  ] } as SectionContent;
+  const lean = slideEssentials(heavy, { budget: TEXT_BUDGETS.data }).section;
+  ok('ni chapô, deux blocs au plus (la donnée d’abord), quatre points au plus', !lean.lede && lean.blocks.map((b) => b.id).join() === 'c1,p1' && (lean.blocks[1] as { items: unknown[] }).items.length === 4);
+  ok('rien n’est perdu : ce qui quitte la slide passe dans les notes de l’orateur', ['Une explication de trop.', 'Panier moyen stable', 'Une citation en plus.', 'Cinq'].every((t) => lean.notes?.includes(t)));
+  ok('une slide déjà sobre reste intacte', JSON.stringify(slideEssentials(MARKET).section.blocks) === JSON.stringify(MARKET.blocks));
+  ok('consigne de la carte : l’essentiel par face, sans icône ni forme', /BUSINESS CARD shows only the essential/.test(authorSystem({ documentType: 'business-card', locale: 'fr', tokens: kora, format: FORMATS['card-landscape'], allowDark: false, bindings: 'markers' })));
 
   section('§7 quater Défauts relevés sur une charte réelle (15/10/2026)');
   const charter: SectionContent = { id: 'logos', title: 'Déclinaison sur fond sombre', blocks: [{ id: 'sys-1', kind: 'logoDisplay', origin: 'system', variants: [{ url: 'data:image/png;base64,iVBORw0KGgo=', label: 'Sur fond sombre', background: 'dark' }] }, { id: 'sys-2', kind: 'patternGrid', origin: 'system', patterns: [{ name: 'Motif principal', motif: 'dots', ink: '#2d6a4f', ground: '#f9fbfb', tile: 103 }] }, { id: 'sys-3', kind: 'mockupShowcase', origin: 'system', items: [{ url: 'data:image/png;base64,iVBORw0KGgo=', label: 'LinkedIn', ratio: 1 }, { url: 'data:image/png;base64,iVBORw0KGgo=', label: 'Facebook', ratio: 1.9 }] }] };
@@ -261,7 +278,7 @@ async function main(): Promise<void> {
   const notesXml = async (b: Buffer) => (await (await JSZip.loadAsync(b)).file('ppt/notesSlides/notesSlide2.xml')?.async('string')) ?? '';
   ok('les notes de l’orateur passent dans le fichier (deux modes)', (await notesXml(editable.buffer)).includes('La marge atteint 60') && (await notesXml(fidelity.buffer)).includes('La marge atteint 60'));
 
-  const card = await renderSingle({ documentType: 'business-card', format: 'card-landscape', brand: BRANDS.kofi, seed: 'card', bindings: 'markers', content: cardFaces({ binding: 'markers' }).front });
+  const card = await renderSingle({ documentType: 'business-card', format: 'card-landscape', brand: BRANDS.kofi, seed: 'card', bindings: 'markers', content: cardFaces({ binding: 'markers' }).back });
   ok('carte : gabarit à marqueurs (data-field)', /data-field="fullName"[^>]*>\{\{fullName\}\}|<span data-field="fullName">\{\{fullName\}\}/.test(card.result.html));
 
   for (const level of ['low', 'medium', 'high', 'ultra'] as const) {

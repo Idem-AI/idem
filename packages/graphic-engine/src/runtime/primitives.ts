@@ -1,7 +1,7 @@
 /**
  * LES PRIMITIVES — ce que le code dessine pour l'auteur, parce que l'exactitude l'exige :
  *
- *   <idem-chart data-block="b3" class="…">   un graphique SVG des vraies données (9 types), palette de la marque
+ *   <idem-chart data-block="b3" class="…">   un graphique Chart.js des vraies données (9 types), palette de la marque
  *   <idem-table data-block="b4" class="…">   le tableau, cellule pour cellule ; l'auteur le stylise par
  *                                            `[&_th]:…`, `[&_td]:…`, `[&_tr:nth-child(even)]:…` sur la balise
  *   <idem-logo variant="primary" class="…">  le logo de la marque (primary, onLight, onDark, mono, icon)
@@ -20,162 +20,9 @@ import { motifCss } from '../design-system/kit/motifs';
 const esc = (v: string) => v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const cls = (c: string | undefined) => (c && c.trim() ? ` class="${esc(c.trim())}"` : '');
 let numLocale = 'fr-FR';
-const num = (v: number) => new Intl.NumberFormat(numLocale, { maximumFractionDigits: Math.abs(v) >= 100 ? 0 : 1 }).format(v);
-const r1 = (v: number) => Math.round(v * 10) / 10;
 
 type Chart = Extract<Block, { kind: 'chart' }>;
 type Table = Extract<Block, { kind: 'table' }>;
-
-/** Une échelle « ronde » de 0 (ou du minimum négatif) au maximum. */
-function niceScale(min: number, max: number, ticks = 5): { lo: number; hi: number; step: number } {
-  const lo0 = Math.min(0, min);
-  const span = Math.max(1e-9, max - lo0);
-  const raw = span / ticks;
-  const mag = Math.pow(10, Math.floor(Math.log10(raw)));
-  const step = [1, 2, 2.5, 5, 10].map((m) => m * mag).find((s) => s >= raw) ?? raw;
-  return { lo: Math.floor(lo0 / step) * step, hi: Math.ceil(max / step) * step || step, step };
-}
-
-function legend(names: string[], colors: string[], x: number, y: number, width: number): string {
-  if (names.length < 2) return '';
-  const items: string[] = [];
-  let cx = x;
-  let cy = y;
-  for (let i = 0; i < names.length; i++) {
-    const w = 22 + Math.min(180, names[i].length * 7.4);
-    if (cx + w > x + width && cx > x) {
-      cx = x;
-      cy += 20;
-    }
-    items.push(`<rect x="${r1(cx)}" y="${r1(cy - 9)}" width="11" height="11" rx="2" fill="${colors[i]}"/><text x="${r1(cx + 16)}" y="${r1(cy)}" font-size="13">${esc(names[i])}</text>`);
-    cx += w + 10;
-  }
-  return `<g fill="currentColor">${items.join('')}</g>`;
-}
-
-function cartesian(c: Chart, colors: string[], W: number, H: number, focus = -1): string {
-  const dim = (i: number) => (focus >= 0 && i !== focus ? ' fill-opacity="0.32"' : '');
-  const horizontal = c.chartType === 'horizontalBar';
-  const stacked = c.chartType === 'stacked';
-  const n = c.labels.length;
-  const legendH = c.series.length > 1 ? 30 : 0;
-  const values = stacked ? c.labels.map((_, i) => c.series.reduce((s, se) => s + Math.max(0, se.data[i] ?? 0), 0)) : c.series.flatMap((s) => s.data);
-  const { lo, hi, step } = niceScale(Math.min(...values), Math.max(...values));
-  const unit = c.unit ? ` ${c.unit}` : '';
-  const longest = Math.max(...c.labels.map((l) => l.length));
-  const left = horizontal ? Math.min(W * 0.34, 16 + longest * 7) : 14 + Math.max(...[lo, hi].map((v) => (num(v) + unit).length)) * 7.5;
-  const top = 12 + legendH;
-  const bottom = horizontal ? 26 : n > 8 || longest > 10 ? 48 : 30;
-  const pw = W - left - 14;
-  const ph = H - top - bottom;
-  const out: string[] = [];
-  out.push(legend(c.series.map((s) => s.name), colors, left, 16, pw));
-  // Grille et graduations.
-  for (let v = lo; v <= hi + step / 2; v += step) {
-    const t = (v - lo) / (hi - lo || 1);
-    if (horizontal) {
-      const x = left + t * pw;
-      out.push(`<line x1="${r1(x)}" y1="${top}" x2="${r1(x)}" y2="${top + ph}" stroke="currentColor" stroke-opacity="0.14"/><text x="${r1(x)}" y="${top + ph + 18}" font-size="12" text-anchor="middle" fill="currentColor" fill-opacity="0.75">${esc(num(v))}</text>`);
-    } else {
-      const y = top + ph - t * ph;
-      out.push(`<line x1="${left}" y1="${r1(y)}" x2="${left + pw}" y2="${r1(y)}" stroke="currentColor" stroke-opacity="0.14"/><text x="${left - 8}" y="${r1(y + 4)}" font-size="12" text-anchor="end" fill="currentColor" fill-opacity="0.75">${esc(num(v) + (v === hi ? unit : ''))}</text>`);
-    }
-  }
-  const scale = (v: number) => ((v - lo) / (hi - lo || 1)) * (horizontal ? pw : ph);
-  const zero = scale(0);
-  const band = (horizontal ? ph : pw) / n;
-  if (c.chartType === 'line' || c.chartType === 'area') {
-    c.series.forEach((s, si) => {
-      const pts = s.data.map((v, i) => [left + band * (i + 0.5), top + ph - scale(v)] as const);
-      const d = pts.map(([x, y], i) => `${i ? 'L' : 'M'}${r1(x)},${r1(y)}`).join(' ');
-      if (c.chartType === 'area') out.push(`<path d="${d} L${r1(pts[pts.length - 1][0])},${r1(top + ph - zero)} L${r1(pts[0][0])},${r1(top + ph - zero)} Z" fill="${colors[si]}" fill-opacity="${c.series.length > 1 ? 0.22 : 0.3}"/>`);
-      out.push(`<path d="${d}" fill="none" stroke="${colors[si]}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>`);
-      if (pts.length <= 14) pts.forEach(([x, y], i) => out.push(`<circle cx="${r1(x)}" cy="${r1(y)}" r="${i === focus ? 6.5 : 4}" fill="${colors[si]}"${dim(i)}/>`));
-    });
-  } else {
-    const groups = stacked || c.series.length === 1 ? 1 : c.series.length;
-    const inner = band * 0.72;
-    const bw = inner / groups;
-    for (let i = 0; i < n; i++) {
-      let acc = 0;
-      c.series.forEach((s, si) => {
-        const v = s.data[i] ?? 0;
-        const len = Math.abs(scale(v) - zero);
-        const from = stacked ? scale(acc) : Math.min(scale(v), zero);
-        if (stacked) acc += Math.max(0, v);
-        const offset = band * i + (band - inner) / 2 + (stacked ? 0 : bw * si);
-        if (horizontal) out.push(`<rect x="${r1(left + from)}" y="${r1(top + offset)}" width="${r1(Math.max(0.5, len))}" height="${r1(Math.max(1, (stacked ? inner : bw) - 2))}" rx="2" fill="${colors[si]}"${dim(i)}/>`);
-        else out.push(`<rect x="${r1(left + offset)}" y="${r1(top + ph - from - len)}" width="${r1(Math.max(1, (stacked ? inner : bw) - 2))}" height="${r1(Math.max(0.5, len))}" rx="2" fill="${colors[si]}"${dim(i)}/>`);
-      });
-      if (c.series.length === 1 && n <= 12) {
-        const v = c.series[0].data[i] ?? 0;
-        if (horizontal) out.push(`<text x="${r1(left + Math.max(scale(v), zero) + 6)}" y="${r1(top + band * (i + 0.5) + 4)}" font-size="12" fill="currentColor">${esc(num(v))}</text>`);
-        else out.push(`<text x="${r1(left + band * (i + 0.5))}" y="${r1(top + ph - Math.max(scale(v), zero) - 6)}" font-size="12" text-anchor="middle" fill="currentColor">${esc(num(v))}</text>`);
-      }
-    }
-  }
-  // Étiquettes de catégories.
-  c.labels.forEach((label, i) => {
-    const text = esc(label.length > 18 ? `${label.slice(0, 17)}…` : label);
-    if (horizontal) out.push(`<text x="${left - 8}" y="${r1(top + band * (i + 0.5) + 4)}" font-size="12.5" text-anchor="end" fill="currentColor">${text}</text>`);
-    else if (bottom > 40) out.push(`<text transform="translate(${r1(left + band * (i + 0.5))},${top + ph + 14}) rotate(-32)" font-size="12" text-anchor="end" fill="currentColor">${text}</text>`);
-    else out.push(`<text x="${r1(left + band * (i + 0.5))}" y="${top + ph + 19}" font-size="12.5" text-anchor="middle" fill="currentColor">${text}</text>`);
-  });
-  out.push(`<line x1="${left}" y1="${r1(top + ph - (horizontal ? 0 : zero))}" x2="${left + pw}" y2="${r1(top + ph - (horizontal ? 0 : zero))}" stroke="currentColor" stroke-opacity="0.4"/>`);
-  return out.join('');
-}
-
-function radial(c: Chart, colors: string[], W: number, H: number, hi = -1): string {
-  const s = c.series[0];
-  const total = s.data.reduce((a, b) => a + Math.max(0, b), 0) || 1;
-  const R = Math.min(H - 24, W * 0.5) / 2;
-  const cx = R + 12;
-  const cy = H / 2;
-  const hole = c.chartType === 'doughnut' ? R * 0.58 : 0;
-  const out: string[] = [];
-  let a = -Math.PI / 2;
-  s.data.forEach((v, i) => {
-    const sweep = (Math.max(0, v) / total) * Math.PI * 2;
-    if (sweep <= 0) return;
-    const b = a + Math.min(sweep, Math.PI * 2 - 1e-4);
-    const large = sweep > Math.PI ? 1 : 0;
-    const p = (ang: number, r: number) => `${r1(cx + r * Math.cos(ang))},${r1(cy + r * Math.sin(ang))}`;
-    const d = hole ? `M${p(a, R)} A${R},${R} 0 ${large} 1 ${p(b, R)} L${p(b, hole)} A${r1(hole)},${r1(hole)} 0 ${large} 0 ${p(a, hole)} Z` : `M${cx},${cy} L${p(a, R)} A${R},${R} 0 ${large} 1 ${p(b, R)} Z`;
-    out.push(`<path d="${d}" fill="${colors[i]}"${hi >= 0 && i !== hi ? ' fill-opacity="0.32"' : ''} stroke="var(--color-ground, #fff)" stroke-width="2"/>`);
-    a += sweep;
-  });
-  // Légende : chaque part, sa valeur et son pourcentage.
-  const lx = cx + R + 28;
-  const rows = s.data.length;
-  const lh = Math.min(28, (H - 20) / rows);
-  s.data.forEach((v, i) => {
-    const y = cy - (rows * lh) / 2 + lh * i + lh / 2;
-    out.push(`<rect x="${r1(lx)}" y="${r1(y - 7)}" width="13" height="13" rx="3" fill="${colors[i]}"/><text x="${r1(lx + 20)}" y="${r1(y + 4)}" font-size="13.5" fill="currentColor">${esc(c.labels[i] ?? '')} <tspan fill-opacity="0.7">${esc(num(v))}${c.unit ? ` ${esc(c.unit)}` : ''} · ${Math.round((Math.max(0, v) / total) * 100)} %</tspan></text>`);
-  });
-  return out.join('');
-}
-
-function radar(c: Chart, colors: string[], W: number, H: number): string {
-  const n = c.labels.length;
-  const legendH = c.series.length > 1 ? 30 : 0;
-  const R = Math.min(W * 0.36, (H - legendH) / 2 - 30);
-  const cx = W / 2;
-  const cy = legendH + (H - legendH) / 2;
-  const max = Math.max(...c.series.flatMap((s) => s.data), 1);
-  const pt = (i: number, r: number) => [cx + r * Math.cos(-Math.PI / 2 + (i * 2 * Math.PI) / n), cy + r * Math.sin(-Math.PI / 2 + (i * 2 * Math.PI) / n)] as const;
-  const out: string[] = [legend(c.series.map((s) => s.name), colors, 16, 16, W - 32)];
-  for (const f of [0.25, 0.5, 0.75, 1]) out.push(`<polygon points="${c.labels.map((_, i) => pt(i, R * f).map(r1).join(',')).join(' ')}" fill="none" stroke="currentColor" stroke-opacity="0.14"/>`);
-  c.labels.forEach((label, i) => {
-    const [x, y] = pt(i, R);
-    const [lx, ly] = pt(i, R + 16);
-    out.push(`<line x1="${cx}" y1="${cy}" x2="${r1(x)}" y2="${r1(y)}" stroke="currentColor" stroke-opacity="0.14"/><text x="${r1(lx)}" y="${r1(ly + 4)}" font-size="12.5" text-anchor="${Math.abs(lx - cx) < 8 ? 'middle' : lx > cx ? 'start' : 'end'}" fill="currentColor">${esc(label)}</text>`);
-  });
-  c.series.forEach((s, si) => {
-    const pts = s.data.map((v, i) => pt(i, (Math.max(0, v) / max) * R).map(r1).join(',')).join(' ');
-    out.push(`<polygon points="${pts}" fill="${colors[si]}" fill-opacity="0.2" stroke="${colors[si]}" stroke-width="2.5"/>`);
-  });
-  return out.join('');
-}
 
 /** Les représentations qu'une donnée admet : l'auteur choisit, le code refuse ce qui la trahirait. */
 function representable(c: Chart, wanted: string | undefined): Chart['chartType'] {
@@ -190,10 +37,10 @@ function representable(c: Chart, wanted: string | undefined): Chart['chartType']
 }
 
 /**
- * Un graphique : une figure SVG qui prend la place que l'auteur lui donne (`class`, `data-aspect="16/9"`), sans
- * jamais la dépasser (sa hauteur suit sa largeur, plafonnée par son conteneur). L'auteur
+ * Un graphique : TOUJOURS Chart.js (aucun dessin de repli). Le canvas prend la place que l'auteur lui donne
+ * (`class`, `data-aspect="16/9"`), sa hauteur suit sa largeur et reste plafonnée par son conteneur. L'auteur
  * peut choisir une autre représentation des MÊMES données (`data-type`) et mettre une catégorie en avant
- * (`data-highlight`) ; les valeurs, elles, ne passent jamais par lui.
+ * (`data-highlight`) ; les valeurs, elles, ne passent jamais par lui : la configuration est écrite par le code.
  */
 export function chartHtml(block: Chart, tokens: DesignTokens, o: { className?: string; aspect?: string; surface?: string; locale?: string; type?: string; highlight?: string }): string {
   numLocale = o.locale === 'en' ? 'en-US' : o.locale && /^[a-z]{2}/.test(o.locale) ? o.locale : 'fr-FR';
@@ -207,8 +54,50 @@ export function chartHtml(block: Chart, tokens: DesignTokens, o: { className?: s
   const [aw, ah] = (o.aspect ?? '').split('/').map(Number);
   const W = 640;
   const H = aw > 0 && ah > 0 ? Math.round(Math.min(1200, Math.max(200, (W * ah) / aw))) : pie ? 300 : c.chartType === 'radar' ? 420 : 360;
-  const body = pie ? radial(c, palette.colors, W, H, hi) : c.chartType === 'radar' ? radar(c, palette.colors, W, H) : cartesian(c, palette.colors, W, H, hi);
-  return `<figure data-ge-chart="${esc(c.chartType)}" data-ge-block="${esc(c.id)}" data-ge-palette="${palette.colors.join(',')}" data-ge-palette-mode="${mode}" data-ge-surface="${surface}" class="${esc(`flex min-h-0 min-w-0 items-center justify-center ${o.className ?? ''}`.trim())}"><svg viewBox="0 0 ${W} ${H}" width="100%" preserveAspectRatio="xMidYMid meet" role="img" aria-label="${esc(c.title ?? c.readingKey)}" class="block h-auto max-h-full w-full overflow-visible">${body}</svg></figure>`;
+  const config = chartJsConfig(c, palette.colors, tokens, hi, surface);
+  const label = esc(c.title ?? c.readingKey);
+  // La boîte porte le ratio (la page se mesure avant que Chart.js ne dessine) ; le canvas la remplit.
+  return `<figure data-ge-chart="${esc(c.chartType)}" data-ge-block="${esc(c.id)}" data-ge-palette="${palette.colors.join(',')}" data-ge-palette-mode="${mode}" data-ge-surface="${surface}" class="${esc(`flex min-h-0 min-w-0 items-center justify-center ${o.className ?? ''}`.trim())}"><div class="relative w-full max-h-full" style="aspect-ratio:${W}/${H}"><canvas data-idem-chart="${esc(JSON.stringify(config))}" role="img" aria-label="${label}" class="absolute inset-0 h-full w-full"></canvas></div></figure>`;
+}
+
+/** La configuration Chart.js des mêmes données, aux couleurs et à la police de la marque (sans fonction : du JSON). */
+function chartJsConfig(c: Chart, colors: string[], tokens: DesignTokens, hi: number, surface: string): Record<string, unknown> {
+  const pie = c.chartType === 'pie' || c.chartType === 'doughnut';
+  const dimmed = (hex: string, i: number) => (hi >= 0 && i !== hi ? `${hex}52` : hex);
+  const ink = tokens.color.ink;
+  const font = { family: tokens.font.bodyStack, size: 12 };
+  const legend = { display: pie || c.series.length > 1, position: pie ? 'right' : 'top', align: 'start', labels: { color: ink, font, boxWidth: 12, boxHeight: 12, usePointStyle: true, pointStyle: 'rectRounded' } };
+  const base = { locale: numLocale, animation: false, responsive: true, maintainAspectRatio: false, color: ink, font, plugins: { legend, tooltip: { enabled: false }, title: { display: false } } };
+  if (pie) {
+    const s = c.series[0];
+    return {
+      type: c.chartType,
+      data: { labels: c.labels, datasets: [{ label: s.name, data: s.data, backgroundColor: s.data.map((_, i) => dimmed(colors[i], i)), borderColor: surface, borderWidth: 2 }] },
+      options: { ...base, ...(c.chartType === 'doughnut' ? { cutout: '58%' } : {}) },
+    };
+  }
+  if (c.chartType === 'radar') {
+    return {
+      type: 'radar',
+      data: { labels: c.labels, datasets: c.series.map((s, si) => ({ label: s.name, data: s.data, borderColor: colors[si], backgroundColor: `${colors[si]}33`, borderWidth: 2.5, pointRadius: 3, pointBackgroundColor: colors[si] })) },
+      options: { ...base, scales: { r: { beginAtZero: true, grid: { color: tokens.color.rule }, angleLines: { color: tokens.color.rule }, pointLabels: { color: ink, font }, ticks: { display: false } } } },
+    };
+  }
+  const line = c.chartType === 'line' || c.chartType === 'area';
+  const horizontal = c.chartType === 'horizontalBar';
+  const stacked = c.chartType === 'stacked';
+  const datasets = c.series.map((s, si) =>
+    line
+      ? { label: s.name, data: s.data, borderColor: colors[si], backgroundColor: `${colors[si]}${c.series.length > 1 ? '38' : '4d'}`, fill: c.chartType === 'area' ? 'origin' : false, tension: 0.3, borderWidth: 3, pointRadius: s.data.map((_, i) => (i === hi ? 6.5 : s.data.length <= 14 ? 4 : 0)), pointBackgroundColor: colors[si] }
+      : { label: s.name, data: s.data, backgroundColor: c.series.length === 1 ? s.data.map((_, i) => dimmed(colors[si], i)) : colors[si], borderRadius: 3, categoryPercentage: 0.72, barPercentage: 0.94 },
+  );
+  const valueAxis = { beginAtZero: true, stacked, grid: { color: tokens.color.rule }, border: { display: false }, ticks: { color: tokens.color.muted, font }, ...(c.unit ? { title: { display: true, text: c.unit, color: tokens.color.muted, font } } : {}) };
+  const categoryAxis = { stacked, grid: { display: false }, border: { color: tokens.color.ruleStrong }, ticks: { color: ink, font, autoSkip: false, maxRotation: 32 } };
+  return {
+    type: line ? 'line' : 'bar',
+    data: { labels: c.labels, datasets },
+    options: { ...base, ...(horizontal ? { indexAxis: 'y' } : {}), scales: horizontal ? { x: valueAxis, y: categoryAxis } : { x: categoryAxis, y: valueAxis } },
+  };
 }
 
 const NUMERIC = /^[\s(+−-]*[\d\s.,]+\s*(%|[A-Za-z€$£₦]{0,4}|F\s?CFA|FCFA|XAF|XOF)?\)?\s*$/;
