@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, inject, input, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
@@ -21,20 +21,20 @@ const POLL_INTERVAL_MS = 10_000;
   imports: [RouterLink, DecimalPipe, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <a
-      class="mb-4 inline-flex items-center gap-2 text-sm"
-      style="color:var(--color-text-secondary);"
-      [routerLink]="['/applications', uuid]"
-    >
-      <i class="pi pi-chevron-left text-[10px]"></i>
-      {{ 'insights.backToApplication' | translate }}
-    </a>
+    @if (!embedded()) {
+      <a class="mb-4 inline-flex items-center gap-2 text-sm" style="color:var(--color-text-secondary);" [routerLink]="['/applications', uuid]">
+        <i class="pi pi-chevron-left text-[10px]"></i>
+        {{ 'insights.backToApplication' | translate }}
+      </a>
+    }
 
     <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
       <div>
-        <h1 class="heading-serif" style="font-size:32px;font-weight:700;color:var(--color-text-primary);">
-          {{ 'insights.title' | translate }}
-        </h1>
+        @if (!embedded()) {
+          <h1 class="heading-serif" style="font-size:32px;font-weight:700;color:var(--color-text-primary);">
+            {{ 'insights.title' | translate }}
+          </h1>
+        }
         <p class="mt-1 text-sm" style="color:var(--color-text-secondary);">
           {{ 'insights.liveHint' | translate }}
         </p>
@@ -113,6 +113,9 @@ export class ApplicationInsightsComponent implements OnInit, OnDestroy {
   private api = inject(ApiService);
   private route = inject(ActivatedRoute);
   private translate = inject(TranslateService);
+
+  /** Shown as a tab of the application page: no back link, no page title. */
+  readonly embedded = input(false);
 
   protected uuid = '';
   protected readonly containers = signal<ContainerUsage[]>([]);

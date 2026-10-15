@@ -28,7 +28,10 @@ import { EnvVar } from '../../../shared/models/ideploy.models';
           @for (i of [1, 2, 3]; track i) { <div class="skeleton h-5 rounded"></div> }
         </div>
       } @else if (vars().length === 0) {
-        <p class="px-5 py-6 text-center text-sm" style="color:var(--color-text-secondary);">{{ 'applications.detail.noEnvVars' | translate }}</p>
+        <div class="px-5 py-6 text-sm" style="color:var(--color-text-secondary);">
+          <p>{{ 'applications.detail.noEnvVars' | translate }}</p>
+          <p class="mt-2 text-xs">{{ 'applications.detail.envExample' | translate }} <code class="font-mono" style="color:var(--color-text-primary);">DATABASE_URL</code>, <code class="font-mono" style="color:var(--color-text-primary);">STRIPE_SECRET_KEY</code>, <code class="font-mono" style="color:var(--color-text-primary);">NODE_ENV=production</code></p>
+        </div>
       } @else {
         <ul>
           @for (env of vars(); track env.key) {
@@ -48,6 +51,17 @@ import { EnvVar } from '../../../shared/models/ideploy.models';
             </li>
           }
         </ul>
+      }
+
+      @if (changed()) {
+        <div class="flex flex-wrap items-center gap-3 px-5 py-3 text-sm" role="status" style="border-top:1px solid var(--glass-border-subtle);">
+          <i class="pi pi-info-circle text-xs" style="color:var(--color-primary-500);" aria-hidden="true"></i>
+          <span class="flex-1">{{ 'applications.detail.envRedeploy' | translate }}</span>
+          <button type="button" class="outer-button button-sm" [disabled]="redeploying()" (click)="redeploy()">
+            @if (redeploying()) { <idem-loader size="xs" /> }
+            {{ 'applications.detail.redeployNow' | translate }}
+          </button>
+        </div>
       }
 
       <form class="grid gap-3 px-5 py-4 sm:grid-cols-[1fr_1.5fr_auto] sm:items-end" style="background:var(--glass-bg-light);" [formGroup]="form" (ngSubmit)="add()">
@@ -79,6 +93,9 @@ export class AppEnvTabComponent implements OnInit {
   protected readonly saving = signal(false);
   protected readonly removing = signal<string | null>(null);
   protected readonly revealed = signal<Set<string>>(new Set());
+  /** A variable changed since the last deployment: it only reaches the app with the next one. */
+  protected readonly changed = signal(false);
+  protected readonly redeploying = signal(false);
 
   protected readonly form = this.fb.nonNullable.group({
     key: ['', Validators.required],
@@ -117,9 +134,21 @@ export class AppEnvTabComponent implements OnInit {
       next: () => {
         this.form.reset();
         this.saving.set(false);
+        this.changed.set(true);
         this.load();
       },
       error: () => this.saving.set(false),
+    });
+  }
+
+  protected redeploy(): void {
+    this.redeploying.set(true);
+    this.api.deploy(this.uuid()).subscribe({
+      next: () => {
+        this.redeploying.set(false);
+        this.changed.set(false);
+      },
+      error: () => this.redeploying.set(false),
     });
   }
 
@@ -129,6 +158,7 @@ export class AppEnvTabComponent implements OnInit {
       next: () => {
         this.vars.update((list) => list.filter((e) => e.key !== env.key));
         this.removing.set(null);
+        this.changed.set(true);
         this.countChange.emit(this.vars().length);
       },
       error: () => this.removing.set(null),

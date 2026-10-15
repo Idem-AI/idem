@@ -28,7 +28,7 @@ const POLL_INTERVAL_MS = 3_000;
     <a
       class="mb-4 inline-flex items-center gap-2 text-sm"
       style="color:var(--color-text-secondary);"
-      [routerLink]="['/applications', appUuid, 'pipeline']"
+      [routerLink]="['/applications', appUuid]" [queryParams]="{ tab: 'pipeline' }"
     >
       <i class="pi pi-chevron-left text-[10px]"></i>
       {{ 'pipeline.detail.backToPipeline' | translate }}

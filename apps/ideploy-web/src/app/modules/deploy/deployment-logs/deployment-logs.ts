@@ -43,6 +43,20 @@ import { IdemLoaderComponent } from '@idem/shared-loader/angular';
                   <i class="pi pi-sitemap mr-1" aria-hidden="true"></i>{{ deployment().application_git_branch || 'main' }}
                 </span>
               </p>
+              @if (deployment().application_urls?.length) {
+                <!-- Where it answers: the IDEM address first, the automatic one beside it. -->
+                <p class="mt-2 text-sm">
+                  <a class="font-mono font-semibold hover:underline" style="color:var(--color-primary-500);" [href]="deployment().application_urls[0]" target="_blank" rel="noopener noreferrer">{{ bare(deployment().application_urls[0]) }}</a>
+                </p>
+                @if (deployment().application_urls.length > 1) {
+                  <p class="mt-0.5 text-xs" style="color:var(--color-text-tertiary);">
+                    {{ 'deploy.alsoAt' | translate }}
+                    @for (u of deployment().application_urls.slice(1); track u; let last = $last) {
+                      <a class="font-mono hover:underline" [href]="u" target="_blank" rel="noopener noreferrer">{{ bare(u) }}</a>@if (!last) {, }
+                    }
+                  </p>
+                }
+              }
             </div>
 
             <div class="flex items-center gap-3">
@@ -119,6 +133,11 @@ export class DeploymentLogsComponent implements OnInit, OnDestroy {
 
   protected readonly deploymentUuid = signal('');
   protected readonly deployment = signal<any>(null);
+
+  /** An address without its scheme, as people read it. */
+  protected bare(url: string): string {
+    return url.replace(/^https?:\/\//, '');
+  }
   protected readonly lines = signal<string[]>([]);
   private unsubscribe?: () => void;
   private pollSub?: Subscription;

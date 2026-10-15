@@ -309,7 +309,7 @@
       "appDeployments": "Deployments",
       "appPipeline": "CI/CD Pipeline",
       "appFirewall": "Firewall",
-      "appInsights": "Insights",
+      "appInsights": "Performance",
       "appTerminal": "Terminal",
       "sectionDeploy": "Deploy",
       "templates": "Templates",
@@ -331,7 +331,8 @@
       "sshKeys": "SSH keys",
       "apiTokens": "Credentials & tokens",
       "sectionAdmin": "Administration",
-      "admin": "Administration"
+      "admin": "Administration",
+      "appDomain": "Domain name"
     },
     "profile": "My profile",
     "display": "Display",
@@ -402,7 +403,7 @@
       "checklist": "Getting started",
       "checklistItem": {
         "gitRepo": "Connect a Git repository",
-        "domain": "Add a domain",
+        "domain": "Use your own domain name",
         "pipeline": "Enable the CI/CD pipeline",
         "firewall": "Configure the firewall",
         "envVars": "Add environment variables"
@@ -459,11 +460,13 @@
         "deployments": "Deployments",
         "env": "Variables",
         "storage": "Storage",
-        "tasks": "Tasks",
-        "pipeline": "Pipeline",
+        "tasks": "Scheduled tasks",
+        "pipeline": "Automation",
         "security": "Security",
-        "insights": "Resources",
-        "settings": "Settings"
+        "insights": "Performance",
+        "settings": "Settings",
+        "domain": "Domain name",
+        "more": "More"
       },
       "previewTitle": "Preview of the live site",
       "noPreview": "The preview appears after the first deployment.",
@@ -481,17 +484,17 @@
         "cancelled": "Cancelled",
         "other": "Unknown"
       },
-      "envHint": "Your application's secret settings (API keys, database address…). They apply on the next deployment.",
+      "envHint": "Your application's secret settings: API keys, database address… They never appear in your code.",
       "noEnvVars": "No variables yet.",
       "removeNamed": "Remove {{name}}",
       "keyLabel": "Name",
       "valueLabel": "Value",
-      "tasksHint": "A command run automatically inside your application on a schedule (cron format).",
+      "tasksHint": "A command run automatically inside your application, as often as you choose.",
       "noTasks": "No scheduled tasks.",
       "taskNameLabel": "Name",
       "taskCommandLabel": "Command",
       "taskFrequencyLabel": "Frequency (cron)",
-      "volumesHint": "A folder that survives redeploys: user uploads, a SQLite database, a cache…",
+      "volumesHint": "A folder kept between deployments: user uploads, a SQLite database, a cache… Without it, these files are wiped on every deployment.",
       "noVolumes": "No volumes: everything is wiped on each deployment.",
       "volumeNameLabel": "Name",
       "volumeNamePlaceholder": "e.g. uploads",
@@ -601,28 +604,148 @@
         "applied": "Applied.",
         "redeploy": "Saved — applied at the next deployment."
       },
-      "domains": {
-        "title": "Addresses",
-        "hint": "Where your visitors find your application. Your IDEM address is ready from the first deployment; add your own domain name whenever you want.",
-        "watching": "Checking",
-        "primary": "Primary",
-        "copy": "Copy address",
-        "makePrimary": "Make this the primary address",
-        "remove": "Remove {{host}}",
-        "live": "Live",
-        "starting": "Starting",
-        "checking": "Checking",
-        "certificatePending": "Certificate in progress",
-        "stepTitle": "One last step at your domain provider",
-        "stepIntro": "In the DNS zone of {{zone}}, add this record. That's all: we check on our own and this page updates itself.",
-        "certificate": "The HTTPS certificate is issued automatically; it takes a few minutes.",
-        "addTitle": "Add your own domain",
-        "add": "Add",
-        "addHint": "For example shop.com or www.shop.com. You already bought the domain from a provider (GoDaddy, Namecheap…).",
-        "invalid": "This domain name is not valid. Example: shop.com",
-        "duplicate": "This domain is already in the list.",
-        "advanced": "Advanced options (HTTPS, www, redirects)"
+      "tabHint": {
+        "storage": "Keep files between deployments",
+        "tasks": "Run a command on a schedule",
+        "pipeline": "Test and check the code before every deployment"
+      },
+      "connectDomain": "Use my domain name",
+      "manageDomain": "Manage addresses",
+      "domainMoved": "Your application's address and your domain name are managed in the “Domain name” tab.",
+      "buildOptions": "Build options (advanced)",
+      "buildOptionsHint": "The automatic build suits most projects. Only change these if you know what your code needs.",
+      "envExample": "For example:",
+      "envRedeploy": "Changed variables will apply on the next deployment.",
+      "tasksExample": "For example: clear a cache every night, send a report every Monday, back up data every month.",
+      "taskPreset": {
+        "hourly": "Every hour",
+        "daily": "Every day at midnight",
+        "weekly": "Every Monday at midnight",
+        "monthly": "On the 1st of every month",
+        "custom": "Custom (cron format)"
       }
+    },
+    "domain": {
+      "inviteTitle": "Your own domain name",
+      "inviteBody": "Your application is already online at its IDEM address. So your customers find it under your name, like shop.com, connect your domain name: we guide you step by step, no technical knowledge needed.",
+      "inviteFree": "No charge from IDEM",
+      "inviteHttps": "Automatic HTTPS padlock",
+      "inviteTime": "About 10 minutes",
+      "connect": "Connect my domain name",
+      "listTitle": "Your addresses",
+      "listHint": "The addresses your application answers at. The first one is the primary address.",
+      "addAnother": "Add a domain",
+      "idemAddress": "IDEM address, included",
+      "primary": "Primary",
+      "resume": "Resume the guide",
+      "copy": "Copy the address {{host}}",
+      "makePrimary": "Make it the primary address",
+      "remove": "Remove {{host}}",
+      "none": "No address yet: it is created on the first deployment.",
+      "advanced": "Advanced options: HTTPS, www, redirects",
+      "status": {
+        "checking": "Checking…",
+        "live": "Live and secure (HTTPS)",
+        "starting": "Starts on the next deployment",
+        "certificate": "The HTTPS padlock is being created",
+        "waitingDns": "Waiting for the setting at your provider"
+      },
+      "wizard": {
+        "title": "Connect your domain name",
+        "close": "Close",
+        "progress": "Steps",
+        "continue": "Continue",
+        "back": "Back",
+        "done": "Done, check it",
+        "finish": "Finish",
+        "steps": {
+          "domain": "Your domain",
+          "provider": "Your provider",
+          "record": "The setting",
+          "check": "Checking"
+        },
+        "domainTitle": "What is your domain name?",
+        "domainIntro": "The name you bought, without “https://”. It can also be a subdomain, like shop.mydomain.com.",
+        "domainLabel": "Domain name",
+        "alsoWww": "Also add {{host}}",
+        "alsoWwwHint": "Recommended: visitors land in the same place whether they type “www” or not.",
+        "noDomain": "I don't have a domain name yet",
+        "buyIntro": "A domain name takes a few minutes to buy, for about €10 a year, from a provider like these. Come back here once it's done.",
+        "invalid": "This domain name is not valid. Example: shop.com",
+        "providerTitle": "Where did you buy your domain?",
+        "providerIntro": "We'll show you exactly where to click at your provider to connect {{host}} to your application.",
+        "providerHint": "Not sure? Search your email for “domain” or “renewal”: the invoice names the provider.",
+        "otherProvider": "Another one",
+        "recordTitle": "At {{provider}}, add this setting",
+        "yourProvider": "your provider",
+        "openProvider": "Open {{provider}}",
+        "recordFor": "For {{host}}",
+        "atMeans": "“@” means {{host}} itself. If your provider refuses “@”, leave the field empty.",
+        "ttl": "If you are asked for a duration (TTL), keep the suggested value.",
+        "checkTitle": "We're checking your domain",
+        "checkIntro": "Nothing else to do: this page updates itself. The setting usually takes a few minutes to apply, sometimes up to a few hours.",
+        "stage": {
+          "dns": "The setting is visible on the Internet",
+          "https": "The HTTPS padlock is created",
+          "live": "Your domain is live"
+        },
+        "httpsWaiting": "Automatic, in a few minutes.",
+        "canLeave": "You can close this page: the HTTPS padlock is created automatically as soon as the setting is visible.",
+        "seeRecord": "See the setting again",
+        "liveTitle": "Your domain is live!",
+        "liveIntro": "Visitors can now open your application under your name, with the HTTPS padlock."
+      },
+      "providers": {
+        "godaddy": {
+          "step1": "Sign in to GoDaddy, open “My Domain Portfolio” and click your domain.",
+          "step2": "Open the “DNS” tab, then “DNS Records”.",
+          "step3": "Click “Add New Record”, choose type A, then copy the Name and Value shown here. Save.",
+          "tip": "GoDaddy often creates an A record “@” pointing to “Parked”: edit it with the pencil instead of adding a second one."
+        },
+        "namecheap": {
+          "step1": "In “Domain List”, click “Manage” next to your domain.",
+          "step2": "Open the “Advanced DNS” tab.",
+          "step3": "Click “Add New Record”, choose “A Record”, copy the Name into “Host” and the Value into “Value”, then click the green tick.",
+          "tip": "Delete the “URL Redirect Record” or parking “CNAME” Namecheap created for the same name."
+        },
+        "ovh": {
+          "step1": "In your OVHcloud Control Panel, open “Web Cloud”, then “Domain names”, and choose your domain.",
+          "step2": "Open the “DNS zone” tab.",
+          "step3": "Click “Add an entry”, choose A, copy the Name into “Sub-domain” (leave it empty if the name is @) and the Value into “Target”.",
+          "tip": "OVHcloud creates A and AAAA entries pointing to its own servers by default: delete them for this name, or the HTTPS certificate cannot be issued."
+        },
+        "hostinger": {
+          "step1": "In hPanel, open “Domains” and click “Manage” next to your domain.",
+          "step2": "Open “DNS / Nameservers”.",
+          "step3": "Choose type A, copy the Name and the Value (“Points to”), then click “Add Record”.",
+          "tip": "First delete the existing A record for the same name: Hostinger creates one pointing to its servers."
+        },
+        "cloudflare": {
+          "step1": "Sign in to Cloudflare and choose your domain.",
+          "step2": "Open “DNS”, then “Records”.",
+          "step3": "Click “Add record”, choose A, copy the Name into “Name” and the Value into “IPv4 address”.",
+          "tip": "Important: click the orange cloud to turn it grey (“DNS only”). Otherwise the HTTPS certificate cannot be issued."
+        },
+        "lws": {
+          "step1": "In your LWS customer area, click “Manage” next to your domain.",
+          "step2": "Open “DNS zone”.",
+          "step3": "Add an A record with the Name and Value shown here.",
+          "tip": "If an A record already exists for this name, edit it instead of adding a second one."
+        },
+        "squarespace": {
+          "step1": "Open your Squarespace domains (formerly Google Domains) and click your domain.",
+          "step2": "Open “DNS”, then “DNS Settings”.",
+          "step3": "Under “Custom records”, add an A record: the Name goes into “Host”, the Value into “Data”.",
+          "tip": "Remove the “Squarespace Defaults” if they send the same name elsewhere."
+        },
+        "other": {
+          "step1": "Sign in to the site where you bought your domain name.",
+          "step2": "Look for the “DNS”, “DNS zone” or “Manage records” page.",
+          "step3": "Add an A record with the Name and Value shown here, then save.",
+          "tip": "If an A or AAAA record already exists for this name, delete or edit it."
+        }
+      },
+      "backupAddress": "Technical backup address"
     }
   },
   "projects": {
@@ -1553,7 +1676,8 @@
     "visitApp": "Visit App",
     "copyLogsTitle": "Copy logs to clipboard",
     "copyLogs": "Copy logs",
-    "waitingForLogs": "Waiting for logs…"
+    "waitingForLogs": "Waiting for logs…",
+    "alsoAt": "Also available at"
   },
   "auth": {
     "signingIn": "Signing you in…"
@@ -1793,7 +1917,7 @@
   "deployments": {
     "backToApplication": "Back to application",
     "title": "Deployments",
-    "history": "History",
+    "history": "Deployment history",
     "noHistory": "No deployment recorded.",
     "commit": "Commit",
     "status": "Status",
@@ -1806,14 +1930,17 @@
     "rollbackHint": "The chosen commit is rebuilt from source — the previous image may have been pruned.",
     "noTargets": "No earlier version available.",
     "targetsError": "Could not load the earlier versions.",
-    "rollbackTo": "Redeploy",
+    "rollbackTo": "Go back to this version",
     "rollingBack": "Redeploying…",
     "rollbackError": "The redeploy failed.",
     "previews": "Preview environments",
     "previewsHint": "One environment deployed per pull request, isolated from production.",
     "noPreviews": "No preview environment.",
     "previewsError": "Could not load the previews.",
-    "openPullRequest": "View pull request"
+    "openPullRequest": "View pull request",
+    "intro": "Every version of your application put online. Something wrong? Go back to an earlier version in one click.",
+    "version": "Version",
+    "current": "Live"
   },
   "terminal": {
     "title": "Terminal",
@@ -1838,7 +1965,7 @@
   },
   "insights": {
     "backToApplication": "Back to application",
-    "title": "Resources",
+    "title": "Performance",
     "liveHint": "Live snapshot, refreshed every 10 seconds.",
     "refresh": "Refresh",
     "refreshing": "Refreshing…",

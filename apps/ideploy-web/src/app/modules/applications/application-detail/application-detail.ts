@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal, OnInit } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DatePipe } from '@angular/common';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -20,30 +21,42 @@ import { AppEnvTabComponent } from './app-env-tab';
 import { AppTasksTabComponent } from './app-tasks-tab';
 import { AppStorageTabComponent } from './app-storage-tab';
 import { AppSettingsTabComponent } from './app-settings-tab';
+import { DomainTabComponent } from './domain-tab';
+import { ApplicationDeploymentsComponent } from '../application-deployments/application-deployments';
+import { ApplicationInsightsComponent } from '../application-insights/application-insights';
+import { ApplicationPipelineComponent } from '../application-pipeline/application-pipeline';
+import { ApplicationSecurityComponent } from '../../security/application-security/application-security';
 
-type Tab = 'overview' | 'env' | 'storage' | 'tasks' | 'settings';
+export type Tab = 'overview' | 'domain' | 'deployments' | 'env' | 'security' | 'insights' | 'settings' | 'storage' | 'tasks' | 'pipeline';
 
-/** One entry of the tab bar: a tab of this page, or a page of its own. */
+/** One entry of the tab bar. */
 interface NavItem {
-  key: string;
+  tab: Tab;
   icon: string;
-  tab?: Tab;
-  route?: string;
 }
 
+/** What most people come for, in the order they need it. */
 const NAV: NavItem[] = [
-  { key: 'overview', icon: 'pi pi-home', tab: 'overview' },
-  { key: 'deployments', icon: 'pi pi-history', route: 'deployments' },
-  { key: 'env', icon: 'pi pi-key', tab: 'env' },
-  { key: 'storage', icon: 'pi pi-database', tab: 'storage' },
-  { key: 'tasks', icon: 'pi pi-clock', tab: 'tasks' },
-  { key: 'pipeline', icon: 'pi pi-sitemap', route: 'pipeline' },
-  { key: 'security', icon: 'pi pi-shield', route: 'security' },
-  { key: 'insights', icon: 'pi pi-chart-bar', route: 'insights' },
-  { key: 'settings', icon: 'pi pi-cog', tab: 'settings' },
+  { tab: 'overview', icon: 'pi pi-home' },
+  { tab: 'domain', icon: 'pi pi-globe' },
+  { tab: 'deployments', icon: 'pi pi-history' },
+  { tab: 'env', icon: 'pi pi-key' },
+  { tab: 'security', icon: 'pi pi-shield' },
+  { tab: 'insights', icon: 'pi pi-chart-bar' },
+  { tab: 'settings', icon: 'pi pi-cog' },
 ];
 
-const TABS: Tab[] = ['overview', 'env', 'storage', 'tasks', 'settings'];
+/** For developers: behind "More", so the bar stays readable. */
+const MORE: NavItem[] = [
+  { tab: 'storage', icon: 'pi pi-database' },
+  { tab: 'tasks', icon: 'pi pi-clock' },
+  { tab: 'pipeline', icon: 'pi pi-sitemap' },
+];
+
+const TABS: Tab[] = [...NAV, ...MORE].map((i) => i.tab);
+
+/** Addresses the platform gives on its own, as opposed to a domain of the user's. */
+const AUTOMATIC_HOST = /(\.idem\.africa|\.sslip\.io|\.nip\.io)$/i;
 
 /**
  * Application detail.
@@ -68,6 +81,11 @@ const TABS: Tab[] = ['overview', 'env', 'storage', 'tasks', 'settings'];
     AppTasksTabComponent,
     AppStorageTabComponent,
     AppSettingsTabComponent,
+    DomainTabComponent,
+    ApplicationDeploymentsComponent,
+    ApplicationInsightsComponent,
+    ApplicationPipelineComponent,
+    ApplicationSecurityComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -100,6 +118,11 @@ const TABS: Tab[] = ['overview', 'env', 'storage', 'tasks', 'settings'];
                 <a class="inline-flex items-center gap-1.5 font-mono hover:underline" style="color:var(--color-primary-500);" [href]="a.link ?? 'https://' + shortDomain()" target="_blank" rel="noopener noreferrer">
                   {{ shortDomain() }}<i class="pi pi-external-link text-[10px]"></i>
                 </a>
+                @if (!hasOwnDomain()) {
+                  <button type="button" class="inline-flex items-center gap-1 text-xs font-medium hover:underline" style="color:var(--color-text-secondary);" (click)="setTab('domain')">
+                    <i class="pi pi-plus text-[10px]" aria-hidden="true"></i>{{ 'applications.detail.connectDomain' | translate }}
+                  </button>
+                }
               }
               @if (a.git_repository) {
                 <a class="inline-flex items-center gap-1.5 hover:underline" [href]="a.git_repository" target="_blank" rel="noopener noreferrer">
@@ -155,30 +178,53 @@ const TABS: Tab[] = ['overview', 'env', 'storage', 'tasks', 'settings'];
         <p class="mb-4 text-sm" role="alert" style="color:var(--color-danger);">{{ actionError() }}</p>
       }
 
-      <!-- Every place this application has, in one bar. -->
-      <nav class="custom-scrollbar mb-6 flex gap-1 overflow-x-auto border-b" style="border-color:var(--glass-border);" data-tour="ideploy-app-tabs" [attr.aria-label]="'applications.detail.sections' | translate">
-        @for (item of nav; track item.key) {
-          @if (item.tab) {
+      <!-- Every place this application has, in one bar; developer tools behind "More". -->
+      <nav class="mb-6 flex items-end gap-1 border-b" style="border-color:var(--glass-border);" data-tour="ideploy-app-tabs" [attr.aria-label]="'applications.detail.sections' | translate">
+        <div class="custom-scrollbar flex min-w-0 flex-1 gap-1 overflow-x-auto">
+          @for (item of nav; track item.tab) {
             <button
               type="button"
-              class="-mb-px inline-flex flex-shrink-0 items-center gap-2 border-b-2 px-3 py-2.5 text-sm font-medium transition-smooth"
+              class="-mb-px inline-flex flex-shrink-0 items-center gap-2 border-b-2 px-3 py-2.5 text-sm font-medium transition-smooth hover:text-text-primary"
               [style.border-color]="tab() === item.tab ? 'var(--color-primary-500)' : 'transparent'"
               [style.color]="tab() === item.tab ? 'var(--color-text-primary)' : 'var(--color-text-secondary)'"
               [attr.aria-current]="tab() === item.tab ? 'page' : null"
               (click)="setTab(item.tab)"
             >
-              <i [class]="item.icon" class="text-xs"></i>{{ 'applications.detail.tab.' + item.key | translate }}
+              <i [class]="item.icon" class="text-xs" aria-hidden="true"></i>{{ 'applications.detail.tab.' + item.tab | translate }}
+              @if (item.tab === 'domain' && !hasOwnDomain()) {
+                <span class="h-1.5 w-1.5 rounded-full" style="background:var(--color-primary-500);" aria-hidden="true"></span>
+              }
             </button>
-          } @else {
-            <a
-              class="-mb-px inline-flex flex-shrink-0 items-center gap-2 border-b-2 border-transparent px-3 py-2.5 text-sm font-medium transition-smooth hover:text-text-primary"
-              style="color:var(--color-text-secondary);"
-              [routerLink]="['/applications', uuid, item.route]"
-            >
-              <i [class]="item.icon" class="text-xs"></i>{{ 'applications.detail.tab.' + item.key | translate }}
-            </a>
           }
-        }
+        </div>
+        <div class="relative flex-shrink-0">
+          <button
+            type="button"
+            class="-mb-px inline-flex items-center gap-2 border-b-2 px-3 py-2.5 text-sm font-medium transition-smooth hover:text-text-primary"
+            [style.border-color]="inMore() ? 'var(--color-primary-500)' : 'transparent'"
+            [style.color]="inMore() ? 'var(--color-text-primary)' : 'var(--color-text-secondary)'"
+            [attr.aria-expanded]="moreOpen()"
+            aria-haspopup="menu"
+            (click)="moreOpen.set(!moreOpen())"
+          >
+            {{ (inMore() ? 'applications.detail.tab.' + tab() : 'applications.detail.tab.more') | translate }}
+            <i class="pi pi-chevron-down text-[10px]" aria-hidden="true"></i>
+          </button>
+          @if (moreOpen()) {
+            <div class="fixed inset-0 z-10" (click)="moreOpen.set(false)"></div>
+            <div class="absolute right-0 z-20 mt-1 w-72 overflow-hidden rounded-xl border shadow-glass" style="background:var(--color-surface-1);border-color:var(--glass-border);" role="menu">
+              @for (item of more; track item.tab) {
+                <button type="button" role="menuitem" class="flex w-full items-start gap-3 px-4 py-3 text-left transition-smooth hover:bg-[var(--glass-bg-subtle)]" (click)="setTab(item.tab); moreOpen.set(false)">
+                  <i [class]="item.icon" class="mt-0.5 w-4 text-center text-xs" style="color:var(--color-text-secondary);" aria-hidden="true"></i>
+                  <span>
+                    <span class="block text-sm font-medium">{{ 'applications.detail.tab.' + item.tab | translate }}</span>
+                    <span class="block text-xs" style="color:var(--color-text-secondary);">{{ 'applications.detail.tabHint.' + item.tab | translate }}</span>
+                  </span>
+                </button>
+              }
+            </div>
+          }
+        </div>
       </nav>
 
       @switch (tab()) {
@@ -186,6 +232,11 @@ const TABS: Tab[] = ['overview', 'env', 'storage', 'tasks', 'settings'];
         @case ('storage') { <app-storage-tab [uuid]="uuid" /> }
         @case ('tasks') { <app-tasks-tab [uuid]="uuid" /> }
         @case ('settings') { <app-settings-tab [app]="a" (updated)="app.set($event)" /> }
+        @case ('domain') { <app-domain-tab [app]="a" (updated)="app.set($event)" /> }
+        @case ('deployments') { <app-application-deployments [embedded]="true" /> }
+        @case ('security') { <app-application-security [embedded]="true" /> }
+        @case ('insights') { <app-application-insights [embedded]="true" /> }
+        @case ('pipeline') { <app-application-pipeline [embedded]="true" /> }
         @default {
           <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
             <div class="space-y-6 lg:col-span-2">
@@ -206,7 +257,23 @@ const TABS: Tab[] = ['overview', 'env', 'storage', 'tasks', 'settings'];
                   <dl class="grid grid-cols-2 content-start gap-x-6 gap-y-4 text-sm">
                     <div class="col-span-2">
                       <dt class="text-xs" style="color:var(--color-text-secondary);">{{ 'applications.detail.deploymentUrl' | translate }}</dt>
-                      <dd class="mt-0.5 truncate font-mono font-semibold text-text-primary">{{ shortDomain() || ('applications.detail.noDomainYet' | translate) }}</dd>
+                      <dd class="mt-0.5 truncate font-mono font-semibold">
+                        @if (shortDomain()) {
+                          <a class="hover:underline" style="color:var(--color-primary-500);" [href]="'https://' + shortDomain()" target="_blank" rel="noopener noreferrer">{{ shortDomain() }}</a>
+                        } @else {
+                          <span class="text-text-primary">{{ 'applications.detail.noDomainYet' | translate }}</span>
+                        }
+                      </dd>
+                      @for (h of otherDomains(); track h) {
+                        <dd class="mt-0.5 truncate font-mono text-xs" style="color:var(--color-text-tertiary);">
+                          <a class="hover:underline" [href]="'https://' + h" target="_blank" rel="noopener noreferrer">{{ h }}</a>
+                        </dd>
+                      }
+                      <dd class="mt-1">
+                        <button type="button" class="text-xs font-semibold hover:underline" style="color:var(--color-primary-500);" (click)="setTab('domain')">
+                          {{ (hasOwnDomain() ? 'applications.detail.manageDomain' : 'applications.detail.connectDomain') | translate }}
+                        </button>
+                      </dd>
                     </div>
                     <div>
                       <dt class="text-xs" style="color:var(--color-text-secondary);">{{ 'applications.detail.lastDeployment' | translate }}</dt>
@@ -232,9 +299,9 @@ const TABS: Tab[] = ['overview', 'env', 'storage', 'tasks', 'settings'];
                 </div>
                 <div class="flex flex-wrap items-center justify-between gap-2 px-5 py-3 text-xs" style="border-top:1px solid var(--glass-border-subtle);color:var(--color-text-secondary);">
                   <span><i class="pi pi-info-circle mr-1.5"></i>{{ 'applications.detail.pushToUpdate' | translate: { branch: a.git_branch || 'main' } }}</span>
-                  <a class="font-semibold hover:underline" style="color:var(--color-primary-500);" [routerLink]="['/applications', uuid, 'deployments']">
+                  <button type="button" class="font-semibold hover:underline" style="color:var(--color-primary-500);" (click)="setTab('deployments')">
                     <i class="pi pi-history mr-1"></i>{{ 'applications.detail.rollback' | translate }}
-                  </a>
+                  </button>
                 </div>
               </section>
 
@@ -242,7 +309,7 @@ const TABS: Tab[] = ['overview', 'env', 'storage', 'tasks', 'settings'];
               <section class="glass-card overflow-hidden">
                 <header class="flex items-center justify-between gap-2 px-5 py-4" style="border-bottom:1px solid var(--glass-border-subtle);">
                   <h2 class="font-semibold text-text-primary">{{ 'applications.detail.recentDeployments' | translate }}</h2>
-                  <a class="text-xs font-semibold hover:underline" style="color:var(--color-primary-500);" [routerLink]="['/applications', uuid, 'deployments']">{{ 'applications.detail.manageDeployments' | translate }}</a>
+                  <button type="button" class="text-xs font-semibold hover:underline" style="color:var(--color-primary-500);" (click)="setTab('deployments')">{{ 'applications.detail.manageDeployments' | translate }}</button>
                 </header>
                 @if (deployments().length === 0) {
                   <app-empty-state kind="activity" [title]="'applications.detail.noDeployments' | translate" [body]="'applications.detail.noDeploymentsHint' | translate" />
@@ -281,18 +348,12 @@ const TABS: Tab[] = ['overview', 'env', 'storage', 'tasks', 'settings'];
                             <i class="pi pi-check-circle text-sm" style="color:var(--color-success);"></i>
                             <span class="line-through">{{ 'applications.detail.checklistItem.' + item.key | translate }}</span>
                           </span>
-                        } @else if (item.tab) {
+                        } @else {
                           <button type="button" class="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left text-sm text-text-primary transition-smooth hover:bg-[var(--glass-bg-subtle)]" (click)="setTab(item.tab)">
                             <i class="pi pi-circle text-sm" style="color:var(--color-text-tertiary);"></i>
                             <span class="flex-1">{{ 'applications.detail.checklistItem.' + item.key | translate }}</span>
                             <i class="pi pi-arrow-right text-[10px]" style="color:var(--color-primary-500);"></i>
                           </button>
-                        } @else {
-                          <a class="flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-sm text-text-primary transition-smooth hover:bg-[var(--glass-bg-subtle)]" [routerLink]="['/applications', uuid, item.route]">
-                            <i class="pi pi-circle text-sm" style="color:var(--color-text-tertiary);"></i>
-                            <span class="flex-1">{{ 'applications.detail.checklistItem.' + item.key | translate }}</span>
-                            <i class="pi pi-arrow-right text-[10px]" style="color:var(--color-primary-500);"></i>
-                          </a>
                         }
                       </li>
                     }
@@ -303,7 +364,7 @@ const TABS: Tab[] = ['overview', 'env', 'storage', 'tasks', 'settings'];
               <section class="glass-card p-5">
                 <div class="mb-3 flex items-center justify-between">
                   <h2 class="text-sm font-semibold text-text-primary">{{ 'applications.detail.resourceUsage' | translate }}</h2>
-                  <a class="text-xs font-semibold hover:underline" style="color:var(--color-primary-500);" [routerLink]="['/applications', uuid, 'insights']">{{ 'applications.detail.viewInsights' | translate }}</a>
+                  <button type="button" class="text-xs font-semibold hover:underline" style="color:var(--color-primary-500);" (click)="setTab('insights')">{{ 'applications.detail.viewInsights' | translate }}</button>
                 </div>
                 @if (usage(); as u) {
                   <dl class="space-y-2.5 text-sm">
@@ -319,7 +380,7 @@ const TABS: Tab[] = ['overview', 'env', 'storage', 'tasks', 'settings'];
               <section class="glass-card p-5">
                 <div class="mb-3 flex items-center justify-between">
                   <h2 class="text-sm font-semibold text-text-primary">{{ 'applications.detail.firewallOverview' | translate }}</h2>
-                  <a class="text-xs font-semibold hover:underline" style="color:var(--color-primary-500);" [routerLink]="['/applications', uuid, 'security']">{{ 'applications.detail.manageSecurity' | translate }}</a>
+                  <button type="button" class="text-xs font-semibold hover:underline" style="color:var(--color-primary-500);" (click)="setTab('security')">{{ 'applications.detail.manageSecurity' | translate }}</button>
                 </div>
                 @if (firewall(); as fw) {
                   <p class="mb-3 inline-flex items-center gap-1.5 text-sm" [style.color]="fw.enabled ? 'var(--color-success)' : 'var(--color-text-tertiary)'">
@@ -357,6 +418,8 @@ export class ApplicationDetailComponent implements OnInit {
   private tourOffered = false;
 
   protected readonly nav = NAV;
+  protected readonly more = MORE;
+  private destroyRef = inject(DestroyRef);
 
   protected readonly app = signal<Application | null>(null);
   protected readonly notFound = signal(false);
@@ -370,6 +433,15 @@ export class ApplicationDetailComponent implements OnInit {
 
   protected readonly tab = signal<Tab>('overview');
   protected readonly menuOpen = signal(false);
+  protected readonly moreOpen = signal(false);
+  protected readonly inMore = computed(() => MORE.some((i) => i.tab === this.tab()));
+  /** A domain of the user's own, beside the address the platform gave. */
+  protected readonly hasOwnDomain = computed(() =>
+    (this.app()?.fqdn ?? '')
+      .split(',')
+      .map((d) => d.trim().replace(/^https?:\/\//, '').replace(/\/.*$/, ''))
+      .some((h) => h && !AUTOMATIC_HOST.test(h))
+  );
   protected readonly deploying = signal(false);
   protected readonly acting = signal<string | null>(null);
   protected readonly actionError = signal<string | null>(null);
@@ -398,22 +470,26 @@ export class ApplicationDetailComponent implements OnInit {
    * tab of this page or a page of its own — so the list is a way in, not a
    * reproach.
    */
-  protected readonly checklistItems = computed<{ key: string; done: boolean; tab?: Tab; route?: string }[]>(() => {
+  protected readonly checklistItems = computed<{ key: string; done: boolean; tab: Tab }[]>(() => {
     const a = this.app();
     return [
       { key: 'gitRepo', done: Boolean(a?.git_repository), tab: 'settings' },
-      { key: 'domain', done: Boolean(a?.fqdn), tab: 'settings' },
+      { key: 'domain', done: this.hasOwnDomain(), tab: 'domain' },
       { key: 'envVars', done: this.envCount() > 0, tab: 'env' },
-      { key: 'pipeline', done: Boolean(this.pipeline()?.enabled), route: 'pipeline' },
-      { key: 'firewall', done: Boolean(this.firewall()?.enabled), route: 'security' },
+      { key: 'firewall', done: Boolean(this.firewall()?.enabled), tab: 'security' },
+      { key: 'pipeline', done: Boolean(this.pipeline()?.enabled), tab: 'pipeline' },
     ];
   });
   protected readonly checklistDone = computed(() => this.checklistItems().filter((i) => i.done).length);
 
   ngOnInit(): void {
     this.uuid = this.route.snapshot.paramMap.get('uuid') ?? '';
-    const requested = this.route.snapshot.queryParamMap.get('tab') as Tab | null;
-    if (requested && TABS.includes(requested)) this.tab.set(requested);
+    // Read on every change, not once: the old addresses (/security,
+    // /deployments…) redirect here with ?tab=, possibly onto this same page.
+    this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((q) => {
+      const requested = q.get('tab') as Tab | null;
+      this.tab.set(requested && TABS.includes(requested) ? requested : 'overview');
+    });
     this.reload();
   }
 
@@ -457,6 +533,15 @@ export class ApplicationDetailComponent implements OnInit {
     this.menuOpen.set(false);
     this.setTab('settings');
     setTimeout(() => document.getElementById('danger-zone')?.scrollIntoView({ behavior: 'smooth', block: 'center' }));
+  }
+
+  /** The addresses after the first: the automatic one (sslip.io) beside `monapp.idem.africa`. */
+  protected otherDomains(): string[] {
+    return (this.app()?.fqdn ?? '')
+      .split(',')
+      .slice(1)
+      .map((d) => d.trim().replace(/^https?:\/\//, ''))
+      .filter(Boolean);
   }
 
   /** The domain shown in the header — `fqdn` may hold several, comma-separated. */

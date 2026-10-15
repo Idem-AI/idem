@@ -299,5 +299,13 @@ export async function getDeployment(
   return {
     ...rows[0],
     application_url: url,
+    // Every address, in order: `monapp.idem.africa` first, then the automatic one.
+    application_urls: rows[0].application_fqdn
+      ? String(rows[0].application_fqdn)
+          .split(',')
+          .map((d) => d.trim())
+          .filter(Boolean)
+          .map((d) => (/^https?:\/\//.test(d) ? d : `https://${d}`))
+      : [],
   };
 }

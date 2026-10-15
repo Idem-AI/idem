@@ -15,7 +15,8 @@ export type IllustrationName =
   | 'team'
   | 'beads'
   | 'net'
-  | 'cowries';
+  | 'cowries'
+  | 'facade';
 
 /**
  * Les illustrations de l'interface, dessinées en ligne plutôt que livrées en
@@ -248,6 +249,20 @@ export type IllustrationName =
           <g transform="rotate(-6 64 27)"><ellipse cx="64" cy="27" rx="7.5" ry="5" stroke-width="1.5"/><path d="M59.5 27 C62.5 25.8 65.5 28.2 68.5 27" stroke-width="1.1"/><path d="M61 25.4 v3.2 M64 25.2 v3.6 M67 25.4 v3.2" stroke-width=".7" opacity=".7"/></g>
           <g transform="rotate(8 80 28)"><ellipse cx="80" cy="28" rx="7.5" ry="5" stroke-width="1.5"/><path d="M75.5 28 C78.5 26.8 81.5 29.2 84.5 28" stroke-width="1.1"/><path d="M77 26.4 v3.2 M80 26.2 v3.6 M83 26.4 v3.2" stroke-width=".7" opacity=".7"/></g>
           <g style="color: var(--color-primary-500)"><g transform="rotate(-4 60 15)"><ellipse cx="60" cy="15" rx="7.5" ry="5" stroke-width="1.5"/><path d="M55.5 15 C58.5 13.8 61.5 16.2 64.5 15" stroke-width="1.1"/><path d="M57 13.4 v3.2 M60 13.2 v3.6 M63 13.4 v3.2" stroke-width=".7" opacity=".7"/></g></g>
+        }
+        @case ('facade') {
+          <!-- Un nom de domaine : la façade ndebele peinte, que l'on reconnaît de loin et qui dit à qui est la maison. -->
+          <path d="M8 80 H112" opacity=".7"/>
+          <path d="M22 80 V36 H34 V30 H46 V24 H74 V30 H86 V36 H98 V80" stroke-width="2"/>
+          <path d="M52 80 V58 C52 50 68 50 68 58 V80" stroke-width="2"/>
+          <path d="M28 44 H46 V72 H28Z M74 44 H92 V72 H74Z" opacity=".75"/>
+          <path d="M28 52 L32.5 47 L37 52 L41.5 47 L46 52 M74 52 L78.5 47 L83 52 L87.5 47 L92 52" stroke-width="1.1" opacity=".7"/>
+          <path d="M31 58 H43 V66 H31Z M77 58 H89 V66 H77Z" stroke-width="1" opacity=".6"/>
+          <path d="M28 76 H46 M74 76 H92 M26 40 H94" stroke-width="1" opacity=".5"/>
+          <g style="color: var(--color-primary-500)">
+            <path d="M60 31 L66 37 L60 43 L54 37Z" stroke-width="1.8"/>
+            <path d="M48 37 H52 M68 37 H72" stroke-width="1.4"/>
+          </g>
         }
         @default {
           <!-- Ce qu'on déploie : le panier tressé, chargé et prêt à partir. -->

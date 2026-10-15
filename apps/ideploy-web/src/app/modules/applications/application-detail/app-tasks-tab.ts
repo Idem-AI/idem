@@ -5,6 +5,15 @@ import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 import { ApiService } from '../../../shared/services/api.service';
 import { ScheduledTask, TaskExecution } from '../../../shared/models/ideploy.models';
 
+/** Schedules in words; the cron field stays for anything else. */
+const PRESETS: { key: string; cron: string | null }[] = [
+  { key: 'hourly', cron: '0 * * * *' },
+  { key: 'daily', cron: '0 0 * * *' },
+  { key: 'weekly', cron: '0 0 * * 1' },
+  { key: 'monthly', cron: '0 0 1 * *' },
+  { key: 'custom', cron: null },
+];
+
 /**
  * Scheduled tasks — a command run inside the container on a cron schedule.
  * Each row: what runs, when, and the three things you do with it (run now,
@@ -26,7 +35,10 @@ import { ScheduledTask, TaskExecution } from '../../../shared/models/ideploy.mod
           @for (i of [1, 2]; track i) { <div class="skeleton h-5 rounded"></div> }
         </div>
       } @else if (tasks().length === 0) {
-        <p class="px-5 py-6 text-center text-sm" style="color:var(--color-text-secondary);">{{ 'applications.detail.noTasks' | translate }}</p>
+        <div class="px-5 py-6 text-sm" style="color:var(--color-text-secondary);">
+          <p>{{ 'applications.detail.noTasks' | translate }}</p>
+          <p class="mt-2 text-xs">{{ 'applications.detail.tasksExample' | translate }}</p>
+        </div>
       } @else {
         <ul>
           @for (task of tasks(); track task.uuid) {
@@ -39,7 +51,7 @@ import { ScheduledTask, TaskExecution } from '../../../shared/models/ideploy.mod
                   <div class="text-sm font-semibold text-text-primary">{{ task.name }}</div>
                   <div class="flex flex-wrap gap-x-3 font-mono text-xs" style="color:var(--color-text-secondary);">
                     <span class="truncate">{{ task.command }}</span>
-                    <span style="color:var(--color-text-tertiary);">{{ task.frequency }}</span>
+                    <span style="color:var(--color-text-tertiary);">{{ frequencyLabel(task.frequency) | translate }}</span>
                   </div>
                 </div>
                 <button type="button" class="outer-button button-sm" [disabled]="running() === task.uuid" (click)="run(task)">
@@ -84,8 +96,15 @@ import { ScheduledTask, TaskExecution } from '../../../shared/models/ideploy.mod
           <input type="text" id="task-command" class="font-mono text-sm" [placeholder]="'applications.detail.commandPlaceholder' | translate" formControlName="command" />
         </div>
         <div>
-          <label class="mb-1 block text-xs font-semibold" style="color:var(--color-text-secondary);" for="task-cron">{{ 'applications.detail.taskFrequencyLabel' | translate }}</label>
-          <input type="text" id="task-cron" class="font-mono text-sm" [placeholder]="'applications.detail.cronPlaceholder' | translate" formControlName="frequency" />
+          <label class="mb-1 block text-xs font-semibold" style="color:var(--color-text-secondary);" for="task-when">{{ 'applications.detail.taskFrequencyLabel' | translate }}</label>
+          <select id="task-when" [value]="preset()" (change)="pickPreset($any($event.target).value)">
+            @for (p of presets; track p.key) {
+              <option [value]="p.key">{{ 'applications.detail.taskPreset.' + p.key | translate }}</option>
+            }
+          </select>
+          @if (preset() === 'custom') {
+            <input type="text" id="task-cron" class="mt-2 font-mono text-sm" [attr.aria-label]="'applications.detail.taskPreset.custom' | translate" [placeholder]="'applications.detail.cronPlaceholder' | translate" formControlName="frequency" />
+          }
         </div>
         <button class="inner-button" type="submit" [disabled]="form.invalid || saving()">
           @if (saving()) { <idem-loader size="xs" /> } @else { <i class="pi pi-plus mr-2 text-xs"></i> }
@@ -109,11 +128,27 @@ export class AppTasksTabComponent implements OnInit {
   protected readonly runs = signal<TaskExecution[]>([]);
   protected readonly runsLoading = signal(false);
 
+  protected readonly presets = PRESETS;
+  protected readonly preset = signal<string>('daily');
+
   protected readonly form = this.fb.nonNullable.group({
     name: ['', Validators.required],
     command: ['', Validators.required],
-    frequency: ['', Validators.required],
+    frequency: ['0 0 * * *', Validators.required],
   });
+
+  /** A frequency chosen in words; "custom" opens the cron field. */
+  protected pickPreset(key: string): void {
+    this.preset.set(key);
+    const cron = PRESETS.find((p) => p.key === key)?.cron;
+    this.form.controls.frequency.setValue(cron ?? '');
+  }
+
+  /** The schedule in words when it is one of the presets, as written otherwise. */
+  protected frequencyLabel(cron: string): string {
+    const p = PRESETS.find((x) => x.cron === cron.trim());
+    return p ? `applications.detail.taskPreset.${p.key}` : cron;
+  }
 
   ngOnInit(): void {
     this.load();
@@ -135,6 +170,7 @@ export class AppTasksTabComponent implements OnInit {
     this.api.createTask(this.uuid(), this.form.getRawValue()).subscribe({
       next: () => {
         this.form.reset();
+        this.preset.set('daily');
         this.saving.set(false);
         this.load();
       },

@@ -1,7 +1,13 @@
-import { Routes } from '@angular/router';
+import { inject } from '@angular/core';
+import { RedirectFunction, Router, Routes } from '@angular/router';
 import { authGuard } from './shared/guards/auth.guard';
 import { instanceAdminGuard } from './shared/guards/instance-admin.guard';
 import { ShellComponent } from './layouts/shell/shell';
+
+/** `/applications/:uuid/<tab>` → `/applications/:uuid?tab=<tab>`: those pages are tabs now. */
+function appTab(tab: string): RedirectFunction {
+  return ({ params }) => inject(Router).createUrlTree(['/applications', params['uuid']], { queryParams: { tab } });
+}
 
 // Guarded app routes (rendered inside the authenticated shell layout).
 const children: Routes = [
@@ -178,20 +184,10 @@ const children: Routes = [
         (m) => m.ApplicationDetailComponent
       ),
   },
-  {
-    path: 'applications/:uuid/security',
-    loadComponent: () =>
-      import('./modules/security/application-security/application-security').then(
-        (m) => m.ApplicationSecurityComponent
-      ),
-  },
-  {
-    path: 'applications/:uuid/pipeline',
-    loadComponent: () =>
-      import('./modules/applications/application-pipeline/application-pipeline').then(
-        (m) => m.ApplicationPipelineComponent
-      ),
-  },
+  // Now a tab of the application page; old links land on it.
+  { path: 'applications/:uuid/security', pathMatch: 'full', redirectTo: appTab('security') },
+  // Now a tab of the application page; old links land on it.
+  { path: 'applications/:uuid/pipeline', pathMatch: 'full', redirectTo: appTab('pipeline') },
   {
     path: 'applications/:uuid/pipeline/:executionUuid',
     loadComponent: () =>
@@ -199,20 +195,10 @@ const children: Routes = [
         (m) => m.PipelineExecutionDetailComponent
       ),
   },
-  {
-    path: 'applications/:uuid/insights',
-    loadComponent: () =>
-      import('./modules/applications/application-insights/application-insights').then(
-        (m) => m.ApplicationInsightsComponent
-      ),
-  },
-  {
-    path: 'applications/:uuid/deployments',
-    loadComponent: () =>
-      import('./modules/applications/application-deployments/application-deployments').then(
-        (m) => m.ApplicationDeploymentsComponent
-      ),
-  },
+  // Now a tab of the application page; old links land on it.
+  { path: 'applications/:uuid/insights', pathMatch: 'full', redirectTo: appTab('insights') },
+  // Now a tab of the application page; old links land on it.
+  { path: 'applications/:uuid/deployments', pathMatch: 'full', redirectTo: appTab('deployments') },
   // Interactive shells. `data.kind` tells the page what the uuid refers to,
   // so one component serves both without parsing the URL itself.
   {
