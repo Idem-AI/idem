@@ -308,39 +308,22 @@ sizes, no prose, no pairing rationale.`
   // ── PAGES D'USAGE : elles règlent ────────────────────────────────────────
 
   'Logo Bonnes Pratiques': rules(
-    'Say how every declension is placed, and what destroys the mark.',
-    `- Which declension goes on which background, and the rule for deciding — a
-  contrast rule, not a taste.
-- The clear space, expressed in a unit derived from the logo itself (a
-  proportion of its height), never in absolute millimetres.
-- The minimum size, per support: screen, print, embroidery or engraving.
-- The THREE forbidden treatments that matter most (stretching, adding an effect,
-  a busy background…).
-Blocks: one "table" of AT MOST 4 rows and 3 columns (declension → background →
-minimum size), cells of 4 words maximum; then one "cards" block of EXACTLY 3
-forbidden treatments, titles of 3 words, bodies of 10 words maximum. No prose,
-no clear-space paragraph: one row of the table can carry it.`
+    'Give the essential rules for using the logo — nothing more.',
+    `ONE "cards" block of EXACTLY 4 items, and nothing else:
+  1. the clear space (in a unit of the logo itself), 2. the minimum size,
+  3. which declension on which background, 4. the one treatment that is forbidden.
+Titles of 3 words maximum, bodies of 10 words maximum. No table, no prose, no
+examples, no second block.`
   ),
 
   'Usage Couleurs & Typographie': rules(
-    'Say how the palette and the two families are used across every support.',
-    `COULEUR
-- The distribution rule, stated in figures (a 60/30/10 kind of rule): which
-  colour holds the surfaces, which one the emphasis.
-- How tints are obtained: from opacity, never from a hue shift.
-- The two combinations that are forbidden, and what breaks in each.
-
-TYPOGRAPHIE
-- Which family carries which level, and where the boundary is.
-- The minimum contrast between two consecutive levels, and the minimum running
-  text size, with the support on which it changes.
-- What is forbidden: a third family, an unlisted weight, an effect that does not
-  serve the hierarchy.
-
-Blocks: one "table" of AT MOST 4 rows mapping each level to its family, weight
-and usage (cells of 4 words maximum), then one "cards" block of EXACTLY 3 bans
-covering BOTH colour and type (bodies of 10 words maximum). No prose block. The
-family names must be the brand's real ones: never call a sans-serif a serif.`
+    'Give the essential rules for colour and type — nothing more.',
+    `ONE "cards" block of EXACTLY 4 items, and nothing else:
+  1. the colour distribution, in figures; 2. how tints are obtained;
+  3. which family for titles and which for text (their real names — never call a
+  sans-serif a serif); 4. the one combination that is forbidden.
+Titles of 3 words maximum, bodies of 10 words maximum. No table, no prose, no
+second block.`
   ),
 };
 
@@ -363,6 +346,6 @@ export const CHARTER_PAGE_VOLUMES: Record<string, string> = {
   'Logo Variation Monochrome': '1',
   'Color Palette': '1',
   Typography: '1',
-  'Logo Bonnes Pratiques': '2',
-  'Usage Couleurs & Typographie': '2',
+  'Logo Bonnes Pratiques': '1',
+  'Usage Couleurs & Typographie': '1',
 };

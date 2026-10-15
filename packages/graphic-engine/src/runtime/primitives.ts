@@ -15,6 +15,7 @@ import type { Block } from '../contracts/content-model';
 import { chartPalette, PairMode } from '../design-system/charts/palette';
 import type { DesignTokens } from '../design-system/tokens';
 import { iconSvg } from '../capability-registry/local/icons';
+import { motifCss } from '../design-system/kit/motifs';
 
 const esc = (v: string) => v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const cls = (c: string | undefined) => (c && c.trim() ? ` class="${esc(c.trim())}"` : '');
@@ -268,14 +269,33 @@ type Mockups = Extract<Block, { kind: 'mockupShowcase' }>;
 
 /**
  * Des MOCKUPS finis (publications, bannières, profils rendus dans le gabarit de leur réseau) : montrés ENTIERS, à leur
- * proportion, côte à côte, chacun avec son nom. Jamais recadrés, pivotés ni recouverts — ils sont la démonstration.
+ * proportion, côte à côte — ou empilés quand ce sont des bannières. Jamais recadrés, pivotés ni recouverts : ils sont
+ * la démonstration. `labels: false` : sans légende.
  */
-export function galleryHtml(block: Mockups, o: { className?: string }): string {
+export function galleryHtml(block: Mockups, o: { className?: string; labels?: boolean }): string {
+  const wide = block.items.reduce((s, i) => s + (i.ratio || 1), 0) / Math.max(1, block.items.length) > 2.2;
   const items = block.items
     .map((item) => {
-      const grow = Math.max(0.3, Math.min(6, item.ratio || 1)).toFixed(2);
-      return `<figure class="flex min-h-0 min-w-0 flex-[${grow}_1_0%] flex-col items-center gap-[10px]"><img src="${esc(item.url)}" alt="${esc(item.label)}" class="min-h-0 w-full flex-1 object-contain"><figcaption class="text-center text-[12px] font-medium uppercase tracking-[0.08em] text-muted">${esc(item.label)}</figcaption></figure>`;
+      const grow = wide ? '1' : Math.max(0.3, Math.min(6, item.ratio || 1)).toFixed(2);
+      return `<figure class="flex min-h-0 min-w-0 flex-[${grow}_1_0%] flex-col items-center justify-center gap-[10px]"><img src="${esc(item.url)}" alt="${esc(item.label)}" class="min-h-0 max-h-full max-w-full flex-1 object-contain">${o.labels === false ? '' : `<figcaption class="text-center text-[12px] font-medium uppercase tracking-[0.08em] text-muted">${esc(item.label)}</figcaption>`}</figure>`;
     })
     .join('');
-  return `<div data-ge-gallery data-ge-block="${esc(block.id)}" class="${esc(`flex min-h-0 w-full items-stretch justify-center gap-[28px] ${o.className ?? 'h-full'}`.trim())}">${items}</div>`;
+  return `<div data-ge-gallery data-ge-block="${esc(block.id)}" class="${esc(`flex min-h-0 w-full ${wide ? 'flex-col' : 'flex-row'} items-stretch justify-center gap-[28px] ${o.className ?? 'h-full'}`.trim())}">${items}</div>`;
+}
+
+type Patterns = Extract<Block, { kind: 'patternGrid' }>;
+
+/**
+ * Une TUILE de motif : le vrai motif de la marque (son fichier SVG déposé, répété à son pas), sinon le motif dessiné
+ * par le code aux encres de la charte. Le style en ligne est celui du CODE (une donnée), jamais celui d'un auteur.
+ */
+export function patternTileHtml(block: Patterns, index: number, o: { className?: string }): string {
+  const p = block.patterns[Math.max(0, Math.min(block.patterns.length - 1, index || 0))];
+  if (!p) return '';
+  const style = p.url
+    ? `background-color:${p.ground};background-image:url('${p.url.replace(/'/g, '%27')}');background-size:${p.tile ?? 48}px ${p.tile ?? 48}px;background-repeat:repeat`
+    : Object.entries(motifCss(p.motif, p.ink, p.ground, 1.6))
+        .map(([k, v]) => `${k}:${v}`)
+        .join(';');
+  return `<div data-ge-pattern-tile class="${esc(`border border-rule ${o.className ?? 'h-full w-full'}`)}" style="${esc(style)}"></div>`;
 }

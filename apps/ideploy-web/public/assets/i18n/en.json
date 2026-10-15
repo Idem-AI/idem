@@ -501,7 +501,7 @@
       "filePathPlaceholder": "/app/config/settings.json",
       "fileContentLabel": "Content",
       "general": "General",
-      "generalHint": "Where the code comes from, how it is built, and the address it answers on.",
+      "generalHint": "Where the code comes from and how it is built.",
       "pack": {
         "nixpacks": "Automatic (detection)",
         "dockerfile": "Dockerfile",
@@ -600,6 +600,28 @@
         "bareToWww": "Redirect the bare domain to www",
         "applied": "Applied.",
         "redeploy": "Saved — applied at the next deployment."
+      },
+      "domains": {
+        "title": "Addresses",
+        "hint": "Where your visitors find your application. Your IDEM address is ready from the first deployment; add your own domain name whenever you want.",
+        "watching": "Checking",
+        "primary": "Primary",
+        "copy": "Copy address",
+        "makePrimary": "Make this the primary address",
+        "remove": "Remove {{host}}",
+        "live": "Live",
+        "starting": "Starting",
+        "checking": "Checking",
+        "certificatePending": "Certificate in progress",
+        "stepTitle": "One last step at your domain provider",
+        "stepIntro": "In the DNS zone of {{zone}}, add this record. That's all: we check on our own and this page updates itself.",
+        "certificate": "The HTTPS certificate is issued automatically; it takes a few minutes.",
+        "addTitle": "Add your own domain",
+        "add": "Add",
+        "addHint": "For example shop.com or www.shop.com. You already bought the domain from a provider (GoDaddy, Namecheap…).",
+        "invalid": "This domain name is not valid. Example: shop.com",
+        "duplicate": "This domain is already in the list.",
+        "advanced": "Advanced options (HTTPS, www, redirects)"
       }
     }
   },

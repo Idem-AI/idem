@@ -232,6 +232,23 @@ async function main(): Promise<void> {
   const relaid = await (await createDocument({ documentType: 'pitch-deck', format: 'slide-16x9', brand: BRANDS.kora, seed: 'r', sections: [{ id: 'market' }], layoutNote: 'plus aérée' })).composeSection(deck.page('market')!.content);
   ok('nouvelle mise en page : l’auteur repart du contenu gardé et reçoit le souhait du client', relaid.result.html.includes('2,3 Md FCFA') && calls.slice(before2).some((c) => c.role === 'graphic.author' && c.user.includes('THE CLIENT ASKS FOR THIS LAYOUT: plus aérée')));
 
+  section('§8 ter Pages d’actif de la charte : dessinées par le code, l’actif en très grand');
+  const img = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIvPg==';
+  const book = await createDocument({ documentType: 'brand-charter', format: 'slide-16x9', brand: BRANDS.kora, seed: 'a', sections: [] });
+  calls.length = 0;
+  const symbol = await book.composeSection({ id: 'mark', title: 'Symbole seul', blocks: [{ id: 'sys-1', kind: 'logoDisplay', origin: 'system', variants: [{ url: img, label: 'Icône', background: 'light' }] }] });
+  const posts = await book.composeSection({ id: 'posts', title: 'Publications sociales', blocks: [{ id: 'sys-1', kind: 'mockupShowcase', origin: 'system', items: [{ url: img, label: 'LinkedIn', ratio: 0.8 }, { url: img, label: 'Facebook', ratio: 0.8 }] }] });
+  const tiles = await book.composeSection({ id: 'patterns', title: 'Motifs', blocks: [{ id: 'sys-1', kind: 'patternGrid', origin: 'system', patterns: [{ name: 'Motif principal', motif: 'dots', ink: '#2d6a4f', ground: '#f9fbfb', url: img, tile: 40 }, { name: 'Trame', motif: 'grid', ink: '#2d6a4f', ground: '#eef2ef' }] }] });
+  const palette = await book.composeSection({ id: 'palette', title: 'Palette', blocks: [{ id: 'sys-1', kind: 'swatches', origin: 'system', items: [{ hex: '#1B5E20', name: 'Primaire' }, { hex: '#FFFFFF', name: 'Fond' }] }] });
+  const scale = await book.composeSection({ id: 'scale', title: 'Hiérarchie', blocks: [{ id: 'sys-1', kind: 'typeScale', origin: 'system', levels: [{ label: 'Titre', family: 'Inter', step: '3xl', weight: 700, sample: 'Kora' }, { label: 'Texte', family: 'Inter', step: 'base', weight: 400, sample: 'Le texte courant' }] }] });
+  const assets = [symbol, posts, tiles, palette, scale];
+  ok('aucun appel de modèle : logo, mockups, motifs, palette et échelle sont posés par le code', calls.length === 0 && assets.every((o) => o.result.repairs.some((r) => r.code === 'asset_page')));
+  ok('symbole seul : une seule image, sans légende ni tuile ajoutée', (symbol.result.html.match(/<img (?!data-ge-logo)/g) ?? []).length === 1 && !symbol.result.html.includes('Icône'));
+  ok('mockups : entiers, sans cadre ni légende ni emplacement réservé', (posts.result.html.match(/flex-1 object-contain/g) ?? []).length === 2 && !/LinkedIn|Facebook|réservé/.test(posts.result.html.replace(/ alt="[^"]*"/g, '')));
+  ok('motifs : les vrais motifs du projet en tuiles, rien d’autre', tiles.result.html.includes('Motif principal') && tiles.result.html.includes('background-image') && !/Supports autorisés|Usage interdit/.test(tiles.result.html));
+  ok('palette et échelle : codes exacts, tailles réelles du document', palette.result.html.includes('#1B5E20') && scale.result.html.includes(`${Math.round(book.tokens.size['3xl'])} px`));
+  ok('aucun constat bloquant sur les pages d’actif', assets.every((o) => !o.result.issues.some((i) => i.severity === 'blocking')));
+
   section('§8 bis Export PowerPoint (le HTML reste la source)');
   const deckSlides = [{ html: sectionHtml(m) }, { html: `${sectionHtml(f)}\n<template data-speaker-notes>La marge atteint 60 %.</template>` }];
   const fidelity = await exportPptx(deckSlides, { mode: 'fidelity', title: 'Kora' });

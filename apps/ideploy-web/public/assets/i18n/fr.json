@@ -501,7 +501,7 @@
       "filePathPlaceholder": "/app/config/settings.json",
       "fileContentLabel": "Contenu",
       "general": "Général",
-      "generalHint": "D'où vient le code, comment il est construit, et à quelle adresse il répond.",
+      "generalHint": "D'où vient le code, comment il est construit.",
       "pack": {
         "nixpacks": "Automatique (détection)",
         "dockerfile": "Dockerfile",
@@ -600,6 +600,28 @@
         "bareToWww": "Rediriger le domaine nu vers www",
         "applied": "Appliqué.",
         "redeploy": "Enregistré — appliqué au prochain déploiement."
+      },
+      "domains": {
+        "title": "Adresses",
+        "hint": "Là où vos visiteurs trouvent votre application. Votre adresse IDEM est prête dès la première mise en ligne ; ajoutez votre propre nom de domaine quand vous le souhaitez.",
+        "watching": "Vérification en cours",
+        "primary": "Principale",
+        "copy": "Copier l'adresse",
+        "makePrimary": "Définir comme adresse principale",
+        "remove": "Retirer {{host}}",
+        "live": "En ligne",
+        "starting": "Démarrage",
+        "checking": "Vérification",
+        "certificatePending": "Certificat en cours",
+        "stepTitle": "Une dernière étape chez votre fournisseur de domaine",
+        "stepIntro": "Dans la zone DNS de {{zone}}, ajoutez cet enregistrement. C'est tout : nous vérifions seuls et la page se met à jour.",
+        "certificate": "Le certificat HTTPS est émis automatiquement, ça prend quelques minutes.",
+        "addTitle": "Ajouter votre propre domaine",
+        "add": "Ajouter",
+        "addHint": "Par exemple boutique.com ou www.boutique.com. Vous avez déjà acheté le domaine chez un fournisseur (OVH, GoDaddy, Namecheap…).",
+        "invalid": "Ce nom de domaine n'est pas valide. Exemple : boutique.com",
+        "duplicate": "Ce domaine est déjà dans la liste.",
+        "advanced": "Options avancées (HTTPS, www, redirections)"
       }
     }
   },

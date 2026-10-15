@@ -134,6 +134,7 @@ const PROFESSIONAL = [
   '- The logo sits in the SAME place on every page (the one the brand language gives), small, with clear space — never on or against a title or text.',
   '- No giant faded numerals or watermark words. Numbering (01, 02) only for a real sequence of steps.',
   '- Images: only the image keys of the CONTENT list. No image key, no image zone — never leave an empty frame for a picture.',
+  '- Show the essential: the CONTENT and nothing else. Never invent example tiles, sample swatches, placeholder boxes ("space reserved for…"), device frames around images, badges, check marks or extra labels.',
   '- Everything fits inside the canvas: nothing cut by the edge; keep a safe margin.',
 ].join('\n');
 

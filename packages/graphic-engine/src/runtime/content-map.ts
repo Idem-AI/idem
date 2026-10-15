@@ -23,6 +23,8 @@ export interface ContentMap {
   entries: Map<string, ContentEntry>;
   /** Les blocs dessinés par le code : graphiques et tableaux. */
   primitives: Map<string, Block>;
+  /** Tous les blocs de la page (les tuiles de motif lisent le leur). */
+  blocks: Map<string, Block>;
   /** Les champs de carte en mode gabarit : `{{champ}}` reste tel quel dans un élément `data-field`. */
   markers: Set<string>;
   /** L'inventaire lisible donné à l'auteur. */
@@ -111,10 +113,11 @@ export function buildContentMap(section: SectionContent, bindings: 'values' | 'm
       }
       continue;
     }
-    lines.push(`\n# block ${block.id} — ${block.kind}${block.origin === 'system' ? ' (exact data: keep every item)' : ''}${LOGO_KINDS.has(block.kind) ? ' — THE LOGO IS THE HERO OF THIS PAGE: show each logo image very large (a single logo ≥ 40% of the page width), on its intended ground, with generous clear space; the texts stay short captions' : ''}`);
+    if (block.kind === 'patternGrid') lines.push(`\n# block ${block.id} — the brand's REAL patterns: draw each one with <idem-pattern-tile data-block="${block.id}" data-index="N" class="h-[…] w-full"></idem-pattern-tile> (never a flat colour), its name below`);
+    else lines.push(`\n# block ${block.id} — ${block.kind}${block.origin === 'system' ? ' (exact data: keep every item)' : ''}${LOGO_KINDS.has(block.kind) ? ' — THE LOGO IS THE HERO OF THIS PAGE: show each logo image very large (a single logo ≥ 40% of the page width), on its intended ground, with generous clear space; the texts stay short captions' : ''}`);
     walk(block.id, block);
   }
-  return { entries, primitives, markers, listing: lines.join('\n').trim() };
+  return { entries, primitives, blocks: new Map(section.blocks.map((b) => [b.id, b])), markers, listing: lines.join('\n').trim() };
 }
 
 /**

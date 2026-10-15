@@ -33,6 +33,7 @@ import { buildContentMap, ContentMap, fixBrandNameTypos } from './runtime/conten
 import { expandPage, extractHtml, sanitizeHtml, withSize } from './runtime/expand';
 import { compileTailwind } from './runtime/tailwind';
 import { checkRender } from './runtime/check';
+import { assetPageTemplate, isAssetPage } from './runtime/asset-page';
 
 export interface DocumentOptions {
   documentType: DocumentType;
@@ -274,6 +275,15 @@ export class GraphicDocument {
       if (r.ok) rendered = r.page;
       else recorder.repair({ code: 'replay_failed', detail: `la page gardée ne s'affiche plus (${r.error.slice(0, 160)}) : réécrite`, by: 'code' });
       bible = o.replay.bible;
+    }
+    // 2. Une page d'ACTIF (le logo, l'icône, une déclinaison, les motifs, des mockups) : dessinée par le code, sans
+    //    modèle — l'actif en très grand, rien d'autre (décision de l'utilisateur, 15/10/2026).
+    if (!rendered && !o.revise && isAssetPage(section, this.format)) {
+      const r = await this.render(assetPageTemplate(section, this.format, this.tokens), map, section.id, recorder);
+      if (r.ok) {
+        rendered = r.page;
+        recorder.repair({ code: 'asset_page', detail: `page d'actif (${section.blocks[0].kind}) dessinée par le code`, by: 'code' });
+      } else if (r.partial) rendered = r.partial;
     }
     if (!rendered) {
       const call = this.agent();

@@ -58,6 +58,7 @@ import {
   coverContent,
   ENGINE_VERSION,
   styleMotifs,
+  systemSection,
   WRITING_RULES,
 } from '@idem/graphic-engine';
 import {
@@ -1210,6 +1211,8 @@ export class BrandingService extends GenericService {
        * les pages où un modèle se trompe le plus : recopier six chiffres hexadécimaux, nommer une police,
        * choisir le fond qui contraste. Aucune de ces trois choses n'a besoin de lui.
        */
+      /** Les pages qui montrent sans rien rédiger : le titre de la charte et le spécimen exact. */
+      const SPECIMEN_ONLY_PAGES = new Set(['Logomark', 'Logo Variation Fond Clair', 'Logo Variation Fond Sombre', 'Logo Variation Monochrome', 'Graphic Patterns', 'Color Palette', 'Typography', 'Typeface Hierarchy']);
       const specimensFor = (stepName: string): BlockDraft[] | undefined => {
         const palette = project.analysisResultModel?.branding?.colors?.colors;
         const typography = project.analysisResultModel?.branding?.typography;
@@ -1293,14 +1296,10 @@ export class BrandingService extends GenericService {
           return [{ kind: 'logoDisplay', variants: [{ url: single.url, label: single.label, background: single.background }] }];
         }
 
-        // L'icône seule, sur ses trois fonds : une favicon et une étiquette cousue n'ont pas le même fond.
+        // L'icône SEULE, une fois, en très grand (décision de l'utilisateur, 15/10/2026 : pas trois fonds).
         if (stepName === 'Logomark') {
-          const marks = [
-            { url: iconLightUrl || iconUrl, label: 'Sur fond clair', background: 'light' as const },
-            { url: iconDarkUrl || iconUrl, label: 'Sur fond sombre', background: 'dark' as const },
-            { url: iconMonoUrl || iconUrl, label: 'Monochrome', background: 'neutral' as const },
-          ].filter((mark) => Boolean(mark.url));
-          return marks.length ? [{ kind: 'logoDisplay', variants: marks }] : undefined;
+          const url = iconLightUrl || iconUrl || iconMonoUrl || iconDarkUrl;
+          return url ? [{ kind: 'logoDisplay', variants: [{ url, label: 'Symbole', background: iconLightUrl || iconUrl ? 'light' : 'neutral' }] }] : undefined;
         }
 
         if (stepName === 'Logo Bonnes Pratiques') {
@@ -1412,6 +1411,19 @@ export class BrandingService extends GenericService {
               }),
               at
             );
+          };
+          return;
+        }
+        // Les pages qui MONTRENT (spécimens, actifs) : l'essentiel seulement — le titre et l'actif, aucun texte rédigé
+        // (décision de l'utilisateur, 15/10/2026). Les pages d'actif (logo, icône, déclinaisons, motifs) sont même
+        // dessinées par le code : l'actif en très grand.
+        if (SPECIMEN_ONLY_PAGES.has(step.stepName)) {
+          step.execute = async () => {
+            const blocks = specimensFor(step.stepName);
+            if (!blocks?.length) return null;
+            const heading = CHARTER_PAGE_HEADINGS[step.stepName];
+            const section = systemSection({ id: pageId(step.stepName), title: heading?.title ?? step.stepName, role: 'specimen', blocks });
+            return section ? renderGraphicPage(graphic, section, at) : null;
           };
           return;
         }

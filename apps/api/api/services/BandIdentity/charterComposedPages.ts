@@ -53,15 +53,15 @@ export interface ComposedPagesContext {
 export function clip(text: string | undefined, max: number): string {
   const value = (text ?? '').replace(/\s+/g, ' ').trim();
   if (value.length <= max) return value;
-  const sentences = value.match(/[^.!?]+[.!?]+(?:\s|$)/g);
-  if (sentences) {
-    let kept = '';
-    for (const sentence of sentences) {
-      if ((kept + sentence).trim().length > max) break;
-      kept += sentence;
-    }
-    if (kept.trim()) return kept.trim();
+  // Des phrases entières, prises DEPUIS LE DÉBUT : une fin de phrase est une ponctuation suivie d'un espace — jamais le
+  // point d'un nombre (« Ratio 1.250 », « 0.05em » n'étaient plus coupés qu'en « 250 », « 05em »).
+  const sentences = value.split(/(?<=[.!?])\s+/);
+  let kept = '';
+  for (const sentence of sentences) {
+    if (`${kept} ${sentence}`.trim().length > max) break;
+    kept = `${kept} ${sentence}`.trim();
   }
+  if (kept && /[.!?]$/.test(kept)) return kept;
   const cut = value.slice(0, max);
   const space = cut.lastIndexOf(' ');
   return `${(space > max * 0.6 ? cut.slice(0, space) : cut).replace(/[,;:\s]+$/, '')}…`;
@@ -135,8 +135,8 @@ export function buildComposedCharterPages(ctx: ComposedPagesContext): Record<str
         {
           kind: 'artDirectionStance',
           styleName: direction.styleName,
-          rationale: clip(direction.rationale, 180),
-          keywords: direction.keywords.slice(0, 5),
+          rationale: clip(direction.rationale, 110),
+          keywords: direction.keywords.slice(0, 4),
         },
       ],
     })),
@@ -151,10 +151,10 @@ export function buildComposedCharterPages(ctx: ComposedPagesContext): Record<str
           density: densityOf(direction.layout.density),
           items: (
             [
-              { demo: 'grid', label: 'Grille', text: clip(direction.layout.grid, 80) },
+              { demo: 'grid', label: 'Grille', text: clip(direction.layout.grid, 60) },
               { demo: 'density', label: 'Densité', text: densityText(direction.layout.density) },
-              { demo: 'whitespace', label: 'Espace négatif', text: clip(direction.layout.whitespace, 80) },
-              { demo: 'signature', label: 'Geste signature', text: clip(direction.layout.signatureMove, 80) },
+              { demo: 'whitespace', label: 'Espace négatif', text: clip(direction.layout.whitespace, 60) },
+              { demo: 'signature', label: 'Geste signature', text: clip(direction.layout.signatureMove, 60) },
             ] as Array<{ demo: 'grid' | 'density' | 'whitespace' | 'signature'; label: string; text: string }>
           ).filter((item) => item.text),
         },
@@ -170,10 +170,9 @@ export function buildComposedCharterPages(ctx: ComposedPagesContext): Record<str
             kind: 'imageryShowcase',
             ...(imageUrl ? { imageUrl } : {}),
             rows: [
-              { label: 'Médium', value: MEDIUM_LABEL[direction.imagery.medium] ?? clip(direction.imagery.medium, 60) },
-              { label: 'Traitement', value: clip(direction.imagery.treatment, 80) },
-              { label: 'Lumière', value: clip(direction.imagery.lighting, 80) },
-              { label: 'Cadrage', value: clip(direction.imagery.framing, 80) },
+              { label: 'Traitement', value: clip(direction.imagery.treatment, 60) },
+              { label: 'Lumière', value: clip(direction.imagery.lighting, 60) },
+              { label: 'Cadrage', value: clip(direction.imagery.framing, 60) },
             ].filter((row) => row.value),
           },
         ],
@@ -186,13 +185,13 @@ export function buildComposedCharterPages(ctx: ComposedPagesContext): Record<str
           kind: 'artDirectionRules',
           rows: [
             // L'essentiel seulement : une page de règles se lit d'un coup d'œil (quatre règles, trois à faire, trois à éviter).
-            { label: 'Couleurs', value: clip(direction.color.distribution, 70) },
-            { label: 'Contraste', value: clip(direction.color.contrast, 70) },
-            { label: 'Échelle typographique', value: clip(direction.typography.scaleContrast, 70) },
-            { label: 'Casse', value: clip(direction.typography.caseAndTracking, 70) },
+            { label: 'Couleurs', value: clip(direction.color.distribution, 60) },
+            { label: 'Contraste', value: clip(direction.color.contrast, 60) },
+            { label: 'Échelle typographique', value: clip(direction.typography.scaleContrast, 60) },
+            { label: 'Casse', value: clip(direction.typography.caseAndTracking, 60) },
           ].filter((row) => row.value),
-          dos: direction.dos.slice(0, 3).map((rule) => clip(rule, 70)),
-          donts: direction.donts.slice(0, 3).map((rule) => clip(rule, 70)),
+          dos: direction.dos.slice(0, 3).map((rule) => clip(rule, 60)),
+          donts: direction.donts.slice(0, 3).map((rule) => clip(rule, 60)),
         },
       ],
     })),
@@ -203,7 +202,8 @@ export function buildComposedCharterPages(ctx: ComposedPagesContext): Record<str
         const kit = await ctx.socialKit();
         const items = await socialMockupService.renderProfileMockups(kit, ctx.uploadMockup);
         if (items.length > 0) {
-          return page(stepName, { lede: BANNERS_LEDE, blocks: [{ kind: 'mockupShowcase', items }] }, 'showcase');
+          // Les bannières seules, entières, sans texte : elles sont la démonstration.
+          return page(stepName, { blocks: [{ kind: 'mockupShowcase', items }] }, 'showcase');
         }
       } catch (error: any) {
         logger.error(

@@ -8,7 +8,7 @@ import pool, { withTransaction } from '../config/db.config';
 import logger from '../config/logger';
 import { conflict, unprocessable } from '../utils/errors';
 import { assertDomainsAvailable, generateFqdn, getServerForDestination, subdomainSlug, toClaim, isValidHostname } from './domain.service';
-import { releasePlatformHost } from './platform-domain.service';
+import { claimPlatformHost, releasePlatformHost } from './platform-domain.service';
 import { ApplicationRow } from '../models/ideploy.types';
 import * as serverService from './server.service';
 import { executeRemoteCommand } from '../ssh/ssh';
@@ -246,6 +246,12 @@ export async function createApplication(
   if (!fqdn && dto.destination_id) {
     const server = await getServerForDestination(dto.destination_id);
     if (server) {
+      // `monapp.idem.africa` first (a short id is added when the name is
+      // taken); the automatic address only when the platform domain is off or
+      // the DNS could not be updated.
+      fqdn = (await claimPlatformHost(dto.name, server.ip)) ?? null;
+    }
+    if (!fqdn && server) {
       fqdn = await generateFqdn(server.id, server.ip, subdomainSlug(dto.name, uuid));
     }
   }

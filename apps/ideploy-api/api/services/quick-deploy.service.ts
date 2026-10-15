@@ -137,7 +137,8 @@ export interface QuickDeployDto {
   /**
    * Give the application an address on the platform domain
    * (`monapp.idem.africa`, or `monapp-<id>` when taken) instead of the
-   * automatic one. What iCode asks for; off for every other caller.
+   * automatic one. On by default for every caller; pass `false` to keep the
+   * automatic address.
    */
   platform_domain?: boolean;
 }
@@ -148,7 +149,7 @@ export interface QuickDeployDto {
  * DNS could not be updated — never a reason to fail the deployment).
  */
 async function platformFqdn(name: string, destinationId: number, wanted?: boolean): Promise<string | undefined> {
-  if (!wanted) return undefined;
+  if (wanted === false) return undefined;
   const server = await getServerForDestination(destinationId);
   if (!server) return undefined;
   return (await claimPlatformHost(name, server.ip)) ?? undefined;
