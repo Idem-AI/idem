@@ -24,6 +24,7 @@ import {
   EcosystemWarning,
   ManifestDirectory,
 } from './ecosystem-detection.service';
+import { monorepoLayout } from '../build-plan';
 
 const CLIENT_ID = process.env.GITLAB_CLIENT_ID || '';
 const CLIENT_SECRET = process.env.GITLAB_CLIENT_SECRET || '';
@@ -348,6 +349,15 @@ export async function detectFramework(
     } else if (candidates.length > 1) {
       monorepoCandidates = candidates;
     }
+  }
+
+  // A workspace (pnpm, npm, yarn; turbo, nx) or a multi-module Java build at
+  // the root: its applications, as the deployment will read them — the root
+  // of a JS monorepo has a package.json, so the check above never saw one.
+  if (!monorepoCandidates && !rootDirSuggestion && (ecosystem === 'node' || ecosystem.startsWith('java'))) {
+    const layout = await monorepoLayout(treePaths, fileContent);
+    if (layout.candidates) monorepoCandidates = layout.candidates;
+    else if (layout.onlyApp) rootDirSuggestion = layout.onlyApp;
   }
 
   if (treeFetchFailed) {

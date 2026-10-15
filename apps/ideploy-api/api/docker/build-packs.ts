@@ -72,6 +72,10 @@ export interface BuildContext {
    * produces are named after it, so the build must use the one `up` will.
    */
   composeProject?: string;
+  /** From the build plan: `NIXPACKS_NODE_VERSION`, `NIXPACKS_JDK_VERSION`. The user's own build variables win. */
+  nixpacksVariables?: Record<string, string>;
+  /** Node major for the static build container (default 20). */
+  nodeVersion?: string | null;
 }
 
 export interface BuildStep {
@@ -100,6 +104,11 @@ export interface BuildPlan {
 export function buildDirectory(context: BuildContext): string {
   const base = (context.baseDirectory ?? '').replace(/^\.?\/+|\/+$/g, '');
   return base ? `${context.srcDir}/${base}` : context.srcDir;
+}
+
+/** `node:<major>-slim` (glibc: native modules build as on a developer's machine). */
+function nodeImageTag(version: string | null | undefined): string {
+  return /^\d+$/.test(version ?? '') ? `${version}-slim` : '20-slim';
 }
 
 /** Wrap a value for safe use as a single shell argument. */
@@ -210,10 +219,14 @@ function dockerfilePlan(context: BuildContext): BuildPlan {
  */
 function nixpacksPlan(context: BuildContext): BuildPlan {
   const dir = buildDirectory(context);
+  const ownKeys = new Set((context.buildEnv ?? []).map((pair) => pair.split('=')[0]));
   const env = [
     context.installCommand ? `NIXPACKS_INSTALL_CMD=${quote(context.installCommand)}` : '',
     context.buildCommand ? `NIXPACKS_BUILD_CMD=${quote(context.buildCommand)}` : '',
     context.startCommand ? `NIXPACKS_START_CMD=${quote(context.startCommand)}` : '',
+    ...Object.entries(context.nixpacksVariables ?? {})
+      .filter(([k]) => /^NIXPACKS_[A-Z_]+$/.test(k) && !ownKeys.has(k))
+      .map(([k, v]) => `${k}=${quote(v)}`),
   ]
     .filter(Boolean)
     .join(' ');
@@ -233,6 +246,9 @@ function nixpacksPlan(context: BuildContext): BuildPlan {
         command:
           `cd ${quote(dir)} && ` +
           `{ command -v nixpacks >/dev/null || { echo "nixpacks is not installed on this server — run its setup step." >&2; exit 1; }; } && ` +
+          // A wrapper committed without its executable bit fails with
+          // "Permission denied"; this is the server's own copy of the code.
+          `{ for w in gradlew mvnw; do [ -f "$w" ] && chmod +x "$w"; done; true; } && ` +
           `${env ? env + ' ' : ''}nixpacks build . --out .${buildEnvFlags ? ' ' + buildEnvFlags : ''}`,
       },
       {
@@ -267,7 +283,7 @@ function staticPlan(context: BuildContext): BuildPlan {
     steps.push({
       label: 'Building the site',
       command:
-        `cd ${quote(dir)} && docker run --rm ${envFlags}-v ${quote(dir)}:/app -w /app node:20-alpine ` +
+        `cd ${quote(dir)} && docker run --rm ${envFlags}-v ${quote(dir)}:/app -w /app node:${nodeImageTag(context.nodeVersion)} ` +
         `sh -lc ${quote(`${install} && ${build}`)}`,
     });
   }
