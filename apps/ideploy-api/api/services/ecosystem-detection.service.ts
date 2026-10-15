@@ -279,6 +279,8 @@ export interface ManifestDirectory {
   /** Path relative to the repository root; '' means the repository root itself. */
   dir: string;
   manifestFile: string;
+  /** Set when the build plan recognised the application (e.g. "Next.js"). */
+  framework?: string;
 }
 
 const MANIFEST_FILENAMES = new Set([

@@ -693,6 +693,8 @@ export interface DetectedFramework {
 export interface ManifestDirectory {
   dir: string;
   manifestFile: string;
+  /** The application's framework, when recognised ("Next.js", "Spring Boot"). */
+  framework?: string;
 }
 
 /**
