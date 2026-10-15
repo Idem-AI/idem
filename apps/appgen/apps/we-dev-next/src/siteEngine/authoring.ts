@@ -7,19 +7,23 @@
  * n'écrit aucun CSS. Les faits viennent de `@/site/data`, les visuels de
  * `@/site/media`.
  *
- * La réponse est vérifiée sur sa FORME seulement, comme un JSON le serait :
- * elle se compile (esbuild, le même que Vite), elle n'importe que ce qui
- * existe, elle n'emploie que les couleurs du thème. Une réponse mal formée est
- * redemandée au modèle (trois essais au plus, tous modèles confondus) ; il n'y
- * a ni note esthétique, ni réécriture par le code. Si aucun essai ne se
- * compile, le dernier est conservé tel quel et signalé.
+ * Chaque réponse passe par trois filets, dans cet ordre :
+ *
+ *   1. le correcteur (`autocorrect.ts`) répare ce qui est mécanique — couleurs
+ *      en dur, imports manquants ou mal placés, icônes mal nommées, export ;
+ *   2. la vérification de forme (esbuild, imports, thème) et des faits ;
+ *   3. s'il reste un problème, le modèle reçoit SA version et la liste exacte
+ *      de ce qu'il doit corriger, et ne touche qu'à cela.
+ *
+ * En dernier recours, les phrases qui affirment ce que les faits ne disent pas
+ * sont retirées par le code. Il n'y a jamais de note esthétique.
  */
 
-import { readFileSync } from 'node:fs';
-import { createRequire } from 'node:module';
 import { transform } from 'esbuild';
 import { CATALOG, catalogEntry, renderContract } from './catalog.js';
+import { autocorrect, lucideIcons, resolveIcon, stripClaims, ThemeColors } from './autocorrect.js';
 import { ModelCaller, Verdict } from './modelCaller.js';
+import { ChatLogger } from '../utils/logger.js';
 import { FactCheck } from './factGuard.js';
 import { ManifestPage, ManifestSection, SiteManifest } from './manifest.js';
 import { describeDataModule } from './siteData.js';
@@ -28,27 +32,6 @@ import { SiteFacts } from './siteFacts.js';
 /* -------------------------------------------------------------------------- */
 /*  Vérification                                                               */
 /* -------------------------------------------------------------------------- */
-
-let iconNames: Set<string> | null = null;
-
-/** Les icônes de lucide-react, dans la version exacte posée dans les sites. */
-function lucideIcons(): Set<string> {
-  if (iconNames) return iconNames;
-  try {
-    const require = createRequire(import.meta.url);
-    const types = readFileSync(require.resolve('lucide-react/dist/lucide-react.d.ts'), 'utf8');
-    const block = types.match(/export \{([^}]+)\};?\s*$/m)?.[1] ?? '';
-    iconNames = new Set(
-      block
-        .split(',')
-        .map((part) => part.trim().split(/\s+as\s+/).pop()!.trim())
-        .filter((name) => /^[A-Z]\w*$/.test(name))
-    );
-  } catch {
-    iconNames = new Set();
-  }
-  return iconNames;
-}
 
 /** Des icônes utiles à un site vitrine, toutes présentes dans la version posée. */
 export const COMMON_ICONS = [
@@ -59,11 +42,6 @@ export const COMMON_ICONS = [
   'Globe', 'Zap', 'Lightbulb', 'Target', 'Award', 'Handshake', 'Menu', 'X', 'Quote',
 ];
 
-/** Le nom exact d'une icône écrite avec une autre casse (`washingMachine` → `WashingMachine`). */
-function iconNamed(name: string): string | undefined {
-  const wanted = name.replace(/[-_\s]/g, '').toLowerCase();
-  return Array.from(lucideIcons()).find((icon) => icon.toLowerCase() === wanted || icon.toLowerCase() === `${wanted}icon`);
-}
 
 const PALETTE_CLASS =
   /(?:^|[\s"'`:])(?:bg|text|border|from|via|to|ring|fill|stroke|outline|divide|shadow|decoration|placeholder|accent|caret)-(?:slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-\d{2,3}\b/g;
@@ -135,9 +113,13 @@ function undeclaredNames(code: string): string[] {
   for (const match of Array.from(code.matchAll(/\b(?:const|let|var)\s*\{([^}]*)\}/g))) {
     match[1].split(',').forEach((part) => declared.add(part.split(':').pop()!.trim()));
   }
+  // Paramètres déstructurés et variables de boucle : `({ icon: Icon })`, `.map((Item) =>`.
+  for (const match of Array.from(code.matchAll(/[{,]\s*\w+\s*:\s*([A-Z][\w$]*)\s*[,}=]/g))) declared.add(match[1]);
+  for (const match of Array.from(code.matchAll(/\(\s*\{?\s*([A-Z][\w$]*)\s*[,)}]/g))) declared.add(match[1]);
 
   const used = new Set<string>();
-  for (const match of Array.from(code.matchAll(/<([A-Z][\w$]*|motion)\b/g))) used.add(match[1]);
+  // Une balise JSX, pas un type générique (`ChangeEvent<HTMLInputElement>`, `useState<Item[]>`).
+  for (const match of Array.from(code.matchAll(/(?<![\w$.\]])<([A-Z][\w$]*|motion)\b/g))) used.add(match[1]);
   for (const name of ['motion', 'motionTokens', 'site', 'media', 'cn', 'AnimatePresence']) {
     if (new RegExp(`(?<![\\w.$'"\`])${name}\\s*[.(]`).test(code)) used.add(name);
   }
@@ -175,8 +157,8 @@ export async function checkComponent(code: string, policy: ImportPolicy): Promis
       const unknown = icons.size ? ref.names.filter((name) => !icons.has(name)) : [];
       if (unknown.length) {
         const hints = unknown.map((name) => {
-          const exact = iconNamed(name);
-          return exact ? `${name} s'écrit ${exact}` : `${name} n'existe pas`;
+          const close = resolveIcon(name);
+          return `${name} n'existe pas (par exemple ${close})`;
         });
         problems.push(`icônes lucide-react : ${hints.join(' ; ')}. Noms exacts disponibles par exemple : ${COMMON_ICONS.join(', ')}`);
       }
@@ -219,7 +201,7 @@ export async function checkComponent(code: string, policy: ImportPolicy): Promis
 
   const undeclared = undeclaredNames(code);
   if (undeclared.length) {
-    problems.push(`utilisé sans être importé ni déclaré : ${undeclared.join(', ')} (ajoute l'import, ex. \`import { motion } from 'motion/react'\`, \`import { motionTokens } from '@/design-system'\`)`);
+    problems.push(`utilisé sans être importé ni déclaré : ${undeclared.join(', ')} (ajoute son import ou sa déclaration)`);
   }
 
   const palette = Array.from(new Set((code.match(PALETTE_CLASS) ?? []).map((item) => item.trim().replace(/^[:"'`]/, ''))));
@@ -248,6 +230,9 @@ export function visibleTexts(code: string): string[] {
   const body = code
     .replace(/^import[^\n]*$/gm, '')
     .replace(/className=(["'`])[\s\S]*?\1/g, '')
+    // Un exemple dans un champ (« Marie Ngono », « le 15 décembre ») n'affirme rien.
+    .replace(/placeholder=(["'`])[\s\S]*?\1/g, '')
+    .replace(/placeholder=\{(["'`])[\s\S]*?\1\}/g, '')
     .replace(/className=\{`[\s\S]*?`\}/g, '')
     .replace(/\bcn\(([^()]|\([^()]*\))*\)/g, '');
   // Un saut de ligne dans du JSX sépare deux textes (titre sur deux lignes, phrase suivante).
@@ -272,7 +257,6 @@ const CLAIMS = [
   /\bguarantee[ds]?\b/i,
   /\bremboursé(?:e|s)?\b/i,
   /\bn°\s?1\b|\bnuméro un\b|\bleader\b/i,
-  /\bmeilleure?s?\b|\bbest\b/i,
   /\bcertifiée?s?\b|\bagréée?s?\b|\bcertified\b/i,
   /\bécologiques?\b|\bbio\b|\beco-friendly\b/i,
 ];
@@ -337,7 +321,7 @@ export function authorSystemPrompt(ctx: AuthoringContext): string {
 - React + TypeScript, un seul composant exporté par défaut : \`export default function Nom() { … }\`.
 - Tailwind CSS pour la disposition, les espacements, le responsive (mobile d'abord, puis sm: md: lg:).
 - Les composants de @/components/ui sont le design system : utilise-les dès que leur fonction correspond. Ils portent déjà leurs couleurs, rayons, bordures, ombres et typographies — n'ajoute pas de classes de couleur, de rayon, d'ombre ou de police sur eux, sauf pour la disposition (marges, largeur, alignement).
-- Couleurs : seulement celles du thème — background, foreground, primary, primary-foreground, secondary, secondary-foreground, muted, muted-foreground, accent, accent-foreground, card, border, ring — avec opacité si besoin (bg-primary/10). La palette standard de Tailwind (blue-600, gray-100…) n'existe pas dans ce projet. Pas de hexadécimal.
+- Couleurs : les couleurs de la charte SONT déjà dans le thème (primary, secondary, accent…) : jamais de code couleur (#…, rgb). Seulement les jetons — background, foreground, primary, primary-foreground, secondary, secondary-foreground, muted, muted-foreground, accent, accent-foreground, card, border, ring — avec opacité si besoin (bg-primary/10). La palette standard de Tailwind (blue-600, gray-100…) n'existe pas dans ce projet. Pas de hexadécimal.
 - Rayons et ombres : rounded-sm|md|lg|xl|2xl|full, rounded-card, rounded-button ; shadow-sm|md|lg|xl. Ils suivent le thème. Tailles de texte : text-display, text-h1, text-h2, text-h3, text-h4, text-lead, text-body, text-small (ou Heading / Text).
 - Animations : uniquement Motion for React (\`import { motion } from 'motion/react'\`), avec les paramètres du thème (\`import { motionTokens } from '@/design-system'\` : duration, stagger, ease, distance, scale, spring). Anime ce qui sert la lecture, pas tout. Ne cache jamais par une animation le titre de la première section.
 - Icônes : lucide-react, importées par leur nom exact en PascalCase, par exemple : ${COMMON_ICONS.join(', ')}.
@@ -347,12 +331,13 @@ export function authorSystemPrompt(ctx: AuthoringContext): string {
 - ${fr ? 'Tout le texte visible est en français.' : 'All visible text is in English.'} Écris pour la clientèle de ce projet, avec ses mots : chaque phrase est propre à ce projet.
 - Richesse et substance : Écris des sections généreuses, détaillées et vivantes. Développe les descriptions de valeur, structure avec des grilles de cartes (@/components/ui/card), des puces descriptives avec icônes Lucide pertinentes, des titres soignés et des micro-animations fluides. Ne produis jamais de section squelettique de seulement 2 ou 3 lignes.
 - N'invente aucun prix, délai, horaire, jour, quartier, nom de client, avis, récompense, partenaire ni garantie non vérifiés. Les prix, l'équipe, les coordonnées et les liens viennent de \`site\` (@/site/data) : importe-les, ne les recopie pas.
-- Le site n'a ni formulaire, ni compte, ni paiement en ligne : l'action passe par site.primaryAction ou site.contact.channels.
+- Pas de témoignage ni de citation de client, pas de moyen de paiement, pas de « gratuit », « express » ou « en X minutes » si les faits ne le disent pas.
+- Le site n'a ni serveur, ni compte, ni paiement en ligne : l'action passe par site.primaryAction ou site.contact.channels. Un formulaire de contact est possible : à l'envoi, il ouvre le message dans WhatsApp ou la messagerie avec \`messageLink(texte)\` (\`import { messageLink } from '@/lib/contact'\`, rend un lien ou null) — jamais de fetch ni de faux message « envoyé ».
 - Pas d'emoji, pas de tiret cadratin, pas de superlatif creux. Pas de texte de remplissage (lorem ipsum).
 - Accessibilité : une hiérarchie de titres juste, des liens et boutons au libellé explicite, aria-label sur un bouton icône, alt sur les visuels.
 
 # Imports permis
-react · motion/react · lucide-react · @/components/ui/<module> (ou tout depuis @/components/ui) · @/design-system (motionTokens) · @/lib/utils (cn) · @/site/data (site) · @/site/media (media) · @/site/brand (BrandMark, par défaut)${ctx.manifest.dependencies.length ? ` · ${ctx.manifest.dependencies.join(' · ')}` : ''}
+react · motion/react · lucide-react · @/components/ui/<module> (ou tout depuis @/components/ui) · @/design-system (motionTokens) · @/lib/utils (cn) · @/lib/contact (messageLink) · @/site/data (site) · @/site/media (media) · @/site/brand (BrandMark, par défaut)${ctx.manifest.dependencies.length ? ` · ${ctx.manifest.dependencies.join(' · ')}` : ''}
 
 # Composants du design system
 ${renderContract(ctx.components)}
@@ -450,66 +435,125 @@ export interface Authored {
   valid: boolean;
   /** Les problèmes du dernier essai, s'il n'est pas valide. */
   problems: string[];
-  /** Affirmations absentes des faits (nombres, lieux, jours…), à vérifier. */
+  /** Affirmations absentes des faits restées dans le fichier, à vérifier. */
   unverified: string[];
+  /** Affirmations retirées par le code au dernier recours. */
+  removed: string[];
   providerDown: boolean;
 }
 
-const REMINDER = (problems: string[]) =>
-  `Ta réponse précédente ne peut pas être utilisée telle quelle :\n${problems.map((problem) => `- ${problem}`).join('\n')}\nRenvoie le fichier .tsx complet corrigé, et rien d'autre.`;
+export interface ReviewContext {
+  policy: ImportPolicy;
+  check: FactCheck;
+  /** Les faits et la demande, en clair : un nom propre qui n'y figure pas est inventé. */
+  reference: string;
+  /** Les couleurs du thème compilé, pour remplacer les couleurs écrites en dur. */
+  theme: ThemeColors;
+}
 
-/** Fait écrire un composant ; trois essais au plus, jugés sur leur forme. */
+export interface Review {
+  /** Le code après correction automatique. */
+  code: string;
+  /** Problèmes de forme restants (le fichier ne peut pas être affiché). */
+  problems: string[];
+  /** Affirmations absentes des faits. */
+  invented: string[];
+  fixes: string[];
+}
+
+/** Corrige ce qui est mécanique, puis vérifie la forme et les faits. */
+export async function reviewComponent(raw: string, ctx: ReviewContext): Promise<Review> {
+  const corrected = autocorrect(extractCode(raw), ctx.theme);
+  const problems = await checkComponent(corrected.code, ctx.policy);
+  if (problems.length) return { code: corrected.code, problems, invented: [], fixes: corrected.fixes };
+  const texts = visibleTexts(corrected.code);
+  const invented = Array.from(new Set([...ctx.check({ texts }), ...inventedNames(texts, ctx.reference)]));
+  return { code: corrected.code, problems: [], invented, fixes: corrected.fixes };
+}
+
+/**
+ * Le dernier recours sur les faits : les phrases fautives retirées par le
+ * code. Rendu seulement si le fichier se compile encore.
+ */
+export async function withoutClaims(review: Review, ctx: ReviewContext): Promise<Review> {
+  if (!review.invented.length) return review;
+  const stripped = stripClaims(review.code, review.invented);
+  const again = await reviewComponent(stripped, ctx);
+  return again.problems.length ? review : again;
+}
+
+/**
+ * La consigne d'un nouvel essai : la version du modèle et la liste exacte de
+ * ce qu'il doit corriger. Il corrige SA version au lieu d'en écrire une
+ * autre — c'est ce qui fait converger un petit modèle.
+ */
+export function repairReminder(code: string, items: string[], kind: 'form' | 'facts'): string {
+  const list =
+    kind === 'form'
+      ? items.map((item) => `- ${item}`).join('\n')
+      : `- Retire ces éléments, absents des informations du projet, sans les remplacer par d'autres affirmations : ${items
+          .map((item) => `« ${item} »`)
+          .join(', ')}.\n- Un prix, un numéro, une adresse ou un lien vient de \`site\` (@/site/data) : affiche la donnée, ne l'écris pas en dur.`;
+  return `# Ta version précédente
+\`\`\`tsx
+${code.trim()}
+\`\`\`
+
+# À corriger, et rien d'autre
+${list}
+
+Garde tout le reste à l'identique. Renvoie le fichier .tsx complet, et rien d'autre.`;
+}
+
+/** Fait écrire un composant : correction automatique, vérification, essais ciblés. */
 export async function authorComponent(options: {
   caller: ModelCaller;
   label: string;
   system: string;
   prompt: string;
-  policy: ImportPolicy;
-  check: FactCheck;
-  /** Les faits et la demande, en clair : un nom propre qui n'y figure pas est inventé. */
-  reference: string;
+  review: ReviewContext;
   language: string;
 }): Promise<Authored> {
-  const { caller, label, system, prompt, policy, check } = options;
-  let last: { code: string; problems: string[] } | null = null;
-  let flagged: string[] = [];
+  const { caller, label, system, prompt, review: ctx } = options;
+  let last: Review | null = null;
 
-  const outcome = await caller.call<string>(
+  const outcome = await caller.call<Review>(
     label,
     system,
     prompt,
-    async (text): Promise<Verdict<string>> => {
-      const code = extractCode(text);
-      const problems = await checkComponent(code, policy);
-      last = { code, problems };
-      if (problems.length) return { problem: REMINDER(problems) };
-
-      const texts = visibleTexts(code);
-      const invented = Array.from(new Set([...check({ texts }), ...inventedNames(texts, options.reference)]));
-      if (invented.length) {
-        flagged = invented;
+    async (text): Promise<Verdict<Review>> => {
+      const review = await reviewComponent(text, ctx);
+      last = review;
+      if (review.fixes.length) ChatLogger.info('SITE_AUTOCORRECT', `${label} : ${review.fixes.length} correction(s)`, { fixes: review.fixes.slice(0, 12) });
+      if (review.problems.length || review.invented.length) {
+        ChatLogger.info('SITE_REVIEW', `${label} : à corriger`, { problems: review.problems, invented: review.invented });
+      }
+      if (review.problems.length) return { problem: repairReminder(review.code, review.problems, 'form') };
+      if (review.invented.length) {
         return {
-          problem: `Ta réponse affirme des choses absentes des faits du projet : ${invented.map((item) => `« ${item} »`).join(', ')}. Réécris le fichier sans elles, sans les remplacer par d'autres affirmations. Renvoie le fichier .tsx complet, et rien d'autre.`,
-          // Essais épuisés : le fichier se compile, on le garde et on signale.
-          salvage: () => code,
+          problem: repairReminder(review.code, review.invented, 'facts'),
+          // Essais épuisés : le fichier se compile ; le code retire les phrases fautives.
+          salvage: () => review,
         };
       }
-      flagged = [];
-      return { value: code };
+      return { value: review };
     },
     8000,
     0.6
   );
 
   if (outcome.value) {
-    return { code: outcome.value, valid: true, problems: [], unverified: outcome.salvaged ? flagged : [], providerDown: false };
+    const final = outcome.salvaged ? await withoutClaims(outcome.value, ctx) : outcome.value;
+    const removed = outcome.salvaged ? outcome.value.invented.filter((item) => !final.invented.includes(item)) : [];
+    return { code: final.code, valid: true, problems: [], unverified: final.invented, removed, providerDown: false };
   }
-  const kept = last as { code: string; problems: string[] } | null;
+  const kept = last as Review | null;
   return {
     code: kept?.code ?? '',
     valid: false,
     problems: kept?.problems ?? [],
     unverified: [],
+    removed: [],
     providerDown: outcome.providerDown,
   };
 }

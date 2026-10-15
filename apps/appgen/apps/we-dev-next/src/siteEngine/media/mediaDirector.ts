@@ -70,6 +70,8 @@ export interface AssetDecision {
   queryLanguage: 'en' | 'fr';
   /** Texte alternatif, dans la langue du site. */
   alt: string;
+  /** Pour une illustration : l'icône principale puis trois d'appui (lucide), mises en scène par le code. */
+  icons?: string[];
 }
 
 const KINDS: AssetKind[] = ['photo', 'illustration', 'illustration-3d', 'video', 'pattern', 'none'];
@@ -123,7 +125,7 @@ ${rows.join('\n')}
 # Ta tâche
 Pour chaque emplacement, choisis le visuel qui sert le mieux la section :
 - "photo" : une scène réelle (des personnes au travail, un lieu, un produit, un plat). "source": "stock" si une banque d'images en a de bonnes, "generate" si la scène est trop précise.
-- "illustration" : un dessin à plat simple, pour une idée abstraite ou un déroulé.
+- "illustration" : une illustration composée de pictogrammes (un principal mis en scène, trois d'appui), pour un service, une démarche en étapes ou une idée qu'une photo montrerait mal. Donne ses 4 icônes lucide-react dans "icons" (ex. Truck, Shirt, Clock, CircleCheck).
 - "illustration-3d" : un rendu 3D, pour un produit ou un concept dans un style expressif.
 - "video" : un clip de quelques secondes, seulement là où c'est indiqué possible et où le mouvement raconte quelque chose (une machine qui tourne, un geste de métier). Une vidéo au plus.
 - "pattern" : le motif de la charte, pour un visuel calme et décoratif.
@@ -142,7 +144,8 @@ La requête de banque d'images décrit une SCÈNE visible, pas un lieu ni une ma
       "source": "stock|generate",
       "subject": "ce que montre le visuel, en anglais, une phrase précise",
       "query": "requête de banque d'images en anglais, 2 à 5 mots",
-      "alt": "texte alternatif ${language === 'fr' ? 'en français' : 'in English'}, une phrase"
+      "alt": "texte alternatif ${language === 'fr' ? 'en français' : 'in English'}, une phrase",
+      "icons": ["pour une illustration seulement : 4 icônes lucide-react en PascalCase qui disent le sujet, la principale d'abord"]
     }
   ]
 }`;
@@ -188,6 +191,7 @@ export async function directMedia(options: {
             query: cleanText(item.query, 60),
             queryLanguage: 'en',
             alt: cleanText(item.alt, 160),
+            icons: Array.isArray(item.icons) ? (item.icons as unknown[]).map((icon) => cleanText(icon, 40)).filter(Boolean).slice(0, 4) : [],
           };
         }
         return Object.keys(byslot).length >= Math.ceil(slots.length / 2) ? { value: byslot } : { problem: SHAPE_REMINDER };

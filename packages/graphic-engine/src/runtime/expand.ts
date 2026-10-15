@@ -14,7 +14,7 @@
 import type { DesignTokens } from '../design-system/tokens';
 import type { FormatDef } from '../design-system/formats';
 import type { ContentMap } from './content-map';
-import { chartHtml, iconHtml, logoHtml, patternHtml, tableHtml } from './primitives';
+import { chartHtml, galleryHtml, iconHtml, logoHtml, patternHtml, tableHtml } from './primitives';
 
 const esc = (v: string) => v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 
@@ -124,7 +124,7 @@ export function expandPage(template: string, map: ContentMap, tokens: DesignToke
   const unknown: string[] = [];
   const orphans: string[] = [];
   // 1. Les primitives (avec ou sans balise fermante).
-  let html = template.replace(/<idem-(chart|table|logo|icon|pattern)\b([^>]*?)\/?>(?:\s*<\/idem-\1>)?/gi, (_m, kind: string, attrs: string) => {
+  let html = template.replace(/<idem-(chart|table|gallery|logo|icon|pattern)\b([^>]*?)\/?>(?:\s*<\/idem-\1>)?/gi, (_m, kind: string, attrs: string) => {
     const className = attrOf(attrs, 'class');
     const k = kind.toLowerCase();
     if (k === 'logo') return logoHtml(tokens, attrOf(attrs, 'variant') ?? 'primary', { className });
@@ -147,6 +147,7 @@ export function expandPage(template: string, map: ContentMap, tokens: DesignToke
     used.add(`#${id}`);
     if (block.kind === 'chart') return chartHtml(block, tokens, { className, aspect: attrOf(attrs, 'data-aspect'), locale: frame.locale, type: attrOf(attrs, 'data-type'), highlight: attrOf(attrs, 'data-highlight') });
     if (block.kind === 'table') return tableHtml(block, { className });
+    if (block.kind === 'mockupShowcase') return galleryHtml(block, { className });
     return '';
   });
   // 2. Les clés : dans une balise (attribut) ou dans le texte.
@@ -159,7 +160,8 @@ export function expandPage(template: string, map: ContentMap, tokens: DesignToke
       }
       used.add(key);
       if (map.markers.has(key)) return inTag ? `{{${key}}}` : `<span data-field="${key}">{{${key}}}</span>`;
-      if (entry.kind === 'url') return esc(entry.value);
+      // Une adresse ne s'imprime jamais : elle n'a de sens que dans un attribut (src).
+      if (entry.kind === 'url') return inTag ? esc(entry.value) : '';
       return inTag ? esc(entry.value) : esc(entry.value).replace(/\n/g, '<br>');
     });
   html = html

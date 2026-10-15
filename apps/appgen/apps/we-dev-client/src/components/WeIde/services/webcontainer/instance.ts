@@ -95,7 +95,11 @@ export async function getWebContainerInstance(): Promise<WebContainer | null> {
   if (bootPromise) return bootPromise;
 
   try {
-    bootPromise = WebContainer.boot();
+    // `credentialless`, comme la page hôte (vite.config.ts). Sans cette option,
+    // l'aperçu est servi en `require-corp` : toute image d'un autre domaine
+    // sans en-tête Cross-Origin-Resource-Policy y est bloquée — les photos
+    // Pexels et les images générées (MinIO) des sites ne s'affichaient pas.
+    bootPromise = WebContainer.boot({ coep: 'credentialless' });
     webcontainerInstance = await bootPromise;
 
     if (webcontainerInstance) {

@@ -912,6 +912,34 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
     });
   }, [isLoading, append, t]);
 
+  // « Corriger automatiquement » sous un site généré : les fichiers signalés
+  // repartent au moteur de sites avec leur contenu actuel, les pages (pour les
+  // y remettre à leur place) et le thème (pour les couleurs).
+  useEffect(() => {
+    return eventEmitter.on('chat:siteRepair', (paths: string[]) => {
+      if (!Array.isArray(paths) || !paths.length) return;
+      if (isLoading) {
+        toast.info(t('preview.fix.busy'));
+        return;
+      }
+      const workspace = useFileStore.getState().files;
+      const files: Record<string, string> = {};
+      for (const [path, content] of Object.entries(workspace)) {
+        if (typeof content !== 'string') continue;
+        const wanted =
+          paths.includes(path) ||
+          /^src\/pages\/[^/]+\.tsx$/.test(path) ||
+          path.startsWith('src/design-system/') ||
+          path === 'idem.pages.json';
+        if (wanted) files[path] = content;
+      }
+      append(
+        { role: 'user', content: internalMessage(t('chat.siteRepair.status')) },
+        { body: { siteRepair: { paths, files } } }
+      );
+    });
+  }, [isLoading, append, t]);
+
   // Contexte poussé depuis l'espace de travail : sélection d'un élément,
   // annotation dessinée, thème à appliquer. On préremplit la saisie au lieu
   // d'envoyer directement — l'utilisateur a désigné *quoi*, il lui reste à dire

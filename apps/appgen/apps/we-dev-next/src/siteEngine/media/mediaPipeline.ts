@@ -17,7 +17,7 @@ import { ModelCaller } from '../modelCaller.js';
 import { SiteFacts } from '../siteFacts.js';
 import { Aspect, MediaClient, StockItem } from './mediaClient.js';
 import { AssetDecision, MediaSlot, MediaStyle, writeGenerationPrompt } from './mediaDirector.js';
-import { drawIllustration } from './svgIllustrator.js';
+import { composeSpot, pickIcons, SpotLayout } from './spotIllustration.js';
 
 /** Un média tel que l'écrit un module de contenu, et que rend `Media.jsx`. */
 export interface MediaAsset {
@@ -119,26 +119,35 @@ export async function produceMedia(slot: MediaSlot, decision: AssetDecision, ctx
     }
   };
 
+  /**
+   * L'illustration composée par le code : les icônes choisies par l'agent,
+   * mises en scène aux couleurs de la charte. Toujours nette, jamais abstraite.
+   */
   const drawSvg = async (): Promise<MediaAsset[]> => {
-    const palette = ctx.style.palette.slice(0, 4);
     try {
-      const svg = await drawIllustration(
-        ctx.caller,
-        {
-          subject: decision.subject,
-          palette,
-          ground: ctx.style.ground,
-          aspect: slot.aspect,
-          style: ctx.style.name,
-        },
-        `svg/${slot.id}`
-      );
-      if (!svg) return [];
+      const text = `${slot.brief} ${decision.subject}`.toLowerCase();
+      const layout: SpotLayout = /étape|etape|step|processus|process|démarche|demarche|fonctionne|parcours|comment/.test(text)
+        ? 'flow'
+        : slot.role === 'hero'
+          ? 'halo'
+          : /service|offre|réserv|reserv|catalogue|liste|tarif|formule|commande|suivi/.test(text)
+            ? 'panel'
+            : slot.id.length % 2 === 0
+              ? 'halo'
+              : 'panel';
+      const svg = composeSpot({
+        icons: pickIcons(decision.icons ?? [], `${decision.subject} ${slot.brief}`),
+        palette: ctx.style.palette,
+        ground: ctx.style.ground,
+        aspect: slot.aspect,
+        layout,
+        seed: slot.id,
+      });
       const path = `public/media/${slot.id}.svg`;
       ctx.writeFile(path, `${svg}\n`);
       return [{ kind: 'drawing', src: `/media/${slot.id}.svg`, alt, origin: 'svg' }];
     } catch (error) {
-      fail('dessin SVG', error);
+      fail('illustration composée', error);
       return [];
     }
   };
@@ -182,7 +191,7 @@ export async function produceMedia(slot: MediaSlot, decision: AssetDecision, ctx
     }
 
     case 'illustration': {
-      ctx.note(fr ? `Je dessine une illustration pour ${place}` : `Drawing an illustration for ${place}`);
+      ctx.note(fr ? `Je compose une illustration pour ${place}` : `Composing an illustration for ${place}`);
       assets = await drawSvg();
       if (!assets.length) assets = await generateImage('illustration');
       if (!assets.length) assets = await stockPhotos(decision.query);

@@ -43,7 +43,7 @@ export interface DocumentContext {
 const DELIVERABLE: Record<DocumentType, string> = {
   'pitch-deck': 'a slide of an investor pitch deck — one idea per slide, read in seconds on a screen',
   'business-plan': 'a page of a printed business plan — read closely by bankers and investors',
-  'brand-charter': "a page of the brand's identity guidelines (brand book) — it shows the brand system itself, exactly",
+  'brand-charter': "a page of the brand's identity guidelines (brand book) — clean like a specimen sheet: the asset it shows (logo, colours, type, pattern, mockups) is the hero, very large; text is a short caption",
   'business-card': 'one face of a printed business card (85 × 55 mm)',
   flyer: 'a flyer / social-media visual — one message, understood at a glance',
   chart: 'a standalone chart',
@@ -122,7 +122,11 @@ function directionLines(ctx: DocumentContext): string {
 }
 
 const PROFESSIONAL = [
-  'PROFESSIONAL STANDARD — a business document, designed by a senior studio:',
+  'PROFESSIONAL STANDARD — a business document, designed by a senior studio. Sober and essential, whatever the brand style:',
+  '- One focal element per page. The rest is quiet: white space, alignment, a few sizes.',
+  '- At most ONE graphic device per page (a rule, a band, a corner of pattern), even if the brand language asks for collage, layers or shadows. None on a page that shows a brand asset (logo, palette, type, pattern, mockups, photos). No drop shadows, no rotations, no stacked squares.',
+  '- Nothing ever overlaps a text: shapes, images and panels sit beside or behind it with full contrast, never across it.',
+  '- Each image once on a page; never repeat the same picture.',
   '- Hierarchy does the work: size, weight, spacing and alignment on a clear grid. Generous, consistent margins.',
   '- Decoration only when it carries the brand (its logo, its pattern, the graphic devices of its visual language). Never random circles, blobs, glows, gradients, drop shadows, emojis, ornaments, tilted text or filler shapes.',
   '- Few type sizes, the brand fonts only. Colour with intent: mostly ground and ink, brand colours for emphasis and structure.',
@@ -137,7 +141,7 @@ const PROFESSIONAL = [
 
 export function languagePrompt(ctx: DocumentContext): { system: string; user: string } {
   const system = [
-    'You are the art director of an African brand. Write its VISUAL LANGUAGE: the short, concrete rules every one of its documents and visuals will apply (pitch decks, business plans, flyers, business cards, guidelines). It must be unmistakably this brand, professional and sober — no decoration for its own sake.',
+    'You are the art director of an African brand. Write its VISUAL LANGUAGE: the short, concrete rules every one of its documents and visuals will apply (pitch decks, business plans, flyers, business cards, guidelines). It must be unmistakably this brand, professional and SOBER: translate even an expressive style (collage, maximalism…) into restrained, essential rules — one signature device used sparingly, no decoration for its own sake.',
     'Answer in English with exactly:',
     'LANGUAGE:',
     '- 5 to 8 short lines: colour roles (by their names); typography (display/body, case, weight, scale contrast); grid and margins; the ONE or two graphic devices that are the brand signature (from its guidelines when given); imagery; how the logo is placed.',
@@ -256,13 +260,14 @@ export function authorSystem(ctx: DocumentContext): string {
 }
 
 /** Les outils dont CETTE page a besoin, et eux seuls (documentation à la demande). */
-export function toolLines(ctx: DocumentContext, o: { charts: string[]; tables: string[]; icons: boolean }): string {
+export function toolLines(ctx: DocumentContext, o: { charts: string[]; tables: string[]; icons: boolean; galleries?: string[] }): string {
   const lines = ['TOOLS (drawn by code — you place and size them):', '- <idem-logo variant="primary" class="h-[36px]"></idem-logo> the brand logo (variant from BRAND).'];
   if (o.charts.length)
     lines.push(
       `- <idem-chart data-block="${o.charts[0]}" class="w-full text-ink"></idem-chart> the exact chart of a block, drawn from its data. Optional: data-aspect="16/9"; data-type="bar|horizontalBar|line|area|groupedBar|stacked|pie|doughnut|radar" to choose another representation; data-highlight="<label>" to bring one category forward.`
     );
   if (o.tables.length) lines.push(`- <idem-table data-block="${o.tables[0]}" class="w-full text-[13px] [&_th]:bg-brand-primary [&_th]:text-on-brand"></idem-table> the exact table of a block, styled from the tag.`);
+  if (o.galleries?.length) lines.push(`- <idem-gallery data-block="${o.galleries[0]}" class="h-[70%] w-full"></idem-gallery> the finished mockups of a block, side by side, WHOLE and with their names: give them most of the page; nothing on top of them, no rotation, no frame.`);
   if (o.icons) lines.push('- <idem-icon name="{{…icon}}" class="size-[32px] text-brand-primary"></idem-icon> a line icon: use the icon keys of the CONTENT (chosen for each item); an English noun only if it literally matches the text.');
   if (ctx.tokens.brand.patterns.length) lines.push('- <idem-pattern index="0" class="absolute right-0 top-0 h-full w-[18%] opacity-[0.12]"></idem-pattern> the brand pattern: a band, a panel or a corner, on a few pages only — never the whole page background.');
   return lines.join('\n');

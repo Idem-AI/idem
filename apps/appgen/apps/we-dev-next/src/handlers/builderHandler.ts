@@ -16,6 +16,7 @@ import { ProjectPromptService } from '../services/projectPromptService.js';
 import { ChatLogger } from '../utils/logger.js';
 import { streamResponse } from '../utils/streamResponse.js';
 import { createSiteEngineStream, shouldGenerateSite } from '../siteEngine/orchestrator.js';
+import { createSiteRepairStream } from '../siteEngine/repair.js';
 import { SCAFFOLD_VERSION } from '../scaffold/index.js';
 
 /** Past this, the existing project is summarised rather than sent whole. */
@@ -91,7 +92,9 @@ export async function handleBuilderMode(
   /** Version du starter déjà monté côté client, s'il y en a un. */
   scaffoldVersion?: string,
   /** Session de l'utilisateur, relayée à l'API IDEM pour les médias des sites. */
-  credentials?: Record<string, string>
+  credentials?: Record<string, string>,
+  /** Bouton « Corriger automatiquement » d'un site vitrine. */
+  siteRepair?: { paths: string[]; files: Record<string, string> }
 ) {
   const startTime = Date.now();
 
@@ -129,6 +132,21 @@ export async function handleBuilderMode(
   // instruction from the user, and overwriting it with the initial framing
   // throws that instruction away.
   const isFirstTurn = !messages.some((message) => message.role === 'assistant');
+
+  // Correction demandée depuis le chat : les fichiers signalés repassent par
+  // le correcteur et les essais ciblés du moteur de sites, sans réécrire le reste.
+  if (siteRepair?.paths?.length && target === 'site' && projectData) {
+    ChatLogger.info('SITE_REPAIR', 'Correction automatique demandée', { paths: siteRepair.paths });
+    ChatLogger.stepEnd('handleBuilderMode', Date.now() - startTime);
+    return createSiteRepairStream({
+      projectData,
+      language: language === 'en' ? 'en' : 'fr',
+      files: siteRepair.files ?? {},
+      paths: siteRepair.paths,
+      model,
+      userId,
+    });
+  }
 
   // Premier tour d'un site vitrine : le moteur de sites (siteEngine) conçoit
   // l'architecture et le design system, puis fait écrire chaque composant.

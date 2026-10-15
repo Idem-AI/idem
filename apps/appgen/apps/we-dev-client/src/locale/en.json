@@ -114,7 +114,12 @@
     "regenerate_incomplete": "Please check which files were generated last time, rebuild and continue with the incomplete code files last time, and there is no need to generate the completed code files again",
     "quality_pass": "Design review: applying {{count}} fixes to the generated interface.",
     "technicalHidden": "The model answered without changing the site. Rephrase the request, or start the generation again.",
-    "resumingIncomplete": "The answer stopped midway: picking up where it left off."
+    "resumingIncomplete": "The answer stopped midway: picking up where it left off.",
+    "siteRepair": {
+      "cta": "Fix automatically",
+      "running": "Fix started…",
+      "status": "Fixing the flagged elements."
+    }
   },
   "settings": {
     "title": "Settings",

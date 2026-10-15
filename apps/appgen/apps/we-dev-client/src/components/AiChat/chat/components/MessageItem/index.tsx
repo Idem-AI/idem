@@ -616,6 +616,7 @@ const MessageItemView: React.FC<MessageItemProps> = ({
                 message={message}
                 /* Seul le dernier message peut être en cours de génération. */
                 isComplete={!(isLoading && isEndMessage)}
+                canRepair={isEndMessage && !isLoading}
               />
             ) : (
               <div className="flex flex-col gap-1">

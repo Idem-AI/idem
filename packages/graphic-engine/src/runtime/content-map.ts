@@ -32,8 +32,16 @@ export interface ContentMap {
 const URL_KEYS = new Set(['url', 'logoUrl', 'imageUrl']);
 /** Les données de structure, pas des textes : jamais exposées en clé. */
 const SKIP_KEYS = new Set(['id', 'kind', 'origin', 'focal', 'binding', 'side']);
+/**
+ * Les données TECHNIQUES d'un bloc (fond voulu, motif, taille de tuile, degré de l'échelle, graisse, emphase…) : des
+ * INDICATIONS pour l'auteur (il s'en sert dans ses classes), jamais des textes — elles n'ont pas de clé, elles ne
+ * peuvent donc pas s'imprimer (« light », « neutral », « Tile 103 », « yes » sur une page de charte).
+ */
+const HINT_KEYS = new Set(['background', 'ground', 'motif', 'tile', 'step', 'weight', 'emphasis', 'likelihood', 'impact', 'density', 'demo', 'ratio', 'ink']);
 /** Les blocs que l'auteur pose comme une primitive du code. */
-export const PRIMITIVE_KINDS = new Set<Block['kind']>(['chart', 'table']);
+export const PRIMITIVE_KINDS = new Set<Block['kind']>(['chart', 'table', 'mockupShowcase']);
+/** Les blocs qui MONTRENT le logo : le logo est le héros de la page. */
+const LOGO_KINDS = new Set<Block['kind']>(['logoDisplay', 'logoStory']);
 
 const oneLine = (v: string, max = 600) => {
   const s = v.replace(/\s+/g, ' ').trim();
@@ -57,8 +65,10 @@ export function buildContentMap(section: SectionContent, bindings: 'values' | 'm
     if (Array.isArray(value)) value.forEach((v, i) => walk(`${prefix}.${i}`, v));
     else if (value && typeof value === 'object') {
       const obj = value as Record<string, unknown>;
+      const hints = Object.entries(obj).filter(([k, v]) => HINT_KEYS.has(k) && (typeof v === 'string' || typeof v === 'number' || v === true));
+      if (hints.length) lines.push(`   (${prefix} — ${hints.map(([k, v]) => `${k}: ${v === true ? 'yes' : v}`).join(', ')}; not texts: use them for the design)`);
       for (const [k, v] of Object.entries(obj)) {
-        if (SKIP_KEYS.has(k)) continue;
+        if (SKIP_KEYS.has(k) || HINT_KEYS.has(k)) continue;
         if (URL_KEYS.has(k) && typeof v === 'string') {
           put(`${prefix}.${k}`, v, typeof obj.alt === 'string' ? obj.alt : typeof obj.label === 'string' ? obj.label : undefined);
           // Le sujet de la photo (point d'intérêt) : l'auteur recadre sans le couper.
@@ -84,6 +94,11 @@ export function buildContentMap(section: SectionContent, bindings: 'values' | 'm
       put(`${block.id}.caption`, block.caption);
       continue;
     }
+    if (block.kind === 'mockupShowcase') {
+      primitives.set(block.id, block);
+      lines.push(`\n# block ${block.id} — ${block.items.length} finished mockup(s) (${block.items.map((i) => oneLine(i.label, 30)).join(', ')}): show them WHOLE with <idem-gallery data-block="${block.id}"> — never cropped, rotated, framed or covered`);
+      continue;
+    }
     if (block.kind === 'contact') {
       lines.push(`\n# block ${block.id} — business card fields (${block.side} side). Each field in its own element with data-field="<field>":`);
       for (const field of CARD_FIELDS) {
@@ -96,7 +111,7 @@ export function buildContentMap(section: SectionContent, bindings: 'values' | 'm
       }
       continue;
     }
-    lines.push(`\n# block ${block.id} — ${block.kind}${block.origin === 'system' ? ' (exact data: keep every item)' : ''}`);
+    lines.push(`\n# block ${block.id} — ${block.kind}${block.origin === 'system' ? ' (exact data: keep every item)' : ''}${LOGO_KINDS.has(block.kind) ? ' — THE LOGO IS THE HERO OF THIS PAGE: show each logo image very large (a single logo ≥ 40% of the page width), on its intended ground, with generous clear space; the texts stay short captions' : ''}`);
     walk(block.id, block);
   }
   return { entries, primitives, markers, listing: lines.join('\n').trim() };

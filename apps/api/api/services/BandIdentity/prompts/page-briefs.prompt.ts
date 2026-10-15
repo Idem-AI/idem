@@ -314,11 +314,12 @@ sizes, no prose, no pairing rationale.`
 - The clear space, expressed in a unit derived from the logo itself (a
   proportion of its height), never in absolute millimetres.
 - The minimum size, per support: screen, print, embroidery or engraving.
-- The four or five forbidden treatments: stretching, recolouring, adding an
-  effect or an outline, placing it on a busy area of an image, rebuilding it in
-  another font.
-Blocks: one "table" (declension → background → support, or minimum size per
-support), then one "cards" block of the forbidden treatments. No running prose.`
+- The THREE forbidden treatments that matter most (stretching, adding an effect,
+  a busy background…).
+Blocks: one "table" of AT MOST 4 rows and 3 columns (declension → background →
+minimum size), cells of 4 words maximum; then one "cards" block of EXACTLY 3
+forbidden treatments, titles of 3 words, bodies of 10 words maximum. No prose,
+no clear-space paragraph: one row of the table can carry it.`
   ),
 
   'Usage Couleurs & Typographie': rules(
@@ -336,10 +337,10 @@ TYPOGRAPHIE
 - What is forbidden: a third family, an unlisted weight, an effect that does not
   serve the hierarchy.
 
-Blocks: one "table" mapping each level to its family, weight and usage, then one
-"cards" block of 3 to 4 bans covering BOTH colour and type. At most one "prose"
-block of a SINGLE short paragraph for the distribution rule — and only if the
-table and the cards have not already said it.`
+Blocks: one "table" of AT MOST 4 rows mapping each level to its family, weight
+and usage (cells of 4 words maximum), then one "cards" block of EXACTLY 3 bans
+covering BOTH colour and type (bodies of 10 words maximum). No prose block. The
+family names must be the brand's real ones: never call a sans-serif a serif.`
   ),
 };
 
@@ -363,5 +364,5 @@ export const CHARTER_PAGE_VOLUMES: Record<string, string> = {
   'Color Palette': '1',
   Typography: '1',
   'Logo Bonnes Pratiques': '2',
-  'Usage Couleurs & Typographie': '2 to 3',
+  'Usage Couleurs & Typographie': '2',
 };

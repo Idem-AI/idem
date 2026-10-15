@@ -199,4 +199,9 @@ export interface ChatRequest {
     files: Record<string, string>;
     logs?: string[];
   };
+  /**
+   * Bouton « Corriger automatiquement » d'un site vitrine : les fichiers signalés
+   * en fin de génération, avec leur contenu actuel, les pages et le thème.
+   */
+  siteRepair?: { paths: string[]; files: Record<string, string> };
 }

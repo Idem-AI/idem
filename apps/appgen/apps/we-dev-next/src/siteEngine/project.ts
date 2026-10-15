@@ -121,38 +121,75 @@ export default function Page() {
 }
 `;
 
+/** Un composant de la page, écrit ou seulement conservé (il ne compilait pas). */
+export interface PageEntry {
+  name: string;
+  ok: boolean;
+}
+
+const SKIPPED = 'idem:skipped';
+
+/** L'import d'un composant ; commenté (avec sa marque) s'il n'est pas affiché. */
+const importLine = (name: string, path: string, ok: boolean) =>
+  `${ok ? '' : `// ${SKIPPED} `}import ${name} from '${path}';`;
+
+/** Sa place dans la page ; un commentaire marqué s'il n'est pas affiché, pour qu'une correction l'y remette. */
+const slot = (name: string, element: string, ok: boolean, indent: string) =>
+  ok
+    ? `${indent}<SectionBoundary name="${name}">\n${indent}  ${element}\n${indent}</SectionBoundary>`
+    : `${indent}{/* ${SKIPPED} ${element} */}`;
+
 /**
- * Une page assemblée. `sections` : les composants réellement écrits, dans
- * l'ordre ; `skipped` : ceux conservés sans être affichés (ils ne compilaient pas).
+ * Une page assemblée : en-tête, sections dans l'ordre du manifeste, pied de
+ * page. Un composant qui ne compile pas garde sa place, commentée.
  */
 export function renderPage(
   page: ManifestPage,
-  sections: string[],
-  skipped: string[],
+  sections: PageEntry[],
   frame: { header: boolean; footer: boolean } = { header: true, footer: true }
 ): string {
-  const imports = sections.map((name) => `import ${name} from '@/sections/${page.key}/${name}.tsx';`);
-  const notes = skipped.map(
-    (name) => `// ${name} : conservé dans src/sections/${page.key}/${name}.tsx, mais pas affiché (il ne compile pas). Demandez sa correction dans la conversation.`
-  );
-  const body = sections.map((name) => `        <SectionBoundary name="${name}">\n          <${name} />\n        </SectionBoundary>`);
+  const imports = [
+    importLine('SiteHeader', '@/components/site/SiteHeader.tsx', frame.header),
+    importLine('SiteFooter', '@/components/site/SiteFooter.tsx', frame.footer),
+    "import SectionBoundary from '@/components/site/section-boundary';",
+    ...sections.map((entry) => importLine(entry.name, `@/sections/${page.key}/${entry.name}.tsx`, entry.ok)),
+  ];
 
   return `/**
  * Page « ${page.label.replace(/\*\//g, '')} » (${page.path}), assemblée par IDEM : ses sections, dans l'ordre.
  */
-${frame.header ? "import SiteHeader from '@/components/site/SiteHeader.tsx';\n" : ''}${frame.footer ? "import SiteFooter from '@/components/site/SiteFooter.tsx';\n" : ''}import SectionBoundary from '@/components/site/section-boundary';
 ${imports.join('\n')}
-${notes.length ? `\n${notes.join('\n')}\n` : ''}
+
 export default function ${pageComponentName(page)}() {
   return (
     <>
-${frame.header ? `      <SectionBoundary name="SiteHeader">\n        <SiteHeader current="${page.path}" />\n      </SectionBoundary>\n` : ''}      <main id="contenu">
-${body.join('\n')}
+${slot('SiteHeader', `<SiteHeader current="${page.path}" />`, frame.header, '      ')}
+      <main id="contenu">
+${sections.map((entry) => slot(entry.name, `<${entry.name} />`, entry.ok, '        ')).join('\n')}
       </main>
-${frame.footer ? '      <SectionBoundary name="SiteFooter">\n        <SiteFooter />\n      </SectionBoundary>\n' : ''}    </>
+${slot('SiteFooter', '<SiteFooter />', frame.footer, '      ')}
+    </>
   );
 }
 `;
+}
+
+/** Remet dans une page les composants désormais corrigés. Rend la page inchangée s'il n'y en a pas. */
+export function restoreInPage(page: string, names: string[]): string {
+  let out = page;
+  for (const name of names) {
+    out = out.replace(new RegExp(`^// ${SKIPPED} (import ${name} from [^\\n]+)$`, 'm'), '$1');
+    out = out.replace(
+      new RegExp(`^(\\s*)\\{/\\* ${SKIPPED} (<${name}\\b[^*]*?/>) \\*/\\}$`, 'm'),
+      (_match, indent: string, element: string) => `${indent}<SectionBoundary name="${name}">\n${indent}  ${element}\n${indent}</SectionBoundary>`
+    );
+  }
+  return out;
+}
+
+/** Les composants qu'une page garde sans les afficher. */
+export function skippedInPage(page: string): string[] {
+  return Array.from(page.matchAll(new RegExp(`^// ${SKIPPED} import (\\w+) from`, 'gm'))).map((match) => match[1]);
 }
 
 const pageComponentName = (page: ManifestPage) =>

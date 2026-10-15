@@ -114,7 +114,12 @@
     "regenerate_incomplete": "Veuillez vérifier quels fichiers ont été générés la dernière fois, reconstruire et poursuivre les fichiers de code incomplets de la dernière fois, sans qu'il soit nécessaire de régénérer les fichiers de code déjà terminés",
     "quality_pass": "Revue de design : application de {{count}} corrections à l'interface générée.",
     "technicalHidden": "Le modèle a répondu sans modifier le site. Reformulez la demande, ou relancez la génération.",
-    "resumingIncomplete": "La réponse s'est arrêtée en cours de route : je reprends là où elle s'est arrêtée."
+    "resumingIncomplete": "La réponse s'est arrêtée en cours de route : je reprends là où elle s'est arrêtée.",
+    "siteRepair": {
+      "cta": "Corriger automatiquement",
+      "running": "Correction lancée…",
+      "status": "Je corrige les éléments signalés."
+    }
   },
   "settings": {
     "title": "Paramètres",

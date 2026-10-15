@@ -194,6 +194,7 @@ Tu es l'architecte du site de ce projet. À partir des informations ci-dessus (s
   * Si le site est sur une seule page, renseigne "navLabel" sur les sections principales pour le menu d'ancres.
 - La première section de l'accueil présente le projet avec force et oriente vers l'action principale.
 - Les données factuelles (coordonnées, canaux de contact, offres réelles, localisation) s'appuient sur les faits du projet.
+- Les briefs ne citent que ce que disent les faits : aucun délai, horaire, zone, prix, moyen de paiement, témoignage ou promesse (« gratuit », « express ») absent des informations du projet. Les auteurs des sections écrivent d'après tes briefs. Un formulaire de contact est possible : il ouvre WhatsApp ou l'e-mail.
 - Tous les textes de structure (label, purpose, seoTitle, seoDescription, briefs) sont rédigés ${fr ? 'en français' : 'in English'}.
 
 # Forme exacte de la réponse

@@ -285,7 +285,7 @@ export class GraphicDocument {
       const ctx = this.context();
       const system = authorSystem(ctx);
       const blocks = [...map.primitives.values()];
-      const tools = toolLines(ctx, { charts: blocks.filter((b) => b.kind === 'chart').map((b) => b.id), tables: blocks.filter((b) => b.kind === 'table').map((b) => b.id), icons: [...map.entries.values()].some((e) => e.kind === 'icon') });
+      const tools = toolLines(ctx, { charts: blocks.filter((b) => b.kind === 'chart').map((b) => b.id), tables: blocks.filter((b) => b.kind === 'table').map((b) => b.id), galleries: blocks.filter((b) => b.kind === 'mockupShowcase').map((b) => b.id), icons: [...map.entries.values()].some((e) => e.kind === 'icon') });
       const base = authorUser(ctx, { section, listing: map.listing, tools, index, total, language, plan, reference: this.options.reference });
       const revising = o.revise?.instruction && o.revise.spec && isAuthoredSpec(o.revise.spec) ? o.revise : undefined;
       const user = revising ? reviseUser(base, (revising.spec as SectionSpec).html, revising.instruction) : base;

@@ -22,7 +22,7 @@
  */
 
 import type { Response } from 'express';
-import { formatDataStreamPart } from 'ai';
+import { SiteStream } from './stream.js';
 import { ProjectModel } from '../types/project.js';
 import { getFallbackModelKeys } from '../config/modelConfig.js';
 import { isLightSurface, normalizeHex } from '../design/charter.js';
@@ -31,8 +31,10 @@ import { ChatLogger } from '../utils/logger.js';
 import { ResilientStream } from '../utils/resilientStream.js';
 import { CATALOG } from './catalog.js';
 import { configureDesignSystem } from './designConfig.js';
-import { authorComponent, AuthoringContext, authorSystemPrompt, footerPrompt, headerPrompt, ImportPolicy, sectionPrompt } from './authoring.js';
-import { createFactGuard } from './factGuard.js';
+import { authorComponent, AuthoringContext, authorSystemPrompt, footerPrompt, headerPrompt, inventedNames, ReviewContext, sectionPrompt } from './authoring.js';
+import { themeColorsFromCss } from './autocorrect.js';
+import { importPolicy, Issue, renderRemarks } from './repair.js';
+import { createFactGuard, stripSentences } from './factGuard.js';
 import { designManifest, ManifestPage, ManifestSection, SiteManifest } from './manifest.js';
 import { ModelCaller } from './modelCaller.js';
 import { createApiMediaClient, MediaClient } from './media/mediaClient.js';
@@ -45,8 +47,6 @@ import { FUNCTIONAL_DEPENDENCIES, SITE_ENGINE_ID } from './template.js';
 
 /** Composants écrits en même temps. */
 const CONCURRENCY = 4;
-/** Un signe de vie régulier : certains relais coupent un flux muet. */
-const KEEPALIVE_MS = 12_000;
 
 export interface SiteBuildInput {
   projectData: ProjectModel;
@@ -71,45 +71,6 @@ export function shouldGenerateSite(options: {
   outOfBand?: string;
 }): boolean {
   return options.target === 'site' && options.isFirstTurn && !!options.projectData && !options.outOfBand?.trim();
-}
-
-class SiteStream {
-  private keepalive?: NodeJS.Timeout;
-
-  constructor(private readonly res: Response) {}
-
-  open(model: string) {
-    this.res.writeHead(200, {
-      'content-type': 'text/plain; charset=utf-8',
-      'x-vercel-ai-data-stream': 'v1',
-      'x-idem-model': model,
-    });
-    this.keepalive = setInterval(() => this.res.write(formatDataStreamPart('data', [{ type: 'progress' }])), KEEPALIVE_MS);
-  }
-
-  text(chunk: string) {
-    this.res.write(formatDataStreamPart('text', chunk));
-  }
-
-  file(path: string, content: string) {
-    this.text(`<boltAction type="file" filePath="${path}">\n${content}</boltAction>\n`);
-  }
-
-  /** Une ligne d'état dans la conversation, sans effet sur le projet. */
-  note(text: string) {
-    this.text(`<boltAction type="note">${text.replace(/[<>]/g, '')}</boltAction>\n`);
-  }
-
-  command(type: 'shell' | 'start', command: string) {
-    this.text(`<boltAction type="${type}">\n${command}\n</boltAction>\n`);
-  }
-
-  close(usage: { promptTokens: number; completionTokens: number }, error?: string) {
-    if (this.keepalive) clearInterval(this.keepalive);
-    if (error) this.res.write(formatDataStreamPart('error', error));
-    this.res.write(formatDataStreamPart('finish_message', { finishReason: error ? 'error' : 'stop', usage }));
-    this.res.end();
-  }
 }
 
 /** Le motif de la charte sur fond clair : un visuel calme quand une section en veut un sans photo. */
@@ -234,6 +195,25 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
         return;
       }
 
+      // Les briefs de l'architecte guident les auteurs : un détail inventé
+      // (délai, moyen de paiement, promesse) y serait recopié dans le site. Les
+      // phrases qui en portent un sont retirées avant que quiconque les lise.
+      const check = createFactGuard(`${factsText}\n${request}`, language);
+      let cleaned = 0;
+      const clean = (text: string, fallback: string) => {
+        const invented = [...check({ texts: [text] }), ...inventedNames([text], `${factsText}\n${request}`)];
+        if (!invented.length) return text;
+        cleaned += invented.length;
+        const kept = String(stripSentences(text, invented) ?? '').trim();
+        return kept || fallback;
+      };
+      for (const page of manifest.pages) {
+        for (const section of page.sections) section.brief = clean(section.brief, page.purpose || page.label);
+      }
+      manifest.header = clean(manifest.header, '');
+      manifest.footer = clean(manifest.footer, '');
+      if (cleaned) ChatLogger.info('SITE_ENGINE', 'Briefs nettoyés des détails absents des faits', { items: cleaned });
+
       // Opération B : le design system compilé, puis les faits et les documents.
       for (const [path, content] of Object.entries(design.files)) stream.file(path, content);
       stream.note(
@@ -318,31 +298,28 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
         themeSummary: themeSummary(design.compiled.config),
       };
       const system = authorSystemPrompt(ctx);
-      const check = createFactGuard(`${factsText}\n${request}`, language);
-      const policy: ImportPolicy = {
-        local: {
-          '@/site/data': { names: ['site'] },
-          '@/site/media': { names: ['media'] },
-          '@/site/brand': { default: true, names: ['BRAND_NAME'] },
-          '@/design-system': { names: ['motionTokens', 'componentConfig'] },
-          '@/lib/utils': { names: ['cn'] },
-        },
-        packages: manifest.dependencies.filter((name) => name in FUNCTIONAL_DEPENDENCIES),
+      const reference = `${factsText}\n${request}`;
+      const review: ReviewContext = {
+        policy: importPolicy(manifest.dependencies),
+        check,
+        reference,
+        theme: themeColorsFromCss(design.compiled.css),
       };
 
-      const broken: string[] = [];
-      const unverified = new Set<string>();
+      const issues: Issue[] = [];
       const valid = new Set<string>();
       const limit = createLimiter(CONCURRENCY);
 
       const write = async (path: string, label: string, display: string, prompt: string): Promise<boolean> => {
         if (abort.signal.aborted) return false;
-        const authored = await authorComponent({ caller, label, system, prompt, policy, check, reference: `${factsText}\n${request}`, language });
+        const authored = await authorComponent({ caller, label, system, prompt, review, language });
         if (abort.signal.aborted) return false;
-        authored.unverified.forEach((item) => unverified.add(item));
+        if (authored.removed.length) ChatLogger.info('SITE_ENGINE', `${label} : phrases non vérifiées retirées`, { removed: authored.removed });
         if (authored.code) stream.file(path, authored.code);
+        if (!authored.valid || authored.unverified.length) {
+          issues.push({ path, display, broken: !authored.valid, unverified: authored.unverified });
+        }
         if (!authored.valid) {
-          broken.push(display);
           ChatLogger.warn('SITE_ENGINE', `${label} : conservé sans être affiché`, { problems: authored.problems });
           return false;
         }
@@ -398,12 +375,7 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
       for (const { page, results } of pages) {
         stream.file(
           `src/pages/${page.key}.tsx`,
-          renderPage(
-            page,
-            results.filter((item) => item.ok).map((item) => item.name),
-            results.filter((item) => !item.ok).map((item) => item.name),
-            { header: hasHeader, footer: hasFooter }
-          )
+          renderPage(page, results, { header: hasHeader, footer: hasFooter })
         );
       }
 
@@ -411,29 +383,15 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
       stream.command('start', 'npm run dev');
       stream.text('</boltArtifact>\n');
 
-      // Ce qui demande l'attention de l'utilisateur, en clair.
-      const remarks: string[] = [];
-      if (broken.length) {
-        remarks.push(
-          fr
-            ? `${broken.length === 1 ? 'Un élément n’a' : `${broken.length} éléments n’ont`} pas pu être écrit${broken.length === 1 ? '' : 's'} correctement : ${broken.join(', ')}. Le code est conservé dans le projet mais n'est pas affiché ; demandez sa correction dans la conversation.`
-            : `${broken.length === 1 ? 'One element' : `${broken.length} elements`} could not be written correctly: ${broken.join(', ')}. The code is kept in the project but not displayed; ask for a fix in the conversation.`
-        );
-      }
-      if (unverified.size) {
-        remarks.push(
-          fr
-            ? `À vérifier, absent des informations du projet : ${Array.from(unverified).slice(0, 8).map((item) => `« ${item} »`).join(', ')}.`
-            : `Please check, not found in the project information: ${Array.from(unverified).slice(0, 8).map((item) => `"${item}"`).join(', ')}.`
-        );
-      }
-      if (remarks.length) stream.text(`\n${remarks.join('\n\n')}\n`);
+      // Ce qui reste à corriger, en clair, avec la marque du bouton « Corriger ».
+      const remarks = renderRemarks(issues, language);
+      if (remarks) stream.text(remarks);
 
       const sections = manifest.pages.reduce((total, page) => total + page.sections.length, 0);
       ChatLogger.success('SITE_ENGINE', 'Site généré', {
         generator: SITE_ENGINE_ID,
         pages: manifest.pages.length,
-        sections: `${sections - broken.filter((item) => !/en-tête|header|pied|footer/.test(item)).length}/${sections}`,
+        sections: `${sections - issues.filter((issue) => issue.broken && issue.path.startsWith('src/sections/')).length}/${sections}`,
         designFromModel: design.fromModel,
         designErrors: design.compiled.report.errors.length,
         components: manifest.components,

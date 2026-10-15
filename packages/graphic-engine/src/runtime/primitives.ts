@@ -240,9 +240,42 @@ export function iconHtml(name: string, o: { className?: string }): string {
   return `<span aria-hidden="true" data-ge-icon="${esc(clean)}" class="${esc(`inline-flex shrink-0 [&>svg]:w-full [&>svg]:h-full ${o.className ?? 'size-[1.2em]'}`)}">${svg.replace(/\s(width|height)="[^"]*"/g, '')}</span>`;
 }
 
+/** Le motif reste DISCRET : son opacité est plafonnée par le code (demande de l'utilisateur, 15/10/2026). */
+const PATTERN_MAX_OPACITY = 0.1;
+
+function discreet(className: string | undefined): string {
+  const classes = (className ?? '').split(/\s+/).filter(Boolean);
+  let wanted = 0.06;
+  const kept = classes.filter((c) => {
+    const m = c.match(/^opacity-(?:\[([\d.]+)%?\]|(\d+))$/);
+    if (!m) return true;
+    const v = m[1] !== undefined ? parseFloat(m[1]) : Number(m[2]) / 100;
+    wanted = v > 1 ? v / 100 : v;
+    return false;
+  });
+  return [...kept, `opacity-[${Math.min(PATTERN_MAX_OPACITY, Math.max(0.03, wanted))}]`].join(' ');
+}
+
 export function patternHtml(tokens: DesignTokens, index: number, o: { className?: string }): string {
   const p = tokens.brand.patterns[Math.max(0, Math.min(tokens.brand.patterns.length - 1, index || 0))];
   if (!p) return '';
+  o = { className: discreet(o.className) };
   // Le seul style en ligne : l'adresse de la tuile (une donnée du code, pas une décision de l'auteur).
   return `<div aria-hidden="true" data-ge-pattern${cls(o.className)} style="background-image:url('${p.url.replace(/'/g, '%27')}');background-size:${p.tile}px ${p.tile}px;background-repeat:repeat"></div>`;
+}
+
+type Mockups = Extract<Block, { kind: 'mockupShowcase' }>;
+
+/**
+ * Des MOCKUPS finis (publications, bannières, profils rendus dans le gabarit de leur réseau) : montrés ENTIERS, à leur
+ * proportion, côte à côte, chacun avec son nom. Jamais recadrés, pivotés ni recouverts — ils sont la démonstration.
+ */
+export function galleryHtml(block: Mockups, o: { className?: string }): string {
+  const items = block.items
+    .map((item) => {
+      const grow = Math.max(0.3, Math.min(6, item.ratio || 1)).toFixed(2);
+      return `<figure class="flex min-h-0 min-w-0 flex-[${grow}_1_0%] flex-col items-center gap-[10px]"><img src="${esc(item.url)}" alt="${esc(item.label)}" class="min-h-0 w-full flex-1 object-contain"><figcaption class="text-center text-[12px] font-medium uppercase tracking-[0.08em] text-muted">${esc(item.label)}</figcaption></figure>`;
+    })
+    .join('');
+  return `<div data-ge-gallery data-ge-block="${esc(block.id)}" class="${esc(`flex min-h-0 w-full items-stretch justify-center gap-[28px] ${o.className ?? 'h-full'}`.trim())}">${items}</div>`;
 }

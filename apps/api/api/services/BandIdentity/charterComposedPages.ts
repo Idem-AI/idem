@@ -130,20 +130,20 @@ export function buildComposedCharterPages(ctx: ComposedPagesContext): Record<str
 
   return {
     'Direction Artistique': artDirectionPage('Direction Artistique', async (direction) => ({
-      lede: clip(direction.tagline, 160),
+      lede: clip(direction.tagline, 90),
       blocks: [
         {
           kind: 'artDirectionStance',
           styleName: direction.styleName,
-          rationale: clip(direction.rationale, 320),
-          keywords: direction.keywords.slice(0, 8),
+          rationale: clip(direction.rationale, 180),
+          keywords: direction.keywords.slice(0, 5),
         },
       ],
     })),
 
     'Art Direction Grammar': artDirectionPage('Art Direction Grammar', async (direction) => ({
       lede: direction.graphicDevices.length
-        ? clip(`Éléments récurrents : ${direction.graphicDevices.slice(0, 4).join(', ')}.`, 170)
+        ? clip(`Éléments récurrents : ${direction.graphicDevices.slice(0, 2).join(', ')}.`, 90)
         : undefined,
       blocks: [
         {
@@ -151,10 +151,10 @@ export function buildComposedCharterPages(ctx: ComposedPagesContext): Record<str
           density: densityOf(direction.layout.density),
           items: (
             [
-              { demo: 'grid', label: 'Grille', text: clip(direction.layout.grid, 160) },
+              { demo: 'grid', label: 'Grille', text: clip(direction.layout.grid, 80) },
               { demo: 'density', label: 'Densité', text: densityText(direction.layout.density) },
-              { demo: 'whitespace', label: 'Espace négatif', text: clip(direction.layout.whitespace, 160) },
-              { demo: 'signature', label: 'Geste signature', text: clip(direction.layout.signatureMove, 160) },
+              { demo: 'whitespace', label: 'Espace négatif', text: clip(direction.layout.whitespace, 80) },
+              { demo: 'signature', label: 'Geste signature', text: clip(direction.layout.signatureMove, 80) },
             ] as Array<{ demo: 'grid' | 'density' | 'whitespace' | 'signature'; label: string; text: string }>
           ).filter((item) => item.text),
         },
@@ -164,16 +164,16 @@ export function buildComposedCharterPages(ctx: ComposedPagesContext): Record<str
     'Art Direction Imagery': artDirectionPage('Art Direction Imagery', async (direction) => {
       const imageUrl = await ctx.imageryUrl();
       return {
-        lede: clip(direction.imagery.subjects, 160),
+        lede: clip(direction.imagery.subjects, 90),
         blocks: [
           {
             kind: 'imageryShowcase',
             ...(imageUrl ? { imageUrl } : {}),
             rows: [
               { label: 'Médium', value: MEDIUM_LABEL[direction.imagery.medium] ?? clip(direction.imagery.medium, 60) },
-              { label: 'Traitement', value: clip(direction.imagery.treatment, 180) },
-              { label: 'Lumière', value: clip(direction.imagery.lighting, 180) },
-              { label: 'Cadrage', value: clip(direction.imagery.framing, 180) },
+              { label: 'Traitement', value: clip(direction.imagery.treatment, 80) },
+              { label: 'Lumière', value: clip(direction.imagery.lighting, 80) },
+              { label: 'Cadrage', value: clip(direction.imagery.framing, 80) },
             ].filter((row) => row.value),
           },
         ],
@@ -185,15 +185,14 @@ export function buildComposedCharterPages(ctx: ComposedPagesContext): Record<str
         {
           kind: 'artDirectionRules',
           rows: [
-            { label: 'Répartition des couleurs', value: clip(direction.color.distribution, 120) },
-            { label: 'Application', value: clip(direction.color.application, 150) },
-            { label: 'Contraste', value: clip(direction.color.contrast, 120) },
-            { label: 'Échelle typographique', value: clip(direction.typography.scaleContrast, 120) },
-            { label: 'Casse et interlettrage', value: clip(direction.typography.caseAndTracking, 120) },
-            { label: 'Traitement du texte', value: clip(direction.typography.treatment, 120) },
+            // L'essentiel seulement : une page de règles se lit d'un coup d'œil (quatre règles, trois à faire, trois à éviter).
+            { label: 'Couleurs', value: clip(direction.color.distribution, 70) },
+            { label: 'Contraste', value: clip(direction.color.contrast, 70) },
+            { label: 'Échelle typographique', value: clip(direction.typography.scaleContrast, 70) },
+            { label: 'Casse', value: clip(direction.typography.caseAndTracking, 70) },
           ].filter((row) => row.value),
-          dos: direction.dos.slice(0, 4).map((rule) => clip(rule, 110)),
-          donts: direction.donts.slice(0, 4).map((rule) => clip(rule, 110)),
+          dos: direction.dos.slice(0, 3).map((rule) => clip(rule, 70)),
+          donts: direction.donts.slice(0, 3).map((rule) => clip(rule, 70)),
         },
       ],
     })),

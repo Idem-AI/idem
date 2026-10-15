@@ -27,7 +27,16 @@ export interface MediaProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 function Media({ asset, priority = false, fit, className, ...props }: MediaProps) {
-  if (!asset?.src) return null;
+  // Une image qui ne se charge pas (adresse expirée, réseau) : le cadre
+  // disparaît plutôt que d'afficher son texte de remplacement.
+  const [failed, setFailed] = React.useState(false);
+  const image = React.useRef<HTMLImageElement>(null);
+  // Une image pré-rendue a pu échouer avant que React ne reprenne la page.
+  React.useEffect(() => {
+    const element = image.current;
+    if (element?.complete && element.naturalWidth === 0) setFailed(true);
+  }, []);
+  if (!asset?.src || failed) return null;
   const objectFit = (fit ?? (asset.kind === 'drawing' ? 'contain' : 'cover')) === 'contain' ? 'object-contain' : 'object-cover';
 
   if (asset.kind === 'pattern') {
@@ -48,6 +57,7 @@ function Media({ asset, priority = false, fit, className, ...props }: MediaProps
           className={cn('block size-full', objectFit)}
           src={asset.src}
           poster={asset.poster}
+          onError={() => setFailed(true)}
           autoPlay
           muted
           loop
@@ -56,10 +66,12 @@ function Media({ asset, priority = false, fit, className, ...props }: MediaProps
         />
       ) : (
         <img
+          ref={image}
           className={cn('block size-full', objectFit)}
           src={asset.src}
           alt={asset.alt ?? ''}
           loading={priority ? 'eager' : 'lazy'}
+          onError={() => setFailed(true)}
           decoding="async"
         />
       )}
