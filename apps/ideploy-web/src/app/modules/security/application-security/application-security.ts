@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal, input } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { DatePipe } from '@angular/common';
@@ -49,18 +49,15 @@ const IP_PATTERN = /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/;
   imports: [RouterLink, ReactiveFormsModule, TranslateModule, DatePipe, TrafficChartComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <a
-      class="mb-4 inline-flex items-center gap-2 text-sm"
-      style="color:var(--color-text-secondary);"
-      [routerLink]="['/applications', uuid]"
-    >
-      <i class="pi pi-chevron-left text-[10px]"></i>
-      {{ 'security.app.backToApplication' | translate }}
-    </a>
-
-    <h1 class="heading-serif mb-1" style="font-size:32px;font-weight:700;color:var(--color-text-primary);">
-      {{ 'security.app.title' | translate }}
-    </h1>
+    @if (!embedded()) {
+      <a class="mb-4 inline-flex items-center gap-2 text-sm" style="color:var(--color-text-secondary);" [routerLink]="['/applications', uuid]">
+        <i class="pi pi-chevron-left text-[10px]"></i>
+        {{ 'security.app.backToApplication' | translate }}
+      </a>
+      <h1 class="heading-serif mb-1" style="font-size:32px;font-weight:700;color:var(--color-text-primary);">
+        {{ 'security.app.title' | translate }}
+      </h1>
+    }
     <p class="mb-6 text-sm" style="color:var(--color-text-secondary);">{{ 'security.app.subtitle' | translate }}</p>
 
     @if (error()) {
@@ -620,6 +617,9 @@ export class ApplicationSecurityComponent implements OnInit {
     }
     return this.translate.instant('security.app.customCondition');
   }
+
+  /** Shown as a tab of the application page: no back link, no page title. */
+  readonly embedded = input(false);
 
   ngOnInit(): void {
     this.uuid = this.route.snapshot.paramMap.get('uuid') ?? '';

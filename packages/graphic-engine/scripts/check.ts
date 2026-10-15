@@ -48,7 +48,7 @@ const EX = path.resolve(__dirname, '../contracts/examples');
 const readJson = (rel: string) => JSON.parse(fs.readFileSync(path.join(EX, rel), 'utf8'));
 
 // ── L'auteur simulé : il place chaque clé reçue, et sait rendre une page vide ou une réponse sans HTML ─────
-type Mode = 'ok' | 'blank' | 'blank-once' | 'garbage' | 'down' | 'cut-once' | 'cut';
+type Mode = 'ok' | 'blank' | 'blank-once' | 'garbage' | 'down' | 'cut-once' | 'cut' | 'cover-once';
 let mode: Mode = 'ok';
 const calls: Array<{ role: string; level?: CreativityLevel; repair: boolean; user: string; system?: string }> = [];
 const fakePage = (user: string): string => {
@@ -67,6 +67,7 @@ configureGraphicEngine({
     if (/CHANGE REQUESTED BY THE CLIENT/.test(user)) return '```html\n<div class="relative h-full w-full bg-brand-primary p-[40px]"><h2 class="text-[60px] text-on-brand">{{title}}</h2></div>\n```';
     if (mode === 'garbage') return 'je ne sais pas';
     if (mode === 'blank' || (mode === 'blank-once' && !repair)) return '```html\n<div class="hidden">{{title}}</div>\n```';
+    if (mode === 'cover-once' && !repair) return '```html\n<div class="relative h-full w-full bg-ground p-[60px]"><h2 class="text-[48px] text-ink">{{title}}</h2><div class="absolute left-[40px] top-[40px] h-[200px] w-[900px] bg-brand-primary"></div></div>\n```';
     if (mode === 'cut' || (mode === 'cut-once' && !repair)) return '```html\n<div class="relative h-full w-full bg-ground p-[40px]"><h2 class="absolute left-[40px] top-[1050px] text-[48px]">{{title}}</h2></div>\n```';
     return fakePage(user);
   },
@@ -175,6 +176,19 @@ async function main(): Promise<void> {
   const sys = authorSystem({ documentType: 'pitch-deck', locale: 'fr', tokens: kora, format: FORMATS['slide-16x9'], allowDark: false, bindings: 'values' });
   ok('consignes : logo à la même place, pas de numéros géants, pas de cadre vide pour une image absente, rien coupé par le bord', /SAME place/.test(sys) && /No giant faded numerals/.test(sys) && /never leave an empty frame/.test(sys) && /nothing cut by the edge/.test(sys));
 
+  section('§7 quater Défauts relevés sur une charte réelle (15/10/2026)');
+  const charter: SectionContent = { id: 'logos', title: 'Déclinaison sur fond sombre', blocks: [{ id: 'sys-1', kind: 'logoDisplay', origin: 'system', variants: [{ url: 'data:image/png;base64,iVBORw0KGgo=', label: 'Sur fond sombre', background: 'dark' }] }, { id: 'sys-2', kind: 'patternGrid', origin: 'system', patterns: [{ name: 'Motif principal', motif: 'dots', ink: '#2d6a4f', ground: '#f9fbfb', tile: 103 }] }, { id: 'sys-3', kind: 'mockupShowcase', origin: 'system', items: [{ url: 'data:image/png;base64,iVBORw0KGgo=', label: 'LinkedIn', ratio: 1 }, { url: 'data:image/png;base64,iVBORw0KGgo=', label: 'Facebook', ratio: 1.9 }] }] };
+  const cm = buildContentMap(charter);
+  ok('données techniques (fond, motif, tuile…) : des indications, jamais des clés à imprimer', !cm.entries.has('sys-1.variants.0.background') && !cm.entries.has('sys-2.patterns.0.motif') && !cm.entries.has('sys-2.patterns.0.tile') && /background: dark/.test(cm.listing));
+  ok('page de logo : le logo est désigné comme le héros de la page', /THE LOGO IS THE HERO/.test(cm.listing));
+  const urlText = expandPage('<p>{{sys-1.variants.0.url}}</p><img src="{{sys-1.variants.0.url}}">', cm, kora, FORMATS['slide-16x9'], { sectionId: 'logos', locale: 'fr', engine: 'x' });
+  ok('une adresse d’image ne s’imprime jamais comme texte', !/<p>data:/.test(urlText.html) && urlText.html.includes('src="data:image'));
+  const gallery = expandPage('<idem-gallery data-block="sys-3" class="h-[60%]"></idem-gallery>', cm, kora, FORMATS['slide-16x9'], { sectionId: 'logos', locale: 'fr', engine: 'x' });
+  ok('mockups finis montrés entiers par le code (galerie), à leur proportion, avec leur nom', (gallery.html.match(/object-contain/g) ?? []).length === 2 && gallery.html.includes('flex-[1.90_1_0%]') && gallery.html.includes('>Facebook<'));
+  const { patternHtml } = await import('../src/runtime/primitives');
+  const kp = buildTokens({ brand: { ...BRANDS.kora, patterns: [{ url: 'data:image/svg+xml;base64,PHN2Zy8+', tile: 40 }] }, format: 'slide-16x9' });
+  ok('le motif reste discret : opacité plafonnée à 0,1 quoi que demande l’auteur', patternHtml(kp, 0, { className: 'absolute inset-0 opacity-60' }).includes('opacity-[0.1]') && !patternHtml(kp, 0, { className: 'opacity-60' }).includes('opacity-60'));
+
   if (fast) return;
 
   // ── §8 Le flux complet ───────────────────────────────────────────────────────────────────
@@ -218,6 +232,23 @@ async function main(): Promise<void> {
   const relaid = await (await createDocument({ documentType: 'pitch-deck', format: 'slide-16x9', brand: BRANDS.kora, seed: 'r', sections: [{ id: 'market' }], layoutNote: 'plus aérée' })).composeSection(deck.page('market')!.content);
   ok('nouvelle mise en page : l’auteur repart du contenu gardé et reçoit le souhait du client', relaid.result.html.includes('2,3 Md FCFA') && calls.slice(before2).some((c) => c.role === 'graphic.author' && c.user.includes('THE CLIENT ASKS FOR THIS LAYOUT: plus aérée')));
 
+  section('§8 ter Pages d’actif de la charte : dessinées par le code, l’actif en très grand');
+  const img = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIvPg==';
+  const book = await createDocument({ documentType: 'brand-charter', format: 'slide-16x9', brand: BRANDS.kora, seed: 'a', sections: [] });
+  calls.length = 0;
+  const symbol = await book.composeSection({ id: 'mark', title: 'Symbole seul', blocks: [{ id: 'sys-1', kind: 'logoDisplay', origin: 'system', variants: [{ url: img, label: 'Icône', background: 'light' }] }] });
+  const posts = await book.composeSection({ id: 'posts', title: 'Publications sociales', blocks: [{ id: 'sys-1', kind: 'mockupShowcase', origin: 'system', items: [{ url: img, label: 'LinkedIn', ratio: 0.8 }, { url: img, label: 'Facebook', ratio: 0.8 }] }] });
+  const tiles = await book.composeSection({ id: 'patterns', title: 'Motifs', blocks: [{ id: 'sys-1', kind: 'patternGrid', origin: 'system', patterns: [{ name: 'Motif principal', motif: 'dots', ink: '#2d6a4f', ground: '#f9fbfb', url: img, tile: 40 }, { name: 'Trame', motif: 'grid', ink: '#2d6a4f', ground: '#eef2ef' }] }] });
+  const palette = await book.composeSection({ id: 'palette', title: 'Palette', blocks: [{ id: 'sys-1', kind: 'swatches', origin: 'system', items: [{ hex: '#1B5E20', name: 'Primaire' }, { hex: '#FFFFFF', name: 'Fond' }] }] });
+  const scale = await book.composeSection({ id: 'scale', title: 'Hiérarchie', blocks: [{ id: 'sys-1', kind: 'typeScale', origin: 'system', levels: [{ label: 'Titre', family: 'Inter', step: '3xl', weight: 700, sample: 'Kora' }, { label: 'Texte', family: 'Inter', step: 'base', weight: 400, sample: 'Le texte courant' }] }] });
+  const assets = [symbol, posts, tiles, palette, scale];
+  ok('aucun appel de modèle : logo, mockups, motifs, palette et échelle sont posés par le code', calls.length === 0 && assets.every((o) => o.result.repairs.some((r) => r.code === 'asset_page')));
+  ok('symbole seul : une seule image, sans légende ni tuile ajoutée', (symbol.result.html.match(/<img (?!data-ge-logo)/g) ?? []).length === 1 && !symbol.result.html.includes('Icône'));
+  ok('mockups : entiers, sans cadre ni légende ni emplacement réservé', (posts.result.html.match(/flex-1 object-contain/g) ?? []).length === 2 && !/LinkedIn|Facebook|réservé/.test(posts.result.html.replace(/ alt="[^"]*"/g, '')));
+  ok('motifs : les vrais motifs du projet en tuiles, rien d’autre', tiles.result.html.includes('Motif principal') && tiles.result.html.includes('background-image') && !/Supports autorisés|Usage interdit/.test(tiles.result.html));
+  ok('palette et échelle : codes exacts, tailles réelles du document', palette.result.html.includes('#1B5E20') && scale.result.html.includes(`${Math.round(book.tokens.size['3xl'])} px`));
+  ok('aucun constat bloquant sur les pages d’actif', assets.every((o) => !o.result.issues.some((i) => i.severity === 'blocking')));
+
   section('§8 bis Export PowerPoint (le HTML reste la source)');
   const deckSlides = [{ html: sectionHtml(m) }, { html: `${sectionHtml(f)}\n<template data-speaker-notes>La marge atteint 60 %.</template>` }];
   const fidelity = await exportPptx(deckSlides, { mode: 'fidelity', title: 'Kora' });
@@ -247,6 +278,11 @@ async function main(): Promise<void> {
   mode = 'cut';
   const stillCut = await renderSingle({ documentType: 'flyer', format: 'flyer-square', brand: BRANDS.baobab, creativity: 'medium', seed: 'cut2', png: true, content: { id: 'v', role: 'visual', title: 'Promo de saison', blocks: [] } });
   ok('un texte toujours coupé après la correction : la page est livrée (photographiée) et le défaut SIGNALÉ, jamais la slide perdue', Boolean(stillCut.png) && stillCut.result.issues.some((i) => i.code === 'text_cut' && i.severity === 'blocking') && stillCut.result.repairs.some((r) => r.code === 'render_partial'));
+
+  mode = 'cover-once';
+  calls.length = 0;
+  const uncovered = await renderSingle({ documentType: 'flyer', format: 'flyer-square', brand: BRANDS.baobab, creativity: 'medium', seed: 'cover', content: { id: 'v', role: 'visual', title: 'Promo de saison', blocks: [] } });
+  ok('un texte recouvert par une forme : corrigé par l’auteur, avec le texte en cause', uncovered.result.repairs.some((r) => r.code === 'render_fix') && /covered by another element/.test(calls[1]?.user ?? '') && /Promo de saison/.test(calls[1]?.user ?? ''));
 
   mode = 'blank-once';
   calls.length = 0;

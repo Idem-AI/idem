@@ -4,8 +4,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 import { ApiService } from '../../../shared/services/api.service';
-import { DomainDnsGuideComponent } from './domain-dns-guide';
-import { DomainOptionsComponent } from './domain-options';
+import { RouterLink } from '@angular/router';
 import { Application, RegistryCredential, Tag } from '../../../shared/models/ideploy.models';
 
 /** The Eloquent morph class this Node API expects for an application. */
@@ -16,12 +15,13 @@ const BUILD_PACKS = ['nixpacks', 'dockerfile', 'dockercompose', 'static', 'docke
 
 /**
  * Settings of one application, most-used first: where the code comes from
- * and its address; then its tags; then the diagnostic tools; and, last and
- * set apart, deletion — which asks for the name to be typed.
+ * (how it is built is folded away — the automatic build suits most); a way to
+ * the address, which has its own tab; tags; the developer tools, folded; and,
+ * last and set apart, deletion — which asks for the name to be typed.
  */
 @Component({
   selector: 'app-settings-tab',
-  imports: [ReactiveFormsModule, TranslateModule, IdemLoaderComponent, DomainDnsGuideComponent, DomainOptionsComponent],
+  imports: [ReactiveFormsModule, TranslateModule, IdemLoaderComponent, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="space-y-6">
@@ -41,6 +41,11 @@ const BUILD_PACKS = ['nixpacks', 'dockerfile', 'dockercompose', 'static', 'docke
               <label class="mb-1 block text-sm" for="cfg-branch">{{ 'applications.branch' | translate }}</label>
               <input type="text" id="cfg-branch" class="font-mono text-sm" placeholder="main" formControlName="git_branch" />
             </div>
+          </div>
+          <details class="rounded-lg px-4 py-3" style="border:1px solid var(--color-surface-2);" [open]="advancedOpen()">
+            <summary class="cursor-pointer select-none text-sm font-medium">{{ 'applications.detail.buildOptions' | translate }}</summary>
+            <p class="mt-1 text-xs" style="color:var(--color-text-secondary);">{{ 'applications.detail.buildOptionsHint' | translate }}</p>
+          <div class="mt-4 grid gap-4 sm:grid-cols-2">
             <div>
               <label class="mb-1 block text-sm" for="cfg-pack">{{ 'applications.detail.buildPack' | translate }}</label>
               <select id="cfg-pack" formControlName="build_pack">
@@ -87,30 +92,10 @@ const BUILD_PACKS = ['nixpacks', 'dockerfile', 'dockercompose', 'static', 'docke
               <input type="text" id="cfg-port" class="font-mono text-sm" inputmode="numeric" [placeholder]="'projects.import.portPlaceholder' | translate" formControlName="ports_exposes" />
               <p class="mt-1 text-xs" style="color:var(--color-text-secondary);">{{ 'projects.import.portHint' | translate }}</p>
             </div>
-            <div class="sm:col-span-2">
-              <label class="mb-1 block text-sm" for="cfg-fqdn">{{ 'applications.detail.fqdn' | translate }}</label>
-              <input type="text" id="cfg-fqdn" class="font-mono text-sm" placeholder="https://app.mondomaine.com" formControlName="fqdn" />
-              <p class="mt-1 text-xs" style="color:var(--color-text-secondary);">{{ 'applications.detail.fqdnHint' | translate }}</p>
-              <!-- The record to create for each domain (with the server's IP), and its state. -->
-              <app-domain-dns-guide [appUuid]="app().uuid" [domains]="fqdnValue()" />
-              <app-domain-options [appUuid]="app().uuid" (redeployNeeded)="redeployRequired.set(true)" />
-              @if (domainsApplied()) {
-                <p class="mt-2 text-xs" role="status" style="color:var(--color-success);">
-                  <i class="pi pi-check mr-1 text-xs" aria-hidden="true"></i>{{ 'applications.detail.domainsApplied' | translate }}
-                </p>
-              }
-            </div>
           </div>
+          </details>
           @if (saveError(); as message) {
             <p class="text-sm" role="alert" style="color:var(--color-danger);">{{ message }}</p>
-          }
-          @if (redeployRequired()) {
-            <div class="flex flex-wrap items-center gap-3 rounded-lg p-3 text-sm" role="status" style="border:1px solid var(--color-surface-2);">
-              <span>{{ 'applications.detail.domainRedeploy' | translate }}</span>
-              <button class="outer-button ml-auto" type="button" (click)="redeploy()" [disabled]="redeploying()">
-                {{ (redeploying() ? 'applications.detail.redeploying' : 'applications.detail.redeployNow') | translate }}
-              </button>
-            </div>
           }
           <div class="flex items-center justify-end gap-3">
             @if (saved()) {
@@ -124,9 +109,16 @@ const BUILD_PACKS = ['nixpacks', 'dockerfile', 'dockercompose', 'static', 'docke
         </form>
       </section>
 
+      <!-- The address has its own tab now; said here for whoever looks for it in the settings. -->
+      <a class="glass-card flex items-center gap-3 p-4 text-sm transition-smooth hover:bg-[var(--glass-bg-subtle)]" [routerLink]="[]" [queryParams]="{ tab: 'domain' }">
+        <i class="pi pi-globe text-sm" style="color:var(--color-primary-500);" aria-hidden="true"></i>
+        <span class="flex-1">{{ 'applications.detail.domainMoved' | translate }}</span>
+        <i class="pi pi-arrow-right text-[10px]" style="color:var(--color-primary-500);" aria-hidden="true"></i>
+      </a>
+
       <!-- Continuous deployment: a CI pipeline deploys this application with its own token. -->
-      <section class="glass-card p-5">
-        <h2 class="font-semibold text-text-primary">{{ 'applications.detail.ciTitle' | translate }}</h2>
+      <details class="glass-card p-5">
+        <summary class="cursor-pointer select-none font-semibold text-text-primary">{{ 'applications.detail.ciTitle' | translate }}</summary>
         <p class="mb-4 mt-1 text-sm" style="color:var(--color-text-secondary);">{{ 'applications.detail.ciHint' | translate }}</p>
         @if (ci(); as c) {
           <p class="mb-1 text-xs" style="color:var(--color-text-secondary);">{{ 'applications.detail.ciUrl' | translate }}</p>
@@ -142,7 +134,7 @@ const BUILD_PACKS = ['nixpacks', 'dockerfile', 'dockercompose', 'static', 'docke
         } @else {
           <button type="button" class="inner-button" (click)="loadCi()">{{ 'applications.detail.ciShow' | translate }}</button>
         }
-      </section>
+      </details>
 
       <!-- Logins to private registries, for image applications -->
       @if (configForm.controls.build_pack.value === 'dockerimage') {
@@ -196,8 +188,8 @@ const BUILD_PACKS = ['nixpacks', 'dockerfile', 'dockercompose', 'static', 'docke
       </section>
 
       <!-- Diagnostics: for when something is off and the terminal is too much. -->
-      <section class="glass-card p-5">
-        <h2 class="font-semibold text-text-primary">{{ 'applications.detail.operations' | translate }}</h2>
+      <details class="glass-card p-5">
+        <summary class="cursor-pointer select-none font-semibold text-text-primary">{{ 'applications.detail.operations' | translate }}</summary>
         <p class="mb-4 mt-1 text-sm" style="color:var(--color-text-secondary);">{{ 'applications.detail.operationsHint' | translate }}</p>
         <div class="mb-3 flex flex-wrap gap-2">
           <button type="button" class="outer-button button-sm" (click)="refreshStatus()"><i class="pi pi-heart mr-1.5 text-xs"></i>{{ 'applications.detail.status' | translate }}</button>
@@ -212,7 +204,7 @@ const BUILD_PACKS = ['nixpacks', 'dockerfile', 'dockercompose', 'static', 'docke
         } @else if (output()) {
           <pre class="mt-3 max-h-64 overflow-auto whitespace-pre-wrap rounded-lg p-3 font-mono text-xs" style="background:var(--glass-bg-subtle);color:var(--color-text-secondary);">{{ output() }}</pre>
         }
-      </section>
+      </details>
 
       <!-- Danger zone -->
       <section id="danger-zone" class="glass-card p-5" style="border-color:color-mix(in srgb, var(--color-danger) 35%, transparent);">
@@ -260,13 +252,6 @@ export class AppSettingsTabComponent implements OnInit {
   protected readonly saving = signal(false);
   protected readonly saved = signal(false);
   protected readonly saveError = signal<string | null>(null);
-  /** Set when the domain changed: it only reaches the proxy with a deployment. */
-  protected readonly redeployRequired = signal(false);
-  protected readonly redeploying = signal(false);
-  /** The domain field as typed: the DNS guide checks it before it is saved. */
-  protected readonly fqdnValue = signal('');
-  /** The last domain change was applied at once, no deployment needed. */
-  protected readonly domainsApplied = signal(false);
   protected readonly appTags = signal<Tag[]>([]);
   private readonly allTags = signal<Tag[]>([]);
   protected readonly availableTags = computed(() => {
@@ -287,6 +272,14 @@ export class AppSettingsTabComponent implements OnInit {
     return current && !(BUILD_PACKS as readonly string[]).includes(current) ? [...BUILD_PACKS, current] : [...BUILD_PACKS];
   });
 
+  /** Build options open on their own when this application already uses some. */
+  protected readonly advancedOpen = computed(() => {
+    const a = this.app();
+    return Boolean(
+      (a.build_pack && a.build_pack !== 'nixpacks') || (a.base_directory && a.base_directory !== '/' && a.base_directory !== './') || a.watch_paths
+    );
+  });
+
   protected readonly configForm = this.fb.nonNullable.group({
     git_repository: [''],
     git_branch: [''],
@@ -298,7 +291,6 @@ export class AppSettingsTabComponent implements OnInit {
     docker_registry_image_name: [''],
     docker_registry_image_tag: [''],
     ports_exposes: [''],
-    fqdn: [''],
   });
   protected readonly execForm = this.fb.nonNullable.group({ command: [''] });
 
@@ -315,10 +307,7 @@ export class AppSettingsTabComponent implements OnInit {
       docker_registry_image_name: a.docker_registry_image_name ?? '',
       docker_registry_image_tag: a.docker_registry_image_tag ?? '',
       ports_exposes: a.ports_exposes ?? '',
-      fqdn: a.fqdn ?? '',
     });
-    this.fqdnValue.set(a.fqdn ?? '');
-    this.configForm.controls.fqdn.valueChanges.subscribe((v) => this.fqdnValue.set(v));
     this.reloadTags();
     this.loadRegistries();
   }
@@ -332,8 +321,6 @@ export class AppSettingsTabComponent implements OnInit {
         this.saving.set(false);
         this.saved.set(true);
         this.configForm.markAsPristine();
-        this.domainsApplied.set(Boolean(a.domainsApplied));
-        if (a.redeployRequired) this.redeployRequired.set(true);
         this.updated.emit(a);
       },
       // A taken or invalid domain says which, and why.
@@ -373,21 +360,6 @@ export class AppSettingsTabComponent implements OnInit {
 
   protected removeRegistry(id: number): void {
     this.api.deleteRegistryCredential(id).subscribe(() => this.loadRegistries());
-  }
-
-  protected redeploy(): void {
-    this.redeploying.set(true);
-    this.api.deploy(this.app().uuid).subscribe({
-      next: () => {
-        this.redeploying.set(false);
-        this.redeployRequired.set(false);
-      },
-      error: (e) => {
-        this.redeploying.set(false);
-        const message = (e as { error?: { error?: { message?: string } } })?.error?.error?.message;
-        this.saveError.set(message ?? this.translate.instant('applications.detail.redeployError'));
-      },
-    });
   }
 
   private reloadTags(): void {

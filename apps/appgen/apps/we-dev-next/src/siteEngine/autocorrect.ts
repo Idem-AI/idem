@@ -182,7 +182,7 @@ function knownExports(): Map<string, Set<string>> {
 /** Les noms employés comme valeur ou comme balise, sans déclaration ni import. */
 function usedNames(code: string, body: string): Set<string> {
   const used = new Set<string>();
-  for (const match of Array.from(body.matchAll(/<([A-Z][\w$]*|motion)\b/g))) used.add(match[1]);
+  for (const match of Array.from(body.matchAll(/(?<![\w$.\]])<([A-Z][\w$]*|motion)\b/g))) used.add(match[1]);
   for (const name of ['motion', 'motionTokens', 'site', 'media', 'cn', 'messageLink', 'AnimatePresence', 'useState', 'useEffect', 'useMemo', 'useRef', 'useCallback', 'useId', 'useInView', 'useScroll', 'useTransform', 'useReducedMotion']) {
     if (new RegExp(`(?<![\\w.$'"\`])${name}\\s*[.(]`).test(body)) used.add(name);
   }
@@ -463,7 +463,7 @@ export function stripClaims(code: string, items: string[]): string {
   // Textes JSX : entre deux balises, sans expression.
   let out = code.replace(/>([^<>{}]*\p{L}[^<>{}]*)</gu, (match, text: string) => (hits(text) ? `>${clean(text)}<` : match));
   // Chaînes de caractères avec des espaces (données d'une liste, attributs).
-  out = out.replace(/(['"])((?:(?!\1)[^\\\n]|\\.)*\s(?:(?!\1)[^\\\n]|\\.)*)\1/g, (match, quote: string, text: string) =>
+  out = out.replace(/(['"`])((?:(?!\1)[^\\\n]|\\.)*\s(?:(?!\1)[^\\\n]|\\.)*)\1/g, (match, quote: string, text: string) =>
     hits(text) ? `${quote}${clean(text)}${quote}` : match
   );
   return out;

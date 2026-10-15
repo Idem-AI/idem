@@ -168,16 +168,16 @@ import { Workspace, WorkspaceEnvironment, WorkspaceResource } from '../../../sha
 
                         @if (r.kind === 'application') {
                           <div class="flex shrink-0 flex-wrap items-center gap-3 text-xs">
-                            <a [routerLink]="['/applications', r.uuid, 'security']" style="color:var(--color-text-secondary);" class="hover:underline">
+                            <a [routerLink]="['/applications', r.uuid]" [queryParams]="{ tab: 'security' }" style="color:var(--color-text-secondary);" class="hover:underline">
                               <i class="pi pi-shield mr-1"></i>{{ 'workspaces.resource.security' | translate }}
                             </a>
-                            <a [routerLink]="['/applications', r.uuid, 'pipeline']" style="color:var(--color-text-secondary);" class="hover:underline">
+                            <a [routerLink]="['/applications', r.uuid]" [queryParams]="{ tab: 'pipeline' }" style="color:var(--color-text-secondary);" class="hover:underline">
                               <i class="pi pi-sitemap mr-1"></i>{{ 'workspaces.resource.pipeline' | translate }}
                             </a>
-                            <a [routerLink]="['/applications', r.uuid, 'deployments']" style="color:var(--color-text-secondary);" class="hover:underline">
+                            <a [routerLink]="['/applications', r.uuid]" [queryParams]="{ tab: 'deployments' }" style="color:var(--color-text-secondary);" class="hover:underline">
                               <i class="pi pi-history mr-1"></i>{{ 'workspaces.resource.deployments' | translate }}
                             </a>
-                            <a [routerLink]="['/applications', r.uuid, 'insights']" style="color:var(--color-text-secondary);" class="hover:underline">
+                            <a [routerLink]="['/applications', r.uuid]" [queryParams]="{ tab: 'insights' }" style="color:var(--color-text-secondary);" class="hover:underline">
                               <i class="pi pi-chart-line mr-1"></i>{{ 'workspaces.resource.insights' | translate }}
                             </a>
                           </div>

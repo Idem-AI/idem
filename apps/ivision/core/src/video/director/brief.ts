@@ -40,7 +40,8 @@ export function sceneRange(durationSec: number): [number, number] {
   if (durationSec <= 8) return [2, 3];
   if (durationSec <= 16) return [3, 6];
   if (durationSec <= 32) return [5, 9];
-  return [8, 16];
+  if (durationSec <= 64) return [8, 16];
+  return [14, 32];
 }
 
 export const formatLine = (b: Pick<FilmBrief, 'format' | 'durationSec'>) => {

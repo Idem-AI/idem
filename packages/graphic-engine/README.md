@@ -132,6 +132,19 @@ son langage) — jamais de cercles, taches, halos, dégradés, ombres, émojis, 
 peu de corps, les polices de la marque, la couleur avec intention. C'est une consigne d'écriture : aucun contrôle
 esthétique ne la vérifie.
 
+La règle d'or : **montrer l'essentiel** — le contenu et rien d'autre (ni tuile d'exemple, ni emplacement réservé,
+ni cadre d'écran autour d'une image, ni badge), au plus un signe graphique par page, motif à 10 % d'opacité au plus.
+
+### Les pages d'actif : dessinées par le code (`src/runtime/asset-page.ts`)
+
+Une page fixe (slide ou A4) dont l'unique bloc est un actif de la marque — `logoStory`, `logoDisplay`,
+`patternGrid`, `mockupShowcase`, `swatches`, `typeScale` — ne passe pas par l'auteur, à aucun cran : le code pose
+le titre, puis l'actif en très grand sur toute la place qui reste. Le logo et sa description courte ; l'icône seule ;
+une seule déclinaison par page ; les vrais motifs du projet en tuiles avec leur nom ; les mockups entiers, sans
+cadre ni légende ; la palette en aplats avec nom, code et rôle ; l'échelle typographique à ses tailles réelles.
+Décision du 15/10/2026, après des chartes où l'auteur ajoutait tuiles inventées, cadres et logos minuscules.
+Les textes restent des clés : ces pages se rejouent et se retouchent comme les autres.
+
 ## Ce que l'auteur reçoit (contexte compact, identique à tous les crans)
 
 `src/author/prompts.ts` :
@@ -200,7 +213,7 @@ Les constats non bloquants restent dans `result.issues` comme conseils, sans rie
 |---|---|
 | `contracts/` | ContentModel (blocs typés), SectionSpec/DesignSpec v2 (le code de l'auteur), RenderResult ; validation, normalisation, récupération d'une page HTML rendue par erreur |
 | `author/` | prompts du directeur et de l'auteur, retouche et correction ; appel de modèle tracé (`model.ts`) |
-| `runtime/` | matière à plat, assainissement et remplissage, primitives, Tailwind, contrôle d'affichage, navigateur |
+| `runtime/` | matière à plat, assainissement et remplissage, primitives, pages d'actif, Tailwind, contrôle d'affichage, navigateur |
 | `content/` | analyse du volume de texte (budgets des slides), régime de texte (`slideDiet`) |
 | `asset-planner/` | les médias d'une page : besoins, sources dans l'ordre, génération plafonnée par cran |
 | `design-system/` | formats (cotes), jetons de la marque (couleurs lisibles, polices), palettes de graphiques, motifs |
@@ -211,7 +224,7 @@ Les constats non bloquants restent dans `result.issues` comme conseils, sans rie
 ## Contrôles
 
 ```
-npm run check --prefix packages/graphic-engine        # 74 vérifications, auteur simulé, Chromium
+npm run check --prefix packages/graphic-engine        # 86 vérifications, auteur simulé, Chromium
 npm run check:fast --prefix packages/graphic-engine   # sans Chromium
 npm run schemas --prefix packages/graphic-engine      # régénère contracts/*.schema.json
 ```

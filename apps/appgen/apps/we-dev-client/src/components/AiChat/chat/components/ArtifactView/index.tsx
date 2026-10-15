@@ -6,6 +6,24 @@ import { useFileStore } from '../../../../WeIde/stores/fileStore';
 import { isThinkContent, processThinkContent } from '../MessageItem';
 import { Message } from 'ai';
 import { IdemLoader } from '@idem/shared-loader/react';
+import { Wand2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { eventEmitter } from '../../../utils/EventEmitter';
+
+/**
+ * La marque posée par le moteur de sites quand il reste quelque chose à
+ * corriger : la liste des fichiers concernés (voir `siteEngine/repair.ts`).
+ */
+const REPAIR_MARK = /<!--\s*idem:repair\s+(\[[\s\S]*?\])\s*-->/;
+
+function repairPaths(text: string): string[] {
+  try {
+    const paths = JSON.parse(text.match(REPAIR_MARK)?.[1] ?? '[]');
+    return Array.isArray(paths) ? paths.filter((path): path is string => typeof path === 'string') : [];
+  } catch {
+    return [];
+  }
+}
 
 /**
  * Une réponse du modèle qui modifie le projet, racontée comme un travail.
@@ -74,6 +92,8 @@ interface ArtifactViewProps {
   title: string;
   message: Message;
   isComplete?: boolean;
+  /** Dernier message, génération terminée : le bouton de correction peut servir. */
+  canRepair?: boolean;
 }
 
 const Prose = ({ text }: { text: string }) => (
@@ -97,7 +117,9 @@ const Prose = ({ text }: { text: string }) => (
   </div>
 );
 
-export const ArtifactView: React.FC<ArtifactViewProps> = ({ title, isComplete, message }) => {
+export const ArtifactView: React.FC<ArtifactViewProps> = ({ title, isComplete, message, canRepair = false }) => {
+  const { t } = useTranslation();
+  const [repairSent, setRepairSent] = useState(false);
   const content = message.content;
   const { updateContent } = useFileStore();
   const [isExpanded, setIsExpanded] = useState(true);
@@ -113,7 +135,15 @@ export const ArtifactView: React.FC<ArtifactViewProps> = ({ title, isComplete, m
   const postArtifactContent = useMemo(() => {
     const artifactEndIndex = content.lastIndexOf('</boltArtifact>');
     const post = artifactEndIndex !== -1 ? content.substring(artifactEndIndex + '</boltArtifact>'.length) : '';
-    return conversationalProse(isThinkContent(post) ? processThinkContent(post) : post);
+    // La marque de correction n'est pas du texte : retirée avant le filtre de
+    // prose, qui écarterait tout le message à cause des chemins qu'elle porte.
+    const text = post.replace(REPAIR_MARK, '');
+    return conversationalProse(isThinkContent(text) ? processThinkContent(text) : text);
+  }, [content]);
+
+  const toRepair = useMemo(() => {
+    const artifactEndIndex = content.lastIndexOf('</boltArtifact>');
+    return artifactEndIndex === -1 ? [] : repairPaths(content.substring(artifactEndIndex));
   }, [content]);
 
   const steps = useMemo(() => stepsOf(content), [content]);
@@ -199,6 +229,21 @@ export const ArtifactView: React.FC<ArtifactViewProps> = ({ title, isComplete, m
       </div>
 
       {postArtifactContent && <Prose text={postArtifactContent} />}
+
+      {isComplete && canRepair && toRepair.length > 0 && (
+        <button
+          type="button"
+          disabled={repairSent}
+          onClick={() => {
+            setRepairSent(true);
+            eventEmitter.emit('chat:siteRepair', toRepair);
+          }}
+          className="inline-flex h-8 items-center gap-1.5 rounded-md bg-primary px-3 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-60"
+        >
+          <Wand2 size={14} aria-hidden="true" />
+          {repairSent ? t('chat.siteRepair.running') : t('chat.siteRepair.cta')}
+        </button>
+      )}
     </div>
   );
 };

@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, inject, signal, input } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
@@ -45,20 +45,20 @@ const POLL_INTERVAL_MS = 4_000;
   imports: [RouterLink, ReactiveFormsModule, TranslateModule, DatePipe, IdemLoaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <a
-      class="mb-4 inline-flex items-center gap-2 text-sm"
-      style="color:var(--color-text-secondary);"
-      [routerLink]="['/applications', uuid]"
-    >
-      <i class="pi pi-chevron-left text-[10px]"></i>
-      {{ 'pipeline.backToApplication' | translate }}
-    </a>
+    @if (!embedded()) {
+      <a class="mb-4 inline-flex items-center gap-2 text-sm" style="color:var(--color-text-secondary);" [routerLink]="['/applications', uuid]">
+        <i class="pi pi-chevron-left text-[10px]"></i>
+        {{ 'pipeline.backToApplication' | translate }}
+      </a>
+    }
 
     <div class="mb-6 flex flex-wrap items-start justify-between gap-3">
       <div>
-        <h1 class="heading-serif" style="font-size:32px;font-weight:700;color:var(--color-text-primary);">
-          {{ 'pipeline.title' | translate }}
-        </h1>
+        @if (!embedded()) {
+          <h1 class="heading-serif" style="font-size:32px;font-weight:700;color:var(--color-text-primary);">
+            {{ 'pipeline.title' | translate }}
+          </h1>
+        }
         <p class="mt-1 text-sm" style="color:var(--color-text-secondary);">{{ 'pipeline.subtitle' | translate }}</p>
       </div>
       <button class="inner-button" (click)="run()" [disabled]="running()">
@@ -320,6 +320,9 @@ export class ApplicationPipelineComponent implements OnInit, OnDestroy {
   });
 
   private timer?: ReturnType<typeof setInterval>;
+
+  /** Shown as a tab of the application page: no back link, no page title. */
+  readonly embedded = input(false);
 
   ngOnInit(): void {
     this.uuid = this.route.snapshot.paramMap.get('uuid') ?? '';

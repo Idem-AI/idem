@@ -34,6 +34,7 @@
     "grant:welcome": "ts-node --transpile-only api/scripts/grantWelcomeCredit.ts",
     "auth:import": "ts-node --transpile-only api/scripts/importAuthAccounts.ts",
     "check:openrouter": "ts-node --transpile-only api/scripts/checkOpenRouter.ts",
+    "ai:matrix": "ts-node --transpile-only api/scripts/printAiModels.ts",
     "ai:models": "ts-node --transpile-only api/scripts/setAiModels.ts",
     "openrouter:matrix": "ts-node --transpile-only api/scripts/openrouterMatrix.ts",
     "check:indexes": "ts-node --transpile-only api/scripts/checkIndexes.ts",

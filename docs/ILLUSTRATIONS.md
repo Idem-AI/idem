@@ -49,6 +49,7 @@ on l'ajoute ici avec sa source (règle complète : `AGENTS.md` § 4).
 | Feuillet manuscrit et calame | le document écrit | rédaction, rapport, import |
 | Étal du marché | commerce en nom propre, catalogue | EI, modèles iDeploy, aperçu AppGen |
 | Façade en banco à torons | institution, bâtiment construit | SA, application bâtie |
+| Façade ndebele peinte (mur à gradins, porte, motif au-dessus de l'entrée) | la maison qu'on reconnaît de loin et qui dit à qui elle est : une adresse à son nom | iDeploy : onglet « Nom de domaine » (`facade`) — source : [Ndebele house painting, Wikipédia](https://en.wikipedia.org/wiki/Ndebele_house_painting) |
 | Sankofa (poids akan) | revenir sur ses pas | page introuvable |
 | Calebasse vide / fêlée | rien encore / erreur | états vides et d'échec |
 | Perles enfilées | se reconnaître à un signe | étiquettes |
@@ -132,6 +133,7 @@ Format : **retenu** — candidats écartés (raison).
 | `beads` (étiquettes) | perles enfilées, la perle-losange en couleur |
 | `net` (destinations, réseaux Docker) | épervier, un nœud en couleur |
 | `cowries` (prix, gratuit, paiement) | calebasse ouverte et ses cauris, un cauri en couleur |
+| `facade` (nom de domaine, nouveau) | façade ndebele peinte, le motif au-dessus de la porte en couleur |
 
 Pages de liste (état vide) : applications → `activity` (pirogue) ; serveurs →
 `server` ; services et catalogue → `market` ; espaces de travail → `box` ;

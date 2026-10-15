@@ -756,7 +756,7 @@ communicationRoutes.post(`/${resource}/:projectId/videos/enhance`, authenticate,
  *               scope:
  *                 type: object
  *                 properties:
- *                   durationSec: { type: integer, enum: [6, 15, 30, 60] }
+ *                   durationSec: { type: integer, enum: [6, 15, 30, 60, 90, 120, 180] }
  *                   formats: { type: array, items: { type: string, enum: [story, square, portrait, landscape] } }
  *                   quality: { type: string, enum: [standard, hd, premium] }
  */

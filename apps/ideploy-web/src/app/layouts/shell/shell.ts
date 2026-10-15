@@ -14,6 +14,8 @@ interface NavItem {
   path: string;
   label: string;
   icon: string;
+  /** A tab of the application page (`?tab=`), matched exactly with its query. */
+  tab?: string;
 }
 interface NavSection {
   title?: string;
@@ -30,11 +32,11 @@ function appNav(uuid: string): NavSection[] {
   return [
     {
       items: [
-        { path: base, label: 'shell.nav.appOverview', icon: 'pi pi-gauge' },
-        { path: `${base}/deployments`, label: 'shell.nav.appDeployments', icon: 'pi pi-send' },
-        { path: `${base}/pipeline`, label: 'shell.nav.appPipeline', icon: 'pi pi-sitemap' },
-        { path: `${base}/security`, label: 'shell.nav.appFirewall', icon: 'pi pi-shield' },
-        { path: `${base}/insights`, label: 'shell.nav.appInsights', icon: 'pi pi-chart-line' },
+        { path: base, label: 'shell.nav.appOverview', icon: 'pi pi-gauge', tab: '' },
+        { path: base, label: 'shell.nav.appDomain', icon: 'pi pi-globe', tab: 'domain' },
+        { path: base, label: 'shell.nav.appDeployments', icon: 'pi pi-send', tab: 'deployments' },
+        { path: base, label: 'shell.nav.appFirewall', icon: 'pi pi-shield', tab: 'security' },
+        { path: base, label: 'shell.nav.appInsights', icon: 'pi pi-chart-line', tab: 'insights' },
         { path: `${base}/terminal`, label: 'shell.nav.appTerminal', icon: 'pi pi-code' },
       ],
     },
@@ -197,10 +199,10 @@ function appNav(uuid: string): NavSection[] {
                 @if (section.title) {
                   <li style="padding-top:20px; padding-bottom:5px;"><span class="block px-3 text-[10px] font-bold uppercase" style="color:color-mix(in srgb, var(--color-text-tertiary) 65%, transparent);">{{ section.title! | translate }}</span></li>
                 }
-                @for (item of section.items; track item.path) {
+                @for (item of section.items; track item.label) {
                   <li>
-                    <a [routerLink]="item.path" routerLinkActive="bg-primary/15 text-primary border-primary/30"
-                       [routerLinkActiveOptions]="{ exact: item.path === '/dashboard' || item.path === appOverviewPath() }"
+                    <a [routerLink]="item.path" [queryParams]="item.tab !== undefined ? { tab: item.tab || null } : null" routerLinkActive="bg-primary/15 text-primary border-primary/30"
+                       [routerLinkActiveOptions]="item.tab !== undefined ? tabMatch : { exact: item.path === '/dashboard' || item.path === appOverviewPath() }"
                        class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 border border-transparent text-text-secondary hover:bg-primary hover:text-[var(--color-on-primary)]">
                       <i [class]="item.icon" class="text-lg shrink-0 w-5 text-center"></i>
                       <span class="text-sm font-medium">{{ item.label | translate }}</span>
@@ -327,6 +329,9 @@ export class ShellComponent implements OnInit {
     const app = this.appContext();
     return app ? appNav(app.uuid) : this.globalNav;
   });
+
+  /** An application tab is active only on its own `?tab=`. */
+  protected readonly tabMatch = { paths: 'exact', queryParams: 'exact', matrixParams: 'ignored', fragment: 'ignored' } as const;
 
   /** The one app-nav item (Overview) that needs exact matching — every sub-page's path is also its prefix. */
   protected readonly appOverviewPath = computed(() => {

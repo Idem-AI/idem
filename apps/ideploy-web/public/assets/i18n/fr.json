@@ -309,7 +309,7 @@
       "appDeployments": "Déploiements",
       "appPipeline": "Pipeline CI/CD",
       "appFirewall": "Pare-feu",
-      "appInsights": "Insights",
+      "appInsights": "Performances",
       "appTerminal": "Terminal",
       "sectionDeploy": "Déploiement",
       "templates": "Modèles",
@@ -331,7 +331,8 @@
       "sshKeys": "Clés SSH",
       "apiTokens": "Identifiants & jetons",
       "sectionAdmin": "Administration",
-      "admin": "Administration"
+      "admin": "Administration",
+      "appDomain": "Nom de domaine"
     },
     "profile": "Mon profil",
     "display": "Affichage",
@@ -402,7 +403,7 @@
       "checklist": "Pour bien démarrer",
       "checklistItem": {
         "gitRepo": "Connecter un dépôt Git",
-        "domain": "Ajouter un domaine",
+        "domain": "Utiliser votre nom de domaine",
         "pipeline": "Activer le pipeline CI/CD",
         "firewall": "Configurer le pare-feu",
         "envVars": "Ajouter des variables d'environnement"
@@ -456,14 +457,16 @@
       "sections": "Rubriques de l'application",
       "tab": {
         "overview": "Aperçu",
-        "deployments": "Déploiements",
+        "deployments": "Mises en ligne",
         "env": "Variables",
         "storage": "Stockage",
-        "tasks": "Tâches",
-        "pipeline": "Pipeline",
+        "tasks": "Tâches planifiées",
+        "pipeline": "Automatisation",
         "security": "Sécurité",
-        "insights": "Ressources",
-        "settings": "Réglages"
+        "insights": "Performances",
+        "settings": "Réglages",
+        "domain": "Nom de domaine",
+        "more": "Plus"
       },
       "previewTitle": "Aperçu du site en ligne",
       "noPreview": "L'aperçu apparaîtra après le premier déploiement.",
@@ -481,17 +484,17 @@
         "cancelled": "Annulé",
         "other": "Inconnu"
       },
-      "envHint": "Les réglages secrets de votre application (clés d'API, adresse de la base…). Ils s'appliquent au prochain déploiement.",
+      "envHint": "Les réglages secrets de votre application : clés d'API, adresse de la base de données… Ils ne sont jamais visibles dans votre code.",
       "noEnvVars": "Aucune variable pour l'instant.",
       "removeNamed": "Supprimer {{name}}",
       "keyLabel": "Nom",
       "valueLabel": "Valeur",
-      "tasksHint": "Une commande lancée automatiquement dans votre application, à heure fixe (format cron).",
+      "tasksHint": "Une commande lancée automatiquement dans votre application, au rythme que vous choisissez.",
       "noTasks": "Aucune tâche planifiée.",
       "taskNameLabel": "Nom",
       "taskCommandLabel": "Commande",
       "taskFrequencyLabel": "Fréquence (cron)",
-      "volumesHint": "Un dossier qui survit aux redéploiements : fichiers envoyés par vos utilisateurs, base SQLite, cache…",
+      "volumesHint": "Un dossier conservé entre deux mises en ligne : fichiers envoyés par vos utilisateurs, base SQLite, cache… Sans lui, ces fichiers sont effacés à chaque mise en ligne.",
       "noVolumes": "Aucun volume : tout est effacé à chaque déploiement.",
       "volumeNameLabel": "Nom",
       "volumeNamePlaceholder": "ex. uploads",
@@ -501,7 +504,7 @@
       "filePathPlaceholder": "/app/config/settings.json",
       "fileContentLabel": "Contenu",
       "general": "Général",
-      "generalHint": "D'où vient le code, comment il est construit, et à quelle adresse il répond.",
+      "generalHint": "D'où vient le code, comment il est construit.",
       "pack": {
         "nixpacks": "Automatique (détection)",
         "dockerfile": "Dockerfile",
@@ -600,7 +603,149 @@
         "bareToWww": "Rediriger le domaine nu vers www",
         "applied": "Appliqué.",
         "redeploy": "Enregistré — appliqué au prochain déploiement."
+      },
+      "tabHint": {
+        "storage": "Garder des fichiers entre deux mises en ligne",
+        "tasks": "Lancer une commande à heure fixe",
+        "pipeline": "Tester et vérifier le code avant chaque mise en ligne"
+      },
+      "connectDomain": "Utiliser mon nom de domaine",
+      "manageDomain": "Gérer les adresses",
+      "domainMoved": "L'adresse de votre application et votre nom de domaine se gèrent dans l'onglet « Nom de domaine ».",
+      "buildOptions": "Options de construction (avancé)",
+      "buildOptionsHint": "La construction automatique convient à la plupart des projets. Ne changez ces réglages que si vous savez ce dont votre code a besoin.",
+      "envExample": "Par exemple :",
+      "envRedeploy": "Les variables modifiées s'appliqueront à la prochaine mise en ligne.",
+      "tasksExample": "Par exemple : vider un cache chaque nuit, envoyer un rapport chaque lundi, sauvegarder des données chaque mois.",
+      "taskPreset": {
+        "hourly": "Toutes les heures",
+        "daily": "Chaque jour à minuit",
+        "weekly": "Chaque lundi à minuit",
+        "monthly": "Le 1er de chaque mois",
+        "custom": "Personnalisé (format cron)"
       }
+    },
+    "domain": {
+      "inviteTitle": "Votre propre nom de domaine",
+      "inviteBody": "Votre application est déjà en ligne à son adresse IDEM. Pour que vos clients la trouvent à votre nom, comme boutique.com, connectez votre nom de domaine : nous vous guidons étape par étape, sans connaissance technique.",
+      "inviteFree": "Sans frais chez IDEM",
+      "inviteHttps": "Cadenas HTTPS automatique",
+      "inviteTime": "Environ 10 minutes",
+      "connect": "Connecter mon nom de domaine",
+      "listTitle": "Vos adresses",
+      "listHint": "Les adresses où votre application répond. La première est l'adresse principale.",
+      "addAnother": "Ajouter un domaine",
+      "idemAddress": "Adresse IDEM, offerte",
+      "primary": "Principale",
+      "resume": "Reprendre le guide",
+      "copy": "Copier l'adresse {{host}}",
+      "makePrimary": "En faire l'adresse principale",
+      "remove": "Retirer {{host}}",
+      "none": "Aucune adresse pour l'instant : elle sera créée à la première mise en ligne.",
+      "advanced": "Options avancées : HTTPS, www, redirections",
+      "status": {
+        "checking": "Vérification…",
+        "live": "En ligne, sécurisée (HTTPS)",
+        "starting": "Démarre à la prochaine mise en ligne",
+        "certificate": "Le cadenas HTTPS est en cours de création",
+        "waitingDns": "En attente du réglage chez votre fournisseur"
+      },
+      "wizard": {
+        "title": "Connecter votre nom de domaine",
+        "close": "Fermer",
+        "progress": "Étapes",
+        "continue": "Continuer",
+        "back": "Retour",
+        "done": "C'est fait, vérifier",
+        "finish": "Terminer",
+        "steps": {
+          "domain": "Votre domaine",
+          "provider": "Votre fournisseur",
+          "record": "Le réglage",
+          "check": "Vérification"
+        },
+        "domainTitle": "Quel est votre nom de domaine ?",
+        "domainIntro": "Le nom que vous avez acheté, sans « https:// ». Il peut aussi s'agir d'un sous-domaine, comme boutique.mondomaine.com.",
+        "domainLabel": "Nom de domaine",
+        "alsoWww": "Ajouter aussi {{host}}",
+        "alsoWwwHint": "Recommandé : vos visiteurs arrivent au même endroit, qu'ils tapent « www » ou non.",
+        "noDomain": "Je n'ai pas encore de nom de domaine",
+        "buyIntro": "Un nom de domaine s'achète en quelques minutes, pour environ 10 € par an, chez un fournisseur comme ceux-ci. Revenez ici une fois l'achat fait.",
+        "invalid": "Ce nom de domaine n'est pas valide. Exemple : boutique.com",
+        "providerTitle": "Où avez-vous acheté votre domaine ?",
+        "providerIntro": "Nous vous montrerons exactement où cliquer chez votre fournisseur pour relier {{host}} à votre application.",
+        "providerHint": "Vous ne savez plus ? Cherchez « nom de domaine » ou « renouvellement » dans vos e-mails : la facture indique le fournisseur.",
+        "otherProvider": "Un autre",
+        "recordTitle": "Chez {{provider}}, ajoutez ce réglage",
+        "yourProvider": "votre fournisseur",
+        "openProvider": "Ouvrir {{provider}}",
+        "recordFor": "Pour {{host}}",
+        "atMeans": "« @ » désigne {{host}} lui-même. Si votre fournisseur refuse « @ », laissez le champ vide.",
+        "ttl": "Si on vous demande une durée (TTL), laissez la valeur proposée.",
+        "checkTitle": "Nous vérifions votre domaine",
+        "checkIntro": "Rien d'autre à faire : cette page se met à jour toute seule. Le réglage met en général quelques minutes à être pris en compte, parfois jusqu'à quelques heures.",
+        "stage": {
+          "dns": "Le réglage est visible sur Internet",
+          "https": "Le cadenas HTTPS est créé",
+          "live": "Votre domaine est en ligne"
+        },
+        "httpsWaiting": "Automatique, en quelques minutes.",
+        "canLeave": "Vous pouvez fermer cette page : le cadenas HTTPS sera créé automatiquement dès que le réglage sera visible.",
+        "seeRecord": "Revoir le réglage à faire",
+        "liveTitle": "Votre domaine est en ligne !",
+        "liveIntro": "Vos visiteurs peuvent maintenant ouvrir votre application à votre nom, avec le cadenas HTTPS."
+      },
+      "providers": {
+        "godaddy": {
+          "step1": "Connectez-vous à GoDaddy, ouvrez « Mon portefeuille de domaines » et cliquez sur votre domaine.",
+          "step2": "Ouvrez l'onglet « DNS », puis « Enregistrements DNS ».",
+          "step3": "Cliquez sur « Ajouter un nouvel enregistrement », choisissez le type A, puis recopiez le Nom et la Valeur ci-contre. Enregistrez.",
+          "tip": "GoDaddy crée souvent un enregistrement A « @ » vers « Parked » : modifiez-le avec le crayon au lieu d'en ajouter un second."
+        },
+        "namecheap": {
+          "step1": "Dans « Domain List », cliquez sur « Manage » à côté de votre domaine.",
+          "step2": "Ouvrez l'onglet « Advanced DNS ».",
+          "step3": "Cliquez sur « Add new record », choisissez « A Record », recopiez le Nom dans « Host » et la Valeur dans « Value », puis cliquez sur la coche verte.",
+          "tip": "Supprimez l'enregistrement « URL Redirect Record » ou le « CNAME » de parking que Namecheap a créé pour le même nom."
+        },
+        "ovh": {
+          "step1": "Dans votre espace client OVHcloud, ouvrez « Web Cloud », puis « Noms de domaine », et choisissez votre domaine.",
+          "step2": "Ouvrez l'onglet « Zone DNS ».",
+          "step3": "Cliquez sur « Ajouter une entrée », choisissez A, recopiez le Nom dans « Sous-domaine » (laissez-le vide si le nom est @) et la Valeur dans « Cible ».",
+          "tip": "OVHcloud crée par défaut des entrées A et AAAA vers ses propres serveurs : supprimez-les pour ce nom, sinon le certificat HTTPS ne peut pas être émis."
+        },
+        "hostinger": {
+          "step1": "Dans hPanel, ouvrez « Domaines » et cliquez sur « Gérer » à côté de votre domaine.",
+          "step2": "Ouvrez « DNS / Serveurs de noms ».",
+          "step3": "Choisissez le type A, recopiez le Nom et la Valeur (champ « Pointe vers »), puis cliquez sur « Ajouter un enregistrement ».",
+          "tip": "Supprimez d'abord l'enregistrement A existant pour le même nom : Hostinger en crée un vers ses serveurs."
+        },
+        "cloudflare": {
+          "step1": "Connectez-vous à Cloudflare et choisissez votre domaine.",
+          "step2": "Ouvrez « DNS », puis « Records ».",
+          "step3": "Cliquez sur « Add record », choisissez A, recopiez le Nom dans « Name » et la Valeur dans « IPv4 address ».",
+          "tip": "Important : cliquez sur le nuage orange pour le passer en gris (« DNS only »). Sinon, le certificat HTTPS ne peut pas être émis."
+        },
+        "lws": {
+          "step1": "Dans votre espace client LWS, cliquez sur « Gérer » à côté de votre domaine.",
+          "step2": "Ouvrez « Zone DNS ».",
+          "step3": "Ajoutez un enregistrement de type A avec le Nom et la Valeur ci-contre.",
+          "tip": "S'il existe déjà un enregistrement A pour ce nom, modifiez-le au lieu d'en ajouter un second."
+        },
+        "squarespace": {
+          "step1": "Ouvrez vos domaines Squarespace (anciens Google Domains) et cliquez sur votre domaine.",
+          "step2": "Ouvrez « DNS », puis « Paramètres DNS ».",
+          "step3": "Dans « Enregistrements personnalisés », ajoutez un enregistrement A : le Nom va dans « Hôte », la Valeur dans « Données ».",
+          "tip": "Retirez les « Squarespace Defaults » s'ils envoient le même nom ailleurs."
+        },
+        "other": {
+          "step1": "Connectez-vous au site où vous avez acheté votre nom de domaine.",
+          "step2": "Cherchez la page « DNS », « Zone DNS » ou « Gérer les enregistrements ».",
+          "step3": "Ajoutez un enregistrement de type A avec le Nom et la Valeur ci-contre, puis enregistrez.",
+          "tip": "S'il existe déjà un enregistrement A ou AAAA pour ce nom, supprimez-le ou modifiez-le."
+        }
+      },
+      "backupAddress": "Adresse technique de secours"
     }
   },
   "projects": {
@@ -1531,7 +1676,8 @@
     "visitApp": "Ouvrir l'application",
     "copyLogsTitle": "Copier les journaux dans le presse-papiers",
     "copyLogs": "Copier les journaux",
-    "waitingForLogs": "En attente des journaux…"
+    "waitingForLogs": "En attente des journaux…",
+    "alsoAt": "Aussi accessible à"
   },
   "auth": {
     "signingIn": "Connexion en cours…"
@@ -1770,8 +1916,8 @@
   },
   "deployments": {
     "backToApplication": "Retour à l'application",
-    "title": "Déploiements",
-    "history": "Historique",
+    "title": "Mises en ligne",
+    "history": "Historique des mises en ligne",
     "noHistory": "Aucun déploiement enregistré.",
     "commit": "Commit",
     "status": "Statut",
@@ -1784,14 +1930,17 @@
     "rollbackHint": "Le commit choisi est redéployé depuis les sources : l'image précédente a pu être supprimée.",
     "noTargets": "Aucune version antérieure disponible.",
     "targetsError": "Impossible de charger les versions antérieures.",
-    "rollbackTo": "Redéployer",
+    "rollbackTo": "Revenir à cette version",
     "rollingBack": "Redéploiement…",
     "rollbackError": "Le redéploiement a échoué.",
     "previews": "Environnements de preview",
     "previewsHint": "Un environnement déployé par pull request, isolé de la production.",
     "noPreviews": "Aucun environnement de preview.",
     "previewsError": "Impossible de charger les previews.",
-    "openPullRequest": "Voir la pull request"
+    "openPullRequest": "Voir la pull request",
+    "intro": "Chaque version de votre application mise en ligne. Un problème ? Revenez à une version précédente en un clic.",
+    "version": "Version",
+    "current": "En ligne"
   },
   "terminal": {
     "title": "Terminal",
@@ -1816,7 +1965,7 @@
   },
   "insights": {
     "backToApplication": "Retour à l'application",
-    "title": "Ressources",
+    "title": "Performances",
     "liveHint": "Relevé instantané, actualisé toutes les 10 secondes.",
     "refresh": "Actualiser",
     "refreshing": "Actualisation…",

@@ -23,6 +23,39 @@ const VIDEO_CHANNELS: Partial<Record<ContentChannel, ContentFormat>> = {
   x: 'short-video',
 };
 
+/** Durées des vidéos du calendrier : de 1 à 3 minutes, jamais un format court de 15 s. */
+export const CALENDAR_VIDEO_DURATIONS = [60, 90, 120, 180] as const;
+export type CalendarVideoDuration = (typeof CALENDAR_VIDEO_DURATIONS)[number];
+
+/** Ordre de repli : alterne court et long pour que la période ne soit jamais uniforme. */
+const DURATION_CYCLE: CalendarVideoDuration[] = [60, 120, 90, 180];
+
+/** La durée proposée par le modèle, ramenée à la plus proche des durées admises (minimum 1 minute). */
+export function normaliseVideoDuration(proposed: unknown): CalendarVideoDuration | undefined {
+  const n = Number(proposed);
+  if (!Number.isFinite(n) || n <= 0) return undefined;
+  return CALENDAR_VIDEO_DURATIONS.reduce((best, d) => (Math.abs(d - n) < Math.abs(best - n) ? d : best));
+}
+
+/**
+ * Donne à chaque vidéo sa durée : celle du modèle si valide, sinon le cycle. Si toutes les vidéos de la
+ * période tombent sur la même durée, le cycle reprend la main — la variété est une règle, pas un souhait.
+ */
+function assignVideoDurations(items: ContentIdea[]): ContentIdea[] {
+  const videos = items.filter((i) => isVideoFormat(i.format));
+  const proposed = videos.map((i) => normaliseVideoDuration(i.videoDurationSec));
+  const distinct = new Set(proposed.filter(Boolean)).size;
+  const forceCycle = videos.length > 1 && distinct < Math.min(2, videos.length);
+  let rank = 0;
+  return items.map((item) => {
+    if (!isVideoFormat(item.format)) return { ...item, videoDurationSec: undefined };
+    const own = forceCycle ? undefined : normaliseVideoDuration(item.videoDurationSec);
+    const videoDurationSec = own ?? DURATION_CYCLE[rank % DURATION_CYCLE.length];
+    rank++;
+    return { ...item, videoDurationSec };
+  });
+}
+
 /** Part minimale de vidéos dans une période. */
 const VIDEO_SHARE = 1 / 3;
 
@@ -86,7 +119,7 @@ export function ensureVideoShare(items: ContentIdea[], hasPhotos: boolean): Cont
   const out = items.map((item) => (isVideoFormat(item.format) ? { ...item, videoType: normaliseVideoType(item.videoType, item, hasPhotos) } : { ...item, videoType: undefined }));
   const target = Math.ceil(out.length * VIDEO_SHARE);
   let count = out.filter((i) => isVideoFormat(i.format)).length;
-  if (count >= target) return out;
+  if (count >= target) return assignVideoDurations(out);
   const order = out
     .map((item, index) => ({ item, index }))
     .filter(({ item }) => !isVideoFormat(item.format) && VIDEO_CHANNELS[item.channel] && !['article', 'newsletter'].includes(item.format))
@@ -100,5 +133,5 @@ export function ensureVideoShare(items: ContentIdea[], hasPhotos: boolean): Cont
     out[index] = { ...item, format, videoType: suggestVideoType(item, hasPhotos) };
     count++;
   }
-  return out;
+  return assignVideoDurations(out);
 }

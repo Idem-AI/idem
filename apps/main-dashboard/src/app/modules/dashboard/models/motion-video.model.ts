@@ -4,7 +4,7 @@
  */
 
 export type VideoFormat = 'story' | 'square' | 'portrait' | 'landscape';
-export type VideoDuration = 6 | 15 | 30 | 60;
+export type VideoDuration = 6 | 15 | 30 | 60 | 90 | 120 | 180;
 export type VideoQuality = 'standard' | 'hd' | 'premium';
 export type VideoObjective = 'promotion' | 'product' | 'announce' | 'event' | 'opening' | 'testimonial' | 'recruitment';
 export type VideoType = 'kinetic' | 'product' | 'promo' | 'footage' | 'showcase3d' | 'illustrated' | 'slideshow' | 'logo' | 'mix';

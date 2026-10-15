@@ -110,6 +110,11 @@ export type FactCheck = (value: unknown) => string[];
 export function createFactGuard(allowed: string, language: string): FactCheck {
   const reference = normalize(allowed);
   const numbers = new Set(reference.match(/\d+(?:[.,]\d+)?/g) ?? []);
+  // Les suites de chiffres des faits, sans leurs séparateurs : un numéro de
+  // téléphone écrit en d'autres groupes (« 6 72 66 » contre « 672 66 ») reste
+  // le même numéro.
+  const runs = (allowed.replace(/(\d)[\s\u00a0\u202f.\-/]+(?=\d)/g, '$1').match(/\d{2,}/g) ?? []).join(' ');
+  const known = (number: string) => numbers.has(number) || SMALL_NUMBERS.has(number) || (number.length >= 2 && runs.includes(number.replace(/[.,]/g, '')));
   const fr = language === 'fr';
 
   return (value: unknown): string[] => {
@@ -119,7 +124,7 @@ export function createFactGuard(allowed: string, language: string): FactCheck {
       const text = normalize(original);
 
       for (const number of text.match(/\d+(?:[.,]\d+)?/g) ?? []) {
-        if (!numbers.has(number) && !SMALL_NUMBERS.has(number)) problems.add(number);
+        if (!known(number)) problems.add(number);
       }
 
       for (const duration of text.match(fr ? DURATION_FR : DURATION_EN) ?? []) {

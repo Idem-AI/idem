@@ -397,3 +397,6 @@
 .cd-empty-visual .cd-go {
   justify-content: center;
 }
+
+.cd-ai { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.75rem; }
+.cd-choose { display: flex; flex-direction: column; gap: 0.5rem; }

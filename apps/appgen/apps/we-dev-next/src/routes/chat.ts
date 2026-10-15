@@ -45,6 +45,7 @@ router.post('/', async (req: Request, res: Response) => {
       platform,
       scaffold,
       followUp,
+      siteRepair,
     } = req.body as ChatRequest;
 
     // User UI language (from the client) so the AI generates content in the right
@@ -173,7 +174,8 @@ router.post('/', async (req: Request, res: Response) => {
         qualityRepair || followUp,
         resolveBuildTarget(product, platform, projectData),
         scaffold?.version,
-        forwardedCredentials(req)
+        forwardedCredentials(req),
+        siteRepair
       );
     }
 

@@ -41,7 +41,7 @@ export const VIDEO_PRICING = {
   get referenceCost(): number {
     return base.referenceCost;
   },
-  durationFactor: { 6: 0.5, 15: 1, 30: 1.75, 60: 3 } as Record<VideoDuration, number>,
+  durationFactor: { 6: 0.5, 15: 1, 30: 1.75, 60: 3, 90: 4.25, 120: 5.5, 180: 8 } as Record<VideoDuration, number>,
   /** Chaque format au-delà du premier ajoute 35 % du prix du premier. */
   extraFormatFactor: 0.35,
   qualityFactor: { standard: 0.8, hd: 1, premium: 1.3 } as Record<VideoQuality, number>,

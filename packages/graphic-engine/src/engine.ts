@@ -33,6 +33,7 @@ import { buildContentMap, ContentMap, fixBrandNameTypos } from './runtime/conten
 import { expandPage, extractHtml, sanitizeHtml, withSize } from './runtime/expand';
 import { compileTailwind } from './runtime/tailwind';
 import { checkRender } from './runtime/check';
+import { assetPageTemplate, isAssetPage } from './runtime/asset-page';
 
 export interface DocumentOptions {
   documentType: DocumentType;
@@ -275,6 +276,15 @@ export class GraphicDocument {
       else recorder.repair({ code: 'replay_failed', detail: `la page gardée ne s'affiche plus (${r.error.slice(0, 160)}) : réécrite`, by: 'code' });
       bible = o.replay.bible;
     }
+    // 2. Une page d'ACTIF (le logo, l'icône, une déclinaison, les motifs, des mockups) : dessinée par le code, sans
+    //    modèle — l'actif en très grand, rien d'autre (décision de l'utilisateur, 15/10/2026).
+    if (!rendered && !o.revise && isAssetPage(section, this.format)) {
+      const r = await this.render(assetPageTemplate(section, this.format, this.tokens), map, section.id, recorder);
+      if (r.ok) {
+        rendered = r.page;
+        recorder.repair({ code: 'asset_page', detail: `page d'actif (${section.blocks[0].kind}) dessinée par le code`, by: 'code' });
+      } else if (r.partial) rendered = r.partial;
+    }
     if (!rendered) {
       const call = this.agent();
       if (!call) throw new GraphicRenderError(section.id, 'aucun modèle n’est branché (port agentCall absent)');
@@ -285,7 +295,7 @@ export class GraphicDocument {
       const ctx = this.context();
       const system = authorSystem(ctx);
       const blocks = [...map.primitives.values()];
-      const tools = toolLines(ctx, { charts: blocks.filter((b) => b.kind === 'chart').map((b) => b.id), tables: blocks.filter((b) => b.kind === 'table').map((b) => b.id), icons: [...map.entries.values()].some((e) => e.kind === 'icon') });
+      const tools = toolLines(ctx, { charts: blocks.filter((b) => b.kind === 'chart').map((b) => b.id), tables: blocks.filter((b) => b.kind === 'table').map((b) => b.id), galleries: blocks.filter((b) => b.kind === 'mockupShowcase').map((b) => b.id), icons: [...map.entries.values()].some((e) => e.kind === 'icon') });
       const base = authorUser(ctx, { section, listing: map.listing, tools, index, total, language, plan, reference: this.options.reference });
       const revising = o.revise?.instruction && o.revise.spec && isAuthoredSpec(o.revise.spec) ? o.revise : undefined;
       const user = revising ? reviseUser(base, (revising.spec as SectionSpec).html, revising.instruction) : base;

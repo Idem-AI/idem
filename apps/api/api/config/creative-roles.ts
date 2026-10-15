@@ -18,6 +18,7 @@ import type { CreativityLevel } from '@idem/shared-models';
 import { AI_CONFIG, FeatureAIConfig, LLMProvider } from './ai.config';
 import { isProviderConfigured, providerSupports } from './ai-providers.config';
 import { isAllowedOpenRouterModel } from './openrouter.config';
+import { ladderModel, MODEL_LADDERS, ModelLadder, ROLE_LADDERS, ROLE_MODEL_OVERRIDES } from './ai-models.config';
 import logger from './logger';
 
 export type RoleCapability = 'code' | 'vision' | 'json' | 'long-context';
@@ -26,11 +27,6 @@ export type CreativeProfile = 'agents' | 'critic' | 'coder';
 export interface CreativeRole {
   /** Le profil de modèle par défaut (`AI_CONFIG.creative`). */
   profile: CreativeProfile;
-  /**
-   * L'échelle de modèles du rôle : le CRAN de créativité choisit le modèle (plus le cran monte, plus le
-   * modèle est puissant). Sans échelle, le modèle du profil sert à tous les crans.
-   */
-  ladder?: ModelLadder;
   needs: RoleCapability[];
   /** Plafond de jetons de SORTIE d'un appel, par cran (0 : le rôle ne travaille pas à ce cran). */
   maxOutputTokens: Record<CreativityLevel, number>;
@@ -38,43 +34,8 @@ export interface CreativeRole {
   mission: string;
 }
 
-/**
- * LES ÉCHELLES DE MODÈLES — la créativité EST la puissance du modèle (décision du 2026-10-14, vidéo puis
- * livrables graphiques) : Low le plus léger, Ultra le plus capable. Quatre crans (Max retiré). Toutes à poids
- * ouverts (liste blanche).
- *
- *   design  concevoir : concept et storyboard vidéo, retouche écrite, direction d'un document
- *   code    écrire du code : scènes Motion Canvas, pages HTML/Tailwind (et les corriger)
- *
- * `IDEM_LADDER_<ÉCHELLE>_<CRAN>` (ex. `IDEM_LADDER_CODE_HIGH`) remplace un barreau, s'il est autorisé.
- */
-export type ModelLadder = 'design' | 'code';
-
-export const MODEL_LADDERS: Record<ModelLadder, Record<CreativityLevel, string>> = {
-  design: {
-    low: 'qwen/qwen3.5-9b',
-    medium: 'qwen/qwen3.5-27b',
-    high: 'qwen/qwen3.5-397b-a17b',
-    ultra: 'deepseek/deepseek-v4-pro',
-  },
-  code: {
-    low: 'qwen/qwen3-coder-30b-a3b-instruct',
-    medium: 'qwen/qwen3-coder-next',
-    high: 'qwen/qwen3-coder',
-    ultra: 'deepseek/deepseek-v4-pro',
-  },
-};
-
-/** Le modèle d'une échelle à un cran (variable d'environnement autorisée, sinon le barreau par défaut). */
-export function ladderModel(ladder: ModelLadder, requested: CreativityLevel): string {
-  const level: CreativityLevel = MODEL_LADDERS[ladder][requested] ? requested : 'high';
-  const custom = process.env[`IDEM_LADDER_${ladder.toUpperCase()}_${level.toUpperCase()}`]?.trim();
-  if (custom) {
-    if (isAllowedOpenRouterModel(custom)) return custom;
-    logger.warn('creative.ladder_model_refused', { event: 'creative.ladder_model_refused', ladder, level, model: custom });
-  }
-  return MODEL_LADDERS[ladder][level];
-}
+export { MODEL_LADDERS, ladderModel };
+export type { ModelLadder };
 
 const UP_TO = (high: number, ultra: number, medium = 0, low = 0): Record<CreativityLevel, number> => ({ low, medium, high, ultra });
 const ALL = (n: number): Record<CreativityLevel, number> => ({ low: n, medium: n, high: n, ultra: n });
@@ -84,16 +45,16 @@ export const CREATIVE_ROLES: Record<string, CreativeRole> = {
   'graphic.content': { profile: 'agents', needs: ['json'], maxOutputTokens: ALL(3500), mission: 'rédiger le contenu structuré des livrables' },
   // Les livrables graphiques (flyers, business plan, charte, carte de visite, pitch deck) : mêmes étapes à tous les
   // crans ; le cran choisit le MODÈLE. Le directeur écrit la bible du document, l'auteur écrit chaque page en Tailwind.
-  'graphic.director': { profile: 'agents', ladder: 'design', needs: ['long-context'], maxOutputTokens: ALL(2500), mission: 'concevoir la direction d’un document : la bible visuelle et l’idée de chaque page' },
-  'graphic.author': { profile: 'coder', ladder: 'code', needs: ['code', 'long-context'], maxOutputTokens: ALL(12000), mission: 'écrire (et corriger) le HTML Tailwind de chaque page' },
+  'graphic.director': { profile: 'agents', needs: ['long-context'], maxOutputTokens: ALL(2500), mission: 'concevoir la direction d’un document : la bible visuelle et l’idée de chaque page' },
+  'graphic.author': { profile: 'coder', needs: ['code', 'long-context'], maxOutputTokens: ALL(12000), mission: 'écrire (et corriger) le HTML Tailwind de chaque page' },
   'graphic.pattern-designer': { profile: 'coder', needs: ['code'], maxOutputTokens: ALL(3000), mission: 'dessiner la tuile de motif propre à la marque (SVG)' },
   'graphic.asset-planner': { profile: 'agents', needs: ['json'], maxOutputTokens: UP_TO(800, 1000), mission: 'déterminer les ressources visuelles nécessaires' },
   'video.intent-classifier': { profile: 'agents', needs: ['json'], maxOutputTokens: UP_TO(300, 300, 300), mission: 'comprendre le besoin vidéo et les médias disponibles' },
   // Le film Motion Canvas : mêmes étapes à tous les crans ; le cran choisit le MODÈLE (échelles ci-dessus).
-  'video.concept': { profile: 'coder', ladder: 'design', needs: ['long-context'], maxOutputTokens: ALL(2500), mission: 'inventer le film : concept, bible visuelle, idée de chaque scène' },
-  'video.planner': { profile: 'agents', ladder: 'design', needs: ['long-context'], maxOutputTokens: ALL(5000), mission: 'écrire le storyboard : durées, intentions, idées, textes, médias, voix' },
-  'video.author': { profile: 'coder', ladder: 'code', needs: ['code', 'long-context'], maxOutputTokens: ALL(8000), mission: 'écrire (et corriger) le code Motion Canvas de chaque scène' },
-  'video.reviser': { profile: 'agents', ladder: 'design', needs: [], maxOutputTokens: ALL(800), mission: 'lire une retouche écrite par le client' },
+  'video.concept': { profile: 'coder', needs: ['long-context'], maxOutputTokens: ALL(2500), mission: 'inventer le film : concept, bible visuelle, idée de chaque scène' },
+  'video.planner': { profile: 'agents', needs: ['long-context'], maxOutputTokens: ALL(9000), mission: 'écrire le storyboard : durées, intentions, idées, textes, médias, voix' },
+  'video.author': { profile: 'coder', needs: ['code', 'long-context'], maxOutputTokens: ALL(8000), mission: 'écrire (et corriger) le code Motion Canvas de chaque scène' },
+  'video.reviser': { profile: 'agents', needs: [], maxOutputTokens: ALL(800), mission: 'lire une retouche écrite par le client' },
 };
 
 /** Les noms historiques des appelants (moteur graphique, cœur vidéo) → leur rôle logique. */
@@ -138,7 +99,10 @@ export function roleConfig(name: string, profile: CreativeProfile, requested?: C
     if (isAllowedOpenRouterModel(model)) return { ...base, modelName: model, pinModel: true, llmOptions };
     logger.warn('creative.role_model_refused', { event: 'creative.role_model_refused', role, model });
   }
-  if (def?.ladder && level) return { ...base, modelName: ladderModel(def.ladder, level), pinModel: true, llmOptions };
+  const ladder = ROLE_LADDERS[role];
+  const fixed = level ? ROLE_MODEL_OVERRIDES[role]?.[level] : undefined;
+  if (fixed && isAllowedOpenRouterModel(fixed)) return { ...base, modelName: fixed, pinModel: true, llmOptions };
+  if (ladder && level) return { ...base, modelName: ladderModel(ladder, level), pinModel: true, llmOptions };
   return { ...base, llmOptions };
 }
 
