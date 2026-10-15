@@ -136,6 +136,28 @@ export function dockerfilePath(location: string | null | undefined): string {
   return p || 'Dockerfile';
 }
 
+/** Build arguments Docker provides itself: never reported as missing. */
+const PREDEFINED_ARGS = [
+  'TARGETPLATFORM', 'TARGETOS', 'TARGETARCH', 'TARGETVARIANT', 'BUILDPLATFORM', 'BUILDOS', 'BUILDARCH', 'BUILDVARIANT',
+  'HTTP_PROXY', 'HTTPS_PROXY', 'FTP_PROXY', 'NO_PROXY', 'ALL_PROXY', 'http_proxy', 'https_proxy', 'ftp_proxy', 'no_proxy', 'all_proxy',
+];
+
+/**
+ * Shell that names the `ARG`s the Dockerfile declares without a default and
+ * nobody provides. A monorepo's Dockerfile often picks the app to build from
+ * one (`ARG APP` → `turbo prune $APP`): without it the build fails on an
+ * obscure error. Said first, in words; not fatal (an ARG may be optional).
+ */
+export function missingArgsCheck(file: string, provided: string[]): string {
+  const known = [...new Set([...provided, ...PREDEFINED_ARGS])].join(' ');
+  return (
+    `missing=""; for a in $(grep -E '^[[:space:]]*ARG[[:space:]]+[A-Za-z_][A-Za-z0-9_]*[[:space:]]*$' ${quote(file)} | awk '{print $2}' | sort -u); do ` +
+    `case " ${known} " in *" $a "*) ;; *) missing="$missing $a" ;; esac; done; ` +
+    `if [ -n "$missing" ]; then echo "⚠ The Dockerfile expects build argument(s)$missing with no default value, and none was given. ` +
+    `If the build needs them (a monorepo picking the app to build, for instance), add them under Variables as build variables." >&2; fi`
+  );
+}
+
 function dockerfilePlan(context: BuildContext): BuildPlan {
   const dir = buildDirectory(context);
   // The base directory is the build context; the Dockerfile may live
@@ -144,6 +166,11 @@ function dockerfilePlan(context: BuildContext): BuildPlan {
   // context, which the shared packages need.
   const file = dockerfilePath(context.dockerfileLocation);
   const target = context.dockerfileTarget ? ` --target ${quote(context.dockerfileTarget)}` : '';
+  // Build variables (is_buildtime) are the Dockerfile's ARGs, as on every
+  // platform: they were passed to nixpacks only, so `ARG APP` stayed empty.
+  const buildEnv = context.buildEnv ?? [];
+  const buildArgs = buildEnv.map((pair) => ` --build-arg ${quote(pair)}`).join('');
+  const provided = buildEnv.map((pair) => pair.split('=')[0]);
   return {
     pack: 'dockerfile',
     runtime: 'image',
@@ -156,7 +183,8 @@ function dockerfilePlan(context: BuildContext): BuildPlan {
         command:
           `cd ${quote(dir)} && ` +
           `{ test -f ${quote(file)} || { echo ${quote(`No Dockerfile found at ${file} (build context ${dir}).`)} >&2; exit 1; }; } && ` +
-          `docker build -f ${quote(file)}${target} -t ${quote(context.imageTag)} .`,
+          `{ ${missingArgsCheck(file, provided)}; } && ` +
+          `docker build -f ${quote(file)}${target}${buildArgs} -t ${quote(context.imageTag)} .`,
       },
     ],
   };

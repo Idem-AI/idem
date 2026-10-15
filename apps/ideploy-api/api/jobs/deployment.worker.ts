@@ -513,10 +513,18 @@ async function deploy(
 
     for (const step of plan.steps) {
       await streamStep(deploymentUuid, step.label, async () => {
+        // A build that fails fails the same way again: no retry (the SSH
+        // retries are for a dropped connection). It used to run three times.
         const r = await executeRemoteCommand(server, key, step.command, {
           onData: (c) => log(c),
+          noRetry: true,
         });
-        if (r.exitCode !== 0) throw new Error(`${step.label} failed: ${(r.stderr || r.stdout).slice(0, 400)}`);
+        if (r.exitCode !== 0) {
+          const output = r.stderr || r.stdout;
+          // The missing-ARG hint, printed before the build, leads the error.
+          const hint = /⚠ The Dockerfile expects build argument\(s\)[^\n]*/.exec(output)?.[0];
+          throw new Error(`${step.label} failed: ${hint ? `${hint} — ` : ''}${output.slice(-400)}`);
+        }
       });
     }
 
