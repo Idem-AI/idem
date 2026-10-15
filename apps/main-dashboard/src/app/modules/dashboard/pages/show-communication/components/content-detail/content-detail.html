@@ -1,3 +1,54 @@
+<!-- Modifier avec l'IA : une consigne écrite ; la version modifiée remplace tout de suite l'ancienne, puis se choisit. -->
+<ng-template #aiEditor>
+  @if (aiPanelOpen() || pendingChoice()) {
+    <div class="cd-ai">
+      @if (aiPanelOpen()) {
+        <textarea
+          rows="2"
+          class="cd-input"
+          [ngModel]="aiPrompt()"
+          (ngModelChange)="aiPrompt.set($event)"
+          name="cdAiPrompt"
+          [disabled]="aiBusy()"
+          [attr.placeholder]="'dashboard.showCommunication.detail.ai.placeholder' | translate"
+          [attr.aria-label]="'dashboard.showCommunication.detail.ai.edit' | translate"
+        ></textarea>
+        <div class="cd-edit-actions">
+          <button type="button" class="inner-button button-sm" [disabled]="aiBusy() || aiPrompt().trim().length < 3" (click)="sendAiEdit()">
+            @if (aiBusy()) {
+              <idem-loader size="xs" />
+            } @else {
+              <i class="pi pi-sparkles" aria-hidden="true"></i>
+            }
+            {{ 'dashboard.showCommunication.detail.ai.apply' | translate }}
+          </button>
+          <button type="button" class="outer-button button-sm" (click)="toggleAiPanel()">{{ 'common.cancel' | translate }}</button>
+        </div>
+      }
+      @if (aiReply(); as reply) {
+        <p class="cd-note">{{ reply }}</p>
+      }
+      @if (pendingChoice()) {
+        <div class="cd-choose">
+          <p class="cd-note">{{ 'dashboard.showCommunication.detail.ai.modified' | translate }}</p>
+          <div class="cd-edit-actions">
+            <button type="button" class="inner-button button-sm" (click)="chooseVersion()">
+              <i class="pi pi-check" aria-hidden="true"></i>
+              {{ 'dashboard.showCommunication.detail.ai.choose' | translate }}
+            </button>
+            @if (pendingChoice() === 'visual') {
+              <button type="button" class="outer-button button-sm" [disabled]="aiBusy()" (click)="undoEdit()">
+                <i class="pi pi-undo" aria-hidden="true"></i>
+                {{ 'dashboard.showCommunication.detail.ai.undo' | translate }}
+              </button>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  }
+</ng-template>
+
 <div
   class="cd-backdrop"
   (click)="close()"
@@ -51,8 +102,27 @@
               <app-video-composing [format]="videoFormat()" [progress]="videoProgress()" />
             } @else {
               <p class="cd-note mt-3">
-                {{ 'dashboard.showCommunication.video.formats.' + videoFormat() + '.label' | translate }} · 15 s · HD
+                {{ 'dashboard.showCommunication.video.formats.' + videoFormat() + '.label' | translate }} · HD
               </p>
+
+              <!-- La durée : l'IA en propose une, l'utilisateur choisit. -->
+              <fieldset class="cd-format-choice">
+                <legend class="cd-label">{{ 'dashboard.showCommunication.detail.duration' | translate }}</legend>
+                <div class="cd-chips">
+                  @for (d of calendarDurations; track d) {
+                    <button
+                      type="button"
+                      class="rounded-xl px-3 py-1.5 text-sm"
+                      [class.inner-button]="videoDuration() === d"
+                      [class.outer-button]="videoDuration() !== d"
+                      [attr.aria-pressed]="videoDuration() === d"
+                      (click)="setDuration(d)"
+                    >
+                      {{ durationLabel(d) }}
+                    </button>
+                  }
+                </div>
+              </fieldset>
 
               @if (lastVideoId(); as videoId) {
                 <p class="cd-note">{{ 'dashboard.showCommunication.detail.videoDone' | translate }}</p>
@@ -63,9 +133,15 @@
                   </button>
                   <app-creativity-picker kind="video" [(value)]="creativity" [baseCost]="videoBasePrice()" [disabled]="videoBusy()" />
                   <button type="button" class="outer-button button-sm" (click)="createVideo()">
+                    <i class="pi pi-refresh" aria-hidden="true"></i>
                     {{ 'dashboard.showCommunication.detail.anotherVideo' | translate: { price: videoPrice() ?? '…' } }}
                   </button>
+                  <button type="button" class="outer-button button-sm" (click)="toggleAiPanel()">
+                    <i class="pi pi-sparkles" aria-hidden="true"></i>
+                    {{ 'dashboard.showCommunication.detail.ai.edit' | translate }}
+                  </button>
                 </div>
+                <ng-container [ngTemplateOutlet]="aiEditor" />
               } @else {
                 <!-- Le cran de créativité se choisit au moment de lancer : à côté du bouton, prix compris. -->
                 <div class="cd-go">
@@ -100,7 +176,16 @@
               <i class="pi pi-download" aria-hidden="true"></i>
               {{ 'dashboard.showCommunication.visual.download' | translate }}
             </button>
+            <button type="button" class="outer-button button-sm" [disabled]="isCreatingVisual() || aiBusy()" (click)="regenerateVisual()">
+              <i class="pi pi-refresh" aria-hidden="true"></i>
+              {{ 'dashboard.showCommunication.detail.ai.regenerate' | translate }}
+            </button>
+            <button type="button" class="outer-button button-sm" (click)="toggleAiPanel()">
+              <i class="pi pi-sparkles" aria-hidden="true"></i>
+              {{ 'dashboard.showCommunication.detail.ai.edit' | translate }}
+            </button>
           </div>
+          <ng-container [ngTemplateOutlet]="aiEditor" />
 
           <!-- Déclinaisons : même contenu, autre surface -->
           <div class="cd-declinate">

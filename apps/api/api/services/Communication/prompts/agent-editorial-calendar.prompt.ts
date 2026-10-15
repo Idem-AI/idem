@@ -15,6 +15,7 @@ export const AGENT_EDITORIAL_CALENDAR_PROMPT = `<role>Senior content planner</ro
       "channel": "instagram" | "linkedin" | "facebook" | "tiktok" | "x" | "youtube" | "blog" | "email" | "other",
       "scheduledFor": "YYYY-MM-DD (ISO date sequential from {{startDate}})",
       "week": number,
+      "videoDurationSec": "ONLY when format is reel or short-video: 60 | 90 | 120 | 180 (seconds, varied across videos)",
       "hashtags": ["3-6 tags, no #"],
       "callToAction": "CTA for the post CAPTION, never printed on the visual (max 60 chars)",
       "status": "idea"
@@ -28,6 +29,7 @@ export const AGENT_EDITORIAL_CALENDAR_PROMPT = `<role>Senior content planner</ro
 - Generate 3 to 5 items per week. Vary formats and channels.
 - Respect channels prioritized in the strategy.
 - Use language matching context.language.
+- Every video lasts between 1 and 3 minutes (never 15 seconds) and durations vary from one video to the next.
 - Focus on textual angles; do NOT describe visuals in detail.
 </rules>
 

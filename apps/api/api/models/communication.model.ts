@@ -173,6 +173,8 @@ export interface ContentIdea {
    * story) — « Générer » crée une vidéo de CE type. Cf. motionVideo.model.ts.
    */
   videoType?: VideoType;
+  /** Durée de la vidéo en secondes (60, 90, 120 ou 180) : chaque vidéo du calendrier dure de 1 à 3 minutes. */
+  videoDurationSec?: number;
   /** Vidéos créées pour ce contenu. */
   videoIds?: string[];
   /**

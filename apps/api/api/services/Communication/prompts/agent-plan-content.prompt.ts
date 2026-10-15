@@ -27,6 +27,7 @@ export const AGENT_PLAN_CONTENT_PROMPT = `<role>Senior content planner</role>
       "callToAction": "CTA for the post CAPTION, never printed on the visual (max 60 chars)",
       "intent": "awareness" | "celebration" | "promotion" | "recruitment" | "announcement",
       "videoType": "ONLY when format is reel or short-video: kinetic (typography) | product (product photos) | promo (offer, price) | footage (real-life clips) | showcase3d (3D object) | illustrated (animated illustrations) | slideshow (photo series) | logo (logo reveal) | mix (combines several, for richer stories)",
+      "videoDurationSec": "ONLY when format is reel or short-video: 60 | 90 | 120 | 180 (seconds)",
       "theme": "label of the brief theme this content serves",
       "occasion": "occasion name — ONLY for contents tied to one, omit otherwise",
       "status": "idea"
@@ -48,6 +49,7 @@ These rules are arithmetic, not style — a date outside the period makes the co
 - Each content must serve one of the brief's themes, and the set must cover ALL of them.
 - Vary formats and channels. Only use the channels listed in the enum above — they are the ones the user retained.
 - Video performs best on social networks: at least one content in three is a video (format "reel" or "short-video") on the networks that favour it (TikTok, Instagram, Facebook, YouTube, LinkedIn). Give each video the videoType that fits its angle and what the brand can show.
+- Every video lasts BETWEEN 1 AND 3 MINUTES — never a 15-second clip. Set videoDurationSec to 60, 90, 120 or 180 and VARY it across the videos of the period: a quick teaser or announcement ≈ 60, a story or product demo ≈ 90, a tutorial or behind-the-scenes ≈ 120, a testimonial or deep dive ≈ 180. Never give all videos the same duration.
 - No two contents may share the same angle reworded. If you catch yourself writing "discover our…" twice, one of the two is filler.
 - Focus on textual angles; do NOT describe the visual in detail (the visual is composed later, by another agent, from the brand charter).
 - Write in the language given by context.language.

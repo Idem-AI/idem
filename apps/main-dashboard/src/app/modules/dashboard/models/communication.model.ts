@@ -115,6 +115,8 @@ export interface ContentIdea {
   flyerIds?: string[];
   /** Type de vidéo proposé (formats vidéo) : « Générer » crée ce type. */
   videoType?: VideoType;
+  /** Durée de la vidéo en secondes (1 à 3 minutes). */
+  videoDurationSec?: number;
   /** Vidéos créées pour ce contenu. */
   videoIds?: string[];
   /** Période propriétaire. Absent = contenu libre né dans l'atelier. */

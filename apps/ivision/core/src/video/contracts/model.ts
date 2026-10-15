@@ -14,9 +14,9 @@ export type VideoFormat = 'story' | 'square' | 'portrait' | 'landscape';
 export const VIDEO_FORMATS: VideoFormat[] = ['story', 'square', 'portrait', 'landscape'];
 
 /** Durées proposées, en secondes. */
-export type VideoDuration = 6 | 15 | 30 | 60;
+export type VideoDuration = 6 | 15 | 30 | 60 | 90 | 120 | 180;
 
-export const VIDEO_DURATIONS: VideoDuration[] = [6, 15, 30, 60];
+export const VIDEO_DURATIONS: VideoDuration[] = [6, 15, 30, 60, 90, 120, 180];
 
 /**
  * Qualité de rendu.

@@ -247,7 +247,18 @@
         "openVideo": "Ouvrir la vidéo",
         "anotherVideo": "Générer une autre version · {{price}} crédits",
         "createVideo": "Générer la vidéo · {{price}} crédits",
-        "visualInstead": "Créer plutôt un visuel"
+        "visualInstead": "Créer plutôt un visuel",
+        "duration": "Durée de la vidéo",
+        "ai": {
+          "edit": "Modifier avec l’IA",
+          "regenerate": "Régénérer",
+          "placeholder": "Ex. : « titre plus grand », « fond plus sombre », « ajoute notre numéro »…",
+          "apply": "Appliquer",
+          "modified": "Version modifiée : elle remplace déjà l’ancienne. Elle vous convient ?",
+          "choose": "Choisir cette version",
+          "undo": "Revenir à l’ancienne",
+          "failed": "La modification n’a pas pu être appliquée. Reformulez votre demande."
+        }
       },
       "studio": {
         "empty": {

@@ -247,7 +247,18 @@
         "openVideo": "Open the video",
         "anotherVideo": "Generate another version · {{price}} credits",
         "createVideo": "Generate the video · {{price}} credits",
-        "visualInstead": "Make a visual instead"
+        "visualInstead": "Make a visual instead",
+        "duration": "Video length",
+        "ai": {
+          "edit": "Edit with AI",
+          "regenerate": "Regenerate",
+          "placeholder": "E.g. “bigger title”, “darker background”, “add our phone number”…",
+          "apply": "Apply",
+          "modified": "Modified version: it already replaces the old one. Is it what you want?",
+          "choose": "Choose this version",
+          "undo": "Back to the previous one",
+          "failed": "The change could not be applied. Try rephrasing."
+        }
       },
       "studio": {
         "empty": {

@@ -60,7 +60,7 @@ import { AGENT_MOMENT_CONTENT_PROMPT } from './prompts/agent-moment-content.prom
 import { AGENT_OCCASIONS_PROMPT } from './prompts/agent-occasions.prompt';
 import { AGENT_PLAN_BRIEF_PROMPT } from './prompts/agent-plan-brief.prompt';
 import { AGENT_PLAN_CONTENT_PROMPT } from './prompts/agent-plan-content.prompt';
-import { ensureVideoShare } from './video/video.calendar';
+import { ensureVideoShare, normaliseVideoDuration } from './video/video.calendar';
 // La composition des visuels : le moteur partagé iVision (apps/ivision/core), qui en confie la page au
 // moteur de génération graphique (@idem/graphic-engine).
 import { sectionHtml } from '@idem/graphic-engine';
@@ -950,6 +950,11 @@ export class CommunicationService extends GenericService {
     let updated: CommunicationPlan | null = null;
     // Un type de vidéo inconnu ne s'enregistre pas (il casserait la génération).
     if (updates.videoType !== undefined && !VIDEO_TYPES.includes(updates.videoType as VideoType)) delete updates.videoType;
+    if (updates.videoDurationSec !== undefined) {
+      const duration = normaliseVideoDuration(updates.videoDurationSec);
+      if (duration) updates.videoDurationSec = duration;
+      else delete updates.videoDurationSec;
+    }
     await this.patchCommunication(userId, projectId, (existing) => {
       const plans = (existing.plans || []).map((plan) => {
         if (plan.id !== planId) return plan;
@@ -1303,6 +1308,7 @@ export class CommunicationService extends GenericService {
       callToAction: raw.callToAction || '',
       intent: raw.intent,
       videoType: raw.videoType,
+      videoDurationSec: raw.videoDurationSec,
       status: 'idea',
       flyerIds: [],
       planId: plan.id,

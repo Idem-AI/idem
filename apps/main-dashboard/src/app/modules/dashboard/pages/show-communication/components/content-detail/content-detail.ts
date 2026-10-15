@@ -9,6 +9,7 @@ import {
   signal,
   untracked,
 } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { CommunicationService } from '../../../../services/ai-agents/communication.service';
@@ -33,7 +34,7 @@ import { VisualPreview } from '../visual-preview/visual-preview';
 import { VideoComposing, VideoProgressState } from '../video-composing/video-composing';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 import { MotionVideoService } from '../../../../services/ai-agents/motion-video.service';
-import { priceVideo, VideoFormat, VideoOptions, VideoType } from '../../../../models/motion-video.model';
+import { priceVideo, VideoDuration, VideoFormat, VideoOptions, VideoType } from '../../../../models/motion-video.model';
 import { CreativityLevel, creativityCost, DEFAULT_CREATIVITY } from '@idem/shared-models';
 import { CreativityPickerComponent } from '../../../../../../shared/components/creativity-picker/creativity-picker';
 import { CreativityCostPipe } from '../../../../../../shared/pipes/creativity-cost.pipe';
@@ -78,7 +79,7 @@ type EditableField =
  */
 @Component({
   selector: 'app-content-detail',
-  imports: [FormsModule, TranslateModule, VisualComposing, VisualPreview, VideoComposing, IdemLoaderComponent, CreativityPickerComponent, CreativityCostPipe],
+  imports: [NgTemplateOutlet, FormsModule, TranslateModule, VisualComposing, VisualPreview, VideoComposing, IdemLoaderComponent, CreativityPickerComponent, CreativityCostPipe],
   templateUrl: './content-detail.html',
   styleUrl: './content-detail.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -140,6 +141,12 @@ export class ContentDetail {
   /** Un contenu vidéo montre sa vidéo, pas un visuel ; l'utilisateur peut basculer. */
   protected readonly isVideo = computed(() => VIDEO_CONTENT_FORMATS.includes(this.item().format) || !!this.item().videoType);
   protected readonly preferVisual = signal(false);
+  /** Durée de la vidéo du calendrier : de 1 à 3 minutes (60 s si le contenu n'en porte pas). */
+  protected readonly videoDuration = computed<VideoDuration>(() => {
+    const wanted = this.item().videoDurationSec ?? 60;
+    const allowed: VideoDuration[] = [60, 90, 120, 180];
+    return allowed.reduce((best, d) => (Math.abs(d - wanted) < Math.abs(best - wanted) ? d : best));
+  });
   protected readonly videoOptions = signal<VideoOptions | null>(null);
   protected readonly videoBusy = signal(false);
   protected readonly videoProgress = signal<VideoProgressState>({});
@@ -150,7 +157,7 @@ export class ContentDetail {
   protected readonly visualBaseCost = signal<number | null>(null);
   protected readonly videoBasePrice = computed(() => {
     const options = this.videoOptions();
-    return options ? priceVideo(options.pricing, { durationSec: 15, formats: [this.videoFormat()], quality: 'hd' }) : null;
+    return options ? priceVideo(options.pricing, { durationSec: this.videoDuration(), formats: [this.videoFormat()], quality: 'hd' }) : null;
   });
   protected readonly videoPrice = computed(() => {
     const base = this.videoBasePrice();
@@ -319,7 +326,7 @@ export class ContentDetail {
     this.motionVideos
       .createStream(this.projectId(), {
         brief: { musicMood: 'auto', sfx: true, allowStock: true, allowGenerate: true },
-        scope: { durationSec: 15, formats: [this.videoFormat()], quality: 'hd' },
+        scope: { durationSec: this.videoDuration(), formats: [this.videoFormat()], quality: 'hd' },
         // Le type n'est plus imposé : l'intention (objectif, matière, mouvement) est lue dans le contenu.
         type: 'auto',
         contentId: this.item().id,
@@ -350,6 +357,158 @@ export class ContentDetail {
           }
         },
       });
+  }
+
+  // ── Durée, régénération, retouche IA, choix de la version ─────────────────
+
+  /** Durées proposées pour une vidéo du calendrier : de 1 à 3 minutes. */
+  protected readonly calendarDurations: VideoDuration[] = [60, 90, 120, 180];
+
+  /** Chiffre de la durée affichée en minutes/secondes : « 1 min 30 ». */
+  protected durationLabel(sec: number): string {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return s ? `${m} min ${s}` : `${m} min`;
+  }
+
+  protected setDuration(duration: VideoDuration): void {
+    if (duration === this.videoDuration() || this.videoBusy()) return;
+    this.communication
+      .updatePlanItem(this.projectId(), this.planId(), this.item().id, { videoDurationSec: duration })
+      .subscribe({
+        next: (plan) => {
+          const updated = plan.items.find((candidate) => candidate.id === this.item().id);
+          if (updated) this.itemChange.emit(updated);
+        },
+        error: (err) => this.failed.emit(err?.error?.message || 'content-update'),
+      });
+  }
+
+  /** Le panneau « Modifier avec l'IA » (une consigne écrite), pour le visuel comme pour la vidéo. */
+  protected readonly aiPanelOpen = signal(false);
+  protected readonly aiPrompt = signal('');
+  protected readonly aiBusy = signal(false);
+  protected readonly aiReply = signal<string | null>(null);
+  /** Une version modifiée attend d'être choisie (ou annulée, pour un visuel). */
+  protected readonly pendingChoice = signal<'visual' | 'video' | null>(null);
+  private previousVisual: { id: string; html: string } | null = null;
+
+  protected toggleAiPanel(): void {
+    this.aiPanelOpen.update((open) => !open);
+    this.aiReply.set(null);
+  }
+
+  /** Régénère le visuel (nouvelle composition, même contenu et même format). */
+  protected regenerateVisual(): void {
+    const current = this.visual();
+    if (!current || this.isCreatingVisual()) return;
+    this.isCreatingVisual.set(true);
+    this.pendingChoice.set(null);
+    this.communication.regenerateFlyer(this.projectId(), this.item().id, current.format, this.creativity()).subscribe({
+      next: (visual) => {
+        this.visualCreated.emit(visual);
+        this.itemChange.emit({ ...this.item(), flyerIds: Array.from(new Set([...(this.item().flyerIds ?? []), visual.id])) });
+        this.isCreatingVisual.set(false);
+      },
+      error: (err) => {
+        this.failed.emit(err?.error?.message || 'visual');
+        this.isCreatingVisual.set(false);
+      },
+    });
+  }
+
+  /** Envoie la consigne : le visuel (ou la vidéo) est modifié et remplacé tout de suite dans la communication. */
+  protected sendAiEdit(): void {
+    const instruction = this.aiPrompt().trim();
+    if (instruction.length < 3 || this.aiBusy()) return;
+    this.aiBusy.set(true);
+    this.aiReply.set(null);
+    const videoMode = this.isVideo() && !this.preferVisual();
+    if (videoMode) {
+      const videoId = this.lastVideoId();
+      if (!videoId) return void this.aiBusy.set(false);
+      this.motionVideos.revise(this.projectId(), videoId, instruction).subscribe({
+        next: (result) => {
+          this.aiBusy.set(false);
+          if (result.newRequest) {
+            this.aiReply.set(this.translate.instant('dashboard.showCommunication.video.revise.newRequest'));
+            return;
+          }
+          this.aiReply.set(result.reply || this.translate.instant(result.video ? 'dashboard.showCommunication.video.revise.done' : 'dashboard.showCommunication.video.revise.notUnderstood'));
+          if (result.video) {
+            this.aiPrompt.set('');
+            this.pendingChoice.set('video');
+          }
+        },
+        error: () => {
+          this.aiBusy.set(false);
+          this.failed.emit('dashboard.showCommunication.video.errors.update');
+        },
+      });
+      return;
+    }
+    const current = this.visual();
+    if (!current) return void this.aiBusy.set(false);
+    // On garde la page d'avant pour pouvoir revenir en arrière si la modification ne convient pas.
+    this.communication.getVisual(this.projectId(), current.id).subscribe({
+      next: (before) => {
+        this.previousVisual = { id: current.id, html: before.html || '' };
+        this.communication.aiEditFlyer(this.projectId(), current.id, instruction).subscribe({
+          next: (edited) => {
+            this.aiBusy.set(false);
+            this.aiPrompt.set('');
+            this.visualCreated.emit(edited);
+            this.pendingChoice.set('visual');
+          },
+          error: (err) => {
+            this.aiBusy.set(false);
+            this.previousVisual = null;
+            this.aiReply.set(this.translate.instant('dashboard.showCommunication.detail.ai.failed'));
+            this.failed.emit(err?.error?.message || 'visual');
+          },
+        });
+      },
+      error: () => {
+        this.aiBusy.set(false);
+        this.failed.emit('visual');
+      },
+    });
+  }
+
+  /** « Choisir cette version » : la version modifiée est celle du post, qui passe à « approuvé ». */
+  protected chooseVersion(): void {
+    this.previousVisual = null;
+    this.pendingChoice.set(null);
+    this.aiPanelOpen.set(false);
+    this.communication.updatePlanItem(this.projectId(), this.planId(), this.item().id, { status: 'approved' }).subscribe({
+      next: (plan) => {
+        const updated = plan.items.find((candidate) => candidate.id === this.item().id);
+        if (updated) this.itemChange.emit(updated);
+      },
+      error: (err) => this.failed.emit(err?.error?.message || 'content-update'),
+    });
+  }
+
+  /** Revient à la page d'avant la modification (visuels). */
+  protected undoEdit(): void {
+    const previous = this.previousVisual;
+    if (!previous?.html) {
+      this.pendingChoice.set(null);
+      return;
+    }
+    this.aiBusy.set(true);
+    this.communication.updateFlyerHtml(this.projectId(), previous.id, previous.html).subscribe({
+      next: (restored) => {
+        this.visualCreated.emit(restored);
+        this.previousVisual = null;
+        this.pendingChoice.set(null);
+        this.aiBusy.set(false);
+      },
+      error: () => {
+        this.aiBusy.set(false);
+        this.failed.emit('visual');
+      },
+    });
   }
 
   protected download(): void {
