@@ -57,7 +57,7 @@ import { normalizeScope, videoCost } from '../../../ivision/core/src/video/prici
 import multer from 'multer';
 import { authenticate } from '../services/auth.service';
 import { checkPolicyAcceptance } from '../middleware/policyCheck.middleware';
-import { checkQuota } from '../middleware/quota.middleware';
+import { requireQuota } from '../middleware/usage-quota.middleware';
 import { creditCost, firstThenRevision, planScope, requireCredits, withCreativity } from '../middleware/billing.middleware';
 
 export const communicationRoutes = Router();
@@ -115,7 +115,6 @@ communicationRoutes.post(
   `/${resource}/:projectId/extract-context`,
   authenticate,
   checkPolicyAcceptance,
-  checkQuota,
   // Préparation interne, facturée au prix d'une révision.
   requireCredits('business', 'revision'),
   extractContextController
@@ -146,7 +145,6 @@ communicationRoutes.get(
   `/${resource}/:projectId/generate-strategy`,
   authenticate,
   checkPolicyAcceptance,
-  checkQuota,
   // Stratégie de communication complète : 40 crédits au barème.
   requireCredits('business', 'communication_strategy', {
     resolve: firstThenRevision('business', 'communication_strategy', 'revision'),
@@ -180,7 +178,6 @@ communicationRoutes.get(
   `/${resource}/:projectId/generate-calendar`,
   authenticate,
   checkPolicyAcceptance,
-  checkQuota,
   // Calendrier éditorial mensuel : 15 crédits.
   requireCredits('business', 'editorial_calendar', {
     resolve: firstThenRevision('business', 'editorial_calendar', 'revision'),
@@ -236,7 +233,6 @@ communicationRoutes.get(
   `/${resource}/:projectId/moments/suggestions`,
   authenticate,
   checkPolicyAcceptance,
-  checkQuota,
   requireCredits('business', 'revision'),
   getMomentSuggestionsController
 );
@@ -266,7 +262,6 @@ communicationRoutes.post(
   `/${resource}/:projectId/moments`,
   authenticate,
   checkPolicyAcceptance,
-  checkQuota,
   requireCredits('business', 'revision'),
   createMomentController
 );
@@ -294,7 +289,6 @@ communicationRoutes.post(
   `/${resource}/:projectId/flyer/:contentId`,
   authenticate,
   checkPolicyAcceptance,
-  checkQuota,
   // 2 crédits au cran Low / Medium ; le cran de la jauge de créativité multiplie le prix.
   requireCredits('business', 'flyer', { resolve: withCreativity('business', 'flyer') }),
   generateFlyerController
@@ -312,7 +306,6 @@ communicationRoutes.post(
   `/${resource}/:projectId/flyer/:contentId/regenerate`,
   authenticate,
   checkPolicyAcceptance,
-  checkQuota,
   // Le cran de la jauge de créativité multiplie le prix du visuel.
   requireCredits('business', 'flyer', { resolve: withCreativity('business', 'flyer') }),
   regenerateFlyerController
@@ -361,7 +354,6 @@ communicationRoutes.post(
   authenticate,
   extendedTimeout,
   checkPolicyAcceptance,
-  checkQuota,
   requireCredits('business', 'revision'),
   aiEditFlyerController
 );
@@ -472,7 +464,6 @@ communicationRoutes.get(
   `/${resource}/:projectId/plans/:planId/generate`,
   authenticate,
   checkPolicyAcceptance,
-  checkQuota,
   // Une période NEUVE est un livrable neuf : la portée `planScope` évite que la
   // deuxième et les suivantes tombent au tarif « révision » — douze mois de
   // planification pour 26 crédits, ce que faisait la portée par projet.
@@ -560,7 +551,7 @@ communicationRoutes.get(
   `/${resource}/:projectId/occasions`,
   authenticate,
   checkPolicyAcceptance,
-  checkQuota,
+  requireQuota('assist', { envelope: 'occasions' }),
   // Une liste d'occasions sert à DÉCIDER d'une période, avant tout achat : la
   // faire payer découragerait exactement l'étape qu'on veut encourager. Le cache
   // par pays et par fenêtre en fait un appel rare.
@@ -601,7 +592,6 @@ communicationRoutes.post(
   authenticate,
   extendedTimeout,
   checkPolicyAcceptance,
-  checkQuota,
   // Trois variantes du même brief coûtent le prix d'un carrousel plutôt que
   // trois visuels : explorer doit rester moins cher que recommencer.
   requireCredits('business', 'flyer', {
@@ -661,7 +651,6 @@ communicationRoutes.post(
   authenticate,
   extendedTimeout,
   checkPolicyAcceptance,
-  checkQuota,
   // Une déclinaison reprend la copie déjà écrite : c'est une révision par
   // format, pas un visuel neuf.
   requireCredits('business', 'revision', {
@@ -721,7 +710,12 @@ communicationRoutes.get(`/${resource}/:projectId/videos/options`, authenticate, 
  *     summary: Rewrite the user's video request (key message, what to show, tone, CTA). Facts are kept, invented numbers removed. Free.
  *     security: [{ bearerAuth: [] }]
  */
-communicationRoutes.post(`/${resource}/:projectId/videos/enhance`, authenticate, enhanceVideoRequestController);
+communicationRoutes.post(
+  `/${resource}/:projectId/videos/enhance`,
+  authenticate,
+  requireQuota('assist', { envelope: 'video_assist' }),
+  enhanceVideoRequestController
+);
 
 /**
  * @openapi
@@ -766,7 +760,6 @@ communicationRoutes.post(
   authenticate,
   extendedTimeout,
   checkPolicyAcceptance,
-  checkQuota,
   (req, res, next) => {
     const message = String(req.body?.brief?.message || '').trim();
     // Vidéo d'un contenu du calendrier : le message vient du contenu (accroche, angle), côté service.
@@ -792,7 +785,12 @@ communicationRoutes.post(
  *     summary: Interpret a video request before creating it (free) — objective, material, motion language, and the one question to ask when a decision that changes the pipeline is missing.
  *     security: [{ bearerAuth: [] }]
  */
-communicationRoutes.post(`/${resource}/:projectId/videos/interpret`, authenticate, interpretVideoController);
+communicationRoutes.post(
+  `/${resource}/:projectId/videos/interpret`,
+  authenticate,
+  requireQuota('assist', { envelope: 'video_assist' }),
+  interpretVideoController
+);
 
 /**
  * @openapi
@@ -807,7 +805,6 @@ communicationRoutes.post(
   authenticate,
   extendedTimeout,
   checkPolicyAcceptance,
-  checkQuota,
   (req, res, next) => {
     const message = String(req.body?.brief?.message || '').trim();
     // Vidéo d'un contenu du calendrier : le message vient du contenu (accroche, angle), côté service.
@@ -883,7 +880,13 @@ communicationRoutes.patch(`/${resource}/:projectId/videos/:videoId`, authenticat
  *     tags: [Communication]
  *     summary: Revise a video from a written request (free) — texts, voice lines, music, or a visual change rewritten by the scene author.
  */
-communicationRoutes.post(`/${resource}/:projectId/videos/:videoId/revise`, authenticate, extendedTimeout, reviseVideoController);
+communicationRoutes.post(
+  `/${resource}/:projectId/videos/:videoId/revise`,
+  authenticate,
+  extendedTimeout,
+  requireQuota('edit', { envelope: 'video_revise' }),
+  reviseVideoController
+);
 communicationRoutes.delete(`/${resource}/:projectId/videos/:videoId`, authenticate, deleteVideoController);
 
 /**
@@ -978,6 +981,6 @@ communicationRoutes.post(
   authenticate,
   extendedTimeout,
   checkPolicyAcceptance,
-  checkQuota,
+  requireQuota('assist', { envelope: 'studio' }),
   studioMessageController
 );

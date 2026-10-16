@@ -7,7 +7,7 @@ import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { sendToGitHub, getCurrentUser, getProjectById } from '@/api/persistence/db';
 import useBillingStore from '@/stores/billingSlice';
-import { openProjectPassCheckout } from '@/api/billing';
+import { buyProjectPass } from '@/api/billing';
 import { HelpButton } from './HelpButton';
 import { DeployModal } from '../DeployModal/DeployModal';
 import useAppGenContextStore from '@/stores/appgenContextSlice';
@@ -95,8 +95,14 @@ export function HeaderActions() {
 
     const unlocked = await checkProjectAccess(projectId);
     if (unlocked === false) {
-      toast.error(t('billing.locked.title'));
-      openProjectPassCheckout(projectId);
+      // Le Pass Projet se prend depuis le portefeuille ; s'il manque de l'argent, on part recharger.
+      const bought = await buyProjectPass(projectId);
+      if (bought.ok) {
+        toast.success(bought.message || t('billing.locked.unlocked'));
+        await useBillingStore.getState().refresh();
+        return true;
+      }
+      if (!('redirected' in bought && bought.redirected)) toast.error(bought.message || t('billing.locked.title'));
       return false;
     }
 

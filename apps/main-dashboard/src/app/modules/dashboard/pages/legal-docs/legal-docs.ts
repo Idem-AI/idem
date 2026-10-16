@@ -1,3 +1,4 @@
+import { OwnershipBarComponent } from '../../../../shared/components/ownership-bar/ownership-bar';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -94,6 +95,7 @@ const isStatutes = (type: string): boolean => type === 'statuts' || type in LEGA
 @Component({
   selector: 'app-legal-docs',
   imports: [
+    OwnershipBarComponent,
     DatePipe,
     FormsModule,
     RouterLink,

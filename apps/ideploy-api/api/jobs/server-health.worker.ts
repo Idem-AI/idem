@@ -20,6 +20,9 @@ const SWEEP_PATTERN = process.env.SERVER_HEALTH_CRON || '* * * * *';
 const JOB_NAME = 'server-health-sweep';
 const DOMAINS_JOB = 'domain-verification';
 const DOMAINS_PATTERN = process.env.DOMAIN_VERIFICATION_CRON || '*/5 * * * *';
+/** Compteurs IDEM : arrêt et relance des applications selon leur solde. */
+const METERS_JOB = 'idem-meters';
+const METERS_PATTERN = process.env.IDEM_METERS_CRON || '*/5 * * * *';
 
 /** Domains waiting for DNS are routed as soon as it reaches their server. */
 async function processDomainSweep(): Promise<void> {
@@ -42,8 +45,15 @@ async function processDomainSweep(): Promise<void> {
   if (checked > 0) logger.info('domains.swept', { event: 'domains.swept', applications: checked });
 }
 
+async function processMeterSweep(): Promise<void> {
+  const { applyPendingMeters } = await import('../services/meter-enforcement.service');
+  const applied = await applyPendingMeters();
+  if (applied > 0) logger.info('meters.swept', { event: 'meters.swept', applied });
+}
+
 async function processSweep(job: Job): Promise<void> {
   if (job.name === DOMAINS_JOB) return processDomainSweep();
+  if (job.name === METERS_JOB) return processMeterSweep();
   const outcomes = await checkAllServers();
   // Orders the managed servers whose measurements are missing or stale (placement).
   await refreshAllLoadScores().catch((err) =>
@@ -78,6 +88,7 @@ export async function registerServerHealthScheduler(): Promise<void> {
     );
     logger.info(`Server health sweep scheduled (${SWEEP_PATTERN})`);
     await getQueue(QUEUE_NAMES.servers).add(DOMAINS_JOB, {}, { repeat: { pattern: DOMAINS_PATTERN }, jobId: DOMAINS_JOB });
+    await getQueue(QUEUE_NAMES.servers).add(METERS_JOB, {}, { repeat: { pattern: METERS_PATTERN }, jobId: METERS_JOB });
   } catch (err) {
     logger.warn('Could not schedule the server health sweep', {
       message: (err as Error).message,

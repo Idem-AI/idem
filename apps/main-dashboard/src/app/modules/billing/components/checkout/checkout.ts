@@ -15,6 +15,7 @@ import { TranslateModule } from '@ngx-translate/core';
 import { Subject, interval, takeUntil } from 'rxjs';
 import { BillingService } from '../../services/billing.service';
 import {
+  BuyOfferRequest,
   FINAL_PAYMENT_STATUSES,
   PaymentMethods,
   PaymentProviderOption,
@@ -120,7 +121,24 @@ const QUOTE_FALLBACK_COUNTRY = 'CMR';
             <p class="pay__cadence">{{ key | translate }}</p>
           }
 
-          @if (offer.credits > 0) {
+          @if (isTopup()) {
+            @if (then(); as next) {
+              <!-- L'achat qui suivra la recharge est dit avant de payer : rien ne part à l'insu de l'abonné. -->
+              <p class="pay__cadence">{{ 'billing.checkout.thenBuy' | translate: { label: ('billing.checkout.thenKinds.' + next.kind | translate) } }}</p>
+            }
+            <dl class="pay__details">
+              <div class="pay__detail">
+                <dt>{{ 'billing.checkout.walletCredited' | translate }}</dt>
+                <dd>{{ offer.amountXaf + (offer.bonusXaf ?? 0) | number: '1.0-0' }} F</dd>
+              </div>
+              @if (offer.bonusXaf) {
+                <div class="pay__detail">
+                  <dt>{{ 'billing.checkout.bonus' | translate }}</dt>
+                  <dd>+ {{ offer.bonusXaf | number: '1.0-0' }} F</dd>
+                </div>
+              }
+            </dl>
+          } @else if (offer.credits > 0) {
             <dl class="pay__details">
               <div class="pay__detail">
                 <dt>{{ 'billing.checkout.included' | translate }}</dt>
@@ -777,6 +795,10 @@ export class CheckoutComponent {
   readonly projectId = input<string | undefined>(undefined);
   readonly interval = input<'month' | 'year' | undefined>(undefined);
   readonly simulationTier = input<string | undefined>(undefined);
+  /** Recharge du portefeuille (`wallet-topup`) : le montant en francs. */
+  readonly amountXaf = input<number | undefined>(undefined);
+  /** Achat fait depuis le portefeuille dès la recharge encaissée (version finale, forfait…). */
+  readonly then = input<BuyOfferRequest | undefined>(undefined);
   /** Application d'origine, pour mesurer les tunnels séparément. */
   readonly app = input<'dashboard' | 'appgen' | 'simulation' | 'ideploy'>('dashboard');
 
@@ -820,6 +842,8 @@ export class CheckoutComponent {
   /** Montant et devise du bouton : ils viennent du devis, jamais d'une saisie. */
   readonly payAmount = computed(() => this.quote()?.amount ?? 0);
   readonly payCurrency = computed(() => this.quote()?.currency ?? '');
+
+  readonly isTopup = computed(() => this.productCode() === 'wallet-topup');
 
   /** Périodicité affichée sous le montant, si l'offre en a une. */
   readonly intervalKey = computed(() => {
@@ -881,6 +905,8 @@ export class CheckoutComponent {
     effect(() => {
       const code = this.productCode();
       const country = this.country() || QUOTE_FALLBACK_COUNTRY;
+      // Une recharge se chiffre au montant demandé (et au prix local de 1 000 F hors zone franc).
+      this.amountXaf();
       if (code) this.loadQuote(code, country);
     });
 
@@ -905,6 +931,7 @@ export class CheckoutComponent {
         interval: this.interval(),
         country,
         engine: this.engine(),
+        amountXaf: this.amountXaf(),
       })
       .subscribe({
         next: (quote) => {
@@ -993,6 +1020,8 @@ export class CheckoutComponent {
         interval: this.interval(),
         simulationTier: this.simulationTier(),
         app: this.app(),
+        amountXaf: this.amountXaf(),
+        then: this.then(),
       })
       .subscribe({
         next: (payment) => {

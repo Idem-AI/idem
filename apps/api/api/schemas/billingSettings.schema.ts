@@ -40,6 +40,10 @@ const BillingSettingsSchema = new Schema<BillingSettingsDocument>(
     graceDays: { type: Number, default: 3 },
     reminderDays: [{ type: Number }],
     enabledCountries: [{ type: String }],
+    generationBudget: { type: String, default: 'log' },
+    // Surcharges libres (palier → groupe → fenêtre) : `Mixed` pour qu'une
+    // surcharge partielle n'impose pas de redéclarer toute la grille.
+    usageQuotas: { type: Schema.Types.Mixed, default: {} },
     updatedBy: { type: String },
   },
   { timestamps: true, collection: 'billing_settings' }

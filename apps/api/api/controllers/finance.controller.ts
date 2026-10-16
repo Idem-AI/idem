@@ -16,7 +16,6 @@ import {
   UNSUPPORTED_FINANCE_FORMAT_MESSAGE,
 } from '../services/Finance/finance-import.service';
 import { UnusableDocumentError } from '../services/Simulation/document-intake';
-import { userService } from '../services/user.service';
 import { projectService } from '../services/project.service';
 import { researchTeamService } from '../services/research/research-team.service';
 import { ResearchStreamEvent } from '../services/research/research.types';
@@ -298,7 +297,6 @@ export const aiFillSectionController = async (req: CustomRequest, res: Response)
       projectId,
       section as AISectionKey
     );
-    userService.incrementUsage(userId, 1);
     res.status(200).json(result);
   } catch (error: any) {
     logger.error(`aiFillSectionController error: ${error.message}`, { stack: error.stack });
@@ -347,7 +345,6 @@ export const analyzeFinanceImportController = async (
       text,
       uploaded.originalname
     );
-    userService.incrementUsage(userId, 1);
     res.status(200).json(preview);
   } catch (error: any) {
     if (error instanceof UnusableDocumentError) {
@@ -420,7 +417,6 @@ export const aiFillAllController = async (req: CustomRequest, res: Response): Pr
     }
     logger.info(`aiFillAllController userId=${userId} projectId=${projectId}`);
     const result = await financeAIService.autoFillAll(userId, projectId);
-    userService.incrementUsage(userId, 3);
     res.status(200).json(result);
   } catch (error: any) {
     logger.error(`aiFillAllController error: ${error.message}`, { stack: error.stack });
@@ -533,7 +529,6 @@ export const aiFillAllStreamController = async (
       marketDigest,
       allSources
     );
-    userService.incrementUsage(userId, 3);
 
     writeSSE({ type: 'complete', finance: result.finance, sources: allSources });
     writeSSE({ type: 'completed', stepName: 'completion', data: 'all_steps_completed' });
@@ -643,7 +638,6 @@ export const generateFinancePdfController = async (
     );
     res.setHeader('Content-Length', buffer.length);
     res.send(buffer);
-    userService.incrementUsage(userId, 2);
   } catch (error: any) {
     logger.error(`generateFinancePdfController error: ${error.message}`, { stack: error.stack });
     res.status(500).json({

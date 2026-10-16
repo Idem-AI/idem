@@ -51,8 +51,8 @@
     "confirm": "Confirm",
     "creativity": {
       "title": "Creativity",
-      "help": "The higher you go, the more powerful the AI model that designs your deliverable — and the more credits the generation uses.",
-      "cost": "{{cost}} credits",
+      "help": "The higher you go, the more powerful the AI model that designs your deliverable. The price does not change with the level: the draft is free, the final version is paid once.",
+      "cost": "{{cost}} F",
       "levels": {
         "low": {
           "label": "Low",
@@ -76,12 +76,12 @@
           "label": "Ultra",
           "hint": "Most powerful",
           "description": "The most powerful model designs and writes your deliverable. Your brand and your figures stay exact at every level.",
-          "line": "The most powerful model."
+          "line": "The most powerful — for a Signature version (+1,000 F)."
         }
       },
-      "withCost": "{{label}} · {{cost}} credits",
+      "withCost": "{{label}} · {{cost}} F",
       "video": {
-        "help": "The higher you go, the more powerful the model that designs and writes your video — and the more credits it uses.",
+        "help": "The higher you go, the more powerful the model that designs your video. The price does not change with the level.",
         "levels": {
           "low": {
             "line": "Light models: fast and economical."
@@ -96,7 +96,8 @@
             "line": "The most powerful models."
           }
         }
-      }
+      },
+      "included": "Included"
     }
   }
 }

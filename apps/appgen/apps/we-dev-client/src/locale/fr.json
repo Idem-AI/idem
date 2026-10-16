@@ -917,120 +917,119 @@
     },
     "pricing": {
       "title": "Générer est gratuit. Posséder ne coûte presque rien.",
-      "lede": "Décrivez votre idée et regardez votre application tourner dans le navigateur, gratuitement. Vous ne payez que pour la posséder — en FCFA, par Mobile Money.",
+      "lede": "Décrivez votre idée et regardez votre application tourner dans le navigateur, gratuitement. Vous ne payez que pour la posséder et la faire évoluer — depuis votre portefeuille IDEM, rechargé en Mobile Money dès 100 F.",
       "perMonth": "/mois",
       "popular": "Le plus choisi",
-      "annual": "Facturation annuelle : 2 mois offerts (-16 %) — réglable par Mobile Money en 1 ou 3 fois.",
+      "annual": "Un seul portefeuille pour tout IDEM : le même solde paie iCode, l’hébergement iDeploy, vos livrables et votre communication.",
       "pass": {
         "badge": "Le cœur du modèle",
         "name": "Pass Projet",
-        "price": "999 F",
-        "once": "— une fois par projet (~1,7 $)",
-        "body": "La première génération est entièrement gratuite et l'aperçu est illimité. Quand votre application fonctionne et que vous voulez la garder — la télécharger, la pousser, la déployer — débloquez-la pour moins qu'un repas au restaurant.",
+        "price": "1 000 F",
+        "once": "— une fois par projet",
+        "body": "La première génération est entièrement gratuite et l’aperçu est illimité. Quand votre application fonctionne et que vous voulez la garder — la télécharger, l’envoyer sur GitHub, la mettre en ligne — débloquez-la pour le prix d’un repas.",
         "features": [
-          "Modifications par IA débloquées (30 crédits inclus)",
+          "30 modifications par IA incluses",
           "Téléchargement du code illimité (ZIP)",
           "Envoi vers GitHub illimité",
-          "Déploiement sur iDeploy débloqué",
-          "Projet privé, badge retirable"
+          "Mise en ligne sur iDeploy en un clic",
+          "Inclus dans le Pack Lancement (5 000 F)"
         ]
       },
       "plans": {
         "discovery": {
-          "name": "Découverte",
+          "name": "Générer",
           "price": "0 F",
-          "usd": "gratuit pour toujours",
+          "period": "",
+          "usd": "gratuit, sans carte",
           "tagline": "Générez des applications complètes et voyez-les tourner, sans payer.",
           "cta": "Commencer gratuitement",
           "features": [
-            "3 générations complètes par jour",
+            "Génération initiale gratuite",
             "Aperçu illimité dans le navigateur",
-            "Pass Projet à 999 F par projet",
-            "Entraide communautaire"
+            "Front et back exécutés dans l’aperçu",
+            "Rythme borné par jour pour l’usage loyal"
           ]
         },
         "starter": {
-          "name": "Starter",
-          "price": "2 999 F",
-          "usd": "~5,2 $/mois",
-          "tagline": "7 fois moins cher par crédit que Lovable Pro.",
-          "cta": "Choisir Starter",
+          "name": "Une modification",
+          "price": "25 F",
+          "period": "",
+          "usd": "le prix d’un SMS",
+          "tagline": "Vous demandez un changement, il coûte 25 F. Rien d’autre à comprendre.",
+          "cta": "Commencer",
           "features": [
-            "Générations initiales illimitées",
-            "Pass Projet inclus sur tous les projets",
-            "150 crédits/mois, report sur 2 mois",
-            "Import de projets existants",
-            "Support standard"
+            "Payée depuis le portefeuille",
+            "Modifications incluses consommées d’abord",
+            "Restituée si la modification échoue"
           ]
         },
         "pro": {
-          "name": "Pro",
-          "price": "9 999 F",
-          "usd": "~17 $/mois",
+          "name": "Pack 100 modifications",
+          "price": "2 000 F",
+          "period": "",
+          "usd": "20 F la modification",
           "tagline": "Pour qui livre chaque semaine.",
-          "cta": "Passer en Pro",
+          "cta": "Commencer",
           "features": [
-            "Tout Starter",
-            "550 crédits/mois",
-            "Modèles premium pour les actions complexes",
-            "Support prioritaire"
+            "100 modifications à utiliser sur tous vos projets",
+            "Modèle le plus puissant : 3 modifications (ou 75 F)",
+            "Sans date d’expiration courte"
           ]
         },
         "studio": {
-          "name": "Studio",
-          "price": "24 999 F",
-          "usd": "~43 $/mois",
-          "tagline": "Pour les agences qui construisent pour leurs clients.",
-          "cta": "Passer en Studio",
+          "name": "IDEM Croissance",
+          "price": "3 000 F",
+          "period": "/mois",
+          "usd": "« 100 F par jour »",
+          "tagline": "20 modifications iCode par mois, et tout le reste d’IDEM.",
+          "cta": "Commencer",
           "features": [
-            "Tout Pro",
-            "1 500 crédits/mois",
-            "5 sièges",
-            "Accès à l'API",
-            "Marque blanche pour agences",
-            "Support dédié"
+            "20 modifications iCode par mois",
+            "Site vitrine toujours allumé",
+            "Communication et retouches sans limite (usage loyal)",
+            "Une simulation par trimestre"
           ]
         }
       },
       "passes": {
-        "title": "Pass à la journée",
-        "lede": "Comme un forfait data : vous ne payez que les jours où vous construisez.",
+        "title": "Les packs",
+        "lede": "Tout ce qu’il faut pour lancer, en un seul achat.",
         "items": [
           {
-            "name": "Pass 24 h",
-            "price": "500 F",
-            "note": "25 crédits — « je teste mon idée ce soir »"
+            "name": "Pack Lancement",
+            "price": "5 000 F",
+            "note": "Kit Entreprise + Pass Projet iCode + 3 mois de site vitrine allumé"
           },
           {
-            "name": "Pass 7 jours",
-            "price": "1 499 F",
-            "note": "90 crédits — « je prépare la démo de vendredi »"
+            "name": "À plusieurs",
+            "price": "20 000 F",
+            "note": "5 Packs Lancement (le 5ᵉ offert) — association, tontine, coopérative"
           }
         ]
       },
       "recharges": {
-        "title": "Recharges de crédits",
-        "lede": "Sans engagement, valables 12 mois, moins chères à mesure qu'on monte.",
+        "title": "Recharger le portefeuille",
+        "lede": "Dès 100 F, en Mobile Money. Bonus de 5 % dès 5 000 F, 10 % dès 10 000 F.",
         "items": [
           {
-            "name": "Boost",
+            "name": "Recharge",
             "price": "500 F",
-            "credits": "25 crédits"
+            "credits": "20 modifications"
           },
           {
-            "name": "Standard",
-            "price": "999 F",
-            "credits": "55 crédits"
+            "name": "Recharge",
+            "price": "1 000 F",
+            "credits": "40 modifications"
           },
           {
-            "name": "Growth",
-            "price": "2 499 F",
-            "credits": "145 crédits"
+            "name": "Recharge",
+            "price": "5 000 F",
+            "credits": "+250 F de bonus"
           },
           {
-            "name": "Power",
-            "price": "4 999 F",
-            "credits": "320 crédits"
+            "name": "Recharge",
+            "price": "10 000 F",
+            "credits": "+1 000 F de bonus"
           }
         ]
       }
@@ -1061,14 +1060,18 @@
     "creditsTitle": "{{used}} sur {{total}} crédits utilisés",
     "locked": {
       "title": "Ce projet n’est pas encore débloqué",
-      "body": "Générer est gratuit. Télécharger le code, l’envoyer sur GitHub ou le déployer supposent le Pass Projet.",
+      "body": "Générer est gratuit. Télécharger le code, l’envoyer sur GitHub ou le déployer supposent le Pass Projet (1 000 F, 30 modifications incluses).",
       "cta": "Débloquer ce projet",
-      "missingProject": "Ouvrez ce projet depuis votre tableau de bord IDEM pour pouvoir le débloquer."
+      "missingProject": "Ouvrez ce projet depuis votre tableau de bord IDEM pour pouvoir le débloquer.",
+      "unlocked": "Projet débloqué : 30 modifications incluses."
     },
     "noCredits": {
-      "title": "Crédits iCode insuffisants",
-      "body": "Il vous manque {{missing}} crédits pour cette action.",
+      "title": "Portefeuille insuffisant",
+      "body": "Il vous manque {{missing}} F pour cette modification.",
       "cta": "Recharger"
-    }
+    },
+    "modifications": "{{count}} modifications iCode incluses",
+    "modificationsShort": "{{count}} modif.",
+    "wallet": "Portefeuille IDEM : {{amount}} F (une modification : 25 F)"
   }
 }

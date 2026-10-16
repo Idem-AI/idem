@@ -1,3 +1,4 @@
+import { OwnershipBarComponent } from '../../../../shared/components/ownership-bar/ownership-bar';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -49,6 +50,7 @@ type WorkspaceMode = 'view' | 'form';
 @Component({
   selector: 'app-business-cards',
   imports: [
+    OwnershipBarComponent,
     FormsModule,
     TranslateModule,
     CardPreviewComponent,
@@ -85,7 +87,7 @@ export class BusinessCardsPage implements OnInit {
   protected readonly errorMessage = signal('');
 
   // --- Données ---------------------------------------------------------------
-  private readonly projectId = signal<string | null>(null);
+  protected readonly projectId = signal<string | null>(null);
   protected readonly project = signal<ProjectModel | null>(null);
   protected readonly card = signal<BusinessCardModel | null>(null);
 

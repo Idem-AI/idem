@@ -14,13 +14,15 @@ Every AI generation on the platform is recorded, input **and** output, in the Mo
 | Batch of proposals | `batchId`, `variantCount` | the 4 logos of one action |
 | Model | `provider`, `modelName` | `OPENROUTER` / `qwen/qwen3.5-122b-a10b` |
 | Tokens | `inputTokens`, `outputTokens`, `cachedInputTokens`, `totalTokens` | measured |
-| Cost | `estimatedCostUsd` | USD estimate |
+| Cost | `inputCostUsd`, `outputCostUsd`, `toolCostUsd`, `estimatedCostUsd` | USD estimate; `toolCostUsd` = web search results, images, clips, voice |
 | Reliability | `tokensEstimated`, `pricingEstimated` | see "Reliability" below |
 | Result | `status`, `errorMessage`, `durationMs` | `success` / `error` |
 | Correlation | `requestId`, `source`, `promptType` | to match with the logs |
 | Period | `day` (`YYYY-MM-DD`) | denormalised for aggregations |
 
 **Regenerations, edits and discarded proposals are counted.** A generation of 4 logos writes 4 events sharing a `batchId`: the real cost of "choosing a logo" is the sum of the batch, not the cost of the proposal that was kept.
+
+**Every model call is counted, not only completions.** Agentic tool loops write one event per turn, streams record the usage of their last chunk (`stream_options.include_usage`), grounded research adds its web results (OpenRouter `web` plugin, $0.004 per result) and media calls (`media.service.ts`) record their unit cost: FLUX.2 image, generated clip per second (`IDEM_VIDEO_USD_PER_SECOND`), Kokoro voice per character, vision tokens. Each event also feeds the account's AI spend cap and the running generation budget (see [BILLING.md](./BILLING.md#ai-usage-quotas)).
 
 **Failures are counted too.** A model that answers and then breaks at parsing was billed; a fallback to a secondary model produces two events. Hiding them would underestimate the real cost.
 

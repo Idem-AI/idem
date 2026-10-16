@@ -28,7 +28,7 @@
 
 import type { ModelRole } from './ai.config';
 
-export const VERIFIED_ON = '2026-10-11';
+export const VERIFIED_ON = '2026-10-15';
 
 export type OpenRouterKind = 'text' | 'image' | 'video' | 'speech';
 
@@ -55,8 +55,12 @@ export interface OpenRouterModel {
   selfHost: SelfHost;
   /** Rôles pour lesquels ce modèle est un candidat. */
   roles: ModelRole[];
-  /** $/M tokens (texte) ou $/image — relevé au `VERIFIED_ON`, indicatif. */
-  pricing?: { input?: number; output?: number; perImage?: number };
+  /**
+   * $/M tokens (texte), $/M tokens servis depuis le cache, $/image et $/recherche web native —
+   * relevé au `VERIFIED_ON` sur l'API publique d'OpenRouter (`/api/v1/models`).
+   * Pour une image FLUX.2, prix d'une image d'un mégapixel ; pour Gemini Image, ~1 290 jetons image.
+   */
+  pricing?: { input?: number; output?: number; cachedInput?: number; perImage?: number; perSearch?: number };
   /** Contexte et matériel : ce qui compte pour choisir ou héberger. */
   note: string;
 }
@@ -78,7 +82,7 @@ export const OPENROUTER_MODELS: readonly OpenRouterModel[] = [
   {
     id: 'qwen/qwen3.5-35b-a3b', kind: 'text', hfId: 'Qwen/Qwen3.5-35B-A3B', license: 'apache-2.0',
     openWeights: true, commercialOk: true, selfHost: 'léger', roles: ['mechanical', 'vision', 'ocr'],
-    pricing: { input: 0.08, output: 0.75 },
+    pricing: { input: 0.15, output: 1.0, cachedInput: 0.05 },
     note: 'MoE 3 B actifs : rapide. 1 GPU 48–80 Go en 8 bits.',
   },
   {
@@ -96,7 +100,7 @@ export const OPENROUTER_MODELS: readonly OpenRouterModel[] = [
   {
     id: 'qwen/qwen3.5-397b-a17b', kind: 'text', hfId: 'Qwen/Qwen3.5-397B-A17B', license: 'apache-2.0',
     openWeights: true, commercialOk: true, selfHost: 'lourd', roles: ['reasoning'],
-    pricing: { input: 0.55, output: 3.5 },
+    pricing: { input: 0.5, output: 3.6, cachedInput: 0.3 },
     note: 'Le plus capable de la gamme 3.5. 8 GPU 80 Go.',
   },
   {
@@ -109,13 +113,13 @@ export const OPENROUTER_MODELS: readonly OpenRouterModel[] = [
   {
     id: 'qwen/qwen3-coder-next', kind: 'text', hfId: 'Qwen/Qwen3-Coder-Next', license: 'apache-2.0',
     openWeights: true, commercialOk: true, selfHost: 'moyen', roles: [],
-    pricing: { input: 0.12, output: 0.8 },
+    pricing: { input: 0.12, output: 0.8, cachedInput: 0.07 },
     note: 'Code et agents (iCode). Rôle `code` non modélisé ici : exporté par CODE_MODEL.',
   },
   {
     id: 'qwen/qwen3-coder', kind: 'text', hfId: 'Qwen/Qwen3-Coder-480B-A35B-Instruct', license: 'apache-2.0',
     openWeights: true, commercialOk: true, selfHost: 'lourd', roles: [],
-    pricing: { input: 0.3, output: 1.0 },
+    pricing: { input: 0.3, output: 1.0, cachedInput: 0.1 },
     note: 'Repli code, 480 B. 8 GPU 80 Go.',
   },
   {
@@ -128,23 +132,23 @@ export const OPENROUTER_MODELS: readonly OpenRouterModel[] = [
   {
     id: 'qwen/qwen3.6-35b-a3b', kind: 'text', hfId: 'Qwen/Qwen3.6-35B-A3B', license: 'apache-2.0',
     openWeights: true, commercialOk: true, selfHost: 'léger', roles: ['mechanical', 'vision'],
-    pricing: { input: 0.1, output: 0.95 }, note: 'Candidat au remplacement de 3.5-35b.',
+    pricing: { input: 0.15, output: 1.0, cachedInput: 0.05 }, note: 'Candidat au remplacement de 3.5-35b.',
   },
   {
     id: 'qwen/qwen3.8-27b', kind: 'text', hfId: 'Qwen/Qwen3.8-27B', license: 'apache-2.0',
     openWeights: true, commercialOk: true, selfHost: 'moyen', roles: ['writing'],
-    pricing: { input: 0.04, output: 2.3 }, note: '1 M de contexte. Candidat rédaction.',
+    pricing: { input: 0.24, output: 2.2, cachedInput: 0.05 }, note: '1 M de contexte. Candidat rédaction.',
   },
   // ── Texte : DeepSeek (alternative à tester) ───────────────────────────────
   {
     id: 'deepseek/deepseek-v4-flash', kind: 'text', hfId: 'deepseek-ai/DeepSeek-V4-Flash', license: 'mit',
     openWeights: true, commercialOk: true, selfHost: 'lourd', roles: ['writing', 'mechanical'],
-    pricing: { input: 0.03, output: 1.28 }, note: '1 M ctx. Licence MIT.',
+    pricing: { input: 0.091, output: 0.182, cachedInput: 0.0182 }, note: '1 M ctx. Licence MIT. Sortie ~20× moins chère que Gemini 3.8 Flash : premier candidat des rédacteurs.',
   },
   {
     id: 'deepseek/deepseek-v4-pro', kind: 'text', hfId: 'deepseek-ai/DeepSeek-V4-Pro', license: 'mit',
     openWeights: true, commercialOk: true, selfHost: 'lourd', roles: ['reasoning'],
-    pricing: { input: 0.209, output: 0.418 }, note: '1 M ctx. Licence MIT. Cluster multi-nœuds.',
+    pricing: { input: 0.4308, output: 0.8616, cachedInput: 0.0359 }, note: '1 M ctx. Licence MIT. Cluster multi-nœuds.',
   },
   // ── Image : FLUX.2 ─────────────────────────────────────────────────────────
   {
@@ -172,6 +176,7 @@ export const OPENROUTER_MODELS: readonly OpenRouterModel[] = [
   {
     id: 'google/gemini-3.1-flash-image', kind: 'image', license: 'propriétaire',
     openWeights: false, allowClosed: true, commercialOk: true, selfHost: 'impossible', roles: ['image'],
+    pricing: { input: 0.5, output: 3, perImage: 0.077 },
     note: 'Gemini 3.1 Flash Image via OpenRouter pour les mockups de marque.',
   },
   // ── Voix off ───────────────────────────────────────────────────────────────
@@ -203,6 +208,7 @@ export const OPENROUTER_MODELS: readonly OpenRouterModel[] = [
     id: 'google/gemini-3.8-flash', kind: 'text', license: 'propriétaire',
     openWeights: false, allowClosed: true, commercialOk: true, selfHost: 'impossible',
     roles: ['writing', 'reasoning', 'mechanical', 'vision'],
+    pricing: { input: 0.75, output: 3.75, cachedInput: 0.075, perSearch: 0.014 },
     note: 'Gemini 3.8 Flash via OpenRouter (motion video, flyers, branding, BP, carte de visite, pitch deck).',
   },
   {

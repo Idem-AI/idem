@@ -9,8 +9,14 @@ import {
   BillingEngine,
   BillingProduct,
   BillingMe,
+  BuyOfferRequest,
+  BuyOfferResult,
   CheckoutRequest,
+  OffersCatalog,
+  OwnershipStatus,
+  WalletView,
   CreditLedgerRow,
+  UsageQuotaStatus,
   PaymentMethods,
   PaymentView,
   ProviderPrediction,
@@ -56,6 +62,21 @@ export class BillingService {
 
   /** Soldes par moteur, prêts pour l'affichage. */
   readonly credits = computed(() => this.me()?.credits ?? null);
+
+  /** Le portefeuille en francs : `null` tant que la facturation n'a pas répondu. */
+  readonly walletXaf = computed(() => this.me()?.offer?.walletXaf ?? null);
+
+  /** Les droits du modèle au portefeuille (forfaits, modifications, jours prépayés). */
+  readonly offer = computed(() => this.me()?.offer ?? null);
+
+  /** Le forfait actif le plus complet, pour le nommer dans la barre latérale. */
+  readonly activePass = computed<'entreprise' | 'croissance' | 'createur' | null>(() => {
+    const passes = this.offer()?.passes ?? {};
+    if (passes.entreprise) return 'entreprise';
+    if (passes.croissance) return 'croissance';
+    if (passes.createur) return 'createur';
+    return null;
+  });
 
   /** Vrai si un abonnement est en impayé : la bannière de relance s'appuie dessus. */
   readonly hasPastDue = computed(() =>
@@ -228,6 +249,11 @@ export class BillingService {
     return this.http.get<{ entries: CreditLedgerRow[] }>(url);
   }
 
+  /** Quotas d'usage IA : par groupe, utilisé et limite du jour, de la semaine et du mois. */
+  getQuotas(): Observable<UsageQuotaStatus> {
+    return this.http.get<UsageQuotaStatus>(`${this.base}/quotas`);
+  }
+
   // ============================================
   // PRÉPARATION DU PAIEMENT
   // ============================================
@@ -237,9 +263,12 @@ export class BillingService {
     interval?: string;
     country?: string;
     engine?: string;
+    amountXaf?: number;
   }): Observable<Quote> {
     const query = new URLSearchParams(
-      Object.entries(params).filter(([, value]) => Boolean(value)) as [string, string][],
+      Object.entries(params)
+        .filter(([, value]) => Boolean(value))
+        .map(([key, value]) => [key, String(value)]) as [string, string][],
     );
     return this.http.get<Quote>(`${this.base}/quote?${query.toString()}`);
   }
@@ -293,6 +322,41 @@ export class BillingService {
 
   cancelSubscription(engine: BillingEngine): Observable<unknown> {
     return this.http.post(`${this.base}/subscriptions/${engine}/cancel`, {});
+  }
+
+  // ============================================
+  // PORTEFEUILLE
+  // ============================================
+
+  /** Tous les prix du modèle, et le prix local de 1 000 F si un pays est donné. */
+  getOffers(country?: string): Observable<OffersCatalog> {
+    return this.http.get<OffersCatalog>(`${this.base}/offers${country ? `?country=${country}` : ''}`);
+  }
+
+  /** Solde, forfaits, droits prépayés et relevé du portefeuille. */
+  getWallet(): Observable<WalletView> {
+    return this.http.get<WalletView>(`${this.base}/wallet`);
+  }
+
+  /**
+   * Achète une offre avec le portefeuille. Un solde insuffisant répond 402 : l'intercepteur ouvre
+   * le paywall, qui propose la recharge couvrant le manque.
+   */
+  buyOffer(request: BuyOfferRequest): Observable<BuyOfferResult> {
+    return this.http.post<BuyOfferResult>(`${this.base}/offers/buy`, request).pipe(
+      tap(() => this.loadMe().subscribe()),
+    );
+  }
+
+  /** Livrables du projet : esquisse ou version finale, et où en est le Kit. */
+  getOwnership(projectId: string): Observable<OwnershipStatus> {
+    return this.http.get<OwnershipStatus>(`${this.base}/projects/${encodeURIComponent(projectId)}/ownership`);
+  }
+
+  redeemCode(code: string, projectId?: string): Observable<BuyOfferResult> {
+    return this.http.post<BuyOfferResult>(`${this.base}/codes/redeem`, { code, projectId }).pipe(
+      tap(() => this.loadMe().subscribe()),
+    );
   }
 
   /** Un projet AppGen est-il débloqué ? */

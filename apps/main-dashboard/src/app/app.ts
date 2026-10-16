@@ -5,7 +5,6 @@ import { LanguageService } from './shared/services/language.service';
 import { ThemeService } from './shared/services/theme.service';
 import { EmptyLayout } from './layouts/empty-layout/empty-layout';
 import { NotificationContainerComponent } from './shared/components/notification-container/notification-container';
-import { QuotaWarningComponent } from './shared/components/quota-warning/quota-warning';
 import { Router, ActivatedRoute } from '@angular/router';
 import { Observable, Subject } from 'rxjs';
 import { filter, startWith, map, distinctUntilChanged, takeUntil } from 'rxjs/operators';
@@ -23,7 +22,6 @@ import { ModeDockComponent } from './shared/components/mode-dock/mode-dock';
     RouterOutlet,
     EmptyLayout,
     NotificationContainerComponent,
-    QuotaWarningComponent,
     DashboardLayoutComponent,
     ChatLayoutComponent,
     GuidedLayoutComponent,

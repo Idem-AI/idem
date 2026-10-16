@@ -5,6 +5,7 @@ import RedisConnection from '../../config/redis.config';
 import { paymentReconcilerService } from '../payments/payment-reconciler.service';
 import { betaService } from './beta.service';
 import { creditLedgerService } from './credit-ledger.service';
+import { deployMeterService } from './deploy-meter.service';
 import { ideploySyncService } from './ideploy-sync.service';
 import { pricingService } from './pricing.service';
 import { subscriptionRenewalService } from './subscription-renewal.service';
@@ -140,6 +141,16 @@ export const BILLING_JOBS: ScheduledJob[] = [
     intervalMs: 60_000,
     lockTtlMs: 55_000,
     run: () => ideploySyncService.run(),
+  },
+  {
+    // iDeploy au compteur : chaque application active est couverte pour la
+    // journée (forfait, jours prépayés, portefeuille) ou s'endort. Toutes les
+    // heures : le passage est idempotent par jour, et une recharge du matin
+    // réveille une application sans attendre minuit.
+    name: 'deploy-meters',
+    intervalMs: 3600_000,
+    lockTtlMs: 600_000,
+    run: () => deployMeterService.runDaily(),
   },
   {
     // Un prix modifié dans le fichier de tarification doit atteindre les

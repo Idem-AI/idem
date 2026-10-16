@@ -109,6 +109,12 @@
     <!-- Aperçu du deck, complet ou non : les diapositives manquantes ou en échec
          apparaissent à leur place, avec leur bouton « Régénérer ». -->
     <div class="max-w-7xl mx-auto">
+      <app-ownership-bar
+        deliverable="pitch_deck"
+        [projectId]="projectId()"
+        [canRegenerate]="true"
+        (generateFinal)="startGeneration(true)"
+      />
       @if (errorMessage()) {
         <p class="mb-3 text-sm text-red-400 text-center" role="alert">{{ errorMessage() }}</p>
       }

@@ -47,6 +47,12 @@
     <!-- Aperçu du plan : statut en une ligne, pages manquantes ou en échec dans
          le document, régénération par page et dans le dock. -->
     <div class="max-w-6xl mx-auto">
+      <app-ownership-bar
+        deliverable="business_plan"
+        [projectId]="projectIdFromCookie()"
+        [canRegenerate]="true"
+        (generateFinal)="generateBusinessPlan(true)"
+      />
       <app-document-preview
         documentType="business-plan"
         [documentId]="documentId()"

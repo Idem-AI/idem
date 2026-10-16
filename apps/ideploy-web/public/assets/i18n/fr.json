@@ -212,27 +212,27 @@
     }
   },
   "pricing": {
-    "heroTitle": "Généreux à l'entrée.",
-    "heroTitleAccent": "Pensé pour la croissance.",
-    "heroSubtitle": "Chaque compte bénéficie de 5 déploiements gratuits, d'un domaine yourapp.idem.africa gratuit et de domaines personnalisés gratuits avec SSL automatique. Usage commercial autorisé dès le premier jour — même sur le forfait gratuit.",
-    "heroNote": "Prix en FCFA · Mobile Money & carte acceptés · Annuel = 2 mois offerts",
-    "mostPopular": "Le plus populaire",
+    "heroTitle": "Une application,",
+    "heroTitleAccent": "un compteur au jour.",
+    "heroSubtitle": "Pas d’abonnement : chaque application a son compteur, payé au jour depuis votre portefeuille IDEM, rechargé en mobile money dès 100 F. Changez de compteur quand vous voulez.",
+    "heroNote": "Veille gratuite · Vitrine 10 F/jour · Application 50 F/jour · Application+ 150 F/jour",
+    "mostPopular": "Le plus choisi",
     "perMonth": "/mois",
-    "payTitle": "Pas d'abonnement ?",
-    "payTitleAccent": "Payez au déploiement.",
-    "paySubtitle": "Vos 5 premiers déploiements sont gratuits — de quoi mettre votre première app en production et itérer. Ensuite, payez au fil de vos livraisons.",
+    "payTitle": "Un portefeuille,",
+    "payTitleAccent": "pour tout IDEM.",
+    "paySubtitle": "Le même portefeuille paie vos compteurs, votre site, votre communication et vos livrables. Si le solde s’épuise, vous êtes prévenu trois jours avant ; l’application s’endort, rien n’est supprimé, et elle se réveille dès la recharge.",
     "payCard1Value": "100 F",
-    "payCard1Label": "par déploiement",
-    "payCard2Value": "900 F",
-    "payCard2Label": "pack de 10 déploiements",
-    "payCard3Value": "Illimité",
-    "payCard3Label": "sur tout forfait payant",
-    "managedTitle": "Services gérés",
-    "managedTitleAccent": "à la carte",
-    "managedSubtitle": "Comme un fournisseur cloud : activez chaque service en un clic depuis le tableau de bord, facturé mensuellement, sans engagement.",
-    "overagesTitle": "Dépassements,",
-    "overagesTitleAccent": "face à face",
-    "overagesSubtitle": "Quand votre app dépasse son forfait, la facture grandit avec elle — et non contre elle.",
+    "payCard1Label": "recharge minimale, en mobile money",
+    "payCard2Value": "+10 %",
+    "payCard2Label": "de bonus dès 10 000 F rechargés",
+    "payCard3Value": "Illimités",
+    "payCard3Label": "déploiements, sur tous les compteurs",
+    "managedTitle": "Des options",
+    "managedTitleAccent": "à la journée.",
+    "managedSubtitle": "Ajoutez une option à une application quand vous en avez besoin, retirez-la quand vous n’en avez plus besoin. Elle se paie au jour, comme le compteur.",
+    "overagesTitle": "Comparé",
+    "overagesTitleAccent": "aux autres.",
+    "overagesSubtitle": "Prix indicatifs relevés en septembre 2026, convertis à 575 F le dollar.",
     "colResource": "Ressource",
     "byosTitle": "Apportez votre",
     "byosTitleAccent": "propre serveur",
@@ -244,7 +244,72 @@
     "ctaTitleAccent": "offerte",
     "ctaSubtitle": "Domaine gratuit, SSL gratuit, 5 déploiements gratuits, usage commercial autorisé. Commencez maintenant, montez en gamme quand votre app grandit.",
     "getStartedFree": "Commencer gratuitement",
-    "backToHome": "Retour à l'accueil"
+    "backToHome": "Retour à l'accueil",
+    "perDay": "/jour",
+    "meters": {
+      "choose": "Choisir ce compteur",
+      "veille": {
+        "name": "Veille",
+        "monthly": "gratuit",
+        "tagline": "Votre site en ligne sans rien payer : il se réveille à la première visite.",
+        "f1": "Site sur monprojet.idem.africa",
+        "f2": "Réveillé à la visite",
+        "f3": "Certificat SSL automatique",
+        "f4": "Gratuit 7 jours après la création, puis endormi jusqu’à ce que vous choisissiez un compteur"
+      },
+      "vitrine": {
+        "name": "Vitrine",
+        "monthly": "≈ 300 F par mois",
+        "tagline": "Le site vitrine toujours allumé, pour le prix d’un SMS par jour.",
+        "f1": "Site toujours allumé",
+        "f2": "Votre nom de domaine, SSL inclus",
+        "f3": "Inclus dans le forfait IDEM Croissance",
+        "f4": "3 mois inclus dans le Pack Lancement"
+      },
+      "application": {
+        "name": "Application",
+        "monthly": "≈ 1 500 F par mois",
+        "tagline": "Votre application et sa base de données, en production.",
+        "f1": "Application + base de données",
+        "f2": "Déploiements illimités",
+        "f3": "Surveillance et journaux de base",
+        "f4": "Inclus dans le forfait IDEM Entreprise"
+      },
+      "application_plus": {
+        "name": "Application+",
+        "monthly": "≈ 4 500 F par mois",
+        "tagline": "Pour un produit qui grandit vraiment.",
+        "f1": "2 Go de mémoire",
+        "f2": "Sauvegardes quotidiennes",
+        "f3": "Déploiements illimités",
+        "f4": "Options à la journée selon le besoin"
+      }
+    },
+    "options": {
+      "waf": "Pare-feu avancé",
+      "wafNote": "Règles sur mesure, blocage par pays",
+      "autoscaling": "Montée en charge automatique",
+      "autoscalingNote": "Plus de capacité aux heures de pointe",
+      "backups": "Sauvegardes quotidiennes",
+      "backupsNote": "Restauration en un clic",
+      "monitoring": "Surveillance avancée + alertes",
+      "monitoringNote": "Processeur, mémoire, disque — e-mail et WhatsApp",
+      "database": "Base de données supplémentaire",
+      "databaseNote": "2 Go, sauvegardes incluses",
+      "logs": "Journaux conservés 90 jours",
+      "logsNote": "Pour comprendre ce qui s’est passé",
+      "staticIp": "IP statique dédiée",
+      "staticIpNote": "Pour les partenaires qui filtrent par adresse",
+      "sovereign": "Résidence nationale des données",
+      "sovereignNote": "Données hébergées dans votre pays (feuille de route)"
+    },
+    "compare": {
+      "showcase": "Site vitrine toujours allumé",
+      "app": "Application + base de données",
+      "deployments": "Déploiements",
+      "domain": "Nom de domaine .africa (1re année)",
+      "unlimited": "illimités"
+    }
   },
   "dashboard": {
     "searchProjects": "Rechercher des projets…",
@@ -2171,5 +2236,45 @@
     "import": "Importer",
     "show": "Afficher les valeurs",
     "hide": "Masquer les valeurs"
+  },
+  "meters": {
+    "title": "Compteurs",
+    "subtitle": "Chaque application a son compteur, payé au jour depuis votre portefeuille IDEM. Rien à souscrire : changez de compteur quand vous voulez.",
+    "wallet": "Portefeuille IDEM",
+    "nothingToPay": "Aucune application payante en ce moment.",
+    "daysCovered": "Votre solde couvre {{days}} jour(s) au rythme actuel ({{perDay}} F par jour).",
+    "topUp": "Recharger",
+    "apps": "Vos applications",
+    "noApps": "Aucune application pour le moment. Mettez-en une en ligne : elle démarre en Veille, gratuite.",
+    "status": {
+      "active": "Allumée",
+      "asleep": "Endormie — réveillez-la pour la remettre en ligne",
+      "archived": "Archivée"
+    },
+    "freeUntil": "Veille gratuite jusqu’au {{date}}",
+    "coveredBy": {
+      "wallet": "payé par le portefeuille",
+      "pass": "inclus dans votre forfait",
+      "prepaid": "jour prépayé",
+      "free": "gratuit"
+    },
+    "perDay": "par jour",
+    "day": "jour",
+    "year": "an",
+    "firstYear": "la 1re année",
+    "tier": "Compteur",
+    "wake": "Réveiller",
+    "options": "Options à la journée",
+    "domainTitle": "Votre nom de domaine",
+    "orderDomain": "Commander",
+    "domainStatus": {
+      "pending": "en cours d’enregistrement",
+      "registered": "actif",
+      "failed": "échec",
+      "refunded": "remboursé"
+    },
+    "missing": "Il manque {{missing}} F dans votre portefeuille : rechargez-le pour continuer.",
+    "loading": "Chargement des compteurs…",
+    "chip": "{{amount}} F"
   }
 }

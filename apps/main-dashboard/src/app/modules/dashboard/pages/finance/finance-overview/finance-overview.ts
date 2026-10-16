@@ -1,4 +1,5 @@
 import { hasGeneratedDeliverable } from '../../../models/deliverable-document.model';
+import { OwnershipBarComponent } from '../../../../../shared/components/ownership-bar/ownership-bar';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -68,6 +69,7 @@ interface StepVM {
 @Component({
   selector: 'app-finance-overview',
   imports: [
+    OwnershipBarComponent,
     ErrorStateComponent,
     RouterLink,
     TranslateModule,

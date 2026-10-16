@@ -51,8 +51,8 @@
     "confirm": "Confirm",
     "creativity": {
       "title": "Creativity",
-      "help": "The higher you go, the more powerful the AI model that designs your deliverable — and the more credits the generation uses.",
-      "cost": "{{cost}} credits",
+      "help": "The higher you go, the more powerful the AI model that designs your deliverable. The price does not change with the level: the draft is free, the final version is paid once.",
+      "cost": "{{cost}} F",
       "levels": {
         "low": {
           "label": "Low",
@@ -76,12 +76,12 @@
           "label": "Ultra",
           "hint": "Most powerful",
           "description": "The most powerful model designs and writes your deliverable. Your brand and your figures stay exact at every level.",
-          "line": "The most powerful model."
+          "line": "The most powerful — for a Signature version (+1,000 F)."
         }
       },
-      "withCost": "{{label}} · {{cost}} credits",
+      "withCost": "{{label}} · {{cost}} F",
       "video": {
-        "help": "The higher you go, the more powerful the model that designs and writes your video — and the more credits it uses.",
+        "help": "The higher you go, the more powerful the model that designs your video. The price does not change with the level.",
         "levels": {
           "low": {
             "line": "Light models: fast and economical."
@@ -96,7 +96,8 @@
             "line": "The most powerful models."
           }
         }
-      }
+      },
+      "included": "Included"
     }
   },
   "dashboard": {
@@ -1776,38 +1777,6 @@
         "noProjectSelected": "No project selected",
         "projectNotFound": "Project not found: {{projectId}}",
         "failedToLoad": "Failed to load project data"
-      },
-      "quotaWarning": {
-        "title": "Quota Warning",
-        "daily": "Daily:",
-        "weekly": "Weekly:",
-        "beta": "BETA",
-        "messages": {
-          "approaching": "You are approaching your quota limit",
-          "daily": "You are approaching your daily quota limit",
-          "weekly": "You are approaching your weekly quota limit",
-          "dailyAndWeekly": "You are approaching both your daily and weekly quota limits"
-        },
-        "buttons": {
-          "viewDetails": "View Details"
-        },
-        "tooltip": {
-          "title": "Quota Information",
-          "exceededTitle": "Quota Exceeded",
-          "exceededMessage": "You have reached your usage limits",
-          "limitedTitle": "Limited Feature",
-          "limitedMessage": "Not available in beta version",
-          "nearlyReachedTitle": "Quota Nearly Reached",
-          "nearlyReachedMessage": "Use with moderation",
-          "availableMessage": "Quotas available",
-          "betaLimitations": "Beta limitations:",
-          "maxStyles": "styles maximum",
-          "resolution": "Resolution:",
-          "maxTokens": "tokens max",
-          "featureNotAuthorized": "Feature not authorized"
-        },
-        "generations": "Generations",
-        "credits": "Credits"
       }
     },
     "aiAssistant": {
@@ -2073,14 +2042,6 @@
         "maxStyles": "Maximum {{count}} styles per generation",
         "resolution": "Maximum {{resolution}} resolution",
         "maxTokens": "Maximum {{count}} output tokens"
-      },
-      "quota": {
-        "daily": "Daily Quota",
-        "weekly": "Weekly Quota",
-        "usedToday": "Used today: {{count}} requests",
-        "usedThisWeek": "Used this week: {{count}} requests",
-        "warning": "You're approaching your quota limit. Consider upgrading for unlimited access.",
-        "exceeded": "You've exceeded your quota limit. Please upgrade or wait for the next reset."
       },
       "buttons": {
         "upgrade": "Upgrade to Premium",
@@ -6308,7 +6269,18 @@
         "confirm": "Payment confirmation"
       },
       "chooseCountry": "Choose your country",
-      "countryFirst": "Pick your country first."
+      "countryFirst": "Pick your country first.",
+      "walletCredited": "Added to your wallet",
+      "bonus": "Top-up bonus",
+      "thenBuy": "Then, from your wallet: {{label}}",
+      "thenKinds": {
+        "pass": "plan activation",
+        "pack": "pack purchase",
+        "icode_project_pass": "iCode Project Pass (1,000 F)",
+        "icode_pack_100": "100 iCode changes (2,000 F)",
+        "unlock": "final version unlock",
+        "domain": "domain name order"
+      }
     },
     "paywall": {
       "title": "Not enough credits",
@@ -6318,7 +6290,19 @@
       "upgradeTitle": "Higher plan required",
       "choose": "Choose a plan",
       "seeAllPlans": "See all plans",
-      "later": "Later"
+      "later": "Later",
+      "quotaTitle": "Usage limit reached",
+      "quotaResets": "Renews: {{date}}",
+      "walletTitle": "Not enough balance",
+      "price": "Price: {{price}} F",
+      "walletBalance": "Wallet: {{balance}} F",
+      "walletMissing": "You are {{missing}} F short",
+      "kitRemaining": "Business Kit: only {{remaining}} F left before the whole Kit is unlocked (cap {{cap}} F).",
+      "lockedTitle": "Final version file",
+      "unlock": "Unlock the final version — {{price}} F",
+      "topUpAndUnlock": "Top up {{amount}} F and unlock",
+      "topUp": "Top up {{amount}} F",
+      "seeWallet": "My wallet"
     },
     "status": {
       "CREATED": "Created",
@@ -6331,6 +6315,68 @@
       "REJECTED": "Rejected",
       "NOT_FOUND": "Not completed",
       "EXPIRED": "Expired"
+    },
+    "wallet": {
+      "title": "Wallet",
+      "betaShort": "Premium beta",
+      "balance": "Wallet balance",
+      "betaActive": "Premium beta: everything is included during the beta.",
+      "passUntil": "{{pass}} until {{date}}",
+      "modifications": "{{count}} iCode changes included",
+      "vitrineDays": "{{count}} prepaid showcase-site days",
+      "projectPasses": "{{count}} iCode Project Pass to use",
+      "topUpTitle": "Top up with mobile money",
+      "otherAmount": "Other amount (F)",
+      "topUp": "Top up {{amount}} F",
+      "bonusRule": "Top-up bonus: +5% from 5,000 F, +10% from 10,000 F.",
+      "passesTitle": "Monthly plans",
+      "passesHint": "You never pay more than the plan: your pay-as-you-go purchases stop at its price, and the plan is then yours until the end of the month.",
+      "capRule": "Cap: your pay-as-you-go purchases stop at {{cap}} F per month.",
+      "activeUntil": "Active until {{date}}",
+      "extend": "Extend",
+      "activate": "Activate",
+      "packsTitle": "Packs",
+      "packsHint": "Applied to the current project: {{project}}.",
+      "domain": "Domain name (.africa or .com)",
+      "codeTitle": "IDEM code",
+      "codeHint": "An agent code, a gift or a Launch Pack: it tops up your wallet or applies to the current project.",
+      "redeem": "Redeem",
+      "statementTitle": "Wallet statement",
+      "noStatement": "No transactions yet.",
+      "unavailable": "Your wallet could not be loaded. Try again in a moment.",
+      "reasons": {
+        "topup": "Top-up",
+        "bonus": "Top-up bonus",
+        "conversion": "Credits converted",
+        "consumption": "Purchase",
+        "refund": "Refund",
+        "manual_adjustment": "Adjustment",
+        "plan_grant": "Gift",
+        "pack_grant": "Pack",
+        "pass_grant": "Included in your offer",
+        "recharge": "Top-up",
+        "loyalty_bonus": "Loyalty bonus",
+        "rollover_expiry": "Expiry",
+        "welcome_grant": "Welcome gift"
+      }
+    },
+    "passes": {
+      "croissance": "IDEM Growth",
+      "entreprise": "IDEM Business",
+      "createur": "iVision Creator"
+    },
+    "ownership": {
+      "beta": "Premium beta: final versions are included.",
+      "draftTitle": "Free draft",
+      "draftBody": "The final version adds sourced data, a professional layout, files without the IDEM mark and 30 days of free edits.",
+      "kit": "Project Business Kit: {{spent}} F of {{cap}} F — beyond that, the whole Kit is unlocked (instead of {{sum}} F one by one).",
+      "unlock": "Unlock the final version — {{price}} F",
+      "unlocked": "Final version unlocked",
+      "generateFinal": "Generate the final version",
+      "finalTitle": "Final version",
+      "signatureTitle": "Signature version",
+      "editableUntil": "Free edits until {{date}}",
+      "signature": "Upgrade to Signature — {{price}} F"
     }
   },
   "account": {
@@ -6359,7 +6405,7 @@
     "severalPlans": "{{count}} active plans",
     "perMonth": "/month",
     "credits": "Credits",
-    "creditsShort": "{{count}} credits",
+    "creditsShort": "{{count}} F",
     "creditsOn": "On the {{plan}} plan",
     "upgradeTo": "Upgrade to {{plan}}",
     "topTier": "You are on the most complete plan",
@@ -6376,8 +6422,8 @@
     "statement": "Credit statement",
     "noStatement": "No credit movement yet.",
     "allEngines": "All",
-    "quotaTitle": "Free generations",
-    "quotaHint": "Separate from credits: a rate limit that resets on its own, with nothing to pay.",
+    "quotaTitle": "Usage limits",
+    "quotaHint": "Separate from credits: your plan’s generation pace, per family, renewed automatically every day, every week (on Monday) and every month.",
     "packsHint": "One specific need, paid once.",
     "rechargesHint": "More credits, without changing plan.",
     "bundlesHint": "Several engines, bundled.",
@@ -6423,7 +6469,15 @@
       "deliveryPending": "Your payment went through. Activation sometimes takes a moment — this screen updates on its own.",
       "resume": "Back to work",
       "seeInvoice": "See my invoices"
-    }
+    },
+    "quotaGroup": "Family",
+    "quotaWindows": {
+      "day": "Today",
+      "week": "Week",
+      "month": "Month"
+    },
+    "quotaUnlimited": "Unlimited",
+    "quotaCapacityHigh": "Your AI generation capacity for today is almost used up: it renews at midnight (UTC)."
   },
   "auth": {
     "signInTitle": "Sign in to IDEM",

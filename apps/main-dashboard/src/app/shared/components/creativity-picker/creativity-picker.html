@@ -12,7 +12,7 @@
   <span class="cp-label">{{ 'common.creativity.title' | translate }}</span>
   <span class="cp-value">{{ 'common.creativity.levels.' + value() + '.label' | translate }}</span>
   @if (showCost() && current() != null) {
-    <span class="cp-cost">· {{ 'common.creativity.cost' | translate: { cost: current() } }}</span>
+    <span class="cp-cost">· {{ current() === 0 ? ('common.creativity.included' | translate) : ('common.creativity.cost' | translate: { cost: current() }) }}</span>
   }
   <i class="pi pi-angle-down cp-chevron" aria-hidden="true"></i>
 </button>
@@ -41,7 +41,7 @@
           <span class="cp-item-line">{{ texts() + '.levels.' + level + '.line' | translate }}</span>
         </span>
         @if (costs(); as c) {
-          <span class="cp-item-cost">{{ 'common.creativity.cost' | translate: { cost: c[level] } }}</span>
+          <span class="cp-item-cost">{{ c[level] === 0 ? ('common.creativity.included' | translate) : ('common.creativity.cost' | translate: { cost: c[level] }) }}</span>
         }
         <i class="pi pi-check cp-check" [class.invisible]="value() !== level" aria-hidden="true"></i>
       </button>

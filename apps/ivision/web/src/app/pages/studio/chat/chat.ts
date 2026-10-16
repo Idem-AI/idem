@@ -138,7 +138,11 @@ export class ChatPage {
   protected readonly reference = signal<Reference | null>(null);
   protected readonly recentReferences = signal<Reference[]>([]);
   protected readonly showRecent = signal(false);
+  /** Création gratuite : le prix affiché est celui de l'export HD sans signature. */
   protected readonly price = signal<number | null>(null);
+  /** Plans filmés par l'IA commandés pour la prochaine vidéo (1 000 F l'un). */
+  protected readonly aiClips = signal(0);
+  protected readonly aiClipChoices = [0, 1, 2, 3, 4];
   protected readonly projects = signal<{ id: string; name: string; hasBrand: boolean; primary?: string }[] | null>(null);
   protected readonly importing = signal<string | null>(null);
   protected readonly brandMenu = signal(false);
@@ -203,7 +207,7 @@ export class ChatPage {
       const mode = this.mode();
       const level = this.creativity();
       const scope = { durationSec: this.durationSec(), formats: [this.videoFormat()], quality: 'hd' };
-      untracked(() => this.api.quote(mode, level, mode === 'video' ? scope : undefined).subscribe({ next: (q) => this.price.set(q.cost), error: () => this.price.set(null) }));
+      untracked(() => this.api.quote(mode, level, mode === 'video' ? scope : undefined).subscribe({ next: (q) => this.price.set(q.exportXaf ?? q.cost), error: () => this.price.set(null) }));
     });
     // La marque de la conversation : dans la liste, sinon chargée (marque provisoire).
     effect(() => {
@@ -298,7 +302,7 @@ export class ChatPage {
     // Un montage : les réglages du montage (coupes, musique) ; sinon ceux du motion design.
     if (this.montaging()) return { creativity: this.creativity(), formats: [this.videoFormat()], quality: 'hd', cuts: this.removeSilences() ? 'tight' : 'none', ...(this.montageMusic() ? {} : { musicMood: 'none' }) };
     return this.mode() === 'video'
-      ? { creativity: this.creativity(), durationSec: this.durationSec(), formats: [this.videoFormat()], quality: 'hd', voice: this.voice() }
+      ? { creativity: this.creativity(), durationSec: this.durationSec(), formats: [this.videoFormat()], quality: 'hd', voice: this.voice(), aiClips: this.aiClips() }
       : { creativity: this.creativity(), format: this.imageFormat(), withPhoto: this.withPhoto() };
   }
 
@@ -427,8 +431,13 @@ export class ChatPage {
         this.messages.update((list) => [...list.filter((m) => m.id !== event.message.id), event.message]);
         break;
       case 'error':
-        if (event.error === 'payment_required') this.payment.set(event.payment ?? {});
-        else if (event.error !== 'turn_running') this.error.set('errors.generic');
+        if (event.error === 'payment_required') {
+          // Le refus d'IDEM est en francs (`priceXaf`, `balanceXaf`) ; `cost`/`balance` restent lus pour les anciens corps.
+          const body = (event.payment ?? {}) as { cost?: number; balance?: number; missing?: number; priceXaf?: number; balanceXaf?: number; missingXaf?: number };
+          this.payment.set({ cost: body.priceXaf ?? body.cost, balance: body.balanceXaf ?? body.balance, missing: body.missingXaf ?? body.missing });
+        }
+        // Quota atteint : le message de la conversation dit déjà quelle limite et quand elle revient.
+        else if (event.error !== 'turn_running' && event.error !== 'quota_exceeded') this.error.set('errors.generic');
         break;
       case 'done':
         break;

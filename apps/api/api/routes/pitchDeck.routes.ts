@@ -14,9 +14,8 @@ import {
   deletePitchDeckDocumentController,
 } from '../controllers/pitchDeck.controller';
 import { authenticate } from '../services/auth.service';
-import { checkQuota } from '../middleware/quota.middleware';
 import { checkPolicyAcceptance } from '../middleware/policyCheck.middleware';
-import { firstThenRevision, requireCredits, withCreativity } from '../middleware/billing.middleware';
+import { firstThenRevision, requireCredits, withCreativity, requireOwnership } from '../middleware/billing.middleware';
 import { relayoutController } from '../controllers/relayout.controller';
 
 export const pitchDeckRoutes = Router();
@@ -71,7 +70,6 @@ pitchDeckRoutes.get(
   `/${resourceName}/generate/:projectId`,
   authenticate,
   checkPolicyAcceptance,
-  checkQuota,
   // Le cran de créativité (paramètre `creativity` du flux) multiplie le prix du livrable.
   requireCredits('business', 'pitch_deck', {
     resolve: withCreativity('business', 'pitch_deck', firstThenRevision('business', 'pitch_deck', 'revision')),
@@ -208,7 +206,6 @@ pitchDeckRoutes.post(
   `/${resourceName}/:projectId/sections/:sectionId/ai-edit`,
   authenticate,
   checkPolicyAcceptance,
-  checkQuota,
   requireCredits('business', 'revision'),
   aiEditPitchDeckSectionController
 );
@@ -228,11 +225,12 @@ pitchDeckRoutes.post(
  *     tags: [Pitch Deck]
  *     summary: Download a pitch deck as PowerPoint (`mode=fidelity|editable`, `documentId` query)
  */
-pitchDeckRoutes.get(`/${resourceName}/pptx/:projectId`, authenticate, pdfTimeout, generatePitchDeckPptxController);
+pitchDeckRoutes.get(`/${resourceName}/pptx/:projectId`, authenticate, requireOwnership('pitch_deck'), pdfTimeout, generatePitchDeckPptxController);
 
 pitchDeckRoutes.get(
   `/${resourceName}/pdf/:projectId`,
   authenticate,
+  requireOwnership('pitch_deck'),
   pdfTimeout,
   generatePitchDeckPdfController
 );
@@ -249,7 +247,6 @@ pitchDeckRoutes.post(
   `/${resourceName}/:projectId/relayout`,
   authenticate,
   checkPolicyAcceptance,
-  checkQuota,
   requireCredits('business', 'pitch_deck_relayout', { resolve: withCreativity('business', 'pitch_deck_relayout') }),
   relayoutController('pitchDeck')
 );

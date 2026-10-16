@@ -9,6 +9,8 @@ import {
 } from '../models/aiUsage.model';
 import { AiUsageEvent } from '../schemas/aiUsage.schema';
 import { getAiUsageContext } from '../utils/ai-usage-context.util';
+import { addGenerationSpend } from '../utils/generation-budget.util';
+import { usageCounters } from './billing/usage-counters';
 import { getTraceContext } from '../utils/trace.util';
 import {
   aiCallDuration,
@@ -36,6 +38,8 @@ export interface RecordAiUsageInput {
   errorMessage?: string;
   durationMs?: number;
   promptType?: string;
+  /** Coût hors tokens (résultats de recherche web), en USD. */
+  toolCostUsd?: number;
 
   // Surcharges explicites : gagnent toujours sur le contexte déduit.
   userId?: string;
@@ -80,12 +84,17 @@ class AiUsageService {
       const outputTokens = Math.max(Math.round(input.usage.outputTokens || 0), 0);
       const cachedInputTokens = Math.max(Math.round(input.usage.cachedInputTokens || 0), 0);
 
-      const cost = computeCost({
+      const tokenCost = computeCost({
         modelName: input.modelName,
         inputTokens,
         outputTokens,
         cachedInputTokens,
       });
+      const toolCostUsd = Math.max(input.toolCostUsd ?? 0, 0);
+      const cost = {
+        ...tokenCost,
+        totalCostUsd: Math.round((tokenCost.totalCostUsd + toolCostUsd) * 1_000_000) / 1_000_000,
+      };
 
       // Priorité : surcharge explicite > contexte affiné par les services >
       // contexte de trace de la requête.
@@ -114,6 +123,7 @@ class AiUsageService {
         tokensEstimated: !!input.usage.estimated,
         inputCostUsd: cost.inputCostUsd,
         outputCostUsd: cost.outputCostUsd,
+        toolCostUsd,
         estimatedCostUsd: cost.totalCostUsd,
 
         status: input.status ?? 'success',
@@ -173,6 +183,12 @@ class AiUsageService {
         costUsd: cost.totalCostUsd,
         estimated: !!input.usage.estimated,
       });
+
+      // Budget de la génération en cours et disjoncteur de coût du compte : les
+      // deux garde-fous des quotas lisent le coût ici, au même endroit que le
+      // journal, pour ne jamais diverger de ce que l'administration voit.
+      addGenerationSpend(cost.totalCostUsd);
+      if (userId) void usageCounters.recordSpend(userId, cost.totalCostUsd);
 
       // Rollup journalier, best-effort : il alimente les plafonds de
       // token-tracking.service, mais son échec ne doit pas perdre l'événement

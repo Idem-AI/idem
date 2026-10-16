@@ -7,7 +7,10 @@ import { EnginePlanView } from '../../../billing/models/plan.model';
 import { PaymentView } from '../../../billing/models/billing.model';
 
 /**
- * L'aperçu : « où j'en suis », en un écran.
+ * L'aperçu : « où j'en suis », en un écran — d'abord le portefeuille (solde, forfait, droits
+ * inclus), puis les abonnements d'avant le modèle au portefeuille, jusqu'à leur échéance.
+ *
+ * (Historique de la page, avant le portefeuille :)
  *
  * Une carte par moteur, et chaque carte répond dans l'ordre aux trois seules
  * questions que l'on se pose en arrivant ici : quelle offre j'ai, combien il me
@@ -26,15 +29,27 @@ import { PaymentView } from '../../../billing/models/billing.model';
   host: { '(document:keydown.escape)': 'cancelling.set(null)' },
   imports: [CommonModule, RouterModule, TranslateModule],
   template: `
-    @if (plans().length === 0) {
-      <div class="space-y-3">
-        @for (row of [1, 2, 3]; track row) {
-          <div class="h-40 animate-pulse rounded-xl bg-[var(--color-surface-2)]"></div>
-        }
-      </div>
+    @if (walletXaf() === null) {
+      <div class="h-40 animate-pulse rounded-xl bg-[var(--color-surface-2)]"></div>
     } @else {
+      <!-- Le portefeuille : une seule réserve, en francs, pour tous les services -->
+      <section class="glass-card mb-4 flex flex-wrap items-center justify-between gap-4 p-5">
+        <div class="min-w-0">
+          <p class="text-sm text-text-tertiary">{{ 'billing.wallet.balance' | translate }}</p>
+          <p class="mt-1 text-2xl font-bold tabular-nums text-text-primary">{{ walletXaf() | number: '1.0-0' }} F</p>
+          @if (activePass(); as pass) {
+            <p class="mt-1 text-sm text-text-secondary">{{ 'billing.passes.' + pass | translate }}</p>
+          }
+          @if (offer()?.modifications) {
+            <p class="text-xs text-text-tertiary">{{ 'billing.wallet.modifications' | translate: { count: offer()!.modifications } }}</p>
+          }
+        </div>
+        <a class="inner-button" routerLink="/account/plans">{{ 'billing.wallet.topUpTitle' | translate }}</a>
+      </section>
+
+      <!-- Les abonnements d'avant le portefeuille, jusqu'à leur échéance -->
       <div class="space-y-4">
-        @for (plan of plans(); track plan.engine) {
+        @for (plan of legacyPlans(); track plan.engine) {
           <section
             class="rounded-xl border border-[var(--glass-border)] bg-[var(--color-surface-1)] p-5"
           >
@@ -106,24 +121,6 @@ import { PaymentView } from '../../../billing/models/billing.model';
 
             <!-- Le geste suivant, et un seul -->
             <div class="mt-5 flex flex-wrap items-center gap-2">
-              @if (plan.next; as next) {
-                <a
-                  class="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
-                  [routerLink]="['/billing/checkout']"
-                  [queryParams]="{ product: next.code, engine: plan.engine, interval: 'month' }"
-                >
-                  {{ 'account.upgradeTo' | translate: { plan: next.name } }} —
-                  {{ next.priceXaf | number: '1.0-0' }} F{{ 'account.perMonth' | translate }}
-                </a>
-              } @else if (plan.isTopTier) {
-                <span
-                  class="inline-flex items-center gap-2 rounded-lg border border-success/40 bg-success/10 px-3 py-2 text-sm text-success"
-                >
-                  <i class="pi pi-check-circle text-xs" aria-hidden="true"></i>
-                  {{ 'account.topTier' | translate }}
-                </span>
-              }
-
               <a
                 class="rounded-lg border border-[var(--glass-border-medium)] px-4 py-2 text-sm text-text-secondary transition-colors hover:text-text-primary"
                 routerLink="/account/plans"
@@ -228,6 +225,11 @@ export class AccountOverviewPage {
   private readonly billing = inject(BillingService);
 
   protected readonly plans = this.billing.plans;
+  protected readonly walletXaf = this.billing.walletXaf;
+  protected readonly offer = this.billing.offer;
+  protected readonly activePass = this.billing.activePass;
+  /** Seuls les abonnements payés ou offerts avant la bascule restent affichés, jusqu'à leur fin. */
+  protected readonly legacyPlans = computed(() => this.plans().filter((plan) => plan.state !== 'free'));
   protected readonly cancelling = signal<EnginePlanView | null>(null);
 
   private readonly payments = signal<PaymentView[]>([]);

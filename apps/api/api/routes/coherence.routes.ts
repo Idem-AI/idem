@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { authenticate } from '../services/auth.service';
 import { rateLimitByEndpoint } from '../middleware/rate-limit.middleware';
+import { requireQuota } from '../middleware/usage-quota.middleware';
 import {
   listCoherenceAlertsController,
   runCoherenceCheckController,
@@ -40,10 +41,11 @@ coherenceRoutes.get('/coherence/:projectId', authenticate, listCoherenceAlertsCo
 coherenceRoutes.post(
   '/coherence/:projectId/check',
   authenticate,
-  // Cette route appelle le LLM avec skipQuotaCheck (audit système, pas de coût
-  // pour le quota utilisateur) — sans limite dédiée, un appel répété martelé
-  // devient un vecteur d'appels modèle gratuits illimités pour la plateforme.
+  // Audit gratuit pour l'utilisateur : sans limite dédiée, un appel répété
+  // martelé devient un vecteur d'appels modèle gratuits pour la plateforme.
+  // Le quota « Aides IA » le borne aussi par jour, semaine et mois.
   rateLimitByEndpoint('coherence-check', { windowMs: 60_000, maxRequests: 5 }),
+  requireQuota('assist', { envelope: 'coherence' }),
   runCoherenceCheckController
 );
 

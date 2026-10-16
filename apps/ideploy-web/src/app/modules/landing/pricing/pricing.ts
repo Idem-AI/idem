@@ -32,9 +32,8 @@ interface OverageRow {
 /**
  * Public iDeploy pricing page. Same `.lp` marketing palette, nav and footer as
  * the landing, so following "Pricing" out of the header does not land on a
- * differently designed site. Prices follow the IDEM economic model: generous
- * free entry, FCFA plans, pay-per-deployment, managed services à la carte and
- * transparent overages.
+ * differently designed site. Prices follow the IDEM economic model: one meter
+ * per application, paid by the day from the IDEM wallet, daily options, no subscription.
  */
 @Component({
   selector: 'app-pricing',
@@ -70,26 +69,26 @@ interface OverageRow {
                   {{ 'pricing.mostPopular' | translate }}
                 </div>
               }
-              <h2 class="mb-3 text-lg font-black">{{ plan.name }}</h2>
+              <h2 class="mb-3 text-lg font-black">{{ plan.name | translate }}</h2>
               <div class="flex items-baseline gap-1">
                 <span class="text-3xl font-black">{{ plan.price }}</span>
-                <span class="text-sm text-text-secondary font-medium leading-relaxed">{{ 'pricing.perMonth' | translate }}</span>
+                <span class="text-sm text-text-secondary font-medium leading-relaxed">{{ 'pricing.perDay' | translate }}</span>
               </div>
               @if (plan.usd) {
-                <div class="font-mono text-xs text-text-tertiary mt-1 mb-4">{{ plan.usd }}</div>
+                <div class="font-mono text-xs text-text-tertiary mt-1 mb-4">{{ plan.usd | translate }}</div>
               }
-              <p class="text-sm text-text-secondary font-medium leading-relaxed mb-6">{{ plan.tagline }}</p>
+              <p class="text-sm text-text-secondary font-medium leading-relaxed mb-6">{{ plan.tagline | translate }}</p>
               <ul class="mb-7 flex grow flex-col gap-2.5">
                 @for (feature of plan.features; track feature) {
                   <li class="flex items-start gap-2.5 text-sm font-semibold">
                     <i
                       class="pi pi-check mt-1 text-[10px] text-primary-500 dark:text-primary-400"
                       aria-hidden="true"></i>
-                    <span>{{ feature }}</span>
+                    <span>{{ feature | translate }}</span>
                   </li>
                 }
               </ul>
-              <a [href]="loginUrl" class="w-full py-3 text-center text-sm" [class.inner-button]="plan.popular" [class.outer-button]="!plan.popular">{{ plan.cta }}</a>
+              <a [href]="loginUrl" class="w-full py-3 text-center text-sm" [class.inner-button]="plan.popular" [class.outer-button]="!plan.popular">{{ plan.cta | translate }}</a>
             </div>
           }
         </div>
@@ -129,10 +128,10 @@ interface OverageRow {
             @for (svc of managedServices; track svc.name) {
               <div class="glass-card p-6">
                 <div class="mb-2 text-xl font-black text-primary-500 dark:text-primary-400">
-                  {{ svc.price }}<span class="text-sm font-semibold text-text-secondary">{{ 'pricing.perMonth' | translate }}</span>
+                  {{ svc.price }}<span class="text-sm font-semibold text-text-secondary">{{ 'pricing.perDay' | translate }}</span>
                 </div>
-                <div class="text-[1rem] font-bold mb-1">{{ svc.name }}</div>
-                <div class="text-sm text-text-secondary font-medium leading-relaxed">{{ svc.note }}</div>
+                <div class="text-[1rem] font-bold mb-1">{{ svc.name | translate }}</div>
+                <div class="text-sm text-text-secondary font-medium leading-relaxed">{{ svc.note | translate }}</div>
               </div>
             }
           </div>
@@ -163,10 +162,10 @@ interface OverageRow {
                 <tbody>
                   @for (row of overages; track row.resource) {
                     <tr style="border-bottom: 1px solid var(--glass-border-subtle); background: var(--glass-bg-subtle);">
-                      <td class="p-4 font-semibold">{{ row.resource }}</td>
-                      <td class="p-4 text-center font-bold text-primary-500 dark:text-primary-400">{{ row.ideploy }}</td>
-                      <td class="p-4 text-center text-text-tertiary">{{ row.vercel }}</td>
-                      <td class="p-4 text-center text-text-tertiary">{{ row.railway }}</td>
+                      <td class="p-4 font-semibold">{{ row.resource | translate }}</td>
+                      <td class="p-4 text-center font-bold text-primary-500 dark:text-primary-400">{{ row.ideploy | translate }}</td>
+                      <td class="p-4 text-center text-text-tertiary">{{ row.vercel | translate }}</td>
+                      <td class="p-4 text-center text-text-tertiary">{{ row.railway | translate }}</td>
                     </tr>
                   }
                 </tbody>
@@ -231,95 +230,37 @@ export class PricingComponent implements OnInit {
 
   protected readonly byosFeatures = ['pricing.byosFeature1', 'pricing.byosFeature2', 'pricing.byosFeature3'];
 
-  protected readonly plans: Plan[] = [
-    {
-      name: 'Hobby',
-      price: '0 F',
-      usd: 'free forever',
-      tagline: 'Put your first app in production for free — commercial use allowed.',
-      features: [
-        '2 apps (sleep after 30 min idle), 512 MB each',
-        '5 free deployments, then 100 F each',
-        '50 GB outbound traffic/month',
-        'Free yourapp.idem.africa domain',
-        '1 free custom domain + auto SSL',
-        '1 dev database (1 GB)',
-        'Basic monitoring, 1 h log retention',
-        '1 BYOS server',
-      ],
-      cta: 'Start for free',
-    },
-    {
-      name: 'Deploy Starter',
-      price: '2 999 F',
-      usd: '~$5.2/month',
-      tagline: 'Your apps stay awake, your data stays safe.',
-      features: [
-        '3 always-active apps (512 MB each)',
-        'Unlimited deployments',
-        '100 GB outbound traffic/month',
-        '3 free custom domains + SSL',
-        '1 persistent database (2 GB)',
-        'Weekly automatic backups',
-        'Standard monitoring, 7-day logs',
-        '2 BYOS servers',
-      ],
-      popular: true,
-      cta: 'Get started',
-    },
-    {
-      name: 'Deploy Pro',
-      price: '9 999 F',
-      usd: '~$17/month',
-      tagline: 'For products in real growth.',
-      features: [
-        '10 apps, 8 GB shared RAM pool',
-        '500 GB outbound traffic/month',
-        '5 databases (10 GB total)',
-        'Daily automatic backups',
-        'Full monitoring + alerts, 30-day logs',
-        '10 custom domains, advanced firewall',
-        '3 team members, 5 BYOS servers',
-        'HA + autoscaling available as add-on',
-      ],
-      cta: 'Go Pro',
-    },
-    {
-      name: 'Deploy Scale',
-      price: '24 999 F',
-      usd: '~$43/month',
-      tagline: 'High availability for serious workloads.',
-      features: [
-        '25 apps, 24 GB RAM pool',
-        '2 TB outbound traffic/month',
-        'Unlimited databases (50 GB total)',
-        'Daily backups + external S3',
-        'High availability (Docker Swarm) + autoscaling included',
-        '99.9% SLA, 90-day logs',
-        'Wildcard domains, custom firewall rules',
-        '10 team members, unlimited BYOS servers',
-      ],
-      cta: 'Scale up',
-    },
-  ];
+  /**
+   * Une application = un compteur, payé au jour depuis le portefeuille IDEM (`offer.model.ts`
+   * côté API). Les textes sont traduits ; les montants sont ceux que l'API débite.
+   */
+  protected readonly plans: Plan[] = (['veille', 'vitrine', 'application', 'application_plus'] as const).map((tier) => ({
+    name: `pricing.meters.${tier}.name`,
+    price: { veille: '0 F', vitrine: '10 F', application: '50 F', application_plus: '150 F' }[tier],
+    usd: `pricing.meters.${tier}.monthly`,
+    tagline: `pricing.meters.${tier}.tagline`,
+    features: [1, 2, 3, 4].map((n) => `pricing.meters.${tier}.f${n}`),
+    popular: tier === 'vitrine',
+    cta: tier === 'veille' ? 'pricing.getStartedFree' : 'pricing.meters.choose',
+  }));
 
+  /** Options à la journée, sur n'importe quel compteur payant. */
   protected readonly managedServices: ManagedService[] = [
-    { name: 'Advanced firewall / managed WAF', price: '1 499 F', note: 'Custom rules, geo-blocking' },
-    { name: 'Autoscaling', price: '1 999 F', note: 'Automatic scale-up with Docker Swarm' },
-    { name: 'Daily backups + 1-click restore', price: '999 F', note: 'Sleep well at night' },
-    { name: 'Advanced monitoring + alerts', price: '999 F', note: 'CPU/RAM/disk — e-mail & WhatsApp' },
-    { name: 'Extra managed database', price: '999 F', note: '2 GB, backups included' },
-    { name: 'Extended log retention', price: '499 F', note: '90 days of logs' },
-    { name: 'Dedicated static IP', price: '1 999 F', note: 'Vercel charges 57 500 F for this' },
-    { name: 'Sovereign local hosting', price: '1 999 F', note: 'Data center in your country (roadmap)' },
+    { name: 'pricing.options.waf', price: '50 F', note: 'pricing.options.wafNote' },
+    { name: 'pricing.options.autoscaling', price: '70 F', note: 'pricing.options.autoscalingNote' },
+    { name: 'pricing.options.backups', price: '35 F', note: 'pricing.options.backupsNote' },
+    { name: 'pricing.options.monitoring', price: '35 F', note: 'pricing.options.monitoringNote' },
+    { name: 'pricing.options.database', price: '35 F', note: 'pricing.options.databaseNote' },
+    { name: 'pricing.options.logs', price: '15 F', note: 'pricing.options.logsNote' },
+    { name: 'pricing.options.staticIp', price: '70 F', note: 'pricing.options.staticIpNote' },
+    { name: 'pricing.options.sovereign', price: '70 F', note: 'pricing.options.sovereignNote' },
   ];
 
   protected readonly overages: OverageRow[] = [
-    { resource: 'Outbound traffic', ideploy: '25 F/GB', vercel: '86 F/GB', railway: '29 F/GB' },
-    { resource: 'Extra RAM', ideploy: '1 500 F/GB/mo', vercel: '—', railway: '5 750 F/GB/mo' },
-    { resource: 'Extra app (512 MB)', ideploy: '1 500 F/mo', vercel: '—', railway: '~2 900 F/mo' },
-    { resource: 'Disk storage', ideploy: '150 F/GB/mo', vercel: '—', railway: '86 F/GB/mo' },
-    { resource: 'Extra deployment', ideploy: '100 F', vercel: 'n/a', railway: 'n/a' },
+    { resource: 'pricing.compare.showcase', ideploy: '300 F/mo', vercel: '11 500 F/mo', railway: '2 900 F/mo' },
+    { resource: 'pricing.compare.app', ideploy: '1 500 F/mo', vercel: '11 500 F/mo', railway: '~2 900 F/mo' },
+    { resource: 'pricing.compare.deployments', ideploy: 'pricing.compare.unlimited', vercel: 'pricing.compare.unlimited', railway: 'pricing.compare.unlimited' },
+    { resource: 'pricing.compare.domain', ideploy: '6 500 F/yr', vercel: '~11 500 F/yr', railway: '—' },
   ];
 
   ngOnInit(): void {

@@ -19,7 +19,10 @@ import { Response, Router } from 'express';
 import logger from '../config/logger';
 import { CustomRequest } from '../interfaces/express.interface';
 import { authenticate } from '../services/auth.service';
-import { chargeForService, creditCost } from '../middleware/billing.middleware';
+import { chargeForService } from '../middleware/billing.middleware';
+import { walletService } from '../services/billing/wallet.service';
+import { sendQuotaRefusal } from '../middleware/usage-quota.middleware';
+import { usageQuotaService } from '../services/billing/usage-quota.service';
 import { creditLedgerService } from '../services/billing/credit-ledger.service';
 import { entitlementsService } from '../services/billing/entitlements.service';
 import { generateImage, generateVideo } from '../services/media.service';
@@ -59,23 +62,32 @@ async function charge(req: CustomRequest, res: Response, action: 'site_image' | 
   const result = await chargeForService(
     userId,
     'appgen',
-    { action, cost: creditCost('appgen', action) },
+    // Le prix est celui de la table d'IDEM (une modification par image, 1 000 F par clip).
+    { action, cost: 0 },
     { projectId: text(req.body?.projectId, 128) || undefined, feature: 'appgen', element: text(req.body?.tag, 64) || undefined }
   );
   if (result.status === 'refused') {
     res.status(402).json(result.body);
     return null;
   }
+  if (result.status === 'quota_exceeded') {
+    sendQuotaRefusal(res, result.body);
+    return null;
+  }
   return result;
 }
 
 async function refund(userId: string, charged: Charge, action: string): Promise<void> {
-  if (charged.status !== 'charged') return;
+  // La place dans le quota est rendue même quand rien n'a été débité (mode observation).
+  if (charged.status === 'charged' || charged.status === 'free') await usageQuotaService.release(charged.reservation);
   try {
-    await creditLedgerService.refundDebit(userId, 'appgen', charged.cost, {
-      action,
-      note: 'Média de site non généré — crédits restitués',
-    });
+    if (charged.status === 'free' && charged.units) {
+      await creditLedgerService.refundDebit(userId, 'appgen', charged.units, { action, note: 'Média de site non généré — modification restituée' });
+    } else if (charged.status === 'charged') {
+      await walletService.refund(userId, charged.cost, { action, note: 'Média de site non généré — montant restitué' });
+    } else {
+      return;
+    }
     await entitlementsService.invalidate(userId);
   } catch (error) {
     logger.error('appgen_media.refund_failed', { event: 'appgen_media.refund_failed', userId, action, error });

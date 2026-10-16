@@ -10,7 +10,6 @@ import {
   EnvironmentVariable,
 } from '../models/deployment.model';
 import { PromptService } from '../services/prompt.service';
-import { userService } from '../services/user.service';
 
 const deploymentService = new DeploymentService(new PromptService());
 
@@ -483,7 +482,6 @@ export const generateDeploymentController = async (
     } else {
       message = `New deployment created successfully with tfvars generated`;
     }
-    userService.incrementUsage(userId, 5);
 
     res.status(201).json({
       success: true,
@@ -632,7 +630,6 @@ export const ExecuteDeploymentStreamingController = async (
     logger.info(
       `Deployment execution completed - UserId: ${userId}, DeploymentId: ${deploymentId}`
     );
-    userService.incrementUsage(userId, 5);
 
     // Envoyer un événement de fin de succès
     res.write(

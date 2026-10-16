@@ -32,7 +32,7 @@ export function runtimeCall(ctx: { userId?: string; projectId?: string; element?
         promptType: feature.promptType,
         validate: validate ? (text) => ({ ok: validate(text), reason: 'réponse illisible ou hors menu' }) : undefined,
       },
-      { messages: [{ role: 'user', content: user }], userId: ctx.userId, projectId: ctx.projectId, element: ctx.element, language: ctx.language, budget: ctx.budget, skipQuotaCheck: true }
+      { messages: [{ role: 'user', content: user }], userId: ctx.userId, projectId: ctx.projectId, element: ctx.element, language: ctx.language, budget: ctx.budget }
     );
     return res.text;
   };

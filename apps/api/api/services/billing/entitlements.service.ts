@@ -1,3 +1,4 @@
+import { BillingPurchase } from '../../schemas/billing.schema';
 import logger from '../../config/logger';
 import RedisConnection from '../../config/redis.config';
 import { BILLING_ENGINES, BillingEngine } from '../../models/billing.model';
@@ -9,7 +10,10 @@ import {
   limitsForPlan,
 } from '../../models/plan-limits.model';
 import { billingService } from '../billing.service';
+import { CreditLedgerEntry } from '../../schemas/billing.schema';
 import { creditLedgerService } from './credit-ledger.service';
+import { ActivePasses, passService } from './pass.service';
+import { walletService } from './wallet.service';
 
 /**
  * Ce à quoi un utilisateur a droit, à l'instant présent.
@@ -56,6 +60,27 @@ export interface Entitlements {
   /** Passes à durée limitée encore valides, par moteur. */
   activePasses: { productCode: string; engine: BillingEngine | null; expiresAt?: Date }[];
   beta: { active: boolean; endsAt?: Date | null };
+  /**
+   * Le modèle « Créer, Garder, Faire tourner » : portefeuille en francs, forfaits du mois et
+   * droits prépayés. Les champs historiques ci-dessus restent pour les écrans et services qui
+   * ne sont pas encore passés au portefeuille.
+   */
+  offer: {
+    walletXaf: number;
+    passes: ActivePasses;
+    /** Modifications iCode incluses restantes. */
+    modifications: number;
+    /** Pass Projet iCode prépayés, à appliquer à un projet. */
+    projectPassVouchers: number;
+    /** Jours de site vitrine prépayés. */
+    vitrineDays: number;
+    /** Forfait Croissance actif (ou Entreprise, ou bêta) : communication et retouches incluses. */
+    croissance: boolean;
+    /** iVision Créateur actif (ou Entreprise, ou bêta). */
+    createur: boolean;
+    /** A acheté quelque chose dans les 30 derniers jours (palier des quotas). */
+    recentBuyer: boolean;
+  };
   resolvedAt: string;
 }
 
@@ -78,10 +103,15 @@ export class EntitlementsService {
    * paiement n'a servi à rien.
    */
   async compute(userId: string): Promise<Entitlements> {
-    const [subscriptions, balances, passes] = await Promise.all([
+    const [subscriptions, balances, passes, walletXaf, offerPasses, projectPassVouchers, vitrineDays, recentBuyer] = await Promise.all([
       billingService.getActiveSubscriptions(userId),
       creditLedgerService.getAllBalances(userId),
       billingService.getActivePasses(userId),
+      walletService.balance(userId),
+      passService.active(userId),
+      creditLedgerService.getBalance(userId, 'icode_pass'),
+      creditLedgerService.getBalance(userId, 'vitrine_days'),
+      this.boughtRecently(userId),
     ]);
 
     const byEngine = new Map(subscriptions.map((subscription) => [subscription.engine, subscription]));
@@ -131,8 +161,33 @@ export class EntitlementsService {
         active: Boolean(betaSubscription),
         endsAt: betaSubscription?.currentPeriodEnd ?? null,
       },
+      offer: {
+        walletXaf,
+        passes: offerPasses,
+        modifications: balances.appgen ?? 0,
+        projectPassVouchers,
+        vitrineDays,
+        croissance: Boolean(offerPasses.croissance || offerPasses.entreprise || betaSubscription || this.legacyPlan(engines.business)),
+        createur: Boolean(offerPasses.createur || offerPasses.entreprise || betaSubscription),
+        recentBuyer,
+      },
       resolvedAt: new Date().toISOString(),
     };
+  }
+
+  /**
+   * Un abonnement payant de l'ancien modèle reste honoré jusqu'à sa fin : il vaut un forfait
+   * Croissance (communication et retouches incluses).
+   */
+  private legacyPlan(entitlement: EngineEntitlement): boolean {
+    return entitlement.status !== 'free' && !entitlement.complimentary && entitlement.productCode !== FREE_PLAN_CODES[entitlement.engine];
+  }
+
+  /** Un achat (forfait, livrable, pack, recharge) dans les 30 derniers jours ? */
+  private async boughtRecently(userId: string): Promise<boolean> {
+    const since = new Date(Date.now() - 30 * 86_400_000);
+    const spend = await CreditLedgerEntry.exists({ userId, engine: 'wallet', delta: { $lt: 0 }, createdAt: { $gte: since } });
+    return Boolean(spend);
   }
 
   /**
@@ -156,7 +211,10 @@ export class EntitlementsService {
     const entitlements = await this.resolve(userId);
 
     if (entitlements.appgen.projectPassIncluded) return true;
-    return entitlements.unlockedProjects.includes(projectId);
+    if (entitlements.unlockedProjects.includes(projectId)) return true;
+    // Les Pass Projet sont des achats sans échéance : `unlockedProjects` (lu sur les passes à durée)
+    // ne les voyait pas. On les cherche directement.
+    return Boolean(await BillingPurchase.exists({ userId, projectId, kind: 'project_pass' }));
   }
 
   /** Solde d'un moteur, lu depuis les droits (donc mis en cache). */
@@ -187,6 +245,14 @@ export class EntitlementsService {
         if (entitlement?.graceEndsAt) {
           entitlement.graceEndsAt = new Date(entitlement.graceEndsAt);
         }
+      }
+
+      // Même reconstruction pour la fin des forfaits ; un cache d'avant la bascule (sans `offer`)
+      // est ignoré, pour être recalculé.
+      if (!parsed.offer) return null;
+      for (const code of Object.keys(parsed.offer.passes ?? {}) as (keyof ActivePasses)[]) {
+        const until = parsed.offer.passes[code];
+        if (until) parsed.offer.passes[code] = new Date(until);
       }
 
       return parsed;

@@ -28,14 +28,6 @@
         "resolution": "Maximum {{resolution}} resolution",
         "maxTokens": "Maximum {{count}} output tokens"
       },
-      "quota": {
-        "daily": "Daily Quota",
-        "weekly": "Weekly Quota",
-        "usedToday": "Used today: {{count}} requests",
-        "usedThisWeek": "Used this week: {{count}} requests",
-        "warning": "You're approaching your quota limit. Consider upgrading for unlimited access.",
-        "exceeded": "You've exceeded your quota limit. Please upgrade or wait for the next reset."
-      },
       "buttons": {
         "upgrade": "Upgrade to Premium",
         "settings": "Account Settings"

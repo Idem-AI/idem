@@ -13,9 +13,8 @@ import {
   aiEditLegalDocController,
 } from '../controllers/legalDocs.controller';
 import { authenticate } from '../services/auth.service';
-import { checkQuota } from '../middleware/quota.middleware';
 import { checkPolicyAcceptance } from '../middleware/policyCheck.middleware';
-import { firstThenRevision, requireCredits } from '../middleware/billing.middleware';
+import { firstThenRevision, requireCredits, requireOwnership } from '../middleware/billing.middleware';
 
 export const legalDocsRoutes = Router();
 const resourceName = 'legalDocs';
@@ -50,7 +49,6 @@ legalDocsRoutes.post(
   `/${resourceName}/generate/:projectId`,
   authenticate,
   checkPolicyAcceptance,
-  checkQuota,
   chargeLegalKit,
   generateLegalDocsStreamingController
 );
@@ -59,7 +57,6 @@ legalDocsRoutes.get(
   `/${resourceName}/generate/:projectId`,
   authenticate,
   checkPolicyAcceptance,
-  checkQuota,
   chargeLegalKit,
   generateLegalDocsStreamingController
 );
@@ -68,6 +65,7 @@ legalDocsRoutes.get(
 legalDocsRoutes.get(
   `/${resourceName}/:projectId/documents/:documentId/pdf`,
   authenticate,
+  requireOwnership('legal_kit'),
   pdfTimeout,
   generateLegalDocPdfController
 );
@@ -83,7 +81,6 @@ legalDocsRoutes.put(
 legalDocsRoutes.post(
   `/${resourceName}/:projectId/documents/:documentId/ai-edit`,
   authenticate,
-  checkQuota,
   requireCredits('business', 'revision'),
   aiEditLegalDocController
 );

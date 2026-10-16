@@ -126,12 +126,20 @@ export const idem = {
   },
   billing: {
     /** Débite (mêmes règles que les routes d'IDEM : mode d'application, 402 si le solde manque). */
-    charge: (p: { userId: string; action: string; cost: number; note?: string; element?: string; projectId?: string }) =>
-      call<{ charged: boolean; cost: number; balance?: number; ledgerEntryId?: string; reason?: string }>('post', '/billing/charge', p),
-    refund: (p: { userId: string; cost: number; action: string; note: string }) => call<{ ok: boolean }>('post', '/billing/refund', p),
-    balance: (userId: string) => call<{ credits: number; plan?: string; status?: string }>('get', `/billing/balance?userId=${encodeURIComponent(userId)}`),
-    /** Le barème d'IDEM (prix de référence de la vidéo, d'un visuel, d'une révision). */
-    prices: () => call<{ motion_video: number; revision: number; flyer: number; ai_visual: number; creativity: Record<string, number> }>('get', '/billing/prices', undefined, 10_000),
+    charge: (p: { userId: string; action: string; cost: number; note?: string; element?: string; projectId?: string; quantity?: number }) =>
+      call<{ charged: boolean; cost: number; balance?: number; ledgerEntryId?: string; reason?: string; quotaReserved?: boolean }>('post', '/billing/charge', p),
+    /** Restitue les crédits (`cost` > 0) et, avec `releaseQuota`, la place prise dans le quota d'usage. */
+    refund: (p: { userId: string; cost: number; action: string; note: string; releaseQuota?: boolean }) => call<{ ok: boolean }>('post', '/billing/refund', p),
+    /** Le portefeuille IDEM de l'utilisateur, en francs, et son forfait Créateur. */
+    balance: (userId: string) => call<{ credits: number; walletXaf?: number; createur?: boolean; plan?: string | null; status?: string }>('get', `/billing/balance?userId=${encodeURIComponent(userId)}`),
+    /** Les prix d'IDEM, en francs (vidéo de référence, export d'un visuel, plan filmé par l'IA…). */
+    prices: () =>
+      call<{ motion_video: number; revision: number; flyer: number; ai_visual: number; export_visual?: number; export_video?: number; ai_clip?: number; createur?: { monthlyXaf: number; annualXaf: number }; creativity: Record<string, number> }>(
+        'get',
+        '/billing/prices',
+        undefined,
+        10_000
+      ),
   },
   projects: {
     list: (userId: string) => call<{ projects: { id: string; name: string; hasBrand: boolean; primary?: string; updatedAt?: string }[] }>('get', `/projects?userId=${encodeURIComponent(userId)}`),

@@ -32,7 +32,13 @@ const PRICING: Record<string, ModelPricing> = Object.fromEntries(
     (model) => model.pricing?.input !== undefined && model.pricing?.output !== undefined
   ).map((model) => [
     model.id,
-    { input: model.pricing!.input as number, output: model.pricing!.output as number },
+    {
+      input: model.pricing!.input as number,
+      output: model.pricing!.output as number,
+      // Le tarif « lu depuis le cache » d'OpenRouter : sans lui, un appel servi
+      // en grande partie par le cache serait compté au plein tarif.
+      ...(model.pricing!.cachedInput !== undefined ? { cachedInput: model.pricing!.cachedInput } : {}),
+    },
   ])
 );
 

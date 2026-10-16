@@ -29,13 +29,13 @@ export class OfferEcosystemComponent {
         {
           name: 'IDEM Business',
           descriptor: $localize`:@@offer.business.desc:Brand, business plan, OHADA legal`,
-          price: $localize`:@@offer.business.price:Packs from 1,999 F`,
+          price: $localize`:@@offer.business.price:Free drafts · Kit 2,500 F`,
           link: '/pricing',
         },
         {
           name: 'IDEM Media',
           descriptor: $localize`:@@offer.media.desc:Social networks on autopilot`,
-          price: $localize`:@@offer.media.price:1,999–4,999 F/mo`,
+          price: $localize`:@@offer.media.price:From 100 F · capped at 3,000 F/mo`,
           link: '/pricing',
         },
       ],
@@ -46,13 +46,13 @@ export class OfferEcosystemComponent {
         {
           name: 'iCode',
           descriptor: $localize`:@@offer.code.desc:AI-generated web apps`,
-          price: $localize`:@@offer.code.price:Free · Pass 999 F`,
+          price: $localize`:@@offer.code.price:Free · Pass 1,000 F`,
           link: '/idev',
         },
         {
           name: 'iDeploy',
           descriptor: $localize`:@@offer.ideploy.desc:Sovereign hosting, free domain`,
-          price: $localize`:@@offer.ideploy.price:5 deployments free`,
+          price: $localize`:@@offer.ideploy.price:Standby free · from 10 F/day`,
           link: '/ideploy',
         },
       ],
@@ -69,7 +69,7 @@ export class OfferEcosystemComponent {
         {
           name: 'IDEM for Partners',
           descriptor: $localize`:@@offer.partners.desc:Incubators, accelerators, campuses`,
-          price: $localize`:@@offer.partners.price:from 20,000 F/founder`,
+          price: $localize`:@@offer.partners.price:from 3,000 F/founder`,
           link: '/contact',
         },
         {

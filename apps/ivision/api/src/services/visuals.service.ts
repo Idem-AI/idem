@@ -241,5 +241,10 @@ export async function retouchVisual(
 }
 
 export function visualView(v: IvisionVisual) {
-  return { id: v._id, brandId: v.brandId, sessionId: v.sessionId, prompt: v.prompt, format: v.format, imageUrl: v.imageUrl, layout: v.layout, creativity: v.creativity, referenceId: v.referenceId, score: v.audit?.score, createdAt: v.createdAt };
+  return { id: v._id, brandId: v.brandId, sessionId: v.sessionId, prompt: v.prompt, format: v.format, imageUrl: v.imageUrl, layout: v.layout, creativity: v.creativity, referenceId: v.referenceId, score: v.audit?.score, exported: Boolean(v.exportedAt), createdAt: v.createdAt };
+}
+
+/** L'export HD sans signature est réglé : le fichier sortira propre, sans repayer. */
+export async function markExported(userId: string, id: string): Promise<void> {
+  await visuals().updateOne({ _id: id, userId, exportedAt: { $exists: false } }, { $set: { exportedAt: new Date().toISOString() } });
 }

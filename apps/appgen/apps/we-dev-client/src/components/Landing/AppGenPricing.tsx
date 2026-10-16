@@ -109,7 +109,7 @@ export function AppGenPricing({ onGetStarted }: AppGenPricingProps) {
                     {t(`landing.pricing.plans.${key}.price`)}
                   </span>
                   <span className="text-sm text-text-tertiary">
-                    {t('landing.pricing.perMonth')}
+                    {t(`landing.pricing.plans.${key}.period`)}
                   </span>
                 </p>
                 <p className="text-xs text-text-disabled">
@@ -170,7 +170,7 @@ export function AppGenPricing({ onGetStarted }: AppGenPricingProps) {
             <div className="mt-5 grid grid-cols-2 sm:grid-cols-4 gap-3">
               {recharges.map((recharge) => (
                 <div
-                  key={recharge.name}
+                  key={recharge.price}
                   className="rounded-xl bg-surface-2 p-4 text-center"
                 >
                   <p className="text-xs text-text-tertiary">{recharge.name}</p>

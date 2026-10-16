@@ -2,7 +2,6 @@ import { Response } from 'express';
 import { CustomRequest } from '../interfaces/express.interface';
 import { PromptService } from '../services/prompt.service';
 import { OnboardingAIService } from '../services/Onboarding/onboarding-ai.service';
-import { userService } from '../services/user.service';
 import logger from '../config/logger';
 
 const promptService = new PromptService();
@@ -33,7 +32,6 @@ export const generateOnboardingQuestionsController = async (
       language,
       knownAnswers,
     });
-    userService.incrementUsage(userId, 1);
     res.status(200).json({ questions });
   } catch (error: any) {
     logger.error(`generateOnboardingQuestionsController error: ${error.message}`, {
@@ -68,7 +66,6 @@ export const parseOnboardingAnswerController = async (
       options,
       language,
     });
-    userService.incrementUsage(userId, 1);
     res.status(200).json(result);
   } catch (error: any) {
     logger.error(`parseOnboardingAnswerController error: ${error.message}`, {

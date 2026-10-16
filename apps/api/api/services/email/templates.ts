@@ -484,3 +484,91 @@ export function welcomeCredit(params: WelcomeCreditParams): RenderedEmail {
 function greetingText(firstName?: string): string {
   return firstName ? `Bonjour ${firstName},` : 'Bonjour,';
 }
+
+// ============================================
+// COMPTEURS iDEPLOY
+// ============================================
+
+export interface MeterLowBalanceParams {
+  firstName?: string;
+  appName: string;
+  /** Prix du compteur par jour. */
+  perDayXaf: number;
+  walletXaf: number;
+  daysLeft: number;
+  topupUrl: string;
+}
+
+/** Le portefeuille ne couvre plus que quelques jours de compteur. */
+export function meterLowBalance(params: MeterLowBalanceParams): RenderedEmail {
+  const body = [
+    paragraph(greeting(params.firstName)),
+    paragraph(
+      `Votre portefeuille IDEM couvre encore <strong>${params.daysLeft} jour${params.daysLeft > 1 ? 's' : ''}</strong> de fonctionnement pour <strong>${escapeHtml(params.appName)}</strong>.`
+    ),
+    panel('Compteur', [
+      { label: 'Application', value: escapeHtml(params.appName) },
+      { label: 'Prix par jour', value: formatXaf(params.perDayXaf) },
+      { label: 'Solde du portefeuille', value: formatXaf(params.walletXaf) },
+    ]),
+    // Ce qui se passe à zéro, dit tout de suite : une application endormie n'est pas perdue.
+    paragraph('Si le solde s’épuise, l’application s’endort : rien n’est supprimé, et elle se réveille dès la recharge.'),
+  ].join('');
+
+  return {
+    subject: `${params.appName} : encore ${params.daysLeft} jour${params.daysLeft > 1 ? 's' : ''} de compteur`,
+    html: renderEmail({
+      title: 'Votre compteur arrive au bout',
+      subtitle: `${params.appName} — ${formatXaf(params.perDayXaf)} par jour`,
+      preheader: `Solde : ${formatXaf(params.walletXaf)} · rechargez en mobile money.`,
+      body,
+      cta: { label: 'Recharger mon portefeuille', url: params.topupUrl },
+    }),
+    text: toPlainText(
+      'Votre compteur arrive au bout',
+      [
+        greetingText(params.firstName),
+        `Votre portefeuille couvre encore ${params.daysLeft} jour(s) de fonctionnement pour ${params.appName} (${formatXaf(params.perDayXaf)} par jour).`,
+        'Si le solde s’épuise, l’application s’endort : rien n’est supprimé, et elle se réveille dès la recharge.',
+      ],
+      { label: 'Recharger', url: params.topupUrl }
+    ),
+  };
+}
+
+export interface MeterAsleepParams {
+  firstName?: string;
+  appName: string;
+  /** `balance` : solde épuisé ; `trial` : fin des 7 jours offerts en veille. */
+  reason: 'balance' | 'trial';
+  wakeUrl: string;
+}
+
+/** Une application vient de s'endormir. */
+export function meterAsleep(params: MeterAsleepParams): RenderedEmail {
+  const why =
+    params.reason === 'trial'
+      ? 'Les 7 jours offerts après sa mise en ligne sont terminés.'
+      : 'Le solde de votre portefeuille ne couvrait plus son compteur.';
+  const body = [
+    paragraph(greeting(params.firstName)),
+    paragraph(`<strong>${escapeHtml(params.appName)}</strong> s’est endormie. ${why}`),
+    paragraph('Rien n’est supprimé : son code et ses données restent en place pendant 30 jours. Choisissez un compteur (à partir de 10 F par jour) pour la réveiller.'),
+  ].join('');
+
+  return {
+    subject: `${params.appName} s’est endormie`,
+    html: renderEmail({
+      title: 'Votre application dort',
+      subtitle: params.appName,
+      preheader: 'Rien n’est supprimé : elle se réveille en un geste.',
+      body,
+      cta: { label: 'Réveiller mon application', url: params.wakeUrl },
+    }),
+    text: toPlainText(
+      'Votre application dort',
+      [greetingText(params.firstName), `${params.appName} s’est endormie. ${why}`, 'Rien n’est supprimé pendant 30 jours.'],
+      { label: 'Réveiller', url: params.wakeUrl }
+    ),
+  };
+}

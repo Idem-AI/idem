@@ -26,7 +26,8 @@ import logger from '../config/logger';
 import { authenticate, AuthedRequest } from '../middleware/auth';
 import { asyncRoute, HttpError } from '../middleware/error';
 import { validate } from '../middleware/validate';
-import { charge, PaymentRequired, quote, refund } from '../services/billing';
+import { charge, exportVisualPrice, PaymentRequired, quote, refund } from '../services/billing';
+import { signImage } from '../services/signature';
 import * as brands from '../services/brands.service';
 import * as chat from '../services/chat.service';
 import { idem } from '../services/idem.client';
@@ -96,7 +97,15 @@ v1.get(
   '/me',
   asyncRoute<AuthedRequest>(async (req, res) => {
     const balance = await idem.billing.balance(uid(req)).catch(() => null);
-    res.json({ user: req.user, credits: balance?.credits ?? null, plan: balance?.plan ?? null });
+    res.json({
+      user: req.user,
+      // Le portefeuille IDEM, en francs (`credits` : nom historique lu par les anciens écrans).
+      credits: balance?.walletXaf ?? balance?.credits ?? null,
+      walletXaf: balance?.walletXaf ?? balance?.credits ?? null,
+      createur: balance?.createur ?? false,
+      plan: balance?.plan ?? null,
+      exportVisualXaf: exportVisualPrice(),
+    });
   })
 );
 
@@ -449,19 +458,19 @@ v1.post(
   })
 );
 
-/** Export MP4 : le premier est inclus dans le prix de la vidéo, les suivants coûtent 10 %. */
+/** Export MP4 HD sans signature : le premier règle le périmètre, les suivants coûtent 10 %. */
 v1.post(
   '/brands/:brandId/videos/:videoId/export',
   asyncRoute<AuthedRequest>(async (req, res: Response) => {
     const video = await videoOr404(req);
     const { cost } = motionVideos.quoteExport(video, req.body?.scope);
-    const action = video.exportCount === 0 ? 'motion_video' : 'motion_video_rerender';
+    const action = 'export_video';
     let paid;
     try {
       paid = await charge(uid(req), { action, cost }, video.id);
     } catch (error) {
       if (error instanceof PaymentRequired) {
-        res.status(402).json(error.body);
+        res.status(error.status).json(error.body);
         return;
       }
       throw error;
@@ -507,13 +516,13 @@ v1.post(
       res.status(202).json({ ready: false, format, progress: plan.progress });
       return;
     }
-    const action = video.exportCount === 0 ? 'motion_video' : 'motion_video_rerender';
+    const action = 'export_video';
     let paid;
     try {
       paid = await charge(uid(req), { action, cost: plan.cost }, video.id);
     } catch (error) {
       if (error instanceof PaymentRequired) {
-        res.status(402).json(error.body);
+        res.status(error.status).json(error.body);
         return;
       }
       throw error;
@@ -558,7 +567,9 @@ v1.post(
   validate({ body: z.object({ durationSec: z.number().min(0).max(3600), creativity: z.string().optional() }) }),
   asyncRoute<AuthedRequest>(async (req, res) => {
     const level = (CREATIVITY_LEVELS as readonly string[]).includes(String(req.body.creativity)) ? req.body.creativity : 'medium';
-    res.json(montages.quote(req.body.durationSec, level));
+    // La création est gratuite ; le prix affiché est celui de l'export HD sans signature.
+    const q = montages.quote(req.body.durationSec, level);
+    res.json({ ...q, cost: 0, exportXaf: q.cost });
   })
 );
 
@@ -649,7 +660,7 @@ v1.post(
       paid = await charge(uid(req), q, `montage:${brand._id}`);
     } catch (error) {
       if (error instanceof PaymentRequired) {
-        res.status(402).json(error.body);
+        res.status(error.status).json(error.body);
         return;
       }
       throw error;
@@ -760,7 +771,7 @@ v1.post(
   })
 );
 
-/** Export MP4 : le premier est inclus, les suivants coûtent 10 % du montage. */
+/** Export MP4 HD sans signature : le premier règle la durée du montage, les suivants coûtent 10 %. */
 v1.post(
   '/montages/:id/export',
   asyncRoute<AuthedRequest>(async (req, res) => {
@@ -769,10 +780,10 @@ v1.post(
     let paid;
     if (cost > 0) {
       try {
-        paid = await charge(uid(req), { action: 'motion_video_rerender', cost }, found.montage.id);
+        paid = await charge(uid(req), { action: 'export_video', cost }, found.montage.id);
       } catch (error) {
         if (error instanceof PaymentRequired) {
-          res.status(402).json(error.body);
+          res.status(error.status).json(error.body);
           return;
         }
         throw error;
@@ -829,12 +840,56 @@ async function sendAttachment(res: Response, url: string, fileName: string, cont
   upstream.data.pipe(res);
 }
 
+/**
+ * Le fichier d'un visuel. Sans export payé, il porte la signature « Créé avec iVision » (la
+ * création est gratuite) ; après l'export HD (`POST /visuals/:id/export`), il sort propre.
+ */
 v1.get(
   '/visuals/:id/file',
   asyncRoute<AuthedRequest>(async (req, res) => {
     const v = await visuals.getVisual(uid(req), req.params.id);
     const ext = /\.png($|\?)/i.test(v.imageUrl) ? 'png' : 'jpg';
-    await sendAttachment(res, v.imageUrl, `ivision-${v.format}-${String(v._id).slice(-6)}.${ext}`, ext === 'png' ? 'image/png' : 'image/jpeg');
+    const name = `ivision-${v.format}-${String(v._id).slice(-6)}`;
+    if (v.exportedAt) {
+      await sendAttachment(res, v.imageUrl, `${name}.${ext}`, ext === 'png' ? 'image/png' : 'image/jpeg');
+      return;
+    }
+    if (!v.imageUrl.startsWith(publicUrl(''))) throw new HttpError(404, 'file_not_found', 'Fichier introuvable.');
+    const source = await axios.get<ArrayBuffer>(v.imageUrl, { responseType: 'arraybuffer', timeout: 60_000 });
+    const signed = await signImage(Buffer.from(source.data));
+    res.setHeader('Content-Type', 'image/png');
+    res.setHeader('Content-Disposition', `attachment; filename="${name}-signe.png"`);
+    res.setHeader('Cache-Control', 'private, max-age=300');
+    res.end(signed);
+  })
+);
+
+/** Export HD sans signature d'un visuel : payé une fois (inclus avec Créateur), puis le fichier sort propre. */
+v1.post(
+  '/visuals/:id/export',
+  asyncRoute<AuthedRequest>(async (req, res: Response) => {
+    const v = await visuals.getVisual(uid(req), req.params.id);
+    if (v.exportedAt) {
+      res.json({ exported: true, cost: 0 });
+      return;
+    }
+    let paid;
+    try {
+      paid = await charge(uid(req), { action: 'export_visual', cost: exportVisualPrice() }, String(v._id));
+    } catch (error) {
+      if (error instanceof PaymentRequired) {
+        res.status(error.status).json(error.body);
+        return;
+      }
+      throw error;
+    }
+    try {
+      await visuals.markExported(uid(req), String(v._id));
+      res.json({ exported: true, cost: paid.cost });
+    } catch (error) {
+      await refund(uid(req), paid, 'Export du visuel en échec — montant restitué');
+      throw error;
+    }
   })
 );
 

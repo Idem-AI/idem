@@ -27,6 +27,7 @@
     <app-incomplete-project-banner [project]="project()!" />
   } @else {
     <div class="max-w-5xl mx-auto space-y-8 pb-10">
+      <app-ownership-bar deliverable="legal_kit" [projectId]="projectId()" [canRegenerate]="true" (generateFinal)="generate()" />
       <!-- En-tête -->
       <header class="flex items-center gap-6">
         <div class="flex-1 min-w-0">

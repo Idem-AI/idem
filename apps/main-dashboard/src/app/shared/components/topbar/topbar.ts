@@ -177,7 +177,7 @@ import { ThemeToggleComponent } from '../theme-toggle/theme-toggle';
               [attr.aria-label]="'account.title' | translate"
             >
               <i
-                class="pi pi-bolt text-[11px]"
+                class="pi pi-wallet text-[11px]"
                 [class.text-warning]="summary.isLow"
                 [class.text-text-tertiary]="!summary.isLow"
                 aria-hidden="true"
@@ -187,9 +187,9 @@ import { ThemeToggleComponent } from '../theme-toggle/theme-toggle';
                 [class.text-warning]="summary.isLow"
                 [class.text-text-secondary]="!summary.isLow"
               >
-                <span class="sm:hidden">{{ summary.credits }}</span>
+                <span class="sm:hidden">{{ summary.credits | number: '1.0-0' }}</span>
                 <span class="hidden sm:inline">
-                  {{ 'account.creditsShort' | translate: { count: summary.credits } }}
+                  {{ 'account.creditsShort' | translate: { count: (summary.credits | number: '1.0-0') } }}
                 </span>
               </span>
 
@@ -329,20 +329,14 @@ export class TopbarComponent {
    * croire à un compte vide à chaque chargement de page.
    */
   protected readonly account = computed(() => {
-    const plans = this.billing.plans();
-    if (plans.length === 0) return null;
-
-    // iDeploy se facture à l'abonnement et aux ressources : ses crédits ne se
-    // dépensent pas en générant, les compter ici gonflerait le chiffre.
-    const credits = plans
-      .filter((plan) => plan.engine !== 'ideploy')
-      .reduce((total, plan) => total + plan.credits, 0);
+    // Le portefeuille en francs : la seule réserve qui se dépense en générant.
+    const credits = this.billing.walletXaf();
+    if (credits === null) return null;
 
     return {
       credits,
-      // Moins de vingt crédits : moins d'un livrable structurant. Alerter plus
-      // tôt banaliserait l'avertissement.
-      isLow: credits < 20,
+      // Moins de 300 F : moins d'une vidéo, d'un contenu de communication un peu riche.
+      isLow: credits < 300 && !this.billing.activePass() && !this.billing.betaActive(),
       needsAttention: this.billing.attention() !== null,
     };
   });

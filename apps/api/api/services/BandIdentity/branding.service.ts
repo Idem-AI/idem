@@ -2006,7 +2006,6 @@ export class BrandingService extends GenericService {
     project: ProjectModel,
     index: number,
     preferences: LogoPreferences | undefined,
-    skipQuotaCheck: boolean,
     model: string | undefined,
     creative?: { orchestrator: CreativeOrchestrator; sheet: string; directions: string[] | null; drafts: number }
   ): Promise<LogoModel> {
@@ -2015,10 +2014,10 @@ export class BrandingService extends GenericService {
       ? `${prompt}\n\n**CREATIVE DIRECTION FOR THIS PROPOSAL (follow it — the proposals must be clearly different from one another):** ${direction}`
       : prompt;
     const drafts = creative?.drafts ?? 1;
-    if (drafts <= 1) return this.generateRawLogoConcept(conceptPrompt, project, index, preferences, skipQuotaCheck, model);
+    if (drafts <= 1) return this.generateRawLogoConcept(conceptPrompt, project, index, preferences, model);
 
     const settled = await Promise.allSettled(
-      Array.from({ length: drafts }, () => this.generateRawLogoConcept(conceptPrompt, project, index, preferences, skipQuotaCheck, model))
+      Array.from({ length: drafts }, () => this.generateRawLogoConcept(conceptPrompt, project, index, preferences, model))
     );
     const done = settled.filter((r): r is PromiseFulfilledResult<LogoModel> => r.status === 'fulfilled').map((r) => r.value);
     if (!done.length) throw (settled[0] as PromiseRejectedResult).reason;
@@ -2109,7 +2108,6 @@ export class BrandingService extends GenericService {
     project: ProjectModel,
     conceptIndex: number,
     preferences?: LogoPreferences,
-    skipQuotaCheck = false,
     modelNameOverride?: string
   ): Promise<LogoModel> {
     logger.info(
@@ -2149,7 +2147,6 @@ export class BrandingService extends GenericService {
 
     const config = {
       ...BrandingService.LOGO_LLM_CONFIG,
-      skipQuotaCheck,
     };
     if (modelNameOverride) {
       config.modelName = modelNameOverride;
@@ -2727,7 +2724,6 @@ export class BrandingService extends GenericService {
     userId: string,
     projectId: string,
     forceRegenerate = false,
-    skipQuotaCheck = false,
     /** Cran de la jauge de créativité (logoCreative.ts) ; absent, Medium. */
     creativity?: CreativityLevel
   ): Promise<{
@@ -2774,7 +2770,6 @@ export class BrandingService extends GenericService {
     }
 
     const logosToGenerateCount = 3 - existingLogosCount;
-    const isRetry = existingLogosCount > 0 || skipQuotaCheck;
 
     logger.info(
       `Generating ${logosToGenerateCount} logo concepts in parallel for userId: ${userId}, projectId: ${projectId}, logoType: ${
@@ -2850,7 +2845,6 @@ export class BrandingService extends GenericService {
             project,
             index + existingLogosCount,
             preferences,
-            isRetry,
             currentModel,
             creative
           ),
@@ -3001,7 +2995,6 @@ export class BrandingService extends GenericService {
         temperature: 0.15,
         maxOutputTokens: 16000,
       },
-      skipQuotaCheck: true,
     });
     const parsed = sectionResults[0].parsedData;
 
@@ -3081,7 +3074,6 @@ export class BrandingService extends GenericService {
 
     const sectionResults = await this.processSteps(steps, project, {
       ...BrandingService.LOGO_LLM_CONFIG,
-      skipQuotaCheck: true,
     });
     const logoData = sectionResults[0].parsedData;
 
@@ -3167,7 +3159,6 @@ export class BrandingService extends GenericService {
     }
 
     const logosToGenerateCount = 3 - existingLogos.length;
-    const isRetry = existingLogos.length > 0;
 
     const generationKey = BrandingService.logoGenerationKey(userId, projectId);
     const cancelState = { cancelled: false };
@@ -3284,7 +3275,6 @@ export class BrandingService extends GenericService {
             project,
             index,
             preferences,
-            isRetry,
             currentModel,
             creative
           );
@@ -3374,8 +3364,7 @@ export class BrandingService extends GenericService {
     kind: LogoVariationKind,
     logoStructure: any,
     promptTemplate: string,
-    project: ProjectModel,
-    skipQuotaCheck = false
+    project: ProjectModel
   ): Promise<string | undefined> {
     const prompt = `Logo structure: ${JSON.stringify(logoStructure)}\n\n${promptTemplate}`;
 
@@ -3406,7 +3395,6 @@ export class BrandingService extends GenericService {
 
     const sectionResults = await this.processSteps(steps, project, {
       ...BrandingService.LOGO_LLM_CONFIG,
-      skipQuotaCheck,
     });
     const svg = sectionResults[0].parsedData;
     return typeof svg === 'string' ? svg : undefined;
@@ -3495,8 +3483,7 @@ export class BrandingService extends GenericService {
     userId: string,
     projectId: string,
     selectedLogo: LogoModel,
-    forceRegenerate = false,
-    skipQuotaCheck = false
+    forceRegenerate = false
   ): Promise<{
     withText: {
       lightBackground?: string;
@@ -3544,7 +3531,6 @@ export class BrandingService extends GenericService {
       !forceRegenerate && selectedLogo.variations?.iconOnly
         ? { ...selectedLogo.variations.iconOnly }
         : {};
-    const isRetry = selectedLogo.variations?.withText !== undefined || skipQuotaCheck;
 
     // Même règle que la voie streamée : le fond clair EST le logo retenu.
     const lightSource = await this.lightBackgroundFromSelectedLogo(selectedLogo);
@@ -3568,8 +3554,7 @@ export class BrandingService extends GenericService {
             kind,
             structure,
             prompts[kind],
-            project,
-            isRetry
+            project
           );
           return [kind, svg] as const;
         })
@@ -3769,7 +3754,6 @@ export class BrandingService extends GenericService {
         temperature: 0.15,
         maxOutputTokens: 16000,
       },
-      skipQuotaCheck: true,
     });
     const parsed = sectionResults[0].parsedData;
 
@@ -3822,8 +3806,7 @@ export class BrandingService extends GenericService {
         kind,
         { ...iconStructure, svg: sourceIcon },
         ICONONLY_VARIATION_PROMPTS[kind],
-        project,
-        true
+        project
       );
       if (!generated) throw new Error(`Empty ${kind} icon variation`);
       iconSvg = SvgOptimizerService.optimizeSvg(generated);
@@ -3933,7 +3916,6 @@ export class BrandingService extends GenericService {
       !forceRegenerate && selectedLogo.variations?.iconOnly
         ? { ...selectedLogo.variations.iconOnly }
         : {};
-    const isRetry = selectedLogo.variations?.withText !== undefined;
 
     // Le fond clair n'est pas généré : c'est le logo retenu. On l'injecte dans
     // l'existant, ce qui le fait traiter par le mécanisme de reprise déjà en
@@ -3995,8 +3977,7 @@ export class BrandingService extends GenericService {
         kind,
         withTextStructure,
         WITHTEXT_VARIATION_PROMPTS[kind],
-        project,
-        isRetry
+        project
       );
 
     // iconOnly généré en silence (pas de critique streamée) via les prompts icône.
@@ -4005,8 +3986,7 @@ export class BrandingService extends GenericService {
         kind,
         iconStructure,
         ICONONLY_VARIATION_PROMPTS[kind],
-        project,
-        true
+        project
       );
 
     // Lockup composé : la déclinaison "avec texte" n'est plus générée par l'IA.
@@ -6224,7 +6204,6 @@ ${description.slice(0, 3000)}`,
 
       const sectionResults = await this.processSteps(steps, project, {
         ...BrandingService.LOGO_LLM_CONFIG,
-        skipQuotaCheck: true,
       });
       const mapping = sectionResults[0].parsedData;
       return mapping && typeof mapping === 'object' ? mapping : null;

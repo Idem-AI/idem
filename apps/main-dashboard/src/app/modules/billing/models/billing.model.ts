@@ -81,6 +81,9 @@ export interface ActivePass {
 
 export interface BillingMe {
   credits: Record<BillingEngine, number>;
+  /** Le modèle au portefeuille : solde en francs, forfaits, droits prépayés. */
+  offer?: WalletOffer;
+  walletXaf?: number;
   subscriptions: EngineSubscription[];
   passes: ActivePass[];
   beta: { windowOpen: boolean; endsAt?: string | null };
@@ -180,6 +183,8 @@ export interface Quote {
   amountXaf: number;
   country: string;
   credits: number;
+  /** Recharge du portefeuille : bonus accordé pour ce montant. */
+  bonusXaf?: number;
 }
 
 export interface CheckoutRequest {
@@ -192,6 +197,10 @@ export interface CheckoutRequest {
   interval?: 'month' | 'year';
   simulationTier?: string;
   app?: 'dashboard' | 'appgen' | 'simulation' | 'ideploy';
+  /** Recharge du portefeuille (`wallet-topup`) : montant en francs. */
+  amountXaf?: number;
+  /** Achat à faire depuis le portefeuille une fois la recharge encaissée. */
+  then?: BuyOfferRequest;
 }
 
 // ============================================
@@ -203,8 +212,27 @@ export interface CheckoutRequest {
  * Le serveur envoie les offres adaptées, l'interface ne les devine pas.
  */
 export interface PaymentRequiredPayload {
-  error: 'payment_required' | 'plan_upgrade_required';
+  /**
+   * `quota_exceeded` : refus 429 d'un quota d'usage (jour, semaine ou mois).
+   * `deliverable_locked` : le fichier final d'un livrable encore en esquisse.
+   */
+  error: 'payment_required' | 'plan_upgrade_required' | 'quota_exceeded' | 'deliverable_locked';
   message: string;
+  /** Ce qui est acheté, son prix, le solde du portefeuille et ce qui manque (en francs). */
+  label?: string;
+  priceXaf?: number;
+  balanceXaf?: number;
+  missingXaf?: number;
+  /** La plus petite recharge suggérée qui couvre le manque. */
+  topupXaf?: number;
+  deliverable?: DeliverableKey;
+  projectId?: string;
+  kit?: OwnershipStatus['kit'];
+  /** Offres du portefeuille qui débloquent l'action (pack de modifications iCode…). */
+  offers?: { kind: BuyOfferRequest['kind']; label: string; priceXaf: number }[];
+  /** Quota d'usage : la fenêtre atteinte et la date à laquelle elle se renouvelle. */
+  window?: QuotaWindow;
+  resetsAt?: string;
   engine?: BillingEngine;
   action?: string;
   cost?: number;
@@ -215,6 +243,33 @@ export interface PaymentRequiredPayload {
   suggestions?: { productCode: string; name: string; priceXaf: number; credits: number }[];
 }
 
+export type QuotaWindow = 'day' | 'week' | 'month';
+
+/** Une fenêtre d'un groupe de quota : utilisé, limite de l'offre (`null` = sans limite). */
+export interface QuotaWindowStatus {
+  window: QuotaWindow;
+  used: number;
+  limit: number | null;
+  remaining: number | null;
+  resetsAt: string;
+}
+
+export interface QuotaGroupStatus {
+  group: string;
+  label: string;
+  tier: string;
+  windows: QuotaWindowStatus[];
+}
+
+/** `GET /billing/quotas` : les quotas d'usage IA du compte, par groupe de fonctionnalités. */
+export interface UsageQuotaStatus {
+  groups: QuotaGroupStatus[];
+  /** Part consommée de la capacité de génération IA de l'offre, par fenêtre (0-100). */
+  capacity: Record<QuotaWindow, number>;
+  tier: string;
+  enforcement: 'off' | 'log' | 'enforce';
+}
+
 export interface CreditLedgerRow {
   engine: BillingEngine;
   delta: number;
@@ -223,4 +278,111 @@ export interface CreditLedgerRow {
   action?: string;
   note?: string;
   createdAt: string;
+}
+
+// ============================================
+// PORTEFEUILLE (modèle « Créer, Garder, Faire tourner »)
+// ============================================
+
+export type DeliverableKey =
+  | 'logo_brand'
+  | 'business_plan'
+  | 'pitch_deck'
+  | 'legal_kit'
+  | 'financial_forecast'
+  | 'business_card';
+
+export type PassCode = 'croissance' | 'entreprise' | 'createur';
+export type PackCode = 'lancement' | 'lancement_domaine' | 'a_plusieurs';
+
+export interface WalletOffer {
+  walletXaf: number;
+  /** Fin de chaque forfait actif. */
+  passes: Partial<Record<PassCode, string>>;
+  /** Modifications iCode incluses restantes. */
+  modifications: number;
+  projectPassVouchers: number;
+  vitrineDays: number;
+  croissance: boolean;
+  createur: boolean;
+  recentBuyer: boolean;
+}
+
+export interface WalletEntry {
+  engine: string;
+  delta: number;
+  balanceAfter: number;
+  reason: string;
+  action?: string;
+  note?: string;
+  projectId?: string;
+  createdAt: string;
+}
+
+export interface WalletView extends WalletOffer {
+  balanceXaf: number;
+  beta: { active: boolean; endsAt?: string | null };
+  statement: WalletEntry[];
+}
+
+export type BuyOfferRequest =
+  | { kind: 'pass'; code: PassCode; interval?: 'month' | 'year' }
+  | { kind: 'pack'; code: PackCode; projectId?: string; domain?: string }
+  | { kind: 'icode_project_pass'; projectId: string }
+  | { kind: 'icode_pack_100' }
+  | { kind: 'unlock'; projectId: string; deliverable: DeliverableKey; tier?: 'final' | 'signature' }
+  | { kind: 'domain'; domain: string; appUuid?: string };
+
+export interface BuyOfferResult {
+  ok: true;
+  message: string;
+  chargedXaf: number;
+  balanceXaf: number;
+  details?: Record<string, unknown>;
+}
+
+export interface OffersCatalog {
+  currency: string;
+  /** Prix local de 1 000 F dans le pays demandé. */
+  perThousand: { amount: number; currency: string; country: string } | null;
+  topup: {
+    minXaf: number;
+    maxXaf: number;
+    stepXaf: number;
+    suggestedXaf: number[];
+    bonusExamples: { amountXaf: number; bonusXaf: number }[];
+  };
+  deliverables: { key: DeliverableKey; label: string; priceXaf: number }[];
+  kit: { capXaf: number; sumXaf: number };
+  signaturePriceXaf: number;
+  editPriceXaf: number;
+  editWindowDays: number;
+  communication: Record<string, number>;
+  passes: { code: PassCode; label: string; monthlyXaf: number; annualXaf: number; covers: string[] }[];
+  monthlyCaps: Record<string, number>;
+  welcomePass: { code: PassCode; days: number };
+  icode: Record<string, number>;
+  meters: { tier: string; label: string; perDayXaf: number; description: string }[];
+  meterOptions: { code: string; label: string; perDayXaf: number }[];
+  simulations: Record<string, { idemXaf: number; publicXaf: number; label: string }>;
+  packs: { code: PackCode; label: string; priceXaf: number; description: string }[];
+  domains: Record<string, { registrar: string; priceXaf: number; renewalXaf: number; packXaf: number }>;
+}
+
+export interface DeliverableStatus {
+  key: DeliverableKey;
+  label: string;
+  priceXaf: number;
+  owned: boolean;
+  tier?: 'final' | 'signature';
+  unlockedAt?: string;
+  editableUntil?: string;
+  finalGenerated: boolean;
+}
+
+export interface OwnershipStatus {
+  projectId: string;
+  deliverables: DeliverableStatus[];
+  kit: { capXaf: number; sumXaf: number; spentXaf: number; remainingXaf: number; complete: boolean };
+  signaturePriceXaf: number;
 }

@@ -19,9 +19,8 @@ import {
   simulateFinanceController,
   updateFinanceSectionController,
 } from '../controllers/finance.controller';
-import { checkQuota } from '../middleware/quota.middleware';
 import { checkPolicyAcceptance } from '../middleware/policyCheck.middleware';
-import { firstThenRevision, requireCredits } from '../middleware/billing.middleware';
+import { firstThenRevision, requireCredits, requireOwnership } from '../middleware/billing.middleware';
 import { isAcceptedFinanceDocument } from '../services/Finance/finance-import.service';
 
 export const financeRoutes = Router();
@@ -161,7 +160,6 @@ financeRoutes.post(
   `/${resource}/:projectId/ai-fill-all`,
   authenticate,
   checkPolicyAcceptance,
-  checkQuota,
   chargeForecast,
   aiFillAllController
 );
@@ -179,7 +177,6 @@ financeRoutes.get(
   `/${resource}/:projectId/ai-fill-stream`,
   authenticate,
   checkPolicyAcceptance,
-  checkQuota,
   chargeForecast,
   aiFillAllStreamController
 );
@@ -196,7 +193,6 @@ financeRoutes.post(
   `/${resource}/:projectId/ai-fill/:section`,
   authenticate,
   checkPolicyAcceptance,
-  checkQuota,
   // Une section seule est une révision, pas un prévisionnel complet.
   requireCredits('business', 'revision'),
   aiFillSectionController
@@ -214,7 +210,6 @@ financeRoutes.post(
   `/${resource}/:projectId/chat/parse`,
   authenticate,
   checkPolicyAcceptance,
-  checkQuota,
   requireCredits('business', 'revision'),
   parseChatIntentController
 );
@@ -271,7 +266,6 @@ financeRoutes.post(
   `/${resource}/:projectId/import/analyze`,
   authenticate,
   checkPolicyAcceptance,
-  checkQuota,
   importTimeout,
   importUpload.single('document'),
   requireCredits('business', 'revision'),
@@ -313,6 +307,7 @@ const pdfTimeout = (req: any, res: any, next: any) => {
 financeRoutes.get(
   `/${resource}/:projectId/pdf`,
   authenticate,
+  requireOwnership('financial_forecast'),
   pdfTimeout,
   generateFinancePdfController
 );

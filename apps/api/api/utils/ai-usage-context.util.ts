@@ -28,6 +28,25 @@ export interface AiUsageContext {
   batchId?: string;
   /** Route d'origine, ex. `POST /project/brandings/generate`. */
   source?: string;
+  /**
+   * Budget de coût de la génération en cours (`generation-budget.util`). Partagé par
+   * référence entre les sous-contextes : toute la génération dépense dans le même.
+   */
+  budget?: import('./generation-budget.util').GenerationBudgetState;
+  /**
+   * Mode de génération décidé par la facturation :
+   *  - `draft` : ESQUISSE gratuite d'un livrable non possédé — modèles économiques, pas de
+   *    recherche web, pas d'image coûteuse ;
+   *  - `final` : version finale d'un livrable possédé ;
+   *  - `signature` : version Signature (modèles les plus puissants).
+   * Absent : génération ordinaire (aides, contenus de communication, services).
+   */
+  generationMode?: 'draft' | 'final' | 'signature';
+  /**
+   * Plans filmés par l'IA autorisés pour cette génération (payés à part). Absent : pas de
+   * limite posée ici (l'appelant, comme iVision, facture lui-même ses plans).
+   */
+  mediaPolicy?: { aiClips: number; aiClipsUsed: number };
 }
 
 const storage = new AsyncLocalStorage<AiUsageContext>();

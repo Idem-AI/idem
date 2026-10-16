@@ -145,7 +145,13 @@ router.post('/', async (req: Request, res: Response) => {
       ChatLogger.info('BILLING_REFUSED', 'Generation refused for billing reasons', billing.refusal);
       const reason = (billing.refusal as { error?: string } | undefined)?.error;
       const status =
-        reason === 'authentication_required' ? 401 : reason === 'billing_unavailable' ? 503 : 402;
+        reason === 'authentication_required'
+          ? 401
+          : reason === 'billing_unavailable'
+            ? 503
+            : reason === 'quota_exceeded'
+              ? 429
+              : 402;
       return res.status(status).json(billing.refusal);
     }
 

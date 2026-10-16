@@ -5,6 +5,7 @@ import { VISUAL_PAGES } from '../visual-edit/visual-adapter';
 import { TranslateModule } from '@ngx-translate/core';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 import { ApiService } from '../../../core/api.service';
+import { StudioState } from '../../../core/studio.state';
 import { Visual } from '../../../core/models';
 
 /** Dimensions réelles des formats (celles du rendu, `core/src/visual/flyer.render.ts`). */
@@ -103,9 +104,23 @@ const SIZES: Record<string, [number, number]> = {
           } @else {
             <i class="pi pi-download" aria-hidden="true"></i>
           }
-          {{ 'chat.result.download' | translate }}
+          {{ (exported() ? 'chat.result.downloadHd' : 'chat.result.downloadSigned') | translate }}
         </button>
+        @if (!exported()) {
+          <button type="button" class="inner-button button-sm" (click)="exportHd()" [disabled]="exporting()">
+            @if (exporting()) {
+              <idem-loader size="xs" />
+            }
+            {{ 'chat.result.exportHd' | translate: { price: state.exportVisualXaf() } }}
+          </button>
+        }
       </figcaption>
+      @if (exportRefused(); as missing) {
+        <p class="text-xs text-[var(--color-text-secondary)]" role="alert">
+          {{ 'chat.result.exportMissing' | translate: { missing } }}
+          <a class="underline" [href]="state.topUpUrl(missing)">{{ 'chat.payment.cta' | translate }}</a>
+        </p>
+      }
       @if (failed()) {
         <p class="text-xs text-[var(--color-text-tertiary)]" role="alert">{{ 'chat.result.downloadFailed' | translate }}</p>
       }
@@ -174,8 +189,15 @@ export class VisualResult implements OnInit {
   });
   protected readonly downloading = signal(false);
   protected readonly failed = signal(false);
+  protected readonly state = inject(StudioState);
+  /** Export HD réglé (ou inclus) : le fichier sort sans « Créé avec iVision ». */
+  protected readonly exported = signal(false);
+  protected readonly exporting = signal(false);
+  /** Ce qui manque au portefeuille quand l'export est refusé (402). */
+  protected readonly exportRefused = signal<number | null>(null);
 
   ngOnInit(): void {
+    this.exported.set(Boolean(this.visual().exported));
     this.loading.set(true);
     this.api.visual(this.visual().id).subscribe({
       next: (v) => {
@@ -210,6 +232,25 @@ export class VisualResult implements OnInit {
   /** Un clic sur le fond (hors de l'image et de la barre) ferme la visionneuse. */
   protected onBackdrop(event: MouseEvent): void {
     if (event.target === this.lightbox().nativeElement) this.close();
+  }
+
+  /** Export HD sans signature : débité depuis le portefeuille IDEM, puis le fichier propre se télécharge. */
+  protected exportHd(): void {
+    this.exporting.set(true);
+    this.exportRefused.set(null);
+    this.api.exportVisual(this.visual().id).subscribe({
+      next: () => {
+        this.exporting.set(false);
+        this.exported.set(true);
+        this.state.refreshBalance();
+        this.download();
+      },
+      error: (error) => {
+        this.exporting.set(false);
+        if (error?.status === 402) this.exportRefused.set(error?.error?.missingXaf ?? error?.error?.missing ?? 0);
+        else this.failed.set(true);
+      },
+    });
   }
 
   protected download(): void {

@@ -108,6 +108,8 @@ export interface ChatOptions {
   sfx?: boolean;
   /** Voix off dans la langue de l'utilisateur (désactivée par défaut). */
   voice?: boolean;
+  /** Plans filmés par l'IA commandés (1 000 F l'un, 0 par défaut : motion design + banque d'images). */
+  aiClips?: number;
   /** Montage d'une prise de parole : retirer les blancs (`tight`) ou non. */
   cuts?: 'tight' | 'natural' | 'none';
   /** Visuel. */
@@ -165,6 +167,8 @@ export interface IvisionVisual {
   referenceId?: string;
   audit?: { score: number; blocking: boolean };
   paidCredits: number;
+  /** Export HD sans signature payé (ou inclus) : le fichier sort sans « Créé avec iVision ». */
+  exportedAt?: string;
   createdAt: string;
   /** Dernière retouche dans l'éditeur (HTML et image re-rendue). */
   updatedAt?: string;

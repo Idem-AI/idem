@@ -16,10 +16,13 @@
  */
 import { NextFunction, Request, Response, Router } from 'express';
 import logger from '../config/logger';
-import { BUSINESS_CREDIT_COSTS } from '../models/billing.model';
 import { CREATIVITY_MULTIPLIER } from '../models/creativity.model';
+import { COMMUNICATION_PRICES, EDIT_PRICE_XAF, PASSES } from '../models/offer.model';
 import { chargeForService } from '../middleware/billing.middleware';
-import { creditLedgerService } from '../services/billing/credit-ledger.service';
+import { walletService } from '../services/billing/wallet.service';
+import { sendQuotaRefusal } from '../middleware/usage-quota.middleware';
+import { quotaGroupOf } from '../models/usage-quota.model';
+import { usageQuotaService } from '../services/billing/usage-quota.service';
 import { entitlementsService } from '../services/billing/entitlements.service';
 import { CommunicationService } from '../services/Communication/communication.service';
 import { AgentProfile, runtimeCall } from '../services/creativity/orchestrator';
@@ -35,10 +38,17 @@ import { siteImportJobs } from '../services/SiteImport/siteProject.service';
 const router = Router();
 const communicationService = new CommunicationService(new PromptService());
 
-/** Seuls les livrables qu'iVision produit peuvent être facturés par lui. */
-const IVISION_ACTIONS = new Set(['motion_video', 'motion_video_rerender', 'flyer', 'revision']);
-/** Plafond d'un débit unique : une vidéo Ultra de 60 s en 4 formats premium reste en dessous. */
-const MAX_CHARGE = 5000;
+/**
+ * Les actions qu'iVision peut déclarer. La CRÉATION (`motion_video`, `flyer`, `revision`) est
+ * gratuite — signée « Créé avec iVision » — et ne prend qu'une place de quota ; l'EXPORT HD sans
+ * signature (`export_visual`, `export_video`) et le plan filmé par l'IA (`ai_clip`) se paient
+ * depuis le portefeuille, plafonnés au forfait Créateur.
+ */
+const IVISION_ACTIONS = new Set(['motion_video', 'motion_video_rerender', 'flyer', 'revision', 'export_visual', 'export_video', 'ai_clip']);
+/** Actions dont le prix vient de la requête (un export vidéo dépend du périmètre). */
+const PRICED_ACTIONS = new Set(['export_video']);
+/** Plafond d'un débit unique : une vidéo de 3 min en 4 formats premium reste en dessous. */
+const MAX_CHARGE = 15000;
 
 function requireIvisionKey(req: Request, res: Response, next: NextFunction): void {
   const expected = process.env.IVISION_SERVICE_KEY;
@@ -218,17 +228,40 @@ router.post(
   '/billing/charge',
   route(async (req, res) => {
     const userId = userIdOf(req);
-    const { action, cost, note, element, projectId } = req.body || {};
+    const { action, cost, note, element, projectId, quantity } = req.body || {};
     if (!userId || !IVISION_ACTIONS.has(action) || typeof cost !== 'number' || !(cost >= 0) || cost > MAX_CHARGE) {
       res.status(400).json({ error: 'invalid_charge' });
       return;
     }
-    const result = await chargeForService(userId, 'business', { action, cost, note: text(note, 120) || undefined }, { feature: 'ivision', element: text(element, 128) || undefined, projectId: text(projectId, 128) || undefined });
+    const result = await chargeForService(
+      userId,
+      'business',
+      {
+        action,
+        cost,
+        note: text(note, 120) || undefined,
+        // Le prix d'un export vidéo suit son périmètre (calculé par le même code des deux côtés) ;
+        // les autres prix sont ceux de la table d'IDEM, jamais ceux de l'appelant.
+        ...(PRICED_ACTIONS.has(action) ? { priceXaf: Math.round(cost) } : {}),
+        ...(typeof quantity === 'number' ? { quantity } : {}),
+      },
+      { feature: 'ivision', element: text(element, 128) || undefined, projectId: text(projectId, 128) || undefined }
+    );
     if (result.status === 'refused') {
       res.status(402).json(result.body);
       return;
     }
-    res.json(result.status === 'charged' ? { charged: true, cost: result.cost, balance: result.balance, ledgerEntryId: result.ledgerEntryId } : { charged: false, reason: result.reason, cost: 0 });
+    if (result.status === 'quota_exceeded') {
+      sendQuotaRefusal(res, result.body);
+      return;
+    }
+    // `quotaReserved` : iVision le rend avec `/billing/refund` si la génération échoue.
+    const quotaReserved = Boolean(result.reservation);
+    res.json(
+      result.status === 'charged'
+        ? { charged: true, cost: result.cost, balance: result.balance, ledgerEntryId: result.ledgerEntryId, quotaReserved }
+        : { charged: false, reason: result.reason, cost: 0, quotaReserved }
+    );
   })
 );
 
@@ -236,13 +269,17 @@ router.post(
   '/billing/refund',
   route(async (req, res) => {
     const userId = userIdOf(req);
-    const { cost, action, note } = req.body || {};
-    if (!userId || !IVISION_ACTIONS.has(action) || typeof cost !== 'number' || !(cost > 0) || cost > MAX_CHARGE) {
+    const { cost, action, note, releaseQuota } = req.body || {};
+    if (!userId || !IVISION_ACTIONS.has(action) || typeof cost !== 'number' || !(cost >= 0) || cost > MAX_CHARGE) {
       res.status(400).json({ error: 'invalid_refund' });
       return;
     }
-    await creditLedgerService.refundDebit(userId, 'business', Math.round(cost), { action, feature: 'ivision', note: text(note, 160) || 'Génération iVision en échec — crédits restitués' });
-    await entitlementsService.invalidate(userId);
+    // La place prise dans le quota par `/billing/charge` est rendue avec l'échec.
+    if (releaseQuota === true) await usageQuotaService.releaseCurrent(userId, quotaGroupOf('business', action));
+    if (cost > 0) {
+      await walletService.refund(userId, Math.round(cost), { action, feature: 'ivision', note: text(note, 160) || 'Export iVision en échec — montant restitué' });
+      await entitlementsService.invalidate(userId);
+    }
     res.json({ ok: true });
   })
 );
@@ -256,20 +293,30 @@ router.get(
       return;
     }
     const entitlements = await entitlementsService.resolve(userId);
-    const business = entitlements.engines.business;
-    res.json({ credits: business.credits, plan: business.productCode, status: business.status });
+    const offer = entitlements.offer;
+    // `credits` reste lu par les anciens écrans : c'est désormais le solde en francs.
+    res.json({ credits: offer.walletXaf, walletXaf: offer.walletXaf, createur: offer.createur, plan: offer.createur ? 'createur' : null, status: 'active' });
   })
 );
 
-/** Le barème d'IDEM : iVision applique les mêmes prix, calculés par le même code. */
+/**
+ * Les prix d'IDEM, en francs : iVision chiffre l'export d'une vidéo par le même code
+ * (`motion_video` = vidéo de référence, `revision` = nouvel export minimal).
+ */
 router.get(
   '/billing/prices',
   route(async (_req, res) => {
     res.json({
-      motion_video: BUSINESS_CREDIT_COSTS.motion_video,
-      revision: BUSINESS_CREDIT_COSTS.revision,
-      flyer: BUSINESS_CREDIT_COSTS.flyer,
-      ai_visual: BUSINESS_CREDIT_COSTS.ai_visual,
+      motion_video: COMMUNICATION_PRICES.motion_video,
+      revision: COMMUNICATION_PRICES.motion_video_rerender,
+      flyer: COMMUNICATION_PRICES.flyer,
+      ai_visual: COMMUNICATION_PRICES.ai_visual,
+      export_visual: COMMUNICATION_PRICES.flyer,
+      export_video: COMMUNICATION_PRICES.motion_video,
+      ai_clip: COMMUNICATION_PRICES.ai_clip,
+      edit: EDIT_PRICE_XAF,
+      createur: { monthlyXaf: PASSES.createur.monthlyXaf, annualXaf: PASSES.createur.annualXaf },
+      currency: 'XAF',
       creativity: CREATIVITY_MULTIPLIER,
     });
   })
@@ -341,6 +388,12 @@ router.post(
     const url = text(req.body?.url, 2000);
     if (!userId || !url) {
       res.status(400).json({ error: 'invalid_input' });
+      return;
+    }
+    // Gratuit pour l'utilisateur, pas pour la plateforme : borné par le quota « Aides IA ».
+    const quota = await usageQuotaService.reserve(userId, 'assist');
+    if (!quota.allowed) {
+      sendQuotaRefusal(res, quota.refusal);
       return;
     }
     const job = await asUser(req, 'branding', () =>

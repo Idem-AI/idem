@@ -18,9 +18,8 @@ import {
   deleteBusinessPlanDocumentController,
 } from '../controllers/businessPlan.controller';
 import { authenticate } from '../services/auth.service';
-import { checkQuota } from '../middleware/quota.middleware';
 import { checkPolicyAcceptance } from '../middleware/policyCheck.middleware';
-import { firstThenRevision, requireCredits, withCreativity } from '../middleware/billing.middleware';
+import { firstThenRevision, requireCredits, withCreativity, requireOwnership } from '../middleware/billing.middleware';
 import { relayoutController } from '../controllers/relayout.controller';
 import multer from 'multer';
 
@@ -115,7 +114,6 @@ businessPlanRoutes.get(
   `/${resourceName}/generate/:projectId`,
   authenticate,
   checkPolicyAcceptance,
-  checkQuota,
   // 70 crédits pour le business plan ; le régénérer ensuite vaut une révision,
   // sans quoi le barème punirait l'itération que le produit encourage.
   // Le cran de créativité (paramètre `creativity` du flux) multiplie le prix du livrable.
@@ -528,7 +526,6 @@ businessPlanRoutes.post(
   `/${resourceName}/:projectId/sections/:sectionId/ai-edit`,
   authenticate,
   checkPolicyAcceptance,
-  checkQuota,
   requireCredits('business', 'revision'),
   aiEditBusinessPlanSectionController
 );
@@ -665,6 +662,8 @@ const pdfTimeout = (req: any, res: any, next: any) => {
 businessPlanRoutes.get(
   `/${resourceName}/pdf/:projectId`,
   authenticate,
+  // L'esquisse se lit dans IDEM ; le PDF final s'emporte une fois le livrable débloqué.
+  requireOwnership('business_plan'),
   pdfTimeout,
   generateBusinessPlanPdfController
 );
@@ -787,7 +786,6 @@ businessPlanRoutes.post(
   `/${resourceName}/:projectId/relayout`,
   authenticate,
   checkPolicyAcceptance,
-  checkQuota,
   requireCredits('business', 'business_plan_relayout', { resolve: withCreativity('business', 'business_plan_relayout') }),
   relayoutController('businessPlan')
 );

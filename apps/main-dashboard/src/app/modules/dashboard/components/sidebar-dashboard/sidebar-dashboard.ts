@@ -281,23 +281,15 @@ export class SidebarDashboard implements OnInit {
    * par défaut ferait croire à un compte vide.
    */
   protected readonly accountSummary = computed(() => {
-    const plans = this.billing.plans();
-    if (plans.length === 0) return null;
+    const credits = this.billing.walletXaf();
+    if (credits === null) return null;
 
-    // Les moteurs restés sur l'offre gratuite ne sont pas nommés : l'espace
-    // d'une barre latérale ne supporte pas un inventaire, et c'est l'offre
-    // payée que l'on veut y reconnaître.
-    const paid = plans.filter((plan) => plan.state !== 'free');
-
-    const credits = plans
-      .filter((plan) => plan.engine !== 'ideploy')
-      .reduce((total, plan) => total + plan.credits, 0);
-
+    // Un forfait se nomme ; sans forfait, la ligne dit « Portefeuille ».
+    const pass = this.billing.activePass();
     return {
-      // Une seule offre payée se nomme ; plusieurs se comptent.
-      planName: paid.length === 1 ? `${paid[0].engineLabel} ${paid[0].currentName}` : null,
-      planKey: paid.length === 0 ? 'account.freePlan' : 'account.severalPlans',
-      paidCount: paid.length,
+      planName: null,
+      planKey: pass ? `billing.passes.${pass}` : this.billing.betaActive() ? 'billing.wallet.betaShort' : 'billing.wallet.title',
+      paidCount: 0,
       credits,
       needsAttention: this.billing.attention() !== null,
     };

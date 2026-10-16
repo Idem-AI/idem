@@ -8,7 +8,6 @@ import {
   deleteDiagramController,
 } from '../controllers/diagram.controller';
 import { authenticate } from '../services/auth.service'; // Updated import path
-import { checkQuota } from '../middleware/quota.middleware';
 import { checkPolicyAcceptance } from '../middleware/policyCheck.middleware';
 import { requireCredits } from '../middleware/billing.middleware';
 
@@ -78,7 +77,6 @@ diagramRoutes.get(
   `/${resourceName}/generate/:projectId`,
   authenticate,
   checkPolicyAcceptance,
-  checkQuota,
   requireCredits('business', 'revision'),
   generateDiagramController
 );
@@ -121,7 +119,6 @@ diagramRoutes.get(
   `/${resourceName}/generate-stream/:projectId`,
   authenticate,
   checkPolicyAcceptance,
-  checkQuota,
   requireCredits('business', 'revision'),
   generateDiagramStreamingController
 );

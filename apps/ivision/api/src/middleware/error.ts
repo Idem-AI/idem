@@ -26,7 +26,9 @@ export function errorHandler(error: any, req: Request, res: Response, _next: Nex
     return;
   }
   if (error instanceof IdemGatewayError) {
-    res.status(error.status === 402 ? 402 : 502).json(error.status === 402 ? error.body : { error: 'idem_unavailable', message: 'IDEM ne répond pas pour le moment.' });
+    // 402 (crédits) et 429 (quota d'usage) sont des refus explicables : relayés tels quels.
+    const relayed = error.status === 402 || error.status === 429;
+    res.status(relayed ? error.status : 502).json(relayed ? error.body : { error: 'idem_unavailable', message: 'IDEM ne répond pas pour le moment.' });
     return;
   }
   if (error?.type === 'entity.too.large') {

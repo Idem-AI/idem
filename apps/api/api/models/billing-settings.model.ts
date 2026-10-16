@@ -61,6 +61,15 @@ export interface BillingSettingsModel {
   reminderDays: number[];
   /** Pays ouverts au paiement ; vide = tous les pays pris en charge. */
   enabledCountries: string[];
+  /**
+   * Budget d'exécution des générations (`config/generation-budgets.ts`) :
+   * `log` signale les générations à perte ou qui bouclent, `enforce` arrête en
+   * plus celles qui dépassent leur budget dur. Les quotas d'usage suivent, eux,
+   * le mode `enforcement` des crédits.
+   */
+  generationBudget: BillingEnforcementMode;
+  /** Surcharges des quotas d'usage par défaut (`models/usage-quota.model.ts`). */
+  usageQuotas?: import('./usage-quota.model').UsageQuotaOverrides;
   updatedAt?: Date;
   updatedBy?: string;
 }
@@ -96,4 +105,6 @@ export const DEFAULT_BILLING_SETTINGS: BillingSettingsModel = {
   graceDays: 3,
   reminderDays: [3, 0],
   enabledCountries: [],
+  generationBudget: 'log',
+  usageQuotas: {},
 };

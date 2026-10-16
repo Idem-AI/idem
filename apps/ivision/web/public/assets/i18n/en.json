@@ -229,7 +229,7 @@
           "end": "."
         }
       ],
-      "text": "Same credits, same prices as in your dashboard. Import the brand book of an IDEM project in one click."
+      "text": "The same wallet and the same prices as in your IDEM dashboard. Import an IDEM project’s brand in one click."
     },
     "request": {
       "label": "Your request to iVision",
@@ -295,7 +295,7 @@
     "history": "Conversations",
     "noHistory": "No conversation yet.",
     "brands": "Brands",
-    "credits": "{{count}} credits",
+    "credits": "{{count}} F",
     "account": "My account",
     "tabs": "Studio sections",
     "montage": "Edit",
@@ -435,14 +435,18 @@
       "downloadFormat": "Choose the format",
       "downloadReady": "Ready",
       "downloadIncluded": "Included",
-      "downloadPrice": "{{cost}} credits",
+      "downloadPrice": "{{cost}} F",
       "downloadPreparing": "Preparing the MP4… {{percent}}%",
-      "broken": "{{count}} scene(s) do not run: open “Edit” and press “Fix” before downloading."
+      "broken": "{{count}} scene(s) do not run: open “Edit” and press “Fix” before downloading.",
+      "downloadSigned": "Download (signed)",
+      "downloadHd": "Download in HD",
+      "exportHd": "HD export without the mark · {{price}} F",
+      "exportMissing": "Your wallet is {{missing}} F short."
     },
     "payment": {
-      "cta": "Top up my credits",
-      "detail": "This creation costs {{cost}} credits; you have {{balance}} left. Your request is kept: run it again after topping up.",
-      "short": "Not enough credits for this export."
+      "cta": "Top up my wallet",
+      "detail": "This shot or export costs {{cost}} F; your IDEM wallet holds {{balance}}. Your request is kept: run it again after topping up.",
+      "short": "Your wallet is not enough for this export."
     },
     "progress": {
       "label": "Creation steps",
@@ -475,10 +479,14 @@
       "photo": "With photo",
       "voice": "Voice-over",
       "voiceHint": "A voice says the message, scene by scene, in the language of your request.",
-      "price": "{{cost}} credits",
+      "price": "Free to create · HD export {{cost}} F",
       "removeSilences": "Remove silences",
       "music": "Music",
-      "readFromText": "Duration and format read from your request."
+      "readFromText": "Duration and format read from your request.",
+      "aiClips": "AI-filmed shots",
+      "aiClipsHint": "5-second shots filmed by AI (1,000 F each), on top of motion design and stock footage. Unused shots are refunded.",
+      "aiClipsNone": "No AI-filmed shot",
+      "aiClipsCount": "{{count}} AI-filmed shot(s) · +{{price}} F"
     },
     "choice": {
       "palettes": "Palette",
@@ -552,8 +560,9 @@
         "video": "This model is an image: in video mode, add a model video.",
         "image": "This model is a video: in visuals mode, add a model image."
       },
-      "generation": "The creation failed. Your credits were refunded; you can try again.",
-      "payment": "Not enough credits for this creation. Top up your IDEM account, then try again."
+      "generation": "The creation failed. Nothing was charged; you can try again.",
+      "payment": "Your wallet is not enough for this creation. Top it up in IDEM, then try again.",
+      "quota": "You have reached your usage limit for now. It renews soon, or upgrade to the next plan."
     },
     "montage": {
       "unreadable_video": "I could not read these videos. Try an MP4 or MOV.",
@@ -594,7 +603,7 @@
     "quality": "Quality",
     "exportCta": "Export",
     "included": "Included",
-    "price": "{{cost}} credits",
+    "price": "{{cost}} F",
     "rendering": "Rendering — {{percent}}%",
     "legacyTitle": "Video from the previous engine",
     "legacyBody": "This video was made before the new engine: it can be downloaded from the conversation, but no longer edited. Ask for a new video to change it.",
@@ -656,7 +665,7 @@
       "none": "None (video untouched)"
     },
     "music": "Soft music under the voice",
-    "price": "{{cost}} credits",
+    "price": "Free to create · HD export {{cost}} F",
     "start": "Edit my video",
     "uploading": "Uploading… {{percent}}%",
     "mine": "My edits",
@@ -680,7 +689,7 @@
     "loadError": "This edit could not be loaded.",
     "failed": "The edit did not complete.",
     "failedNoSpeech": "No speech was heard in this video.",
-    "refunded": "Your {{cost}} credits were refunded.",
+    "refunded": "Your {{cost}} F have been refunded.",
     "retry": "Try another video",
     "saveFailed": "The change was not saved.",
     "transcript": "What you say",
@@ -730,7 +739,7 @@
     "firstExport": "The first export is included.",
     "nextExport": "A new export after changes.",
     "saveFirst": "Save the dressing before exporting.",
-    "renderFailed": "The export failed; your credits were refunded. Please try again.",
+    "renderFailed": "The export failed; the amount has been refunded. Try again.",
     "download": "Download the video",
     "cutModesShort": {
       "tight": "Snappy",
@@ -766,7 +775,7 @@
       "preparing": "I’m preparing your edit. You can leave this page, it keeps going.",
       "ready": "Your edit is ready: {{duration}}, captions and {{count}} item(s) on screen. Tell me what to change, or download it.",
       "noSpeech": "I didn’t hear anyone speaking in these videos. Add a video where you talk.",
-      "failed": "The edit did not complete. Your {{cost}} credits were refunded.",
+      "failed": "The edit did not go through. Nothing is charged.",
       "notUnderstood": "I didn’t understand what to change. Try “no music”, “simpler captions”, “square format” or “show the price big”.",
       "sayHint": "Write below what to change, or click “Edit”."
     },
@@ -864,15 +873,15 @@
       },
       "creativity": {
         "title": "More or less daring",
-        "body": "Choose the level of creativity. The price in credits shows right next to it, before you start."
+        "body": "Choose the creativity level. Creating is free: only the HD export without the mark is paid, and its price shows right next to it."
       },
       "history": {
         "title": "Everything you created",
         "body": "Your creations stay here. Click one to see it again or change it."
       },
       "credits": {
-        "title": "Your credits",
-        "body": "Each creation uses credits. You see them here, and you can add more."
+        "title": "Your wallet",
+        "body": "Creating is free and marked “Made with iVision”. The HD export without the mark is paid from your IDEM wallet, and everything is included with iVision Creator (2,000 F/month)."
       },
       "done": {
         "title": "Your turn!",

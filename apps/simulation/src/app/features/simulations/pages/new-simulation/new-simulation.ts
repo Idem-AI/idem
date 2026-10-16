@@ -163,7 +163,11 @@ export class NewSimulation {
   /** Clé de traduction du message de paiement affiché à l'écran. */
   protected readonly paymentNotice = signal<string | null>(null);
   /** Pendant la bêta, IDEM prend le coût à sa charge : aucun détour par le paiement. */
-  protected readonly paymentRequired = computed(() => !this.isBeta && !this.paymentReference());
+  /**
+   * Le modèle au portefeuille : la simulation se paie depuis le portefeuille IDEM, au lancement
+   * (l'API débite, ou répond 402 avec la recharge qui manque). Plus de paiement préalable.
+   */
+  protected readonly paymentRequired = computed(() => false);
 
   /**
    * L'accord, redemandé à chaque lancement.
@@ -632,6 +636,12 @@ export class NewSimulation {
 
       await this.router.navigate(['/simulations', simulation.id]);
     } catch (error) {
+      // Portefeuille insuffisant : la recharge exacte, puis retour ici pour relancer.
+      const refusal = error as { status?: number; error?: { topupXaf?: number; missingXaf?: number } };
+      if (refusal?.status === 402) {
+        await this.payFirst(refusal.error?.topupXaf ?? refusal.error?.missingXaf);
+        return;
+      }
       this.toasts.error(
         this.translate.instant('newRun.launchFailed') as string,
         error instanceof Error ? error.message : undefined,
@@ -649,7 +659,7 @@ export class NewSimulation {
    * au stockage de session avant de quitter la page — l'analyse qui vient
    * d'être approuvée ne doit pas se perdre dans l'aller-retour.
    */
-  private async payFirst(): Promise<void> {
+  private async payFirst(topupXaf?: number): Promise<void> {
     const plan = this.pricing()?.plans.find((entry) => entry.tier === this.selectedTier());
     if (!plan) {
       this.toasts.error(this.translate.instant('newRun.pricingFailed') as string);
@@ -672,9 +682,10 @@ export class NewSimulation {
     returnUrl.searchParams.delete('payment');
     returnUrl.searchParams.delete('status');
 
+    // Une seule chose se paie en mobile money : la recharge du portefeuille, du montant qui manque.
     const checkout = new URL('/billing/checkout', environment.services.dashboard.url);
-    checkout.searchParams.set('product', plan.productCode);
-    checkout.searchParams.set('tier', plan.tier);
+    checkout.searchParams.set('product', 'wallet-topup');
+    checkout.searchParams.set('amount', String(topupXaf && topupXaf > 0 ? topupXaf : plan.price));
     checkout.searchParams.set('app', 'simulation');
     const projectId = this.selectedProjectId();
     if (projectId) {

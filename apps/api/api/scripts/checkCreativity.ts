@@ -47,9 +47,11 @@ const run = (n: number) => !only.length || only.includes(n);
   const bp = BUSINESS_CREDIT_COSTS.business_plan;
   const costs = CREATIVITY_LEVELS.map((l) => creativityCost(bp, l));
   check('quatre crans : low, medium, high, ultra', CREATIVITY_LEVELS.join(',') === 'low,medium,high,ultra');
-  check(`business plan (${bp}) : ${costs.join(' / ')} crédits`, costs.join(',') === [70, 70, 88, 140].join(','));
-  check('vidéo 120 : 120 / 120 / 150 / 240', CREATIVITY_LEVELS.map((l) => creativityCost(120, l)).join(',') === '120,120,150,240');
-  check('multiplicateurs ×1 · ×1 · ×1,25 · ×2', Object.values(CREATIVITY_MULTIPLIER).join(',') === '1,1,1.25,2');
+  // Le modèle au portefeuille : la jauge choisit le modèle, jamais le prix (Signature +1 000 F
+  // remplace l'ancien Ultra ×2, voir `offer.model.ts`).
+  check(`business plan (${bp}) : ${costs.join(' / ')} — même prix à tous les crans`, costs.every((c) => c === bp));
+  check('vidéo 300 F : 300 / 300 / 300 / 300', CREATIVITY_LEVELS.map((l) => creativityCost(300, l)).join(',') === '300,300,300,300');
+  check('multiplicateurs ×1 · ×1 · ×1 · ×1', Object.values(CREATIVITY_MULTIPLIER).join(',') === '1,1,1,1');
   check('cran inconnu, vide ou mal écrit → Medium ; « ULTRA » compris ; ancien « max » → High', normalizeCreativity('extreme') === 'medium' && normalizeCreativity(undefined) === 'medium' && normalizeCreativity(' ULTRA ') === 'ultra' && normalizeCreativity('max') === 'high');
   check('atLeast : high ≥ medium, low < high', atLeast('high', 'medium') && !atLeast('low', 'high'));
   check('un livrable gratuit le reste à tous les crans', CREATIVITY_LEVELS.every((l) => creativityCost(0, l) === 0));

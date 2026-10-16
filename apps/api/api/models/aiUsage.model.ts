@@ -96,7 +96,12 @@ export interface AiUsageEventModel {
    */
   inputCostUsd: number;
   outputCostUsd: number;
-  /** Somme de `inputCostUsd` et `outputCostUsd`. */
+  /**
+   * Coût hors tokens de l'appel : résultats de recherche web du greffon `web`
+   * d'OpenRouter (facturés au résultat). Zéro pour un appel sans outil.
+   */
+  toolCostUsd?: number;
+  /** Somme de `inputCostUsd`, `outputCostUsd` et `toolCostUsd`. */
   estimatedCostUsd: number;
 
   // --- Contexte d'exécution -------------------------------------------------

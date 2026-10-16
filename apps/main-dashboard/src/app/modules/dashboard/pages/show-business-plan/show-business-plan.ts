@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, inject, OnInit, signal, computed } from '@angular/core';
+import { OwnershipBarComponent } from '../../../../shared/components/ownership-bar/ownership-bar';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CookieService } from '../../../../shared/services/cookie.service';
 import { BusinessPlanService } from '../../services/ai-agents/business-plan.service';
@@ -32,6 +33,7 @@ type StoredBusinessPlan = BusinessPlanModel & StoredDeliverableDocument;
 @Component({
   selector: 'app-show-business-plan',
   imports: [
+    OwnershipBarComponent,
     ErrorStateComponent,
     DocumentPreviewComponent,
     TranslateModule,

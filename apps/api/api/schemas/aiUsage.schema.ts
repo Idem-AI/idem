@@ -26,6 +26,7 @@ const AiUsageEventSchema = new Schema<AiUsageEventDocument>(
     tokensEstimated: { type: Boolean, default: false },
     inputCostUsd: { type: Number, required: true, default: 0 },
     outputCostUsd: { type: Number, required: true, default: 0 },
+    toolCostUsd: { type: Number, default: 0 },
     estimatedCostUsd: { type: Number, required: true, default: 0 },
 
     status: { type: String, required: true, default: 'success' },

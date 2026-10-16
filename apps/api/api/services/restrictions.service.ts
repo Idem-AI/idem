@@ -83,18 +83,6 @@ export class RestrictionsService {
   }
 
   /**
-   * Get current limitations message for user
-   */
-  getLimitationsMessage(): string {
-    return `
-🚀 System Limitations:
-• Maximum ${this.restrictions.maxStyles} style options per generation
-• Maximum resolution: ${this.restrictions.maxResolution}
-• Optimized token output for faster responses
-    `.trim();
-  }
-
-  /**
    * Validate input to prevent abusive requests
    */
   validateInput(input: string): ValidationResult {

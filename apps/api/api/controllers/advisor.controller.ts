@@ -2,7 +2,6 @@ import { Response } from 'express';
 import { CustomRequest } from '../interfaces/express.interface';
 import { AdvisorService } from '../services/Advisor/advisor.service';
 import { PromptService } from '../services/prompt.service';
-import { userService } from '../services/user.service';
 import logger from '../config/logger';
 
 const promptService = new PromptService();
@@ -110,7 +109,6 @@ export const sendAdvisorMessageController = async (
       `sendAdvisorMessageController userId=${userId} projectId=${projectId} contentLen=${content.length}`
     );
     const result = await advisorService.sendMessage(userId, projectId as string, content);
-    userService.incrementUsage(userId, 1);
     logger.info(`sendAdvisorMessageController success projectId=${projectId}`);
     res.status(200).json(result);
   } catch (error: any) {

@@ -46,6 +46,8 @@
     </app-error-state>
   } @else if (hasProjectData() || hasBrandingData()) {
     <div class="max-w-7xl mx-auto space-y-6">
+      <!-- Le logo choisi reste le même : la version finale, ce sont les fichiers et la charte complète. -->
+      <app-ownership-bar deliverable="logo_brand" [projectId]="projectIdFromCookie()" />
       @if (currentProject() && !isBrandingComplete()) {
         <app-incomplete-project-banner
           [project]="currentProject()!"

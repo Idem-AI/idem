@@ -1,7 +1,10 @@
 import { Router, Request, Response } from 'express';
-import { creditCost, firstThenRevision } from '../middleware/billing.middleware';
-import { CREATIVITY_LEVELS, creativityCost } from '../models/creativity.model';
+import { CREATIVITY_LEVELS } from '../models/creativity.model';
+import { COMMUNICATION_PRICES, DELIVERABLES, SIGNATURE_PRICE_XAF, isDeliverable } from '../models/offer.model';
 import billingController from '../controllers/billing.controller';
+import offerController from '../controllers/offer.controller';
+import { ownershipService } from '../services/billing/ownership.service';
+import { entitlementsService } from '../services/billing/entitlements.service';
 import { authenticate } from '../services/auth.service';
 import { verifyApiKey } from '../middleware/verifyApiKey';
 import { rateLimitByUser, rateLimitByIP } from '../middleware/rate-limit.middleware';
@@ -243,43 +246,149 @@ router.get('/credits', authenticate, (req: Request, res: Response) =>
 
 /**
  * @openapi
+ * /billing/quotas:
+ *   get:
+ *     tags: [Billing]
+ *     summary: Quotas d'usage IA de l'utilisateur
+ *     description: >
+ *       Par groupe de fonctionnalités (aides IA, retouches, créations, livrables complets,
+ *       vidéos, applications iCode, modifications iCode, simulations) : utilisé, limite de
+ *       l'offre et renouvellement pour le jour, la semaine (ISO, lundi) et le mois (UTC).
+ *       `capacity` donne, en pourcentage, la part consommée du plafond de dépense IA.
+ *       Une génération refusée par un quota répond 429 `quota_exceeded`.
+ *     security: [{ bearerAuth: [] }]
+ *     responses:
+ *       '200': { description: État des quotas }
+ */
+router.get('/quotas', authenticate, (req: Request, res: Response) =>
+  billingController.getQuotas(req as any, res)
+);
+
+/**
+ * @openapi
  * /billing/creativity/{projectId}:
  *   get:
  *     tags: [Billing]
- *     summary: Prix d'un livrable à chaque cran de la jauge de créativité
+ *     summary: Ce que coûte un contenu à chaque cran de la jauge de créativité
  *     description: >
- *       Le prix de base suit le barème du livrable POUR CE PROJET (plein tarif la première
- *       fois, révision ensuite), puis le multiplicateur de chaque cran (Low ×1 … Ultra ×2).
- *       Le dashboard affiche exactement ce que la route de génération débitera.
+ *       La jauge ne change plus le prix : Low à High coûtent pareil. Un livrable non possédé
+ *       se génère en ESQUISSE gratuite ; possédé, sa version finale est déjà payée. Ultra
+ *       correspond à la version Signature (+1 000 F). Les contenus de communication gardent
+ *       leur prix unitaire, inclus avec le forfait Croissance.
  *     security: [{ bearerAuth: [] }]
  *     parameters:
  *       - { in: path, name: projectId, required: true, schema: { type: string } }
- *       - { in: query, name: action, required: true, schema: { type: string, enum: [flyer, carousel, business_card, pitch_deck, business_plan, logo_brand] } }
+ *       - { in: query, name: action, required: true, schema: { type: string } }
  */
-const CREATIVITY_ACTIONS: Record<string, string | null> = {
-  flyer: null,
-  carousel: null,
-  business_card: 'revision',
-  pitch_deck: 'revision',
-  business_plan: 'revision',
-  logo_brand: 'logo_relaunch',
+const CREATIVITY_UNITS: Record<string, number> = {
+  flyer: COMMUNICATION_PRICES.flyer,
+  carousel: COMMUNICATION_PRICES.carousel,
 };
 router.get('/creativity/:projectId', authenticate, async (req: Request, res: Response) => {
   const action = String(req.query.action || '');
-  if (!(action in CREATIVITY_ACTIONS)) {
+  const userId = (req as any).user!.uid as string;
+  const projectId = String(req.params.projectId);
+
+  if (isDeliverable(action)) {
+    // Générer ne se paie jamais au cran : une esquisse est gratuite, une version finale a été
+    // payée au déblocage. Ultra ne force les modèles les plus puissants qu'en version Signature
+    // (débloquée à part, +1 000 F) ; sinon la génération tourne au cran High.
+    const owned = await ownershipService.isOwned(userId, projectId, action);
+    res.json({
+      action,
+      mode: owned ? 'final' : 'draft',
+      owned,
+      unlockPriceXaf: DELIVERABLES[action].priceXaf,
+      signaturePriceXaf: SIGNATURE_PRICE_XAF,
+      baseCost: 0,
+      costs: Object.fromEntries(CREATIVITY_LEVELS.map((level) => [level, 0])),
+    });
+    return;
+  }
+
+  const unit = CREATIVITY_UNITS[action];
+  if (unit === undefined) {
     res.status(400).json({ error: 'unknown_action' });
     return;
   }
-  const repeat = CREATIVITY_ACTIONS[action];
-  const base = repeat
-    ? await firstThenRevision('business', action, repeat)(req as any)
-    : { action, cost: creditCost('business', action) };
+  const offer = (await entitlementsService.resolve(userId)).offer;
+  const price = offer.croissance ? 0 : unit;
   res.json({
-    action: base.action,
-    baseCost: base.cost,
-    costs: Object.fromEntries(CREATIVITY_LEVELS.map((level) => [level, creativityCost(base.cost, level)])),
+    action,
+    mode: offer.croissance ? 'included' : 'paid',
+    baseCost: price,
+    costs: Object.fromEntries(CREATIVITY_LEVELS.map((level) => [level, price])),
   });
 });
+
+// ============================================
+// PORTEFEUILLE ET OFFRES
+// ============================================
+
+// Les prix du modèle, publics comme `/pricing` : la landing les affiche sans connexion.
+router.get('/offers', (req: Request, res: Response) => offerController.getOffers(req, res));
+
+/**
+ * @openapi
+ * /billing/wallet:
+ *   get:
+ *     tags: [Billing]
+ *     summary: Portefeuille en francs, forfaits actifs, droits prépayés et relevé
+ *     security: [{ bearerAuth: [] }]
+ */
+router.get('/wallet', authenticate, (req: Request, res: Response) => offerController.getWallet(req as any, res));
+
+/**
+ * @openapi
+ * /billing/offers/buy:
+ *   post:
+ *     tags: [Billing]
+ *     summary: Achète une offre avec le portefeuille
+ *     description: >
+ *       `kind` : pass (croissance, entreprise, createur), pack (lancement, lancement_domaine,
+ *       a_plusieurs), unlock (projectId + deliverable, tier final|signature),
+ *       icode_project_pass, icode_pack_100, domain. Un solde insuffisant répond 402 avec la
+ *       recharge (`topupXaf`) qui couvre le manque.
+ *     security: [{ bearerAuth: [] }]
+ */
+router.post('/offers/buy', authenticate, checkoutLimit, (req: Request, res: Response) =>
+  offerController.buy(req as any, res)
+);
+
+// iCode : le projet est-il possédé (Pass Projet, forfait, bêta) ? Lu par l'atelier AppGen.
+router.get('/access/appgen/:projectId', authenticate, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user!.uid as string;
+    const entitlements = await entitlementsService.resolve(userId);
+    const unlocked = entitlements.beta.active || (await entitlementsService.hasProjectAccess(userId, String(req.params.projectId)));
+    res.json({ unlocked, projectPassVouchers: entitlements.offer.projectPassVouchers, modifications: entitlements.offer.modifications });
+  } catch {
+    res.status(500).json({ error: 'internal_error' });
+  }
+});
+
+router.get('/projects/:projectId/ownership', authenticate, (req: Request, res: Response) =>
+  offerController.getOwnership(req as any, res)
+);
+
+router.post('/codes/redeem', authenticate, checkoutLimit, (req: Request, res: Response) =>
+  offerController.redeemCode(req as any, res)
+);
+router.get('/codes', authenticate, (req: Request, res: Response) => offerController.listCodes(req as any, res));
+
+router.post('/domains/order', authenticate, checkoutLimit, (req: Request, res: Response) =>
+  offerController.orderDomain(req as any, res)
+);
+router.get('/domains', authenticate, (req: Request, res: Response) => offerController.listDomains(req as any, res));
+
+// Compteurs iDeploy : une application = un compteur, payé au jour depuis le portefeuille.
+router.get('/deploy/meters', authenticate, (req: Request, res: Response) => offerController.listMeters(req as any, res));
+router.put('/deploy/meters/:appUuid', authenticate, (req: Request, res: Response) =>
+  offerController.configureMeter(req as any, res)
+);
+router.post('/deploy/meters/:appUuid/wake', authenticate, (req: Request, res: Response) =>
+  offerController.wakeMeter(req as any, res)
+);
 
 /**
  * @openapi
@@ -386,6 +495,19 @@ router.post('/internal/credits/adjust', verifyApiKey, (req: Request, res: Respon
   billingController.internalAdjustCredits(req, res)
 );
 
+// --- Quotas d'usage ----------------------------------------------------------
+//
+// Les limites se règlent dans les réglages (`usageQuotas`, PUT /internal/settings) ;
+// ici, l'état d'un compte et la remise à zéro de ses compteurs.
+
+router.get('/internal/quotas/:userId', verifyApiKey, (req: Request, res: Response) =>
+  billingController.internalGetUserQuotas(req, res)
+);
+
+router.post('/internal/quotas/reset', verifyApiKey, (req: Request, res: Response) =>
+  billingController.internalResetQuotas(req, res)
+);
+
 // --- Synchronisation iDeploy -----------------------------------------------
 //
 // Un plan payé ici doit arriver dans une autre base. Quand la propagation
@@ -418,4 +540,21 @@ router.get('/internal/pricing/history', verifyApiKey, (req: Request, res: Respon
 );
 
 export { router as billingRoutes };
+// Modèle « au portefeuille » : codes, domaines, compteurs.
+router.post('/internal/codes', verifyApiKey, (req: Request, res: Response) =>
+  offerController.internalGenerateCodes(req, res)
+);
+router.get('/internal/codes/agents/:agentId', verifyApiKey, (req: Request, res: Response) =>
+  offerController.internalAgentReport(req, res)
+);
+router.get('/internal/domains', verifyApiKey, (req: Request, res: Response) =>
+  offerController.internalListDomains(req, res)
+);
+router.post('/internal/domains/:orderId/settle', verifyApiKey, (req: Request, res: Response) =>
+  offerController.internalSettleDomain(req, res)
+);
+router.post('/internal/meters/run', verifyApiKey, (_req: Request, res: Response) =>
+  offerController.internalRunMeters(_req, res)
+);
+
 export default router;

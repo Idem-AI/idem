@@ -5,9 +5,9 @@
  * acceptée), la validation des débits (actions d'iVision seulement, montant borné) et le
  * barème servi (celui d'IDEM, le même que ses routes).
  */
+import { COMMUNICATION_PRICES } from '../models/offer.model';
 import express from 'express';
 import http from 'http';
-import { BUSINESS_CREDIT_COSTS } from '../models/billing.model';
 
 let failures = 0;
 const check = (label: string, ok: boolean, detail = '') => {
@@ -38,7 +38,15 @@ const check = (label: string, ok: boolean, detail = '') => {
     check('fausse clé : 403', (await call('GET', '/billing/prices', 'nope')).status === 403);
     check('la clé d’administration n’ouvre pas la passerelle', (await call('GET', '/billing/prices', 'admin-key')).status === 403);
     const prices = await call('GET', '/billing/prices', 'service-key');
-    check(`barème d'IDEM servi (vidéo ${prices.body?.motion_video}, visuel ${prices.body?.flyer})`, prices.status === 200 && prices.body.motion_video === BUSINESS_CREDIT_COSTS.motion_video && prices.body.flyer === BUSINESS_CREDIT_COSTS.flyer && prices.body.creativity?.ultra === 2);
+    check(
+      `barème d'IDEM servi en francs (vidéo ${prices.body?.motion_video}, export visuel ${prices.body?.export_visual}, plan filmé ${prices.body?.ai_clip})`,
+      prices.status === 200 &&
+        prices.body.motion_video === COMMUNICATION_PRICES.motion_video &&
+        prices.body.export_visual === COMMUNICATION_PRICES.flyer &&
+        prices.body.export_video === COMMUNICATION_PRICES.motion_video &&
+        prices.body.ai_clip === COMMUNICATION_PRICES.ai_clip &&
+        prices.body.creativity?.ultra === 1
+    );
     check('débit d’une action hors iVision refusé', (await call('POST', '/billing/charge', 'service-key', { userId: 'u', action: 'logo_brand', cost: 5 })).status === 400);
     check('débit démesuré refusé', (await call('POST', '/billing/charge', 'service-key', { userId: 'u', action: 'motion_video', cost: 1e6 })).status === 400);
     check('débit sans utilisateur refusé', (await call('POST', '/billing/charge', 'service-key', { action: 'flyer', cost: 2 })).status === 400);

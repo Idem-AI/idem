@@ -266,6 +266,7 @@ const CreditLedgerEntrySchema = new Schema<CreditLedgerEntryDocument>(
     expiresAt: { type: Date },
     expiredAt: { type: Date },
     note: { type: String },
+    capKey: { type: String },
     day: { type: String, required: true },
   },
   { timestamps: true, collection: 'credit_ledger' }
@@ -292,6 +293,9 @@ CreditLedgerEntrySchema.index({ userId: 1, engine: 1, createdAt: -1 });
 // Consommation par période, moteur et livrable (analyse).
 CreditLedgerEntrySchema.index({ day: 1, engine: 1, reason: 1 });
 CreditLedgerEntrySchema.index({ action: 1, day: 1 });
+
+// Ce qui a été payé sous un plafond (Kit d'un projet, forfait du mois).
+CreditLedgerEntrySchema.index({ userId: 1, engine: 1, capKey: 1 }, { sparse: true, name: 'cap_spend' });
 
 // Crédits consommés par projet.
 CreditLedgerEntrySchema.index({ projectId: 1, createdAt: -1 });

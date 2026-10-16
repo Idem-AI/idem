@@ -10,8 +10,7 @@ import {
   updateBusinessCardHolderController,
 } from '../controllers/businessCard.controller';
 import { authenticate } from '../services/auth.service';
-import { checkQuota } from '../middleware/quota.middleware';
-import { firstThenRevision, requireCredits, withCreativity } from '../middleware/billing.middleware';
+import { firstThenRevision, requireCredits, withCreativity, requireOwnership } from '../middleware/billing.middleware';
 
 export const businessCardRoutes = Router();
 
@@ -46,7 +45,6 @@ businessCardRoutes.post(
   `/${resourceName}/:projectId/generate`,
   authenticate,
   extendedTimeout,
-  checkQuota,
   // 10 crédits pour le modèle de carte ; le régénérer coûte une révision.
   requireCredits('business', 'business_card', {
     resolve: withCreativity('business', 'business_card', firstThenRevision('business', 'business_card', 'revision')),
@@ -80,7 +78,6 @@ businessCardRoutes.post(
   `/${resourceName}/:projectId/sections/:sectionId/ai-edit`,
   authenticate,
   extendedTimeout,
-  checkQuota,
   requireCredits('business', 'revision'),
   aiEditBusinessCardSectionController
 );
@@ -140,6 +137,7 @@ businessCardRoutes.delete(
 businessCardRoutes.get(
   `/${resourceName}/:projectId/holders/:holderId/render`,
   authenticate,
+  requireOwnership('business_card'),
   extendedTimeout,
   renderBusinessCardController
 );

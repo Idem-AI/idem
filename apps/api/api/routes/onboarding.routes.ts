@@ -4,7 +4,7 @@ import {
   parseOnboardingAnswerController,
 } from '../controllers/onboarding.controller';
 import { authenticate } from '../services/auth.service';
-import { checkQuota } from '../middleware/quota.middleware';
+import { requireQuota } from '../middleware/usage-quota.middleware';
 
 export const onboardingRoutes = Router();
 
@@ -12,7 +12,7 @@ export const onboardingRoutes = Router();
 onboardingRoutes.post(
   '/onboarding/questions',
   authenticate,
-  checkQuota,
+  requireQuota('assist', { envelope: 'onboarding' }),
   generateOnboardingQuestionsController
 );
 
@@ -20,6 +20,6 @@ onboardingRoutes.post(
 onboardingRoutes.post(
   '/onboarding/parse',
   authenticate,
-  checkQuota,
+  requireQuota('assist', { envelope: 'onboarding' }),
   parseOnboardingAnswerController
 );
