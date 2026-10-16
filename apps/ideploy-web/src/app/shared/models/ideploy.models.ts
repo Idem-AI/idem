@@ -231,6 +231,10 @@ export interface Application {
   dockerfile_target_build?: string | null;
   /** Patterns of the files a push must touch to redeploy this application. */
   watch_paths?: string | null;
+  /** Nixpacks commands; empty: detected. In a monorepo, they pick the application. */
+  install_command?: string | null;
+  build_command?: string | null;
+  start_command?: string | null;
   status: string | null;
   link?: string | null;
   fqdn?: string | null;
@@ -689,6 +693,8 @@ export interface DetectedFramework {
 export interface ManifestDirectory {
   dir: string;
   manifestFile: string;
+  /** The application's framework, when recognised ("Next.js", "Spring Boot"). */
+  framework?: string;
 }
 
 /**

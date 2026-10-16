@@ -90,6 +90,8 @@ describe('a build that fails', () => {
 
     const { deploymentUuid, outcome } = await run(teamId, app);
     await expect(outcome).rejects.toThrow(/failed/);
+    // Run once: a failing build is not retried.
+    expect(ssh.calls.filter((c) => /nixpacks build|docker build/.test(c.command)).length).toBe(1);
 
     // Built in its own release; the application's directory was never wiped,
     // and nothing was brought up or down.

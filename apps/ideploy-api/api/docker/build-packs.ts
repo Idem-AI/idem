@@ -72,6 +72,10 @@ export interface BuildContext {
    * produces are named after it, so the build must use the one `up` will.
    */
   composeProject?: string;
+  /** From the build plan: `NIXPACKS_NODE_VERSION`, `NIXPACKS_JDK_VERSION`. The user's own build variables win. */
+  nixpacksVariables?: Record<string, string>;
+  /** Node major for the static build container (default 20). */
+  nodeVersion?: string | null;
 }
 
 export interface BuildStep {
@@ -100,6 +104,11 @@ export interface BuildPlan {
 export function buildDirectory(context: BuildContext): string {
   const base = (context.baseDirectory ?? '').replace(/^\.?\/+|\/+$/g, '');
   return base ? `${context.srcDir}/${base}` : context.srcDir;
+}
+
+/** `node:<major>-slim` (glibc: native modules build as on a developer's machine). */
+function nodeImageTag(version: string | null | undefined): string {
+  return /^\d+$/.test(version ?? '') ? `${version}-slim` : '20-slim';
 }
 
 /** Wrap a value for safe use as a single shell argument. */
@@ -136,6 +145,28 @@ export function dockerfilePath(location: string | null | undefined): string {
   return p || 'Dockerfile';
 }
 
+/** Build arguments Docker provides itself: never reported as missing. */
+const PREDEFINED_ARGS = [
+  'TARGETPLATFORM', 'TARGETOS', 'TARGETARCH', 'TARGETVARIANT', 'BUILDPLATFORM', 'BUILDOS', 'BUILDARCH', 'BUILDVARIANT',
+  'HTTP_PROXY', 'HTTPS_PROXY', 'FTP_PROXY', 'NO_PROXY', 'ALL_PROXY', 'http_proxy', 'https_proxy', 'ftp_proxy', 'no_proxy', 'all_proxy',
+];
+
+/**
+ * Shell that names the `ARG`s the Dockerfile declares without a default and
+ * nobody provides. A monorepo's Dockerfile often picks the app to build from
+ * one (`ARG APP` → `turbo prune $APP`): without it the build fails on an
+ * obscure error. Said first, in words; not fatal (an ARG may be optional).
+ */
+export function missingArgsCheck(file: string, provided: string[]): string {
+  const known = [...new Set([...provided, ...PREDEFINED_ARGS])].join(' ');
+  return (
+    `missing=""; for a in $(grep -E '^[[:space:]]*ARG[[:space:]]+[A-Za-z_][A-Za-z0-9_]*[[:space:]]*$' ${quote(file)} | awk '{print $2}' | sort -u); do ` +
+    `case " ${known} " in *" $a "*) ;; *) missing="$missing $a" ;; esac; done; ` +
+    `if [ -n "$missing" ]; then echo "⚠ The Dockerfile expects build argument(s)$missing with no default value, and none was given. ` +
+    `If the build needs them (a monorepo picking the app to build, for instance), add them under Variables as build variables." >&2; fi`
+  );
+}
+
 function dockerfilePlan(context: BuildContext): BuildPlan {
   const dir = buildDirectory(context);
   // The base directory is the build context; the Dockerfile may live
@@ -144,6 +175,11 @@ function dockerfilePlan(context: BuildContext): BuildPlan {
   // context, which the shared packages need.
   const file = dockerfilePath(context.dockerfileLocation);
   const target = context.dockerfileTarget ? ` --target ${quote(context.dockerfileTarget)}` : '';
+  // Build variables (is_buildtime) are the Dockerfile's ARGs, as on every
+  // platform: they were passed to nixpacks only, so `ARG APP` stayed empty.
+  const buildEnv = context.buildEnv ?? [];
+  const buildArgs = buildEnv.map((pair) => ` --build-arg ${quote(pair)}`).join('');
+  const provided = buildEnv.map((pair) => pair.split('=')[0]);
   return {
     pack: 'dockerfile',
     runtime: 'image',
@@ -156,7 +192,8 @@ function dockerfilePlan(context: BuildContext): BuildPlan {
         command:
           `cd ${quote(dir)} && ` +
           `{ test -f ${quote(file)} || { echo ${quote(`No Dockerfile found at ${file} (build context ${dir}).`)} >&2; exit 1; }; } && ` +
-          `docker build -f ${quote(file)}${target} -t ${quote(context.imageTag)} .`,
+          `{ ${missingArgsCheck(file, provided)}; } && ` +
+          `docker build -f ${quote(file)}${target}${buildArgs} -t ${quote(context.imageTag)} .`,
       },
     ],
   };
@@ -182,10 +219,14 @@ function dockerfilePlan(context: BuildContext): BuildPlan {
  */
 function nixpacksPlan(context: BuildContext): BuildPlan {
   const dir = buildDirectory(context);
+  const ownKeys = new Set((context.buildEnv ?? []).map((pair) => pair.split('=')[0]));
   const env = [
     context.installCommand ? `NIXPACKS_INSTALL_CMD=${quote(context.installCommand)}` : '',
     context.buildCommand ? `NIXPACKS_BUILD_CMD=${quote(context.buildCommand)}` : '',
     context.startCommand ? `NIXPACKS_START_CMD=${quote(context.startCommand)}` : '',
+    ...Object.entries(context.nixpacksVariables ?? {})
+      .filter(([k]) => /^NIXPACKS_[A-Z_]+$/.test(k) && !ownKeys.has(k))
+      .map(([k, v]) => `${k}=${quote(v)}`),
   ]
     .filter(Boolean)
     .join(' ');
@@ -205,6 +246,9 @@ function nixpacksPlan(context: BuildContext): BuildPlan {
         command:
           `cd ${quote(dir)} && ` +
           `{ command -v nixpacks >/dev/null || { echo "nixpacks is not installed on this server — run its setup step." >&2; exit 1; }; } && ` +
+          // A wrapper committed without its executable bit fails with
+          // "Permission denied"; this is the server's own copy of the code.
+          `{ for w in gradlew mvnw; do [ -f "$w" ] && chmod +x "$w"; done; true; } && ` +
           `${env ? env + ' ' : ''}nixpacks build . --out .${buildEnvFlags ? ' ' + buildEnvFlags : ''}`,
       },
       {
@@ -239,7 +283,7 @@ function staticPlan(context: BuildContext): BuildPlan {
     steps.push({
       label: 'Building the site',
       command:
-        `cd ${quote(dir)} && docker run --rm ${envFlags}-v ${quote(dir)}:/app -w /app node:20-alpine ` +
+        `cd ${quote(dir)} && docker run --rm ${envFlags}-v ${quote(dir)}:/app -w /app node:${nodeImageTag(context.nodeVersion)} ` +
         `sh -lc ${quote(`${install} && ${build}`)}`,
     });
   }

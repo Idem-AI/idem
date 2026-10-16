@@ -33,6 +33,10 @@ import { planBuild, toBuildPack, buildDirectory } from '../docker/build-packs';
 import { loadLabelContext, buildApplicationLabels } from '../services/application-labels.service';
 import { writeFirewallFile } from '../services/firewall-file.service';
 import { applyRoutes } from '../services/routes-file.service';
+import { monorepoHint, monorepoProbeCommand, parseMonorepoProbe } from '../docker/monorepo-hint';
+import { analyzeRepository, describePlan, parseSnapshot, snapshotCommand, BuildPlanResult } from '../build-plan';
+import { joinPath, relativeTo } from '../build-plan/repo-files';
+import { explainFailure } from '../build-plan/failures';
 import * as appService from '../services/application.service';
 import * as envVarService from '../services/env-var.service';
 import * as serverService from '../services/server.service';
@@ -474,21 +478,41 @@ async function deploy(
     }
 
     const baseDirectory = await resolveBaseDirectory(server, key, srcDir, app.base_directory, log);
-    const pack = toBuildPack(app.build_pack);
+    let pack = toBuildPack(app.build_pack);
+
+    // The build plan, read from the code: which application, which runtime
+    // version, which commands. Docker and compose builds follow their own files.
+    const overrides = { install: app.install_command, build: app.build_command, start: app.start_command };
+    const read: { plan: BuildPlanResult | null } = { plan: null };
+    if (pack === 'nixpacks' || pack === 'static') {
+      await streamStep(deploymentUuid, 'Reading the code', async () => {
+        read.plan = await readBuildPlan(server, key, srcDir, baseDirectory, overrides, log);
+      });
+    }
+    const used = read.plan?.language ? read.plan : null;
+    // A site with nothing to keep running is served as files (nixpacks would
+    // look for a start command and fail).
+    if (used?.output === 'static' && pack === 'nixpacks' && !app.start_command) pack = 'static';
+    // The user's commands run in their Root directory, as they always did,
+    // even when the build itself runs from the monorepo root.
+    const appRel = used ? relativeTo(used.buildRoot, used.appDir) : '';
+    const own = (command: string | null | undefined) => (command ? (appRel ? `cd ${shellQuote(appRel)} && ${command}` : command) : null);
     const buildContext = {
       srcDir,
       workdir: releaseDir,
       imageTag,
-      baseDirectory,
-      installCommand: app.install_command,
-      buildCommand: app.build_command,
-      startCommand: app.start_command,
-      publishDirectory: app.publish_directory,
+      baseDirectory: used ? used.buildRoot : baseDirectory,
+      installCommand: own(app.install_command) ?? used?.install ?? null,
+      buildCommand: own(app.build_command) ?? used?.build ?? null,
+      startCommand: own(app.start_command) ?? used?.start ?? null,
+      publishDirectory: app.publish_directory ? joinPath(appRel, app.publish_directory) : used?.publishDirectory ?? null,
       port,
       buildEnv,
       composeProject: project,
       dockerfileLocation: app.dockerfile_location,
       dockerfileTarget: app.dockerfile_target_build,
+      nixpacksVariables: used?.nixpacksEnv,
+      nodeVersion: used?.runtimeVersion?.name === 'Node' ? used.runtimeVersion.version : null,
     };
     const plan = planBuild(pack, buildContext);
 
@@ -513,10 +537,36 @@ async function deploy(
 
     for (const step of plan.steps) {
       await streamStep(deploymentUuid, step.label, async () => {
-        const r = await executeRemoteCommand(server, key, step.command, {
-          onData: (c) => log(c),
-        });
-        if (r.exitCode !== 0) throw new Error(`${step.label} failed: ${(r.stderr || r.stdout).slice(0, 400)}`);
+        // A build that fails fails the same way again: no retry (the SSH
+        // retries are for a dropped connection). It used to run three times.
+        const run = () => executeRemoteCommand(server, key, step.command, { onData: (c) => log(c), noRetry: true });
+        let r = await run();
+        // A registry timeout passes on a second try; nothing else does.
+        if (r.exitCode !== 0 && explainFailure(`${r.stdout}\n${r.stderr}`)?.retryable) {
+          await log('\n↻ A download failed (network). Retrying this step once.');
+          r = await run();
+        }
+        if (r.exitCode !== 0) {
+          const output = r.stderr || r.stdout;
+          // The missing-ARG hint, printed before the build, leads the error.
+          let hint = /⚠ The Dockerfile expects build argument\(s\)[^\n]*/.exec(output)?.[0];
+          const known = explainFailure(`${r.stdout}\n${r.stderr}`);
+          if (!hint && known) {
+            await log(`\n✗ ${known.explanation}`);
+            hint = known.explanation;
+          }
+          // A monorepo root: nixpacks cannot pick the application. Say which
+          // ones exist and the commands to set.
+          if (!hint && /No start command could be found/.test(`${r.stdout}\n${r.stderr}`)) {
+            const probe = await executeRemoteCommand(server, key, monorepoProbeCommand(buildDirectory(buildContext)), { noRetry: true });
+            const monorepo = probe.exitCode === 0 ? monorepoHint(parseMonorepoProbe(probe.stdout)) : null;
+            if (monorepo) {
+              await log(`\n${monorepo}`);
+              hint = monorepo.split('\n')[0];
+            }
+          }
+          throw new Error(`${step.label} failed: ${hint ? `${hint} — ` : ''}${output.slice(-400)}`);
+        }
       });
     }
 
@@ -744,6 +794,41 @@ async function deploy(
 /** A root directory as the build reads it: no leading `./` or `/`, no trailing `/`. */
 export function normaliseBaseDirectory(raw: string | null | undefined): string {
   return (raw ?? '').trim().replace(/^\.?\/+|\/+$/g, '').replace(/^\.$/, '');
+}
+
+/**
+ * The build plan of the checkout: read once over SSH, decided here, written
+ * to the log. A blocking issue (a monorepo with several applications and none
+ * picked, no way to start the app…) stops the deployment before the build,
+ * with what to do. Unreadable: null, and the build engine decides alone.
+ */
+async function readBuildPlan(
+  server: Parameters<typeof executeRemoteCommand>[0],
+  key: Parameters<typeof executeRemoteCommand>[1],
+  srcDir: string,
+  appDir: string,
+  overrides: { install?: string | null; build?: string | null; start?: string | null },
+  log: (line: string) => Promise<void>
+): Promise<BuildPlanResult | null> {
+  const r = await executeRemoteCommand(server, key, snapshotCommand(srcDir), { noRetry: true });
+  if (r.exitCode !== 0 && !r.stdout.includes('@@F ')) {
+    await log('⚠ The code could not be read before the build: the build engine decides alone.');
+    return null;
+  }
+  const snapshot = parseSnapshot(r.stdout);
+  const plan = await analyzeRepository(snapshot.files, appDir, {
+    overrides,
+    resources: { memoryAvailableMb: snapshot.memoryAvailableMb, diskFreeMb: snapshot.diskFreeMb },
+  });
+  const effective = {
+    install: overrides.install ? `${overrides.install} (yours)` : null,
+    build: overrides.build ? `${overrides.build} (yours)` : null,
+    start: overrides.start ? `${overrides.start} (yours)` : null,
+  };
+  await log(`\n──► Build plan, read from the code\n${describePlan(plan, effective).map((l) => `  ${l}`).join('\n')}`);
+  const blocking = plan.issues.find((i) => i.severity === 'blocking');
+  if (blocking) throw new Error(blocking.message);
+  return plan;
 }
 
 /**
