@@ -93,7 +93,7 @@ function hasText(n: MotionNode): boolean {
 }
 
 /** Les propriétés communes d'un nœud (position, transformation, ombre, flou). */
-function common(n: MotionNode, scope: ExprScope, e: Emitter, key: string | undefined, inStack: boolean, offset?: { x: string; y: string }, skipPosition = false, topText = false): string[] {
+function common(n: MotionNode, scope: ExprScope, e: Emitter, key: string | undefined, inStack: boolean, offset?: { x: string; y: string }, skipPosition = false): string[] {
   const out: string[] = [];
   if (!inStack && !skipPosition) {
     const x = n.x !== undefined ? L(n.x, scope, 'x') : '0';
@@ -108,8 +108,6 @@ function common(n: MotionNode, scope: ExprScope, e: Emitter, key: string | undef
   else if (n.scale !== undefined) out.push(`scale={${num(n.scale)}}`);
   if (n.opacity !== undefined) out.push(`opacity={${num(n.opacity)}}`);
   if (n.z !== undefined) out.push(`zIndex={${num(n.z)}}`);
-  // Un texte (ou une pile de textes) posé dans la scène passe devant les formes et les images : un décor ne le cache jamais.
-  else if (topText) out.push(`zIndex={500}`);
   if (n.skewX !== undefined) out.push(`skewX={${num(n.skewX)}}`);
   if (n.blur !== undefined || (key && e.blurred.has(key))) out.push(`filters={[blur(${num(n.blur ?? 0)} * U)]}`);
   if (n.shadow) {
@@ -149,13 +147,13 @@ function nodeJsx(n: MotionNode, e: Emitter, place: Place): string {
   const key = part ? undefined : n.id ? safeId(n.id) : undefined;
   // Une pile posée dans la scène a toujours une référence : le compilateur la garde dans le cadre (KEEP).
   const ref = key ? `r_${key}` : part ? e.uid('rr') : place.top && n.type === 'stack' ? e.uid('rs') : undefined;
-  const props = common(n, scope, e, key, inStack, place.offset, n.type === 'text' && !!place.top && !inStack, !!place.top && (n.type === 'text' || (n.type === 'stack' && hasText(n))));
+  const props = common(n, scope, e, key, inStack, place.offset, n.type === 'text' && !!place.top && !inStack);
   const register = (tsType: string, inner?: { name: string; tsType: string }) => {
     if (!ref) return;
     e.refs.push(`const ${ref} = createRef<${tsType}>();`);
     if (inner) e.refs.push(`const ${inner.name} = createRef<${inner.tsType}>();`);
     if (part) e.post.push(`${part.list}.push({ n: ${ref}(), ${inner ? `i: ${inner.name}(), ` : ''}t: '${n.type}' });`);
-    else if (key) e.targets.set(n.id!, { handles: `[{ n: ${ref}(), ${inner ? `i: ${inner.name}(), ` : ''}t: '${n.type}' }]`, type: n.type });
+    else if (key) e.targets.set(n.id!, { handles: `[{ n: ${ref}(), ${inner ? `i: ${inner.name}(), ` : ''}t: '${n.type}'${place.top && n.type === 'stack' && !hasMedia(n) ? ', top: true' : ''} }]`, type: n.type });
   };
   const refAttr = ref ? [`ref={${ref}}`] : [];
   const kids = (children: MotionNode[] | undefined, stack: boolean) => (children || []).map((c) => nodeJsx(c, e, { scope, inStack: stack })).join('\n');
@@ -502,7 +500,7 @@ const RUNTIME = `
   const TW = (h: any, p: string, v: any, d: number, e: any) => { const s = SIG(h, p); return s ? s(v, d, e) : waitFor(0); };
   const INSIDE = (h: any, goal: any) => {
     try {
-      const n = h.n, w = n.width(), hh = n.height(), off = n.offset();
+      const n = h.n, size = n.computedSize ? n.computedSize() : { x: n.width(), y: n.height() }, w = size.x, hh = size.y, off = n.offset();
       if ('x' in goal && w <= A.width) goal.x = Math.min(A.right - ((1 - off.x) / 2) * w, Math.max(A.left + ((1 + off.x) / 2) * w, goal.x));
       if ('y' in goal && hh <= A.height) goal.y = Math.min(A.bottom - ((1 - off.y) / 2) * hh, Math.max(A.top + ((1 + off.y) / 2) * hh, goal.y));
     } catch {
@@ -708,10 +706,11 @@ export function compileProgram(program: MotionProgram, opts: { warnings?: string
   // Ce qui se révèle doit avoir fini avant la coupe, avec un temps pour lire (jusqu'à 1,6 s, 30 % de la scène).
   const AVAIL = Math.max(0.4, D - E - Math.min(1.6, D * 0.3));
   const TS = Math.min(1, AVAIL / REVEAL);
-  const DUR = (k: number) => (TL[k][4] === 2 ? TL[k][1] : AMB(TL[k]) ? Math.max(0.05, D - E - TL[k][0] * TS) : TL[k][1] * TS);
+  // Une sortie finale dure 0,8 s au plus : une fin trop longue laisse un écran vide.
+  const DUR = (k: number) => (TL[k][4] === 2 ? Math.min(0.8, TL[k][1]) : AMB(TL[k]) ? Math.max(0.05, D - E - TL[k][0] * TS) : TL[k][1] * TS);
   // Une sortie FINALE (ce qui disparaît à la fin, rien n'entre après) reste calée sur la fin de la scène : la mise à
   // l'échelle ne l'avance jamais au milieu (la scène finirait vide).
-  const AT = (k: number) => (TL[k][4] === 2 ? Math.max(REVEAL * TS, D - E - TL[k][1] - TL[k][2] * Math.max(0, TL[k][3] - 1) - 0.04) : TL[k][0] * TS);`;
+  const AT = (k: number) => (TL[k][4] === 2 ? Math.max(REVEAL * TS, D - E - Math.min(0.8, TL[k][1]) - TL[k][2] * Math.max(0, TL[k][3] - 1) - 0.04) : TL[k][0] * TS);`;
   const allWarnings = [...(opts.warnings || []), ...untangled];
 
   const header = `/* ${PROGRAM_MARK} v${COMPILER_VERSION}\n${JSON.stringify(program).replace(/\*\//g, '*\\/')}\n*/`;

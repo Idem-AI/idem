@@ -1,25 +1,25 @@
-import { NgOptimizedImage } from '@angular/common';
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 
 import { environment } from '../../../../../environments/environment';
+import { PageArtComponent } from '../../../../shared/components/page-art/page-art';
 
 interface Offer {
   id: string;
   name: string;
   body: string;
-  highlight: boolean;
 }
 
 /**
- * The two ways into a simulation — an existing IDEM project, or an imported
- * business plan — and what the run is billed as.
+ * Les deux portes d'entrée d'une simulation — un projet IDEM existant, ou un
+ * business plan importé — et ce que la course est facturée. Les trois offres
+ * ne sont plus distinguées par une surface colorée : mettre l'une en avant par
+ * la couleur recommande un achat au lieu de décrire trois choix.
  */
 @Component({
   selector: 'app-simulation-entry',
-  standalone: true,
-  imports: [NgOptimizedImage],
+  imports: [PageArtComponent],
   templateUrl: './simulation-entry.html',
-  styleUrl: './simulation-entry.css',
+  styleUrls: ['../../../../shared/styles/editorial-page.css', './simulation-entry.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SimulationEntry {
@@ -31,19 +31,16 @@ export class SimulationEntry {
       id: 'run',
       name: $localize`:@@simulation.offers.run.name:Simulation`,
       body: $localize`:@@simulation.offers.run.body:The scenarios, the deciding factors, the major risks and the viability index.`,
-      highlight: false,
     },
     {
       id: 'pack',
       name: $localize`:@@simulation.offers.pack.name:Simulation + report`,
       body: $localize`:@@simulation.offers.pack.body:The simulation and its full report, cheaper than buying both separately.`,
-      highlight: true,
     },
     {
       id: 'report',
       name: $localize`:@@simulation.offers.report.name:Full report`,
       body: $localize`:@@simulation.offers.report.body:The detailed analysis and recommendations, for a simulation you already ran.`,
-      highlight: false,
     },
   ];
 }

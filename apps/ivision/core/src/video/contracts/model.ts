@@ -366,7 +366,7 @@ export interface FilmScene {
    */
   layout?: string[];
   /** Textes mal affichés au dernier contrôle et leur dernier recours : encre lisible (couleur réelle du fond) ou aplat. */
-  contrast?: { text: string; kind?: 'ink' | 'plate'; bg?: number[]; ink?: string }[];
+  contrast?: { text: string; kind?: 'ink' | 'plate' | 'front'; bg?: number[]; ink?: string }[];
   /** Vignette de la scène (image rendue au dernier contrôle). */
   thumbnail?: string;
 }

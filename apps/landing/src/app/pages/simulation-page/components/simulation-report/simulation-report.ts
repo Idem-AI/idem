@@ -1,13 +1,12 @@
 import { NgOptimizedImage } from '@angular/common';
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 
-/** The table of contents of the deliverable, and where it lands. */
+/** Le sommaire du livrable, et l'endroit où il arrive. */
 @Component({
   selector: 'app-simulation-report',
-  standalone: true,
   imports: [NgOptimizedImage],
   templateUrl: './simulation-report.html',
-  styleUrl: './simulation-report.css',
+  styleUrls: ['../../../../shared/styles/editorial-page.css', './simulation-report.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SimulationReport {

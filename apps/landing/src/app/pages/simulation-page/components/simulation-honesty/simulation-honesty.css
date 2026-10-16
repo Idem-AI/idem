@@ -1,3 +1,18 @@
-:host {
-  display: block;
+/* Ce que le simulateur ne promet pas — ce qui n'appartient qu'à cette section. */
+
+/* Un paragraphe par rangée, à la mesure du corps de texte. Le filet d'accent
+   vertical d'avant mettait en valeur un avertissement : un avertissement se
+   lit, il ne se met pas en avant. */
+.sh-para {
+  margin: 0;
+  padding-block: clamp(1.25rem, 2vw, 1.75rem);
+  border-top: 1px solid var(--glass-border-subtle);
+  font-size: clamp(1rem, 1.3vw, 1.125rem);
+  line-height: 1.65;
+  color: var(--color-text-secondary);
+  text-wrap: pretty;
+}
+
+.sh-para:last-of-type {
+  border-bottom: 1px solid var(--glass-border-subtle);
 }

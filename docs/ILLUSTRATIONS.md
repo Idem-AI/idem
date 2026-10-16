@@ -236,6 +236,33 @@ sont des séquences réelles, et leur numéro porte déjà l'information. Les
 listes qui ne sont pas des séquences — valeurs, avantages, fonctions — n'ont ni
 numéro ni icône : une icône qui répète le mot d'à côté est du décor (§ 3).
 
+La page **Simulateur** (`/simulator`) a suivi en octobre 2026. Son héros est
+inchangé — le faisceau de trajectoires est une donnée, pas un décor, et reste
+dans la liste des dessins gardés tels quels — mais les trois halos dégradés qui
+lui servaient de fond ont été retirés, et toutes les autres sections sont
+passées à la trame éditoriale. Les objets viennent du simulateur, donc ils ont
+le même tracé qu'y.
+
+| Page · section | Retenu | Écartés |
+| --- | --- | --- |
+| Simulateur : le mur de facteurs | **plateau d'awalé** (`awale`) — on calcule ses coups avant de semer, et ses graines sont les facteurs | photographie « entrepreneure au travail » sous voile noir |
+| Simulateur : les cinq phases | **échelle dogon** (`ladder`) — une marche à la fois | photographie « réseau d'agents » (décor, elle ne montrait rien du moteur) |
+| Simulateur : les tests de résistance | **kyinie** (`kyinie`), l'ombrelle d'apparat akan — s'abriter des imprévus | photographie de fondatrice ; grenier fermé (dit la réserve, pas l'abri) |
+| Simulateur : les deux entrées | **grenier plein** (`granary-full`) pour un projet IDEM ; **feuillet apporté** (`leaflet-import`) pour un business plan importé | captures de livrables en vignette de carte |
+| Simulateur : l'appel final | **daba** (`daba`) — aller retourner la terre avant de semer, c'est-à-dire vérifier en vrai | photographie « entrepreneurs qui se lancent » sous dégradé noir vers primaire |
+| Accueil : programme bêta | **clé à anneau-bouclier** (`key-shield`) — l'accès premium ; même dessin que l'invitation bêta, ramené au cadre commun | — |
+
+Les deux colonnes de secteurs du simulateur (livraison urbaine / agriculture)
+n'ont **pas** d'illustration : ce qui s'y lit est le contraste entre deux
+listes de facteurs, et une icône par colonne ne ferait que nommer deux fois le
+métier déjà écrit en titre.
+
+L'appel final de l'accueil garde **IDEO**, la mascotte de la marque. C'est une
+exception assumée au « pas de personnage » du § 4 : cette règle vise le
+répertoire au trait de l'interface, pas les objets de marque existants. IDEO
+est un PNG détouré, donc il se pose sans panneau, sans ombre et sans fond — lui
+en remettre un redessinerait le rectangle que le détourage a retiré.
+
 ### Images de partage (Open Graph)
 
 Une image 1200 × 630 par page et par langue, dessinée par l'API

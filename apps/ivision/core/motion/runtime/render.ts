@@ -75,7 +75,7 @@ export function startRender(modules: Record<string, AuthorScene | undefined>, da
       // Tout ce qui se dessine, DANS L'ORDRE DE DESSIN de Motion Canvas (enfants triés par zIndex) : un texte peut
       // alors savoir quelles formes passent par-dessus lui.
       const texts: { text: string; x0: number; y0: number; x1: number; y1: number; group: string; order: number; ink?: number[]; contrast?: number; bg?: number[]; best?: string; bestContrast?: number }[] = [];
-      const shapes: { kind: 'fill' | 'image' | 'line' | 'outline'; x0: number; y0: number; x1: number; y1: number; order: number }[] = [];
+      const shapes: { kind: 'fill' | 'image' | 'line' | 'outline'; x0: number; y0: number; x1: number; y1: number; order: number; segs?: number[][] }[] = [];
       let order = 0;
       const walk = (n: any, harness: boolean, clip: B | null) => {
         const inHarness = harness || (n.zIndex?.() ?? 0) >= 1000;
@@ -94,7 +94,20 @@ export function startRender(modules: Record<string, AuthorScene | undefined>, da
             if (b) shapes.push({ kind: 'image', ...b, order: order++ });
           } else if (n instanceof Line || n instanceof Path) {
             const b = within(curveBox(n), clip);
-            if (b && alphaOf(n.stroke()) > 0.3 && n.lineWidth() > 0 && (n.end?.() ?? 1) - (n.start?.() ?? 0) > 0.2) shapes.push({ kind: alphaOf(n.fill()) > 0.5 ? 'fill' : 'line', ...b, order: order++ });
+            const drawn = (n.end?.() ?? 1) - (n.start?.() ?? 0) > 0.2;
+            // Les segments réels d'une ligne (diagonales comprises) : un trait qui traverse un texte se mesure sur eux.
+            let segs: number[][] | undefined;
+            if (n instanceof Line && drawn) {
+              try {
+                const m = toView.multiply(n.localToWorld());
+                const pts = (n.parsedPoints?.() || []).map((p: any) => m.transformPoint(new DOMPoint(p.x, p.y)));
+                segs = pts.slice(1).map((p: DOMPoint, k: number) => [pts[k].x, pts[k].y, p.x, p.y]);
+              } catch {
+                segs = undefined;
+              }
+            }
+            if (b && alphaOf(n.fill()) > 0.5) shapes.push({ kind: 'fill', ...b, order: order++ });
+            else if (b && alphaOf(n.stroke()) > 0.3 && n.lineWidth() > 0 && drawn) shapes.push({ kind: 'line', ...b, order: order++, ...(segs?.length ? { segs } : {}) });
           } else if (n instanceof Rect || n instanceof Circle || n instanceof Polygon) {
             const b = within(box(n), clip);
             if (b && alphaOf(n.fill()) > 0.5) shapes.push({ kind: 'fill', ...b, order: order++ });

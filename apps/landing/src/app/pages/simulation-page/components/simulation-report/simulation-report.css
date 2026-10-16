@@ -1,3 +1,34 @@
-:host {
-  display: block;
+/* Le rapport — ce qui n'appartient qu'à cette section. */
+
+/* Une ligne de sommaire : son numéro et son intitulé, alignés. */
+.sr-line {
+  display: grid;
+  grid-template-columns: 2.75rem 1fr;
+  align-items: baseline;
+  gap: 1rem;
+  padding-block: 0.875rem;
+  border-top: 1px solid var(--glass-border-subtle);
+  color: var(--color-text-secondary);
+}
+
+.sr-line:last-of-type {
+  border-bottom: 1px solid var(--glass-border-subtle);
+}
+
+.sr-index {
+  font-weight: var(--font-weight-bold);
+  font-variant-numeric: tabular-nums;
+  color: color-mix(in oklch, var(--color-primary-500) 65%, transparent);
+}
+
+/* La capture du rapport, posée dans son cadre. Rien ne la recouvre : un voile
+   noir sur un rendu de produit cache ce qu'on est venu montrer. */
+.sr-shot {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  max-width: 100%;
+  overflow: hidden;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--glass-shadow-lg);
 }

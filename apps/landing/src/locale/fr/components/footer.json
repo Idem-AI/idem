@@ -1,9 +1,6 @@
 {
   "locale": "fr",
   "translations": {
-    "footer.fact.openSource": "Open source · Apache 2.0",
-    "footer.fact.hosted": "Hosted on African servers",
-    "footer.fact.time": "Cameroon",
     "footer.description": "La première plateforme IA open source souveraine d'Afrique. Conçue au Cameroun  pour l'entrepreneuriat technologique panafricain.",
     "footer.aria.github": "Visitez Idem Engine sur GitHub",
     "footer.aria.linkedin": "Visitez Idem Engine sur LinkedIn",

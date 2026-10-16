@@ -21,18 +21,28 @@
    TRAME
    -------------------------------------------------------------------------- */
 
-.ed-page {
+/* La gouttière est posée sur les deux : `.ed-page` l'hérite à toute la page,
+   et `.ed-wrap` la porte aussi pour lui-même. Sans cette seconde déclaration,
+   une section éditoriale employée hors d'une page `.ed-page` — comme les blocs
+   de l'accueil — se retrouvait sans marge latérale, le texte collé au bord. */
+.ed-page,
+.ed-wrap {
   --ed-gutter: 1.25rem;
+}
+
+.ed-page {
   position: relative;
 }
 
 @media (min-width: 640px) {
-  .ed-page {
+  .ed-page,
+  .ed-wrap {
     --ed-gutter: 2rem;
   }
 }
 @media (min-width: 1024px) {
-  .ed-page {
+  .ed-page,
+  .ed-wrap {
     --ed-gutter: 3rem;
   }
 }

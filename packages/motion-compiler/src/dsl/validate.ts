@@ -124,6 +124,7 @@ export function validateProgram(input: unknown, ctx: ValidationContext): Validat
   if (errors.length) return { ok: false, errors, warnings };
 
   const info = new Map<string, NodeInfo>();
+  const dropped = new Set<string>();
   let count = 0;
   const walk = (raw: unknown, where: string, inStack: boolean, scope: { i?: number; n?: number; v?: number }, inRepeat: boolean) => {
     if (++count > MAX_NODES) {
@@ -186,8 +187,20 @@ export function validateProgram(input: unknown, ctx: ValidationContext): Validat
           const key = Object.entries(ctx.values).find(([, v]) => norm(v) === norm(t))![0];
           warnings.push(`${label}.text : texte écrit en clair, remplacé par « $${key} »`);
           n.text = `$${key}`;
-        } else if (!LITERAL_OK.test(t.trim())) errors.push(`${label}.text : un texte s'écrit « $clé » (textes : ${ctx.texts.map((k) => `$${k}`).join(', ') || 'aucun'}) ; seul un signe sans lettre peut être littéral`);
-        if (n.size === 'fit' && n.width === undefined) errors.push(`${label} : size "fit" demande une largeur (width)`);
+        } else if (!LITERAL_OK.test(t.trim()) && inRepeat) errors.push(`${label}.text : un texte s'écrit « $clé » (textes : ${ctx.texts.map((k) => `$${k}`).join(', ') || 'aucun'})`);
+        else if (!LITERAL_OK.test(t.trim())) {
+          // Un texte qui n'est pas un texte de la scène n'est jamais affiché (rien d'inventé) : le nœud est retiré, et c'est dit.
+          warnings.push(`${label}.text : « ${t.slice(0, 40)} » n'est pas un texte de la scène (${ctx.texts.map((k) => `$${k}`).join(', ') || 'aucun'}) : nœud retiré`);
+          n._drop = true;
+          if (typeof n.id === 'string') dropped.add(n.id);
+          return;
+        }
+        // Un espacement très négatif écrase les lettres les unes sur les autres : borné (le resserrement léger reste possible).
+    if (typeof n.letterSpacing === 'number' && n.letterSpacing < -0.3) {
+      warnings.push(`${label}.letterSpacing : ${n.letterSpacing} écraserait les lettres, ramené à -0.3`);
+      n.letterSpacing = -0.3;
+    }
+    if (n.size === 'fit' && n.width === undefined) errors.push(`${label} : size "fit" demande une largeur (width)`);
         if (n.font !== undefined && !['display', 'body'].includes(String(n.font))) errors.push(`${label}.font : display | body`);
         if (n.align !== undefined && !['left', 'center', 'right'].includes(String(n.align))) errors.push(`${label}.align : left | center | right`);
         if (n.split !== undefined) {
@@ -321,6 +334,7 @@ export function validateProgram(input: unknown, ctx: ValidationContext): Validat
       }
       const m = /^([A-Za-z_][\w-]*)(?:\.(\*|\d+))?$/.exec(t);
       const node = m ? info.get(m[1]) : undefined;
+      if (m && !node && dropped.has(m[1])) continue;
       if (!m || !node) {
         errors.push(`${where}.target : « ${t} » n'existe pas (ids : ${[...info.keys()].slice(0, 30).join(', ') || 'aucun'}${[...info.keys()].length > 30 ? '…' : ''})`);
         continue;
@@ -386,7 +400,11 @@ export function validateProgram(input: unknown, ctx: ValidationContext): Validat
       if (!n || typeof n !== 'object') return;
       const o = n as Record<string, unknown>;
       if (o.type === 'text' && typeof o.text === 'string' && o.text.startsWith('$')) {
-        if (used.has(o.text.slice(1))) twice.add(o.text.slice(1));
+        if (used.has(o.text.slice(1))) {
+          twice.add(o.text.slice(1));
+          o._drop = true;
+          if (typeof o.id === 'string') dropped.add(o.id);
+        }
         used.add(o.text.slice(1));
       }
       if (Array.isArray(o.children)) o.children.forEach(scan);
@@ -394,9 +412,29 @@ export function validateProgram(input: unknown, ctx: ValidationContext): Validat
     };
     (p.nodes as unknown[]).forEach(scan);
     // Le même texte affiché par deux nœuds se lit deux fois à l'écran (doublon, écho involontaire).
-    for (const k of twice) errors.push(`« $${k} » est affiché par deux nœuds texte : un texte de la scène ne s'affiche qu'une fois`);
+    for (const k of twice) warnings.push(`« $${k} » était affiché par deux nœuds texte : le second est retiré`);
         const missing = ctx.texts.filter((k) => !used.has(k));
     if (missing.length) warnings.push(`textes de la scène non affichés : ${missing.map((k) => `$${k}`).join(', ')}`);
+  }
+  // Les nœuds retirés (texte inventé, doublon) disparaissent, et les pas qui ne visaient qu'eux avec.
+  if (!errors.length && dropped.size + JSON.stringify(p.nodes).split('"_drop":true').length > 1) {
+    const strip = (list: unknown[]): unknown[] =>
+      list
+        .filter((n) => !(n && typeof n === 'object' && (n as Record<string, unknown>)._drop))
+        .map((n) => {
+          const o = n as Record<string, unknown>;
+          if (o && Array.isArray(o.children)) o.children = strip(o.children);
+          return o;
+        });
+    p.nodes = strip(p.nodes as unknown[]);
+    p.timeline = (p.timeline as Record<string, unknown>[])
+      .map((st) => {
+        if (!st.target) return st;
+        const list = (Array.isArray(st.target) ? st.target : [st.target]).filter((t) => !dropped.has(String(t).split('.')[0]));
+        if (!list.length) return null;
+        return { ...st, target: Array.isArray(st.target) ? list : list[0] };
+      })
+      .filter(Boolean);
   }
   return { ok: !errors.length, errors: [...new Set(errors)].slice(0, 25), warnings: [...new Set(warnings)].slice(0, 25), ...(errors.length ? {} : { program: p as unknown as MotionProgram }) };
 }

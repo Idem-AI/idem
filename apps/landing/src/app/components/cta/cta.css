@@ -1,107 +1,95 @@
-/* CTA component-specific styles with immersive layouts and 3D mockups */
+/* L'appel final de l'accueil — ce qui n'appartient qu'à ce bloc.
+   L'échelle typographique et la trame viennent de
+   `shared/styles/editorial-page.css`. */
 
-.cta-section {
+/* La bande. Elle est seulement rognée horizontalement : c'est ce qui permet à
+   la capture de sortir par la droite sans allonger la page latéralement. Les
+   débordements verticaux, eux, restent visibles. */
+.cta-band {
   position: relative;
-  isolation: isolate;
-  overflow: hidden;
+  overflow-x: clip;
+  border-top: 1px solid var(--glass-border-subtle);
+  padding-block: clamp(5rem, 10vw, 9rem);
 }
 
-/* Centered Gradient Title - reactive to theme */
-.cta-gradient-title {
-  background: linear-gradient(135deg, #ffffff 40%, var(--color-primary) 75%, var(--color-accent) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  text-fill-color: transparent;
-  line-height: 1.15;
+.cta-stage {
+  display: grid;
+  gap: clamp(2.5rem, 5vw, 3.5rem);
 }
 
-html.light .cta-gradient-title {
-  background: linear-gradient(135deg, #0f172a 40%, var(--color-primary) 75%, var(--color-accent) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  text-fill-color: transparent;
+/* Le titre. Il ne reprend pas `ed-display` ni `ed-h2` : à ces corps-là il se
+   cassait en quatre lignes courtes à côté d'IDEO, et une phrase de cinq mots
+   étalée sur quatre lignes se lit moins bien qu'un titre un cran plus petit
+   qui en tient deux. */
+.cta-title {
+  margin: 0;
+  font-weight: var(--font-weight-black);
+  font-size: clamp(1.875rem, 4vw, 3.25rem);
+  line-height: 1.05;
+  text-wrap: balance;
 }
 
-/* Perspective 3D Stacking & Tilting */
-.perspective-container {
-  perspective: 1400px;
+.cta-copy {
+  min-width: 0;
+}
+
+/* La capture : aucun cadre, aucun fond, aucune ombre. Le PNG est détouré, et
+   tout ce qu'on ajouterait derrière lui redessinerait le rectangle que le
+   détourage a justement retiré. */
+.cta-figure {
+  margin: 0;
+  min-width: 0;
+}
+
+.cta-figure > img {
+  display: block;
   width: 100%;
+  height: auto;
 }
 
-.perspective-card {
-  transform: rotateX(12deg) translateY(0);
-  transform-style: preserve-3d;
-  transition:
-    transform 0.6s cubic-bezier(0.16, 1, 0.3, 1),
-    box-shadow 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 
-    var(--glass-shadow),
-    0 0 30px rgba(99, 102, 241, 0.03);
-}
-
-.perspective-card:hover {
-  transform: rotateX(4deg) translateY(-8px);
-  box-shadow: 
-    var(--glass-shadow-lg),
-    0 0 40px rgba(99, 102, 241, 0.08);
-}
-
-.perspective-image {
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
-}
-
-/* Reveal animations for content */
-.reveal-up {
-  opacity: 0;
-  transform: translateY(30px);
-  transition:
-    opacity 0.7s ease-out,
-    transform 0.7s cubic-bezier(0.2, 1, 0.3, 1);
-}
-
-.reveal-left {
-  opacity: 0;
-  transform: translateX(-30px);
-  transition:
-    opacity 0.7s ease-out,
-    transform 0.7s cubic-bezier(0.2, 1, 0.3, 1);
-}
-
-.reveal-right {
-  opacity: 0;
-  transform: translateX(30px);
-  transition:
-    opacity 0.7s ease-out,
-    transform 0.7s cubic-bezier(0.2, 1, 0.3, 1);
-}
-
-:host(.animate-in) .reveal-up,
-:host(.animate-in) .reveal-left,
-:host(.animate-in) .reveal-right {
-  opacity: 1;
-  transform: translate(0);
-}
-
-/* Enhanced floating animation for perspective block */
-@keyframes float-perspective {
-  0% {
-    transform: rotateX(10deg) translateY(0px);
+@media (min-width: 1024px) {
+  /* La bande réserve sa hauteur : c'est elle qui donne sa taille à IDEO, posé
+     en absolu, et non l'inverse. */
+  .cta-band {
+    min-height: clamp(30rem, 40vw, 38rem);
   }
-  50% {
-    transform: rotateX(12deg) translateY(-10px);
-  }
-  100% {
-    transform: rotateX(10deg) translateY(0px);
-  }
-}
 
-.floating-enhanced {
-  animation: float-perspective 8s ease-in-out infinite;
-}
+  .cta-stage {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    column-gap: clamp(2rem, 4vw, 4rem);
+    align-items: start;
+  }
 
-/* Hover pauses floating animation */
-.perspective-card:hover {
-  animation-play-state: paused;
+  .cta-title {
+    grid-column: 1 / 7;
+    grid-row: 1;
+    position: relative;
+    z-index: 0;
+  }
+
+  .cta-copy {
+    grid-column: 1 / 6;
+    grid-row: 2;
+    position: relative;
+    z-index: 2;
+  }
+
+  /* IDEO est posé en absolu, et pas placé dans la grille : en élément de
+     grille il étirait les rangées du texte à sa propre hauteur et creusait un
+     trou sous le titre. Ancré en bas à droite, il tient toute la hauteur de la
+     bande, déborde du côté droit, et passe devant la fin du titre. */
+  .cta-figure {
+    position: absolute;
+    right: calc(var(--ed-gutter) * -0.5);
+    bottom: 0;
+    height: 100%;
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  .cta-figure > img {
+    width: auto;
+    height: 100%;
+    max-width: none;
+  }
 }

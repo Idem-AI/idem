@@ -96,7 +96,8 @@ Le modèle écrit un programme JSON (référence complète donnée au modèle : 
 - **Validation technique** (`dsl/validate.ts`) : refusé = forme, type inconnu, cible absente, texte littéral, média
   absent, expression illisible ; simple avertissement (la chose est ignorée ou convertie, le programme gardé) = propriété inconnue
   ou sans effet, effet sonore inconnu ou en trop, courbe inconnue (alias reconnus : `easeOutCubic`, `swoosh`…), calcul
-  constant (« 0.4*2 » → 0.8), texte de la scène écrit en clair (remplacé par sa clé).
+  constant (« 0.4*2 » → 0.8), texte de la scène écrit en clair (remplacé par sa clé), texte inventé ou affiché deux
+  fois (nœud retiré, avec les pas qui ne visaient que lui : rien d'inventé, la scène vit).
 - Le compilateur produit le fichier attendu par le harnais (`export default function* (view, ctx)`, trois modules :
   `@motion-canvas/core`, `@motion-canvas/2d`, `@idem/motion`). Le programme est gardé en tête du code
   (`/* @idem-motion-program … */`) : retouches et corrections repartent de lui. Les scènes écrites avant le
@@ -106,7 +107,7 @@ Le modèle écrit un programme JSON (référence complète donnée au modèle : 
 
 | Garantie | Comment |
 | --- | --- |
-| Un texte n'est jamais caché par un décor | les textes et piles de textes posés dans la scène passent devant les formes et les images (`zIndex` 500), sauf ordre imposé par le programme (`z`) |
+| Un texte n'est jamais caché en partie | l'ordre de dessin est celui du programme (un volet qui recouvre entièrement les textes reste une transition voulue) ; un texte caché EN PARTIE est relevé par le contrôle et remis devant (dernier recours) |
 | Un texte s'arrête dans le cadre | la position d'arrivée d'un texte posé dans la scène est ramenée dans la zone sûre (il peut entrer depuis l'extérieur) |
 | Un nœud déclaré caché apparaît | une propriété de `from` sans `to` revient à sa valeur déclarée, sauf opacité ou échelle déclarée nulle : elle va à 1 |
 | Une pile n'est jamais coupée | `KEEP` : mesurée après sa mise en page, réduite si elle dépasse la zone sûre, ramenée dedans |

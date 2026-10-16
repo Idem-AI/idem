@@ -13,9 +13,10 @@ import { SimulationSectors } from './components/simulation-sectors/simulation-se
 import { SimulationStressTests } from './components/simulation-stress-tests/simulation-stress-tests';
 
 /**
- * Shell of the IDEM Simulator page. It owns the ambient backdrop, the SEO tags
- * and the structured data; every section of the argument is its own component
- * under `./components`.
+ * Coquille de la page Simulateur. Elle n'enchaîne que les sections : chacune
+ * est un composant de `./components` et porte ses propres styles. Le fond
+ * dégradé qu'elle posait auparavant a été retiré — la page repose sur le fond
+ * et le motif de l'application.
  */
 @Component({
   selector: 'app-simulation-page',
@@ -35,7 +36,7 @@ import { SimulationStressTests } from './components/simulation-stress-tests/simu
     SimulationCta,
   ],
   templateUrl: './simulation-page.html',
-  styleUrl: './simulation-page.css',
+  styleUrls: ['../../shared/styles/editorial-page.css', './simulation-page.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 /** Référencement (dont la FAQ en JSON-LD) : `SeoService`, d'après la route. */

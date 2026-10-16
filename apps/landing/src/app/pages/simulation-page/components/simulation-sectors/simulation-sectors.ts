@@ -4,27 +4,25 @@ interface FactorColumn {
   id: string;
   sector: string;
   note: string;
-  /** Path data for the card glyph. Photos would misdescribe these sectors. */
-  icon: string;
   factors: string[];
 }
 
 /**
- * Two sectors whose factor lists share almost nothing. The contrast is the
- * argument: a fixed list of twenty variables would fit neither.
+ * Deux secteurs dont les listes de facteurs ne partagent presque rien. Le
+ * contraste est l'argument : une liste figée de vingt variables n'irait ni à
+ * l'un ni à l'autre. Les colonnes n'ont ni icône ni couleur propre — une icône
+ * de camionnette à côté du mot « livraison » ne dit rien de plus que le mot.
  */
 @Component({
   selector: 'app-simulation-sectors',
-  standalone: true,
   templateUrl: './simulation-sectors.html',
-  styleUrl: './simulation-sectors.css',
+  styleUrls: ['../../../../shared/styles/editorial-page.css', './simulation-sectors.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SimulationSectors {
   protected readonly sectorFactors: FactorColumn[] = [
     {
       id: 'delivery',
-      icon: 'M4 16h1a2 2 0 1 0 4 0h6a2 2 0 1 0 4 0h1v-4l-3-4h-3V6H4z',
       sector: $localize`:@@simulation.sectors.delivery.name:Urban delivery`,
       note: $localize`:@@simulation.sectors.delivery.note:Douala, B2C, commission per trip`,
       factors: [
@@ -40,7 +38,6 @@ export class SimulationSectors {
     },
     {
       id: 'farming',
-      icon: 'M12 21V11m0 0c0-3.5 2.5-6.5 7-7 0 4.5-3 7.5-7 7Zm0 4c0-3-2-5.5-6-6 0 3.5 2.5 6 6 6Z',
       sector: $localize`:@@simulation.sectors.farming.name:Farming`,
       note: $localize`:@@simulation.sectors.farming.note:Western Cameroon, short supply chain, B2B`,
       factors: [

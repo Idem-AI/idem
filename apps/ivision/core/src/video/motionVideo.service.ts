@@ -760,23 +760,44 @@ export class MotionVideoService {
         const program = programOf(sc.code);
         if (!program) return sc;
         const norm = (t: string) => String(t || '').toLocaleLowerCase('fr').replace(/\s+/g, ' ').trim();
+        const bare = (t: string) => norm(t).replace(/\s+/g, '');
         const fixFor = (n: any) => {
           const value = norm(sc.texts[String(n.text).slice(1)] || '');
-          return value ? sc.contrast!.find((c) => norm(c.text) === value || (n.split && value.includes(norm(c.text)))) : undefined;
+          if (!value) return undefined;
+          // Le recours le plus fort d'abord (devant, aplat, encre) ; un texte découpé est reconnu par son texte entier.
+          const mine = sc.contrast!.filter((c) => norm(c.text) === value || (n.split && (bare(c.text) === bare(value) || value.includes(norm(c.text)))));
+          return mine.find((c) => c.kind === 'front') || mine.find((c) => c.kind === 'plate' && (!n.split || bare(c.text) === bare(value))) || mine.find((c) => c.kind === 'ink' || !c.kind);
         };
         let changed = false;
         const effects = new Set(program.timeline.filter((st) => st.effect).flatMap((st) => (Array.isArray(st.target) ? st.target : [st.target])));
         const TEXT_PROPS = ['fill', 'size', 'letterSpacing', 'stroke', 'lineWidth'];
-        const visit = (list: any[]) => {
+        const visit = (list: any[], top?: any) => {
           list.forEach((n, i) => {
             if (!n || typeof n !== 'object') return;
+            const root = top || n;
             if (n.type === 'text' && typeof n.text === 'string' && n.text.startsWith('$')) {
               const fix = fixFor(n);
+              if (fix?.kind === 'front') {
+                // Caché en partie par ce qui est dessiné après lui : le texte (son nœud de premier niveau) passe devant.
+                root.z = 900;
+                changed = true;
+                return;
+              }
+              if (fix?.kind === 'plate' && n.split) {
+                // Un texte découpé à poser sur un aplat redevient un bloc : ses morceaux animés deviennent le bloc entier.
+                delete n.split;
+                if (n.id) for (const st of program.timeline) {
+                  const targets = Array.isArray(st.target) ? st.target : st.target ? [st.target] : [];
+                  const mapped = targets.map((t) => (t.startsWith(`${n.id}.`) ? n.id : t));
+                  st.target = Array.isArray(st.target) ? [...new Set(mapped)] : mapped[0];
+                  if (targets.some((t) => t.startsWith(`${n.id}.`))) delete st.stagger;
+                }
+              }
               if (fix?.kind === 'plate' && !n.split) {
                 // L'aplat prend la place du texte (position, ancre, transformation) ; le texte vit dedans.
-                const { x, y, anchor, rotation, scale, scaleX, scaleY, opacity, z, id, ...text } = n;
+                const { x, y, anchor, rotation, scale, scaleX, scaleY, opacity, z: _z, id, ...text } = n;
                 const textId = id ? `${id}__t` : undefined;
-                list[i] = { ...(id ? { id } : {}), type: 'stack', dir: 'row', padding: 1.4, radius: 1.2, fill: 'background/92', ...(x !== undefined ? { x } : {}), ...(y !== undefined ? { y } : {}), ...(anchor ? { anchor } : {}), ...(rotation !== undefined ? { rotation } : {}), ...(scale !== undefined ? { scale } : {}), ...(scaleX !== undefined ? { scaleX } : {}), ...(scaleY !== undefined ? { scaleY } : {}), ...(opacity !== undefined ? { opacity } : {}), ...(z !== undefined ? { z } : {}), children: [{ ...text, ...(textId ? { id: textId } : {}), color: 'ink' }] };
+                list[i] = { ...(id ? { id } : {}), type: 'stack', dir: 'row', padding: 1.4, radius: 1.2, fill: 'background/92', ...(x !== undefined ? { x } : {}), ...(y !== undefined ? { y } : {}), ...(anchor ? { anchor } : {}), ...(rotation !== undefined ? { rotation } : {}), ...(scale !== undefined ? { scale } : {}), ...(scaleX !== undefined ? { scaleX } : {}), ...(scaleY !== undefined ? { scaleY } : {}), ...(opacity !== undefined ? { opacity } : {}), z: 900, children: [{ ...text, ...(textId ? { id: textId } : {}), color: 'ink' }] };
                 if (id) {
                   for (const st of program.timeline) {
                     const targets = Array.isArray(st.target) ? st.target : st.target ? [st.target] : [];
@@ -809,8 +830,8 @@ export class MotionVideoService {
                 changed = true;
               }
             }
-            if (Array.isArray(n.children)) visit(n.children);
-            if (n.item) visit([n.item]);
+            if (Array.isArray(n.children)) visit(n.children, root);
+            if (n.item) visit([n.item], root);
           });
         };
         visit(program.nodes);

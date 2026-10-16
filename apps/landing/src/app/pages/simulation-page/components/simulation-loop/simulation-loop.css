@@ -1,3 +1,30 @@
-:host {
-  display: block;
+/* La boucle d'amélioration — ce qui n'appartient qu'à cette section. */
+
+.sl-step {
+  display: grid;
+  grid-template-columns: 3.5rem 1fr;
+  align-items: baseline;
+  gap: 1.5rem;
+  padding-block: clamp(1rem, 1.8vw, 1.5rem);
+  border-top: 1px solid var(--glass-border-subtle);
+}
+
+.sl-step:last-of-type {
+  border-bottom: 1px solid var(--glass-border-subtle);
+}
+
+.sl-index {
+  font-weight: var(--font-weight-black);
+  font-size: clamp(1.5rem, 2.4vw, 2rem);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: color-mix(in oklch, var(--color-primary-500) 60%, transparent);
+}
+
+/* Les cinq verbes de la boucle, assez grands pour se lire d'un coup d'œil. */
+.sl-name {
+  font-weight: var(--font-weight-bold);
+  font-size: clamp(1.25rem, 2.2vw, 1.75rem);
+  line-height: 1.1;
+  color: var(--color-text-primary);
 }
