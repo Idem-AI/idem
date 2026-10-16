@@ -12,6 +12,8 @@ export type IssueSeverity = 'blocking' | 'warning' | 'info';
 export interface PlanIssue {
   code: string;
   severity: IssueSeverity;
+  /** Set when only that engine has the problem (nixpacks' Gradle and JDK limits): dropped when iDeploy builds with its own recipe. */
+  engine?: 'nixpacks';
   /** What is wrong and what to do, in one or two sentences. */
   message: string;
 }
@@ -48,9 +50,39 @@ export interface BuildPlanResult {
   start?: string;
   /** Variables for nixpacks (`NIXPACKS_NODE_VERSION`, `NIXPACKS_JDK_VERSION`). */
   nixpacksEnv: Record<string, string>;
+  /** Set when iDeploy can build this itself, with a generated Dockerfile. */
+  recipe?: NodeRecipe | JavaRecipe;
   /** The root of a monorepo: the applications in it. */
   apps?: AppCandidate[];
   issues: PlanIssue[];
+}
+
+/** A Node server: commands run from `buildRoot`. */
+export interface NodeRecipe {
+  kind: 'node';
+  /** Major of the official `node` image. */
+  nodeVersion: string;
+  manager: 'pnpm' | 'yarn' | 'npm';
+  /** `corepack prepare pnpm@<major>` when package.json does not name its pnpm. */
+  pnpmMajor: number | null;
+  hasPackageManagerField: boolean;
+  install: string;
+  build: string | null;
+  start: string;
+  /** Next.js keeps a build cache in `<app>/.next/cache`. */
+  nextCacheDir: string | null;
+}
+
+/** A Java server: built with Maven or Gradle, run from its jar. */
+export interface JavaRecipe {
+  kind: 'java';
+  tool: 'maven' | 'gradle';
+  jdk: number;
+  wrapper: boolean;
+  /** The module that runs, relative to `buildRoot` ('' = the root). */
+  module: string;
+  framework: 'Spring Boot' | 'Quarkus' | 'Micronaut' | 'Java';
+  build: string;
 }
 
 export function emptyPlan(appDir: string): BuildPlanResult {

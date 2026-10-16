@@ -26,6 +26,9 @@ export const BUILD_PACKS: readonly BuildPack[] = [
   'dockerimage',
 ] as const;
 
+/** A build that runs longer is stopped (`timeout` exits 124): a hung build must not hold the server's build slot. */
+export const BUILD_TIMEOUT_SECONDS = 45 * 60;
+
 /** Image serving a built static site. */
 const STATIC_IMAGE = 'nginx:alpine';
 
@@ -91,7 +94,8 @@ export type Runtime =
   | 'compose-file';
 
 export interface BuildPlan {
-  pack: BuildPack;
+  /** `recipe`: a Dockerfile iDeploy generated from the build plan. */
+  pack: BuildPack | 'recipe';
   steps: BuildStep[];
   runtime: Runtime;
   /** Set when `runtime` is `image`. */
@@ -106,9 +110,9 @@ export function buildDirectory(context: BuildContext): string {
   return base ? `${context.srcDir}/${base}` : context.srcDir;
 }
 
-/** `node:<major>-slim` (glibc: native modules build as on a developer's machine). */
+/** The full `node` image for a build container: git, python3, make and g++ for native modules and git dependencies. */
 function nodeImageTag(version: string | null | undefined): string {
-  return /^\d+$/.test(version ?? '') ? `${version}-slim` : '20-slim';
+  return /^\d+$/.test(version ?? '') ? String(version) : '20';
 }
 
 /** Wrap a value for safe use as a single shell argument. */
@@ -193,7 +197,7 @@ function dockerfilePlan(context: BuildContext): BuildPlan {
           `cd ${quote(dir)} && ` +
           `{ test -f ${quote(file)} || { echo ${quote(`No Dockerfile found at ${file} (build context ${dir}).`)} >&2; exit 1; }; } && ` +
           `{ ${missingArgsCheck(file, provided)}; } && ` +
-          `docker build -f ${quote(file)}${target}${buildArgs} -t ${quote(context.imageTag)} .`,
+          `timeout ${BUILD_TIMEOUT_SECONDS} docker build -f ${quote(file)}${target}${buildArgs} -t ${quote(context.imageTag)} .`,
       },
     ],
   };
@@ -256,7 +260,7 @@ function nixpacksPlan(context: BuildContext): BuildPlan {
         command:
           `cd ${quote(dir)} && ` +
           `{ test -f .nixpacks/Dockerfile || { echo "nixpacks produced no Dockerfile — the project's language may not be detected." >&2; exit 1; }; } && ` +
-          `docker build -f .nixpacks/Dockerfile -t ${quote(context.imageTag)} .`,
+          `timeout ${BUILD_TIMEOUT_SECONDS} docker build -f .nixpacks/Dockerfile -t ${quote(context.imageTag)} .`,
       },
     ],
   };
@@ -326,6 +330,31 @@ function composePlan(context: BuildContext): BuildPlan {
       {
         label: 'Building the stack',
         command: `cd ${quote(dir)} && docker compose${context.composeProject ? ` -p ${quote(context.composeProject)}` : ''} build`,
+      },
+    ],
+  };
+}
+
+/**
+ * Build with iDeploy's own Dockerfile (see recipes.ts), written next to the
+ * code. BuildKit is what keeps the dependency caches between builds.
+ */
+export function recipePlan(context: BuildContext, dockerfile: string, label: string): BuildPlan {
+  const dir = buildDirectory(context);
+  const buildArgs = (context.buildEnv ?? []).map((pair) => ` --build-arg ${quote(pair)}`).join('');
+  return {
+    pack: 'recipe',
+    runtime: 'image',
+    imageTag: context.imageTag,
+    steps: [
+      {
+        label: `Building image (iDeploy recipe: ${label})`,
+        command:
+          `cd ${quote(dir)} && ` +
+          // The checkout's .git has no place in the image; a repository's own .dockerignore is kept.
+          `{ [ -e .dockerignore ] || printf '.git\\n' > .dockerignore; } && ` +
+          `echo ${Buffer.from(dockerfile, 'utf8').toString('base64')} | base64 -d > Dockerfile.ideploy && ` +
+          `DOCKER_BUILDKIT=1 timeout ${BUILD_TIMEOUT_SECONDS} docker build --progress=plain -f Dockerfile.ideploy${buildArgs} -t ${quote(context.imageTag)} .`,
       },
     ],
   };

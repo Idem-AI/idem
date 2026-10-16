@@ -86,7 +86,7 @@ describe('build plan — JavaScript monorepo', () => {
       output: 'static',
       buildRoot: '',
       build: "pnpm --filter 'admin...' run --if-present build",
-      install: 'corepack enable && corepack prepare pnpm@8 --activate && pnpm install --frozen-lockfile',
+      install: 'npm install -g --force corepack@latest && corepack enable && corepack prepare pnpm@8 --activate && pnpm install --frozen-lockfile',
       publishDirectory: 'apps/admin/public-build',
     });
   });
