@@ -13,7 +13,7 @@ Every AI generation on the platform is recorded, input **and** output, in the Mo
 | Kind | `operation` | `generate`, `regenerate`, `edit`, `variant`, `analysis`, `chat`, `appgen` |
 | Batch of proposals | `batchId`, `variantCount` | the 4 logos of one action |
 | Model | `provider`, `modelName` | `OPENROUTER` / `qwen/qwen3.5-122b-a10b` |
-| Tokens | `inputTokens`, `outputTokens`, `cachedInputTokens`, `totalTokens` | measured |
+| Tokens | `inputTokens`, `outputTokens`, `cachedInputTokens`, `reasoningTokens`, `totalTokens` | measured; `reasoningTokens` is the part of `outputTokens` spent on hidden reasoning (billed as output, never read) |
 | Cost | `inputCostUsd`, `outputCostUsd`, `toolCostUsd`, `estimatedCostUsd` | USD estimate; `toolCostUsd` = web search results, images, clips, voice |
 | Reliability | `tokensEstimated`, `pricingEstimated` | see "Reliability" below |
 | Result | `status`, `errorMessage`, `durationMs` | `success` / `error` |
@@ -69,7 +69,8 @@ Add a route segment to `FEATURE_BY_SEGMENT` (`utils/ai-usage-context.util.ts`) i
 
 Two flags separate what was measured from what was approximated — the admin panel shows them, and a total mixing both must not pass for an invoice:
 
-- **`tokensEstimated`** — the provider returned no usage metadata (some OpenAI-compatible gateways omit it). Tokens are then estimated at ~4 characters per token. Approximate, but better than a zero that would hide the consumption.
+- **`reasoningTokens`** — read from `completion_tokens_details.reasoning_tokens`, also on the `ai.usage_recorded` log line and in `ai_tokens_total{kind="reasoning"}`. A high ratio to `outputTokens` on a short answer means the feature pays for reasoning it does not need (the cover brief spent ~4 500 tokens thinking for ~260 written).
+- **`tokensEstimated`** — the provider returned no usage metadata (some OpenAI-compatible gateways omit it). Tokens are then estimated at ~4 characters per token. Approximate, but better than a zero that would hide the consumption. An attempt refused before reaching any model — 429, missing or rejected key (401), no credit (402) — is recorded at zero: it is not billed, and counting it inflated the generation budget.
 - **`pricingEstimated`** — the model is missing from `config/ai-pricing.config.ts` and the default price was applied.
 
 Reasoning tokens of "thinking" models are counted in the output tokens: ignoring them would heavily underestimate the cost. Tokens served from a provider cache, when the API reports them, are counted separately and billed at the reduced price if one is set.

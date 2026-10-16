@@ -83,6 +83,7 @@ class AiUsageService {
       const inputTokens = Math.max(Math.round(input.usage.inputTokens || 0), 0);
       const outputTokens = Math.max(Math.round(input.usage.outputTokens || 0), 0);
       const cachedInputTokens = Math.max(Math.round(input.usage.cachedInputTokens || 0), 0);
+      const reasoningTokens = Math.max(Math.round(input.usage.reasoningTokens || 0), 0);
 
       const tokenCost = computeCost({
         modelName: input.modelName,
@@ -119,6 +120,7 @@ class AiUsageService {
         inputTokens,
         outputTokens,
         cachedInputTokens,
+        reasoningTokens,
         totalTokens: inputTokens + outputTokens,
         tokensEstimated: !!input.usage.estimated,
         inputCostUsd: cost.inputCostUsd,
@@ -157,6 +159,9 @@ class AiUsageService {
         if (cachedInputTokens > 0) {
           aiTokensTotal.inc({ ...labels, kind: 'cached' }, cachedInputTokens);
         }
+        if (reasoningTokens > 0) {
+          aiTokensTotal.inc({ ...labels, kind: 'reasoning' }, reasoningTokens);
+        }
         aiCostUsdTotal.inc(
           { ...labels, feature: event.feature ?? 'unknown' },
           cost.totalCostUsd
@@ -178,6 +183,8 @@ class AiUsageService {
         model: event.modelName,
         inputTokens,
         outputTokens,
+        ...(reasoningTokens > 0 ? { reasoningTokens } : {}),
+        ...(cachedInputTokens > 0 ? { cachedInputTokens } : {}),
         inputCostUsd: cost.inputCostUsd,
         outputCostUsd: cost.outputCostUsd,
         costUsd: cost.totalCostUsd,

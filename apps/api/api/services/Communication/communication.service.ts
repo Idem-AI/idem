@@ -106,6 +106,15 @@ export type CommunicationStreamEvent =
  * Passer par cette fabrique rend l'oubli impossible : la config est la source
  * unique, l'appelant ne décrit plus que ce qui lui est spécifique.
  */
+/**
+ * Durée de vie du contexte et de la stratégie en cache. Leur clé porte
+ * l'empreinte de tout ce dont ils dérivent (fiche, plan, prévisions, charte,
+ * logo, direction artistique) : un changement crée une autre clé, l'ancienne
+ * n'est jamais relue. Une expiration à deux heures ne protégeait donc de rien,
+ * et faisait seulement repayer l'extraction puis la stratégie.
+ */
+const CONTENT_HASHED_TTL_S = 30 * 24 * 3600;
+
 const promptConfigFor = (
   feature: FeatureAIConfig,
   userId: string,
@@ -430,7 +439,7 @@ export class CommunicationService extends GenericService {
     if (!opts.force) {
       const cached = await cacheService.get<CommunicationContext>(cacheKey, {
         prefix: 'ai',
-        ttl: 7200,
+        ttl: CONTENT_HASHED_TTL_S,
       });
       if (cached) {
         logger.info(`[Communication] Context cache hit`, { projectId });
@@ -495,7 +504,7 @@ export class CommunicationService extends GenericService {
       extractedAt: new Date(),
     };
 
-    await cacheService.set(cacheKey, context, { prefix: 'ai', ttl: 7200 });
+    await cacheService.set(cacheKey, context, { prefix: 'ai', ttl: CONTENT_HASHED_TTL_S });
 
     // Persist on the project so the UI has it offline.
     await this.patchCommunication(userId, projectId, (existing) => ({
@@ -598,12 +607,14 @@ export class CommunicationService extends GenericService {
       'communication-strategy',
       userId,
       projectId,
-      this.shortHash({ context, foundations, trendIds: trends.map((t) => t.id) })
+      // Sans `extractedAt` : la date change à chaque extraction du contexte, et
+      // régénérait la stratégie (rôle `reasoning`) sans que rien n'ait bougé.
+      this.shortHash({ context: { ...context, extractedAt: undefined }, foundations, trendIds: trends.map((t) => t.id) })
     );
     if (!opts.force) {
       const cached = await cacheService.get<CommunicationStrategy>(cacheKey, {
         prefix: 'ai',
-        ttl: 7200,
+        ttl: CONTENT_HASHED_TTL_S,
       });
       if (cached) {
         await stream?.({ type: 'step-complete', step: 'strategy', payload: cached });
@@ -644,7 +655,7 @@ export class CommunicationService extends GenericService {
       updatedAt: new Date(),
     };
 
-    await cacheService.set(cacheKey, strategy, { prefix: 'ai', ttl: 7200 });
+    await cacheService.set(cacheKey, strategy, { prefix: 'ai', ttl: CONTENT_HASHED_TTL_S });
     await this.patchCommunication(userId, projectId, (existing) => ({
       ...existing,
       strategy,
@@ -2797,7 +2808,9 @@ export class CommunicationService extends GenericService {
           withText: logo.assetUrls?.withText,
           iconOnly: logo.assetUrls?.iconOnly,
           hasVariations: !!logo.variations,
-          svgLen: (logo.svg || '').length,
+          // Le contenu, pas la longueur : changer une couleur du logo garde la
+          // même longueur, et le contexte (en cache trente jours) serait resté sur l'ancien.
+          svg: crypto.createHash('sha256').update(logo.svg || '').digest('hex').slice(0, 16),
         }
       : null;
     return crypto

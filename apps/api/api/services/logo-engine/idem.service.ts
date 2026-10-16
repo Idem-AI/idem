@@ -215,9 +215,11 @@ export async function engineLogoConcepts(req: EngineConceptsRequest): Promise<En
   );
 
   const offset = req.existing.length;
-  const logos = result.logos
-    .map((planned, i) => toLogoModel(planned, offset + i, { preferences: req.preferences, level: req.level, decisions: result.decisions }, fonts))
-    .filter((logo) => !seen.has(logo.name) || result.logos.length <= req.count)
+  const built = result.logos.map((planned, i) => toLogoModel(planned, offset + i, { preferences: req.preferences, level: req.level, decisions: result.decisions }, fonts));
+  // Les noms nouveaux d'abord, complétés au besoin par les autres. Écarter les noms déjà vus SANS compléter vidait
+  // la liste quand toutes les propositions portaient un nom existant — et `logo_engine_empty` renvoyait alors vers
+  // l'ancien pipeline (SVG écrit par le modèle, critique et révision avec raisonnement) : ~20 fois plus de tokens.
+  const logos = [...built.filter((logo) => !seen.has(logo.name)), ...built.filter((logo) => seen.has(logo.name))]
     .slice(0, req.count)
     .map((logo, i) => ({ ...logo, id: `concept${String(offset + i + 1).padStart(2, '0')}` }));
   if (!logos.length) throw new Error('logo_engine_empty');

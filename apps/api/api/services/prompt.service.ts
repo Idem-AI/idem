@@ -28,6 +28,7 @@ import {
 import { applyAiOverride } from '../config/ai-overrides.config';
 import {
   describeError,
+  isAccountError,
   isRateLimited,
   isTransientNetworkError,
   sleep,
@@ -751,12 +752,15 @@ export class PromptService {
       // précédentes ont nécessairement échoué (la boucle sort au succès).
       const succeeded = isLast && !error && resultText !== undefined;
 
-      // Une tentative refusée par un 429 n'a jamais été traitée : le
-      // fournisseur ne la facture pas, l'estimer gonflerait les coûts.
-      const rejectedByQuota = !attempt.sink.usage && isRateLimited(attempt.error);
+      // Une tentative refusée par un 429, ou par le compte (clé absente ou
+      // refusée, crédit épuisé), n'a jamais atteint de modèle : le fournisseur
+      // ne la facture pas. L'estimer gonflait les coûts ET le budget de la
+      // génération en cours, qui pouvait alors s'arrêter sans rien avoir consommé.
+      const notBilled =
+        !attempt.sink.usage && (isRateLimited(attempt.error) || isAccountError(attempt.error));
       const usage =
         attempt.sink.usage ??
-        (rejectedByQuota
+        (notBilled
           ? { inputTokens: 0, outputTokens: 0, estimated: true }
           : estimateUsage(promptText, succeeded ? (resultText ?? '') : ''));
 
@@ -986,6 +990,14 @@ export class PromptService {
       } catch (error: any) {
         lastError = error;
         attempt.error = error;
+        // Refus du compte : chaque modèle de la chaîne échouerait à l'identique.
+        if (isAccountError(error)) {
+          logger.error(
+            `Appel refusé par le compte ${provider} (${describeError(error)}) — chaîne de repli abandonnée : ` +
+              `aucun modèle ne peut répondre tant que la clé ou le crédit n'est pas réglé.`
+          );
+          break;
+        }
         if (i < modelsToTry.length - 1) {
           logger.warn(
             `Model ${currentModel} failed, falling back to ${modelsToTry[i + 1]}... Error: ${describeError(error)}`

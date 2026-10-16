@@ -81,6 +81,12 @@ export interface AiUsageEventModel {
   outputTokens: number;
   /** Tokens d'entrée servis depuis le cache de contexte (facturés moins cher). */
   cachedInputTokens?: number;
+  /**
+   * Part de `outputTokens` dépensée en raisonnement (facturée comme la sortie,
+   * jamais lue). La rendre visible : 4 500 tokens de réflexion pour 260 utiles
+   * passaient inaperçus dans le total de sortie.
+   */
+  reasoningTokens?: number;
   totalTokens: number;
   /**
    * Vrai quand le fournisseur n'a pas renvoyé de métadonnées d'usage et que les
@@ -127,6 +133,8 @@ export interface ProviderTokenUsage {
   inputTokens: number;
   outputTokens: number;
   cachedInputTokens?: number;
+  /** Tokens de raisonnement, déjà inclus dans `outputTokens`. */
+  reasoningTokens?: number;
   /** Vrai si les valeurs sont estimées faute de métadonnées fournisseur. */
   estimated?: boolean;
 }

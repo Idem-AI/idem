@@ -25,6 +25,38 @@ export interface AdvisorReplyResult {
 }
 
 const MAX_HISTORY_MESSAGES = 40;
+/** Les derniers messages, ceux auxquels la question répond, restent mot pour mot. */
+const VERBATIM_HISTORY_MESSAGES = 8;
+/** Un message plus ancien n'est gardé que par son début : le fil, pas le détail. */
+const OLD_MESSAGE_MAX_CHARS = 600;
+/** Plafond de l'historique envoyé (~6 000 tokens) ; au-delà, les plus anciens tombent. */
+const HISTORY_MAX_CHARS = 24_000;
+
+/**
+ * L'historique tel qu'il part au modèle.
+ *
+ * Il était renvoyé EN ENTIER à chaque question — 40 messages, réponses longues
+ * comprises —, si bien que chaque échange coûtait plus cher que le précédent.
+ * Le détail d'un échange ancien reste accessible par les outils du Context
+ * Engine et la fiche projet, toujours jointe.
+ */
+export function compactHistory<T extends { content: string }>(messages: T[]): T[] {
+  const recent = messages.slice(-MAX_HISTORY_MESSAGES);
+  const firstVerbatim = Math.max(0, recent.length - VERBATIM_HISTORY_MESSAGES);
+  const shaped = recent.map((m, i) =>
+    i >= firstVerbatim || m.content.length <= OLD_MESSAGE_MAX_CHARS
+      ? m
+      : { ...m, content: `${m.content.slice(0, OLD_MESSAGE_MAX_CHARS).trimEnd()} […]` }
+  );
+  let total = 0;
+  let start = shaped.length;
+  while (start > 0 && total + shaped[start - 1].content.length <= HISTORY_MAX_CHARS) {
+    total += shaped[start - 1].content.length;
+    start -= 1;
+  }
+  // Le dernier message est toujours gardé, même seul au-dessus du plafond.
+  return shaped.slice(Math.min(start, shaped.length - 1));
+}
 
 /**
  * Filtre gratuit, en code, avant d'appeler `parseChatIntent` (2 lectures Mongo
@@ -192,7 +224,7 @@ export class AdvisorService {
     // c) Pas d'intent finance → flow LLM agentique (Context Engine + Chronicle).
     // Stratégie hybride (context engineering): fiche synthétique toujours en
     // contexte + récupération just-in-time du reste via tools.
-    const history = existing.messages.slice(-MAX_HISTORY_MESSAGES);
+    const history = compactHistory(existing.messages);
     const aiMessages: AIChatMessage[] = [
       { role: 'system', content: ADVISOR_SYSTEM_PROMPT },
       {
