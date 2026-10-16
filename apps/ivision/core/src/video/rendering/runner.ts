@@ -213,13 +213,82 @@ export interface ProbeResult {
   cues: SfxCueRecord[];
   /** Une image par scène (JPEG), au moment où elle est installée. */
   thumbnails: Record<string, Buffer>;
+  /** Les défauts d'AFFICHAGE de chaque scène (texte coupé par le cadre, textes qui se chevauchent), en clair. */
+  layout: Record<string, string[]>;
+}
+
+export interface TextBox { text: string; x0: number; y0: number; x1: number; y1: number; group: string; order?: number; contrast?: number }
+export interface ShapeBox { kind: 'fill' | 'image' | 'line'; x0: number; y0: number; x1: number; y1: number; order: number }
+
+/**
+ * Les défauts d'affichage d'un instant : un texte qui dépasse du cadre (au-delà de 1,5 %), deux textes dont les
+ * boîtes se recouvrent (plus de 18 % de la plus petite). Rien d'esthétique : un texte coupé ou recouvert ne se lit pas.
+ */
+export function layoutIssues(texts: TextBox[], width: number, height: number, at: number, shapes: ShapeBox[] = []): string[] {
+  const out: string[] = [];
+  const area = (b: { x0: number; y0: number; x1: number; y1: number }) => Math.max(0, b.x1 - b.x0) * Math.max(0, b.y1 - b.y0);
+  const inter = (a: { x0: number; y0: number; x1: number; y1: number }, b: { x0: number; y0: number; x1: number; y1: number }) => Math.max(0, Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0)) * Math.max(0, Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0));
+  const label = (t: TextBox) => `« ${t.text.length > 48 ? `${t.text.slice(0, 46)}…` : t.text} »`;
+  // Les morceaux d'un même texte découpé qui s'empilent (lettres ou mots superposés) : le mot ne se lit plus.
+  const byGroup = new Map<string, TextBox[]>();
+  for (const t of texts) if (t.group) byGroup.set(t.group, [...(byGroup.get(t.group) || []), t]);
+  for (const parts of byGroup.values()) {
+    let stacked = 0;
+    for (let i = 0; i < parts.length; i++) for (let j = i + 1; j < parts.length; j++) if (inter(parts[i], parts[j]) > 0.5 * Math.min(area(parts[i]), area(parts[j]))) stacked++;
+    if (stacked > 0) out.push(`les lettres ou mots de « ${parts.map((p) => p.text).join(parts[0].text.length > 1 ? ' ' : '').slice(0, 48)} » se superposent à ${at.toFixed(1)} s`);
+  }
+  // Ce qui est dessiné PAR-DESSUS un texte (forme pleine, image, trait qui le barre) le rend illisible.
+  for (const t of texts) {
+    if (t.order === undefined) continue;
+    const ta = area(t);
+    if (!ta) continue;
+    const band = { x0: t.x0, x1: t.x1, y0: t.y0 + (t.y1 - t.y0) * 0.3, y1: t.y1 - (t.y1 - t.y0) * 0.3 };
+    const over = shapes.filter((s) => s.order > t.order!);
+    const hit = over.find((s) => {
+      const i = inter(t, s);
+      if (s.kind === 'line') return false;
+      return i > 0.12 * ta || (i > 0.6 * area(s) && area(s) > 0.004 * ta);
+    });
+    if (hit) out.push(`${label(t)} est ${hit.kind === 'image' ? 'caché par une image' : 'caché par une forme'} dessinée par-dessus à ${at.toFixed(1)} s`);
+    // Un trait qui traverse le milieu d'un texte le barre, qu'il passe devant ou derrière.
+    const strike = shapes.find((s) => s.kind === 'line' && Math.min(t.x1, s.x1) - Math.max(t.x0, s.x0) > 0.3 * (t.x1 - t.x0) && s.y1 - s.y0 < (t.y1 - t.y0) * 0.5 && inter(band, { ...s, y0: s.y0 - 1, y1: s.y1 + 1 }) > 0);
+    if (strike && !t.group) out.push(`${label(t)} est barré par un trait à ${at.toFixed(1)} s`);
+    if (t.contrast !== undefined && t.contrast < 2.2) out.push(`${label(t)} ne se lit pas sur son fond (contraste ${t.contrast.toFixed(1)} : couleur trop proche de ce qu'il recouvre) à ${at.toFixed(1)} s`);
+  }
+  const tx = width * 0.015;
+  const ty = height * 0.015;
+  const q = (t: TextBox) => `« ${t.text.length > 48 ? `${t.text.slice(0, 46)}…` : t.text} »`;
+  // Les morceaux d'un même texte découpé (mots, lettres) sont regroupés : ils comptent comme un texte.
+  const groups = new Map<string, TextBox>();
+  for (const t of texts) {
+    const g = groups.get(t.group);
+    if (t.group) groups.set(t.group, g ? { text: `${g.text} ${t.text}`, x0: Math.min(g.x0, t.x0), y0: Math.min(g.y0, t.y0), x1: Math.max(g.x1, t.x1), y1: Math.max(g.y1, t.y1), group: t.group } : { ...t });
+    else groups.set(`${t.group}|${t.text}|${t.x0}`, t);
+  }
+  const boxes = [...groups.values()];
+  for (const t of boxes) {
+    const sides = [t.x0 < -width / 2 - tx ? 'à gauche' : '', t.x1 > width / 2 + tx ? 'à droite' : '', t.y0 < -height / 2 - ty ? 'en haut' : '', t.y1 > height / 2 + ty ? 'en bas' : ''].filter(Boolean);
+    if (sides.length) out.push(`${q(t)} est coupé par le cadre ${sides.join(' et ')} à ${at.toFixed(1)} s`);
+  }
+  for (let i = 0; i < boxes.length; i++) {
+    for (let j = i + 1; j < boxes.length; j++) {
+      const a = boxes[i];
+      const b = boxes[j];
+      const w = Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0);
+      const h = Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0);
+      if (w <= 0 || h <= 0) continue;
+      const small = Math.min((a.x1 - a.x0) * (a.y1 - a.y0), (b.x1 - b.x0) * (b.y1 - b.y0));
+      if (small > 0 && (w * h) / small > 0.18) out.push(`${q(a)} et ${q(b)} se chevauchent à ${at.toFixed(1)} s`);
+    }
+  }
+  return out;
 }
 
 /**
  * Exécute le film une fois : chaque scène est calculée (Motion Canvas exécute tout son code), puis
  * une image par scène est dessinée. Rien n'est jugé : seules les erreurs d'exécution sont relevées.
  */
-export async function probeFilm(input: FilmPageInput & { files?: Map<string, ServedFile> }, opts: { thumbnails?: boolean; timeoutMs?: number } = {}): Promise<ProbeResult> {
+export async function probeFilm(input: FilmPageInput & { files?: Map<string, ServedFile> }, opts: { thumbnails?: boolean; layout?: boolean; timeoutMs?: number } = {}): Promise<ProbeResult> {
   active++;
   let page: Page | null = null;
   try {
@@ -238,7 +307,23 @@ export async function probeFilm(input: FilmPageInput & { files?: Map<string, Ser
           for (const e of still.errors) if (!errors.has(e.key)) errors.set(e.key, e);
         }
       }
-      return { errors: [...errors.values()], cues: init.cues, thumbnails };
+      // Le contrôle d'affichage : deux instants par scène, quand tout est installé (la piste du langage finit à 70 %).
+      const layout: Record<string, string[]> = {};
+      if (opts.layout !== false) {
+        for (const scene of input.data.scenes) {
+          if (errors.has(scene.key) || scene.compileError) continue;
+          const found = new Set<string>();
+          for (const r of [0.78, 0.95]) {
+            const t = scene.start + scene.duration * r;
+            const res = (await p.evaluate((f: number) => (window as any).__IDEM_RENDER__.layout(f), Math.round(t * input.data.fps))) as { texts: TextBox[]; shapes?: ShapeBox[] };
+            // Une scène installée qui n'affiche aucun de ses textes (tout est sorti avant la fin, ou rien n'est entré).
+            if (r === 0.78 && !res.texts.length && Object.values(scene.texts || {}).some((v) => String(v || '').trim())) found.add(`la scène n'affiche aucun de ses textes à ${(scene.duration * r).toFixed(1)} s`);
+            for (const issue of layoutIssues(res.texts, input.data.width, input.data.height, scene.duration * r, res.shapes || [])) found.add(issue);
+          }
+          if (found.size) layout[scene.key] = [...found].slice(0, 6);
+        }
+      }
+      return { errors: [...errors.values()], cues: init.cues, thumbnails, layout };
     })();
     return await Promise.race([job, new Promise<never>((_, reject) => setTimeout(() => reject(new Error('probe_timeout')), opts.timeoutMs ?? 120000))]);
   } finally {
@@ -289,6 +374,9 @@ async function renderChunk(page: Page, input: FilmRenderInput, from: number, to:
     ff.on('error', reject);
     ff.on('close', (code) => (code === 0 ? resolve() : reject(new Error(`ffmpeg chunk ${code}: ${err.slice(-600)}`))));
   });
+  // Si une image échoue, on sort sans attendre ffmpeg : son erreur ne doit jamais devenir un rejet orphelin (il fait
+  // tomber le processus entier, donc l'API).
+  done.catch(() => undefined);
   try {
     for (let f = from; f < to; f++) {
       const shot = (await page.evaluate(() => (window as any).__IDEM_RENDER__.step(0.92))) as { data: string };
@@ -323,13 +411,17 @@ export async function renderFilm(input: FilmRenderInput): Promise<FilmRenderOutp
     const browser = await getBrowser();
     const per = Math.ceil(total / concurrency);
     const chunks = Array.from({ length: concurrency }, (_, i) => ({ from: i * per, to: Math.min(total, (i + 1) * per), file: path.join(workDir, `part-${String(i).padStart(2, '0')}.mp4`) })).filter((c) => c.to > c.from);
-    const inits = await Promise.all(
+    // Tous les tronçons vont jusqu'au bout (réussite ou échec) avant que le dossier de travail soit nettoyé.
+    const settled = await Promise.allSettled(
       chunks.map(async (chunk) => {
         const page = await openFilmPage(browser, input, input.files || new Map());
         pages.push(page);
         return renderChunk(page, input, chunk.from, chunk.to, chunk.file, tick);
       })
     );
+    const failed = settled.find((r): r is PromiseRejectedResult => r.status === 'rejected');
+    if (failed) throw failed.reason;
+    const inits = settled.map((r) => (r as PromiseFulfilledResult<InitResult>).value);
     const errors = new Map<string, SceneErrorRecord>();
     for (const page of pages) for (const e of (await page.evaluate(() => (window as any).__IDEM_RENDER__.errors())) as SceneErrorRecord[]) errors.set(e.key, e);
     for (const init of inits) for (const e of init.errors) errors.set(e.key, e);

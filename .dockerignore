@@ -50,3 +50,6 @@ apps/**/.env.*
 **/*.pem
 **/*.key
 data/certbot
+
+# Sorties du banc d’essai vidéo (MP4, cache des modèles)
+packages/motion-compiler/bench/out

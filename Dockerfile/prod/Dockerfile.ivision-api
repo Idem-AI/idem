@@ -24,6 +24,8 @@ WORKDIR /app
 COPY ./packages/shared-models ./packages/shared-models
 COPY ./packages/shared-styles ./packages/shared-styles
 COPY ./packages/graphic-engine ./packages/graphic-engine
+# Le langage de mouvement et son compilateur (vidéos) : importé par le cœur iVision par chemin relatif.
+COPY ./packages/motion-compiler ./packages/motion-compiler
 COPY ./apps/ivision/core ./apps/ivision/core
 COPY ./apps/ivision/api ./apps/ivision/api
 

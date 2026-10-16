@@ -68,9 +68,8 @@ import { callFilmModel, FilmCallContext, ModelRun, tierFor } from './agents';
 import { FilmBrief, sceneRange } from './director/brief';
 import { runConcept } from './director/concept.agent';
 import { runPlanner, Storyboard } from './director/storyboard.agent';
-import { AuthorContext } from './author/context-builder';
-import { authorScene, authorScenes, AuthoredScene } from './author/motion-canvas.author';
-import { pickSnippets } from './author/snippets';
+import { authorScene, authorScenes, AuthoredScene, AuthorContext, SceneAuthor } from './author/program.author';
+import { PROGRAM_MARK } from '../../../../../packages/motion-compiler/src';
 import { RepairLedger, strategyLevel } from './author/repair';
 import { buildFilmBundle, BundleScene } from './rendering/compiler';
 import { COMPOSITION, frameSpec } from './rendering/formats';
@@ -266,7 +265,9 @@ export class MotionVideoService {
     /** Les marques et les vidéos de l'hôte (projets IDEM, marques iVision). */
     private readonly store: VideoStore,
     /** Appel de modèle imposé (contrôles) : remplace `agentCall` de l'hôte pour les agents du film. */
-    private readonly filmCall?: AgentCall
+    private readonly filmCall?: AgentCall,
+    /** Qui écrit les scènes (création, retouches, autocorrection) : l'auteur de programmes (langage de mouvement compilé). */
+    private readonly sceneAuthor: SceneAuthor = authorScene
   ) {}
 
   /** Un rédacteur simple, à l'étage voulu (lecture de la demande, intention, « améliorer », retouche écrite). */
@@ -560,18 +561,27 @@ export class MotionVideoService {
   }
 
   /**
-   * Le CONTRÔLE TECHNIQUE : chaque scène est exécutée une fois. Les erreurs d'exécution sont
-   * attribuées à leur scène (elles ne changent ni le code ni le film), les vignettes déposées,
-   * les effets sonores posés par le code relevés.
+   * Le CONTRÔLE TECHNIQUE : chaque scène est exécutée une fois PAR FORMAT de la vidéo. Les erreurs d'exécution
+   * sont attribuées à leur scène (elles ne changent ni le code ni le film), les défauts d'affichage relevés
+   * (texte coupé, textes qui se chevauchent — `layout`), les vignettes déposées (format principal), les effets
+   * sonores posés par le code relevés.
    */
   private async checkFilm(userId: string, projectId: string, video: MotionVideo, brand: FilmBrand): Promise<VideoFilm> {
     const film = video.film!;
     try {
-      const data = this.filmData(video, brand, video.scope.formats[0] || 'story', 'standard');
-      const local = await localizeFilm({ ...data, resolutionScale: 0.4 });
+      const formats = video.scope.formats.length ? video.scope.formats : (['story'] as VideoFormat[]);
       const fontCss = await embeddedFontCss(brand, film.scenes.flatMap((s) => Object.values(s.texts)).join(' '));
-      const probed = await probeFilm({ data: local.data, bundle: await this.bundle(film, 'render'), fontCss, files: local.files });
-      const errors = new Map(probed.errors.map((e) => [e.key, e]));
+      const bundle = await this.bundle(film, 'render');
+      const runs = await Promise.all(
+        formats.map(async (format, k) => {
+          const local = await localizeFilm({ ...this.filmData(video, brand, format, 'standard'), resolutionScale: 0.4 });
+          return { format, result: await probeFilm({ data: local.data, bundle, fontCss, files: local.files }, { thumbnails: k === 0 }) };
+        })
+      );
+      const probed = runs[0].result;
+      const errors = new Map(runs.flatMap((r) => r.result.errors.map((e) => [e.key, formats.length > 1 && r !== runs[0] ? { ...e, message: `[${r.format}] ${e.message}` } : e] as const)).reverse());
+      // Le langage de mouvement seul garantit ces défauts corrigeables (les scènes écrites avant gardent leur code).
+      const layoutOf = (sc: FilmScene) => (isProgramScene(sc.code) ? runs.flatMap((r) => (r.result.layout[sc.key] || []).map((m) => (formats.length > 1 ? `[${r.format}] ${m}` : m))).slice(0, 8) : []);
       const folder = `users/${userId}/projects/${projectId}/videos/${video.id}/scenes`;
       const storage = this.mediaStorage();
       const stamp = Date.now().toString(36);
@@ -582,9 +592,11 @@ export class MotionVideoService {
           let thumbnail = sc.thumbnail;
           if (shot) thumbnail = (await storage.uploadFile(shot, `${sc.key}-${stamp}.jpg`, folder, 'image/jpeg').catch(() => null))?.downloadURL || thumbnail;
           if (sc.error?.stage === 'author' || sc.error?.stage === 'compile') return { ...sc, ...(thumbnail ? { thumbnail } : {}) };
-          if (e) return { ...sc, status: 'error', error: { stage: 'runtime', message: e.message.slice(0, 600) }, ...(thumbnail ? { thumbnail } : {}) };
-          const { error: _drop, ...clean } = sc;
-          return { ...clean, status: sc.code ? 'ready' : 'error', ...(thumbnail ? { thumbnail } : {}) };
+          const { layout: _old, ...base } = sc;
+          if (e) return { ...base, status: 'error', error: { stage: 'runtime', message: e.message.slice(0, 600) }, ...(thumbnail ? { thumbnail } : {}) };
+          const { error: _drop, ...clean } = base;
+          const layout = layoutOf(sc);
+          return { ...clean, status: sc.code ? 'ready' : 'error', ...(layout.length ? { layout } : {}), ...(thumbnail ? { thumbnail } : {}) };
         })
       );
       return { ...film, scenes, cues: probed.cues.map((c) => ({ kind: c.kind, t: c.t, scene: c.scene })), checkedAt: new Date().toISOString() };
@@ -597,7 +609,7 @@ export class MotionVideoService {
 
   // ── Auteur ────────────────────────────────────────────────────────────────
 
-  private authorContext(video: MotionVideo, brand: FilmBrand, sc: FilmScene, others: MotionVideo[], level: CreativityLevel, extra: Pick<AuthorContext, 'revise' | 'repair'> = {}): AuthorContext {
+  private authorContext(video: MotionVideo, brand: FilmBrand, sc: FilmScene, level: CreativityLevel, extra: Pick<AuthorContext, 'revise' | 'repair'> = {}): AuthorContext {
     const film = video.film!;
     const i = film.scenes.findIndex((s) => s.key === sc.key);
     const byId = new Map((video.media || []).map((m) => [m.id, m]));
@@ -606,7 +618,7 @@ export class MotionVideoService {
     const period = beat ? 60 / beat.bpm : 0;
     return {
       film: { title: film.title, concept: film.concept, bible: film.bible },
-      format: video.scope.formats[0] || 'story',
+      formats: video.scope.formats.length ? video.scope.formats : ['story'],
       brand: brand.tokens,
       scene: {
         key: sc.key,
@@ -627,7 +639,6 @@ export class MotionVideoService {
       },
       ...(i > 0 ? { previous: { purpose: film.scenes[i - 1].purpose, visual: film.scenes[i - 1].visual } } : {}),
       ...(i < film.scenes.length - 1 ? { next: { purpose: film.scenes[i + 1].purpose, visual: film.scenes[i + 1].visual } } : {}),
-      snippets: pickSnippets(others, `${sc.motion} ${sc.visual}`),
       level,
       ...extra,
     };
@@ -641,69 +652,87 @@ export class MotionVideoService {
   }
 
   /**
-   * L'AUTOCORRECTION BORNÉE (`author/repair.ts`) : les scènes en erreur (compilation ou exécution) sont
-   * corrigées avant d'être montrées. Une tentative à la fois par scène, une approche différente à chaque
-   * tentative (corriger › réécrire plus simplement avec le modèle du cran au-dessus › version minimale),
-   * trois au plus, et un budget de jetons et de temps pour tout le film. Chaque tour se termine par le
-   * contrôle réel (Motion Canvas exécute les scènes) : c'est lui, pas le modèle, qui dit si c'est corrigé.
+   * L'AUTOCORRECTION BORNÉE (`author/repair.ts`) : les scènes en erreur (compilation ou exécution) ET celles dont
+   * l'affichage est défectueux (texte coupé par le cadre, textes qui se chevauchent, dans un des formats) sont
+   * corrigées avant d'être montrées. Une tentative à la fois par scène, une approche différente à chaque tentative
+   * (corriger › réécrire plus simplement avec le modèle du cran au-dessus › version minimale), trois au plus, et un budget de jetons et de temps pour tout le film. Chaque tour
+   * se termine par le contrôle réel (Motion Canvas exécute les scènes dans chaque format) : c'est lui, pas le
+   * modèle, qui dit si c'est corrigé. Une scène qui s'exécutait n'est jamais remplacée par une version qui plante
+   * ou qui s'affiche moins bien ; un défaut d'affichage qui reste est dit, sans bloquer l'export.
    */
   private async repairScenes(userId: string, projectId: string, video: MotionVideo, ctx: Awaited<ReturnType<MotionVideoService['brandContext']>>, level: CreativityLevel, only?: Set<string>, emit?: (stage: VideoProgressStage, state: 'running' | 'done', data?: Record<string, unknown>) => void): Promise<VideoFilm> {
     let film = video.film!;
     const ledger = new RepairLedger();
-    const broken = () => film.scenes.filter((sc) => sc.status === 'error' && sc.error && (!only || only.has(sc.key)));
-    const initial = broken().map((sc) => sc.key);
-    if (!initial.length || ledger.limits.attemptsPerScene === 0) return film;
-    emit?.('repair', 'running', { scenes: initial.length });
+    const LAYOUT_ATTEMPTS = 3;
+    const tries = (key: string) => (ledger.attempts.get(key) || []).length;
+    const failing = (sc: FilmScene) => sc.status === 'error' && !!sc.error;
+    const displaced = (sc: FilmScene) => sc.status === 'ready' && !!sc.layout?.length && tries(sc.key) < LAYOUT_ATTEMPTS;
+    const broken = () => film.scenes.filter((sc) => (failing(sc) || displaced(sc)) && (!only || only.has(sc.key)));
+    const problem = (sc: FilmScene) => (failing(sc) ? sc.error!.message : `affichage : ${sc.layout!.join(' ; ')}`);
+    const initialErrors = film.scenes.filter((sc) => failing(sc) && (!only || only.has(sc.key))).map((sc) => sc.key);
+    const initialLayout = film.scenes.filter((sc) => displaced(sc) && (!only || only.has(sc.key))).map((sc) => sc.key);
+    if ((!initialErrors.length && !initialLayout.length) || ledger.limits.attemptsPerScene === 0) return film;
+    emit?.('repair', 'running', { scenes: initialErrors.length + initialLayout.length, layout: initialLayout.length });
     for (let round = 0; ; round++) {
-      // Chaque scène en erreur reçoit SA prochaine approche ; aucune ne reçoit deux tentatives à la fois.
+      // Chaque scène reçoit SA prochaine approche ; aucune ne reçoit deux tentatives à la fois.
       const todo = broken()
         .map((sc) => {
-          ledger.noteError(sc.key, sc.error!.message);
-          return { sc, strategy: ledger.nextStrategy(sc.key) };
+          ledger.noteError(sc.key, problem(sc));
+          return { sc, strategy: ledger.nextStrategy(sc.key), message: problem(sc) };
         })
-        .filter((x): x is { sc: FilmScene; strategy: NonNullable<ReturnType<RepairLedger['nextStrategy']>> } => !!x.strategy);
+        .filter((x): x is { sc: FilmScene; strategy: NonNullable<ReturnType<RepairLedger['nextStrategy']>>; message: string } => !!x.strategy);
       if (!todo.length) break;
       emit?.('repair', 'running', { round: round + 1, scenes: todo.map((x) => x.sc.key) });
-      const results = new Array<{ key: string; strategy: string; a: AuthoredScene }>(todo.length);
+      const results = new Array<{ key: string; strategy: string; a: AuthoredScene; before: FilmScene }>(todo.length);
       let next = 0;
       const worker = async () => {
         while (next < todo.length) {
           const k = next++;
-          const { sc, strategy } = todo[k];
-          const context = this.authorContext({ ...video, film }, ctx.film, sc, ctx.others, level, {
-            repair: { strategy, ...(strategy === 'fix' && sc.code ? { code: sc.code } : {}), error: sc.error!.message, history: ledger.history(sc.key) },
+          const { sc, strategy, message } = todo[k];
+          const context = this.authorContext({ ...video, film }, ctx.film, sc, level, {
+            repair: { strategy, ...(sc.code ? { code: sc.code } : {}), error: message, history: ledger.history(sc.key) },
           });
-          const a = await authorScene(this.callContext(userId, projectId, strategyLevel(strategy, level)), context);
-          results[k] = { key: sc.key, strategy, a };
+          const a = await this.sceneAuthor(this.callContext(userId, projectId, strategyLevel(strategy, level)), context);
+          results[k] = { key: sc.key, strategy, a, before: sc };
         }
       };
       await Promise.all(Array.from({ length: Math.min(ledger.limits.concurrency, todo.length) }, worker));
-      for (const { key, strategy, a } of results) {
+      for (const { key, strategy, a, before } of results) {
         const i = film.scenes.findIndex((sc) => sc.key === key);
-        const previous = film.scenes[i];
-        const repairs = [...(previous.author?.repairs || []), { strategy: strategy as 'fix' | 'rewrite' | 'minimal', ok: !!a.code && !a.error, ...(a.error ? { error: a.error.message.slice(0, 200) } : {}) }];
-        // Une réponse sans code ne remplace pas le code existant (l'erreur reste celle d'avant).
-        const updated = a.code ? MotionVideoService.applyAuthored(previous, a, previous.author?.instruction) : previous;
+        const repairs = [...(before.author?.repairs || []), { strategy: strategy as 'fix' | 'rewrite' | 'minimal', ok: !!a.code && !a.error, ...(a.error ? { error: a.error.message.slice(0, 200) } : {}) }];
+        // Une réponse sans code — ou en erreur pour une scène qui s'exécutait — ne remplace pas le code existant.
+        const keep = !a.code || (before.status === 'ready' && !!a.error);
+        const updated = keep ? before : MotionVideoService.applyAuthored(before, a, before.author?.instruction);
         film.scenes[i] = { ...updated, author: { ...(updated.author || { tokens: a.tokens, ms: a.ms, at: new Date().toISOString(), attempts: a.attempts }), repairs } };
         film.agents = [...film.agents, { agent: `video.author:${key}:repair-${strategy}`, source: a.code ? 'llm' : 'none', tokens: a.tokens, ms: a.ms, ...(a.code ? {} : { failure: a.error?.message.slice(0, 120) }) }];
         ledger.record(key, { strategy: strategy as 'fix' | 'rewrite' | 'minimal', ok: !!a.code && !a.error, tokens: a.tokens.input + a.tokens.output, ...(a.error ? { error: a.error.message } : {}) });
       }
-      // Le contrôle réel : les erreurs d'exécution des nouvelles versions apparaissent ici.
+      // Le contrôle réel : erreurs d'exécution et affichage des nouvelles versions, dans chaque format.
       film = await this.checkFilm(userId, projectId, { ...video, film }, ctx.film);
-      // Les résultats de compilation de ce tour sont mesurés : le journal garde l'erreur réellement constatée.
-      for (const { key } of results) {
-        const sc = film.scenes.find((x) => x.key === key)!;
+      for (const { key, before } of results) {
+        const i = film.scenes.findIndex((x) => x.key === key);
+        const sc = film.scenes[i];
         const last = sc.author?.repairs?.[sc.author.repairs.length - 1];
-        if (last) last.ok = sc.status === 'ready';
-        if (last && sc.error) last.error = sc.error.message.slice(0, 200);
+        // Une scène qui s'exécutait garde la version qui s'affiche le mieux (jamais une version qui plante).
+        const worse = before.status === 'ready' && (sc.status === 'error' || (sc.layout?.length || 0) >= (before.layout?.length || 0));
+        if (worse) film.scenes[i] = { ...before, author: { ...(before.author || sc.author!), repairs: sc.author?.repairs } };
+        if (last) {
+          last.ok = !worse && sc.status === 'ready' && !sc.layout?.length;
+          if (sc.error) last.error = sc.error.message.slice(0, 200);
+          else if (sc.layout?.length) last.error = `affichage : ${sc.layout.join(' ; ')}`.slice(0, 200);
+        }
       }
     }
-    const unresolved = broken().map((sc) => sc.key);
+    const unresolved = film.scenes.filter((sc) => failing(sc) && (!only || only.has(sc.key))).map((sc) => sc.key);
+    const layoutLeft = film.scenes.filter((sc) => sc.status === 'ready' && sc.layout?.length && (!only || only.has(sc.key))).map((sc) => sc.key);
     const attempts = [...ledger.attempts.values()].reduce((n, a) => n + a.length, 0);
     const stopped = ledger.exhausted && unresolved.length ? (ledger.tokensUsed >= ledger.limits.tokenBudget ? 'budget' : 'time') : undefined;
-    film = { ...film, repair: { attempts, fixed: initial.filter((k) => !unresolved.includes(k)), unresolved, tokens: ledger.tokensUsed, ...(stopped ? { stopped } : {}) } };
-    logger.info('video.repair', { event: 'video.repair', videoId: video.id, attempts, fixed: film.repair!.fixed, unresolved, tokens: ledger.tokensUsed, ...(stopped ? { stopped } : {}) });
-    emit?.('repair', 'done', { fixed: film.repair!.fixed.length, unresolved: unresolved.length, attempts });
+    film = {
+      ...film,
+      repair: { attempts, fixed: initialErrors.filter((k) => !unresolved.includes(k)), unresolved, tokens: ledger.tokensUsed, layoutFixed: initialLayout.filter((k) => !layoutLeft.includes(k)), layoutLeft, ...(stopped ? { stopped } : {}) },
+    };
+    logger.info('video.repair', { event: 'video.repair', videoId: video.id, attempts, fixed: film.repair!.fixed, unresolved, layoutFixed: film.repair!.layoutFixed, layoutLeft, tokens: ledger.tokensUsed, ...(stopped ? { stopped } : {}) });
+    emit?.('repair', 'done', { fixed: film.repair!.fixed.length, unresolved: unresolved.length, layoutFixed: film.repair!.layoutFixed!.length, layoutLeft: layoutLeft.length, attempts });
     return film;
   }
 
@@ -885,8 +914,8 @@ export class MotionVideoService {
 
     // 5. Auteur : le code de chaque scène
     emit('code', 'running', { scenes: film.scenes.length });
-    const contexts = film.scenes.map((sc) => this.authorContext(video, ctx.film, sc, ctx.others, creativity));
-    const authored = await authorScenes(call, contexts, Number(process.env.VIDEO_AUTHOR_CONCURRENCY) || 4, (a, done) => emit('code', 'running', { done, total: contexts.length, scene: a.key, ok: !a.error }));
+    const contexts = film.scenes.map((sc) => this.authorContext(video, ctx.film, sc, creativity));
+    const authored = await authorScenes(call, contexts, Number(process.env.VIDEO_AUTHOR_CONCURRENCY) || 4, (a, done) => emit('code', 'running', { done, total: contexts.length, scene: a.key, ok: !a.error }), this.sceneAuthor);
     authored.forEach((a) => agents.push({ agent: `video.author:${a.key}`, source: a.code ? 'llm' : 'none', tokens: a.tokens, ms: a.ms, ...(a.code ? {} : { failure: a.error?.message.slice(0, 120) }) }));
     if (authored.every((a) => !a.code)) {
       const noModel = authored.some((a) => /no_model/.test(a.error?.message || ''));
@@ -986,7 +1015,7 @@ export class MotionVideoService {
     if (typeof patch.captions === 'boolean') film = { ...film, captions: patch.captions };
 
     if (jobs.length) {
-      const results = await Promise.all(jobs.map((j) => authorScene(call, this.authorContext({ ...video, film }, ctx.film, sceneOf(j.key)!, ctx.others, level, j.extra)).then((a) => ({ j, a }))));
+      const results = await Promise.all(jobs.map((j) => this.sceneAuthor(call, this.authorContext({ ...video, film }, ctx.film, sceneOf(j.key)!, level, j.extra)).then((a) => ({ j, a }))));
       for (const { j, a } of results) {
         const i = film.scenes.findIndex((s) => s.key === j.key);
         film.agents = [...film.agents, { agent: `video.author:${j.key}:${j.extra.revise ? 'revise' : 'new'}`, source: a.code ? 'llm' : 'none', tokens: a.tokens, ms: a.ms, ...(a.code ? {} : { failure: a.error?.message.slice(0, 120) }) }];
@@ -1294,6 +1323,11 @@ export class MotionVideoService {
 }
 
 // ─── Minutage d'une vidéo modèle ────────────────────────────────────────────
+
+/** Une scène écrite dans le langage de mouvement (son programme est en tête du code compilé). */
+function isProgramScene(code?: string): boolean {
+  return !!code && code.includes(PROGRAM_MARK);
+}
 
 function referenceTimeline(bp: ReferenceBlueprint, total: number): { start: number; duration: number }[] | undefined {
   const [, max] = sceneRange(total);

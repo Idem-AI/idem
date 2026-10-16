@@ -360,6 +360,11 @@ export interface FilmScene {
   status: FilmSceneStatus;
   /** L'erreur TECHNIQUE qui empêche la scène de s'exécuter (jamais un jugement esthétique). */
   error?: { stage: 'author' | 'compile' | 'runtime'; message: string };
+  /**
+   * Défauts d'AFFICHAGE relevés au dernier contrôle (texte coupé par le cadre, textes qui se chevauchent), par
+   * format. Ils déclenchent l'autocorrection bornée ; ceux qui restent sont dits, sans bloquer l'export.
+   */
+  layout?: string[];
   /** Vignette de la scène (image rendue au dernier contrôle). */
   thumbnail?: string;
 }
@@ -400,7 +405,7 @@ export interface VideoFilm {
    * L'autocorrection avant livraison : tentatives, scènes corrigées, scènes restées en erreur, jetons
    * dépensés, et pourquoi elle s'est arrêtée (`budget`, `time`) quand ce n'est pas la fin des approches.
    */
-  repair?: { attempts: number; fixed: string[]; unresolved: string[]; tokens: number; stopped?: 'budget' | 'time' };
+  repair?: { attempts: number; fixed: string[]; unresolved: string[]; tokens: number; stopped?: 'budget' | 'time'; layoutFixed?: string[]; layoutLeft?: string[] };
   /** La vidéo modèle dont le film s'inspire. */
   reference?: { id?: string; summary: string };
 }

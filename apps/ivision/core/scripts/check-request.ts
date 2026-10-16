@@ -155,8 +155,13 @@ const PLANNER = [
   'SCENE 6 | 7', 'purpose: la signature', 'visual: le logo au centre', 'motion: une ligne bleue relie le logo', 'text.cta: https://idem.africa',
 ].join('\n');
 
-/** L'auteur simulé : une scène typographique correcte, la même pour chaque scène (seule la chaîne compte ici). */
-const AUTHOR = fs.readFileSync(path.join(__dirname, '../motion/examples/typography.tsx'), 'utf8');
+/** L'auteur simulé : un programme correct pour chaque scène (ses textes dans une pile ; seule la chaîne compte ici). */
+function AUTHOR(user: string): string {
+  const scene = user.split('THIS SCENE')[1] || user;
+  const keys = [...scene.matchAll(/\$(\w+) = "/g)].map((m) => m[1]);
+  const program = { nodes: [{ id: 'words', type: 'stack', dir: 'column', gap: 2, children: keys.map((k, i) => ({ type: 'text', text: `$${k}`, size: i ? 4.6 : 8, width: 'SW' })) }], timeline: [{ at: 0.1, target: 'words', dur: 0.6, from: { opacity: 0 }, to: {} }] };
+  return '```json\n' + JSON.stringify(program) + '\n```';
+}
 /** Une image de rendu : est-elle autre chose qu'un aplat ? */
 async function variance(png: Buffer): Promise<number> {
   const stats = await sharp(png).stats();
@@ -244,7 +249,7 @@ async function variance(png: Buffer): Promise<number> {
   const call: AgentCall = async ({ role, system, user }) => {
     prompts[role] = `${system}\n${user}`;
     if (role === 'video.planner') return PLANNER;
-    if (role === 'video.author') return '```tsx\n' + AUTHOR + '\n```';
+    if (role === 'video.author') return AUTHOR(user);
     return '';
   };
   const service = new MotionVideoService(store, call);
@@ -261,7 +266,7 @@ async function variance(png: Buffer): Promise<number> {
   check(`plan filmé généré (${clipCalls} appel(s)) et posé sur sa scène`, !!clipScene && clipScene.origin === 'generated', JSON.stringify(film.scenes[0].media));
   check('captures de la marque sur les scènes qui les citent', film.scenes[3].media.some((id) => video.media?.find((m) => m.id === id)?.url === screens[0]) && film.scenes[2].media.some((id) => video.media?.find((m) => m.id === id)?.url === screens[2]));
   check('4K et 24 i/s dits à l’utilisateur', (film.fidelity?.notes || []).some((n) => /4K/.test(n)) && (film.fidelity?.notes || []).some((n) => /24/.test(n)), JSON.stringify(film.fidelity?.notes));
-  check('l’auteur reçoit les textes exacts de sa scène, par clé', /headline = "Tout commence par une idée\."/.test(prompts['video.author'] || '') || film.scenes.every((s) => s.status === 'ready'));
+  check('l’auteur reçoit les textes exacts de sa scène, par clé', /\$headline = "Tout commence par une idée\."/.test(prompts['video.author'] || '') || film.scenes.every((s) => s.status === 'ready'));
   const thumbs = film.scenes.filter((s) => s.thumbnail);
   const v = await Promise.all(thumbs.map(async (s) => variance(fs.readFileSync(s.thumbnail!.replace('file://', '')))));
   check(`chaque scène exécutée par Motion Canvas : ${thumbs.length} vignettes, aucun aplat vide`, thumbs.length === 6 && film.scenes.every((s) => s.status === 'ready') && v.every((x) => x > 4), v.map((x) => x.toFixed(1)).join(', '));

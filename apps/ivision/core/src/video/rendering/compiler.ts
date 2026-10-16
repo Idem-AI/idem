@@ -30,6 +30,9 @@ function findMotionRoot(): string {
 
 export const MOTION_ROOT = findMotionRoot();
 
+/** Version de Motion Canvas installée (doit être celle de `package.json` ; le contrôle le vérifie). */
+export const MOTION_CANVAS_VERSION = '3.17.2';
+
 /** Les seuls modules qu'une scène peut importer. */
 const ALLOWED_IMPORT = /^(@motion-canvas\/(core|2d)(\/lib(\/[\w./-]+)?)?|@idem\/motion)$/;
 
@@ -174,6 +177,22 @@ export interface BundleScene {
 
 /** Le paquet d'un film : `mode` choisit le pilote (rendu serveur ou lecteur d'aperçu). */
 export async function buildFilmBundle(scenes: BundleScene[], mode: 'render' | 'preview'): Promise<string> {
+  // Une scène qui casse l'assemblage (un nom importé qui n'existe pas : `easeOut`, `Group`…) ne fait plus tomber
+  // le film entier : elle est retirée du paquet et le harnais montre son erreur à sa place ; les autres jouent.
+  const excluded = new Set<string>();
+  for (let attempt = 0; attempt <= scenes.length; attempt++) {
+    try {
+      return await bundleOnce(scenes.filter((s) => !excluded.has(s.key)), mode);
+    } catch (error) {
+      const faulty = [...String((error as Error)?.message || '').matchAll(/scene:([\w-]+):/g)].map((m) => m[1]).filter((k) => !excluded.has(k));
+      if (!faulty.length) throw error;
+      faulty.forEach((k) => excluded.add(k));
+    }
+  }
+  throw new Error('film_bundle_failed');
+}
+
+async function bundleOnce(scenes: BundleScene[], mode: 'render' | 'preview'): Promise<string> {
   const usable = scenes.filter((s) => s.code);
   const entry = [
     mode === 'render' ? `import { startRender as start } from './runtime/render';` : `import { startPlayer as start } from './runtime/player';`,
