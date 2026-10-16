@@ -65,9 +65,13 @@ export function describePlan(plan: BuildPlanResult, effective: { install?: strin
     plan.workspace ? `monorepo${plan.workspace.orchestrator ? ` (${plan.workspace.orchestrator})` : ''}, built from ${plan.buildRoot || 'the repository root'}` : null,
   ].filter(Boolean);
   if (facts.length) lines.push(facts.join(' · '));
-  const install = effective.install ?? plan.install;
-  const build = effective.build ?? plan.build;
-  const start = effective.start ?? plan.start;
+  // With a recipe, the commands it runs (nixpacks' own defaults are not shown).
+  const recipe = plan.recipe;
+  const install = effective.install ?? plan.install ?? (recipe?.kind === 'node' ? recipe.install : null);
+  const build = effective.build ?? (recipe ? recipe.build : plan.build);
+  const start =
+    effective.start ??
+    (recipe?.kind === 'node' ? recipe.start : recipe?.kind === 'java' ? `java -jar ${recipe.module ? `${recipe.module}/` : ''}<the built jar>` : plan.start);
   if (install) lines.push(`Install: ${install}`);
   if (build) lines.push(`Build:   ${build}`);
   if (start) lines.push(`Start:   ${start}`);

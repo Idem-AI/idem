@@ -119,6 +119,16 @@ export function installCommand(manager: NodeManager, lockfiles: string[], pnpmMa
   }
 }
 
+/** Node of a recipe when the code does not say: the active LTS. */
+const RECIPE_NODE_DEFAULT = 22;
+
+/** The install inside iDeploy's own image (corepack already set up). */
+function recipeInstall(manager: 'pnpm' | 'yarn' | 'npm', lockfiles: string[]): string {
+  if (manager === 'pnpm') return 'pnpm install --frozen-lockfile';
+  if (manager === 'yarn') return 'yarn install';
+  return lockfiles.includes('package-lock.json') ? 'npm ci' : 'npm install';
+}
+
 /** pnpm for the lockfile's format when `packageManager` does not say: `9.0` → 9, `6.0` → 8, `5.4` → 7. */
 export function pnpmMajorForLockfile(header: string | null): number | null {
   const v = /lockfileVersion:\s*['"]?(\d+)/.exec(header ?? '')?.[1];
@@ -541,6 +551,23 @@ async function planWorkspaceApp(
           '(e.g. "start": "node dist/index.js"), or set a start command in Settings › Build options.',
       });
     }
+  }
+
+  // iDeploy's own build for a server it knows how to start.
+  const recipeStart = plan.start ?? (script ? inApp(runScript(manager, script)) : null);
+  if (output === 'server' && manager !== 'bun' && recipeStart && !framework.issue) {
+    const lockHeader = manager === 'pnpm' && !rootPkg.packageManager ? await files.read(joinPath(buildRoot, 'pnpm-lock.yaml')) : null;
+    plan.recipe = {
+      kind: 'node',
+      nodeVersion: String(Math.max(version?.requested ?? RECIPE_NODE_DEFAULT, 16)),
+      manager,
+      pnpmMajor: pnpmMajorForLockfile(lockHeader),
+      hasPackageManagerField: Boolean(rootPkg.packageManager),
+      install: recipeInstall(manager, lockfiles),
+      build: plan.build ?? (hasBuild ? inApp(runScript(manager, 'build')) : null),
+      start: recipeStart,
+      nextCacheDir: framework.label.startsWith('Next') ? joinPath(appRel, '.next/cache') : null,
+    };
   }
 
   return plan;

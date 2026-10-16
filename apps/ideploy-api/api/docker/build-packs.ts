@@ -91,7 +91,8 @@ export type Runtime =
   | 'compose-file';
 
 export interface BuildPlan {
-  pack: BuildPack;
+  /** `recipe`: a Dockerfile iDeploy generated from the build plan. */
+  pack: BuildPack | 'recipe';
   steps: BuildStep[];
   runtime: Runtime;
   /** Set when `runtime` is `image`. */
@@ -326,6 +327,31 @@ function composePlan(context: BuildContext): BuildPlan {
       {
         label: 'Building the stack',
         command: `cd ${quote(dir)} && docker compose${context.composeProject ? ` -p ${quote(context.composeProject)}` : ''} build`,
+      },
+    ],
+  };
+}
+
+/**
+ * Build with iDeploy's own Dockerfile (see recipes.ts), written next to the
+ * code. BuildKit is what keeps the dependency caches between builds.
+ */
+export function recipePlan(context: BuildContext, dockerfile: string, label: string): BuildPlan {
+  const dir = buildDirectory(context);
+  const buildArgs = (context.buildEnv ?? []).map((pair) => ` --build-arg ${quote(pair)}`).join('');
+  return {
+    pack: 'recipe',
+    runtime: 'image',
+    imageTag: context.imageTag,
+    steps: [
+      {
+        label: `Building image (iDeploy recipe: ${label})`,
+        command:
+          `cd ${quote(dir)} && ` +
+          // The checkout's .git has no place in the image; a repository's own .dockerignore is kept.
+          `{ [ -e .dockerignore ] || printf '.git\\n' > .dockerignore; } && ` +
+          `echo ${Buffer.from(dockerfile, 'utf8').toString('base64')} | base64 -d > Dockerfile.ideploy && ` +
+          `DOCKER_BUILDKIT=1 docker build --progress=plain -f Dockerfile.ideploy${buildArgs} -t ${quote(context.imageTag)} .`,
       },
     ],
   };

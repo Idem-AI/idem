@@ -29,7 +29,7 @@ import { assertComposeIsSafe } from '../docker/compose-policy';
 import { assertSafeGitBranch, assertSafeGitUrl, isSafeCommitSha, isSafeImageName, isSafeImageTag } from '../validation/git-input';
 import { generateComposeFile, appWorkdir, composeDirFile, composeProject } from '../docker/compose';
 import { choosePort, parseExposedPorts, parseListeningPorts, PortChoice } from '../docker/listening-ports';
-import { planBuild, toBuildPack, buildDirectory } from '../docker/build-packs';
+import { planBuild, recipePlan, toBuildPack, buildDirectory } from '../docker/build-packs';
 import { loadLabelContext, buildApplicationLabels } from '../services/application-labels.service';
 import { writeFirewallFile } from '../services/firewall-file.service';
 import { applyRoutes } from '../services/routes-file.service';
@@ -37,6 +37,7 @@ import { monorepoHint, monorepoProbeCommand, parseMonorepoProbe } from '../docke
 import { analyzeRepository, describePlan, parseSnapshot, snapshotCommand, BuildPlanResult } from '../build-plan';
 import { joinPath, relativeTo } from '../build-plan/repo-files';
 import { explainFailure } from '../build-plan/failures';
+import { recipeDockerfile, recipeLabel } from '../docker/recipes';
 import * as appService from '../services/application.service';
 import * as envVarService from '../services/env-var.service';
 import * as serverService from '../services/server.service';
@@ -484,9 +485,11 @@ async function deploy(
     // version, which commands. Docker and compose builds follow their own files.
     const overrides = { install: app.install_command, build: app.build_command, start: app.start_command };
     const read: { plan: BuildPlanResult | null } = { plan: null };
+    // iDeploy's own recipe replaces nixpacks unless a build variable says otherwise.
+    const recipes = pack === 'nixpacks' && !buildEnv.includes('IDEPLOY_BUILDER=nixpacks');
     if (pack === 'nixpacks' || pack === 'static') {
       await streamStep(deploymentUuid, 'Reading the code', async () => {
-        read.plan = await readBuildPlan(server, key, srcDir, baseDirectory, overrides, log);
+        read.plan = await readBuildPlan(server, key, srcDir, baseDirectory, overrides, recipes, log);
       });
     }
     const used = read.plan?.language ? read.plan : null;
@@ -514,7 +517,25 @@ async function deploy(
       nixpacksVariables: used?.nixpacksEnv,
       nodeVersion: used?.runtimeVersion?.name === 'Node' ? used.runtimeVersion.version : null,
     };
-    const plan = planBuild(pack, buildContext);
+    const recipe = used?.output === 'server' ? used.recipe : undefined;
+    const plan = recipe
+      ? recipePlan(
+          buildContext,
+          recipeDockerfile(
+            // The user's commands win here too.
+            recipe.kind === 'node'
+              ? {
+                  ...recipe,
+                  install: own(app.install_command) ?? recipe.install,
+                  build: own(app.build_command) ?? recipe.build,
+                  start: own(app.start_command) ?? recipe.start,
+                }
+              : recipe,
+            buildEnv.map((pair) => pair.split('=')[0])
+          ),
+          recipeLabel(recipe)
+        )
+      : planBuild(pack, buildContext);
 
     await log(`\n──► Build strategy: ${plan.pack}`);
 
@@ -808,6 +829,7 @@ async function readBuildPlan(
   srcDir: string,
   appDir: string,
   overrides: { install?: string | null; build?: string | null; start?: string | null },
+  recipes: boolean,
   log: (line: string) => Promise<void>
 ): Promise<BuildPlanResult | null> {
   const r = await executeRemoteCommand(server, key, snapshotCommand(srcDir), { noRetry: true });
@@ -820,12 +842,23 @@ async function readBuildPlan(
     overrides,
     resources: { memoryAvailableMb: snapshot.memoryAvailableMb, diskFreeMb: snapshot.diskFreeMb },
   });
+  // A Java start command of the user's names the jars where nixpacks puts them: nixpacks builds it.
+  const recipe = recipes && plan.recipe && !(plan.recipe.kind === 'java' && overrides.start) ? plan.recipe : undefined;
+  plan.recipe = recipe;
+  // The engine's own limits (Gradle 9, a recent JDK) do not apply to a recipe.
+  if (recipe) plan.issues = plan.issues.filter((i) => i.engine !== 'nixpacks');
   const effective = {
     install: overrides.install ? `${overrides.install} (yours)` : null,
     build: overrides.build ? `${overrides.build} (yours)` : null,
     start: overrides.start ? `${overrides.start} (yours)` : null,
   };
-  await log(`\n──► Build plan, read from the code\n${describePlan(plan, effective).map((l) => `  ${l}`).join('\n')}`);
+  const builder = plan.language
+    ? recipe
+      ? `Builder: iDeploy recipe, ${recipeLabel(recipe)} — dependencies cached between builds (build variable IDEPLOY_BUILDER=nixpacks to use nixpacks)`
+      : 'Builder: nixpacks'
+    : null;
+  const lines = [...describePlan(plan, effective), ...(builder ? [builder] : [])];
+  await log(`\n──► Build plan, read from the code\n${lines.map((l) => `  ${l}`).join('\n')}`);
   const blocking = plan.issues.find((i) => i.severity === 'blocking');
   if (blocking) throw new Error(blocking.message);
   return plan;
