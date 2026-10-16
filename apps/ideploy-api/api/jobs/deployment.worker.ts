@@ -38,6 +38,10 @@ import { analyzeRepository, describePlan, parseSnapshot, snapshotCommand, BuildP
 import { joinPath, relativeTo } from '../build-plan/repo-files';
 import { explainFailure, explainRuntimeFailure, KnownFailure } from '../build-plan/failures';
 import { Recipe } from '../build-plan/types';
+import type { RepoFiles } from '../build-plan';
+import { REPAIR_SETTINGS, RepairOverrides, RepairProposal, checkProposal, describeOverrides } from '../repair/proposal';
+import { KEY_FILES, compactLog, fileTree, redact, referencedFiles } from '../repair/context';
+import { RepairRequestBody, repairAvailable, requestRepair } from '../repair/client';
 import { DOCKER_HUB_MIRROR, lenientInstall, recipeDockerfile, recipeLabel } from '../docker/recipes';
 import * as appService from '../services/application.service';
 import * as envVarService from '../services/env-var.service';
@@ -125,16 +129,68 @@ const DISK_CLEANUP_BELOW_MB = 3072;
 export class DeploymentFailure extends Error {
   constructor(
     message: string,
-    readonly code: string
+    readonly code: string,
+    /** What the failing step printed, for a repair: the build output, or the container's logs. */
+    readonly detail?: { stage: 'plan' | 'build' | 'start'; output: string }
   ) {
     super(message);
   }
 }
 
+/** What a deployment attempt leaves for a repair, and the repair under test. */
+interface DeployTrace {
+  server?: Parameters<typeof executeRemoteCommand>[0];
+  key?: Parameters<typeof executeRemoteCommand>[1];
+  srcDir?: string;
+  plan?: BuildPlanResult | null;
+  files?: RepoFiles;
+  variableNames: string[];
+  /** Values of the variables — only to mask them in what a repair is sent. */
+  secrets: string[];
+  /** The settings in effect for this attempt. */
+  settings: Record<string, string | null>;
+  /** IDEPLOY_AI_REPAIR: `auto` (default), `diagnose` (say, change nothing), `off`. */
+  repairMode: 'auto' | 'diagnose' | 'off';
+  overrides?: RepairOverrides;
+}
+
+function newDeployTrace(): DeployTrace {
+  return { variableNames: [], secrets: [], settings: {}, repairMode: 'auto' };
+}
+
+/** Repairs per deployment — each one is a full rebuild. */
+const MAX_AI_REPAIRS = 2;
+
+/**
+ * Causes no setting can change: the server, the network, a secret only the
+ * user has, a choice that is theirs (which application of a monorepo). Their
+ * deterministic message already says what to do; asking a model would cost
+ * tokens for nothing.
+ */
+const NOT_REPAIRABLE = new Set([
+  'LOW_DISK',
+  'NO_SPACE',
+  'NETWORK',
+  'DOCKERHUB_RATE_LIMIT',
+  'BUILD_TIMEOUT',
+  'OUT_OF_MEMORY',
+  'APP_SECRET',
+  'PRIVATE_PACKAGE',
+  'DATABASE_UNREACHABLE',
+  'MONOREPO_PICK_APP',
+  'JAVA_PICK_MODULE',
+  'GO_PICK_MAIN',
+  'RUST_PICK_BINARY',
+  'DOTNET_PICK_PROJECT',
+  'UNSUPPORTED_GRADLE_VERSION',
+]);
+
 /** A build step that failed, explained. */
 interface BuildFailure {
   known: KnownFailure | null;
   message: string;
+  /** Everything the step printed. */
+  output: string;
 }
 
 /** `timeout` exits 124: the build ran past BUILD_TIMEOUT_SECONDS. */
@@ -305,7 +361,7 @@ async function runDeployment(
   let switched = false;
 
   try {
-    await withApplicationLock(applicationId, deploymentUuid, log, () => deploy(job.data, log, () => (switched = true)), {
+    await withApplicationLock(applicationId, deploymentUuid, log, () => deployWithRepair(job.data, log, () => (switched = true)), {
       // Behind another deployment of the same application: back to the queue,
       // the worker goes to someone else meanwhile.
       onBusy: token ? () => retryLater(job, token) as Promise<never> : undefined,
@@ -335,15 +391,179 @@ async function runDeployment(
   }
 }
 
-async function deploy(
+/**
+ * Deploy; on a failure the rules could not fix, ask the platform's repair
+ * agent for a change of settings, check it, and deploy again with it — twice
+ * at most. The change is saved only when the application then starts; until
+ * the switch, the live version keeps serving (the trial run guards it).
+ */
+async function deployWithRepair(
   data: DeploymentJobData,
   log: (line: string) => Promise<void>,
   markSwitched: () => void
 ): Promise<void> {
+  const trace = newDeployTrace();
+  let tried: RepairProposal | undefined;
+  for (let repairs = 0; ; repairs++) {
+    try {
+      await deploy(data, log, markSwitched, trace);
+      if (trace.overrides) await keepRepair(data, trace, log);
+      return;
+    } catch (err) {
+      if (
+        !(err instanceof DeploymentFailure) ||
+        !err.detail ||
+        repairs >= MAX_AI_REPAIRS ||
+        trace.repairMode === 'off' ||
+        NOT_REPAIRABLE.has(err.code) ||
+        !repairAvailable()
+      ) {
+        throw err;
+      }
+      const failure = err;
+      const outcome: { next: RepairOverrides | null; note: string | null } = { next: null, note: null };
+      await streamStep(data.deploymentUuid, `Looking for a fix (AI, attempt ${repairs + 1} of ${MAX_AI_REPAIRS})`, async () => {
+        const proposal = await requestRepair(await repairRequest(data, failure, trace, repairs + 1, tried));
+        if (!proposal) {
+          await log('The repair service did not answer.');
+          return;
+        }
+        const checked = checkProposal(proposal, trace.files?.paths ?? [], trace.settings);
+        await log(`🤖 ${checked.diagnosis}`);
+        for (const line of checked.refused) await log(`  refused: ${line}`);
+        for (const question of checked.questions) await log(`  ❓ ${question}`);
+        outcome.note = [checked.diagnosis, ...checked.questions].join(' ');
+        if (!checked.overrides) return;
+        if (trace.repairMode === 'diagnose') {
+          await log('IDEPLOY_AI_REPAIR=diagnose: nothing is changed.');
+          return;
+        }
+        for (const line of describeOverrides(checked.overrides, trace.settings)) await log(`  → ${line}`);
+        await log('Deploying again with this change. It is saved only if the application then starts.');
+        outcome.next = checked.overrides;
+        tried = proposal;
+      });
+      if (!outcome.next) {
+        throw outcome.note ? new DeploymentFailure(`${failure.message}\nAI diagnosis: ${outcome.note}`, failure.code, failure.detail) : failure;
+      }
+      trace.overrides = mergeOverrides(trace.overrides, outcome.next);
+    }
+  }
+}
+
+/** Two repairs in a row: the second adds to the first. */
+function mergeOverrides(previous: RepairOverrides | undefined, next: RepairOverrides): RepairOverrides {
+  const keyOf = (pair: string) => pair.split('=')[0];
+  return {
+    settings: { ...previous?.settings, ...next.settings },
+    buildVariables: [
+      ...(previous?.buildVariables ?? []).filter((p) => !next.buildVariables.some((q) => keyOf(q) === keyOf(p))),
+      ...next.buildVariables,
+    ],
+  };
+}
+
+/**
+ * What the repair agent is sent: the plan, the settings, the variable names,
+ * the log reduced to what broke, the file tree, the manifests and the files
+ * the log names — every variable value masked.
+ */
+async function repairRequest(
+  data: DeploymentJobData,
+  failure: DeploymentFailure,
+  trace: DeployTrace,
+  attempt: number,
+  tried: RepairProposal | undefined
+): Promise<RepairRequestBody> {
+  const output = failure.detail?.output ?? failure.message;
+  const paths = trace.files?.paths ?? [];
+  const root = trace.plan?.buildRoot ?? '';
+  const appDir = trace.plan?.appDir ?? '';
+  const files: { path: string; content: string }[] = [];
+  if (trace.files) {
+    for (const dir of [...new Set([appDir, root])]) {
+      for (const name of KEY_FILES) {
+        if (files.length >= 5) break;
+        const path = joinPath(dir, name);
+        if (files.some((f) => f.path === path)) continue;
+        const content = await trace.files.read(path);
+        if (content !== null) files.push({ path, content: redact(content, trace.secrets).slice(0, 3000) });
+      }
+    }
+  }
+  // The files the log names are read on the server: the snapshot holds configuration files only.
+  const named = referencedFiles(output, paths).filter((p) => !files.some((f) => f.path === p));
+  if (named.length && trace.server && trace.key && trace.srcDir) {
+    const r = await executeRemoteCommand(
+      trace.server,
+      trace.key,
+      `cd ${shellQuote(trace.srcDir)} && for f in ${named.map(shellQuote).join(' ')}; do echo "@@C $f $(head -c 4000 "$f" | base64 -w0)"; done`,
+      { noRetry: true }
+    ).catch(() => null);
+    if (r) {
+      const read = parseSnapshot(r.stdout).files;
+      for (const path of named) {
+        const content = await read.read(path);
+        if (content !== null) files.push({ path, content: redact(content, trace.secrets).slice(0, 4000) });
+      }
+    }
+  }
+  return {
+    deploymentUuid: data.deploymentUuid,
+    attempt,
+    stage: failure.detail?.stage ?? 'build',
+    failureCode: failure.code,
+    plan: trace.plan ? describePlan(trace.plan).slice(0, 30).map((line) => redact(line, trace.secrets).slice(0, 600)) : [],
+    settings: trace.settings,
+    variables: trace.variableNames.slice(0, 200),
+    log: compactLog(output, trace.secrets),
+    tree: fileTree(paths, root),
+    files: files.slice(0, 10),
+    ...(tried ? { previous: { proposal: tried, log: 'The LOG EXCERPT above is what this attempt gave.' } } : {}),
+  };
+}
+
+/** The repair worked: its settings and build variables become the application's. */
+async function keepRepair(data: DeploymentJobData, trace: DeployTrace, log: (line: string) => Promise<void>): Promise<void> {
+  const overrides = trace.overrides as RepairOverrides;
+  if (Object.keys(overrides.settings).length) {
+    await appService.updateApplication(data.teamId, data.applicationUuid, overrides.settings);
+  }
+  for (const pair of overrides.buildVariables) {
+    const at = pair.indexOf('=');
+    await envVarService.upsertForApplication(data.teamId, data.applicationUuid, {
+      key: pair.slice(0, at),
+      value: pair.slice(at + 1),
+      is_buildtime: true,
+      is_runtime: false,
+    });
+  }
+  const changes = [
+    ...Object.entries(overrides.settings).map(([k, v]) => `${k} = ${v}`),
+    ...overrides.buildVariables.map((pair) => `build variable ${pair}`),
+  ];
+  await log(`🤖 The fix worked and is saved in the application's settings: ${changes.join('; ')}.`);
+  logger.info('Deployment repaired', {
+    event: 'deployment.repaired',
+    deploymentUuid: data.deploymentUuid,
+    applicationUuid: data.applicationUuid,
+    changes: [...Object.keys(overrides.settings), ...overrides.buildVariables.map((p) => p.split('=')[0])],
+  });
+}
+
+async function deploy(
+  data: DeploymentJobData,
+  log: (line: string) => Promise<void>,
+  markSwitched: () => void,
+  trace: DeployTrace = newDeployTrace()
+): Promise<void> {
   const { deploymentUuid, applicationUuid, teamId } = data;
 
-  const app = await appService.getApplication(teamId, applicationUuid);
-  if (!app) throw new Error('Application not found');
+  const stored = await appService.getApplication(teamId, applicationUuid);
+  if (!stored) throw new Error('Application not found');
+  // A repair under test: its settings replace the stored ones for this attempt only.
+  const app: ApplicationRow = trace.overrides ? { ...stored, ...trace.overrides.settings } : stored;
+  trace.settings = Object.fromEntries(REPAIR_SETTINGS.map((k) => [k, (app[k] as string | null | undefined) ?? null]));
 
   const serverRef = await appService.getApplicationServer(app.id);
   if (!serverRef) throw new Error('No server/destination resolved for this application');
@@ -352,6 +572,8 @@ async function deploy(
   if (!server) throw new Error('Server not found');
   const key = await serverService.getExecutionKey(server);
   if (!key) throw new Error('Private key not found');
+  trace.server = server;
+  trace.key = key;
 
   // Proxy + ownership labels. Without these the container runs but is not
   // reachable on its domain, and the platform cannot recognise it later.
@@ -367,6 +589,7 @@ async function deploy(
   const releasesDir = `${workdir}/releases`;
   const releaseDir = `${releasesDir}/${deploymentUuid.slice(0, 8)}`;
   const srcDir = `${releaseDir}/src`;
+  trace.srcDir = srcDir;
   // One image repository per application, one tag per deployment: old images
   // can then be removed without touching another application's, even one that
   // shares its name.
@@ -395,9 +618,16 @@ async function deploy(
   const runtimeEnv = envVars
     .filter((v) => v.is_runtime && v.value !== null)
     .map((v) => `${v.key}=${v.value}`);
-  const buildEnv = envVars
-    .filter((v) => v.is_buildtime && v.value !== null)
-    .map((v) => `${v.key}=${v.value}`);
+  const buildEnv = [
+    ...envVars.filter((v) => v.is_buildtime && v.value !== null).map((v) => `${v.key}=${v.value}`),
+    // A repair under test may add build variables (NODE_OPTIONS…).
+    ...(trace.overrides?.buildVariables ?? []).filter((pair) => !envVars.some((v) => v.is_buildtime && v.key === pair.split('=')[0])),
+  ];
+  // What a repair may know of them: their names. Their values only to mask them.
+  trace.variableNames = envVars.map((v) => v.key);
+  trace.secrets = envVars.map((v) => v.value ?? '').filter((v) => v.length >= 6);
+  const repairChoice = envVars.find((v) => v.key === 'IDEPLOY_AI_REPAIR')?.value?.trim().toLowerCase();
+  trace.repairMode = repairChoice === 'off' ? 'off' : repairChoice === 'diagnose' ? 'diagnose' : 'auto';
 
   // What `docker compose up` runs, and from where: the file we generate lives
   // in the application's directory; a repository's own compose file runs from
@@ -541,7 +771,7 @@ async function deploy(
     const recipes = pack === 'nixpacks' && !buildEnv.some((pair) => /^IDEPLOY_BUILDER=\s*nixpacks\s*$/i.test(pair));
     if (pack === 'nixpacks' || pack === 'static') {
       await streamStep(deploymentUuid, 'Reading the code', async () => {
-        read.plan = await readBuildPlan(server, key, srcDir, baseDirectory, overrides, recipes, log);
+        read.plan = await readBuildPlan(server, key, srcDir, baseDirectory, overrides, recipes, log, trace);
       });
     }
     const used = read.plan?.language ? read.plan : null;
@@ -611,7 +841,7 @@ async function deploy(
               hint = monorepo.split('\n')[0];
             }
           }
-          failure = { known, message: `${step.label} failed: ${hint ? `${hint} — ` : ''}${output.slice(-400)}` };
+          failure = { known, message: `${step.label} failed: ${hint ? `${hint} — ` : ''}${output.slice(-400)}`, output: all };
         });
         if (failure) return failure;
       }
@@ -707,7 +937,7 @@ async function deploy(
       attempt = next;
       failure = await runBuildSteps(withRecipe(next).steps);
     }
-    if (failure) throw new DeploymentFailure(failure.message, failure.known?.code ?? 'BUILD_FAILED');
+    if (failure) throw new DeploymentFailure(failure.message, failure.known?.code ?? 'BUILD_FAILED', { stage: 'build', output: failure.output });
 
     if (plan.runtime === 'compose-file') {
       // The repository ships its own stack; it runs from its own directory.
@@ -800,7 +1030,10 @@ async function deploy(
   const startFailure = async (what: string, logs: string): Promise<DeploymentFailure> => {
     const known = explainRuntimeFailure(logs);
     if (known) await log(`\n✗ ${known.explanation}`);
-    return new DeploymentFailure(`${what} ${known ? known.explanation : 'Check the logs above for errors.'}`, known?.code ?? 'START_FAILED');
+    return new DeploymentFailure(`${what} ${known ? known.explanation : 'Check the logs above for errors.'}`, known?.code ?? 'START_FAILED', {
+      stage: 'start',
+      output: logs,
+    });
   };
 
   // Tracks how much of `docker compose logs` output has already been
@@ -1018,7 +1251,8 @@ async function trialRun(
         throw new DeploymentFailure(
           `The new version stopped at start${known ? `: ${known.explanation}` : ' — see its last lines above.'} The live version keeps serving.` +
             (known ? '' : ' If this application cannot run twice at once (a bot, a queue consumer), set the variable IDEPLOY_TRIAL=false.'),
-          known?.code ?? 'START_FAILED'
+          known?.code ?? 'START_FAILED',
+          { stage: 'start', output: logs }
         );
       }
       // "Ready" is not enough on its own: Next.js prints "Ready in 157ms"
@@ -1089,7 +1323,8 @@ async function readBuildPlan(
   appDir: string,
   overrides: { install?: string | null; build?: string | null; start?: string | null },
   recipes: boolean,
-  log: (line: string) => Promise<void>
+  log: (line: string) => Promise<void>,
+  trace?: DeployTrace
 ): Promise<BuildPlanResult | null> {
   const r = await executeRemoteCommand(server, key, snapshotCommand(srcDir), { noRetry: true });
   if (r.exitCode !== 0 && !r.stdout.includes('@@F ')) {
@@ -1097,6 +1332,7 @@ async function readBuildPlan(
     return null;
   }
   const snapshot = parseSnapshot(r.stdout);
+  if (trace) trace.files = snapshot.files;
   // Short of space: what can go without risk goes — untagged images and
   // build cache unused for a week (each release's image keeps its tag, for
   // rollback). Then measured again.
@@ -1139,7 +1375,8 @@ async function readBuildPlan(
   const lines = [...describePlan(plan, effective), ...(builder ? [builder] : [])];
   await log(`\n──► Build plan, read from the code\n${lines.map((l) => `  ${l}`).join('\n')}`);
   const blocking = plan.issues.find((i) => i.severity === 'blocking');
-  if (blocking) throw new DeploymentFailure(blocking.message, blocking.code);
+  if (trace) trace.plan = plan;
+  if (blocking) throw new DeploymentFailure(blocking.message, blocking.code, { stage: 'plan', output: lines.join('\n') });
   return plan;
 }
 

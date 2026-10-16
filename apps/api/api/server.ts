@@ -52,6 +52,7 @@ import { billingService } from './services/billing.service';
 import { billingSettingsService } from './services/billing/billing-settings.service';
 import { startBillingScheduler } from './services/billing/billing-scheduler';
 import { billingRoutes } from './routes/billing.routes';
+import { ideployRepairRoutes } from './routes/ideploy-repair.routes';
 import { appgenMediaRoutes } from './routes/appgenMedia.routes';
 import { authRoutes } from './routes/auth.routes';
 import { promptRoutes } from './routes/prompt.routes';
@@ -162,6 +163,11 @@ app.use(express.urlencoded({ extended: true, limit: process.env.URLENCODED_BODY_
 // (`x-ivision-key`), elle passe AVANT la limite par IP : tous les utilisateurs d'iVision
 // arrivent de la même adresse, celle du serveur iVision (les quotas par utilisateur restent).
 app.use('/internal/ivision', ivisionRoutes);
+
+// Réparation des déploiements iDeploy en échec : le runtime d'agents de la plateforme,
+// derrière la clé interne (`x-api-key`). Avant la limite par IP pour la même raison
+// qu'iVision : tous les appels viennent des workers iDeploy.
+app.use('/internal/ideploy', ideployRepairRoutes);
 
 // Burst protection + global IP rate limit (in addition to per-route limits).
 app.use(burstProtection({ maxBurst: 30, burstWindowMs: 1000 }));
