@@ -157,8 +157,9 @@ describe('planBuild — static', () => {
 
   it('builds with the Node version read from the code', () => {
     const plan = planBuild('static', context({ installCommand: 'npm ci', buildCommand: 'npm run build', nodeVersion: '18' }));
-    expect(script(plan)).toContain('node:18-slim');
-    expect(script(planBuild('static', context({ buildCommand: 'npm run build' })))).toContain('node:20-slim');
+    // The full image: native modules and git dependencies build.
+    expect(script(plan)).toContain(' node:18 sh -lc ');
+    expect(script(planBuild('static', context({ buildCommand: 'npm run build' })))).toContain(' node:20 sh -lc ');
   });
 
   it('runs the build when one is configured', () => {

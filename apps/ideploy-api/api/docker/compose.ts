@@ -27,6 +27,11 @@ function externalNetwork(network: string | undefined): Record<string, unknown> {
   return network ? { networks: { [network]: { external: true } } } : {};
 }
 
+/** The service and container name of an application's generated compose file. */
+export function composeServiceName(app: Pick<ApplicationRow, 'name' | 'uuid'>): string {
+  return `${app.name}-${app.uuid}`.toLowerCase().replace(/[^a-z0-9-]/g, '-');
+}
+
 export function generateComposeFile(
   app: ApplicationRow,
   imageTag: string,
@@ -45,7 +50,7 @@ export function generateComposeFile(
   envVars?: string[],
   port?: number
 ): string {
-  const serviceName = `${app.name}-${app.uuid}`.toLowerCase().replace(/[^a-z0-9-]/g, '-');
+  const serviceName = composeServiceName(app);
 
   // Publish ports so the app is reachable. Prefer explicit ports_mappings
   // ("host:container[,host:container]") — an operator setting that always
@@ -80,6 +85,10 @@ export function generateComposeFile(
         image: imageTag,
         container_name: serviceName,
         restart: 'unless-stopped',
+        // A small init as PID 1: a `sh -c` start command passes SIGTERM on, so
+        // the application stops cleanly at each deployment instead of being
+        // killed after 10 seconds mid-request; zombie processes are reaped.
+        init: true,
         ...(environment.length ? { environment } : {}),
         ...(mappings.length ? { ports: mappings } : {}),
         ...networkingFor(labels ?? defaultOwnershipLabels(app), network),

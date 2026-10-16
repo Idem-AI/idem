@@ -9,6 +9,12 @@ import { BuildPlanResult, emptyPlan } from './types';
 import { RepoFiles, joinPath } from './repo-files';
 import { planNode } from './node';
 import { planJava } from './java';
+import { planPython } from './python';
+import { planPhp } from './php';
+import { planGo } from './go';
+import { planRuby } from './ruby';
+import { planDotnet } from './dotnet';
+import { planRust } from './rust';
 
 export * from './types';
 export { snapshotCommand, parseSnapshot } from './repo-files';
@@ -27,10 +33,20 @@ const MIN_DISK_MB = 1024;
 const HEAVY_BUILD_MEMORY_MB = 1536;
 
 export async function analyzeRepository(files: RepoFiles, appDir: string, options: AnalyzeOptions = {}): Promise<BuildPlanResult> {
-  // Java first: a Spring backend with a package.json for its front-end tooling is Java.
+  // The languages whose project carries a package.json for its front-end
+  // come first: a Spring backend, a Laravel or Rails application, an ASP.NET
+  // one with its SPA. Python, Go and Rust step aside for a Node application
+  // that merely keeps a helper file of theirs; Node comes last.
+  const overrides = options.overrides ?? {};
   const plan =
-    (await planJava(files, appDir, options.overrides ?? {})) ??
-    (await planNode(files, appDir, { overrides: options.overrides })) ??
+    (await planJava(files, appDir, overrides)) ??
+    (await planPhp(files, appDir)) ??
+    (await planRuby(files, appDir, overrides)) ??
+    (await planDotnet(files, appDir)) ??
+    (await planPython(files, appDir, overrides)) ??
+    (await planGo(files, appDir, overrides)) ??
+    (await planRust(files, appDir)) ??
+    (await planNode(files, appDir, { overrides })) ??
     emptyPlan(appDir);
 
   const resources = options.resources;
@@ -41,7 +57,7 @@ export async function analyzeRepository(files: RepoFiles, appDir: string, option
       message: `Only ${resources.diskFreeMb} MB free on the server: a build needs at least ${MIN_DISK_MB} MB. Free space (old images: docker image prune) and deploy again.`,
     });
   }
-  const heavy = plan.language === 'java' || /Next|Nuxt|Angular|Vite|Astro|Svelte|Remix|React Router|Gatsby|Create React App|Vue CLI/.test(plan.framework ?? '');
+  const heavy = plan.language === 'java' || plan.language === 'rust' || plan.language === 'dotnet' || /Next|Nuxt|Angular|Vite|Astro|Svelte|Remix|React Router|Gatsby|Create React App|Vue CLI/.test(plan.framework ?? '');
   const memory = resources?.memoryAvailableMb;
   if (heavy && memory !== null && memory !== undefined && memory < HEAVY_BUILD_MEMORY_MB) {
     plan.issues.push({
@@ -65,9 +81,13 @@ export function describePlan(plan: BuildPlanResult, effective: { install?: strin
     plan.workspace ? `monorepo${plan.workspace.orchestrator ? ` (${plan.workspace.orchestrator})` : ''}, built from ${plan.buildRoot || 'the repository root'}` : null,
   ].filter(Boolean);
   if (facts.length) lines.push(facts.join(' · '));
-  const install = effective.install ?? plan.install;
-  const build = effective.build ?? plan.build;
-  const start = effective.start ?? plan.start;
+  // With a recipe, the commands it runs (nixpacks' own defaults are not shown).
+  const recipe = plan.recipe;
+  const install = effective.install ?? plan.install ?? (recipe?.kind === 'node' || recipe?.kind === 'python' ? recipe.install : null);
+  const build = effective.build ?? (recipe ? recipe.build : plan.build);
+  const start =
+    effective.start ??
+    (recipe?.kind === 'java' ? `java -jar ${recipe.module ? `${recipe.module}/` : ''}<the built jar>` : recipe ? recipe.start : plan.start);
   if (install) lines.push(`Install: ${install}`);
   if (build) lines.push(`Build:   ${build}`);
   if (start) lines.push(`Start:   ${start}`);
@@ -87,7 +107,12 @@ export function describePlan(plan: BuildPlanResult, effective: { install?: strin
 export async function monorepoLayout(
   paths: string[],
   getFile: (path: string) => Promise<string | null>
-): Promise<{ candidates?: { dir: string; manifestFile: string; framework: string }[]; onlyApp?: string }> {
+): Promise<{
+  candidates?: { dir: string; manifestFile: string; framework: string }[];
+  onlyApp?: string;
+  /** What would fail or surprise at the first deployment, said at import. */
+  issues: { code: string; message: string; severity: 'blocking' | 'warning' }[];
+}> {
   const cache = new Map<string, Promise<string | null>>();
   const read = (path: string) => {
     if (!cache.has(path)) cache.set(path, getFile(path));
@@ -95,13 +120,18 @@ export async function monorepoLayout(
   };
   try {
     const plan = await analyzeRepository({ paths, read }, '');
+    // The picker shows the applications; nixpacks' own limits do not apply to iDeploy's recipes.
+    const issues = plan.issues
+      .filter((i) => i.severity !== 'info' && !i.engine && !/^(MONOREPO_|JAVA_PICK_MODULE)/.test(i.code))
+      .map((i) => ({ code: i.code, message: i.message, severity: i.severity as 'blocking' | 'warning' }));
     if (plan.apps && plan.apps.length > 1) {
       const manifestFile = plan.language === 'java' ? (plan.tool === 'maven' ? 'pom.xml' : 'build.gradle') : 'package.json';
-      return { candidates: plan.apps.map((a) => ({ dir: a.dir, manifestFile, framework: a.framework })) };
+      return { candidates: plan.apps.map((a) => ({ dir: a.dir, manifestFile, framework: a.framework })), issues };
     }
-    if (plan.appDir) return { onlyApp: plan.appDir };
+    if (plan.appDir) return { onlyApp: plan.appDir, issues };
+    return { issues };
   } catch {
     /* unreadable: the import works as before */
   }
-  return {};
+  return { issues: [] };
 }

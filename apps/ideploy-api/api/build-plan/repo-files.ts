@@ -26,7 +26,15 @@ const READ_NAMES = [
   'vite.config.ts', 'vite.config.js', 'vite.config.mjs', 'astro.config.mjs', 'astro.config.ts',
   'svelte.config.js', 'svelte.config.ts', 'nuxt.config.ts', 'nuxt.config.js',
   'next.config.js', 'next.config.mjs', 'next.config.ts', 'vue.config.js',
+  // Python, PHP, Go, Ruby, Rust, .NET.
+  'requirements.txt', 'pyproject.toml', 'Pipfile', 'runtime.txt', '.python-version', 'Procfile',
+  'main.py', 'app.py', 'server.py', 'application.py', 'asgi.py', 'wsgi.py', 'run.py', 'streamlit_app.py',
+  'composer.json', 'composer.lock', 'go.mod', 'Gemfile', '.ruby-version',
+  'Cargo.toml', 'rust-toolchain.toml', 'rust-toolchain', 'global.json',
 ];
+
+/** Read by pattern: .NET project files are named after their project. */
+const READ_PATTERNS = ['*.csproj', '*.fsproj'];
 
 export interface RepoSnapshot {
   files: RepoFiles;
@@ -44,7 +52,7 @@ export interface RepoSnapshot {
  */
 export function snapshotCommand(dir: string): string {
   const prune = IGNORED_DIRS.map((d) => `-name ${shellQuote(d)}`).join(' -o ');
-  const names = READ_NAMES.map((n) => `-name ${shellQuote(n)}`).join(' -o ');
+  const names = [...READ_NAMES, ...READ_PATTERNS].map((n) => `-name ${shellQuote(n)}`).join(' -o ');
   const walk = `find . -maxdepth 5 \\( ${prune} \\) -prune -o -type f`;
   return (
     `cd ${shellQuote(dir)} && ` +

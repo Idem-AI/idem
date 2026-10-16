@@ -50,28 +50,6 @@ export interface EcosystemRepoAccess {
   getFile(path: string): Promise<string | null>;
 }
 
-/** Supported Gradle major versions, straight from nixpacks' own provider (src/providers/java.rs, get_gradle_pkg). */
-const NIXPACKS_SUPPORTED_GRADLE_MAJORS = new Set([4, 5, 6, 7, 8]);
-
-/** Parsed from `distributionUrl=…/gradle-9.5.1-bin.zip` — mirrors nixpacks' own regex closely enough to agree with it. */
-function parseGradleMajorVersion(wrapperProperties: string): number | null {
-  const m = /distributionUrl.*gradle-(\d+)(?:\.\d+)*-/.exec(wrapperProperties);
-  return m ? Number(m[1]) : null;
-}
-
-function gradleVersionWarning(major: number | null): EcosystemWarning | null {
-  if (major === null) return null;
-  if (NIXPACKS_SUPPORTED_GRADLE_MAJORS.has(major)) return null;
-  return {
-    code: 'UNSUPPORTED_GRADLE_VERSION',
-    message:
-      `This project's Gradle wrapper is pinned to Gradle ${major}, which the build engine (nixpacks) does not ` +
-      `support — only Gradle 4 through 8. The build will fail with "Unsupported Gradle version". Pin an older ` +
-      `Gradle in gradle/wrapper/gradle-wrapper.properties, or deploy with a Dockerfile instead.`,
-    severity: 'blocking',
-  };
-}
-
 /** `pom.xml`'s packaging/dependencies are enough to tell Spring Boot from plain Java without a full XML parser. */
 function isSpringBoot(pomXml: string): boolean {
   return /spring-boot/i.test(pomXml);
@@ -105,7 +83,7 @@ async function detectJava(repo: EcosystemRepoAccess): Promise<EcosystemDetection
   }
 
   if (pomXml !== null) return buildMavenDetection(pomXml);
-  if (gradleFile !== null) return buildGradleDetection(repo, gradleFile);
+  if (gradleFile !== null) return buildGradleDetection(gradleFile);
   return null;
 }
 
@@ -120,17 +98,17 @@ async function buildMavenDetection(pomXml: string): Promise<EcosystemDetection> 
   };
 }
 
-async function buildGradleDetection(repo: EcosystemRepoAccess, gradleFile: string): Promise<EcosystemDetection> {
+async function buildGradleDetection(gradleFile: string): Promise<EcosystemDetection> {
   const springBoot = isSpringBootGradle(gradleFile);
-  const wrapperProps = await repo.getFile('gradle/wrapper/gradle-wrapper.properties');
-  const gradleMajor = wrapperProps ? parseGradleMajorVersion(wrapperProps) : null;
-  const warning = gradleVersionWarning(gradleMajor);
+  // The Gradle version is no longer a blocker: iDeploy's recipe runs the
+  // project's own wrapper (nixpacks stopped at Gradle 8). Forced back to
+  // nixpacks, the deployment's build plan says it.
   return {
     ecosystem: 'java-gradle',
     framework: springBoot ? 'Spring Boot (Gradle)' : 'Java (Gradle)',
     buildTool: 'gradle',
     suggestedPort: springBoot ? 8080 : null,
-    warnings: warning ? [warning] : [],
+    warnings: [],
   };
 }
 
@@ -150,22 +128,10 @@ async function detectPython(repo: EcosystemRepoAccess): Promise<EcosystemDetecti
   // is the reliable signal (requirements.txt naming "django" is not: it is
   // routinely a transitive dependency of something else).
   if (manageP !== null || /\bdjango\b/i.test(manifest)) {
-    return {
-      ecosystem: 'python',
-      framework: 'Django',
-      buildTool,
-      suggestedPort: 8000,
-      startCommandHint: 'python manage.py runserver 0.0.0.0:$PORT',
-      warnings: [
-        {
-          code: 'DJANGO_DEV_SERVER',
-          message:
-            'Django\'s own dev server (manage.py runserver) is not meant for production traffic. Consider a ' +
-            'start command using gunicorn/uvicorn if this deploys somewhere users will actually hit.',
-          severity: 'warning',
-        },
-      ],
-    };
+    // No start command suggested: iDeploy's recipe runs gunicorn on the
+    // project's wsgi module (runserver, suggested here before, is a
+    // development server — and a suggestion becomes the user's command).
+    return { ecosystem: 'python', framework: 'Django', buildTool, suggestedPort: 8000, warnings: [] };
   }
   if (/\bfastapi\b/i.test(manifest)) {
     return { ecosystem: 'python', framework: 'FastAPI', buildTool, suggestedPort: 8000, warnings: [] };
@@ -183,18 +149,10 @@ async function detectGo(repo: EcosystemRepoAccess): Promise<EcosystemDetection |
     ecosystem: 'go',
     framework: 'Go',
     buildTool: 'go modules',
-    // No real convention — a Go binary's listen address is whatever the
-    // developer wrote, most commonly hardcoded rather than read from an
-    // env var. Reported as unknown rather than guessed, so the UI asks
-    // instead of silently routing to a port nothing is listening on.
+    // No convention: the port is often hardcoded. The deployment measures
+    // the one the program listens on and routes there.
     suggestedPort: null,
-    warnings: [
-      {
-        code: 'GO_PORT_UNKNOWN',
-        message: 'Go binaries usually hardcode their listen port rather than reading $PORT. Check main.go for the actual port and set it below.',
-        severity: 'warning',
-      },
-    ],
+    warnings: [],
   };
 }
 
@@ -225,8 +183,8 @@ async function detectPhp(repo: EcosystemRepoAccess): Promise<EcosystemDetection 
     ecosystem: 'php',
     framework: isLaravel ? 'Laravel' : 'PHP',
     buildTool: 'composer',
-    suggestedPort: isLaravel ? 8000 : null,
-    startCommandHint: isLaravel ? 'php artisan serve --host=0.0.0.0 --port=$PORT' : undefined,
+    // Apache serves the public folder in iDeploy's recipe (artisan serve is a development server).
+    suggestedPort: 80,
     warnings: [],
   };
 }

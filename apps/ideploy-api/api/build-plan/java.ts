@@ -10,6 +10,9 @@ import { RepoFiles, joinPath, relativeTo } from './repo-files';
 /** JDKs nixpacks installs. */
 export const JDK_VERSIONS = [8, 11, 17, 21];
 
+/** The JDK a recipe uses when the code does not say: the current LTS the images ship. */
+const DEFAULT_RECIPE_JDK = 21;
+
 /** `1.8` → 8, `17` → 17. */
 function javaMajor(value: string | undefined): number | null {
   if (!value) return null;
@@ -226,6 +229,7 @@ export async function planJava(files: RepoFiles, appDir: string, overrides: { st
         message:
           `The code targets Java ${major}; the build engine ships JDK ${JDK_VERSIONS.join(', ')}. ` +
           `If the build fails with "invalid target release", target Java ${JDK_VERSIONS.filter((v) => v < major).pop() ?? 21} or deploy with a Dockerfile.`,
+        engine: 'nixpacks',
       });
     }
   }
@@ -241,12 +245,36 @@ export async function planJava(files: RepoFiles, appDir: string, overrides: { st
         message:
           `The Gradle wrapper is pinned to Gradle ${g}; the build engine supports Gradle 4 to 8 only. ` +
           'Set distributionUrl to Gradle 8 in gradle/wrapper/gradle-wrapper.properties, or deploy with a Dockerfile.',
+        engine: 'nixpacks',
       });
     }
   }
 
   const moduleRel = relativeTo(buildRoot, moduleDir);
-  const wrapper = tool === 'maven' ? files.paths.includes(joinPath(buildRoot, 'mvnw')) : files.paths.includes(joinPath(buildRoot, 'gradlew'));
+  // A wrapper is usable only with its files: `*.jar` in a .gitignore leaves
+  // gradle-wrapper.jar out ("Could not find or load main class
+  // org.gradle.wrapper.GradleWrapperMain"), and mvnw needs its properties.
+  // Without them, the official image of the build tool — the same Gradle
+  // version when the properties name it.
+  const has = (path: string) => files.paths.includes(joinPath(buildRoot, path));
+  const wrapper =
+    tool === 'maven'
+      ? has('mvnw') && has('.mvn/wrapper/maven-wrapper.properties')
+      : has('gradlew') && has('gradle/wrapper/gradle-wrapper.jar');
+  const gradleVersion =
+    tool === 'gradle'
+      ? /distributionUrl.*gradle-(\d+(?:\.\d+)*)-/.exec((await files.read(joinPath(buildRoot, 'gradle/wrapper/gradle-wrapper.properties'))) ?? '')?.[1] ?? null
+      : null;
+  if (!wrapper && (has('mvnw') || has('gradlew'))) {
+    issues.push({
+      code: 'WRAPPER_INCOMPLETE',
+      severity: 'info',
+      message:
+        `The ${tool === 'maven' ? 'Maven' : 'Gradle'} wrapper is committed without its files ` +
+        `(${tool === 'maven' ? '.mvn/wrapper/maven-wrapper.properties' : 'gradle/wrapper/gradle-wrapper.jar, often left out by a *.jar line in .gitignore'}): ` +
+        `the official ${tool === 'maven' ? 'Maven' : `Gradle${gradleVersion ? ` ${gradleVersion}` : ''}`} image builds it instead.`,
+    });
+  }
   const plan: BuildPlanResult = {
     language: 'java',
     framework: `${framework} (${tool === 'maven' ? 'Maven' : 'Gradle'})`,
@@ -271,6 +299,25 @@ export async function planJava(files: RepoFiles, appDir: string, overrides: { st
   } else if (framework === 'Quarkus' || framework === 'Micronaut') {
     // nixpacks starts `target/*.jar` with Spring's port flag only.
     plan.start = jarStart(framework, tool, '');
+  }
+
+  // iDeploy's own build: any JDK and Gradle version, dependencies cached.
+  if (!plan.issues.some((i) => i.severity === 'blocking' && !i.engine)) {
+    const runner = tool === 'maven' ? (wrapper ? './mvnw' : 'mvn') : wrapper ? './gradlew' : 'gradle';
+    const task = moduleRel ? `:${moduleRel.replace(/\//g, ':')}:build` : 'build';
+    plan.recipe = {
+      kind: 'java',
+      tool,
+      jdk: major ?? DEFAULT_RECIPE_JDK,
+      wrapper,
+      module: moduleRel,
+      framework,
+      gradleVersion,
+      build:
+        tool === 'maven'
+          ? `${runner} -B -DskipTests ${moduleRel ? `-pl ${moduleRel} -am ` : ''}package`
+          : `${runner} ${task} -x test -x check --no-daemon`,
+    };
   }
   return plan;
 }

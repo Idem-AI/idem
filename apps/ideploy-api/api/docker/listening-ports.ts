@@ -42,6 +42,25 @@ export function parseListeningPorts(procNetTcp: string): number[] {
 }
 
 /**
+ * Ports listened on only on loopback (127.0.0.1, ::1): an application bound
+ * to localhost runs, but the proxy cannot reach it — a 502 with nothing in
+ * its logs. Said instead of passing for "serves no HTTP".
+ */
+export function parseLoopbackOnlyPorts(procNetTcp: string): number[] {
+  const open = new Set(parseListeningPorts(procNetTcp));
+  const loopback = new Set<number>();
+  for (const line of procNetTcp.split('\n')) {
+    const cols = line.trim().split(/\s+/);
+    if (cols.length < 4 || cols[3] !== LISTEN) continue;
+    const [ipHex, portHex] = cols[1].split(':');
+    if (!ipHex || !portHex || !isLoopback(ipHex)) continue;
+    const port = parseInt(portHex, 16);
+    if (port > 0 && !open.has(port)) loopback.add(port);
+  }
+  return [...loopback].sort((a, b) => a - b);
+}
+
+/**
  * 127.0.0.0/8 (stored little-endian: first octet last), ::1, and IPv4-mapped
  * ::ffff:127.x.
  */
