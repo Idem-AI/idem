@@ -28,7 +28,7 @@ import { getSourceArchive } from '../services/application-source.service';
 import { assertComposeIsSafe } from '../docker/compose-policy';
 import { assertSafeGitBranch, assertSafeGitUrl, isSafeCommitSha, isSafeImageName, isSafeImageTag } from '../validation/git-input';
 import { generateComposeFile, appWorkdir, composeDirFile, composeProject, composeServiceName } from '../docker/compose';
-import { choosePort, parseExposedPorts, parseListeningPorts, PortChoice } from '../docker/listening-ports';
+import { choosePort, parseExposedPorts, parseListeningPorts, parseLoopbackOnlyPorts, PortChoice } from '../docker/listening-ports';
 import { planBuild, recipePlan, toBuildPack, buildDirectory } from '../docker/build-packs';
 import { loadLabelContext, buildApplicationLabels } from '../services/application-labels.service';
 import { writeFirewallFile } from '../services/firewall-file.service';
@@ -37,8 +37,8 @@ import { monorepoHint, monorepoProbeCommand, parseMonorepoProbe } from '../docke
 import { analyzeRepository, describePlan, parseSnapshot, snapshotCommand, BuildPlanResult } from '../build-plan';
 import { joinPath, relativeTo } from '../build-plan/repo-files';
 import { explainFailure, explainRuntimeFailure, KnownFailure } from '../build-plan/failures';
-import { JavaRecipe, NodeRecipe } from '../build-plan/types';
-import { lenientInstall, recipeDockerfile, recipeLabel } from '../docker/recipes';
+import { Recipe } from '../build-plan/types';
+import { DOCKER_HUB_MIRROR, lenientInstall, recipeDockerfile, recipeLabel } from '../docker/recipes';
 import * as appService from '../services/application.service';
 import * as envVarService from '../services/env-var.service';
 import * as serverService from '../services/server.service';
@@ -517,6 +517,8 @@ async function deploy(
           // with "remote origin already exists", hiding the real cause.
           `cd ${shellQuote(srcDir)} && rm -rf .git && git init -q && git remote add origin ${shellQuote(cloneUrl)} && ` +
             `git fetch -q --depth 1 origin ${shellQuote(ref)} && git checkout -q FETCH_HEAD && ` +
+            // Before the remote goes: submodules and LFS files fetch through it.
+            `${fetchSubmodulesAndLfs(credential?.authenticatedUrl ?? null)} && ` +
             // The remote URL may carry the team's token: not left in .git/config.
             `git remote remove origin && ` +
             `echo "COMMIT=$(git rev-parse HEAD)" && ls -la`,
@@ -550,6 +552,15 @@ async function deploy(
     // even when the build itself runs from the monorepo root.
     const appRel = used ? relativeTo(used.buildRoot, used.appDir) : '';
     const own = (command: string | null | undefined) => (command ? (appRel ? `cd ${shellQuote(appRel)} && ${command}` : command) : null);
+    // Variables set for runtime only. A static site has no runtime: they can
+    // only have been meant for its build (VITE_API_URL…), where they used to
+    // be missing without a word. A server gets them at build only as a retry,
+    // when its build says a variable is missing.
+    const ownKey = (pair: string) => pair.split('=')[0];
+    const runtimeOnly = runtimeEnv.filter((pair) => !buildEnv.some((b) => ownKey(b) === ownKey(pair)));
+    if (pack === 'static' && runtimeOnly.length) {
+      await log(`A static site has no runtime: its variables (${runtimeOnly.map(ownKey).join(', ')}) are given to its build.`);
+    }
     const buildContext = {
       srcDir,
       workdir: releaseDir,
@@ -560,7 +571,7 @@ async function deploy(
       startCommand: own(app.start_command) ?? used?.start ?? null,
       publishDirectory: app.publish_directory ? joinPath(appRel, app.publish_directory) : used?.publishDirectory ?? null,
       port,
-      buildEnv,
+      buildEnv: pack === 'static' ? [...buildEnv, ...runtimeOnly] : buildEnv,
       composeProject: project,
       dockerfileLocation: app.dockerfile_location,
       dockerfileTarget: app.dockerfile_target_build,
@@ -609,8 +620,9 @@ async function deploy(
 
     const recipe = used?.output === 'server' ? used.recipe : undefined;
     // The user's commands win in a recipe too.
-    const ownRecipe: NodeRecipe | JavaRecipe | undefined =
-      recipe?.kind === 'node'
+    const ownRecipe: Recipe | undefined = !recipe
+      ? undefined
+      : recipe.kind === 'node'
         ? {
             ...recipe,
             install: own(app.install_command) ?? recipe.install,
@@ -619,10 +631,23 @@ async function deploy(
             // The contract is read from the plan's start command, not the user's.
             output: app.start_command ? null : recipe.output,
           }
-        : recipe && { ...recipe, build: own(app.build_command) ?? recipe.build };
-    const argKeys = buildEnv.map((pair) => pair.split('=')[0]);
-    const withRecipe = (r: NodeRecipe | JavaRecipe) => recipePlan(buildContext, recipeDockerfile(r, argKeys), recipeLabel(r));
-    const plan = ownRecipe ? withRecipe(ownRecipe) : planBuild(pack, buildContext);
+        : recipe.kind === 'java'
+          ? // A start command of the user's sends Java to nixpacks (readBuildPlan).
+            { ...recipe, build: own(app.build_command) ?? recipe.build }
+          : recipe.kind === 'python'
+            ? {
+                ...recipe,
+                install: own(app.install_command) ?? recipe.install,
+                build: own(app.build_command) ?? recipe.build,
+                start: own(app.start_command) ?? recipe.start,
+              }
+            : { ...recipe, build: own(app.build_command) ?? recipe.build, start: own(app.start_command) ?? recipe.start };
+    /** A recipe build: its recipe, the variables its build sees, the registry of its base images. */
+    type RecipeAttempt = { recipe: Recipe; env: string[]; registry: string };
+    const withRecipe = (a: RecipeAttempt) =>
+      recipePlan({ ...buildContext, buildEnv: a.env }, recipeDockerfile(a.recipe, a.env.map(ownKey), a.registry), recipeLabel(a.recipe));
+    let attempt: RecipeAttempt | null = ownRecipe ? { recipe: ownRecipe, env: buildEnv, registry: '' } : null;
+    const plan = attempt ? withRecipe(attempt) : planBuild(pack, buildContext);
 
     await log(`\n──► Build strategy: ${plan.pack}`);
 
@@ -645,19 +670,42 @@ async function deploy(
 
     // Each fallback runs only when the failure says it can help: a code
     // error fails every way, and is reported at once.
+    // Each cause is retried once, three retries at most: a build can need
+    // two (a heap, then a variable), never a loop.
     let failure = await runBuildSteps(plan.steps);
-    if (failure && ownRecipe) {
+    const retried = new Set<string>();
+    while (failure && attempt && retried.size < 3) {
       const code = failure.known?.code;
-      if (code === 'LOCKFILE_OUT_OF_DATE' && ownRecipe.kind === 'node' && !app.install_command) {
+      if (!code || retried.has(code)) break;
+      retried.add(code);
+      const current: RecipeAttempt = attempt;
+      let next: RecipeAttempt | null = null;
+      if (code === 'LOCKFILE_OUT_OF_DATE' && current.recipe.kind === 'node' && !app.install_command) {
         await log(
           '\n↻ The lockfile does not match package.json. Building again with an install that updates it — ' +
             'commit an up-to-date lockfile: the versions deployed may differ from the ones you tested.'
         );
-        failure = await runBuildSteps(withRecipe({ ...ownRecipe, install: lenientInstall(ownRecipe.manager) }).steps);
+        next = { ...current, recipe: { ...current.recipe, install: lenientInstall(current.recipe.manager) } };
+      } else if (code === 'NODE_HEAP' && current.recipe.kind === 'node' && !current.env.some((p) => ownKey(p) === 'NODE_OPTIONS')) {
+        await log('\n↻ The build ran out of Node.js heap. Building again with a 4 GB heap (NODE_OPTIONS=--max-old-space-size=4096).');
+        next = { ...current, env: [...current.env, 'NODE_OPTIONS=--max-old-space-size=4096'] };
+      } else if (code === 'MISSING_ENV' && runtimeOnly.length) {
+        await log(
+          `\n↻ The build needs a variable it was not given. Building again with the runtime variables too (${runtimeOnly.map(ownKey).join(', ')}) — ` +
+            'mark the ones the build needs as build variables to skip this retry.'
+        );
+        next = { ...current, env: [...current.env, ...runtimeOnly.filter((p) => !current.env.some((e) => ownKey(e) === ownKey(p)))] };
+      } else if (code === 'DOCKERHUB_RATE_LIMIT' && !current.registry) {
+        await log(`\n↻ ${failure.known?.explanation} Building again from Google's mirror of Docker Hub (${DOCKER_HUB_MIRROR}).`);
+        next = { ...current, registry: DOCKER_HUB_MIRROR };
       } else if (code === 'BASE_IMAGE_MISSING' || code === 'COREPACK') {
         await log(`\n↻ ${failure.known?.explanation} Building with nixpacks instead.`);
         failure = await runBuildSteps(planBuild('nixpacks', buildContext).steps);
+        break;
       }
+      if (!next) break;
+      attempt = next;
+      failure = await runBuildSteps(withRecipe(next).steps);
     }
     if (failure) throw new DeploymentFailure(failure.message, failure.known?.code ?? 'BUILD_FAILED');
 
@@ -840,10 +888,15 @@ async function deploy(
   if (compose !== null && composeImage) {
     const image = composeImage;
     await streamStep(deploymentUuid, 'Detecting the port', async () => {
-      const listening = await listeningPorts(server, key, composeDir, project);
+      const { ports: listening, loopbackOnly } = await listeningPorts(server, key, composeDir, project);
       const exposed = await imageExposedPorts(server, key, image);
       const choice = choosePort(port, listening, exposed);
-      await log(describePortChoice(choice, port, listening));
+      await log(
+        loopbackOnly.length
+          ? `⚠ The application listens on ${loopbackOnly.join(', ')} but only on localhost (127.0.0.1): the proxy cannot reach it and the site answers 502. ` +
+              'Make it listen on 0.0.0.0 (for Node: app.listen(process.env.PORT, "0.0.0.0"); the HOST variable is set to 0.0.0.0).'
+          : describePortChoice(choice, port, listening)
+      );
       if (choice.source === 'none' || choice.port === port) return;
 
       // Route to the real port: new labels and PORT, saved on the application.
@@ -935,7 +988,7 @@ async function trialRun(
     server,
     key,
     `docker rm -f ${shellQuote(name)} >/dev/null 2>&1; ` +
-      `docker run -d --name ${shellQuote(name)} --label ideploy.trial=true --label traefik.enable=false ` +
+      `docker run -d --init --name ${shellQuote(name)} --label ideploy.trial=true --label traefik.enable=false ` +
       `${opts.network ? `--network ${shellQuote(opts.network)} ` : ''}${envFlags} ${shellQuote(opts.image)}`,
     { noRetry: true, redact: secrets }
   );
@@ -986,6 +1039,41 @@ async function trialRun(
       noRetry: true,
     }).catch(() => undefined);
   }
+}
+
+/**
+ * Shell that completes a checkout: git submodules (a shallow fetch left them
+ * empty, and the build failed on missing files), and Git LFS files (left as
+ * small text pointers: an image, a model, a font that "exists" but is not
+ * the file). Private submodules on the same host use the clone's token.
+ * Neither stops the deployment: a submodule the token cannot read is said,
+ * and the build reports what it misses.
+ */
+export function fetchSubmodulesAndLfs(authenticatedUrl: string | null): string {
+  let rewrite = '';
+  if (authenticatedUrl) {
+    try {
+      const url = new URL(authenticatedUrl);
+      if (url.username) {
+        const auth = `${url.protocol}//${url.username}:${url.password}@${url.host}/`;
+        rewrite =
+          ` -c ${shellQuote(`url.${auth}.insteadOf=https://${url.host}/`)}` +
+          ` -c ${shellQuote(`url.${auth}.insteadOf=git@${url.host}:`)}` +
+          ` -c ${shellQuote(`url.${auth}.insteadOf=ssh://git@${url.host}/`)}`;
+      }
+    } catch {
+      /* not a URL: submodules fetch with their own addresses */
+    }
+  }
+  return (
+    `{ if [ -f .gitmodules ]; then ` +
+    `git${rewrite} submodule update --init --recursive --depth 1 && echo "Git submodules fetched." || ` +
+    `echo "⚠ Git submodules could not be fetched (private, or on another host): the build will miss their files."; fi; } && ` +
+    `{ if grep -qs 'filter=lfs' .gitattributes; then ` +
+    `command -v git-lfs >/dev/null 2>&1 || apt-get install -y git-lfs >/dev/null 2>&1 || true; ` +
+    `if command -v git-lfs >/dev/null 2>&1; then git lfs install --local >/dev/null && git lfs pull && echo "Git LFS files fetched." || echo "⚠ Git LFS files could not be fetched: the build sees pointers instead of the files."; ` +
+    `else echo "⚠ This repository stores files with Git LFS and git-lfs cannot be installed on the server: the build sees pointers instead of the files."; fi; fi; }`
+  );
 }
 
 /**
@@ -1156,7 +1244,7 @@ async function listeningPorts(
   key: Parameters<typeof executeRemoteCommand>[1],
   composeDir: string,
   project: string
-): Promise<number[]> {
+): Promise<{ ports: number[]; loopbackOnly: number[] }> {
   const command =
     `cd ${shellQuote(composeDir)} && C=$(docker compose -p ${shellQuote(project)} ps -q | head -1) && ` +
     `P=$(docker inspect -f '{{.State.Pid}}' "$C") && cat /proc/$P/net/tcp /proc/$P/net/tcp6 2>/dev/null`;
@@ -1164,7 +1252,9 @@ async function listeningPorts(
   for (;;) {
     const r = await executeRemoteCommand(server, key, command, { noRetry: true }).catch(() => null);
     const ports = r ? parseListeningPorts(r.stdout) : [];
-    if (ports.length > 0 || Date.now() - started > LISTEN_WAIT_MS) return ports;
+    if (ports.length > 0 || Date.now() - started > LISTEN_WAIT_MS) {
+      return { ports, loopbackOnly: r && ports.length === 0 ? parseLoopbackOnlyPorts(r.stdout) : [] };
+    }
     await new Promise((resolve) => setTimeout(resolve, 3000));
   }
 }

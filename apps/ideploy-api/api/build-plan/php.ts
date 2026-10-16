@@ -1,0 +1,131 @@
+/**
+ * PHP applications: Laravel, Symfony or plain PHP, served by Apache from
+ * their public folder, with the PHP version and the extensions the project
+ * and its dependencies ask for, and their front-end assets built with Node.
+ */
+import { BuildPlanResult, PhpRecipe, PlanIssue } from './types';
+import { RepoFiles, joinPath } from './repo-files';
+import { hasFile } from './common';
+import { FRESH_COREPACK, readPackage, startScript } from './node';
+
+const DEFAULT_PHP_MINOR = 3;
+
+/** Extensions each framework uses beyond PHP's own: database drivers, intl, zip, opcache. */
+const FRAMEWORK_EXTENSIONS: Record<PhpRecipe['framework'], string[]> = {
+  Laravel: ['pdo_mysql', 'pdo_pgsql', 'bcmath', 'intl', 'zip', 'opcache', 'pcntl', 'gd', 'exif'],
+  Symfony: ['pdo_mysql', 'pdo_pgsql', 'intl', 'zip', 'opcache'],
+  PHP: ['pdo_mysql', 'mysqli', 'pdo_pgsql', 'zip', 'opcache', 'gd'],
+};
+
+/** `8.2` from composer.json's `require.php` (`^8.2`, `>=8.1`, `~8.1.0`, `^8.1|^8.2`). */
+export function phpVersionFromConstraint(constraint: string): string | null {
+  const alternatives = constraint.split('|').map((c) => c.trim()).filter(Boolean);
+  const minors: number[] = [];
+  let seven = false;
+  for (const c of alternatives) {
+    const exact = /^(?:\^|~|=|==)?\s*8\.(\d+)/.exec(c);
+    const lower = />=?\s*8\.(\d+)/.exec(c);
+    const upper = /<\s*8\.(\d+)/.exec(c);
+    if (lower) {
+      let minor = Math.max(Number(lower[1]), DEFAULT_PHP_MINOR);
+      if (upper && minor >= Number(upper[1])) minor = Number(upper[1]) - 1;
+      minors.push(minor);
+    } else if (exact) minors.push(Number(exact[1]));
+    else if (/^(?:\^|~)?\s*7\.4/.test(c)) seven = true;
+  }
+  // PHP 8 whenever the constraint allows it.
+  if (minors.length) return `8.${Math.max(...minors)}`;
+  return seven ? '7.4' : null;
+}
+
+interface ComposerJson {
+  require?: Record<string, string>;
+}
+
+export async function planPhp(files: RepoFiles, appDir: string): Promise<BuildPlanResult | null> {
+  const has = (name: string) => hasFile(files, appDir, name);
+  const composerText = await files.read(joinPath(appDir, 'composer.json'));
+  if (composerText === null) {
+    // Plain PHP without Composer: an index.php, and no Node application in the same folder.
+    if (!has('index.php') && !has('public/index.php')) return null;
+    const pkg = await readPackage(files, appDir);
+    if (pkg && startScript(pkg)) return null;
+  }
+  let composer: ComposerJson = {};
+  try {
+    composer = composerText ? (JSON.parse(composerText) as ComposerJson) : {};
+  } catch {
+    composer = {};
+  }
+  const require = composer.require ?? {};
+  const framework: PhpRecipe['framework'] = require['laravel/framework']
+    ? 'Laravel'
+    : require['symfony/framework-bundle']
+      ? 'Symfony'
+      : 'PHP';
+  const issues: PlanIssue[] = [];
+
+  const declared = require.php ? phpVersionFromConstraint(require.php) : null;
+  const version = declared ?? `8.${DEFAULT_PHP_MINOR}`;
+
+  // The extensions the project and its dependencies require: composer.json,
+  // and composer.lock (a package needing ext-gd fails the install otherwise).
+  const lock = (await files.read(joinPath(appDir, 'composer.lock'))) ?? '';
+  const required = [...Object.keys(require), ...[...lock.matchAll(/"ext-([a-z0-9_]+)"/gi)].map((m) => `ext-${m[1]}`)]
+    .filter((k) => k.startsWith('ext-'))
+    .map((k) => k.slice(4).toLowerCase());
+  const extensions = [...new Set([...FRAMEWORK_EXTENSIONS[framework], ...required])].sort();
+
+  const documentRoot = framework !== 'PHP' || has('public/index.php') ? 'public' : '';
+
+  // Front-end assets (Laravel's Vite, Symfony's Encore), built before Composer.
+  const pkg = await readPackage(files, appDir);
+  let assets: PhpRecipe['assets'] = null;
+  if (pkg?.scripts?.build) {
+    const manager = has('pnpm-lock.yaml') ? 'pnpm' : has('yarn.lock') ? 'yarn' : 'npm';
+    const install =
+      manager === 'pnpm'
+        ? `${FRESH_COREPACK} && pnpm install --frozen-lockfile`
+        : manager === 'yarn'
+          ? `${FRESH_COREPACK} && yarn install`
+          : has('package-lock.json')
+            ? 'npm ci'
+            : 'npm install';
+    assets = { manager, install, build: `${manager} run build` };
+  }
+
+  if (framework === 'Laravel') {
+    issues.push({
+      code: 'LARAVEL_APP_KEY',
+      severity: 'info',
+      message: 'Laravel needs APP_KEY (php artisan key:generate --show) and APP_ENV=production under Variables. Migrations are not run automatically.',
+    });
+  }
+
+  const build =
+    framework === 'Laravel'
+      ? 'php artisan storage:link || true'
+      : null;
+
+  return {
+    language: 'php',
+    framework,
+    appDir,
+    buildRoot: appDir,
+    output: 'server',
+    tool: composerText ? 'composer' : undefined,
+    runtimeVersion: { name: 'PHP', version, source: declared ? 'composer.json' : 'default' },
+    nixpacksEnv: {},
+    issues,
+    recipe: {
+      kind: 'php',
+      version,
+      framework,
+      extensions,
+      documentRoot,
+      assets,
+      build,
+      start: 'apache2-foreground',
+    },
+  };
+}

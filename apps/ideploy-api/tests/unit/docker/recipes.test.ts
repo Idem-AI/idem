@@ -146,7 +146,7 @@ describe('recipes — from the build plan', () => {
     expect(plan.steps[0].label).toBe('Building image (iDeploy recipe: Node 22 (pnpm))');
     expect(command).toContain(`echo ${Buffer.from('FROM x\n').toString('base64')} | base64 -d > Dockerfile.ideploy`);
     expect(command).toContain("DOCKER_BUILDKIT=1 timeout 2700 docker build --progress=plain -f Dockerfile.ideploy --build-arg 'API_URL=https://x' -t 'app:1' .");
-    expect(command).toContain("[ -e .dockerignore ] || printf '.git\\n' > .dockerignore");
+    expect(command).toContain("grep -qxE '/?\\.git/?' .dockerignore 2>/dev/null || printf '\\n.git\\n' >> .dockerignore");
   });
 });
 

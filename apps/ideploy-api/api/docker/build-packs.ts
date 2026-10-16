@@ -29,6 +29,13 @@ export const BUILD_PACKS: readonly BuildPack[] = [
 /** A build that runs longer is stopped (`timeout` exits 124): a hung build must not hold the server's build slot. */
 export const BUILD_TIMEOUT_SECONDS = 45 * 60;
 
+/**
+ * The checkout's .git never enters an image — served from a site's own
+ * folder, it was downloadable (/.git/config, the whole history). Added to the
+ * repository's .dockerignore when it lacks it (this copy of the code only).
+ */
+const EXCLUDE_GIT = `{ grep -qxE '/?\\.git/?' .dockerignore 2>/dev/null || printf '\\n.git\\n' >> .dockerignore; }`;
+
 /** Image serving a built static site. */
 const STATIC_IMAGE = 'nginx:alpine';
 
@@ -267,6 +274,29 @@ function nixpacksPlan(context: BuildContext): BuildPlan {
 }
 
 /**
+ * Shell that moves `$P` to where the build really wrote the site when the
+ * publish directory has no index.html: the usual output folders next to it
+ * (dist, build, out, Angular's dist/browser, Nuxt's .output/public), then any
+ * dist/build/out folder holding an index.html. Said in the log, with what to
+ * set. `public/` is never guessed: in a React or Vue project it holds the
+ * unbuilt template; nor is a root index.html next to a package.json (Vite's
+ * source template). Without a package.json, the folder itself is the site.
+ */
+function findSiteOutput(publish: string): string {
+  const base = publish.includes('/') ? publish.slice(0, publish.lastIndexOf('/')) : '';
+  const prefix = (folder: string) => (base ? `${base}/${folder}` : folder);
+  const candidates = ['dist', 'build', 'out', 'dist/browser', '.output/public', 'www'].map(prefix).filter((c) => c !== publish);
+  return (
+    `if [ ! -f "$P/index.html" ]; then F=""; ` +
+    `for c in ${candidates.map(quote).join(' ')}; do if [ -f "$c/index.html" ]; then F="$c"; break; fi; done; ` +
+    `if [ -z "$F" ]; then F=$(find ${quote(base || '.')} -maxdepth 5 -path '*/node_modules' -prune -o -name index.html -print 2>/dev/null | grep -E '/(dist|build|out)/' | head -1 | xargs -r dirname); fi; ` +
+    // A plain HTML site, nothing to build: its own folder is the site.
+    `if [ -z "$F" ] && [ -f ${quote(`${base || '.'}/index.html`)} ] && [ ! -f ${quote(`${base || '.'}/package.json`)} ]; then F=${quote(base || '.')}; fi; ` +
+    `if [ -n "$F" ]; then echo "⚠ No index.html in $P: serving $F, where the build wrote the site. Set the publish directory to $F in the settings."; P="$F"; fi; fi; `
+  );
+}
+
+/**
  * Steps that build a site and serve the output with nginx.
  *
  * The generated Dockerfile is written on the server rather than committed to the
@@ -296,10 +326,11 @@ function staticPlan(context: BuildContext): BuildPlan {
     {
       label: 'Preparing the runtime image',
       command:
-        `cd ${quote(dir)} && ` +
-        `{ test -d ${quote(publish)} || { echo ${quote(`Build output not found in ${publish}. Set the publish directory to match your build.`)} >&2; exit 1; }; } && ` +
+        `cd ${quote(dir)} && P=${quote(publish)} && ${EXCLUDE_GIT} && ` +
+        `${findSiteOutput(publish)}` +
+        `{ test -d "$P" || { echo "Build output not found in $P. Set the publish directory to match your build." >&2; exit 1; }; } && ` +
         `echo ${Buffer.from(STATIC_NGINX_CONF, 'utf8').toString('base64')} | base64 -d > nginx.ideploy.conf && ` +
-        `printf 'FROM ${STATIC_IMAGE}\\nCOPY %s /usr/share/nginx/html\\nCOPY nginx.ideploy.conf /etc/nginx/conf.d/default.conf\\n' ${quote(publish)} > Dockerfile.ideploy-static`,
+        `printf 'FROM ${STATIC_IMAGE}\\nCOPY %s /usr/share/nginx/html\\nCOPY nginx.ideploy.conf /etc/nginx/conf.d/default.conf\\n' "$P" > Dockerfile.ideploy-static`,
     },
     {
       label: 'Building image',
@@ -351,8 +382,7 @@ export function recipePlan(context: BuildContext, dockerfile: string, label: str
         label: `Building image (iDeploy recipe: ${label})`,
         command:
           `cd ${quote(dir)} && ` +
-          // The checkout's .git has no place in the image; a repository's own .dockerignore is kept.
-          `{ [ -e .dockerignore ] || printf '.git\\n' > .dockerignore; } && ` +
+          `${EXCLUDE_GIT} && ` +
           `echo ${Buffer.from(dockerfile, 'utf8').toString('base64')} | base64 -d > Dockerfile.ideploy && ` +
           `DOCKER_BUILDKIT=1 timeout ${BUILD_TIMEOUT_SECONDS} docker build --progress=plain -f Dockerfile.ideploy${buildArgs} -t ${quote(context.imageTag)} .`,
       },

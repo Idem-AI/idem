@@ -430,7 +430,7 @@ function provisioningScript(local: boolean): string {
     '  ubuntu|debian|raspbian)',
     '    clear_stale_apt_lock',
     '    retry apt_update_resilient >/dev/null',
-    '    for pkg in curl wget git jq; do command -v "$pkg" >/dev/null || retry apt-get install -y "$pkg" >/dev/null 2>&1; done',
+    '    for pkg in curl wget git git-lfs jq; do command -v "$pkg" >/dev/null || retry apt-get install -y "$pkg" >/dev/null 2>&1; done',
     '    ;;',
     '  centos|fedora|rhel|rocky|almalinux)',
     '    for pkg in curl wget git jq; do command -v "$pkg" >/dev/null || retry dnf install -y "$pkg" >/dev/null 2>&1; done',
