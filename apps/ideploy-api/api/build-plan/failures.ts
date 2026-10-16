@@ -25,7 +25,7 @@ const CATALOG: { code: string; test: RegExp; explanation: string; retryable?: bo
   },
   {
     code: 'LOCKFILE_OUT_OF_DATE',
-    test: /ERR_PNPM_OUTDATED_LOCKFILE|ERR_PNPM_LOCKFILE_CONFIG_MISMATCH|npm ci` can only install packages when your package\.json and package-lock\.json|lockfile would have been modified|The lockfile would have been modified|Your lockfile needs to be updated/,
+    test: /ERR_PNPM_OUTDATED_LOCKFILE|ERR_PNPM_LOCKFILE_CONFIG_MISMATCH|ERR_PNPM_NO_LOCKFILE|lockfile would have been created|npm ci` can only install packages when your package\.json and package-lock\.json|lockfile would have been modified|The lockfile would have been modified|Your lockfile needs to be updated/,
     explanation:
       'The lockfile does not match package.json. Run the install locally (pnpm install / npm install / yarn), commit the updated lockfile and push.',
   },
@@ -80,8 +80,19 @@ const CATALOG: { code: string; test: RegExp; explanation: string; retryable?: bo
       'Maven could not download a dependency: a private repository needs credentials (settings.xml), or the version does not exist. If the log shows a timeout, deploy again.',
   },
   {
+    code: 'BASE_IMAGE_MISSING',
+    test: /manifest unknown|docker\.io\/library\/(node|eclipse-temurin|maven|gradle):[\w.-]+: not found|pull access denied for (node|eclipse-temurin|maven|gradle)\b/,
+    explanation: 'The base image for this runtime version could not be pulled.',
+  },
+  {
+    code: 'COREPACK',
+    test: /Cannot find matching keyid|Internal Error: .*(Error when performing the request|keyid)|Usage Error: This project is configured to use \w+/,
+    explanation:
+      'The package manager named in package.json ("packageManager") could not be set up. Check that its version exists, or remove the field to use the lockfile’s.',
+  },
+  {
     code: 'NETWORK',
-    test: /ETIMEDOUT|ECONNRESET|EAI_AGAIN|socket hang up|ERR_SOCKET_TIMEOUT|503 Service Unavailable|502 Bad Gateway|TLS handshake timeout|i\/o timeout/,
+    test: /ETIMEDOUT|ECONNRESET|EAI_AGAIN|socket hang up|ERR_SOCKET_TIMEOUT|503 Service Unavailable|502 Bad Gateway|TLS handshake timeout|i\/o timeout|Temporary failure resolving|Could not resolve host|ERR_PNPM_META_FETCH_FAIL|ERR_PNPM_FETCH_\d+|getaddrinfo ENOTFOUND/,
     explanation: 'A download failed (registry timeout). This is usually temporary.',
     retryable: true,
   },

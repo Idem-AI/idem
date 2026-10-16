@@ -105,13 +105,20 @@ export function runScript(manager: NodeManager, script: string): string {
   return `${manager} run ${script}`;
 }
 
+/**
+ * The corepack bundled with older Node fails to verify recent pnpm releases
+ * ("Cannot find matching keyid"), and Node 25 ships none: the latest one,
+ * over the bundled one (--force), as pnpm's documentation advises.
+ */
+export const FRESH_COREPACK = 'npm install -g --force corepack@latest && corepack enable';
+
 /** The install a container with only Node needs (the static build; nixpacks installs on its own). */
 export function installCommand(manager: NodeManager, lockfiles: string[], pnpmMajor: number | null): string {
   switch (manager) {
     case 'pnpm':
-      return `corepack enable && ${pnpmMajor ? `corepack prepare pnpm@${pnpmMajor} --activate && ` : ''}pnpm install --frozen-lockfile`;
+      return `${FRESH_COREPACK} && ${pnpmMajor ? `corepack prepare pnpm@${pnpmMajor} --activate && ` : ''}pnpm install${lockfiles.includes('pnpm-lock.yaml') ? ' --frozen-lockfile' : ''}`;
     case 'yarn':
-      return 'corepack enable && yarn install';
+      return `${FRESH_COREPACK} && yarn install`;
     case 'bun':
       return 'npm install -g bun && bun install';
     default:
@@ -124,7 +131,8 @@ const RECIPE_NODE_DEFAULT = 22;
 
 /** The install inside iDeploy's own image (corepack already set up). */
 function recipeInstall(manager: 'pnpm' | 'yarn' | 'npm', lockfiles: string[]): string {
-  if (manager === 'pnpm') return 'pnpm install --frozen-lockfile';
+  // Frozen only with a lockfile to hold to (without one, pnpm refuses to install at all).
+  if (manager === 'pnpm') return lockfiles.includes('pnpm-lock.yaml') ? 'pnpm install --frozen-lockfile' : 'pnpm install';
   if (manager === 'yarn') return 'yarn install';
   return lockfiles.includes('package-lock.json') ? 'npm ci' : 'npm install';
 }

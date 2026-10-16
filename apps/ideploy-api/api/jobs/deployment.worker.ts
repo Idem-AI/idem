@@ -36,8 +36,9 @@ import { applyRoutes } from '../services/routes-file.service';
 import { monorepoHint, monorepoProbeCommand, parseMonorepoProbe } from '../docker/monorepo-hint';
 import { analyzeRepository, describePlan, parseSnapshot, snapshotCommand, BuildPlanResult } from '../build-plan';
 import { joinPath, relativeTo } from '../build-plan/repo-files';
-import { explainFailure } from '../build-plan/failures';
-import { recipeDockerfile, recipeLabel } from '../docker/recipes';
+import { explainFailure, KnownFailure } from '../build-plan/failures';
+import { JavaRecipe, NodeRecipe } from '../build-plan/types';
+import { lenientInstall, recipeDockerfile, recipeLabel } from '../docker/recipes';
 import * as appService from '../services/application.service';
 import * as envVarService from '../services/env-var.service';
 import * as serverService from '../services/server.service';
@@ -95,6 +96,21 @@ export const LOCK_TTL_MS = 60 * 1000;
 const LOCK_RENEW_MS = 20 * 1000;
 const LOCK_WAIT_MS = 30 * 60 * 1000;
 const LOCK_POLL_MS = 5000;
+
+/** Below this free space, unused images and old build cache are removed before building. */
+const DISK_CLEANUP_BELOW_MB = 3072;
+
+/** A build step that failed, explained. */
+interface BuildFailure {
+  known: KnownFailure | null;
+  message: string;
+}
+
+/** `timeout` exits 124: the build ran past BUILD_TIMEOUT_SECONDS. */
+const TIMEOUT_FAILURE: KnownFailure = {
+  code: 'BUILD_TIMEOUT',
+  explanation: 'The build ran for more than 45 minutes and was stopped. Look above for the step that hung (a test waiting for a service, an interactive prompt).',
+};
 
 async function streamStep(
   deploymentUuid: string,
@@ -486,7 +502,7 @@ async function deploy(
     const overrides = { install: app.install_command, build: app.build_command, start: app.start_command };
     const read: { plan: BuildPlanResult | null } = { plan: null };
     // iDeploy's own recipe replaces nixpacks unless a build variable says otherwise.
-    const recipes = pack === 'nixpacks' && !buildEnv.includes('IDEPLOY_BUILDER=nixpacks');
+    const recipes = pack === 'nixpacks' && !buildEnv.some((pair) => /^IDEPLOY_BUILDER=\s*nixpacks\s*$/i.test(pair));
     if (pack === 'nixpacks' || pack === 'static') {
       await streamStep(deploymentUuid, 'Reading the code', async () => {
         read.plan = await readBuildPlan(server, key, srcDir, baseDirectory, overrides, recipes, log);
@@ -517,25 +533,60 @@ async function deploy(
       nixpacksVariables: used?.nixpacksEnv,
       nodeVersion: used?.runtimeVersion?.name === 'Node' ? used.runtimeVersion.version : null,
     };
+    /** Run build steps; the failure, explained, instead of an exception — so a fallback can follow. */
+    const runBuildSteps = async (steps: { label: string; command: string }[]): Promise<BuildFailure | null> => {
+      for (const step of steps) {
+        let failure: BuildFailure | null = null;
+        await streamStep(deploymentUuid, step.label, async () => {
+          // A build that fails fails the same way again: no retry (the SSH
+          // retries are for a dropped connection), except a registry timeout.
+          const run = () => executeRemoteCommand(server, key, step.command, { onData: (c) => log(c), noRetry: true });
+          let r = await run();
+          if (r.exitCode !== 0 && explainFailure(`${r.stdout}\n${r.stderr}`)?.retryable) {
+            await log('\n↻ A download failed (network). Retrying this step once.');
+            r = await run();
+          }
+          if (r.exitCode === 0) return;
+          const all = `${r.stdout}\n${r.stderr}`;
+          const output = r.stderr || r.stdout;
+          // The missing-ARG hint, printed before the build, leads the error.
+          let hint = /⚠ The Dockerfile expects build argument\(s\)[^\n]*/.exec(output)?.[0];
+          const known = r.exitCode === 124 ? TIMEOUT_FAILURE : explainFailure(all);
+          if (!hint && known) {
+            await log(`\n✗ ${known.explanation}`);
+            hint = known.explanation;
+          }
+          // A monorepo root: nixpacks cannot pick the application. Say which
+          // ones exist and the commands to set.
+          if (!hint && /No start command could be found/.test(all)) {
+            const probe = await executeRemoteCommand(server, key, monorepoProbeCommand(buildDirectory(buildContext)), { noRetry: true });
+            const monorepo = probe.exitCode === 0 ? monorepoHint(parseMonorepoProbe(probe.stdout)) : null;
+            if (monorepo) {
+              await log(`\n${monorepo}`);
+              hint = monorepo.split('\n')[0];
+            }
+          }
+          failure = { known, message: `${step.label} failed: ${hint ? `${hint} — ` : ''}${output.slice(-400)}` };
+        });
+        if (failure) return failure;
+      }
+      return null;
+    };
+
     const recipe = used?.output === 'server' ? used.recipe : undefined;
-    const plan = recipe
-      ? recipePlan(
-          buildContext,
-          recipeDockerfile(
-            // The user's commands win here too.
-            recipe.kind === 'node'
-              ? {
-                  ...recipe,
-                  install: own(app.install_command) ?? recipe.install,
-                  build: own(app.build_command) ?? recipe.build,
-                  start: own(app.start_command) ?? recipe.start,
-                }
-              : recipe,
-            buildEnv.map((pair) => pair.split('=')[0])
-          ),
-          recipeLabel(recipe)
-        )
-      : planBuild(pack, buildContext);
+    // The user's commands win in a recipe too.
+    const ownRecipe: NodeRecipe | JavaRecipe | undefined =
+      recipe?.kind === 'node'
+        ? {
+            ...recipe,
+            install: own(app.install_command) ?? recipe.install,
+            build: own(app.build_command) ?? recipe.build,
+            start: own(app.start_command) ?? recipe.start,
+          }
+        : recipe && { ...recipe, build: own(app.build_command) ?? recipe.build };
+    const argKeys = buildEnv.map((pair) => pair.split('=')[0]);
+    const withRecipe = (r: NodeRecipe | JavaRecipe) => recipePlan(buildContext, recipeDockerfile(r, argKeys), recipeLabel(r));
+    const plan = ownRecipe ? withRecipe(ownRecipe) : planBuild(pack, buildContext);
 
     await log(`\n──► Build strategy: ${plan.pack}`);
 
@@ -556,40 +607,23 @@ async function deploy(
       });
     }
 
-    for (const step of plan.steps) {
-      await streamStep(deploymentUuid, step.label, async () => {
-        // A build that fails fails the same way again: no retry (the SSH
-        // retries are for a dropped connection). It used to run three times.
-        const run = () => executeRemoteCommand(server, key, step.command, { onData: (c) => log(c), noRetry: true });
-        let r = await run();
-        // A registry timeout passes on a second try; nothing else does.
-        if (r.exitCode !== 0 && explainFailure(`${r.stdout}\n${r.stderr}`)?.retryable) {
-          await log('\n↻ A download failed (network). Retrying this step once.');
-          r = await run();
-        }
-        if (r.exitCode !== 0) {
-          const output = r.stderr || r.stdout;
-          // The missing-ARG hint, printed before the build, leads the error.
-          let hint = /⚠ The Dockerfile expects build argument\(s\)[^\n]*/.exec(output)?.[0];
-          const known = explainFailure(`${r.stdout}\n${r.stderr}`);
-          if (!hint && known) {
-            await log(`\n✗ ${known.explanation}`);
-            hint = known.explanation;
-          }
-          // A monorepo root: nixpacks cannot pick the application. Say which
-          // ones exist and the commands to set.
-          if (!hint && /No start command could be found/.test(`${r.stdout}\n${r.stderr}`)) {
-            const probe = await executeRemoteCommand(server, key, monorepoProbeCommand(buildDirectory(buildContext)), { noRetry: true });
-            const monorepo = probe.exitCode === 0 ? monorepoHint(parseMonorepoProbe(probe.stdout)) : null;
-            if (monorepo) {
-              await log(`\n${monorepo}`);
-              hint = monorepo.split('\n')[0];
-            }
-          }
-          throw new Error(`${step.label} failed: ${hint ? `${hint} — ` : ''}${output.slice(-400)}`);
-        }
-      });
+    // Each fallback runs only when the failure says it can help: a code
+    // error fails every way, and is reported at once.
+    let failure = await runBuildSteps(plan.steps);
+    if (failure && ownRecipe) {
+      const code = failure.known?.code;
+      if (code === 'LOCKFILE_OUT_OF_DATE' && ownRecipe.kind === 'node' && !app.install_command) {
+        await log(
+          '\n↻ The lockfile does not match package.json. Building again with an install that updates it — ' +
+            'commit an up-to-date lockfile: the versions deployed may differ from the ones you tested.'
+        );
+        failure = await runBuildSteps(withRecipe({ ...ownRecipe, install: lenientInstall(ownRecipe.manager) }).steps);
+      } else if (code === 'BASE_IMAGE_MISSING' || code === 'COREPACK') {
+        await log(`\n↻ ${failure.known?.explanation} Building with nixpacks instead.`);
+        failure = await runBuildSteps(planBuild('nixpacks', buildContext).steps);
+      }
     }
+    if (failure) throw new Error(failure.message);
 
     if (plan.runtime === 'compose-file') {
       // The repository ships its own stack; it runs from its own directory.
@@ -838,6 +872,24 @@ async function readBuildPlan(
     return null;
   }
   const snapshot = parseSnapshot(r.stdout);
+  // Short of space: what can go without risk goes — untagged images and
+  // build cache unused for a week (each release's image keeps its tag, for
+  // rollback). Then measured again.
+  if (snapshot.diskFreeMb !== null && snapshot.diskFreeMb < DISK_CLEANUP_BELOW_MB) {
+    await log(`\n⚠ ${snapshot.diskFreeMb} MB free on the server: removing unused images and old build cache.`);
+    const clean = await executeRemoteCommand(
+      server,
+      key,
+      `docker image prune -f >/dev/null 2>&1; docker builder prune -f --filter until=168h >/dev/null 2>&1; ` +
+        `df -Pk ${shellQuote(srcDir)} | awk 'NR==2{print "@@DISK " int($4/1024)}'`,
+      { noRetry: true }
+    ).catch(() => null);
+    const after = Number(/@@DISK (\d+)/.exec(clean?.stdout ?? '')?.[1]);
+    if (after) {
+      await log(`  ${after} MB free now.`);
+      snapshot.diskFreeMb = after;
+    }
+  }
   const plan = await analyzeRepository(snapshot.files, appDir, {
     overrides,
     resources: { memoryAvailableMb: snapshot.memoryAvailableMb, diskFreeMb: snapshot.diskFreeMb },
@@ -852,11 +904,13 @@ async function readBuildPlan(
     build: overrides.build ? `${overrides.build} (yours)` : null,
     start: overrides.start ? `${overrides.start} (yours)` : null,
   };
-  const builder = plan.language
-    ? recipe
+  const builder = !plan.language
+    ? null
+    : recipe
       ? `Builder: iDeploy recipe, ${recipeLabel(recipe)} — dependencies cached between builds (build variable IDEPLOY_BUILDER=nixpacks to use nixpacks)`
-      : 'Builder: nixpacks'
-    : null;
+      : plan.output === 'static'
+        ? 'Builder: static site — built in a Node container, served by nginx'
+        : 'Builder: nixpacks';
   const lines = [...describePlan(plan, effective), ...(builder ? [builder] : [])];
   await log(`\n──► Build plan, read from the code\n${lines.map((l) => `  ${l}`).join('\n')}`);
   const blocking = plan.issues.find((i) => i.severity === 'blocking');

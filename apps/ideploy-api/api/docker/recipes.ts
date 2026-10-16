@@ -11,6 +11,7 @@
  * The Dockerfile is written next to the code on the server, never committed.
  */
 import { JavaRecipe, NodeRecipe } from '../build-plan/types';
+import { FRESH_COREPACK } from '../build-plan/node';
 
 /** Build-time Variables become ARGs: the build steps see them as environment. */
 function argLines(buildArgKeys: string[]): string[] {
@@ -23,33 +24,67 @@ const json = (value: string) => JSON.stringify(value);
 const NODE_CACHES: Record<NodeRecipe['manager'], string> = {
   npm: '--mount=type=cache,id=ideploy-npm,target=/root/.npm',
   pnpm: '--mount=type=cache,id=ideploy-pnpm,target=/pnpm/store',
-  yarn: '--mount=type=cache,id=ideploy-yarn,target=/usr/local/share/.cache/yarn',
+  // Yarn 1, and Yarn 2+ with its global cache (the default since Yarn 4).
+  yarn: '--mount=type=cache,id=ideploy-yarn,target=/usr/local/share/.cache/yarn --mount=type=cache,id=ideploy-yarn-berry,target=/root/.yarn/berry/cache',
 };
 
+/** An install that accepts a lockfile out of step with package.json (the retry after a frozen install failed). */
+export function lenientInstall(manager: NodeRecipe['manager']): string {
+  if (manager === 'pnpm') return 'pnpm install --no-frozen-lockfile';
+  if (manager === 'yarn') return 'YARN_ENABLE_IMMUTABLE_INSTALLS=false yarn install';
+  return 'npm install';
+}
+
+/** Environment of both stages: no prompt, no telemetry, patient downloads. */
+const NODE_ENV_LINE =
+  'ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0 COREPACK_HOME=/corepack NEXT_TELEMETRY_DISABLED=1 ' +
+  'npm_config_store_dir=/pnpm/store npm_config_fetch_retries=5 npm_config_fetch_retry_mintimeout=20000 npm_config_fetch_retry_maxtimeout=120000';
+
+/**
+ * Two stages. The build runs on the full `node` image — git, python3, make
+ * and g++ are there, so native modules (bcrypt, sharp, sqlite3) compile and
+ * git dependencies install. The application runs on `node:<v>-slim` with
+ * openssl (Prisma's engines need it), and the build variables stay in the
+ * build stage.
+ */
 export function nodeDockerfile(recipe: NodeRecipe, buildArgKeys: string[] = []): string {
   const lines = [
-    `FROM node:${recipe.nodeVersion}-slim`,
+    `FROM node:${recipe.nodeVersion} AS build`,
     'WORKDIR /app',
-    'ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0 NEXT_TELEMETRY_DISABLED=1 npm_config_store_dir=/pnpm/store CI=1',
+    NODE_ENV_LINE,
+    'ENV CI=1',
+    'RUN mkdir -p /corepack',
     ...argLines(buildArgKeys),
     'COPY . .',
   ];
   if (recipe.manager !== 'npm') {
-    // The corepack bundled with older Node fails to verify recent pnpm
-    // releases ("Cannot find matching keyid"), and Node 25 ships none.
     const activate = recipe.hasPackageManagerField
       ? 'corepack install'
       : recipe.manager === 'pnpm'
         ? `corepack prepare pnpm@${recipe.pnpmMajor ?? 'latest'} --activate`
         : 'true';
-    lines.push(`RUN ${NODE_CACHES.npm} npm install -g corepack@latest && corepack enable && ${activate}`);
+    lines.push(`RUN ${NODE_CACHES.npm} ${FRESH_COREPACK} && ${activate}`);
   }
   lines.push(`RUN ${NODE_CACHES[recipe.manager]} ${recipe.install}`);
   if (recipe.build) {
     const nextCache = recipe.nextCacheDir ? ` --mount=type=cache,id=ideploy-next,target=/app/${recipe.nextCacheDir}` : '';
     lines.push(`RUN${nextCache} ${recipe.build}`);
   }
-  lines.push('ENV NODE_ENV=production', `CMD ["sh", "-c", ${json(recipe.start)}]`, '');
+  lines.push(
+    '',
+    `FROM node:${recipe.nodeVersion}-slim`,
+    'WORKDIR /app',
+    // Not fatal: only Prisma-like engines need it, and a mirror outage must not fail the build.
+    'RUN (apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates && rm -rf /var/lib/apt/lists/*) || echo "openssl not installed"',
+    NODE_ENV_LINE,
+    // Node, corepack and the package manager it prepared: the start command may call pnpm or yarn.
+    'COPY --from=build /usr/local /usr/local',
+    'COPY --from=build /corepack /corepack',
+    'COPY --from=build /app /app',
+    'ENV NODE_ENV=production',
+    `CMD ["sh", "-c", ${json(recipe.start)}]`,
+    ''
+  );
   return lines.join('\n');
 }
 
@@ -81,11 +116,13 @@ export function javaDockerfile(recipe: JavaRecipe, buildArgKeys: string[] = []):
     recipe.tool === 'maven'
       ? '--mount=type=cache,id=ideploy-m2,target=/root/.m2'
       : '--mount=type=cache,id=ideploy-gradle,target=/root/.gradle';
-  // The runnable jar: the largest one (a fat jar), never a plain, sources or javadoc jar.
+  // The runnable archive: the largest (a fat jar, or a Spring Boot executable
+  // war), never a plain, sources or javadoc jar.
+  const libs = `${moduleOut}${recipe.tool === 'gradle' ? '/libs' : ''}`;
   const collect =
     recipe.framework === 'Quarkus'
       ? `cp -r ${moduleOut}/quarkus-app /out/`
-      : `jar=$(ls -S ${moduleOut}${recipe.tool === 'gradle' ? '/libs' : ''}/*.jar 2>/dev/null | grep -v -e '-plain.jar$' -e '-sources.jar$' -e '-javadoc.jar$' | head -1) && ` +
+      : `jar=$(ls -S ${libs}/*.jar ${libs}/*.war 2>/dev/null | grep -v -e '-plain\\.[jw]ar$' -e '-sources\\.jar$' -e '-javadoc\\.jar$' | head -1) && ` +
         `[ -n "$jar" ] || { echo "No jar was built in ${moduleOut}." >&2; exit 1; } && cp "$jar" /out/app.jar`;
   const jarPath = recipe.framework === 'Quarkus' ? 'quarkus-app/quarkus-run.jar' : 'app.jar';
   const flags = javaPortFlags(recipe.framework);

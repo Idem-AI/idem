@@ -371,6 +371,9 @@ export async function detectFramework(
     const layout = await monorepoLayout(treePaths, getFile);
     if (layout.candidates) monorepoCandidates = layout.candidates;
     else if (layout.onlyApp) rootDirSuggestion = layout.onlyApp;
+    // Said now rather than after a failed build.
+    const seen = new Set(warnings.map((w) => w.code));
+    warnings = [...warnings, ...layout.issues.filter((i) => !seen.has(i.code))];
   }
 
   if (treeFetchFailed) {
