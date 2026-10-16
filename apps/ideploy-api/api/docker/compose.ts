@@ -85,6 +85,10 @@ export function generateComposeFile(
         image: imageTag,
         container_name: serviceName,
         restart: 'unless-stopped',
+        // A small init as PID 1: a `sh -c` start command passes SIGTERM on, so
+        // the application stops cleanly at each deployment instead of being
+        // killed after 10 seconds mid-request; zombie processes are reaped.
+        init: true,
         ...(environment.length ? { environment } : {}),
         ...(mappings.length ? { ports: mappings } : {}),
         ...networkingFor(labels ?? defaultOwnershipLabels(app), network),

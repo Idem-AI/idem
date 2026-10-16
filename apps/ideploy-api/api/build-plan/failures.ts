@@ -13,8 +13,14 @@ export interface KnownFailure {
 
 const CATALOG: { code: string; test: RegExp; explanation: string; retryable?: boolean }[] = [
   {
+    code: 'NODE_HEAP',
+    test: /JavaScript heap out of memory|Reached heap limit/,
+    explanation:
+      'The Node.js build ran out of heap. iDeploy retries with a larger heap; set the build variable NODE_OPTIONS=--max-old-space-size=4096 to keep it.',
+  },
+  {
     code: 'OUT_OF_MEMORY',
-    test: /JavaScript heap out of memory|ENOMEM|exit code:? 137|code 137|returned a non-zero code: 137|java\.lang\.OutOfMemoryError|Killed\s*$/m,
+    test: /ENOMEM|exit code:? 137|code 137|returned a non-zero code: 137|java\.lang\.OutOfMemoryError|Killed\s*$/m,
     explanation:
       'The build ran out of memory and was stopped. Free memory on the server (or use a larger one); for Node, a build variable NODE_OPTIONS=--max-old-space-size=2048 can help.',
   },
@@ -84,6 +90,17 @@ const CATALOG: { code: string; test: RegExp; explanation: string; retryable?: bo
     test: /iDeploy: The build did not produce /,
     explanation:
       'The build finished without producing what the start command runs (see the line above). The application’s "build" script must build it: in a monorepo, check that the build of this application is not skipped.',
+  },
+  {
+    code: 'DOCKERHUB_RATE_LIMIT',
+    test: /toomanyrequests|You have reached your pull rate limit|429 Too Many Requests/,
+    explanation: 'Docker Hub refused the image pull (its rate limit for this server).',
+  },
+  {
+    code: 'PRIVATE_PACKAGE',
+    test: /npm (ERR!|error) code E40[13]|ERR_PNPM_FETCH_40[13]|Request failed "40[13]|YN0041|401 Unauthorized - GET https?:\/\/registry|403 Forbidden - GET https?:\/\/registry/,
+    explanation:
+      'A package comes from a private registry that refused the request. Add the registry token as a build variable (e.g. NPM_TOKEN) and reference it in .npmrc: //registry.npmjs.org/:_authToken=${NPM_TOKEN}.',
   },
   {
     code: 'BASE_IMAGE_MISSING',

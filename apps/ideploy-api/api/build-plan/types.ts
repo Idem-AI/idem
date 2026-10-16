@@ -88,6 +88,8 @@ export interface JavaRecipe {
   /** The module that runs, relative to `buildRoot` ('' = the root). */
   module: string;
   framework: 'Spring Boot' | 'Quarkus' | 'Micronaut' | 'Java';
+  /** The Gradle version the wrapper names: the image to use when the wrapper itself cannot run. */
+  gradleVersion?: string | null;
   build: string;
 }
 

@@ -281,7 +281,7 @@ describe('build plan — server and helpers', () => {
 
   it('explains known build failures', () => {
     expect(explainFailure('ERR_PNPM_OUTDATED_LOCKFILE  Cannot install with "frozen-lockfile"')?.code).toBe('LOCKFILE_OUT_OF_DATE');
-    expect(explainFailure('FATAL ERROR: Reached heap limit Allocation failed - JavaScript heap out of memory')?.code).toBe('OUT_OF_MEMORY');
+    expect(explainFailure('FATAL ERROR: Reached heap limit Allocation failed - JavaScript heap out of memory')?.code).toBe('NODE_HEAP');
     expect(explainFailure('[ERROR] error: invalid target release: 21')?.code).toBe('JDK_MISMATCH');
     expect(explainFailure('npm ERR! network request failed, reason: ETIMEDOUT')).toMatchObject({ code: 'NETWORK', retryable: true });
     expect(explainFailure('everything is fine')).toBeNull();
