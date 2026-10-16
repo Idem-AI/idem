@@ -142,6 +142,13 @@ export interface PaymentIntent {
   simulationTier?: string;
   /** Libellé affiché à l'utilisateur et repris dans le reçu. */
   label: string;
+  /** Recharge du portefeuille : la valeur en francs créditée (hors bonus). */
+  topupXaf?: number;
+  /**
+   * Achat à exécuter depuis le portefeuille dès la recharge encaissée (un pack, un forfait, une
+   * version finale) : l'utilisateur paie l'offre en un geste, le portefeuille sert d'intermédiaire.
+   */
+  then?: Record<string, unknown>;
 }
 
 // ============================================

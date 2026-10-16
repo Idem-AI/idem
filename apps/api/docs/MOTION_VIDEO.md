@@ -4,8 +4,10 @@ Module Communication (écran « Mes vidéos ») et iVision (atelier Vidéo). Cod
 `apps/ivision/core/src/video/` (navigateur : `apps/ivision/core/motion/`) ; IDEM le branche par
 `api/services/ivision/host.ts` et `Communication/video/idemVideoStore.ts`.
 
-Depuis le 14 octobre 2026, chaque vidéo est **conçue par l'IA et écrite en code Motion Canvas**, scène
-par scène, sans mise en page imposée. Le fonctionnement du moteur : [VIDEO_ENGINE.md](VIDEO_ENGINE.md).
+Chaque vidéo est **conçue par l'IA et animée par Motion Canvas**, scène par scène, sans mise en page imposée.
+Depuis le 16 octobre 2026, l'IA écrit pour chaque scène un **programme d'animation** (langage de mouvement) que le
+code compile : un texte n'est jamais coupé, ce qui entre a fini avant la coupe, et la même vidéo s'affiche bien en
+vertical (mobile) comme en horizontal (ordinateur). Le fonctionnement du moteur : [VIDEO_ENGINE.md](VIDEO_ENGINE.md).
 
 ## Ce que voit l'utilisateur
 
@@ -23,7 +25,9 @@ par scène, sans mise en page imposée. Le fonctionnement du moteur : [VIDEO_ENG
    le film (« la scène 2 plus lente », « sans musique »).
 5. **Exporter** le MP4 (le premier export est inclus).
 
-Une scène dont le code ne s'exécute pas est **signalée** (message de l'erreur, sur la scène et dans la
+Chaque format choisi (story, carré, portrait, paysage) est vérifié : un texte coupé par le cadre, recouvert par un autre texte,
+caché par une forme ou une image, trop peu contrasté avec son fond, ou dont les lettres se superposent est corrigé automatiquement avant que la vidéo soit montrée. Une scène dont le code ne s'exécute pas est
+**signalée** (message de l'erreur, sur la scène et dans la
 frise) et **Corriger** la fait réécrire par l'IA ; l'export attend qu'elle s'exécute. Rien n'est
 remplacé en silence par une composition toute faite.
 
@@ -76,8 +80,9 @@ le cran (mode « qualité » dès High). Il n'y a aucune critique esthétique à
 
 ## L'autocorrection des scènes
 
-Avant que la vidéo soit montrée, chaque scène qui ne compile pas ou plante à l'exécution est **corrigée
-automatiquement**, dans des bornes strictes (`src/video/author/repair.ts`) :
+Avant que la vidéo soit montrée, chaque scène dont le programme est refusé, qui plante à l'exécution ou dont un
+texte est coupé ou recouvert (dans un des formats) est **corrigée automatiquement**, dans des bornes strictes
+(`src/video/author/repair.ts`) ; un défaut d'affichage reçoit deux approches de l'IA puis un dernier recours du code (encre lisible, aplat sous le texte) ; ce qui résiste encore est dit sans bloquer l'export :
 
 1. **corriger** — le modèle du cran reçoit le code et l'erreur ;
 2. **réécrire autrement** — le modèle du **cran au-dessus** réécrit la scène depuis sa fiche, plus simplement,

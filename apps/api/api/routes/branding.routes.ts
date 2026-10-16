@@ -32,8 +32,7 @@ import {
   updateIdentityController,
 } from '../controllers/brandIdentity.controller';
 import { authenticate } from '../services/auth.service'; // Updated import path
-import { checkQuota } from '../middleware/quota.middleware';
-import { firstThenRevision, includedThenRepeat, requireCredits, withCreativity } from '../middleware/billing.middleware';
+import { firstThenRevision, includedThenRepeat, requireCredits, withCreativity, requireOwnership } from '../middleware/billing.middleware';
 
 export const brandingRoutes = Router();
 
@@ -135,7 +134,6 @@ const extendedTimeout = (req: any, res: any, next: any) => {
 brandingRoutes.get(
   `/${resourceName}/generate/:projectId`,
   authenticate,
-  checkQuota,
   chargeBrandSession,
   generateBrandingStreamingController
 );
@@ -205,7 +203,6 @@ brandingRoutes.get(
 brandingRoutes.post(
   `/${resourceName}/generate/colors-typography`,
   authenticate,
-  checkQuota,
   requireCredits('business', 'revision'),
   generateColorsAndTypographyController
 );
@@ -214,7 +211,6 @@ brandingRoutes.post(
 brandingRoutes.post(
   `/${resourceName}/generate/colors-typography-from-logo`,
   authenticate,
-  checkQuota,
   requireCredits('business', 'revision'),
   generateColorsAndTypographyFromLogoController
 );
@@ -277,7 +273,6 @@ brandingRoutes.post(
   `/${resourceName}/generate/logo-concepts/:projectId`,
   authenticate,
   extendedTimeout,
-  checkQuota,
   chargeLogoSession,
   generateLogoConceptsController
 );
@@ -317,7 +312,6 @@ brandingRoutes.get(
   `/${resourceName}/generate/logo-concepts-stream/:projectId`,
   authenticate,
   extendedTimeout,
-  checkQuota,
   chargeLogoSession,
   generateLogoConceptsStreamController
 );
@@ -384,7 +378,6 @@ brandingRoutes.get(
   `/${resourceName}/generate/logo-variations-stream/:projectId`,
   authenticate,
   extendedTimeout,
-  checkQuota,
   chargeVariations,
   generateLogoVariationsStreamController
 );
@@ -442,7 +435,6 @@ brandingRoutes.post(
   `/${resourceName}/generate/logo-variations/:projectId`,
   authenticate,
   extendedTimeout,
-  checkQuota,
   chargeVariations,
   generateLogoVariationsController
 );
@@ -649,7 +641,6 @@ brandingRoutes.post(
 brandingRoutes.post(
   `/${resourceName}/:projectId/identity/jobs/:kind`,
   authenticate,
-  checkQuota,
   guardIdentityJob,
   (req, res, next) =>
     (req.params.kind === 'logos' ? chargeLogoRegeneration : chargeProposalRegeneration)(req as any, res, next),
@@ -681,7 +672,6 @@ brandingRoutes.put(
 brandingRoutes.post(
   `/${resourceName}/:projectId/sections/:sectionId/ai-edit`,
   authenticate,
-  checkQuota,
   requireCredits('business', 'revision'),
   aiEditBrandingSectionController
 );
@@ -814,6 +804,7 @@ const pdfTimeout = (req: any, res: any, next: any) => {
 brandingRoutes.get(
   `/${resourceName}/pdf/:projectId`,
   authenticate,
+  requireOwnership('logo_brand'),
   pdfTimeout,
   generateBrandingPdfController
 );
@@ -909,6 +900,7 @@ brandingRoutes.get(
 brandingRoutes.get(
   `/${resourceName}/logos-zip/:projectId/:extension`,
   authenticate,
+  requireOwnership('logo_brand'),
   generateLogosZipController
 );
 
@@ -1003,6 +995,7 @@ brandingRoutes.get(
 brandingRoutes.get(
   `/${resourceName}/assets-zip/:projectId`,
   authenticate,
+  requireOwnership('logo_brand'),
   // La charte PDF est rendue si elle n'est pas en cache : même délai qu'elle.
   pdfTimeout,
   generateBrandAssetsZipController
@@ -1103,7 +1096,6 @@ brandingRoutes.post(
   `/${resourceName}/edit-logo/:projectId`,
   authenticate,
   extendedTimeout,
-  checkQuota,
   // Retoucher un logo produit de nouveaux visuels : c'est une relance.
   requireCredits('business', 'logo_relaunch'),
   editLogoController
@@ -1154,7 +1146,6 @@ brandingRoutes.post(
   `/${resourceName}/:projectId/art-direction`,
   authenticate,
   extendedTimeout,
-  checkQuota,
   // La direction artistique est un parti pris textuel, pas une image.
   requireCredits('business', 'revision'),
   regenerateArtDirectionController

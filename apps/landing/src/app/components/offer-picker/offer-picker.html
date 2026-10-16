@@ -1,0 +1,33 @@
+<!-- Les quatre offres, par besoin : de la gratuite au forfait du mois. -->
+<section class="picker" aria-labelledby="picker-title">
+  <h2 class="picker-title" id="picker-title" i18n="@@offer-picker.offers.title">What do you need?</h2>
+  @if (summary()) {
+    <p class="picker-lead" i18n="@@offer-picker.lead">Creating is free. You pay to keep the result, by mobile money, from 500 F.</p>
+  }
+  <div class="picker-grid">
+    @for (offer of offers; track offer.id) {
+      <article class="offer" [class.offer-recommended]="offer.recommended" [attr.aria-labelledby]="'offer-' + offer.id">
+        @if (offer.recommended) {
+          <p class="offer-flag" i18n="@@offer-picker.offers.recommended">Most complete</p>
+        }
+        <app-offer-illustration [kind]="offer.art" class="offer-art" />
+        <p class="offer-need">{{ offer.need }}</p>
+        <h3 class="offer-name" [id]="'offer-' + offer.id">{{ offer.name }}</h3>
+        <p class="offer-price"><span class="offer-amount">{{ formatPrice(offer.price) }}&#8239;F</span> <span class="offer-cadence">{{ offer.cadence }}</span></p>
+        <p class="offer-anchor">{{ offer.anchor }}</p>
+        <ul class="offer-list">
+          @for (line of offer.bullets; track line) {
+            <li><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5 L6.5 12 L13 4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg>{{ line }}</li>
+          }
+        </ul>
+        <a class="offer-cta" [class]="offer.recommended ? 'inner-button' : 'outer-button'" [href]="offer.href">{{ offer.cta }}</a>
+        @if (offer.note) {
+          <p class="offer-foot">{{ offer.note }}</p>
+        }
+      </article>
+    }
+  </div>
+  @if (summary()) {
+    <a class="picker-all" routerLink="/pricing" i18n="@@offer-picker.all">See every price, service by service</a>
+  }
+</section>

@@ -10,6 +10,7 @@ import { configureCore } from '../../core/src/runtime/host';
 import { setVideoPricingBase } from '../../core/src/video/pricing';
 import { collection } from './config/db';
 import { env } from './config/env';
+import { giveBackClip, takeClip } from './utils/clip-allowance';
 import logger from './config/logger';
 import { storage } from './config/storage';
 import { idem } from './services/idem.client';
@@ -82,7 +83,16 @@ export function configureCoreForIvision(): void {
       return { buffer: Buffer.from(image.base64, 'base64'), mimeType: image.mimeType, model: image.model };
     },
     // Clips et voix off : les modèles d'IDEM (Seedance, Kokoro), par la passerelle.
-    generateVideo: (request) => idem.ai.video(request),
+    // Un plan filmé par l'IA n'est généré que s'il a été commandé (1 000 F le plan).
+    generateVideo: async (request) => {
+      takeClip();
+      try {
+        return await idem.ai.video(request);
+      } catch (error) {
+        giveBackClip();
+        throw error;
+      }
+    },
     synthesizeSpeech: async (request) => {
       const cached = await withCache(
         'speech',
@@ -112,7 +122,7 @@ export function configureCoreForIvision(): void {
       },
     },
     refundCredits: async (userId, cost, meta) => {
-      await idem.billing.refund({ userId, cost, action: meta.action, note: meta.note });
+      await idem.billing.refund({ userId, cost, action: meta.action, note: meta.note, releaseQuota: true });
     },
   });
 }

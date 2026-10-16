@@ -23,12 +23,14 @@ import {
   repairReminder,
   ReviewContext,
   reviewComponent,
+  ReviewTarget,
 } from './authoring.js';
 import { OPTIONAL_MODULES } from './catalog.js';
 import { createFactGuard } from './factGuard.js';
 import { SiteManifest } from './manifest.js';
 import { ModelCaller } from './modelCaller.js';
 import { restoreInPage } from './project.js';
+import { renderBrandModule, renderDataModule, renderMediaModule } from './siteData.js';
 import { detectSiteLanguage, readSiteFacts, renderFacts } from './siteFacts.js';
 import { SiteStream } from './stream.js';
 import { compiler, DESIGN_SYSTEM_PATHS, FUNCTIONAL_DEPENDENCIES } from './template.js';
@@ -113,6 +115,39 @@ function contextFrom(files: Record<string, string>, facts: ReturnType<typeof rea
   return { facts, factsText, manifest, language, components: OPTIONAL_MODULES, themeSummary: '' };
 }
 
+/**
+ * Les fichiers du site pour monter un composant : ceux envoyés par l'atelier,
+ * complétés au besoin (un atelier plus ancien n'envoie pas `src/site/`).
+ */
+function siteFilesOf(
+  files: Record<string, string>,
+  projectData: ProjectModel,
+  facts: ReturnType<typeof readSiteFacts>,
+  language: string
+): Record<string, string> {
+  const own = Object.fromEntries(
+    Object.entries(files).filter(([path]) => path.startsWith('src/site/') || path.startsWith('src/design-system/'))
+  );
+  return {
+    'src/site/data.ts': renderDataModule(facts, null, language),
+    'src/site/media.ts': renderMediaModule({}),
+    'src/site/brand.tsx': renderBrandModule(projectData, facts.name),
+    ...own,
+  };
+}
+
+/** Ce que la page passe au composant : l'adresse de la page à l'en-tête, rien aux autres. */
+function targetOf(path: string, pages: string): ReviewTarget {
+  if (!path.endsWith('/SiteHeader.tsx')) return { path };
+  let first = '/';
+  try {
+    first = JSON.parse(pages).pages?.[0]?.path ?? '/';
+  } catch {
+    /* une seule page */
+  }
+  return { path, props: { current: first } };
+}
+
 function themeOf(files: Record<string, string>): ThemeColors {
   const css = files[DESIGN_SYSTEM_PATHS.css];
   if (css) return themeColorsFromCss(css);
@@ -154,6 +189,10 @@ export function createSiteRepairStream(input: SiteRepairInput): ResilientStream 
         check: createFactGuard(reference, language),
         reference,
         theme: themeOf(files),
+        siteFiles: (() => {
+          const site = siteFilesOf(files, projectData, facts, language);
+          return () => site;
+        })(),
       };
       const writer = process.env.SITE_WRITER_MODEL?.trim();
       const caller = new ModelCaller(writer && getFallbackModelKeys(writer).includes(writer) ? writer : model, userId, abort.signal);
@@ -171,7 +210,8 @@ export function createSiteRepairStream(input: SiteRepairInput): ResilientStream 
       await Promise.all(
         targets.map(async (path) => {
           const display = displayOf(path, fr);
-          const current = await reviewComponent(files[path], review);
+          const target = targetOf(path, files['idem.pages.json'] ?? '{}');
+          const current = await reviewComponent(files[path], review, target);
           let code = current.code;
           let valid = !current.problems.length;
           let unverified = current.invented;
@@ -184,7 +224,7 @@ export function createSiteRepairStream(input: SiteRepairInput): ResilientStream 
               current.problems.length ? current.problems : current.invented,
               current.problems.length ? 'form' : 'facts'
             )}`;
-            const authored = await authorComponent({ caller, label: `repair:${path}`, system, prompt, review, language });
+            const authored = await authorComponent({ caller, label: `repair:${path}`, system, prompt, review, language, target });
             if (authored.valid || authored.code) code = authored.valid ? authored.code : code;
             valid = authored.valid || valid;
             unverified = authored.valid ? authored.unverified : unverified;

@@ -177,3 +177,10 @@ export async function checkIDeployPgConnection(): Promise<boolean> {
     return false;
   }
 }
+
+/** Les applications iDeploy d'un utilisateur (compteurs IDEM). */
+export async function listApplicationsForEmail(email: string): Promise<{ uuid: string; name: string; status: string; fqdn: string | null; build_pack: string | null }[]> {
+  const teamId = await getTeamIdByEmail(email);
+  if (!teamId) return [];
+  return (await fetchApplications(teamId)) as unknown as { uuid: string; name: string; status: string; fqdn: string | null; build_pack: string | null }[];
+}

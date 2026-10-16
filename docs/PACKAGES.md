@@ -13,6 +13,7 @@ Code shared between applications lives in `packages/`. Applications consume the 
 | [`@idem/shared-trusted-by`](../packages/shared-trusted-by/README.md) | Landing, simulator, AppGen, iDeploy web | The "They trust us" partner band: one partner list, one stylesheet, an Angular and a React renderer |
 | [`@idem/shared-auth-client`](../packages/shared-auth-client/README.md) | Chart editor | Legacy teams and project-permissions client (see its README) |
 | [`@idem/graphic-engine`](../packages/graphic-engine/README.md) | API, iVision API, iVision core | The graphic generation engine: business plan pages, brand-book pages, pitch-deck slides, business-card faces, social visuals and charts — composed by the code from structured content and the brand, rendered as deterministic HTML, measured and repaired in Chromium. Consumers compile its sources through a `paths` alias; production images copy its compiled `dist/` into `node_modules/@idem/graphic-engine` |
+| [`@idem/motion-compiler`](../packages/motion-compiler/README.md) | iVision core (videos of IDEM and iVision) | The motion language of the video engine: the model writes a compact animation program (JSON nodes and timeline), a deterministic compiler turns it into a Motion Canvas scene with display guarantees (texts that fit, timeline that ends before the cut, responsive across formats). Pure package, imported by relative path; production images COPY its sources. `npm run check`, `npm run bench` |
 
 ## Rules
 

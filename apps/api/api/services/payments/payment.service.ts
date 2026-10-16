@@ -1,3 +1,4 @@
+import { deployMeterService } from '../billing/deploy-meter.service';
 import mongoose from 'mongoose';
 import { v4 as uuidv4 } from 'uuid';
 import logger from '../../config/logger';
@@ -37,6 +38,12 @@ import { transactionalEmailService } from '../email/email.service';
 import { firstNameOf } from '../email/email-layout';
 import { paymentFailed, paymentReceipt } from '../email/templates';
 import { pricingService } from '../billing/pricing.service';
+import { walletService } from '../billing/wallet.service';
+import { offerService } from '../billing/offer.service';
+import { TOPUP, isValidTopup } from '../../models/offer.model';
+
+/** Le produit de recharge du portefeuille (prix local de 1 000 F dans la grille du pays). */
+export const WALLET_TOPUP_CODE = 'wallet-topup';
 import { paymentCountriesService } from './payment-countries.service';
 import { paymentEventsService } from './payment-events.service';
 import {
@@ -72,6 +79,10 @@ const MAX_FULFILL_ATTEMPTS = 5;
 
 export interface CheckoutInput {
   productCode: string;
+  /** Recharge du portefeuille (`wallet-topup`) : montant en francs à créditer. */
+  amountXaf?: number;
+  /** Achat à exécuter depuis le portefeuille une fois la recharge encaissée. */
+  then?: Record<string, unknown>;
   /** Compteur visé — obligatoire pour une recharge, qui ne porte pas de moteur. */
   engine?: BillingEngine;
   projectId?: string;
@@ -129,6 +140,7 @@ export class PaymentService {
     interval?: BillingInterval;
     country?: string;
     engine?: BillingEngine;
+    amountXaf?: number;
   }): Promise<QuoteResult> {
     const product = await billingService.getProduct(input.productCode);
     if (!product || !product.isActive) {
@@ -163,6 +175,27 @@ export class PaymentService {
         'Le paiement n’est pas encore ouvert dans ce pays.',
         400
       );
+    }
+
+    // Recharge du portefeuille : le montant est choisi par l'utilisateur, en francs ; le prix local
+    // part de l'offre de référence du pays (3 000 F de solde), appliquée au prorata du montant.
+    if (product.code === WALLET_TOPUP_CODE) {
+      const amountXaf = Number(input.amountXaf);
+      if (!isValidTopup(amountXaf)) {
+        throw new PaymentRefusedError(
+          'invalid_amount',
+          `Choisissez un montant entre ${TOPUP.minXaf} et ${TOPUP.maxXaf} F, par pas de ${TOPUP.stepXaf} F.`,
+          400
+        );
+      }
+      const reference = await pricingService.priceFor(product.code, country.code);
+      if (!reference) {
+        throw new PaymentRefusedError('price_unavailable', 'La recharge n’est pas encore ouverte dans votre pays.', 400);
+      }
+      const factor = 10 ** (country.decimals ?? 0);
+      // Au prorata de l'offre de référence (3 000 F) : 3 000 F coûtent exactement le palier publié.
+      const amount = Math.ceil(((reference.amount * amountXaf) / product.priceXaf) * factor) / factor;
+      return { product, amountXaf, amount, currency: country.currency, country: country.code, label: `Recharge de ${amountXaf} F` };
     }
 
     const interval = input.interval ?? (product.interval === 'one_time' ? 'one_time' : product.interval);
@@ -1089,6 +1122,45 @@ export class PaymentService {
     }
   }
 
+  /**
+   * Recharge encaissée : le portefeuille est crédité (bonus de palier compris), la facture émise,
+   * puis l'achat demandé avec la recharge est exécuté depuis le portefeuille.
+   */
+  private async deliverTopup(transaction: PaymentTransactionModel): Promise<{ message: string; invoiceId?: string }> {
+    const { intent } = transaction;
+    const transactionId = transaction.id!;
+    const topupXaf = intent.topupXaf ?? transaction.amountXaf;
+
+    const { bonusXaf } = await walletService.topUp(transaction.userId, topupXaf, { paymentTransactionId: transactionId, note: `Recharge ${transaction.reference}` });
+    const invoice = await billingService.issueInvoice({
+      userId: transaction.userId,
+      productCode: WALLET_TOPUP_CODE,
+      kind: 'recharge',
+      engine: null,
+      amountXaf: transaction.amountXaf,
+      provider: 'pawapay',
+      status: 'paid',
+      paymentTransactionId: transactionId,
+    });
+    await entitlementsService.invalidate(transaction.userId);
+
+    let then = '';
+    if (intent.then) {
+      const request = offerService.parse(intent.then);
+      if (request) {
+        const outcome = await offerService.buy(transaction.userId, request);
+        then = outcome.ok ? ` · ${outcome.message}` : ` · achat non effectué (${outcome.message}), le montant reste dans votre portefeuille`;
+        if (!outcome.ok) logger.warn('payment.topup_then_failed', { event: 'payment.topup_then_failed', reference: transaction.reference, error: outcome.error });
+      }
+    }
+
+    // Une application endormie faute de solde se réveille avec la recharge.
+    const woke = await deployMeterService.wakeAfterTopUp(transaction.userId).catch(() => 0);
+    if (woke) then += ` · ${woke} application(s) réveillée(s)`;
+
+    return { message: `Portefeuille rechargé : ${topupXaf} F${bonusXaf ? ` + ${bonusXaf} F de bonus` : ''}${then}`, invoiceId: invoice?.id };
+  }
+
   private async deliver(transaction: PaymentTransactionModel): Promise<{
     message: string;
     purchaseId?: string;
@@ -1100,6 +1172,7 @@ export class PaymentService {
 
     switch (intent.type) {
       case 'purchase': {
+        if (intent.productCode === WALLET_TOPUP_CODE) return this.deliverTopup(transaction);
         const purchase = await billingService.purchase(transaction.userId, intent.productCode, {
           engine: intent.engine ?? undefined,
           projectId: intent.projectId,
@@ -1437,6 +1510,8 @@ export class PaymentService {
       interval: input.interval,
       simulationTier: input.simulationTier,
       label: quote.label,
+      ...(quote.product.code === WALLET_TOPUP_CODE ? { topupXaf: quote.amountXaf } : {}),
+      ...(input.then && typeof input.then === 'object' ? { then: input.then } : {}),
     };
   }
 

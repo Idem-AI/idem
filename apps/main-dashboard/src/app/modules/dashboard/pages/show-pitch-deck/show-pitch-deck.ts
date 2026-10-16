@@ -1,3 +1,4 @@
+import { OwnershipBarComponent } from '../../../../shared/components/ownership-bar/ownership-bar';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -51,6 +52,7 @@ const STEP_CLASSES: Record<StepStatus, string> = {
 @Component({
   selector: 'app-show-pitch-deck',
   imports: [
+    OwnershipBarComponent,
     ErrorStateComponent,TranslateModule, DocumentPreviewComponent, IncompleteProjectBannerComponent, IdemLoaderComponent, CreativityPickerComponent, CreativityCostPipe],
   templateUrl: './show-pitch-deck.html',
   changeDetection: ChangeDetectionStrategy.OnPush,

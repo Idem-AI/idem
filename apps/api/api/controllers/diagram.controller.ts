@@ -3,7 +3,6 @@ import logger from '../config/logger';
 import { DiagramService } from '../services/Diagrams/diagram.service';
 import { CustomRequest } from '../interfaces/express.interface';
 import { PromptService } from '../services/prompt.service';
-import { userService } from '../services/user.service';
 import { SectionModel } from '../models/section.model';
 import { ISectionResult } from '../services/common/generic.service';
 
@@ -42,7 +41,6 @@ export const generateDiagramController = async (
         newDiagram?.id || 'unknown'
       }`
     );
-    userService.incrementUsage(userId, 5);
 
     res.status(201).json(newDiagram || { message: 'Diagram generated but not returned' });
   } catch (error: any) {
@@ -232,7 +230,6 @@ export const generateDiagramStreamingController = async (
         newDiagram?.id || 'unknown'
       }`
     );
-    userService.incrementUsage(userId, 5);
 
     // Envoyer un événement de fin
     res.write(`data: ${JSON.stringify({ type: 'complete', diagram: newDiagram })}\n\n`);

@@ -861,7 +861,7 @@ export class ResearchTeamService {
     };
     try {
       const raw = await this.promptService.runPrompt(
-        { ...VERIFIER_CONFIG, userId: ctx.userId, skipQuotaCheck: true },
+        { ...VERIFIER_CONFIG, userId: ctx.userId },
         messages
       );
       const parsed = this.parseJSON(raw);
@@ -935,7 +935,7 @@ export class ResearchTeamService {
 
     const revised = this.promptService.getCleanAIText(
       await this.promptService.runPrompt(
-        { ...WRITER_CONFIG, userId: ctx.userId, language: ctx.language, skipQuotaCheck: true },
+        { ...WRITER_CONFIG, userId: ctx.userId, language: ctx.language },
         messages
       )
     );

@@ -1,5 +1,6 @@
-import { NgOptimizedImage } from '@angular/common';
 import { ChangeDetectionStrategy, Component } from '@angular/core';
+
+import { PageArtComponent } from '../../../../shared/components/page-art/page-art';
 
 interface PipelineStep {
   id: string;
@@ -8,15 +9,14 @@ interface PipelineStep {
 }
 
 /**
- * What actually happens when a simulation starts: five stages, not a chat with
- * an AI.
+ * Ce qui se passe vraiment quand une simulation démarre : cinq phases, pas une
+ * conversation avec une IA.
  */
 @Component({
   selector: 'app-simulation-pipeline',
-  standalone: true,
-  imports: [NgOptimizedImage],
+  imports: [PageArtComponent],
   templateUrl: './simulation-pipeline.html',
-  styleUrl: './simulation-pipeline.css',
+  styleUrls: ['../../../../shared/styles/editorial-page.css', './simulation-pipeline.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SimulationPipeline {

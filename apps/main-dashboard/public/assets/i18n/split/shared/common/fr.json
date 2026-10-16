@@ -51,8 +51,8 @@
     "confirm": "Confirmer",
     "creativity": {
       "title": "Créativité",
-      "help": "Plus vous montez, plus le modèle d'IA qui conçoit votre livrable est puissant — et plus la génération consomme de crédits.",
-      "cost": "{{cost}} crédits",
+      "help": "Plus vous montez, plus le modèle d’IA qui conçoit votre livrable est puissant. Le prix ne change pas avec le cran : l’esquisse est gratuite, la version finale se paie une fois.",
+      "cost": "{{cost}} F",
       "levels": {
         "low": {
           "label": "Low",
@@ -76,12 +76,12 @@
           "label": "Ultra",
           "hint": "Le plus puissant",
           "description": "Le modèle le plus puissant conçoit et écrit votre livrable. Votre charte et vos chiffres restent exacts à tous les crans.",
-          "line": "Le modèle le plus puissant."
+          "line": "Le plus puissant — pour une version Signature (+1 000 F)."
         }
       },
-      "withCost": "{{label}} · {{cost}} crédits",
+      "withCost": "{{label}} · {{cost}} F",
       "video": {
-        "help": "Plus vous montez, plus le modèle qui conçoit et écrit votre vidéo est puissant — et plus la génération consomme de crédits.",
+        "help": "Plus vous montez, plus le modèle qui conçoit votre vidéo est puissant. Le prix ne change pas avec le cran.",
         "levels": {
           "low": {
             "line": "Modèles légers : rapides et économiques."
@@ -96,7 +96,8 @@
             "line": "Les modèles les plus puissants."
           }
         }
-      }
+      },
+      "included": "Inclus"
     }
   }
 }

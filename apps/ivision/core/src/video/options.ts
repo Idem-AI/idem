@@ -6,7 +6,7 @@
 import { MUSIC_MOODS, VIDEO_OBJECTIVES, VIDEO_TYPES } from './contracts/model';
 import { pricingTable } from './pricing';
 import { VOICE_PERSONAS } from './audio/voice';
-import { MOTION_CANVAS_VERSION } from './author/api-reference';
+import { MOTION_CANVAS_VERSION } from './rendering/compiler';
 
 /** L'icône de chaque famille (PrimeIcons), pour les cartes de l'interface. */
 const TYPE_ICONS: Record<(typeof VIDEO_TYPES)[number], string> = {

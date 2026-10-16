@@ -1,645 +1,108 @@
-import { Component, ChangeDetectionStrategy, signal, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { ChangeDetectionStrategy, Component, computed, signal } from '@angular/core';
 import { environment } from '../../../environments/environment';
+import { OfferPickerComponent } from '../../components/offer-picker/offer-picker';
+import { OfferIllustrationComponent } from '../../shared/components/offer-illustration/offer-illustration';
 
-type PricingEngine = 'business' | 'appgen' | 'ideploy';
+interface PriceRow {
+  label: string;
+  price: string;
+}
+
+interface ServiceTab {
+  id: string;
+  label: string;
+  note: string;
+  rows: PriceRow[];
+  href: string;
+}
 
 /**
- * Ce que chaque carte de tarif achète réellement.
+ * Les tarifs publics. Une seule action principale (commencer gratuitement), trois offres choisies
+ * par BESOIN plutôt que par produit, et le détail des prix révélé à la demande, service par
+ * service. Chaque offre affichée a son bouton de souscription : il ouvre la console sur l'achat
+ * (`/account/plans?buy=…`), en passant par la connexion si besoin (le garde ramène ici après).
  *
- * Les identifiants d'affichage de cette page et les codes du catalogue de
- * facturation ne sont pas les mêmes — `essential` ici, `business-essential`
- * là-bas. Cette table est le seul endroit qui les relie : sans elle, un bouton
- * « Commencer » mènerait à la page de connexion, et l'utilisateur ne verrait
- * jamais de paiement.
- *
- * Les offres gratuites (Découverte, Hobby) n'y figurent pas : elles mènent à
- * l'inscription, pas à la caisse.
+ * Montants : `apps/api/api/models/offer.model.ts` et la grille par pays de `pricing.config.json`.
  */
-const CHECKOUT_PRODUCTS: Record<string, string> = {
-  essential: 'business-essential',
-  growth: 'business-growth',
-  cabinet: 'business-cabinet',
-  'social-starter': 'social-starter',
-  'social-pro': 'social-pro',
-  'appgen-starter': 'appgen-starter',
-  'appgen-pro': 'appgen-pro',
-  'appgen-studio': 'appgen-studio',
-  'deploy-starter': 'ideploy-starter',
-  'deploy-pro': 'ideploy-pro',
-  'deploy-scale': 'ideploy-scale',
-};
-
-interface PlanCard {
-  id: string;
-  name: string;
-  price: string;
-  usd: string;
-  period: string;
-  creditsLabel: string;
-  description: string;
-  features: string[];
-  popular?: boolean;
-  cta: string;
-  link: string;
-}
-
-interface PackCard {
-  id: string;
-  name: string;
-  price: string;
-  usd: string;
-  creditsLabel: string;
-  deliverables: string;
-  localAlternative: string;
-  popular?: boolean;
-}
-
-interface PricedItem {
-  name: string;
-  price: string;
-  note: string;
-}
-
-interface CreditRecharge {
-  name: string;
-  price: string;
-  credits: number;
-  perCredit: string;
-}
-
-interface BundleCard {
-  name: string;
-  price: string;
-  usd: string;
-  discount: string;
-  composition: string;
-  description: string;
-}
-
-interface ComparisonRow {
-  item: string;
-  idem: string;
-  alternative: string;
-}
-
 @Component({
   selector: 'app-pricing-page',
-  imports: [CommonModule],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [OfferPickerComponent, OfferIllustrationComponent],
   templateUrl: './pricing-page.html',
   styleUrl: './pricing-page.css',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PricingPage {
+  private readonly console = environment.services.dashboard.url;
+  protected readonly startUrl = `${this.console}/create-project`;
+  private readonly buy = (code: string) => `${this.console}/account/plans?buy=${code}`;
 
-  protected readonly dashboardUrl = environment.services.dashboard.url;
-  protected readonly appgenUrl = environment.services.idev.url;
-  protected readonly ideployUrl = environment.services.ideploy.url;
 
-  // Active engine tab
-  protected readonly activeEngine = signal<PricingEngine>('business');
+  private readonly urls: Record<string, string> = {
+    dashboard: this.startUrl,
+    appgen: environment.services.idev.url,
+    ideploy: environment.services.ideploy.url,
+    ivision: (environment.services as { ivision?: { url: string } }).ivision?.url ?? this.startUrl,
+    simulation: (environment.services as { simulation?: { url: string } }).simulation?.url ?? this.startUrl,
+  };
 
-  /**
-   * Où mène le bouton d'une carte.
-   *
-   * Un plan payant ouvre le paiement, pas la page de connexion : c'est toute la
-   * différence entre une grille de tarifs et une boutique. Si l'utilisateur
-   * n'est pas connecté, le tableau de bord le lui demandera et le ramènera
-   * exactement ici — son garde conserve la destination.
-   *
-   * Pas d'adresse de retour : après avoir payé, on veut voir ce qu'on vient
-   * d'acheter, donc son espace — pas la grille de tarifs.
-   */
-  protected planLink(plan: PlanCard): string {
-    const productCode = CHECKOUT_PRODUCTS[plan.id];
-    if (!productCode) {
-      return plan.link;
-    }
+  protected readonly services: ServiceTab[] = [
+    { id: 'idem', label: $localize`:@@pricing-page.detail.idem:Documents`, note: $localize`:@@pricing-page.detail.idemNote:Drafts are free. Once your purchases on a project reach 2,500 F, the rest of the Kit is unlocked.`, rows: [{ label: $localize`:@@pricing-page.row.logo:Logo and brand guidelines`, price: '1 500 F' }, { label: $localize`:@@pricing-page.row.bp:Business plan`, price: '2 000 F' }, { label: $localize`:@@pricing-page.row.deck:Pitch deck`, price: '1 000 F' }, { label: $localize`:@@pricing-page.row.legal:OHADA legal kit`, price: '1 500 F' }, { label: $localize`:@@pricing-page.row.forecast:3-year forecast`, price: '1 000 F' }, { label: $localize`:@@pricing-page.row.cards:Business cards`, price: '500 F' }, { label: $localize`:@@pricing-page.row.kitcap:The whole Kit, at most`, price: '2 500 F' }], href: this.urls['dashboard'] },
+    { id: 'comm', label: $localize`:@@pricing-page.detail.comm:Communication`, note: $localize`:@@pricing-page.detail.commNote:Your purchases of the month stop at 3,000 F: beyond that, IDEM Growth is yours until month end.`, rows: [{ label: $localize`:@@pricing-page.row.flyer:Visual for a post`, price: '100 F' }, { label: $localize`:@@pricing-page.row.carousel:Carousel (up to 10 slides)`, price: '200 F' }, { label: $localize`:@@pricing-page.row.video:Motion design video`, price: '300 F' }, { label: $localize`:@@pricing-page.row.clip:AI-filmed shot (5 s)`, price: '1 000 F' }, { label: $localize`:@@pricing-page.row.calendar:Monthly editorial calendar`, price: '500 F' }, { label: $localize`:@@pricing-page.row.strategy:Communication strategy`, price: '1 000 F' }], href: this.urls['dashboard'] },
+    { id: 'icode', label: $localize`:@@pricing-page.detail.icode:Website & app`, note: $localize`:@@pricing-page.detail.icodeNote:Generating your app and watching it run is free.`, rows: [{ label: $localize`:@@pricing-page.row.generate:Generate your app`, price: $localize`:@@pricing-page.free:Free` }, { label: $localize`:@@pricing-page.row.pass:Project Pass: code, GitHub, deploy, 30 changes`, price: '1 000 F' }, { label: $localize`:@@pricing-page.row.change:One change`, price: '25 F' }, { label: $localize`:@@pricing-page.row.pack100:100 changes`, price: '2 000 F' }], href: this.urls['appgen'] },
+    { id: 'ideploy', label: $localize`:@@pricing-page.detail.ideploy:Hosting`, note: $localize`:@@pricing-page.detail.ideployNote:Paid by the day from your wallet. No subscription; an unpaid app falls asleep, it is never deleted.`, rows: [{ label: $localize`:@@pricing-page.row.veille:Standby: online, woken up on visit`, price: $localize`:@@pricing-page.free:Free` }, { label: $localize`:@@pricing-page.row.vitrine:Showcase: website always on`, price: $localize`:@@pricing-page.perDay:${'10'}:INTERPOLATION: F a day` }, { label: $localize`:@@pricing-page.row.application:Application with database`, price: $localize`:@@pricing-page.perDay:${'50'}:INTERPOLATION: F a day` }, { label: $localize`:@@pricing-page.row.shop:Shop with mobile money payments`, price: $localize`:@@pricing-page.row.sale:4% per sale` }, { label: $localize`:@@pricing-page.row.domain:.africa domain, first year`, price: '6 500 F' }], href: this.urls['ideploy'] },
+    { id: 'ivision', label: $localize`:@@pricing-page.detail.ivision:Visuals`, note: $localize`:@@pricing-page.detail.ivisionNote:Creating is free and marked “Made with iVision”. You pay for the HD file without the mark.`, rows: [{ label: $localize`:@@pricing-page.row.vcreate:Create a visual or video`, price: $localize`:@@pricing-page.free:Free` }, { label: $localize`:@@pricing-page.row.vexport:HD visual without the mark`, price: '100 F' }, { label: $localize`:@@pricing-page.row.vvideo:HD video without the mark`, price: '300 F' }, { label: $localize`:@@pricing-page.row.vcreator:iVision Creator: every export`, price: $localize`:@@pricing-page.perMonth:${'2 000'}:INTERPOLATION: F a month` }], href: this.urls['ivision'] },
+    { id: 'sim', label: $localize`:@@pricing-page.detail.sim:Simulation`, note: $localize`:@@pricing-page.detail.simNote:A free first analysis, then a full test of your business before you launch.`, rows: [{ label: $localize`:@@pricing-page.row.spre:First analysis`, price: $localize`:@@pricing-page.free:Free` }, { label: $localize`:@@pricing-page.row.srun:Full simulation`, price: '1 500 F' }, { label: $localize`:@@pricing-page.row.sreport:Report for your bank`, price: '2 000 F' }], href: this.urls['simulation'] },
+  ];
+  protected readonly activeService = signal('idem');
+  protected readonly service = computed(() => this.services.find((s) => s.id === this.activeService()) ?? this.services[0]);
 
-    const checkout = new URL('/billing/checkout', environment.services.dashboard.url);
-    checkout.searchParams.set('product', productCode);
-    checkout.searchParams.set('interval', 'month');
-    checkout.searchParams.set('app', 'landing');
+  protected readonly payMethods = ['MTN MoMo', 'Orange Money', 'Airtel Money', 'M-Pesa', 'Moov Money', 'Wave'];
 
-    return checkout.toString();
-  }
-
-  private readonly perMonth = $localize`:@@pricing-page.period.month:/month`;
-  private readonly ctaStartFree = $localize`:@@pricing-page.cta.startFree:Start Free`;
-  private readonly ctaGetStarted = $localize`:@@pricing-page.cta.getStarted:Get Started`;
-
-  // ── A. IDEM Business — company structuring (main dashboard) ──────────────
-  protected readonly businessPlans: PlanCard[] = [
-    {
-      id: 'discovery',
-      name: $localize`:@@pricing-page.business.discovery.name:Discovery`,
-      price: '0 F',
-      usd: '',
-      period: $localize`:@@pricing-page.period.forever:/forever`,
-      creditsLabel: $localize`:@@pricing-page.business.discovery.credits:5 credits/month (watermarked previews)`,
-      description: $localize`:@@pricing-page.business.discovery.description:Explore every deliverable before paying a single franc`,
-      features: [
-        $localize`:@@pricing-page.business.discovery.f1:Free watermarked preview of every deliverable`,
-        $localize`:@@pricing-page.business.discovery.f2:1 active project`,
-        $localize`:@@pricing-page.business.discovery.f3:Financial forecasts (read-only)`,
-        $localize`:@@pricing-page.business.discovery.f4:Community support`,
-      ],
-      cta: this.ctaStartFree,
-      link: `${environment.services.dashboard.url}/login`,
-    },
-    {
-      id: 'essential',
-      name: $localize`:@@pricing-page.business.essential.name:Essential`,
-      price: '2 999 F',
-      usd: '~$5.2',
-      period: this.perMonth,
-      creditsLabel: $localize`:@@pricing-page.business.essential.credits:150 Business credits/month`,
-      description: $localize`:@@pricing-page.business.essential.description:The virtual back office of the active entrepreneur`,
-      features: [
-        $localize`:@@pricing-page.business.essential.f1:150 credits/month, 2-month rollover`,
-        $localize`:@@pricing-page.business.essential.f2:Monthly financial forecast updates`,
-        $localize`:@@pricing-page.business.essential.f3:Legal documents: generation + updates`,
-        $localize`:@@pricing-page.business.essential.f4:Business cards for 2 team members`,
-        $localize`:@@pricing-page.business.essential.f5:Watermark-free exports (Word, PPT, PDF)`,
-        $localize`:@@pricing-page.business.essential.f6:Loyalty bonus: up to +30% credits`,
-      ],
-      popular: true,
-      cta: this.ctaGetStarted,
-      link: `${environment.services.dashboard.url}/login`,
-    },
-    {
-      id: 'growth',
-      name: $localize`:@@pricing-page.business.growth.name:Growth`,
-      price: '7 999 F',
-      usd: '~$14',
-      period: this.perMonth,
-      creditsLabel: $localize`:@@pricing-page.business.growth.credits:500 Business credits/month`,
-      description: $localize`:@@pricing-page.business.growth.description:For structured SMEs managing their business in IDEM`,
-      features: [
-        $localize`:@@pricing-page.business.growth.f1:500 credits/month (16 F per credit)`,
-        $localize`:@@pricing-page.business.growth.f2:3 active projects`,
-        $localize`:@@pricing-page.business.growth.f3:Forecast vs actuals tracking + alerts`,
-        $localize`:@@pricing-page.business.growth.f4:OHADA legal watch included`,
-        $localize`:@@pricing-page.business.growth.f5:Business cards for 10 team members`,
-        $localize`:@@pricing-page.business.growth.f6:IDEM Social Starter included`,
-      ],
-      cta: this.ctaGetStarted,
-      link: `${environment.services.dashboard.url}/login`,
-    },
-    {
-      id: 'cabinet',
-      name: $localize`:@@pricing-page.business.cabinet.name:Cabinet`,
-      price: '19 999 F',
-      usd: '~$35',
-      period: this.perMonth,
-      creditsLabel: $localize`:@@pricing-page.business.cabinet.credits:1,500 Business credits/month`,
-      description: $localize`:@@pricing-page.business.cabinet.description:For agencies, consultants and accountants serving clients`,
-      features: [
-        $localize`:@@pricing-page.business.cabinet.f1:1,500 credits/month (13.3 F per credit)`,
-        $localize`:@@pricing-page.business.cabinet.f2:10 active projects (multi-client)`,
-        $localize`:@@pricing-page.business.cabinet.f3:Multi-project financial tracking`,
-        $localize`:@@pricing-page.business.cabinet.f4:Custom legal library`,
-        $localize`:@@pricing-page.business.cabinet.f5:White-label deliverables (your logo)`,
-        $localize`:@@pricing-page.business.cabinet.f6:IDEM Social Pro included`,
-      ],
-      cta: $localize`:@@pricing-page.cta.goCabinet:Scale Up`,
-      link: `${environment.services.dashboard.url}/login`,
-    },
+  protected readonly moreOffers = [
+    { label: $localize`:@@pricing-page.more.entreprise:IDEM Business: everything in Growth, hosting of your app and iVision Creator`, price: $localize`:@@pricing-page.perMonth:${'7 500'}:INTERPOLATION: F a month`, href: this.buy('pass-entreprise') },
+    { label: $localize`:@@pricing-page.more.createur:iVision Creator: every HD export of visuals and videos`, price: $localize`:@@pricing-page.perMonth:${'2 000'}:INTERPOLATION: F a month`, href: this.buy('pass-createur') },
+    { label: $localize`:@@pricing-page.more.domaine:Launch Pack with a .africa domain for one year`, price: '9 900 F', href: this.buy('pack-lancement_domaine') },
+    { label: $localize`:@@pricing-page.more.plusieurs:Together: 5 Launch Packs for an association or a tontine (the 5th is free)`, price: '20 000 F', href: this.buy('pack-a_plusieurs') },
   ];
 
-  protected readonly businessPacks: PackCard[] = [
-    {
-      id: 'identity',
-      name: $localize`:@@pricing-page.packs.identity.name:Identity Pack`,
-      price: '1 999 F',
-      usd: '~$3.5',
-      creditsLabel: $localize`:@@pricing-page.packs.identity.credits:80 credits included`,
-      deliverables: $localize`:@@pricing-page.packs.identity.deliverables:HD logo + brand guidelines + customizable business cards`,
-      localAlternative: $localize`:@@pricing-page.packs.identity.alt:50,000 – 95,000 F at a local designer`,
-    },
-    {
-      id: 'strategy',
-      name: $localize`:@@pricing-page.packs.strategy.name:Strategy Pack`,
-      price: '2 999 F',
-      usd: '~$5.2',
-      creditsLabel: $localize`:@@pricing-page.packs.strategy.credits:155 credits included`,
-      deliverables: $localize`:@@pricing-page.packs.strategy.deliverables:Business plan + pitch deck + 3-year financial forecasts`,
-      localAlternative: $localize`:@@pricing-page.packs.strategy.alt:225,000 – 700,000 F at a consultant`,
-    },
-    {
-      id: 'compliance',
-      name: $localize`:@@pricing-page.packs.compliance.name:Compliance Pack`,
-      price: '2 499 F',
-      usd: '~$4.3',
-      creditsLabel: $localize`:@@pricing-page.packs.compliance.credits:120 credits included`,
-      deliverables: $localize`:@@pricing-page.packs.compliance.deliverables:OHADA legal kit (articles, shareholder agreement, T&Cs) + procedures manual`,
-      localAlternative: $localize`:@@pricing-page.packs.compliance.alt:300,000 F+ at a law firm`,
-    },
-    {
-      id: 'complete',
-      name: $localize`:@@pricing-page.packs.complete.name:Full Business Pack`,
-      price: '4 999 F',
-      usd: '~$8.7',
-      creditsLabel: $localize`:@@pricing-page.packs.complete.credits:265 credits — 33% off vs separate packs`,
-      deliverables: $localize`:@@pricing-page.packs.complete.deliverables:Identity + Strategy + Compliance, everything to launch credible`,
-      localAlternative: $localize`:@@pricing-page.packs.complete.alt:500,000 – 1,000,000 F with local providers`,
-      popular: true,
-    },
+  protected readonly faq = [
+    { q: $localize`:@@pricing-page.faq.q1:Why pay when ChatGPT is free?`, a: $localize`:@@pricing-page.faq.a1:You do not pay to generate: drafts are free. You pay for a finished document, sourced, laid out and ready for the bank, adapted to OHADA law and your country.` },
+    { q: $localize`:@@pricing-page.faq.q2:Is there a subscription?`, a: $localize`:@@pricing-page.faq.a2:No. Plans are optional and your pay-as-you-go purchases stop at their price: you never pay more than the plan.` },
+    { q: $localize`:@@pricing-page.faq.q3:Can I pay without a bank card?`, a: $localize`:@@pricing-page.faq.a3:Yes. Everything is paid by mobile money, or with an IDEM code bought in cash from an agent.` },
+    { q: $localize`:@@pricing-page.faq.q4:What if a generation fails?`, a: $localize`:@@pricing-page.faq.a4:You are not charged: the amount goes back to your wallet automatically.` },
+    { q: $localize`:@@pricing-page.faq.q5:What if my wallet is empty?`, a: $localize`:@@pricing-page.faq.a5:Your drafts stay. A paid website falls asleep after a reminder e-mail and wakes up when you top up. Nothing is deleted.` },
   ];
 
-  protected readonly socialAddons: PlanCard[] = [
-    {
-      id: 'social-starter',
-      name: $localize`:@@pricing-page.social.starter.name:IDEM Social Starter`,
-      price: '1 999 F',
-      usd: '~$3.5',
-      period: this.perMonth,
-      creditsLabel: $localize`:@@pricing-page.social.starter.credits:2 connected networks`,
-      description: $localize`:@@pricing-page.social.starter.description:Publish your editorial calendar automatically`,
-      features: [
-        $localize`:@@pricing-page.social.starter.f1:30 scheduled posts/month`,
-        $localize`:@@pricing-page.social.starter.f2:Auto-publishing of your editorial calendar`,
-        $localize`:@@pricing-page.social.starter.f3:Basic engagement statistics`,
-      ],
-      cta: this.ctaGetStarted,
-      link: `${environment.services.dashboard.url}/login`,
-    },
-    {
-      id: 'social-pro',
-      name: $localize`:@@pricing-page.social.pro.name:IDEM Social Pro`,
-      price: '4 999 F',
-      usd: '~$8.7',
-      period: this.perMonth,
-      creditsLabel: $localize`:@@pricing-page.social.pro.credits:6 networks: Facebook, Instagram, TikTok, LinkedIn, X, WhatsApp Business`,
-      description: $localize`:@@pricing-page.social.pro.description:What Hootsuite sells for 57,000 F/month`,
-      features: [
-        $localize`:@@pricing-page.social.pro.f1:Unlimited scheduled posts`,
-        $localize`:@@pricing-page.social.pro.f2:AI picks the best publishing time`,
-        $localize`:@@pricing-page.social.pro.f3:Full statistics + monthly report`,
-        $localize`:@@pricing-page.social.pro.f4:Included in Business Cabinet`,
-      ],
-      popular: true,
-      cta: this.ctaGetStarted,
-      link: `${environment.services.dashboard.url}/login`,
-    },
+  /** Prix d'IDEM Croissance (3 000 F) dans la monnaie de chaque pays : grille de `pricing.config.json`. */
+  protected readonly countries = [
+    { code: 'XAF', name: 'Zone CFA', price: '3 000 F CFA' },
+    { code: 'KEN', name: 'Kenya', price: '650 KES' },
+    { code: 'NGA', name: 'Nigeria', price: '4 900 NGN' },
+    { code: 'GHA', name: 'Ghana', price: '45 GHS' },
+    { code: 'RWA', name: 'Rwanda', price: '6 500 RWF' },
+    { code: 'UGA', name: 'Uganda', price: '15 000 UGX' },
+    { code: 'TZA', name: 'Tanzania', price: '9 500 TZS' },
+    { code: 'ETH', name: 'Ethiopia', price: '590 ETB' },
+    { code: 'COD', name: 'RD Congo', price: '8 050 CDF' },
+    { code: 'ZMB', name: 'Zambia', price: '75 ZMW' },
+    { code: 'MOZ', name: 'Mozambique', price: '220 MZN' },
+    { code: 'MWI', name: 'Malawi', price: '6 000 MWK' },
+    { code: 'SLE', name: 'Sierra Leone', price: '80 SLE' },
+    { code: 'LSO', name: 'Lesotho', price: '59 LSL' },
   ];
-
-  // ── B. IDEM AppGen — application generation ───────────────────────────────
-  protected readonly projectPassFeatures: string[] = [
-    $localize`:@@pricing-page.appgen.pass.f1:Initial generation is 100% free — watch your app run in the browser`,
-    $localize`:@@pricing-page.appgen.pass.f2:AI modifications unlocked (30 credits included)`,
-    $localize`:@@pricing-page.appgen.pass.f3:Unlimited code download (ZIP)`,
-    $localize`:@@pricing-page.appgen.pass.f4:Unlimited GitHub push`,
-    $localize`:@@pricing-page.appgen.pass.f5:Deployment on iDeploy unlocked`,
-    $localize`:@@pricing-page.appgen.pass.f6:Private project + removable badge`,
-  ];
-
-  protected readonly appgenPlans: PlanCard[] = [
-    {
-      id: 'appgen-discovery',
-      name: $localize`:@@pricing-page.appgen.discovery.name:Discovery`,
-      price: '0 F',
-      usd: '',
-      period: $localize`:@@pricing-page.period.forever:/forever`,
-      creditsLabel: $localize`:@@pricing-page.appgen.discovery.credits:3 free generations/day`,
-      description: $localize`:@@pricing-page.appgen.discovery.description:Generate complete apps and watch them run, free`,
-      features: [
-        $localize`:@@pricing-page.appgen.discovery.f1:3 complete generations per day`,
-        $localize`:@@pricing-page.appgen.discovery.f2:Unlimited browser preview`,
-        $localize`:@@pricing-page.appgen.discovery.f3:Project Pass at 999 F per project`,
-        $localize`:@@pricing-page.appgen.discovery.f4:Community support`,
-      ],
-      cta: this.ctaStartFree,
-      link: `${environment.services.idev.url}`,
-    },
-    {
-      id: 'appgen-starter',
-      name: $localize`:@@pricing-page.appgen.starter.name:Starter`,
-      price: '2 999 F',
-      usd: '~$5.2',
-      period: this.perMonth,
-      creditsLabel: $localize`:@@pricing-page.appgen.starter.credits:150 credits/month`,
-      description: $localize`:@@pricing-page.appgen.starter.description:7× cheaper per credit than Lovable Pro`,
-      features: [
-        $localize`:@@pricing-page.appgen.starter.f1:Unlimited initial generations`,
-        $localize`:@@pricing-page.appgen.starter.f2:Project Pass included on all projects`,
-        $localize`:@@pricing-page.appgen.starter.f3:150 credits/month, 2-month rollover`,
-        $localize`:@@pricing-page.appgen.starter.f4:Import existing projects`,
-        $localize`:@@pricing-page.appgen.starter.f5:Standard support`,
-      ],
-      popular: true,
-      cta: this.ctaGetStarted,
-      link: `${environment.services.idev.url}`,
-    },
-    {
-      id: 'appgen-pro',
-      name: $localize`:@@pricing-page.appgen.pro.name:Pro`,
-      price: '9 999 F',
-      usd: '~$17',
-      period: this.perMonth,
-      creditsLabel: $localize`:@@pricing-page.appgen.pro.credits:550 credits/month`,
-      description: $localize`:@@pricing-page.appgen.pro.description:For builders shipping every week`,
-      features: [
-        $localize`:@@pricing-page.appgen.pro.f1:Everything in Starter`,
-        $localize`:@@pricing-page.appgen.pro.f2:550 credits/month`,
-        $localize`:@@pricing-page.appgen.pro.f3:Premium AI models (complex actions)`,
-        $localize`:@@pricing-page.appgen.pro.f4:Priority support`,
-      ],
-      cta: $localize`:@@pricing-page.cta.goPro:Go Pro`,
-      link: `${environment.services.idev.url}`,
-    },
-    {
-      id: 'appgen-studio',
-      name: $localize`:@@pricing-page.appgen.studio.name:Studio`,
-      price: '24 999 F',
-      usd: '~$43',
-      period: this.perMonth,
-      creditsLabel: $localize`:@@pricing-page.appgen.studio.credits:1,500 credits/month`,
-      description: $localize`:@@pricing-page.appgen.studio.description:For agencies building for their clients`,
-      features: [
-        $localize`:@@pricing-page.appgen.studio.f1:Everything in Pro`,
-        $localize`:@@pricing-page.appgen.studio.f2:1,500 credits/month`,
-        $localize`:@@pricing-page.appgen.studio.f3:5 seats`,
-        $localize`:@@pricing-page.appgen.studio.f4:API access`,
-        $localize`:@@pricing-page.appgen.studio.f5:White-label for agencies`,
-        $localize`:@@pricing-page.appgen.studio.f6:Dedicated support`,
-      ],
-      cta: $localize`:@@pricing-page.cta.scaleUp:Scale Up`,
-      link: `${environment.services.idev.url}`,
-    },
-  ];
-
-  protected readonly appgenPasses: PricedItem[] = [
-    {
-      name: $localize`:@@pricing-page.appgen.pass24.name:24h Pass`,
-      price: '500 F',
-      note: $localize`:@@pricing-page.appgen.pass24.note:25 credits — "I'm testing my idea tonight"`,
-    },
-    {
-      name: $localize`:@@pricing-page.appgen.pass7d.name:7-day Pass`,
-      price: '1 499 F',
-      note: $localize`:@@pricing-page.appgen.pass7d.note:90 credits — "I'm prepping Friday's demo"`,
-    },
-  ];
-
-  // ── C. iDeploy — deployment & hosting ─────────────────────────────────────
-  protected readonly ideployPlans: PlanCard[] = [
-    {
-      id: 'hobby',
-      name: $localize`:@@pricing-page.ideploy.hobby.name:Hobby`,
-      price: '0 F',
-      usd: '',
-      period: $localize`:@@pricing-page.period.forever:/forever`,
-      creditsLabel: $localize`:@@pricing-page.ideploy.hobby.credits:Commercial use allowed`,
-      description: $localize`:@@pricing-page.ideploy.hobby.description:Put your first app in production for free`,
-      features: [
-        $localize`:@@pricing-page.ideploy.hobby.f1:2 apps (sleep after 30 min idle), 512 MB each`,
-        $localize`:@@pricing-page.ideploy.hobby.f2:5 free deployments, then 100 F each`,
-        $localize`:@@pricing-page.ideploy.hobby.f3:Free yourapp.idem.africa domain`,
-        $localize`:@@pricing-page.ideploy.hobby.f4:1 free custom domain + auto SSL`,
-        $localize`:@@pricing-page.ideploy.hobby.f5:50 GB traffic/month`,
-        $localize`:@@pricing-page.ideploy.hobby.f6:1 dev database (1 GB)`,
-      ],
-      cta: this.ctaStartFree,
-      link: `${environment.services.ideploy.url}`,
-    },
-    {
-      id: 'deploy-starter',
-      name: $localize`:@@pricing-page.ideploy.starter.name:Deploy Starter`,
-      price: '2 999 F',
-      usd: '~$5.2',
-      period: this.perMonth,
-      creditsLabel: $localize`:@@pricing-page.ideploy.starter.credits:3 always-on apps`,
-      description: $localize`:@@pricing-page.ideploy.starter.description:Your apps stay awake, your data stays safe`,
-      features: [
-        $localize`:@@pricing-page.ideploy.starter.f1:3 always-active apps (512 MB each)`,
-        $localize`:@@pricing-page.ideploy.starter.f2:Unlimited deployments`,
-        $localize`:@@pricing-page.ideploy.starter.f3:100 GB traffic/month`,
-        $localize`:@@pricing-page.ideploy.starter.f4:3 free custom domains + SSL`,
-        $localize`:@@pricing-page.ideploy.starter.f5:1 persistent database (2 GB) + weekly backups`,
-        $localize`:@@pricing-page.ideploy.starter.f6:2 BYOS servers (bring your own server)`,
-      ],
-      popular: true,
-      cta: this.ctaGetStarted,
-      link: `${environment.services.ideploy.url}`,
-    },
-    {
-      id: 'deploy-pro',
-      name: $localize`:@@pricing-page.ideploy.pro.name:Deploy Pro`,
-      price: '9 999 F',
-      usd: '~$17',
-      period: this.perMonth,
-      creditsLabel: $localize`:@@pricing-page.ideploy.pro.credits:10 apps — 8 GB RAM pool`,
-      description: $localize`:@@pricing-page.ideploy.pro.description:For products in real growth`,
-      features: [
-        $localize`:@@pricing-page.ideploy.pro.f1:10 apps, 8 GB shared RAM pool`,
-        $localize`:@@pricing-page.ideploy.pro.f2:500 GB traffic/month`,
-        $localize`:@@pricing-page.ideploy.pro.f3:5 databases (10 GB) + daily backups`,
-        $localize`:@@pricing-page.ideploy.pro.f4:Full monitoring + alerts, 30-day logs`,
-        $localize`:@@pricing-page.ideploy.pro.f5:10 custom domains, advanced firewall`,
-        $localize`:@@pricing-page.ideploy.pro.f6:3 team members, 5 BYOS servers`,
-      ],
-      cta: $localize`:@@pricing-page.cta.goPro:Go Pro`,
-      link: `${environment.services.ideploy.url}`,
-    },
-    {
-      id: 'deploy-scale',
-      name: $localize`:@@pricing-page.ideploy.scale.name:Deploy Scale`,
-      price: '24 999 F',
-      usd: '~$43',
-      period: this.perMonth,
-      creditsLabel: $localize`:@@pricing-page.ideploy.scale.credits:25 apps — 24 GB RAM pool`,
-      description: $localize`:@@pricing-page.ideploy.scale.description:High availability for serious workloads`,
-      features: [
-        $localize`:@@pricing-page.ideploy.scale.f1:25 apps, 24 GB RAM pool, 2 TB traffic`,
-        $localize`:@@pricing-page.ideploy.scale.f2:High availability + autoscaling included`,
-        $localize`:@@pricing-page.ideploy.scale.f3:Unlimited databases (50 GB) + external S3 backups`,
-        $localize`:@@pricing-page.ideploy.scale.f4:99.9% SLA`,
-        $localize`:@@pricing-page.ideploy.scale.f5:Wildcard domains, custom firewall rules`,
-        $localize`:@@pricing-page.ideploy.scale.f6:10 team members, unlimited BYOS servers`,
-      ],
-      cta: $localize`:@@pricing-page.cta.scaleUp:Scale Up`,
-      link: `${environment.services.ideploy.url}`,
-    },
-  ];
-
-  protected readonly managedServices: PricedItem[] = [
-    {
-      name: $localize`:@@pricing-page.ideploy.svc.waf:Advanced firewall / managed WAF`,
-      price: '1 499 F',
-      note: $localize`:@@pricing-page.ideploy.svc.waf.note:Custom rules, geo-blocking`,
-    },
-    {
-      name: $localize`:@@pricing-page.ideploy.svc.autoscaling:Autoscaling`,
-      price: '1 999 F',
-      note: $localize`:@@pricing-page.ideploy.svc.autoscaling.note:Automatic scale-up (Docker Swarm)`,
-    },
-    {
-      name: $localize`:@@pricing-page.ideploy.svc.backups:Daily backups + 1-click restore`,
-      price: '999 F',
-      note: $localize`:@@pricing-page.ideploy.svc.backups.note:Sleep well at night`,
-    },
-    {
-      name: $localize`:@@pricing-page.ideploy.svc.monitoring:Advanced monitoring + alerts`,
-      price: '999 F',
-      note: $localize`:@@pricing-page.ideploy.svc.monitoring.note:CPU/RAM/disk, e-mail & WhatsApp`,
-    },
-    {
-      name: $localize`:@@pricing-page.ideploy.svc.db:Extra managed database`,
-      price: '999 F',
-      note: $localize`:@@pricing-page.ideploy.svc.db.note:2 GB, backups included`,
-    },
-    {
-      name: $localize`:@@pricing-page.ideploy.svc.logs:Extended log retention`,
-      price: '499 F',
-      note: $localize`:@@pricing-page.ideploy.svc.logs.note:90 days of logs`,
-    },
-    {
-      name: $localize`:@@pricing-page.ideploy.svc.ip:Dedicated static IP`,
-      price: '1 999 F',
-      note: $localize`:@@pricing-page.ideploy.svc.ip.note:Vercel sells this at 57,500 F`,
-    },
-    {
-      name: $localize`:@@pricing-page.ideploy.svc.sovereign:Sovereign local hosting`,
-      price: '1 999 F',
-      note: $localize`:@@pricing-page.ideploy.svc.sovereign.note:Data center in your country (roadmap)`,
-    },
-  ];
-
-  // ── Credit recharges (Business & AppGen, separate meters, same price) ────
-  protected readonly creditRecharges: CreditRecharge[] = [
-    {
-      name: $localize`:@@pricing-page.recharge.boost:Boost`,
-      price: '500 F',
-      credits: 25,
-      perCredit: '20 F',
-    },
-    {
-      name: $localize`:@@pricing-page.recharge.standard:Standard`,
-      price: '999 F',
-      credits: 55,
-      perCredit: '18 F',
-    },
-    {
-      name: $localize`:@@pricing-page.recharge.growth:Growth`,
-      price: '2 499 F',
-      credits: 145,
-      perCredit: '17 F',
-    },
-    {
-      name: $localize`:@@pricing-page.recharge.power:Power`,
-      price: '4 999 F',
-      credits: 320,
-      perCredit: '15.6 F',
-    },
-  ];
-
-  // ── Business credit price list (what one deliverable costs) ──────────────
-  protected readonly creditCosts: PricedItem[] = [
-    {
-      name: $localize`:@@pricing-page.credits.revision:Revision / iteration`,
-      price: '1',
-      note: '~20 F',
-    },
-    {
-      name: $localize`:@@pricing-page.credits.flyer:Flyer / social post visual`,
-      price: '2',
-      note: '~40 F',
-    },
-    {
-      name: $localize`:@@pricing-page.credits.card:Custom business card`,
-      price: '10',
-      note: '~200 F',
-    },
-    {
-      name: $localize`:@@pricing-page.credits.calendar:Monthly editorial calendar (30 posts)`,
-      price: '15',
-      note: '~300 F',
-    },
-    {
-      name: $localize`:@@pricing-page.credits.pitchdeck:Investor pitch deck`,
-      price: '35',
-      note: '~700 F',
-    },
-    {
-      name: $localize`:@@pricing-page.credits.forecast:3-year financial forecasts`,
-      price: '40',
-      note: '~800 F',
-    },
-    {
-      name: $localize`:@@pricing-page.credits.logo:HD logo + full brand guidelines`,
-      price: '60',
-      note: '~1 200 F',
-    },
-    {
-      name: $localize`:@@pricing-page.credits.bp:Complete business plan`,
-      price: '70',
-      note: '~1 400 F',
-    },
-  ];
-
-  // ── Loyalty bundles ───────────────────────────────────────────────────────
-  protected readonly bundles: BundleCard[] = [
-    {
-      name: $localize`:@@pricing-page.bundles.launch.name:Launch Pack`,
-      price: '7 499 F',
-      usd: '~$13',
-      discount: '-17%',
-      composition: $localize`:@@pricing-page.bundles.launch.composition:Business Essential + AppGen Starter + Deploy Starter`,
-      description: $localize`:@@pricing-page.bundles.launch.description:Structure, build and host your business in one subscription`,
-    },
-    {
-      name: $localize`:@@pricing-page.bundles.complete.name:IDEM Complete`,
-      price: '29 999 F',
-      usd: '~$52',
-      discount: '-21%',
-      composition: $localize`:@@pricing-page.bundles.complete.composition:Business Growth + AppGen Pro + Deploy Pro + Advisory Premium`,
-      description: $localize`:@@pricing-page.bundles.complete.description:Documents, code, hosting and a human advisor — everything in one place`,
-    },
-  ];
-
-  // ── Frontal comparison ────────────────────────────────────────────────────
-  protected readonly comparisonRows: ComparisonRow[] = [
-    {
-      item: $localize`:@@pricing-page.compare.bp:Complete business plan`,
-      idem: $localize`:@@pricing-page.compare.bp.idem:~1 400 F (70 credits)`,
-      alternative: $localize`:@@pricing-page.compare.bp.alt:225,000 – 700,000 F (local consultant)`,
-    },
-    {
-      item: $localize`:@@pricing-page.compare.logo:Logo + brand identity`,
-      idem: $localize`:@@pricing-page.compare.logo.idem:1 999 F (Identity Pack)`,
-      alternative: $localize`:@@pricing-page.compare.logo.alt:50,000 – 95,000 F (designer)`,
-    },
-    {
-      item: $localize`:@@pricing-page.compare.appgen:AI app builder`,
-      idem: $localize`:@@pricing-page.compare.appgen.idem:2 999 F/month — 150 credits`,
-      alternative: $localize`:@@pricing-page.compare.appgen.alt:Lovable Pro: 14,375 F ($25) — 100 credits`,
-    },
-    {
-      item: $localize`:@@pricing-page.compare.bandwidth:Hosting bandwidth overage`,
-      idem: $localize`:@@pricing-page.compare.bandwidth.idem:25 F/GB`,
-      alternative: $localize`:@@pricing-page.compare.bandwidth.alt:Vercel: 86 F/GB ($0.15)`,
-    },
-    {
-      item: $localize`:@@pricing-page.compare.social:Social media scheduling`,
-      idem: $localize`:@@pricing-page.compare.social.idem:4 999 F/month (Social Pro)`,
-      alternative: $localize`:@@pricing-page.compare.social.alt:Hootsuite: ~57,000 F/month`,
-    },
-  ];
-
-  protected readonly currentPlans = computed<PlanCard[]>(() => {
-    switch (this.activeEngine()) {
-      case 'appgen':
-        return this.appgenPlans;
-      case 'ideploy':
-        return this.ideployPlans;
-      default:
-        return this.businessPlans;
-    }
+  protected readonly country = signal('XAF');
+  protected readonly referenceText = computed(() => {
+    const price = this.countries.find((c) => c.code === this.country())?.price ?? this.countries[0].price;
+    return $localize`:@@pricing-page.pay.reference:IDEM Growth costs ${price}:INTERPOLATION: a month in your country.`;
   });
 
-  protected setEngine(engine: PricingEngine): void {
-    this.activeEngine.set(engine);
+  /** Flèches gauche/droite entre les onglets (motif ARIA « tabs »). */
+  protected onTabKey(event: KeyboardEvent, index: number): void {
+    const step = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0;
+    if (!step) return;
+    event.preventDefault();
+    const next = this.services[(index + step + this.services.length) % this.services.length];
+    this.activeService.set(next.id);
+    document.getElementById(`tab-${next.id}`)?.focus();
   }
-
 }

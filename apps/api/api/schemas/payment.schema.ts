@@ -37,6 +37,8 @@ const PaymentTransactionSchema = new Schema<PaymentTransactionDocument>(
       installmentIndex: { type: Number },
       simulationTier: { type: String },
       label: { type: String, required: true },
+      topupXaf: { type: Number },
+      then: { type: Schema.Types.Mixed },
     },
 
     amount: { type: Number, required: true },
@@ -261,7 +263,8 @@ export const PaymentCallbackRaw = mongoose.model<PaymentCallbackRawDocument>(
 
 export interface CreditBalanceDocument extends Document {
   userId: string;
-  engine: BillingEngine;
+  /** Moteur historique, portefeuille (`wallet`) ou compte de droits prépayés. */
+  engine: import('../models/offer.model').LedgerAccount;
   balance: number;
   updatedAt: Date;
 }

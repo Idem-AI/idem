@@ -2,6 +2,7 @@
 // secrets first and only then imports it, because many modules below read a
 // secret when they are imported. `loadSecrets()` is idempotent; the call in
 // bootstrap() keeps the validation (and its error) on this path too.
+import { whatsappRoutes, socialRoutes } from './routes/whatsapp.routes';
 import { loadSecrets } from './config/secrets';
 
 import express, { Express, NextFunction, Request, Response } from 'express';
@@ -43,6 +44,7 @@ import {
 import { BillingSettings } from './schemas/billingSettings.schema';
 import { BillingSyncJob } from './schemas/billingSync.schema';
 import { PricingChange, PricingOverride } from './schemas/pricingOverride.schema';
+import { UsageQuotaCounter } from './schemas/usageQuota.schema';
 import { pricingService } from './services/billing/pricing.service';
 import { BetaTester } from './schemas/betaTester.schema';
 import { EmailLog } from './schemas/emailLog.schema';
@@ -89,7 +91,6 @@ import { developmentRoutes } from './routes/development.routes';
 import { userRoutes } from './routes/user.routes';
 import githubRoutes from './routes/github.routes';
 import archetypeRoutes from './routes/archetype.routes';
-import quotaRoutes from './routes/quota.routes';
 import cacheRoutes from './routes/cache.routes';
 import fontRoutes from './routes/font.routes';
 import { PdfService } from './services/pdf.service';
@@ -148,7 +149,7 @@ app.use(
   express.json({
     limit: process.env.JSON_BODY_LIMIT || '10mb',
     verify: (req, _res, buf) => {
-      if (req.url?.startsWith('/billing/webhooks/')) {
+      if (req.url?.startsWith('/billing/webhooks/') || req.url?.startsWith('/whatsapp/webhook')) {
         (req as Request & { rawBody?: Buffer }).rawBody = Buffer.from(buf);
       }
     },
@@ -208,9 +209,10 @@ app.use('/project', simulationRoutes);
 app.use('/auth', authRoutes);
 app.use('/auth', userRoutes);
 app.use('/prompt', promptRoutes);
-app.use('/quota', quotaRoutes);
 // Facturation : catalogue, droits, paiement Mobile Money, callbacks pawaPay.
 app.use('/billing', billingRoutes);
+app.use('/whatsapp', whatsappRoutes);
+app.use('/social', socialRoutes);
 // Médias des sites générés par iCode : images (Gemini), clips (Veo), photos et vidéos Pexels.
 app.use('/appgen/media', appgenMediaRoutes);
 app.use('/archetypes', archetypeRoutes);
@@ -377,6 +379,9 @@ function startServer() {
         // même personne depuis deux imports successifs.
         BetaTester.init(),
         EmailLog.init(),
+        // Quotas d'usage IA : un compteur par (utilisateur, groupe, période),
+        // unique pour l'incrément conditionnel, purgé par TTL.
+        UsageQuotaCounter.init(),
       ]);
 
       // Catalogue aligné sur la page de tarification publique. N'écrase jamais

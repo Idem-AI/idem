@@ -8,8 +8,8 @@ to both.
 | Directory | Contents |
 | --- | --- |
 | `src/runtime` | `configureCore()` and the host ports (logger, storage, vision, image generation, Google GenAI, agent runtime, credit refund) |
-| `src/video` | the video service (`MotionVideoService`): request reading (`request/`), director and storyboard (`director/`), the Motion Canvas author and its compact context (`author/`), media, music, sound effects and voice (`assets/`, `audio/`), server rendering (`rendering/`: compiler, Chromium runner, preview page, ffmpeg), pricing, options |
-| `motion` | what runs in the browser: the `@idem/motion` kit imported by scene code (`kit/`), the harness around every AI-written scene, the playback engine, the server render driver and the preview player with its **edit bridge** (`runtime/`), and the technical examples given to the author (`examples/`) |
+| `src/video` | the video service (`MotionVideoService`): request reading (`request/`), director and storyboard (`director/`), the scene author — the model writes a program in the motion language, compiled to Motion Canvas by `packages/motion-compiler` (`author/`), media, music, sound effects and voice (`assets/`, `audio/`), server rendering (`rendering/`: compiler, Chromium runner, preview page, ffmpeg), pricing, options |
+| `motion` | what runs in the browser: the `@idem/motion` kit imported by scene code (`kit/`), the harness around every AI-written scene, the playback engine, the server render driver and the preview player with its **edit bridge** (`runtime/`), and the display probe (text boxes per frame) |
 | `src/montage` | editing a filmed talk (Whisper, cuts, captions, overlays): its own HTML overlay renderer (`montage.renderer.ts`) |
 | `src/visual` | the visual composer (`composeVisual`: the words, the photo, then the page composed by the graphic engine `@idem/graphic-engine`), image sourcing and classification, `visualContextFromBrand`, and the written edits IDEM applies to a visual |
 | `src/site` | the website scanner (`scanWebsite`), palette and typography proposals |

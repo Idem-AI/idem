@@ -1,3 +1,45 @@
-:host {
-  display: block;
+/* Deux secteurs côte à côte — ce qui n'appartient qu'à cette section. */
+
+.ss-columns {
+  display: grid;
+  gap: clamp(3rem, 5vw, 4.5rem);
+}
+
+@media (min-width: 768px) {
+  .ss-columns {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.ss-column {
+  min-width: 0;
+}
+
+/* Le nom du métier : c'est lui qu'on compare d'une colonne à l'autre, donc il
+   se lit en premier et en grand. */
+.ss-sector {
+  margin: 0;
+  font-weight: var(--font-weight-black);
+  font-size: clamp(1.5rem, 2.8vw, 2.25rem);
+  line-height: 1.05;
+}
+
+/* Le cadrage du cas : ville, modèle, clientèle. Il qualifie le nom au-dessus. */
+.ss-note {
+  margin: 0.5rem 0 0;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-primary-500);
+}
+
+/* Un facteur par rangée, séparé par un filet : les deux colonnes s'alignent
+   ligne à ligne, et c'est ce qui rend la comparaison lisible. */
+.ss-factor {
+  padding-block: 0.75rem;
+  border-top: 1px solid var(--glass-border-subtle);
+  color: var(--color-text-secondary);
+}
+
+.ss-factor:last-of-type {
+  border-bottom: 1px solid var(--glass-border-subtle);
 }

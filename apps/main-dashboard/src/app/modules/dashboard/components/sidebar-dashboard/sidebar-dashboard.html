@@ -177,8 +177,7 @@
             @if (summary.needsAttention) {
               <span class="h-1.5 w-1.5 rounded-full bg-warning" aria-hidden="true"></span>
             }
-            <span class="text-xs tabular-nums text-text-tertiary">{{ summary.credits }}</span>
-            <i class="pi pi-bolt text-[10px] text-text-tertiary" aria-hidden="true"></i>
+            <span class="text-xs tabular-nums text-text-tertiary">{{ summary.credits | number: '1.0-0' }} F</span>
           </span>
         } @else {
           <span class="text-xs text-text-tertiary">{{ 'account.title' | translate }}</span>
@@ -402,7 +401,7 @@
 
             @if (accountSummary(); as summary) {
               <span class="text-xs text-text-tertiary tabular-nums">
-                {{ 'account.creditsShort' | translate: { count: summary.credits } }}
+                {{ 'account.creditsShort' | translate: { count: (summary.credits | number: '1.0-0') } }}
               </span>
             }
           </a>

@@ -1,5 +1,6 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { ApiService } from './api.service';
+import { environment } from '../../environments/environment';
 import { Brand, ChatMode, SessionSummary } from './models';
 
 /** Ce que la coque de l'atelier et la conversation partagent : conversations, marques, crédits. */
@@ -10,7 +11,12 @@ export class StudioState {
   readonly sessionsLoading = signal(false);
   readonly brands = signal<Brand[]>([]);
   readonly brandsLoaded = signal(false);
+  /** Le portefeuille IDEM, en francs (nom historique : `credits`). */
   readonly credits = signal<number | null>(null);
+  /** iVision Créateur actif : les exports HD sont inclus. */
+  readonly createur = signal(false);
+  /** Prix d'un export HD de visuel (100 F, lu chez IDEM). */
+  readonly exportVisualXaf = signal(100);
   /** Le tiroir des conversations (téléphone). */
   readonly drawerOpen = signal(false);
 
@@ -40,6 +46,22 @@ export class StudioState {
   }
 
   refreshCredits(): void {
-    this.api.me().subscribe({ next: (me) => this.credits.set(me.credits), error: () => undefined });
+    this.api.me().subscribe({
+      next: (me) => {
+        this.credits.set(me.walletXaf ?? me.credits);
+        this.createur.set(Boolean(me.createur));
+        if (typeof me.exportVisualXaf === 'number') this.exportVisualXaf.set(me.exportVisualXaf);
+      },
+      error: () => undefined,
+    });
+  }
+
+  refreshBalance(): void {
+    this.refreshCredits();
+  }
+
+  /** La recharge se fait dans la console IDEM (mobile money), avec le montant qui manque. */
+  topUpUrl(missingXaf?: number): string {
+    return `${environment.services.dashboard.url}/account/plans${missingXaf ? `?topup=${Math.max(100, Math.ceil(missingXaf / 50) * 50)}` : ''}`;
   }
 }

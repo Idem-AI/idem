@@ -131,7 +131,6 @@ export interface AgentRunInput {
   file?: PromptConfig['file'];
   /** Fichiers de contexte additionnels transmis au fournisseur. */
   contextFilePaths?: string[];
-  skipQuotaCheck?: boolean;
   /** Exempte cet agent du plafond global de tokens de sortie. */
   bypassOutputTokenCap?: boolean;
   /**
@@ -355,7 +354,6 @@ function buildPromptConfig(
     language: input.language,
     file: input.file,
     contextFilePaths: input.contextFilePaths,
-    skipQuotaCheck: input.skipQuotaCheck,
     bypassOutputTokenCap: input.bypassOutputTokenCap,
   };
 }

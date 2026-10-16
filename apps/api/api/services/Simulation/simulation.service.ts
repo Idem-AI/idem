@@ -12,6 +12,7 @@
  * la simulation.
  */
 
+import { simulationPrice } from '../../middleware/billing.middleware';
 import { v4 as uuidv4 } from 'uuid';
 
 import logger from '../../config/logger';
@@ -368,18 +369,17 @@ export class SimulationService {
 
     const priced = await Promise.all(
       plans.map(async (plan) => {
-        const product = await billingService.getProduct(plan.productCode);
-
-        // Prix public par défaut ; prix réduit quand l'analyse part d'un
-        // projet IDEM déjà structuré — moins de tokens à consommer.
-        const price = fromIdem ? (product?.idemPriceXaf ?? product?.priceXaf ?? 0) : (product?.priceXaf ?? 0);
+        // Prix du modèle au portefeuille (`offer.model`), débités par `requireSimulationPayment` :
+        // prix public par défaut, réduit quand l'analyse part d'un projet IDEM déjà structuré.
+        const price = simulationPrice(plan.tier, fromIdem).priceXaf;
+        const listPrice = simulationPrice(plan.tier, false).priceXaf;
 
         return {
           tier: plan.tier,
           productCode: plan.productCode,
           price,
           // Le prix barré n'a de sens que s'il y a réellement une remise.
-          listPrice: fromIdem && product?.priceXaf && product.priceXaf > price ? product.priceXaf : undefined,
+          listPrice: fromIdem && listPrice > price ? listPrice : undefined,
           currency: 'FCFA',
           includes: plan.includes,
           recommended: plan.recommended,

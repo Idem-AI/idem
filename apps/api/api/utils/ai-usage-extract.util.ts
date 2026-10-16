@@ -30,6 +30,7 @@ export function extractOpenAIUsage(response: any): ProviderTokenUsage | undefine
     inputTokens,
     outputTokens,
     cachedInputTokens: Number(usage.prompt_tokens_details?.cached_tokens ?? 0),
+    reasoningTokens: Number(usage.completion_tokens_details?.reasoning_tokens ?? 0),
   };
 }
 

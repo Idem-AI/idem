@@ -51,8 +51,8 @@
     "confirm": "Confirmer",
     "creativity": {
       "title": "Créativité",
-      "help": "Plus vous montez, plus le modèle d'IA qui conçoit votre livrable est puissant — et plus la génération consomme de crédits.",
-      "cost": "{{cost}} crédits",
+      "help": "Plus vous montez, plus le modèle d’IA qui conçoit votre livrable est puissant. Le prix ne change pas avec le cran : l’esquisse est gratuite, la version finale se paie une fois.",
+      "cost": "{{cost}} F",
       "levels": {
         "low": {
           "label": "Low",
@@ -76,12 +76,12 @@
           "label": "Ultra",
           "hint": "Le plus puissant",
           "description": "Le modèle le plus puissant conçoit et écrit votre livrable. Votre charte et vos chiffres restent exacts à tous les crans.",
-          "line": "Le modèle le plus puissant."
+          "line": "Le plus puissant — pour une version Signature (+1 000 F)."
         }
       },
-      "withCost": "{{label}} · {{cost}} crédits",
+      "withCost": "{{label}} · {{cost}} F",
       "video": {
-        "help": "Plus vous montez, plus le modèle qui conçoit et écrit votre vidéo est puissant — et plus la génération consomme de crédits.",
+        "help": "Plus vous montez, plus le modèle qui conçoit votre vidéo est puissant. Le prix ne change pas avec le cran.",
         "levels": {
           "low": {
             "line": "Modèles légers : rapides et économiques."
@@ -96,7 +96,8 @@
             "line": "Les modèles les plus puissants."
           }
         }
-      }
+      },
+      "included": "Inclus"
     }
   },
   "dashboard": {
@@ -1779,38 +1780,6 @@
         "noProjectSelected": "Aucun projet sélectionné",
         "projectNotFound": "Projet introuvable : {{projectId}}",
         "failedToLoad": "Échec du chargement des données du projet"
-      },
-      "quotaWarning": {
-        "title": "Avertissement de quota",
-        "daily": "Quotidien :",
-        "weekly": "Hebdomadaire :",
-        "beta": "BÊTA",
-        "messages": {
-          "approaching": "Vous approchez de votre limite de quota",
-          "daily": "Vous approchez de votre limite de quota quotidien",
-          "weekly": "Vous approchez de votre limite de quota hebdomadaire",
-          "dailyAndWeekly": "Vous approchez de vos limites de quota quotidien et hebdomadaire"
-        },
-        "buttons": {
-          "viewDetails": "Voir les détails"
-        },
-        "tooltip": {
-          "title": "Informations de quota",
-          "exceededTitle": "Quota dépassé",
-          "exceededMessage": "Vous avez atteint vos limites d'utilisation",
-          "limitedTitle": "Fonctionnalité limitée",
-          "limitedMessage": "Non disponible en version bêta",
-          "nearlyReachedTitle": "Quota presque atteint",
-          "nearlyReachedMessage": "À utiliser avec modération",
-          "availableMessage": "Quotas disponibles",
-          "betaLimitations": "Limitations bêta :",
-          "maxStyles": "styles maximum",
-          "resolution": "Résolution :",
-          "maxTokens": "tokens max",
-          "featureNotAuthorized": "Fonctionnalité non autorisée"
-        },
-        "generations": "Générations",
-        "credits": "Crédits"
       }
     },
     "aiAssistant": {
@@ -2076,14 +2045,6 @@
         "maxStyles": "Maximum {{count}} styles par génération",
         "resolution": "Résolution maximale {{resolution}}",
         "maxTokens": "Maximum {{count}} tokens de sortie"
-      },
-      "quota": {
-        "daily": "Quota quotidien",
-        "weekly": "Quota hebdomadaire",
-        "usedToday": "Utilisé aujourd'hui : {{count}} requêtes",
-        "usedThisWeek": "Utilisé cette semaine : {{count}} requêtes",
-        "warning": "Vous approchez de votre limite de quota. Envisagez de passer à la version premium pour un accès illimité.",
-        "exceeded": "Vous avez dépassé votre limite de quota. Veuillez passer à la version premium ou attendre la prochaine réinitialisation."
       },
       "buttons": {
         "upgrade": "Passer à Premium",
@@ -3510,7 +3471,9 @@
       },
       "networks": {
         "linkedin": "LinkedIn",
-        "x": "X"
+        "x": "X",
+        "facebook": "Facebook",
+        "instagram": "Instagram"
       },
       "steps": {
         "context": "Je relis votre marque…",
@@ -3904,6 +3867,11 @@
           "label": "Mes vidéos",
           "hint": "Une vidéo animée à vos couleurs",
           "short": "Vidéos"
+        },
+        "whatsapp": {
+          "label": "WhatsApp",
+          "hint": "Valider et publier depuis WhatsApp",
+          "short": "WhatsApp"
         }
       },
       "home": {
@@ -4562,6 +4530,49 @@
           "done": "C’est fait. Regardez la nouvelle version.",
           "notUnderstood": "Je n’ai pas compris ce qu’il faut changer. Dites par exemple « la scène 2 plus dynamique » ou « sans musique ».",
           "newRequest": "Cela ressemble à une nouvelle vidéo : créez-la depuis « Nouvelle vidéo »."
+        }
+      },
+      "whatsapp": {
+        "title": "Publier depuis WhatsApp",
+        "subtitle": "Le jour de publication, IDEM vous envoie le visuel ou la vidéo sur WhatsApp. Vous validez ou demandez une modification, puis IDEM publie sur vos réseaux. Vous pouvez aussi demander un visuel à tout moment.",
+        "paidTitle": "Réservé aux comptes payants",
+        "paidBody": "Passez au forfait IDEM Croissance ou Entreprise pour valider et publier vos contenus depuis WhatsApp.",
+        "paidWelcome": "Votre cadeau d’inscription ne couvre pas cette fonction. Dès votre premier forfait IDEM Croissance, elle s’ouvre.",
+        "seePlans": "Voir les forfaits",
+        "unavailable": "WhatsApp n’est pas encore activé sur IDEM. Revenez bientôt.",
+        "networksTitle": "1. Vos réseaux",
+        "networksHint": "IDEM publie sur les comptes que vous connectez, jamais ailleurs. Vous pouvez les déconnecter à tout moment.",
+        "connect": "Connecter",
+        "disconnect": "Déconnecter",
+        "connected": "connecté",
+        "soon": "bientôt",
+        "linkTitle": "2. Lier votre WhatsApp",
+        "linkHint": "Aucun numéro à saisir : vous envoyez un code depuis votre téléphone, ce qui prouve qu’il est à vous.",
+        "linkCta": "Lier mon WhatsApp",
+        "sendCode": "Envoyez ce code à IDEM sur WhatsApp :",
+        "openWhatsapp": "Ouvrir WhatsApp",
+        "waiting": "En attente de votre message… (valable jusqu’à {{time}})",
+        "linked": "WhatsApp lié (numéro finissant par {{last4}})",
+        "unlink": "Délier",
+        "dailyTitle": "Recevoir mes publications du jour",
+        "dailyHint": "Chaque jour de publication de votre calendrier, IDEM prépare le contenu et vous l’envoie pour validation. Vous pouvez arrêter en écrivant « stop ».",
+        "hour": "Heure d’envoi",
+        "safety": "Rien n’est publié sans votre accord : vous recevez la version exacte, vous répondez « Valider » (ou vous demandez une modification), puis IDEM publie. Sans réponse sous 48 h, la demande expire et rien n’est publié.",
+        "historyTitle": "Dernières demandes",
+        "historyEmpty": "Rien pour le moment.",
+        "noCaption": "Sans légende",
+        "loadFailed": "Impossible de charger cet écran. Réessayez dans un instant.",
+        "status": {
+          "generating": "Préparation",
+          "awaiting": "En attente de votre avis",
+          "revising": "Modification",
+          "approved": "Validé",
+          "publishing": "Publication",
+          "published": "Publié",
+          "partial": "Publié en partie",
+          "failed": "Échec",
+          "cancelled": "Annulé",
+          "expired": "Expiré"
         }
       }
     },
@@ -6274,7 +6285,18 @@
         "confirm": "Confirmation du paiement"
       },
       "chooseCountry": "Choisir le pays",
-      "countryFirst": "Choisissez d'abord votre pays."
+      "countryFirst": "Choisissez d'abord votre pays.",
+      "walletCredited": "Crédité sur votre portefeuille",
+      "bonus": "Bonus de recharge",
+      "thenBuy": "Puis, depuis votre portefeuille : {{label}}",
+      "thenKinds": {
+        "pass": "activation du forfait",
+        "pack": "achat du pack",
+        "icode_project_pass": "Pass Projet iCode (1 000 F)",
+        "icode_pack_100": "100 modifications iCode (2 000 F)",
+        "unlock": "déblocage de la version finale",
+        "domain": "commande du nom de domaine"
+      }
     },
     "paywall": {
       "title": "Crédits insuffisants",
@@ -6284,7 +6306,19 @@
       "upgradeTitle": "Offre supérieure requise",
       "choose": "Choisir une offre",
       "seeAllPlans": "Voir toutes les offres",
-      "later": "Plus tard"
+      "later": "Plus tard",
+      "quotaTitle": "Limite d’usage atteinte",
+      "quotaResets": "Renouvellement : {{date}}",
+      "walletTitle": "Solde insuffisant",
+      "price": "Prix : {{price}} F",
+      "walletBalance": "Portefeuille : {{balance}} F",
+      "walletMissing": "Il vous manque {{missing}} F",
+      "kitRemaining": "Kit Entreprise : plus que {{remaining}} F avant que tout le Kit soit débloqué (plafond {{cap}} F).",
+      "lockedTitle": "Fichier de la version finale",
+      "unlock": "Débloquer la version finale — {{price}} F",
+      "topUpAndUnlock": "Recharger {{amount}} F et débloquer",
+      "topUp": "Recharger {{amount}} F",
+      "seeWallet": "Mon portefeuille"
     },
     "status": {
       "CREATED": "Créé",
@@ -6297,6 +6331,83 @@
       "REJECTED": "Refusé",
       "NOT_FOUND": "Non abouti",
       "EXPIRED": "Expiré"
+    },
+    "wallet": {
+      "title": "Portefeuille",
+      "betaShort": "Bêta premium",
+      "balance": "Solde du portefeuille",
+      "betaActive": "Bêta premium : tout est inclus pendant la bêta.",
+      "passUntil": "{{pass}} jusqu’au {{date}}",
+      "modifications": "{{count}} modifications iCode incluses",
+      "vitrineDays": "{{count}} jours de site vitrine prépayés",
+      "projectPasses": "{{count}} Pass Projet iCode à utiliser",
+      "topUpTitle": "Recharger en mobile money",
+      "otherAmount": "Autre montant (F)",
+      "topUp": "Recharger {{amount}} F",
+      "bonusRule": "Bonus de recharge : +5 % dès 5 000 F, +10 % dès 10 000 F.",
+      "passesTitle": "Forfaits du mois",
+      "passesHint": "Vous ne payez jamais plus que le forfait : vos achats à l’unité du mois s’arrêtent à son prix, et il vous est alors offert jusqu’à la fin du mois.",
+      "capRule": "Plafond : vos achats à l’unité s’arrêtent à {{cap}} F par mois.",
+      "activeUntil": "Actif jusqu’au {{date}}",
+      "extend": "Prolonger",
+      "activate": "Activer",
+      "packsTitle": "Packs",
+      "packsHint": "Appliqués au projet en cours : {{project}}.",
+      "domain": "Nom de domaine (.africa ou .com)",
+      "codeTitle": "Code IDEM",
+      "codeHint": "Un code d’agent, un cadeau ou un Pack Lancement offert : il crédite votre portefeuille ou s’applique au projet en cours.",
+      "redeem": "Utiliser",
+      "statementTitle": "Relevé du portefeuille",
+      "noStatement": "Aucun mouvement pour le moment.",
+      "unavailable": "Votre portefeuille n’a pas pu être chargé. Réessayez dans un instant.",
+      "reasons": {
+        "topup": "Recharge",
+        "bonus": "Bonus de recharge",
+        "conversion": "Conversion de vos crédits",
+        "consumption": "Achat",
+        "refund": "Restitution",
+        "manual_adjustment": "Ajustement",
+        "plan_grant": "Offert",
+        "pack_grant": "Pack",
+        "pass_grant": "Inclus dans votre offre",
+        "recharge": "Recharge",
+        "loyalty_bonus": "Bonus fidélité",
+        "rollover_expiry": "Expiration",
+        "welcome_grant": "Cadeau d’accueil"
+      },
+      "recommended": "Recommandé",
+      "perDay": "≈ {{amount}} F par jour",
+      "saveYear": "vous économisez {{amount}} F",
+      "intent": {
+        "title": "Votre choix",
+        "perMonth": "par mois",
+        "perYear": "par an",
+        "noProject": "Ce pack s’applique à un projet. Créez d’abord votre projet, puis revenez ici.",
+        "createProject": "Créer mon projet",
+        "forProject": "Pour le projet : {{project}}.",
+        "balance": "Votre solde : {{amount}} F",
+        "topUpFirst": "la recharge vous sera proposée",
+        "confirm": "Payer {{amount}} F",
+        "icodePack100": "iCode : 100 modifications"
+      }
+    },
+    "passes": {
+      "croissance": "IDEM Croissance",
+      "entreprise": "IDEM Entreprise",
+      "createur": "iVision Créateur"
+    },
+    "ownership": {
+      "beta": "Bêta premium : les versions finales sont incluses.",
+      "draftTitle": "Esquisse gratuite",
+      "draftBody": "La version finale ajoute les données sourcées, la mise en page professionnelle, les fichiers sans signature et 30 jours de retouches.",
+      "kit": "Kit Entreprise du projet : {{spent}} F sur {{cap}} F — au-delà, tout le Kit est débloqué (au lieu de {{sum}} F à l’unité).",
+      "unlock": "Débloquer la version finale — {{price}} F",
+      "unlocked": "Version finale débloquée",
+      "generateFinal": "Générer la version finale",
+      "finalTitle": "Version finale",
+      "signatureTitle": "Version Signature",
+      "editableUntil": "Retouches gratuites jusqu’au {{date}}",
+      "signature": "Passer en Signature — {{price}} F"
     }
   },
   "account": {
@@ -6325,7 +6436,7 @@
     "severalPlans": "{{count}} offres actives",
     "perMonth": "/mois",
     "credits": "Crédits",
-    "creditsShort": "{{count}} crédits",
+    "creditsShort": "{{count}} F",
     "creditsOn": "Sur l’offre {{plan}}",
     "upgradeTo": "Passer à {{plan}}",
     "topTier": "Vous êtes sur l’offre la plus complète",
@@ -6342,8 +6453,8 @@
     "statement": "Relevé de crédits",
     "noStatement": "Aucun mouvement de crédits pour le moment.",
     "allEngines": "Tous",
-    "quotaTitle": "Générations offertes",
-    "quotaHint": "Indépendant des crédits : une limite de cadence qui se remet à zéro toute seule, sans rien à payer.",
+    "quotaTitle": "Limites d’usage",
+    "quotaHint": "Indépendantes des crédits : le rythme de génération de votre offre, par famille, qui se renouvelle seul chaque jour, chaque semaine (le lundi) et chaque mois.",
     "packsHint": "Un besoin précis, payé une fois.",
     "rechargesHint": "Des crédits en plus, sans changer d’offre.",
     "bundlesHint": "Plusieurs moteurs, à prix groupé.",
@@ -6389,7 +6500,15 @@
       "deliveryPending": "Votre paiement est encaissé. L’activation prend parfois quelques instants — cet écran se met à jour tout seul.",
       "resume": "Reprendre mon travail",
       "seeInvoice": "Voir mes factures"
-    }
+    },
+    "quotaGroup": "Famille",
+    "quotaWindows": {
+      "day": "Aujourd’hui",
+      "week": "Semaine",
+      "month": "Mois"
+    },
+    "quotaUnlimited": "Sans limite",
+    "quotaCapacityHigh": "Votre capacité de génération IA du jour est presque atteinte : elle se renouvelle à minuit (UTC)."
   },
   "auth": {
     "signInTitle": "Se connecter à IDEM",

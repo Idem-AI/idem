@@ -3,10 +3,8 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 import { BillingService } from '../../../billing/services/billing.service';
-import { BillingEngine, CreditLedgerRow } from '../../../billing/models/billing.model';
+import { BillingEngine, CreditLedgerRow, UsageQuotaStatus } from '../../../billing/models/billing.model';
 import { BILLING_ENGINES, ENGINE_LABELS } from '../../../billing/models/plan.model';
-import { QuotaService } from '../../../../shared/services/quota.service';
-import { QuotaInfoResponse } from '../../../../shared/models/quota.model';
 
 /**
  * La consommation : « où sont passés mes crédits ».
@@ -17,15 +15,17 @@ import { QuotaInfoResponse } from '../../../../shared/models/quota.model';
  *
  *  - les **crédits** sont la monnaie ; chaque livrable en coûte un nombre
  *    connu, et ils se rechargent ou viennent de l'offre ;
- *  - le **quota** est une limite de cadence sur les générations offertes, qui
- *    se remet à zéro toute seule et ne se recharge pas.
+ *  - les **limites d'usage** bornent le rythme des générations par famille
+ *    (aides IA, retouches, créations, livrables complets, vidéos, iCode,
+ *    simulations), par jour, semaine et mois selon l'offre ; elles se
+ *    renouvellent toutes seules et ne se rechargent pas.
  *
  * On ne peut pas les fusionner — ce sont deux mécanismes distincts côté API —
  * mais on peut cesser de les présenter comme s'ils étaient de même nature.
  *
- * D'où l'ordre : ce dont on dispose maintenant (soldes, puis quota du jour),
- * et seulement ensuite l'historique qui l'explique. Le quota garde son encadré
- * distinct, qui dit ce qu'il est.
+ * D'où l'ordre : ce dont on dispose maintenant (soldes, puis limites d'usage),
+ * et seulement ensuite l'historique qui l'explique. Les limites gardent leur
+ * encadré distinct, qui dit ce qu'elles sont.
  */
 @Component({
   selector: 'app-account-usage',
@@ -48,51 +48,53 @@ import { QuotaInfoResponse } from '../../../../shared/models/quota.model';
     </div>
 
     <!--
-      Quota, juste au-dessus du relevé.
-
-      Il fermait la page, après le relevé, alors qu'il décrit ce dont on
-      dispose aujourd'hui — au même titre que les soldes. Sa place est donc
-      avec eux, avant l'historique qui, lui, regarde en arrière. Il garde son
-      cadre distinct : c'est une cadence offerte, pas de la monnaie.
+      Limites d'usage, juste au-dessus du relevé : elles décrivent ce dont on
+      dispose aujourd'hui, au même titre que les soldes. Cadre distinct : ce
+      n'est pas de la monnaie, c'est un rythme qui se renouvelle seul.
     -->
-    @if (quota(); as info) {
-      <section class="mb-6 rounded-xl border border-[var(--glass-border)] bg-[var(--color-surface-2)] p-4">
-        <h2 class="text-sm font-medium text-text-primary">
-          {{ 'account.quotaTitle' | translate }}
-        </h2>
+    @if (quotas(); as status) {
+      <section class="glass-card mb-6 p-4">
+        <h2 class="text-sm font-medium text-text-primary">{{ 'account.quotaTitle' | translate }}</h2>
         <p class="mt-1 text-xs text-text-tertiary">{{ 'account.quotaHint' | translate }}</p>
 
-        <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <div class="flex items-baseline justify-between text-sm">
-              <span class="text-text-secondary">{{ 'dashboard.profile.quota.daily' | translate }}</span>
-              <span class="tabular-nums text-text-primary">
-                {{ info.remainingDaily }} / {{ info.dailyLimit }}
-              </span>
-            </div>
-            <div class="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-[var(--color-surface-3)]">
-              <div
-                class="h-full rounded-full bg-primary transition-all duration-500"
-                [style.width.%]="percent(info.dailyUsage, info.dailyLimit)"
-              ></div>
-            </div>
-          </div>
-
-          <div>
-            <div class="flex items-baseline justify-between text-sm">
-              <span class="text-text-secondary">{{ 'dashboard.profile.quota.weekly' | translate }}</span>
-              <span class="tabular-nums text-text-primary">
-                {{ info.remainingWeekly }} / {{ info.weeklyLimit }}
-              </span>
-            </div>
-            <div class="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-[var(--color-surface-3)]">
-              <div
-                class="h-full rounded-full bg-primary transition-all duration-500"
-                [style.width.%]="percent(info.weeklyUsage, info.weeklyLimit)"
-              ></div>
-            </div>
-          </div>
+        <div class="mt-4 overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="text-left text-xs text-text-tertiary">
+                <th class="py-2 pr-3 font-normal" scope="col">{{ 'account.quotaGroup' | translate }}</th>
+                @for (window of windows; track window) {
+                  <th class="py-2 pr-3 font-normal" scope="col">{{ 'account.quotaWindows.' + window | translate }}</th>
+                }
+              </tr>
+            </thead>
+            <tbody>
+              @for (group of status.groups; track group.group) {
+                <tr class="border-t border-[var(--glass-border-subtle)]">
+                  <th class="py-2 pr-3 text-left font-normal text-text-secondary" scope="row">{{ group.label }}</th>
+                  @for (window of group.windows; track window.window) {
+                    <td class="py-2 pr-3">
+                      @if (window.limit === null) {
+                        <span class="text-xs text-text-tertiary">{{ 'account.quotaUnlimited' | translate }}</span>
+                      } @else {
+                        <span class="tabular-nums text-text-primary">{{ window.used }} / {{ window.limit }}</span>
+                        <progress
+                          class="mt-1 block w-full"
+                          [value]="window.used"
+                          [max]="window.limit"
+                          [attr.aria-label]="group.label + ' · ' + ('account.quotaWindows.' + window.window | translate)"
+                        ></progress>
+                      }
+                    </td>
+                  }
+                </tr>
+              }
+            </tbody>
+          </table>
         </div>
+
+        @if (status.capacity.day >= 80) {
+          <p class="mt-3 text-xs text-warning">{{ 'account.quotaCapacityHigh' | translate }}</p>
+        }
       </section>
     }
 
@@ -172,14 +174,14 @@ import { QuotaInfoResponse } from '../../../../shared/models/quota.model';
 })
 export class AccountUsagePage {
   private readonly billing = inject(BillingService);
-  private readonly quotaService = inject(QuotaService);
 
   protected readonly engines = BILLING_ENGINES;
   protected readonly engineLabels = ENGINE_LABELS;
 
   protected readonly filter = signal<BillingEngine | null>(null);
   protected readonly isLoading = signal(true);
-  protected readonly quota = signal<QuotaInfoResponse | null>(null);
+  protected readonly quotas = signal<UsageQuotaStatus | null>(null);
+  protected readonly windows = ['day', 'week', 'month'] as const;
 
   private readonly entries = signal<CreditLedgerRow[]>([]);
 
@@ -208,17 +210,12 @@ export class AccountUsagePage {
       },
     });
 
-    this.quotaService.getQuotaInfo().subscribe({
-      next: (info) => this.quota.set(info),
-      // Le quota est secondaire ici : son absence masque l'encadré, elle
+    this.billing.getQuotas().subscribe({
+      next: (status) => this.quotas.set(status),
+      // Les limites sont secondaires ici : leur absence masque l'encadré, elle
       // n'empêche pas de lire son relevé.
-      error: () => this.quota.set(null),
+      error: () => this.quotas.set(null),
     });
-  }
-
-  protected percent(used: number, limit: number): number {
-    if (!limit) return 0;
-    return Math.min(100, Math.round((used / limit) * 100));
   }
 
   /**

@@ -1,16 +1,16 @@
-import { NgOptimizedImage } from '@angular/common';
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 
+import { PageArtComponent } from '../../../../shared/components/page-art/page-art';
+
 /**
- * The hard questions the engine puts to a model on purpose. The section exists
- * to say the simulator is not there to reassure anyone.
+ * Les questions dures que le moteur pose exprès au modèle. La section existe
+ * pour dire que le simulateur n'est pas là pour rassurer.
  */
 @Component({
   selector: 'app-simulation-stress-tests',
-  standalone: true,
-  imports: [NgOptimizedImage],
+  imports: [PageArtComponent],
   templateUrl: './simulation-stress-tests.html',
-  styleUrl: './simulation-stress-tests.css',
+  styleUrls: ['../../../../shared/styles/editorial-page.css', './simulation-stress-tests.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SimulationStressTests {

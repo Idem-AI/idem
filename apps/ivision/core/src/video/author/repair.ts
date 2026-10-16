@@ -117,12 +117,3 @@ export class RepairLedger {
     return (this.attempts.get(key) || []).map((a) => a.error).filter((e): e is string => !!e);
   }
 }
-
-/** La consigne de l'auteur pour une stratégie. */
-export function repairInstruction(strategy: RepairStrategy, error: string, history: string[]): string {
-  const past = [...new Set([...history, error])].slice(-3).map((e) => `- ${e.slice(0, 300)}`).join('\n');
-  if (strategy === 'fix') return `IT FAILS WITH: ${error.slice(0, 600)}\nReturn the whole corrected file. Change only what is needed to make it run; keep the design.`;
-  if (strategy === 'rewrite')
-    return `Previous versions of this scene FAILED with:\n${past}\nDo not patch them: write a NEW implementation of the same scene, simpler and robust. Use only names listed in the API reference, exactly as written there; avoid the constructions that failed.`;
-  return `Previous versions of this scene FAILED with:\n${past}\nWrite the SIMPLEST version that is sure to run: only Rect, Txt, Layout (and Img or Video if the scene has media), animated only with opacity, position and scale through all, sequence and waitFor. No signals, no helper functions, no transitions. Keep the texts from ctx.texts.`;
-}

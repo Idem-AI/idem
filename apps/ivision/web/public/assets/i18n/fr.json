@@ -227,7 +227,7 @@
           "end": "."
         }
       ],
-      "text": "Mêmes crédits, mêmes prix que dans votre tableau de bord. Importez la charte d’un projet IDEM en un clic."
+      "text": "Le même portefeuille et les mêmes prix que dans votre tableau de bord IDEM. Importez la charte d’un projet IDEM en un clic."
     },
     "request": {
       "label": "Votre demande à iVision",
@@ -293,7 +293,7 @@
     "history": "Conversations",
     "noHistory": "Aucune conversation pour l’instant.",
     "brands": "Marques",
-    "credits": "{{count}} crédits",
+    "credits": "{{count}} F",
     "account": "Mon compte",
     "tabs": "Sections de l’atelier",
     "montage": "Montage",
@@ -433,14 +433,18 @@
       "downloadFormat": "Choisissez le format",
       "downloadReady": "Prêt",
       "downloadIncluded": "Inclus",
-      "downloadPrice": "{{cost}} crédits",
+      "downloadPrice": "{{cost}} F",
       "downloadPreparing": "Préparation du MP4… {{percent}} %",
-      "broken": "{{count}} scène(s) ne s’exécute(nt) pas : ouvrez « Modifier » et appuyez sur « Corriger » avant de télécharger."
+      "broken": "{{count}} scène(s) ne s’exécute(nt) pas : ouvrez « Modifier » et appuyez sur « Corriger » avant de télécharger.",
+      "downloadSigned": "Télécharger (signé)",
+      "downloadHd": "Télécharger en HD",
+      "exportHd": "Export HD sans signature · {{price}} F",
+      "exportMissing": "Il manque {{missing}} F dans votre portefeuille."
     },
     "payment": {
-      "cta": "Recharger mes crédits",
-      "detail": "Cette création coûte {{cost}} crédits ; il vous en reste {{balance}}. Votre demande est gardée : relancez-la après la recharge.",
-      "short": "Vos crédits ne suffisent pas pour cet export."
+      "cta": "Recharger mon portefeuille",
+      "detail": "Ce plan ou cet export coûte {{cost}} F ; votre portefeuille IDEM en contient {{balance}}. Votre demande est gardée : relancez-la après la recharge.",
+      "short": "Votre portefeuille ne suffit pas pour cet export."
     },
     "progress": {
       "label": "Étapes de la création",
@@ -473,10 +477,14 @@
       "photo": "Avec photo",
       "voice": "Voix off",
       "voiceHint": "Une voix dit le message, scène par scène, dans la langue de votre demande.",
-      "price": "{{cost}} crédits",
+      "price": "Création gratuite · export HD {{cost}} F",
       "removeSilences": "Retirer les blancs",
       "music": "Musique",
-      "readFromText": "Durée et format lus dans votre demande."
+      "readFromText": "Durée et format lus dans votre demande.",
+      "aiClips": "Plans filmés par l’IA",
+      "aiClipsHint": "Des plans de 5 s filmés par l’IA (1 000 F l’un), en plus du motion design et des images de banque. Un plan non utilisé est restitué.",
+      "aiClipsNone": "Sans plan filmé par l’IA",
+      "aiClipsCount": "{{count}} plan(s) filmé(s) · +{{price}} F"
     },
     "choice": {
       "palettes": "Palette",
@@ -550,8 +558,9 @@
         "video": "Ce modèle est une image : en mode vidéo, ajoutez une vidéo modèle.",
         "image": "Ce modèle est une vidéo : en mode visuels, ajoutez une image modèle."
       },
-      "generation": "La création a échoué. Vos crédits ont été restitués ; vous pouvez relancer.",
-      "payment": "Vos crédits ne suffisent pas pour cette création. Rechargez votre compte IDEM, puis relancez."
+      "generation": "La création a échoué. Rien ne vous a été débité ; vous pouvez relancer.",
+      "payment": "Votre portefeuille ne suffit pas pour cette création. Rechargez-le dans IDEM, puis relancez.",
+      "quota": "Vous avez atteint votre limite d’usage pour le moment. Elle se renouvelle bientôt, ou passez à l’offre supérieure."
     },
     "montage": {
       "unreadable_video": "Je n’ai pas pu lire ces vidéos. Essayez un MP4 ou un MOV.",
@@ -592,7 +601,7 @@
     "quality": "Qualité",
     "exportCta": "Exporter",
     "included": "Inclus",
-    "price": "{{cost}} crédits",
+    "price": "{{cost}} F",
     "rendering": "Rendu en cours — {{percent}} %",
     "legacyTitle": "Vidéo de l’ancien moteur",
     "legacyBody": "Cette vidéo a été faite avant le nouveau moteur : elle se télécharge depuis la conversation, mais ne se retouche plus. Demandez une nouvelle vidéo pour la changer.",
@@ -654,7 +663,7 @@
       "none": "Aucune (vidéo intacte)"
     },
     "music": "Musique douce sous la voix",
-    "price": "{{cost}} crédits",
+    "price": "Création gratuite · export HD {{cost}} F",
     "start": "Monter ma vidéo",
     "uploading": "Envoi de la vidéo… {{percent}} %",
     "mine": "Mes montages",
@@ -678,7 +687,7 @@
     "loadError": "Ce montage n’a pas pu être chargé.",
     "failed": "Le montage n’a pas abouti.",
     "failedNoSpeech": "Aucune parole n’a été entendue dans cette vidéo.",
-    "refunded": "Vos {{cost}} crédits ont été restitués.",
+    "refunded": "Vos {{cost}} F ont été restitués.",
     "retry": "Essayer avec une autre vidéo",
     "saveFailed": "La retouche n’a pas été enregistrée.",
     "transcript": "Ce que vous dites",
@@ -728,7 +737,7 @@
     "firstExport": "Le premier export est inclus.",
     "nextExport": "Un nouvel export après retouche.",
     "saveFirst": "Enregistrez l’habillage avant d’exporter.",
-    "renderFailed": "L’export a échoué ; vos crédits ont été restitués. Réessayez.",
+    "renderFailed": "L’export a échoué ; le montant a été restitué. Réessayez.",
     "download": "Télécharger la vidéo",
     "cutModesShort": {
       "tight": "Rythmées",
@@ -764,7 +773,7 @@
       "preparing": "Je prépare votre montage. Vous pouvez quitter cette page, il continue.",
       "ready": "Votre montage est prêt : {{duration}}, sous-titres et {{count}} élément(s) à l’écran. Dites-moi ce qu’il faut changer, ou téléchargez-le.",
       "noSpeech": "Je n’ai entendu personne parler dans ces vidéos. Ajoutez une vidéo où vous parlez.",
-      "failed": "Le montage n’a pas abouti. Vos {{cost}} crédits vous sont rendus.",
+      "failed": "Le montage n’a pas abouti. Rien ne vous est débité.",
       "notUnderstood": "Je n’ai pas compris ce qu’il faut changer. Dites par exemple « sans musique », « sous-titres plus sobres », « en carré » ou « ajoute le prix en grand ».",
       "sayHint": "Écrivez ci-dessous ce qu’il faut changer, ou cliquez sur « Modifier »."
     },
@@ -862,15 +871,15 @@
       },
       "creativity": {
         "title": "Plus ou moins d’audace",
-        "body": "Choisissez le niveau de créativité. Le prix en crédits s’affiche juste à côté, avant de lancer."
+        "body": "Choisissez le niveau de créativité. Créer est gratuit : seul l’export HD sans signature se paie, son prix s’affiche juste à côté."
       },
       "history": {
         "title": "Tout ce que vous avez créé",
         "body": "Vos créations restent ici. Cliquez sur l’une d’elles pour la revoir ou la changer."
       },
       "credits": {
-        "title": "Vos crédits",
-        "body": "Chaque création utilise des crédits. Vous les voyez ici, et vous pouvez en ajouter."
+        "title": "Votre portefeuille",
+        "body": "Créer est gratuit et signé « Créé avec iVision ». L’export HD sans signature se paie depuis votre portefeuille IDEM, et tout est inclus avec iVision Créateur (2 000 F/mois)."
       },
       "done": {
         "title": "À vous de jouer !",

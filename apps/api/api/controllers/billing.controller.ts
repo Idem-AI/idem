@@ -8,8 +8,12 @@ import {
 } from '../models/payment.model';
 import { BillingEngine, BillingInterval } from '../models/billing.model';
 import { PaymentCallbackRaw } from '../schemas/payment.schema';
-import RedisConnection from '../config/redis.config';
-import { creditCost } from '../middleware/billing.middleware';
+import { paymentRequiredBody } from '../middleware/billing.middleware';
+import { ICODE, topupBonusXaf } from '../models/offer.model';
+import { walletService } from '../services/billing/wallet.service';
+import { sendQuotaRefusal } from '../middleware/usage-quota.middleware';
+import { QUOTA_GROUPS, QuotaGroup, quotaGroupOf } from '../models/usage-quota.model';
+import { usageQuotaService } from '../services/billing/usage-quota.service';
 import { billingService } from '../services/billing.service';
 import { betaService } from '../services/billing/beta.service';
 import { billingSettingsService } from '../services/billing/billing-settings.service';
@@ -20,7 +24,7 @@ import { PricingValidationError, pricingService } from '../services/billing/pric
 import { paymentCountriesService } from '../services/payments/payment-countries.service';
 import { paymentEventsService } from '../services/payments/payment-events.service';
 import { paymentReconcilerService } from '../services/payments/payment-reconciler.service';
-import { PaymentRefusedError, paymentService } from '../services/payments/payment.service';
+import { PaymentRefusedError, WALLET_TOPUP_CODE, paymentService } from '../services/payments/payment.service';
 import { pawapayClient } from '../services/payments/pawapay.client';
 import {
   getSignatureMode,
@@ -123,8 +127,13 @@ export class BillingController {
         billingSettingsService.get(),
       ]);
 
+      const offer = (await entitlementsService.resolve(userId)).offer;
+
       res.json({
         credits: balances,
+        // Le modèle au portefeuille : solde en francs, forfaits, droits prépayés.
+        offer,
+        walletXaf: offer.walletXaf,
         subscriptions: subscriptions.map((subscription) => ({
           engine: subscription.engine,
           productCode: subscription.productCode,
@@ -238,6 +247,7 @@ export class BillingController {
         interval: req.query.interval as BillingInterval | undefined,
         country: req.query.country as string | undefined,
         engine: req.query.engine as BillingEngine | undefined,
+        amountXaf: req.query.amountXaf !== undefined ? Number(req.query.amountXaf) : undefined,
       });
 
       res.json({
@@ -248,6 +258,7 @@ export class BillingController {
         amountXaf: quote.amountXaf,
         country: quote.country,
         credits: quote.product.credits,
+        bonusXaf: quote.product.code === WALLET_TOPUP_CODE ? topupBonusXaf(quote.amountXaf) : 0,
       });
     } catch (error) {
       handleError(res, error, 'Impossible de calculer le prix.');
@@ -269,6 +280,8 @@ export class BillingController {
 
       const transaction = await paymentService.checkout(req.user!.uid, req.user!.email, {
         productCode: String(productCode),
+        amountXaf: req.body.amountXaf !== undefined ? Number(req.body.amountXaf) : undefined,
+        then: req.body.then && typeof req.body.then === 'object' ? req.body.then : undefined,
         engine: req.body.engine,
         projectId: req.body.projectId,
         interval: req.body.interval,
@@ -315,6 +328,18 @@ export class BillingController {
       res.json({ payments: transactions.map(presentTransaction) });
     } catch (error) {
       handleError(res, error, 'Impossible de charger vos paiements.');
+    }
+  };
+
+  /**
+   * Quotas d'usage de l'utilisateur : par groupe de fonctionnalités, ce qui est
+   * utilisé, la limite de son offre et la date de renouvellement de chaque fenêtre.
+   */
+  getQuotas = async (req: CustomRequest, res: Response): Promise<void> => {
+    try {
+      res.json(await usageQuotaService.status(req.user!.uid));
+    } catch (error) {
+      handleError(res, error, 'Lecture des quotas impossible.');
     }
   };
 
@@ -385,10 +410,11 @@ export class BillingController {
    * règle, le prix et le débit restent au même endroit que pour toutes les
    * autres générations.
    *
-   * Deux natures d'actions :
-   *  - **la génération initiale** est gratuite mais plafonnée (3/jour en
-   *    Découverte, illimitée à partir de Starter) — c'est le cœur du modèle
-   *    iCode, « générer est gratuit » ;
+   * Deux natures d'actions, toutes deux bornées par le quota d'usage de leur
+   * groupe (jour, semaine, mois — `models/usage-quota.model.ts`) :
+   *  - **la génération initiale** est gratuite — c'est le cœur du modèle
+   *    iCode, « générer est gratuit » ; le quota en fixe le rythme selon
+   *    l'offre (3 par jour en Découverte) ;
    *  - **les modifications** consomment des crédits, au barème du moteur.
    */
   consume = async (req: CustomRequest, res: Response): Promise<void> => {
@@ -418,148 +444,91 @@ export class BillingController {
 
       const entitlements = await entitlementsService.resolve(userId);
 
-      // ── Génération initiale : un quota, pas un débit ────────────────────
-      if (action === 'initial_generation') {
-        const limit = entitlements.appgen.dailyGenerations;
-
-        if (limit === null) {
-          res.json({ allowed: true, cost: 0, unlimited: true, enforcement });
-          return;
-        }
-
-        const used = await this.countDailyGenerations(userId, enforcement === 'enforce');
-
-        if (used > limit) {
-          const plans = await billingService.listProducts({ engine: 'appgen', kind: 'subscription' });
-          const starter = plans
-            .filter((product) => product.priceXaf > 0)
-            .sort((a, b) => a.priceXaf - b.priceXaf)[0];
-
-          logger.info('billing.daily_generation_exceeded', {
-            event: 'billing.daily_generation_exceeded',
-            used,
-            limit,
-          });
-
-          if (enforcement === 'log') {
-            res.json({ allowed: true, cost: 0, wouldBlock: true, enforcement });
-            return;
-          }
-
-          res.status(402).json({
-            error: 'payment_required',
-            message: `Vous avez utilisé vos ${limit} générations offertes du jour. Un abonnement iCode les rend illimitées.`,
-            engine: 'appgen',
-            action,
-            used,
-            limit,
-            suggestions: starter
-              ? [
-                  {
-                    productCode: starter.code,
-                    name: starter.name,
-                    priceXaf: starter.priceXaf,
-                    credits: starter.credits,
-                  },
-                ]
-              : [],
-          });
-          return;
-        }
-
-        res.json({ allowed: true, cost: 0, used, limit, enforcement });
+      // ── Quota d'usage : générations initiales et modifications iCode ────
+      // Bornées par jour, semaine et mois selon l'offre, avant tout débit.
+      const quota = await usageQuotaService.reserve(userId, quotaGroupOf(targetEngine, action), {
+        email: req.user?.email,
+        mode: enforcement,
+      });
+      if (!quota.allowed) {
+        sendQuotaRefusal(res, quota.refusal);
         return;
       }
 
-      // ── Modifications : au barème du moteur ─────────────────────────────
-      const cost = creditCost(targetEngine, action);
+      // ── Génération initiale : gratuite, seul le quota la borne ──────────
+      if (action === 'initial_generation') {
+        res.json({ allowed: true, cost: 0, enforcement });
+        return;
+      }
+
+      // ── Modifications : « le prix d'un SMS » ────────────────────────────
+      // Les modifications incluses (Pass Projet, pack 100, forfait Croissance) d'abord, puis le
+      // portefeuille : 25 F la modification, 75 F avec le modèle le plus puissant.
+      if (targetEngine !== 'appgen') {
+        await usageQuotaService.release(quota.reservation);
+        res.status(400).json({ error: 'unsupported_engine', message: 'Seul iCode passe par cette route.' });
+        return;
+      }
+      const premium = action === 'premium';
+      const units = premium ? ICODE.premiumUnits : 1;
+      const priceXaf = premium ? ICODE.premiumModificationXaf : ICODE.modificationXaf;
+      const label = premium ? 'Modification iCode (modèle le plus puissant)' : 'Modification iCode';
+
+      if (entitlements.beta.active) {
+        res.json({ allowed: true, cost: 0, enforcement, included: true });
+        return;
+      }
 
       if (enforcement === 'log') {
-        const balance = entitlements.engines[targetEngine].credits;
-
+        const wouldBlock = entitlements.offer.modifications < units && entitlements.offer.walletXaf < priceXaf;
         logger.info('billing.enforcement_shadow', {
           event: 'billing.enforcement_shadow',
           engine: targetEngine,
           action,
-          cost,
-          balance,
-          wouldBlock: balance < cost,
+          priceXaf,
+          modifications: entitlements.offer.modifications,
+          walletXaf: entitlements.offer.walletXaf,
+          wouldBlock,
           source: 'consume',
         });
-        res.json({ allowed: true, cost, enforcement, wouldBlock: true });
+        res.json({ allowed: true, cost: 0, enforcement, wouldBlock });
         return;
       }
 
-      const result = await creditLedgerService.debit(userId, targetEngine, cost, {
-        action,
-        projectId,
-        feature: engine,
-      });
+      const included = await creditLedgerService.debit(userId, 'appgen', units, { action, projectId, feature: engine });
+      if (included.allowed) {
+        await entitlementsService.invalidate(userId);
+        res.json({ allowed: true, cost: 0, modificationsLeft: included.balance, enforcement, included: true });
+        return;
+      }
 
+      const spend = await walletService.spend(userId, { priceXaf, label, action: `icode_${action}`, projectId, feature: 'appgen' });
       await entitlementsService.invalidate(userId);
-
-      if (!result.allowed) {
-        const recharges = await billingService.listProducts({ kind: 'recharge' });
-        const suggestion = recharges
-          .filter((product) => product.credits >= cost - result.balance)
-          .sort((a, b) => a.priceXaf - b.priceXaf)[0];
-
+      if (!spend.allowed) {
+        await usageQuotaService.release(quota.reservation);
         res.status(402).json({
-          error: 'payment_required',
-          message: 'Vos crédits iCode ne suffisent pas pour cette action.',
-          engine,
-          action,
-          cost,
-          balance: result.balance,
-          missing: cost - result.balance,
-          suggestions: suggestion
-            ? [
-                {
-                  productCode: suggestion.code,
-                  name: suggestion.name,
-                  priceXaf: suggestion.priceXaf,
-                  credits: suggestion.credits,
-                },
-              ]
-            : [],
+          ...(await paymentRequiredBody({
+            action,
+            engine: 'appgen',
+            label,
+            priceXaf,
+            balanceXaf: spend.balanceXaf,
+            missingXaf: spend.missingXaf,
+            projectId,
+          })),
+          message: `Une modification coûte ${priceXaf} F. Rechargez votre portefeuille ou prenez le pack de ${ICODE.pack100Modifications} modifications (${ICODE.pack100Xaf} F).`,
+          offers: [
+            { kind: 'icode_pack_100', label: `Pack ${ICODE.pack100Modifications} modifications`, priceXaf: ICODE.pack100Xaf },
+          ],
         });
         return;
       }
 
-      res.json({ allowed: true, cost, balance: result.balance, enforcement });
+      res.json({ allowed: true, cost: spend.chargedXaf, balance: spend.balanceXaf, balanceXaf: spend.balanceXaf, enforcement });
     } catch (error) {
       handleError(res, error, 'Contrôle des crédits impossible.');
     }
   };
-
-  /**
-   * Générations initiales consommées aujourd'hui.
-   *
-   * Compteur Redis avec expiration : la donnée ne vaut rien passé minuit, et
-   * la garder en base ajouterait une collection pour un usage éphémère.
-   *
-   * Redis indisponible ⇒ on renvoie 0, donc on autorise. Un quota gratuit
-   * n'est pas un contrôle de sécurité : mieux vaut offrir une génération de
-   * trop que bloquer un utilisateur parce qu'un cache est tombé.
-   */
-  private async countDailyGenerations(userId: string, increment: boolean): Promise<number> {
-    try {
-      const redis = RedisConnection.getInstance();
-      const key = `appgen:generations:${userId}:${new Date().toISOString().slice(0, 10)}`;
-
-      if (!increment) {
-        const current = await redis.get(key);
-        return Number(current ?? 0) + 1;
-      }
-
-      const used = await redis.incr(key);
-      // Première génération du jour : on pose l'expiration.
-      if (used === 1) await redis.expire(key, 24 * 3600);
-      return used;
-    } catch {
-      return 0;
-    }
-  }
 
   // ============================================
   // WEBHOOK
@@ -1001,6 +970,38 @@ export class BillingController {
       res.json(await billingSettingsService.update(patch, updatedBy));
     } catch (error) {
       handleError(res, error, 'Mise à jour impossible.');
+    }
+  };
+
+  /** Quotas d'usage d'un utilisateur, vus par l'administration. */
+  internalGetUserQuotas = async (req: Request, res: Response): Promise<void> => {
+    try {
+      res.json(await usageQuotaService.status(String(req.params.userId)));
+    } catch (error) {
+      handleError(res, error, 'Lecture des quotas impossible.');
+    }
+  };
+
+  /**
+   * Remise à zéro des compteurs d'un utilisateur (geste commercial, incident).
+   * Sans `group`, tous les groupes ; le plafond de dépense IA est conservé.
+   */
+  internalResetQuotas = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { userId, group, reason } = req.body ?? {};
+      if (!userId || !reason) {
+        res.status(400).json({ error: 'invalid_request', message: 'userId et reason sont obligatoires.' });
+        return;
+      }
+      if (group !== undefined && !QUOTA_GROUPS.includes(group as QuotaGroup)) {
+        res.status(400).json({ error: 'invalid_group', message: 'Groupe de quota inconnu.' });
+        return;
+      }
+      const cleared = await usageQuotaService.reset(String(userId), group as QuotaGroup | undefined);
+      logger.info('usage_quota.reset', { event: 'usage_quota.reset', userId, group: group ?? 'all', reason: String(reason).slice(0, 200), cleared });
+      res.json({ cleared });
+    } catch (error) {
+      handleError(res, error, 'Remise à zéro impossible.');
     }
   };
 

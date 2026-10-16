@@ -1,13 +1,10 @@
-import { NgOptimizedImage } from '@angular/common';
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 
-/** A simulation is not an endpoint: build, simulate, identify, improve, repeat. */
+/** Une simulation n'est pas un point final : construire, simuler, repérer, corriger, resimuler. */
 @Component({
   selector: 'app-simulation-loop',
-  standalone: true,
-  imports: [NgOptimizedImage],
   templateUrl: './simulation-loop.html',
-  styleUrl: './simulation-loop.css',
+  styleUrls: ['../../../../shared/styles/editorial-page.css', './simulation-loop.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SimulationLoop {

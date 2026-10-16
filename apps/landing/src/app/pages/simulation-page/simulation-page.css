@@ -1,7 +1,6 @@
-/* ============================================================================
-   IDEM SIMULATOR — page shell
-   Every section owns its own styles; only the ambient backdrop lives here.
-   ============================================================================ */
+/* Simulateur IDEM — coquille de la page.
+   Chaque section porte ses propres styles ; il ne reste rien ici. L'ancien
+   fond (trois halos dégradés et floutés) a été retiré. */
 
 :host {
   display: block;

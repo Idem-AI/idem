@@ -1,51 +1,5 @@
 <footer class="ft">
-  <!-- ═══ Signature strip ══════════════════════════════════════════
-       Three verifiable facts about the company, not slogans: the licence,
-       where it runs, and what time it is there. It is the one part of the
-       page that is alive, which is what keeps the footer from reading as
-       boilerplate. -->
-  <div class="ft-strip">
-    <div class="ft-shell ft-strip-inner">
-      <a
-        class="ft-fact ft-fact-link"
-        href="https://github.com/Idem-AI"
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        <svg class="ft-fact-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path
-            d="M8 18l-4-6 4-6m8 12l4-6-4-6"
-            stroke="currentColor"
-            stroke-width="1.7"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          />
-        </svg>
-        <span i18n="@@footer.fact.openSource">Open source · Apache 2.0</span>
-      </a>
-
-      <span class="ft-fact">
-        <svg class="ft-fact-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.7" />
-          <path
-            d="M3.5 12h17M12 3.5c2.2 2.4 3.3 5.3 3.3 8.5S14.2 18.1 12 20.5c-2.2-2.4-3.3-5.3-3.3-8.5S9.8 5.9 12 3.5z"
-            stroke="currentColor"
-            stroke-width="1.7"
-            stroke-linecap="round"
-          />
-        </svg>
-        <span i18n="@@footer.fact.hosted">Hosted on African servers</span>
-      </span>
-
-      @if (localTime()) {
-        <span class="ft-fact ft-fact-clock">
-          <span class="ft-live" aria-hidden="true"></span>
-          <span i18n="@@footer.fact.time">Cameroon</span>
-          <time class="ft-clock">{{ localTime() }}</time>
-        </span>
-      }
-    </div>
-  </div>
+ 
 
   <!-- ═══ Body ════════════════════════════════════════════════════ -->
   <div class="ft-shell ft-body">

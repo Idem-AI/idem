@@ -1,3 +1,23 @@
-:host {
-  display: block;
+/* Les deux entrées — ce qui n'appartient qu'à cette section. */
+
+.se-doors {
+  display: grid;
+  gap: clamp(3.5rem, 6vw, 5rem);
+}
+
+@media (min-width: 768px) {
+  .se-doors {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.se-door {
+  min-width: 0;
+}
+
+.se-door-title {
+  margin-bottom: 0;
+  font-weight: var(--font-weight-black);
+  font-size: clamp(1.5rem, 2.8vw, 2.25rem);
+  line-height: 1.05;
 }

@@ -1,55 +1,14 @@
-/* About Page Styles */
-:host {
-  display: block;
-}
+/* À propos — ce qui n'appartient qu'à cette page.
+   L'échelle typographique et la trame sont dans
+   `shared/styles/editorial-page.css`, chargé avant celui-ci. */
 
-/* Values: ghost numbers */
-.ab-num {
-  color: color-mix(in oklch, var(--color-primary) 55%, transparent);
-  min-width: 2ch;
-}
-
-/* Journey timeline */
-.ab-timeline-line {
-  position: absolute;
-  left: 4px;
-  top: 6px;
-  bottom: 6px;
-  width: 1px;
-  background: var(--glass-border-medium);
-  display: none;
-}
-.ab-milestone::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 8px;
-  width: 9px;
-  height: 9px;
-  border-radius: 9999px;
-  background: var(--color-primary);
-  display: none;
-}
+/* L'année d'un jalon : elle se lit comme un repère, pas comme un titre, et les
+   quatre chiffres s'alignent d'une rangée à l'autre. */
 .ab-year {
-  color: var(--color-primary);
-  font-weight: 700;
-  font-size: 0.9rem;
-}
-.ab-year-inline {
-  color: var(--color-primary);
-  font-weight: 700;
-  font-size: 0.85rem;
-}
-
-@media (min-width: 640px) {
-  .ab-timeline-line,
-  .ab-milestone::before {
-    display: block;
-  }
-  .ab-milestone {
-    padding-left: 5rem;
-  }
-  .ab-year {
-    left: 1.9rem;
-  }
+  font-weight: var(--font-weight-black);
+  font-size: clamp(1.5rem, 2.4vw, 2rem);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-primary-500);
+  margin: 0;
 }

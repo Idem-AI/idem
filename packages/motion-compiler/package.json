@@ -1,0 +1,18 @@
+{
+  "name": "@idem/motion-compiler",
+  "version": "0.1.0",
+  "private": true,
+  "description": "iVision Motion Compiler : l'IA écrit un PROGRAMME D'ANIMATION compact (langage de mouvement JSON : nœuds, pistes, courbes) ; un compilateur déterministe le traduit en scène Motion Canvas. Se branche sur le moteur vidéo du cœur iVision à la place de l'auteur TSX ; benchmark des deux logiques sur les mêmes demandes.",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "check": "ts-node --transpile-only scripts/check.ts",
+    "bench": "ts-node --transpile-only bench/run.ts",
+    "bench:report": "ts-node --transpile-only bench/report.ts"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.8.2"
+  }
+}

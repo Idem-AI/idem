@@ -1,16 +1,16 @@
-import { NgOptimizedImage } from '@angular/common';
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 
+import { PageArtComponent } from '../../../../shared/components/page-art/page-art';
+
 /**
- * The wall of factors. Its point is the sheer count: a business is not five
- * variables, and a page that lists five variables is lying about the problem.
+ * Le mur de facteurs. Son argument est le nombre : une entreprise ne tient pas
+ * sur cinq variables, et une page qui en liste cinq ment sur le problème.
  */
 @Component({
   selector: 'app-simulation-factor-wall',
-  standalone: true,
-  imports: [NgOptimizedImage],
+  imports: [PageArtComponent],
   templateUrl: './simulation-factor-wall.html',
-  styleUrl: './simulation-factor-wall.css',
+  styleUrls: ['../../../../shared/styles/editorial-page.css', './simulation-factor-wall.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SimulationFactorWall {

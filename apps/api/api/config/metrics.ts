@@ -225,6 +225,22 @@ export const creditsDebitedTotal = new client.Counter({
   registers: [register],
 });
 
+/** Générations refusées ou qui l'auraient été (mode `log`) par un quota d'usage. */
+export const usageQuotaRefusalsTotal = new client.Counter({
+  name: 'usage_quota_refusals_total',
+  help: 'Generations refused (or that would have been, in log mode) by a usage quota',
+  labelNames: ['group', 'reason', 'window', 'tier', 'enforced'] as const,
+  registers: [register],
+});
+
+/** Générations dont le coût IA a dépassé leur budget (souple : à perte au crédit plancher ; dur : boucle). */
+export const generationOverBudgetTotal = new client.Counter({
+  name: 'generation_over_budget_total',
+  help: 'Generations whose AI cost went over their budget',
+  labelNames: ['action', 'level', 'threshold'] as const,
+  registers: [register],
+});
+
 /** E-mails transactionnels, par modèle et par issue. */
 export const emailsSentTotal = new client.Counter({
   name: 'emails_sent_total',

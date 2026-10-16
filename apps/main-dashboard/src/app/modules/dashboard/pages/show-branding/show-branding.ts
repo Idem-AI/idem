@@ -1,3 +1,4 @@
+import { OwnershipBarComponent } from '../../../../shared/components/ownership-bar/ownership-bar';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -67,6 +68,7 @@ function readableInk(hex: string): string {
 @Component({
   selector: 'app-show-branding',
   imports: [
+    OwnershipBarComponent,
     ErrorStateComponent,
     CommonModule,
     Dialog,

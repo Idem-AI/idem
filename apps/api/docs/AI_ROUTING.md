@@ -105,6 +105,8 @@ Aiguillage: surcharge "Market → OPENROUTER/deepseek/deepseek-v4-flash" (prompt
 
 A call that fails (saturated host, 429) falls back along the provider's chain, `defaultFallbackModels` (`openrouter.config.ts`): other sizes and another family, all open weights. A feature that declares its own `fallbackModels` keeps them. A 429 waits before falling back — the quota is shared, an immediate fallback hits the same wall.
 
+A refusal of the **account** — missing key, rejected key (401), no credit (402) — stops the chain at once: every model would fail the same way. A 403 does not stop it, because OpenRouter also uses it when one model's moderation rejects the input.
+
 ---
 
 ## Web search

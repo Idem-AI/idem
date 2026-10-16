@@ -68,8 +68,10 @@ export function montageCost(durationSec: number, level: CreativityLevel): number
   return creativityCost(Math.ceil(VIDEO_PRICING.referenceCost * MONTAGE_PRICING.perHalfMinute * halves), level);
 }
 
-export function montageExportCost(m: Pick<MontageVideo, 'exportCount' | 'paidCredits'>): number {
-  if (m.exportCount <= 0) return 0;
+export function montageExportCost(m: Pick<MontageVideo, 'exportCount' | 'paidCredits' | 'creativity' | 'source' | 'edit'>): number {
+  // Premier export : inclus quand le montage a été payé à la création (IDEM) ; sinon, il règle la
+  // durée du montage (iVision : création gratuite, export HD payé).
+  if (m.exportCount <= 0) return m.paidCredits > 0 ? 0 : montageCost(m.edit?.durationSec ?? m.source.durationSec, m.creativity);
   return Math.max(VIDEO_PRICING.minRerender, Math.ceil(m.paidCredits * MONTAGE_PRICING.rerenderFactor));
 }
 

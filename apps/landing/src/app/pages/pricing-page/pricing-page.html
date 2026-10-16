@@ -1,677 +1,107 @@
-<!-- Pricing Page - Usage-based African pricing -->
-<div class="relative min-h-screen bg-transparent">
-  <!-- Background -->
-  <div class="absolute inset-0">
-    <div class="absolute inset-0 bg-linear-to-b from-bg-darker via-primary/5 to-bg-darker"></div>
-  </div>
-
-  <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-    <!-- Hero Section -->
-    <div class="text-center mb-16">
-
-
-      <h1
-        class="text-4xl sm:text-5xl lg:text-6xl font-bold text-text-primary mb-6"
-        i18n="@@pricing-page.hero.title"
-      >
-        Prices that make sense <span class="i-underline">in Africa</span>
-      </h1>
-
-      <p
-        class="text-lg sm:text-xl text-text-secondary max-w-3xl mx-auto leading-relaxed"
-        i18n="@@pricing-page.hero.description"
-      >
-        Each product has its own credits and its own pricing — you only pay for the engine you use.
-        Structure your business, generate your app, host it in production: all for the price of a
-        monthly data plan.
-      </p>
-    </div>
-
-    <!-- Engine Tabs -->
-    <div class="flex flex-wrap justify-center gap-3 mb-12" role="tablist" aria-label="Products">
-      <button
-        type="button"
-        role="tab"
-        [attr.aria-selected]="activeEngine() === 'business'"
-        (click)="setEngine('business')"
-        [class]="
-          activeEngine() === 'business'
-            ? 'px-6 py-3 rounded-full bg-primary text-white font-semibold text-sm'
-            : 'px-6 py-3 rounded-full glass-card border border-[var(--glass-border)] text-text-secondary hover:text-text-primary font-semibold text-sm transition-colors'
-        "
-      >
-        <span i18n="@@pricing-page.tabs.business">IDEM Business</span>
-        <span class="block text-xs font-normal opacity-70" i18n="@@pricing-page.tabs.business.sub"
-          >Branding, business plan, legal</span
-        >
-      </button>
-      <button
-        type="button"
-        role="tab"
-        [attr.aria-selected]="activeEngine() === 'appgen'"
-        (click)="setEngine('appgen')"
-        [class]="
-          activeEngine() === 'appgen'
-            ? 'px-6 py-3 rounded-full bg-primary text-white font-semibold text-sm'
-            : 'px-6 py-3 rounded-full glass-card border border-[var(--glass-border)] text-text-secondary hover:text-text-primary font-semibold text-sm transition-colors'
-        "
-      >
-        <span i18n="@@pricing-page.tabs.appgen">IDEM AppGen</span>
-        <span class="block text-xs font-normal opacity-70" i18n="@@pricing-page.tabs.appgen.sub"
-          >AI application generation</span
-        >
-      </button>
-      <button
-        type="button"
-        role="tab"
-        [attr.aria-selected]="activeEngine() === 'ideploy'"
-        (click)="setEngine('ideploy')"
-        [class]="
-          activeEngine() === 'ideploy'
-            ? 'px-6 py-3 rounded-full bg-primary text-white font-semibold text-sm'
-            : 'px-6 py-3 rounded-full glass-card border border-[var(--glass-border)] text-text-secondary hover:text-text-primary font-semibold text-sm transition-colors'
-        "
-      >
-        <span i18n="@@pricing-page.tabs.ideploy">iDeploy</span>
-        <span class="block text-xs font-normal opacity-70" i18n="@@pricing-page.tabs.ideploy.sub"
-          >Deployment &amp; hosting</span
-        >
-      </button>
-    </div>
-
-    <!-- AppGen: Project Pass highlight -->
-    @if (activeEngine() === 'appgen') {
-      <div class="mb-12">
-        <div
-          class="glass-card rounded-2xl border-2 border-primary/60 p-8 lg:p-10 grid grid-cols-1 lg:grid-cols-2 gap-8 items-center"
-        >
-          <div>
-            <div
-              class="inline-block px-3 py-1 bg-primary/90 rounded-full text-xs font-bold text-white mb-4"
-              i18n="@@pricing-page.appgen.pass.badge"
-            >
-              The heart of the model
-            </div>
-            <h2 class="text-2xl sm:text-3xl font-bold text-text-primary mb-3">
-              <span i18n="@@pricing-page.appgen.pass.title">Project Pass</span>
-              <span class="text-primary ml-3">999 F</span>
-              <span class="text-text-tertiary text-base font-normal" i18n="@@pricing-page.appgen.pass.once"
-                >— once per project (~$1.7)</span
-              >
-            </h2>
-            <p class="text-text-secondary leading-relaxed" i18n="@@pricing-page.appgen.pass.description">
-              Generating is free. Owning costs almost nothing. Describe your idea, watch your app
-              run live in the browser — then unlock it for less than a restaurant meal.
-            </p>
-          </div>
-          <ul class="space-y-3">
-            @for (feature of projectPassFeatures; track feature) {
-              <li class="flex items-start gap-2 text-sm text-text-secondary">
-                <svg
-                  class="w-4 h-4 text-primary mt-0.5 shrink-0"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fill-rule="evenodd"
-                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                    clip-rule="evenodd"
-                  />
-                </svg>
-                <span>{{ feature }}</span>
-              </li>
-            }
-          </ul>
-        </div>
+<!-- Les tarifs : une promesse, trois offres par besoin, le détail à la demande. -->
+<div class="pricing">
+  <!-- Héros -->
+  <section class="pricing-hero">
+    <div class="pricing-hero-copy">
+      <h1 class="pricing-h1" i18n="@@pricing-page.hero.title">Pay only for <span class="i-underline">what you keep</span>.</h1>
+      <p class="pricing-lead" i18n="@@pricing-page.hero.description">Create your business plan, logo, website and more for free. When you like the result, keep the final version from 500 F, paid by mobile money.</p>
+      <div class="pricing-actions">
+        <a class="inner-button button-lg" [href]="startUrl" i18n="@@pricing-page.hero.cta">Start for free</a>
+        <a class="pricing-textlink" href="#offres" i18n="@@pricing-page.hero.secondary">See the offers</a>
       </div>
-    }
+      <p class="pricing-note" i18n="@@pricing-page.hero.note">No bank card. 7 days of IDEM Growth offered at signup.</p>
+    </div>
+    <app-offer-illustration kind="wallet" class="pricing-hero-art" />
+  </section>
 
-    <!-- Plans grid (per engine) -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-      @for (plan of currentPlans(); track plan.id) {
-        <div
-          [class]="
-            plan.popular
-              ? 'glass-card p-6 rounded-xl border-2 border-primary relative'
-              : 'glass-card p-6 rounded-xl border border-[var(--glass-border)] relative'
-          "
-        >
-          @if (plan.popular) {
-            <div
-              class="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-primary rounded-full text-xs font-bold text-white"
-              i18n="@@pricing-page.plans.mostPopular"
-            >
-              Most Popular
-            </div>
-          }
+  <!-- Quatre offres, par besoin -->
+  <app-offer-picker id="offres" class="pricing-section" />
 
-          <div class="text-center mb-6">
-            <h3 class="text-xl font-bold text-text-primary mb-2">{{ plan.name }}</h3>
-            <div class="mb-2">
-              <span class="text-3xl font-bold text-primary">{{ plan.price }}</span>
-              <span class="text-text-tertiary text-sm">{{ plan.period }}</span>
-              @if (plan.usd) {
-                <span class="block text-xs text-text-tertiary mt-1">{{ plan.usd }}</span>
-              }
-            </div>
-            <div class="text-sm text-primary font-semibold mb-3">
-              {{ plan.creditsLabel }}
-            </div>
-            <p class="text-sm text-text-tertiary">
-              {{ plan.description }}
-            </p>
-          </div>
-
-          <ul class="space-y-3 mb-6">
-            @for (feature of plan.features; track feature) {
-              <li class="flex items-start gap-2 text-sm text-text-secondary">
-                <svg
-                  class="w-4 h-4 text-primary mt-0.5 shrink-0"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fill-rule="evenodd"
-                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                    clip-rule="evenodd"
-                  />
-                </svg>
-                <span>{{ feature }}</span>
-              </li>
-            }
-          </ul>
-
-          <a
-            [href]="planLink(plan)"
-            [class]="
-              plan.popular
-                ? 'inner-button w-full py-3 rounded-lg font-semibold text-center block'
-                : 'outer-button w-full py-3 rounded-lg font-semibold text-center block'
-            "
-          >
-            {{ plan.cta }}
-          </a>
-        </div>
+  <!-- Tous les prix, à la demande -->
+  <section class="pricing-section" aria-labelledby="detail-title">
+    <h2 class="pricing-h2" id="detail-title" i18n="@@pricing-page.detail.title">Every price, service by service</h2>
+    <div class="tabs" role="tablist" aria-labelledby="detail-title">
+      @for (tab of services; track tab.id; let i = $index) {
+        <button type="button" role="tab" class="tab" [id]="'tab-' + tab.id" [attr.aria-selected]="activeService() === tab.id" [attr.aria-controls]="'panel-' + tab.id" [attr.tabindex]="activeService() === tab.id ? 0 : -1" (click)="activeService.set(tab.id)" (keydown)="onTabKey($event, i)">{{ tab.label }}</button>
       }
     </div>
-
-    <div class="text-center text-sm text-text-tertiary mb-20" i18n="@@pricing-page.plans.annualNote">
-      Annual billing: 2 months free (-16%) — payable by Mobile Money in 1 or 3 installments.
-    </div>
-
-    <!-- Business: one-shot packs -->
-    @if (activeEngine() === 'business') {
-      <div class="mb-20">
-        <div class="text-center mb-12">
-          <h2
-            class="text-3xl sm:text-4xl font-bold text-text-primary mb-4"
-            i18n="@@pricing-page.packs.title"
-          >
-            One-shot Packs — no subscription
-          </h2>
-          <p class="text-text-tertiary max-w-2xl mx-auto" i18n="@@pricing-page.packs.description">
-            A single price, guaranteed deliverables, credits valid 12 months. Preview everything
-            for free before paying.
-          </p>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          @for (pack of businessPacks; track pack.id) {
-            <div
-              [class]="
-                pack.popular
-                  ? 'glass-card p-6 rounded-xl border-2 border-primary relative flex flex-col'
-                  : 'glass-card p-6 rounded-xl border border-[var(--glass-border)] relative flex flex-col'
-              "
-            >
-              @if (pack.popular) {
-                <div
-                  class="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-primary rounded-full text-xs font-bold text-white"
-                  i18n="@@pricing-page.packs.bestValue"
-                >
-                  Best Value
-                </div>
-              }
-              <h3 class="text-lg font-bold text-text-primary mb-2">{{ pack.name }}</h3>
-              <div class="mb-3">
-                <span class="text-3xl font-bold text-primary">{{ pack.price }}</span>
-                <span class="block text-xs text-text-tertiary mt-1">{{ pack.usd }}</span>
-              </div>
-              <div class="text-sm text-primary font-semibold mb-2">{{ pack.creditsLabel }}</div>
-              <p class="text-sm text-text-secondary mb-4 grow">{{ pack.deliverables }}</p>
-              <div class="text-xs text-text-tertiary border-t border-[var(--glass-border)] pt-3">
-                <span i18n="@@pricing-page.packs.altLabel">Local alternative:</span>
-                {{ pack.localAlternative }}
-              </div>
-            </div>
+    @if (service(); as tab) {
+      <div class="panel" role="tabpanel" [id]="'panel-' + tab.id" [attr.aria-labelledby]="'tab-' + tab.id">
+        <p class="panel-note">{{ tab.note }}</p>
+        <dl class="price-list">
+          @for (row of tab.rows; track row.label) {
+            <div class="price-row"><dt>{{ row.label }}</dt><dd>{{ row.price }}</dd></div>
           }
-        </div>
-      </div>
-
-      <!-- Business: IDEM Social add-on -->
-      <div class="mb-20">
-        <div class="text-center mb-12">
-          <h2
-            class="text-3xl sm:text-4xl font-bold text-text-primary mb-4"
-            i18n="@@pricing-page.social.title"
-          >
-            IDEM Social — publish everywhere, automatically
-          </h2>
-          <p class="text-text-tertiary max-w-2xl mx-auto" i18n="@@pricing-page.social.description">
-            Generate your communication strategy and editorial calendar with credits, then let the
-            Social add-on publish it to your networks every day.
-          </p>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-          @for (addon of socialAddons; track addon.id) {
-            <div
-              [class]="
-                addon.popular
-                  ? 'glass-card p-6 rounded-xl border-2 border-primary relative'
-                  : 'glass-card p-6 rounded-xl border border-[var(--glass-border)] relative'
-              "
-            >
-              <h3 class="text-lg font-bold text-text-primary mb-2">{{ addon.name }}</h3>
-              <div class="mb-2">
-                <span class="text-3xl font-bold text-primary">{{ addon.price }}</span>
-                <span class="text-text-tertiary text-sm">{{ addon.period }}</span>
-                <span class="block text-xs text-text-tertiary mt-1">{{ addon.usd }}</span>
-              </div>
-              <div class="text-sm text-primary font-semibold mb-2">{{ addon.creditsLabel }}</div>
-              <p class="text-sm text-text-tertiary mb-4">{{ addon.description }}</p>
-              <ul class="space-y-2">
-                @for (feature of addon.features; track feature) {
-                  <li class="flex items-start gap-2 text-sm text-text-secondary">
-                    <svg
-                      class="w-4 h-4 text-primary mt-0.5 shrink-0"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path
-                        fill-rule="evenodd"
-                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                        clip-rule="evenodd"
-                      />
-                    </svg>
-                    <span>{{ feature }}</span>
-                  </li>
-                }
-              </ul>
-            </div>
-          }
-        </div>
+        </dl>
+        <a class="outer-button button-sm panel-cta" [href]="tab.href"><span i18n="@@pricing-page.detail.open">Open</span>&nbsp;{{ tab.label }}</a>
       </div>
     }
+  </section>
 
-    <!-- AppGen: telecom-style passes -->
-    @if (activeEngine() === 'appgen') {
-      <div class="mb-20">
-        <div class="text-center mb-8">
-          <h2
-            class="text-2xl sm:text-3xl font-bold text-text-primary mb-3"
-            i18n="@@pricing-page.appgen.passes.title"
-          >
-            Telecom-style Passes
-          </h2>
-          <p class="text-text-tertiary max-w-2xl mx-auto" i18n="@@pricing-page.appgen.passes.description">
-            Like a data plan: pay only for the days you build.
-          </p>
-        </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-2xl mx-auto">
-          @for (pass of appgenPasses; track pass.name) {
-            <div class="glass-card p-6 rounded-xl border border-[var(--glass-border)] text-center">
-              <div class="text-text-primary font-bold mb-1">{{ pass.name }}</div>
-              <div class="text-3xl font-bold text-primary mb-2">{{ pass.price }}</div>
-              <p class="text-sm text-text-tertiary">{{ pass.note }}</p>
-            </div>
-          }
-        </div>
-      </div>
-    }
-
-    <!-- iDeploy: pay-per-deploy + managed services -->
-    @if (activeEngine() === 'ideploy') {
-      <div class="mb-20">
-        <div class="glass-card rounded-xl border border-[var(--glass-border)] p-8 mb-12 text-center">
-          <h2
-            class="text-2xl sm:text-3xl font-bold text-text-primary mb-3"
-            i18n="@@pricing-page.ideploy.payg.title"
-          >
-            Generous entry, pay as you grow
-          </h2>
-          <p
-            class="text-text-tertiary max-w-3xl mx-auto mb-6"
-            i18n="@@pricing-page.ideploy.payg.description"
-          >
-            Every account gets 5 free deployments, a free yourapp.idem.africa domain and free custom
-            domains with automatic SSL — commercial use allowed from day one.
-          </p>
-          <div class="flex flex-wrap justify-center gap-4">
-            <div class="glass-card px-6 py-4 rounded-xl border border-[var(--glass-border)]">
-              <div class="text-2xl font-bold text-primary">100 F</div>
-              <div class="text-xs text-text-tertiary" i18n="@@pricing-page.ideploy.payg.perDeploy">
-                per deployment after the 5 free ones
-              </div>
-            </div>
-            <div class="glass-card px-6 py-4 rounded-xl border border-[var(--glass-border)]">
-              <div class="text-2xl font-bold text-primary">900 F</div>
-              <div class="text-xs text-text-tertiary" i18n="@@pricing-page.ideploy.payg.pack10">
-                10-deployment pack
-              </div>
-            </div>
-            <div class="glass-card px-6 py-4 rounded-xl border border-[var(--glass-border)]">
-              <div class="text-2xl font-bold text-primary" i18n="@@pricing-page.ideploy.payg.unlimited">
-                Unlimited
-              </div>
-              <div class="text-xs text-text-tertiary" i18n="@@pricing-page.ideploy.payg.unlimitedNote">
-                deployments on any paid plan
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="text-center mb-8">
-          <h2
-            class="text-2xl sm:text-3xl font-bold text-text-primary mb-3"
-            i18n="@@pricing-page.ideploy.services.title"
-          >
-            Managed services à la carte
-          </h2>
-          <p class="text-text-tertiary max-w-2xl mx-auto" i18n="@@pricing-page.ideploy.services.description">
-            Activate in one click from the dashboard — monthly, no commitment.
-          </p>
-        </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          @for (svc of managedServices; track svc.name) {
-            <div class="glass-card p-5 rounded-xl border border-[var(--glass-border)]">
-              <div class="text-primary font-bold text-xl mb-1">
-                {{ svc.price }}<span class="text-xs text-text-tertiary" i18n="@@pricing-page.ideploy.services.perMonth">/month</span>
-              </div>
-              <div class="text-text-primary text-sm font-semibold mb-1">{{ svc.name }}</div>
-              <div class="text-text-tertiary text-xs">{{ svc.note }}</div>
-            </div>
-          }
-        </div>
-      </div>
-    }
-
-    <!-- Credit recharges (Business & AppGen) -->
-    @if (activeEngine() !== 'ideploy') {
-      <div class="mb-20">
-        <div class="text-center mb-12">
-          <h2
-            class="text-3xl sm:text-4xl font-bold text-text-primary mb-4"
-            i18n="@@pricing-page.recharge.title"
-          >
-            Credit Recharges — no commitment
-          </h2>
-          <p class="text-text-tertiary max-w-2xl mx-auto" i18n="@@pricing-page.recharge.description">
-            Start at the price of a daily data plan. Credits valid 12 months, cheaper as you go up.
-          </p>
-        </div>
-
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 max-w-4xl mx-auto">
-          @for (recharge of creditRecharges; track recharge.name) {
-            <div class="glass-card p-6 rounded-xl border border-[var(--glass-border)] text-center">
-              <div class="text-text-primary font-semibold mb-1">{{ recharge.name }}</div>
-              <div class="text-2xl font-bold text-primary mb-1">{{ recharge.price }}</div>
-              <div class="text-sm text-text-secondary mb-1">
-                {{ recharge.credits }}
-                <span i18n="@@pricing-page.recharge.creditsWord">credits</span>
-              </div>
-              <div class="text-xs text-text-tertiary">
-                {{ recharge.perCredit }}
-                <span i18n="@@pricing-page.recharge.perCreditWord">/credit</span>
-              </div>
-            </div>
-          }
-        </div>
-      </div>
-    }
-
-    <!-- Credits System Info (Business price list) -->
-    @if (activeEngine() === 'business') {
-      <div class="mb-20">
-        <div class="text-center mb-12">
-          <h2
-            class="text-3xl sm:text-4xl font-bold text-text-primary mb-4"
-            i18n="@@pricing-page.credits.title"
-          >
-            What one deliverable costs
-          </h2>
-          <p class="text-text-tertiary max-w-2xl mx-auto" i18n="@@pricing-page.credits.description">
-            1 credit ≈ 20 F — you always know what you spend. Free watermarked preview before any
-            credit is debited.
-          </p>
-        </div>
-
-        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          @for (cost of creditCosts; track cost.name) {
-            <div class="glass-card p-4 rounded-xl border border-[var(--glass-border)]">
-              <div class="text-center">
-                <div class="text-primary font-bold text-2xl mb-1">{{ cost.price }}</div>
-                <div class="text-text-secondary text-sm mb-2">{{ cost.name }}</div>
-                <div class="text-text-tertiary text-xs">{{ cost.note }}</div>
-              </div>
-            </div>
-          }
-        </div>
-      </div>
-    }
-
-    <!-- Bundles -->
-    <div class="mb-20">
-      <div class="text-center mb-12">
-        <h2
-          class="text-3xl sm:text-4xl font-bold text-text-primary mb-4"
-          i18n="@@pricing-page.bundles.title"
-        >
-          Bundles — the full IDEM stack, cheaper
-        </h2>
-        <p class="text-text-tertiary max-w-2xl mx-auto" i18n="@@pricing-page.bundles.description">
-          Serious entrepreneurs need several engines. Bundles lock them together at a discount.
-        </p>
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-        @for (bundle of bundles; track bundle.name) {
-          <div class="glass-card p-8 rounded-xl border border-[var(--glass-border)] relative">
-            <div
-              class="absolute -top-3 right-6 px-3 py-1 bg-primary rounded-full text-xs font-bold text-white"
-            >
-              {{ bundle.discount }}
-            </div>
-            <h3 class="text-xl font-bold text-text-primary mb-2">{{ bundle.name }}</h3>
-            <div class="mb-3">
-              <span class="text-4xl font-bold text-primary">{{ bundle.price }}</span>
-              <span class="text-text-tertiary text-sm" i18n="@@pricing-page.bundles.perMonth">/month</span>
-              <span class="block text-xs text-text-tertiary mt-1">{{ bundle.usd }}</span>
-            </div>
-            <div class="text-sm text-primary font-semibold mb-3">{{ bundle.composition }}</div>
-            <p class="text-sm text-text-tertiary mb-6">{{ bundle.description }}</p>
-            <a
-              [href]="dashboardUrl + '/login'"
-              class="inner-button w-full py-3 rounded-lg font-semibold text-center block"
-              i18n="@@pricing-page.bundles.cta"
-            >
-              Get the bundle
-            </a>
-          </div>
+  <!-- Comment payer : une vraie suite d'étapes -->
+  <section class="pricing-section pay" aria-labelledby="pay-title">
+    <div>
+      <h2 class="pricing-h2" id="pay-title" i18n="@@pricing-page.pay.title">How to pay</h2>
+      <ol class="steps">
+        <li><span class="step-num" aria-hidden="true">1</span><div><p class="step-title" i18n="@@pricing-page.pay.s1t">Top up your wallet</p><p class="step-text" i18n="@@pricing-page.pay.s1d">By mobile money, from 100 F. Bonus: +5% from 5,000 F, +10% from 10,000 F.</p></div></li>
+        <li><span class="step-num" aria-hidden="true">2</span><div><p class="step-title" i18n="@@pricing-page.pay.s2t">Choose what you keep</p><p class="step-text" i18n="@@pricing-page.pay.s2d">A final version, a plan, a pack. The price is shown before you pay.</p></div></li>
+        <li><span class="step-num" aria-hidden="true">3</span><div><p class="step-title" i18n="@@pricing-page.pay.s3t">It is yours</p><p class="step-text" i18n="@@pricing-page.pay.s3d">Files without the mark, your site online. A failed generation is refunded automatically.</p></div></li>
+      </ol>
+      <p class="methods">
+        @for (method of payMethods; track method) {
+          <span class="tag">{{ method }}</span>
         }
+      </p>
+      <div class="country">
+        <label for="pricing-country" i18n="@@pricing-page.pay.country">Price in your country</label>
+        <select id="pricing-country" class="!w-56" (change)="country.set($any($event.target).value)">
+          @for (item of countries; track item.code) {
+            <option [value]="item.code" [selected]="item.code === country()">{{ item.name }}</option>
+          }
+        </select>
+        <p class="country-price" aria-live="polite">{{ referenceText() }}</p>
       </div>
     </div>
+  </section>
 
-    <!-- Frontal comparison -->
-    <div class="mb-20">
-      <div class="text-center mb-12">
-        <h2
-          class="text-3xl sm:text-4xl font-bold text-text-primary mb-4"
-          i18n="@@pricing-page.compare.title"
-        >
-          The same result, without the bill
-        </h2>
-        <p class="text-text-tertiary max-w-2xl mx-auto" i18n="@@pricing-page.compare.description">
-          Real market prices (July 2026) — what IDEM charges versus what the alternative costs.
-        </p>
-      </div>
-
-      <div class="glass-card rounded-xl border border-[var(--glass-border)] overflow-hidden">
-        <div class="overflow-x-auto">
-          <table class="w-full">
-            <thead class="bg-[var(--glass-bg-subtle)]">
-              <tr>
-                <th
-                  class="text-left p-4 text-text-primary font-semibold"
-                  i18n="@@pricing-page.compare.col.item"
-                >
-                  What you need
-                </th>
-                <th
-                  class="text-center p-4 text-primary font-semibold"
-                  i18n="@@pricing-page.compare.col.idem"
-                >
-                  With IDEM
-                </th>
-                <th
-                  class="text-center p-4 text-text-primary font-semibold"
-                  i18n="@@pricing-page.compare.col.alt"
-                >
-                  Elsewhere
-                </th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-[var(--glass-border)]">
-              @for (row of comparisonRows; track row.item) {
-                <tr>
-                  <td class="p-4 text-text-secondary">{{ row.item }}</td>
-                  <td class="p-4 text-center text-primary font-semibold">{{ row.idem }}</td>
-                  <td class="p-4 text-center text-text-tertiary">{{ row.alternative }}</td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-      </div>
+  <!-- Autres offres -->
+  <section class="pricing-section" aria-labelledby="more-title">
+    <h2 class="pricing-h2" id="more-title" i18n="@@pricing-page.more.title">Other offers</h2>
+    <div class="more-wrap">
+    <ul class="more">
+      @for (item of moreOffers; track item.href) {
+        <li class="more-row">
+          <span class="more-label">{{ item.label }}</span>
+          <span class="more-price">{{ item.price }}</span>
+          <a class="outer-button button-sm" [href]="item.href" i18n="@@pricing-page.more.cta">Choose</a>
+        </li>
+      }
+    </ul>
+    <app-offer-illustration kind="tontine" class="more-art" />
     </div>
+  </section>
 
-    <!-- Value Proposition with Image -->
-    <div class="mb-8">
-      <div class="relative rounded-2xl lg:rounded-3xl overflow-hidden border border-[var(--glass-border)]">
-        <!-- Background Image with Overlay -->
-        <div class="absolute inset-0">
-          <img
-            src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1200&q=80"
-            alt="African entrepreneurs collaborating"
-            loading="lazy"
-            class="w-full h-full object-cover"
-          />
-          <div
-            class="absolute inset-0 bg-linear-to-r from-black/95 via-black/85 to-black/60 sm:to-transparent"
-          ></div>
-        </div>
-
-        <!-- Content Overlay -->
-        <div class="relative z-10 p-6 sm:p-8 lg:p-12 xl:p-16">
-          <div class="max-w-2xl">
-            <div
-              class="inline-block px-3 py-1.5 sm:px-4 sm:py-2 bg-primary/90 rounded-full text-xs sm:text-sm font-bold mb-4 sm:mb-6"
-            >
-              <span class="text-white" i18n="@@pricing-page.value.badge">Made for Africa</span>
-            </div>
-            <h2
-              class="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-4 sm:mb-6"
-              i18n="@@pricing-page.value.title"
-            >
-              Why IDEM Pricing is Different
-            </h2>
-            <p
-              class="text-white/90 text-sm sm:text-base lg:text-lg leading-relaxed mb-6 sm:mb-8"
-              i18n="@@pricing-page.value.description"
-            >
-              We don't sell man-hours, we sell generated results — and we price them for the
-              markets we serve. Credits hide the complexity, FCFA prices remove the friction, and
-              Mobile Money makes payment a one-tap habit.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div class="mt-8">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div
-            class="glass-card p-8 rounded-xl border border-[var(--glass-border)] hover:border-primary/50 transition-all"
-          >
-            <div class="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center mb-4">
-              <svg class="w-8 h-8 text-primary" fill="currentColor" viewBox="0 0 20 20">
-                <path
-                  d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"
-                />
-                <path
-                  fill-rule="evenodd"
-                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z"
-                  clip-rule="evenodd"
-                />
-              </svg>
-            </div>
-            <h3 class="text-xl font-bold text-text-primary mb-3" i18n="@@pricing-page.value.cheaper.title">
-              3-5× Cheaper
-            </h3>
-            <p
-              class="text-text-tertiary leading-relaxed"
-              i18n="@@pricing-page.value.cheaper.description"
-            >
-              3 to 5 times cheaper than international platforms — up to 99% cheaper than local
-              consultants and agencies
-            </p>
-          </div>
-
-          <div
-            class="glass-card p-8 rounded-xl border border-[var(--glass-border)] hover:border-primary/50 transition-all"
-          >
-            <div class="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center mb-4">
-              <svg class="w-8 h-8 text-primary" fill="currentColor" viewBox="0 0 20 20">
-                <path
-                  d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"
-                />
-              </svg>
-            </div>
-            <h3
-              class="text-xl font-bold text-text-primary mb-3"
-              i18n="@@pricing-page.value.mobileMoney.title"
-            >
-              Mobile Money
-            </h3>
-            <p
-              class="text-text-tertiary leading-relaxed"
-              i18n="@@pricing-page.value.mobileMoney.description"
-            >
-              Pay with MTN MoMo, Orange Money or card — annual plans payable in 1 or 3 installments
-            </p>
-          </div>
-
-          <div
-            class="glass-card p-8 rounded-xl border border-[var(--glass-border)] hover:border-primary/50 transition-all"
-          >
-            <div class="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center mb-4">
-              <svg class="w-8 h-8 text-primary" fill="currentColor" viewBox="0 0 20 20">
-                <path
-                  fill-rule="evenodd"
-                  d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                  clip-rule="evenodd"
-                />
-              </svg>
-            </div>
-            <h3 class="text-xl font-bold text-text-primary mb-3" i18n="@@pricing-page.value.noFees.title">
-              No Hidden Fees
-            </h3>
-            <p class="text-text-tertiary leading-relaxed" i18n="@@pricing-page.value.noFees.description">
-              Credits roll over 2 months, packs are valid 12 months, and your code and documents
-              are always exportable — the freedom to leave is our proof of trust
-            </p>
-          </div>
-        </div>
-      </div>
+  <!-- Questions -->
+  <section class="pricing-section" aria-labelledby="faq-title">
+    <h2 class="pricing-h2" id="faq-title" i18n="@@pricing-page.faq.title">Questions</h2>
+    <div class="faq">
+      @for (item of faq; track item.q) {
+        <details>
+          <summary>{{ item.q }}</summary>
+          <p>{{ item.a }}</p>
+        </details>
+      }
     </div>
+  </section>
+
+  <!-- Dernier appel -->
+  <section class="pricing-final">
+    <h2 class="pricing-h2" i18n="@@pricing-page.final.title">Start tonight, pay only if you keep it.</h2>
+    <a class="inner-button button-lg" [href]="startUrl" i18n="@@pricing-page.final.cta">Start for free</a>
+  </section>
+
+  <!-- Sur téléphone, l'action reste sous le pouce -->
+  <div class="sticky-cta">
+    <a class="inner-button w-full text-center" [href]="startUrl" i18n="@@pricing-page.stickyCta">Start for free</a>
   </div>
 </div>

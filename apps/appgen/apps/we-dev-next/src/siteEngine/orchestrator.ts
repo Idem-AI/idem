@@ -14,7 +14,10 @@
  *      points d'entrée ;
  *   4. les visuels sont choisis et produits ;
  *   5. un agent par composant écrit l'en-tête, le pied de page et chaque
- *      section, avec le contrat des composants disponibles ;
+ *      section, avec le contrat des composants disponibles ; chaque composant
+ *      est monté dans un DOM avec les fichiers réels du site avant d'être
+ *      accepté (`renderCheck.ts`) : un plantage à l'exécution repart au modèle
+ *      comme une erreur de forme, avec sa ligne ;
  *   6. le code assemble les pages (imports dans l'ordre) et lance l'aperçu.
  *
  * Pas d'évaluation esthétique, pas de réparation après coup, pas de gabarit de
@@ -41,7 +44,7 @@ import { createApiMediaClient, MediaClient } from './media/mediaClient.js';
 import { AssetDecision, directMedia, MediaSlot } from './media/mediaDirector.js';
 import { createLimiter, MediaAsset, produceMedia } from './media/mediaPipeline.js';
 import { buildSiteScaffold, renderPage, renderPageShells } from './project.js';
-import { renderDataModule, renderMediaModule, renderSeo } from './siteData.js';
+import { renderBrandModule, renderDataModule, renderMediaModule, renderSeo } from './siteData.js';
 import { detectSiteLanguage, readSiteFacts, renderFacts } from './siteFacts.js';
 import { FUNCTIONAL_DEPENDENCIES, SITE_ENGINE_ID } from './template.js';
 
@@ -163,10 +166,21 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
       );
       stream.text(`<boltArtifact id="idem-site" title="${facts.name.replace(/["<>]/g, '')}">\n`);
 
+      // Les fichiers du site propres au projet, tels que l'aperçu les aura :
+      // chaque composant y est monté avant d'être accepté (`renderCheck`).
+      const siteFiles: Record<string, string> = {};
+      const emit = (path: string, content: string) => {
+        siteFiles[path] = content;
+        stream.file(path, content);
+      };
+
       // Socle absent (l'atelier n'a pas pu le monter) : il part dans le flux.
       if (!input.scaffoldMounted) {
         const scaffold = buildSiteScaffold(projectData, language);
-        for (const [path, content] of Object.entries(scaffold.files)) stream.file(path, content);
+        for (const [path, content] of Object.entries(scaffold.files)) emit(path, content);
+      } else {
+        // Monté par l'atelier : la marque n'en change que la source du logo, pas l'exécution.
+        siteFiles['src/site/brand.tsx'] = renderBrandModule(projectData, facts.name);
       }
 
       // Opération A : architecture et design system, en parallèle.
@@ -215,16 +229,16 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
       if (cleaned) ChatLogger.info('SITE_ENGINE', 'Briefs nettoyés des détails absents des faits', { items: cleaned });
 
       // Opération B : le design system compilé, puis les faits et les documents.
-      for (const [path, content] of Object.entries(design.files)) stream.file(path, content);
+      for (const [path, content] of Object.entries(design.files)) emit(path, content);
       stream.note(
         fr
           ? `Design system appliqué : ${design.compiled.config.tokens.typography.headingFont} et ${design.compiled.config.tokens.typography.bodyFont}, ${manifest.pages.length} page${manifest.pages.length > 1 ? 's' : ''} (${manifest.pages.map((page) => page.label).join(', ')})`
           : `Design system applied: ${design.compiled.config.tokens.typography.headingFont} and ${design.compiled.config.tokens.typography.bodyFont}, ${manifest.pages.length} page${manifest.pages.length > 1 ? 's' : ''} (${manifest.pages.map((page) => page.label).join(', ')})`
       );
 
-      stream.file('src/site/data.ts', renderDataModule(facts, manifest, language));
+      emit('src/site/data.ts', renderDataModule(facts, manifest, language));
       stream.file('src/site/seo.json', renderSeo(facts, manifest, language));
-      stream.file('src/site/media.ts', renderMediaModule({}));
+      emit('src/site/media.ts', renderMediaModule({}));
       if (pattern) stream.file('public/brand/pattern.svg', `${pattern.svg}\n`);
       const shells = renderPageShells({
         manifest,
@@ -280,7 +294,7 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
               .then((assets) => {
                 if (assets.length && !abort.signal.aborted) {
                   produced[slot.id] = assets;
-                  stream.file('src/site/media.ts', renderMediaModule(produced));
+                  emit('src/site/media.ts', renderMediaModule(produced));
                 }
                 return assets;
               })
@@ -304,15 +318,22 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
         check,
         reference,
         theme: themeColorsFromCss(design.compiled.css),
+        siteFiles: () => siteFiles,
       };
 
       const issues: Issue[] = [];
       const valid = new Set<string>();
       const limit = createLimiter(CONCURRENCY);
 
-      const write = async (path: string, label: string, display: string, prompt: string): Promise<boolean> => {
+      const write = async (
+        path: string,
+        label: string,
+        display: string,
+        prompt: string,
+        props?: Record<string, unknown>
+      ): Promise<boolean> => {
         if (abort.signal.aborted) return false;
-        const authored = await authorComponent({ caller, label, system, prompt, review, language });
+        const authored = await authorComponent({ caller, label, system, prompt, review, language, target: { path, props } });
         if (abort.signal.aborted) return false;
         if (authored.removed.length) ChatLogger.info('SITE_ENGINE', `${label} : phrases non vérifiées retirées`, { removed: authored.removed });
         if (authored.code) stream.file(path, authored.code);
@@ -327,7 +348,9 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
 
       stream.note(fr ? "J'écris l'en-tête, le pied de page et chaque section" : 'Writing the header, the footer and every section');
       const header = limit(() =>
-        write('src/components/site/SiteHeader.tsx', 'header', fr ? "l'en-tête" : 'the header', headerPrompt(ctx, request))
+        write('src/components/site/SiteHeader.tsx', 'header', fr ? "l'en-tête" : 'the header', headerPrompt(ctx, request), {
+          current: manifest.pages[0]?.path ?? '/',
+        })
       );
       const footer = limit(() =>
         write('src/components/site/SiteFooter.tsx', 'footer', fr ? 'le pied de page' : 'the footer', footerPrompt(ctx, request))

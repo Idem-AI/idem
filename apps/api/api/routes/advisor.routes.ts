@@ -6,7 +6,6 @@ import {
   confirmAdvisorFinanceIntentController,
 } from '../controllers/advisor.controller';
 import { authenticate } from '../services/auth.service';
-import { checkQuota } from '../middleware/quota.middleware';
 import { checkPolicyAcceptance } from '../middleware/policyCheck.middleware';
 import { requireCredits } from '../middleware/billing.middleware';
 
@@ -28,7 +27,6 @@ advisorRoutes.post(
   `/${resourceName}/:projectId/messages`,
   authenticate,
   checkPolicyAcceptance,
-  checkQuota,
   // Un échange avec le conseiller vaut une révision au barème iBusiness.
   requireCredits('business', 'revision'),
   sendAdvisorMessageController

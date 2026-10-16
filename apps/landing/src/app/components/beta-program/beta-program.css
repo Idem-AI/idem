@@ -1,104 +1,125 @@
-:host {
-  display: block;
+/* Programme bêta — ce qui n'appartient qu'à ce bloc.
+   L'échelle typographique, les filets et les boutons viennent du design
+   system et de `shared/styles/editorial-page.css`. */
+
+.bp-band {
+  position: relative;
+  overflow-x: clip;
+  border-top: 1px solid var(--glass-border-subtle);
+  padding-block: clamp(4.5rem, 9vw, 8rem);
 }
 
-.beta {
-  padding: clamp(3rem, 8vw, 6rem) 1rem;
-}
-
-.beta__inner {
+.bp-stage {
   display: grid;
-  gap: clamp(2rem, 5vw, 4rem);
-  align-items: center;
-  max-width: 68rem;
-  margin: 0 auto;
-  padding: clamp(2rem, 5vw, 3.5rem);
-  border: 1px solid var(--glass-border-subtle);
-  border-radius: 1.75rem;
-  background: var(--color-surface-2);
+  gap: clamp(2rem, 4vw, 3rem);
 }
 
-@media (min-width: 900px) {
-  .beta__inner {
-    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+.bp-title,
+.bp-lead {
+  min-width: 0;
+}
+
+/* Les trois avantages. Ils occupent une bande entière, bornée par deux
+   filets : c'est ce que la place donne, et c'est la raison de lire la
+   section. */
+.bp-grants {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--glass-border-subtle);
+}
+
+.bp-grant {
+  padding-block: clamp(1.5rem, 2.5vw, 2rem);
+  border-bottom: 1px solid var(--glass-border-subtle);
+  min-width: 0;
+}
+
+/* L'intitulé nomme l'avantage ; la ligne en dessous le détaille. Sans cette
+   accroche les trois rangées se lisaient comme une liste de notes. */
+.bp-grant-label {
+  margin: 0;
+  font-weight: var(--font-weight-black);
+  font-size: clamp(1.125rem, 1.7vw, 1.375rem);
+  line-height: 1.15;
+  color: var(--color-text-primary);
+}
+
+.bp-grant-body {
+  margin: 0.5rem 0 0;
+  font-size: var(--font-size-sm);
+  line-height: 1.6;
+  color: var(--color-text-tertiary);
+}
+
+.bp-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.bp-key {
+  margin: 0;
+  width: min(100%, 15rem);
+  justify-self: center;
+}
+
+@media (min-width: 640px) {
+  .bp-grants {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    column-gap: clamp(2rem, 4vw, 3.5rem);
   }
 }
 
-.beta__art {
-  display: flex;
-  justify-content: center;
-  color: var(--color-text-primary);
-}
+@media (min-width: 1024px) {
+  .bp-stage {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    column-gap: clamp(2rem, 4vw, 4rem);
+    row-gap: clamp(2.5rem, 5vw, 4rem);
+    align-items: start;
+  }
 
-.beta__art svg {
-  width: min(100%, 22rem);
-  height: auto;
-}
+  /* Bande 1 : le titre tient la gauche, le chapô descend d'un cran à droite —
+     la ligne de base décalée évite le bandeau titre-sous-titre centré. */
+  .bp-title {
+    grid-column: 1 / 7;
+    grid-row: 1;
+  }
 
-.beta__title {
-  font-size: clamp(1.75rem, 3.5vw, 2.5rem);
-  font-weight: 800;
-  line-height: 1.15;
-  letter-spacing: -0.01em;
-  text-wrap: balance;
-  color: var(--color-text-primary);
-}
+  .bp-lead {
+    grid-column: 8 / -1;
+    grid-row: 1;
+    align-self: end;
+  }
 
-.beta__lead {
-  margin-top: 1rem;
-  max-width: 60ch;
-  font-size: 1.0625rem;
-  line-height: 1.6;
-  text-wrap: pretty;
-  color: var(--color-text-secondary);
-}
+  .bp-grants {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
 
-.beta__points {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  margin-top: 1.75rem;
-}
+  .bp-actions {
+    grid-column: 1 / 7;
+    grid-row: 3;
+    align-self: start;
+  }
 
-.beta__points li {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.75rem;
-  font-size: 1rem;
-  line-height: 1.5;
-  color: var(--color-text-primary);
-}
-
-.beta__points .pi {
-  margin-top: 0.2rem;
-  color: var(--color-primary-500);
-}
-
-.beta__actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 1rem 1.5rem;
-  margin-top: 2rem;
-}
-
-.beta__cta {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.beta__secondary {
-  font-weight: 600;
-  color: var(--color-primary-500);
-  text-underline-offset: 3px;
-}
-
-:host-context(.dark) .beta__secondary {
-  color: var(--color-primary-400);
-}
-
-.beta__secondary:hover,
-.beta__secondary:focus-visible {
-  text-decoration: underline;
+  /* La clé ferme la composition : elle part du bord droit, déborde de la
+     gouttière, et remonte dans la bande des actions plutôt que d'ouvrir une
+     quatrième rangée vide. */
+  /* La clé ferme la composition par la droite. Elle remonte dans la bande des
+     avantages — à hauteur du blanc qui suit le troisième — et sort franchement
+     de la gouttière, de sorte qu'elle ne laisse aucune rangée vide derrière
+     elle. */
+  .bp-key {
+    grid-column: 8 / -1;
+    grid-row: 3;
+    width: auto;
+    justify-self: stretch;
+    margin-right: calc(var(--ed-gutter) * -1 - 4rem);
+    margin-top: clamp(-8rem, -6vw, -3.5rem);
+    margin-bottom: calc(clamp(4.5rem, 9vw, 8rem) * -0.4);
+  }
 }

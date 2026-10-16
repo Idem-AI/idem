@@ -13,5 +13,5 @@
     "baseUrl": ".",
     "paths": { "@idem/motion": ["./kit/index.ts"] }
   },
-  "include": ["kit/**/*", "runtime/**/*", "examples/**/*"]
+  "include": ["kit/**/*", "runtime/**/*"]
 }

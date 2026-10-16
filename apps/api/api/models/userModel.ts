@@ -1,13 +1,3 @@
-export interface QuotaData {
-  dailyUsage: number;
-  weeklyUsage: number;
-  dailyLimit: number;
-  weeklyLimit: number;
-  lastResetDaily: string; // ISO date string
-  lastResetWeekly: string; // ISO date string
-  quotaUpdatedAt?: Date;
-}
-
 export interface GitHubIntegration {
   accessToken: string;
   refreshToken?: string;
@@ -79,7 +69,6 @@ export interface UserModel {
   subscription: 'free' | 'pro' | 'enterprise';
   createdAt: Date;
   lastLogin: Date;
-  quota: Partial<QuotaData>;
   roles: string[];
   githubIntegration?: GitHubIntegration;
   refreshTokens?: RefreshTokenData[];

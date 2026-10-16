@@ -542,7 +542,6 @@ export class GenericService {
             element: `plan:${step.stepName}`,
             budget,
             language: language ?? effectiveConfig.language,
-            skipQuotaCheck: true,
           }
         );
 
@@ -699,7 +698,6 @@ export class GenericService {
         language: language ?? effectiveConfig.language,
         file: effectiveConfig.file,
         contextFilePaths: effectiveConfig.contextFilePaths,
-        skipQuotaCheck: effectiveConfig.skipQuotaCheck,
         // Étranglé : un événement par token saturerait le canal SSE et
         // coûterait plus en sérialisation qu'il ne rapporte en confort.
         onDelta: onDelta ? throttleDelta((partial) => onDelta({ stepName: step.stepName, partial })) : undefined,
@@ -815,12 +813,10 @@ export class GenericService {
       }
     }
 
-    const isRetry = existingSections.length > 0;
     const effectivePromptConfig: PromptConfig = {
       provider: promptConfig?.provider || AI_CONFIG.default.provider,
       modelName: promptConfig?.modelName || AI_CONFIG.default.modelName,
       ...promptConfig,
-      skipQuotaCheck: isRetry ? true : (promptConfig?.skipQuotaCheck ?? false),
     };
 
     // Helper function to send progress updates

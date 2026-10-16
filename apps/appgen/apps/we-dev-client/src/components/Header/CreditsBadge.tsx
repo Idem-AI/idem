@@ -28,21 +28,23 @@ export function CreditsBadge() {
   // défaut ferait croire à un compte vide.
   if (!user?.id || !me) return null;
 
-  const credits = me.credits?.appgen ?? 0;
+  // Les modifications incluses d'abord (Pass Projet, pack, forfait) ; à défaut, le portefeuille,
+  // qui paie chaque modification 25 F.
+  const modifications = me.offer?.modifications ?? me.credits?.appgen ?? 0;
+  const walletXaf = me.offer?.walletXaf ?? me.walletXaf ?? 0;
   const complimentary = me.subscriptions?.some((subscription) => subscription.complimentary);
+  const showModifications = modifications > 0;
 
-  // Seuils absolus : une action premium coûte 3 crédits, un message 1. En
-  // dessous de 5, il ne reste littéralement plus de quoi travailler.
   const tone =
-    credits <= 5 ? 'text-danger' : credits <= 20 ? 'text-warning' : 'text-text-tertiary';
+    !showModifications && walletXaf < 25 ? 'text-danger' : !showModifications && walletXaf < 250 ? 'text-warning' : 'text-text-tertiary';
 
   return (
     <span
       className={`h-8 px-2.5 hidden lg:flex items-center gap-1.5 rounded-lg text-xs tabular-nums ${tone}`}
-      title={`${credits} ${t('billing.credits')}`}
+      title={showModifications ? t('billing.modifications', { count: modifications }) : t('billing.wallet', { amount: walletXaf })}
     >
       <Coins className="w-3.5 h-3.5" />
-      {credits}
+      {showModifications ? t('billing.modificationsShort', { count: modifications }) : `${walletXaf} F`}
       {complimentary && <span className="text-[10px] text-accent">bêta</span>}
     </span>
   );

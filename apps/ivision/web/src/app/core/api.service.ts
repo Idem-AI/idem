@@ -12,7 +12,7 @@ export class ApiService {
   private readonly base = `${environment.api.url}/v1`;
 
   me() {
-    return this.http.get<{ user: { uid: string; email: string; displayName?: string }; credits: number | null; plan: string | null }>(`${this.base}/me`);
+    return this.http.get<{ user: { uid: string; email: string; displayName?: string }; credits: number | null; walletXaf?: number | null; createur?: boolean; exportVisualXaf?: number; plan: string | null }>(`${this.base}/me`);
   }
 
   // ── Marques ──
@@ -79,8 +79,13 @@ export class ApiService {
   turn(id: string, body: { text?: string; referenceId?: string; noReference?: boolean; media?: MediaAsset[]; videos?: { url: string; name?: string; posterUrl?: string }[]; photoUrl?: string; options?: ChatOptions; resume?: boolean; treatment?: { id: string; option: string } }): Observable<ChatEvent> {
     return this.stream(`${this.base}/sessions/${id}/turn`, body);
   }
+  /** Export HD sans signature d'un visuel : payé une fois (inclus avec Créateur). */
+  exportVisual(id: string) {
+    return this.http.post<{ exported: boolean; cost: number }>(`${this.base}/visuals/${id}/export`, {});
+  }
+
   quote(mode: ChatMode, creativity: string, scope?: unknown) {
-    return this.http.post<{ action: string; cost: number }>(`${this.base}/quote`, { mode, creativity, scope });
+    return this.http.post<{ action: string; cost: number; exportXaf?: number }>(`${this.base}/quote`, { mode, creativity, scope });
   }
 
   // ── Modèles ──

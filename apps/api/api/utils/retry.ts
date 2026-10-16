@@ -229,3 +229,32 @@ export function isRateLimited(error: any): boolean {
 
   return /\b429\b|rate.?limit|quota.?exceeded|resource.?exhausted|too many requests/i.test(text);
 }
+
+/**
+ * L'échec vient-il du COMPTE ou de la configuration, et non du modèle ?
+ *
+ * Clé absente, clé refusée (401), crédit épuisé (402) : le fournisseur refuse
+ * la requête avant tout modèle. Toute la chaîne de repli échoue donc de la même
+ * façon — observé : un 401 parcourait les cinq modèles de la chaîne, pour
+ * chaque section du livrable, et chaque essai était compté comme consommé.
+ *
+ * Le 403 est volontairement exclu : chez OpenRouter, il signale aussi une
+ * entrée refusée par la modération d'UN modèle, qu'un autre peut accepter.
+ */
+export function isAccountError(error: any): boolean {
+  let current: any = error;
+  let depth = 0;
+  let text = '';
+
+  while (current && depth < 5) {
+    const status = Number(current.status ?? current.statusCode);
+    if (status === 401 || status === 402) return true;
+    text += ` ${current.message || String(current)}`;
+    current = current.cause;
+    depth += 1;
+  }
+
+  // Le SDK préfixe son message par le statut (« 401 Authentication Failed »),
+  // que `PromptService` ré-emballe en « Error with OPENROUTER API: 401 … ».
+  return /(?:^|:)\s*40[12]\b|API_KEY is not set|insufficient credits/i.test(text.trim());
+}

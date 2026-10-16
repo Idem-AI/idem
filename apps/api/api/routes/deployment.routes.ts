@@ -17,6 +17,7 @@ import {
   storeSensitiveVariablesController,
 } from '../controllers/deployment.controller';
 import { rejectCrossSiteRequests } from '../middleware/security.middleware';
+import { requireQuota } from '../middleware/usage-quota.middleware';
 
 export const deploymentRoutes = Router();
 const resourceName = '/deployments';
@@ -77,6 +78,7 @@ deploymentRoutes.post(
   `${resourceName}/generate`,
   authenticate,
   checkPolicyAcceptance,
+  requireQuota('assist', { envelope: 'deployment' }),
   generateDeploymentController
 );
 
@@ -302,7 +304,12 @@ deploymentRoutes.delete(
  *       500:
  *         description: Internal server error
  */
-deploymentRoutes.post(`${resourceName}/chat`, authenticate, AddChatMessageController);
+deploymentRoutes.post(
+  `${resourceName}/chat`,
+  authenticate,
+  requireQuota('assist', { envelope: 'deployment' }),
+  AddChatMessageController
+);
 
 // Pipeline Management
 /**

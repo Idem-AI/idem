@@ -11,6 +11,12 @@ import { SimulationConsent } from '../models/simulation.model';
  */
 export interface BillingRequestContext {
   engine: 'business' | 'appgen' | 'ideploy';
+  /** Compte débité : le portefeuille en francs, ou un compte historique. */
+  account?: import('../models/offer.model').LedgerAccount;
+  /** Plafond auquel le débit se rattache, repris à la restitution. */
+  capKey?: string;
+  /** Plans filmés par l'IA payés avec cette génération (les non utilisés sont restitués). */
+  aiClipsPaid?: number;
   /** Livrable facturé, au barème du moteur. */
   action: string;
   cost: number;
@@ -40,5 +46,15 @@ export interface CustomRequest extends Request {
    * échangé contre l'identifiant de l'exécution, ou relâché si elle ne démarre
    * pas. Sans cet aller-retour, un lancement raté consommerait le paiement.
    */
-  simulationPayment?: { token: string; reference: string; tier: string };
+  simulationPayment?: { token: string; reference: string; tier: string; amountXaf?: number };
+  /**
+   * Places réservées dans les quotas d'usage pour cette génération : rendues
+   * si elle échoue, comme les crédits (`models/usage-quota.model.ts`).
+   */
+  usageQuota?: import('../services/billing/usage-counters').QuotaReservation;
+  /** Ce que la facturation a décidé pour cette génération (esquisse, version finale…). */
+  offer?: {
+    mode: 'draft' | 'final' | 'signature' | 'paid' | 'included' | 'free';
+    deliverable?: import('../models/offer.model').DeliverableKey;
+  };
 }

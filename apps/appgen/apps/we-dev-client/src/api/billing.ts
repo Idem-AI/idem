@@ -9,8 +9,8 @@
  *
  * Le modèle économique d'iCode tient en une phrase : **générer est gratuit,
  * posséder se paie**. Télécharger le code, l'envoyer sur GitHub ou le déployer
- * sont les actes de possession — ils supposent un Project Pass (999 F) ou un
- * abonnement qui l'inclut.
+ * sont les actes de possession — ils supposent le Pass Projet (1 000 F, payé depuis le
+ * portefeuille IDEM, 30 modifications incluses), un Pack Lancement ou la bêta.
  */
 
 const IDEM_API = process.env.REACT_APP_IDEM_API_BASE_URL || 'http://localhost:3001';
@@ -21,6 +21,9 @@ export const PROJECT_PASS_CODE = 'appgen-project-pass';
 
 export interface BillingMe {
   credits: { business: number; appgen: number; ideploy: number };
+  /** Le portefeuille IDEM (en francs) et les modifications iCode incluses restantes. */
+  offer?: { walletXaf: number; modifications: number; projectPassVouchers: number };
+  walletXaf?: number;
   subscriptions: {
     engine: string;
     productCode: string;
@@ -32,15 +35,26 @@ export interface BillingMe {
   enforcement: 'off' | 'log' | 'enforce';
 }
 
-/** Réponse 402 de l'API : ce qui manque, et les offres qui le débloquent. */
+/**
+ * Refus de l'API : 402 (ce qui manque, et les offres qui le débloquent) ou 429
+ * (quota d'usage atteint : groupe, fenêtre, date de renouvellement, offre supérieure).
+ */
 export interface PaymentRequired {
-  error: 'payment_required' | 'plan_upgrade_required';
+  error: 'payment_required' | 'plan_upgrade_required' | 'quota_exceeded';
   message: string;
+  /** Quota : la fenêtre atteinte et la date à laquelle elle se renouvelle. */
+  window?: 'day' | 'week' | 'month';
+  resetsAt?: string;
   engine?: string;
   action?: string;
   cost?: number;
   balance?: number;
   missing?: number;
+  /** Modèle au portefeuille : prix, solde, manque et recharge suggérée, en francs. */
+  priceXaf?: number;
+  balanceXaf?: number;
+  missingXaf?: number;
+  topupXaf?: number;
   projectId?: string;
   suggestions?: { productCode: string; name: string; priceXaf: number; credits: number }[];
 }
@@ -90,12 +104,12 @@ export async function fetchProjectAccess(projectId: string): Promise<boolean | n
   }
 }
 
-/** Vrai quand l'API refuse faute de crédits ou de plan. */
+/** Vrai quand l'API refuse faute de crédits, de plan ou de quota d'usage. */
 export function isPaymentRequired(response: Response): boolean {
-  return response.status === 402;
+  return response.status === 402 || response.status === 429;
 }
 
-/** Lit le détail d'un refus 402, pour afficher autre chose qu'« erreur 402 ». */
+/** Lit le détail d'un refus 402 ou 429, pour afficher autre chose qu'« erreur 402 ». */
 export async function readPaymentRequired(response: Response): Promise<PaymentRequired | null> {
   try {
     return (await response.json()) as PaymentRequired;
@@ -129,7 +143,46 @@ export function openCheckout(options: {
   window.location.href = `${DASHBOARD}/billing/checkout?${params.toString()}`;
 }
 
-/** Raccourci : débloquer le projet courant. */
+/**
+ * Recharge le portefeuille dans le dashboard (mobile money), puis — une fois l'argent
+ * encaissé — fait l'achat `then` depuis le portefeuille, et ramène ici.
+ */
+export function openTopUp(options: { amountXaf: number; then?: Record<string, unknown>; returnUrl?: string }): void {
+  const params = new URLSearchParams({
+    product: 'wallet-topup',
+    amount: String(options.amountXaf),
+    app: 'appgen',
+    returnUrl: options.returnUrl ?? window.location.href,
+  });
+  if (options.then) params.set('then', JSON.stringify(options.then));
+  window.location.href = `${DASHBOARD}/billing/checkout?${params.toString()}`;
+}
+
+/**
+ * Le Pass Projet depuis le portefeuille : un Pass prépayé (Pack Lancement) s'il y en a un, sinon
+ * 1 000 F. Solde insuffisant : la recharge exacte, puis l'achat, puis retour ici.
+ */
+export async function buyProjectPass(projectId: string): Promise<{ ok: true; message: string } | { ok: false; message: string; redirected?: boolean }> {
+  try {
+    const response = await fetch(`${IDEM_API}/billing/offers/buy`, {
+      method: 'POST',
+      headers: authHeaders(),
+      credentials: 'include',
+      body: JSON.stringify({ kind: 'icode_project_pass', projectId }),
+    });
+    const body = (await response.json().catch(() => ({}))) as PaymentRequired & { ok?: boolean };
+    if (response.ok) return { ok: true, message: body.message };
+    if (response.status === 402) {
+      openTopUp({ amountXaf: body.topupXaf ?? body.missingXaf ?? 1000, then: { kind: 'icode_project_pass', projectId } });
+      return { ok: false, message: body.message, redirected: true };
+    }
+    return { ok: false, message: body.message };
+  } catch {
+    return { ok: false, message: '' };
+  }
+}
+
+/** Raccourci historique : débloquer le projet courant (achat depuis le portefeuille). */
 export function openProjectPassCheckout(projectId: string | null): void {
-  openCheckout({ productCode: PROJECT_PASS_CODE, projectId, engine: 'appgen' });
+  if (projectId) void buyProjectPass(projectId);
 }

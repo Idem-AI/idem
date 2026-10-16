@@ -93,6 +93,8 @@ export interface ChatOptions {
   cuts?: 'tight' | 'natural' | 'none';
   format?: string;
   withPhoto?: boolean;
+  /** Plans filmés par l'IA commandés (1 000 F l'un) ; 0 : motion design et banque d'images. */
+  aiClips?: number;
 }
 
 export interface MediaAsset {
@@ -130,6 +132,8 @@ export interface Visual {
   layout?: string;
   creativity: Creativity;
   score?: number;
+  /** Export HD sans signature déjà réglé. */
+  exported?: boolean;
   createdAt: string;
 }
 

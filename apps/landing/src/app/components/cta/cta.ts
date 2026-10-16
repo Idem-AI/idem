@@ -1,78 +1,24 @@
-import {
-  Component,
-  HostBinding,
-  ElementRef,
-  inject,
-  signal,
-  AfterViewInit,
-  OnDestroy,
-  PLATFORM_ID,
-} from '@angular/core';
-import { CommonModule, isPlatformBrowser } from '@angular/common';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { environment } from '../../../environments/environment';
 
+/**
+ * L'appel final de la page d'accueil.
+ *
+ * Il n'observe plus le défilement : ses éléments étaient posés à
+ * `opacity: 0` et n'apparaissaient qu'au passage d'un `IntersectionObserver`,
+ * ce qui rendait la section invisible au pré-rendu, sur une vignette de
+ * partage et pour qui arrive par un lien profond. Plus d'observateur, plus de
+ * `@HostBinding` (interdit par `.claude/CLAUDE.md`) : le bloc est complet dès
+ * le chargement.
+ */
 @Component({
   selector: 'app-cta',
-  standalone: true,
-  imports: [CommonModule],
+  imports: [RouterLink],
   templateUrl: './cta.html',
-  styleUrl: './cta.css',
+  styleUrls: ['../../shared/styles/editorial-page.css', './cta.css'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class Cta implements AfterViewInit, OnDestroy {
-  // Angular-initialized properties
-  protected readonly isBrowser = signal(isPlatformBrowser(inject(PLATFORM_ID)));
-  private readonly elementRef = inject(ElementRef);
+export class Cta {
   protected readonly dashboardUrl = environment.services.dashboard.url;
-  // Apply animation class binding
-  @HostBinding('class.animate-in')
-  protected readonly animateIn = signal(false);
-
-  // State properties
-  protected observer: IntersectionObserver | null = null;
-
-  ngAfterViewInit(): void {
-    if (this.isBrowser()) {
-      this.setupIntersectionObserver();
-      this.initHoverEffects();
-    }
-  }
-
-  ngOnDestroy(): void {
-    this.destroyIntersectionObserver();
-  }
-
-  private initHoverEffects(): void {
-    // Add any additional hover effect initializations if needed
-  }
-
-  private setupIntersectionObserver(): void {
-    this.observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            // Trigger animation when component becomes visible
-            this.animateIn.set(true);
-            this.observer?.unobserve(entry.target);
-          }
-        });
-      },
-      { threshold: 0.2 },
-    );
-
-    // Observe the CTA section
-    const ctaSection = this.elementRef.nativeElement.querySelector('.cta-section');
-    if (ctaSection) {
-      this.observer.observe(ctaSection);
-    } else {
-      // If no specific section, observe the component itself
-      this.observer.observe(this.elementRef.nativeElement);
-    }
-  }
-
-  private destroyIntersectionObserver(): void {
-    if (this.observer) {
-      this.observer.disconnect();
-      this.observer = null;
-    }
-  }
 }

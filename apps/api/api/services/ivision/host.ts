@@ -12,7 +12,7 @@
  * connecte avant le premier appel, donc l'ordre de chargement des secrets est respecté.
  */
 import logger from '../../config/logger';
-import { BUSINESS_CREDIT_COSTS } from '../../models/billing.model';
+import { COMMUNICATION_PRICES } from '../../models/offer.model';
 import { configureCore, ImageOptions, SpeechRequest, SynthesizedSpeech, VideoClipRequest, VisionOptions } from '../../../../ivision/core/src/runtime/host';
 import { AI_CONFIG } from '../../config/ai.config';
 import { setVideoPricingBase } from '../../../../ivision/core/src/video/pricing';
@@ -95,14 +95,16 @@ export function configureIvisionCoreForIdem(): void {
     // Le registre des ressources du projet, le même que celui du moteur graphique (deck, visuels).
     assetRegistry: idemAssetRegistry,
     refundCredits: async (userId, cost, meta) => {
-      const { creditLedgerService } = await import('../billing/credit-ledger.service');
+      // Le montant restitué revient au portefeuille en francs.
+      const { walletService } = await import('../billing/wallet.service');
       const { entitlementsService } = await import('../billing/entitlements.service');
-      await creditLedgerService.refundDebit(userId, 'business', cost, meta);
+      await walletService.refund(userId, cost, { action: meta.action, note: meta.note });
       await entitlementsService.invalidate(userId);
     },
   });
-  // Les prix : ceux du barème d'IDEM (la vidéo suit la charte), dans IDEM comme dans iVision.
-  setVideoPricingBase({ referenceCost: BUSINESS_CREDIT_COSTS.motion_video, minRerender: BUSINESS_CREDIT_COSTS.revision });
+  // Les prix, en francs : une vidéo au périmètre de référence (15 s, un format, HD) et le
+  // minimum d'un nouvel export (`models/offer.model.ts`), dans IDEM comme dans iVision.
+  setVideoPricingBase({ referenceCost: COMMUNICATION_PRICES.motion_video, minRerender: COMMUNICATION_PRICES.motion_video_rerender });
 }
 
 configureIvisionCoreForIdem();

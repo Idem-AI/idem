@@ -1,204 +1,290 @@
-<!-- iDeploy Page -->
-<div class="relative min-h-screen overflow-hidden bg-grid">
-  <!-- Background orbs -->
-  <div class="absolute top-0 left-0 w-full h-full overflow-hidden z-0">
-    <div class="absolute top-[-200px] left-[-200px] w-[500px] h-[500px] rounded-full bg-linear-to-br from-secondary to-accent opacity-15 blur-[120px]"></div>
-    <div class="absolute bottom-[-200px] right-[-200px] w-[400px] h-[400px] rounded-full bg-linear-to-tr from-primary to-secondary opacity-15 blur-[120px]"></div>
-  </div>
+<!-- iDeploy. La pirogue dit le départ et la mise en ligne, le grenier plein
+     « tenu pour vous », la porte et sa serrure « votre machine, votre clé »,
+     la façade ndebele l'adresse à son nom (AGENTS.md § 4). -->
+<div class="ed-page">
+  <!-- ═══ La promesse ══════════════════════════════════════════════════ -->
+  <header class="ed-section ed-section-hero ed-wrap">
+    <!-- Le titre occupe toute la largeur : c'est lui qui donne l'échelle de la
+         page, et à sept colonnes le plus long mot débordait de sa colonne. -->
+    <h1 class="ed-display ed-rise">
+      <span i18n="@@ideploy-page.hero.line1">Your app online,</span><br />
+      <span class="i-underline" i18n="@@ideploy-page.hero.line2">no server to manage</span>
+    </h1>
 
-  <div class="relative z-10">
-    <!-- Hero Section -->
-    <section class="relative pt-32 pb-20 lg:pt-40 lg:pb-28">
-      <div class="max-w-6xl mx-auto px-4 sm:px-6 text-center">
-        <!-- Breadcrumb -->
-        <div class="flex items-center justify-center gap-2 mb-8 text-sm text-text-tertiary">
-          <a routerLink="/home" class="hover:text-text-primary transition-colors" i18n="@@ideploy.breadcrumb.idem">Idem</a>
-          <span>/</span>
-          <span class="text-secondary font-medium">iDeploy</span>
-        </div>
-
-        <!-- Badge -->
-        <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/10 border border-secondary/20 mb-8">
-          <svg class="w-4 h-4 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-          </svg>
-          <span class="text-xs font-bold text-secondary uppercase" i18n="@@ideploy.badge">Simplified Deployment</span>
-        </div>
-
-        <h1 class="text-4xl sm:text-5xl lg:text-7xl font-bold text-text-primary mb-6" i18n="@@ideploy.hero.title">
-          Deploy <span class="i-underline">Anywhere</span>,<br />in One Click
-        </h1>
-
-        <p class="text-lg lg:text-xl text-text-secondary max-w-3xl mx-auto leading-relaxed mb-10" i18n="@@ideploy.hero.description">
-          From quick deploys to full cloud architectures — iDeploy handles all the complexity so you can focus on building. No DevOps expertise required.
+    <div class="grid gap-12 ed-mt-12 ed-mt-lg-16 lg:grid-cols-12 lg:gap-16 lg:items-center">
+      <div class="lg:col-span-6 ed-rise ed-rise-2">
+        <p class="ed-lede ed-lede-wide" i18n="@@ideploy-page.hero.lede">
+          You write the code. iDeploy puts it online, gives it a secure web address, backs it up and
+          watches it. Nothing to install, not a single command to type.
         </p>
-
-        <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
-          <a
-            href="{{ ideployUrl }}"
-            class="inner-button px-8 py-4 rounded-xl font-semibold text-lg inline-flex items-center gap-2"
-          >
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-            </svg>
-            <span i18n="@@ideploy.hero.cta">Start Deploying</span>
+        <div class="flex flex-col gap-3 sm:flex-row ed-mt-10">
+          <a [href]="ideployUrl" class="inner-button">
+            <ng-container i18n="@@ideploy-page.hero.cta">Start for free</ng-container>
           </a>
-          <a
-            routerLink="/idev"
-            class="outer-button px-8 py-4 rounded-xl font-semibold text-lg inline-flex items-center gap-2"
-          >
-            <span i18n="@@ideploy.hero.secondaryCta">Build with iCode</span>
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
-            </svg>
+          <a [href]="ideployUrl + '/pricing'" class="outer-button">
+            <ng-container i18n="@@ideploy-page.hero.pricing">See the prices</ng-container>
           </a>
         </div>
       </div>
-    </section>
 
-    <!-- Deployment Methods -->
-    <section class="relative py-24 lg:py-32">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6">
-        <div class="text-center mb-16">
-          <h2 class="text-3xl lg:text-5xl font-bold text-text-primary mb-4" i18n="@@ideploy.methods.title">
-            Choose Your <span class="i-underline">Method</span>
-          </h2>
-          <p class="text-lg text-text-secondary max-w-2xl mx-auto" i18n="@@ideploy.methods.description">
-            Three deployment options to match your needs — from instant to enterprise
+      <figure class="lg:col-span-6 ed-art ed-art-fill ed-rise ed-rise-3">
+        <app-page-art scene="canoe" />
+      </figure>
+    </div>
+  </header>
+
+  <!-- ═══ Les quatre étapes ═══════════════════════════════════════════
+       Une vraie séquence, faite une seule fois. -->
+  <section class="ed-rule">
+    <div class="ed-section ed-wrap">
+      <div class="grid gap-12 lg:grid-cols-12 lg:gap-16">
+        <div class="lg:col-span-5">
+          <h2 class="ed-h2" i18n="@@ideploy-page.steps.title">Four steps, once</h2>
+          <p class="ed-body ed-mt-6" i18n="@@ideploy-page.steps.body">
+            After that, every change to your code ships on its own.
           </p>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
-          @for (method of deployMethods; track method.id) {
-            <div class="glass-card p-8 rounded-2xl border border-[var(--glass-border)] hover:border-secondary/30 transition-all duration-300 group flex flex-col">
-              <!-- Badge -->
-              <div class="inline-flex self-start items-center px-3 py-1 rounded-full bg-secondary/10 border border-secondary/20 mb-6">
-                <span class="text-xs font-bold text-secondary">{{ method.badge }}</span>
-              </div>
-
-              <h3 class="text-2xl font-bold text-text-primary mb-3 group-hover:text-secondary transition-colors">
-                {{ method.title }}
-              </h3>
-
-              <p class="text-text-secondary leading-relaxed mb-8 flex-1">{{ method.description }}</p>
-
-              <!-- Stats -->
-              <div class="grid grid-cols-2 gap-3">
-                @for (stat of method.stats; track stat.label) {
-                  <div class="bg-[var(--glass-bg-subtle)] rounded-xl p-3 border border-[var(--glass-border-subtle)]">
-                    <div class="text-text-primary font-bold text-lg">{{ stat.value }}</div>
-                    <div class="text-text-tertiary text-xs">{{ stat.label }}</div>
-                  </div>
-                }
-              </div>
-            </div>
-          }
-        </div>
-      </div>
-    </section>
-
-    <!-- Features Grid -->
-    <section class="relative py-24 lg:py-32 bg-bg-dark">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6">
-        <div class="text-center mb-16">
-          <h2 class="text-3xl lg:text-5xl font-bold text-text-primary mb-4" i18n="@@ideploy.features.title">
-            Everything You <span class="i-underline">Need</span>
-          </h2>
-          <p class="text-lg text-text-secondary max-w-2xl mx-auto" i18n="@@ideploy.features.description">
-            Enterprise-grade features, zero complexity
-          </p>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          @for (feature of features; track feature.title) {
-            <div class="glass-card p-6 lg:p-8 rounded-2xl border border-[var(--glass-border)] hover:border-secondary/30 transition-all duration-300 group">
-              <div class="w-10 h-10 rounded-lg bg-secondary/15 border border-secondary/25 flex items-center justify-center mb-5">
-                <svg class="w-5 h-5 text-secondary" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                </svg>
-              </div>
-              <h3 class="text-lg font-bold text-text-primary mb-2 group-hover:text-secondary transition-colors">
-                {{ feature.title }}
-              </h3>
-              <p class="text-text-secondary text-sm leading-relaxed">{{ feature.description }}</p>
-            </div>
-          }
-        </div>
-      </div>
-    </section>
-
-    <!-- Ecosystem Cross-Links -->
-    <section class="relative py-24 lg:py-32">
-      <div class="max-w-5xl mx-auto px-4 sm:px-6">
-        <div class="text-center mb-12">
-          <h2 class="text-3xl lg:text-4xl font-bold text-text-primary mb-4" i18n="@@ideploy.ecosystem.title">
-            Part of the <span class="i-underline">Idem</span> Ecosystem
-          </h2>
-          <p class="text-lg text-text-secondary max-w-2xl mx-auto" i18n="@@ideploy.ecosystem.description">
-            iDeploy integrates seamlessly with the Idem platform
-          </p>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <!-- Idem Platform -->
-          <a routerLink="/home" class="glass-card p-6 rounded-2xl border border-[var(--glass-border)] hover:border-primary/30 transition-all duration-300 group block">
-            <div class="flex items-center gap-4 mb-4">
-              <div class="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center">
-                <img src="/assets/icons/logo_white.png" alt="Idem" class="w-6 h-auto dark:hidden" />
-                <img src="/assets/icons/logo_dark.png" alt="Idem" class="w-6 h-auto hidden dark:block" />
-              </div>
+        <ol class="lg:col-span-7 ed-rows ed-rows-closed">
+          @for (step of steps; track step.title; let i = $index) {
+            <li class="ed-row grid gap-x-8 gap-y-3 sm:grid-cols-[5rem_1fr] sm:items-baseline">
+              <p class="idp-step">{{ i + 1 }}</p>
               <div>
-                <h3 class="text-lg font-bold text-text-primary group-hover:text-primary transition-colors" i18n="@@ideploy.ecosystem.idem.title">Idem Platform</h3>
-                <p class="text-text-tertiary text-xs" i18n="@@ideploy.ecosystem.idem.tagline">Complete business creation</p>
+                <h3 class="ed-h3">{{ step.title }}</h3>
+                <p class="ed-body ed-mt-2">{{ step.description }}</p>
               </div>
-            </div>
-            <p class="text-text-secondary text-sm" i18n="@@ideploy.ecosystem.idem.description">
-              Create your entire business with AI: brand, strategy, legal docs, and more.
-            </p>
-          </a>
-
-          <!-- iCode -->
-          <a routerLink="/idev" class="glass-card p-6 rounded-2xl border border-[var(--glass-border)] hover:border-primary/30 transition-all duration-300 group block">
-            <div class="flex items-center gap-4 mb-4">
-              <div class="w-10 h-10 rounded-lg bg-primary/15 border border-primary/25 flex items-center justify-center">
-                <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-                </svg>
-              </div>
-              <div>
-                <h3 class="text-lg font-bold text-text-primary group-hover:text-primary transition-colors">iCode</h3>
-                <p class="text-text-tertiary text-xs" i18n="@@ideploy.ecosystem.idev.tagline">AI App Generator</p>
-              </div>
-            </div>
-            <p class="text-text-secondary text-sm" i18n="@@ideploy.ecosystem.idev.description">
-              Generate complete applications from a simple description. Build with AI, deploy with iDeploy.
-            </p>
-          </a>
-        </div>
+            </li>
+          }
+        </ol>
       </div>
-    </section>
+    </div>
+  </section>
 
-    <!-- Final CTA -->
-    <section class="relative py-16 lg:py-24">
-      <div class="max-w-4xl mx-auto px-4 sm:px-6">
-        <div class="glass-card p-8 lg:p-12 rounded-2xl border border-secondary/20 text-center">
-          <h2 class="text-2xl sm:text-3xl lg:text-4xl font-bold text-text-primary mb-4" i18n="@@ideploy.finalCta.title">
-            Ready to Deploy?
-          </h2>
-          <p class="text-text-secondary text-lg mb-8 max-w-2xl mx-auto" i18n="@@ideploy.finalCta.description">
-            Stop worrying about infrastructure. Deploy your app in minutes with iDeploy — free to start.
+  <!-- ═══ Où ça tourne ════════════════════════════════════════════════
+       Deux destinations, le même produit : le choix porte sur qui est
+       propriétaire de la machine. -->
+  <section class="ed-rule">
+    <div class="ed-section ed-wrap">
+      <h2 class="ed-h2 max-w-3xl" i18n="@@ideploy-page.where.title">Our servers, or yours</h2>
+      <p class="ed-lede ed-lede-wide ed-mt-8" i18n="@@ideploy-page.where.lede">
+        The same product either way. What changes is who owns the machine, and where your data
+        sleeps.
+      </p>
+
+      <div class="idp-forks ed-mt-14 ed-mt-lg-20">
+        @for (fork of hostingForks; track fork.title) {
+          <article class="idp-fork">
+            <figure class="ed-art ed-art-lg">
+              <app-page-art [scene]="fork.scene" />
+            </figure>
+            <h3 class="idp-fork-title ed-mt-8">{{ fork.title }}</h3>
+            <p class="ed-body ed-mt-3">{{ fork.description }}</p>
+
+            <dl class="ed-rows ed-rows-closed ed-mt-8">
+              @for (row of fork.rows; track row.label) {
+                <div class="ed-row">
+                  <dt class="idp-row-label">{{ row.label }}</dt>
+                  <dd class="ed-body ed-mt-1">{{ row.value }}</dd>
+                </div>
+              }
+            </dl>
+          </article>
+        }
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ Protégé et surveillé ════════════════════════════════════════ -->
+  <section class="ed-rule">
+    <div class="ed-section ed-wrap">
+      <div class="grid gap-14 lg:grid-cols-12 lg:gap-16 lg:items-center">
+        <div class="lg:col-span-5">
+          <figure class="ed-art ed-art-fill mx-auto lg:mx-0">
+            <app-page-art scene="shield" />
+          </figure>
+        </div>
+
+        <div class="lg:col-span-7">
+          <h2 class="ed-h2" i18n="@@ideploy-page.guard.title">Protected and watched</h2>
+          <p class="ed-lede ed-mt-8" i18n="@@ideploy-page.guard.lede">
+            Everything switches on from the interface. You never touch the server.
           </p>
-          <a
-            href="{{ ideployUrl }}"
-            class="inner-button px-8 py-4 rounded-xl font-semibold text-lg inline-flex items-center gap-2"
-          >
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-            </svg>
-            <span i18n="@@ideploy.finalCta.cta">Launch iDeploy</span>
-          </a>
+
+          <ul class="ed-rows ed-rows-2 ed-rows-closed ed-mt-10">
+            @for (guard of guards; track guard.title) {
+              <li class="ed-row">
+                <h3 class="ed-h3">{{ guard.title }}</h3>
+                <p class="ed-body ed-mt-2">{{ guard.description }}</p>
+              </li>
+            }
+          </ul>
         </div>
       </div>
-    </section>
-  </div>
+    </div>
+  </section>
+
+  <!-- ═══ L'adresse ═══════════════════════════════════════════════════ -->
+  <section class="ed-rule">
+    <div class="ed-section ed-wrap">
+      <div class="grid gap-14 lg:grid-cols-12 lg:gap-16 lg:items-center">
+        <div class="lg:col-span-6">
+          <h2 class="ed-h2" i18n="@@ideploy-page.domain.title">An address people recognise</h2>
+          <p class="ed-lede ed-lede-wide ed-mt-8" i18n="@@ideploy-page.domain.lede">
+            Every app gets a working <strong>.idem.africa</strong> address the moment it goes live,
+            with its certificate. Point your own domain at it when you are ready — the interface
+            walks you through it, registrar by registrar.
+          </p>
+          <p class="ed-body ed-mt-6" i18n="@@ideploy-page.domain.body">
+            HTTPS is issued and renewed for you. There is no certificate to buy, upload or remember
+            to replace.
+          </p>
+        </div>
+        <div class="lg:col-span-6">
+          <figure class="ed-art ed-art-fill mx-auto lg:mx-0">
+            <app-page-art scene="facade" />
+          </figure>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ Le catalogue ════════════════════════════════════════════════ -->
+  <section class="ed-rule">
+    <div class="ed-section ed-wrap">
+      <div class="grid gap-14 lg:grid-cols-12 lg:gap-16">
+        <div class="lg:col-span-7">
+          <h2 class="ed-h2" i18n="@@ideploy-page.catalogue.title">
+            The software your team already knows, installed in one click
+          </h2>
+          <p class="ed-lede ed-lede-wide ed-mt-8" i18n="@@ideploy-page.catalogue.lede">
+            WordPress, Odoo, n8n, Supabase, Nextcloud, Grafana: the open-source tools millions of
+            teams run. iDeploy installs them on our servers or on yours, with an address and
+            backups.
+          </p>
+
+          <ul class="ed-rows ed-rows-2 ed-rows-closed ed-mt-10">
+            @for (group of catalogueGroups; track group.title) {
+              <li class="ed-row">
+                <h3 class="ed-h3">{{ group.title }}</h3>
+                <p class="ed-body ed-mt-2">{{ group.examples }}</p>
+              </li>
+            }
+          </ul>
+
+          <!-- Le catalogue complet est derrière le compte : le lien mène à
+               iDeploy, pas à une page qui renverrait vers la connexion. -->
+          <a [href]="ideployUrl" class="outer-button ed-mt-10 inline-flex">
+            <ng-container i18n="@@ideploy-page.catalogue.cta">Browse the catalogue</ng-container>
+          </a>
+        </div>
+
+        <div class="lg:col-span-5 lg:pt-10">
+          <figure class="ed-art ed-art-fill mx-auto lg:mx-0">
+            <app-page-art scene="market" />
+          </figure>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ Et aussi ════════════════════════════════════════════════════ -->
+  <section class="ed-rule">
+    <div class="ed-section ed-wrap">
+      <div class="grid gap-14 lg:grid-cols-12 lg:gap-16">
+        <div class="lg:col-span-5">
+          <h2 class="ed-h2" i18n="@@ideploy-page.also.title">And also</h2>
+          <figure class="ed-art ed-art-fill ed-mt-12 mx-auto lg:mx-0">
+            <app-page-art scene="jars" />
+          </figure>
+        </div>
+
+        <ul class="lg:col-span-7 ed-rows ed-rows-2 ed-rows-closed">
+          @for (extra of extras; track extra.title) {
+            <li class="ed-row">
+              <h3 class="ed-h3">{{ extra.title }}</h3>
+              <p class="ed-body ed-mt-2">{{ extra.description }}</p>
+            </li>
+          }
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ Le prix ═════════════════════════════════════════════════════
+       Les cauris et un plan gratuit qui n'est pas une démonstration. -->
+  <section class="ed-rule">
+    <div class="ed-section ed-wrap">
+      <div class="grid gap-14 lg:grid-cols-12 lg:gap-16 lg:items-center">
+        <div class="lg:col-span-6">
+          <h2 class="ed-h2" i18n="@@ideploy-page.price.title">Your first app is on us</h2>
+          <p class="ed-lede ed-lede-wide ed-mt-8" i18n="@@ideploy-page.price.lede">
+            The free plan is enough for a real project in production, commercial use included. You
+            pay the day you need more.
+          </p>
+
+          <ul class="ed-rows ed-rows-closed ed-mt-10">
+            @for (item of freePlan; track item) {
+              <li class="ed-row">
+                <p class="ed-h3">{{ item }}</p>
+              </li>
+            }
+          </ul>
+
+          <p class="ed-body ed-mt-8" i18n="@@ideploy-page.price.paid">
+            Paid plans start at 2 999 F per month. Mobile Money accepted, no card required.
+          </p>
+        </div>
+
+        <div class="lg:col-span-6">
+          <figure class="ed-art ed-art-fill mx-auto lg:mx-0">
+            <app-page-art scene="cowries" />
+          </figure>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ Autour ══════════════════════════════════════════════════════ -->
+  <section class="ed-rule">
+    <div class="ed-section ed-wrap">
+      <div class="grid gap-12 lg:grid-cols-12 lg:gap-16">
+        <div class="lg:col-span-5">
+          <h2 class="ed-h2" i18n="@@ideploy-page.around.title">Where the code comes from</h2>
+          <p class="ed-body ed-mt-6" i18n="@@ideploy-page.around.body">
+            iDeploy hosts whatever you give it. If you have not written it yet, the rest of IDEM
+            does that part.
+          </p>
+        </div>
+
+        <ul class="lg:col-span-7 ed-rows">
+          @for (link of ecosystem; track link.name) {
+            <li>
+              <a [href]="link.href" class="ed-link-row">
+                <span>
+                  <span class="ed-h3 block">{{ link.name }}</span>
+                  <span class="ed-body block ed-mt-1">{{ link.description }}</span>
+                </span>
+                <svg
+                  class="ed-link-arrow"
+                  width="28"
+                  height="28"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M4 12h15m0 0l-5.5-5.5M19 12l-5.5 5.5"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </a>
+            </li>
+          }
+        </ul>
+      </div>
+    </div>
+  </section>
 </div>

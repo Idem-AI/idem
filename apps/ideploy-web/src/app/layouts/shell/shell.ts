@@ -4,6 +4,8 @@ import { TranslateModule } from '@ngx-translate/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { filter } from 'rxjs';
 import { ApiService } from '../../shared/services/api.service';
+import { MeterService } from '../../shared/services/meter.service';
+import { DecimalPipe } from '@angular/common';
 import { AuthService } from '../../shared/services/auth.service';
 import { LanguageSelectorComponent } from '../../shared/components/language-selector/language-selector';
 import { ThemeToggleComponent } from '../../shared/components/theme-toggle/theme-toggle';
@@ -55,6 +57,7 @@ function appNav(uuid: string): NavSection[] {
 @Component({
   selector: 'app-shell',
   imports: [
+    DecimalPipe,
     RouterOutlet,
     RouterLink,
     RouterLinkActive,
@@ -86,8 +89,14 @@ function appNav(uuid: string): NavSection[] {
              data-tour="ideploy-plan"
              class="flex items-center gap-1.5 px-2.5 py-1 rounded-md hover:opacity-80"
              style="background:color-mix(in srgb, var(--color-primary-500) 12%, transparent);color:var(--color-primary-400);border:1px solid color-mix(in srgb, var(--color-primary-500) 28%, transparent);">
-            <i class="pi pi-star text-[10px]"></i>
-            <span style="font-size:10px;font-weight:700;text-transform:uppercase;">{{ plan() }}</span>
+            <i class="pi pi-wallet text-[10px]"></i>
+            <span style="font-size:10px;font-weight:700;">
+              @if (meters.walletXaf() !== null) {
+                {{ 'meters.chip' | translate: { amount: (meters.walletXaf() | number: '1.0-0') } }}
+              } @else {
+                {{ 'meters.title' | translate }}
+              }
+            </span>
           </a>
           <div class="hidden sm:flex items-center gap-2 px-2.5 py-1 rounded-md" style="background:var(--glass-bg-subtle);">
             <i class="pi pi-box text-[10px]" style="color:var(--color-primary-400);"></i>
@@ -281,6 +290,7 @@ export class ShellComponent implements OnInit {
 
   protected readonly me = signal<{ name: string; email: string; photoUrl: string | null; idemRole: string | null; team: { id: number; name: string } | null } | null>(null);
   protected readonly plan = signal('free');
+  protected readonly meters = inject(MeterService);
   protected readonly appsUsed = signal(0);
   protected readonly appsLimit = signal(0);
   protected readonly serversUsed = signal(0);
@@ -374,6 +384,8 @@ export class ShellComponent implements OnInit {
 
   ngOnInit(): void {
     this.api.me().subscribe((m) => this.me.set(m));
+    // Le portefeuille IDEM paie les compteurs : son solde remplace l'ancien nom de forfait.
+    this.meters.list().subscribe({ error: () => undefined });
     this.api.getSubscription().subscribe((s) => {
       this.plan.set(s.plan);
       this.appsLimit.set(s.appLimit);

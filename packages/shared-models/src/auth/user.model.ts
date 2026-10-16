@@ -1,17 +1,4 @@
 /**
- * Données de quota utilisateur
- */
-export interface QuotaData {
-  dailyUsage: number;
-  weeklyUsage: number;
-  dailyLimit: number;
-  weeklyLimit: number;
-  lastResetDaily: string;
-  lastResetWeekly: string;
-  quotaUpdatedAt?: Date;
-}
-
-/**
  * Intégration GitHub
  */
 export interface GitHubIntegration {
@@ -118,7 +105,7 @@ export interface UserModel {
   subscription: SubscriptionType;
   createdAt: Date;
   lastLogin: Date;
-  quota: Partial<QuotaData>;
+  // Les quotas d'usage IA ne sont plus portés par le compte : GET /billing/quotas.
 
   // Authentification
   authProvider: AuthProvider;

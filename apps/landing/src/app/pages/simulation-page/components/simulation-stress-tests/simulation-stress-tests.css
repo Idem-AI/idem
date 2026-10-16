@@ -1,3 +1,24 @@
-:host {
-  display: block;
+/* Les tests de résistance — ce qui n'appartient qu'à cette section. */
+
+/* Une question par rangée, à un corps plus grand que le reste : ce sont elles
+   qu'on vient lire. Pas d'icône devant — la même icône répétée cinq fois ne
+   distingue rien. */
+.st-question {
+  padding-block: clamp(1.25rem, 2vw, 1.75rem);
+  border-top: 1px solid var(--glass-border-subtle);
+  font-size: clamp(1.0625rem, 1.5vw, 1.25rem);
+  line-height: 1.5;
+  color: var(--color-text-primary);
+  text-wrap: pretty;
+}
+
+/* Le verdict. Il dit un refus, donc il emprunte la couleur d'alerte du design
+   system plutôt qu'un rouge écrit à la main — et il reste du texte, pas une
+   étiquette : un refus encadré se lit comme un badge décoratif. */
+.st-verdict {
+  margin-bottom: 0;
+  font-weight: var(--font-weight-black);
+  font-size: clamp(1.5rem, 2.6vw, 2.125rem);
+  line-height: 1.05;
+  color: var(--color-danger);
 }

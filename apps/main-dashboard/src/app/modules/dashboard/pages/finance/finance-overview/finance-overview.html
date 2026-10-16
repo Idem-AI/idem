@@ -8,6 +8,7 @@
   </app-error-state>
 } @else {
   <div class="fo space-y-8 p-4 md:p-2">
+    <app-ownership-bar deliverable="financial_forecast" [projectId]="projectId()" />
     <!-- ═════════════ En-tête ═════════════ -->
     <header class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
       <div>

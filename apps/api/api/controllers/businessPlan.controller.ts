@@ -4,7 +4,6 @@ import { CustomRequest } from '../interfaces/express.interface';
 import { BusinessPlanService } from '../services/BusinessPlan/businessPlan.service';
 import { PromptService } from '../services/prompt.service';
 import logger from '../config/logger';
-import { userService } from '../services/user.service';
 import { ISectionResult } from '../services/common/generic.service';
 import { ResearchStreamEvent } from '../services/research/research.types';
 import { getRequestLanguage } from '../utils/request-language';
@@ -678,7 +677,6 @@ export const generateBusinessPlanStreamingController = async (
     );
 
     if (!isRetry) {
-      userService.incrementUsage(userId, 5);
       logger.info(`Charged 5 credits for user ${userId} on Business Plan completion.`);
     } else {
       logger.info(`Exempted user ${userId} from credit charge because this is a retry/resume.`);

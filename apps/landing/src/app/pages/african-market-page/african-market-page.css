@@ -1,16 +1,58 @@
-/* African Market Page Styles */
-:host {
-  display: block;
+/* Vision — ce qui n'appartient qu'à cette page. */
+
+/* Les six chiffres du marché. Une grille à deux puis trois colonnes, séparée
+   par des filets : le chiffre porte la lecture, la carte serait du décor. */
+.am-figures {
+  display: grid;
+  gap: 0;
+  list-style: none;
+  /* Pas de `margin: 0` : la marge haute vient de `ed-mt-*`, déclaré dans
+     l'éditorial, et ce fichier est chargé après lui. */
+  margin-bottom: 0;
+  padding: 0;
 }
 
-.am-chip {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.25rem 0.7rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--color-primary);
-  background: color-mix(in oklch, var(--color-primary) 12%, transparent);
-  border: 1px solid color-mix(in oklch, var(--color-primary) 22%, transparent);
+.am-figure {
+  padding-block: clamp(1.75rem, 3vw, 2.5rem);
+  border-top: 1px solid var(--glass-border-subtle);
+}
+
+.am-figure:last-of-type {
+  border-bottom: 1px solid var(--glass-border-subtle);
+}
+
+@media (min-width: 640px) {
+  .am-figures {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: clamp(2.5rem, 5vw, 5rem);
+  }
+  .am-figure:nth-last-of-type(-n + 2) {
+    border-bottom: 1px solid var(--glass-border-subtle);
+  }
+}
+
+@media (min-width: 1024px) {
+  .am-figures {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .am-figure:nth-last-of-type(-n + 3) {
+    border-bottom: 1px solid var(--glass-border-subtle);
+  }
+}
+
+/* La mesure qui rend une affirmation vérifiable : plus petite que le corps,
+   mais dans la couleur de la marque, parce que c'est elle qu'on vient lire. */
+.am-evidence {
+  margin-bottom: 0;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-primary-500);
+}
+
+/* Les sources des chiffres : la page les cite, en petit. */
+.am-sources {
+  margin-bottom: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-tertiary);
+  max-width: 62ch;
 }

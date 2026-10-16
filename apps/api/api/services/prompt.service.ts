@@ -7,7 +7,7 @@ import * as fs from 'fs-extra';
 import logger from '../config/logger';
 import restrictionsService from './restrictions.service';
 import OpenAI from 'openai';
-import { userService } from './user.service';
+import { assertGenerationBudget } from '../utils/generation-budget.util';
 dotenv.config();
 
 import {
@@ -28,6 +28,7 @@ import {
 import { applyAiOverride } from '../config/ai-overrides.config';
 import {
   describeError,
+  isAccountError,
   isRateLimited,
   isTransientNetworkError,
   sleep,
@@ -42,6 +43,8 @@ import {
   joinMessagesForEstimate,
 } from '../utils/ai-usage-extract.util';
 import { aiUsageService } from './ai-usage.service';
+import { getAiUsageContext } from '../utils/ai-usage-context.util';
+import { getModelPricing } from '../config/ai-pricing.config';
 export { LLMProvider, LLMOptions };
 
 /**
@@ -71,7 +74,33 @@ const RATE_LIMIT_DELAY_MS = Number(process.env.LLM_RATE_LIMIT_DELAY_MS ?? 4000);
  * entre eux se manifesterait par une génération qui part sur un modèle
  * différent des autres, sans que rien ne le dise.
  */
+/**
+ * ESQUISSE : le modèle de texte économique qui remplace, pour une esquisse gratuite, tout modèle
+ * dont la sortie coûte plus de `DRAFT_MAX_OUTPUT_USD` par million de jetons. Les modèles de code
+ * légers (auteur de pages au cran Low) restent ce qu'ils sont : ils coûtent déjà moins.
+ */
+const DRAFT_TEXT_MODEL = process.env.IDEM_DRAFT_TEXT_MODEL?.trim() || 'deepseek/deepseek-v4-flash';
+const DRAFT_MAX_OUTPUT_USD = 1;
+
+function isDraftGeneration(): boolean {
+  return getAiUsageContext()?.generationMode === 'draft';
+}
+
+function withDraftModel<T extends PromptConfig>(config: T): T {
+  if (!isDraftGeneration() || config.provider !== LLMProvider.OPENROUTER) return config;
+  if (getModelPricing(config.modelName).output <= DRAFT_MAX_OUTPUT_USD) return config;
+  return {
+    ...config,
+    modelName: DRAFT_TEXT_MODEL,
+    fallbackModels: (config.fallbackModels ?? []).filter((model) => getModelPricing(model).output <= DRAFT_MAX_OUTPUT_USD),
+  };
+}
+
 function resolveRouting<T extends PromptConfig>(request: T): T {
+  return withDraftModel(resolveRoutingFor(request));
+}
+
+function resolveRoutingFor<T extends PromptConfig>(request: T): T {
   const switched = resolveGlobalOverride(request);
   const { config, applied } = applyAiOverride(switched, request.promptType);
 
@@ -117,22 +146,6 @@ function jsonModeFor(
 }
 
 /**
- * Incrémente le quota SANS bloquer la réponse.
- *
- * C'est un compteur, pas une transaction: l'appel modèle a déjà réussi et son
- * résultat est prêt à partir. L'attendre ajoutait une écriture base au chemin
- * critique de chaque génération — sept fois dans ce fichier — pour une valeur
- * que personne ne relit dans la milliseconde. L'échec reste journalisé.
- */
-function incrementUsageInBackground(userId: string): void {
-  void userService
-    .incrementUsage(userId, 1)
-    .catch((quotaError) =>
-      logger.error(`Failed to increment quota for user ${userId}:`, quotaError)
-    );
-}
-
-/**
  * Refuse tout chemin hors du répertoire temporaire du système.
  * `realpath` suit les liens symboliques, qui sinon contourneraient la règle.
  */
@@ -161,7 +174,6 @@ export interface PromptConfig {
   };
   userId?: string;
   promptType?: string;
-  skipQuotaCheck?: boolean;
   fallbackModels?: string[];
   /**
    * User UI language ('en' | 'fr'). When set, a language directive is injected so
@@ -196,7 +208,6 @@ export interface PromptRequest {
   };
   userId?: string;
   promptType?: string;
-  skipQuotaCheck?: boolean;
   fallbackModels?: string[];
   language?: string;
   /** Exempte cet appel du plafond global MAX_OUTPUT_TOKENS. */
@@ -532,6 +543,10 @@ export class PromptService {
         }
       }
       const forceFinal = turn === maxToolTurns;
+      // Chaque tour est un appel facturé : le budget de la génération se vérifie
+      // à chacun, pas seulement à l'entrée de la boucle.
+      assertGenerationBudget();
+      const turnStartedAt = Date.now();
       const response = await client.chat.completions.create(
         translateReasoning({
           model: modelName,
@@ -550,6 +565,19 @@ export class PromptService {
       this.assertNoErrorEnvelope(provider, response);
       const choice = response.choices?.[0]?.message;
       const toolCalls = choice?.tool_calls ?? [];
+
+      // Chaque tour est journalisé : la boucle d'outils n'apparaissait nulle part
+      // au journal de consommation, alors qu'elle relit toute la conversation à
+      // chaque tour.
+      void aiUsageService.record({
+        provider,
+        modelName: (response as { model?: string })?.model || modelName,
+        usage:
+          extractOpenAIUsage(response) ??
+          estimateUsage(joinMessagesForEstimate(conversation.map((m) => ({ content: typeof m.content === 'string' ? m.content : '' }))), choice?.content ?? ''),
+        durationMs: Date.now() - turnStartedAt,
+        promptType: 'agentic_turn',
+      });
 
       if (!choice || toolCalls.length === 0 || forceFinal) {
         finalText = choice?.content ?? '';
@@ -642,17 +670,32 @@ export class PromptService {
         // raisonne toujours (HTTP 400).
         ...(canSuppressThinking(modelName) ? {} : { thinking: { type: 'enabled' } }),
         stream: true,
+        // Le dernier fragment porte l'usage : sans lui, un flux ne laissait
+        // aucune trace au journal de consommation.
+        stream_options: { include_usage: true },
       }) as OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming
     );
 
+    const startedAt = Date.now();
     let full = '';
+    let usage: ReturnType<typeof extractOpenAIUsage>;
+    let modelUsed = modelName;
     for await (const chunk of stream) {
+      if (chunk.usage) usage = extractOpenAIUsage(chunk);
+      if (chunk.model) modelUsed = chunk.model;
       const delta = chunk.choices?.[0]?.delta?.content ?? '';
       if (delta) {
         full += delta;
         onDelta(full);
       }
     }
+    void aiUsageService.record({
+      provider,
+      modelName: modelUsed,
+      usage: usage ?? estimateUsage(joinMessagesForEstimate(messages), full),
+      durationMs: Date.now() - startedAt,
+      promptType: 'stream',
+    });
     return full;
   }
 
@@ -694,8 +737,10 @@ export class PromptService {
     messages: AIChatMessage[];
     resultText?: string;
     error?: any;
+    /** Coût hors jetons de l'appel (résultats web), porté par la dernière tentative. */
+    toolCostUsd?: number;
   }): Promise<void> {
-    const { attempts, provider, promptType, userId, messages, resultText, error } = params;
+    const { attempts, provider, promptType, userId, messages, resultText, error, toolCostUsd } = params;
     if (attempts.length === 0) return;
 
     const promptText = joinMessagesForEstimate(messages);
@@ -707,12 +752,15 @@ export class PromptService {
       // précédentes ont nécessairement échoué (la boucle sort au succès).
       const succeeded = isLast && !error && resultText !== undefined;
 
-      // Une tentative refusée par un 429 n'a jamais été traitée : le
-      // fournisseur ne la facture pas, l'estimer gonflerait les coûts.
-      const rejectedByQuota = !attempt.sink.usage && isRateLimited(attempt.error);
+      // Une tentative refusée par un 429, ou par le compte (clé absente ou
+      // refusée, crédit épuisé), n'a jamais atteint de modèle : le fournisseur
+      // ne la facture pas. L'estimer gonflait les coûts ET le budget de la
+      // génération en cours, qui pouvait alors s'arrêter sans rien avoir consommé.
+      const notBilled =
+        !attempt.sink.usage && (isRateLimited(attempt.error) || isAccountError(attempt.error));
       const usage =
         attempt.sink.usage ??
-        (rejectedByQuota
+        (notBilled
           ? { inputTokens: 0, outputTokens: 0, estimated: true }
           : estimateUsage(promptText, succeeded ? (resultText ?? '') : ''));
 
@@ -727,6 +775,7 @@ export class PromptService {
         durationMs: Date.now() - attempt.startedAt,
         promptType,
         userId,
+        ...(isLast && toolCostUsd ? { toolCostUsd } : {}),
       });
     }
   }
@@ -745,7 +794,6 @@ export class PromptService {
       file,
       userId,
       promptType,
-      skipQuotaCheck = false,
       language,
     } = request;
 
@@ -760,20 +808,10 @@ export class PromptService {
       assertTemporaryFilePath(file.localPath);
     }
 
-    // Quota checking for authenticated users (skip for system/internal calls)
-    if (userId && !skipQuotaCheck) {
-      logger.info(`Checking quota for user: ${userId}`);
-      const quotaCheck = await userService.checkQuota(userId);
-
-      if (!quotaCheck.allowed) {
-        logger.warn(`Quota exceeded for user ${userId}: ${quotaCheck.message}`);
-        throw new Error(quotaCheck.message || 'Quota exceeded');
-      }
-
-      logger.info(
-        `Quota check passed for user ${userId}. Remaining: daily=${quotaCheck.remainingDaily}, weekly=${quotaCheck.remainingWeekly}`
-      );
-    }
+    // Le quota d'usage est réservé une fois par génération, à l'entrée de la
+    // route (`requireCredits` / `requireQuota`). Ici, seul le budget de coût de
+    // la génération en cours est vérifié : il arrête une génération qui boucle.
+    assertGenerationBudget();
 
     // Restrictions validation
     if (promptType) {
@@ -952,6 +990,14 @@ export class PromptService {
       } catch (error: any) {
         lastError = error;
         attempt.error = error;
+        // Refus du compte : chaque modèle de la chaîne échouerait à l'identique.
+        if (isAccountError(error)) {
+          logger.error(
+            `Appel refusé par le compte ${provider} (${describeError(error)}) — chaîne de repli abandonnée : ` +
+              `aucun modèle ne peut répondre tant que la clé ou le crédit n'est pas réglé.`
+          );
+          break;
+        }
         if (i < modelsToTry.length - 1) {
           logger.warn(
             `Model ${currentModel} failed, falling back to ${modelsToTry[i + 1]}... Error: ${describeError(error)}`
@@ -994,11 +1040,6 @@ export class PromptService {
       throw new Error('Unexpected empty result after trying all models.');
     }
 
-    // Increment quota after successful API call
-    if (userId && !skipQuotaCheck) {
-      incrementUsageInBackground(userId);
-    }
-
     return result;
   }
 
@@ -1018,7 +1059,7 @@ export class PromptService {
     options: { maxToolTurns?: number } = {}
   ): Promise<string> {
     const { provider, modelName } = resolveRouting(request);
-    const { llmOptions = {}, userId, skipQuotaCheck = false, language } = request;
+    const { llmOptions = {}, language } = request;
 
     if (!messages || messages.length === 0) {
       throw new Error('Messages array cannot be empty.');
@@ -1033,13 +1074,7 @@ export class PromptService {
       );
     }
 
-    if (userId && !skipQuotaCheck) {
-      const quotaCheck = await userService.checkQuota(userId);
-      if (!quotaCheck.allowed) {
-        logger.warn(`Quota exceeded for user ${userId}: ${quotaCheck.message}`);
-        throw new Error(quotaCheck.message || 'Quota exceeded');
-      }
-    }
+    assertGenerationBudget();
 
     // Directive de langue: même choke point que runPrompt.
     const effectiveLanguage = language ?? getRequestLanguage();
@@ -1072,9 +1107,6 @@ export class PromptService {
       finalTextLength: text.length,
       durationMs: Date.now() - loopStartedAt,
     });
-    if (userId && !skipQuotaCheck) {
-      incrementUsageInBackground(userId);
-    }
     return text;
   }
 
@@ -1093,22 +1125,24 @@ export class PromptService {
     messages: AIChatMessage[]
   ): Promise<GroundedResult> {
     const { provider, modelName } = resolveRouting(request);
-    const { llmOptions = {}, userId, skipQuotaCheck = false, language } = request;
+    const { llmOptions = {}, userId, language } = request;
 
     if (!messages || messages.length === 0) {
       throw new Error('Messages array cannot be empty.');
     }
+
+    // Une esquisse ne paie pas de recherche web : ses chiffres de marché sont signalés « à
+    // sourcer », et la version finale les sourcera.
+    if (isDraftGeneration()) {
+      logger.info('runGroundedResearch : esquisse, recherche web non lancée.');
+      return { text: '', queries: [], sources: [], supports: [] };
+    }
+
     if (!providerSupports(provider, 'grounding')) {
       throw new Error(`runGroundedResearch: le fournisseur ${provider} ne fonde pas ses réponses.`);
     }
 
-    if (userId && !skipQuotaCheck) {
-      const quotaCheck = await userService.checkQuota(userId);
-      if (!quotaCheck.allowed) {
-        logger.warn(`Quota exceeded for user ${userId}: ${quotaCheck.message}`);
-        throw new Error(quotaCheck.message || 'Quota exceeded');
-      }
-    }
+    assertGenerationBudget();
 
     const languageDirective = this.buildLanguageDirective(language ?? getRequestLanguage());
     const brief = [...messages].reverse().find((m) => m.role === 'user')?.content ?? '';
@@ -1151,7 +1185,7 @@ export class PromptService {
             ...(llmOptions.topP !== undefined && { top_p: llmOptions.topP }),
             ...(def.extraBody ?? {}),
             ...(llmOptions.extraBody ?? {}),
-            plugins: [{ id: 'web', max_results: SEARCH_RESULTS_PER_QUERY * MAX_SEARCH_QUERIES }],
+            plugins: [{ id: 'web', max_results: WEB_RESULTS_PER_CALL }],
           }) as OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming
         ),
       { label: `${provider}/${modelName}` }
@@ -1171,6 +1205,8 @@ export class PromptService {
       userId,
       messages: grounded,
       resultText: text,
+      // Les résultats injectés sont facturés au résultat, en plus des jetons.
+      toolCostUsd: WEB_RESULTS_PER_CALL * WEB_RESULT_USD,
     }).catch((error) => logger.warn(`Relevé d'usage perdu: ${describeError(error)}`));
 
     logAIEvent('ai.grounded_research_end', {
@@ -1184,10 +1220,6 @@ export class PromptService {
     if (sources.length === 0) {
       logger.warn("runGroundedResearch : la recherche web n'a renvoyé aucune source.");
       return { text: '', queries, sources: [], supports: [] };
-    }
-
-    if (userId && !skipQuotaCheck) {
-      incrementUsageInBackground(userId);
     }
 
     return { text, queries, sources, supports };
@@ -1206,30 +1238,19 @@ export class PromptService {
     onDelta: (cumulativeText: string) => void
   ): Promise<string> {
     const { provider, modelName } = resolveRouting(request);
-    const {
-      llmOptions = {},
-      userId,
-      skipQuotaCheck = false,
-      language,
-    } = request;
+    const { llmOptions = {}, language } = request;
 
     if (!messages || messages.length === 0) {
       throw new Error('Messages array cannot be empty.');
     }
 
-    if (userId && !skipQuotaCheck) {
-      const quotaCheck = await userService.checkQuota(userId);
-      if (!quotaCheck.allowed) {
-        throw new Error(quotaCheck.message || 'Quota exceeded');
-      }
-    }
+    assertGenerationBudget();
 
     const effectiveLanguage = language ?? getRequestLanguage();
     const languageDirective = this.buildLanguageDirective(effectiveLanguage);
 
     // Vrai flux via le SDK OpenAI si la capacité est déclarée, sinon repli
-    // non-streamé. Le repli passe par runPrompt qui gère lui-même le quota ; le
-    // flux réussi incrémente ici (une seule fois).
+    // non-streamé par runPrompt.
     if (providerSupports(provider, 'streaming')) {
       const streamMessages: AIChatMessage[] = languageDirective
         ? [...messages, { role: 'system', content: languageDirective }]
@@ -1242,9 +1263,6 @@ export class PromptService {
           llmOptions,
           onDelta
         );
-        if (userId && !skipQuotaCheck) {
-          incrementUsageInBackground(userId);
-        }
         return full;
       } catch (error: any) {
         logger.warn(
@@ -1365,6 +1383,12 @@ const SEARCH_RESULTS_PER_QUERY = 4;
  * recoupent et l'on paie une recherche de plus pour la même information.
  */
 const MAX_SEARCH_QUERIES = 3;
+
+/** Résultats web injectés par appel fondé (le greffon les facture tous, utilisés ou non). */
+const WEB_RESULTS_PER_CALL = SEARCH_RESULTS_PER_QUERY * MAX_SEARCH_QUERIES;
+
+/** Greffon `web` d'OpenRouter (moteur Exa) : 4 $ pour 1 000 résultats. */
+const WEB_RESULT_USD = 0.004;
 
 /**
  * Tire de vraies requêtes de recherche d'un brief de recherche.

@@ -1,5 +1,5 @@
 /* Vérification manuelle du réessai réseau. `npx ts-node --transpile-only api/scripts/verifyRetry.ts` */
-import { withRetry, isTransientNetworkError, describeError } from '../utils/retry';
+import { withRetry, isTransientNetworkError, describeError, isAccountError } from '../utils/retry';
 
 let failures = 0;
 function check(label: string, condition: boolean) {
@@ -75,6 +75,14 @@ function check(label: string, condition: boolean) {
     exhausted = /fetch failed/.test(e.message);
   }
   check('erreur finale propagée après épuisement', exhausted);
+
+  // 8. Refus du compte : la chaîne de repli s'arrête, l'essai n'est pas compté comme consommé.
+  check('401 ré-emballé = refus du compte', isAccountError(new Error('Error with OPENROUTER API: 401 Authentication Failed')));
+  check('402 (crédit épuisé) = refus du compte', isAccountError(Object.assign(new Error('x'), { status: 402 })));
+  check('clé absente = refus du compte', isAccountError(new Error('OPENROUTER_API_KEY is not set — cannot use provider OPENROUTER.')));
+  check('403 (modération d’un modèle) n’arrête pas la chaîne', !isAccountError(new Error('Error with OPENROUTER API: 403 Input flagged')));
+  check('429 n’est pas un refus du compte', !isAccountError(new Error('Error with OPENROUTER API: 429 Provider returned error')));
+  check('coupure réseau n’est pas un refus du compte', !isAccountError(new Error('Error with OPENROUTER API: Connection error.')));
 
   console.log(failures === 0 ? '\nTout est vert.\n' : `\n${failures} vérification(s) en échec.\n`);
   process.exit(failures === 0 ? 0 : 1);

@@ -7,9 +7,8 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
  */
 @Component({
   selector: 'app-simulation-readout',
-  standalone: true,
   templateUrl: './simulation-readout.html',
-  styleUrl: './simulation-readout.css',
+  styleUrls: ['../../../../shared/styles/editorial-page.css', './simulation-readout.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SimulationReadout {}

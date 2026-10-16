@@ -24,13 +24,13 @@ import type { VideoMediaAsset } from '../../../core/src/video/contracts/model';
 import { VideoInputError } from '../../../core/src/video/motionVideo.service';
 import { normalizeCreativity } from '../../../core/src/creativity/levels';
 import { FLYER_FORMATS, FlyerFormat } from '../../../core/src/visual/visual.model';
-import { videoCost } from '../../../core/src/video/pricing';
 import { SiteScanError } from '../../../core/src/site/site-scanner';
 import { collection } from '../config/db';
 import logger from '../config/logger';
 import { HttpError } from '../middleware/error';
 import type { ChatAsk, ChatAttachment, ChatMessage, ChatMode, ChatOptions, ChatSession, IvisionBrand, IvisionReference } from '../models';
-import { charge, Charge, PaymentRequired, quote, refund } from './billing';
+import { AI_CLIP_XAF, charge, Charge, MAX_AI_CLIPS, PaymentRequired, quote, refund } from './billing';
+import { withClipAllowance } from '../utils/clip-allowance';
 import { applyNamedColors, brandFromSite, brandView, createAutoBrand, getBrand } from './brands.service';
 import { colorsNamed } from '../../../core/src/brand/color-words';
 import { blueprintOf, getReference, referenceView } from './references.service';
@@ -315,10 +315,11 @@ async function startMontage(userId: string, session: ChatSession, brand: Ivision
     paid = await charge(userId, montages.quote(total, level), session._id);
   } catch (error) {
     if (!(error instanceof PaymentRequired)) throw error;
-    // Solde insuffisant : la demande (et ses vidéos) attend ; un clic la relance après recharge.
-    const msg = message('assistant', 'Vos crédits ne suffisent pas pour ce montage. Rechargez votre compte IDEM, puis relancez.', { status: 'error', error: 'payment_required', i18n: { key: 'chat.error.payment' } });
+    // Solde insuffisant ou quota atteint : la demande (et ses vidéos) attend ; un clic la relance.
+    const refusal = paymentRefusal(error, 'Vos crédits ne suffisent pas pour ce montage. Rechargez votre compte IDEM, puis relancez.');
+    const msg = message('assistant', refusal.text, { status: 'error', error: refusal.code, i18n: { key: refusal.i18n } });
     await push(session._id, msg, { pending: { text: request, options, videos } });
-    emit({ type: 'error', error: 'payment_required', message: msg.text, payment: error.body });
+    emit({ type: 'error', error: refusal.code, message: msg.text, payment: error.body });
     emit({ type: 'message', message: msg });
     return;
   }
@@ -623,19 +624,36 @@ async function turn(userId: string, session: ChatSession, input: TurnInput, emit
   // 4. La création.
   const level = normalizeCreativity(options.creativity);
   let paid: Charge | undefined;
+  let clips: Charge | undefined;
   try {
     if (session.mode === 'video') {
       paid = await charge(userId, quote.video(scopeOf(options), level), session._id);
-      emit({ type: 'status', key: 'chat.status.video.start', text: 'Je prépare votre vidéo…', data: { cost: paid.cost } });
+      // Les plans filmés par l'IA sont la seule dépense de la création : commandés et payés ici,
+      // les plans non utilisés sont restitués à la fin.
+      const aiClips = Math.max(0, Math.min(MAX_AI_CLIPS, Math.floor(Number(options.aiClips) || 0)));
+      if (aiClips > 0) clips = await charge(userId, { action: 'ai_clip', cost: aiClips * AI_CLIP_XAF, note: `${aiClips} plan(s) filmé(s) par l'IA`, quantity: aiClips }, session._id);
+      emit({ type: 'status', key: 'chat.status.video.start', text: 'Je prépare votre vidéo…', data: { cost: (paid.cost || 0) + (clips?.cost || 0) } });
       const blueprint = reference ? blueprintOf(reference) : null;
-      const video = await createVideo(
+      const ordered = clips ? aiClips : 0;
+      // Rien n'est payé à la création : l'export HD réglera le périmètre.
+      const paidCredits = paid.charged ? paid.cost : 0;
+      const video = await withClipAllowance(ordered, async (allowance) => {
+        try {
+          return await createVideo(
         userId,
         brand._id,
         // La langue de la vidéo est celle de la demande (lue par le moteur) ; l'interface n'est qu'un repli.
         { text: messageOf(request), details: request, options, media, ...(blueprint ? { reference: blueprint } : {}), language },
-        paid.charged ? paid.cost : videoCost(scopeOf(options)),
+        paidCredits,
         (event) => emit({ type: 'progress', stage: event.stage, state: event.state, data: event.data })
-      );
+          );
+        } finally {
+          const unused = ordered - allowance.used;
+          if (clips?.charged && unused > 0) {
+            await refund(userId, { ...clips, cost: Math.round((clips.cost * unused) / ordered) }, `${unused} plan(s) filmé(s) non utilisé(s) — montant restitué`);
+          }
+        }
+      });
       // La voix off demandée mais pas obtenue (service en panne, langue refusée) : on le dit.
       const voiceMissed = video.brief.voice === true && !video.voice?.enabled;
       const ready = reference ? 'Votre vidéo est prête : les animations du modèle, avec votre marque. Retouchez les textes et les images, puis exportez.' : 'Votre vidéo est prête. Retouchez les textes et les images, puis exportez.';
@@ -676,19 +694,35 @@ async function turn(userId: string, session: ChatSession, input: TurnInput, emit
     }
   } catch (error) {
     if (error instanceof PaymentRequired) {
-      const msg = message('assistant', 'Vos crédits ne suffisent pas pour cette création. Rechargez votre compte IDEM, puis relancez.', { status: 'error', error: 'payment_required', i18n: { key: 'chat.error.payment' } });
+      // Les plans filmés commandés n'ont pas pu être payés : la place de quota de la création est rendue.
+      await refund(userId, paid, 'Création iVision non lancée');
+      const refusal = paymentRefusal(error, 'Votre portefeuille ne suffit pas pour cette création. Rechargez-le, puis relancez.');
+      const msg = message('assistant', refusal.text, { status: 'error', error: refusal.code, i18n: { key: refusal.i18n } });
       await push(session._id, msg, { pending: keep(request) });
-      emit({ type: 'error', error: 'payment_required', message: msg.text, payment: error.body });
+      emit({ type: 'error', error: refusal.code, message: msg.text, payment: error.body });
       emit({ type: 'message', message: msg });
       return;
     }
     await refund(userId, paid, session.mode === 'video' ? 'Vidéo iVision en échec — crédits restitués' : 'Visuel iVision en échec — crédits restitués');
+    await refund(userId, clips, 'Vidéo iVision en échec — plans filmés restitués');
     const code = error instanceof VideoInputError || error instanceof HttpError ? (error as Error & { code?: string }).code || error.message : 'generation_failed';
     logger.error('chat.generation_failed', { event: 'chat.generation_failed', sessionId: session._id, mode: session.mode, error });
     const msg = message('assistant', 'La création a échoué. Vos crédits ont été restitués ; vous pouvez relancer.', { status: 'error', error: code, i18n: { key: 'chat.error.generation' } });
     await push(session._id, msg, { pending: keep(request) });
     emit({ type: 'message', message: msg });
   }
+}
+
+/**
+ * Le refus d'IDEM en message de conversation : crédits insuffisants (402), ou quota d'usage
+ * atteint (429) — dont le message dit déjà quelle limite et quand elle se renouvelle.
+ */
+function paymentRefusal(error: PaymentRequired, creditsText: string): { code: string; text: string; i18n: string } {
+  if (error.status === 429) {
+    const text = typeof error.body.message === 'string' && error.body.message ? error.body.message : 'Vous avez atteint votre limite d’usage pour le moment.';
+    return { code: 'quota_exceeded', text, i18n: 'chat.error.quota' };
+  }
+  return { code: 'payment_required', text: creditsText, i18n: 'chat.error.payment' };
 }
 
 export { referenceView };

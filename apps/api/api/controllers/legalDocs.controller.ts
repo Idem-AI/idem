@@ -6,7 +6,6 @@ import {
 } from '../services/LegalDocs/legalDocs.service';
 import { PromptService } from '../services/prompt.service';
 import { ISectionResult } from '../services/common/generic.service';
-import { userService } from '../services/user.service';
 import logger from '../config/logger';
 import { getRequestLanguage } from '../utils/request-language';
 import { LegalDocumentType } from '../models/legalDocs.model';
@@ -252,7 +251,6 @@ export const generateLegalDocsStreamingController = async (
       return;
     }
 
-    userService.incrementUsage(userId, Math.max(1, payload.types.length));
     logger.info(
       `generateLegalDocsStreamingController success projectId=${projectId} generated=${payload.types.length}`
     );

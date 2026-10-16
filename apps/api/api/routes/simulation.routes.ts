@@ -20,7 +20,7 @@ import {
 import { checkPolicyAcceptance } from '../middleware/policyCheck.middleware';
 import { requireSimulationConsent } from '../middleware/simulationConsent.middleware';
 import { isAcceptedDocument } from '../services/Simulation/document-intake';
-import { checkQuota } from '../middleware/quota.middleware';
+import { requireQuota } from '../middleware/usage-quota.middleware';
 import { requireSimulationPayment } from '../middleware/billing.middleware';
 import { authenticate } from '../services/auth.service';
 
@@ -95,6 +95,7 @@ simulationRoutes.get(`/${resource}/import/pricing`, authenticate, getPricingCont
 simulationRoutes.post(
   `/${resource}/import/analysis`,
   authenticate,
+  requireQuota('assist', { envelope: 'simulation_analysis' }),
   upload.single('document'),
   analyseImportedDocumentController
 );
@@ -120,7 +121,7 @@ simulationRoutes.post(
   // Le projet n'existe pas encore : l'accord se donne ici, pas sur une fiche
   // qu'on n'a pas. La vérification par projet renvoyait un 400 sur ce parcours.
   requireSimulationConsent,
-  checkQuota,
+  requireQuota('simulation', { envelope: 'simulation_run' }),
   // Après l'accord et la validation : on ne réserve pas un paiement pour une
   // requête qui sera refusée sur un champ manquant.
   requireSimulationPayment(),
@@ -205,7 +206,7 @@ simulationRoutes.post(
   `/${resource}/:projectId/analysis`,
   authenticate,
   checkPolicyAcceptance,
-  checkQuota,
+  requireQuota('assist', { envelope: 'simulation_analysis' }),
   upload.single('document'),
   analyseProjectController
 );
@@ -252,7 +253,7 @@ simulationRoutes.post(
   // Même depuis un projet IDEM déjà finalisé : une simulation confie le projet
   // à plusieurs modèles, l'accord se redonne à chaque lancement.
   requireSimulationConsent,
-  checkQuota,
+  requireQuota('simulation', { envelope: 'simulation_run' }),
   requireSimulationPayment(),
   createSimulationController
 );
@@ -338,7 +339,7 @@ simulationRoutes.post(
   `/${resource}/:projectId/:simulationId/report`,
   authenticate,
   checkPolicyAcceptance,
-  checkQuota,
+  requireQuota('assist', { envelope: 'simulation_extra' }),
   generateReportController
 );
 
@@ -398,6 +399,6 @@ simulationRoutes.post(
   `/${resource}/:projectId/:simulationId/labs/:lab`,
   authenticate,
   checkPolicyAcceptance,
-  checkQuota,
+  requireQuota('assist', { envelope: 'simulation_extra' }),
   runLabController
 );

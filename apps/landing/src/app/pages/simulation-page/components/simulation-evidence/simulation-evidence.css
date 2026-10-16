@@ -1,3 +1,38 @@
-:host {
-  display: block;
+/* Données, estimation, hypothèse — ce qui n'appartient qu'à cette section. */
+
+/* Chaque niveau porte un repère à gauche. Ce n'est pas une puce : son
+   intensité baisse du mesuré au supposé, donc il encode la certitude. */
+.se-level {
+  position: relative;
+  padding-left: 1.75rem;
+}
+
+.se-level::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: calc(clamp(1.5rem, 2.5vw, 2.25rem) + 0.45em);
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: var(--radius-full);
+  background: var(--color-primary-500);
+}
+
+.se-level-estimate::before {
+  background: color-mix(in oklch, var(--color-primary-500) 45%, transparent);
+}
+
+.se-level-assumption::before {
+  background: none;
+  border: 1px solid var(--color-text-tertiary);
+}
+
+/* L'intitulé du niveau : c'est l'étiquette que porte chaque chiffre du
+   rapport, écrite exactement comme elle y apparaît. */
+.se-label {
+  margin: 0;
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-sm);
+  text-transform: uppercase;
+  color: var(--color-text-primary);
 }

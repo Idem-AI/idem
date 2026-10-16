@@ -1,52 +1,45 @@
-<div class="cta-section flex flex-col items-center justify-center text-center mt-[40px] mb-[100px] px-4 relative overflow-hidden">
-  <!-- Immersive Aurora Background -->
-  <div class="absolute top-[20%] left-1/2 -translate-x-1/2 w-[800px] h-[350px] rounded-full bg-radial from-primary/15 via-accent/5 to-transparent blur-[110px] pointer-events-none z-0"></div>
-  
-  <div class="relative z-10 max-w-4xl mx-auto flex flex-col items-center gap-6 mb-14">
-    <h2
-      i18n="@@cta.startBuildingToday"
-      class="reveal-up text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black cta-gradient-title pb-1"
-      style="transition-delay: 50ms"
-    >
-      Start Building Today
-    </h2>
-    
-    <p 
-      i18n="@@cta.description" 
-      class="reveal-up text-base sm:text-lg md:text-xl text-text-secondary leading-relaxed max-w-2xl" 
-      style="transition-delay: 100ms"
-    >
-      Join Idem and transform your ideas into complete projects with our AI-powered open source
-      platform. Generate logos, business plans, and deploy applications - all for free.
-    </p>
-    
-    <div class="flex flex-col sm:flex-row items-center justify-center gap-4 reveal-up pt-4 w-full sm:w-auto" style="transition-delay: 150ms">
-      <a
-        class="inner-button px-8 py-4 rounded-xl font-semibold text-base shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/40 transition-all duration-300 w-full sm:w-auto text-center"
-        href="{{ dashboardUrl }}/login"
-        i18n="@@cta.signUpButton"
-      >
-        Sign Up
-      </a>
-      <a
-        href="{{ dashboardUrl }}/create-project"
-        class="outer-button px-8 py-4 rounded-xl font-semibold text-base transition-all duration-300 w-full sm:w-auto text-center"
-        i18n="@@cta.getStartedButton"
-      >
-        Get Started
-      </a>
-    </div>
-  </div>
+<!-- L'appel final de l'accueil.
+     Le texte et IDEO forment un couple centré dans la page, et non deux blocs
+     repoussés chacun contre son bord. Rien n'encadre IDEO — le PNG est
+     détouré, donc lui remettre un panneau, une ombre ou un fond redessinerait
+     le rectangle que le détourage a retiré. Rien n'attend un défilement pour
+     apparaître. -->
+<section class="cta-band">
+  <div class="ed-wrap cta-stage">
+    <!-- Titre, texte et actions dans un seul bloc : séparés en éléments de
+         grille distincts, ils se faisaient étirer par la hauteur d'IDEO et un
+         trou s'ouvrait sous le titre. -->
+    <div class="cta-text">
+      <h2 class="cta-title">
+        <span i18n="@@cta.title.lead">It starts with</span><br />
+        <span class="i-underline" i18n="@@cta.title.accent">one description</span>
+      </h2>
 
-  <!-- Perspective Mockup Display -->
-  <div class="relative z-10 w-full max-w-sm mx-auto perspective-container reveal-up mt-6" style="transition-delay: 200ms">
-    <div class="perspective-card p-1.5 bg-white/5 dark:bg-black/40 rounded-3xl border border-white/10 shadow-2xl">
-      <img
-        src="/assets/images/home/ideo.webp"
-        i18n-alt="@@cta.alt.idemPlatformInterface"
-        alt="Idem AI platform interface showing project creation workflow"
-        class="rounded-2xl w-full h-auto perspective-image"
-      />
+      <p class="ed-lede ed-lede-wide ed-mt-8" i18n="@@cta.lede">
+        Say what your business does, in a few lines. IDEM draws the brand, writes the plan, builds
+        the site and puts it online. Seeing what it produces costs nothing.
+      </p>
+
+      <div class="ed-mt-10 flex flex-col gap-3 sm:flex-row">
+        <a class="inner-button" href="{{ dashboardUrl }}/create-project">
+          <ng-container i18n="@@cta.start">Create a project</ng-container>
+        </a>
+        <a class="outer-button" routerLink="/pricing">
+          <ng-container i18n="@@cta.pricing">See the prices</ng-container>
+        </a>
+      </div>
     </div>
+
+    <figure class="cta-figure">
+      <img
+        src="assets/images/home/ideo.png"
+        i18n-alt="@@cta.alt.ideo"
+        alt="IDEO, the IDEM mascot, giving a thumbs up"
+        width="1024"
+        height="1536"
+        loading="lazy"
+        decoding="async"
+      />
+    </figure>
   </div>
-</div>
+</section>

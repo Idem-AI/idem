@@ -71,7 +71,9 @@ export async function consumeGeneration(options: {
       signal: controller.signal,
     });
 
-    if (response.status === 402) {
+    // 402 : crédits insuffisants. 429 : quota d'usage atteint (groupe, fenêtre,
+    // date de renouvellement). Les deux se relaient tels quels au client.
+    if (response.status === 402 || response.status === 429) {
       const refusal = (await response.json()) as Record<string, unknown>;
       return { allowed: false, refusal };
     }
@@ -109,8 +111,8 @@ function unavailable(error: string, message: string): Record<string, unknown> {
 /**
  * Quelle action facturer pour cette requête.
  *
- * Le modèle iCode distingue la **génération initiale** (gratuite, plafonnée
- * par jour) des **modifications** (au barème). On les reconnaît au nombre de
+ * Le modèle iCode distingue la **génération initiale** (gratuite, bornée par
+ * jour, semaine et mois selon l'offre) des **modifications** (au barème). On les reconnaît au nombre de
  * messages : une conversation qui commence ne contient que la demande de
  * l'utilisateur.
  */

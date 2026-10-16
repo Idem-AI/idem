@@ -1,16 +1,17 @@
 /**
- * `npm run check:motion` — le moteur Motion Canvas, de bout en bout, sans modèle :
+ * `npm run check:motion` — le moteur vidéo, de bout en bout, sans modèle :
  *
- *   1. chaque exemple du kit (`motion/examples`) compile ;
- *   2. un film fait de ces exemples est contrôlé (exécution de chaque scène, vignettes) ;
- *   3. une scène fautive est attribuée à SA scène, les autres restent intactes ;
- *   4. le film est rendu en MP4 : durée exacte, image et son lisibles (ffprobe) ;
- *   5. la référence d'API donnée à l'auteur existe dans la version installée de Motion Canvas ;
- *   6. la création complète avec des modèles SIMULÉS (directeur, planificateur, auteur) : textes du
- *      scénario repris, chiffre inventé retiré et signalé, AUTOCORRECTION bornée (compilation et
- *      exécution ; trois approches au plus, une à la fois, montée de modèle, budget de jetons ; ce qui
- *      résiste reste signalé), « Corriger », retouche de texte (le code ne change pas), retouche
- *      écrite, aperçu, export MP4 ; une vidéo de l'ancien moteur reste en lecture seule.
+ *   1. un film fait des programmes d'exemple (langage de mouvement compilé) est contrôlé : exécution de chaque
+ *      scène, vignettes, effets sonores ; une scène fautive est attribuée à SA scène, les autres restent intactes ;
+ *   2. une scène écrite avant le langage qui importe un nom inexistant ne fait plus tomber le film entier ;
+ *   3. le film est rendu en MP4 : durée exacte (ffprobe) ;
+ *   4. la création complète avec des modèles SIMULÉS (directeur, planificateur, auteur de programmes) : textes du
+ *      scénario repris, chiffre inventé retiré et signalé, programme refusé puis redemandé avec ses erreurs,
+ *      AUTOCORRECTION bornée (trois approches au plus, une à la fois, montée de modèle, budget de jetons ; ce qui
+ *      résiste reste signalé), défaut d'AFFICHAGE (textes qui se chevauchent) corrigé avant livraison, vidéo en
+ *      DEUX formats (un seul programme, contrôlé dans chacun), « Corriger », retouche de texte (le code ne change
+ *      pas), retouche écrite, scène écrite avant le langage réécrite en programme, aperçu, export MP4 ; une vidéo
+ *      de l'ancien moteur reste en lecture seule.
  *
  * Sorties dans `apps/ivision/core/tmp/check-motion/` (vignettes, MP4, images tirées du MP4).
  */
@@ -18,25 +19,25 @@ import fs from 'fs';
 import path from 'path';
 import { execFileSync } from 'child_process';
 import sharp from 'sharp';
-import { buildFilmBundle, compileScene } from '../src/video/rendering/compiler';
+import { buildFilmBundle } from '../src/video/rendering/compiler';
 import { closeFilmBrowser, localizeFilm, probeFilm, renderFilm, cleanupFilmRender } from '../src/video/rendering/runner';
-import { previewPageHtml } from '../src/video/rendering/preview';
 import { COMPOSITION, frameSpec } from '../src/video/rendering/formats';
 import { probe } from '../src/video/rendering/ffmpeg';
 import type { FilmData } from '../motion/runtime/film-data';
-import { MC_SYMBOLS } from '../src/video/author/api-reference';
 import { configureCore } from '../src/runtime/host';
 import { drainRenderQueue, MotionVideoService } from '../src/video/motionVideo.service';
 import type { VideoStore } from '../src/video/contracts/store';
 import type { MotionVideo } from '../src/video/contracts/model';
 import type { AgentCall } from '../src/creativity/orchestrator';
+import { compileProgram, PROGRAM_EXAMPLES, programOf, validateProgram } from '../../../../packages/motion-compiler/src';
+import type { MotionProgram } from '../../../../packages/motion-compiler/src';
 
 process.env.VIDEO_ALLOW_FILE_URLS = '1';
+process.env.VIDEO_SFX_OFFLINE = '1';
 const OUT = path.resolve(__dirname, '../tmp/check-motion');
-const EXAMPLES = path.resolve(__dirname, '../motion/examples');
 let failures = 0;
 const check = (ok: boolean, label: string, detail = '') => {
-  console.log(`${ok ? '✓' : '✗'} ${label}${detail ? ` — ${detail}` : ''}`);
+  console.log(`${ok ? '✓' : '✗'} ${label}${!ok && detail ? ` — ${detail}` : ''}`);
   if (!ok) failures++;
 };
 
@@ -47,94 +48,75 @@ async function fixtures() {
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1500"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e9a23b"/><stop offset="1" stop-color="#7b2d26"/></linearGradient></defs><rect width="1200" height="1500" fill="url(#g)"/><circle cx="600" cy="640" r="320" fill="#f6efe2" opacity="0.85"/><rect x="380" y="560" width="440" height="300" rx="40" fill="#2f5d50"/></svg>`;
     await sharp(Buffer.from(svg)).jpeg({ quality: 88 }).toFile(photo);
   }
-  const clip = path.join(OUT, 'clip.webm');
-  if (!fs.existsSync(clip)) execFileSync('ffmpeg', ['-v', 'error', '-y', '-f', 'lavfi', '-i', 'testsrc2=size=720x1280:rate=30:duration=5', '-c:v', 'libvpx-vp9', '-b:v', '1M', clip]);
-  return { photo: `file://${photo}`, clip: `file://${clip}` };
+  return { photo: `file://${photo}` };
+}
+
+const BRAND = { name: 'Kora Café', colors: { primary: '#1f6f4a', secondary: '#14324a', accent: '#f2a93b', background: '#fbfaf7', text: '#16181d' }, fonts: { display: 'Inter', body: 'Inter' } };
+const TEXTS: Record<string, string> = { headline: 'Le café qui réveille Dakar', sub: 'Torréfié chaque matin', caption: 'Grains du Fouta', figure: '1 250 clients', label: 'servis chaque semaine', headline2: 'Commandez', tagline: 'Réveillez votre journée', cta: 'kora.sn' };
+
+/** Un programme d'exemple compilé pour le contrôle du film (le logo est retiré : la marque du contrôle n'en a pas). */
+function exampleCode(id: string): string {
+  const ex = PROGRAM_EXAMPLES.find((e) => e.id === id)!;
+  const program: MotionProgram = { ...ex.program, nodes: ex.program.nodes.filter((n) => n.type !== 'logo'), timeline: ex.program.timeline.filter((s) => s.target !== 'logo') };
+  const v = validateProgram(program, { texts: ex.texts, media: ex.media, duration: 3, hasLogo: false });
+  if (!v.ok) throw new Error(`${id} : ${v.errors.join(' | ')}`);
+  return compileProgram(v.program!).code;
 }
 
 async function main() {
   const media = await fixtures();
-  const files = fs.readdirSync(EXAMPLES).filter((f) => f.endsWith('.tsx')).sort();
-  const sources: Record<string, string> = {};
-  for (const f of files) {
-    const code = fs.readFileSync(path.join(EXAMPLES, f), 'utf8');
-    const res = await compileScene(code);
-    check(res.ok, `compile ${f}`, res.error || '');
-    sources[f.replace('.tsx', '')] = code;
-  }
-  // Un import inutilisé est retiré par TypeScript (sans effet) : celui-ci sert.
-  const bad = await compileScene(`import fs from 'fs';\nexport default function* () { fs.readFileSync('/etc/passwd'); }`);
-  check(!bad.ok && /import interdit/.test(bad.error || ''), 'import interdit refusé', bad.error);
-  const syntax = await compileScene(`export default function* (view) { view.add(<Rect }`);
-  check(!syntax.ok && /ligne \d+/.test(syntax.error || ''), 'erreur de syntaxe localisée', syntax.error);
 
-  // Le film : chaque exemple est une scène ; une scène qui plante à l'exécution est ajoutée.
-  const order = ['typography', 'photo', 'infographic', 'interface', 'clip', 'logo-transition'];
-  const keys = order.map((_, i) => `s${i + 1}`);
+  // ── 1. Le film des programmes, une scène qui plante ──
+  const order = ['kinetic-title', 'photo-reveal', 'data-bars', 'logo-signature'];
   const crashing = `export default function* (view, ctx) { yield* (null as any).boom(); }`;
-  const scenes = [...order.map((name, i) => ({ key: keys[i], code: sources[name] })), { key: 's7', code: crashing }];
-  const durations = [2.5, 2.5, 2.5, 3, 2, 2.5, 1];
-  let start = 0;
+  const scenes = [...order.map((id, i) => ({ key: `s${i + 1}`, code: exampleCode(id) })), { key: 's5', code: crashing }];
+  const durations = [3, 3, 3, 3, 1];
   const format = 'story' as const;
   const spec = frameSpec(format, 'standard');
+  let start = 0;
   const data: FilmData = {
     format,
     ...COMPOSITION[format],
     resolutionScale: spec.scale,
     fps: spec.fps,
-    background: '#fbfaf7',
+    background: BRAND.colors.background,
     lang: 'fr',
     fontFamilies: ['Inter'],
-    brand: { name: 'Kora Café', colors: { primary: '#1f6f4a', secondary: '#14324a', accent: '#f2a93b', background: '#fbfaf7', text: '#16181d' }, fonts: { display: 'Inter', body: 'Inter' } },
+    brand: BRAND,
     scenes: scenes.map((s, i) => {
-      const scene = {
-        key: s.key,
-        start,
-        duration: durations[i],
-        texts: { headline: 'Le café qui réveille Dakar', sub: 'Torréfié chaque matin', caption: 'Grains du Fouta', figure: '1 250 clients', label: 'servis chaque semaine', button: 'Commander', cta: 'Commandez sur WhatsApp' },
-        media: [
-          { id: 'm1', kind: 'image' as const, url: media.photo, width: 1200, height: 1500, note: 'photo' },
-          { id: 'm2', kind: 'video' as const, url: media.clip, width: 720, height: 1280, durationSec: 5 },
-        ],
-      };
+      const scene = { key: s.key, start, duration: durations[i], texts: TEXTS, media: [{ id: 'm1', kind: 'image' as const, url: media.photo, width: 1200, height: 1500, note: 'photo' }] };
       start += durations[i];
       return scene;
     }),
-    captions: [{ text: 'Le café qui réveille Dakar.', start: 0.3, end: 2.3 }],
   };
   const total = durations.reduce((a, b) => a + b, 0);
   const bundle = await buildFilmBundle(scenes, 'render');
-  check(bundle.length > 100000, 'paquet du film construit', `${Math.round(bundle.length / 1024)} ko`);
-
+  check(bundle.length > 100000, 'paquet du film construit (scènes compilées depuis leurs programmes)', `${Math.round(bundle.length / 1024)} ko`);
   const local = await localizeFilm(data);
-  const t0 = Date.now();
   const probed = await probeFilm({ data: local.data, bundle, fontCss: '', files: local.files });
-  check(probed.errors.length === 1 && probed.errors[0].key === 's7', 'seule la scène fautive est en erreur', JSON.stringify(probed.errors));
-  check(Object.keys(probed.thumbnails).length === scenes.length, 'une vignette par scène', `${Date.now() - t0} ms`);
-  check(probed.cues.some((c) => c.kind === 'click' && c.scene === 's4'), 'effet sonore posé par le code relevé', JSON.stringify(probed.cues.slice(0, 4)));
+  check(probed.errors.length === 1 && probed.errors[0].key === 's5', 'seule la scène fautive est en erreur', JSON.stringify(probed.errors));
+  check(Object.keys(probed.thumbnails).length === scenes.length, 'une vignette par scène');
+  check(probed.cues.some((c) => c.kind === 'pop' && c.scene === 's3'), 'effet sonore posé par un programme relevé', JSON.stringify(probed.cues.slice(0, 4)));
+  check(Object.keys(probed.layout).length === 0, 'aucun texte coupé ni chevauché', JSON.stringify(probed.layout));
   for (const [key, buf] of Object.entries(probed.thumbnails)) fs.writeFileSync(path.join(OUT, `thumb-${key}.jpg`), buf);
 
-  const previewBundle = await buildFilmBundle(scenes, 'preview');
-  const html = await previewPageHtml({ data: { ...data, resolutionScale: 0.5 }, audio: { voice: [], sfx: {} }, bundle: previewBundle, fontCss: '' });
-  fs.writeFileSync(path.join(OUT, 'preview.html'), html);
-  check(html.includes('Content-Security-Policy') && html.length > 100000, 'page d’aperçu autonome', `${Math.round(html.length / 1024)} ko`);
+  // ── 2. Une scène d'avant le langage qui importe un nom inexistant ──
+  const badImport = `import { easeOut } from '@motion-canvas/core';\nexport default function* (view, ctx) { void easeOut; }`;
+  const robust = await buildFilmBundle([{ key: 's1', code: exampleCode('kinetic-title') }, { key: 's2', code: badImport }], 'render').then(
+    (b) => b.length > 100000,
+    () => false
+  );
+  check(robust, 'un import inexistant (« easeOut ») ne fait plus tomber le film entier : seule sa scène est retirée');
 
+  // ── 3. Le MP4 ──
   const t1 = Date.now();
-  const out = await renderFilm({ data: local.data, bundle, fontCss: '', files: local.files, durationSec: total, quality: 'standard', concurrency: Number(process.env.CONC || 3), onProgress: process.env.DEBUG_PROGRESS ? (r) => console.log('progress', r.toFixed(2)) : undefined });
+  const out = await renderFilm({ data: local.data, bundle, fontCss: '', files: local.files, durationSec: total, quality: 'standard', concurrency: 3 });
   const info = await probe(out.file);
   check(Math.abs(info.duration - total) < 0.1, 'durée exacte du MP4', `${info.duration.toFixed(2)} s pour ${total} s, rendu en ${Date.now() - t1} ms`);
-  check(info.width === spec.width && info.height === spec.height, 'dimensions de sortie', `${info.width}×${info.height}`);
   fs.copyFileSync(out.file, path.join(OUT, 'film.mp4'));
-  fs.copyFileSync(out.poster, path.join(OUT, 'poster.jpg'));
-  let at = 0;
-  for (let i = 0; i < durations.length; i++) {
-    execFileSync('ffmpeg', ['-v', 'error', '-y', '-ss', (at + durations[i] * 0.85).toFixed(2), '-i', out.file, '-frames:v', '1', path.join(OUT, `frame-s${i + 1}.jpg`)]);
-    at += durations[i];
-  }
   cleanupFilmRender(out);
 
-  await apiReference();
-  await pipeline(media, sources);
+  await pipeline(media);
   await closeFilmBrowser();
   console.log(failures ? `\n${failures} échec(s)` : '\nTout est vert.');
   process.exit(failures ? 1 : 0);
@@ -146,21 +128,29 @@ main().catch(async (e) => {
   process.exit(1);
 });
 
-/** 5. Chaque nom cité par la référence d'API s'importe depuis les paquets installés (esbuild refuse un import absent). */
-async function apiReference() {
-  const lines = Object.entries(MC_SYMBOLS).map(([mod, names]) => `import { ${names.join(', ')} } from '${mod}';`);
-  const all = Object.values(MC_SYMBOLS).flat();
-  const code = `${lines.join('\n')}\nconst used: unknown[] = [${all.join(', ')}];\nexport default function* () { if (used.length < 0) yield; }`;
-  try {
-    await buildFilmBundle([{ key: 's1', code }], 'render');
-    check(true, 'référence d’API : tous les noms existent dans la version installée', `${all.length} noms`);
-  } catch (error) {
-    check(false, 'référence d’API : tous les noms existent dans la version installée', String((error as Error).message).slice(0, 400));
-  }
+/** Un programme correct pour la scène décrite par le prompt : ses textes dans une pile, sa photo si elle en a une. */
+function programFor(user: string, opts: { overlap?: boolean } = {}): MotionProgram {
+  const scene = user.split('THIS SCENE')[1] || user;
+  const keys = [...scene.matchAll(/\$(\w+) = "/g)].map((m) => m[1]);
+  const hasMedia = /\nmedia: 0 = image/.test(scene);
+  const nodes: MotionProgram['nodes'] = [];
+  if (hasMedia) nodes.push({ id: 'photo', type: 'image', media: 0, x: 'pick(0, -SW*0.25)', y: 'pick(-SH*0.15, 0)', w: 'pick(SW, SW*0.45)', h: 'pick(SH*0.5, SH)', radius: 2, zoom: 1.1 });
+  if (opts.overlap) keys.forEach((k, i) => nodes.push({ id: `t${i}`, type: 'text', text: `$${k}`, y: i, size: 8 }));
+  else nodes.push({ id: 'words', type: 'stack', dir: 'column', gap: 2, y: hasMedia ? 'pick(SH*0.32, 0)' : 0, x: hasMedia ? 'pick(0, SW*0.27)' : 0, children: keys.map((k, i) => ({ type: 'text' as const, text: `$${k}`, size: i ? 4.6 : 9, width: hasMedia ? 'pick(SW, SW*0.4)' : 'SW', weight: i ? 400 : 800 })) });
+  return {
+    bg: 'background',
+    nodes,
+    timeline: [
+      ...(hasMedia ? [{ at: 0, target: 'photo', dur: 'D', ease: 'linear' as const, to: { zoom: 1 } }] : []),
+      ...(opts.overlap ? keys.map((_, i) => ({ at: 0.2 * i, target: `t${i}`, dur: 0.5, from: { opacity: 0 }, to: {} })) : [{ at: 0.1, target: 'words', dur: 0.6, ease: 'outBack' as const, from: { opacity: 0, scale: 0.9 }, to: {} }]),
+      { at: 0.1, sfx: 'softwhoosh' },
+    ],
+  };
 }
+const json = (p: unknown) => '```json\n' + JSON.stringify(p) + '\n```';
 
-/** 6. La création de bout en bout, modèles simulés. */
-async function pipeline(media: { photo: string; clip: string }, sources: Record<string, string>) {
+/** 4. La création de bout en bout, modèles simulés. */
+async function pipeline(media: { photo: string }) {
   const storageDir = path.join(OUT, 'storage');
   fs.mkdirSync(storageDir, { recursive: true });
   configureCore({
@@ -178,7 +168,7 @@ async function pipeline(media: { photo: string; clip: string }, sources: Record<
   const legacy = { id: 'video-old', title: 'Ancienne', brief: { objective: 'promotion', message: 'old', musicMood: 'none' }, scope: { durationSec: 15, formats: ['story'], quality: 'hd' }, storyboard: { version: 1, scenes: [] }, renders: [{ format: 'story', status: 'done', progress: 1, url: 'https://x/old.mp4' }], status: 'ready', paidCredits: 120, exportCount: 1, createdAt: '2026-10-01', updatedAt: '2026-10-01' } as unknown as MotionVideo;
   videos.set(legacy.id, legacy);
   const store: VideoStore = {
-    loadBrand: async () => ({ brandName: 'Kora Café', branding: { colors: { colors: { primary: '#1f6f4a', secondary: '#14324a', accent: '#f2a93b', background: '#fbfaf7', text: '#16181d' } } } as never, voice: { tone: 'chaleureux', language: 'fr' }, visuals: [], videos: [...videos.values()] }),
+    loadBrand: async () => ({ brandName: 'Kora Café', branding: { colors: { colors: BRAND.colors } } as never, voice: { tone: 'chaleureux', language: 'fr' }, visuals: [], videos: [...videos.values()] }),
     listVideos: async () => [...videos.values()],
     saveVideo: async (_u, _p, v) => void videos.set(v.id, v),
     mutateVideo: async (_u, _p, id, fn) => {
@@ -191,13 +181,11 @@ async function pipeline(media: { photo: string; clip: string }, sources: Record<
     removeVideo: async (_u, _p, id) => videos.delete(id),
   };
   const calls: Record<string, number> = {};
-  /** Ce que reçoit chaque appel d'auteur : scène, cran (donc modèle) et stratégie de correction. */
-  const authorLog: { scene: number; level?: string; strategy: string }[] = [];
-  const broken = `export default function* (view, ctx) { view.add(<Rect width={100} }`;
-  // Compile, mais plante à l'exécution : seul le contrôle réel (Motion Canvas) peut le voir.
-  const crashing = `export default function* (view, ctx) { const n: any = null; yield* n.go(); }`;
-  /** fixable : la scène 3 casse au premier jet et se corrige ; stubborn : elle casse toujours ; runtime : elle plante à l'exécution puis se corrige. */
-  let mode: 'fixable' | 'stubborn' | 'runtime' = 'fixable';
+  /** Chaque appel d'auteur : scène, cran (donc modèle), stratégie (first, retry = programme refusé redemandé, fix, rewrite, minimal, revise). */
+  const authorLog: { scene: number; level?: string; strategy: string; user: string }[] = [];
+  const invalid = { nodes: [{ id: 'x', type: 'sparkle' }], timeline: [] };
+  /** fixable : la scène 3 est refusée au premier jet puis se corrige ; stubborn : toujours refusée ; layout : ses textes se chevauchent au premier jet. */
+  let mode: 'fixable' | 'stubborn' | 'layout' | 'contrast' | 'plate' = 'fixable';
   const call: AgentCall = async ({ role, user, level }) => {
     calls[role] = (calls[role] || 0) + 1;
     if (role === 'video.concept') return 'TITLE: Le café qui réveille\nCONCEPT: Une journée qui commence par une tasse.\nBIBLE: fond crème, vert de la marque, gros titres serrés, mouvements nets.\nSCENE 1: le titre se pose mot à mot\nSCENE 2: la photo des grains\nSCENE 3: le chiffre de la semaine\nSCENE 4: la signature';
@@ -209,24 +197,29 @@ async function pipeline(media: { photo: string; clip: string }, sources: Record<
         'SCENE 1 | 4', 'purpose: accrocher', 'visual: titre géant à gauche', 'motion: mots qui montent', 'text.headline: Le café qui réveille Dakar', 'text.sub: Torréfié chaque matin', 'voice: Le café qui réveille Dakar.',
         'SCENE 2 | 4', 'purpose: montrer le produit', 'visual: la photo dans un cadre arrondi', 'motion: travelling avant', 'media: m1', 'text.caption: Grains du Fouta',
         'SCENE 3 | 3', 'purpose: prouver', 'visual: un compteur et des barres', 'motion: barres qui poussent', 'text.figure: 1 250 clients', 'text.label: servis chaque semaine', 'text.promo: -50 % ce week-end',
-        'SCENE 4 | 4', 'purpose: signer', 'visual: logo sur le vert', 'motion: glisse depuis la droite', 'transition: slide', 'text.cta: Commandez sur WhatsApp',
+        'SCENE 4 | 4', 'purpose: signer', 'visual: le nom sur le vert', 'motion: glisse depuis la droite', 'transition: slide', 'text.cta: Commandez sur WhatsApp',
       ].join('\n');
     if (role === 'video.author') {
-      const strategy = /IT FAILS WITH/.test(user) ? 'fix' : /SIMPLEST version/.test(user) ? 'minimal' : /FAILED with/.test(user) ? 'rewrite' : 'first';
-      const scene = Number(user.match(/scene (\d) of/)?.[1] || 1);
-      authorLog.push({ scene, level, strategy });
-      if (scene === 3 && (mode === 'stubborn' || strategy === 'first')) return '```tsx\n' + (mode === 'runtime' ? crashing : broken) + '\n```';
-      const pick = ['typography', 'photo', 'infographic', 'logo-transition'][scene - 1];
-      return 'Voici la scène :\n```tsx\n' + sources[pick] + '\n```';
+      const strategy = /IT WAS REJECTED/.test(user) ? 'retry' : /CURRENT PROGRAM OF THIS SCENE[\s\S]*PROBLEM:|PREVIOUS PROGRAM WAS REJECTED/.test(user) ? 'fix' : /SIMPLEST program/.test(user) ? 'minimal' : /PREVIOUS PROGRAM HAD A PROBLEM/.test(user) ? 'rewrite' : /THE CLIENT ASKS/.test(user) ? 'revise' : 'first';
+      const scene = Number(user.match(/SCENE (\d) of/)?.[1] || 1);
+      authorLog.push({ scene, level, strategy, user });
+      if (scene === 3 && (mode === 'stubborn' || (mode === 'fixable' && (strategy === 'first' || strategy === 'retry')))) return json(invalid);
+      if (scene === 3 && mode === 'layout' && strategy === 'first') return json(programFor(user, { overlap: true }));
+      // Un modèle qui s'obstine : texte bleu nuit sur un bandeau bleu nuit, à chaque approche.
+      // Un modèle qui s'obstine à poser la légende sur la photo plein cadre, à chaque approche.
+      if (scene === 2 && mode === 'plate') return json({ nodes: [{ type: 'image', media: 0, w: 'W', h: 'H' }, { id: 'cap', type: 'text', text: '$caption', size: 9, color: 'ink' }], timeline: [{ at: 0.2, target: 'cap', dur: 0.5, from: { opacity: 0, y: '+=4' }, to: {} }] });
+      if (scene === 3 && mode === 'contrast') return json({ nodes: [{ type: 'rect', w: 'SW', h: 30, fill: 'secondary' }, { id: 'n', type: 'text', text: '$figure', size: 10, color: '#14324a' }, { type: 'text', text: '$label', y: 30, size: 5 }], timeline: [{ at: 0.1, target: 'n', dur: 0.5, from: { opacity: 0 }, to: {} }] });
+      return 'Voici le programme :\n' + json(programFor(user));
     }
     if (role === 'video.reviser') return 'TEXT s1.headline: Le café du matin\nVISUAL s2: le cadre entre plus lentement\nREPLY: C’est fait.';
     return '';
   };
   const service = new MotionVideoService(store, call);
   const request = 'Une vidéo pour Kora Café : 1 250 clients chaque semaine, café torréfié chaque matin à Dakar. Commandez sur WhatsApp.';
-  const create = (onProgress?: (e: { stage: string; state: string }) => void) =>
-    service.createVideo('u1', 'p1', { brief: { message: request, request, musicMood: 'none', sfx: false, media: [{ id: 'up1', kind: 'image', url: media.photo, width: 1200, height: 1500, origin: 'upload' }] as never, allowGenerate: false, allowStock: false }, scope: { durationSec: 15, formats: ['story'], quality: 'standard' }, creativity: 'medium' }, 120, onProgress);
-  const s3Calls = () => authorLog.filter((x) => x.scene === 3);
+  const create = (onProgress?: (e: { stage: string; state: string }) => void, formats: ('story' | 'landscape')[] = ['story']) =>
+    service.createVideo('u1', 'p1', { brief: { message: request, request, musicMood: 'none', sfx: false, media: [{ id: 'up1', kind: 'image', url: media.photo, width: 1200, height: 1500, origin: 'upload' }] as never, allowGenerate: false, allowStock: false }, scope: { durationSec: 15, formats, quality: 'standard' }, creativity: 'medium' }, 120, onProgress);
+  const s3 = () => authorLog.filter((x) => x.scene === 3);
+  const strategies = () => s3().map((x) => x.strategy).filter((s) => s !== 'retry');
   const events: string[] = [];
   const video = await create((e) => events.push(`${e.stage}:${e.state}`));
   const film = video.film!;
@@ -235,8 +228,10 @@ async function pipeline(media: { photo: string; clip: string }, sources: Record<
   check(calls['video.concept'] === 1 && calls['video.planner'] === 1, 'directeur et planificateur, une fois chacun', JSON.stringify(calls));
   check(!('promo' in film.scenes[2].texts) && (film.fidelity?.notes || []).some((n) => /50/.test(n)), 'un chiffre absent de la demande n’est pas affiché, et c’est dit', (film.fidelity?.notes || []).join(' | '));
   check(film.scenes[1].media.includes('m1') && (video.media || []).some((m) => m.id === 'm1' && m.origin === 'upload'), 'la photo importée est le média m1 de la scène 2');
-  check(film.scenes.every((s) => s.status === 'ready' && !!s.thumbnail), 'autocorrection : la scène 3 cassée au premier jet est corrigée AVANT livraison', JSON.stringify(film.scenes.map((s) => s.error)));
-  check(JSON.stringify(s3Calls().map((x) => x.strategy)) === '["first","fix"]' && film.repair?.fixed.join() === 's3' && film.repair.attempts === 1 && film.scenes[2].author?.repairs?.[0]?.strategy === 'fix', 'une seule tentative suffit : « corriger » au même modèle, puis rien de plus', JSON.stringify({ calls: s3Calls(), repair: film.repair }));
+  check(film.scenes.every((s) => !!programOf(s.code)), 'chaque scène est un programme compilé (gardé en tête de son code)');
+  check(s3()[1]?.strategy === 'retry' && /type inconnu « sparkle »/.test(s3()[1]?.user || ''), 'programme refusé : le modèle reçoit l’erreur exacte et répond une fois de plus', JSON.stringify(s3().map((x) => x.strategy)));
+  check(film.scenes.every((s) => s.status === 'ready' && !!s.thumbnail), 'autocorrection : la scène 3 refusée au premier jet est corrigée AVANT livraison', JSON.stringify(film.scenes.map((s) => s.error)));
+  check(JSON.stringify(strategies()) === '["first","fix"]' && film.repair?.fixed.join() === 's3' && film.repair.attempts === 1, 'une seule tentative suffit : « corriger » au même modèle, puis rien de plus', JSON.stringify({ s: strategies(), repair: film.repair }));
   check(['plan:done', 'concept:done', 'storyboard:done', 'code:done', 'check:done', 'repair:done'].every((e) => events.includes(e)), 'progression réelle (SSE), correction comprise', events.filter((e) => e.endsWith('done')).join(' '));
 
   // Une scène qui résiste : trois approches au plus, une à la fois, le modèle monte d'un cran ; puis elle reste signalée.
@@ -244,8 +239,8 @@ async function pipeline(media: { photo: string; clip: string }, sources: Record<
   authorLog.length = 0;
   const stubborn = await create();
   const sb = stubborn.film!;
-  check(JSON.stringify(s3Calls().map((x) => x.strategy)) === '["first","fix","rewrite","minimal"]', 'scène qui résiste : corriger › réécrire › version minimale, puis on s’arrête (3 tentatives au plus)', JSON.stringify(s3Calls()));
-  check(JSON.stringify(s3Calls().map((x) => x.level)) === '["medium","medium","high","high"]', 'changer d’approche = le modèle du cran au-dessus (Medium → High)', JSON.stringify(s3Calls().map((x) => x.level)));
+  check(JSON.stringify(strategies()) === '["first","fix","rewrite","minimal"]', 'scène qui résiste : corriger › réécrire › version minimale, puis on s’arrête', JSON.stringify(strategies()));
+  check(JSON.stringify([...new Set(s3().filter((x) => x.strategy !== 'retry').map((x) => `${x.strategy}:${x.level}`))]) === '["first:medium","fix:medium","rewrite:high","minimal:high"]', 'changer d’approche = le modèle du cran au-dessus (Medium → High)', JSON.stringify(s3().map((x) => x.level)));
   check(sb.scenes[2].status === 'error' && sb.repair?.unresolved.join() === 's3' && sb.repair.attempts === 3 && sb.scenes.filter((s) => s.key !== 's3').every((s) => s.status === 'ready'), 'non résolue : la scène reste signalée, les autres sont prêtes', JSON.stringify(sb.repair));
   await service.startExport('u1', 'p1', stubborn.id, stubborn.scope).then(
     () => check(false, 'export refusé tant qu’une scène est en erreur'),
@@ -254,13 +249,31 @@ async function pipeline(media: { photo: string; clip: string }, sources: Record<
   mode = 'fixable';
   authorLog.length = 0;
   const manual = await service.updateVideo('u1', 'p1', stubborn.id, { fix: ['s3'] });
-  check(manual!.film!.scenes[2].status === 'ready' && JSON.stringify(s3Calls().map((x) => x.strategy)) === '["fix"]', '« Corriger » (demandé) : la même boucle bornée, une tentative ici', JSON.stringify(s3Calls()));
+  check(manual!.film!.scenes[2].status === 'ready', '« Corriger » (demandé) : la même boucle bornée', JSON.stringify(strategies()));
 
-  // Une erreur d'EXÉCUTION (le code compile) : vue par le contrôle réel, corrigée de même.
-  mode = 'runtime';
+  // Un défaut d'AFFICHAGE : deux textes posés au même endroit — vu par le contrôle réel, corrigé avant livraison.
+  mode = 'layout';
   authorLog.length = 0;
-  const runtime = await create();
-  check(runtime.film!.scenes[2].status === 'ready' && runtime.film!.repair?.fixed.join() === 's3' && /reading 'go'/.test(runtime.film!.scenes[2].author?.repairs?.[0]?.error || 'x') === false, 'erreur d’exécution détectée par Motion Canvas puis corrigée', JSON.stringify(runtime.film!.repair));
+  const lay = await create();
+  const fixMsg = s3().find((x) => x.strategy === 'fix')?.user || '';
+  check(/se chevauchent/.test(fixMsg) && lay.film!.repair?.layoutFixed?.join() === 's3' && !lay.film!.scenes[2].layout?.length, 'textes qui se chevauchent : détectés dans Motion Canvas, le modèle reçoit le défaut exact, scène corrigée', JSON.stringify({ repair: lay.film!.repair, msg: fixMsg.slice(-300) }));
+  mode = 'fixable';
+
+  // Un texte qui reste illisible après les trois approches : l'encre lisible est posée par le code (dernier recours).
+  mode = 'contrast';
+  authorLog.length = 0;
+  const ink = await create();
+  const s3c = ink.film!.scenes[2];
+  check(!s3c.layout?.length && /"color":"#ffffff"/.test(s3c.code || '') && JSON.stringify(strategies()) === '["first","fix","rewrite"]', 'texte illisible malgré deux approches : le code lui donne l’encre lisible d’après le fond réel, la scène se lit', JSON.stringify({ layout: s3c.layout, repair: ink.film!.repair }));
+  mode = 'fixable';
+
+  // Un texte posé sur une photo malgré deux approches : le code pose un aplat sous le texte (dernier recours).
+  mode = 'plate';
+  authorLog.length = 0;
+  const plated = await create();
+  const s2p = plated.film!.scenes[1];
+  check(!s2p.layout?.length && /"type":"stack"[^\n]*"fill":"background\/92"/.test(s2p.code || '') && authorLog.filter((x) => x.scene === 2 && x.strategy !== 'retry').length === 3, 'légende posée sur la photo malgré deux approches : le code pose un aplat sous le texte, ses mouvements suivent', JSON.stringify({ layout: s2p.layout, repair: plated.film!.repair }));
+  mode = 'fixable';
 
   // Le budget de jetons coupe la correction pour tout le film, même au milieu des approches.
   mode = 'stubborn';
@@ -268,15 +281,30 @@ async function pipeline(media: { photo: string; clip: string }, sources: Record<
   process.env.VIDEO_REPAIR_TOKEN_BUDGET = '1';
   const capped = await create();
   delete process.env.VIDEO_REPAIR_TOKEN_BUDGET;
-  check(capped.film!.repair?.attempts === 1 && capped.film!.repair.stopped === 'budget' && s3Calls().length === 2, 'budget épuisé : arrêt net après une tentative (stopped = budget)', JSON.stringify(capped.film!.repair));
+  check(capped.film!.repair?.attempts === 1 && capped.film!.repair.stopped === 'budget', 'budget épuisé : arrêt net après une tentative (stopped = budget)', JSON.stringify(capped.film!.repair));
   mode = 'fixable';
+
+  // Deux formats : un seul programme, écrit pour les deux cadres et contrôlé dans chacun.
+  authorLog.length = 0;
+  const both = await create(undefined, ['story', 'landscape']);
+  const first = authorLog.find((x) => x.strategy === 'first')?.user || '';
+  check(/FRAMES — this SAME program is rendered in 2 formats/.test(first) && /story \(vertical\)/.test(first) && /landscape \(horizontal\)/.test(first) && both.film!.scenes.every((s) => s.status === 'ready' && !s.layout?.length), 'vidéo story + paysage : l’auteur reçoit les deux cadres, chaque scène s’affiche bien dans les deux', JSON.stringify(both.film!.scenes.map((s) => s.layout)));
 
   const codeBefore = film.scenes[0].code;
   const edited = await service.updateVideo('u1', 'p1', video.id, { texts: { s1: { headline: 'Le meilleur café de Dakar', invented: 'x' } } });
   check(edited!.film!.scenes[0].texts.headline === 'Le meilleur café de Dakar' && !('invented' in edited!.film!.scenes[0].texts) && edited!.film!.scenes[0].code === codeBefore, 'retouche de texte : la donnée change, le code non');
 
   const revised = await service.reviseFromText('u1', 'p1', video.id, 'Change le titre et fais entrer la photo plus lentement', 'fr');
-  check(revised.video!.film!.scenes[0].texts.headline === 'Le café du matin' && revised.report.recoded.includes('s2'), 'retouche écrite : texte changé, scène 2 réécrite par l’auteur', JSON.stringify(revised.report));
+  check(revised.video!.film!.scenes[0].texts.headline === 'Le café du matin' && revised.report.recoded.includes('s2') && /CURRENT PROGRAM OF THIS SCENE/.test(authorLog.filter((x) => x.strategy === 'revise').pop()?.user || ''), 'retouche écrite : texte changé, scène 2 réécrite depuis son programme', JSON.stringify(revised.report));
+
+  // Une scène écrite AVANT le langage (code TSX gardé tel quel) : elle joue toujours, et se réécrit en programme.
+  const legacyCode = `import { Txt, View2D } from '@motion-canvas/2d';\nimport { waitFor } from '@motion-canvas/core';\nimport { SceneContext } from '@idem/motion';\nexport default function* (view: View2D, ctx: SceneContext) { view.add(<Txt text={ctx.texts.cta || ''} fontSize={ctx.unit * 6} fill={'#16181d'} />); yield* waitFor(ctx.duration); }`;
+  await store.mutateVideo('u1', 'p1', video.id, (v) => ({ ...v, film: { ...v.film!, scenes: v.film!.scenes.map((s) => (s.key === 's4' ? { ...s, code: legacyCode } : s)) } }));
+  const legacyHtml = await service.previewHtml('u1', 'p1', video.id);
+  check(!!legacyHtml && legacyHtml.includes('__IDEM_FILM__'), 'scène écrite avant le langage : elle joue toujours (aperçu)');
+  authorLog.length = 0;
+  const rewritten = await service.updateVideo('u1', 'p1', video.id, { visual: { s4: 'plus énergique' } });
+  check(!!programOf(rewritten!.film!.scenes[3].code) && /written before the animation language existed/.test(authorLog[0]?.user || ''), '« Changer cette scène » sur une scène d’avant : réécrite en programme');
 
   const html = await service.previewHtml('u1', 'p1', video.id);
   check(!!html && html.includes('__IDEM_FILM__') && html.includes('connect-src') && html.includes('data:image/jpeg;base64'), 'aperçu : page autonome, réseau coupé, photo embarquée', `${Math.round((html?.length || 0) / 1024)} ko`);

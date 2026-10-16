@@ -3,7 +3,7 @@ import { CommonModule, Location } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 import { CheckoutComponent } from '../../components/checkout/checkout';
-import { PaymentView } from '../../models/billing.model';
+import { PaymentView, BuyOfferRequest } from '../../models/billing.model';
 
 /**
  * Page de paiement partagée par toutes les applications IDEM.
@@ -56,6 +56,8 @@ import { PaymentView } from '../../models/billing.model';
             [projectId]="projectId()"
             [interval]="interval()"
             [simulationTier]="simulationTier()"
+            [amountXaf]="amountXaf()"
+            [then]="then()"
             [app]="app()"
             (completed)="onCompleted($event)"
             (dismissed)="onDismissed()"
@@ -85,6 +87,10 @@ export class BillingCheckoutPage {
   readonly projectId = signal<string | undefined>(undefined);
   readonly interval = signal<'month' | 'year' | undefined>(undefined);
   readonly simulationTier = signal<string | undefined>(undefined);
+  /** Recharge du portefeuille (`product=wallet-topup&amount=…`). */
+  readonly amountXaf = signal<number | undefined>(undefined);
+  /** Achat fait depuis le portefeuille après la recharge (`then=` JSON : Pass Projet iCode…). */
+  readonly then = signal<BuyOfferRequest | undefined>(undefined);
   readonly app = signal<'dashboard' | 'appgen' | 'simulation' | 'ideploy'>('dashboard');
   readonly returnLabel = signal<string | null>(null);
 
@@ -100,6 +106,19 @@ export class BillingCheckoutPage {
     this.engine.set(params.get('engine') ?? undefined);
     this.projectId.set(params.get('projectId') ?? undefined);
     this.simulationTier.set(params.get('tier') ?? undefined);
+
+    const amount = Number(params.get('amount'));
+    if (Number.isInteger(amount) && amount > 0) this.amountXaf.set(amount);
+    const then = params.get('then');
+    if (then) {
+      try {
+        const parsed = JSON.parse(then) as BuyOfferRequest;
+        // Le serveur revalide l'offre ; ici on ne garde qu'un objet avec un type d'achat.
+        if (parsed && typeof parsed === 'object' && typeof parsed.kind === 'string') this.then.set(parsed);
+      } catch {
+        // Paramètre illisible : la recharge seule est faite.
+      }
+    }
 
     const interval = params.get('interval');
     if (interval === 'month' || interval === 'year') this.interval.set(interval);

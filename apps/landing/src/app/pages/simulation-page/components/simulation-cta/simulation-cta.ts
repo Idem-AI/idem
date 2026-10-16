@@ -1,16 +1,15 @@
-import { NgOptimizedImage } from '@angular/common';
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 import { environment } from '../../../../../environments/environment';
+import { PageArtComponent } from '../../../../shared/components/page-art/page-art';
 
-/** Closing call to action of the simulator page. */
+/** L'appel final de la page Simulateur. */
 @Component({
   selector: 'app-simulation-cta',
-  standalone: true,
-  imports: [NgOptimizedImage, RouterLink],
+  imports: [RouterLink, PageArtComponent],
   templateUrl: './simulation-cta.html',
-  styleUrl: './simulation-cta.css',
+  styleUrls: ['../../../../shared/styles/editorial-page.css', './simulation-cta.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SimulationCta {

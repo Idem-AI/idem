@@ -19,6 +19,8 @@ COPY ./packages/shared-auth-client ./packages/shared-auth-client
 COPY ./packages/shared-styles ./packages/shared-styles
 # Le moteur de génération graphique (business plan, charte, pitch deck, cartes, visuels, graphiques).
 COPY ./packages/graphic-engine ./packages/graphic-engine
+# Le langage de mouvement et son compilateur (vidéos) : importé par le cœur iVision par chemin relatif.
+COPY ./packages/motion-compiler ./packages/motion-compiler
 
 # Build shared-models first
 WORKDIR /app/packages/shared-models

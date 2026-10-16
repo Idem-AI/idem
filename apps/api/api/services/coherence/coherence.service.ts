@@ -192,7 +192,6 @@ export class CoherenceService {
         projectId,
         element: `coherence:${ruleId}`,
         // Audit initié par le système: ne consomme pas le quota utilisateur.
-        skipQuotaCheck: true,
       }
     );
     const verdict = this.parseVerdict(audit.text);

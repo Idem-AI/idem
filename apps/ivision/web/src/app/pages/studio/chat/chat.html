@@ -318,6 +318,12 @@
               <input type="checkbox" [checked]="voice()" (change)="voice.set($any($event.target).checked)" />
               {{ 'chat.options.voice' | translate }}
             </label>
+            <label class="sr-only" for="iv-clips">{{ 'chat.options.aiClips' | translate }}</label>
+            <select id="iv-clips" class="!w-auto !py-1.5 !text-sm" [title]="'chat.options.aiClipsHint' | translate" (change)="aiClips.set(+$any($event.target).value)">
+              @for (n of aiClipChoices; track n) {
+                <option [value]="n" [selected]="n === aiClips()">{{ (n === 0 ? 'chat.options.aiClipsNone' : 'chat.options.aiClipsCount') | translate: { count: n, price: n * 1000 } }}</option>
+              }
+            </select>
             @if (readFromText()) {
               <span class="text-xs text-[var(--color-text-tertiary)]" aria-live="polite">{{ 'chat.options.readFromText' | translate }}</span>
             }

@@ -491,6 +491,17 @@
       "discountLabel": "-21 %",
       "isActive": true,
       "sortOrder": 360
+    },
+    "wallet-topup": {
+      "name": "Recharge du portefeuille",
+      "description": "Le portefeuille IDEM en francs : un solde pour tous les services. Le prix de référence est celui de 3 000 F de solde (le forfait IDEM Croissance), fixé pour chaque pays ; la recharge se fait au montant choisi, au prorata.",
+      "kind": "recharge",
+      "engine": null,
+      "interval": "one_time",
+      "credits": 3000,
+      "priceXaf": 3000,
+      "isActive": true,
+      "sortOrder": 5
     }
   },
   "countries": {
@@ -580,7 +591,8 @@
         "recharge-growth": 510,
         "recharge-power": 1100,
         "bundle-launch": 1650,
-        "bundle-complete": 6800
+        "bundle-complete": 6800,
+        "wallet-topup": 650
       },
       "idemPrices": {
         "sim-essential": 430,
@@ -635,7 +647,8 @@
         "recharge-growth": 5150,
         "recharge-power": 11500,
         "bundle-launch": 17000,
-        "bundle-complete": 71500
+        "bundle-complete": 71500,
+        "wallet-topup": 6500
       },
       "idemPrices": {
         "sim-essential": 4350,
@@ -690,7 +703,8 @@
         "recharge-growth": 11000,
         "recharge-power": 27000,
         "bundle-launch": 40000,
-        "bundle-complete": 172000
+        "bundle-complete": 172000,
+        "wallet-topup": 15000
       },
       "idemPrices": {
         "sim-essential": 10000,
@@ -745,7 +759,8 @@
         "recharge-growth": 56,
         "recharge-power": 130,
         "bundle-launch": 200,
-        "bundle-complete": 860
+        "bundle-complete": 860,
+        "wallet-topup": 75
       },
       "idemPrices": {
         "sim-essential": 50,
@@ -800,7 +815,8 @@
         "recharge-growth": 59,
         "recharge-power": 140,
         "bundle-launch": 220,
-        "bundle-complete": 920
+        "bundle-complete": 920,
+        "wallet-topup": 80
       },
       "idemPrices": {
         "sim-essential": 53,
@@ -855,7 +871,8 @@
         "recharge-growth": 160,
         "recharge-power": 410,
         "bundle-launch": 620,
-        "bundle-complete": 2700
+        "bundle-complete": 2700,
+        "wallet-topup": 220
       },
       "idemPrices": {
         "sim-essential": 150,
@@ -910,7 +927,8 @@
         "recharge-growth": 5700,
         "recharge-power": 15000,
         "bundle-launch": 22000,
-        "bundle-complete": 97000
+        "bundle-complete": 97000,
+        "wallet-topup": 8050
       },
       "idemPrices": {
         "sim-essential": 5350,
@@ -965,7 +983,8 @@
         "recharge-growth": 34,
         "recharge-power": 80,
         "bundle-launch": 120,
-        "bundle-complete": 520
+        "bundle-complete": 520,
+        "wallet-topup": 45
       },
       "idemPrices": {
         "sim-essential": 30,
@@ -1020,7 +1039,8 @@
         "recharge-growth": 3500,
         "recharge-power": 9000,
         "bundle-launch": 13500,
-        "bundle-complete": 59000
+        "bundle-complete": 59000,
+        "wallet-topup": 4900
       },
       "idemPrices": {
         "sim-essential": 3250,
@@ -1075,7 +1095,8 @@
         "recharge-growth": 7000,
         "recharge-power": 17000,
         "bundle-launch": 25500,
-        "bundle-complete": 110000
+        "bundle-complete": 110000,
+        "wallet-topup": 9500
       },
       "idemPrices": {
         "sim-essential": 6350,
@@ -1130,7 +1151,8 @@
         "recharge-growth": 440,
         "recharge-power": 1050,
         "bundle-launch": 1600,
-        "bundle-complete": 6850
+        "bundle-complete": 6850,
+        "wallet-topup": 590
       },
       "idemPrices": {
         "sim-essential": 390,
@@ -1185,7 +1207,8 @@
         "recharge-growth": 44,
         "recharge-power": 100,
         "bundle-launch": 160,
-        "bundle-complete": 650
+        "bundle-complete": 650,
+        "wallet-topup": 59
       },
       "idemPrices": {
         "sim-essential": 39,
@@ -1240,7 +1263,8 @@
         "recharge-growth": 4250,
         "recharge-power": 11000,
         "bundle-launch": 16500,
-        "bundle-complete": 72000
+        "bundle-complete": 72000,
+        "wallet-topup": 6000
       },
       "idemPrices": {
         "sim-essential": 4000,

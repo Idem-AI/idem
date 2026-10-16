@@ -6,6 +6,7 @@ import {
   analyzeLogoController,
 } from '../controllers/logo-import.controller';
 import { authenticate } from '../services/auth.service';
+import { requireQuota } from '../middleware/usage-quota.middleware';
 
 const router = Router();
 
@@ -123,7 +124,7 @@ router.post('/import', authenticate, upload.single('logo'), importLogoController
  *       '500':
  *         description: Analysis failed
  */
-router.post('/analyze', authenticate, analyzeLogoController);
+router.post('/analyze', authenticate, requireQuota('assist', { envelope: 'logo_analysis' }), analyzeLogoController);
 
 /**
  * @openapi

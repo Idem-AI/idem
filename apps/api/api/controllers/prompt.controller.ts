@@ -11,9 +11,9 @@ const CLIENT_ROLES = new Set(['user', 'assistant']);
  * Ne garde du corps que des messages bien formés.
  *
  * Le corps n'est JAMAIS la configuration de l'appel : `provider`, `modelName`,
- * `llmOptions`, `file`, `userId` ou `skipQuotaCheck` sont réservés au serveur.
- * Les accepter du client permettait de lire des fichiers du serveur, de choisir
- * le modèle le plus cher et d'ignorer le quota.
+ * `llmOptions`, `file` ou `userId` sont réservés au serveur. Les accepter du
+ * client permettait de lire des fichiers du serveur et de choisir le modèle le
+ * plus cher. Le quota d'usage est réservé par la route (`requireQuota`).
  */
 function sanitizeMessages(value: unknown): AIChatMessage[] | null {
   if (!Array.isArray(value) || value.length === 0 || value.length > MAX_MESSAGES) return null;
@@ -55,10 +55,6 @@ class PromptController {
       res.status(200).json(jsonResponse);
     } catch (error: any) {
       console.error('Error in PromptController:', error);
-      if (error.message?.includes('Quota exceeded')) {
-        res.status(429).json({ error: 'Quota exceeded' });
-        return;
-      }
       res.status(500).send({ error: 'Something broke during prompt processing!' });
     }
   }
@@ -105,10 +101,6 @@ Strict rules:
       res.status(200).json({ success: true, improvedPrompt: improvedPrompt.trim() });
     } catch (error: any) {
       console.error('Error in improvePrompt:', error);
-      if (error.message?.includes('Quota exceeded')) {
-        res.status(429).json({ error: 'Quota exceeded' });
-        return;
-      }
       res.status(500).json({ error: "Erreur lors de l'amélioration du prompt." });
     }
   }
@@ -149,10 +141,6 @@ Strict rules:
       res.status(200).json({ success: true, idea: idea.trim() });
     } catch (error: any) {
       console.error('Error in generateFeelingLucky:', error);
-      if (error.message?.includes('Quota exceeded')) {
-        res.status(429).json({ error: 'Quota exceeded' });
-        return;
-      }
       res.status(500).json({ error: "Erreur lors de la génération de l'idée." });
     }
   }

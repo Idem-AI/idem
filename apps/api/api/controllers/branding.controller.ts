@@ -4,7 +4,6 @@ import { BrandingService } from '../services/BandIdentity/branding.service';
 import { PromptService } from '../services/prompt.service';
 import { CustomRequest } from '../interfaces/express.interface';
 import logger from '../config/logger';
-import { userService } from '../services/user.service';
 import { ISectionResult } from '../services/common/generic.service';
 import { projectService } from '../services/project.service';
 import { getRequestLanguage } from '../utils/request-language';
@@ -202,16 +201,10 @@ export const generateLogoConceptsController = async (
 
     const forceRegenerate = req.query.force === 'true' || req.body.force === true;
 
-    // Fetch project to see if this is a retry/resume
-    const project = await projectService.getUserProjectById(userId, projectId as string);
-    const hasLogos = (project?.analysisResultModel?.branding?.generatedLogos?.length ?? 0) > 0;
-    const isRetry = !!(project && !forceRegenerate && hasLogos);
-
     const logos = await brandingService.generateLogoConcepts(
       userId,
       projectId as string,
       forceRegenerate,
-      isRetry,
       // Le logo est toujours dessiné au cran Ultra (au prix habituel de la session).
       'ultra'
     );
@@ -225,13 +218,6 @@ export const generateLogoConceptsController = async (
     logger.info(
       `Successfully generated logo concepts - UserId: ${userId}, ProjectId: ${projectId}`
     );
-    
-    if (!isRetry) {
-      userService.incrementUsage(userId, 5);
-      logger.info(`Charged 5 credits for user ${userId} on Logo Concepts completion.`);
-    } else {
-      logger.info(`Exempted user ${userId} from credit charge because this is a retry/resume.`);
-    }
     res.status(200).json(logos);
   } catch (error) {
     logger.error(
@@ -275,11 +261,6 @@ export const generateLogoConceptsStreamController = async (
     }
 
     const forceRegenerate = req.query.force === 'true';
-
-    // Retry/reprise : pas de re-facturation si des logos existent déjà
-    const project = await projectService.getUserProjectById(userId, projectId as string);
-    const hasLogos = (project?.analysisResultModel?.branding?.generatedLogos?.length ?? 0) > 0;
-    const isRetry = !!(project && !forceRegenerate && hasLogos);
 
     // Configuration SSE
     res.setHeader('Content-Type', 'text/event-stream');
@@ -334,11 +315,6 @@ export const generateLogoConceptsStreamController = async (
       // Le logo est toujours dessiné au cran Ultra (au prix habituel de la session).
       'ultra'
     );
-
-    if (!isRetry && logos.length > 0) {
-      userService.incrementUsage(userId, 5);
-      logger.info(`Charged 5 credits for user ${userId} on streamed logo concepts completion.`);
-    }
 
     // Événement de fin (reconnu par le front comme signal de complétion)
     res.write(
@@ -432,11 +408,6 @@ export const generateLogoVariationsStreamController = async (
 
     const forceRegenerate = req.query.force === 'true';
 
-    const project = await projectService.getUserProjectById(userId, projectId as string);
-    const hasVariations =
-      project?.analysisResultModel?.branding?.logo?.variations?.withText !== undefined;
-    const isRetry = !!(project && !forceRegenerate && hasVariations);
-
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
@@ -477,11 +448,6 @@ export const generateLogoVariationsStreamController = async (
       streamCallback,
       forceRegenerate
     );
-
-    if (!isRetry && Object.keys(variations.withText).length > 0) {
-      userService.incrementUsage(userId, 5);
-      logger.info(`Charged 5 credits for user ${userId} on streamed logo variations completion.`);
-    }
 
     // Jeux finaux distincts (withText avec le nom + iconOnly) poussés en événement
     // progress AVANT la complétion : le front les persiste tels quels au lieu de
@@ -558,18 +524,11 @@ export const generateLogoVariationsController = async (
 
     const forceRegenerate = req.query.force === 'true' || req.body.force === true;
 
-    // Fetch project to see if variations already exist
-    const project = await projectService.getUserProjectById(userId, projectId as string);
-    const existingLogo = project?.analysisResultModel?.branding?.logo;
-    const hasVariations = existingLogo?.variations?.withText !== undefined;
-    const isRetry = !!(project && !forceRegenerate && hasVariations);
-
     const variations = await brandingService.generateLogoVariations(
       userId,
       projectId as string,
       selectedLogo,
-      forceRegenerate,
-      isRetry
+      forceRegenerate
     );
 
     if (!variations) {
@@ -583,13 +542,6 @@ export const generateLogoVariationsController = async (
     logger.info(
       `Successfully generated logo variations - UserId: ${userId}, ProjectId: ${projectId}`
     );
-    
-    if (!isRetry) {
-      userService.incrementUsage(userId, 5);
-      logger.info(`Charged 5 credits for user ${userId} on Logo Variations completion.`);
-    } else {
-      logger.info(`Exempted user ${userId} from credit charge because this is a retry/resume.`);
-    }
     res.status(200).json({ variations });
   } catch (error) {
     logger.error(
@@ -848,10 +800,6 @@ export const generateBrandingStreamingController = async (
       .map((s) => s.trim())
       .filter(Boolean);
 
-    // Fetch project to see if this is a retry/resume
-    const project = await projectService.getUserProjectById(userId, projectId as string);
-    const isRetry = !!(project && !forceRegenerate && (project.analysisResultModel?.branding?.sections?.length ?? 0) > 0);
-
     const updatedProject = await brandingService.generateBrandingWithStreaming(
       userId,
       projectId as string,
@@ -873,13 +821,6 @@ export const generateBrandingStreamingController = async (
     const newBranding = updatedProject.analysisResultModel?.branding;
 
     logger.info(`Branding generation completed - UserId: ${userId}, ProjectId: ${projectId}`);
-    
-    if (!isRetry) {
-      userService.incrementUsage(userId, 5);
-      logger.info(`Charged 5 credits for user ${userId} on Branding guidelines completion.`);
-    } else {
-      logger.info(`Exempted user ${userId} from credit charge because this is a retry/resume.`);
-    }
 
     // Envoyer un événement de fin
     res.write(`data: ${JSON.stringify({ type: 'complete', branding: newBranding })}\n\n`);
@@ -1199,7 +1140,6 @@ export const editLogoController = async (req: CustomRequest, res: Response): Pro
 
     logger.info(`Successfully edited logo - UserId: ${userId}, ProjectId: ${projectId}`);
 
-    userService.incrementUsage(userId, 2);
     res.status(200).json(result);
   } catch (error: any) {
     logger.error(

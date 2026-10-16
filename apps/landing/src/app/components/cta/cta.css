@@ -1,107 +1,74 @@
-/* CTA component-specific styles with immersive layouts and 3D mockups */
+/* L'appel final de l'accueil — ce qui n'appartient qu'à ce bloc.
+   L'échelle typographique et la trame viennent de
+   `shared/styles/editorial-page.css`. */
 
-.cta-section {
+.cta-band {
   position: relative;
-  isolation: isolate;
-  overflow: hidden;
+  border-top: 1px solid var(--glass-border-subtle);
+  padding-block: clamp(4rem, 8vw, 6rem);
 }
 
-/* Centered Gradient Title - reactive to theme */
-.cta-gradient-title {
-  background: linear-gradient(135deg, #ffffff 40%, var(--color-primary) 75%, var(--color-accent) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  text-fill-color: transparent;
-  line-height: 1.15;
+/* Le couple texte + image, centré. Sur téléphone il s'empile, image dessous. */
+.cta-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(2.5rem, 5vw, 4rem);
 }
 
-html.light .cta-gradient-title {
-  background: linear-gradient(135deg, #0f172a 40%, var(--color-primary) 75%, var(--color-accent) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  text-fill-color: transparent;
-}
-
-/* Perspective 3D Stacking & Tilting */
-.perspective-container {
-  perspective: 1400px;
+.cta-text {
+  min-width: 0;
   width: 100%;
 }
 
-.perspective-card {
-  transform: rotateX(12deg) translateY(0);
-  transform-style: preserve-3d;
-  transition:
-    transform 0.6s cubic-bezier(0.16, 1, 0.3, 1),
-    box-shadow 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 
-    var(--glass-shadow),
-    0 0 30px rgba(99, 102, 241, 0.03);
+/* Le titre. Il ne reprend ni `ed-display` ni `ed-h2` : à ces corps-là il se
+   cassait en quatre lignes courtes à côté d'IDEO, et une phrase de cinq mots
+   étalée sur quatre lignes se lit moins bien qu'un titre un cran plus petit
+   qui en tient deux. */
+.cta-title {
+  margin: 0;
+  font-weight: var(--font-weight-black);
+  font-size: clamp(1.875rem, 4vw, 3.25rem);
+  line-height: 1.05;
+  text-wrap: balance;
 }
 
-.perspective-card:hover {
-  transform: rotateX(4deg) translateY(-8px);
-  box-shadow: 
-    var(--glass-shadow-lg),
-    0 0 40px rgba(99, 102, 241, 0.08);
+.cta-figure {
+  margin: 0;
+  min-width: 0;
 }
 
-.perspective-image {
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+/* Aucun cadre, aucun fond, aucune ombre. */
+.cta-figure > img {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  max-height: 30rem;
+  margin-inline: auto;
 }
 
-/* Reveal animations for content */
-.reveal-up {
-  opacity: 0;
-  transform: translateY(30px);
-  transition:
-    opacity 0.7s ease-out,
-    transform 0.7s cubic-bezier(0.2, 1, 0.3, 1);
-}
-
-.reveal-left {
-  opacity: 0;
-  transform: translateX(-30px);
-  transition:
-    opacity 0.7s ease-out,
-    transform 0.7s cubic-bezier(0.2, 1, 0.3, 1);
-}
-
-.reveal-right {
-  opacity: 0;
-  transform: translateX(30px);
-  transition:
-    opacity 0.7s ease-out,
-    transform 0.7s cubic-bezier(0.2, 1, 0.3, 1);
-}
-
-:host(.animate-in) .reveal-up,
-:host(.animate-in) .reveal-left,
-:host(.animate-in) .reveal-right {
-  opacity: 1;
-  transform: translate(0);
-}
-
-/* Enhanced floating animation for perspective block */
-@keyframes float-perspective {
-  0% {
-    transform: rotateX(10deg) translateY(0px);
+@media (min-width: 1024px) {
+  /* Côte à côte, et le couple est centré dans la page : c'est la rangée
+     entière qui est centrée, pas chaque bloc poussé contre son bord. */
+  .cta-stage {
+    flex-direction: row;
+    align-items: center;
+    gap: clamp(2.5rem, 5vw, 5rem);
   }
-  50% {
-    transform: rotateX(12deg) translateY(-10px);
-  }
-  100% {
-    transform: rotateX(10deg) translateY(0px);
-  }
-}
 
-.floating-enhanced {
-  animation: float-perspective 8s ease-in-out infinite;
-}
+  .cta-text {
+    flex: 0 1 34rem;
+  }
 
-/* Hover pauses floating animation */
-.perspective-card:hover {
-  animation-play-state: paused;
+  .cta-figure {
+    flex: 0 0 auto;
+  }
+
+  /* C'est la hauteur d'IDEO qui donne sa taille à la section. */
+  .cta-figure > img {
+    height: clamp(28rem, 46vw, 44rem);
+    max-height: none;
+  }
 }

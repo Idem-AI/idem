@@ -36,6 +36,14 @@ export const SECRET_MANIFEST = {
     'SMTP_PASS',
     // Encaissement Mobile Money (services/payments/pawapay.client.ts).
     'PAWAPAY_API_TOKEN',
+    // Publier depuis WhatsApp (API Cloud de Meta) : jeton d'envoi, secret de signature du webhook,
+    // jeton d'abonnement au webhook ; secrets des applications OAuth des réseaux sociaux.
+    'WHATSAPP_ACCESS_TOKEN',
+    'WHATSAPP_APP_SECRET',
+    'WHATSAPP_VERIFY_TOKEN',
+    'META_APP_SECRET',
+    'LINKEDIN_CLIENT_SECRET',
+    'X_CLIENT_SECRET',
     // Secrets de signature et d'échange entre services.
     'IDEPLOY_SHARED_SECRET',
     // Clé de la passerelle interne d'iVision (`/internal/ivision`), partagée avec ivision-api.

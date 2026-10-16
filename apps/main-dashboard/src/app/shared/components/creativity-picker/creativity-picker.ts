@@ -32,7 +32,7 @@ export class CreativityPickerComponent {
 
   /** Le cran choisi (liaison bidirectionnelle) ; Medium par défaut. */
   readonly value = model<CreativityLevel>('medium');
-  /** Prix du livrable au cran Low / Medium (crédits) ; sans lui, le menu n'affiche pas de prix. */
+  /** Prix en francs au cran Low / Medium (0 = inclus : esquisse, version finale déjà payée, forfait) ; sans lui, pas de prix. */
   readonly baseCost = input<number | null>(null);
   readonly disabled = input(false);
   /** Le menu s'ouvre vers le bas (défaut) ou vers le haut (bouton en bas d'écran). */

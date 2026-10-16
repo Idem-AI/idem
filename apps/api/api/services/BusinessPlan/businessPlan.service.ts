@@ -1251,7 +1251,6 @@ export class BusinessPlanService extends GenericService {
     const promptConfig: PromptConfig = {
       provider: AI_CONFIG.businessPlan.provider,
       modelName: AI_CONFIG.businessPlan.modelName,
-      skipQuotaCheck: true,
     };
 
     // La direction artistique et le préfixe des rédacteurs : les mêmes pour tous les plans du projet.

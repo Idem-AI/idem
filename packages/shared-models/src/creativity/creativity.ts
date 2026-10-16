@@ -5,7 +5,7 @@
  * identité visuelle), l'utilisateur choisit un cran. Le cran choisit la PUISSANCE DU MODÈLE qui
  * crée : à tous les crans, l'IA conçoit et écrit le livrable librement, avec le même contexte ;
  * plus le cran monte, plus le modèle qui le fait est puissant (échelles de
- * `apps/api/api/config/creative-roles.ts`) — et plus la génération consomme de crédits :
+ * `apps/api/api/config/creative-roles.ts`) :
  *
  *   low     modèle léger
  *   medium  modèle intermédiaire (défaut)
@@ -16,6 +16,11 @@
  * s'affiche pas (erreur technique) est corrigé, dans des bornes strictes.
  *
  * Un ancien cran « max » (données d'avant octobre 2026) vaut « high ».
+ *
+ * **Le cran ne change plus le prix** (modèle « Créer, Garder, Faire tourner », octobre 2026) :
+ * une esquisse est gratuite, une version finale a un prix fixe, et le cran le plus puissant
+ * s'achète comme une option — la version Signature (`apps/api/api/models/offer.model.ts`).
+ * Le multiplicateur reste défini, à 1 partout, pour les calculs de prix existants.
  *
  * Ce module ne lit rien et ne dépend de rien : c'est ce qui garantit que le prix affiché
  * par le dashboard est celui que l'API débite.
@@ -30,14 +35,14 @@ export const CREATIVITY_LEVELS: readonly CreativityLevel[] = ['low', 'medium', '
 export const DEFAULT_CREATIVITY: CreativityLevel = 'medium';
 
 /**
- * Multiplicateur du prix du livrable. Low et Medium gardent le prix historique : seuls les
- * crans qui confient plus de décisions (et de tokens) à l'IA coûtent davantage.
+ * Multiplicateur du prix d'un livrable selon le cran : 1 partout. Le prix ne dépend plus du
+ * cran ; la puissance maximale se vend comme la version Signature, une option à prix fixe.
  */
 export const CREATIVITY_MULTIPLIER: Readonly<Record<CreativityLevel, number>> = {
   low: 1,
   medium: 1,
-  high: 1.25,
-  ultra: 2,
+  high: 1,
+  ultra: 1,
 };
 
 /** Rang du cran (0 = low … 3 = ultra). */

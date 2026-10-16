@@ -36,12 +36,17 @@ const structure = {
     'video-trailer',
     'website-showcase',
   ],
+  // Une page par dossier de `src/app/pages`. Une page absente de cette liste
+  // voit ses clés tomber dans `common.json`, ce qui les rend introuvables.
   pages: [
     'about-page',
     'african-market-page',
     'architecture-page',
+    'contact-page',
     'deployment',
     'home',
+    'ideploy-page',
+    'idev-page',
     'open-source-page',
     'premium-beta-access',
     'pricing-page',
@@ -153,8 +158,36 @@ function mapKeysToComponents(translations) {
   return mapped;
 }
 
+/**
+ * Supprime le fichier d'un composant ou d'une page dont l'extraction ne
+ * rapporte plus aucune clé. Sans cela, un gabarit réécrit avec de nouveaux
+ * identifiants laisse derrière lui un fichier mort, que `i18n:merge` fusionne
+ * malgré tout dans `messages.fr.json`.
+ */
+function pruneEmptyFiles(locale, mapped) {
+  const baseDir = path.join(__dirname, `../src/locale/${locale}`);
+  const groups = [
+    ['components', structure.components, mapped.components],
+    ['pages', structure.pages, mapped.pages],
+    ['shared/components', structure.shared.components, mapped.shared.components],
+  ];
+
+  groups.forEach(([dir, names, kept]) => {
+    names.forEach((name) => {
+      if (kept[name] && Object.keys(kept[name]).length > 0) return;
+      const filePath = path.join(baseDir, dir, `${name}.json`);
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+        console.log(`🗑️  ${locale}/${dir}/${name}.json (plus aucune clé extraite)`);
+      }
+    });
+  });
+}
+
 // Write files
 function writeComponentFiles(locale, mapped) {
+  pruneEmptyFiles(locale, mapped);
+
   const baseDir = path.join(__dirname, `../src/locale/${locale}`);
 
   // Write components

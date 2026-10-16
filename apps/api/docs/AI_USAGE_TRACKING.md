@@ -13,14 +13,16 @@ Every AI generation on the platform is recorded, input **and** output, in the Mo
 | Kind | `operation` | `generate`, `regenerate`, `edit`, `variant`, `analysis`, `chat`, `appgen` |
 | Batch of proposals | `batchId`, `variantCount` | the 4 logos of one action |
 | Model | `provider`, `modelName` | `OPENROUTER` / `qwen/qwen3.5-122b-a10b` |
-| Tokens | `inputTokens`, `outputTokens`, `cachedInputTokens`, `totalTokens` | measured |
-| Cost | `estimatedCostUsd` | USD estimate |
+| Tokens | `inputTokens`, `outputTokens`, `cachedInputTokens`, `reasoningTokens`, `totalTokens` | measured; `reasoningTokens` is the part of `outputTokens` spent on hidden reasoning (billed as output, never read) |
+| Cost | `inputCostUsd`, `outputCostUsd`, `toolCostUsd`, `estimatedCostUsd` | USD estimate; `toolCostUsd` = web search results, images, clips, voice |
 | Reliability | `tokensEstimated`, `pricingEstimated` | see "Reliability" below |
 | Result | `status`, `errorMessage`, `durationMs` | `success` / `error` |
 | Correlation | `requestId`, `source`, `promptType` | to match with the logs |
 | Period | `day` (`YYYY-MM-DD`) | denormalised for aggregations |
 
 **Regenerations, edits and discarded proposals are counted.** A generation of 4 logos writes 4 events sharing a `batchId`: the real cost of "choosing a logo" is the sum of the batch, not the cost of the proposal that was kept.
+
+**Every model call is counted, not only completions.** Agentic tool loops write one event per turn, streams record the usage of their last chunk (`stream_options.include_usage`), grounded research adds its web results (OpenRouter `web` plugin, $0.004 per result) and media calls (`media.service.ts`) record their unit cost: FLUX.2 image, generated clip per second (`IDEM_VIDEO_USD_PER_SECOND`), Kokoro voice per character, vision tokens. Each event also feeds the account's AI spend cap and the running generation budget (see [BILLING.md](./BILLING.md#ai-usage-quotas)).
 
 **Failures are counted too.** A model that answers and then breaks at parsing was billed; a fallback to a secondary model produces two events. Hiding them would underestimate the real cost.
 
@@ -67,7 +69,8 @@ Add a route segment to `FEATURE_BY_SEGMENT` (`utils/ai-usage-context.util.ts`) i
 
 Two flags separate what was measured from what was approximated — the admin panel shows them, and a total mixing both must not pass for an invoice:
 
-- **`tokensEstimated`** — the provider returned no usage metadata (some OpenAI-compatible gateways omit it). Tokens are then estimated at ~4 characters per token. Approximate, but better than a zero that would hide the consumption.
+- **`reasoningTokens`** — read from `completion_tokens_details.reasoning_tokens`, also on the `ai.usage_recorded` log line and in `ai_tokens_total{kind="reasoning"}`. A high ratio to `outputTokens` on a short answer means the feature pays for reasoning it does not need (the cover brief spent ~4 500 tokens thinking for ~260 written).
+- **`tokensEstimated`** — the provider returned no usage metadata (some OpenAI-compatible gateways omit it). Tokens are then estimated at ~4 characters per token. Approximate, but better than a zero that would hide the consumption. An attempt refused before reaching any model — 429, missing or rejected key (401), no credit (402) — is recorded at zero: it is not billed, and counting it inflated the generation budget.
 - **`pricingEstimated`** — the model is missing from `config/ai-pricing.config.ts` and the default price was applied.
 
 Reasoning tokens of "thinking" models are counted in the output tokens: ignoring them would heavily underestimate the cost. Tokens served from a provider cache, when the API reports them, are counted separately and billed at the reduced price if one is set.

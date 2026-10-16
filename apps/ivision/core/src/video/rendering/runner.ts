@@ -213,13 +213,126 @@ export interface ProbeResult {
   cues: SfxCueRecord[];
   /** Une image par scène (JPEG), au moment où elle est installée. */
   thumbnails: Record<string, Buffer>;
+  /** Les défauts d'AFFICHAGE de chaque scène (texte coupé par le cadre, textes qui se chevauchent), en clair. */
+  layout: Record<string, string[]>;
+  /** Les textes illisibles sur leur fond et la couleur de ce fond (dernier recours du moteur). */
+  contrast: Record<string, ContrastFix[]>;
+}
+
+export interface TextBox { text: string; x0: number; y0: number; x1: number; y1: number; group: string; order?: number; contrast?: number; bg?: number[]; best?: string; bestContrast?: number }
+export interface ShapeBox { kind: 'fill' | 'image' | 'line' | 'outline'; x0: number; y0: number; x1: number; y1: number; order: number; segs?: number[][] }
+
+/** Un segment coupe-t-il un rectangle ? (Liang–Barsky) */
+function segmentHits(seg: number[], r: { x0: number; y0: number; x1: number; y1: number }): boolean {
+  const [x1, y1, x2, y2] = seg;
+  const dx = x2 - x1, dy = y2 - y1;
+  let t0 = 0, t1 = 1;
+  for (const [p, q] of [[-dx, x1 - r.x0], [dx, r.x1 - x1], [-dy, y1 - r.y0], [dy, r.y1 - y1]]) {
+    if (p === 0) {
+      if (q < 0) return false;
+    } else {
+      const t = q / p;
+      if (p < 0) t0 = Math.max(t0, t);
+      else t1 = Math.min(t1, t);
+      if (t0 > t1) return false;
+    }
+  }
+  return true;
+}
+/**
+ * Le dernier recours d'affichage d'un texte : `ink` (illisible sur son fond : la couleur réelle de ce fond) ou `plate`
+ * (posé sur une image, traversé par un trait, à cheval sur un contour : un aplat sous le texte).
+ */
+export interface ContrastFix { text: string; kind?: 'ink' | 'plate' | 'front'; bg?: number[]; ink?: string }
+
+/**
+ * Les défauts d'affichage d'un instant : un texte qui dépasse du cadre (au-delà de 1,5 %), deux textes dont les
+ * boîtes se recouvrent (plus de 18 % de la plus petite). Rien d'esthétique : un texte coupé ou recouvert ne se lit pas.
+ */
+export function layoutIssues(texts: TextBox[], width: number, height: number, at: number, shapes: ShapeBox[] = []): string[] {
+  const out: string[] = [];
+  const area = (b: { x0: number; y0: number; x1: number; y1: number }) => Math.max(0, b.x1 - b.x0) * Math.max(0, b.y1 - b.y0);
+  const inter = (a: { x0: number; y0: number; x1: number; y1: number }, b: { x0: number; y0: number; x1: number; y1: number }) => Math.max(0, Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0)) * Math.max(0, Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0));
+  const label = (t: TextBox) => `« ${t.text.length > 48 ? `${t.text.slice(0, 46)}…` : t.text} »`;
+  // Les morceaux d'un même texte découpé qui s'empilent (lettres ou mots superposés) : le mot ne se lit plus.
+  const byGroup = new Map<string, TextBox[]>();
+  for (const t of texts) if (t.group) byGroup.set(t.group, [...(byGroup.get(t.group) || []), t]);
+  for (const parts of byGroup.values()) {
+    let stacked = 0;
+    for (let i = 0; i < parts.length; i++) for (let j = i + 1; j < parts.length; j++) if (inter(parts[i], parts[j]) > 0.5 * Math.min(area(parts[i]), area(parts[j]))) stacked++;
+    if (stacked > 0) out.push(`les lettres ou mots de « ${parts.map((p) => p.text).join(parts[0].text.length > 1 ? ' ' : '').slice(0, 48)} » se superposent à ${at.toFixed(1)} s`);
+  }
+  // Les textes découpés comptent pour leur boîte d'ensemble face aux traits, contours et images.
+  const units: TextBox[] = [...texts.filter((t) => !t.group)];
+  for (const parts of byGroup.values()) units.push({ text: parts.map((p) => p.text).join(parts.every((p) => p.text.length <= 1) ? '' : ' '), x0: Math.min(...parts.map((p) => p.x0)), y0: Math.min(...parts.map((p) => p.y0)), x1: Math.max(...parts.map((p) => p.x1)), y1: Math.max(...parts.map((p) => p.y1)), group: '', order: Math.min(...parts.map((p) => p.order ?? 1e9)) });
+  // Ce qui est dessiné PAR-DESSUS un texte (forme pleine, image, trait qui le barre) le rend illisible.
+  for (const t of units) {
+    if (t.order === undefined) continue;
+    const ta = area(t);
+    if (!ta) continue;
+    const band = { x0: t.x0, x1: t.x1, y0: t.y0 + (t.y1 - t.y0) * 0.3, y1: t.y1 - (t.y1 - t.y0) * 0.3 };
+    /** Un aplat dessiné entre la forme et le texte, qui couvre le texte : la forme est masquée sous lui. */
+    const plated = (s: ShapeBox) => shapes.some((f) => f.kind === 'fill' && f.order > s.order && f.order < t.order! && inter(t, f) > 0.8 * ta);
+    const over = shapes.filter((s) => s.order > t.order! && (s.kind === 'fill' || s.kind === 'image'));
+    // Entièrement recouvert par un aplat ou une image dessinés après lui : le texte est retiré à dessein (volet, transition).
+    if (over.some((s) => inter(t, s) >= 0.95 * ta)) continue;
+    const hit = over.find((s) => {
+      const i = inter(t, s);
+      return i > 0.12 * ta || (i > 0.6 * area(s) && area(s) > 0.004 * ta);
+    });
+    if (hit) out.push(`${label(t)} est ${hit.kind === 'image' ? 'caché par une image' : 'caché par une forme'} dessinée par-dessus à ${at.toFixed(1)} s`);
+    // Un trait qui traverse le milieu d'un texte le barre, qu'il passe devant ou derrière.
+    const strike = shapes.find((s) => s.kind === 'line' && !plated(s) && Math.min(t.x1, s.x1) - Math.max(t.x0, s.x0) > 0.3 * (t.x1 - t.x0) && s.y1 - s.y0 < (t.y1 - t.y0) * 0.5 && inter(band, { ...s, y0: s.y0 - 1, y1: s.y1 + 1 }) > 0);
+    // Un trait qui le traverse dans l'autre sens (tige, filet vertical) le coupe aussi.
+    // Le cœur du texte (sans ses marges) : un trait qui le coupe, dans n'importe quelle direction, le traverse.
+    const core = { x0: t.x0 + (t.x1 - t.x0) * 0.1, x1: t.x1 - (t.x1 - t.x0) * 0.1, y0: t.y0 + (t.y1 - t.y0) * 0.25, y1: t.y1 - (t.y1 - t.y0) * 0.25 };
+    const diagonal = !strike && shapes.find((s) => s.kind === 'line' && !plated(s) && s.segs?.some((g) => Math.abs(g[2] - g[0]) > 1 && Math.abs(g[3] - g[1]) > 1 && segmentHits(g, core)));
+    // Une forme fine (barre, filet plein) qui traverse le texte de part en part fait le même effet qu'un trait.
+    const bar = shapes.find((s) => s.kind === 'fill' && !plated(s) && ((s.x1 - s.x0 < (t.x1 - t.x0) * 0.15 && s.x0 > t.x0 && s.x1 < t.x1 && s.y0 <= t.y0 + (t.y1 - t.y0) * 0.2 && s.y1 >= t.y1 - (t.y1 - t.y0) * 0.2) || (s.y1 - s.y0 < (t.y1 - t.y0) * 0.25 && s.y0 > t.y0 + (t.y1 - t.y0) * 0.2 && s.y1 < t.y1 - (t.y1 - t.y0) * 0.2 && s.x0 <= t.x0 + (t.x1 - t.x0) * 0.1 && s.x1 >= t.x1 - (t.x1 - t.x0) * 0.1)));
+    const cross = !strike && (diagonal || bar || shapes.find((s) => s.kind === 'line' && !plated(s) && s.x1 - s.x0 < (t.x1 - t.x0) * 0.25 && s.x0 > t.x0 + (t.x1 - t.x0) * 0.08 && s.x1 < t.x1 - (t.x1 - t.x0) * 0.08 && Math.min(t.y1, s.y1) - Math.max(t.y0, s.y0) > 0.6 * (t.y1 - t.y0)));
+    if (strike || cross) out.push(`${label(t)} est ${strike ? 'barré' : 'traversé'} par un trait à ${at.toFixed(1)} s`);
+    // À cheval sur un contour (cadre, anneau) : ni dedans ni dehors.
+    const straddle = shapes.find((s) => s.kind === 'outline' && !plated(s) && inter(t, s) > 0.08 * ta && !(t.x0 >= s.x0 && t.x1 <= s.x1 && t.y0 >= s.y0 && t.y1 <= s.y1));
+    if (straddle) out.push(`${label(t)} est à cheval sur le contour d'une forme à ${at.toFixed(1)} s`);
+    // Posé sur une image sans aplat entre les deux : le texte se perd dans la photo.
+    const photo = shapes.find((s) => s.kind === 'image' && s.order < t.order! && inter(t, s) > 0.25 * ta && !plated(s));
+    if (photo) out.push(`${label(t)} est posé sur une image (aucun aplat entre les deux) à ${at.toFixed(1)} s`);
+  }
+  for (const t of texts) if (t.contrast !== undefined && t.contrast < 2.2) out.push(`${label(t)} ne se lit pas sur son fond (contraste ${t.contrast.toFixed(1)} : couleur trop proche de ce qu'il recouvre) à ${at.toFixed(1)} s`);
+  const tx = width * 0.015;
+  const ty = height * 0.015;
+  const q = (t: TextBox) => `« ${t.text.length > 48 ? `${t.text.slice(0, 46)}…` : t.text} »`;
+  // Les morceaux d'un même texte découpé (mots, lettres) sont regroupés : ils comptent comme un texte.
+  const groups = new Map<string, TextBox>();
+  for (const t of texts) {
+    const g = groups.get(t.group);
+    if (t.group) groups.set(t.group, g ? { text: `${g.text} ${t.text}`, x0: Math.min(g.x0, t.x0), y0: Math.min(g.y0, t.y0), x1: Math.max(g.x1, t.x1), y1: Math.max(g.y1, t.y1), group: t.group } : { ...t });
+    else groups.set(`${t.group}|${t.text}|${t.x0}`, t);
+  }
+  const boxes = [...groups.values()];
+  for (const t of boxes) {
+    const sides = [t.x0 < -width / 2 - tx ? 'à gauche' : '', t.x1 > width / 2 + tx ? 'à droite' : '', t.y0 < -height / 2 - ty ? 'en haut' : '', t.y1 > height / 2 + ty ? 'en bas' : ''].filter(Boolean);
+    if (sides.length) out.push(`${q(t)} est coupé par le cadre ${sides.join(' et ')} à ${at.toFixed(1)} s`);
+  }
+  for (let i = 0; i < boxes.length; i++) {
+    for (let j = i + 1; j < boxes.length; j++) {
+      const a = boxes[i];
+      const b = boxes[j];
+      const w = Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0);
+      const h = Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0);
+      if (w <= 0 || h <= 0) continue;
+      const small = Math.min((a.x1 - a.x0) * (a.y1 - a.y0), (b.x1 - b.x0) * (b.y1 - b.y0));
+      if (small > 0 && (w * h) / small > 0.18) out.push(`${q(a)} et ${q(b)} se chevauchent à ${at.toFixed(1)} s`);
+    }
+  }
+  return out;
 }
 
 /**
  * Exécute le film une fois : chaque scène est calculée (Motion Canvas exécute tout son code), puis
  * une image par scène est dessinée. Rien n'est jugé : seules les erreurs d'exécution sont relevées.
  */
-export async function probeFilm(input: FilmPageInput & { files?: Map<string, ServedFile> }, opts: { thumbnails?: boolean; timeoutMs?: number } = {}): Promise<ProbeResult> {
+export async function probeFilm(input: FilmPageInput & { files?: Map<string, ServedFile> }, opts: { thumbnails?: boolean; layout?: boolean; timeoutMs?: number } = {}): Promise<ProbeResult> {
   active++;
   let page: Page | null = null;
   try {
@@ -238,7 +351,47 @@ export async function probeFilm(input: FilmPageInput & { files?: Map<string, Ser
           for (const e of still.errors) if (!errors.has(e.key)) errors.set(e.key, e);
         }
       }
-      return { errors: [...errors.values()], cues: init.cues, thumbnails };
+      // Le contrôle d'affichage : deux instants par scène, quand tout est installé (la piste du langage finit à 70 %).
+      const layout: Record<string, string[]> = {};
+      const contrast: Record<string, ContrastFix[]> = {};
+      if (opts.layout !== false) {
+        for (const scene of input.data.scenes) {
+          if (errors.has(scene.key) || scene.compileError) continue;
+          const found = new Set<string>();
+          for (const r of [0.78, 0.95]) {
+            const t = scene.start + scene.duration * r;
+            const res = (await p.evaluate((f: number) => (window as any).__IDEM_RENDER__.layout(f), Math.round(t * input.data.fps))) as { texts: TextBox[]; shapes?: ShapeBox[] };
+            // Une scène installée qui n'affiche aucun de ses textes (tout est sorti avant la fin, ou rien n'est entré).
+            // (un texte entièrement recouvert par ce qui est dessiné après lui ne compte pas comme affiché)
+            const area2 = (b: { x0: number; y0: number; x1: number; y1: number }) => Math.max(0, b.x1 - b.x0) * Math.max(0, b.y1 - b.y0);
+            const shown = res.texts.filter((t) => !(res.shapes || []).some((s) => s.order > (t.order ?? 1e9) && (s.kind === 'fill' || s.kind === 'image') && Math.max(0, Math.min(t.x1, s.x1) - Math.max(t.x0, s.x0)) * Math.max(0, Math.min(t.y1, s.y1) - Math.max(t.y0, s.y0)) >= 0.95 * area2(t)));
+            if (r === 0.78 && !shown.length && Object.values(scene.texts || {}).some((v) => String(v || '').trim())) found.add(`la scène n'affiche aucun de ses textes à ${(scene.duration * r).toFixed(1)} s`);
+            for (const issue of layoutIssues(res.texts, input.data.width, input.data.height, scene.duration * r, res.shapes || [])) found.add(issue);
+            const issues = layoutIssues(res.texts, input.data.width, input.data.height, scene.duration * r, res.shapes || []);
+            const groupUnits = [...new Set(res.texts.filter((t) => t.group).map((t) => t.group))].map((g) => {
+              const parts = res.texts.filter((t) => t.group === g);
+              return { ...parts[0], text: parts.map((p) => p.text).join(parts.every((p) => p.text.length <= 1) ? '' : ' '), group: '' };
+            });
+            for (const t of [...res.texts, ...groupUnits]) {
+              const list = (contrast[scene.key] ||= []);
+              const label = `« ${t.text.length > 48 ? `${t.text.slice(0, 46)}…` : t.text} »`;
+              const mine = issues.filter((m) => m.startsWith(label));
+              const plate = mine.some((m) => /posé sur une image|traversé par un trait|barré par un trait|à cheval sur le contour/.test(m));
+              const front = mine.some((m) => /caché par une (image|forme)/.test(m));
+              if (front && !list.some((c) => c.text === t.text && c.kind === 'front')) list.push({ text: t.text, kind: 'front' });
+              else if (plate && !list.some((c) => c.text === t.text && c.kind === 'plate')) list.push({ text: t.text, kind: 'plate' });
+              else if (t.contrast !== undefined && t.contrast < 2.2 && t.bg && !list.some((c) => c.text === t.text)) {
+                // Une encre suffit si elle se lit sur tout le pourtour ; sinon (fond mixte) un aplat.
+                if ((t.bestContrast ?? 0) >= 3) list.push({ text: t.text, kind: 'ink', bg: t.bg, ...(t.best ? { ink: t.best } : {}) });
+                else list.push({ text: t.text, kind: 'plate' });
+              }
+            }
+            if (!contrast[scene.key]?.length) delete contrast[scene.key];
+          }
+          if (found.size) layout[scene.key] = [...found].slice(0, 6);
+        }
+      }
+      return { errors: [...errors.values()], cues: init.cues, thumbnails, layout, contrast };
     })();
     return await Promise.race([job, new Promise<never>((_, reject) => setTimeout(() => reject(new Error('probe_timeout')), opts.timeoutMs ?? 120000))]);
   } finally {
@@ -289,6 +442,9 @@ async function renderChunk(page: Page, input: FilmRenderInput, from: number, to:
     ff.on('error', reject);
     ff.on('close', (code) => (code === 0 ? resolve() : reject(new Error(`ffmpeg chunk ${code}: ${err.slice(-600)}`))));
   });
+  // Si une image échoue, on sort sans attendre ffmpeg : son erreur ne doit jamais devenir un rejet orphelin (il fait
+  // tomber le processus entier, donc l'API).
+  done.catch(() => undefined);
   try {
     for (let f = from; f < to; f++) {
       const shot = (await page.evaluate(() => (window as any).__IDEM_RENDER__.step(0.92))) as { data: string };
@@ -323,13 +479,17 @@ export async function renderFilm(input: FilmRenderInput): Promise<FilmRenderOutp
     const browser = await getBrowser();
     const per = Math.ceil(total / concurrency);
     const chunks = Array.from({ length: concurrency }, (_, i) => ({ from: i * per, to: Math.min(total, (i + 1) * per), file: path.join(workDir, `part-${String(i).padStart(2, '0')}.mp4`) })).filter((c) => c.to > c.from);
-    const inits = await Promise.all(
+    // Tous les tronçons vont jusqu'au bout (réussite ou échec) avant que le dossier de travail soit nettoyé.
+    const settled = await Promise.allSettled(
       chunks.map(async (chunk) => {
         const page = await openFilmPage(browser, input, input.files || new Map());
         pages.push(page);
         return renderChunk(page, input, chunk.from, chunk.to, chunk.file, tick);
       })
     );
+    const failed = settled.find((r): r is PromiseRejectedResult => r.status === 'rejected');
+    if (failed) throw failed.reason;
+    const inits = settled.map((r) => (r as PromiseFulfilledResult<InitResult>).value);
     const errors = new Map<string, SceneErrorRecord>();
     for (const page of pages) for (const e of (await page.evaluate(() => (window as any).__IDEM_RENDER__.errors())) as SceneErrorRecord[]) errors.set(e.key, e);
     for (const init of inits) for (const e of init.errors) errors.set(e.key, e);

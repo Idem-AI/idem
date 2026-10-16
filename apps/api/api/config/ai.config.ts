@@ -676,17 +676,19 @@ export const AI_CONFIG = {
    * plus longue de chaque génération ; ces trois lignes en coûtent quelques
    * centaines et servent les trois documents.
    *
-   * Le raisonnement est actif : `tokens` est un PLAFOND qui laisse la réflexion
-   * finir (cf. `MIN_TOKENS_FOR_THINKING`), pas une consommation.
+   * SANS raisonnement. Mesuré avec : 4 200 à 5 100 tokens de sortie pour une
+   * réponse de ~260 (le reste était de la réflexion, facturée et jetée), alors
+   * que le prompt demandait déjà de ne pas réfléchir longuement. Trois champs
+   * courts, bornés et vérifiés par le code (longueur, mot mis en valeur présent
+   * dans la promesse), avec un repli sans modèle : la réflexion n'y décide rien.
    */
   coverBrief: feature({
     role: 'mechanical',
     sampling: 'divergent',
-    thinking: true,
-    tokens: 8000,
-    // Pas de mode JSON imposé : raisonnement + JSON n'est pas un couple garanti
-    // chez tous les fournisseurs (cf. check:prompts), et trois champs se lisent
-    // sans lui (`parseLlmJson`).
+    thinking: false,
+    // Plafond de sécurité : la réponse fait ~260 tokens.
+    tokens: 600,
+    // Pas de mode JSON imposé : trois champs se lisent sans lui (`parseLlmJson`).
     pin: true,
   }),
 
@@ -867,7 +869,10 @@ export const AI_CONFIG = {
   }),
 
   // Advisor — function-calling requis : la boucle Context Engine tourne dessus.
-  advisor: feature({ role: 'writing', promptType: 'advisor' }),
+  // Plafond de sécurité (une réponse de conversation en fait rarement 1 500) :
+  // sans lui, une sortie qui boucle partait sur le maximum du fournisseur, à
+  // CHAQUE tour d'outil.
+  advisor: feature({ role: 'writing', promptType: 'advisor', tokens: 6000 }),
 
   legalDocs: feature({ role: 'writing' }),
 

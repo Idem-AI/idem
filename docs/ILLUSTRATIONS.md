@@ -22,14 +22,14 @@ on l'ajoute ici avec sa source (règle complète : `AGENTS.md` § 4).
 | --- | --- | --- |
 | Bouclier aux lances croisées | accès, sécurité | connexion, iDeploy `shield`, vérification |
 | Clé à anneau-bouclier | compte, accès premium | invitation bêta, AppGen connexion et réglages |
-| Cauris (et calebasse de cauris) | argent, prêt | module finance, banque, tontine |
+| Cauris (et calebasse de cauris) | argent, prêt | module finance, banque, tontine ; tarifs de la landing (héros, `app-offer-illustration` `wallet`) et « Autres offres » (`tontine`) |
 | Baobab et son fruit (pain de singe) | croissance qui rapporte | business plan, investisseur |
-| Jeune pousse | projet qu'on aide à grandir | SASU, bailleur |
+| Jeune pousse | projet qu'on aide à grandir | SASU, bailleur ; offre « Gratuit » (`app-offer-picker`, `sprout`) |
 | Croix d'Agadez (tanaghilt) sur son cordon tressé | « je te donne les quatre coins du monde » : de quoi choisir sa route | création de projet — source : [Club des Voyages, « Les croix touarègues »](https://www.club-des-voyages.com/niger/les-croix-touaregues-12196.html) |
-| Tambour parleur (tama) | parole portée loin, conversation | pitch deck, mode chat, communication, aide |
+| Tambour parleur (tama) | parole portée loin, conversation | pitch deck, mode chat, communication, aide ; offre IDEM Croissance (`drum`) |
 | Kora (harpe-luth des griots), chevalet en couleur | raconter une histoire en musique | vidéos de promotion (état vide) ; image de partage d'iVision (`og/illustrations/ivision.svg`) — source : [Kora (instrument), Wikipédia](https://fr.wikipedia.org/wiki/Kora_(instrument)) |
-| Métier à tisser (bande étroite) | construire fil à fil, le code | développement, dépôt de code, document qui se tisse |
-| Pirogue à la proue dressée | départ, mise en ligne, équipage | publication, déploiements, SAS, équipe interne |
+| Métier à tisser (bande étroite) | construire fil à fil, le code | développement, dépôt de code, document qui se tisse ; Pass Projet d'iCode (`ProjectPassIllustration` : bande tissée roulée sur l'ensouple, la navette en couleur) |
+| Pirogue à la proue dressée | départ, mise en ligne, équipage | publication, déploiements, SAS, équipe interne ; offre Pack Lancement (`launch`) |
 | Grenier dogon (vide / fermé / plein) | réserve, serveur, récolte | serveur, cloud géré, projet absent, projet IDEM |
 | Porte de grenier et serrure de bois | « votre machine, votre clé » | serveur personnel, pipeline iDeploy |
 | Canaris (jarres) | on garde, on stocke | bases de données, stockage |
@@ -41,7 +41,7 @@ on l'ajoute ici avec sa source (règle complète : `AGENTS.md` § 4).
 | Pochoir d'adire eleko (tôle découpée, pâte de manioc) et le motif réimprimé | reproduire le motif d'un modèle sur une autre étoffe, dans d'autres couleurs | iVision : « Montrez un modèle, il le reproduit » — source : [Adire (textile art), Wikipédia](https://en.wikipedia.org/wiki/Adire_(textile_art)) (« metal stencils cut from the sheets of tin that lined tea chests ») |
 | Étoffe de raphia kuba à pièces appliquées (une zone découpée, une pièce cousue au point) | couper la matière brute puis l'habiller : le montage | iVision : atelier « Montage » (accueil, préparation) — sources : [WAAC, « Kuba Textiles: An Introduction »](https://cool.culturalheritage.org/waac/wn/wn08/wn08-1/wn08-102.html) (« patterns are created by cutting and removing areas of the base cloth… patched »), [UMMA, Raffia Textile Panel](https://umma.umich.edu/objects/raffia-textile-panel-1985-1-142/) |
 | Bandes de kente assemblées | la composition | direction artistique |
-| Pagnes pliés en pile | livrable complet | charte finalisée |
+| Pagnes pliés en pile | livrable complet | charte finalisée ; offre Kit Entreprise (`kit`) |
 | Filet de pêche (épervier) | un réseau de nœuds | diagrammes, réseaux iDeploy |
 | Échelle dogon (tronc fourchu entaillé) | une marche à la fois ; monter d'un cran | mode assisté ; iVision : cran de créativité (landing, chaque entaille est un cran Low → Ultra) |
 | Plateau d'awalé | stratégie, calcul, simulation | mode avancé, simulations |
@@ -197,6 +197,71 @@ pagne tendu en bannière. Le cadenas de l'adresse est le seul détail en couleur
 ### Landing
 
 L'invitation bêta (clé à anneau-bouclier) était déjà dans ce style.
+
+Les pages **Société** (À propos, Vision, Open Source, Contact) et **Produit**
+(iCode, iDeploy) ont été refaites en octobre 2026 : les photographies de banque
+d'images qui les habillaient ont été retirées, et chaque section porte
+désormais l'objet qui dit ce qu'elle dit. Les dessins sont dans
+`apps/landing/src/app/shared/components/page-art/page-art.ts`
+(`<app-page-art scene="…">`), et ce sont les tracés déjà retenus ailleurs —
+tableau de bord, iDeploy, simulateur — pour qu'un même sens garde partout le
+même visage. Les offres gardent leur composant à part
+(`app-offer-illustration`).
+
+| Page · section | Retenu | Écartés |
+| --- | --- | --- |
+| À propos : héros, les fondateurs | **arbre à palabres et tabourets** (`palaver-tree`) — l'équipe, le conseil | photographie « équipe tech africaine » (banque d'images, hors DA) |
+| À propos : le parcours | **échelle dogon** (`ladder`) — une marche à la fois ; les années sont une vraie séquence | — |
+| À propos : la vision 2035 | **baobab qui porte son fruit** (`baobab`) — la croissance qui rapporte | photographie en pleine largeur sous voile noir (fond sombre imposé, § 3) |
+| Contact : héros et « message parti » | **tambour parleur** (`drum`), ses ondes en couleur — la parole portée loin ; les deux moments disent la même chose, d'où le même objet | — |
+| Vision : héros | **étal du marché** (`market`) — le commerce en nom propre | mosaïque de quatre photographies ; silhouette du continent (interdite par défaut) |
+| Vision : le déploiement par région | **calebasse de cauris** (`cowries`) — une région est ouverte quand on peut payer depuis chez soi | étal (déjà pris par le héros de la page) |
+| Open Source : héros | **porte de grenier et serrure de bois** (`granary-lock`), la clé en couleur — « votre code, votre clé » | — |
+| Open Source : où vivent vos données | **canaris** (`jars`) — on garde, on stocke | photographie « data sovereignty » ; grenier (dit la machine, pas la garde) |
+| Open Source : la licence et le droit | **balance akan** (`scales`) — peser juste, la règle | feuillet et calame (dit l'écriture, pas la règle) |
+| Open Source : la communauté | **arbre à palabres** (`palaver-tree`) — on se réunit pour décider ; même sens que les fondateurs d'À propos | photographie « équipe de développeurs » |
+| iCode : héros | **métier à tisser** (`loom`), la navette en couleur — le code qui se construit fil à fil | façade en banco (réservée à l'institution) |
+| iCode : mettre en ligne / emporter | **pirogue** (`canoe`) — le départ | — |
+| iDeploy : héros | **pirogue** (`canoe`) — la mise en ligne | grenier (dit la machine, pas le départ) |
+| iDeploy : infrastructure IDEM | **grenier plein, tenu pour vous** (`granary-full`) | — |
+| iDeploy : votre propre serveur | **porte de grenier et serrure** (`granary-lock`) | — |
+| iDeploy : protégé et surveillé | **bouclier aux lances croisées** (`shield`) | — |
+| iDeploy : nom de domaine | **façade ndebele peinte** (`facade`) — l'adresse à son nom | — |
+| iDeploy : le catalogue en un clic | **étal du marché** (`market`) — on choisit | — |
+| iDeploy : « Et aussi » (bases, volumes) | **canaris** (`jars`), en grand | — |
+| iDeploy : le prix, l'offre gratuite | **calebasse de cauris** (`cowries`) | — |
+
+Les trois étapes d'iCode et les quatre d'iDeploy ne sont pas illustrées : ce
+sont des séquences réelles, et leur numéro porte déjà l'information. Les
+listes qui ne sont pas des séquences — valeurs, avantages, fonctions — n'ont ni
+numéro ni icône : une icône qui répète le mot d'à côté est du décor (§ 3).
+
+La page **Simulateur** (`/simulator`) a suivi en octobre 2026. Son héros est
+inchangé — le faisceau de trajectoires est une donnée, pas un décor, et reste
+dans la liste des dessins gardés tels quels — mais les trois halos dégradés qui
+lui servaient de fond ont été retirés, et toutes les autres sections sont
+passées à la trame éditoriale. Les objets viennent du simulateur, donc ils ont
+le même tracé qu'y.
+
+| Page · section | Retenu | Écartés |
+| --- | --- | --- |
+| Simulateur : le mur de facteurs | **plateau d'awalé** (`awale`) — on calcule ses coups avant de semer, et ses graines sont les facteurs | photographie « entrepreneure au travail » sous voile noir |
+| Simulateur : les cinq phases | **échelle dogon** (`ladder`) — une marche à la fois | photographie « réseau d'agents » (décor, elle ne montrait rien du moteur) |
+| Simulateur : les tests de résistance | **kyinie** (`kyinie`), l'ombrelle d'apparat akan — s'abriter des imprévus | photographie de fondatrice ; grenier fermé (dit la réserve, pas l'abri) |
+| Simulateur : les deux entrées | **grenier plein** (`granary-full`) pour un projet IDEM ; **feuillet apporté** (`leaflet-import`) pour un business plan importé | captures de livrables en vignette de carte |
+| Simulateur : l'appel final | **daba** (`daba`) — aller retourner la terre avant de semer, c'est-à-dire vérifier en vrai | photographie « entrepreneurs qui se lancent » sous dégradé noir vers primaire |
+| Accueil : programme bêta | **clé à anneau-bouclier** (`key-shield`) — l'accès premium ; même dessin que l'invitation bêta, ramené au cadre commun | — |
+
+Les deux colonnes de secteurs du simulateur (livraison urbaine / agriculture)
+n'ont **pas** d'illustration : ce qui s'y lit est le contraste entre deux
+listes de facteurs, et une icône par colonne ne ferait que nommer deux fois le
+métier déjà écrit en titre.
+
+L'appel final de l'accueil garde **IDEO**, la mascotte de la marque. C'est une
+exception assumée au « pas de personnage » du § 4 : cette règle vise le
+répertoire au trait de l'interface, pas les objets de marque existants. IDEO
+est un PNG détouré, donc il se pose sans panneau, sans ombre et sans fond — lui
+en remettre un redessinerait le rectangle que le détourage a retiré.
 
 ### Images de partage (Open Graph)
 

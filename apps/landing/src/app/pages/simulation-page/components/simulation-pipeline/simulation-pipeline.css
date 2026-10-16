@@ -1,3 +1,13 @@
-:host {
-  display: block;
+/* Les étapes d'une simulation — ce qui n'appartient qu'à cette section. */
+
+/* Le numéro d'une étape. Les cinq phases s'enchaînent vraiment dans cet
+   ordre — lire, découvrir, chercher, simuler, analyser — donc le numéro se
+   lit. */
+.sp-step {
+  margin-bottom: 0;
+  font-weight: var(--font-weight-black);
+  font-size: clamp(2rem, 3.5vw, 3rem);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: color-mix(in oklch, var(--color-primary-500) 60%, transparent);
 }

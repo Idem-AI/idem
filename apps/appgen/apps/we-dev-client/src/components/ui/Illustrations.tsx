@@ -577,3 +577,45 @@ export function SignInIllustration({ className = '', size = 108 }: IllustrationP
     </svg>
   );
 }
+
+/**
+ * Pass Projet : le métier à tisser étroit. La bande est tissée, roulée sur
+ * l'ensouple, prête à partir : l'application est finie et elle est à vous.
+ * La navette, seul détail en couleur, dit que les modifications continuent.
+ */
+export function ProjectPassIllustration({ className = '', size = 168 }: IllustrationProps) {
+  return (
+    <svg
+      viewBox="0 0 180 140"
+      style={{ height: size }}
+      className={`text-text-tertiary ${className}`}
+      {...LINE}
+      role="img"
+      aria-hidden
+    >
+      {/* Le cadre du métier */}
+      <path d="M40 128 L52 14 M140 128 L128 14 M46 16 H134" strokeWidth="2"/>
+      <path d="M44 100 H136" strokeWidth="1.6"/>
+      {/* La chaîne */}
+      <path d="M72 18 V58 M78 18 V58 M84 18 V58 M90 18 V58 M96 18 V58 M102 18 V58 M108 18 V58" strokeWidth="1" opacity=".7"/>
+      {/* Les lisses */}
+      <path d="M66 40 H114" strokeWidth="1.4"/>
+      {/* La bande tissée : kente et losanges */}
+      <path d="M68 58 H112 V98 H68 Z" strokeWidth="1.8"/>
+      <path d="M68 66 H112 M68 90 H112" strokeWidth="1.2"/>
+      <path d="M70 78 L76 70 L82 78 L88 70 L94 78 L100 70 L106 78 L110 72" strokeWidth="1.2"/>
+      <path d="M72 94 H76 M82 94 H86 M92 94 H96 M102 94 H106" strokeWidth="1.4"/>
+      {/* L'ensouple : la bande roulée, prête */}
+      <ellipse cx="90" cy="112" rx="30" ry="8" strokeWidth="1.8"/>
+      <ellipse cx="90" cy="112" rx="18" ry="4" strokeWidth="1.2" opacity=".7"/>
+      <path d="M68 98 C64 104 62 108 60 112 M112 98 C116 104 118 108 120 112" strokeWidth="1.2"/>
+      <g style={ACCENT}>
+        {/* La navette */}
+        <path d="M22 52 C40 46 60 46 70 50 C60 54 40 56 22 52 Z" strokeWidth="1.8"/>
+        <path d="M36 51 H54" strokeWidth="1.4"/>
+        <path d="M70 50 C100 48 130 52 156 56" strokeWidth="1" strokeDasharray="2 4"/>
+        <path d="M150 116 L156 110 L162 116 L156 122 Z" strokeWidth="1.6"/>
+      </g>
+    </svg>
+  );
+}

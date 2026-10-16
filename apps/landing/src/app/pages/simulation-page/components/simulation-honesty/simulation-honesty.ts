@@ -6,9 +6,8 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
  */
 @Component({
   selector: 'app-simulation-honesty',
-  standalone: true,
   templateUrl: './simulation-honesty.html',
-  styleUrl: './simulation-honesty.css',
+  styleUrls: ['../../../../shared/styles/editorial-page.css', './simulation-honesty.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SimulationHonesty {}

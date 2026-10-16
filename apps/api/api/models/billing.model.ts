@@ -398,7 +398,13 @@ export type CreditEntryReason =
    * rend l'octroi rejouable sans risque (on sait qui l'a déjà reçu) et
    * mesurable séparément dans le panel admin.
    */
-  | 'welcome_grant';
+  | 'welcome_grant'
+  /** Recharge du portefeuille en francs (mobile money ou code IDEM). */
+  | 'topup'
+  /** Conversion des anciens crédits en francs, à la bascule du modèle. */
+  | 'conversion'
+  /** Bonus de recharge ou geste commercial versé au portefeuille. */
+  | 'bonus';
 
 /**
  * Mouvement de crédits sur le compteur d'UN moteur.
@@ -411,7 +417,8 @@ export type CreditEntryReason =
 export interface CreditLedgerEntryModel {
   id?: string;
   userId: string;
-  engine: BillingEngine;
+  /** Moteur historique, portefeuille (`wallet`) ou compte de droits prépayés. */
+  engine: import('./offer.model').LedgerAccount;
   delta: number;
   /** Solde du compteur de CE moteur après application. */
   balanceAfter: number;
@@ -435,6 +442,8 @@ export interface CreditLedgerEntryModel {
    */
   expiredAt?: Date;
   note?: string;
+  /** Plafond auquel le mouvement se rattache (`kit:<projet>`, `croissance:2026-10`). */
+  capKey?: string;
   day: string;
   createdAt?: Date;
   updatedAt?: Date;
@@ -452,6 +461,28 @@ type SeedProduct = Omit<BillingProductModel, 'id' | 'createdAt' | 'updatedAt'>;
  * en production survive au redémarrage.
  */
 export const DEFAULT_PRODUCTS: SeedProduct[] = [
+  // ── Le portefeuille ──────────────────────────────────────────────────────
+  //
+  // Depuis le modèle « Créer, Garder, Faire tourner », le mobile money ne paie plus qu'une chose :
+  // la RECHARGE du portefeuille, du montant choisi (100 F à 500 000 F, par pas de 50 F). Le prix
+  // ci-dessous est celui de 3 000 F (l'offre de référence, le forfait Croissance), base des prix
+  // locaux par pays, appliqués au prorata ; tout le reste (forfaits,
+  // versions finales, packs, compteurs, domaines) s'achète depuis le portefeuille
+  // (`models/offer.model.ts`). Les produits historiques plus bas restent pour les abonnements en
+  // cours, désactivés à la vente par `npm run billing:migrate-offer`.
+  {
+    code: 'wallet-topup',
+    kind: 'recharge',
+    engine: null,
+    name: 'Recharge du portefeuille',
+    description: 'Créditez votre portefeuille IDEM du montant de votre choix. Bonus de 5 % dès 5 000 F, 10 % dès 10 000 F.',
+    priceXaf: 3000,
+    interval: 'one_time',
+    credits: 3000,
+    isActive: true,
+    sortOrder: 1,
+  },
+
   // ── A. IDEM Business ─────────────────────────────────────────────────────
   {
     code: 'business-discovery',

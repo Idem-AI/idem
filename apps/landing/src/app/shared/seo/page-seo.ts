@@ -33,7 +33,7 @@ export function pageSeoText(id: LandingPageId, locale: 'fr' | 'en'): PageSeoText
     case 'pricing':
       return {
         title: $localize`:@@seo.pricing.title:IDEM pricing — Packs to launch a profitable business`,
-        description: $localize`:@@seo.pricing.description:Clear prices in CFA francs, paid with Mobile Money: identity, strategy, compliance, app and hosting packs, with free credits to start your business.`,
+        description: $localize`:@@seo.pricing.description:Create for free, pay only for what you keep, by Mobile Money: Business Kit 2,500 F, Launch Pack 5,000 F, IDEM Growth 3,000 F a month.`,
         crumb: $localize`:@@seo.pricing.crumb:Pricing`,
         imageAlt: $localize`:@@seo.pricing.imageAlt:IDEM pricing — Cowrie shells, the historic currency of West Africa.`,
       };

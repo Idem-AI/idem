@@ -35,11 +35,12 @@ import { PlanIntent, PlanPanel } from './components/plan-panel/plan-panel';
 import { StrategyInputsDialog } from './components/strategy-inputs-dialog/strategy-inputs-dialog';
 import { StudioPanel } from './components/studio-panel/studio-panel';
 import { VideoPanel } from './components/video-panel/video-panel';
+import { WhatsappPanel } from './components/whatsapp-panel/whatsapp-panel';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
-type Screen = 'home' | 'studio' | 'videos' | 'plans' | 'library';
+type Screen = 'home' | 'studio' | 'videos' | 'plans' | 'library' | 'whatsapp';
 
-const SCREENS: readonly Screen[] = ['home', 'studio', 'videos', 'plans', 'library'];
+const SCREENS: readonly Screen[] = ['home', 'studio', 'videos', 'plans', 'library', 'whatsapp'];
 
 /**
  * Module Communication — la coquille.
@@ -69,6 +70,7 @@ const SCREENS: readonly Screen[] = ['home', 'studio', 'videos', 'plans', 'librar
 @Component({
   selector: 'app-show-communication',
   imports: [
+    WhatsappPanel,
     TranslateModule,
     IncompleteProjectBannerComponent,
     BrandVoicePanel,
@@ -148,6 +150,7 @@ export class ShowCommunication implements OnInit {
     { id: 'videos', icon: 'pi pi-video' },
     { id: 'plans', icon: 'pi pi-calendar' },
     { id: 'library', icon: 'pi pi-images' },
+    { id: 'whatsapp', icon: 'pi pi-whatsapp' },
   ];
 
   /** Demande transmise au calendrier quand on y arrive depuis l'accueil. */

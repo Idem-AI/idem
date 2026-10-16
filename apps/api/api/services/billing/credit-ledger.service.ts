@@ -1,6 +1,7 @@
 import logger from '../../config/logger';
 import { creditsDebitedTotal } from '../../config/metrics';
 import { BILLING_ENGINES, BillingEngine, CreditEntryReason } from '../../models/billing.model';
+import type { LedgerAccount } from '../../models/offer.model';
 import { CreditLedgerEntry } from '../../schemas/billing.schema';
 import { CreditBalance } from '../../schemas/payment.schema';
 
@@ -48,6 +49,13 @@ export interface LedgerContext {
   paymentTransactionId?: string;
   note?: string;
   expiresAt?: Date;
+  /**
+   * Plafond auquel ce mouvement se rattache (`kit:<projet>`, `croissance:2026-10`…) : la somme
+   * des mouvements d'une clé dit ce qui a déjà été payé sous ce plafond.
+   */
+  capKey?: string;
+  /** Motif inscrit au livre, quand il diffère du motif par défaut de l'opération. */
+  reason?: CreditEntryReason;
 }
 
 export interface DebitResult {
@@ -67,7 +75,7 @@ export class CreditLedgerService {
    * mécanique), il est reconstruit depuis le livre puis mémorisé. La migration
    * se fait donc toute seule, au premier accès, sans script de bascule.
    */
-  async getBalance(userId: string, engine: BillingEngine): Promise<number> {
+  async getBalance(userId: string, engine: LedgerAccount): Promise<number> {
     const doc = await CreditBalance.findOne({ userId, engine }).select('balance').lean();
     if (doc) return doc.balance;
 
@@ -88,7 +96,7 @@ export class CreditLedgerService {
    * concurrentes ont produit des `balanceAfter` identiques par le passé, la
    * somme reste la vérité comptable.
    */
-  async rebuildBalance(userId: string, engine: BillingEngine): Promise<number> {
+  async rebuildBalance(userId: string, engine: LedgerAccount): Promise<number> {
     const [row] = await CreditLedgerEntry.aggregate([
       { $match: { userId, engine } },
       { $group: { _id: null, total: { $sum: '$delta' } } },
@@ -112,7 +120,7 @@ export class CreditLedgerService {
    */
   async grant(
     userId: string,
-    engine: BillingEngine,
+    engine: LedgerAccount,
     amount: number,
     reason: CreditEntryReason,
     context: LedgerContext = {}
@@ -157,7 +165,7 @@ export class CreditLedgerService {
    */
   async debit(
     userId: string,
-    engine: BillingEngine,
+    engine: LedgerAccount,
     cost: number,
     context: LedgerContext = {}
   ): Promise<DebitResult> {
@@ -224,7 +232,7 @@ export class CreditLedgerService {
    */
   async refundDebit(
     userId: string,
-    engine: BillingEngine,
+    engine: LedgerAccount,
     amount: number,
     context: LedgerContext = {}
   ): Promise<number> {
@@ -263,7 +271,7 @@ export class CreditLedgerService {
    */
   async adjust(
     userId: string,
-    engine: BillingEngine,
+    engine: LedgerAccount,
     delta: number,
     note: string,
     adminId?: string
@@ -322,7 +330,7 @@ export class CreditLedgerService {
    */
   async recordIncluded(
     userId: string,
-    engine: BillingEngine,
+    engine: LedgerAccount,
     action: string,
     context: LedgerContext = {}
   ): Promise<void> {
@@ -345,7 +353,7 @@ export class CreditLedgerService {
    */
   async hasChargedAction(
     userId: string,
-    engine: BillingEngine,
+    engine: LedgerAccount,
     action: string,
     projectId?: string,
     /**
@@ -472,7 +480,7 @@ export class CreditLedgerService {
   /** Relevé d'un moteur, le plus récent d'abord. */
   async getStatement(
     userId: string,
-    engine?: BillingEngine,
+    engine?: LedgerAccount,
     limit = 100
   ): Promise<Record<string, unknown>[]> {
     const filter: Record<string, unknown> = { userId };
@@ -484,10 +492,22 @@ export class CreditLedgerService {
       .lean();
   }
 
+  /**
+   * Ce qui a déjà été payé sous un plafond : la somme des débits rattachés à la clé, nette des
+   * restitutions (une génération en échec ne compte pas dans le plafond).
+   */
+  async spentUnderCap(userId: string, account: LedgerAccount, capKey: string): Promise<number> {
+    const [row] = await CreditLedgerEntry.aggregate([
+      { $match: { userId, engine: account, capKey } },
+      { $group: { _id: null, total: { $sum: '$delta' } } },
+    ]);
+    return Math.max(0, -(row?.total ?? 0));
+  }
+
   /** Écriture au grand livre. Ne bloque jamais le mouvement de solde. */
   private async appendEntry(
     userId: string,
-    engine: BillingEngine,
+    engine: LedgerAccount,
     delta: number,
     balanceAfter: number,
     reason: CreditEntryReason,

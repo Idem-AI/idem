@@ -916,124 +916,57 @@
       "tagline": "iCode is part of the"
     },
     "pricing": {
-      "title": "Generating is free. Owning costs almost nothing.",
-      "lede": "Describe your idea and watch your app run in the browser, for free. You only pay to own it — in FCFA, by Mobile Money.",
-      "perMonth": "/month",
-      "popular": "Most popular",
-      "annual": "Annual billing: 2 months free (-16%) — payable by Mobile Money in 1 or 3 instalments.",
+      "title": "Generating is free. Keeping your app costs 1,000 F.",
+      "lede": "Describe your idea and watch your app run in the browser, at no cost. When you like it, the Project Pass makes it yours.",
       "pass": {
-        "badge": "The heart of the model",
         "name": "Project Pass",
-        "price": "999 F",
-        "once": "— once per project (~$1.7)",
-        "body": "The first generation is entirely free and the preview is unlimited. When your app works and you want to keep it — download it, push it, deploy it — unlock it for less than a restaurant meal.",
+        "price": "1,000 F",
+        "once": "one time, per project",
+        "body": "Your app is yours: its code, on GitHub or as a ZIP, and one-click deployment. With 30 changes to keep improving it.",
+        "cta": "Get started",
+        "ctaNote": "Free until you decide to keep it.",
         "features": [
-          "AI edits unlocked (30 credits included)",
-          "Unlimited code download (ZIP)",
-          "Unlimited GitHub push",
-          "iDeploy deployment unlocked",
-          "Private project, removable badge"
+          "30 AI changes included",
+          "The full code, as a ZIP or on GitHub",
+          "One-click deployment on iDeploy",
+          "Paid by mobile money, no bank card"
         ]
       },
-      "plans": {
-        "discovery": {
-          "name": "Discovery",
-          "price": "0 F",
-          "usd": "free forever",
-          "tagline": "Generate complete apps and watch them run, free.",
-          "cta": "Start free",
-          "features": [
-            "3 complete generations per day",
-            "Unlimited browser preview",
-            "Project Pass at 999 F per project",
-            "Community support"
-          ]
+      "usage": {
+        "title": "Then, as you go",
+        "choose": "Choose",
+        "generate": {
+          "name": "Generate and watch it run",
+          "note": "First generation and unlimited preview",
+          "price": "Free"
         },
-        "starter": {
-          "name": "Starter",
-          "price": "2 999 F",
-          "usd": "~$5.2/month",
-          "tagline": "7× cheaper per credit than Lovable Pro.",
-          "cta": "Get Starter",
-          "features": [
-            "Unlimited initial generations",
-            "Project Pass included on every project",
-            "150 credits/month, 2-month rollover",
-            "Import existing projects",
-            "Standard support"
-          ]
+        "change": {
+          "name": "One change",
+          "note": "The price of a text message. A failed change is not charged.",
+          "price": "25 F"
         },
-        "pro": {
-          "name": "Pro",
-          "price": "9 999 F",
-          "usd": "~$17/month",
-          "tagline": "For builders shipping every week.",
-          "cta": "Go Pro",
-          "features": [
-            "Everything in Starter",
-            "550 credits/month",
-            "Premium models for complex actions",
-            "Priority support"
-          ]
+        "premium": {
+          "name": "One change with the most powerful model",
+          "note": "For the hard changes",
+          "price": "75 F"
         },
-        "studio": {
-          "name": "Studio",
-          "price": "24 999 F",
-          "usd": "~$43/month",
-          "tagline": "For agencies building for their clients.",
-          "cta": "Go Studio",
-          "features": [
-            "Everything in Pro",
-            "1,500 credits/month",
-            "5 seats",
-            "API access",
-            "White-label for agencies",
-            "Dedicated support"
-          ]
+        "pack100": {
+          "name": "100 changes pack",
+          "note": "20 F per change, across all your projects",
+          "price": "2,000 F"
+        },
+        "growth": {
+          "name": "IDEM Growth",
+          "note": "20 changes a month, your site always online, and communication",
+          "price": "3,000 F / month"
+        },
+        "launch": {
+          "name": "Launch Pack",
+          "note": "The Project Pass, the Business Kit and 3 months of website online",
+          "price": "5,000 F"
         }
       },
-      "passes": {
-        "title": "Day passes",
-        "lede": "Like a data plan: you only pay for the days you build.",
-        "items": [
-          {
-            "name": "24h pass",
-            "price": "500 F",
-            "note": "25 credits — \"testing my idea tonight\""
-          },
-          {
-            "name": "7-day pass",
-            "price": "1 499 F",
-            "note": "90 credits — \"prepping Friday's demo\""
-          }
-        ]
-      },
-      "recharges": {
-        "title": "Credit top-ups",
-        "lede": "No commitment, valid 12 months, cheaper as you go up.",
-        "items": [
-          {
-            "name": "Boost",
-            "price": "500 F",
-            "credits": "25 credits"
-          },
-          {
-            "name": "Standard",
-            "price": "999 F",
-            "credits": "55 credits"
-          },
-          {
-            "name": "Growth",
-            "price": "2 499 F",
-            "credits": "145 credits"
-          },
-          {
-            "name": "Power",
-            "price": "4 999 F",
-            "credits": "320 credits"
-          }
-        ]
-      }
+      "wallet": "Everything is paid from your IDEM wallet, topped up by mobile money from 100 F. The same balance pays for iCode, hosting and your documents."
     }
   },
   "composer": {
@@ -1061,14 +994,18 @@
     "creditsTitle": "{{used}} of {{total}} credits used",
     "locked": {
       "title": "This project is not unlocked yet",
-      "body": "Generating is free. Downloading the code, pushing it to GitHub or deploying it require the Project Pass.",
+      "body": "Generating is free. Downloading the code, pushing it to GitHub or deploying it requires the Project Pass (1,000 F, 30 changes included).",
       "cta": "Unlock this project",
-      "missingProject": "Open this project from your IDEM dashboard to unlock it."
+      "missingProject": "Open this project from your IDEM dashboard to unlock it.",
+      "unlocked": "Project unlocked: 30 changes included."
     },
     "noCredits": {
-      "title": "Not enough iCode credits",
-      "body": "You need {{missing}} more credits for this action.",
+      "title": "Not enough in your wallet",
+      "body": "You are {{missing}} F short for this change.",
       "cta": "Top up"
-    }
+    },
+    "modifications": "{{count}} iCode changes included",
+    "modificationsShort": "{{count}} changes",
+    "wallet": "IDEM wallet: {{amount}} F (one change: 25 F)"
   }
 }

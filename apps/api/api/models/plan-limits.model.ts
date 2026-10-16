@@ -36,8 +36,8 @@ export interface BusinessLimits {
 }
 
 export interface AppgenLimits {
-  /** Générations initiales par jour ; `null` = illimité. */
-  dailyGenerations: number | null;
+  // Le rythme des générations (initiales et modifications) est fixé par les quotas
+  // d'usage, par jour, semaine et mois : `models/usage-quota.model.ts`.
   /** Le Pass Projet est-il inclus sur tous les projets ? */
   projectPassIncluded: boolean;
   /** Accès aux modèles premium (actions à 3 crédits). */
@@ -117,7 +117,6 @@ const BUSINESS_LIMITS: Record<string, BusinessLimits> = {
 
 const APPGEN_LIMITS: Record<string, AppgenLimits> = {
   'appgen-discovery': {
-    dailyGenerations: 3,
     projectPassIncluded: false,
     premiumModels: false,
     seats: 1,
@@ -125,7 +124,6 @@ const APPGEN_LIMITS: Record<string, AppgenLimits> = {
     whiteLabel: false,
   },
   'appgen-starter': {
-    dailyGenerations: null,
     projectPassIncluded: true,
     premiumModels: false,
     seats: 1,
@@ -133,7 +131,6 @@ const APPGEN_LIMITS: Record<string, AppgenLimits> = {
     whiteLabel: false,
   },
   'appgen-pro': {
-    dailyGenerations: null,
     projectPassIncluded: true,
     premiumModels: true,
     seats: 1,
@@ -141,7 +138,6 @@ const APPGEN_LIMITS: Record<string, AppgenLimits> = {
     whiteLabel: false,
   },
   'appgen-studio': {
-    dailyGenerations: null,
     projectPassIncluded: true,
     premiumModels: true,
     seats: 5,

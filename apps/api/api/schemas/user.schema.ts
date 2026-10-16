@@ -1,26 +1,12 @@
 import mongoose, { Schema, Document } from 'mongoose';
 import {
   UserModel,
-  QuotaData,
   GitHubIntegration,
   RefreshTokenData,
   PolicyAcceptanceStatus,
 } from '../models/userModel';
 
 export interface UserDocument extends UserModel, Document {}
-
-const QuotaSchema = new Schema<QuotaData>(
-  {
-    dailyUsage: { type: Number, default: 0 },
-    weeklyUsage: { type: Number, default: 0 },
-    dailyLimit: { type: Number, default: 10 },
-    weeklyLimit: { type: Number, default: 50 },
-    lastResetDaily: { type: String, required: true },
-    lastResetWeekly: { type: String, required: true },
-    quotaUpdatedAt: { type: Date },
-  },
-  { _id: false }
-);
 
 const GitHubIntegrationSchema = new Schema<GitHubIntegration>(
   {
@@ -74,7 +60,6 @@ const UserSchema = new Schema<UserDocument>(
     },
     createdAt: { type: Date, required: true, default: Date.now },
     lastLogin: { type: Date, required: true, default: Date.now },
-    quota: { type: QuotaSchema, default: {} },
     roles: [{ type: String }],
     githubIntegration: { type: GitHubIntegrationSchema },
     refreshTokens: [{ type: RefreshTokenSchema }],
@@ -140,33 +125,15 @@ UserSchema.index({ subscription: 1, createdAt: -1 });
 // Utilisateurs actifs récemment
 UserSchema.index({ lastLogin: -1 });
 
-// Analyse de l'utilisation quotidienne
-UserSchema.index({ 'quota.dailyUsage': 1 });
-
-// Analyse de l'utilisation hebdomadaire
-UserSchema.index({ 'quota.weeklyUsage': 1 });
-
 // Comptage par rôle
 UserSchema.index({ roles: 1 });
 
 // Croissance par type d'abonnement
 UserSchema.index({ createdAt: -1, subscription: 1 });
 
-// ============================================
-// INDEX POUR GESTION DES QUOTAS
-// ============================================
-
-// Réinitialisation quotidienne des quotas
-UserSchema.index({ 'quota.lastResetDaily': 1 });
-
-// Réinitialisation hebdomadaire des quotas
-UserSchema.index({ 'quota.lastResetWeekly': 1 });
-
-// Utilisateurs ayant atteint leur limite quotidienne
-UserSchema.index({ 'quota.dailyUsage': 1, 'quota.dailyLimit': 1 });
-
-// Utilisateurs ayant atteint leur limite hebdomadaire
-UserSchema.index({ 'quota.weeklyUsage': 1, 'quota.weeklyLimit': 1 });
+// Les quotas d'usage ne vivent plus sur le compte : voir `usage_quota_counters`
+// (compteurs par période, purgés par TTL). `scripts/dropLegacyQuota.ts` retire
+// l'ancien champ `quota` et ses index des bases existantes.
 
 // ============================================
 // INDEX POUR INTÉGRATIONS
@@ -196,12 +163,6 @@ UserSchema.index({ 'policyAcceptance.lastAcceptedAt': -1 });
 
 // Dashboard admin : utilisateurs actifs par abonnement
 UserSchema.index({ subscription: 1, lastLogin: -1 });
-
-// Analytics : utilisation par type d'abonnement
-UserSchema.index({ subscription: 1, 'quota.dailyUsage': 1 });
-
-// Gestion des quotas : utilisateurs à notifier
-UserSchema.index({ subscription: 1, 'quota.dailyUsage': 1, 'quota.dailyLimit': 1 });
 
 // Recherche avancée : rôle + abonnement + date
 UserSchema.index({ roles: 1, subscription: 1, createdAt: -1 });
