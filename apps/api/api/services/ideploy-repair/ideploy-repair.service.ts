@@ -137,7 +137,8 @@ class IdeployRepairService {
         },
       },
       renderRequest(request),
-      { element: 'iDeploy repair', budget, skipQuotaCheck: true }
+      // Appel système : aucun quota utilisateur n'est réservé (il l'est à l'entrée des routes utilisateur).
+      { element: 'iDeploy repair', budget }
     );
 
     const parsed = parseProposal(result.text);
