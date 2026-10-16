@@ -19,9 +19,11 @@
       <app-journey></app-journey>
     </section>
 
-    <!-- Every service & the pricing model -->
-    <section class="relative z-10">
-      <app-offer-ecosystem></app-offer-ecosystem>
+    <!-- Les offres, par besoin (même bloc que la page Tarifs) -->
+    <section class="relative z-10 border-y border-[var(--glass-border-subtle)] py-24 lg:py-32">
+      <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+        <app-offer-picker [summary]="true" />
+      </div>
     </section>
 
     <!-- Technology & sovereignty: the ambition -->

@@ -916,123 +916,57 @@
       "tagline": "iCode fait partie de l'écosystème"
     },
     "pricing": {
-      "title": "Générer est gratuit. Posséder ne coûte presque rien.",
-      "lede": "Décrivez votre idée et regardez votre application tourner dans le navigateur, gratuitement. Vous ne payez que pour la posséder et la faire évoluer — depuis votre portefeuille IDEM, rechargé en Mobile Money dès 100 F.",
-      "perMonth": "/mois",
-      "popular": "Le plus choisi",
-      "annual": "Un seul portefeuille pour tout IDEM : le même solde paie iCode, l’hébergement iDeploy, vos livrables et votre communication.",
+      "title": "Générer est gratuit. Garder votre application coûte 1 000 F.",
+      "lede": "Décrivez votre idée et regardez votre application tourner dans le navigateur, sans payer. Quand elle vous plaît, le Pass Projet vous la donne.",
       "pass": {
-        "badge": "Le cœur du modèle",
         "name": "Pass Projet",
         "price": "1 000 F",
-        "once": "— une fois par projet",
-        "body": "La première génération est entièrement gratuite et l’aperçu est illimité. Quand votre application fonctionne et que vous voulez la garder — la télécharger, l’envoyer sur GitHub, la mettre en ligne — débloquez-la pour le prix d’un repas.",
+        "once": "une seule fois, par projet",
+        "body": "Votre application est à vous : son code, sur GitHub ou en ZIP, et sa mise en ligne en un clic. Avec 30 modifications pour la faire évoluer.",
+        "cta": "Commencer",
+        "ctaNote": "Gratuit jusqu’à ce que vous décidiez de la garder.",
         "features": [
           "30 modifications par IA incluses",
-          "Téléchargement du code illimité (ZIP)",
-          "Envoi vers GitHub illimité",
+          "Le code complet, en ZIP ou sur GitHub",
           "Mise en ligne sur iDeploy en un clic",
-          "Inclus dans le Pack Lancement (5 000 F)"
+          "Payé en mobile money, sans carte bancaire"
         ]
       },
-      "plans": {
-        "discovery": {
-          "name": "Générer",
-          "price": "0 F",
-          "period": "",
-          "usd": "gratuit, sans carte",
-          "tagline": "Générez des applications complètes et voyez-les tourner, sans payer.",
-          "cta": "Commencer gratuitement",
-          "features": [
-            "Génération initiale gratuite",
-            "Aperçu illimité dans le navigateur",
-            "Front et back exécutés dans l’aperçu",
-            "Rythme borné par jour pour l’usage loyal"
-          ]
+      "usage": {
+        "title": "Ensuite, à l’usage",
+        "choose": "Choisir",
+        "generate": {
+          "name": "Générer et voir tourner",
+          "note": "Première génération et aperçu illimité",
+          "price": "Gratuit"
         },
-        "starter": {
+        "change": {
           "name": "Une modification",
-          "price": "25 F",
-          "period": "",
-          "usd": "le prix d’un SMS",
-          "tagline": "Vous demandez un changement, il coûte 25 F. Rien d’autre à comprendre.",
-          "cta": "Commencer",
-          "features": [
-            "Payée depuis le portefeuille",
-            "Modifications incluses consommées d’abord",
-            "Restituée si la modification échoue"
-          ]
+          "note": "Le prix d’un SMS. Une modification ratée n’est pas débitée.",
+          "price": "25 F"
         },
-        "pro": {
+        "premium": {
+          "name": "Une modification avec le modèle le plus puissant",
+          "note": "Pour les changements difficiles",
+          "price": "75 F"
+        },
+        "pack100": {
           "name": "Pack 100 modifications",
-          "price": "2 000 F",
-          "period": "",
-          "usd": "20 F la modification",
-          "tagline": "Pour qui livre chaque semaine.",
-          "cta": "Commencer",
-          "features": [
-            "100 modifications à utiliser sur tous vos projets",
-            "Modèle le plus puissant : 3 modifications (ou 75 F)",
-            "Sans date d’expiration courte"
-          ]
+          "note": "20 F la modification, sur tous vos projets",
+          "price": "2 000 F"
         },
-        "studio": {
+        "growth": {
           "name": "IDEM Croissance",
-          "price": "3 000 F",
-          "period": "/mois",
-          "usd": "« 100 F par jour »",
-          "tagline": "20 modifications iCode par mois, et tout le reste d’IDEM.",
-          "cta": "Commencer",
-          "features": [
-            "20 modifications iCode par mois",
-            "Site vitrine toujours allumé",
-            "Communication et retouches sans limite (usage loyal)",
-            "Une simulation par trimestre"
-          ]
+          "note": "20 modifications par mois, votre site toujours en ligne et la communication",
+          "price": "3 000 F / mois"
+        },
+        "launch": {
+          "name": "Pack Lancement",
+          "note": "Le Pass Projet, le Kit Entreprise et 3 mois de site en ligne",
+          "price": "5 000 F"
         }
       },
-      "passes": {
-        "title": "Les packs",
-        "lede": "Tout ce qu’il faut pour lancer, en un seul achat.",
-        "items": [
-          {
-            "name": "Pack Lancement",
-            "price": "5 000 F",
-            "note": "Kit Entreprise + Pass Projet iCode + 3 mois de site vitrine allumé"
-          },
-          {
-            "name": "À plusieurs",
-            "price": "20 000 F",
-            "note": "5 Packs Lancement (le 5ᵉ offert) — association, tontine, coopérative"
-          }
-        ]
-      },
-      "recharges": {
-        "title": "Recharger le portefeuille",
-        "lede": "Dès 100 F, en Mobile Money. Bonus de 5 % dès 5 000 F, 10 % dès 10 000 F.",
-        "items": [
-          {
-            "name": "Recharge",
-            "price": "500 F",
-            "credits": "20 modifications"
-          },
-          {
-            "name": "Recharge",
-            "price": "1 000 F",
-            "credits": "40 modifications"
-          },
-          {
-            "name": "Recharge",
-            "price": "5 000 F",
-            "credits": "+250 F de bonus"
-          },
-          {
-            "name": "Recharge",
-            "price": "10 000 F",
-            "credits": "+1 000 F de bonus"
-          }
-        ]
-      }
+      "wallet": "Tout se paie depuis votre portefeuille IDEM, rechargé en mobile money dès 100 F. Le même solde sert à iCode, à l’hébergement et à vos documents."
     }
   },
   "composer": {

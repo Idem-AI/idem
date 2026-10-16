@@ -17,6 +17,10 @@ export interface AuthUser {
  * login/logout are owned by the central app. iDeploy itself never manages
  * tokens or a separate auth system.
  */
+
+/** Où revenir après la connexion centrale (voir `rememberNextPath`). */
+const NEXT_PATH_KEY = 'ideploy.nextPath';
+
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly http = inject(HttpClient);
@@ -78,6 +82,30 @@ export class AuthService {
 
   isAuthenticated(): boolean {
     return this.currentUserSubject.value !== null;
+  }
+
+  /**
+   * Retient la page où revenir après la connexion centrale (le temps de l'aller-retour SSO,
+   * dans cet onglet). Seuls les chemins internes sont acceptés.
+   */
+  rememberNextPath(path: string): void {
+    if (!path.startsWith('/') || path.startsWith('//')) return;
+    try {
+      sessionStorage.setItem(NEXT_PATH_KEY, path);
+    } catch {
+      /* stockage indisponible : on atterrira sur le tableau de bord */
+    }
+  }
+
+  /** La page retenue par `rememberNextPath`, lue une seule fois. */
+  takeNextPath(): string | null {
+    try {
+      const path = sessionStorage.getItem(NEXT_PATH_KEY);
+      sessionStorage.removeItem(NEXT_PATH_KEY);
+      return path && path.startsWith('/') && !path.startsWith('//') ? path : null;
+    } catch {
+      return null;
+    }
   }
 
   /**

@@ -6408,6 +6408,21 @@
         "loyalty_bonus": "Loyalty bonus",
         "rollover_expiry": "Expiry",
         "welcome_grant": "Welcome gift"
+      },
+      "recommended": "Recommended",
+      "perDay": "≈ {{amount}} F a day",
+      "saveYear": "you save {{amount}} F",
+      "intent": {
+        "title": "Your choice",
+        "perMonth": "per month",
+        "perYear": "per year",
+        "noProject": "This pack applies to a project. Create your project first, then come back here.",
+        "createProject": "Create my project",
+        "forProject": "For the project: {{project}}.",
+        "balance": "Your balance: {{amount}} F",
+        "topUpFirst": "you will be offered a top-up",
+        "confirm": "Pay {{amount}} F",
+        "icodePack100": "iCode: 100 changes"
       }
     },
     "passes": {

@@ -6374,6 +6374,21 @@
         "loyalty_bonus": "Bonus fidélité",
         "rollover_expiry": "Expiration",
         "welcome_grant": "Cadeau d’accueil"
+      },
+      "recommended": "Recommandé",
+      "perDay": "≈ {{amount}} F par jour",
+      "saveYear": "vous économisez {{amount}} F",
+      "intent": {
+        "title": "Votre choix",
+        "perMonth": "par mois",
+        "perYear": "par an",
+        "noProject": "Ce pack s’applique à un projet. Créez d’abord votre projet, puis revenez ici.",
+        "createProject": "Créer mon projet",
+        "forProject": "Pour le projet : {{project}}.",
+        "balance": "Votre solde : {{amount}} F",
+        "topUpFirst": "la recharge vous sera proposée",
+        "confirm": "Payer {{amount}} F",
+        "icodePack100": "iCode : 100 modifications"
       }
     },
     "passes": {

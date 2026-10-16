@@ -100,11 +100,17 @@ export class Header implements OnInit {
       label: $localize`:@@header.menu.product:Product`,
       type: 'dropdown',
       items: [
-        { label: $localize`:@@header.menu.pricing:Pricing`, route: '/pricing' },
         { label: 'iCode', route: '/idev' },
         { label: 'iDeploy', route: '/ideploy' },
         { label: 'IDEM Simulator', route: '/simulator' },
       ],
+    },
+    {
+      // Les tarifs sont ce que cherche un visiteur décidé : un lien direct, pas un menu à ouvrir.
+      id: 'pricing',
+      label: $localize`:@@header.menu.pricing:Pricing`,
+      route: '/pricing',
+      type: 'link',
     },
     {
       id: 'company',

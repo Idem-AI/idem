@@ -5,7 +5,7 @@ import { CommonModule } from '@angular/common';
 import { Hero } from '../../components/hero/hero';
 import { VideoTrailer } from '../../components/video-trailer/video-trailer';
 import { JourneyComponent } from '../../components/journey/journey';
-import { OfferEcosystemComponent } from '../../components/offer-ecosystem/offer-ecosystem';
+import { OfferPickerComponent } from '../../components/offer-picker/offer-picker';
 import { TechnologySovereigntyComponent } from '../../components/technology-sovereignty/technology-sovereignty';
 import { Cta } from '../../components/cta/cta';
 import { BetaProgram } from '../../components/beta-program/beta-program';
@@ -22,7 +22,7 @@ import { BetaProgram } from '../../components/beta-program/beta-program';
     Hero,
     VideoTrailer,
     JourneyComponent,
-    OfferEcosystemComponent,
+    OfferPickerComponent,
     TechnologySovereigntyComponent,
     Cta,
     BetaProgram,

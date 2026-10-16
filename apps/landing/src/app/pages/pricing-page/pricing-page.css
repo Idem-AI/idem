@@ -1,1 +1,294 @@
-/* Pricing Page Styles */
+/* Tarifs : la mise en page est ici, les couleurs et composants viennent du design system. */
+:host {
+  display: block;
+}
+
+.pricing {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: clamp(7rem, 12vw, 9rem) 1.25rem 7rem;
+}
+
+.pricing-h1 {
+  font-size: clamp(2.25rem, 5.5vw, 4.25rem);
+  line-height: 1.05;
+  font-weight: 800;
+  color: var(--color-text-primary);
+  text-wrap: balance;
+  letter-spacing: -0.02em;
+}
+
+.pricing-h2 {
+  font-size: clamp(1.5rem, 3vw, 2.25rem);
+  line-height: 1.15;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  text-wrap: balance;
+  margin-bottom: 1.75rem;
+}
+
+/* ── Héros ─────────────────────────────────────────────────────────────── */
+.pricing-hero {
+  display: grid;
+  gap: 2.5rem;
+  align-items: center;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 900px) {
+  .pricing-hero {
+    grid-template-columns: 1.3fr 1fr;
+  }
+  .pricing-hero-art {
+    width: min(100%, 22rem);
+  }
+}
+.pricing-lead {
+  margin-top: 1.5rem;
+  max-width: 34rem;
+  font-size: clamp(1.05rem, 1.6vw, 1.25rem);
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+}
+.pricing-actions {
+  margin-top: 2rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1.25rem;
+}
+.pricing-textlink {
+  font-weight: 600;
+  color: var(--color-primary-500);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.pricing-note {
+  margin-top: 1rem;
+  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+}
+.pricing-hero-art {
+  width: min(60%, 22rem);
+  justify-self: center;
+}
+
+/* ── Sections ──────────────────────────────────────────────────────────── */
+.pricing-section {
+  display: block;
+  margin-top: clamp(4.5rem, 9vw, 7.5rem);
+  scroll-margin-top: 6rem;
+}
+
+/* ── Onglets ───────────────────────────────────────────────────────────── */
+.tabs {
+  display: flex;
+  gap: 0.25rem;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--glass-border);
+  scrollbar-width: none;
+}
+.tab {
+  flex: none;
+  padding: 0.75rem 1rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color 0.2s ease-out, border-color 0.2s ease-out;
+}
+.tab[aria-selected='true'] {
+  color: var(--color-primary-500);
+  border-bottom-color: var(--color-primary-500);
+}
+.tab:focus-visible {
+  outline: 2px solid var(--color-primary-500);
+  outline-offset: 2px;
+  border-radius: 0.5rem;
+}
+.panel {
+  padding-top: 1.5rem;
+  max-width: 44rem;
+}
+.panel-note {
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+}
+.price-list {
+  margin-top: 1rem;
+}
+.price-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 0.85rem 0;
+  border-bottom: 1px solid var(--glass-border-subtle);
+}
+.price-row dt {
+  color: var(--color-text-primary);
+}
+.price-row dd {
+  flex: none;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+.panel-cta {
+  margin-top: 1.5rem;
+  display: inline-flex;
+}
+
+/* ── Comment payer ─────────────────────────────────────────────────────── */
+.steps {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+}
+.steps li {
+  display: flex;
+  gap: 1rem;
+}
+.step-num {
+  flex: none;
+  width: 2.25rem;
+  height: 2.25rem;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--color-primary-500);
+  color: #fff;
+  font-weight: 700;
+}
+.step-title {
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+.step-text {
+  margin-top: 0.25rem;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: var(--color-text-secondary);
+}
+.methods {
+  margin-top: 2rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.country {
+  margin-top: 1.5rem;
+  display: grid;
+  gap: 0.5rem;
+}
+.country label {
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+.country-price {
+  color: var(--color-text-secondary);
+}
+
+/* ── Autres offres ─────────────────────────────────────────────────────── */
+.more-wrap {
+  display: grid;
+  gap: 2rem;
+  align-items: center;
+}
+@media (min-width: 1024px) {
+  .more-wrap {
+    grid-template-columns: 1fr 14rem;
+  }
+}
+.more-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--glass-border-subtle);
+}
+.more-label {
+  color: var(--color-text-primary);
+  line-height: 1.45;
+}
+.more-price {
+  font-weight: 700;
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.more-art {
+  display: none;
+}
+@media (min-width: 1024px) {
+  .more-art {
+    display: block;
+    width: 100%;
+  }
+}
+@media (max-width: 640px) {
+  .more-row {
+    grid-template-columns: 1fr auto;
+  }
+  .more-row .outer-button {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+}
+
+/* ── FAQ ───────────────────────────────────────────────────────────────── */
+.faq {
+  max-width: 48rem;
+}
+.faq details {
+  border-bottom: 1px solid var(--glass-border-subtle);
+  padding: 1.1rem 0;
+}
+.faq summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+.faq p {
+  margin-top: 0.6rem;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+}
+
+/* ── Dernier appel ─────────────────────────────────────────────────────── */
+.pricing-final {
+  margin-top: clamp(4.5rem, 9vw, 7.5rem);
+  padding: clamp(2.5rem, 6vw, 4rem) 1.5rem;
+  border-radius: 2rem;
+  background: var(--color-primary-500);
+  text-align: center;
+}
+.pricing-final .pricing-h2 {
+  color: #fff;
+}
+.pricing-final .inner-button {
+  display: inline-flex;
+  width: auto;
+  background: #fff;
+  color: var(--color-primary-500);
+}
+
+.sticky-cta {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 30;
+  padding: 0.75rem 1rem;
+  border-top: 1px solid var(--glass-border);
+  background: var(--color-surface-1);
+}
+@media (min-width: 1024px) {
+  .sticky-cta {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tab {
+    transition: none;
+  }
+}

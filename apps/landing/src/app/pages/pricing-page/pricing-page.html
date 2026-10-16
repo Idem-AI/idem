@@ -1,175 +1,107 @@
-<!-- Les prix : Créer, Garder, Faire tourner, Grandir — un seul portefeuille -->
-<div class="relative min-h-screen bg-transparent">
-  <div class="relative z-10 mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:px-8">
-    <header class="mb-16 text-center">
-      <h1 class="mb-6 text-4xl font-bold text-text-primary sm:text-5xl lg:text-6xl" i18n="@@pricing-page.hero.title">
-        Free to create. <span class="i-underline">Pay to keep.</span>
-      </h1>
-      <p class="mx-auto max-w-3xl text-lg leading-relaxed text-text-secondary sm:text-xl" i18n="@@pricing-page.hero.description">Draft your whole business for free. Pay only for the final version of what you keep, then pennies a day to keep it running. One wallet for all IDEM services, topped up by mobile money from 100 F.</p>
-      <a class="inner-button button-lg mt-8 inline-flex" [href]="signupUrl" i18n="@@pricing-page.hero.cta">Start for free</a>
-      <p class="mt-3 text-sm text-text-tertiary" i18n="@@pricing-page.hero.note">No card, no payment number. 7 days of IDEM Growth offered at signup.</p>
-    </header>
-
-    <!-- Les quatre verbes -->
-    <section class="mb-20" aria-labelledby="steps-title">
-      <h2 id="steps-title" class="mb-8 text-center text-2xl font-bold text-text-primary sm:text-3xl" i18n="@@pricing-page.steps.title">Four verbs, one wallet</h2>
-      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        @for (step of steps; track step.title) {
-          <div class="glass-card rounded-2xl p-6">
-            <p class="text-lg font-semibold text-text-primary">{{ step.title }}</p>
-            <p class="mt-1 text-2xl font-bold text-primary">{{ step.price }}</p>
-            <p class="mt-3 text-sm leading-relaxed text-text-secondary">{{ step.text }}</p>
-          </div>
-        }
+<!-- Les tarifs : une promesse, trois offres par besoin, le détail à la demande. -->
+<div class="pricing">
+  <!-- Héros -->
+  <section class="pricing-hero">
+    <div class="pricing-hero-copy">
+      <h1 class="pricing-h1" i18n="@@pricing-page.hero.title">Pay only for <span class="i-underline">what you keep</span>.</h1>
+      <p class="pricing-lead" i18n="@@pricing-page.hero.description">Create your business plan, logo, website and more for free. When you like the result, keep the final version from 500 F, paid by mobile money.</p>
+      <div class="pricing-actions">
+        <a class="inner-button button-lg" [href]="startUrl" i18n="@@pricing-page.hero.cta">Start for free</a>
+        <a class="pricing-textlink" href="#offres" i18n="@@pricing-page.hero.secondary">See the offers</a>
       </div>
-    </section>
+      <p class="pricing-note" i18n="@@pricing-page.hero.note">No bank card. 7 days of IDEM Growth offered at signup.</p>
+    </div>
+    <app-offer-illustration kind="wallet" class="pricing-hero-art" />
+  </section>
 
-    <!-- Garder : le Kit -->
-    <section class="mb-20" aria-labelledby="kit-title">
-      <h2 id="kit-title" class="mb-3 text-2xl font-bold text-text-primary sm:text-3xl" i18n="@@pricing-page.kit.title">Keep: the final version, capped at the Kit</h2>
-      <p class="mb-6 max-w-3xl leading-relaxed text-text-secondary" i18n="@@pricing-page.kit.description">The final version adds sourced market data, a professional layout, files without the IDEM mark and 30 days of free edits. Buy only what you need: once your purchases on a project reach 2,500 F, the rest of the Kit is unlocked at no extra cost.</p>
-      <div class="glass-card overflow-x-auto rounded-2xl">
-        <table class="w-full text-sm">
-          <thead>
-            <tr class="border-b border-[var(--glass-border)] text-left text-text-tertiary">
-              <th class="px-5 py-3 font-medium" i18n="@@pricing-page.kit.deliverable">Deliverable</th>
-              <th class="px-5 py-3 text-right font-medium" i18n="@@pricing-page.kit.draft">Draft</th>
-              <th class="px-5 py-3 text-right font-medium" i18n="@@pricing-page.kit.final">Final version</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (row of deliverables; track row.label) {
-              <tr class="border-b border-[var(--glass-border-subtle)]">
-                <td class="px-5 py-3 text-text-primary">{{ row.label }}</td>
-                <td class="px-5 py-3 text-right text-success" i18n="@@pricing-page.steps.create.price">Free</td>
-                <td class="px-5 py-3 text-right tabular-nums text-text-primary">{{ row.price }}</td>
-              </tr>
-            }
-            <tr class="border-b border-[var(--glass-border-subtle)] text-text-tertiary">
-              <td class="px-5 py-3" i18n="@@pricing-page.kit.sum">Sum, one by one</td>
-              <td></td>
-              <td class="px-5 py-3 text-right tabular-nums line-through">7&#8239;500 F</td>
-            </tr>
-            <tr>
-              <td class="px-5 py-3 font-semibold text-text-primary" i18n="@@pricing-page.kit.cap">Business Kit (cap per project)</td>
-              <td></td>
-              <td class="px-5 py-3 text-right text-lg font-bold tabular-nums text-primary">2&#8239;500 F</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <p class="mt-4 text-sm text-text-secondary" i18n="@@pricing-page.kit.signature">Signature version: +1,000 F per deliverable, written and laid out by the most powerful models.</p>
-      <p class="mt-1 text-sm text-text-tertiary" i18n="@@pricing-page.kit.anchor">The same Kit costs 500,000 to 1,000,000 F with a consultant, a designer and a lawyer.</p>
-    </section>
+  <!-- Quatre offres, par besoin -->
+  <app-offer-picker id="offres" class="pricing-section" />
 
-    <!-- Faire tourner -->
-    <section class="mb-20" aria-labelledby="run-title">
-      <h2 id="run-title" class="mb-8 text-2xl font-bold text-text-primary sm:text-3xl" i18n="@@pricing-page.run.title">Run: a little every month, never more than the cap</h2>
-
-      <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div class="glass-card rounded-2xl p-6">
-          <h3 class="text-lg font-semibold text-text-primary" i18n="@@pricing-page.comm.title">Communication</h3>
-          <p class="mt-2 text-sm leading-relaxed text-text-secondary" i18n="@@pricing-page.comm.description">Pay per piece. Your purchases of the month stop at 3,000 F: beyond that, IDEM Growth is yours until the end of the month.</p>
-          <ul class="mt-4 divide-y divide-[var(--glass-border-subtle)] text-sm">
-            @for (row of communication; track row.label) {
-              <li class="flex justify-between gap-4 py-2"><span class="text-text-secondary">{{ row.label }}</span><span class="tabular-nums text-text-primary">{{ row.price }}</span></li>
-            }
-          </ul>
-        </div>
-
-        <div class="glass-card rounded-2xl p-6">
-          <h3 class="text-lg font-semibold text-text-primary" i18n="@@pricing-page.ideploy.title">iDeploy — one application, one meter</h3>
-          <p class="mt-2 text-sm leading-relaxed text-text-secondary" i18n="@@pricing-page.ideploy.description">Paid by the day from your wallet. No subscription: change meters whenever you like. An application left unpaid falls asleep, it is never deleted at once.</p>
-          <ul class="mt-4 divide-y divide-[var(--glass-border-subtle)] text-sm">
-            @for (row of meters; track row.label) {
-              <li class="flex justify-between gap-4 py-2"><span class="text-text-secondary">{{ row.label }}</span><span class="shrink-0 tabular-nums text-text-primary">{{ row.price }}</span></li>
-            }
-          </ul>
-          <p class="mt-4 text-xs leading-relaxed text-text-tertiary" i18n="@@pricing-page.ideploy.options">Daily options: advanced firewall, auto-scaling, backups, monitoring, extra database, 90-day logs, static IP, national data residency — from 15 F/day.</p>
-          <p class="mt-2 text-xs leading-relaxed text-text-tertiary" i18n="@@pricing-page.ideploy.domains">Domain names: .africa 6,500 F the first year (renewal 8,000 F), .com 8,900 F. At cost in the packs.</p>
-        </div>
-      </div>
-
-      <h3 class="mb-4 mt-10 text-xl font-semibold text-text-primary" i18n="@@pricing-page.passes.title">Monthly plans</h3>
-      <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-        @for (pass of passes; track pass.name) {
-          <div class="glass-card flex flex-col rounded-2xl p-6" [class.!border-primary]="pass.highlighted">
-            <p class="text-lg font-semibold text-text-primary">{{ pass.name }}</p>
-            <p class="mt-2"><span class="text-3xl font-bold tabular-nums text-text-primary">{{ pass.price }}</span><span class="text-sm text-text-tertiary" i18n="@@pricing-page.perMonth">/month</span></p>
-            <p class="text-xs text-text-tertiary">{{ perYear(pass.annual!) }}</p>
-            <p class="mt-3 text-sm leading-relaxed text-text-secondary">{{ pass.text }}</p>
-          </div>
-        }
-      </div>
-    </section>
-
-    <!-- Les services -->
-    <section class="mb-20 grid grid-cols-1 gap-6 lg:grid-cols-3">
-      <div class="glass-card rounded-2xl p-6">
-        <h2 class="text-lg font-semibold text-text-primary" i18n="@@pricing-page.icode.title">iCode — generating is free, owning costs almost nothing</h2>
-        <ul class="mt-4 divide-y divide-[var(--glass-border-subtle)] text-sm">
-          @for (row of icode; track row.label) {
-            <li class="flex justify-between gap-4 py-2">
-              <span class="text-text-secondary">{{ row.label }}@if (row.note) {<span class="text-text-tertiary"> · {{ row.note }}</span>}</span>
-              <span class="shrink-0 tabular-nums text-text-primary">{{ row.price }}</span>
-            </li>
+  <!-- Tous les prix, à la demande -->
+  <section class="pricing-section" aria-labelledby="detail-title">
+    <h2 class="pricing-h2" id="detail-title" i18n="@@pricing-page.detail.title">Every price, service by service</h2>
+    <div class="tabs" role="tablist" aria-labelledby="detail-title">
+      @for (tab of services; track tab.id; let i = $index) {
+        <button type="button" role="tab" class="tab" [id]="'tab-' + tab.id" [attr.aria-selected]="activeService() === tab.id" [attr.aria-controls]="'panel-' + tab.id" [attr.tabindex]="activeService() === tab.id ? 0 : -1" (click)="activeService.set(tab.id)" (keydown)="onTabKey($event, i)">{{ tab.label }}</button>
+      }
+    </div>
+    @if (service(); as tab) {
+      <div class="panel" role="tabpanel" [id]="'panel-' + tab.id" [attr.aria-labelledby]="'tab-' + tab.id">
+        <p class="panel-note">{{ tab.note }}</p>
+        <dl class="price-list">
+          @for (row of tab.rows; track row.label) {
+            <div class="price-row"><dt>{{ row.label }}</dt><dd>{{ row.price }}</dd></div>
           }
-        </ul>
-        <a class="outer-button button-sm mt-4 inline-flex" [href]="appgenUrl">iCode</a>
+        </dl>
+        <a class="outer-button button-sm panel-cta" [href]="tab.href"><span i18n="@@pricing-page.detail.open">Open</span>&nbsp;{{ tab.label }}</a>
       </div>
-      <div class="glass-card rounded-2xl p-6">
-        <h2 class="text-lg font-semibold text-text-primary" i18n="@@pricing-page.ivision.title">iVision — signed for free, paid at export</h2>
-        <ul class="mt-4 divide-y divide-[var(--glass-border-subtle)] text-sm">
-          @for (row of ivision; track row.label) {
-            <li class="flex justify-between gap-4 py-2">
-              <span class="text-text-secondary">{{ row.label }}</span>
-              <span class="shrink-0 tabular-nums text-text-primary">{{ row.price }}@if (row.note) {<span>{{ row.note }}</span>}</span>
-            </li>
-          }
-        </ul>
-      </div>
-      <div class="glass-card rounded-2xl p-6">
-        <h2 class="text-lg font-semibold text-text-primary" i18n="@@pricing-page.sim.title">iSimulate — put your business to the test</h2>
-        <ul class="mt-4 divide-y divide-[var(--glass-border-subtle)] text-sm">
-          @for (row of simulations; track row.label) {
-            <li class="flex justify-between gap-4 py-2"><span class="text-text-secondary">{{ row.label }}</span><span class="shrink-0 tabular-nums text-text-primary">{{ row.price }}</span></li>
-          }
-        </ul>
-      </div>
-    </section>
+    }
+  </section>
 
-    <!-- Les packs -->
-    <section class="mb-20" aria-labelledby="packs-title">
-      <h2 id="packs-title" class="mb-6 text-2xl font-bold text-text-primary sm:text-3xl" i18n="@@pricing-page.packs.title">Packs that bring everything together</h2>
-      <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-        @for (pack of packs; track pack.name) {
-          <div class="glass-card rounded-2xl p-6" [class.!border-primary]="pack.highlighted">
-            <p class="text-lg font-semibold text-text-primary">{{ pack.name }}</p>
-            <p class="mt-2 text-3xl font-bold tabular-nums text-text-primary">{{ pack.price }}</p>
-            <p class="mt-3 text-sm leading-relaxed text-text-secondary">{{ pack.text }}</p>
-          </div>
+  <!-- Comment payer : une vraie suite d'étapes -->
+  <section class="pricing-section pay" aria-labelledby="pay-title">
+    <div>
+      <h2 class="pricing-h2" id="pay-title" i18n="@@pricing-page.pay.title">How to pay</h2>
+      <ol class="steps">
+        <li><span class="step-num" aria-hidden="true">1</span><div><p class="step-title" i18n="@@pricing-page.pay.s1t">Top up your wallet</p><p class="step-text" i18n="@@pricing-page.pay.s1d">By mobile money, from 100 F. Bonus: +5% from 5,000 F, +10% from 10,000 F.</p></div></li>
+        <li><span class="step-num" aria-hidden="true">2</span><div><p class="step-title" i18n="@@pricing-page.pay.s2t">Choose what you keep</p><p class="step-text" i18n="@@pricing-page.pay.s2d">A final version, a plan, a pack. The price is shown before you pay.</p></div></li>
+        <li><span class="step-num" aria-hidden="true">3</span><div><p class="step-title" i18n="@@pricing-page.pay.s3t">It is yours</p><p class="step-text" i18n="@@pricing-page.pay.s3d">Files without the mark, your site online. A failed generation is refunded automatically.</p></div></li>
+      </ol>
+      <p class="methods">
+        @for (method of payMethods; track method) {
+          <span class="tag">{{ method }}</span>
         }
+      </p>
+      <div class="country">
+        <label for="pricing-country" i18n="@@pricing-page.pay.country">Price in your country</label>
+        <select id="pricing-country" class="!w-56" (change)="country.set($any($event.target).value)">
+          @for (item of countries; track item.code) {
+            <option [value]="item.code" [selected]="item.code === country()">{{ item.name }}</option>
+          }
+        </select>
+        <p class="country-price" aria-live="polite">{{ referenceText() }}</p>
       </div>
-    </section>
+    </div>
+  </section>
 
-    <!-- Le portefeuille -->
-    <section class="glass-card mb-20 rounded-2xl p-8 text-center">
-      <h2 class="text-2xl font-bold text-text-primary" i18n="@@pricing-page.wallet.title">The wallet</h2>
-      <p class="mx-auto mt-3 max-w-2xl leading-relaxed text-text-secondary" i18n="@@pricing-page.wallet.text">Top up from 100 F by mobile money: +5% bonus from 5,000 F, +10% from 10,000 F. Outside the CFA franc zone, the price is set for your country.</p>
-      <a class="inner-button mt-6 inline-flex" [href]="signupUrl" i18n="@@pricing-page.hero.cta">Start for free</a>
-    </section>
+  <!-- Autres offres -->
+  <section class="pricing-section" aria-labelledby="more-title">
+    <h2 class="pricing-h2" id="more-title" i18n="@@pricing-page.more.title">Other offers</h2>
+    <div class="more-wrap">
+    <ul class="more">
+      @for (item of moreOffers; track item.href) {
+        <li class="more-row">
+          <span class="more-label">{{ item.label }}</span>
+          <span class="more-price">{{ item.price }}</span>
+          <a class="outer-button button-sm" [href]="item.href" i18n="@@pricing-page.more.cta">Choose</a>
+        </li>
+      }
+    </ul>
+    <app-offer-illustration kind="tontine" class="more-art" />
+    </div>
+  </section>
 
-    <!-- Questions -->
-    <section aria-labelledby="faq-title">
-      <h2 id="faq-title" class="mb-6 text-2xl font-bold text-text-primary" i18n="@@pricing-page.faq.title">Questions</h2>
-      <div class="space-y-3">
-        @for (item of faq; track item.q) {
-          <details class="glass-card rounded-xl p-5">
-            <summary class="cursor-pointer font-medium text-text-primary">{{ item.q }}</summary>
-            <p class="mt-3 text-sm leading-relaxed text-text-secondary">{{ item.a }}</p>
-          </details>
-        }
-      </div>
-    </section>
+  <!-- Questions -->
+  <section class="pricing-section" aria-labelledby="faq-title">
+    <h2 class="pricing-h2" id="faq-title" i18n="@@pricing-page.faq.title">Questions</h2>
+    <div class="faq">
+      @for (item of faq; track item.q) {
+        <details>
+          <summary>{{ item.q }}</summary>
+          <p>{{ item.a }}</p>
+        </details>
+      }
+    </div>
+  </section>
+
+  <!-- Dernier appel -->
+  <section class="pricing-final">
+    <h2 class="pricing-h2" i18n="@@pricing-page.final.title">Start tonight, pay only if you keep it.</h2>
+    <a class="inner-button button-lg" [href]="startUrl" i18n="@@pricing-page.final.cta">Start for free</a>
+  </section>
+
+  <!-- Sur téléphone, l'action reste sous le pouce -->
+  <div class="sticky-cta">
+    <a class="inner-button w-full text-center" [href]="startUrl" i18n="@@pricing-page.stickyCta">Start for free</a>
   </div>
 </div>

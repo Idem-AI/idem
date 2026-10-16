@@ -1,112 +1,108 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, signal } from '@angular/core';
 import { environment } from '../../../environments/environment';
+import { OfferPickerComponent } from '../../components/offer-picker/offer-picker';
+import { OfferIllustrationComponent } from '../../shared/components/offer-illustration/offer-illustration';
 
 interface PriceRow {
   label: string;
   price: string;
-  note?: string;
 }
 
-interface OfferCard {
-  name: string;
-  price: string;
-  period?: string;
-  annual?: string;
-  text: string;
-  highlighted?: boolean;
+interface ServiceTab {
+  id: string;
+  label: string;
+  note: string;
+  rows: PriceRow[];
+  href: string;
 }
 
 /**
- * Les prix publics — modèle « Créer, Garder, Faire tourner, Grandir ».
+ * Les tarifs publics. Une seule action principale (commencer gratuitement), trois offres choisies
+ * par BESOIN plutôt que par produit, et le détail des prix révélé à la demande, service par
+ * service. Chaque offre affichée a son bouton de souscription : il ouvre la console sur l'achat
+ * (`/account/plans?buy=…`), en passant par la connexion si besoin (le garde ramène ici après).
  *
- * Source des montants : `apps/api/api/models/offer.model.ts` (l'API facture, cette page affiche).
- * Un seul portefeuille, rechargé en mobile money ; chaque service garde sa propre unité (livrable,
- * jour de compteur, export, simulation) et des packs les réunissent.
+ * Montants : `apps/api/api/models/offer.model.ts` et la grille par pays de `pricing.config.json`.
  */
 @Component({
   selector: 'app-pricing-page',
+  imports: [OfferPickerComponent, OfferIllustrationComponent],
   templateUrl: './pricing-page.html',
   styleUrl: './pricing-page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PricingPage {
-  protected readonly signupUrl = `${environment.services.dashboard.url}/login`;
-  protected readonly appgenUrl = environment.services.idev.url;
-  protected readonly ideployUrl = environment.services.ideploy.url;
+  private readonly console = environment.services.dashboard.url;
+  protected readonly startUrl = `${this.console}/create-project`;
+  private readonly buy = (code: string) => `${this.console}/account/plans?buy=${code}`;
 
-  protected readonly steps = [
-    { title: $localize`:@@pricing-page.steps.create.title:Create`, price: $localize`:@@pricing-page.steps.create.price:Free`, text: $localize`:@@pricing-page.steps.create.text:Business plan, logo, pitch deck, statutes, website: everything in draft, with no time limit.` },
-    { title: $localize`:@@pricing-page.steps.keep.title:Keep`, price: $localize`:@@pricing-page.steps.keep.price:From 500 F`, text: $localize`:@@pricing-page.steps.keep.text:Unlock the final version of what you use. The whole Business Kit never costs more than 2,500 F per project.` },
-    { title: $localize`:@@pricing-page.steps.run.title:Run`, price: $localize`:@@pricing-page.steps.run.price:From 10 F/day`, text: $localize`:@@pricing-page.steps.run.text:Your site online, your monthly content, your app: paid by the day or by the piece, capped every month.` },
-    { title: $localize`:@@pricing-page.steps.grow.title:Grow`, price: $localize`:@@pricing-page.steps.grow.price:4% per sale`, text: $localize`:@@pricing-page.steps.grow.text:Sell online with mobile money: IDEM takes a small commission only when you get paid.` },
+
+  private readonly urls: Record<string, string> = {
+    dashboard: this.startUrl,
+    appgen: environment.services.idev.url,
+    ideploy: environment.services.ideploy.url,
+    ivision: (environment.services as { ivision?: { url: string } }).ivision?.url ?? this.startUrl,
+    simulation: (environment.services as { simulation?: { url: string } }).simulation?.url ?? this.startUrl,
+  };
+
+  protected readonly services: ServiceTab[] = [
+    { id: 'idem', label: $localize`:@@pricing-page.detail.idem:Documents`, note: $localize`:@@pricing-page.detail.idemNote:Drafts are free. Once your purchases on a project reach 2,500 F, the rest of the Kit is unlocked.`, rows: [{ label: $localize`:@@pricing-page.row.logo:Logo and brand guidelines`, price: '1 500 F' }, { label: $localize`:@@pricing-page.row.bp:Business plan`, price: '2 000 F' }, { label: $localize`:@@pricing-page.row.deck:Pitch deck`, price: '1 000 F' }, { label: $localize`:@@pricing-page.row.legal:OHADA legal kit`, price: '1 500 F' }, { label: $localize`:@@pricing-page.row.forecast:3-year forecast`, price: '1 000 F' }, { label: $localize`:@@pricing-page.row.cards:Business cards`, price: '500 F' }, { label: $localize`:@@pricing-page.row.kitcap:The whole Kit, at most`, price: '2 500 F' }], href: this.urls['dashboard'] },
+    { id: 'comm', label: $localize`:@@pricing-page.detail.comm:Communication`, note: $localize`:@@pricing-page.detail.commNote:Your purchases of the month stop at 3,000 F: beyond that, IDEM Growth is yours until month end.`, rows: [{ label: $localize`:@@pricing-page.row.flyer:Visual for a post`, price: '100 F' }, { label: $localize`:@@pricing-page.row.carousel:Carousel (up to 10 slides)`, price: '200 F' }, { label: $localize`:@@pricing-page.row.video:Motion design video`, price: '300 F' }, { label: $localize`:@@pricing-page.row.clip:AI-filmed shot (5 s)`, price: '1 000 F' }, { label: $localize`:@@pricing-page.row.calendar:Monthly editorial calendar`, price: '500 F' }, { label: $localize`:@@pricing-page.row.strategy:Communication strategy`, price: '1 000 F' }], href: this.urls['dashboard'] },
+    { id: 'icode', label: $localize`:@@pricing-page.detail.icode:Website & app`, note: $localize`:@@pricing-page.detail.icodeNote:Generating your app and watching it run is free.`, rows: [{ label: $localize`:@@pricing-page.row.generate:Generate your app`, price: $localize`:@@pricing-page.free:Free` }, { label: $localize`:@@pricing-page.row.pass:Project Pass: code, GitHub, deploy, 30 changes`, price: '1 000 F' }, { label: $localize`:@@pricing-page.row.change:One change`, price: '25 F' }, { label: $localize`:@@pricing-page.row.pack100:100 changes`, price: '2 000 F' }], href: this.urls['appgen'] },
+    { id: 'ideploy', label: $localize`:@@pricing-page.detail.ideploy:Hosting`, note: $localize`:@@pricing-page.detail.ideployNote:Paid by the day from your wallet. No subscription; an unpaid app falls asleep, it is never deleted.`, rows: [{ label: $localize`:@@pricing-page.row.veille:Standby: online, woken up on visit`, price: $localize`:@@pricing-page.free:Free` }, { label: $localize`:@@pricing-page.row.vitrine:Showcase: website always on`, price: $localize`:@@pricing-page.perDay:${'10'}:INTERPOLATION: F a day` }, { label: $localize`:@@pricing-page.row.application:Application with database`, price: $localize`:@@pricing-page.perDay:${'50'}:INTERPOLATION: F a day` }, { label: $localize`:@@pricing-page.row.shop:Shop with mobile money payments`, price: $localize`:@@pricing-page.row.sale:4% per sale` }, { label: $localize`:@@pricing-page.row.domain:.africa domain, first year`, price: '6 500 F' }], href: this.urls['ideploy'] },
+    { id: 'ivision', label: $localize`:@@pricing-page.detail.ivision:Visuals`, note: $localize`:@@pricing-page.detail.ivisionNote:Creating is free and marked “Made with iVision”. You pay for the HD file without the mark.`, rows: [{ label: $localize`:@@pricing-page.row.vcreate:Create a visual or video`, price: $localize`:@@pricing-page.free:Free` }, { label: $localize`:@@pricing-page.row.vexport:HD visual without the mark`, price: '100 F' }, { label: $localize`:@@pricing-page.row.vvideo:HD video without the mark`, price: '300 F' }, { label: $localize`:@@pricing-page.row.vcreator:iVision Creator: every export`, price: $localize`:@@pricing-page.perMonth:${'2 000'}:INTERPOLATION: F a month` }], href: this.urls['ivision'] },
+    { id: 'sim', label: $localize`:@@pricing-page.detail.sim:Simulation`, note: $localize`:@@pricing-page.detail.simNote:A free first analysis, then a full test of your business before you launch.`, rows: [{ label: $localize`:@@pricing-page.row.spre:First analysis`, price: $localize`:@@pricing-page.free:Free` }, { label: $localize`:@@pricing-page.row.srun:Full simulation`, price: '1 500 F' }, { label: $localize`:@@pricing-page.row.sreport:Report for your bank`, price: '2 000 F' }], href: this.urls['simulation'] },
   ];
+  protected readonly activeService = signal('idem');
+  protected readonly service = computed(() => this.services.find((s) => s.id === this.activeService()) ?? this.services[0]);
 
-  protected readonly deliverables: PriceRow[] = [
-    { label: $localize`:@@pricing-page.d.logo:Logo + full brand guidelines`, price: '1 500 F' },
-    { label: $localize`:@@pricing-page.d.bp:Business plan with sourced market data`, price: '2 000 F' },
-    { label: $localize`:@@pricing-page.d.deck:Pitch deck`, price: '1 000 F' },
-    { label: $localize`:@@pricing-page.d.legal:OHADA legal kit`, price: '1 500 F' },
-    { label: $localize`:@@pricing-page.d.forecast:3-year financial forecast`, price: '1 000 F' },
-    { label: $localize`:@@pricing-page.d.cards:Business cards`, price: '500 F' },
-  ];
+  protected readonly payMethods = ['MTN MoMo', 'Orange Money', 'Airtel Money', 'M-Pesa', 'Moov Money', 'Wave'];
 
-  protected readonly communication: PriceRow[] = [
-    { label: $localize`:@@pricing-page.comm.flyer:Flyer / post visual`, price: '100 F' },
-    { label: $localize`:@@pricing-page.comm.carousel:Carousel (up to 10 slides)`, price: '200 F' },
-    { label: $localize`:@@pricing-page.comm.video:Motion design video (stock footage, voice-over)`, price: '300 F' },
-    { label: $localize`:@@pricing-page.comm.clip:AI-filmed shot (5 s)`, price: '+1 000 F' },
-    { label: $localize`:@@pricing-page.comm.calendar:Monthly editorial calendar`, price: '500 F' },
-    { label: $localize`:@@pricing-page.comm.strategy:Communication strategy`, price: '1 000 F' },
-  ];
-
-  protected readonly passes: OfferCard[] = [
-    { name: $localize`:@@pricing-page.passes.croissance.name:IDEM Growth`, price: '3 000 F', annual: '30 000', text: $localize`:@@pricing-page.passes.croissance.text:Unlimited communication (fair use), unlimited edits on every deliverable, showcase site always on, 20 iCode changes per month, one simulation per quarter.`, highlighted: true },
-    { name: $localize`:@@pricing-page.passes.entreprise.name:IDEM Business`, price: '7 500 F', annual: '75 000', text: $localize`:@@pricing-page.passes.entreprise.text:Everything in Growth, plus the iDeploy Application meter, iVision Creator and a domain included with the yearly plan.` },
-    { name: $localize`:@@pricing-page.passes.createur.name:iVision Creator`, price: '2 000 F', annual: '20 000', text: $localize`:@@pricing-page.passes.createur.text:Every iVision HD export included (fair use: 60 visuals, 6 videos per month).` },
-  ];
-
-  protected readonly icode: PriceRow[] = [
-    { label: $localize`:@@pricing-page.icode.generate:Generate your app and watch it run`, price: $localize`:@@pricing-page.steps.create.price:Free` },
-    { label: $localize`:@@pricing-page.icode.pass:Project Pass — code, GitHub, one-click deploy, 30 changes`, price: '1 000 F', note: $localize`:@@pricing-page.icode.once:once per project` },
-    { label: $localize`:@@pricing-page.icode.change:One change`, price: '25 F' },
-    { label: $localize`:@@pricing-page.icode.pack:Pack of 100 changes`, price: '2 000 F' },
-    { label: $localize`:@@pricing-page.icode.premium:Change with the most powerful model`, price: '75 F' },
-  ];
-
-  protected readonly meters: PriceRow[] = [
-    { label: $localize`:@@pricing-page.ideploy.veille:Standby — site on yourproject.idem.africa, woken up on visit`, price: $localize`:@@pricing-page.ideploy.free:free` },
-    { label: $localize`:@@pricing-page.ideploy.vitrine:Showcase — site always on`, price: $localize`:@@pricing-page.ideploy.perDay:${'10'}:INTERPOLATION: F/day` },
-    { label: $localize`:@@pricing-page.ideploy.application:Application + database`, price: $localize`:@@pricing-page.ideploy.perDay:${'50'}:INTERPOLATION: F/day` },
-    { label: $localize`:@@pricing-page.ideploy.applicationPlus:Application+ — 2 GB, daily backups`, price: $localize`:@@pricing-page.ideploy.perDay:${'150'}:INTERPOLATION: F/day` },
-    { label: $localize`:@@pricing-page.ideploy.boutique:Shop — showcase + mobile money payments`, price: $localize`:@@pricing-page.ideploy.perSale:4% per sale` },
-  ];
-
-  protected readonly ivision: PriceRow[] = [
-    { label: $localize`:@@pricing-page.ivision.free:Visuals and videos marked “Made with iVision”`, price: $localize`:@@pricing-page.steps.create.price:Free` },
-    { label: $localize`:@@pricing-page.ivision.visual:HD export without the mark: visual`, price: '100 F' },
-    { label: $localize`:@@pricing-page.ivision.video:HD export without the mark: video`, price: '300 F' },
-    { label: $localize`:@@pricing-page.ivision.clip:AI-filmed shot (5 s)`, price: '+1 000 F' },
-    { label: $localize`:@@pricing-page.ivision.createur:iVision Creator: everything included`, price: '2 000 F', note: $localize`:@@pricing-page.perMonth:/month` },
-  ];
-
-  protected readonly simulations: PriceRow[] = [
-    { label: $localize`:@@pricing-page.sim.run:Full simulation (from an IDEM project)`, price: '1 500 F' },
-    { label: $localize`:@@pricing-page.sim.runPublic:Full simulation (imported business plan)`, price: '2 500 F' },
-    { label: $localize`:@@pricing-page.sim.report:Report for the bank`, price: '2 000 F' },
-    { label: $localize`:@@pricing-page.sim.rerun:New run (within 90 days)`, price: '500 F' },
-  ];
-
-  protected readonly packs: OfferCard[] = [
-    { name: $localize`:@@pricing-page.packs.lancement.name:Launch Pack`, price: '5 000 F', text: $localize`:@@pricing-page.packs.lancement.text:Business Kit + iCode Project Pass (30 changes) + 3 months of showcase site always on.`, highlighted: true },
-    { name: $localize`:@@pricing-page.packs.domaine.name:Launch Pack + domain`, price: '9 900 F', text: $localize`:@@pricing-page.packs.domaine.text:The Launch Pack and a .africa domain for one year, at cost.` },
-    { name: $localize`:@@pricing-page.packs.plusieurs.name:Together`, price: '20 000 F', text: $localize`:@@pricing-page.packs.plusieurs.text:5 Launch Packs to give away (the 5th is free): association, tontine, cooperative.` },
+  protected readonly moreOffers = [
+    { label: $localize`:@@pricing-page.more.entreprise:IDEM Business: everything in Growth, hosting of your app and iVision Creator`, price: $localize`:@@pricing-page.perMonth:${'7 500'}:INTERPOLATION: F a month`, href: this.buy('pass-entreprise') },
+    { label: $localize`:@@pricing-page.more.createur:iVision Creator: every HD export of visuals and videos`, price: $localize`:@@pricing-page.perMonth:${'2 000'}:INTERPOLATION: F a month`, href: this.buy('pass-createur') },
+    { label: $localize`:@@pricing-page.more.domaine:Launch Pack with a .africa domain for one year`, price: '9 900 F', href: this.buy('pack-lancement_domaine') },
+    { label: $localize`:@@pricing-page.more.plusieurs:Together: 5 Launch Packs for an association or a tontine (the 5th is free)`, price: '20 000 F', href: this.buy('pack-a_plusieurs') },
   ];
 
   protected readonly faq = [
-    { q: $localize`:@@pricing-page.faq.q1:Why pay when ChatGPT is free?`, a: $localize`:@@pricing-page.faq.a1:You do not pay to generate: drafts are free. You pay for a finished, sourced deliverable, laid out and ready for the bank, adapted to OHADA law and your country, and kept in one place with your brand.` },
-    { q: $localize`:@@pricing-page.faq.q2:Is there a subscription?`, a: $localize`:@@pricing-page.faq.a2:No. The monthly plans are optional, and your pay-as-you-go purchases stop at their price: you can never pay more than the plan.` },
-    { q: $localize`:@@pricing-page.faq.q3:What happens if my wallet is empty?`, a: $localize`:@@pricing-page.faq.a3:Your drafts stay available. A paid iDeploy application falls asleep after a reminder email; top up and it wakes up. Nothing is deleted.` },
+    { q: $localize`:@@pricing-page.faq.q1:Why pay when ChatGPT is free?`, a: $localize`:@@pricing-page.faq.a1:You do not pay to generate: drafts are free. You pay for a finished document, sourced, laid out and ready for the bank, adapted to OHADA law and your country.` },
+    { q: $localize`:@@pricing-page.faq.q2:Is there a subscription?`, a: $localize`:@@pricing-page.faq.a2:No. Plans are optional and your pay-as-you-go purchases stop at their price: you never pay more than the plan.` },
+    { q: $localize`:@@pricing-page.faq.q3:Can I pay without a bank card?`, a: $localize`:@@pricing-page.faq.a3:Yes. Everything is paid by mobile money, or with an IDEM code bought in cash from an agent.` },
+    { q: $localize`:@@pricing-page.faq.q4:What if a generation fails?`, a: $localize`:@@pricing-page.faq.a4:You are not charged: the amount goes back to your wallet automatically.` },
+    { q: $localize`:@@pricing-page.faq.q5:What if my wallet is empty?`, a: $localize`:@@pricing-page.faq.a5:Your drafts stay. A paid website falls asleep after a reminder e-mail and wakes up when you top up. Nothing is deleted.` },
   ];
 
-  protected readonly perYear = (amount: string) => $localize`:@@pricing-page.perYear:or ${amount}:INTERPOLATION: F/year — 2 months free`;
+  /** Prix d'IDEM Croissance (3 000 F) dans la monnaie de chaque pays : grille de `pricing.config.json`. */
+  protected readonly countries = [
+    { code: 'XAF', name: 'Zone CFA', price: '3 000 F CFA' },
+    { code: 'KEN', name: 'Kenya', price: '650 KES' },
+    { code: 'NGA', name: 'Nigeria', price: '4 900 NGN' },
+    { code: 'GHA', name: 'Ghana', price: '45 GHS' },
+    { code: 'RWA', name: 'Rwanda', price: '6 500 RWF' },
+    { code: 'UGA', name: 'Uganda', price: '15 000 UGX' },
+    { code: 'TZA', name: 'Tanzania', price: '9 500 TZS' },
+    { code: 'ETH', name: 'Ethiopia', price: '590 ETB' },
+    { code: 'COD', name: 'RD Congo', price: '8 050 CDF' },
+    { code: 'ZMB', name: 'Zambia', price: '75 ZMW' },
+    { code: 'MOZ', name: 'Mozambique', price: '220 MZN' },
+    { code: 'MWI', name: 'Malawi', price: '6 000 MWK' },
+    { code: 'SLE', name: 'Sierra Leone', price: '80 SLE' },
+    { code: 'LSO', name: 'Lesotho', price: '59 LSL' },
+  ];
+  protected readonly country = signal('XAF');
+  protected readonly referenceText = computed(() => {
+    const price = this.countries.find((c) => c.code === this.country())?.price ?? this.countries[0].price;
+    return $localize`:@@pricing-page.pay.reference:IDEM Growth costs ${price}:INTERPOLATION: a month in your country.`;
+  });
+
+  /** Flèches gauche/droite entre les onglets (motif ARIA « tabs »). */
+  protected onTabKey(event: KeyboardEvent, index: number): void {
+    const step = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0;
+    if (!step) return;
+    event.preventDefault();
+    const next = this.services[(index + step + this.services.length) % this.services.length];
+    this.activeService.set(next.id);
+    document.getElementById(`tab-${next.id}`)?.focus();
+  }
 }

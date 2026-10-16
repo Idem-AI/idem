@@ -38,8 +38,10 @@ export class SsoCallbackComponent implements OnInit {
       console.log(`[SsoCallback] Attempt ${attempt + 1}/3 to verify session…`);
       const user = await this.auth.fetchCurrentUser();
       if (user) {
-        console.log('[SsoCallback] Authenticated as', user.email, '→ /dashboard');
-        void this.router.navigate(['/dashboard']);
+        // Une page publique (les tarifs) a pu demander où atterrir après la connexion.
+        const next = this.auth.takeNextPath() ?? '/dashboard';
+        console.log('[SsoCallback] Authenticated as', user.email, '→', next);
+        void this.router.navigateByUrl(next);
         return;
       }
       await new Promise((r) => setTimeout(r, 400));

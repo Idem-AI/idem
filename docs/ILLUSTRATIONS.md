@@ -22,14 +22,14 @@ on l'ajoute ici avec sa source (règle complète : `AGENTS.md` § 4).
 | --- | --- | --- |
 | Bouclier aux lances croisées | accès, sécurité | connexion, iDeploy `shield`, vérification |
 | Clé à anneau-bouclier | compte, accès premium | invitation bêta, AppGen connexion et réglages |
-| Cauris (et calebasse de cauris) | argent, prêt | module finance, banque, tontine |
+| Cauris (et calebasse de cauris) | argent, prêt | module finance, banque, tontine ; tarifs de la landing (héros, `app-offer-illustration` `wallet`) et « Autres offres » (`tontine`) |
 | Baobab et son fruit (pain de singe) | croissance qui rapporte | business plan, investisseur |
-| Jeune pousse | projet qu'on aide à grandir | SASU, bailleur |
+| Jeune pousse | projet qu'on aide à grandir | SASU, bailleur ; offre « Gratuit » (`app-offer-picker`, `sprout`) |
 | Croix d'Agadez (tanaghilt) sur son cordon tressé | « je te donne les quatre coins du monde » : de quoi choisir sa route | création de projet — source : [Club des Voyages, « Les croix touarègues »](https://www.club-des-voyages.com/niger/les-croix-touaregues-12196.html) |
-| Tambour parleur (tama) | parole portée loin, conversation | pitch deck, mode chat, communication, aide |
+| Tambour parleur (tama) | parole portée loin, conversation | pitch deck, mode chat, communication, aide ; offre IDEM Croissance (`drum`) |
 | Kora (harpe-luth des griots), chevalet en couleur | raconter une histoire en musique | vidéos de promotion (état vide) ; image de partage d'iVision (`og/illustrations/ivision.svg`) — source : [Kora (instrument), Wikipédia](https://fr.wikipedia.org/wiki/Kora_(instrument)) |
-| Métier à tisser (bande étroite) | construire fil à fil, le code | développement, dépôt de code, document qui se tisse |
-| Pirogue à la proue dressée | départ, mise en ligne, équipage | publication, déploiements, SAS, équipe interne |
+| Métier à tisser (bande étroite) | construire fil à fil, le code | développement, dépôt de code, document qui se tisse ; Pass Projet d'iCode (`ProjectPassIllustration` : bande tissée roulée sur l'ensouple, la navette en couleur) |
+| Pirogue à la proue dressée | départ, mise en ligne, équipage | publication, déploiements, SAS, équipe interne ; offre Pack Lancement (`launch`) |
 | Grenier dogon (vide / fermé / plein) | réserve, serveur, récolte | serveur, cloud géré, projet absent, projet IDEM |
 | Porte de grenier et serrure de bois | « votre machine, votre clé » | serveur personnel, pipeline iDeploy |
 | Canaris (jarres) | on garde, on stocke | bases de données, stockage |
@@ -41,7 +41,7 @@ on l'ajoute ici avec sa source (règle complète : `AGENTS.md` § 4).
 | Pochoir d'adire eleko (tôle découpée, pâte de manioc) et le motif réimprimé | reproduire le motif d'un modèle sur une autre étoffe, dans d'autres couleurs | iVision : « Montrez un modèle, il le reproduit » — source : [Adire (textile art), Wikipédia](https://en.wikipedia.org/wiki/Adire_(textile_art)) (« metal stencils cut from the sheets of tin that lined tea chests ») |
 | Étoffe de raphia kuba à pièces appliquées (une zone découpée, une pièce cousue au point) | couper la matière brute puis l'habiller : le montage | iVision : atelier « Montage » (accueil, préparation) — sources : [WAAC, « Kuba Textiles: An Introduction »](https://cool.culturalheritage.org/waac/wn/wn08/wn08-1/wn08-102.html) (« patterns are created by cutting and removing areas of the base cloth… patched »), [UMMA, Raffia Textile Panel](https://umma.umich.edu/objects/raffia-textile-panel-1985-1-142/) |
 | Bandes de kente assemblées | la composition | direction artistique |
-| Pagnes pliés en pile | livrable complet | charte finalisée |
+| Pagnes pliés en pile | livrable complet | charte finalisée ; offre Kit Entreprise (`kit`) |
 | Filet de pêche (épervier) | un réseau de nœuds | diagrammes, réseaux iDeploy |
 | Échelle dogon (tronc fourchu entaillé) | une marche à la fois ; monter d'un cran | mode assisté ; iVision : cran de créativité (landing, chaque entaille est un cran Low → Ultra) |
 | Plateau d'awalé | stratégie, calcul, simulation | mode avancé, simulations |

@@ -916,123 +916,57 @@
       "tagline": "iCode is part of the"
     },
     "pricing": {
-      "title": "Generating is free. Owning costs almost nothing.",
-      "lede": "Describe your idea and watch your app run in the browser, for free. You only pay to own it and make it evolve — from your IDEM wallet, topped up with Mobile Money from 100 F.",
-      "perMonth": "/month",
-      "popular": "Most chosen",
-      "annual": "One wallet for all of IDEM: the same balance pays for iCode, iDeploy hosting, your deliverables and your communication.",
+      "title": "Generating is free. Keeping your app costs 1,000 F.",
+      "lede": "Describe your idea and watch your app run in the browser, at no cost. When you like it, the Project Pass makes it yours.",
       "pass": {
-        "badge": "The heart of the model",
         "name": "Project Pass",
         "price": "1,000 F",
-        "once": "— once per project",
-        "body": "The first generation is entirely free and the preview is unlimited. When your app works and you want to keep it — download it, push it to GitHub, put it online — unlock it for the price of a meal.",
+        "once": "one time, per project",
+        "body": "Your app is yours: its code, on GitHub or as a ZIP, and one-click deployment. With 30 changes to keep improving it.",
+        "cta": "Get started",
+        "ctaNote": "Free until you decide to keep it.",
         "features": [
           "30 AI changes included",
-          "Unlimited code download (ZIP)",
-          "Unlimited push to GitHub",
-          "One-click deploy on iDeploy",
-          "Included in the Launch Pack (5,000 F)"
+          "The full code, as a ZIP or on GitHub",
+          "One-click deployment on iDeploy",
+          "Paid by mobile money, no bank card"
         ]
       },
-      "plans": {
-        "discovery": {
-          "name": "Generate",
-          "price": "0 F",
-          "period": "",
-          "usd": "free, no card",
-          "tagline": "Generate complete apps and watch them run, without paying.",
-          "cta": "Start for free",
-          "features": [
-            "Free initial generation",
-            "Unlimited in-browser preview",
-            "Front end and back end run in the preview",
-            "Daily pace for fair use"
-          ]
+      "usage": {
+        "title": "Then, as you go",
+        "choose": "Choose",
+        "generate": {
+          "name": "Generate and watch it run",
+          "note": "First generation and unlimited preview",
+          "price": "Free"
         },
-        "starter": {
+        "change": {
           "name": "One change",
-          "price": "25 F",
-          "period": "",
-          "usd": "the price of a text message",
-          "tagline": "You ask for a change, it costs 25 F. Nothing else to understand.",
-          "cta": "Get started",
-          "features": [
-            "Paid from the wallet",
-            "Included changes are used first",
-            "Refunded if the change fails"
-          ]
+          "note": "The price of a text message. A failed change is not charged.",
+          "price": "25 F"
         },
-        "pro": {
-          "name": "Pack of 100 changes",
-          "price": "2,000 F",
-          "period": "",
-          "usd": "20 F per change",
-          "tagline": "For those who ship every week.",
-          "cta": "Get started",
-          "features": [
-            "100 changes for all your projects",
-            "Most powerful model: 3 changes (or 75 F)",
-            "No short expiry"
-          ]
+        "premium": {
+          "name": "One change with the most powerful model",
+          "note": "For the hard changes",
+          "price": "75 F"
         },
-        "studio": {
+        "pack100": {
+          "name": "100 changes pack",
+          "note": "20 F per change, across all your projects",
+          "price": "2,000 F"
+        },
+        "growth": {
           "name": "IDEM Growth",
-          "price": "3,000 F",
-          "period": "/month",
-          "usd": "“100 F a day”",
-          "tagline": "20 iCode changes a month, and the rest of IDEM.",
-          "cta": "Get started",
-          "features": [
-            "20 iCode changes per month",
-            "Showcase site always on",
-            "Unlimited communication and edits (fair use)",
-            "One simulation per quarter"
-          ]
+          "note": "20 changes a month, your site always online, and communication",
+          "price": "3,000 F / month"
+        },
+        "launch": {
+          "name": "Launch Pack",
+          "note": "The Project Pass, the Business Kit and 3 months of website online",
+          "price": "5,000 F"
         }
       },
-      "passes": {
-        "title": "Packs",
-        "lede": "Everything you need to launch, in one purchase.",
-        "items": [
-          {
-            "name": "Launch Pack",
-            "price": "5,000 F",
-            "note": "Business Kit + iCode Project Pass + 3 months of showcase site always on"
-          },
-          {
-            "name": "Together",
-            "price": "20,000 F",
-            "note": "5 Launch Packs (the 5th is free) — association, tontine, cooperative"
-          }
-        ]
-      },
-      "recharges": {
-        "title": "Top up the wallet",
-        "lede": "From 100 F, by Mobile Money. +5% bonus from 5,000 F, +10% from 10,000 F.",
-        "items": [
-          {
-            "name": "Top-up",
-            "price": "500 F",
-            "credits": "20 changes"
-          },
-          {
-            "name": "Top-up",
-            "price": "1,000 F",
-            "credits": "40 changes"
-          },
-          {
-            "name": "Top-up",
-            "price": "5,000 F",
-            "credits": "+250 F bonus"
-          },
-          {
-            "name": "Top-up",
-            "price": "10,000 F",
-            "credits": "+1,000 F bonus"
-          }
-        ]
-      }
+      "wallet": "Everything is paid from your IDEM wallet, topped up by mobile money from 100 F. The same balance pays for iCode, hosting and your documents."
     }
   },
   "composer": {
