@@ -3468,7 +3468,9 @@
       },
       "networks": {
         "linkedin": "LinkedIn",
-        "x": "X"
+        "x": "X",
+        "facebook": "Facebook",
+        "instagram": "Instagram"
       },
       "steps": {
         "context": "Reading your brand…",
@@ -3862,6 +3864,11 @@
           "label": "My videos",
           "hint": "An animated video in your colours",
           "short": "Videos"
+        },
+        "whatsapp": {
+          "label": "WhatsApp",
+          "hint": "Approve and publish from WhatsApp",
+          "short": "WhatsApp"
         }
       },
       "home": {
@@ -4520,6 +4527,49 @@
           "done": "Done. Watch the new version.",
           "notUnderstood": "I did not understand what to change. Say for instance “scene 2 more dynamic” or “no music”.",
           "newRequest": "This sounds like a new video: create it from “New video”."
+        }
+      },
+      "whatsapp": {
+        "title": "Publish from WhatsApp",
+        "subtitle": "On publication day, IDEM sends you the visual or video on WhatsApp. You approve or ask for a change, then IDEM publishes to your networks. You can also ask for a visual anytime.",
+        "paidTitle": "For paid accounts only",
+        "paidBody": "Upgrade to IDEM Growth or Business to approve and publish your content from WhatsApp.",
+        "paidWelcome": "Your signup gift does not cover this feature. It opens with your first IDEM Growth plan.",
+        "seePlans": "See plans",
+        "unavailable": "WhatsApp is not enabled on IDEM yet. Come back soon.",
+        "networksTitle": "1. Your networks",
+        "networksHint": "IDEM only publishes to the accounts you connect, nowhere else. You can disconnect them anytime.",
+        "connect": "Connect",
+        "disconnect": "Disconnect",
+        "connected": "connected",
+        "soon": "soon",
+        "linkTitle": "2. Link your WhatsApp",
+        "linkHint": "No number to type: you send a code from your phone, which proves it is yours.",
+        "linkCta": "Link my WhatsApp",
+        "sendCode": "Send this code to IDEM on WhatsApp:",
+        "openWhatsapp": "Open WhatsApp",
+        "waiting": "Waiting for your message… (valid until {{time}})",
+        "linked": "WhatsApp linked (number ending in {{last4}})",
+        "unlink": "Unlink",
+        "dailyTitle": "Receive my posts of the day",
+        "dailyHint": "On each publication day of your calendar, IDEM prepares the content and sends it for your approval. Write \"stop\" to stop.",
+        "hour": "Sending time",
+        "safety": "Nothing is published without your approval: you get the exact version, you answer \"Approve\" (or ask for a change), then IDEM publishes. With no answer within 48 h, the request expires and nothing is published.",
+        "historyTitle": "Latest requests",
+        "historyEmpty": "Nothing yet.",
+        "noCaption": "No caption",
+        "loadFailed": "Could not load this screen. Try again in a moment.",
+        "status": {
+          "generating": "Preparing",
+          "awaiting": "Waiting for your answer",
+          "revising": "Editing",
+          "approved": "Approved",
+          "publishing": "Publishing",
+          "published": "Published",
+          "partial": "Partly published",
+          "failed": "Failed",
+          "cancelled": "Cancelled",
+          "expired": "Expired"
         }
       }
     },

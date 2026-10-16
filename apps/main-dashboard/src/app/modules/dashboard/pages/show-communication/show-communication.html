@@ -191,6 +191,8 @@
         (openVideo)="openVideoFromPlan($event)"
         (needsCredits)="onNeedsCredits($event)"
       />
+    } @else if (activeScreen() === 'whatsapp') {
+      <app-whatsapp-panel [projectId]="projectId()!" />
     } @else {
       <app-library-panel
         [projectId]="projectId()!"

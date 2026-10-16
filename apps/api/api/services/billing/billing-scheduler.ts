@@ -2,6 +2,7 @@ import logger from '../../config/logger';
 import { runJobWithTrace } from '../../utils/trace.util';
 import { billingJobRunsTotal } from '../../config/metrics';
 import RedisConnection from '../../config/redis.config';
+import { whatsappDaily } from '../whatsapp/whatsapp.runtime';
 import { paymentReconcilerService } from '../payments/payment-reconciler.service';
 import { betaService } from './beta.service';
 import { creditLedgerService } from './credit-ledger.service';
@@ -141,6 +142,13 @@ export const BILLING_JOBS: ScheduledJob[] = [
     intervalMs: 60_000,
     lockTtlMs: 55_000,
     run: () => ideploySyncService.run(),
+  },
+  {
+    // Publier depuis WhatsApp : propositions du jour et expiration des demandes sans réponse.
+    name: 'whatsapp-daily',
+    intervalMs: 300_000,
+    lockTtlMs: 240_000,
+    run: () => whatsappDaily.run(),
   },
   {
     // iDeploy au compteur : chaque application active est couverte pour la

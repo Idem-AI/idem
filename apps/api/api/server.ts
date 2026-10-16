@@ -2,6 +2,7 @@
 // secrets first and only then imports it, because many modules below read a
 // secret when they are imported. `loadSecrets()` is idempotent; the call in
 // bootstrap() keeps the validation (and its error) on this path too.
+import { whatsappRoutes, socialRoutes } from './routes/whatsapp.routes';
 import { loadSecrets } from './config/secrets';
 
 import express, { Express, NextFunction, Request, Response } from 'express';
@@ -148,7 +149,7 @@ app.use(
   express.json({
     limit: process.env.JSON_BODY_LIMIT || '10mb',
     verify: (req, _res, buf) => {
-      if (req.url?.startsWith('/billing/webhooks/')) {
+      if (req.url?.startsWith('/billing/webhooks/') || req.url?.startsWith('/whatsapp/webhook')) {
         (req as Request & { rawBody?: Buffer }).rawBody = Buffer.from(buf);
       }
     },
@@ -210,6 +211,8 @@ app.use('/auth', userRoutes);
 app.use('/prompt', promptRoutes);
 // Facturation : catalogue, droits, paiement Mobile Money, callbacks pawaPay.
 app.use('/billing', billingRoutes);
+app.use('/whatsapp', whatsappRoutes);
+app.use('/social', socialRoutes);
 // Médias des sites générés par iCode : images (Gemini), clips (Veo), photos et vidéos Pexels.
 app.use('/appgen/media', appgenMediaRoutes);
 app.use('/archetypes', archetypeRoutes);

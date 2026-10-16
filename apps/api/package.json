@@ -49,6 +49,7 @@
     "check:quotas": "ts-node --transpile-only -P tsconfig.json api/scripts/checkQuotas.ts",
     "quotas:matrix": "ts-node --transpile-only -P tsconfig.json api/scripts/printQuotas.ts",
     "db:drop-legacy-quota": "ts-node --transpile-only -P tsconfig.json api/scripts/dropLegacyQuota.ts",
+    "check:whatsapp": "ts-node --transpile-only -P tsconfig.json api/scripts/checkWhatsapp.ts",
     "check:offer": "ts-node --transpile-only -P tsconfig.json api/scripts/checkOfferModel.ts",
     "billing:migrate-offer": "ts-node --transpile-only -P tsconfig.json api/scripts/migrateOfferModel.ts",
     "docs:logo": "ts-node --transpile-only -P tsconfig.json api/scripts/docsLogoGenerators.ts",

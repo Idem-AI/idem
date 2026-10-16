@@ -3471,7 +3471,9 @@
       },
       "networks": {
         "linkedin": "LinkedIn",
-        "x": "X"
+        "x": "X",
+        "facebook": "Facebook",
+        "instagram": "Instagram"
       },
       "steps": {
         "context": "Je relis votre marque…",
@@ -3865,6 +3867,11 @@
           "label": "Mes vidéos",
           "hint": "Une vidéo animée à vos couleurs",
           "short": "Vidéos"
+        },
+        "whatsapp": {
+          "label": "WhatsApp",
+          "hint": "Valider et publier depuis WhatsApp",
+          "short": "WhatsApp"
         }
       },
       "home": {
@@ -4523,6 +4530,49 @@
           "done": "C’est fait. Regardez la nouvelle version.",
           "notUnderstood": "Je n’ai pas compris ce qu’il faut changer. Dites par exemple « la scène 2 plus dynamique » ou « sans musique ».",
           "newRequest": "Cela ressemble à une nouvelle vidéo : créez-la depuis « Nouvelle vidéo »."
+        }
+      },
+      "whatsapp": {
+        "title": "Publier depuis WhatsApp",
+        "subtitle": "Le jour de publication, IDEM vous envoie le visuel ou la vidéo sur WhatsApp. Vous validez ou demandez une modification, puis IDEM publie sur vos réseaux. Vous pouvez aussi demander un visuel à tout moment.",
+        "paidTitle": "Réservé aux comptes payants",
+        "paidBody": "Passez au forfait IDEM Croissance ou Entreprise pour valider et publier vos contenus depuis WhatsApp.",
+        "paidWelcome": "Votre cadeau d’inscription ne couvre pas cette fonction. Dès votre premier forfait IDEM Croissance, elle s’ouvre.",
+        "seePlans": "Voir les forfaits",
+        "unavailable": "WhatsApp n’est pas encore activé sur IDEM. Revenez bientôt.",
+        "networksTitle": "1. Vos réseaux",
+        "networksHint": "IDEM publie sur les comptes que vous connectez, jamais ailleurs. Vous pouvez les déconnecter à tout moment.",
+        "connect": "Connecter",
+        "disconnect": "Déconnecter",
+        "connected": "connecté",
+        "soon": "bientôt",
+        "linkTitle": "2. Lier votre WhatsApp",
+        "linkHint": "Aucun numéro à saisir : vous envoyez un code depuis votre téléphone, ce qui prouve qu’il est à vous.",
+        "linkCta": "Lier mon WhatsApp",
+        "sendCode": "Envoyez ce code à IDEM sur WhatsApp :",
+        "openWhatsapp": "Ouvrir WhatsApp",
+        "waiting": "En attente de votre message… (valable jusqu’à {{time}})",
+        "linked": "WhatsApp lié (numéro finissant par {{last4}})",
+        "unlink": "Délier",
+        "dailyTitle": "Recevoir mes publications du jour",
+        "dailyHint": "Chaque jour de publication de votre calendrier, IDEM prépare le contenu et vous l’envoie pour validation. Vous pouvez arrêter en écrivant « stop ».",
+        "hour": "Heure d’envoi",
+        "safety": "Rien n’est publié sans votre accord : vous recevez la version exacte, vous répondez « Valider » (ou vous demandez une modification), puis IDEM publie. Sans réponse sous 48 h, la demande expire et rien n’est publié.",
+        "historyTitle": "Dernières demandes",
+        "historyEmpty": "Rien pour le moment.",
+        "noCaption": "Sans légende",
+        "loadFailed": "Impossible de charger cet écran. Réessayez dans un instant.",
+        "status": {
+          "generating": "Préparation",
+          "awaiting": "En attente de votre avis",
+          "revising": "Modification",
+          "approved": "Validé",
+          "publishing": "Publication",
+          "published": "Publié",
+          "partial": "Publié en partie",
+          "failed": "Échec",
+          "cancelled": "Annulé",
+          "expired": "Expiré"
         }
       }
     },
