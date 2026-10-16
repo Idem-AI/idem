@@ -65,9 +65,13 @@ export function describePlan(plan: BuildPlanResult, effective: { install?: strin
     plan.workspace ? `monorepo${plan.workspace.orchestrator ? ` (${plan.workspace.orchestrator})` : ''}, built from ${plan.buildRoot || 'the repository root'}` : null,
   ].filter(Boolean);
   if (facts.length) lines.push(facts.join(' · '));
-  const install = effective.install ?? plan.install;
-  const build = effective.build ?? plan.build;
-  const start = effective.start ?? plan.start;
+  // With a recipe, the commands it runs (nixpacks' own defaults are not shown).
+  const recipe = plan.recipe;
+  const install = effective.install ?? plan.install ?? (recipe?.kind === 'node' ? recipe.install : null);
+  const build = effective.build ?? (recipe ? recipe.build : plan.build);
+  const start =
+    effective.start ??
+    (recipe?.kind === 'node' ? recipe.start : recipe?.kind === 'java' ? `java -jar ${recipe.module ? `${recipe.module}/` : ''}<the built jar>` : plan.start);
   if (install) lines.push(`Install: ${install}`);
   if (build) lines.push(`Build:   ${build}`);
   if (start) lines.push(`Start:   ${start}`);
@@ -87,7 +91,12 @@ export function describePlan(plan: BuildPlanResult, effective: { install?: strin
 export async function monorepoLayout(
   paths: string[],
   getFile: (path: string) => Promise<string | null>
-): Promise<{ candidates?: { dir: string; manifestFile: string; framework: string }[]; onlyApp?: string }> {
+): Promise<{
+  candidates?: { dir: string; manifestFile: string; framework: string }[];
+  onlyApp?: string;
+  /** What would fail or surprise at the first deployment, said at import. */
+  issues: { code: string; message: string; severity: 'blocking' | 'warning' }[];
+}> {
   const cache = new Map<string, Promise<string | null>>();
   const read = (path: string) => {
     if (!cache.has(path)) cache.set(path, getFile(path));
@@ -95,13 +104,18 @@ export async function monorepoLayout(
   };
   try {
     const plan = await analyzeRepository({ paths, read }, '');
+    // The picker shows the applications; nixpacks' own limits do not apply to iDeploy's recipes.
+    const issues = plan.issues
+      .filter((i) => i.severity !== 'info' && !i.engine && !/^(MONOREPO_|JAVA_PICK_MODULE)/.test(i.code))
+      .map((i) => ({ code: i.code, message: i.message, severity: i.severity as 'blocking' | 'warning' }));
     if (plan.apps && plan.apps.length > 1) {
       const manifestFile = plan.language === 'java' ? (plan.tool === 'maven' ? 'pom.xml' : 'build.gradle') : 'package.json';
-      return { candidates: plan.apps.map((a) => ({ dir: a.dir, manifestFile, framework: a.framework })) };
+      return { candidates: plan.apps.map((a) => ({ dir: a.dir, manifestFile, framework: a.framework })), issues };
     }
-    if (plan.appDir) return { onlyApp: plan.appDir };
+    if (plan.appDir) return { onlyApp: plan.appDir, issues };
+    return { issues };
   } catch {
     /* unreadable: the import works as before */
   }
-  return {};
+  return { issues: [] };
 }

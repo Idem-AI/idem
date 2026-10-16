@@ -50,28 +50,6 @@ export interface EcosystemRepoAccess {
   getFile(path: string): Promise<string | null>;
 }
 
-/** Supported Gradle major versions, straight from nixpacks' own provider (src/providers/java.rs, get_gradle_pkg). */
-const NIXPACKS_SUPPORTED_GRADLE_MAJORS = new Set([4, 5, 6, 7, 8]);
-
-/** Parsed from `distributionUrl=…/gradle-9.5.1-bin.zip` — mirrors nixpacks' own regex closely enough to agree with it. */
-function parseGradleMajorVersion(wrapperProperties: string): number | null {
-  const m = /distributionUrl.*gradle-(\d+)(?:\.\d+)*-/.exec(wrapperProperties);
-  return m ? Number(m[1]) : null;
-}
-
-function gradleVersionWarning(major: number | null): EcosystemWarning | null {
-  if (major === null) return null;
-  if (NIXPACKS_SUPPORTED_GRADLE_MAJORS.has(major)) return null;
-  return {
-    code: 'UNSUPPORTED_GRADLE_VERSION',
-    message:
-      `This project's Gradle wrapper is pinned to Gradle ${major}, which the build engine (nixpacks) does not ` +
-      `support — only Gradle 4 through 8. The build will fail with "Unsupported Gradle version". Pin an older ` +
-      `Gradle in gradle/wrapper/gradle-wrapper.properties, or deploy with a Dockerfile instead.`,
-    severity: 'blocking',
-  };
-}
-
 /** `pom.xml`'s packaging/dependencies are enough to tell Spring Boot from plain Java without a full XML parser. */
 function isSpringBoot(pomXml: string): boolean {
   return /spring-boot/i.test(pomXml);
@@ -105,7 +83,7 @@ async function detectJava(repo: EcosystemRepoAccess): Promise<EcosystemDetection
   }
 
   if (pomXml !== null) return buildMavenDetection(pomXml);
-  if (gradleFile !== null) return buildGradleDetection(repo, gradleFile);
+  if (gradleFile !== null) return buildGradleDetection(gradleFile);
   return null;
 }
 
@@ -120,17 +98,17 @@ async function buildMavenDetection(pomXml: string): Promise<EcosystemDetection> 
   };
 }
 
-async function buildGradleDetection(repo: EcosystemRepoAccess, gradleFile: string): Promise<EcosystemDetection> {
+async function buildGradleDetection(gradleFile: string): Promise<EcosystemDetection> {
   const springBoot = isSpringBootGradle(gradleFile);
-  const wrapperProps = await repo.getFile('gradle/wrapper/gradle-wrapper.properties');
-  const gradleMajor = wrapperProps ? parseGradleMajorVersion(wrapperProps) : null;
-  const warning = gradleVersionWarning(gradleMajor);
+  // The Gradle version is no longer a blocker: iDeploy's recipe runs the
+  // project's own wrapper (nixpacks stopped at Gradle 8). Forced back to
+  // nixpacks, the deployment's build plan says it.
   return {
     ecosystem: 'java-gradle',
     framework: springBoot ? 'Spring Boot (Gradle)' : 'Java (Gradle)',
     buildTool: 'gradle',
     suggestedPort: springBoot ? 8080 : null,
-    warnings: warning ? [warning] : [],
+    warnings: [],
   };
 }
 

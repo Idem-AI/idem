@@ -105,18 +105,36 @@ export function runScript(manager: NodeManager, script: string): string {
   return `${manager} run ${script}`;
 }
 
+/**
+ * The corepack bundled with older Node fails to verify recent pnpm releases
+ * ("Cannot find matching keyid"), and Node 25 ships none: the latest one,
+ * over the bundled one (--force), as pnpm's documentation advises.
+ */
+export const FRESH_COREPACK = 'npm install -g --force corepack@latest && corepack enable';
+
 /** The install a container with only Node needs (the static build; nixpacks installs on its own). */
 export function installCommand(manager: NodeManager, lockfiles: string[], pnpmMajor: number | null): string {
   switch (manager) {
     case 'pnpm':
-      return `corepack enable && ${pnpmMajor ? `corepack prepare pnpm@${pnpmMajor} --activate && ` : ''}pnpm install --frozen-lockfile`;
+      return `${FRESH_COREPACK} && ${pnpmMajor ? `corepack prepare pnpm@${pnpmMajor} --activate && ` : ''}pnpm install${lockfiles.includes('pnpm-lock.yaml') ? ' --frozen-lockfile' : ''}`;
     case 'yarn':
-      return 'corepack enable && yarn install';
+      return `${FRESH_COREPACK} && yarn install`;
     case 'bun':
       return 'npm install -g bun && bun install';
     default:
       return lockfiles.includes('package-lock.json') ? 'npm ci' : 'npm install';
   }
+}
+
+/** Node of a recipe when the code does not say: the active LTS. */
+const RECIPE_NODE_DEFAULT = 22;
+
+/** The install inside iDeploy's own image (corepack already set up). */
+function recipeInstall(manager: 'pnpm' | 'yarn' | 'npm', lockfiles: string[]): string {
+  // Frozen only with a lockfile to hold to (without one, pnpm refuses to install at all).
+  if (manager === 'pnpm') return lockfiles.includes('pnpm-lock.yaml') ? 'pnpm install --frozen-lockfile' : 'pnpm install';
+  if (manager === 'yarn') return 'yarn install';
+  return lockfiles.includes('package-lock.json') ? 'npm ci' : 'npm install';
 }
 
 /** pnpm for the lockfile's format when `packageManager` does not say: `9.0` → 9, `6.0` → 8, `5.4` → 7. */
@@ -541,6 +559,23 @@ async function planWorkspaceApp(
           '(e.g. "start": "node dist/index.js"), or set a start command in Settings › Build options.',
       });
     }
+  }
+
+  // iDeploy's own build for a server it knows how to start.
+  const recipeStart = plan.start ?? (script ? inApp(runScript(manager, script)) : null);
+  if (output === 'server' && manager !== 'bun' && recipeStart && !framework.issue) {
+    const lockHeader = manager === 'pnpm' && !rootPkg.packageManager ? await files.read(joinPath(buildRoot, 'pnpm-lock.yaml')) : null;
+    plan.recipe = {
+      kind: 'node',
+      nodeVersion: String(Math.max(version?.requested ?? RECIPE_NODE_DEFAULT, 16)),
+      manager,
+      pnpmMajor: pnpmMajorForLockfile(lockHeader),
+      hasPackageManagerField: Boolean(rootPkg.packageManager),
+      install: recipeInstall(manager, lockfiles),
+      build: plan.build ?? (hasBuild ? inApp(runScript(manager, 'build')) : null),
+      start: recipeStart,
+      nextCacheDir: framework.label.startsWith('Next') ? joinPath(appRel, '.next/cache') : null,
+    };
   }
 
   return plan;
