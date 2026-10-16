@@ -27,5 +27,8 @@ export const SECRET_MANIFEST = {
     'STRIPE_SECRET_KEY',
     // Adresses monapp.idem.africa ; absent = adresse automatique (sslip.io).
     'NAMECHEAP_API_KEY',
+    // Clé partagée avec l'API IDEM (même valeur que son INTERNAL_API_KEY) :
+    // sans elle, pas de réparation des déploiements par l'IA.
+    'INTERNAL_API_KEY',
   ],
 } as const satisfies SecretManifest;
