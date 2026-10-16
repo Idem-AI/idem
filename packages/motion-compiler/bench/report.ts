@@ -124,4 +124,4 @@ const rows=Object.entries(t).map(([k,v])=>{const[l,lv]=k.split('|');return '<tr>
 document.getElementById('tally').innerHTML=rows?'<table><thead><tr><th>Logique</th><th>Cran</th><th>Note moyenne</th><th></th></tr></thead><tbody>'+rows+'</tbody></table>':'<p>Aucune note saisie.</p>'};
 </script></body></html>`;
 fs.writeFileSync(path.join(OUT, 'report.html'), html);
-console.log(`Rapport : ${path.join(OUT, 'report.html')} (${total('tsx').runs + total('dsl').runs} vidéos)`);
+console.log(`Rapport : ${path.join(OUT, 'report.html')} (${results.length} vidéos)`);

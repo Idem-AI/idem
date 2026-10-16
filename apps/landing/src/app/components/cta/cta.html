@@ -1,19 +1,21 @@
 <!-- L'appel final de l'accueil.
-     IDEO ne tient pas dans la grille : il se tient DEVANT le titre, dont la
-     fin de ligne passe derrière lui, et il traverse le filet du haut comme
-     celui du bas. Rien ne l'encadre — le PNG est détouré, donc il se pose
-     directement sur la page : lui remettre un panneau, une ombre ou un fond
-     redessinerait le rectangle que le détourage a retiré. Le texte, lui, reste
-     calé sur la colonne éditoriale, à gauche. -->
+     Le texte et IDEO forment un couple centré dans la page, et non deux blocs
+     repoussés chacun contre son bord. Rien n'encadre IDEO — le PNG est
+     détouré, donc lui remettre un panneau, une ombre ou un fond redessinerait
+     le rectangle que le détourage a retiré. Rien n'attend un défilement pour
+     apparaître. -->
 <section class="cta-band">
   <div class="ed-wrap cta-stage">
-    <h2 class="cta-title">
-      <span i18n="@@cta.title.lead">It starts with</span><br />
-      <span class="i-underline" i18n="@@cta.title.accent">one description</span>
-    </h2>
+    <!-- Titre, texte et actions dans un seul bloc : séparés en éléments de
+         grille distincts, ils se faisaient étirer par la hauteur d'IDEO et un
+         trou s'ouvrait sous le titre. -->
+    <div class="cta-text">
+      <h2 class="cta-title">
+        <span i18n="@@cta.title.lead">It starts with</span><br />
+        <span class="i-underline" i18n="@@cta.title.accent">one description</span>
+      </h2>
 
-    <div class="cta-copy">
-      <p class="ed-lede ed-lede-wide" i18n="@@cta.lede">
+      <p class="ed-lede ed-lede-wide ed-mt-8" i18n="@@cta.lede">
         Say what your business does, in a few lines. IDEM draws the brand, writes the plan, builds
         the site and puts it online. Seeing what it produces costs nothing.
       </p>
