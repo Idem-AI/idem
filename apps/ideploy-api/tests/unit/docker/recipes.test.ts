@@ -20,6 +20,7 @@ const node: NodeRecipe = {
   build: 'npx turbo run build --filter=web',
   start: 'cd apps/web && pnpm run start',
   nextCacheDir: 'apps/web/.next/cache',
+  output: null,
 };
 
 const java: JavaRecipe = {

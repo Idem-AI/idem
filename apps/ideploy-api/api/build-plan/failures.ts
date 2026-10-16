@@ -80,6 +80,12 @@ const CATALOG: { code: string; test: RegExp; explanation: string; retryable?: bo
       'Maven could not download a dependency: a private repository needs credentials (settings.xml), or the version does not exist. If the log shows a timeout, deploy again.',
   },
   {
+    code: 'BUILD_OUTPUT_MISSING',
+    test: /iDeploy: The build did not produce /,
+    explanation:
+      'The build finished without producing what the start command runs (see the line above). The application’s "build" script must build it: in a monorepo, check that the build of this application is not skipped.',
+  },
+  {
     code: 'BASE_IMAGE_MISSING',
     test: /manifest unknown|docker\.io\/library\/(node|eclipse-temurin|maven|gradle):[\w.-]+: not found|pull access denied for (node|eclipse-temurin|maven|gradle)\b/,
     explanation: 'The base image for this runtime version could not be pulled.',
@@ -102,6 +108,69 @@ const CATALOG: { code: string; test: RegExp; explanation: string; retryable?: bo
 export function explainFailure(output: string): KnownFailure | null {
   for (const entry of CATALOG) {
     if (entry.test.test(output)) return { code: entry.code, explanation: entry.explanation, retryable: entry.retryable };
+  }
+  return null;
+}
+
+/**
+ * Why a container stopped at start, from its logs: the same catalog idea for
+ * the run, where the raw stack trace was all a developer got.
+ */
+const RUNTIME_CATALOG: { code: string; test: RegExp; explanation: string }[] = [
+  {
+    code: 'NO_BUILD_OUTPUT',
+    test: /Could not find a production build in the '?\.next'? directory|ENOENT: no such file or directory, open '[^']*\.next\/BUILD_ID'/,
+    explanation:
+      'The image has no Next.js build: `next build` did not run for this application. Its "build" script must run it; in a monorepo, the build of this application must not be skipped.',
+  },
+  {
+    code: 'ENTRY_NOT_FOUND',
+    test: /Error: Cannot find module '\/app\/[^']+'|Unable to access jarfile|Could not find or load main class/,
+    explanation: 'The file the start command runs is not in the image: the build did not produce it, or the start command points to another path.',
+  },
+  {
+    code: 'MODULE_NOT_FOUND',
+    test: /Cannot find module '([^'/.][^']*)'|ERR_MODULE_NOT_FOUND|ClassNotFoundException|NoClassDefFoundError/,
+    explanation:
+      'A dependency is missing at run time: it must be in "dependencies" (not only installed on your machine). A Java class missing usually means a dependency with the wrong scope.',
+  },
+  {
+    code: 'PORT_IN_USE',
+    test: /EADDRINUSE|Address already in use|Port \d+ (was )?already in use|Web server failed to start\. Port/,
+    explanation: 'The port is already taken inside the container: two servers start on the same port, or the start command runs the app twice.',
+  },
+  {
+    code: 'DATABASE_UNREACHABLE',
+    test: /ECONNREFUSED [\d.:]+:(5432|3306|27017|6379)|connect ECONNREFUSED 127\.0\.0\.1|getaddrinfo (ENOTFOUND|EAI_AGAIN) \S+|Communications link failure|Connection to \S+ refused|could not connect to server|MongoServerSelectionError|PrismaClientInitializationError/,
+    explanation:
+      'The application cannot reach its database or another service. Use the internal address shown on the database page (not localhost), and check the variables holding it.',
+  },
+  {
+    code: 'MISSING_ENV',
+    test: /Missing (required )?environment variable|Environment variable \S+ (is )?(missing|required|not set)|Invalid environment variables|must be (set|defined|provided)|Could not resolve placeholder '[^']+'/i,
+    explanation: 'A runtime variable is missing. Add it under Variables (runtime) and redeploy.',
+  },
+  {
+    code: 'JAVA_VERSION',
+    test: /UnsupportedClassVersionError|has been compiled by a more recent version of the Java Runtime/,
+    explanation: 'The Java runtime is older than the version the code was compiled for. Set the Java version in pom.xml / build.gradle so build and runtime match.',
+  },
+  {
+    code: 'OUT_OF_MEMORY',
+    test: /JavaScript heap out of memory|java\.lang\.OutOfMemoryError|Terminating due to java\.lang\.OutOfMemoryError/,
+    explanation: 'The application ran out of memory at start. Give it more memory (Settings › Resources) or reduce what it loads at start.',
+  },
+  {
+    code: 'PERMISSION_DENIED',
+    test: /EACCES: permission denied|Permission denied/,
+    explanation: 'The application writes where it may not (a read-only folder, or a port under 1024). Write to /tmp or a volume, and listen on $PORT.',
+  },
+];
+
+/** The first known cause of a crash at start, from the container's logs, or null. */
+export function explainRuntimeFailure(logs: string): KnownFailure | null {
+  for (const entry of RUNTIME_CATALOG) {
+    if (entry.test.test(logs)) return { code: entry.code, explanation: entry.explanation };
   }
   return null;
 }

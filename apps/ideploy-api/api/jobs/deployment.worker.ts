@@ -27,7 +27,7 @@ import { join } from 'path';
 import { getSourceArchive } from '../services/application-source.service';
 import { assertComposeIsSafe } from '../docker/compose-policy';
 import { assertSafeGitBranch, assertSafeGitUrl, isSafeCommitSha, isSafeImageName, isSafeImageTag } from '../validation/git-input';
-import { generateComposeFile, appWorkdir, composeDirFile, composeProject } from '../docker/compose';
+import { generateComposeFile, appWorkdir, composeDirFile, composeProject, composeServiceName } from '../docker/compose';
 import { choosePort, parseExposedPorts, parseListeningPorts, PortChoice } from '../docker/listening-ports';
 import { planBuild, recipePlan, toBuildPack, buildDirectory } from '../docker/build-packs';
 import { loadLabelContext, buildApplicationLabels } from '../services/application-labels.service';
@@ -36,7 +36,7 @@ import { applyRoutes } from '../services/routes-file.service';
 import { monorepoHint, monorepoProbeCommand, parseMonorepoProbe } from '../docker/monorepo-hint';
 import { analyzeRepository, describePlan, parseSnapshot, snapshotCommand, BuildPlanResult } from '../build-plan';
 import { joinPath, relativeTo } from '../build-plan/repo-files';
-import { explainFailure, KnownFailure } from '../build-plan/failures';
+import { explainFailure, explainRuntimeFailure, KnownFailure } from '../build-plan/failures';
 import { JavaRecipe, NodeRecipe } from '../build-plan/types';
 import { lenientInstall, recipeDockerfile, recipeLabel } from '../docker/recipes';
 import * as appService from '../services/application.service';
@@ -97,8 +97,39 @@ const LOCK_RENEW_MS = 20 * 1000;
 const LOCK_WAIT_MS = 30 * 60 * 1000;
 const LOCK_POLL_MS = 5000;
 
+/** Lines a server prints once it is ready: the start check stops waiting on one. */
+const READY_LOG_PHRASES = [
+  'listening on',
+  'ready in',
+  'local:',
+  'accepting connections',
+  'compiled successfully',
+  'http://localhost:',
+  'ready - started server',
+  'started application in', // Spring Boot's own "Started XyzApplication in 4.2 seconds" line
+];
+
+/** How long the new version runs beside the live one before the switch, at most. */
+const TRIAL_MAX_MS = 30000;
+/** Ready, and still running this long after its start. */
+const TRIAL_READY_MIN_MS = 6000;
+
 /** Below this free space, unused images and old build cache are removed before building. */
 const DISK_CLEANUP_BELOW_MB = 3072;
+
+/**
+ * A failure with its cause, as a code (OUT_OF_MEMORY, NO_BUILD_OUTPUT,
+ * MONOREPO_PICK_APP…): logged with every failed deployment, so the platform
+ * counts its failures by cause and fixes the most frequent first.
+ */
+export class DeploymentFailure extends Error {
+  constructor(
+    message: string,
+    readonly code: string
+  ) {
+    super(message);
+  }
+}
 
 /** A build step that failed, explained. */
 interface BuildFailure {
@@ -281,6 +312,7 @@ async function runDeployment(
     });
     const app = await appService.getApplication(teamId, applicationUuid);
     if (app) await finalize(app, deploymentUuid, teamId, true);
+    logger.info('Deployment succeeded', { event: 'deployment.succeeded', deploymentUuid, applicationUuid });
     await log('✅ Deployment finished successfully');
     await saveLog();
   } catch (err) {
@@ -290,7 +322,9 @@ async function runDeployment(
       throw err;
     }
     const message = (err as Error).message;
-    logger.error('Deployment failed', { deploymentUuid, message });
+    const failureCode = err instanceof DeploymentFailure ? err.code : 'UNCLASSIFIED';
+    // `deployment.failed` + `failureCode`: Grafana counts failures by cause (dashboard "IDEM · Journaux").
+    logger.error('Deployment failed', { event: 'deployment.failed', deploymentUuid, applicationUuid, failureCode, switched, message });
     await log(`❌ Deployment failed: ${message}`);
     if (!switched) await log('The previous version, if any, is still the one serving.');
     // Kept with the deployment, ending with the cause (iCode shows its tail).
@@ -582,6 +616,8 @@ async function deploy(
             install: own(app.install_command) ?? recipe.install,
             build: own(app.build_command) ?? recipe.build,
             start: own(app.start_command) ?? recipe.start,
+            // The contract is read from the plan's start command, not the user's.
+            output: app.start_command ? null : recipe.output,
           }
         : recipe && { ...recipe, build: own(app.build_command) ?? recipe.build };
     const argKeys = buildEnv.map((pair) => pair.split('=')[0]);
@@ -623,7 +659,7 @@ async function deploy(
         failure = await runBuildSteps(planBuild('nixpacks', buildContext).steps);
       }
     }
-    if (failure) throw new Error(failure.message);
+    if (failure) throw new DeploymentFailure(failure.message, failure.known?.code ?? 'BUILD_FAILED');
 
     if (plan.runtime === 'compose-file') {
       // The repository ships its own stack; it runs from its own directory.
@@ -641,6 +677,16 @@ async function deploy(
   if (data.pipelineExecutionId && composeImage) {
     await streamStep(deploymentUuid, 'Scanning the image (Trivy)', async () => {
       await scanBuiltImage(server, key, composeImage as string, data.pipelineExecutionId as number, log, data.trivyFailOn);
+    });
+  }
+
+  // The new image runs beside the live version first: a version that cannot
+  // start never replaces one that works (`docker compose up` replaces the
+  // container in place, and a crash then took the site down).
+  if (compose !== null && composeImage && !trialDisabled([...runtimeEnv, ...buildEnv])) {
+    const image = composeImage;
+    await streamStep(deploymentUuid, 'Trying the new version before the switch', async () => {
+      await trialRun(server, key, { app, image, network: network ?? undefined, env: trialEnvironment(runtimeEnv, port), log });
     });
   }
 
@@ -702,13 +748,20 @@ async function deploy(
     }
   });
 
+  /** A crash at start, with its cause read from the logs when known. */
+  const startFailure = async (what: string, logs: string): Promise<DeploymentFailure> => {
+    const known = explainRuntimeFailure(logs);
+    if (known) await log(`\n✗ ${known.explanation}`);
+    return new DeploymentFailure(`${what} ${known ? known.explanation : 'Check the logs above for errors.'}`, known?.code ?? 'START_FAILED');
+  };
+
   // Tracks how much of `docker compose logs` output has already been
   // streamed, across both the polling loop and the later grace-period
   // re-check, so the confirmation never re-sends lines already shown.
   let lastLogLength = 0;
 
   /** One `docker compose ps` + fresh-log-tail read. Streams any new log output as a side effect. */
-  const checkContainerState = async (): Promise<{ isUp: boolean; crashed: boolean; empty: boolean; allLogsLower: string }> => {
+  const checkContainerState = async (): Promise<{ isUp: boolean; crashed: boolean; empty: boolean; allLogs: string; allLogsLower: string }> => {
     const base = `cd ${shellQuote(composeDir)} && docker compose -p ${shellQuote(project)}`;
     const logsResult = await executeRemoteCommand(server, key, `${base} logs --no-color`, { noRetry: true });
     const currentLogs = logsResult.stdout || '';
@@ -720,7 +773,7 @@ async function deploy(
     const psResult = await executeRemoteCommand(server, key, `${base} ps -a --format json`, { noRetry: true });
     const states = parseComposePs(psResult.stdout);
     if (states !== null) {
-      return { ...judgeContainers(states), empty: states.length === 0, allLogsLower: currentLogs.toLowerCase() };
+      return { ...judgeContainers(states), empty: states.length === 0, allLogs: currentLogs, allLogsLower: currentLogs.toLowerCase() };
     }
     // Not JSON (a very old Compose): read the table.
     const table = psResult.stdout.trim().toLowerCase();
@@ -728,20 +781,11 @@ async function deploy(
       isUp: table.includes(' up ') || table.includes('running'),
       crashed: /\bexited \((?!0\))|\bdead\b|\brestarting\b/.test(table),
       empty: table.length === 0,
+      allLogs: currentLogs,
       allLogsLower: currentLogs.toLowerCase(),
     };
   };
 
-  const READY_LOG_PHRASES = [
-    'listening on',
-    'ready in',
-    'local:',
-    'accepting connections',
-    'compiled successfully',
-    'http://localhost:',
-    'ready - started server',
-    'started application in', // Spring Boot's own "Started XyzApplication in 4.2 seconds" line
-  ];
 
   await streamStep(deploymentUuid, 'Verifying container', async () => {
     await log('Monitoring container startup and logs...');
@@ -750,10 +794,10 @@ async function deploy(
     let confirmedUp = false;
 
     while (Date.now() - startTime < maxWaitMs) {
-      const { isUp, crashed, empty, allLogsLower } = await checkContainerState();
+      const { isUp, crashed, empty, allLogs, allLogsLower } = await checkContainerState();
 
       if (crashed || (!empty && !isUp)) {
-        throw new Error('Container exited unexpectedly during startup. Check the logs above for errors.');
+        throw await startFailure('Container exited unexpectedly during startup.', allLogs);
       }
 
       if (isUp && READY_LOG_PHRASES.some((p) => allLogsLower.includes(p))) {
@@ -783,9 +827,9 @@ async function deploy(
     // The check above only proves the container had not crashed *yet*; some
     // failures surface a few seconds later, once startup actually finishes.
     await new Promise((resolve) => setTimeout(resolve, CONFIRM_GRACE_MS));
-    const { isUp, crashed } = await checkContainerState();
+    const { isUp, crashed, allLogs } = await checkContainerState();
     if (crashed || !isUp) {
-      throw new Error('Container crashed shortly after starting — it did not stay up. Check the logs above for the real error.');
+      throw await startFailure('Container crashed shortly after starting — it did not stay up.', allLogs);
     }
     await log('\n✓ Confirmed: still running after the grace period.');
   });
@@ -851,6 +895,99 @@ export function normaliseBaseDirectory(raw: string | null | undefined): string {
   return (raw ?? '').trim().replace(/^\.?\/+|\/+$/g, '').replace(/^\.$/, '');
 }
 
+/** `IDEPLOY_TRIAL=false` (a runtime or build variable) skips the trial run: for an app that must never run twice at once. */
+export function trialDisabled(env: string[]): boolean {
+  return env.some((pair) => /^IDEPLOY_TRIAL=\s*(false|0|no|off)\s*$/i.test(pair));
+}
+
+/** The environment the generated compose gives the container: the user's variables, PORT and HOST unless they set them. */
+export function trialEnvironment(runtimeEnv: string[], port: number): string[] {
+  const env = [...runtimeEnv];
+  if (!env.some((e) => e.startsWith('PORT='))) env.push(`PORT=${port}`);
+  if (!env.some((e) => e.startsWith('HOST='))) env.push('HOST=0.0.0.0');
+  return env;
+}
+
+/**
+ * Run the new image beside the live version, with its variables and on its
+ * network (its database resolves), but without ports or routing — no traffic
+ * reaches it. It must stay up until it says it is ready, or for the settle
+ * time; stopped at start, the deployment fails with the cause and the live
+ * version keeps serving. The first deployment has nothing to protect: its
+ * start is checked after the switch, as before.
+ */
+async function trialRun(
+  server: Parameters<typeof executeRemoteCommand>[0],
+  key: Parameters<typeof executeRemoteCommand>[1],
+  opts: { app: { name: string; uuid: string }; image: string; network?: string; env: string[]; log: (line: string) => Promise<void> }
+): Promise<void> {
+  const live = composeServiceName(opts.app);
+  const name = `${live}-trial`;
+  const running = await executeRemoteCommand(server, key, `docker ps -q -f ${shellQuote(`name=^${live}$`)}`, { noRetry: true });
+  if (running.exitCode !== 0 || !running.stdout.trim()) {
+    await opts.log('No live version to protect yet: the start is checked after the switch.');
+    return;
+  }
+  // The values never reach the log, even if a command echoes them.
+  const secrets = opts.env.map((pair) => pair.slice(pair.indexOf('=') + 1)).filter((v) => v.length >= 6);
+  const envFlags = opts.env.map((pair) => `-e ${shellQuote(pair)}`).join(' ');
+  const started = await executeRemoteCommand(
+    server,
+    key,
+    `docker rm -f ${shellQuote(name)} >/dev/null 2>&1; ` +
+      `docker run -d --name ${shellQuote(name)} --label ideploy.trial=true --label traefik.enable=false ` +
+      `${opts.network ? `--network ${shellQuote(opts.network)} ` : ''}${envFlags} ${shellQuote(opts.image)}`,
+    { noRetry: true, redact: secrets }
+  );
+  if (started.exitCode !== 0) {
+    // The trial is a safeguard: unable to run it, the deployment goes on as before.
+    await opts.log(`⚠ The trial run could not start (${(started.stderr || started.stdout).trim().slice(0, 200)}): switching without it.`);
+    return;
+  }
+  try {
+    const began = Date.now();
+    for (;;) {
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+      const r = await executeRemoteCommand(
+        server,
+        key,
+        `docker inspect -f '{{.State.Status}} {{.State.ExitCode}}' ${shellQuote(name)}; echo @@LOGS; docker logs --tail 200 ${shellQuote(name)} 2>&1`,
+        { noRetry: true, redact: secrets }
+      );
+      const at = r.stdout.indexOf('@@LOGS');
+      const [status, exitCode] = (at === -1 ? r.stdout : r.stdout.slice(0, at)).trim().split(/\s+/);
+      const logs = at === -1 ? '' : r.stdout.slice(at + 7);
+      const elapsed = Date.now() - began;
+      if (status === 'exited' || status === 'dead') {
+        await opts.log(`\nThe new version stopped after ${Math.round(elapsed / 1000)}s (exit code ${exitCode}). Its last lines:\n${logs.split('\n').slice(-60).join('\n')}`);
+        const known = explainRuntimeFailure(logs);
+        if (known) await opts.log(`\n✗ ${known.explanation}`);
+        throw new DeploymentFailure(
+          `The new version stopped at start${known ? `: ${known.explanation}` : ' — see its last lines above.'} The live version keeps serving.` +
+            (known ? '' : ' If this application cannot run twice at once (a bot, a queue consumer), set the variable IDEPLOY_TRIAL=false.'),
+          known?.code ?? 'START_FAILED'
+        );
+      }
+      // "Ready" is not enough on its own: Next.js prints "Ready in 157ms"
+      // and then exits for want of a build. Still running a while later is.
+      const ready = READY_LOG_PHRASES.some((p) => logs.toLowerCase().includes(p));
+      if (status === 'running' && ((ready && elapsed >= TRIAL_READY_MIN_MS) || elapsed >= SETTLE_MS)) {
+        await opts.log(ready ? '✓ The new version started and is ready.' : '✓ The new version is running and has not crashed.');
+        return;
+      }
+      if (elapsed >= TRIAL_MAX_MS) {
+        await opts.log(`⚠ The new version did not settle within ${TRIAL_MAX_MS / 1000}s (state: ${status ?? 'unknown'}): switching, its start is checked after.`);
+        return;
+      }
+    }
+  } finally {
+    // Stopped gracefully (a job in progress may finish), then removed.
+    await executeRemoteCommand(server, key, `docker stop -t 10 ${shellQuote(name)} >/dev/null 2>&1; docker rm -f ${shellQuote(name)} >/dev/null 2>&1; true`, {
+      noRetry: true,
+    }).catch(() => undefined);
+  }
+}
+
 /**
  * The build plan of the checkout: read once over SSH, decided here, written
  * to the log. A blocking issue (a monorepo with several applications and none
@@ -914,7 +1051,7 @@ async function readBuildPlan(
   const lines = [...describePlan(plan, effective), ...(builder ? [builder] : [])];
   await log(`\n──► Build plan, read from the code\n${lines.map((l) => `  ${l}`).join('\n')}`);
   const blocking = plan.issues.find((i) => i.severity === 'blocking');
-  if (blocking) throw new Error(blocking.message);
+  if (blocking) throw new DeploymentFailure(blocking.message, blocking.code);
   return plan;
 }
 
