@@ -317,7 +317,8 @@ export const prettyConsole = winston.format.combine(
       parts.push(`${key}=${v !== null && typeof v === 'object' ? JSON.stringify(v) : String(v)}`);
     }
     let line = `${time} ${info.level}${req} ${r.message}${parts.length ? ` · ${parts.join(' ')}` : ''}`;
-    const err = r.error as { type?: string; message?: string; stack?: string } | undefined;
+    // Une erreur passée en texte (`{ error: e.message }`) s'affichait « Error: » vide : le texte est le message.
+    const err = (typeof r.error === 'string' ? { message: r.error } : r.error) as { type?: string; message?: string; stack?: string } | undefined;
     if (err) {
       const head = `${err.type ?? 'Error'}: ${err.message ?? ''}`;
       line += `\n    ${err.stack ? err.stack.replace(/\n/g, '\n    ') : head}`;

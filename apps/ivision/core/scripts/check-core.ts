@@ -164,12 +164,19 @@ class MemoryStore implements VideoStore {
   // ── 3 ──
   section('3. Reproduction par le service vidéo du core');
   const store = new MemoryStore(kit);
-  const author = fs.readFileSync(path.join(__dirname, '../motion/examples/typography.tsx'), 'utf8');
-  const service = new MotionVideoService(store, async ({ role }) =>
+  // L'auteur simulé écrit un programme d'animation (le langage du Motion Compiler) : le titre de la scène, qui entre.
+  // Une scène sans texte (le logo) reçoit une forme.
+  const author = (user: string) =>
+    JSON.stringify(
+      /\$headline = "/.test(user.split('THIS SCENE')[1] || user)
+        ? { nodes: [{ id: 't', type: 'text', text: '$headline', size: 9, color: 'ink' }], timeline: [{ at: 0.1, target: 't', dur: 0.6, from: { opacity: 0, y: '+=4' }, to: {} }] }
+        : { nodes: [{ id: 'c', type: 'circle', w: 30, h: 30, fill: 'primary' }], timeline: [{ at: 0.1, target: 'c', dur: 0.6, from: { scale: 0 }, to: {} }] }
+    );
+  const service = new MotionVideoService(store, async ({ role, user }) =>
     role === 'video.planner'
       ? ['TITLE: Kora', 'CONCEPT: Le café qui réveille.', 'BIBLE: crème et brun.', 'SCENE 1 | 4', 'visual: mots empilés', 'motion: claquent un à un', 'text.headline: Le café qui réveille', 'SCENE 2 | 6', 'visual: un chiffre géant', 'motion: défile', 'text.headline: Plus de 500 clients chaque mois', 'SCENE 3 | 5', 'visual: le logo', 'motion: se dessine'].join('\n')
       : role === 'video.author'
-        ? '```tsx\n' + author + '\n```'
+        ? '```json\n' + author(user) + '\n```'
         : ''
   );
   const video = await service.createVideo(

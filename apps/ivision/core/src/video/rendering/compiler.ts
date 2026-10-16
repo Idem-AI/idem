@@ -227,6 +227,22 @@ async function bundleOnce(scenes: BundleScene[], mode: 'render' | 'preview'): Pr
       }));
     },
   };
+  // La vidéo de Motion Canvas en lecture temps réel (aperçu) : tant qu'un clip n'est pas prêt, sa valeur calculée
+  // vaut `undefined` et sa durée NaN. Motion Canvas passait alors `undefined` à drawImage (exception qui arrêtait le
+  // dessin de TOUTE l'image : aucun média visible) et réglait `currentTime` à NaN (« non-finite »). Le clip qui
+  // n'est pas prêt n'est simplement pas dessiné ce tour-ci ; l'export (qui attend les médias) n'est pas concerné.
+  const videoGuard: Plugin = {
+    name: 'idem-video-guard',
+    setup(b) {
+      b.onLoad({ filter: /@motion-canvas[\\/]2d[\\/]lib[\\/]components[\\/]Video\.js$/ }, async (args) => ({
+        contents: (await fs.promises.readFile(args.path, 'utf8'))
+          .replace('drawImage(context, video, box);', 'if (video && video.readyState >= 2) drawImage(context, video, box);')
+          .replace('if (video.readyState < 2)\n            return;', 'if (video.readyState < 2 || !Number.isFinite(value))\n            return;')
+          .replace('else if (!playing) {\n            video.currentTime = time;', 'else if (!playing && Number.isFinite(time)) {\n            video.currentTime = time;'),
+        loader: 'js',
+      }));
+    },
+  };
   const result = await build({
     stdin: { contents: entry, loader: 'ts', resolveDir: MOTION_ROOT, sourcefile: 'film.ts' },
     bundle: true,
@@ -241,7 +257,7 @@ async function bundleOnce(scenes: BundleScene[], mode: 'render' | 'preview'): Pr
     legalComments: 'none',
     logLevel: 'silent',
     tsconfigRaw,
-    plugins: [scenePlugin, opaqueOrigin],
+    plugins: [scenePlugin, opaqueOrigin, videoGuard],
   });
   return result.outputFiles[0].text;
 }

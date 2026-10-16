@@ -41,7 +41,7 @@ demande ─► compréhension ─► directeur ─► planificateur ─► médi
 | Storyboard | `director/storyboard.agent.ts` | `video.planner` | par scène : durée, intention, idée visuelle, idée de mouvement, entrée, textes exacts (par clé), médias, médias à produire, ligne de voix. Sans concept (directeur en panne), il invente aussi le film |
 | Médias | `assets/sourcing.ts`, `assets/media.ts`, `assets/brandmedia.ts` | — (génération FLUX → Seedance, puis Pexels) | imports d'abord, captures de la marque, puis les médias demandés par le storyboard |
 | Musique, sons | `audio/music.ts`, `audio/beats.ts`, `audio/sfx.ts` | — | piste libre et son tempo ; sonothèque CC0 |
-| Voix | `audio/voice.ts` | — (voix de l'hôte) | lignes dites, scènes calées sur elles sans changer la durée achetée |
+| Voix | `audio/voice.ts` | — (voix de l'hôte) | narration en UNE prise (ElevenLabs v4 par OpenRouter, voix africaine francophone en français, anglophone en anglais), découpée aux pauses ; phrases enchaînées d'une scène à l'autre sans changer la durée achetée (repli ligne par ligne si la prise ne se découpe pas) |
 | Auteur | `author/program.author.ts` | `video.author` | le **programme** de chaque scène (langage de mouvement), validé ; refusé, redemandé une fois avec les erreurs exactes |
 | Compilateur | `packages/motion-compiler/src/compiler/compile.ts` | — | le TSX Motion Canvas de la scène, déterministe, programme gardé en tête du code |
 | Contrôle | `rendering/runner.ts#probeFilm` | — | chaque scène exécutée **dans chaque format** : erreurs d'exécution, défauts d'affichage (`layout`), vignettes, effets sonores posés |

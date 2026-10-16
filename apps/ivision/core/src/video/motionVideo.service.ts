@@ -282,6 +282,32 @@ export class MotionVideoService {
     return { userId, projectId, level, ...(this.filmCall ? { call: this.filmCall } : {}) };
   }
 
+  /**
+   * La musique de l'aperçu : une copie sur notre stockage. Les banques (ccMixter) refusent la lecture
+   * directe depuis le navigateur (403) alors que le serveur, lui, a la piste en cache : l'export avait
+   * sa musique, l'aperçu restait muet. Une copie par piste, retrouvée par son adresse.
+   */
+  private readonly hostedTracks = new Map<string, Promise<string>>();
+  private previewTrackUrl(music: VideoMusic): Promise<string> {
+    if (music.provider === 'local' || !/^https?:\/\//.test(music.url)) return Promise.resolve(music.url);
+    let job = this.hostedTracks.get(music.url);
+    if (!job) {
+      job = (async () => {
+        const file = await fetchTrack(music);
+        const ext = (music.url.split('?')[0].match(/\.(mp3|ogg|wav|m4a|flac)$/i)?.[1] || 'mp3').toLowerCase();
+        const type = ext === 'mp3' ? 'audio/mpeg' : ext === 'm4a' ? 'audio/mp4' : `audio/${ext}`;
+        const name = `${crypto.createHash('sha1').update(music.url).digest('hex')}.${ext}`;
+        return (await this.mediaStorage().uploadFile(fs.readFileSync(file), name, 'shared/video-music', type)).downloadURL;
+      })().catch((error: any) => {
+        logger.warn('video.music_preview_copy_failed', { id: music.id, error: error?.message || String(error) });
+        this.hostedTracks.delete(music.url);
+        return music.url;
+      });
+      this.hostedTracks.set(music.url, job);
+    }
+    return job;
+  }
+
   protected mediaStorage(): MediaStorage {
     return requirePort('storage') as unknown as MediaStorage;
   }
@@ -431,10 +457,13 @@ export class MotionVideoService {
       const candidates = await searchMusic({ mood, minDuration: opts.durationSec + 3 }, MUSIC_PROVIDERS);
       const first = opts.trackId ? candidates.find((t) => t.id === opts.trackId) || null : pickTrack(candidates, opts.seed, opts.avoidIds);
       if (!first) return undefined;
-      const queue = [first, ...candidates.filter((t) => t.id !== first.id && !(opts.avoidIds || []).includes(t.id)).slice(0, 2)];
+      const queue = [first, ...candidates.filter((t) => t.id !== first.id && !(opts.avoidIds || []).includes(t.id)).slice(0, 4)];
       let fallback: VideoMusic | undefined;
       for (const track of queue) {
         const prepared = await this.prepareTrack(track, opts.durationSec);
+        // Une piste qu'on ne peut pas télécharger (ccMixter répond 403) est écartée : gardée, elle donnait une
+        // vidéo muette à l'export comme à l'aperçu.
+        if (!prepared) continue;
         if (prepared.beat) return prepared;
         fallback ??= prepared;
       }
@@ -445,9 +474,15 @@ export class MotionVideoService {
     }
   }
 
-  private async prepareTrack(track: MusicTrack, durationSec: number): Promise<VideoMusic> {
+  private async prepareTrack(track: MusicTrack, durationSec: number): Promise<VideoMusic | null> {
+    let file: string;
     try {
-      const file = await fetchTrack(track);
+      file = await fetchTrack(track);
+    } catch (error: any) {
+      logger.warn('video.track_download_failed', { id: track.id, error: error?.message || String(error) });
+      return null;
+    }
+    try {
       const analysis = await analyzeTrack(file);
       return {
         ...track,
@@ -486,6 +521,8 @@ export class MotionVideoService {
         persona,
         storage: this.mediaStorage(),
         folder: `users/${o.userId}/projects/${o.projectId}/videos/${o.videoId}/voice`,
+        // Toute la narration d'une prise ; une retouche de scène ne redit que sa ligne.
+        continuous: !o.only,
       });
       const fresh = said.lines.map((l) => ({ sceneKey: o.film.scenes[l.index].key, text: l.text, url: l.url, durationSec: l.durationSec }));
       const all = [...keep.map(({ offset: _o, ...l }) => l), ...fresh];
@@ -1221,7 +1258,7 @@ export class MotionVideoService {
     const sounds: FilmAudio['sfx'] = {};
     for (const [kind, file] of Object.entries(await this.sfxFiles(video.sfx))) sounds[kind as SfxKind] = { url: coreHost().sfxUrl(publicSoundName(file!)), gain: previewGain(SFX_GAIN_DB[kind as SfxKind]) };
     const audio: FilmAudio = {
-      ...(video.music ? { music: { url: video.music.url, startAt: video.music.startAt, gain: previewGain(video.voice?.enabled ? MUSIC_UNDER_VOICE_DB : MUSIC_GAIN_DB) } } : {}),
+      ...(video.music ? { music: { url: await this.previewTrackUrl(video.music), startAt: video.music.startAt, gain: previewGain(video.voice?.enabled ? MUSIC_UNDER_VOICE_DB : MUSIC_GAIN_DB) } } : {}),
       voice: voiceTimeline(video.film.scenes, video.voice, video.film.durationSec).map((l) => ({ url: l.url, at: l.at })),
       sfx: sounds,
     };

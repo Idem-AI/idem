@@ -4,12 +4,16 @@
  * Les lignes sont écrites par le planificateur du film (une par scène, champ `voiceText`) ou par
  * l'utilisateur dans son scénario (mot pour mot). Ce module les dit, les nettoie et cale les scènes :
  *
- *   1. synthèse           une ligne = un appel au modèle de voix de l'hôte (Kokoro par
- *                         OpenRouter, ou le serveur Qwen3-TTS / Chatterbox de l'exploitant) ; le son est nettoyé (silences, passe-haut), accéléré au plus de
- *                         18 % s'il déborde, normalisé à −16 LUFS, déposé dans le stockage ;
- *   2. calage             chaque scène dure AU MOINS le temps de sa ligne (+ entrée et sortie) ;
- *                         la durée achetée ne change pas : les scènes muettes rendent du temps,
- *                         et une ligne qui ne tient vraiment pas est retirée (jamais coupée).
+ *   1. synthèse           UNE PRISE CONTINUE : toute la narration dite d'un seul souffle (un appel au
+ *                         modèle de voix de l'hôte — ElevenLabs par OpenRouter), puis découpée aux pauses
+ *                         entre les phrases. Une ligne par appel donnait une « récitation » : chaque phrase
+ *                         repartait sur la même intonation. Une ligne seule par appel ne sert plus qu'au repli
+ *                         (pauses introuvables) et aux retouches d'une scène. Chaque morceau est nettoyé
+ *                         (silences, passe-haut), accéléré au plus de 18 % s'il déborde, normalisé à −16 LUFS ;
+ *   2. calage             la narration s'enchaîne : chaque scène dure le temps de sa phrase et d'un souffle,
+ *                         la phrase suivante part dès l'entrée de la scène suivante. Le temps qui reste va
+ *                         d'abord aux plans muets (logo, final), puis à tout le film ; la durée achetée ne
+ *                         change pas, et une ligne qui ne tient vraiment pas est retirée (jamais coupée).
  *                         Minutage fixe (scénario écrit) : une ligne déborde sur les
  *                         plans muets qui la suivent au lieu d'être retirée.
  *
@@ -83,10 +87,10 @@ export function personaMenu(style: MotionStyle, seed: number): VoicePersona[] {
 
 // ─── Minutage ───────────────────────────────────────────────────────────────
 
-/** La ligne commence après l'entrée de la scène (la transition passe d'abord). */
-export const VOICE_LEAD = 0.28;
-/** Un souffle après la ligne, avant la coupe suivante. */
-export const VOICE_TAIL = 0.32;
+/** La ligne commence juste après l'entrée de la scène (la transition passe d'abord). */
+export const VOICE_LEAD = 0.18;
+/** Un souffle après la ligne, avant la coupe suivante : avec l'entrée, ≈ 0,45 s entre deux phrases. */
+export const VOICE_TAIL = 0.27;
 /** Au-delà, la ligne est accélérée (au plus de 18 %, inaudible au-dessous de 1,2). */
 const MAX_TEMPO = 1.18;
 
@@ -208,6 +212,92 @@ export const speechAvailable = () => typeof coreHost().synthesizeSpeech === 'fun
  * Dit chaque ligne (trois à la fois), la nettoie et la dépose. Une ligne qui échoue deux fois
  * est retirée (la scène reste muette) ; si AUCUNE ne passe, la voix est indisponible.
  */
+type SaidLine = Omit<VoiceLine, 'sceneKey' | 'offset'> & { index: number };
+
+/** Une ligne qui se termine par une ponctuation (une virgule suffit : l'idée continue dans la scène suivante). */
+const sentence = (text: string) => (/[.!?…:;,—]\s*(\[[^\]]*\]\s*)*$/.test(text.trim()) ? text.trim() : `${text.trim()},`);
+
+/** Les silences d'un son (secondes) : là où la prise continue se découpe. */
+async function silences(file: string): Promise<{ start: number; end: number }[]> {
+  const log = await ffmpeg(['-hide_banner', '-i', file, '-af', 'silencedetect=noise=-36dB:d=0.12', '-f', 'null', '-']);
+  const out: { start: number; end: number }[] = [];
+  let start: number | null = null;
+  for (const m of log.matchAll(/silence_(start|end): (-?[\d.]+)/g)) {
+    if (m[1] === 'start') start = Math.max(0, Number(m[2]));
+    else if (start !== null) {
+      out.push({ start, end: Number(m[2]) });
+      start = null;
+    }
+  }
+  return out;
+}
+
+/**
+ * Les points de coupe d'une prise continue : pour chaque fin de ligne, la pause la plus proche de
+ * l'instant attendu (au prorata des signes dits), dans l'ordre. Null si une coupe n'a pas de pause
+ * plausible : mieux vaut alors une ligne par appel qu'une phrase tranchée au milieu d'un mot.
+ */
+export function cutPoints(texts: string[], gaps: { start: number; end: number }[], duration: number): number[] | null {
+  const weights = texts.map((t) => Math.max(1, plainSpoken(t).length));
+  const total = weights.reduce((a, x) => a + x, 0);
+  const lead = gaps[0] && gaps[0].start <= 0.02 ? gaps[0].end : 0;
+  const lastGap = gaps[gaps.length - 1];
+  const tail = lastGap && lastGap.end >= duration - 0.05 ? lastGap.start : duration;
+  const span = Math.max(0.1, tail - lead);
+  const inner = gaps.filter((g) => g.start > lead + 0.05 && g.end < tail - 0.05);
+  const cuts: number[] = [];
+  let acc = 0;
+  let floor = lead;
+  for (let k = 0; k < texts.length - 1; k++) {
+    acc += weights[k];
+    const expected = lead + (span * acc) / total;
+    const tolerance = Math.max(0.6, (span * weights[k]) / total * 0.45);
+    const best = inner
+      .filter((g) => (g.start + g.end) / 2 > floor + 0.25)
+      .map((g) => ({ g, miss: Math.abs((g.start + g.end) / 2 - expected) - 1.5 * Math.min(0.5, g.end - g.start) }))
+      .sort((a, b) => a.miss - b.miss)[0];
+    if (!best || Math.abs((best.g.start + best.g.end) / 2 - expected) > tolerance) return null;
+    const cut = (best.g.start + best.g.end) / 2;
+    cuts.push(cut);
+    floor = cut;
+  }
+  return cuts;
+}
+
+/**
+ * La prise continue : toute la narration en un appel, découpée aux pauses entre les lignes. Chaque morceau
+ * garde l'intonation d'un récit suivi (la voix sait qu'une phrase en annonce une autre). Lève une erreur si
+ * le découpage n'est pas sûr : l'appelant repasse alors ligne par ligne.
+ */
+async function continuousTake(
+  opts: { lines: { index: number; text: string; maxSec: number }[]; storage: VoiceStorage; folder: string },
+  speak: (text: string) => ReturnType<NonNullable<ReturnType<typeof coreHost>['synthesizeSpeech']>>,
+  dir: string
+): Promise<{ lines: SaidLine[]; used: { provider: SpeechProvider; model: string; voice: string } }> {
+  const texts = opts.lines.map((l, k) => (k === opts.lines.length - 1 ? sentence(l.text).replace(/,$/, '.') : sentence(l.text)));
+  const speech = await speak(texts.join(' '));
+  const src = path.join(dir, 'take.src');
+  const wav = path.join(dir, 'take.wav');
+  fs.writeFileSync(src, speech.buffer);
+  await ffmpeg(['-y', '-v', 'error', ...inputArgs(src, speech.mimeType), '-af', 'highpass=f=70', '-ar', '48000', '-ac', '1', wav]);
+  const duration = await durationOf(wav);
+  const cuts = cutPoints(texts, await silences(wav), duration);
+  if (!cuts) throw new Error('voice_take_unsplittable');
+  const bounds = [0, ...cuts, duration];
+  const key = crypto.createHash('sha1').update(`${texts.join('|')}:${speech.voice}`).digest('hex').slice(0, 12);
+  const lines: SaidLine[] = [];
+  for (const [k, line] of opts.lines.entries()) {
+    const part = path.join(dir, `part-${k}.wav`);
+    const mp3 = path.join(dir, `part-${k}.mp3`);
+    await ffmpeg(['-y', '-v', 'error', '-i', wav, '-ss', bounds[k].toFixed(3), '-to', bounds[k + 1].toFixed(3), part]);
+    const durationSec = await processSpeech(part, 'audio/wav', mp3, line.maxSec);
+    if (durationSec < 0.25) throw new Error('voice_take_empty_part');
+    const up = await opts.storage.uploadFile(fs.readFileSync(mp3), `voice-${line.index + 1}-${key}.mp3`, opts.folder, 'audio/mpeg');
+    lines.push({ index: line.index, text: line.text, url: up.downloadURL, durationSec: Math.round(durationSec * 1000) / 1000 });
+  }
+  return { lines, used: { provider: speech.provider, model: speech.model, voice: speech.voice } };
+}
+
 export async function synthesizeVoice(opts: {
   lines: { index: number; text: string; maxSec: number }[];
   language: string;
@@ -216,7 +306,9 @@ export async function synthesizeVoice(opts: {
   storage: VoiceStorage;
   folder: string;
   concurrency?: number;
-}): Promise<{ lines: (Omit<VoiceLine, 'sceneKey' | 'offset'> & { index: number })[]; provider: SpeechProvider; model: string; voice: string }> {
+  /** Toute la narration en une prise (création, voix refaite) ; faux pour la retouche d'une seule scène. */
+  continuous?: boolean;
+}): Promise<{ lines: SaidLine[]; provider: SpeechProvider; model: string; voice: string }> {
   const synth = coreHost().synthesizeSpeech;
   if (!synth) throw new VoiceUnavailableError('no_speech_model');
   const request = (text: string): SpeechRequest => ({
@@ -227,8 +319,20 @@ export async function synthesizeVoice(opts: {
     gender: opts.persona.gender,
     tag: 'video-voice',
   });
+  if (opts.continuous && opts.lines.length > 1) {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'idem-voice-take-'));
+    try {
+      const take = await continuousTake(opts, (text) => synth(request(text)), dir);
+      return { lines: take.lines, ...take.used };
+    } catch (error: any) {
+      if (/voice_language_unsupported|voice_unavailable/.test(String(error?.message))) throw new VoiceUnavailableError(error.message);
+      logger.warn('video.voice.take_fallback', { lines: opts.lines.length, error: error?.message });
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  }
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'idem-voice-'));
-  const out: (Omit<VoiceLine, 'sceneKey' | 'offset'> & { index: number })[] = [];
+  const out: SaidLine[] = [];
   let used: { provider: SpeechProvider; model: string; voice: string } = { provider: 'openrouter', model: '', voice: '' };
   let lastError: unknown;
   try {
@@ -317,7 +421,28 @@ export function fitScenesToVoice<S extends TimedScene>(scenes: S[], lines: Omit<
     kept = kept.filter((l) => l.sceneKey !== victim.sc.key);
   }
   const lo = need();
-  let dur = out.map((sc, i) => Math.max(lo[i], sc.duration));
+  // La narration s'enchaîne : une scène parlée dure sa phrase et un souffle (+ 0,5 s au plus) ; le temps
+  // restant va d'abord aux plans muets (jusqu'à leur durée prévue), puis à tout le film au prorata. Avant,
+  // chaque scène gardait sa durée prévue : la voix attendait la scène suivante, et l'on entendait des trous.
+  let dur = lo.slice();
+  const voicedAt = out.map((sc) => !!lineOf(sc.key));
+  if (kept.length) {
+    let spare = total - dur.reduce((a, x) => a + x, 0);
+    const give = (want: number[]) => {
+      const sum = want.reduce((a, x) => a + x, 0);
+      if (sum <= 0 || spare <= 0) return;
+      const k = Math.min(1, spare / sum);
+      dur = dur.map((x, i) => x + want[i] * k);
+      spare -= sum * k;
+    };
+    give(out.map((sc, i) => (voicedAt[i] ? 0 : Math.max(0, sc.duration - dur[i]))));
+    give(out.map((sc, i) => (voicedAt[i] ? Math.min(0.5, Math.max(0, sc.duration - dur[i])) : 0)));
+    // Encore du temps (narration plus courte que le film) : un souffle de plus entre les phrases (0,7 s au
+    // plus), puis le reste au final et aux plans muets — jamais de longs blancs au milieu du récit.
+    give(out.map((_, i) => (voicedAt[i] ? 0.7 : 0)));
+    const holders = out.map((sc, i) => (!voicedAt[i] || i === out.length - 1 ? sc.duration : 0));
+    give(holders.map((x) => x * 100));
+  } else dur = out.map((sc, i) => Math.max(lo[i], sc.duration));
   for (let pass = 0; pass < 8; pass++) {
     const diff = total - dur.reduce((a, x) => a + x, 0);
     if (Math.abs(diff) < 0.002) break;
@@ -341,9 +466,8 @@ export function fitScenesToVoice<S extends TimedScene>(scenes: S[], lines: Omit<
   if (last) last.duration = Math.round((total - last.start) * 1000) / 1000;
   const placed = kept.map((l) => {
     const i = out.findIndex((sc) => sc.key === l.sceneKey);
-    const room = out[i].duration - l.durationSec - VOICE_TAIL;
-    const offset = Math.max(leadOf(i), Math.min(room, leadOf(i) + Math.max(0, room - leadOf(i)) * 0.25));
-    return { ...l, offset: Math.round(offset * 1000) / 1000 };
+    // La phrase part dès l'entrée de la scène : le temps en plus tombe après elle, jamais avant.
+    return { ...l, offset: leadOf(i) };
   });
   return { scenes: out, lines: placed, dropped };
 }

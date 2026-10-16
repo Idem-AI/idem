@@ -464,7 +464,37 @@ export const ELEVENLABS_SPEECH_MODEL = 'elevenlabs/eleven-v4';
 const ELEVENLABS_USD_PER_CHAR = 0.04 / 1000;
 const speaksTags = (model: string) => /^elevenlabs\/eleven-v[34]/.test(model);
 
-/** Les voix ElevenLabs d'OpenRouter par personnage du moteur (`VOICE_PERSONAS`), puis par genre. */
+/**
+ * Les VOIX AFRICAINES de la bibliothèque ElevenLabs (identifiants acceptés par OpenRouter, vérifiés le
+ * 16/10/2026) : une vidéo en français parle avec une voix d'Afrique francophone, une vidéo en anglais avec une
+ * voix d'Afrique anglophone (Nigeria, Kenya). Femmes et hommes : le personnage choisi garde son genre.
+ */
+const AFRICAN_VOICES: Record<string, Record<string, string>> = {
+  fr: {
+    warm: '4SFJvuIUvxaPLgk8FoK3', // Alimata — professionnelle, accueillante
+    bright: '4SFJvuIUvxaPLgk8FoK3',
+    smooth: 'Ix5oBMHpatfp3naMIpLk', // Mar — calme, grave
+    confident: 'YwEKgPNrswweXodAZi29', // Jérôme — assuré, clair
+    friendly: 'ojsdYNTmnPdf7yAl8rI5', // Loïc — calme, agréable
+    deep: 'NZ8KtusXpnktPYja5Qko', // JB Pro — chaleureux, timbre grave
+    energetic: 'YwEKgPNrswweXodAZi29',
+  },
+  en: {
+    warm: '9Dbo4hEvXQ5l7MXGZFQA', // Olufunmilola — nigériane (yoruba)
+    bright: 'JMbCR4ujfEfGaawA1YtC', // Toluwalope — nigériane, engageante
+    smooth: 'ijKilL5CnjXKMWDHOJH8', // Yna Agalo — kényane
+    confident: '8P18CIVcRlwP98FOjZDm', // Ola — conteur nigérian
+    friendly: 'U7wWSnxIJwCjioxt86mk', // Olaniyi Victor — Lagos, chaleureux
+    deep: 'ddDFRErfhdc2asyySOG5', // Samuel — grave, nigérian
+    energetic: 'G2LDKmwqqBo2DD9ucIji', // Ade — rapide, énergique
+  },
+};
+const AFRICAN_BY_GENDER: Record<string, { female: string; male: string }> = {
+  fr: { female: AFRICAN_VOICES.fr.warm, male: AFRICAN_VOICES.fr.confident },
+  en: { female: AFRICAN_VOICES.en.warm, male: AFRICAN_VOICES.en.friendly },
+};
+
+/** Les voix ElevenLabs d'OpenRouter par personnage du moteur (`VOICE_PERSONAS`), puis par genre (autres langues). */
 const ELEVENLABS_VOICES: Record<string, string> = { warm: 'sarah', bright: 'jessica', smooth: 'alice', confident: 'george', friendly: 'chris', deep: 'brian', energetic: 'liam' };
 const ELEVENLABS_BY_GENDER = { female: 'sarah', male: 'george' };
 
@@ -474,8 +504,9 @@ const ELEVENLABS_BY_GENDER = { female: 'sarah', male: 'george' };
  * 1. `IDEM_TTS_URL` : VOTRE serveur OpenAI-compatible (`/audio/speech`) servant Qwen3-TTS ou Chatterbox
  *    (`IDEM_TTS_MODEL` obligatoire, `IDEM_TTS_VOICE_<LANGUE>` / `IDEM_TTS_VOICE`, `IDEM_TTS_API_KEY` facultative).
  * 2. OpenRouter (défaut) : **ElevenLabs Eleven v4** (`IDEM_OPENROUTER_TTS_MODEL` pour un autre modèle autorisé), qui
- *    JOUE les balises du texte (« [warmly] », « [short pause] ») ; la voix suit le personnage
- *    (`IDEM_OPENROUTER_TTS_VOICE_<PERSONNAGE>` pour en changer, ex. `IDEM_OPENROUTER_TTS_VOICE_WARM=matilda`).
+ *    JOUE les balises du texte (« [warmly] », « [short pause] ») ; la voix suit la langue et le personnage : une voix
+ *    d'Afrique francophone en français, d'Afrique anglophone en anglais (`AFRICAN_VOICES`), une voix de la bibliothèque
+ *    par défaut ailleurs (`IDEM_OPENROUTER_TTS_VOICE_<LANGUE>_<PERSONNAGE>` ou `…_<PERSONNAGE>` pour en changer).
  *    Si ElevenLabs échoue, la ligne est redite par Kokoro 82M (balises retirées).
  *
  * Une langue sans voix lève `voice_language_unsupported` : iVision crée alors la vidéo sans voix plutôt que d'échouer.
@@ -494,10 +525,14 @@ export async function generateSpeech(options: GenerateSpeechOptions): Promise<Ge
   const model = wanted && isAllowedOpenRouterModel(wanted) ? wanted : ELEVENLABS_SPEECH_MODEL;
   if (model.startsWith('elevenlabs/')) {
     const persona = options.persona?.toLowerCase();
+    const gender = options.gender || 'female';
     const voice =
+      (persona && process.env[`IDEM_OPENROUTER_TTS_VOICE_${lang.toUpperCase()}_${persona.toUpperCase()}`]?.trim()) ||
       (persona && process.env[`IDEM_OPENROUTER_TTS_VOICE_${persona.toUpperCase()}`]?.trim()) ||
+      (persona && AFRICAN_VOICES[lang]?.[persona]) ||
+      AFRICAN_BY_GENDER[lang]?.[gender] ||
       (persona && ELEVENLABS_VOICES[persona]) ||
-      ELEVENLABS_BY_GENDER[options.gender || 'female'];
+      ELEVENLABS_BY_GENDER[gender];
     try {
       return await speak(OPENROUTER_BASE_URL(), model, voice, headers(), speaksTags(model) ? options.text : withoutTags(options.text), options.tag, false);
     } catch (error) {

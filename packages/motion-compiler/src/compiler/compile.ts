@@ -715,8 +715,9 @@ export function compileProgram(program: MotionProgram, opts: { warnings?: string
   // Le son de la transition : chaque scène (sauf la première) entre avec un effet — franc pour un glissement ou un
   // zoom, doux pour un fondu ou une coupe — sauf si le programme en pose déjà un dans ses premiers instants.
   const opensWithSfx = timeline.some((st) => st.sfx && typeof st.at === 'number' && st.at <= 0.3);
-  const transitionKind = enter && (enter.type === 'slide' || enter.type === 'zoom') ? 'whoosh' : 'softwhoosh';
-  const transitionSfx = opensWithSfx ? '' : `if (ctx.index > 0) ctx.sfx('${transitionKind}');`;
+  // Le passage d'une scène à l'autre : un souffle doux, glissé sous la musique et la voix (≈ −12 dB).
+  // Un whoosh franc à chaque changement de scène sonnait « effet de démo » et couvrait la voix.
+  const transitionSfx = opensWithSfx ? '' : `if (ctx.index > 0) ctx.sfx('softwhoosh', 0.45);`;
 
   const header = `/* ${PROGRAM_MARK} v${COMPILER_VERSION}\n${JSON.stringify(program).replace(/\*\//g, '*\\/')}\n*/`;
   const notes = allWarnings.length ? `\n// Avertissements de compilation :\n${allWarnings.map((w) => `//   - ${w.replace(/\n/g, ' ')}`).join('\n')}` : '';

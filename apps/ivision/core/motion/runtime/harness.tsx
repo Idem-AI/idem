@@ -86,7 +86,7 @@ export function buildScenes(modules: Record<string, AuthorScene | undefined>, da
         brand: data.brand,
         ...(scene.voice ? { voice: { ...scene.voice } } : {}),
         ...(data.beat?.bpm ? { beat: { bpm: data.beat.bpm, first: firstBeat(data.beat, scene.start) } } : {}),
-        sfx: (kind: SfxKind) => hooks.onCue({ kind, t: Math.round((scene.start + useThread().time()) * 1000) / 1000, scene: scene.key }),
+        sfx: (kind: SfxKind, gain?: number) => hooks.onCue({ kind, t: Math.round((scene.start + useThread().time()) * 1000) / 1000, scene: scene.key, ...(gain !== undefined && gain > 0 && gain < 1 ? { gain } : {}) }),
       };
       const author = modules[scene.key];
       if (scene.compileError || typeof author !== 'function') {

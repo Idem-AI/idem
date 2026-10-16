@@ -157,11 +157,14 @@ export async function sourceShots(opts: SourcingOptions): Promise<{ byNeed: Map<
   const canClip = opts.allowGenerate && !!coreHost().generateVideo;
   // Disjoncteur : un fournisseur sans crédit (402) ne se réessaie pas — ni ce média, ni les suivants.
   const blocked = { image: false, video: false };
+  // Un modèle refusé d'office (plan non commandé, esquisse, aucun modèle posé) l'est aussi : réessayer
+  // ne change rien, et ces refus instantanés passaient pour trois échecs du fournisseur.
   const trip = (kind: 'image' | 'video', error: unknown) => {
-    if (!isPaymentError(error)) return false;
-    if (!blocked[kind]) logger.warn('video.media.generation_blocked', { kind, reason: 'payment' });
+    const reason = isPaymentError(error) ? 'payment' : /(?:video|image)_model_unavailable/.test(String((error as Error)?.message || '')) ? 'unavailable' : null;
+    if (!reason) return false;
+    if (!blocked[kind]) logger.info('video.media.generation_blocked', { kind, reason });
     blocked[kind] = true;
-    report.blocked = 'payment';
+    report.blocked = report.blocked === 'payment' ? 'payment' : reason;
     return true;
   };
   let done = 0;
@@ -180,7 +183,7 @@ export async function sourceShots(opts: SourcingOptions): Promise<{ byNeed: Map<
       } catch (error: any) {
         report.failedAttempts++;
         if (trip('image', error)) break;
-        logger.warn('video.media.image_failed', { scene: plan.scene, attempt, error: error?.message });
+        logger.warn('video.media.image_failed', { scene: plan.scene, attempt, error: String(error?.message || error) });
       }
     }
     return null;
@@ -208,7 +211,7 @@ export async function sourceShots(opts: SourcingOptions): Promise<{ byNeed: Map<
       } catch (error: any) {
         report.failedAttempts++;
         if (trip('video', error)) break;
-        logger.warn('video.media.clip_failed', { scene: plan.scene, attempt, error: error?.message });
+        logger.warn('video.media.clip_failed', { scene: plan.scene, attempt, error: String(error?.message || error) });
       }
     }
     return null;

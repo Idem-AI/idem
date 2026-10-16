@@ -59,6 +59,8 @@ export interface SfxCueRecord {
   /** Instant absolu dans le film (secondes). */
   t: number;
   scene: string;
+  /** Gain relatif (0..1) décidé par la scène (une transition se glisse sous le reste). */
+  gain?: number;
 }
 
 export interface SceneErrorRecord {
