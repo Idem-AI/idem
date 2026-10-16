@@ -1,307 +1,153 @@
-import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { Team } from '../../components/team/team';
 import { environment } from '../../../environments/environment';
+import { PageArtComponent } from '../../shared/components/page-art/page-art';
 
-interface MarketRegion {
-  region: string;
-  flag: string;
-  status: string;
-  description: string;
-  color: string;
-  countries: string[];
-  opportunities: string[];
-  challenges: string[];
-  timeline: string;
-}
-
-interface AfricanStat {
+/** Un chiffre du marché, avec ce qu'il mesure vraiment. */
+interface MarketFigure {
   value: string;
   label: string;
   description: string;
-  trend: string;
+}
+
+/** Une raison, et la mesure qui la rend vérifiable. */
+interface Reason {
+  title: string;
+  description: string;
+  evidence: string;
+}
+
+interface Advantage {
+  title: string;
+  description: string;
+}
+
+/** Une région, et l'état réel de son ouverture. */
+interface Region {
+  name: string;
+  status: string;
+  description: string;
+  countries: string;
 }
 
 @Component({
   selector: 'app-african-market-page',
-  standalone: true,
-  imports: [CommonModule, RouterLink, Team],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [RouterLink, Team, PageArtComponent],
   templateUrl: './african-market-page.html',
-  styleUrl: './african-market-page.css',
+  styleUrls: ['../../shared/styles/editorial-page.css', './african-market-page.css'],
 })
 export class AfricanMarketPage {
   protected readonly dashboardUrl = environment.services.dashboard.url;
 
-  protected readonly regions: MarketRegion[] = [
+  protected readonly stats: MarketFigure[] = [
     {
-      region: $localize`:@@african-market-page.regions.central.region:Central Africa (Cameroon)`,
-      flag: '',
-      status: $localize`:@@african-market-page.regions.central.status:Live Now - Our Home Base`,
-      description: $localize`:@@african-market-page.regions.central.description:Cameroon is our founding market and the birthplace of IDEM. We understand the local ecosystem, regulatory environment, and entrepreneurial challenges firsthand.`,
-      color: '#10b981',
-      countries: [
-        $localize`:@@african-market-page.regions.central.country1:Cameroon`,
-        $localize`:@@african-market-page.regions.central.country2:Gabon`,
-        $localize`:@@african-market-page.regions.central.country3:Congo`,
-        $localize`:@@african-market-page.regions.central.country4:Central African Republic`,
-      ],
-      opportunities: [
-        $localize`:@@african-market-page.regions.central.opportunity1:Growing tech ecosystem in Douala and Yaoundé`,
-        $localize`:@@african-market-page.regions.central.opportunity2:Bilingual market (French/English)`,
-        $localize`:@@african-market-page.regions.central.opportunity3:Strategic gateway to Central Africa`,
-        $localize`:@@african-market-page.regions.central.opportunity4:Increasing digital adoption`,
-        $localize`:@@african-market-page.regions.central.opportunity5:Government support for tech innovation`,
-      ],
-      challenges: [
-        $localize`:@@african-market-page.regions.central.challenge1:Infrastructure limitations`,
-        $localize`:@@african-market-page.regions.central.challenge2:Access to funding`,
-        $localize`:@@african-market-page.regions.central.challenge3:Digital payment adoption`,
-        $localize`:@@african-market-page.regions.central.challenge4:Internet connectivity in rural areas`,
-      ],
-      timeline: $localize`:@@african-market-page.regions.central.timeline:Active since 2024`,
+      value: '1,4 Md',
+      label: $localize`:@@african-market-page.stat.population.label:People`,
+      description: $localize`:@@african-market-page.stat.population.description:Median age nineteen — the youngest population of any continent, heading for 2.5 billion by 2050.`,
     },
     {
-      region: $localize`:@@african-market-page.regions.west.region:West Africa`,
-      flag: '🌍',
-      status: $localize`:@@african-market-page.regions.west.status:Expanding - Q2 2025`,
-      description: $localize`:@@african-market-page.regions.west.description:West Africa represents Africa's largest tech market with Nigeria leading the continent in startup funding and Ghana emerging as a fintech hub.`,
-      color: '#3b82f6',
-      countries: [
-        $localize`:@@african-market-page.regions.west.country1:Nigeria`,
-        $localize`:@@african-market-page.regions.west.country2:Ghana`,
-        $localize`:@@african-market-page.regions.west.country3:Senegal`,
-        $localize`:@@african-market-page.regions.west.country4:Côte d'Ivoire`,
-        $localize`:@@african-market-page.regions.west.country5:Benin`,
-        $localize`:@@african-market-page.regions.west.country6:Togo`,
-        $localize`:@@african-market-page.regions.west.country7:Mali`,
-      ],
-      opportunities: [
-        $localize`:@@african-market-page.regions.west.opportunity1:Largest tech ecosystem in Africa (Nigeria)`,
-        $localize`:@@african-market-page.regions.west.opportunity2:Strong fintech and e-commerce sectors`,
-        $localize`:@@african-market-page.regions.west.opportunity3:High mobile penetration rates`,
-        $localize`:@@african-market-page.regions.west.opportunity4:Vibrant startup communities`,
-        $localize`:@@african-market-page.regions.west.opportunity5:Growing venture capital interest`,
-        $localize`:@@african-market-page.regions.west.opportunity6:ECOWAS regional integration`,
-      ],
-      challenges: [
-        $localize`:@@african-market-page.regions.west.challenge1:Currency volatility`,
-        $localize`:@@african-market-page.regions.west.challenge2:Regulatory complexity across countries`,
-        $localize`:@@african-market-page.regions.west.challenge3:Infrastructure gaps`,
-        $localize`:@@african-market-page.regions.west.challenge4:Payment fragmentation`,
-      ],
-      timeline: $localize`:@@african-market-page.regions.west.timeline:Launch planned Q2 2025`,
+      value: '700 M',
+      label: $localize`:@@african-market-page.stat.internet.label:Internet users`,
+      description: $localize`:@@african-market-page.stat.internet.description:Growing about ten percent a year, and overwhelmingly on a phone rather than a desktop.`,
     },
     {
-      region: $localize`:@@african-market-page.regions.east.region:East Africa`,
-      flag: '🦁',
-      status: $localize`:@@african-market-page.regions.east.status:Coming Soon - Q3 2025`,
-      description: $localize`:@@african-market-page.regions.east.description:East Africa is known for mobile money innovation (M-Pesa) and a strong culture of entrepreneurship, particularly in Kenya and Rwanda.`,
-      color: '#f59e0b',
-      countries: [
-        $localize`:@@african-market-page.regions.east.country1:Kenya`,
-        $localize`:@@african-market-page.regions.east.country2:Rwanda`,
-        $localize`:@@african-market-page.regions.east.country3:Tanzania`,
-        $localize`:@@african-market-page.regions.east.country4:Uganda`,
-        $localize`:@@african-market-page.regions.east.country5:Ethiopia`,
-      ],
-      opportunities: [
-        $localize`:@@african-market-page.regions.east.opportunity1:Mobile money leadership (M-Pesa)`,
-        $localize`:@@african-market-page.regions.east.opportunity2:Strong government support for tech`,
-        $localize`:@@african-market-page.regions.east.opportunity3:Regional integration (EAC)`,
-        $localize`:@@african-market-page.regions.east.opportunity4:Growing BPO sector`,
-        $localize`:@@african-market-page.regions.east.opportunity5:Young, tech-savvy population`,
-        $localize`:@@african-market-page.regions.east.opportunity6:Innovation hubs in Nairobi and Kigali`,
-      ],
-      challenges: [
-        $localize`:@@african-market-page.regions.east.challenge1:Political instability in some regions`,
-        $localize`:@@african-market-page.regions.east.challenge2:Infrastructure development needs`,
-        $localize`:@@african-market-page.regions.east.challenge3:Access to capital`,
-        $localize`:@@african-market-page.regions.east.challenge4:Skills gap in advanced tech`,
-      ],
-      timeline: $localize`:@@african-market-page.regions.east.timeline:Launch planned Q3 2025`,
+      value: '44 M',
+      label: $localize`:@@african-market-page.stat.smes.label:Small businesses`,
+      description: $localize`:@@african-market-page.stat.smes.description:They account for roughly eighty percent of employment on the continent.`,
     },
     {
-      region: $localize`:@@african-market-page.regions.south.region:Southern Africa`,
-      flag: '🇿🇦',
-      status: $localize`:@@african-market-page.regions.south.status:Roadmap - 2026`,
-      description: $localize`:@@african-market-page.regions.south.description:Southern Africa, led by South Africa, offers the most mature tech ecosystem on the continent with strong infrastructure and established markets.`,
-      color: '#8b5cf6',
-      countries: [
-        $localize`:@@african-market-page.regions.south.country1:South Africa`,
-        $localize`:@@african-market-page.regions.south.country2:Botswana`,
-        $localize`:@@african-market-page.regions.south.country3:Namibia`,
-        $localize`:@@african-market-page.regions.south.country4:Zimbabwe`,
-        $localize`:@@african-market-page.regions.south.country5:Zambia`,
-      ],
-      opportunities: [
-        $localize`:@@african-market-page.regions.south.opportunity1:Most developed tech infrastructure`,
-        $localize`:@@african-market-page.regions.south.opportunity2:Established venture capital ecosystem`,
-        $localize`:@@african-market-page.regions.south.opportunity3:Strong financial services sector`,
-        $localize`:@@african-market-page.regions.south.opportunity4:High internet penetration`,
-        $localize`:@@african-market-page.regions.south.opportunity5:Skilled workforce`,
-        $localize`:@@african-market-page.regions.south.opportunity6:SADC regional market`,
-      ],
-      challenges: [
-        $localize`:@@african-market-page.regions.south.challenge1:High competition from international players`,
-        $localize`:@@african-market-page.regions.south.challenge2:Economic challenges`,
-        $localize`:@@african-market-page.regions.south.challenge3:Load shedding (power cuts)`,
-        $localize`:@@african-market-page.regions.south.challenge4:Skills emigration`,
-      ],
-      timeline: $localize`:@@african-market-page.regions.south.timeline:Launch planned 2026`,
+      value: '500 M',
+      label: $localize`:@@african-market-page.stat.mobileMoney.label:Mobile money accounts`,
+      description: $localize`:@@african-market-page.stat.mobileMoney.description:Africa carries more mobile money traffic than the rest of the world put together.`,
+    },
+    {
+      value: '22 %',
+      label: $localize`:@@african-market-page.stat.entrepreneurship.label:Start a business`,
+      description: $localize`:@@african-market-page.stat.entrepreneurship.description:The highest rate of new business creation measured anywhere.`,
+    },
+    {
+      value: '5 200',
+      label: $localize`:@@african-market-page.stat.startups.label:Tech companies`,
+      description: $localize`:@@african-market-page.stat.startups.description:Active across the continent, three times the count of 2020.`,
     },
   ];
 
-  protected readonly stats: AfricanStat[] = [
+  protected readonly whyAfrica: Reason[] = [
     {
-      value: '1.4B',
-      label: $localize`:@@african-market-page.stats.population.label:Population`,
-      description: $localize`:@@african-market-page.stats.population.description:Youngest population globally (median age: 19)`,
-      trend: $localize`:@@african-market-page.stats.population.trend:Growing to 2.5B by 2050`,
+      title: $localize`:@@african-market-page.reason.mobile.title:The phone is the computer`,
+      description: $localize`:@@african-market-page.reason.mobile.description:Products designed desktop-first lose most of the market on the first screen. Everything in IDEM is built to be used from a phone.`,
+      evidence: $localize`:@@african-market-page.reason.mobile.evidence:More than eight in ten connections are mobile.`,
     },
     {
-      value: '700M+',
-      label: $localize`:@@african-market-page.stats.internet.label:Internet Users`,
-      description: $localize`:@@african-market-page.stats.internet.description:Fastest growing internet market`,
-      trend: $localize`:@@african-market-page.stats.internet.trend:+10% annual growth`,
+      title: $localize`:@@african-market-page.reason.payment.title:Payment is the real barrier`,
+      description: $localize`:@@african-market-page.reason.payment.description:A card-only checkout stops most would-be customers before the first screen. Topping up a wallet by Mobile Money does not.`,
+      evidence: $localize`:@@african-market-page.reason.payment.evidence:Mobile Money live in thirteen countries, billed in CFA francs.`,
     },
     {
-      value: '$180B',
-      label: $localize`:@@african-market-page.stats.economy.label:Digital Economy`,
-      description: $localize`:@@african-market-page.stats.economy.description:By 2025, up from $115B in 2020`,
-      trend: $localize`:@@african-market-page.stats.economy.trend:+5.2% annual growth`,
+      title: $localize`:@@african-market-page.reason.young.title:A generation starting out`,
+      description: $localize`:@@african-market-page.reason.young.description:Sixty percent of the continent is under twenty-five, and the people entering the workforce are the ones creating the businesses.`,
+      evidence: $localize`:@@african-market-page.reason.young.evidence:Around 200 million young people join the workforce by 2035.`,
     },
     {
-      value: '5,200+',
-      label: $localize`:@@african-market-page.stats.startups.label:Tech Startups`,
-      description: $localize`:@@african-market-page.stats.startups.description:Active startups across the continent`,
-      trend: $localize`:@@african-market-page.stats.startups.trend:+3x since 2020`,
-    },
-    {
-      value: '$6.5B',
-      label: $localize`:@@african-market-page.stats.funding.label:VC Funding (2023)`,
-      description: $localize`:@@african-market-page.stats.funding.description:Despite global downturn`,
-      trend: $localize`:@@african-market-page.stats.funding.trend:Resilient growth`,
-    },
-    {
-      value: '44M',
-      label: $localize`:@@african-market-page.stats.smes.label:SMEs`,
-      description: $localize`:@@african-market-page.stats.smes.description:Small and medium enterprises`,
-      trend: $localize`:@@african-market-page.stats.smes.trend:80% of employment`,
+      title: $localize`:@@african-market-page.reason.sovereignty.title:Dependence is expensive`,
+      description: $localize`:@@african-market-page.reason.sovereignty.description:When the tool, the hosting and the invoice all sit abroad, every price rise and every policy change lands on the entrepreneur.`,
+      evidence: $localize`:@@african-market-page.reason.sovereignty.evidence:Apache 2.0, self-hostable, data exportable at any time.`,
     },
   ];
 
-  protected readonly whyAfrica = [
+  protected readonly idemAdvantages: Advantage[] = [
     {
-      icon: 'pi-chart-line',
-      title: $localize`:@@african-market-page.whyAfrica.market.title:Fastest Growing Digital Market`,
-      description: $localize`:@@african-market-page.whyAfrica.market.description:Africa has the fastest-growing internet user base globally, with mobile-first adoption driving digital transformation across all sectors.`,
-      stats: [
-        $localize`:@@african-market-page.whyAfrica.market.stat1:700M+ internet users`,
-        $localize`:@@african-market-page.whyAfrica.market.stat2:10% annual growth`,
-        $localize`:@@african-market-page.whyAfrica.market.stat3:80%+ mobile access`,
-      ],
+      title: $localize`:@@african-market-page.advantage.price.title:Priced in francs, not dollars`,
+      description: $localize`:@@african-market-page.advantage.price.description:Every country has its own grid, built from local purchasing power rather than converted from a single currency.`,
     },
     {
-      icon: 'pi-users',
-      title: $localize`:@@african-market-page.whyAfrica.population.title:Young, Tech-Savvy Population`,
-      description: $localize`:@@african-market-page.whyAfrica.population.description:With a median age of 19, Africa has the youngest population globally. This demographic dividend creates massive opportunities for digital innovation.`,
-      stats: [
-        $localize`:@@african-market-page.whyAfrica.population.stat1:Median age: 19 years`,
-        $localize`:@@african-market-page.whyAfrica.population.stat2:60% under 25`,
-        $localize`:@@african-market-page.whyAfrica.population.stat3:200M youth entering workforce by 2035`,
-      ],
+      title: $localize`:@@african-market-page.advantage.payment.title:Paid the way people pay`,
+      description: $localize`:@@african-market-page.advantage.payment.description:MTN and Orange Mobile Money top up the wallet, and the wallet pays for what you generate.`,
     },
     {
-      icon: 'pi-mobile',
-      title: $localize`:@@african-market-page.whyAfrica.mobile.title:Mobile-First Innovation`,
-      description: $localize`:@@african-market-page.whyAfrica.mobile.description:Africa pioneered mobile money (M-Pesa) and continues to lead in mobile-first solutions, leapfrogging traditional infrastructure.`,
-      stats: [
-        $localize`:@@african-market-page.whyAfrica.mobile.stat1:$700B mobile money transactions`,
-        $localize`:@@african-market-page.whyAfrica.mobile.stat2:500M+ mobile money accounts`,
-        $localize`:@@african-market-page.whyAfrica.mobile.stat3:Global leadership`,
-      ],
+      title: $localize`:@@african-market-page.advantage.language.title:Written in your language`,
+      description: $localize`:@@african-market-page.advantage.language.description:French, English and Portuguese today. The deliverables follow the language of your request, not the language of the site.`,
     },
     {
-      icon: 'pi-briefcase',
-      title: $localize`:@@african-market-page.whyAfrica.spirit.title:Entrepreneurial Spirit`,
-      description: $localize`:@@african-market-page.whyAfrica.spirit.description:Africa has the highest rate of entrepreneurship globally, with necessity and opportunity driving innovation across the continent.`,
-      stats: [
-        $localize`:@@african-market-page.whyAfrica.spirit.stat1:22% entrepreneurship rate`,
-        $localize`:@@african-market-page.whyAfrica.spirit.stat2:Highest globally`,
-        $localize`:@@african-market-page.whyAfrica.spirit.stat3:44M SMEs`,
-      ],
+      title: $localize`:@@african-market-page.advantage.accounting.title:Accounts that your bank accepts`,
+      description: $localize`:@@african-market-page.advantage.accounting.description:Financial statements follow the SYSCOHADA chart of accounts, so a loan officer in Abidjan or Douala can read them.`,
+    },
+    {
+      title: $localize`:@@african-market-page.advantage.sovereignty.title:Hosting you can point to`,
+      description: $localize`:@@african-market-page.advantage.sovereignty.description:Deploy to managed hosting, to your own VPS, or to a machine in your office. The choice stays yours.`,
+    },
+    {
+      title: $localize`:@@african-market-page.advantage.open.title:A platform you can audit`,
+      description: $localize`:@@african-market-page.advantage.open.description:African developers can read the code, fix it and run it. That is what sovereignty means in practice.`,
     },
   ];
 
-  protected readonly idemAdvantages = [
+  protected readonly regions: Region[] = [
     {
-      icon: 'pi-map-marker',
-      title: $localize`:@@african-market-page.advantages.builtForAfrica.title:Built in Africa, for Africa`,
-      description: $localize`:@@african-market-page.advantages.builtForAfrica.description:IDEM is founded and headquartered in Cameroon. We understand African markets, cultures, regulations, and challenges because we live them every day.`,
-      benefits: [
-        $localize`:@@african-market-page.advantages.builtForAfrica.benefit1:Local team with deep market knowledge`,
-        $localize`:@@african-market-page.advantages.builtForAfrica.benefit2:Culturally relevant solutions`,
-        $localize`:@@african-market-page.advantages.builtForAfrica.benefit3:Understanding of regulatory environments`,
-        $localize`:@@african-market-page.advantages.builtForAfrica.benefit4:Aligned with African business practices`,
-      ],
+      name: $localize`:@@african-market-page.region.central.name:Central Africa`,
+      status: $localize`:@@african-market-page.region.central.status:Open`,
+      description: $localize`:@@african-market-page.region.central.description:Our home market. We know the registry, the tax calendar and the banks because we went through them ourselves.`,
+      countries: $localize`:@@african-market-page.region.central.countries:Cameroon, Gabon, Congo, Chad, Central African Republic`,
     },
     {
-      icon: 'pi-money-bill',
-      title: $localize`:@@african-market-page.advantages.pricing.title:Pricing Designed for African Budgets`,
-      description: $localize`:@@african-market-page.advantages.pricing.description:Priced in FCFA and 3 to 5 times cheaper than international platforms, with a freemium model that lets entrepreneurs start for free.`,
-      benefits: [
-        $localize`:@@african-market-page.advantages.pricing.benefit1:Free tier: preview every deliverable`,
-        $localize`:@@african-market-page.advantages.pricing.benefit2:Plans from 2,999 F/month`,
-        $localize`:@@african-market-page.advantages.pricing.benefit3:No hidden fees`,
-        $localize`:@@african-market-page.advantages.pricing.benefit4:Pay with Mobile Money (MTN, Orange)`,
-      ],
+      name: $localize`:@@african-market-page.region.west.name:West Africa`,
+      status: $localize`:@@african-market-page.region.west.status:Open`,
+      description: $localize`:@@african-market-page.region.west.description:The largest tech market on the continent, and the one where Mobile Money coverage is deepest.`,
+      countries: $localize`:@@african-market-page.region.west.countries:Nigeria, Ghana, Senegal, Côte d'Ivoire, Benin, Togo, Mali, Burkina Faso`,
     },
     {
-      icon: 'pi-shield',
-      title: $localize`:@@african-market-page.advantages.sovereignty.title:Data Sovereignty & Local Infrastructure`,
-      description: $localize`:@@african-market-page.advantages.sovereignty.description:Your data stays in Africa. We deploy on African cloud infrastructure and support on-premise deployment for complete control.`,
-      benefits: [
-        $localize`:@@african-market-page.advantages.sovereignty.benefit1:African data centers`,
-        $localize`:@@african-market-page.advantages.sovereignty.benefit2:Compliance with local regulations`,
-        $localize`:@@african-market-page.advantages.sovereignty.benefit3:Low latency across the continent`,
-        $localize`:@@african-market-page.advantages.sovereignty.benefit4:On-premise deployment options`,
-      ],
+      name: $localize`:@@african-market-page.region.east.name:East Africa`,
+      status: $localize`:@@african-market-page.region.east.status:Operators being enabled`,
+      description: $localize`:@@african-market-page.region.east.description:The platform works today; what remains is a payment agreement with each operator so you can top up locally.`,
+      countries: $localize`:@@african-market-page.region.east.countries:Kenya, Rwanda, Tanzania, Uganda`,
     },
     {
-      icon: 'pi-globe',
-      title: $localize`:@@african-market-page.advantages.language.title:Pan-African Language & Cultural Support`,
-      description: $localize`:@@african-market-page.advantages.language.description:IDEM supports multiple African languages and generates culturally relevant content that resonates with local audiences.`,
-      benefits: [
-        $localize`:@@african-market-page.advantages.language.benefit1:French, English, Portuguese support`,
-        $localize`:@@african-market-page.advantages.language.benefit2:African language roadmap`,
-        $localize`:@@african-market-page.advantages.language.benefit3:Culturally adapted business plans`,
-        $localize`:@@african-market-page.advantages.language.benefit4:Local market research`,
-      ],
-    },
-    {
-      icon: 'pi-code',
-      title: $localize`:@@african-market-page.advantages.openSource.title:Open Source for African Tech Sovereignty`,
-      description: $localize`:@@african-market-page.advantages.openSource.description:Apache 2.0 license means African developers can audit, customize, and contribute to the platform, building tech sovereignty.`,
-      benefits: [
-        $localize`:@@african-market-page.advantages.openSource.benefit1:Full source code access`,
-        $localize`:@@african-market-page.advantages.openSource.benefit2:No vendor lock-in`,
-        $localize`:@@african-market-page.advantages.openSource.benefit3:Community-driven development`,
-        $localize`:@@african-market-page.advantages.openSource.benefit4:African developer ecosystem`,
-      ],
-    },
-    {
-      icon: 'pi-users',
-      title: $localize`:@@african-market-page.advantages.support.title:Supporting African Entrepreneurship`,
-      description: $localize`:@@african-market-page.advantages.support.description:IDEM is committed to democratizing tech entrepreneurship across Africa, making world-class tools accessible to every African entrepreneur.`,
-      benefits: [
-        $localize`:@@african-market-page.advantages.support.benefit1:Free educational resources`,
-        $localize`:@@african-market-page.advantages.support.benefit2:Community support`,
-        $localize`:@@african-market-page.advantages.support.benefit3:Startup-friendly pricing`,
-        $localize`:@@african-market-page.advantages.support.benefit4:Pan-African network`,
-      ],
+      name: $localize`:@@african-market-page.region.south.name:Southern Africa`,
+      status: $localize`:@@african-market-page.region.south.status:Card only, for now`,
+      description: $localize`:@@african-market-page.region.south.description:The most mature infrastructure on the continent, and the market where we compete head-on with international platforms.`,
+      countries: $localize`:@@african-market-page.region.south.countries:South Africa, Botswana, Namibia, Zambia, Zimbabwe`,
     },
   ];
-
-
 }

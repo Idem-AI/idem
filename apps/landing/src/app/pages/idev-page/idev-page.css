@@ -1,7 +1,22 @@
-/* ============================================================================
-   IDEV PAGE — Code/Dev Theme Styles
-   ============================================================================ */
+/* iCode — ce qui n'appartient qu'à cette page. */
 
-:host {
-  display: block;
+/* Le numéro d'une étape. La séquence est réelle — on décrit, puis ça s'écrit,
+   puis on corrige, puis on met en ligne — donc le numéro porte une
+   information et mérite d'être lu. */
+.idv-step {
+  margin: 0;
+  font-weight: var(--font-weight-black);
+  font-size: clamp(2rem, 3.5vw, 3rem);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: color-mix(in oklch, var(--color-primary-500) 60%, transparent);
+}
+
+/* La pile technique d'une cible : c'est elle qui distingue les trois, donc
+   elle est lisible, en chiffres et noms exacts. */
+.idv-stack {
+  margin-bottom: 0;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-primary-500);
 }

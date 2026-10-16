@@ -1,7 +1,47 @@
-/* ============================================================================
-   IDEPLOY PAGE — Cloud/Server Theme Styles
-   ============================================================================ */
+/* iDeploy — ce qui n'appartient qu'à cette page. */
 
-:host {
-  display: block;
+/* Le numéro d'une étape : la séquence est réelle, et elle ne se fait qu'une
+   fois. Le numéro est donc une information. */
+.idp-step {
+  margin: 0;
+  font-weight: var(--font-weight-black);
+  font-size: clamp(2rem, 3.5vw, 3rem);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: color-mix(in oklch, var(--color-primary-500) 60%, transparent);
+}
+
+/* Les deux destinations, côte à côte. Pas de carte : ce qui les sépare, c'est
+   l'espace entre les colonnes, et sur téléphone elles se suivent. */
+.idp-forks {
+  display: grid;
+  gap: clamp(3.5rem, 6vw, 5rem);
+}
+
+@media (min-width: 768px) {
+  .idp-forks {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.idp-fork {
+  min-width: 0;
+}
+
+.idp-fork-title {
+  margin-bottom: 0;
+  font-weight: var(--font-weight-black);
+  font-size: clamp(1.5rem, 2.8vw, 2.25rem);
+  line-height: 1.05;
+}
+
+/* L'intitulé d'une ligne de comparaison : il se lit en premier, donc il est
+   petit et en retrait. Les deux colonnes portent les mêmes intitulés, dans le
+   même ordre : c'est ce qui rend la comparaison lisible. */
+.idp-row-label {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
 }

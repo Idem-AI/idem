@@ -69,7 +69,7 @@ import { FilmBrief, sceneRange } from './director/brief';
 import { runConcept } from './director/concept.agent';
 import { runPlanner, Storyboard } from './director/storyboard.agent';
 import { authorScene, authorScenes, AuthoredScene, AuthorContext, SceneAuthor } from './author/program.author';
-import { PROGRAM_MARK } from '../../../../../packages/motion-compiler/src';
+import { compileProgram, PROGRAM_MARK, programOf, validateProgram } from '../../../../../packages/motion-compiler/src';
 import { RepairLedger, strategyLevel } from './author/repair';
 import { buildFilmBundle, BundleScene } from './rendering/compiler';
 import { COMPOSITION, frameSpec } from './rendering/formats';
@@ -582,6 +582,7 @@ export class MotionVideoService {
       const errors = new Map(runs.flatMap((r) => r.result.errors.map((e) => [e.key, formats.length > 1 && r !== runs[0] ? { ...e, message: `[${r.format}] ${e.message}` } : e] as const)).reverse());
       // Le langage de mouvement seul garantit ces défauts corrigeables (les scènes écrites avant gardent leur code).
       const layoutOf = (sc: FilmScene) => (isProgramScene(sc.code) ? runs.flatMap((r) => (r.result.layout[sc.key] || []).map((m) => (formats.length > 1 ? `[${r.format}] ${m}` : m))).slice(0, 8) : []);
+      const contrastOf = (sc: FilmScene) => (isProgramScene(sc.code) ? runs.flatMap((r) => r.result.contrast[sc.key] || []).slice(0, 8) : []);
       const folder = `users/${userId}/projects/${projectId}/videos/${video.id}/scenes`;
       const storage = this.mediaStorage();
       const stamp = Date.now().toString(36);
@@ -592,11 +593,12 @@ export class MotionVideoService {
           let thumbnail = sc.thumbnail;
           if (shot) thumbnail = (await storage.uploadFile(shot, `${sc.key}-${stamp}.jpg`, folder, 'image/jpeg').catch(() => null))?.downloadURL || thumbnail;
           if (sc.error?.stage === 'author' || sc.error?.stage === 'compile') return { ...sc, ...(thumbnail ? { thumbnail } : {}) };
-          const { layout: _old, ...base } = sc;
+          const { layout: _old, contrast: _oldContrast, ...base } = sc;
           if (e) return { ...base, status: 'error', error: { stage: 'runtime', message: e.message.slice(0, 600) }, ...(thumbnail ? { thumbnail } : {}) };
           const { error: _drop, ...clean } = base;
           const layout = layoutOf(sc);
-          return { ...clean, status: sc.code ? 'ready' : 'error', ...(layout.length ? { layout } : {}), ...(thumbnail ? { thumbnail } : {}) };
+          const contrast = contrastOf(sc);
+          return { ...clean, status: sc.code ? 'ready' : 'error', ...(layout.length ? { layout } : {}), ...(contrast.length ? { contrast } : {}), ...(thumbnail ? { thumbnail } : {}) };
         })
       );
       return { ...film, scenes, cues: probed.cues.map((c) => ({ kind: c.kind, t: c.t, scene: c.scene })), checkedAt: new Date().toISOString() };
@@ -663,7 +665,8 @@ export class MotionVideoService {
   private async repairScenes(userId: string, projectId: string, video: MotionVideo, ctx: Awaited<ReturnType<MotionVideoService['brandContext']>>, level: CreativityLevel, only?: Set<string>, emit?: (stage: VideoProgressStage, state: 'running' | 'done', data?: Record<string, unknown>) => void): Promise<VideoFilm> {
     let film = video.film!;
     const ledger = new RepairLedger();
-    const LAYOUT_ATTEMPTS = 3;
+    // Deux approches du modèle pour un défaut d'affichage, puis le dernier recours du code (encre lisible, aplat).
+    const LAYOUT_ATTEMPTS = 2;
     const tries = (key: string) => (ledger.attempts.get(key) || []).length;
     const failing = (sc: FilmScene) => sc.status === 'error' && !!sc.error;
     const displaced = (sc: FilmScene) => sc.status === 'ready' && !!sc.layout?.length && tries(sc.key) < LAYOUT_ATTEMPTS;
@@ -723,6 +726,7 @@ export class MotionVideoService {
         }
       }
     }
+    film = await this.inkFallback(userId, projectId, { ...video, film }, ctx, only);
     const unresolved = film.scenes.filter((sc) => failing(sc) && (!only || only.has(sc.key))).map((sc) => sc.key);
     const layoutLeft = film.scenes.filter((sc) => sc.status === 'ready' && sc.layout?.length && (!only || only.has(sc.key))).map((sc) => sc.key);
     const attempts = [...ledger.attempts.values()].reduce((n, a) => n + a.length, 0);
@@ -733,6 +737,99 @@ export class MotionVideoService {
     };
     logger.info('video.repair', { event: 'video.repair', videoId: video.id, attempts, fixed: film.repair!.fixed, unresolved, layoutFixed: film.repair!.layoutFixed, layoutLeft, tokens: ledger.tokensUsed, ...(stopped ? { stopped } : {}) });
     emit?.('repair', 'done', { fixed: film.repair!.fixed.length, unresolved: unresolved.length, layoutFixed: film.repair!.layoutFixed!.length, layoutLeft: layoutLeft.length, attempts });
+    return film;
+  }
+
+  /**
+   * LE DERNIER RECOURS D'AFFICHAGE, par le code, pour un texte qui reste mal affiché après les approches du modèle :
+   *   ink    illisible sur son fond → l'encre lisible (clair ou foncé) d'après la couleur RÉELLE du fond, lue sur l'image ;
+   *   plate  posé sur une photo, traversé par un trait, à cheval sur un contour → un aplat (couleur du fond de la marque)
+   *          sous le texte, encre lisible ; ses mouvements passent à l'aplat, ses propriétés de texte restent au texte.
+   * Le programme garde tout le reste ; la scène est recompilée puis recontrôlée, et la version n'est gardée que si
+   * l'affichage est meilleur. Aucun choix esthétique : la seule règle est que le texte se lise.
+   */
+  private async inkFallback(userId: string, projectId: string, video: MotionVideo, ctx: Awaited<ReturnType<MotionVideoService['brandContext']>>, only?: Set<string>): Promise<VideoFilm> {
+    let film = video.film!;
+    const before = new Map(film.scenes.map((sc) => [sc.key, sc]));
+    const byId = new Map((video.media || []).map((m) => [m.id, m]));
+    const patched: string[] = [];
+    film = {
+      ...film,
+      scenes: film.scenes.map((sc) => {
+        if (sc.status !== 'ready' || !sc.contrast?.length || (only && !only.has(sc.key))) return sc;
+        const program = programOf(sc.code);
+        if (!program) return sc;
+        const norm = (t: string) => String(t || '').toLocaleLowerCase('fr').replace(/\s+/g, ' ').trim();
+        const fixFor = (n: any) => {
+          const value = norm(sc.texts[String(n.text).slice(1)] || '');
+          return value ? sc.contrast!.find((c) => norm(c.text) === value || (n.split && value.includes(norm(c.text)))) : undefined;
+        };
+        let changed = false;
+        const effects = new Set(program.timeline.filter((st) => st.effect).flatMap((st) => (Array.isArray(st.target) ? st.target : [st.target])));
+        const TEXT_PROPS = ['fill', 'size', 'letterSpacing', 'stroke', 'lineWidth'];
+        const visit = (list: any[]) => {
+          list.forEach((n, i) => {
+            if (!n || typeof n !== 'object') return;
+            if (n.type === 'text' && typeof n.text === 'string' && n.text.startsWith('$')) {
+              const fix = fixFor(n);
+              if (fix?.kind === 'plate' && !n.split) {
+                // L'aplat prend la place du texte (position, ancre, transformation) ; le texte vit dedans.
+                const { x, y, anchor, rotation, scale, scaleX, scaleY, opacity, z, id, ...text } = n;
+                const textId = id ? `${id}__t` : undefined;
+                list[i] = { ...(id ? { id } : {}), type: 'stack', dir: 'row', padding: 1.4, radius: 1.2, fill: 'background/92', ...(x !== undefined ? { x } : {}), ...(y !== undefined ? { y } : {}), ...(anchor ? { anchor } : {}), ...(rotation !== undefined ? { rotation } : {}), ...(scale !== undefined ? { scale } : {}), ...(scaleX !== undefined ? { scaleX } : {}), ...(scaleY !== undefined ? { scaleY } : {}), ...(opacity !== undefined ? { opacity } : {}), ...(z !== undefined ? { z } : {}), children: [{ ...text, ...(textId ? { id: textId } : {}), color: 'ink' }] };
+                if (id) {
+                  for (const st of program.timeline) {
+                    const targets = Array.isArray(st.target) ? st.target : st.target ? [st.target] : [];
+                    if (!targets.includes(id)) continue;
+                    if (st.effect && effects.has(id)) st.target = textId;
+                    for (const key of ['from', 'to'] as const) {
+                      const vals = st[key] as Record<string, unknown> | undefined;
+                      if (!vals) continue;
+                      const moved = Object.keys(vals).filter((k) => TEXT_PROPS.includes(k));
+                      if (!moved.length || targets.length > 1) continue;
+                      // Les propriétés du texte (couleur, taille) suivent le texte : un pas jumeau les porte.
+                      const twin: any = { ...st, target: textId, from: undefined, to: undefined };
+                      twin[key] = Object.fromEntries(moved.map((k) => [k, vals[k]]));
+                      moved.forEach((k) => delete vals[k]);
+                      program.timeline.push(JSON.parse(JSON.stringify(twin)));
+                    }
+                  }
+                }
+                changed = true;
+                return;
+              }
+              if (fix?.kind !== 'plate' && (fix?.ink || fix?.bg)) {
+                n.color = fix.ink || readableInk(fix.bg!);
+                // Une animation de couleur réimposerait la teinte illisible : elle est retirée pour ce texte.
+                if (n.id) for (const st of program.timeline) {
+                  const targets = Array.isArray(st.target) ? st.target : st.target ? [st.target] : [];
+                  if (!targets.some((t) => t === n.id || t.startsWith(`${n.id}.`))) continue;
+                  for (const key of ['from', 'to'] as const) if (st[key]) delete (st[key] as Record<string, unknown>).fill;
+                }
+                changed = true;
+              }
+            }
+            if (Array.isArray(n.children)) visit(n.children);
+            if (n.item) visit([n.item]);
+          });
+        };
+        visit(program.nodes);
+        if (!changed) return sc;
+        const media = sc.media.map((id) => byId.get(id)).filter((m) => m && (m.kind === 'image' || m.kind === 'video')).map((m) => m!.kind as 'image' | 'video');
+        const v = validateProgram(program, { texts: Object.keys(sc.texts), media, duration: sc.duration, hasLogo: !!ctx.film.tokens.logo });
+        if (!v.ok) {
+          logger.warn('video.display_fallback_invalid', { videoId: video.id, scene: sc.key, errors: v.errors.slice(0, 3) });
+          return sc;
+        }
+        patched.push(sc.key);
+        return { ...sc, code: compileProgram(v.program!, { warnings: v.warnings }).code };
+      }),
+    };
+    if (!patched.length) return film;
+    film = await this.checkFilm(userId, projectId, { ...video, film }, ctx.film);
+    // Gardée seulement si elle s'affiche mieux (moins de défauts) et s'exécute toujours.
+    film = { ...film, scenes: film.scenes.map((sc) => { const b = before.get(sc.key)!; return patched.includes(sc.key) && (sc.status !== 'ready' || (sc.layout?.length || 0) >= (b.layout?.length || 0)) ? b : sc; }) };
+    logger.info('video.display_fallback', { event: 'video.display_fallback', videoId: video.id, scenes: patched, kept: film.scenes.filter((sc) => patched.includes(sc.key) && sc.code !== before.get(sc.key)!.code).map((sc) => sc.key) });
     return film;
   }
 
@@ -1323,6 +1420,16 @@ export class MotionVideoService {
 }
 
 // ─── Minutage d'une vidéo modèle ────────────────────────────────────────────
+
+/** L'encre la plus lisible (clair ou foncé) sur un fond donné en RVB. */
+function readableInk(bg: number[]): string {
+  const lin = (v: number) => {
+    const x = v / 255;
+    return x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4);
+  };
+  const l = 0.2126 * lin(bg[0]) + 0.7152 * lin(bg[1]) + 0.0722 * lin(bg[2]);
+  return (1.05 / (l + 0.05)) >= ((l + 0.05) / (0.0072 + 0.05)) ? '#ffffff' : '#111418';
+}
 
 /** Une scène écrite dans le langage de mouvement (son programme est en tête du code compilé). */
 function isProgramScene(code?: string): boolean {

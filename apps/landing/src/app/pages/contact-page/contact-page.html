@@ -1,346 +1,226 @@
-<!-- Contact Page - Modern Design -->
-<div class="relative min-h-screen bg-transparent">
-  <!-- Background -->
-  <div class="absolute inset-0">
-    <div class="absolute inset-0 bg-linear-to-b from-bg-darker via-primary/5 to-bg-darker"></div>
-    <div
-      class="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(120,119,198,0.1),transparent_50%)]"
-    ></div>
-  </div>
+<!-- Contact — le tambour parleur : la parole portée loin (AGENTS.md § 4).
+     Le formulaire n'est pas posé dans une carte : c'est le contenu principal
+     de la page, pas un objet détaché. Les champs sont les éléments natifs,
+     stylés par le design system — aucune classe `.input` locale. -->
+<div class="ed-page">
+  <!-- ═══ L'adresse ════════════════════════════════════════════════════ -->
+  <header class="ed-section ed-section-hero ed-wrap">
+    <!-- Le titre occupe toute la largeur : c'est lui qui donne l'échelle de la
+         page, et à sept colonnes le plus long mot débordait de sa colonne. -->
+    <h1 class="ed-display ed-rise">
+      <span i18n="@@contact-page.hero.line1">Say it.</span><br />
+      <span class="i-underline" i18n="@@contact-page.hero.line2">We answer.</span>
+    </h1>
 
-  <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-    <!-- Hero Section -->
-    <div class="text-center mb-20">
-      <div
-        class="inline-flex items-center gap-2 px-4 py-2 glass rounded-full text-sm font-medium mb-6"
-      >
-        <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-          />
-        </svg>
-        <span class="text-text-primary" i18n="@@contact-page.hero.badge">Get in Touch</span>
+    <div class="grid gap-12 ed-mt-12 ed-mt-lg-16 lg:grid-cols-12 lg:gap-16 lg:items-center">
+      <div class="lg:col-span-6 ed-rise ed-rise-2">
+        <p class="ed-lede ed-lede-wide" i18n="@@contact-page.hero.lede">
+          A question about the platform, a quote for your company, a partnership: write to us and a
+          founder reads it. Replies go out within one working day.
+        </p>
       </div>
 
-      <h1
-        class="text-4xl sm:text-5xl lg:text-6xl font-bold text-text-primary mb-6"
-        i18n="@@contact-page.hero.title"
-      >
-        Let's Build Something <span class="i-underline">Amazing</span> Together
-      </h1>
-
-      <p
-        class="text-lg sm:text-xl text-text-secondary max-w-3xl mx-auto leading-relaxed"
-        i18n="@@contact-page.hero.description"
-      >
-        Have questions about IDEM? Need a custom solution? Want to partner with us? We'd love to
-        hear from you and help bring your ideas to life.
-      </p>
+      <figure class="lg:col-span-6 ed-art ed-art-fill ed-rise ed-rise-3">
+        <app-page-art scene="drum" />
+      </figure>
     </div>
+  </header>
 
-    <!-- Main Content Grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-20">
-      <!-- Contact Form -->
-      <div class="glass-card p-8 rounded-2xl border border-[var(--glass-border)]">
-        <div class="mb-8">
-          <h2
-            class="text-2xl sm:text-3xl font-bold text-text-primary mb-4"
-            i18n="@@contact-page.form.title"
-          >
-            Send us a Message
-          </h2>
-          <p class="text-text-tertiary" i18n="@@contact-page.form.description">
-            Fill out the form below and we'll get back to you within 24 hours.
+  <!-- ═══ Les coordonnées ═════════════════════════════════════════════
+       Lisibles et sélectionnables, pas cachées derrière une icône. -->
+  <section class="ed-rule">
+    <div class="ed-section ed-wrap">
+      <dl class="ed-rows ed-rows-2 ed-rows-closed">
+        @for (channel of channels; track channel.label) {
+          <div class="ed-row">
+            <dt class="ct-label">{{ channel.label }}</dt>
+            <dd class="ct-value">
+              @if (channel.href) {
+                <a [href]="channel.href" class="ct-link">{{ channel.value }}</a>
+              } @else {
+                {{ channel.value }}
+              }
+            </dd>
+            <dd class="ed-body ed-mt-1">{{ channel.detail }}</dd>
+          </div>
+        }
+      </dl>
+    </div>
+  </section>
+
+  <!-- ═══ Le message ══════════════════════════════════════════════════ -->
+  <section class="ed-rule">
+    <div class="ed-section ed-wrap">
+      <div class="grid gap-14 lg:grid-cols-12 lg:gap-16">
+        <div class="lg:col-span-5">
+          <h2 class="ed-h2" i18n="@@contact-page.form.title">Write to us</h2>
+          <p class="ed-body ed-mt-6" i18n="@@contact-page.form.body">
+            Tell us what you are building and where you are stuck. The more concrete the message,
+            the more useful the answer.
           </p>
         </div>
 
-        @if (!isSubmitted()) {
-          <form (ngSubmit)="submitForm()" class="space-y-6">
-            <!-- Name & Email Row -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="lg:col-span-7">
+          @if (isSubmitted()) {
+            <!-- La parole est partie : le même tambour, le même sens. -->
+            <div class="ct-sent">
+              <figure class="ed-art ed-art-lg">
+                <app-page-art scene="drum" />
+              </figure>
               <div>
-                <label
-                  class="block text-sm font-medium text-text-secondary mb-2"
-                  i18n="@@contact-page.form.name"
-                >
-                  Full Name *
-                </label>
-                <input
-                  type="text"
-                  [value]="form().name"
-                  (input)="updateForm('name', $any($event.target).value)"
-                  class="input w-full"
-                  placeholder="John Doe"
-                  required
-                />
-              </div>
-              <div>
-                <label
-                  class="block text-sm font-medium text-text-secondary mb-2"
-                  i18n="@@contact-page.form.email"
-                >
-                  Email Address *
-                </label>
-                <input
-                  type="email"
-                  [value]="form().email"
-                  (input)="updateForm('email', $any($event.target).value)"
-                  class="input w-full"
-                  placeholder="john@company.com"
-                  required
-                />
-              </div>
-            </div>
-
-            <!-- Company -->
-            <div>
-              <label
-                class="block text-sm font-medium text-text-secondary mb-2"
-                i18n="@@contact-page.form.company"
-              >
-                Company (Optional)
-              </label>
-              <input
-                type="text"
-                [value]="form().company"
-                (input)="updateForm('company', $any($event.target).value)"
-                class="input w-full"
-                placeholder="Your Company Name"
-              />
-            </div>
-
-            <!-- Subject -->
-            <div>
-              <label
-                class="block text-sm font-medium text-text-secondary mb-2"
-                i18n="@@contact-page.form.subject"
-              >
-                Subject *
-              </label>
-              <select
-                [value]="form().subject"
-                (change)="updateForm('subject', $any($event.target).value)"
-                class="input w-full"
-                required
-              >
-                <option value="" i18n="@@contact-page.form.selectSubject">Select a subject</option>
-                <option value="general" i18n="@@contact-page.form.subjects.general">
-                  General Inquiry
-                </option>
-                <option value="demo" i18n="@@contact-page.form.subjects.demo">Request Demo</option>
-                <option value="enterprise" i18n="@@contact-page.form.subjects.enterprise">
-                  Enterprise Solutions
-                </option>
-                <option value="partnership" i18n="@@contact-page.form.subjects.partnership">
-                  Partnership
-                </option>
-                <option value="support" i18n="@@contact-page.form.subjects.support">
-                  Technical Support
-                </option>
-                <option value="billing" i18n="@@contact-page.form.subjects.billing">
-                  Billing & Pricing
-                </option>
-              </select>
-            </div>
-
-            <!-- Message -->
-            <div>
-              <label
-                class="block text-sm font-medium text-text-secondary mb-2"
-                i18n="@@contact-page.form.message"
-              >
-                Message *
-              </label>
-              <textarea
-                [value]="form().message"
-                (input)="updateForm('message', $any($event.target).value)"
-                class="input w-full h-32 resize-none"
-                placeholder="Tell us about your project or question..."
-                required
-              ></textarea>
-            </div>
-
-            <!-- Submit Button -->
-            <button
-              type="submit"
-              [disabled]="isSubmitting()"
-              class="inner-button w-full py-3 rounded-lg font-semibold flex items-center justify-center gap-2"
-            >
-              @if (isSubmitting()) {
-                <idem-loader size="sm" />
-                <span i18n="@@contact-page.form.sending">Sending...</span>
-              } @else {
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
-                  />
-                </svg>
-                <span i18n="@@contact-page.form.send">Send Message</span>
-              }
-            </button>
-          </form>
-        } @else {
-          <!-- Success Message -->
-          <div class="text-center py-12">
-            <div
-              class="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4"
-            >
-              <svg
-                class="w-8 h-8 text-green-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M5 13l4 4L19 7"
-                />
-              </svg>
-            </div>
-            <h3 class="text-xl font-bold text-text-primary mb-2" i18n="@@contact-page.form.success.title">
-              Message Sent Successfully!
-            </h3>
-            <p class="text-text-tertiary mb-6" i18n="@@contact-page.form.success.description">
-              Thank you for reaching out. We'll get back to you within 24 hours.
-            </p>
-            <button
-              (click)="isSubmitted.set(false)"
-              class="outer-button px-6 py-2 rounded-lg font-medium"
-              i18n="@@contact-page.form.success.sendAnother"
-            >
-              Send Another Message
-            </button>
-          </div>
-        }
-      </div>
-
-      <!-- Contact Information -->
-      <div class="space-y-8">
-        <!-- Contact Cards -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          @for (info of contactInfo; track info.title) {
-            <div
-              class="glass-card p-6 rounded-xl border border-[var(--glass-border)] hover:border-primary/50 transition-all"
-            >
-              <div class="flex items-start gap-4">
-                <div
-                  class="w-12 h-12 bg-primary/20 rounded-lg flex items-center justify-center shrink-0"
-                >
-                  <svg
-                    class="w-6 h-6 text-primary"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
+                <h3 class="ed-h3" i18n="@@contact-page.sent.title">Your message is on its way</h3>
+                <p class="ed-body ed-mt-2" i18n="@@contact-page.sent.body">
+                  We read every message ourselves. Expect a reply within one working day, at the
+                  address you gave.
+                </p>
+                <button type="button" class="outer-button ed-mt-6" (click)="writeAnother()">
+                  <ng-container i18n="@@contact-page.sent.again"
+                    >Write another message</ng-container
                   >
-                    <g [innerHTML]="getSVGIcon(info.icon)"></g>
-                  </svg>
-                </div>
-                <div>
-                  <h3 class="font-semibold text-text-primary mb-1">{{ info.title }}</h3>
-                  @if (info.link) {
-                    <a
-                      [href]="info.link"
-                      class="text-text-tertiary hover:text-primary transition-colors"
-                    >
-                      {{ info.content }}
-                    </a>
-                  } @else {
-                    <p class="text-text-tertiary">{{ info.content }}</p>
-                  }
-                </div>
+                </button>
               </div>
             </div>
+          } @else {
+            <form class="ct-form" (ngSubmit)="submitForm()">
+              <div class="ct-form-pair">
+                <p class="ct-field">
+                  <label for="contact-name" i18n="@@contact-page.field.name">Your name</label>
+                  <input
+                    id="contact-name"
+                    name="name"
+                    type="text"
+                    autocomplete="name"
+                    required
+                    [value]="form().name"
+                    (input)="updateForm('name', $any($event.target).value)"
+                  />
+                </p>
+
+                <p class="ct-field">
+                  <label for="contact-email" i18n="@@contact-page.field.email">Email</label>
+                  <input
+                    id="contact-email"
+                    name="email"
+                    type="email"
+                    autocomplete="email"
+                    required
+                    [value]="form().email"
+                    (input)="updateForm('email', $any($event.target).value)"
+                  />
+                </p>
+              </div>
+
+              <div class="ct-form-pair">
+                <p class="ct-field">
+                  <label for="contact-company" i18n="@@contact-page.field.company">
+                    Company — if you have one
+                  </label>
+                  <input
+                    id="contact-company"
+                    name="company"
+                    type="text"
+                    autocomplete="organization"
+                    [value]="form().company"
+                    (input)="updateForm('company', $any($event.target).value)"
+                  />
+                </p>
+
+                <p class="ct-field">
+                  <label for="contact-subject" i18n="@@contact-page.field.subject"
+                    >What about</label
+                  >
+                  <select
+                    id="contact-subject"
+                    name="subject"
+                    required
+                    [value]="form().subject"
+                    (change)="updateForm('subject', $any($event.target).value)"
+                  >
+                    <option value="" i18n="@@contact-page.subject.placeholder">Choose one</option>
+                    @for (subject of subjects; track subject.value) {
+                      <option [value]="subject.value">{{ subject.label }}</option>
+                    }
+                  </select>
+                </p>
+              </div>
+
+              <p class="ct-field">
+                <label for="contact-message" i18n="@@contact-page.field.message"
+                  >Your message</label
+                >
+                <textarea
+                  id="contact-message"
+                  name="message"
+                  rows="6"
+                  required
+                  [value]="form().message"
+                  (input)="updateForm('message', $any($event.target).value)"
+                ></textarea>
+              </p>
+
+              @if (errorMessage()) {
+                <p class="ct-error" role="alert">{{ errorMessage() }}</p>
+              }
+
+              <div class="ct-form-actions">
+                <button type="submit" class="inner-button" [disabled]="isSubmitting()">
+                  @if (isSubmitting()) {
+                    <idem-loader size="xs" />
+                    <ng-container i18n="@@contact-page.form.sending">Sending</ng-container>
+                  } @else {
+                    <ng-container i18n="@@contact-page.form.send">Send the message</ng-container>
+                  }
+                </button>
+                <span class="ed-body" i18n="@@contact-page.form.note">
+                  We use your address to reply, and for nothing else.
+                </span>
+              </div>
+            </form>
           }
         </div>
       </div>
     </div>
+  </section>
 
-    <!-- FAQ Section -->
-    <div class="mb-20">
-      <div class="text-center mb-12">
-        <h2 class="text-3xl sm:text-4xl font-bold text-text-primary mb-4" i18n="@@contact-page.faq.title">
-          Frequently Asked Questions
-        </h2>
-        <p class="text-text-tertiary max-w-2xl mx-auto" i18n="@@contact-page.faq.description">
-          Quick answers to common questions. Can't find what you're looking for? Send us a message!
-        </p>
-      </div>
+  <!-- ═══ Les questions déjà posées ═══════════════════════════════════
+       Les réponses sont visibles : un accordéon fermé cache ce que le
+       visiteur est venu lire. -->
+  <section class="ed-rule">
+    <div class="ed-section ed-wrap">
+      <h2 class="ed-h2 max-w-2xl" i18n="@@contact-page.faq.title">Asked before you</h2>
 
-      <div class="max-w-4xl mx-auto space-y-4">
-        @for (faq of faqs(); track $index) {
-          <div class="glass-card rounded-xl border border-[var(--glass-border)] overflow-hidden">
-            <button
-              (click)="toggleFAQ($index)"
-              class="w-full p-6 text-left flex items-center justify-between hover:bg-[var(--glass-bg-subtle)] transition-colors"
-            >
-              <h3 class="font-semibold text-text-primary pr-4">{{ faq.question }}</h3>
-              <svg
-                class="w-5 h-5 text-text-tertiary transition-transform"
-                [class.rotate-180]="faq.isOpen"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M19 9l-7 7-7-7"
-                />
-              </svg>
-            </button>
-            @if (faq.isOpen) {
-              <div class="px-6 pb-6">
-                <p class="text-text-tertiary leading-relaxed">{{ faq.answer }}</p>
-              </div>
-            }
+      <dl class="ed-rows ed-rows-closed ed-mt-12 ed-mt-lg-16">
+        @for (entry of faqs; track entry.question) {
+          <div class="ed-row grid gap-x-12 gap-y-3 lg:grid-cols-[22rem_1fr]">
+            <dt class="ed-h3">{{ entry.question }}</dt>
+            <dd class="ed-body">{{ entry.answer }}</dd>
           </div>
         }
-      </div>
+      </dl>
     </div>
+  </section>
 
-    <!-- CTA Section -->
-    <div class="text-center glass-card p-12 rounded-2xl border border-[var(--glass-border)]">
-      <h2 class="text-3xl font-bold text-text-primary mb-4" i18n="@@contact-page.cta.title">
-        Ready to Transform Your Business?
-      </h2>
-      <p class="text-lg text-text-tertiary mb-8 max-w-2xl mx-auto" i18n="@@contact-page.cta.description">
-        Join thousands of African entrepreneurs who are already using IDEM to build their dreams.
-      </p>
-      <div class="flex flex-col sm:flex-row gap-4 justify-center">
-        <a
-          href="{{ consoleUrl }}/create-project"
-          class="inner-button px-8 py-3 rounded-lg font-semibold"
-        >
-          <svg class="w-5 h-5 inline-block mr-2" fill="currentColor" viewBox="0 0 20 20">
-            <path
-              d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"
-            />
-          </svg>
-          <span i18n="@@contact-page.cta.startFree">Start Free</span>
-        </a>
-        <a routerLink="/pricing" class="outer-button px-8 py-3 rounded-lg font-semibold">
-          <svg class="w-5 h-5 inline-block mr-2" fill="currentColor" viewBox="0 0 20 20">
-            <path
-              d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"
-            />
-            <path
-              fill-rule="evenodd"
-              d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z"
-              clip-rule="evenodd"
-            />
-          </svg>
-          <span i18n="@@contact-page.cta.viewPricing">View Pricing</span>
-        </a>
+  <!-- ═══ L'autre porte ═══════════════════════════════════════════════
+       Qui est déjà décidé n'a pas besoin de nous écrire. -->
+  <section class="ed-rule">
+    <div class="ed-section ed-wrap">
+      <div class="grid gap-10 lg:grid-cols-12 lg:gap-16 lg:items-end">
+        <div class="lg:col-span-7">
+          <h2 class="ed-h2" i18n="@@contact-page.cta.title">Or skip the conversation</h2>
+          <p class="ed-lede ed-mt-6" i18n="@@contact-page.cta.body">
+            Creating a project and seeing what IDEM produces costs nothing, and takes about as long
+            as writing this message.
+          </p>
+        </div>
+        <div class="lg:col-span-5 flex flex-col gap-3 sm:flex-row lg:justify-end">
+          <a [href]="consoleUrl + '/create-project'" class="inner-button">
+            <ng-container i18n="@@contact-page.cta.start">Create a project</ng-container>
+          </a>
+          <a routerLink="/pricing" class="outer-button">
+            <ng-container i18n="@@contact-page.cta.pricing">See the prices</ng-container>
+          </a>
+        </div>
       </div>
     </div>
-  </div>
+  </section>
 </div>

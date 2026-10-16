@@ -1,230 +1,178 @@
-<!-- iCode Page -->
-<div class="relative min-h-screen overflow-hidden bg-grid">
-  <!-- Background orbs -->
-  <div class="absolute top-0 left-0 w-full h-full overflow-hidden z-0">
-    <div class="absolute top-[-200px] right-[-200px] w-[500px] h-[500px] rounded-full bg-linear-to-br from-primary to-secondary opacity-15 blur-[120px]"></div>
-    <div class="absolute bottom-[-200px] left-[-200px] w-[400px] h-[400px] rounded-full bg-linear-to-tr from-secondary to-accent opacity-15 blur-[120px]"></div>
-  </div>
+<!-- iCode. Le métier à tisser dit le code qui se construit fil à fil
+     (AGENTS.md § 4) ; la pirogue dit la mise en ligne. Ni pastille, ni
+     dégradé d'ambiance, ni icône qui répète le mot d'à côté. -->
+<div class="ed-page">
+  <!-- ═══ La promesse ══════════════════════════════════════════════════ -->
+  <header class="ed-section ed-section-hero ed-wrap">
+    <!-- Le titre occupe toute la largeur : c'est lui qui donne l'échelle de la
+         page, et à sept colonnes le plus long mot débordait de sa colonne. -->
+    <h1 class="ed-display ed-rise">
+      <span i18n="@@idev-page.hero.line1">A sentence in.</span><br />
+      <span class="i-underline" i18n="@@idev-page.hero.line2">An app out.</span>
+    </h1>
 
-  <div class="relative z-10">
-    <!-- Hero Section -->
-    <section class="relative pt-32 pb-20 lg:pt-40 lg:pb-28">
-      <div class="max-w-6xl mx-auto px-4 sm:px-6 text-center">
-        <!-- Breadcrumb -->
-        <div class="flex items-center justify-center gap-2 mb-8 text-sm text-text-tertiary">
-          <a routerLink="/home" class="hover:text-text-primary transition-colors" i18n="@@idev.breadcrumb.idem">Idem</a>
-          <span>/</span>
-          <span class="text-primary font-medium">iCode</span>
-        </div>
-
-        <!-- Badge -->
-        <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-8">
-          <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-          </svg>
-          <span class="text-xs font-bold text-primary uppercase" i18n="@@idev.badge">AI App Generator</span>
-        </div>
-
-        <h1 class="text-4xl sm:text-5xl lg:text-7xl font-bold text-text-primary mb-6" i18n="@@idev.hero.title">
-          From Idea to <span class="i-underline">Application</span><br />in Minutes
-        </h1>
-
-        <p class="text-lg lg:text-xl text-text-secondary max-w-3xl mx-auto leading-relaxed mb-10" i18n="@@idev.hero.description">
-          Describe what you want to build. iCode's AI generates a complete, production-ready application — frontend, backend, and database — instantly.
+    <div class="grid gap-12 ed-mt-12 ed-mt-lg-16 lg:grid-cols-12 lg:gap-16 lg:items-center">
+      <div class="lg:col-span-6 ed-rise ed-rise-2">
+        <p class="ed-lede ed-lede-wide" i18n="@@idev-page.hero.lede">
+          Describe what you need in your own words. iCode writes the React code, runs it in front of
+          you in the browser, and keeps changing it as you talk. The source code is yours to export.
         </p>
-
-        <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
-          <a
-            href="{{ idevUrl }}"
-            class="inner-button px-8 py-4 rounded-xl font-semibold text-lg inline-flex items-center gap-2"
-          >
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-            <span i18n="@@idev.hero.cta">Start Building</span>
+        <div class="flex flex-col gap-3 sm:flex-row ed-mt-10">
+          <a [href]="idevUrl" class="inner-button">
+            <ng-container i18n="@@idev-page.hero.cta">Open iCode</ng-container>
           </a>
-          <a
-            routerLink="/ideploy"
-            class="outer-button px-8 py-4 rounded-xl font-semibold text-lg inline-flex items-center gap-2"
-          >
-            <span i18n="@@idev.hero.secondaryCta">Deploy with iDeploy</span>
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
-            </svg>
+          <a routerLink="/pricing" class="outer-button">
+            <ng-container i18n="@@idev-page.hero.pricing">See the prices</ng-container>
           </a>
         </div>
       </div>
-    </section>
 
-    <!-- How It Works -->
-    <section class="relative py-24 lg:py-32">
-      <div class="max-w-6xl mx-auto px-4 sm:px-6">
-        <div class="text-center mb-16">
-          <h2 class="text-3xl lg:text-5xl font-bold text-text-primary mb-4" i18n="@@idev.howItWorks.title">
-            How <span class="i-underline">iCode</span> Works
-          </h2>
-          <p class="text-lg text-text-secondary max-w-2xl mx-auto" i18n="@@idev.howItWorks.description">
-            Three simple steps from idea to application
+      <figure class="lg:col-span-6 ed-art ed-art-fill ed-rise ed-rise-3">
+        <app-page-art scene="loom" />
+      </figure>
+    </div>
+  </header>
+
+  <!-- ═══ Ce qu'on peut lui demander ══════════════════════════════════
+       Trois cibles réelles, chacune avec sa pile : c'est la pile qui
+       distingue, pas une icône. -->
+  <section class="ed-rule">
+    <div class="ed-section ed-wrap">
+      <h2 class="ed-h2 max-w-3xl" i18n="@@idev-page.targets.title">Three things it can build</h2>
+
+      <ul class="ed-rows ed-rows-3 ed-rows-closed ed-mt-12 ed-mt-lg-16">
+        @for (target of targets; track target.title) {
+          <li class="ed-row">
+            <h3 class="ed-h3">{{ target.title }}</h3>
+            <p class="ed-body ed-mt-2">{{ target.description }}</p>
+            <p class="idv-stack ed-mt-4">{{ target.stack }}</p>
+          </li>
+        }
+      </ul>
+    </div>
+  </section>
+
+  <!-- ═══ Le déroulé ══════════════════════════════════════════════════
+       Une vraie séquence : les numéros sont une information. -->
+  <section class="ed-rule">
+    <div class="ed-section ed-wrap">
+      <div class="grid gap-12 lg:grid-cols-12 lg:gap-16">
+        <div class="lg:col-span-5">
+          <h2 class="ed-h2" i18n="@@idev-page.steps.title">How a session goes</h2>
+          <p class="ed-body ed-mt-6" i18n="@@idev-page.steps.body">
+            There is no project setup, no repository to create and no build to configure. The first
+            message is the first step.
           </p>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          @for (step of steps; track step.number; let i = $index) {
-            <div class="relative glass-card p-8 rounded-2xl border border-[var(--glass-border)] hover:border-primary/30 transition-all duration-300 group">
-              <!-- Step Number -->
-              <div class="text-6xl font-black text-text-primary/5 absolute top-4 right-6 select-none">{{ step.number }}</div>
-
-              <div class="relative">
-                <div class="w-12 h-12 rounded-xl bg-primary/15 border border-primary/25 flex items-center justify-center mb-6">
-                  <span class="text-primary font-bold text-lg">{{ step.number }}</span>
-                </div>
-                <h3 class="text-xl font-bold text-text-primary mb-3 group-hover:text-primary transition-colors">
-                  {{ step.title }}
-                </h3>
-                <p class="text-text-secondary leading-relaxed">{{ step.description }}</p>
-              </div>
-
-              <!-- Connector line (not on last item) -->
-              @if (i < steps.length - 1) {
-                <div class="hidden lg:block absolute -right-4 top-1/2 -translate-y-1/2 z-20">
-                  <svg class="w-8 h-8 text-text-tertiary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                  </svg>
-                </div>
-              }
-            </div>
-          }
-        </div>
-      </div>
-    </section>
-
-    <!-- Features Grid -->
-    <section class="relative py-24 lg:py-32 bg-bg-dark">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6">
-        <div class="text-center mb-16">
-          <h2 class="text-3xl lg:text-5xl font-bold text-text-primary mb-4" i18n="@@idev.features.title">
-            Built for <span class="i-underline">Developers</span>
-          </h2>
-          <p class="text-lg text-text-secondary max-w-2xl mx-auto" i18n="@@idev.features.description">
-            Everything you need to go from concept to production-ready application
-          </p>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          @for (feature of features; track feature.title) {
-            <div class="glass-card p-6 lg:p-8 rounded-2xl border border-[var(--glass-border)] hover:border-primary/30 transition-all duration-300 group">
-              <!-- Icon -->
-              <div class="w-12 h-12 rounded-xl bg-primary/15 border border-primary/25 flex items-center justify-center mb-5">
-                @if (feature.icon === 'code') {
-                  <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-                  </svg>
-                } @else if (feature.icon === 'eye') {
-                  <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                  </svg>
-                } @else if (feature.icon === 'sparkle') {
-                  <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-                  </svg>
-                } @else if (feature.icon === 'stack') {
-                  <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                  </svg>
-                } @else if (feature.icon === 'download') {
-                  <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                } @else if (feature.icon === 'cloud') {
-                  <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                  </svg>
-                }
-              </div>
-
-              <h3 class="text-lg font-bold text-text-primary mb-2 group-hover:text-primary transition-colors">
-                {{ feature.title }}
-              </h3>
-              <p class="text-text-secondary text-sm leading-relaxed">{{ feature.description }}</p>
-            </div>
-          }
-        </div>
-      </div>
-    </section>
-
-    <!-- Ecosystem Cross-Links -->
-    <section class="relative py-24 lg:py-32">
-      <div class="max-w-5xl mx-auto px-4 sm:px-6">
-        <div class="text-center mb-12">
-          <h2 class="text-3xl lg:text-4xl font-bold text-text-primary mb-4" i18n="@@idev.ecosystem.title">
-            Part of the <span class="i-underline">Idem</span> Ecosystem
-          </h2>
-          <p class="text-lg text-text-secondary max-w-2xl mx-auto" i18n="@@idev.ecosystem.description">
-            iCode works seamlessly with the rest of the Idem platform
-          </p>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <!-- Idem Platform -->
-          <a routerLink="/home" class="glass-card p-6 rounded-2xl border border-[var(--glass-border)] hover:border-primary/30 transition-all duration-300 group block">
-            <div class="flex items-center gap-4 mb-4">
-              <div class="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center">
-                <img src="/assets/icons/logo_white.png" alt="Idem" class="w-6 h-auto dark:hidden" />
-                <img src="/assets/icons/logo_dark.png" alt="Idem" class="w-6 h-auto hidden dark:block" />
-              </div>
+        <ol class="lg:col-span-7 ed-rows ed-rows-closed">
+          @for (step of steps; track step.title; let i = $index) {
+            <li class="ed-row grid gap-x-8 gap-y-3 sm:grid-cols-[5rem_1fr] sm:items-baseline">
+              <p class="idv-step">{{ i + 1 }}</p>
               <div>
-                <h3 class="text-lg font-bold text-text-primary group-hover:text-primary transition-colors" i18n="@@idev.ecosystem.idem.title">Idem Platform</h3>
-                <p class="text-text-tertiary text-xs" i18n="@@idev.ecosystem.idem.tagline">Complete business creation</p>
+                <h3 class="ed-h3">{{ step.title }}</h3>
+                <p class="ed-body ed-mt-2">{{ step.description }}</p>
               </div>
-            </div>
-            <p class="text-text-secondary text-sm" i18n="@@idev.ecosystem.idem.description">
-              Create your entire business with AI: brand, strategy, legal docs, and more.
-            </p>
-          </a>
+            </li>
+          }
+        </ol>
+      </div>
+    </div>
+  </section>
 
-          <!-- iDeploy -->
-          <a routerLink="/ideploy" class="glass-card p-6 rounded-2xl border border-[var(--glass-border)] hover:border-secondary/30 transition-all duration-300 group block">
-            <div class="flex items-center gap-4 mb-4">
-              <div class="w-10 h-10 rounded-lg bg-secondary/15 border border-secondary/25 flex items-center justify-center">
-                <svg class="w-5 h-5 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+  <!-- ═══ L'aperçu ════════════════════════════════════════════════════ -->
+  <section class="ed-rule">
+    <div class="ed-section ed-wrap">
+      <h2 class="ed-h2 max-w-3xl" i18n="@@idev-page.preview.title">
+        It runs while it is being written
+      </h2>
+      <p class="ed-lede ed-lede-wide ed-mt-8" i18n="@@idev-page.preview.lede">
+        The project runs in your browser — Node, the dev server and a real database, with nothing
+        installed on your machine.
+      </p>
+
+      <ul class="ed-rows ed-rows-2 ed-rows-closed ed-mt-12 ed-mt-lg-16">
+        @for (capability of previewCapabilities; track capability.title) {
+          <li class="ed-row">
+            <h3 class="ed-h3">{{ capability.title }}</h3>
+            <p class="ed-body ed-mt-2">{{ capability.description }}</p>
+          </li>
+        }
+      </ul>
+    </div>
+  </section>
+
+  <!-- ═══ Ce que vous emportez ════════════════════════════════════════ -->
+  <section class="ed-rule">
+    <div class="ed-section ed-wrap">
+      <div class="grid gap-14 lg:grid-cols-12 lg:gap-16 lg:items-center">
+        <div class="lg:col-span-6">
+          <h2 class="ed-h2" i18n="@@idev-page.ship.title">Online in one move, or gone with you</h2>
+          <p class="ed-lede ed-mt-8" i18n="@@idev-page.ship.lede">
+            « Put it online » hands the project to iDeploy and gives you an address — a static site
+            or a full stack with its database, no GitHub account required. Or export the folder and
+            host it wherever you like.
+          </p>
+          <div class="ed-mt-10 flex flex-col gap-3 sm:flex-row">
+            <a [href]="idevUrl" class="inner-button">
+              <ng-container i18n="@@idev-page.ship.cta">Build something</ng-container>
+            </a>
+            <a routerLink="/ideploy" class="outer-button">
+              <ng-container i18n="@@idev-page.ship.ideploy">How iDeploy works</ng-container>
+            </a>
+          </div>
+        </div>
+
+        <div class="lg:col-span-6">
+          <figure class="ed-art ed-art-fill mx-auto lg:mx-0">
+            <app-page-art scene="canoe" />
+          </figure>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ Autour ══════════════════════════════════════════════════════ -->
+  <section class="ed-rule">
+    <div class="ed-section ed-wrap">
+      <div class="grid gap-12 lg:grid-cols-12 lg:gap-16">
+        <div class="lg:col-span-5">
+          <h2 class="ed-h2" i18n="@@idev-page.around.title">What comes before and after</h2>
+          <p class="ed-body ed-mt-6" i18n="@@idev-page.around.body">
+            iCode writes the application. The rest of the business — the brand, the plan, the
+            address, the hosting — is the rest of IDEM.
+          </p>
+        </div>
+
+        <ul class="lg:col-span-7 ed-rows">
+          @for (link of ecosystem; track link.name) {
+            <li>
+              <a [href]="link.href" class="ed-link-row">
+                <span>
+                  <span class="ed-h3 block">{{ link.name }}</span>
+                  <span class="ed-body block ed-mt-1">{{ link.description }}</span>
+                </span>
+                <svg
+                  class="ed-link-arrow"
+                  width="28"
+                  height="28"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M4 12h15m0 0l-5.5-5.5M19 12l-5.5 5.5"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
                 </svg>
-              </div>
-              <div>
-                <h3 class="text-lg font-bold text-text-primary group-hover:text-secondary transition-colors">iDeploy</h3>
-                <p class="text-text-tertiary text-xs" i18n="@@idev.ecosystem.ideploy.tagline">Simplified deployment</p>
-              </div>
-            </div>
-            <p class="text-text-secondary text-sm" i18n="@@idev.ecosystem.ideploy.description">
-              Deploy your iCode-generated app with one click. Custom domains, SSL, and monitoring included.
-            </p>
-          </a>
-        </div>
+              </a>
+            </li>
+          }
+        </ul>
       </div>
-    </section>
-
-    <!-- Final CTA -->
-    <section class="relative py-16 lg:py-24">
-      <div class="max-w-4xl mx-auto px-4 sm:px-6">
-        <div class="glass-card p-8 lg:p-12 rounded-2xl border border-primary/20 text-center">
-          <h2 class="text-2xl sm:text-3xl lg:text-4xl font-bold text-text-primary mb-4" i18n="@@idev.finalCta.title">
-            Ready to Build Your App?
-          </h2>
-          <p class="text-text-secondary text-lg mb-8 max-w-2xl mx-auto" i18n="@@idev.finalCta.description">
-            Join thousands of builders who use iCode to turn their ideas into reality. Start for free, no credit card required.
-          </p>
-          <a
-            href="{{ idevUrl }}"
-            class="inner-button px-8 py-4 rounded-xl font-semibold text-lg inline-flex items-center gap-2"
-          >
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-            <span i18n="@@idev.finalCta.cta">Launch iCode</span>
-          </a>
-        </div>
-      </div>
-    </section>
-  </div>
+    </div>
+  </section>
 </div>

@@ -107,6 +107,8 @@ Le modèle écrit un programme JSON (référence complète donnée au modèle : 
 | Garantie | Comment |
 | --- | --- |
 | Un texte n'est jamais caché par un décor | les textes et piles de textes posés dans la scène passent devant les formes et les images (`zIndex` 500), sauf ordre imposé par le programme (`z`) |
+| Un texte s'arrête dans le cadre | la position d'arrivée d'un texte posé dans la scène est ramenée dans la zone sûre (il peut entrer depuis l'extérieur) |
+| Un nœud déclaré caché apparaît | une propriété de `from` sans `to` revient à sa valeur déclarée, sauf opacité ou échelle déclarée nulle : elle va à 1 |
 | Une pile n'est jamais coupée | `KEEP` : mesurée après sa mise en page, réduite si elle dépasse la zone sûre, ramenée dedans |
 | Un texte n'est jamais coupé | `FIT` : la taille demandée est un plafond ; le texte passe à la ligne dans sa largeur (ou la place restante dans la zone sûre), n'est réduit que s'il serait coupé, et (posé dans la scène) est ramené dans la zone sûre |
 | Ce qui entre a fini avant la coupe | la piste entière est mise à l'échelle (`TS`) pour finir à `D − E − min(1,6 s ; 30 % de D)` ; un pas d'ambiance (travelling `dur: "D"`, boucle) garde sa durée ; une sortie finale (fondu de fin, rien n'entre après) reste calée sur la fin |
@@ -228,10 +230,15 @@ fraîcheur et les remboursements sont inchangés.
 `author/repair.ts` (stratégies, budget, journal) et `motionVideo.service.ts#repairScenes` (la boucle) :
 
 - ce qui se corrige : une scène en erreur (programme refusé, exécution) **et** une scène mal affichée (texte coupé par
-  le cadre, textes qui se chevauchent, texte caché par une forme ou une image dessinée par-dessus, texte barré par un trait, lettres d'un mot superposées, texte qui ne se lit pas sur son fond (contraste mesuré sur les pixels rendus autour de lui), scène qui n'affiche aucun de ses textes — relevés dans l'ordre de dessin réel par `probeFilm` à 78 % et 95 % de la scène — quand tout est installé —, dans chaque format) ;
+  le cadre, textes qui se chevauchent, texte caché par une forme ou une image dessinée par-dessus, texte barré par un trait, lettres d'un mot superposées, texte qui ne se lit pas sur son fond (contraste mesuré sur les pixels rendus autour de lui), texte posé sur une photo sans aplat, texte traversé par un trait ou à cheval sur un contour, scène qui n'affiche aucun de ses textes — relevés dans l'ordre de dessin réel par `probeFilm` à 78 % et 95 % de la scène — quand tout est installé —, dans chaque format) ;
 - trois approches, dans l'ordre, une par tentative : `fix` (modèle du cran, programme + problème exact), `rewrite`
   (modèle du cran au-dessus, depuis la fiche, plus simple, problèmes passés connus), `minimal` (même modèle,
   version la plus simple : une pile de textes, quelques formes et médias) ;
+- un défaut d'affichage reçoit deux approches du modèle (corriger, réécrire), puis le **dernier recours du code**
+  (`inkFallback`) : un texte illisible sur son fond reçoit l'encre lisible (clair ou foncé) choisie d'après la couleur
+  réelle du fond ; un texte posé sur une photo, traversé par un trait ou à cheval sur un contour est placé sur un aplat
+  (couleur du fond de la marque, encre lisible ; ses mouvements passent à l'aplat). La scène est recompilée,
+  recontrôlée, gardée seulement si elle s'affiche mieux ;
 - une scène qui s'exécutait n'est **jamais** remplacée par une version qui plante ou s'affiche moins bien ; un défaut
   d'affichage qui reste est noté (`scene.layout`, `film.repair.layoutLeft`) sans bloquer l'export ;
 - **une tentative à la fois par scène** (les scènes différentes avancent en parallèle, 3 au plus), jamais deux fois

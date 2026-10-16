@@ -74,8 +74,8 @@ export function startRender(modules: Record<string, AuthorScene | undefined>, da
       const alphaOf = (c: any) => (c && typeof c.alpha === 'function' ? c.alpha() : c ? 1 : 0);
       // Tout ce qui se dessine, DANS L'ORDRE DE DESSIN de Motion Canvas (enfants triés par zIndex) : un texte peut
       // alors savoir quelles formes passent par-dessus lui.
-      const texts: { text: string; x0: number; y0: number; x1: number; y1: number; group: string; order: number; ink?: number[]; contrast?: number }[] = [];
-      const shapes: { kind: 'fill' | 'image' | 'line'; x0: number; y0: number; x1: number; y1: number; order: number }[] = [];
+      const texts: { text: string; x0: number; y0: number; x1: number; y1: number; group: string; order: number; ink?: number[]; contrast?: number; bg?: number[]; best?: string; bestContrast?: number }[] = [];
+      const shapes: { kind: 'fill' | 'image' | 'line' | 'outline'; x0: number; y0: number; x1: number; y1: number; order: number }[] = [];
       let order = 0;
       const walk = (n: any, harness: boolean, clip: B | null) => {
         const inHarness = harness || (n.zIndex?.() ?? 0) >= 1000;
@@ -98,6 +98,8 @@ export function startRender(modules: Record<string, AuthorScene | undefined>, da
           } else if (n instanceof Rect || n instanceof Circle || n instanceof Polygon) {
             const b = within(box(n), clip);
             if (b && alphaOf(n.fill()) > 0.5) shapes.push({ kind: 'fill', ...b, order: order++ });
+            // Un contour seul (cadre, anneau) : un texte à cheval sur lui est coupé par le trait.
+            else if (b && alphaOf(n.stroke()) > 0.3 && n.lineWidth() > 0) shapes.push({ kind: 'outline', ...b, order: order++ });
           }
         }
         const kids = typeof n.sortedChildren === 'function' ? n.sortedChildren() : n.children?.() || [];
@@ -137,17 +139,33 @@ export function startRender(modules: Record<string, AuthorScene | undefined>, da
               pts.push([t.x0 - Math.max(3, h * 0.25), y], [t.x1 + Math.max(3, h * 0.25), y]);
             }
             const values: number[] = [];
+            const colors: number[][] = [];
             for (const [x, y] of pts) {
               if (texts.some((o) => o !== t && x >= o.x0 - 2 && x <= o.x1 + 2 && y >= o.y0 - 2 && y <= o.y1 + 2)) continue;
               const px = Math.round((x + data.width / 2) * scale);
               const py = Math.round((y + data.height / 2) * scale);
               if (px < 0 || py < 0 || px >= img.width || py >= img.height) continue;
               const i = (py * img.width + px) * 4;
-              values.push(ratio(t.ink, [img.data[i], img.data[i + 1], img.data[i + 2]]));
+              const c = [img.data[i], img.data[i + 1], img.data[i + 2]];
+              values.push(ratio(t.ink, c));
+              colors.push(c);
             }
             if (values.length >= 6) {
-              values.sort((a, b) => a - b);
-              t.contrast = Math.round(values[Math.floor(values.length * 0.3)] * 100) / 100;
+              const order2 = values.map((v, k) => ({ v, c: colors[k] })).sort((a, b) => a.v - b.v);
+              const q = order2[Math.floor(order2.length * 0.3)];
+              t.contrast = Math.round(q.v * 100) / 100;
+              // La couleur du fond là où le texte se lit le moins bien : elle sert au dernier recours (encre lisible).
+              t.bg = q.c;
+              // L'encre claire ou foncée qui se lirait le mieux sur TOUT ce pourtour (30e centile) : sur un fond mixte
+              // (moitié clair, moitié sombre), aucune ne suffit et le dernier recours sera un aplat.
+              const p30 = (ink: number[]) => {
+                const v = colors.map((c) => ratio(ink, c)).sort((a, b) => a - b);
+                return v[Math.floor(v.length * 0.3)];
+              };
+              const light = p30([255, 255, 255]);
+              const dark = p30([17, 20, 24]);
+              t.best = light >= dark ? '#ffffff' : '#111418';
+              t.bestContrast = Math.round(Math.max(light, dark) * 100) / 100;
             }
           }
         }

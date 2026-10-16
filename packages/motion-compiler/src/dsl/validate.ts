@@ -381,15 +381,21 @@ export function validateProgram(input: unknown, ctx: ValidationContext): Validat
   p.timeline = (p.timeline as Record<string, unknown>[]).filter((s) => !s || !s._drop);
   if (!errors.length) {
     const used = new Set<string>();
+    const twice = new Set<string>();
     const scan = (n: unknown) => {
       if (!n || typeof n !== 'object') return;
       const o = n as Record<string, unknown>;
-      if (o.type === 'text' && typeof o.text === 'string' && o.text.startsWith('$')) used.add(o.text.slice(1));
+      if (o.type === 'text' && typeof o.text === 'string' && o.text.startsWith('$')) {
+        if (used.has(o.text.slice(1))) twice.add(o.text.slice(1));
+        used.add(o.text.slice(1));
+      }
       if (Array.isArray(o.children)) o.children.forEach(scan);
       if (o.item) scan(o.item);
     };
     (p.nodes as unknown[]).forEach(scan);
-    const missing = ctx.texts.filter((k) => !used.has(k));
+    // Le même texte affiché par deux nœuds se lit deux fois à l'écran (doublon, écho involontaire).
+    for (const k of twice) errors.push(`« $${k} » est affiché par deux nœuds texte : un texte de la scène ne s'affiche qu'une fois`);
+        const missing = ctx.texts.filter((k) => !used.has(k));
     if (missing.length) warnings.push(`textes de la scène non affichés : ${missing.map((k) => `$${k}`).join(', ')}`);
   }
   return { ok: !errors.length, errors: [...new Set(errors)].slice(0, 25), warnings: [...new Set(warnings)].slice(0, 25), ...(errors.length ? {} : { program: p as unknown as MotionProgram }) };

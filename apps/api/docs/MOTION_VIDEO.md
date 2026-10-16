@@ -82,7 +82,7 @@ le cran (mode « qualité » dès High). Il n'y a aucune critique esthétique à
 
 Avant que la vidéo soit montrée, chaque scène dont le programme est refusé, qui plante à l'exécution ou dont un
 texte est coupé ou recouvert (dans un des formats) est **corrigée automatiquement**, dans des bornes strictes
-(`src/video/author/repair.ts`) ; un défaut d'affichage qui résiste aux trois approches est dit sans bloquer l'export :
+(`src/video/author/repair.ts`) ; un défaut d'affichage reçoit deux approches de l'IA puis un dernier recours du code (encre lisible, aplat sous le texte) ; ce qui résiste encore est dit sans bloquer l'export :
 
 1. **corriger** — le modèle du cran reçoit le code et l'erreur ;
 2. **réécrire autrement** — le modèle du **cran au-dessus** réécrit la scène depuis sa fiche, plus simplement,

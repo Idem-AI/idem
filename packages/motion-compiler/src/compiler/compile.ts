@@ -343,7 +343,7 @@ function textJsx(n: TextNode, e: Emitter, place: Place, key: string | undefined,
   if (ref) {
     e.refs.push(`const ${ref} = createRef<Txt>();`);
     if (part) e.post.push(`${part.list}.push({ n: ${ref}(), t: 'text' });`);
-    else if (key) e.targets.set(n.id!, { handles: `[{ n: ${ref}(), t: 'text' }]`, type: 'text' });
+    else if (key) e.targets.set(n.id!, { handles: `[{ n: ${ref}(), t: 'text'${mode === 'top' ? ', top: true' : ''} }]`, type: 'text' });
   }
   const attrs = [...(ref ? [`ref={${ref}}`] : []), textAttr, ...position, ...props, ...anchorProps(n), ...style, `width={${tb}.width}`, 'textWrap', `textAlign={'${align}'}`];
   return `<Txt ${attrs.join(' ')} />`;
@@ -422,7 +422,13 @@ export function finalExits(timeline: MotionStep[]): Set<number> {
   const zero = (v: unknown) => typeof v === 'number' && v <= 0.05;
   const isExit = (s: MotionStep) => !!s.target && !s.repeat && !!s.to && (zero(s.to.opacity) || zero(s.to.scale));
   timeline.forEach((s, k) => {
-    if (!isExit(s) || typeof s.at !== 'number') return;
+    if (!isExit(s)) return;
+    // Une sortie écrite par rapport à la fin (« D-0.5 ») est finale par intention.
+    if (typeof s.at === 'string') {
+      if (/\bD\b/.test(s.at)) out.add(k);
+      return;
+    }
+    if (typeof s.at !== 'number') return;
     const later = timeline.some((o, j) => j !== k && o.target && !o.repeat && !isExit(o) && typeof o.at === 'number' && (o.at as number) > (s.at as number) + 1e-6);
     if (!later) out.add(k);
   });
@@ -494,12 +500,28 @@ const RUNTIME = `
   const VAL = (h: any, p: string, v: any, from: boolean) => (v && typeof v === 'object' && 'r' in v ? (from ? base(h, p) : GET(h, p)) + v.r * F(h, p) : typeof v === 'number' ? v * F(h, p) : v);
   const SET = (h: any, vals: any, from = true) => { for (const p in vals) { const s = SIG(h, p); if (s) s(VAL(h, p, vals[p], from)); } };
   const TW = (h: any, p: string, v: any, d: number, e: any) => { const s = SIG(h, p); return s ? s(v, d, e) : waitFor(0); };
+  const INSIDE = (h: any, goal: any) => {
+    try {
+      const n = h.n, w = n.width(), hh = n.height(), off = n.offset();
+      if ('x' in goal && w <= A.width) goal.x = Math.min(A.right - ((1 - off.x) / 2) * w, Math.max(A.left + ((1 + off.x) / 2) * w, goal.x));
+      if ('y' in goal && hh <= A.height) goal.y = Math.min(A.bottom - ((1 - off.y) / 2) * hh, Math.max(A.top + ((1 + off.y) / 2) * hh, goal.y));
+    } catch {
+      // taille pas encore connue : la position demandée est gardée
+    }
+  };
+  const RESTORE = (h: any, p: string) => {
+    const b = base(h, p);
+    return ['opacity', 'scale', 'scaleX', 'scaleY'].includes(p) && typeof b === 'number' && Math.abs(b) <= 0.05 ? 1 : b;
+  };
   const STEP = (h: any, from: any, to: any, d: number, e: any) => (function* () {
     SET(h, from);
     const goal: any = {};
     for (const p in to) goal[p] = VAL(h, p, to[p], false);
-    // Une propriété donnée dans « from » et absente de « to » revient à sa valeur déclarée.
-    for (const p in from) if (!(p in goal)) goal[p] = base(h, p);
+    // Une propriété donnée dans « from » et absente de « to » revient à sa valeur déclarée — sauf un nœud déclaré
+    // caché (opacité ou échelle nulle) : il apparaît (sinon il resterait invisible pour toujours).
+    for (const p in from) if (!(p in goal)) goal[p] = RESTORE(h, p);
+    // Un texte posé dans la scène s'arrête toujours dans la zone sûre (il peut ENTRER depuis l'extérieur).
+    if (h.top && ('x' in goal || 'y' in goal)) INSIDE(h, goal);
     if (!(d > 0)) {
       for (const p in goal) { const s = SIG(h, p); if (s) s(goal[p]); }
       return;

@@ -41,7 +41,7 @@ export const DSL_REFERENCE = `# IDEM Motion Language — one scene = one JSON pr
   "from": { PROP: VALUE }, "to": { PROP: VALUE }, "stagger": s, "order": "forward"|"reverse"|"center", "repeat": "loop"|"yoyo" }
 - PROP: x, y, rotation, scale, scaleX, scaleY, opacity, skewX, blur, w, h, size, radius, fill, stroke, lineWidth, start, end, zoom, panX, panY, letterSpacing.
 - VALUE: a number/expression (absolute), a color for fill/stroke, or relative: "+=6" / "-=10".
-- "from" = the state just before the step. For the FIRST step of a target it is also its state from the start of the scene (so a hidden element stays hidden until its step). A property in "from" but not in "to" goes back to the node's declared value: { "from": { "opacity": 0, "y": "+=6" }, "to": {} } = rise into place. In "from", relative values are relative to the declared value; in "to", to the current value.
+- "from" = the state just before the step. For the FIRST step of a target it is also its state from the start of the scene (so a hidden element stays hidden until its step). A property in "from" but not in "to" goes back to the node's declared value (a node declared hidden, opacity or scale 0, goes to 1): { "from": { "opacity": 0, "y": "+=6" }, "to": {} } = rise into place. In "from", relative values are relative to the declared value; in "to", to the current value.
 - "stagger": several targets (or parts) start one after another, s apart.
 - "repeat": "loop" restarts until the end of the scene (rotation 360 = endless spin), "yoyo" goes back and forth (pulse, float).
 - "at"/"dur" can be expressions: D (scene duration), V (voice-over start, 0 if none), VE (voice end): "at": "V", "dur": "D".
@@ -54,6 +54,7 @@ export const DSL_REFERENCE = `# IDEM Motion Language — one scene = one JSON pr
 ## Motion grammar (what makes it read well)
 - One focal point at a time; build the scene in 2–4 beats (enter, settle, accent), not everything at once.
 - A text's color must stand out from what is behind it: on the background use "ink", on a colored shape use "on-<that color>" (e.g. a text on a "primary" card is "on-primary"); never a dark text on a dark shape or photo.
+- Never lay a text directly on a photo or screenshot: give it its own area, or put a filled plate (a rect, e.g. "black/55" or "primary") between the image and the text. Never let a line or an outline (frame, ring) run through a text, and show each text once.
 - Texts are always drawn on top of shapes and images (the compiler keeps them in front): never put a text where a shape or an image sits — give it its own clear area. Split letters or words must end at their own place, never converge onto the same spot.
 - Group texts that belong together in ONE stack (title + subtitle + button…): a stack never lets them overlap, in every format. Two free texts must not share the same area.
 - A text must be fully visible and still long enough to be read before the scene ends. The compiler fits the whole timeline into the scene and keeps the last ~30 % (up to 1.6 s) to read; ambient moves (a slow push with "dur": "D", a loop) keep running.

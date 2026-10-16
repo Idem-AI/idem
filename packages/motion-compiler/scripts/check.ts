@@ -128,6 +128,8 @@ async function probeIn(specs: SceneSpec[], format: VideoFormat) {
   check('effets sonores : alias reconnus, au-delà de deux ou inconnus ignorés (jamais un refus)', lenient.ok && JSON.stringify(sfx) === '["whoosh","shimmer"]', JSON.stringify({ sfx, errors: lenient.errors }));
   check('courbes : alias reconnus (easeOutCubic), inconnues ignorées', lenient.ok && lenient.program!.timeline.some((s) => s.ease === 'outCubic') && lenient.warnings.some((w) => /wiggle/.test(w)));
   check('propriété inconnue : avertissement, programme gardé', lenient.warnings.some((w) => /glow/.test(w)));
+  const dup = validateProgram({ nodes: [{ type: 'text', text: '$sub' }, { type: 'text', text: '$sub', y: 20 }], timeline: [] }, ctx);
+  check('le même texte affiché par deux nœuds est refusé (doublon à l’écran)', !dup.ok && dup.errors.some((e) => /affiché par deux nœuds/.test(e)), JSON.stringify(dup.errors));
 
   section('3. Exemples : validés, compilés, acceptés par esbuild');
   const photoFile = path.join(OUT, 'photo.jpg');
@@ -251,12 +253,30 @@ async function probeIn(specs: SceneSpec[], format: VideoFormat) {
   const contrastOk: SceneSpec = { key: 'n2', duration: 3, texts: { headline: 'Pagne Royal' }, media: [], program: { nodes: [{ type: 'rect', w: 'SW', h: 20, fill: '#1d2a44' }, { type: 'text', text: '$headline', size: 9, color: 'on-secondary' }], timeline: [] } };
   // Le fondu final d'une scène reste à la fin, même quand la piste est mise à l'échelle ; une scène vide est signalée.
   const fadeOut: SceneSpec = { key: 'e1', duration: 3, texts: { headline: 'Le goût du vrai' }, media: [], program: { nodes: [{ id: 't', type: 'text', text: '$headline', size: 8 }], timeline: [{ at: 0.2, target: 't', dur: 4, from: { opacity: 0 }, to: {} }, { at: 5.6, target: 'world', dur: 0.5, to: { opacity: 0 } }] } };
+  const onPhoto: SceneSpec = {
+    key: 'p1', duration: 3, texts: { headline: 'Vos récoltes en vue', sub: 'Tout commence au soleil', cta: 'clients accompagnés' }, media: [{ kind: 'image', file: photoFile, width: 1200, height: 1500 }],
+    program: { nodes: [
+      { type: 'image', media: 0, y: -25, w: 'SW', h: 30 },
+      { type: 'text', text: '$headline', y: -25, size: 7 },
+      { type: 'line', points: [[0, 0], [0, 12]], x: 0, y: 4, stroke: 'primary', lineWidth: 0.6 },
+      { type: 'text', text: '$sub', y: 10, size: 6 },
+      { type: 'circle', y: 32, size: 16, fill: 'transparent', stroke: 'primary', lineWidth: 0.8 },
+      { type: 'text', text: '$cta', y: 40, size: 5 },
+    ], timeline: [] },
+  };
+  const hiddenStart: SceneSpec = { key: 'h1', duration: 3, texts: { headline: 'Alertes météo' }, media: [], program: { nodes: [{ id: 't', type: 'text', text: '$headline', size: 8, opacity: 0 }], timeline: [{ at: 0.3, target: 't', dur: 0.6, from: { opacity: 0, y: '+=4' }, to: {} }] } };
+  const restOut: SceneSpec = { key: 'r1', duration: 3, texts: { headline: 'Cueillies à la main' }, media: [], program: { nodes: [{ id: 't', type: 'text', text: '$headline', x: 'L+6', y: 'B-6', anchor: 'bottom-left', size: 5.5, upper: true, letterSpacing: 2 }], timeline: [{ at: 0.3, target: 't', dur: 0.8, from: { x: '-=120', opacity: 0 }, to: { x: '+=10', opacity: 1 } }] } };
   const empty: SceneSpec = { key: 'e2', duration: 3, texts: { headline: 'Le goût du vrai' }, media: [], program: { nodes: [{ id: 't', type: 'text', text: '$headline', size: 8, opacity: 0 }], timeline: [] } };
   for (const format of ['story', 'landscape'] as VideoFormat[]) {
-    const { probed } = await probeIn([giant, overlap, offStack, scaled, covered, front, contrastLow, contrastOk, fadeOut, empty], format);
+    const { probed } = await probeIn([giant, overlap, offStack, scaled, covered, front, contrastLow, contrastOk, fadeOut, empty, onPhoto, hiddenStart, restOut], format);
+    check(`${format} : un texte que sa propre animation laisserait hors cadre s’arrête dans la zone sûre`, !probed.layout.r1, JSON.stringify(probed.layout.r1));
+    check(`${format} : un texte déclaré caché qui « entre » (from opacity, to {}) apparaît bien`, !probed.layout.h1, JSON.stringify(probed.layout.h1));
+    const p1 = probed.layout.p1 || [];
+    check(`${format} : texte posé sur une photo, texte traversé par un trait vertical, texte à cheval sur un anneau : détectés`, p1.some((m) => /« Vos récoltes en vue » est posé sur une image/.test(m)) && p1.some((m) => /« Tout commence au soleil » est traversé/.test(m)) && p1.some((m) => /« clients accompagnés » est à cheval/.test(m)), JSON.stringify(p1));
+    check(`${format} : la couleur du fond d’un texte illisible est relevée (dernier recours)`, (probed.contrast.n1 || []).some((c) => c.text === 'Pagne Royal' && c.bg.length === 3), JSON.stringify(probed.contrast));
     check(`${format} : texte sombre sur un bandeau sombre signalé (contraste mesuré sur l’image) ; texte clair sur le même bandeau non signalé`, (probed.layout.n1 || []).some((m) => /ne se lit pas sur son fond/.test(m)) && !probed.layout.n2, JSON.stringify({ n1: probed.layout.n1, n2: probed.layout.n2 }));
     check(`${format} : un fondu final reste à la fin (scène pas vide à 78 %) ; une scène qui n’affiche aucun texte est signalée`, !probed.layout.e1 && (probed.layout.e2 || []).some((m) => /aucun de ses textes/.test(m)), JSON.stringify({ e1: probed.layout.e1, e2: probed.layout.e2 }));
-    check(`${format} : sans ordre imposé, les textes restent devant l’image et le trait (rien de caché)`, !probed.layout.f1, JSON.stringify(probed.layout.f1));
+    check(`${format} : sans ordre imposé, les textes restent devant l’image (rien de caché, seulement « posé sur une image »)`, !(probed.layout.f1 || []).some((m) => /caché/.test(m)) && (probed.layout.f1 || []).some((m) => /posé sur une image/.test(m)), JSON.stringify(probed.layout.f1));
     const c1 = probed.layout.c1 || [];
     check(`${format} : texte caché par une image dessinée par-dessus, texte barré par un trait, lettres superposées : détectés`, c1.some((m) => /« Mama Bissap » est caché par une image/.test(m)) && c1.some((m) => /« Le goût du vrai » est barré/.test(m)) && c1.some((m) => /se superposent/.test(m)), JSON.stringify(c1));
     check(`${format} : une pile posée à moitié hors cadre est ramenée dans la zone sûre`, !probed.layout.k1, JSON.stringify(probed.layout.k1));

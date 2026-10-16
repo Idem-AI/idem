@@ -1,26 +1,13 @@
-/* Open Source Page Styles */
-:host {
-  display: block;
-}
+/* Open source — ce qui n'appartient qu'à cette page. */
 
-.os-num {
-  color: color-mix(in oklch, var(--color-primary) 55%, transparent);
-  min-width: 2ch;
-}
-
-.os-link {
-  transition:
-    border-color 0.2s ease,
-    transform 0.2s ease;
-}
-.os-link:hover {
-  border-color: var(--glass-border-medium);
-  transform: translateY(-2px);
-}
-.os-arrow {
-  transition: transform 0.2s ease;
-}
-.os-link:hover .os-arrow {
-  transform: translateX(3px);
-  color: var(--color-primary);
+/* « Vous pouvez » / « Vous ne pouvez pas » : la colonne qui qualifie la clause
+   d'à côté. Elle se lit avant le titre, donc elle est en petites capitales et
+   dans la couleur de la marque — pas en vert et rouge, qui feraient croire à
+   un tableau de conformité. */
+.os-clause {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+  color: var(--color-primary-500);
 }

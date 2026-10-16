@@ -1,0 +1,370 @@
+/* ============================================================================
+   PAGES ÉDITORIALES — Société (À propos, Vision, Open Source, Contact) et
+   Produit (iCode, iDeploy).
+
+   Ce fichier ne porte QUE ce que le design system ne fournit pas : l'échelle
+   typographique monumentale de ces pages et la trame qui les met en page. Tout
+   le reste — surfaces, boutons, étiquettes, couleurs — vient de
+   `@idem/shared-styles` et ne doit pas être redoublé ici (AGENTS.md § 1).
+
+   La mise en page : une colonne éditoriale alignée à gauche, des partages
+   asymétriques, et la lisière d'un filet d'un pixel comme seul séparateur.
+   Pas de carte autour de chaque bloc : une carte dit « objet distinct », et
+   l'appliquer partout aplatit la hiérarchie.
+   ============================================================================ */
+
+:host {
+  display: block;
+}
+
+/* ---------------------------------------------------------------------------
+   TRAME
+   -------------------------------------------------------------------------- */
+
+.ed-page {
+  --ed-gutter: 1.25rem;
+  position: relative;
+}
+
+@media (min-width: 640px) {
+  .ed-page {
+    --ed-gutter: 2rem;
+  }
+}
+@media (min-width: 1024px) {
+  .ed-page {
+    --ed-gutter: 3rem;
+  }
+}
+
+.ed-wrap {
+  width: 100%;
+  max-width: 84rem;
+  margin-inline: auto;
+  padding-inline: var(--ed-gutter);
+}
+
+/* Une section = un bloc de sens. L'espace vertical est son seul cadre. */
+.ed-section {
+  padding-block: clamp(4.5rem, 9vw, 9rem);
+}
+
+/* La première section de la page passe sous l'en-tête fixe (4rem de haut) et
+   respire davantage : c'est elle qui donne l'échelle. */
+.ed-section-hero {
+  padding-block: clamp(8rem, 13vw, 13rem) clamp(4rem, 8vw, 8rem);
+}
+
+/* Le filet : la seule séparation dessinée de ces pages. */
+.ed-rule {
+  border-top: 1px solid var(--glass-border-subtle);
+}
+
+/* ---------------------------------------------------------------------------
+   TITRES
+   Le titre de page occupe la largeur : c'est lui qui donne l'échelle, et c'est
+   la raison pour laquelle ces pages n'ont pas besoin de sur-titre ni de
+   pastille au-dessus. Vilevile Black tient la ligne à ces corps-là.
+   -------------------------------------------------------------------------- */
+
+.ed-display {
+  font-weight: var(--font-weight-black);
+  font-size: clamp(2.75rem, 10.5vw, 9rem);
+  line-height: 0.9;
+  text-wrap: balance;
+  margin: 0;
+}
+
+/* Un titre de page qui tient en une seule ligne très longue (deux ou trois
+   mots) peut aller plus loin encore sans déborder. */
+.ed-display-wide {
+  font-size: clamp(3rem, 13vw, 11rem);
+}
+
+.ed-h2 {
+  font-weight: var(--font-weight-black);
+  font-size: clamp(2rem, 5.6vw, 4.5rem);
+  line-height: 0.95;
+  text-wrap: balance;
+  margin: 0;
+}
+
+.ed-h3 {
+  font-weight: var(--font-weight-bold);
+  font-size: clamp(1.125rem, 1.9vw, 1.5rem);
+  line-height: 1.2;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+/* Le chapô : la phrase qui suit le titre de page. */
+.ed-lede {
+  font-size: clamp(1.0625rem, 1.7vw, 1.5rem);
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+  max-width: 30ch;
+  text-wrap: pretty;
+  margin: 0;
+}
+
+.ed-lede-wide {
+  max-width: 42ch;
+}
+
+.ed-body {
+  font-size: clamp(0.9375rem, 1.1vw, 1.0625rem);
+  line-height: 1.7;
+  color: var(--color-text-tertiary);
+  max-width: 56ch;
+  text-wrap: pretty;
+  margin: 0;
+}
+
+/* ---------------------------------------------------------------------------
+   CHIFFRES
+   Un chiffre se lit comme un titre, et ses colonnes s'alignent.
+   -------------------------------------------------------------------------- */
+
+.ed-figure {
+  font-weight: var(--font-weight-black);
+  font-size: clamp(2.5rem, 6vw, 5rem);
+  line-height: 0.9;
+  font-variant-numeric: tabular-nums;
+  color: var(--idem-heading);
+}
+
+.ed-figure-sm {
+  font-weight: var(--font-weight-black);
+  font-size: clamp(1.75rem, 3vw, 2.5rem);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--idem-heading);
+}
+
+/* ---------------------------------------------------------------------------
+   LISTES ÉDITORIALES
+   Des rangées séparées par un filet, sans puce ni icône : l'icône qui répète
+   le mot d'à côté est du décor (AGENTS.md § 3).
+   -------------------------------------------------------------------------- */
+
+.ed-rows {
+  display: grid;
+  gap: 0;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ed-row {
+  padding-block: clamp(1.5rem, 2.5vw, 2.25rem);
+  border-top: 1px solid var(--glass-border-subtle);
+}
+
+/* La dernière rangée ferme la liste, pour que le bas ne reste pas ouvert. */
+.ed-rows-closed {
+  border-bottom: 1px solid var(--glass-border-subtle);
+}
+
+/* Deux ou trois colonnes de rangées. Les colonnes sont déclarées ici et non en
+   utilitaires Tailwind : les sélecteurs de ce fichier passent par
+   l'encapsulation d'Angular, donc le `gap: 0` de `.ed-rows` battrait un
+   `gap-x-*` posé dans le gabarit. */
+@media (min-width: 640px) {
+  .ed-rows-2,
+  .ed-rows-3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: clamp(2.5rem, 5vw, 6rem);
+  }
+}
+
+@media (min-width: 1024px) {
+  .ed-rows-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* Sur plusieurs colonnes, le filet de fermeture ne peut plus être posé sous la
+   liste : il ne fermerait qu'une colonne. C'est la dernière rangée de chaque
+   colonne qui porte sa bordure basse. En une seule colonne (téléphone), le
+   filet sous la liste reprend son rôle, d'où les deux règles sous media. */
+@media (min-width: 640px) {
+  .ed-rows-2.ed-rows-closed,
+  .ed-rows-3.ed-rows-closed {
+    border-bottom: 0;
+  }
+
+  .ed-rows-2.ed-rows-closed > .ed-row:nth-last-of-type(-n + 2) {
+    border-bottom: 1px solid var(--glass-border-subtle);
+  }
+
+  .ed-rows-3.ed-rows-closed > .ed-row:nth-last-of-type(-n + 2) {
+    border-bottom: 1px solid var(--glass-border-subtle);
+  }
+}
+
+@media (min-width: 1024px) {
+  .ed-rows-3.ed-rows-closed > .ed-row:nth-last-of-type(-n + 3) {
+    border-bottom: 1px solid var(--glass-border-subtle);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   LIEN DE RANGÉE
+   Un lien qui occupe sa rangée : la flèche avance au survol, rien d'autre ne
+   bouge.
+   -------------------------------------------------------------------------- */
+
+.ed-link-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding-block: clamp(1.25rem, 2vw, 1.75rem);
+  border-top: 1px solid var(--glass-border-subtle);
+  color: inherit;
+  text-decoration: none;
+  transition: color var(--duration-200) var(--ease-out);
+}
+
+.ed-link-row:hover,
+.ed-link-row:focus-visible {
+  color: var(--color-primary-500);
+}
+
+.ed-link-arrow {
+  flex-shrink: 0;
+  transition: transform var(--duration-200) var(--ease-out);
+}
+
+.ed-link-row:hover .ed-link-arrow,
+.ed-link-row:focus-visible .ed-link-arrow {
+  transform: translateX(0.35rem);
+}
+
+/* ---------------------------------------------------------------------------
+   ILLUSTRATIONS
+   Les dessins au trait sont posés à même la page : pas de panneau, pas d'aplat
+   derrière eux (docs/ILLUSTRATIONS.md).
+   -------------------------------------------------------------------------- */
+
+.ed-art {
+  width: 100%;
+  margin: 0;
+}
+
+/* Les tailles. Un dessin au trait n'a d'effet qu'en grand : réduit à la taille
+   d'une icône, il redevient le pictogramme que ces pages veulent éviter. Les
+   bornes sont donc hautes, et c'est au texte de se resserrer autour, pas au
+   dessin de se tasser. */
+
+/* Pleine largeur de sa colonne : la valeur par défaut d'une section illustrée. */
+.ed-art-fill {
+  max-width: none;
+}
+
+.ed-art-lg {
+  max-width: 48rem;
+}
+
+.ed-art-md {
+  max-width: 34rem;
+}
+
+.ed-art-sm {
+  max-width: 22rem;
+}
+
+/* ---------------------------------------------------------------------------
+   ENTRÉE
+   Une seule animation, jouée au chargement et terminée en moins d'une seconde.
+   Rien n'attend un défilement pour apparaître : une section laissée à
+   `opacity: 0` est invisible pour qui arrive par un lien profond, pour une
+   vignette de partage, et pour un lecteur qui ne défile pas.
+   -------------------------------------------------------------------------- */
+
+@keyframes ed-rise {
+  from {
+    opacity: 0;
+    transform: translateY(1.25rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.ed-rise {
+  animation: ed-rise 0.7s var(--ease-out) both;
+}
+
+.ed-rise-2 {
+  animation-delay: 0.1s;
+}
+
+.ed-rise-3 {
+  animation-delay: 0.2s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ed-rise,
+  .ed-link-arrow {
+    animation: none;
+    transition: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   ESPACEMENT VERTICAL
+
+   Pourquoi des classes plutôt que les `mt-*` de Tailwind : les règles de ce
+   fichier passent par l'encapsulation d'Angular, qui leur ajoute un attribut.
+   `.ed-lede[_ngcontent-x] { margin: 0 }` pèse donc plus lourd que `.mt-12`, et
+   écrase silencieusement toute marge posée dans le gabarit — le titre et son
+   chapô finissent collés. C'est le même piège que celui décrit dans
+   AGENTS.md § 1 pour les sélecteurs d'éléments du design system.
+
+   L'échelle reprend celle de Tailwind pour que la lecture du gabarit ne change
+   pas de repère. Le bloc est en fin de fichier : à spécificité égale c'est la
+   dernière règle qui gagne, et le `margin: 0` des classes typographiques est
+   déclaré plus haut.
+   -------------------------------------------------------------------------- */
+
+.ed-mt-1 {
+  margin-top: 0.25rem;
+}
+.ed-mt-2 {
+  margin-top: 0.5rem;
+}
+.ed-mt-3 {
+  margin-top: 0.75rem;
+}
+.ed-mt-4 {
+  margin-top: 1rem;
+}
+.ed-mt-6 {
+  margin-top: 1.5rem;
+}
+.ed-mt-8 {
+  margin-top: 2rem;
+}
+.ed-mt-10 {
+  margin-top: 2.5rem;
+}
+.ed-mt-12 {
+  margin-top: 3rem;
+}
+.ed-mt-14 {
+  margin-top: 3.5rem;
+}
+
+@media (min-width: 1024px) {
+  .ed-mt-lg-14 {
+    margin-top: 3.5rem;
+  }
+  .ed-mt-lg-16 {
+    margin-top: 4rem;
+  }
+  .ed-mt-lg-20 {
+    margin-top: 5rem;
+  }
+}

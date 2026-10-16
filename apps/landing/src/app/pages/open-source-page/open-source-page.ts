@@ -1,122 +1,99 @@
-import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { environment } from '../../../environments/environment';
+import { PageArtComponent } from '../../shared/components/page-art/page-art';
 
-interface Feature {
-  icon: string;
+/**
+ * Une clause de la licence. `grant` dit en deux mots si c'est un droit ou une
+ * limite : le texte de `LICENSE` est une Apache 2.0 **assortie de la Commons
+ * Clause**, pas une Apache 2.0 nue, et une page qui annonce « usage commercial
+ * sans restriction » dit le contraire de ce que le dépôt accorde.
+ */
+interface LicenseClause {
+  grant: string;
   title: string;
   description: string;
-  benefits: string[];
 }
 
-interface LicenseDetail {
+interface HostingOption {
   title: string;
   description: string;
-  icon: string;
+}
+
+interface CommunityPlace {
+  name: string;
+  description: string;
+  href: string;
 }
 
 @Component({
   selector: 'app-open-source-page',
-  standalone: true,
-  imports: [CommonModule, RouterLink],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [RouterLink, PageArtComponent],
   templateUrl: './open-source-page.html',
-  styleUrl: './open-source-page.css',
+  styleUrls: ['../../shared/styles/editorial-page.css', './open-source-page.css'],
 })
 export class OpenSourcePage {
   protected readonly dashboardUrl = environment.services.dashboard.url;
 
-  protected readonly features: Feature[] = [
+  protected readonly licenseClauses: LicenseClause[] = [
     {
-      icon: 'pi-code',
-      title: $localize`:@@open-source-page.features.sourceCode.title:Full Source Code Access`,
-      description: $localize`:@@open-source-page.features.sourceCode.description:Complete transparency with access to all source code under Apache 2.0 license.`,
-      benefits: [
-        $localize`:@@open-source-page.features.sourceCode.benefit1:Audit security and privacy`,
-        $localize`:@@open-source-page.features.sourceCode.benefit2:Customize to your needs`,
-        $localize`:@@open-source-page.features.sourceCode.benefit3:Learn from the codebase`,
-        $localize`:@@open-source-page.features.sourceCode.benefit4:Contribute improvements`,
-      ],
+      grant: $localize`:@@open-source-page.clause.read.grant:You may`,
+      title: $localize`:@@open-source-page.clause.read.title:Read and audit all of it`,
+      description: $localize`:@@open-source-page.clause.read.description:Every line of the platform is public, including how your data is stored and which model handles which request.`,
     },
     {
-      icon: 'pi-shield',
-      title: $localize`:@@open-source-page.features.sovereignty.title:Data Sovereignty`,
-      description: $localize`:@@open-source-page.features.sovereignty.description:Your data stays in Africa with full control over storage and processing.`,
-      benefits: [
-        $localize`:@@open-source-page.features.sovereignty.benefit1:African cloud infrastructure`,
-        $localize`:@@open-source-page.features.sovereignty.benefit2:GDPR and local compliance`,
-        $localize`:@@open-source-page.features.sovereignty.benefit3:On-premise deployment option`,
-        $localize`:@@open-source-page.features.sovereignty.benefit4:No vendor lock-in`,
-      ],
+      grant: $localize`:@@open-source-page.clause.host.grant:You may`,
+      title: $localize`:@@open-source-page.clause.host.title:Install it on your own servers`,
+      description: $localize`:@@open-source-page.clause.host.description:Run the whole platform inside your company, for your company. No licence fee, no call home.`,
     },
     {
-      icon: 'pi-users',
-      title: $localize`:@@open-source-page.features.community.title:Community Driven`,
-      description: $localize`:@@open-source-page.features.community.description:Built by the community, for the community with transparent governance.`,
-      benefits: [
-        $localize`:@@open-source-page.features.community.benefit1:Open roadmap and decisions`,
-        $localize`:@@open-source-page.features.community.benefit2:Community contributions welcome`,
-        $localize`:@@open-source-page.features.community.benefit3:Regular updates and releases`,
-        $localize`:@@open-source-page.features.community.benefit4:Active Discord community`,
-      ],
+      grant: $localize`:@@open-source-page.clause.clients.grant:You may`,
+      title: $localize`:@@open-source-page.clause.clients.title:Deliver client work with it`,
+      description: $localize`:@@open-source-page.clause.clients.description:Agencies and freelancers can use IDEM to build for their clients, and charge for that work as they always have.`,
     },
     {
-      icon: 'pi-lock-open',
-      title: $localize`:@@open-source-page.features.noLockIn.title:No Vendor Lock-in`,
-      description: $localize`:@@open-source-page.features.noLockIn.description:Freedom to self-host, modify, and migrate without restrictions.`,
-      benefits: [
-        $localize`:@@open-source-page.features.noLockIn.benefit1:Export all your data anytime`,
-        $localize`:@@open-source-page.features.noLockIn.benefit2:Self-host on your infrastructure`,
-        $localize`:@@open-source-page.features.noLockIn.benefit3:Switch providers easily`,
-        $localize`:@@open-source-page.features.noLockIn.benefit4:Full API access`,
-      ],
+      grant: $localize`:@@open-source-page.clause.modify.grant:You may`,
+      title: $localize`:@@open-source-page.clause.modify.title:Change it and share the change`,
+      description: $localize`:@@open-source-page.clause.modify.description:Fork it, patch it, redistribute it, as long as the copyright notices stay in place.`,
+    },
+    {
+      grant: $localize`:@@open-source-page.clause.sell.grant:You may not`,
+      title: $localize`:@@open-source-page.clause.sell.title:Resell IDEM itself`,
+      description: $localize`:@@open-source-page.clause.sell.description:The Commons Clause added to the licence rules out selling the software, or hosting it as a paid service of your own. Write to us if that is what you need.`,
     },
   ];
 
-  protected readonly licenseDetails: LicenseDetail[] = [
+  protected readonly hostingOptions: HostingOption[] = [
     {
-      title: $localize`:@@open-source-page.license.commercial.title:Commercial Use`,
-      description: $localize`:@@open-source-page.license.commercial.description:Use IDEM for commercial purposes without restrictions`,
-      icon: 'pi-briefcase',
+      title: $localize`:@@open-source-page.hosting.managed.title:Our managed hosting`,
+      description: $localize`:@@open-source-page.hosting.managed.description:The default. You create a project, we keep the machines running, and your deliverables are downloadable at any point.`,
     },
     {
-      title: $localize`:@@open-source-page.license.modification.title:Modification`,
-      description: $localize`:@@open-source-page.license.modification.description:Modify the source code to fit your specific needs`,
-      icon: 'pi-wrench',
+      title: $localize`:@@open-source-page.hosting.vps.title:Your own VPS`,
+      description: $localize`:@@open-source-page.hosting.vps.description:Point iDeploy at a server you rent and it builds there instead. The provider, the country and the invoice are yours.`,
     },
     {
-      title: $localize`:@@open-source-page.license.distribution.title:Distribution`,
-      description: $localize`:@@open-source-page.license.distribution.description:Distribute your modified or unmodified versions`,
-      icon: 'pi-share-alt',
-    },
-    {
-      title: $localize`:@@open-source-page.license.patent.title:Patent Grant`,
-      description: $localize`:@@open-source-page.license.patent.description:Protection against patent claims from contributors`,
-      icon: 'pi-verified',
+      title: $localize`:@@open-source-page.hosting.onPremise.title:A machine in your office`,
+      description: $localize`:@@open-source-page.hosting.onPremise.description:The full platform installs from the repository with Docker. Nothing leaves the building, including the prompts.`,
     },
   ];
 
-  protected readonly stats = [
+  protected readonly communityPlaces: CommunityPlace[] = [
     {
-      value: '100%',
-      label: $localize`:@@open-source-page.stats.openSource.label:Open Source`,
-      description: $localize`:@@open-source-page.stats.openSource.description:Apache 2.0 License`,
+      name: 'GitHub',
+      description: $localize`:@@open-source-page.place.github.description:The code, the issues and the roadmap. Pull requests are read.`,
+      href: 'https://github.com/Idem-AI',
     },
     {
-      value: '0',
-      label: $localize`:@@open-source-page.stats.noLockIn.label:Vendor Lock-in`,
-      description: $localize`:@@open-source-page.stats.noLockIn.description:Full data portability`,
+      name: $localize`:@@open-source-page.place.issues.name:Report a bug`,
+      description: $localize`:@@open-source-page.place.issues.description:Open an issue on the repository. Bugs reported in the open get fixed in the open.`,
+      href: 'https://github.com/Idem-AI/idem/issues',
     },
     {
-      value: 'Africa',
-      label: $localize`:@@open-source-page.stats.dataLocation.label:Data Location`,
-      description: $localize`:@@open-source-page.stats.dataLocation.description:Sovereign infrastructure`,
-    },
-    {
-      value: 'Active',
-      label: $localize`:@@open-source-page.stats.community.label:Community`,
-      description: $localize`:@@open-source-page.stats.community.description:Growing ecosystem`,
+      name: $localize`:@@open-source-page.place.releases.name:Release notes`,
+      description: $localize`:@@open-source-page.place.releases.description:What changed, version by version, with the commits behind each line.`,
+      href: 'https://github.com/Idem-AI/idem/releases',
     },
   ];
-
 }

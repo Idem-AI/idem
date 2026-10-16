@@ -365,6 +365,8 @@ export interface FilmScene {
    * format. Ils déclenchent l'autocorrection bornée ; ceux qui restent sont dits, sans bloquer l'export.
    */
   layout?: string[];
+  /** Textes mal affichés au dernier contrôle et leur dernier recours : encre lisible (couleur réelle du fond) ou aplat. */
+  contrast?: { text: string; kind?: 'ink' | 'plate'; bg?: number[]; ink?: string }[];
   /** Vignette de la scène (image rendue au dernier contrôle). */
   thumbnail?: string;
 }

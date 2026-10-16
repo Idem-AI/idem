@@ -134,7 +134,7 @@ function programFor(user: string, opts: { overlap?: boolean } = {}): MotionProgr
   const keys = [...scene.matchAll(/\$(\w+) = "/g)].map((m) => m[1]);
   const hasMedia = /\nmedia: 0 = image/.test(scene);
   const nodes: MotionProgram['nodes'] = [];
-  if (hasMedia) nodes.push({ id: 'photo', type: 'image', media: 0, y: 'pick(-SH*0.15, 0)', w: 'pick(SW, SW*0.5)', h: 'pick(SH*0.5, SH)', radius: 2, zoom: 1.1 });
+  if (hasMedia) nodes.push({ id: 'photo', type: 'image', media: 0, x: 'pick(0, -SW*0.25)', y: 'pick(-SH*0.15, 0)', w: 'pick(SW, SW*0.45)', h: 'pick(SH*0.5, SH)', radius: 2, zoom: 1.1 });
   if (opts.overlap) keys.forEach((k, i) => nodes.push({ id: `t${i}`, type: 'text', text: `$${k}`, y: i, size: 8 }));
   else nodes.push({ id: 'words', type: 'stack', dir: 'column', gap: 2, y: hasMedia ? 'pick(SH*0.32, 0)' : 0, x: hasMedia ? 'pick(0, SW*0.27)' : 0, children: keys.map((k, i) => ({ type: 'text' as const, text: `$${k}`, size: i ? 4.6 : 9, width: hasMedia ? 'pick(SW, SW*0.4)' : 'SW', weight: i ? 400 : 800 })) });
   return {
@@ -185,7 +185,7 @@ async function pipeline(media: { photo: string }) {
   const authorLog: { scene: number; level?: string; strategy: string; user: string }[] = [];
   const invalid = { nodes: [{ id: 'x', type: 'sparkle' }], timeline: [] };
   /** fixable : la scène 3 est refusée au premier jet puis se corrige ; stubborn : toujours refusée ; layout : ses textes se chevauchent au premier jet. */
-  let mode: 'fixable' | 'stubborn' | 'layout' = 'fixable';
+  let mode: 'fixable' | 'stubborn' | 'layout' | 'contrast' | 'plate' = 'fixable';
   const call: AgentCall = async ({ role, user, level }) => {
     calls[role] = (calls[role] || 0) + 1;
     if (role === 'video.concept') return 'TITLE: Le café qui réveille\nCONCEPT: Une journée qui commence par une tasse.\nBIBLE: fond crème, vert de la marque, gros titres serrés, mouvements nets.\nSCENE 1: le titre se pose mot à mot\nSCENE 2: la photo des grains\nSCENE 3: le chiffre de la semaine\nSCENE 4: la signature';
@@ -205,6 +205,10 @@ async function pipeline(media: { photo: string }) {
       authorLog.push({ scene, level, strategy, user });
       if (scene === 3 && (mode === 'stubborn' || (mode === 'fixable' && (strategy === 'first' || strategy === 'retry')))) return json(invalid);
       if (scene === 3 && mode === 'layout' && strategy === 'first') return json(programFor(user, { overlap: true }));
+      // Un modèle qui s'obstine : texte bleu nuit sur un bandeau bleu nuit, à chaque approche.
+      // Un modèle qui s'obstine à poser la légende sur la photo plein cadre, à chaque approche.
+      if (scene === 2 && mode === 'plate') return json({ nodes: [{ type: 'image', media: 0, w: 'W', h: 'H' }, { id: 'cap', type: 'text', text: '$caption', size: 9, color: 'ink' }], timeline: [{ at: 0.2, target: 'cap', dur: 0.5, from: { opacity: 0, y: '+=4' }, to: {} }] });
+      if (scene === 3 && mode === 'contrast') return json({ nodes: [{ type: 'rect', w: 'SW', h: 30, fill: 'secondary' }, { id: 'n', type: 'text', text: '$figure', size: 10, color: '#14324a' }, { type: 'text', text: '$label', y: 30, size: 5 }], timeline: [{ at: 0.1, target: 'n', dur: 0.5, from: { opacity: 0 }, to: {} }] });
       return 'Voici le programme :\n' + json(programFor(user));
     }
     if (role === 'video.reviser') return 'TEXT s1.headline: Le café du matin\nVISUAL s2: le cadre entre plus lentement\nREPLY: C’est fait.';
@@ -253,6 +257,22 @@ async function pipeline(media: { photo: string }) {
   const lay = await create();
   const fixMsg = s3().find((x) => x.strategy === 'fix')?.user || '';
   check(/se chevauchent/.test(fixMsg) && lay.film!.repair?.layoutFixed?.join() === 's3' && !lay.film!.scenes[2].layout?.length, 'textes qui se chevauchent : détectés dans Motion Canvas, le modèle reçoit le défaut exact, scène corrigée', JSON.stringify({ repair: lay.film!.repair, msg: fixMsg.slice(-300) }));
+  mode = 'fixable';
+
+  // Un texte qui reste illisible après les trois approches : l'encre lisible est posée par le code (dernier recours).
+  mode = 'contrast';
+  authorLog.length = 0;
+  const ink = await create();
+  const s3c = ink.film!.scenes[2];
+  check(!s3c.layout?.length && /"color":"#ffffff"/.test(s3c.code || '') && JSON.stringify(strategies()) === '["first","fix","rewrite"]', 'texte illisible malgré deux approches : le code lui donne l’encre lisible d’après le fond réel, la scène se lit', JSON.stringify({ layout: s3c.layout, repair: ink.film!.repair }));
+  mode = 'fixable';
+
+  // Un texte posé sur une photo malgré deux approches : le code pose un aplat sous le texte (dernier recours).
+  mode = 'plate';
+  authorLog.length = 0;
+  const plated = await create();
+  const s2p = plated.film!.scenes[1];
+  check(!s2p.layout?.length && /"type":"stack"[^\n]*"fill":"background\/92"/.test(s2p.code || '') && authorLog.filter((x) => x.scene === 2 && x.strategy !== 'retry').length === 3, 'légende posée sur la photo malgré deux approches : le code pose un aplat sous le texte, ses mouvements suivent', JSON.stringify({ layout: s2p.layout, repair: plated.film!.repair }));
   mode = 'fixable';
 
   // Le budget de jetons coupe la correction pour tout le film, même au milieu des approches.

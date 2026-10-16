@@ -1,14 +1,9 @@
 {
   "locale": "en",
   "translations": {
-    "hero.alt.projectBuilder": "Idem AI-powered project builder interface showing logo generation, business plan creation, and web application development features",
-    "hero.title": "{$START_TAG_SPAN}The African AI that {$CLOSE_TAG_SPAN}{$START_TAG_SPAN}{$START_TAG_SPAN_1}creates companies{$CLOSE_TAG_SPAN}{$CLOSE_TAG_SPAN}",
-    "hero.description": " From a simple idea, IDEM builds a complete business. {$START_TAG_SPAN}Strategy, brand, product, finances, website and deploys it on servers in Africa, everything{$CLOSE_TAG_SPAN}. Designed for Africa. ",
+    "hero.title": "{$START_TAG_SPAN}The AI that builds {$CLOSE_TAG_SPAN}{$START_TAG_SPAN}{$START_TAG_SPAN_1}profitable businesses{$CLOSE_TAG_SPAN}{$CLOSE_TAG_SPAN}",
+    "hero.description": "{$START_TAG_SPAN}More than 500 AI agents{$CLOSE_TAG_SPAN} to structure your project, manage your finances, create your brand, your communication strategy and your website, and deploy it in Africa. ",
     "hero.tryForFree": " Try for free ",
-    "hero.viewOnGithub": "View on GitHub",
-    "hero.seo.appCategory": "BusinessApplication",
-    "hero.seo.description": "AI-powered platform for instant brand creation and application deployment",
-    "hero.seo.os": "Web Browser",
-    "hero.seo.creatorName": "Idem Team"
+    "hero.viewOnGithub": "View on GitHub"
   }
 }

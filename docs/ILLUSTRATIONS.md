@@ -198,6 +198,44 @@ pagne tendu en bannière. Le cadenas de l'adresse est le seul détail en couleur
 
 L'invitation bêta (clé à anneau-bouclier) était déjà dans ce style.
 
+Les pages **Société** (À propos, Vision, Open Source, Contact) et **Produit**
+(iCode, iDeploy) ont été refaites en octobre 2026 : les photographies de banque
+d'images qui les habillaient ont été retirées, et chaque section porte
+désormais l'objet qui dit ce qu'elle dit. Les dessins sont dans
+`apps/landing/src/app/shared/components/page-art/page-art.ts`
+(`<app-page-art scene="…">`), et ce sont les tracés déjà retenus ailleurs —
+tableau de bord, iDeploy, simulateur — pour qu'un même sens garde partout le
+même visage. Les offres gardent leur composant à part
+(`app-offer-illustration`).
+
+| Page · section | Retenu | Écartés |
+| --- | --- | --- |
+| À propos : héros, les fondateurs | **arbre à palabres et tabourets** (`palaver-tree`) — l'équipe, le conseil | photographie « équipe tech africaine » (banque d'images, hors DA) |
+| À propos : le parcours | **échelle dogon** (`ladder`) — une marche à la fois ; les années sont une vraie séquence | — |
+| À propos : la vision 2035 | **baobab qui porte son fruit** (`baobab`) — la croissance qui rapporte | photographie en pleine largeur sous voile noir (fond sombre imposé, § 3) |
+| Contact : héros et « message parti » | **tambour parleur** (`drum`), ses ondes en couleur — la parole portée loin ; les deux moments disent la même chose, d'où le même objet | — |
+| Vision : héros | **étal du marché** (`market`) — le commerce en nom propre | mosaïque de quatre photographies ; silhouette du continent (interdite par défaut) |
+| Vision : le déploiement par région | **calebasse de cauris** (`cowries`) — une région est ouverte quand on peut payer depuis chez soi | étal (déjà pris par le héros de la page) |
+| Open Source : héros | **porte de grenier et serrure de bois** (`granary-lock`), la clé en couleur — « votre code, votre clé » | — |
+| Open Source : où vivent vos données | **canaris** (`jars`) — on garde, on stocke | photographie « data sovereignty » ; grenier (dit la machine, pas la garde) |
+| Open Source : la licence et le droit | **balance akan** (`scales`) — peser juste, la règle | feuillet et calame (dit l'écriture, pas la règle) |
+| Open Source : la communauté | **arbre à palabres** (`palaver-tree`) — on se réunit pour décider ; même sens que les fondateurs d'À propos | photographie « équipe de développeurs » |
+| iCode : héros | **métier à tisser** (`loom`), la navette en couleur — le code qui se construit fil à fil | façade en banco (réservée à l'institution) |
+| iCode : mettre en ligne / emporter | **pirogue** (`canoe`) — le départ | — |
+| iDeploy : héros | **pirogue** (`canoe`) — la mise en ligne | grenier (dit la machine, pas le départ) |
+| iDeploy : infrastructure IDEM | **grenier plein, tenu pour vous** (`granary-full`) | — |
+| iDeploy : votre propre serveur | **porte de grenier et serrure** (`granary-lock`) | — |
+| iDeploy : protégé et surveillé | **bouclier aux lances croisées** (`shield`) | — |
+| iDeploy : nom de domaine | **façade ndebele peinte** (`facade`) — l'adresse à son nom | — |
+| iDeploy : le catalogue en un clic | **étal du marché** (`market`) — on choisit | — |
+| iDeploy : « Et aussi » (bases, volumes) | **canaris** (`jars`), en grand | — |
+| iDeploy : le prix, l'offre gratuite | **calebasse de cauris** (`cowries`) | — |
+
+Les trois étapes d'iCode et les quatre d'iDeploy ne sont pas illustrées : ce
+sont des séquences réelles, et leur numéro porte déjà l'information. Les
+listes qui ne sont pas des séquences — valeurs, avantages, fonctions — n'ont ni
+numéro ni icône : une icône qui répète le mot d'à côté est du décor (§ 3).
+
 ### Images de partage (Open Graph)
 
 Une image 1200 × 630 par page et par langue, dessinée par l'API

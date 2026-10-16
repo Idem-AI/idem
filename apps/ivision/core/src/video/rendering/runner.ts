@@ -215,10 +215,17 @@ export interface ProbeResult {
   thumbnails: Record<string, Buffer>;
   /** Les défauts d'AFFICHAGE de chaque scène (texte coupé par le cadre, textes qui se chevauchent), en clair. */
   layout: Record<string, string[]>;
+  /** Les textes illisibles sur leur fond et la couleur de ce fond (dernier recours du moteur). */
+  contrast: Record<string, ContrastFix[]>;
 }
 
-export interface TextBox { text: string; x0: number; y0: number; x1: number; y1: number; group: string; order?: number; contrast?: number }
-export interface ShapeBox { kind: 'fill' | 'image' | 'line'; x0: number; y0: number; x1: number; y1: number; order: number }
+export interface TextBox { text: string; x0: number; y0: number; x1: number; y1: number; group: string; order?: number; contrast?: number; bg?: number[]; best?: string; bestContrast?: number }
+export interface ShapeBox { kind: 'fill' | 'image' | 'line' | 'outline'; x0: number; y0: number; x1: number; y1: number; order: number }
+/**
+ * Le dernier recours d'affichage d'un texte : `ink` (illisible sur son fond : la couleur réelle de ce fond) ou `plate`
+ * (posé sur une image, traversé par un trait, à cheval sur un contour : un aplat sous le texte).
+ */
+export interface ContrastFix { text: string; kind?: 'ink' | 'plate'; bg?: number[]; ink?: string }
 
 /**
  * Les défauts d'affichage d'un instant : un texte qui dépasse du cadre (au-delà de 1,5 %), deux textes dont les
@@ -243,6 +250,8 @@ export function layoutIssues(texts: TextBox[], width: number, height: number, at
     const ta = area(t);
     if (!ta) continue;
     const band = { x0: t.x0, x1: t.x1, y0: t.y0 + (t.y1 - t.y0) * 0.3, y1: t.y1 - (t.y1 - t.y0) * 0.3 };
+    /** Un aplat dessiné entre la forme et le texte, qui couvre le texte : la forme est masquée sous lui. */
+    const plated = (s: ShapeBox) => shapes.some((f) => f.kind === 'fill' && f.order > s.order && f.order < t.order! && inter(t, f) > 0.8 * ta);
     const over = shapes.filter((s) => s.order > t.order!);
     const hit = over.find((s) => {
       const i = inter(t, s);
@@ -251,8 +260,16 @@ export function layoutIssues(texts: TextBox[], width: number, height: number, at
     });
     if (hit) out.push(`${label(t)} est ${hit.kind === 'image' ? 'caché par une image' : 'caché par une forme'} dessinée par-dessus à ${at.toFixed(1)} s`);
     // Un trait qui traverse le milieu d'un texte le barre, qu'il passe devant ou derrière.
-    const strike = shapes.find((s) => s.kind === 'line' && Math.min(t.x1, s.x1) - Math.max(t.x0, s.x0) > 0.3 * (t.x1 - t.x0) && s.y1 - s.y0 < (t.y1 - t.y0) * 0.5 && inter(band, { ...s, y0: s.y0 - 1, y1: s.y1 + 1 }) > 0);
-    if (strike && !t.group) out.push(`${label(t)} est barré par un trait à ${at.toFixed(1)} s`);
+    const strike = shapes.find((s) => s.kind === 'line' && !plated(s) && Math.min(t.x1, s.x1) - Math.max(t.x0, s.x0) > 0.3 * (t.x1 - t.x0) && s.y1 - s.y0 < (t.y1 - t.y0) * 0.5 && inter(band, { ...s, y0: s.y0 - 1, y1: s.y1 + 1 }) > 0);
+    // Un trait qui le traverse dans l'autre sens (tige, filet vertical) le coupe aussi.
+    const cross = !strike && shapes.find((s) => s.kind === 'line' && !plated(s) && s.x1 - s.x0 < (t.x1 - t.x0) * 0.25 && s.x0 > t.x0 + (t.x1 - t.x0) * 0.08 && s.x1 < t.x1 - (t.x1 - t.x0) * 0.08 && Math.min(t.y1, s.y1) - Math.max(t.y0, s.y0) > 0.6 * (t.y1 - t.y0));
+    if ((strike || cross) && !t.group) out.push(`${label(t)} est ${strike ? 'barré' : 'traversé'} par un trait à ${at.toFixed(1)} s`);
+    // À cheval sur un contour (cadre, anneau) : ni dedans ni dehors.
+    const straddle = shapes.find((s) => s.kind === 'outline' && !plated(s) && inter(t, s) > 0.08 * ta && !(t.x0 >= s.x0 && t.x1 <= s.x1 && t.y0 >= s.y0 && t.y1 <= s.y1));
+    if (straddle && !t.group) out.push(`${label(t)} est à cheval sur le contour d'une forme à ${at.toFixed(1)} s`);
+    // Posé sur une image sans aplat entre les deux : le texte se perd dans la photo.
+    const photo = shapes.find((s) => s.kind === 'image' && s.order < t.order! && inter(t, s) > 0.25 * ta && !plated(s));
+    if (photo && !t.group) out.push(`${label(t)} est posé sur une image (aucun aplat entre les deux) à ${at.toFixed(1)} s`);
     if (t.contrast !== undefined && t.contrast < 2.2) out.push(`${label(t)} ne se lit pas sur son fond (contraste ${t.contrast.toFixed(1)} : couleur trop proche de ce qu'il recouvre) à ${at.toFixed(1)} s`);
   }
   const tx = width * 0.015;
@@ -309,6 +326,7 @@ export async function probeFilm(input: FilmPageInput & { files?: Map<string, Ser
       }
       // Le contrôle d'affichage : deux instants par scène, quand tout est installé (la piste du langage finit à 70 %).
       const layout: Record<string, string[]> = {};
+      const contrast: Record<string, ContrastFix[]> = {};
       if (opts.layout !== false) {
         for (const scene of input.data.scenes) {
           if (errors.has(scene.key) || scene.compileError) continue;
@@ -319,11 +337,24 @@ export async function probeFilm(input: FilmPageInput & { files?: Map<string, Ser
             // Une scène installée qui n'affiche aucun de ses textes (tout est sorti avant la fin, ou rien n'est entré).
             if (r === 0.78 && !res.texts.length && Object.values(scene.texts || {}).some((v) => String(v || '').trim())) found.add(`la scène n'affiche aucun de ses textes à ${(scene.duration * r).toFixed(1)} s`);
             for (const issue of layoutIssues(res.texts, input.data.width, input.data.height, scene.duration * r, res.shapes || [])) found.add(issue);
+            const issues = layoutIssues(res.texts, input.data.width, input.data.height, scene.duration * r, res.shapes || []);
+            for (const t of res.texts) {
+              const list = (contrast[scene.key] ||= []);
+              const label = `« ${t.text.length > 48 ? `${t.text.slice(0, 46)}…` : t.text} »`;
+              const plate = issues.some((m) => m.startsWith(label) && /posé sur une image|traversé par un trait|barré par un trait|à cheval sur le contour/.test(m));
+              if (plate && !list.some((c) => c.text === t.text && c.kind === 'plate')) list.push({ text: t.text, kind: 'plate' });
+              else if (t.contrast !== undefined && t.contrast < 2.2 && t.bg && !list.some((c) => c.text === t.text)) {
+                // Une encre suffit si elle se lit sur tout le pourtour ; sinon (fond mixte) un aplat.
+                if ((t.bestContrast ?? 0) >= 3) list.push({ text: t.text, kind: 'ink', bg: t.bg, ...(t.best ? { ink: t.best } : {}) });
+                else list.push({ text: t.text, kind: 'plate' });
+              }
+            }
+            if (!contrast[scene.key]?.length) delete contrast[scene.key];
           }
           if (found.size) layout[scene.key] = [...found].slice(0, 6);
         }
       }
-      return { errors: [...errors.values()], cues: init.cues, thumbnails, layout };
+      return { errors: [...errors.values()], cues: init.cues, thumbnails, layout, contrast };
     })();
     return await Promise.race([job, new Promise<never>((_, reject) => setTimeout(() => reject(new Error('probe_timeout')), opts.timeoutMs ?? 120000))]);
   } finally {

@@ -1,188 +1,177 @@
-<!-- About Page -->
-<div class="relative min-h-screen bg-transparent overflow-hidden">
-  <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 lg:py-28">
-    <!-- Hero -->
-    <div class="mb-20 lg:mb-28">
-      <div class="max-w-3xl mb-12">
-        <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-text-primary text-balance">
-          <span i18n="@@about-page.africa_first">Africa's First</span>&nbsp;<span class="i-underline" i18n="@@about-page.sovereign_platform">Sovereign AI Platform</span>
-        </h1>
-        <p class="mt-6 text-lg lg:text-xl text-text-secondary leading-relaxed text-pretty" i18n="@@about-page.description">
-          Founded in Cameroon with a mission to democratize tech entrepreneurship across Africa
-          through open source AI technology.
+<!-- À propos — qui construit IDEM, pourquoi, et où nous en sommes.
+     Mise en page éditoriale : le titre donne l'échelle, le filet sépare, et
+     chaque illustration est l'objet africain qui dit ce que dit sa section
+     (AGENTS.md § 4). Aucune photographie de banque d'images. -->
+<div class="ed-page">
+  <!-- ═══ L'identité ═══════════════════════════════════════════════════ -->
+  <header class="ed-section ed-section-hero ed-wrap">
+    <!-- Le titre occupe toute la largeur : c'est lui qui donne l'échelle de la
+         page, et à sept colonnes le plus long mot débordait de sa colonne. -->
+    <h1 class="ed-display ed-rise">
+      <span i18n="@@about-page.hero.line1">Founded in Douala,</span><br />
+      <span class="i-underline" i18n="@@about-page.hero.line2">for all of Africa</span>
+    </h1>
+
+    <div class="grid gap-12 ed-mt-12 ed-mt-lg-16 lg:grid-cols-12 lg:gap-16 lg:items-center">
+      <div class="lg:col-span-6 ed-rise ed-rise-2">
+        <p class="ed-lede ed-lede-wide" i18n="@@about-page.hero.lede">
+          Two engineers from Cameroon, one platform, and a single conviction: an entrepreneur in
+          Yaoundé should not pay four times more than one in Paris for the same work.
         </p>
       </div>
 
-      <!-- Image composition -->
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
-        <div class="lg:col-span-2 rounded-2xl overflow-hidden border border-[var(--glass-border)] relative">
-          <img
-            src="assets/images/about-page/team-collaboration.webp"
-            i18n-alt="@@about-page.alt.teamCollaboration"
-            alt="African tech team collaboration"
-            loading="lazy"
-            class="w-full h-full object-cover min-h-[300px] sm:min-h-[420px] lg:min-h-[500px]"
-          />
-          <div class="absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-transparent"></div>
-          <div class="absolute bottom-0 left-0 right-0 p-6 sm:p-8">
-            <h2 class="text-2xl sm:text-3xl font-bold text-white text-balance" i18n="@@about-page.buildingTheFuture">
-              Building the Future Together
-            </h2>
-            <p class="mt-1 text-sm sm:text-base text-white/85" i18n="@@about-page.empoweringEntrepreneurs">
-              Empowering African entrepreneurs with AI
-            </p>
-          </div>
-        </div>
-        <div class="flex flex-col gap-4 lg:gap-6">
-          <div class="rounded-2xl overflow-hidden border border-[var(--glass-border)] flex-1 min-h-[180px]">
-            <img
-              src="assets/images/african-market-page/developer.webp"
-              i18n-alt="@@about-page.alt.womanEntrepreneur"
-              alt="African woman entrepreneur"
-              loading="lazy"
-              class="w-full h-full object-cover"
-            />
-          </div>
-          <div class="rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg-subtle)] p-6">
-            <h3 class="text-xl font-bold text-text-primary" i18n="@@about-page.made_cameroon">Made in Cameroon 🇨🇲</h3>
-            <p class="mt-1 text-sm text-text-tertiary" i18n="@@about-page.for_all_africa">For all of Africa</p>
-          </div>
-        </div>
-      </div>
+      <figure class="lg:col-span-6 ed-art ed-art-fill ed-rise ed-rise-3">
+        <app-page-art scene="palaver-tree" />
+      </figure>
     </div>
+  </header>
 
-    <!-- Founders -->
-    <div class="mb-20 lg:mb-28">
-      <app-team />
-    </div>
+  <!-- ═══ Ce que nous tenons ══════════════════════════════════════════
+       Trois engagements chiffrés, pas des arguments. Chacun se vérifie
+       sur une autre page du site. -->
+  <section class="ed-rule">
+    <div class="ed-section ed-wrap">
+      <div class="grid gap-12 lg:grid-cols-12 lg:gap-16">
+        <div class="lg:col-span-5">
+          <h2 class="ed-h2" i18n="@@about-page.commitments.title">What we hold to</h2>
+          <p class="ed-body ed-mt-6" i18n="@@about-page.commitments.body">
+            World-class tools cost what a developer in San Francisco earns in an hour. That is the
+            barrier. Everything below exists to lower it.
+          </p>
+        </div>
 
-    <!-- Mission -->
-    <div class="mb-20 lg:mb-28 grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
-      <div>
-        <h2 class="text-3xl sm:text-4xl font-bold text-text-primary text-balance mb-5" i18n="@@about-page.mission.title">
-          Democratizing Tech Entrepreneurship in Africa
-        </h2>
-        <p class="text-base sm:text-lg text-text-secondary leading-relaxed text-pretty mb-8" i18n="@@about-page.mission.description1">
-          We believe every African entrepreneur deserves access to world-class AI tools without
-          the prohibitive costs and complexity of traditional solutions.
-        </p>
-        <ul class="flex flex-col gap-5">
-          <li>
-            <p class="font-semibold text-text-primary" i18n="@@about-page.accessible_pricing">Accessible Pricing</p>
-            <p class="text-sm text-text-tertiary mt-0.5" i18n="@@about-page.mission.pricing.description">3 to 5 times cheaper than international platforms</p>
-          </li>
-          <li>
-            <p class="font-semibold text-text-primary" i18n="@@about-page.data_sovereignty">Data Sovereignty</p>
-            <p class="text-sm text-text-tertiary mt-0.5" i18n="@@about-page.your_data_stays">Your data stays in Africa, under your control</p>
-          </li>
-          <li>
-            <p class="font-semibold text-text-primary" i18n="@@about-page.open_source">Open Source</p>
-            <p class="text-sm text-text-tertiary mt-0.5" i18n="@@about-page.full_transparency_with">Full transparency with the Apache 2.0 license</p>
-          </li>
+        <ul class="lg:col-span-7 ed-rows ed-rows-closed">
+          @for (commitment of commitments; track commitment.title) {
+            <li class="ed-row grid gap-x-8 gap-y-3 sm:grid-cols-[14rem_1fr] sm:items-baseline">
+              <p class="ed-figure-sm">{{ commitment.figure }}</p>
+              <div>
+                <h3 class="ed-h3">{{ commitment.title }}</h3>
+                <p class="ed-body ed-mt-2">{{ commitment.description }}</p>
+              </div>
+            </li>
+          }
         </ul>
       </div>
-      <div class="rounded-2xl overflow-hidden border border-[var(--glass-border)] min-h-[320px] lg:min-h-[420px]">
-        <img
-          src="assets/images/about-page/business-team.webp"
-          i18n-alt="@@about-page.alt.businessTeam"
-          alt="African business team celebrating"
-          loading="lazy"
-          class="w-full h-full object-cover"
-        />
-      </div>
     </div>
+  </section>
 
-    <!-- Values: editorial numbered list, no cards -->
-    <div class="mb-20 lg:mb-28">
-      <div class="max-w-2xl mb-10">
-        <h2 class="text-3xl sm:text-4xl font-bold text-text-primary" i18n="@@about-page.our_values">Our Values</h2>
-        <p class="mt-3 text-text-secondary" i18n="@@about-page.values.description">The principles that guide everything we do at IDEM</p>
-      </div>
-      <ol class="grid sm:grid-cols-2 gap-x-12 lg:gap-x-20">
-        @for (value of values; track value.title; let i = $index) {
-          <li class="flex items-baseline gap-5 py-6 border-t border-[var(--glass-border)]">
-            <span class="ab-num text-xl font-bold shrink-0">{{ '0' + (i + 1) }}</span>
-            <div>
-              <h3 class="text-lg font-bold text-text-primary" i18n="@@about-page.value.title">{{ value.title }}</h3>
-              <p class="mt-1 text-text-tertiary leading-relaxed" i18n="@@about-page.value.description">{{ value.description }}</p>
-            </div>
+  <!-- ═══ Les fondateurs ══════════════════════════════════════════════ -->
+  <section class="ed-rule">
+    <app-team />
+  </section>
+
+  <!-- ═══ Nos valeurs ═════════════════════════════════════════════════
+       Cinq valeurs, pas cinq étapes : aucune numérotation, l'ordre ne
+       porte rien. -->
+  <section class="ed-rule">
+    <div class="ed-section ed-wrap">
+      <h2 class="ed-h2 max-w-2xl" i18n="@@about-page.values.title">Five words we are held to</h2>
+
+      <ul class="ed-rows ed-rows-2 ed-rows-closed ed-mt-12 ed-mt-lg-16">
+        @for (value of values; track value.title) {
+          <li class="ed-row">
+            <h3 class="ed-h3">{{ value.title }}</h3>
+            <p class="ed-body ed-mt-2">{{ value.description }}</p>
           </li>
         }
-      </ol>
+      </ul>
     </div>
+  </section>
 
-    <!-- Journey: timeline -->
-    <div class="mb-20 lg:mb-28">
-      <div class="max-w-2xl mb-10">
-        <h2 class="text-3xl sm:text-4xl font-bold text-text-primary" i18n="@@about-page.our_journey">Our Journey</h2>
-        <p class="mt-3 text-text-secondary" i18n="@@about-page.journey.description">From inception to becoming Africa's leading sovereign AI platform</p>
-      </div>
-      <div class="relative max-w-4xl">
-        <span class="ab-timeline-line" aria-hidden="true"></span>
-        <div class="flex flex-col gap-8">
-          @for (milestone of milestones; track milestone.year) {
-            <div class="ab-milestone relative flex items-start gap-6 pl-0 sm:pl-16">
-              <span class="ab-year absolute left-0 top-0.5 hidden sm:flex">{{ milestone.year }}</span>
-              <div>
-                <div class="flex items-center gap-3">
-                  <span class="ab-year-inline sm:hidden">{{ milestone.year }}</span>
-                  <h3 class="text-lg sm:text-xl font-bold text-text-primary" i18n="@@about-page.milestone.title">{{ milestone.title }}</h3>
+  <!-- ═══ Le parcours ═════════════════════════════════════════════════
+       Une vraie séquence : les années sont une information, pas un décor.
+       L'échelle dogon dit « une marche à la fois ». -->
+  <section class="ed-rule">
+    <div class="ed-section ed-wrap">
+      <div class="grid gap-14 lg:grid-cols-12 lg:gap-16">
+        <div class="lg:col-span-6">
+          <h2 class="ed-h2" i18n="@@about-page.journey.title">One rung at a time</h2>
+
+          <ol class="ed-rows ed-rows-closed ed-mt-10 ed-mt-lg-14">
+            @for (milestone of milestones; track milestone.year) {
+              <li class="ed-row grid gap-x-10 gap-y-2 sm:grid-cols-[7rem_1fr] sm:items-baseline">
+                <p class="ab-year">{{ milestone.year }}</p>
+                <div>
+                  <h3 class="ed-h3">{{ milestone.title }}</h3>
+                  <p class="ed-body ed-mt-2">{{ milestone.description }}</p>
                 </div>
-                <p class="mt-1.5 text-text-tertiary leading-relaxed max-w-xl" i18n="@@about-page.milestone.description">{{ milestone.description }}</p>
-              </div>
-            </div>
-          }
+              </li>
+            }
+          </ol>
+        </div>
+
+        <div class="lg:col-span-6 lg:pt-6">
+          <figure class="ed-art ed-art-fill mx-auto lg:mx-0">
+            <app-page-art scene="ladder" />
+          </figure>
         </div>
       </div>
     </div>
+  </section>
 
-    <!-- Vision: full-bleed image -->
-    <div class="mb-20 lg:mb-24">
-      <div class="relative rounded-3xl overflow-hidden border border-[var(--glass-border)]">
-        <img
-          src="assets/images/about-page/entrepreneur-vision.webp"
-          i18n-alt="@@about-page.alt.entrepreneurVision"
-          alt="African entrepreneur vision"
-          loading="lazy"
-          class="w-full h-full object-cover min-h-[420px] sm:min-h-[500px] lg:min-h-[560px]"
-        />
-        <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/60 to-black/20"></div>
-        <div class="absolute inset-0 flex items-end lg:items-center p-6 sm:p-10 lg:p-16">
-          <div class="max-w-3xl">
-            <h2 class="text-3xl sm:text-4xl lg:text-5xl font-bold text-white text-balance" i18n="@@about-page.vision.title">
-              Empowering 1 Million African Entrepreneurs by 2035
-            </h2>
-            <p class="mt-5 text-base sm:text-lg text-white/85 leading-relaxed text-pretty max-w-2xl" i18n="@@about-page.vision.description">
-              We envision an Africa where every entrepreneur has the tools, knowledge, and support
-              to transform their ideas into successful businesses using AI technology.
-            </p>
-            <a routerLink="/contact" class="inner-button mt-8">
-              <ng-container i18n="@@about-page.joinMission">Join Our Mission</ng-container>
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
-              </svg>
-            </a>
+  <!-- ═══ La vision ═══════════════════════════════════════════════════
+       Le baobab qui porte son fruit : la croissance qui rapporte. -->
+  <section class="ed-rule">
+    <div class="ed-section ed-wrap">
+      <div class="grid gap-14 lg:grid-cols-12 lg:gap-16 lg:items-center">
+        <div class="lg:col-span-6">
+          <h2 class="ed-display" i18n="@@about-page.vision.title">
+            One million businesses that actually pay their founder
+          </h2>
+          <p class="ed-lede ed-lede-wide ed-mt-10" i18n="@@about-page.vision.body">
+            Not a million accounts created. A million African businesses that earn money, by 2035.
+            That is the only figure we measure ourselves against.
+          </p>
+        </div>
+
+        <div class="lg:col-span-6">
+          <figure class="ed-art ed-art-fill mx-auto lg:mx-0">
+            <app-page-art scene="baobab" />
+          </figure>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ Nous joindre ════════════════════════════════════════════════ -->
+  <section class="ed-rule">
+    <div class="ed-section ed-wrap">
+      <h2 class="ed-h2 max-w-xl" i18n="@@about-page.contact.title">Talk to us directly</h2>
+
+      <div class="ed-mt-10 ed-mt-lg-14 grid gap-10 lg:grid-cols-12 lg:gap-16 lg:items-end">
+        <dl class="lg:col-span-7 ed-rows ed-rows-closed">
+          <div class="ed-row grid gap-x-8 gap-y-1 sm:grid-cols-[10rem_1fr] sm:items-baseline">
+            <dt class="ed-h3" i18n="@@about-page.contact.email">Email</dt>
+            <dd class="ed-body">contact&#64;idem.africa</dd>
           </div>
+          <div class="ed-row grid gap-x-8 gap-y-1 sm:grid-cols-[10rem_1fr] sm:items-baseline">
+            <dt class="ed-h3" i18n="@@about-page.contact.phone">Phone</dt>
+            <dd class="ed-body">+237 6 95 40 45 27</dd>
+          </div>
+          <div class="ed-row grid gap-x-8 gap-y-1 sm:grid-cols-[10rem_1fr] sm:items-baseline">
+            <dt class="ed-h3" i18n="@@about-page.contact.office">Office</dt>
+            <dd class="ed-body" i18n="@@about-page.contact.officeValue">Douala, Cameroon</dd>
+          </div>
+          <div class="ed-row grid gap-x-8 gap-y-1 sm:grid-cols-[10rem_1fr] sm:items-baseline">
+            <dt class="ed-h3" i18n="@@about-page.contact.code">Source code</dt>
+            <dd class="ed-body">github.com/Idem-AI</dd>
+          </div>
+        </dl>
+
+        <div class="lg:col-span-5 flex flex-col gap-3 sm:flex-row lg:flex-col lg:items-start">
+          <a routerLink="/contact" class="inner-button">
+            <ng-container i18n="@@about-page.contact.cta">Write to us</ng-container>
+          </a>
+          <a
+            href="https://github.com/Idem-AI"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="outer-button"
+          >
+            <ng-container i18n="@@about-page.contact.github">Read the code</ng-container>
+          </a>
         </div>
       </div>
     </div>
-
-    <!-- Contact -->
-    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg-subtle)] p-8 sm:p-10">
-      <div>
-        <h2 class="text-2xl sm:text-3xl font-bold text-text-primary" i18n="@@about-page.want_learn_more">Want to Learn More?</h2>
-        <p class="mt-2 text-text-secondary max-w-xl" i18n="@@about-page.contact.description">
-          Get in touch to discuss partnerships and collaborations, or just to say hello.
-        </p>
-      </div>
-      <div class="flex flex-col sm:flex-row gap-3 shrink-0">
-        <a routerLink="/contact" class="inner-button">
-          <ng-container i18n="@@about-page.contact.button">Contact Us</ng-container>
-        </a>
-        <a href="https://github.com/Idem-AI" target="_blank" rel="noopener noreferrer" class="outer-button">
-          <ng-container i18n="@@about-page.github.button">View on GitHub</ng-container>
-        </a>
-      </div>
-    </div>
-  </div>
+  </section>
 </div>
