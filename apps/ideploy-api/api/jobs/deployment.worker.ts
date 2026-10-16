@@ -37,7 +37,7 @@ import { monorepoHint, monorepoProbeCommand, parseMonorepoProbe } from '../docke
 import { analyzeRepository, describePlan, parseSnapshot, snapshotCommand, BuildPlanResult } from '../build-plan';
 import { joinPath, relativeTo } from '../build-plan/repo-files';
 import { explainFailure, explainRuntimeFailure, KnownFailure } from '../build-plan/failures';
-import { JavaRecipe, NodeRecipe } from '../build-plan/types';
+import { Recipe } from '../build-plan/types';
 import { DOCKER_HUB_MIRROR, lenientInstall, recipeDockerfile, recipeLabel } from '../docker/recipes';
 import * as appService from '../services/application.service';
 import * as envVarService from '../services/env-var.service';
@@ -620,8 +620,9 @@ async function deploy(
 
     const recipe = used?.output === 'server' ? used.recipe : undefined;
     // The user's commands win in a recipe too.
-    const ownRecipe: NodeRecipe | JavaRecipe | undefined =
-      recipe?.kind === 'node'
+    const ownRecipe: Recipe | undefined = !recipe
+      ? undefined
+      : recipe.kind === 'node'
         ? {
             ...recipe,
             install: own(app.install_command) ?? recipe.install,
@@ -630,9 +631,19 @@ async function deploy(
             // The contract is read from the plan's start command, not the user's.
             output: app.start_command ? null : recipe.output,
           }
-        : recipe && { ...recipe, build: own(app.build_command) ?? recipe.build };
+        : recipe.kind === 'java'
+          ? // A start command of the user's sends Java to nixpacks (readBuildPlan).
+            { ...recipe, build: own(app.build_command) ?? recipe.build }
+          : recipe.kind === 'python'
+            ? {
+                ...recipe,
+                install: own(app.install_command) ?? recipe.install,
+                build: own(app.build_command) ?? recipe.build,
+                start: own(app.start_command) ?? recipe.start,
+              }
+            : { ...recipe, build: own(app.build_command) ?? recipe.build, start: own(app.start_command) ?? recipe.start };
     /** A recipe build: its recipe, the variables its build sees, the registry of its base images. */
-    type RecipeAttempt = { recipe: NodeRecipe | JavaRecipe; env: string[]; registry: string };
+    type RecipeAttempt = { recipe: Recipe; env: string[]; registry: string };
     const withRecipe = (a: RecipeAttempt) =>
       recipePlan({ ...buildContext, buildEnv: a.env }, recipeDockerfile(a.recipe, a.env.map(ownKey), a.registry), recipeLabel(a.recipe));
     let attempt: RecipeAttempt | null = ownRecipe ? { recipe: ownRecipe, env: buildEnv, registry: '' } : null;

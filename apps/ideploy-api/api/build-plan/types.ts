@@ -28,7 +28,7 @@ export interface AppCandidate {
 }
 
 export interface BuildPlanResult {
-  language: 'node' | 'java' | null;
+  language: Language | null;
   /** e.g. "Next.js", "Spring Boot (Maven)". */
   framework: string | null;
   /** The application's folder, relative to the repository root ('' = root). */
@@ -41,7 +41,7 @@ export interface BuildPlanResult {
   publishDirectory?: string;
   /** `pnpm`, `npm`, `yarn`, `bun`, `maven`, `gradle`. */
   tool?: string;
-  runtimeVersion?: { name: 'Node' | 'Java'; version: string; source: string };
+  runtimeVersion?: { name: 'Node' | 'Java' | 'Python' | 'PHP' | 'Go' | 'Ruby' | '.NET' | 'Rust'; version: string; source: string };
   /** Set for an application inside a workspace. */
   workspace?: { manager: string; orchestrator: 'turbo' | 'nx' | null; packageName: string };
   /** Commands the engine could not guess; unset: its own default. Relative to `buildRoot`. */
@@ -51,7 +51,7 @@ export interface BuildPlanResult {
   /** Variables for nixpacks (`NIXPACKS_NODE_VERSION`, `NIXPACKS_JDK_VERSION`). */
   nixpacksEnv: Record<string, string>;
   /** Set when iDeploy can build this itself, with a generated Dockerfile. */
-  recipe?: NodeRecipe | JavaRecipe;
+  recipe?: Recipe;
   /** The root of a monorepo: the applications in it. */
   apps?: AppCandidate[];
   issues: PlanIssue[];
@@ -92,6 +92,71 @@ export interface JavaRecipe {
   gradleVersion?: string | null;
   build: string;
 }
+
+export type Language = 'node' | 'java' | 'python' | 'php' | 'go' | 'ruby' | 'dotnet' | 'rust';
+
+/**
+ * The recipes of the other languages share two commands the user can
+ * replace in the settings: the build (run from `buildRoot` in the build
+ * image) and the start (the container's command).
+ */
+interface CommandRecipe {
+  /** Major(.minor) of the official image. */
+  version: string;
+  build: string | null;
+  start: string;
+}
+
+/** Python: a virtualenv built with the project's own tool, run by its server (gunicorn, uvicorn…). */
+export interface PythonRecipe extends CommandRecipe {
+  kind: 'python';
+  manager: 'pip' | 'pip-project' | 'poetry' | 'uv' | 'pipenv';
+  install: string;
+  /** Server packages the start command needs and the project does not list (gunicorn, uvicorn). */
+  extras: string[];
+}
+
+/** PHP: Apache with the extensions the project asks for, Composer, and its front-end assets. */
+export interface PhpRecipe extends CommandRecipe {
+  kind: 'php';
+  framework: 'Laravel' | 'Symfony' | 'PHP';
+  extensions: string[];
+  /** Served folder, relative to the application ('' = the application itself). */
+  documentRoot: string;
+  /** Front-end assets built with Node before Composer (Laravel's Vite, Symfony Encore). */
+  assets: { manager: 'npm' | 'pnpm' | 'yarn'; install: string; build: string } | null;
+}
+
+/** Go: a static (or cgo) binary of the main package. */
+export interface GoRecipe extends CommandRecipe {
+  kind: 'go';
+  cgo: boolean;
+}
+
+/** Ruby: Bundler, Rails assets, a Rack server. */
+export interface RubyRecipe extends CommandRecipe {
+  kind: 'ruby';
+  rails: boolean;
+  /** jsbundling/cssbundling: the Node packages the asset build needs. */
+  nodeInstall: string | null;
+}
+
+/** .NET: `dotnet publish` of the project, run with its runtime. */
+export interface DotnetRecipe extends CommandRecipe {
+  kind: 'dotnet';
+  /** The project file, relative to `buildRoot`. */
+  project: string;
+  assembly: string;
+  web: boolean;
+}
+
+/** Rust: `cargo build --release` of the binary. */
+export interface RustRecipe extends CommandRecipe {
+  kind: 'rust';
+  bin: string;
+}
+
+export type Recipe = NodeRecipe | JavaRecipe | PythonRecipe | PhpRecipe | GoRecipe | RubyRecipe | DotnetRecipe | RustRecipe;
 
 export function emptyPlan(appDir: string): BuildPlanResult {
   return { language: null, framework: null, appDir, buildRoot: appDir, output: null, nixpacksEnv: {}, issues: [] };

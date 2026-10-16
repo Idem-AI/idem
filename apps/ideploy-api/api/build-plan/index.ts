@@ -9,6 +9,12 @@ import { BuildPlanResult, emptyPlan } from './types';
 import { RepoFiles, joinPath } from './repo-files';
 import { planNode } from './node';
 import { planJava } from './java';
+import { planPython } from './python';
+import { planPhp } from './php';
+import { planGo } from './go';
+import { planRuby } from './ruby';
+import { planDotnet } from './dotnet';
+import { planRust } from './rust';
 
 export * from './types';
 export { snapshotCommand, parseSnapshot } from './repo-files';
@@ -27,10 +33,20 @@ const MIN_DISK_MB = 1024;
 const HEAVY_BUILD_MEMORY_MB = 1536;
 
 export async function analyzeRepository(files: RepoFiles, appDir: string, options: AnalyzeOptions = {}): Promise<BuildPlanResult> {
-  // Java first: a Spring backend with a package.json for its front-end tooling is Java.
+  // The languages whose project carries a package.json for its front-end
+  // come first: a Spring backend, a Laravel or Rails application, an ASP.NET
+  // one with its SPA. Python, Go and Rust step aside for a Node application
+  // that merely keeps a helper file of theirs; Node comes last.
+  const overrides = options.overrides ?? {};
   const plan =
-    (await planJava(files, appDir, options.overrides ?? {})) ??
-    (await planNode(files, appDir, { overrides: options.overrides })) ??
+    (await planJava(files, appDir, overrides)) ??
+    (await planPhp(files, appDir)) ??
+    (await planRuby(files, appDir, overrides)) ??
+    (await planDotnet(files, appDir)) ??
+    (await planPython(files, appDir, overrides)) ??
+    (await planGo(files, appDir, overrides)) ??
+    (await planRust(files, appDir)) ??
+    (await planNode(files, appDir, { overrides })) ??
     emptyPlan(appDir);
 
   const resources = options.resources;
@@ -41,7 +57,7 @@ export async function analyzeRepository(files: RepoFiles, appDir: string, option
       message: `Only ${resources.diskFreeMb} MB free on the server: a build needs at least ${MIN_DISK_MB} MB. Free space (old images: docker image prune) and deploy again.`,
     });
   }
-  const heavy = plan.language === 'java' || /Next|Nuxt|Angular|Vite|Astro|Svelte|Remix|React Router|Gatsby|Create React App|Vue CLI/.test(plan.framework ?? '');
+  const heavy = plan.language === 'java' || plan.language === 'rust' || plan.language === 'dotnet' || /Next|Nuxt|Angular|Vite|Astro|Svelte|Remix|React Router|Gatsby|Create React App|Vue CLI/.test(plan.framework ?? '');
   const memory = resources?.memoryAvailableMb;
   if (heavy && memory !== null && memory !== undefined && memory < HEAVY_BUILD_MEMORY_MB) {
     plan.issues.push({
@@ -67,11 +83,11 @@ export function describePlan(plan: BuildPlanResult, effective: { install?: strin
   if (facts.length) lines.push(facts.join(' · '));
   // With a recipe, the commands it runs (nixpacks' own defaults are not shown).
   const recipe = plan.recipe;
-  const install = effective.install ?? plan.install ?? (recipe?.kind === 'node' ? recipe.install : null);
+  const install = effective.install ?? plan.install ?? (recipe?.kind === 'node' || recipe?.kind === 'python' ? recipe.install : null);
   const build = effective.build ?? (recipe ? recipe.build : plan.build);
   const start =
     effective.start ??
-    (recipe?.kind === 'node' ? recipe.start : recipe?.kind === 'java' ? `java -jar ${recipe.module ? `${recipe.module}/` : ''}<the built jar>` : plan.start);
+    (recipe?.kind === 'java' ? `java -jar ${recipe.module ? `${recipe.module}/` : ''}<the built jar>` : recipe ? recipe.start : plan.start);
   if (install) lines.push(`Install: ${install}`);
   if (build) lines.push(`Build:   ${build}`);
   if (start) lines.push(`Start:   ${start}`);

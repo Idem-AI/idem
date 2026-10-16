@@ -10,16 +10,10 @@
  *
  * The Dockerfile is written next to the code on the server, never committed.
  */
-import { JavaRecipe, NodeRecipe } from '../build-plan/types';
+import { JavaRecipe, NodeRecipe, Recipe } from '../build-plan/types';
 import { FRESH_COREPACK } from '../build-plan/node';
-
-/** Build-time Variables become ARGs: the build steps see them as environment. */
-function argLines(buildArgKeys: string[]): string[] {
-  return [...new Set(buildArgKeys)].filter((k) => /^[A-Za-z_][A-Za-z0-9_]*$/.test(k)).map((k) => `ARG ${k}`);
-}
-
-/** A JSON string for an exec-form instruction. */
-const json = (value: string) => JSON.stringify(value);
+import { argLines, json, sq } from './dockerfile-helpers';
+import { dotnetDockerfile, goDockerfile, phpDockerfile, pythonDockerfile, rubyDockerfile, rustDockerfile } from './recipes-languages';
 
 const NODE_CACHES: Record<NodeRecipe['manager'], string> = {
   npm: '--mount=type=cache,id=ideploy-npm,target=/root/.npm',
@@ -35,8 +29,6 @@ export function lenientInstall(manager: NodeRecipe['manager']): string {
   return 'npm install';
 }
 
-/** A value single-quoted for sh. */
-const sq = (value: string) => `'${value.replace(/'/g, `'\\''`)}'`;
 
 /**
  * The build's output contract, checked in the image (see buildOutputContract):
@@ -189,15 +181,48 @@ export function javaDockerfile(recipe: JavaRecipe, buildArgKeys: string[] = [], 
  * The Dockerfile of a recipe. `registry`: a prefix for the base images —
  * `mirror.gcr.io/library/` when Docker Hub refuses the pull (its rate limit).
  */
-export function recipeDockerfile(recipe: NodeRecipe | JavaRecipe, buildArgKeys: string[] = [], registry = ''): string {
-  return recipe.kind === 'node' ? nodeDockerfile(recipe, buildArgKeys, registry) : javaDockerfile(recipe, buildArgKeys, registry);
+export function recipeDockerfile(recipe: Recipe, buildArgKeys: string[] = [], registry = ''): string {
+  switch (recipe.kind) {
+    case 'node':
+      return nodeDockerfile(recipe, buildArgKeys, registry);
+    case 'java':
+      return javaDockerfile(recipe, buildArgKeys, registry);
+    case 'python':
+      return pythonDockerfile(recipe, buildArgKeys, registry);
+    case 'php':
+      return phpDockerfile(recipe, buildArgKeys, registry);
+    case 'go':
+      return goDockerfile(recipe, buildArgKeys, registry);
+    case 'ruby':
+      return rubyDockerfile(recipe, buildArgKeys, registry);
+    case 'dotnet':
+      return dotnetDockerfile(recipe, buildArgKeys);
+    case 'rust':
+      return rustDockerfile(recipe, buildArgKeys, registry);
+  }
 }
 
 /** Google's mirror of Docker Hub's official images: no pull rate limit. */
 export const DOCKER_HUB_MIRROR = 'mirror.gcr.io/library/';
 
 /** A short name for the log. */
-export function recipeLabel(recipe: NodeRecipe | JavaRecipe): string {
-  if (recipe.kind === 'node') return `Node ${recipe.nodeVersion} (${recipe.manager})`;
-  return `Java ${recipe.jdk} (${recipe.tool}${recipe.wrapper ? ' wrapper' : ''})`;
+export function recipeLabel(recipe: Recipe): string {
+  switch (recipe.kind) {
+    case 'node':
+      return `Node ${recipe.nodeVersion} (${recipe.manager})`;
+    case 'java':
+      return `Java ${recipe.jdk} (${recipe.tool}${recipe.wrapper ? ' wrapper' : ''})`;
+    case 'python':
+      return `Python ${recipe.version} (${recipe.manager})`;
+    case 'php':
+      return `PHP ${recipe.version} (${recipe.framework}, Apache)`;
+    case 'go':
+      return `Go ${recipe.version}${recipe.cgo ? ' (cgo)' : ''}`;
+    case 'ruby':
+      return `Ruby ${recipe.version}${recipe.rails ? ' (Rails)' : ''}`;
+    case 'dotnet':
+      return `.NET ${recipe.version}`;
+    case 'rust':
+      return `Rust ${recipe.version === '1' ? 'stable' : recipe.version}`;
+  }
 }
