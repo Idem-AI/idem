@@ -52,14 +52,14 @@ export interface ImageOptions {
   fallbackModel?: string;
 }
 
-/** Un clip demandé au modèle vidéo (Seedance chez IDEM) : 5 ou 10 s, muet. */
+/** Un clip demandé au modèle vidéo (Veo 3.1 par OpenRouter chez IDEM) : 4, 6 ou 8 s, muet. */
 export interface VideoClipRequest {
   prompt: string;
   /** Image de départ (image → vidéo) : le clip anime ce plan, au rendu de la charte. */
   image?: { base64: string; mimeType: string };
   /** Taille du clip, celle du format (« 720x1280 », « 1280x720 », « 1024x1024 »). */
   size: string;
-  durationSec: 5 | 10;
+  durationSec: 4 | 6 | 8;
   quality: 'speed' | 'quality';
   tag: string;
   /** Modèle vidéo imposé (ex. 'google/veo-3.1-fast'). */
@@ -80,14 +80,20 @@ export interface SpeechRequest {
   language: string;
   /** Jeu demandé (« chaleureux, posé ») : suivi par les modèles qui le comprennent. */
   style?: string;
+  /** Le personnage de voix (« warm », « deep »…) et son genre : l'hôte en déduit la voix (ElevenLabs par OpenRouter : une voix par personnage). */
+  persona?: string;
+  gender?: 'female' | 'male';
   tag: string;
 }
+
+/** Qui a dit la ligne. */
+export type SpeechProvider = 'openrouter';
 
 export interface SynthesizedSpeech {
   buffer: Buffer;
   /** `audio/wav`, `audio/mpeg`, ou PCM brut (`audio/l16;rate=24000`). */
   mimeType: string;
-  provider: 'openrouter';
+  provider: SpeechProvider;
   model: string;
   voice: string;
 }

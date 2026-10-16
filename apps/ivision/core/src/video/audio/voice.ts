@@ -22,7 +22,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import logger from '../../runtime/logger';
-import { coreHost, SpeechRequest } from '../../runtime/host';
+import { coreHost, SpeechProvider, SpeechRequest } from '../../runtime/host';
 import { isGrounded } from '../request/facts';
 import type { MotionStyle, VideoVoice, VoiceLine } from '../contracts/model';
 
@@ -39,7 +39,7 @@ export const wordsPerSecond = (language: string) => WORDS_PER_SEC[langOf(languag
 
 /** Compte des « mots » parlés (caractères CJK un par un). */
 export function spokenUnits(text: string, language: string): number {
-  const t = (text || '').trim();
+  const t = plainSpoken(text || '');
   if (!t) return 0;
   return langOf(language) === 'zh' ? t.replace(/\s+/g, '').length : t.split(/\s+/).filter(Boolean).length;
 }
@@ -108,19 +108,39 @@ export function speakableCase(text: string): string {
   return lower.replace(/(^|[.!?…]\s+)(\p{Ll})/gu, (_, a: string, b: string) => a + b.toLocaleUpperCase());
 }
 
+/**
+ * Les balises de jeu d'ElevenLabs v3 (« [warmly] », « [short pause] ») : quelques mots anglais en minuscules entre
+ * crochets. Elles restent dans le texte DIT ; le texte LU (sous-titres, comptage des mots, vérification des faits)
+ * les retire. Un hôte dont la voix ne les comprend pas les retire avant de parler.
+ */
+export const VOICE_TAG = /\[[a-z][a-z ,'-]{1,30}\]/g;
+
+/** Le texte d'une ligne sans ses balises de jeu (sous-titres, minutage, vérification). */
+export function plainSpoken(text: string): string {
+  return String(text || '').replace(VOICE_TAG, ' ').replace(/\s+([,.!?…])/g, '$1').replace(/\s+/g, ' ').trim();
+}
+
 export function cleanSpoken(value: string, maxWords: number, language: string, briefText: string): string {
-  let t = speakableCase(value || '')
+  // Les balises de jeu sont mises à l'abri pendant le nettoyage (les autres crochets sont retirés), puis rendues.
+  const tags: string[] = [];
+  const shielded = String(value || '').replace(VOICE_TAG, (tag) => ` \u0000${tags.push(tag) - 1}\u0000 `);
+  let t = speakableCase(shielded)
     .replace(/\[[^\]]*\]|\([^)]*\)|\*[^*]*\*/g, ' ')
     .replace(/https?:\/\/\S+|www\.\S+/gi, ' ')
     .replace(/#[\p{L}\d_]+/gu, ' ')
     .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}]/gu, '')
     .replace(/["«»“”]/g, '')
-    .replace(/\s*[—–]\s*/g, ', ')
+    // Un tiret long garde sa pause (une respiration pour la voix), sans espaces parasites.
+    .replace(/\s*[—–]\s*/g, ' — ')
     .replace(/\s+/g, ' ')
     .trim();
-  if (!t || /^[-–—.…]+$/.test(t)) return '';
-  if (!isGrounded(t, briefText)) return '';
-  if (langOf(language) === 'zh') return t.replace(/\s+/g, '').slice(0, Math.max(2, maxWords));
+  // Au plus deux balises par ligne ; une ligne faite de balises seules ne se dit pas.
+  let kept = 0;
+  t = t.replace(/\u0000(\d+)\u0000/g, (_, k: string) => (kept++ < 2 ? tags[Number(k)] : '')).replace(/\s+/g, ' ').trim();
+  const plain = plainSpoken(t);
+  if (!plain || /^[-–—.…]+$/.test(plain)) return '';
+  if (!isGrounded(plain, briefText)) return '';
+  if (langOf(language) === 'zh') return plain.replace(/\s+/g, '').slice(0, Math.max(2, maxWords));
   // Une ligne trop longue n'est jamais coupée : le calage l'accélère un peu, ou la retire en le disant.
   void maxWords;
   return t;
@@ -196,18 +216,20 @@ export async function synthesizeVoice(opts: {
   storage: VoiceStorage;
   folder: string;
   concurrency?: number;
-}): Promise<{ lines: (Omit<VoiceLine, 'sceneKey' | 'offset'> & { index: number })[]; provider: 'openrouter'; model: string; voice: string }> {
+}): Promise<{ lines: (Omit<VoiceLine, 'sceneKey' | 'offset'> & { index: number })[]; provider: SpeechProvider; model: string; voice: string }> {
   const synth = coreHost().synthesizeSpeech;
   if (!synth) throw new VoiceUnavailableError('no_speech_model');
   const request = (text: string): SpeechRequest => ({
     text,
     language: langOf(opts.language),
     style: opts.style || opts.persona.character,
+    persona: opts.persona.id,
+    gender: opts.persona.gender,
     tag: 'video-voice',
   });
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'idem-voice-'));
   const out: (Omit<VoiceLine, 'sceneKey' | 'offset'> & { index: number })[] = [];
-  let used: { provider: 'openrouter'; model: string; voice: string } = { provider: 'openrouter', model: '', voice: '' };
+  let used: { provider: SpeechProvider; model: string; voice: string } = { provider: 'openrouter', model: '', voice: '' };
   let lastError: unknown;
   try {
     const queue = [...opts.lines];

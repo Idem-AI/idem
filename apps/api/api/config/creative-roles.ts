@@ -51,10 +51,11 @@ export const CREATIVE_ROLES: Record<string, CreativeRole> = {
   'graphic.asset-planner': { profile: 'agents', needs: ['json'], maxOutputTokens: UP_TO(800, 1000), mission: 'déterminer les ressources visuelles nécessaires' },
   'video.intent-classifier': { profile: 'agents', needs: ['json'], maxOutputTokens: UP_TO(300, 300, 300), mission: 'comprendre le besoin vidéo et les médias disponibles' },
   // Le film Motion Canvas : mêmes étapes à tous les crans ; le cran choisit le MODÈLE (échelles ci-dessus).
-  'video.concept': { profile: 'coder', needs: ['long-context'], maxOutputTokens: ALL(2500), mission: 'inventer le film : concept, bible visuelle, idée de chaque scène' },
-  'video.planner': { profile: 'agents', needs: ['long-context'], maxOutputTokens: ALL(9000), mission: 'écrire le storyboard : durées, intentions, idées, textes, médias, voix' },
-  'video.author': { profile: 'coder', needs: ['code', 'long-context'], maxOutputTokens: ALL(8000), mission: 'écrire (et corriger) le code Motion Canvas de chaque scène' },
-  'video.reviser': { profile: 'agents', needs: [], maxOutputTokens: ALL(800), mission: 'lire une retouche écrite par le client' },
+  'video.concept': { profile: 'coder', needs: ['long-context'], maxOutputTokens: ALL(8000), mission: 'inventer le film : concept, bible visuelle, idée de chaque scène' },
+  // Gemini 3.1 Pro raisonne toujours et son raisonnement est décompté du plafond : marge large.
+  'video.planner': { profile: 'agents', needs: ['long-context'], maxOutputTokens: ALL(16000), mission: 'écrire le storyboard : durées, intentions, idées, textes, médias, voix' },
+  'video.author': { profile: 'coder', needs: ['code', 'long-context'], maxOutputTokens: ALL(16000), mission: 'écrire (et corriger) le code Motion Canvas de chaque scène' },
+  'video.reviser': { profile: 'agents', needs: [], maxOutputTokens: ALL(6000), mission: 'lire une retouche écrite par le client' },
 };
 
 /** Les noms historiques des appelants (moteur graphique, cœur vidéo) → leur rôle logique. */

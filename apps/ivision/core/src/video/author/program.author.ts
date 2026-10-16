@@ -43,6 +43,8 @@ export interface AuthorContext {
   /** Les formats de la vidéo (le premier est le principal) : le programme doit fonctionner dans chacun. */
   formats: VideoFormat[];
   brand: BrandTokens;
+  /** La direction artistique de la charte (résumé) : chaque scène la respecte. */
+  art?: string;
   scene: AuthorSceneCard;
   previous?: { purpose: string; visual: string };
   next?: { purpose: string; visual: string };
@@ -123,6 +125,8 @@ export function buildProgramPrompt(c: AuthorContext): { system: string; user: st
       : `FRAME: ${frameLine(formats[0])}`,
     `SCENE ${s.index + 1} of ${s.count} — duration D=${s.duration.toFixed(2)} s`,
     `BRAND: ${c.brand.name || '(no brand on screen)'} — primary ${c.brand.colors.primary}, secondary ${c.brand.colors.secondary}, accent ${c.brand.colors.accent}, background ${c.brand.colors.background}, text ${c.brand.colors.text}; fonts display "${c.brand.fonts.display}", body "${c.brand.fonts.body}"; logo ${logo}`,
+    c.art ? `BRAND ART DIRECTION (follow it in every scene: layout, typography treatment, colour use, graphic devices):\n${c.art}` : '',
+    `TYPOGRAPHY: titles in the brand display font ("font": "display" = "${c.brand.fonts.display}"), other texts in the body font ("font": "body" = "${c.brand.fonts.body}") — always one of the two.`,
     c.previous ? `PREVIOUS SCENE: ${c.previous.purpose} — ${c.previous.visual}`.slice(0, 400) : 'PREVIOUS SCENE: none (this scene opens the film)',
     c.next ? `NEXT SCENE: ${c.next.purpose} — ${c.next.visual}`.slice(0, 400) : 'NEXT SCENE: none (this scene closes the film)',
     '',
@@ -132,7 +136,7 @@ export function buildProgramPrompt(c: AuthorContext): { system: string; user: st
     `motion: ${s.motion}`,
     s.transition ? `transition: ${s.transition}` : '',
     `texts (exact, use "$KEY"): ${Object.keys(s.texts).length ? Object.entries(s.texts).map(([k, v]) => `$${k} = "${v}"`).join(' · ') : 'none'}`,
-    `media: ${s.media.length ? s.media.map((x, i) => `${i} = ${x.kind}${x.width ? ` ${x.width}×${x.height}` : ''}${x.durationSec ? ` ${x.durationSec.toFixed(1)}s` : ''}${x.note ? ` — ${x.note.slice(0, 160)}` : ''}`).join(' · ') : 'none'}`,
+    `media (MUST appear in the scene, as image/video nodes): ${s.media.length ? s.media.map((x, i) => `${i} = ${x.kind}${x.width ? ` ${x.width}×${x.height}` : ''}${x.durationSec ? ` ${x.durationSec.toFixed(1)}s` : ''}${x.note ? ` — ${x.note.slice(0, 160)}` : ''}`).join(' · ') : 'none'}`,
     s.voice ? `voice-over: "${s.voice.text}" — V=${s.voice.at.toFixed(2)} s, lasts ${s.voice.duration.toFixed(2)} s (sync key moments with "at": "V+…")` : '',
     s.beat ? `music: ${Math.round(s.beat.bpm)} bpm, first beat at ${s.beat.first.toFixed(2)} s (a beat every ${(60 / s.beat.bpm).toFixed(3)} s)` : '',
   ];

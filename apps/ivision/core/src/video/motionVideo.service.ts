@@ -63,7 +63,7 @@ import { embeddedFontCss, filmBrand, FilmBrand } from './assets/brand';
 import { analyzeTrack, pickExcerptStart } from './audio/beats';
 import { fetchTrack, pickTrack, resolveMood, searchMusic, MUSIC_PROVIDERS } from './audio/music';
 import { ensureSfxLibrary, MUSIC_GAIN_DB, MUSIC_UNDER_VOICE_DB, pickSounds, previewGain, publicSoundName, SFX_GAIN_DB, sfxLibrary, SfxLibrary, soundFile } from './audio/sfx';
-import { cleanSpoken, fitScenesToVoice, personaById, personaMenu, speakable, speechAvailable, synthesizeVoice, voiceTimeline } from './audio/voice';
+import { cleanSpoken, plainSpoken, fitScenesToVoice, personaById, personaMenu, speakable, speechAvailable, synthesizeVoice, voiceTimeline } from './audio/voice';
 import { callFilmModel, FilmCallContext, ModelRun, tierFor } from './agents';
 import { FilmBrief, sceneRange } from './director/brief';
 import { runConcept } from './director/concept.agent';
@@ -513,7 +513,7 @@ export class MotionVideoService {
     const voiceOf = new Map((video.voice?.enabled ? video.voice.lines : []).map((l) => [l.sceneKey, l]));
     const captions =
       film.captions && video.voice?.enabled
-        ? voiceTimeline(film.scenes, video.voice, film.durationSec).map((l) => ({ text: l.text, start: l.at, end: Math.min(film.durationSec, l.at + l.durationSec + 0.2) }))
+        ? voiceTimeline(film.scenes, video.voice, film.durationSec).map((l) => ({ text: plainSpoken(l.text), start: l.at, end: Math.min(film.durationSec, l.at + l.durationSec + 0.2) }))
         : [];
     return {
       format,
@@ -537,7 +537,7 @@ export class MotionVideoService {
             .map((id) => byId.get(id))
             .filter((m): m is VideoMediaAsset => !!m && (m.kind === 'image' || m.kind === 'video'))
             .map((m) => ({ id: m.id, kind: m.kind as 'image' | 'video', url: m.url, width: m.width || 0, height: m.height || 0, ...(m.durationSec ? { durationSec: m.durationSec } : {}), ...(m.name ? { note: m.name } : {}) })),
-          ...(line ? { voice: { text: line.text, at: line.offset, duration: line.durationSec } } : {}),
+          ...(line ? { voice: { text: plainSpoken(line.text), at: line.offset, duration: line.durationSec } } : {}),
           ...(!sc.code || sc.error?.stage === 'compile' || sc.error?.stage === 'author' ? { compileError: sc.error?.message || 'aucun code' } : {}),
         };
       }),
@@ -622,6 +622,7 @@ export class MotionVideoService {
       film: { title: film.title, concept: film.concept, bible: film.bible },
       formats: video.scope.formats.length ? video.scope.formats : ['story'],
       brand: brand.tokens,
+      ...(brand.art ? { art: brand.art } : {}),
       scene: {
         key: sc.key,
         index: i,
@@ -636,7 +637,7 @@ export class MotionVideoService {
           .map((id) => byId.get(id))
           .filter((m): m is VideoMediaAsset => !!m && (m.kind === 'image' || m.kind === 'video'))
           .map((m) => ({ id: m.id, kind: m.kind as 'image' | 'video', width: m.width || 0, height: m.height || 0, ...(m.name ? { note: m.name } : {}), ...(m.durationSec ? { durationSec: m.durationSec } : {}) })),
-        ...(line ? { voice: { text: line.text, at: line.offset, duration: line.durationSec } } : {}),
+        ...(line ? { voice: { text: plainSpoken(line.text), at: line.offset, duration: line.durationSec } } : {}),
         ...(beat ? { beat: { bpm: beat.bpm, first: round3(((((beat.offset || 0) - sc.start) % period) + period) % period) } } : {}),
       },
       ...(i > 0 ? { previous: { purpose: film.scenes[i - 1].purpose, visual: film.scenes[i - 1].visual } } : {}),

@@ -416,6 +416,15 @@ export function validateProgram(input: unknown, ctx: ValidationContext): Validat
         const missing = ctx.texts.filter((k) => !used.has(k));
     if (missing.length) warnings.push(`textes de la scène non affichés : ${missing.map((k) => `$${k}`).join(', ')}`);
   }
+  // Les médias de la scène sont le choix du storyboard : un programme qui n'en montre aucun reçoit le premier (une
+  // vidéo de préférence) en fond plein cadre, avec un lent travelling — et c'est dit.
+  if (!errors.length && ctx.media.length && !/"type":"(image|video)"/.test(JSON.stringify(p.nodes))) {
+    const index = Math.max(0, ctx.media.indexOf('video'));
+    const kind = ctx.media[index];
+    (p.nodes as unknown[]).unshift({ id: '__media', type: kind, media: index, w: 'W', h: 'H', fit: 'cover', zoom: 1.08 });
+    (p.timeline as unknown[]).push({ at: 0, target: '__media', dur: 'D', ease: 'linear', to: { zoom: 1 } });
+    warnings.push(`aucun média de la scène n'était montré : le média ${index} (${kind}) est posé en fond plein cadre`);
+  }
   // Les nœuds retirés (texte inventé, doublon) disparaissent, et les pas qui ne visaient qu'eux avec.
   if (!errors.length && dropped.size + JSON.stringify(p.nodes).split('"_drop":true').length > 1) {
     const strip = (list: unknown[]): unknown[] =>

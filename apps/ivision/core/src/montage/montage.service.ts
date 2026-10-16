@@ -398,7 +398,7 @@ export class MontageService {
         if (!canVideo) return null;
         try {
           const clip = await generateClip(
-            { prompt: promptText, orientation, durationSec: 5, quality: 'speed', model: 'google/veo-3.1-fast' },
+            { prompt: promptText, orientation, durationSec: 6, quality: 'speed', model: 'google/veo-3.1-fast' },
             storage,
             folder
           );

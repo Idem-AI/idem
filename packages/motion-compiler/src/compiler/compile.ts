@@ -712,6 +712,11 @@ export function compileProgram(program: MotionProgram, opts: { warnings?: string
   // l'échelle ne l'avance jamais au milieu (la scène finirait vide).
   const AT = (k: number) => (TL[k][4] === 2 ? Math.max(REVEAL * TS, D - E - Math.min(0.8, TL[k][1]) - TL[k][2] * Math.max(0, TL[k][3] - 1) - 0.04) : TL[k][0] * TS);`;
   const allWarnings = [...(opts.warnings || []), ...untangled];
+  // Le son de la transition : chaque scène (sauf la première) entre avec un effet — franc pour un glissement ou un
+  // zoom, doux pour un fondu ou une coupe — sauf si le programme en pose déjà un dans ses premiers instants.
+  const opensWithSfx = timeline.some((st) => st.sfx && typeof st.at === 'number' && st.at <= 0.3);
+  const transitionKind = enter && (enter.type === 'slide' || enter.type === 'zoom') ? 'whoosh' : 'softwhoosh';
+  const transitionSfx = opensWithSfx ? '' : `if (ctx.index > 0) ctx.sfx('${transitionKind}');`;
 
   const header = `/* ${PROGRAM_MARK} v${COMPILER_VERSION}\n${JSON.stringify(program).replace(/\*\//g, '*\\/')}\n*/`;
   const notes = allWarnings.length ? `\n// Avertissements de compilation :\n${allWarnings.map((w) => `//   - ${w.replace(/\n/g, ' ')}`).join('\n')}` : '';
@@ -748,6 +753,7 @@ ${tree}
   ${initial.join('\n  ')}
   ${enterConst}
   ${timing}
+  ${transitionSfx}
   ${enterCode}
   ${timeline.map((s, k) => stepCode(s, k, e)).join('\n  ')}
   yield* waitFor(ctx.duration);

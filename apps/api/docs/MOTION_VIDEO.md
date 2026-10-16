@@ -55,24 +55,29 @@ s'affichent pas — et la vidéo le dit (`film.fidelity.notes`).
 2. **Les images de la marque** (captures du site lu par iVision, photos), décrites une fois par la
    vision et proposées au storyboard (`m1`, `m2`…).
 3. **Ce que le storyboard demande** (`new image: …`, `new clip: …`) : image **FLUX.2 klein 4B**
-   contrôlée par la vision (aucun texte imprimé, le bon sujet) ; le clip **anime cette image**
-   (Seedance 2.0, dérogation produit `allowClosed`). Trois essais par média, puis **Pexels**, puis les
+   contrôlée par la vision (aucun texte imprimé, le bon sujet) ; le clip **anime cette image** avec
+   **Google Veo 3.1** par OpenRouter (Veo 3.1 aux crans High et Ultra, Veo 3.1 Fast sinon ; 16:9 ou 9:16, 4, 6 ou
+   8 s — un autre format ou une autre durée était refusé et faisait retomber sur Pexels). Trois essais par média,
+   puis **Pexels**, puis les
    photos des visuels de la marque. Plafonds : `VIDEO_GEN_MAX_IMAGES` (6), `VIDEO_GEN_MAX_CLIPS` (4).
    Un fournisseur sans crédit (402) coupe la génération pour toute la vidéo dès le premier refus.
+4. **Chaque média attribué à une scène y apparaît** : un programme qui l'ignore reçoit le premier en fond plein cadre
+   (la vidéo de préférence), et les textes posés dessus passent par le contrôle d'affichage (aplat, encre lisible).
 
 ## La jauge de créativité : la puissance des modèles
 
 Depuis le 14 octobre 2026, **le cran choisit le modèle**, pas le travail : à tous les crans, le directeur
 invente le film, le planificateur écrit le storyboard et l'auteur écrit chaque scène, avec le même
-contexte. Plus le cran monte, plus les modèles qui le font sont puissants (échelles de
-`apps/api/api/config/creative-roles.ts`, toutes à poids ouverts) :
+contexte. Plus le cran monte, plus les modèles qui le font sont puissants. Depuis le 16 octobre 2026, le moteur
+vidéo est servi par **Google Gemini, via OpenRouter** (`ROLE_MODEL_OVERRIDES` de `config/ai-models.config.ts`) ;
+Gemini 3.1 Pro raisonne toujours (son raisonnement ne peut pas être coupé : `canSuppressThinking`) :
 
 | Cran | Conception (`video.concept`, `video.planner`, `video.reviser`) | Code des scènes (`video.author`) |
 | --- | --- | --- |
-| Low | `qwen/qwen3.5-9b` | `qwen/qwen3-coder-30b-a3b-instruct` |
-| Medium (défaut) | `qwen/qwen3.5-27b` | `qwen/qwen3-coder-next` |
-| High | `qwen/qwen3.5-397b-a17b` | `qwen/qwen3-coder` (480B) |
-| Ultra | `deepseek/deepseek-v4-pro` | `deepseek/deepseek-v4-pro` |
+| Low | `google/gemini-3.5-flash` | `google/gemini-3.5-flash` |
+| Medium (défaut) | `google/gemini-3.8-flash` | `google/gemini-3.8-flash` |
+| High | `google/gemini-3.1-pro-preview` | `google/gemini-3.1-pro-preview` |
+| Ultra | `google/gemini-3.1-pro-preview` | `google/gemini-3.1-pro-preview` |
 
 Un barreau se remplace sans code : `IDEM_LADDER_DESIGN_<CRAN>` / `IDEM_LADDER_CODE_<CRAN>` (modèle de la liste
 blanche), ou pour un seul rôle `IDEM_ROLE_VIDEO_AUTHOR_MODEL_<CRAN>`. La qualité des clips générés suit aussi
@@ -117,9 +122,16 @@ Choisie par l'utilisateur (désactivée par défaut), dans la langue de la vidé
 par le planificateur (une par scène, gardée même sans voix : l'activer plus tard ne coûte pas d'agent)
 ou par l'utilisateur dans son scénario.
 
-- **Voix** : Kokoro 82M par OpenRouter (`ff_siwis` en français) ou le serveur Qwen3-TTS / Chatterbox
-  de l'exploitant (`IDEM_TTS_URL`, `IDEM_TTS_MODEL`, `IDEM_TTS_VOICE_FR`, `IDEM_TTS_API_KEY`). Une langue
-  sans voix : la vidéo est créée sans voix, et le dit.
+- **Voix** : **ElevenLabs Eleven v4 par OpenRouter** (`elevenlabs/eleven-v4`, 0,04 $ les 1 000 caractères ;
+  `IDEM_OPENROUTER_TTS_MODEL=elevenlabs/eleven-v3` pour la v3). Une voix par personnage : warm → sarah, bright →
+  jessica, smooth → alice, confident → george, friendly → chris, deep → brian, energetic → liam
+  (`IDEM_OPENROUTER_TTS_VOICE_<PERSONNAGE>` pour en changer, parmi les voix ElevenLabs d'OpenRouter). Si ElevenLabs
+  échoue, Kokoro 82M redit la ligne ; le serveur Qwen3-TTS / Chatterbox de l'exploitant (`IDEM_TTS_URL`…) prime s'il
+  est configuré. Une langue sans voix : la vidéo est créée sans voix, et le dit.
+- **Intonation** : le planificateur écrit chaque ligne comme un script de comédien, avec les balises de jeu
+  d'ElevenLabs (`[warmly]`, `[confident]`, `[excited]`, `[short pause]`…, deux au plus par ligne), les points de
+  suspension et la ponctuation. Les balises sont DITES (ElevenLabs les joue), jamais lues : sous-titres, calage et
+  vérification des faits utilisent le texte nu (`plainSpoken`) ; une voix qui ne les comprend pas les reçoit retirées.
 - **Calage** : chaque scène dure au moins entrée + ligne + souffle ; la durée achetée ne change pas ; une
   ligne qui ne tient pas est retirée (jamais coupée) et c'est dit. La voix est dite **avant** l'écriture
   des scènes : chaque auteur connaît sa durée finale et l'instant de sa ligne.

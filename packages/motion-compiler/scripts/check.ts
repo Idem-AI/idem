@@ -121,14 +121,16 @@ async function probeIn(specs: SceneSpec[], format: VideoFormat) {
   const warned = (re: RegExp) => bad.warnings.some((w) => re.test(w));
   check('x d’un enfant de pile : sans effet, ignoré et dit (jamais un refus)', warned(/posé par une pile/) && !has(/posé par une pile/));
   check('propriété non animable : ignorée et dite (jamais un refus)', warned(/wobble/) && !has(/wobble/));
-  const clear = validateProgram({ nodes: [{ id: 't', type: 'text', text: 'Torréfié  chaque matin' }, { id: 'w', type: 'line', points: [[0, 0], [10, 0]], lineWidth: '0.4*2' }], timeline: [] }, { ...ctx, values: { headline: 'x', sub: 'Torréfié chaque matin' } });
+  const clear = validateProgram({ nodes: [{ id: 't', type: 'text', text: 'Torréfié  chaque matin' }, { id: 'w', type: 'line', points: [[0, 0], [10, 0]], lineWidth: '0.4*2' }], timeline: [] }, { ...ctx, media: [], values: { headline: 'x', sub: 'Torréfié chaque matin' } });
   check('texte de la scène écrit en clair → remplacé par sa clé ; calcul constant → sa valeur', clear.ok && (clear.program!.nodes[0] as { text: string }).text === '$sub' && (clear.program!.nodes[1] as { lineWidth: number }).lineWidth === 0.8, JSON.stringify(clear));
   const lenient = validateProgram({ nodes: [{ id: 't', type: 'text', text: '$headline', glow: true }], timeline: [{ at: 0, sfx: 'swoosh' }, { at: 0.5, sfx: 'ding' }, { at: 1, sfx: 'pop' }, { at: 1.2, sfx: 'laser' }, { at: 0.2, target: 't', ease: 'easeOutCubic', to: { opacity: 1 } }, { at: 0.4, target: 't', ease: 'wiggle', to: { scale: 1.1 } }] }, ctx);
   const sfx = lenient.program?.timeline.filter((s) => s.sfx).map((s) => s.sfx);
   check('effets sonores : alias reconnus, au-delà de deux ou inconnus ignorés (jamais un refus)', lenient.ok && JSON.stringify(sfx) === '["whoosh","shimmer"]', JSON.stringify({ sfx, errors: lenient.errors }));
   check('courbes : alias reconnus (easeOutCubic), inconnues ignorées', lenient.ok && lenient.program!.timeline.some((s) => s.ease === 'outCubic') && lenient.warnings.some((w) => /wiggle/.test(w)));
   check('propriété inconnue : avertissement, programme gardé', lenient.warnings.some((w) => /glow/.test(w)));
-  const dup = validateProgram({ nodes: [{ id: 'a', type: 'text', text: '$sub' }, { id: 'b', type: 'text', text: '$sub', y: 20 }, { id: 'c', type: 'text', text: 'Héritage' }], timeline: [{ at: 0, target: 'b', to: { opacity: 1 } }, { at: 0, target: 'c', to: { opacity: 1 } }, { at: 0, target: ['a', 'c'], to: { opacity: 1 } }] }, ctx);
+  const dup = validateProgram({ nodes: [{ id: 'a', type: 'text', text: '$sub' }, { id: 'b', type: 'text', text: '$sub', y: 20 }, { id: 'c', type: 'text', text: 'Héritage' }], timeline: [{ at: 0, target: 'b', to: { opacity: 1 } }, { at: 0, target: 'c', to: { opacity: 1 } }, { at: 0, target: ['a', 'c'], to: { opacity: 1 } }] }, { ...ctx, media: [] });
+  const withMedia = validateProgram({ nodes: [{ type: 'text', text: '$sub' }], timeline: [] }, { ...ctx, media: ['image', 'video'] });
+  check('un média de la scène que le programme ne montre pas est posé en fond plein cadre (la vidéo de préférence)', withMedia.ok && (withMedia.program!.nodes[0] as { type: string; media: number }).type === 'video' && (withMedia.program!.nodes[0] as { media: number }).media === 1, JSON.stringify(withMedia.program?.nodes[0]));
   check('doublon et texte inventé retirés avec les pas qui ne visaient qu’eux (la scène vit, rien d’inventé)', dup.ok && dup.program!.nodes.length === 1 && dup.program!.timeline.length === 1 && JSON.stringify(dup.program!.timeline[0].target) === '["a"]', JSON.stringify({ e: dup.errors, p: dup.program }));
 
   section('3. Exemples : validés, compilés, acceptés par esbuild');

@@ -4,6 +4,7 @@
  * Les moteurs appellent des rôles logiques ; le modèle se résout par configuration (OpenRouter, ou nos
  * machines compatibles OpenAI), jamais dans un prompt. Aucun appel réseau.
  */
+import { ROLE_MODEL_OVERRIDES } from '../config/ai-models.config';
 import { isAllowedOpenRouterModel } from '../config/openrouter.config';
 import { CREATIVE_ROLES, hasRoleRouting, MODEL_LADDERS, roleConfig, roleOf } from '../config/creative-roles';
 import { AI_CONFIG, LLMProvider } from '../config/ai.config';
@@ -64,11 +65,11 @@ for (const k of Object.keys(process.env)) if (/^IDEM_(ROLE_VIDEO|ROLE_GRAPHIC|LA
 const levels = ['low', 'medium', 'high', 'ultra'] as const;
 ok('quatre crans seulement (Low, Medium, High, Ultra)', (Object.keys(MODEL_LADDERS) as (keyof typeof MODEL_LADDERS)[]).every((l) => Object.keys(MODEL_LADDERS[l]).join(',') === levels.join(',')));
 ok('échelles : chaque barreau est un modèle autorisé, et chaque cran en change', (Object.keys(MODEL_LADDERS) as (keyof typeof MODEL_LADDERS)[]).every((l) => levels.every((lv) => isAllowedOpenRouterModel(MODEL_LADDERS[l][lv])) && new Set(levels.map((lv) => MODEL_LADDERS[l][lv])).size === levels.length));
-ok('le cran choisit le modèle de l’auteur (Low le plus léger, Ultra le plus capable), épinglé', levels.every((lv) => roleConfig('video.author', 'coder', lv).modelName === MODEL_LADDERS.code[lv] && roleConfig('video.author', 'coder', lv).pinModel === true) && roleConfig('video.planner', 'agents', 'low').modelName === MODEL_LADDERS.design.low);
+ok('vidéo : le cran choisit le modèle Gemini (OpenRouter) de chaque rôle, épinglé et autorisé — 3.1 Pro en High et Ultra', levels.every((lv) => { const c = roleConfig('video.author', 'coder', lv); return c.modelName === ROLE_MODEL_OVERRIDES['video.author'][lv] && c.pinModel === true && isAllowedOpenRouterModel(c.modelName!); }) && roleConfig('video.author', 'coder', 'ultra').modelName === 'google/gemini-3.1-pro-preview' && roleConfig('video.planner', 'agents', 'low').modelName === ROLE_MODEL_OVERRIDES['video.planner'].low);
 ok('livrables graphiques : l’auteur des pages suit l’échelle « code », le directeur l’échelle « design »', levels.every((lv) => roleConfig('graphic.author', 'coder', lv).modelName === MODEL_LADDERS.code[lv] && roleConfig('graphic.director', 'agents', lv).modelName === MODEL_LADDERS.design[lv]));
 process.env.IDEM_LADDER_CODE_HIGH = allowed;
 process.env.IDEM_ROLE_VIDEO_AUTHOR_MODEL_ULTRA = allowed;
-ok('un barreau ou un modèle par cran se règlent par l’environnement', roleConfig('video.author', 'coder', 'high').modelName === allowed && roleConfig('video.author', 'coder', 'ultra').modelName === allowed && roleConfig('video.author', 'coder', 'low').modelName === MODEL_LADDERS.code.low);
+ok('un barreau ou un modèle par cran se règlent par l’environnement', roleConfig('graphic.author', 'coder', 'high').modelName === allowed && roleConfig('video.author', 'coder', 'ultra').modelName === allowed && roleConfig('video.author', 'coder', 'low').modelName === ROLE_MODEL_OVERRIDES['video.author'].low);
 delete process.env.IDEM_LADDER_CODE_HIGH;
 delete process.env.IDEM_ROLE_VIDEO_AUTHOR_MODEL_ULTRA;
 

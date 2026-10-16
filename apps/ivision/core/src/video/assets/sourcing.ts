@@ -198,11 +198,13 @@ export async function sourceShots(opts: SourcingOptions): Promise<{ byNeed: Map<
       stills.set(plan, image);
     }
     const prompts = clipPrompts(plan, opts.direction.look);
-    const durationSec: 5 | 10 = (plan.durationSec || 0) > 5.5 ? 10 : 5;
+    // Veo n'accepte que 4, 6 ou 8 s (au-delà, le clip est tenu par la scène).
+    const wanted = plan.durationSec || 0;
+    const durationSec: 4 | 6 | 8 = wanted <= 4.5 ? 4 : wanted <= 6.5 ? 6 : 8;
     for (let attempt = 0; attempt < GENERATION_ATTEMPTS && !blocked.video; attempt++) {
       const image = first && attempt < 2 ? { base64: first.jpeg.toString('base64'), mimeType: 'image/jpeg' } : undefined;
       try {
-        return await generateClip({ prompt: prompts[attempt], image, orientation: opts.orientation, quality: image ? opts.clipQuality : 'speed', durationSec, model: 'google/veo-3.1-fast' }, opts.storage, opts.folder, plan.query);
+        return await generateClip({ prompt: prompts[attempt], image, orientation: opts.orientation, quality: image ? opts.clipQuality : 'speed', durationSec, model: image && opts.clipQuality === 'quality' ? 'google/veo-3.1' : 'google/veo-3.1-fast' }, opts.storage, opts.folder, plan.query);
       } catch (error: any) {
         report.failedAttempts++;
         if (trip('video', error)) break;

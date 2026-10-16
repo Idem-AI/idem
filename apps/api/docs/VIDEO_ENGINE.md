@@ -114,6 +114,8 @@ Le modèle écrit un programme JSON (référence complète donnée au modèle : 
 | Un texte n'est jamais coupé | `FIT` : la taille demandée est un plafond ; le texte passe à la ligne dans sa largeur (ou la place restante dans la zone sûre), n'est réduit que s'il serait coupé, et (posé dans la scène) est ramené dans la zone sûre |
 | Ce qui entre a fini avant la coupe | la piste entière est mise à l'échelle (`TS`) pour finir à `D − E − min(1,6 s ; 30 % de D)` ; un pas d'ambiance (travelling `dur: "D"`, boucle) garde sa durée ; une sortie finale (fondu de fin, rien n'entre après) reste calée sur la fin |
 | Deux animations ne se battent pas | même cible, même propriété, en même temps : la seconde commence quand la première finit (`untangle`) |
+| Les médias de la scène apparaissent | un programme qui ne montre aucun des médias attribués à sa scène reçoit le premier (vidéo de préférence) en fond plein cadre, avec un lent travelling |
+| Chaque transition a son son | chaque scène sauf la première entre avec un effet (`whoosh` pour un glissement ou un zoom, `softwhoosh` sinon), sauf si le programme en pose déjà un à son ouverture |
 | Un programme pour tous les formats | l'auteur reçoit le cadre de CHAQUE format de la vidéo ; `pick()`, `%` et `dir: "auto"` adaptent la composition ; le contrôle vérifie chaque format |
 
 ### La taille de composition
@@ -160,7 +162,7 @@ Un appel par scène, avec seulement :
 
 1. la **référence du langage** (primitives, unités, piste, responsive, grammaire du mouvement, règles) ;
 2. deux **exemples** de programmes choisis par les mots de la scène et ses médias ;
-3. la **fiche** : film (titre, concept, bible), **cadres de tous les formats** de la vidéo (W, H, zone sûre en u),
+3. la **fiche** : film (titre, concept, bible), **direction artistique de la charte** (style, mise en page, typographie, couleurs, motifs, à faire / à éviter), polices de titre et de texte, **cadres de tous les formats** de la vidéo (W, H, zone sûre en u),
    rang, durée, marque, scènes voisines, intention, idées visuelle et de mouvement, entrée, textes exacts (`$clé`),
    médias (rang, dimensions, description), voix et son instant, tempo ;
 4. pour une retouche : le programme actuel et la demande ; pour une correction : le programme actuel, le problème

@@ -183,6 +183,18 @@ export const OPENROUTER_MODELS: readonly OpenRouterModel[] = [
   // Le catalogue « speech » ne renseigne PAS hugging_face_id : la preuve des poids
   // ouverts est ici la fiche Hugging Face lue à la main (hfId + licence ci-dessous).
   {
+    id: 'elevenlabs/eleven-v4', kind: 'speech', license: 'propriétaire',
+    openWeights: false, allowClosed: true, commercialOk: true, selfHost: 'impossible', roles: [],
+    pricing: { input: 40 },
+    note: 'ElevenLabs Eleven v4 via OpenRouter : voix off des vidéos (balises de jeu en ligne, 90+ langues). Dérogation produit.',
+  },
+  {
+    id: 'elevenlabs/eleven-v3', kind: 'speech', license: 'propriétaire',
+    openWeights: false, allowClosed: true, commercialOk: true, selfHost: 'impossible', roles: [],
+    pricing: { input: 40 },
+    note: 'ElevenLabs Eleven v3 via OpenRouter (balises de jeu, 70+ langues) : alternative par IDEM_OPENROUTER_TTS_MODEL.',
+  },
+  {
     id: 'hexgrad/kokoro-82m', kind: 'speech', hfId: 'hexgrad/Kokoro-82M', license: 'apache-2.0',
     openWeights: true, commercialOk: true, selfHost: 'léger', roles: [],
     pricing: { input: 0.62 },
@@ -210,6 +222,25 @@ export const OPENROUTER_MODELS: readonly OpenRouterModel[] = [
     roles: ['writing', 'reasoning', 'mechanical', 'vision'],
     pricing: { input: 0.75, output: 3.75, cachedInput: 0.075, perSearch: 0.014 },
     note: 'Gemini 3.8 Flash via OpenRouter (motion video, flyers, branding, BP, carte de visite, pitch deck).',
+  },
+  {
+    id: 'google/gemini-3.5-flash', kind: 'text', license: 'propriétaire',
+    openWeights: false, allowClosed: true, commercialOk: true, selfHost: 'impossible',
+    roles: ['writing', 'mechanical'],
+    pricing: { input: 1.5, output: 9 },
+    note: 'Gemini 3.5 Flash via OpenRouter : le moteur vidéo au cran Low.',
+  },
+  {
+    id: 'google/gemini-3.1-pro-preview', kind: 'text', license: 'propriétaire',
+    openWeights: false, allowClosed: true, commercialOk: true, selfHost: 'impossible',
+    roles: ['writing', 'reasoning'],
+    pricing: { input: 2, output: 12 },
+    note: 'Gemini 3.1 Pro via OpenRouter : le moteur vidéo (direction, storyboard, programmes des scènes) aux crans High et Ultra. Raisonne toujours.',
+  },
+  {
+    id: 'google/veo-3.1', kind: 'video', license: 'propriétaire',
+    openWeights: false, allowClosed: true, commercialOk: true, selfHost: 'impossible', roles: [],
+    note: 'Google Veo 3.1 via OpenRouter : clips des vidéos en qualité (crans High et Ultra). 16:9 ou 9:16, 4/6/8 s.',
   },
   {
     id: 'google/veo-3.1-fast', kind: 'video', license: 'propriétaire',

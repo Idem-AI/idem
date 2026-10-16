@@ -101,7 +101,8 @@ export function translateReasoning<T extends Record<string, any>>(body: T): T {
  * défaut ; elles restent employables section par section.
  */
 export function canSuppressThinking(modelName: string): boolean {
-  return !/-thinking|deepseek-r1/i.test(modelName);
+  // Gemini Pro (3.x) aussi : « Reasoning is mandatory for this endpoint » (OpenRouter, vérifié le 16/10/2026).
+  return !/-thinking|deepseek-r1|gemini-[\d.]+-pro/i.test(modelName);
 }
 
 const ALL_CAPABILITIES: ProviderCapabilities = {

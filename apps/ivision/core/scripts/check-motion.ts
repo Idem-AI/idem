@@ -132,7 +132,7 @@ main().catch(async (e) => {
 function programFor(user: string, opts: { overlap?: boolean } = {}): MotionProgram {
   const scene = user.split('THIS SCENE')[1] || user;
   const keys = [...scene.matchAll(/\$(\w+) = "/g)].map((m) => m[1]);
-  const hasMedia = /\nmedia: 0 = image/.test(scene);
+  const hasMedia = /\nmedia[^:\n]*: 0 = image/.test(scene);
   const nodes: MotionProgram['nodes'] = [];
   if (hasMedia) nodes.push({ id: 'photo', type: 'image', media: 0, x: 'pick(0, -SW*0.25)', y: 'pick(-SH*0.15, 0)', w: 'pick(SW, SW*0.45)', h: 'pick(SH*0.5, SH)', radius: 2, zoom: 1.1 });
   if (opts.overlap) keys.forEach((k, i) => nodes.push({ id: `t${i}`, type: 'text', text: `$${k}`, y: i, size: 8 }));
