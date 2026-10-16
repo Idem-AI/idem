@@ -354,7 +354,7 @@ export async function detectFramework(
   // A workspace (pnpm, npm, yarn; turbo, nx) or a multi-module Java build at
   // the root: its applications, as the deployment will read them — the root
   // of a JS monorepo has a package.json, so the check above never saw one.
-  if (!monorepoCandidates && !rootDirSuggestion && (ecosystem === 'node' || ecosystem.startsWith('java'))) {
+  if (!monorepoCandidates && !rootDirSuggestion && ecosystem !== 'unknown' && ecosystem !== 'dockerfile') {
     const layout = await monorepoLayout(treePaths, fileContent);
     if (layout.candidates) monorepoCandidates = layout.candidates;
     else if (layout.onlyApp) rootDirSuggestion = layout.onlyApp;

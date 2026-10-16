@@ -10,16 +10,10 @@
  *
  * The Dockerfile is written next to the code on the server, never committed.
  */
-import { JavaRecipe, NodeRecipe } from '../build-plan/types';
+import { JavaRecipe, NodeRecipe, Recipe } from '../build-plan/types';
 import { FRESH_COREPACK } from '../build-plan/node';
-
-/** Build-time Variables become ARGs: the build steps see them as environment. */
-function argLines(buildArgKeys: string[]): string[] {
-  return [...new Set(buildArgKeys)].filter((k) => /^[A-Za-z_][A-Za-z0-9_]*$/.test(k)).map((k) => `ARG ${k}`);
-}
-
-/** A JSON string for an exec-form instruction. */
-const json = (value: string) => JSON.stringify(value);
+import { argLines, json, sq } from './dockerfile-helpers';
+import { dotnetDockerfile, goDockerfile, phpDockerfile, pythonDockerfile, rubyDockerfile, rustDockerfile } from './recipes-languages';
 
 const NODE_CACHES: Record<NodeRecipe['manager'], string> = {
   npm: '--mount=type=cache,id=ideploy-npm,target=/root/.npm',
@@ -35,8 +29,6 @@ export function lenientInstall(manager: NodeRecipe['manager']): string {
   return 'npm install';
 }
 
-/** A value single-quoted for sh. */
-const sq = (value: string) => `'${value.replace(/'/g, `'\\''`)}'`;
 
 /**
  * The build's output contract, checked in the image (see buildOutputContract):
@@ -73,16 +65,26 @@ const NODE_ENV_LINE =
  * openssl (Prisma's engines need it), and the build variables stay in the
  * build stage.
  */
-export function nodeDockerfile(recipe: NodeRecipe, buildArgKeys: string[] = []): string {
+export function nodeDockerfile(recipe: NodeRecipe, buildArgKeys: string[] = [], registry = ''): string {
   const lines = [
-    `FROM node:${recipe.nodeVersion} AS build`,
+    `FROM ${registry}node:${recipe.nodeVersion} AS build`,
     'WORKDIR /app',
     NODE_ENV_LINE,
-    'ENV CI=1',
+    // No .git in the image: husky's install hook fails without one; Cypress
+    // downloads a 500 MB test browser nobody runs here.
+    'ENV CI=1 HUSKY=0 CYPRESS_INSTALL_BINARY=0',
     'RUN mkdir -p /corepack',
-    ...argLines(buildArgKeys),
+    // NODE_OPTIONS: the larger heap a retry gives a build that ran out of it.
+    ...argLines([...buildArgKeys, 'NODE_OPTIONS']),
     'COPY . .',
   ];
+  if (recipe.manager === 'pnpm') {
+    // pnpm 10 no longer runs dependencies' install scripts unless listed:
+    // sharp, prisma, esbuild, bcrypt install without their binaries and the
+    // application fails at start. Allowed here, as npm and yarn do (older pnpm
+    // ignores the setting).
+    lines.push(`RUN printf '\\ndangerously-allow-all-builds=true\\n' >> .npmrc`);
+  }
   if (recipe.manager !== 'npm') {
     const activate = recipe.hasPackageManagerField
       ? 'corepack install'
@@ -97,7 +99,7 @@ export function nodeDockerfile(recipe: NodeRecipe, buildArgKeys: string[] = []):
   if (recipe.output) lines.push(outputCheck(recipe.output, nextCache));
   lines.push(
     '',
-    `FROM node:${recipe.nodeVersion}-slim`,
+    `FROM ${registry}node:${recipe.nodeVersion}-slim`,
     'WORKDIR /app',
     // Not fatal: only Prisma-like engines need it, and a mirror outage must not fail the build.
     'RUN (apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates && rm -rf /var/lib/apt/lists/*) || echo "openssl not installed"',
@@ -127,14 +129,16 @@ function javaPortFlags(framework: JavaRecipe['framework']): string {
   }
 }
 
-function javaBuildImage(recipe: JavaRecipe): string {
+function javaBuildImage(recipe: JavaRecipe, registry: string): string {
   // The wrapper fetches the build tool the project pinned; without one, the
-  // official image of the tool on the right JDK.
-  if (recipe.wrapper) return `eclipse-temurin:${recipe.jdk}-jdk`;
-  return recipe.tool === 'maven' ? `maven:3.9-eclipse-temurin-${recipe.jdk}` : `gradle:jdk${recipe.jdk}`;
+  // official image of the tool on the right JDK (the pinned Gradle version
+  // when known: a build script written for Gradle 7 may not run on 9).
+  if (recipe.wrapper) return `${registry}eclipse-temurin:${recipe.jdk}-jdk`;
+  if (recipe.tool === 'maven') return `${registry}maven:3.9-eclipse-temurin-${recipe.jdk}`;
+  return recipe.gradleVersion ? `${registry}gradle:${recipe.gradleVersion}-jdk${recipe.jdk}` : `${registry}gradle:jdk${recipe.jdk}`;
 }
 
-export function javaDockerfile(recipe: JavaRecipe, buildArgKeys: string[] = []): string {
+export function javaDockerfile(recipe: JavaRecipe, buildArgKeys: string[] = [], registry = ''): string {
   const out = recipe.tool === 'maven' ? 'target' : 'build';
   const moduleOut = recipe.module ? `${recipe.module}/${out}` : out;
   const caches =
@@ -152,16 +156,18 @@ export function javaDockerfile(recipe: JavaRecipe, buildArgKeys: string[] = []):
   const jarPath = recipe.framework === 'Quarkus' ? 'quarkus-app/quarkus-run.jar' : 'app.jar';
   const flags = javaPortFlags(recipe.framework);
   return [
-    `FROM ${javaBuildImage(recipe)} AS build`,
+    `FROM ${javaBuildImage(recipe, registry)} AS build`,
     'WORKDIR /app',
     // The build tool's JVM sized on the server's memory, not a fixed heap.
     'ENV MAVEN_OPTS="-XX:MaxRAMPercentage=50" GRADLE_OPTS="-XX:MaxRAMPercentage=50 -Dorg.gradle.daemon=false" GRADLE_USER_HOME=/root/.gradle',
     ...argLines(buildArgKeys),
     'COPY . .',
-    `RUN ${caches} for w in mvnw gradlew; do [ -f "$w" ] && chmod +x "$w"; done; ${recipe.build}`,
+    // A wrapper committed from Windows ends its lines with CR ("/bin/sh^M:
+    // bad interpreter"), or lost its executable bit: both fixed on this copy.
+    `RUN ${caches} for w in mvnw gradlew; do [ -f "$w" ] && sed -i 's/\\r$//' "$w" && chmod +x "$w"; done; ${recipe.build}`,
     `RUN mkdir -p /out && ${collect}`,
     '',
-    `FROM eclipse-temurin:${recipe.jdk}-jre`,
+    `FROM ${registry}eclipse-temurin:${recipe.jdk}-jre`,
     'WORKDIR /app',
     'COPY --from=build /out/ ./',
     'ENV JAVA_OPTS="-XX:MaxRAMPercentage=75 -XX:+ExitOnOutOfMemoryError"',
@@ -171,12 +177,52 @@ export function javaDockerfile(recipe: JavaRecipe, buildArgKeys: string[] = []):
   ].join('\n');
 }
 
-export function recipeDockerfile(recipe: NodeRecipe | JavaRecipe, buildArgKeys: string[] = []): string {
-  return recipe.kind === 'node' ? nodeDockerfile(recipe, buildArgKeys) : javaDockerfile(recipe, buildArgKeys);
+/**
+ * The Dockerfile of a recipe. `registry`: a prefix for the base images —
+ * `mirror.gcr.io/library/` when Docker Hub refuses the pull (its rate limit).
+ */
+export function recipeDockerfile(recipe: Recipe, buildArgKeys: string[] = [], registry = ''): string {
+  switch (recipe.kind) {
+    case 'node':
+      return nodeDockerfile(recipe, buildArgKeys, registry);
+    case 'java':
+      return javaDockerfile(recipe, buildArgKeys, registry);
+    case 'python':
+      return pythonDockerfile(recipe, buildArgKeys, registry);
+    case 'php':
+      return phpDockerfile(recipe, buildArgKeys, registry);
+    case 'go':
+      return goDockerfile(recipe, buildArgKeys, registry);
+    case 'ruby':
+      return rubyDockerfile(recipe, buildArgKeys, registry);
+    case 'dotnet':
+      return dotnetDockerfile(recipe, buildArgKeys);
+    case 'rust':
+      return rustDockerfile(recipe, buildArgKeys, registry);
+  }
 }
 
+/** Google's mirror of Docker Hub's official images: no pull rate limit. */
+export const DOCKER_HUB_MIRROR = 'mirror.gcr.io/library/';
+
 /** A short name for the log. */
-export function recipeLabel(recipe: NodeRecipe | JavaRecipe): string {
-  if (recipe.kind === 'node') return `Node ${recipe.nodeVersion} (${recipe.manager})`;
-  return `Java ${recipe.jdk} (${recipe.tool}${recipe.wrapper ? ' wrapper' : ''})`;
+export function recipeLabel(recipe: Recipe): string {
+  switch (recipe.kind) {
+    case 'node':
+      return `Node ${recipe.nodeVersion} (${recipe.manager})`;
+    case 'java':
+      return `Java ${recipe.jdk} (${recipe.tool}${recipe.wrapper ? ' wrapper' : ''})`;
+    case 'python':
+      return `Python ${recipe.version} (${recipe.manager})`;
+    case 'php':
+      return `PHP ${recipe.version} (${recipe.framework}, Apache)`;
+    case 'go':
+      return `Go ${recipe.version}${recipe.cgo ? ' (cgo)' : ''}`;
+    case 'ruby':
+      return `Ruby ${recipe.version}${recipe.rails ? ' (Rails)' : ''}`;
+    case 'dotnet':
+      return `.NET ${recipe.version}`;
+    case 'rust':
+      return `Rust ${recipe.version === '1' ? 'stable' : recipe.version}`;
+  }
 }

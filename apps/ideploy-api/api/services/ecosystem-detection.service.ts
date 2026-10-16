@@ -128,22 +128,10 @@ async function detectPython(repo: EcosystemRepoAccess): Promise<EcosystemDetecti
   // is the reliable signal (requirements.txt naming "django" is not: it is
   // routinely a transitive dependency of something else).
   if (manageP !== null || /\bdjango\b/i.test(manifest)) {
-    return {
-      ecosystem: 'python',
-      framework: 'Django',
-      buildTool,
-      suggestedPort: 8000,
-      startCommandHint: 'python manage.py runserver 0.0.0.0:$PORT',
-      warnings: [
-        {
-          code: 'DJANGO_DEV_SERVER',
-          message:
-            'Django\'s own dev server (manage.py runserver) is not meant for production traffic. Consider a ' +
-            'start command using gunicorn/uvicorn if this deploys somewhere users will actually hit.',
-          severity: 'warning',
-        },
-      ],
-    };
+    // No start command suggested: iDeploy's recipe runs gunicorn on the
+    // project's wsgi module (runserver, suggested here before, is a
+    // development server — and a suggestion becomes the user's command).
+    return { ecosystem: 'python', framework: 'Django', buildTool, suggestedPort: 8000, warnings: [] };
   }
   if (/\bfastapi\b/i.test(manifest)) {
     return { ecosystem: 'python', framework: 'FastAPI', buildTool, suggestedPort: 8000, warnings: [] };
@@ -161,18 +149,10 @@ async function detectGo(repo: EcosystemRepoAccess): Promise<EcosystemDetection |
     ecosystem: 'go',
     framework: 'Go',
     buildTool: 'go modules',
-    // No real convention — a Go binary's listen address is whatever the
-    // developer wrote, most commonly hardcoded rather than read from an
-    // env var. Reported as unknown rather than guessed, so the UI asks
-    // instead of silently routing to a port nothing is listening on.
+    // No convention: the port is often hardcoded. The deployment measures
+    // the one the program listens on and routes there.
     suggestedPort: null,
-    warnings: [
-      {
-        code: 'GO_PORT_UNKNOWN',
-        message: 'Go binaries usually hardcode their listen port rather than reading $PORT. Check main.go for the actual port and set it below.',
-        severity: 'warning',
-      },
-    ],
+    warnings: [],
   };
 }
 
@@ -203,8 +183,8 @@ async function detectPhp(repo: EcosystemRepoAccess): Promise<EcosystemDetection 
     ecosystem: 'php',
     framework: isLaravel ? 'Laravel' : 'PHP',
     buildTool: 'composer',
-    suggestedPort: isLaravel ? 8000 : null,
-    startCommandHint: isLaravel ? 'php artisan serve --host=0.0.0.0 --port=$PORT' : undefined,
+    // Apache serves the public folder in iDeploy's recipe (artisan serve is a development server).
+    suggestedPort: 80,
     warnings: [],
   };
 }

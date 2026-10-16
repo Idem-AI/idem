@@ -251,7 +251,30 @@ export async function planJava(files: RepoFiles, appDir: string, overrides: { st
   }
 
   const moduleRel = relativeTo(buildRoot, moduleDir);
-  const wrapper = tool === 'maven' ? files.paths.includes(joinPath(buildRoot, 'mvnw')) : files.paths.includes(joinPath(buildRoot, 'gradlew'));
+  // A wrapper is usable only with its files: `*.jar` in a .gitignore leaves
+  // gradle-wrapper.jar out ("Could not find or load main class
+  // org.gradle.wrapper.GradleWrapperMain"), and mvnw needs its properties.
+  // Without them, the official image of the build tool — the same Gradle
+  // version when the properties name it.
+  const has = (path: string) => files.paths.includes(joinPath(buildRoot, path));
+  const wrapper =
+    tool === 'maven'
+      ? has('mvnw') && has('.mvn/wrapper/maven-wrapper.properties')
+      : has('gradlew') && has('gradle/wrapper/gradle-wrapper.jar');
+  const gradleVersion =
+    tool === 'gradle'
+      ? /distributionUrl.*gradle-(\d+(?:\.\d+)*)-/.exec((await files.read(joinPath(buildRoot, 'gradle/wrapper/gradle-wrapper.properties'))) ?? '')?.[1] ?? null
+      : null;
+  if (!wrapper && (has('mvnw') || has('gradlew'))) {
+    issues.push({
+      code: 'WRAPPER_INCOMPLETE',
+      severity: 'info',
+      message:
+        `The ${tool === 'maven' ? 'Maven' : 'Gradle'} wrapper is committed without its files ` +
+        `(${tool === 'maven' ? '.mvn/wrapper/maven-wrapper.properties' : 'gradle/wrapper/gradle-wrapper.jar, often left out by a *.jar line in .gitignore'}): ` +
+        `the official ${tool === 'maven' ? 'Maven' : `Gradle${gradleVersion ? ` ${gradleVersion}` : ''}`} image builds it instead.`,
+    });
+  }
   const plan: BuildPlanResult = {
     language: 'java',
     framework: `${framework} (${tool === 'maven' ? 'Maven' : 'Gradle'})`,
@@ -289,6 +312,7 @@ export async function planJava(files: RepoFiles, appDir: string, overrides: { st
       wrapper,
       module: moduleRel,
       framework,
+      gradleVersion,
       build:
         tool === 'maven'
           ? `${runner} -B -DskipTests ${moduleRel ? `-pl ${moduleRel} -am ` : ''}package`
