@@ -71,6 +71,12 @@ export interface NodeRecipe {
   start: string;
   /** Next.js keeps a build cache in `<app>/.next/cache`. */
   nextCacheDir: string | null;
+  /**
+   * What the build must produce for the start command (relative to
+   * `buildRoot`), and the application's own build to run when the workspace
+   * build did not produce it. Null: nothing checkable.
+   */
+  output: { path: string; alternatives: string[]; build: string | null; strict: boolean } | null;
 }
 
 /** A Java server: built with Maven or Gradle, run from its jar. */

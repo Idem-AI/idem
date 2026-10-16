@@ -1034,6 +1034,213 @@
         "sortOrder": "Descending",
         "dedupStrategy": "none"
       }
+    },
+    {
+      "id": 19,
+      "type": "row",
+      "title": "Builds iDeploy",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 59,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 20,
+      "type": "stat",
+      "title": "Déploiements réussis",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 60,
+        "w": 6,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "100 * sum(count_over_time({service=\"ideploy-api\", env=~\"$env\"} |= \"deployment.succeeded\" | json | event=\"deployment.succeeded\" [$__range])) / (sum(count_over_time({service=\"ideploy-api\", env=~\"$env\"} |= \"deployment.succeeded\" | json | event=\"deployment.succeeded\" [$__range])) + sum(count_over_time({service=\"ideploy-api\", env=~\"$env\"} |= \"deployment.failed\" | json | event=\"deployment.failed\" [$__range])))",
+          "queryType": "instant"
+        }
+      ],
+      "description": "Part des déploiements terminés avec succès sur la période.",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 80
+              },
+              {
+                "color": "green",
+                "value": 95
+              }
+            ]
+          },
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center"
+      }
+    },
+    {
+      "id": 21,
+      "type": "timeseries",
+      "title": "Échecs de déploiement par cause",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 60,
+        "w": 18,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum by (failureCode) (count_over_time({service=\"ideploy-api\", env=~\"$env\"} |= \"deployment.failed\" | json | event=\"deployment.failed\" [$__interval]))",
+          "queryType": "range",
+          "legendFormat": "{{failureCode}}"
+        }
+      ],
+      "description": "failureCode de chaque déploiement en échec (OUT_OF_MEMORY, NO_BUILD_OUTPUT, MONOREPO_PICK_APP…).",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 60,
+            "stacking": {
+              "mode": "normal"
+            },
+            "lineWidth": 2,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 22,
+      "type": "table",
+      "title": "Causes d’échec les plus fréquentes",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 68,
+        "w": 24,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "topk(20, sum by (failureCode) (count_over_time({service=\"ideploy-api\", env=~\"$env\"} |= \"deployment.failed\" | json | event=\"deployment.failed\" [$__range])))",
+          "queryType": "instant"
+        }
+      ],
+      "description": "À traiter en premier : chaque cause fréquente est un mécanisme à ajouter au build.",
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {
+            "mode": "columns"
+          }
+        },
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "renameByName": {
+              "Value": "Déploiements en échec",
+              "failureCode": "Cause"
+            },
+            "indexByName": {
+              "Value": 0,
+              "failureCode": 1
+            }
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "sort": [
+              {
+                "field": "Déploiements en échec",
+                "desc": true
+              }
+            ]
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      }
     }
   ]
 }

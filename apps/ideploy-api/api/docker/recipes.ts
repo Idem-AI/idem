@@ -35,6 +35,32 @@ export function lenientInstall(manager: NodeRecipe['manager']): string {
   return 'npm install';
 }
 
+/** A value single-quoted for sh. */
+const sq = (value: string) => `'${value.replace(/'/g, `'\\''`)}'`;
+
+/**
+ * The build's output contract, checked in the image (see buildOutputContract):
+ * missing after the workspace build, the application's own build runs; still
+ * missing, a certain contract fails the build with what to fix, a guessed one
+ * warns.
+ */
+export function outputCheck(output: NonNullable<NodeRecipe['output']>, mounts = ''): string {
+  const present = [output.path, ...output.alternatives].map((p) => `[ -e ${sq(p)} ]`).join(' || ');
+  const missing = `The build did not produce ${output.path}, which the start command runs.`;
+  const steps: string[] = [];
+  if (output.build) {
+    steps.push(
+      `if ! { ${present}; }; then echo ${sq(`iDeploy: ${output.path} was not produced by the workspace build. Running the application's own build: ${output.build}`)}; ( ${output.build} ); fi`
+    );
+  }
+  steps.push(
+    output.strict
+      ? `if ! { ${present}; }; then echo ${sq(`iDeploy: ${missing} Its "build" script must build this application.`)} >&2; exit 1; fi`
+      : `if ! { ${present}; }; then echo ${sq(`iDeploy warning: ${missing} If the application does not start, check its "build" script.`)}; fi`
+  );
+  return `RUN${mounts} ${steps.join('; ')}`;
+}
+
 /** Environment of both stages: no prompt, no telemetry, patient downloads. */
 const NODE_ENV_LINE =
   'ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0 COREPACK_HOME=/corepack NEXT_TELEMETRY_DISABLED=1 ' +
@@ -66,10 +92,9 @@ export function nodeDockerfile(recipe: NodeRecipe, buildArgKeys: string[] = []):
     lines.push(`RUN ${NODE_CACHES.npm} ${FRESH_COREPACK} && ${activate}`);
   }
   lines.push(`RUN ${NODE_CACHES[recipe.manager]} ${recipe.install}`);
-  if (recipe.build) {
-    const nextCache = recipe.nextCacheDir ? ` --mount=type=cache,id=ideploy-next,target=/app/${recipe.nextCacheDir}` : '';
-    lines.push(`RUN${nextCache} ${recipe.build}`);
-  }
+  const nextCache = recipe.nextCacheDir ? ` --mount=type=cache,id=ideploy-next,target=/app/${recipe.nextCacheDir}` : '';
+  if (recipe.build) lines.push(`RUN${nextCache} ${recipe.build}`);
+  if (recipe.output) lines.push(outputCheck(recipe.output, nextCache));
   lines.push(
     '',
     `FROM node:${recipe.nodeVersion}-slim`,
