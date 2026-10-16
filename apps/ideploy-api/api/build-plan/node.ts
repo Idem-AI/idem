@@ -3,7 +3,7 @@
  * and, in a monorepo, built from the workspace root so the shared packages
  * are there (what Vercel does with a Root Directory).
  */
-import { BuildPlanResult, AppCandidate, PlanIssue } from './types';
+import { BuildPlanResult, AppCandidate, NodeRecipe, PlanIssue } from './types';
 import { RepoFiles, dirOf, joinPath, relativeTo } from './repo-files';
 
 export interface PackageJson {
@@ -222,6 +222,8 @@ interface Framework {
   defaultStart?: string;
   /** Builds that need memory (bundlers, compilers). */
   heavy?: boolean;
+  /** Next.js: where the build goes (`.next` unless next.config sets `distDir`). */
+  distDir?: string;
   issue?: PlanIssue;
 }
 
@@ -277,15 +279,43 @@ interface AngularTarget {
 
 const outDir = (config: string | null, fallback: string) => /outDir\s*:\s*['"`]([^'"`]+)['"`]/.exec(config ?? '')?.[1] ?? fallback;
 
+/**
+ * A framework's command in a script: the other signal when the dependency
+ * is not declared in the application's own package.json (hoisted to the
+ * workspace root, or pulled in through another package).
+ */
+const SCRIPT_SIGNALS: Record<string, RegExp> = {
+  next: /(^|[\s;&|(])next\s+(build|start|dev)\b/,
+  nuxt: /(^|[\s;&|(])nuxi?\s+(build|generate|dev|start)\b/,
+  '@react-router/dev': /(^|[\s;&|(])react-router(-serve)?\s+(build|dev|\.)/,
+  '@remix-run/dev': /(^|[\s;&|(])remix(-serve)?\s+(vite:)?(build|dev|\.)/,
+  astro: /(^|[\s;&|(])astro\s+(build|dev|preview)\b/,
+  '@angular/core': /(^|[\s;&|(])ng\s+(build|serve)\b/,
+  gatsby: /(^|[\s;&|(])gatsby\s+(build|develop)\b/,
+  'react-scripts': /(^|[\s;&|(])react-scripts\s+(build|start)\b/,
+  '@vue/cli-service': /(^|[\s;&|(])vue-cli-service\s+(build|serve)\b/,
+  '@nestjs/core': /(^|[\s;&|(])nest\s+(build|start)\b/,
+  vite: /(^|[\s;&|(])vite(\s+(build|dev|preview)|\s*$)/m,
+};
+
+/**
+ * The framework, from the application's own signals: its dependencies, its
+ * scripts, its configuration files. Never the workspace root's dependencies:
+ * a root declaring `next` for one application would make every other one a
+ * Next.js application.
+ */
 export async function detectFramework(files: RepoFiles, dir: string, pkg: PackageJson): Promise<Framework> {
   const deps = { ...(pkg.dependencies ?? {}), ...(pkg.devDependencies ?? {}) };
-  const has = (name: string) => name in deps;
+  const scripts = Object.values(pkg.scripts ?? {}).join('\n');
+  const has = (name: string) => name in deps || Boolean(SCRIPT_SIGNALS[name]?.test(scripts));
   const hasFile = (name: string) => files.paths.includes(joinPath(dir, name));
 
   if (has('next')) {
     const config = await firstFile(files, dir, ['next.config.js', 'next.config.mjs', 'next.config.ts']);
     if (/output\s*:\s*['"]export['"]/.test(config ?? '')) return { label: 'Next.js (static export)', output: 'static', publish: 'out', heavy: true };
-    return { label: 'Next.js', output: 'server', defaultStart: 'npx next start', heavy: true };
+    // `distDir` moves .next (and its BUILD_ID) elsewhere.
+    const distDir = /distDir\s*:\s*['"`]([^'"`]+)['"`]/.exec(config ?? '')?.[1]?.replace(/^\.\//, '') ?? '.next';
+    return { label: 'Next.js', output: 'server', defaultStart: 'npx next start', heavy: true, distDir };
   }
   if (has('nuxt')) {
     if (/nuxi?\s+generate/.test(pkg.scripts?.build ?? '')) {
@@ -358,6 +388,56 @@ export async function detectFramework(files: RepoFiles, dir: string, pkg: Packag
   );
   const main = mainCandidates.find((f) => hasFile(f.replace(/^\.\//, '')));
   return { label, output: 'server', defaultStart: main ? `node ${main.replace(/^\.\//, '')}` : undefined };
+}
+
+/** Flags of `node` (and the serve commands) that take the next word as their value. */
+const FLAGS_WITH_VALUE = new Set(['-r', '--require', '--import', '--loader', '--experimental-loader', '--env-file', '-p', '--port', '--title']);
+
+/** The file a start command runs: `node -r dotenv/config dist/index.js` → `dist/index.js`. */
+export function startEntry(command: string): string | null {
+  for (const segment of command.split(/&&|\|\||;/)) {
+    const words = segment.trim().split(/\s+/).filter((w) => !/^\w+=/.test(w)); // FOO=bar node …
+    const at = words.findIndex((w) => /^(node|remix-serve|react-router-serve)$/.test(w.split('/').pop() ?? ''));
+    if (at === -1) continue;
+    for (let i = at + 1; i < words.length; i++) {
+      const w = words[i];
+      if (w.startsWith('-')) {
+        if (FLAGS_WITH_VALUE.has(w)) i++;
+        continue;
+      }
+      return w.replace(/^\.\//, '');
+    }
+  }
+  return null;
+}
+
+/**
+ * What the build must leave behind for the start command to run — checked in
+ * the image, so a build that "succeeds" without building (an orchestrator
+ * that ran no task, a script building another folder) is caught there, with
+ * what went wrong, instead of shipping an image that crashes at start.
+ *
+ * `next start` needs `.next/BUILD_ID` — certain, so a missing one fails the
+ * build (`strict`). `node dist/main` needs `dist/main(.js)` — read from a
+ * command, so a missing one is a warning; the trial run before the switch
+ * still keeps a broken image from replacing the live one.
+ */
+export function buildOutputContract(
+  framework: string,
+  startCommand: string,
+  appRel: string,
+  appBuild: string | null,
+  nextDistDir = '.next'
+): NodeRecipe['output'] {
+  if (framework.startsWith('Next') || /(^|[\s;&|(])next\s+start\b/.test(startCommand)) {
+    return { path: joinPath(appRel, nextDistDir, 'BUILD_ID'), alternatives: [], build: appBuild, strict: true };
+  }
+  const entry = startEntry(startCommand);
+  if (!entry || entry.includes('$')) return null;
+  const path = joinPath(appRel, entry);
+  // `node dist/main` runs dist/main.js; `node build` runs build/index.js.
+  const alternatives = /\.[cm]?[jt]s$/.test(entry) ? [] : [`${path}.js`, `${path}/index.js`];
+  return { path, alternatives, build: appBuild, strict: false };
 }
 
 /** The production start script, ignoring development servers. */
@@ -530,10 +610,15 @@ async function planWorkspaceApp(
   // Build: in a workspace, the application and the packages it depends on.
   if (inWorkspace) {
     const name = appPkg.name ?? appRel;
+    // The package manager's own graph first: it runs the build scripts of the
+    // application and of the workspace packages it depends on, in order, from
+    // package.json alone. nx depends on its own project names and targets
+    // ("No tasks were run" built nothing, and the image shipped without its
+    // build); turbo needs its task declared in turbo.json, and says so loudly.
     if (orchestrator === 'turbo') plan.build = `npx turbo run build --filter=${name}`;
-    else if (orchestrator === 'nx') plan.build = `npx nx run-many -t build --projects=${name}`;
     else if (manager === 'pnpm') plan.build = `pnpm --filter '${name}...' run --if-present build`;
     else if (manager === 'npm') plan.build = 'npm run build --workspaces --if-present';
+    else if (orchestrator === 'nx') plan.build = `npx nx run-many -t build --projects=${name}`;
     else if (hasBuild) plan.build = inApp(runScript(manager, 'build'));
   } else if (output === 'static' && hasBuild) {
     plan.build = runScript(manager, 'build');
@@ -574,7 +659,14 @@ async function planWorkspaceApp(
       install: recipeInstall(manager, lockfiles),
       build: plan.build ?? (hasBuild ? inApp(runScript(manager, 'build')) : null),
       start: recipeStart,
-      nextCacheDir: framework.label.startsWith('Next') ? joinPath(appRel, '.next/cache') : null,
+      nextCacheDir: framework.label.startsWith('Next') ? joinPath(appRel, framework.distDir ?? '.next', 'cache') : null,
+      output: buildOutputContract(
+        framework.label,
+        script ? appPkg.scripts?.[script] ?? '' : framework.defaultStart ?? '',
+        appRel,
+        hasBuild ? inApp(runScript(manager, 'build')) : null,
+        framework.distDir
+      ),
     };
   }
 
