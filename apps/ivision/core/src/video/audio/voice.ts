@@ -420,6 +420,8 @@ export function fitScenesToVoice<S extends TimedScene>(scenes: S[], lines: Omit<
     dropped.push(victim.sc.key);
     kept = kept.filter((l) => l.sceneKey !== victim.sc.key);
   }
+  const chained = chainScenes(out, kept, total);
+  if (chained) return { ...chained, dropped };
   const lo = need();
   // La narration s'enchaîne : une scène parlée dure sa phrase et un souffle (+ 0,5 s au plus) ; le temps
   // restant va d'abord aux plans muets (jusqu'à leur durée prévue), puis à tout le film au prorata. Avant,
@@ -470,6 +472,83 @@ export function fitScenesToVoice<S extends TimedScene>(scenes: S[], lines: Omit<
     return { ...l, offset: leadOf(i) };
   });
   return { scenes: out, lines: placed, dropped };
+}
+
+/** Pause entre deux phrases de la narration, et part de la phrase précédente qui déborde sur la scène suivante. */
+const PAUSE = 0.35;
+const OVERLAP = 0.7;
+const MIN_SCENE = 1.1;
+
+/**
+ * LA NARRATION EN CONTINU, LES COUPES À CHEVAL (« coupe en L » du montage) : les phrases s'enchaînent d'un
+ * bout à l'autre du film avec une simple respiration entre elles, et les coupes ne tombent PAS entre deux
+ * phrases — la fin d'une phrase passe sur l'image suivante, la phrase d'après démarre dans la scène déjà
+ * ouverte. Avant, chaque phrase partait juste après une transition : on entendait un texte par scène.
+ * Plans muets du début et de la fin (ouverture, logo) gardent leur durée prévue ; ceux du milieu passent
+ * sous la voix. Null si le film ne laisse pas la place (l'appelant reprend le calage scène par scène).
+ */
+function chainScenes<S extends TimedScene>(scenes: S[], lines: Omit<VoiceLine, 'offset'>[], total: number): { scenes: S[]; lines: VoiceLine[] } | null {
+  const lineOf = (key: string) => lines.find((l) => l.sceneKey === key);
+  const voiced = scenes.map((sc, i) => (lineOf(sc.key) ? i : -1)).filter((i) => i >= 0);
+  if (voiced.length < 2) return null;
+  const first = voiced[0];
+  const last = voiced[voiced.length - 1];
+  const L = voiced.map((i) => lineOf(scenes[i].key)!.durationSec);
+  const lead = scenes.slice(0, first);
+  const trail = scenes.slice(last + 1);
+  const speech = L.reduce((a, x) => a + x, 0) + PAUSE * (voiced.length - 1);
+  let spare = total - (lead.length * MIN_SCENE + 0.15 + speech + Math.max(0.6, trail.length * MIN_SCENE));
+  if (spare < 0) return null;
+  const take = (want: number) => {
+    const got = Math.max(0, Math.min(spare, want));
+    spare -= got;
+    return got;
+  };
+  // Le temps en plus : ouverture et final jusqu'à leur durée prévue, puis un souffle (0,4 s au plus par pause), puis le final.
+  const leadWant = lead.map((sc) => Math.max(0, sc.duration - MIN_SCENE));
+  const trailWant = trail.map((sc) => Math.max(0, sc.duration - MIN_SCENE));
+  const leadSum = leadWant.reduce((a, x) => a + x, 0);
+  const trailSum = trailWant.reduce((a, x) => a + x, 0);
+  const leadGot = take(leadSum);
+  const trailGot = take(trailSum);
+  const pauseExtra = take(0.4 * (voiced.length - 1)) / Math.max(1, voiced.length - 1);
+  const rest = spare;
+  const leadDur = lead.map((_, i) => MIN_SCENE + (leadSum ? (leadGot * leadWant[i]) / leadSum : 0));
+  const gap = PAUSE + pauseExtra;
+
+  const starts = new Array<number>(scenes.length).fill(0);
+  let t = 0;
+  lead.forEach((_, i) => ((starts[i] = t), (t += leadDur[i])));
+  starts[first] = t;
+  const at: number[] = [t + 0.15];
+  for (let k = 1; k < voiced.length; k++) at.push(at[k - 1] + L[k - 1] + gap);
+  for (let k = 1; k < voiced.length; k++) {
+    const i = voiced[k];
+    // La coupe tombe dans la fin de la phrase précédente ; la nouvelle phrase part dans la scène ouverte.
+    starts[i] = at[k] - gap - Math.min(OVERLAP, L[k - 1] * 0.35);
+    // Les plans muets du milieu se glissent juste avant, sous la fin de la phrase précédente.
+    const silent = scenes.slice(voiced[k - 1] + 1, i).map((_, m) => voiced[k - 1] + 1 + m);
+    if (silent.length) {
+      const room = starts[i] - (starts[voiced[k - 1]] + MIN_SCENE);
+      const each = Math.min(...silent.map((j) => scenes[j].duration), (room * 0.5) / silent.length);
+      if (each < 0.8) return null;
+      silent.forEach((j, m) => (starts[j] = starts[i] - each * (silent.length - m)));
+    }
+  }
+  const voiceEnd = at[at.length - 1] + L[L.length - 1];
+  if (trail.length) {
+    const tailStart = Math.max(starts[last] + MIN_SCENE, voiceEnd - Math.min(0.5, L[L.length - 1] * 0.3));
+    const room = total - tailStart;
+    const weights = trail.map((_, i) => MIN_SCENE + (trailSum ? (trailGot * trailWant[i]) / trailSum : 0) + rest / trail.length);
+    const sum = weights.reduce((a, x) => a + x, 0);
+    let u = tailStart;
+    trail.forEach((_, i) => ((starts[last + 1 + i] = u), (u += (room * weights[i]) / sum)));
+  }
+  const out = scenes.map((sc, i) => ({ ...sc, start: Math.round(starts[i] * 1000) / 1000 }));
+  out.forEach((sc, i) => (sc.duration = Math.round(((i + 1 < out.length ? out[i + 1].start : total) - sc.start) * 1000) / 1000));
+  if (out.some((sc) => sc.duration < 0.8)) return null;
+  const placed = voiced.map((i, k) => ({ ...lineOf(scenes[i].key)!, offset: Math.round((at[k] - out[i].start) * 1000) / 1000 }));
+  return { scenes: out, lines: placed };
 }
 
 /** Les lignes à mixer : URL et instant absolu dans la vidéo. */

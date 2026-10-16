@@ -3,7 +3,7 @@
  */
 import { spawn } from 'child_process';
 import type { SfxKind, VideoQuality } from '../contracts/model';
-import { MUSIC_GAIN_DB, MUSIC_UNDER_VOICE_DB, SfxCue } from '../audio/sfx';
+import { MUSIC_GAIN_DB, MUSIC_UNDER_VOICE_DB, SFX_UNDER_VOICE_DB, SfxCue } from '../audio/sfx';
 
 export const FFMPEG = process.env.FFMPEG_PATH || 'ffmpeg';
 
@@ -77,7 +77,7 @@ export async function mixAudio(opts: {
   for (const cue of cues) {
     args.push('-i', files[cue.kind]!);
     const ms = Math.round(cue.t * 1000);
-    filters.push(`[${index}:a]aresample=48000,aformat=channel_layouts=stereo,volume=${cue.db}dB,adelay=${ms}|${ms}[s${index}]`);
+    filters.push(`[${index}:a]aresample=48000,aformat=channel_layouts=stereo,volume=${cue.db + (voice.length ? SFX_UNDER_VOICE_DB : 0)}dB,adelay=${ms}|${ms}[s${index}]`);
     sfxLabels.push(`[s${index}]`);
     index++;
   }

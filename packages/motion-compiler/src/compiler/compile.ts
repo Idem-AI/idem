@@ -20,7 +20,7 @@
 import type { AnimProp, Fill, MotionNode, MotionProgram, MotionStep, RepeatNode, TextNode } from '../dsl/types';
 import { Axis, exprCode, ExprScope, relative } from '../dsl/expr';
 
-export const COMPILER_VERSION = '0.2.0';
+export const COMPILER_VERSION = '0.2.1';
 export const PROGRAM_MARK = '@idem-motion-program';
 
 const EASE_CODE: Record<string, string> = {
@@ -221,7 +221,9 @@ function nodeJsx(n: MotionNode, e: Emitter, place: Place): string {
       const src = e.uid('logo');
       const on = colorCode(n.on ?? 'background');
       e.pre.push(`const ${src} = LOGO(${on});`);
-      return `<Node ${[...refAttr, ...props].join(' ')}>\n{${src} && <Img ${[...(inner ? [`ref={${inner}}`] : []), `src={${src}}`, `width={${w}}`, `height={${w} * LOGO_RATIO}`, ...anchorProps(n)].join(' ')} />}\n</Node>`;
+      // Largeur seule : la hauteur suit le ratio NATUREL de l'image. Imposée d'après le SVG de la marque, elle
+      // aplatissait la version « avec texte » (PNG d'un autre ratio) affichée à sa place.
+      return `<Node ${[...refAttr, ...props].join(' ')}>\n{${src} && <Img ${[...(inner ? [`ref={${inner}}`] : []), `src={${src}}`, `width={${w}}`, ...anchorProps(n)].join(' ')} />}\n</Node>`;
     }
     case 'group': {
       register('Node');
@@ -549,7 +551,6 @@ const HELPERS = `
     return new Gradient({ type: 'linear', from: [-Math.cos(r) * len, -Math.sin(r) * len], to: [Math.cos(r) * len, Math.sin(r) * len], stops: [{ offset: 0, color: a }, { offset: 1, color: b }] });
   };
   const LG = ctx.brand.logo;
-  const LOGO_RATIO = LG && LG.width ? LG.height / LG.width : 0.4;
   const LOGO = (on: string) => (LG ? (contrast('#ffffff', on) > contrast('#111418', on) ? LG.dark || LG.light : LG.light || LG.dark) : undefined);
   const LINES = (text: string, size: number, font: string, weight: number, ls: number, maxW: number) => {
     const space = measureText(' ', size, font, weight, ls);
@@ -731,7 +732,7 @@ export default function* (view: View2D, ctx: SceneContext) {
   const U = ctx.unit;
   const A = safeArea(ctx);
   const W = ctx.width / U, H = ctx.height / U, L = A.left / U, R = A.right / U, T = A.top / U, B = A.bottom / U, SW = A.width / U, SH = A.height / U;
-  const D = ctx.duration, V = ctx.voice ? ctx.voice.at : 0, VE = ctx.voice ? ctx.voice.at + ctx.voice.duration : 0;
+  const D = ctx.duration, V = ctx.voice ? Math.min(ctx.voice.at, D) : 0, VE = ctx.voice ? Math.min(ctx.voice.at + ctx.voice.duration, D) : 0; // la phrase peut finir dans la scène suivante
   const K = ctx.brand.colors;
   const BG = ${bgColor};
   const TALL = ctx.height > ctx.width * 1.15, SQUARE = !TALL && ctx.width <= ctx.height * 1.15;

@@ -62,14 +62,14 @@ import { describeBrandMedia } from './assets/brandmedia';
 import { embeddedFontCss, filmBrand, FilmBrand } from './assets/brand';
 import { analyzeTrack, pickExcerptStart } from './audio/beats';
 import { fetchTrack, pickTrack, resolveMood, searchMusic, MUSIC_PROVIDERS } from './audio/music';
-import { ensureSfxLibrary, MUSIC_GAIN_DB, MUSIC_UNDER_VOICE_DB, pickSounds, previewGain, publicSoundName, SFX_GAIN_DB, sfxLibrary, SfxLibrary, soundFile } from './audio/sfx';
+import { ensureSfxLibrary, MUSIC_GAIN_DB, MUSIC_UNDER_VOICE_DB, SFX_UNDER_VOICE_DB, pickSounds, previewGain, publicSoundName, SFX_GAIN_DB, sfxLibrary, SfxLibrary, soundFile } from './audio/sfx';
 import { cleanSpoken, plainSpoken, fitScenesToVoice, personaById, personaMenu, speakable, speechAvailable, synthesizeVoice, voiceTimeline } from './audio/voice';
 import { callFilmModel, FilmCallContext, ModelRun, tierFor } from './agents';
 import { FilmBrief, sceneRange } from './director/brief';
 import { runConcept } from './director/concept.agent';
 import { runPlanner, Storyboard } from './director/storyboard.agent';
 import { authorScene, authorScenes, AuthoredScene, AuthorContext, SceneAuthor } from './author/program.author';
-import { compileProgram, PROGRAM_MARK, programOf, validateProgram } from '../../../../../packages/motion-compiler/src';
+import { compileProgram, COMPILER_VERSION, PROGRAM_MARK, programOf, validateProgram } from '../../../../../packages/motion-compiler/src';
 import { RepairLedger, strategyLevel } from './author/repair';
 import { buildFilmBundle, BundleScene } from './rendering/compiler';
 import { COMPOSITION, frameSpec } from './rendering/formats';
@@ -583,9 +583,11 @@ export class MotionVideoService {
 
   private bundleCache = new Map<string, Promise<string>>();
 
-  /** Le paquet d'un film (mis en cache sur la signature de son code). */
+  /** Le paquet d'un film (mis en cache sur la signature de son code). Une scène compilée par une version plus
+   *  ancienne du compilateur est recompilée depuis son programme : ses correctifs (logo, garanties) s'appliquent
+   *  aussi aux vidéos déjà créées, sans rien redemander au modèle. */
   private bundle(film: VideoFilm, mode: 'render' | 'preview'): Promise<string> {
-    const scenes: BundleScene[] = film.scenes.map((sc) => ({ key: sc.key, ...(sc.code && !sc.error?.stage?.match(/compile|author/) ? { code: sc.code } : {}) }));
+    const scenes: BundleScene[] = film.scenes.map((sc) => ({ key: sc.key, ...(sc.code && !sc.error?.stage?.match(/compile|author/) ? { code: upToDate(sc.code) } : {}) }));
     const key = `${mode}:${crypto.createHash('sha1').update(JSON.stringify(scenes)).digest('hex')}`;
     let job = this.bundleCache.get(key);
     if (!job) {
@@ -1006,7 +1008,6 @@ export class MotionVideoService {
         allowStock: brief.allowStock !== false,
         // La qualité du modèle vidéo suit elle aussi le cran (le cran choisit la puissance des modèles).
         clipQuality: atLeast(creativity, 'high') ? 'quality' : 'speed',
-        visualPhotos: ctx.visuals.map((v) => v.backgroundImageUrl).filter((u): u is string => !!u),
         ...(spec.cast ? { cast: spec.cast } : {}),
         ...(await this.registryFor(userId, projectId)),
         onProgress: (done, total, last) => emit('media', 'running', { done, total, ...(last ? { last } : {}) }),
@@ -1256,7 +1257,7 @@ export class MotionVideoService {
     const target = format && video.scope.formats.includes(format) ? format : video.scope.formats[0];
     const data = this.filmData(video, ctx.film, target, 'preview');
     const sounds: FilmAudio['sfx'] = {};
-    for (const [kind, file] of Object.entries(await this.sfxFiles(video.sfx))) sounds[kind as SfxKind] = { url: coreHost().sfxUrl(publicSoundName(file!)), gain: previewGain(SFX_GAIN_DB[kind as SfxKind]) };
+    for (const [kind, file] of Object.entries(await this.sfxFiles(video.sfx))) sounds[kind as SfxKind] = { url: coreHost().sfxUrl(publicSoundName(file!)), gain: previewGain(SFX_GAIN_DB[kind as SfxKind] + (video.voice?.enabled ? SFX_UNDER_VOICE_DB : 0)) };
     const audio: FilmAudio = {
       ...(video.music ? { music: { url: await this.previewTrackUrl(video.music), startAt: video.music.startAt, gain: previewGain(video.voice?.enabled ? MUSIC_UNDER_VOICE_DB : MUSIC_GAIN_DB) } } : {}),
       voice: voiceTimeline(video.film.scenes, video.voice, video.film.durationSec).map((l) => ({ url: l.url, at: l.at })),
@@ -1596,6 +1597,18 @@ function pumpQueue(): void {
         if (job.prerender) void job.service.prerender(job.userId, job.projectId, job.videoId).catch(() => undefined);
         pumpQueue();
       });
+  }
+}
+
+/** Le code d'une scène, recompilé si son programme vient d'une version antérieure du compilateur. */
+function upToDate(code: string): string {
+  if (code.includes(`${PROGRAM_MARK} v${COMPILER_VERSION}\n`)) return code;
+  const program = programOf(code);
+  if (!program) return code;
+  try {
+    return compileProgram(program).code;
+  } catch {
+    return code;
   }
 }
 

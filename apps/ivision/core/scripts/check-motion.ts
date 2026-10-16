@@ -76,7 +76,10 @@ async function voiceChecks() {
   const fit = fitScenesToVoice(scenes, lines, 20);
   const at = fit.lines.map((l) => fit.scenes.find((sc) => sc.key === l.sceneKey)!.start + l.offset);
   const pauses = at.slice(1).map((t, i) => t - (at[i] + 3.8));
-  check(pauses.every((p) => p < 1.5) && Math.abs(fit.scenes.reduce((a, sc) => a + sc.duration, 0) - 20) < 0.01 && fit.scenes[3].duration >= 4.9, 'narration enchaînée : pas de long blanc entre deux phrases, le plan muet final garde son temps', JSON.stringify({ pauses, durations: fit.scenes.map((sc) => sc.duration) }));
+  check(pauses.every((p) => p < 0.9) && Math.abs(fit.scenes.reduce((a, sc) => a + sc.duration, 0) - 20) < 0.01 && fit.scenes[3].duration >= 4.9, 'narration enchaînée : une respiration entre deux phrases, le plan muet final garde son temps', JSON.stringify({ pauses, durations: fit.scenes.map((sc) => sc.duration) }));
+  // Coupe à cheval : la scène 2 commence pendant la phrase 1, et la phrase 2 démarre dans la scène 2 déjà ouverte.
+  const cutsInside = [1, 2].every((k) => fit.scenes[k].start < at[k - 1] + 3.8 && at[k] - fit.scenes[k].start > 0.5);
+  check(cutsInside, 'coupes à cheval : la fin d’une phrase passe sur l’image suivante, la phrase d’après part dans la scène ouverte', JSON.stringify({ starts: fit.scenes.map((sc) => sc.start), at }));
 
   // Une vraie prise (trois « phrases » sonores séparées de silences), découpée par ffmpeg.
   const take = path.join(OUT, 'take.wav');

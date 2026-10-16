@@ -51,7 +51,7 @@ export function buildPlannerPrompt(brief: FilmBrief, concept: FilmConcept | null
     'motion: how each element enters, moves and leaves, timing and easing, the strongest moment',
     'transition: how this scene takes over from the previous one (first scene: how the film opens)',
     script ? '' : 'text.<key>: an exact on-screen text (key in lowercase: headline, sub, cta, figure, label…) — one line per text',
-    'media: ids of the available media shown in this scene (e.g. m1, m3), or nothing',
+    'media: ids of the available media shown in this scene (e.g. m1, m3), or nothing — ONLY a medium whose description shows what this scene says (never one placed just to fill the frame: a scene without a fitting medium uses a new image/clip or typography)',
     brief.newMedia.images || brief.newMedia.clips ? 'new image: <what the photo shows, in English> | <2-4 word search query>   (only if no available medium fits)' : '',
     brief.newMedia.clips ? 'new clip: <what the filmed shot shows, in English> | <2-4 word search query>' : '',
     'voice: the voice-over line for this scene, as it must be SPOKEN (words + ElevenLabs delivery tags, see rules)',
@@ -64,6 +64,7 @@ export function buildPlannerPrompt(brief: FilmBrief, concept: FilmConcept | null
     `- ONE continuous narration, not one slogan per scene: the lines are read in a single take by one narrator and must flow into each other like a story told to a friend — a line may end on a comma or an open idea that the next scene completes, use connectors (and, but, so, because, then / et, mais, alors, parce que, puis), never restart with the same structure or re-announce the brand in every line. Read all the lines one after the other: they must sound like one natural paragraph. Delivery tags only where the tone really changes (usually on 1 or 2 lines of the film), not on every line.`,
     brief.anonymous ? '- No brand name or logo on screen.' : '- The film ends on the brand (its logo or name) and, when the request has one, the call to action.',
     brief.newMedia.images || brief.newMedia.clips ? `- At most ${brief.newMedia.images} new images and ${brief.newMedia.clips} new clips in the whole film.` : '- No new image or clip can be produced: use the available media, shapes and typography.',
+    '- Every new image/clip shows the subject of ITS scene (what the voice line and the texts of that scene talk about), described concretely in the shot — never a generic or decorative picture.',
     '- Visual and motion: specific and buildable (positions, sizes, directions, durations), different from scene to scene, coherent with the bible.',
   ]
     .filter((l) => l !== '')
