@@ -914,7 +914,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
 
   // « Corriger automatiquement » sous un site généré : les fichiers signalés
   // repartent au moteur de sites avec leur contenu actuel, les pages (pour les
-  // y remettre à leur place) et le thème (pour les couleurs).
+  // y remettre à leur place), le thème (pour les couleurs) et `src/site/`.
   useEffect(() => {
     return eventEmitter.on('chat:siteRepair', (paths: string[]) => {
       if (!Array.isArray(paths) || !paths.length) return;
@@ -930,6 +930,8 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
           paths.includes(path) ||
           /^src\/pages\/[^/]+\.tsx$/.test(path) ||
           path.startsWith('src/design-system/') ||
+          // Les données, les visuels et la marque : le serveur y monte chaque composant corrigé.
+          (path.startsWith('src/site/') && /\.(ts|tsx|json)$/.test(path)) ||
           path === 'idem.pages.json';
         if (wanted) files[path] = content;
       }

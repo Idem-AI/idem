@@ -13,6 +13,10 @@ WORKDIR /app/apps/appgen/apps/we-dev-next
 # Install dependencies
 RUN npm ci 
 
+# Dépendances d'exécution des sites vitrines (mêmes versions que le template) :
+# chaque section générée y est montée avant d'être acceptée (renderCheck.ts).
+RUN npm run site:runtime
+
 # Build TypeScript application
 RUN npm run build
 
@@ -29,6 +33,9 @@ COPY --from=builder /app/apps/appgen/apps/we-dev-next/node_modules ./node_module
 
 # Copy compiled TypeScript build
 COPY --from=builder /app/apps/appgen/apps/we-dev-next/dist ./dist
+
+# Runtime de vérification des sites (React, Motion, Radix, jsdom + le fil de rendu)
+COPY --from=builder /app/apps/appgen/apps/we-dev-next/site-runtime ./site-runtime
 
 # Copy configuration files
 COPY --from=builder /app/apps/appgen/apps/we-dev-next/src/config ./src/config

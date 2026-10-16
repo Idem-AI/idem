@@ -26,6 +26,7 @@ import { ModelCaller, Verdict } from './modelCaller.js';
 import { ChatLogger } from '../utils/logger.js';
 import { FactCheck } from './factGuard.js';
 import { ManifestPage, ManifestSection, SiteManifest } from './manifest.js';
+import { renderCheck } from './renderCheck.js';
 import { describeDataModule } from './siteData.js';
 import { SiteFacts } from './siteFacts.js';
 
@@ -449,6 +450,18 @@ export interface ReviewContext {
   reference: string;
   /** Les couleurs du thème compilé, pour remplacer les couleurs écrites en dur. */
   theme: ThemeColors;
+  /**
+   * Les fichiers du site propres au projet (design system, `src/site/*`), lus
+   * au moment de la vérification : le composant y est monté pour de vrai.
+   * Absent : pas de vérification d'exécution.
+   */
+  siteFiles?: () => Record<string, string>;
+}
+
+/** Le composant vérifié : son chemin dans le projet et les props que la page lui passe. */
+export interface ReviewTarget {
+  path: string;
+  props?: Record<string, unknown>;
 }
 
 export interface Review {
@@ -458,27 +471,40 @@ export interface Review {
   problems: string[];
   /** Affirmations absentes des faits. */
   invented: string[];
+  /** Monté avec les données du site, il n'affiche rien (rend null ou un conteneur vide). */
+  empty: boolean;
   fixes: string[];
 }
 
-/** Corrige ce qui est mécanique, puis vérifie la forme et les faits. */
-export async function reviewComponent(raw: string, ctx: ReviewContext): Promise<Review> {
+/**
+ * Corrige ce qui est mécanique, puis vérifie la forme, l'exécution et les
+ * faits. L'exécution : le composant est monté dans un DOM avec les fichiers
+ * réels du site — un plantage qu'esbuild ne voit pas (donnée nulle, enfant
+ * multiple d'un `asChild`, composant hors de son parent) est un problème de
+ * forme comme un autre.
+ */
+export async function reviewComponent(raw: string, ctx: ReviewContext, target?: ReviewTarget): Promise<Review> {
   const corrected = autocorrect(extractCode(raw), ctx.theme);
   const problems = await checkComponent(corrected.code, ctx.policy);
-  if (problems.length) return { code: corrected.code, problems, invented: [], fixes: corrected.fixes };
+  if (problems.length) return { code: corrected.code, problems, invented: [], empty: false, fixes: corrected.fixes };
+  const runtime =
+    target && ctx.siteFiles
+      ? await renderCheck({ path: target.path, code: corrected.code, files: ctx.siteFiles(), props: target.props })
+      : { problems: [], empty: false };
+  if (runtime.problems.length) return { code: corrected.code, problems: runtime.problems, invented: [], empty: false, fixes: corrected.fixes };
   const texts = visibleTexts(corrected.code);
   const invented = Array.from(new Set([...ctx.check({ texts }), ...inventedNames(texts, ctx.reference)]));
-  return { code: corrected.code, problems: [], invented, fixes: corrected.fixes };
+  return { code: corrected.code, problems: [], invented, empty: runtime.empty, fixes: corrected.fixes };
 }
 
 /**
  * Le dernier recours sur les faits : les phrases fautives retirées par le
- * code. Rendu seulement si le fichier se compile encore.
+ * code. Rendu seulement si le fichier se compile et s'affiche encore.
  */
-export async function withoutClaims(review: Review, ctx: ReviewContext): Promise<Review> {
+export async function withoutClaims(review: Review, ctx: ReviewContext, target?: ReviewTarget): Promise<Review> {
   if (!review.invented.length) return review;
   const stripped = stripClaims(review.code, review.invented);
-  const again = await reviewComponent(stripped, ctx);
+  const again = await reviewComponent(stripped, ctx, target);
   return again.problems.length ? review : again;
 }
 
@@ -487,11 +513,13 @@ export async function withoutClaims(review: Review, ctx: ReviewContext): Promise
  * ce qu'il doit corriger. Il corrige SA version au lieu d'en écrire une
  * autre — c'est ce qui fait converger un petit modèle.
  */
-export function repairReminder(code: string, items: string[], kind: 'form' | 'facts'): string {
+export function repairReminder(code: string, items: string[], kind: 'form' | 'facts' | 'empty'): string {
   const list =
     kind === 'form'
       ? items.map((item) => `- ${item}`).join('\n')
-      : `- Retire ces éléments, absents des informations du projet, sans les remplacer par d'autres affirmations : ${items
+      : kind === 'empty'
+        ? "- Monté avec les données de ce site, le composant n'affiche rien (il rend null ou un conteneur vide, par exemple parce qu'une liste de `site` est vide pour ce projet). Il doit afficher son contenu : écris-le à partir de la description du projet, sans inventer de prix, de personnes ni de coordonnées, et n'affiche une liste de `site` que si elle a des éléments."
+        : `- Retire ces éléments, absents des informations du projet, sans les remplacer par d'autres affirmations : ${items
           .map((item) => `« ${item} »`)
           .join(', ')}.\n- Un prix, un numéro, une adresse ou un lien vient de \`site\` (@/site/data) : affiche la donnée, ne l'écris pas en dur.`;
   return `# Ta version précédente
@@ -513,12 +541,14 @@ export async function authorComponent(options: {
   prompt: string;
   review: ReviewContext;
   language: string;
+  /** Le fichier et ses props, pour le monter avec les données du site. */
+  target?: ReviewTarget;
 }): Promise<Authored> {
-  const { caller, label, system, prompt, review: ctx } = options;
+  const { caller, label, system, prompt, review: ctx, target } = options;
   let last: Review | null = null;
 
   const judge = async (text: string): Promise<Verdict<Review>> => {
-    const review = await reviewComponent(text, ctx);
+    const review = await reviewComponent(text, ctx, target);
     last = review;
     if (review.fixes.length) ChatLogger.info('SITE_AUTOCORRECT', `${label} : ${review.fixes.length} correction(s)`, { fixes: review.fixes.slice(0, 12) });
     if (review.problems.length || review.invented.length) {
@@ -531,6 +561,11 @@ export async function authorComponent(options: {
         // Essais épuisés : le fichier se compile ; le code retire les phrases fautives.
         salvage: () => review,
       };
+    }
+    if (review.empty) {
+      ChatLogger.info('SITE_REVIEW', `${label} : n'affiche rien avec les données du site`);
+      // Essais épuisés : il ne plante pas ; mieux vaut l'accepter que le perdre.
+      return { problem: repairReminder(review.code, [], 'empty'), salvage: () => review };
     }
     return { value: review };
   };
@@ -547,7 +582,7 @@ export async function authorComponent(options: {
     outcome = await caller.call<Review>(
       `${label} (réécriture)`,
       system,
-      `${prompt}\n\n# Attention\nUne première version a échoué sur ces points ; ne les reproduis pas :\n${blocked.map((item) => `- ${item}`).join('\n')}\nÉcris une version plus simple si nécessaire : elle doit se compiler et n'importer que ce qui existe.`,
+      `${prompt}\n\n# Attention\nUne première version a échoué sur ces points ; ne les reproduis pas :\n${blocked.map((item) => `- ${item}`).join('\n')}\nÉcris une version plus simple si nécessaire : elle doit se compiler, n'importer que ce qui existe et s'afficher sans planter avec les données de ce site.`,
       judge,
       8000,
       0.4,
@@ -557,7 +592,7 @@ export async function authorComponent(options: {
 
   if (outcome.value) {
     // Les affirmations non vérifiées qui resteraient sont retirées, sans rien signaler.
-    const final = outcome.value.invented.length ? await withoutClaims(outcome.value, ctx) : outcome.value;
+    const final = outcome.value.invented.length ? await withoutClaims(outcome.value, ctx, target) : outcome.value;
     const removed = outcome.value.invented.filter((item) => !final.invented.includes(item));
     if (final.invented.length) ChatLogger.info('SITE_REVIEW', `${label} : affirmations conservées (retrait impossible)`, { items: final.invented });
     return { code: final.code, valid: true, problems: [], unverified: [], removed, providerDown: false };

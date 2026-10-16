@@ -8,6 +8,8 @@
         "dev": "tsx watch src/main.ts",
         "build": "tsc && node scripts/copy-skills.mjs",
         "start": "node dist/main.js",
+        "site:runtime": "npm ci --prefix site-runtime --no-audit --no-fund",
+        "check:site-render": "tsx scripts/check-site-render.ts",
         "lint": "eslint src --ext .ts"
     },
     "dependencies": {
