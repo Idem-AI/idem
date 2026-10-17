@@ -1213,7 +1213,10 @@
       "deleteHint": "The database and its data will be permanently deleted.",
       "deleteDatabase": "Delete database",
       "deleting": "Deleting…",
-      "deleteError": "Deleting failed."
+      "deleteError": "Deleting failed.",
+      "consoleHint": "The engine's own client (psql, mysql, mongosh, redis-cli…), already signed in: query, inspect, fix. Team admins only.",
+      "shell": "Shell",
+      "shellHint": "A shell in the database's container. Team admins only."
     }
   },
   "services": {
@@ -2010,7 +2013,9 @@
     "back": "Back",
     "target": {
       "server": "Server",
-      "application": "Application container"
+      "application": "Application container",
+      "database": "Database console",
+      "databaseShell": "Shell in the database container"
     },
     "status": {
       "connecting": "Connecting…",

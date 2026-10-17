@@ -213,6 +213,19 @@ const children: Routes = [
     loadComponent: () =>
       import('./modules/terminal/terminal-page/terminal-page').then((m) => m.TerminalPageComponent),
   },
+  // A database: its engine's client, signed in (console), or a shell in its container.
+  {
+    path: 'databases/:type/:uuid/console',
+    data: { kind: 'database', mode: 'client' },
+    loadComponent: () =>
+      import('./modules/terminal/terminal-page/terminal-page').then((m) => m.TerminalPageComponent),
+  },
+  {
+    path: 'databases/:type/:uuid/shell',
+    data: { kind: 'database', mode: 'shell' },
+    loadComponent: () =>
+      import('./modules/terminal/terminal-page/terminal-page').then((m) => m.TerminalPageComponent),
+  },
   {
     path: 'deployments/:uuid',
     loadComponent: () =>

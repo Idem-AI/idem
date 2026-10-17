@@ -44,7 +44,24 @@ export interface DbType {
   command?: (creds: Record<string, string>) => string | undefined;
   /** Build the in-container dump command (for `backup now`). */
   dumpCommand?: (creds: Record<string, string>, outFile: string) => string;
+  /**
+   * Where the engine keeps its data inside the container — mounted on a named
+   * volume, so stopping, restarting or changing the credentials of a database
+   * never starts it again on an empty one.
+   */
+  dataDir: string;
+  /**
+   * The engine's own client, signed in — the database console. A fixed script
+   * run inside the container: it reads the credentials from the container
+   * itself (its environment, or Redis's own arguments), so no secret is ever
+   * part of the command iDeploy sends.
+   */
+  client?: { binary: string; script: string };
 }
+
+/** Redis-family password, read from the server's own arguments (`--requirepass x`, or `--requirepass=x`). */
+const REQUIREPASS_FROM_ARGS =
+  'export REDISCLI_AUTH="$(tr "\\000" "\\n" < /proc/1/cmdline | sed -n -e "/^--requirepass$/{n;p;}" -e "s/^--requirepass=//p")"';
 
 export const DB_TYPES: Record<string, DbType> = {
   postgresql: {
@@ -58,6 +75,9 @@ export const DB_TYPES: Record<string, DbType> = {
       { col: 'postgres_password', env: 'POSTGRES_PASSWORD', encrypted: true, generate: true },
       { col: 'postgres_db', env: 'POSTGRES_DB', default: 'postgres' },
     ],
+    dataDir: '/var/lib/postgresql/data',
+    // Local connections inside the container are trusted by the image.
+    client: { binary: 'psql', script: 'exec psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"' },
     dumpCommand: (c, out) =>
       `PGPASSWORD=${shellQuote(c.postgres_password ?? '')} pg_dump -U ${shellQuote(c.postgres_user ?? '')} ${shellQuote(c.postgres_db ?? '')} > ${out}`,
   },
@@ -73,6 +93,8 @@ export const DB_TYPES: Record<string, DbType> = {
       { col: 'mysql_password', env: 'MYSQL_PASSWORD', encrypted: true, generate: true },
       { col: 'mysql_database', env: 'MYSQL_DATABASE', default: 'default' },
     ],
+    dataDir: '/var/lib/mysql',
+    client: { binary: 'mysql', script: 'export MYSQL_PWD="$MYSQL_ROOT_PASSWORD"; exec mysql -uroot "$MYSQL_DATABASE"' },
     dumpCommand: (c, out) =>
       `mysqldump -u root -p${shellQuote(c.mysql_root_password ?? '')} --all-databases > ${out}`,
   },
@@ -88,6 +110,8 @@ export const DB_TYPES: Record<string, DbType> = {
       { col: 'mariadb_password', env: 'MARIADB_PASSWORD', encrypted: true, generate: true },
       { col: 'mariadb_database', env: 'MARIADB_DATABASE', default: 'default' },
     ],
+    dataDir: '/var/lib/mysql',
+    client: { binary: 'mariadb', script: 'export MYSQL_PWD="$MARIADB_ROOT_PASSWORD"; exec mariadb -uroot "$MARIADB_DATABASE"' },
     dumpCommand: (c, out) =>
       `mariadb-dump -u root -p${shellQuote(c.mariadb_root_password ?? '')} --all-databases > ${out}`,
   },
@@ -102,6 +126,11 @@ export const DB_TYPES: Record<string, DbType> = {
       { col: 'mongo_initdb_root_password', env: 'MONGO_INITDB_ROOT_PASSWORD', encrypted: true, generate: true },
       { col: 'mongo_initdb_database', env: 'MONGO_INITDB_DATABASE', encrypted: true, default: 'default' },
     ],
+    dataDir: '/data/db',
+    client: {
+      binary: 'mongosh',
+      script: 'exec mongosh --quiet -u "$MONGO_INITDB_ROOT_USERNAME" -p "$MONGO_INITDB_ROOT_PASSWORD" --authenticationDatabase admin "$MONGO_INITDB_DATABASE"',
+    },
     dumpCommand: (c, out) =>
       `mongodump --username=${shellQuote(c.mongo_initdb_root_username ?? '')} --password=${shellQuote(c.mongo_initdb_root_password ?? '')} --authenticationDatabase=admin --archive=${out}`,
   },
@@ -116,7 +145,11 @@ export const DB_TYPES: Record<string, DbType> = {
     // `column "redis_password" of relation "standalone_redis" does not
     // exist` before this fix.
     fields: [{ col: 'redis_password', encrypted: true, generate: true, viaEnvVar: 'REDIS_PASSWORD' }],
+    // Persistence stays the image's default (RDB snapshots in /data): turning
+    // on --appendonly over an existing dump.rdb can start Redis empty.
     command: (c) => `redis-server --requirepass ${shellQuote(c.redis_password ?? '')}`,
+    dataDir: '/data',
+    client: { binary: 'redis-cli', script: `${REQUIREPASS_FROM_ARGS}; exec redis-cli` },
   },
   keydb: {
     key: 'keydb',
@@ -126,6 +159,8 @@ export const DB_TYPES: Record<string, DbType> = {
     port: 6379,
     fields: [{ col: 'keydb_password', encrypted: true, generate: true }],
     command: (c) => `keydb-server --requirepass ${shellQuote(c.keydb_password ?? '')}`,
+    dataDir: '/data',
+    client: { binary: 'keydb-cli', script: `${REQUIREPASS_FROM_ARGS}; exec keydb-cli` },
   },
   dragonfly: {
     key: 'dragonfly',
@@ -134,7 +169,9 @@ export const DB_TYPES: Record<string, DbType> = {
     image: 'docker.dragonflydb.io/dragonflydb/dragonfly',
     port: 6379,
     fields: [{ col: 'dragonfly_password', encrypted: true, generate: true }],
-    command: (c) => `dragonfly ${shellQuote(`--requirepass=${c.dragonfly_password ?? ''}`)}`,
+    command: (c) => `dragonfly ${shellQuote(`--requirepass=${c.dragonfly_password ?? ''}`)} --dir=/data`,
+    dataDir: '/data',
+    client: { binary: 'redis-cli', script: `${REQUIREPASS_FROM_ARGS}; exec redis-cli` },
   },
   clickhouse: {
     key: 'clickhouse',
@@ -146,6 +183,8 @@ export const DB_TYPES: Record<string, DbType> = {
       { col: 'clickhouse_admin_user', env: 'CLICKHOUSE_USER', default: 'default' },
       { col: 'clickhouse_admin_password', env: 'CLICKHOUSE_PASSWORD', encrypted: true, generate: true },
     ],
+    dataDir: '/var/lib/clickhouse',
+    client: { binary: 'clickhouse-client', script: 'exec clickhouse-client --user "$CLICKHOUSE_USER" --password "$CLICKHOUSE_PASSWORD"' },
   },
 };
 
