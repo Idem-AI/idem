@@ -120,6 +120,9 @@ describe('PHP', () => {
     expect(file).toContain('ENV APACHE_DOCUMENT_ROOT=/app/public');
     expect(file).toContain("sed -ri -e 's/^Listen 80$/Listen ${PORT}/' /etc/apache2/ports.conf");
     expect(file).toContain('AllowOverride All');
+    // https behind the proxy: without it, Laravel wrote http:// CSS links an https page cannot load.
+    expect(file).toContain('SetEnvIf X-Forwarded-Proto "^https$" HTTPS=on');
+    expect(file).toContain('a2enmod rewrite headers remoteip');
     expect(file).toContain('RUN install-php-extensions bcmath exif gd intl opcache pcntl pdo_mysql pdo_pgsql redis zip || {');
     expect(file).toContain('do install-php-extensions "$e" || echo');
     expect(file).toContain('COPY --from=assets /app/public /app/public');
