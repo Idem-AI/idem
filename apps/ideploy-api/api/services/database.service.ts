@@ -6,7 +6,7 @@
 import { randomUUID, randomBytes } from 'crypto';
 import pool from '../config/db.config';
 import { encryptString, tryDecryptString } from '../utils/laravel-crypto';
-import { DatabaseRow } from '../models/ideploy.types';
+import { DatabaseRow, PrivateKeyRow, ServerRow } from '../models/ideploy.types';
 import { DB_TYPES, DbField, DbType, getDbType } from './database-types';
 import * as serverService from './server.service';
 import { executeRemoteCommand, shellQuote } from '../ssh/ssh';
@@ -82,6 +82,8 @@ function buildConnectionUrl(type: string, creds: Record<string, string>, host: s
       return `redis://:${creds[`${type}_password`]}@${host}:${port}`;
     case 'clickhouse':
       return `http://${creds.clickhouse_admin_user}:${creds.clickhouse_admin_password}@${host}:${port}`;
+    case 'rabbitmq':
+      return `amqp://${creds.rabbitmq_user}:${creds.rabbitmq_password}@${host}:${port}`;
     default:
       return null;
   }
@@ -401,6 +403,70 @@ const DB_SETTLE_MS = 6000;
  */
 const DB_CONFIRM_GRACE_MS = 8000;
 
+/** The named volume a database's data lives on. */
+export function dataVolumeFor(containerName: string): string {
+  return `${containerName}-data`;
+}
+
+/**
+ * Shell that sets `$VOL` to the database's named volume, creating it when
+ * missing.
+ *
+ * Databases used to run without one: their data went to an anonymous volume
+ * tied to the container, and every stop, start or change of credentials —
+ * each one removes and recreates the container — started the database again
+ * on an empty volume. A container still holding its data in such a volume
+ * has it copied into the named one first (with the engine's own image, already
+ * on the server), so no database loses what it has on this change. The
+ * anonymous volume is left in place, untouched.
+ */
+export function dataVolumeScript(containerName: string, dataDir: string, image: string): string {
+  const volume = dataVolumeFor(containerName);
+  const mountOf = `{{range .Mounts}}{{if eq .Destination "${dataDir}"}}{{.Name}}{{end}}{{end}}`;
+  return (
+    `VOL=${shellQuote(volume)}; ` +
+    `if ! docker volume inspect "$VOL" >/dev/null 2>&1; then ` +
+    `OLD=$(docker inspect -f ${shellQuote(mountOf)} ${containerName} 2>/dev/null); ` +
+    `docker volume create "$VOL" >/dev/null || exit 1; ` +
+    `if [ -n "$OLD" ] && [ "$OLD" != "$VOL" ]; then ` +
+    `echo "Moving this database's data onto its own volume ($VOL)…"; ` +
+    `docker stop ${containerName} >/dev/null 2>&1; ` +
+    `if ! docker run --rm --entrypoint sh -v "$OLD":/from:ro -v "$VOL":/to ${shellQuote(image)} -c 'cp -a /from/. /to/'; then ` +
+    `echo "Copying the data failed: the database is started again as it was." >&2; ` +
+    `docker volume rm "$VOL" >/dev/null 2>&1; docker start ${containerName} >/dev/null 2>&1; exit 1; fi; ` +
+    `fi; fi; true`
+  );
+}
+
+/**
+ * The command of a database console: the engine's own client, signed in with
+ * the credentials the container already holds, or a shell. Fixed text — only
+ * the container name (from our own rows) varies, and no secret is part of it.
+ */
+export async function consoleCommand(
+  teamId: number,
+  type: string,
+  uuid: string,
+  mode: 'client' | 'shell'
+): Promise<{ server: ServerRow; key: PrivateKeyRow; command: string }> {
+  const t = getDbType(type);
+  if (!t) throw new Error(`Unknown database type: ${type}`);
+  const db = await getDatabase(teamId, type, uuid);
+  if (!db) throw new Error('Database not found');
+  if (!db.destination_id) throw new Error('Database has no destination');
+  const { server, key } = await resolveServer(teamId, db.destination_id);
+  if (!server || !key) throw new Error('The server of this database cannot be reached.');
+  const containerName = containerNameFor(type, uuid);
+  if (!/^[A-Za-z0-9_-]+$/.test(containerName)) throw new Error('This database cannot be attached to.');
+  const shell = 'command -v bash >/dev/null 2>&1 && exec bash || exec sh';
+  const script =
+    mode === 'client' && t.client
+      ? `if command -v ${t.client.binary} >/dev/null 2>&1; then ${t.client.script}; ` +
+        `else echo "${t.client.binary} is not in this image: a shell instead."; ${shell}; fi`
+      : shell;
+  return { server, key, command: `docker exec -it ${containerName} sh -c ${shellQuote(script)}` };
+}
+
 export async function lifecycle(
   teamId: number,
   type: string,
@@ -442,10 +508,11 @@ export async function lifecycle(
     const command = t.command?.(creds);
     if (!isSafeImageReference(db.image)) throw new Error('Invalid database image reference');
     cmd =
+      `${dataVolumeScript(containerName, t.dataDir, db.image)} && ` +
       `docker rm -f ${containerName} 2>/dev/null; ` +
       `docker network inspect ideploy >/dev/null 2>&1 || docker network create --attachable ideploy; ` +
-      `docker run -d --name ${containerName} --restart unless-stopped --network ideploy ` +
-      `--label ideploy.managed=true ${envFlags} ${shellQuote(db.image)} ${command ?? ''}`;
+      `docker run -d --name ${containerName} ${t.fixedHostname ? `--hostname ${containerName} ` : ''}--restart unless-stopped --network ideploy ` +
+      `--label ideploy.managed=true -v "$VOL":${shellQuote(t.dataDir)} ${envFlags} ${shellQuote(db.image)} ${command ?? ''}`;
   }
 
   const result = await executeRemoteCommand(server!, key!, cmd, { onData, redact });

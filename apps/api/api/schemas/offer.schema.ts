@@ -5,7 +5,8 @@ import type { DeliverableKey, IdemCodeKind, MeterOption, MeterTier } from '../mo
  * Collections du modèle « Créer, Garder, Faire tourner, Grandir » :
  *  - `deliverable_unlocks` : les versions finales possédées, par projet ;
  *  - `idem_codes`          : les codes vendus par les agents ou offerts (packs à plusieurs) ;
- *  - `domain_orders`       : les noms de domaine commandés ;
+ *  (les commandes de domaines `domain_orders` ont été reprises par iDomain : `npm run import:idem-orders`
+ *  dans apps/idomain/api les copie une fois ; la collection n'est plus écrite.)
  *  - `deploy_meters`       : les compteurs prépayés des applications iDeploy.
  */
 
@@ -95,60 +96,6 @@ IdemCodeSchema.index({ agentId: 1, redeemedAt: 1 }, { sparse: true });
 IdemCodeSchema.index({ createdBy: 1, createdAt: -1 });
 
 export const IdemCode = mongoose.model<IdemCodeDocument>('IdemCode', IdemCodeSchema);
-
-// ============================================
-// NOMS DE DOMAINE
-// ============================================
-
-export type DomainOrderStatus = 'pending' | 'registered' | 'failed' | 'refunded';
-
-export interface DomainOrderDocument extends Document {
-  userId: string;
-  domain: string;
-  extension: string;
-  years: number;
-  /** Prix payé (P_min seul, ou au coût dans un pack / avec un compteur annuel). */
-  priceXaf: number;
-  /** Prix du renouvellement, annoncé dès la commande. */
-  renewalXaf: number;
-  source: 'purchase' | 'pack' | 'pass';
-  status: DomainOrderStatus;
-  registrar?: string;
-  registeredAt?: Date;
-  expiresAt?: Date;
-  failureReason?: string;
-  /** Écriture de débit au portefeuille, pour la restitution en cas d'échec. */
-  ledgerEntryId?: string;
-  appUuid?: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-const DomainOrderSchema = new Schema<DomainOrderDocument>(
-  {
-    userId: { type: String, required: true },
-    domain: { type: String, required: true },
-    extension: { type: String, required: true },
-    years: { type: Number, required: true, default: 1 },
-    priceXaf: { type: Number, required: true },
-    renewalXaf: { type: Number, required: true },
-    source: { type: String, required: true },
-    status: { type: String, required: true, default: 'pending' },
-    registrar: { type: String },
-    registeredAt: { type: Date },
-    expiresAt: { type: Date },
-    failureReason: { type: String },
-    ledgerEntryId: { type: String },
-    appUuid: { type: String },
-  },
-  { timestamps: true, collection: 'domain_orders' }
-);
-
-DomainOrderSchema.index({ userId: 1, createdAt: -1 });
-DomainOrderSchema.index({ status: 1, createdAt: 1 });
-DomainOrderSchema.index({ domain: 1, status: 1 });
-
-export const DomainOrder = mongoose.model<DomainOrderDocument>('DomainOrder', DomainOrderSchema);
 
 // ============================================
 // COMPTEURS iDEPLOY

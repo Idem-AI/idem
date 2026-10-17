@@ -22,6 +22,7 @@ import { buildCorsOptions } from './config/cors.config';
 import { notFound, errorHandler } from './middleware/error.middleware';
 import { CustomRequest } from './interfaces/express.interface';
 
+import idomainRoutes from './routes/idomain.routes';
 import healthRoutes from './routes/health.routes';
 import serverRoutes from './routes/server.routes';
 import workspaceRoutes from './routes/workspace.routes';
@@ -93,6 +94,9 @@ export function createApp(): Express {
 
   // ── Routes ───────────────────────────────────────────
   app.use('/', healthRoutes);
+  // iDomain (noms de domaine), de serveur à serveur : clé dédiée, et avant la limite par IP —
+  // tous ses appels viennent de la même adresse (les contrôles par utilisateur restent).
+  app.use('/internal/idomain', idomainRoutes);
   // After /health (never limited), before every API route.
   app.use(rateLimit());
 

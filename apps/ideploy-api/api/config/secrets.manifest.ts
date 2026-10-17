@@ -30,5 +30,7 @@ export const SECRET_MANIFEST = {
     // Clé partagée avec l'API IDEM (même valeur que son INTERNAL_API_KEY) :
     // sans elle, pas de réparation des déploiements par l'IA.
     'INTERNAL_API_KEY',
+    // Clé de la passerelle d'iDomain (`/internal/idomain`), même valeur dans idomain-api.
+    'IDOMAIN_IDEPLOY_KEY',
   ],
 } as const satisfies SecretManifest;

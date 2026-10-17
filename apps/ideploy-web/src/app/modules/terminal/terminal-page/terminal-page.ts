@@ -15,7 +15,7 @@ import { FitAddon } from '@xterm/addon-fit';
 import { environment } from '../../../../environments/environment';
 
 /** What the page was asked to attach to, taken from the route. */
-type TargetKind = 'server' | 'application';
+type TargetKind = 'server' | 'application' | 'database';
 
 /**
  * Interactive shell on a server or inside an application's container.
@@ -47,7 +47,7 @@ type TargetKind = 'server' | 'application';
           {{ 'terminal.title' | translate }}
         </h1>
         <p class="mt-1 text-sm" style="color:var(--color-text-secondary);">
-          {{ 'terminal.target.' + kind | translate }} · <code class="font-mono">{{ uuid }}</code>
+          {{ 'terminal.target.' + (kind === 'database' && mode === 'shell' ? 'databaseShell' : kind) | translate }} · <code class="font-mono">{{ uuid }}</code>
         </p>
       </div>
       <div class="flex items-center gap-3">
@@ -86,6 +86,9 @@ export class TerminalPageComponent implements OnInit, OnDestroy {
 
   protected kind: TargetKind = 'server';
   protected uuid = '';
+  /** A database: its engine, and whether its client or a shell is opened. */
+  protected dbType = '';
+  protected mode: 'client' | 'shell' = 'client';
 
   protected readonly status = signal<'connecting' | 'open' | 'closed' | 'error'>('connecting');
   protected readonly error = signal<string | null>(null);
@@ -98,6 +101,8 @@ export class TerminalPageComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.kind = (this.route.snapshot.data['kind'] as TargetKind) ?? 'server';
     this.uuid = this.route.snapshot.paramMap.get('uuid') ?? '';
+    this.dbType = this.route.snapshot.paramMap.get('type') ?? '';
+    this.mode = this.route.snapshot.data['mode'] === 'shell' ? 'shell' : 'client';
 
     this.term = new Terminal({
       convertEol: true,
@@ -127,6 +132,7 @@ export class TerminalPageComponent implements OnInit, OnDestroy {
   }
 
   protected backLink(): unknown[] {
+    if (this.kind === 'database') return ['/databases', this.dbType, this.uuid];
     return this.kind === 'application' ? ['/applications', this.uuid] : ['/servers', this.uuid];
   }
 
@@ -161,6 +167,7 @@ export class TerminalPageComponent implements OnInit, OnDestroy {
         JSON.stringify({
           kind: this.kind,
           uuid: this.uuid,
+          ...(this.kind === 'database' ? { type: this.dbType, mode: this.mode } : {}),
           cols: dims?.cols,
           rows: dims?.rows,
         })

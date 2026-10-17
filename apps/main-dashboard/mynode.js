@@ -51,6 +51,9 @@ export const environment = {
     ivision: {
       url: '${process.env.SERVICES_IVISION_URL || (isProduction ? 'https://ivision.idem.africa' : 'http://localhost:4204')}',
     },
+    idomain: {
+      url: '${process.env.SERVICES_IDOMAIN_URL || (isProduction ? 'https://idomain.idem.africa' : 'http://localhost:4205')}',
+    },
     webgen: {
       url: '${process.env.SERVICES_WEBGEN_URL || process.env.WEBGEN_URL || (isProduction ? 'https://webgen.idem.africa' : 'http://localhost:3003')}',
     },

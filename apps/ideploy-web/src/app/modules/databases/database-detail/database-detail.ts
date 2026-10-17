@@ -59,6 +59,13 @@ import { IdemLoaderComponent } from '@idem/shared-loader/angular';
           }
         </div>
         <div class="flex flex-wrap gap-2">
+          <!-- The engine's own client, signed in: query, inspect, fix (an admin account, a lost row). -->
+          <a class="outer-button" [routerLink]="['/databases', db.type, db.uuid, 'console']" [title]="'databases.detail.consoleHint' | translate">
+            <i class="pi pi-code mr-1.5 text-xs" aria-hidden="true"></i>{{ 'databases.detail.console' | translate }}
+          </a>
+          <a class="outer-button" [routerLink]="['/databases', db.type, db.uuid, 'shell']" [title]="'databases.detail.shellHint' | translate">
+            {{ 'databases.detail.shell' | translate }}
+          </a>
           <button class="outer-button" (click)="lifecycle('restart')" [disabled]="busy()">
             {{ 'databases.detail.restart' | translate }}
           </button>

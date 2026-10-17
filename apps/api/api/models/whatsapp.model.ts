@@ -31,10 +31,12 @@ export const OPEN_APPROVAL_STATUSES: ApprovalStatus[] = ['awaiting'];
 export const FINAL_APPROVAL_STATUSES: ApprovalStatus[] = ['published', 'partial', 'failed', 'cancelled', 'expired'];
 
 export const WHATSAPP_LIMITS = {
-  /** Durée de vie du code de liaison (clic sur le lien wa.me). */
+  /** Durée de vie du code de confirmation envoyé par WhatsApp au numéro saisi. */
   linkTokenTtlMs: 10 * 60_000,
-  /** Essais de liaison par code et par compte avant d'en exiger un nouveau. */
+  /** Essais de saisie du code avant d'en exiger un nouveau. */
   linkMaxAttempts: 5,
+  /** Codes envoyés par heure et par compte : un numéro ne reçoit pas un flot de messages non désirés. */
+  linkRequestsPerHour: 5,
   /** Une demande de validation sans réponse expire : on ne publie JAMAIS par défaut. */
   approvalTtlMs: 48 * 3_600_000,
   /** Retouches par demande : borne le coût et coupe les boucles. */
@@ -81,9 +83,6 @@ export function normalizeReply(text: string): string {
     .replace(/\s+/g, ' ')
     .trim();
 }
-
-/** Préfixe du code de liaison, posé dans le message pré-rempli du lien wa.me. */
-export const LINK_CODE_PREFIX = 'IDEM';
 
 /** Les identifiants de boutons : `<action>:<approvalId>:<version>`. */
 export type ButtonAction = 'approve' | 'revise' | 'cancel' | 'show';

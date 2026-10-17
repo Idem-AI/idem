@@ -42,7 +42,7 @@ async function main(): Promise<void> {
 
   const { verifyWebhookSignature, verifySubscription } = await import('../services/whatsapp/whatsapp-signature');
   const { whatsappAccess } = await import('../services/whatsapp/whatsapp-access');
-  const { whatsappLinkService, codeHash } = await import('../services/whatsapp/whatsapp-link.service');
+  const { WhatsappLinkService, codeHash } = await import('../services/whatsapp/whatsapp-link.service');
   const { WhatsappApprovalService } = await import('../services/whatsapp/whatsapp-approval.service');
   const { WhatsappConversationService, parseWebhook } = await import('../services/whatsapp/whatsapp-conversation.service');
   const { approvalHash } = await import('../services/whatsapp/whatsapp-content.service');
@@ -57,14 +57,14 @@ async function main(): Promise<void> {
   type Inbound = import('../services/whatsapp/whatsapp-conversation.service').InboundMessage;
 
   // ── Doublures ────────────────────────────────────────────────────────────
-  const sent: { to: string; kind: string; text?: string; payloads?: string[] }[] = [];
+  const sent: { to: string; kind: string; text?: string; payloads?: string[]; params?: string[] }[] = [];
   const transport = {
     configured: true,
     async sendText(to: string, text: string) { sent.push({ to, kind: 'text', text }); return { messageId: `m${sent.length}` }; },
     async sendButtons(to: string, body: string, buttons: { id: string; title: string }[]) { sent.push({ to, kind: 'buttons', text: body, payloads: buttons.map((b) => b.id) }); return { messageId: `m${sent.length}` }; },
     async sendImage(to: string) { sent.push({ to, kind: 'image' }); return { messageId: `m${sent.length}` }; },
     async sendVideo(to: string) { sent.push({ to, kind: 'video' }); return { messageId: `m${sent.length}` }; },
-    async sendTemplate(to: string, name: string, _l: string, _p: string[], payloads: string[] = []) { sent.push({ to, kind: 'template', text: name, payloads }); return { messageId: `m${sent.length}` }; },
+    async sendTemplate(to: string, name: string, _l: string, params: string[], payloads: string[] = []) { sent.push({ to, kind: 'template', text: name, params, payloads }); return { messageId: `m${sent.length}` }; },
   };
   const lastTo = (to: string) => [...sent].reverse().find((m) => m.to === to);
   const textsTo = (to: string) => sent.filter((m) => m.to === to && m.kind === 'text').map((m) => m.text ?? '');
@@ -88,8 +88,10 @@ async function main(): Promise<void> {
   } as any;
   const publisher = new SocialPublisherService(publishers);
 
+  // Instance dédiée : le code de confirmation part par le transport factice, jamais vers un vrai numéro.
+  const links = new WhatsappLinkService(transport as any);
   const approvals = new WhatsappApprovalService(transport as any, content, publisher);
-  const conversation = new WhatsappConversationService(transport as any, approvals);
+  const conversation = new WhatsappConversationService(transport as any, approvals, links);
 
   const ownedProjects = new Map<string, Set<string>>();
   (projectService as any).getUserProjectById = async (userId: string, projectId: string) => (ownedProjects.get(userId)?.has(projectId) ? { id: projectId } : null);
@@ -122,6 +124,9 @@ async function main(): Promise<void> {
     check('abonnement : sans jeton configuré refusé', verifySubscription({ 'hub.mode': 'subscribe', 'hub.verify_token': '', 'hub.challenge': '42' }, undefined) === null);
   }
 
+  // Numéros tirés au hasard : les compteurs de débit (Redis) survivent d'une exécution à l'autre.
+  const rand = () => String(Math.floor(10_000_000 + Math.random() * 89_999_999));
+
   // ── B. Accès réservé aux comptes payants ────────────────────────────────
   section('B. Réservé aux comptes payants');
   const alice = `alice-${randomUUID()}`;
@@ -134,49 +139,46 @@ async function main(): Promise<void> {
     check('cadeau d’accueil (7 jours) refusé', !giftAccess.allowed && giftAccess.reason === 'welcome_only', giftAccess);
     await grantPaid(alice);
     check('forfait Croissance acheté accepté', (await whatsappAccess(alice)).allowed);
-    const startFree = await whatsappLinkService.start(free);
+    const startFree = await links.requestCode(free, `2376${rand()}`);
     check('un compte gratuit ne peut pas lier de numéro', !startFree.ok);
   }
 
   // ── C. Liaison du numéro ────────────────────────────────────────────────
   section('C. Liaison du numéro');
-  // Numéros tirés au hasard : les compteurs de débit (Redis) survivent d'une exécution à l'autre.
-  const rand = () => String(Math.floor(10_000_000 + Math.random() * 89_999_999));
   const phoneA = `2376${rand()}`;
   const phoneB = `2376${rand()}`;
   let code = '';
   {
-    const start = await whatsappLinkService.start(alice, 'proj-1');
-    check('code de liaison émis', start.ok && /^IDEM-[A-Z2-9]{8}$/.test(start.start.code), start);
-    code = start.ok ? start.start.code : '';
+    const start = await links.requestCode(alice, phoneA, 'proj-1');
+    check('code de confirmation demandé', start.ok, start);
+    const sentCode = lastTo(phoneA);
+    check('le code part par un modèle approuvé (aucune fenêtre de service encore ouverte)', sentCode?.kind === 'template', sentCode);
+    code = sentCode?.params?.[0] ?? '';
     const stored = await WhatsappLink.findOne({ userId: alice }).lean();
     check('seule l’empreinte du code est stockée', Boolean(stored?.tokenHash) && !JSON.stringify(stored).includes(code), undefined);
 
-    // Un numéro inconnu qui envoie un mauvais code n'obtient rien.
-    await say(phoneA, 'IDEM-AAAAAAAA');
-    check('mauvais code : pas de liaison', !(await whatsappLinkService.byPhone(phoneA)));
-
-    await say(phoneA, `bonjour ${code}`);
-    const link = await whatsappLinkService.byPhone(phoneA);
-    check('bon code : le numéro est lié au compte', link?.userId === alice, link?.userId);
+    check('mauvais code : pas de liaison', !(await links.confirmCode(alice, 'ZZZZZZ')).ok);
+    check('bon code : le numéro est lié au compte', (await links.confirmCode(alice, code)).ok);
+    const link = await links.byPhone(phoneA);
+    check('le numéro lié est celui demandé', link?.userId === alice, link?.userId);
     const raw = JSON.stringify(await WhatsappLink.findOne({ userId: alice }).lean());
     check('le numéro n’est jamais stocké en clair', !raw.includes(phoneA), undefined);
     check('le code est à usage unique', !(await WhatsappLink.findOne({ tokenHash: codeHash(code) })));
 
-    // Un second compte ne peut pas prendre ce numéro.
+    // Un second compte ne peut pas demander un code pour ce numéro : il est déjà lié.
     const bob = `bob-${randomUUID()}`;
     await grantPaid(bob);
-    const bobStart = await whatsappLinkService.start(bob);
-    if (bobStart.ok) await say(phoneA, bobStart.start.code);
-    check('un numéro déjà lié ne passe pas à un autre compte', (await whatsappLinkService.byPhone(phoneA))?.userId === alice);
+    const bobStart = await links.requestCode(bob, phoneA);
+    check('numéro déjà lié : refusé pour un autre compte', !bobStart.ok && bobStart.reason === 'phone_in_use', bobStart);
 
     // Un code expiré est refusé.
     const carol = `carol-${randomUUID()}`;
     await grantPaid(carol);
-    const carolStart = await whatsappLinkService.start(carol);
+    const carolStart = await links.requestCode(carol, phoneB);
+    const carolCode = lastTo(phoneB)?.params?.[0] ?? '';
     await WhatsappLink.updateOne({ userId: carol }, { $set: { tokenExpiresAt: new Date(Date.now() - 1000) } });
-    if (carolStart.ok) await say(phoneB, carolStart.start.code);
-    check('code expiré refusé', !(await whatsappLinkService.byPhone(phoneB)));
+    const carolOutcome = carolStart.ok ? await links.confirmCode(carol, carolCode) : { ok: false as const, reason: 'invalid_code' as const };
+    check('code expiré refusé', !carolOutcome.ok && carolOutcome.reason === 'expired', carolOutcome);
   }
 
   // ── D. Routage ───────────────────────────────────────────────────────────
@@ -209,7 +211,7 @@ async function main(): Promise<void> {
 
   // ── E. Validation ────────────────────────────────────────────────────────
   section('E. Validation : un « oui » explicite, sur la bonne version');
-  const link = (await whatsappLinkService.byPhone(phoneA))!;
+  const link = (await links.byPhone(phoneA))!;
   await WhatsappLink.updateOne({ _id: link._id }, { $set: { lastInboundAt: new Date(0) } });
   link.lastInboundAt = new Date(0);
   let first: any;
@@ -317,7 +319,7 @@ async function main(): Promise<void> {
   {
     ownedProjects.set(alice, new Set(['proj-1']));
     await WhatsappLink.updateOne({ _id: link._id }, { $set: { defaultProjectId: 'proj-1', adhocCount: 0, adhocDay: '' } });
-    const fresh = (await whatsappLinkService.byPhone(phoneA))!;
+    const fresh = (await links.byPhone(phoneA))!;
     const before = producedCount;
     for (let i = 0; i < WHATSAPP_LIMITS.adhocPerDay + 3; i += 1) await say(phoneA, `fais-moi un visuel pour la promo ${i}`);
     check(`${WHATSAPP_LIMITS.adhocPerDay} créations ponctuelles par jour au plus`, producedCount - before === WHATSAPP_LIMITS.adhocPerDay, producedCount - before);

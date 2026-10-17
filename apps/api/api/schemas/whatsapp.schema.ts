@@ -26,6 +26,10 @@ export interface WhatsappLinkDocument extends Document {
   tokenHash?: string;
   tokenExpiresAt?: Date;
   tokenAttempts: number;
+  /** Numéro saisi par l'utilisateur, en attente de confirmation du code reçu sur WhatsApp. */
+  pendingPhoneEnc?: string;
+  pendingPhoneHash?: string;
+  pendingPhoneLast4?: string;
   /** Projet sur lequel les créations ponctuelles sont faites. */
   defaultProjectId?: string;
   /** Propositions automatiques les jours de publication (consentement explicite). */
@@ -54,6 +58,9 @@ const WhatsappLinkSchema = new Schema<WhatsappLinkDocument>(
     tokenHash: { type: String },
     tokenExpiresAt: { type: Date },
     tokenAttempts: { type: Number, default: 0 },
+    pendingPhoneEnc: { type: String },
+    pendingPhoneHash: { type: String },
+    pendingPhoneLast4: { type: String },
     defaultProjectId: { type: String },
     dailyProposals: { type: Boolean, default: false },
     consentAt: { type: Date },

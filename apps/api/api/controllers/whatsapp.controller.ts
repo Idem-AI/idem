@@ -67,10 +67,11 @@ export class WhatsappController {
     });
   };
 
-  /** Le code de liaison, valable 10 min et à usage unique. */
+  /** L'utilisateur saisit son numéro : IDEM lui envoie un code par WhatsApp, valable 10 min. */
   startLink = async (req: CustomRequest, res: Response): Promise<void> => {
     const userId = req.user!.uid;
     const projectId = typeof req.body?.projectId === 'string' ? req.body.projectId : undefined;
+    const phone = typeof req.body?.phone === 'string' ? req.body.phone : '';
     if (projectId && !(await projectService.getUserProjectById(userId, projectId))) {
       res.status(404).json({ error: 'project_not_found' });
       return;
@@ -79,12 +80,36 @@ export class WhatsappController {
       res.status(503).json({ error: 'whatsapp_unavailable', message: 'WhatsApp n’est pas encore activé sur IDEM.' });
       return;
     }
-    const result = await whatsappLinkService.start(userId, projectId);
+    const result = await whatsappLinkService.requestCode(userId, phone, projectId);
     if (!result.ok) {
-      res.status(402).json({ error: 'plan_required', message: 'Publier depuis WhatsApp est réservé aux comptes payants (forfait IDEM Croissance ou Entreprise).' });
+      const messages: Record<typeof result.reason, string> = {
+        invalid_phone: 'Ce numéro ne semble pas valide.',
+        not_entitled: 'Publier depuis WhatsApp est réservé aux comptes payants (forfait IDEM Croissance ou Entreprise).',
+        phone_in_use: 'Ce numéro est déjà lié à un autre compte IDEM.',
+        too_many_attempts: 'Trop de demandes de code. Réessayez dans un moment.',
+        send_failed: 'Le code n’a pas pu être envoyé par WhatsApp. Réessayez dans un instant.',
+      };
+      const status = { invalid_phone: 400, not_entitled: 402, phone_in_use: 409, too_many_attempts: 429, send_failed: 502 }[result.reason];
+      res.status(status).json({ error: result.reason, message: messages[result.reason] });
       return;
     }
-    res.json(result.start);
+    res.json({ expiresAt: result.expiresAt });
+  };
+
+  /** L'utilisateur recopie le code reçu sur WhatsApp. */
+  confirmLink = async (req: CustomRequest, res: Response): Promise<void> => {
+    const code = typeof req.body?.code === 'string' ? req.body.code : '';
+    const result = await whatsappLinkService.confirmCode(req.user!.uid, code);
+    if (!result.ok) {
+      const messages: Record<typeof result.reason, string> = {
+        invalid_code: 'Ce code n’est pas valide.',
+        expired: 'Ce code a expiré. Demandez-en un nouveau.',
+        too_many_attempts: 'Trop d’essais avec ce code. Demandez-en un nouveau.',
+      };
+      res.status(400).json({ error: result.reason, message: messages[result.reason] });
+      return;
+    }
+    res.json({ ok: true, phoneLast4: result.link.phoneLast4 });
   };
 
   unlink = async (req: CustomRequest, res: Response): Promise<void> => {

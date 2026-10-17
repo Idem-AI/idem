@@ -13,9 +13,12 @@ plafond du mois). Le cadeau d'inscription de 7 jours n'ouvre pas la fonction. Co
 ## Parcours
 
 1. **Connecter ses réseaux** (Communication → WhatsApp) : OAuth LinkedIn, Facebook + Instagram (Meta), X.
-2. **Lier son WhatsApp** : l'interface affiche un code `IDEM-XXXXXXXX` (10 min, usage unique) ; l'utilisateur
-   l'envoie **depuis son téléphone** au numéro d'IDEM (lien `wa.me` pré-rempli). C'est le téléphone qui
-   prouve qu'il est à lui : aucun numéro n'est saisi, donc aucun numéro d'un tiers ne peut être lié.
+2. **Lier son WhatsApp** : l'utilisateur saisit son numéro dans IDEM ; IDEM lui envoie un code à 6
+   caractères par WhatsApp (modèle approuvé `idem_link_code`, aucune fenêtre de service n'étant
+   ouverte avec un numéro qui n'a jamais écrit à IDEM) ; l'utilisateur le **recopie dans IDEM** (10 min,
+   usage unique, 5 essais). C'est cette saisie, pas l'envoi, qui prouve que le téléphone est le sien :
+   personne ne peut lier le numéro d'un tiers sans lire ses messages WhatsApp. Un numéro déjà lié à un
+   autre compte actif refuse toute nouvelle demande (avant l'envoi et revérifié à la confirmation).
 3. **Activer les propositions du jour** (consentement daté) et choisir l'heure.
 4. Chaque jour de publication : `whatsapp-daily` (toutes les 5 min, verrou Redis) fabrique le contenu et envoie
    un **modèle approuvé** (hors fenêtre de 24 h) avec un bouton « Voir » ; au toucher, IDEM envoie le média,
@@ -31,7 +34,8 @@ plafond du mois). Le cadeau d'inscription de 7 jours n'ouvre pas la fonction. Co
 |---|---|
 | Faux webhook (quelqu'un poste un « oui » sur notre URL) | Signature `X-Hub-Signature-256` (HMAC-SHA256 du corps **brut**, comparaison à temps constant) ; secret absent = refus ; seuls les messages adressés à notre `phone_number_id` sont lus |
 | Rejeu d'un webhook | Index unique sur l'identifiant du message (`whatsapp_events`, 7 jours) : un message ne s'exécute qu'une fois |
-| Usurpation d'un numéro | Liaison par code à usage unique **envoyé depuis le téléphone** ; numéro chiffré (AES-GCM, AAD = utilisateur) + empreinte ; un numéro actif ne sert qu'un compte (index unique partiel) |
+| Usurpation d'un numéro | Liaison par code à usage unique **envoyé par WhatsApp puis recopié dans IDEM** ; numéro chiffré (AES-GCM, AAD = utilisateur) + empreinte ; un numéro actif ne sert qu'un compte (index unique partiel), revérifié à l'envoi du code ET à sa confirmation |
+| Harcèlement d'un numéro tiers (saisir le numéro de quelqu'un d'autre pour lui faire recevoir des messages) | 5 demandes de code par heure et par compte ; un numéro déjà lié à un compte actif refuse toute nouvelle demande ; sans le code reçu, rien ne se lie |
 | Valider la publication d'un autre | Chaque bouton est relu pour CET utilisateur (déduit du numéro authentifié) ; l'identifiant seul ne suffit jamais |
 | Validation d'une version périmée | Les boutons portent la **version** ; une retouche l'incrémente et périme les anciens boutons |
 | Contenu changé entre l'envoi et le « oui » | Empreinte SHA-256 (légende, hashtags, média, réseaux, version) figée à l'envoi et revérifiée à la validation |
@@ -59,17 +63,21 @@ Variables (secrets dans Infisical, déclarées en optionnel dans `config/secrets
 | `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_ACCESS_TOKEN` | Envoi (API Cloud de Meta) |
 | `WHATSAPP_APP_SECRET` | Signature du webhook |
 | `WHATSAPP_VERIFY_TOKEN` | Abonnement au webhook |
-| `WHATSAPP_BUSINESS_NUMBER` | Numéro d'IDEM pour le lien `wa.me` (chiffres) |
-| `WHATSAPP_TEMPLATE_PROPOSAL` | Nom du modèle (défaut `idem_publication_proposal`) |
+| `WHATSAPP_TEMPLATE_PROPOSAL` | Nom du modèle de la proposition du jour (défaut `idem_publication_proposal`) |
+| `WHATSAPP_TEMPLATE_LINK_CODE` | Nom du modèle du code de confirmation de liaison (défaut `idem_link_code`) |
 | `WHATSAPP_INBOUND_PER_MINUTE` | Débit par numéro (défaut 20) |
 | `API_PUBLIC_URL` | Base des adresses de retour OAuth |
 | `LINKEDIN_CLIENT_ID/SECRET`, `META_APP_ID/SECRET`, `X_CLIENT_ID/SECRET` | Applications OAuth des réseaux |
 
 **À faire chez Meta** (hors code) : vérifier l'entreprise ; créer le numéro WhatsApp Business ; abonner le webhook à
-`https://<api>/whatsapp/webhook` (champ `messages`) ; créer et faire approuver le modèle **`idem_publication_proposal`**
-(catégorie *Utility*, langues fr et en, corps « Votre publication du jour est prête ({{1}}). », **un** bouton de réponse
-rapide « Voir ») ; pour Facebook/Instagram, passer la **revue d'application** (`pages_manage_posts`,
-`instagram_content_publish`) ; pour LinkedIn, le produit « Share on LinkedIn » ; pour X, un projet avec OAuth 2.0 (PKCE).
+`https://<api>/whatsapp/webhook` (champ `messages`) ; créer et faire approuver DEUX modèles :
+- **`idem_link_code`** (catégorie *Authentication*, langue fr, corps à variable unique « {{1}} est votre code de
+  confirmation IDEM. ») — envoyé au numéro saisi par l'utilisateur pour prouver qu'il le possède ;
+- **`idem_publication_proposal`** (catégorie *Utility*, langues fr et en, corps « Votre publication du jour est prête
+  ({{1}}). », **un** bouton de réponse rapide « Voir »).
+
+Pour Facebook/Instagram, passer la **revue d'application** (`pages_manage_posts`, `instagram_content_publish`) ; pour
+LinkedIn, le produit « Share on LinkedIn » ; pour X, un projet avec OAuth 2.0 (PKCE).
 
 ## État
 

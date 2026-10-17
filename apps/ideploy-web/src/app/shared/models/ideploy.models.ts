@@ -486,7 +486,8 @@ export type DatabaseType =
   | 'redis'
   | 'keydb'
   | 'dragonfly'
-  | 'clickhouse';
+  | 'clickhouse'
+  | 'rabbitmq';
 
 export interface Database {
   id: number;

@@ -3,11 +3,6 @@ type Lang = 'fr' | 'en';
 type Params = Record<string, string | number>;
 
 const TEXTS = {
-  linked: { fr: '✅ Votre WhatsApp est lié à IDEM. Je vous enverrai ici vos publications à valider. Écrivez « aide » pour voir ce que je sais faire.', en: '✅ Your WhatsApp is linked to IDEM. I will send your posts here for approval. Write "help" to see what I can do.' },
-  linkInvalid: { fr: 'Ce code n’est pas valide. Demandez-en un nouveau depuis IDEM (Communication → WhatsApp).', en: 'This code is not valid. Ask for a new one in IDEM (Communication → WhatsApp).' },
-  linkExpired: { fr: 'Ce code a expiré. Demandez-en un nouveau depuis IDEM.', en: 'This code has expired. Ask for a new one in IDEM.' },
-  linkInUse: { fr: 'Ce numéro est déjà lié à un autre compte IDEM. Déliez-le d’abord depuis ce compte.', en: 'This number is already linked to another IDEM account. Unlink it from that account first.' },
-  linkTooMany: { fr: 'Trop d’essais avec ce code. Demandez-en un nouveau depuis IDEM.', en: 'Too many attempts with this code. Ask for a new one in IDEM.' },
   notEntitled: { fr: 'Publier depuis WhatsApp est réservé aux comptes payants (forfait IDEM Croissance ou Entreprise). Passez à un forfait depuis IDEM pour l’activer.', en: 'Publishing from WhatsApp is for paid accounts (IDEM Growth or Business plan). Upgrade in IDEM to enable it.' },
   unknownNumber: { fr: 'Ce numéro n’est lié à aucun compte IDEM. Dans IDEM, ouvrez Communication → WhatsApp pour le lier.', en: 'This number is not linked to any IDEM account. In IDEM, open Communication → WhatsApp to link it.' },
   textOnly: { fr: 'Je ne lis que le texte pour l’instant. Écrivez-moi votre demande.', en: 'I only read text for now. Write your request.' },

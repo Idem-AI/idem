@@ -22,6 +22,7 @@ import { getTemplateCompose } from './templates.service';
 import { conflict, unprocessable } from '../utils/errors';
 import { randomBytes } from 'crypto';
 import * as databaseService from './database.service';
+import { LinkTargets, linkVariables, targetKindOf } from './resource-links';
 import { IncomingFiles, saveSourceForApplication } from './application-source.service';
 
 /**
@@ -153,6 +154,8 @@ export interface QuickDeployResult {
   workspace: { uuid: string; name: string };
   /** Hostname its neighbours in the same workspace can reach it at. */
   internalHostname: string;
+  /** Variables given the address of a resource of the workspace (REDIS_URL → its Redis…). */
+  linkedVariables?: { key: string; resource: string }[];
 }
 
 export async function quickDeploy(teamId: number, dto: QuickDeployDto): Promise<QuickDeployResult> {
@@ -234,10 +237,14 @@ export async function quickDeploy(teamId: number, dto: QuickDeployDto): Promise<
   // doc comment) — both build-time and runtime by default, since this form
   // has no way yet to ask which a given key is for and a var a build needed
   // is one the running container plausibly needs too.
-  for (const { key, value } of dto.environment_variables ?? []) {
-    if (!key.trim()) continue;
+  // Variables naming a resource of the workspace (REDIS_URL, RABBITMQ_URL,
+  // DATABASE_URL, REDIS_HOST…) get its internal address when they hold an
+  // example value — see resource-links.ts.
+  const variables = (dto.environment_variables ?? []).filter((v) => v.key.trim()).map((v) => ({ key: v.key.trim(), value: v.value }));
+  const linked = variables.length ? linkVariables(variables, await workspaceLinkTargets(teamId, environmentId)) : [];
+  for (const { key, value } of linked) {
     await envVarService.upsertForApplication(teamId, app.uuid, {
-      key: key.trim(),
+      key,
       value,
       is_runtime: true,
       is_buildtime: true,
@@ -252,7 +259,28 @@ export async function quickDeploy(teamId: number, dto: QuickDeployDto): Promise<
     url: appService.computeAppLink(app),
     workspace,
     internalHostname: workspaceService.internalHostname(app.name, app.uuid),
+    linkedVariables: linked.filter((l) => l.linkedTo).map((l) => ({ key: l.key, resource: l.linkedTo as string })),
   };
+}
+
+/**
+ * The resources of a workspace an application's variables can point to: its
+ * first database, Redis-family store and message broker, with their internal
+ * connection URLs. Never fails a deployment: unreadable, nothing is linked.
+ */
+async function workspaceLinkTargets(teamId: number, environmentId: number): Promise<LinkTargets> {
+  const targets: LinkTargets = {};
+  try {
+    for (const db of await databaseService.listDatabases(teamId, environmentId)) {
+      const kind = targetKindOf(db.type);
+      if (!kind || targets[kind]) continue;
+      const detail = await databaseService.getDatabaseDetail(teamId, db.type, db.uuid);
+      if (detail?.connection_url) targets[kind] = { name: db.name, type: db.type, connectionUrl: detail.connection_url };
+    }
+  } catch {
+    /* no link rather than no deployment */
+  }
+  return targets;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -1,6 +1,6 @@
 # Architecture
 
-IDEM is a monorepo of seven web front ends and four Node.js back ends. One central API owns identity, projects, AI generation and billing; the other back ends delegate authentication to it.
+IDEM is a monorepo of eight web front ends and five Node.js back ends. One central API owns identity, projects, AI generation and billing; the other back ends delegate authentication to it.
 
 ```mermaid
 flowchart LR
@@ -12,6 +12,7 @@ flowchart LR
         IDeployWeb["iDeploy web"]
         Chart["Chart editor"]
         IVisionWeb["iVision web"]
+        IDomainWeb["iDomain web"]
     end
 
     subgraph Backends
@@ -19,6 +20,7 @@ flowchart LR
         AppGenServer["AppGen server<br/>we-dev-next"]
         IDeployAPI["iDeploy API<br/>apps/ideploy-api"]
         IVisionAPI["iVision API<br/>apps/ivision/api"]
+        IDomainAPI["iDomain API<br/>apps/idomain/api"]
     end
 
     subgraph Data
@@ -47,6 +49,10 @@ flowchart LR
     IVisionWeb --> IVisionAPI
     IVisionAPI -- "session check, models, credits, project brands" --> API
     IVisionAPI --> Mongo & MinIO
+    IDomainWeb --> IDomainAPI
+    IDomainAPI -- "session check, wallet" --> API
+    IDomainAPI -- "apps, attach domain, DNS/HTTPS status" --> IDeployAPI
+    IDomainAPI --> PG & Redis
     API --> Mongo & Redis & MinIO
     API -- "billing sync" --> PG
     IDeployAPI --> PG & Redis
@@ -73,6 +79,8 @@ flowchart LR
 | iDeploy API | `apps/ideploy-api` | Express, TypeScript, raw SQL, BullMQ | 3002 | Servers, applications, databases, deployments over SSH |
 | iVision web | `apps/ivision/web` | Angular 20, Tailwind 4, ngx-translate | 4204 | Landing and chat studio for visuals and motion-design videos |
 | iVision API | `apps/ivision/api` | Express, TypeScript, MongoDB driver | 3006 | Brands (site scan), conversations, model references, videos and visuals |
+| iDomain web | `apps/idomain/web` | Angular 20, Tailwind 4, ngx-translate | 4205 | Domain search and prices, checkout, my domains, DNS, connection to an application |
+| iDomain API | `apps/idomain/api` | Express, TypeScript, raw SQL, BullMQ (+ worker) | 3007 | Single source of domain prices and orders: pricing engine (cheapest admissible registrar), registration, DNS, connection to iDeploy apps |
 
 Shared code lives in `packages/` (models, auth client, design system, loader, guided tours, "trusted by" band): see [Packages](PACKAGES.md).
 
@@ -81,9 +89,9 @@ Shared code lives in `packages/` (models, auth client, design system, loader, gu
 | Store | Used by | Holds |
 | --- | --- | --- |
 | MongoDB | API, iVision API | Users, projects and every generated deliverable, revisions, billing ledger, payments, AI usage. iVision: `ivision_*` collections (brands, conversations, references, videos, visuals) |
-| Redis | API, iDeploy API | API: cache, rate limits, one-time SSO tokens, AppGen hand-offs. iDeploy: BullMQ job queues |
+| Redis | API, iDeploy API, iDomain API | API: cache, rate limits, one-time SSO tokens, AppGen hand-offs. iDeploy: BullMQ job queues |
 | MinIO (S3) | API, iVision API | Logos, fonts, PDFs, images; served through `MINIO_PUBLIC_URL`. iVision writes under `ivision/` |
-| PostgreSQL | iDeploy API, API | iDeploy's schema (inherited from Coolify). The API writes paid plans to `billing_sync_jobs` there |
+| PostgreSQL | iDeploy API, API, iDomain API | iDeploy's schema (inherited from Coolify). The API writes paid plans to `billing_sync_jobs` there. iDomain has its own database (`idomain`) on the same server |
 | PostgreSQL (auth) | Supabase Auth | Sign-in accounts only (e-mail/password, Google, LinkedIn), in `infra/supabase-auth`. Session state is owned by the API |
 
 ## Authentication

@@ -5,7 +5,6 @@ import { paymentRequiredBody } from '../middleware/billing.middleware';
 import {
   COMMUNICATION_PRICES,
   DELIVERABLES,
-  DOMAIN_PRICES,
   EDIT_PRICE_XAF,
   FINAL_EDIT_WINDOW_DAYS,
   ICODE,
@@ -24,8 +23,8 @@ import {
   WELCOME_PASS,
   topupBonusXaf,
 } from '../models/offer.model';
-import { DomainOrder } from '../schemas/offer.schema';
 import { deployMeterService } from '../services/billing/deploy-meter.service';
+import { idomainClient } from '../services/idomain/idomain.client';
 import { entitlementsService } from '../services/billing/entitlements.service';
 import { idemCodesService } from '../services/billing/idem-codes.service';
 import { OfferOutcome, offerService } from '../services/billing/offer.service';
@@ -109,7 +108,8 @@ export class OfferController {
         meterOptions: Object.entries(METER_OPTIONS).map(([code, option]) => ({ code, ...option })),
         simulations: SIMULATION_PRICES,
         packs: Object.values(PACKS),
-        domains: DOMAIN_PRICES,
+        // Prix publics d'iDomain (seule source des domaines), au format historique.
+        domains: await idomainClient.catalog(),
       });
     } catch (error) {
       fail(res, error, 'Impossible de charger les offres.');
@@ -199,21 +199,17 @@ export class OfferController {
   // DOMAINES
   // ============================================
 
-  orderDomain = async (req: CustomRequest, res: Response): Promise<void> => {
-    try {
-      const domain = typeof req.body?.domain === 'string' ? req.body.domain : '';
-      const appUuid = typeof req.body?.appUuid === 'string' ? req.body.appUuid : undefined;
-      const outcome = await offerService.buy(req.user!.uid, { kind: 'domain', domain, appUuid });
-      await sendOutcome(res, outcome, `Domaine ${domain}`);
-    } catch (error) {
-      fail(res, error, 'La commande du domaine a échoué.');
-    }
+  /**
+   * La commande directe d'un domaine est passée chez iDomain (recherche, prix garanti, titulaire,
+   * branchement à l'application) : cette ancienne route y renvoie.
+   */
+  orderDomain = async (_req: CustomRequest, res: Response): Promise<void> => {
+    res.status(410).json({ error: 'moved_to_idomain', message: 'Les noms de domaine se commandent désormais sur iDomain.', url: idomainClient.webUrl() });
   };
 
   listDomains = async (req: CustomRequest, res: Response): Promise<void> => {
     try {
-      const orders = await DomainOrder.find({ userId: req.user!.uid }).sort({ createdAt: -1 }).limit(100).lean();
-      res.json({ domains: orders });
+      res.json(await idomainClient.userDomains(req.user!.uid));
     } catch (error) {
       fail(res, error, 'Impossible de charger vos domaines.');
     }
@@ -328,39 +324,6 @@ export class OfferController {
     }
   };
 
-  /** File des domaines à enregistrer chez le registrar. */
-  internalListDomains = async (req: Request, res: Response): Promise<void> => {
-    try {
-      const status = typeof req.query.status === 'string' ? req.query.status : 'pending';
-      const orders = await DomainOrder.find(status === 'all' ? {} : { status }).sort({ createdAt: 1 }).limit(500).lean();
-      res.json({ domains: orders });
-    } catch (error) {
-      fail(res, error, 'File des domaines indisponible.');
-    }
-  };
-
-  internalSettleDomain = async (req: Request, res: Response): Promise<void> => {
-    try {
-      const status = req.body?.status === 'registered' ? 'registered' : req.body?.status === 'failed' ? 'failed' : null;
-      if (!status) {
-        res.status(400).json({ error: 'invalid_status', message: 'Statut attendu : registered ou failed.' });
-        return;
-      }
-      const order = await offerService.settleDomainOrder(String(req.params.orderId), {
-        status,
-        reason: typeof req.body?.reason === 'string' ? req.body.reason : undefined,
-        expiresAt: req.body?.expiresAt ? new Date(req.body.expiresAt) : undefined,
-      });
-      if (!order) {
-        res.status(404).json({ error: 'not_found', message: 'Commande introuvable.' });
-        return;
-      }
-      res.json({ order });
-    } catch (error) {
-      fail(res, error, 'La commande n’a pas pu être clôturée.');
-    }
-  };
-
   /** Passage des compteurs à la demande (rattrapage après incident). */
   internalRunMeters = async (_req: Request, res: Response): Promise<void> => {
     try {
@@ -383,8 +346,6 @@ function labelOf(request: NonNullable<ReturnType<typeof offerService.parse>>): s
       return 'Pack 100 modifications iCode';
     case 'unlock':
       return request.tier === 'signature' ? `${DELIVERABLES[request.deliverable].label} — Signature` : DELIVERABLES[request.deliverable].label;
-    case 'domain':
-      return `Domaine ${request.domain}`;
   }
 }
 

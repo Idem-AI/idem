@@ -104,6 +104,7 @@ import logoImportRoutes from './routes/logo-import.routes';
 import ideployRoutes from './routes/ideploy.routes';
 import appgenRoutes from './routes/appgen.routes';
 import ivisionRoutes from './routes/ivision.routes';
+import idomainRoutes from './routes/idomain.routes';
 import ogRoutes from './routes/og.routes';
 import { communicationRoutes } from './routes/communication.routes';
 import { financeRoutes } from './routes/finance.routes';
@@ -165,6 +166,10 @@ app.use(express.urlencoded({ extended: true, limit: process.env.URLENCODED_BODY_
 // (`x-ivision-key`), elle passe AVANT la limite par IP : tous les utilisateurs d'iVision
 // arrivent de la même adresse, celle du serveur iVision (les quotas par utilisateur restent).
 app.use('/internal/ivision', ivisionRoutes);
+
+// Passerelle d'iDomain (noms de domaine) : le portefeuille IDEM, débit idempotent par commande.
+// Clé de service dédiée (`x-idomain-key`) ; avant la limite par IP pour la même raison qu'iVision.
+app.use('/internal/idomain', idomainRoutes);
 
 // Réparation des déploiements iDeploy en échec : le runtime d'agents de la plateforme,
 // derrière la clé interne (`x-api-key`). Avant la limite par IP pour la même raison

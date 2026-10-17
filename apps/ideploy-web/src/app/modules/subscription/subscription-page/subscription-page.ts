@@ -3,7 +3,8 @@ import { DatePipe, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
-import { AppMeter, DomainOrder, MeterCatalog, MeterService, MeterTier } from '../../../shared/services/meter.service';
+import { AppMeter, MeterCatalog, MeterService, MeterTier, UserDomain } from '../../../shared/services/meter.service';
+import { environment } from '../../../../environments/environment';
 import { IllustrationComponent } from '../../../shared/components/illustration/illustration';
 
 /**
@@ -132,22 +133,13 @@ import { IllustrationComponent } from '../../../shared/components/illustration/i
           </div>
         </div>
         <div class="mt-3 flex flex-wrap items-end gap-2">
-          <input type="text" class="!w-64" placeholder="mon-entreprise.africa" [ngModel]="domain()" (ngModelChange)="domain.set($event)" />
-          <button type="button" class="outer-button" [disabled]="!validDomain() || busy() === 'domain'" (click)="orderDomain()">
-            @if (busy() === 'domain') {
-              <idem-loader size="xs" />
-            }
-            {{ 'meters.orderDomain' | translate }}
-          </button>
+          <a [href]="idomainUrl" class="outer-button">{{ 'meters.orderDomain' | translate }}</a>
         </div>
-        @if (notice(); as message) {
-          <p class="mt-2 text-sm" role="status" style="color: var(--color-success)">{{ message }}</p>
-        }
         @if (orders().length) {
           <ul class="mt-3 space-y-1 text-xs">
-            @for (order of orders(); track order._id) {
+            @for (order of orders(); track order.id) {
               <li class="flex justify-between gap-3">
-                <span>{{ order.domain }}</span>
+                <a [href]="idomainUrl + '/domains/' + order.id" class="hover:underline">{{ order.name }}</a>
                 <span style="color: var(--color-text-tertiary)">{{ 'meters.domainStatus.' + order.status | translate }}</span>
               </li>
             }
@@ -165,11 +157,11 @@ export class SubscriptionPageComponent implements OnInit {
 
   protected readonly view = signal<{ meters: AppMeter[]; walletXaf: number; daysCovered: number | null } | null>(null);
   protected readonly catalog = signal<MeterCatalog | null>(null);
-  protected readonly orders = signal<DomainOrder[]>([]);
+  protected readonly orders = signal<UserDomain[]>([]);
+  /** Les noms de domaine s'achètent et se gèrent sur iDomain. */
+  protected readonly idomainUrl = environment.services.idomain.url;
   protected readonly error = signal<string | null>(null);
-  protected readonly notice = signal<string | null>(null);
   protected readonly busy = signal<string | null>(null);
-  protected readonly domain = signal('');
 
   protected readonly dailyTotal = computed(() =>
     (this.view()?.meters ?? []).filter((m) => m.status === 'active').reduce((sum, m) => sum + m.perDayXaf, 0),
@@ -178,8 +170,6 @@ export class SubscriptionPageComponent implements OnInit {
   protected readonly domainPrices = computed(() =>
     Object.entries(this.catalog()?.domains ?? {}).map(([ext, price]) => ({ ext, ...price })),
   );
-
-  protected readonly validDomain = computed(() => /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.(africa|com)$/i.test(this.domain().trim()));
 
   ngOnInit(): void {
     this.reload();
@@ -206,25 +196,6 @@ export class SubscriptionPageComponent implements OnInit {
 
   protected wake(meter: AppMeter): void {
     this.apply(meter, () => this.meters.wake(meter.appUuid));
-  }
-
-  protected orderDomain(): void {
-    this.busy.set('domain');
-    this.error.set(null);
-    this.notice.set(null);
-    this.meters.orderDomain(this.domain().trim().toLowerCase()).subscribe({
-      next: (result) => {
-        this.busy.set(null);
-        this.notice.set(result.message);
-        this.domain.set('');
-        this.reload();
-        this.meters.domains().subscribe((r) => this.orders.set(r.domains));
-      },
-      error: (e) => {
-        this.busy.set(null);
-        this.report(e);
-      },
-    });
   }
 
   private apply(meter: AppMeter, call: () => ReturnType<MeterService['wake']>): void {

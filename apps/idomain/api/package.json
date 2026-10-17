@@ -1,0 +1,51 @@
+{
+  "name": "idomain-api",
+  "version": "1.0.0",
+  "private": true,
+  "description": "iDomain — vente et gestion de noms de domaine (Express + TypeScript + PostgreSQL + BullMQ). Prix public en francs, fournisseur le moins cher choisi en arrière-plan ; identité et portefeuille via l'API IDEM, rattachement aux applications via iDeploy.",
+  "main": "dist/src/index.js",
+  "scripts": {
+    "dev": "nodemon",
+    "dev:worker": "nodemon --exec \"ts-node --transpile-only src/worker.ts\"",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/src/index.js",
+    "start:worker": "node dist/src/worker.js",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "migrate:up": "node-pg-migrate -m migrations -t pgmigrations --ignore-pattern '(\\..*|.*\\.md)' up",
+    "migrate:down": "node-pg-migrate -m migrations -t pgmigrations --ignore-pattern '(\\..*|.*\\.md)' down",
+    "migrate:create": "node-pg-migrate -m migrations -t pgmigrations --ignore-pattern '(\\..*|.*\\.md)' -j sql create",
+    "check:pricing": "ts-node --transpile-only scripts/check-pricing.ts",
+    "check": "ts-node --transpile-only scripts/check-api.ts",
+    "dev:offline": "ts-node --transpile-only scripts/dev-offline.ts",
+    "import:idem-orders": "ts-node --transpile-only scripts/import-idem-orders.ts"
+  },
+  "author": "arolleaguekeng",
+  "license": "MIT",
+  "dependencies": {
+    "@infisical/sdk": "^5.0.2",
+    "axios": "^1.7.9",
+    "bullmq": "^5.34.0",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.5.0",
+    "express": "^4.21.2",
+    "helmet": "^8.1.0",
+    "hpp": "^0.2.3",
+    "ioredis": "^5.4.1",
+    "node-pg-migrate": "^9.0.0",
+    "pg": "^8.13.3",
+    "winston": "^3.17.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/cookie-parser": "^1.4.8",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/hpp": "^0.2.7",
+    "@types/node": "^22.13.11",
+    "@types/pg": "^8.11.10",
+    "nodemon": "^3.1.9",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.2"
+  }
+}

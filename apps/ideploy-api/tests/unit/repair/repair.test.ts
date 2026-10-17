@@ -18,7 +18,7 @@ describe('the context sent for a repair', () => {
       '#12 15.2 Failed to compile.',
       '#12 15.3 ./src/app/page.tsx:3:8',
       "#12 15.3 Module not found: Can't resolve '@/components/Hero'",
-      '#12 15.4 DATABASE_URL=postgres://admin:s3cr3t-pass@db:5432/app',
+      '#12 15.4 DATABASE_URL=postgres://admin:s3cr3t-pass@db:5432/app', // idem-secrets:allow
     ].join('\n');
     const compact = compactLog(output, ['s3cr3t-pass']);
     expect(compact).toContain('Failed to compile.');

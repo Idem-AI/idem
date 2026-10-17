@@ -1,108 +1,114 @@
 import crypto from 'crypto';
 import logger from '../../config/logger';
 import { hashValue } from '../../utils/crypto.util';
-import { LINK_CODE_PREFIX, WHATSAPP_LIMITS } from '../../models/whatsapp.model';
+import { WHATSAPP_LIMITS } from '../../models/whatsapp.model';
 import { WhatsappApproval, WhatsappLink, WhatsappLinkDocument } from '../../schemas/whatsapp.schema';
 import { whatsappAccess } from './whatsapp-access';
-import { maskPhone, phoneEnc, phoneHash } from './whatsapp-phone';
+import { maskPhone, normalizePhone, phoneEnc, phoneHash } from './whatsapp-phone';
+import { CloudApiTransport, WhatsappTransport } from './whatsapp.client';
+import { hit } from './whatsapp-rate';
 
 /** Alphabet sans 0/O/1/I : le code se lit et se recopie sans erreur. */
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
 function newCode(): string {
-  const bytes = crypto.randomBytes(8);
-  const chars = Array.from(bytes, (byte) => CODE_ALPHABET[byte % CODE_ALPHABET.length]).join('');
-  return `${LINK_CODE_PREFIX}-${chars}`;
+  const bytes = crypto.randomBytes(6);
+  return Array.from(bytes, (byte) => CODE_ALPHABET[byte % CODE_ALPHABET.length]).join('');
 }
 
-/** L'empreinte se calcule sur le code normalisé (majuscules, sans séparateur) : « idem abcd… » marche aussi. */
+/** L'empreinte se calcule sur le code normalisé (majuscules, sans espace) : la casse ou un espace ne gênent pas la saisie. */
 export function codeHash(code: string): string {
   return hashValue(`walink:${code.toUpperCase().replace(/[^A-Z0-9]/g, '')}`);
 }
 
-/** Cherche un code de liaison dans un message entrant. */
-export function extractLinkCode(text: string): string | null {
-  const match = new RegExp(`${LINK_CODE_PREFIX}[\\s-]*([A-Z2-9]{8})\\b`, 'i').exec(text || '');
-  return match ? `${LINK_CODE_PREFIX}-${match[1].toUpperCase()}` : null;
-}
+export type RequestCodeOutcome =
+  | { ok: true; expiresAt: Date }
+  | { ok: false; reason: 'invalid_phone' | 'not_entitled' | 'phone_in_use' | 'too_many_attempts' | 'send_failed' };
 
-export type LinkOutcome =
-  | { ok: true; link: WhatsappLinkDocument }
-  | { ok: false; reason: 'invalid_code' | 'expired' | 'phone_in_use' | 'not_entitled' | 'too_many_attempts' };
-
-export interface LinkStart {
-  code: string;
-  /** Lien qui ouvre WhatsApp sur le numéro d'IDEM, message déjà écrit : l'utilisateur n'a qu'à envoyer. */
-  waUrl: string | null;
-  expiresAt: Date;
-}
+export type LinkOutcome = { ok: true; link: WhatsappLinkDocument } | { ok: false; reason: 'invalid_code' | 'expired' | 'too_many_attempts' };
 
 export class WhatsappLinkService {
+  constructor(private readonly transport: WhatsappTransport = new CloudApiTransport()) {}
+
   /**
-   * Prépare la liaison. Le code est affiché UNE fois ; seule son empreinte est conservée. C'est le
-   * téléphone qui prouve qu'il l'a reçu : le message vient de WhatsApp, authentifié par Meta, avec le
-   * numéro de l'expéditeur. Pas de SMS à intercepter, pas de numéro saisi à la main (donc pas de
-   * numéro d'un tiers lié par erreur ou par malveillance).
+   * L'utilisateur saisit son numéro dans IDEM ; on lui envoie un code par WhatsApp (modèle approuvé :
+   * aucune fenêtre de service n'est ouverte avec un numéro qui n'a jamais écrit à IDEM). C'est la
+   * saisie du code DANS IDEM, pas l'envoi, qui prouve qu'il a bien ce téléphone en main — personne ne
+   * peut lier le numéro d'un tiers sans lire les messages de ce tiers.
    */
-  async start(userId: string, defaultProjectId?: string): Promise<{ ok: true; start: LinkStart } | { ok: false; reason: 'not_entitled' }> {
+  async requestCode(userId: string, rawPhone: string, defaultProjectId?: string): Promise<RequestCodeOutcome> {
     const access = await whatsappAccess(userId);
     if (!access.allowed) return { ok: false, reason: 'not_entitled' };
+
+    const phoneDigits = normalizePhone(rawPhone);
+    if (!phoneDigits) return { ok: false, reason: 'invalid_phone' };
+
+    if (await hit(`link-request:${userId}`, WHATSAPP_LIMITS.linkRequestsPerHour, 3_600_000)) return { ok: false, reason: 'too_many_attempts' };
+
+    const hash = phoneHash(phoneDigits);
+    const owner = await WhatsappLink.findOne({ phoneHash: hash, status: 'active', userId: { $ne: userId } }).select('_id').lean();
+    if (owner) return { ok: false, reason: 'phone_in_use' };
 
     const code = newCode();
     const expiresAt = new Date(Date.now() + WHATSAPP_LIMITS.linkTokenTtlMs);
     await WhatsappLink.updateOne(
       { userId },
       {
-        $set: { tokenHash: codeHash(code), tokenExpiresAt: expiresAt, tokenAttempts: 0, ...(defaultProjectId ? { defaultProjectId } : {}) },
-        // Un numéro déjà actif reste actif tant que le nouveau n'est pas prouvé.
+        $set: {
+          tokenHash: codeHash(code),
+          tokenExpiresAt: expiresAt,
+          tokenAttempts: 0,
+          pendingPhoneHash: hash,
+          pendingPhoneEnc: phoneEnc(phoneDigits, userId),
+          pendingPhoneLast4: phoneDigits.slice(-4),
+          ...(defaultProjectId ? { defaultProjectId } : {}),
+        },
         $setOnInsert: { userId, status: 'pending', dailyProposals: false, adhocCount: 0, sendHour: 8, utcOffsetMinutes: 60, language: 'fr' },
       },
       { upsert: true }
     );
 
-    const business = (process.env.WHATSAPP_BUSINESS_NUMBER || '').replace(/\D/g, '');
-    return { ok: true, start: { code, waUrl: business ? `https://wa.me/${business}?text=${encodeURIComponent(code)}` : null, expiresAt } };
+    const template = process.env.WHATSAPP_TEMPLATE_LINK_CODE || 'idem_link_code';
+    try {
+      await this.transport.sendTemplate(phoneDigits, template, 'fr', [code]);
+    } catch (error: any) {
+      // Le code n'est jamais parti : on retire l'attente, sinon un essai ultérieur verrait un code mort.
+      await WhatsappLink.updateOne({ userId }, { $unset: { tokenHash: '', tokenExpiresAt: '', pendingPhoneHash: '', pendingPhoneEnc: '', pendingPhoneLast4: '' } });
+      logger.error('whatsapp.link_code_failed', { event: 'whatsapp.link_code_failed', userId, error: error?.message });
+      return { ok: false, reason: 'send_failed' };
+    }
+    logger.info('whatsapp.link_code_sent', { event: 'whatsapp.link_code_sent', userId, phone: maskPhone(phoneDigits) });
+    return { ok: true, expiresAt };
   }
 
-  /** Un message entrant porte-t-il un code valide ? Si oui, ce numéro devient celui du compte. */
-  async complete(phoneDigits: string, text: string): Promise<LinkOutcome> {
-    const code = extractLinkCode(text);
-    if (!code) return { ok: false, reason: 'invalid_code' };
-
-    const link = await WhatsappLink.findOne({ tokenHash: codeHash(code) });
-    if (!link || !link.tokenExpiresAt) return { ok: false, reason: 'invalid_code' };
+  /** L'utilisateur recopie dans IDEM le code reçu sur WhatsApp : le numéro en attente devient celui du compte. */
+  async confirmCode(userId: string, rawCode: string): Promise<LinkOutcome> {
+    const link = await WhatsappLink.findOne({ userId });
+    if (!link?.tokenHash || !link.tokenExpiresAt || !link.pendingPhoneHash) return { ok: false, reason: 'invalid_code' };
     if (link.tokenExpiresAt.getTime() < Date.now()) return { ok: false, reason: 'expired' };
     if (link.tokenAttempts >= WHATSAPP_LIMITS.linkMaxAttempts) return { ok: false, reason: 'too_many_attempts' };
 
-    // Le droit d'usage est revérifié au moment de lier : un forfait expiré entre-temps ferme la porte.
-    if (!(await whatsappAccess(link.userId)).allowed) return { ok: false, reason: 'not_entitled' };
-
-    const hash = phoneHash(phoneDigits);
-    const owner = await WhatsappLink.findOne({ phoneHash: hash, status: 'active', userId: { $ne: link.userId } }).select('_id').lean();
-    if (owner) {
+    if (codeHash(rawCode) !== link.tokenHash) {
       await WhatsappLink.updateOne({ _id: link._id }, { $inc: { tokenAttempts: 1 } });
-      return { ok: false, reason: 'phone_in_use' };
+      return { ok: false, reason: 'invalid_code' };
     }
+
+    // Revérifié : le numéro aurait pu être lié par un autre compte entre l'envoi du code et sa saisie.
+    const owner = await WhatsappLink.findOne({ phoneHash: link.pendingPhoneHash, status: 'active', userId: { $ne: userId } }).select('_id').lean();
+    if (owner) return { ok: false, reason: 'invalid_code' };
 
     // Usage unique : le code est consommé par la mise à jour conditionnelle elle-même.
     const claimed = await WhatsappLink.findOneAndUpdate(
-      { _id: link._id, tokenHash: codeHash(code) },
+      { _id: link._id, tokenHash: link.tokenHash },
       {
-        $set: {
-          status: 'active',
-          phoneHash: hash,
-          phoneEnc: phoneEnc(phoneDigits, link.userId),
-          phoneLast4: phoneDigits.slice(-4),
-          linkedAt: new Date(),
-          lastInboundAt: new Date(),
-        },
-        $unset: { tokenHash: '', tokenExpiresAt: '' },
+        $set: { status: 'active', phoneHash: link.pendingPhoneHash, phoneEnc: link.pendingPhoneEnc, phoneLast4: link.pendingPhoneLast4, linkedAt: new Date() },
+        $unset: { tokenHash: '', tokenExpiresAt: '', pendingPhoneHash: '', pendingPhoneEnc: '', pendingPhoneLast4: '' },
       },
       { new: true }
     );
     if (!claimed) return { ok: false, reason: 'invalid_code' };
 
-    logger.info('whatsapp.linked', { event: 'whatsapp.linked', userId: claimed.userId, phone: maskPhone(phoneDigits) });
+    logger.info('whatsapp.linked', { event: 'whatsapp.linked', userId: claimed.userId });
     return { ok: true, link: claimed };
   }
 

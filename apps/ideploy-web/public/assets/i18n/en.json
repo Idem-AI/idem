@@ -804,7 +804,11 @@
           "tip": "If an A or AAAA record already exists for this name, delete or edit it."
         }
       },
-      "backupAddress": "Technical backup address"
+      "backupAddress": "Technical backup address",
+      "buy": "Buy a name",
+      "buyAnother": "Buy another name",
+      "buyHint": "Bought on iDomain and paid from your wallet: the address and HTTPS are set up for you.",
+      "buyError": "iDomain isn’t responding right now. Try again in a moment."
     }
   },
   "projects": {
@@ -949,8 +953,8 @@
       "popularApps": "Most popular open source apps",
       "browseCatalog": "Browse the full catalog",
       "readyToUse": "Ready to use",
-      "architecturesTitle": "Does your project have several parts?",
-      "architecturesHint": "A website, its API, its database… A guide puts them online one by one and connects them for you.",
+      "architecturesTitle": "What is your project's architecture?",
+      "architecturesHint": "Monolith, 3-tier, microservices… A guide deploys each part in order and connects them for you.",
       "emptyPrompt": "Just want to prepare a space?",
       "emptyLink": "Create an empty workspace",
       "guideSteps": "{{count}} steps",
@@ -1143,7 +1147,7 @@
     "stop": "Stop",
     "backupNow": "Backup now",
     "delete": "Delete",
-    "newDatabase": "New database",
+    "newDatabase": "New database, cache or message queue",
     "chooseEngine": "Choose an engine",
     "type": "Type",
     "name": "Name",
@@ -1209,7 +1213,10 @@
       "deleteHint": "The database and its data will be permanently deleted.",
       "deleteDatabase": "Delete database",
       "deleting": "Deleting…",
-      "deleteError": "Deleting failed."
+      "deleteError": "Deleting failed.",
+      "consoleHint": "The engine's own client (psql, mysql, mongosh, redis-cli…), already signed in: query, inspect, fix. Team admins only.",
+      "shell": "Shell",
+      "shellHint": "A shell in the database's container. Team admins only."
     }
   },
   "services": {
@@ -1584,8 +1591,8 @@
     "guideTitle": "Architecture Guide",
     "notFound": "Guide not found.",
     "threeTier": {
-      "name": "Website + API + database",
-      "description": "The visible pages, the server that runs them, and the data.",
+      "name": "3-tier architecture",
+      "description": "Presentation (frontend), logic (API) and data: three layers deployed separately.",
       "step1Title": "Deploy your frontend",
       "step1Desc": "Import your frontend app from Git, or deploy it from a Docker Compose file or image.",
       "step2Title": "Deploy your backend API",
@@ -1594,16 +1601,16 @@
       "step3Desc": "Provision the database your backend connects to (PostgreSQL, MySQL, MongoDB…)."
     },
     "monolith": {
-      "name": "App + database",
-      "description": "A single app that does everything, with its data.",
+      "name": "Monolithic application",
+      "description": "2-tier architecture: one application, pages and logic together, with its database.",
       "step1Title": "Deploy your application",
       "step1Desc": "Import your app from Git, or deploy it from a Docker Compose file or image.",
       "step2Title": "Create your database",
       "step2Desc": "Provision the database your application connects to."
     },
     "apiDb": {
-      "name": "API + database",
-      "description": "A server with no pages, with its data. Ideal for a mobile app.",
+      "name": "Backend API",
+      "description": "An API and its database, no interface: for a mobile app or a frontend hosted elsewhere.",
       "step1Title": "Deploy your API",
       "step1Desc": "Import your API from Git, or deploy it from a Docker Compose file or image.",
       "step2Title": "Create your database",
@@ -1616,8 +1623,8 @@
       "step1Desc": "Import your static site from Git — it's auto-detected and built as a static app."
     },
     "microservices": {
-      "name": "Several connected services",
-      "description": "Several small apps sharing their data.",
+      "name": "Microservices architecture",
+      "description": "Independent services, a shared database and a message broker (RabbitMQ, Redis) for them to talk.",
       "step1Title": "Deploy your first service",
       "step1Desc": "Import it from Git, or deploy it from a Docker Compose file or image.",
       "step2Title": "Deploy your next service",
@@ -2006,7 +2013,9 @@
     "back": "Back",
     "target": {
       "server": "Server",
-      "application": "Application container"
+      "application": "Application container",
+      "database": "Database console",
+      "databaseShell": "Shell in the database container"
     },
     "status": {
       "connecting": "Connecting…",
@@ -2260,12 +2269,14 @@
     "wake": "Wake up",
     "options": "Daily options",
     "domainTitle": "Your domain name",
-    "orderDomain": "Order",
+    "orderDomain": "Find my name on iDomain",
     "domainStatus": {
       "pending": "being registered",
-      "registered": "active",
-      "failed": "failed",
-      "refunded": "refunded"
+      "active": "active",
+      "expired": "expired",
+      "external": "external",
+      "transferring": "being transferred",
+      "failed": "failed"
     },
     "missing": "Your wallet is {{missing}} F short: top it up to continue.",
     "loading": "Loading meters…",

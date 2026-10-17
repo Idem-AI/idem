@@ -15,7 +15,7 @@ import { socialAccountService } from '../social/social-account.service';
 import { PUBLISH_NETWORKS, PublishNetwork } from '../social/social-types';
 import { whatsappAccess } from './whatsapp-access';
 import { WhatsappApprovalService } from './whatsapp-approval.service';
-import { WhatsappLinkService, extractLinkCode, whatsappLinkService } from './whatsapp-link.service';
+import { WhatsappLinkService, whatsappLinkService } from './whatsapp-link.service';
 import { say } from './whatsapp-messages';
 import { WhatsappTransport } from './whatsapp.client';
 import { hit } from './whatsapp-rate';
@@ -139,12 +139,8 @@ export class WhatsappConversationService {
   // ── Numéro inconnu ───────────────────────────────────────────────────────
 
   private async unknownNumber(message: InboundMessage): Promise<void> {
-    if (message.kind === 'text' && extractLinkCode(message.text ?? '')) {
-      const outcome = await this.links.complete(message.from, message.text!);
-      if (outcome.ok) return void (await this.reply(message.from, say(outcome.link.language, 'linked')));
-      const key = { invalid_code: 'linkInvalid', expired: 'linkExpired', phone_in_use: 'linkInUse', not_entitled: 'notEntitled', too_many_attempts: 'linkTooMany' }[outcome.reason] as Parameters<typeof say>[1];
-      return void (await this.reply(message.from, say('fr', key)));
-    }
+    // La liaison se fait désormais depuis IDEM (numéro saisi, code reçu puis recopié dans l'écran) :
+    // un message entrant d'un numéro inconnu n'a plus de rôle à jouer ici, quel que soit son contenu.
     // Une seule réponse par heure à un inconnu : on n'est pas un robot de spam.
     if (!(await hit(`unknown:${phoneHash(message.from)}`, 1, 3_600_000))) await this.reply(message.from, say('fr', 'unknownNumber'));
   }

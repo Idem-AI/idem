@@ -9,7 +9,7 @@ import { environment } from '../../../environments/environment';
  * par le cookie `session` posé par l'API Idem sur le domaine partagé — il n'y
  * a donc rien d'autre à transmettre.
  */
-export type RedirectTarget = 'simulation' | 'appgen' | 'ivision';
+export type RedirectTarget = 'simulation' | 'appgen' | 'ivision' | 'idomain';
 
 /**
  * L'adresse d'iVision. Lue avec un repli : un `environment.ts` généré avant l'arrivée d'iVision
@@ -18,6 +18,12 @@ export type RedirectTarget = 'simulation' | 'appgen' | 'ivision';
 export function ivisionUrl(): string {
   const services = environment.services as typeof environment.services & { ivision?: { url: string } };
   return services.ivision?.url || (environment.environment === 'dev' ? 'http://localhost:4204' : 'https://ivision.idem.africa');
+}
+
+/** L'adresse d'iDomain (noms de domaine), avec le même repli qu'iVision pour un `environment.ts` ancien. */
+export function idomainUrl(): string {
+  const services = environment.services as typeof environment.services & { idomain?: { url: string } };
+  return services.idomain?.url || (environment.environment === 'dev' ? 'http://localhost:4205' : 'https://idomain.idem.africa');
 }
 
 /** Base autorisée pour chaque application acceptant un retour après login. */
@@ -29,6 +35,8 @@ export function appBaseUrl(target: RedirectTarget): string {
       return environment.services.webgen.url;
     case 'ivision':
       return ivisionUrl();
+    case 'idomain':
+      return idomainUrl();
   }
 }
 

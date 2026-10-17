@@ -69,6 +69,11 @@ export const environment = {
     console: {
       url: '${process.env.SERVICES_DASHBOARD_URL || 'http://localhost:4200'}',
     },
+    // iDomain : acheter un nom et le brancher à une application (page et API).
+    idomain: {
+      url: '${process.env.SERVICES_IDOMAIN_URL || 'http://localhost:4205'}',
+      api: '${process.env.SERVICES_IDOMAIN_API_URL || 'http://localhost:3007'}',
+    },
   },
   realtime: {
     key: '${process.env.PUSHER_APP_KEY || ''}',
