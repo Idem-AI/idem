@@ -33,14 +33,13 @@ export interface MeterCatalog {
   domains: Record<string, { registrar: string; priceXaf: number; renewalXaf: number; packXaf: number }>;
 }
 
-export interface DomainOrder {
-  _id: string;
-  domain: string;
-  status: 'pending' | 'registered' | 'failed' | 'refunded';
-  priceXaf: number;
-  renewalXaf: number;
-  expiresAt?: string;
-  createdAt: string;
+/** Un domaine de l'utilisateur, tenu par iDomain (relayé par l'API IDEM). */
+export interface UserDomain {
+  id: string;
+  name: string;
+  status: string;
+  expiresAt: string | null;
+  renewalXaf: number | null;
 }
 
 /**
@@ -72,12 +71,9 @@ export class MeterService {
     return this.http.post<{ ok: true; meter: AppMeter }>(`${this.base}/deploy/meters/${encodeURIComponent(appUuid)}/wake`, {}, { withCredentials: true });
   }
 
-  domains(): Observable<{ domains: DomainOrder[] }> {
-    return this.http.get<{ domains: DomainOrder[] }>(`${this.base}/domains`, { withCredentials: true });
-  }
-
-  orderDomain(domain: string, appUuid?: string): Observable<{ ok: true; message: string; balanceXaf: number }> {
-    return this.http.post<{ ok: true; message: string; balanceXaf: number }>(`${this.base}/domains/order`, { domain, appUuid }, { withCredentials: true });
+  /** Les domaines de l'utilisateur : iDomain en est la seule source, l'API IDEM les relaie. */
+  domains(): Observable<{ domains: UserDomain[] }> {
+    return this.http.get<{ domains: UserDomain[] }>(`${this.base}/domains`, { withCredentials: true });
   }
 
   /** La recharge se fait dans la console IDEM (mobile money), là où est le portefeuille. */

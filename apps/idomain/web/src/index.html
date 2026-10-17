@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="fr" class="light">
+  <head>
+    <meta charset="utf-8" />
+    <script>
+      // Thème avant le premier rendu : le cookie partagé `idem_theme`, sinon le navigateur.
+      (function () {
+        try {
+          var m = document.cookie.match(/(?:^|;\s*)idem_theme=([^;]+)/);
+          var pref = m ? decodeURIComponent(m[1]) : null;
+          if (pref !== 'light' && pref !== 'dark' && pref !== 'system') pref = 'system';
+          var dark = pref === 'dark' || (pref === 'system' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          var el = document.documentElement;
+          el.classList.toggle('dark', dark);
+          el.classList.toggle('light', !dark);
+          el.style.colorScheme = dark ? 'dark' : 'light';
+        } catch (e) {}
+      })();
+    </script>
+    <script>(function(){try{var m=document.cookie.match(/(?:^|;\s*)idem_lang=(fr|en)/);var l=m?m[1]:(navigator.language||'').toLowerCase().indexOf('fr')===0?'fr':'en';document.documentElement.lang=l;}catch(e){}})();</script>
+    <title>iDomain — Votre nom sur internet | IDEM</title>
+    <meta name="description" content="Trouvez votre nom de domaine, payez-le depuis votre portefeuille IDEM et branchez-le à votre site en quelques minutes : DNS et HTTPS réglés pour vous." />
+    <meta name="robots" content="index, follow" />
+    <meta name="application-name" content="iDomain" />
+    <meta name="theme-color" content="#1447e6" />
+    <link rel="canonical" href="https://idomain.idem.africa/" />
+    <base href="/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href="/assets/idomain-mark.svg" />
+  </head>
+  <body>
+    <idm-root></idm-root>
+  </body>
+</html>

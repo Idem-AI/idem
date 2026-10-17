@@ -371,22 +371,8 @@ export const PACK_GROUP_SIZE = 5;
 // NOMS DE DOMAINE
 // ============================================
 
-/**
- * Prix des domaines, par extension (P_min = (coût registrar + fixes + support) / (1 − f − b − m),
- * f = 3 % d'encaissement, b = 5 % de coussin de change, m = 15 % de marge ; 1 $ = 577 F).
- * `packXaf` : au coût, dans un pack ou avec un compteur annuel. Les autres extensions
- * s'ajoutent quand leur coût registrar est relevé.
- */
-export const DOMAIN_PRICES: Record<string, { registrar: string; priceXaf: number; renewalXaf: number; packXaf: number }> = {
-  africa: { registrar: 'openprovider', priceXaf: 6500, renewalXaf: 8000, packXaf: 4900 },
-  com: { registrar: 'domainnameapi', priceXaf: 8900, renewalXaf: 8900, packXaf: 7100 },
-};
-
-/** Extension d'un nom de domaine (`ma-boutique.africa` → `africa`), ou null s'il est invalide. */
-export function domainExtension(domain: string): string | null {
-  const match = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.([a-z]{2,24})$/.exec(domain.trim().toLowerCase());
-  return match ? match[1] : null;
-}
+// Les prix et les commandes de domaines vivent dans iDomain (`apps/idomain`), seule source :
+// l'API IDEM les lit par `services/idomain/idomain.client.ts`.
 
 // ============================================
 // CODES IDEM (agents, cadeaux)

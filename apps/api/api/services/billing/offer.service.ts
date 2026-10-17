@@ -1,17 +1,16 @@
 import logger from '../../config/logger';
 import {
-  DOMAIN_PRICES,
   DeliverableKey,
   ICODE,
   PACKS,
   PACK_GROUP_SIZE,
   PACK_VITRINE_DAYS,
   PassCode,
-  domainExtension,
   isDeliverable,
 } from '../../models/offer.model';
 import { BillingPurchase } from '../../schemas/billing.schema';
-import { DomainOrder, UnlockTier } from '../../schemas/offer.schema';
+import { UnlockTier } from '../../schemas/offer.schema';
+import { domainExtension, idomainClient } from '../idomain/idomain.client';
 import { creditLedgerService } from './credit-ledger.service';
 import { deployMeterService } from './deploy-meter.service';
 import { entitlementsService } from './entitlements.service';
@@ -31,8 +30,7 @@ export type OfferRequest =
   | { kind: 'pack'; code: 'lancement' | 'lancement_domaine' | 'a_plusieurs'; projectId?: string; domain?: string }
   | { kind: 'icode_project_pass'; projectId: string }
   | { kind: 'icode_pack_100' }
-  | { kind: 'unlock'; projectId: string; deliverable: DeliverableKey; tier?: UnlockTier }
-  | { kind: 'domain'; domain: string; appUuid?: string };
+  | { kind: 'unlock'; projectId: string; deliverable: DeliverableKey; tier?: UnlockTier };
 
 export type OfferOutcome =
   | { ok: true; message: string; chargedXaf: number; balanceXaf: number; details?: Record<string, unknown> }
@@ -75,8 +73,6 @@ export class OfferService {
       case 'unlock':
         if (!projectId || !isDeliverable(body.deliverable)) return null;
         return { kind, projectId, deliverable: body.deliverable, tier: body.tier === 'signature' ? 'signature' : 'final' };
-      case 'domain':
-        return typeof body.domain === 'string' ? { kind, domain: body.domain, appUuid: typeof body.appUuid === 'string' ? body.appUuid : undefined } : null;
       default:
         return null;
     }
@@ -120,9 +116,6 @@ export class OfferService {
 
       case 'pack':
         return this.buyPack(userId, request);
-
-      case 'domain':
-        return this.orderDomain(userId, request.domain, { appUuid: request.appUuid, source: 'purchase' });
     }
   }
 
@@ -168,8 +161,13 @@ export class OfferService {
       return { ok: false, error: 'project_required', message: 'Choisissez le projet auquel appliquer le pack.' };
     }
     if (request.code === 'lancement_domaine') {
+      // Les extensions proposées dans un pack sont celles qu'iDomain vend au coût (seule source des prix).
       const ext = request.domain ? domainExtension(request.domain) : null;
-      if (!ext || !DOMAIN_PRICES[ext]) return { ok: false, error: 'invalid_domain', message: 'Indiquez un nom de domaine en .africa ou .com.' };
+      const catalog = await idomainClient.catalog();
+      if (!ext || !catalog[ext]?.packXaf) {
+        const offered = Object.keys(catalog).filter((t) => catalog[t].packXaf).map((t) => `.${t}`).join(' ou ') || '.africa ou .com';
+        return { ok: false, error: 'invalid_domain', message: `Indiquez un nom de domaine en ${offered}.` };
+      }
     }
 
     const spend = await walletService.spend(userId, { priceXaf: pack.priceXaf, label: pack.label, action: `pack_${request.code}`, projectId: request.projectId });
@@ -182,8 +180,13 @@ export class OfferService {
 
     await this.applyLancement(userId, request.projectId!, 'pack');
     if (request.code === 'lancement_domaine') {
-      const order = await this.orderDomain(userId, request.domain!, { source: 'pack', prepaid: true });
-      if (!order.ok) logger.error('billing.pack_domain_failed', { event: 'billing.pack_domain_failed', alert: 'critical', userId, domain: request.domain });
+      // Payé ici avec le pack, enregistré par iDomain. La référence (le débit) rend l'appel rejouable sans double commande.
+      const reference = `pack:${spend.ledgerEntryId ?? `${userId}:${Date.now()}`}`;
+      try {
+        await idomainClient.prepaidOrder({ userId, domain: request.domain!.trim().toLowerCase(), reference, source: 'pack' });
+      } catch (error) {
+        logger.error('billing.pack_domain_failed', { event: 'billing.pack_domain_failed', alert: 'critical', userId, domain: request.domain, reference, error });
+      }
     }
     return { ok: true, message: `${pack.label} activé.`, chargedXaf: spend.chargedXaf, balanceXaf: await walletService.balance(userId) };
   }
@@ -222,81 +225,6 @@ export class OfferService {
     await this.applyLancement(userId, projectId, 'code');
     await entitlementsService.invalidate(userId);
     return { ok: true, message: 'Pack Lancement activé sur votre projet.', chargedXaf: 0, balanceXaf: await walletService.balance(userId) };
-  }
-
-  // ── Domaines ──────────────────────────────────────────────────────────────
-
-  /**
-   * Commande un nom de domaine. L'enregistrement chez le registrar est fait par l'équipe tant que
-   * les connecteurs (Domain Name API, Openprovider) ne sont pas branchés : la commande reste
-   * « en attente » jusque-là, et un échec restitue le montant.
-   */
-  async orderDomain(
-    userId: string,
-    rawDomain: string,
-    options: { appUuid?: string; source: 'purchase' | 'pack' | 'pass'; prepaid?: boolean }
-  ): Promise<OfferOutcome> {
-    const domain = rawDomain.trim().toLowerCase();
-    const ext = domainExtension(domain);
-    const prices = ext ? DOMAIN_PRICES[ext] : undefined;
-    if (!ext || !prices) return { ok: false, error: 'invalid_domain', message: 'Seuls les domaines en .africa et .com sont proposés pour l’instant.' };
-
-    const taken = await DomainOrder.exists({ domain, status: { $in: ['pending', 'registered'] } });
-    if (taken) return { ok: false, error: 'domain_taken', message: 'Ce domaine est déjà commandé.' };
-
-    const entitlements = await entitlementsService.resolve(userId);
-    const atCost = options.prepaid || Boolean(entitlements.offer?.passes.entreprise);
-    const price = atCost ? prices.packXaf : prices.priceXaf;
-
-    let charged = 0;
-    let ledgerEntryId: string | undefined;
-    if (!options.prepaid) {
-      const spend = await walletService.spend(userId, { priceXaf: price, label: `Domaine ${domain} — 1 an`, action: 'domain_register' });
-      if (!spend.allowed) return insufficient(spend);
-      charged = spend.chargedXaf;
-      ledgerEntryId = spend.ledgerEntryId;
-    }
-
-    const order = await DomainOrder.create({
-      userId,
-      domain,
-      extension: ext,
-      years: 1,
-      priceXaf: options.prepaid ? prices.packXaf : charged,
-      renewalXaf: prices.renewalXaf,
-      source: options.source,
-      status: 'pending',
-      registrar: prices.registrar,
-      ledgerEntryId,
-      appUuid: options.appUuid,
-    });
-    logger.info('billing.domain_ordered', { event: 'billing.domain_ordered', alert: 'critical', userId, domain, registrar: prices.registrar, orderId: String(order._id) });
-    return {
-      ok: true,
-      message: `Domaine ${domain} commandé. Il sera actif sous 24 h ; renouvellement : ${prices.renewalXaf} F/an.`,
-      chargedXaf: charged,
-      balanceXaf: await walletService.balance(userId),
-      details: { orderId: String(order._id), renewalXaf: prices.renewalXaf },
-    };
-  }
-
-  /** Clôture d'une commande de domaine par l'équipe (enregistré, ou échec avec restitution). */
-  async settleDomainOrder(orderId: string, outcome: { status: 'registered' | 'failed'; reason?: string; expiresAt?: Date }) {
-    const order = await DomainOrder.findById(orderId);
-    if (!order || order.status !== 'pending') return order;
-    if (outcome.status === 'registered') {
-      order.status = 'registered';
-      order.registeredAt = new Date();
-      order.expiresAt = outcome.expiresAt ?? new Date(Date.now() + 365 * DAY_MS);
-    } else {
-      order.status = order.priceXaf > 0 && order.source === 'purchase' ? 'refunded' : 'failed';
-      order.failureReason = outcome.reason;
-      if (order.status === 'refunded') {
-        await walletService.refund(order.userId, order.priceXaf, { action: 'domain_register', note: `Domaine ${order.domain} non enregistré — montant restitué` });
-      }
-    }
-    await order.save();
-    return order;
   }
 }
 

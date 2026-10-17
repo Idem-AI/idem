@@ -48,6 +48,8 @@ export const SECRET_MANIFEST = {
     'IDEPLOY_SHARED_SECRET',
     // Clé de la passerelle interne d'iVision (`/internal/ivision`), partagée avec ivision-api.
     'IVISION_SERVICE_KEY',
+    // Clé de la passerelle interne d'iDomain (`/internal/idomain`), partagée avec idomain-api.
+    'IDOMAIN_SERVICE_KEY',
     'JWT_SECRET',
     'GITHUB_STATE_SECRET',
     'METRICS_TOKEN',

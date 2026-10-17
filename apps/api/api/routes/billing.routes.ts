@@ -540,18 +540,12 @@ router.get('/internal/pricing/history', verifyApiKey, (req: Request, res: Respon
 );
 
 export { router as billingRoutes };
-// Modèle « au portefeuille » : codes, domaines, compteurs.
+// Modèle « au portefeuille » : codes, compteurs (les domaines sont chez iDomain : /admin/v1).
 router.post('/internal/codes', verifyApiKey, (req: Request, res: Response) =>
   offerController.internalGenerateCodes(req, res)
 );
 router.get('/internal/codes/agents/:agentId', verifyApiKey, (req: Request, res: Response) =>
   offerController.internalAgentReport(req, res)
-);
-router.get('/internal/domains', verifyApiKey, (req: Request, res: Response) =>
-  offerController.internalListDomains(req, res)
-);
-router.post('/internal/domains/:orderId/settle', verifyApiKey, (req: Request, res: Response) =>
-  offerController.internalSettleDomain(req, res)
 );
 router.post('/internal/meters/run', verifyApiKey, (_req: Request, res: Response) =>
   offerController.internalRunMeters(_req, res)

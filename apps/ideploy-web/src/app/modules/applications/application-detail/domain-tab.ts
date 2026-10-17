@@ -1,6 +1,8 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, inject, input, output, signal } from '@angular/core';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ApiService } from '../../../shared/services/api.service';
+import { IdomainService } from '../../../shared/services/idomain.service';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 import { Application, DomainDnsCheck, DomainDnsGuide } from '../../../shared/models/ideploy.models';
 import { IllustrationComponent } from '../../../shared/components/illustration/illustration';
 import { DomainOptionsComponent } from './domain-options';
@@ -32,7 +34,7 @@ interface DomainRow {
  */
 @Component({
   selector: 'app-domain-tab',
-  imports: [TranslateModule, IllustrationComponent, DomainOptionsComponent, DomainWizardComponent],
+  imports: [TranslateModule, IllustrationComponent, DomainOptionsComponent, DomainWizardComponent, IdemLoaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="space-y-6">
@@ -62,7 +64,15 @@ interface DomainRow {
               <li><i class="pi pi-check mr-1.5 text-[10px]" style="color:var(--color-success);" aria-hidden="true"></i>{{ 'applications.domain.inviteHttps' | translate }}</li>
               <li><i class="pi pi-check mr-1.5 text-[10px]" style="color:var(--color-success);" aria-hidden="true"></i>{{ 'applications.domain.inviteTime' | translate }}</li>
             </ul>
-            <button type="button" class="inner-button mt-5" (click)="openWizard([])">{{ 'applications.domain.connect' | translate }}</button>
+            <!-- Deux chemins : acheter un nom (iDomain règle tout), ou brancher celui qu'on a déjà. -->
+            <div class="mt-5 flex flex-wrap gap-2">
+              <button type="button" class="inner-button inline-flex items-center gap-2" [disabled]="buying()" (click)="buyDomain()">
+                @if (buying()) { <idem-loader size="xs" /> }
+                {{ 'applications.domain.buy' | translate }}
+              </button>
+              <button type="button" class="outer-button" (click)="openWizard([])">{{ 'applications.domain.connect' | translate }}</button>
+            </div>
+            <p class="mt-2 text-xs" style="color:var(--color-text-tertiary);">{{ 'applications.domain.buyHint' | translate }}</p>
           </div>
         </section>
       }
@@ -75,6 +85,7 @@ interface DomainRow {
             <p class="mt-1 text-sm" style="color:var(--color-text-secondary);">{{ 'applications.domain.listHint' | translate }}</p>
           </div>
           @if (customCount() > 0 && !wizardOpen()) {
+            <button type="button" class="button-ghost button-sm" [disabled]="buying()" (click)="buyDomain()">{{ 'applications.domain.buyAnother' | translate }}</button>
             <button type="button" class="outer-button button-sm" (click)="openWizard([])">
               <i class="pi pi-plus mr-1.5 text-xs" aria-hidden="true"></i>{{ 'applications.domain.addAnother' | translate }}
             </button>
@@ -129,6 +140,7 @@ interface DomainRow {
 })
 export class DomainTabComponent implements OnInit {
   private api = inject(ApiService);
+  private idomain = inject(IdomainService);
   private translate = inject(TranslateService);
 
   readonly app = input.required<Application>();
@@ -146,6 +158,7 @@ export class DomainTabComponent implements OnInit {
   protected readonly redeploying = signal(false);
   protected readonly wizardOpen = signal(false);
   protected readonly wizardHosts = signal<string[]>([]);
+  protected readonly buying = signal(false);
 
   protected readonly rows = computed<DomainRow[]>(() => {
     const checks = new Map((this.guide()?.domains ?? []).map((d) => [d.host.toLowerCase(), d]));
@@ -200,6 +213,19 @@ export class DomainTabComponent implements OnInit {
     void navigator.clipboard?.writeText(`https://${host}`).then(() => {
       this.copied.set(host);
       setTimeout(() => this.copied() === host && this.copied.set(null), 1500);
+    });
+  }
+
+  /** Acheter un nom sur iDomain pour cette application, puis revenir sur cet onglet. */
+  protected buyDomain(): void {
+    this.buying.set(true);
+    this.error.set(null);
+    this.idomain.openSession(this.app().uuid, window.location.href).subscribe({
+      next: (url) => (window.location.href = url),
+      error: () => {
+        this.buying.set(false);
+        this.error.set(this.translate.instant('applications.domain.buyError'));
+      },
     });
   }
 

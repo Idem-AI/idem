@@ -56,13 +56,19 @@ export const publicGuard: CanActivateFn = async (route) => {
       // Les autres applications lisent le cookie `session` :
       // s'il a expiré, on le rétablit avant de les y renvoyer, sinon elles
       // reviendraient aussitôt ici sans utilisateur.
-      if (redirectParam === 'simulation' || redirectParam === 'ideploy' || redirectParam === 'ivision' || fromAppGen) {
+      if (redirectParam === 'simulation' || redirectParam === 'ideploy' || redirectParam === 'ivision' || redirectParam === 'idomain' || fromAppGen) {
         await authService.ensureServerSession();
       }
 
       if (fromAppGen) {
         console.log('User already authenticated, redirecting back to AppGen...');
         redirectToApp('appgen', route.queryParamMap.get('returnUrl'));
+        return false;
+      }
+
+      if (redirectParam === 'idomain') {
+        // Déjà connecté : retour direct dans iDomain, le cookie de session y est valable.
+        redirectToApp('idomain', route.queryParamMap.get('returnUrl'));
         return false;
       }
 

@@ -1,0 +1,9 @@
+# iDomain — https://idomain.idem.africa
+# Seule l'entrée publique (recherche et prix) est indexée : le reste est l'espace privé des utilisateurs.
+
+User-agent: *
+Allow: /$
+Allow: /assets/
+Allow: /*.css$
+Allow: /*.js$
+Disallow: /
