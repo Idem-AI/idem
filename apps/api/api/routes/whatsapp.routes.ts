@@ -29,6 +29,7 @@ whatsappRoutes.post('/webhook', rateLimitByIP({ windowMs: 60_000, maxRequests: 6
 
 whatsappRoutes.get('/status', authenticate, wrap(whatsappController.status));
 whatsappRoutes.post('/link', authenticate, linkLimit, wrap(whatsappController.startLink));
+whatsappRoutes.post('/link/confirm', authenticate, linkLimit, wrap(whatsappController.confirmLink));
 whatsappRoutes.delete('/link', authenticate, wrap(whatsappController.unlink));
 whatsappRoutes.put('/settings', authenticate, wrap(whatsappController.updateSettings));
 whatsappRoutes.get('/history', authenticate, wrap(whatsappController.history));

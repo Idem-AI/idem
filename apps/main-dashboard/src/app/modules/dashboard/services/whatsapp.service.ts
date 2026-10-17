@@ -23,8 +23,6 @@ export interface WhatsappStatus {
 }
 
 export interface WhatsappLinkStart {
-  code: string;
-  waUrl: string | null;
   expiresAt: string;
 }
 
@@ -55,8 +53,12 @@ export class WhatsappService {
     return this.http.get<WhatsappStatus>(`${this.api}/whatsapp/status`);
   }
 
-  startLink(projectId: string): Observable<WhatsappLinkStart> {
-    return this.http.post<WhatsappLinkStart>(`${this.api}/whatsapp/link`, { projectId });
+  startLink(projectId: string, phone: string): Observable<WhatsappLinkStart> {
+    return this.http.post<WhatsappLinkStart>(`${this.api}/whatsapp/link`, { projectId, phone });
+  }
+
+  confirmLink(code: string): Observable<{ ok: boolean; phoneLast4: string }> {
+    return this.http.post<{ ok: boolean; phoneLast4: string }>(`${this.api}/whatsapp/link/confirm`, { code });
   }
 
   unlink(): Observable<{ ok: boolean }> {

@@ -1,10 +1,9 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, inject, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, input, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { TranslateModule } from '@ngx-translate/core';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
-import { interval } from 'rxjs';
 import { PublishNetwork, SocialAccountView, WhatsappHistoryItem, WhatsappLinkStart, WhatsappService, WhatsappStatus } from '../../../../services/whatsapp.service';
 
 const NETWORKS: PublishNetwork[] = ['linkedin', 'facebook', 'instagram', 'x'];
@@ -15,15 +14,15 @@ const NETWORKS: PublishNetwork[] = ['linkedin', 'facebook', 'instagram', 'x'];
  * Trois états, dans l'ordre où on les traverse :
  *  1. compte gratuit → l'écran explique et renvoie vers les offres (la fonction est réservée aux
  *     comptes payants ; le serveur le contrôle aussi) ;
- *  2. pas encore lié → connecter ses réseaux, puis lier son numéro (un code à envoyer depuis WhatsApp :
- *     c'est le téléphone qui prouve qu'il est à vous, on ne tape jamais de numéro) ;
+ *  2. pas encore lié → l'utilisateur saisit son numéro, IDEM lui envoie un code sur WhatsApp, il le
+ *     recopie ici : c'est cette saisie, pas l'envoi, qui prouve que le téléphone est le sien ;
  *  3. lié → propositions du jour, heure, projet, historique, retrait.
  *
  * Rien n'est publié sans un « oui » de l'utilisateur sur WhatsApp : l'écran le dit.
  */
 @Component({
   selector: 'app-whatsapp-panel',
-  imports: [TranslateModule, RouterLink, DatePipe, IdemLoaderComponent],
+  imports: [TranslateModule, RouterLink, DatePipe, IdemLoaderComponent, FormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (loading()) {
@@ -86,22 +85,49 @@ const NETWORKS: PublishNetwork[] = ['linkedin', 'facebook', 'instagram', 'x'];
               <p class="mt-1 text-xs text-text-tertiary">{{ 'dashboard.showCommunication.whatsapp.linkHint' | translate }}</p>
               @if (linkStart(); as start) {
                 <div class="mt-4 space-y-3">
-                  <p class="text-sm text-text-secondary">{{ 'dashboard.showCommunication.whatsapp.sendCode' | translate }}</p>
-                  <p class="rounded-lg border border-[var(--glass-border)] px-4 py-3 text-center font-mono text-lg tracking-wider text-text-primary" aria-live="polite">{{ start.code }}</p>
-                  @if (start.waUrl) {
-                    <a class="inner-button" [href]="start.waUrl" target="_blank" rel="noopener">{{ 'dashboard.showCommunication.whatsapp.openWhatsapp' | translate }}</a>
-                  }
-                  <p class="flex items-center gap-2 text-xs text-text-tertiary">
-                    <idem-loader size="xs" /> {{ 'dashboard.showCommunication.whatsapp.waiting' | translate: { time: (start.expiresAt | date: 'HH:mm') } }}
-                  </p>
+                  <p class="text-sm text-text-secondary">{{ 'dashboard.showCommunication.whatsapp.enterCode' | translate }}</p>
+                  <input
+                    type="text"
+                    class="w-full rounded-lg border border-[var(--glass-border)] px-4 py-3 text-center font-mono text-lg tracking-wider text-text-primary"
+                    [ngModel]="codeInput()"
+                    (ngModelChange)="codeInput.set($event)"
+                    name="whatsappCode"
+                    maxlength="6"
+                    autocomplete="one-time-code"
+                    [attr.aria-label]="'dashboard.showCommunication.whatsapp.enterCode' | translate"
+                  />
+                  <button type="button" class="inner-button w-full" [disabled]="busy() || !codeInput().trim()" (click)="confirmLink()">
+                    @if (busy()) {
+                      <idem-loader size="xs" />
+                    }
+                    {{ 'dashboard.showCommunication.whatsapp.confirmCta' | translate }}
+                  </button>
+                  <p class="text-xs text-text-tertiary">{{ 'dashboard.showCommunication.whatsapp.waiting' | translate: { time: (start.expiresAt | date: 'HH:mm') } }}</p>
+                  <button type="button" class="button-ghost button-sm" [disabled]="busy()" (click)="linkStart.set(null)">
+                    {{ 'dashboard.showCommunication.whatsapp.changeNumber' | translate }}
+                  </button>
                 </div>
               } @else {
-                <button type="button" class="inner-button mt-4" [disabled]="busy()" (click)="startLink()">
-                  @if (busy()) {
-                    <idem-loader size="xs" />
-                  }
-                  {{ 'dashboard.showCommunication.whatsapp.linkCta' | translate }}
-                </button>
+                <div class="mt-4 space-y-3">
+                  <label class="block text-xs text-text-tertiary">
+                    {{ 'dashboard.showCommunication.whatsapp.phoneLabel' | translate }}
+                    <input
+                      type="tel"
+                      class="mt-1 w-full rounded-lg border border-[var(--glass-border)] px-4 py-3 text-sm text-text-primary"
+                      [ngModel]="phoneInput()"
+                      (ngModelChange)="phoneInput.set($event)"
+                      name="whatsappPhone"
+                      placeholder="+225 07 00 00 00 00"
+                      autocomplete="tel"
+                    />
+                  </label>
+                  <button type="button" class="inner-button" [disabled]="busy() || !phoneInput().trim()" (click)="startLink()">
+                    @if (busy()) {
+                      <idem-loader size="xs" />
+                    }
+                    {{ 'dashboard.showCommunication.whatsapp.linkCta' | translate }}
+                  </button>
+                </div>
               }
               @if (error(); as message) {
                 <p class="mt-3 text-sm text-danger" role="alert">{{ message }}</p>
@@ -173,7 +199,6 @@ const NETWORKS: PublishNetwork[] = ['linkedin', 'facebook', 'instagram', 'x'];
 })
 export class WhatsappPanel implements OnInit {
   private readonly service = inject(WhatsappService);
-  private readonly destroyRef = inject(DestroyRef);
 
   readonly projectId = input.required<string>();
 
@@ -186,6 +211,8 @@ export class WhatsappPanel implements OnInit {
   protected readonly loading = signal(true);
   protected readonly busy = signal(false);
   protected readonly error = signal<string | null>(null);
+  protected readonly phoneInput = signal('');
+  protected readonly codeInput = signal('');
 
   protected readonly accountOf = (network: PublishNetwork) => this.accounts().find((a) => a.network === network && a.status === 'active') ?? null;
   protected readonly configured = (network: PublishNetwork) => this.status()?.networks.find((n) => n.network === network)?.configured ?? false;
@@ -193,12 +220,6 @@ export class WhatsappPanel implements OnInit {
 
   ngOnInit(): void {
     this.refresh();
-    // Pendant la liaison, on attend que le message arrive depuis le téléphone.
-    interval(3000)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(() => {
-        if (this.linkStart() && !this.isLinked()) this.refresh(false);
-      });
   }
 
   private refresh(showLoader = true): void {
@@ -228,10 +249,26 @@ export class WhatsappPanel implements OnInit {
   protected startLink(): void {
     this.busy.set(true);
     this.error.set(null);
-    this.service.startLink(this.projectId()).subscribe({
+    this.service.startLink(this.projectId(), this.phoneInput().trim()).subscribe({
       next: (start) => {
         this.busy.set(false);
         this.linkStart.set(start);
+        this.codeInput.set('');
+      },
+      error: (error) => this.fail(error),
+    });
+  }
+
+  protected confirmLink(): void {
+    this.busy.set(true);
+    this.error.set(null);
+    this.service.confirmLink(this.codeInput().trim()).subscribe({
+      next: () => {
+        this.busy.set(false);
+        this.linkStart.set(null);
+        this.phoneInput.set('');
+        this.codeInput.set('');
+        this.refresh();
       },
       error: (error) => this.fail(error),
     });
