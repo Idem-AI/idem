@@ -10,6 +10,8 @@
  *   Pexels      seulement après trois échecs, avec la requête du plan ;
  *   visuels     dernier recours (photos) : celles déjà utilisées dans les visuels de la marque.
  */
+import axios from 'axios';
+import sharp from 'sharp';
 import logger from '../../runtime/logger';
 import { coreHost } from '../../runtime/host';
 import { VideoMediaAsset } from '../contracts/model';
@@ -93,8 +95,6 @@ export interface SourcingOptions {
   artModifier?: string;
   /** Qualité du modèle vidéo : « quality » aux crans élevés, « speed » sinon. */
   clipQuality: 'speed' | 'quality';
-  /** Photos des visuels de la marque (dernier recours). */
-  visualPhotos: string[];
   /** Le personnage voulu (cohérence et requête de banque d'images). */
   cast?: string;
   /**
@@ -124,8 +124,21 @@ function clipPrompts(plan: ShotPlan, look: string): string[] {
   ];
 }
 
+/**
+ * Un média du projet ne reprend un plan que s'il en montre VRAIMENT le sujet : tous les mots de la requête du plan
+ * (« woman cooking market ») dans sa description. Deux mots communs suffisaient (« african », « woman ») : une
+ * vidéo reprenait le clip d'une autre, sans rapport avec la scène.
+ */
+export function registryFits(query: string, record: Pick<AssetRecord, 'subject' | 'tags'>): boolean {
+  const words = (t: string) => t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').split(/[^a-z0-9]+/).filter((w) => w.length >= 4);
+  const wanted = [...new Set(words(query))];
+  if (!wanted.length) return false;
+  const have = words(`${record.subject} ${(record.tags ?? []).join(' ')}`);
+  return wanted.every((w) => have.some((h) => h === w || (w.length >= 5 && (h.startsWith(w.slice(0, -1)) || w.startsWith(h.slice(0, -1))) && Math.min(h.length, w.length) >= 5)));
+}
+
 /** Contrôle d'une image générée par la vision : pas de texte imprimé, le bon sujet. */
-async function imageAccepted(jpeg: Buffer, plan: ShotPlan): Promise<boolean> {
+async function imageAccepted(jpeg: Buffer, plan: ShotPlan, opts: { textAllowed?: boolean } = {}): Promise<boolean> {
   const analyze = coreHost().analyzeImage;
   if (!analyze || process.env.VIDEO_MEDIA_CHECK === 'off') return true;
   try {
@@ -137,7 +150,7 @@ async function imageAccepted(jpeg: Buffer, plan: ShotPlan): Promise<boolean> {
     );
     const text = /text\s*[:=]\s*yes/i.test(answer);
     const match = !/match\s*[:=]\s*no/i.test(answer);
-    return !text && match;
+    return (opts.textAllowed || !text) && match;
   } catch {
     // La vision en panne ne coûte pas une image : elle est acceptée.
     return true;
@@ -157,11 +170,14 @@ export async function sourceShots(opts: SourcingOptions): Promise<{ byNeed: Map<
   const canClip = opts.allowGenerate && !!coreHost().generateVideo;
   // Disjoncteur : un fournisseur sans crédit (402) ne se réessaie pas — ni ce média, ni les suivants.
   const blocked = { image: false, video: false };
+  // Un modèle refusé d'office (plan non commandé, esquisse, aucun modèle posé) l'est aussi : réessayer
+  // ne change rien, et ces refus instantanés passaient pour trois échecs du fournisseur.
   const trip = (kind: 'image' | 'video', error: unknown) => {
-    if (!isPaymentError(error)) return false;
-    if (!blocked[kind]) logger.warn('video.media.generation_blocked', { kind, reason: 'payment' });
+    const reason = isPaymentError(error) ? 'payment' : /(?:video|image)_model_unavailable/.test(String((error as Error)?.message || '')) ? 'unavailable' : null;
+    if (!reason) return false;
+    if (!blocked[kind]) logger.info('video.media.generation_blocked', { kind, reason });
     blocked[kind] = true;
-    report.blocked = 'payment';
+    report.blocked = report.blocked === 'payment' ? 'payment' : reason;
     return true;
   };
   let done = 0;
@@ -180,7 +196,7 @@ export async function sourceShots(opts: SourcingOptions): Promise<{ byNeed: Map<
       } catch (error: any) {
         report.failedAttempts++;
         if (trip('image', error)) break;
-        logger.warn('video.media.image_failed', { scene: plan.scene, attempt, error: error?.message });
+        logger.warn('video.media.image_failed', { scene: plan.scene, attempt, error: String(error?.message || error) });
       }
     }
     return null;
@@ -198,15 +214,17 @@ export async function sourceShots(opts: SourcingOptions): Promise<{ byNeed: Map<
       stills.set(plan, image);
     }
     const prompts = clipPrompts(plan, opts.direction.look);
-    const durationSec: 5 | 10 = (plan.durationSec || 0) > 5.5 ? 10 : 5;
+    // Veo n'accepte que 4, 6 ou 8 s (au-delà, le clip est tenu par la scène).
+    const wanted = plan.durationSec || 0;
+    const durationSec: 4 | 6 | 8 = wanted <= 4.5 ? 4 : wanted <= 6.5 ? 6 : 8;
     for (let attempt = 0; attempt < GENERATION_ATTEMPTS && !blocked.video; attempt++) {
       const image = first && attempt < 2 ? { base64: first.jpeg.toString('base64'), mimeType: 'image/jpeg' } : undefined;
       try {
-        return await generateClip({ prompt: prompts[attempt], image, orientation: opts.orientation, quality: image ? opts.clipQuality : 'speed', durationSec, model: 'google/veo-3.1-fast' }, opts.storage, opts.folder, plan.query);
+        return await generateClip({ prompt: prompts[attempt], image, orientation: opts.orientation, quality: image ? opts.clipQuality : 'speed', durationSec, model: image && opts.clipQuality === 'quality' ? 'google/veo-3.1' : 'google/veo-3.1-fast' }, opts.storage, opts.folder, plan.query);
       } catch (error: any) {
         report.failedAttempts++;
         if (trip('video', error)) break;
-        logger.warn('video.media.clip_failed', { scene: plan.scene, attempt, error: error?.message });
+        logger.warn('video.media.clip_failed', { scene: plan.scene, attempt, error: String(error?.message || error) });
       }
     }
     return null;
@@ -228,7 +246,8 @@ export async function sourceShots(opts: SourcingOptions): Promise<{ byNeed: Map<
     target: {},
   });
   for (const plan of shots) {
-    const hit = opts.registry?.records.length ? matchAsset(requirementOf(plan), opts.registry.records, registryUsed) : null;
+    const fitting = (opts.registry?.records || []).filter((r) => registryFits(plan.query, r));
+    const hit = fitting.length ? matchAsset(requirementOf(plan), fitting, registryUsed) : null;
     if (!hit) continue;
     registryUsed.add(hit.url);
     const asset: VideoMediaAsset = { id: `registry-${plan.scene}-${plan.slot}`, kind: hit.kind, url: hit.url, origin: hit.source === 'user' ? 'upload' : hit.source === 'stock' ? 'pexels' : hit.source === 'generated' ? 'generated' : 'library', name: hit.subject.slice(0, 80), ...(hit.width ? { width: hit.width } : {}), ...(hit.height ? { height: hit.height } : {}), ...(hit.provenance.attribution ? { credit: hit.provenance.attribution } : {}) };
@@ -273,7 +292,18 @@ export async function sourceShots(opts: SourcingOptions): Promise<{ byNeed: Map<
         }
         if (stills.has(plan)) continue;
       }
-      const found = (await searchPexelsPhotos(query, opts.orientation, 4, 'en-US')).find((p) => !used.has(p.url));
+      // Une photo de banque est relue par la vision comme une image générée : le bon sujet, sinon la suivante
+      // (le texte d'une enseigne y est toléré). Mieux vaut une scène sans photo qu'une photo hors sujet.
+      let found: VideoMediaAsset | undefined;
+      for (const photo of (await searchPexelsPhotos(query, opts.orientation, 4, 'en-US')).filter((p) => !used.has(p.url))) {
+        const bytes = await axios.get<ArrayBuffer>(photo.url, { responseType: 'arraybuffer', timeout: 15000 }).then((r) => Buffer.from(r.data), () => null);
+        const jpeg = bytes ? await sharp(bytes).resize({ width: 768, height: 768, fit: 'inside' }).jpeg({ quality: 80 }).toBuffer().catch(() => null) : null;
+        if (jpeg && (await imageAccepted(jpeg, plan, { textAllowed: true }))) {
+          found = photo;
+          break;
+        }
+        logger.info('video.media.stock_rejected', { scene: plan.scene });
+      }
       if (found) {
         used.add(found.url);
         byNeed.set(plan, found);
@@ -293,16 +323,8 @@ export async function sourceShots(opts: SourcingOptions): Promise<{ byNeed: Map<
     report.generatedImages++;
   }
 
-  // Dernier recours (photos) : celles des visuels de la marque, payées et à la charte.
-  const visuals = [...opts.visualPhotos];
-  for (const plan of shots.filter((s) => !byNeed.has(s) && s.kind === 'image')) {
-    const url = visuals.shift();
-    if (!url) break;
-    const asset: VideoMediaAsset = { id: `visual-${plan.scene}-${plan.slot}`, kind: 'image', url, origin: 'visual' };
-    byNeed.set(plan, asset);
-    assets.push(asset);
-    report.fromVisuals++;
-  }
+  // Plus de « dernier recours » par les photos des visuels de la marque : posées sans regarder leur sujet, elles
+  // montraient n'importe quoi dans la scène. Un plan sans média reste typographique, et c'est dit au client.
   report.assets = shots.map((plan) => {
     const a = byNeed.get(plan);
     const id = `scene-${plan.scene}.${plan.slot}:${plan.kind === 'video' ? 'clip' : 'photo'}`;

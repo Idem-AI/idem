@@ -12,15 +12,37 @@ import { fetchMedia } from './runner';
 
 const json = (value: unknown) => JSON.stringify(value).replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
 
-const CSP = [
-  "default-src 'none'",
-  "script-src 'unsafe-inline'",
-  "style-src 'unsafe-inline'",
-  'img-src data: blob: https:',
-  'media-src data: blob: https:',
-  'font-src data:',
-  "connect-src 'none'",
-].join('; ');
+/**
+ * La politique de la page. Les médias, la voix, la musique et les effets sont servis par le stockage et l'API (en
+ * http en développement : `http://localhost:9000`) : leurs ORIGINES exactes sont ajoutées, sinon le navigateur les
+ * bloquait en silence (aperçu muet, clips absents). Le code des scènes ne peut toujours rien envoyer (`connect-src`).
+ */
+function csp(origins: string[]): string {
+  const extra = origins.length ? ` ${origins.join(' ')}` : '';
+  return [
+    "default-src 'none'",
+    "script-src 'unsafe-inline'",
+    "style-src 'unsafe-inline'",
+    `img-src data: blob: https:${extra}`,
+    `media-src data: blob: https:${extra}`,
+    'font-src data:',
+    "connect-src 'none'",
+  ].join('; ');
+}
+
+/** Les origines http(s) des adresses données (sans chemin), dédoublonnées. */
+function originsOf(urls: (string | undefined)[]): string[] {
+  const out = new Set<string>();
+  for (const u of urls) {
+    if (!u || !/^https?:\/\//i.test(u)) continue;
+    try {
+      out.add(new URL(u).origin);
+    } catch {
+      // adresse illisible : ignorée
+    }
+  }
+  return [...out];
+}
 
 const inlined = new Map<string, Promise<string>>();
 
@@ -60,7 +82,13 @@ async function inlineFilmImages(data: FilmData): Promise<FilmData> {
 
 export async function previewPageHtml(input: { data: FilmData; audio: FilmAudio; bundle: string; fontCss: string }): Promise<string> {
   const data = await inlineFilmImages(input.data);
-  return `<!doctype html><html lang="${data.lang}"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${CSP}"><meta name="viewport" content="width=device-width,initial-scale=1">${input.fontCss}
+  const origins = originsOf([
+    ...data.scenes.flatMap((s) => s.media.map((m) => m.url)),
+    input.audio.music?.url,
+    ...input.audio.voice.map((v) => v.url),
+    ...Object.values(input.audio.sfx).map((x) => x?.url),
+  ]);
+  return `<!doctype html><html lang="${data.lang}"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${csp(origins)}"><meta name="viewport" content="width=device-width,initial-scale=1">${input.fontCss}
 <style>html,body{margin:0;height:100%;overflow:hidden;background:#ebe8e2}#stage{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}#stage canvas{display:block;cursor:pointer}</style></head>
 <body><div id="stage"></div>
 <script>window.__IDEM_FILM__=${json(data)};window.__IDEM_AUDIO__=${json(input.audio)};</script>

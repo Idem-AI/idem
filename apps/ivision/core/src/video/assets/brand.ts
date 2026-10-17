@@ -16,6 +16,8 @@ const DEFAULTS = { primary: '#1f6f4a', secondary: '#14324a', accent: '#f2a93b', 
 
 export interface FilmBrand {
   tokens: BrandTokens;
+  /** La direction artistique de la charte, résumée pour l'auteur des scènes (style, mise en page, typographie, motifs, à faire / à éviter). */
+  art?: string;
   /** Balises `<link>`/`<style>` des polices (à embarquer avec `embeddedFontCss`). */
   fontLinks: string;
 }
@@ -45,6 +47,24 @@ function svgSize(svg?: string): { width: number; height: number } {
   return { width: w, height: h };
 }
 
+/** La DA de la charte en quelques lignes : ce que chaque scène doit respecter (jamais une mise en page imposée). */
+function artSummary(art: any): string | undefined {
+  if (!art || typeof art !== 'object') return undefined;
+  const join = (xs: unknown, n: number) => (Array.isArray(xs) ? xs.filter((x) => typeof x === 'string').slice(0, n).join('; ') : '');
+  const lines = [
+    [art.styleName || art.styleId, art.tagline].filter(Boolean).join(' — '),
+    art.keywords?.length ? `keywords: ${join(art.keywords, 6)}` : '',
+    art.layout ? `layout: ${[art.layout.grid, art.layout.density, art.layout.whitespace, art.layout.signatureMove].filter(Boolean).join('; ')}` : '',
+    art.typography ? `typography: ${[art.typography.scaleContrast, art.typography.caseAndTracking, art.typography.treatment].filter(Boolean).join('; ')}` : '',
+    art.color ? `colour use: ${[art.color.distribution, art.color.application, art.color.contrast].filter(Boolean).join('; ')}` : '',
+    art.imagery ? `imagery: ${[art.imagery.medium, art.imagery.treatment, art.imagery.framing].filter(Boolean).join('; ')}` : '',
+    art.graphicDevices?.length ? `graphic devices: ${join(art.graphicDevices, 5)}` : '',
+    art.dos?.length ? `do: ${join(art.dos, 4)}` : '',
+    art.donts?.length ? `avoid: ${join(art.donts, 4)}` : '',
+  ].filter(Boolean);
+  return lines.length ? lines.join('\n').slice(0, 1400) : undefined;
+}
+
 export function filmBrand(branding: Partial<BrandKit> | null | undefined, brandName: string, opts: { anonymous?: boolean } = {}): FilmBrand {
   const declared = readPalette(branding as BrandKit);
   const raw = {
@@ -60,12 +80,17 @@ export function filmBrand(branding: Partial<BrandKit> | null | undefined, brandN
   const fonts = readFonts(branding as BrandKit);
   const display = fonts.display || 'Poppins';
   const body = fonts.body || fonts.display || 'Inter';
-  const google = [display, body].filter((f) => !isSelfHostedFamily(f));
+  // Chaque police SANS feuille propre est demandée à Google Fonts — même quand l'autre vient d'une fonderie
+  // (titre Fontshare + texte Google : avant, la police du texte n'était jamais chargée et la vidéo retombait sur
+  // une police système). Une feuille unique de la charte (`sheetUrl`) couvre les deux.
+  const google = fonts.sheetUrl
+    ? []
+    : [...new Set([...(fonts.displayCss ? [] : [display]), ...(fonts.bodyCss || body === display ? [] : [body])])].filter((f) => !isSelfHostedFamily(f));
   const fontLinks = [
     fonts.displayCss ? `<link rel="stylesheet" href="${fonts.displayCss}">` : '',
     fonts.bodyCss ? `<link rel="stylesheet" href="${fonts.bodyCss}">` : '',
     fonts.sheetUrl ? `<link rel="stylesheet" href="${fonts.sheetUrl}">` : '',
-    !fonts.displayCss && !fonts.sheetUrl && google.length ? buildGoogleFontLinks(google) : '',
+    google.length ? buildGoogleFontLinks(google) : '',
     [display, body].some((f) => f.toLowerCase() === BRAND_FONT_FAMILY.toLowerCase()) ? brandFontFaceStyle() : '',
   ]
     .filter(Boolean)
@@ -76,7 +101,9 @@ export function filmBrand(branding: Partial<BrandKit> | null | undefined, brandN
   const light = imageSrc(resolveLogoSlot(logo, 'assetUrls.withText.lightBackground')) || imageSrc(resolveLogoSlot(logo, 'assetUrls.primary')) || imageSrc(svg);
   const dark = imageSrc(resolveLogoSlot(logo, 'assetUrls.withText.darkBackground'));
   const size = svgSize(svg);
+  const art = artSummary((branding as any)?.artDirection);
   return {
+    ...(art ? { art } : {}),
     tokens: {
       name: opts.anonymous ? '' : brandName,
       colors,

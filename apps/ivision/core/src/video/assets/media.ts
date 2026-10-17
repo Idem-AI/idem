@@ -316,14 +316,14 @@ export const stillSize = (orientation: Orientation): string => (orientation === 
 
 /** Clip généré par le modèle vidéo de l'hôte (Seedance chez IDEM), réencodé et déposé. */
 export async function generateClip(
-  request: Omit<VideoClipRequest, 'size' | 'durationSec' | 'tag'> & { orientation: Orientation; durationSec?: 5 | 10 },
+  request: Omit<VideoClipRequest, 'size' | 'durationSec' | 'tag'> & { orientation: Orientation; durationSec?: 4 | 6 | 8 },
   storage: MediaStorage,
   folder: string,
   name?: string
 ): Promise<VideoMediaAsset> {
   const generateVideo = requirePort('generateVideo');
   const { orientation, ...rest } = request;
-  const clip = await generateVideo({ ...rest, size: clipSize(orientation), durationSec: request.durationSec ?? 5, tag: 'motion-video' });
+  const clip = await generateVideo({ ...rest, size: clipSize(orientation), durationSec: request.durationSec ?? 6, tag: 'motion-video' });
   const dir = tmpDir();
   try {
     const raw = path.join(dir, 'clip.mp4');

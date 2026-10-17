@@ -62,14 +62,14 @@ import { describeBrandMedia } from './assets/brandmedia';
 import { embeddedFontCss, filmBrand, FilmBrand } from './assets/brand';
 import { analyzeTrack, pickExcerptStart } from './audio/beats';
 import { fetchTrack, pickTrack, resolveMood, searchMusic, MUSIC_PROVIDERS } from './audio/music';
-import { ensureSfxLibrary, MUSIC_GAIN_DB, MUSIC_UNDER_VOICE_DB, pickSounds, previewGain, publicSoundName, SFX_GAIN_DB, sfxLibrary, SfxLibrary, soundFile } from './audio/sfx';
-import { cleanSpoken, fitScenesToVoice, personaById, personaMenu, speakable, speechAvailable, synthesizeVoice, voiceTimeline } from './audio/voice';
+import { ensureSfxLibrary, MUSIC_GAIN_DB, MUSIC_UNDER_VOICE_DB, SFX_UNDER_VOICE_DB, pickSounds, previewGain, publicSoundName, SFX_GAIN_DB, sfxLibrary, SfxLibrary, soundFile } from './audio/sfx';
+import { cleanSpoken, plainSpoken, fitScenesToVoice, personaById, personaMenu, speakable, speechAvailable, synthesizeVoice, voiceTimeline } from './audio/voice';
 import { callFilmModel, FilmCallContext, ModelRun, tierFor } from './agents';
 import { FilmBrief, sceneRange } from './director/brief';
 import { runConcept } from './director/concept.agent';
 import { runPlanner, Storyboard } from './director/storyboard.agent';
 import { authorScene, authorScenes, AuthoredScene, AuthorContext, SceneAuthor } from './author/program.author';
-import { compileProgram, PROGRAM_MARK, programOf, validateProgram } from '../../../../../packages/motion-compiler/src';
+import { compileProgram, COMPILER_VERSION, PROGRAM_MARK, programOf, validateProgram } from '../../../../../packages/motion-compiler/src';
 import { RepairLedger, strategyLevel } from './author/repair';
 import { buildFilmBundle, BundleScene } from './rendering/compiler';
 import { COMPOSITION, frameSpec } from './rendering/formats';
@@ -282,6 +282,32 @@ export class MotionVideoService {
     return { userId, projectId, level, ...(this.filmCall ? { call: this.filmCall } : {}) };
   }
 
+  /**
+   * La musique de l'aperçu : une copie sur notre stockage. Les banques (ccMixter) refusent la lecture
+   * directe depuis le navigateur (403) alors que le serveur, lui, a la piste en cache : l'export avait
+   * sa musique, l'aperçu restait muet. Une copie par piste, retrouvée par son adresse.
+   */
+  private readonly hostedTracks = new Map<string, Promise<string>>();
+  private previewTrackUrl(music: VideoMusic): Promise<string> {
+    if (music.provider === 'local' || !/^https?:\/\//.test(music.url)) return Promise.resolve(music.url);
+    let job = this.hostedTracks.get(music.url);
+    if (!job) {
+      job = (async () => {
+        const file = await fetchTrack(music);
+        const ext = (music.url.split('?')[0].match(/\.(mp3|ogg|wav|m4a|flac)$/i)?.[1] || 'mp3').toLowerCase();
+        const type = ext === 'mp3' ? 'audio/mpeg' : ext === 'm4a' ? 'audio/mp4' : `audio/${ext}`;
+        const name = `${crypto.createHash('sha1').update(music.url).digest('hex')}.${ext}`;
+        return (await this.mediaStorage().uploadFile(fs.readFileSync(file), name, 'shared/video-music', type)).downloadURL;
+      })().catch((error: any) => {
+        logger.warn('video.music_preview_copy_failed', { id: music.id, error: error?.message || String(error) });
+        this.hostedTracks.delete(music.url);
+        return music.url;
+      });
+      this.hostedTracks.set(music.url, job);
+    }
+    return job;
+  }
+
   protected mediaStorage(): MediaStorage {
     return requirePort('storage') as unknown as MediaStorage;
   }
@@ -431,10 +457,13 @@ export class MotionVideoService {
       const candidates = await searchMusic({ mood, minDuration: opts.durationSec + 3 }, MUSIC_PROVIDERS);
       const first = opts.trackId ? candidates.find((t) => t.id === opts.trackId) || null : pickTrack(candidates, opts.seed, opts.avoidIds);
       if (!first) return undefined;
-      const queue = [first, ...candidates.filter((t) => t.id !== first.id && !(opts.avoidIds || []).includes(t.id)).slice(0, 2)];
+      const queue = [first, ...candidates.filter((t) => t.id !== first.id && !(opts.avoidIds || []).includes(t.id)).slice(0, 4)];
       let fallback: VideoMusic | undefined;
       for (const track of queue) {
         const prepared = await this.prepareTrack(track, opts.durationSec);
+        // Une piste qu'on ne peut pas télécharger (ccMixter répond 403) est écartée : gardée, elle donnait une
+        // vidéo muette à l'export comme à l'aperçu.
+        if (!prepared) continue;
         if (prepared.beat) return prepared;
         fallback ??= prepared;
       }
@@ -445,9 +474,15 @@ export class MotionVideoService {
     }
   }
 
-  private async prepareTrack(track: MusicTrack, durationSec: number): Promise<VideoMusic> {
+  private async prepareTrack(track: MusicTrack, durationSec: number): Promise<VideoMusic | null> {
+    let file: string;
     try {
-      const file = await fetchTrack(track);
+      file = await fetchTrack(track);
+    } catch (error: any) {
+      logger.warn('video.track_download_failed', { id: track.id, error: error?.message || String(error) });
+      return null;
+    }
+    try {
       const analysis = await analyzeTrack(file);
       return {
         ...track,
@@ -486,6 +521,8 @@ export class MotionVideoService {
         persona,
         storage: this.mediaStorage(),
         folder: `users/${o.userId}/projects/${o.projectId}/videos/${o.videoId}/voice`,
+        // Toute la narration d'une prise ; une retouche de scène ne redit que sa ligne.
+        continuous: !o.only,
       });
       const fresh = said.lines.map((l) => ({ sceneKey: o.film.scenes[l.index].key, text: l.text, url: l.url, durationSec: l.durationSec }));
       const all = [...keep.map(({ offset: _o, ...l }) => l), ...fresh];
@@ -513,7 +550,7 @@ export class MotionVideoService {
     const voiceOf = new Map((video.voice?.enabled ? video.voice.lines : []).map((l) => [l.sceneKey, l]));
     const captions =
       film.captions && video.voice?.enabled
-        ? voiceTimeline(film.scenes, video.voice, film.durationSec).map((l) => ({ text: l.text, start: l.at, end: Math.min(film.durationSec, l.at + l.durationSec + 0.2) }))
+        ? voiceTimeline(film.scenes, video.voice, film.durationSec).map((l) => ({ text: plainSpoken(l.text), start: l.at, end: Math.min(film.durationSec, l.at + l.durationSec + 0.2) }))
         : [];
     return {
       format,
@@ -537,7 +574,7 @@ export class MotionVideoService {
             .map((id) => byId.get(id))
             .filter((m): m is VideoMediaAsset => !!m && (m.kind === 'image' || m.kind === 'video'))
             .map((m) => ({ id: m.id, kind: m.kind as 'image' | 'video', url: m.url, width: m.width || 0, height: m.height || 0, ...(m.durationSec ? { durationSec: m.durationSec } : {}), ...(m.name ? { note: m.name } : {}) })),
-          ...(line ? { voice: { text: line.text, at: line.offset, duration: line.durationSec } } : {}),
+          ...(line ? { voice: { text: plainSpoken(line.text), at: line.offset, duration: line.durationSec } } : {}),
           ...(!sc.code || sc.error?.stage === 'compile' || sc.error?.stage === 'author' ? { compileError: sc.error?.message || 'aucun code' } : {}),
         };
       }),
@@ -546,9 +583,11 @@ export class MotionVideoService {
 
   private bundleCache = new Map<string, Promise<string>>();
 
-  /** Le paquet d'un film (mis en cache sur la signature de son code). */
+  /** Le paquet d'un film (mis en cache sur la signature de son code). Une scène compilée par une version plus
+   *  ancienne du compilateur est recompilée depuis son programme : ses correctifs (logo, garanties) s'appliquent
+   *  aussi aux vidéos déjà créées, sans rien redemander au modèle. */
   private bundle(film: VideoFilm, mode: 'render' | 'preview'): Promise<string> {
-    const scenes: BundleScene[] = film.scenes.map((sc) => ({ key: sc.key, ...(sc.code && !sc.error?.stage?.match(/compile|author/) ? { code: sc.code } : {}) }));
+    const scenes: BundleScene[] = film.scenes.map((sc) => ({ key: sc.key, ...(sc.code && !sc.error?.stage?.match(/compile|author/) ? { code: upToDate(sc.code) } : {}) }));
     const key = `${mode}:${crypto.createHash('sha1').update(JSON.stringify(scenes)).digest('hex')}`;
     let job = this.bundleCache.get(key);
     if (!job) {
@@ -622,6 +661,7 @@ export class MotionVideoService {
       film: { title: film.title, concept: film.concept, bible: film.bible },
       formats: video.scope.formats.length ? video.scope.formats : ['story'],
       brand: brand.tokens,
+      ...(brand.art ? { art: brand.art } : {}),
       scene: {
         key: sc.key,
         index: i,
@@ -636,7 +676,7 @@ export class MotionVideoService {
           .map((id) => byId.get(id))
           .filter((m): m is VideoMediaAsset => !!m && (m.kind === 'image' || m.kind === 'video'))
           .map((m) => ({ id: m.id, kind: m.kind as 'image' | 'video', width: m.width || 0, height: m.height || 0, ...(m.name ? { note: m.name } : {}), ...(m.durationSec ? { durationSec: m.durationSec } : {}) })),
-        ...(line ? { voice: { text: line.text, at: line.offset, duration: line.durationSec } } : {}),
+        ...(line ? { voice: { text: plainSpoken(line.text), at: line.offset, duration: line.durationSec } } : {}),
         ...(beat ? { beat: { bpm: beat.bpm, first: round3(((((beat.offset || 0) - sc.start) % period) + period) % period) } } : {}),
       },
       ...(i > 0 ? { previous: { purpose: film.scenes[i - 1].purpose, visual: film.scenes[i - 1].visual } } : {}),
@@ -968,7 +1008,6 @@ export class MotionVideoService {
         allowStock: brief.allowStock !== false,
         // La qualité du modèle vidéo suit elle aussi le cran (le cran choisit la puissance des modèles).
         clipQuality: atLeast(creativity, 'high') ? 'quality' : 'speed',
-        visualPhotos: ctx.visuals.map((v) => v.backgroundImageUrl).filter((u): u is string => !!u),
         ...(spec.cast ? { cast: spec.cast } : {}),
         ...(await this.registryFor(userId, projectId)),
         onProgress: (done, total, last) => emit('media', 'running', { done, total, ...(last ? { last } : {}) }),
@@ -1218,9 +1257,9 @@ export class MotionVideoService {
     const target = format && video.scope.formats.includes(format) ? format : video.scope.formats[0];
     const data = this.filmData(video, ctx.film, target, 'preview');
     const sounds: FilmAudio['sfx'] = {};
-    for (const [kind, file] of Object.entries(await this.sfxFiles(video.sfx))) sounds[kind as SfxKind] = { url: coreHost().sfxUrl(publicSoundName(file!)), gain: previewGain(SFX_GAIN_DB[kind as SfxKind]) };
+    for (const [kind, file] of Object.entries(await this.sfxFiles(video.sfx))) sounds[kind as SfxKind] = { url: coreHost().sfxUrl(publicSoundName(file!)), gain: previewGain(SFX_GAIN_DB[kind as SfxKind] + (video.voice?.enabled ? SFX_UNDER_VOICE_DB : 0)) };
     const audio: FilmAudio = {
-      ...(video.music ? { music: { url: video.music.url, startAt: video.music.startAt, gain: previewGain(video.voice?.enabled ? MUSIC_UNDER_VOICE_DB : MUSIC_GAIN_DB) } } : {}),
+      ...(video.music ? { music: { url: await this.previewTrackUrl(video.music), startAt: video.music.startAt, gain: previewGain(video.voice?.enabled ? MUSIC_UNDER_VOICE_DB : MUSIC_GAIN_DB) } } : {}),
       voice: voiceTimeline(video.film.scenes, video.voice, video.film.durationSec).map((l) => ({ url: l.url, at: l.at })),
       sfx: sounds,
     };
@@ -1558,6 +1597,18 @@ function pumpQueue(): void {
         if (job.prerender) void job.service.prerender(job.userId, job.projectId, job.videoId).catch(() => undefined);
         pumpQueue();
       });
+  }
+}
+
+/** Le code d'une scène, recompilé si son programme vient d'une version antérieure du compilateur. */
+function upToDate(code: string): string {
+  if (code.includes(`${PROGRAM_MARK} v${COMPILER_VERSION}\n`)) return code;
+  const program = programOf(code);
+  if (!program) return code;
+  try {
+    return compileProgram(program).code;
+  } catch {
+    return code;
   }
 }
 

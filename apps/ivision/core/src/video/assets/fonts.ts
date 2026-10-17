@@ -48,8 +48,9 @@ async function inlineSheet(href: string, subsets: Set<string>): Promise<string |
   const res = await twice(() => axios.get<string>(href, { responseType: 'text', timeout: TIMEOUT_MS, headers: { 'User-Agent': MODERN_UA, Accept: 'text/css,*/*;q=0.1' } }));
   let css = String(res.data || '');
   if (!/@font-face/.test(css)) return null;
-  // Google : un bloc par sous-ensemble, annoncé par un commentaire (/* latin */).
-  if (/\/\*\s*[a-z-]+\s*\*\//i.test(css)) {
+  // Google : un bloc par sous-ensemble, annoncé par un commentaire (/* latin */). Ailleurs, le commentaire
+  // est le nom de la police (Fontshare : « /* Panchang */ ») : filtrer là vidait la feuille entière.
+  if (/fonts\.googleapis\.com/i.test(href) && /\/\*\s*[a-z-]+\s*\*\//i.test(css)) {
     css = css
       .split(/(?=\/\*\s*[a-z-]+\s*\*\/)/i)
       .filter((block) => {
@@ -58,6 +59,11 @@ async function inlineSheet(href: string, subsets: Set<string>): Promise<string |
       })
       .join('');
   }
+  // Une police servie en plusieurs formats (Fontshare : woff2, woff, ttf) : le woff2 seul est embarqué.
+  css = css.replace(/src:\s*([^;]+);/g, (whole, list: string) => {
+    const woff2 = list.split(/,(?=\s*url\()/).find((part) => /format\(['"]?woff2/i.test(part));
+    return woff2 ? `src: ${woff2.trim()};` : whole;
+  });
   const urls = [...new Set([...css.matchAll(/url\((['"]?)([^'")]+)\1\)/g)].map((m) => m[2]).filter((u) => !u.startsWith('data:')))];
   const files = await Promise.all(urls.map(async (u) => [u, await fetchFile(new URL(u, href).toString())] as const));
   let size = 0;
@@ -91,7 +97,8 @@ function cachedSheet(href: string, extended: boolean): Promise<string | null> {
  */
 export async function inlineFontLinks(links: string, text = ''): Promise<string> {
   const tags = [...links.matchAll(/<link\b[^>]*>/gi)].map((m) => m[0]);
-  const stylesheets = tags.filter((t) => /rel=["']?stylesheet/i.test(t));
+  // Une même feuille peut être citée deux fois (police de titre = police de texte) : chacune une fois.
+  const stylesheets = [...new Set(tags.filter((t) => /rel=["']?stylesheet/i.test(t)))];
   if (!stylesheets.length) return links;
   const extended = EXTENDED_TEXT.test(text.normalize('NFC')) || EXTENDED_TEXT.test(text.normalize('NFD').replace(/[a-z]/gi, ''));
   const jobs = stylesheets.map(async (tag) => {
@@ -101,7 +108,7 @@ export async function inlineFontLinks(links: string, text = ''): Promise<string>
   });
   let out = links;
   for (const [tag, css, href] of await Promise.all(jobs)) {
-    if (css && href) out = out.replace(tag, `<style data-font="${href.replace(/["<>]/g, '')}">${css}</style>`);
+    if (css && href) out = out.split(tag).join('').replace(/^/, `<style data-font="${href.replace(/["<>]/g, '')}">${css}</style>`);
   }
   // Sans feuille externe restante, les préconnexions ne servent plus à rien.
   if (![...out.matchAll(/<link\b[^>]*>/gi)].some((m) => /rel=["']?stylesheet/i.test(m[0]))) out = out.replace(/<link\b[^>]*rel=["']?preconnect[^>]*>\s*/gi, '');

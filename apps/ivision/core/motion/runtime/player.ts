@@ -68,7 +68,7 @@ export function startPlayer(modules: Record<string, AuthorScene | undefined>, da
       timers.push(
         window.setTimeout(() => {
           const el = new Audio(sound.url);
-          el.volume = sound.gain;
+          el.volume = Math.min(1, sound.gain * (cue.gain ?? 1));
           void el.play().catch(() => undefined);
         }, (cue.t - t) * 1000)
       );
@@ -152,30 +152,66 @@ export function startPlayer(modules: Record<string, AuthorScene | undefined>, da
     report();
   };
 
-  /** Musique, voix et effets chargés AVANT de proposer la lecture (une coupure en pleine vidéo serait pire qu'une attente). */
+  /**
+   * Sons, clips et photos chargés AVANT de proposer la lecture (une coupure en pleine vidéo serait pire
+   * qu'une attente). Les clips et photos le sont comme les charge Motion Canvas (crossOrigin anonyme) :
+   * le cache du navigateur les lui rend prêts. Avant, un clip pas encore chargé n'était pas dessiné en
+   * temps réel — la scène restait sans son média alors que l'export, lui, l'attendait.
+   */
   const preload = async () => {
     const urls = [...(music ? [audio.music!.url] : []), ...voices.map((v) => v.url), ...Object.values(audio.sfx).map((x) => x!.url)];
+    const visuals = [...new Map(data.scenes.flatMap((s) => s.media).filter((m) => m.url).map((m) => [m.url, m.kind] as const)).entries()];
+    const total = urls.length + visuals.length;
     let loaded = 0;
-    post({ type: 'ivision:loading', loaded, total: urls.length });
-    await Promise.all(
-      urls.map(
-        (url) =>
-          new Promise<void>((resolve) => {
-            const el = music && url === audio.music!.url ? music : voices.find((v) => v.url === url)?.el || new Audio(url);
-            const done = () => {
-              loaded++;
-              post({ type: 'ivision:loading', loaded, total: urls.length });
-              resolve();
-            };
-            if (el.readyState >= 4) return done();
-            const timer = window.setTimeout(done, 15000);
-            el.addEventListener('canplaythrough', () => (clearTimeout(timer), done()), { once: true });
-            el.addEventListener('error', () => (clearTimeout(timer), done()), { once: true });
-            el.preload = 'auto';
-            el.load();
-          })
-      )
+    post({ type: 'ivision:loading', loaded, total });
+    const settle = (resolve: () => void) => () => {
+      loaded++;
+      post({ type: 'ivision:loading', loaded, total });
+      resolve();
+    };
+    const sounds = urls.map(
+      (url) =>
+        new Promise<void>((resolve) => {
+          const el = music && url === audio.music!.url ? music : voices.find((v) => v.url === url)?.el || new Audio(url);
+          const done = settle(resolve);
+          if (el.readyState >= 4) return done();
+          const timer = window.setTimeout(done, 15000);
+          el.addEventListener('canplaythrough', () => (clearTimeout(timer), done()), { once: true });
+          el.addEventListener('error', () => (clearTimeout(timer), done()), { once: true });
+          el.preload = 'auto';
+          el.load();
+        })
     );
+    const media = visuals.map(
+      ([url, kind]) =>
+        new Promise<void>((resolve) => {
+          const done = settle(resolve);
+          const timer = window.setTimeout(done, 20000);
+          const finish = () => (clearTimeout(timer), done());
+          if (kind === 'image') {
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = finish;
+            img.onerror = finish;
+            img.src = url;
+            return;
+          }
+          const el = document.createElement('video');
+          el.crossOrigin = 'anonymous';
+          el.muted = true;
+          el.preload = 'auto';
+          el.addEventListener('canplaythrough', finish, { once: true });
+          el.addEventListener('error', finish, { once: true });
+          el.src = url;
+          el.load();
+        })
+    );
+    await Promise.all([...sounds, ...media]);
+    // L'image affichée a pu être dessinée sans ses médias : elle est redessinée, maintenant qu'ils sont là.
+    if (!playing && visuals.length) {
+      await engine.replay(engine.frame);
+      await engine.draw();
+    }
     post({ type: 'ivision:playable' });
   };
 

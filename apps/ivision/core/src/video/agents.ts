@@ -30,11 +30,12 @@ export interface FilmCallContext {
   call?: AgentCall;
 }
 
+/** Gemini 3.1 Pro (crans High, Ultra) raisonne toujours avant de répondre : des délais à sa mesure. */
 const TIMEOUTS: Record<FilmRole, number> = {
-  'video.concept': 90_000,
-  'video.planner': 120_000,
-  'video.author': 180_000,
-  'video.reviser': 60_000,
+  'video.concept': 150_000,
+  'video.planner': 180_000,
+  'video.author': 240_000,
+  'video.reviser': 90_000,
 };
 
 /** Un appel de modèle pour le film : jamais d'exception, une réponse (éventuellement vide) et sa raison. */

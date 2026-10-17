@@ -230,7 +230,6 @@ async function variance(png: Buffer): Promise<number> {
     allowGenerate: true,
     allowStock: false,
     clipQuality: 'quality',
-    visualPhotos: [],
   });
   // Trois plans partent en même temps : une seule vague d'essais, puis plus rien (avant : 3 essais × 2 médias × 3 plans).
   check(`fournisseur sans crédit : ${imageCalls} essais d’image et ${clipCalls} de clip (une vague) au lieu de 18, génération coupée pour la vidéo`, imageCalls <= 3 && clipCalls <= 3 && blocked.report.blocked === 'payment', JSON.stringify({ imageCalls, clipCalls, report: blocked.report }));

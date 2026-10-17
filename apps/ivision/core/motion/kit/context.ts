@@ -63,6 +63,6 @@ export interface SceneContext {
   voice?: { text: string; at: number; duration: number };
   /** Le tempo de la musique : premier temps (secondes depuis le début de la scène, ≥ 0) et battements par minute. */
   beat?: { bpm: number; first: number };
-  /** Pose un effet sonore à l'instant courant de la scène. */
-  sfx(kind: SfxKind): void;
+  /** Pose un effet sonore à l'instant courant de la scène ; `gain` (0..1) l'abaisse dans le mixage. */
+  sfx(kind: SfxKind, gain?: number): void;
 }

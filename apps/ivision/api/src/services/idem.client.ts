@@ -118,10 +118,10 @@ export const idem = {
       call<{ text: string }>('post', '/ai/vision', p).then((r) => r.text),
     image: (p: { userId?: string; prompt: string; size?: string; tag: string; purpose?: string; model?: string; fallbackModel?: string }) => call<{ base64: string; mimeType: string; model: string }>('post', '/ai/image', p, 180_000),
     /** Un clip de plan (Veo / Seedance) : la tâche du modèle peut durer plusieurs minutes. */
-    video: (p: { userId?: string; prompt: string; image?: { base64: string; mimeType: string }; size: string; durationSec: 5 | 10; quality: 'speed' | 'quality'; tag: string; model?: string }) =>
+    video: (p: { userId?: string; prompt: string; image?: { base64: string; mimeType: string }; size: string; durationSec: 4 | 6 | 8; quality: 'speed' | 'quality'; tag: string; model?: string }) =>
       call<{ url: string; model: string }>('post', '/ai/video', p, 420_000),
     /** Une ligne de voix off (Kokoro, ou le serveur de l'exploitant). Une langue refusée lève `voice_language_unsupported`. */
-    speech: (p: { userId?: string; text: string; language: string; style?: string; tag: string }) =>
+    speech: (p: { userId?: string; text: string; language: string; style?: string; persona?: string; gender?: 'female' | 'male'; tag: string }) =>
       call<{ base64: string; mimeType: string; provider: 'openrouter'; model: string; voice: string }>('post', '/ai/speech', p, 90_000),
   },
   billing: {

@@ -96,7 +96,7 @@ export function configureCoreForIvision(): void {
     synthesizeSpeech: async (request) => {
       const cached = await withCache(
         'speech',
-        { text: request.text, language: request.language, style: request.style, tag: request.tag },
+        { text: request.text, language: request.language, style: request.style, persona: request.persona, gender: request.gender, tag: request.tag },
         async () => {
           const speech = await idem.ai.speech(request);
           return { base64: speech.base64, mimeType: speech.mimeType, provider: speech.provider, model: speech.model, voice: speech.voice };

@@ -182,7 +182,8 @@ router.post(
         prompt: text(prompt, 600),
         image: start,
         size: text(size, 16) || '1280x720',
-        durationSec: durationSec === 10 ? 10 : 5,
+        // Veo : 4, 6 ou 8 s (les anciennes demandes de 5 ou 10 s sont ramenées au plus proche).
+        durationSec: Number(durationSec) <= 4.5 ? 4 : Number(durationSec) <= 6.5 ? 6 : 8,
         quality: quality === 'quality' ? 'quality' : 'speed',
         tag: text(tag, 64) || 'ivision',
         ...(typeof model === 'string' ? { model: text(model, 80) } : {}),
@@ -196,7 +197,7 @@ router.post(
 router.post(
   '/ai/speech',
   route(async (req, res) => {
-    const { text: line, language, tag } = req.body || {};
+    const { text: line, language, tag, persona, gender } = req.body || {};
     if (typeof line !== 'string' || !line.trim()) {
       res.status(400).json({ error: 'text_required' });
       return;
@@ -207,6 +208,8 @@ router.post(
           text: text(line, 1000),
           language: text(language, 5) || 'fr',
           tag: text(tag, 64) || 'ivision',
+          ...(typeof persona === 'string' ? { persona: text(persona, 24) } : {}),
+          ...(gender === 'female' || gender === 'male' ? { gender } : {}),
         })
       );
       res.json({ base64: speech.buffer.toString('base64'), mimeType: speech.mimeType, provider: speech.provider, model: speech.model, voice: speech.voice });

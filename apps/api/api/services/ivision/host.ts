@@ -67,10 +67,10 @@ export async function idemGenerateVideo(request: VideoClipRequest): Promise<{ ur
   return { url, model };
 }
 
-/** Une ligne de voix off : Kokoro (OpenRouter) ou votre serveur Qwen3-TTS / Chatterbox. Partagé avec iVision. */
+/** Une ligne de voix off : ElevenLabs (si la clé est posée), sinon Kokoro (OpenRouter) ou votre serveur TTS. Partagé avec iVision. */
 export async function idemSynthesizeSpeech(request: SpeechRequest): Promise<SynthesizedSpeech> {
   const media = await import('../media.service');
-  return media.generateSpeech({ text: request.text, language: request.language, tag: request.tag });
+  return media.generateSpeech({ text: request.text, language: request.language, tag: request.tag, persona: request.persona, gender: request.gender });
 }
 
 export function configureIvisionCoreForIdem(): void {

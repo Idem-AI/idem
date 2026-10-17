@@ -24,7 +24,8 @@ import { closeFilmBrowser, localizeFilm, probeFilm, renderFilm, cleanupFilmRende
 import { COMPOSITION, frameSpec } from '../src/video/rendering/formats';
 import { probe } from '../src/video/rendering/ffmpeg';
 import type { FilmData } from '../motion/runtime/film-data';
-import { configureCore } from '../src/runtime/host';
+import { configureCore, coreHost } from '../src/runtime/host';
+import { cutPoints, fitScenesToVoice, synthesizeVoice, personaById } from '../src/video/audio/voice';
 import { drainRenderQueue, MotionVideoService } from '../src/video/motionVideo.service';
 import type { VideoStore } from '../src/video/contracts/store';
 import type { MotionVideo } from '../src/video/contracts/model';
@@ -61,6 +62,41 @@ function exampleCode(id: string): string {
   const v = validateProgram(program, { texts: ex.texts, media: ex.media, duration: 3, hasLogo: false });
   if (!v.ok) throw new Error(`${id} : ${v.errors.join(' | ')}`);
   return compileProgram(v.program!).code;
+}
+
+/** La narration continue : découpe d'une prise aux pauses, scènes calées sans trou entre les phrases. */
+async function voiceChecks() {
+  const gaps = [{ start: 0, end: 0.1 }, { start: 1.6, end: 2.1 }, { start: 2.9, end: 3.05 }, { start: 4.4, end: 4.9 }, { start: 7.0, end: 7.2 }];
+  const cuts = cutPoints(['Une première phrase,', 'puis une suite ici,', 'et la fin du récit.'], gaps, 7.2);
+  check(!!cuts && cuts.length === 2 && Math.abs(cuts[0] - 1.85) < 0.01 && Math.abs(cuts[1] - 4.65) < 0.01, 'prise continue : coupée aux pauses entre les lignes (pas dans une respiration)', JSON.stringify(cuts));
+  check(cutPoints(['Une ligne,', 'une autre.'], [{ start: 0, end: 0.05 }], 6) === null, 'prise sans pause plausible : refusée (repli ligne par ligne)');
+
+  const scenes = [0, 1, 2, 3].map((i) => ({ key: `s${i}`, start: i * 5, duration: 5 }));
+  const lines = [0, 1, 2].map((i) => ({ sceneKey: `s${i}`, text: 'x', url: `u${i}`, durationSec: 3.8 }));
+  const fit = fitScenesToVoice(scenes, lines, 20);
+  const at = fit.lines.map((l) => fit.scenes.find((sc) => sc.key === l.sceneKey)!.start + l.offset);
+  const pauses = at.slice(1).map((t, i) => t - (at[i] + 3.8));
+  check(pauses.every((p) => p < 0.9) && Math.abs(fit.scenes.reduce((a, sc) => a + sc.duration, 0) - 20) < 0.01 && fit.scenes[3].duration >= 4.9, 'narration enchaînée : une respiration entre deux phrases, le plan muet final garde son temps', JSON.stringify({ pauses, durations: fit.scenes.map((sc) => sc.duration) }));
+  // Coupe à cheval : la scène 2 commence pendant la phrase 1, et la phrase 2 démarre dans la scène 2 déjà ouverte.
+  const cutsInside = [1, 2].every((k) => fit.scenes[k].start < at[k - 1] + 3.8 && at[k] - fit.scenes[k].start > 0.5);
+  check(cutsInside, 'coupes à cheval : la fin d’une phrase passe sur l’image suivante, la phrase d’après part dans la scène ouverte', JSON.stringify({ starts: fit.scenes.map((sc) => sc.start), at }));
+
+  // Une vraie prise (trois « phrases » sonores séparées de silences), découpée par ffmpeg.
+  const take = path.join(OUT, 'take.wav');
+  execFileSync(process.env.FFMPEG_PATH || 'ffmpeg', ['-y', '-v', 'error', '-f', 'lavfi', '-i', 'sine=f=220:d=1.5', '-f', 'lavfi', '-i', 'anullsrc=r=48000:cl=mono', '-filter_complex', '[0]aresample=48000,asplit=3[a][b][c];[1]atrim=0:0.5,asplit=2[g1][g2];[a][g1][b][g2][c]concat=n=5:v=0:a=1', '-ac', '1', take]);
+  let calls = 0;
+  const storageDir = path.join(OUT, 'voice');
+  configureCore({ synthesizeSpeech: async () => (calls++, { buffer: fs.readFileSync(take), mimeType: 'audio/wav', provider: 'openrouter', model: 'fake', voice: 'fake' }) });
+  const said = await synthesizeVoice({
+    lines: [0, 1, 2].map((index) => ({ index, text: `Phrase numéro ${index + 1},`, maxSec: 4 })),
+    language: 'fr',
+    persona: personaById('warm'),
+    storage: { uploadFile: async (content, fileName) => (fs.mkdirSync(storageDir, { recursive: true }), fs.writeFileSync(path.join(storageDir, fileName), content), { downloadURL: `file://${path.join(storageDir, fileName)}` }) },
+    folder: 'v',
+    continuous: true,
+  });
+  check(calls === 1 && said.lines.length === 3 && said.lines.every((l) => Math.abs(l.durationSec - 1.5) < 0.25), 'toute la narration en UN appel, rendue en trois lignes', JSON.stringify({ calls, durations: said.lines.map((l) => l.durationSec) }));
+  (coreHost() as { synthesizeSpeech?: unknown }).synthesizeSpeech = undefined;
 }
 
 async function main() {
@@ -116,6 +152,7 @@ async function main() {
   fs.copyFileSync(out.file, path.join(OUT, 'film.mp4'));
   cleanupFilmRender(out);
 
+  await voiceChecks();
   await pipeline(media);
   await closeFilmBrowser();
   console.log(failures ? `\n${failures} échec(s)` : '\nTout est vert.');
@@ -132,7 +169,7 @@ main().catch(async (e) => {
 function programFor(user: string, opts: { overlap?: boolean } = {}): MotionProgram {
   const scene = user.split('THIS SCENE')[1] || user;
   const keys = [...scene.matchAll(/\$(\w+) = "/g)].map((m) => m[1]);
-  const hasMedia = /\nmedia: 0 = image/.test(scene);
+  const hasMedia = /\nmedia[^:\n]*: 0 = image/.test(scene);
   const nodes: MotionProgram['nodes'] = [];
   if (hasMedia) nodes.push({ id: 'photo', type: 'image', media: 0, x: 'pick(0, -SW*0.25)', y: 'pick(-SH*0.15, 0)', w: 'pick(SW, SW*0.45)', h: 'pick(SH*0.5, SH)', radius: 2, zoom: 1.1 });
   if (opts.overlap) keys.forEach((k, i) => nodes.push({ id: `t${i}`, type: 'text', text: `$${k}`, y: i, size: 8 }));

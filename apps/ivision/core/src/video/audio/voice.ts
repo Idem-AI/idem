@@ -4,12 +4,16 @@
  * Les lignes sont écrites par le planificateur du film (une par scène, champ `voiceText`) ou par
  * l'utilisateur dans son scénario (mot pour mot). Ce module les dit, les nettoie et cale les scènes :
  *
- *   1. synthèse           une ligne = un appel au modèle de voix de l'hôte (Kokoro par
- *                         OpenRouter, ou le serveur Qwen3-TTS / Chatterbox de l'exploitant) ; le son est nettoyé (silences, passe-haut), accéléré au plus de
- *                         18 % s'il déborde, normalisé à −16 LUFS, déposé dans le stockage ;
- *   2. calage             chaque scène dure AU MOINS le temps de sa ligne (+ entrée et sortie) ;
- *                         la durée achetée ne change pas : les scènes muettes rendent du temps,
- *                         et une ligne qui ne tient vraiment pas est retirée (jamais coupée).
+ *   1. synthèse           UNE PRISE CONTINUE : toute la narration dite d'un seul souffle (un appel au
+ *                         modèle de voix de l'hôte — ElevenLabs par OpenRouter), puis découpée aux pauses
+ *                         entre les phrases. Une ligne par appel donnait une « récitation » : chaque phrase
+ *                         repartait sur la même intonation. Une ligne seule par appel ne sert plus qu'au repli
+ *                         (pauses introuvables) et aux retouches d'une scène. Chaque morceau est nettoyé
+ *                         (silences, passe-haut), accéléré au plus de 18 % s'il déborde, normalisé à −16 LUFS ;
+ *   2. calage             la narration s'enchaîne : chaque scène dure le temps de sa phrase et d'un souffle,
+ *                         la phrase suivante part dès l'entrée de la scène suivante. Le temps qui reste va
+ *                         d'abord aux plans muets (logo, final), puis à tout le film ; la durée achetée ne
+ *                         change pas, et une ligne qui ne tient vraiment pas est retirée (jamais coupée).
  *                         Minutage fixe (scénario écrit) : une ligne déborde sur les
  *                         plans muets qui la suivent au lieu d'être retirée.
  *
@@ -22,7 +26,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import logger from '../../runtime/logger';
-import { coreHost, SpeechRequest } from '../../runtime/host';
+import { coreHost, SpeechProvider, SpeechRequest } from '../../runtime/host';
 import { isGrounded } from '../request/facts';
 import type { MotionStyle, VideoVoice, VoiceLine } from '../contracts/model';
 
@@ -39,7 +43,7 @@ export const wordsPerSecond = (language: string) => WORDS_PER_SEC[langOf(languag
 
 /** Compte des « mots » parlés (caractères CJK un par un). */
 export function spokenUnits(text: string, language: string): number {
-  const t = (text || '').trim();
+  const t = plainSpoken(text || '');
   if (!t) return 0;
   return langOf(language) === 'zh' ? t.replace(/\s+/g, '').length : t.split(/\s+/).filter(Boolean).length;
 }
@@ -83,10 +87,10 @@ export function personaMenu(style: MotionStyle, seed: number): VoicePersona[] {
 
 // ─── Minutage ───────────────────────────────────────────────────────────────
 
-/** La ligne commence après l'entrée de la scène (la transition passe d'abord). */
-export const VOICE_LEAD = 0.28;
-/** Un souffle après la ligne, avant la coupe suivante. */
-export const VOICE_TAIL = 0.32;
+/** La ligne commence juste après l'entrée de la scène (la transition passe d'abord). */
+export const VOICE_LEAD = 0.18;
+/** Un souffle après la ligne, avant la coupe suivante : avec l'entrée, ≈ 0,45 s entre deux phrases. */
+export const VOICE_TAIL = 0.27;
 /** Au-delà, la ligne est accélérée (au plus de 18 %, inaudible au-dessous de 1,2). */
 const MAX_TEMPO = 1.18;
 
@@ -108,19 +112,39 @@ export function speakableCase(text: string): string {
   return lower.replace(/(^|[.!?…]\s+)(\p{Ll})/gu, (_, a: string, b: string) => a + b.toLocaleUpperCase());
 }
 
+/**
+ * Les balises de jeu d'ElevenLabs v3 (« [warmly] », « [short pause] ») : quelques mots anglais en minuscules entre
+ * crochets. Elles restent dans le texte DIT ; le texte LU (sous-titres, comptage des mots, vérification des faits)
+ * les retire. Un hôte dont la voix ne les comprend pas les retire avant de parler.
+ */
+export const VOICE_TAG = /\[[a-z][a-z ,'-]{1,30}\]/g;
+
+/** Le texte d'une ligne sans ses balises de jeu (sous-titres, minutage, vérification). */
+export function plainSpoken(text: string): string {
+  return String(text || '').replace(VOICE_TAG, ' ').replace(/\s+([,.!?…])/g, '$1').replace(/\s+/g, ' ').trim();
+}
+
 export function cleanSpoken(value: string, maxWords: number, language: string, briefText: string): string {
-  let t = speakableCase(value || '')
+  // Les balises de jeu sont mises à l'abri pendant le nettoyage (les autres crochets sont retirés), puis rendues.
+  const tags: string[] = [];
+  const shielded = String(value || '').replace(VOICE_TAG, (tag) => ` \u0000${tags.push(tag) - 1}\u0000 `);
+  let t = speakableCase(shielded)
     .replace(/\[[^\]]*\]|\([^)]*\)|\*[^*]*\*/g, ' ')
     .replace(/https?:\/\/\S+|www\.\S+/gi, ' ')
     .replace(/#[\p{L}\d_]+/gu, ' ')
     .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}]/gu, '')
     .replace(/["«»“”]/g, '')
-    .replace(/\s*[—–]\s*/g, ', ')
+    // Un tiret long garde sa pause (une respiration pour la voix), sans espaces parasites.
+    .replace(/\s*[—–]\s*/g, ' — ')
     .replace(/\s+/g, ' ')
     .trim();
-  if (!t || /^[-–—.…]+$/.test(t)) return '';
-  if (!isGrounded(t, briefText)) return '';
-  if (langOf(language) === 'zh') return t.replace(/\s+/g, '').slice(0, Math.max(2, maxWords));
+  // Au plus deux balises par ligne ; une ligne faite de balises seules ne se dit pas.
+  let kept = 0;
+  t = t.replace(/\u0000(\d+)\u0000/g, (_, k: string) => (kept++ < 2 ? tags[Number(k)] : '')).replace(/\s+/g, ' ').trim();
+  const plain = plainSpoken(t);
+  if (!plain || /^[-–—.…]+$/.test(plain)) return '';
+  if (!isGrounded(plain, briefText)) return '';
+  if (langOf(language) === 'zh') return plain.replace(/\s+/g, '').slice(0, Math.max(2, maxWords));
   // Une ligne trop longue n'est jamais coupée : le calage l'accélère un peu, ou la retire en le disant.
   void maxWords;
   return t;
@@ -188,6 +212,92 @@ export const speechAvailable = () => typeof coreHost().synthesizeSpeech === 'fun
  * Dit chaque ligne (trois à la fois), la nettoie et la dépose. Une ligne qui échoue deux fois
  * est retirée (la scène reste muette) ; si AUCUNE ne passe, la voix est indisponible.
  */
+type SaidLine = Omit<VoiceLine, 'sceneKey' | 'offset'> & { index: number };
+
+/** Une ligne qui se termine par une ponctuation (une virgule suffit : l'idée continue dans la scène suivante). */
+const sentence = (text: string) => (/[.!?…:;,—]\s*(\[[^\]]*\]\s*)*$/.test(text.trim()) ? text.trim() : `${text.trim()},`);
+
+/** Les silences d'un son (secondes) : là où la prise continue se découpe. */
+async function silences(file: string): Promise<{ start: number; end: number }[]> {
+  const log = await ffmpeg(['-hide_banner', '-i', file, '-af', 'silencedetect=noise=-36dB:d=0.12', '-f', 'null', '-']);
+  const out: { start: number; end: number }[] = [];
+  let start: number | null = null;
+  for (const m of log.matchAll(/silence_(start|end): (-?[\d.]+)/g)) {
+    if (m[1] === 'start') start = Math.max(0, Number(m[2]));
+    else if (start !== null) {
+      out.push({ start, end: Number(m[2]) });
+      start = null;
+    }
+  }
+  return out;
+}
+
+/**
+ * Les points de coupe d'une prise continue : pour chaque fin de ligne, la pause la plus proche de
+ * l'instant attendu (au prorata des signes dits), dans l'ordre. Null si une coupe n'a pas de pause
+ * plausible : mieux vaut alors une ligne par appel qu'une phrase tranchée au milieu d'un mot.
+ */
+export function cutPoints(texts: string[], gaps: { start: number; end: number }[], duration: number): number[] | null {
+  const weights = texts.map((t) => Math.max(1, plainSpoken(t).length));
+  const total = weights.reduce((a, x) => a + x, 0);
+  const lead = gaps[0] && gaps[0].start <= 0.02 ? gaps[0].end : 0;
+  const lastGap = gaps[gaps.length - 1];
+  const tail = lastGap && lastGap.end >= duration - 0.05 ? lastGap.start : duration;
+  const span = Math.max(0.1, tail - lead);
+  const inner = gaps.filter((g) => g.start > lead + 0.05 && g.end < tail - 0.05);
+  const cuts: number[] = [];
+  let acc = 0;
+  let floor = lead;
+  for (let k = 0; k < texts.length - 1; k++) {
+    acc += weights[k];
+    const expected = lead + (span * acc) / total;
+    const tolerance = Math.max(0.6, (span * weights[k]) / total * 0.45);
+    const best = inner
+      .filter((g) => (g.start + g.end) / 2 > floor + 0.25)
+      .map((g) => ({ g, miss: Math.abs((g.start + g.end) / 2 - expected) - 1.5 * Math.min(0.5, g.end - g.start) }))
+      .sort((a, b) => a.miss - b.miss)[0];
+    if (!best || Math.abs((best.g.start + best.g.end) / 2 - expected) > tolerance) return null;
+    const cut = (best.g.start + best.g.end) / 2;
+    cuts.push(cut);
+    floor = cut;
+  }
+  return cuts;
+}
+
+/**
+ * La prise continue : toute la narration en un appel, découpée aux pauses entre les lignes. Chaque morceau
+ * garde l'intonation d'un récit suivi (la voix sait qu'une phrase en annonce une autre). Lève une erreur si
+ * le découpage n'est pas sûr : l'appelant repasse alors ligne par ligne.
+ */
+async function continuousTake(
+  opts: { lines: { index: number; text: string; maxSec: number }[]; storage: VoiceStorage; folder: string },
+  speak: (text: string) => ReturnType<NonNullable<ReturnType<typeof coreHost>['synthesizeSpeech']>>,
+  dir: string
+): Promise<{ lines: SaidLine[]; used: { provider: SpeechProvider; model: string; voice: string } }> {
+  const texts = opts.lines.map((l, k) => (k === opts.lines.length - 1 ? sentence(l.text).replace(/,$/, '.') : sentence(l.text)));
+  const speech = await speak(texts.join(' '));
+  const src = path.join(dir, 'take.src');
+  const wav = path.join(dir, 'take.wav');
+  fs.writeFileSync(src, speech.buffer);
+  await ffmpeg(['-y', '-v', 'error', ...inputArgs(src, speech.mimeType), '-af', 'highpass=f=70', '-ar', '48000', '-ac', '1', wav]);
+  const duration = await durationOf(wav);
+  const cuts = cutPoints(texts, await silences(wav), duration);
+  if (!cuts) throw new Error('voice_take_unsplittable');
+  const bounds = [0, ...cuts, duration];
+  const key = crypto.createHash('sha1').update(`${texts.join('|')}:${speech.voice}`).digest('hex').slice(0, 12);
+  const lines: SaidLine[] = [];
+  for (const [k, line] of opts.lines.entries()) {
+    const part = path.join(dir, `part-${k}.wav`);
+    const mp3 = path.join(dir, `part-${k}.mp3`);
+    await ffmpeg(['-y', '-v', 'error', '-i', wav, '-ss', bounds[k].toFixed(3), '-to', bounds[k + 1].toFixed(3), part]);
+    const durationSec = await processSpeech(part, 'audio/wav', mp3, line.maxSec);
+    if (durationSec < 0.25) throw new Error('voice_take_empty_part');
+    const up = await opts.storage.uploadFile(fs.readFileSync(mp3), `voice-${line.index + 1}-${key}.mp3`, opts.folder, 'audio/mpeg');
+    lines.push({ index: line.index, text: line.text, url: up.downloadURL, durationSec: Math.round(durationSec * 1000) / 1000 });
+  }
+  return { lines, used: { provider: speech.provider, model: speech.model, voice: speech.voice } };
+}
+
 export async function synthesizeVoice(opts: {
   lines: { index: number; text: string; maxSec: number }[];
   language: string;
@@ -196,18 +306,34 @@ export async function synthesizeVoice(opts: {
   storage: VoiceStorage;
   folder: string;
   concurrency?: number;
-}): Promise<{ lines: (Omit<VoiceLine, 'sceneKey' | 'offset'> & { index: number })[]; provider: 'openrouter'; model: string; voice: string }> {
+  /** Toute la narration en une prise (création, voix refaite) ; faux pour la retouche d'une seule scène. */
+  continuous?: boolean;
+}): Promise<{ lines: SaidLine[]; provider: SpeechProvider; model: string; voice: string }> {
   const synth = coreHost().synthesizeSpeech;
   if (!synth) throw new VoiceUnavailableError('no_speech_model');
   const request = (text: string): SpeechRequest => ({
     text,
     language: langOf(opts.language),
     style: opts.style || opts.persona.character,
+    persona: opts.persona.id,
+    gender: opts.persona.gender,
     tag: 'video-voice',
   });
+  if (opts.continuous && opts.lines.length > 1) {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'idem-voice-take-'));
+    try {
+      const take = await continuousTake(opts, (text) => synth(request(text)), dir);
+      return { lines: take.lines, ...take.used };
+    } catch (error: any) {
+      if (/voice_language_unsupported|voice_unavailable/.test(String(error?.message))) throw new VoiceUnavailableError(error.message);
+      logger.warn('video.voice.take_fallback', { lines: opts.lines.length, error: error?.message });
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  }
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'idem-voice-'));
-  const out: (Omit<VoiceLine, 'sceneKey' | 'offset'> & { index: number })[] = [];
-  let used: { provider: 'openrouter'; model: string; voice: string } = { provider: 'openrouter', model: '', voice: '' };
+  const out: SaidLine[] = [];
+  let used: { provider: SpeechProvider; model: string; voice: string } = { provider: 'openrouter', model: '', voice: '' };
   let lastError: unknown;
   try {
     const queue = [...opts.lines];
@@ -294,8 +420,31 @@ export function fitScenesToVoice<S extends TimedScene>(scenes: S[], lines: Omit<
     dropped.push(victim.sc.key);
     kept = kept.filter((l) => l.sceneKey !== victim.sc.key);
   }
+  const chained = chainScenes(out, kept, total);
+  if (chained) return { ...chained, dropped };
   const lo = need();
-  let dur = out.map((sc, i) => Math.max(lo[i], sc.duration));
+  // La narration s'enchaîne : une scène parlée dure sa phrase et un souffle (+ 0,5 s au plus) ; le temps
+  // restant va d'abord aux plans muets (jusqu'à leur durée prévue), puis à tout le film au prorata. Avant,
+  // chaque scène gardait sa durée prévue : la voix attendait la scène suivante, et l'on entendait des trous.
+  let dur = lo.slice();
+  const voicedAt = out.map((sc) => !!lineOf(sc.key));
+  if (kept.length) {
+    let spare = total - dur.reduce((a, x) => a + x, 0);
+    const give = (want: number[]) => {
+      const sum = want.reduce((a, x) => a + x, 0);
+      if (sum <= 0 || spare <= 0) return;
+      const k = Math.min(1, spare / sum);
+      dur = dur.map((x, i) => x + want[i] * k);
+      spare -= sum * k;
+    };
+    give(out.map((sc, i) => (voicedAt[i] ? 0 : Math.max(0, sc.duration - dur[i]))));
+    give(out.map((sc, i) => (voicedAt[i] ? Math.min(0.5, Math.max(0, sc.duration - dur[i])) : 0)));
+    // Encore du temps (narration plus courte que le film) : un souffle de plus entre les phrases (0,7 s au
+    // plus), puis le reste au final et aux plans muets — jamais de longs blancs au milieu du récit.
+    give(out.map((_, i) => (voicedAt[i] ? 0.7 : 0)));
+    const holders = out.map((sc, i) => (!voicedAt[i] || i === out.length - 1 ? sc.duration : 0));
+    give(holders.map((x) => x * 100));
+  } else dur = out.map((sc, i) => Math.max(lo[i], sc.duration));
   for (let pass = 0; pass < 8; pass++) {
     const diff = total - dur.reduce((a, x) => a + x, 0);
     if (Math.abs(diff) < 0.002) break;
@@ -319,11 +468,87 @@ export function fitScenesToVoice<S extends TimedScene>(scenes: S[], lines: Omit<
   if (last) last.duration = Math.round((total - last.start) * 1000) / 1000;
   const placed = kept.map((l) => {
     const i = out.findIndex((sc) => sc.key === l.sceneKey);
-    const room = out[i].duration - l.durationSec - VOICE_TAIL;
-    const offset = Math.max(leadOf(i), Math.min(room, leadOf(i) + Math.max(0, room - leadOf(i)) * 0.25));
-    return { ...l, offset: Math.round(offset * 1000) / 1000 };
+    // La phrase part dès l'entrée de la scène : le temps en plus tombe après elle, jamais avant.
+    return { ...l, offset: leadOf(i) };
   });
   return { scenes: out, lines: placed, dropped };
+}
+
+/** Pause entre deux phrases de la narration, et part de la phrase précédente qui déborde sur la scène suivante. */
+const PAUSE = 0.35;
+const OVERLAP = 0.7;
+const MIN_SCENE = 1.1;
+
+/**
+ * LA NARRATION EN CONTINU, LES COUPES À CHEVAL (« coupe en L » du montage) : les phrases s'enchaînent d'un
+ * bout à l'autre du film avec une simple respiration entre elles, et les coupes ne tombent PAS entre deux
+ * phrases — la fin d'une phrase passe sur l'image suivante, la phrase d'après démarre dans la scène déjà
+ * ouverte. Avant, chaque phrase partait juste après une transition : on entendait un texte par scène.
+ * Plans muets du début et de la fin (ouverture, logo) gardent leur durée prévue ; ceux du milieu passent
+ * sous la voix. Null si le film ne laisse pas la place (l'appelant reprend le calage scène par scène).
+ */
+function chainScenes<S extends TimedScene>(scenes: S[], lines: Omit<VoiceLine, 'offset'>[], total: number): { scenes: S[]; lines: VoiceLine[] } | null {
+  const lineOf = (key: string) => lines.find((l) => l.sceneKey === key);
+  const voiced = scenes.map((sc, i) => (lineOf(sc.key) ? i : -1)).filter((i) => i >= 0);
+  if (voiced.length < 2) return null;
+  const first = voiced[0];
+  const last = voiced[voiced.length - 1];
+  const L = voiced.map((i) => lineOf(scenes[i].key)!.durationSec);
+  const lead = scenes.slice(0, first);
+  const trail = scenes.slice(last + 1);
+  const speech = L.reduce((a, x) => a + x, 0) + PAUSE * (voiced.length - 1);
+  let spare = total - (lead.length * MIN_SCENE + 0.15 + speech + Math.max(0.6, trail.length * MIN_SCENE));
+  if (spare < 0) return null;
+  const take = (want: number) => {
+    const got = Math.max(0, Math.min(spare, want));
+    spare -= got;
+    return got;
+  };
+  // Le temps en plus : ouverture et final jusqu'à leur durée prévue, puis un souffle (0,4 s au plus par pause), puis le final.
+  const leadWant = lead.map((sc) => Math.max(0, sc.duration - MIN_SCENE));
+  const trailWant = trail.map((sc) => Math.max(0, sc.duration - MIN_SCENE));
+  const leadSum = leadWant.reduce((a, x) => a + x, 0);
+  const trailSum = trailWant.reduce((a, x) => a + x, 0);
+  const leadGot = take(leadSum);
+  const trailGot = take(trailSum);
+  const pauseExtra = take(0.4 * (voiced.length - 1)) / Math.max(1, voiced.length - 1);
+  const rest = spare;
+  const leadDur = lead.map((_, i) => MIN_SCENE + (leadSum ? (leadGot * leadWant[i]) / leadSum : 0));
+  const gap = PAUSE + pauseExtra;
+
+  const starts = new Array<number>(scenes.length).fill(0);
+  let t = 0;
+  lead.forEach((_, i) => ((starts[i] = t), (t += leadDur[i])));
+  starts[first] = t;
+  const at: number[] = [t + 0.15];
+  for (let k = 1; k < voiced.length; k++) at.push(at[k - 1] + L[k - 1] + gap);
+  for (let k = 1; k < voiced.length; k++) {
+    const i = voiced[k];
+    // La coupe tombe dans la fin de la phrase précédente ; la nouvelle phrase part dans la scène ouverte.
+    starts[i] = at[k] - gap - Math.min(OVERLAP, L[k - 1] * 0.35);
+    // Les plans muets du milieu se glissent juste avant, sous la fin de la phrase précédente.
+    const silent = scenes.slice(voiced[k - 1] + 1, i).map((_, m) => voiced[k - 1] + 1 + m);
+    if (silent.length) {
+      const room = starts[i] - (starts[voiced[k - 1]] + MIN_SCENE);
+      const each = Math.min(...silent.map((j) => scenes[j].duration), (room * 0.5) / silent.length);
+      if (each < 0.8) return null;
+      silent.forEach((j, m) => (starts[j] = starts[i] - each * (silent.length - m)));
+    }
+  }
+  const voiceEnd = at[at.length - 1] + L[L.length - 1];
+  if (trail.length) {
+    const tailStart = Math.max(starts[last] + MIN_SCENE, voiceEnd - Math.min(0.5, L[L.length - 1] * 0.3));
+    const room = total - tailStart;
+    const weights = trail.map((_, i) => MIN_SCENE + (trailSum ? (trailGot * trailWant[i]) / trailSum : 0) + rest / trail.length);
+    const sum = weights.reduce((a, x) => a + x, 0);
+    let u = tailStart;
+    trail.forEach((_, i) => ((starts[last + 1 + i] = u), (u += (room * weights[i]) / sum)));
+  }
+  const out = scenes.map((sc, i) => ({ ...sc, start: Math.round(starts[i] * 1000) / 1000 }));
+  out.forEach((sc, i) => (sc.duration = Math.round(((i + 1 < out.length ? out[i + 1].start : total) - sc.start) * 1000) / 1000));
+  if (out.some((sc) => sc.duration < 0.8)) return null;
+  const placed = voiced.map((i, k) => ({ ...lineOf(scenes[i].key)!, offset: Math.round((at[k] - out[i].start) * 1000) / 1000 }));
+  return { scenes: out, lines: placed };
 }
 
 /** Les lignes à mixer : URL et instant absolu dans la vidéo. */

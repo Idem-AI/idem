@@ -491,6 +491,8 @@ export async function fetchTrack(track: Pick<MusicTrack, 'url' | 'provider'>): P
         timeout: 60000,
         maxContentLength: MAX_TRACK_BYTES,
         maxRedirects: 5,
+        // ccMixter refuse (403) un fichier demandé sans page d'origine sur son site.
+        ...(/^https:\/\/(?:[\w-]+\.)?ccmixter\.org\//.test(track.url) ? { headers: { Referer: 'https://ccmixter.org/', 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36' } } : {}),
       });
       fs.writeFileSync(file, Buffer.from(res.data));
       return file;

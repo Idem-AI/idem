@@ -89,7 +89,12 @@ export const SFX_DENSITY: Record<MotionStyle, Partial<Record<SfxKind, number>>> 
 
 /** Niveau de la musique dans le mixage (dB) : sous les effets, et plus bas encore sous une voix off. */
 export const MUSIC_GAIN_DB = -7;
-export const MUSIC_UNDER_VOICE_DB = -10;
+/**
+ * Sous une voix off (2026-10-16, retour utilisateur : « on n'entend pas la voix ») : la musique descend à −18 dB et
+ * les effets de 8 dB — la voix (−16 LUFS) passe toujours devant, la compression par la voix fait le reste.
+ */
+export const MUSIC_UNDER_VOICE_DB = -18;
+export const SFX_UNDER_VOICE_DB = -8;
 
 /** Gain linéaire d'un effet dans l'aperçu (sans normalisation finale : 2 dB de plus qu'au rendu). */
 export const previewGain = (db: number) => Math.min(1, Math.pow(10, (db + 2) / 20));

@@ -63,5 +63,5 @@ export const DSL_REFERENCE = `# IDEM Motion Language — one scene = one JSON pr
 
 ## Rules
 - Never write a text of the brief in the program: always "$KEY". Never invent numbers, prices or claims.
-- Only the media indexes listed in the brief exist. Every "target" must be an existing id.
+- Every medium listed for the scene MUST appear (an "image" or "video" node): the storyboard chose it. Only the media indexes listed in the brief exist. Every "target" must be an existing id.
 - Answer with ONE \`\`\`json block containing the whole program, and nothing else.`;
