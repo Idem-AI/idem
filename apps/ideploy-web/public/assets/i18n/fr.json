@@ -1213,7 +1213,10 @@
       "deleteHint": "La base de données et ses données seront définitivement supprimées.",
       "deleteDatabase": "Supprimer la base de données",
       "deleting": "Suppression…",
-      "deleteError": "La suppression a échoué."
+      "deleteError": "La suppression a échoué.",
+      "consoleHint": "Le client du moteur (psql, mysql, mongosh, redis-cli…), déjà connecté : requêtes, consultation, corrections. Réservé aux administrateurs de l'équipe.",
+      "shell": "Shell",
+      "shellHint": "Un shell dans le conteneur de la base. Réservé aux administrateurs de l'équipe."
     }
   },
   "services": {
@@ -2010,7 +2013,9 @@
     "back": "Retour",
     "target": {
       "server": "Serveur",
-      "application": "Conteneur de l'application"
+      "application": "Conteneur de l'application",
+      "database": "Console de la base de données",
+      "databaseShell": "Shell du conteneur de la base"
     },
     "status": {
       "connecting": "Connexion…",

@@ -34,12 +34,15 @@ function originAllowed(origin: string | undefined): boolean {
 
 function parseRequest(raw: unknown): TerminalRequest | null {
   if (typeof raw !== 'object' || raw === null) return null;
-  const { kind, uuid, cols, rows } = raw as Record<string, unknown>;
-  if (kind !== 'server' && kind !== 'application') return null;
+  const { kind, uuid, type, mode, cols, rows } = raw as Record<string, unknown>;
+  if (kind !== 'server' && kind !== 'application' && kind !== 'database') return null;
   if (typeof uuid !== 'string' || !uuid) return null;
+  // A database names its engine; the console opens its client unless a shell is asked for.
+  if (kind === 'database' && (typeof type !== 'string' || !/^[a-z]+$/.test(type))) return null;
   return {
     kind: kind as TerminalTargetKind,
     uuid,
+    ...(kind === 'database' ? { type: type as string, mode: mode === 'shell' ? ('shell' as const) : ('client' as const) } : {}),
     cols: typeof cols === 'number' ? cols : undefined,
     rows: typeof rows === 'number' ? rows : undefined,
   };
