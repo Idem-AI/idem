@@ -153,6 +153,7 @@ Choisir l'élément par le **sens**, jamais par le décor :
 | Monter une prise de parole (couper, puis habiller) | Étoffe de raphia kuba : une zone découpée, une pièce appliquée cousue |
 | Droit, équilibre | Balance akan à peser l'or |
 | Document écrit | Feuillet manuscrit et calame |
+| Parole officielle, prise de position publique (livre blanc) | Bâton d'okyeame (porte-parole akan), pommeau : la main qui tient l'œuf |
 | Retour en arrière, page introuvable | Sankofa (poids akan en forme d'oiseau qui se retourne) |
 | Réseau, diagramme | Filet de pêche (épervier) |
 | Étapes, progression guidée | Échelle dogon |

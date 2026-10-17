@@ -47,6 +47,7 @@ on l'ajoute ici avec sa source (règle complète : `AGENTS.md` § 4).
 | Plateau d'awalé | stratégie, calcul, simulation | mode avancé, simulations |
 | Balance akan à peser l'or | peser juste, le droit | espace juridique |
 | Feuillet manuscrit et calame | le document écrit | rédaction, rapport, import |
+| Bâton d'okyeame : bâton dressé à bagues de chevrons, pommeau en main ouverte qui tient un œuf, l'œuf en couleur | la parole officielle portée en public ; le proverbe de l'œuf : « le pouvoir est comme un œuf, trop serré il casse, trop lâche il tombe » | couverture du livre blanc (Idem-bp, `design/illustrations/okyeame.svg`) — sources : [Met Museum, ȯkyeame poma](https://www.metmuseum.org/art/collection/search/314925) ; [Smithsonian NMAfA, linguist staff](https://si.edu/object/linguist-staff:nmafa_2004-11-1) (insigne du porte-parole du chef, le pommeau illustre un proverbe) ; écartés : sona (refusé), écriture bamoun (sens du texte invérifiable) |
 | Étal du marché | commerce en nom propre, catalogue | EI, modèles iDeploy, aperçu AppGen |
 | Façade en banco à torons | institution, bâtiment construit | SA, application bâtie |
 | Façade ndebele peinte (mur à gradins, porte, motif au-dessus de l'entrée) | la maison qu'on reconnaît de loin et qui dit à qui elle est : une adresse à son nom | iDeploy : onglet « Nom de domaine » (`facade`) — source : [Ndebele house painting, Wikipédia](https://en.wikipedia.org/wiki/Ndebele_house_painting) |
