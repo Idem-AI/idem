@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import YAML from 'yaml';
 import {
+  appContainersCommand,
   composeCommand,
   escapeComposeLabel,
   escapeComposeValue,
@@ -179,5 +180,19 @@ describe('composeCommand', () => {
     const cmd = composeCommand({ uuid: 'ABC-123' }, 'restart');
     expect(cmd).toContain('docker compose -p abc-123 restart');
     expect(cmd).toContain('cat /data/ideploy/applications/ABC-123/.compose-dir');
+  });
+});
+
+describe('appContainersCommand', () => {
+  it('finds an application by its label or by its compose project, each container once', () => {
+    const cmd = appContainersCommand('2D475D20-5dc8', { all: true });
+    expect(cmd).toContain("docker ps -a --filter label=ideploy.applicationUuid=2D475D20-5dc8 --format '{{.Names}}'");
+    // Containers deployed before the label existed: found by the project, the uuid in lower case.
+    expect(cmd).toContain('--filter label=com.docker.compose.project=2d475d20-5dc8');
+    expect(cmd).toContain("awk '!seen[$0]++'");
+  });
+
+  it('refuses anything a shell could read as code', () => {
+    expect(() => appContainersCommand('x; rm -rf /')).toThrow();
   });
 });
