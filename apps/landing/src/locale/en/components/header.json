@@ -27,6 +27,7 @@
     "header.menu.openSource": "Open Source",
     "header.menu.about": "About",
     "header.nav.about": "About",
-    "header.nav.contact": "Contact"
+    "header.nav.contact": "Contact",
+    "header.menu.blog": "Blog"
   }
 }

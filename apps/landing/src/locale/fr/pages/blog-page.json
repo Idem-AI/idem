@@ -1,0 +1,26 @@
+{
+  "locale": "fr",
+  "translations": {
+    "blog-page.hero.line1": "Ce que nous construisons,",
+    "blog-page.hero.line2": "ce que nous apprenons",
+    "blog-page.hero.lede": "Les nouveautés du produit, les notes de version et ce que l'équipe d'IDEM apprend en route.",
+    "blog-page.rss": "Flux RSS",
+    "blog-page.filter.all": "Tout",
+    "blog-page.filter.article": "Articles",
+    "blog-page.filter.release": "Notes de version",
+    "blog-page.filter.aria": "Filtrer les billets",
+    "blog-page.tags.aria": "Sujets",
+    "blog-page.reading": "{$n} min de lecture",
+    "blog-page.error.title": "Impossible de charger le blog",
+    "blog-page.error.body": "La connexion a peut-être coupé. Rien n'est perdu : réessayez.",
+    "blog-page.error.retry": "Réessayer",
+    "blog-page.empty.title": "Rien n'est encore publié",
+    "blog-page.empty.body": "Les premiers articles et notes de version arriveront ici.",
+    "blog-page.filtered.title": "Aucun billet ne correspond à ce filtre",
+    "blog-page.filtered.reset": "Tout afficher",
+    "blog-page.pagination.aria": "Pagination",
+    "blog-page.pagination.previous": "Précédent",
+    "blog-page.pagination.next": "Suivant",
+    "blog-page.pagination.status": "Page {$n} sur {$p}"
+  }
+}

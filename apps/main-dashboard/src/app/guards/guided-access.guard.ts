@@ -11,7 +11,7 @@ import { GuidedJourneyService } from '../modules/guided/services/guided-journey.
  * ouvre une modale d'explication — plutôt qu'un écran vide ou, pire, une page
  * que l'utilisateur n'est pas prêt à utiliser.
  *
- * Dans les modes Chat et Avancé, ce garde laisse tout passer.
+ * Dans le tableau de bord, ce garde laisse tout passer.
  */
 export const guidedAccessGuard: CanActivateFn = async (_route, state) => {
   const uiMode = inject(UiModeService);

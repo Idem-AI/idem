@@ -36,7 +36,7 @@ const ORIGINS: VisualOrigin[] = ['plan', 'studio', 'occasion'];
  * quelle que soit l'histoire de son contenu.
  *
  * L'écran ne fait que CHERCHER et MONTRER : tout ce qu'on peut faire d'un visuel
- * vit dans la fenêtre d'aperçu partagée, la même que dans le chat.
+ * vit dans la fenêtre d'aperçu partagée, la même que dans l'atelier.
  */
 @Component({
   selector: 'app-library-panel',

@@ -1,6 +1,6 @@
 # IDEM console (main dashboard)
 
-The signed-in application at `console.idem.africa`: projects, guided creation, the AI advisor chat, and every project deliverable (branding, business plan, pitch deck, legal documents, communication, finance, diagrams, simulations, development and deployments), plus the account and billing area.
+The signed-in application at `console.idem.africa`: projects, guided creation, and every project deliverable (branding, business plan, pitch deck, legal documents, communication, finance, diagrams, simulations, development and deployments), plus the account and billing area.
 
 Stack: Angular 20 (standalone components, signals, lazy routes), PrimeNG, Tailwind 4, ngx-translate (English and French at runtime). Client-side only (no SSR), served as static files by nginx.
 
@@ -48,11 +48,10 @@ src/app/
 │   ├── auth/         login
 │   ├── onboarding/   welcome survey
 │   ├── guided/       guided project creation
-│   ├── chat/         AI advisor chat
 │   ├── dashboard/    projects and every project deliverable page
 │   ├── account/      profile, plans, usage, payments
 │   └── billing/      checkout and payment return
-├── layouts/          dashboard, chat, guided, empty
+├── layouts/          dashboard, guided, empty
 ├── guards/
 ├── shared/           services, components, models
 └── app.routes.ts
@@ -63,7 +62,7 @@ Main routes:
 
 | Area | Routes |
 |---|---|
-| Entry | `/login`, `/welcome`, `/console`, `/projects`, `/create-project`, `/guided`, `/chat`, `/chat/new` |
+| Entry | `/login`, `/welcome`, `/console`, `/projects`, `/create-project`, `/guided` |
 | Account | `/account` (overview), `/account/plans`, `/account/usage`, `/account/payments`, `/account/profile`; `/billing/checkout`, `/billing/success` |
 | Project | `/project/dashboard`, `/project/branding/…`, `/project/business-cards`, `/project/business-plan/…`, `/project/pitch-deck/…`, `/project/legal-docs/…`, `/project/communication`, `/project/finance/…`, `/project/diagrams`, `/project/simulations`, `/project/advisor`, `/project/development`, `/project/ideploy`, `/project/deployments/…` |
 

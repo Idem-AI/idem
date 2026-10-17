@@ -5,11 +5,6 @@
       "short": "On avance ensemble, une étape à la fois",
       "long": "IDEM vous dit quoi faire, dans quel ordre, et le fait avec vous. Idéal quand on ne sait pas par où commencer."
     },
-    "chat": {
-      "name": "Chat",
-      "short": "Vous demandez, IDEM produit",
-      "long": "Une conversation, comme avec un conseiller. Vous décrivez ce dont vous avez besoin, IDEM le génère."
-    },
     "advanced": {
       "name": "Tableau de bord",
       "short": "Tous les outils, accessibles librement",

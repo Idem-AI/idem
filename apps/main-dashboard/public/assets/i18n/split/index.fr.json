@@ -1,7 +1,6 @@
 {
   "language": "fr",
   "components": [
-    "modules/chat",
     "modules/dashboard/components/generation-status-panel",
     "modules/dashboard/components/project-card",
     "modules/dashboard/components/sidebar-dashboard",

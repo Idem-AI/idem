@@ -409,6 +409,10 @@
     "seo.notFound.title": "Page not found",
     "seo.notFound.description": "This page no longer exists. Head back home to build and launch your profitable business with IDEM.",
     "seo.notFound.crumb": "Page not found",
-    "seo.notFound.imageAlt": "Page not found — Sankofa, the Akan bird that looks back."
+    "seo.notFound.imageAlt": "Page not found — Sankofa, the Akan bird that looks back.",
+    "seo.blog.title": "Blog IDEM — Articles et notes de version",
+    "seo.blog.description": "Nouveautés du produit, notes de version et enseignements de l'équipe qui construit IDEM, l'IA qui aide les entrepreneurs africains à créer des business rentables.",
+    "seo.blog.crumb": "Blog",
+    "seo.blog.imageAlt": "Le blog d'IDEM — Un feuillet manuscrit et son calame."
   }
 }

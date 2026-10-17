@@ -43,6 +43,18 @@ export const routes: Routes = [
     data: { layout: 'public', seo: 'contact' },
   },
   {
+    path: 'blog',
+    loadComponent: () => import('./pages/blog-page/blog-page').then((m) => m.BlogPage),
+    data: { layout: 'public', seo: 'blog' },
+  },
+  {
+    // Le référencement du billet est posé par la page, une fois le billet lu.
+    path: 'blog/:slug',
+    loadComponent: () =>
+      import('./pages/blog-post-page/blog-post-page').then((m) => m.BlogPostPage),
+    data: { layout: 'public', seo: 'blog' },
+  },
+  {
     path: 'idev',
     loadComponent: () => import('./pages/idev-page/idev-page').then((m) => m.IdevPage),
     data: { layout: 'public', seo: 'icode' },

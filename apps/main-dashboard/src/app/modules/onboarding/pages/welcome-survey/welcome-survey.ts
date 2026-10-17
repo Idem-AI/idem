@@ -5,7 +5,7 @@ import { TranslateModule } from '@ngx-translate/core';
 import { OnboardingSurveyService } from '../../../../shared/services/onboarding-survey.service';
 import { UiModeService, MODE_HOME_ROUTE } from '../../../../shared/services/ui-mode.service';
 import { ModeIllustrationComponent } from '../../../../shared/components/mode-illustration/mode-illustration';
-import { UiMode } from '../../../chat/models/chat.model';
+import { UiMode } from '../../../../shared/models/ui-mode.model';
 import { SurveyOption, SurveyQuestion } from '../../../../shared/models/onboarding-survey.model';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
@@ -22,12 +22,6 @@ const MODE_CARDS: readonly ModeCard[] = [
     icon: 'pi pi-compass',
     labelKey: 'modes.guided.name',
     descriptionKey: 'modes.guided.long',
-  },
-  {
-    mode: 'chat',
-    icon: 'pi pi-comments',
-    labelKey: 'modes.chat.name',
-    descriptionKey: 'modes.chat.long',
   },
   {
     mode: 'advanced',

@@ -67,6 +67,14 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://idem.africa/en/blog</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://idem.africa/fr/blog" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://idem.africa/en/blog" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://idem.africa/en/blog" />
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://idem.africa/en/contact</loc>
     <xhtml:link rel="alternate" hreflang="fr" href="https://idem.africa/fr/contact" />
     <xhtml:link rel="alternate" hreflang="en" href="https://idem.africa/en/contact" />

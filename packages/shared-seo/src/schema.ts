@@ -195,6 +195,17 @@ export interface PageGraphInput {
   breadcrumbs?: readonly Breadcrumb[];
   faq?: readonly FaqEntry[];
   imageAlt?: string;
+  /** Un billet de blog : ajoute un `BlogPosting` rattaché à la page. */
+  article?: ArticleInput;
+}
+
+export interface ArticleInput {
+  headline: string;
+  /** ISO 8601. */
+  datePublished: string;
+  dateModified: string;
+  authorName: string;
+  tags?: readonly string[];
 }
 
 /** Le graphe complet d'une page. */
@@ -250,6 +261,25 @@ export function buildPageGraph(input: PageGraphInput): JsonLdNode {
       name: f.question,
       acceptedAnswer: { '@type': 'Answer', text: f.answer },
     }));
+  }
+
+  if (input.article) {
+    const a = input.article;
+    graph.push({
+      '@type': 'BlogPosting',
+      '@id': `${input.url}#article`,
+      headline: a.headline,
+      description: input.description,
+      image: input.image,
+      inLanguage: input.locale,
+      datePublished: a.datePublished,
+      dateModified: a.dateModified,
+      author: { '@type': 'Person', name: a.authorName },
+      publisher: ref(ORGANIZATION_ID),
+      mainEntityOfPage: ref(pageId),
+      isPartOf: ref(site === 'idem' ? WEBSITE_ID : serviceSiteId(site)),
+      ...(a.tags?.length ? { keywords: a.tags.join(', ') } : {}),
+    });
   }
 
   graph.push(page);

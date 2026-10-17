@@ -1,0 +1,16 @@
+{
+  "locale": "en",
+  "translations": {
+    "blog-post-page.back": "All posts",
+    "blog-post-page.by": "By {$author}",
+    "blog-post-page.toc.title": "On this page",
+    "blog-post-page.share.title": "Share",
+    "blog-post-page.share.copy": "Copy link",
+    "blog-post-page.share.copied": "Link copied",
+    "blog-post-page.share.copied.sr": "Link copied",
+    "blog-post-page.related.title": "Keep reading",
+    "blog-post-page.notfound.title": "This post does not exist",
+    "blog-post-page.notfound.body": "It may have been renamed, or it is not published yet.",
+    "blog-post-page.notfound.back": "Back to the blog"
+  }
+}

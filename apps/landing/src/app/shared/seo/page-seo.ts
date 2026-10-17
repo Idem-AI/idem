@@ -97,6 +97,13 @@ export function pageSeoText(id: LandingPageId, locale: 'fr' | 'en'): PageSeoText
         crumb: $localize`:@@seo.africanMarket.crumb:African market`,
         imageAlt: $localize`:@@seo.africanMarket.imageAlt:IDEM for African markets — A market stall.`,
       };
+    case 'blog':
+      return {
+        title: $localize`:@@seo.blog.title:IDEM blog — Articles and release notes`,
+        description: $localize`:@@seo.blog.description:Product news, release notes and lessons from the team building IDEM, the AI that helps African entrepreneurs create profitable businesses.`,
+        crumb: $localize`:@@seo.blog.crumb:Blog`,
+        imageAlt: $localize`:@@seo.blog.imageAlt:The IDEM blog — A handwritten leaf and its reed pen.`,
+      };
     case 'contact':
       return {
         title: $localize`:@@seo.contact.title:Contact IDEM — Let’s talk about your business`,

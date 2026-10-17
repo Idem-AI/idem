@@ -27,37 +27,11 @@
       },
       "switch": {
         "title": "Switch modes whenever you like",
-        "body": "This button moves you between step-by-step guidance, chat and the full dashboard. Your project and documents stay exactly as they are."
+        "body": "This button moves you between step-by-step guidance and the full dashboard. Your project and documents stay exactly as they are."
       },
       "done": {
         "title": "You are all set!",
         "body": "All that is left is to begin. And if it ever feels too narrow, the mode switcher is your way out."
-      }
-    },
-    "chat": {
-      "welcome": {
-        "title": "Welcome! Shall we look around?",
-        "body": "A few seconds to find your bearings in Chat mode."
-      },
-      "composer": {
-        "title": "Just say what you need",
-        "body": "Write as you would to an adviser: \"draft me a business plan\", \"suggest some colours\". IDEM understands and produces the document."
-      },
-      "conversations": {
-        "title": "Your conversations, sorted",
-        "body": "Each one is filed by topic — brand, finance, legal. You can see at a glance what you have already asked for."
-      },
-      "export": {
-        "title": "Take everything with you",
-        "body": "This button downloads every document produced for this project at once, as PDFs."
-      },
-      "switch": {
-        "title": "Switch modes whenever you like",
-        "body": "This button moves you between step-by-step guidance, chat and the full dashboard. Your project and documents stay exactly as they are."
-      },
-      "done": {
-        "title": "You are all set!",
-        "body": "Ask your first question — IDEM handles the rest."
       }
     },
     "advanced": {
@@ -67,7 +41,7 @@
       },
       "switch": {
         "title": "Switch modes whenever you like",
-        "body": "This button moves you between step-by-step guidance, chat and the full dashboard. Your project and documents stay exactly as they are."
+        "body": "This button moves you between step-by-step guidance and the full dashboard. Your project and documents stay exactly as they are."
       },
       "done": {
         "title": "You are all set!",

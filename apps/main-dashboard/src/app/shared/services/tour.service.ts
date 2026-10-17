@@ -4,7 +4,7 @@ import { TranslateService } from '@ngx-translate/core';
 import { firstValueFrom } from 'rxjs';
 import { startTour, type TourHandle, type TourLabels, type TourStep } from '@idem/shared-tour';
 import { environment } from '../../../environments/environment';
-import { UiMode } from '../../modules/chat/models/chat.model';
+import { UiMode } from '../models/ui-mode.model';
 
 /** Préfixe des identifiants, pour que chaque app ait les siens. */
 const APP = 'main-dashboard';
@@ -19,8 +19,7 @@ const START_DELAY_MS = 600;
  * Visite guidée de première utilisation.
  *
  * Une visite par mode : ce qu'on montre à quelqu'un qui découvre le parcours
- * assisté n'a rien à voir avec ce qu'on montre dans le chat ou le tableau de
- * bord. Chaque visite se termine par le sélecteur de mode — c'est la commande
+ * assisté n'a rien à voir avec ce qu'on montre dans le tableau de bord. Chaque visite se termine par le sélecteur de mode — c'est la commande
  * que les utilisateurs ne trouvaient pas.
  *
  * La mémoire vit sur le compte : changer de navigateur ou de machine ne doit
@@ -55,15 +54,6 @@ export class TourService {
           { key: 'progress', target: '[data-tour="guided-progress"]', placement: 'bottom' },
           { key: 'steps', target: '[data-tour="guided-steps"]', placement: 'right' },
           { key: 'current', target: '[data-tour="guided-current"]', placement: 'right' },
-          { key: 'switch', target: '[data-tour="mode-switcher"]', placement: 'top' },
-          { key: 'done', celebrate: true },
-        ];
-      case 'chat':
-        return [
-          { key: 'welcome' },
-          { key: 'composer', target: '[data-tour="chat-composer"]', placement: 'top' },
-          { key: 'conversations', target: '[data-tour="chat-sidebar"]', placement: 'right' },
-          { key: 'export', target: '[data-tour="chat-export"]', placement: 'bottom' },
           { key: 'switch', target: '[data-tour="mode-switcher"]', placement: 'top' },
           { key: 'done', celebrate: true },
         ];

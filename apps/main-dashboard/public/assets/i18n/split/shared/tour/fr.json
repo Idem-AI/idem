@@ -27,37 +27,11 @@
       },
       "switch": {
         "title": "Changer de mode, quand vous voulez",
-        "body": "Ce bouton bascule entre l'accompagnement pas à pas, le chat et le tableau de bord complet. Votre projet et vos documents ne bougent pas d'un poil."
+        "body": "Ce bouton bascule entre l'accompagnement pas à pas et le tableau de bord complet. Votre projet et vos documents ne bougent pas d'un poil."
       },
       "done": {
         "title": "Vous êtes prêt !",
         "body": "Il ne reste qu'à commencer. Et si vous vous sentez à l'étroit, le sélecteur de mode est votre porte de sortie."
-      }
-    },
-    "chat": {
-      "welcome": {
-        "title": "Bienvenue ! On fait le tour ?",
-        "body": "Quelques secondes pour repérer l’essentiel du mode Chat."
-      },
-      "composer": {
-        "title": "Dites ce dont vous avez besoin",
-        "body": "Écrivez comme à un conseiller : « fais-moi un business plan », « propose-moi des couleurs ». IDEM comprend et produit le document."
-      },
-      "conversations": {
-        "title": "Vos échanges, rangés",
-        "body": "Chaque conversation est classée par thème — marque, finances, juridique. Vous retrouvez d'un coup d'œil ce que vous avez déjà demandé."
-      },
-      "export": {
-        "title": "Tout récupérer",
-        "body": "Ce bouton télécharge en une fois tous les documents produits pour ce projet, en PDF."
-      },
-      "switch": {
-        "title": "Changer de mode, quand vous voulez",
-        "body": "Ce bouton bascule entre l'accompagnement pas à pas, le chat et le tableau de bord complet. Votre projet et vos documents ne bougent pas d'un poil."
-      },
-      "done": {
-        "title": "Vous êtes prêt !",
-        "body": "Posez votre première question, IDEM s’occupe du reste."
       }
     },
     "advanced": {
@@ -67,7 +41,7 @@
       },
       "switch": {
         "title": "Changer de mode, quand vous voulez",
-        "body": "Ce bouton bascule entre l'accompagnement pas à pas, le chat et le tableau de bord complet. Votre projet et vos documents ne bougent pas d'un poil."
+        "body": "Ce bouton bascule entre l'accompagnement pas à pas et le tableau de bord complet. Votre projet et vos documents ne bougent pas d'un poil."
       },
       "done": {
         "title": "Vous êtes prêt !",

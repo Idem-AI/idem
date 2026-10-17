@@ -1,11 +1,11 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { UiMode } from '../../../modules/chat/models/chat.model';
+import { UiMode } from '../../models/ui-mode.model';
 
 /**
- * Illustrations SVG des trois modes d'interface, chacune un objet de la
+ * Illustrations SVG des deux modes d'interface, chacune un objet de la
  * culture africaine (AGENTS.md § 4) : l'échelle dogon pour le mode assisté,
- * le tambour parleur pour le chat, le plateau d'awalé pour le mode avancé.
+ * le plateau d'awalé pour le tableau de bord.
  *
  * Dessinées au trait en `currentColor` : elles suivent le thème clair/sombre
  * et la couleur primaire du produit.

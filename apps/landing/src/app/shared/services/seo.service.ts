@@ -19,6 +19,7 @@ import {
 } from '@idem/shared-seo';
 import { environment } from '../../../environments/environment';
 import { pageSeoText } from '../seo/page-seo';
+import type { BlogPost } from '../models/blog.model';
 
 /**
  * Le référencement du landing, piloté par le routeur.
@@ -125,6 +126,76 @@ export class SeoService {
     );
   }
 
+  /**
+   * Le référencement d'un billet de blog, connu seulement une fois le billet
+   * lu : il remplace ce que `apply('blog')` avait posé à la navigation.
+   *
+   * Un billet n'existe que dans sa langue : pas d'alternative `hreflang` vers
+   * une traduction qui n'existe peut-être pas, et l'image de partage est sa
+   * couverture, à défaut celle du blog.
+   */
+  applyPost(post: BlogPost): void {
+    const locale = this.locale();
+    const path = `/blog/${post.slug}`;
+    const url = landingUrl(path, locale);
+    const title = brandedTitle(post.title);
+    const fallback = ogImageUrl(LANDING_PAGES['blog'].og, locale);
+    const image = post.coverUrl?.startsWith('http') ? post.coverUrl : fallback;
+    const imageAlt = post.coverAlt || post.title;
+
+    this.title.setTitle(title);
+    this.name('description', post.excerpt);
+    this.name('robots', 'index, follow, max-image-preview:large, max-snippet:-1');
+
+    this.property('og:type', 'article');
+    this.property('og:site_name', IDEM.name);
+    this.property('og:url', url);
+    this.property('og:title', title);
+    this.property('og:description', post.excerpt);
+    this.property('og:image', image);
+    this.property('og:image:secure_url', image);
+    this.property('og:image:alt', imageAlt);
+    this.property('og:locale', OG_LOCALE[locale]);
+    this.property('article:published_time', post.publishedAt);
+    this.property('article:modified_time', post.updatedAt);
+
+    this.name('twitter:card', 'summary_large_image');
+    this.name('twitter:title', title);
+    this.name('twitter:description', post.excerpt);
+    this.name('twitter:image', image);
+    this.name('twitter:image:alt', imageAlt);
+
+    this.links(path, url, [locale]);
+
+    this.jsonLd(
+      jsonLdString(
+        buildPageGraph({
+          locale,
+          url,
+          title,
+          description: post.excerpt,
+          image,
+          imageAlt,
+          about: 'platform',
+          site: 'idem',
+          pageType: 'WebPage',
+          breadcrumbs: [
+            { name: IDEM.name, url: landingUrl('', locale) },
+            { name: pageSeoText('blog', locale).crumb, url: landingUrl('/blog', locale) },
+            { name: post.title, url },
+          ],
+          article: {
+            headline: post.title,
+            datePublished: post.publishedAt,
+            dateModified: post.updatedAt,
+            authorName: post.authorName,
+            tags: post.tags,
+          },
+        }),
+      ),
+    );
+  }
+
   private name(name: string, content: string): void {
     this.meta.updateTag({ name, content });
   }
@@ -134,7 +205,7 @@ export class SeoService {
   }
 
   /** L'URL canonique et les versions de la page dans chaque langue. */
-  private links(path: string | null, url: string): void {
+  private links(path: string | null, url: string, locales: readonly SeoLocale[] = SEO_LOCALES): void {
     const head = this.doc.head;
     head.querySelectorAll('link[rel="canonical"], link[rel="alternate"][hreflang]').forEach((l) => l.remove());
     if (path === null) return;
@@ -145,8 +216,9 @@ export class SeoService {
       head.appendChild(link);
     };
     add({ rel: 'canonical', href: url });
-    SEO_LOCALES.forEach((l) => add({ rel: 'alternate', hreflang: l, href: landingUrl(path, l) }));
-    add({ rel: 'alternate', hreflang: 'x-default', href: landingUrl(path, 'en') });
+    locales.forEach((l) => add({ rel: 'alternate', hreflang: l, href: landingUrl(path, l) }));
+    // Une seule langue : elle est aussi la valeur par défaut.
+    add({ rel: 'alternate', hreflang: 'x-default', href: landingUrl(path, locales.includes('en') ? 'en' : locales[0]) });
   }
 
   /** Un seul graphe par page, remplacé à chaque navigation. */

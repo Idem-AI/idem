@@ -1,22 +1,21 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { UiMode } from '../../modules/chat/models/chat.model';
+import { UiMode } from '../models/ui-mode.model';
 
 const UI_MODE_STORAGE_KEY = 'idem_ui_mode';
 
 /** Route d'accueil de chaque mode (utilisée par le sélecteur de mode). */
 export const MODE_HOME_ROUTE: Record<UiMode, string> = {
   advanced: '/project/dashboard',
-  chat: '/chat',
   guided: '/guided',
 };
 
 /**
- * Gère le mode d'interface (Assisté / Chat / Avancé).
+ * Gère le mode d'interface (Assisté / Tableau de bord).
  *
- * Le mode Avancé reste le mode par défaut : personne ne bascule dans un autre
- * mode sans l'avoir explicitement choisi. La préférence est mémorisée mais ne
- * déclenche jamais de redirection automatique au chargement.
+ * Le tableau de bord reste le mode par défaut : personne ne bascule dans
+ * l'autre mode sans l'avoir explicitement choisi. La préférence est mémorisée
+ * mais ne déclenche jamais de redirection automatique au chargement.
  */
 @Injectable({ providedIn: 'root' })
 export class UiModeService {
@@ -26,8 +25,8 @@ export class UiModeService {
 
   private readStoredMode(): UiMode {
     try {
-      const stored = localStorage.getItem(UI_MODE_STORAGE_KEY);
-      return stored === 'chat' || stored === 'guided' ? stored : 'advanced';
+      // Toute autre valeur (dont l'ancien mode retiré) retombe sur le tableau de bord.
+      return localStorage.getItem(UI_MODE_STORAGE_KEY) === 'guided' ? 'guided' : 'advanced';
     } catch {
       return 'advanced';
     }
@@ -54,18 +53,13 @@ export class UiModeService {
     this.router.navigateByUrl(targetRoute ?? MODE_HOME_ROUTE[mode]);
   }
 
-  /** Bascule vers le mode Chat. */
-  switchToChat(): void {
-    this.switchTo('chat');
-  }
-
   /** Bascule vers le mode Assisté (parcours guidé). */
   switchToGuided(): void {
     this.switchTo('guided');
   }
 
   /**
-   * Bascule vers le mode Avancé.
+   * Bascule vers le tableau de bord.
    * @param targetRoute route cible (par défaut le dashboard du projet actif)
    */
   switchToAdvanced(targetRoute = MODE_HOME_ROUTE.advanced): void {
@@ -77,23 +71,10 @@ export class UiModeService {
    *
    * En mode Assisté on ramène au parcours : l'utilisateur voit son étape se
    * cocher et découvre la suivante, au lieu d'être laissé sur une page de
-   * résultat sans savoir quoi faire ensuite. Les autres modes gardent leur
+   * résultat sans savoir quoi faire ensuite. Le tableau de bord garde sa
    * destination habituelle.
    */
   completeStep(defaultRoute: string): void {
     this.router.navigateByUrl(this.mode() === 'guided' ? MODE_HOME_ROUTE.guided : defaultRoute);
-  }
-
-  /**
-   * "Ouvrir dans l'éditeur" depuis une carte de livrable.
-   * Depuis le mode Assisté on n'abandonne pas le parcours : on ouvre la page
-   * en gardant le mode courant, seul le mode Chat repasse en Avancé.
-   */
-  openInEditor(editorRoute: string): void {
-    if (this.mode() === 'guided') {
-      this.router.navigateByUrl(editorRoute);
-      return;
-    }
-    this.switchToAdvanced(editorRoute);
   }
 }

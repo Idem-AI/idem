@@ -31,8 +31,8 @@ export class CurrentProjectService {
   readonly projects = this._projects.asReadonly();
   readonly isLoaded = this._isLoaded.asReadonly();
   /**
-   * Identifiant du projet ouvert. Lu par les modes qui travaillent avec
-   * l'identifiant plutôt qu'avec l'objet (le chat interroge l'API par id avant
+   * Identifiant du projet ouvert. Lu par les écrans qui travaillent avec
+   * l'identifiant plutôt qu'avec l'objet (ils interrogent l'API par id avant
    * même que la liste soit revenue).
    */
   readonly selectedId = this._selectedId.asReadonly();
@@ -110,9 +110,9 @@ export class CurrentProjectService {
    * Remplace (ou ajoute) un projet dans la liste.
    *
    * Le détail complet d'un projet — `analysisResultModel`, donc l'état réel de
-   * chaque livrable — n'arrive qu'à la demande. Quel que soit le mode qui le
-   * demande, il est reversé ici : sans cela, générer un business plan dans le
-   * chat laissait le tableau de bord afficher l'ancien état jusqu'au prochain
+   * chaque livrable — n'arrive qu'à la demande. Quel que soit l'écran qui le
+   * demande, il est reversé ici : sans cela, générer un business plan
+   * laissait le tableau de bord afficher l'ancien état jusqu'au prochain
    * rechargement.
    */
   upsert(project: ProjectModel): void {

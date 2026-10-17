@@ -10,15 +10,14 @@ import {
 import { TranslateModule } from '@ngx-translate/core';
 import { ModeIllustrationComponent } from '../../../../../../shared/components/mode-illustration/mode-illustration';
 import { OnboardingSurveyService } from '../../../../../../shared/services/onboarding-survey.service';
-import { UiMode } from '../../../../../chat/models/chat.model';
+import { UiMode } from '../../../../../../shared/models/ui-mode.model';
 
 /**
  * Mode d'accompagnement choisi à la création :
  * - `guided` : parcours assisté, étape par étape (débutants)
- * - `chat`   : conversation avec l'assistant
- * - `form`   : formulaire puis tableau de bord complet
+ * - `form`   : tableau de bord complet
  */
-export type CreateMode = 'chat' | 'form' | 'guided';
+export type CreateMode = 'form' | 'guided';
 
 interface ModeCard {
   mode: CreateMode;
@@ -29,7 +28,6 @@ interface ModeCard {
 
 const MODE_CARDS: readonly ModeCard[] = [
   { mode: 'guided', uiMode: 'guided', i18nKey: 'guided' },
-  { mode: 'chat', uiMode: 'chat', i18nKey: 'chat' },
   { mode: 'form', uiMode: 'advanced', i18nKey: 'form' },
 ];
 
@@ -56,9 +54,7 @@ export class ModeChoiceComponent implements OnInit {
    */
   protected readonly recommendedMode = computed<CreateMode>(() => {
     const preferred = this.survey.selectedMode() ?? this.survey.recommendedMode();
-    if (preferred === 'chat') return 'chat';
-    if (preferred === 'advanced') return 'form';
-    return 'guided';
+    return preferred === 'advanced' ? 'form' : 'guided';
   });
 
   /** La mise en avant s'appuie-t-elle sur les réponses de l'utilisateur ? */

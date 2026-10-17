@@ -1,0 +1,16 @@
+{
+  "locale": "fr",
+  "translations": {
+    "blog-post-page.back": "Tous les billets",
+    "blog-post-page.by": "Par {$author}",
+    "blog-post-page.toc.title": "Sur cette page",
+    "blog-post-page.share.title": "Partager",
+    "blog-post-page.share.copy": "Copier le lien",
+    "blog-post-page.share.copied": "Lien copié",
+    "blog-post-page.share.copied.sr": "Lien copié",
+    "blog-post-page.related.title": "À lire aussi",
+    "blog-post-page.notfound.title": "Ce billet n'existe pas",
+    "blog-post-page.notfound.body": "Il a peut-être été renommé, ou il n'est pas encore publié.",
+    "blog-post-page.notfound.back": "Retour au blog"
+  }
+}

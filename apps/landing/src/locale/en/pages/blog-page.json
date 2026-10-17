@@ -1,0 +1,26 @@
+{
+  "locale": "en",
+  "translations": {
+    "blog-page.hero.line1": "What we build,",
+    "blog-page.hero.line2": "what we learn",
+    "blog-page.hero.lede": "Product news, release notes and lessons from the team building IDEM.",
+    "blog-page.rss": "RSS feed",
+    "blog-page.filter.all": "All",
+    "blog-page.filter.article": "Articles",
+    "blog-page.filter.release": "Release notes",
+    "blog-page.filter.aria": "Filter posts",
+    "blog-page.tags.aria": "Topics",
+    "blog-page.reading": "{$n} min read",
+    "blog-page.error.title": "We could not load the blog",
+    "blog-page.error.body": "The connection may have dropped. Nothing is lost: try again.",
+    "blog-page.error.retry": "Try again",
+    "blog-page.empty.title": "Nothing published yet",
+    "blog-page.empty.body": "The first articles and release notes will appear here.",
+    "blog-page.filtered.title": "No post matches this filter",
+    "blog-page.filtered.reset": "Show everything",
+    "blog-page.pagination.aria": "Pagination",
+    "blog-page.pagination.previous": "Previous",
+    "blog-page.pagination.next": "Next",
+    "blog-page.pagination.status": "Page {$n} of {$p}"
+  }
+}
