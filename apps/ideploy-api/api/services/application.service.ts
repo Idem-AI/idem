@@ -670,6 +670,37 @@ export async function execCommand(
   return { exitCode: r.exitCode, output: r.stdout + r.stderr };
 }
 
+/** Lines a logs request returns at most, and the bytes they may weigh. */
+const LOGS_MAX_LINES = 2000;
+const LOGS_MAX_BYTES = 1_000_000;
+
+/**
+ * What the application's running container printed — its stdout and stderr,
+ * with Docker's timestamps. The container is found by its label (its name is
+ * `<name>-<uuid>`); a stopped one still has its last logs.
+ */
+export async function runtimeLogs(
+  teamId: number,
+  uuid: string,
+  opts: { tail?: number; since?: string } = {}
+): Promise<{ container: string | null; logs: string }> {
+  const { server, key } = await resolveAppServer(teamId, uuid);
+  const tail = Math.min(Math.max(Math.floor(opts.tail ?? 500), 1), LOGS_MAX_LINES);
+  // `since`: an RFC 3339 date Docker accepts, nothing else reaches the shell.
+  const since = opts.since && /^\d{4}-\d{2}-\d{2}T[\d:.]+(Z|[+-]\d{2}:\d{2})$/.test(opts.since) ? ` --since ${shellQuote(opts.since)}` : '';
+  const r = await executeRemoteCommand(
+    server,
+    key,
+    `C=$(docker ps -a --filter label=ideploy.applicationUuid=${shellQuote(uuid)} --format '{{.Names}}' | head -1); ` +
+      `if [ -z "$C" ]; then echo '@@NONE'; else echo "@@C $C"; docker logs --timestamps --tail ${tail}${since} "$C" 2>&1 | tail -c ${LOGS_MAX_BYTES}; fi`,
+    { noRetry: true }
+  );
+  const firstLine = r.stdout.slice(0, r.stdout.indexOf('\n') + 1 || undefined);
+  if (firstLine.startsWith('@@NONE')) return { container: null, logs: '' };
+  const container = /^@@C (\S+)/.exec(firstLine)?.[1] ?? null;
+  return { container, logs: r.stdout.slice(firstLine.length) };
+}
+
 /** Resolve the server (via destination) hosting an application. */
 export async function getApplicationServer(
   applicationId: number

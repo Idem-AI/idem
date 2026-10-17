@@ -143,8 +143,19 @@ async function resolveTarget(
   const key = await serverService.getPrivateKey(teamId, server.private_key_id);
   if (!key) throw notFound('The private key configured for this server');
 
-  // Container naming follows the deployment convention: `<app-uuid>`.
-  return { server, key, containerName: String(rows[0].uuid) };
+  // The container is named `<name>-<uuid>`, not `<uuid>`: found by its label,
+  // as `exec` does — the terminal looked for a container that never existed.
+  const uuid = String(rows[0].uuid);
+  if (!/^[A-Za-z0-9-]+$/.test(uuid)) throw unprocessable('TERMINAL_BAD_TARGET', 'This resource cannot be attached to.');
+  return {
+    server,
+    key,
+    containerName: null,
+    command:
+      `C=$(docker ps --filter label=ideploy.applicationUuid=${uuid} --format '{{.Names}}' | head -1); ` +
+      `if [ -z "$C" ]; then echo 'The application is not running: no container to attach to.'; exit 1; fi; ` +
+      `exec docker exec -it "$C" sh -c 'command -v bash >/dev/null && exec bash || exec sh'`,
+  };
 }
 
 /**

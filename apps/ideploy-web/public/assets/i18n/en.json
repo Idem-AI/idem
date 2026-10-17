@@ -524,7 +524,8 @@
         "insights": "Performance",
         "settings": "Settings",
         "domain": "Domain name",
-        "more": "More"
+        "more": "More",
+        "logs": "Logs"
       },
       "previewTitle": "Preview of the live site",
       "noPreview": "The preview appears after the first deployment.",
@@ -682,6 +683,18 @@
         "weekly": "Every Monday at midnight",
         "monthly": "On the 1st of every month",
         "custom": "Custom (cron format)"
+      },
+      "logs": {
+        "title": "Application logs",
+        "hint": "What the running application prints, live.",
+        "filter": "Filter lines",
+        "lines": "Number of lines",
+        "lastLines": "Last {{count}} lines",
+        "follow": "Follow",
+        "pause": "Pause",
+        "notRunning": "The application is not running: no container to read. Deploy it, or check the latest deployment.",
+        "empty": "Nothing printed yet.",
+        "failed": "The logs could not be read."
       }
     },
     "domain": {

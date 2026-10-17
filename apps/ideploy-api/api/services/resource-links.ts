@@ -155,3 +155,52 @@ export function targetKindOf(type: string): keyof LinkTargets | null {
   if (type === 'clickhouse') return null;
   return 'database';
 }
+
+// ─── The application's own settings ─────────────────────────────────────────
+
+/** Variables that hold the application's own public address. */
+const SELF_URL = /^(?:APP_URL|BASE_URL|SITE_URL|PUBLIC_URL|NEXTAUTH_URL|AUTH_URL|NEXT_PUBLIC_SITE_URL|NEXT_PUBLIC_APP_URL|NEXT_PUBLIC_BASE_URL)$/i;
+/** Secrets an application generates once and keeps: random when left empty or an example. */
+const SECRETS: { key: RegExp; format: 'laravel' | 'hex64' | 'hex32' | 'django' }[] = [
+  { key: /^APP_KEY$/i, format: 'laravel' },
+  { key: /^SECRET_KEY_BASE$/i, format: 'hex64' },
+  { key: /^(?:DJANGO_)?SECRET_KEY$/i, format: 'django' },
+  { key: /^(?:JWT_SECRET|JWT_SECRET_KEY|SESSION_SECRET|COOKIE_SECRET|NEXTAUTH_SECRET|AUTH_SECRET|APP_SECRET)$/i, format: 'hex32' },
+];
+
+/** A secret in the format its framework expects, from `random(bytes)` (crypto.randomBytes). */
+function secretOf(format: (typeof SECRETS)[number]['format'], random: (bytes: number) => Buffer): string {
+  if (format === 'laravel') return `base64:${random(32).toString('base64')}`;
+  if (format === 'hex64') return random(64).toString('hex');
+  if (format === 'django') return random(40).toString('base64').replace(/[+/=]/g, '').slice(0, 50);
+  return random(32).toString('hex');
+}
+
+/**
+ * The settings an example file leaves for a developer's machine, made right
+ * for this deployment: its public address instead of localhost, production
+ * instead of local, no debug pages (a Laravel APP_DEBUG=true shows stack
+ * traces and variables to anyone), and the secrets left empty generated —
+ * without APP_KEY, Laravel answers every request with an error 500.
+ * A value the user set is kept.
+ */
+export function applicationDefaults(
+  variables: LinkedVariable[],
+  opts: { appUrl: string | null; random: (bytes: number) => Buffer }
+): LinkedVariable[] {
+  const has = (key: string) => variables.some((v) => v.key.toUpperCase() === key);
+  const laravel = has('APP_KEY');
+  return variables.map((v) => {
+    if (v.linkedTo) return v;
+    const key = v.key.toUpperCase();
+    const value = (v.value ?? '').trim();
+    if (opts.appUrl && SELF_URL.test(key) && isPlaceholder(value)) return { ...v, value: opts.appUrl, linkedTo: 'this application' };
+    if (key === 'APP_ENV' && /^(local|dev|development)$/i.test(value)) return { ...v, value: 'production', linkedTo: 'production' };
+    if (laravel && key === 'APP_DEBUG' && /^(true|1)$/i.test(value)) return { ...v, value: 'false', linkedTo: 'production' };
+    const secret = SECRETS.find((s) => s.key.test(key));
+    if (secret && (!value || /^(?:secret|changeme|change_me|change-me|your[-_].*|<[^>]+>|x{3,}|django-insecure.*|base64:)$/i.test(value))) {
+      return { ...v, value: secretOf(secret.format, opts.random), linkedTo: 'generated' };
+    }
+    return v;
+  });
+}

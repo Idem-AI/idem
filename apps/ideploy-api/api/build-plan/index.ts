@@ -92,6 +92,7 @@ export function describePlan(plan: BuildPlanResult, effective: { install?: strin
   if (build) lines.push(`Build:   ${build}`);
   if (start) lines.push(`Start:   ${start}`);
   if (plan.output === 'static' && plan.publishDirectory) lines.push(`Serves:  ${joinPath(plan.buildRoot, plan.publishDirectory)} (nginx)`);
+  if (plan.release) lines.push(`Release: ${plan.release} (before going live; IDEPLOY_RELEASE_COMMAND changes or turns it off)`);
   for (const issue of plan.issues) {
     const mark = issue.severity === 'blocking' ? '✗' : issue.severity === 'warning' ? '⚠' : 'ℹ';
     lines.push(`${mark} ${issue.message}`);
