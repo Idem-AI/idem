@@ -31,6 +31,7 @@ const CREDENTIAL_COLUMNS: Record<DatabaseType, string[]> = {
   keydb: ['keydb_password'],
   dragonfly: ['dragonfly_password'],
   clickhouse: ['clickhouse_admin_user', 'clickhouse_admin_password'],
+  rabbitmq: ['rabbitmq_user', 'rabbitmq_password'],
 };
 
 type ResourceStatus = 'idle' | 'creating' | 'starting' | 'started' | 'start-failed';

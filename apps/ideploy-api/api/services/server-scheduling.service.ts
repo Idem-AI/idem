@@ -182,6 +182,7 @@ const HOSTED_RESOURCES_SQL = (() => {
     'standalone_keydbs',
     'standalone_dragonflies',
     'standalone_clickhouses',
+    'standalone_rabbitmqs',
   ];
   return [
     viaDestination('applications', 'r.limits_memory'),

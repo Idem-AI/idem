@@ -22,8 +22,15 @@ const DATABASE_URL_KEY = new RegExp(
   'i'
 );
 
-/** Deliberately separate from the SQL matcher above — a 3-tier guide step can create both a primary database and a Redis cache, and `DATABASE_URL`/`REDIS_URL` must never link to each other's resource. */
-const REDIS_URL_KEY = /^(REDIS_URL|REDIS_URI|CACHE_URL|CACHE_URI)$/i;
+/**
+ * Deliberately separate from the SQL matcher above — a 3-tier guide step can
+ * create both a primary database and a Redis cache, and `DATABASE_URL`/`REDIS_URL`
+ * must never link to each other's resource. Redis and what runs on it: cache,
+ * sessions, BullMQ, Sidekiq, Celery's result backend (the same rule as the
+ * API's resource-links.ts, which links them at deployment).
+ */
+const REDIS_URL_KEY =
+  /^(?:[A-Z0-9]+_)*(?:REDIS|CACHE|KV|VALKEY|KEYDB|DRAGONFLY|BULL|BULLMQ|SIDEKIQ|SESSION_STORE)(?:_[A-Z0-9]+)*_(?:URL|URI|DSN|CONNECTION_STRING)$|^REDIS_TLS_URL$|^CELERY_RESULT_BACKEND$/i;
 
 export function isDatabaseUrlKey(key: string): boolean {
   return DATABASE_URL_KEY.test(key.trim());
