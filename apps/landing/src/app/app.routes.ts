@@ -79,6 +79,12 @@ export const routes: Routes = [
 
   // Policy pages
   {
+    path: 'delete-account',
+    loadComponent: () =>
+      import('./shared/components/delete-account/delete-account').then((m) => m.DeleteAccount),
+    data: { layout: 'public', seo: 'delete-account' },
+  },
+  {
     path: 'privacy-policy',
     loadComponent: () =>
       import('./shared/components/privacy-policy/privacy-policy').then((m) => m.PrivacyPolicy),

@@ -1,10 +1,12 @@
 import { Response, Router } from 'express';
 import { CustomRequest } from '../interfaces/express.interface';
 import {
+  cancelAccountDeletionController,
   getOnboardingProfileController,
   getToursSeenController,
   markTourSeenController,
   profileController,
+  requestAccountDeletionController,
   saveOnboardingProfileController,
 } from '../controllers/user.controller';
 import { authenticate } from '../services/auth.service';
@@ -132,3 +134,11 @@ userRoutes.put('/onboarding-profile', authenticate, saveOnboardingProfileControl
  */
 userRoutes.get('/tours', authenticate, getToursSeenController);
 userRoutes.post('/tours', authenticate, markTourSeenController);
+
+/**
+ * Demande de suppression de compte.
+ * La suppression est planifiée 180 jours après la demande.
+ * L'utilisateur peut annuler en se reconnectant avant l'échéance.
+ */
+userRoutes.post('/account/delete', authenticate, requestAccountDeletionController);
+userRoutes.post('/account/delete/cancel', authenticate, cancelAccountDeletionController);

@@ -90,4 +90,21 @@ export class AuthService {
   isAuthenticated(): boolean {
     return this.currentUserSubject.value !== null;
   }
+
+  /**
+   * Demander la suppression du compte.
+   * Le compte n'est pas supprimé immédiatement : une période de grâce de
+   * 6 mois est appliquée côté serveur.
+   */
+  async requestAccountDeletion(reason: string, details?: string): Promise<void> {
+    if (!isPlatformBrowser(this.platformId)) return;
+
+    await firstValueFrom(
+      this.http.post(
+        `${environment.services.api.url}/auth/account/delete`,
+        { reason, details },
+        { withCredentials: true },
+      ),
+    );
+  }
 }

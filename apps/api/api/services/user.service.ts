@@ -1,5 +1,5 @@
 import logger from '../config/logger';
-import { OnboardingProfile, UserModel } from '../models/userModel';
+import { AccountDeletionRequest, OnboardingProfile, UserModel } from '../models/userModel';
 import { IRepository } from '../repository/IRepository';
 import { RepositoryFactory } from '../repository/RepositoryFactory';
 
@@ -170,6 +170,56 @@ class UserService {
   async getUserEmail(userId: string): Promise<string | undefined> {
     const user = await this.userRepository.findById(userId, 'users');
     return user?.email;
+  }
+
+  /**
+   * Enregistre une demande de suppression de compte.
+   * La suppression effective est planifiée 180 jours plus tard.
+   * Si une demande existe déjà, elle est renvoyée telle quelle (idempotent).
+   */
+  async requestAccountDeletion(
+    userId: string,
+    reason: string,
+    details?: string,
+  ): Promise<AccountDeletionRequest> {
+    const user = await this.userRepository.findById(userId, 'users');
+    if (!user) throw new Error(`User ${userId} not found`);
+
+    if (user.deletionRequest) {
+      logger.info(`Deletion already requested for user ${userId}`);
+      return user.deletionRequest;
+    }
+
+    const requestedAt = new Date();
+    const scheduledAt = new Date(requestedAt.getTime() + 180 * 24 * 60 * 60 * 1000);
+
+    const deletionRequest: AccountDeletionRequest = {
+      requestedAt,
+      scheduledAt,
+      reason,
+      ...(details ? { details } : {}),
+    };
+
+    await this.userRepository.update(userId, { deletionRequest }, 'users');
+    logger.info(`Account deletion scheduled for user ${userId}`, {
+      scheduledAt: scheduledAt.toISOString(),
+      reason,
+    });
+
+    return deletionRequest;
+  }
+
+  /**
+   * Annule une demande de suppression en cours.
+   * L'utilisateur s'est reconnecté dans le délai de grâce.
+   */
+  async cancelAccountDeletion(userId: string): Promise<void> {
+    const user = await this.userRepository.findById(userId, 'users');
+    if (!user) throw new Error(`User ${userId} not found`);
+    if (!user.deletionRequest) return;
+
+    await this.userRepository.update(userId, { deletionRequest: null as any }, 'users');
+    logger.info(`Account deletion cancelled for user ${userId}`);
   }
 
 }

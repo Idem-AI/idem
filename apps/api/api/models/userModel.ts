@@ -99,6 +99,19 @@ export interface UserModel {
   sessionsRevokedAt?: Date;
   /** Compte repris de l'ancien système d'authentification. */
   authMigration?: AuthMigrationStatus;
+  /** Demande de suppression de compte en cours. */
+  deletionRequest?: AccountDeletionRequest;
+}
+
+export interface AccountDeletionRequest {
+  /** Date à laquelle la demande a été soumise. */
+  requestedAt: Date;
+  /** Date d'exécution effective (180 jours après la demande). */
+  scheduledAt: Date;
+  /** Motif déclaré par l'utilisateur. */
+  reason: string;
+  /** Précision optionnelle (motif "autre"). */
+  details?: string;
 }
 
 export interface AuthMigrationStatus {
