@@ -16,7 +16,10 @@ export function pythonDockerfile(recipe: PythonRecipe, buildArgKeys: string[] = 
   // The virtualenv lives at the same path in both stages: its scripts point there.
   const env =
     'ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PIP_DISABLE_PIP_VERSION_CHECK=1 PIP_DEFAULT_TIMEOUT=100 ' +
-    'VIRTUAL_ENV=/opt/venv PATH=/opt/venv/bin:$PATH UV_PROJECT_ENVIRONMENT=/opt/venv UV_LINK_MODE=copy POETRY_VIRTUALENVS_CREATE=false';
+    'VIRTUAL_ENV=/opt/venv PATH=/opt/venv/bin:$PATH UV_PROJECT_ENVIRONMENT=/opt/venv UV_LINK_MODE=copy POETRY_VIRTUALENVS_CREATE=false ' +
+    // gunicorn and uvicorn trust X-Forwarded-Proto from the proxy (the only
+    // one that can reach the container): Django, Flask, FastAPI see https.
+    'FORWARDED_ALLOW_IPS=*';
   const caches =
     '--mount=type=cache,id=ideploy-pip,target=/root/.cache/pip --mount=type=cache,id=ideploy-uv,target=/root/.cache/uv ' +
     '--mount=type=cache,id=ideploy-poetry,target=/root/.cache/pypoetry';
@@ -71,7 +74,12 @@ export function phpDockerfile(recipe: PhpRecipe, buildArgKeys: string[] = [], re
       "sed -ri -e 's/^Listen 80$/Listen ${PORT}/' /etc/apache2/ports.conf && " +
       "sed -ri -e 's/<VirtualHost \\*:80>/<VirtualHost *:${PORT}>/' /etc/apache2/sites-available/000-default.conf && " +
       "printf '<Directory ${APACHE_DOCUMENT_ROOT}>\\n    AllowOverride All\\n    Require all granted\\n</Directory>\\n' > /etc/apache2/conf-available/ideploy.conf && " +
-      'a2enconf ideploy && a2enmod rewrite headers',
+      // Behind the proxy, which ends HTTPS: PHP is told the request was https
+      // (else Laravel and Symfony write http:// asset and form URLs, which the
+      // browser blocks on an https page — a page without its CSS), and sees
+      // the visitor's address rather than the proxy's.
+      "printf 'SetEnvIf X-Forwarded-Proto \"^https$\" HTTPS=on\\nRemoteIPHeader X-Forwarded-For\\nRemoteIPInternalProxy 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16\\n' > /etc/apache2/conf-available/ideploy-proxy.conf && " +
+      'a2enconf ideploy ideploy-proxy && a2enmod rewrite headers remoteip',
     // Composer needs git (VCS dependencies) and unzip.
     runtimeLibraries(['git', 'unzip']),
     'COPY --from=mlocati/php-extension-installer:2 /usr/bin/install-php-extensions /usr/local/bin/',
@@ -165,7 +173,8 @@ export function dotnetDockerfile(recipe: DotnetRecipe, buildArgKeys: string[] = 
     `FROM mcr.microsoft.com/dotnet/${recipe.web ? 'aspnet' : 'runtime'}:${recipe.version}`,
     'WORKDIR /app',
     'COPY --from=build /out .',
-    'ENV DOTNET_RUNNING_IN_CONTAINER=true',
+    // ASP.NET Core reads X-Forwarded-Proto/-For from the proxy: https URLs and redirects, the visitor's address.
+    'ENV DOTNET_RUNNING_IN_CONTAINER=true ASPNETCORE_FORWARDEDHEADERS_ENABLED=true',
     cmd(recipe.start),
     '',
   ].join('\n');
