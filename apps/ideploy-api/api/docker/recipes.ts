@@ -190,6 +190,8 @@ export function javaDockerfile(recipe: JavaRecipe, buildArgKeys: string[] = [], 
     'WORKDIR /app',
     'COPY --from=build /out/ ./',
     'ENV JAVA_OPTS="-XX:MaxRAMPercentage=75 -XX:+ExitOnOutOfMemoryError"',
+    // Spring and Quarkus read X-Forwarded-Proto/-For from the proxy: https URLs and redirects.
+    'ENV SERVER_FORWARD_HEADERS_STRATEGY=framework QUARKUS_HTTP_PROXY_PROXY_ADDRESS_FORWARDING=true QUARKUS_HTTP_PROXY_ALLOW_X_FORWARDED=true',
     'EXPOSE 8080',
     `CMD ["sh", "-c", ${json(`exec java ${flags ? `${flags} ` : ''}$JAVA_OPTS -jar ${jarPath}`)}]`,
     '',
