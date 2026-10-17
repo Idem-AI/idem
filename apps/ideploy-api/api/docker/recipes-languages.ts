@@ -75,7 +75,11 @@ export function phpDockerfile(recipe: PhpRecipe, buildArgKeys: string[] = [], re
     // Composer needs git (VCS dependencies) and unzip.
     runtimeLibraries(['git', 'unzip']),
     'COPY --from=mlocati/php-extension-installer:2 /usr/bin/install-php-extensions /usr/local/bin/',
-    `RUN install-php-extensions ${recipe.extensions.join(' ')}`,
+    // All at once (fast); if that fails, one at a time, so one extension that
+    // cannot build does not take the others down — Composer then says if the
+    // application really needs it.
+    `RUN install-php-extensions ${recipe.extensions.join(' ')} || { echo 'Installing the PHP extensions together failed: one at a time.'; ` +
+      `for e in ${recipe.extensions.join(' ')}; do install-php-extensions "$e" || echo "⚠ The PHP extension $e could not be installed."; done; }`,
     `COPY --from=${registry}composer:2 /usr/bin/composer /usr/bin/composer`,
     ...argLines(buildArgKeys),
     'COPY . .'

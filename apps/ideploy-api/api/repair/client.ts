@@ -32,16 +32,29 @@ export function repairAvailable(): boolean {
   return Boolean(process.env.INTERNAL_API_KEY) && process.env.IDEPLOY_AI_REPAIR !== 'off';
 }
 
-/** The proposal, or null when the platform cannot answer (never fails the deployment further). */
-export async function requestRepair(body: RepairRequestBody): Promise<RepairProposal | null> {
+/** Why the repair service did not answer, said so the operator can fix it. */
+export function unavailableReason(status: number | undefined, message: string | undefined): string {
+  if (status === 401 || status === 403) {
+    return "the IDEM API refused iDeploy's key: INTERNAL_API_KEY must hold the same value in the ideploy-api and api secrets";
+  }
+  if (status === 404) return 'the IDEM API has no repair route (not deployed yet)';
+  if (status === 400) return `the request was refused (${message ?? 'invalid'})`;
+  if (status) return `the IDEM API answered ${status}${message ? ` (${message})` : ''}`;
+  return message ?? 'no answer';
+}
+
+/** The proposal, or why there is none (never fails the deployment further). */
+export async function requestRepair(body: RepairRequestBody): Promise<{ proposal: RepairProposal | null; reason: string | null }> {
   try {
     const { data } = await axios.post(`${IDEM_API_URL}/internal/ideploy/repair`, body, {
       headers: { 'x-api-key': process.env.INTERNAL_API_KEY as string },
       timeout: 120_000,
     });
-    return (data?.data?.proposal as RepairProposal) ?? null;
+    const proposal = (data?.data?.proposal as RepairProposal) ?? null;
+    return { proposal, reason: proposal ? null : 'empty answer' };
   } catch (error: any) {
-    logger.warn('AI repair unavailable', { deploymentUuid: body.deploymentUuid, error: error?.response?.data?.message ?? error?.message });
-    return null;
+    const reason = unavailableReason(error?.response?.status, error?.response?.data?.message ?? (error?.code === 'ECONNABORTED' ? 'no answer within 120 s' : error?.message));
+    logger.warn('AI repair unavailable', { event: 'deployment.repair_unavailable', deploymentUuid: body.deploymentUuid, reason });
+    return { proposal: null, reason };
   }
 }
