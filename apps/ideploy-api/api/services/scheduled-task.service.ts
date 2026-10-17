@@ -8,6 +8,7 @@ import pool from '../config/db.config';
 import * as appService from './application.service';
 import * as serverService from './server.service';
 import { executeRemoteCommand, shellQuote } from '../ssh/ssh';
+import { appContainersCommand } from '../docker/compose';
 
 export interface ScheduledTask {
   id: number;
@@ -119,10 +120,8 @@ export async function runNow(teamId: number, uuid: string): Promise<{ success: b
   if (!appUuid) throw new Error('Application not found for this task');
 
   const nameFilter =
-    task.container && /^[A-Za-z0-9_.-]{1,128}$/.test(task.container)
-      ? ` --filter ${shellQuote(`name=^/?${task.container}$`)}`
-      : '';
-  const target = `$(docker ps --filter ${shellQuote(`label=ideploy.applicationUuid=${appUuid}`)}${nameFilter} --format '{{.Names}}' | head -1)`;
+    task.container && /^[A-Za-z0-9_.-]{1,128}$/.test(task.container) ? ` | grep -Fx ${shellQuote(task.container)}` : '';
+  const target = `$(${appContainersCommand(appUuid)}${nameFilter} | head -1)`;
   // Apostrophes et non `JSON.stringify` : des guillemets doubles laissaient le
   // shell de l'HÔTE évaluer `$(…)` avant `docker exec`.
   const cmd = `docker exec ${target} sh -c ${shellQuote(task.command)}`;

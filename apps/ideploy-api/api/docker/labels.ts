@@ -503,6 +503,8 @@ export function slug(value: string): string {
 
 export interface DefaultLabelInput {
   id: number;
+  /** Its uuid: how status, logs, the terminal and exec find the container again. */
+  uuid?: string;
   name: string;
   workspaceName: string;
   resourceName: string;
@@ -523,6 +525,7 @@ export function defaultLabels(input: DefaultLabelInput): string[] {
   return [
     'ideploy.managed=true',
     `ideploy.${type}Id=${input.id}`,
+    ...(input.uuid ? [`ideploy.${type}Uuid=${input.uuid}`] : []),
     `ideploy.type=${type}`,
     `ideploy.name=${input.name}`,
     `ideploy.resourceName=${slug(input.resourceName)}`,

@@ -12,7 +12,7 @@ import { claimPlatformHost, releasePlatformHost } from './platform-domain.servic
 import { ApplicationRow } from '../models/ideploy.types';
 import * as serverService from './server.service';
 import { executeRemoteCommand } from '../ssh/ssh';
-import { appWorkdir, composeCommand } from '../docker/compose';
+import { appContainersCommand, appWorkdir, composeCommand } from '../docker/compose';
 import { shellQuote } from '../ssh/ssh';
 import {
   isSafeBuildTarget,
@@ -552,7 +552,7 @@ export async function getContainerStatus(teamId: number, uuid: string): Promise<
   const r = await executeRemoteCommand(
     server,
     key,
-    `docker ps -a --filter label=ideploy.applicationUuid=${uuid} --format '{{.Names}}\\t{{.Status}}'`,
+    appContainersCommand(uuid, { all: true, format: '{{.Names}}\\t{{.Status}}' }),
     { noRetry: true }
   );
   return r.stdout.trim();
@@ -564,7 +564,7 @@ export async function getMetrics(teamId: number, uuid: string): Promise<string> 
   const r = await executeRemoteCommand(
     server,
     key,
-    `docker stats --no-stream --format '{{.Name}}\\t{{.CPUPerc}}\\t{{.MemUsage}}' $(docker ps --filter label=ideploy.applicationUuid=${uuid} -q)`,
+    `docker stats --no-stream --format '{{.Name}}\\t{{.CPUPerc}}\\t{{.MemUsage}}' $(${appContainersCommand(uuid, { format: '{{.ID}}' })})`,
     { noRetry: true }
   );
   return r.stdout.trim();
@@ -647,7 +647,7 @@ export async function getResourceUsage(teamId: number, uuid: string): Promise<Co
     server,
     key,
     `docker stats --no-stream --format '{{.Name}}\\t{{.CPUPerc}}\\t{{.MemUsage}}\\t{{.MemPerc}}\\t{{.NetIO}}' ` +
-      `$(docker ps --filter label=ideploy.applicationUuid=${uuid} -q)`,
+      `$(${appContainersCommand(uuid, { format: '{{.ID}}' })})`,
     { noRetry: true }
   );
   return parseDockerStats(r.stdout);
@@ -663,7 +663,7 @@ export async function execCommand(
   // `JSON.stringify` produit des guillemets DOUBLES : le shell de l'hôte y
   // évaluait `$(…)` et les backticks AVANT `docker exec`, donc sur le serveur
   // lui-même et non dans le conteneur. Les apostrophes n'interprètent rien.
-  const target = `$(docker ps --filter label=ideploy.applicationUuid=${shellQuote(uuid)} --format '{{.Names}}' | head -1)`;
+  const target = `$(${appContainersCommand(uuid)} | head -1)`;
   const r = await executeRemoteCommand(server, key, `docker exec ${target} sh -c ${shellQuote(command)}`, {
     noRetry: true,
   });
@@ -691,7 +691,7 @@ export async function runtimeLogs(
   const r = await executeRemoteCommand(
     server,
     key,
-    `C=$(docker ps -a --filter label=ideploy.applicationUuid=${shellQuote(uuid)} --format '{{.Names}}' | head -1); ` +
+    `C=$(${appContainersCommand(uuid, { all: true })} | head -1); ` +
       `if [ -z "$C" ]; then echo '@@NONE'; else echo "@@C $C"; docker logs --timestamps --tail ${tail}${since} "$C" 2>&1 | tail -c ${LOGS_MAX_BYTES}; fi`,
     { noRetry: true }
   );

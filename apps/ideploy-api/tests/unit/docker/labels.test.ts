@@ -366,6 +366,11 @@ describe('defaultLabels', () => {
 
     expect(labels).toContain('ideploy.pullRequestId=0');
   });
+
+  it('carries the uuid status, logs, exec and the terminal look the container up by', () => {
+    const labels = defaultLabels({ id: 53, uuid: '2d475d20-5dc8', name: 'x', workspaceName: 'w', resourceName: 'r', environment: 'production' });
+    expect(labels).toContain('ideploy.applicationUuid=2d475d20-5dc8');
+  });
 });
 
 describe('slug', () => {
