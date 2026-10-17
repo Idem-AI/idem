@@ -48,7 +48,8 @@ export interface RepoSnapshot {
  * One SSH round trip: the server's free memory and disk, the file list (5
  * levels, dependency and output folders skipped) and the configuration files
  * above, base64-encoded: 256 KB at most, the first 4 KB of a pnpm lockfile
- * (its format version is all the plan reads).
+ * (its format version is all the plan reads), composer.lock whole up to 2 MB
+ * (its packages' requirements are read as JSON).
  */
 export function snapshotCommand(dir: string): string {
   const prune = IGNORED_DIRS.map((d) => `-name ${shellQuote(d)}`).join(' -o ');
@@ -60,7 +61,7 @@ export function snapshotCommand(dir: string): string {
     `echo "@@DISK $(df -Pk . 2>/dev/null | awk 'NR==2{print int($4/1024)}')"; ` +
     `${walk} -print | head -8000 | sed 's|^\\./|@@F |'; ` +
     `${walk} \\( ${names} \\) -print | head -400 | while read -r f; do ` +
-    `case "$f" in *pnpm-lock.yaml) n=4096 ;; *) n=262144 ;; esac; ` +
+    `case "$f" in *pnpm-lock.yaml) n=4096 ;; *composer.lock) n=2097152 ;; *) n=262144 ;; esac; ` +
     `echo "@@C \${f#./} $(head -c $n "$f" | base64 -w0)"; done`
   );
 }
