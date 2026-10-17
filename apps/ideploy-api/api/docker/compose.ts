@@ -177,6 +177,25 @@ export function composeProject(app: Pick<ApplicationRow, 'uuid'>): string {
 }
 
 /**
+ * A shell command listing an application's containers, one `format` line each.
+ *
+ * Found two ways: the `ideploy.applicationUuid` label, and the compose project
+ * every deployment runs under (`composeProject`, the uuid). The label was long
+ * missing from deployed containers — status, metrics, logs, exec and the
+ * terminal all came back empty for a running application; the project finds
+ * those containers too, the ones a repository's own stack runs included.
+ */
+export function appContainersCommand(uuid: string, opts: { all?: boolean; format?: string } = {}): string {
+  if (!/^[A-Za-z0-9-]+$/.test(uuid)) throw new Error('Invalid application uuid');
+  const ps = `docker ps${opts.all ? ' -a' : ''}`;
+  const format = `--format '${opts.format ?? '{{.Names}}'}'`;
+  return (
+    `{ ${ps} --filter label=ideploy.applicationUuid=${uuid} ${format}; ` +
+    `${ps} --filter label=com.docker.compose.project=${uuid.toLowerCase()} ${format}; } 2>/dev/null | awk '!seen[$0]++'`
+  );
+}
+
+/**
  * Where the live compose file is, recorded by the deployment worker: the
  * application's directory for a generated file, the release's own directory for
  * a repository's compose file.

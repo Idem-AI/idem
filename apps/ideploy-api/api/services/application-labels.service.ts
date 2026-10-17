@@ -248,6 +248,7 @@ export function buildApplicationLabels(
 ): string[] {
   const labels = defaultLabels({
     id: app.id,
+    uuid: app.uuid,
     name: `${app.name}-${app.uuid}`.toLowerCase(),
     workspaceName: context.workspaceName,
     resourceName: app.name,

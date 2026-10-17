@@ -30,6 +30,7 @@ import { resolveCurrentTeam } from './user.service';
 import * as serverService from './server.service';
 import * as databaseService from './database.service';
 import { notFound, unprocessable, forbidden } from '../utils/errors';
+import { appContainersCommand } from '../docker/compose';
 
 /** What the client may ask to attach to. */
 export type TerminalTargetKind = 'server' | 'application' | 'database';
@@ -152,7 +153,7 @@ async function resolveTarget(
     key,
     containerName: null,
     command:
-      `C=$(docker ps --filter label=ideploy.applicationUuid=${uuid} --format '{{.Names}}' | head -1); ` +
+      `C=$(${appContainersCommand(uuid)} | head -1); ` +
       `if [ -z "$C" ]; then echo 'The application is not running: no container to attach to.'; exit 1; fi; ` +
       `exec docker exec -it "$C" sh -c 'command -v bash >/dev/null && exec bash || exec sh'`,
   };
