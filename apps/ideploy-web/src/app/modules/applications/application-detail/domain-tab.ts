@@ -1,7 +1,8 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, inject, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, inject, input, output, signal, viewChild } from '@angular/core';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ApiService } from '../../../shared/services/api.service';
-import { IdomainService } from '../../../shared/services/idomain.service';
+import { DomainManageComponent, DomainPurchaseComponent } from '@idem/shared-idomain/angular';
+import { environment } from '../../../../environments/environment';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 import { Application, DomainDnsCheck, DomainDnsGuide } from '../../../shared/models/ideploy.models';
 import { IllustrationComponent } from '../../../shared/components/illustration/illustration';
@@ -34,7 +35,7 @@ interface DomainRow {
  */
 @Component({
   selector: 'app-domain-tab',
-  imports: [TranslateModule, IllustrationComponent, DomainOptionsComponent, DomainWizardComponent, IdemLoaderComponent],
+  imports: [TranslateModule, IllustrationComponent, DomainOptionsComponent, DomainWizardComponent, IdemLoaderComponent, DomainPurchaseComponent, DomainManageComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="space-y-6">
@@ -66,15 +67,20 @@ interface DomainRow {
             </ul>
             <!-- Deux chemins : acheter un nom (iDomain règle tout), ou brancher celui qu'on a déjà. -->
             <div class="mt-5 flex flex-wrap gap-2">
-              <button type="button" class="inner-button inline-flex items-center gap-2" [disabled]="buying()" (click)="buyDomain()">
-                @if (buying()) { <idem-loader size="xs" /> }
-                {{ 'applications.domain.buy' | translate }}
-              </button>
+              <button type="button" class="inner-button" (click)="buying.set(true)">{{ 'applications.domain.buy' | translate }}</button>
               <button type="button" class="outer-button" (click)="openWizard([])">{{ 'applications.domain.connect' | translate }}</button>
             </div>
             <p class="mt-2 text-xs" style="color:var(--color-text-tertiary);">{{ 'applications.domain.buyHint' | translate }}</p>
           </div>
         </section>
+      }
+
+      <!-- Les noms achetés chez IDEM pour cette application : gérés ici, sans quitter iDeploy. -->
+      <idem-domain-manage #manage [apiUrl]="idomainApi" [appUuid]="app().uuid" [lang]="lang()" (changed)="afterDomainChange()" />
+
+      @if (buying()) {
+        <idem-domain-purchase [apiUrl]="idomainApi" [appUuid]="app().uuid" [appName]="app().name" [lang]="lang()" [topupUrl]="topupUrl" [initial]="suggestedName()"
+          (closed)="buying.set(false); afterDomainChange()" (finished)="afterDomainChange()" />
       }
 
       <!-- Every address the application answers at. -->
@@ -85,7 +91,7 @@ interface DomainRow {
             <p class="mt-1 text-sm" style="color:var(--color-text-secondary);">{{ 'applications.domain.listHint' | translate }}</p>
           </div>
           @if (customCount() > 0 && !wizardOpen()) {
-            <button type="button" class="button-ghost button-sm" [disabled]="buying()" (click)="buyDomain()">{{ 'applications.domain.buyAnother' | translate }}</button>
+            <button type="button" class="button-ghost button-sm" (click)="buying.set(true)">{{ 'applications.domain.buyAnother' | translate }}</button>
             <button type="button" class="outer-button button-sm" (click)="openWizard([])">
               <i class="pi pi-plus mr-1.5 text-xs" aria-hidden="true"></i>{{ 'applications.domain.addAnother' | translate }}
             </button>
@@ -140,7 +146,6 @@ interface DomainRow {
 })
 export class DomainTabComponent implements OnInit {
   private api = inject(ApiService);
-  private idomain = inject(IdomainService);
   private translate = inject(TranslateService);
 
   readonly app = input.required<Application>();
@@ -158,7 +163,22 @@ export class DomainTabComponent implements OnInit {
   protected readonly redeploying = signal(false);
   protected readonly wizardOpen = signal(false);
   protected readonly wizardHosts = signal<string[]>([]);
+  /** La fenêtre d'achat d'un nom (iDomain, sans quitter iDeploy). */
   protected readonly buying = signal(false);
+  protected readonly manage = viewChild<DomainManageComponent>('manage');
+  protected readonly idomainApi = environment.services.idomain.api;
+  protected readonly topupUrl = `${environment.services.console.url}/account/plans`;
+  protected readonly lang = signal(this.translate.currentLang || this.translate.getDefaultLang() || 'fr');
+  /** Le nom de l'application, proposé comme première recherche. */
+  protected readonly suggestedName = computed(() =>
+    (this.app().name || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 40)
+  );
 
   protected readonly rows = computed<DomainRow[]>(() => {
     const checks = new Map((this.guide()?.domains ?? []).map((d) => [d.host.toLowerCase(), d]));
@@ -216,15 +236,14 @@ export class DomainTabComponent implements OnInit {
     });
   }
 
-  /** Acheter un nom sur iDomain pour cette application, puis revenir sur cet onglet. */
-  protected buyDomain(): void {
-    this.buying.set(true);
-    this.error.set(null);
-    this.idomain.openSession(this.app().uuid, window.location.href).subscribe({
-      next: (url) => (window.location.href = url),
-      error: () => {
-        this.buying.set(false);
-        this.error.set(this.translate.instant('applications.domain.buyError'));
+  /** Après un achat ou un débranchement : les adresses de l'application et la liste des noms sont relues. */
+  protected afterDomainChange(): void {
+    this.manage()?.reload();
+    this.api.getApplication(this.app().uuid).subscribe({
+      next: (a) => {
+        this.domains.set(this.parse(a.fqdn));
+        this.updated.emit(a);
+        this.refresh();
       },
     });
   }

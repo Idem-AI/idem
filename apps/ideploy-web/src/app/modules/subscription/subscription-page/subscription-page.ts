@@ -5,6 +5,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 import { AppMeter, MeterCatalog, MeterService, MeterTier, UserDomain } from '../../../shared/services/meter.service';
 import { environment } from '../../../../environments/environment';
+import { DomainPurchaseComponent } from '@idem/shared-idomain/angular';
 import { IllustrationComponent } from '../../../shared/components/illustration/illustration';
 
 /**
@@ -19,7 +20,7 @@ import { IllustrationComponent } from '../../../shared/components/illustration/i
  */
 @Component({
   selector: 'app-subscription-page',
-  imports: [TranslateModule, FormsModule, DecimalPipe, DatePipe, IdemLoaderComponent, IllustrationComponent],
+  imports: [TranslateModule, FormsModule, DecimalPipe, DatePipe, IdemLoaderComponent, IllustrationComponent, DomainPurchaseComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <h1 class="mb-1 text-2xl font-bold">{{ 'meters.title' | translate }}</h1>
@@ -133,19 +134,23 @@ import { IllustrationComponent } from '../../../shared/components/illustration/i
           </div>
         </div>
         <div class="mt-3 flex flex-wrap items-end gap-2">
-          <a [href]="idomainUrl" class="outer-button">{{ 'meters.orderDomain' | translate }}</a>
+          <button type="button" class="outer-button" (click)="buyingDomain.set(true)">{{ 'meters.orderDomain' | translate }}</button>
         </div>
         @if (orders().length) {
           <ul class="mt-3 space-y-1 text-xs">
             @for (order of orders(); track order.id) {
               <li class="flex justify-between gap-3">
-                <a [href]="idomainUrl + '/domains/' + order.id" class="hover:underline">{{ order.name }}</a>
+                <span>{{ order.name }}</span>
                 <span style="color: var(--color-text-tertiary)">{{ 'meters.domainStatus.' + order.status | translate }}</span>
               </li>
             }
           </ul>
         }
       </section>
+      @if (buyingDomain()) {
+        <!-- Acheter un nom sans quitter iDeploy : l'application qui le recevra se choisit dans la fenêtre. -->
+        <idem-domain-purchase [apiUrl]="idomainApi" [lang]="lang" [topupUrl]="topUpUrl()" (closed)="buyingDomain.set(false); reloadDomains()" (finished)="reloadDomains()" />
+      }
     } @else if (!error()) {
       <idem-loader block [label]="'meters.loading' | translate" />
     }
@@ -158,8 +163,10 @@ export class SubscriptionPageComponent implements OnInit {
   protected readonly view = signal<{ meters: AppMeter[]; walletXaf: number; daysCovered: number | null } | null>(null);
   protected readonly catalog = signal<MeterCatalog | null>(null);
   protected readonly orders = signal<UserDomain[]>([]);
-  /** Les noms de domaine s'achètent et se gèrent sur iDomain. */
-  protected readonly idomainUrl = environment.services.idomain.url;
+  /** La fenêtre d'achat d'un nom (iDomain, sans quitter iDeploy). */
+  protected readonly buyingDomain = signal(false);
+  protected readonly idomainApi = environment.services.idomain.api;
+  protected readonly lang = this.translate.currentLang || this.translate.getDefaultLang() || 'fr';
   protected readonly error = signal<string | null>(null);
   protected readonly busy = signal<string | null>(null);
 
@@ -175,6 +182,10 @@ export class SubscriptionPageComponent implements OnInit {
     this.reload();
     this.meters.catalog().subscribe({ next: (catalog) => this.catalog.set(catalog), error: (e) => this.report(e) });
     this.meters.domains().subscribe({ next: (r) => this.orders.set(r.domains), error: () => this.orders.set([]) });
+  }
+
+  protected reloadDomains(): void {
+    this.meters.domains().subscribe({ next: (r) => this.orders.set(r.domains), error: () => undefined });
   }
 
   protected topUpUrl(): string {

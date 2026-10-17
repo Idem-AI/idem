@@ -17,6 +17,7 @@
     "check:pricing": "ts-node --transpile-only scripts/check-pricing.ts",
     "check": "ts-node --transpile-only scripts/check-api.ts",
     "dev:offline": "ts-node --transpile-only scripts/dev-offline.ts",
+    "check:embedded": "jiti scripts/check-embedded.ts",
     "import:idem-orders": "ts-node --transpile-only scripts/import-idem-orders.ts"
   },
   "author": "arolleaguekeng",

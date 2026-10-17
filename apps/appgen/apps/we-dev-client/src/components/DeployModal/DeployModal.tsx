@@ -19,6 +19,7 @@ import {
   type PublishMode,
 } from '@/utils/ideployPublish';
 import { IdemLoader } from '@idem/shared-loader/react';
+import { DomainPurchase, idomainText, useDomainConnections } from '@idem/shared-idomain/react';
 
 interface DeployModalProps {
   open: boolean;
@@ -31,6 +32,9 @@ interface DeployModalProps {
 }
 
 const IDEPLOY_URL = process.env.REACT_APP_IDEPLOY_URL || 'http://localhost:4202';
+/** iDomain : un nom à soi, acheté et branché sans quitter iCode. */
+const IDOMAIN_API_URL = process.env.REACT_APP_IDOMAIN_API_URL || 'http://localhost:3007';
+const WALLET_URL = `${process.env.REACT_APP_IDEM_MAIN_APP_URL || 'http://localhost:4200'}/account/plans`;
 
 type StepId = 'prepare' | 'send' | 'live' | 'database' | 'server' | 'interface';
 type StepState = 'pending' | 'active' | 'done' | 'failed';
@@ -50,7 +54,7 @@ const STEPS: Record<PublishMode, StepId[]> = {
  * avancées », replié.
  */
 export function DeployModal({ open, onClose, deployment, defaultName, onPublished }: DeployModalProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const files = useFileStore((state) => state.files);
   const mode = useMemo(() => detectPublishMode(files as Record<string, string>), [files]);
 
@@ -64,6 +68,12 @@ export function DeployModal({ open, onClose, deployment, defaultName, onPublishe
 
   const existing = deployment?.provider === 'ideploy' ? deployment.ideploy ?? null : null;
   const liveUrl = deployment?.url || null;
+  // L'application iDeploy qui répond au public : le site, ou l'interface d'une application complète.
+  const publicAppUuid = existing?.applicationUuid ?? existing?.frontendUuid ?? null;
+  const lang = (i18n.language || 'fr').slice(0, 2);
+  const [buyingDomain, setBuyingDomain] = useState(false);
+  const [domainsVersion, setDomainsVersion] = useState(0);
+  const ownDomains = useDomainConnections(IDOMAIN_API_URL, publicAppUuid, domainsVersion);
 
   const mark = (id: StepId, state: StepState) => setSteps((current) => ({ ...current, [id]: state }));
 
@@ -198,6 +208,35 @@ export function DeployModal({ open, onClose, deployment, defaultName, onPublishe
           />
         )}
 
+        {/* Un nom à soi : acheté, réglé et relié au site ici même, sans rien configurer. */}
+        {(phase === 'done' || (phase === 'ready' && liveUrl)) && publicAppUuid && (
+          <section className="mt-4 rounded-xl border border-[var(--glass-border)] p-4">
+            {ownDomains.length > 0 ? (
+              <ul className="space-y-1 text-sm">
+                {ownDomains.map((c) => (
+                  <li key={c.id} className="flex flex-wrap items-center gap-2">
+                    <span className={`h-2 w-2 rounded-full ${c.status === 'active' ? 'bg-success' : 'bg-[var(--color-text-tertiary)]'}`} aria-hidden />
+                    <a href={`https://${c.host}`} target="_blank" rel="noreferrer" className="font-medium text-text-primary hover:underline">{c.host}</a>
+                    <span className="text-xs text-text-tertiary">
+                      {idomainText(lang, `manage.status.${c.status === 'active' ? 'active' : c.status === 'failed' ? 'failed' : 'pending'}`)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-text-primary">{idomainText(lang, 'title')}</p>
+                  <p className="text-xs text-text-secondary">{idomainText(lang, 'lead')}</p>
+                </div>
+                <Button variant="secondary" size="sm" onClick={() => setBuyingDomain(true)}>
+                  {idomainText(lang, 'cta')}
+                </Button>
+              </div>
+            )}
+          </section>
+        )}
+
         {(phase === 'working' || phase === 'error') && (
           <ol className="mt-5 grid gap-2.5" aria-live="polite">
             {STEPS[mode].map((id) => (
@@ -327,6 +366,21 @@ export function DeployModal({ open, onClose, deployment, defaultName, onPublishe
           </section>
         )}
       </div>
+      {buyingDomain && publicAppUuid && (
+        <DomainPurchase
+          apiUrl={IDOMAIN_API_URL}
+          appUuid={publicAppUuid}
+          appName={name || defaultName}
+          lang={lang}
+          topupUrl={WALLET_URL}
+          initial={(name || defaultName).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40)}
+          onClose={() => {
+            setBuyingDomain(false);
+            setDomainsVersion((v) => v + 1);
+          }}
+          onFinished={() => setDomainsVersion((v) => v + 1)}
+        />
+      )}
     </Modal>
   );
 }

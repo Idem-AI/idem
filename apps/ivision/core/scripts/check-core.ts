@@ -79,17 +79,43 @@ function serve(html: string): Promise<{ url: string; close: () => void }> {
   return new Promise((resolve) => {
     const server = http.createServer((req, res) => {
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
-      res.end(req.url?.startsWith('/a-propos') ? html.replace('Le café qui réveille Abidjan', 'Notre histoire') : html);
+      res.end(
+        req.url?.startsWith('/a-propos')
+          ? html.replace('Le café qui réveille Abidjan', 'Notre histoire')
+          : html
+      );
     });
-    server.listen(0, '127.0.0.1', () => resolve({ url: `http://127.0.0.1:${(server.address() as any).port}/`, close: () => server.close() }));
+    server.listen(0, '127.0.0.1', () =>
+      resolve({
+        url: `http://127.0.0.1:${(server.address() as any).port}/`,
+        close: () => server.close(),
+      })
+    );
   });
 }
 
 /** Une vidéo synthétique : trois aplats de couleur, coupés net, avec un carré qui bouge. */
 function syntheticVideo(file: string) {
-  const seg = (color: string, d: number, i: number) => `color=c=${color}:s=540x960:d=${d},format=yuv420p[b${i}];color=c=white:s=120x120:d=${d}[w${i}];[b${i}][w${i}]overlay=x='40+t*120':y=400[v${i}]`;
+  const seg = (color: string, d: number, i: number) =>
+    `color=c=${color}:s=540x960:d=${d},format=yuv420p[b${i}];color=c=white:s=120x120:d=${d}[w${i}];[b${i}][w${i}]overlay=x='40+t*120':y=400[v${i}]`;
   const filter = `${seg('0xb4532a', 2, 0)};${seg('0x2a6fb4', 3, 1)};${seg('0x3bb45a', 2.5, 2)};[v0][v1][v2]concat=n=3:v=1:a=0[out]`;
-  const r = spawnSync(process.env.FFMPEG_PATH || 'ffmpeg', ['-y', '-hide_banner', '-loglevel', 'error', '-filter_complex', filter, '-map', '[out]', '-r', '30', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', file]);
+  const r = spawnSync(process.env.FFMPEG_PATH || 'ffmpeg', [
+    '-y',
+    '-hide_banner',
+    '-loglevel',
+    'error',
+    '-filter_complex',
+    filter,
+    '-map',
+    '[out]',
+    '-r',
+    '30',
+    '-c:v',
+    'libx264',
+    '-pix_fmt',
+    'yuv420p',
+    file,
+  ]);
   if (r.status !== 0) throw new Error(`ffmpeg: ${r.stderr}`);
 }
 
@@ -98,13 +124,28 @@ class MemoryStore implements VideoStore {
   videos: MotionVideo[] = [];
   constructor(private readonly kit: any) {}
   async loadBrand() {
-    return { brandName: 'Kora Café', branding: this.kit, voice: { businessType: 'torréfacteur', tone: 'chaleureux', valueProposition: 'Café de spécialité torréfié chaque semaine', keywords: ['café', 'Abidjan'], language: 'fr' }, visuals: [], videos: this.videos };
+    return {
+      brandName: 'Kora Café',
+      branding: this.kit,
+      voice: {
+        businessType: 'torréfacteur',
+        tone: 'chaleureux',
+        valueProposition: 'Café de spécialité torréfié chaque semaine',
+        keywords: ['café', 'Abidjan'],
+        language: 'fr',
+      },
+      visuals: [],
+      videos: this.videos,
+    };
   }
   async listVideos() {
     return JSON.parse(JSON.stringify(this.videos));
   }
   async saveVideo(_u: string, _p: string, video: MotionVideo) {
-    this.videos = [...this.videos.filter((v) => v.id !== video.id), JSON.parse(JSON.stringify(video))];
+    this.videos = [
+      ...this.videos.filter((v) => v.id !== video.id),
+      JSON.parse(JSON.stringify(video)),
+    ];
   }
   async mutateVideo(_u: string, _p: string, id: string, mutate: (v: MotionVideo) => MotionVideo) {
     let out: MotionVideo | null = null;
@@ -127,25 +168,62 @@ class MemoryStore implements VideoStore {
     const scan = await scanWebsite({
       url: site.url,
       maxPages: 1,
-      textModel: async () => '{"brandName":"Kora Café","businessType":"torréfacteur de café","valueProposition":"Un café de spécialité torréfié chaque semaine à Abidjan.","tone":"chaleureux, artisanal, fier","keywords":["café","torréfaction","Abidjan","coopératives","frais"],"language":"fr"}',
+      textModel: async () =>
+        '{"brandName":"Kora Café","businessType":"torréfacteur de café","valueProposition":"Un café de spécialité torréfié chaque semaine à Abidjan.","tone":"chaleureux, artisanal, fier","keywords":["café","torréfaction","Abidjan","coopératives","frais"],"language":"fr"}',
     });
-    check(`nom et langue : ${scan.brandName} (${scan.language})`, scan.brandName === 'Kora Café' && scan.language === 'fr');
-    check(`primaire = la couleur d'action du site (${scan.palette.primary})`, scan.palette.primary === '#b4532a', JSON.stringify(scan.palette));
-    check(`fond clair et texte lisible (${scan.palette.background} / ${scan.palette.text}, ${contrastRatio(scan.palette.text, scan.palette.background).toFixed(1)}:1)`, contrastRatio(scan.palette.text, scan.palette.background) >= 7);
-    check(`trois propositions de palette (${scan.palettes.map((p) => p.id).join(', ')}), toutes lisibles`, scan.palettes.length === 3 && scan.palettes.every((p) => contrastRatio(p.colors.text, p.colors.background) >= 4.5));
-    check(`typographie : titres ${scan.typography.display}, texte ${scan.typography.body} (vu : ${scan.typography.original.display} / ${scan.typography.original.body})`, scan.typography.display === 'Playfair Display' && scan.typographies.length === 3);
-    check(`logo SVG de l'en-tête trouvé`, scan.logo.source === 'inline-svg' && /<svg/.test(scan.logo.svg || ''));
-    check(`ton et promesse lus par le modèle (${scan.voice.tone})`, scan.voice.businessType === 'torréfacteur de café' && (scan.voice.keywords || []).length >= 3);
+    check(
+      `nom et langue : ${scan.brandName} (${scan.language})`,
+      scan.brandName === 'Kora Café' && scan.language === 'fr'
+    );
+    check(
+      `primaire = la couleur d'action du site (${scan.palette.primary})`,
+      scan.palette.primary === '#b4532a',
+      JSON.stringify(scan.palette)
+    );
+    check(
+      `fond clair et texte lisible (${scan.palette.background} / ${scan.palette.text}, ${contrastRatio(scan.palette.text, scan.palette.background).toFixed(1)}:1)`,
+      contrastRatio(scan.palette.text, scan.palette.background) >= 7
+    );
+    check(
+      `trois propositions de palette (${scan.palettes.map((p) => p.id).join(', ')}), toutes lisibles`,
+      scan.palettes.length === 3 &&
+        scan.palettes.every((p) => contrastRatio(p.colors.text, p.colors.background) >= 4.5)
+    );
+    check(
+      `typographie : titres ${scan.typography.display}, texte ${scan.typography.body} (vu : ${scan.typography.original.display} / ${scan.typography.original.body})`,
+      scan.typography.display === 'Playfair Display' && scan.typographies.length === 3
+    );
+    check(
+      `logo SVG de l'en-tête trouvé`,
+      scan.logo.source === 'inline-svg' && /<svg/.test(scan.logo.svg || '')
+    );
+    check(
+      `ton et promesse lus par le modèle (${scan.voice.tone})`,
+      scan.voice.businessType === 'torréfacteur de café' && (scan.voice.keywords || []).length >= 3
+    );
     check(`page interne visitée (${scan.pages.length} pages)`, scan.pages.length === 2);
     kit = brandKitFromScan(scan, { palette: 'contrast', typography: 'pairing' });
-    check('BrandKit : même forme qu’une charte IDEM', !!kit.colors?.colors?.primary && !!kit.typography?.primary?.family && !!kit.logo?.svg);
+    check(
+      'BrandKit : même forme qu’une charte IDEM',
+      !!kit.colors?.colors?.primary && !!kit.typography?.primary?.family && !!kit.logo?.svg
+    );
   } finally {
     site.close();
   }
 
   // ── 2 ──
   section('2. Vidéo modèle');
-  check('plans tirés des coupes : fusion des plans < 0,6 s, longs plans découpés en temps', JSON.stringify(shotsFromCuts([2, 2.3, 5], 13)) === JSON.stringify([{ start: 0, duration: 2.3 }, { start: 2.3, duration: 2.7 }, { start: 5, duration: 4 }, { start: 9, duration: 4 }]), JSON.stringify(shotsFromCuts([2, 2.3, 5], 13)));
+  check(
+    'plans tirés des coupes : fusion des plans < 0,6 s, longs plans découpés en temps',
+    JSON.stringify(shotsFromCuts([2, 2.3, 5], 13)) ===
+      JSON.stringify([
+        { start: 0, duration: 2.3 },
+        { start: 2.3, duration: 2.7 },
+        { start: 5, duration: 4 },
+        { start: 9, duration: 4 },
+      ]),
+    JSON.stringify(shotsFromCuts([2, 2.3, 5], 13))
+  );
   const ref = path.join(OUT, 'reference.mp4');
   syntheticVideo(ref);
   const visionAnswers = [
@@ -154,12 +232,35 @@ class MemoryStore implements VideoStore {
     '{"role":"signature","media":"none","layout":"logo","textMotion":"fade","transitionIn":"iris","camera":"still","background":"light","texts":[],"energy":"calm","description":"The logo draws itself in the centre."}',
   ];
   let calls = 0;
-  const blueprint = await analyzeReferenceVideo(ref, { vision: async (_b64, _m, instruction) => visionAnswers[Number(instruction.match(/shot (\d+) of/)?.[1] || 1) - 1] ?? visionAnswers[(calls++) % 3] });
-  check(`${blueprint.shots.length} plans aux bonnes durées (${blueprint.shots.map((s) => s.duration.toFixed(1)).join(' + ')} s)`, blueprint.shots.length === 3 && Math.abs(blueprint.shots[0].duration - 2) < 0.2 && Math.abs(blueprint.shots[1].duration - 3) < 0.2 && Math.abs(blueprint.shots[2].duration - 2.5) < 0.25);
-  check('lu par la vision dans le vocabulaire du moteur (mises en page, entrées, coupes)', blueprint.source === 'vision' && blueprint.shots[0].layout === 'poster-stack' && blueprint.shots[1].transitionIn === 'flashCut' && blueprint.shots[0].textMotion === 'stackPush');
-  check('une planche par plan (aperçu, critique comparée)', blueprint.shots.every((s) => (s.sheet?.length || 0) > 2000));
+  const blueprint = await analyzeReferenceVideo(ref, {
+    vision: async (_b64, _m, instruction) =>
+      visionAnswers[Number(instruction.match(/shot (\d+) of/)?.[1] || 1) - 1] ??
+      visionAnswers[calls++ % 3],
+  });
+  check(
+    `${blueprint.shots.length} plans aux bonnes durées (${blueprint.shots.map((s) => s.duration.toFixed(1)).join(' + ')} s)`,
+    blueprint.shots.length === 3 &&
+      Math.abs(blueprint.shots[0].duration - 2) < 0.2 &&
+      Math.abs(blueprint.shots[1].duration - 3) < 0.2 &&
+      Math.abs(blueprint.shots[2].duration - 2.5) < 0.25
+  );
+  check(
+    'lu par la vision dans le vocabulaire du moteur (mises en page, entrées, coupes)',
+    blueprint.source === 'vision' &&
+      blueprint.shots[0].layout === 'poster-stack' &&
+      blueprint.shots[1].transitionIn === 'flashCut' &&
+      blueprint.shots[0].textMotion === 'stackPush'
+  );
+  check(
+    'une planche par plan (aperçu, critique comparée)',
+    blueprint.shots.every((s) => (s.sheet?.length || 0) > 2000)
+  );
   const told = blueprintForDirector(blueprint, 15);
-  check('résumé donné au directeur : trois plans à l’échelle de 15 s, avec ce qu’on y voit', (told.match(/^\d\. /gm) || []).length === 3 && /Huge stacked words/.test(told), told.slice(0, 300));
+  check(
+    'résumé donné au directeur : trois plans à l’échelle de 15 s, avec ce qu’on y voit',
+    (told.match(/^\d\. /gm) || []).length === 3 && /Huge stacked words/.test(told),
+    told.slice(0, 300)
+  );
 
   // ── 3 ──
   section('3. Reproduction par le service vidéo du core');
@@ -169,12 +270,33 @@ class MemoryStore implements VideoStore {
   const author = (user: string) =>
     JSON.stringify(
       /\$headline = "/.test(user.split('THIS SCENE')[1] || user)
-        ? { nodes: [{ id: 't', type: 'text', text: '$headline', size: 9, color: 'ink' }], timeline: [{ at: 0.1, target: 't', dur: 0.6, from: { opacity: 0, y: '+=4' }, to: {} }] }
-        : { nodes: [{ id: 'c', type: 'circle', w: 30, h: 30, fill: 'primary' }], timeline: [{ at: 0.1, target: 'c', dur: 0.6, from: { scale: 0 }, to: {} }] }
+        ? {
+            nodes: [{ id: 't', type: 'text', text: '$headline', size: 9, color: 'ink' }],
+            timeline: [{ at: 0.1, target: 't', dur: 0.6, from: { opacity: 0, y: '+=4' }, to: {} }],
+          }
+        : {
+            nodes: [{ id: 'c', type: 'circle', w: 30, h: 30, fill: 'primary' }],
+            timeline: [{ at: 0.1, target: 'c', dur: 0.6, from: { scale: 0 }, to: {} }],
+          }
     );
   const service = new MotionVideoService(store, async ({ role, user }) =>
     role === 'video.planner'
-      ? ['TITLE: Kora', 'CONCEPT: Le café qui réveille.', 'BIBLE: crème et brun.', 'SCENE 1 | 4', 'visual: mots empilés', 'motion: claquent un à un', 'text.headline: Le café qui réveille', 'SCENE 2 | 6', 'visual: un chiffre géant', 'motion: défile', 'text.headline: Plus de 500 clients chaque mois', 'SCENE 3 | 5', 'visual: le logo', 'motion: se dessine'].join('\n')
+      ? [
+          'TITLE: Kora',
+          'CONCEPT: Le café qui réveille.',
+          'BIBLE: crème et brun.',
+          'SCENE 1 | 4',
+          'visual: mots empilés',
+          'motion: claquent un à un',
+          'text.headline: Le café qui réveille',
+          'SCENE 2 | 6',
+          'visual: un chiffre géant',
+          'motion: défile',
+          'text.headline: Plus de 500 clients chaque mois',
+          'SCENE 3 | 5',
+          'visual: le logo',
+          'motion: se dessine',
+        ].join('\n')
       : role === 'video.author'
         ? '```json\n' + author(user) + '\n```'
         : ''
@@ -182,28 +304,58 @@ class MemoryStore implements VideoStore {
   const video = await service.createVideo(
     'u',
     'brand-1',
-    { brief: { message: 'Plus de 500 clients chaque mois : notre café livré à Abidjan', musicMood: 'none', sfx: false, allowStock: false, allowGenerate: false } as any, scope: { durationSec: 15, formats: ['story'], quality: 'standard' }, creativity: 'low', reference: blueprint },
+    {
+      brief: {
+        message: 'Plus de 500 clients chaque mois : notre café livré à Abidjan',
+        musicMood: 'none',
+        sfx: false,
+        allowStock: false,
+        allowGenerate: false,
+      } as any,
+      scope: { durationSec: 15, formats: ['story'], quality: 'standard' },
+      creativity: 'low',
+      reference: blueprint,
+    },
     0
   );
   const scenes = video.film!.scenes;
   check(`mêmes plans que le modèle : ${scenes.length}`, scenes.length === 3);
-  check(`mêmes proportions : ${scenes.map((s) => s.duration.toFixed(1)).join(' + ')} s`, Math.abs(scenes[1].duration / scenes[0].duration - 1.5) < 0.35 && Math.abs(scenes.reduce((a, s) => a + s.duration, 0) - 15) < 0.01);
+  check(
+    `mêmes proportions : ${scenes.map((s) => s.duration.toFixed(1)).join(' + ')} s`,
+    Math.abs(scenes[1].duration / scenes[0].duration - 1.5) < 0.35 &&
+      Math.abs(scenes.reduce((a, s) => a + s.duration, 0) - 15) < 0.01
+  );
   check('rapport : la vidéo modèle est notée', !!video.film?.reference?.summary);
-  check('chaque scène s’exécute (Motion Canvas)', scenes.every((s) => s.status === 'ready'), JSON.stringify(scenes.map((s) => s.error)));
+  check(
+    'chaque scène s’exécute (Motion Canvas)',
+    scenes.every((s) => s.status === 'ready'),
+    JSON.stringify(scenes.map((s) => s.error))
+  );
 
   // ── 4 ──
   section('4. Visuel écrit par l’auteur du moteur graphique (simulé, cran Low), sans IDEM');
   // L'auteur simulé : il place chaque clé reçue ; une photo est recadrée sur le point d'intérêt donné.
   const authorPrompts: string[] = [];
   configureGraphicEngine({
-    agentCall: () => async ({ user }) => {
-      authorPrompts.push(user);
-      const keys = [...user.matchAll(/^\{\{([\w.:-]+)\}\} = /gm)].map((m) => m[1]);
-      const crop = user.match(/object-\[(\d+%_\d+%)\]/)?.[1];
-      // La photo d'abord (fond), les textes ensuite, par-dessus.
-      const body = [...keys.filter((k) => /\.url$/.test(k)), ...keys.filter((k) => !/\.url$/.test(k))].map((k) => (/\.url$/.test(k) ? `<img src="{{${k}}}" alt="" class="absolute inset-0 h-full w-full object-cover${crop ? ` object-[${crop}]` : ''}">` : `<p class="relative text-[40px] font-bold text-ink">{{${k}}}</p>`)).join('');
-      return `\`\`\`html\n<div class="relative flex h-full w-full flex-col justify-end gap-[16px] bg-ground p-[64px]">${body}<idem-logo class="relative h-[48px]"></idem-logo></div>\n\`\`\``;
-    },
+    agentCall:
+      () =>
+      async ({ user }) => {
+        authorPrompts.push(user);
+        const keys = [...user.matchAll(/^\{\{([\w.:-]+)\}\} = /gm)].map((m) => m[1]);
+        const crop = user.match(/object-\[(\d+%_\d+%)\]/)?.[1];
+        // La photo d'abord (fond), les textes ensuite, par-dessus.
+        const body = [
+          ...keys.filter((k) => /\.url$/.test(k)),
+          ...keys.filter((k) => !/\.url$/.test(k)),
+        ]
+          .map((k) =>
+            /\.url$/.test(k)
+              ? `<img src="{{${k}}}" alt="" class="absolute inset-0 h-full w-full object-cover${crop ? ` object-[${crop}]` : ''}">`
+              : `<p class="relative text-[40px] font-bold text-ink">{{${k}}}</p>`
+          )
+          .join('');
+        return `\`\`\`html\n<div class="relative flex h-full w-full flex-col justify-end gap-[16px] bg-ground p-[64px]">${body}<idem-logo class="relative h-[48px]"></idem-logo></div>\n\`\`\``;
+      },
   });
   const context = {
     brandName: 'Kora Café',
@@ -211,12 +363,43 @@ class MemoryStore implements VideoStore {
     tone: 'chaleureux',
     keywords: ['café'],
     language: 'fr',
-    branding: { primary: kit.colors.colors.primary, secondary: kit.colors.colors.secondary, accent: kit.colors.colors.accent, background: kit.colors.colors.background, text: kit.colors.colors.text, primaryFont: kit.typography.primary.family, secondaryFont: kit.typography.secondary.family },
+    branding: {
+      primary: kit.colors.colors.primary,
+      secondary: kit.colors.colors.secondary,
+      accent: kit.colors.colors.accent,
+      background: kit.colors.colors.background,
+      text: kit.colors.colors.text,
+      primaryFont: kit.typography.primary.family,
+      secondaryFont: kit.typography.secondary.family,
+    },
   };
-  const composed = await composeVisual({ runPrompt: async () => '' }, 'u', 'brand-1', { id: 'c1', title: 'Le café qui réveille Abidjan', description: 'Torréfié chaque lundi, livré en 24 h.' }, context, 'square', 'check', 'check:1', undefined, true, { creativity: 'low' });
+  const composed = await composeVisual(
+    { runPrompt: async () => '' },
+    'u',
+    'brand-1',
+    {
+      id: 'c1',
+      title: 'Le café qui réveille Abidjan',
+      description: 'Torréfié chaque lundi, livré en 24 h.',
+    },
+    context,
+    'square',
+    'check',
+    'check:1',
+    undefined,
+    true,
+    { creativity: 'low' }
+  );
   fs.writeFileSync(path.join(OUT, 'visual.png'), composed.png);
   const visualText = composed.html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
-  check(`visuel écrit, affiché et photographié (${composed.png.length} octets, page ${composed.parsed.layout})`, composed.png.length > 10000 && !composed.audit.blocking && /café qui r(é|&eacute;)veille/i.test(visualText) && composed.parsed.layout === 'authored', visualText.slice(0, 160));
+  check(
+    `visuel écrit, affiché et photographié (${composed.png.length} octets, page ${composed.parsed.layout})`,
+    composed.png.length > 10000 &&
+      !composed.audit.blocking &&
+      /café qui r(é|&eacute;)veille/i.test(visualText) &&
+      composed.parsed.layout === 'authored',
+    visualText.slice(0, 160)
+  );
 
   section('Photos d’un visuel');
   {
@@ -225,36 +408,137 @@ class MemoryStore implements VideoStore {
     // Une photo synthétique (aucun réseau) : le sujet est à droite.
     const photoFile = path.join(OUT, 'photo.jpg');
     await sharp({ create: { width: 1200, height: 900, channels: 3, background: '#c9a27a' } })
-      .composite([{ input: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900"><circle cx="760" cy="380" r="220" fill="#3b2a20"/><rect x="0" y="700" width="1200" height="200" fill="#5d7a4a"/></svg>'), top: 0, left: 0 }])
+      .composite([
+        {
+          input: Buffer.from(
+            '<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900"><circle cx="760" cy="380" r="220" fill="#3b2a20"/><rect x="0" y="700" width="1200" height="200" fill="#5d7a4a"/></svg>'
+          ),
+          top: 0,
+          left: 0,
+        },
+      ])
       .jpeg()
       .toFile(photoFile);
     const photo = await describePhoto(`file://${photoFile}`, 'brand');
-    check('photo synthétique lue (point d’intérêt, proportions)', !!photo && photo.aspect > 1.2 && photo.focal.x > 0.4, JSON.stringify(photo?.focal));
+    check(
+      'photo synthétique lue (point d’intérêt, proportions)',
+      !!photo && photo.aspect > 1.2 && photo.focal.x > 0.4,
+      JSON.stringify(photo?.focal)
+    );
     // Le moteur n'admet que des adresses d'image http(s), relatives ou `data:` : la photo y entre en `data:`.
     const photoUrl = `data:image/jpeg;base64,${fs.readFileSync(photoFile).toString('base64')}`;
-    const withPhoto = await composeVisual({ runPrompt: async () => '' }, 'u', 'brand-1', { id: 'c2', title: 'Le café qui réveille Abidjan', description: 'Torréfié chaque lundi, livré en 24 h.' }, context, 'story', 'check', 'check:2', undefined, false, { creativity: 'low', image: { url: photoUrl } });
+    const withPhoto = await composeVisual(
+      { runPrompt: async () => '' },
+      'u',
+      'brand-1',
+      {
+        id: 'c2',
+        title: 'Le café qui réveille Abidjan',
+        description: 'Torréfié chaque lundi, livré en 24 h.',
+      },
+      context,
+      'story',
+      'check',
+      'check:2',
+      undefined,
+      false,
+      { creativity: 'low', image: { url: photoUrl } }
+    );
     fs.writeFileSync(path.join(OUT, 'visual-photo.png'), withPhoto.png);
-    check(`story avec la photo de l’utilisateur : son point d’intérêt est donné à l’auteur (${withPhoto.parsed.layout})`, !!withPhoto.parsed.photo && /its subject is at \d+% × \d+%/.test(authorPrompts[authorPrompts.length - 1] ?? '') && /object-\[\d+%_\d+%\]/.test(withPhoto.html) && !withPhoto.audit.blocking);
+    check(
+      `story avec la photo de l’utilisateur : son point d’intérêt est donné à l’auteur (${withPhoto.parsed.layout})`,
+      !!withPhoto.parsed.photo &&
+        /its subject is at \d+% × \d+%/.test(authorPrompts[authorPrompts.length - 1] ?? '') &&
+        /object-\[\d+%_\d+%\]/.test(withPhoto.html) &&
+        !withPhoto.audit.blocking
+    );
   }
 
   section('Les mots d’un visuel');
   {
-    const { extractFacts, languageMatches, validHeadline, polish, heuristicCopy, parseVisualEdit } = await import('../src/visual/visual.copy');
-    const brief = { message: 'Promo de rentrée', details: 'Promo de rentrée : -20 % sur toutes nos formations jusqu au 31 octobre', brandName: 'Kofi', language: 'fr' };
+    const { extractFacts, languageMatches, validHeadline, polish, heuristicCopy, parseVisualEdit } =
+      await import('../src/visual/visual.copy');
+    const brief = {
+      message: 'Promo de rentrée',
+      details: 'Promo de rentrée : -20 % sur toutes nos formations jusqu au 31 octobre',
+      brandName: 'Makam',
+      language: 'fr',
+    };
     const read = extractFacts(brief.details);
-    check('faits lus dans la demande (offre, date)', read.offer === '−20 %' && read.facts.some((f) => f.kind === 'date' && /31 octobre/.test(f.text)), JSON.stringify(read));
-    check('titre anglais refusé pour une marque francophone', !languageMatches('Kofi helped me land my first job', 'fr') && languageMatches('On se retrouve samedi', 'fr'));
-    check('format inventé refusé (« soirée » absente de la demande)', !validHeadline('Une soirée pour coder', { ...brief, details: 'Rencontre samedi' }));
+    check(
+      'faits lus dans la demande (offre, date)',
+      read.offer === '−20 %' &&
+        read.facts.some((f) => f.kind === 'date' && /31 octobre/.test(f.text)),
+      JSON.stringify(read)
+    );
+    check(
+      'titre anglais refusé pour une marque francophone',
+      !languageMatches('Makam helped me land my first job', 'fr') &&
+        languageMatches('On se retrouve samedi', 'fr')
+    );
+    check(
+      'format inventé refusé (« soirée » absente de la demande)',
+      !validHeadline('Une soirée pour coder', { ...brief, details: 'Rencontre samedi' })
+    );
     check('chiffre absent de la demande refusé', !validHeadline('-50 % sur tout', brief));
-    const p = polish({ headline: 'Créez avec l IA', facts: [{ kind: 'date', text: '31 octobre' }], offer: '-20%' }, 'fr', brief.details);
-    check('typographie : élision, offre normalisée, date de fin', p.headline === 'Créez avec l’IA' && p.offer === '−20 %' && p.facts[0].text === 'Jusqu’au 31 octobre', JSON.stringify(p));
-    const h = heuristicCopy({ message: 'Atelier', details: 'Atelier pratique : créez votre première œuvre avec l IA, samedi 18 octobre', brandName: 'Kofi', language: 'fr' }, 'event');
-    check('repli sans modèle : préambule en sur-titre, la suite en titre', h.kicker === 'Atelier pratique' && /^Créez votre première œuvre/.test(h.headline) && !h.sub, JSON.stringify(h));
-    const before = { headline: 'Le café qui réveille Abidjan', facts: [{ kind: 'date' as const, text: 'Lundi 3 mars' }] };
-    const edit = parseVisualEdit('{"headline":"Le café qui réveille Cocody","facts":[{"kind":"date","text":"Lundi 3 mars"},{"kind":"price","text":"5 000 F"}],"offer":"-50%","photo":"remove","layout":"change"}', before, { instruction: 'remplace Abidjan par Cocody et retire la photo', language: 'fr', brandName: 'Kora' });
-    check('retouche : le mot demandé changé, prix et offre inventés retirés, photo et mise en page lues', !!edit && edit.copy.headline === 'Le café qui réveille Cocody' && edit.copy.facts.length === 1 && !edit.copy.offer && edit.photo === 'remove' && edit.layout === 'change', JSON.stringify(edit));
-    const noHtml = parseVisualEdit('<div>du HTML</div>', before, { instruction: 'plus grand', language: 'fr', brandName: 'Kora' });
-    check('retouche : une réponse en HTML est refusée (jamais posée sur le visuel)', noHtml === null);
+    const p = polish(
+      { headline: 'Créez avec l IA', facts: [{ kind: 'date', text: '31 octobre' }], offer: '-20%' },
+      'fr',
+      brief.details
+    );
+    check(
+      'typographie : élision, offre normalisée, date de fin',
+      p.headline === 'Créez avec l’IA' &&
+        p.offer === '−20 %' &&
+        p.facts[0].text === 'Jusqu’au 31 octobre',
+      JSON.stringify(p)
+    );
+    const h = heuristicCopy(
+      {
+        message: 'Atelier',
+        details: 'Atelier pratique : créez votre première œuvre avec l IA, samedi 18 octobre',
+        brandName: 'Makam',
+        language: 'fr',
+      },
+      'event'
+    );
+    check(
+      'repli sans modèle : préambule en sur-titre, la suite en titre',
+      h.kicker === 'Atelier pratique' && /^Créez votre première œuvre/.test(h.headline) && !h.sub,
+      JSON.stringify(h)
+    );
+    const before = {
+      headline: 'Le café qui réveille Abidjan',
+      facts: [{ kind: 'date' as const, text: 'Lundi 3 mars' }],
+    };
+    const edit = parseVisualEdit(
+      '{"headline":"Le café qui réveille Cocody","facts":[{"kind":"date","text":"Lundi 3 mars"},{"kind":"price","text":"5 000 F"}],"offer":"-50%","photo":"remove","layout":"change"}',
+      before,
+      {
+        instruction: 'remplace Abidjan par Cocody et retire la photo',
+        language: 'fr',
+        brandName: 'Kora',
+      }
+    );
+    check(
+      'retouche : le mot demandé changé, prix et offre inventés retirés, photo et mise en page lues',
+      !!edit &&
+        edit.copy.headline === 'Le café qui réveille Cocody' &&
+        edit.copy.facts.length === 1 &&
+        !edit.copy.offer &&
+        edit.photo === 'remove' &&
+        edit.layout === 'change',
+      JSON.stringify(edit)
+    );
+    const noHtml = parseVisualEdit('<div>du HTML</div>', before, {
+      instruction: 'plus grand',
+      language: 'fr',
+      brandName: 'Kora',
+    });
+    check(
+      'retouche : une réponse en HTML est refusée (jamais posée sur le visuel)',
+      noHtml === null
+    );
   }
 
   await closeFilmBrowser();

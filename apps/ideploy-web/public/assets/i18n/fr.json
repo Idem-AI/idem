@@ -807,8 +807,7 @@
       "backupAddress": "Adresse technique de secours",
       "buy": "Acheter un nom",
       "buyAnother": "Acheter un autre nom",
-      "buyHint": "Acheté sur iDomain et payé depuis votre portefeuille : l’adresse et le HTTPS sont réglés pour vous.",
-      "buyError": "iDomain ne répond pas pour le moment. Réessayez dans un instant."
+      "buyHint": "Acheté sur iDomain et payé depuis votre portefeuille : l’adresse et le HTTPS sont réglés pour vous."
     }
   },
   "projects": {
@@ -2264,7 +2263,7 @@
     "wake": "Réveiller",
     "options": "Options à la journée",
     "domainTitle": "Votre nom de domaine",
-    "orderDomain": "Trouver mon nom sur iDomain",
+    "orderDomain": "Acheter un nom",
     "domainStatus": {
       "pending": "en cours d’enregistrement",
       "active": "actif",

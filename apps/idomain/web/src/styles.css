@@ -12,3 +12,31 @@
     min-height: 100dvh;
   }
 }
+
+/* ─── Mise en page et titres d'iDomain ─────────────────────────────────────
+ * Pas de nouvelle couleur ni de composant : la largeur de contenu et l'échelle des titres
+ * monumentaux (Vilevile Black, mots forts soulignés par .i-underline du design system). */
+@layer components {
+  .idm-wrap {
+    margin-inline: auto;
+    width: 100%;
+    max-width: 80rem;
+    padding-inline: 1.25rem;
+  }
+  @media (min-width: 640px) {
+    .idm-wrap { padding-inline: 2rem; }
+  }
+  .idm-hero-title {
+    font-weight: 900;
+    line-height: 0.92;
+    font-size: clamp(3.5rem, 14vw, 6rem);
+  }
+  .idm-section-title {
+    font-weight: 900;
+    line-height: 1;
+    font-size: clamp(2.25rem, 7vw, 4rem);
+    text-wrap: balance;
+  }
+}
+
+html { scroll-padding-top: 5rem; }

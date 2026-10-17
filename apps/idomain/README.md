@@ -2,8 +2,10 @@
 
 iDomain is the IDEM service that sells and manages **domain names**. A user finds a name, pays for it
 from their IDEM wallet, and iDomain registers it, writes the DNS and connects it to their iDeploy
-application with HTTPS — no technical step. It works on its own (`idomain.idem.africa`) and from the
-« Nom de domaine » tab of every iDeploy application (iCode publishes through iDeploy).
+application with HTTPS — no technical step. It works on its own (`idomain.idem.africa`) and **inside iDeploy and iCode, without leaving them**:
+the purchase window (`@idem/shared-idomain`) calls this API with the user's IDEM session, so a name is
+bought, registered, written in DNS and connected to the application the user is looking at, with no
+redirection and no setting to make.
 
 ```
 apps/idomain/
@@ -103,6 +105,28 @@ refunded after 48 h; the user may cancel and be refunded at once. Never sold at 
 to `IDOMAIN_WEBHOOK_TARGETS` with retries. Headers `X-IDomain-Event`, `X-IDomain-Delivery` (stable across
 retries, use it to deduplicate) and `X-IDomain-Signature: t=<seconds>,v1=<hex>`, where
 v1 = HMAC-SHA256(`IDOMAIN_WEBHOOK_SECRET`, `<t>.<body>`).
+
+## Inside iDeploy and iCode
+
+The same purchase flow, one implementation (`packages/shared-idomain`, class `DomainPurchaseFlow`),
+two renderings:
+
+- **iDeploy** — « Nom de domaine » tab of an application: « Acheter un nom » opens
+  `<idem-domain-purchase>` for this application; names bought with IDEM are managed in place by
+  `<idem-domain-manage>` (status, expiry, renewal price, retry, disconnect, advanced DNS). The meters
+  page opens the same window, where the application is chosen.
+- **iCode** — publish window: once the site is online, « Choisir mon nom » opens `<DomainPurchase>`
+  for the published application (`applicationUuid`, or `frontendUuid` for a full-stack app); the name
+  and its state show next to the free address.
+
+Flow: search (first-year and renewal price) → holder, asked once → price guaranteed, application
+already chosen → pay from the wallet (402: top up in a new tab, then pay the same order) → the worker
+registers the name, writes the `A` records, attaches it in iDeploy and waits for HTTPS. The window can
+be closed; setup goes on. `npm run check:embedded --prefix apps/idomain/api` plays this flow against a
+running offline API (`IDOMAIN_CHECK_API`, default `http://localhost:3007`).
+
+In production, `IDOMAIN_ALLOWED_ORIGINS` must list the iDeploy and iCode origins
+(`https://ideploy.idem.africa`, `https://appgen.idem.africa`), since their pages call this API directly.
 
 ## API
 

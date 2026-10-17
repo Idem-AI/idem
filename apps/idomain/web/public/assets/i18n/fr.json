@@ -14,29 +14,153 @@
     "domains": "Mes domaines",
     "orders": "Commandes",
     "wallet": "Portefeuille",
-    "login": "Se connecter"
+    "login": "Se connecter",
+    "page": "Sur cette page",
+    "how": "Comment ça marche",
+    "prices": "Prix",
+    "apps": "Depuis iDeploy et iCode",
+    "services": "Services"
   },
   "home": {
-    "titleStart": "Votre nom sur internet,",
-    "titleStrong": "branché en quelques minutes",
-    "lead": "Trouvez votre nom de domaine, payez-le depuis votre portefeuille IDEM, et iDomain le relie à votre site : adresse, DNS et HTTPS réglés pour vous.",
-    "pricesTitle": "Les prix",
-    "pricesLead": "Un seul prix par extension. Le renouvellement est annoncé dès l’achat et ne monte pas par surprise.",
-    "pricesUnavailable": "Les prix ne sont pas disponibles pour l’instant. Réessayez dans un instant.",
-    "extension": "Extension",
-    "firstYear": "Première année",
-    "renewal": "Renouvellement",
     "perYear": "par an",
-    "howTitle": "Comment ça marche",
-    "steps": {
-      "find": { "title": "Trouvez votre nom", "body": "Tapez le nom de votre activité : on vous dit tout de suite s’il est libre, et ce qu’il coûte." },
-      "pay": { "title": "Payez depuis votre portefeuille", "body": "Le prix affiché est garanti le temps de la commande. Il manque de l’argent ? Rechargez par mobile money, puis validez." },
-      "connect": { "title": "Il est relié à votre site", "body": "Choisissez votre application iDeploy : l’adresse et le cadenas HTTPS sont réglés pour vous, sans rien toucher." }
+    "pricesUnavailable": "Les prix ne sont pas disponibles pour l’instant. Réessayez dans un instant.",
+    "hero": {
+      "title1": "Votre nom,",
+      "title2": "en ligne.",
+      "lead": "Achetez votre nom de domaine : il est relié à votre site, avec HTTPS. Aucun réglage."
+    },
+    "setup": {
+      "title1": "Vous payez.",
+      "title2": "IDEM fait le reste.",
+      "lead": "Dès que le paiement est reçu, votre nom est enregistré à votre nom, son adresse est écrite et il est relié à votre application iDeploy. Vous n’ouvrez aucun panneau technique.",
+      "leave": "Vous pouvez fermer la page : l’installation continue, et vous retrouvez son état dans « Mes domaines ».",
+      "label": "Ce qui se passe après le paiement",
+      "steps": {
+        "paid": {
+          "title": "Paiement reçu",
+          "body": "Débité de votre portefeuille IDEM.",
+          "when": "aussitôt"
+        },
+        "registered": {
+          "title": "Nom enregistré à votre nom",
+          "body": "Vous en êtes le titulaire.",
+          "when": "< 1 min"
+        },
+        "connected": {
+          "title": "Adresse écrite, site relié",
+          "body": "Votre application répond à ce nom.",
+          "when": "quelques min"
+        },
+        "secured": {
+          "title": "Cadenas HTTPS activé",
+          "body": "Vos visiteurs voient un site sûr.",
+          "when": "quelques min"
+        }
+      }
+    },
+    "prices": {
+      "title1": "Un prix,",
+      "title2": "pas de surprise.",
+      "lead": "Le même prix quel que soit le moment. Le renouvellement est affiché dès l’achat, et vous êtes prévenu avant chaque échéance.",
+      "caption": "Prix des noms de domaine par extension",
+      "extension": "Extension",
+      "firstYear": "Première année",
+      "renewal": "Renouvellement",
+      "action": "Chercher",
+      "search": "Chercher en .{{tld}}"
+    },
+    "guarantees": {
+      "price": {
+        "title": "Prix garanti",
+        "body": "Le prix affiché est tenu pendant toute votre commande, même si un tarif change entre-temps."
+      },
+      "refund": {
+        "title": "Remboursé si le nom vous échappe",
+        "body": "Si le nom est pris avant d’être enregistré, le montant revient dans votre portefeuille automatiquement."
+      },
+      "mail": {
+        "title": "Votre courrier reste en place",
+        "body": "Relier votre site ne touche qu’à son adresse : vos e-mails et vos autres réglages ne bougent pas."
+      }
+    },
+    "apps": {
+      "title1": "Déjà en ligne",
+      "title2": "avec IDEM ?",
+      "lead": "Dans iDeploy comme dans iCode, achetez votre nom sans quitter votre application : il est relié tout seul au site que vous venez de mettre en ligne.",
+      "ideploy": "Ouvrir iDeploy",
+      "window": {
+        "title": "Votre propre nom",
+        "app": "Relié automatiquement à",
+        "pay": "Payer 6 500 F et relier"
+      }
+    },
+    "closing": {
+      "title1": "Votre nom",
+      "title2": "vous attend.",
+      "cta": "Chercher mon nom"
+    },
+    "footer": {
+      "by": "iDomain, par IDEM",
+      "currency": "Prix en francs CFA, payés depuis votre portefeuille IDEM"
+    },
+    "features": {
+      "title1": "Avec votre nom,",
+      "title2": "tout est prêt.",
+      "included": "Inclus avec chaque nom",
+      "free": "Gratuit",
+      "options": "En option",
+      "paid": "Payant",
+      "status": {
+        "soon": "Bientôt",
+        "request": "Sur demande"
+      },
+      "items": {
+        "dns": {
+          "title": "DNS gérés pour vous",
+          "body": "L’adresse de votre site est écrite et tenue à jour, sans panneau technique."
+        },
+        "https": {
+          "title": "HTTPS automatique",
+          "body": "Le cadenas est obtenu et renouvelé tout seul."
+        },
+        "connect": {
+          "title": "Relié à votre application",
+          "body": "Branché en un geste à votre site iDeploy ou iCode."
+        },
+        "mail": {
+          "title": "Votre courrier protégé",
+          "body": "Vos e-mails et vos autres réglages ne sont jamais écrasés."
+        },
+        "reminders": {
+          "title": "Rappels avant l’échéance",
+          "body": "Prévenu à l’avance, avec le prix du renouvellement."
+        },
+        "manage": {
+          "title": "Gestion simple",
+          "body": "État, échéance, DNS avancés : tout au même endroit, en français."
+        },
+        "email": {
+          "title": "E-mail professionnel",
+          "body": "contact@votre-nom.africa, avec un partenaire."
+        },
+        "monitoring": {
+          "title": "Surveillance",
+          "body": "Alerte si votre site ou votre nom a un problème."
+        },
+        "portfolio": {
+          "title": "Plusieurs noms, une équipe",
+          "body": "Gérer de nombreux noms, avec des rôles pour chacun."
+        },
+        "migration": {
+          "title": "Accompagnement",
+          "body": "Nous transférons et réglons un nom acheté ailleurs."
+        }
+      }
     }
   },
   "search": {
     "label": "Nom de domaine recherché",
-    "placeholder": "ma-boutique.africa",
+    "placeholder": "ma-boutique",
     "submit": "Rechercher",
     "error": "La recherche n’a pas abouti. Réessayez dans un instant.",
     "invalid": "Ce nom n’est pas valide. Utilisez des lettres, des chiffres et des tirets.",
@@ -54,7 +178,20 @@
       "not_sold": "Extension pas encore proposée",
       "unavailable_now": "Pas commandable pour l’instant",
       "unknown": "Vérification impossible pour l’instant"
-    }
+    },
+    "extensionsLabel": "Extensions proposées et leur prix",
+    "firstYearShort": "la 1ʳᵉ année",
+    "take": "Prendre ce nom",
+    "verdict": {
+      "available": "Disponible",
+      "taken": "Déjà pris",
+      "premium": "Nom premium, non proposé ici",
+      "not_sold": "Extension pas encore proposée",
+      "unavailable_now": "Pas commandable pour l’instant",
+      "unknown": "Vérification impossible pour l’instant"
+    },
+    "checking": "Vérification…",
+    "resultsLabel": "Noms possibles"
   },
   "checkout": {
     "back": "Retour à la recherche",
@@ -232,7 +369,10 @@
     "backToApp": "Revenir à mon application",
     "detach": "Débrancher",
     "confirmDetach": "Débrancher ce nom de l’application ? Le site ne répondra plus à cette adresse.",
-    "purpose": { "ownership": "Prouve que le nom est à vous", "address": "Dirige le nom vers votre application" },
+    "purpose": {
+      "ownership": "Prouve que le nom est à vous",
+      "address": "Dirige le nom vers votre application"
+    },
     "status": {
       "awaiting_domain": "En attente de l’enregistrement",
       "verifying_ownership": "En attente de la preuve de propriété",

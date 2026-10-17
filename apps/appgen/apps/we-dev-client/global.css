@@ -16,6 +16,8 @@
    l'explicite pour que `index.html` et `src/` soient scannés sans ambiguïté. */
 @source './index.html';
 @source './src/**/*.{ts,tsx,js,jsx}';
+/* La fenêtre d'achat d'un nom (paquet partagé, hors de ce dossier) : ses classes doivent être générées. */
+@source '../../../../packages/shared-idomain/src';
 
 /* Le thème est piloté par la classe `.dark` posée sur <html> (ThemeService
    partagé + cookie `idem_theme`), pas par `prefers-color-scheme`. Sans cette
