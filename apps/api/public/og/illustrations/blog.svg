@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="2 2 116 64" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Le blog — le texte écrit : le feuillet manuscrit et son calame.
+       Le losange du feuillet porte la couleur. -->
+  <g transform="translate(14 -6) scale(.85)">
+    <rect x="34" y="12" width="52" height="68" rx="2" stroke-width="2"/>
+    <rect x="38" y="16" width="44" height="60" rx="1" stroke-width=".9" opacity=".6"/>
+    <path d="M40 20 L43 23 L46 20 L49 23 L52 20 L55 23 L58 20 L61 23 L64 20 L67 23 L70 20 L73 23 L76 20 L79 23" stroke-width=".9" opacity=".6"/>
+    <path d="M44 34 C48 32 52 36 56 34 S64 32 68 34 S74 36 76 34 M44 42 C48 40 52 44 56 42 S62 40 66 42 M44 50 C48 48 52 52 56 50 S64 48 68 50 S74 52 76 50" stroke-width="1.2" opacity=".8"/>
+    <path d="M44 58 C48 56 52 60 56 58" stroke-width="1.2" opacity=".8"/>
+    <g style="color: var(--color-primary-500)">
+      <path d="M68 62 L73 67 L68 72 L63 67Z" stroke-width="2"/>
+    </g>
+  </g>
+  <!-- Le calame : un roseau taillé en biseau. -->
+  <g transform="translate(10 0)">
+    <path d="M104 14 L84 54" stroke-width="2"/>
+    <path d="M84 54 L81 62 L89 57Z" stroke-width="1.6"/>
+    <path d="M100 22 L106 25" stroke-width="1.2" opacity=".7"/>
+  </g>
+</svg>

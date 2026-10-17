@@ -16,6 +16,7 @@ export type LandingPageId =
   | 'about'
   | 'open-source'
   | 'african-market'
+  | 'blog'
   | 'contact'
   | 'premium-beta'
   | 'privacy-policy'
@@ -45,6 +46,7 @@ export const LANDING_PAGES: Record<LandingPageId, LandingPage> = {
   about: { id: 'about', path: '/about', og: 'about', about: 'platform', pageType: 'AboutPage', sitemap: { priority: 0.7, changefreq: 'monthly' } },
   'open-source': { id: 'open-source', path: '/open-source', og: 'open-source', about: 'platform', pageType: 'WebPage', sitemap: { priority: 0.7, changefreq: 'monthly' } },
   'african-market': { id: 'african-market', path: '/african-market', og: 'african-market', about: 'platform', pageType: 'WebPage', sitemap: { priority: 0.7, changefreq: 'monthly' } },
+  blog: { id: 'blog', path: '/blog', og: 'blog', about: 'platform', pageType: 'CollectionPage', sitemap: { priority: 0.7, changefreq: 'weekly' } },
   contact: { id: 'contact', path: '/contact', og: 'contact', about: 'platform', pageType: 'ContactPage', sitemap: { priority: 0.6, changefreq: 'yearly' } },
   'premium-beta': { id: 'premium-beta', path: '/premium-beta', og: 'beta', about: 'platform', pageType: 'WebPage', sitemap: { priority: 0.5, changefreq: 'monthly' } },
   'privacy-policy': { id: 'privacy-policy', path: '/privacy-policy', og: 'legal', about: 'platform', pageType: 'WebPage', sitemap: { priority: 0.3, changefreq: 'yearly' } },

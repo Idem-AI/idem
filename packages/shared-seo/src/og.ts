@@ -20,6 +20,7 @@ export const OG_KEYS = [
   'about',
   'open-source',
   'african-market',
+  'blog',
   'contact',
   'beta',
   'legal',

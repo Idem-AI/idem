@@ -129,6 +129,12 @@ export class Header implements OnInit {
       type: 'link',
     },
     {
+      id: 'blog',
+      label: $localize`:@@header.menu.blog:Blog`,
+      route: '/blog',
+      type: 'link',
+    },
+    {
       id: 'contact',
       label: $localize`:@@header.nav.contact:Contact`,
       route: '/contact',

@@ -45,6 +45,7 @@ import {
 } from '../schemas/payment.schema';
 import { BillingSettings } from '../schemas/billingSettings.schema';
 import { BetaTester } from '../schemas/betaTester.schema';
+import { BlogPost } from '../schemas/blogPost.schema';
 import { EmailLog } from '../schemas/emailLog.schema';
 import { BillingSyncJob } from '../schemas/billingSync.schema';
 import { PricingChange, PricingOverride } from '../schemas/pricingOverride.schema';
@@ -68,6 +69,7 @@ const MODELS: [string, Model<any>][] = [
   ['credit_balances', CreditBalance],
   ['billing_settings', BillingSettings],
   ['beta_testers', BetaTester],
+  ['blog_posts', BlogPost],
   ['email_logs', EmailLog],
   ['billing_sync_jobs', BillingSyncJob],
   ['pricing_overrides', PricingOverride],

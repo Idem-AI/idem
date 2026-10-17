@@ -1,0 +1,187 @@
+<!-- Blog — articles et notes de version.
+     Même mise en page éditoriale que les autres pages : le titre donne
+     l'échelle, des rangées séparées par un filet, pas de carte autour de chaque
+     billet. Le feuillet et son calame (le texte écrit) disent ce que dit la page. -->
+<div class="ed-page">
+  <header class="ed-section ed-section-hero ed-wrap">
+    <h1 class="ed-display ed-rise">
+      <span i18n="@@blog-page.hero.line1">What we build,</span><br />
+      <span class="i-underline" i18n="@@blog-page.hero.line2">what we learn</span>
+    </h1>
+
+    <div class="grid gap-12 ed-mt-12 ed-mt-lg-16 lg:grid-cols-12 lg:gap-16 lg:items-center">
+      <div class="lg:col-span-7 ed-rise ed-rise-2">
+        <p class="ed-lede ed-lede-wide" i18n="@@blog-page.hero.lede">
+          Product news, release notes and lessons from the team building IDEM.
+        </p>
+        <p class="ed-mt-6">
+          <a class="outer-button button-sm" [href]="rssUrl" i18n="@@blog-page.rss">RSS feed</a>
+        </p>
+      </div>
+
+      <figure class="lg:col-span-5 ed-art ed-art-md ed-rise ed-rise-3">
+        <app-page-art scene="leaflet" />
+      </figure>
+    </div>
+  </header>
+
+  <section class="ed-rule">
+    <div class="ed-section ed-wrap bl-section">
+      <!-- Les filtres : le type d'abord, puis les sujets en usage. -->
+      <div class="bl-filters">
+        <nav class="bl-kinds" aria-label="Filter posts" i18n-aria-label="@@blog-page.filter.aria">
+          @for (item of kinds; track item.label) {
+            <a
+              class="button-sm"
+              [class.inner-button]="kind() === item.value"
+              [class.outer-button]="kind() !== item.value"
+              [routerLink]="[]"
+              [queryParams]="{ kind: item.value, page: null }"
+              queryParamsHandling="merge"
+              [attr.aria-current]="kind() === item.value ? 'true' : null"
+              >{{ item.label }}</a
+            >
+          }
+        </nav>
+
+        @if (list()?.tags?.length) {
+          <nav class="bl-tags" aria-label="Topics" i18n-aria-label="@@blog-page.tags.aria">
+            @for (item of list()!.tags; track item) {
+              <a
+                class="tag"
+                [class.bl-tag-on]="tag() === item"
+                [routerLink]="[]"
+                [queryParams]="{ tag: tag() === item ? null : item, page: null }"
+                queryParamsHandling="merge"
+                [attr.aria-current]="tag() === item ? 'true' : null"
+                >{{ item }}</a
+              >
+            }
+          </nav>
+        }
+      </div>
+
+      @switch (state()) {
+        @case ('loading') {
+          <!-- On connaît la forme de ce qui arrive : un squelette, pas un anneau. -->
+          <ul class="ed-rows ed-rows-closed" aria-hidden="true">
+            @for (n of skeletonRows; track n) {
+              <li class="ed-row">
+                <div class="skeleton bl-skeleton-title"></div>
+                <div class="skeleton bl-skeleton-line"></div>
+              </li>
+            }
+          </ul>
+        }
+
+        @case ('error') {
+          <div class="bl-notice" role="alert">
+            <h2 class="ed-h3" i18n="@@blog-page.error.title">We could not load the blog</h2>
+            <p class="ed-body ed-mt-2" i18n="@@blog-page.error.body">
+              The connection may have dropped. Nothing is lost: try again.
+            </p>
+            <button type="button" class="inner-button ed-mt-6" (click)="retry()" i18n="@@blog-page.error.retry">
+              Try again
+            </button>
+          </div>
+        }
+
+        @case ('ready') {
+          @if (list()!.posts.length === 0) {
+            <div class="bl-notice">
+              @if (filtered()) {
+                <h2 class="ed-h3" i18n="@@blog-page.filtered.title">No post matches this filter</h2>
+                <a
+                  class="inner-button ed-mt-6"
+                  [routerLink]="[]"
+                  [queryParams]="{ kind: null, tag: null, page: null }"
+                  i18n="@@blog-page.filtered.reset"
+                  >Show everything</a
+                >
+              } @else {
+                <h2 class="ed-h3" i18n="@@blog-page.empty.title">Nothing published yet</h2>
+                <p class="ed-body ed-mt-2" i18n="@@blog-page.empty.body">
+                  The first articles and release notes will appear here.
+                </p>
+              }
+            </div>
+          } @else {
+            @if (featured(); as post) {
+              <article class="bl-featured">
+                <a class="bl-link" [routerLink]="['/blog', post.slug]">
+                  @if (post.coverUrl) {
+                    <img
+                      class="bl-cover"
+                      [src]="post.coverUrl"
+                      [alt]="post.coverAlt ?? ''"
+                      width="1200"
+                      height="630"
+                      fetchpriority="high"
+                    />
+                  }
+                  <div class="bl-featured-text">
+                    <p class="bl-meta">
+                      <time [attr.datetime]="post.publishedAt">{{ post.publishedAt | date: 'longDate' }}</time>
+                      @if (post.kind === 'release') {
+                        <span class="tag">v{{ post.version }}</span>
+                      }
+                    </p>
+                    <h2 class="ed-h2 ed-mt-3">{{ post.title }}</h2>
+                    <p class="ed-body ed-mt-4">{{ post.excerpt }}</p>
+                    <p class="bl-foot ed-mt-4">{{ readingTime(post.readingMinutes) }}</p>
+                  </div>
+                </a>
+              </article>
+            }
+
+            <ul class="ed-rows ed-rows-closed">
+              @for (post of rows(); track post.slug) {
+                <li class="ed-row">
+                  <a class="bl-link bl-row" [routerLink]="['/blog', post.slug]">
+                    <p class="bl-meta">
+                      <time [attr.datetime]="post.publishedAt">{{ post.publishedAt | date: 'longDate' }}</time>
+                      @if (post.kind === 'release') {
+                        <span class="tag">v{{ post.version }}</span>
+                      }
+                    </p>
+                    <div>
+                      <h2 class="ed-h3">{{ post.title }}</h2>
+                      <p class="ed-body ed-mt-2">{{ post.excerpt }}</p>
+                      <p class="bl-foot ed-mt-3">{{ readingTime(post.readingMinutes) }}</p>
+                    </div>
+                  </a>
+                </li>
+              }
+            </ul>
+
+            @if (list()!.pages > 1) {
+              <nav class="bl-pager" aria-label="Pagination" i18n-aria-label="@@blog-page.pagination.aria">
+                @if (previous(); as p) {
+                  <a
+                    class="outer-button button-sm"
+                    [routerLink]="[]"
+                    [queryParams]="{ page: p === 1 ? null : p }"
+                    queryParamsHandling="merge"
+                    i18n="@@blog-page.pagination.previous"
+                    >Previous</a
+                  >
+                }
+                <span class="bl-foot">{{ pageLabel() }}</span>
+                @if (next(); as p) {
+                  <a
+                    class="outer-button button-sm"
+                    [routerLink]="[]"
+                    [queryParams]="{ page: p }"
+                    queryParamsHandling="merge"
+                    i18n="@@blog-page.pagination.next"
+                    >Next</a
+                  >
+                }
+              </nav>
+            }
+          }
+        }
+      }
+    </div>
+  </section>
+</div>

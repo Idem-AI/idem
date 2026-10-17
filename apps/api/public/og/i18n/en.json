@@ -51,6 +51,11 @@
       "title": "Built for African markets",
       "subtitle": "CFA francs, SYSCOHADA, OHADA, Mobile Money: your local rules, from day one."
     },
+    "blog": {
+      "eyebrow": "Blog",
+      "title": "The IDEM blog",
+      "subtitle": "Articles and release notes: what we are building, and what we learn along the way."
+    },
     "contact": {
       "eyebrow": "Contact",
       "title": "Let’s talk about your business",
