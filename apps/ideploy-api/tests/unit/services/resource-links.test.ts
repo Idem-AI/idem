@@ -3,7 +3,7 @@
  * database — only where the value is an example, never the user's own.
  */
 import { describe, it, expect } from 'vitest';
-import { classifyVariable, isPlaceholder, linkVariables, targetKindOf } from '../../../api/services/resource-links';
+import { applicationDefaults, classifyVariable, isPlaceholder, linkVariables, targetKindOf } from '../../../api/services/resource-links';
 
 const targets = {
   database: { name: 'shop-db', type: 'postgresql', connectionUrl: 'postgres://app:dbpass@postgresql-1:5432/shop' },
@@ -85,5 +85,41 @@ describe('linking the variables', () => {
     expect(linked[0].linkedTo).toBeUndefined();
     expect(targetKindOf('clickhouse')).toBeNull();
     expect(targetKindOf('keydb')).toBe('redis');
+  });
+});
+
+describe('the defaults of a deployed application', () => {
+  const random = (bytes: number) => Buffer.alloc(bytes, 7);
+  const opts = { appUrl: 'https://shop.idem.africa', random };
+
+  it('points its own URL at itself, runs in production and generates its empty secrets', () => {
+    const out = applicationDefaults(
+      [
+        { key: 'APP_KEY', value: '' },
+        { key: 'APP_URL', value: 'http://localhost:8080' },
+        { key: 'APP_ENV', value: 'local' },
+        { key: 'APP_DEBUG', value: 'true' },
+        { key: 'JWT_SECRET', value: 'changeme' },
+      ],
+      opts
+    );
+    const value = (k: string) => out.find((v) => v.key === k)!.value;
+    expect(value('APP_KEY')).toBe(`base64:${random(32).toString('base64')}`);
+    expect(value('APP_URL')).toBe('https://shop.idem.africa');
+    expect(value('APP_ENV')).toBe('production');
+    expect(value('APP_DEBUG')).toBe('false');
+    expect(value('JWT_SECRET')).toBe(random(32).toString('hex'));
+  });
+
+  it('never replaces what the user set, nor a variable already linked', () => {
+    const variables = [
+      { key: 'APP_URL', value: 'https://www.shop.com' },
+      { key: 'APP_ENV', value: 'staging' },
+      { key: 'JWT_SECRET', value: 'a-real-secret-of-the-user' },
+      { key: 'SECRET_KEY', value: 'x', linkedTo: 'shop-db' },
+      // Not Laravel: APP_DEBUG is someone else's switch.
+      { key: 'APP_DEBUG', value: 'true' },
+    ];
+    expect(applicationDefaults(variables, opts)).toEqual(variables);
   });
 });

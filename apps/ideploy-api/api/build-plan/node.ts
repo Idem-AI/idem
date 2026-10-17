@@ -646,6 +646,12 @@ async function planWorkspaceApp(
     }
   }
 
+  // Prisma's migrations, when the project has some (prisma/migrations).
+  const prismaDeps = { ...(appPkg.dependencies ?? {}), ...(appPkg.devDependencies ?? {}) };
+  if (('prisma' in prismaDeps || '@prisma/client' in prismaDeps) && files.paths.some((p) => p.startsWith(`${joinPath(appDir, 'prisma/migrations')}/`))) {
+    plan.release = inApp('npx prisma migrate deploy');
+  }
+
   // iDeploy's own build for a server it knows how to start.
   const recipeStart = plan.start ?? (script ? inApp(runScript(manager, script)) : null);
   if (output === 'server' && manager !== 'bun' && recipeStart && !framework.issue) {

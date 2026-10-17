@@ -3,7 +3,7 @@
  * the port the application is told to listen on.
  */
 import { describe, expect, it } from 'vitest';
-import { applicationPort, judgeContainers, normaliseBaseDirectory, parseComposePs } from '../../../api/jobs/deployment.worker';
+import { applicationPort, judgeContainers, normaliseBaseDirectory, parseComposePs, releaseCommand } from '../../../api/jobs/deployment.worker';
 
 describe('parseComposePs', () => {
   it('reads one object per line (current Compose)', () => {
@@ -59,5 +59,15 @@ describe('normaliseBaseDirectory', () => {
     for (const root of ['', './', '/', '.', null]) expect(normaliseBaseDirectory(root)).toBe('');
     expect(normaliseBaseDirectory('./backend/')).toBe('backend');
     expect(normaliseBaseDirectory('./Dockerfile')).toBe('Dockerfile');
+  });
+});
+
+describe('the release command run before going live', () => {
+  it("is the plan's, unless the application sets its own or turns it off", () => {
+    expect(releaseCommand([], 'php artisan migrate --force')).toBe('php artisan migrate --force');
+    expect(releaseCommand([], undefined)).toBeNull();
+    expect(releaseCommand(['IDEPLOY_RELEASE_COMMAND=npm run migrate'], 'npx prisma migrate deploy')).toBe('npm run migrate');
+    expect(releaseCommand(['IDEPLOY_RELEASE_COMMAND=off'], 'php artisan migrate --force')).toBeNull();
+    expect(releaseCommand(['IDEPLOY_RELEASE_COMMAND='], 'php artisan migrate --force')).toBeNull();
   });
 });

@@ -111,8 +111,11 @@ describe('PHP', () => {
       version: '8.2',
       documentRoot: 'public',
       assets: { manager: 'npm', install: 'npm ci', build: 'npm run build' },
-      start: 'apache2-foreground',
     });
+    // Laravel's own log reaches the container's output (the Logs tab), and its migrations run before going live.
+    expect(recipe.start).toContain('tail -n 0 -F storage/logs/laravel.log');
+    expect(recipe.start).toMatch(/exec apache2-foreground$/);
+    expect(plan.release).toBe('php artisan migrate --force');
     expect(recipe.extensions).toEqual(['bcmath', 'exif', 'gd', 'intl', 'opcache', 'pcntl', 'pdo_mysql', 'pdo_pgsql', 'redis', 'zip']);
     const file = recipeDockerfile(recipe);
     expect(file).toContain('FROM node:22-bookworm AS assets');
@@ -123,6 +126,8 @@ describe('PHP', () => {
     // https behind the proxy: without it, Laravel wrote http:// CSS links an https page cannot load.
     expect(file).toContain('SetEnvIf X-Forwarded-Proto "^https$" HTTPS=on');
     expect(file).toContain('a2enmod rewrite headers remoteip');
+    // Apache's own health pings stay out of the logs.
+    expect(file).toContain('env=!dontlog');
     expect(file).toContain('RUN install-php-extensions bcmath exif gd intl opcache pcntl pdo_mysql pdo_pgsql redis zip || {');
     expect(file).toContain('do install-php-extensions "$e" || echo');
     expect(file).toContain('COPY --from=assets /app/public /app/public');
