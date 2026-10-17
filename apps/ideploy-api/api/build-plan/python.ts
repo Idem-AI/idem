@@ -126,7 +126,7 @@ export async function planPython(files: RepoFiles, appDir: string, overrides: { 
     issues.push({
       code: 'DJANGO_MIGRATIONS',
       severity: 'info',
-      message: 'Database migrations are not run automatically: start with "python manage.py migrate && gunicorn …", or run them from the terminal.',
+      message: 'Its migrations run before each release (python manage.py migrate); IDEPLOY_RELEASE_COMMAND changes or turns that off.',
     });
   } else if (hasDep('fastapi') || hasDep('starlette') || hasDep('litestar')) {
     framework = hasDep('fastapi') ? 'FastAPI' : hasDep('litestar') ? 'Litestar' : 'Starlette';
