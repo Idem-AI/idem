@@ -283,3 +283,23 @@ describe('labels and failures', () => {
     expect(explainRuntimeFailure("Failed to find attribute 'app' in 'main'.")?.code).toBe('ENTRY_NOT_FOUND');
   });
 });
+
+describe('PHP and Redis', () => {
+  it('gives Laravel phpredis, its default Redis client, though no package declares ext-redis', async () => {
+    const plan = await analyzeRepository(
+      repo({ 'composer.json': { require: { php: '^8.1', 'laravel/framework': '^10.0' } }, 'public/index.php': '', artisan: '' }),
+      ''
+    );
+    expect((plan.recipe as PhpRecipe).extensions).toContain('redis');
+  });
+
+  it('gives it to a plain PHP app only when a package uses it', async () => {
+    const plain = await analyzeRepository(repo({ 'composer.json': { require: { php: '^8.2' } }, 'index.php': '' }), '');
+    expect((plain.recipe as PhpRecipe).extensions).not.toContain('redis');
+    const withRedis = await analyzeRepository(
+      repo({ 'composer.json': { require: { php: '^8.2', 'illuminate/redis': '^10.0' } }, 'index.php': '' }),
+      ''
+    );
+    expect((withRedis.recipe as PhpRecipe).extensions).toContain('redis');
+  });
+});
