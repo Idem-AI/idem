@@ -82,6 +82,8 @@ function buildConnectionUrl(type: string, creds: Record<string, string>, host: s
       return `redis://:${creds[`${type}_password`]}@${host}:${port}`;
     case 'clickhouse':
       return `http://${creds.clickhouse_admin_user}:${creds.clickhouse_admin_password}@${host}:${port}`;
+    case 'rabbitmq':
+      return `amqp://${creds.rabbitmq_user}:${creds.rabbitmq_password}@${host}:${port}`;
     default:
       return null;
   }
@@ -509,7 +511,7 @@ export async function lifecycle(
       `${dataVolumeScript(containerName, t.dataDir, db.image)} && ` +
       `docker rm -f ${containerName} 2>/dev/null; ` +
       `docker network inspect ideploy >/dev/null 2>&1 || docker network create --attachable ideploy; ` +
-      `docker run -d --name ${containerName} --restart unless-stopped --network ideploy ` +
+      `docker run -d --name ${containerName} ${t.fixedHostname ? `--hostname ${containerName} ` : ''}--restart unless-stopped --network ideploy ` +
       `--label ideploy.managed=true -v "$VOL":${shellQuote(t.dataDir)} ${envFlags} ${shellQuote(db.image)} ${command ?? ''}`;
   }
 

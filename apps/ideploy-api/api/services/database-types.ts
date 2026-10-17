@@ -57,6 +57,12 @@ export interface DbType {
    * part of the command iDeploy sends.
    */
   client?: { binary: string; script: string };
+  /**
+   * Run under a fixed hostname (the container's name). RabbitMQ keeps its
+   * data under its node name, which comes from the hostname: a new random one
+   * on each recreation would leave its queues behind.
+   */
+  fixedHostname?: boolean;
 }
 
 /** Redis-family password, read from the server's own arguments (`--requirepass x`, or `--requirepass=x`). */
@@ -186,7 +192,26 @@ export const DB_TYPES: Record<string, DbType> = {
     dataDir: '/var/lib/clickhouse',
     client: { binary: 'clickhouse-client', script: 'exec clickhouse-client --user "$CLICKHOUSE_USER" --password "$CLICKHOUSE_PASSWORD"' },
   },
+  rabbitmq: {
+    key: 'rabbitmq',
+    table: 'standalone_rabbitmqs',
+    model: 'App\\Models\\StandaloneRabbitmq',
+    // The management plugin: its web interface (15672) on the internal network.
+    image: 'rabbitmq:4-management',
+    port: 5672,
+    fields: [
+      { col: 'rabbitmq_user', env: 'RABBITMQ_DEFAULT_USER', default: 'rabbitmq' },
+      { col: 'rabbitmq_password', env: 'RABBITMQ_DEFAULT_PASS', encrypted: true, generate: true },
+    ],
+    dataDir: '/var/lib/rabbitmq',
+    fixedHostname: true,
+    // No interactive client: the queues (messages, consumers) first, then a shell with rabbitmqctl.
+    client: { binary: 'rabbitmqctl', script: 'rabbitmqctl list_queues name messages consumers; exec sh' },
+  },
 };
+
+/** Engines that are message brokers, not databases: shown as such, linked to queue variables. */
+export const QUEUE_ENGINES = new Set(['rabbitmq']);
 
 export function getDbType(key: string): DbType | null {
   return DB_TYPES[key] ?? null;

@@ -953,8 +953,8 @@
       "popularApps": "Les apps libres les plus utilisées",
       "browseCatalog": "Voir tout le catalogue",
       "readyToUse": "Prête à l'emploi",
-      "architecturesTitle": "Votre projet a plusieurs parties ?",
-      "architecturesHint": "Un site, son API, sa base de données… Un guide les met en ligne une par une et les relie pour vous.",
+      "architecturesTitle": "Quelle est l'architecture de votre projet ?",
+      "architecturesHint": "Monolithe, 3 tiers, microservices… Un guide déploie chaque partie dans l'ordre et les relie pour vous.",
       "emptyPrompt": "Vous voulez seulement préparer un espace ?",
       "emptyLink": "Créer un workspace vide",
       "guideSteps": "{{count}} étapes",
@@ -1147,7 +1147,7 @@
     "stop": "Arrêter",
     "backupNow": "Sauvegarder maintenant",
     "delete": "Supprimer",
-    "newDatabase": "Nouvelle base de données",
+    "newDatabase": "Nouvelle base de données, cache ou file de messages",
     "chooseEngine": "Choisir un moteur",
     "type": "Type",
     "name": "Nom",
@@ -1591,8 +1591,8 @@
     "guideTitle": "Guide d'architecture",
     "notFound": "Guide introuvable.",
     "threeTier": {
-      "name": "Site + API + base de données",
-      "description": "Les pages visibles, le serveur qui les fait marcher, et les données.",
+      "name": "Architecture 3 tiers",
+      "description": "Présentation (frontend), logique (API) et données : trois couches déployées séparément.",
       "step1Title": "Déployez votre frontend",
       "step1Desc": "Importez votre application frontend depuis Git, ou déployez-la depuis un fichier Docker Compose ou une image.",
       "step2Title": "Déployez votre API backend",
@@ -1601,16 +1601,16 @@
       "step3Desc": "Provisionnez la base de données à laquelle votre backend se connecte (PostgreSQL, MySQL, MongoDB…)."
     },
     "monolith": {
-      "name": "Application + base de données",
-      "description": "Une seule application qui fait tout, avec ses données.",
+      "name": "Application monolithique",
+      "description": "Architecture 2 tiers : une seule application, pages et logique ensemble, avec sa base de données.",
       "step1Title": "Déployez votre application",
       "step1Desc": "Importez votre application depuis Git, ou déployez-la depuis un fichier Docker Compose ou une image.",
       "step2Title": "Créez votre base de données",
       "step2Desc": "Provisionnez la base de données à laquelle votre application se connecte."
     },
     "apiDb": {
-      "name": "API + base de données",
-      "description": "Un serveur sans pages, avec ses données. Idéal pour une app mobile.",
+      "name": "Backend API",
+      "description": "Une API et sa base de données, sans interface : pour une application mobile ou un frontend hébergé ailleurs.",
       "step1Title": "Déployez votre API",
       "step1Desc": "Importez votre API depuis Git, ou déployez-la depuis un fichier Docker Compose ou une image.",
       "step2Title": "Créez votre base de données",
@@ -1623,8 +1623,8 @@
       "step1Desc": "Importez votre site statique depuis Git — il est détecté et construit automatiquement comme application statique."
     },
     "microservices": {
-      "name": "Plusieurs services reliés",
-      "description": "Plusieurs petites applications qui partagent leurs données.",
+      "name": "Architecture microservices",
+      "description": "Des services indépendants, une base partagée et un broker de messages (RabbitMQ, Redis) pour les faire communiquer.",
       "step1Title": "Déployez votre premier service",
       "step1Desc": "Importez-le depuis Git, ou déployez-le depuis un fichier Docker Compose ou une image.",
       "step2Title": "Déployez le service suivant",
