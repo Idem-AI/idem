@@ -195,6 +195,75 @@ export const getToursSeenController = async (
   }
 };
 
+/** Enregistre une demande de suppression de compte (délai de grâce : 180 j). */
+export const requestAccountDeletionController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const userId = req.user?.uid;
+  if (!userId) {
+    res.status(401).json({ message: 'Unauthenticated.' });
+    return;
+  }
+
+  const reason = typeof req.body?.reason === 'string' ? req.body.reason.trim() : '';
+  const details = typeof req.body?.details === 'string' ? req.body.details.trim() : undefined;
+
+  const allowedReasons = [
+    'not_useful',
+    'too_expensive',
+    'found_alternative',
+    'privacy',
+    'temporary',
+    'other',
+  ];
+
+  if (!reason || !allowedReasons.includes(reason)) {
+    res.status(400).json({ message: 'A valid reason is required.' });
+    return;
+  }
+
+  if (reason === 'other' && (!details || details.length < 5)) {
+    res.status(400).json({ message: 'Please provide more details for the "other" reason.' });
+    return;
+  }
+
+  try {
+    const request = await userService.requestAccountDeletion(userId, reason, details);
+    logger.info(`Account deletion requested by user ${userId}`);
+    res.status(200).json({ deletionRequest: request });
+  } catch (error: any) {
+    logger.error('Error scheduling account deletion:', {
+      userId,
+      errorMessage: error.message,
+    });
+    res.status(500).json({ message: 'Could not schedule account deletion.' });
+  }
+};
+
+/** Annule une demande de suppression en cours. */
+export const cancelAccountDeletionController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const userId = req.user?.uid;
+  if (!userId) {
+    res.status(401).json({ message: 'Unauthenticated.' });
+    return;
+  }
+
+  try {
+    await userService.cancelAccountDeletion(userId);
+    res.status(200).json({ message: 'Account deletion cancelled.' });
+  } catch (error: any) {
+    logger.error('Error cancelling account deletion:', {
+      userId,
+      errorMessage: error.message,
+    });
+    res.status(500).json({ message: 'Could not cancel account deletion.' });
+  }
+};
+
 /** Marque une visite guidée comme vue pour l'utilisateur connecté. */
 export const markTourSeenController = async (
   req: CustomRequest,

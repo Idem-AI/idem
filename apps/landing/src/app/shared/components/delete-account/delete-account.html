@@ -1,0 +1,512 @@
+<div class="min-h-screen">
+  <!-- Hero Header -->
+  <div class="bg-accent py-16 px-4 text-white mt-[70px]">
+    <div class="max-w-7xl mx-auto text-center">
+      <h1 class="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+        Suppression du compte
+      </h1>
+      <p class="text-lg text-gray-800 max-w-3xl mx-auto">
+        Cette page vous explique ce qui se passe quand vous supprimez votre compte IDEM,
+        quelles données sont effacées, et comment procéder si vous en êtes certain.
+      </p>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="max-w-7xl mx-auto px-4 py-12">
+    <div class="flex flex-col lg:flex-row gap-8">
+
+      <!-- Sidebar -->
+      <aside class="hidden lg:block w-64 shrink-0">
+        <div class="sticky top-24">
+          <div class="bg-[var(--glass-bg-subtle)] rounded-lg p-4 backdrop-blur-sm border border-[var(--glass-border)]">
+            <p class="text-xs font-semibold text-text-tertiary uppercase tracking-wider mb-4">Étapes</p>
+            <nav class="space-y-1">
+              @for (s of steps; track s.id) {
+                <div
+                  class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors"
+                  [class.bg-primary]="step() === s.id"
+                  [class.text-white]="step() === s.id"
+                  [class.text-text-secondary]="step() !== s.id"
+                  [class.font-medium]="step() === s.id"
+                >
+                  <span
+                    class="w-5 h-5 rounded-full flex items-center justify-center text-xs shrink-0"
+                    [class.bg-white]="step() === s.id"
+                    [class.text-primary]="step() === s.id"
+                    [class.bg-green-500]="isStepCompleted(s.id)"
+                    [class.text-white]="isStepCompleted(s.id)"
+                    [class.bg-[var(--glass-bg-light)]]="step() !== s.id && !isStepCompleted(s.id)"
+                    [class.text-text-tertiary]="step() !== s.id && !isStepCompleted(s.id)"
+                  >
+                    @if (isStepCompleted(s.id)) {
+                      ✓
+                    } @else {
+                      {{ $index + 1 }}
+                    }
+                  </span>
+                  {{ s.label }}
+                </div>
+              }
+            </nav>
+
+            @if (step() !== 'done') {
+              <div class="mt-6">
+                <div class="flex justify-between text-xs text-text-tertiary mb-1">
+                  <span>Progression</span>
+                  <span>{{ progressPercent }}%</span>
+                </div>
+                <div class="w-full bg-[var(--glass-bg-light)] rounded-full h-1.5">
+                  <div
+                    class="bg-red-500 h-1.5 rounded-full transition-all duration-500"
+                    [style.width.%]="progressPercent"
+                  ></div>
+                </div>
+              </div>
+            }
+          </div>
+
+          <div class="mt-4 bg-amber-50 border border-amber-200 rounded-lg p-4">
+            <p class="text-xs font-semibold text-amber-700 mb-1">Besoin d'aide ?</p>
+            <p class="text-xs text-amber-600">
+              Avant de supprimer votre compte, notre équipe peut vous aider à résoudre vos difficultés.
+            </p>
+            <a
+              href="mailto:support@idem.africa"
+              class="mt-2 inline-block text-xs font-medium text-amber-700 underline"
+            >
+              Contacter le support
+            </a>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Content -->
+      <main class="flex-1 min-w-0">
+
+        <!-- ── STEP: INTRO ── -->
+        @if (step() === 'intro') {
+          <div class="space-y-8">
+            <div>
+              <h2 class="text-2xl font-bold text-text-primary mb-2">Avant de continuer</h2>
+              <p class="text-text-secondary">
+                La suppression d'un compte IDEM est une action irréversible. Lisez attentivement
+                ce qui suit avant de poursuivre.
+              </p>
+            </div>
+
+            <div class="bg-red-50 border border-red-200 rounded-xl p-6">
+              <div class="flex gap-3">
+                <span class="text-red-500 text-2xl shrink-0">⚠</span>
+                <div>
+                  <p class="font-semibold text-red-700 mb-1">Action définitive</p>
+                  <p class="text-red-600 text-sm">
+                    Une fois confirmée, votre demande de suppression est irréversible.
+                    Vous ne pourrez pas récupérer vos données après l'exécution.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <section>
+              <h3 class="text-lg font-semibold text-text-primary mb-4">Ce qui sera supprimé</h3>
+              <ul class="space-y-3">
+                @for (item of [
+                  { icon: '🗂', label: 'Tous vos projets', desc: 'Business plans, études de marché, documents générés' },
+                  { icon: '💼', label: 'Votre portefeuille', desc: 'Solde restant et historique des transactions non remboursés' },
+                  { icon: '🤖', label: 'Vos applications générées', desc: 'Applications créées avec iCode, déploiements actifs' },
+                  { icon: '🎨', label: 'Vos chartes graphiques', desc: 'Logos, palettes de couleurs, kits de marque' },
+                  { icon: '📊', label: 'Vos données d\'analyse', desc: 'Rapports iVision, insights et historiques' },
+                  { icon: '🔗', label: 'Vos domaines', desc: 'Les sous-domaines *.idem.africa liés à votre compte' }
+                ]; track item.label) {
+                  <li class="flex items-start gap-3 p-3 bg-[var(--glass-bg-subtle)] rounded-lg border border-[var(--glass-border)]">
+                    <span class="text-xl shrink-0">{{ item.icon }}</span>
+                    <div>
+                      <p class="font-medium text-text-primary text-sm">{{ item.label }}</p>
+                      <p class="text-text-tertiary text-xs mt-0.5">{{ item.desc }}</p>
+                    </div>
+                  </li>
+                }
+              </ul>
+            </section>
+
+            <section>
+              <h3 class="text-lg font-semibold text-text-primary mb-4">Ce qui n'est pas supprimé immédiatement</h3>
+              <div class="bg-blue-50 border border-blue-200 rounded-xl p-5 text-sm text-blue-800 space-y-2">
+                <p>
+                  <strong>Délai de grâce de 6 mois.</strong> Votre demande est enregistrée,
+                  mais votre compte n'est pas supprimé immédiatement. Vous avez 6 mois pour
+                  annuler votre demande en vous reconnectant.
+                </p>
+                <p>
+                  <strong>Obligations légales.</strong> Certaines données de facturation
+                  peuvent être conservées jusqu'à 10 ans conformément aux obligations
+                  comptables en vigueur dans votre pays.
+                </p>
+                <p>
+                  <strong>Sauvegardes.</strong> Les copies de sauvegarde sont purgées dans
+                  les 30 jours suivant la suppression effective du compte.
+                </p>
+              </div>
+            </section>
+
+            <div class="flex justify-end pt-4">
+              <button
+                (click)="next()"
+                class="bg-primary text-white px-6 py-3 rounded-lg font-medium hover:bg-primary/90 transition-colors"
+              >
+                J'ai compris, continuer →
+              </button>
+            </div>
+          </div>
+        }
+
+        <!-- ── STEP: REASON ── -->
+        @if (step() === 'reason') {
+          <div class="space-y-8">
+            <div>
+              <h2 class="text-2xl font-bold text-text-primary mb-2">Pourquoi voulez-vous partir ?</h2>
+              <p class="text-text-secondary">
+                Votre retour nous aide à améliorer IDEM pour les entrepreneurs africains.
+                C'est facultatif, mais précieux.
+              </p>
+            </div>
+
+            <div class="space-y-3">
+              @for (reason of reasons; track reason.value) {
+                <label
+                  class="flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all"
+                  [class.border-primary]="selectedReason === reason.value"
+                  [class.bg-primary/5]="selectedReason === reason.value"
+                  [class.border-[var(--glass-border)]]="selectedReason !== reason.value"
+                  [class.bg-[var(--glass-bg-subtle)]]="selectedReason !== reason.value"
+                >
+                  <input
+                    type="radio"
+                    name="reason"
+                    [value]="reason.value"
+                    [(ngModel)]="selectedReason"
+                    class="w-4 h-4 accent-primary shrink-0"
+                  />
+                  <span class="text-text-primary text-sm font-medium">{{ reason.label }}</span>
+                </label>
+              }
+            </div>
+
+            @if (selectedReason === 'other') {
+              <div>
+                <label class="block text-sm font-medium text-text-secondary mb-2">
+                  Précisez votre raison
+                </label>
+                <textarea
+                  [(ngModel)]="otherReason"
+                  rows="3"
+                  placeholder="Dites-nous ce qui n'a pas fonctionné…"
+                  class="w-full rounded-lg border border-[var(--glass-border-medium)] bg-[var(--glass-bg-light)] px-4 py-3 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
+                ></textarea>
+              </div>
+            }
+
+            <div class="flex justify-between pt-4">
+              <button
+                (click)="back()"
+                class="text-text-secondary px-6 py-3 rounded-lg font-medium hover:bg-[var(--glass-bg-subtle)] transition-colors border border-[var(--glass-border)]"
+              >
+                ← Retour
+              </button>
+              <button
+                (click)="next()"
+                [disabled]="!canProceedFromReason()"
+                class="bg-primary text-white px-6 py-3 rounded-lg font-medium hover:bg-primary/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Continuer →
+              </button>
+            </div>
+          </div>
+        }
+
+        <!-- ── STEP: ALTERNATIVES ── -->
+        @if (step() === 'alternatives') {
+          <div class="space-y-8">
+            <div>
+              <h2 class="text-2xl font-bold text-text-primary mb-2">Avez-vous pensé à ces alternatives ?</h2>
+              <p class="text-text-secondary">
+                Avant de supprimer définitivement votre compte, voici des options qui pourraient
+                résoudre votre problème sans perdre vos données.
+              </p>
+            </div>
+
+            <div class="space-y-4">
+              @for (alt of [
+                {
+                  icon: '📥',
+                  title: 'Exporter vos données',
+                  desc: 'Téléchargez tous vos projets, documents et données au format PDF ou JSON avant de partir. Vos créations vous appartiennent.',
+                  action: 'Disponible dans Paramètres → Mes données'
+                },
+                {
+                  icon: '⏸',
+                  title: 'Passer au plan Gratuit',
+                  desc: 'Conservez votre compte sans payer. Le plan gratuit vous donne accès aux fonctionnalités de base et à vos projets existants.',
+                  action: 'Disponible dans Paramètres → Abonnement'
+                },
+                {
+                  icon: '🔒',
+                  title: 'Désactiver votre compte temporairement',
+                  desc: 'Votre compte et vos données sont conservés mais inactifs. Réactivez-le quand vous le souhaitez sans rien perdre.',
+                  action: 'Contactez support@idem.africa'
+                },
+                {
+                  icon: '🎧',
+                  title: 'Parler à notre équipe',
+                  desc: 'Si vous rencontrez une difficulté technique, un problème de facturation ou un besoin spécifique, notre équipe peut vous aider.',
+                  action: 'support@idem.africa'
+                }
+              ]; track alt.title) {
+                <div class="p-5 rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg-subtle)]">
+                  <div class="flex items-start gap-4">
+                    <span class="text-2xl shrink-0">{{ alt.icon }}</span>
+                    <div class="flex-1">
+                      <p class="font-semibold text-text-primary mb-1">{{ alt.title }}</p>
+                      <p class="text-text-secondary text-sm mb-2">{{ alt.desc }}</p>
+                      <p class="text-xs text-text-tertiary bg-[var(--glass-bg-light)] rounded px-2 py-1 inline-block">
+                        {{ alt.action }}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              }
+            </div>
+
+            <div class="bg-amber-50 border border-amber-200 rounded-xl p-5">
+              <p class="text-sm text-amber-800">
+                <strong>Rappel :</strong> Si vous avez un solde restant dans votre portefeuille
+                IDEM, il sera perdu lors de la suppression du compte. Les crédits non utilisés
+                ne sont pas remboursables.
+              </p>
+            </div>
+
+            <div class="flex justify-between pt-4">
+              <button
+                (click)="back()"
+                class="text-text-secondary px-6 py-3 rounded-lg font-medium hover:bg-[var(--glass-bg-subtle)] transition-colors border border-[var(--glass-border)]"
+              >
+                ← Retour
+              </button>
+              <button
+                (click)="next()"
+                class="bg-red-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-red-700 transition-colors"
+              >
+                Je veux quand même supprimer →
+              </button>
+            </div>
+          </div>
+        }
+
+        <!-- ── STEP: CONSEQUENCES ── -->
+        @if (step() === 'consequences') {
+          <div class="space-y-8">
+            <div>
+              <h2 class="text-2xl font-bold text-text-primary mb-2">Ce que vous perdrez définitivement</h2>
+              <p class="text-text-secondary">
+                Lisez attentivement. Ces pertes sont irréversibles une fois le délai de 6 mois écoulé.
+              </p>
+            </div>
+
+            <div class="bg-red-50 border-2 border-red-300 rounded-xl p-6 space-y-4">
+              <p class="font-bold text-red-700 text-lg">Pertes définitives</p>
+              <ul class="space-y-3">
+                @for (loss of [
+                  'Tous vos business plans générés par l\'IA',
+                  'Vos applications mobiles et web créées avec iCode',
+                  'Votre historique de conversation et préférences IA',
+                  'Vos chartes graphiques, logos et kits de marque',
+                  'Votre solde de portefeuille non utilisé',
+                  'Vos déploiements actifs sur iDeploy (les sites seront hors ligne)',
+                  'Vos analyses de marché iVision',
+                  'L\'accès à votre adresse e-mail sur la plateforme IDEM',
+                  'Vos intégrations et connexions tierces (GitHub, etc.)',
+                  'Votre historique de facturation et reçus (hors obligations légales)'
+                ]; track loss) {
+                  <li class="flex items-start gap-3 text-sm text-red-700">
+                    <span class="text-red-500 shrink-0 mt-0.5">✕</span>
+                    <span>{{ loss }}</span>
+                  </li>
+                }
+              </ul>
+            </div>
+
+            <div class="bg-gray-50 border border-gray-200 rounded-xl p-5 space-y-3">
+              <p class="font-semibold text-gray-700">Ce qui se passe après votre demande</p>
+              <ol class="space-y-2 text-sm text-gray-600">
+                <li class="flex gap-3">
+                  <span class="w-6 h-6 rounded-full bg-gray-300 text-gray-700 flex items-center justify-center text-xs font-bold shrink-0">1</span>
+                  <span><strong>Immédiatement :</strong> votre demande est enregistrée. Votre compte reste accessible pendant 6 mois.</span>
+                </li>
+                <li class="flex gap-3">
+                  <span class="w-6 h-6 rounded-full bg-gray-300 text-gray-700 flex items-center justify-center text-xs font-bold shrink-0">2</span>
+                  <span><strong>Dans les 7 jours :</strong> vous recevez un e-mail de confirmation avec les instructions pour annuler si vous changez d'avis.</span>
+                </li>
+                <li class="flex gap-3">
+                  <span class="w-6 h-6 rounded-full bg-gray-300 text-gray-700 flex items-center justify-center text-xs font-bold shrink-0">3</span>
+                  <span><strong>À J+180 :</strong> si vous n'avez pas annulé, toutes vos données sont supprimées de façon permanente.</span>
+                </li>
+                <li class="flex gap-3">
+                  <span class="w-6 h-6 rounded-full bg-gray-300 text-gray-700 flex items-center justify-center text-xs font-bold shrink-0">4</span>
+                  <span><strong>Dans les 30 jours suivants :</strong> les sauvegardes résiduelles sont purgées.</span>
+                </li>
+              </ol>
+            </div>
+
+            <div class="flex justify-between pt-4">
+              <button
+                (click)="back()"
+                class="text-text-secondary px-6 py-3 rounded-lg font-medium hover:bg-[var(--glass-bg-subtle)] transition-colors border border-[var(--glass-border)]"
+              >
+                ← Retour
+              </button>
+              <button
+                (click)="next()"
+                class="bg-red-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-red-700 transition-colors"
+              >
+                Je comprends, confirmer la suppression →
+              </button>
+            </div>
+          </div>
+        }
+
+        <!-- ── STEP: CONFIRM ── -->
+        @if (step() === 'confirm') {
+          <div class="space-y-8">
+            <div>
+              <h2 class="text-2xl font-bold text-text-primary mb-2">Confirmation finale</h2>
+              <p class="text-text-secondary">
+                Pour confirmer la suppression de votre compte, saisissez votre adresse e-mail
+                et cochez la case ci-dessous.
+              </p>
+            </div>
+
+            <div class="bg-red-50 border-2 border-red-400 rounded-xl p-5">
+              <p class="text-red-700 font-semibold text-sm">
+                ⚠ Vous êtes sur le point de demander la suppression définitive de votre compte IDEM.
+                Cette action déclenchera un délai de 6 mois au terme duquel toutes vos données
+                seront effacées sans possibilité de récupération.
+              </p>
+            </div>
+
+            <div class="space-y-5">
+              <div>
+                <label class="block text-sm font-medium text-text-secondary mb-2" for="confirm-email">
+                  Confirmez votre adresse e-mail
+                </label>
+                <input
+                  id="confirm-email"
+                  type="email"
+                  [(ngModel)]="confirmEmail"
+                  [placeholder]="userEmail || 'votre@email.com'"
+                  autocomplete="off"
+                  class="w-full rounded-lg border-2 border-[var(--glass-border-medium)] bg-[var(--glass-bg-light)] px-4 py-3 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-red-400"
+                  [class.border-green-400]="confirmEmail && confirmEmail.toLowerCase() === userEmail.toLowerCase()"
+                  [class.border-red-400]="confirmEmail && confirmEmail.toLowerCase() !== userEmail.toLowerCase()"
+                />
+                @if (confirmEmail && confirmEmail.toLowerCase() !== userEmail.toLowerCase()) {
+                  <p class="text-red-500 text-xs mt-1">L'adresse e-mail ne correspond pas à votre compte.</p>
+                }
+              </div>
+
+              <label class="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  [(ngModel)]="confirmChecked"
+                  class="mt-1 w-4 h-4 accent-red-600 shrink-0"
+                />
+                <span class="text-sm text-text-secondary">
+                  Je comprends que toutes mes données seront <strong>définitivement supprimées</strong>
+                  après un délai de 6 mois, et que cette action est irréversible. Je renonce à tout
+                  remboursement du solde restant dans mon portefeuille.
+                </span>
+              </label>
+            </div>
+
+            @if (errorMessage) {
+              <div class="bg-red-50 border border-red-300 rounded-lg px-4 py-3 text-sm text-red-700">
+                {{ errorMessage }}
+              </div>
+            }
+
+            <div class="flex justify-between pt-4">
+              <button
+                (click)="back()"
+                [disabled]="isLoading"
+                class="text-text-secondary px-6 py-3 rounded-lg font-medium hover:bg-[var(--glass-bg-subtle)] transition-colors border border-[var(--glass-border)] disabled:opacity-40"
+              >
+                ← Retour
+              </button>
+              <button
+                (click)="submitDeletion()"
+                [disabled]="!canSubmit() || isLoading"
+                class="bg-red-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-red-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                @if (isLoading) {
+                  <span class="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin"></span>
+                }
+                Supprimer mon compte
+              </button>
+            </div>
+          </div>
+        }
+
+        <!-- ── STEP: DONE ── -->
+        @if (step() === 'done') {
+          <div class="text-center py-12 space-y-6">
+            <div class="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mx-auto text-4xl">
+              🗓
+            </div>
+            <div>
+              <h2 class="text-2xl font-bold text-text-primary mb-3">Demande enregistrée</h2>
+              <p class="text-text-secondary max-w-md mx-auto text-lg leading-relaxed">
+                Votre demande de suppression de compte a été prise en compte.
+              </p>
+            </div>
+
+            <div class="bg-gray-50 border border-gray-200 rounded-xl p-6 max-w-lg mx-auto text-left space-y-3">
+              <p class="font-semibold text-gray-700">Ce qui va se passer</p>
+              <ul class="space-y-2 text-sm text-gray-600">
+                <li class="flex gap-2">
+                  <span class="text-gray-400 shrink-0">•</span>
+                  Vous recevrez un e-mail de confirmation dans les prochaines heures.
+                </li>
+                <li class="flex gap-2">
+                  <span class="text-gray-400 shrink-0">•</span>
+                  Votre compte reste accessible pendant <strong>6 mois</strong>.
+                </li>
+                <li class="flex gap-2">
+                  <span class="text-gray-400 shrink-0">•</span>
+                  Pour annuler, reconnectez-vous simplement avant l'échéance.
+                </li>
+                <li class="flex gap-2">
+                  <span class="text-gray-400 shrink-0">•</span>
+                  À l'issue des 6 mois, toutes vos données seront <strong>définitivement effacées</strong>.
+                </li>
+              </ul>
+            </div>
+
+            <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 max-w-lg mx-auto">
+              <p class="text-sm text-amber-800">
+                <strong>Vous avez changé d'avis ?</strong> Reconnectez-vous à votre compte
+                avant la date d'échéance pour annuler la suppression. L'annulation est
+                disponible dans <em>Paramètres → Mon compte</em>.
+              </p>
+            </div>
+
+            <p class="text-text-tertiary text-sm">
+              Des questions ? Contactez-nous à
+              <a href="mailto:support@idem.africa" class="text-primary underline">support@idem.africa</a>
+            </p>
+          </div>
+        }
+
+      </main>
+    </div>
+  </div>
+</div>
