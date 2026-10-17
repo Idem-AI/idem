@@ -524,7 +524,8 @@
         "insights": "Performances",
         "settings": "Réglages",
         "domain": "Nom de domaine",
-        "more": "Plus"
+        "more": "Plus",
+        "logs": "Journaux"
       },
       "previewTitle": "Aperçu du site en ligne",
       "noPreview": "L'aperçu apparaîtra après le premier déploiement.",
@@ -682,6 +683,18 @@
         "weekly": "Chaque lundi à minuit",
         "monthly": "Le 1er de chaque mois",
         "custom": "Personnalisé (format cron)"
+      },
+      "logs": {
+        "title": "Journaux de l'application",
+        "hint": "Ce que l'application en marche affiche, en direct.",
+        "filter": "Filtrer les lignes",
+        "lines": "Nombre de lignes",
+        "lastLines": "{{count}} dernières lignes",
+        "follow": "Suivre",
+        "pause": "Pause",
+        "notRunning": "L'application ne tourne pas : aucun conteneur à lire. Déployez-la, ou consultez le dernier déploiement.",
+        "empty": "Rien d'affiché pour l'instant.",
+        "failed": "Les journaux n'ont pas pu être lus."
       }
     },
     "domain": {

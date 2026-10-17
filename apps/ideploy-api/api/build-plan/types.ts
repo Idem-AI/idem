@@ -50,6 +50,13 @@ export interface BuildPlanResult {
   start?: string;
   /** Variables for nixpacks (`NIXPACKS_NODE_VERSION`, `NIXPACKS_JDK_VERSION`). */
   nixpacksEnv: Record<string, string>;
+  /**
+   * The release command: run once on the new image before it goes live — the
+   * database migrations of its framework (`php artisan migrate --force`,
+   * `python manage.py migrate`, `prisma migrate deploy`…). A new database has
+   * no tables until they run.
+   */
+  release?: string;
   /** Set when iDeploy can build this itself, with a generated Dockerfile. */
   recipe?: Recipe;
   /** The root of a monorepo: the applications in it. */

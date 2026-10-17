@@ -154,6 +154,12 @@ export async function planPhp(files: RepoFiles, appDir: string): Promise<BuildPl
     runtimeVersion: { name: 'PHP', version, source: declared ? 'composer.json' : 'default' },
     nixpacksEnv: {},
     issues,
+    release:
+      framework === 'Laravel'
+        ? 'php artisan migrate --force'
+        : require['doctrine/doctrine-migrations-bundle']
+          ? 'php bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration'
+          : undefined,
     recipe: {
       kind: 'php',
       version,
@@ -162,7 +168,13 @@ export async function planPhp(files: RepoFiles, appDir: string): Promise<BuildPl
       documentRoot,
       assets,
       build,
-      start: 'apache2-foreground',
+      // Laravel writes its log to a file in the container (LOG_CHANNEL=stack
+      // or single): followed onto the container's output, where iDeploy's
+      // Logs tab reads it. Apache itself already logs there.
+      start:
+        framework === 'Laravel'
+          ? 'touch storage/logs/laravel.log && chown www-data:www-data storage/logs/laravel.log; tail -n 0 -F storage/logs/laravel.log & exec apache2-foreground'
+          : 'apache2-foreground',
     },
   };
 }

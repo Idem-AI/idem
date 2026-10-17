@@ -22,7 +22,7 @@ import { getTemplateCompose } from './templates.service';
 import { conflict, unprocessable } from '../utils/errors';
 import { randomBytes } from 'crypto';
 import * as databaseService from './database.service';
-import { LinkTargets, linkVariables, targetKindOf } from './resource-links';
+import { LinkTargets, applicationDefaults, linkVariables, targetKindOf } from './resource-links';
 import { IncomingFiles, saveSourceForApplication } from './application-source.service';
 
 /**
@@ -241,7 +241,12 @@ export async function quickDeploy(teamId: number, dto: QuickDeployDto): Promise<
   // DATABASE_URL, REDIS_HOST…) get its internal address when they hold an
   // example value — see resource-links.ts.
   const variables = (dto.environment_variables ?? []).filter((v) => v.key.trim()).map((v) => ({ key: v.key.trim(), value: v.value }));
-  const linked = variables.length ? linkVariables(variables, await workspaceLinkTargets(teamId, environmentId)) : [];
+  const linked = variables.length
+    ? applicationDefaults(linkVariables(variables, await workspaceLinkTargets(teamId, environmentId)), {
+        appUrl: appService.computeAppLink(app),
+        random: randomBytes,
+      })
+    : [];
   for (const { key, value } of linked) {
     await envVarService.upsertForApplication(teamId, app.uuid, {
       key,

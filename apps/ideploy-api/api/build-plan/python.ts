@@ -183,6 +183,8 @@ export async function planPython(files: RepoFiles, appDir: string, overrides: { 
     runtimeVersion: version ? { name: 'Python', version: version.version, source: version.source } : undefined,
     nixpacksEnv: version ? { NIXPACKS_PYTHON_VERSION: version.version } : {},
     issues,
+    // Django's migrations; Alembic's (SQLAlchemy: FastAPI, Flask) when the project has its alembic.ini.
+    release: framework === 'Django' ? 'python manage.py migrate --noinput' : has('alembic.ini') ? 'alembic upgrade head' : undefined,
   };
   if (manager && (start || overrides.start)) {
     plan.recipe = {

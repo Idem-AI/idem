@@ -79,6 +79,10 @@ export function phpDockerfile(recipe: PhpRecipe, buildArgKeys: string[] = [], re
       // browser blocks on an https page — a page without its CSS), and sees
       // the visitor's address rather than the proxy's.
       "printf 'SetEnvIf X-Forwarded-Proto \"^https$\" HTTPS=on\\nRemoteIPHeader X-Forwarded-For\\nRemoteIPInternalProxy 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16\\n' > /etc/apache2/conf-available/ideploy-proxy.conf && " +
+      // Apache pings its own children ("OPTIONS * … internal dummy connection")
+      // from 127.0.0.1, every second: kept out of the application's logs.
+      "printf 'SetEnvIf Remote_Addr \"^127\\\\.0\\\\.0\\\\.1$\" dontlog\\n' >> /etc/apache2/conf-available/ideploy-proxy.conf && " +
+      "sed -ri -e 's#^([[:space:]]*CustomLog .+ combined)$#\\1 env=!dontlog#' /etc/apache2/sites-available/000-default.conf && " +
       'a2enconf ideploy ideploy-proxy && a2enmod rewrite headers remoteip',
     // Composer needs git (VCS dependencies) and unzip.
     runtimeLibraries(['git', 'unzip']),
