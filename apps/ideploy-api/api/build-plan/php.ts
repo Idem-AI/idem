@@ -38,6 +38,44 @@ export function phpVersionFromConstraint(constraint: string): string | null {
   return seven ? '7.4' : null;
 }
 
+/** Compiled into PHP's official images: nothing to install. */
+const BUILT_IN = new Set([
+  'core', 'ctype', 'curl', 'date', 'dom', 'fileinfo', 'filter', 'ftp', 'hash', 'iconv', 'json', 'libxml', 'mbstring',
+  'mysqlnd', 'openssl', 'pcre', 'pdo', 'pdo_sqlite', 'phar', 'posix', 'readline', 'reflection', 'session', 'simplexml',
+  'sodium', 'spl', 'sqlite3', 'standard', 'tokenizer', 'xml', 'xmlreader', 'xmlwriter', 'zlib',
+]);
+
+/** Coverage and debugging: never in a production image (and slower). */
+const DEV_ONLY = new Set(['pcov', 'xdebug', 'xhprof', 'blackfire']);
+
+/** `ext-gd`, `ext-pdo_mysql` among requirement names → `gd`, `pdo_mysql`. */
+function extensionsOf(names: string[]): string[] {
+  return names.filter((k) => k.toLowerCase().startsWith('ext-')).map((k) => k.slice(4).toLowerCase());
+}
+
+/**
+ * The extensions composer.lock's production packages require — their
+ * `require`, never their `suggest` nor `packages-dev`: read as text, a lock
+ * named imagick AND gmagick (two suggestions that cannot load together), pcov,
+ * mongodb…, and installing them failed the build. Null when the lock cannot
+ * be read whole (truncated, invalid): it is then not used at all.
+ */
+export function lockExtensions(lock: string): string[] | null {
+  try {
+    const parsed = JSON.parse(lock) as { packages?: { require?: Record<string, string> }[] };
+    return extensionsOf((parsed.packages ?? []).flatMap((p) => Object.keys(p.require ?? {})));
+  } catch {
+    return null;
+  }
+}
+
+/** What to install: no built-in, no development tool, never imagick and gmagick together. */
+export function selectExtensions(names: string[]): string[] {
+  const wanted = new Set(names.map((n) => n.toLowerCase()).filter((n) => /^[a-z0-9_]+$/.test(n) && !BUILT_IN.has(n) && !DEV_ONLY.has(n)));
+  if (wanted.has('imagick')) wanted.delete('gmagick');
+  return [...wanted].sort();
+}
+
 interface ComposerJson {
   require?: Record<string, string>;
 }
@@ -68,13 +106,12 @@ export async function planPhp(files: RepoFiles, appDir: string): Promise<BuildPl
   const declared = require.php ? phpVersionFromConstraint(require.php) : null;
   const version = declared ?? `8.${DEFAULT_PHP_MINOR}`;
 
-  // The extensions the project and its dependencies require: composer.json,
-  // and composer.lock (a package needing ext-gd fails the install otherwise).
-  const lock = (await files.read(joinPath(appDir, 'composer.lock'))) ?? '';
-  const required = [...Object.keys(require), ...[...lock.matchAll(/"ext-([a-z0-9_]+)"/gi)].map((m) => `ext-${m[1]}`)]
-    .filter((k) => k.startsWith('ext-'))
-    .map((k) => k.slice(4).toLowerCase());
-  const extensions = [...new Set([...FRAMEWORK_EXTENSIONS[framework], ...required])].sort();
+  // The extensions the project and its production dependencies require:
+  // composer.json, and composer.lock read as JSON (a package needing ext-gd
+  // fails the install otherwise).
+  const lock = await files.read(joinPath(appDir, 'composer.lock'));
+  const required = [...extensionsOf(Object.keys(require)), ...(lock ? lockExtensions(lock) ?? [] : [])];
+  const extensions = selectExtensions([...FRAMEWORK_EXTENSIONS[framework], ...required]);
 
   const documentRoot = framework !== 'PHP' || has('public/index.php') ? 'public' : '';
 

@@ -30,11 +30,14 @@ export function lenientInstall(manager: NodeRecipe['manager']): string {
 }
 
 
+/** Left in the build stage when the workspace build failed: the application's own build must then run, and succeed. */
+const WORKSPACE_FAILED = '/tmp/ideploy-workspace-build-failed';
+
 /**
  * The build's output contract, checked in the image (see buildOutputContract):
- * missing after the workspace build, the application's own build runs; still
- * missing, a certain contract fails the build with what to fix, a guessed one
- * warns.
+ * the workspace build failed, or left the output missing — the application's
+ * own build runs; still missing, a certain contract fails the build with what
+ * to fix, a guessed one warns.
  */
 export function outputCheck(output: NonNullable<NodeRecipe['output']>, mounts = ''): string {
   const present = [output.path, ...output.alternatives].map((p) => `[ -e ${sq(p)} ]`).join(' || ');
@@ -42,7 +45,8 @@ export function outputCheck(output: NonNullable<NodeRecipe['output']>, mounts = 
   const steps: string[] = [];
   if (output.build) {
     steps.push(
-      `if ! { ${present}; }; then echo ${sq(`iDeploy: ${output.path} was not produced by the workspace build. Running the application's own build: ${output.build}`)}; ( ${output.build} ); fi`
+      `if [ -e ${WORKSPACE_FAILED} ]; then ( ${output.build} ) || exit 1; ` +
+        `elif ! { ${present}; }; then echo ${sq(`iDeploy: ${output.path} was not produced by the workspace build. Running the application's own build: ${output.build}`)}; ( ${output.build} ); fi`
     );
   }
   steps.push(
@@ -95,7 +99,22 @@ export function nodeDockerfile(recipe: NodeRecipe, buildArgKeys: string[] = [], 
   }
   lines.push(`RUN ${NODE_CACHES[recipe.manager]} ${recipe.install}`);
   const nextCache = recipe.nextCacheDir ? ` --mount=type=cache,id=ideploy-next,target=/app/${recipe.nextCacheDir}` : '';
-  if (recipe.build) lines.push(`RUN${nextCache} ${recipe.build}`);
+  // Turbo 2 refuses to run without "packageManager" in the root package.json
+  // ("Could not resolve workspaces"); it often works locally with another
+  // turbo. Set here, in this copy, to the version installed.
+  if (!recipe.hasPackageManagerField && /\bturbo\b/.test(recipe.build ?? '')) {
+    lines.push(`RUN npm pkg set packageManager="${recipe.manager}@$(${recipe.manager} -v)"`);
+  }
+  // An orchestrator (turbo, nx) that fails on its own configuration must not
+  // fail the deployment while the application can build itself: the
+  // contract check below then runs the application's own build.
+  const fallback = Boolean(recipe.build && recipe.output?.build && recipe.output.build !== recipe.build);
+  if (recipe.build) {
+    lines.push(
+      `RUN${nextCache} ${recipe.build}` +
+        (fallback ? ` || { echo ${sq('iDeploy: the workspace build failed. Building the application on its own instead.')}; touch ${WORKSPACE_FAILED}; }` : '')
+    );
+  }
   if (recipe.output) lines.push(outputCheck(recipe.output, nextCache));
   lines.push(
     '',
@@ -171,6 +190,8 @@ export function javaDockerfile(recipe: JavaRecipe, buildArgKeys: string[] = [], 
     'WORKDIR /app',
     'COPY --from=build /out/ ./',
     'ENV JAVA_OPTS="-XX:MaxRAMPercentage=75 -XX:+ExitOnOutOfMemoryError"',
+    // Spring and Quarkus read X-Forwarded-Proto/-For from the proxy: https URLs and redirects.
+    'ENV SERVER_FORWARD_HEADERS_STRATEGY=framework QUARKUS_HTTP_PROXY_PROXY_ADDRESS_FORWARDING=true QUARKUS_HTTP_PROXY_ALLOW_X_FORWARDED=true',
     'EXPOSE 8080',
     `CMD ["sh", "-c", ${json(`exec java ${flags ? `${flags} ` : ''}$JAVA_OPTS -jar ${jarPath}`)}]`,
     '',

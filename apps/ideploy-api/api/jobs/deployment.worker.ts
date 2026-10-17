@@ -423,9 +423,9 @@ async function deployWithRepair(
       const failure = err;
       const outcome: { next: RepairOverrides | null; note: string | null } = { next: null, note: null };
       await streamStep(data.deploymentUuid, `Looking for a fix (AI, attempt ${repairs + 1} of ${MAX_AI_REPAIRS})`, async () => {
-        const proposal = await requestRepair(await repairRequest(data, failure, trace, repairs + 1, tried));
+        const { proposal, reason } = await requestRepair(await repairRequest(data, failure, trace, repairs + 1, tried));
         if (!proposal) {
-          await log('The repair service did not answer.');
+          await log(`The repair service did not answer: ${reason}.`);
           return;
         }
         const checked = checkProposal(proposal, trace.files?.paths ?? [], trace.settings);

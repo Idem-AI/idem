@@ -60,7 +60,9 @@ describe('build output contract', () => {
     const check = file.indexOf("if ! { [ -e 'apps/avs/.next/BUILD_ID' ]");
     expect(build).toBeGreaterThan(0);
     expect(check).toBeGreaterThan(build);
-    expect(file).toContain("RUN --mount=type=cache,id=ideploy-next,target=/app/apps/avs/.next/cache if !");
+    expect(file).toContain('RUN --mount=type=cache,id=ideploy-next,target=/app/apps/avs/.next/cache if [ -e /tmp/ideploy-workspace-build-failed ]');
+    // The workspace build failing falls back to the application's own build.
+    expect(file).toContain("run --if-present build || { echo 'iDeploy: the workspace build failed. Building the application on its own instead.'; touch /tmp/ideploy-workspace-build-failed; }");
   });
 
   it('reads the file a start command runs', () => {

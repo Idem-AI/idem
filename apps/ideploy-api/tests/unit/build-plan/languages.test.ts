@@ -4,7 +4,7 @@
 import { describe, it, expect } from 'vitest';
 import { analyzeRepository, RepoFiles } from '../../../api/build-plan';
 import { DotnetRecipe, GoRecipe, PhpRecipe, PythonRecipe, RubyRecipe, RustRecipe } from '../../../api/build-plan/types';
-import { phpVersionFromConstraint } from '../../../api/build-plan/php';
+import { lockExtensions, phpVersionFromConstraint, selectExtensions } from '../../../api/build-plan/php';
 import { goVersion } from '../../../api/build-plan/go';
 import { pythonVersionFromSpec } from '../../../api/build-plan/python';
 import { FRESH_COREPACK } from '../../../api/build-plan/node';
@@ -97,7 +97,7 @@ describe('PHP', () => {
     const plan = await analyzeRepository(
       repo({
         'composer.json': { require: { php: '^8.2', 'laravel/framework': '^11.0', 'ext-gd': '*' } },
-        'composer.lock': '{"packages":[{"name":"x","require":{"ext-sodium":"*"}}]}',
+        'composer.lock': '{"packages":[{"name":"x","require":{"ext-redis":"*","ext-json":"*"}}]}',
         'package.json': { scripts: { build: 'vite build' }, devDependencies: { vite: '5' } },
         'package-lock.json': '{}',
         'public/index.php': '',
@@ -113,16 +113,35 @@ describe('PHP', () => {
       assets: { manager: 'npm', install: 'npm ci', build: 'npm run build' },
       start: 'apache2-foreground',
     });
-    expect(recipe.extensions).toEqual(['bcmath', 'exif', 'gd', 'intl', 'opcache', 'pcntl', 'pdo_mysql', 'pdo_pgsql', 'sodium', 'zip']);
+    expect(recipe.extensions).toEqual(['bcmath', 'exif', 'gd', 'intl', 'opcache', 'pcntl', 'pdo_mysql', 'pdo_pgsql', 'redis', 'zip']);
     const file = recipeDockerfile(recipe);
     expect(file).toContain('FROM node:22-bookworm AS assets');
     expect(file).toContain('FROM php:8.2-apache');
     expect(file).toContain('ENV APACHE_DOCUMENT_ROOT=/app/public');
     expect(file).toContain("sed -ri -e 's/^Listen 80$/Listen ${PORT}/' /etc/apache2/ports.conf");
     expect(file).toContain('AllowOverride All');
-    expect(file).toContain('RUN install-php-extensions bcmath exif gd intl opcache pcntl pdo_mysql pdo_pgsql sodium zip');
+    // https behind the proxy: without it, Laravel wrote http:// CSS links an https page cannot load.
+    expect(file).toContain('SetEnvIf X-Forwarded-Proto "^https$" HTTPS=on');
+    expect(file).toContain('a2enmod rewrite headers remoteip');
+    expect(file).toContain('RUN install-php-extensions bcmath exif gd intl opcache pcntl pdo_mysql pdo_pgsql redis zip || {');
+    expect(file).toContain('do install-php-extensions "$e" || echo');
     expect(file).toContain('COPY --from=assets /app/public /app/public');
     expect(file).toContain('composer install --no-dev --optimize-autoloader');
+  });
+
+  it('installs only what production packages require, never suggestions, dev tools or two image libraries', () => {
+    const lock = JSON.stringify({
+      packages: [
+        { name: 'intervention/image', require: { 'ext-fileinfo': '*' }, suggest: { 'ext-imagick': 'faster', 'ext-gmagick': 'alt' } },
+        { name: 'spatie/image', require: { 'ext-exif': '*', 'ext-imagick': '*' } },
+        { name: 'x/legacy', require: { 'ext-gmagick': '*' } },
+      ],
+      'packages-dev': [{ name: 'phpunit/php-code-coverage', require: { 'ext-pcov': '*', 'ext-dom': '*' } }],
+    });
+    expect(lockExtensions(lock)).toEqual(['fileinfo', 'exif', 'imagick', 'gmagick']);
+    expect(selectExtensions([...lockExtensions(lock)!, 'pcov', 'xdebug', 'pdo_mysql'])).toEqual(['exif', 'imagick', 'pdo_mysql']);
+    // Cut at 2 MB by the snapshot: not trusted at all.
+    expect(lockExtensions(lock.slice(0, 80))).toBeNull();
   });
 
   it('serves a plain PHP folder without Composer', async () => {
