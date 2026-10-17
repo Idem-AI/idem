@@ -45,10 +45,6 @@
               "label": "Étape par étape",
               "hint": "Une seule chose à faire à la fois"
             },
-            "conversation": {
-              "label": "En discutant",
-              "hint": "Je demande, on me répond"
-            },
             "autonomy": {
               "label": "En autonomie",
               "hint": "Donnez-moi tous les outils"
@@ -75,7 +71,6 @@
       },
       "reasons": {
         "guided": "Vous préférez avancer pas à pas : le mode Assisté vous dit quoi faire en premier et ne débloque la suite qu’une fois chaque étape terminée.",
-        "chat": "Vous préférez échanger : le mode Chat vous laisse demander ce dont vous avez besoin, en langage courant.",
         "advanced": "Vous savez où vous allez : le Tableau de bord vous donne accès à tous les outils, sans détour."
       },
       "result": {

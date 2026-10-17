@@ -101,8 +101,8 @@ export class ShowCommunication implements OnInit {
   protected readonly model = signal<CommunicationModel | null>(null);
   /**
    * Écran ouvert. `?screen=` permet d'arriver directement sur l'atelier, le
-   * calendrier ou la bibliothèque : le mode Chat y renvoie, et un lien partagé
-   * retrouve l'endroit dont on parlait.
+   * calendrier ou la bibliothèque : un lien partagé retrouve l'endroit dont on
+   * parlait.
    */
   protected readonly activeScreen = signal<Screen>(this.initialScreen());
   protected readonly isVoiceOpen = signal(false);

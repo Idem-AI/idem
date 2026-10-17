@@ -45,10 +45,6 @@
               "label": "Step by step",
               "hint": "One thing to do at a time"
             },
-            "conversation": {
-              "label": "By talking it through",
-              "hint": "I ask, I get answers"
-            },
             "autonomy": {
               "label": "On my own",
               "hint": "Just give me all the tools"
@@ -75,7 +71,6 @@
       },
       "reasons": {
         "guided": "You would rather move step by step: Guided mode tells you what comes first and unlocks the rest only once each step is done.",
-        "chat": "You would rather talk it through: Chat mode lets you ask for what you need in plain language.",
         "advanced": "You know where you are going: the Dashboard gives you direct access to every tool."
       },
       "result": {

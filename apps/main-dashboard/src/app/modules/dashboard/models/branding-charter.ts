@@ -2,9 +2,9 @@
  * Lecture de la charte graphique stockée sur le projet : ce qu'elle contient
  * et ce qu'elle DOIT contenir.
  *
- * Partagé par la page d'affichage de la charte et par le mode Chat : les deux
- * montrent le même document, et une page annoncée manquante d'un côté mais pas
- * de l'autre serait un bug visible pour l'utilisateur.
+ * Partagé par les écrans qui montrent la charte : ils présentent le même
+ * document, et une page annoncée manquante d'un côté mais pas de l'autre
+ * serait un bug visible pour l'utilisateur.
  */
 
 import { BRANDING_SECTION_NAMES } from './generation-completeness';

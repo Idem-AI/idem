@@ -1,8 +1,8 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { environment } from '../../../../environments/environment';
-import { OnboardingPlanQuestion } from '../models/chat.model';
+import { environment } from '../../../../../../environments/environment';
+import { OnboardingPlanQuestion } from '../models/onboarding-plan.model';
 
 interface GenerateQuestionsBody {
   description: string;

@@ -1,4 +1,4 @@
-import { UiMode } from '../../modules/chat/models/chat.model';
+import { UiMode } from './ui-mode.model';
 
 /**
  * Sondage d'accueil (4 questions maximum, 100 % cliquable).
@@ -16,7 +16,7 @@ export type SurveyStage = 'idea' | 'starting' | 'running';
 /** Sait-il par où commencer ? */
 export type SurveyClarity = 'lost' | 'partial' | 'clear';
 /** Comment préfère-t-il avancer ? */
-export type SurveyWorkStyle = 'stepByStep' | 'conversation' | 'autonomy';
+export type SurveyWorkStyle = 'stepByStep' | 'autonomy';
 /** Aisance avec les outils numériques. */
 export type SurveyComfort = 'beginner' | 'intermediate' | 'expert';
 
@@ -107,12 +107,6 @@ export const SURVEY_QUESTIONS: readonly SurveyQuestion[] = [
         labelKey: 'onboarding.survey.questions.workStyle.options.stepByStep.label',
         hintKey: 'onboarding.survey.questions.workStyle.options.stepByStep.hint',
         icon: 'pi pi-list-check',
-      },
-      {
-        value: 'conversation',
-        labelKey: 'onboarding.survey.questions.workStyle.options.conversation.label',
-        hintKey: 'onboarding.survey.questions.workStyle.options.conversation.hint',
-        icon: 'pi pi-comments',
       },
       {
         value: 'autonomy',

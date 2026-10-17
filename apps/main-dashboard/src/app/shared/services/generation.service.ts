@@ -351,8 +351,8 @@ export class GenerationService {
    * Flux d'une génération DÉJÀ en cours, ou `null` s'il n'y en a pas.
    *
    * Une génération appartient à l'application, pas à l'écran qui l'a lancée :
-   * lancée depuis le tableau de bord puis suivie depuis le chat, c'est la même
-   * — et la facturer deux fois parce que l'autre mode ne la voyait pas serait
+   * lancée depuis un écran puis suivie depuis un autre, c'est la même
+   * — et la facturer deux fois parce que l'autre écran ne la voyait pas serait
    * une erreur visible sur la facture.
    */
   observeGeneration(serviceType: SSEServiceEventType): Observable<SSEGenerationState> | null {

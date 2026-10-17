@@ -43,14 +43,6 @@
   }
 }
 
-/* Mode Chat sur mobile : le composeur occupe le bas de l'écran et son bouton
-   d'envoi vit exactement dans ce coin. Le dock remonte au-dessus. */
-@media (max-width: 640px) {
-  :host(.is-chat) {
-    bottom: calc(6.5rem + env(safe-area-inset-bottom, 0px));
-  }
-}
-
 .dock-root {
   position: relative;
   display: flex;

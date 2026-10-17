@@ -1,8 +1,8 @@
 <!-- Dernier écran de la création, une fois le projet enregistré : on choisit
      comment travailler avant d'ouvrir l'espace. Pas de retour possible, le
-     projet existe déjà. En-tête serré : les trois modes tiennent dans la
+     projet existe déjà. En-tête serré : les deux modes tiennent dans la
      hauteur d'un petit portable sans faire défiler. -->
-<section class="w-full max-w-6xl mx-auto px-4 sm:px-6 py-4 sm:py-6 text-text-primary animate-fadeIn">
+<section class="w-full max-w-4xl mx-auto px-4 sm:px-6 py-4 sm:py-6 text-text-primary animate-fadeIn">
   <header class="mb-5 sm:mb-6">
     <h1 class="text-2xl sm:text-3xl font-bold leading-tight">
       {{ 'dashboard.createProject.modeChoice.title' | translate }}
@@ -17,9 +17,9 @@
   <!-- Chaque carte est le bouton : un seul geste, et un seul arrêt au clavier.
        Sous 1024 px, les cartes s'empilent en lignes basses — illustration,
        texte, puis le bouton à droite ; sur téléphone, seule la phrase « pour
-       vous si… » reste, et un chevron remplace le bouton, pour que les trois
+       vous si… » reste, et un chevron remplace le bouton, pour que les deux
        modes tiennent à l'écran. -->
-  <div class="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4">
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
     @for (card of cards; track card.mode) {
       @let recommended = card.mode === recommendedMode();
       <button
@@ -35,7 +35,7 @@
 
         <span class="flex flex-col flex-1 min-w-0">
           <!-- La recommandation est posée à côté du titre de la carte qu'elle
-               désigne : les trois titres restent alignés, et l'étiquette dit
+               désigne : les deux titres restent alignés, et l'étiquette dit
                d'où vient le conseil quand il s'appuie sur les réponses. -->
           <span class="flex flex-wrap items-center gap-x-2.5 gap-y-1">
             <span class="text-lg sm:text-xl font-bold leading-tight text-text-primary">

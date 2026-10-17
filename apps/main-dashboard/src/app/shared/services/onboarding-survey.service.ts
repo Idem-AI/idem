@@ -3,7 +3,7 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { OnboardingProfile } from '@idem/shared-models';
 import { environment } from '../../../environments/environment';
-import { UiMode } from '../../modules/chat/models/chat.model';
+import { UiMode } from '../models/ui-mode.model';
 import {
   ModeRecommendation,
   SURVEY_QUESTIONS,
@@ -11,32 +11,36 @@ import {
   SurveyQuestionId,
 } from '../models/onboarding-survey.model';
 
-/** Poids de chaque réponse par mode. Une réponse absente ne compte pour rien. */
+/**
+ * Poids de chaque réponse par mode. Une réponse absente ne compte pour rien.
+ *
+ * Les profils « entre deux » (démarre, un peu d'idées, à l'aise) pèsent des
+ * deux côtés : c'est l'ensemble des réponses qui tranche, pas une seule.
+ */
 const SCORING: Record<SurveyQuestionId, Record<string, Partial<Record<UiMode, number>>>> = {
   stage: {
-    idea: { guided: 2, chat: 1 },
-    starting: { guided: 1, chat: 1 },
+    idea: { guided: 2 },
+    starting: { guided: 1 },
     running: { advanced: 2 },
   },
   clarity: {
     lost: { guided: 3 },
-    partial: { guided: 1, chat: 2 },
+    partial: { guided: 1, advanced: 1 },
     clear: { advanced: 3 },
   },
   workStyle: {
     stepByStep: { guided: 3 },
-    conversation: { chat: 3 },
     autonomy: { advanced: 3 },
   },
   comfort: {
-    beginner: { guided: 2, chat: 1 },
-    intermediate: { chat: 1, advanced: 1 },
+    beginner: { guided: 2 },
+    intermediate: { guided: 1, advanced: 1 },
     expert: { advanced: 3 },
   },
 };
 
 /** Départage les ex æquo : on privilégie l'accompagnement le plus fort. */
-const TIE_BREAK_ORDER: UiMode[] = ['guided', 'chat', 'advanced'];
+const TIE_BREAK_ORDER: UiMode[] = ['guided', 'advanced'];
 
 /**
  * Sondage d'accueil : réponses, mode recommandé, persistance sur le compte.
@@ -94,10 +98,17 @@ export class OnboardingSurveyService {
 
   readonly recommendedMode = computed<UiMode | null>(() => this.recommendation()?.mode ?? null);
 
-  /** Mode retenu par l'utilisateur lors du sondage, s'il l'a déjà passé. */
-  readonly selectedMode = computed<UiMode | null>(
-    () => (this.profile()?.selectedMode as UiMode | undefined) ?? null,
-  );
+  /**
+   * Mode retenu par l'utilisateur lors du sondage, s'il l'a déjà passé.
+   * Un profil enregistré avant le retrait du mode Chat porte encore cette
+   * valeur : il retombe sur le tableau de bord, mode par défaut qui ne
+   * restreint rien.
+   */
+  readonly selectedMode = computed<UiMode | null>(() => {
+    const stored = this.profile()?.selectedMode as string | undefined;
+    if (!stored) return null;
+    return stored === 'guided' ? 'guided' : 'advanced';
+  });
 
   // ───────────────────────────────────────────────────────── chargement
 
@@ -196,7 +207,7 @@ export class OnboardingSurveyService {
 
   /** Calcule le mode conseillé à partir des réponses connues. */
   score(answers: SurveyAnswers): ModeRecommendation {
-    const scores: Record<UiMode, number> = { guided: 0, chat: 0, advanced: 0 };
+    const scores: Record<UiMode, number> = { guided: 0, advanced: 0 };
 
     for (const question of this.questions) {
       const value = answers[question.id];

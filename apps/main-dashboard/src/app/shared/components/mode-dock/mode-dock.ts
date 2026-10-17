@@ -16,7 +16,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { TranslateModule } from '@ngx-translate/core';
 import { filter, map, startWith } from 'rxjs/operators';
 import { AuthService } from '../../../modules/auth/services/auth.service';
-import { UiMode } from '../../../modules/chat/models/chat.model';
+import { UiMode } from '../../models/ui-mode.model';
 import { OnboardingSurveyService } from '../../services/onboarding-survey.service';
 import { UiModeService } from '../../services/ui-mode.service';
 
@@ -35,12 +35,6 @@ const MODE_OPTIONS: readonly ModeOption[] = [
     descriptionKey: 'modes.guided.short',
   },
   {
-    mode: 'chat',
-    icon: 'pi pi-comments',
-    labelKey: 'modes.chat.name',
-    descriptionKey: 'modes.chat.short',
-  },
-  {
     mode: 'advanced',
     icon: 'pi pi-th-large',
     labelKey: 'modes.advanced.name',
@@ -55,7 +49,6 @@ const MODE_OPTIONS: readonly ModeOption[] = [
  */
 const LAYOUT_MODE: Readonly<Record<string, UiMode>> = {
   guided: 'guided',
-  chat: 'chat',
   dashboard: 'advanced',
 };
 
@@ -84,7 +77,6 @@ const LAYOUT_MODE: Readonly<Record<string, UiMode>> = {
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     '[class.is-hidden]': '!isVisible()',
-    '[class.is-chat]': 'activeLayout() === "chat"',
   },
 })
 export class ModeDockComponent {
@@ -130,7 +122,7 @@ export class ModeDockComponent {
   });
 
   protected readonly activeOption = computed<ModeOption>(
-    () => MODE_OPTIONS.find((option) => option.mode === this.activeMode()) ?? MODE_OPTIONS[2],
+    () => MODE_OPTIONS.find((option) => option.mode === this.activeMode()) ?? MODE_OPTIONS[1],
   );
 
   /** Mode conseillé par le sondage d'accueil, mis en avant dans la liste. */

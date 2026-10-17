@@ -23,19 +23,6 @@
         "noActiveProject": "No active project found. Please select a project first."
       },
       "modeLabel": "Creation mode",
-      "modeChat": "Conversation",
-      "modeForm": "Form",
-      "switchToForm": "Switch to form",
-      "foundations": {
-        "title": "Let's talk about your project",
-        "subtitle": "A few basics to start — the AI handles the rest in conversation.",
-        "descriptionLabel": "Describe your idea",
-        "descriptionPlaceholder": "e.g. a marketplace for local artisans handling orders and payments…",
-        "nameLabel": "Project name",
-        "namePlaceholder": "e.g. ArtisanHub",
-        "typeLabel": "Project type",
-        "continue": "Continue"
-      },
       "guidedHint": "After creation, IDEM will guide you step by step.",
       "modeChoice": {
         "title": "How would you like to be supported?",
@@ -47,12 +34,6 @@
           "description": "IDEM guides you in order: one step at a time, and the next unlocks once the previous one is done.",
           "forWho": "For you if you are starting out and do not know where to begin.",
           "button": "Guide me"
-        },
-        "chat": {
-          "title": "Chat mode",
-          "description": "Describe what you need in plain language: IDEM generates it and answers you.",
-          "forWho": "For you if you would rather ask than search.",
-          "button": "Chat with IDEM"
         },
         "form": {
           "title": "Dashboard",

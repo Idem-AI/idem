@@ -23,19 +23,6 @@
         "noActiveProject": "Aucun projet actif trouvé. Veuillez d'abord sélectionner un projet."
       },
       "modeLabel": "Mode de création",
-      "modeChat": "Conversation",
-      "modeForm": "Formulaire",
-      "switchToForm": "Passer au formulaire",
-      "foundations": {
-        "title": "Parlons de votre projet",
-        "subtitle": "Quelques bases pour démarrer — l'IA s'occupe du reste en conversation.",
-        "descriptionLabel": "Décrivez votre idée",
-        "descriptionPlaceholder": "Ex. une marketplace pour artisans locaux qui gère commandes et paiements…",
-        "nameLabel": "Nom du projet",
-        "namePlaceholder": "Ex. ArtisanHub",
-        "typeLabel": "Type de projet",
-        "continue": "Continuer"
-      },
       "guidedHint": "Après la création, IDEM vous guidera étape par étape.",
       "modeChoice": {
         "title": "Comment souhaitez-vous être accompagné ?",
@@ -47,12 +34,6 @@
           "description": "IDEM vous guide dans l'ordre : une seule étape à la fois, la suivante se débloque quand la précédente est terminée.",
           "forWho": "Pour vous si vous débutez et ne savez pas par où commencer.",
           "button": "Être guidé"
-        },
-        "chat": {
-          "title": "Mode Chat",
-          "description": "Vous décrivez ce dont vous avez besoin en langage courant, IDEM le génère et vous répond.",
-          "forWho": "Pour vous si vous préférez demander plutôt que chercher.",
-          "button": "Discuter avec IDEM"
         },
         "form": {
           "title": "Tableau de bord",

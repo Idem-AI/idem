@@ -3,7 +3,7 @@ import { firstValueFrom } from 'rxjs';
 import { ProjectModel } from '@idem/shared-models';
 
 import { OnboardingAiService } from './onboarding-ai.service';
-import { OnboardingFieldKey, OnboardingPlanQuestion } from '../models/chat.model';
+import { OnboardingFieldKey, OnboardingPlanQuestion } from '../models/onboarding-plan.model';
 
 /** Fondations minimales pour amorcer les questions contextuelles. */
 export interface OnboardingPlanInput {
@@ -34,13 +34,11 @@ const MAX_CONTEXTUAL = 5;
  *
  * Deux familles de questions :
  *  - COEUR (déterministe, immédiat, sans appel IA) : devise, cible, portée,
- *    équipe — `buildFixedCoreQuestions`. Le nom et le type s'y ajoutent en chat
- *    via `injectIdentityQuestions`.
+ *    équipe — `buildFixedCoreQuestions`.
  *  - CONTEXTUELLES (IA, 3 à 5) : adaptées au projet, chargées à part avec un
  *    loader — `getContextualQuestions` (cache par description).
  *
- * Centralise aussi le mapping réponses → champs projet (contrat unique chat +
- * formulaire), pour que les deux modes restent synchronisés.
+ * Centralise aussi le mapping réponses → champs projet.
  */
 @Injectable({ providedIn: 'root' })
 export class OnboardingPlanService {
@@ -173,76 +171,11 @@ export class OnboardingPlanService {
     return out;
   }
 
-  /** Invalide le cache (ex. redémarrage du flux). */
-  clearCache(): void {
-    this.cacheKey = null;
-    this.cachedContextual = null;
-  }
-
-  // ─────────────────────────────────────────────── Identité (nom / type)
-
-  /**
-   * Préfixe la liste avec les questions d'identité (nom puis type) manquantes.
-   * Utilisé par le mode chat, où nom/type sont posés dans la conversation.
-   * Si le champ est déjà connu (rempli en formulaire), il n'est pas re-posé.
-   */
-  injectIdentityQuestions(
-    questions: OnboardingPlanQuestion[],
-    foundations: { name?: string; type?: string; projectId?: string | null },
-    language: 'fr' | 'en',
-  ): OnboardingPlanQuestion[] {
-    const out = [...questions];
-    const en = language === 'en';
-
-    if (!foundations.type) {
-      out.unshift(this.buildTypeQuestion(language));
-    }
-
-    if (!foundations.name) {
-      out.unshift({
-        id: 'name',
-        field: 'name',
-        kind: 'open',
-        optional: false,
-        prompt: en
-          ? 'First, what is the name of your project?'
-          : 'Pour commencer, quel est le nom de votre projet ?',
-      });
-    }
-
-    return out;
-  }
-
-  /**
-   * Question « type de projet » recontextualisée pour l'entrepreneuriat, avec
-   * une option « Autres » qui ouvre la saisie manuelle. Les valeurs
-   * correspondent à l'enum `ProjectType`.
-   */
-  buildTypeQuestion(language: 'fr' | 'en'): OnboardingPlanQuestion {
-    const en = language === 'en';
-    return {
-      id: 'type',
-      field: 'type',
-      kind: 'choice',
-      optional: false,
-      prompt: en
-        ? 'What kind of project do you want to launch?'
-        : 'Quel type de projet souhaitez-vous lancer ?',
-      chips: [
-        { label: en ? 'Business creation' : "Création d'entreprise", value: 'enterprise' },
-        { label: 'Commerce / E-commerce', value: 'ecommerce' },
-        { label: en ? 'Web app / SaaS' : 'Application web / SaaS', value: 'web' },
-        { label: en ? 'Mobile app' : 'Application mobile', value: 'mobile' },
-        { label: en ? 'Other (specify)' : 'Autres (à préciser)', value: 'other' },
-      ],
-    };
-  }
-
   // ─────────────────────────────────────────────── Mapping réponses → projet
 
   /**
    * Convertit une liste de réponses résolues en champs de projet.
-   * Contrat de persistance unique pour les deux modes :
+   * Contrat de persistance :
    *  - champs cœur → colonnes dédiées ;
    *  - réponses contextuelles (`constraints`) → tableau `constraints[]`
    *    au format « Question: Réponse » (directement exploitable par les

@@ -14,11 +14,11 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ProjectModel } from '@idem/shared-models';
 
 import { SelectElement } from '../../datas';
-import { OnboardingPlanQuestion } from '../../../../../chat/models/chat.model';
+import { OnboardingPlanQuestion } from '../../models/onboarding-plan.model';
 import {
   OnboardingPlanService,
   OnboardingResolvedAnswer,
-} from '../../../../../chat/services/onboarding-plan.service';
+} from '../../services/onboarding-plan.service';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 import { RouterLink } from '@angular/router';
 import { AgadezCrossIllustrationComponent } from '../agadez-cross-illustration/agadez-cross-illustration';
@@ -28,8 +28,8 @@ import { AgadezCrossIllustrationComponent } from '../agadez-cross-illustration/a
  *
  * Contrairement à l'ancien formulaire statique, cette étape :
  *  - demande toujours le nom + le type du projet (champs fixes) ;
- *  - récupère un plan de questions adapté au projet (même endpoint que le
- *    mode chat) et rend chaque question comme un input (select / texte) ;
+ *  - récupère un plan de questions adapté au projet et rend chaque question
+ *    comme un input (select / texte) ;
  *  - remonte toutes les réponses au parent via `projectUpdate`, y compris
  *    les réponses contextuelles formatées dans `constraints[]`.
  */

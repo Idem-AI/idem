@@ -1,19 +1,10 @@
-import {
-  Component,
-  inject,
-  OnInit,
-  OnDestroy,
-  signal,
-  computed,
-  effect,
-  ViewChild,
-} from '@angular/core';
+import { Component, inject, OnInit, signal, computed, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 import { ProjectModel } from '@idem/shared-models';
 import { ProjectService } from '../../services/project.service';
 import { CookieService } from '../../../../shared/services/cookie.service';
-import { UiModeService } from '../../../../shared/services/ui-mode.service';
+import { MODE_HOME_ROUTE, UiModeService } from '../../../../shared/services/ui-mode.service';
 import { initEmptyObject } from '../../../../utils/init-empty-object';
 import CreateProjectDatas, { SelectElement } from './datas';
 
@@ -26,13 +17,8 @@ import { LogoSelectionComponent } from './components/logo-selection/logo-selecti
 import { LogoVariationsComponent } from './components/logo-variations/logo-variations';
 import { ProjectSummaryComponent } from './components/project-summary/project-summary';
 import { LogoChoiceComponent } from './components/logo-choice/logo-choice';
-import { FoundationsCardComponent } from './components/foundations-card/foundations-card';
 import { SkeletonModule } from 'primeng/skeleton';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
-import {
-  OnboardingChatComponent,
-  OnboardingFoundations,
-} from '../../../chat/components/onboarding-chat/onboarding-chat';
 import { AuthService } from '../../../auth/services/auth.service';
 import { LoginCardComponent } from '../../../auth/components/login-card/login-card';
 import { DialogModule } from 'primeng/dialog';
@@ -58,14 +44,13 @@ const CREATE_MODE_KEY = 'idem_create_project_mode';
     DynamicDetailsFormComponent,
     ProjectSummaryComponent,
     TranslateModule,
-    OnboardingChatComponent,
     DialogModule,
     LoginCardComponent,
     ModeChoiceComponent, IdemLoaderComponent],
   templateUrl: './create-project.html',
   styleUrl: './create-project.css',
 })
-export class CreateProjectComponent implements OnInit, OnDestroy {
+export class CreateProjectComponent implements OnInit {
   // Services
   private readonly projectService = inject(ProjectService);
   private readonly router = inject(Router);
@@ -77,7 +62,7 @@ export class CreateProjectComponent implements OnInit, OnDestroy {
 
   // Authentication Modal State
   protected readonly showLoginModal = signal<boolean>(false);
-  private pendingAction: 'nextStep' | 'foundations' | 'improvePrompt' | 'feelingLucky' | null = null;
+  private pendingAction: 'nextStep' | 'improvePrompt' | 'feelingLucky' | null = null;
 
   // Prompt generation loading states
   protected readonly isImprovingPrompt = signal<boolean>(false);
@@ -92,13 +77,12 @@ export class CreateProjectComponent implements OnInit, OnDestroy {
   protected readonly project = signal<ProjectModel>(initEmptyObject<ProjectModel>());
   protected readonly isLoading = signal<boolean>(false);
 
-  // Dual-mode : conversation (défaut) ⇄ formulaire classique
+  // Deux modes d'accompagnement : tableau de bord (formulaire) ⇄ parcours assisté
   protected readonly mode = signal<CreateMode>(this.readMode());
-  protected readonly isChatRecapActive = signal<boolean>(false);
 
   /**
    * Choix du mode d'accompagnement : dernier écran, une fois le projet créé et
-   * avant d'ouvrir l'espace (parcours assisté, chat ou tableau de bord).
+   * avant d'ouvrir l'espace (parcours assisté ou tableau de bord).
    */
   protected readonly showModeChoice = signal<boolean>(false);
 
@@ -108,71 +92,18 @@ export class CreateProjectComponent implements OnInit, OnDestroy {
    * mode et la barre du bas se recentrent alors sur la colonne de droite.
    */
   protected readonly isSplitStep = computed(
-    () => this.mode() !== 'chat' && !this.showModeChoice() && this.currentStepIndex() === 1,
+    () => !this.showModeChoice() && this.currentStepIndex() === 1,
   );
 
   /** Indique si la page actuelle est la page de synthèse / validation des politiques (où le changement de mode doit être masqué) */
-  protected readonly isSummaryPage = computed(
-    () =>
-      (this.mode() !== 'chat' && this.currentStepIndex() === 2) ||
-      (this.mode() === 'chat' && this.isChatRecapActive()),
-  );
-
-  /** Vue conversationnelle active (chat + au-delà de l'étape description et hors écran de choix de mode). */
-  protected readonly isChatConversation = computed(
-    () => this.mode() === 'chat' && this.currentStepIndex() !== 0 && !this.showModeChoice(),
-  );
-
-  constructor() {
-    // En vue conversationnelle, on verrouille le scroll global de la page :
-    // seul le fil de messages défile (comportement type Claude).
-    effect(() => {
-      const lock = this.isChatConversation();
-      if (typeof document !== 'undefined') {
-        document.body.style.overflow = lock ? 'hidden' : '';
-      }
-    });
-  }
-
-  ngOnDestroy(): void {
-    if (typeof document !== 'undefined') {
-      document.body.style.overflow = '';
-    }
-  }
-
-  /** En mode chat : Fondations tant que description/nom/type ou projet manquent. */
-  protected readonly chatReadyForConversation = computed(() => {
-    const p = this.project();
-    // Accept longDescription or legacy description for backward compatibility.
-    const hasDesc = !!(p.longDescription ?? p.description)?.trim();
-    return !!p.id && hasDesc && !!p.name?.trim() && !!p.type;
-  });
-
-  /** Données passées au composant conversationnel. */
-  protected readonly conversationFoundations = computed<OnboardingFoundations>(() => {
-    const p = this.project();
-    const t = p.type as unknown as { name?: string; code?: string } | string | undefined;
-    const typeLabel = typeof t === 'string' ? t : (t?.name ?? '');
-    const typeCode = typeof t === 'string' ? t : (t?.code ?? '');
-    return {
-      description: p.longDescription ?? p.description ?? '',
-      name: p.name ?? '',
-      type: typeCode,
-      typeLabel,
-      projectId: p.id ?? null,
-      // Réponses cœur déjà saisies (formulaire) → pré-remplissage/synchro du chat.
-      targets: p.targets ?? '',
-      scope: p.scope ?? '',
-      teamSize: p.teamSize ?? '',
-      currency: p.currency ?? '',
-      constraints: p.constraints ?? [],
-    };
-  });
+  protected readonly isSummaryPage = computed(() => this.currentStepIndex() === 2);
 
   private readMode(): CreateMode {
     try {
       const saved = localStorage.getItem(CREATE_MODE_KEY);
-      if (saved === 'chat' || saved === 'form' || saved === 'guided') {
+      // L'ancienne valeur 'chat' (mode retiré) n'est pas reprise : on retombe
+      // sur le mode d'interface courant.
+      if (saved === 'form' || saved === 'guided') {
         return saved;
       }
       return this.uiModeToCreateMode();
@@ -183,14 +114,7 @@ export class CreateProjectComponent implements OnInit, OnDestroy {
 
   /** Traduit le mode d'interface global en mode de création. */
   private uiModeToCreateMode(): CreateMode {
-    switch (this.uiModeService.mode()) {
-      case 'chat':
-        return 'chat';
-      case 'guided':
-        return 'guided';
-      default:
-        return 'form';
-    }
+    return this.uiModeService.mode() === 'guided' ? 'guided' : 'form';
   }
 
   protected setMode(mode: CreateMode): void {
@@ -201,10 +125,8 @@ export class CreateProjectComponent implements OnInit, OnDestroy {
       // ignore
     }
     // Synchronise avec le UiModeService global pour que l'après-création ouvre
-    // le bon mode (parcours assisté, chat ou tableau de bord).
-    this.uiModeService.setMode(
-      mode === 'chat' ? 'chat' : mode === 'guided' ? 'guided' : 'advanced',
-    );
+    // le bon mode (parcours assisté ou tableau de bord).
+    this.uiModeService.setMode(mode === 'guided' ? 'guided' : 'advanced');
   }
 
   // Step configuration
@@ -449,8 +371,6 @@ export class CreateProjectComponent implements OnInit, OnDestroy {
           this.finalizeProject();
         }
       }
-    } else if (action === 'foundations') {
-      await this.createProjectInDatabase();
     } else if (action === 'improvePrompt') {
       await this.executeImprovePrompt();
     } else if (action === 'feelingLucky') {
@@ -593,39 +513,7 @@ export class CreateProjectComponent implements OnInit, OnDestroy {
 
   /** Où atterrir une fois le projet créé, selon le mode d'accompagnement choisi. */
   private postCreationRoute(): string {
-    switch (this.uiModeService.mode()) {
-      case 'guided':
-        return '/guided';
-      case 'chat':
-        return '/chat';
-      default:
-        return '/project/dashboard';
-    }
-  }
-
-  // ─────────────────────────────────────────────── Mode conversation (chat)
-
-  /** Phase A → crée le projet en base (si nécessaire) puis lance la conversation. */
-  protected async onFoundationsContinue(): Promise<void> {
-    if (!this.project().id) {
-      const user = this.authService.getCurrentUser();
-      if (!user) {
-        this.pendingAction = 'foundations';
-        this.showLoginModal.set(true);
-        return;
-      }
-      await this.createProjectInDatabase();
-    } else {
-      this.saveDraftProject();
-    }
-    // chatReadyForConversation devient vrai → le composant conversationnel s'affiche
-  }
-
-  /** Le composant conversationnel a créé/finalisé le projet. */
-  protected onConversationCreated(projectId: string): void {
-    this.cookieService.set('projectId', projectId);
-    this.cookieService.remove('draftProject');
-    this.openModeChoice();
+    return MODE_HOME_ROUTE[this.uiModeService.mode()];
   }
 
   /**

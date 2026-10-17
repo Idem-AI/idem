@@ -7,24 +7,3 @@
 .mode-illu {
   color: var(--color-text-tertiary);
 }
-
-/* Les ondes du tambour battent : une réponse est en train de venir. */
-.mode-illu__beat {
-  animation: illuBeat 2.4s ease-in-out infinite;
-}
-
-@keyframes illuBeat {
-  0%,
-  100% {
-    opacity: 0.35;
-  }
-  50% {
-    opacity: 1;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .mode-illu__beat {
-    animation: none;
-  }
-}

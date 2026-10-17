@@ -9,7 +9,6 @@ import { Router, ActivatedRoute } from '@angular/router';
 import { Observable, Subject } from 'rxjs';
 import { filter, startWith, map, distinctUntilChanged, takeUntil } from 'rxjs/operators';
 import { DashboardLayoutComponent } from './layouts/dashboard-layout/dashboard-layout';
-import { ChatLayoutComponent } from './layouts/chat-layout/chat-layout';
 import { GuidedLayoutComponent } from './layouts/guided-layout/guided-layout';
 import { GuidedLockModalComponent } from './modules/guided/components/guided-lock-modal/guided-lock-modal';
 import { PaywallHostComponent } from './modules/billing/components/paywall-host/paywall-host';
@@ -23,7 +22,6 @@ import { ModeDockComponent } from './shared/components/mode-dock/mode-dock';
     EmptyLayout,
     NotificationContainerComponent,
     DashboardLayoutComponent,
-    ChatLayoutComponent,
     GuidedLayoutComponent,
     GuidedLockModalComponent,
     PaywallHostComponent,
@@ -52,7 +50,7 @@ export class App implements OnInit {
 
   /** Layout courant selon la route active */
   protected readonly currentLayout$: Observable<
-    'public' | 'dashboard' | 'empty' | 'chat' | 'guided' | 'bare'
+    'public' | 'dashboard' | 'empty' | 'guided' | 'bare'
   > = this.router.events.pipe(
     filter((event) => event instanceof NavigationEnd),
     startWith(null),
@@ -83,7 +81,6 @@ export class App implements OnInit {
         | 'public'
         | 'dashboard'
         | 'empty'
-        | 'chat'
         | 'guided'
         | 'bare') || 'public';
     }),

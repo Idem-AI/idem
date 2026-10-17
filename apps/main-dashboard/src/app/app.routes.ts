@@ -178,25 +178,10 @@ export const routes: Routes = [
     data: { layout: 'guided' },
   },
 
-  // ============================================
-  // CHAT MODE ROUTES (layout: 'chat')
-  // ============================================
-  {
-    path: 'chat',
-    title: 'navigation.titles.chat',
-    loadComponent: () =>
-      import('./modules/chat/pages/chat-home/chat-home').then((m) => m.ChatHomePage),
-    canActivate: [authGuard, surveyGuard],
-    data: { layout: 'chat' },
-  },
-  {
-    path: 'chat/new',
-    title: 'navigation.titles.chatNew',
-    loadComponent: () =>
-      import('./modules/chat/pages/chat-home/chat-home').then((m) => m.ChatHomePage),
-    canActivate: [authGuard, surveyGuard],
-    data: { layout: 'chat', onboarding: true },
-  },
+  // Le mode Chat a été retiré : les anciens liens et favoris retombent sur le
+  // tableau de bord au lieu d'un 404.
+  { path: 'chat', redirectTo: 'project/dashboard', pathMatch: 'full' },
+  { path: 'chat/new', redirectTo: 'project/dashboard', pathMatch: 'full' },
 
   // ============================================
   // PROJECT DASHBOARD ROUTES (layout: 'dashboard')

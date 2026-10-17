@@ -27,7 +27,7 @@ const NETWORKS: SocialNetwork[] = ['linkedin', 'x'];
 /**
  * Un visuel en grand, avec tout ce qu'on peut en faire.
  *
- * Ouverte depuis une vignette — dans le chat comme dans « Mes visuels ». Une
+ * Ouverte depuis une vignette — dans l'atelier comme dans « Mes visuels ». Une
  * seule fenêtre partagée plutôt qu'un aperçu par écran, pour deux raisons :
  *
  *  - **le geste est le même partout** : survoler désigne, cliquer propose

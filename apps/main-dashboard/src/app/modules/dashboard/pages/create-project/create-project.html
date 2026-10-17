@@ -15,12 +15,7 @@
   </div>
 } @else {
   <!-- Main Content -->
-  <div
-    class="w-full"
-    [class.min-h-screen]="!isChatConversation()"
-    [class.h-screen]="isChatConversation()"
-    [class.overflow-hidden]="isChatConversation()"
-  >
+  <div class="w-full min-h-screen">
     <!-- AppGen Handoff Banner -->
     @if (fromAppGen()) {
       <div
@@ -91,20 +86,6 @@
             </button>
             <button
               type="button"
-              (click)="setMode('chat')"
-              [attr.aria-pressed]="mode() === 'chat'"
-              class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all duration-200"
-              [ngClass]="
-                mode() === 'chat'
-                  ? 'bg-primary text-white shadow-lg'
-                  : 'text-text-tertiary hover:text-text-primary'
-              "
-            >
-              <i class="pi pi-comments text-[11px]"></i>
-              <span>{{ 'modes.chat.name' | translate }}</span>
-            </button>
-            <button
-              type="button"
               (click)="setMode('form')"
               [attr.aria-pressed]="mode() === 'form'"
               class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all duration-200"
@@ -132,8 +113,8 @@
 
     @if (showModeChoice()) {
       <!-- ═══ ECRAN DE CHOIX DU MODE D'ACCOMPAGNEMENT ═══ -->
-      <!-- Dernier écran : le projet est créé (formulaire ou conversation), on
-           choisit le mode avant d'ouvrir l'espace. -->
+      <!-- Dernier écran : le projet est créé, on choisit le mode avant
+           d'ouvrir l'espace. -->
       <!-- Le sélecteur de mode est masqué ici, et la mise en page réserve déjà
            la place de la barre de navigation : on ne garde que celle du
            bandeau AppGen, et le contenu part du haut au lieu d'être centré
@@ -144,43 +125,8 @@
           (selectMode)="onModeSelected($event)"
         ></app-mode-choice>
       </div>
-    } @else if (mode() === 'chat') {
-      <!-- ═══ MODE CONVERSATION ═══ -->
-      @if (currentStepIndex() === 0) {
-        <div
-          class="w-full content-wrapper pb-36"
-          [class.content-with-banner]="fromAppGen()"
-          [class.content-standard]="!fromAppGen()"
-        >
-          <app-project-description
-            [project]="project()"
-            [isImprovingPrompt]="isImprovingPrompt()"
-            [isGeneratingLucky]="isGeneratingLucky()"
-            (nextStep)="goToNextStep()"
-            (projectUpdate)="onProjectUpdate($event)"
-            (improvePromptRequest)="onImprovePromptRequested()"
-            (feelingLuckyRequest)="onFeelingLuckyRequested()"
-          ></app-project-description>
-        </div>
-      } @else {
-        <!-- Viewport à hauteur fixe : seul le fil de messages défile -->
-        <div
-          class="w-full"
-          [class.chat-viewport-banner]="fromAppGen()"
-          [class.chat-viewport-standard]="!fromAppGen()"
-        >
-          <app-onboarding-chat
-            [foundations]="conversationFoundations()"
-            [showFormSwitch]="!isSummaryPage()"
-            (created)="onConversationCreated($event)"
-            (switchToForm)="setMode('form')"
-            (projectUpdate)="onProjectUpdate($event)"
-            (recapPhaseActive)="isChatRecapActive.set($event)"
-          ></app-onboarding-chat>
-        </div>
-      }
     } @else {
-    <!-- ═══ MODE FORMULAIRE CLASSIQUE ═══ -->
+    <!-- ═══ CRÉATION DU PROJET (formulaire) ═══ -->
     <!-- Content Area -->
     <!-- L'étape « Votre projet » occupe toute la largeur (emblème à gauche). -->
     <div
@@ -227,7 +173,7 @@
     </div>
 
     <!-- Navigation Controls -->
-    @if (currentStepIndex() !== 0 && mode() !== 'chat' && !showModeChoice()) {
+    @if (currentStepIndex() !== 0 && !showModeChoice()) {
       <div
         class="fixed bottom-0 left-0 right-0 z-40 bg-[var(--glass-bg-darker)] backdrop-blur-sm border-t border-[var(--glass-border)]"
         [class.lg:left-[var(--split-left)]]="isSplitStep()"
