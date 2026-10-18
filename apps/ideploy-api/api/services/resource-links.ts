@@ -70,7 +70,9 @@ const EXAMPLE_VALUES = /^(guest|root|admin|secret|password|pass|user|test|postgr
 /** An empty value, or one that only works on a developer's machine (an example). */
 export function isPlaceholder(value: string | null | undefined): boolean {
   const v = (value ?? '').trim();
-  if (!v) return true;
+  // Empty, or an example's way of saying so: Laravel's .env.example ships
+  // `REDIS_PASSWORD=null`, which reached a Redis that requires a password.
+  if (!v || /^(?:null|nil|none|undefined|~|""|'')$/i.test(v)) return true;
   if (/localhost|127\.0\.0\.1|0\.0\.0\.0|host\.docker\.internal|example\.(com|org)|changeme|your[-_]|<[^>]+>|\bxxx\b/i.test(v)) return true;
   if (COMPOSE_HOSTS.test(v) || EXAMPLE_VALUES.test(v)) return true;
   try {

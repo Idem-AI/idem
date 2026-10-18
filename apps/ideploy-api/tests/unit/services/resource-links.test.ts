@@ -123,3 +123,16 @@ describe('the defaults of a deployed application', () => {
     expect(applicationDefaults(variables, opts)).toEqual(variables);
   });
 });
+
+describe('an example that means "no value"', () => {
+  it("is filled like an empty one: Laravel's REDIS_PASSWORD=null", () => {
+    expect(isPlaceholder('null')).toBe(true);
+    expect(isPlaceholder('NULL')).toBe(true);
+    expect(isPlaceholder('~')).toBe(true);
+    const linked = linkVariables([{ key: 'REDIS_PASSWORD', value: 'null' }, { key: 'REDIS_HOST', value: '127.0.0.1' }], targets);
+    expect(linked).toEqual([
+      { key: 'REDIS_PASSWORD', value: 'redispass', linkedTo: 'shop-cache' },
+      { key: 'REDIS_HOST', value: 'redis-2', linkedTo: 'shop-cache' },
+    ]);
+  });
+});

@@ -13,6 +13,7 @@ import { GuideAppStepComponent } from './guide-app-step';
 import { GuideServiceStepComponent } from './guide-service-step';
 import { IllustrationComponent } from '../../../shared/components/illustration/illustration';
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state';
+import { AppEnvTabComponent } from '../../applications/application-detail/app-env-tab';
 
 /**
  * Architecture guide — pilots the entire deployment of a multi-resource
@@ -28,7 +29,7 @@ import { EmptyStateComponent } from '../../../shared/components/empty-state/empt
  */
 @Component({
   selector: 'app-architecture-guide',
-  imports: [RouterLink, TranslateModule, GuideWorkspaceStepComponent, GuideDbStepComponent, GuideAppStepComponent, GuideServiceStepComponent, IllustrationComponent, EmptyStateComponent],
+  imports: [RouterLink, TranslateModule, GuideWorkspaceStepComponent, GuideDbStepComponent, GuideAppStepComponent, GuideServiceStepComponent, IllustrationComponent, EmptyStateComponent, AppEnvTabComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex h-16 items-center justify-between border-b px-6" style="border-color:var(--glass-border);">
@@ -126,6 +127,57 @@ import { EmptyStateComponent } from '../../../shared/components/empty-state/empt
                       {{ 'architectures.stepDone' | translate }}
                     }
                   </p>
+                  <!-- Back to a finished step: see what it created, change its variables. -->
+                  @if (step.action !== 'create-service') {
+                    <button type="button" class="mt-2 text-xs font-semibold hover:underline" style="color:var(--color-primary-500);"
+                      [attr.aria-expanded]="reviewing() === i" (click)="toggleReview(i)">
+                      <i class="pi mr-1 text-[10px]" [class.pi-pencil]="reviewing() !== i" [class.pi-chevron-up]="reviewing() === i" aria-hidden="true"></i>
+                      {{ (reviewing() === i ? 'architectures.reviewClose' : 'architectures.review') | translate }}
+                    </button>
+                  }
+                  @if (reviewing() === i) {
+                    <div class="glass-card mt-3 p-5">
+                      @if (step.action === 'create-database') {
+                        <ul class="space-y-2 text-sm">
+                          @if (linkedDatabase(); as db) {
+                            <li class="flex flex-wrap items-center gap-2">
+                              <i class="pi pi-database text-xs" aria-hidden="true"></i>
+                              <span class="text-text-primary">{{ db.name }}</span>
+                              <span style="color:var(--color-text-tertiary);">{{ db.type }}</span>
+                              <a [href]="'/databases/' + db.type + '/' + db.uuid" target="_blank" rel="noopener" class="ml-auto hover:underline" style="color:var(--color-primary-500);">
+                                {{ 'architectures.openDatabase' | translate }} <i class="pi pi-external-link text-[10px]" aria-hidden="true"></i>
+                              </a>
+                            </li>
+                          }
+                          @if (linkedCache(); as c) {
+                            <li class="flex flex-wrap items-center gap-2">
+                              <i class="pi pi-bolt text-xs" aria-hidden="true"></i>
+                              <span class="text-text-primary">{{ c.name }}</span>
+                              <span style="color:var(--color-text-tertiary);">{{ c.type }}</span>
+                              <a [href]="'/databases/' + c.type + '/' + c.uuid" target="_blank" rel="noopener" class="ml-auto hover:underline" style="color:var(--color-primary-500);">
+                                {{ 'architectures.openDatabase' | translate }} <i class="pi pi-external-link text-[10px]" aria-hidden="true"></i>
+                              </a>
+                            </li>
+                          }
+                        </ul>
+                        <!-- Before any application uses it: back to choosing (another engine, a cache). -->
+                        @if (guideSession.appCount(architectureId) === 0) {
+                          <button type="button" class="outer-button button-sm mt-4" (click)="chooseAnotherDatabase()">
+                            <i class="pi pi-replay mr-1.5 text-xs" aria-hidden="true"></i>{{ 'architectures.chooseAnotherDatabase' | translate }}
+                          </button>
+                          <p class="mt-2 text-xs" style="color:var(--color-text-tertiary);">{{ 'architectures.chooseAnotherDatabaseHint' | translate }}</p>
+                        }
+                      } @else {
+                        @if (appUuidFor(i, step); as appUuid) {
+                          <app-env-tab [uuid]="appUuid" />
+                          <a [href]="'/applications/' + appUuid" target="_blank" rel="noopener" class="mt-3 inline-block text-sm hover:underline" style="color:var(--color-primary-500);">
+                            {{ 'architectures.openApplication' | translate }} <i class="pi pi-external-link text-[10px]" aria-hidden="true"></i>
+                          </a>
+                        }
+                      }
+                      <p class="mt-3 text-xs" style="color:var(--color-text-tertiary);">{{ 'architectures.reviewHint' | translate }}</p>
+                    </div>
+                  }
                 } @else {
                   <p class="mt-1 text-sm" style="color:var(--color-text-secondary);">{{ step.description | translate }}</p>
                   @if (isActive(i) && workspace(); as ws) {
@@ -318,6 +370,24 @@ export class ArchitectureGuideComponent implements OnInit, OnDestroy {
   protected appUrlFor(index: number, step: GuideStep): string | null {
     if (step.action !== 'import-app') return null;
     return this.guideSession.appAt(this.architectureId, this.importIndexOf(index))?.publicUrl ?? null;
+  }
+
+  /** The step whose details are open again — one at a time. */
+  protected readonly reviewing = signal<number | null>(null);
+
+  protected toggleReview(index: number): void {
+    this.reviewing.update((open) => (open === index ? null : index));
+  }
+
+  protected chooseAnotherDatabase(): void {
+    this.reviewing.set(null);
+    this.guideSession.unlinkDatabase(this.architectureId);
+  }
+
+  /** The application an `import-app` step created, to show and edit its variables. */
+  protected appUuidFor(index: number, step: GuideStep): string | null {
+    if (step.action !== 'import-app') return null;
+    return this.guideSession.appAt(this.architectureId, this.importIndexOf(index))?.uuid ?? null;
   }
 
   protected appSuggestedName(step: GuideStep): string {
