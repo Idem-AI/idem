@@ -27,7 +27,9 @@ interface EnvRow {
   value: string;
   reveal: boolean;
   /** Filled from an architecture guide's linked resource, not detected from the repository — see `guide-env-link.util.ts`. */
-  linkedFrom?: 'database' | 'cache' | 'backend';
+  linkedFrom?: 'database' | 'cache' | 'backend' | 'resource';
+  /** The workspace resource a `resource` link names. */
+  linkedName?: string;
 }
 
 interface Preset {
@@ -236,7 +238,7 @@ interface Preset {
                     @if (row.linkedFrom) {
                       <p class="mt-1 ml-1 text-xs" style="color:#60a5fa;">
                         <i class="pi pi-link mr-1"></i>
-                        {{ linkedFromLabel(row.linkedFrom) | translate: { name: linkedFromName(row.linkedFrom) } }}
+                        {{ linkedFromLabel(row.linkedFrom) | translate: { name: row.linkedName ?? linkedFromName(row.linkedFrom) } }}
                       </p>
                     }
                   </div>
@@ -446,6 +448,7 @@ export class GuideAppStepComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.unsubscribeRealtime?.();
     this.pollSub?.unsubscribe();
+    clearTimeout(this.previewTimer);
   }
 
   private resetDetectionState(): void {
@@ -537,6 +540,7 @@ export class GuideAppStepComponent implements OnInit, OnDestroy {
           this.envRows.set(d.envVars.map((v) => ({ key: v.key, value: v.defaultValue, reveal: true })));
         }
         this.applyGuideLinks();
+        this.previewWorkspaceLinks();
         if (d.suggestedPort !== null && d.suggestedPort !== undefined) {
           this.portsExposes.set(String(d.suggestedPort));
           this.portAutoDetected.set(true);
@@ -610,13 +614,15 @@ export class GuideAppStepComponent implements OnInit, OnDestroy {
     }
   }
 
-  protected linkedFromLabel(kind: 'database' | 'cache' | 'backend'): string {
+  protected linkedFromLabel(kind: 'database' | 'cache' | 'backend' | 'resource'): string {
+    if (kind === 'resource') return 'projects.import.linkedFromResource';
     if (kind === 'database') return 'projects.import.linkedFromDatabase';
     if (kind === 'cache') return 'projects.import.linkedFromCache';
     return 'projects.import.linkedFromBackend';
   }
 
-  protected linkedFromName(kind: 'database' | 'cache' | 'backend'): string | null {
+  protected linkedFromName(kind: 'database' | 'cache' | 'backend' | 'resource'): string | null {
+    if (kind === 'resource') return null;
     if (kind === 'database') return this.linkedDatabaseName();
     if (kind === 'cache') return this.linkedCacheName();
     return this.linkedBackendName();
@@ -653,6 +659,42 @@ export class GuideAppStepComponent implements OnInit, OnDestroy {
 
   protected updateEnvKey(index: number, key: string): void {
     this.envRows.update((rows) => rows.map((r, i) => (i === index ? { ...r, key } : r)));
+    // A key typed by hand (REDIS_PASSWORD…) is linked too, once typing pauses.
+    clearTimeout(this.previewTimer);
+    this.previewTimer = setTimeout(() => this.previewWorkspaceLinks(), 700);
+  }
+
+  private previewTimer?: ReturnType<typeof setTimeout>;
+
+  /**
+   * Shows, before deploying, what the deployment will link: every resource of
+   * the workspace (a Redis created from its page, not only the guide's), by the
+   * API's own rules. Only an example value is replaced — the same rule the
+   * deployment applies — and a row edited while the answer was on its way is
+   * left as the user has it.
+   */
+  private previewWorkspaceLinks(): void {
+    // Every row, as the deployment receives them: a group's host decides for its neighbours.
+    const sent = this.envRows().filter((r) => r.key.trim());
+    if (!sent.some((r) => !r.linkedFrom)) return;
+    const before = new Map(sent.map((r) => [r.key.trim(), r.value]));
+    this.api
+      .linkPreview({ workspace_uuid: this.workspaceUuid(), variables: sent.map((r) => ({ key: r.key.trim(), value: r.value })) })
+      .subscribe({
+        next: (linked) => {
+          const byKey = new Map(linked.filter((l) => l.linkedTo).map((l) => [l.key, l]));
+          if (byKey.size === 0) return;
+          this.envRows.update((rows) =>
+            rows.map((r) => {
+              const l = byKey.get(r.key.trim());
+              if (!l || r.linkedFrom || before.get(r.key.trim()) !== r.value) return r;
+              return { ...r, value: l.value, linkedFrom: 'resource', linkedName: l.linkedTo };
+            })
+          );
+        },
+        // A preview: the deployment links them anyway.
+        error: () => undefined,
+      });
   }
 
   protected updateEnvValue(index: number, value: string): void {
@@ -683,6 +725,9 @@ export class GuideAppStepComponent implements OnInit, OnDestroy {
         for (const { key, value } of parsed) byKey.set(key, { key, value, reveal: false });
         return [...byKey.values()];
       });
+      // Imported variables are linked like detected ones: the guide's database and cache, then the workspace's.
+      this.applyGuideLinks();
+      this.previewWorkspaceLinks();
     };
     reader.onerror = () => this.envImportError.set(this.translate.instant('projects.import.envImportError'));
     reader.readAsText(file);

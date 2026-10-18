@@ -22,7 +22,7 @@ import { getTemplateCompose } from './templates.service';
 import { conflict, unprocessable } from '../utils/errors';
 import { randomBytes } from 'crypto';
 import * as databaseService from './database.service';
-import { LinkTargets, applicationDefaults, linkVariables, targetKindOf } from './resource-links';
+import { LinkTargets, LinkedVariable, applicationDefaults, linkVariables, targetKindOf } from './resource-links';
 import { IncomingFiles, saveSourceForApplication } from './application-source.service';
 
 /**
@@ -266,6 +266,26 @@ export async function quickDeploy(teamId: number, dto: QuickDeployDto): Promise<
     internalHostname: workspaceService.internalHostname(app.name, app.uuid),
     linkedVariables: linked.filter((l) => l.linkedTo).map((l) => ({ key: l.key, resource: l.linkedTo as string })),
   };
+}
+
+/**
+ * What deployment linking will do to these variables in this workspace,
+ * without deploying anything: the deploy form shows it before the user
+ * confirms. The same rules and resources as `quickDeploy` — a Redis created
+ * from the workspace page is found too, not only one the guide created.
+ */
+export async function previewLinks(
+  teamId: number,
+  workspaceUuid: string,
+  variables: { key: string; value: string }[],
+  environmentName = workspaceService.DEFAULT_ENVIRONMENT
+): Promise<LinkedVariable[]> {
+  const workspace = await workspaceService.getWorkspace(teamId, workspaceUuid);
+  if (!workspace) throw unprocessable('WORKSPACE_NOT_FOUND', 'That workspace does not exist.');
+  // Read-only: the environment is looked up, never created, and no server is assigned.
+  const environment = workspace.environments.find((e) => e.name === environmentName) ?? workspace.environments[0];
+  if (!environment) return variables;
+  return linkVariables(variables, await workspaceLinkTargets(teamId, environment.id));
 }
 
 /**

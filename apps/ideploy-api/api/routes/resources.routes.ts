@@ -172,6 +172,36 @@ router.post('/quick-deploy', authenticate, requireTeam, async (req: CustomReques
 
 /**
  * @swagger
+ * /api/v1/quick-deploy/link-preview:
+ *   post:
+ *     summary: What deployment linking will set for these variables in a workspace (nothing is deployed)
+ *     tags: [System]
+ *     responses: { 200: { description: OK } }
+ */
+router.post('/quick-deploy/link-preview', authenticate, requireTeam, async (req: CustomRequest, res: Response) => {
+  const { workspace_uuid, environment, variables } = req.body ?? {};
+  const valid =
+    typeof workspace_uuid === 'string' &&
+    Array.isArray(variables) &&
+    variables.length <= 500 &&
+    variables.every(
+      (v: unknown) =>
+        typeof (v as { key?: unknown })?.key === 'string' &&
+        typeof (v as { value?: unknown })?.value === 'string' &&
+        (v as { key: string }).key.length <= 200 &&
+        (v as { value: string }).value.length <= 10_000
+    );
+  if (!valid) return fail(res, 'workspace_uuid and variables [{ key, value }] are required', 422, 'VALIDATION');
+  try {
+    const list = (variables as { key: string; value: string }[]).map((v) => ({ key: v.key.trim(), value: v.value }));
+    ok(res, await quickDeploy.previewLinks(req.user!.currentTeamId!, workspace_uuid, list, typeof environment === 'string' ? environment : undefined));
+  } catch (err) {
+    fail(res, (err as Error).message || 'The links could not be previewed', 422, 'LINK_PREVIEW_FAILED');
+  }
+});
+
+/**
+ * @swagger
  * /api/v1/quick-deploy/fullstack:
  *   post:
  *     summary: Deploy a complete application (PostgreSQL + backend/ + frontend/) from its files, linked automatically

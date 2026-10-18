@@ -181,6 +181,11 @@ import { AppEnvTabComponent } from '../../applications/application-detail/app-en
                 } @else {
                   <p class="mt-1 text-sm" style="color:var(--color-text-secondary);">{{ step.description | translate }}</p>
                   @if (isActive(i) && workspace(); as ws) {
+                    @if (i > 0 && template()!.steps[i - 1].action !== 'create-service') {
+                      <button type="button" class="mt-3 text-xs font-semibold hover:underline" style="color:var(--color-primary-500);" (click)="toggleReview(i - 1)">
+                        <i class="pi pi-arrow-up mr-1 text-[10px]" aria-hidden="true"></i>{{ 'architectures.backToPrevious' | translate }}
+                      </button>
+                    }
                     <div class="glass-card mt-4 p-5">
                       @switch (step.action) {
                         @case ('create-database') {
