@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, inject, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, Injector, OnInit, afterNextRender, computed, inject, input, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
@@ -44,7 +44,8 @@ const SHOWN = 3;
               @for (p of shown(); track p.id; let i = $index) {
                 <li [class]="full() ? 'overflow-hidden rounded-xl border border-[var(--glass-border-subtle)]' : 'w-56 flex-none overflow-hidden rounded-lg border border-[var(--glass-border-subtle)]'">
                   <idem-document-preview
-                    [html]="p.html"
+                    [html]="painted() ? p.html : ''"
+                    [loading]="!painted()"
                     [section]="p"
                     [pageFormat]="page()"
                     [fonts]="charter()!.fonts || {}"
@@ -110,6 +111,12 @@ const SHOWN = 3;
 export class CharterResult implements OnInit {
   private readonly api = inject(ApiService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly injector = inject(Injector);
+  /**
+   * Les pages reçoivent leur HTML APRÈS la création de leurs aperçus : un aperçu créé avec son HTML déjà
+   * là restait vide (même défaut que la visionneuse et le dashboard) ; dans le fil, le HTML arrive après.
+   */
+  protected readonly painted = signal(false);
 
   readonly brandId = input.required<string>();
   /** Le projet IDEM de la marque (lien « Modifier » et « Ouvrir le projet »). */
@@ -200,7 +207,9 @@ export class CharterResult implements OnInit {
     this.api.charter(this.brandId(), true).subscribe({
       next: (c) => {
         this.pagesLoading.set(false);
+        this.painted.set(false);
         this.charter.set(c);
+        afterNextRender(() => this.painted.set(true), { injector: this.injector });
       },
       error: () => this.pagesLoading.set(false),
     });

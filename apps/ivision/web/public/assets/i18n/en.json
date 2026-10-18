@@ -443,7 +443,11 @@
       "downloadSigned": "Download (signed)",
       "downloadHd": "Download in HD",
       "exportHd": "HD export without the mark · {{price}} F",
-      "exportMissing": "Your wallet is {{missing}} F short."
+      "exportMissing": "Your wallet is {{missing}} F short.",
+      "fit": "Fit to screen",
+      "actualSize": "Actual size",
+      "imageFailed": "The image could not be loaded.",
+      "retry": "Try again"
     },
     "payment": {
       "cta": "Top up my wallet",

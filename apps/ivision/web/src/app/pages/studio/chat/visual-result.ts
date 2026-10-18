@@ -4,6 +4,7 @@ import { EditTarget, FontHints, IdemDocumentPreviewComponent } from '@idem/share
 import { VISUAL_PAGES } from '../visual-edit/visual-adapter';
 import { TranslateModule } from '@ngx-translate/core';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
+import { Illustration } from '../../../shared/components/illustration';
 import { ApiService } from '../../../core/api.service';
 import { StudioState } from '../../../core/studio.state';
 import { Visual } from '../../../core/models';
@@ -25,10 +26,10 @@ const SIZES: Record<string, [number, number]> = {
  */
 @Component({
   selector: 'iv-visual-result',
-  imports: [TranslateModule, IdemLoaderComponent, IdemDocumentPreviewComponent],
+  imports: [TranslateModule, IdemLoaderComponent, IdemDocumentPreviewComponent, Illustration],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: `
-    .lightbox {
+    .viewer {
       width: 100vw;
       height: 100dvh;
       max-width: none;
@@ -38,45 +39,76 @@ const SIZES: Record<string, [number, number]> = {
       border: 0;
       background: transparent;
       color: var(--color-text-primary);
-    }
-    .lightbox[open] {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 1rem;
-      animation: lightbox-in 180ms ease-out;
-    }
-    .lightbox::backdrop {
-      background: color-mix(in srgb, var(--color-bg-dark) 82%, transparent);
-      backdrop-filter: blur(10px);
-    }
-    .lightbox-doc {
-      max-width: 92vw;
-      border-radius: 0.75rem;
       overflow: hidden;
-      box-shadow: 0 24px 64px rgb(0 0 0 / 0.35);
     }
-    .lightbox-bar {
+    .viewer[open] {
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      animation: viewer-fade 200ms ease-out;
+    }
+    .viewer::backdrop {
+      background: color-mix(in srgb, var(--color-bg-darker) 90%, transparent);
+      backdrop-filter: blur(18px) saturate(1.1);
+    }
+    .viewer-bar {
       display: flex;
       align-items: center;
-      gap: 0.5rem;
-      padding: 0.4rem;
-      border-radius: 999px;
-      background: color-mix(in srgb, var(--color-bg-dark) 70%, transparent);
+      gap: 0.75rem;
+      margin: 0.75rem auto 0;
+      width: min(100% - 1.5rem, 64rem);
+      padding: 0.5rem 0.5rem 0.5rem 1rem;
+      border-radius: 1rem;
+      background: var(--color-surface-1);
       border: 1px solid var(--glass-border-subtle);
+      box-shadow: 0 12px 32px rgb(0 0 0 / 0.25);
     }
-    .lightbox-close {
-      position: absolute;
-      top: 1rem;
-      right: 1rem;
+    .viewer-stage {
+      min-height: 0;
+      display: grid;
+      place-items: center;
+      padding: 1rem 1.5rem 1.5rem;
+      overflow: hidden;
     }
-    @keyframes lightbox-in {
-      from { opacity: 0; transform: scale(0.97); }
+    .viewer-stage.zoomed {
+      place-items: start center;
+      overflow: auto;
+    }
+    /*
+     * L'image tient dans l'écran : bornée à la largeur de la scène et à la hauteur de la fenêtre moins la
+     * barre et les marges (un pourcentage de hauteur ne se résout pas dans la grille : l'image sortait à
+     * sa taille réelle, 1080 × 1920 pour une story).
+     */
+    .viewer-img {
+      width: auto;
+      height: auto;
+      max-width: min(100%, 64rem);
+      max-height: calc(100dvh - 7.5rem);
+      object-fit: contain;
+      border-radius: 0.75rem;
+      box-shadow: 0 30px 80px rgb(0 0 0 / 0.45);
+      cursor: zoom-in;
+      animation: viewer-in 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+    .zoomed .viewer-img {
+      max-width: none;
+      max-height: none;
+      cursor: zoom-out;
+    }
+    .viewer-wait {
+      height: min(calc(100dvh - 7.5rem), 40rem);
+      max-width: 100%;
+      border-radius: 0.75rem;
+    }
+    @keyframes viewer-fade {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes viewer-in {
+      from { opacity: 0; transform: scale(0.96); }
       to { opacity: 1; transform: none; }
     }
     @media (prefers-reduced-motion: reduce) {
-      .lightbox[open] { animation: none; }
+      .viewer[open], .viewer-img { animation: none; }
     }
   `,
   template: `
@@ -126,34 +158,61 @@ const SIZES: Record<string, [number, number]> = {
       }
     </figure>
 
-    <!-- La visionneuse : une fenêtre modale (Échap ou clic sur le fond pour fermer). -->
-    <dialog #lightbox class="lightbox" [attr.aria-label]="visual().prompt" (click)="onBackdrop($event)" (close)="opened.set(false)">
+    <!--
+      LA VISIONNEUSE : le fichier de l'image lui-même (pas l'aperçu éditable, qui ne se mesure pas dans une
+      fenêtre modale). Barre d'actions en haut, l'image au centre ; cliquer l'image passe en taille réelle,
+      cliquer à côté ou Échap ferme.
+    -->
+    <dialog #lightbox class="viewer" [attr.aria-label]="visual().prompt" (click)="onBackdrop($event)" (close)="opened.set(false)">
       @if (opened()) {
-        <button type="button" class="lightbox-close inner-button button-sm" (click)="close()" [attr.aria-label]="'chat.result.close' | translate">
-          <i class="pi pi-times" aria-hidden="true"></i>
-        </button>
-        <div class="lightbox-doc" [style.width]="lightboxWidth()">
-          <idem-document-preview
-            [html]="html()"
-            [section]="section()"
-            [pageFormat]="page()"
-            [fonts]="fonts()"
-            [maxHeight]="lightboxHeight()"
-            [loading]="loading()"
-            [failed]="loadFailed()"
-            (editRequested)="edit($event)"
-          />
-        </div>
-        <div class="lightbox-bar">
-          <span class="px-3 text-xs text-[var(--color-text-secondary)]">{{ 'formats.' + visual().format | translate }} · {{ size()[0] }} × {{ size()[1] }}</span>
-          <button type="button" class="outer-button button-sm" (click)="download()" [disabled]="downloading()">
+        <header class="viewer-bar">
+          <div class="min-w-0 flex-1">
+            <p class="truncate text-sm font-medium">{{ visual().prompt }}</p>
+            <p class="text-xs text-[var(--color-text-tertiary)]">{{ 'formats.' + visual().format | translate }} · {{ size()[0] }} × {{ size()[1] }} px</p>
+          </div>
+          <button type="button" class="button-ghost button-sm" [disabled]="!imgLoaded()" [attr.aria-pressed]="zoomed()" (click)="toggleZoom()">
+            <i [class]="zoomed() ? 'pi pi-search-minus' : 'pi pi-search-plus'" aria-hidden="true"></i>
+            <span class="hidden sm:inline">{{ (zoomed() ? 'chat.result.fit' : 'chat.result.actualSize') | translate }}</span>
+          </button>
+          <button type="button" class="outer-button button-sm" (click)="editWhole()">
+            <i class="pi pi-pencil" aria-hidden="true"></i>
+            <span class="hidden sm:inline">{{ 'chat.result.edit' | translate }}</span>
+          </button>
+          <button type="button" class="inner-button button-sm" (click)="download()" [disabled]="downloading()">
             @if (downloading()) {
               <idem-loader size="xs" />
             } @else {
               <i class="pi pi-download" aria-hidden="true"></i>
             }
-            {{ 'chat.result.download' | translate }}
+            <span class="hidden sm:inline">{{ 'chat.result.download' | translate }}</span>
           </button>
+          <button type="button" class="button-icon !p-2" (click)="close()" [attr.aria-label]="'chat.result.close' | translate" autofocus>
+            <i class="pi pi-times" aria-hidden="true"></i>
+          </button>
+        </header>
+        <div class="viewer-stage custom-scrollbar" [class.zoomed]="zoomed()" (click)="onStage($event)">
+          @if (imgFailed()) {
+            <div class="flex flex-col items-center gap-3 rounded-2xl bg-[var(--color-surface-1)] p-6 text-center" role="alert">
+              <iv-illustration class="h-16 w-16 text-[var(--color-text-secondary)]" kind="cracked" />
+              <p class="text-sm">{{ 'chat.result.imageFailed' | translate }}</p>
+              <button type="button" class="outer-button button-sm" (click)="retryImage()">{{ 'chat.result.retry' | translate }}</button>
+            </div>
+          } @else {
+            @if (!imgLoaded()) {
+              <div class="viewer-wait skeleton" [style.aspect-ratio]="size()[0] + ' / ' + size()[1]" role="status" [attr.aria-label]="'common.loading' | translate"></div>
+            }
+            <img
+              class="viewer-img"
+              [class.hidden]="!imgLoaded()"
+              [src]="imageSrc()"
+              [alt]="visual().prompt"
+              [attr.width]="size()[0]"
+              [attr.height]="size()[1]"
+              (load)="imgLoaded.set(true)"
+              (error)="imgFailed.set(true)"
+              (click)="toggleZoom(); $event.stopPropagation()"
+            />
+          }
         </div>
       }
     </dialog>
@@ -172,11 +231,15 @@ export class VisualResult implements OnInit {
   protected readonly loadFailed = signal(false);
   protected readonly page = computed(() => VISUAL_PAGES[this.visual().format] ?? VISUAL_PAGES['square']);
   protected readonly section = computed(() => ({ id: this.visual().id, name: this.visual().prompt.slice(0, 60), type: `flyer-${this.visual().format}` }));
-  /** Visionneuse : le document tient dans la fenêtre (barre et marges comprises). */
-  protected readonly lightboxHeight = signal(720);
-  protected readonly lightboxWidth = computed(() => {
-    const [w, h] = this.size();
-    return `min(92vw, ${Math.round((this.lightboxHeight() * w) / h)}px)`;
+  /** Visionneuse : l'image (fichier rendu), son chargement et la taille réelle. */
+  protected readonly imgLoaded = signal(false);
+  protected readonly imgFailed = signal(false);
+  protected readonly zoomed = signal(false);
+  private readonly retries = signal(0);
+  protected readonly imageSrc = computed(() => {
+    const url = this.visual().imageUrl;
+    const n = this.retries();
+    return n ? `${url}${url.includes('?') ? '&' : '?'}r=${n}` : url;
   });
   private readonly lightbox = viewChild.required<ElementRef<HTMLDialogElement>>('lightbox');
   protected readonly opened = signal(false);
@@ -213,9 +276,32 @@ export class VisualResult implements OnInit {
   }
 
   protected open(): void {
-    this.lightboxHeight.set(Math.max(320, window.innerHeight - 160));
+    this.zoomed.set(false);
+    this.imgFailed.set(false);
     this.opened.set(true);
     this.lightbox().nativeElement.showModal();
+  }
+
+  protected toggleZoom(): void {
+    if (this.imgLoaded()) this.zoomed.update((z) => !z);
+  }
+
+  protected retryImage(): void {
+    this.imgLoaded.set(false);
+    this.imgFailed.set(false);
+    this.retries.update((n) => n + 1);
+  }
+
+  /** « Modifier » depuis la visionneuse : l'éditeur partagé, sur le visuel entier. */
+  protected editWhole(): void {
+    this.close();
+    const v = this.visual();
+    void this.router.navigate(['/studio/visual', v.brandId, v.id]);
+  }
+
+  /** Un clic à côté de l'image (sur la scène) ferme, sauf en taille réelle où l'on fait défiler. */
+  protected onStage(event: MouseEvent): void {
+    if (event.target === event.currentTarget && !this.zoomed()) this.close();
   }
 
   /** « Modifier » sur un élément : l'éditeur partagé s'ouvre sur lui. */

@@ -1281,7 +1281,32 @@ export class MotionVideoService {
   }
 
   async listVideos(userId: string, projectId: string): Promise<MotionVideo[]> {
-    return (await this.store.listVideos(userId, projectId)).map(withLiveProgress);
+    const videos = await this.store.listVideos(userId, projectId);
+    // Toute vidéo a une miniature dans la liste : celles dont les scènes n'ont jamais été photographiées
+    // (contrôle qui n'a pas pu tourner) le sont en tâche de fond ; la liste suivante les montre.
+    for (const v of videos) if (needsThumbnails(v)) void this.ensureThumbnails(userId, projectId, v.id);
+    return videos.map(withLiveProgress);
+  }
+
+  /** Photographie les scènes d'une vidéo qui n'en a aucune vignette (une seule fois à la fois par vidéo). */
+  async ensureThumbnails(userId: string, projectId: string, videoId: string): Promise<void> {
+    if (thumbnailJobs.has(videoId) || isJobActive(videoId)) return;
+    thumbnailJobs.add(videoId);
+    try {
+      const video = (await this.store.listVideos(userId, projectId)).find((v) => v.id === videoId);
+      if (!video || !needsThumbnails(video)) return;
+      const ctx = await this.brandContext(userId, projectId);
+      const film = await this.checkFilm(userId, projectId, video, ctx.film);
+      const shots = new Map(film.scenes.filter((sc) => sc.thumbnail).map((sc) => [sc.key, sc.thumbnail!]));
+      if (!shots.size) return;
+      // Seules les vignettes sont reprises : le reste du film (retouché entre-temps peut-être) n'est pas touché.
+      await this.store.mutateVideo(userId, projectId, videoId, (v) => (v.film ? { ...v, film: { ...v.film, scenes: v.film.scenes.map((sc) => (shots.has(sc.key) && !sc.thumbnail ? { ...sc, thumbnail: shots.get(sc.key) } : sc)) } } : v));
+      logger.info('video.thumbnails_backfilled', { videoId, scenes: shots.size });
+    } catch (error: any) {
+      logger.warn('video.thumbnails_failed', { videoId, error: error?.message });
+    } finally {
+      thumbnailJobs.delete(videoId);
+    }
   }
 
   async deleteVideo(userId: string, projectId: string, videoId: string): Promise<boolean> {
@@ -1495,6 +1520,16 @@ function readableInk(bg: number[]): string {
 /** Une scène écrite dans le langage de mouvement (son programme est en tête du code compilé). */
 function isProgramScene(code?: string): boolean {
   return !!code && code.includes(PROGRAM_MARK);
+}
+
+/** Les vidéos dont les vignettes sont en cours de prise (une à la fois par vidéo). */
+const thumbnailJobs = new Set<string>();
+
+/** Une vidéo du moteur actuel sans aucune image pour la liste (ni rendu, ni vignette de scène). */
+function needsThumbnails(video: MotionVideo): boolean {
+  if (!video.film?.scenes.length) return false;
+  if (video.renders.some((r) => r.status === 'done' && r.posterUrl)) return false;
+  return !video.film.scenes.some((sc) => sc.thumbnail);
 }
 
 function referenceTimeline(bp: ReferenceBlueprint, total: number): { start: number; duration: number }[] | undefined {

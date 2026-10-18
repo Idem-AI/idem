@@ -441,7 +441,11 @@
       "downloadSigned": "Télécharger (signé)",
       "downloadHd": "Télécharger en HD",
       "exportHd": "Export HD sans signature · {{price}} F",
-      "exportMissing": "Il manque {{missing}} F dans votre portefeuille."
+      "exportMissing": "Il manque {{missing}} F dans votre portefeuille.",
+      "fit": "Ajuster à l’écran",
+      "actualSize": "Taille réelle",
+      "imageFailed": "L’image n’a pas pu être chargée.",
+      "retry": "Réessayer"
     },
     "payment": {
       "cta": "Recharger mon portefeuille",
