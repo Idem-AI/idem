@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Modal } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { Check, ChevronDown, Copy, ExternalLink, RotateCcw, Wand2, X } from 'lucide-react';
@@ -20,6 +20,7 @@ import {
 } from '@/utils/ideployPublish';
 import { IdemLoader } from '@idem/shared-loader/react';
 import { DomainPurchase, idomainText, useDomainConnections } from '@idem/shared-idomain/react';
+import { domainLabel } from '@/utils/appName';
 
 interface DeployModalProps {
   open: boolean;
@@ -64,6 +65,12 @@ export function DeployModal({ open, onClose, deployment, defaultName, onPublishe
   const [showDetails, setShowDetails] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [name, setName] = useState(defaultName);
+  // Le nom proposé arrive souvent après l'ouverture (nom du projet IDEM chargé à part) : il remplace
+  // la valeur de départ tant que l'utilisateur n'a pas écrit le sien.
+  const nameEdited = useRef(false);
+  useEffect(() => {
+    if (!nameEdited.current) setName(defaultName);
+  }, [defaultName]);
   const [copied, setCopied] = useState(false);
 
   const existing = deployment?.provider === 'ideploy' ? deployment.ideploy ?? null : null;
@@ -332,7 +339,7 @@ export function DeployModal({ open, onClose, deployment, defaultName, onPublishe
                   <input
                     type="text"
                     value={name}
-                    onChange={(e) => setName(e.target.value)}
+                    onChange={(e) => { nameEdited.current = true; setName(e.target.value); }}
                     disabled={Boolean(existing)}
                     className="h-8 rounded-md border border-[var(--glass-border)] bg-surface-2 px-2 text-sm text-text-primary disabled:opacity-60"
                   />
@@ -373,7 +380,7 @@ export function DeployModal({ open, onClose, deployment, defaultName, onPublishe
           appName={name || defaultName}
           lang={lang}
           topupUrl={WALLET_URL}
-          initial={(name || defaultName).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40)}
+          initial={domainLabel(defaultName !== 'mon-app' ? defaultName : deployment?.siteName || name || defaultName)}
           onClose={() => {
             setBuyingDomain(false);
             setDomainsVersion((v) => v + 1);

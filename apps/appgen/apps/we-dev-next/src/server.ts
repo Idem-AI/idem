@@ -20,6 +20,7 @@ import modelRouter from './routes/model.js';
 import handoffRouter from './routes/handoff.js';
 import qualityRouter from './routes/quality.js';
 import scaffoldRouter from './routes/scaffold.js';
+import depsRouter from './routes/deps.js';
 import designRouter from './routes/design.js';
 import assetsRouter from './routes/assets.js';
 import mcpRouter from './mcp/server.js';
@@ -99,6 +100,10 @@ app.use('/api/quality', qualityRouter);
 app.use('/api/design', designRouter);
 // Starter préconfiguré monté dans l'espace de travail avant la génération :
 // du calcul pur, donc ouvert comme la forge de jetons et le linter.
+// Les `node_modules` du socle, préinstallés et servis tels quels : c'est ce qui
+// remplace les trois minutes de `npm install` à l'ouverture d'un atelier. Monté
+// AVANT le socle pour que `/api/scaffold/deps/...` ne tombe pas sur lui.
+app.use('/api/scaffold/deps', depsRouter);
 app.use('/api/scaffold', scaffoldRouter);
 
 // Local-development helper: reads an http:// bucket asset back as a data URI so

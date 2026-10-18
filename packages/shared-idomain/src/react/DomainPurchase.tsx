@@ -1,4 +1,4 @@
-import { FormEvent, ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import { FormEvent, ReactNode, useEffect, useRef, useState } from 'react';
 import { IdemLoader } from '@idem/shared-loader/react';
 import { Connection, Contact, Quote, createIdomainClient } from '../client';
 import { DomainPurchaseFlow, PURCHASE_STAGES, PurchaseState, formatXaf, stageIndex } from '../flow';
@@ -29,8 +29,12 @@ const SETUP_STEPS = ['paid', 'registered', 'connected', 'live'];
  * principale toujours visible en pied.
  */
 export function DomainPurchase({ apiUrl, appUuid = null, appName = null, lang = 'fr', topupUrl, initial = '', onClose, onFinished }: DomainPurchaseProps) {
-  const flow = useMemo(() => new DomainPurchaseFlow(createIdomainClient(apiUrl, () => lang), { appUuid }), [apiUrl, appUuid, lang]);
-  const [s, setState] = useState<PurchaseState>(flow.state);
+  // Le parcours vit tant que la fenêtre est montée. En développement, React (mode strict) monte,
+  // démonte puis remonte : le parcours arrêté au démontage est remplacé par un neuf au remontage
+  // (sinon il ignorerait toutes les réponses, et la fenêtre chargerait sans fin).
+  const make = () => new DomainPurchaseFlow(createIdomainClient(apiUrl, () => lang), { appUuid });
+  const [flow, setFlow] = useState<DomainPurchaseFlow>(make);
+  const [s, setState] = useState<PurchaseState>(() => flow.state);
   const [query, setQuery] = useState(initial);
   const [draft, setDraft] = useState<Partial<Contact>>({});
   const [submitted, setSubmitted] = useState(false);
@@ -39,6 +43,10 @@ export function DomainPurchase({ apiUrl, appUuid = null, appName = null, lang = 
   const t = (key: string, params: Record<string, string | number> = {}) => idomainText(lang, key, params);
 
   useEffect(() => {
+    if (flow.isDisposed) {
+      setFlow(make());
+      return;
+    }
     const unsubscribe = flow.subscribe((next) => {
       setState(next);
       if (next.progress === 'live' && !reported.current) {
@@ -46,6 +54,7 @@ export function DomainPurchase({ apiUrl, appUuid = null, appName = null, lang = 
         onFinished?.(next.connection);
       }
     });
+    // Le nom de l'application, cherché d'office : ses extensions libres s'affichent tout de suite.
     if (initial) void flow.search(initial);
     queryRef.current?.focus();
     return () => {
@@ -114,7 +123,7 @@ export function DomainPurchase({ apiUrl, appUuid = null, appName = null, lang = 
       <>
         <form role="search" className="flex items-center gap-1 rounded-xl border border-[var(--glass-border)] bg-[var(--color-surface-2)] p-1 focus-within:border-[var(--color-primary-500)]" onSubmit={(e) => { e.preventDefault(); void flow.search(query); }}>
           <label className="sr-only" htmlFor="idm-query">{t('search.label')}</label>
-          <input ref={queryRef} id="idm-query" type="text" className="!m-0 min-w-0 flex-1 !border-0 !bg-transparent !px-3 !py-2 !shadow-none !outline-none" autoComplete="off" autoCapitalize="none" spellCheck={false} maxLength={253} placeholder={t('search.placeholder')} value={query} onChange={(e) => setQuery(e.target.value)} />
+          <input ref={queryRef} id="idm-query" type="text" className="!m-0 min-w-0 flex-1 !border-0 !bg-transparent !px-3 !py-2 !shadow-none !outline-none" autoComplete="off" autoCapitalize="none" spellCheck={false} maxLength={253} placeholder={t('search.placeholder')} value={query} onChange={(e) => { setQuery(e.target.value); flow.type(e.target.value); }} />
           <button type="submit" className="inner-button button-sm inline-flex shrink-0 items-center gap-2" disabled={s.searching || s.locking || !query.trim()}>
             {s.searching && <IdemLoader size="xs" />}
             {t('search.submit')}

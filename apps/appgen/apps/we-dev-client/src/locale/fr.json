@@ -263,6 +263,8 @@
     },
     "waiting": {
       "title": "Démarrage en cours…",
+      "download": "Préparation de l'environnement ({{percent}} %). Une seule fois : ensuite votre projet s'ouvre tout de suite.",
+      "mount": "Mise en place de l'environnement.",
       "install": "Installation des dépendances. La première fois, cela prend une à deux minutes.",
       "start": "Démarrage de l'application.",
       "fullstack": "Démarrage de la base de données, du serveur puis de l'interface. Tout se relie tout seul."

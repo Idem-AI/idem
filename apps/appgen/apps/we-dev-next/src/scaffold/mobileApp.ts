@@ -10,6 +10,7 @@
 
 import { DesignSystem } from '../design/tokenForge.js';
 import { ProjectModel } from '../types/project.js';
+import { awaitingBody } from './awaiting.js';
 import {
   CN_UTILS,
   JSCONFIG,
@@ -191,24 +192,23 @@ export const TABS = [
 ];
 `;
 
-const APP_PLACEHOLDER = `/* idem:placeholder — remplacé par la première génération */
-import { HashRouter, Route, Routes } from 'react-router-dom';
-import AppShell from './components/layout/AppShell.jsx';
-
-function Home() {
-  return <p className="p-block text-ink-muted">Espace de travail prêt.</p>;
-}
-
+/**
+ * La page d'attente, affichée dans le téléphone pendant que le modèle écrit.
+ *
+ * L'aperçu démarre avant la fin de la génération (voir `warmStart.ts` côté
+ * atelier) : c'est donc le premier écran de l'application, et il montre la
+ * forme de ce qui arrive plutôt que de dire que ça tourne. Le premier fichier
+ * du modèle le remplace par rechargement à chaud.
+ *
+ * Hors routeur et hors coquille : la barre d'onglets du socle renvoie vers des
+ * écrans qui n'existent pas encore, et un onglet qui mène à une erreur est pire
+ * qu'un onglet absent.
+ */
+const appPlaceholder = (projectData: ProjectModel | undefined, language: string): string =>
+  `/* idem:placeholder — remplacé par la première génération */
 export default function App() {
   return (
-    <HashRouter>
-      <Routes>
-        <Route element={<AppShell />}>
-          <Route index element={<Home />} />
-          <Route path="profile" element={<Home />} />
-        </Route>
-      </Routes>
-    </HashRouter>
+${awaitingBody({ target: 'mobile-app', projectData, language })}
   );
 }
 `;
@@ -348,7 +348,7 @@ export function buildMobileScaffold(
     files: {
       ...locked,
       'src/tabs.js': TABS_PLACEHOLDER,
-      'src/App.jsx': APP_PLACEHOLDER,
+      'src/App.jsx': appPlaceholder(projectData, language),
     },
     locked: Object.keys(locked),
   };

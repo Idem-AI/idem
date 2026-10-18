@@ -10,6 +10,8 @@
         "start": "node dist/main.js",
         "site:runtime": "npm ci --prefix site-runtime --no-audit --no-fund",
         "check:site-render": "tsx scripts/check-site-render.ts",
+        "deps:plan": "tsx scripts/deps-plan.ts",
+        "check:deps": "tsx scripts/check-deps-route.ts",
         "lint": "eslint src --ext .ts"
     },
     "dependencies": {

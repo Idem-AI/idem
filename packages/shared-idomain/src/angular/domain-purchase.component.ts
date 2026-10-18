@@ -45,7 +45,7 @@ import { CONTACT_FIELDS, FACADE_PATHS, idomainText } from '../texts';
           @case ('search') {
             <form role="search" class="flex items-center gap-1 rounded-xl border border-[var(--glass-border)] bg-[var(--color-surface-2)] p-1 focus-within:border-[var(--color-primary-500)]" (submit)="$event.preventDefault(); search(query.value)">
               <label class="sr-only" for="idm-query">{{ t('search.label') }}</label>
-              <input #query id="idm-query" type="text" class="!m-0 min-w-0 flex-1 !border-0 !bg-transparent !px-3 !py-2 !shadow-none !outline-none" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="253" [placeholder]="t('search.placeholder')" [value]="initial()" />
+              <input #query id="idm-query" type="text" class="!m-0 min-w-0 flex-1 !border-0 !bg-transparent !px-3 !py-2 !shadow-none !outline-none" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="253" [placeholder]="t('search.placeholder')" [value]="initial()" (input)="flow.type($any($event.target).value)" />
               <button type="submit" class="inner-button button-sm inline-flex shrink-0 items-center gap-2" [disabled]="s.searching || s.locking">
                 @if (s.searching) { <idem-loader size="xs" /> }
                 {{ t('search.submit') }}

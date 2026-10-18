@@ -22,6 +22,11 @@ volumes:
   dev_node_modules_landing:
   dev_node_modules_appgen:
   dev_node_modules_appgen_client:
+  # Les `node_modules` préinstallés servis aux ateliers iCode. Un volume, et non
+  # un dossier de l'image : ils sont fabriqués par le four (page `?deps-bake=1`)
+  # et doivent survivre à un redéploiement, sinon chaque atelier repart sur
+  # trois minutes de `npm install`. Voir docs/ICODE_STARTUP.md.
+  dev_appgen_deps_cache:
   dev_node_modules_chart:
 
 services:
@@ -540,11 +545,16 @@ services:
       INFISICAL_PROJECT_ID: '${INFISICAL_PROJECT_ID_APPGEN:-}'
       INFISICAL_CLIENT_ID: '${INFISICAL_CLIENT_ID_APPGEN:-}'
       INFISICAL_CLIENT_SECRET: '${INFISICAL_CLIENT_SECRET_APPGEN:-}'
+      # Démarrage rapide des ateliers iCode : où sont gardés les `node_modules`
+      # préinstallés, et le jeton qui autorise le four à en déposer.
+      APPGEN_DEPS_CACHE_DIR: '/app/apps/appgen/deps-cache'
+      APPGEN_DEPS_BAKE_TOKEN: '${APPGEN_DEPS_BAKE_TOKEN:-}'
     volumes:
       - ./apps/appgen:/app/apps/appgen:cached
       - ./packages:/app/packages:cached
       - dev_node_modules_appgen:/app/apps/appgen/node_modules
       - dev_node_modules_appgen_client:/app/apps/appgen/apps/we-dev-client/node_modules
+      - dev_appgen_deps_cache:/app/apps/appgen/deps-cache
     networks:
       - idem-dev
     depends_on:

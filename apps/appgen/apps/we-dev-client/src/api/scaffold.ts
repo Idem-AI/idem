@@ -16,6 +16,16 @@ export interface Scaffold {
   files: Record<string, string>;
   locked: string[];
   commands: { install: string; start: string };
+  /**
+   * Les arbres `node_modules` de la cible et leur empreinte. L'atelier demande
+   * le plan complet plus tôt (il ne dépend que de la cible, pas du projet) ;
+   * ceci sert à vérifier qu'il a bien préchargé la bonne cible, ce qu'un lien
+   * sans paramètre `product` ne permet pas de savoir à l'avance.
+   */
+  deps?: {
+    fingerprint: string;
+    trees: Array<{ id: string; dir: string; mountPoint: string; fingerprint: string }>;
+  };
 }
 
 const apiBase = () => process.env.REACT_APP_BASE_URL || '';

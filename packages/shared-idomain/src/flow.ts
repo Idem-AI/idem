@@ -55,6 +55,9 @@ const POLL_MS = 4000;
 export class DomainPurchaseFlow {
   private listeners = new Set<(s: PurchaseState) => void>();
   private timer: ReturnType<typeof setTimeout> | null = null;
+  private typing: ReturnType<typeof setTimeout> | null = null;
+  /** Numéro de la dernière recherche : une réponse plus ancienne, arrivée après, est ignorée. */
+  private searchSeq = 0;
   private disposed = false;
   /** Une clé par achat : un double clic, une coupure réseau rejoués ne créent qu'une commande. */
   private idempotencyKey = newKey();
@@ -106,9 +109,15 @@ export class DomainPurchaseFlow {
     return () => this.listeners.delete(listener);
   }
 
+  /** Arrêté : React (mode strict) démonte puis remonte ; un parcours arrêté est remplacé, jamais réutilisé. */
+  get isDisposed(): boolean {
+    return this.disposed;
+  }
+
   dispose(): void {
     this.disposed = true;
     if (this.timer) clearTimeout(this.timer);
+    if (this.typing) clearTimeout(this.typing);
     this.listeners.clear();
   }
 
@@ -126,14 +135,28 @@ export class DomainPurchaseFlow {
   // ─── Étapes ───────────────────────────────────────────────────────────────
 
   async search(query: string): Promise<void> {
+    if (this.typing) clearTimeout(this.typing);
     const q = query.trim();
     if (!q) return;
+    const seq = ++this.searchSeq;
     this.set({ searching: true, error: null });
     try {
-      this.set({ result: await this.client.search(q), searching: false });
+      const result = await this.client.search(q);
+      if (seq === this.searchSeq) this.set({ result, searching: false });
     } catch (error) {
-      this.fail(error, 'errors.search', { searching: false });
+      if (seq === this.searchSeq) this.fail(error, 'errors.search', { searching: false });
     }
+  }
+
+  /**
+   * Pendant la frappe : les noms possibles (le nom tapé, puis les autres extensions et des
+   * variantes) arrivent après une courte pause, sans que l'utilisateur ait à valider.
+   */
+  type(query: string): void {
+    if (this.typing) clearTimeout(this.typing);
+    const label = query.trim().replace(/^[a-z]+:\/\//i, '').replace(/^www\./i, '').split('.')[0];
+    if (label.length < 2) return;
+    this.typing = setTimeout(() => void this.search(query), 450);
   }
 
   /** Un nom choisi : son prix est figé pour la durée de la commande. */

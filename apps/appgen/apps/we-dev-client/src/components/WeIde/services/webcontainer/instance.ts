@@ -1,5 +1,6 @@
 import { WebContainer } from '@webcontainer/api';
 import { useFileStore } from '../../stores/fileStore';
+import useWarmStart from '@/stores/warmStartSlice';
 
 let webcontainerInstance: WebContainer | null = null;
 let bootPromise: Promise<WebContainer> | null = null;
@@ -108,6 +109,10 @@ export async function getWebContainerInstance(): Promise<WebContainer | null> {
       webcontainerInstance.on('server-ready', (port, url) => {
         lastServerReady = { port, url };
         openServers.set(port, url);
+        // Un serveur qui répond est la seule preuve que l'atelier a démarré :
+        // l'écran d'ouverture s'efface là-dessus, et pas sur la fin d'une
+        // commande (un `npm run dev` lancé n'est pas un aperçu).
+        useWarmStart.getState().markReady();
         serverReadyListeners.forEach((cb) => cb(port, url));
         notifyServers();
       });

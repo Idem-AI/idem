@@ -263,6 +263,8 @@
     },
     "waiting": {
       "title": "Starting…",
+      "download": "Preparing the environment ({{percent}}%). Once only: after this your project opens right away.",
+      "mount": "Setting up the environment.",
       "install": "Installing dependencies. The first time, this takes one to two minutes.",
       "start": "Starting the application.",
       "fullstack": "Starting the database, the server, then the interface. Everything connects on its own."

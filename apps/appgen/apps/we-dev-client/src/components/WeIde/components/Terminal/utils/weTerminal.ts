@@ -239,6 +239,18 @@ class Terminal {
     console.warn('nodeWaitCommand n\'est plus disponible en mode web');
   }
 
+  /**
+   * Écrit une sortie venue d'ailleurs.
+   *
+   * Les commandes de démarrage ne passent plus par le terminal (il n'existe pas
+   * encore quand elles partent) : elles sont lancées sur le conteneur et leur
+   * sortie est recopiée ici, pour qu'on retrouve le journal complet en ouvrant
+   * le terminal. Voir `services/webcontainer/runner.ts`.
+   */
+  public write(data: string): void {
+    this.terminal?.write(data);
+  }
+
   // Execute command
   public async executeCommand(command: string): Promise<CommandResult> {
     return this.executeCommandInWeb(command);

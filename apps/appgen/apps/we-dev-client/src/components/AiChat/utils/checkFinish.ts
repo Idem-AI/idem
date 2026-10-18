@@ -5,6 +5,8 @@ import { ensureProjectIsRunnable } from "./ensureRunnable";
 import { stabilizeWorkspace } from "./stabilize";
 import { ensurePreviewRunning } from "./ensurePreview";
 import { internalMessage } from "@/utils/stepLabels";
+import { getLastServerUrl } from "@/components/WeIde/services";
+import { warmStartLaunched } from "./warmStart";
 
 
 /**
@@ -82,11 +84,32 @@ export const checkExecList = (messages: Message[]) => {
       console.warn("[checkExecList] stabilisation impossible :", error);
     }
 
-    if (!list.some(isInstall)) {
+    // Le démarrage à chaud a déjà posé les dépendances et lancé le serveur
+    // pendant la génération : les deux commandes de rattrapage n'ont plus de
+    // raison d'être, et elles coûtaient cher. Le `npm install` retombait sur le
+    // cache npm, mais le `npm run dev` relançait un serveur déjà ouvert — donc
+    // l'aperçu disparaissait quelques secondes juste au moment où la
+    // génération se terminait, exactement là où l'utilisateur regarde.
+    //
+    // Elles restent le filet des chemins dégradés : démarrage à chaud impossible
+    // (instantané inutilisable, conteneur refusé) ou serveur jamais apparu.
+    const warm = warmStartLaunched() && Boolean(getLastServerUrl());
+
+    // Une installation demandée par le modèle ou par la stabilisation — un
+    // paquet que le produit utilise et que le socle n'a pas — part dans tous
+    // les cas : elle est ciblée et rapide.
+    if (!list.some(isInstall) && !warm) {
       list.push(INSTALL_COMMAND);
     }
 
-    if (!list.some(isStart)) {
+    if (!list.some(isStart) && !warm) {
+      list.push(START_COMMAND);
+    }
+
+    // Un paquet installé après coup oblige Vite à reconstruire son cache de
+    // dépendances : sans redémarrage, la page reste sur « Failed to resolve
+    // import ». C'est le seul cas où on relance un serveur qui tourne déjà.
+    if (warm && list.some(isInstall) && !list.some(isStart)) {
       list.push(START_COMMAND);
     }
 
