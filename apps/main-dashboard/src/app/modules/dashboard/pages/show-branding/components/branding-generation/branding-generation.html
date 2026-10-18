@@ -10,12 +10,14 @@
       </p>
     </div>
 
-    <!-- Choisir un format lance la génération : le cran de créativité se règle juste au-dessus. -->
-    <div class="flex justify-center mb-6">
-      <app-creativity-picker [(value)]="creativity" [baseCost]="creativityBaseCost()" [showCost]="true" />
-    </div>
-
-    <app-pdf-format-selector (formatSelected)="onFormatSelected($event)"></app-pdf-format-selector>
+    <!-- Confirmer le format lance la génération : la bulle du niveau de créativité s'ouvre sur ce bouton. -->
+    <app-pdf-format-selector
+      appCreativityGate
+      creativityTarget=".inner-button"
+      [(creativity)]="creativity"
+      [creativityCost]="creativityBaseCost()"
+      (formatSelected)="onFormatSelected($event)"
+    ></app-pdf-format-selector>
   </div>
 } @else if (isGenerating() || isPostProcessing()) {
   <div class="max-w-7xl mx-auto py-4 space-y-5">

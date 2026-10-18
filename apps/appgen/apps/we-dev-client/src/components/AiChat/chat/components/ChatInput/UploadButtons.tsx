@@ -162,73 +162,7 @@ export const UploadButtons: React.FC<UploadButtonsProps> = ({
         </Tooltip>
       </div>
 
-      <div className="relative ml-2" ref={dropdownRef}>
-        <button
-          type="button"
-          onClick={() => setIsOpen(!isOpen)}
-          className={classNames(
-            "flex items-center justify-between w-[150px] px-2 py-1 text-[11px] text-text-secondary bg-transparent dark:bg-surface-2 rounded-md transition-colors duration-200",
-            isOpen
-              ? "bg-gray-100 dark:bg-surface-2"
-              : "hover:bg-gray-100 dark:hover:bg-surface-2"
-          )}
-        >
-          <span>{baseModal.label}</span>
-          <ChevronDown
-            className={classNames(
-              "w-3 h-3 text-text-tertiary transition-transform duration-200",
-              isOpen ? "-rotate-180" : "rotate-0"
-            )}
-          />
-        </button>
-
-        {isOpen && (
-          <div className="absolute bottom-full left-0 mb-1 w-[160px] bg-surface-1 border border-[var(--glass-border)]/30 rounded-lg shadow-lg overflow-hidden z-50">
-            <div className="flex flex-col w-full">
-              {modelOptions.map((model) => (
-                <button
-                  key={model.value}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    handleModelSelect(model as IModelOption);
-                    clearImages();
-                  }}
-                  className={classNames(
-                    "w-full px-3 py-1.5 flex justify-between text-left text-[11px] transition-colors duration-200",
-                    "hover:bg-gray-100 dark:hover:bg-surface-2",
-                    baseModal.value === model.value
-                      ? "text-blue-600 dark:text-blue-400"
-                      : "text-text-secondary"
-                  )}
-                >
-                  <div className="flex items-center gap-2">
-                    {model.provider &&
-                      aiProvierIcon[model.provider] &&
-                      React.createElement(aiProvierIcon[model.provider])}
-                    {model.label}
-                  </div>
-                  {/* TODO 最好之后可以是 tooltip ，不想用 antd，这里不想动了 */}
-                  <div className="flex">
-                    {model.quota}
-                    {/* {Array.from(
-                      { length: Math.floor(model.quota) },
-                      (_, index) => (
-                        <div key={index} className="flex">
-                          <span className="icon-[line-md--star-filled] text-primary"></span>
-                        </div>
-                      )
-                    )}
-                    {model.quota % 1 !== 0 && (
-                      <span className="icon-[line-md--star-filled-half] text-primary"></span>
-                    )} */}
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
+      {/* Plus de choix de modèle : le niveau de créativité se choisit sur le bouton d'envoi (SendButton). */}
     </div>
   );
 };

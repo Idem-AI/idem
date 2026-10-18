@@ -30,7 +30,7 @@ import { buildTimeline, GenerationPhase, phaseOfPage } from './generation-chapte
 import { GenerationStageIllustrationComponent } from './generation-stage-illustration';
 import { LivePagePreviewComponent } from './live-page-preview';
 import { CreativityLevel, DEFAULT_CREATIVITY } from '@idem/shared-models';
-import { CreativityPickerComponent } from '../../../../../../shared/components/creativity-picker/creativity-picker';
+import { CreativityGateDirective } from '../../../../../../shared/components/creativity-picker/creativity-gate';
 import { CreativityService } from '../../../../../../shared/services/creativity.service';
 
 @Component({
@@ -41,7 +41,7 @@ import { CreativityService } from '../../../../../../shared/services/creativity.
     IdemLoaderComponent,
     GenerationStageIllustrationComponent,
     LivePagePreviewComponent,
-    CreativityPickerComponent,
+    CreativityGateDirective,
   ],
   templateUrl: './branding-generation.html',
   styleUrl: './branding-generation.css',

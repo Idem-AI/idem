@@ -305,19 +305,33 @@
   },
   "creativity": {
     "label": "Creativity",
-    "hint": "The higher the level, the more powerful the model that designs the visual (and the higher the price).",
+    "hint": "The higher the level, the more powerful the model that designs. The price stays the same.",
     "levels": {
       "low": "Low ×1 · light model",
       "medium": "Medium ×1 · intermediate model",
       "high": "High ×1.25 · advanced model",
       "ultra": "Ultra ×2 · the most powerful"
     },
-    "videoHint": "The higher the level, the more powerful the model that designs and writes the video (and the higher the price).",
+    "videoHint": "The higher the level, the more powerful the model that designs and writes the video. The price stays the same.",
     "videoLevels": {
       "low": "Low ×1 · light model",
       "medium": "Medium ×1 · mid-size model",
       "high": "High ×1.25 · advanced model",
       "ultra": "Ultra ×2 · most powerful"
+    },
+    "choose": "Choose the creativity level",
+    "current": "Send · creativity {{level}}",
+    "names": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High",
+      "ultra": "Ultra"
+    },
+    "lines": {
+      "low": "Fast, a light model.",
+      "medium": "Balanced: the right choice most of the time.",
+      "high": "More polished, an advanced model.",
+      "ultra": "The most powerful model."
     }
   },
   "formats": {
@@ -902,7 +916,7 @@
       },
       "creativity": {
         "title": "More or less daring",
-        "body": "Choose the creativity level. Creating is free: only the HD export without the mark is paid, and its price shows right next to it."
+        "body": "Click this button to send: it asks for the creativity level. The Enter key sends at the last level chosen. Creating is free: only the HD export without the mark is paid, and its price shows next to it."
       },
       "history": {
         "title": "Everything you created",

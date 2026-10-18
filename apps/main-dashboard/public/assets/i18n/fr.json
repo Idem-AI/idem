@@ -97,7 +97,8 @@
           }
         }
       },
-      "included": "Inclus"
+      "included": "Inclus",
+      "choose": "Choisissez le niveau de créativité"
     }
   },
   "dashboard": {
@@ -231,7 +232,7 @@
         "tooltip": "Suggérer une valeur avec l'IA"
       },
       "alerts": {
-        "title": "À surveiller"
+        "title": "Recommandations IA"
       },
       "kpi": {
         "caY1": "CA An 1",
@@ -298,7 +299,7 @@
       "bpMissingDialog": {
         "title": "Business Plan requis",
         "headline": "Générez d'abord votre Business Plan",
-        "description": "Pour proposer des chiffres cohérents, l'IA s'appuie sur votre business plan. Créez-le d'abord — ou importez directement le fichier où vous avez déjà vos chiffres.",
+        "description": "L'IA a besoin de votre Business Plan pour générer des prévisions financières cohérentes et personnalisées. Veuillez générer votre business plan avant de continuer.",
         "generateCta": "Créer mon Business Plan",
         "importInstead": "Importer mon fichier"
       },
@@ -901,7 +902,7 @@
       "diagrams": "Diagrammes",
       "development": "Site & App",
       "deploymentOverview": "Aperçu du déploiement",
-      "deployment": "Mise en ligne",
+      "deployment": "Déploiement",
       "viewAllProjects": "Voir tous les projets",
       "communication": "Communication",
       "sr": {
@@ -3783,7 +3784,18 @@
         "openVideo": "Ouvrir la vidéo",
         "anotherVideo": "Générer une autre version · {{price}} crédits",
         "createVideo": "Générer la vidéo · {{price}} crédits",
-        "visualInstead": "Créer plutôt un visuel"
+        "visualInstead": "Créer plutôt un visuel",
+        "duration": "Durée de la vidéo",
+        "ai": {
+          "edit": "Modifier avec l’IA",
+          "regenerate": "Régénérer",
+          "placeholder": "Ex. : « titre plus grand », « fond plus sombre », « ajoute notre numéro »…",
+          "apply": "Appliquer",
+          "modified": "Version modifiée : elle remplace déjà l’ancienne. Elle vous convient ?",
+          "choose": "Choisir cette version",
+          "undo": "Revenir à l’ancienne",
+          "failed": "La modification n’a pas pu être appliquée. Reformulez votre demande."
+        }
       },
       "thumb": {
         "loading": "Chargement de l'image…",
@@ -5277,11 +5289,11 @@
       "pitchDeck": "Pitch Deck",
       "legalDocs": "Documents légaux",
       "advisor": "Conseiller",
-      "diagrams": "Plan de l'application",
-      "diagramsGenerate": "Dessin du plan",
+      "diagrams": "Diagrammes",
+      "diagramsGenerate": "Génération de diagrammes",
       "createDevelopment": "Créer un développement",
       "development": "Développement",
-      "ideploy": "Mise en ligne",
+      "ideploy": "iDeploy",
       "createDeployment": "Créer un déploiement",
       "deployments": "Déploiements",
       "deploymentDetails": "Détails du déploiement",

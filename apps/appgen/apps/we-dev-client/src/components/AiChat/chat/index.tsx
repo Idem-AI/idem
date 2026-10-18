@@ -211,7 +211,7 @@ function convertToBoltAction(obj: Record<string, string>): string {
 export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { otherConfig } = useChatStore();
+  const { otherConfig, creativity: chatCreativity } = useChatStore();
   const { t, i18n } = useTranslation();
   const [checkCount, setCheckCount] = useState(0);
   const [visible, setVisible] = useState(false);
@@ -563,7 +563,9 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       ...(token && { Authorization: `Bearer ${token}` }),
     },
     body: {
+      // Repli d'un ancien serveur : le modèle par défaut. Le serveur suit le niveau de créativité.
       model: baseModal.value,
+      creativity: chatCreativity,
       mode: mode,
       // Projet IDEM rattaché : le serveur en a besoin pour rattacher la
       // consommation de crédits au bon projet et vérifier qu'il est débloqué.
@@ -866,9 +868,12 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
 
       const version = mountedScaffoldVersion();
 
+      // Le niveau de créativité lu À L'ENVOI (celui qui vient d'être choisi sur le bouton) : le serveur en
+      // tire le modèle. Aucun modèle n'est choisi ici.
+      const creativity = useChatStore.getState().creativity;
       return appendRaw(
         message,
-        version ? { ...options, body: { ...options?.body, scaffold: { version } } } : options
+        { ...options, body: { ...options?.body, creativity, ...(version ? { scaffold: { version } } : {}) } }
       );
     },
     [appendRaw, mode]

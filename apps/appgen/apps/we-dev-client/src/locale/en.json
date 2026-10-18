@@ -119,6 +119,30 @@
       "cta": "Fix automatically",
       "running": "Fix started…",
       "status": "Fixing the flagged elements."
+    },
+    "creativity": {
+      "title": "Creativity level",
+      "choose": "Choose the creativity level",
+      "help": "The higher the level, the more powerful the model that writes your app.",
+      "current": "Creativity: {{level}}",
+      "levels": {
+        "low": {
+          "label": "Low",
+          "line": "Fast, for small edits."
+        },
+        "medium": {
+          "label": "Medium",
+          "line": "Balanced: the right choice most of the time."
+        },
+        "high": {
+          "label": "High",
+          "line": "More polished, for rich screens."
+        },
+        "ultra": {
+          "label": "Ultra",
+          "line": "The most powerful model, for ambitious projects."
+        }
+      }
     }
   },
   "settings": {

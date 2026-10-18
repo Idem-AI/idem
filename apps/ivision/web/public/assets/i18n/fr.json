@@ -303,19 +303,33 @@
   },
   "creativity": {
     "label": "Créativité",
-    "hint": "Plus le cran est haut, plus le modèle qui conçoit le visuel est puissant (et plus le prix monte).",
+    "hint": "Plus le niveau est haut, plus le modèle qui conçoit est puissant. Le prix reste le même.",
     "levels": {
       "low": "Low ×1 · modèle léger",
       "medium": "Medium ×1 · modèle intermédiaire",
       "high": "High ×1,25 · modèle avancé",
       "ultra": "Ultra ×2 · le plus puissant"
     },
-    "videoHint": "Plus le cran est haut, plus le modèle qui conçoit et écrit la vidéo est puissant (et plus le prix monte).",
+    "videoHint": "Plus le niveau est haut, plus le modèle qui conçoit et écrit la vidéo est puissant. Le prix reste le même.",
     "videoLevels": {
       "low": "Low ×1 · modèle léger",
       "medium": "Medium ×1 · modèle intermédiaire",
       "high": "High ×1,25 · modèle avancé",
       "ultra": "Ultra ×2 · le plus puissant"
+    },
+    "choose": "Choisissez le niveau de créativité",
+    "current": "Envoyer · créativité {{level}}",
+    "names": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High",
+      "ultra": "Ultra"
+    },
+    "lines": {
+      "low": "Rapide, un modèle léger.",
+      "medium": "Équilibré : le bon choix la plupart du temps.",
+      "high": "Plus soigné, un modèle avancé.",
+      "ultra": "Le modèle le plus puissant."
     }
   },
   "formats": {
@@ -900,7 +914,7 @@
       },
       "creativity": {
         "title": "Plus ou moins d’audace",
-        "body": "Choisissez le niveau de créativité. Créer est gratuit : seul l’export HD sans signature se paie, son prix s’affiche juste à côté."
+        "body": "Cliquez sur ce bouton pour envoyer : il vous demande le niveau de créativité. La touche Entrée envoie au dernier niveau choisi. Créer est gratuit : seul l’export HD sans signature se paie, son prix s’affiche à côté."
       },
       "history": {
         "title": "Tout ce que vous avez créé",

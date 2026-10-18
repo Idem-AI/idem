@@ -83,6 +83,29 @@ const defaultModelConfigs: ModelConfig[] = [
     modelKey: 'deepseek/deepseek-v4-flash',
     description: 'DeepSeek V4 Flash — alternative open-weight (MIT) pour le code',
   },
+  // Les modèles de l'échelle de créativité (Low, High, Ultra) : jamais proposés par leur nom, choisis par le
+  // niveau de créativité (`modelForCreativity`).
+  {
+    ...GENERATION,
+    modelName: 'Qwen3 Coder 30B',
+    modelKey: 'qwen/qwen3-coder-30b-a3b-instruct',
+    description: 'Créativité Low — code léger et rapide (Apache-2.0)',
+    selectable: false,
+  },
+  {
+    ...GENERATION,
+    modelName: 'Qwen3 Coder 480B',
+    modelKey: 'qwen/qwen3-coder',
+    description: 'Créativité High — le plus grand Qwen3 Coder (Apache-2.0)',
+    selectable: false,
+  },
+  {
+    ...GENERATION,
+    modelName: 'DeepSeek V4 Pro',
+    modelKey: 'deepseek/deepseek-v4-pro',
+    description: 'Créativité Ultra — le plus capable (MIT)',
+    selectable: false,
+  },
   {
     // REPLI. La saturation est PAR MODÈLE : sans second modèle, la chaîne de
     // `resilientStream.ts` — détection du transitoire, bascule, message
@@ -96,6 +119,41 @@ const defaultModelConfigs: ModelConfig[] = [
     selectable: false,
   },
 ];
+
+// ── Le NIVEAU DE CRÉATIVITÉ choisit le modèle ───────────────────────────────
+//
+// L'interface ne montre plus aucun modèle : l'utilisateur choisit un niveau de créativité (Low, Medium, High,
+// Ultra) et le modèle se décide ici, en arrière-plan — la même échelle « code » qu'IDEM
+// (`apps/api/api/config/ai-models.config.ts`, MODEL_LADDERS.code). Réglable sans déploiement :
+// APPGEN_CREATIVITY_MODELS='{"high":"qwen/qwen3-coder-next"}' (les crans absents gardent leur modèle).
+export const CREATIVITY_LEVELS = ['low', 'medium', 'high', 'ultra'] as const;
+export type CreativityLevel = (typeof CREATIVITY_LEVELS)[number];
+
+const CREATIVITY_LADDER: Record<CreativityLevel, string> = {
+  low: 'qwen/qwen3-coder-30b-a3b-instruct',
+  medium: 'qwen/qwen3-coder-next',
+  high: 'qwen/qwen3-coder',
+  ultra: 'deepseek/deepseek-v4-pro',
+};
+
+export function normalizeCreativity(value: unknown): CreativityLevel | undefined {
+  const v = String(value ?? '').toLowerCase();
+  if (v === 'max') return 'high';
+  return (CREATIVITY_LEVELS as readonly string[]).includes(v) ? (v as CreativityLevel) : undefined;
+}
+
+/** Le modèle d'un niveau de créativité (réglage d'environnement d'abord, puis l'échelle). */
+export function modelForCreativity(level: CreativityLevel): string {
+  let overrides: Partial<Record<CreativityLevel, string>> = {};
+  try {
+    overrides = JSON.parse(readEnv('APPGEN_CREATIVITY_MODELS') || '{}');
+  } catch {
+    overrides = {};
+  }
+  const wanted = overrides[level] || CREATIVITY_LADDER[level];
+  // Un modèle hors catalogue (faute de frappe) : le modèle par défaut, jamais une erreur pour l'utilisateur.
+  return isKnown(wanted) ? wanted : getDefaultModelKey();
+}
 
 // ── Modèle par défaut, modifiable À CHAUD ───────────────────────────────────
 //

@@ -7,9 +7,10 @@ import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 import { Subscription, timer } from 'rxjs';
 import { ApiService } from '../../../core/api.service';
 import { charterPage, idemLinks } from '../../../core/charter';
-import { Charter } from '../../../core/models';
+import { Charter, Creativity } from '../../../core/models';
 import { Illustration } from '../../../shared/components/illustration';
 import { PolicyConsent } from '../../../shared/components/policy-consent';
+import { CreativityGate } from '../../../shared/components/creativity-gate';
 
 /** Les pages montrées dans le fil ; la charte entière s'ouvre dans sa page. */
 const SHOWN = 3;
@@ -21,7 +22,7 @@ const SHOWN = 3;
  */
 @Component({
   selector: 'iv-charter-result',
-  imports: [RouterLink, TranslateModule, IdemLoaderComponent, IdemDocumentPreviewComponent, Illustration, PolicyConsent],
+  imports: [RouterLink, TranslateModule, IdemLoaderComponent, IdemDocumentPreviewComponent, Illustration, PolicyConsent, CreativityGate],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="mt-3 flex flex-col gap-3">
@@ -79,7 +80,7 @@ const SHOWN = 3;
           <div class="flex items-center gap-3 text-sm" role="alert">
             <iv-illustration class="h-10 w-10 flex-none text-[var(--color-text-secondary)]" kind="cracked" />
             <span class="flex-1">{{ 'charter.failed' | translate }}</span>
-            <button type="button" class="outer-button button-sm" [disabled]="starting() || (needsConsent() && !consent())" (click)="start()">
+            <button type="button" class="outer-button button-sm" ivCreativityGate [(creativity)]="creativity" [disabled]="starting() || (needsConsent() && !consent())" (click)="start()">
               @if (starting()) { <idem-loader size="xs" /> }
               {{ 'charter.retry' | translate }}
             </button>
@@ -91,7 +92,8 @@ const SHOWN = 3;
           <!-- Un projet créé avant que l'accord soit demandé : les politiques d'IDEM s'acceptent d'abord. -->
           @if (needsConsent()) { <iv-policy-consent [(accepted)]="consent" /> }
           <div class="flex flex-wrap gap-2">
-            <button type="button" class="inner-button button-sm" [disabled]="starting() || (needsConsent() && !consent())" (click)="start()">
+            <!-- Le niveau de créativité de la charte se choisit sur le bouton (bulle), comme dans IDEM. -->
+            <button type="button" class="inner-button button-sm" ivCreativityGate [(creativity)]="creativity" [disabled]="starting() || (needsConsent() && !consent())" (click)="start()">
               @if (starting()) { <idem-loader size="xs" /> } @else { <i class="pi pi-book" aria-hidden="true"></i> }
               {{ 'charter.create' | translate }}
             </button>
@@ -135,6 +137,8 @@ export class CharterResult implements OnInit {
   /** Les politiques d'IDEM pas encore acceptées pour ce projet : la case s'affiche avant de créer. */
   protected readonly needsConsent = computed(() => this.charter()?.policiesAccepted === false);
   protected readonly consent = signal(false);
+  /** Le niveau de créativité de la charte (choisi dans la bulle du bouton). */
+  protected readonly creativity = signal<Creativity>('medium');
   protected readonly skeletons = [0, 1, 2];
   protected readonly page = computed(() => charterPage(this.charter()?.pdfFormat));
   protected readonly shown = computed(() => (this.charter()?.pages ?? []).slice(0, this.full() ? undefined : SHOWN));
@@ -180,7 +184,7 @@ export class CharterResult implements OnInit {
     }
     this.starting.set(true);
     this.refused.set(false);
-    this.api.startCharter(this.brandId()).subscribe({
+    this.api.startCharter(this.brandId(), this.creativity()).subscribe({
       next: (c) => {
         this.starting.set(false);
         this.charter.set(c);

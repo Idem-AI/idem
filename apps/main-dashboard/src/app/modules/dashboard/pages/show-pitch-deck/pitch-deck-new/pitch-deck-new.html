@@ -92,11 +92,11 @@
               [formControl]="nameControl"
               (input)="onNameInput()"
             />
-            <app-creativity-picker class="pdn-creativity" [(value)]="creativity" [baseCost]="creativityBaseCost()" [disabled]="isCreating()" />
             @if (createError()) {
               <p class="pdn-error" role="alert">{{ createError() }}</p>
             }
-            <button type="submit" class="inner-button pdn-submit" [disabled]="isCreating()">
+            <!-- Le niveau de créativité se choisit sur le bouton : la bulle s'ouvre, le cran choisi lance. -->
+            <button type="submit" class="inner-button pdn-submit" [disabled]="isCreating()" appCreativityGate [(creativity)]="creativity" [creativityCost]="creativityBaseCost()">
               @if (isCreating()) {
                 <idem-loader size="xs" />
                 <span>{{ 'dashboard.pitchDeckTypes.creating' | translate }}</span>

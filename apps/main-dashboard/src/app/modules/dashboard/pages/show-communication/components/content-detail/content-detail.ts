@@ -36,8 +36,7 @@ import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 import { MotionVideoService } from '../../../../services/ai-agents/motion-video.service';
 import { priceVideo, VideoDuration, VideoFormat, VideoOptions, VideoType } from '../../../../models/motion-video.model';
 import { CreativityLevel, creativityCost, DEFAULT_CREATIVITY } from '@idem/shared-models';
-import { CreativityPickerComponent } from '../../../../../../shared/components/creativity-picker/creativity-picker';
-import { CreativityCostPipe } from '../../../../../../shared/pipes/creativity-cost.pipe';
+import { CreativityGateDirective } from '../../../../../../shared/components/creativity-picker/creativity-gate';
 import { CreativityService } from '../../../../../../shared/services/creativity.service';
 
 /** Formats de contenu qui sont des vidéos. */
@@ -79,7 +78,7 @@ type EditableField =
  */
 @Component({
   selector: 'app-content-detail',
-  imports: [NgTemplateOutlet, FormsModule, TranslateModule, VisualComposing, VisualPreview, VideoComposing, IdemLoaderComponent, CreativityPickerComponent, CreativityCostPipe],
+  imports: [NgTemplateOutlet, FormsModule, TranslateModule, VisualComposing, VisualPreview, VideoComposing, IdemLoaderComponent, CreativityGateDirective],
   templateUrl: './content-detail.html',
   styleUrl: './content-detail.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

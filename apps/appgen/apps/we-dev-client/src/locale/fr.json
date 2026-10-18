@@ -119,6 +119,30 @@
       "cta": "Corriger automatiquement",
       "running": "Correction lancée…",
       "status": "Je corrige les éléments signalés."
+    },
+    "creativity": {
+      "title": "Niveau de créativité",
+      "choose": "Choisissez le niveau de créativité",
+      "help": "Plus le niveau est haut, plus le modèle qui écrit votre application est puissant.",
+      "current": "Créativité : {{level}}",
+      "levels": {
+        "low": {
+          "label": "Low",
+          "line": "Rapide, pour les petites retouches."
+        },
+        "medium": {
+          "label": "Medium",
+          "line": "Équilibré : le bon choix la plupart du temps."
+        },
+        "high": {
+          "label": "High",
+          "line": "Plus soigné, pour les écrans riches."
+        },
+        "ultra": {
+          "label": "Ultra",
+          "line": "Le modèle le plus puissant, pour les projets ambitieux."
+        }
+      }
     }
   },
   "settings": {

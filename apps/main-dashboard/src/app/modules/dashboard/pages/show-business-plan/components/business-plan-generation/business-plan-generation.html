@@ -11,11 +11,14 @@
 } @else if (showAdditionalInfoForm()) {
   <!-- Additional Info Form -->
   <app-additional-info-form
+    appCreativityGate
+    creativityTarget=".foot-submit, .foot-skip"
+    [(creativity)]="creativity"
+    [creativityCost]="creativityBaseCost()"
     (formSubmitted)="onAdditionalInfoSubmitted($event)"
     (formCancelled)="onAdditionalInfoCancelled()"
   >
-    <!-- Les boutons du formulaire lancent la génération : le cran de créativité se règle à côté. -->
-    <app-creativity-picker formFooter [(value)]="creativity" [baseCost]="creativityBaseCost()" [showCost]="true" placement="top" />
+    <!-- Les boutons du formulaire lancent la génération : la bulle du niveau de créativité s'ouvre sur eux. -->
   </app-additional-info-form>
 } @else if (isSavingAdditionalInfo()) {
   <!-- Saving Additional Info Loading State -->
@@ -103,12 +106,8 @@
           {{ 'dashboard.businessPlanGeneration.empty.subtitle' | translate }}
         </p>
         <div class="flex flex-wrap items-center justify-center gap-2.5">
-          <app-creativity-picker [(value)]="creativity" [baseCost]="creativityBaseCost()" />
-          <button type="button" (click)="generateBusinessPlan()" class="inner-button">
+          <button type="button" (click)="generateBusinessPlan()" class="inner-button" appCreativityGate [(creativity)]="creativity" [creativityCost]="creativityBaseCost()">
             {{ 'dashboard.businessPlanGeneration.buttons.generate' | translate }}
-            @if (creativityBaseCost() | creativityCost: creativity(); as cost) {
-              · {{ 'common.creativity.cost' | translate: { cost } }}
-            }
           </button>
         </div>
       </div>

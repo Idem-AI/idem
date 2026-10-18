@@ -85,7 +85,31 @@
       "error": "优化提示词失败:",
       "designPlaceholder": "在这里输入您的提示词，我们将帮助您生成设计稿..."
     },
-    "regenerate_incomplete": "请检查上次生成了哪些文件，重建并继续上次不完整的代码文件，无需再次生成完整的代码文件"
+    "regenerate_incomplete": "请检查上次生成了哪些文件，重建并继续上次不完整的代码文件，无需再次生成完整的代码文件",
+    "creativity": {
+      "title": "Creativity level",
+      "choose": "Choose the creativity level",
+      "help": "The higher the level, the more powerful the model that writes your app.",
+      "current": "Creativity: {{level}}",
+      "levels": {
+        "low": {
+          "label": "Low",
+          "line": "Fast, for small edits."
+        },
+        "medium": {
+          "label": "Medium",
+          "line": "Balanced: the right choice most of the time."
+        },
+        "high": {
+          "label": "High",
+          "line": "More polished, for rich screens."
+        },
+        "ultra": {
+          "label": "Ultra",
+          "line": "The most powerful model, for ambitious projects."
+        }
+      }
+    }
   },
   "settings": {
     "title": "设置",

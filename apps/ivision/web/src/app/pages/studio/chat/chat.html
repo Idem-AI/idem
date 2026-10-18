@@ -336,11 +336,22 @@
           }
 
           <span class="ml-auto flex items-center gap-2">
-            <iv-creativity-select data-tour="iv-creativity" [mode]="mode()" [(value)]="creativity" />
             @if (price() !== null) {
               <span class="text-xs tabular-nums text-[var(--color-text-tertiary)]">{{ 'chat.options.price' | translate: { cost: price() } }}</span>
             }
-            <button type="button" class="inner-button button-sm" [disabled]="!canSend()" (click)="send()" [attr.aria-label]="'chat.composer.send' | translate">
+            <!-- Le niveau de créativité se choisit SUR le bouton : la bulle s'ouvre, le cran choisi envoie. Entrée envoie au dernier cran. -->
+            <button
+              type="button"
+              class="inner-button button-sm"
+              data-tour="iv-creativity"
+              ivCreativityGate
+              [(creativity)]="creativity"
+              [creativityKind]="mode()"
+              [disabled]="!canSend()"
+              (click)="send()"
+              [attr.aria-label]="'chat.composer.send' | translate"
+              [attr.title]="'creativity.current' | translate: { level: ('creativity.names.' + creativity() | translate) }"
+            >
               @if (streaming()) { <idem-loader size="xs" /> } @else { <i class="pi pi-arrow-up" aria-hidden="true"></i> }
             </button>
           </span>

@@ -10,7 +10,7 @@ import { HttpEventType } from '@angular/common/http';
 import { Brand, ChatEvent, ChatMessage, ChatMode, ChatOptions, ChatSession, ChoicesPurpose, Creativity, MediaAsset, Montage, MontageUpload, MotionVideo, Reference, Visual } from '../../../core/models';
 import { StudioState } from '../../../core/studio.state';
 import { TourService } from '../../../core/tour.service';
-import { CreativitySelect } from '../../../shared/components/creativity-select';
+import { CreativityGate } from '../../../shared/components/creativity-gate';
 import { BrandHint } from '../../../shared/components/brand-hint';
 import { Illustration } from '../../../shared/components/illustration';
 import { BrandChoice } from './brand-choice';
@@ -66,7 +66,7 @@ export function settingsInRequest(text: string): { durationSec?: number; format?
  */
 @Component({
   selector: 'iv-chat',
-  imports: [RouterLink, TranslateModule, IdemLoaderComponent, CreativitySelect, Illustration, BrandChoice, BrandHint, ProgressList, VideoResult, VisualResult, MontageResult, AskChoices, CharterResult, BrandCreate],
+  imports: [RouterLink, TranslateModule, IdemLoaderComponent, CreativityGate, Illustration, BrandChoice, BrandHint, ProgressList, VideoResult, VisualResult, MontageResult, AskChoices, CharterResult, BrandCreate],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './chat.html',
 })

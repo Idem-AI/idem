@@ -97,7 +97,8 @@
           }
         }
       },
-      "included": "Included"
+      "included": "Included",
+      "choose": "Choose the creativity level"
     }
   },
   "dashboard": {
@@ -231,7 +232,7 @@
         "tooltip": "Suggest a value with AI"
       },
       "alerts": {
-        "title": "Worth watching"
+        "title": "AI Insights"
       },
       "kpi": {
         "caY1": "Revenue Y1",
@@ -298,7 +299,7 @@
       "bpMissingDialog": {
         "title": "Business Plan Required",
         "headline": "Generate Your Business Plan First",
-        "description": "To suggest consistent figures, the AI relies on your business plan. Create it first — or import the file where you already keep your figures.",
+        "description": "The AI needs your Business Plan to generate consistent and personalized financial forecasts. Please generate your business plan before continuing.",
         "generateCta": "Create My Business Plan",
         "importInstead": "Import my file"
       },
@@ -901,7 +902,7 @@
       "diagrams": "Diagrams",
       "development": "Site & App",
       "deploymentOverview": "Deployment Overview",
-      "deployment": "Go live",
+      "deployment": "Deployment",
       "viewAllProjects": "View All Projects",
       "communication": "Communication",
       "sr": {
@@ -3780,7 +3781,18 @@
         "openVideo": "Open the video",
         "anotherVideo": "Generate another version · {{price}} credits",
         "createVideo": "Generate the video · {{price}} credits",
-        "visualInstead": "Make a visual instead"
+        "visualInstead": "Make a visual instead",
+        "duration": "Video length",
+        "ai": {
+          "edit": "Edit with AI",
+          "regenerate": "Regenerate",
+          "placeholder": "E.g. “bigger title”, “darker background”, “add our phone number”…",
+          "apply": "Apply",
+          "modified": "Modified version: it already replaces the old one. Is it what you want?",
+          "choose": "Choose this version",
+          "undo": "Back to the previous one",
+          "failed": "The change could not be applied. Try rephrasing."
+        }
       },
       "thumb": {
         "loading": "Loading the image…",
@@ -5319,11 +5331,11 @@
       "pitchDeck": "Pitch Deck",
       "legalDocs": "Legal Documents",
       "advisor": "Advisor",
-      "diagrams": "Application plan",
-      "diagramsGenerate": "Drawing the plan",
+      "diagrams": "Diagrams",
+      "diagramsGenerate": "Diagrams Generation",
       "createDevelopment": "Create Development",
       "development": "Development",
-      "ideploy": "Go live",
+      "ideploy": "iDeploy",
       "createDeployment": "Create Deployment",
       "deployments": "Deployments",
       "deploymentDetails": "Deployment Details",

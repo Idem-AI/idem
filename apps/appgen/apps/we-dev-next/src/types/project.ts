@@ -140,6 +140,8 @@ export interface ToolInfo {
 export interface ChatRequest {
   messages: Messages;
   model: string;
+  /** Le niveau de créativité choisi (Low, Medium, High, Ultra) : il décide du modèle, côté serveur. */
+  creativity?: string;
   mode: 'chat' | 'builder';
   otherConfig?: {
     isBackEnd: boolean;
