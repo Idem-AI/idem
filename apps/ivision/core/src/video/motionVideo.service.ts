@@ -367,19 +367,30 @@ export class MotionVideoService {
     return { intent, interpretation: describeVideoIntent(intent), clarification: clarifyVideoIntent(intent, classify) };
   }
 
-  /** « Améliorer ma demande » : réécriture précise, faits conservés (gratuit). */
-  async enhanceRequest(userId: string, projectId: string, text: string, media: VideoMediaAsset[] = []): Promise<{ prompt: string; source: 'llm' | 'template' }> {
+  /**
+   * Le cœur de « améliorer ma demande » : partagé entre l'appel explicite (gratuit, bouton dédié) et la
+   * reformulation AUTOMATIQUE de `createVideo` — jamais visible, jamais bloquante (une demande trop
+   * courte ou un modèle en panne renvoie le texte tel quel, pas une erreur).
+   */
+  private async enhanceVideoRequest(userId: string, text: string, media: VideoMediaAsset[], ctx: Awaited<ReturnType<MotionVideoService['brandContext']>>): Promise<{ prompt: string; source: 'llm' | 'template' }> {
     if (parseRequest(String(text || '')).mode === 'script') return { prompt: String(text).trim().slice(0, MAX_REQUEST_CHARS), source: 'template' };
     const clean = String(text || '').replace(/\s+/g, ' ').trim().slice(0, 1200);
-    if (clean.length < 3) throw new VideoInputError('message_required');
-    const { brand, brandName, branding } = await this.brandContext(userId, projectId);
+    if (clean.length < 3) return { prompt: text, source: 'template' };
+    const { brand, brandName, branding } = ctx;
     const count = (kind: string) => media.filter((m) => m?.kind === kind).length;
     const art = branding?.artDirection ? [branding.artDirection.styleName, branding.artDirection.tagline, (branding.artDirection.keywords || []).slice(0, 5).join(', ')].filter(Boolean).join(' · ') : undefined;
     const result = await enhanceRequest(
       { text: clean, ctx: { brandName, businessType: brand.voice.businessType, tone: brand.voice.tone, valueProposition: brand.voice.valueProposition, keywords: brand.voice.keywords, language: brand.voice.language || 'fr' }, media: { images: count('image'), videos: count('video'), models: 0, lotties: 0 }, art },
       this.writer(userId)
-    );
+    ).catch(() => ({ prompt: text, source: 'template' as const, tokens: { input: 0, output: 0 } }));
     return { prompt: result.prompt, source: result.source };
+  }
+
+  /** « Améliorer ma demande » : réécriture précise, faits conservés (gratuit, bouton dédié). */
+  async enhanceRequest(userId: string, projectId: string, text: string, media: VideoMediaAsset[] = []): Promise<{ prompt: string; source: 'llm' | 'template' }> {
+    if (parseRequest(String(text || '')).mode !== 'script' && String(text || '').replace(/\s+/g, ' ').trim().length < 3) throw new VideoInputError('message_required');
+    const ctx = await this.brandContext(userId, projectId);
+    return this.enhanceVideoRequest(userId, text, media, ctx);
   }
 
   private async inputFromContent(userId: string, projectId: string, input: CreateVideoInput): Promise<CreateVideoInput> {
@@ -911,7 +922,13 @@ export class MotionVideoService {
 
     // 1. Compréhension
     emit('plan', 'running');
-    const request = brief.request || [brief.message, brief.details].filter(Boolean).join('\n');
+    const rawRequest = brief.request || [brief.message, brief.details].filter(Boolean).join('\n');
+    // Reformulation transparente (même chargement, même étape « plan ») : la demande, souvent brève et
+    // orale, devient un brief détaillé et professionnel avant le reste de la génération — jamais pour un
+    // scénario mot pour mot (`enhanceVideoRequest` le renvoie alors tel quel).
+    const request = (await this.enhanceVideoRequest(userId, rawRequest, brief.media || [], ctx)).prompt || rawRequest;
+    // Le reste de la création (intention, storyboard…) lit la même demande reformulée.
+    brief.request = request;
     const read = await readRequest(request, { fallbackLanguages: [input.language, ctx.brand.voice.language], writer: this.writer(userId, 'mechanical', 'video.reader') });
     const spec: RequestSpec = { ...read.spec, language: brief.language || read.spec.language };
     const language = spec.language || brief.language || 'fr';
