@@ -125,22 +125,54 @@ function directionLines(ctx: DocumentContext): string {
     .join('\n');
 }
 
-const PROFESSIONAL = [
-  'PROFESSIONAL STANDARD — a business document, designed by a senior studio. Sober and essential, whatever the brand style:',
-  '- One focal element per page. The rest is quiet: white space, alignment, a few sizes.',
-  '- At most ONE graphic device per page (a rule, a band, a corner of pattern), even if the brand language asks for collage, layers or shadows. None on a page that shows a brand asset (logo, palette, type, pattern, mockups, photos). No drop shadows, no rotations, no stacked squares.',
-  '- Nothing ever overlaps a text: shapes, images and panels sit beside or behind it with full contrast, never across it.',
-  '- Each image once on a page; never repeat the same picture.',
-  '- Hierarchy does the work: size, weight, spacing and alignment on a clear grid. Generous, consistent margins.',
-  '- Decoration only when it carries the brand (its logo, its pattern, the graphic devices of its visual language). Never random circles, blobs, glows, gradients, drop shadows, emojis, ornaments, tilted text or filler shapes.',
-  '- Few type sizes, the brand fonts only. Colour with intent: mostly ground and ink, brand colours for emphasis and structure.',
-  '- Data is shown plainly: charts and tables large enough to read, one highlighted message at most.',
-  '- The logo sits in the SAME place on every page (the one the brand language gives), small, with clear space — never on or against a title or text.',
-  '- No giant faded numerals or watermark words. Numbering (01, 02) only for a real sequence of steps.',
-  '- Images: only the image keys of the CONTENT list. No image key, no image zone — never leave an empty frame for a picture.',
-  '- Show the essential: the CONTENT and nothing else. Never invent example tiles, sample swatches, placeholder boxes ("space reserved for…"), device frames around images, badges, check marks or extra labels.',
-  '- Everything fits inside the canvas: nothing cut by the edge; keep a safe margin.',
-].join('\n');
+/**
+ * Un visuel réseau/couverture/graphique est une toile UNIQUE : le logo n'y « se répète » jamais,
+ * il doit juste s'y voir. `flyer` et `chart` sont les seuls types sur une toile pleine résolution
+ * (jusqu'à 1080-2560 px) ; les documents paginés (pitch-deck, business-plan, report) répètent au
+ * contraire un petit repère sur chaque page/diapositive, où 36px reste juste.
+ */
+const SINGLE_CANVAS_DOCS: DocumentType[] = ['flyer', 'chart'];
+
+/**
+ * Le repère logo, en px CSS, pour les TOOLS de cette page : constant pour un document/diapositive
+ * répété(e), sinon proportionnel à la toile. Sans cela, un visuel carré de 1080 px recevait le même
+ * « 36px » qu'une page A4 ou une diapositive, et le logo y paraissait minuscule (retour utilisateur,
+ * 2026-10-18).
+ */
+function logoSizePx(ctx: DocumentContext): number {
+  if (!SINGLE_CANVAS_DOCS.includes(ctx.documentType)) return 36;
+  return Math.max(28, Math.round(ctx.format.base * 2.6));
+}
+
+/** Comment le logo se place : repère discret répété sur un document paginé, présence lisible sur une toile unique. */
+function logoPlacementLine(ctx: DocumentContext): string {
+  if (ctx.documentType === 'business-card' || ctx.documentType === 'brand-charter') return ''; // leur propre consigne couvre déjà le logo
+  if (!SINGLE_CANVAS_DOCS.includes(ctx.documentType)) {
+    return '- The logo sits in the SAME place on every page (the one the brand language gives), small, with clear space — never on or against a title or text.';
+  }
+  return '- The logo is clearly legible at the size given in TOOLS for this canvas — present, with clear space, but never the focal element and never on or against a title or text. Do not shrink it further than that size.';
+}
+
+function professionalLines(ctx: DocumentContext): string {
+  return [
+    'PROFESSIONAL STANDARD — a business document, designed by a senior studio. Sober and essential, whatever the brand style:',
+    '- One focal element per page. The rest is quiet: white space, alignment, a few sizes.',
+    '- At most ONE graphic device per page (a rule, a band, a corner of pattern), even if the brand language asks for collage, layers or shadows. None on a page that shows a brand asset (logo, palette, type, pattern, mockups, photos). No drop shadows, no rotations, no stacked squares.',
+    '- Nothing ever overlaps a text: shapes, images and panels sit beside or behind it with full contrast, never across it.',
+    '- Each image once on a page; never repeat the same picture.',
+    '- Hierarchy does the work: size, weight, spacing and alignment on a clear grid. Generous, consistent margins.',
+    '- Decoration only when it carries the brand (its logo, its pattern, the graphic devices of its visual language). Never random circles, blobs, glows, gradients, drop shadows, emojis, ornaments, tilted text or filler shapes.',
+    '- Few type sizes, the brand fonts only. Colour with intent: mostly ground and ink, brand colours for emphasis and structure.',
+    '- Data is shown plainly: charts and tables large enough to read, one highlighted message at most.',
+    logoPlacementLine(ctx),
+    '- No giant faded numerals or watermark words. Numbering (01, 02) only for a real sequence of steps.',
+    '- Images: only the image keys of the CONTENT list. No image key, no image zone — never leave an empty frame for a picture.',
+    '- Show the essential: the CONTENT and nothing else. Never invent example tiles, sample swatches, placeholder boxes ("space reserved for…"), device frames around images, badges, check marks or extra labels.',
+    '- Everything fits inside the canvas: nothing cut by the edge; keep a safe margin.',
+  ]
+    .filter(Boolean)
+    .join('\n');
+}
 
 // ── Le langage visuel de la marque (une fois par marque) ─────────────────────────────────────
 
@@ -253,7 +285,7 @@ export function authorSystem(ctx: DocumentContext): string {
       ? 'OUTPUT: one ```html block, the page fragment only. It goes inside an A4 page box (210 mm wide, 12 mm padding, ground colour, body font) that grows downward. Write a SEQUENCE of top-level blocks (header, then each part) — the printer splits pages between them (data-keep-together on a block that must stay whole). No absolute positioning except for the brand pattern.'
       : 'OUTPUT: one ```html block, the page fragment only. It goes inside the page box, which is exactly the canvas (no padding). Your top element fills it (class="h-full w-full …").',
     '',
-    PROFESSIONAL,
+    professionalLines(ctx),
     '',
     TAILWIND_SHEET,
     '',
@@ -271,7 +303,7 @@ export function authorSystem(ctx: DocumentContext): string {
 
 /** Les outils dont CETTE page a besoin, et eux seuls (documentation à la demande). */
 export function toolLines(ctx: DocumentContext, o: { charts: string[]; tables: string[]; icons: boolean; galleries?: string[] }): string {
-  const lines = ['TOOLS (drawn by code — you place and size them):', '- <idem-logo variant="primary" class="h-[36px]"></idem-logo> the brand logo (variant from BRAND).'];
+  const lines = ['TOOLS (drawn by code — you place and size them):', `- <idem-logo variant="primary" class="h-[${logoSizePx(ctx)}px]"></idem-logo> the brand logo (variant from BRAND); this height is sized for this canvas, keep it unless the brand language asks for another.`];
   if (o.charts.length)
     lines.push(
       `- <idem-chart data-block="${o.charts[0]}" class="w-full text-ink"></idem-chart> the exact chart of a block, drawn from its data. Optional: data-aspect="16/9"; data-type="bar|horizontalBar|line|area|groupedBar|stacked|pie|doughnut|radar" to choose another representation; data-highlight="<label>" to bring one category forward.`
