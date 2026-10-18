@@ -429,7 +429,10 @@ async function teardownOnServer(teamId: number, app: ApplicationRow): Promise<Se
     const result = await executeRemoteCommand(
       server,
       key,
-      `if [ -d ${workdir} ]; then ${composeCommand(app, 'down --volumes --remove-orphans')}; cd / && rm -rf ${workdir}; fi`
+      `if [ -d ${workdir} ]; then ${composeCommand(app, 'down --volumes --remove-orphans')}; cd / && rm -rf ${workdir}; fi; S=$?; ` +
+        // Its images go too: tagged per release (for rollback), no prune ever
+        // removed them — ~1 GB per deleted application left on the disk.
+        `docker images --format '{{.Repository}}:{{.Tag}}' | grep -E ${shellQuote(`^ideploy-${app.uuid.toLowerCase()}:`)} | xargs -r docker rmi -f >/dev/null 2>&1; exit $S`
     );
     if (result.exitCode !== 0) {
       logger.warn('Application teardown failed on server', { uuid: app.uuid, stderr: result.stderr });
