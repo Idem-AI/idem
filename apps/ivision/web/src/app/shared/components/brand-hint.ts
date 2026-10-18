@@ -1,11 +1,12 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, input, output, signal } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { RouterLink } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 import { Subscription } from 'rxjs';
 import { ApiService } from '../../core/api.service';
 import { Brand } from '../../core/models';
 import { StudioState } from '../../core/studio.state';
+import { BrandCreate } from './brand-create';
 
 type Panel = 'site' | 'file' | 'colors' | 'brands' | null;
 const COLLAPSE_KEY = 'iv_brand_hint';
@@ -20,7 +21,7 @@ const COLLAPSE_KEY = 'iv_brand_hint';
  */
 @Component({
   selector: 'iv-brand-hint',
-  imports: [TranslateModule, IdemLoaderComponent, RouterLink],
+  imports: [TranslateModule, IdemLoaderComponent, RouterLink, BrandCreate],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (collapsed()) {
@@ -47,11 +48,7 @@ const COLLAPSE_KEY = 'iv_brand_hint';
             </span>
             @if (b.idemProjectId) {
               <span aria-hidden="true">·</span>
-              @if (charterStarting()) {
-                <span class="flex items-center gap-1"><idem-loader size="xs" /> {{ 'brandHint.charterStarting' | translate }}</span>
-              } @else {
-                <a class="underline" [routerLink]="['/studio/charter', b.id]">{{ 'brandHint.viewCharter' | translate }}</a>
-              }
+              <a class="underline" [routerLink]="['/studio/charter', b.id]">{{ 'brandHint.viewCharter' | translate }}</a>
             }
             <span aria-hidden="true">·</span>
             <button type="button" class="underline" [attr.aria-expanded]="panel() === 'brands'" (click)="toggle('brands')">{{ 'brandHint.change' | translate }}</button>
@@ -134,16 +131,11 @@ const COLLAPSE_KEY = 'iv_brand_hint';
           }
         }
         @if (note(); as n) {
-          <p role="status" class="flex flex-wrap items-center gap-2">
-            {{ n }}
-            <!-- Un site lu devient un projet IDEM : sa charte graphique se crée d'un clic, et s'affiche ici. -->
-            @if (offerCharter(); as b) {
-              <button type="button" class="outer-button button-sm" [disabled]="charterStarting()" (click)="createCharter(b)">
-                @if (charterStarting()) { <idem-loader size="xs" /> } @else { <i class="pi pi-book" aria-hidden="true"></i> }
-                {{ 'brandHint.createCharter' | translate }}
-              </button>
-            }
-          </p>
+          <p role="status">{{ n }}</p>
+        }
+        <!-- Un site lu : ce qui a été trouvé, puis « Créer ma marque » (politiques d'IDEM acceptées), puis la charte. -->
+        @if (scanned(); as id) {
+          <iv-brand-create class="block max-w-xl" [brandId]="id" />
         }
         @if (failed(); as f) { <p role="alert" class="text-[var(--color-danger)]">{{ f | translate }}</p> }
       </div>
@@ -154,7 +146,6 @@ export class BrandHint {
   private readonly api = inject(ApiService);
   private readonly translate = inject(TranslateService);
   private readonly state = inject(StudioState);
-  private readonly router = inject(Router);
 
   /** La marque en cours (provisoire ou réelle), null si aucune encore. */
   readonly brand = input<Brand | null>(null);
@@ -170,9 +161,8 @@ export class BrandHint {
   protected readonly url = signal('');
   protected readonly colors = signal<Record<string, string>>({ primary: '#1f6f4a', secondary: '#14324a', accent: '#f2a93b' });
   protected readonly collapsed = signal(this.readCollapsed());
-  /** La marque qu'un site vient de donner (projet IDEM) : sa charte est proposée sous la note. */
-  protected readonly offerCharter = signal<Brand | null>(null);
-  protected readonly charterStarting = signal(false);
+  /** La marque qu'un site vient de donner : la carte « Créer ma marque » s'affiche sous la note. */
+  protected readonly scanned = signal<string | null>(null);
 
   /** Une vraie charte (pas la marque provisoire). */
   protected readonly real = computed(() => {
@@ -193,7 +183,7 @@ export class BrandHint {
   protected toggle(p: Panel): void {
     this.failed.set(null);
     this.note.set(null);
-    this.offerCharter.set(null);
+    this.scanned.set(null);
     this.panel.update((cur) => (cur === p ? null : p));
   }
 
@@ -229,7 +219,7 @@ export class BrandHint {
         if (event.type === 'status') this.status.set(this.translate.instant(event.key) !== event.key ? this.translate.instant(event.key) : event.text);
         if (event.type === 'brand') {
           this.done(event.brand, this.translate.instant('brandHint.siteDone', { name: event.brand.name }));
-          if (event.brand.idemProjectId) this.offerCharter.set(event.brand);
+          this.scanned.set(event.brand.id);
           this.url.set('');
         }
         if (event.type === 'error') {
@@ -241,23 +231,6 @@ export class BrandHint {
       error: () => {
         this.busy.set(null);
         this.failed.set('brandHint.siteFailed');
-      },
-    });
-  }
-
-  /** La charte graphique du projet né du site : lancée, puis affichée dans sa page (avancement, puis pages). */
-  protected createCharter(brand: Brand): void {
-    this.charterStarting.set(true);
-    this.failed.set(null);
-    this.api.startCharter(brand.id).subscribe({
-      next: () => {
-        this.charterStarting.set(false);
-        this.offerCharter.set(null);
-        void this.router.navigate(['/studio/charter', brand.id]);
-      },
-      error: (e: { status?: number }) => {
-        this.charterStarting.set(false);
-        this.failed.set(e?.status === 402 || e?.status === 429 ? 'charter.refused' : 'charter.failed');
       },
     });
   }

@@ -117,6 +117,8 @@ export interface Charter {
   status: 'none' | 'running' | 'ready' | 'failed';
   /** Pages terminées pendant la génération en cours. */
   done: number;
+  /** Les politiques d'IDEM acceptées pour ce projet (sinon, à accepter avant de créer la charte). */
+  policiesAccepted?: boolean;
   step?: string;
   error?: string;
   pages?: { id: string; name: string; type: string; html: string }[];

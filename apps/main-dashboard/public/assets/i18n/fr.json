@@ -5989,5 +5989,12 @@
     "later": "Plus tard",
     "close": "Fermer",
     "note": "Le formulaire s'ouvre dans un nouvel onglet."
+  },
+  "policyConsent": {
+    "title": "Une dernière étape avant de générer",
+    "body": "Ce projet a été créé depuis iVision. Pour générer ses éléments, acceptez les politiques d’IDEM.",
+    "accept": "Accepter et continuer",
+    "done": "C’est fait. Relancez votre génération.",
+    "failed": "L’accord n’a pas pu être enregistré. Réessayez."
   }
 }

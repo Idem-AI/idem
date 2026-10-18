@@ -31,7 +31,7 @@ import { HttpError } from '../middleware/error';
 import type { ChatAsk, ChatAttachment, ChatMessage, ChatMode, ChatOptions, ChatQuestion, ChatSession, ChoicesPurpose, IvisionBrand, IvisionReference } from '../models';
 import { AI_CLIP_XAF, charge, Charge, MAX_AI_CLIPS, PaymentRequired, quote, refund } from './billing';
 import { withClipAllowance } from '../utils/clip-allowance';
-import { applyNamedColors, brandFromSite, brandView, createAutoBrand, getBrand } from './brands.service';
+import { applyNamedColors, brandView, createAutoBrand, getBrand, scanBrand } from './brands.service';
 import { colorsNamed } from '../../../core/src/brand/color-words';
 import { blueprintOf, getReference, referenceView } from './references.service';
 import { createVideo, motionVideos, scopeOf } from './videos.service';
@@ -44,12 +44,9 @@ import type { VideoFormat } from '../../../core/src/video/contracts/model';
 import axios from 'axios';
 import { MAX_REQUEST_CHARS, parseRequest } from '../../../core/src/video/request/request';
 import { titleCase } from '../../../core/src/video/motionVideo.service';
-import { idem } from './idem.client';
 import { createVisual, getVisual, retouchVisual, visualView } from './visuals.service';
 import { montageChoices, montageQuestions } from '../../../core/src/montage/montage.questions';
 import { visualFormatOfRatio } from '../../../core/src/reference/reference.analyzer';
-import { startCharter } from './charter.service';
-import { IdemGatewayError } from './idem.client';
 
 const sessions = () => collection<ChatSession>('sessions');
 const now = () => new Date().toISOString();
@@ -305,8 +302,9 @@ async function reviseMotion(userId: string, session: ChatSession, videoId: strin
 }
 
 /**
- * Que faire d'un lien de site collé dans la conversation : en faire la marque ET sa charte graphique
- * (recommandé), seulement la marque (couleurs, polices, logo), ou rien — c'est une simple adresse.
+ * Un lien de site collé dans la conversation : est-ce celui de l'entreprise ? Le lire (recommandé) ne crée
+ * RIEN dans IDEM : iVision en reprend le logo, les couleurs et les polices, et propose ensuite « Créer ma
+ * marque » (politiques d'IDEM acceptées) — c'est là seulement que naît le projet IDEM.
  */
 export function siteQuestions(language: string): ChatQuestion[] {
   const en = language.startsWith('en');
@@ -316,49 +314,15 @@ export function siteQuestions(language: string): ChatQuestion[] {
       question: en ? 'Is this your business website?' : 'Est-ce le site de votre entreprise ?',
       options: [
         {
-          id: 'charter',
-          label: en ? 'Yes — create my brand guidelines' : 'Oui — créer ma charte graphique',
-          description: en ? 'I read your site, then build your full guidelines (logo, colours, fonts, rules). You see it here.' : 'Je lis votre site, puis je crée votre charte complète (logo, couleurs, polices, règles d’usage). Elle s’affiche ici.',
-          recommended: true,
-        },
-        {
           id: 'brand',
-          label: en ? 'Yes — just use my colours and logo' : 'Oui — juste reprendre mes couleurs et mon logo',
-          description: en ? 'Applied to everything I create, right away.' : 'Appliqués tout de suite à ce que je crée.',
+          label: en ? 'Yes, read my website' : 'Oui, lire mon site',
+          description: en ? 'I take your logo, colours and fonts. Then you can create your brand and its guidelines.' : 'Je reprends votre logo, vos couleurs et vos polices. Ensuite, vous pourrez créer votre marque et sa charte graphique.',
+          recommended: true,
         },
         { id: 'no', label: en ? 'No, it is just an address' : 'Non, c’est juste une adresse', description: en ? 'I keep it in your request as it is.' : 'Je la garde telle quelle dans votre demande.' },
       ],
     },
   ];
-}
-
-/** La charte graphique lancée depuis la conversation : sa carte apparaît dans le fil et se remplit seule. */
-async function charterInChat(userId: string, session: ChatSession, brand: IvisionBrand, level: string, emit: (e: ChatEvent) => void): Promise<void> {
-  try {
-    await startCharter(userId, brand._id, level);
-  } catch (error) {
-    if (error instanceof IdemGatewayError && (error.status === 402 || error.status === 429)) {
-      const refusal = paymentRefusal(new PaymentRequired(error.body || {}, error.status), 'Votre portefeuille ne suffit pas pour créer la charte. Rechargez-le, puis redemandez-la.');
-      const msg = message('assistant', refusal.text, { status: 'error', error: refusal.code, i18n: { key: refusal.i18n } });
-      await push(session._id, msg);
-      emit({ type: 'error', error: refusal.code, message: msg.text, payment: error.body });
-      emit({ type: 'message', message: msg });
-      return;
-    }
-    logger.warn('chat.charter_failed', { event: 'chat.charter_failed', error });
-    const msg = message('assistant', 'Je n’ai pas pu lancer la charte graphique. Vous pourrez la relancer depuis « Ma marque ».', { status: 'error', i18n: { key: 'chat.charter.failed' } });
-    await push(session._id, msg);
-    emit({ type: 'message', message: msg });
-    return;
-  }
-  const msg = message('assistant', 'Je crée votre charte graphique. Elle s’affiche ici dès qu’elle est prête — vous pouvez continuer pendant ce temps.', {
-    result: { kind: 'charter', brandId: brand._id },
-    status: 'done',
-    i18n: { key: 'chat.charter.started' },
-    ...(brand.idemProjectId ? { idemProjectId: brand.idemProjectId } : {}),
-  });
-  await push(session._id, msg);
-  emit({ type: 'result', message: msg });
 }
 
 /** Ce que l'utilisateur a cliqué, écrit dans le fil comme sa réponse (les libellés de la dernière question). */
@@ -535,7 +499,8 @@ async function turn(userId: string, session: ChatSession, input: TurnInput, emit
   // Ce qui a déjà été répondu pour cette demande (ne se redemande pas aux questions suivantes).
   const treatmentChoice = input.treatment?.id === 'video-treatment' ? input.treatment.option : input.resume ? pending?.treatment : undefined;
   const siteAnswer = input.answers?.purpose === 'site' ? input.answers.values.site : input.resume ? pending?.site : undefined;
-  const site = siteAnswer === 'charter' || siteAnswer === 'brand' || siteAnswer === 'no' ? siteAnswer : undefined;
+  // (« charter » : réponse d'une version précédente de la question, lue comme « lire mon site ».)
+  const site = siteAnswer === 'brand' || siteAnswer === 'charter' ? 'brand' : siteAnswer === 'no' ? 'no' : undefined;
   /** La demande en attente, avec tout ce qui l'accompagne (vidéos, choix déjà faits). */
   const keepAll = (t: string): ChatSession['pending'] => ({ ...keep(t)!, ...(videos.length ? { videos } : {}), ...(treatmentChoice ? { treatment: treatmentChoice } : {}), ...(site ? { site } : {}) });
 
@@ -584,17 +549,18 @@ async function turn(userId: string, session: ChatSession, input: TurnInput, emit
   })();
   // Une marque lue AVANT que le site devienne un projet IDEM (pas de projet lié) est refaite une fois. Le même
   // site, déjà lu, n'est relu que si le lien arrive seul (et pas une fois la question déjà répondue).
-  const known = sameSite && !!brand?.idemProjectId;
+  // Le site de la marque courante, déjà lu : on ne le relit pas (sauf lien envoyé seul, sans réponse encore).
+  const known = sameSite;
   const needsRead = !!url && site !== 'no' && (!known || (urlRest.length < 12 && !site));
   if (needsRead && !site) {
     await ask(session, { kind: 'choices', purpose: 'site', questions: siteQuestions(language || 'fr') }, keepAll(text), emit);
     return;
   }
-  if (url && known && !needsRead && site === 'charter' && brand) await charterInChat(userId, session, brand, normalizeCreativity(options.creativity), emit);
   if (needsRead) {
     emit({ type: 'status', key: 'chat.status.scan.open', text: 'Je visite votre site…' });
     try {
-      brand = await brandFromSite(userId, url, (step) => emit({ type: 'status', key: `chat.status.scan.${step}`, text: 'Lecture du site…' }));
+      // Lu dans iVision seulement : le projet IDEM attend « Créer ma marque » (carte sous le message).
+      brand = await scanBrand(userId, url, (step) => emit({ type: 'status', key: `chat.status.scan.${step}`, text: 'Lecture du site…' }));
     } catch (error) {
       const known = error instanceof SiteScanError;
       logger.warn('chat.scan_failed', { event: 'chat.scan_failed', error });
@@ -606,21 +572,15 @@ async function turn(userId: string, session: ChatSession, input: TurnInput, emit
     emit({ type: 'brand', brand: brandView(brand) });
     await sessions().updateOne({ _id: session._id }, { $set: { brandId: brand._id } });
     session.brandId = brand._id;
-    // La marque s'applique aussitôt : on le dit, et la demande continue (rien à valider). Née d'un projet IDEM,
-    // sa charte complète s'ouvre dans IDEM — où l'utilisateur peut continuer (business plan, deck, site…).
-    const read = brand.idemProjectId
-      ? message('assistant', `J’ai lu votre site et créé votre projet sur IDEM : ${brand.kit.logo ? 'votre logo, ' : ''}vos couleurs, vos polices et votre style sont appliqués à tout ce que je crée.`, {
-          i18n: { key: brand.kit.logo ? 'chat.brand.project' : 'chat.brand.projectNoLogo', params: { name: brand.name } },
-          brandId: brand._id,
-          idemProjectId: brand.idemProjectId,
-        })
-      : message('assistant', `J’ai lu votre site : j’utilise ses couleurs, ses polices${brand.kit.logo ? ', son logo' : ''} et ses photos. Vous pouvez changer la palette dans « Marques ».`, {
-          i18n: { key: brand.kit.logo ? 'chat.brand.applied' : 'chat.brand.appliedNoLogo', params: { name: brand.name } },
-          brandId: brand._id,
-        });
+    // Ce qui a été trouvé s'applique aussitôt à ce que je crée ; la carte sous le message propose « Créer ma
+    // marque » (projet IDEM, politiques acceptées), puis la charte graphique.
+    const read = message('assistant', `J’ai lu votre site : voici ce que j’ai trouvé. Je l’utilise déjà pour vos créations. Pour en faire votre marque — et créer sa charte graphique — cliquez sur « Créer ma marque ».`, {
+      i18n: { key: 'chat.brand.found', params: { name: brand.name } },
+      brandId: brand._id,
+      ...(brand.idemProjectId ? { idemProjectId: brand.idemProjectId } : {}),
+    });
     await push(session._id, read);
     emit({ type: 'message', message: read });
-    if (site === 'charter') await charterInChat(userId, session, brand, normalizeCreativity(options.creativity), emit);
   }
 
   // 2. Pas de marque (conversation d'avant) : une marque provisoire, et on continue.

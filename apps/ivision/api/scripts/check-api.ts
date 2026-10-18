@@ -160,18 +160,21 @@ async function turn(api: string, cookie: string, sessionId: string, body: object
     events = await turn(api, good, session.id, { text: `Mon site : ${site.url} — une vidéo pour fêter nos 500 clients chaque mois` });
     const siteAsk = events.find((e) => e.type === 'message' && e.message.ask?.kind === 'choices')?.message?.ask;
     check(
-      'un lien de site : « Est-ce le site de votre entreprise ? », la charte recommandée, rien lu avant la réponse',
-      siteAsk?.purpose === 'site' && siteAsk.questions[0]?.options.find((o: any) => o.recommended)?.id === 'charter' && !events.some((e) => e.type === 'brand')
+      'un lien de site : « Est-ce le site de votre entreprise ? », « lire mon site » recommandé, rien lu avant la réponse',
+      siteAsk?.purpose === 'site' && siteAsk.questions[0]?.options.find((o: any) => o.recommended)?.id === 'brand' && !events.some((e) => e.type === 'brand')
     );
     events = await turn(api, good, session.id, { resume: true, answers: { purpose: 'site', values: { site: 'brand' } } });
-    check('la réponse cliquée est écrite dans le fil', events.some((e) => e.type === 'message' && e.message.role === 'user' && /couleurs et mon logo/.test(e.message.text)));
+    check('la réponse cliquée est écrite dans le fil', events.some((e) => e.type === 'message' && e.message.role === 'user' && /lire mon site/.test(e.message.text)));
     const brand = events.find((e) => e.type === 'brand')?.brand;
     const said = events.filter((e) => e.type === 'message' && e.message.role === 'assistant').map((e) => e.message);
     asked = said[said.length - 1];
     check(`site lu : ${brand?.name}, primaire ${brand?.palette?.primary}, prêt aussitôt`, brand?.name === 'Kora Café' && brand?.palette?.primary === '#b4532a' && brand.status === 'ready');
     check('trois palettes et trois typographies gardées pour changer d’avis', brand?.proposals?.palettes?.length === 3 && brand?.proposals?.typographies?.length === 3);
-    check('l’assistant dit qu’il applique le site, sans rien demander, puis continue', said.some((m) => /^chat\.brand\.applied/.test(m.i18n?.key || '')) && asked?.ask?.kind === 'reference' && (await json('GET', `/v1/sessions/${session.id}`)).body.pending?.text?.includes('500 clients'));
+    check('l’assistant dit qu’il applique le site, sans rien demander, puis continue', said.some((m) => m.i18n?.key === 'chat.brand.found') && asked?.ask?.kind === 'reference' && (await json('GET', `/v1/sessions/${session.id}`)).body.pending?.text?.includes('500 clients'));
 
+    check('lire le site ne crée aucun projet IDEM (il attend « Créer ma marque »)', !brand?.idemProjectId);
+    const noConsent = await fetch(`${api}/v1/brands/${brand.id}/project`, { method: 'POST', headers: { 'Content-Type': 'application/json', Cookie: good }, body: JSON.stringify({}) });
+    check('« Créer ma marque » sans les politiques acceptées : refusé', noConsent.status === 422);
     const chosen = await json('POST', `/v1/brands/${brand.id}/choose`, { palette: 'contrast' });
     check('changer d’avis plus tard : palette « contraste »', chosen.body?.status === 'ready' && chosen.body.palette.primary === brand.proposals.palettes.find((p: any) => p.id === 'contrast').colors.primary);
 

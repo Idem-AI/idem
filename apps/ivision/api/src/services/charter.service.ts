@@ -15,7 +15,7 @@ import logger from '../config/logger';
 import { HttpError } from '../middleware/error';
 import type { IvisionBrand } from '../models';
 import { getBrand } from './brands.service';
-import { CharterPages, idem, IdemGatewayError } from './idem.client';
+import { CharterPages, idem, IdemGatewayError, UserConsent } from './idem.client';
 
 const brands = () => collection<IvisionBrand>('brands');
 const now = () => new Date().toISOString();
@@ -39,6 +39,8 @@ export interface CharterView {
   projectId?: string;
   status: 'none' | 'running' | 'ready' | 'failed';
   done: number;
+  /** Les politiques d'IDEM acceptées pour ce projet : sinon, l'interface les fait accepter avant de créer. */
+  policiesAccepted?: boolean;
   step?: string;
   error?: string;
   /** Les pages (avec `pages=true`, une fois prête). */
@@ -72,6 +74,7 @@ export async function startCharter(userId: string, brandId: string, creativity =
   } catch (error) {
     if (error instanceof IdemGatewayError && (error.status === 402 || error.status === 429)) throw error;
     if (error instanceof IdemGatewayError && error.status === 404) throw new HttpError(404, 'project_not_found', 'Le projet IDEM de cette marque est introuvable.');
+    if (error instanceof IdemGatewayError && error.status === 403) throw new HttpError(403, 'consent_required', 'Acceptez d’abord la politique de confidentialité, les conditions d’utilisation et les conditions du programme bêta.');
     logger.error('charter.start_failed', { event: 'charter.start_failed', brandId, error });
     throw new HttpError(503, 'charter_unavailable', 'La charte ne peut pas être créée pour le moment. Réessayez dans un instant.');
   }
@@ -113,8 +116,16 @@ export async function charterState(userId: string, brandId: string, withPages: b
   return {
     ...view(brand, job),
     status,
+    ...(pages ? { policiesAccepted: !!pages.policiesAccepted } : {}),
     ...(withPages && has ? { pages: pages!.sections, pdfFormat: pages!.pdfFormat, fonts: pages!.fonts } : {}),
   };
+}
+
+/** L'accord des politiques pour le projet de la marque (projets créés avant que l'accord soit demandé). */
+export async function acceptPolicies(userId: string, brandId: string, consent: UserConsent): Promise<boolean> {
+  const brand = await getBrand(userId, brandId);
+  if (!brand.idemProjectId) throw new HttpError(400, 'charter_needs_site', 'Cette marque n’a pas de projet IDEM.');
+  return (await idem.projects.consent(userId, brand.idemProjectId, consent)).accepted;
 }
 
 function view(brand: IvisionBrand, job: CharterJob | undefined): CharterView {

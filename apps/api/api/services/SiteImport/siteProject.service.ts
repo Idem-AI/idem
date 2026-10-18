@@ -26,6 +26,7 @@ import { fontCatalogService } from '../font-catalog.service';
 import { processLogoImport } from '../logo-import.service';
 import { generateLogoVariations } from '../logoVariationEngine.service';
 import { projectService } from '../project.service';
+import { policyAcceptanceService } from '../policyAcceptance.service';
 import { PromptService } from '../prompt.service';
 import { storageService } from '../storage.service';
 import { BrandingService } from '../BandIdentity/branding.service';
@@ -213,11 +214,47 @@ async function typographyOf(userId: string, scan: SiteScanResult, copied: string
   return { chosen, proposals: [chosen, ...others] };
 }
 
+/**
+ * L'accord de l'utilisateur, donné dans iVision AVANT l'import de son site : politique de confidentialité,
+ * conditions d'utilisation, conditions du programme bêta. Sans lui, le projet n'est pas « finalisé » et les
+ * générations d'IDEM le refusent (`checkPolicyAcceptance`).
+ */
+export interface SiteConsent {
+  privacyPolicyAccepted: boolean;
+  termsOfServiceAccepted: boolean;
+  betaPolicyAccepted: boolean;
+  ipAddress?: string;
+  userAgent?: string;
+}
+
+/** Enregistre l'accord sur le projet, s'il ne l'est pas déjà (même trace qu'à la création d'un projet dans IDEM). */
+export async function recordConsent(userId: string, projectId: string, consent?: SiteConsent): Promise<boolean> {
+  if (!consent?.privacyPolicyAccepted || !consent.termsOfServiceAccepted || !consent.betaPolicyAccepted) return false;
+  if (await policyAcceptanceService.isPolicyAccepted(userId, projectId)) return true;
+  try {
+    await policyAcceptanceService.finalizeProject(
+      userId,
+      projectId,
+      { privacyPolicyAccepted: true, termsOfServiceAccepted: true, betaPolicyAccepted: true, marketingAccepted: false },
+      consent.ipAddress,
+      consent.userAgent
+    );
+    logger.info('site_import.consent_recorded', { event: 'site_import.consent_recorded', projectId });
+    return true;
+  } catch (error: any) {
+    if (String(error?.message || '').includes('already been finalized')) return true;
+    logger.error('site_import.consent_failed', { event: 'site_import.consent_failed', projectId, error: error?.message });
+    return false;
+  }
+}
+
 /** Crée (ou rouvre) le projet IDEM d'un site, identité visuelle comprise. */
-export async function createProjectFromSite(userId: string, rawUrl: string, ports: SiteImportPorts, onStep: (step: SiteImportStep) => void = () => undefined): Promise<SiteImportResult> {
+export async function createProjectFromSite(userId: string, rawUrl: string, ports: SiteImportPorts, onStep: (step: SiteImportStep) => void = () => undefined, consent?: SiteConsent): Promise<SiteImportResult> {
   const url = normalizeSiteUrl(rawUrl);
   const existing = await projectForSite(userId, url);
   if (existing?.id && existing.analysisResultModel?.branding?.colors?.colors) {
+    // Un projet déjà créé sans accord (iVision avant le 18/10/2026) le reçoit maintenant.
+    await recordConsent(userId, existing.id, consent);
     onStep('done');
     const b = existing.analysisResultModel.branding;
     return { projectId: existing.id, reused: true, name: existing.name, siteUrl: (b as { siteSource?: { url: string } }).siteSource?.url || url, images: [], logo: !!b.logo?.svg, fonts: { display: b.typography?.primaryFont || '', body: b.typography?.secondaryFont || '', copied: [] }, warnings: [] };
@@ -245,6 +282,8 @@ export async function createProjectFromSite(userId: string, rawUrl: string, port
     project: undefined,
   });
   const projectId = created.id as string;
+  // L'accord d'abord : le projet est utilisable dans IDEM dès sa création.
+  await recordConsent(userId, projectId, consent);
 
   onStep('logo-variations');
   const logo = await importLogo(userId, projectId, scan).catch((error: any) => {
@@ -299,13 +338,19 @@ const save = (job: SiteImportJob) => cacheService.set(`site-import:${job.id}`, j
 
 export const siteImportJobs = {
   /** Lance l'import en tâche de fond ; l'avancement est relu par `get`. */
-  async start(userId: string, url: string, ports: SiteImportPorts): Promise<SiteImportJob> {
+  async start(userId: string, url: string, ports: SiteImportPorts, consent?: SiteConsent): Promise<SiteImportJob> {
     const job: SiteImportJob = { id: crypto.randomUUID(), userId, status: 'running', step: 'open' };
     await save(job);
-    void createProjectFromSite(userId, url, ports, (step) => {
-      job.step = step;
-      void save(job);
-    })
+    void createProjectFromSite(
+      userId,
+      url,
+      ports,
+      (step) => {
+        job.step = step;
+        void save(job);
+      },
+      consent
+    )
       .then(async (result) => {
         await save({ ...job, status: 'done', step: 'done', result });
       })

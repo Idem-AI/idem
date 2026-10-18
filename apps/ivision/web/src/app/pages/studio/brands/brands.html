@@ -25,8 +25,9 @@
             @if (scanError(); as e) {
               <p class="mt-2 text-sm text-[var(--color-danger)]" role="alert">{{ e }}</p>
             }
+            <!-- Le site lu : ce qui a été trouvé, puis « Créer ma marque » (politiques d'IDEM acceptées). -->
             @if (draft(); as d) {
-              <iv-brand-choice [brand]="d" (chosen)="chosen($event)" />
+              <iv-brand-create class="block" [brandId]="d.id" />
             }
           </div>
         </div>
@@ -108,6 +109,10 @@
                   <img [src]="p" alt="" class="h-12 w-12 shrink-0 rounded-md object-cover" loading="lazy" />
                 }
               </div>
+            }
+            @if (b.source === 'site' && !b.idemProjectId && draft()?.id !== b.id) {
+              <!-- Lue d'un site, pas encore créée sur IDEM. -->
+              <iv-brand-create class="block" [brandId]="b.id" [showFound]="false" />
             }
             <div class="mt-4 flex flex-wrap gap-2">
               <label class="outer-button button-sm cursor-pointer">

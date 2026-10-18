@@ -354,7 +354,8 @@
       "appliedNoLogo": "J’ai lu votre site : j’utilise ses couleurs, ses polices et ses photos. Vous pouvez changer la palette dans « Marques ».",
       "project": "J’ai lu votre site et créé votre projet sur IDEM : votre logo, vos couleurs, vos polices et votre style sont appliqués à tout ce que je crée.",
       "projectNoLogo": "J’ai lu votre site et créé votre projet sur IDEM : vos couleurs, vos polices et votre style sont appliqués à tout ce que je crée. Ajoutez votre logo dans IDEM pour le voir sur vos créations.",
-      "openIdem": "Voir ma charte sur IDEM"
+      "openIdem": "Voir ma charte sur IDEM",
+      "found": "J’ai lu votre site : voici ce que j’ai trouvé. Je l’utilise déjà pour vos créations. Pour en faire votre marque — et créer sa charte graphique — cliquez sur « Créer ma marque »."
     },
     "empty": {
       "videoTitle": "Quelle vidéo voulez-vous ?",
@@ -630,7 +631,7 @@
     "subtitle": "Votre logo, vos couleurs et vos polices : toutes vos créations les respectent.",
     "scan": {
       "title": "Votre site internet",
-      "text": "Collez l’adresse de votre site : je reprends votre logo, vos couleurs, vos polices et vos photos, et je crée votre projet sur IDEM. Votre charte graphique se crée ensuite d’un clic.",
+      "text": "Collez l’adresse de votre site : je reprends votre logo, vos couleurs, vos polices et vos photos. Ensuite, « Créer ma marque » l’enregistre sur IDEM, et sa charte graphique se crée d’un clic.",
       "label": "Lien de votre site",
       "cta": "Utiliser mon site"
     },
@@ -841,7 +842,7 @@
     "siteQuestion": "Vous avez un site internet ?",
     "sitePlaceholder": "monentreprise.com",
     "useSite": "Utiliser mon site",
-    "siteExplain": "Je reprends votre logo, vos couleurs et vos polices, et je peux créer votre charte graphique. Vous pouvez aussi coller le lien dans votre message.",
+    "siteExplain": "Je reprends votre logo, vos couleurs et vos polices, puis vous pouvez créer votre marque et sa charte graphique. Vous pouvez aussi coller le lien dans votre message.",
     "noSite": "Pas de site ?",
     "viewCharter": "Voir ma charte graphique",
     "createCharter": "Créer ma charte graphique",
@@ -965,5 +966,20 @@
     "create": "Créer ma charte graphique",
     "offer": "Votre charte graphique : votre logo, vos couleurs, vos polices et leurs règles d’usage, en pages à consulter ici.",
     "refused": "Votre portefeuille IDEM ne suffit pas pour cette charte : rechargez-le, puis relancez."
+  },
+  "consent": {
+    "iAccept": "J’accepte la",
+    "privacy": "politique de confidentialité",
+    "terms": "les conditions d’utilisation",
+    "and": "et",
+    "beta": "les conditions du programme bêta",
+    "ofIdem": "d’IDEM."
+  },
+  "brandCreate": {
+    "cta": "Créer ma marque",
+    "needConsent": "Cochez la case pour créer votre marque.",
+    "creating": "Je crée votre marque sur IDEM…",
+    "created": "Votre marque est créée sur IDEM. Vous pouvez maintenant créer sa charte graphique.",
+    "failed": "Votre marque n’a pas pu être créée. Réessayez dans un instant."
   }
 }

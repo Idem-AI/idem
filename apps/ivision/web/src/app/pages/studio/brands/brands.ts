@@ -7,7 +7,7 @@ import { loadFontSheet } from '../../../core/fonts';
 import { Brand, PaletteRole } from '../../../core/models';
 import { StudioState } from '../../../core/studio.state';
 import { Illustration } from '../../../shared/components/illustration';
-import { BrandChoice } from '../chat/brand-choice';
+import { BrandCreate } from '../../../shared/components/brand-create';
 import { RouterLink } from '@angular/router';
 import { idemLinks } from '../../../core/charter';
 
@@ -18,7 +18,7 @@ import { idemLinks } from '../../../core/charter';
  */
 @Component({
   selector: 'iv-brands',
-  imports: [TranslateModule, IdemLoaderComponent, Illustration, BrandChoice, RouterLink],
+  imports: [TranslateModule, IdemLoaderComponent, Illustration, BrandCreate, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './brands.html',
 })

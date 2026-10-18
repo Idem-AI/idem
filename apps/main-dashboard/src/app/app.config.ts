@@ -14,6 +14,7 @@ import { provideTranslateHttpLoader } from '@ngx-translate/http-loader';
 import { providePrimeNG } from 'primeng/config';
 import { routes } from './app.routes';
 import { authInterceptor } from './shared/interceptors/auth.interceptor';
+import { policyRequiredInterceptor } from './shared/interceptors/policy-required.interceptor';
 import { paymentRequiredInterceptor } from './shared/interceptors/payment-required.interceptor';
 import { MyPreset } from './my-preset';
 import { provideMarkdown, MARKED_OPTIONS, MERMAID_OPTIONS } from 'ngx-markdown';
@@ -33,7 +34,7 @@ export const appConfig: ApplicationConfig = {
     // `paymentRequiredInterceptor` après l'authentification : un 402 n'a de
     // sens que sur une requête authentifiée, et l'ordre garantit que le jeton
     // a été posé avant que le refus soit interprété.
-    provideHttpClient(withInterceptors([authInterceptor, paymentRequiredInterceptor])),
+    provideHttpClient(withInterceptors([authInterceptor, paymentRequiredInterceptor, policyRequiredInterceptor])),
     provideAnimations(),
     providePrimeNG({
       theme: {

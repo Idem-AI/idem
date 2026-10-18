@@ -66,6 +66,17 @@ export class ApiService {
   scan(url: string): Observable<ChatEvent> {
     return this.stream(`${this.base}/brands/scan`, { url });
   }
+  /**
+   * « Créer ma marque » : la marque lue d'un site devient un projet IDEM — les politiques d'IDEM ont été
+   * acceptées (case cochée). En flux : étapes réelles, puis la marque.
+   */
+  createBrandProject(brandId: string): Observable<ChatEvent> {
+    return this.stream(`${this.base}/brands/${brandId}/project`, { consent: true });
+  }
+  /** L'accord des politiques d'IDEM pour un projet déjà créé (avant que l'accord soit demandé). */
+  brandConsent(brandId: string) {
+    return this.http.post<{ accepted: boolean }>(`${this.base}/brands/${brandId}/consent`, { consent: true });
+  }
 
   // ── Conversations ──
   sessions(mode?: ChatMode) {

@@ -146,7 +146,11 @@ export const idem = {
     /** La charte d'un projet IDEM de l'utilisateur, au format du moteur partagé (BrandKit). */
     brand: (userId: string, projectId: string) => call<{ name: string; branding: any; voice: any; photos: string[] }>('get', `/projects/${encodeURIComponent(projectId)}/brand?userId=${encodeURIComponent(userId)}`),
     /** Un projet IDEM complet depuis un site (projet, logo et déclinaisons, palettes, polices, direction, motifs) : tâche de fond. */
-    fromSite: (userId: string, url: string) => call<{ jobId: string; status: string; step: string }>('post', '/projects/from-site', { userId, url }, 20_000),
+    fromSite: (userId: string, url: string, consent?: UserConsent) =>
+      call<{ jobId: string; status: string; step: string }>('post', '/projects/from-site', { userId, url, ...(consent ? { consent: consentBody(consent) } : {}) }, 20_000),
+    /** L'accord des politiques enregistré sur un projet déjà créé. */
+    consent: (userId: string, projectId: string, consent: UserConsent) =>
+      call<{ accepted: boolean }>('post', `/projects/${encodeURIComponent(projectId)}/consent`, { userId, consent: consentBody(consent) }, 15_000),
     fromSiteJob: (userId: string, jobId: string) => call<SiteImportJobView>('get', `/projects/from-site/${encodeURIComponent(jobId)}?userId=${encodeURIComponent(userId)}`, undefined, 15_000),
     /** Les pages de la charte d'un projet (HTML des sections), telles qu'IDEM les affiche. */
     branding: (userId: string, projectId: string) =>
@@ -155,8 +159,21 @@ export const idem = {
   },
 };
 
+/**
+ * L'accord donné dans iVision : politique de confidentialité, conditions d'utilisation et conditions du
+ * programme bêta d'IDEM, cochés par l'utilisateur ; l'adresse IP et le navigateur font la même trace qu'IDEM.
+ */
+export interface UserConsent {
+  ipAddress?: string;
+  userAgent?: string;
+}
+
+const consentBody = (c: UserConsent) => ({ privacy: true, terms: true, beta: true, ...(c.ipAddress ? { ipAddress: c.ipAddress } : {}), ...(c.userAgent ? { userAgent: c.userAgent.slice(0, 400) } : {}) });
+
 export interface CharterPages {
   name: string;
+  /** Les politiques acceptées pour ce projet (sinon IDEM refuse ses générations). */
+  policiesAccepted?: boolean;
   pdfFormat: string;
   fonts: { primaryFont?: string; secondaryFont?: string; fontUrl?: string };
   sections: { id: string; name: string; type: string; html: string }[];

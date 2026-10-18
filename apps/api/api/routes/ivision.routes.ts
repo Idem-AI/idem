@@ -33,7 +33,7 @@ import { runWithAiUsageContext } from '../utils/ai-usage-context.util';
 import { setTraceUserId } from '../utils/trace.util';
 import { safeEqual } from '../utils/safe-equal.util';
 import type { BrandKit } from '../../../ivision/core/src/brand/brand-kit';
-import { siteImportJobs } from '../services/SiteImport/siteProject.service';
+import { recordConsent, SiteConsent, siteImportJobs } from '../services/SiteImport/siteProject.service';
 import { chargeBrandSession } from './branding.routes';
 import { generateBrandingStreamingController } from '../controllers/branding.controller';
 import { CustomRequest } from '../interfaces/express.interface';
@@ -71,6 +71,16 @@ function requireIvisionKey(req: Request, res: Response, next: NextFunction): voi
 
 const text = (v: unknown, max: number): string => (typeof v === 'string' ? v.slice(0, max) : '');
 const userIdOf = (req: Request): string => text((req.body as Record<string, unknown> | undefined)?.userId ?? req.query.userId, 128);
+
+/**
+ * L'accord donné dans iVision (confidentialité, conditions d'utilisation, programme bêta), avec l'adresse IP
+ * et le navigateur de l'utilisateur relayés par iVision : la même trace qu'un projet créé dans IDEM.
+ */
+function consentOf(req: Request): SiteConsent | undefined {
+  const c = (req.body as { consent?: Record<string, unknown> } | undefined)?.consent;
+  if (!c || c.privacy !== true || c.terms !== true || c.beta !== true) return undefined;
+  return { privacyPolicyAccepted: true, termsOfServiceAccepted: true, betaPolicyAccepted: true, ipAddress: text(c.ipAddress, 64) || undefined, userAgent: text(c.userAgent, 400) || undefined };
+}
 
 /** Chaque appel de modèle est rattaché à l'utilisateur d'iVision : quotas et suivi d'usage d'IDEM. */
 function asUser<T>(req: Request, feature: string, fn: () => Promise<T>): Promise<T> {
@@ -405,10 +415,15 @@ router.post(
       return;
     }
     const job = await asUser(req, 'branding', () =>
-      siteImportJobs.start(userId, url, {
-        text: (system, user, tier) => communicationService.runVideoTieredPrompt(userId, system, user, tier, 'copy'),
-        vision: (base64, mimeType, instruction) => idemAnalyzeImage(base64, mimeType, instruction, { maxOutputTokens: 1400, temperature: 0.2, purpose: 'site' }),
-      })
+      siteImportJobs.start(
+        userId,
+        url,
+        {
+          text: (system, user, tier) => communicationService.runVideoTieredPrompt(userId, system, user, tier, 'copy'),
+          vision: (base64, mimeType, instruction) => idemAnalyzeImage(base64, mimeType, instruction, { maxOutputTokens: 1400, temperature: 0.2, purpose: 'site' }),
+        },
+        consentOf(req)
+      )
     );
     res.status(202).json({ jobId: job.id, status: job.status, step: job.step });
   })
@@ -446,6 +461,11 @@ function asProjectOwner(req: Request, res: Response, next: NextFunction): void {
         res.status(404).json({ error: 'project_not_found' });
         return;
       }
+      // Comme dans IDEM : pas de génération sur un projet dont les politiques n'ont pas été acceptées.
+      if (!project.policyAcceptance) {
+        res.status(403).json({ error: 'consent_required', message: 'Acceptez d’abord la politique de confidentialité, les conditions d’utilisation et les conditions du programme bêta.' });
+        return;
+      }
       (req as CustomRequest).user = { uid: userId };
       setTraceUserId(userId);
       runWithAiUsageContext({ userId, projectId, feature: 'branding', operation: 'generate', source: `ivision ${req.method} ${req.path}` }, () => next());
@@ -464,6 +484,26 @@ function asProjectOwner(req: Request, res: Response, next: NextFunction): void {
  */
 router.post('/projects/:projectId/branding/generate', asProjectOwner, chargeBrandSession, generateBrandingStreamingController);
 
+/** L'accord des politiques pour un projet déjà créé (depuis iVision, avant que l'accord y soit demandé). */
+router.post(
+  '/projects/:projectId/consent',
+  route(async (req, res) => {
+    const userId = userIdOf(req);
+    const projectId = String(req.params.projectId);
+    const project = userId ? await projectService.getUserProjectById(userId, projectId) : null;
+    if (!project) {
+      res.status(404).json({ error: 'project_not_found' });
+      return;
+    }
+    const consent = consentOf(req);
+    if (!consent) {
+      res.status(400).json({ error: 'consent_required' });
+      return;
+    }
+    res.json({ accepted: await recordConsent(userId, projectId, consent) });
+  })
+);
+
 /** Les pages de la charte d'un projet (HTML des sections), pour l'aperçu dans iVision. */
 router.get(
   '/projects/:projectId/branding',
@@ -478,6 +518,8 @@ router.get(
     const sections = (branding?.sections || []).filter((s) => typeof s.data === 'string' && (s.data as string).trim()).map((s) => ({ id: s.id || s.name, name: s.name, type: s.type || '', html: s.data as string }));
     res.json({
       name: project.name,
+      // Sans accord des politiques, les générations d'IDEM refusent ce projet : iVision le demande d'abord.
+      policiesAccepted: !!project.policyAcceptance,
       pdfFormat: branding?.pdfFormat || 'SLIDE_16_9',
       fonts: { primaryFont: branding?.typography?.primaryFont, secondaryFont: branding?.typography?.secondaryFont, fontUrl: branding?.typography?.url },
       sections,

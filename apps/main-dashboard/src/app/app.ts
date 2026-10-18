@@ -12,6 +12,7 @@ import { DashboardLayoutComponent } from './layouts/dashboard-layout/dashboard-l
 import { GuidedLayoutComponent } from './layouts/guided-layout/guided-layout';
 import { GuidedLockModalComponent } from './modules/guided/components/guided-lock-modal/guided-lock-modal';
 import { PaywallHostComponent } from './modules/billing/components/paywall-host/paywall-host';
+import { PolicyConsentHostComponent } from './shared/components/policy-consent-host/policy-consent-host';
 import { BetaInviteComponent } from './shared/components/beta-invite/beta-invite';
 import { ModeDockComponent } from './shared/components/mode-dock/mode-dock';
 
@@ -25,6 +26,7 @@ import { ModeDockComponent } from './shared/components/mode-dock/mode-dock';
     GuidedLayoutComponent,
     GuidedLockModalComponent,
     PaywallHostComponent,
+    PolicyConsentHostComponent,
     BetaInviteComponent,
     ModeDockComponent,
     AsyncPipe,

@@ -6023,5 +6023,12 @@
     "later": "Later",
     "close": "Close",
     "note": "The form opens in a new tab."
+  },
+  "policyConsent": {
+    "title": "One last step before generating",
+    "body": "This project was created from iVision. To generate its elements, accept IDEM’s policies.",
+    "accept": "Accept and continue",
+    "done": "Done. Start your generation again.",
+    "failed": "Your acceptance could not be saved. Try again."
   }
 }

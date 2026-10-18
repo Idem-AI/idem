@@ -356,7 +356,8 @@
       "appliedNoLogo": "I read your website: I’m using its colours, fonts and photos. You can change the palette in “Brands”.",
       "project": "I read your website and created your project on IDEM: your logo, colours, fonts and style are applied to everything I create.",
       "projectNoLogo": "I read your website and created your project on IDEM: your colours, fonts and style are applied to everything I create. Add your logo in IDEM to see it on your creations.",
-      "openIdem": "See my brand guidelines on IDEM"
+      "openIdem": "See my brand guidelines on IDEM",
+      "found": "I read your website: here is what I found. I already use it for your creations. To make it your brand — and create its guidelines — click “Create my brand”."
     },
     "empty": {
       "videoTitle": "What video do you want?",
@@ -632,7 +633,7 @@
     "subtitle": "Your logo, colours and fonts: all your creations follow them.",
     "scan": {
       "title": "Your website",
-      "text": "Paste your website address: I take your logo, colours, fonts and photos, and create your project on IDEM. Your brand guidelines are then one click away.",
+      "text": "Paste your website address: I take your logo, colours, fonts and photos. Then “Create my brand” saves it on IDEM, and its guidelines are one click away.",
       "label": "Your website link",
       "cta": "Use my website"
     },
@@ -843,7 +844,7 @@
     "siteQuestion": "Do you have a website?",
     "sitePlaceholder": "mybusiness.com",
     "useSite": "Use my website",
-    "siteExplain": "I take your logo, colours and fonts, and I can create your brand guidelines. You can also paste the link in your message.",
+    "siteExplain": "I take your logo, colours and fonts, then you can create your brand and its guidelines. You can also paste the link in your message.",
     "noSite": "No website?",
     "viewCharter": "See my brand guidelines",
     "createCharter": "Create my brand guidelines",
@@ -967,5 +968,20 @@
     "create": "Create my brand guidelines",
     "offer": "Your brand guidelines: your logo, colours, fonts and how to use them, as pages you can read here.",
     "refused": "Your IDEM wallet is not enough for these guidelines: top it up, then try again."
+  },
+  "consent": {
+    "iAccept": "I accept the",
+    "privacy": "privacy policy",
+    "terms": "the terms of service",
+    "and": "and",
+    "beta": "the beta programme terms",
+    "ofIdem": "of IDEM."
+  },
+  "brandCreate": {
+    "cta": "Create my brand",
+    "needConsent": "Tick the box to create your brand.",
+    "creating": "Creating your brand on IDEM…",
+    "created": "Your brand is created on IDEM. You can now create its brand guidelines.",
+    "failed": "Your brand could not be created. Try again in a moment."
   }
 }

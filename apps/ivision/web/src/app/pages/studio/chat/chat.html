@@ -83,9 +83,12 @@
           <div class="max-w-[92%] rounded-2xl rounded-bl-md border px-4 py-3"
             [class]="m.status === 'error' ? 'border-[var(--color-danger)]' : 'border-[var(--glass-border-subtle)]'">
             <p class="whitespace-pre-wrap">{{ messageText(m) }}</p>
-            <!-- Une marque née d'un site : sa charte graphique, à créer ou à voir, sans quitter iVision. -->
-            @if (charterOffer(m)) {
-              <iv-charter-result [brandId]="m.brandId!" [projectId]="m.idemProjectId" />
+            <!--
+              Un site lu : ce qui a été trouvé, puis « Créer ma marque » (politiques d'IDEM acceptées) — le projet
+              IDEM ne naît qu'à ce clic —, puis sa charte graphique, à créer et à voir sans quitter iVision.
+            -->
+            @if (brandCard(m)) {
+              <iv-brand-create [brandId]="m.brandId!" />
             }
 
             <!-- Les réponses possibles, seulement sur la dernière question. -->

@@ -16,6 +16,7 @@ import { Illustration } from '../../../shared/components/illustration';
 import { BrandChoice } from './brand-choice';
 import { AskChoices } from './ask-choices';
 import { CharterResult } from './charter-result';
+import { BrandCreate } from '../../../shared/components/brand-create';
 import { ProgressList, StageState } from './progress-list';
 import { MontageResult } from './montage-result';
 import { VideoResult } from './video-result';
@@ -65,7 +66,7 @@ export function settingsInRequest(text: string): { durationSec?: number; format?
  */
 @Component({
   selector: 'iv-chat',
-  imports: [RouterLink, TranslateModule, IdemLoaderComponent, CreativitySelect, Illustration, BrandChoice, BrandHint, ProgressList, VideoResult, VisualResult, MontageResult, AskChoices, CharterResult],
+  imports: [RouterLink, TranslateModule, IdemLoaderComponent, CreativitySelect, Illustration, BrandChoice, BrandHint, ProgressList, VideoResult, VisualResult, MontageResult, AskChoices, CharterResult, BrandCreate],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './chat.html',
 })
@@ -393,12 +394,14 @@ export class ChatPage {
   }
 
   /**
-   * La carte de la charte sous le message qui annonce une marque née d'un site (projet IDEM) — sauf quand
-   * un message plus loin porte déjà la charte de cette marque.
+   * La carte « Créer ma marque » sous le message qui annonce un site lu — une seule fois par marque (sous le
+   * dernier message qui l'annonce), et pas quand un message plus loin porte déjà la charte de cette marque.
    */
-  protected charterOffer(m: ChatMessage): boolean {
-    if (!m.brandId || !m.idemProjectId || m.result) return false;
-    return !this.messages().some((x) => x.result?.kind === 'charter' && x.result.brandId === m.brandId);
+  protected brandCard(m: ChatMessage): boolean {
+    if (!m.brandId || m.result) return false;
+    const list = this.messages();
+    if (list.some((x) => x.result?.kind === 'charter' && x.result.brandId === m.brandId)) return false;
+    return [...list].reverse().find((x) => x.brandId === m.brandId && !x.result)?.id === m.id;
   }
 
   private run(body: TurnBody): void {
