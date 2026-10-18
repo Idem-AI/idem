@@ -171,15 +171,53 @@ describe("a database's separate variables", () => {
     expect(linkVariables(own, mysql)).toEqual(own);
   });
 
-  it('never point a MySQL application at a PostgreSQL database', () => {
+  it('never point an application whose code carries one driver at another engine', () => {
     const linked = linkVariables(
       [
-        { key: 'DB_CONNECTION', value: 'mysql' },
+        { key: 'DB_ENGINE', value: 'django.db.backends.mysql' },
         { key: 'DB_HOST', value: '127.0.0.1' },
       ],
       targets
     );
     expect(linked.every((l) => l.linkedTo === undefined)).toBe(true);
+  });
+
+  it("switch Laravel's driver to the workspace's database: G-REQUETE, mysql on a PostgreSQL host", () => {
+    // What the guide had filled: the PostgreSQL container's host and port, DB_CONNECTION left at mysql.
+    const linked = linkVariables(
+      [
+        { key: 'DB_CONNECTION', value: 'mysql' },
+        { key: 'DB_HOST', value: 'postgresql-1' },
+        { key: 'DB_PORT', value: '3306' },
+        { key: 'DB_DATABASE', value: 'shop' },
+      ],
+      targets
+    );
+    expect(Object.fromEntries(linked.map((l) => [l.key, l.value]))).toEqual({
+      DB_CONNECTION: 'pgsql',
+      DB_HOST: 'postgresql-1',
+      DB_PORT: '5432',
+      DB_DATABASE: 'shop',
+    });
+  });
+
+  it("keep a group whose host is the user's own server", () => {
+    const own = [
+      { key: 'DB_CONNECTION', value: 'mysql' },
+      { key: 'DB_HOST', value: 'db.mycompany.com' },
+    ];
+    expect(linkVariables(own, targets)).toEqual(own);
+  });
+
+  it("give Redis's password when its host is already the workspace's Redis", () => {
+    const linked = linkVariables(
+      [
+        { key: 'REDIS_HOST', value: 'redis-2' },
+        { key: 'REDIS_PASSWORD', value: 'wrong' },
+      ],
+      targets
+    );
+    expect(linked[1].value).toBe('redispass');
   });
 
   it("move Laravel from SQLite to the workspace's database", () => {
