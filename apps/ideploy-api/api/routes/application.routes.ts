@@ -91,5 +91,6 @@ router.get('/:uuid/metrics', ctrl.metrics);
 router.get('/:uuid/usage', ctrl.resourceUsage);
 // Commande arbitraire dans le conteneur : réservé aux admins de l'équipe.
 router.post('/:uuid/exec', requireTeamAdmin, ctrl.exec);
+router.get('/:uuid/logs', ctrl.logs);
 
 export default router;

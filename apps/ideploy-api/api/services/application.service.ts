@@ -12,7 +12,7 @@ import { claimPlatformHost, releasePlatformHost } from './platform-domain.servic
 import { ApplicationRow } from '../models/ideploy.types';
 import * as serverService from './server.service';
 import { executeRemoteCommand } from '../ssh/ssh';
-import { appWorkdir, composeCommand } from '../docker/compose';
+import { appContainersCommand, appWorkdir, composeCommand } from '../docker/compose';
 import { shellQuote } from '../ssh/ssh';
 import {
   isSafeBuildTarget,
@@ -552,7 +552,7 @@ export async function getContainerStatus(teamId: number, uuid: string): Promise<
   const r = await executeRemoteCommand(
     server,
     key,
-    `docker ps -a --filter label=ideploy.applicationUuid=${uuid} --format '{{.Names}}\\t{{.Status}}'`,
+    appContainersCommand(uuid, { all: true, format: '{{.Names}}\\t{{.Status}}' }),
     { noRetry: true }
   );
   return r.stdout.trim();
@@ -564,7 +564,7 @@ export async function getMetrics(teamId: number, uuid: string): Promise<string> 
   const r = await executeRemoteCommand(
     server,
     key,
-    `docker stats --no-stream --format '{{.Name}}\\t{{.CPUPerc}}\\t{{.MemUsage}}' $(docker ps --filter label=ideploy.applicationUuid=${uuid} -q)`,
+    `docker stats --no-stream --format '{{.Name}}\\t{{.CPUPerc}}\\t{{.MemUsage}}' $(${appContainersCommand(uuid, { format: '{{.ID}}' })})`,
     { noRetry: true }
   );
   return r.stdout.trim();
@@ -647,7 +647,7 @@ export async function getResourceUsage(teamId: number, uuid: string): Promise<Co
     server,
     key,
     `docker stats --no-stream --format '{{.Name}}\\t{{.CPUPerc}}\\t{{.MemUsage}}\\t{{.MemPerc}}\\t{{.NetIO}}' ` +
-      `$(docker ps --filter label=ideploy.applicationUuid=${uuid} -q)`,
+      `$(${appContainersCommand(uuid, { format: '{{.ID}}' })})`,
     { noRetry: true }
   );
   return parseDockerStats(r.stdout);
@@ -663,11 +663,42 @@ export async function execCommand(
   // `JSON.stringify` produit des guillemets DOUBLES : le shell de l'hôte y
   // évaluait `$(…)` et les backticks AVANT `docker exec`, donc sur le serveur
   // lui-même et non dans le conteneur. Les apostrophes n'interprètent rien.
-  const target = `$(docker ps --filter label=ideploy.applicationUuid=${shellQuote(uuid)} --format '{{.Names}}' | head -1)`;
+  const target = `$(${appContainersCommand(uuid)} | head -1)`;
   const r = await executeRemoteCommand(server, key, `docker exec ${target} sh -c ${shellQuote(command)}`, {
     noRetry: true,
   });
   return { exitCode: r.exitCode, output: r.stdout + r.stderr };
+}
+
+/** Lines a logs request returns at most, and the bytes they may weigh. */
+const LOGS_MAX_LINES = 2000;
+const LOGS_MAX_BYTES = 1_000_000;
+
+/**
+ * What the application's running container printed — its stdout and stderr,
+ * with Docker's timestamps. The container is found by its label (its name is
+ * `<name>-<uuid>`); a stopped one still has its last logs.
+ */
+export async function runtimeLogs(
+  teamId: number,
+  uuid: string,
+  opts: { tail?: number; since?: string } = {}
+): Promise<{ container: string | null; logs: string }> {
+  const { server, key } = await resolveAppServer(teamId, uuid);
+  const tail = Math.min(Math.max(Math.floor(opts.tail ?? 500), 1), LOGS_MAX_LINES);
+  // `since`: an RFC 3339 date Docker accepts, nothing else reaches the shell.
+  const since = opts.since && /^\d{4}-\d{2}-\d{2}T[\d:.]+(Z|[+-]\d{2}:\d{2})$/.test(opts.since) ? ` --since ${shellQuote(opts.since)}` : '';
+  const r = await executeRemoteCommand(
+    server,
+    key,
+    `C=$(${appContainersCommand(uuid, { all: true })} | head -1); ` +
+      `if [ -z "$C" ]; then echo '@@NONE'; else echo "@@C $C"; docker logs --timestamps --tail ${tail}${since} "$C" 2>&1 | tail -c ${LOGS_MAX_BYTES}; fi`,
+    { noRetry: true }
+  );
+  const firstLine = r.stdout.slice(0, r.stdout.indexOf('\n') + 1 || undefined);
+  if (firstLine.startsWith('@@NONE')) return { container: null, logs: '' };
+  const container = /^@@C (\S+)/.exec(firstLine)?.[1] ?? null;
+  return { container, logs: r.stdout.slice(firstLine.length) };
 }
 
 /** Resolve the server (via destination) hosting an application. */

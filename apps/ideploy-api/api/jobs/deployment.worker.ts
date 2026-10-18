@@ -636,6 +636,8 @@ async function deploy(
   let composeDir = workdir;
   // The image our generated compose file runs — null for a repository's own stack.
   let composeImage: string | null = null;
+  // The release command the build plan read in the code (migrations), run before the switch.
+  let planRelease: string | undefined;
 
   await streamStep(deploymentUuid, 'Preparing the release', async () => {
     const r = await executeRemoteCommand(
@@ -775,6 +777,7 @@ async function deploy(
       });
     }
     const used = read.plan?.language ? read.plan : null;
+    planRelease = used?.release;
     // A site with nothing to keep running is served as files (nixpacks would
     // look for a start command and fail).
     if (used?.output === 'static' && pack === 'nixpacks' && !app.start_command) pack = 'static';
@@ -955,6 +958,33 @@ async function deploy(
   if (data.pipelineExecutionId && composeImage) {
     await streamStep(deploymentUuid, 'Scanning the image (Trivy)', async () => {
       await scanBuiltImage(server, key, composeImage as string, data.pipelineExecutionId as number, log, data.trivyFailOn);
+    });
+  }
+
+  // The release command — the framework's migrations — runs once on the new
+  // image, before anything switches: a new database had no tables, and the
+  // application failed on its first query. IDEPLOY_RELEASE_COMMAND replaces
+  // it, or turns it off (`off`). A failure is said, not fatal: an application
+  // that needs no database must still deploy.
+  const release = releaseCommand([...runtimeEnv, ...buildEnv], planRelease);
+  if (compose !== null && composeImage && release) {
+    const image = composeImage;
+    await streamStep(deploymentUuid, 'Release command (migrations)', async () => {
+      await log(`$ ${release}`);
+      const env = trialEnvironment(runtimeEnv, port);
+      const r = await executeRemoteCommand(
+        server,
+        key,
+        `timeout 900 docker run --rm --init ${network ? `--network ${shellQuote(network)} ` : ''}` +
+          `${env.map((pair) => `-e ${shellQuote(pair)}`).join(' ')} ${shellQuote(image)} sh -c ${shellQuote(release)}`,
+        { onData: (c) => log(c), noRetry: true, redact: env.map((pair) => pair.slice(pair.indexOf('=') + 1)).filter((v) => v.length >= 6) }
+      );
+      await log(
+        r.exitCode === 0
+          ? '✓ Release command done.'
+          : `⚠ The release command failed (exit code ${r.exitCode}): the deployment goes on, but the database may lack its tables. ` +
+              'Check the log above (the database address, its credentials), then redeploy — or set IDEPLOY_RELEASE_COMMAND to the right command, or to off.'
+      );
     });
   }
 
@@ -1184,6 +1214,16 @@ export function normaliseBaseDirectory(raw: string | null | undefined): string {
 /** `IDEPLOY_TRIAL=false` (a runtime or build variable) skips the trial run: for an app that must never run twice at once. */
 export function trialDisabled(env: string[]): boolean {
   return env.some((pair) => /^IDEPLOY_TRIAL=\s*(false|0|no|off)\s*$/i.test(pair));
+}
+
+/** The release command: IDEPLOY_RELEASE_COMMAND (a command, or `off`), else the build plan's. */
+export function releaseCommand(env: string[], fromPlan: string | undefined): string | null {
+  const own = env.find((pair) => /^IDEPLOY_RELEASE_COMMAND=/i.test(pair));
+  if (own !== undefined) {
+    const value = own.slice(own.indexOf('=') + 1).trim();
+    return !value || /^(off|false|0|no|none)$/i.test(value) ? null : value;
+  }
+  return fromPlan ?? null;
 }
 
 /** The environment the generated compose gives the container: the user's variables, PORT and HOST unless they set them. */

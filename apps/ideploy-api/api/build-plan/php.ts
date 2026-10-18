@@ -10,9 +10,17 @@ import { FRESH_COREPACK, readPackage, startScript } from './node';
 
 const DEFAULT_PHP_MINOR = 3;
 
-/** Extensions each framework uses beyond PHP's own: database drivers, intl, zip, opcache. */
+/** Symfony's and others' Redis integrations, which use the phpredis extension. */
+const REDIS_PACKAGES = /^(?:symfony\/redis-messenger|snc\/redis-bundle|illuminate\/redis)$/i;
+
+/**
+ * Extensions each framework uses beyond PHP's own: database drivers, intl, zip, opcache.
+ * Laravel's Redis client is phpredis by default, and no package declares
+ * ext-redis: without it, a cache, session or queue on Redis answered every
+ * request with `Class "Redis" not found`.
+ */
 const FRAMEWORK_EXTENSIONS: Record<PhpRecipe['framework'], string[]> = {
-  Laravel: ['pdo_mysql', 'pdo_pgsql', 'bcmath', 'intl', 'zip', 'opcache', 'pcntl', 'gd', 'exif'],
+  Laravel: ['pdo_mysql', 'pdo_pgsql', 'bcmath', 'intl', 'zip', 'opcache', 'pcntl', 'gd', 'exif', 'redis'],
   Symfony: ['pdo_mysql', 'pdo_pgsql', 'intl', 'zip', 'opcache'],
   PHP: ['pdo_mysql', 'mysqli', 'pdo_pgsql', 'zip', 'opcache', 'gd'],
 };
@@ -111,6 +119,8 @@ export async function planPhp(files: RepoFiles, appDir: string): Promise<BuildPl
   // fails the install otherwise).
   const lock = await files.read(joinPath(appDir, 'composer.lock'));
   const required = [...extensionsOf(Object.keys(require)), ...(lock ? lockExtensions(lock) ?? [] : [])];
+  // Packages that talk to Redis through phpredis without declaring it.
+  if (Object.keys(require).some((name) => REDIS_PACKAGES.test(name))) required.push('redis');
   const extensions = selectExtensions([...FRAMEWORK_EXTENSIONS[framework], ...required]);
 
   const documentRoot = framework !== 'PHP' || has('public/index.php') ? 'public' : '';
@@ -135,7 +145,7 @@ export async function planPhp(files: RepoFiles, appDir: string): Promise<BuildPl
     issues.push({
       code: 'LARAVEL_APP_KEY',
       severity: 'info',
-      message: 'Laravel needs APP_KEY (php artisan key:generate --show) and APP_ENV=production under Variables. Migrations are not run automatically.',
+      message: 'Laravel needs APP_KEY (php artisan key:generate --show) and APP_ENV=production under Variables. Its migrations run before each release (php artisan migrate --force).',
     });
   }
 
@@ -154,6 +164,12 @@ export async function planPhp(files: RepoFiles, appDir: string): Promise<BuildPl
     runtimeVersion: { name: 'PHP', version, source: declared ? 'composer.json' : 'default' },
     nixpacksEnv: {},
     issues,
+    release:
+      framework === 'Laravel'
+        ? 'php artisan migrate --force'
+        : require['doctrine/doctrine-migrations-bundle']
+          ? 'php bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration'
+          : undefined,
     recipe: {
       kind: 'php',
       version,
@@ -162,7 +178,13 @@ export async function planPhp(files: RepoFiles, appDir: string): Promise<BuildPl
       documentRoot,
       assets,
       build,
-      start: 'apache2-foreground',
+      // Laravel writes its log to a file in the container (LOG_CHANNEL=stack
+      // or single): followed onto the container's output, where iDeploy's
+      // Logs tab reads it. Apache itself already logs there.
+      start:
+        framework === 'Laravel'
+          ? 'touch storage/logs/laravel.log && chown www-data:www-data storage/logs/laravel.log; tail -n 0 -F storage/logs/laravel.log & exec apache2-foreground'
+          : 'apache2-foreground',
     },
   };
 }

@@ -14,6 +14,7 @@ const ENGINE_PREFIXES = [
   'keydb_',
   'dragonfly_',
   'clickhouse_admin_',
+  'rabbitmq_',
 ];
 
 export function credentialLabel(col: string): string {

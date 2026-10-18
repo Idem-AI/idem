@@ -111,8 +111,11 @@ describe('PHP', () => {
       version: '8.2',
       documentRoot: 'public',
       assets: { manager: 'npm', install: 'npm ci', build: 'npm run build' },
-      start: 'apache2-foreground',
     });
+    // Laravel's own log reaches the container's output (the Logs tab), and its migrations run before going live.
+    expect(recipe.start).toContain('tail -n 0 -F storage/logs/laravel.log');
+    expect(recipe.start).toMatch(/exec apache2-foreground$/);
+    expect(plan.release).toBe('php artisan migrate --force');
     expect(recipe.extensions).toEqual(['bcmath', 'exif', 'gd', 'intl', 'opcache', 'pcntl', 'pdo_mysql', 'pdo_pgsql', 'redis', 'zip']);
     const file = recipeDockerfile(recipe);
     expect(file).toContain('FROM node:22-bookworm AS assets');
@@ -123,6 +126,8 @@ describe('PHP', () => {
     // https behind the proxy: without it, Laravel wrote http:// CSS links an https page cannot load.
     expect(file).toContain('SetEnvIf X-Forwarded-Proto "^https$" HTTPS=on');
     expect(file).toContain('a2enmod rewrite headers remoteip');
+    // Apache's own health pings stay out of the logs.
+    expect(file).toContain('env=!dontlog');
     expect(file).toContain('RUN install-php-extensions bcmath exif gd intl opcache pcntl pdo_mysql pdo_pgsql redis zip || {');
     expect(file).toContain('do install-php-extensions "$e" || echo');
     expect(file).toContain('COPY --from=assets /app/public /app/public');
@@ -276,5 +281,25 @@ describe('labels and failures', () => {
     expect(explainRuntimeFailure("ModuleNotFoundError: No module named 'django'")?.code).toBe('MODULE_NOT_FOUND');
     expect(explainRuntimeFailure('No application encryption key has been specified.')?.code).toBe('APP_SECRET');
     expect(explainRuntimeFailure("Failed to find attribute 'app' in 'main'.")?.code).toBe('ENTRY_NOT_FOUND');
+  });
+});
+
+describe('PHP and Redis', () => {
+  it('gives Laravel phpredis, its default Redis client, though no package declares ext-redis', async () => {
+    const plan = await analyzeRepository(
+      repo({ 'composer.json': { require: { php: '^8.1', 'laravel/framework': '^10.0' } }, 'public/index.php': '', artisan: '' }),
+      ''
+    );
+    expect((plan.recipe as PhpRecipe).extensions).toContain('redis');
+  });
+
+  it('gives it to a plain PHP app only when a package uses it', async () => {
+    const plain = await analyzeRepository(repo({ 'composer.json': { require: { php: '^8.2' } }, 'index.php': '' }), '');
+    expect((plain.recipe as PhpRecipe).extensions).not.toContain('redis');
+    const withRedis = await analyzeRepository(
+      repo({ 'composer.json': { require: { php: '^8.2', 'illuminate/redis': '^10.0' } }, 'index.php': '' }),
+      ''
+    );
+    expect((withRedis.recipe as PhpRecipe).extensions).toContain('redis');
   });
 });

@@ -28,14 +28,20 @@ import { isLocalServer } from '../ssh/ssh';
 import { verifySession, syncUser } from './idem-auth.service';
 import { resolveCurrentTeam } from './user.service';
 import * as serverService from './server.service';
+import * as databaseService from './database.service';
 import { notFound, unprocessable, forbidden } from '../utils/errors';
+import { appContainersCommand } from '../docker/compose';
 
 /** What the client may ask to attach to. */
-export type TerminalTargetKind = 'server' | 'application';
+export type TerminalTargetKind = 'server' | 'application' | 'database';
 
 export interface TerminalRequest {
   kind: TerminalTargetKind;
   uuid: string;
+  /** A database's engine (`mysql`, `postgresql`…): its container is named after it. */
+  type?: string;
+  /** A database console: the engine's client, signed in (default), or a shell. */
+  mode?: 'client' | 'shell';
   cols?: number;
   rows?: number;
 }
@@ -88,6 +94,8 @@ interface ResolvedTarget {
    * a shell on the host itself.
    */
   containerName: string | null;
+  /** The whole remote command, when the target built it itself (a database console). */
+  command?: string;
 }
 
 /**
@@ -100,6 +108,16 @@ async function resolveTarget(
   teamId: number,
   request: TerminalRequest
 ): Promise<ResolvedTarget> {
+  if (request.kind === 'database') {
+    if (!request.type) throw unprocessable('TERMINAL_BAD_TARGET', 'Which database engine?');
+    try {
+      const target = await databaseService.consoleCommand(teamId, request.type, request.uuid, request.mode ?? 'client');
+      return { server: target.server, key: target.key, containerName: null, command: target.command };
+    } catch {
+      throw notFound('Database');
+    }
+  }
+
   if (request.kind === 'server') {
     const server = await serverService.getServer(teamId, request.uuid);
     if (!server) throw notFound('Server');
@@ -126,8 +144,19 @@ async function resolveTarget(
   const key = await serverService.getPrivateKey(teamId, server.private_key_id);
   if (!key) throw notFound('The private key configured for this server');
 
-  // Container naming follows the deployment convention: `<app-uuid>`.
-  return { server, key, containerName: String(rows[0].uuid) };
+  // The container is named `<name>-<uuid>`, not `<uuid>`: found by its label,
+  // as `exec` does — the terminal looked for a container that never existed.
+  const uuid = String(rows[0].uuid);
+  if (!/^[A-Za-z0-9-]+$/.test(uuid)) throw unprocessable('TERMINAL_BAD_TARGET', 'This resource cannot be attached to.');
+  return {
+    server,
+    key,
+    containerName: null,
+    command:
+      `C=$(${appContainersCommand(uuid)} | head -1); ` +
+      `if [ -z "$C" ]; then echo 'The application is not running: no container to attach to.'; exit 1; fi; ` +
+      `exec docker exec -it "$C" sh -c 'command -v bash >/dev/null && exec bash || exec sh'`,
+  };
 }
 
 /**
@@ -138,6 +167,7 @@ async function resolveTarget(
  * reach a shell. Returning null means "plain login shell".
  */
 function buildRemoteCommand(target: ResolvedTarget): string | null {
+  if (target.command) return target.command;
   if (!target.containerName) return null;
   if (!/^[A-Za-z0-9_-]+$/.test(target.containerName)) {
     throw unprocessable('TERMINAL_BAD_TARGET', 'This resource cannot be attached to.');
@@ -172,10 +202,16 @@ export async function openSession(
 ): Promise<void> {
   // Un shell sur l'HÔTE d'un serveur donne la main sur tout ce qu'il héberge :
   // réservé aux propriétaires/admins de l'équipe, comme `exec` et les tâches.
-  if (request.kind === 'server') {
+  // Une console de base de données lit et modifie toutes ses données : même règle.
+  if (request.kind === 'server' || request.kind === 'database') {
     const role = (await roleOf(auth.userId, auth.teamId))?.toLowerCase();
     if (role !== 'owner' && role !== 'admin') {
-      throw forbidden('NOT_TEAM_ADMIN', 'A server terminal requires the owner or an admin of this team.');
+      throw forbidden(
+        'NOT_TEAM_ADMIN',
+        request.kind === 'server'
+          ? 'A server terminal requires the owner or an admin of this team.'
+          : 'A database console requires the owner or an admin of this team.'
+      );
     }
   }
 

@@ -19,6 +19,7 @@ import { EmptyStateComponent } from '../../../shared/components/empty-state/empt
 import { TourService } from '../../../shared/services/tour.service';
 import { AppEnvTabComponent } from './app-env-tab';
 import { AppTasksTabComponent } from './app-tasks-tab';
+import { AppLogsTabComponent } from './app-logs-tab';
 import { AppStorageTabComponent } from './app-storage-tab';
 import { AppSettingsTabComponent } from './app-settings-tab';
 import { DomainTabComponent } from './domain-tab';
@@ -27,7 +28,7 @@ import { ApplicationInsightsComponent } from '../application-insights/applicatio
 import { ApplicationPipelineComponent } from '../application-pipeline/application-pipeline';
 import { ApplicationSecurityComponent } from '../../security/application-security/application-security';
 
-export type Tab = 'overview' | 'domain' | 'deployments' | 'env' | 'security' | 'insights' | 'settings' | 'storage' | 'tasks' | 'pipeline';
+export type Tab = 'overview' | 'domain' | 'deployments' | 'logs' | 'env' | 'security' | 'insights' | 'settings' | 'storage' | 'tasks' | 'pipeline';
 
 /** One entry of the tab bar. */
 interface NavItem {
@@ -40,6 +41,7 @@ const NAV: NavItem[] = [
   { tab: 'overview', icon: 'pi pi-home' },
   { tab: 'domain', icon: 'pi pi-globe' },
   { tab: 'deployments', icon: 'pi pi-history' },
+  { tab: 'logs', icon: 'pi pi-list' },
   { tab: 'env', icon: 'pi pi-key' },
   { tab: 'security', icon: 'pi pi-shield' },
   { tab: 'insights', icon: 'pi pi-chart-bar' },
@@ -79,6 +81,7 @@ const AUTOMATIC_HOST = /(\.idem\.africa|\.sslip\.io|\.nip\.io)$/i;
     EmptyStateComponent,
     AppEnvTabComponent,
     AppTasksTabComponent,
+    AppLogsTabComponent,
     AppStorageTabComponent,
     AppSettingsTabComponent,
     DomainTabComponent,
@@ -231,6 +234,7 @@ const AUTOMATIC_HOST = /(\.idem\.africa|\.sslip\.io|\.nip\.io)$/i;
         @case ('env') { <app-env-tab [uuid]="uuid" (countChange)="envCount.set($event)" /> }
         @case ('storage') { <app-storage-tab [uuid]="uuid" /> }
         @case ('tasks') { <app-tasks-tab [uuid]="uuid" /> }
+        @case ('logs') { <app-logs-tab [uuid]="uuid" /> }
         @case ('settings') { <app-settings-tab [app]="a" (updated)="app.set($event)" /> }
         @case ('domain') { <app-domain-tab [app]="a" (updated)="app.set($event)" /> }
         @case ('deployments') { <app-application-deployments [embedded]="true" /> }

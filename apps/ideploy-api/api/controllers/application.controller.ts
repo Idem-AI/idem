@@ -357,6 +357,21 @@ export async function domainDns(req: CustomRequest, res: Response): Promise<void
   }
 }
 
+/** The running container's logs: `?tail=` lines (500 by default, 2000 at most), `?since=` an RFC 3339 date. */
+export async function logs(req: CustomRequest, res: Response): Promise<void> {
+  try {
+    ok(
+      res,
+      await appService.runtimeLogs(req.user!.currentTeamId!, String(req.params.uuid), {
+        tail: req.query.tail ? Number(req.query.tail) : undefined,
+        since: typeof req.query.since === 'string' ? req.query.since : undefined,
+      })
+    );
+  } catch (err) {
+    fail(res, (err as Error).message || 'Failed to read the logs');
+  }
+}
+
 export async function exec(req: CustomRequest, res: Response): Promise<void> {
   if (!req.body?.command) return fail(res, 'command is required', 422, 'VALIDATION');
   try {

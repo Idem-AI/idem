@@ -555,6 +555,13 @@ export class ApiService {
     return this.unwrap(this.http.delete<ApiResponse<unknown>>(`${this.base}/services/${uuid}`));
   }
 
+  /** What the running application prints: its container's latest log lines (container null when nothing runs). */
+  appLogs(uuid: string, tail = 500): Observable<{ container: string | null; logs: string }> {
+    return this.unwrap(
+      this.http.get<ApiResponse<{ container: string | null; logs: string }>>(`${this.base}/applications/${uuid}/logs`, { params: { tail } })
+    );
+  }
+
   // ── Scheduled tasks (Phase 5) ────────────────────────
   listTasks(uuid: string): Observable<ScheduledTask[]> {
     return this.unwrap(this.http.get<ApiResponse<ScheduledTask[]>>(`${this.base}/applications/${uuid}/tasks`));

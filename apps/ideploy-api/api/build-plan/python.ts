@@ -126,7 +126,7 @@ export async function planPython(files: RepoFiles, appDir: string, overrides: { 
     issues.push({
       code: 'DJANGO_MIGRATIONS',
       severity: 'info',
-      message: 'Database migrations are not run automatically: start with "python manage.py migrate && gunicorn …", or run them from the terminal.',
+      message: 'Its migrations run before each release (python manage.py migrate); IDEPLOY_RELEASE_COMMAND changes or turns that off.',
     });
   } else if (hasDep('fastapi') || hasDep('starlette') || hasDep('litestar')) {
     framework = hasDep('fastapi') ? 'FastAPI' : hasDep('litestar') ? 'Litestar' : 'Starlette';
@@ -183,6 +183,8 @@ export async function planPython(files: RepoFiles, appDir: string, overrides: { 
     runtimeVersion: version ? { name: 'Python', version: version.version, source: version.source } : undefined,
     nixpacksEnv: version ? { NIXPACKS_PYTHON_VERSION: version.version } : {},
     issues,
+    // Django's migrations; Alembic's (SQLAlchemy: FastAPI, Flask) when the project has its alembic.ini.
+    release: framework === 'Django' ? 'python manage.py migrate --noinput' : has('alembic.ini') ? 'alembic upgrade head' : undefined,
   };
   if (manager && (start || overrides.start)) {
     plan.recipe = {

@@ -61,7 +61,7 @@ export async function planRuby(files: RepoFiles, appDir: string, overrides: { st
     issues.push({
       code: 'RAILS_MASTER_KEY',
       severity: 'info',
-      message: 'Rails needs RAILS_MASTER_KEY (config/master.key) or SECRET_KEY_BASE under Variables. Migrations are not run automatically (bin/rails db:migrate).',
+      message: 'Rails needs RAILS_MASTER_KEY (config/master.key) or SECRET_KEY_BASE under Variables. Its migrations run before each release (rails db:migrate).',
     });
   }
 
@@ -75,6 +75,7 @@ export async function planRuby(files: RepoFiles, appDir: string, overrides: { st
     runtimeVersion: { name: 'Ruby', version, source: declared ? (rv ? '.ruby-version' : 'Gemfile') : 'default' },
     nixpacksEnv: {},
     issues,
+    release: rails ? 'bundle exec rails db:migrate' : undefined,
   };
   if (start || overrides.start) {
     plan.recipe = {
