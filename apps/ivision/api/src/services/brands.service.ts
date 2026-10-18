@@ -25,7 +25,7 @@ import logger from '../config/logger';
 import { storage } from '../config/storage';
 import { HttpError } from '../middleware/error';
 import type { IvisionBrand } from '../models';
-import { idem, IdemGatewayError } from './idem.client';
+import { idem, IdemGatewayError, UserConsent } from './idem.client';
 
 const brands = () => collection<IvisionBrand>('brands');
 const now = () => new Date().toISOString();
@@ -195,12 +195,19 @@ const SCAN_CODES = new Set(['invalid_url', 'blocked_url', 'unreachable', 'timeou
  * (mêmes rendus qu'IDEM) ; l'utilisateur peut l'ouvrir dans IDEM et continuer (business plan, deck, site…).
  * IDEM injoignable : le scan local d'avant, pour ne jamais bloquer la création.
  */
-export async function brandFromSite(userId: string, rawUrl: string, onProgress: (step: SiteBrandStep, data?: Record<string, unknown>) => void): Promise<IvisionBrand> {
+/**
+ * Le PROJET IDEM d'un site (projet, logo et déclinaisons, palettes, polices, direction artistique, motifs),
+ * créé seulement quand l'utilisateur clique « Créer ma marque » — politiques d'IDEM acceptées (`consent`).
+ * `into` : la marque lue dans iVision qui devient celle du projet (même identifiant : conversations et
+ * créations la gardent). IDEM injoignable : la marque lue reste telle quelle.
+ */
+export async function brandFromSite(userId: string, rawUrl: string, onProgress: (step: SiteBrandStep, data?: Record<string, unknown>) => void, consent: UserConsent, into?: string): Promise<IvisionBrand> {
   let job: Awaited<ReturnType<typeof idem.projects.fromSite>>;
   try {
-    job = await idem.projects.fromSite(userId, rawUrl);
+    job = await idem.projects.fromSite(userId, rawUrl, consent);
   } catch (error) {
     logger.warn('brand.site_project_unavailable', { event: 'brand.site_project_unavailable', error });
+    if (into) return getBrand(userId, into);
     return scanBrand(userId, rawUrl, onProgress);
   }
   const deadline = Date.now() + 300_000;
@@ -218,11 +225,11 @@ export async function brandFromSite(userId: string, rawUrl: string, onProgress: 
     if (state?.status === 'failed') {
       if (SCAN_CODES.has(state.error?.code || '')) throw new SiteScanError(state.error!.code as SiteScanError['code'], state.error!.message);
       logger.warn('brand.site_project_failed', { event: 'brand.site_project_failed', error: state.error });
-      return scanBrand(userId, rawUrl, onProgress);
+      throw new HttpError(502, 'project_failed', 'Le projet n’a pas pu être créé sur IDEM. Réessayez dans un instant.');
     }
     if (state?.status === 'done' && state.result) {
       const result = state.result;
-      const brand = await importIdemProject(userId, result.projectId);
+      const brand = await importIdemProject(userId, result.projectId, into);
       // Les grandes photos du site : la matière des visuels, recopiées chez nous.
       onProgress('copy', { images: result.images.length });
       const photos = (await Promise.all(result.images.slice(0, 8).map((u, i) => hostImage(userId, u, `${brand._id}-photo-${i}`)))).filter((u): u is string => !!u);
@@ -232,6 +239,18 @@ export async function brandFromSite(userId: string, rawUrl: string, onProgress: 
     }
     if (Date.now() > deadline) throw new SiteScanError('timeout', 'La lecture du site prend trop de temps.');
   }
+}
+
+/** « Créer ma marque » : la marque lue d'un site devient un projet IDEM (politiques acceptées). */
+export async function createBrandProject(userId: string, brandId: string, consent: UserConsent, onProgress: (step: SiteBrandStep, data?: Record<string, unknown>) => void): Promise<IvisionBrand> {
+  const brand = await getBrand(userId, brandId);
+  if (brand.idemProjectId) {
+    // Projet déjà là (créé avant que l'accord soit demandé) : l'accord lui est ajouté.
+    await idem.projects.consent(userId, brand.idemProjectId, consent).catch((error) => logger.warn('brand.consent_failed', { event: 'brand.consent_failed', brandId, error }));
+    return brand;
+  }
+  if (!brand.siteUrl) throw new HttpError(400, 'site_required', 'Cette marque ne vient pas d’un site.');
+  return brandFromSite(userId, brand.siteUrl, onProgress, consent, brandId);
 }
 
 /** Le choix de l'utilisateur parmi les propositions du scan ; la marque devient prête. */
@@ -251,8 +270,8 @@ export async function chooseProposals(userId: string, brandId: string, choice: {
 }
 
 /** Importe la charte d'un projet IDEM (une copie : l'utilisateur peut la retoucher dans iVision). */
-export async function importIdemProject(userId: string, projectId: string): Promise<IvisionBrand> {
-  const existing = await brands().findOne({ userId, idemProjectId: projectId });
+export async function importIdemProject(userId: string, projectId: string, into?: string): Promise<IvisionBrand> {
+  const existing = (await brands().findOne({ userId, idemProjectId: projectId })) || (into ? await brands().findOne({ _id: into, userId }) : null);
   const brand = await idem.projects.brand(userId, projectId);
   const doc = {
     name: brand.name,
@@ -264,7 +283,7 @@ export async function importIdemProject(userId: string, projectId: string): Prom
   };
   if (existing) {
     // Réimporter rafraîchit la charte (le projet IDEM a pu évoluer) sans dupliquer la marque.
-    await brands().updateOne({ _id: existing._id }, { $set: doc });
+    await brands().updateOne({ _id: existing._id }, { $set: { ...doc, idemProjectId: projectId, ...(existing.photos?.length ? { photos: [...new Set([...doc.photos, ...existing.photos])].slice(0, 40) } : {}) } });
     return getBrand(userId, existing._id);
   }
   const created: IvisionBrand = { _id: newId('brand'), userId, source: 'idem', idemProjectId: projectId, createdAt: now(), ...doc };

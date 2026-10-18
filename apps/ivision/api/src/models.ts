@@ -47,6 +47,11 @@ export interface IvisionBrand {
    * change jamais pour une même photo.
    */
   photoClassification?: Record<string, { kind: string; luminance: number }>;
+  /**
+   * La CHARTE GRAPHIQUE du projet IDEM de la marque, générée depuis iVision : son état (le document vit dans
+   * IDEM ; iVision l'affiche). Absente : jamais demandée d'ici.
+   */
+  charter?: { status: 'running' | 'ready' | 'failed'; updatedAt: string; error?: string };
   /** Ce que le scan propose (les choix sont gardés pour changer d'avis plus tard). */
   proposals?: {
     palettes: PaletteProposal[];
@@ -69,13 +74,25 @@ export interface ChatAttachment {
   posterUrl?: string;
 }
 
+/** Une question à cliquer : ses choix, celui qui convient le mieux marqué « recommandé ». */
+export interface ChatQuestion {
+  id: string;
+  question: string;
+  options: { id: string; label: string; description?: string; recommended?: boolean }[];
+}
+
+/** Les questions posées d'un coup (une à la fois à l'écran) : ce qu'elles décident. */
+export type ChoicesPurpose = 'montage' | 'site';
+
 /** Ce que l'assistant demande avant de produire : la conversation reprend sur la réponse. */
 export type ChatAsk =
   | { kind: 'brand' }
   | { kind: 'brand-choice'; brandId: string }
   | { kind: 'reference'; mode: ChatMode }
   /** Une décision qui change le pipeline manque (request/intent.ts) : la question, et ses choix adaptés au média. */
-  | { kind: 'video-intent'; clarificationId: string; question: string; options: { id: string; label: string; description: string }[] };
+  | { kind: 'video-intent'; clarificationId: string; question: string; options: { id: string; label: string; description: string; recommended?: boolean }[] }
+  /** Quelques questions à cliquer (réglages d'un montage, que faire d'un lien de site). */
+  | { kind: 'choices'; purpose: ChoicesPurpose; questions: ChatQuestion[] };
 
 export interface ChatMessage {
   id: string;
@@ -87,7 +104,7 @@ export interface ChatMessage {
   attachments?: ChatAttachment[];
   ask?: ChatAsk;
   /** Le livrable produit par ce tour. */
-  result?: { kind: 'video'; videoId: string } | { kind: 'visual'; visualId: string } | { kind: 'montage'; montageId: string };
+  result?: { kind: 'video'; videoId: string } | { kind: 'visual'; visualId: string } | { kind: 'montage'; montageId: string } | { kind: 'charter'; brandId: string };
   status?: 'done' | 'error';
   error?: string;
   /** La marque que ce message annonce (site lu, charte appliquée). */
@@ -115,6 +132,8 @@ export interface ChatOptions {
   /** Visuel. */
   format?: FlyerFormat;
   withPhoto?: boolean;
+  /** Les réglages choisis par l'utilisateur (ou lus dans sa demande) : un modèle ne les remplace pas. */
+  chosen?: ('duration' | 'format')[];
 }
 
 export interface ChatSession {
@@ -125,7 +144,18 @@ export interface ChatSession {
   title: string;
   messages: ChatMessage[];
   /** La demande en attente d'une réponse (marque, modèle) : rejouée quand la réponse arrive. */
-  pending?: { text: string; options: ChatOptions; media?: VideoMediaAsset[]; photoUrl?: string; videos?: { url: string; name?: string; posterUrl?: string }[] };
+  pending?: {
+    text: string;
+    options: ChatOptions;
+    media?: VideoMediaAsset[];
+    photoUrl?: string;
+    videos?: { url: string; name?: string; posterUrl?: string }[];
+    /** Ce que l'utilisateur a déjà décidé pour cette demande : on ne le lui redemande pas. */
+    treatment?: string;
+    site?: 'charter' | 'brand' | 'no';
+    /** Les réponses aux questions du montage. */
+    montage?: Record<string, string>;
+  };
   createdAt: string;
   updatedAt: string;
 }

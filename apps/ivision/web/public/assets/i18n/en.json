@@ -294,7 +294,7 @@
     "newImage": "New visual",
     "history": "Conversations",
     "noHistory": "No conversation yet.",
-    "brands": "Brands",
+    "brands": "My brand",
     "credits": "{{count}} F",
     "account": "My account",
     "tabs": "Studio sections",
@@ -305,19 +305,33 @@
   },
   "creativity": {
     "label": "Creativity",
-    "hint": "The higher the level, the more powerful the model that designs the visual (and the higher the price).",
+    "hint": "The higher the level, the more powerful the model that designs. The price stays the same.",
     "levels": {
       "low": "Low ×1 · light model",
       "medium": "Medium ×1 · intermediate model",
       "high": "High ×1.25 · advanced model",
       "ultra": "Ultra ×2 · the most powerful"
     },
-    "videoHint": "The higher the level, the more powerful the model that designs and writes the video (and the higher the price).",
+    "videoHint": "The higher the level, the more powerful the model that designs and writes the video. The price stays the same.",
     "videoLevels": {
       "low": "Low ×1 · light model",
       "medium": "Medium ×1 · mid-size model",
       "high": "High ×1.25 · advanced model",
       "ultra": "Ultra ×2 · most powerful"
+    },
+    "choose": "Choose the creativity level",
+    "current": "Send · creativity {{level}}",
+    "names": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High",
+      "ultra": "Ultra"
+    },
+    "lines": {
+      "low": "Fast, a light model.",
+      "medium": "Balanced: the right choice most of the time.",
+      "high": "More polished, an advanced model.",
+      "ultra": "The most powerful model."
     }
   },
   "formats": {
@@ -354,9 +368,10 @@
       "add": "Add a brand",
       "applied": "I read your website: I’m using its colours, fonts, logo and photos. You can change the palette in “Brands”.",
       "appliedNoLogo": "I read your website: I’m using its colours, fonts and photos. You can change the palette in “Brands”.",
-      "project": "I read your website and created your project on IDEM, with your brand guidelines: your logo and its variations, your colours, your fonts, your art direction and your patterns. I apply them to everything I create.",
-      "projectNoLogo": "I read your website and created your project on IDEM, with your brand guidelines: your colours, your fonts, your art direction. Add your logo in IDEM to see it on your creations.",
-      "openIdem": "See my brand guidelines on IDEM"
+      "project": "I read your website and created your project on IDEM: your logo, colours, fonts and style are applied to everything I create.",
+      "projectNoLogo": "I read your website and created your project on IDEM: your colours, fonts and style are applied to everything I create. Add your logo in IDEM to see it on your creations.",
+      "openIdem": "See my brand guidelines on IDEM",
+      "found": "I read your website: here is what I found. I already use it for your creations. To make it your brand — and create its guidelines — click “Create my brand”."
     },
     "empty": {
       "videoTitle": "What video do you want?",
@@ -411,7 +426,9 @@
       "noModel": "No, create freely",
       "noRecent": "No model analysed yet.",
       "modelHintVideo": "I reproduce cuts, motion and transitions — never the model’s music, sounds, images or texts.",
-      "modelHintImage": "I reproduce the layout — never the model’s texts or images."
+      "modelHintImage": "I reproduce the layout — never the model’s texts or images.",
+      "montage": "Before I edit your video, a few quick choices. I recommend one option for each; “Choose for me” picks them all.",
+      "site": "Is this link your business website?"
     },
     "result": {
       "previewTitle": "Video preview",
@@ -441,7 +458,11 @@
       "downloadSigned": "Download (signed)",
       "downloadHd": "Download in HD",
       "exportHd": "HD export without the mark · {{price}} F",
-      "exportMissing": "Your wallet is {{missing}} F short."
+      "exportMissing": "Your wallet is {{missing}} F short.",
+      "fit": "Fit to screen",
+      "actualSize": "Actual size",
+      "imageFailed": "The image could not be loaded.",
+      "retry": "Try again"
     },
     "payment": {
       "cta": "Top up my wallet",
@@ -451,6 +472,7 @@
     "progress": {
       "label": "Creation steps",
       "stages": {
+        "copy": "Writing the copy",
         "plan": "Video plan",
         "media": "Images and clips",
         "music": "Music",
@@ -461,7 +483,8 @@
         "design": "Visual design",
         "photo": "Photo selection",
         "check": "Checking the scenes",
-        "repair": "Automatic scene fixing"
+        "repair": "Automatic scene fixing",
+        "match": "Comparison with your model"
       }
     },
     "composer": {
@@ -471,7 +494,8 @@
       "send": "Send",
       "placeholderMontage": "Optional — e.g. dynamic, an animated intro, show the price big, end with my WhatsApp…",
       "placeholderRevise": "What should change? E.g. no music, add an intro, simpler captions…",
-      "reviseHint": "For another video: describe it (“a video for…”) or add a filmed video."
+      "reviseHint": "For another video: describe it (“a video for…”) or add a filmed video.",
+      "montageHint": "After you send, I will ask a few quick questions: format, subtitles, music…"
     },
     "options": {
       "duration": "Duration",
@@ -579,6 +603,16 @@
     },
     "visual": {
       "notUnderstood": "I did not understand what to change. Say for example “change the price to 4,500 F”, “make the title bigger” or “remove the subtitle”."
+    },
+    "choices": {
+      "step": "Question {{current}} of {{total}}",
+      "back": "Back",
+      "forMe": "Choose for me",
+      "recommended": "Recommended"
+    },
+    "charter": {
+      "started": "I am creating your brand guidelines. They appear here as soon as they are ready — you can keep going meanwhile.",
+      "failed": "I could not start your brand guidelines. You can try again from “My brand”."
     }
   },
   "edit": {
@@ -610,13 +644,13 @@
     "broken": "{{count}} scene(s) do not run: press “Fix” in the scene before exporting."
   },
   "brands": {
-    "title": "Brands",
-    "subtitle": "The colours, fonts, logos and photos your creations follow.",
+    "title": "My brand",
+    "subtitle": "Your logo, colours and fonts: all your creations follow them.",
     "scan": {
-      "title": "From your website",
-      "text": "Paste the link: I read your colours, fonts, logo and tone, then offer three palettes and three typography pairings.",
+      "title": "Your website",
+      "text": "Paste your website address: I take your logo, colours, fonts and photos. Then “Create my brand” saves it on IDEM, and its guidelines are one click away.",
       "label": "Your website link",
-      "cta": "Read the website"
+      "cta": "Use my website"
     },
     "other": "Other sources",
     "idem": {
@@ -641,7 +675,8 @@
     "addPhotos": "Add photos",
     "delete": "Delete",
     "confirmDelete": "Confirm deletion",
-    "empty": "No brand yet: read your website to start."
+    "empty": "No brand yet: read your website to start.",
+    "charter": "My brand guidelines"
   },
   "visualEdit": {
     "title": "Edit the visual"
@@ -793,13 +828,13 @@
     "saved": "My brands",
     "myColors": "My colours",
     "myCharter": "My brand",
-    "using": "Using {{name}}",
+    "using": "Your creations use {{name}}",
     "change": "change",
     "hide": "Hide",
     "siteLabel": "Your website address",
     "read": "Read",
     "reading": "Visiting your website…",
-    "siteDone": "Your website is read: its colours, fonts and logo will be used.",
+    "siteDone": "Your website is read: your logo, colours and fonts are applied.",
     "siteFailed": "I could not read this website. Check the address, or carry on without it.",
     "fileDone": "Found: {{what}}. I’m using them.",
     "fileFailed": "I could not read this file. Try a PDF or an image (PNG, JPG, SVG).",
@@ -819,7 +854,16 @@
     "promptShort": "Optional:",
     "siteShort": "Site",
     "fileShort": "Brand guide",
-    "colorsShort": "Colours"
+    "colorsShort": "Colours",
+    "collapsed": "My website",
+    "siteQuestion": "Do you have a website?",
+    "sitePlaceholder": "mybusiness.com",
+    "useSite": "Use my website",
+    "siteExplain": "I take your logo, colours and fonts, then you can create your brand and its guidelines. You can also paste the link in your message.",
+    "noSite": "No website?",
+    "viewCharter": "See my brand guidelines",
+    "createCharter": "Create my brand guidelines",
+    "charterStarting": "Creating the guidelines…"
   },
   "montageEditor": {
     "back": "Back to the conversation",
@@ -869,11 +913,11 @@
       },
       "brand": {
         "title": "Your colours, if you like",
-        "body": "Add your website, logo or colours. It’s optional: without them, I pick colours that work."
+        "body": "Paste your website address: I take your logo, colours and fonts, and I can create your brand guidelines. It is optional: without a website, I pick colours that work well."
       },
       "creativity": {
         "title": "More or less daring",
-        "body": "Choose the creativity level. Creating is free: only the HD export without the mark is paid, and its price shows right next to it."
+        "body": "Click this button (or press Enter) to send: it asks for the creativity level. Creating is free: only the HD export without the mark is paid, and its price shows next to it."
       },
       "history": {
         "title": "Everything you created",
@@ -924,5 +968,35 @@
         "body": "Your changes save on their own. When it’s ready, download the video."
       }
     }
+  },
+  "charter": {
+    "title": "My brand guidelines",
+    "creating": "Creating your brand guidelines…",
+    "starting": "Preparing the first pages.",
+    "pagesDone": "{{count}} page(s) ready.",
+    "pages": "Pages of the brand guidelines",
+    "view": "See my guidelines ({{count}} pages)",
+    "edit": "Edit on IDEM",
+    "openProject": "Open my project on IDEM",
+    "failed": "The brand guidelines could not be created.",
+    "retry": "Try again",
+    "create": "Create my brand guidelines",
+    "offer": "Your brand guidelines: your logo, colours, fonts and how to use them, as pages you can read here.",
+    "refused": "Your IDEM wallet is not enough for these guidelines: top it up, then try again."
+  },
+  "consent": {
+    "iAccept": "I accept the",
+    "privacy": "privacy policy",
+    "terms": "the terms of service",
+    "and": "and",
+    "beta": "the beta programme terms",
+    "ofIdem": "of IDEM."
+  },
+  "brandCreate": {
+    "cta": "Create my brand",
+    "needConsent": "Tick the box to create your brand.",
+    "creating": "Creating your brand on IDEM…",
+    "created": "Your brand is created on IDEM. You can now create its brand guidelines.",
+    "failed": "Your brand could not be created. Try again in a moment."
   }
 }

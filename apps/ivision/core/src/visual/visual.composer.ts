@@ -31,7 +31,10 @@ import {
   visualContent,
   VisualCopy,
 } from '@idem/graphic-engine';
+import axios from 'axios';
+import sharp from 'sharp';
 import logger from '../runtime/logger';
+import { coreHost } from '../runtime/host';
 import { CreativityLevel, normalizeCreativity } from '../creativity/levels';
 import { AgentCall, CreativeOrchestrator } from '../creativity/orchestrator';
 import type { ReferenceImage } from '../reference/reference.analyzer';
@@ -119,8 +122,11 @@ export async function composeVisual(
     creativity?: CreativityLevel;
     /** Gardé pour compatibilité : la variété vient désormais de la mémoire de diversité du moteur. */
     recentLayouts?: string[];
-    /** Une image modèle (iVision) : sa présence ou non de photo, et sa structure, lue par les agents. */
-    reference?: Pick<ReferenceImage, 'layout' | 'structure' | 'hasPhoto' | 'description' | 'zones'>;
+    /**
+     * Une image modèle (iVision) : sa présence ou non de photo, sa structure et son allure, lues par les agents ;
+     * son adresse (`url`) sert au contrôle de ressemblance après le rendu.
+     */
+    reference?: Pick<ReferenceImage, 'layout' | 'structure' | 'hasPhoto' | 'description' | 'zones' | 'style'> & { url?: string };
     /** La photo de l'utilisateur (iVision) : posée à la place d'une photo de banque ou générée. */
     image?: { url: string };
     /** Les images de la marque (site, projet, imports) : seules les vraies photos sont gardées. */
@@ -183,17 +189,34 @@ export async function composeVisual(
   const seed = creative.feedback || creative.avoid?.length ? `${seedKey}:retake:${Date.now().toString(36)}` : seedKey;
   // Le MODÈLE de l'utilisateur : sa composition (description et zones) est donnée à l'auteur, qui la reproduit
   // avec la marque, les mots et la photo — à tous les crans.
-  const reference = creative.reference?.description ? { description: creative.reference.description, ...(creative.reference.zones?.length ? { zones: creative.reference.zones } : {}) } : undefined;
-  const out = await renderVisual(context, format, copy, photo, {
-    ...(reference ? { reference } : {}),
-    level,
-    seed,
-    userId,
-    projectId,
-    allowDark: creative.allowDark,
-    imageColors: sourced?.analysis?.dominantColors,
-  });
+  const reference = creative.reference?.description
+    ? { description: creative.reference.description, ...(creative.reference.zones?.length ? { zones: creative.reference.zones } : {}), ...(creative.reference.style ? { style: creative.reference.style } : {}) }
+    : undefined;
+  // Un modèle sombre est un choix de l'utilisateur : son fond est repris.
+  const allowDark = creative.allowDark || creative.reference?.style?.background === 'dark';
+  const renderOptions = { ...(reference ? { reference } : {}), level, seed, userId, projectId, allowDark, imageColors: sourced?.analysis?.dominantColors };
+  let out = await renderVisual(context, format, copy, photo, renderOptions);
   stage('design', 'done');
+
+  // La RESSEMBLANCE au modèle : la vision compare le modèle et le rendu côte à côte ; s'ils divergent, l'auteur
+  // reçoit les écarts précis et corrige une fois (même mots, même photo). Borné : un contrôle, une retouche.
+  if (reference && creative.reference?.url && level !== 'low' && out.png) {
+    stage('match', 'running');
+    const verdict = await compareToReference(creative.reference.url, out.png).catch((error) => {
+      logger.warn('visual.reference_check_failed', { event: 'visual.reference_check_failed', error: (error as Error)?.message });
+      return null;
+    });
+    if (verdict && verdict.score < 7 && verdict.differences.length) {
+      const instruction = `Make the layout match the client's model exactly. Fix these differences: ${verdict.differences.map((d, i) => `${i + 1}. ${d}`).join(' ')}`;
+      const fixed = await renderVisual(context, format, copy, photo, { ...renderOptions, revise: { spec: out.spec, instruction } }).catch((error) => {
+        logger.warn('visual.reference_fix_failed', { event: 'visual.reference_fix_failed', error: (error as Error)?.message });
+        return null;
+      });
+      if (fixed?.png) out = fixed;
+    }
+    logger.info('visual.reference_checked', { event: 'visual.reference_checked', brandId: projectId, score: verdict?.score, differences: verdict?.differences.length ?? 0, fixed: !!verdict && verdict.score < 7 });
+    stage('match', 'done');
+  }
 
   const audit = auditOf(out);
   logger.info('visual.composed', {
@@ -231,6 +254,45 @@ export async function composeVisual(
     png: out.png,
     audit,
   };
+}
+
+/**
+ * Le modèle et le rendu, côte à côte, jugés par la vision sur la COMPOSITION seule (les couleurs, les mots et
+ * la photo diffèrent volontairement) : une note sur 10 et les écarts, écrits comme des consignes de retouche.
+ */
+export async function compareToReference(referenceUrl: string, rendered: Buffer): Promise<{ score: number; differences: string[] } | null> {
+  const analyze = coreHost().analyzeImage;
+  if (!analyze) return null;
+  const res = await axios.get<ArrayBuffer>(referenceUrl, { responseType: 'arraybuffer', timeout: 20_000, maxContentLength: 25 * 1024 * 1024 });
+  const height = 640;
+  const [left, right] = await Promise.all([
+    sharp(Buffer.from(res.data)).resize({ height }).jpeg().toBuffer({ resolveWithObject: true }),
+    sharp(rendered).resize({ height }).jpeg().toBuffer({ resolveWithObject: true }),
+  ]);
+  const gap = 32;
+  const sheet = await sharp({ create: { width: left.info.width + gap + right.info.width, height, channels: 3, background: '#808080' } })
+    .composite([
+      { input: left.data, left: 0, top: 0 },
+      { input: right.data, left: left.info.width + gap, top: 0 },
+    ])
+    .jpeg({ quality: 82 })
+    .toBuffer();
+  const instruction = [
+    "LEFT: the client's model. RIGHT: our reproduction for another brand — its colours, words and photo differ ON PURPOSE.",
+    'Judge ONLY the composition: same zones at the same places and proportions, same hierarchy, same alignment, same headline scale and case, same colour blocks and shapes, same photo placement and crop, no missing or extra elements.',
+    'Answer ONLY JSON: {"score": 0-10 (10 = same composition), "differences": ["one concrete fix for RIGHT, e.g. move the headline to the top-left and make it twice as large", … at most 5, empty if none]}',
+  ].join('\n');
+  const raw = await analyze(sheet.toString('base64'), 'image/jpeg', instruction, { maxOutputTokens: 600, temperature: 0.1, purpose: 'reference' });
+  const match = String(raw || '').replace(/```[a-z]*\n?/gi, '').match(/\{[\s\S]*\}/);
+  if (!match) return null;
+  const json = JSON.parse(match[0]) as { score?: unknown; differences?: unknown };
+  const score = Math.max(0, Math.min(10, Number(json.score)));
+  if (!Number.isFinite(score)) return null;
+  const differences = (Array.isArray(json.differences) ? json.differences : [])
+    .filter((d): d is string => typeof d === 'string' && d.trim().length > 3)
+    .map((d) => d.trim().slice(0, 240))
+    .slice(0, 5);
+  return { score, differences };
 }
 
 /**

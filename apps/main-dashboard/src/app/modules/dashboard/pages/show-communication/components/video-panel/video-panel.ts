@@ -119,8 +119,24 @@ export class VideoPanel {
     this.view.set({ kind: 'list' });
   }
 
+  /**
+   * La miniature d'une vidéo : l'image de son MP4 exporté, sinon la vignette d'une scène (prise au contrôle
+   * des scènes — le serveur photographie en tâche de fond celles qui n'en ont pas), sinon une de ses images.
+   */
   protected poster(video: MotionVideo): string | undefined {
-    return video.renders.find((r) => r.status === 'done' && r.posterUrl)?.posterUrl;
+    return (
+      video.renders.find((r) => r.status === 'done' && r.posterUrl)?.posterUrl ||
+      video.film?.scenes.find((s) => s.thumbnail)?.thumbnail ||
+      video.media?.find((m) => m.kind === 'image')?.url ||
+      video.media?.find((m) => m.posterUrl)?.posterUrl
+    );
+  }
+
+  /** Miniature introuvable (lien expiré) : la carte titrée prend le relais. */
+  protected readonly brokenPosters = signal<ReadonlySet<string>>(new Set());
+
+  protected posterFailed(video: MotionVideo): void {
+    this.brokenPosters.update((set) => new Set([...set, video.id]));
   }
 
   protected detailId(): string | null {

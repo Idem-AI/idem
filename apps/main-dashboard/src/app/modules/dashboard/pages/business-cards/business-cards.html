@@ -36,11 +36,13 @@
                 <i class="pi pi-pencil text-xs" aria-hidden="true"></i>
                 {{ 'dashboard.businessCards.actions.editTemplate' | translate }}
               </button>
-              <!-- Régénérer : le cran de créativité accolé au bouton, prix compris. -->
-              <app-creativity-picker [(value)]="creativity" [baseCost]="creativityBaseCost()" [disabled]="isGenerating()" align="end" />
+              <!-- Régénérer : le niveau de créativité se choisit sur le bouton (bulle), prix compris. -->
               <button
                 type="button"
                 class="glass-card px-4 py-2.5 text-sm text-text-primary hover:bg-[var(--glass-bg-light)] transition-colors rounded-xl flex items-center gap-2 disabled:opacity-50"
+                appCreativityGate
+                [(creativity)]="creativity"
+                [creativityCost]="creativityBaseCost()"
                 (click)="generateTemplate()"
                 [disabled]="isGenerating()"
               >
@@ -165,12 +167,14 @@
                   />
                 </div>
 
-                <!-- Lancer : le cran de créativité à côté du bouton, prix compris. -->
+                <!-- Lancer : le niveau de créativité se choisit sur le bouton (bulle), prix compris. -->
                 <div class="flex flex-wrap items-center gap-2.5">
-                  <app-creativity-picker [(value)]="creativity" [baseCost]="creativityBaseCost()" [disabled]="isGenerating()" />
                   <button
                     type="button"
                     class="inner-button"
+                    appCreativityGate
+                    [(creativity)]="creativity"
+                    [creativityCost]="creativityBaseCost()"
                     (click)="generateTemplate()"
                     [disabled]="isGenerating()"
                   >

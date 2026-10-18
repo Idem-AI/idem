@@ -7,8 +7,9 @@ import { loadFontSheet } from '../../../core/fonts';
 import { Brand, PaletteRole } from '../../../core/models';
 import { StudioState } from '../../../core/studio.state';
 import { Illustration } from '../../../shared/components/illustration';
-import { BrandChoice } from '../chat/brand-choice';
-import { environment } from '../../../../environments/environment';
+import { BrandCreate } from '../../../shared/components/brand-create';
+import { RouterLink } from '@angular/router';
+import { idemLinks } from '../../../core/charter';
 
 /**
  * Les marques de l'utilisateur, d'où qu'elles viennent : un site lu (palette et typographie au
@@ -17,7 +18,7 @@ import { environment } from '../../../../environments/environment';
  */
 @Component({
   selector: 'iv-brands',
-  imports: [TranslateModule, IdemLoaderComponent, Illustration, BrandChoice],
+  imports: [TranslateModule, IdemLoaderComponent, Illustration, BrandCreate, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './brands.html',
 })
@@ -29,9 +30,9 @@ export class BrandsPage {
 
   protected readonly roles: PaletteRole[] = ['primary', 'secondary', 'accent', 'background', 'text'];
 
-  /** La charte complète d'une marque née d'un projet IDEM : la page « Marque » du projet. */
-  protected idemBrandUrl(projectId: string): string {
-    return `${environment.services.dashboard.url}/project/branding?projectId=${encodeURIComponent(projectId)}`;
+  /** Le projet IDEM d'une marque née d'un site (business plan, deck, site…). */
+  protected projectUrl(projectId: string): string {
+    return idemLinks.project(projectId);
   }
   protected readonly url = signal('');
   protected readonly scanning = signal(false);

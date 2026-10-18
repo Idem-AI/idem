@@ -31,6 +31,12 @@
       "@idem/shared-loader/*": [
         "../../../../packages/shared-loader/src/*"
       ],
+      "@idem/shared-idomain": [
+        "../../../../packages/shared-idomain/src"
+      ],
+      "@idem/shared-idomain/*": [
+        "../../../../packages/shared-idomain/src/*"
+      ],
       "@idem/shared-trusted-by": [
         "../../../../packages/shared-trusted-by/src"
       ],

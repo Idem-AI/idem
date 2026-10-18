@@ -97,7 +97,8 @@
           }
         }
       },
-      "included": "Inclus"
+      "included": "Inclus",
+      "choose": "Choisissez le niveau de créativité"
     }
   },
   "dashboard": {
@@ -231,7 +232,7 @@
         "tooltip": "Suggérer une valeur avec l'IA"
       },
       "alerts": {
-        "title": "À surveiller"
+        "title": "Recommandations IA"
       },
       "kpi": {
         "caY1": "CA An 1",
@@ -298,7 +299,7 @@
       "bpMissingDialog": {
         "title": "Business Plan requis",
         "headline": "Générez d'abord votre Business Plan",
-        "description": "Pour proposer des chiffres cohérents, l'IA s'appuie sur votre business plan. Créez-le d'abord — ou importez directement le fichier où vous avez déjà vos chiffres.",
+        "description": "L'IA a besoin de votre Business Plan pour générer des prévisions financières cohérentes et personnalisées. Veuillez générer votre business plan avant de continuer.",
         "generateCta": "Créer mon Business Plan",
         "importInstead": "Importer mon fichier"
       },
@@ -901,7 +902,7 @@
       "diagrams": "Diagrammes",
       "development": "Site & App",
       "deploymentOverview": "Aperçu du déploiement",
-      "deployment": "Mise en ligne",
+      "deployment": "Déploiement",
       "viewAllProjects": "Voir tous les projets",
       "communication": "Communication",
       "sr": {
@@ -3783,7 +3784,18 @@
         "openVideo": "Ouvrir la vidéo",
         "anotherVideo": "Générer une autre version · {{price}} crédits",
         "createVideo": "Générer la vidéo · {{price}} crédits",
-        "visualInstead": "Créer plutôt un visuel"
+        "visualInstead": "Créer plutôt un visuel",
+        "duration": "Durée de la vidéo",
+        "ai": {
+          "edit": "Modifier avec l’IA",
+          "regenerate": "Régénérer",
+          "placeholder": "Ex. : « titre plus grand », « fond plus sombre », « ajoute notre numéro »…",
+          "apply": "Appliquer",
+          "modified": "Version modifiée : elle remplace déjà l’ancienne. Elle vous convient ?",
+          "choose": "Choisir cette version",
+          "undo": "Revenir à l’ancienne",
+          "failed": "La modification n’a pas pu être appliquée. Reformulez votre demande."
+        }
       },
       "thumb": {
         "loading": "Chargement de l'image…",
@@ -4515,32 +4527,68 @@
       },
       "whatsapp": {
         "title": "Publier depuis WhatsApp",
-        "subtitle": "Le jour de publication, IDEM vous envoie le visuel ou la vidéo sur WhatsApp. Vous validez ou demandez une modification, puis IDEM publie sur vos réseaux. Vous pouvez aussi demander un visuel à tout moment.",
+        "subtitle": "Le jour de publication, IDEM vous envoie le visuel ou la vidéo sur WhatsApp. Vous répondez « Valider » ou demandez une modification, puis IDEM publie sur vos réseaux.",
         "paidTitle": "Réservé aux comptes payants",
         "paidBody": "Passez au forfait IDEM Croissance ou Entreprise pour valider et publier vos contenus depuis WhatsApp.",
         "paidWelcome": "Votre cadeau d’inscription ne couvre pas cette fonction. Dès votre premier forfait IDEM Croissance, elle s’ouvre.",
         "seePlans": "Voir les forfaits",
         "unavailable": "WhatsApp n’est pas encore activé sur IDEM. Revenez bientôt.",
-        "networksTitle": "1. Vos réseaux",
+        "genericError": "Une erreur est survenue. Réessayez dans un instant.",
+        "state": {
+          "done": "Fait",
+          "next": "À faire maintenant",
+          "todo": "À faire"
+        },
+        "steps": {
+          "phone": {
+            "title": "Votre WhatsApp"
+          },
+          "networks": {
+            "title": "Vos réseaux"
+          },
+          "daily": {
+            "title": "Vos propositions du jour"
+          }
+        },
+        "phone": {
+          "hint": "Entrez le numéro de votre WhatsApp. IDEM vous y envoie un code à recopier ici : c’est ce qui prouve que le téléphone est bien le vôtre.",
+          "label": "Numéro WhatsApp",
+          "country": "Pays du numéro",
+          "privacy": "Votre numéro est chiffré et ne sert qu’à vous écrire."
+        },
+        "code": {
+          "sent": "Code envoyé sur WhatsApp au {{phone}}.",
+          "label": "Code reçu sur WhatsApp",
+          "cell": "Caractère {{n}} sur {{total}}",
+          "resend": "Renvoyer le code",
+          "resendIn": "Renvoyer dans {{s}} s"
+        },
+        "linkCta": "Recevoir mon code",
+        "confirmCta": "Confirmer",
+        "changeNumber": "Changer de numéro",
+        "waiting": "Code valable jusqu’à {{time}}",
+        "linkedTitle": "WhatsApp est lié",
+        "linkedSub": "Numéro se terminant par {{last4}}",
+        "unlink": "Délier",
+        "unlinkConfirm": "Oui, délier",
         "networksHint": "IDEM publie sur les comptes que vous connectez, jamais ailleurs. Vous pouvez les déconnecter à tout moment.",
         "connect": "Connecter",
         "disconnect": "Déconnecter",
         "connected": "connecté",
         "soon": "bientôt",
-        "linkTitle": "2. Lier votre WhatsApp",
-        "linkHint": "Saisissez votre numéro : IDEM vous envoie un code par WhatsApp, à recopier ici. C’est cette étape qui prouve que le téléphone est le vôtre.",
-        "phoneLabel": "Votre numéro WhatsApp",
-        "linkCta": "Recevoir mon code",
-        "enterCode": "Entrez le code reçu sur WhatsApp :",
-        "confirmCta": "Confirmer",
-        "changeNumber": "Changer de numéro",
-        "waiting": "Ce code est valable jusqu’à {{time}}.",
-        "linked": "WhatsApp lié (numéro finissant par {{last4}})",
-        "unlink": "Délier",
+        "dailyLocked": "Liez d’abord votre WhatsApp pour choisir quand recevoir vos publications.",
         "dailyTitle": "Recevoir mes publications du jour",
-        "dailyHint": "Chaque jour de publication de votre calendrier, IDEM prépare le contenu et vous l’envoie pour validation. Vous pouvez arrêter en écrivant « stop ».",
+        "dailyHint": "Chaque jour de publication de votre calendrier, IDEM prépare le contenu et vous l’envoie pour validation. Écrivez « stop » pour arrêter.",
         "hour": "Heure d’envoi",
-        "safety": "Rien n’est publié sans votre accord : vous recevez la version exacte, vous répondez « Valider » (ou vous demandez une modification), puis IDEM publie. Sans réponse sous 48 h, la demande expire et rien n’est publié.",
+        "otherHour": "Autre heure d’envoi",
+        "preview": {
+          "title": "Ce que vous recevrez",
+          "message": "Votre publication du jour est prête (LinkedIn, Instagram).",
+          "approve": "Valider",
+          "edit": "Modifier",
+          "cancel": "Annuler"
+        },
+        "safety": "Rien n’est publié sans votre accord. Sans réponse sous 48 h, la demande expire et rien n’est publié.",
         "historyTitle": "Dernières demandes",
         "historyEmpty": "Rien pour le moment.",
         "noCaption": "Sans légende",
@@ -5277,11 +5325,11 @@
       "pitchDeck": "Pitch Deck",
       "legalDocs": "Documents légaux",
       "advisor": "Conseiller",
-      "diagrams": "Plan de l'application",
-      "diagramsGenerate": "Dessin du plan",
+      "diagrams": "Diagrammes",
+      "diagramsGenerate": "Génération de diagrammes",
       "createDevelopment": "Créer un développement",
       "development": "Développement",
-      "ideploy": "Mise en ligne",
+      "ideploy": "iDeploy",
       "createDeployment": "Créer un déploiement",
       "deployments": "Déploiements",
       "deploymentDetails": "Détails du déploiement",
@@ -5989,5 +6037,12 @@
     "later": "Plus tard",
     "close": "Fermer",
     "note": "Le formulaire s'ouvre dans un nouvel onglet."
+  },
+  "policyConsent": {
+    "title": "Une dernière étape avant de générer",
+    "body": "Ce projet a été créé depuis iVision. Pour générer ses éléments, acceptez les politiques d’IDEM.",
+    "accept": "Accepter et continuer",
+    "done": "C’est fait. Relancez votre génération.",
+    "failed": "L’accord n’a pas pu être enregistré. Réessayez."
   }
 }

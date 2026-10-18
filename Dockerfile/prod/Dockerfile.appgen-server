@@ -45,6 +45,13 @@ ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 
+# Les `node_modules` préinstallés servis aux ateliers iCode (voir
+# docs/ICODE_STARTUP.md). Dossier créé ici, contenu déposé par le four : monter
+# un volume dessus en production, sinon les instantanés partent au redéploiement
+# et chaque ouverture d'atelier repart sur trois minutes de `npm install`.
+ENV APPGEN_DEPS_CACHE_DIR=/app/deps-cache
+RUN mkdir -p /app/deps-cache
+
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S expressjs -u 1001 -G nodejs

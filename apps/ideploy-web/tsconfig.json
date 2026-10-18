@@ -23,7 +23,9 @@
       "@idem/shared-styles": ["../../packages/shared-styles"],
       "@idem/shared-tour": ["../../packages/shared-tour/src"],
       "@idem/shared-trusted-by": ["../../packages/shared-trusted-by/src"],
-      "@idem/shared-trusted-by/*": ["../../packages/shared-trusted-by/src/*"]
+      "@idem/shared-trusted-by/*": ["../../packages/shared-trusted-by/src/*"],
+      "@idem/shared-idomain": ["../../packages/shared-idomain/src"],
+      "@idem/shared-idomain/*": ["../../packages/shared-idomain/src/*"]
     }
   },
   "angularCompilerOptions": {

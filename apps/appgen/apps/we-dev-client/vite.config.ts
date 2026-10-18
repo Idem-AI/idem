@@ -105,6 +105,8 @@ export default defineConfig(async ({ mode, command }) => {
         // L'unique indicateur de chargement d'Idem (rendu React).
         '@idem/shared-loader': path.resolve(__dirname, '../../../../packages/shared-loader/src'),
         // Bandeau « Ils nous font confiance », partagé par les landing pages.
+        // Acheter et brancher un nom de domaine sans quitter iCode (API iDomain, même compte).
+        '@idem/shared-idomain': path.resolve(__dirname, '../../../../packages/shared-idomain/src'),
         '@idem/shared-trusted-by': path.resolve(
           __dirname,
           '../../../../packages/shared-trusted-by/src',

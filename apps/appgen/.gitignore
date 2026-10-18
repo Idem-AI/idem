@@ -65,3 +65,8 @@ yarn-error.log*
 next-env.d.ts
 apps/we-dev-next/public/wedev_public/
 apps/we-dev-client/node-jiti
+
+# Instantanés de `node_modules` déposés par le four (voir docs/ICODE_STARTUP.md).
+# Fabriqués, jamais versionnés : plusieurs dizaines de mégaoctets par cible.
+deps-cache/
+**/deps-cache/

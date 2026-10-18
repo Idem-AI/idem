@@ -119,6 +119,30 @@
       "cta": "Fix automatically",
       "running": "Fix started…",
       "status": "Fixing the flagged elements."
+    },
+    "creativity": {
+      "title": "Creativity level",
+      "choose": "Choose the creativity level",
+      "help": "The higher the level, the more powerful the model that writes your app.",
+      "current": "Creativity: {{level}}",
+      "levels": {
+        "low": {
+          "label": "Low",
+          "line": "Fast, for small edits."
+        },
+        "medium": {
+          "label": "Medium",
+          "line": "Balanced: the right choice most of the time."
+        },
+        "high": {
+          "label": "High",
+          "line": "More polished, for rich screens."
+        },
+        "ultra": {
+          "label": "Ultra",
+          "line": "The most powerful model, for ambitious projects."
+        }
+      }
     }
   },
   "settings": {
@@ -263,6 +287,8 @@
     },
     "waiting": {
       "title": "Starting…",
+      "download": "Preparing the environment ({{percent}}%). Once only: after this your project opens right away.",
+      "mount": "Setting up the environment.",
       "install": "Installing dependencies. The first time, this takes one to two minutes.",
       "start": "Starting the application.",
       "fullstack": "Starting the database, the server, then the interface. Everything connects on its own."

@@ -30,6 +30,7 @@ import { charge, exportVisualPrice, PaymentRequired, quote, refund } from '../se
 import { signImage } from '../services/signature';
 import * as brands from '../services/brands.service';
 import * as chat from '../services/chat.service';
+import * as charter from '../services/charter.service';
 import { idem } from '../services/idem.client';
 import * as refs from '../services/references.service';
 import { montages, montageView, refundMontage } from '../services/montages.service';
@@ -40,6 +41,8 @@ import { openSse } from '../utils/sse';
 export const v1 = Router();
 
 const uid = (req: AuthedRequest) => req.user!.uid;
+/** L'adresse IP et le navigateur de l'utilisateur : la trace de son accord des politiques, comme dans IDEM. */
+const clientOf = (req: AuthedRequest) => ({ ipAddress: req.ip, userAgent: req.get('user-agent') || undefined });
 const lang = (req: AuthedRequest) => (String(req.headers['accept-language'] || 'fr').toLowerCase().startsWith('en') ? 'en' : 'fr');
 
 /** Les refus du montage, dits à l'utilisateur. */
@@ -121,14 +124,17 @@ v1.get(
   asyncRoute<AuthedRequest>(async (req, res) => res.json(brands.brandView(await brands.getBrand(uid(req), req.params.id))))
 );
 
-/** Scan d'un site en flux (étapes réelles), hors conversation (page « Marques »). */
+/**
+ * LECTURE d'un site en flux (étapes réelles) : logo, couleurs, polices, photos — dans iVision seulement.
+ * Le projet IDEM ne naît qu'au clic « Créer ma marque » (`/brands/:id/project`, politiques acceptées).
+ */
 v1.post(
   '/brands/scan',
   validate({ body: z.object({ url: z.string().min(3).max(500) }) }),
   asyncRoute<AuthedRequest>(async (req, res) => {
     const sse = openSse(req, res);
     try {
-      const brand = await brands.brandFromSite(uid(req), req.body.url, (step, data) => sse.send({ type: 'status', key: `chat.status.scan.${step}`, data }));
+      const brand = await brands.scanBrand(uid(req), req.body.url, (step, data) => sse.send({ type: 'status', key: `chat.status.scan.${step}`, data }));
       sse.send({ type: 'brand', brand: brands.brandView(brand) });
     } catch (error) {
       logger.warn('brand.scan_failed', { event: 'brand.scan_failed', error });
@@ -204,6 +210,50 @@ v1.delete(
 );
 
 const photoUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 15 * 1024 * 1024, files: 8 }, fileFilter: (_req, file, cb) => cb(null, /^image\/(jpeg|png|webp|heic|heif)$/.test(file.mimetype)) });
+
+/**
+ * La CHARTE GRAPHIQUE de la marque (projet IDEM) : générée dans IDEM aux mêmes règles que le dashboard,
+ * affichée dans le studio. `GET …?pages=1` rend les pages une fois la charte prête.
+ */
+v1.get(
+  '/brands/:id/charter',
+  asyncRoute<AuthedRequest>(async (req, res) => res.json(await charter.charterState(uid(req), req.params.id, req.query.pages === '1')))
+);
+
+/**
+ * « CRÉER MA MARQUE » : la marque lue d'un site devient un projet IDEM — seulement politiques d'IDEM acceptées
+ * (confidentialité, conditions d'utilisation, programme bêta). En flux : étapes réelles, puis la marque.
+ */
+v1.post(
+  '/brands/:id/project',
+  validate({ body: z.object({ consent: z.literal(true) }) }),
+  asyncRoute<AuthedRequest>(async (req, res) => {
+    await brands.getBrand(uid(req), req.params.id);
+    const sse = openSse(req, res);
+    try {
+      const brand = await brands.createBrandProject(uid(req), req.params.id, clientOf(req), (step, data) => sse.send({ type: 'status', key: `chat.status.scan.${step}`, data }));
+      sse.send({ type: 'brand', brand: brands.brandView(brand) });
+    } catch (error) {
+      logger.warn('brand.project_failed', { event: 'brand.project_failed', error });
+      sse.send({ type: 'error', error: error instanceof HttpError ? error.code : 'project_failed', message: error instanceof HttpError || error instanceof SiteScanError ? (error as Error).message : 'Le projet n’a pas pu être créé sur IDEM.' });
+    } finally {
+      sse.end();
+    }
+  })
+);
+
+/** L'accord des politiques d'IDEM pour le projet de la marque (cochés par l'utilisateur). */
+v1.post(
+  '/brands/:id/consent',
+  validate({ body: z.object({ consent: z.literal(true) }) }),
+  asyncRoute<AuthedRequest>(async (req, res) => res.json({ accepted: await charter.acceptPolicies(uid(req), req.params.id, clientOf(req)) }))
+);
+
+v1.post(
+  '/brands/:id/charter',
+  validate({ body: z.object({ creativity: z.enum(CREATIVITY_LEVELS as unknown as [string, ...string[]]).optional() }) }),
+  asyncRoute<AuthedRequest>(async (req, res) => res.status(202).json(await charter.startCharter(uid(req), req.params.id, req.body.creativity)))
+);
 
 /** Photos de la marque (produit, équipe, boutique) : la meilleure matière des vidéos et visuels. */
 v1.post(
@@ -285,6 +335,8 @@ const turnBody = z.object({
   photoUrl: z.string().url().max(2000).optional(),
   resume: z.boolean().optional(),
   treatment: z.object({ id: z.string().max(40), option: z.string().max(40) }).optional(),
+  /** Les réponses aux questions à cliquer (réglages d'un montage, que faire d'un lien de site). */
+  answers: z.object({ purpose: z.enum(['montage', 'site']), values: z.record(z.string().max(40), z.string().max(40)) }).optional(),
   options: z
     .object({
       creativity: z.enum(CREATIVITY_LEVELS as unknown as [string, ...string[]]).optional(),
@@ -298,6 +350,9 @@ const turnBody = z.object({
       voice: z.boolean().optional(),
       format: z.enum(FLYER_FORMATS as unknown as [string, ...string[]]).optional(),
       withPhoto: z.boolean().optional(),
+      // Sans ces deux champs, zod les retirait : les plans filmés commandés n'arrivaient jamais au serveur.
+      aiClips: z.number().int().min(0).max(10).optional(),
+      chosen: z.array(z.enum(['duration', 'format'])).max(2).optional(),
     })
     .optional(),
 });

@@ -131,8 +131,7 @@
                     <i class="pi pi-play" aria-hidden="true"></i>
                     {{ 'dashboard.showCommunication.detail.openVideo' | translate }}
                   </button>
-                  <app-creativity-picker kind="video" [(value)]="creativity" [baseCost]="videoBasePrice()" [disabled]="videoBusy()" />
-                  <button type="button" class="outer-button button-sm" (click)="createVideo()">
+                  <button type="button" class="outer-button button-sm" (click)="createVideo()" appCreativityGate creativityKind="video" [(creativity)]="creativity" [creativityCost]="videoBasePrice()">
                     <i class="pi pi-refresh" aria-hidden="true"></i>
                     {{ 'dashboard.showCommunication.detail.anotherVideo' | translate: { price: videoPrice() ?? '…' } }}
                   </button>
@@ -143,10 +142,9 @@
                 </div>
                 <ng-container [ngTemplateOutlet]="aiEditor" />
               } @else {
-                <!-- Le cran de créativité se choisit au moment de lancer : à côté du bouton, prix compris. -->
+                <!-- Le niveau de créativité se choisit sur le bouton (bulle), au moment de lancer. -->
                 <div class="cd-go">
-                  <app-creativity-picker kind="video" [(value)]="creativity" [baseCost]="videoBasePrice()" [disabled]="videoBusy()" />
-                  <button type="button" class="inner-button" (click)="createVideo()">
+                  <button type="button" class="inner-button" (click)="createVideo()" appCreativityGate creativityKind="video" [(creativity)]="creativity" [creativityCost]="videoBasePrice()">
                     <i class="pi pi-video" aria-hidden="true"></i>
                     {{ 'dashboard.showCommunication.detail.createVideo' | translate: { price: videoPrice() ?? '…' } }}
                   </button>
@@ -255,19 +253,15 @@
               </div>
             </fieldset>
 
-            <!-- 3. Lancer : le cran de créativité à côté du bouton, prix compris. -->
+            <!-- 3. Lancer : le niveau de créativité se choisit sur le bouton (bulle), prix compris. -->
             <div class="cd-go">
-              <app-creativity-picker [(value)]="creativity" [baseCost]="visualBaseCost()" [disabled]="isCreatingVisual()" />
-              <button type="button" class="inner-button" [disabled]="isCreatingVisual()" (click)="createVisual()">
+              <button type="button" class="inner-button" [disabled]="isCreatingVisual()" (click)="createVisual()" appCreativityGate [(creativity)]="creativity" [creativityCost]="visualBaseCost()">
                 @if (isCreatingVisual()) {
                   <idem-loader size="xs" />
                   {{ 'dashboard.showCommunication.detail.creating' | translate }}
                 } @else {
                   <i class="pi pi-sparkles" aria-hidden="true"></i>
                   {{ 'dashboard.showCommunication.detail.createVisual' | translate }}
-                  @if (visualBaseCost() | creativityCost: creativity(); as cost) {
-                    <span class="cd-cost">· {{ 'common.creativity.cost' | translate: { cost } }}</span>
-                  }
                 }
               </button>
             </div>

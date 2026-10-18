@@ -32,7 +32,7 @@ import { HolderFormComponent } from './components/holder-form/holder-form';
 import { CardPreviewFonts } from './utils/business-card-preview';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 import { CreativityLevel, DEFAULT_CREATIVITY } from '@idem/shared-models';
-import { CreativityPickerComponent } from '../../../../shared/components/creativity-picker/creativity-picker';
+import { CreativityGateDirective } from '../../../../shared/components/creativity-picker/creativity-gate';
 import { CreativityCostPipe } from '../../../../shared/pipes/creativity-cost.pipe';
 import { CreativityService } from '../../../../shared/services/creativity.service';
 
@@ -57,7 +57,7 @@ type WorkspaceMode = 'view' | 'form';
     GenerationPreviewComponent,
     HolderFormComponent,
     IdemLoaderComponent,
-    CreativityPickerComponent,
+    CreativityGateDirective,
     CreativityCostPipe,
   ],
   templateUrl: './business-cards.html',

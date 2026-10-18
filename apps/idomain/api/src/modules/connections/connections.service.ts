@@ -262,6 +262,10 @@ export async function publicConnection(c: ConnectionRow) {
     if (v && !v.verified_at) instructions.push({ type: 'TXT', name: relativeTo(v.record_name, zone), value: `idem-verify=${v.token}`, zone, purpose: 'ownership' });
     if (ip) instructions = instructions.concat(hostsOf(c).map((h) => ({ type: 'A', name: relativeTo(h, zone), value: ip, zone, purpose: 'address' as const })));
   }
+  // Le domaine acheté chez IDEM : échéance et renouvellement, pour le gérer depuis iDeploy ou iCode.
+  const domain = c.domain_id
+    ? await one<{ id: string; name: string; expires_at: Date | null; renewal_xaf: number | null; dns_mode: string }>(`SELECT id, name, expires_at, renewal_xaf, dns_mode FROM domains WHERE id = $1`, [c.domain_id])
+    : null;
   return {
     id: c.id,
     host: c.host,
@@ -273,6 +277,7 @@ export async function publicConnection(c: ConnectionRow) {
     error: c.error,
     check: c.last_check,
     instructions,
+    domain: domain ? { id: domain.id, name: domain.name, expiresAt: domain.expires_at, renewalXaf: domain.renewal_xaf, dnsManaged: domain.dns_mode === 'managed' } : null,
     activatedAt: c.activated_at,
     createdAt: c.created_at,
     updatedAt: c.updated_at,

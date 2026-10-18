@@ -1,0 +1,281 @@
+@if (loading()) {
+  <idem-loader block [label]="'common.loading' | translate" />
+} @else if (status(); as s) {
+  <div class="wa">
+    <!-- ═══════════════ En-tête ═══════════════ -->
+    <header class="wa-hero glass-card">
+      <!-- Le tambour parleur : la parole portée loin (docs/ILLUSTRATIONS.md). -->
+      <svg class="wa-hero-illu" viewBox="14 4 92 76" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+        <g stroke-width="1.6">
+          <ellipse cx="60" cy="20" rx="16" ry="4.5" stroke-width="2" />
+          <ellipse cx="60" cy="68" rx="16" ry="4.5" stroke-width="2" />
+          <path d="M44 20 C51 34 51 54 44 68 M76 20 C69 34 69 54 76 68" />
+          <path d="M46 22.7 L46 66.7 M49.5 24 L49.5 68 M53 25 L53 69 M56.5 25.5 L56.5 69.5 M60 25.5 L60 69.5 M63.5 25 L63.5 69 M67 24 L67 68 M70.5 22.7 L70.5 66.7" stroke-width="1" opacity=".6" />
+          <path d="M44 44 H76" stroke-width="1.2" opacity=".6" />
+          <path d="M50 34 L54 38 L50 42 M70 34 L66 38 L70 42 M50 46 L54 50 L50 54 M70 46 L66 50 L70 54" stroke-width="1.2" opacity=".75" />
+          <path d="M78 76 C88 70 94 62 96 52" stroke-width="2" />
+          <g class="wa-hero-beat" stroke-width="1.8">
+            <path d="M88 22 C92 26 92 32 88 36" />
+            <path d="M94 16 C101 23 101 35 94 42" />
+            <path d="M32 22 C28 26 28 32 32 36" />
+            <path d="M26 16 C19 23 19 35 26 42" />
+          </g>
+        </g>
+      </svg>
+      <div class="wa-hero-text">
+        <h2 class="wa-hero-title">{{ 'dashboard.showCommunication.whatsapp.title' | translate }}</h2>
+        <p class="wa-hero-body">{{ 'dashboard.showCommunication.whatsapp.subtitle' | translate }}</p>
+        @if (!s.entitled) {
+          <p class="wa-hero-body wa-hero-gate">
+            {{ (s.reason === 'welcome_only' ? 'dashboard.showCommunication.whatsapp.paidWelcome' : 'dashboard.showCommunication.whatsapp.paidBody') | translate }}
+          </p>
+          <a class="inner-button wa-hero-cta" routerLink="/account/plans">{{ 'dashboard.showCommunication.whatsapp.seePlans' | translate }}</a>
+        } @else if (!s.available) {
+          <p class="wa-hero-body wa-hero-gate" role="status">{{ 'dashboard.showCommunication.whatsapp.unavailable' | translate }}</p>
+        }
+      </div>
+    </header>
+
+    @if (s.entitled && s.available) {
+      <div class="wa-grid">
+        <!-- ═══════════════ Le parcours ═══════════════ -->
+        <ol class="wa-steps">
+          <!-- 1. Lier son WhatsApp -->
+          <li class="wa-step" [class.wa-step-done]="stateOf('phone') === 'done'" [class.wa-step-next]="stateOf('phone') === 'next'">
+            <span class="wa-marker" aria-hidden="true">
+              @if (stateOf('phone') === 'done') {
+                <i class="pi pi-check"></i>
+              } @else {
+                1
+              }
+            </span>
+            <div class="wa-body">
+              <div class="wa-head">
+                <h3 class="wa-step-title">{{ 'dashboard.showCommunication.whatsapp.steps.phone.title' | translate }}</h3>
+                <span class="tag wa-state">{{ 'dashboard.showCommunication.whatsapp.state.' + stateOf('phone') | translate }}</span>
+              </div>
+
+              @if (s.linked) {
+                <div class="wa-linked">
+                  <span class="wa-linked-icon" aria-hidden="true"><i class="pi pi-whatsapp"></i></span>
+                  <p class="wa-linked-text">
+                    <span class="wa-linked-title">{{ 'dashboard.showCommunication.whatsapp.linkedTitle' | translate }}</span>
+                    <span class="wa-linked-sub">{{ 'dashboard.showCommunication.whatsapp.linkedSub' | translate: { last4: s.phoneLast4 } }}</span>
+                  </p>
+                  @if (confirmingUnlink()) {
+                    <span class="wa-confirm">
+                      <button type="button" class="button-ghost button-sm" (click)="confirmingUnlink.set(false)">{{ 'common.cancel' | translate }}</button>
+                      <button type="button" class="outer-button button-sm" (click)="unlink()">{{ 'dashboard.showCommunication.whatsapp.unlinkConfirm' | translate }}</button>
+                    </span>
+                  } @else {
+                    <button type="button" class="button-ghost button-sm" (click)="unlink()">{{ 'dashboard.showCommunication.whatsapp.unlink' | translate }}</button>
+                  }
+                </div>
+              } @else if (linkStart(); as start) {
+                <!-- Le code est parti : on le saisit ici. -->
+                <p class="wa-why">
+                  {{ 'dashboard.showCommunication.whatsapp.code.sent' | translate: { phone: sentToLabel() } }}
+                  <button type="button" class="wa-link" [disabled]="busy()" (click)="changeNumber()">{{ 'dashboard.showCommunication.whatsapp.changeNumber' | translate }}</button>
+                </p>
+                <div class="wa-code">
+                  <app-whatsapp-code-field
+                    [value]="code()"
+                    (valueChange)="onCodeChange($event)"
+                    [disabled]="busy()"
+                    [invalid]="!!errorAt('code')"
+                    (completed)="confirmLink()"
+                  />
+                </div>
+                @if (errorAt('code'); as message) {
+                  <p class="wa-error" role="alert"><i class="pi pi-exclamation-circle" aria-hidden="true"></i> {{ message }}</p>
+                }
+                <div class="wa-foot">
+                  <p class="wa-hint">
+                    {{ 'dashboard.showCommunication.whatsapp.waiting' | translate: { time: (start.expiresAt | date: 'HH:mm') } }}
+                    @if (resendIn() > 0) {
+                      · {{ 'dashboard.showCommunication.whatsapp.code.resendIn' | translate: { s: resendIn() } }}
+                    } @else {
+                      · <button type="button" class="wa-link" [disabled]="busy()" (click)="resend()">{{ 'dashboard.showCommunication.whatsapp.code.resend' | translate }}</button>
+                    }
+                  </p>
+                  <button type="button" class="inner-button" [disabled]="busy() || !codeReady()" (click)="confirmLink()">
+                    @if (busy()) {
+                      <idem-loader size="xs" />
+                    }
+                    {{ 'dashboard.showCommunication.whatsapp.confirmCta' | translate }}
+                  </button>
+                </div>
+              } @else {
+                <!-- Le numéro : l'indicatif d'un côté, le numéro de l'autre. -->
+                <p class="wa-why">{{ 'dashboard.showCommunication.whatsapp.phone.hint' | translate }}</p>
+                <div class="wa-phone">
+                  <app-whatsapp-phone-field [value]="phone()" (valueChange)="onPhoneChange($event)" [disabled]="busy()" [invalid]="!!errorAt('phone')" (submitted)="startLink()" />
+                </div>
+                @if (errorAt('phone'); as message) {
+                  <p class="wa-error" role="alert"><i class="pi pi-exclamation-circle" aria-hidden="true"></i> {{ message }}</p>
+                }
+                <div class="wa-foot">
+                  <p class="wa-hint"><i class="pi pi-lock" aria-hidden="true"></i> {{ 'dashboard.showCommunication.whatsapp.phone.privacy' | translate }}</p>
+                  <button type="button" class="inner-button" [disabled]="busy() || !phoneReady()" (click)="startLink()">
+                    @if (busy()) {
+                      <idem-loader size="xs" />
+                    }
+                    {{ 'dashboard.showCommunication.whatsapp.linkCta' | translate }}
+                  </button>
+                </div>
+              }
+            </div>
+          </li>
+
+          <!-- 2. Connecter ses réseaux -->
+          <li class="wa-step" [class.wa-step-done]="stateOf('networks') === 'done'" [class.wa-step-next]="stateOf('networks') === 'next'">
+            <span class="wa-marker" aria-hidden="true">
+              @if (stateOf('networks') === 'done') {
+                <i class="pi pi-check"></i>
+              } @else {
+                2
+              }
+            </span>
+            <div class="wa-body">
+              <div class="wa-head">
+                <h3 class="wa-step-title">{{ 'dashboard.showCommunication.whatsapp.steps.networks.title' | translate }}</h3>
+                <span class="tag wa-state">{{ 'dashboard.showCommunication.whatsapp.state.' + stateOf('networks') | translate }}</span>
+              </div>
+              <p class="wa-why">{{ 'dashboard.showCommunication.whatsapp.networksHint' | translate }}</p>
+              <ul class="wa-networks">
+                @for (network of networks; track network) {
+                  <li class="wa-network" [class.wa-network-on]="!!accountOf(network)">
+                    <span class="wa-network-icon" aria-hidden="true"><i [class]="channelIcon(network)"></i></span>
+                    <span class="wa-network-text">
+                      <span class="wa-network-name">{{ 'dashboard.showCommunication.networks.' + network | translate }}</span>
+                      @if (accountOf(network); as account) {
+                        <span class="wa-network-sub wa-network-sub-on">{{ account.accountName || ('dashboard.showCommunication.whatsapp.connected' | translate) }}</span>
+                      } @else if (!configured(network)) {
+                        <span class="wa-network-sub">{{ 'dashboard.showCommunication.whatsapp.soon' | translate }}</span>
+                      }
+                    </span>
+                    @if (connecting() === network) {
+                      <idem-loader size="xs" />
+                    } @else if (accountOf(network)) {
+                      <button type="button" class="button-ghost button-sm" (click)="disconnect(network)">{{ 'dashboard.showCommunication.whatsapp.disconnect' | translate }}</button>
+                    } @else if (configured(network)) {
+                      <button type="button" class="outer-button button-sm" [disabled]="!!connecting()" (click)="connect(network)">{{ 'dashboard.showCommunication.whatsapp.connect' | translate }}</button>
+                    }
+                  </li>
+                }
+              </ul>
+              @if (errorAt('general'); as message) {
+                <p class="wa-error" role="alert"><i class="pi pi-exclamation-circle" aria-hidden="true"></i> {{ message }}</p>
+              }
+            </div>
+          </li>
+
+          <!-- 3. Les propositions du jour -->
+          <li class="wa-step" [class.wa-step-done]="stateOf('daily') === 'done'" [class.wa-step-next]="stateOf('daily') === 'next'">
+            <span class="wa-marker" aria-hidden="true">
+              @if (stateOf('daily') === 'done') {
+                <i class="pi pi-check"></i>
+              } @else {
+                3
+              }
+            </span>
+            <div class="wa-body">
+              <div class="wa-head">
+                <h3 class="wa-step-title">{{ 'dashboard.showCommunication.whatsapp.steps.daily.title' | translate }}</h3>
+                <span class="tag wa-state">{{ 'dashboard.showCommunication.whatsapp.state.' + stateOf('daily') | translate }}</span>
+              </div>
+              @if (!s.linked) {
+                <p class="wa-why">{{ 'dashboard.showCommunication.whatsapp.dailyLocked' | translate }}</p>
+              } @else {
+                <div class="wa-switch-row">
+                  <button
+                    type="button"
+                    role="switch"
+                    class="wa-switch"
+                    [class.wa-switch-on]="s.dailyProposals"
+                    [attr.aria-checked]="s.dailyProposals"
+                    [attr.aria-label]="'dashboard.showCommunication.whatsapp.dailyTitle' | translate"
+                    [disabled]="saving()"
+                    (click)="toggleDaily()"
+                  >
+                    <span class="wa-switch-knob"></span>
+                  </button>
+                  <p class="wa-switch-text">
+                    <span class="wa-switch-title">{{ 'dashboard.showCommunication.whatsapp.dailyTitle' | translate }}</span>
+                    <span class="wa-hint">{{ 'dashboard.showCommunication.whatsapp.dailyHint' | translate }}</span>
+                  </p>
+                  @if (saving()) {
+                    <idem-loader size="xs" />
+                  }
+                </div>
+
+                @if (s.dailyProposals) {
+                  <fieldset class="wa-hours">
+                    <legend class="wa-hours-label">{{ 'dashboard.showCommunication.whatsapp.hour' | translate }}</legend>
+                    @for (hour of quickHours; track hour) {
+                      <button type="button" class="wa-chip" [class.wa-chip-on]="s.sendHour === hour" [attr.aria-pressed]="s.sendHour === hour" [disabled]="saving()" (click)="setHour(hour)">
+                        {{ hour }} h
+                      </button>
+                    }
+                    <select class="wa-hours-other" [attr.aria-label]="'dashboard.showCommunication.whatsapp.otherHour' | translate" [disabled]="saving()" (change)="setHour(+$any($event.target).value)">
+                      @for (hour of hours; track hour) {
+                        <option [value]="hour" [selected]="hour === s.sendHour">{{ hour }} h</option>
+                      }
+                    </select>
+                  </fieldset>
+                }
+                @if (errorAt('general'); as message) {
+                  <p class="wa-error" role="alert"><i class="pi pi-exclamation-circle" aria-hidden="true"></i> {{ message }}</p>
+                }
+              }
+            </div>
+          </li>
+        </ol>
+
+        <!-- ═══════════════ Ce que vous recevrez ═══════════════ -->
+        <aside class="wa-side">
+          <section class="glass-card wa-preview" aria-labelledby="wa-preview-title">
+            <h3 id="wa-preview-title" class="wa-preview-title">{{ 'dashboard.showCommunication.whatsapp.preview.title' | translate }}</h3>
+            <div class="wa-chat" aria-hidden="true">
+              <p class="wa-bubble">
+                <span class="wa-bubble-from"><i class="pi pi-whatsapp"></i> IDEM</span>
+                {{ 'dashboard.showCommunication.whatsapp.preview.message' | translate }}
+              </p>
+              <div class="wa-bubble-actions">
+                <span class="wa-bubble-btn wa-bubble-btn-ok">{{ 'dashboard.showCommunication.whatsapp.preview.approve' | translate }}</span>
+                <span class="wa-bubble-btn">{{ 'dashboard.showCommunication.whatsapp.preview.edit' | translate }}</span>
+                <span class="wa-bubble-btn">{{ 'dashboard.showCommunication.whatsapp.preview.cancel' | translate }}</span>
+              </div>
+            </div>
+            <p class="wa-safety"><i class="pi pi-shield" aria-hidden="true"></i> {{ 'dashboard.showCommunication.whatsapp.safety' | translate }}</p>
+          </section>
+
+          @if (s.linked) {
+            <section class="glass-card wa-history">
+              <h3 class="wa-preview-title">{{ 'dashboard.showCommunication.whatsapp.historyTitle' | translate }}</h3>
+              @if (history().length === 0) {
+                <p class="wa-hint">{{ 'dashboard.showCommunication.whatsapp.historyEmpty' | translate }}</p>
+              } @else {
+                <ul class="wa-history-list">
+                  @for (item of history(); track item._id) {
+                    <li class="wa-history-item">
+                      <span class="wa-history-text">
+                        <span class="wa-history-caption">{{ item.caption || ('dashboard.showCommunication.whatsapp.noCaption' | translate) }}</span>
+                        <span class="wa-hint">{{ item.createdAt | date: 'd MMM, HH:mm' }} · {{ item.networks.join(', ') }}</span>
+                      </span>
+                      <span class="wa-history-status" [class.wa-ok]="item.status === 'published'" [class.wa-wait]="item.status === 'awaiting'">
+                        {{ 'dashboard.showCommunication.whatsapp.status.' + item.status | translate }}
+                      </span>
+                    </li>
+                  }
+                </ul>
+              }
+            </section>
+          }
+        </aside>
+      </div>
+    }
+  </div>
+} @else {
+  <p class="text-sm text-text-secondary" role="alert">{{ 'dashboard.showCommunication.whatsapp.loadFailed' | translate }}</p>
+}

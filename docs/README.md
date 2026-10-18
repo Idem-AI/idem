@@ -13,6 +13,7 @@ IDEM turns a business idea into the assets a founder needs: brand identity, busi
 | [Deployment](DEPLOYMENT.md) | understand CI, Docker images and how production is deployed |
 | [Observability](OBSERVABILITY.md) | write logs, debug with Grafana, act on alert e-mails, run the log stack in production |
 | [Mobile applications in iCode](ICODE_MOBILE_APPS.md) | understand how iCode generates, previews and publishes a mobile application (React + Capacitor) |
+| [How an iCode workspace starts](ICODE_STARTUP.md) | understand why opening a project is fast, bake the preinstalled dependency snapshots, debug a slow or empty preview |
 | [Contributing](../CONTRIBUTING.md) | follow the workflow, commit rules and git hooks |
 
 ## Applications

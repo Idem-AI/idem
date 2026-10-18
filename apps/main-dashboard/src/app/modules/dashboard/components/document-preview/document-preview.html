@@ -77,6 +77,7 @@
           <button
             type="button"
             class="dp-foot-btn"
+            data-creativity-launch
             [disabled]="busy()"
             [attr.aria-label]="
               'dashboard.documentPreview.footer.regenerateAria' | translate: { section: foot.page.label }
@@ -115,6 +116,7 @@
             <button
               type="button"
               class="dp-popover-regen"
+              data-creativity-launch
               [disabled]="busy()"
               [title]="'dashboard.documentPreview.popover.regenerateAria' | translate: { section: page.label }"
               [attr.aria-label]="
@@ -274,7 +276,7 @@
                   ) | translate: { count: resumeCount() }
                 }}
               </p>
-              <button type="button" class="inner-button button-sm dp-nudge-cta" (click)="resume()">
+              <button type="button" class="inner-button button-sm dp-nudge-cta" data-creativity-launch (click)="resume()">
                 {{ 'dashboard.documentPreview.nudge.complete' | translate }}
               </button>
               <button
@@ -295,6 +297,7 @@
                 type="button"
                 role="menuitem"
                 class="dp-menu-item dp-menu-rich"
+                data-creativity-launch
                 [disabled]="resumeCount() === 0"
                 (click)="resume()"
               >
@@ -315,6 +318,7 @@
                 role="menuitem"
                 class="dp-menu-item dp-menu-rich"
                 [class.dp-menu-danger]="confirmRegenerateAll()"
+                [attr.data-creativity-launch]="confirmRegenerateAll() ? '' : null"
                 (click)="requestRegenerateAll()"
               >
                 <i class="pi pi-refresh dp-menu-icon" aria-hidden="true"></i>

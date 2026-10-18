@@ -1,98 +1,143 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, inject, input, output, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { EDITOR_TARGET_PARAMS, EditTarget, FontHints, IdemDocumentPreviewComponent, PageFormat } from '@idem/shared-document-editor/angular';
-import { CommunicationService } from '../../../../services/ai-agents/communication.service';
+import { TranslateModule } from '@ngx-translate/core';
+import { FontHints } from '@idem/shared-document-editor/angular';
 import { Flyer, FlyerFormat } from '../../../../models/communication.model';
 
-/**
- * Dimensions réelles de chaque format, en pixels — celles du rendu PNG côté API : l'aperçu
- * montre exactement la page qui sera photographiée.
- */
-const FORMAT_PAGE: Record<FlyerFormat, PageFormat> = {
-  square: { width: '1080px', height: '1080px' },
-  story: { width: '1080px', height: '1920px' },
-  banner: { width: '1200px', height: '630px' },
-  post: { width: '1200px', height: '1500px' },
-  a4: { width: '1240px', height: '1754px' },
+/** Dimensions réelles de chaque format, en pixels — celles du rendu PNG côté API. */
+const FORMAT_SIZE: Record<FlyerFormat, [number, number]> = {
+  square: [1080, 1080],
+  story: [1080, 1920],
+  banner: [1200, 630],
+  post: [1200, 1500],
+  a4: [1240, 1754],
 };
 
+/** Le rendu peut arriver juste après la génération : trois nouvelles tentatives, espacées. */
+const BACKOFF_MS = [1200, 3000, 6000];
+
 /**
- * Aperçu d'un visuel de Communication : l'aperçu éditable partagé (`<idem-document-preview>`,
- * le même qu'iVision) — survoler cadre un élément, cliquer ouvre « Modifier » qui mène à
- * l'éditeur SUR CET ÉLÉMENT. Ce composant ne fait que charger le HTML et ouvrir l'éditeur d'IDEM.
+ * Aperçu d'un visuel de Communication : LE RENDU LUI-MÊME (le PNG que l'on télécharge), affiché dès
+ * que le visuel existe — y compris juste après sa génération. L'ancien aperçu reconstruisait la page
+ * dans une iframe ; ouvert avec son HTML déjà là (visuel tout juste généré, fenêtre), il restait vide.
  *
- * Le HTML n'arrive pas avec la liste des visuels (trop lourd pour une grille de vignettes) :
- * il est demandé ici, visuel par visuel, à l'ouverture.
+ * Tant que l'image arrive, la forme du format (squelette) ; si elle tarde, de nouvelles tentatives,
+ * puis « Réessayer ». « Modifier » ouvre l'éditeur partagé sur le visuel.
  */
 @Component({
   selector: 'app-visual-preview',
-  imports: [IdemDocumentPreviewComponent],
+  imports: [TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'block' },
   template: `
-    <idem-document-preview
-      [html]="html()"
-      [section]="{ id: visual().id, name: visual().id, type: 'flyer-' + visual().format }"
-      [pageFormat]="pageFormat()"
-      [fonts]="fonts()"
-      [maxHeight]="maxHeight()"
-      [loading]="isLoading()"
-      [failed]="loadFailed()"
-      (editRequested)="edit($event)"
-    />
+    <figure class="group relative mx-auto overflow-hidden rounded-xl border border-[var(--glass-border-subtle)]" [style.aspect-ratio]="ratio()" [style.max-height.px]="maxHeight()" [style.max-width]="maxWidth()">
+      @if (src(); as url) {
+        @if (!loaded() && !givenUp()) {
+          <div class="skeleton absolute inset-0" role="status" [attr.aria-label]="'common.loading' | translate"></div>
+        }
+        @if (givenUp()) {
+          <div class="absolute inset-0 flex flex-col items-center justify-center gap-3 p-4 text-center text-sm text-[var(--color-text-secondary)]" role="alert">
+            <i class="pi pi-image text-2xl" aria-hidden="true"></i>
+            <button type="button" class="outer-button button-sm" (click)="retry()">{{ 'common.retry' | translate }}</button>
+          </div>
+        } @else {
+          <img
+            class="block h-full w-full object-contain transition-opacity duration-300"
+            [class.opacity-0]="!loaded()"
+            [src]="url"
+            [alt]="visual().marketingText.headline || ''"
+            [attr.width]="size()[0]"
+            [attr.height]="size()[1]"
+            (load)="onLoad()"
+            (error)="onError()"
+          />
+        }
+      } @else {
+        <div class="skeleton absolute inset-0" role="status" [attr.aria-label]="'common.loading' | translate"></div>
+      }
+      @if (loaded()) {
+        <button type="button" class="inner-button button-sm absolute right-2 top-2 opacity-0 shadow-lg transition-opacity group-hover:opacity-100 focus-visible:opacity-100" (click)="edit()">
+          <i class="pi pi-pencil" aria-hidden="true"></i> {{ 'common.edit' | translate }}
+        </button>
+      }
+    </figure>
   `,
 })
 export class VisualPreview {
-  private readonly communication = inject(CommunicationService);
   private readonly router = inject(Router);
 
   readonly projectId = input.required<string>();
-  /** Visuel à montrer. Son `html` peut être vide : il est alors chargé ici. */
   readonly visual = input.required<Flyer>();
-  /** Polices de la marque, sans quoi le rendu retombe sur la police système. */
+  /** Gardé pour compatibilité : le rendu PNG porte déjà ses polices. */
   readonly fonts = input<FontHints>({});
-  /** Hauteur maximale de l'aperçu à l'écran (le zoom s'ajuste pour y tenir). */
+  /** Hauteur maximale de l'aperçu à l'écran. */
   readonly maxHeight = input<number>(460);
 
   /** L'utilisateur a demandé à retoucher : l'hôte peut fermer sa fenêtre avant. */
   readonly editRequested = output<void>();
 
-  protected readonly isLoading = signal(false);
-  protected readonly loadFailed = signal(false);
-  protected readonly html = signal<string>('');
-  protected readonly pageFormat = computed<PageFormat>(() => FORMAT_PAGE[this.visual().format] ?? FORMAT_PAGE.square);
+  protected readonly size = computed(() => FORMAT_SIZE[this.visual().format] ?? FORMAT_SIZE.square);
+  protected readonly ratio = computed(() => `${this.size()[0]} / ${this.size()[1]}`);
+  /** La largeur qui laisse le format tenir dans la hauteur maximale. */
+  protected readonly maxWidth = computed(() => `min(100%, ${Math.round((this.maxHeight() * this.size()[0]) / this.size()[1])}px)`);
+
+  protected readonly loaded = signal(false);
+  protected readonly givenUp = signal(false);
+  private readonly attempt = signal(0);
+  private timer: ReturnType<typeof setTimeout> | null = null;
+
+  /** L'adresse du rendu, avec un numéro de tentative (sinon le navigateur resservirait l'échec en cache). */
+  protected readonly src = computed(() => {
+    const url = this.visual().imageUrl;
+    if (!url) return '';
+    const n = this.attempt();
+    return n ? `${url}${url.includes('?') ? '&' : '?'}r=${n}` : url;
+  });
 
   constructor() {
-    // Le visuel peut changer sans que le composant soit recréé (variante suivante, déclinaison).
+    // Un autre visuel (variante, retouche, déclinaison) repart d'un état neuf.
     effect(() => {
-      const visual = this.visual();
-      if (!visual?.id) return;
-      if (visual.html) this.html.set(visual.html);
-      else this.fetch(visual.id);
+      this.visual().imageUrl;
+      this.clearTimer();
+      this.loaded.set(false);
+      this.givenUp.set(false);
+      this.attempt.set(0);
     });
+    inject(DestroyRef).onDestroy(() => this.clearTimer());
   }
 
-  private fetch(visualId: string): void {
-    this.isLoading.set(true);
-    this.loadFailed.set(false);
-    this.communication.getVisual(this.projectId(), visualId).subscribe({
-      next: (visual) => {
-        this.html.set(visual.html || '');
-        this.isLoading.set(false);
-        this.loadFailed.set(!visual.html);
-      },
-      error: () => {
-        this.isLoading.set(false);
-        this.loadFailed.set(true);
-      },
-    });
+  protected onLoad(): void {
+    this.clearTimer();
+    this.loaded.set(true);
   }
 
-  /** Ouvre l'éditeur d'IDEM sur l'élément cliqué. */
-  protected edit(target: EditTarget): void {
-    const queryParams: Record<string, string> = { flyerId: this.visual().id, [EDITOR_TARGET_PARAMS.section]: target.sectionId };
-    if (target.path !== null) queryParams[EDITOR_TARGET_PARAMS.path] = target.path;
+  protected onError(): void {
+    const n = this.attempt();
+    const wait = BACKOFF_MS[n];
+    if (wait === undefined) {
+      this.givenUp.set(true);
+      return;
+    }
+    this.clearTimer();
+    this.timer = setTimeout(() => this.attempt.set(n + 1), wait);
+  }
+
+  protected retry(): void {
+    this.givenUp.set(false);
+    this.loaded.set(false);
+    this.attempt.update((n) => n + 1);
+  }
+
+  /** Ouvre l'éditeur d'IDEM sur ce visuel. */
+  protected edit(): void {
     this.editRequested.emit();
-    this.router.navigate(['/project/communication/flyer/edit'], { queryParams });
+    this.router.navigate(['/project/communication/flyer/edit'], { queryParams: { flyerId: this.visual().id } });
+  }
+
+  private clearTimer(): void {
+    if (this.timer) {
+      clearTimeout(this.timer);
+      this.timer = null;
+    }
   }
 }

@@ -1,86 +1,90 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal, viewChild } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth.service';
 import { CatalogEntry, Quote } from '../../core/models';
 import { DomainSearch } from '../../shared/components/domain-search';
-import { Illustration } from '../../shared/components/illustration';
-import { XafPipe } from '../../shared/xaf.pipe';
+import { AppsSection } from './apps-section';
+import { FacadeScene } from './facade-scene';
+import { FeaturesSection } from './features-section';
+import { PricesSection } from './prices-section';
+import { SetupTimeline } from './setup-timeline';
 
 /**
- * L'accueil : chercher son nom, voir son prix (et celui du renouvellement), le prendre. Ouvert à
- * tous ; la connexion n'est demandée qu'au moment de commander.
+ * L'accueil d'iDomain, ouvert à tous. Une idée par écran :
+ *   1. le nom — le champ (résultats en direct), et la maison ndebele dont la plaque prend le nom tapé ;
+ *   2. ce qui se passe après le paiement — l'installation, étape par étape ;
+ *   3. ce qui vient avec un nom — inclus pour tous, et les options payantes ;
+ *   4. les prix — la première année ET le renouvellement, puis les garanties ;
+ *   5. pour qui est déjà en ligne avec IDEM — le même achat dans iDeploy et iCode.
+ * La connexion n'est demandée qu'au moment de prendre un nom.
  */
 @Component({
   selector: 'idm-home',
-  imports: [TranslateModule, DomainSearch, Illustration, XafPipe],
+  imports: [TranslateModule, DomainSearch, FacadeScene, SetupTimeline, PricesSection, FeaturesSection, AppsSection],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { class: 'block overflow-x-clip' },
   template: `
-    <section class="mx-auto grid max-w-6xl items-center gap-10 px-4 pb-10 pt-12 md:grid-cols-[1fr_260px] md:pt-20">
-      <div>
-        <h1 class="text-3xl font-semibold leading-tight tracking-tight sm:text-5xl">
-          {{ 'home.titleStart' | translate }} <span class="i-underline">{{ 'home.titleStrong' | translate }}</span>
+    <!-- 1. Le nom : le champ à gauche, la maison à son nom à droite. -->
+    <section id="chercher" class="idm-wrap grid gap-10 pb-20 pt-10 sm:pt-14 lg:min-h-[calc(100svh_-_4rem)] lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:items-center lg:gap-12 lg:pb-24">
+      <div class="min-w-0">
+        <h1 class="idm-hero-title text-[var(--color-heading)]">
+          <span class="block">{{ 'home.hero.title1' | translate }}</span>
+          <span class="block"><span class="i-underline">{{ 'home.hero.title2' | translate }}</span></span>
         </h1>
-        <p class="mt-4 max-w-xl text-base leading-relaxed text-[var(--color-text-secondary)]">{{ 'home.lead' | translate }}</p>
-        <idm-domain-search class="mt-8" [initial]="initialQuery" (chosen)="choose($event)" />
+        <p class="mt-8 max-w-md text-lg leading-relaxed text-[var(--color-text-secondary)] sm:text-xl">{{ 'home.hero.lead' | translate }}</p>
+        <idm-domain-search #search class="mt-10" [initial]="initialQuery" [catalog]="catalog() ?? []" (queryChange)="typed.set($event)" (chosen)="choose($event)" />
       </div>
-      <idm-illustration kind="facade" [width]="240" class="mx-auto hidden md:block" />
+      <idm-facade-scene class="mx-auto w-full max-w-[38rem] lg:sticky lg:top-24 lg:-mr-12 lg:w-[calc(100%_+_3rem)] lg:max-w-none xl:-mr-20 xl:w-[calc(100%_+_5rem)]" [query]="typed()" [suffix]="catalog()?.[0]?.tld ?? 'africa'" />
     </section>
 
-    <section class="mx-auto max-w-6xl px-4 py-10" aria-labelledby="prices-title">
-      <h2 id="prices-title" class="text-xl font-semibold">{{ 'home.pricesTitle' | translate }}</h2>
-      <p class="mt-1 text-sm text-[var(--color-text-secondary)]">{{ 'home.pricesLead' | translate }}</p>
-      @if (catalog(); as rows) {
-        @if (!rows.length) {
-          <p class="mt-4 text-sm text-[var(--color-text-secondary)]">{{ 'home.pricesUnavailable' | translate }}</p>
-        } @else {
-        <div class="glass-card mt-4 overflow-x-auto">
-          <table class="w-full text-sm">
-            <thead>
-              <tr class="text-left text-xs text-[var(--color-text-tertiary)]">
-                <th scope="col" class="px-5 py-3 font-medium">{{ 'home.extension' | translate }}</th>
-                <th scope="col" class="px-5 py-3 font-medium">{{ 'home.firstYear' | translate }}</th>
-                <th scope="col" class="px-5 py-3 font-medium">{{ 'home.renewal' | translate }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (row of rows; track row.tld) {
-                <tr class="border-t border-[var(--glass-border-subtle)]">
-                  <td class="px-5 py-3 font-semibold">.{{ row.tld }}</td>
-                  <td class="px-5 py-3">{{ row.registerXaf | xaf }}</td>
-                  <td class="px-5 py-3">{{ row.renewXaf | xaf }} <span class="text-xs text-[var(--color-text-tertiary)]">{{ 'home.perYear' | translate }}</span></td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-        }
-      } @else {
-        <div class="skeleton mt-4 h-32 rounded-xl"></div>
-      }
+    <!-- 2. Après le paiement. -->
+    <section id="comment" class="border-t border-[var(--glass-border-subtle)] py-24 sm:py-32">
+      <div class="idm-wrap"><idm-setup-timeline /></div>
     </section>
 
-    <section class="mx-auto max-w-6xl px-4 py-10">
-      <h2 class="text-xl font-semibold">{{ 'home.howTitle' | translate }}</h2>
-      <ol class="mt-6 grid gap-6 md:grid-cols-3">
-        @for (step of steps; track step; let i = $index) {
-          <li>
-            <span class="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--glass-border-subtle)] text-sm font-semibold">{{ i + 1 }}</span>
-            <h3 class="mt-3 font-semibold">{{ 'home.steps.' + step + '.title' | translate }}</h3>
-            <p class="mt-1 text-sm leading-relaxed text-[var(--color-text-secondary)]">{{ 'home.steps.' + step + '.body' | translate }}</p>
-          </li>
-        }
-      </ol>
+    <!-- 3. Ce qui vient avec un nom : inclus et en option. -->
+    <section id="services" class="border-t border-[var(--glass-border-subtle)] py-24 sm:py-32">
+      <div class="idm-wrap"><idm-features-section /></div>
     </section>
+
+    <!-- 4. Les prix et les garanties. -->
+    <section id="prix" class="border-t border-[var(--glass-border-subtle)] py-24 sm:py-32">
+      <div class="idm-wrap"><idm-prices-section [catalog]="catalog()" (pick)="searchTld($event)" /></div>
+    </section>
+
+    <!-- 5. Déjà en ligne avec IDEM. -->
+    <section id="applications" class="border-t border-[var(--glass-border-subtle)] py-24 sm:py-32">
+      <div class="idm-wrap"><idm-apps-section /></div>
+    </section>
+
+    <!-- Fin : revenir au geste principal. -->
+    <section class="border-t border-[var(--glass-border-subtle)] py-24 sm:py-32">
+      <div class="idm-wrap flex flex-col items-start gap-8 lg:flex-row lg:items-end lg:justify-between">
+        <h2 class="idm-section-title text-[var(--color-heading)]">
+          <span class="block">{{ 'home.closing.title1' | translate }}</span>
+          <span class="block"><span class="i-underline">{{ 'home.closing.title2' | translate }}</span></span>
+        </h2>
+        <button type="button" class="inner-button button-lg" (click)="backToSearch()">{{ 'home.closing.cta' | translate }}</button>
+      </div>
+    </section>
+
+    <footer class="border-t border-[var(--glass-border-subtle)] py-8">
+      <div class="idm-wrap flex flex-wrap items-center justify-between gap-4 text-xs text-[var(--color-text-tertiary)]">
+        <span>{{ 'home.footer.by' | translate }}</span>
+        <span>{{ 'home.footer.currency' | translate }}</span>
+      </div>
+    </footer>
   `,
 })
 export class HomePage {
   private readonly api = inject(ApiService);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly search = viewChild.required<DomainSearch>('search');
   protected readonly catalog = signal<CatalogEntry[] | null>(null);
-  protected readonly steps = ['find', 'pay', 'connect'];
+  protected readonly typed = signal('');
   protected readonly initialQuery = inject(ActivatedRoute).snapshot.queryParamMap.get('q') ?? '';
 
   constructor() {
@@ -91,5 +95,17 @@ export class HomePage {
     const target = `/checkout?domain=${encodeURIComponent(q.domain)}`;
     if (await this.auth.ensureLoaded()) void this.router.navigateByUrl(target);
     else this.auth.redirectToLogin(`${window.location.origin}${target}`);
+  }
+
+  protected backToSearch(): void {
+    document.getElementById('chercher')?.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    this.search().focus();
+  }
+
+  /** « Chercher en .africa » depuis la grille des prix : le champ du haut, avec cette extension. */
+  protected searchTld(tld: string): void {
+    this.backToSearch();
+    const label = this.typed().trim().split('.')[0];
+    if (label) this.search().searchFor(`${label}.${tld}`);
   }
 }

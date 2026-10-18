@@ -51,6 +51,7 @@ export const ChatInput: React.FC<ChatInputPropsType> = ({
   setBaseModal,
 }) => {
   const { files, errors, removeError } = useFileStore();
+  const sendButtonRef = useRef<HTMLButtonElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const sketchInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -142,6 +143,10 @@ export const ChatInput: React.FC<ChatInputPropsType> = ({
       } else if (e.key === "Escape") {
         setShowMentionMenu(false);
       }
+    } else if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+      // Entrée ouvre le menu des niveaux de créativité du bouton d'envoi (comme un clic) : le niveau choisi envoie.
+      e.preventDefault();
+      if (!isLoading) sendButtonRef.current?.click();
     } else {
       handleKeySubmit(e);
     }
@@ -564,6 +569,7 @@ export const ChatInput: React.FC<ChatInputPropsType> = ({
               </div>
 
               <SendButton
+                buttonRef={sendButtonRef}
                 isLoading={isLoading}
                 stop={stopRuning}
                 isUploading={isUploading}

@@ -20,9 +20,17 @@ import { BrandMark } from '../../shared/components/brand-mark';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex min-h-dvh flex-col">
-      <header class="sticky top-0 z-30 border-b border-[var(--glass-border-subtle)] bg-[var(--color-bg-dark)]">
+      <header class="sticky top-0 z-30 border-b border-[var(--glass-border-subtle)] bg-[color-mix(in_oklch,var(--color-bg-dark)_88%,transparent)] backdrop-blur-md">
         <div class="mx-auto flex h-16 max-w-6xl items-center gap-6 px-4">
           <a routerLink="/" [attr.aria-label]="'nav.home' | translate"><idm-brand-mark /></a>
+          @if (!auth.user() && path() === '/') {
+            <!-- Visiteur : les repères de la page, sans quitter l'accueil. -->
+            <nav class="hidden items-center gap-1 md:flex" [attr.aria-label]="'nav.page' | translate">
+              @for (a of anchors; track a.id) {
+                <a routerLink="/" [fragment]="a.id" class="rounded-lg px-3 py-2 text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]">{{ a.label | translate }}</a>
+              }
+            </nav>
+          }
           @if (auth.user()) {
             <nav class="hidden items-center gap-1 md:flex" [attr.aria-label]="'nav.main' | translate">
               @for (link of links; track link.path) {
@@ -69,6 +77,12 @@ export class Shell {
   protected readonly theme = inject(ThemeService);
   protected readonly language = inject(LanguageService);
   protected readonly walletUrl = `${environment.services.dashboard.url}/account/plans`;
+  protected readonly anchors = [
+    { id: 'comment', label: 'nav.how' },
+    { id: 'services', label: 'nav.services' },
+    { id: 'prix', label: 'nav.prices' },
+    { id: 'applications', label: 'nav.apps' },
+  ];
   protected readonly links = [
     { path: '/', label: 'nav.search', icon: 'pi-search' },
     { path: '/domains', label: 'nav.domains', icon: 'pi-globe' },

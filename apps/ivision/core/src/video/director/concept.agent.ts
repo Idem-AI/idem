@@ -47,7 +47,7 @@ export function buildConceptPrompt(brief: FilmBrief): { system: string; user: st
     scripted ? `CLIENT SCRIPT (follow it scene by scene):\n${scriptLines(brief.spec!)}` : '',
     `MEDIA AVAILABLE:\n${mediaLines(brief)}`,
     brief.newMedia.images || brief.newMedia.clips ? `NEW MEDIA THAT CAN BE GENERATED: up to ${brief.newMedia.images} photos and ${brief.newMedia.clips} short video clips` : 'NO NEW PHOTO OR CLIP CAN BE GENERATED: build visuals with shapes, type and the media above.',
-    brief.reference ? `REFERENCE FILM TO FOLLOW (its rhythm, cuts and motion):\n${brief.reference.slice(0, 1500)}` : '',
+    brief.reference ? `REFERENCE FILM TO REPRODUCE (the client's model: same number of shots, same timing, same composition and motion per shot):\n${brief.reference.slice(0, 6000)}` : '',
     brief.previous.length ? `FILMS ALREADY MADE FOR THIS BRAND (do something different):\n${brief.previous.slice(0, 6).join('\n')}` : '',
   ]
     .filter(Boolean)

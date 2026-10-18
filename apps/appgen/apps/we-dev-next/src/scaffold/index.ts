@@ -21,6 +21,7 @@
 import { BuildTarget } from '../config/buildTarget.js';
 import { DesignSystem, forgeDesignSystem } from '../design/tokenForge.js';
 import { ProjectModel } from '../types/project.js';
+import { depsPlanFromFiles, treeFingerprint } from './deps.js';
 import { renderLibraryMenu } from './libraries.js';
 import type { BrandLogoSource } from './shared.js';
 import { buildMobileScaffold } from './mobileApp.js';
@@ -43,6 +44,16 @@ export interface Scaffold {
   /** Fichiers posés par le code : le modèle ne doit jamais les émettre. */
   locked: string[];
   commands: { install: string; start: string };
+  /**
+   * Les arbres `node_modules` de la cible et leur empreinte.
+   *
+   * L'atelier les demande plus tôt que le socle (ils ne dépendent pas du
+   * projet, seulement de la cible) pour lancer le téléchargement dès la
+   * première image. On les redonne ici pour qu'il vérifie qu'il a bien
+   * préchargé la bonne cible : un lien sans paramètre `product` fait résoudre
+   * la cible depuis la configuration du projet, donc après coup.
+   */
+  deps: { fingerprint: string; trees: Array<{ id: string; dir: string; mountPoint: string; fingerprint: string }> };
 }
 
 export interface ScaffoldOptions {
@@ -73,12 +84,23 @@ export function buildScaffold(options: ScaffoldOptions): Scaffold {
         ? buildMobileScaffold(system, projectData, language)
         : buildWebAppScaffold(system, projectData, language);
 
+  const plan = depsPlanFromFiles(target, files);
+
   return {
     version: SCAFFOLD_VERSION,
     target,
     files,
     locked,
     commands: { install: 'npm install', start: 'npm run dev' },
+    deps: {
+      fingerprint: plan.fingerprint,
+      trees: plan.trees.map((tree) => ({
+        id: tree.id,
+        dir: tree.dir,
+        mountPoint: tree.mountPoint,
+        fingerprint: treeFingerprint(tree),
+      })),
+    },
   };
 }
 

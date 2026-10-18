@@ -502,10 +502,9 @@
           <i class="pi pi-arrow-right" aria-hidden="true"></i>
         </button>
       } @else {
-        <!-- Le cran de créativité se choisit au moment de lancer : à côté du bouton, prix compris. -->
+        <!-- Le niveau de créativité se choisit sur le bouton (bulle), au moment de lancer. -->
         <div class="vb-footer-go">
-          <app-creativity-picker kind="video" [(value)]="creativity" [baseCost]="basePrice()" [disabled]="busy()" placement="top" align="end" />
-          <button type="button" class="inner-button" [disabled]="!canSubmit()" (click)="submit()">
+          <button type="button" class="inner-button" [disabled]="!canSubmit()" (click)="submit()" appCreativityGate creativityKind="video" [(creativity)]="creativity" [creativityCost]="basePrice()">
             <i class="pi pi-video" aria-hidden="true"></i>
             {{ 'dashboard.showCommunication.video.builder.submit' | translate: { price: price() } }}
           </button>

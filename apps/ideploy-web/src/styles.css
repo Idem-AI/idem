@@ -9,6 +9,8 @@
 @import '@xterm/xterm/css/xterm.css';
 @import 'tailwindcss';
 @import '@idem/shared-styles/styles.css';
+/* La fenêtre d'achat et la gestion des noms (paquet partagé, hors de ce dossier) : leurs classes doivent être générées. */
+@source '../../../packages/shared-idomain/src';
 
 /* Dark-mode variant (same as the Laravel app) */
 @custom-variant dark (&:where(.dark, .dark *));

@@ -169,6 +169,11 @@ export interface MontageVideo {
   outro?: MontageOutro;
   music?: MontageMusic;
   musicEnabled: boolean;
+  /**
+   * Ce que l'utilisateur a choisi avant le montage (questions de la conversation) : ces choix
+   * l'emportent sur ceux du monteur. Absent : le monteur décide.
+   */
+  choices?: { captions?: CaptionStyle; intro?: boolean; outro?: boolean };
   /** Qui a choisi l'habillage : le monteur IA, ou les règles (Low, ou modèle indisponible). */
   plannedBy?: 'llm' | 'rules';
   paidCredits: number;

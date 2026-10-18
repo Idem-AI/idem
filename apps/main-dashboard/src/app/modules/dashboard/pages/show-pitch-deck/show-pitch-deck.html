@@ -129,17 +129,13 @@
         (regenerateSection)="regenerateSection($event)"
         (resumeGeneration)="startGeneration(false)"
         (regenerateAll)="startGeneration(true)"
+        appCreativityGate
+        creativityTarget="[data-creativity-launch]"
+        [creativity]="creativity()"
+        (creativityChange)="setCreativity($event)"
+        [creativityCost]="creativityBaseCost()"
       >
-        <!-- Le cran de créativité des régénérations (tout le deck, une slide, la reprise). -->
-        <app-creativity-picker
-          previewActions
-          [value]="creativity()"
-          (valueChange)="setCreativity($event)"
-          [baseCost]="creativityBaseCost()"
-          [disabled]="isGenerating()"
-          placement="top"
-          align="end"
-        />
+        <!-- Le niveau de créativité des régénérations (tout le deck, une slide, la reprise) se choisit sur leurs boutons. -->
         <button
           previewLeading
           type="button"
@@ -193,12 +189,8 @@
           {{ 'dashboard.showPitchDeck.draft.subtitle' | translate: { count: expectedSlides().length } }}
         </p>
         <div class="flex flex-wrap items-center justify-center gap-2.5">
-          <app-creativity-picker [value]="creativity()" (valueChange)="setCreativity($event)" [baseCost]="creativityBaseCost()" />
-          <button type="button" class="inner-button" (click)="startGeneration()">
+          <button type="button" class="inner-button" (click)="startGeneration()" appCreativityGate [creativity]="creativity()" (creativityChange)="setCreativity($event)" [creativityCost]="creativityBaseCost()">
             {{ 'dashboard.showPitchDeck.actions.generate' | translate }}
-            @if (creativityBaseCost() | creativityCost: creativity(); as cost) {
-              · {{ 'common.creativity.cost' | translate: { cost } }}
-            }
           </button>
         </div>
         @if (errorMessage()) {

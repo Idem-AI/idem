@@ -12,5 +12,7 @@
     "strict": true,
     "skipLibCheck": true
   },
-  "include": ["src/**/*", "scripts/**/*"]
+  "include": ["src/**/*", "scripts/**/*"],
+  // Joué par jiti contre le paquet partagé (ESM, hors de rootDir) : typé par le paquet lui-même.
+  "exclude": ["scripts/check-embedded.ts"]
 }

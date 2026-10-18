@@ -49,6 +49,9 @@ interface ChatState {
   setIsDeepThinking: (isDeepThinking: boolean) => void;
   modelOptions: IModelOption[];
   setModelOptions: (v: IModelOption[]) => void;
+  /** Le niveau de créativité (Low, Medium, High, Ultra) : il choisit le modèle, côté serveur. */
+  creativity: CreativityLevel;
+  setCreativity: (level: CreativityLevel) => void;
   uploadedImages: FilePreview[];
   setUploadedImages: (images: FilePreview[]) => void;
   addImages: (images: FilePreview[]) => void;
@@ -58,6 +61,20 @@ interface ChatState {
   otherConfig: OtherConfig;
   setOtherConfig: (config: OtherConfig | ((prev: OtherConfig) => OtherConfig)) => void;
 }
+export const CREATIVITY_LEVELS = ["low", "medium", "high", "ultra"] as const;
+export type CreativityLevel = (typeof CREATIVITY_LEVELS)[number];
+const CREATIVITY_KEY = "icode_creativity";
+
+/** Le dernier niveau choisi (Medium par défaut). */
+function readCreativity(): CreativityLevel {
+  try {
+    const v = localStorage.getItem(CREATIVITY_KEY);
+    return (CREATIVITY_LEVELS as readonly string[]).includes(v || "") ? (v as CreativityLevel) : "medium";
+  } catch {
+    return "medium";
+  }
+}
+
 const useChatStore = create<ChatState>((set) => ({
   isGenerating: false,
   setIsGenerating: (isGenerating: boolean) => set({ isGenerating }),
@@ -85,6 +102,15 @@ const useChatStore = create<ChatState>((set) => ({
     })),
   clearImages: () => set({ uploadedImages: [] }),
   modelOptions: [],
+  creativity: readCreativity(),
+  setCreativity: (creativity) => {
+    try {
+      localStorage.setItem(CREATIVITY_KEY, creativity);
+    } catch {
+      /* préférence locale seulement */
+    }
+    set({ creativity });
+  },
    otherConfig: {
     isBackEnd: false,
     backendLanguage: "",

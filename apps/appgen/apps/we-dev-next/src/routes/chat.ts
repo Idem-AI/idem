@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { ChatRequest } from '../types/project.js';
+import { modelForCreativity, normalizeCreativity } from '../config/modelConfig.js';
 import { handleBuilderMode } from '../handlers/builderHandler.js';
 import { resolveBuildTarget } from '../config/buildTarget.js';
 import { handleChatMode } from '../handlers/chatHandler.js';
@@ -32,7 +33,8 @@ router.post('/', async (req: Request, res: Response) => {
 
     const {
       messages,
-      model,
+      model: requestedModel,
+      creativity,
       mode = ChatMode.Builder,
       otherConfig,
       tools,
@@ -46,7 +48,13 @@ router.post('/', async (req: Request, res: Response) => {
       scaffold,
       followUp,
       siteRepair,
+      siteEdit,
     } = req.body as ChatRequest;
+
+    // Le niveau de créativité choisit le modèle (l'interface n'en montre plus aucun) ; un ancien client qui
+    // envoie encore un modèle garde son choix.
+    const level = normalizeCreativity(creativity);
+    const model = level ? modelForCreativity(level) : requestedModel;
 
     // User UI language (from the client) so the AI generates content in the right
     // language. Falls back to the Accept-Language header, then English.
@@ -181,7 +189,8 @@ router.post('/', async (req: Request, res: Response) => {
         resolveBuildTarget(product, platform, projectData),
         scaffold?.version,
         forwardedCredentials(req),
-        siteRepair
+        siteRepair,
+        siteEdit
       );
     }
 

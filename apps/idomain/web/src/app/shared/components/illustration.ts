@@ -10,10 +10,11 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
  *   search    van de vannage : chercher, trier pour trouver
  *   cowries   calebasse de cauris : le prix, le paiement
  *   pirogue   pirogue à la proue dressée : la mise en ligne (relier le nom au site)
+ *   shield    bouclier aux lances croisées : la protection (garanties de prix, remboursement, courrier intact)
  *   calabash  calebasse vide : rien encore
  *   cracked   calebasse fêlée : une erreur
  */
-export type IllustrationKind = 'facade' | 'search' | 'cowries' | 'pirogue' | 'calabash' | 'cracked';
+export type IllustrationKind = 'facade' | 'search' | 'cowries' | 'pirogue' | 'shield' | 'calabash' | 'cracked';
 
 @Component({
   selector: 'idm-illustration',
@@ -74,6 +75,14 @@ export type IllustrationKind = 'facade' | 'search' | 'cowries' | 'pirogue' | 'ca
           </g>
           <path d="M14 72 C20 68 26 68 32 72 S44 76 50 72 S62 68 68 72 S80 76 86 72 S98 68 104 72" opacity=".5" />
           <path d="M30 80 C36 77 42 77 48 80 S60 83 66 80 S78 77 84 80" opacity=".3" />
+        }
+        @case ('shield') {
+          <path d="M33 80 L42 68 M78 20 L86 9 M87 80 L78 68 M42 20 L34 9" stroke-width="1.6" />
+          <path d="M86 9 L90 2 L82 6Z M34 9 L30 2 L38 6Z" stroke-width="1.4" />
+          <path d="M60 10 C76 20 86 32 86 44 C86 56 76 68 60 78 C44 68 34 56 34 44 C34 32 44 20 60 10Z" stroke-width="2" style="fill: var(--color-surface-1)" />
+          <path d="M60 18 C72 26 79 35 79 44 C79 53 72 62 60 70 C48 62 41 53 41 44 C41 35 48 26 60 18Z" stroke-width="1.2" />
+          <path d="M52 26 L60 31 L68 26 M52 62 L60 57 L68 62 M46 40 L50 44 L46 48 M74 40 L70 44 L74 48" stroke-width="1.2" />
+          <g style="color: var(--color-primary-500)"><path d="M60 36 L67 44 L60 52 L53 44Z" stroke-width="2" /></g>
         }
         @case ('calabash') {
           <g transform="translate(12 -2) scale(0.6)" stroke-width="2.6">

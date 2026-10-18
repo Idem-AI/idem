@@ -144,3 +144,46 @@
     display: none;
   }
 }
+
+/* ── Bulle sur le bouton (creativity-gate.ts) ─────────────────────────────── */
+:host(.cg-bubble) {
+  display: block;
+}
+.cg-panel {
+  position: relative;
+  top: auto;
+  left: auto;
+  width: 100%;
+  animation: cg-in 140ms ease-out;
+}
+.cg-title {
+  margin: 0.35rem 0.55rem 0;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+.cg-caret {
+  position: absolute;
+  bottom: -6px;
+  width: 12px;
+  height: 12px;
+  margin-left: -6px;
+  transform: rotate(45deg);
+  background: var(--color-surface-2);
+  border-right: 1px solid var(--glass-border);
+  border-bottom: 1px solid var(--glass-border);
+}
+.cg-caret-up {
+  top: -6px;
+  bottom: auto;
+  border: 0;
+  border-left: 1px solid var(--glass-border);
+  border-top: 1px solid var(--glass-border);
+}
+@keyframes cg-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cg-panel { animation: none; }
+}

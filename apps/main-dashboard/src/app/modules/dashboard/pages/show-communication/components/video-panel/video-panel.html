@@ -76,11 +76,14 @@
                 <button type="button" class="vp-card" (click)="open(video)">
                   <span class="vp-thumb">
                     @if (poster(video); as src) {
-                      <img [src]="src" alt="" />
+                      @if (!brokenPosters().has(video.id)) {
+                        <img [src]="src" alt="" loading="lazy" (error)="posterFailed(video)" />
+                      } @else {
+                        <span class="vp-thumb-title" aria-hidden="true">{{ video.title }}</span>
+                      }
                     } @else {
-                      <span class="vp-thumb-empty">
-                        <i class="pi pi-video" aria-hidden="true"></i>
-                      </span>
+                      <!-- Aucune image (vidéo de l'ancien moteur, jamais exportée) : une carte titrée. -->
+                      <span class="vp-thumb-title" aria-hidden="true">{{ video.title }}</span>
                     }
                     <span class="vp-duration">{{ video.scope.durationSec }} s</span>
                   </span>

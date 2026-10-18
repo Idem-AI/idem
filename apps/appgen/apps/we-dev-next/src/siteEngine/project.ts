@@ -8,6 +8,7 @@
  */
 
 import { ProjectModel } from '../types/project.js';
+import { awaitingBody } from '../scaffold/awaiting.js';
 import { packageName, projectTitle } from '../scaffold/shared.js';
 import { seedDesignSystemFiles } from './designConfig.js';
 import { ManifestPage, SiteManifest } from './manifest.js';
@@ -106,17 +107,24 @@ else createRoot(root).render(app);
 `;
 }
 
-const PLACEHOLDER_PAGE = `/* idem:placeholder — remplacé par la première génération */
-import { Container } from '@/components/ui/container';
-import { Text } from '@/components/ui/text';
-
+/**
+ * La page d'attente du site.
+ *
+ * L'aperçu démarre avant la fin de la génération (voir `warmStart.ts` côté
+ * atelier) : cette page est la première chose que l'utilisateur voit de son
+ * site. Elle en montre la forme — en-tête, titre, grande image, trois blocs —
+ * dans les couleurs du projet, et la première page écrite la remplace par
+ * rechargement à chaud.
+ *
+ * Sans composant du design system : ils sont justement ce que le moteur du site
+ * est en train d'écrire, et un import vers un fichier encore absent donnerait un
+ * écran d'erreur Vite à la place de l'attente.
+ */
+const placeholderPage = (projectData: ProjectModel | undefined, language: string): string =>
+  `/* idem:placeholder — remplacé par la première génération */
 export default function Page() {
   return (
-    <main className="flex min-h-screen items-center">
-      <Container>
-        <Text variant="muted">Espace de travail prêt.</Text>
-      </Container>
-    </main>
+${awaitingBody({ target: 'site', projectData, language })}
   );
 }
 `;
@@ -266,7 +274,7 @@ export function buildSiteScaffold(
       ...seedDesignSystemFiles(projectData),
       'index.html': renderDocument({ language, siteName: name, title: name, description, entry: '/src/entries/home.tsx' }),
       'src/entries/home.tsx': renderEntry('home'),
-      'src/pages/home.tsx': PLACEHOLDER_PAGE,
+      'src/pages/home.tsx': placeholderPage(projectData, language),
       'src/site/data.ts': `export const site = ${JSON.stringify({ name, description }, null, 2)};\n`,
     },
     // Le design system du projet n'est pas verrouillé : design-system.json se

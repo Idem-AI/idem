@@ -24,8 +24,7 @@ import {
 } from '../../models/generation-completeness';
 import { ProjectService } from '../../services/project.service';
 import { CreativityLevel, normalizeCreativity, ProjectModel } from '@idem/shared-models';
-import { CreativityPickerComponent } from '../../../../shared/components/creativity-picker/creativity-picker';
-import { CreativityCostPipe } from '../../../../shared/pipes/creativity-cost.pipe';
+import { CreativityGateDirective } from '../../../../shared/components/creativity-picker/creativity-gate';
 import { CreativityService } from '../../../../shared/services/creativity.service';
 import { pitchDeckTypeLabel } from '../../utils/deliverable-labels';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
@@ -53,7 +52,7 @@ const STEP_CLASSES: Record<StepStatus, string> = {
   selector: 'app-show-pitch-deck',
   imports: [
     OwnershipBarComponent,
-    ErrorStateComponent,TranslateModule, DocumentPreviewComponent, IncompleteProjectBannerComponent, IdemLoaderComponent, CreativityPickerComponent, CreativityCostPipe],
+    ErrorStateComponent,TranslateModule, DocumentPreviewComponent, IncompleteProjectBannerComponent, IdemLoaderComponent, CreativityGateDirective],
   templateUrl: './show-pitch-deck.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

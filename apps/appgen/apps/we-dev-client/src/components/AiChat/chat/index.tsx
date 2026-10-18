@@ -35,6 +35,8 @@ import {
   deleteProjectGeneration,
 } from '@/api/persistence/db';
 import { createProjectMetadata } from '@/utils/zipUtils';
+import { deriveAppName } from '@/utils/appName';
+import useAppGenContextStore from '@/stores/appgenContextSlice';
 import { cancelPendingCodeSync, pushProjectCode, waitForCodeSync } from '@/utils/codeSync';
 import { compactMessagesForStorage, deriveSessionTitle } from '@/utils/chatPersistence';
 import { MCPTool } from '@/types/mcp';
@@ -46,7 +48,7 @@ import { ProjectModel } from '@/api/persistence/models/project.model';
 import { MultiChatPromptService } from './services/multiChatPromptService';
 import { currentPlatform, currentProduct } from '@/utils/product';
 import { fetchScaffold } from '@/api/scaffold';
-import { prewarmInstall, resetPrewarm } from '../utils/prewarmInstall';
+import { resetWarmStart, targetFromChoice, warmStart } from '../utils/warmStart';
 import { resetInstallRepair } from '../utils/ensurePreview';
 import { extractFilesFromText, isEngineSite, isGeneratedSite } from '@/utils/siteEngine';
 import { internalMessage } from '@/utils/stepLabels';
@@ -196,6 +198,29 @@ async function fetchDefaultModel(): Promise<string> {
  * contiennent (il les a écrits), et les lui renvoyer à chaque message ajouterait
  * des milliers de jetons d'entrée pour une information qu'il possède.
  */
+/**
+ * Les fichiers d'un site du moteur de sites (sections, en-tête et pied, pages, design system, données) :
+ * de quoi le retoucher sans rien deviner. `null` si le projet n'en est pas un (application, site d'avant).
+ */
+function currentSiteFiles(): Record<string, string> | null {
+  const workspace = useFileStore.getState().files;
+  if (typeof workspace['idem.pages.json'] !== 'string') return null;
+  const files: Record<string, string> = {};
+  for (const [path, content] of Object.entries(workspace)) {
+    if (typeof content !== 'string') continue;
+    if (
+      /^src\/sections\/[^/]+\/\w+\.tsx$/.test(path) ||
+      /^src\/components\/site\/\w+\.tsx$/.test(path) ||
+      /^src\/pages\/[^/]+\.tsx$/.test(path) ||
+      path.startsWith('src/design-system/') ||
+      (path.startsWith('src/site/') && /\.(ts|tsx|json)$/.test(path)) ||
+      path === 'idem.pages.json'
+    )
+      files[path] = content;
+  }
+  return files;
+}
+
 function convertToBoltAction(obj: Record<string, string>): string {
   return Object.entries(withoutScaffold(obj))
     .filter(([filePath]) => !excludeFiles.includes(filePath))
@@ -209,7 +234,7 @@ function convertToBoltAction(obj: Record<string, string>): string {
 export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { otherConfig } = useChatStore();
+  const { otherConfig, creativity: chatCreativity } = useChatStore();
   const { t, i18n } = useTranslation();
   const [checkCount, setCheckCount] = useState(0);
   const [visible, setVisible] = useState(false);
@@ -561,7 +586,9 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       ...(token && { Authorization: `Bearer ${token}` }),
     },
     body: {
+      // Repli d'un ancien serveur : le modèle par défaut. Le serveur suit le niveau de créativité.
       model: baseModal.value,
+      creativity: chatCreativity,
       mode: mode,
       // Projet IDEM rattaché : le serveur en a besoin pour rattacher la
       // consommation de crédits au bon projet et vérifier qu'il est débloqué.
@@ -751,6 +778,19 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
         console.warn('[versions] instantané non enregistré', error);
       }
 
+      // Le nom de l'application, retenu une fois, à la première génération : lu dans ses fichiers
+      // (titre de la page, manifeste). Sans projet IDEM, c'est lui qui sera proposé pour la mise en
+      // ligne et pour le nom de domaine ; avec un projet, le nom du projet reste prioritaire.
+      try {
+        const appGen = useAppGenContextStore.getState();
+        if (!appGen.draft?.appName) {
+          const appName = deriveAppName(useFileStore.getState().files);
+          if (appName) appGen.setDraftAppName(appName);
+        }
+      } catch (error) {
+        console.warn('[appName] nom non retenu', error);
+      }
+
       // the files that changed), the conversation goes to the database.
       if (projectId && projectData) {
         const finalMessages = [...messages, message];
@@ -851,9 +891,20 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
 
       const version = mountedScaffoldVersion();
 
+      // Le niveau de créativité lu À L'ENVOI (celui qui vient d'être choisi sur le bouton) : le serveur en
+      // tire le modèle. Aucun modèle n'est choisi ici.
+      const creativity = useChatStore.getState().creativity;
+      // Une retouche d'un site vitrine déjà généré : son état ACTUEL (sections, pages, design system, données)
+      // part avec la demande, pour que le serveur ne modifie que la partie visée.
+      const body = (options?.body ?? {}) as Record<string, unknown>;
+      const outOfBand = body.siteRepair || body.qualityRepair || body.followUp;
+      const siteEdit = mode === ChatMode.Builder && !outOfBand && message.role === 'user' ? currentSiteFiles() : null;
       return appendRaw(
         message,
-        version ? { ...options, body: { ...options?.body, scaffold: { version } } } : options
+        {
+          ...options,
+          body: { ...body, creativity, ...(version ? { scaffold: { version } } : {}), ...(siteEdit ? { siteEdit: { files: siteEdit } } : {}) },
+        }
       );
     },
     [appendRaw, mode]
@@ -1148,7 +1199,12 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
           setScaffoldReady(scaffold.version);
           // Le manifeste du socle est figé : l'installation peut commencer
           // tout de suite, en parallèle de la génération.
-          void prewarmInstall(scaffold.commands.install);
+          // Démarrage à chaud : dépendances en place (cache du navigateur,
+          // instantané du serveur, ou `npm install` en dernier recours) puis
+          // `npm run dev`, pendant que le modèle écrit. L'aperçu apparaît donc
+          // avant la fin de la génération, et chaque fichier écrit y arrive par
+          // HMR. Voir utils/warmStart.ts.
+          void warmStart(scaffold.target, scaffold.commands);
           return;
         }
 
@@ -1157,6 +1213,13 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
         // abîmer — on l'a vu avec une feuille de style transformée en boucle.
         registerScaffold(scaffold.locked, scaffold.version);
         setScaffoldReady(scaffold.version);
+
+        // Et il démarre à chaud lui aussi. Un projet rouvert partait d'un
+        // conteneur vide — donc d'une réinstallation complète — et n'affichait
+        // son aperçu qu'après le tour suivant, ou après un clic sur
+        // « Exécuter ». Les dépendances sont les mêmes qu'à la génération :
+        // l'instantané du cache les repose en quelques secondes.
+        void warmStart(scaffold.target, scaffold.commands);
 
         // La remise à jour, elle, demande une preuve que ce code vient bien du
         // socle : écraser le `package.json` d'un projet d'avant le socle le
@@ -1691,7 +1754,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       await resetWebContainer();
       resetFileHashes();
       execList.clear();
-      resetPrewarm();
+      resetWarmStart();
       resetInstallRepair();
 
       // 5. Espace de travail et conversation à zéro.

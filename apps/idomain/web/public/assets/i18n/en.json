@@ -14,29 +14,153 @@
     "domains": "My domains",
     "orders": "Orders",
     "wallet": "Wallet",
-    "login": "Sign in"
+    "login": "Sign in",
+    "page": "On this page",
+    "how": "How it works",
+    "prices": "Prices",
+    "apps": "From iDeploy and iCode",
+    "services": "Services"
   },
   "home": {
-    "titleStart": "Your name on the web,",
-    "titleStrong": "connected in minutes",
-    "lead": "Find your domain name, pay for it from your IDEM wallet, and iDomain connects it to your site: address, DNS and HTTPS handled for you.",
-    "pricesTitle": "Prices",
-    "pricesLead": "One price per extension. The renewal price is shown when you buy and never goes up by surprise.",
-    "pricesUnavailable": "Prices aren’t available right now. Try again in a moment.",
-    "extension": "Extension",
-    "firstYear": "First year",
-    "renewal": "Renewal",
     "perYear": "per year",
-    "howTitle": "How it works",
-    "steps": {
-      "find": { "title": "Find your name", "body": "Type your business name: you see right away whether it’s free and what it costs." },
-      "pay": { "title": "Pay from your wallet", "body": "The price shown is guaranteed while you order. Not enough money? Top up with mobile money, then confirm." },
-      "connect": { "title": "It’s connected to your site", "body": "Pick your iDeploy application: the address and the HTTPS padlock are set up for you, nothing to touch." }
+    "pricesUnavailable": "Prices aren’t available right now. Try again in a moment.",
+    "hero": {
+      "title1": "Your name,",
+      "title2": "online.",
+      "lead": "Buy your domain name: it’s connected to your site, with HTTPS. Nothing to set up."
+    },
+    "setup": {
+      "title1": "You pay.",
+      "title2": "IDEM does the rest.",
+      "lead": "As soon as payment arrives, your name is registered to you, its address is written and it’s connected to your iDeploy application. You never open a technical panel.",
+      "leave": "You can close the page: setup carries on, and you’ll find its status in “My domains”.",
+      "label": "What happens after payment",
+      "steps": {
+        "paid": {
+          "title": "Payment received",
+          "body": "Charged to your IDEM wallet.",
+          "when": "right away"
+        },
+        "registered": {
+          "title": "Name registered to you",
+          "body": "You are its holder.",
+          "when": "< 1 min"
+        },
+        "connected": {
+          "title": "Address written, site connected",
+          "body": "Your application answers at this name.",
+          "when": "a few min"
+        },
+        "secured": {
+          "title": "HTTPS padlock on",
+          "body": "Your visitors see a safe site.",
+          "when": "a few min"
+        }
+      }
+    },
+    "prices": {
+      "title1": "One price,",
+      "title2": "no surprises.",
+      "lead": "The same price whenever you buy. The renewal is shown when you buy, and you’re reminded before each renewal date.",
+      "caption": "Domain name prices by extension",
+      "extension": "Extension",
+      "firstYear": "First year",
+      "renewal": "Renewal",
+      "action": "Search",
+      "search": "Search .{{tld}}"
+    },
+    "guarantees": {
+      "price": {
+        "title": "Price guaranteed",
+        "body": "The price shown holds for your whole order, even if a rate changes in the meantime."
+      },
+      "refund": {
+        "title": "Refunded if the name slips away",
+        "body": "If the name is taken before it’s registered, the amount goes back to your wallet automatically."
+      },
+      "mail": {
+        "title": "Your email stays put",
+        "body": "Connecting your site only touches its address: your email and other settings don’t move."
+      }
+    },
+    "apps": {
+      "title1": "Already online",
+      "title2": "with IDEM?",
+      "lead": "In iDeploy and in iCode, buy your name without leaving your application: it’s connected on its own to the site you just put online.",
+      "ideploy": "Open iDeploy",
+      "window": {
+        "title": "Your own name",
+        "app": "Automatically connected to",
+        "pay": "Pay 6,500 F and connect"
+      }
+    },
+    "closing": {
+      "title1": "Your name",
+      "title2": "is waiting.",
+      "cta": "Find my name"
+    },
+    "footer": {
+      "by": "iDomain, by IDEM",
+      "currency": "Prices in CFA francs, paid from your IDEM wallet"
+    },
+    "features": {
+      "title1": "With your name,",
+      "title2": "everything’s ready.",
+      "included": "Included with every name",
+      "free": "Free",
+      "options": "Options",
+      "paid": "Paid",
+      "status": {
+        "soon": "Coming soon",
+        "request": "On request"
+      },
+      "items": {
+        "dns": {
+          "title": "DNS handled for you",
+          "body": "Your site’s address is written and kept up to date, no technical panel."
+        },
+        "https": {
+          "title": "Automatic HTTPS",
+          "body": "The padlock is obtained and renewed on its own."
+        },
+        "connect": {
+          "title": "Connected to your application",
+          "body": "Plugged in one step to your iDeploy or iCode site."
+        },
+        "mail": {
+          "title": "Your email protected",
+          "body": "Your email and other settings are never overwritten."
+        },
+        "reminders": {
+          "title": "Reminders before renewal",
+          "body": "Told in advance, with the renewal price."
+        },
+        "manage": {
+          "title": "Simple management",
+          "body": "Status, expiry, advanced DNS: all in one place."
+        },
+        "email": {
+          "title": "Professional email",
+          "body": "contact@your-name.africa, with a partner."
+        },
+        "monitoring": {
+          "title": "Monitoring",
+          "body": "An alert if your site or your name has a problem."
+        },
+        "portfolio": {
+          "title": "Many names, one team",
+          "body": "Manage many names, with roles for each person."
+        },
+        "migration": {
+          "title": "Assisted move",
+          "body": "We transfer and set up a name bought elsewhere."
+        }
+      }
     }
   },
   "search": {
     "label": "Domain name to search",
-    "placeholder": "my-shop.africa",
+    "placeholder": "my-shop",
     "submit": "Search",
     "error": "The search didn’t go through. Try again in a moment.",
     "invalid": "This name isn’t valid. Use letters, numbers and hyphens.",
@@ -54,7 +178,20 @@
       "not_sold": "Extension not offered yet",
       "unavailable_now": "Can’t be ordered right now",
       "unknown": "Can’t be checked right now"
-    }
+    },
+    "extensionsLabel": "Extensions on sale and their price",
+    "firstYearShort": "first year",
+    "take": "Take this name",
+    "verdict": {
+      "available": "Available",
+      "taken": "Already taken",
+      "premium": "Premium name, not offered here",
+      "not_sold": "Extension not offered yet",
+      "unavailable_now": "Can’t be ordered right now",
+      "unknown": "Can’t be checked right now"
+    },
+    "checking": "Checking…",
+    "resultsLabel": "Possible names"
   },
   "checkout": {
     "back": "Back to search",
@@ -232,7 +369,10 @@
     "backToApp": "Back to my application",
     "detach": "Disconnect",
     "confirmDetach": "Disconnect this name from the application? The site will no longer answer at this address.",
-    "purpose": { "ownership": "Proves the name is yours", "address": "Points the name to your application" },
+    "purpose": {
+      "ownership": "Proves the name is yours",
+      "address": "Points the name to your application"
+    },
     "status": {
       "awaiting_domain": "Waiting for registration",
       "verifying_ownership": "Waiting for proof of ownership",

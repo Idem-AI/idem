@@ -820,8 +820,7 @@
       "backupAddress": "Technical backup address",
       "buy": "Buy a name",
       "buyAnother": "Buy another name",
-      "buyHint": "Bought on iDomain and paid from your wallet: the address and HTTPS are set up for you.",
-      "buyError": "iDomain isn’t responding right now. Try again in a moment."
+      "buyHint": "Bought on iDomain and paid from your wallet: the address and HTTPS are set up for you."
     }
   },
   "projects": {
@@ -2282,7 +2281,7 @@
     "wake": "Wake up",
     "options": "Daily options",
     "domainTitle": "Your domain name",
-    "orderDomain": "Find my name on iDomain",
+    "orderDomain": "Buy a name",
     "domainStatus": {
       "pending": "being registered",
       "active": "active",

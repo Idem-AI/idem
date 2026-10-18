@@ -11,6 +11,7 @@ import { buyProjectPass } from '@/api/billing';
 import { HelpButton } from './HelpButton';
 import { DeployModal } from '../DeployModal/DeployModal';
 import useAppGenContextStore from '@/stores/appgenContextSlice';
+import { deriveAppName } from '@/utils/appName';
 import { UserProfile } from './UserProfile';
 import type { UserModel } from '@/api/persistence/userModel';
 import {
@@ -141,7 +142,8 @@ export function HeaderActions() {
     updateDraftFiles(files as Record<string, string>);
   };
 
-  // Le nom proposé pour l'application en ligne : celui du projet IDEM.
+  // Le nom proposé pour l'application en ligne (et pour son nom de domaine) : celui du projet
+  // IDEM ; sans projet, celui retenu à la première génération, lu dans les fichiers de l'application.
   const [projectName, setProjectName] = useState('');
   useEffect(() => {
     if (!projectId) return;
@@ -231,7 +233,7 @@ export function HeaderActions() {
         open={showDeployChoiceModal}
         onClose={() => setShowDeployChoiceModal(false)}
         deployment={deployment}
-        defaultName={projectName || 'mon-app'}
+        defaultName={projectName || draft?.appName || deriveAppName(files as Record<string, unknown>) || 'mon-app'}
         onPublished={handlePublished}
       />
 

@@ -4,7 +4,6 @@ import useRunStatus, { API_PORT } from '@/stores/runStatusSlice';
 import { eventEmitter } from '../AiChat/utils/EventEmitter';
 import { RunErrorBanner } from './RunErrorBanner';
 import { useFileStore } from '../WeIde/stores/fileStore';
-import useTerminalStore from '@/stores/terminalSlice';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import {
@@ -57,7 +56,8 @@ import {
 import { buildInjectPlan, buildRemovePlan, type InstrumentationPlan } from './instrumentation';
 import { isMobileApp } from '@/utils/product';
 import useChatStore from '@/stores/chatSlice';
-import { queue } from '../AiChat/useMessageParser';
+import { startProject } from '../AiChat/utils/warmStart';
+import useWarmStart from '@/stores/warmStartSlice';
 import { PHONES, PhoneMockup, phoneOuterSize, type PhoneDevice } from './PhoneMockup';
 import { SizeSelector, viewportStyle, WINDOW_SIZES, type WindowSize } from './ResponsiveViewport';
 
@@ -147,7 +147,6 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
     observer.observe(surface);
     return () => observer.disconnect();
   }, [mobileApp, device]);
-  const { getTerminal, newTerminal } = useTerminalStore();
   const [toolMode, setToolMode] = useState<EditToolMode>('off');
   const [zoom, setZoom] = useState(1);
   const [running, setRunning] = useState(false);
@@ -165,24 +164,14 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
     if (running) return;
     setRunning(true);
     try {
-      const terminal = getTerminal(0) ?? (await new Promise<any>((resolve) => {
-        newTerminal(() => resolve(getTerminal(0)));
-      }));
-
-      if (!terminal) {
-        toast.error(t('preview.runFailed'));
-        return;
-      }
-
-      // Par la file sérielle, et non par le terminal directement.
-      //
-      // L'installation des dépendances part déjà toute seule au montage du
-      // socle. Un clic pendant ce temps lançait un second `npm install` en
-      // parallèle du premier : les deux écrivent dans `node_modules`, et npm
-      // s'arrête sur « EIO: failed to link packages » en laissant une
-      // installation à moitié faite — donc un `next` introuvable ensuite.
-      queue.push('npm install');
-      queue.push('npm run dev');
+      // Le même chemin que le démarrage à chaud, et non `npm install` à
+      // l'aveugle : les dépendances sont vérifiées, reprises du cache du
+      // navigateur ou de l'instantané du serveur, et npm n'intervient que si
+      // elles manquent vraiment. Un clic pendant un démarrage déjà en cours ne
+      // fait donc plus rien de dangereux — avant, il lançait un second
+      // `npm install` en parallèle du premier, et npm s'arrêtait sur
+      // « EIO: failed to link packages » en laissant un arbre à moitié lié.
+      await startProject();
     } catch (error) {
       console.error('[preview] démarrage impossible', error);
       toast.error(t('preview.runFailed'));
@@ -191,7 +180,7 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
       // serveur est porté par la présence de l'URL, pas par ce drapeau.
       setTimeout(() => setRunning(false), 1500);
     }
-  }, [running, getTerminal, newTerminal, t]);
+  }, [running, t]);
 
   /**
    * L'instrumentation réécrit des fichiers du projet et fait redémarrer le
@@ -241,8 +230,24 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
   // qui n'en est pas une.
   const isFullstack = useFileStore((state) => 'backend/package.json' in state.files);
   const runPhase = useRunStatus((state) => state.phase);
+
+  /**
+   * Le démarrage à chaud, qui commence avant la première commande : les
+   * dépendances sont reprises du cache du navigateur ou téléchargées depuis le
+   * serveur, et `runPhase` ne voit rien de tout cela (il ne lit que la sortie
+   * des commandes). Sans cet état, l'aperçu affichait « Aucun serveur » pendant
+   * les secondes les plus visibles de l'ouverture.
+   */
+  const warmStep = useWarmStart((state) => state.step);
+  const warmRatio = useWarmStart((state) => state.ratio);
+  const warming =
+    warmStep === 'downloading' ||
+    warmStep === 'mounting' ||
+    warmStep === 'installing' ||
+    warmStep === 'starting';
+
   // Rien à montrer encore, mais ça démarre : on dit quoi plutôt que « rien ».
-  const waiting = !url && (runPhase === 'installing' || runPhase === 'starting');
+  const waiting = !url && (warming || runPhase === 'installing' || runPhase === 'starting');
 
   const generating = useChatStore((state) => state.isGenerating);
   const awaitingFirstGeneration = useChatStore((state) => state.canGenerate);
@@ -269,12 +274,22 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
    */
   const starting = !offerGeneration && (running || waiting);
   const startGeneration = useCallback(() => eventEmitter.emit('chat:startGeneration'), []);
+  /**
+   * Ce qu'on dit pendant l'attente. Du plus parlant au plus vague : un
+   * téléchargement a un pourcentage, une installation a une durée connue, un
+   * démarrage n'a que son nom.
+   */
   const waitingKey =
-    runPhase === 'installing'
-      ? 'preview.waiting.install'
-      : isFullstack
-        ? 'preview.waiting.fullstack'
-        : 'preview.waiting.start';
+    warmStep === 'downloading'
+      ? 'preview.waiting.download'
+      : warmStep === 'mounting'
+        ? 'preview.waiting.mount'
+        : runPhase === 'installing' || warmStep === 'installing'
+          ? 'preview.waiting.install'
+          : isFullstack
+            ? 'preview.waiting.fullstack'
+            : 'preview.waiting.start';
+  const waitingText = t(waitingKey, { percent: Math.round((warmRatio ?? 0) * 100) });
   const [servers, setServers] = useState<Map<number, string>>(new Map());
 
   useEffect(() => {
@@ -836,7 +851,9 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
                         ? t('chatWorkspace.startHint')
                         : generating
                           ? t('chatWorkspace.inProgressBody')
-                          : t(waiting ? waitingKey : 'preview.noserverHint')}
+                          : waiting
+                            ? waitingText
+                            : t('preview.noserverHint')}
                     </p>
                     <Button
                       variant={!offerGeneration && waiting ? 'secondary' : 'primary'}
@@ -882,7 +899,9 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
                   ? t('chatWorkspace.startHint')
                   : generating
                     ? t('chatWorkspace.inProgressBody')
-                    : t(waiting ? waitingKey : 'preview.noserverHint')}
+                    : waiting
+                    ? waitingText
+                    : t('preview.noserverHint')}
               </p>
               <Button
                 variant={!offerGeneration && waiting ? 'secondary' : 'primary'}

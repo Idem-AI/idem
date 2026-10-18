@@ -34,7 +34,7 @@ import { composeMontageHtml } from './montage.composer';
 import { cutVideo, editedDuration, keepRanges, retimeWords } from './montage.cuts';
 import { assembleInputs } from './montage.assemble';
 import { CAPTION_STYLES, CUT_MODES, CaptionStyle, CutMode, ELEMENT_TYPES, MONTAGE_LIMITS, MontageClip, MontageElement, MontageInput, MontageMessage, MontageStage, MontageVideo } from './montage.model';
-import { planMontage, PlannerInput, revisePlan } from './montage.planner';
+import { planMontage, PlannerInput, revisePlan, withChoices } from './montage.planner';
 import { sentences, TimedWord } from './montage.timeline';
 import { transcribe, transcriptionAvailable } from './montage.transcribe';
 
@@ -110,6 +110,10 @@ export interface CreateMontageInput {
   cuts: CutMode;
   music: boolean;
   sessionId?: string;
+  /** Les réponses aux questions du montage : style des sous-titres, intro animée, carton de fin. */
+  captions?: CaptionStyle;
+  intro?: boolean;
+  outro?: boolean;
 }
 
 const msgId = () => `msg_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
@@ -179,9 +183,12 @@ export class MontageService {
       inputs: input.inputs,
       words: [],
       cuts: { mode: CUT_MODES.includes(input.cuts) ? input.cuts : 'tight', ranges: [], removedSec: 0 },
-      captions: { style: 'pop' },
+      captions: { style: input.captions && CAPTION_STYLES.includes(input.captions) ? input.captions : 'pop' },
       elements: [],
       musicEnabled: input.music,
+      ...(input.captions || typeof input.intro === 'boolean' || typeof input.outro === 'boolean'
+        ? { choices: { ...(input.captions ? { captions: input.captions } : {}), ...(typeof input.intro === 'boolean' ? { intro: input.intro } : {}), ...(typeof input.outro === 'boolean' ? { outro: input.outro } : {}) } }
+        : {}),
       paidCredits: paid,
       exportCount: 0,
       renders: [],
@@ -293,7 +300,10 @@ export class MontageService {
       // 3. Plan du monteur.
       await this.setStage(userId, id, 'plan');
       const m1 = (await this.store.get(userId, id))!.montage;
-      const plan = await planMontage(await this.plannerInput(userId, brandId, m1), this.writerFor(userId, m1.creativity));
+      const plannerInput = await this.plannerInput(userId, brandId, m1);
+      const planned = await planMontage(plannerInput, this.writerFor(userId, m1.creativity));
+      // Les choix faits avant le montage l'emportent sur ceux du monteur.
+      const plan = withChoices(planned, m1.choices, plannerInput);
       await this.store.mutate(userId, id, (m) => ({
         ...m,
         title: m.prompt ? m.title : plan.title || m.title,

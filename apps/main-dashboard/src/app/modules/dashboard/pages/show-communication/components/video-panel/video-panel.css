@@ -65,6 +65,21 @@
   color: var(--color-text-tertiary);
 }
 
+.vp-thumb-title {
+  height: 100%;
+  padding: 0.9rem 0.8rem 2rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--color-text-primary);
+  background: var(--color-surface-2);
+  border-top: 0.35rem solid var(--color-primary-500);
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 6;
+}
+
 .vp-duration {
   position: absolute;
   right: 0.4rem;

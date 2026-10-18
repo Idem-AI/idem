@@ -37,12 +37,23 @@ export interface Brand {
   updatedAt: string;
 }
 
+/** Une question à cliquer : ses choix, celui qui convient le mieux marqué « recommandé ». */
+export interface ChatQuestion {
+  id: string;
+  question: string;
+  options: { id: string; label: string; description?: string; recommended?: boolean }[];
+}
+
+export type ChoicesPurpose = 'montage' | 'site';
+
 export type ChatAsk =
   | { kind: 'brand' }
   | { kind: 'brand-choice'; brandId: string }
   | { kind: 'reference'; mode: ChatMode }
   /** Une décision qui change le résultat manque : la question et ses choix, rédigés par le serveur. */
-  | { kind: 'video-intent'; clarificationId: string; question: string; options: { id: string; label: string; description: string }[] };
+  | { kind: 'video-intent'; clarificationId: string; question: string; options: { id: string; label: string; description: string; recommended?: boolean }[] }
+  /** Quelques questions à cliquer, une à la fois (réglages d'un montage, que faire d'un lien de site). */
+  | { kind: 'choices'; purpose: ChoicesPurpose; questions: ChatQuestion[] };
 
 export interface ChatMessage {
   id: string;
@@ -56,7 +67,7 @@ export interface ChatMessage {
   brandId?: string;
   /** Le projet IDEM né du site lu : sa charte s'ouvre dans IDEM. */
   idemProjectId?: string;
-  result?: { kind: 'video'; videoId: string } | { kind: 'visual'; visualId: string } | { kind: 'montage'; montageId: string };
+  result?: { kind: 'video'; videoId: string } | { kind: 'visual'; visualId: string } | { kind: 'montage'; montageId: string } | { kind: 'charter'; brandId: string };
   status?: 'done' | 'error';
   error?: string;
 }
@@ -95,6 +106,24 @@ export interface ChatOptions {
   withPhoto?: boolean;
   /** Plans filmés par l'IA commandés (1 000 F l'un) ; 0 : motion design et banque d'images. */
   aiClips?: number;
+  /** Les réglages choisis par l'utilisateur (ou lus dans sa demande) : un modèle ne les remplace pas. */
+  chosen?: ('duration' | 'format')[];
+}
+
+/** La charte graphique d'une marque (projet IDEM), telle qu'iVision l'affiche. */
+export interface Charter {
+  brandId: string;
+  projectId?: string;
+  status: 'none' | 'running' | 'ready' | 'failed';
+  /** Pages terminées pendant la génération en cours. */
+  done: number;
+  /** Les politiques d'IDEM acceptées pour ce projet (sinon, à accepter avant de créer la charte). */
+  policiesAccepted?: boolean;
+  step?: string;
+  error?: string;
+  pages?: { id: string; name: string; type: string; html: string }[];
+  pdfFormat?: string;
+  fonts?: { primaryFont?: string; secondaryFont?: string; fontUrl?: string };
 }
 
 export interface MediaAsset {

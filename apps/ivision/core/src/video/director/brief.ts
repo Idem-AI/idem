@@ -30,6 +30,8 @@ export interface FilmBrief {
   newMedia: { images: number; clips: number };
   /** La vidéo modèle à suivre (résumé de son analyse). */
   reference?: string;
+  /** Ses plans, un par scène (déjà ramenés au nombre de scènes admis) : la fiche de chacun est donnée à l'auteur de sa scène. */
+  referenceShots?: { line: string; transition?: string }[];
   /** Les films déjà faits pour la marque (titre — concept) : pour ne pas refaire le même. */
   previous: string[];
   level: CreativityLevel;

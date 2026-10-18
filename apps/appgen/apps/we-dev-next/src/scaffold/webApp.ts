@@ -11,6 +11,7 @@
 
 import { DesignSystem } from '../design/tokenForge.js';
 import { ProjectModel } from '../types/project.js';
+import { awaitingBody } from './awaiting.js';
 import {
   CN_UTILS,
   JSCONFIG,
@@ -234,16 +235,20 @@ import './styles/index.css';
 createRoot(document.getElementById('root')).render(<App />);
 `;
 
-const APP_PLACEHOLDER = `/* idem:placeholder — remplacé par la première génération */
-import { Section } from './ui/index.js';
-
+/**
+ * La page d'attente.
+ *
+ * L'aperçu démarre maintenant avant la fin de la génération (voir
+ * `warmStart.ts` côté atelier) : cette page est donc ce que l'utilisateur voit
+ * d'abord, pas un bouche-trou technique. Elle montre la forme du tableau de
+ * bord à venir, dans les couleurs du projet, et le premier fichier écrit par le
+ * modèle la remplace par rechargement à chaud.
+ */
+const appPlaceholder = (projectData: ProjectModel | undefined, language: string): string =>
+  `/* idem:placeholder — remplacé par la première génération */
 export default function App() {
   return (
-    <main>
-      <Section>
-        <p className="text-ink-muted">Espace de travail prêt.</p>
-      </Section>
-    </main>
+${awaitingBody({ target: 'web-app', projectData, language })}
   );
 }
 `;
@@ -331,7 +336,7 @@ export function buildWebAppScaffold(
       ...locked,
       'backend/src/schema.sql': SCHEMA_PLACEHOLDER,
       'backend/src/seed.sql': SEED_PLACEHOLDER,
-      'frontend/src/App.jsx': APP_PLACEHOLDER,
+      'frontend/src/App.jsx': appPlaceholder(projectData, language),
     },
     locked: Object.keys(locked),
   };

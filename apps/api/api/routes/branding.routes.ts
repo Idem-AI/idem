@@ -58,7 +58,8 @@ const resourceName = 'brandings';
  * Le poste image est le seul du barème dont la marge est basse (30-55 %) :
  * c'est précisément celui qu'il ne faut pas laisser tourner gratuitement.
  */
-const chargeBrandSession = requireCredits('business', 'logo_brand', {
+/** Exporté : la passerelle d'iVision génère la charte d'un projet aux MÊMES règles (`routes/ivision.routes.ts`). */
+export const chargeBrandSession = requireCredits('business', 'logo_brand', {
   resolve: withCreativity('business', 'logo_brand', firstThenRevision('business', 'logo_brand', 'logo_relaunch')),
 });
 
