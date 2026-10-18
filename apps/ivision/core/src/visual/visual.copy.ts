@@ -233,6 +233,54 @@ export function heuristicCopy(brief: CopyBrief, intent: CopyIntent): WrittenCopy
   return polish(copy, brief.language, `${brief.message} ${brief.details || ''}`);
 }
 
+// ─── La reformulation ───────────────────────────────────────────────────────
+
+/** La demande réécrite par le petit agent de reformulation : un brief, et le style qu'il implique. */
+export interface ReformulatedBrief {
+  /** La demande, réécrite comme un brief détaillé et professionnel — les mêmes faits, mieux dits. */
+  brief: string;
+  /** Le style ou l'ambiance voulus (« grandiose », « épuré »…), pour la direction artistique — jamais pour le texte. */
+  styleKeywords: string[];
+}
+
+/**
+ * Reformule la demande — souvent brève, orale — en un brief détaillé et professionnel, AVANT le reste
+ * de la génération ; l'utilisateur ne voit pas la reformulation, seulement le même chargement qu'avant.
+ * Un mot de STYLE (« grandiose », « épuré », « festif »…) est lu comme une direction pour la page, jamais
+ * comme un mot à imprimer — c'est un agent qui le comprend, pas un dictionnaire de mots devinés à l'avance.
+ * Sans modèle (hors ligne, en test) : la demande reste telle quelle, sans style extrait.
+ */
+export function reformulateBriefTask(raw: string, language: string): AgentTask<ReformulatedBrief> {
+  const lang = language.startsWith('fr') ? 'French' : language.startsWith('en') ? 'English' : language;
+  return {
+    role: 'briefReformulator',
+    minLevel: 'low',
+    prompt: () => ({
+      system: [
+        `You turn a short, casual request for a marketing visual into a clear, detailed, professional brief for a graphic designer and copywriter. Write ONLY in ${lang}.`,
+        'Separate what must be SAID from how it must LOOK: a word describing the desired style, mood or ambiance of the design (e.g. grand, epic, minimal, festive, luxurious, bold, warm, retro) is a direction for the page, never a word to print on it.',
+        'Keep every fact exactly as given — date, time, place, price, offer, contact, name: never add one, never drop one.',
+        'Output ONLY these lines (write "none" when empty):',
+        'brief: the rewritten request, 1 to 3 sentences, written as an instruction to a designer — not a headline, no emoji, no hashtag',
+        'style: 0 to 5 short style or mood keywords implied by the request, in English, comma-separated, or none',
+      ].join('\n'),
+      user: `REQUEST: ${raw.slice(0, 900)}`,
+    }),
+    parse: (out) => {
+      const l = agentLines(out);
+      const brief = clip(l.brief, 600);
+      if (!brief || wordsOf(brief).length < 3) return undefined;
+      const style = (l.style || '')
+        .split(',')
+        .map((s) => s.trim())
+        .filter((s) => s.length > 1 && !/^(none|aucun|aucune|n\/a)$/i.test(s))
+        .slice(0, 5);
+      return { brief, styleKeywords: style };
+    },
+    fallback: () => ({ brief: raw, styleKeywords: [] }),
+  };
+}
+
 // ─── Le rédacteur ───────────────────────────────────────────────────────────
 
 const INTENT_HINT: Record<CopyIntent, string> = {

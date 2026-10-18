@@ -39,7 +39,7 @@ import { CreativityLevel, normalizeCreativity } from '../creativity/levels';
 import { AgentCall, CreativeOrchestrator } from '../creativity/orchestrator';
 import type { ReferenceImage } from '../reference/reference.analyzer';
 import { imageSourcingService, ImageSourcingPreferences, SourcedImage } from './image.sourcing';
-import { copyTask, CopyBrief, inferCopyIntent, WrittenCopy } from './visual.copy';
+import { copyTask, CopyBrief, inferCopyIntent, reformulateBriefTask, WrittenCopy } from './visual.copy';
 import { classifyImage, describePhoto, rankByRelevance, VisualPhoto } from './visual.images';
 import { FlyerFormat, VisualAuditReport, VisualBrandContext, VisualContent, VisualIntent, VisualMeta } from './visual.model';
 
@@ -151,19 +151,25 @@ export async function composeVisual(
   };
   const orch = new CreativeOrchestrator({ level, call: ports.agentCall, timeoutMs: { agents: 45_000, critic: 60_000 } });
   const message = [content.title, content.hook].filter(Boolean).join(' — ');
+  const copyIntent = inferCopyIntent(`${message} ${content.description || ''}`);
+
+  // 0. La reformulation — transparente (même chargement) : la demande, souvent brève, devient un brief
+  // détaillé et professionnel ; un mot de style (« grandiose », « épuré »…) en est extrait comme direction
+  // pour la page plutôt que laissé dans le texte, où le rédacteur le recopierait tel quel.
+  stage('copy', 'running');
+  const rawAsk = [message, content.description].filter(Boolean).join(' ').trim();
+  const reformulated = rawAsk ? (await orch.run(reformulateBriefTask(rawAsk, context.language || 'fr'))).value : { brief: rawAsk, styleKeywords: [] };
   const brief: CopyBrief = {
-    message,
-    details: content.description,
+    message: reformulated.brief || rawAsk,
+    details: reformulated.brief || rawAsk,
     brandName: context.brandName,
     businessType: context.businessType,
     valueProposition: context.valueProposition,
     tone: context.tone,
     language: context.language || 'fr',
   };
-  const copyIntent = inferCopyIntent(`${message} ${content.description || ''}`);
 
   // 1. Les mots.
-  stage('copy', 'running');
   let copyRun = await orch.run(copyTask(brief, copyIntent, creative.feedback));
   // Les mots font le visuel : un modèle muet (délai, panne) a droit à un second essai.
   if (copyRun.source === 'graph' && orch.traces[orch.traces.length - 1]?.reason === 'failed') {
@@ -194,7 +200,16 @@ export async function composeVisual(
     : undefined;
   // Un modèle sombre est un choix de l'utilisateur : son fond est repris.
   const allowDark = creative.allowDark || creative.reference?.style?.background === 'dark';
-  const renderOptions = { ...(reference ? { reference } : {}), level, seed, userId, projectId, allowDark, imageColors: sourced?.analysis?.dominantColors };
+  const renderOptions = {
+    ...(reference ? { reference } : {}),
+    level,
+    seed,
+    userId,
+    projectId,
+    allowDark,
+    imageColors: sourced?.analysis?.dominantColors,
+    ...(reformulated.styleKeywords.length ? { keywords: reformulated.styleKeywords } : {}),
+  };
   let out = await renderVisual(context, format, copy, photo, renderOptions);
   stage('design', 'done');
 
