@@ -285,6 +285,8 @@ export async function createProjectFromSite(userId: string, rawUrl: string, port
   // L'accord d'abord : le projet est utilisable dans IDEM dès sa création.
   await recordConsent(userId, projectId, consent);
 
+  const brandingService = new BrandingService(new PromptService());
+
   onStep('logo-variations');
   const logo = await importLogo(userId, projectId, scan).catch((error: any) => {
     logger.warn('site_import.logo_failed', { event: 'site_import.logo_failed', projectId, error: error?.message });
@@ -295,14 +297,36 @@ export async function createProjectFromSite(userId: string, rawUrl: string, port
   onStep('typography');
   const copied: string[] = [];
   const typography = await typographyOf(userId, scan, copied);
-  const colors: ColorModel[] = scan.palettes.map((p) => ({ id: p.id, name: p.label, url: '', colors: { ...p.colors } }));
+  // 'harmony' (teintes calculées autour de la couleur principale) d'abord : une palette brute de site
+  // n'a souvent qu'une seule teinte posée sur du gris, 'site' reste disponible dans les propositions.
+  const sitePalettes = [...scan.palettes].sort((a, b) => (a.id === 'harmony' ? -1 : b.id === 'harmony' ? 1 : 0));
+  const siteColors: ColorModel[] = sitePalettes.map((p) => ({ id: p.id, name: p.label, url: '', colors: { ...p.colors } }));
+
+  // La palette et la typo BRUTES du site (couleurs CSS en vrac, polices système) sont rarement la
+  // marque la plus flatteuse pour ses propres visuels. Quand un logo a été trouvé, on en tire une
+  // palette et une typographie travaillées — le même moteur qu'« importer son propre logo » — et on
+  // les retient par défaut ; les versions brutes du site restent proposées comme alternative fidèle.
+  const curated = logo
+    ? await brandingService
+        .generateColorsAndTypographyFromLogo(userId, created, logo.svg, logo.colors || [])
+        .catch((error: any) => {
+          logger.warn('site_import.palette_failed', { event: 'site_import.palette_failed', projectId, error: error?.message });
+          return null;
+        })
+    : null;
+
+  const colors = curated?.colors.length ? [...curated.colors, ...siteColors] : siteColors;
+  const typographyProposals = curated?.typography.length ? [...curated.typography, ...typography.proposals] : typography.proposals;
+  // Sans palette/typo travaillées (pas de logo détecté), le même principe que ci-dessus : l'accord
+  // de polices pensé pour la police de titre du site plutôt que sa paire brute telle que relevée.
+  const chosenTypography = curated?.typography[0] || typography.proposals.find((t) => t.id === 'pairing') || typography.chosen;
 
   const branding = {
     ...(logo ? { logo, generatedLogos: [logo] } : { generatedLogos: [] }),
     colors: colors[0],
     generatedColors: colors,
-    typography: typography.chosen,
-    generatedTypography: typography.proposals,
+    typography: chosenTypography,
+    generatedTypography: typographyProposals,
     sections: [],
     siteSource: { url: scan.finalUrl, evidence: scan.styleEvidence, importedAt: new Date() },
   };
@@ -310,7 +334,6 @@ export async function createProjectFromSite(userId: string, rawUrl: string, port
 
   // La direction artistique CODIFIE le site (relevés + capture), puis les motifs sont dessinés d'après le logo.
   onStep('art-direction');
-  const brandingService = new BrandingService(new PromptService());
   const project = await projectService.getUserProjectById(userId, projectId);
   if (project) await brandingService.ensureArtDirection(userId, projectId, project, { siteEvidence: scan.styleEvidence });
   if (logo) {

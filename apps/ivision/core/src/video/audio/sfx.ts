@@ -11,16 +11,29 @@
  *   1. catalogue maison        `VIDEO_SFX_CATALOG` (JSON) — sons choisis à la main
  *   2. Freesound via Openverse sans clé — des milliers de bruitages CC0
  *   3. Freesound (API directe) `FREESOUND_API_KEY` — tri par note des utilisateurs
- *   4. synthèse ffmpeg          toujours disponible : le repli hors ligne
+ *   4. SFXMint sans clé        — bibliothèque CC0 dédiée au design sonore (pas de contenu voix/musique)
+ *   5. synthèse ffmpeg          toujours disponible : le repli hors ligne, délibérément plus discret
  *
  * TRAITEMENT (ce qui rend un son de banque « propre ») : silence retiré au début
  * et à la fin, coupe à la durée utile, fondu de sortie, crête normalisée à
- * −3 dBFS, passe-haut à 40 Hz, 48 kHz stéréo. Les candidats hors gabarit
- * (trop longs, trop faibles) sont écartés.
+ * −3 dBFS (−8 dBFS pour la synthèse : un son de synthèse a peu de dynamique,
+ * à crête égale il sonne plus fort qu'un son réel), passe-haut à 40 Hz,
+ * 48 kHz stéréo. Les candidats hors gabarit (trop longs, trop faibles) sont
+ * écartés.
  *
  * La sonothèque est construite une fois puis gardée sur disque
  * (`VIDEO_SFX_DIR`, sinon le dossier temporaire) : `npm run video:sfx` la
  * pré-construit en production.
+ *
+ * REPLI DÉGRADÉ (2026-10-18, retour utilisateur : « toujours les mêmes effets, trop
+ * forts ») : si les sources en ligne ne renvoient rien pour un moment sonore (réseau
+ * coupé en production, clés absentes, filtre trop strict), ce moment retombe sur l'unique
+ * son de synthèse — identique à chaque vidéo. Ce repli était écrit sur disque comme une
+ * sonothèque complète et jamais réessayé : un seul échec réseau au démarrage figeait tous
+ * les effets pour la durée de vie du dossier `VIDEO_SFX_DIR`. La sonothèque garde
+ * désormais si elle est `degraded` (au moins un moment sonore resté sur la synthèse) et
+ * retente une construction en ligne au bout d'une heure (`DEGRADED_RETRY_MS`) plutôt que
+ * de garder le repli pour toujours.
  */
 import axios from 'axios';
 import { spawn, spawnSync } from 'child_process';
@@ -66,16 +79,22 @@ export const SFX_SPECS: Record<SfxKind, KindSpec> = {
  * une musique à −3 dB les effets disparaissaient. La musique est désormais à −7 dB et s'efface
  * nettement sous chaque effet (cf. `mixAudio`) ; un whoosh ou un impact se pose franchement,
  * un clic ou un tic reste un détail.
+ *
+ * Rebaissés de 2 à 3 dB (2026-10-18, retour utilisateur : « les volumes sont trop élevés,
+ * pas professionnel ») : la cause principale était le repli de synthèse resté bloqué (voir
+ * plus haut, `degraded`) — un son de synthèse à crête égale sonne nettement plus fort qu'un
+ * son réel. Une fois la vraie sonothèque rétablie, whoosh/impact/pop n'ont plus besoin
+ * d'être aussi près de 0 dB pour se faire sentir.
  */
 export const SFX_GAIN_DB: Record<SfxKind, number> = {
-  whoosh: -2,
-  softwhoosh: -5,
-  pop: -3,
+  whoosh: -4,
+  softwhoosh: -6,
+  pop: -5,
   click: -8,
   tick: -10,
-  impact: -1,
-  shimmer: -4,
-  riser: -5,
+  impact: -3,
+  shimmer: -5,
+  riser: -6,
 };
 
 /** Densité par langage de mouvement : un style élégant ne cliquette pas. */
@@ -108,8 +127,13 @@ export interface LibrarySound extends SfxSound {
 
 export interface SfxLibrary {
   builtAt: string;
+  /** Au moins un moment sonore est resté sur la synthèse (aucune source en ligne n'a fourni de candidat). */
+  degraded: boolean;
   sounds: Record<SfxKind, LibrarySound[]>;
 }
+
+/** Une sonothèque dégradée est retentée en ligne au bout d'une heure plutôt que gardée pour toujours. */
+const DEGRADED_RETRY_MS = 60 * 60 * 1000;
 
 export const sfxDir = (): string => process.env.VIDEO_SFX_DIR || path.join(os.tmpdir(), 'idem-video-sfx');
 
@@ -139,9 +163,9 @@ async function measure(file: string): Promise<{ duration: number; peakDb: number
 
 /**
  * Nettoie un son de banque : silences retirés, coupé à la durée utile, fondu
- * de sortie, passe-haut, crête normalisée à −3 dBFS, MP3 48 kHz stéréo.
+ * de sortie, passe-haut, crête normalisée à `targetPeakDb`, MP3 48 kHz stéréo.
  */
-export async function processSound(input: string, output: string, spec: KindSpec): Promise<{ duration: number; meanDb: number }> {
+export async function processSound(input: string, output: string, spec: KindSpec, targetPeakDb = -3): Promise<{ duration: number; meanDb: number }> {
   const trimmed = `${output}.trim.wav`;
   await ffmpegRun([
     '-y', '-v', 'error', '-i', input,
@@ -157,7 +181,7 @@ export async function processSound(input: string, output: string, spec: KindSpec
     '-ar', '48000', '-ac', '2', trimmed,
   ]);
   const m = await measure(trimmed);
-  const gain = Math.min(24, -3 - m.peakDb);
+  const gain = Math.min(24, targetPeakDb - m.peakDb);
   const fade = Math.min(0.25, m.duration * 0.3);
   await ffmpegRun([
     '-y', '-v', 'error', '-i', trimmed,
@@ -193,7 +217,9 @@ export async function synthSound(kind: SfxKind, dir: string): Promise<LibrarySou
   const file = path.join(dir, `synth-${kind}.mp3`);
   if (!fs.existsSync(file)) {
     await ffmpegRun(['-y', '-v', 'error', '-f', 'lavfi', '-i', `aevalsrc='${s.expr}':s=48000:d=${s.d}`, ...(s.af ? ['-af', s.af] : []), '-ac', '2', raw]);
-    await processSound(raw, file, { ...SFX_SPECS[kind], max: s.d + 0.05 });
+    // −8 dBFS (pas −3) : un son de synthèse (ton pur, peu de dynamique) sonne plus fort qu'un
+    // son réel à crête égale — ce repli reste discret même quand il tourne en boucle.
+    await processSound(raw, file, { ...SFX_SPECS[kind], max: s.d + 0.05 }, -8);
     fs.rmSync(raw, { force: true });
   }
   return {
@@ -262,6 +288,28 @@ async function searchFreesound(query: string, spec: KindSpec): Promise<Candidate
   }));
 }
 
+/**
+ * SFXMint : bibliothèque CC0 dédiée au design sonore (pas de musique/voix noyées dans
+ * les résultats comme sur Freesound/Openverse), recherche libre, sans clé.
+ * `VIDEO_SFX_SFXMINT=off` pour la désactiver (ex. environnement sans accès réseau sortant).
+ */
+async function searchSfxmint(query: string, spec: KindSpec): Promise<Candidate[]> {
+  if (process.env.VIDEO_SFX_SFXMINT === 'off') return [];
+  const res = await axios.get('https://sfxmint.com/api/v1/search', {
+    params: { q: query, limit: 15, max_duration_ms: Math.round(spec.max * 3000) },
+    timeout: 8000,
+  });
+  return (res.data?.results || res.data?.sounds || [])
+    .filter((r: any) => (r.mp3_url || r.wav_url) && /cc0/i.test(r.license || 'cc0'))
+    .map((r: any) => ({
+      id: `sfxmint:${r.slug || r.id}`,
+      title: r.title || r.slug || 'sans titre',
+      author: 'SFXMint',
+      url: r.mp3_url || r.wav_url,
+      durationSec: (r.duration || 0) / 1000,
+    }));
+}
+
 function loadCatalog(): Partial<Record<SfxKind, Candidate[]>> {
   const source = process.env.VIDEO_SFX_CATALOG;
   if (!source || !fs.existsSync(source)) return {};
@@ -293,7 +341,9 @@ export async function ensureSfxLibrary(opts: { offline?: boolean; force?: boolea
     try {
       const lib = JSON.parse(fs.readFileSync(manifest, 'utf8')) as SfxLibrary;
       const ok = SFX_KINDS.every((k) => (lib.sounds[k] || []).every((s) => fs.existsSync(s.file)));
-      if (ok) return lib;
+      const staleEnoughToRetry = Date.now() - new Date(lib.builtAt).getTime() > DEGRADED_RETRY_MS;
+      if (ok && (opts.offline || !lib.degraded || !staleEnoughToRetry)) return lib;
+      if (ok && lib.degraded) logger.warn('video.sfx.library_degraded_retry', { builtAt: lib.builtAt });
     } catch {
       /* reconstruit */
     }
@@ -308,11 +358,12 @@ export async function ensureSfxLibrary(opts: { offline?: boolean; force?: boolea
     if (!opts.offline) {
       const found: Candidate[] = [...(catalog[kind] || []).map((c) => ({ ...c, id: `catalog:${c.id}` }))];
       for (const query of spec.queries) {
-        const [ov, fsd] = await Promise.all([
+        const [ov, fsd, sfm] = await Promise.all([
           searchOpenverse(query).catch((e) => (logger.warn('video.sfx.openverse_failed', { query, error: e.message }), [])),
           searchFreesound(query, spec).catch(() => []),
+          searchSfxmint(query, spec).catch((e) => (logger.warn('video.sfx.sfxmint_failed', { query, error: e.message }), [])),
         ]);
-        found.push(...fsd, ...ov);
+        found.push(...fsd, ...sfm, ...ov);
       }
       const seen = new Set<string>();
       const candidates = found.filter((c) => {
@@ -359,15 +410,23 @@ export async function ensureSfxLibrary(opts: { offline?: boolean; force?: boolea
     }
     list.sort((a, b) => b.score - a.score);
     sounds[kind] = list.slice(0, MAX_PER_KIND);
-    if (!sounds[kind].length) sounds[kind] = [await synthSound(kind, dir)];
+    if (!sounds[kind].length) {
+      if (!opts.offline) logger.warn('video.sfx.kind_fallback_synth', { kind, queries: spec.queries });
+      sounds[kind] = [await synthSound(kind, dir)];
+    }
   }
 
-  const lib: SfxLibrary = { builtAt: new Date().toISOString(), sounds };
+  const degraded = SFX_KINDS.some((k) => sounds[k].every((s) => s.license === 'generated'));
+  const lib: SfxLibrary = { builtAt: new Date().toISOString(), degraded, sounds };
   fs.writeFileSync(manifest, JSON.stringify(lib, null, 1));
   return lib;
 }
 
 let libraryPromise: Promise<SfxLibrary> | null = null;
+// Horodatage + statut de la dernière résolution, tenus à jour en dehors de la promesse elle-même :
+// un serveur qui tourne des jours ne doit pas garder une sonothèque dégradée en mémoire pour toujours.
+let libraryResolvedAt = 0;
+let libraryResolvedDegraded = false;
 
 /** Sonothèque partagée par le processus (construite à la première vidéo). */
 export function sfxLibrary(): Promise<SfxLibrary> {
@@ -376,11 +435,20 @@ export function sfxLibrary(): Promise<SfxLibrary> {
     libraryPromise ??= ensureSfxLibrary({ offline: true });
     return libraryPromise;
   }
-  libraryPromise ??= ensureSfxLibrary().catch(async (error) => {
-    logger.warn('video.sfx.library_failed', { error: error.message });
+  if (libraryPromise && libraryResolvedDegraded && Date.now() - libraryResolvedAt > DEGRADED_RETRY_MS) {
     libraryPromise = null;
-    return ensureSfxLibrary({ offline: true });
-  });
+  }
+  libraryPromise ??= ensureSfxLibrary()
+    .then((lib) => {
+      libraryResolvedAt = Date.now();
+      libraryResolvedDegraded = lib.degraded;
+      return lib;
+    })
+    .catch(async (error) => {
+      logger.warn('video.sfx.library_failed', { error: error.message });
+      libraryPromise = null;
+      return ensureSfxLibrary({ offline: true });
+    });
   return libraryPromise;
 }
 

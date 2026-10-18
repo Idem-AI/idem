@@ -142,8 +142,16 @@ ou par l'utilisateur dans son scénario.
 
 Posés par le **code de chaque scène** (`ctx.sfx('whoosh')`, au plus deux par scène, à l'instant exact) :
 whoosh, softwhoosh, pop, click, tick, impact, shimmer, riser. Sonothèque CC0 (Openverse/Freesound,
-catalogue `VIDEO_SFX_CATALOG`, synthèse ffmpeg en repli `VIDEO_SFX_OFFLINE=1`), nettoyée, mixée par type
-(`SFX_GAIN_DB`), la musique s'efface sous chaque effet, −14 LUFS au final.
+SFXMint sans clé — `VIDEO_SFX_SFXMINT=off` pour la désactiver —, catalogue `VIDEO_SFX_CATALOG`,
+synthèse ffmpeg en dernier repli, `VIDEO_SFX_OFFLINE=1` pour la forcer en contrôle/CI), nettoyée, mixée
+par type (`SFX_GAIN_DB`), la musique s'efface sous chaque effet, −14 LUFS au final.
+
+Si aucune source en ligne ne renvoie de candidat pour un moment sonore (réseau coupé, clés absentes),
+ce moment retombe sur la synthèse ffmpeg — volontairement plus discrète (−8 dBFS au lieu de −3) qu'un
+son réel pour ne jamais sonner fort ou artificiel. La sonothèque garde si elle est **dégradée** (au moins
+un moment sonore resté sur la synthèse, `video.sfx.kind_fallback_synth` dans les logs) et retente une
+construction en ligne au bout d'une heure plutôt que de garder ce repli pour toujours — en mémoire
+process (`sfxLibrary()`) comme sur disque (`VIDEO_SFX_DIR`/`library.json`).
 
 ## Musique libre de droits
 

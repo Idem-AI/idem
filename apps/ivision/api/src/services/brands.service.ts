@@ -161,8 +161,13 @@ export async function scanBrand(userId: string, rawUrl: string, onProgress: (ste
     ...scan.images.slice(0, 8).map((url, i) => hostImage(userId, url, `${id}-photo-${i}`)),
   ]);
   const hostedLogo = { ...(scan.logo.svg ? { svg: scan.logo.svg } : {}), ...(logoUrl ? { url: logoUrl } : {}), ...(iconUrl ? { iconUrl } : {}) };
-  const palette = scan.palettes[0]?.id || 'site';
-  const typography = scan.typographies[0]?.id || 'site';
+  // Les couleurs et polices RELEVÉES telles quelles sur un site sont souvent un jeu pauvre (une seule
+  // teinte, des polices système) : par défaut, la proposition travaillée à partir d'elles — l'« Harmonie »
+  // (teintes calculées autour de la couleur principale) et l'« Accord éprouvé » (police de titre associée
+  // à un texte courant pensé pour elle) — plutôt que la version brute, que l'utilisateur reste libre de
+  // reprendre dans les propositions.
+  const palette = scan.palettes.find((p) => p.id === 'harmony')?.id || scan.palettes[0]?.id || 'site';
+  const typography = scan.typographies.find((t) => t.id === 'pairing')?.id || scan.typographies[0]?.id || 'site';
   const brand: IvisionBrand = {
     _id: id,
     userId,
