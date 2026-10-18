@@ -292,7 +292,7 @@
     "newImage": "Nouveau visuel",
     "history": "Conversations",
     "noHistory": "Aucune conversation pour l’instant.",
-    "brands": "Marques",
+    "brands": "Ma marque",
     "credits": "{{count}} F",
     "account": "Mon compte",
     "tabs": "Sections de l’atelier",
@@ -352,8 +352,8 @@
       "add": "Ajouter une marque",
       "applied": "J’ai lu votre site : j’utilise ses couleurs, ses polices, son logo et ses photos. Vous pouvez changer la palette dans « Marques ».",
       "appliedNoLogo": "J’ai lu votre site : j’utilise ses couleurs, ses polices et ses photos. Vous pouvez changer la palette dans « Marques ».",
-      "project": "J’ai lu votre site et créé votre projet sur IDEM, avec votre charte graphique : votre logo et ses déclinaisons, vos couleurs, vos polices, votre direction artistique et vos motifs. Je l’applique à tout ce que je crée.",
-      "projectNoLogo": "J’ai lu votre site et créé votre projet sur IDEM, avec votre charte graphique : vos couleurs, vos polices, votre direction artistique. Ajoutez votre logo dans IDEM pour le voir sur vos créations.",
+      "project": "J’ai lu votre site et créé votre projet sur IDEM : votre logo, vos couleurs, vos polices et votre style sont appliqués à tout ce que je crée.",
+      "projectNoLogo": "J’ai lu votre site et créé votre projet sur IDEM : vos couleurs, vos polices et votre style sont appliqués à tout ce que je crée. Ajoutez votre logo dans IDEM pour le voir sur vos créations.",
       "openIdem": "Voir ma charte sur IDEM"
     },
     "empty": {
@@ -409,7 +409,9 @@
       "noModel": "Non, créer librement",
       "noRecent": "Aucun modèle analysé pour l’instant.",
       "modelHintVideo": "Je reproduis le découpage, les mouvements et les transitions — jamais la musique, les sons, les images ni les textes du modèle.",
-      "modelHintImage": "Je reproduis la composition — jamais les textes ni les images du modèle."
+      "modelHintImage": "Je reproduis la composition — jamais les textes ni les images du modèle.",
+      "montage": "Avant de monter votre vidéo, quelques choix rapides. Je vous recommande une option pour chacun ; « Choisir pour moi » les prend toutes.",
+      "site": "Ce lien, c’est le site de votre entreprise ?"
     },
     "result": {
       "previewTitle": "Aperçu de la vidéo",
@@ -459,7 +461,8 @@
         "design": "Conception du visuel",
         "photo": "Choix de la photo",
         "check": "Contrôle des scènes",
-        "repair": "Correction automatique des scènes"
+        "repair": "Correction automatique des scènes",
+        "match": "Comparaison avec votre modèle"
       }
     },
     "composer": {
@@ -469,7 +472,8 @@
       "send": "Envoyer",
       "placeholderMontage": "Facultatif — ex. : dynamique, une intro animée, le prix en grand, finir par mon WhatsApp…",
       "placeholderRevise": "Que faut-il changer ? Ex. : sans musique, ajoute une intro, sous-titres plus sobres…",
-      "reviseHint": "Pour une autre vidéo : décrivez-la (« une vidéo pour… ») ou ajoutez une vidéo filmée."
+      "reviseHint": "Pour une autre vidéo : décrivez-la (« une vidéo pour… ») ou ajoutez une vidéo filmée.",
+      "montageHint": "Après l’envoi, je vous pose quelques questions rapides : format, sous-titres, musique…"
     },
     "options": {
       "duration": "Durée",
@@ -577,6 +581,16 @@
     },
     "visual": {
       "notUnderstood": "Je n’ai pas compris ce qu’il faut changer. Dites par exemple « change le prix en 4 500 F », « agrandis le titre » ou « enlève le sous-titre »."
+    },
+    "choices": {
+      "step": "Question {{current}} sur {{total}}",
+      "back": "Précédent",
+      "forMe": "Choisir pour moi",
+      "recommended": "Recommandé"
+    },
+    "charter": {
+      "started": "Je crée votre charte graphique. Elle s’affiche ici dès qu’elle est prête — vous pouvez continuer pendant ce temps.",
+      "failed": "Je n’ai pas pu lancer la charte graphique. Vous pourrez la relancer depuis « Ma marque »."
     }
   },
   "edit": {
@@ -608,13 +622,13 @@
     "broken": "{{count}} scène(s) ne s’exécute(nt) pas : appuyez sur « Corriger » dans la scène avant d’exporter."
   },
   "brands": {
-    "title": "Marques",
-    "subtitle": "Les couleurs, polices, logos et photos que vos créations respectent.",
+    "title": "Ma marque",
+    "subtitle": "Votre logo, vos couleurs et vos polices : toutes vos créations les respectent.",
     "scan": {
-      "title": "Depuis votre site",
-      "text": "Collez le lien : je lis vos couleurs, vos polices, votre logo et votre ton, puis je vous propose trois palettes et trois typographies.",
+      "title": "Votre site internet",
+      "text": "Collez l’adresse de votre site : je reprends votre logo, vos couleurs, vos polices et vos photos, et je crée votre projet sur IDEM. Votre charte graphique se crée ensuite d’un clic.",
       "label": "Lien de votre site",
-      "cta": "Lire le site"
+      "cta": "Utiliser mon site"
     },
     "other": "Autres sources",
     "idem": {
@@ -639,7 +653,8 @@
     "addPhotos": "Ajouter des photos",
     "delete": "Supprimer",
     "confirmDelete": "Confirmer la suppression",
-    "empty": "Aucune marque pour l’instant : lisez votre site pour commencer."
+    "empty": "Aucune marque pour l’instant : lisez votre site pour commencer.",
+    "charter": "Ma charte graphique"
   },
   "visualEdit": {
     "title": "Modifier le visuel"
@@ -791,13 +806,13 @@
     "saved": "Mes marques",
     "myColors": "Mes couleurs",
     "myCharter": "Ma charte",
-    "using": "Avec {{name}}",
+    "using": "Vos créations utilisent {{name}}",
     "change": "changer",
     "hide": "Masquer",
     "siteLabel": "Adresse de votre site",
     "read": "Lire",
     "reading": "Je visite votre site…",
-    "siteDone": "Votre site est lu : ses couleurs, ses polices et son logo seront utilisés.",
+    "siteDone": "Votre site est lu : votre logo, vos couleurs et vos polices sont appliqués.",
     "siteFailed": "Je n’ai pas pu lire ce site. Vérifiez l’adresse, ou continuez sans.",
     "fileDone": "Trouvé : {{what}}. Je les utilise.",
     "fileFailed": "Je n’ai pas pu lire ce fichier. Essayez un PDF ou une image (PNG, JPG, SVG).",
@@ -817,7 +832,16 @@
     "promptShort": "Facultatif :",
     "siteShort": "Site",
     "fileShort": "Charte",
-    "colorsShort": "Couleurs"
+    "colorsShort": "Couleurs",
+    "collapsed": "Mon site internet",
+    "siteQuestion": "Vous avez un site internet ?",
+    "sitePlaceholder": "monentreprise.com",
+    "useSite": "Utiliser mon site",
+    "siteExplain": "Je reprends votre logo, vos couleurs et vos polices, et je peux créer votre charte graphique. Vous pouvez aussi coller le lien dans votre message.",
+    "noSite": "Pas de site ?",
+    "viewCharter": "Voir ma charte graphique",
+    "createCharter": "Créer ma charte graphique",
+    "charterStarting": "Création de la charte…"
   },
   "montageEditor": {
     "back": "Retour à la conversation",
@@ -867,7 +891,7 @@
       },
       "brand": {
         "title": "Vos couleurs, si vous voulez",
-        "body": "Ajoutez votre site, votre logo ou vos couleurs. Ce n’est pas obligatoire : sans eux, je choisis des couleurs qui vont bien."
+        "body": "Collez l’adresse de votre site : je reprends votre logo, vos couleurs et vos polices, et je peux créer votre charte graphique. Ce n’est pas obligatoire : sans site, je choisis des couleurs qui vont bien."
       },
       "creativity": {
         "title": "Plus ou moins d’audace",
@@ -922,5 +946,20 @@
         "body": "Vos changements s’enregistrent tout seuls. Quand c’est prêt, téléchargez la vidéo."
       }
     }
+  },
+  "charter": {
+    "title": "Ma charte graphique",
+    "creating": "Je crée votre charte graphique…",
+    "starting": "Je prépare les premières pages.",
+    "pagesDone": "{{count}} page(s) prête(s).",
+    "pages": "Pages de la charte graphique",
+    "view": "Voir ma charte ({{count}} pages)",
+    "edit": "Modifier sur IDEM",
+    "openProject": "Ouvrir mon projet sur IDEM",
+    "failed": "La charte n’a pas pu être créée.",
+    "retry": "Relancer",
+    "create": "Créer ma charte graphique",
+    "offer": "Votre charte graphique : votre logo, vos couleurs, vos polices et leurs règles d’usage, en pages à consulter ici.",
+    "refused": "Votre portefeuille IDEM ne suffit pas pour cette charte : rechargez-le, puis relancez."
   }
 }

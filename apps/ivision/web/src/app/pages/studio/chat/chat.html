@@ -83,10 +83,9 @@
           <div class="max-w-[92%] rounded-2xl rounded-bl-md border px-4 py-3"
             [class]="m.status === 'error' ? 'border-[var(--color-danger)]' : 'border-[var(--glass-border-subtle)]'">
             <p class="whitespace-pre-wrap">{{ messageText(m) }}</p>
-            @if (m.idemProjectId) {
-              <a class="inner-button button-sm mt-3 inline-flex" [href]="idemBrandUrl(m.idemProjectId)" target="_blank" rel="noopener">
-                <i class="pi pi-external-link" aria-hidden="true"></i> {{ 'chat.brand.openIdem' | translate }}
-              </a>
+            <!-- Une marque née d'un site : sa charte graphique, à créer ou à voir, sans quitter iVision. -->
+            @if (charterOffer(m)) {
+              <iv-charter-result [brandId]="m.brandId!" [projectId]="m.idemProjectId" />
             }
 
             <!-- Les réponses possibles, seulement sur la dernière question. -->
@@ -152,16 +151,19 @@
                   </div>
                 }
                 @case ('video-intent') {
-                  <ul class="mt-3 flex flex-col gap-2" role="list">
-                    @for (o of $any(m.ask).options; track o.id) {
-                      <li>
-                        <button type="button" class="outer-button w-full text-left flex flex-col items-start gap-0.5 py-2" (click)="resume({ treatment: { id: $any(m.ask).clarificationId, option: o.id } })">
-                          <span class="text-sm font-medium">{{ o.label }}</span>
-                          <span class="text-xs text-[var(--color-text-tertiary)]">{{ o.description }}</span>
-                        </button>
-                      </li>
-                    }
-                  </ul>
+                  <iv-ask-choices
+                    [questions]="[{ id: 'treatment', question: $any(m.ask).question, options: $any(m.ask).options }]"
+                    [showQuestion]="false"
+                    (answered)="answerIntent($any(m.ask).clarificationId, $event)"
+                  />
+                }
+                @case ('choices') {
+                  <!-- Quelques questions à cliquer, une à la fois, le choix recommandé marqué. -->
+                  <iv-ask-choices
+                    [questions]="$any(m.ask).questions"
+                    [showQuestion]="$any(m.ask).questions.length > 1 || $any(m.ask).purpose !== 'site'"
+                    (answered)="answerChoices($any(m.ask).purpose, $event)"
+                  />
                 }
               }
             }
@@ -175,6 +177,8 @@
                 }
               } @else if (r.kind === 'montage' && latestFor(m)) {
                 <iv-montage-result [attr.data-tour]="m.id === lastResultId() ? 'iv-result' : null" [montageId]="r.montageId" [initial]="montages()[r.montageId] ?? null" [version]="montageVersions()[r.montageId] ?? 0" [latest]="m.id === messages().at(-1)?.id" (say)="say($event)" />
+              } @else if (r.kind === 'charter') {
+                <iv-charter-result [brandId]="r.brandId" [projectId]="m.idemProjectId" />
               } @else if (r.kind === 'visual') {
                 @if (visuals()[r.visualId]; as v) {
                   @defer (on viewport) {
@@ -291,27 +295,17 @@
           </label>
 
           @if (montaging()) {
-            <label class="sr-only" for="iv-mformat">{{ 'chat.options.format' | translate }}</label>
-            <select id="iv-mformat" class="!w-auto !py-1.5 !text-sm" (change)="videoFormat.set($any($event.target).value)">
-              @for (f of formats(); track f) { <option [value]="f" [selected]="f === videoFormat()">{{ 'formats.' + f | translate }}</option> }
-            </select>
-            <label class="!flex items-center gap-1.5 text-sm text-[var(--color-text-secondary)] !mb-0">
-              <input type="checkbox" [checked]="removeSilences()" (change)="removeSilences.set($any($event.target).checked)" />
-              {{ 'chat.options.removeSilences' | translate }}
-            </label>
-            <label class="!flex items-center gap-1.5 text-sm text-[var(--color-text-secondary)] !mb-0">
-              <input type="checkbox" [checked]="montageMusic()" (change)="montageMusic.set($any($event.target).checked)" />
-              {{ 'chat.options.music' | translate }}
-            </label>
+            <!-- Les réglages du montage se choisissent en répondant à quelques questions, après l'envoi. -->
+            <span class="text-xs text-[var(--color-text-tertiary)]">{{ 'chat.composer.montageHint' | translate }}</span>
           } @else if (revisingMontage()) {
             <span class="text-xs text-[var(--color-text-tertiary)]">{{ 'chat.composer.reviseHint' | translate }}</span>
           } @else if (mode() === 'video') {
             <label class="sr-only" for="iv-duration">{{ 'chat.options.duration' | translate }}</label>
-            <select id="iv-duration" class="!w-auto !py-1.5 !text-sm" (change)="durationSec.set(+$any($event.target).value)">
+            <select id="iv-duration" class="!w-auto !py-1.5 !text-sm" (change)="setDuration(+$any($event.target).value)">
               @for (d of durations; track d) { <option [value]="d" [selected]="d === durationSec()">{{ d }} s</option> }
             </select>
             <label class="sr-only" for="iv-vformat">{{ 'chat.options.format' | translate }}</label>
-            <select id="iv-vformat" class="!w-auto !py-1.5 !text-sm" (change)="videoFormat.set($any($event.target).value)">
+            <select id="iv-vformat" class="!w-auto !py-1.5 !text-sm" (change)="setVideoFormat($any($event.target).value)">
               @for (f of formats(); track f) { <option [value]="f" [selected]="f === videoFormat()">{{ 'formats.' + f | translate }}</option> }
             </select>
             <label class="!flex items-center gap-1.5 text-sm text-[var(--color-text-secondary)] !mb-0" [title]="'chat.options.voiceHint' | translate">
@@ -329,7 +323,7 @@
             }
           } @else {
             <label class="sr-only" for="iv-iformat">{{ 'chat.options.format' | translate }}</label>
-            <select id="iv-iformat" class="!w-auto !py-1.5 !text-sm" (change)="imageFormat.set($any($event.target).value)">
+            <select id="iv-iformat" class="!w-auto !py-1.5 !text-sm" (change)="setImageFormat($any($event.target).value)">
               @for (f of formats(); track f) { <option [value]="f" [selected]="f === imageFormat()">{{ 'formats.' + f | translate }}</option> }
             </select>
             <label class="!flex items-center gap-1.5 text-sm text-[var(--color-text-secondary)] !mb-0">

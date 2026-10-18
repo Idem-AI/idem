@@ -28,7 +28,7 @@ import { SiteScanError } from '../../../core/src/site/site-scanner';
 import { collection } from '../config/db';
 import logger from '../config/logger';
 import { HttpError } from '../middleware/error';
-import type { ChatAsk, ChatAttachment, ChatMessage, ChatMode, ChatOptions, ChatSession, IvisionBrand, IvisionReference } from '../models';
+import type { ChatAsk, ChatAttachment, ChatMessage, ChatMode, ChatOptions, ChatQuestion, ChatSession, ChoicesPurpose, IvisionBrand, IvisionReference } from '../models';
 import { AI_CLIP_XAF, charge, Charge, MAX_AI_CLIPS, PaymentRequired, quote, refund } from './billing';
 import { withClipAllowance } from '../utils/clip-allowance';
 import { applyNamedColors, brandFromSite, brandView, createAutoBrand, getBrand } from './brands.service';
@@ -38,6 +38,7 @@ import { createVideo, motionVideos, scopeOf } from './videos.service';
 import { montages, ownsUploads, refundMontage } from './montages.service';
 import { clarifyVideoIntent, classifyVideoIntent, IntentAsset } from '../../../core/src/video/request/intent';
 import { MontageInputError } from '../../../core/src/montage/montage.service';
+import type { CaptionStyle } from '../../../core/src/montage/montage.model';
 import { meanVolume } from '../../../core/src/montage/montage.assemble';
 import type { VideoFormat } from '../../../core/src/video/contracts/model';
 import axios from 'axios';
@@ -45,6 +46,10 @@ import { MAX_REQUEST_CHARS, parseRequest } from '../../../core/src/video/request
 import { titleCase } from '../../../core/src/video/motionVideo.service';
 import { idem } from './idem.client';
 import { createVisual, getVisual, retouchVisual, visualView } from './visuals.service';
+import { montageChoices, montageQuestions } from '../../../core/src/montage/montage.questions';
+import { visualFormatOfRatio } from '../../../core/src/reference/reference.analyzer';
+import { startCharter } from './charter.service';
+import { IdemGatewayError } from './idem.client';
 
 const sessions = () => collection<ChatSession>('sessions');
 const now = () => new Date().toISOString();
@@ -73,6 +78,8 @@ export interface TurnInput {
   resume?: boolean;
   /** La réponse à une question de clarification (`video-intent`) : quoi faire des vidéos déposées. */
   treatment?: { id: string; option: string };
+  /** Les réponses aux questions à cliquer (`choices`) : identifiant de question → identifiant du choix. */
+  answers?: { purpose: ChoicesPurpose; values: Record<string, string> };
 }
 
 // ─── Conversations ──────────────────────────────────────────────────────────
@@ -203,7 +210,7 @@ async function push(sessionId: string, msg: ChatMessage, set: Partial<ChatSessio
   );
 }
 
-const ASK_TEXT: Record<Exclude<ChatAsk['kind'], 'video-intent'>, (mode: ChatMode) => { key: string; text: string }> = {
+const ASK_TEXT: Record<Exclude<ChatAsk['kind'], 'video-intent' | 'choices'>, (mode: ChatMode) => { key: string; text: string }> = {
   brand: () => ({ key: 'chat.ask.brand', text: 'Pour que le résultat respecte votre marque : collez le lien de votre site, importez un projet IDEM, ou choisissez une marque.' }),
   'brand-choice': () => ({ key: 'chat.ask.brandChoice', text: 'J’ai lu votre site. Choisissez la palette et la typographie qui vous ressemblent — je les applique à tout ce que je crée.' }),
   reference: (mode) =>
@@ -212,8 +219,14 @@ const ASK_TEXT: Record<Exclude<ChatAsk['kind'], 'video-intent'>, (mode: ChatMode
       : { key: 'chat.ask.referenceImage', text: 'Avez-vous une image modèle ? J’en reprends la composition, avec vos textes, vos couleurs et votre logo.' },
 };
 
+/** L'introduction de chaque série de questions à cliquer. */
+const CHOICES_TEXT: Record<ChoicesPurpose, { key: string; text: string }> = {
+  montage: { key: 'chat.ask.montage', text: 'Avant de monter votre vidéo, quelques choix rapides. Je vous recommande une option pour chacun ; « Choisir pour moi » les prend toutes.' },
+  site: { key: 'chat.ask.site', text: 'Ce lien, c’est le site de votre entreprise ?' },
+};
+
 async function ask(session: ChatSession, a: ChatAsk, pending: ChatSession['pending'], emit: (e: ChatEvent) => void): Promise<void> {
-  const { key, text } = a.kind === 'video-intent' ? { key: 'chat.ask.videoIntent', text: a.question } : ASK_TEXT[a.kind](session.mode);
+  const { key, text } = a.kind === 'video-intent' ? { key: 'chat.ask.videoIntent', text: a.question } : a.kind === 'choices' ? CHOICES_TEXT[a.purpose] : ASK_TEXT[a.kind](session.mode);
   // La question de clarification est rédigée dans la langue de la demande : affichée telle quelle.
   const msg = message('assistant', text, { ask: a, ...(a.kind === 'video-intent' ? {} : { i18n: { key } }) });
   await push(session._id, msg, pending ? { pending } : {});
@@ -292,10 +305,97 @@ async function reviseMotion(userId: string, session: ChatSession, videoId: strin
 }
 
 /**
+ * Que faire d'un lien de site collé dans la conversation : en faire la marque ET sa charte graphique
+ * (recommandé), seulement la marque (couleurs, polices, logo), ou rien — c'est une simple adresse.
+ */
+export function siteQuestions(language: string): ChatQuestion[] {
+  const en = language.startsWith('en');
+  return [
+    {
+      id: 'site',
+      question: en ? 'Is this your business website?' : 'Est-ce le site de votre entreprise ?',
+      options: [
+        {
+          id: 'charter',
+          label: en ? 'Yes — create my brand guidelines' : 'Oui — créer ma charte graphique',
+          description: en ? 'I read your site, then build your full guidelines (logo, colours, fonts, rules). You see it here.' : 'Je lis votre site, puis je crée votre charte complète (logo, couleurs, polices, règles d’usage). Elle s’affiche ici.',
+          recommended: true,
+        },
+        {
+          id: 'brand',
+          label: en ? 'Yes — just use my colours and logo' : 'Oui — juste reprendre mes couleurs et mon logo',
+          description: en ? 'Applied to everything I create, right away.' : 'Appliqués tout de suite à ce que je crée.',
+        },
+        { id: 'no', label: en ? 'No, it is just an address' : 'Non, c’est juste une adresse', description: en ? 'I keep it in your request as it is.' : 'Je la garde telle quelle dans votre demande.' },
+      ],
+    },
+  ];
+}
+
+/** La charte graphique lancée depuis la conversation : sa carte apparaît dans le fil et se remplit seule. */
+async function charterInChat(userId: string, session: ChatSession, brand: IvisionBrand, level: string, emit: (e: ChatEvent) => void): Promise<void> {
+  try {
+    await startCharter(userId, brand._id, level);
+  } catch (error) {
+    if (error instanceof IdemGatewayError && (error.status === 402 || error.status === 429)) {
+      const refusal = paymentRefusal(new PaymentRequired(error.body || {}, error.status), 'Votre portefeuille ne suffit pas pour créer la charte. Rechargez-le, puis redemandez-la.');
+      const msg = message('assistant', refusal.text, { status: 'error', error: refusal.code, i18n: { key: refusal.i18n } });
+      await push(session._id, msg);
+      emit({ type: 'error', error: refusal.code, message: msg.text, payment: error.body });
+      emit({ type: 'message', message: msg });
+      return;
+    }
+    logger.warn('chat.charter_failed', { event: 'chat.charter_failed', error });
+    const msg = message('assistant', 'Je n’ai pas pu lancer la charte graphique. Vous pourrez la relancer depuis « Ma marque ».', { status: 'error', i18n: { key: 'chat.charter.failed' } });
+    await push(session._id, msg);
+    emit({ type: 'message', message: msg });
+    return;
+  }
+  const msg = message('assistant', 'Je crée votre charte graphique. Elle s’affiche ici dès qu’elle est prête — vous pouvez continuer pendant ce temps.', {
+    result: { kind: 'charter', brandId: brand._id },
+    status: 'done',
+    i18n: { key: 'chat.charter.started' },
+    ...(brand.idemProjectId ? { idemProjectId: brand.idemProjectId } : {}),
+  });
+  await push(session._id, msg);
+  emit({ type: 'result', message: msg });
+}
+
+/** Ce que l'utilisateur a cliqué, écrit dans le fil comme sa réponse (les libellés de la dernière question). */
+function answerText(session: ChatSession, input: TurnInput): string {
+  const last = [...session.messages].reverse().find((m) => m.ask && (m.ask.kind === 'choices' || m.ask.kind === 'video-intent'));
+  if (!last?.ask) return '';
+  if (input.answers && last.ask.kind === 'choices' && last.ask.purpose === input.answers.purpose) {
+    const values = input.answers.values;
+    return last.ask.questions
+      .map((q) => q.options.find((o) => o.id === values[q.id])?.label)
+      .filter(Boolean)
+      .join(' · ');
+  }
+  if (input.treatment && last.ask.kind === 'video-intent') return last.ask.options.find((o) => o.id === input.treatment!.option)?.label || '';
+  return '';
+}
+
+/** Une vidéo où l'on parle (volume moyen audible) : elle se monte. */
+const speakingOf = (videos: { url: string }[]) => Promise.all(videos.map((v) => meanVolume(v.url).then((db) => db !== null && db > -50).catch(() => false)));
+
+/**
  * Le MONTAGE d'une prise de parole, lancé depuis la conversation : prix sur la durée totale,
  * débit, puis le montage tourne en tâche de fond. La carte du fil suit son avancement.
  */
-async function startMontage(userId: string, session: ChatSession, brand: IvisionBrand, videos: { url: string; name?: string; posterUrl?: string }[], request: string, options: ChatOptions, emit: (e: ChatEvent) => void): Promise<void> {
+async function startMontage(
+  userId: string,
+  session: ChatSession,
+  brand: IvisionBrand,
+  videos: { url: string; name?: string; posterUrl?: string }[],
+  request: string,
+  options: ChatOptions,
+  emit: (e: ChatEvent) => void,
+  /** Les réponses aux questions du montage (sous-titres, intro, carton de fin). */
+  choices: { captions?: CaptionStyle; intro?: boolean; outro?: boolean } = {},
+  /** La demande en attente si le paiement est refusé (ce qui a déjà été répondu n'est pas redemandé). */
+  pendingIfRefused: ChatSession['pending'] = { text: request, options, videos }
+): Promise<void> {
   let probed;
   try {
     probed = await Promise.all(videos.map((v) => montages.inspect(v.url)));
@@ -318,7 +418,7 @@ async function startMontage(userId: string, session: ChatSession, brand: Ivision
     // Solde insuffisant ou quota atteint : la demande (et ses vidéos) attend ; un clic la relance.
     const refusal = paymentRefusal(error, 'Vos crédits ne suffisent pas pour ce montage. Rechargez votre compte IDEM, puis relancez.');
     const msg = message('assistant', refusal.text, { status: 'error', error: refusal.code, i18n: { key: refusal.i18n } });
-    await push(session._id, msg, { pending: { text: request, options, videos } });
+    await push(session._id, msg, { pending: pendingIfRefused });
     emit({ type: 'error', error: refusal.code, message: msg.text, payment: error.body });
     emit({ type: 'message', message: msg });
     return;
@@ -337,6 +437,9 @@ async function startMontage(userId: string, session: ChatSession, brand: Ivision
         cuts: options.cuts || 'tight',
         music: options.musicMood !== 'none',
         sessionId: session._id,
+        ...(choices.captions ? { captions: choices.captions } : {}),
+        ...(typeof choices.intro === 'boolean' ? { intro: choices.intro } : {}),
+        ...(typeof choices.outro === 'boolean' ? { outro: choices.outro } : {}),
       },
       paid.charged ? paid.cost : 0,
       (failed) => refundMontage(userId, failed)
@@ -429,6 +532,22 @@ async function turn(userId: string, session: ChatSession, input: TurnInput, emit
   const photoUrl = input.photoUrl || (input.resume ? pending?.photoUrl : undefined);
   const keep = (t: string): ChatSession['pending'] => ({ text: t, options, ...(media.length ? { media } : {}), ...(photoUrl ? { photoUrl } : {}) });
   const videos = input.videos?.length ? input.videos : input.resume && pending?.videos ? pending.videos : [];
+  // Ce qui a déjà été répondu pour cette demande (ne se redemande pas aux questions suivantes).
+  const treatmentChoice = input.treatment?.id === 'video-treatment' ? input.treatment.option : input.resume ? pending?.treatment : undefined;
+  const siteAnswer = input.answers?.purpose === 'site' ? input.answers.values.site : input.resume ? pending?.site : undefined;
+  const site = siteAnswer === 'charter' || siteAnswer === 'brand' || siteAnswer === 'no' ? siteAnswer : undefined;
+  /** La demande en attente, avec tout ce qui l'accompagne (vidéos, choix déjà faits). */
+  const keepAll = (t: string): ChatSession['pending'] => ({ ...keep(t)!, ...(videos.length ? { videos } : {}), ...(treatmentChoice ? { treatment: treatmentChoice } : {}), ...(site ? { site } : {}) });
+
+  // Une réponse cliquée : écrite dans le fil comme la réponse de l'utilisateur.
+  if (!written && (input.answers || input.treatment)) {
+    const said = answerText(session, input);
+    if (said) {
+      const msg = message('user', said);
+      await push(session._id, msg);
+      emit({ type: 'message', message: msg });
+    }
+  }
 
   // Le message de l'utilisateur (sauf reprise sans texte) : avec ses pièces jointes.
   if (written || input.referenceId || input.noReference || input.videos?.length) {
@@ -449,8 +568,10 @@ async function turn(userId: string, session: ChatSession, input: TurnInput, emit
     emit({ type: 'message', message: msg });
   }
 
-  // 1. Un lien de site : on scanne, on propose, la demande attend le choix.
-  const { url, rest } = splitUrl(text);
+  // 1. Un lien de site : est-ce le site de l'entreprise ? Une question à cliquer — en faire la marque ET sa
+  //    charte graphique (recommandé), seulement la marque, ou rien (une simple adresse, gardée dans la demande).
+  const { url, rest: urlRest } = splitUrl(text);
+  const rest = site === 'no' ? text : urlRest;
   let brand: IvisionBrand | null = session.brandId ? await getBrand(userId, session.brandId).catch(() => null) : null;
   // Un lien vers un AUTRE site que celui de la marque courante : c'est la marque à lire (un lien
   // seul aussi). Le même site ne se relit pas à chaque message.
@@ -461,8 +582,16 @@ async function turn(userId: string, session: ChatSession, input: TurnInput, emit
       return false;
     }
   })();
-  // Une marque lue AVANT que le site devienne un projet IDEM (pas de projet lié) est refaite une fois.
-  if (url && (!brand || rest.length < 12 || !sameSite || !brand.idemProjectId)) {
+  // Une marque lue AVANT que le site devienne un projet IDEM (pas de projet lié) est refaite une fois. Le même
+  // site, déjà lu, n'est relu que si le lien arrive seul (et pas une fois la question déjà répondue).
+  const known = sameSite && !!brand?.idemProjectId;
+  const needsRead = !!url && site !== 'no' && (!known || (urlRest.length < 12 && !site));
+  if (needsRead && !site) {
+    await ask(session, { kind: 'choices', purpose: 'site', questions: siteQuestions(language || 'fr') }, keepAll(text), emit);
+    return;
+  }
+  if (url && known && !needsRead && site === 'charter' && brand) await charterInChat(userId, session, brand, normalizeCreativity(options.creativity), emit);
+  if (needsRead) {
     emit({ type: 'status', key: 'chat.status.scan.open', text: 'Je visite votre site…' });
     try {
       brand = await brandFromSite(userId, url, (step) => emit({ type: 'status', key: `chat.status.scan.${step}`, text: 'Lecture du site…' }));
@@ -480,7 +609,7 @@ async function turn(userId: string, session: ChatSession, input: TurnInput, emit
     // La marque s'applique aussitôt : on le dit, et la demande continue (rien à valider). Née d'un projet IDEM,
     // sa charte complète s'ouvre dans IDEM — où l'utilisateur peut continuer (business plan, deck, site…).
     const read = brand.idemProjectId
-      ? message('assistant', `J’ai lu votre site et créé votre projet sur IDEM, avec votre charte graphique : ${brand.kit.logo ? 'votre logo et ses déclinaisons, ' : ''}vos couleurs, vos polices, votre direction artistique et vos motifs. Je l’applique à tout ce que je crée.`, {
+      ? message('assistant', `J’ai lu votre site et créé votre projet sur IDEM : ${brand.kit.logo ? 'votre logo, ' : ''}vos couleurs, vos polices et votre style sont appliqués à tout ce que je crée.`, {
           i18n: { key: brand.kit.logo ? 'chat.brand.project' : 'chat.brand.projectNoLogo', params: { name: brand.name } },
           brandId: brand._id,
           idemProjectId: brand.idemProjectId,
@@ -491,6 +620,7 @@ async function turn(userId: string, session: ChatSession, input: TurnInput, emit
         });
     await push(session._id, read);
     emit({ type: 'message', message: read });
+    if (site === 'charter') await charterInChat(userId, session, brand, normalizeCreativity(options.creativity), emit);
   }
 
   // 2. Pas de marque (conversation d'avant) : une marque provisoire, et on continue.
@@ -514,29 +644,56 @@ async function turn(userId: string, session: ChatSession, input: TurnInput, emit
     if (!ownsUploads(userId, videos.map((v) => v.url))) throw new HttpError(400, 'invalid_input', 'Vidéo inconnue : ajoutez-la de nouveau.');
     // Des vidéos déposées SANS consigne : le média ne dit pas ce qu'il faut en faire. Une seule question,
     // avant tout débit, avec des choix adaptés (request/intent.ts) — jamais quand la demande le dit déjà.
+    // Le choix recommandé suit la vidéo : on y parle → la monter ; muette → l'habiller en motion design.
     const said = (url ? rest : text).trim();
-    if (!input.treatment) {
+    const lang = language || 'fr';
+    if (!treatmentChoice) {
       const assets: IntentAsset[] = videos.map((v, i) => ({ id: `video-${i + 1}`, kind: 'video' as const, ...(v.name ? { note: v.name } : {}) }));
-      const lang = language || 'fr';
       const intent = classifyVideoIntent({ request: said, assets, language: lang });
       const question = clarifyVideoIntent(intent, { request: said, assets, language: lang });
       if (question && question.id === 'video-treatment') {
-        await ask(session, { kind: 'video-intent', clarificationId: question.id, question: question.question, options: question.options.map((o) => ({ id: o.id, label: o.label, description: o.description })) }, { text: said, options, ...(media.length ? { media } : {}), videos }, emit);
+        const speaks = (await speakingOf(videos)).some(Boolean);
+        const best = speaks ? 'edit' : question.options.some((o) => o.id === 'motion') ? 'motion' : 'demo';
+        const choices = question.options.map((o) => ({ id: o.id, label: o.label, description: o.description, ...(o.id === best ? { recommended: true } : {}) }));
+        await ask(session, { kind: 'video-intent', clarificationId: question.id, question: question.question, options: choices }, keepAll(said), emit);
         return;
       }
     }
-    const treatment = input.treatment?.id === 'video-treatment' ? input.treatment.option : undefined;
+    const treatment = treatmentChoice;
+    // Le montage : quelques questions à cliquer d'abord (format, coupes, sous-titres, intro et fin, musique),
+    // le choix recommandé marqué ; puis le montage, réglé par les réponses.
+    const montageTurn = async (request: string): Promise<void> => {
+      // Répondu maintenant, ou avant un paiement refusé (la reprise ne repose pas les questions).
+      const answered = input.answers?.purpose === 'montage' ? input.answers.values : input.resume ? pending?.montage : undefined;
+      if (!answered) {
+        const probed = await montages.inspect(videos[0].url).catch(() => null);
+        const questions = montageQuestions({ request, width: probed?.width || 1080, height: probed?.height || 1920, branded: brand!.source !== 'auto', language: lang });
+        if (questions.length) {
+          await ask(session, { kind: 'choices', purpose: 'montage', questions }, keepAll(said), emit);
+          return;
+        }
+      }
+      const c = montageChoices(request, answered || {});
+      const montageOptions: ChatOptions = {
+        ...options,
+        ...(c.format ? { formats: [c.format] } : {}),
+        cuts: c.cuts || options.cuts || 'tight',
+        ...(c.music === false ? { musicMood: 'none' } : c.music === true && options.musicMood === 'none' ? { musicMood: undefined } : {}),
+      };
+      const choices = { ...(c.captions ? { captions: c.captions } : {}), ...(c.finish ? { intro: c.finish === 'both', outro: c.finish !== 'none' } : {}) };
+      await startMontage(userId, session, brand!, videos, request, montageOptions, emit, choices, { ...keepAll(said)!, ...(answered ? { montage: answered } : {}) });
+    };
     // Le choix fait : montage, sous-titres, clips courts → la vidéo est retravaillée ; voix off ou habillage
     // animé → elle devient la matière du motion design.
     if (treatment === 'edit' || treatment === 'subtitles' || treatment === 'clips') {
       const hint = treatment === 'subtitles' ? 'Ajoute des sous-titres.' : treatment === 'clips' ? 'Découpe en clips courts pour les réseaux.' : 'Améliore le montage.';
-      await startMontage(userId, session, brand, videos, `${said} ${hint}`.trim(), options, emit);
+      await montageTurn(`${said} ${hint}`.trim());
       return;
     }
     if (treatment === 'voiceover') options.voice = true;
-    const speaking = treatment ? [false] : await Promise.all(videos.map((v) => meanVolume(v.url).then((db) => db !== null && db > -50).catch(() => false)));
+    const speaking = treatment ? [false] : await speakingOf(videos);
     if (speaking.some(Boolean)) {
-      await startMontage(userId, session, brand, videos, said, options, emit);
+      await montageTurn(said);
       return;
     }
     // Aucune parole : les vidéos deviennent des plans du motion design.
@@ -592,6 +749,11 @@ async function turn(userId: string, session: ChatSession, input: TurnInput, emit
 
   // Rien à créer encore (le lien seul, une salutation).
   const request = (revisedRequest || (url ? rest : text)).trim();
+  // Le lien seul, et la question du site répondue : la marque (et sa charte) étaient la demande.
+  if (request.length < 3 && url && site && site !== 'no') {
+    await sessions().updateOne({ _id: session._id }, { $unset: { pending: '' } });
+    return;
+  }
   if (request.length < 3) {
     const msg = message('assistant', session.mode === 'video' ? 'Que doit raconter votre vidéo ? Une offre, un produit, un événement…' : 'Que doit dire votre visuel ? Une offre, un produit, un événement…', { i18n: { key: `chat.ask.what.${session.mode}` } });
     await push(session._id, msg, {}, ['pending']);
@@ -621,7 +783,22 @@ async function turn(userId: string, session: ChatSession, input: TurnInput, emit
     }
   }
 
-  // 4. La création.
+  // 4. La création. Un modèle VIDÉO donne sa durée et son format quand l'utilisateur n'en a pas choisi : ses
+  // plans gardent leur rythme (une vidéo de 30 s ramenée à 15 s ne ressemble plus au modèle).
+  const blueprint = session.mode === 'video' && reference ? blueprintOf(reference) : null;
+  const fromModel: string[] = [];
+  if (blueprint) {
+    const chosen = new Set(options.chosen || []);
+    if (!chosen.has('duration') && blueprint.duration >= 3) {
+      options.durationSec = Math.round(blueprint.duration);
+      fromModel.push('duration');
+    }
+    if (!chosen.has('format') && blueprint.width && blueprint.height) {
+      const r = blueprint.height / blueprint.width;
+      options.formats = [r >= 1.5 ? 'story' : r > 1.1 ? 'portrait' : r < 0.9 ? 'landscape' : 'square'];
+      fromModel.push('format');
+    }
+  }
   const level = normalizeCreativity(options.creativity);
   let paid: Charge | undefined;
   let clips: Charge | undefined;
@@ -633,7 +810,6 @@ async function turn(userId: string, session: ChatSession, input: TurnInput, emit
       const aiClips = Math.max(0, Math.min(MAX_AI_CLIPS, Math.floor(Number(options.aiClips) || 0)));
       if (aiClips > 0) clips = await charge(userId, { action: 'ai_clip', cost: aiClips * AI_CLIP_XAF, note: `${aiClips} plan(s) filmé(s) par l'IA`, quantity: aiClips }, session._id);
       emit({ type: 'status', key: 'chat.status.video.start', text: 'Je prépare votre vidéo…', data: { cost: (paid.cost || 0) + (clips?.cost || 0) } });
-      const blueprint = reference ? blueprintOf(reference) : null;
       const ordered = clips ? aiClips : 0;
       // Rien n'est payé à la création : l'export HD réglera le périmètre.
       const paidCredits = paid.charged ? paid.cost : 0;
@@ -659,11 +835,21 @@ async function turn(userId: string, session: ChatSession, input: TurnInput, emit
       const ready = reference ? 'Votre vidéo est prête : les animations du modèle, avec votre marque. Retouchez les textes et les images, puis exportez.' : 'Votre vidéo est prête. Retouchez les textes et les images, puis exportez.';
       // Ce que la vidéo n'a pas pu suivre de la demande (4K, plans filmés non générés…) : dit, jamais tu.
       const notes = (video.film?.fidelity?.notes || []).filter((n) => !/voix off|voice/i.test(n) || !voiceMissed);
-      const said = [voiceMissed ? `${ready} La voix off n’a pas pu être générée : réessayez-la depuis la retouche.` : ready, ...notes].join(' ');
+      // Ce qui a été repris du modèle (durée, format) : dit, pour que le prix et le cadre ne surprennent pas.
+      const scope = scopeOf(options);
+      const en = (language || 'fr').startsWith('en');
+      const FORMAT_WORDS: Record<string, [string, string]> = { story: ['vertical', 'vertical'], portrait: ['portrait', 'portrait'], square: ['carré', 'square'], landscape: ['horizontal', 'horizontal'] };
+      const took = fromModel.length
+        ? en
+          ? `I kept the model's ${fromModel.includes('duration') ? `length (${scope.durationSec} s)` : ''}${fromModel.length === 2 ? ' and ' : ''}${fromModel.includes('format') ? `format (${FORMAT_WORDS[scope.formats[0]]?.[1] || scope.formats[0]})` : ''}.`
+          : `J’ai repris ${fromModel.includes('duration') ? `la durée du modèle (${scope.durationSec} s)` : ''}${fromModel.length === 2 ? ' et ' : ''}${fromModel.includes('format') ? `son format (${FORMAT_WORDS[scope.formats[0]]?.[0] || scope.formats[0]})` : ''}.`
+        : '';
+      const said = [voiceMissed ? `${ready} La voix off n’a pas pu être générée : réessayez-la depuis la retouche.` : ready, took, ...notes].filter(Boolean).join(' ');
       const msg = message('assistant', said, {
         result: { kind: 'video', videoId: video.id },
         status: 'done',
-        i18n: { key: `${reference ? 'chat.result.videoFromReference' : 'chat.result.video'}${voiceMissed ? 'NoVoice' : ''}` },
+        // Une phrase sur ce qui a été repris du modèle : le texte du serveur, tel quel.
+        ...(took ? {} : { i18n: { key: `${reference ? 'chat.result.videoFromReference' : 'chat.result.video'}${voiceMissed ? 'NoVoice' : ''}` } }),
       });
       await push(session._id, msg, {}, ['pending']);
       emit({ type: 'result', message: msg, video });
@@ -674,9 +860,12 @@ async function turn(userId: string, session: ChatSession, input: TurnInput, emit
       emit({ type: 'status', key: 'chat.status.visual.start', text: 'Je compose votre visuel…', data: { cost: paid.cost } });
       // Le format nommé dans la demande (« une story ») l'emporte sur le réglage par défaut.
       const named = formatIn(request);
-      const format: FlyerFormat = named || (FLYER_FORMATS.includes(options.format as FlyerFormat) ? (options.format as FlyerFormat) : 'square');
+      // Sans format nommé ni choisi, celui du MODÈLE : une story ne se reproduit pas en carré.
+      const modelFormat = reference?.image && !(options.chosen || []).includes('format') ? visualFormatOfRatio(reference.image.width, reference.image.height) : undefined;
+      const format: FlyerFormat = named || modelFormat || (FLYER_FORMATS.includes(options.format as FlyerFormat) ? (options.format as FlyerFormat) : 'square');
       const wantsDark = /fond (?:noir|sombre)|dark|sombre/i.test(`${request} ${feedback || ''}`);
-      const image = reference?.image ? ({ ...reference.image, id: reference._id } as ReferenceImage & { id: string }) : undefined;
+      // L'adresse du modèle sert au contrôle de ressemblance après le rendu (`compareToReference`).
+      const image = reference?.image ? ({ ...reference.image, id: reference._id, url: reference.url } as ReferenceImage & { id: string; url: string }) : undefined;
       const visual = await createVisual(
         userId,
         brand,

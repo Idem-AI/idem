@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, input, output, signal } from '@angular/core';
+import { Router, RouterLink } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 import { Subscription } from 'rxjs';
@@ -10,15 +11,16 @@ type Panel = 'site' | 'file' | 'colors' | 'brands' | null;
 const COLLAPSE_KEY = 'iv_brand_hint';
 
 /**
- * LA MARQUE, PROPOSÉE SANS INSISTER. Une ligne discrète au-dessus du compositeur : « Vos
- * couleurs ? Mon site · Ma charte ou mon logo · Mes couleurs ». Rien n'est obligatoire : sans
- * réponse, la création se fait aux couleurs neutres (ou à celles que la demande nomme). Un clic
- * ouvre une seule petite zone ; la marque trouvée est annoncée en une ligne, et remplaçable.
- * Repliée par l'utilisateur, elle reste repliée (préférence locale).
+ * LA MARQUE, PROPOSÉE SANS INSISTER — mais lisible par quelqu'un qui n'est pas du métier. Sans marque,
+ * le champ « Vous avez un site internet ? » est là tout de suite, avec une phrase qui dit ce qu'il apporte
+ * (logo, couleurs, polices, charte graphique) ; sans site : le logo ou la charte, les couleurs, une marque
+ * enregistrée. Rien n'est obligatoire : sans réponse, la création se fait aux couleurs neutres. Un site lu
+ * propose sa charte graphique d'un clic ; une marque en place montre « Voir ma charte graphique ».
+ * Repliée par l'utilisateur, la ligne reste repliée (préférence locale).
  */
 @Component({
   selector: 'iv-brand-hint',
-  imports: [TranslateModule, IdemLoaderComponent],
+  imports: [TranslateModule, IdemLoaderComponent, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (collapsed()) {
@@ -29,46 +31,72 @@ const COLLAPSE_KEY = 'iv_brand_hint';
           </span>
           {{ b.name || ('brandHint.myCharter' | translate) }}
         } @else {
-          <i class="pi pi-palette text-xs" aria-hidden="true"></i> {{ 'brandHint.myColors' | translate }}
+          <i class="pi pi-globe text-xs" aria-hidden="true"></i> {{ 'brandHint.collapsed' | translate }}
         }
       </button>
     } @else {
       <div class="flex flex-col gap-2 text-xs text-[var(--color-text-tertiary)]">
-        <div class="flex flex-wrap items-center gap-1.5">
-          @if (real(); as b) {
+        @if (real(); as b) {
+          <!-- Une marque est en place : elle se voit, sa charte est à un clic. -->
+          <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
             <span class="flex items-center gap-1.5 text-[var(--color-text-secondary)]">
               <span class="flex overflow-hidden rounded" aria-hidden="true">
                 @for (c of swatches(b); track $index) { <span class="h-3 w-3" [style.background]="c"></span> }
               </span>
               {{ 'brandHint.using' | translate: { name: b.name || ('brandHint.myCharter' | translate) } }}
             </span>
+            @if (b.idemProjectId) {
+              <span aria-hidden="true">·</span>
+              @if (charterStarting()) {
+                <span class="flex items-center gap-1"><idem-loader size="xs" /> {{ 'brandHint.charterStarting' | translate }}</span>
+              } @else {
+                <a class="underline" [routerLink]="['/studio/charter', b.id]">{{ 'brandHint.viewCharter' | translate }}</a>
+              }
+            }
             <span aria-hidden="true">·</span>
-            <button type="button" class="underline" (click)="toggle('brands')">{{ 'brandHint.change' | translate }}</button>
+            <button type="button" class="underline" [attr.aria-expanded]="panel() === 'brands'" (click)="toggle('brands')">{{ 'brandHint.change' | translate }}</button>
+            <button type="button" class="button-icon !p-1 ml-auto" (click)="collapse()" [attr.aria-label]="'brandHint.hide' | translate"><i class="pi pi-times text-[10px]" aria-hidden="true"></i></button>
+          </div>
+        } @else {
+          <!-- Pas encore de marque : l'adresse du site, tout de suite, et ce qu'elle apporte en une phrase. -->
+          <form class="flex flex-wrap items-center gap-2" (submit)="$event.preventDefault(); readSite()">
+            <label class="flex items-center gap-1.5 text-sm font-medium text-[var(--color-text-secondary)] !mb-0" for="iv-hint-site">
+              <i class="pi pi-globe" aria-hidden="true"></i> {{ 'brandHint.siteQuestion' | translate }}
+            </label>
+            <input id="iv-hint-site" type="text" inputmode="url" autocomplete="url" class="!w-auto min-w-0 flex-1 basis-48 !py-1.5 !text-sm" [placeholder]="'brandHint.sitePlaceholder' | translate" [value]="url()" (input)="url.set($any($event.target).value)" [disabled]="busy() === 'site'" aria-describedby="iv-hint-explain" />
+            <button type="submit" class="outer-button button-sm" [disabled]="url().trim().length < 4 || busy() === 'site'">
+              @if (busy() === 'site') { <idem-loader size="xs" /> }
+              {{ 'brandHint.useSite' | translate }}
+            </button>
+            <button type="button" class="button-icon !p-1" (click)="collapse()" [attr.aria-label]="'brandHint.hide' | translate"><i class="pi pi-times text-[10px]" aria-hidden="true"></i></button>
+          </form>
+          @if (busy() === 'site' && status()) {
+            <p role="status" class="flex items-center gap-1.5"><idem-loader size="xs" /> {{ status() }}</p>
           } @else {
-            <span class="hidden sm:inline">{{ 'brandHint.prompt' | translate }}</span>
-            <span class="sm:hidden">{{ 'brandHint.promptShort' | translate }}</span>
-            <button type="button" class="tag !text-xs" [attr.aria-pressed]="panel() === 'site'" (click)="toggle('site')"><i class="pi pi-globe" aria-hidden="true"></i> <span class="hidden sm:inline">{{ 'brandHint.site' | translate }}</span><span class="sm:hidden">{{ 'brandHint.siteShort' | translate }}</span></button>
+            <p id="iv-hint-explain">{{ 'brandHint.siteExplain' | translate }}</p>
+          }
+          <div class="flex flex-wrap items-center gap-1.5">
+            <span>{{ 'brandHint.noSite' | translate }}</span>
             <label class="tag !text-xs cursor-pointer !mb-0">
               @if (busy() === 'file') { <idem-loader size="xs" /> } @else { <i class="pi pi-paperclip" aria-hidden="true"></i> }
-              <span class="hidden sm:inline">{{ 'brandHint.file' | translate }}</span><span class="sm:hidden">{{ 'brandHint.fileShort' | translate }}</span>
+              {{ 'brandHint.file' | translate }}
               <input type="file" class="sr-only" accept="application/pdf,image/png,image/jpeg,image/webp,image/svg+xml,.pdf,.svg" (change)="onFile($event)" [disabled]="!!busy()" />
             </label>
-            <button type="button" class="tag !text-xs" [attr.aria-pressed]="panel() === 'colors'" (click)="toggle('colors')"><i class="pi pi-palette" aria-hidden="true"></i> <span class="hidden sm:inline">{{ 'brandHint.colors' | translate }}</span><span class="sm:hidden">{{ 'brandHint.colorsShort' | translate }}</span></button>
+            <button type="button" class="tag !text-xs" [attr.aria-pressed]="panel() === 'colors'" (click)="toggle('colors')"><i class="pi pi-palette" aria-hidden="true"></i> {{ 'brandHint.colors' | translate }}</button>
             @if (saved().length) {
-              <button type="button" class="tag !text-xs" [attr.aria-pressed]="panel() === 'brands'" (click)="toggle('brands')" [attr.aria-label]="'brandHint.saved' | translate"><i class="pi pi-bookmark" aria-hidden="true"></i> <span class="hidden sm:inline">{{ 'brandHint.saved' | translate }}</span></button>
+              <button type="button" class="tag !text-xs" [attr.aria-pressed]="panel() === 'brands'" (click)="toggle('brands')"><i class="pi pi-bookmark" aria-hidden="true"></i> {{ 'brandHint.saved' | translate }}</button>
             }
-          }
-          <button type="button" class="button-icon !p-1 ml-auto" (click)="collapse()" [attr.aria-label]="'brandHint.hide' | translate"><i class="pi pi-times text-[10px]" aria-hidden="true"></i></button>
-        </div>
+          </div>
+        }
 
         @switch (panel()) {
           @case ('site') {
             <form class="flex flex-wrap items-center gap-2" (submit)="$event.preventDefault(); readSite()">
-              <label class="sr-only" for="iv-hint-site">{{ 'brandHint.siteLabel' | translate }}</label>
-              <input id="iv-hint-site" type="url" class="!w-auto min-w-0 flex-1 !py-1.5 !text-sm" placeholder="https://…" [value]="url()" (input)="url.set($any($event.target).value)" [disabled]="busy() === 'site'" />
+              <label class="sr-only" for="iv-hint-site2">{{ 'brandHint.siteLabel' | translate }}</label>
+              <input id="iv-hint-site2" type="text" inputmode="url" autocomplete="url" class="!w-auto min-w-0 flex-1 !py-1.5 !text-sm" [placeholder]="'brandHint.sitePlaceholder' | translate" [value]="url()" (input)="url.set($any($event.target).value)" [disabled]="busy() === 'site'" />
               <button type="submit" class="outer-button button-sm" [disabled]="url().trim().length < 4 || busy() === 'site'">
                 @if (busy() === 'site') { <idem-loader size="xs" /> }
-                {{ 'brandHint.read' | translate }}
+                {{ 'brandHint.useSite' | translate }}
               </button>
               @if (busy() === 'site' && status()) { <span class="w-full">{{ status() }}</span> }
             </form>
@@ -105,7 +133,18 @@ const COLLAPSE_KEY = 'iv_brand_hint';
             </div>
           }
         }
-        @if (note(); as n) { <p role="status">{{ n }}</p> }
+        @if (note(); as n) {
+          <p role="status" class="flex flex-wrap items-center gap-2">
+            {{ n }}
+            <!-- Un site lu devient un projet IDEM : sa charte graphique se crée d'un clic, et s'affiche ici. -->
+            @if (offerCharter(); as b) {
+              <button type="button" class="outer-button button-sm" [disabled]="charterStarting()" (click)="createCharter(b)">
+                @if (charterStarting()) { <idem-loader size="xs" /> } @else { <i class="pi pi-book" aria-hidden="true"></i> }
+                {{ 'brandHint.createCharter' | translate }}
+              </button>
+            }
+          </p>
+        }
         @if (failed(); as f) { <p role="alert" class="text-[var(--color-danger)]">{{ f | translate }}</p> }
       </div>
     }
@@ -115,6 +154,7 @@ export class BrandHint {
   private readonly api = inject(ApiService);
   private readonly translate = inject(TranslateService);
   private readonly state = inject(StudioState);
+  private readonly router = inject(Router);
 
   /** La marque en cours (provisoire ou réelle), null si aucune encore. */
   readonly brand = input<Brand | null>(null);
@@ -130,6 +170,9 @@ export class BrandHint {
   protected readonly url = signal('');
   protected readonly colors = signal<Record<string, string>>({ primary: '#1f6f4a', secondary: '#14324a', accent: '#f2a93b' });
   protected readonly collapsed = signal(this.readCollapsed());
+  /** La marque qu'un site vient de donner (projet IDEM) : sa charte est proposée sous la note. */
+  protected readonly offerCharter = signal<Brand | null>(null);
+  protected readonly charterStarting = signal(false);
 
   /** Une vraie charte (pas la marque provisoire). */
   protected readonly real = computed(() => {
@@ -150,6 +193,7 @@ export class BrandHint {
   protected toggle(p: Panel): void {
     this.failed.set(null);
     this.note.set(null);
+    this.offerCharter.set(null);
     this.panel.update((cur) => (cur === p ? null : p));
   }
 
@@ -183,7 +227,11 @@ export class BrandHint {
     this.scanSub = this.api.scan(raw).subscribe({
       next: (event) => {
         if (event.type === 'status') this.status.set(this.translate.instant(event.key) !== event.key ? this.translate.instant(event.key) : event.text);
-        if (event.type === 'brand') this.done(event.brand, this.translate.instant('brandHint.siteDone', { name: event.brand.name }));
+        if (event.type === 'brand') {
+          this.done(event.brand, this.translate.instant('brandHint.siteDone', { name: event.brand.name }));
+          if (event.brand.idemProjectId) this.offerCharter.set(event.brand);
+          this.url.set('');
+        }
         if (event.type === 'error') {
           this.busy.set(null);
           this.failed.set('brandHint.siteFailed');
@@ -193,6 +241,23 @@ export class BrandHint {
       error: () => {
         this.busy.set(null);
         this.failed.set('brandHint.siteFailed');
+      },
+    });
+  }
+
+  /** La charte graphique du projet né du site : lancée, puis affichée dans sa page (avancement, puis pages). */
+  protected createCharter(brand: Brand): void {
+    this.charterStarting.set(true);
+    this.failed.set(null);
+    this.api.startCharter(brand.id).subscribe({
+      next: () => {
+        this.charterStarting.set(false);
+        this.offerCharter.set(null);
+        void this.router.navigate(['/studio/charter', brand.id]);
+      },
+      error: (e: { status?: number }) => {
+        this.charterStarting.set(false);
+        this.failed.set(e?.status === 402 || e?.status === 429 ? 'charter.refused' : 'charter.failed');
       },
     });
   }

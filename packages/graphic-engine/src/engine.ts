@@ -175,6 +175,7 @@ export class GraphicDocument {
       allowDark: this.options.allowDark === true,
       brief: this.options.brief,
       layoutNote: this.options.layoutNote,
+      ...(this.options.reference ? { reference: this.options.reference } : {}),
       bindings: this.options.bindings ?? 'values',
     };
   }

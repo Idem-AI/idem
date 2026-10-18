@@ -36,7 +36,7 @@ const scripted = (brief: FilmBrief) => !!brief.spec && brief.spec.mode === 'scri
 export function buildPlannerPrompt(brief: FilmBrief, concept: FilmConcept | null): { system: string; user: string } {
   const [min, max] = sceneRange(brief.durationSec);
   const script = scripted(brief);
-  const count = script ? `exactly ${brief.spec!.scenes.length} scenes (one per scene of the client's script, same order)` : concept?.outline.length ? `${Math.min(max, Math.max(min, concept.outline.length))} scenes` : `${min} to ${max} scenes`;
+  const count = script ? `exactly ${brief.spec!.scenes.length} scenes (one per scene of the client's script, same order)` : brief.referenceShots?.length ? `exactly ${brief.referenceShots.length} scenes (one per shot of the client's model, same order)` : concept?.outline.length ? `${Math.min(max, Math.max(min, concept.outline.length))} scenes` : `${min} to ${max} scenes`;
   const system = [
     'You write the storyboard of a short motion-design film. An animator will code each scene separately in Motion Canvas, reading ONLY its scene card — so each card must be concrete and complete.',
     !concept ? 'First invent the film: TITLE, CONCEPT (one or two sentences), BIBLE (3 to 6 lines: colour use, typography, graphic language, motion personality). Be original — no template exists, nothing is imposed.' : 'The concept is given: develop it faithfully.',
@@ -77,7 +77,7 @@ export function buildPlannerPrompt(brief: FilmBrief, concept: FilmConcept | null
     specConstraints(brief.spec),
     script ? `CLIENT SCRIPT:\n${scriptLines(brief.spec!)}` : '',
     `MEDIA AVAILABLE:\n${mediaLines(brief)}`,
-    brief.reference ? `REFERENCE FILM TO FOLLOW (cuts, rhythm, motion):\n${brief.reference.slice(0, 1500)}` : '',
+    brief.reference ? `REFERENCE FILM TO REPRODUCE (the client's model — write exactly ${brief.referenceShots?.length || 'its'} scenes, scene n = shot n, same composition and motion; your own texts and media):\n${brief.reference.slice(0, 6000)}` : '',
     concept ? `CONCEPT (from the creative director):\nTITLE: ${concept.title}\nCONCEPT: ${concept.concept}\nBIBLE: ${concept.bible}\n${concept.outline.map((o, i) => `SCENE ${i + 1}: ${o}`).join('\n')}` : '',
     !concept && brief.previous.length ? `FILMS ALREADY MADE FOR THIS BRAND (do something different):\n${brief.previous.slice(0, 6).join('\n')}` : '',
   ]
@@ -120,6 +120,21 @@ export function normalizeStoryboard(plan: PlannedFilm, brief: FilmBrief, concept
         visual: planned.visual || s.description,
         texts,
         ...(s.voice.length ? { voice: s.voice.join(' ') } : {}),
+      };
+    });
+  } else if (brief.referenceShots?.length) {
+    // Le MODÈLE du client : une scène par plan, dans l'ordre. La dernière scène du planificateur (marque, appel)
+    // reste la dernière ; chaque scène porte la fiche de son plan, lue telle quelle par l'auteur de la scène.
+    const shots = brief.referenceShots;
+    const kept = scenes.length > shots.length ? [...scenes.slice(0, shots.length - 1), scenes[scenes.length - 1]] : scenes;
+    const empty = (): PlannedScene => ({ purpose: '', visual: '', motion: '', texts: {}, media: [], needs: [] });
+    const aligned = kept.length < shots.length ? [...kept.slice(0, -1), ...Array.from({ length: shots.length - kept.length }, empty), ...kept.slice(-1)] : kept;
+    scenes = shots.map((shot, i) => {
+      const planned = aligned[i] || empty();
+      return {
+        ...planned,
+        visual: [planned.visual, `AS IN THE CLIENT'S MODEL (shot ${i + 1}): ${shot.line}`].filter(Boolean).join('\n'),
+        ...(shot.transition && !planned.transition ? { transition: shot.transition } : {}),
       };
     });
   } else if (scenes.length > max) {

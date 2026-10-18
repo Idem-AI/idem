@@ -42,7 +42,8 @@ export async function createVisual(
     creativity: CreativityLevel;
     withPhoto: boolean;
     photoUrl?: string;
-    reference?: ReferenceImage & { id: string };
+    /** Le modèle analysé ; son adresse sert au contrôle de ressemblance. */
+    reference?: ReferenceImage & { id: string; url?: string };
     sessionId?: string;
     /** Retour sur la version précédente (« pas assez pro ») et ce qu'elle était. */
     feedback?: string;

@@ -17,7 +17,7 @@
 import { NextFunction, Request, Response, Router } from 'express';
 import logger from '../config/logger';
 import { CREATIVITY_MULTIPLIER } from '../models/creativity.model';
-import { COMMUNICATION_PRICES, EDIT_PRICE_XAF, PASSES } from '../models/offer.model';
+import { COMMUNICATION_PRICES, DELIVERABLES, EDIT_PRICE_XAF, PASSES } from '../models/offer.model';
 import { chargeForService } from '../middleware/billing.middleware';
 import { walletService } from '../services/billing/wallet.service';
 import { sendQuotaRefusal } from '../middleware/usage-quota.middleware';
@@ -34,6 +34,9 @@ import { setTraceUserId } from '../utils/trace.util';
 import { safeEqual } from '../utils/safe-equal.util';
 import type { BrandKit } from '../../../ivision/core/src/brand/brand-kit';
 import { siteImportJobs } from '../services/SiteImport/siteProject.service';
+import { chargeBrandSession } from './branding.routes';
+import { generateBrandingStreamingController } from '../controllers/branding.controller';
+import { CustomRequest } from '../interfaces/express.interface';
 
 const router = Router();
 const communicationService = new CommunicationService(new PromptService());
@@ -318,6 +321,8 @@ router.get(
       export_video: COMMUNICATION_PRICES.motion_video,
       ai_clip: COMMUNICATION_PRICES.ai_clip,
       edit: EDIT_PRICE_XAF,
+      // La charte complète (livrable « Logo + charte graphique ») : esquisse gratuite, version finale à ce prix.
+      charter: DELIVERABLES.logo_brand.priceXaf,
       createur: { monthlyXaf: PASSES.createur.monthlyXaf, annualXaf: PASSES.createur.annualXaf },
       currency: 'XAF',
       creativity: CREATIVITY_MULTIPLIER,
@@ -418,6 +423,65 @@ router.get(
       return;
     }
     res.json({ jobId: job.id, status: job.status, step: job.step, ...(job.result ? { result: job.result } : {}), ...(job.error ? { error: job.error } : {}) });
+  })
+);
+
+// ─── Charte graphique d'un projet ───────────────────────────────────────────
+
+/**
+ * L'utilisateur d'iVision devient celui de la requête, pour un projet qui est bien à lui : les contrôles
+ * d'IDEM (`requireCredits`, propriété du livrable, quotas) s'appliquent ensuite tels quels.
+ */
+function asProjectOwner(req: Request, res: Response, next: NextFunction): void {
+  const userId = userIdOf(req);
+  const projectId = String(req.params.projectId || '');
+  if (!userId || !projectId) {
+    res.status(400).json({ error: 'invalid_input' });
+    return;
+  }
+  projectService
+    .getUserProjectById(userId, projectId)
+    .then((project) => {
+      if (!project) {
+        res.status(404).json({ error: 'project_not_found' });
+        return;
+      }
+      (req as CustomRequest).user = { uid: userId };
+      setTraceUserId(userId);
+      runWithAiUsageContext({ userId, projectId, feature: 'branding', operation: 'generate', source: `ivision ${req.method} ${req.path}` }, () => next());
+    })
+    .catch((error: Error) => {
+      logger.error('ivision.gateway_failed', { event: 'ivision.gateway_failed', path: req.path, error });
+      if (!res.headersSent) res.status(502).json({ error: 'upstream_failed' });
+    });
+}
+
+/**
+ * La CHARTE GRAPHIQUE d'un projet, générée depuis iVision : la même porte que le dashboard
+ * (`/project/brandings/generate/:projectId`) — même débit (`chargeBrandSession` : esquisse tant que le
+ * livrable n'est pas débloqué), même générateur, même flux d'étapes (SSE). iVision suit le flux et
+ * affiche la charte sans quitter le studio.
+ */
+router.post('/projects/:projectId/branding/generate', asProjectOwner, chargeBrandSession, generateBrandingStreamingController);
+
+/** Les pages de la charte d'un projet (HTML des sections), pour l'aperçu dans iVision. */
+router.get(
+  '/projects/:projectId/branding',
+  route(async (req, res) => {
+    const userId = userIdOf(req);
+    const project = userId ? await projectService.getUserProjectById(userId, String(req.params.projectId)) : null;
+    if (!project) {
+      res.status(404).json({ error: 'project_not_found' });
+      return;
+    }
+    const branding = project.analysisResultModel?.branding as (BrandKit & { sections?: { id?: string; name: string; type?: string; data?: unknown }[]; pdfFormat?: string; typography?: { primaryFont?: string; secondaryFont?: string; url?: string } }) | undefined;
+    const sections = (branding?.sections || []).filter((s) => typeof s.data === 'string' && (s.data as string).trim()).map((s) => ({ id: s.id || s.name, name: s.name, type: s.type || '', html: s.data as string }));
+    res.json({
+      name: project.name,
+      pdfFormat: branding?.pdfFormat || 'SLIDE_16_9',
+      fonts: { primaryFont: branding?.typography?.primaryFont, secondaryFont: branding?.typography?.secondaryFont, fontUrl: branding?.typography?.url },
+      sections,
+    });
   })
 );
 

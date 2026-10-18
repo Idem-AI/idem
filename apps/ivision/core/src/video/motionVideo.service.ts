@@ -80,7 +80,7 @@ import { recordFromVideo } from './record';
 import { buildVideoRevisionPrompt, parseVideoRevision, VideoRevisionPatch, videoSettingsFromText } from './revise';
 import type { FilmAudio, FilmData } from '../../motion/runtime/film-data';
 import type { ReferenceBlueprint } from '../reference/reference.analyzer';
-import { blueprintForDirector } from '../reference/reference.plan';
+import { blueprintForDirector, referenceShotCards } from '../reference/reference.plan';
 
 export { tierFor };
 export type { VideoModelTier } from './agents';
@@ -942,6 +942,7 @@ export class MotionVideoService {
       voice: brief.voice === true,
       newMedia: { images: brief.allowGenerate || brief.allowStock ? Math.max(0, Number(process.env.VIDEO_GEN_MAX_IMAGES ?? 6)) : 0, clips: brief.allowGenerate || brief.allowStock ? Math.max(0, Number(process.env.VIDEO_GEN_MAX_CLIPS ?? 4)) : 0 },
       ...(reference ? { reference } : {}),
+      ...(input.reference && !(spec.mode === 'script' && spec.scenes.length) ? { referenceShots: referenceShotCards(input.reference, sceneRange(scope.durationSec)[1]) } : {}),
       previous: ctx.others.filter((v) => v.film).slice(-6).map((v) => `${v.film!.title} — ${v.film!.concept}`.slice(0, 200)),
       level: creativity,
     };

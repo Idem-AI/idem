@@ -294,7 +294,7 @@
     "newImage": "New visual",
     "history": "Conversations",
     "noHistory": "No conversation yet.",
-    "brands": "Brands",
+    "brands": "My brand",
     "credits": "{{count}} F",
     "account": "My account",
     "tabs": "Studio sections",
@@ -354,8 +354,8 @@
       "add": "Add a brand",
       "applied": "I read your website: I’m using its colours, fonts, logo and photos. You can change the palette in “Brands”.",
       "appliedNoLogo": "I read your website: I’m using its colours, fonts and photos. You can change the palette in “Brands”.",
-      "project": "I read your website and created your project on IDEM, with your brand guidelines: your logo and its variations, your colours, your fonts, your art direction and your patterns. I apply them to everything I create.",
-      "projectNoLogo": "I read your website and created your project on IDEM, with your brand guidelines: your colours, your fonts, your art direction. Add your logo in IDEM to see it on your creations.",
+      "project": "I read your website and created your project on IDEM: your logo, colours, fonts and style are applied to everything I create.",
+      "projectNoLogo": "I read your website and created your project on IDEM: your colours, fonts and style are applied to everything I create. Add your logo in IDEM to see it on your creations.",
       "openIdem": "See my brand guidelines on IDEM"
     },
     "empty": {
@@ -411,7 +411,9 @@
       "noModel": "No, create freely",
       "noRecent": "No model analysed yet.",
       "modelHintVideo": "I reproduce cuts, motion and transitions — never the model’s music, sounds, images or texts.",
-      "modelHintImage": "I reproduce the layout — never the model’s texts or images."
+      "modelHintImage": "I reproduce the layout — never the model’s texts or images.",
+      "montage": "Before I edit your video, a few quick choices. I recommend one option for each; “Choose for me” picks them all.",
+      "site": "Is this link your business website?"
     },
     "result": {
       "previewTitle": "Video preview",
@@ -461,7 +463,8 @@
         "design": "Visual design",
         "photo": "Photo selection",
         "check": "Checking the scenes",
-        "repair": "Automatic scene fixing"
+        "repair": "Automatic scene fixing",
+        "match": "Comparison with your model"
       }
     },
     "composer": {
@@ -471,7 +474,8 @@
       "send": "Send",
       "placeholderMontage": "Optional — e.g. dynamic, an animated intro, show the price big, end with my WhatsApp…",
       "placeholderRevise": "What should change? E.g. no music, add an intro, simpler captions…",
-      "reviseHint": "For another video: describe it (“a video for…”) or add a filmed video."
+      "reviseHint": "For another video: describe it (“a video for…”) or add a filmed video.",
+      "montageHint": "After you send, I will ask a few quick questions: format, subtitles, music…"
     },
     "options": {
       "duration": "Duration",
@@ -579,6 +583,16 @@
     },
     "visual": {
       "notUnderstood": "I did not understand what to change. Say for example “change the price to 4,500 F”, “make the title bigger” or “remove the subtitle”."
+    },
+    "choices": {
+      "step": "Question {{current}} of {{total}}",
+      "back": "Back",
+      "forMe": "Choose for me",
+      "recommended": "Recommended"
+    },
+    "charter": {
+      "started": "I am creating your brand guidelines. They appear here as soon as they are ready — you can keep going meanwhile.",
+      "failed": "I could not start your brand guidelines. You can try again from “My brand”."
     }
   },
   "edit": {
@@ -610,13 +624,13 @@
     "broken": "{{count}} scene(s) do not run: press “Fix” in the scene before exporting."
   },
   "brands": {
-    "title": "Brands",
-    "subtitle": "The colours, fonts, logos and photos your creations follow.",
+    "title": "My brand",
+    "subtitle": "Your logo, colours and fonts: all your creations follow them.",
     "scan": {
-      "title": "From your website",
-      "text": "Paste the link: I read your colours, fonts, logo and tone, then offer three palettes and three typography pairings.",
+      "title": "Your website",
+      "text": "Paste your website address: I take your logo, colours, fonts and photos, and create your project on IDEM. Your brand guidelines are then one click away.",
       "label": "Your website link",
-      "cta": "Read the website"
+      "cta": "Use my website"
     },
     "other": "Other sources",
     "idem": {
@@ -641,7 +655,8 @@
     "addPhotos": "Add photos",
     "delete": "Delete",
     "confirmDelete": "Confirm deletion",
-    "empty": "No brand yet: read your website to start."
+    "empty": "No brand yet: read your website to start.",
+    "charter": "My brand guidelines"
   },
   "visualEdit": {
     "title": "Edit the visual"
@@ -793,13 +808,13 @@
     "saved": "My brands",
     "myColors": "My colours",
     "myCharter": "My brand",
-    "using": "Using {{name}}",
+    "using": "Your creations use {{name}}",
     "change": "change",
     "hide": "Hide",
     "siteLabel": "Your website address",
     "read": "Read",
     "reading": "Visiting your website…",
-    "siteDone": "Your website is read: its colours, fonts and logo will be used.",
+    "siteDone": "Your website is read: your logo, colours and fonts are applied.",
     "siteFailed": "I could not read this website. Check the address, or carry on without it.",
     "fileDone": "Found: {{what}}. I’m using them.",
     "fileFailed": "I could not read this file. Try a PDF or an image (PNG, JPG, SVG).",
@@ -819,7 +834,16 @@
     "promptShort": "Optional:",
     "siteShort": "Site",
     "fileShort": "Brand guide",
-    "colorsShort": "Colours"
+    "colorsShort": "Colours",
+    "collapsed": "My website",
+    "siteQuestion": "Do you have a website?",
+    "sitePlaceholder": "mybusiness.com",
+    "useSite": "Use my website",
+    "siteExplain": "I take your logo, colours and fonts, and I can create your brand guidelines. You can also paste the link in your message.",
+    "noSite": "No website?",
+    "viewCharter": "See my brand guidelines",
+    "createCharter": "Create my brand guidelines",
+    "charterStarting": "Creating the guidelines…"
   },
   "montageEditor": {
     "back": "Back to the conversation",
@@ -869,7 +893,7 @@
       },
       "brand": {
         "title": "Your colours, if you like",
-        "body": "Add your website, logo or colours. It’s optional: without them, I pick colours that work."
+        "body": "Paste your website address: I take your logo, colours and fonts, and I can create your brand guidelines. It is optional: without a website, I pick colours that work well."
       },
       "creativity": {
         "title": "More or less daring",
@@ -924,5 +948,20 @@
         "body": "Your changes save on their own. When it’s ready, download the video."
       }
     }
+  },
+  "charter": {
+    "title": "My brand guidelines",
+    "creating": "Creating your brand guidelines…",
+    "starting": "Preparing the first pages.",
+    "pagesDone": "{{count}} page(s) ready.",
+    "pages": "Pages of the brand guidelines",
+    "view": "See my guidelines ({{count}} pages)",
+    "edit": "Edit on IDEM",
+    "openProject": "Open my project on IDEM",
+    "failed": "The brand guidelines could not be created.",
+    "retry": "Try again",
+    "create": "Create my brand guidelines",
+    "offer": "Your brand guidelines: your logo, colours, fonts and how to use them, as pages you can read here.",
+    "refused": "Your IDEM wallet is not enough for these guidelines: top it up, then try again."
   }
 }

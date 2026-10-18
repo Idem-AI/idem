@@ -3,7 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { readLocaleCookie } from './locale-cookie';
-import { Brand, ChatEvent, ChatMode, ChatOptions, ChatSession, MediaAsset, Montage, MontageUpload, MotionVideo, Reference, SessionSummary, VideoOptions, Visual } from './models';
+import { Brand, Charter, ChatEvent, ChatMode, ChatOptions, ChatSession, ChoicesPurpose, MediaAsset, Montage, MontageUpload, MotionVideo, Reference, SessionSummary, VideoOptions, Visual } from './models';
 
 /** Le client de l'API iVision (`/v1`). Les flux (conversation, scan) passent par `fetch`. */
 @Injectable({ providedIn: 'root' })
@@ -52,6 +52,13 @@ export class ApiService {
     files.forEach((f) => form.append('photos', f));
     return this.http.post<Brand>(`${this.base}/brands/${id}/photos`, form);
   }
+  /** La charte graphique de la marque ; `pages` : avec ses pages (une fois prête). */
+  charter(brandId: string, pages = false) {
+    return this.http.get<Charter>(`${this.base}/brands/${brandId}/charter`, { params: pages ? { pages: '1' } : {} });
+  }
+  startCharter(brandId: string, creativity?: string) {
+    return this.http.post<Charter>(`${this.base}/brands/${brandId}/charter`, creativity ? { creativity } : {});
+  }
   idemProjects() {
     return this.http.get<{ projects: { id: string; name: string; hasBrand: boolean; primary?: string }[] }>(`${this.base}/idem/projects`);
   }
@@ -76,7 +83,21 @@ export class ApiService {
   deleteSession(id: string) {
     return this.http.delete<void>(`${this.base}/sessions/${id}`);
   }
-  turn(id: string, body: { text?: string; referenceId?: string; noReference?: boolean; media?: MediaAsset[]; videos?: { url: string; name?: string; posterUrl?: string }[]; photoUrl?: string; options?: ChatOptions; resume?: boolean; treatment?: { id: string; option: string } }): Observable<ChatEvent> {
+  turn(
+    id: string,
+    body: {
+      text?: string;
+      referenceId?: string;
+      noReference?: boolean;
+      media?: MediaAsset[];
+      videos?: { url: string; name?: string; posterUrl?: string }[];
+      photoUrl?: string;
+      options?: ChatOptions;
+      resume?: boolean;
+      treatment?: { id: string; option: string };
+      answers?: { purpose: ChoicesPurpose; values: Record<string, string> };
+    }
+  ): Observable<ChatEvent> {
     return this.stream(`${this.base}/sessions/${id}/turn`, body);
   }
   /** Export HD sans signature d'un visuel : payé une fois (inclus avec Créateur). */

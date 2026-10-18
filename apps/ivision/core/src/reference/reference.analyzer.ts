@@ -317,7 +317,7 @@ function shotInstruction(index: number, count: number, duration: number): string
     ' "background": "light|brand|dark|photo|video|pattern",',
     ' "texts": [{"role": "headline|support|label|number|button", "words": n, "position": "top|center|bottom|left|right"}],',
     ' "energy": "calm|medium|high",',
-    ' "description": "what we see and exactly how it moves, 40 words max, no brand names, no quoted text"}',
+    ' "description": "what we see and exactly how it moves, 70 words max: where each element sits and its size in the frame, the headline size, weight and case, solid colour blocks and shapes, how each element enters and leaves; no brand names, no quoted text"}',
   ]
     .filter(Boolean)
     .join('\n');
@@ -394,7 +394,7 @@ export async function analyzeReferenceVideo(file: string, options: AnalyzeVideoO
                 position: pick(x?.position, ['top', 'center', 'bottom', 'left', 'right'] as const, 'center'),
               }));
             }
-            if (typeof json.description === 'string') shot.description = json.description.replace(/["«»“”]/g, '').slice(0, 320);
+            if (typeof json.description === 'string') shot.description = json.description.replace(/["«»“”]/g, '').slice(0, 520);
           } catch (error) {
             logger.warn('reference.vision_failed', { event: 'reference.vision_failed', shot: shot.index, error });
           }
@@ -448,23 +448,63 @@ export interface ReferenceImage {
   description: string;
   /** Les zones du modèle en % de la toile (photo, titre, prix, logo, bandeau, forme…) : l'auteur les reproduit. */
   zones?: Array<{ role: string; x: number; y: number; w: number; h: number }>;
+  /** L'allure du modèle : fond, alignement, taille et casse du titre, aplats, cadrage de la photo. */
+  style?: { background?: 'light' | 'dark' | 'brand' | 'photo'; align?: 'left' | 'center' | 'right'; headlineSize?: 'huge' | 'large' | 'medium'; textCase?: 'upper' | 'mixed'; colorBlocks?: number; photoCrop?: string };
+  /** Dimensions du fichier : le format du visuel suit celui du modèle quand l'utilisateur n'en a pas choisi. */
+  width?: number;
+  height?: number;
   source: 'vision' | 'measured';
+}
+
+/** Le format de visuel le plus proche des proportions d'un modèle (largeur / hauteur). */
+export function visualFormatOfRatio(width?: number, height?: number): 'square' | 'story' | 'post' | 'banner' | 'a4' | undefined {
+  if (!width || !height) return undefined;
+  const r = width / height;
+  const formats: Array<['square' | 'story' | 'post' | 'banner' | 'a4', number]> = [
+    ['story', 1080 / 1920],
+    ['a4', 1240 / 1754],
+    ['post', 1200 / 1500],
+    ['square', 1],
+    ['banner', 1200 / 630],
+  ];
+  return formats.reduce((best, f) => (Math.abs(Math.log(f[1] / r)) < Math.abs(Math.log(best[1] / r)) ? f : best))[0];
 }
 
 const FLYER_LAYOUT_IDS = ['photoSplit', 'bandOverPhoto', 'framedPhoto', 'circlePhoto', 'minimalCaption', 'stripeOverPhoto', 'diagonalSplit', 'bentoGrid', 'typePoster', 'outlinePoster', 'bigFact', 'quoteCard'] as const;
 
 const clamp = (v: unknown): number => Math.max(0, Math.min(100, Math.round(Number(v) || 0)));
 
+/** L'allure lue par la vision, ramenée aux seules valeurs admises. */
+function styleOf(raw: Record<string, unknown>): NonNullable<ReferenceImage['style']> {
+  const out: NonNullable<ReferenceImage['style']> = {};
+  const background = String(raw.background || '').toLowerCase();
+  if (['light', 'dark', 'brand', 'photo'].includes(background)) out.background = background as 'light';
+  const align = String(raw.align || '').toLowerCase();
+  if (['left', 'center', 'right'].includes(align)) out.align = align as 'left';
+  const headline = String(raw.headlineSize || '').toLowerCase();
+  if (['huge', 'large', 'medium'].includes(headline)) out.headlineSize = headline as 'huge';
+  const textCase = String(raw.textCase || '').toLowerCase();
+  if (textCase === 'upper' || textCase === 'mixed') out.textCase = textCase;
+  const blocks = Math.round(Number(raw.colorBlocks));
+  if (Number.isFinite(blocks) && blocks >= 0 && blocks <= 12) out.colorBlocks = blocks;
+  const crop = typeof raw.photoCrop === 'string' ? raw.photoCrop.replace(/["«»“”]/g, '').trim().slice(0, 120) : '';
+  if (crop) out.photoCrop = crop;
+  return out;
+}
+
 export async function analyzeReferenceImage(image: Buffer, mimeType: string, vision?: AnalyzeVideoOptions['vision']): Promise<ReferenceImage> {
-  const fallback: ReferenceImage = { kind: 'image', layout: 'typePoster', structure: 'type', hasPhoto: false, texts: [{ role: 'headline', words: 5, position: 'center' }], description: 'A typographic poster on the brand colour.', source: 'measured' };
+  const meta = await sharp(image).metadata().catch(() => ({ width: undefined, height: undefined }));
+  const size = meta.width && meta.height ? { width: meta.width, height: meta.height } : {};
+  const fallback: ReferenceImage = { kind: 'image', layout: 'typePoster', structure: 'type', hasPhoto: false, texts: [{ role: 'headline', words: 5, position: 'center' }], description: 'A typographic poster on the brand colour.', ...size, source: 'measured' };
   if (!vision) return fallback;
-  const small = await sharp(image).resize({ width: 720, withoutEnlargement: true }).jpeg({ quality: 82 }).toBuffer();
+  const small = await sharp(image).resize({ width: 900, withoutEnlargement: true }).jpeg({ quality: 85 }).toBuffer();
   const instruction = [
     'This is a social media visual (flyer). Describe its COMPOSITION for a designer who must reproduce it with another brand. Answer ONLY JSON:',
     `{"layout": ${FLYER_LAYOUT_IDS.join('|')} (closest), "structure": "photo|type|fact|quote", "hasPhoto": true|false,`,
     ' "texts": [{"role": "headline|support|label|number|button", "words": n, "position": "top|center|bottom|left|right"}],',
     ' "zones": [{"role": "photo|product|headline|support|price|offer|logo|band|shape|badge|button", "x": 0-100, "y": 0-100, "w": 0-100, "h": 0-100}] (each visible element, in % of the image, top-left origin),',
-    ' "description": "layout, hierarchy, where the photo or product sits and how it is cropped, colour blocks and their shapes, typography attitude (size, weight, case, alignment), graphic devices, 90 words max, no brand names, no quoted text"}',
+    ' "style": {"background": "light|dark|brand|photo", "align": "left|center|right", "headlineSize": "huge|large|medium", "textCase": "upper|mixed", "colorBlocks": n (solid colour areas, 0 if none), "photoCrop": "how the photo is cropped and placed, 12 words max (empty if no photo)"},',
+    ' "description": "a precise blueprint a designer could rebuild WITHOUT seeing the image, 160 words max: the grid and the reading order from top to bottom; each element with its place, its size relative to the canvas and its shape (rounded, cut, circle, band, diagonal); the headline size, weight, case and alignment; the photo or product placement and crop; colour blocks and which elements sit on them; small graphic devices (lines, badges, arrows, frames); how much empty space; no brand names, no quoted text"}',
   ].join('\n');
   try {
     const json = parseJson(await vision(small.toString('base64'), 'image/jpeg', instruction));
@@ -477,7 +517,9 @@ export async function analyzeReferenceImage(image: Buffer, mimeType: string, vis
       texts: Array.isArray(json.texts)
         ? json.texts.slice(0, 4).map((x: any) => ({ role: pick(x?.role, ['headline', 'support', 'label', 'number', 'button'] as const, 'headline'), words: Math.max(1, Math.min(20, Math.round(Number(x?.words) || 3))), position: pick(x?.position, ['top', 'center', 'bottom', 'left', 'right'] as const, 'center') }))
         : fallback.texts,
-      description: typeof json.description === 'string' ? json.description.replace(/["«»“”]/g, '').slice(0, 640) : fallback.description,
+      description: typeof json.description === 'string' ? json.description.replace(/["«»“”]/g, '').slice(0, 1400) : fallback.description,
+      ...(json.style && typeof json.style === 'object' ? { style: styleOf(json.style) } : {}),
+      ...size,
       zones: Array.isArray(json.zones)
         ? json.zones
             .slice(0, 10)

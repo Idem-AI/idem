@@ -31,6 +31,8 @@ export const routes: Routes = [
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'video' },
       { path: 'brands', loadComponent: () => import('./pages/studio/brands/brands').then((m) => m.BrandsPage) },
+      // La charte graphique d'une marque, en entier, dans le studio (« Modifier » ouvre IDEM).
+      { path: 'charter/:brandId', loadComponent: () => import('./pages/studio/charter/charter-page').then((m) => m.CharterPage) },
       // Le montage fait partie de l'atelier vidéo (une seule entrée).
       { path: 'montage', redirectTo: 'video' },
       { path: 'video/:brandId/:videoId', loadComponent: () => import('./pages/studio/video-edit/video-edit').then((m) => m.VideoEditPage) },

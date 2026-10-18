@@ -134,7 +134,7 @@ export const idem = {
     balance: (userId: string) => call<{ credits: number; walletXaf?: number; createur?: boolean; plan?: string | null; status?: string }>('get', `/billing/balance?userId=${encodeURIComponent(userId)}`),
     /** Les prix d'IDEM, en francs (vidéo de référence, export d'un visuel, plan filmé par l'IA…). */
     prices: () =>
-      call<{ motion_video: number; revision: number; flyer: number; ai_visual: number; export_visual?: number; export_video?: number; ai_clip?: number; createur?: { monthlyXaf: number; annualXaf: number }; creativity: Record<string, number> }>(
+      call<{ motion_video: number; revision: number; flyer: number; ai_visual: number; export_visual?: number; export_video?: number; ai_clip?: number; charter?: number; createur?: { monthlyXaf: number; annualXaf: number }; creativity: Record<string, number> }>(
         'get',
         '/billing/prices',
         undefined,
@@ -148,5 +148,94 @@ export const idem = {
     /** Un projet IDEM complet depuis un site (projet, logo et déclinaisons, palettes, polices, direction, motifs) : tâche de fond. */
     fromSite: (userId: string, url: string) => call<{ jobId: string; status: string; step: string }>('post', '/projects/from-site', { userId, url }, 20_000),
     fromSiteJob: (userId: string, jobId: string) => call<SiteImportJobView>('get', `/projects/from-site/${encodeURIComponent(jobId)}?userId=${encodeURIComponent(userId)}`, undefined, 15_000),
+    /** Les pages de la charte d'un projet (HTML des sections), telles qu'IDEM les affiche. */
+    branding: (userId: string, projectId: string) =>
+      call<CharterPages>('get', `/projects/${encodeURIComponent(projectId)}/branding?userId=${encodeURIComponent(userId)}`, undefined, 30_000),
+    generateCharter,
   },
 };
+
+export interface CharterPages {
+  name: string;
+  pdfFormat: string;
+  fonts: { primaryFont?: string; secondaryFont?: string; fontUrl?: string };
+  sections: { id: string; name: string; type: string; html: string }[];
+}
+
+/** Une étape du flux de génération de la charte (IDEM : `generateBrandingStreamingController`). */
+export interface CharterStreamEvent {
+  type?: string;
+  stepName?: string;
+  error?: string;
+}
+
+/**
+ * Lance la génération de la charte d'un projet dans IDEM et suit son flux. La promesse rendue se résout
+ * dès que la génération est ACCEPTÉE (débit et contrôles passés) : un refus (402 portefeuille, 429 quota,
+ * 404 projet) est levé là, avant tout travail. `done` se résout à la fin du flux.
+ */
+async function generateCharter(
+  userId: string,
+  projectId: string,
+  creativity: string,
+  onEvent: (event: CharterStreamEvent) => void
+): Promise<{ done: Promise<void> }> {
+  let res;
+  try {
+    res = await axios.request({
+      method: 'post',
+      url: `${env.idemApiUrl}/internal/ivision/projects/${encodeURIComponent(projectId)}/branding/generate`,
+      data: { userId, creativity },
+      responseType: 'stream',
+      // La génération d'une charte complète peut prendre plusieurs minutes.
+      timeout: 0,
+      headers: { 'x-ivision-key': env.serviceKey, Accept: 'text/event-stream', ...traceHeaders() },
+    });
+  } catch (error) {
+    const e = error as AxiosError<NodeJS.ReadableStream>;
+    const status = e.response?.status || 503;
+    const body = e.response?.data ? await readJson(e.response.data) : undefined;
+    if (status >= 500) logger.error('idem.charter_failed', { event: 'idem.charter_failed', projectId, status, error: e });
+    throw new IdemGatewayError((body as { message?: string } | undefined)?.message || e.message, status, body);
+  }
+  const stream = res.data as NodeJS.ReadableStream;
+  const done = new Promise<void>((resolve, reject) => {
+    let buffer = '';
+    let failed: string | null = null;
+    stream.on('data', (chunk: Buffer) => {
+      buffer += chunk.toString('utf8');
+      let cut: number;
+      while ((cut = buffer.indexOf('\n\n')) >= 0) {
+        const block = buffer.slice(0, cut);
+        buffer = buffer.slice(cut + 2);
+        const data = block
+          .split('\n')
+          .filter((l) => l.startsWith('data:'))
+          .map((l) => l.slice(5).trim())
+          .join('');
+        if (!data) continue;
+        try {
+          const event = JSON.parse(data) as CharterStreamEvent;
+          if (event.error) failed = String(event.error).slice(0, 200);
+          onEvent(event);
+        } catch {
+          /* une ligne illisible n'arrête pas le suivi */
+        }
+      }
+    });
+    stream.on('end', () => (failed ? reject(new Error(failed)) : resolve()));
+    stream.on('error', reject);
+  });
+  return { done };
+}
+
+/** Le corps JSON d'un refus reçu en flux (`responseType: 'stream'`). */
+async function readJson(stream: NodeJS.ReadableStream): Promise<unknown> {
+  try {
+    let text = '';
+    for await (const chunk of stream as AsyncIterable<Buffer>) text += chunk.toString('utf8');
+    return JSON.parse(text);
+  } catch {
+    return undefined;
+  }
+}

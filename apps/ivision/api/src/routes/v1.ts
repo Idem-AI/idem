@@ -30,6 +30,7 @@ import { charge, exportVisualPrice, PaymentRequired, quote, refund } from '../se
 import { signImage } from '../services/signature';
 import * as brands from '../services/brands.service';
 import * as chat from '../services/chat.service';
+import * as charter from '../services/charter.service';
 import { idem } from '../services/idem.client';
 import * as refs from '../services/references.service';
 import { montages, montageView, refundMontage } from '../services/montages.service';
@@ -205,6 +206,21 @@ v1.delete(
 
 const photoUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 15 * 1024 * 1024, files: 8 }, fileFilter: (_req, file, cb) => cb(null, /^image\/(jpeg|png|webp|heic|heif)$/.test(file.mimetype)) });
 
+/**
+ * La CHARTE GRAPHIQUE de la marque (projet IDEM) : générée dans IDEM aux mêmes règles que le dashboard,
+ * affichée dans le studio. `GET …?pages=1` rend les pages une fois la charte prête.
+ */
+v1.get(
+  '/brands/:id/charter',
+  asyncRoute<AuthedRequest>(async (req, res) => res.json(await charter.charterState(uid(req), req.params.id, req.query.pages === '1')))
+);
+
+v1.post(
+  '/brands/:id/charter',
+  validate({ body: z.object({ creativity: z.enum(CREATIVITY_LEVELS as unknown as [string, ...string[]]).optional() }) }),
+  asyncRoute<AuthedRequest>(async (req, res) => res.status(202).json(await charter.startCharter(uid(req), req.params.id, req.body.creativity)))
+);
+
 /** Photos de la marque (produit, équipe, boutique) : la meilleure matière des vidéos et visuels. */
 v1.post(
   '/brands/:id/photos',
@@ -285,6 +301,8 @@ const turnBody = z.object({
   photoUrl: z.string().url().max(2000).optional(),
   resume: z.boolean().optional(),
   treatment: z.object({ id: z.string().max(40), option: z.string().max(40) }).optional(),
+  /** Les réponses aux questions à cliquer (réglages d'un montage, que faire d'un lien de site). */
+  answers: z.object({ purpose: z.enum(['montage', 'site']), values: z.record(z.string().max(40), z.string().max(40)) }).optional(),
   options: z
     .object({
       creativity: z.enum(CREATIVITY_LEVELS as unknown as [string, ...string[]]).optional(),
@@ -298,6 +316,9 @@ const turnBody = z.object({
       voice: z.boolean().optional(),
       format: z.enum(FLYER_FORMATS as unknown as [string, ...string[]]).optional(),
       withPhoto: z.boolean().optional(),
+      // Sans ces deux champs, zod les retirait : les plans filmés commandés n'arrivaient jamais au serveur.
+      aiClips: z.number().int().min(0).max(10).optional(),
+      chosen: z.array(z.enum(['duration', 'format'])).max(2).optional(),
     })
     .optional(),
 });

@@ -7,13 +7,15 @@ import { Subscription, timer } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { ApiService } from '../../../core/api.service';
 import { HttpEventType } from '@angular/common/http';
-import { Brand, ChatEvent, ChatMessage, ChatMode, ChatOptions, ChatSession, Creativity, MediaAsset, Montage, MontageUpload, MotionVideo, Reference, Visual } from '../../../core/models';
+import { Brand, ChatEvent, ChatMessage, ChatMode, ChatOptions, ChatSession, ChoicesPurpose, Creativity, MediaAsset, Montage, MontageUpload, MotionVideo, Reference, Visual } from '../../../core/models';
 import { StudioState } from '../../../core/studio.state';
 import { TourService } from '../../../core/tour.service';
 import { CreativitySelect } from '../../../shared/components/creativity-select';
 import { BrandHint } from '../../../shared/components/brand-hint';
 import { Illustration } from '../../../shared/components/illustration';
 import { BrandChoice } from './brand-choice';
+import { AskChoices } from './ask-choices';
+import { CharterResult } from './charter-result';
 import { ProgressList, StageState } from './progress-list';
 import { MontageResult } from './montage-result';
 import { VideoResult } from './video-result';
@@ -63,7 +65,7 @@ export function settingsInRequest(text: string): { durationSec?: number; format?
  */
 @Component({
   selector: 'iv-chat',
-  imports: [RouterLink, TranslateModule, IdemLoaderComponent, CreativitySelect, Illustration, BrandChoice, BrandHint, ProgressList, VideoResult, VisualResult, MontageResult],
+  imports: [RouterLink, TranslateModule, IdemLoaderComponent, CreativitySelect, Illustration, BrandChoice, BrandHint, ProgressList, VideoResult, VisualResult, MontageResult, AskChoices, CharterResult],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './chat.html',
 })
@@ -75,11 +77,6 @@ export class ChatPage {
   protected readonly state = inject(StudioState);
   private readonly tours = inject(TourService);
   protected readonly accountUrl = `${environment.services.dashboard.url}/account`;
-
-  /** La charte du projet IDEM né d'un site : la page « Marque » du projet, ouvert d'office. */
-  protected idemBrandUrl(projectId: string): string {
-    return `${environment.services.dashboard.url}/project/branding?projectId=${encodeURIComponent(projectId)}`;
-  }
 
   /** Paramètres de route (liaison des entrées du routeur). */
   readonly modeParam = input<string>('video', { alias: 'mode' });
@@ -116,14 +113,15 @@ export class ChatPage {
   protected readonly voice = signal(false);
   /** La durée ou le format que la demande écrit, appliqués au compositeur (affichés sous les réglages). */
   protected readonly readFromText = signal<{ durationSec?: number; format?: string } | null>(null);
+  /** La durée ou le format réglés à la main : un modèle ne les remplace pas (sinon, ceux du modèle s'appliquent). */
+  protected readonly durationTouched = signal(false);
+  protected readonly formatTouched = signal(false);
   protected readonly media = signal<MediaAsset[]>([]);
   /** Les vidéos ajoutées (déposées avec leur son) : avec de la parole, elles seront montées. */
   protected readonly videos = signal<MontageUpload[]>([]);
   protected readonly videoPercent = signal(0);
   /** Une vidéo jointe parle : la demande sera un montage (réglages du montage proposés). */
   protected readonly montaging = computed(() => this.mode() === 'video' && this.videos().some((v) => v.hasAudio));
-  protected readonly removeSilences = signal(true);
-  protected readonly montageMusic = signal(true);
   protected readonly montages = signal<Record<string, Montage>>({});
   /** Le dernier message qui porte une création (sa carte reçoit le repère du guide). */
   protected readonly lastResultId = computed(() => [...this.messages()].reverse().find((m) => !!m.result)?.id ?? null);
@@ -299,11 +297,30 @@ export class ChatPage {
   }
 
   protected options(): ChatOptions {
-    // Un montage : les réglages du montage (coupes, musique) ; sinon ceux du motion design.
-    if (this.montaging()) return { creativity: this.creativity(), formats: [this.videoFormat()], quality: 'hd', cuts: this.removeSilences() ? 'tight' : 'none', ...(this.montageMusic() ? {} : { musicMood: 'none' }) };
+    // Un montage : ses réglages se choisissent en répondant aux questions de l'assistant.
+    if (this.montaging()) return { creativity: this.creativity(), quality: 'hd' };
+    const read = this.readFromText();
+    const chosen: ('duration' | 'format')[] = [];
+    if (this.durationTouched() || read?.durationSec) chosen.push('duration');
+    if (this.formatTouched() || read?.format) chosen.push('format');
     return this.mode() === 'video'
-      ? { creativity: this.creativity(), durationSec: this.durationSec(), formats: [this.videoFormat()], quality: 'hd', voice: this.voice(), aiClips: this.aiClips() }
-      : { creativity: this.creativity(), format: this.imageFormat(), withPhoto: this.withPhoto() };
+      ? { creativity: this.creativity(), durationSec: this.durationSec(), formats: [this.videoFormat()], quality: 'hd', voice: this.voice(), aiClips: this.aiClips(), chosen }
+      : { creativity: this.creativity(), format: this.imageFormat(), withPhoto: this.withPhoto(), chosen: this.formatTouched() ? ['format'] : [] };
+  }
+
+  protected setDuration(value: number): void {
+    this.durationSec.set(value);
+    this.durationTouched.set(true);
+  }
+
+  protected setVideoFormat(value: string): void {
+    this.videoFormat.set(value);
+    this.formatTouched.set(true);
+  }
+
+  protected setImageFormat(value: string): void {
+    this.imageFormat.set(value);
+    this.formatTouched.set(true);
   }
 
   // ── Envoi ──
@@ -362,6 +379,26 @@ export class ChatPage {
   /** Réponse à une question de l'assistant : la demande en attente reprend. */
   protected resume(extra: Partial<TurnBody> = {}): void {
     this.run({ resume: true, options: this.options(), ...extra });
+  }
+
+  /** Les réponses aux questions à cliquer (un montage, un lien de site). */
+  protected answerChoices(purpose: ChoicesPurpose, values: Record<string, string>): void {
+    this.resume({ answers: { purpose, values } });
+  }
+
+  /** Que faire des vidéos déposées sans consigne : le choix cliqué. */
+  protected answerIntent(clarificationId: string, values: Record<string, string>): void {
+    const option = values['treatment'];
+    if (option) this.resume({ treatment: { id: clarificationId, option } });
+  }
+
+  /**
+   * La carte de la charte sous le message qui annonce une marque née d'un site (projet IDEM) — sauf quand
+   * un message plus loin porte déjà la charte de cette marque.
+   */
+  protected charterOffer(m: ChatMessage): boolean {
+    if (!m.brandId || !m.idemProjectId || m.result) return false;
+    return !this.messages().some((x) => x.result?.kind === 'charter' && x.result.brandId === m.brandId);
   }
 
   private run(body: TurnBody): void {

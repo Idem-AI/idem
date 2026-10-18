@@ -8,6 +8,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc -p motion/tsconfig.json",
     "check": "ts-node --transpile-only scripts/check-core.ts",
     "check:montage": "ts-node --transpile-only scripts/check-montage.ts",
+    "check:choices": "ts-node --transpile-only scripts/check-choices.ts",
     "check:request": "ts-node --transpile-only scripts/check-request.ts",
     "check:motion": "ts-node --transpile-only scripts/check-motion.ts"
   },

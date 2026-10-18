@@ -326,6 +326,19 @@ export function rulesPlan(input: PlannerInput): MontagePlan {
   return { title, captions: 'pop', elements: ensureClips(finalize(elements, input, rank), input), intro, outro, source: 'rules' };
 }
 
+/**
+ * Les CHOIX de l'utilisateur (questions posées avant le montage) appliqués au plan : style des
+ * sous-titres, intro animée, carton de fin. Une intro ou un carton voulus mais absents du plan sont
+ * posés par les règles (titre tiré des premiers mots, marque et contact connus) ; refusés, ils sont retirés.
+ */
+export function withChoices(plan: MontagePlan, choices: { captions?: CaptionStyle; intro?: boolean; outro?: boolean } | undefined, input: PlannerInput): MontagePlan {
+  if (!choices) return plan;
+  const rules = choices.intro === true || choices.outro === true ? rulesPlan(input) : null;
+  const intro = choices.intro === false ? undefined : plan.intro || (choices.intro ? { title: input.brandName || wordsMax(plan.title || rules!.title, 6) || 'Montage', durationSec: INTRO_SEC } : undefined);
+  const outro = choices.outro === false ? undefined : plan.outro || (choices.outro ? rules!.outro : undefined);
+  return { ...plan, captions: choices.captions && CAPTION_STYLES.includes(choices.captions) ? choices.captions : plan.captions, intro, outro };
+}
+
 /** Le plan du monteur : modèle au-delà du cran Low, règles sinon (ou si le modèle échoue). */
 export async function planMontage(input: PlannerInput, writer: CopyWriter | undefined): Promise<MontagePlan> {
   if (!writer || input.creativity === 'low' || !input.words.length) return rulesPlan(input);

@@ -156,7 +156,15 @@ async function turn(api: string, cookie: string, sessionId: string, body: object
     const colored = events.find((e) => e.type === 'brand')?.brand;
     check('« en bleu et or » : les couleurs dites colorent la création', colored?.source === 'auto' && colored.palette.primary === '#1f5fbf' && colored.palette.accent === '#c9a227', JSON.stringify(colored?.palette));
 
+    // Un lien de site : d'abord une question à cliquer (la charte recommandée), rien n'est lu avant la réponse.
     events = await turn(api, good, session.id, { text: `Mon site : ${site.url} — une vidéo pour fêter nos 500 clients chaque mois` });
+    const siteAsk = events.find((e) => e.type === 'message' && e.message.ask?.kind === 'choices')?.message?.ask;
+    check(
+      'un lien de site : « Est-ce le site de votre entreprise ? », la charte recommandée, rien lu avant la réponse',
+      siteAsk?.purpose === 'site' && siteAsk.questions[0]?.options.find((o: any) => o.recommended)?.id === 'charter' && !events.some((e) => e.type === 'brand')
+    );
+    events = await turn(api, good, session.id, { resume: true, answers: { purpose: 'site', values: { site: 'brand' } } });
+    check('la réponse cliquée est écrite dans le fil', events.some((e) => e.type === 'message' && e.message.role === 'user' && /couleurs et mon logo/.test(e.message.text)));
     const brand = events.find((e) => e.type === 'brand')?.brand;
     const said = events.filter((e) => e.type === 'message' && e.message.role === 'assistant').map((e) => e.message);
     asked = said[said.length - 1];
@@ -353,7 +361,7 @@ async function turn(api: string, cookie: string, sessionId: string, body: object
     server.close();
     idemServer.close();
     site.close();
-    const { closeRenderBrowser } = await import('../../core/src/video/video.renderer');
+    const { closeRenderBrowser } = await import('../../core/src/montage/montage.renderer');
     await closeRenderBrowser().catch(() => undefined);
   }
   console.log(`\n${passes} vérifications réussies, ${failures} en échec`);

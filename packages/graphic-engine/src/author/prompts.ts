@@ -23,6 +23,8 @@ export interface ReferenceComposition {
   description: string;
   /** Les zones du modèle, en % de la toile (photo, titre, prix, logo, bandeau…). */
   zones?: Array<{ role: string; x: number; y: number; w: number; h: number }>;
+  /** Ce que la vision a relevé de son allure : fond, alignement, taille et casse du titre, aplats. */
+  style?: { background?: string; align?: string; headlineSize?: string; textCase?: string; colorBlocks?: number; photoCrop?: string };
 }
 
 export interface DocumentContext {
@@ -37,6 +39,8 @@ export interface DocumentContext {
   brief?: string;
   /** Le souhait du client pour la mise en page. */
   layoutNote?: string;
+  /** Le modèle du client : la mise en page de chaque page en découle. */
+  reference?: ReferenceComposition;
   bindings: 'values' | 'markers';
 }
 
@@ -186,8 +190,10 @@ export function planPrompt(ctx: DocumentContext, pages: PlannedPage[], language:
     language ? `BRAND VISUAL LANGUAGE:\n${language}` : directionLines(ctx),
     ctx.brief ? `ABOUT THE BUSINESS: ${ctx.brief.slice(0, 600)}` : '',
     ctx.layoutNote ? `THE CLIENT ASKS FOR THIS LAYOUT: ${ctx.layoutNote.slice(0, 600)}` : '',
+    ctx.reference ? `THE CLIENT GAVE A MODEL TO REPRODUCE — each page is organised exactly like it (same zones, hierarchy and proportions); describe the pages accordingly:\n${ctx.reference.description.slice(0, 900)}` : '',
     `PAGES:\n${pages.map((p, i) => `${i + 1}. ${p.id}${p.role ? ` (${p.role})` : ''}${p.purpose ? ` — ${p.purpose.slice(0, 140)}` : ''}`).join('\n').slice(0, 3000)}`,
-    previous.length ? `DOCUMENTS ALREADY MADE FOR THIS BRAND (do not repeat their idea):\n${previous.slice(0, 3).join('\n')}` : '',
+    // Un modèle fourni n'a pas à s'écarter des documents précédents : il les ressemblera peut-être, c'est voulu.
+    previous.length && !ctx.reference ? `DOCUMENTS ALREADY MADE FOR THIS BRAND (do not repeat their idea):\n${previous.slice(0, 3).join('\n')}` : '',
   ]
     .filter(Boolean)
     .join('\n\n');
@@ -277,10 +283,35 @@ export function toolLines(ctx: DocumentContext, o: { charts: string[]; tables: s
   return lines.join('\n');
 }
 
+/**
+ * Le MODÈLE du client : un contrat de composition, pas une inspiration. Il passe avant le langage visuel de
+ * la marque et avant toute idée de mise en page de l'auteur ; seules les couleurs, les polices, les mots et
+ * la photo restent ceux de la marque.
+ */
 function referenceLines(ref?: ReferenceComposition): string {
   if (!ref) return '';
   const zones = (ref.zones ?? []).map((z) => `${z.role} at x${Math.round(z.x)}% y${Math.round(z.y)}% w${Math.round(z.w)}% h${Math.round(z.h)}%`).join('; ');
-  return `REFERENCE TO REPRODUCE (the client's model — its composition, not its texts or colours): ${ref.description.slice(0, 700)}${zones ? `\nITS ZONES (in % of the canvas): ${zones}` : ''}`;
+  const st = ref.style;
+  const style = st
+    ? [
+        st.background && `background: ${st.background === 'brand' ? 'a full brand-colour background' : st.background === 'photo' ? 'the photo fills the background' : `a ${st.background} background`}`,
+        st.align && `text alignment: ${st.align}`,
+        st.headlineSize && `headline size: ${st.headlineSize === 'huge' ? 'huge (it dominates the canvas)' : st.headlineSize}`,
+        st.textCase && `headline case: ${st.textCase === 'upper' ? 'UPPERCASE' : 'sentence case'}`,
+        typeof st.colorBlocks === 'number' && `solid colour blocks: ${st.colorBlocks}`,
+        st.photoCrop && `photo: ${st.photoCrop}`,
+      ]
+        .filter(Boolean)
+        .join('; ')
+    : '';
+  return [
+    "REFERENCE TO REPRODUCE — the client's own model. It is a CONTRACT, not an inspiration: same structure, same zones at the same places and proportions, same hierarchy, same alignment, same headline scale and case, same number and shape of colour blocks, same photo placement and crop. It OVERRIDES the brand visual language and your own layout ideas; only the colours (mapped to the brand roles), the fonts, the words and the photo come from the brand. Do not add decorations the model does not have; do not drop elements it has.",
+    `WHAT THE MODEL LOOKS LIKE: ${ref.description.slice(0, 1400)}`,
+    style ? `ITS STYLE: ${style}` : '',
+    zones ? `ITS ZONES (in % of the canvas, top-left origin — keep them): ${zones}` : '',
+  ]
+    .filter(Boolean)
+    .join('\n');
 }
 
 export interface PageBrief {

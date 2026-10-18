@@ -15,3 +15,25 @@ export function blueprintForDirector(bp: ReferenceBlueprint, durationSec: number
     ),
   ].join('\n');
 }
+
+/**
+ * La fiche de chaque plan du modèle (mise en page, entrée du texte, caméra, fond, ce qu'on voit) : elle est
+ * jointe à la scène du même rang, que l'auteur de la scène lit en entier. `max` : le nombre de scènes admis.
+ */
+export function referenceShotCards(bp: ReferenceBlueprint, max: number): { line: string; transition?: string }[] {
+  return bp.shots.slice(0, max).map((s) => ({
+    line: [
+      REFERENCE_LAYOUTS[s.layout]?.label || s.layout,
+      s.media !== 'none' ? `${s.media} of the brand fills its place` : '',
+      `background ${s.background}`,
+      s.textMotion ? `headline enters by ${s.textMotion}` : '',
+      `camera ${s.camera}`,
+      `${s.energy} energy`,
+      s.texts.length ? s.texts.map((t) => `${t.role} ~${t.words} words ${t.position}`).join(', ') : 'no text',
+    ]
+      .filter(Boolean)
+      .join(' · ')
+      .concat(` — ${s.description}`),
+    ...(s.transitionIn ? { transition: `as in the model: ${s.transitionIn}` } : {}),
+  }));
+}
