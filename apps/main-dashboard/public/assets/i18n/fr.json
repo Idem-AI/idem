@@ -4527,32 +4527,68 @@
       },
       "whatsapp": {
         "title": "Publier depuis WhatsApp",
-        "subtitle": "Le jour de publication, IDEM vous envoie le visuel ou la vidéo sur WhatsApp. Vous validez ou demandez une modification, puis IDEM publie sur vos réseaux. Vous pouvez aussi demander un visuel à tout moment.",
+        "subtitle": "Le jour de publication, IDEM vous envoie le visuel ou la vidéo sur WhatsApp. Vous répondez « Valider » ou demandez une modification, puis IDEM publie sur vos réseaux.",
         "paidTitle": "Réservé aux comptes payants",
         "paidBody": "Passez au forfait IDEM Croissance ou Entreprise pour valider et publier vos contenus depuis WhatsApp.",
         "paidWelcome": "Votre cadeau d’inscription ne couvre pas cette fonction. Dès votre premier forfait IDEM Croissance, elle s’ouvre.",
         "seePlans": "Voir les forfaits",
         "unavailable": "WhatsApp n’est pas encore activé sur IDEM. Revenez bientôt.",
-        "networksTitle": "1. Vos réseaux",
+        "genericError": "Une erreur est survenue. Réessayez dans un instant.",
+        "state": {
+          "done": "Fait",
+          "next": "À faire maintenant",
+          "todo": "À faire"
+        },
+        "steps": {
+          "phone": {
+            "title": "Votre WhatsApp"
+          },
+          "networks": {
+            "title": "Vos réseaux"
+          },
+          "daily": {
+            "title": "Vos propositions du jour"
+          }
+        },
+        "phone": {
+          "hint": "Entrez le numéro de votre WhatsApp. IDEM vous y envoie un code à recopier ici : c’est ce qui prouve que le téléphone est bien le vôtre.",
+          "label": "Numéro WhatsApp",
+          "country": "Pays du numéro",
+          "privacy": "Votre numéro est chiffré et ne sert qu’à vous écrire."
+        },
+        "code": {
+          "sent": "Code envoyé sur WhatsApp au {{phone}}.",
+          "label": "Code reçu sur WhatsApp",
+          "cell": "Caractère {{n}} sur {{total}}",
+          "resend": "Renvoyer le code",
+          "resendIn": "Renvoyer dans {{s}} s"
+        },
+        "linkCta": "Recevoir mon code",
+        "confirmCta": "Confirmer",
+        "changeNumber": "Changer de numéro",
+        "waiting": "Code valable jusqu’à {{time}}",
+        "linkedTitle": "WhatsApp est lié",
+        "linkedSub": "Numéro se terminant par {{last4}}",
+        "unlink": "Délier",
+        "unlinkConfirm": "Oui, délier",
         "networksHint": "IDEM publie sur les comptes que vous connectez, jamais ailleurs. Vous pouvez les déconnecter à tout moment.",
         "connect": "Connecter",
         "disconnect": "Déconnecter",
         "connected": "connecté",
         "soon": "bientôt",
-        "linkTitle": "2. Lier votre WhatsApp",
-        "linkHint": "Saisissez votre numéro : IDEM vous envoie un code par WhatsApp, à recopier ici. C’est cette étape qui prouve que le téléphone est le vôtre.",
-        "phoneLabel": "Votre numéro WhatsApp",
-        "linkCta": "Recevoir mon code",
-        "enterCode": "Entrez le code reçu sur WhatsApp :",
-        "confirmCta": "Confirmer",
-        "changeNumber": "Changer de numéro",
-        "waiting": "Ce code est valable jusqu’à {{time}}.",
-        "linked": "WhatsApp lié (numéro finissant par {{last4}})",
-        "unlink": "Délier",
+        "dailyLocked": "Liez d’abord votre WhatsApp pour choisir quand recevoir vos publications.",
         "dailyTitle": "Recevoir mes publications du jour",
-        "dailyHint": "Chaque jour de publication de votre calendrier, IDEM prépare le contenu et vous l’envoie pour validation. Vous pouvez arrêter en écrivant « stop ».",
+        "dailyHint": "Chaque jour de publication de votre calendrier, IDEM prépare le contenu et vous l’envoie pour validation. Écrivez « stop » pour arrêter.",
         "hour": "Heure d’envoi",
-        "safety": "Rien n’est publié sans votre accord : vous recevez la version exacte, vous répondez « Valider » (ou vous demandez une modification), puis IDEM publie. Sans réponse sous 48 h, la demande expire et rien n’est publié.",
+        "otherHour": "Autre heure d’envoi",
+        "preview": {
+          "title": "Ce que vous recevrez",
+          "message": "Votre publication du jour est prête (LinkedIn, Instagram).",
+          "approve": "Valider",
+          "edit": "Modifier",
+          "cancel": "Annuler"
+        },
+        "safety": "Rien n’est publié sans votre accord. Sans réponse sous 48 h, la demande expire et rien n’est publié.",
         "historyTitle": "Dernières demandes",
         "historyEmpty": "Rien pour le moment.",
         "noCaption": "Sans légende",

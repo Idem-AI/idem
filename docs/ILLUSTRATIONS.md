@@ -97,6 +97,7 @@ Format : **retenu** — candidats écartés (raison).
 | Comment créer votre logo : IA / description | **le tampon en plein geste, trois empreintes et une retenue ; le tampon qu'on taille soi-même au couteau, d'après le motif tracé** (`logo-mode-sample`) | baguette magique et étincelles (pas africain) ; feuillet et calame (dit la rédaction d'un document, pas la forme du signe) |
 | Stratégie de communication | **deux calebasses font parler le tambour** | boussole (pas africaine) |
 | Communication : accueil (parcours en 4 étapes) | **tambour parleur, ondes qui battent** | échelle dogon (l'écran dit d'abord « communiquer », la progression est portée par les étapes numérotées) |
+| Communication : WhatsApp (parcours en 3 étapes) | **tambour parleur, ondes qui battent** (même dessin que l'accueil : l'écran dit aussi « communiquer ») | — |
 | Communication : mes vidéos (vide) | **kora, le chevalet en couleur** | tambour parleur (dit « communiquer », déjà pris par le module ; la vidéo dit « raconter en musique ») |
 | Finances : importer mes chiffres | **feuillet apporté, tenu en colonnes** | calebasse de cauris (dit l'argent, pas le document) |
 | Finances : l'IA propose | **plateau d'awalé, une case désignée** | tambour (dit la parole, pas le calcul) |

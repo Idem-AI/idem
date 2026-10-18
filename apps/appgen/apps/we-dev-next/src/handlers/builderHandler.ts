@@ -18,6 +18,7 @@ import { streamResponse } from '../utils/streamResponse.js';
 import { createSiteEngineStream, shouldGenerateSite } from '../siteEngine/orchestrator.js';
 import { createSiteRepairStream } from '../siteEngine/repair.js';
 import { SCAFFOLD_VERSION } from '../scaffold/index.js';
+import { createSiteEditStream, isEditableSite } from '../siteEngine/edit.js';
 
 /** Past this, the existing project is summarised rather than sent whole. */
 const CONTEXT_TOKEN_LIMIT = 128000;
@@ -94,7 +95,9 @@ export async function handleBuilderMode(
   /** Session de l'utilisateur, relayée à l'API IDEM pour les médias des sites. */
   credentials?: Record<string, string>,
   /** Bouton « Corriger automatiquement » d'un site vitrine. */
-  siteRepair?: { paths: string[]; files: Record<string, string> }
+  siteRepair?: { paths: string[]; files: Record<string, string> },
+  /** L'état actuel d'un site vitrine, pour une retouche ciblée. */
+  siteEdit?: { files: Record<string, string> }
 ) {
   const startTime = Date.now();
 
@@ -167,6 +170,22 @@ export async function handleBuilderMode(
       userId,
       scaffoldMounted: scaffoldVersion === SCAFFOLD_VERSION,
       credentials,
+    });
+  }
+
+  // Une RETOUCHE d'un site vitrine déjà généré : le moteur de modification ciblée — seule la partie visée
+  // change (un réglage du design system, des passages d'une section, ou une section ajoutée), au lieu de
+  // renvoyer tout le site au modèle et de le laisser réécrire ce qu'il veut.
+  if (target === 'site' && !isFirstTurn && !qualityRepair?.trim() && projectData && isEditableSite(siteEdit?.files)) {
+    ChatLogger.info('SITE_EDIT', 'Retouche ciblée', { files: Object.keys(siteEdit!.files).length });
+    ChatLogger.stepEnd('handleBuilderMode', Date.now() - startTime);
+    return createSiteEditStream({
+      projectData,
+      language: language === 'en' ? 'en' : 'fr',
+      request: rawRequest,
+      files: siteEdit!.files,
+      model,
+      userId,
     });
   }
 

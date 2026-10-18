@@ -198,6 +198,29 @@ async function fetchDefaultModel(): Promise<string> {
  * contiennent (il les a écrits), et les lui renvoyer à chaque message ajouterait
  * des milliers de jetons d'entrée pour une information qu'il possède.
  */
+/**
+ * Les fichiers d'un site du moteur de sites (sections, en-tête et pied, pages, design system, données) :
+ * de quoi le retoucher sans rien deviner. `null` si le projet n'en est pas un (application, site d'avant).
+ */
+function currentSiteFiles(): Record<string, string> | null {
+  const workspace = useFileStore.getState().files;
+  if (typeof workspace['idem.pages.json'] !== 'string') return null;
+  const files: Record<string, string> = {};
+  for (const [path, content] of Object.entries(workspace)) {
+    if (typeof content !== 'string') continue;
+    if (
+      /^src\/sections\/[^/]+\/\w+\.tsx$/.test(path) ||
+      /^src\/components\/site\/\w+\.tsx$/.test(path) ||
+      /^src\/pages\/[^/]+\.tsx$/.test(path) ||
+      path.startsWith('src/design-system/') ||
+      (path.startsWith('src/site/') && /\.(ts|tsx|json)$/.test(path)) ||
+      path === 'idem.pages.json'
+    )
+      files[path] = content;
+  }
+  return files;
+}
+
 function convertToBoltAction(obj: Record<string, string>): string {
   return Object.entries(withoutScaffold(obj))
     .filter(([filePath]) => !excludeFiles.includes(filePath))
@@ -871,9 +894,17 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       // Le niveau de créativité lu À L'ENVOI (celui qui vient d'être choisi sur le bouton) : le serveur en
       // tire le modèle. Aucun modèle n'est choisi ici.
       const creativity = useChatStore.getState().creativity;
+      // Une retouche d'un site vitrine déjà généré : son état ACTUEL (sections, pages, design system, données)
+      // part avec la demande, pour que le serveur ne modifie que la partie visée.
+      const body = (options?.body ?? {}) as Record<string, unknown>;
+      const outOfBand = body.siteRepair || body.qualityRepair || body.followUp;
+      const siteEdit = mode === ChatMode.Builder && !outOfBand && message.role === 'user' ? currentSiteFiles() : null;
       return appendRaw(
         message,
-        { ...options, body: { ...options?.body, creativity, ...(version ? { scaffold: { version } } : {}) } }
+        {
+          ...options,
+          body: { ...body, creativity, ...(version ? { scaffold: { version } } : {}), ...(siteEdit ? { siteEdit: { files: siteEdit } } : {}) },
+        }
       );
     },
     [appendRaw, mode]

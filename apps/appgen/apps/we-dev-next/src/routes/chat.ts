@@ -48,6 +48,7 @@ router.post('/', async (req: Request, res: Response) => {
       scaffold,
       followUp,
       siteRepair,
+      siteEdit,
     } = req.body as ChatRequest;
 
     // Le niveau de créativité choisit le modèle (l'interface n'en montre plus aucun) ; un ancien client qui
@@ -188,7 +189,8 @@ router.post('/', async (req: Request, res: Response) => {
         resolveBuildTarget(product, platform, projectData),
         scaffold?.version,
         forwardedCredentials(req),
-        siteRepair
+        siteRepair,
+        siteEdit
       );
     }
 

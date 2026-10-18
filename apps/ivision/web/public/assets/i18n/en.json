@@ -472,6 +472,7 @@
     "progress": {
       "label": "Creation steps",
       "stages": {
+        "copy": "Writing the copy",
         "plan": "Video plan",
         "media": "Images and clips",
         "music": "Music",
@@ -916,7 +917,7 @@
       },
       "creativity": {
         "title": "More or less daring",
-        "body": "Click this button to send: it asks for the creativity level. The Enter key sends at the last level chosen. Creating is free: only the HD export without the mark is paid, and its price shows next to it."
+        "body": "Click this button (or press Enter) to send: it asks for the creativity level. Creating is free: only the HD export without the mark is paid, and its price shows next to it."
       },
       "history": {
         "title": "Everything you created",

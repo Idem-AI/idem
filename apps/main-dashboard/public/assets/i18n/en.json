@@ -4524,40 +4524,76 @@
       },
       "whatsapp": {
         "title": "Publish from WhatsApp",
-        "subtitle": "On publication day, IDEM sends you the visual or video on WhatsApp. You approve or ask for a change, then IDEM publishes to your networks. You can also ask for a visual anytime.",
+        "subtitle": "On publication day, IDEM sends you the visual or video on WhatsApp. You reply “Approve” or ask for a change, then IDEM publishes to your networks.",
         "paidTitle": "For paid accounts only",
         "paidBody": "Upgrade to IDEM Growth or Business to approve and publish your content from WhatsApp.",
         "paidWelcome": "Your signup gift does not cover this feature. It opens with your first IDEM Growth plan.",
         "seePlans": "See plans",
         "unavailable": "WhatsApp is not enabled on IDEM yet. Come back soon.",
-        "networksTitle": "1. Your networks",
-        "networksHint": "IDEM only publishes to the accounts you connect, nowhere else. You can disconnect them anytime.",
+        "genericError": "Something went wrong. Please try again in a moment.",
+        "state": {
+          "done": "Done",
+          "next": "Do this now",
+          "todo": "To do"
+        },
+        "steps": {
+          "phone": {
+            "title": "Your WhatsApp"
+          },
+          "networks": {
+            "title": "Your networks"
+          },
+          "daily": {
+            "title": "Your daily proposals"
+          }
+        },
+        "phone": {
+          "hint": "Enter your WhatsApp number. IDEM sends a code there for you to type here: that proves the phone is yours.",
+          "label": "WhatsApp number",
+          "country": "Number’s country",
+          "privacy": "Your number is encrypted and only used to message you."
+        },
+        "code": {
+          "sent": "Code sent on WhatsApp to {{phone}}.",
+          "label": "Code received on WhatsApp",
+          "cell": "Character {{n}} of {{total}}",
+          "resend": "Resend code",
+          "resendIn": "Resend in {{s}} s"
+        },
+        "linkCta": "Get my code",
+        "confirmCta": "Confirm",
+        "changeNumber": "Change number",
+        "waiting": "Code valid until {{time}}",
+        "linkedTitle": "WhatsApp is linked",
+        "linkedSub": "Number ending in {{last4}}",
+        "unlink": "Unlink",
+        "unlinkConfirm": "Yes, unlink",
+        "networksHint": "IDEM publishes only to the accounts you connect, nowhere else. You can disconnect them at any time.",
         "connect": "Connect",
         "disconnect": "Disconnect",
         "connected": "connected",
-        "soon": "soon",
-        "linkTitle": "2. Link your WhatsApp",
-        "linkHint": "Enter your number: IDEM sends you a code on WhatsApp, type it back here. That step, not the sending, proves the phone is yours.",
-        "phoneLabel": "Your WhatsApp number",
-        "linkCta": "Get my code",
-        "enterCode": "Enter the code received on WhatsApp:",
-        "confirmCta": "Confirm",
-        "changeNumber": "Change number",
-        "waiting": "This code is valid until {{time}}.",
-        "linked": "WhatsApp linked (number ending in {{last4}})",
-        "unlink": "Unlink",
+        "soon": "coming soon",
+        "dailyLocked": "Link your WhatsApp first to choose when to receive your posts.",
         "dailyTitle": "Receive my posts of the day",
-        "dailyHint": "On each publication day of your calendar, IDEM prepares the content and sends it for your approval. Write \"stop\" to stop.",
-        "hour": "Sending time",
-        "safety": "Nothing is published without your approval: you get the exact version, you answer \"Approve\" (or ask for a change), then IDEM publishes. With no answer within 48 h, the request expires and nothing is published.",
+        "dailyHint": "On each publication day of your calendar, IDEM prepares the content and sends it to you for approval. Write “stop” to stop.",
+        "hour": "Send time",
+        "otherHour": "Other send time",
+        "preview": {
+          "title": "What you’ll receive",
+          "message": "Your post of the day is ready (LinkedIn, Instagram).",
+          "approve": "Approve",
+          "edit": "Edit",
+          "cancel": "Cancel"
+        },
+        "safety": "Nothing is published without your approval. With no reply within 48 h, the request expires and nothing is published.",
         "historyTitle": "Latest requests",
         "historyEmpty": "Nothing yet.",
         "noCaption": "No caption",
-        "loadFailed": "Could not load this screen. Try again in a moment.",
+        "loadFailed": "This screen could not be loaded. Please try again in a moment.",
         "status": {
           "generating": "Preparing",
-          "awaiting": "Waiting for your answer",
-          "revising": "Editing",
+          "awaiting": "Waiting for your reply",
+          "revising": "Revising",
           "approved": "Approved",
           "publishing": "Publishing",
           "published": "Published",

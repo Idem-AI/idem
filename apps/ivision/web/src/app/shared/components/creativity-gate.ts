@@ -131,6 +131,13 @@ export class CreativityGate {
     });
   }
 
+  /** Ouvre la bulle sans clic (la touche Entrée du champ de saisie) ; rien si le bouton est désactivé. */
+  openMenu(): void {
+    const host = this.el.nativeElement as HTMLButtonElement;
+    if (this.off() || host.disabled || this.bubble) return;
+    this.open();
+  }
+
   private intercept(event: MouseEvent): void {
     const host = this.el.nativeElement as HTMLButtonElement;
     if (this.replaying || this.off() || host.disabled) return;

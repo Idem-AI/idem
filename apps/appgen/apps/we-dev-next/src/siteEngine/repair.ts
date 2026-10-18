@@ -85,7 +85,7 @@ export function renderRemarks(issues: Issue[], language: string): string {
 }
 
 /** Le nom d'un fichier, tel qu'on le dit. */
-function displayOf(path: string, fr: boolean): string {
+export function displayOf(path: string, fr: boolean): string {
   if (path.endsWith('/SiteHeader.tsx')) return fr ? "l'en-tête" : 'the header';
   if (path.endsWith('/SiteFooter.tsx')) return fr ? 'le pied de page' : 'the footer';
   const [, page, name] = path.match(/^src\/sections\/([^/]+)\/(\w+)\.tsx$/) ?? [];
@@ -93,7 +93,7 @@ function displayOf(path: string, fr: boolean): string {
 }
 
 /** Le contexte d'écriture reconstruit depuis le projet (il n'y a plus de manifeste à ce stade). */
-function contextFrom(files: Record<string, string>, facts: ReturnType<typeof readSiteFacts>, factsText: string, language: string): AuthoringContext {
+export function contextFrom(files: Record<string, string>, facts: ReturnType<typeof readSiteFacts>, factsText: string, language: string): AuthoringContext {
   let pages: Array<{ path: string; module: string }> = [];
   try {
     pages = JSON.parse(files['idem.pages.json'] ?? '{}').pages ?? [];
@@ -119,7 +119,7 @@ function contextFrom(files: Record<string, string>, facts: ReturnType<typeof rea
  * Les fichiers du site pour monter un composant : ceux envoyés par l'atelier,
  * complétés au besoin (un atelier plus ancien n'envoie pas `src/site/`).
  */
-function siteFilesOf(
+export function siteFilesOf(
   files: Record<string, string>,
   projectData: ProjectModel,
   facts: ReturnType<typeof readSiteFacts>,
@@ -137,7 +137,7 @@ function siteFilesOf(
 }
 
 /** Ce que la page passe au composant : l'adresse de la page à l'en-tête, rien aux autres. */
-function targetOf(path: string, pages: string): ReviewTarget {
+export function targetOf(path: string, pages: string): ReviewTarget {
   if (!path.endsWith('/SiteHeader.tsx')) return { path };
   let first = '/';
   try {
@@ -148,7 +148,7 @@ function targetOf(path: string, pages: string): ReviewTarget {
   return { path, props: { current: first } };
 }
 
-function themeOf(files: Record<string, string>): ThemeColors {
+export function themeOf(files: Record<string, string>): ThemeColors {
   const css = files[DESIGN_SYSTEM_PATHS.css];
   if (css) return themeColorsFromCss(css);
   try {

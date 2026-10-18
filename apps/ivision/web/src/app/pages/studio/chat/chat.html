@@ -339,7 +339,7 @@
             @if (price() !== null) {
               <span class="text-xs tabular-nums text-[var(--color-text-tertiary)]">{{ 'chat.options.price' | translate: { cost: price() } }}</span>
             }
-            <!-- Le niveau de créativité se choisit SUR le bouton : la bulle s'ouvre, le cran choisi envoie. Entrée envoie au dernier cran. -->
+            <!-- Le niveau de créativité se choisit SUR le bouton (clic ou Entrée) : la bulle s’ouvre, le cran choisi envoie. -->
             <button
               type="button"
               class="inner-button button-sm"

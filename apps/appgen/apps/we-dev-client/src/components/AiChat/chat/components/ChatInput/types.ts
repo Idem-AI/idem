@@ -50,6 +50,8 @@ export interface UploadButtonsProps {
 }
 
 export interface SendButtonProps {
+  /** Le bouton lui-même : la touche Entrée du champ le « clique » pour ouvrir le menu des niveaux. */
+  buttonRef?: React.RefObject<HTMLButtonElement>;
   isLoading: boolean;
   isUploading: boolean;
   hasInput: boolean;

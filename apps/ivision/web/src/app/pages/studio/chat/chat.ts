@@ -88,6 +88,8 @@ export class ChatPage {
 
   private readonly log = viewChild<ElementRef<HTMLElement>>('log');
   private readonly composer = viewChild<ElementRef<HTMLTextAreaElement>>('composer');
+  /** La bulle du niveau de créativité posée sur le bouton d'envoi. */
+  private readonly sendGate = viewChild(CreativityGate);
   private readonly referenceInput = viewChild<ElementRef<HTMLInputElement>>('referenceInput');
   private readonly videoInput = viewChild<ElementRef<HTMLInputElement>>('videoInput');
 
@@ -326,10 +328,11 @@ export class ChatPage {
 
   // ── Envoi ──
 
+  /** Entrée ouvre la bulle du niveau de créativité du bouton d'envoi (comme un clic) : le niveau choisi envoie. */
   protected onKeydown(event: KeyboardEvent): void {
     if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
       event.preventDefault();
-      this.send();
+      if (this.canSend()) this.sendGate()?.openMenu();
     }
   }
 

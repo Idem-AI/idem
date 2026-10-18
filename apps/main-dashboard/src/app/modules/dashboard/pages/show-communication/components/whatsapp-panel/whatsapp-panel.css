@@ -1,0 +1,648 @@
+:host {
+  display: block;
+}
+
+.wa {
+  margin: 0 auto;
+  max-width: 72rem;
+}
+
+/* ── En-tête ──────────────────────────────────────────────────────────────── */
+
+.wa-hero {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1.5rem;
+}
+
+.wa-hero-illu {
+  width: 6.5rem;
+  flex-shrink: 0;
+  color: var(--color-text-tertiary);
+}
+
+/* Le seul détail en couleur : les ondes, qui battent doucement. */
+.wa-hero-beat {
+  color: var(--color-primary-500);
+  animation: wa-beat 2.4s ease-in-out infinite;
+}
+
+@keyframes wa-beat {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wa-hero-beat {
+    animation: none;
+  }
+}
+
+.wa-hero-text {
+  min-width: 16rem;
+  flex: 1;
+}
+
+.wa-hero-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--color-text-primary);
+}
+
+.wa-hero-body {
+  margin-top: 0.4rem;
+  max-width: 40rem;
+  font-size: 0.92rem;
+  line-height: 1.55;
+  color: var(--color-text-secondary);
+}
+
+.wa-hero-gate {
+  color: var(--color-text-primary);
+}
+
+.wa-hero-cta {
+  margin-top: 1rem;
+}
+
+/* ── Grille ───────────────────────────────────────────────────────────────── */
+
+.wa-grid {
+  margin-top: 1.5rem;
+  display: grid;
+  gap: 1.5rem;
+}
+
+@media (min-width: 64rem) {
+  .wa-grid {
+    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .wa-side {
+    position: sticky;
+    top: 1rem;
+  }
+}
+
+/* ── Le parcours (même fil que l'accueil du module) ───────────────────────── */
+
+.wa-steps {
+  display: flex;
+  flex-direction: column;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.wa-step {
+  position: relative;
+  display: flex;
+  gap: 1rem;
+  padding-bottom: 1rem;
+}
+
+.wa-step:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  top: 2.25rem;
+  bottom: 0.25rem;
+  left: 1.05rem;
+  width: 2px;
+  background: var(--glass-border-medium);
+}
+
+.wa-step-done:not(:last-child)::before {
+  background: var(--color-success);
+}
+
+.wa-marker {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  height: 2.2rem;
+  width: 2.2rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 2px solid var(--glass-border-medium);
+  background: var(--glass-bg-medium);
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+}
+
+.wa-step-done .wa-marker {
+  border-color: var(--color-success);
+  background: color-mix(in srgb, var(--color-success) 14%, var(--glass-bg-medium));
+  color: var(--color-success);
+}
+
+.wa-step-next .wa-marker {
+  border-color: var(--color-primary-500);
+  color: var(--color-primary-500);
+}
+
+.wa-body {
+  flex: 1;
+  min-width: 0;
+  border-radius: 1rem;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg-subtle);
+  padding: 1.1rem 1.2rem;
+}
+
+.wa-step-next .wa-body {
+  border-color: color-mix(in srgb, var(--color-primary-500) 55%, transparent);
+  background: color-mix(in srgb, var(--color-primary-500) 6%, var(--glass-bg-subtle));
+}
+
+.wa-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.wa-step-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+/* `.tag` du design system ; seule la couleur dit l'état. */
+.wa-state {
+  color: var(--color-text-tertiary);
+}
+
+.wa-step-done .wa-state {
+  border-color: color-mix(in srgb, var(--color-success) 40%, transparent);
+  color: var(--color-success);
+}
+
+.wa-step-next .wa-state {
+  border-color: color-mix(in srgb, var(--color-primary-500) 40%, transparent);
+  background: color-mix(in srgb, var(--color-primary-500) 12%, transparent);
+  color: var(--color-primary-500);
+}
+
+.wa-why {
+  margin-top: 0.4rem;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+}
+
+.wa-hint {
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--color-text-tertiary);
+}
+
+.wa-phone,
+.wa-code {
+  margin-top: 1rem;
+}
+
+.wa-foot {
+  margin-top: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+}
+
+.wa-foot .wa-hint {
+  flex: 1;
+  min-width: 12rem;
+}
+
+.wa-link {
+  border: 0;
+  background: none;
+  padding: 0;
+  font-size: inherit;
+  font-weight: 600;
+  color: var(--color-primary-500);
+}
+
+.wa-link:hover:not(:disabled) {
+  text-decoration: underline;
+}
+
+.wa-link:disabled {
+  opacity: 0.5;
+}
+
+.wa-error {
+  margin-top: 0.6rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  color: var(--color-danger);
+}
+
+@media (max-width: 40rem) {
+  .wa-foot .inner-button {
+    width: 100%;
+  }
+}
+
+/* ── WhatsApp lié ─────────────────────────────────────────────────────────── */
+
+.wa-linked {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.wa-linked-icon {
+  display: flex;
+  height: 2.6rem;
+  width: 2.6rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-success) 14%, transparent);
+  font-size: 1.2rem;
+  color: var(--color-success);
+}
+
+.wa-linked-text {
+  display: flex;
+  min-width: 10rem;
+  flex: 1;
+  flex-direction: column;
+}
+
+.wa-linked-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.wa-linked-sub {
+  font-size: 0.82rem;
+  color: var(--color-text-secondary);
+}
+
+.wa-confirm {
+  display: inline-flex;
+  gap: 0.25rem;
+}
+
+/* ── Réseaux ──────────────────────────────────────────────────────────────── */
+
+.wa-networks {
+  margin: 0.9rem 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.6rem;
+}
+
+@media (min-width: 40rem) {
+  .wa-networks {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.wa-network {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  border-radius: 0.9rem;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg-subtle);
+  padding: 0.7rem 0.8rem;
+}
+
+.wa-network-on {
+  border-color: color-mix(in srgb, var(--color-success) 45%, transparent);
+}
+
+.wa-network-icon {
+  display: flex;
+  height: 2.3rem;
+  width: 2.3rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.7rem;
+  background: var(--glass-bg-medium);
+  font-size: 1.05rem;
+  color: var(--color-text-primary);
+}
+
+.wa-network-text {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+.wa-network-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.wa-network-sub {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.75rem;
+  color: var(--color-text-tertiary);
+}
+
+.wa-network-sub-on {
+  color: var(--color-success);
+}
+
+/* ── Propositions du jour ─────────────────────────────────────────────────── */
+
+.wa-switch-row {
+  margin-top: 0.8rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+}
+
+.wa-switch {
+  position: relative;
+  flex-shrink: 0;
+  height: 1.6rem;
+  width: 2.8rem;
+  border-radius: 999px;
+  border: 1px solid var(--glass-border-medium);
+  background: var(--glass-bg-medium);
+  transition: background-color var(--duration-150) var(--ease-out);
+}
+
+.wa-switch-on {
+  border-color: var(--color-primary-500);
+  background: var(--color-primary-500);
+}
+
+.wa-switch:disabled {
+  opacity: 0.6;
+}
+
+.wa-switch-knob {
+  position: absolute;
+  top: 0.15rem;
+  left: 0.15rem;
+  height: 1.1rem;
+  width: 1.1rem;
+  border-radius: 999px;
+  background: var(--color-text-secondary);
+  transition:
+    transform var(--duration-150) var(--ease-out),
+    background-color var(--duration-150) var(--ease-out);
+}
+
+.wa-switch-on .wa-switch-knob {
+  transform: translateX(1.2rem);
+  background: var(--color-surface-1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wa-switch,
+  .wa-switch-knob {
+    transition: none;
+  }
+}
+
+.wa-switch:focus-visible {
+  outline: 2px solid var(--color-primary-500);
+  outline-offset: 2px;
+}
+
+.wa-switch-text {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.wa-switch-title {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.wa-hours {
+  margin: 1rem 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  border: 0;
+  padding: 0;
+}
+
+.wa-hours-label {
+  margin-right: 0.25rem;
+  padding: 0;
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+}
+
+.wa-chip {
+  border-radius: 999px;
+  border: 1px solid var(--glass-border-medium);
+  padding: 0.35rem 0.85rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  transition:
+    border-color var(--duration-150) var(--ease-out),
+    background-color var(--duration-150) var(--ease-out);
+}
+
+.wa-chip:hover:not(:disabled) {
+  border-color: var(--color-primary-500);
+}
+
+.wa-chip-on {
+  border-color: var(--color-primary-500);
+  background: color-mix(in srgb, var(--color-primary-500) 12%, transparent);
+  color: var(--color-primary-500);
+}
+
+.wa-hours .wa-hours-other {
+  width: auto;
+  min-width: 5.5rem;
+  padding-top: 0.35rem;
+  padding-bottom: 0.35rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+}
+
+/* ── Colonne de droite : ce que vous recevrez ─────────────────────────────── */
+
+.wa-side {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.wa-preview,
+.wa-history {
+  padding: 1.1rem 1.2rem;
+}
+
+.wa-preview-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.wa-chat {
+  margin-top: 0.9rem;
+  border-radius: 1rem;
+  background: var(--glass-bg-medium);
+  padding: 0.8rem;
+}
+
+.wa-bubble {
+  max-width: 92%;
+  border-radius: 0.2rem 0.9rem 0.9rem 0.9rem;
+  background: var(--color-surface-1, var(--glass-bg));
+  border: 1px solid var(--glass-border);
+  padding: 0.6rem 0.75rem;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: var(--color-text-primary);
+}
+
+.wa-bubble-from {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-bottom: 0.2rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--color-success);
+}
+
+.wa-bubble-actions {
+  margin-top: 0.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  max-width: 92%;
+}
+
+.wa-bubble-btn {
+  border-radius: 0.7rem;
+  border: 1px solid var(--glass-border);
+  background: var(--color-surface-1, var(--glass-bg));
+  padding: 0.4rem;
+  text-align: center;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.wa-bubble-btn-ok {
+  color: var(--color-primary-500);
+}
+
+.wa-safety {
+  margin-top: 0.9rem;
+  display: flex;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+}
+
+.wa-safety .pi {
+  margin-top: 0.15rem;
+  color: var(--color-primary-500);
+}
+
+/* ── Historique ───────────────────────────────────────────────────────────── */
+
+.wa-history-list {
+  margin: 0.6rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.wa-history-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.55rem 0;
+}
+
+.wa-history-item + .wa-history-item {
+  border-top: 1px solid var(--glass-border-subtle);
+}
+
+.wa-history-text {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.wa-history-caption {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.85rem;
+  color: var(--color-text-primary);
+}
+
+.wa-history-status {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  color: var(--color-text-tertiary);
+}
+
+.wa-history-status.wa-ok {
+  color: var(--color-success);
+}
+
+.wa-history-status.wa-wait {
+  color: var(--color-warning);
+}
+
+/* ── Téléphone ────────────────────────────────────────────────────────────── */
+
+@media (max-width: 40rem) {
+  .wa-hero {
+    padding: 1.1rem;
+  }
+
+  .wa-hero-illu {
+    width: 4.5rem;
+  }
+
+  .wa-body {
+    padding: 0.95rem;
+  }
+
+  .wa-step {
+    gap: 0.7rem;
+  }
+}

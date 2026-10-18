@@ -206,4 +206,9 @@ export interface ChatRequest {
    * en fin de génération, avec leur contenu actuel, les pages et le thème.
    */
   siteRepair?: { paths: string[]; files: Record<string, string> };
+  /**
+   * Une retouche d'un site vitrine déjà généré : l'état actuel du site (sections, pages, design system,
+   * données). Le moteur de modification ciblée (`siteEngine/edit.ts`) ne touche que ce qui est demandé.
+   */
+  siteEdit?: { files: Record<string, string> };
 }

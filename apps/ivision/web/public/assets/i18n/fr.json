@@ -470,6 +470,7 @@
     "progress": {
       "label": "Étapes de la création",
       "stages": {
+        "copy": "Rédaction des textes",
         "plan": "Plan de la vidéo",
         "media": "Images et clips",
         "music": "Musique",
@@ -914,7 +915,7 @@
       },
       "creativity": {
         "title": "Plus ou moins d’audace",
-        "body": "Cliquez sur ce bouton pour envoyer : il vous demande le niveau de créativité. La touche Entrée envoie au dernier niveau choisi. Créer est gratuit : seul l’export HD sans signature se paie, son prix s’affiche à côté."
+        "body": "Cliquez sur ce bouton (ou appuyez sur Entrée) pour envoyer : il vous demande le niveau de créativité. Créer est gratuit : seul l’export HD sans signature se paie, son prix s’affiche à côté."
       },
       "history": {
         "title": "Tout ce que vous avez créé",

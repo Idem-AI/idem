@@ -11,8 +11,8 @@ const GAP = 10;
 /**
  * LE BOUTON D'ENVOI, avec le NIVEAU DE CRÉATIVITÉ dessus : cliquer ouvre un petit menu sous le bouton (au-dessus
  * s'il manque la place), un niveau par ligne ; cliquer un niveau ENVOIE avec ce niveau. Aucun modèle n'est
- * montré : le serveur choisit le modèle du niveau. La touche Entrée du champ envoie directement, au dernier
- * niveau choisi (rappelé au survol du bouton). Pendant une génération, le bouton l'arrête.
+ * montré : le serveur choisit le modèle du niveau. La touche Entrée du champ ouvre le même menu. Pendant une
+ * génération, le bouton l'arrête.
  */
 export const SendButton: React.FC<SendButtonProps> = ({
   isLoading,
@@ -20,13 +20,15 @@ export const SendButton: React.FC<SendButtonProps> = ({
   hasInput,
   hasUploadingImages,
   onClick,
-  stop
+  stop,
+  buttonRef: externalRef
 }) => {
   const { t } = useTranslation();
   const { creativity, setCreativity } = useChatStore();
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState<{ left: number; top: number; caret: number; below: boolean }>({ left: 0, top: 0, caret: 24, below: true });
-  const buttonRef = useRef<HTMLButtonElement>(null);
+  const ownRef = useRef<HTMLButtonElement>(null);
+  const buttonRef = externalRef ?? ownRef;
   const menuRef = useRef<HTMLDivElement>(null);
   const ready = hasInput && !isUploading && !hasUploadingImages;
   const levelLabel = t(`chat.creativity.levels.${creativity}.label`);
