@@ -15,7 +15,7 @@ import {
   engineCompatible,
   isApiUrlKey,
   isDatabaseUrlKey,
-  isRedisUrlKey,
+  redisValueFor,
 } from '../../../shared/utils/guide-env-link.util';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
@@ -592,7 +592,13 @@ export class GuideAppStepComponent implements OnInit, OnDestroy {
       const cache = this.guideSession.cache(this.architectureId());
       if (cache?.connectionUrl) {
         this.linkedCacheName.set(cache.name);
-        this.envRows.update((rows) => rows.map((r) => (isRedisUrlKey(r.key) ? { ...r, value: cache.connectionUrl!, linkedFrom: 'cache' } : r)));
+        const url = cache.connectionUrl;
+        this.envRows.update((rows) =>
+          rows.map((r) => {
+            const value = redisValueFor(r.key, url);
+            return value ? { ...r, value, linkedFrom: 'cache' } : r;
+          })
+        );
       }
     }
     if (this.role() === 'frontend') {

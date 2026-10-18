@@ -1674,7 +1674,14 @@
     },
     "appStep": {
       "databaseMismatch": "Ce backend est prévu pour {{expected}}, mais la base créée à l’étape précédente ({{database}}) est {{created}} : il ne pourrait pas s’y connecter. Revenez créer une base {{expected}}, ou renseignez vous-même les variables de connexion."
-    }
+    },
+    "review": "Revoir et modifier",
+    "reviewClose": "Fermer",
+    "openDatabase": "Ouvrir la base",
+    "openApplication": "Ouvrir l'application",
+    "reviewHint": "Les liens s'ouvrent dans un nouvel onglet : le guide reste là où vous en êtes. Une variable modifiée s'applique au prochain déploiement.",
+    "chooseAnotherDatabase": "Choisir une autre base",
+    "chooseAnotherDatabaseHint": "Le guide repose la question ; la base déjà créée reste dans le workspace (supprimez-la depuis sa page si elle ne sert plus)."
   },
   "templates": {
     "title": "Catalogue de services",

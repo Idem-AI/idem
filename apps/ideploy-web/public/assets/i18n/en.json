@@ -1674,7 +1674,14 @@
     },
     "appStep": {
       "databaseMismatch": "This backend is built for {{expected}}, but the database created in the previous step ({{database}}) is {{created}}: it could not connect. Go back and create a {{expected}} database, or set the connection variables yourself."
-    }
+    },
+    "review": "Review and edit",
+    "reviewClose": "Close",
+    "openDatabase": "Open the database",
+    "openApplication": "Open the application",
+    "reviewHint": "Links open in a new tab: the guide stays where you are. A changed variable reaches the application with its next deployment.",
+    "chooseAnotherDatabase": "Choose another database",
+    "chooseAnotherDatabaseHint": "The guide asks again; the database already created stays in the workspace (delete it from its page if you no longer need it)."
   },
   "templates": {
     "title": "Service catalog",
