@@ -185,3 +185,13 @@ export function redisValueFor(key: string, connectionUrl: string): string | null
           : decodeURIComponent(parsed.password);
   return value || null;
 }
+
+/**
+ * Laravel's DB_CONNECTION for the database the guide links: the host, port and
+ * credentials of a PostgreSQL database under `DB_CONNECTION=mysql` hung every
+ * query ("MySQL server has gone away"). Null for an engine Laravel has no driver for.
+ */
+export function laravelConnectionFor(databaseType: string): string | null {
+  const drivers: Record<string, string> = { postgresql: 'pgsql', mysql: 'mysql', mariadb: 'mysql', mongodb: 'mongodb' };
+  return drivers[databaseType] ?? null;
+}

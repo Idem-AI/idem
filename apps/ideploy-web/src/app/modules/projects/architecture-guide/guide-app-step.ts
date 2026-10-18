@@ -15,6 +15,7 @@ import {
   engineCompatible,
   isApiUrlKey,
   isDatabaseUrlKey,
+  laravelConnectionFor,
   redisValueFor,
 } from '../../../shared/utils/guide-env-link.util';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
@@ -583,9 +584,11 @@ export class GuideAppStepComponent implements OnInit, OnDestroy {
           this.databaseMismatch.set(null);
           this.linkedDatabaseName.set(db.name);
           const { url, fields } = datasourceValues(db.connectionUrl, this.detectedEcosystem());
+          const driver = laravelConnectionFor(db.type);
           this.envRows.update((rows) =>
             rows.map((r) => {
               if (isDatabaseUrlKey(r.key)) return { ...r, value: url, linkedFrom: 'database' };
+              if (/^DB_CONNECTION$/i.test(r.key.trim()) && driver) return { ...r, value: driver, linkedFrom: 'database' };
               const field = datasourceFieldOf(r.key);
               const value = field ? fields[field] : undefined;
               return value ? { ...r, value, linkedFrom: 'database' } : r;
