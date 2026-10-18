@@ -168,31 +168,44 @@ const LARAVEL_CONNECTION: Record<string, string> = { postgresql: 'pgsql', mysql:
  */
 export function linkVariables(variables: { key: string; value: string }[], targets: LinkTargets): LinkedVariable[] {
   const classes = variables.map((v) => classifyVariable(v.key));
-  const hostState = (resource: LinkedResource): 'example' | 'own' | 'none' => {
+  // A group whose host is an example, or already the resource's own container,
+  // is the resource's: all its parts follow it. Pointing DB_HOST at a
+  // PostgreSQL container while DB_PORT/DB_CONNECTION stayed MySQL's hung every
+  // query until "MySQL server has gone away".
+  const hostState = (resource: LinkedResource, target: LinkTarget | undefined): 'example' | 'own' | 'none' => {
     const i = classes.findIndex((c) => c?.resource === resource && c.field === 'host');
     if (i === -1) return 'none';
-    return isPlaceholder(variables[i].value) ? 'example' : 'own';
+    const value = variables[i].value.trim();
+    if (isPlaceholder(value)) return 'example';
+    return target && value.toLowerCase() === (partsOf(target.connectionUrl).host ?? '').toLowerCase() ? 'example' : 'own';
   };
-  const states = { database: hostState('database'), redis: hostState('redis'), queue: hostState('queue') };
-  // The engine the application declares: a MySQL application is never pointed at a PostgreSQL database.
+  const states = {
+    database: hostState('database', targets.database),
+    redis: hostState('redis', targets.redis),
+    queue: hostState('queue', targets.queue),
+  };
   const declaredVar = variables.find((v) => ENGINE_KEY.test(v.key.trim()));
   const declared = declaredVar ? engineOfDriver(declaredVar.value) : null;
   const database = targets.database;
-  const databaseRefused = Boolean(database && declared && declared !== 'sqlite' && !sameFamily(declared, database.type));
+  // Laravel names its driver in DB_CONNECTION and ships every one of them:
+  // pointed at the workspace's database, the driver follows that database.
+  const laravelDriver =
+    declaredVar && /^DB_CONNECTION$/i.test(declaredVar.key.trim()) && database ? (LARAVEL_CONNECTION[database.type] ?? null) : null;
+  // Elsewhere (Django's ENGINE, Spring's driver) the code may carry one driver
+  // only: a MySQL application is never pointed at a PostgreSQL database.
+  const databaseRefused = Boolean(database && declared && declared !== 'sqlite' && !sameFamily(declared, database.type) && !laravelDriver);
 
   return variables.map((variable, i) => {
     const cls = classes[i];
     if (!cls) {
-      // Laravel on SQLite (its default) whose DB_HOST is an example: the workspace's database replaces the file.
       if (
         variable === declaredVar &&
-        declared === 'sqlite' &&
+        laravelDriver &&
         database &&
         states.database === 'example' &&
-        /^DB_CONNECTION$/i.test(variable.key.trim()) &&
-        LARAVEL_CONNECTION[database.type]
+        (declared === null || !sameFamily(declared === 'sqlite' ? '' : declared, database.type))
       ) {
-        return { key: variable.key, value: LARAVEL_CONNECTION[database.type], linkedTo: database.name };
+        return { key: variable.key, value: laravelDriver, linkedTo: database.name };
       }
       return variable;
     }
