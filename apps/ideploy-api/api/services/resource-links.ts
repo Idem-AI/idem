@@ -36,16 +36,26 @@ const DATABASE_URL = new RegExp(
   'i'
 );
 
-/** Separate variables, by prefix — never a bare `PASSWORD` or `HOST`. */
-const PARTS: { prefix: string; resource: LinkedResource }[] = [
-  { prefix: 'REDIS', resource: 'redis' },
-  { prefix: '(?:RABBITMQ|RABBIT|AMQP)', resource: 'queue' },
-];
 const PART_FIELDS: { suffix: string; field: LinkField }[] = [
   { suffix: 'HOST|HOSTNAME', field: 'host' },
   { suffix: 'PORT', field: 'port' },
-  { suffix: 'USER|USERNAME|DEFAULT_USER|LOGIN', field: 'username' },
+  { suffix: 'USER|USERNAME|USER_NAME|DEFAULT_USER|LOGIN', field: 'username' },
   { suffix: 'PASSWORD|PASS|PWD|DEFAULT_PASS', field: 'password' },
+];
+
+/**
+ * Separate variables, by prefix — never a bare `PASSWORD` or `HOST`. A
+ * database's are what Laravel, Symfony, Django and Spring read most
+ * (`DB_HOST`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`…).
+ */
+const PARTS: { prefix: string; resource: LinkedResource; fields: { suffix: string; field: LinkField }[] }[] = [
+  { prefix: 'REDIS', resource: 'redis', fields: PART_FIELDS },
+  { prefix: '(?:RABBITMQ|RABBIT|AMQP)', resource: 'queue', fields: PART_FIELDS },
+  {
+    prefix: '(?:DB|DATABASE|POSTGRES(?:QL)?|PG|MYSQL|MARIADB)',
+    resource: 'database',
+    fields: [...PART_FIELDS, { suffix: 'NAME|DATABASE|DB', field: 'name' }],
+  },
 ];
 
 export function classifyVariable(key: string): VariableClass | null {
@@ -54,8 +64,8 @@ export function classifyVariable(key: string): VariableClass | null {
   if (AMQP_URL.test(k)) return { resource: 'queue', field: 'url' };
   if (ANY_BROKER_URL.test(k)) return { resource: 'queue', field: 'url', anyBroker: true };
   if (DATABASE_URL.test(k)) return { resource: 'database', field: 'url' };
-  for (const { prefix, resource } of PARTS) {
-    for (const { suffix, field } of PART_FIELDS) {
+  for (const { prefix, resource, fields } of PARTS) {
+    for (const { suffix, field } of fields) {
       if (new RegExp(`^${prefix}_(?:${suffix})$`, 'i').test(k)) return { resource, field };
     }
   }
@@ -131,18 +141,74 @@ export interface LinkedVariable {
   linkedTo?: string;
 }
 
-/** Fill the variables the workspace's resources answer. */
+/** The variable an application names its database driver with (Laravel's DB_CONNECTION…). */
+const ENGINE_KEY = /^(?:DB_CONNECTION|DB_ENGINE|DB_DRIVER|DB_TYPE|DATABASE_ENGINE|DATABASE_DRIVER|DATABASE_TYPE)$/i;
+
+/** `pgsql`, `mysql`, `django.db.backends.postgresql`… → the engine family, `sqlite` for a local file. */
+export function engineOfDriver(value: string): string | null {
+  const v = value.trim().toLowerCase().replace(/^django\.db\.backends\./, '');
+  if (/^(?:mysql|mysqli|pdo_mysql|mariadb)$/.test(v)) return 'mysql';
+  if (/^(?:pgsql|pdo_pgsql|pg|postgres|postgresql|postgresql_psycopg2)$/.test(v)) return 'postgresql';
+  if (/^(?:mongo|mongodb)$/.test(v)) return 'mongodb';
+  if (/^(?:sqlite|sqlite3)$/.test(v)) return 'sqlite';
+  return null;
+}
+
+/** Laravel's DB_CONNECTION for an engine. */
+const LARAVEL_CONNECTION: Record<string, string> = { postgresql: 'pgsql', mysql: 'mysql', mariadb: 'mysql', mongodb: 'mongodb' };
+
+/**
+ * Fill the variables the workspace's resources answer.
+ *
+ * The separate variables of one resource go together: when its host is an
+ * example (`DB_HOST=127.0.0.1`), the database name, user and password next to
+ * it are the developer's too (`DB_DATABASE=laravel`, `DB_USERNAME=root`) and
+ * all take the resource's values; when its host is the user's own, none is
+ * touched — an external database keeps its own credentials.
+ */
 export function linkVariables(variables: { key: string; value: string }[], targets: LinkTargets): LinkedVariable[] {
-  return variables.map((variable) => {
-    const cls = classifyVariable(variable.key);
-    if (!cls || !isPlaceholder(variable.value)) return variable;
+  const classes = variables.map((v) => classifyVariable(v.key));
+  const hostState = (resource: LinkedResource): 'example' | 'own' | 'none' => {
+    const i = classes.findIndex((c) => c?.resource === resource && c.field === 'host');
+    if (i === -1) return 'none';
+    return isPlaceholder(variables[i].value) ? 'example' : 'own';
+  };
+  const states = { database: hostState('database'), redis: hostState('redis'), queue: hostState('queue') };
+  // The engine the application declares: a MySQL application is never pointed at a PostgreSQL database.
+  const declaredVar = variables.find((v) => ENGINE_KEY.test(v.key.trim()));
+  const declared = declaredVar ? engineOfDriver(declaredVar.value) : null;
+  const database = targets.database;
+  const databaseRefused = Boolean(database && declared && declared !== 'sqlite' && !sameFamily(declared, database.type));
+
+  return variables.map((variable, i) => {
+    const cls = classes[i];
+    if (!cls) {
+      // Laravel on SQLite (its default) whose DB_HOST is an example: the workspace's database replaces the file.
+      if (
+        variable === declaredVar &&
+        declared === 'sqlite' &&
+        database &&
+        states.database === 'example' &&
+        /^DB_CONNECTION$/i.test(variable.key.trim()) &&
+        LARAVEL_CONNECTION[database.type]
+      ) {
+        return { key: variable.key, value: LARAVEL_CONNECTION[database.type], linkedTo: database.name };
+      }
+      return variable;
+    }
+    const part = cls.field !== 'url';
+    const state = states[cls.resource];
+    if (part ? state === 'own' || (state === 'none' && !isPlaceholder(variable.value)) : !isPlaceholder(variable.value)) {
+      return variable;
+    }
     let target: LinkTarget | undefined;
     if (cls.resource === 'queue') target = targets.queue ?? (cls.anyBroker ? targets.redis : undefined);
     else target = targets[cls.resource];
     if (!target) return variable;
-    // A database variable whose example names another engine is left alone.
     if (cls.resource === 'database') {
-      const wanted = variable.value ? engineOfUrl(variable.value) : null;
+      if (databaseRefused) return variable;
+      // A database URL whose example names another engine is left alone.
+      const wanted = !part && variable.value ? engineOfUrl(variable.value) : null;
       if (wanted && !sameFamily(wanted, target.type)) return variable;
     }
     const value = partsOf(target.connectionUrl)[cls.field];
