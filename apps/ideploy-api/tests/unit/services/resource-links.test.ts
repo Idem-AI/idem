@@ -3,7 +3,7 @@
  * database — only where the value is an example, never the user's own.
  */
 import { describe, it, expect } from 'vitest';
-import { applicationDefaults, classifyVariable, isPlaceholder, linkVariables, targetKindOf } from '../../../api/services/resource-links';
+import { applicationDefaults, classifyVariable, engineOfDriver, isPlaceholder, linkVariables, targetKindOf } from '../../../api/services/resource-links';
 
 const targets = {
   database: { name: 'shop-db', type: 'postgresql', connectionUrl: 'postgres://app:dbpass@postgresql-1:5432/shop' },
@@ -134,5 +134,70 @@ describe('an example that means "no value"', () => {
       { key: 'REDIS_PASSWORD', value: 'redispass', linkedTo: 'shop-cache' },
       { key: 'REDIS_HOST', value: 'redis-2', linkedTo: 'shop-cache' },
     ]);
+  });
+});
+
+describe("a database's separate variables", () => {
+  const mysql = { database: { name: 'shop-db', type: 'mysql', connectionUrl: 'mysql://app:dbpass@mysql-1:3306/shop' } };
+
+  it("replace Laravel's whole example group when its host is an example", () => {
+    const linked = linkVariables(
+      [
+        { key: 'DB_CONNECTION', value: 'mysql' },
+        { key: 'DB_HOST', value: '127.0.0.1' },
+        { key: 'DB_PORT', value: '3306' },
+        { key: 'DB_DATABASE', value: 'laravel' },
+        { key: 'DB_USERNAME', value: 'root' },
+        { key: 'DB_PASSWORD', value: '' },
+      ],
+      mysql
+    );
+    expect(Object.fromEntries(linked.map((l) => [l.key, l.value]))).toEqual({
+      DB_CONNECTION: 'mysql',
+      DB_HOST: 'mysql-1',
+      DB_PORT: '3306',
+      DB_DATABASE: 'shop',
+      DB_USERNAME: 'app',
+      DB_PASSWORD: 'dbpass',
+    });
+  });
+
+  it('leave an external database alone, credentials included', () => {
+    const own = [
+      { key: 'DB_HOST', value: 'db.mycompany.com' },
+      { key: 'DB_DATABASE', value: 'prod' },
+      { key: 'DB_PASSWORD', value: '' },
+    ];
+    expect(linkVariables(own, mysql)).toEqual(own);
+  });
+
+  it('never point a MySQL application at a PostgreSQL database', () => {
+    const linked = linkVariables(
+      [
+        { key: 'DB_CONNECTION', value: 'mysql' },
+        { key: 'DB_HOST', value: '127.0.0.1' },
+      ],
+      targets
+    );
+    expect(linked.every((l) => l.linkedTo === undefined)).toBe(true);
+  });
+
+  it("move Laravel from SQLite to the workspace's database", () => {
+    const linked = linkVariables(
+      [
+        { key: 'DB_CONNECTION', value: 'sqlite' },
+        { key: 'DB_HOST', value: '127.0.0.1' },
+      ],
+      targets
+    );
+    expect(linked.map((l) => l.value)).toEqual(['pgsql', 'postgresql-1']);
+  });
+
+  it('read the engine a driver names', () => {
+    expect(engineOfDriver('pgsql')).toBe('postgresql');
+    expect(engineOfDriver('django.db.backends.mysql')).toBe('mysql');
+    expect(engineOfDriver('sqlite')).toBe('sqlite');
+    expect(classifyVariable('DB_DATABASE')).toEqual({ resource: 'database', field: 'name' });
+    expect(classifyVariable('DB_CONNECTION')).toBeNull();
   });
 });
