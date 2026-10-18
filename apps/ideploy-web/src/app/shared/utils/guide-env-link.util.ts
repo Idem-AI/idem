@@ -148,3 +148,40 @@ export function datasourceValues(connectionUrl: string, ecosystem: string | null
 export function datasourceFieldOf(key: string): keyof DatasourceValues['fields'] | null {
   return COMPANIONS.find((c) => c.key.test(key.trim()))?.field ?? null;
 }
+
+/** Redis's separate variables (Laravel, Rails, Django…): `REDIS_HOST`, never a bare `HOST`. */
+const REDIS_COMPANIONS: { key: RegExp; field: 'host' | 'port' | 'username' | 'password' }[] = [
+  { key: /^REDIS_(?:HOST|HOSTNAME)$/i, field: 'host' },
+  { key: /^REDIS_PORT$/i, field: 'port' },
+  { key: /^REDIS_(?:USER|USERNAME)$/i, field: 'username' },
+  { key: /^REDIS_(?:PASSWORD|PASS|PWD)$/i, field: 'password' },
+];
+
+/**
+ * The value a Redis variable takes from the cache's connection URL — the URL
+ * itself for `REDIS_URL`-shaped keys, its part for `REDIS_HOST`/`REDIS_PORT`/
+ * `REDIS_PASSWORD`. Laravel reads the separate ones: left at their example
+ * (`REDIS_PASSWORD=null`), the application reached a Redis that requires a
+ * password without one, and answered every request with a 500 (NOAUTH).
+ * Null when the key is not a Redis variable or the URL lacks that part.
+ */
+export function redisValueFor(key: string, connectionUrl: string): string | null {
+  if (isRedisUrlKey(key)) return connectionUrl;
+  const field = REDIS_COMPANIONS.find((c) => c.key.test(key.trim()))?.field;
+  if (!field) return null;
+  let parsed: URL;
+  try {
+    parsed = new URL(connectionUrl);
+  } catch {
+    return null;
+  }
+  const value =
+    field === 'host'
+      ? parsed.hostname
+      : field === 'port'
+        ? parsed.port || '6379'
+        : field === 'username'
+          ? decodeURIComponent(parsed.username)
+          : decodeURIComponent(parsed.password);
+  return value || null;
+}

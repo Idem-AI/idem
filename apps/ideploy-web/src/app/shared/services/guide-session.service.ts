@@ -130,6 +130,16 @@ export class GuideSessionService {
     this.persist({ ...current, cache: db });
   }
 
+  /**
+   * Back to the database step: the guide forgets the database and its cache,
+   * so the step asks again. Nothing is deleted — they stay in the workspace.
+   */
+  unlinkDatabase(architectureId: string): void {
+    const current = this.active(architectureId);
+    if (!current) return;
+    this.persist({ ...current, database: null, cache: null });
+  }
+
   linkApp(architectureId: string, app: GuideLinkedApp): void {
     const current = this.active(architectureId);
     if (!current) return;
