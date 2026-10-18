@@ -174,9 +174,20 @@ export async function updateCompose(teamId: number, uuid: string, compose: strin
 export async function deleteService(teamId: number, uuid: string): Promise<boolean> {
   const service = await getService(teamId, uuid);
   if (!service) return false;
-  // Best-effort: tear down the stack on the host before deleting the record.
+  // Best-effort: tear down the stack on the host before deleting the record —
+  // with its volumes, its locally built images and its directory: a plain
+  // `down` left all three on the server.
   try {
-    await lifecycle(teamId, uuid, 'stop');
+    if (service.destination_id) {
+      const { server, key } = await resolveServer(teamId, service.destination_id);
+      const workdir = serviceWorkdir(uuid);
+      await executeRemoteCommand(
+        server,
+        key,
+        `if [ -d ${workdir} ]; then cd ${workdir} && { [ -f .env ] || touch .env; } && docker compose down --volumes --remove-orphans --rmi local; cd / && rm -rf ${workdir}; fi; true`,
+        { noRetry: true }
+      );
+    }
   } catch {
     /* ignore */
   }

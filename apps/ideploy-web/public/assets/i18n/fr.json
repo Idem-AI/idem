@@ -2302,5 +2302,9 @@
     "missing": "Il manque {{missing}} F dans votre portefeuille : rechargez-le pour continuer.",
     "loading": "Chargement des compteurs…",
     "chip": "{{amount}} F"
+  },
+  "appUpdate": {
+    "message": "Une nouvelle version d'iDeploy est disponible. Votre progression dans un guide est conservée.",
+    "reload": "Recharger"
   }
 }

@@ -2302,5 +2302,9 @@
     "missing": "Your wallet is {{missing}} F short: top it up to continue.",
     "loading": "Loading meters…",
     "chip": "{{amount}} F"
+  },
+  "appUpdate": {
+    "message": "A new version of iDeploy is available. Your progress in a guide is kept.",
+    "reload": "Reload"
   }
 }
