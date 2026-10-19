@@ -894,6 +894,17 @@ export class ApiService {
   }): Observable<{ key: string; value: string; linkedTo?: string }[]> {
     return this.unwrap(this.http.post<ApiResponse<{ key: string; value: string; linkedTo?: string }[]>>(`${this.base}/quick-deploy/link-preview`, body));
   }
+  /** A CLI sign-in waiting for approval (`idem login`). */
+  cliAuthRequest(code: string): Observable<{ userCode: string; host: string; createdAt: string; status: string }> {
+    return this.unwrap(
+      this.http.get<ApiResponse<{ userCode: string; host: string; createdAt: string; status: string }>>(
+        `${this.base}/cli/auth/requests/${encodeURIComponent(code)}`
+      )
+    );
+  }
+  cliAuthAnswer(code: string, approve: boolean): Observable<unknown> {
+    return this.unwrap(this.http.post<ApiResponse<unknown>>(`${this.base}/cli/auth/requests/${encodeURIComponent(code)}`, { approve }));
+  }
   quickDeploy(body: {
     name: string;
     git_repository?: string;

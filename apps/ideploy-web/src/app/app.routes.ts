@@ -97,6 +97,11 @@ const children: Routes = [
       import('./modules/settings/settings-page/settings-page').then((m) => m.SettingsPageComponent),
   },
   {
+    // `idem login` opens it: the developer approves the CLI on their machine.
+    path: 'cli/authorize',
+    loadComponent: () => import('./modules/cli/cli-authorize').then((m) => m.CliAuthorizeComponent),
+  },
+  {
     path: 'security/tokens',
     loadComponent: () =>
       import('./modules/security/api-tokens/api-tokens').then((m) => m.ApiTokensComponent),
