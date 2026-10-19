@@ -85,6 +85,8 @@ const RELEASES_KEPT = 2;
  * only as it streamed: opening a finished deployment showed nothing.
  */
 const KEPT_LOG_CHARS = 200_000;
+/** How often a running deployment's log is written for clients that poll. */
+const LIVE_LOG_FLUSH_MS = 2000;
 
 /**
  * One deployment of an application at a time. Two at once used to share a
@@ -311,14 +313,24 @@ export async function processDeployment(job: Job<DeploymentJobData>, token?: str
   const { deploymentUuid, applicationUuid, applicationId, teamId } = job.data;
   const kept: string[] = [];
   let keptChars = 0;
+  const saveLog = (): Promise<void> =>
+    deploymentService.saveLogs(deploymentUuid, kept.join('\n')).catch(() => undefined);
+  // The log is also written while the deployment runs, every few seconds: a
+  // client that polls (the CLI, a reloaded page) follows it without the
+  // realtime socket. It used to be written only once the deployment was over.
+  let flushTimer: ReturnType<typeof setTimeout> | null = null;
   const log = (line: string): Promise<void> => {
     kept.push(line);
     keptChars += line.length;
     while (keptChars > KEPT_LOG_CHARS && kept.length > 1) keptChars -= kept.shift()!.length;
+    if (!flushTimer) {
+      flushTimer = setTimeout(() => {
+        flushTimer = null;
+        void saveLog();
+      }, LIVE_LOG_FLUSH_MS);
+    }
     return realtime.deploymentLog(deploymentUuid, line);
   };
-  const saveLog = (): Promise<void> =>
-    deploymentService.saveLogs(deploymentUuid, kept.join('\n')).catch(() => undefined);
   let heldSlots: HeldSlots | undefined;
 
   // Fair share of the workers: a team or a server at its limit, or this
@@ -342,6 +354,8 @@ export async function processDeployment(job: Job<DeploymentJobData>, token?: str
   try {
     await runDeployment(job, token, log, saveLog);
   } finally {
+    // The final log (or the failure) is already written: no late flush over it.
+    if (flushTimer) clearTimeout(flushTimer);
     await heldSlots?.release();
   }
 }
