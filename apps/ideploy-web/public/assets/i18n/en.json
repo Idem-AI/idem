@@ -2306,5 +2306,19 @@
   "appUpdate": {
     "message": "A new version of iDeploy is available. Your progress in a guide is kept.",
     "reload": "Reload"
+  },
+  "cli": {
+    "authorize": {
+      "title": "Sign in the iDeploy CLI",
+      "loading": "Reading the request…",
+      "question": "The command line on \"{{host}}\" asks to act in your name: deploy, read logs, change variables.",
+      "checkCode": "Check that your terminal shows the same code",
+      "approve": "Authorise",
+      "deny": "Refuse",
+      "warning": "Only authorise a request you started yourself. A token is issued for one year; revoke it under Security › API tokens.",
+      "approved": "Done. Back to your terminal: the CLI is signed in.",
+      "denied": "Refused. Nothing was issued.",
+      "back": "Back to the dashboard"
+    }
   }
 }

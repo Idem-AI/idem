@@ -2306,5 +2306,19 @@
   "appUpdate": {
     "message": "Une nouvelle version d'iDeploy est disponible. Votre progression dans un guide est conservée.",
     "reload": "Recharger"
+  },
+  "cli": {
+    "authorize": {
+      "title": "Connecter la CLI iDeploy",
+      "loading": "Lecture de la demande…",
+      "question": "La ligne de commande sur « {{host}} » demande à agir en votre nom : déployer, lire les journaux, modifier les variables.",
+      "checkCode": "Vérifiez que votre terminal affiche le même code",
+      "approve": "Autoriser",
+      "deny": "Refuser",
+      "warning": "N'autorisez qu'une demande que vous avez lancée vous-même. Le jeton est valable un an ; révoquez-le dans Sécurité › Jetons d'API.",
+      "approved": "C'est fait. Retournez dans votre terminal : la CLI est connectée.",
+      "denied": "Refusé. Aucun jeton n'a été émis.",
+      "back": "Retour au tableau de bord"
+    }
   }
 }

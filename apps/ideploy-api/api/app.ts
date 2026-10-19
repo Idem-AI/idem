@@ -46,6 +46,7 @@ import resourcesRoutes from './routes/resources.routes';
 import githubRoutes from './routes/github.routes';
 import gitlabRoutes from './routes/gitlab.routes';
 import adminRoutes from './routes/admin.routes';
+import cliAuthRoutes from './routes/cli-auth.routes';
 import webhookRoutes, { managementRouter as webhookManagementRoutes } from './routes/webhook.routes';
 import registryRoutes from './routes/registry.routes';
 
@@ -107,6 +108,8 @@ export function createApp(): Express {
   // wins. Registered later, this endpoint answers 401 to every git host and
   // push-to-deploy silently never fires. A contract test pins this ordering.
   app.use('/api/v1/webhooks', webhookRoutes);
+  // Public sign-in of the CLI: before every router mounted on /api/v1 that authenticates all it sees.
+  app.use('/api/v1/cli/auth', cliAuthRoutes);
   app.use('/api/v1/servers', serverRoutes);
   app.use('/api/v1/workspaces', workspaceRoutes);
   app.use('/api/v1/applications', applicationRoutes);
