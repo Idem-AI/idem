@@ -69,8 +69,10 @@ import useRunStatus from '@/stores/runStatusSlice';
 import { IdemLoader } from '@idem/shared-loader/react';
 import { JourneyCard } from '@idem/shared-journey/react';
 import { journeyClient, journeyUrls, useJourney } from '@/hooks/useJourney';
-import { readAsk, readJourney, readProject } from '@/utils/chatMarkers';
-import type { RedesignAnswer } from './components/ChatAsk';
+import { readChoices, readJourney, readProject } from '@/utils/chatMarkers';
+import type { ChoicesAnswerEvent } from './components/ChatChoices';
+import { journeyLink } from '@idem/shared-journey';
+import { loadCommands, parseCommand } from '@/utils/commands';
 
 type WeMessages = (Message & {
   experimental_attachments?: Array<{
@@ -407,7 +409,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
         // Pas davantage pour une réponse du moteur (même arrêtée avant d'écrire un fichier : site illisible)
         // ni pour une question à cliquer, qui n'a rien produit.
         const last = messages[messages.length - 1]?.content ?? '';
-        const engineAnswer = last.includes('<boltArtifact id="idem-site"') || readAsk(last) !== null;
+        const engineAnswer = last.includes('<boltArtifact id="idem-') || readChoices(last) !== null;
         if (!engineAnswer && !isGeneratedSite(useFileStore.getState().files)) {
           runQualityPass(chatUuid, messages, append, t, projectData);
         }
@@ -957,7 +959,9 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       // Une retouche d'un site vitrine déjà généré : son état ACTUEL (sections, pages, design system, données)
       // part avec la demande, pour que le serveur ne modifie que la partie visée.
       const body = (options?.body ?? {}) as Record<string, unknown>;
-      const outOfBand = body.siteRepair || body.qualityRepair || body.followUp || body.siteRedesign;
+      // Une réponse cliquée part à son déroulé ; « continuer » renvoie la demande d'origine, traitée comme une saisie.
+      const answers = body.answers as { purpose?: string } | undefined;
+      const outOfBand = body.siteRepair || body.qualityRepair || body.followUp || (answers && answers.purpose !== 'passthrough');
       const siteEdit = mode === ChatMode.Builder && !outOfBand && message.role === 'user' ? currentSiteFiles() : null;
       return appendRaw(
         message,
@@ -1053,36 +1057,86 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
     });
   }, [isLoading, append, t]);
 
-  // La réponse cliquée à la question de refonte. Le site refait remplace l'espace de travail : on repart d'un
-  // espace vide et sans socle verrouillé (le serveur envoie celui du site, construit avec le projet et son
-  // logo), en mode site vitrine.
+  /**
+   * Les commandes que l'atelier règle lui-même (tapées après « / », ou choisies dans une confirmation) :
+   * la mise en ligne et le nom de domaine s'ouvrent sur place, la communication mène au module d'IDEM sur ce
+   * projet, « corriger » reprend l'erreur de l'aperçu, « aide » ouvre la liste des commandes.
+   */
+  const runClientCommand = useCallback(
+    async (name: string) => {
+      if (name === 'publish') return eventEmitter.emit('deploy:open');
+      if (name === 'domain') return eventEmitter.emit('deploy:open', 'domain');
+      if (name === 'help') return eventEmitter.emit('chat:slashMenu');
+      if (name === 'communication') {
+        if (!projectId) return toast.info(t('chat.commands.needsProject'));
+        await waitForCodeSync();
+        window.location.assign(journeyLink('communication', { urls: journeyUrls, projectId, from: 'icode' }));
+        return;
+      }
+      if (name === 'fix') {
+        const error = useRunStatus.getState().error;
+        if (error) {
+          useRunStatus.getState().clearError();
+          return append({ id: uuidv4(), role: 'user', content: [t('preview.fix.prompt', { summary: error.summary }), '', '```', error.log, '```'].join('\n') });
+        }
+        // Sinon, les sections d'un site restées à corriger (bouton « Corriger » de la dernière réponse).
+        const last = [...messages].reverse().find((m) => m.role === 'assistant')?.content ?? '';
+        const paths = (() => {
+          try {
+            return JSON.parse(last.match(/<!--\s*idem:repair\s+(\[[\s\S]*?\])\s*-->/)?.[1] ?? '[]') as string[];
+          } catch {
+            return [];
+          }
+        })();
+        if (paths.length) return eventEmitter.emit('chat:siteRepair', paths);
+        return toast.info(t('chat.commands.nothingToFix'));
+      }
+    },
+    [append, messages, projectId, t]
+  );
+
+  useEffect(() => eventEmitter.on('chat:command', (name: string) => void runClientCommand(name)), [runClientCommand]);
+
+  // La réponse cliquée à des choix posés par le serveur. Selon l'option : une action sur place, la demande
+  // d'origine renvoyée telle quelle (« continuer »), rien (« pas maintenant »), ou la réponse à son déroulé — en
+  // repartant d'un espace vide quand un site neuf va s'écrire (le serveur envoie le socle du site, construit
+  // avec le projet et son logo).
   useEffect(() => {
-    return eventEmitter.on('chat:redesignAnswer', async (answer: RedesignAnswer) => {
-      if (!answer?.url) return;
+    return eventEmitter.on('chat:choicesAnswer', async (answer: ChoicesAnswerEvent) => {
       if (isLoading) {
         toast.info(t('preview.fix.busy'));
         return;
       }
-      const url = new URL(window.location.href);
-      if (url.searchParams.get('product') !== 'site') {
-        url.searchParams.set('product', 'site');
-        url.searchParams.delete('platform');
-        window.history.replaceState({}, '', url.toString());
+      const { choices, option } = answer;
+      if (option?.clientAction) return void runClientCommand(option.clientAction);
+      if (option?.dismiss) return;
+      if (option?.passthrough) {
+        const original = String(choices.context?.original ?? '');
+        if (original) append({ id: uuidv4(), role: 'user', content: original }, { body: { answers: { purpose: 'passthrough', values: {} } } });
+        return;
       }
-      journey.clear();
-      resetWarmStart();
-      clearScaffold();
-      // Rien à attendre : aucun socle ne sera monté, le serveur l'envoie dans sa réponse.
-      settleScaffold();
-      setEmptyFiles();
-      await setFiles({});
-      resetTerminals();
+      if (choices.prepare === 'site-reset') {
+        const url = new URL(window.location.href);
+        if (url.searchParams.get('product') !== 'site') {
+          url.searchParams.set('product', 'site');
+          url.searchParams.delete('platform');
+          window.history.replaceState({}, '', url.toString());
+        }
+        journey.clear();
+        resetWarmStart();
+        clearScaffold();
+        // Rien à attendre : aucun socle ne sera monté, le serveur l'envoie dans sa réponse.
+        settleScaffold();
+        setEmptyFiles();
+        await setFiles({});
+        resetTerminals();
+      }
       append(
-        { id: uuidv4(), role: 'user', content: answer.text },
-        { body: { siteRedesign: { url: answer.url, choice: answer.choice, consent: answer.consent } } }
+        { id: uuidv4(), role: 'user', content: answer.summary },
+        { body: { answers: { purpose: choices.purpose, values: answer.values, consent: answer.consent, context: choices.context } } }
       );
     });
-  }, [isLoading, append, t, journey]);
+  }, [isLoading, append, t, journey, runClientCommand]);
 
   // Contexte poussé depuis l'espace de travail : sélection d'un élément,
   // annotation dessinée, thème à appliquer. On préremplit la saisie au lieu
@@ -1599,6 +1653,17 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
   // modify submit handler
   const handleSubmitWithFiles = async (_: React.KeyboardEvent, text?: string) => {
     if (!text && !input.trim() && uploadedImages.length === 0) return;
+
+    // Une commande que l'atelier règle lui-même (« /publier », « /aide »…) ne part pas au serveur.
+    const typed = (text || input).trim();
+    if (typed.startsWith('/')) {
+      const parsed = parseCommand(typed, await loadCommands());
+      if (parsed?.command.run === 'client') {
+        setInput('');
+        void runClientCommand(parsed.command.name);
+        return;
+      }
+    }
 
     console.log('💬 CLIENT: Submitting message to chat');
     console.log('📝 CLIENT: Message content:', text || input);
@@ -2207,9 +2272,9 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
             client={journeyClient}
             beforeOpen={async (recommendation) => {
               // La mise en ligne se fait ici même, dans la fenêtre habituelle.
-              if (recommendation.destination === 'publish-site' || recommendation.destination === 'publish-app') {
+              if (recommendation.destination === 'publish-site' || recommendation.destination === 'publish-app' || recommendation.destination === 'domain') {
                 journey.clear();
-                eventEmitter.emit('deploy:open');
+                eventEmitter.emit('deploy:open', recommendation.destination === 'domain' ? 'domain' : undefined);
                 return false;
               }
               // Le code part au stockage avant de quitter l'atelier.

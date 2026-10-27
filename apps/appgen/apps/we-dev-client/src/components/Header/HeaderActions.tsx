@@ -138,6 +138,9 @@ export function HeaderActions() {
     setShowDeployChoiceModal(true);
   }, []);
 
+  // Ouverte pour choisir un nom de domaine (« /domaine », carte de la boucle) : l'achat s'ouvre aussitôt si l'application est en ligne.
+  const [domainIntent, setDomainIntent] = useState(false);
+
   const handleDeployClick = () => {
     setShowDeployChoiceModal(true);
     // Sync current files into AppGen context before deploying
@@ -145,7 +148,12 @@ export function HeaderActions() {
   };
 
   // « Mettre en ligne » proposé par la boucle IDEM (carte « prochaine étape ») : la même fenêtre, sur place.
-  useEffect(() => eventEmitter.on('deploy:open', () => handleDeployClick()));
+  useEffect(() =>
+    eventEmitter.on('deploy:open', (intent?: 'domain') => {
+      setDomainIntent(intent === 'domain');
+      handleDeployClick();
+    })
+  );
 
   // Le nom proposé pour l'application en ligne (et pour son nom de domaine) : celui du projet
   // IDEM ; sans projet, celui retenu à la première génération, lu dans les fichiers de l'application.
@@ -238,7 +246,11 @@ export function HeaderActions() {
 
       <DeployModal
         open={showDeployChoiceModal}
-        onClose={() => setShowDeployChoiceModal(false)}
+        onClose={() => {
+          setShowDeployChoiceModal(false);
+          setDomainIntent(false);
+        }}
+        openDomain={domainIntent}
         deployment={deployment}
         defaultName={projectName || draft?.appName || deriveAppName(files as Record<string, unknown>) || 'mon-app'}
         onPublished={handlePublished}

@@ -69,6 +69,10 @@ export const environment = {
     console: {
       url: '${process.env.SERVICES_DASHBOARD_URL || 'http://localhost:4200'}',
     },
+    // iCode : la carte « prochaine étape » peut y mener (le site ou l'application d'un projet).
+    icode: {
+      url: '${process.env.SERVICES_WEBGEN_URL || process.env.WEBGEN_URL || (isProduction ? 'https://webgen.idem.africa' : 'http://localhost:5173')}',
+    },
     // iDomain : acheter un nom et le brancher à une application (page et API).
     idomain: {
       url: '${process.env.SERVICES_IDOMAIN_URL || 'http://localhost:4205'}',

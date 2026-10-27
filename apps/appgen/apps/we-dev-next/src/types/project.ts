@@ -212,8 +212,8 @@ export interface ChatRequest {
    */
   siteEdit?: { files: Record<string, string> };
   /**
-   * La réponse cliquée à la question de refonte (`siteEngine/redesign`) : le site à refaire, le chemin choisi
-   * (charte d'abord, ou refonte directe) et l'accord aux politiques d'IDEM quand un projet doit être créé.
+   * La réponse cliquée à des choix posés dans le chat (`commands/choices.ts`) : le déroulé qui les a posés
+   * (`purpose`), les valeurs, l'accord aux politiques d'IDEM s'il était demandé, et le contexte renvoyé tel quel.
    */
-  siteRedesign?: { url: string; choice: 'identity' | 'direct'; consent?: boolean };
+  answers?: { purpose: string; values: Record<string, string>; consent?: boolean; context?: Record<string, string | boolean | undefined> };
 }

@@ -35,7 +35,14 @@ const [rec] = await client.record({ type: 'site.generated', app: 'icode', projec
 <JourneyCard recommendation={rec} urls={{ dashboard, icode }} from="icode" lang="fr" client={client} />
 ```
 
-Angular (dashboard) : `<app-journey-next [projectId]="id" [ambient]="true" />` (enveloppe de `idem-journey-card`, passe par `HttpClient`).
+Angular : `idem-journey-card` (paquet), enveloppé par chaque application :
+
+| Application | Où | Comment le projet est connu |
+| --- | --- | --- |
+| Dashboard | accueil du projet (`app-journey-next`, `ambient`) | cookie / `?projectId=` |
+| iCode | sous la conversation (`useJourney`) | `?projectId=` |
+| iVision web | sous le dernier livrable (`iv-journey-next`) | la marque rattachée à un projet IDEM ; la recommandation arrive avec le message (passerelle `/internal/ivision/journey/*`) |
+| iDeploy web | page d'une application (`app-journey-next`) | `?appUuid=` : l'API retrouve le projet par la mise en ligne faite depuis iCode ; sinon aucune carte |
 
 `beforeOpen` laisse l'hôte finir ce qui doit l'être (enregistrer le code) ou ouvrir la destination sur place (la fenêtre de mise en ligne d'iCode) ; rendre `false` annule la navigation.
 

@@ -30,6 +30,8 @@ interface DeployModalProps {
   /** Nom proposé pour l'application (celui du projet). */
   defaultName: string;
   onPublished: (deployment: AppDeployment) => void | Promise<void>;
+  /** Ouverte pour choisir un nom de domaine : l'achat s'ouvre dès que l'application est en ligne. */
+  openDomain?: boolean;
 }
 
 const IDEPLOY_URL = process.env.REACT_APP_IDEPLOY_URL || 'http://localhost:4202';
@@ -54,7 +56,7 @@ const STEPS: Record<PublishMode, StepId[]> = {
  * créé, l'adresse de l'API, la gestion dans iDeploy) vit dans « Options
  * avancées », replié.
  */
-export function DeployModal({ open, onClose, deployment, defaultName, onPublished }: DeployModalProps) {
+export function DeployModal({ open, onClose, deployment, defaultName, onPublished, openDomain = false }: DeployModalProps) {
   const { t, i18n } = useTranslation();
   const files = useFileStore((state) => state.files);
   const mode = useMemo(() => detectPublishMode(files as Record<string, string>), [files]);
@@ -80,6 +82,11 @@ export function DeployModal({ open, onClose, deployment, defaultName, onPublishe
   const lang = (i18n.language || 'fr').slice(0, 2);
   const [buyingDomain, setBuyingDomain] = useState(false);
   const [domainsVersion, setDomainsVersion] = useState(0);
+  // « /domaine » ou la carte « Votre propre nom » : l'achat s'ouvre aussitôt, si l'application est déjà en ligne
+  // (sinon la fenêtre propose d'abord la mise en ligne, sans laquelle un nom ne mène nulle part).
+  useEffect(() => {
+    if (open && openDomain && publicAppUuid) setBuyingDomain(true);
+  }, [open, openDomain, publicAppUuid]);
   const ownDomains = useDomainConnections(IDOMAIN_API_URL, publicAppUuid, domainsVersion);
 
   const mark = (id: StepId, state: StepState) => setSteps((current) => ({ ...current, [id]: state }));

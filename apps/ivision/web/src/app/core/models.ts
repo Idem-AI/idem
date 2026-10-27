@@ -1,4 +1,6 @@
 /** Les objets de l'API iVision, tels que l'interface les lit. */
+import type { Recommendation } from '@idem/shared-journey';
+
 export type ChatMode = 'image' | 'video';
 export type Creativity = 'low' | 'medium' | 'high' | 'ultra';
 export type PaletteRole = 'primary' | 'secondary' | 'accent' | 'background' | 'text';
@@ -70,6 +72,8 @@ export interface ChatMessage {
   result?: { kind: 'video'; videoId: string } | { kind: 'visual'; visualId: string } | { kind: 'montage'; montageId: string } | { kind: 'charter'; brandId: string };
   status?: 'done' | 'error';
   error?: string;
+  /** L'étape suivante proposée par la boucle IDEM sous ce livrable (forme de `@idem/shared-journey`). */
+  next?: Recommendation;
 }
 
 export interface ChatSession {

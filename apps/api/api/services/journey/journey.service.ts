@@ -47,8 +47,17 @@ export const isJourneyEvent = (value: unknown): value is JourneyEventType => JOU
 export const isIdemApp = (value: unknown): value is IdemApp => IDEM_APPS.includes(value as IdemApp);
 export const isDestination = (value: unknown): value is JourneyDestination => DESTINATIONS.includes(value as JourneyDestination);
 
+/** Une mise en ligne enregistrée par iCode (`<projectId>_deployment` ou `<projectId>_app_deployment`). */
+interface DeploymentRecord {
+  id?: string;
+  ideploy?: { applicationUuid?: string; frontendUuid?: string; backendUuid?: string } | null;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
 class JourneyService {
   private readonly repository: IRepository<JourneyState> = RepositoryFactory.getRepository<JourneyState>();
+  private readonly deployments: IRepository<DeploymentRecord> = RepositoryFactory.getRepository<DeploymentRecord>();
 
   private path(userId: string): string {
     return `users/${userId}/journey`;
@@ -102,6 +111,23 @@ class JourneyService {
       siteDeployment?.url ? { site: true, sitePublished: true } : {},
       appDeployment?.url ? { app: true, appPublished: true } : {}
     );
+  }
+
+  /**
+   * Le projet IDEM d'une application iDeploy : iDeploy ne connaît pas les projets d'IDEM, mais une mise en ligne
+   * faite depuis iCode garde les identifiants de ses applications (`users/<uid>/appDeployments`). Une
+   * application publiée autrement n'a pas de projet : pas de carte plutôt qu'une carte sur le mauvais projet.
+   */
+  async projectOfApp(userId: string, appUuid: string): Promise<{ projectId: string; product: 'site' | 'app' } | null> {
+    if (!appUuid) return null;
+    const records = await this.deployments.findAll(`users/${userId}/appDeployments`).catch(() => [] as DeploymentRecord[]);
+    for (const record of records) {
+      const ideploy = record.ideploy ?? {};
+      if (![ideploy.applicationUuid, ideploy.frontendUuid, ideploy.backendUuid].includes(appUuid)) continue;
+      const match = String(record.id ?? '').match(/^(.+?)_(app_)?deployment$/);
+      if (match) return { projectId: match[1], product: match[2] ? 'app' : 'site' };
+    }
+    return null;
   }
 
   /** Un geste vient d'avoir lieu : il est retenu, et ses recommandations sont rendues tout de suite. */

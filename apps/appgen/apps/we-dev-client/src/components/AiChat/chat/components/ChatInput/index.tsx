@@ -19,6 +19,8 @@ import OptimizedPromptWord from "./OptimizedPromptWord";
 import useUserStore from "@/stores/userSlice";
 import { eventEmitter } from "../../../utils/EventEmitter";
 import { IdemLoader } from '@idem/shared-loader/react';
+import { SlashMenu } from "../SlashMenu";
+import { CommandSpec, filterCommands, loadCommands } from "@/utils/commands";
 // import type { ModelOption } from './UploadButtons';
 
 export enum ChatMode {
@@ -73,6 +75,44 @@ export const ChatInput: React.FC<ChatInputPropsType> = ({
   const { mode: chatMode, setMode } = useChatModeStore();
   const { isDarkMode } = useThemeStore();
 
+  // Le menu des commandes « / » : ouvert tant que la saisie n'est qu'un « /mot ».
+  const { i18n } = useTranslation();
+  const slashId = "icode-commands";
+  const [slashCommands, setSlashCommands] = useState<CommandSpec[] | null>(null);
+  const [slashIndex, setSlashIndex] = useState(0);
+  const slashQuery = /^\/[^\s]*$/.test(input ?? "") ? input : null;
+  const slashOptions = slashQuery !== null && slashCommands ? filterCommands(slashQuery, slashCommands, i18n.language?.startsWith("en") ? "en" : "fr") : [];
+  const showSlash = slashQuery !== null && slashCommands !== null && chatMode === ChatMode.Builder;
+
+  useEffect(() => {
+    if (slashQuery === null || slashCommands) return;
+    void loadCommands().then(setSlashCommands);
+  }, [slashQuery, slashCommands]);
+
+  useEffect(() => setSlashIndex(0), [slashQuery]);
+
+  // « /aide » ou « Voir les commandes » : le menu s'ouvre sur toute la liste.
+  useEffect(
+    () =>
+      eventEmitter.on("chat:slashMenu", () => {
+        setInput("/");
+        textareaRef.current?.focus();
+      }),
+    [setInput]
+  );
+
+  /** Une commande choisie : on complète si elle attend quelque chose, on la règle sur place, ou on l'envoie. */
+  const pickCommand = (command: CommandSpec) => {
+    if (command.args) {
+      setInput(`/${command.name} `);
+      textareaRef.current?.focus();
+      return;
+    }
+    setInput("");
+    if (command.run === "client") eventEmitter.emit("chat:command", command.name);
+    else handleSubmitWithFiles(null as unknown as React.KeyboardEvent, `/${command.name}`);
+  };
+
   // Quand l'espace de travail préremplit la saisie, le curseur doit y être :
   // sans ce focus, l'utilisateur voit son contexte apparaître et doit aller
   // cliquer dans le champ pour continuer sa phrase.
@@ -121,6 +161,24 @@ export const ChatInput: React.FC<ChatInputPropsType> = ({
 
     if (e.key === "Enter") {
       setHighlightRange(null);
+    }
+
+    if (showSlash && slashOptions.length) {
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        setSlashIndex((i) => (e.key === "ArrowDown" ? (i + 1) % slashOptions.length : (i - 1 + slashOptions.length) % slashOptions.length));
+        return;
+      }
+      if ((e.key === "Enter" && !e.shiftKey) || e.key === "Tab") {
+        e.preventDefault();
+        pickCommand(slashOptions[Math.min(slashIndex, slashOptions.length - 1)]);
+        return;
+      }
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setInput("");
+        return;
+      }
     }
 
     if (showMentionMenu) {
@@ -432,8 +490,22 @@ export const ChatInput: React.FC<ChatInputPropsType> = ({
               </div>
             )}
             <div className="relative ">
+              {showSlash && (
+                <SlashMenu
+                  id={slashId}
+                  commands={slashOptions}
+                  activeIndex={slashIndex}
+                  onHover={setSlashIndex}
+                  onPick={pickCommand}
+                />
+              )}
               <textarea
                 ref={textareaRef}
+                role={showSlash ? "combobox" : undefined}
+                aria-expanded={showSlash || undefined}
+                aria-controls={showSlash ? slashId : undefined}
+                aria-autocomplete={showSlash ? "list" : undefined}
+                aria-activedescendant={showSlash && slashOptions[slashIndex] ? `${slashId}-${slashOptions[slashIndex].name}` : undefined}
                 value={input}
                 onChange={onInputChange}
                 onKeyDown={handleKeyDown}

@@ -21,6 +21,7 @@ import { ProgressList, StageState } from './progress-list';
 import { MontageResult } from './montage-result';
 import { VideoResult } from './video-result';
 import { VisualResult } from './visual-result';
+import { JourneyNext } from './journey-next';
 import { brandFonts } from '../visual-edit/visual-adapter';
 
 type TurnBody = Parameters<ApiService['turn']>[1];
@@ -66,7 +67,7 @@ export function settingsInRequest(text: string): { durationSec?: number; format?
  */
 @Component({
   selector: 'iv-chat',
-  imports: [RouterLink, TranslateModule, IdemLoaderComponent, CreativityGate, Illustration, BrandChoice, BrandHint, ProgressList, VideoResult, VisualResult, MontageResult, AskChoices, CharterResult, BrandCreate],
+  imports: [RouterLink, TranslateModule, IdemLoaderComponent, CreativityGate, Illustration, BrandChoice, BrandHint, ProgressList, VideoResult, VisualResult, MontageResult, AskChoices, CharterResult, BrandCreate, JourneyNext],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './chat.html',
 })

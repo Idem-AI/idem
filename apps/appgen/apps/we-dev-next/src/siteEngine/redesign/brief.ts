@@ -31,8 +31,23 @@ export function redesignFacts(content: SiteContent, fr: boolean): string {
 }
 
 /** La mission de l'architecte : comprendre le site, sa cible, ses manques, et concevoir mieux. */
-export function redesignArchitect(content: SiteContent, fr: boolean): string {
-  return fr
+export type RedesignFocus = 'all' | 'design' | 'copy';
+
+/** Ce que l'utilisateur veut améliorer d'abord (question du déroulé `/redesign`). */
+function focusLine(focus: RedesignFocus, fr: boolean): string {
+  if (focus === 'design')
+    return fr
+      ? '\nPriorité de l’utilisateur : le DESIGN. Garde la structure et les textes du site presque tels quels (corrige seulement ce qui est faux ou illisible) ; tout l’effort va à la mise en page, la hiérarchie et les visuels.'
+      : '\nUser priority: the DESIGN. Keep the site structure and copy almost as they are (only fix what is wrong or unreadable); all the effort goes into layout, hierarchy and visuals.';
+  if (focus === 'copy')
+    return fr
+      ? '\nPriorité de l’utilisateur : les TEXTES et le MESSAGE. Réécris la promesse, les titres et les appels à l’action pour la cible ; garde une mise en page sobre et proche de l’esprit du site.'
+      : '\nUser priority: the COPY and MESSAGE. Rewrite the promise, headings and calls to action for the audience; keep a sober layout close to the site’s spirit.';
+  return '';
+}
+
+export function redesignArchitect(content: SiteContent, fr: boolean, focus: RedesignFocus = 'all'): string {
+  return (fr
     ? `# C'est une REFONTE
 Ce projet a déjà un site (${content.url}, ${content.pages.length} page${content.pages.length > 1 ? 's' : ''} lue${content.pages.length > 1 ? 's' : ''}). Ses textes sont dans les faits ci-dessus. Tu ne le recopies pas : tu le refais mieux.
 1. Comprends-le d'abord : ce que l'entreprise vend, à qui, où, et ce qui la distingue — d'après ce que le site dit.
@@ -46,7 +61,7 @@ This project already has a website (${content.url}, ${content.pages.length} page
 2. Judge it for ITS audience: is the promise clear on the first screen? Is the main action (call, book, order, write) obvious and repeated? Are the offers easy to compare? Is there proof (work, real figures, real reviews) put forward? Is the copy too long, vague, or about the company rather than the customer?
 3. Design the structure that fixes these gaps: a clearer order, pages that each have one goal, a promise rewritten for the audience, a call to action at every step.
 4. Keep ALL the site's facts (offers, contact details, places, names, figures): nothing disappears, nothing is invented. What changes is how it is said and shown.
-In each brief, say what the section improves over the old site.`;
+In each brief, say what the section improves over the old site.`) + focusLine(focus, fr);
 }
 
 /** Le style relevé sur le site : l'ADN à garder, l'exécution à refaire. */

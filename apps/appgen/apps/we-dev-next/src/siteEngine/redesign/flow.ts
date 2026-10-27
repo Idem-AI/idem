@@ -13,11 +13,13 @@ import { consumeGeneration } from '../../services/billingService.js';
 import { ProjectModel } from '../../types/project.js';
 import { ChatLogger } from '../../utils/logger.js';
 import type { SiteStream } from '../stream.js';
+import type { RedesignFocus } from './brief.js';
 import { fetchProject, generateCharter, IdemApiError, importSite, SiteContent, SiteImportStep } from './idemClient.js';
 
 export interface RedesignContext {
   content: SiteContent;
   choice: 'identity' | 'direct';
+  focus: RedesignFocus;
   /** La charte en cours de génération (identité visuelle pro) ; se résout avec un message d'échec, ou `null`. */
   charter?: Promise<string | null>;
   /** Le projet vient d'être créé (l'atelier s'y rattache à la fin). */
@@ -65,6 +67,7 @@ export async function prepareRedesign(options: {
   signal: AbortSignal;
   url: string;
   choice: 'identity' | 'direct';
+  focus: RedesignFocus;
   consent: boolean;
   fr: boolean;
   credentials: Record<string, string>;
@@ -165,6 +168,6 @@ export async function prepareRedesign(options: {
 
   return {
     projectData,
-    redesign: { content: imported.content, choice: options.choice, charter, created: !options.projectId },
+    redesign: { content: imported.content, choice: options.choice, focus: options.focus, charter, created: !options.projectId },
   };
 }

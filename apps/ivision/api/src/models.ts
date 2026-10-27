@@ -111,6 +111,8 @@ export interface ChatMessage {
   brandId?: string;
   /** Le projet IDEM né du site lu : l'interface propose d'ouvrir sa charte dans IDEM. */
   idemProjectId?: string;
+  /** L'étape suivante proposée par la boucle IDEM sous un livrable (créer le site, la charte…). */
+  next?: { id: string; destination: string; projectId?: string; because?: string; score: number };
 }
 
 /** Les réglages d'une demande (bandeau du compositeur). */

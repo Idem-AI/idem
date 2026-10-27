@@ -240,6 +240,8 @@ export async function brandFromSite(userId: string, rawUrl: string, onProgress: 
       const photos = (await Promise.all(result.images.slice(0, 8).map((u, i) => hostImage(userId, u, `${brand._id}-photo-${i}`)))).filter((u): u is string => !!u);
       await brands().updateOne({ _id: brand._id, userId }, { $set: { siteUrl: result.siteUrl, ...(photos.length ? { photos: [...new Set([...photos, ...brand.photos])].slice(0, 40) } : {}), updatedAt: now() } });
       logger.info('brand.from_site_project', { event: 'brand.from_site_project', brandId: brand._id, projectId: result.projectId, reused: result.reused, fontsCopied: result.fonts.copied });
+      // La boucle IDEM : une marque lue sur un site ouvre la charte complète, puis le site refait (iCode).
+      if (!result.reused) void idem.journey.record({ userId, type: 'brand.imported', projectId: result.projectId }).catch(() => undefined);
       return getBrand(userId, brand._id);
     }
     if (Date.now() > deadline) throw new SiteScanError('timeout', 'La lecture du site prend trop de temps.');

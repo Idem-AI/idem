@@ -4,13 +4,10 @@ import { modelForCreativity, normalizeCreativity } from '../config/modelConfig.j
 import { handleBuilderMode } from '../handlers/builderHandler.js';
 import { resolveBuildTarget } from '../config/buildTarget.js';
 import { handleChatMode } from '../handlers/chatHandler.js';
-import { createSiteEngineStream } from '../siteEngine/orchestrator.js';
-import { createRedesignAskStream } from '../siteEngine/redesign/ask.js';
+import { dispatch } from '../commands/dispatch.js';
 import { ChatLogger } from '../utils/logger.js';
 import { consumeGeneration, resolveBillableAction } from '../services/billingService.js';
 import { forwardedCredentials } from '../middleware/auth.js';
-import { detectRedesign } from '../siteEngine/redesign/intent.js';
-import { INTERNAL_MARK } from '../siteEngine/redesign/ask.js';
 
 const router = Router();
 
@@ -53,7 +50,7 @@ router.post('/', async (req: Request, res: Response) => {
       followUp,
       siteRepair,
       siteEdit,
-      siteRedesign,
+      answers,
     } = req.body as ChatRequest;
 
     // Le niveau de créativité choisit le modèle (l'interface n'en montre plus aucun) ; un ancien client qui
@@ -146,45 +143,24 @@ router.post('/', async (req: Request, res: Response) => {
      * `pipeDataStreamToResponse`, il serait trop tard pour refuser quoi que ce
      * soit — et le coût d'inférence serait déjà engagé.
      */
-    // « Refais mon site https://… » : la question (gratuite, sans modèle), puis la refonte, facturée au projet
-    // seulement une fois le site lu (`siteEngine/redesign/flow.ts`). Un projet qui a déjà sa charte n'a rien à
-    // choisir : la refonte part directement.
+    // Les déroulés d'iCode (commandes « / », réponses cliquées, demandes reconnues par l'agent) passent avant
+    // la facturation : une question est gratuite, chaque déroulé facture au moment où il génère.
     const lastUser = [...(messages ?? [])].reverse().find((message) => message.role === 'user');
-    const redesignIntent =
-      mode === ChatMode.Builder && !siteRedesign && !siteRepair && !qualityRepair?.trim() && !followUp?.trim() && lastUser && !String(lastUser.content).startsWith(INTERNAL_MARK)
-        ? detectRedesign(String(lastUser.content))
-        : null;
-    const hasCharter = Array.isArray((projectData?.analysisResultModel?.branding as { sections?: { data?: string }[] } | undefined)?.sections)
-      ? ((projectData!.analysisResultModel!.branding as { sections: { data?: string }[] }).sections.some((section) => !!section?.data))
-      : false;
-    const redesign =
-      siteRedesign && typeof siteRedesign.url === 'string' && siteRedesign.url.trim()
-        ? { url: siteRedesign.url.trim().slice(0, 2000), choice: siteRedesign.choice === 'identity' ? ('identity' as const) : ('direct' as const), consent: siteRedesign.consent === true, creativity: level ?? undefined }
-        : redesignIntent && hasCharter
-          ? { url: redesignIntent.url, choice: 'direct' as const, consent: false, creativity: level ?? undefined }
-          : null;
-
-    if (redesign || redesignIntent) {
-      const fr = resolvedLanguage !== 'en';
-      ChatLogger.info('SITE_REDESIGN', redesign ? 'Refonte lancée' : 'Question de refonte', { url: redesign?.url ?? redesignIntent?.url, choice: redesign?.choice });
-      const result = redesign
-        ? createSiteEngineStream({
-            projectData,
-            language: fr ? 'fr' : 'en',
-            // La demande d'origine (« refais mon site … en plus moderne, en vert ») plutôt que le choix cliqué.
-            request: String(
-              [...(messages ?? [])].reverse().find((message) => message.role === 'user' && detectRedesign(String(message.content))?.url === redesign.url)?.content ??
-                lastUser?.content ??
-                ''
-            ),
-            model,
-            userId,
-            scaffoldMounted: false,
-            credentials: forwardedCredentials(req),
-            redesign,
-          })
-        : createRedesignAskStream(redesignIntent!, { fr, needsConsent: !projectData?.id });
-      return await result.pipeDataStreamToResponse(res);
+    if (mode === ChatMode.Builder && !siteRepair && !qualityRepair?.trim() && !followUp?.trim()) {
+      const responder = await dispatch({
+        messages,
+        text: lastUser ? String(lastUser.content) : '',
+        projectData,
+        fr: resolvedLanguage !== 'en',
+        model,
+        userId,
+        credentials: forwardedCredentials(req),
+        creativity: level ?? undefined,
+        answers,
+        hasSite: !!siteEdit?.files && Object.keys(siteEdit.files).length > 0,
+        product: product ?? null,
+      });
+      if (responder) return await responder.pipeDataStreamToResponse(res);
     }
 
     const billable = resolveBillableAction(messages?.length ?? 0, mode as 'chat' | 'builder');

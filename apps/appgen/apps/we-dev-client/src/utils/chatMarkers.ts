@@ -1,30 +1,50 @@
 /**
  * Les marques que le serveur laisse dans une réponse, pour l'atelier et pas pour l'utilisateur :
  *
- *   idem:ask       une question à cliquer (refonte d'un site : charte d'abord, ou refonte directe)
+ *   idem:choices   des choix à cliquer (`we-dev-next/src/commands/choices.ts`)
  *   idem:project   le projet IDEM créé pendant la réponse : l'atelier s'y rattache
  *   idem:journey   un geste à signaler à la boucle IDEM (site généré, refait…), qui propose la suite
+ *   idem:open      un bouton qui mène à une page d'IDEM (la charte du projet…)
  *
- * Ce sont des commentaires HTML portant du JSON (voir `we-dev-next/src/siteEngine/redesign/ask.ts`). Ils sont
- * retirés du texte affiché.
+ * Ce sont des commentaires HTML portant du JSON. Ils sont retirés du texte affiché.
  */
-import type { JourneyEventType } from '@idem/shared-journey';
+import type { JourneyDestination, JourneyEventType } from '@idem/shared-journey';
 
-export interface ChatAsk {
-  purpose: 'redesign';
-  url: string;
-  host: string;
+export interface ChoiceOption {
+  value: string;
+  label: string;
+  description?: string;
+  recommended?: boolean;
+  clientAction?: 'publish' | 'domain' | 'communication';
+  passthrough?: boolean;
+  dismiss?: boolean;
+}
+
+export interface ChoiceQuestion {
+  id: string;
   question: string;
-  options: { value: 'direct' | 'identity'; label: string; description: string; recommended?: boolean }[];
-  consent: boolean;
+  help?: string;
+  kind?: 'choice' | 'text';
+  options?: ChoiceOption[];
+  placeholder?: string;
+  allowOther?: boolean;
+}
+
+export interface ChatChoices {
+  purpose: string;
+  questions: ChoiceQuestion[];
+  consent?: boolean;
+  context?: Record<string, string | boolean | undefined>;
+  prepare?: 'site-reset';
+  submitLabel?: string;
 }
 
 const pattern = (name: string) => new RegExp(`<!--\\s*idem:${name}\\s+(\\{[\\s\\S]*?\\})\\s*-->`, 'g');
-const ANY = /<!--\s*idem:(ask|project|journey)\s+\{[\s\S]*?\}\s*-->/g;
+const ANY = /<!--\s*idem:(choices|project|journey|open)\s+\{[\s\S]*?\}\s*-->/g;
 
 function read<T>(text: string, name: string): T[] {
   const out: T[] = [];
-  for (const match of Array.from(text.matchAll(pattern(name)))) {
+  for (const match of Array.from(String(text || '').matchAll(pattern(name)))) {
     try {
       out.push(JSON.parse(match[1]) as T);
     } catch {
@@ -34,9 +54,9 @@ function read<T>(text: string, name: string): T[] {
   return out;
 }
 
-export function readAsk(text: string): ChatAsk | null {
-  const ask = read<ChatAsk>(text, 'ask')[0];
-  return ask && ask.purpose === 'redesign' && typeof ask.url === 'string' && Array.isArray(ask.options) ? ask : null;
+export function readChoices(text: string): ChatChoices | null {
+  const choices = read<ChatChoices>(text, 'choices')[0];
+  return choices && typeof choices.purpose === 'string' && Array.isArray(choices.questions) && choices.questions.length ? choices : null;
 }
 
 export function readProject(text: string): { id: string; name?: string } | null {
@@ -48,7 +68,15 @@ export function readJourney(text: string): { event: JourneyEventType; projectId?
   return read<{ event?: JourneyEventType; projectId?: string }>(text, 'journey').filter((item): item is { event: JourneyEventType; projectId?: string } => typeof item.event === 'string');
 }
 
+export function readOpen(text: string): { destination: JourneyDestination; projectId?: string; label: string }[] {
+  return read<{ destination?: JourneyDestination; projectId?: string; label?: string }>(text, 'open').filter(
+    (item): item is { destination: JourneyDestination; projectId?: string; label: string } => typeof item.destination === 'string' && typeof item.label === 'string'
+  );
+}
+
 /** Le texte tel que l'utilisateur doit le lire. */
 export function withoutMarkers(text: string): string {
-  return text.replace(ANY, '').replace(/<!--\s*idem:(ask|project|journey)[\s\S]*$/, '');
+  return String(text || '')
+    .replace(ANY, '')
+    .replace(/<!--\s*idem:(choices|project|journey|open)[\s\S]*$/, '');
 }

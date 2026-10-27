@@ -141,6 +141,17 @@ export const idem = {
         10_000
       ),
   },
+  /**
+   * La boucle IDEM : ce qu'iVision voit faire rejoint celle d'IDEM, qui rend l'étape suivante à proposer (le site,
+   * la charte…). Une panne ne bloque jamais une création : l'appelant ignore l'erreur.
+   */
+  journey: {
+    record: (p: { userId: string; type: string; projectId: string; place?: string }) =>
+      call<{ recommendations: JourneyNext[] }>('post', '/journey/events', p, 8_000),
+    next: (userId: string, projectId: string, place?: string) =>
+      call<{ recommendations: JourneyNext[] }>('get', `/journey/next?userId=${encodeURIComponent(userId)}&projectId=${encodeURIComponent(projectId)}${place ? `&place=${encodeURIComponent(place)}` : ''}`, undefined, 8_000),
+    feedback: (p: { userId: string; id: string; action: 'shown' | 'clicked' | 'dismissed' }) => call<void>('post', '/journey/feedback', p, 8_000),
+  },
   projects: {
     list: (userId: string) => call<{ projects: { id: string; name: string; hasBrand: boolean; primary?: string; updatedAt?: string }[] }>('get', `/projects?userId=${encodeURIComponent(userId)}`),
     /** La charte d'un projet IDEM de l'utilisateur, au format du moteur partagé (BrandKit). */
@@ -169,6 +180,15 @@ export interface UserConsent {
 }
 
 const consentBody = (c: UserConsent) => ({ privacy: true, terms: true, beta: true, ...(c.ipAddress ? { ipAddress: c.ipAddress } : {}), ...(c.userAgent ? { userAgent: c.userAgent.slice(0, 400) } : {}) });
+
+/** Une recommandation de la boucle IDEM (forme de `@idem/shared-journey`). */
+export interface JourneyNext {
+  id: string;
+  destination: string;
+  projectId?: string;
+  because?: string;
+  score: number;
+}
 
 export interface CharterPages {
   name: string;

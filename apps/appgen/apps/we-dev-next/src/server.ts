@@ -23,6 +23,7 @@ import scaffoldRouter from './routes/scaffold.js';
 import depsRouter from './routes/deps.js';
 import designRouter from './routes/design.js';
 import assetsRouter from './routes/assets.js';
+import commandsRouter from './routes/commands.js';
 import mcpRouter from './mcp/server.js';
 import { loadSkills } from './skills/registry.js';
 
@@ -93,6 +94,8 @@ app.use('/api/deploy', requireIdemUser, deployRouter);
 app.use('/api/ideploy', requireIdemUser, ideployRouter);
 app.use('/api/enhancedPrompt', requireIdemUser, enhancedPromptRouter);
 app.use('/api/model', modelRouter);
+// Les commandes « / » (menu de la barre de saisie) : une liste publique, sans coût.
+app.use('/api/commands', commandsRouter);
 // Stockage en mémoire : réservé aux utilisateurs connectés (sinon n'importe qui
 // peut remplir la mémoire du serveur).
 app.use('/api/handoff', requireIdemUser, handoffRouter);

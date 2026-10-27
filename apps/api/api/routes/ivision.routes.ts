@@ -37,6 +37,8 @@ import { recordConsent, SiteConsent, siteImportJobs } from '../services/SiteImpo
 import { chargeBrandSession } from './branding.routes';
 import { generateBrandingStreamingController } from '../controllers/branding.controller';
 import { CustomRequest } from '../interfaces/express.interface';
+import { isDestination, isJourneyEvent, journeyService } from '../services/journey/journey.service';
+import { JOURNEY_RULES } from '../../../../packages/shared-journey/src';
 
 const router = Router();
 const communicationService = new CommunicationService(new PromptService());
@@ -524,6 +526,62 @@ router.get(
       fonts: { primaryFont: branding?.typography?.primaryFont, secondaryFont: branding?.typography?.secondaryFont, fontUrl: branding?.typography?.url },
       sections,
     });
+  })
+);
+
+// ─── La boucle IDEM ─────────────────────────────────────────────────────────
+
+/**
+ * Ce qu'iVision voit faire (une vidéo, un visuel, une marque lue sur un site) rejoint la boucle d'IDEM, et
+ * iVision reçoit l'étape suivante à proposer (créer le site, la charte…). Le projet doit être à l'utilisateur.
+ */
+async function journeyProject(userId: string, value: unknown): Promise<string | undefined> {
+  const projectId = text(value, 128);
+  if (!projectId || !/^[\w.-]+$/.test(projectId)) return undefined;
+  return (await projectService.getUserProjectById(userId, projectId).catch(() => null)) ? projectId : undefined;
+}
+
+router.post(
+  '/journey/events',
+  route(async (req, res) => {
+    const userId = userIdOf(req);
+    const { type, place } = req.body || {};
+    if (!userId || !isJourneyEvent(type)) {
+      res.status(400).json({ error: 'invalid_input' });
+      return;
+    }
+    const projectId = await journeyProject(userId, req.body?.projectId);
+    const recommendations = await journeyService.record(userId, { type, app: 'ivision', projectId, place: isDestination(place) ? place : undefined });
+    res.json({ recommendations });
+  })
+);
+
+router.get(
+  '/journey/next',
+  route(async (req, res) => {
+    const userId = userIdOf(req);
+    if (!userId) {
+      res.status(400).json({ error: 'invalid_input' });
+      return;
+    }
+    const projectId = await journeyProject(userId, req.query.projectId);
+    res.json({ recommendations: projectId ? await journeyService.next(userId, { app: 'ivision', projectId, place: isDestination(req.query.place) ? req.query.place : undefined }) : [] });
+  })
+);
+
+const RULE_IDS = new Set(JOURNEY_RULES.map((rule) => rule.id));
+
+router.post(
+  '/journey/feedback',
+  route(async (req, res) => {
+    const userId = userIdOf(req);
+    const { id, action } = req.body || {};
+    if (!userId || typeof id !== 'string' || !RULE_IDS.has(id) || !['shown', 'clicked', 'dismissed'].includes(action)) {
+      res.status(400).json({ error: 'invalid_input' });
+      return;
+    }
+    await journeyService.feedback(userId, id, action);
+    res.status(204).end();
   })
 );
 

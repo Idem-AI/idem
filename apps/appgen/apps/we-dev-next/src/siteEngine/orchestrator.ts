@@ -47,8 +47,8 @@ import { buildSiteScaffold, renderPage, renderPageShells } from './project.js';
 import { renderBrandModule, renderDataModule, renderMediaModule, renderSeo } from './siteData.js';
 import { detectSiteLanguage, readSiteFacts, renderFacts } from './siteFacts.js';
 import { FUNCTIONAL_DEPENDENCIES, SITE_ENGINE_ID } from './template.js';
-import { marker } from './redesign/ask.js';
-import { redesignArchitect, redesignDesign, redesignFacts } from './redesign/brief.js';
+import { marker } from '../commands/choices.js';
+import { redesignArchitect, redesignDesign, redesignFacts, RedesignFocus } from './redesign/brief.js';
 import { prepareRedesign, RedesignContext } from './redesign/flow.js';
 
 /** Composants écrits en même temps. */
@@ -69,10 +69,10 @@ export interface SiteBuildInput {
   /** Un client de médias déjà construit (bancs d'essai) ; sinon celui de l'API IDEM. */
   mediaClient?: MediaClient;
   /**
-   * Une REFONTE d'un site existant (réponse cliquée à la question de `redesign/ask.ts`) : le site est lu et
+   * Une REFONTE d'un site existant (réponse cliquée aux questions de `commands/workflows/redesign.ts`) : le site est lu et
    * devient le projet (ou complète celui qui est ouvert), puis le moteur le refait.
    */
-  redesign?: { url: string; choice: 'identity' | 'direct'; consent: boolean; creativity?: string };
+  redesign?: { url: string; choice: 'identity' | 'direct'; focus?: RedesignFocus; consent: boolean; creativity?: string };
 }
 
 /** Le moteur prend-il ce tour ? Le premier tour d'un site, quand il y a un projet. */
@@ -177,6 +177,7 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
           signal: abort.signal,
           url: input.redesign.url,
           choice: input.redesign.choice,
+          focus: input.redesign.focus ?? 'all',
           consent: input.redesign.consent,
           fr: asked,
           credentials: input.credentials ?? {},
@@ -243,7 +244,7 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
       // Opération A : architecture et design system, en parallèle.
       stream.note(fr ? "Je conçois l'architecture du site et son design system" : 'Designing the site structure and its design system');
       const [architecture, design, pattern] = await Promise.all([
-        designManifest({ facts, factsText, request, language, caller, redesign: redesign ? redesignArchitect(redesign.content, fr) : undefined }),
+        designManifest({ facts, factsText, request, language, caller, redesign: redesign ? redesignArchitect(redesign.content, fr, redesign.focus) : undefined }),
         configureDesignSystem({ projectData, facts, request, caller, redesign: redesign ? redesignDesign(redesign.content, fr) : undefined }),
         resolveBrandPattern(projectData).catch(() => null),
       ]);

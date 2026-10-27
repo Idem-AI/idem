@@ -144,9 +144,22 @@
         }
       }
     },
-    "ask": {
+    "redesign": {
+      "attaching": "J’enregistre votre site dans votre projet IDEM…",
+      "attachFailed": "Le site est prêt, mais je n’ai pas pu l’enregistrer dans votre projet. Réessayez depuis le bouton Enregistrer."
+    },
+    "choices": {
+      "step": "Question {{current}} sur {{total}}",
+      "back": "Précédent",
+      "forMe": "Choisir pour moi",
       "recommended": "Recommandé",
-      "chooseForMe": "Choisir pour moi",
+      "other": "Autre…",
+      "otherPlaceholder": "Dites-le avec vos mots",
+      "continue": "Continuer",
+      "review": "Récapitulatif",
+      "reviewTitle": "Vos réponses",
+      "edit": "Modifier",
+      "submit": "Lancer",
       "consent": {
         "lead": "Votre site devient un projet IDEM. J’accepte la",
         "privacy": "politique de confidentialité",
@@ -157,9 +170,13 @@
         "required": "Cochez la case pour que je puisse créer votre projet IDEM."
       }
     },
-    "redesign": {
-      "attaching": "J’enregistre votre site dans votre projet IDEM…",
-      "attachFailed": "Le site est prêt, mais je n’ai pas pu l’enregistrer dans votre projet. Réessayez depuis le bouton Enregistrer."
+    "commands": {
+      "menuLabel": "Commandes",
+      "hint": "Entrée pour lancer · ↑↓ pour choisir · Échap pour fermer",
+      "args": "puis {{args}}",
+      "needsProject": "Cette commande a besoin d’un projet IDEM : ouvrez iCode depuis votre projet.",
+      "nothingToFix": "Aucune erreur à corriger pour l’instant.",
+      "empty": "Aucune commande ne correspond."
     }
   },
   "settings": {

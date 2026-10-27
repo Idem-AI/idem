@@ -9,8 +9,9 @@ import {
 import useChatModeStore from "@/stores/chatModeSlice";
 import { ChatMode } from "@/types/chat";
 import { ArtifactView } from "../ArtifactView";
-import { ChatAsk } from "../ChatAsk";
-import { readAsk, withoutMarkers } from "@/utils/chatMarkers";
+import { ChatChoices } from "../ChatChoices";
+import { OpenLinks } from "../OpenLinks";
+import { readChoices, withoutMarkers } from "@/utils/chatMarkers";
 import { ImageGrid } from "../ImageGrid";
 import { Message } from "ai";
 import { memo } from "react";
@@ -829,11 +830,13 @@ const MessageItemView: React.FC<MessageItemProps> = ({
               </div>
             )}
 
-            {/* Une question à cliquer posée par le serveur : seule la dernière se répond. */}
+            {/* Des choix à cliquer posés par le serveur (seuls les derniers se répondent), et les boutons qui
+                mènent à une page d'IDEM (la charte…). */}
             {!isUser && (() => {
-              const ask = readAsk(message.content);
-              return ask ? <ChatAsk ask={ask} active={isEndMessage && !isLoading} /> : null;
+              const choices = readChoices(message.content);
+              return choices ? <ChatChoices choices={choices} active={isEndMessage && !isLoading} /> : null;
             })()}
+            {!isUser && <OpenLinks content={message.content} />}
 
             {message.experimental_attachments &&
               message.experimental_attachments.length > 0 && (
