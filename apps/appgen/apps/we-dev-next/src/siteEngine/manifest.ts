@@ -28,6 +28,8 @@ export interface ManifestSection {
   visual: VisualKind;
   /** Libellé dans le menu (site d'une seule page). */
   navLabel?: string;
+  /** Refonte : les sections de l'ancien site qu'elle reprend (`p2.s3`). */
+  sources?: string[];
 }
 
 export interface ManifestPage {
@@ -40,6 +42,8 @@ export interface ManifestPage {
   seoTitle: string;
   seoDescription: string;
   sections: ManifestSection[];
+  /** Refonte : la page de l'ancien site qu'elle remplace (`p2` → 2). */
+  source?: number;
 }
 
 export interface SiteManifest {
@@ -89,8 +93,53 @@ const pascal = (slug: string): string => {
   return /^[A-Z]/.test(name) ? name : `S${name}`;
 };
 
+/** Ce qu'une refonte impose au manifeste : une page par page d'origine, chaque section d'origine placée. */
+export interface Coverage {
+  pageCount: number;
+  sectionIds: string[];
+}
+
+/** Les pages et sections de l'ancien site absentes du manifeste. */
+export function missingCoverage(manifest: SiteManifest, coverage: Coverage): { pages: number[]; sections: string[] } {
+  const pages = new Set(manifest.pages.map((p) => p.source).filter((n): n is number => typeof n === 'number'));
+  const placed = new Set(manifest.pages.flatMap((p) => p.sections.flatMap((s) => s.sources ?? [])));
+  return {
+    pages: Array.from({ length: coverage.pageCount }, (_, i) => i).filter((i) => !pages.has(i)),
+    sections: coverage.sectionIds.filter((id) => !placed.has(id)),
+  };
+}
+
+/**
+ * Le dernier recours d'une refonte : ce que l'architecte n'a pas placé l'est par le code — une page par page
+ * d'origine manquante, chaque section manquante à la fin de la page qui remplace la sienne. Rien ne disparaît.
+ */
+export function completeCoverage(manifest: SiteManifest, coverage: Coverage, pageTitles: string[], pagePaths: string[], fr: boolean): SiteManifest {
+  const missing = missingCoverage(manifest, coverage);
+  const pages = manifest.pages.map((page) => ({ ...page, sections: [...page.sections] }));
+  for (const index of missing.pages) {
+    const slug = slugify(pagePaths[index]?.split('/').filter(Boolean).pop() ?? pageTitles[index]) || `page-${index}`;
+    let key = slug;
+    for (let n = 2; pages.some((p) => p.key === key); n++) key = `${slug}-${n}`;
+    pages.push({ key, path: `/${key}/`, label: (pageTitles[index] || key).split(/\s[-|–]\s/)[0].slice(0, 40), purpose: '', seoTitle: (pageTitles[index] || '').slice(0, 70), seoDescription: '', sections: [], source: index });
+  }
+  for (const id of missingCoverage({ ...manifest, pages }, coverage).sections) {
+    const pageIndex = Number(id.match(/^p(\d+)\./)?.[1] ?? 0);
+    const page = pages.find((p) => p.source === pageIndex) ?? pages[0];
+    let component = pascal(slugify(`origine-${id}`));
+    while (page.sections.some((s) => s.component === component)) component = `${component}Bis`;
+    page.sections.push({
+      id: slugify(`origine-${id}`),
+      component,
+      brief: fr ? `Reprend intégralement le contenu de la section ${id} de l'ancien site, présenté avec soin.` : `Carries the full content of the old site's section ${id}, carefully presented.`,
+      visual: 'none',
+      sources: [id],
+    });
+  }
+  return { ...manifest, pages };
+}
+
 /** Lecture structurelle de la réponse ; rend la liste des problèmes de forme. */
-export function readManifest(raw: unknown): { manifest: SiteManifest | null; problems: string[] } {
+export function readManifest(raw: unknown, limits: { maxPages?: number; maxSections?: number } = {}): { manifest: SiteManifest | null; problems: string[] } {
   const problems: string[] = [];
   const data = raw && typeof raw === 'object' ? (raw as Record<string, any>) : null;
   if (!data || !Array.isArray(data.pages) || !data.pages.length) {
@@ -100,7 +149,7 @@ export function readManifest(raw: unknown): { manifest: SiteManifest | null; pro
   const pages: ManifestPage[] = [];
   const keys = new Set<string>();
 
-  for (const [index, entry] of (data.pages as any[]).slice(0, 7).entries()) {
+  for (const [index, entry] of (data.pages as any[]).slice(0, limits.maxPages ?? 7).entries()) {
     const slug = index === 0 ? '' : slugify(entry?.slug ?? entry?.path ?? entry?.label);
     const key = index === 0 ? 'home' : slug;
     const label = cleanText(entry?.label, 40);
@@ -118,7 +167,7 @@ export function readManifest(raw: unknown): { manifest: SiteManifest | null; pro
     const sections: ManifestSection[] = [];
     const ids = new Set<string>();
     const components = new Set<string>();
-    for (const item of Array.isArray(entry?.sections) ? (entry.sections as any[]).slice(0, 10) : []) {
+    for (const item of Array.isArray(entry?.sections) ? (entry.sections as any[]).slice(0, limits.maxSections ?? 10) : []) {
       const id = slugify(item?.id ?? item?.name);
       const brief = cleanText(item?.brief, 500);
       if (!id || !brief || ids.has(id)) continue;
@@ -128,7 +177,8 @@ export function readManifest(raw: unknown): { manifest: SiteManifest | null; pro
       components.add(component);
       const visual = VISUALS.includes(item?.visual) ? (item.visual as VisualKind) : 'none';
       const navLabel = cleanText(item?.navLabel, 28);
-      sections.push({ id, component, brief, visual, ...(navLabel ? { navLabel } : {}) });
+      const sources = Array.isArray(item?.sources) ? item.sources.map((v: unknown) => String(v).trim()).filter((v: string) => /^p\d+\.s\d+$/.test(v)).slice(0, 12) : [];
+      sections.push({ id, component, brief, visual, ...(navLabel ? { navLabel } : {}), ...(sources.length ? { sources } : {}) });
     }
     if (sections.length < 2) {
       problems.push(`page « ${label || index + 1} » : au moins deux sections, chacune avec "id" et "brief"`);
@@ -143,6 +193,7 @@ export function readManifest(raw: unknown): { manifest: SiteManifest | null; pro
       seoTitle: cleanText(entry?.seoTitle, 70),
       seoDescription: cleanText(entry?.seoDescription, 180),
       sections,
+      ...(/^p?\d+$/.test(String(entry?.source ?? '')) ? { source: Number(String(entry.source).replace('p', '')) } : {}),
     });
   }
 
@@ -168,12 +219,12 @@ export function readManifest(raw: unknown): { manifest: SiteManifest | null; pro
   return { manifest, problems };
 }
 
-function prompt(facts: SiteFacts, factsText: string, request: string, language: string, redesign?: string): string {
+function prompt(facts: SiteFacts, factsText: string, request: string, language: string, redesign?: RedesignPlan): string {
   const brief = request.trim();
   const fr = language === 'fr';
   return `# Le projet
 ${factsText}
-${brief && brief !== facts.description ? `\n# La demande\n${brief.slice(0, 1500)}\n` : ''}${redesign ? `\n${redesign}\n` : ''}
+${brief && brief !== facts.description ? `\n# La demande\n${brief.slice(0, 1500)}\n` : ''}${redesign ? `\n${redesign.brief}\n\n# Le plan de l'ancien site (chaque identifiant doit être placé)\n${redesign.outline}\n\n${coverageRule(fr)}\n` : ''}
 # Ta tâche
 Tu es l'architecte du site de ce projet. À partir des informations ci-dessus (secteur, offres, équipe, cible, localisation, description) et de la demande, analyse les besoins réels du projet pour concevoir son architecture sur mesure : la liste des pages à créer et, pour chacune, ses sections dans l'ordre.
 
@@ -235,6 +286,31 @@ Renvoie UNIQUEMENT un objet JSON valide avec la liste des pages que tu as choisi
 `;
 }
 
+/** Une refonte : la mission, le plan de l'ancien site, et ce que le manifeste doit couvrir. */
+export interface RedesignPlan {
+  brief: string;
+  outline: string;
+  coverage: Coverage;
+  pageTitles: string[];
+  pagePaths: string[];
+}
+
+function coverageRule(fr: boolean): string {
+  return fr
+    ? `# Règle de la refonte : RIEN ne disparaît
+- Chaque page de l'ancien site (p0, p1, …) a sa page dans le nouveau site, avec "source": "p<n>" (p0 = l'accueil, en premier). Garde son adresse quand elle est lisible.
+- Chaque section de l'ancien site (p<n>.s<m>) est reprise par une section du nouveau site : indique-la dans "sources" (une section peut en reprendre plusieurs, de la même page, quand elles vont ensemble ; tu peux réordonner).
+- Tu améliores la présentation, l'ordre, les titres et les textes pour la cible ; tu n'enlèves aucun contenu.
+- Les articles cités mais non relevés sont listés sur la page qui regroupe les articles.
+Forme : { "slug": "", "source": "p0", …, "sections": [ { "id": "hero", "sources": ["p0.s0"], "brief": "…", "visual": "photo" }, … ] }`
+    : `# Redesign rule: NOTHING disappears
+- Every page of the old site (p0, p1, …) has its page in the new site, with "source": "p<n>" (p0 = home, first). Keep its address when it is readable.
+- Every section of the old site (p<n>.s<m>) is carried by a section of the new site: list it in "sources" (one section may carry several from the same page when they belong together; you may reorder).
+- You improve presentation, order, headings and copy for the audience; you remove no content.
+- Articles mentioned but not read are listed on the page that groups articles.
+Shape: { "slug": "", "source": "p0", …, "sections": [ { "id": "hero", "sources": ["p0.s0"], "brief": "…", "visual": "photo" }, … ] }`;
+}
+
 /** Le manifeste du site, ou `null` si aucun modèle n'a donné de réponse bien formée. */
 export async function designManifest(options: {
   facts: SiteFacts;
@@ -242,23 +318,36 @@ export async function designManifest(options: {
   request: string;
   language: string;
   caller: ModelCaller;
-  /** Refonte d'un site existant : la mission d'analyse et d'amélioration (`redesign/brief.ts`). */
-  redesign?: string;
+  /** Refonte d'un site existant : la mission, le plan de l'ancien site et la couverture exigée. */
+  redesign?: RedesignPlan;
 }): Promise<{ manifest: SiteManifest | null; providerDown: boolean }> {
   const { facts, factsText, request, language, caller, redesign } = options;
+  const fr = language === 'fr';
+  const limits = redesign ? { maxPages: Math.max(7, redesign.coverage.pageCount + 2), maxSections: 16 } : {};
 
   const outcome = await caller.json(
     'manifest',
     "Tu es architecte de sites vitrines. Tu réponds UNIQUEMENT par un objet JSON valide, sans texte autour.",
     prompt(facts, factsText, request, language, redesign),
     (raw): Verdict<SiteManifest> => {
-      const { manifest, problems } = readManifest(raw);
+      const { manifest, problems } = readManifest(raw, limits);
+      if (manifest && redesign) {
+        // Une refonte qui oublie une page ou une section de l'ancien site repart au modèle, avec la liste ; au
+        // dernier essai, le code place lui-même ce qui manque.
+        const missing = missingCoverage(manifest, redesign.coverage);
+        if (missing.pages.length || missing.sections.length) {
+          return {
+            problem: `${fr ? 'Il manque des éléments de l’ancien site' : 'Parts of the old site are missing'} — ${missing.pages.length ? `pages : ${missing.pages.map((n) => `p${n}`).join(', ')} ; ` : ''}${missing.sections.length ? `sections : ${missing.sections.slice(0, 60).join(', ')}` : ''}. ${fr ? 'Renvoie le manifeste complet en les plaçant toutes (champs "source" et "sources").' : 'Send the complete manifest placing them all ("source" and "sources" fields).'}`,
+            salvage: () => completeCoverage(manifest, redesign.coverage, redesign.pageTitles, redesign.pagePaths, fr),
+          };
+        }
+      }
       if (manifest) return { value: manifest };
       return {
         problem: `Votre réponse n'a pas la forme demandée : ${problems.slice(0, 4).join(' ; ') || 'objet JSON illisible'}. Renvoyez UNIQUEMENT l'objet JSON complet.`,
       };
     },
-    7000
+    redesign ? 14000 : 7000
   );
 
   if (outcome.value) {

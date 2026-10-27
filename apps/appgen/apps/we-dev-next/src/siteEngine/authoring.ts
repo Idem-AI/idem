@@ -22,6 +22,7 @@
 import { transform } from 'esbuild';
 import { CATALOG, catalogEntry, renderContract } from './catalog.js';
 import { autocorrect, lucideIcons, resolveIcon, stripClaims, ThemeColors } from './autocorrect.js';
+import { cleanSlop } from './slopGuard.js';
 import { ModelCaller, Verdict } from './modelCaller.js';
 import { ChatLogger } from '../utils/logger.js';
 import { FactCheck } from './factGuard.js';
@@ -357,6 +358,10 @@ export interface SectionTask {
   mediaKey?: string;
   mediaKind?: string;
   mediaAspect?: string;
+  /** Plusieurs visuels prêts (galerie, cartes illustrées) : leurs clés et leur texte alternatif. */
+  mediaList?: { key: string; alt: string }[];
+  /** Refonte : le contenu intégral des sections de l'ancien site que celle-ci reprend. */
+  source?: string;
   /** Première section de l'accueil ou d'une page : porte le h1. */
   opening: boolean;
 }
@@ -370,9 +375,18 @@ ${ctx.factsText}${brief && brief !== ctx.facts.description ? `\n\n# La demande d
 export function sectionPrompt(ctx: AuthoringContext, task: SectionTask, request: string): string {
   const { page, section } = task;
   const others = page.sections.filter((item) => item !== section).map((item) => `- ${item.id} : ${item.brief}`);
-  const visual = task.mediaKey
-    ? `Un visuel est prêt pour cette section : \`media['${task.mediaKey}']\` (${task.mediaKind}${task.mediaAspect ? `, format ${task.mediaAspect}` : ''}). Affiche-le avec <Media asset={media['${task.mediaKey}']} … />.`
-    : "Aucune image pour cette section : compose avec la typographie, l'espace, les couleurs du thème et les composants. N'affiche pas de cadre vide ni d'image factice.";
+  const visual =
+    task.mediaList && task.mediaList.length > 1
+      ? `Visuels prêts pour cette section (les images de l'ancien site, à réutiliser toutes, mieux mises en valeur) :\n${task.mediaList.map((m) => `- \`media['${m.key}']\`${m.alt ? ` — ${m.alt}` : ''}`).join('\n')}\nAffiche-les avec <Media asset={media['…']} … /> (grille, galerie, cartes illustrées : selon le contenu).`
+      : task.mediaKey
+        ? `Un visuel est prêt pour cette section : \`media['${task.mediaKey}']\` (${task.mediaKind}${task.mediaAspect ? `, format ${task.mediaAspect}` : ''}). Affiche-le avec <Media asset={media['${task.mediaKey}']} … />.`
+        : "Aucune image pour cette section : compose avec la typographie, l'espace, les couleurs du thème et les composants. N'affiche pas de cadre vide ni d'image factice.";
+  const source = task.source
+    ? `\n# Le contenu de l'ancien site que cette section reprend — INTÉGRALEMENT
+${task.source}
+
+Tout ce contenu apparaît dans ta section : chaque titre, chaque paragraphe, chaque élément de liste, chaque bouton (avec sa destination). Tu peux le réorganiser, le resserrer et le réécrire pour qu'il parle mieux à la cible ; tu n'en retires rien et tu n'y ajoutes aucun fait (chiffre, nom, lieu, promesse) qui n'y est pas.\n`
+    : '';
 
   return `${projectBlock(ctx, request)}
 
@@ -388,7 +402,7 @@ ${others.join('\n') || '(aucune)'}
 # Ta section
 Composant : ${section.component} — fichier src/sections/${page.key}/${section.component}.tsx
 Ancre : l'élément racine porte id="${section.id}" (utilise <Section id="${section.id}"> ou une balise <section id="${section.id}">).
-Ce qu'elle montre et dit : ${section.brief}
+Ce qu'elle montre et dit : ${section.brief}${source}
 ${task.opening ? 'C\'est la première section de la page : son titre principal est le seul <h1> de la page (Heading level={1}).' : 'Ses titres commencent au niveau 2 (Heading level={2}).'}
 ${visual}
 
@@ -485,6 +499,10 @@ export interface Review {
  */
 export async function reviewComponent(raw: string, ctx: ReviewContext, target?: ReviewTarget): Promise<Review> {
   const corrected = autocorrect(extractCode(raw), ctx.theme);
+  // Les marques d'un site « généré » (émojis, dégradés, effet verre…) : retirées par le code, comme partout.
+  const slop = cleanSlop(corrected.code);
+  if (slop.fixes.length) corrected.fixes = [...corrected.fixes, ...slop.fixes];
+  corrected.code = slop.code;
   const problems = await checkComponent(corrected.code, ctx.policy);
   if (problems.length) return { code: corrected.code, problems, invented: [], empty: false, fixes: corrected.fixes };
   const runtime =

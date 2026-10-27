@@ -26,6 +26,7 @@ import type { ArtDirectionModel, ArtDirectionStyleId } from '../brand/art-direct
 import type { BrandKit, BrandPalette, BrandVoice } from '../brand/brand-kit';
 import { clusterColors, ColorCluster, PaletteProposal, paletteFromClusters, paletteProposals, SeenColor } from './palette';
 import { cleanFamilyName, firstFamily, SeenFont, typographyProposals, TypographyProposal } from './typography';
+import { evaluateSettled } from './settled';
 
 export type SiteScanStep = 'open' | 'colors' | 'fonts' | 'logo' | 'content' | 'voice' | 'art' | 'done';
 
@@ -153,6 +154,8 @@ declare var getComputedStyle: any;
  * traduirait par une aide (`async`, étalement d'objet) — la page ne la connaît pas.
  */
 function readPage(): PageFacts {
+  // Une page encore vide (rechargement en cours) : la lecture est reprise un peu plus tard (`evaluateSettled`).
+  if (!document.body || !document.body.children.length) throw new Error('navigation pending');
   const colors: SeenColor[] = [];
   const fonts: SeenFont[] = [];
   const stacks: Record<string, string> = {};
@@ -227,6 +230,9 @@ function readPage(): PageFacts {
       for (let i = 0; i < rule.style.length; i++) {
         const name = rule.style[i];
         if (!/^--.*(primary|brand|accent|secondary|main|theme)/i.test(name)) continue;
+        // Les variables des OUTILS (WordPress, Bootstrap, Swiper, Tailwind…) portent leurs couleurs par défaut, pas
+        // celles de la marque : le bleu d'administration de WordPress n'est pas la couleur d'un site.
+        if (/^--(wp-|wp--|bs-|swiper|tw-|chakra|mantine|mui|ion-|plyr|fa-|woocommerce|wc-)/i.test(name)) continue;
         const probe = document.createElement('span');
         probe.style.color = rule.style.getPropertyValue(name).trim();
         document.body.appendChild(probe);
@@ -254,6 +260,14 @@ function readPage(): PageFacts {
       return undefined;
     }
   };
+  // La VRAIE source d'une image chargée en différé : `src` n'y porte qu'une image d'attente (data:…).
+  const realSrc = (img: any): string => {
+    const set = img.getAttribute('data-srcset') || img.getAttribute('data-lazy-srcset') || img.getAttribute('srcset') || '';
+    const fromSet = set ? set.split(',').map((part: string) => part.trim().split(/\s+/)[0]).filter(Boolean).pop() : '';
+    const lazy = img.getAttribute('data-src') || img.getAttribute('data-lazy-src') || img.getAttribute('data-original') || img.getAttribute('data-lazy') || '';
+    const src = img.currentSrc || img.getAttribute('src') || '';
+    return !src || src.indexOf('data:') === 0 ? lazy || fromSet || '' : src;
+  };
   const header = document.querySelector('header, nav, [class*="header"], [id*="header"]') || document.body;
   const logoish = (el: any) => /logo|brand|marque/i.test(`${el.id} ${typeof el.className === 'string' ? el.className : el.className?.baseVal || ''} ${el.getAttribute('alt') || ''} ${el.getAttribute('aria-label') || ''} ${el.getAttribute('src') || ''}`);
   let logo: SiteLogo = { source: 'none' };
@@ -261,7 +275,8 @@ function readPage(): PageFacts {
   if (svg && svg.outerHTML.length < 80000 && svg.getBoundingClientRect().width > 24) logo = { svg: svg.outerHTML, source: 'inline-svg' };
   if (logo.source === 'none') {
     const img = (Array.from(header.querySelectorAll('img')) as any[]).find((i) => logoish(i) || logoish(i.parentElement || i)) || (Array.from(header.querySelectorAll('a[href="/"] img')) as any[])[0];
-    if (img?.currentSrc || img?.src) logo = { url: abs(img.currentSrc || img.src), source: 'img' };
+    const src = img ? realSrc(img) : '';
+    if (src) logo = { url: abs(src), source: 'img' };
   }
   const icon = (Array.from(document.querySelectorAll('link[rel~="icon"], link[rel="apple-touch-icon"]')) as any[]).sort((a, b) => parseInt(b.getAttribute('sizes') || '0', 10) - parseInt(a.getAttribute('sizes') || '0', 10))[0];
   if (icon) logo.iconUrl = abs(icon.getAttribute('href'));
@@ -273,9 +288,11 @@ function readPage(): PageFacts {
   const images = [
     ...(ogImage ? [ogImage] : []),
     ...(Array.from(document.images) as any[])
-      .filter((i) => i.naturalWidth >= 600 && i.naturalHeight >= 400 && !logoish(i))
-      .sort((a, b) => b.naturalWidth * b.naturalHeight - a.naturalWidth * a.naturalHeight)
-      .map((i) => abs(i.currentSrc || i.src)),
+      // Une image en différé n'a pas encore sa taille réelle : celle de ses attributs, ou celle affichée.
+      .map((i) => ({ i, w: i.naturalWidth > 2 && !/^data:/.test(i.currentSrc || i.src) ? i.naturalWidth : Number(i.getAttribute('width')) || i.getBoundingClientRect().width, h: i.naturalHeight > 2 && !/^data:/.test(i.currentSrc || i.src) ? i.naturalHeight : Number(i.getAttribute('height')) || i.getBoundingClientRect().height }))
+      .filter((x) => x.w >= 600 && x.h >= 300 && !logoish(x.i))
+      .sort((a, b) => b.w * b.h - a.w * a.h)
+      .map((x) => abs(realSrc(x.i))),
   ].filter((u, k, arr): u is string => !!u && !/\.svg(\?|$)/i.test(u) && arr.indexOf(u) === k).slice(0, 8);
 
   const text = (sel: string, n: number, min = 3) =>
@@ -587,7 +604,7 @@ export async function scanWebsite(options: SiteScanOptions): Promise<SiteScanRes
       throw new SiteScanError('unreachable', `Le site ne répond pas (${(error as Error).message.slice(0, 80)}).`);
     }
     const finalUrl = home.url();
-    const facts: PageFacts = await home.evaluate(readPage);
+    const facts: PageFacts = await evaluateSettled(home, readPage);
     if (facts.inlineCss) sheets.push({ url: finalUrl, css: facts.inlineCss });
     const screenshot = Buffer.from(await home.screenshot({ type: 'jpeg', quality: 80, clip: { x: 0, y: 0, width: 1440, height: 900 } }));
     await home.close();
@@ -597,7 +614,7 @@ export async function scanWebsite(options: SiteScanOptions): Promise<SiteScanRes
     for (const pageUrl of inner) {
       try {
         const page = await openPage(browser, pageUrl, Math.min(timeout, 15_000), sheets);
-        const more: PageFacts = await page.evaluate(readPage);
+        const more: PageFacts = await evaluateSettled(page, readPage);
         if (more.inlineCss) sheets.push({ url: pageUrl, css: more.inlineCss });
         facts.titleStyles.push(...more.titleStyles);
         facts.bodySizes.push(...more.bodySizes);

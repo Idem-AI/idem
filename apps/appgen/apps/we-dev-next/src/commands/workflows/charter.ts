@@ -1,5 +1,5 @@
 /**
- * /charte — la charte graphique du projet, générée dans IDEM (même route et même prix que le dashboard), suivie
+ * /charter — la charte graphique du projet, générée dans IDEM (même route et même prix que le dashboard), suivie
  * étape par étape dans la conversation, puis un bouton pour l'ouvrir. Toujours confirmée avant : elle se paie.
  */
 import type { Response } from 'express';
@@ -83,7 +83,7 @@ export function runCharter(ctx: CommandContext, answer: ChoicesAnswer): Responde
         failure =
           e.status === 402
             ? fr
-              ? 'Votre portefeuille IDEM n’est pas assez approvisionné pour la charte. Rechargez-le, puis relancez `/charte`.'
+              ? 'Votre portefeuille IDEM n’est pas assez approvisionné pour la charte. Rechargez-le, puis relancez `/charter`.'
               : 'Your IDEM wallet balance is too low for the guidelines. Top it up, then run `/charter` again.'
             : e.status === 429
               ? String(e.body?.message || (fr ? 'Limite atteinte pour aujourd’hui : réessayez plus tard.' : 'Limit reached for today: try again later.'))

@@ -10,7 +10,8 @@
     "check:montage": "ts-node --transpile-only scripts/check-montage.ts",
     "check:choices": "ts-node --transpile-only scripts/check-choices.ts",
     "check:request": "ts-node --transpile-only scripts/check-request.ts",
-    "check:motion": "ts-node --transpile-only scripts/check-motion.ts"
+    "check:motion": "ts-node --transpile-only scripts/check-motion.ts",
+    "crawl": "ts-node --transpile-only scripts/crawl-site.ts"
   },
   "dependencies": {
     "@idem/graphic-engine": "file:../../../packages/graphic-engine",

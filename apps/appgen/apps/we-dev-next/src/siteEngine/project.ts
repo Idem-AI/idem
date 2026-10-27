@@ -58,6 +58,8 @@ export function renderDocument(options: {
   description: string;
   entry: string;
   themeColor?: string;
+  /** L'icône du site (favicon, icône Apple), quand elle est connue (refonte : celle de l'ancien site). */
+  icons?: { favicon?: string; appleIcon?: string; ogImage?: string };
 }): string {
   const title = escapeHtml(options.title);
   const description = escapeHtml(options.description);
@@ -74,7 +76,7 @@ ${options.themeColor ? `    <meta name="theme-color" content="${options.themeCol
     <meta property="og:description" content="${description}" />
     <meta property="og:locale" content="${options.language}" />
     <meta name="twitter:card" content="summary_large_image" />
-    <!-- idem:fonts -->
+${options.icons?.favicon ? `    <link rel="icon" href="${escapeHtml(options.icons.favicon)}" />\n` : ''}${options.icons?.appleIcon ? `    <link rel="apple-touch-icon" href="${escapeHtml(options.icons.appleIcon)}" />\n` : ''}${options.icons?.ogImage ? `    <meta property="og:image" content="${escapeHtml(options.icons.ogImage)}" />\n` : ''}    <!-- idem:fonts -->
   </head>
   <body>
     <div id="root"></div>
@@ -214,6 +216,7 @@ export function renderPageShells(options: {
   siteName: string;
   description: string;
   themeColor?: string;
+  icons?: { favicon?: string; appleIcon?: string; ogImage?: string };
 }): Record<string, string> {
   const files: Record<string, string> = {};
   for (const page of options.manifest.pages) {
@@ -225,6 +228,7 @@ export function renderPageShells(options: {
       description: page.seoDescription || options.description,
       entry: `/src/entries/${page.key}.tsx`,
       themeColor: options.themeColor,
+      icons: options.icons,
     });
     files[`src/entries/${page.key}.tsx`] = renderEntry(page.key);
   }

@@ -94,6 +94,35 @@ export function startRedesign(ctx: CommandContext, options: { url?: string | nul
   return createTextStream(intro, choices);
 }
 
+/**
+ * La réponse à « Quelles couleurs pour le nouveau site ? » (posée après le relevé, quand le logo et le site ne
+ * s'accordent pas) : la refonte reprend là où elle s'était arrêtée, sans relire le site.
+ */
+export function runRedesignColors(ctx: CommandContext, answer: ChoicesAnswer): Responder {
+  const context = answer.context ?? {};
+  const projectId = typeof context.projectId === 'string' ? context.projectId : '';
+  const site = findSiteUrl(String(context.url ?? ''));
+  if (!projectId || !site) return startRedesign(ctx, { original: typeof context.original === 'string' ? context.original : undefined });
+  const focus: RedesignFocus = context.focus === 'design' || context.focus === 'copy' ? context.focus : 'all';
+  return createSiteEngineStream({
+    projectData: ctx.projectData,
+    language: ctx.fr ? 'fr' : 'en',
+    request: typeof context.original === 'string' ? context.original : '',
+    model: ctx.model,
+    userId: ctx.userId,
+    scaffoldMounted: false,
+    credentials: ctx.credentials,
+    redesign: {
+      url: site.url,
+      choice: context.path === 'identity' ? 'identity' : 'direct',
+      focus,
+      consent: true,
+      creativity: ctx.creativity,
+      resume: { projectId, colors: answer.values.colors === 'logo' ? 'logo' : 'site' },
+    },
+  });
+}
+
 export function runRedesign(ctx: CommandContext, answer: ChoicesAnswer): Responder {
   const site = findSiteUrl(String(answer.values.url || answer.context?.url || ''));
   if (!site) {

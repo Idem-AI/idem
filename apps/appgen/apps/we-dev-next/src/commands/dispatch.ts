@@ -15,7 +15,7 @@ import { COMMANDS, looksLikeCommand, parseCommand } from './registry.js';
 import { CommandContext, hasCharter, Responder } from './types.js';
 import { startCharter, runCharter } from './workflows/charter.js';
 import { startConfirm } from './workflows/confirm.js';
-import { runRedesign, startRedesign } from './workflows/redesign.js';
+import { runRedesign, runRedesignColors, startRedesign } from './workflows/redesign.js';
 import { runSite, startSite } from './workflows/site.js';
 
 export interface DispatchInput extends CommandContext {
@@ -26,7 +26,7 @@ export interface DispatchInput extends CommandContext {
 }
 
 function helpText(fr: boolean): string {
-  const lines = COMMANDS.map((c) => `- \`/${fr && c.aliases[0] ? c.aliases[0] : c.name}${c.args ? ` <${c.args[fr ? 'fr' : 'en']}>` : ''}\` — ${c.label[fr ? 'fr' : 'en']}`);
+  const lines = COMMANDS.map((c) => `- \`/${c.name}${c.args ? ` <${c.args[fr ? 'fr' : 'en']}>` : ''}\` : ${c.label[fr ? 'fr' : 'en']}`);
   return `${fr ? 'Voici ce que vous pouvez lancer d’un « / » :' : 'Here is what you can start with a “/”:'}\n\n${lines.join('\n')}`;
 }
 
@@ -39,6 +39,7 @@ export async function dispatch(input: DispatchInput): Promise<Responder | null> 
     const values = answer.values && typeof answer.values === 'object' ? answer.values : {};
     const clean: ChoicesAnswer = { ...answer, values: Object.fromEntries(Object.entries(values).map(([k, v]) => [k, String(v ?? '').slice(0, 2000)])) };
     if (answer.purpose === 'redesign') return runRedesign(input, clean);
+    if (answer.purpose === 'redesign-colors') return runRedesignColors(input, clean);
     if (answer.purpose === 'site') return runSite(input, clean);
     if (answer.purpose === 'charter') return runCharter(input, clean);
     // « Non, continuer » : la demande d'origine, sans repasser par l'agent.

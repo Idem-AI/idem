@@ -9,7 +9,7 @@ import { usageQuotaService } from '../services/billing/usage-quota.service';
 import { CommunicationService } from '../services/Communication/communication.service';
 import { idemAnalyzeImage } from '../services/ivision/host';
 import { PromptService } from '../services/prompt.service';
-import { SiteConsent, siteImportJobs } from '../services/SiteImport/siteProject.service';
+import { chooseSitePalette, SiteConsent, siteContentOf, siteImportJobs } from '../services/SiteImport/siteProject.service';
 import { runWithAiUsageContext } from '../utils/ai-usage-context.util';
 
 const router = Router();
@@ -161,6 +161,33 @@ router.get('/site-import/:jobId', authenticate, async (req: CustomRequest, res) 
     return;
   }
   res.json({ jobId: job.id, status: job.status, step: job.step, ...(job.result ? { result: job.result } : {}), ...(job.error ? { error: job.error } : {}) });
+});
+
+/** Le contenu relevé d'une refonte (reprise après une question : pas de nouvelle lecture du site). */
+router.get('/site-import/project/:projectId/content', authenticate, async (req: CustomRequest, res) => {
+  const userId = req.user?.uid;
+  if (!userId) {
+    res.status(401).json({ error: 'authentication_required' });
+    return;
+  }
+  const content = await siteContentOf(userId, String(req.params.projectId));
+  if (!content) {
+    res.status(404).json({ error: 'content_not_found' });
+    return;
+  }
+  res.json(content);
+});
+
+/** La palette du projet après la question « couleurs du site ou fidèles au logo ? ». */
+router.post('/site-import/project/:projectId/palette', authenticate, async (req: CustomRequest, res) => {
+  const userId = req.user?.uid;
+  const source = (req.body ?? {}).source;
+  if (!userId || (source !== 'site' && source !== 'logo')) {
+    res.status(400).json({ error: 'invalid_input' });
+    return;
+  }
+  const done = await chooseSitePalette(userId, String(req.params.projectId), source).catch(() => false);
+  res.status(done ? 200 : 404).json({ chosen: done ? source : null });
 });
 
 export default router;

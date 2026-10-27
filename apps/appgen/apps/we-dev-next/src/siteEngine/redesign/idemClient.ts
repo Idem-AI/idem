@@ -5,6 +5,7 @@
  */
 import { ProjectModel } from '../../types/project.js';
 import { traceHeaders } from '../../utils/trace.js';
+import type { SiteInventory } from './inventory.js';
 
 const base = () => (process.env.IDEM_API_URL || 'http://localhost:3001').replace(/\/+$/, '');
 
@@ -31,6 +32,11 @@ export interface SiteContent {
   pages: string[];
   images: string[];
   logo: boolean;
+  /** Le relevé complet (toutes les pages et sections, fichiers recopiés chez nous). */
+  inventory: SiteInventory;
+  /** Les couleurs du site vont-elles avec son logo ? */
+  brandCheck?: { coherent: boolean; sitePrimary: string; logoColors: string[]; distance: number };
+  palettes?: { site?: string; logo?: string };
 }
 
 export interface SiteImportResult {
@@ -44,7 +50,7 @@ export interface SiteImportResult {
   content?: SiteContent;
 }
 
-export type SiteImportStep = 'open' | 'colors' | 'fonts' | 'logo' | 'content' | 'voice' | 'art' | 'done' | 'project' | 'logo-variations' | 'typography' | 'art-direction' | 'patterns';
+export type SiteImportStep = 'open' | 'colors' | 'fonts' | 'logo' | 'content' | 'voice' | 'art' | 'done' | 'project' | 'logo-variations' | 'typography' | 'art-direction' | 'patterns' | 'pages' | 'assets';
 
 async function request<T>(path: string, credentials: Record<string, string>, init: RequestInit & { timeoutMs?: number } = {}): Promise<T> {
   const controller = new AbortController();
@@ -91,8 +97,8 @@ export async function importSite(options: {
     signal: options.signal,
   });
   let last: SiteImportStep | null = null;
-  // Lecture du site + identité + photos : quelques minutes au pire.
-  const deadline = Date.now() + 6 * 60_000;
+  // Lecture de la marque + relevé de toutes les pages + recopie des fichiers : plusieurs minutes au pire.
+  const deadline = Date.now() + 12 * 60_000;
   while (Date.now() < deadline) {
     if (options.signal.aborted) throw new IdemApiError('aborted', 499);
     await new Promise((resolve) => setTimeout(resolve, 2000));
@@ -114,6 +120,16 @@ export async function importSite(options: {
     if (job.status === 'failed') throw new IdemApiError(job.error?.message || 'import_failed', 502, { error: job.error?.code });
   }
   throw new IdemApiError('timeout', 504);
+}
+
+/** Le contenu d'une refonte déjà relevée (reprise après une question). */
+export function fetchSiteContent(projectId: string, credentials: Record<string, string>, signal: AbortSignal): Promise<SiteContent> {
+  return request<SiteContent>(`/appgen/site-import/project/${encodeURIComponent(projectId)}/content`, credentials, { signal, timeoutMs: 30_000 });
+}
+
+/** La palette retenue : celle du site (par défaut) ou celle tirée du logo. */
+export function chooseSitePalette(projectId: string, source: 'site' | 'logo', credentials: Record<string, string>, signal: AbortSignal): Promise<{ chosen: string | null }> {
+  return request(`/appgen/site-import/project/${encodeURIComponent(projectId)}/palette`, credentials, { method: 'POST', body: JSON.stringify({ source }), signal });
 }
 
 /** Le projet tel que l'atelier le charge (même route que le client). */

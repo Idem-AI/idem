@@ -13,8 +13,9 @@ import { consumeGeneration } from '../../services/billingService.js';
 import { ProjectModel } from '../../types/project.js';
 import { ChatLogger } from '../../utils/logger.js';
 import type { SiteStream } from '../stream.js';
+import type { ChatChoices } from '../../commands/choices.js';
 import type { RedesignFocus } from './brief.js';
-import { fetchProject, generateCharter, IdemApiError, importSite, SiteContent, SiteImportStep } from './idemClient.js';
+import { chooseSitePalette, fetchProject, fetchSiteContent, generateCharter, IdemApiError, importSite, SiteContent, SiteImportStep } from './idemClient.js';
 
 export interface RedesignContext {
   content: SiteContent;
@@ -44,6 +45,8 @@ const STEP_LABEL: Record<SiteImportStep, [string, string] | null> = {
   typography: ['Je prépare vos typographies', 'Preparing your typefaces'],
   'art-direction': ['Je fixe votre direction artistique', 'Setting your art direction'],
   patterns: ['Je dessine vos motifs de marque', 'Drawing your brand patterns'],
+  pages: ['Je relève toutes les pages de votre site', 'Reading every page of your site'],
+  assets: ['Je recopie vos images, votre logo et votre favicon', 'Copying your images, logo and favicon'],
   done: null,
 };
 
@@ -74,7 +77,12 @@ export async function prepareRedesign(options: {
   /** Le projet ouvert dans iCode, s'il y en a un : le site lui est rattaché. */
   projectId?: string;
   creativity?: string;
-}): Promise<Prepared | { stop: string }> {
+  /**
+   * Reprise après la question des couleurs : le site est déjà relevé et le projet existe ; seule la palette
+   * choisie est appliquée.
+   */
+  resume?: { projectId: string; colors: 'site' | 'logo' };
+}): Promise<Prepared | { stop: string } | { ask: { text: string; choices: ChatChoices } }> {
   const { stream, fr, signal } = options;
   const host = (() => {
     try {
@@ -83,6 +91,20 @@ export async function prepareRedesign(options: {
       return options.url;
     }
   })();
+
+  // Reprise : rien n'est relu, la palette choisie est appliquée au projet.
+  if (options.resume) {
+    try {
+      const content = await fetchSiteContent(options.resume.projectId, options.credentials, signal);
+      if (options.resume.colors === 'logo') {
+        stream.note(fr ? 'J’applique des couleurs fidèles à votre logo' : 'Applying colours true to your logo');
+        await chooseSitePalette(options.resume.projectId, 'logo', options.credentials, signal);
+      }
+      return await finish(options, { projectId: options.resume.projectId, content, logo: content.logo, fonts: null });
+    } catch (error) {
+      return { stop: failureText(error, host, fr) };
+    }
+  }
 
   let imported;
   try {
@@ -102,6 +124,59 @@ export async function prepareRedesign(options: {
     return { stop: failureText(error, host, fr) };
   }
   if (!imported.content) return { stop: failureText(null, host, fr) };
+
+  // Le logo et les couleurs du site ne vont pas ensemble : la décision revient à l'utilisateur, avant toute
+  // génération (rien n'est facturé). Par défaut la marque reste telle qu'elle est.
+  const check = imported.content.brandCheck;
+  if (check && !check.coherent && imported.content.palettes?.logo) {
+    return {
+      ask: {
+        text: fr
+          ? `J’ai tout relevé : ${imported.content.inventory.pages.length} pages, ${imported.content.images.length} images, votre logo et vos polices. Une chose me frappe : la couleur principale de votre site (${check.sitePrimary}) ne reprend pas celles de votre logo (${check.logoColors.join(', ')}).`
+          : `I’ve read everything: ${imported.content.inventory.pages.length} pages, ${imported.content.images.length} images, your logo and fonts. One thing stands out: your site’s main colour (${check.sitePrimary}) doesn’t match your logo’s (${check.logoColors.join(', ')}).`,
+        choices: {
+          purpose: 'redesign-colors',
+          questions: [
+            {
+              id: 'colors',
+              question: fr ? 'Quelles couleurs pour le nouveau site ?' : 'Which colours for the new site?',
+              options: [
+                {
+                  value: 'logo',
+                  recommended: true,
+                  label: fr ? 'Des couleurs fidèles à mon logo' : 'Colours true to my logo',
+                  description: fr ? 'Le site et le logo parlent enfin d’une seule voix ; vos polices et vos images restent.' : 'Site and logo finally speak with one voice; your fonts and images stay.',
+                },
+                {
+                  value: 'site',
+                  label: fr ? 'Garder les couleurs actuelles du site' : 'Keep the site’s current colours',
+                  description: fr ? 'Vos visiteurs retrouvent exactement les couleurs qu’ils connaissent.' : 'Your visitors find exactly the colours they know.',
+                },
+              ],
+            },
+          ],
+          context: { projectId: imported.projectId, url: options.url, path: options.choice, focus: options.focus },
+        },
+      },
+    };
+  }
+
+  return finish(options, { projectId: imported.projectId, content: imported.content, logo: imported.logo, fonts: imported.fonts });
+}
+
+/** La suite commune (import neuf ou reprise) : facturation, projet, charte, contenu prêt pour le moteur. */
+async function finish(
+  options: Parameters<typeof prepareRedesign>[0],
+  imported: { projectId: string; content: SiteContent; logo: boolean; fonts: { display: string; body: string } | null }
+): Promise<Prepared | { stop: string }> {
+  const { stream, fr, signal } = options;
+  const host = (() => {
+    try {
+      return new URL(options.url).hostname.replace(/^www\./, '');
+    } catch {
+      return options.url;
+    }
+  })();
 
   // La génération est facturée au projet, maintenant qu'il existe et que le site a pu être lu.
   const billing = await consumeGeneration({ credentials: options.credentials, action: 'initial_generation', projectId: imported.projectId });
@@ -123,9 +198,13 @@ export async function prepareRedesign(options: {
 
   const found = [
     imported.logo ? (fr ? 'votre logo' : 'your logo') : '',
-    imported.fonts.display ? (fr ? `vos polices (${[imported.fonts.display, imported.fonts.body].filter((f, i, all) => f && all.indexOf(f) === i).join(', ')})` : `your fonts (${[imported.fonts.display, imported.fonts.body].filter((f, i, all) => f && all.indexOf(f) === i).join(', ')})`) : '',
-    imported.content.images.length ? (fr ? `${imported.content.images.length} photo${imported.content.images.length > 1 ? 's' : ''}` : `${imported.content.images.length} photo${imported.content.images.length > 1 ? 's' : ''}`) : '',
-    imported.content.pages.length ? (fr ? `${imported.content.pages.length} page${imported.content.pages.length > 1 ? 's' : ''} lue${imported.content.pages.length > 1 ? 's' : ''}` : `${imported.content.pages.length} page${imported.content.pages.length > 1 ? 's' : ''} read`) : '',
+    imported.fonts?.display ? (fr ? `vos polices (${[imported.fonts.display, imported.fonts.body].filter((f, i, all) => f && all.indexOf(f) === i).join(', ')})` : `your fonts (${[imported.fonts.display, imported.fonts.body].filter((f, i, all) => f && all.indexOf(f) === i).join(', ')})`) : '',
+    imported.content.images.length ? (fr ? `${imported.content.images.length} image${imported.content.images.length > 1 ? 's' : ''}` : `${imported.content.images.length} image${imported.content.images.length > 1 ? 's' : ''}`) : '',
+    imported.content.inventory.pages.length
+      ? fr
+        ? `${imported.content.inventory.pages.length} page${imported.content.inventory.pages.length > 1 ? 's' : ''} et ${imported.content.inventory.pages.reduce((n, p) => n + p.sections.length, 0)} sections`
+        : `${imported.content.inventory.pages.length} page${imported.content.inventory.pages.length > 1 ? 's' : ''} and ${imported.content.inventory.pages.reduce((n, p) => n + p.sections.length, 0)} sections`
+      : '',
   ].filter(Boolean);
   if (found.length) stream.note(fr ? `Trouvé sur votre site : ${found.join(', ')}` : `Found on your site: ${found.join(', ')}`);
 
@@ -160,10 +239,11 @@ export async function prepareRedesign(options: {
   ChatLogger.info('SITE_REDESIGN', 'Site lu, refonte lancée', {
     url: options.url,
     projectId: imported.projectId,
-    created: !imported.reused,
+    resumed: !!options.resume,
     choice: options.choice,
     images: imported.content.images.length,
-    pages: imported.content.pages.length,
+    pages: imported.content.inventory.pages.length,
+    sections: imported.content.inventory.pages.reduce((n, p) => n + p.sections.length, 0),
   });
 
   return {

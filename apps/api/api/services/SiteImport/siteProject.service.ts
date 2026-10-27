@@ -33,6 +33,8 @@ import { BrandingService } from '../BandIdentity/branding.service';
 import { parseLlmJson } from '../../utils/llm-json.util';
 import { normalizeSiteUrl, scanWebsite, SiteFontFace, SiteScanResult } from '../../../../ivision/core/src/site/site-scanner';
 import { safeFetch } from '../../../../ivision/core/src/render/safe-fetch';
+import { crawlWebsite, SiteInventory } from '../../../../ivision/core/src/site/site-crawler';
+import { BrandCheck, checkBrandColors } from './brandCheck';
 
 /** Les modèles de l'hôte (passerelle iVision : mêmes étages, même suivi d'usage). */
 export interface SiteImportPorts {
@@ -40,7 +42,7 @@ export interface SiteImportPorts {
   vision: (base64: string, mimeType: string, instruction: string) => Promise<string>;
 }
 
-export type SiteImportStep = 'open' | 'colors' | 'fonts' | 'logo' | 'content' | 'voice' | 'art' | 'done' | 'project' | 'logo-variations' | 'typography' | 'art-direction' | 'patterns';
+export type SiteImportStep = 'open' | 'colors' | 'fonts' | 'logo' | 'content' | 'voice' | 'art' | 'done' | 'project' | 'logo-variations' | 'typography' | 'art-direction' | 'patterns' | 'pages' | 'assets';
 
 export interface SiteImportResult {
   projectId: string;
@@ -76,13 +78,26 @@ export interface SiteContent {
   images: string[];
   /** Le site avait-il un logo lisible ? */
   logo: boolean;
+  /**
+   * Le relevé complet : chaque page, chaque section (titres, textes, listes, boutons, formulaires, images), le
+   * menu, le pied de page, les coordonnées. Toutes ses images (et le favicon) pointent vers NOTRE stockage.
+   */
+  inventory: SiteInventory;
+  /** Les couleurs du site vont-elles avec son logo ? (absent quand la marque du projet est déjà choisie) */
+  brandCheck?: BrandCheck;
+  /** Les palettes enregistrées dans le projet : celle du site (par défaut) et celle tirée du logo. */
+  palettes?: { site?: string; logo?: string };
 }
 
 /** Les options d'un import : rattacher le site à un projet existant, rendre de quoi refaire le site. */
 export interface SiteImportOptions {
   /** Le projet (de l'utilisateur) auquel rattacher le site, au lieu d'en créer un. */
   into?: string;
-  /** Rendre les textes, le style et les photos du site (`content`) : une refonte en a besoin. */
+  /**
+   * Une REFONTE : le site est relevé en entier (toutes ses pages, sections et fichiers recopiés chez nous), et sa
+   * marque est gardée telle quelle — ses couleurs et ses polices par défaut, la palette tirée du logo seulement
+   * proposée.
+   */
   withContent?: boolean;
 }
 
@@ -279,43 +294,102 @@ export async function recordConsent(userId: string, projectId: string, consent?:
 }
 
 /**
- * Les photos du site recopiées dans le stockage du projet. Une refonte remplace l'ancien site, souvent à la
- * même adresse : des images laissées chez lui disparaîtraient avec lui. Une image illisible est ignorée.
+ * Les fichiers du site recopiés dans le stockage du projet : toutes les images relevées (contenu et fonds), le
+ * favicon, l'icône Apple, l'image de partage. Une refonte remplace l'ancien site, souvent à la même adresse : des
+ * fichiers laissés chez lui disparaîtraient avec lui. Une image illisible est retirée du relevé.
  */
-async function hostSiteImages(userId: string, projectId: string, urls: string[]): Promise<string[]> {
-  const folder = `users/${userId}/projects/${projectId}/site-images`;
+async function hostInventory(userId: string, projectId: string, inventory: SiteInventory): Promise<SiteInventory> {
+  const folder = `users/${userId}/projects/${projectId}/site-assets`;
   const stamp = Date.now().toString(36);
-  const hosted = await Promise.all(
-    urls.slice(0, 8).map(async (url, index) => {
+  const urls = [
+    ...new Set([inventory.assets.favicon, inventory.assets.appleIcon, inventory.assets.ogImage, ...inventory.assets.images.map((i) => i.url)].filter((u): u is string => !!u)),
+  ].slice(0, Number(process.env.SITE_IMPORT_MAX_ASSETS ?? 120));
+  const hosted = new Map<string, string>();
+  let next = 0;
+  const worker = async () => {
+    while (next < urls.length) {
+      const index = next++;
+      const url = urls[index];
       try {
-        const file = await safeFetch(url, { accept: ['image/'], maxBytes: 10 * 1024 * 1024, timeoutMs: 20_000 });
-        if (file.mimeType === 'image/svg+xml') return null;
-        const ext = (file.mimeType.split('/')[1] || 'jpg').replace('jpeg', 'jpg').replace(/[^a-z0-9]/g, '');
+        const file = await safeFetch(url, { accept: ['image/'], maxBytes: 12 * 1024 * 1024, timeoutMs: 20_000 });
+        const ext = (file.mimeType.split('/')[1] || 'jpg').replace('jpeg', 'jpg').replace('svg+xml', 'svg').replace('x-icon', 'ico').replace('vnd.microsoft.icon', 'ico').replace(/[^a-z0-9]/g, '');
         const upload = await storageService.uploadFile(file.buffer, `site-${stamp}-${index + 1}.${ext}`, folder, file.mimeType);
-        return upload.downloadURL;
+        hosted.set(url, upload.downloadURL);
       } catch (error: any) {
-        logger.warn('site_import.image_copy_failed', { event: 'site_import.image_copy_failed', projectId, error: error?.message });
-        return null;
+        logger.warn('site_import.asset_copy_failed', { event: 'site_import.asset_copy_failed', projectId, url, error: error?.message });
       }
-    })
-  );
-  return hosted.filter((u): u is string => !!u);
+    }
+  };
+  await Promise.all(Array.from({ length: 6 }, worker));
+  const keep = <T extends { url: string }>(list: T[]) => list.filter((i) => hosted.has(i.url)).map((i) => ({ ...i, url: hosted.get(i.url)! }));
+  return {
+    ...inventory,
+    pages: inventory.pages.map((page) => ({ ...page, sections: page.sections.map((section) => ({ ...section, images: keep(section.images) })) })),
+    assets: {
+      favicon: inventory.assets.favicon ? hosted.get(inventory.assets.favicon) : undefined,
+      appleIcon: inventory.assets.appleIcon ? hosted.get(inventory.assets.appleIcon) : undefined,
+      ogImage: inventory.assets.ogImage ? hosted.get(inventory.assets.ogImage) : undefined,
+      images: keep(inventory.assets.images),
+    },
+  };
 }
 
-async function contentOf(userId: string, projectId: string, scan: SiteScanResult, logo: boolean): Promise<SiteContent> {
+/**
+ * Le contenu d'une refonte, gardé dans le stockage du projet (`branding.siteSource.contentUrl`) : la génération
+ * peut reprendre plus tard (après une question, après un redémarrage) sans relire le site.
+ */
+async function saveContent(userId: string, projectId: string, content: SiteContent): Promise<string | null> {
+  try {
+    const upload = await storageService.uploadFile(Buffer.from(JSON.stringify(content)), `site-content-${Date.now().toString(36)}.json`, `users/${userId}/projects/${projectId}/site-import`, 'application/json');
+    return upload.downloadURL;
+  } catch (error: any) {
+    logger.warn('site_import.content_save_failed', { event: 'site_import.content_save_failed', projectId, error: error?.message });
+    return null;
+  }
+}
+
+function contentOf(scan: SiteScanResult, inventory: SiteInventory, logo: boolean, extra: Pick<SiteContent, 'brandCheck' | 'palettes'> = {}): SiteContent {
   return {
     url: scan.finalUrl,
     title: scan.title,
     description: scan.description,
-    language: scan.language,
+    language: inventory.language || scan.language,
     headings: scan.texts.headings,
     paragraphs: scan.texts.paragraphs,
     voice: scan.voice,
     styleEvidence: scan.styleEvidence,
-    pages: scan.pages,
-    images: await hostSiteImages(userId, projectId, scan.images),
+    pages: inventory.pages.map((p) => p.url),
+    images: inventory.assets.images.map((i) => i.url),
     logo,
+    inventory,
+    ...extra,
   };
+}
+
+/** Le contenu d'une refonte déjà relevée (reprise après une question). */
+export async function siteContentOf(userId: string, projectId: string): Promise<SiteContent | null> {
+  const project = await projectService.getUserProjectById(userId, projectId).catch(() => null);
+  const url = (project?.analysisResultModel?.branding as { siteSource?: { contentUrl?: string } } | undefined)?.siteSource?.contentUrl;
+  if (!url) return null;
+  try {
+    const file = await safeFetch(url, { maxBytes: 20 * 1024 * 1024, timeoutMs: 20_000 });
+    return JSON.parse(file.buffer.toString('utf8')) as SiteContent;
+  } catch (error: any) {
+    logger.warn('site_import.content_read_failed', { event: 'site_import.content_read_failed', projectId, error: error?.message });
+    return null;
+  }
+}
+
+/** La palette retenue pour le projet : celle du site (par défaut d'une refonte) ou celle tirée du logo. */
+export async function chooseSitePalette(userId: string, projectId: string, source: 'site' | 'logo'): Promise<boolean> {
+  const project = await projectService.getUserProjectById(userId, projectId);
+  const branding = project?.analysisResultModel?.branding as (Record<string, any> & { siteSource?: { palettes?: { site?: string; logo?: string } } }) | undefined;
+  const id = branding?.siteSource?.palettes?.[source];
+  const palette = id ? (branding?.generatedColors as ColorModel[] | undefined)?.find((c) => c.id === id) : undefined;
+  if (!project || !branding || !palette) return false;
+  await projectService.editUserProject(userId, projectId, { analysisResultModel: { ...project.analysisResultModel, branding: { ...branding, colors: palette } } as unknown as ProjectModel['analysisResultModel'] });
+  logger.info('site_import.palette_chosen', { event: 'site_import.palette_chosen', projectId, source });
+  return true;
 }
 
 /** Crée (ou rouvre) le projet IDEM d'un site, identité visuelle comprise. */
@@ -344,14 +418,30 @@ export async function createProjectFromSite(
       onStep('done');
       return reused;
     }
-    // Une refonte a besoin de ce que le site dit aujourd'hui : il est relu, la marque du projet reste la sienne.
-    const scan = await scanWebsite({ url, maxPages: 2, timeoutMs: 25_000, textModel: (s, u) => ports.text(s, u, 'mechanical'), vision: ports.vision, onProgress: (step) => onStep(step) });
-    const content = await contentOf(userId, existing.id, scan, !!scan.logo.svg || !!scan.logo.url);
+    // Une refonte a besoin de tout ce que le site dit aujourd'hui : il est relevé en entier, la marque du projet
+    // (choisie dans IDEM) reste la sienne.
+    const [scan, crawled] = await Promise.all([
+      scanWebsite({ url, maxPages: 2, timeoutMs: 25_000, textModel: (s, u) => ports.text(s, u, 'mechanical'), vision: ports.vision, onProgress: (step) => onStep(step) }),
+      crawlWebsite({ url, onProgress: () => onStep('pages') }),
+    ]);
+    onStep('assets');
+    const inventory = await hostInventory(userId, existing.id, crawled);
+    const content = contentOf(scan, inventory, !!scan.logo.svg || !!scan.logo.url);
+    const contentUrl = await saveContent(userId, existing.id, content);
+    if (contentUrl) {
+      await projectService.editUserProject(userId, existing.id, {
+        analysisResultModel: { ...existing.analysisResultModel, branding: { ...b, siteSource: { ...((b as { siteSource?: object }).siteSource ?? {}), url: scan.finalUrl, evidence: scan.styleEvidence, contentUrl, importedAt: new Date() } } } as unknown as ProjectModel['analysisResultModel'],
+      });
+    }
     onStep('done');
     return { ...reused, images: content.images, warnings: scan.warnings, content };
   }
 
-  const scan = await scanWebsite({ url, maxPages: 2, timeoutMs: 25_000, textModel: (s, u) => ports.text(s, u, 'mechanical'), vision: ports.vision, onProgress: (step) => onStep(step) });
+  // Une refonte relève aussi le site en entier, pendant que la marque est lue.
+  const [scan, crawled] = await Promise.all([
+    scanWebsite({ url, maxPages: 2, timeoutMs: 25_000, textModel: (s, u) => ports.text(s, u, 'mechanical'), vision: ports.vision, onProgress: (step) => onStep(step) }),
+    options.withContent ? crawlWebsite({ url, onProgress: () => onStep('pages') }) : Promise.resolve(null),
+  ]);
   const warnings = [...scan.warnings];
 
   onStep('project');
@@ -413,17 +503,27 @@ export async function createProjectFromSite(
   const typographyProposals = curated?.typography.length ? [...curated.typography, ...typography.proposals] : typography.proposals;
   // Sans palette/typo travaillées (pas de logo détecté), le même principe que ci-dessus : l'accord
   // de polices pensé pour la police de titre du site plutôt que sa paire brute telle que relevée.
-  const chosenTypography = curated?.typography[0] || typography.proposals.find((t) => t.id === 'pairing') || typography.chosen;
+  let chosenTypography = curated?.typography[0] || typography.proposals.find((t) => t.id === 'pairing') || typography.chosen;
+  let chosenColors = colors[0];
+  // Une REFONTE garde la marque telle que le site la montre : ses couleurs relevées et SES polices (fichiers
+  // recopiés si aucun catalogue ne les sert). La palette tirée du logo n'est que proposée (`brandCheck`).
+  const sitePalette = siteColors.find((c) => c.id === 'site') ?? siteColors[0];
+  const palettes = options.withContent ? { site: sitePalette?.id, logo: curated?.colors[0]?.id } : undefined;
+  if (options.withContent) {
+    if (sitePalette) chosenColors = sitePalette;
+    chosenTypography = typography.chosen;
+  }
+  const brandCheck = options.withContent && logo && sitePalette ? checkBrandColors(String(sitePalette.colors.primary || ''), logo.colors || []) : undefined;
 
   const branding = {
     ...(created.analysisResultModel?.branding || {}),
     ...(logo ? { logo, generatedLogos: [logo] } : { generatedLogos: [] }),
-    colors: colors[0],
+    colors: chosenColors,
     generatedColors: colors,
     typography: chosenTypography,
     generatedTypography: typographyProposals,
     sections: [],
-    siteSource: { url: scan.finalUrl, evidence: scan.styleEvidence, importedAt: new Date() },
+    siteSource: { url: scan.finalUrl, evidence: scan.styleEvidence, importedAt: new Date(), ...(palettes ? { palettes } : {}) },
   };
   await projectService.editUserProject(userId, projectId, { analysisResultModel: { ...(created.analysisResultModel || {}), branding } as unknown as ProjectModel['analysisResultModel'] });
 
@@ -435,7 +535,20 @@ export async function createProjectFromSite(
     onStep('patterns');
     await brandingService.getBrandPatterns(userId, projectId).catch((error: any) => logger.warn('site_import.patterns_failed', { event: 'site_import.patterns_failed', projectId, error: error?.message }));
   }
-  const content = options.withContent ? await contentOf(userId, projectId, scan, !!scan.logo.svg || !!scan.logo.url) : undefined;
+  let content: SiteContent | undefined;
+  if (options.withContent && crawled) {
+    onStep('assets');
+    const inventory = await hostInventory(userId, projectId, crawled);
+    content = contentOf(scan, inventory, !!scan.logo.svg || !!scan.logo.url, { brandCheck, palettes });
+    const contentUrl = await saveContent(userId, projectId, content);
+    if (contentUrl) {
+      const saved = await projectService.getUserProjectById(userId, projectId);
+      const savedBranding = (saved?.analysisResultModel?.branding ?? branding) as Record<string, any>;
+      await projectService.editUserProject(userId, projectId, {
+        analysisResultModel: { ...(saved?.analysisResultModel || {}), branding: { ...savedBranding, siteSource: { ...(savedBranding.siteSource ?? {}), contentUrl } } } as unknown as ProjectModel['analysisResultModel'],
+      });
+    }
+  }
   onStep('done');
   logger.info('site_import.project_created', { event: 'site_import.project_created', projectId, into: !!existing?.id, host: new URL(scan.finalUrl).hostname, logo: !!logo, fontsCopied: copied, display: typography.chosen.primaryFont, body: typography.chosen.secondaryFont });
   return { projectId, reused: !!existing?.id, name: sheet?.name ?? created.name, siteUrl: scan.finalUrl, images: content?.images ?? scan.images, logo: !!logo, fonts: { display: typography.chosen.primaryFont, body: typography.chosen.secondaryFont, copied }, warnings, ...(content ? { content } : {}) };

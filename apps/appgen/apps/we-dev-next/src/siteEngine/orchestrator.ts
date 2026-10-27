@@ -50,6 +50,7 @@ import { FUNCTIONAL_DEPENDENCIES, SITE_ENGINE_ID } from './template.js';
 import { marker } from '../commands/choices.js';
 import { redesignArchitect, redesignDesign, redesignFacts, RedesignFocus } from './redesign/brief.js';
 import { prepareRedesign, RedesignContext } from './redesign/flow.js';
+import { inventoryFacts, inventoryOutline, inventoryText, InventorySection, linkMapper, sectionIndex, sourceContent } from './redesign/inventory.js';
 
 /** Composants écrits en même temps. */
 const CONCURRENCY = 4;
@@ -72,7 +73,15 @@ export interface SiteBuildInput {
    * Une REFONTE d'un site existant (réponse cliquée aux questions de `commands/workflows/redesign.ts`) : le site est lu et
    * devient le projet (ou complète celui qui est ouvert), puis le moteur le refait.
    */
-  redesign?: { url: string; choice: 'identity' | 'direct'; focus?: RedesignFocus; consent: boolean; creativity?: string };
+  redesign?: {
+    url: string;
+    choice: 'identity' | 'direct';
+    focus?: RedesignFocus;
+    consent: boolean;
+    creativity?: string;
+    /** Reprise après la question des couleurs : le site est déjà relevé, le projet existe. */
+    resume?: { projectId: string; colors: 'site' | 'logo' };
+  };
 }
 
 /** Le moteur prend-il ce tour ? Le premier tour d'un site, quand il y a un projet. */
@@ -183,8 +192,17 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
           credentials: input.credentials ?? {},
           projectId: input.projectData?.id,
           creativity: input.redesign.creativity,
+          resume: input.redesign.resume,
         });
         if (abort.signal.aborted) return;
+        // Une décision revient à l'utilisateur (les couleurs du logo ou celles du site) : on la lui pose.
+        if ('ask' in prepared) {
+          stream.text('</boltArtifact>\n');
+          stream.text(`${prepared.ask.text}\n\n`);
+          stream.text(marker('choices', { ...prepared.ask.choices, context: { ...prepared.ask.choices.context, original: request } }));
+          stream.close({ promptTokens: 0, completionTokens: 0 });
+          return;
+        }
         if ('stop' in prepared) {
           stream.text('</boltArtifact>\n');
           stream.text(prepared.stop);
@@ -208,7 +226,12 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
       const facts = readSiteFacts(projectData, language);
       // Refonte : ce que le site dit aujourd'hui rejoint les faits — les auteurs le reprennent, le garde-fou
       // l'accepte (un téléphone ou une adresse du site n'est pas une invention).
-      const factsText = redesign ? `${renderFacts(facts, language)}\n\n${redesignFacts(redesign.content, fr)}` : renderFacts(facts, language);
+      const inventory = redesign?.content.inventory;
+      const factsText = redesign
+        ? `${renderFacts(facts, language)}\n\n${redesignFacts(redesign.content, fr)}${inventory ? `\n\n${inventoryFacts(inventory, fr)}` : ''}`
+        : renderFacts(facts, language);
+      // Tout le texte de l'ancien site : la référence du garde-fou (rien de ce qu'il dit n'est une invention).
+      const sourceText = inventory ? `\n${inventoryText(inventory)}` : '';
       const writer = process.env.SITE_WRITER_MODEL?.trim();
       const caller = new ModelCaller(writer && getFallbackModelKeys(writer).includes(writer) ? writer : model, userId, abort.signal);
       const usage = () => ({ promptTokens: caller.promptTokens, completionTokens: caller.completionTokens });
@@ -244,7 +267,22 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
       // Opération A : architecture et design system, en parallèle.
       stream.note(fr ? "Je conçois l'architecture du site et son design system" : 'Designing the site structure and its design system');
       const [architecture, design, pattern] = await Promise.all([
-        designManifest({ facts, factsText, request, language, caller, redesign: redesign ? redesignArchitect(redesign.content, fr, redesign.focus) : undefined }),
+        designManifest({
+          facts,
+          factsText,
+          request,
+          language,
+          caller,
+          redesign: redesign
+            ? {
+                brief: redesignArchitect(redesign.content, fr, redesign.focus),
+                outline: inventory ? inventoryOutline(inventory, fr) : '',
+                coverage: { pageCount: inventory?.pages.length ?? 0, sectionIds: inventory?.pages.flatMap((p) => p.sections.map((s) => s.id)) ?? [] },
+                pageTitles: inventory?.pages.map((p) => p.title) ?? [],
+                pagePaths: inventory?.pages.map((p) => p.path) ?? [],
+              }
+            : undefined,
+        }),
         configureDesignSystem({ projectData, facts, request, caller, redesign: redesign ? redesignDesign(redesign.content, fr) : undefined }),
         resolveBrandPattern(projectData).catch(() => null),
       ]);
@@ -270,10 +308,10 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
       // Les briefs de l'architecte guident les auteurs : un détail inventé
       // (délai, moyen de paiement, promesse) y serait recopié dans le site. Les
       // phrases qui en portent un sont retirées avant que quiconque les lise.
-      const check = createFactGuard(`${factsText}\n${request}`, language);
+      const check = createFactGuard(`${factsText}\n${request}${sourceText}`, language);
       let cleaned = 0;
       const clean = (text: string, fallback: string) => {
-        const invented = [...check({ texts: [text] }), ...inventedNames([text], `${factsText}\n${request}`)];
+        const invented = [...check({ texts: [text] }), ...inventedNames([text], `${factsText}\n${request}${sourceText}`)];
         if (!invented.length) return text;
         cleaned += invented.length;
         const kept = String(stripSentences(text, invented) ?? '').trim();
@@ -285,6 +323,23 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
       manifest.header = clean(manifest.header, '');
       manifest.footer = clean(manifest.footer, '');
       if (cleaned) ChatLogger.info('SITE_ENGINE', 'Briefs nettoyés des détails absents des faits', { items: cleaned });
+
+      // Refonte : ce que chaque section reprend de l'ancien site, et où mènent désormais ses liens internes. Une
+      // section qui reprend des images d'origine en affiche (même si l'architecte n'en demandait pas).
+      const sourcesBySection = new Map<string, InventorySection[]>();
+      let mapLink = (href: string) => href;
+      if (inventory) {
+        const index = sectionIndex(inventory);
+        for (const page of manifest.pages) {
+          for (const section of page.sections) {
+            const sources = (section.sources ?? []).map((id) => index.get(id)?.section).filter((x): x is InventorySection => !!x);
+            if (!sources.length) continue;
+            sourcesBySection.set(mediaKey(page, section), sources);
+            if (section.visual === 'none' && sources.some((x) => x.images.length)) section.visual = 'photo';
+          }
+        }
+        mapLink = linkMapper(inventory, (pageIndex) => manifest.pages.find((p) => p.source === pageIndex)?.path);
+      }
 
       // Opération B : le design system compilé, puis les faits et les documents.
       for (const [path, content] of Object.entries(design.files)) emit(path, content);
@@ -304,6 +359,8 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
         siteName: facts.name,
         description: facts.description.slice(0, 160),
         themeColor: design.compiled.config.tokens.colors.primary,
+        // Refonte : le favicon, l'icône et l'image de partage de l'ancien site (recopiés chez nous).
+        icons: inventory ? { favicon: inventory.assets.favicon, appleIcon: inventory.assets.appleIcon, ogImage: inventory.assets.ogImage } : undefined,
       });
       for (const [path, content] of Object.entries(shells)) stream.file(path, content);
 
@@ -313,21 +370,25 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
       const produced: Record<string, MediaAsset[]> = {};
       const mediaBySlot = new Map<string, Promise<MediaAsset[]>>();
 
-      // Refonte : les photos du site gardent leur place — l'ouverture d'abord, puis les sections qui attendent
-      // une photo. Les emplacements restants passent par l'agent média comme d'habitude.
-      if (redesign?.content.images.length && slots.length) {
-        const own = [...redesign.content.images];
-        const order = [...slots].sort((a, b) => (a.role === 'hero' ? -1 : b.role === 'hero' ? 1 : 0));
-        for (const slot of order) {
-          if (!own.length) break;
-          if (slot.videoAllowed && slot.role !== 'hero') continue;
-          const src = own.shift()!;
-          const asset: MediaAsset = { kind: 'image', src, alt: facts.name, origin: 'site' };
-          produced[slot.id] = [asset];
-          mediaBySlot.set(slot.id, Promise.resolve([asset]));
+      // Refonte : chaque section reprend les images de SES sections d'origine (toutes, galeries comprises) ; seules
+      // les sections sans image d'origine qui en demandent une passent par l'agent média (banque ou génération,
+      // selon la direction artistique et la cible).
+      if (redesign && inventory) {
+        let reused = 0;
+        for (const page of manifest.pages) {
+          for (const section of page.sections) {
+            const images = (sourcesBySection.get(mediaKey(page, section)) ?? []).flatMap((s) => s.images).slice(0, 12);
+            if (!images.length) continue;
+            const assets: MediaAsset[] = images.map((image) => ({ kind: 'image', src: image.url, alt: image.alt || facts.name, origin: 'site' }));
+            produced[mediaKey(page, section)] = assets;
+            mediaBySlot.set(mediaKey(page, section), Promise.resolve(assets));
+            reused += assets.length;
+          }
         }
-        emit('src/site/media.ts', renderMediaModule(produced));
-        stream.note(fr ? `Je reprends ${Object.keys(produced).length} photo${Object.keys(produced).length > 1 ? 's' : ''} de votre site` : `Reusing ${Object.keys(produced).length} photo${Object.keys(produced).length > 1 ? 's' : ''} from your site`);
+        if (reused) {
+          emit('src/site/media.ts', renderMediaModule(produced));
+          stream.note(fr ? `Je reprends ${reused} image${reused > 1 ? 's' : ''} de votre site, chacune à sa place` : `Reusing ${reused} image${reused > 1 ? 's' : ''} from your site, each in its place`);
+        }
       }
       const open = slots.filter((slot) => !mediaBySlot.has(slot.id));
 
@@ -388,7 +449,7 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
         themeSummary: themeSummary(design.compiled.config),
       };
       const system = authorSystemPrompt(ctx);
-      const reference = `${factsText}\n${request}`;
+      const reference = `${factsText}\n${request}${sourceText}`;
       const review: ReviewContext = {
         policy: importPolicy(manifest.dependencies),
         check,
@@ -451,6 +512,9 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
                     ...(assets.length
                       ? { mediaKey: key, mediaKind: KIND_LABEL[assets[0].kind], mediaAspect: index === 0 ? '16:9' : '4:3' }
                       : {}),
+                    // Les clés de `renderMediaModule` : la 1re garde la clé, les suivantes `clé-2`, `clé-3`…
+                    ...(assets.length > 1 ? { mediaList: assets.map((asset, i) => ({ key: i ? `${key}-${i + 1}` : key, alt: asset.alt ?? '' })) } : {}),
+                    ...(sourcesBySection.has(key) ? { source: sourceContent(sourcesBySection.get(key)!, mapLink, fr) } : {}),
                   },
                   request
                 )

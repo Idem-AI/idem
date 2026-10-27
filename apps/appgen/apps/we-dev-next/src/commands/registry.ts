@@ -1,12 +1,13 @@
 /**
- * LES COMMANDES D'iCODE — « /redesign monsite.com », « /charte »… Chacune est un déroulé déjà pensé pour
+ * LES COMMANDES D'iCODE — « /redesign monsite.com », « /charter »… Chacune est un déroulé déjà pensé pour
  * atteindre un résultat précis : les bonnes questions (à cliquer, la recommandation en tête), puis le bon moteur.
  *
  *   server   le serveur mène le déroulé (questions, génération) : la commande part comme un message ;
  *   client   l'atelier la règle sur place (ouvrir la mise en ligne, mener au module Communication…).
  *
  * Une seule liste : l'atelier la lit (`GET /api/commands`) pour son menu « / », le serveur pour reconnaître la
- * commande tapée. Les noms français et anglais sont des alias l'un de l'autre.
+ * commande tapée. Toutes les commandes s'écrivent en anglais (décision du 27/10/2026) ; leurs libellés et
+ * descriptions suivent la langue de l'interface.
  */
 
 export type CommandName = 'redesign' | 'site' | 'charter' | 'publish' | 'domain' | 'communication' | 'fix' | 'help';
@@ -26,7 +27,7 @@ export interface CommandSpec {
 export const COMMANDS: readonly CommandSpec[] = [
   {
     name: 'redesign',
-    aliases: ['refonte', 'refaire'],
+    aliases: ['rebuild'],
     run: 'server',
     label: { fr: 'Refaire un site existant', en: 'Redesign an existing site' },
     description: {
@@ -37,7 +38,7 @@ export const COMMANDS: readonly CommandSpec[] = [
   },
   {
     name: 'site',
-    aliases: ['vitrine'],
+    aliases: ['website'],
     run: 'server',
     label: { fr: 'Créer mon site vitrine', en: 'Create my showcase website' },
     description: {
@@ -47,7 +48,7 @@ export const COMMANDS: readonly CommandSpec[] = [
   },
   {
     name: 'charter',
-    aliases: ['charte', 'identite'],
+    aliases: ['brand'],
     run: 'server',
     needs: 'project',
     label: { fr: 'Créer ma charte graphique', en: 'Create my brand guidelines' },
@@ -58,21 +59,21 @@ export const COMMANDS: readonly CommandSpec[] = [
   },
   {
     name: 'publish',
-    aliases: ['enligne', 'deploy', 'publier'],
+    aliases: ['deploy'],
     run: 'client',
     label: { fr: 'Mettre en ligne', en: 'Go live' },
     description: { fr: 'Publier le site ou l’application, avec une adresse à partager.', en: 'Publish the site or app, with an address to share.' },
   },
   {
     name: 'domain',
-    aliases: ['domaine', 'nom'],
+    aliases: [],
     run: 'client',
     label: { fr: 'Choisir mon nom de domaine', en: 'Choose my domain name' },
     description: { fr: 'Une adresse à votre nom, achetée et reliée pour vous.', en: 'An address in your name, bought and connected for you.' },
   },
   {
     name: 'communication',
-    aliases: ['com', 'reseaux', 'social'],
+    aliases: ['social'],
     run: 'client',
     needs: 'project',
     label: { fr: 'Faire connaître mon site', en: 'Get my site seen' },
@@ -83,14 +84,14 @@ export const COMMANDS: readonly CommandSpec[] = [
   },
   {
     name: 'fix',
-    aliases: ['corriger', 'reparer'],
+    aliases: ['repair'],
     run: 'client',
     label: { fr: 'Corriger les erreurs', en: 'Fix the errors' },
     description: { fr: 'Les erreurs de l’aperçu, corrigées automatiquement.', en: 'The preview errors, fixed automatically.' },
   },
   {
     name: 'help',
-    aliases: ['aide', 'commandes'],
+    aliases: ['commands'],
     run: 'client',
     label: { fr: 'Voir les commandes', en: 'See the commands' },
     description: { fr: 'Tout ce que vous pouvez lancer d’un « / ».', en: 'Everything you can start with a “/”.' },

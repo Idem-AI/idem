@@ -15,6 +15,7 @@
 import { ProjectModel } from '../types/project.js';
 import { forgeDesignSystem, DesignSystem } from '../design/tokenForge.js';
 import { isLightSurface, readFonts, readPalette } from '../design/charter.js';
+import { formatOklch, hexToRgb, rgbToOklch } from '../design/color.js';
 import { ChatLogger } from '../utils/logger.js';
 import { ModelCaller, SHAPE_REMINDER, Verdict } from './modelCaller.js';
 import { SiteFacts } from './siteFacts.js';
@@ -110,12 +111,13 @@ export function seedConfig(projectData: ProjectModel | undefined, system: Design
 }
 
 /** Ce que la charte a décidé et que le modèle ne peut pas changer. */
-function charterLocks(projectData: ProjectModel, seed: Json): Array<[string[], unknown]> {
+function charterLocks(projectData: ProjectModel, seed: Json, preserve = false): Array<[string[], unknown]> {
   const branding = (projectData.analysisResultModel?.branding ?? {}) as Json;
   const palette = readPalette(branding);
   const fonts = readFonts(branding);
   const locks: Array<[string[], unknown]> = [];
-  if (palette.primary) locks.push([['tokens', 'colors', 'primary'], seed.tokens.colors.primary]);
+  // Une refonte garde la couleur EXACTE du site, pas une teinte voisine de la gamme calculée.
+  if (palette.primary) locks.push([['tokens', 'colors', 'primary'], preserve ? palette.primary : seed.tokens.colors.primary]);
   if (fonts.display) locks.push([['tokens', 'typography', 'headingFont'], seed.tokens.typography.headingFont]);
   if (fonts.body) locks.push([['tokens', 'typography', 'bodyFont'], seed.tokens.typography.bodyFont]);
   if (fonts.displayCss) locks.push([['tokens', 'typography', 'headingFontUrl'], fonts.displayCss]);
@@ -221,7 +223,7 @@ export async function configureDesignSystem(options: {
   const { projectData, facts, request, caller, redesign } = options;
   const system = forgeDesignSystem(projectData);
   const seed = seedConfig(projectData, system);
-  const locks = charterLocks(projectData, seed);
+  const locks = charterLocks(projectData, seed, !!redesign);
   const { parseColor } = compiler;
 
   const outcome = await caller.json(
@@ -243,6 +245,10 @@ export async function configureDesignSystem(options: {
       if (current !== undefined) enforced.push(`${path.slice(1).join('.')} (charte)`);
     }
   }
+
+  // Pas de couleur fluo : une couleur choisie par le modèle (hors couleurs de la marque) trop saturée et trop
+  // lumineuse est ramenée à une teinte posée — même teinte, moins de chroma.
+  enforced.push(...tameNeon(config, Object.values(readPalette((projectData.analysisResultModel?.branding ?? {}) as Json)), new Set(locks.map(([path]) => path.join('.')))));
 
   // Surfaces claires, sauf demande explicite d'un thème sombre.
   if (!DARK_REQUEST.test(request)) {
@@ -280,6 +286,34 @@ export async function configureDesignSystem(options: {
       ground: system.colors.brand['50'] ?? system.colors.surface,
     },
   };
+}
+
+/** Au-delà de ce chroma (OKLCH) et dans cette lumière, une couleur passe pour fluo à l'écran. */
+const NEON_CHROMA = 0.2;
+const CALM_CHROMA = 0.13;
+
+/**
+ * Ramène les couleurs fluo choisies par le modèle à une teinte posée. Les couleurs de la marque (et leurs proches
+ * voisines) restent telles quelles : une marque vive a le droit de l'être.
+ */
+export function tameNeon(config: Json, brandHexes: string[], locked: Set<string>): string[] {
+  const colors = config.tokens?.colors;
+  if (!colors || typeof colors !== 'object') return [];
+  const brand = brandHexes.map((hex) => hexToRgb(hex)).filter((rgb): rgb is NonNullable<typeof rgb> => !!rgb).map(rgbToOklch);
+  const changed: string[] = [];
+  for (const [key, value] of Object.entries(colors)) {
+    if (locked.has(`tokens.colors.${key}`) || typeof value !== 'string') continue;
+    const parsed = compiler.parseColor(value);
+    if (!parsed) continue;
+    // `parseColor` rend des canaux 0–255, `color.ts` travaille en 0–1.
+    const lch = rgbToOklch({ r: parsed.r / 255, g: parsed.g / 255, b: parsed.b / 255 });
+    if (lch.c < NEON_CHROMA || lch.l < 0.5 || lch.l > 0.95) continue;
+    const nearBrand = brand.some((b) => Math.abs(b.l - lch.l) < 0.12 && Math.abs(b.c - lch.c) < 0.08 && Math.min(Math.abs(b.h - lch.h), 360 - Math.abs(b.h - lch.h)) < 18);
+    if (nearBrand) continue;
+    colors[key] = formatOklch({ ...lch, c: CALM_CHROMA });
+    changed.push(`${key} (fluo)`);
+  }
+  return changed;
 }
 
 /** Le design system de départ, sans modèle : celui que l'atelier monte avant la génération. */

@@ -10,6 +10,10 @@ import { COMMANDS, parseCommand } from '../src/commands/registry.js';
 import { siteRequest } from '../src/commands/workflows/site.js';
 import { findSiteUrl } from '../src/siteEngine/redesign/intent.js';
 import { redesignArchitect, redesignFacts } from '../src/siteEngine/redesign/brief.js';
+import { inventoryOutline, linkMapper, SiteInventory, sourceContent } from '../src/siteEngine/redesign/inventory.js';
+import { completeCoverage, missingCoverage, readManifest } from '../src/siteEngine/manifest.js';
+import { cleanSlop } from '../src/siteEngine/slopGuard.js';
+import { tameNeon } from '../src/siteEngine/designConfig.js';
 
 process.env.ICODE_INTENT_AGENT = 'off';
 
@@ -54,9 +58,10 @@ const project = { id: 'p1', name: 'Ndolo', description: 'Boulangerie', analysisR
 async function main() {
   // 1. Les commandes et leurs alias, français et anglais.
   check('/redesign + adresse', parseCommand('/redesign monsite.com')?.command.name === 'redesign' && parseCommand('/redesign monsite.com')?.args === 'monsite.com');
-  check('/refonte = /redesign', parseCommand('/refonte')?.command.name === 'redesign');
-  check('/charte = /charter', parseCommand('/Charte')?.command.name === 'charter');
-  check('/réparer (accent) = /fix', parseCommand('/réparer')?.command.name === 'fix');
+  check('commandes en anglais seulement', parseCommand('/refonte') === null && parseCommand('/charte') === null && parseCommand('/publier') === null);
+  check('/Charter (majuscule) = /charter', parseCommand('/Charter')?.command.name === 'charter');
+  check('/deploy = /publish', parseCommand('/deploy')?.command.name === 'publish');
+  check('noms et alias en anglais', COMMANDS.every((c) => /^[a-z]+$/.test(c.name) && c.aliases.every((a) => /^[a-z]+$/.test(a))));
   check('pas une commande', parseCommand('refais / modernise le site') === null);
   check('chaque commande a ses mots', COMMANDS.every((c) => c.label.fr && c.label.en && c.description.fr && c.description.en));
 
@@ -99,9 +104,9 @@ async function main() {
 
   // 4. /charte : sans projet, une explication ; avec projet, une confirmation.
   {
-    const none = await run(await dispatch(base({ text: '/charte' })));
+    const none = await run(await dispatch(base({ text: '/charter' })));
     check('charte sans projet : explication', !none.choices && none.text.includes('/redesign'));
-    const ask = await run(await dispatch(base({ text: '/charte', projectData: project })));
+    const ask = await run(await dispatch(base({ text: '/charter', projectData: project })));
     check('charte : confirmation', ask.choices?.purpose === 'charter' && ask.choices.questions[0].options?.[0].value === 'create');
     const later = await run(await dispatch(base({ projectData: project, answers: { purpose: 'charter', values: { confirm: 'later' } } })));
     check('charte plus tard : rien de lancé', !later.choices && later.text.includes('plus tard'));
@@ -112,7 +117,7 @@ async function main() {
     const publish = await run(await dispatch(base({ text: '/publish' })));
     check('commande atelier : explication', publish.text.includes('barre de saisie'));
     const unknown = await run(await dispatch(base({ text: '/inconnue' })));
-    check('commande inconnue : aide', unknown.text.includes('/refonte'));
+    check('commande inconnue : aide', unknown.text.includes('/redesign') && unknown.text.includes('/charter'));
   }
 
   // 6. Agent coupé, « continuer » : chemin habituel.
@@ -144,6 +149,56 @@ async function main() {
     const content = { url: 'https://exemple.com/', title: 'Exemple', language: 'fr', headings: ['Nos menus'], paragraphs: ['Appelez-nous au 6 99 00 11 22.'], voice: {}, styleEvidence: '', pages: ['a', 'b'], images: [], logo: true };
     check('faits : textes du site', redesignFacts(content, true).includes('6 99 00 11 22'));
     check('architecte : priorité design', redesignArchitect(content, true, 'design').includes('DESIGN'));
+  }
+
+  // 9. La refonte : rien de l'ancien site ne disparaît.
+  {
+    const inventory: SiteInventory = {
+      origin: 'https://ex.cm',
+      language: 'fr',
+      pages: [
+        { url: 'https://ex.cm/', path: '/', title: 'Accueil', sections: [{ id: 'p0.s0', headings: ['Bienvenue'], texts: ['Nous formons les jeunes.'], items: [], ctas: [{ label: 'Nos services', href: 'https://ex.cm/services/', kind: 'internal' }], images: [{ url: 'https://cdn/a.jpg', alt: 'Atelier', width: 800, height: 600, kind: 'img' }] }, { id: 'p0.s1', headings: ['Chiffres'], texts: ['120 enfants formés'], items: [], ctas: [], images: [] }] },
+        { url: 'https://ex.cm/services/', path: '/services/', title: 'Services', sections: [{ id: 'p1.s0', headings: ['Ateliers'], texts: [], items: ['Robotique', 'Dessin'], ctas: [], images: [] }] },
+      ],
+      skipped: [],
+      navigation: [],
+      footer: { texts: [], links: [] },
+      contact: { phones: ['+237 6 92 95 13 10'], emails: [], whatsapp: [], addresses: [], socials: [] },
+      assets: { images: [] },
+    };
+    const outline = inventoryOutline(inventory, true);
+    check('plan : chaque section citée', ['p0.s0', 'p0.s1', 'p1.s0'].every((id) => outline.includes(id)));
+    const raw = { pages: [{ slug: '', source: 'p0', label: 'Accueil', sections: [{ id: 'hero', brief: 'Ouverture', visual: 'photo', sources: ['p0.s0'] }, { id: 'impact', brief: 'Chiffres', visual: 'none', sources: ['p0.s1'] }] }] };
+    const { manifest } = readManifest(raw, { maxPages: 10, maxSections: 16 });
+    const coverage = { pageCount: 2, sectionIds: ['p0.s0', 'p0.s1', 'p1.s0'] };
+    const missing = missingCoverage(manifest!, coverage);
+    check('couverture : page et section manquantes repérées', missing.pages.join() === '1' && missing.sections.join() === 'p1.s0', missing);
+    const completed = completeCoverage(manifest!, coverage, ['Accueil', 'Services'], ['/', '/services/'], true);
+    check('couverture complétée par le code', missingCoverage(completed, coverage).pages.length === 0 && missingCoverage(completed, coverage).sections.length === 0 && completed.pages[1].path === '/services/');
+    const map = linkMapper(inventory, (i) => (i === 1 ? '/nos-services/' : i === 0 ? '/' : undefined));
+    const source = sourceContent([inventory.pages[0].sections[0]], map, true);
+    check('lien interne réécrit vers la nouvelle page', source.includes('/nos-services/') && source.includes('Nous formons les jeunes.'), source);
+  }
+
+  // 10. Les marques d'un site « généré » retirées par le code.
+  {
+    const dirty = `<section className="bg-gradient-to-r from-purple-500 to-pink-500 p-8"><h2 className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent">🚀 Nos services — rapides</h2><div className="absolute -top-10 left-0 h-64 w-64 rounded-full bg-primary/30 blur-3xl" /><div className="bg-white/10 backdrop-blur-md">x</div><div className="relative"><img className="absolute inset-0" /><div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" /></div></section>`;
+    const { code, fixes } = cleanSlop(dirty);
+    check('slop : émoji retiré', !/🚀/u.test(code));
+    check('slop : tiret cadratin remplacé', !code.includes('—'));
+    check('slop : dégradé décoratif retiré', !code.includes('from-purple-500') && !code.includes('bg-clip-text'));
+    check('slop : voile sur photo gardé', code.includes('from-black/60 to-transparent'));
+    check('slop : pastille floue retirée', !code.includes('blur-3xl'));
+    check('slop : effet verre retiré', !code.includes('backdrop-blur'));
+    check('slop : corrections dites', fixes.length >= 5, fixes);
+  }
+
+  // 11. Pas de couleur fluo (hors couleurs de la marque).
+  {
+    const config = { tokens: { colors: { primary: '#22c55e', accent: '#39ff14', muted: '#f4f4f5' } } };
+    const changed = tameNeon(config, ['#22c55e'], new Set(['tokens.colors.primary']));
+    check('fluo apaisé', changed.join() === 'accent (fluo)' && config.tokens.colors.accent.startsWith('oklch('), { changed, config });
+    check('marque intacte', config.tokens.colors.primary === '#22c55e' && config.tokens.colors.muted === '#f4f4f5');
   }
 
   console.log(`${passed} contrôles réussis, ${failed} en échec`);

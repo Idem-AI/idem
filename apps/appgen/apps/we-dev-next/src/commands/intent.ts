@@ -4,7 +4,7 @@
  * le site). Aucune liste de mots : « mon site date de 2015, il faut le remettre au goût du jour » est une refonte,
  * « inspire-toi de stripe.com » n'en est pas une, et c'est le modèle qui en juge, avec le contexte de l'atelier.
  *
- * Rapide et borné : un seul essai, 8 secondes au plus, réponse JSON de quelques jetons. S'il ne répond pas, la
+ * Rapide et borné : deux essais au plus (le second sur un autre modèle), 8 secondes en tout, réponse JSON de quelques jetons. S'il ne répond pas, la
  * demande suit son chemin habituel — l'agent n'empêche jamais de construire.
  */
 import { modelForCreativity } from '../config/modelConfig.js';
@@ -86,7 +86,8 @@ export async function analyzeIntent(options: { text: string; context: IntentCont
       },
       120,
       0,
-      1
+      // Deux essais : un modèle saturé cède sa place au suivant de la chaîne, dans les 8 secondes.
+      2
     );
     const result = outcome.value ?? none;
     ChatLogger.info('INTENT', 'Demande lue par l’agent', { intent: result.intent, confidence: result.confidence, url: result.url, ms: Date.now() - started });
