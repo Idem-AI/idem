@@ -31,7 +31,7 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { createReadStream, existsSync, mkdirSync, readFileSync, statSync } from 'node:fs';
+import { createReadStream, existsSync, mkdirSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { rename, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { createHash, timingSafeEqual } from 'node:crypto';
@@ -103,6 +103,49 @@ interface SnapshotMeta {
  * projet : le plan ne dépend que de la cible. Un arbre sans instantané est
  * annoncé `baked: false`, et l'atelier l'installe comme avant — sans attendre.
  */
+/**
+ * L'instantané le plus récent du même arbre, sous une AUTRE empreinte : quand une version de paquet vient de
+ * changer et que le four n'est pas encore repassé, l'atelier monte cet arbre presque juste et ne fait installer à
+ * npm que la différence — quelques secondes au lieu de trois minutes d'installation complète.
+ */
+function nearestSnapshot(target: string, id: string, except: string): { fingerprint: string; url: string; bytes: number } | null {
+  const root = join(CACHE_DIR, target);
+  if (!existsSync(root)) return null;
+  let best: { fingerprint: string; at: number; bytes: number } | null = null;
+  for (const fingerprint of readdirSync(root)) {
+    if (fingerprint === except || !/^[a-f0-9]{8,64}$/.test(fingerprint)) continue;
+    const file = snapshotPath(target, fingerprint, id);
+    if (!existsSync(file)) continue;
+    const { mtimeMs, size } = statSync(file);
+    if (!best || mtimeMs > best.at) best = { fingerprint, at: mtimeMs, bytes: size };
+  }
+  return best ? { fingerprint: best.fingerprint, url: `/api/scaffold/deps/${target}/${best.fingerprint}/${id}`, bytes: best.bytes } : null;
+}
+
+/**
+ * Le temps de démarrage d'un atelier, mesuré par lui (de la fin de génération ou du montage du socle jusqu'au
+ * serveur prêt), avec la source des dépendances et la phase la plus longue. Journalisé pour suivre l'objectif :
+ * un aperçu en moins de 20 secondes. Aucune donnée du projet, seulement des durées.
+ */
+router.post('/startup', (req: Request, res: Response) => {
+  const body = (req.body ?? {}) as Record<string, unknown>;
+  const ms = Math.round(Number(body.ms) || 0);
+  if (!ms || ms > 30 * 60_000) return res.status(400).json({ error: 'Bad measure.' });
+  const phases = body.phases && typeof body.phases === 'object' ? Object.fromEntries(Object.entries(body.phases as Record<string, unknown>).slice(0, 12).map(([k, v]) => [String(k).slice(0, 30), Math.round(Number(v) || 0)])) : {};
+  ChatLogger.setContext('DepsRoute');
+  const entry = {
+    target: String(body.target ?? '').slice(0, 20),
+    trigger: String(body.trigger ?? '').slice(0, 30),
+    ms,
+    withinBudget: ms <= 20_000,
+    sources: Array.isArray(body.sources) ? (body.sources as unknown[]).map((s) => String(s).slice(0, 40)).slice(0, 6) : [],
+    phases,
+  };
+  if (entry.withinBudget) ChatLogger.info('STARTUP', 'Aperçu prêt', entry);
+  else ChatLogger.warn('STARTUP', 'Aperçu au-delà de 20 s', entry);
+  return res.status(204).end();
+});
+
 router.get('/:target', (req: Request, res: Response) => {
   const target = param(req.params.target);
   if (!isTarget(target)) return res.status(404).json({ error: 'Unknown target.' });
@@ -131,6 +174,8 @@ router.get('/:target', (req: Request, res: Response) => {
       baked,
       bytes: baked ? (meta?.bytes ?? statSync(file).size) : 0,
       url: baked ? `/api/scaffold/deps/${target}/${fingerprint}/${tree.id}` : null,
+      // Pas encore cuit sous cette empreinte : l'arbre le plus proche, que l'atelier complète par npm.
+      ...(baked ? {} : { nearest: nearestSnapshot(target, tree.id, fingerprint) }),
       /** L'atelier l'écrit dans `node_modules/.idem-deps.json` après le montage. */
       marker: fingerprint,
     };
@@ -302,5 +347,24 @@ router.get('/', (_req: Request, res: Response) => {
 
   return res.json({ cacheDir: CACHE_DIR, bakingEnabled: Boolean(BAKE_TOKEN), targets });
 });
+
+/**
+ * Au démarrage du serveur : ce qui n'est pas encore cuit. Un arbre sans instantané, c'est trois minutes de
+ * `npm install` à la première ouverture de chaque atelier — dit fort dans les journaux, avec la commande qui répare.
+ */
+export function reportBakedSnapshots(): void {
+  const missing: string[] = [];
+  for (const target of BAKED_TARGETS) {
+    for (const tree of planFor(target).trees) {
+      const fingerprint = treeFingerprint(tree);
+      if (!existsSync(snapshotPath(target, fingerprint, tree.id))) {
+        missing.push(`${target}/${tree.id}@${fingerprint}${nearestSnapshot(target, tree.id, fingerprint) ? ' (arbre voisin disponible)' : ''}`);
+      }
+    }
+  }
+  ChatLogger.setContext('DepsRoute');
+  if (missing.length) ChatLogger.warn('DEPS_MISSING', `Instantanés à cuire : npm run deps:bake (${missing.length})`, { missing, cacheDir: CACHE_DIR });
+  else ChatLogger.info('DEPS_READY', 'Tous les instantanés de dépendances sont cuits', { cacheDir: CACHE_DIR });
+}
 
 export default router;

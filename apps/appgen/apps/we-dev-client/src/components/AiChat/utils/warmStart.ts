@@ -53,6 +53,7 @@ import { resetRunner, startCommand } from '@/components/WeIde/services/webcontai
 import type { DepsTargetName } from '@/api/deps';
 import useWarmStart from '@/stores/warmStartSlice';
 import { currentPlatform, currentProduct } from '@/utils/product';
+import { startupBegin, startupPhase, startupReset, startupSource } from '@/utils/startupTimer';
 
 /**
  * La cible, telle que la connaît l'atelier avant d'avoir chargé le projet.
@@ -113,6 +114,7 @@ export function prewarmWorkspace(target: DepsTargetName | null): void {
 
 /** Le préchauffage repart à zéro quand le conteneur est remplacé. */
 export function resetWarmStart(): void {
+  startupReset();
   warmed = false;
   started = false;
   resetDeps();
@@ -143,12 +145,16 @@ export async function warmStart(
   lastCommands = commands;
 
   useWarmStart.getState().begin(target);
+  startupBegin('warm-start', target);
 
   const onProgress = (progress: DepsProgress) => useWarmStart.getState().progress(progress);
 
   let outcomes: DepsOutcome[] = [];
+  const depsStarted = performance.now();
   try {
     outcomes = await ensureDependencies(target, onProgress);
+    startupPhase('dependencies', performance.now() - depsStarted);
+    outcomes.forEach((outcome) => startupSource(outcome.source));
   } catch (error) {
     console.warn('[chaud] dépendances non mises en place', error);
     useWarmStart.getState().fail('deps');
@@ -183,6 +189,24 @@ export async function warmStart(
 
   useWarmStart.getState().serverStarting();
   await startCommand(commands.start);
+}
+
+/**
+ * La cible des dépendances de cet atelier : celle du dernier démarrage à chaud (le socle l'a dite), sinon celle
+ * de l'adresse. `null` : inconnue — on ne devine pas (voir `targetFromChoice`).
+ */
+export function depsTarget(): DepsTargetName | null {
+  return lastTarget ?? targetFromChoice(currentProduct(), currentPlatform());
+}
+
+/**
+ * Un nouveau démarrage à chaud pour une autre cible ou un socle remplacé (refonte, `/site`) : les dépendances déjà
+ * sur le disque sont gardées et vérifiées, rien n'est effacé. L'appelant arrête l'ancien serveur s'il servait une
+ * autre cible.
+ */
+export async function rewarm(target: DepsTargetName, commands: { install: string; start: string }): Promise<void> {
+  started = false;
+  await warmStart(target, commands);
 }
 
 /** Le serveur a-t-il déjà été lancé à chaud ? */

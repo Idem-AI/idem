@@ -25,11 +25,53 @@ function pages() {
   return entries;
 }
 
+/**
+ * Tout ce qu'une section peut importer, pré-regroupé dès le démarrage. Sans cette liste, Vite découvre une
+ * dépendance à la première section qui l'importe, la regroupe, puis RECHARGE la page — dix à vingt secondes de plus
+ * dans la WebContainer, plusieurs fois par génération.
+ */
+const PREBUNDLED = [
+  'react',
+  'react/jsx-runtime',
+  'react/jsx-dev-runtime',
+  'react-dom',
+  'react-dom/client',
+  'motion/react',
+  'lucide-react',
+  'clsx',
+  'tailwind-merge',
+  'class-variance-authority',
+  '@radix-ui/react-accordion',
+  '@radix-ui/react-avatar',
+  '@radix-ui/react-checkbox',
+  '@radix-ui/react-dialog',
+  '@radix-ui/react-dropdown-menu',
+  '@radix-ui/react-label',
+  '@radix-ui/react-popover',
+  '@radix-ui/react-radio-group',
+  '@radix-ui/react-select',
+  '@radix-ui/react-separator',
+  '@radix-ui/react-slot',
+  '@radix-ui/react-switch',
+  '@radix-ui/react-tabs',
+  '@radix-ui/react-tooltip',
+  'date-fns',
+  'embla-carousel-react',
+  'react-hook-form',
+  'zod',
+];
+
 export default defineConfig({
   plugins: [idemDesignSystem(), react()],
   resolve: {
     alias: { '@': here('src') },
   },
   build: { rollupOptions: { input: pages() } },
-  server: { host: true, port: 5173 },
+  optimizeDeps: { include: PREBUNDLED },
+  server: {
+    host: true,
+    port: 5173,
+    // Les pages et le design system transformés avant la première requête : l'aperçu s'affiche d'un coup.
+    warmup: { clientFiles: ['./src/entries/*.tsx', './src/pages/*.tsx', './src/components/ui/*.tsx'] },
+  },
 });

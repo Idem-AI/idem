@@ -61,6 +61,25 @@ export function resetRunner(): void {
   backlog.length = 0;
   replayed = false;
   running.clear();
+  alive.clear();
+}
+
+/** Serveurs lancés et toujours vivants, par commande complète (et de quoi les arrêter). */
+const alive = new Map<string, { kill: () => void } | null>();
+
+/**
+ * Arrête les serveurs lancés par l'atelier : la cible change (une application devient un site), l'ancien
+ * serveur tiendrait le port avec la mauvaise configuration.
+ */
+export function stopStarted(): void {
+  alive.forEach((process) => {
+    try {
+      process?.kill();
+    } catch {
+      /* déjà arrêté */
+    }
+  });
+  alive.clear();
 }
 
 /** Commandes en cours, pour ne pas lancer deux fois la même. */
@@ -135,13 +154,19 @@ export async function startCommand(
   const container = await getWebContainerInstance();
   if (!container) return;
 
-  useRunStatus.getState().commandStarted(command);
   const full = options.cwd ? `cd ${options.cwd} && ${command}` : command;
+  // Un serveur déjà lancé par la même commande et toujours vivant : pas de second (Vite prendrait un autre port,
+  // et l'aperçu montrerait l'un ou l'autre au hasard). Le démarrage à chaud et le filet de fin de génération
+  // peuvent le demander presque en même temps.
+  if (alive.has(full)) return;
+  alive.set(full, null);
+  useRunStatus.getState().commandStarted(command);
 
   try {
     const process = await container.spawn('jsh', ['-c', full], {
       env: { npm_config_yes: true },
     });
+    alive.set(full, process);
 
     void process.output.pipeTo(
       new WritableStream({
@@ -155,9 +180,11 @@ export async function startCommand(
     // La sortie du serveur qui s'arrête est une erreur, pas un succès : elle
     // doit remonter, sinon l'aperçu reste vide sans rien dans l'interface.
     void process.exit.then((exitCode) => {
+      alive.delete(full);
       if (exitCode !== 0) useRunStatus.getState().commandExited(command, exitCode);
     });
   } catch (error) {
+    alive.delete(full);
     console.warn('[run] démarrage impossible :', full, error);
   }
 }

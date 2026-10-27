@@ -48,7 +48,8 @@ import { ProjectModel } from '@/api/persistence/models/project.model';
 import { MultiChatPromptService } from './services/multiChatPromptService';
 import { currentPlatform, currentProduct } from '@/utils/product';
 import { fetchScaffold } from '@/api/scaffold';
-import { resetWarmStart, targetFromChoice, warmStart } from '../utils/warmStart';
+import { depsTarget, resetWarmStart, rewarm, targetFromChoice, warmStart } from '../utils/warmStart';
+import { stopStarted } from '../../WeIde/services/webcontainer/runner';
 import { resetInstallRepair } from '../utils/ensurePreview';
 import { extractFilesFromText, isEngineSite, isGeneratedSite } from '@/utils/siteEngine';
 import { internalMessage } from '@/utils/stepLabels';
@@ -1123,20 +1124,32 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
           window.history.replaceState({}, '', url.toString());
         }
         journey.clear();
-        resetWarmStart();
+        // Le socle du site monté TOUT DE SUITE et l'aperçu lancé pendant que le site est lu et écrit : à la fin,
+        // il n'y a plus rien à installer ni à démarrer (objectif : moins de 20 s). Le serveur renverra le socle
+        // construit avec le projet (logo compris) : non verrouillé ici, il remplacera celui-ci par rechargement à
+        // chaud. Un serveur qui servait une autre cible (une application) est arrêté d'abord.
+        const previous = depsTarget();
         clearScaffold();
-        // Rien à attendre : aucun socle ne sera monté, le serveur l'envoie dans sa réponse.
         settleScaffold();
-        setEmptyFiles();
-        await setFiles({});
-        resetTerminals();
+        if (previous && previous !== 'site') stopStarted();
+        try {
+          const scaffold = await fetchScaffold(projectData, { product: 'site', language: i18n.language });
+          setEmptyFiles();
+          await setFiles(scaffold.files);
+          void rewarm('site', scaffold.commands);
+        } catch (error) {
+          // Sans socle d'avance, le serveur l'envoie dans sa réponse : plus lent, jamais bloquant.
+          console.warn('[refonte] socle non monté d’avance', error);
+          setEmptyFiles();
+          await setFiles({});
+        }
       }
       append(
         { id: uuidv4(), role: 'user', content: answer.summary },
         { body: { answers: { purpose: choices.purpose, values: answer.values, consent: answer.consent, context: choices.context } } }
       );
     });
-  }, [isLoading, append, t, journey, runClientCommand]);
+  }, [isLoading, append, t, journey, runClientCommand, projectData, i18n.language]);
 
   // Contexte poussé depuis l'espace de travail : sélection d'un élément,
   // annotation dessinée, thème à appliquer. On préremplit la saisie au lieu

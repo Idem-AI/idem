@@ -27,10 +27,13 @@ const escapeHtml = (value: string): string =>
 const sortKeys = (record: Record<string, string>) =>
   Object.fromEntries(Object.entries(record).sort(([a], [b]) => a.localeCompare(b)));
 
-export function renderPackageJson(projectData: ProjectModel | undefined, dependencies: string[] = []): string {
-  const extra = Object.fromEntries(
-    dependencies.filter((name) => name in FUNCTIONAL_DEPENDENCIES).map((name) => [name, FUNCTIONAL_DEPENDENCIES[name]])
-  );
+/**
+ * Le manifeste du site. Les dépendances fonctionnelles (formulaires, dates, carrousel, validation) y sont TOUJOURS :
+ * elles font partie de l'instantané préinstallé, si bien qu'un site qui s'en sert ne déclenche jamais d'`npm install`
+ * — c'était la première cause d'un démarrage de plusieurs minutes après une génération.
+ */
+export function renderPackageJson(projectData: ProjectModel | undefined): string {
+  const extra = FUNCTIONAL_DEPENDENCIES;
   return `${JSON.stringify(
     {
       name: packageName(projectData),

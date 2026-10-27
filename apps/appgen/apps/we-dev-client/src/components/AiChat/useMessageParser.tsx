@@ -4,6 +4,7 @@ import { createFileWithContent } from '../WeIde/components/IDEContent/FileExplor
 import { isScaffoldLocked, looksDegenerate } from '@/utils/scaffoldLock';
 import useTerminalStore from '@/stores/terminalSlice';
 import { Message } from 'ai/react';
+import { runFast } from '../WeIde/services/webcontainer/fastCommands';
 
 class Queue {
   private queue: string[] = [];
@@ -29,8 +30,16 @@ class Queue {
     this.processing = true;
     try {
       while (this.queue.length > 0) {
-        const command = this.getNext();
-        if (!command) continue;
+        const next = this.getNext();
+        if (!next) continue;
+
+        // Le chemin rapide d'abord : dépendances depuis le cache ou l'instantané, serveur déjà lancé gardé.
+        // Seul ce qui n'est pas reconnu va au terminal (voir `fastCommands`).
+        const command = await runFast(next);
+        if (!command) {
+          console.log('[exec] fait par le chemin rapide :', next);
+          continue;
+        }
 
         console.log('[exec]', command);
 

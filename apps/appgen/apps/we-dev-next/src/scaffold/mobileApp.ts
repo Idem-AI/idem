@@ -46,8 +46,13 @@ export default defineConfig({
     // tableau vide, l'option ci-dessus ne s'applique à rien.
     exclude: [],
   },
-  optimizeDeps: { esbuildOptions: { loader: { '.js': 'jsx' } } },
-  server: { host: true, port: 5173 },
+  // React pré-regroupé dès le démarrage (pas de « nouvelle dépendance, rechargement » à la première page), et
+  // les fichiers d'entrée transformés avant la première requête.
+  optimizeDeps: {
+    include: ['react', 'react/jsx-runtime', 'react/jsx-dev-runtime', 'react-dom', 'react-dom/client'],
+    esbuildOptions: { loader: { '.js': 'jsx' } },
+  },
+  server: { host: true, port: 5173, warmup: { clientFiles: ['./src/main.jsx', './src/App.jsx'] } },
 });
 `;
 

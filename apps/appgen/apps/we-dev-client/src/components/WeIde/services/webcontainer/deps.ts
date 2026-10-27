@@ -41,7 +41,7 @@ import { readWorkspaceFile, runCommand } from './runner';
 import { syncFileSystem } from './filesystem';
 import { compress, decompress, forgetSnapshot, readSnapshot, writeSnapshot } from './depsStore';
 
-export type DepsSource = 'cache' | 'snapshot' | 'npm' | 'already-there' | 'failed';
+export type DepsSource = 'cache' | 'snapshot' | 'nearest' | 'npm' | 'already-there' | 'failed';
 
 export interface DepsOutcome {
   tree: string;
@@ -174,7 +174,19 @@ export function resetDeps(): void {
  * Met les dépendances d'une cible en place. Résout quand le projet peut
  * démarrer — ou quand on a épuisé les recours, ce que dit le résultat.
  */
-export async function ensureDependencies(
+export function ensureDependencies(target: DepsTargetName, onProgress?: (progress: DepsProgress) => void): Promise<DepsOutcome[]> {
+  // Une seule mise en place à la fois par cible : le démarrage à chaud et un `npm install` écrit par le modèle se
+  // rejoignent au lieu de monter deux fois le même arbre.
+  const known = ensuring.get(target);
+  if (known) return known;
+  const task = ensureDependenciesNow(target, onProgress).finally(() => ensuring.delete(target));
+  ensuring.set(target, task);
+  return task;
+}
+
+const ensuring = new Map<DepsTargetName, Promise<DepsOutcome[]>>();
+
+async function ensureDependenciesNow(
   target: DepsTargetName,
   onProgress?: (progress: DepsProgress) => void
 ): Promise<DepsOutcome[]> {
@@ -238,9 +250,17 @@ async function ensureTree(
 
   // Un arbre déjà bon dans le conteneur : rechargement de page, retour sur le
   // projet, ou installation faite par un tour précédent.
-  if (await verifyTree(tree)) {
+  const present = await treeState(tree);
+  if (present === 'ok') {
     satisfied.add(key);
     return { tree: tree.id, source: 'already-there', ms: since() };
+  }
+  // Un bon arbre auquel le manifeste ajoute quelques paquets : npm ne télécharge que la différence, rien n'est
+  // effacé (avant, l'arbre entier repartait pour trois minutes d'installation).
+  if (present === 'missing-deps' && (await topUp(tree, onProgress))) {
+    satisfied.add(key);
+    rememberInstalled(target, tree);
+    return { tree: tree.id, source: 'npm', ms: since(), note: 'arbre en place complété' };
   }
 
   // 1. Le cache du navigateur.
@@ -250,7 +270,8 @@ async function ensureTree(
     const bytes = await decompress(cached);
     if (bytes && (await mountTree(tree, bytes))) {
       onProgress?.({ step: 'verify', tree: tree.id });
-      if (await verifyTree(tree)) {
+      const state = await treeState(tree);
+      if (state === 'ok' || (state === 'missing-deps' && (await topUp(tree, onProgress)))) {
         satisfied.add(key);
         return { tree: tree.id, source: 'cache', ms: since() };
       }
@@ -274,7 +295,8 @@ async function ensureTree(
       onProgress?.({ step: 'mount', tree: tree.id });
       if (await mountTree(tree, bytes)) {
         onProgress?.({ step: 'verify', tree: tree.id });
-        if (await verifyTree(tree)) {
+        const state = await treeState(tree);
+        if (state === 'ok' || (state === 'missing-deps' && (await topUp(tree, onProgress)))) {
           satisfied.add(key);
           // Gardé pour la prochaine ouverture — après le montage, pour ne pas
           // retarder le démarrage par une écriture de 20 Mo.
@@ -296,7 +318,21 @@ async function ensureTree(
     }
   }
 
-  // 3. npm, comme avant.
+  // 3. Pas encore cuit sous cette empreinte (une version de paquet vient de changer) : l'arbre voisin le plus
+  //    récent, monté puis complété par npm — la différence au lieu de tout.
+  if (!tree.baked && tree.nearest?.url) {
+    onProgress?.({ step: 'download', tree: tree.id, ratio: 0, bytes: 0, totalBytes: tree.nearest.bytes });
+    const near: DepsTreeInfo = { ...tree, fingerprint: tree.nearest.fingerprint, url: tree.nearest.url, bytes: tree.nearest.bytes, baked: true };
+    const bytes = await snapshotOnce(target, near, onProgress);
+    if (bytes?.length && (await mountTree(near, bytes)) && (await topUp(tree, onProgress))) {
+      satisfied.add(key);
+      rememberInstalled(target, tree);
+      return { tree: tree.id, source: 'nearest', ms: since(), note: `voisin ${tree.nearest.fingerprint} complété` };
+    }
+    await wipeTree(tree);
+  }
+
+  // 4. npm, comme avant.
   onProgress?.({ step: 'npm', tree: tree.id });
   const note = tree.baked ? 'instantané inutilisable' : 'pas encore préinstallé';
   const result = await runCommand('npm install', { cwd: tree.dir || undefined });
@@ -313,7 +349,42 @@ async function ensureTree(
 
   await writeMarker(tree, 'npm');
   satisfied.add(key);
+  rememberInstalled(target, tree);
   return { tree: tree.id, source: 'npm', ms: since(), note };
+}
+
+/**
+ * npm complète un arbre déjà en place (paquets ajoutés au manifeste, arbre voisin) : il ne télécharge que la
+ * différence. Vrai si l'arbre est ensuite complet ; le marqueur prend alors l'empreinte attendue.
+ */
+async function topUp(tree: DepsTreeInfo, onProgress?: (progress: DepsProgress) => void): Promise<boolean> {
+  onProgress?.({ step: 'npm', tree: tree.id });
+  const result = await runCommand('npm install --no-audit --no-fund --prefer-offline', { cwd: tree.dir || undefined });
+  if (result.exitCode !== 0) return false;
+  await writeMarker(tree, 'top-up');
+  return (await treeState(tree)) === 'ok';
+}
+
+/**
+ * Une installation passée par npm (complète ou complétée) est gardée dans le cache du navigateur sous
+ * l'empreinte de l'arbre : la prochaine ouverture la monte en quelques secondes. Faite après coup, une fois
+ * l'aperçu lancé : exporter un arbre de 100 Mo ne doit rien retarder.
+ */
+function rememberInstalled(target: DepsTargetName, tree: DepsTreeInfo): void {
+  setTimeout(() => {
+    void (async () => {
+      try {
+        const container = await getWebContainerInstance();
+        if (!container) return;
+        const exported = (await container.export(tree.mountPoint, { format: 'binary' })) as Uint8Array;
+        const packed = await compress(exported);
+        await writeSnapshot({ target, tree: tree.id, fingerprint: tree.fingerprint, bytes: packed.bytes, compressed: packed.compressed });
+        console.log(`[deps] ${tree.id} gardé dans le cache du navigateur`);
+      } catch (error) {
+        console.warn(`[deps] ${tree.id} : mise en cache impossible`, error);
+      }
+    })();
+  }, 15_000);
 }
 
 /** Monte l'instantané. L'arbre est posé tel quel, sans passer par npm. */
@@ -363,16 +434,26 @@ async function writeMarker(tree: DepsTreeInfo, source: string): Promise<void> {
  * interrompue — tous laissent l'état mémoire et le disque en désaccord.
  */
 async function verifyTree(tree: DepsTreeInfo): Promise<boolean> {
-  const container = await getWebContainerInstance();
-  if (!container) return false;
+  return (await treeState(tree)) === 'ok';
+}
 
-  // 1. Le marqueur, qui dit pour quel socle cet arbre a été posé.
+/**
+ * L'état de l'arbre sur le disque : `ok` ; `missing-deps` (le bon arbre, mais le manifeste demande des paquets
+ * absents : npm complète sans rien effacer) ; `bad` (pas d'arbre, autre socle, binaire de démarrage absent).
+ */
+async function treeState(tree: DepsTreeInfo): Promise<'ok' | 'missing-deps' | 'bad'> {
+  const container = await getWebContainerInstance();
+  if (!container) return 'bad';
+
+  // 1. Le marqueur, qui dit pour quel socle cet arbre a été posé (un arbre voisin monté porte l'empreinte voisine
+  //    jusqu'à ce que npm l'ait complété).
+  let fingerprint: string | undefined;
   try {
     const raw = await container.fs.readFile(`${tree.mountPoint}/${MARKER}`, 'utf-8');
-    const marker = JSON.parse(raw) as { fingerprint?: string };
-    if (marker.fingerprint !== tree.fingerprint) return false;
+    fingerprint = (JSON.parse(raw) as { fingerprint?: string }).fingerprint;
+    if (fingerprint !== tree.fingerprint && fingerprint !== tree.nearest?.fingerprint) return 'bad';
   } catch {
-    return false;
+    return 'bad';
   }
 
   // 2. Les binaires dont dépend la commande de démarrage. « Au moins un » et
@@ -390,7 +471,8 @@ async function verifyTree(tree: DepsTreeInfo): Promise<boolean> {
         }
       })
     );
-    if (!found.some(Boolean)) return false;
+    // Le binaire manque mais l'arbre est là : npm le recrée en complétant.
+    if (!found.some(Boolean)) return 'missing-deps';
   }
 
   // 3. Chaque dépendance directe a son dossier. C'est ce qui attrape un arbre
@@ -407,12 +489,13 @@ async function verifyTree(tree: DepsTreeInfo): Promise<boolean> {
         await container.fs.readdir(`${tree.mountPoint}/${name}`);
       } catch {
         console.warn(`[deps] ${tree.id} : ${name} manque dans l'arbre monté`);
-        return false;
+        return 'missing-deps';
       }
     }
   }
 
-  return true;
+  // Un arbre voisin complet garde ses anciennes versions tant que npm ne l'a pas aligné sur le manifeste.
+  return fingerprint === tree.fingerprint ? 'ok' : 'missing-deps';
 }
 
 async function readManifest(

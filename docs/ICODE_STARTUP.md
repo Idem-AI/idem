@@ -78,6 +78,33 @@ Any failure wipes the tree, forgets it from the browser cache, and falls back to
 
 Two token vocabularies, because the targets do not speak the same Tailwind: the application scaffold has its forged tokens (`bg-surface`, `text-ink`, `px-block`), while the site template **replaces** Tailwind's palette with its design system (`bg-background`, `text-muted-foreground`). `bg-neutral-200` does not exist there, so a skeleton bar written with it would be invisible — a waiting page with nothing on it, which is exactly the failure being avoided.
 
+## 2b. The 20-second budget (October 2026)
+
+Goal: **the preview is up in under 20 seconds after a generation, every time.** Measured, not hoped for. What used to break it, and what replaces it:
+
+| What made it slow | Mechanism |
+| --- | --- |
+| The site engine added functional packages (`date-fns`, `react-hook-form`, `zod`, `embla-carousel-react`) to `package.json`. The snapshot did not have them, so verification rejected the whole tree: **full `npm install`, ~3 min** | They are **always** in the site manifest (`renderPackageJson`), hence in the baked tree. The engine never asks for an install beyond the base |
+| `npm install` / `npm run dev` written at the end of a generation ran as is | **Fast command path** (`webcontainer/fastCommands.ts`, in front of the command queue): `npm install` → `ensureDependencies` (cache, snapshot, neighbour); `npm install <pkgs>` → nothing if already present; `npm run dev` → nothing if a server runs, otherwise deps then start. Anything unrecognised goes to the terminal unchanged |
+| A tree with one extra package was wiped and reinstalled | `treeState` distinguishes `missing-deps` from `bad`: the tree stays, **npm installs only the difference** (`--prefer-offline`) |
+| A version bump made every opening fall back to npm until someone ran the oven | The plan offers the **nearest snapshot** of the same tree (`nearest`): mounted, then topped up by npm |
+| After an npm fallback, the next opening paid it again | The installed tree is **exported to IndexedDB** (`rememberInstalled`), 15 s after start |
+| Redesign / `/site` wiped the workspace and waited for the server's scaffold, then installed | The site scaffold is **mounted and started at click time**, during the site read and generation; the server's scaffold then replaces it by HMR |
+| The post-generation safety net waited 30 s | 4 s grace when nothing is installing or starting |
+| Two `npm run dev` (warm start + safety net) could start two Vite servers | `startCommand` keeps one live server per command; `stopStarted()` stops it when the target changes |
+| Vite re-optimised and reloaded the page each time a section imported a not-yet-seen package | `optimizeDeps.include` lists every importable package; `server.warmup` pre-transforms entries, pages and UI components |
+| Nobody knew the real time | `utils/startupTimer.ts` measures from the first gesture to `server-ready`, with phases and deps source; the server logs `chat.startup` (warning above 20 s) |
+
+### Keeping the snapshots baked automatically
+
+`npm run deps:bake` (in `we-dev-next`) opens the oven page in headless Chrome, in automatic mode (`?deps-bake=1&auto=1#token=…`), bakes every tree whose fingerprint is not baked yet, and exits non-zero on failure. Run it after every deployment that touches the scaffold (CI can). At startup the server logs `DEPS_MISSING` with the list of trees to bake.
+
+| Env | |
+| --- | --- |
+| `ICODE_URL` | the workshop address (default `http://localhost:5173`) |
+| `APPGEN_DEPS_BAKE_TOKEN` | deposit token (required) |
+| `DEPS_BAKE_TIMEOUT_MIN` | default 30 |
+
 ## 3. Baking the snapshots
 
 Snapshots are produced **by a WebContainer**, never by the server's npm. `npm install` picks optional dependencies by platform — esbuild and rollup ship a binary per system/architecture pair — and only the npm running inside a WebContainer picks what a WebContainer can execute. A tree installed on the server would pass every structural check and fall over when Vite starts.

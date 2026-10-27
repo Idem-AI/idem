@@ -540,9 +540,10 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
         );
       }
 
-      // Socle parti dans le flux : rien n'est installé dans l'aperçu, tout l'est ici.
-      if (!scaffoldMounted) stream.command('shell', manifest.dependencies.length ? `npm install && npm install ${manifest.dependencies.join(' ')}` : 'npm install');
-      else if (manifest.dependencies.length) stream.command('shell', `npm install ${manifest.dependencies.join(' ')}`);
+      // Les dépendances fonctionnelles font partie du socle (et de son instantané) : rien à installer en plus. Un
+      // socle parti dans le flux demande seulement sa mise en place, que l'atelier fait depuis son cache ou
+      // l'instantané en quelques secondes (`npm install` n'y est qu'un nom de commande, voir `fastCommands`).
+      if (!scaffoldMounted) stream.command('shell', 'npm install');
       stream.command('start', 'npm run dev');
 
       // Identité visuelle pro : la charte, lancée avant le site, est attendue avant de conclure.

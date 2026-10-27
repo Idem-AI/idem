@@ -20,7 +20,7 @@ import modelRouter from './routes/model.js';
 import handoffRouter from './routes/handoff.js';
 import qualityRouter from './routes/quality.js';
 import scaffoldRouter from './routes/scaffold.js';
-import depsRouter from './routes/deps.js';
+import depsRouter, { reportBakedSnapshots } from './routes/deps.js';
 import designRouter from './routes/design.js';
 import assetsRouter from './routes/assets.js';
 import commandsRouter from './routes/commands.js';
@@ -139,6 +139,8 @@ app.use((req: Request, res: Response) => {
 });
 
 app.listen(PORT, () => {
+  // Ce qui manque pour démarrer un atelier en quelques secondes (instantanés de dépendances).
+  reportBakedSnapshots();
   logger.info(`AppGen server running on http://localhost:${PORT}`, {
     event: 'process.start',
     port: Number(PORT),
