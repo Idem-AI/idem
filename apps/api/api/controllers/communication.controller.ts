@@ -1,3 +1,4 @@
+import { journeyService } from '../services/journey/journey.service';
 import { creativityOf } from '../middleware/billing.middleware';
 import { Response } from 'express';
 import logger from '../config/logger';
@@ -152,6 +153,7 @@ export const generateStrategyStreamController = async (
       },
     });
     writeEvent(res, { type: 'complete', payload: { strategy } });
+    journeyService.signal(userId, 'communication.started', projectId);
     res.end();
   } catch (error: any) {
     // Livrables manquants : ce n'est pas une panne mais un refus attendu, que
@@ -696,6 +698,7 @@ export const generatePlanStreamController = async (
       },
     });
     writeEvent(res, { type: 'complete', payload: { plan } });
+    journeyService.signal(userId, 'communication.started', projectId);
     res.end();
   } catch (error: any) {
     logger.error(`generatePlanStreamController error: ${error.message}`, { stack: error.stack });
@@ -1150,6 +1153,7 @@ export const studioMessageController = async (
         visuals: reply.visuals,
       },
     });
+    if (reply.visuals?.length) journeyService.signal(userId, 'visual.created', projectId);
     res.end();
   } catch (error: any) {
     if (error instanceof InsufficientCreditsError) {

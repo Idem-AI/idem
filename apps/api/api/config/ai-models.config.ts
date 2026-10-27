@@ -59,24 +59,11 @@ export const ROLE_LADDERS: Record<string, ModelLadder> = {
  * Un modèle imposé pour un rôle à un cran précis (prime sur l'échelle). Exemple :
  *   'video.author': { ultra: 'deepseek/deepseek-v4-pro' },
  */
-const VIDEO_GEMINI: Partial<Record<CreativityLevel, string>> = {
-  low: 'google/gemini-3.5-flash',
-  medium: 'google/gemini-3.8-flash',
-  high: 'google/gemini-3.1-pro-preview',
-  ultra: 'google/gemini-3.1-pro-preview',
-};
-
 /**
- * Le moteur vidéo est servi par Gemini (via OpenRouter) : Gemini 3.1 Pro — le plus puissant — aux crans High et
- * Ultra, Gemini 3.8 Flash en Medium, 3.5 Flash en Low. Direction, storyboard, retouches et programmes des scènes.
- * Les livrables graphiques gardent leurs échelles.
+ * Surcharges de modèle par rôle créatif et par cran. Vide : tous les rôles suivent l'échelle
+ * déclarée dans `ROLE_LADDERS` (design ou code), toutes open-weight.
  */
-export const ROLE_MODEL_OVERRIDES: Record<string, Partial<Record<CreativityLevel, string>>> = {
-  'video.concept': VIDEO_GEMINI,
-  'video.planner': VIDEO_GEMINI,
-  'video.reviser': VIDEO_GEMINI,
-  'video.author': VIDEO_GEMINI,
-};
+export const ROLE_MODEL_OVERRIDES: Record<string, Partial<Record<CreativityLevel, string>>> = {};
 
 /** Le modèle d'une échelle à un cran (variable d'environnement autorisée, sinon le barreau par défaut). */
 export function ladderModel(ladder: ModelLadder, requested: CreativityLevel): string {

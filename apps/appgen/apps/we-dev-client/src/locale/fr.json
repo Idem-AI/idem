@@ -143,6 +143,23 @@
           "line": "Le modèle le plus puissant, pour les projets ambitieux."
         }
       }
+    },
+    "ask": {
+      "recommended": "Recommandé",
+      "chooseForMe": "Choisir pour moi",
+      "consent": {
+        "lead": "Votre site devient un projet IDEM. J’accepte la",
+        "privacy": "politique de confidentialité",
+        "terms": "les conditions d’utilisation",
+        "and": "et",
+        "beta": "les conditions du programme bêta",
+        "ofIdem": "d’IDEM.",
+        "required": "Cochez la case pour que je puisse créer votre projet IDEM."
+      }
+    },
+    "redesign": {
+      "attaching": "J’enregistre votre site dans votre projet IDEM…",
+      "attachFailed": "Le site est prêt, mais je n’ai pas pu l’enregistrer dans votre projet. Réessayez depuis le bouton Enregistrer."
     }
   },
   "settings": {

@@ -21,6 +21,8 @@ COPY ./packages/shared-styles /packages/shared-styles
 COPY ./packages/shared-loader /packages/shared-loader
 COPY ./packages/shared-tour  ./packages/shared-tour
 COPY ./packages/shared-trusted-by ./packages/shared-trusted-by
+# La boucle IDEM (carte « prochaine étape ») : l'alias `../../../../packages/shared-journey` vise /packages.
+COPY ./packages/shared-journey /packages/shared-journey
 # Install dependencies
 RUN pnpm install --no-frozen-lockfile
 

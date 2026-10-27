@@ -1,3 +1,4 @@
+import { journeyService } from '../services/journey/journey.service';
 import { creativityOf } from '../middleware/billing.middleware';
 import { Response } from 'express';
 import { BrandingService } from '../services/BandIdentity/branding.service';
@@ -824,6 +825,8 @@ export const generateBrandingStreamingController = async (
 
     // Envoyer un événement de fin
     res.write(`data: ${JSON.stringify({ type: 'complete', branding: newBranding })}\n\n`);
+    // La boucle IDEM : une charte faite ouvre le site, les visuels… (une régénération ciblée ne compte pas).
+    if (!targetSections.length) journeyService.signal(userId, 'charter.generated', projectId as string);
     res.end();
   } catch (error: any) {
     logger.error(

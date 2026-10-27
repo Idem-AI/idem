@@ -26,6 +26,8 @@ import {
 import Popover from '@/components/ui/Popover';
 import Button from '@/components/ui/Button';
 import { VersionList } from './VersionHistory';
+import { eventEmitter } from '../AiChat/utils/EventEmitter';
+import { currentProduct } from '@/utils/product';
 import {
   loadDeployment,
   persistDeployment,
@@ -142,6 +144,9 @@ export function HeaderActions() {
     updateDraftFiles(files as Record<string, string>);
   };
 
+  // « Mettre en ligne » proposé par la boucle IDEM (carte « prochaine étape ») : la même fenêtre, sur place.
+  useEffect(() => eventEmitter.on('deploy:open', () => handleDeployClick()));
+
   // Le nom proposé pour l'application en ligne (et pour son nom de domaine) : celui du projet
   // IDEM ; sans projet, celui retenu à la première génération, lu dans les fichiers de l'application.
   const [projectName, setProjectName] = useState('');
@@ -158,6 +163,8 @@ export function HeaderActions() {
     updateDraftMetadata({ deployUrl: record.url });
     await persistDeployment(projectId, draftId, record);
     toast.success(t('deployModal.done.toast'));
+    // Le site (ou l'application) est en ligne : la boucle IDEM proposera la suite (le faire connaître, un nom).
+    eventEmitter.emit('journey:event', currentProduct() === 'app' ? 'app.published' : 'site.published');
   };
 
   const handleSendToGitHub = async () => {

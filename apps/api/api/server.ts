@@ -55,6 +55,7 @@ import { startBillingScheduler } from './services/billing/billing-scheduler';
 import { billingRoutes } from './routes/billing.routes';
 import { ideployRepairRoutes } from './routes/ideploy-repair.routes';
 import { appgenMediaRoutes } from './routes/appgenMedia.routes';
+import { journeyRoutes } from './routes/journey.routes';
 import { authRoutes } from './routes/auth.routes';
 import { promptRoutes } from './routes/prompt.routes';
 import swaggerJsdoc from 'swagger-jsdoc';
@@ -228,6 +229,8 @@ app.use('/whatsapp', whatsappRoutes);
 app.use('/social', socialRoutes);
 // Médias des sites générés par iCode : images (Gemini), clips (Veo), photos et vidéos Pexels.
 app.use('/appgen/media', appgenMediaRoutes);
+// La boucle IDEM : chaque application dit ce que l'utilisateur vient de faire et reçoit l'étape suivante.
+app.use('/journey', journeyRoutes);
 app.use('/archetypes', archetypeRoutes);
 app.use('/github', githubRoutes);
 app.use('/cache', cacheRoutes);

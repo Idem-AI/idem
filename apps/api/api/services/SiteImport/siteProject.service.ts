@@ -54,6 +54,36 @@ export interface SiteImportResult {
   /** Les polices : d'un catalogue public, ou recopiées depuis le site. */
   fonts: { display: string; body: string; copied: string[] };
   warnings: string[];
+  /**
+   * Ce que le site DIT et MONTRE, pour le refaire (iCode) : ses textes, son ton, son style relevé, et ses
+   * photos recopiées chez nous — le nouveau site remplacera l'ancien, ses images ne doivent pas en dépendre.
+   * Présent seulement quand l'import le demande (`withContent`).
+   */
+  content?: SiteContent;
+}
+
+export interface SiteContent {
+  url: string;
+  title: string;
+  description?: string;
+  language: string;
+  headings: string[];
+  paragraphs: string[];
+  voice: SiteScanResult['voice'];
+  styleEvidence: string;
+  pages: string[];
+  /** Les photos du site, hébergées chez nous (URL publiques durables), dans l'ordre du site. */
+  images: string[];
+  /** Le site avait-il un logo lisible ? */
+  logo: boolean;
+}
+
+/** Les options d'un import : rattacher le site à un projet existant, rendre de quoi refaire le site. */
+export interface SiteImportOptions {
+  /** Le projet (de l'utilisateur) auquel rattacher le site, au lieu d'en créer un. */
+  into?: string;
+  /** Rendre les textes, le style et les photos du site (`content`) : une refonte en a besoin. */
+  withContent?: boolean;
 }
 
 const PROJECT_TYPES: ProjectModel['type'][] = ['enterprise', 'ecommerce', 'web', 'mobile', 'iot', 'desktop', 'api', 'ai', 'blockchain', 'landing', 'other'];
@@ -248,24 +278,86 @@ export async function recordConsent(userId: string, projectId: string, consent?:
   }
 }
 
+/**
+ * Les photos du site recopiées dans le stockage du projet. Une refonte remplace l'ancien site, souvent à la
+ * même adresse : des images laissées chez lui disparaîtraient avec lui. Une image illisible est ignorée.
+ */
+async function hostSiteImages(userId: string, projectId: string, urls: string[]): Promise<string[]> {
+  const folder = `users/${userId}/projects/${projectId}/site-images`;
+  const stamp = Date.now().toString(36);
+  const hosted = await Promise.all(
+    urls.slice(0, 8).map(async (url, index) => {
+      try {
+        const file = await safeFetch(url, { accept: ['image/'], maxBytes: 10 * 1024 * 1024, timeoutMs: 20_000 });
+        if (file.mimeType === 'image/svg+xml') return null;
+        const ext = (file.mimeType.split('/')[1] || 'jpg').replace('jpeg', 'jpg').replace(/[^a-z0-9]/g, '');
+        const upload = await storageService.uploadFile(file.buffer, `site-${stamp}-${index + 1}.${ext}`, folder, file.mimeType);
+        return upload.downloadURL;
+      } catch (error: any) {
+        logger.warn('site_import.image_copy_failed', { event: 'site_import.image_copy_failed', projectId, error: error?.message });
+        return null;
+      }
+    })
+  );
+  return hosted.filter((u): u is string => !!u);
+}
+
+async function contentOf(userId: string, projectId: string, scan: SiteScanResult, logo: boolean): Promise<SiteContent> {
+  return {
+    url: scan.finalUrl,
+    title: scan.title,
+    description: scan.description,
+    language: scan.language,
+    headings: scan.texts.headings,
+    paragraphs: scan.texts.paragraphs,
+    voice: scan.voice,
+    styleEvidence: scan.styleEvidence,
+    pages: scan.pages,
+    images: await hostSiteImages(userId, projectId, scan.images),
+    logo,
+  };
+}
+
 /** Crée (ou rouvre) le projet IDEM d'un site, identité visuelle comprise. */
-export async function createProjectFromSite(userId: string, rawUrl: string, ports: SiteImportPorts, onStep: (step: SiteImportStep) => void = () => undefined, consent?: SiteConsent): Promise<SiteImportResult> {
+export async function createProjectFromSite(
+  userId: string,
+  rawUrl: string,
+  ports: SiteImportPorts,
+  onStep: (step: SiteImportStep) => void = () => undefined,
+  consent?: SiteConsent,
+  options: SiteImportOptions = {}
+): Promise<SiteImportResult> {
   const url = normalizeSiteUrl(rawUrl);
-  const existing = await projectForSite(userId, url);
-  if (existing?.id && existing.analysisResultModel?.branding?.colors?.colors) {
+  // Rattaché à un projet de l'utilisateur (iCode ouvert sur un projet), sinon au projet déjà né de ce site.
+  const target = options.into ? await projectService.getUserProjectById(userId, options.into).catch(() => null) : null;
+  const existing = target ?? (await projectForSite(userId, url));
+  const branded = (p: ProjectModel | null) => {
+    const b = p?.analysisResultModel?.branding;
+    return !!(b?.colors?.colors?.primary && b?.typography?.primaryFont);
+  };
+  if (existing?.id && branded(existing)) {
     // Un projet déjà créé sans accord (iVision avant le 18/10/2026) le reçoit maintenant.
     await recordConsent(userId, existing.id, consent);
-    onStep('done');
     const b = existing.analysisResultModel.branding;
-    return { projectId: existing.id, reused: true, name: existing.name, siteUrl: (b as { siteSource?: { url: string } }).siteSource?.url || url, images: [], logo: !!b.logo?.svg, fonts: { display: b.typography?.primaryFont || '', body: b.typography?.secondaryFont || '', copied: [] }, warnings: [] };
+    const reused: SiteImportResult = { projectId: existing.id, reused: true, name: existing.name, siteUrl: (b as { siteSource?: { url: string } }).siteSource?.url || url, images: [], logo: !!b.logo?.svg, fonts: { display: b.typography?.primaryFont || '', body: b.typography?.secondaryFont || '', copied: [] }, warnings: [] };
+    if (!options.withContent) {
+      onStep('done');
+      return reused;
+    }
+    // Une refonte a besoin de ce que le site dit aujourd'hui : il est relu, la marque du projet reste la sienne.
+    const scan = await scanWebsite({ url, maxPages: 2, timeoutMs: 25_000, textModel: (s, u) => ports.text(s, u, 'mechanical'), vision: ports.vision, onProgress: (step) => onStep(step) });
+    const content = await contentOf(userId, existing.id, scan, !!scan.logo.svg || !!scan.logo.url);
+    onStep('done');
+    return { ...reused, images: content.images, warnings: scan.warnings, content };
   }
 
   const scan = await scanWebsite({ url, maxPages: 2, timeoutMs: 25_000, textModel: (s, u) => ports.text(s, u, 'mechanical'), vision: ports.vision, onProgress: (step) => onStep(step) });
   const warnings = [...scan.warnings];
 
   onStep('project');
-  const sheet = await describeProject(scan, ports);
-  const created = await projectService.createUserProject(userId, {
+  // Un projet ouvert sans marque reçoit celle du site (sa fiche reste la sienne) ; sinon, un projet est créé.
+  const sheet = existing?.id ? null : await describeProject(scan, ports);
+  const created = existing?.id || !sheet ? existing! : await projectService.createUserProject(userId, {
     name: sheet.name,
     description: sheet.description,
     longDescription: sheet.longDescription,
@@ -288,7 +380,9 @@ export async function createProjectFromSite(userId: string, rawUrl: string, port
   const brandingService = new BrandingService(new PromptService());
 
   onStep('logo-variations');
-  const logo = await importLogo(userId, projectId, scan).catch((error: any) => {
+  // Un logo déjà choisi dans le projet reste le sien ; sinon, celui du site.
+  const ownLogo = (created.analysisResultModel?.branding?.logo?.svg ? created.analysisResultModel.branding.logo : null) as LogoModel | null;
+  const logo = ownLogo ?? await importLogo(userId, projectId, scan).catch((error: any) => {
     logger.warn('site_import.logo_failed', { event: 'site_import.logo_failed', projectId, error: error?.message });
     return null;
   });
@@ -322,6 +416,7 @@ export async function createProjectFromSite(userId: string, rawUrl: string, port
   const chosenTypography = curated?.typography[0] || typography.proposals.find((t) => t.id === 'pairing') || typography.chosen;
 
   const branding = {
+    ...(created.analysisResultModel?.branding || {}),
     ...(logo ? { logo, generatedLogos: [logo] } : { generatedLogos: [] }),
     colors: colors[0],
     generatedColors: colors,
@@ -340,9 +435,10 @@ export async function createProjectFromSite(userId: string, rawUrl: string, port
     onStep('patterns');
     await brandingService.getBrandPatterns(userId, projectId).catch((error: any) => logger.warn('site_import.patterns_failed', { event: 'site_import.patterns_failed', projectId, error: error?.message }));
   }
+  const content = options.withContent ? await contentOf(userId, projectId, scan, !!scan.logo.svg || !!scan.logo.url) : undefined;
   onStep('done');
-  logger.info('site_import.project_created', { event: 'site_import.project_created', projectId, host: new URL(scan.finalUrl).hostname, logo: !!logo, fontsCopied: copied, display: typography.chosen.primaryFont, body: typography.chosen.secondaryFont });
-  return { projectId, reused: false, name: sheet.name, siteUrl: scan.finalUrl, images: scan.images, logo: !!logo, fonts: { display: typography.chosen.primaryFont, body: typography.chosen.secondaryFont, copied }, warnings };
+  logger.info('site_import.project_created', { event: 'site_import.project_created', projectId, into: !!existing?.id, host: new URL(scan.finalUrl).hostname, logo: !!logo, fontsCopied: copied, display: typography.chosen.primaryFont, body: typography.chosen.secondaryFont });
+  return { projectId, reused: !!existing?.id, name: sheet?.name ?? created.name, siteUrl: scan.finalUrl, images: content?.images ?? scan.images, logo: !!logo, fonts: { display: typography.chosen.primaryFont, body: typography.chosen.secondaryFont, copied }, warnings, ...(content ? { content } : {}) };
 }
 
 // ─── Le suivi (iVision interroge l'avancement) ─────────────────────────────────
@@ -361,7 +457,7 @@ const save = (job: SiteImportJob) => cacheService.set(`site-import:${job.id}`, j
 
 export const siteImportJobs = {
   /** Lance l'import en tâche de fond ; l'avancement est relu par `get`. */
-  async start(userId: string, url: string, ports: SiteImportPorts, consent?: SiteConsent): Promise<SiteImportJob> {
+  async start(userId: string, url: string, ports: SiteImportPorts, consent?: SiteConsent, options: SiteImportOptions = {}): Promise<SiteImportJob> {
     const job: SiteImportJob = { id: crypto.randomUUID(), userId, status: 'running', step: 'open' };
     await save(job);
     void createProjectFromSite(
@@ -372,7 +468,8 @@ export const siteImportJobs = {
         job.step = step;
         void save(job);
       },
-      consent
+      consent,
+      options
     )
       .then(async (result) => {
         await save({ ...job, status: 'done', step: 'done', result });

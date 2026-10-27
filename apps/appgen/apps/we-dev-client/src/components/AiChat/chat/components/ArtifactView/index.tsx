@@ -9,6 +9,7 @@ import { IdemLoader } from '@idem/shared-loader/react';
 import { Wand2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { eventEmitter } from '../../../utils/EventEmitter';
+import { withoutMarkers } from '@/utils/chatMarkers';
 
 /**
  * La marque posée par le moteur de sites quand il reste quelque chose à
@@ -137,7 +138,7 @@ export const ArtifactView: React.FC<ArtifactViewProps> = ({ title, isComplete, m
     const post = artifactEndIndex !== -1 ? content.substring(artifactEndIndex + '</boltArtifact>'.length) : '';
     // La marque de correction n'est pas du texte : retirée avant le filtre de
     // prose, qui écarterait tout le message à cause des chemins qu'elle porte.
-    const text = post.replace(REPAIR_MARK, '');
+    const text = withoutMarkers(post.replace(REPAIR_MARK, ''));
     return conversationalProse(isThinkContent(text) ? processThinkContent(text) : text);
   }, [content]);
 

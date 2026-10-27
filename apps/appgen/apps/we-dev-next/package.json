@@ -11,6 +11,7 @@
         "site:runtime": "npm ci --prefix site-runtime --no-audit --no-fund",
         "check:site-render": "tsx scripts/check-site-render.ts",
         "check:site-edit": "tsx scripts/check-site-edit.ts",
+        "check:redesign": "tsx scripts/check-redesign.ts",
         "deps:plan": "tsx scripts/deps-plan.ts",
         "check:deps": "tsx scripts/check-deps-route.ts",
         "lint": "eslint src --ext .ts"

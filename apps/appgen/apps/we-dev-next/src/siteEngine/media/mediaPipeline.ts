@@ -28,7 +28,7 @@ export interface MediaAsset {
   ground?: string;
   tile?: number;
   /** D'où il vient : utile à qui reprendra le site, jamais affiché. */
-  origin: 'pexels' | 'gemini' | 'veo' | 'svg' | 'pattern';
+  origin: 'pexels' | 'gemini' | 'veo' | 'svg' | 'pattern' | 'site';
   credit?: string;
 }
 

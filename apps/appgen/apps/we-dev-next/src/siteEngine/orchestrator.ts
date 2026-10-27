@@ -47,12 +47,16 @@ import { buildSiteScaffold, renderPage, renderPageShells } from './project.js';
 import { renderBrandModule, renderDataModule, renderMediaModule, renderSeo } from './siteData.js';
 import { detectSiteLanguage, readSiteFacts, renderFacts } from './siteFacts.js';
 import { FUNCTIONAL_DEPENDENCIES, SITE_ENGINE_ID } from './template.js';
+import { marker } from './redesign/ask.js';
+import { redesignArchitect, redesignDesign, redesignFacts } from './redesign/brief.js';
+import { prepareRedesign, RedesignContext } from './redesign/flow.js';
 
 /** Composants écrits en même temps. */
 const CONCURRENCY = 4;
 
 export interface SiteBuildInput {
-  projectData: ProjectModel;
+  /** Le projet ; absent seulement pour une refonte qui le crée (`redesign`). */
+  projectData?: ProjectModel;
   language: string;
   /** La demande telle qu'écrite (brief de l'atelier ou message de l'utilisateur). */
   request: string;
@@ -64,6 +68,11 @@ export interface SiteBuildInput {
   credentials?: Record<string, string>;
   /** Un client de médias déjà construit (bancs d'essai) ; sinon celui de l'API IDEM. */
   mediaClient?: MediaClient;
+  /**
+   * Une REFONTE d'un site existant (réponse cliquée à la question de `redesign/ask.ts`) : le site est lu et
+   * devient le projet (ou complète celui qui est ouvert), puis le moteur le refait.
+   */
+  redesign?: { url: string; choice: 'identity' | 'direct'; consent: boolean; creativity?: string };
 }
 
 /** Le moteur prend-il ce tour ? Le premier tour d'un site, quand il y a un projet. */
@@ -139,32 +148,78 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
   return {
     async pipeDataStreamToResponse(res: Response): Promise<void> {
       const startedAt = Date.now();
-      const { projectData, request, model, userId } = input;
-      const language = detectSiteLanguage(
-        [request, projectData.description, (projectData as { longDescription?: string }).longDescription].filter(Boolean).join('\n'),
-        input.language
-      );
-      const fr = language === 'fr';
+      const { request, model, userId } = input;
 
       const abort = new AbortController();
       res.on('close', () => {
         if (!res.writableEnded) abort.abort();
       });
 
+      const stream = new SiteStream(res);
+      stream.open(model);
+
+      // Une refonte : le site est lu et devient le projet avant que quoi que ce soit ne s'écrive. Ses
+      // étapes s'affichent dans le même encadré que celles de la génération.
+      let projectData = input.projectData;
+      let redesign: RedesignContext | undefined;
+      if (input.redesign) {
+        const asked = input.language !== 'en';
+        let host = input.redesign.url;
+        try {
+          host = new URL(input.redesign.url).hostname.replace(/^www\./, '');
+        } catch {
+          /* adresse gardée telle quelle */
+        }
+        stream.text(asked ? `Je lis ${host} pour le refaire.\n\n` : `Reading ${host} to redesign it.\n\n`);
+        stream.text(`<boltArtifact id="idem-site" title="${host.replace(/["<>]/g, '')}">\n`);
+        const prepared = await prepareRedesign({
+          stream,
+          signal: abort.signal,
+          url: input.redesign.url,
+          choice: input.redesign.choice,
+          consent: input.redesign.consent,
+          fr: asked,
+          credentials: input.credentials ?? {},
+          projectId: input.projectData?.id,
+          creativity: input.redesign.creativity,
+        });
+        if (abort.signal.aborted) return;
+        if ('stop' in prepared) {
+          stream.text('</boltArtifact>\n');
+          stream.text(prepared.stop);
+          stream.close({ promptTokens: 0, completionTokens: 0 });
+          return;
+        }
+        projectData = prepared.projectData;
+        redesign = prepared.redesign;
+      }
+      if (!projectData) {
+        stream.close({ promptTokens: 0, completionTokens: 0 }, 'project_required');
+        return;
+      }
+
+      const language = detectSiteLanguage(
+        [request, projectData.description, (projectData as { longDescription?: string }).longDescription, redesign?.content.paragraphs.slice(0, 3).join(' ')].filter(Boolean).join('\n'),
+        redesign?.content.language === 'en' || redesign?.content.language === 'fr' ? redesign.content.language : input.language
+      );
+      const fr = language === 'fr';
+
       const facts = readSiteFacts(projectData, language);
-      const factsText = renderFacts(facts, language);
+      // Refonte : ce que le site dit aujourd'hui rejoint les faits — les auteurs le reprennent, le garde-fou
+      // l'accepte (un téléphone ou une adresse du site n'est pas une invention).
+      const factsText = redesign ? `${renderFacts(facts, language)}\n\n${redesignFacts(redesign.content, fr)}` : renderFacts(facts, language);
       const writer = process.env.SITE_WRITER_MODEL?.trim();
       const caller = new ModelCaller(writer && getFallbackModelKeys(writer).includes(writer) ? writer : model, userId, abort.signal);
       const usage = () => ({ promptTokens: caller.promptTokens, completionTokens: caller.completionTokens });
 
-      const stream = new SiteStream(res);
-      stream.open(model);
-      stream.text(
-        fr
-          ? `Je conçois le site de ${facts.name} : son architecture et son identité visuelle, puis chaque section.\n\n`
-          : `I'm designing the ${facts.name} website: its structure and visual identity, then each section.\n\n`
-      );
-      stream.text(`<boltArtifact id="idem-site" title="${facts.name.replace(/["<>]/g, '')}">\n`);
+      if (!redesign) {
+        stream.text(
+          fr
+            ? `Je conçois le site de ${facts.name} : son architecture et son identité visuelle, puis chaque section.\n\n`
+            : `I'm designing the ${facts.name} website: its structure and visual identity, then each section.\n\n`
+        );
+        stream.text(`<boltArtifact id="idem-site" title="${facts.name.replace(/["<>]/g, '')}">\n`);
+      }
 
       // Les fichiers du site propres au projet, tels que l'aperçu les aura :
       // chaque composant y est monté avant d'être accepté (`renderCheck`).
@@ -174,8 +229,10 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
         stream.file(path, content);
       };
 
-      // Socle absent (l'atelier n'a pas pu le monter) : il part dans le flux.
-      if (!input.scaffoldMounted) {
+      // Socle absent (l'atelier n'a pas pu le monter) : il part dans le flux. Une refonte l'y met toujours :
+      // celui de l'atelier a été monté avant que le projet (et son logo) n'existe.
+      const scaffoldMounted = input.scaffoldMounted && !redesign;
+      if (!scaffoldMounted) {
         const scaffold = buildSiteScaffold(projectData, language);
         for (const [path, content] of Object.entries(scaffold.files)) emit(path, content);
       } else {
@@ -186,8 +243,8 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
       // Opération A : architecture et design system, en parallèle.
       stream.note(fr ? "Je conçois l'architecture du site et son design system" : 'Designing the site structure and its design system');
       const [architecture, design, pattern] = await Promise.all([
-        designManifest({ facts, factsText, request, language, caller }),
-        configureDesignSystem({ projectData, facts, request, caller }),
+        designManifest({ facts, factsText, request, language, caller, redesign: redesign ? redesignArchitect(redesign.content, fr) : undefined }),
+        configureDesignSystem({ projectData, facts, request, caller, redesign: redesign ? redesignDesign(redesign.content, fr) : undefined }),
         resolveBrandPattern(projectData).catch(() => null),
       ]);
       if (abort.signal.aborted) return;
@@ -255,12 +312,30 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
       const produced: Record<string, MediaAsset[]> = {};
       const mediaBySlot = new Map<string, Promise<MediaAsset[]>>();
 
-      if (slots.length) {
+      // Refonte : les photos du site gardent leur place — l'ouverture d'abord, puis les sections qui attendent
+      // une photo. Les emplacements restants passent par l'agent média comme d'habitude.
+      if (redesign?.content.images.length && slots.length) {
+        const own = [...redesign.content.images];
+        const order = [...slots].sort((a, b) => (a.role === 'hero' ? -1 : b.role === 'hero' ? 1 : 0));
+        for (const slot of order) {
+          if (!own.length) break;
+          if (slot.videoAllowed && slot.role !== 'hero') continue;
+          const src = own.shift()!;
+          const asset: MediaAsset = { kind: 'image', src, alt: facts.name, origin: 'site' };
+          produced[slot.id] = [asset];
+          mediaBySlot.set(slot.id, Promise.resolve([asset]));
+        }
+        emit('src/site/media.ts', renderMediaModule(produced));
+        stream.note(fr ? `Je reprends ${Object.keys(produced).length} photo${Object.keys(produced).length > 1 ? 's' : ''} de votre site` : `Reusing ${Object.keys(produced).length} photo${Object.keys(produced).length > 1 ? 's' : ''} from your site`);
+      }
+      const open = slots.filter((slot) => !mediaBySlot.has(slot.id));
+
+      if (open.length) {
         stream.note(fr ? 'Je choisis les visuels de chaque section' : 'Choosing the visuals for each section');
         const client =
           input.mediaClient ?? createApiMediaClient({ credentials: input.credentials ?? {}, projectId: projectData.id, signal: abort.signal });
         const decisions: AssetDecision[] = await directMedia({
-          slots,
+          slots: open,
           facts,
           style: design.mediaStyle,
           caller,
@@ -281,7 +356,7 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
           writeFile: (path: string, content: string) => !abort.signal.aborted && stream.file(path, content),
           limit,
         };
-        for (const slot of slots) {
+        for (const slot of open) {
           const decision = decisions.find((item) => item.slot === slot.id);
           if (!decision) continue;
           mediaBySlot.set(
@@ -400,13 +475,47 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
         );
       }
 
-      if (manifest.dependencies.length) stream.command('shell', `npm install ${manifest.dependencies.join(' ')}`);
+      // Socle parti dans le flux : rien n'est installé dans l'aperçu, tout l'est ici.
+      if (!scaffoldMounted) stream.command('shell', manifest.dependencies.length ? `npm install && npm install ${manifest.dependencies.join(' ')}` : 'npm install');
+      else if (manifest.dependencies.length) stream.command('shell', `npm install ${manifest.dependencies.join(' ')}`);
       stream.command('start', 'npm run dev');
+
+      // Identité visuelle pro : la charte, lancée avant le site, est attendue avant de conclure.
+      let charterProblem: string | null = null;
+      if (redesign?.charter) {
+        stream.note(fr ? 'Je termine votre charte graphique' : 'Finishing your brand guidelines');
+        charterProblem = await redesign.charter;
+        if (abort.signal.aborted) return;
+      }
       stream.text('</boltArtifact>\n');
 
       // Ce qui reste à corriger, en clair, avec la marque du bouton « Corriger ».
       const remarks = renderRemarks(issues, language);
       if (remarks) stream.text(remarks);
+
+      if (redesign) {
+        const lines = fr
+          ? [
+              `\nVotre site est refait : ${manifest.pages.length} page${manifest.pages.length > 1 ? 's' : ''}, avec votre marque et ${Object.values(produced).filter((a) => a[0]?.origin === 'site').length ? 'vos photos' : 'de nouveaux visuels'}, des textes réécrits pour vos clients.`,
+              redesign.choice === 'identity' && !charterProblem ? 'Votre charte graphique est prête dans votre projet IDEM.' : '',
+              charterProblem ?? '',
+              'Demandez-moi une retouche quand vous voulez.',
+            ]
+          : [
+              `\nYour site is redesigned: ${manifest.pages.length} page${manifest.pages.length > 1 ? 's' : ''}, with your brand and ${Object.values(produced).filter((a) => a[0]?.origin === 'site').length ? 'your photos' : 'new visuals'}, copy rewritten for your customers.`,
+              redesign.choice === 'identity' && !charterProblem ? 'Your brand guidelines are ready in your IDEM project.' : '',
+              charterProblem ?? '',
+              'Ask me for any change whenever you like.',
+            ];
+        stream.text(`${lines.filter(Boolean).join(' ')}\n`);
+      }
+      // Ce qui vient de se passer, pour l'atelier : le projet auquel se rattacher (refonte qui l'a créé) et le
+      // geste à signaler à la boucle IDEM (qui proposera la suite : faire connaître le site, le mettre en ligne…).
+      if (redesign?.created && projectData.id) stream.text(marker('project', { id: projectData.id, name: projectData.name }));
+      if (projectData.id) {
+        stream.text(marker('journey', { event: redesign ? 'site.redesigned' : 'site.generated', projectId: projectData.id }));
+        if (redesign?.choice === 'identity' && !charterProblem) stream.text(marker('journey', { event: 'charter.generated', projectId: projectData.id }));
+      }
 
       const sections = manifest.pages.reduce((total, page) => total + page.sections.length, 0);
       ChatLogger.success('SITE_ENGINE', 'Site généré', {

@@ -168,12 +168,12 @@ export function readManifest(raw: unknown): { manifest: SiteManifest | null; pro
   return { manifest, problems };
 }
 
-function prompt(facts: SiteFacts, factsText: string, request: string, language: string): string {
+function prompt(facts: SiteFacts, factsText: string, request: string, language: string, redesign?: string): string {
   const brief = request.trim();
   const fr = language === 'fr';
   return `# Le projet
 ${factsText}
-${brief && brief !== facts.description ? `\n# La demande\n${brief.slice(0, 1500)}\n` : ''}
+${brief && brief !== facts.description ? `\n# La demande\n${brief.slice(0, 1500)}\n` : ''}${redesign ? `\n${redesign}\n` : ''}
 # Ta tâche
 Tu es l'architecte du site de ce projet. À partir des informations ci-dessus (secteur, offres, équipe, cible, localisation, description) et de la demande, analyse les besoins réels du projet pour concevoir son architecture sur mesure : la liste des pages à créer et, pour chacune, ses sections dans l'ordre.
 
@@ -242,13 +242,15 @@ export async function designManifest(options: {
   request: string;
   language: string;
   caller: ModelCaller;
+  /** Refonte d'un site existant : la mission d'analyse et d'amélioration (`redesign/brief.ts`). */
+  redesign?: string;
 }): Promise<{ manifest: SiteManifest | null; providerDown: boolean }> {
-  const { facts, factsText, request, language, caller } = options;
+  const { facts, factsText, request, language, caller, redesign } = options;
 
   const outcome = await caller.json(
     'manifest',
     "Tu es architecte de sites vitrines. Tu réponds UNIQUEMENT par un objet JSON valide, sans texte autour.",
-    prompt(facts, factsText, request, language),
+    prompt(facts, factsText, request, language, redesign),
     (raw): Verdict<SiteManifest> => {
       const { manifest, problems } = readManifest(raw);
       if (manifest) return { value: manifest };

@@ -1,3 +1,4 @@
+import { journeyService } from '../services/journey/journey.service';
 import { Response } from 'express';
 import { CustomRequest } from '../interfaces/express.interface';
 import {
@@ -254,6 +255,7 @@ export const generateLegalDocsStreamingController = async (
     logger.info(
       `generateLegalDocsStreamingController success projectId=${projectId} generated=${payload.types.length}`
     );
+    journeyService.signal(userId, 'legal.generated', projectId);
     res.write(
       `data: ${JSON.stringify({
         type: 'complete',

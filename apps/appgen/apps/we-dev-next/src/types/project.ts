@@ -211,4 +211,9 @@ export interface ChatRequest {
    * données). Le moteur de modification ciblée (`siteEngine/edit.ts`) ne touche que ce qui est demandé.
    */
   siteEdit?: { files: Record<string, string> };
+  /**
+   * La réponse cliquée à la question de refonte (`siteEngine/redesign`) : le site à refaire, le chemin choisi
+   * (charte d'abord, ou refonte directe) et l'accord aux politiques d'IDEM quand un projet doit être créé.
+   */
+  siteRedesign?: { url: string; choice: 'identity' | 'direct'; consent?: boolean };
 }

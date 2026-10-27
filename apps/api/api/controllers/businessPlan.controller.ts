@@ -1,3 +1,4 @@
+import { journeyService } from '../services/journey/journey.service';
 import { creativityOf } from '../middleware/billing.middleware';
 import { Response } from 'express';
 import { CustomRequest } from '../interfaces/express.interface';
@@ -684,6 +685,7 @@ export const generateBusinessPlanStreamingController = async (
 
     // Événement métier de fin (le business plan complet).
     writeSSE({ type: 'complete', documentId: plan.id, businessPlan: updatedPlan });
+    journeyService.signal(userId, 'business_plan.generated', projectId);
     // Événement de fin technique (convention existante → fermeture propre du SSE).
     writeSSE({ type: 'completed', stepName: 'completion', data: 'all_steps_completed' });
     res.end();

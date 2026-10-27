@@ -67,6 +67,10 @@ import {
 import useChatHistoryStore from '@/stores/chatHistoryStore';
 import useRunStatus from '@/stores/runStatusSlice';
 import { IdemLoader } from '@idem/shared-loader/react';
+import { JourneyCard } from '@idem/shared-journey/react';
+import { journeyClient, journeyUrls, useJourney } from '@/hooks/useJourney';
+import { readAsk, readJourney, readProject } from '@/utils/chatMarkers';
+import type { RedesignAnswer } from './components/ChatAsk';
 
 type WeMessages = (Message & {
   experimental_attachments?: Array<{
@@ -400,7 +404,11 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
         // produit : ni revue de design, ni relance, ni réécriture. Une erreur
         // technique s'affiche dans l'aperçu, et c'est l'utilisateur qui demande
         // la correction.
-        if (!isGeneratedSite(useFileStore.getState().files)) {
+        // Pas davantage pour une réponse du moteur (même arrêtée avant d'écrire un fichier : site illisible)
+        // ni pour une question à cliquer, qui n'a rien produit.
+        const last = messages[messages.length - 1]?.content ?? '';
+        const engineAnswer = last.includes('<boltArtifact id="idem-site"') || readAsk(last) !== null;
+        if (!engineAnswer && !isGeneratedSite(useFileStore.getState().files)) {
           runQualityPass(chatUuid, messages, append, t, projectData);
         }
       }
@@ -566,6 +574,42 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       console.log('⚠️ CLIENT: No projectData available for chat');
     }
   }, [projectData, mode, baseChatUrl]);
+
+  /**
+   * Une refonte lancée hors projet vient d'en créer un : le site refait y est enregistré (code, génération,
+   * conversation), la boucle IDEM est prévenue, puis l'atelier se rouvre SUR ce projet — l'enregistrement
+   * automatique, la mise en ligne et la carte « prochaine étape » suivent alors leur chemin habituel.
+   */
+  const attachToProject = async (
+    newProjectId: string,
+    finalMessages: Message[],
+    gestures: ReturnType<typeof readJourney>
+  ) => {
+    const pending = toast.info(t('chat.redesign.attaching'), { autoClose: false });
+    try {
+      const workspaceFiles = useFileStore.getState().files;
+      await pushProjectCode(newProjectId, workspaceFiles);
+      const project = await getProjectById(newProjectId);
+      if (project) await saveProjectGeneration(newProjectId, createProjectMetadata(project, finalMessages));
+      await saveProjectChatSession(newProjectId, {
+        sessionId: chatUuid,
+        title: deriveSessionTitle(finalMessages, project?.name || 'Nouvelle conversation'),
+        messages: compactMessagesForStorage(finalMessages),
+      });
+      await Promise.all(gestures.map((gesture) => journeyClient.record({ type: gesture.event, app: 'icode', projectId: newProjectId })));
+      useAppGenContextStore.getState().setConnectedProject(newProjectId);
+      const url = new URL(window.location.href);
+      url.searchParams.set('projectId', newProjectId);
+      url.searchParams.set('product', 'site');
+      url.searchParams.delete('platform');
+      url.searchParams.delete('prompt');
+      window.location.replace(url.toString());
+    } catch (error) {
+      console.error('[refonte] rattachement au projet impossible', error);
+      toast.dismiss(pending);
+      toast.error(t('chat.redesign.attachFailed'));
+    }
+  };
 
   // modify useChat configuration
   const {
@@ -830,6 +874,19 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
 
         setIsGenerationComplete(true);
       }
+
+      // Les marques du serveur : le projet IDEM qu'une refonte vient de créer (l'atelier s'y rattache), et
+      // les gestes à signaler à la boucle IDEM, qui proposera la suite.
+      const createdProject = readProject(message.content);
+      const gestures = readJourney(message.content);
+      if (createdProject && !projectId) {
+        await attachToProject(createdProject.id, [...messages, message], gestures);
+        return;
+      }
+      for (const gesture of gestures) eventEmitter.emit('journey:event', gesture.event);
+      if (!gestures.length && projectId && currentProduct() === 'app' && !messages.some((m) => m.role === 'assistant')) {
+        eventEmitter.emit('journey:event', 'app.generated');
+      }
     },
     onError: (error: any) => {
       // The server sends a readable message (model saturation, quota, ...) either
@@ -849,6 +906,9 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       }
     },
   });
+
+  // La boucle IDEM : la carte « prochaine étape » (faire connaître le site, le mettre en ligne…).
+  const journey = useJourney(projectId, isProjectLoaded && (hasGeneration || realMessages.some((m) => m.role === 'assistant')));
 
   // Lu par l'effet de montage du socle sans le faire dépendre de `isLoading` :
   // une dépendance l'annulerait au moment même où la génération démarre.
@@ -897,7 +957,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       // Une retouche d'un site vitrine déjà généré : son état ACTUEL (sections, pages, design system, données)
       // part avec la demande, pour que le serveur ne modifie que la partie visée.
       const body = (options?.body ?? {}) as Record<string, unknown>;
-      const outOfBand = body.siteRepair || body.qualityRepair || body.followUp;
+      const outOfBand = body.siteRepair || body.qualityRepair || body.followUp || body.siteRedesign;
       const siteEdit = mode === ChatMode.Builder && !outOfBand && message.role === 'user' ? currentSiteFiles() : null;
       return appendRaw(
         message,
@@ -992,6 +1052,37 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       );
     });
   }, [isLoading, append, t]);
+
+  // La réponse cliquée à la question de refonte. Le site refait remplace l'espace de travail : on repart d'un
+  // espace vide et sans socle verrouillé (le serveur envoie celui du site, construit avec le projet et son
+  // logo), en mode site vitrine.
+  useEffect(() => {
+    return eventEmitter.on('chat:redesignAnswer', async (answer: RedesignAnswer) => {
+      if (!answer?.url) return;
+      if (isLoading) {
+        toast.info(t('preview.fix.busy'));
+        return;
+      }
+      const url = new URL(window.location.href);
+      if (url.searchParams.get('product') !== 'site') {
+        url.searchParams.set('product', 'site');
+        url.searchParams.delete('platform');
+        window.history.replaceState({}, '', url.toString());
+      }
+      journey.clear();
+      resetWarmStart();
+      clearScaffold();
+      // Rien à attendre : aucun socle ne sera monté, le serveur l'envoie dans sa réponse.
+      settleScaffold();
+      setEmptyFiles();
+      await setFiles({});
+      resetTerminals();
+      append(
+        { id: uuidv4(), role: 'user', content: answer.text },
+        { body: { siteRedesign: { url: answer.url, choice: answer.choice, consent: answer.consent } } }
+      );
+    });
+  }, [isLoading, append, t, journey]);
 
   // Contexte poussé depuis l'espace de travail : sélection d'un élément,
   // annotation dessinée, thème à appliquer. On préremplit la saisie au lieu
@@ -2103,6 +2194,30 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       {/* Tutorial Modal */}
       {showTutorial && projectData && (
         <ProjectTutorial projectData={projectData} onClose={() => setShowTutorial(false)} />
+      )}
+
+      {/* La boucle IDEM : l'étape suivante (faire connaître le site, le mettre en ligne…), une seule à la fois. */}
+      {journey.recommendation && !isLoading && (
+        <div className="px-3 pb-2">
+          <JourneyCard
+            recommendation={journey.recommendation}
+            urls={journeyUrls}
+            from="icode"
+            lang={i18n.language}
+            client={journeyClient}
+            beforeOpen={async (recommendation) => {
+              // La mise en ligne se fait ici même, dans la fenêtre habituelle.
+              if (recommendation.destination === 'publish-site' || recommendation.destination === 'publish-app') {
+                journey.clear();
+                eventEmitter.emit('deploy:open');
+                return false;
+              }
+              // Le code part au stockage avant de quitter l'atelier.
+              await waitForCodeSync();
+            }}
+            onDismissed={journey.clear}
+          />
+        </div>
       )}
 
       {/* Hide ChatInput when chat is empty and projectData exists (show only project description + start button) */}

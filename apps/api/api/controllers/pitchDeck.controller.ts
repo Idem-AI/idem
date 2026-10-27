@@ -1,3 +1,4 @@
+import { journeyService } from '../services/journey/journey.service';
 import { creativityOf } from '../middleware/billing.middleware';
 import { Response } from 'express';
 import { CustomRequest } from '../interfaces/express.interface';
@@ -336,6 +337,7 @@ export const generatePitchDeckStreamingController = async (
     logger.info(
       `generatePitchDeckStreamingController success projectId=${projectId} documentId=${deck.id} durationMs=${Date.now() - startedAt}`
     );
+    journeyService.signal(userId, 'pitch_deck.generated', projectId);
     res.write(
       `data: ${JSON.stringify({
         type: 'complete',

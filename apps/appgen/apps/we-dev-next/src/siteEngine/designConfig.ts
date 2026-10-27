@@ -170,9 +170,9 @@ const SCHEMA = `{
   }
 }`;
 
-function prompt(facts: SiteFacts, system: DesignSystem, seed: Json, request: string, locked: string[]): string {
+function prompt(facts: SiteFacts, system: DesignSystem, seed: Json, request: string, locked: string[], redesign?: string): string {
   const { direction, colors } = system;
-  return `# Le projet
+  return `${redesign ? `${redesign}\n\n` : ''}# Le projet
 ${facts.name} : ${facts.description}
 ${facts.audience ? `Clientèle : ${facts.audience}\n` : ''}${request.trim() && request.trim() !== facts.description ? `Demande : ${request.trim().slice(0, 800)}\n` : ''}
 # La charte graphique du projet
@@ -215,8 +215,10 @@ export async function configureDesignSystem(options: {
   facts: SiteFacts;
   request: string;
   caller: ModelCaller;
+  /** Refonte : le style relevé sur le site actuel, à moderniser sans perdre la marque (`redesign/brief.ts`). */
+  redesign?: string;
 }): Promise<DesignOutcome> {
-  const { projectData, facts, request, caller } = options;
+  const { projectData, facts, request, caller, redesign } = options;
   const system = forgeDesignSystem(projectData);
   const seed = seedConfig(projectData, system);
   const locks = charterLocks(projectData, seed);
@@ -225,7 +227,7 @@ export async function configureDesignSystem(options: {
   const outcome = await caller.json(
     'design-system',
     "Tu es directeur artistique et tu configures le design system d'un site vitrine. Tu réponds UNIQUEMENT par un objet JSON valide, sans texte autour.",
-    prompt(facts, system, seed, request, locks.map(([path]) => path.slice(1).join('.'))),
+    prompt(facts, system, seed, request, locks.map(([path]) => path.slice(1).join('.')), redesign),
     (raw): Verdict<Json> =>
       raw && typeof raw === 'object' && !Array.isArray(raw) && (raw as Json).tokens ? { value: raw as Json } : { problem: SHAPE_REMINDER },
     2200

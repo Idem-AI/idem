@@ -21,6 +21,8 @@ COPY ./packages/shared-styles ./packages/shared-styles
 COPY ./packages/graphic-engine ./packages/graphic-engine
 # Le langage de mouvement et son compilateur (vidéos) : importé par le cœur iVision par chemin relatif.
 COPY ./packages/motion-compiler ./packages/motion-compiler
+# La boucle IDEM (règles de recommandation entre applications) : importée par chemin relatif.
+COPY ./packages/shared-journey ./packages/shared-journey
 
 # Build shared-models first
 WORKDIR /app/packages/shared-models

@@ -1,3 +1,4 @@
+import { journeyService } from '../services/journey/journey.service';
 import { normalizeCreativity } from '../models/creativity.model';
 import { Response } from 'express';
 import sharp from 'sharp';
@@ -362,6 +363,7 @@ export const createVideoStreamController = async (req: CustomRequest, res: Respo
       (event) => send({ type: 'progress', ...event })
     );
     send({ type: 'complete', video });
+    journeyService.signal(id.userId, 'video.created', id.projectId);
   } catch (error: any) {
     logger.error(`createVideoStreamController: ${error?.message}`, { stack: error?.stack });
     await refundRequestCredits(req, 'Création de vidéo en échec — crédits restitués').catch(() => undefined);

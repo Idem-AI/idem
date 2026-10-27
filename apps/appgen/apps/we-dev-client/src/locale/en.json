@@ -143,6 +143,23 @@
           "line": "The most powerful model, for ambitious projects."
         }
       }
+    },
+    "ask": {
+      "recommended": "Recommended",
+      "chooseForMe": "Choose for me",
+      "consent": {
+        "lead": "Your site becomes an IDEM project. I accept IDEM’s",
+        "privacy": "privacy policy",
+        "terms": "terms of service",
+        "and": "and",
+        "beta": "beta programme terms",
+        "ofIdem": "",
+        "required": "Tick the box so I can create your IDEM project."
+      }
+    },
+    "redesign": {
+      "attaching": "Saving your site to your IDEM project…",
+      "attachFailed": "The site is ready, but I couldn't save it to your project. Try again from the Save button."
     }
   },
   "settings": {

@@ -12,6 +12,7 @@ import { TourService } from '../../../../shared/services/tour.service';
 import { LogoSrcPipe } from '../../../../shared/pipes/logo-src.pipe';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 import { ModuleEmblemComponent } from '../../../../shared/components/module-emblem/module-emblem';
+import { JourneyNext } from '../../../../shared/components/journey-next/journey-next';
 
 @Component({
   selector: 'app-dashboard',
@@ -21,7 +22,7 @@ import { ModuleEmblemComponent } from '../../../../shared/components/module-embl
     DatePipe,
     TranslateModule,
     IncompleteProjectBannerComponent,
-    LogoSrcPipe, IdemLoaderComponent, ModuleEmblemComponent],
+    LogoSrcPipe, IdemLoaderComponent, ModuleEmblemComponent, JourneyNext],
   templateUrl: './dashboard.html',
   styleUrls: ['./dashboard.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,

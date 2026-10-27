@@ -20,7 +20,9 @@
       "@idem/shared-styles": ["packages/shared-styles"],
       "@idem/shared-styles/*": ["packages/shared-styles/*"],
       "@idem/shared-tour": ["packages/shared-tour/src"],
-      "@idem/shared-tour/*": ["packages/shared-tour/src/*"]
+      "@idem/shared-tour/*": ["packages/shared-tour/src/*"],
+      "@idem/shared-journey": ["packages/shared-journey/src"],
+      "@idem/shared-journey/*": ["packages/shared-journey/src/*"]
     }
   },
   "files": ["src/main.ts"],

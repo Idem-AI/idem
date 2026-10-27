@@ -9,6 +9,8 @@ import {
 import useChatModeStore from "@/stores/chatModeSlice";
 import { ChatMode } from "@/types/chat";
 import { ArtifactView } from "../ArtifactView";
+import { ChatAsk } from "../ChatAsk";
+import { readAsk, withoutMarkers } from "@/utils/chatMarkers";
 import { ImageGrid } from "../ImageGrid";
 import { Message } from "ai";
 import { memo } from "react";
@@ -810,7 +812,7 @@ const MessageItemView: React.FC<MessageItemProps> = ({
                       // Le code éventuellement glissé hors des actions de
                       // fichier est récupéré ailleurs et écrit dans le projet :
                       // l'afficher ici ne renseigne personne et noie la phrase.
-                      const prose = sanitizeChatProse(processStreamParts(filterMessages.parts));
+                      const prose = sanitizeChatProse(withoutMarkers(processStreamParts(filterMessages.parts)));
                       // En mode Plan, une réponse longue et structurée est la
                       // réponse attendue. En mode Build, la conversation raconte
                       // le travail : une réponse qui n'est pas une phrase (le
@@ -826,6 +828,12 @@ const MessageItemView: React.FC<MessageItemProps> = ({
                 </div>
               </div>
             )}
+
+            {/* Une question à cliquer posée par le serveur : seule la dernière se répond. */}
+            {!isUser && (() => {
+              const ask = readAsk(message.content);
+              return ask ? <ChatAsk ask={ask} active={isEndMessage && !isLoading} /> : null;
+            })()}
 
             {message.experimental_attachments &&
               message.experimental_attachments.length > 0 && (
