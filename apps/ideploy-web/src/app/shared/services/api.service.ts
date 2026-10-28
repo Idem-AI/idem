@@ -886,6 +886,25 @@ export class ApiService {
   deleteS3Storage(uuid: string): Observable<unknown> {
     return this.unwrap(this.http.delete<ApiResponse<unknown>>(`${this.base}/s3-storages/${uuid}`));
   }
+  /** What deployment will link these variables to in the workspace (its database, Redis, RabbitMQ) — nothing is deployed. */
+  linkPreview(body: {
+    workspace_uuid: string;
+    environment?: string;
+    variables: { key: string; value: string }[];
+  }): Observable<{ key: string; value: string; linkedTo?: string }[]> {
+    return this.unwrap(this.http.post<ApiResponse<{ key: string; value: string; linkedTo?: string }[]>>(`${this.base}/quick-deploy/link-preview`, body));
+  }
+  /** A CLI sign-in waiting for approval (`idem login`). */
+  cliAuthRequest(code: string): Observable<{ userCode: string; host: string; createdAt: string; status: string }> {
+    return this.unwrap(
+      this.http.get<ApiResponse<{ userCode: string; host: string; createdAt: string; status: string }>>(
+        `${this.base}/cli/auth/requests/${encodeURIComponent(code)}`
+      )
+    );
+  }
+  cliAuthAnswer(code: string, approve: boolean): Observable<unknown> {
+    return this.unwrap(this.http.post<ApiResponse<unknown>>(`${this.base}/cli/auth/requests/${encodeURIComponent(code)}`, { approve }));
+  }
   quickDeploy(body: {
     name: string;
     git_repository?: string;

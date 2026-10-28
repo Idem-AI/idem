@@ -873,7 +873,8 @@
       "errMissingRepo": "URL du dépôt manquante.",
       "applicationName": "Nom de l'application",
       "linkedFromCache": "Rempli depuis le cache Redis « {{name}} » créé par ce guide",
-      "portHint": "Laissez vide : le port sur lequel l’application écoute réellement est détecté à chaque déploiement et utilisé pour le routage. Ne le remplissez que pour imposer un port."
+      "portHint": "Laissez vide : le port sur lequel l’application écoute réellement est détecté à chaque déploiement et utilisé pour le routage. Ne le remplissez que pour imposer un port.",
+      "linkedFromResource": "Relié à {{name}} (ce workspace)"
     },
     "configure": {
       "changeSource": "Changer de source",
@@ -1674,7 +1675,15 @@
     },
     "appStep": {
       "databaseMismatch": "Ce backend est prévu pour {{expected}}, mais la base créée à l’étape précédente ({{database}}) est {{created}} : il ne pourrait pas s’y connecter. Revenez créer une base {{expected}}, ou renseignez vous-même les variables de connexion."
-    }
+    },
+    "review": "Revoir et modifier",
+    "reviewClose": "Fermer",
+    "openDatabase": "Ouvrir la base",
+    "openApplication": "Ouvrir l'application",
+    "reviewHint": "Les liens s'ouvrent dans un nouvel onglet : le guide reste là où vous en êtes. Une variable modifiée s'applique au prochain déploiement.",
+    "chooseAnotherDatabase": "Choisir une autre base",
+    "chooseAnotherDatabaseHint": "Le guide repose la question ; la base déjà créée reste dans le workspace (supprimez-la depuis sa page si elle ne sert plus).",
+    "backToPrevious": "Revenir à l'étape précédente (la voir ou la modifier)"
   },
   "templates": {
     "title": "Catalogue de services",
@@ -2293,5 +2302,23 @@
     "missing": "Il manque {{missing}} F dans votre portefeuille : rechargez-le pour continuer.",
     "loading": "Chargement des compteurs…",
     "chip": "{{amount}} F"
+  },
+  "appUpdate": {
+    "message": "Une nouvelle version d'iDeploy est disponible. Votre progression dans un guide est conservée.",
+    "reload": "Recharger"
+  },
+  "cli": {
+    "authorize": {
+      "title": "Connecter la CLI iDeploy",
+      "loading": "Lecture de la demande…",
+      "question": "La ligne de commande sur « {{host}} » demande à agir en votre nom : déployer, lire les journaux, modifier les variables.",
+      "checkCode": "Vérifiez que votre terminal affiche le même code",
+      "approve": "Autoriser",
+      "deny": "Refuser",
+      "warning": "N'autorisez qu'une demande que vous avez lancée vous-même. Le jeton est valable un an ; révoquez-le dans Sécurité › Jetons d'API.",
+      "approved": "C'est fait. Retournez dans votre terminal : la CLI est connectée.",
+      "denied": "Refusé. Aucun jeton n'a été émis.",
+      "back": "Retour au tableau de bord"
+    }
   }
 }

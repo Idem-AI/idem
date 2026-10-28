@@ -238,8 +238,21 @@ export async function deleteDatabase(teamId: number, type: string, uuid: string)
   // only removed the row, leaving its real container behind on the server,
   // invisible to the app and running forever (the same fix `service.service.ts`'s
   // own `deleteService` already applies).
+  // Its data volume goes too: `docker rm` alone left every deleted
+  // database's data on the server (8 volumes on one server, its disk at 82 %).
   try {
-    await lifecycle(teamId, type, uuid, 'stop');
+    if (db.destination_id) {
+      const { server, key } = await resolveServer(teamId, db.destination_id);
+      if (server && key) {
+        const container = containerNameFor(type, uuid);
+        await executeRemoteCommand(
+          server,
+          key,
+          `docker rm -f -v ${shellQuote(container)} >/dev/null 2>&1; docker volume rm ${shellQuote(dataVolumeFor(container))} >/dev/null 2>&1; true`,
+          { noRetry: true }
+        );
+      }
+    }
   } catch {
     /* ignore — a database that was never started, or whose server is unreachable, has nothing to tear down */
   }

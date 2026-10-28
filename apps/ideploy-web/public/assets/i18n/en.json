@@ -873,7 +873,8 @@
       "errMissingRepo": "Missing repository URL.",
       "applicationName": "Application name",
       "linkedFromCache": "Filled from the Redis cache \"{{name}}\" this guide created",
-      "portHint": "Leave empty: the port the application really listens on is detected at each deployment and used for routing. Fill it only to force a port."
+      "portHint": "Leave empty: the port the application really listens on is detected at each deployment and used for routing. Fill it only to force a port.",
+      "linkedFromResource": "Linked to {{name}} (this workspace)"
     },
     "configure": {
       "changeSource": "Change source",
@@ -1674,7 +1675,15 @@
     },
     "appStep": {
       "databaseMismatch": "This backend is built for {{expected}}, but the database created in the previous step ({{database}}) is {{created}}: it could not connect. Go back and create a {{expected}} database, or set the connection variables yourself."
-    }
+    },
+    "review": "Review and edit",
+    "reviewClose": "Close",
+    "openDatabase": "Open the database",
+    "openApplication": "Open the application",
+    "reviewHint": "Links open in a new tab: the guide stays where you are. A changed variable reaches the application with its next deployment.",
+    "chooseAnotherDatabase": "Choose another database",
+    "chooseAnotherDatabaseHint": "The guide asks again; the database already created stays in the workspace (delete it from its page if you no longer need it).",
+    "backToPrevious": "Back to the previous step (see or change it)"
   },
   "templates": {
     "title": "Service catalog",
@@ -2293,5 +2302,23 @@
     "missing": "Your wallet is {{missing}} F short: top it up to continue.",
     "loading": "Loading meters…",
     "chip": "{{amount}} F"
+  },
+  "appUpdate": {
+    "message": "A new version of iDeploy is available. Your progress in a guide is kept.",
+    "reload": "Reload"
+  },
+  "cli": {
+    "authorize": {
+      "title": "Sign in the iDeploy CLI",
+      "loading": "Reading the request…",
+      "question": "The command line on \"{{host}}\" asks to act in your name: deploy, read logs, change variables.",
+      "checkCode": "Check that your terminal shows the same code",
+      "approve": "Authorise",
+      "deny": "Refuse",
+      "warning": "Only authorise a request you started yourself. A token is issued for one year; revoke it under Security › API tokens.",
+      "approved": "Done. Back to your terminal: the CLI is signed in.",
+      "denied": "Refused. Nothing was issued.",
+      "back": "Back to the dashboard"
+    }
   }
 }
