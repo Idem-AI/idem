@@ -1,3 +1,4 @@
+import { buildCodeMap } from './codeMap.js';
 import { Messages } from '../types/project.js';
 import { selectRelevantFiles } from '../services/aiService.js';
 import { ChatLogger } from './logger.js';
@@ -24,7 +25,7 @@ export async function handleTokenLimit(
     [...messages].reverse().find((message) => message.role === 'user')?.content ?? '';
 
   try {
-    const selected = await selectRelevantFiles(filesPath, lastUserRequest);
+    const selected = (await selectRelevantFiles(filesPath, lastUserRequest, buildCodeMap(files))).filter((path) => path in files);
     const kept: { [key: string]: string } = {};
 
     for (const path of filesPath) {

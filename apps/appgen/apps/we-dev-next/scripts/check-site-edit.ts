@@ -4,6 +4,9 @@
  * garde-fous (police, couleurs, nom, section vidée) et pose d'une nouvelle section dans sa page.
  */
 import { applyPatches, applyTheme, guardEdit, guardTheme, parsePatches, quickTheme, routeEdit, themeChanges } from '../src/siteEngine/editPlan.js';
+import { buildSiteMap, mapIds, readSiteData, renderSiteMap, writeSiteData } from '../src/siteEngine/siteMap.js';
+import { checkDataValue } from '../src/siteEngine/edit.js';
+import { buildCodeMap } from '../src/utils/codeMap.js';
 import { insertSection } from '../src/siteEngine/edit.js';
 import { designSystemFiles, DESIGN_SYSTEM_PATHS } from '../src/siteEngine/template.js';
 
@@ -73,16 +76,41 @@ const files: Record<string, string> = {
 };
 
 // ── 1. Aiguillage ──
-check('« diminue la taille des titres » → le design system (aucune section réécrite)', routeEdit('Diminue la taille des titres', files)?.scope === 'theme');
-check('« change la police » → le design system', routeEdit('Change la police du site', files)?.scope === 'theme');
-const hero = routeEdit('Dans le hero, mets le bouton en plus grand', files);
-check('« dans le hero… » → la section Hero seule', hero?.scope === 'files' && hero.paths.join() === 'src/sections/home/Hero.tsx', JSON.stringify(hero));
-const footer = routeEdit('Ajoute mon numéro dans le pied de page', files);
-check('« le pied de page » → SiteFooter', footer?.scope === 'files' && footer.paths[0] === 'src/components/site/SiteFooter.tsx');
+// Le code n'aiguille plus sur des mots-clés : seul un texte cité, présent dans une seule section, le fait.
 const quoted = routeEdit('Remplace « Des grains torréfiés chaque semaine » par « Torréfié à Cocody »', files);
 check('un texte cité → la section qui le contient', quoted?.scope === 'files' && quoted.paths[0] === 'src/sections/home/Hero.tsx');
-check('« ajoute une section témoignages » → nouvelle section sur la page d’accueil', JSON.stringify(routeEdit('Ajoute une section témoignages', files)) === JSON.stringify({ scope: 'new-section', page: 'home' }));
-check('une demande floue → aiguillée par le modèle (null)', routeEdit('Rends ça plus joli', files) === null);
+check('« la navbar », « le hero »… → l’agent lit la carte (pas de mots-clés)', routeEdit('Tu as dupliqué les éléments de la navbar', files) === null && routeEdit('Dans le hero, mets le bouton en plus grand', files) === null);
+
+// La carte du site : ce que l'agent d'aiguillage lit.
+const HEADER = `import { site } from '@/site/data';\nexport default function SiteHeader({ current }: { current: string }) {\n  return <header><nav>{site.navigation.map((item) => <a key={item.href} href={item.href}>{item.label}</a>)}</nav></header>;\n}\n`;
+const DATA = `import { localize } from '@/i18n';\n\nexport const site = localize(${JSON.stringify({ name: 'Café Awa', navigation: [{ label: 'Accueil', href: '/' }, { label: 'Services', href: '/services/' }, { label: 'Accueil', href: '/accueil-2/' }, { label: 'Services', href: '/services-2/' }], contact: { phone: '+225 07 00 00 00 01', email: '', channels: [] } }, null, 2)});\n\nexport type Site = typeof site;\n`;
+const mapped = { ...files, 'src/components/site/SiteHeader.tsx': HEADER, 'src/site/data.ts': DATA };
+const map = buildSiteMap(mapped);
+const text = renderSiteMap(map);
+check('carte : le menu (données) et ses doublons visibles', /\[data\.navigation\][^\n]*Accueil → \/ · Services → \/services\/ · Accueil → \/accueil-2\//.test(text), text);
+check('carte : l’en-tête dit qu’il affiche le menu', /\[SiteHeader\][^\n]*lit site\.navigation/.test(text));
+check('carte : sections dans l’ordre de la page, avec leurs textes', /1\. \[home\/Hero\][^\n]*Des grains torréfiés/.test(text) && /2\. \[home\/Services\]/.test(text), text);
+const ids = mapIds(map);
+check('carte : identifiants des parties modifiables', ids.components.has('home/Hero') && ids.components.has('SiteHeader') && ids.components.has('SiteFooter') && ids.data.includes('navigation') && ids.data.includes('contact'));
+
+// Les données : lues, vérifiées, réécrites sans toucher au reste du module.
+const data = readSiteData(DATA)!;
+const rewritten = writeSiteData(DATA, { ...data, name: 'Café Awa & Fils' });
+check('données : relues puis réécrites, le module intact autour', readSiteData(rewritten)?.name === 'Café Awa & Fils' && rewritten.startsWith("import { localize } from '@/i18n';") && rewritten.includes('export type Site = typeof site;'));
+const menu = checkDataValue('navigation', [{ label: 'Accueil', href: '/' }, { label: 'Services', href: '/services/' }, { label: 'Accueil', href: '/' }], '');
+check('menu : une page n’y figure qu’une fois', 'value' in menu && (menu.value as unknown[]).length === 2, JSON.stringify(menu));
+check('menu : une phrase n’est pas un libellé', 'problem' in checkDataValue('navigation', [{ label: 'VACANCES’NUMERIK 2026 : Compte-rendu de l’Atelier Programmation Jeux Vidéos', href: '/a/' }], ''));
+check('coordonnées : un numéro inventé est refusé', 'problem' in checkDataValue('contact', { phone: '+225 01 23 45 67 89', email: '', channels: [] }, 'Ajoute mon numéro'));
+check('coordonnées : un numéro donné dans la demande est admis', 'value' in checkDataValue('contact', { phone: '+225 01 23 45 67 89', email: '', channels: [] }, 'Mon numéro est le +225 01 23 45 67 89'));
+
+// La carte d'une application : une ligne par fichier, ce qu'il fait.
+const appMap = buildCodeMap({
+  'frontend/src/pages/Login.jsx': "import { api } from '../lib/api';\nexport default function Login() { const go = () => fetch('/api/auth/login'); return <button onClick={go}>Se connecter</button>; }\n",
+  'backend/src/routes/auth.js': "router.post('/api/auth/login', handler);\n",
+  'frontend/src/App.jsx': '<Route path="/login" element={<Login />} />',
+});
+check('application : écran, texte affiché et API appelée', /Login\.jsx — déclare Login ; appelle \/api\/auth\/login ; affiche « Se connecter » ; importe \.\.\/lib\/api/.test(appMap), appMap);
+check('application : route servie et écrans routés', /auth\.js — sert POST \/api\/auth\/login/.test(appMap) && /App\.jsx — écrans \/login/.test(appMap), appMap);
 
 // ── 2. Design system ──
 const smaller = quickTheme('Diminue la taille des titres', config);

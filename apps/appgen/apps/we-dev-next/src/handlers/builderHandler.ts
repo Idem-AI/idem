@@ -11,6 +11,7 @@ import { determineFileType } from '../utils/fileTypeDetector.js';
 import { getHistoryDiff } from '../utils/diffGenerator.js';
 import { handleTokenLimit } from '../utils/tokenHandler.js';
 import { processFiles } from '../utils/fileProcessor.js';
+import { buildCodeMap } from '../utils/codeMap.js';
 import { screenshotOne } from '../utils/screenshotone.js';
 import { ProjectPromptService } from '../services/projectPromptService.js';
 import { ChatLogger } from '../utils/logger.js';
@@ -22,6 +23,11 @@ import { createSiteEditStream, isEditableSite } from '../siteEngine/edit.js';
 
 /** Past this, the existing project is summarised rather than sent whole. */
 const CONTEXT_TOKEN_LIMIT = 128000;
+/**
+ * Au-delà, une retouche ne renvoie plus tout le projet au modèle : un petit changement relisait des dizaines de
+ * fichiers (lent, cher, et autant d'occasions de modifier ce qui n'était pas demandé).
+ */
+const FOLLOWUP_CONTEXT_TOKENS = 24000;
 
 /**
  * Installs the assembled prompt: the cacheable system message at the head, the
@@ -34,6 +40,28 @@ const CONTEXT_TOKEN_LIMIT = 128000;
  * concatenated blob inside the last user message, which meant the prefix
  * changed on every request and the cache never hit.
  */
+/**
+ * Les derniers échanges avant la demande, en clair (sans le code ni les marques) : une retouche comme « tu as
+ * dupliqué le menu » se comprend par ce qui vient d'être fait.
+ */
+function recentConversation(messages: Messages): string {
+  return messages
+    .slice(0, -1)
+    .slice(-4)
+    .map((message) => {
+      const text = String(message.content ?? '')
+        .replace(/<boltArtifact[\s\S]*?<\/boltArtifact>/g, ' ')
+        .replace(/<!--[\s\S]*?-->/g, ' ')
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, 500);
+      return text ? `${message.role === 'user' ? 'Person' : 'Assistant'}: ${text}` : '';
+    })
+    .filter(Boolean)
+    .join('\n');
+}
+
 function applyPrompt(messages: Messages, system: string, user: string): void {
   messages[messages.length - 1].content = user;
 
@@ -183,6 +211,7 @@ export async function handleBuilderMode(
       projectData,
       language: language === 'en' ? 'en' : 'fr',
       request: rawRequest,
+      recent: recentConversation(messages),
       files: siteEdit!.files,
       model,
       userId,
@@ -242,19 +271,20 @@ export async function handleBuilderMode(
     ]
       .filter(Boolean)
       .join('\n');
-  } else if (estimateTokens(allContent) > CONTEXT_TOKEN_LIMIT) {
-    // Existing project too large to send whole: summarise it and send the diff.
-    ChatLogger.warn('TOKEN_LIMIT', 'Context over limit, summarising the project');
+  } else if (estimateTokens(allContent) > (isFirstTurn ? CONTEXT_TOKEN_LIMIT : FOLLOWUP_CONTEXT_TOKENS)) {
+    // Projet trop gros pour être envoyé en entier — ou retouche d'un projet déjà conséquent : seuls les fichiers
+    // utiles à la demande partent, choisis sur la carte du projet (`buildCodeMap`), avec la carte elle-même pour
+    // que le modèle sache ce qui existe ailleurs.
+    ChatLogger.warn('TOKEN_LIMIT', 'Contexte trié sur la carte du projet');
 
     // Déjà nettoyé plus haut (inconditionnellement) : pas besoin de rappeler
     // processFiles ici, `files` porte déjà le contenu courant de chaque fichier.
     const trimmedFiles = await handleTokenLimit(messages, files, filesPath);
 
-    extraContext = buildExistingProjectContext(
-      filesPath,
-      trimmedFiles,
-      getHistoryDiff(historyMessages, filesPath, trimmedFiles)
-    );
+    extraContext = [
+      buildExistingProjectContext(filesPath, trimmedFiles, getHistoryDiff(historyMessages, filesPath, trimmedFiles)),
+      `\n## PROJECT MAP (the files not shown above exist as described; ask for nothing, change only the files shown)\n${buildCodeMap(files).slice(0, 20000)}`,
+    ].join('\n');
   }
 
   const { system, user, diagnostics } = assembleBuilderPrompt({

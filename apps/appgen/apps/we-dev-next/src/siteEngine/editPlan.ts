@@ -3,10 +3,9 @@
  *
  * Une demande de retouche ne doit toucher QUE ce qui est demandé, au moindre coût :
  *
- *   1. la CIBLE se décide d'abord par le code : une demande sur l'apparence générale (taille des titres,
- *      police, couleurs, arrondis, espacements) vise le DESIGN SYSTEM — un réglage, pas une réécriture ;
- *      une demande qui nomme une section (« le hero », « le pied de page ») ou en cite un texte vise CE
- *      fichier. Le modèle n'est consulté (cheaply) que si rien ne tranche ;
+ *   1. la CIBLE est choisie par l'agent d'aiguillage, qui lit la carte du site (`siteMap.ts`) : sections, en-tête,
+ *      pied de page, données (menu, coordonnées), apparence. Seul un texte cité qui n'existe que dans une
+ *      section est aiguillé par le code ;
  *   2. les retouches courantes du design system se font sans modèle (`quickTheme`) ;
  *   3. une retouche de section arrive en blocs RECHERCHER / REMPLACER : seuls les passages modifiés
  *      voyagent, et le reste du fichier ne peut pas changer ;
@@ -51,28 +50,6 @@ export function siteComponents(files: Record<string, string>): SiteFile[] {
   return out;
 }
 
-/** Les mots qui désignent un composant (son nom découpé, et les noms usuels en français et en anglais). */
-const SYNONYMS: Array<[RegExp, RegExp]> = [
-  [/^siteheader$/, /\b(en.?tete|header|menu|navigation|nav|barre du haut|logo en haut)\b/],
-  [/^sitefooter$/, /\b(pied de page|footer|bas de (la )?page|bas du site)\b/],
-  [/hero|banner|intro|accueil/, /\b(hero|banniere|haut de (la )?page|premiere section|section d accueil|en haut|accroche)\b/],
-  [/about|story|histoire|apropos/, /\b(a propos|qui sommes|notre histoire|about)\b/],
-  [/service|offer|offre|feature|prestation/, /\b(services?|offres?|prestations?|fonctionnalites?|features?)\b/],
-  [/testimonial|review|avis|temoign/, /\b(temoignages?|avis|testimonials?|reviews?)\b/],
-  [/contact/, /\b(contact|formulaire|coordonnees|nous joindre)\b/],
-  [/faq|question/, /\b(faq|questions?)\b/],
-  [/pricing|price|tarif|plan/, /\b(tarifs?|prix|pricing|forfaits?|plans?)\b/],
-  [/gallery|galerie|portfolio|realisation|work/, /\b(galerie|gallery|photos|portfolio|realisations?)\b/],
-  [/team|equipe/, /\b(equipe|team)\b/],
-  [/cta|calltoaction|action/, /\b(appel a l action|call to action|cta)\b/],
-  [/stat|chiffre|number/, /\b(chiffres?|statistiques?|stats?)\b/],
-];
-
-/** Les textes d'un composant entre guillemets (titres, phrases) : de quoi retrouver une section par ce qu'elle dit. */
-function quotedTexts(code: string): string[] {
-  return Array.from(code.matchAll(/>([^<>{}\n]{6,120})</g)).map((m) => fold(m[1].trim()));
-}
-
 export type EditRoute =
   | { scope: 'theme' }
   | { scope: 'files'; paths: string[] }
@@ -80,38 +57,18 @@ export type EditRoute =
   | null;
 
 /**
- * La cible d'une demande, décidée par le code quand c'est possible : une section nommée (ou dont un texte
- * est cité), sinon l'apparence générale, sinon une nouvelle section. `null` : le modèle aiguillera.
+ * Le seul aiguillage fait par le code : un texte cité entre guillemets qui n'existe que dans une section (une
+ * recherche exacte, pas une devinette). Tout le reste — « la navbar », « le haut de la page », « tu as dupliqué le
+ * menu » — passe par l'agent d'aiguillage, qui lit la carte du site (`siteMap.ts`) : des listes de mots-clés
+ * envoyaient « navbar » nulle part et faisaient demander à l'utilisateur de nommer la section.
  */
 export function routeEdit(request: string, files: Record<string, string>): EditRoute {
-  const t = fold(request);
   const components = siteComponents(files);
-
-  // Un texte cité entre guillemets, présent dans un seul composant.
   const quoted = Array.from(request.matchAll(/[«"“]\s*([^»"”]{4,120}?)\s*[»"”]/g)).map((m) => fold(m[1]));
   for (const q of quoted) {
     const owners = components.filter((c) => fold(files[c.path]).includes(q));
     if (owners.length === 1) return { scope: 'files', paths: [owners[0].path] };
   }
-
-  // Une section nommée : son nom de composant, ou un nom usuel.
-  const named = components.filter((c) => {
-    const id = fold(c.name);
-    const words = c.name.replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase();
-    if (t.includes(words) && words.length >= 4) return true;
-    return SYNONYMS.some(([component, said]) => component.test(id) && said.test(t));
-  });
-  if (asksNewSection(request)) {
-    const pages = Array.from(new Set(components.map((c) => c.page).filter((p): p is string => !!p)));
-    const page = pages.find((p) => t.includes(fold(p))) || pages.find((p) => p === 'home' || p === 'index') || pages[0];
-    if (page) return { scope: 'new-section', page };
-  }
-  if (named.length && named.length <= 3) return { scope: 'files', paths: named.map((c) => c.path) };
-
-  // L'apparence générale : titres, textes, police, couleurs, arrondis, espacements, ombres, boutons.
-  const global =
-    /\b(titres?|headings?|textes?|ecriture|polices?|fonts?|typo\w*|couleurs?|colou?rs?|palette|arrondi\w*|coins?|rounded|radius|ombres?|shadows?|espacements?|espaces?|marges?|aere\w*|compact\w*|interligne|tous les boutons|les boutons|site entier|tout le site|partout)\b/.test(t);
-  if (global && !named.length) return { scope: 'theme' };
   return null;
 }
 
