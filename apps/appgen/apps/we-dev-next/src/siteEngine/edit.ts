@@ -77,7 +77,10 @@ export function createSiteEditStream(input: SiteEditInput): ResilientStream {
       const { projectData, files, model, userId, request } = input;
       // Un site en plusieurs langues s'écrit dans sa langue principale (les autres suivent par traduction).
       const language = siteLanguagesOf(files)?.main ?? detectSiteLanguage(projectData.description ?? '', input.language);
-      const fr = language === 'fr';
+      // Les réponses suivent la langue de la personne (celle de sa demande), pas celle du site : un site en anglais
+      // retouché par quelqu'un qui écrit en français lui répond en français. Les textes du site, eux, restent dans
+      // sa langue (`language`).
+      const fr = detectSiteLanguage(request, input.language) === 'fr';
       const abort = new AbortController();
       res.on('close', () => {
         if (!res.writableEnded) abort.abort();
