@@ -38,16 +38,16 @@ import { authorComponent, AuthoringContext, authorSystemPrompt, footerPrompt, he
 import { themeColorsFromCss } from './autocorrect.js';
 import { importPolicy, Issue, renderRemarks } from './repair.js';
 import { createFactGuard, stripSentences } from './factGuard.js';
-import { designManifest, ManifestPage, ManifestSection, SiteManifest } from './manifest.js';
+import { designManifest, ManifestPage, ManifestSection, SiteManifest, originPagesOf } from './manifest.js';
 import { ModelCaller } from './modelCaller.js';
 import { createApiMediaClient, MediaClient } from './media/mediaClient.js';
 import { AssetDecision, directMedia, MediaSlot } from './media/mediaDirector.js';
 import { createLimiter, MediaAsset, produceMedia } from './media/mediaPipeline.js';
 import { buildSiteScaffold, renderPage, renderPageShells, shellMessages } from './project.js';
 import { renderBrandModule, renderDataModule, renderMediaModule, renderSeo, siteDataOf } from './siteData.js';
-import { collectMessages, dataMessages, languageLabel, localizeCode, pseudoLocaleFiles, renderI18nFiles, translateCatalog, withLanguageSwitcher } from './i18n.js';
+import { collectMessages, dataMessages, languageLabel, localizeCode, pseudoLocaleFiles, renderI18nFiles, translateCatalog, withHeaderLanguageSwitcher, withLanguageSwitcher } from './i18n.js';
 import { renderCheck } from './renderCheck.js';
-import { detectSiteLanguage, readSiteFacts, renderFacts } from './siteFacts.js';
+import { detectSiteLanguage, readSiteFacts, renderFacts, writtenInOtherLanguage } from './siteFacts.js';
 import { FUNCTIONAL_DEPENDENCIES, SITE_ENGINE_ID, templateFiles } from './template.js';
 import { marker } from '../commands/choices.js';
 import { redesignArchitect, redesignDesign, redesignFacts, RedesignFocus } from './redesign/brief.js';
@@ -278,13 +278,29 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
         return;
       }
 
-      const language = resuming ? resuming.plan.language : detectSiteLanguage(
-        [request, projectData.description, (projectData as { longDescription?: string }).longDescription, redesign?.content.paragraphs.slice(0, 3).join(' ')].filter(Boolean).join('\n'),
-        redesign?.content.language === 'en' || redesign?.content.language === 'fr' ? redesign.content.language : input.language
-      );
+      // Une refonte garde la langue de l'ancien site, lue sur ses pages : devinée sur les textes (la demande, la
+      // description du projet), un site français dont le projet était décrit en anglais partait en anglais, avec
+      // le français en seconde langue — menu en anglais, contenu en français.
+      const siteLanguage = redesign?.content.inventory?.language || redesign?.content.language;
+      const language = resuming
+        ? resuming.plan.language
+        : siteLanguage === 'fr' || siteLanguage === 'en'
+          ? siteLanguage
+          : detectSiteLanguage(
+              [request, projectData.description, (projectData as { longDescription?: string }).longDescription, redesign?.content.paragraphs.slice(0, 3).join(' ')].filter(Boolean).join('\n'),
+              input.language
+            );
       const fr = language === 'fr';
 
       const facts = readSiteFacts(projectData, language);
+      // Refonte : la fiche du projet a pu être rédigée dans une autre langue que le site (première lecture d'un site
+      // passée par un traducteur automatique, puis projet réutilisé). Ses textes repartiraient tels quels dans le
+      // site — description en anglais sur un site français. Le site parle alors pour lui-même, dans sa langue.
+      if (redesign) {
+        const own = (redesign.content.voice.valueProposition || redesign.content.description || redesign.content.paragraphs[0] || '').trim();
+        if (own && writtenInOtherLanguage(facts.description, language)) facts.description = own.slice(0, 190);
+        if (facts.story && writtenInOtherLanguage(facts.story, language)) facts.story = redesign.content.paragraphs.slice(0, 4).join('\n\n').slice(0, 3000);
+      }
       // Refonte : ce que le site dit aujourd'hui rejoint les faits — les auteurs le reprennent, le garde-fou
       // l'accepte (un téléphone ou une adresse du site n'est pas une invention).
       const inventory = redesign?.content.inventory;
@@ -444,7 +460,16 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
             if (section.visual === 'none' && sources.some((x) => x.images.length)) section.visual = 'photo';
           }
         }
-        mapLink = linkMapper(inventory, (pageIndex) => manifest.pages.find((p) => p.source === pageIndex)?.path);
+        mapLink = linkMapper(inventory, (pageIndex) => (manifest.pages.find((p) => p.source === pageIndex) ?? manifest.pages.find((p) => originPagesOf(p).includes(pageIndex)))?.path);
+        // Le menu de l'ancien site, repris tel quel : ses entrées, son ordre, ses libellés, vers les nouvelles pages.
+        if (!manifest.menu?.length) {
+          const menu: { label: string; href: string }[] = [];
+          for (const item of inventory.navigation) {
+            const href = mapLink(item.href);
+            if (href.startsWith('/') && item.label.trim() && !menu.some((entry) => entry.href === href)) menu.push({ label: item.label.trim(), href });
+          }
+          if (menu.length >= 2) manifest.menu = menu;
+        }
       }
 
       // Le plan complet : chaque composant à écrire, l'assemblage, la traduction. Le manifeste est gardé dans le
@@ -715,14 +740,20 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
       if (!scaffoldMounted) stream.command('shell', 'npm install');
       stream.command('start', 'npm run dev');
 
-      // Un en-tête écrit sans le choix de la langue : le pied de page le reçoit (le site traduit doit l'offrir).
+      // Un en-tête écrit sans le choix de la langue : il y est posé (dans la barre, à côté du menu mobile) ; le pied
+      // de page le reçoit seulement si l'en-tête n'offre pas de place reconnaissable. Un site traduit doit l'offrir,
+      // et là où on le cherche.
       const headerCode = written['src/components/site/SiteHeader.tsx'] ?? '';
       const footerCode = written['src/components/site/SiteFooter.tsx'] ?? '';
-      if (siteLanguages.length > 1 && hasHeader && !/LanguageSwitcher/.test(headerCode) && hasFooter) {
-        const withSwitcher = withLanguageSwitcher(footerCode);
-        if (withSwitcher) {
-          stream.file('src/components/site/SiteFooter.tsx', withSwitcher);
-          written['src/components/site/SiteFooter.tsx'] = withSwitcher;
+      if (siteLanguages.length > 1 && hasHeader && !/LanguageSwitcher/.test(headerCode)) {
+        const inHeader = withHeaderLanguageSwitcher(headerCode);
+        const inFooter = !inHeader && hasFooter ? withLanguageSwitcher(footerCode) : null;
+        if (inHeader) {
+          stream.file('src/components/site/SiteHeader.tsx', inHeader);
+          written['src/components/site/SiteHeader.tsx'] = inHeader;
+        } else if (inFooter) {
+          stream.file('src/components/site/SiteFooter.tsx', inFooter);
+          written['src/components/site/SiteFooter.tsx'] = inFooter;
         }
       }
 

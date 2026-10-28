@@ -11,7 +11,9 @@ import { siteRequest } from '../src/commands/workflows/site.js';
 import { findSiteUrl } from '../src/siteEngine/redesign/intent.js';
 import { redesignArchitect, redesignFacts } from '../src/siteEngine/redesign/brief.js';
 import { inventoryOutline, linkMapper, SiteInventory, sourceContent } from '../src/siteEngine/redesign/inventory.js';
-import { completeCoverage, diversifyLayouts, missingCoverage, readManifest } from '../src/siteEngine/manifest.js';
+import { completeCoverage, diversifyLayouts, missingCoverage, originPagesOf, readManifest } from '../src/siteEngine/manifest.js';
+import { navigationOf } from '../src/siteEngine/siteData.js';
+import { withHeaderLanguageSwitcher } from '../src/siteEngine/i18n.js';
 import { isIncomplete, PlanTracker, readPlan, remaining, PLAN_PATH } from '../src/siteEngine/plan.js';
 import { SiteStream } from '../src/siteEngine/stream.js';
 import { cleanSlop } from '../src/siteEngine/slopGuard.js';
@@ -177,6 +179,20 @@ async function main() {
     check('couverture : page et section manquantes repérées', missing.pages.join() === '1' && missing.sections.join() === 'p1.s0', missing);
     const completed = completeCoverage(manifest!, coverage, ['Accueil', 'Services'], ['/', '/services/'], true);
     check('couverture complétée par le code', missingCoverage(completed, coverage).pages.length === 0 && missingCoverage(completed, coverage).sections.length === 0 && completed.pages[1].path === '/services/');
+    // Une page qui ne déclare pas sa page d'origine, mais dont les sections y puisent, la reprend : pas de copie.
+    const bySections = readManifest(
+      { pages: [{ slug: '', label: 'Accueil', sections: [{ id: 'hero', brief: 'Ouverture', visual: 'photo', sources: ['p0.s0'] }, { id: 'impact', brief: 'Chiffres', visual: 'none', sources: ['p0.s1'] }] }, { slug: 'nos-services', label: 'Services', sections: [{ id: 'ateliers', brief: 'Ateliers', visual: 'none', sources: ['p1.s0'] }, { id: 'contact', brief: 'Contact', visual: 'none' }] }] },
+      { maxPages: 10, maxSections: 16 }
+    ).manifest!;
+    const noCopy = completeCoverage(bySections, coverage, ['Accueil', 'Services'], ['/', '/services/'], true);
+    check('couverture : pages reprises par leurs sections, aucune copie', missingCoverage(bySections, coverage).pages.length === 0 && noCopy.pages.length === 2 && bySections.pages[1].source === 1, noCopy.pages.map((p) => p.key));
+    const menuInventory: SiteInventory = { ...inventory, navigation: [{ label: 'Accueil', href: 'https://ex.cm/' }, { label: 'Nos services', href: 'https://ex.cm/services/' }, { label: 'Ailleurs', href: 'https://autre.cm/' }] };
+    const menuMap = linkMapper(menuInventory, (i) => bySections.pages.find((p) => originPagesOf(p).includes(i))?.path);
+    const menu = menuInventory.navigation.map((item) => ({ label: item.label, href: menuMap(item.href) })).filter((item) => item.href.startsWith('/'));
+    check('menu : celui de l’ancien site, vers les nouvelles pages', navigationOf({ ...bySections, menu }).map((l) => `${l.label}→${l.href}`).join() === 'Accueil→/,Nos services→/nos-services/', navigationOf({ ...bySections, menu }));
+    const header = `export default function SiteHeader({ current }: { current: string }) {\n  return (\n    <header>\n      <div className="flex">\n        <Sheet open={open}>\n        </Sheet>\n      </div>\n    </header>\n  );\n}\n`;
+    const switched = withHeaderLanguageSwitcher(header) ?? '';
+    check('langues : choix posé dans l’en-tête, à côté du menu mobile', /^import LanguageSwitcher/.test(switched) && /<LanguageSwitcher current=\{current\} \/>\n\s*<Sheet/.test(switched), switched);
     const map = linkMapper(inventory, (i) => (i === 1 ? '/nos-services/' : i === 0 ? '/' : undefined));
     const source = sourceContent([inventory.pages[0].sections[0]], map, true);
     check('lien interne réécrit vers la nouvelle page', source.includes('/nos-services/') && source.includes('Nous formons les jeunes.'), source);

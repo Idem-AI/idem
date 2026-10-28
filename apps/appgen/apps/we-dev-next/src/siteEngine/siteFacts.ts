@@ -233,6 +233,18 @@ const ENGLISH_MARKERS = /(?<![\p{L}])(the|and|is|for|with|you|our|your|to|of|in|
  * anglais — c'est la règle déjà tenue par les vidéos. Sans signal net, la
  * langue de l'interface décide.
  */
+/**
+ * Un texte manifestement écrit dans l'autre langue (français ↔ anglais) que celle attendue, même court : deux
+ * marqueurs de l'autre langue au moins, et nettement plus que de la langue attendue. Prudent dans le doute (faux).
+ */
+export function writtenInOtherLanguage(text: string, expected: string): boolean {
+  if (expected !== 'fr' && expected !== 'en') return false;
+  const fr = text.match(FRENCH_MARKERS)?.length ?? 0;
+  const en = text.match(ENGLISH_MARKERS)?.length ?? 0;
+  const [own, other] = expected === 'fr' ? [fr, en] : [en, fr];
+  return other >= 2 && other > own * 2;
+}
+
 export function detectSiteLanguage(text: string, fallback: string): 'fr' | 'en' {
   const fr = text.match(FRENCH_MARKERS)?.length ?? 0;
   const en = text.match(ENGLISH_MARKERS)?.length ?? 0;

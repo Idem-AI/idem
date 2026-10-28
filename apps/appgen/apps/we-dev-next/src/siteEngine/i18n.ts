@@ -492,6 +492,21 @@ export function localizeDataModule(code: string): string {
 }
 
 /** Le choix de la langue posé au bas du pied de page (un en-tête qui ne l'a pas). Rend `null` si rien n'est à faire. */
+/**
+ * Le choix de la langue posé dans l'en-tête que son auteur a écrit sans lui : juste avant le déclencheur du menu
+ * mobile (`<Sheet`), c'est-à-dire dans le groupe d'actions à droite de la barre — visible en haut sur ordinateur
+ * comme sur téléphone. `null` quand la place n'est pas reconnue (le pied de page le reçoit alors).
+ */
+export function withHeaderLanguageSwitcher(headerCode: string): string | null {
+  if (/LanguageSwitcher/.test(headerCode)) return null;
+  const at = headerCode.search(/<Sheet[\s>]/);
+  if (at < 0) return null;
+  const indent = headerCode.slice(headerCode.lastIndexOf('\n', at) + 1, at).match(/^\s*/)?.[0] ?? '';
+  // La page en cours, quand l'en-tête la reçoit : les liens de langue pointent alors la même page dès le pré-rendu.
+  const current = /\{\s*current\b/.test(headerCode) ? ' current={current}' : '';
+  return `import LanguageSwitcher from '@/components/site/language-switcher';\n${headerCode.slice(0, at)}<LanguageSwitcher${current} />\n${indent}${headerCode.slice(at)}`;
+}
+
 export function withLanguageSwitcher(footerCode: string): string | null {
   if (/LanguageSwitcher/.test(footerCode)) return null;
   const at = footerCode.lastIndexOf('</footer>');

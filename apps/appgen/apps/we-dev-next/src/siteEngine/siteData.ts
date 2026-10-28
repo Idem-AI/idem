@@ -27,8 +27,9 @@ export interface BrandSource {
 
 const literal = (value: unknown): string => JSON.stringify(value, null, 2).replace(/</g, '\\u003c');
 
-/** Le menu : les pages d'un site multi-pages, les ancres choisies d'un site d'une page. */
+/** Le menu : celui de l'ancien site (refonte), sinon les pages d'un site multi-pages, les ancres choisies d'un site d'une page. */
 export function navigationOf(manifest: SiteManifest): NavLink[] {
+  if (manifest.menu?.length) return manifest.menu;
   if (manifest.pages.length > 1) return manifest.pages.map((page) => ({ label: page.label, href: page.path }));
   return manifest.pages[0].sections
     .filter((section, index) => index > 0 && section.navLabel)

@@ -50,6 +50,11 @@ export interface ManifestPage {
 
 export interface SiteManifest {
   pages: ManifestPage[];
+  /**
+   * Refonte : le menu de l'ancien site, dans son ordre et avec ses libellés, chaque lien mené à la page qui reprend
+   * la sienne. Sans lui, le menu listait chaque page (articles, conditions générales…).
+   */
+  menu?: { label: string; href: string }[];
   header: string;
   footer: string;
   /** Composants optionnels du catalogue utilisés par le site. */
@@ -97,15 +102,37 @@ const pascal = (slug: string): string => {
   return /^[A-Z]/.test(name) ? name : `S${name}`;
 };
 
+/** La page d'origine la plus reprise par des sections, quand l'architecte n'en a déclaré aucune. */
+function dominantOrigin(sections: ManifestSection[]): { source?: number } {
+  const counts = new Map<number, number>();
+  for (const id of sections.flatMap((section) => section.sources ?? [])) {
+    const n = Number(id.match(/^p(\d+)\./)?.[1] ?? NaN);
+    if (Number.isInteger(n)) counts.set(n, (counts.get(n) ?? 0) + 1);
+  }
+  const best = [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0] - b[0])[0];
+  return best ? { source: best[0] } : {};
+}
+
 /** Ce qu'une refonte impose au manifeste : une page par page d'origine, chaque section d'origine placée. */
 export interface Coverage {
   pageCount: number;
   sectionIds: string[];
 }
 
-/** Les pages et sections de l'ancien site absentes du manifeste. */
+/** Les pages d'origine qu'une page reprend : sa `source`, et chaque page dont une de ses sections reprend le contenu. */
+export function originPagesOf(page: ManifestPage): number[] {
+  const fromSections = page.sections.flatMap((s) => (s.sources ?? []).map((id) => Number(id.match(/^p(\d+)\./)?.[1] ?? NaN))).filter((n) => Number.isInteger(n));
+  return [...new Set([...(typeof page.source === 'number' ? [page.source] : []), ...fromSections])];
+}
+
+/**
+ * Les pages et sections de l'ancien site absentes du manifeste. Une page d'origine est reprise dès qu'une page
+ * déclare la reprendre (`source`) OU qu'une de ses sections y puise : l'architecte remplit ses sections et oublie
+ * souvent la page. Comptée seulement par `source`, chaque page d'origine semblait manquer, et le code en recréait une
+ * copie vide — onze pages en double dans le menu d'une refonte réelle (« About », « services-2 »…).
+ */
 export function missingCoverage(manifest: SiteManifest, coverage: Coverage): { pages: number[]; sections: string[] } {
-  const pages = new Set(manifest.pages.map((p) => p.source).filter((n): n is number => typeof n === 'number'));
+  const pages = new Set(manifest.pages.flatMap(originPagesOf));
   const placed = new Set(manifest.pages.flatMap((p) => p.sections.flatMap((s) => s.sources ?? [])));
   return {
     pages: Array.from({ length: coverage.pageCount }, (_, i) => i).filter((i) => !pages.has(i)),
@@ -128,7 +155,7 @@ export function completeCoverage(manifest: SiteManifest, coverage: Coverage, pag
   }
   for (const id of missingCoverage({ ...manifest, pages }, coverage).sections) {
     const pageIndex = Number(id.match(/^p(\d+)\./)?.[1] ?? 0);
-    const page = pages.find((p) => p.source === pageIndex) ?? pages[0];
+    const page = pages.find((p) => p.source === pageIndex) ?? pages.find((p) => originPagesOf(p).includes(pageIndex)) ?? pages[0];
     let component = pascal(slugify(`origine-${id}`));
     while (page.sections.some((s) => s.component === component)) component = `${component}Bis`;
     page.sections.push({
@@ -263,7 +290,9 @@ export function readManifest(raw: unknown, limits: { maxPages?: number; maxSecti
       seoTitle: cleanText(entry?.seoTitle, 70),
       seoDescription: cleanText(entry?.seoDescription, 180),
       sections,
-      ...(/^p?\d+$/.test(String(entry?.source ?? '')) ? { source: Number(String(entry.source).replace('p', '')) } : {}),
+      // La page d'origine : celle que l'architecte déclare, sinon celle où ses sections puisent le plus (les liens
+      // de l'ancien site vers cette page mènent ici).
+      ...(/^p?\d+$/.test(String(entry?.source ?? '')) ? { source: Number(String(entry.source).replace('p', '')) } : dominantOrigin(sections)),
     });
   }
 

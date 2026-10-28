@@ -19,6 +19,14 @@ Le relevé (`apps/ivision/core/src/site/site-crawler.ts`) note les langues dans 
 | `path` | au moins deux liens internes sous `/en/`, `/es/`… | traduite d'office |
 | `widget` | traducteur automatique (GTranslate `gtranslateSettings`, Weglot), sans page vraiment traduite | **proposée** dans le chat |
 
+Une refonte garde la langue de l'ancien site, lue sur ses pages (`inventory.language`). Elle n'est jamais devinée d'après la demande ou la description du projet. Si la fiche du projet est écrite dans une autre langue (`writtenInOtherLanguage`), le site reprend sa propre description à la place.
+
+Le menu d'une refonte est celui de l'ancien site (`manifest.menu`) : ses entrées, dans leur ordre, avec leurs libellés, chacune menant à la page qui reprend la sienne. Les articles et les mentions légales n'y figurent plus.
+
+Une page d'origine compte comme reprise dès qu'une section du manifeste y puise (`originPagesOf`). Auparavant, chaque page dont l'architecte avait oublié le champ `source` était recopiée vide. Une refonte réelle en avait ainsi 11 en double dans son menu.
+
+Si l'auteur de l'en-tête oublie le choix de la langue, le code le pose dans l'en-tête, à côté du menu mobile (`withHeaderLanguageSwitcher`). Le pied de page ne sert qu'en dernier recours.
+
 Pour une langue `widget`, la question est posée avec les couleurs, avant toute facturation. Les options sont, dans l'ordre :
 
 - la langue principale plus l'anglais (ou le français pour un site anglophone), marquée « Recommandé » ;

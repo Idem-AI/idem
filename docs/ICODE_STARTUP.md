@@ -77,6 +77,12 @@ This affects every mounted tree: browser cache, server snapshot, or neighbour tr
 
 The script spells `require` in two pieces on purpose. The workspace's `@originjs/vite-plugin-commonjs` rewrites any `require` with a module name it finds, even inside a string, and the mangled script repaired nothing.
 
+**Bucket images in the local preview.** In development the bucket is `http://localhost:9000`, and the HTTPS preview blocks those images as mixed content. Each such image is now downloaded once and written as a real file into the container's `public/_idem-assets/`. The mounted copy of the code points at `/_idem-assets/<name>`. Images come straight from the bucket, or through `/api/assets/inline` when the browser can't fetch them directly.
+
+They used to be inlined as data URIs. A redesign with 72 photos turned `src/site/media.ts` into megabytes of base64, which slowed every start, and some images never showed.
+
+The stored code keeps the bucket URLs. The container read-back now uses the mount keys (`src/a.tsx`, not `//src/a.tsx`), so the rewritten copy no longer leaks back into the store or the bucket.
+
 **Bounded installs.** An `npm install` is stopped after 15 minutes (`runCommand` `timeoutMs`). The preview then says it did not start, with the reason. `resetDeps()` also forgets setups started in a replaced container: one that never finished used to block every later start of that target.
 
 ### Commands no longer need a terminal
