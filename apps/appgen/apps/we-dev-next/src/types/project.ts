@@ -212,6 +212,11 @@ export interface ChatRequest {
    */
   siteEdit?: { files: Record<string, string> };
   /**
+   * Ce que la personne a désigné dans l'aperçu (outil Dessin), résolu par l'aperçu : chaque élément, son fichier, sa
+   * position et la partie qui le porte. La retouche ne touche que cela (`siteEngine/pointed.ts`).
+   */
+  pointed?: unknown;
+  /**
    * La réponse cliquée à des choix posés dans le chat (`commands/choices.ts`) : le déroulé qui les a posés
    * (`purpose`), les valeurs, l'accord aux politiques d'IDEM s'il était demandé, et le contexte renvoyé tel quel.
    */

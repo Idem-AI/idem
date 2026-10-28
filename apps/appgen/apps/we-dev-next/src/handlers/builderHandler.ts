@@ -12,6 +12,7 @@ import { getHistoryDiff } from '../utils/diffGenerator.js';
 import { handleTokenLimit } from '../utils/tokenHandler.js';
 import { processFiles } from '../utils/fileProcessor.js';
 import { buildCodeMap } from '../utils/codeMap.js';
+import { describePointedForModel, Pointed } from '../siteEngine/pointed.js';
 import { screenshotOne } from '../utils/screenshotone.js';
 import { ProjectPromptService } from '../services/projectPromptService.js';
 import { ChatLogger } from '../utils/logger.js';
@@ -125,7 +126,9 @@ export async function handleBuilderMode(
   /** Bouton « Corriger automatiquement » d'un site vitrine. */
   siteRepair?: { paths: string[]; files: Record<string, string> },
   /** L'état actuel d'un site vitrine, pour une retouche ciblée. */
-  siteEdit?: { files: Record<string, string> }
+  siteEdit?: { files: Record<string, string> },
+  /** Ce que la personne a désigné dans l'aperçu (outil Dessin). */
+  pointed?: Pointed
 ) {
   const startTime = Date.now();
 
@@ -212,6 +215,7 @@ export async function handleBuilderMode(
       language: language === 'en' ? 'en' : 'fr',
       request: rawRequest,
       recent: recentConversation(messages),
+      pointed,
       files: siteEdit!.files,
       model,
       userId,
@@ -221,6 +225,8 @@ export async function handleBuilderMode(
   let projectBrief: string | undefined;
   let extraContext: string | undefined;
   let request = qualityRepair?.trim() ? qualityRepair : rawRequest;
+  // Une application : ce que la personne a désigné dans l'aperçu, avec le code exact de chaque élément.
+  if (pointed && !qualityRepair?.trim()) request = `${request}\n\n${describePointedForModel(pointed, files)}`;
 
   // The logo goes out on every turn. Living only inside the first-turn brief is
   // why it kept disappearing from generated sites.

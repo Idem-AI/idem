@@ -12,6 +12,11 @@ export interface Annotation {
   note: string;
   /** Boîte englobante des tracés, en fraction de la surface d'aperçu. */
   bounds: { x: number; y: number; width: number; height: number };
+  /**
+   * Chaque tracé, en coordonnées de l'écran : la pointe d'une flèche (ce qu'elle désigne), la boîte d'un cadre,
+   * d'un cercle ou d'un tracé libre (ce qu'il entoure). L'aperçu en déduit les éléments désignés.
+   */
+  marks: Array<{ shape: AnnotationShape; point?: { x: number; y: number }; box?: { left: number; top: number; width: number; height: number } }>;
 }
 
 interface Stroke {
@@ -138,9 +143,20 @@ export function DrawAnnotation({
     const maxX = Math.min(rect.width, Math.max(...xs) + pad);
     const maxY = Math.min(rect.height, Math.max(...ys) + pad);
 
+    const marks = strokes.map((stroke) => {
+      const end = stroke.points[stroke.points.length - 1];
+      if (stroke.shape === 'arrow') return { shape: stroke.shape, point: { x: rect.left + end.x, y: rect.top + end.y } };
+      const px = stroke.points.map((p) => p.x);
+      const py = stroke.points.map((p) => p.y);
+      const left = Math.min(...px);
+      const top = Math.min(...py);
+      return { shape: stroke.shape, box: { left: rect.left + left, top: rect.top + top, width: Math.max(...px) - left, height: Math.max(...py) - top } };
+    });
+
     onSubmit({
       image: canvas.toDataURL('image/png'),
       note: note.trim(),
+      marks,
       bounds: {
         x: minX / rect.width,
         y: minY / rect.height,

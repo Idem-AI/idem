@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Monitor, Code2, Palette, Plug, ShieldCheck, Maximize2, Minimize2 } from 'lucide-react';
-import EditablePreview, { type SelectionContext } from '../EditMode/EditablePreview';
+import EditablePreview, { type PointedElement, type SelectionContext } from '../EditMode/EditablePreview';
 import WeIde, { type IdeDetail } from '../WeIde';
 import WeAPI from '../WeAPI';
 import ThemePanel from '../ThemePanel';
@@ -16,8 +16,13 @@ const VIEW_KEY = 'icode:workspace-view';
 const IDE_DETAIL_KEY = 'icode:ide-detail';
 
 interface WorkspaceProps {
-  /** Injecte une demande dans la conversation (sélection, annotation, thème). */
+  /** Injecte une demande dans la conversation (sélection, thème) : la personne la complète puis l'envoie. */
   onSendToChat?: (message: string) => void;
+  /**
+   * Envoie tout de suite une demande dessinée sur l'aperçu, avec ce que les tracés désignent : la note est déjà
+   * écrite dans le calque, rien ne reste à compléter.
+   */
+  onRunInChat?: (message: string, pointed: PointedElement[]) => void;
 }
 
 /**
@@ -27,7 +32,7 @@ interface WorkspaceProps {
  * version ouvrait sur l'IDE : un utilisateur non technique atterrissait sur un
  * explorateur de fichiers. Ici l'aperçu est premier et le code se demande.
  */
-export function Workspace({ onSendToChat }: WorkspaceProps) {
+export function Workspace({ onSendToChat, onRunInChat }: WorkspaceProps) {
   const { t } = useTranslation();
   const [projectData, setProjectData] = useState<ProjectModel | null>(null);
 
@@ -91,10 +96,11 @@ export function Workspace({ onSendToChat }: WorkspaceProps) {
 
   const handleSelection = useCallback(
     (context: SelectionContext) => {
+      if (context.annotation && onRunInChat) return onRunInChat(describeSelection(context, t), context.pointed ?? []);
       if (!onSendToChat) return;
       onSendToChat(describeSelection(context, t));
     },
-    [onSendToChat, t]
+    [onSendToChat, onRunInChat, t]
   );
 
   const handleApplyTheme = useCallback(
@@ -168,7 +174,7 @@ export function Workspace({ onSendToChat }: WorkspaceProps) {
           de dev et l'instrumentation d'édition à chaque aller-retour. */}
       <div className="flex-1 min-h-0 relative">
         <ViewSlot active={view === 'preview'}>
-          <EditablePreview onAskAboutSelection={onSendToChat ? handleSelection : undefined} />
+          <EditablePreview onAskAboutSelection={onSendToChat || onRunInChat ? handleSelection : undefined} />
         </ViewSlot>
         <ViewSlot active={view === 'code'}>
           <WeIde detail={ideDetail} />
@@ -227,11 +233,11 @@ function describeSelection(
   t: (key: string, options?: Record<string, unknown>) => string
 ): string {
   if (context.annotation) {
-    const { note, bounds } = context.annotation;
-    const zone = `${Math.round(bounds.x * 100)}%,${Math.round(bounds.y * 100)}%`;
-    return note
-      ? t('editMode.annotationPrompt', { note, zone })
-      : t('editMode.annotationPromptEmpty', { zone });
+    // Ce que la personne lit dans la conversation : sa demande, et ce qu'elle a désigné (en mots, sans chemin de
+    // fichier). La désignation exacte part à côté, pour le serveur.
+    const note = context.annotation.note || t('editMode.annotationPromptEmpty');
+    const pointed = (context.pointed ?? []).map((element) => `- ${t(`editMode.kind.${element.kind}`, { defaultValue: element.tag })}${element.text ? ` « ${element.text.slice(0, 80)} »` : ''}`);
+    return pointed.length ? `${note}\n\n${t('editMode.pointedIntro')}\n${pointed.join('\n')}` : note;
   }
 
   const lines = context.elements.map(

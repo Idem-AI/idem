@@ -75,7 +75,21 @@ export interface MsgRequestTree {
   type: 'REQUEST_TREE';
 }
 
-export type ParentToAgentMessage = MsgEnableEdit | MsgSetSelection | MsgRequestTree;
+/** Un tracé de l'outil Dessin, en pixels de l'iframe : la pointe d'une flèche, ou la boîte d'une forme. */
+export interface DrawMark {
+  point?: { x: number; y: number };
+  box?: { left: number; top: number; width: number; height: number };
+}
+
+/** Le parent demande quels éléments les tracés désignent. */
+export interface MsgHitTest {
+  source: typeof IDEM_SOURCE;
+  type: 'HIT_TEST';
+  requestId: string;
+  marks: DrawMark[];
+}
+
+export type ParentToAgentMessage = MsgEnableEdit | MsgSetSelection | MsgRequestTree | MsgHitTest;
 
 /* ------------------------------------------------------------------ */
 /* Messages agent (iframe) -> parent                                   */
@@ -197,7 +211,26 @@ export interface MsgTree {
   nodes: TreeNode[];
 }
 
+/** Un élément désigné par un tracé, avec ses ancêtres instrumentés (du plus proche au plus lointain). */
+export interface PointedHit {
+  id: string;
+  tag: string;
+  kind: string;
+  text: string;
+  ancestors: string[];
+  how: 'point' | 'area';
+  rect: { top: number; left: number; width: number; height: number };
+}
+
+export interface MsgHitResult {
+  source: typeof IDEM_SOURCE;
+  type: 'HIT_RESULT';
+  requestId: string;
+  hits: PointedHit[];
+}
+
 export type AgentToParentMessage =
+  | MsgHitResult
   | MsgAgentReady
   | MsgSelected
   | MsgTextEdit

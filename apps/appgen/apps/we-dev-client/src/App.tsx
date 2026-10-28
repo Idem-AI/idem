@@ -147,7 +147,10 @@ function App() {
           hasWorkspace={mode === ChatMode.Builder && !initOpen}
           chat={<AiChat />}
           workspace={
-            <Workspace onSendToChat={(text) => eventEmitter.emit('chat:prefill', text)} />
+            <Workspace
+              onSendToChat={(text) => eventEmitter.emit('chat:prefill', text)}
+              onRunInChat={(text, pointed) => eventEmitter.emit('chat:run', { text, pointed })}
+            />
           }
         />
       </div>

@@ -1219,6 +1219,22 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
     });
   }, [isLoading, append, t, journey, runClientCommand, projectData, i18n.language]);
 
+  // Une demande dessinée sur l'aperçu : envoyée tout de suite, avec ce que les tracés désignent (le serveur ne
+  // modifie que cela). La note est déjà écrite dans le calque : rien à compléter, rien à renvoyer.
+  useEffect(
+    () =>
+      eventEmitter.on('chat:run', ({ text, pointed }: { text: string; pointed: unknown[] }) => {
+        if (!text?.trim()) return;
+        if (isLoading) {
+          toast.info(t('preview.fix.busy'));
+          return;
+        }
+        eventEmitter.emit('chat:focusInput');
+        append({ id: uuidv4(), role: 'user', content: text }, { body: { pointed: { elements: pointed ?? [] } } });
+      }),
+    [isLoading, append, t]
+  );
+
   // Contexte poussé depuis l'espace de travail : sélection d'un élément,
   // annotation dessinée, thème à appliquer. On préremplit la saisie au lieu
   // d'envoyer directement — l'utilisateur a désigné *quoi*, il lui reste à dire

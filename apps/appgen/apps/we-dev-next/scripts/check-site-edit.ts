@@ -3,9 +3,10 @@
  * aiguillage de la demande, retouches courantes du design system (recompilé), blocs RECHERCHER / REMPLACER,
  * garde-fous (police, couleurs, nom, section vidée) et pose d'une nouvelle section dans sa page.
  */
-import { applyPatches, applyTheme, guardEdit, guardTheme, parsePatches, quickTheme, routeEdit, themeChanges } from '../src/siteEngine/editPlan.js';
+import { applyPatches, applyTheme, guardEdit, guardTheme, NOTHING_ALLOWED, parsePatches, quotedOwners, themeChanges } from '../src/siteEngine/editPlan.js';
 import { buildSiteMap, mapIds, readSiteData, renderSiteMap, writeSiteData } from '../src/siteEngine/siteMap.js';
-import { checkDataValue } from '../src/siteEngine/edit.js';
+import { checkDataValue, pointedScope } from '../src/siteEngine/edit.js';
+import { locateElement, readPointed, touchesElement } from '../src/siteEngine/pointed.js';
 import { buildCodeMap } from '../src/utils/codeMap.js';
 import { insertSection } from '../src/siteEngine/edit.js';
 import { designSystemFiles, DESIGN_SYSTEM_PATHS } from '../src/siteEngine/template.js';
@@ -76,10 +77,10 @@ const files: Record<string, string> = {
 };
 
 // ── 1. Aiguillage ──
-// Le code n'aiguille plus sur des mots-clés : seul un texte cité, présent dans une seule section, le fait.
-const quoted = routeEdit('Remplace « Des grains torréfiés chaque semaine » par « Torréfié à Cocody »', files);
-check('un texte cité → la section qui le contient', quoted?.scope === 'files' && quoted.paths[0] === 'src/sections/home/Hero.tsx');
-check('« la navbar », « le hero »… → l’agent lit la carte (pas de mots-clés)', routeEdit('Tu as dupliqué les éléments de la navbar', files) === null && routeEdit('Dans le hero, mets le bouton en plus grand', files) === null);
+// Aucune demande n'est aiguillée par le code : un texte cité n'est qu'un indice donné à l'agent (où il se trouve).
+const quoted = quotedOwners('Remplace « Des grains torréfiés chaque semaine » par « Torréfié à Cocody »', files);
+check('texte cité : l’agent apprend où il se trouve', quoted.length === 1 && quoted[0].paths.join() === 'src/sections/home/Hero.tsx', JSON.stringify(quoted));
+check('aucun indice inventé pour une demande sans citation', quotedOwners('Tu as dupliqué les éléments de la navbar', files).length === 0);
 
 // La carte du site : ce que l'agent d'aiguillage lit.
 const HEADER = `import { site } from '@/site/data';\nexport default function SiteHeader({ current }: { current: string }) {\n  return <header><nav>{site.navigation.map((item) => <a key={item.href} href={item.href}>{item.label}</a>)}</nav></header>;\n}\n`;
@@ -103,6 +104,23 @@ check('menu : une phrase n’est pas un libellé', 'problem' in checkDataValue('
 check('coordonnées : un numéro inventé est refusé', 'problem' in checkDataValue('contact', { phone: '+225 01 23 45 67 89', email: '', channels: [] }, 'Ajoute mon numéro'));
 check('coordonnées : un numéro donné dans la demande est admis', 'value' in checkDataValue('contact', { phone: '+225 01 23 45 67 89', email: '', channels: [] }, 'Mon numéro est le +225 01 23 45 67 89'));
 
+// Ce que la personne a désigné dans l'aperçu (outil Dessin) : la retouche s'y tient.
+{
+  const navAt = HEADER.indexOf('<nav>');
+  const scope = pointedScope(map, readPointed({ elements: [{ tag: 'nav', kind: 'container', text: 'Accueil Services Accueil Services', filePath: 'src/components/site/SiteHeader.tsx', start: navAt, owner: 'src/components/site/SiteHeader.tsx', ownerStart: 0, how: 'area' }] }) ?? undefined);
+  check('désigné : l’en-tête et le menu qu’il affiche, rien d’autre', !!scope && scope.ids.has('SiteHeader') && scope.ids.has('data.navigation') && !scope.ids.has('home/Hero') && !scope.ids.has('data.contact'), JSON.stringify(scope && [...scope.ids]));
+  check('désigné : un chemin hors du projet est ignoré', readPointed({ elements: [{ filePath: '../../etc/passwd', owner: 'x', start: 1 }] }) === null);
+  const heroPath = 'src/sections/home/Hero.tsx';
+  const buttonAt = HERO.indexOf('<Button');
+  const span = locateElement(HERO, heroPath, { start: buttonAt, text: '' });
+  check('désigné : l’élément retrouvé à sa position exacte', span?.tag === 'Button' && span.start === buttonAt);
+  const moved = locateElement(HERO, heroPath, { start: 99999, text: span ? HERO.slice(span.start, span.end).replace(/<[^>]+>/g, ' ').trim() : '' });
+  check('désigné : retrouvé par son texte si le fichier a bougé', !!moved && moved.start === buttonAt, JSON.stringify(moved));
+  const inside = HERO.slice(0, buttonAt + 7) + ' variant="secondary"' + HERO.slice(buttonAt + 7);
+  check('désigné : une retouche de l’élément le touche…', !!span && touchesElement(HERO, inside, span));
+  check('… une retouche ailleurs dans le fichier est refusée', !!span && !touchesElement(HERO, HERO.replace('export default function', '// x\nexport default function'), span));
+}
+
 // La carte d'une application : une ligne par fichier, ce qu'il fait.
 const appMap = buildCodeMap({
   'frontend/src/pages/Login.jsx': "import { api } from '../lib/api';\nexport default function Login() { const go = () => fetch('/api/auth/login'); return <button onClick={go}>Se connecter</button>; }\n",
@@ -113,20 +131,21 @@ check('application : écran, texte affiché et API appelée', /Login\.jsx — d�
 check('application : route servie et écrans routés', /auth\.js — sert POST \/api\/auth\/login/.test(appMap) && /App\.jsx — écrans \/login/.test(appMap), appMap);
 
 // ── 2. Design system ──
-const smaller = quickTheme('Diminue la taille des titres', config);
-check('titres plus petits : le rapport d’échelle baisse, sans modèle', smaller?.set['tokens.typography.scale'] === 1.19, JSON.stringify(smaller?.set));
-check('titres plus grands : il monte', quickTheme('Mets les titres plus grands', config)?.set['tokens.typography.scale'] === 1.31);
-check('coins plus arrondis', typeof quickTheme('Arrondis davantage les coins des cartes', config)?.set['tokens.radius.base'] === 'string');
+// Le réglage est choisi par le modèle (il a compris la demande) ; le code l'applique et le recompile.
+const smaller = { set: { 'tokens.typography.scale': 1.19 } };
 const before = designSystemFiles(config).files[DESIGN_SYSTEM_PATHS.css];
 const after = designSystemFiles(applyTheme(config, smaller!.set)).files[DESIGN_SYSTEM_PATHS.css];
 const fontLines = (css: string) => css.split('\n').filter((l) => /font-(heading|body|family)|--font/.test(l)).join('\n');
 check('recompilé : les tailles de titres changent…', before !== after);
 check('… et les polices restent les mêmes', fontLines(before) === fontLines(after));
 check('le réglage modifié est le seul changé', themeChanges(config, smaller!.set).join() === 'tokens.typography.scale');
-const guarded = guardTheme('Diminue la taille des titres', { 'tokens.typography.scale': 1.2, 'tokens.typography.headingFont': 'Roboto', 'tokens.colors.primary': '#000' });
-check('le modèle ne peut pas changer la police ni les couleurs sans demande', Object.keys(guarded.allowed).join() === 'tokens.typography.scale' && guarded.refused.length === 2);
-check('une police demandée est admise', 'tokens.typography.headingFont' in guardTheme('Change la police des titres', { 'tokens.typography.headingFont': 'Roboto' }).allowed);
-check('un réglage inconnu est refusé', guardTheme('x', { 'tokens.hack': 1 }).refused.length === 1);
+// Ce que la demande autorise vient de l'agent qui l'a comprise, plus d'une liste de mots.
+const guarded = guardTheme(NOTHING_ALLOWED, { 'tokens.typography.scale': 1.2, 'tokens.typography.headingFont': 'Roboto', 'tokens.colors.primary': '#000' });
+check('sans autorisation, ni police ni couleurs', Object.keys(guarded.allowed).join() === 'tokens.typography.scale' && guarded.refused.length === 2);
+check('« donne plus de peps » compris comme couleurs → admis', 'tokens.colors.primary' in guardTheme({ ...NOTHING_ALLOWED, colors: true }, { 'tokens.colors.primary': '#e4572e' }).allowed);
+check('une police autorisée est admise', 'tokens.typography.headingFont' in guardTheme({ ...NOTHING_ALLOWED, fonts: true }, { 'tokens.typography.headingFont': 'Roboto' }).allowed);
+check('le thème sombre seulement s’il est compris dans la demande', guardTheme(NOTHING_ALLOWED, { 'appearance.colorMode': 'dark' }).refused.length === 1);
+check('un réglage inconnu est refusé', guardTheme({ fonts: true, colors: true, removal: true, dark: true }, { 'tokens.hack': 1 }).refused.length === 1);
 
 // ── 3. Blocs RECHERCHER / REMPLACER ──
 const answer = `<<<<<<< SEARCH
@@ -146,15 +165,15 @@ check('un passage introuvable n’est jamais deviné', missing.applied === 0 && 
 
 // ── 4. Garde-fous ──
 const fontSwap = HERO.replace('font-heading text-display', 'font-serif text-h1');
-check('police changée sans demande → refusé', guardEdit(HERO, fontSwap, 'Diminue la taille du titre').some((p) => /police/i.test(p)));
-check('taille seule changée → accepté', guardEdit(HERO, HERO.replace('text-display', 'text-h1'), 'Diminue la taille du titre').length === 0);
+check('police changée sans demande → refusé', guardEdit(HERO, fontSwap, NOTHING_ALLOWED).some((p) => /police/i.test(p)));
+check('taille seule changée → accepté', guardEdit(HERO, HERO.replace('text-display', 'text-h1'), NOTHING_ALLOWED).length === 0);
 const colorSwap = HERO.replace('bg-background', 'bg-blue-600');
-check('couleur changée sans demande → refusé', guardEdit(HERO, colorSwap, 'Agrandis le titre').some((p) => /couleur/i.test(p)));
-check('couleur demandée → accepté', guardEdit(HERO, colorSwap, 'Mets le fond du hero en bleu').length === 0);
-check('nom du composant changé → refusé', guardEdit(HERO, HERO.replace('function Hero', 'function Banner'), 'Change le titre').length === 1);
+check('couleur changée sans demande → refusé', guardEdit(HERO, colorSwap, NOTHING_ALLOWED).some((p) => /couleur/i.test(p)));
+check('couleurs comprises dans la demande → accepté', guardEdit(HERO, colorSwap, { ...NOTHING_ALLOWED, colors: true }).length === 0);
+check('nom du composant changé → refusé', guardEdit(HERO, HERO.replace('function Hero', 'function Banner'), NOTHING_ALLOWED).length === 1);
 const gutted = HERO.replace(/<div[\s\S]*<\/div>/, '<div />');
-check('section vidée sans demande → refusé', guardEdit(HERO, gutted, 'Change le titre').length === 1);
-check('retrait demandé → admis', guardEdit(HERO, gutted, 'Supprime le texte et le bouton du hero').length === 0);
+check('section vidée sans demande → refusé', guardEdit(HERO, gutted, NOTHING_ALLOWED).length === 1);
+check('retrait compris dans la demande → admis', guardEdit(HERO, gutted, { ...NOTHING_ALLOWED, removal: true }).length === 0);
 
 // ── 5. Nouvelle section ──
 const placed = insertSection(PAGE, 'Testimonials', '@/sections/home/Testimonials.tsx', 'Hero');

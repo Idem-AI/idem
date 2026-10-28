@@ -7,6 +7,7 @@ import { handleChatMode } from '../handlers/chatHandler.js';
 import { dispatch } from '../commands/dispatch.js';
 import { hasUnfinishedGeneration, startResume } from '../commands/workflows/resume.js';
 import { isEditableSite } from '../siteEngine/edit.js';
+import { readPointed } from '../siteEngine/pointed.js';
 import { ChatLogger } from '../utils/logger.js';
 import { consumeGeneration, resolveBillableAction } from '../services/billingService.js';
 import { forwardedCredentials } from '../middleware/auth.js';
@@ -53,7 +54,9 @@ router.post('/', async (req: Request, res: Response) => {
       siteRepair,
       siteEdit,
       answers,
+      pointed: pointedRaw,
     } = req.body as ChatRequest;
+    const pointed = readPointed(pointedRaw);
 
     // Le niveau de créativité choisit le modèle (l'interface n'en montre plus aucun) ; un ancien client qui
     // envoie encore un modèle garde son choix.
@@ -165,7 +168,8 @@ router.post('/', async (req: Request, res: Response) => {
       });
       return await responder.pipeDataStreamToResponse(res);
     }
-    if (mode === ChatMode.Builder && !siteRepair && !qualityRepair?.trim() && !followUp?.trim()) {
+    // Une demande dessinée sur l'aperçu désigne déjà ce qu'il faut changer : elle va droit à la retouche.
+    if (mode === ChatMode.Builder && !siteRepair && !qualityRepair?.trim() && !followUp?.trim() && !pointed) {
       const responder = await dispatch({
         messages,
         text: lastUser ? String(lastUser.content) : '',
@@ -232,7 +236,8 @@ router.post('/', async (req: Request, res: Response) => {
         scaffold?.version,
         forwardedCredentials(req),
         siteRepair,
-        siteEdit
+        siteEdit,
+        pointed ?? undefined
       );
     }
 

@@ -720,7 +720,20 @@
     "askAI": "Demander à l'IA",
     "selectionPrompt": "À propos de {{count}} élément(s) sélectionné(s) dans l'aperçu :",
     "annotationPrompt": "Annotation dessinée sur l'aperçu (zone {{zone}}) : {{note}}",
-    "annotationPromptEmpty": "Annotation dessinée sur l'aperçu, zone {{zone}}. Applique le changement indiqué par le tracé."
+    "annotationPromptEmpty": "Applique le changement indiqué par le dessin.",
+    "pointedIntro": "Désigné dans l'aperçu :",
+    "kind": {
+      "image": "l'image",
+      "link": "le lien",
+      "button": "le bouton",
+      "heading": "le titre",
+      "text": "le texte",
+      "icon": "l'icône",
+      "input": "le champ",
+      "list": "la liste",
+      "container": "le bloc",
+      "generic": "l'élément"
+    }
   },
   "tour": {
     "common": {

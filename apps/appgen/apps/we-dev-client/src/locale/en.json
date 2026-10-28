@@ -720,7 +720,20 @@
     "askAI": "Ask the AI",
     "selectionPrompt": "About {{count}} element(s) selected in the preview:",
     "annotationPrompt": "Annotation drawn on the preview (area {{zone}}): {{note}}",
-    "annotationPromptEmpty": "Annotation drawn on the preview, area {{zone}}. Apply the change the sketch indicates."
+    "annotationPromptEmpty": "Apply the change shown by the drawing.",
+    "pointedIntro": "Pointed out in the preview:",
+    "kind": {
+      "image": "the image",
+      "link": "the link",
+      "button": "the button",
+      "heading": "the heading",
+      "text": "the text",
+      "icon": "the icon",
+      "input": "the field",
+      "list": "the list",
+      "container": "the block",
+      "generic": "the element"
+    }
   },
   "tour": {
     "common": {
