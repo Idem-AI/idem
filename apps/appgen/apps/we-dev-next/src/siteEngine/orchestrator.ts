@@ -39,7 +39,7 @@ import { themeColorsFromCss } from './autocorrect.js';
 import { importPolicy, Issue, renderRemarks } from './repair.js';
 import { createFactGuard, stripSentences } from './factGuard.js';
 import { designManifest, ManifestPage, ManifestSection, SiteManifest, originPagesOf } from './manifest.js';
-import { ModelCaller } from './modelCaller.js';
+import { ModelCaller, accountLimitMessage } from './modelCaller.js';
 import { createApiMediaClient, MediaClient } from './media/mediaClient.js';
 import { AssetDecision, directMedia, MediaSlot } from './media/mediaDirector.js';
 import { createLimiter, MediaAsset, produceMedia } from './media/mediaPipeline.js';
@@ -397,7 +397,9 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
         stream.text('</boltArtifact>\n');
         stream.close(
           usage(),
-          architecture.providerDown
+          caller.accountLimit
+            ? accountLimitMessage(fr)
+            : architecture.providerDown
             ? fr
               ? "Le fournisseur IA est momentanément saturé. Le site n'a pas été généré : relancez dans quelques instants."
               : 'The AI provider is temporarily overloaded. The site was not generated: please try again in a moment.'

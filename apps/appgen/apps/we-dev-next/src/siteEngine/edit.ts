@@ -26,7 +26,7 @@ import { ResilientStream } from '../utils/resilientStream.js';
 import { authorComponent, authorSystemPrompt, ReviewContext, reviewComponent } from './authoring.js';
 import { createFactGuard } from './factGuard.js';
 import { localizeCode, siteLanguagesOf, syncCatalogs } from './i18n.js';
-import { ModelCaller, Verdict } from './modelCaller.js';
+import { accountLimitMessage, ModelCaller, Verdict } from './modelCaller.js';
 import { contextFrom, displayOf, importPolicy, siteFilesOf, targetOf, themeOf } from './repair.js';
 import { detectSiteLanguage, readSiteFacts, renderFacts } from './siteFacts.js';
 import { SiteStream } from './stream.js';
@@ -166,8 +166,14 @@ export function createSiteEditStream(input: SiteEditInput): ResilientStream {
         }
       } catch (error) {
         ChatLogger.error('SITE_EDIT', 'Retouche en échec', error);
-        failure = fr ? 'La modification n’a pas pu être faite. Votre site n’a pas changé : réessayez dans un instant.' : 'The change could not be made. Your site is unchanged: try again in a moment.';
+        failure = caller.accountLimit
+          ? accountLimitMessage(fr)
+          : fr
+            ? 'La modification n’a pas pu être faite. Votre site n’a pas changé : réessayez dans un instant.'
+            : 'The change could not be made. Your site is unchanged: try again in a moment.';
       }
+      // Le compte bloqué en cours de route (une section, les données) : c'est la seule chose à dire.
+      if (caller.accountLimit && !Object.keys(writes).length) failure = accountLimitMessage(fr);
 
       if (abort.signal.aborted) return;
       // Le texte retouché reste traduisible (`t()`, `localePath()`), et un site en plusieurs langues reçoit la

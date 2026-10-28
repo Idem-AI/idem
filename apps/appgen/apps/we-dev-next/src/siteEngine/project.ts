@@ -216,6 +216,8 @@ export function skippedInPage(page: string): string[] {
 const pageComponentName = (page: ManifestPage) =>
   `${page.key
     .split('-')
+    // Un morceau vide (tiret final, tirets doublés) faisait planter l'assemblage en fin de génération.
+    .filter(Boolean)
     .map((part) => part[0].toUpperCase() + part.slice(1))
     .join('')
     .replace(/^(\d)/, 'P$1')}Page`;

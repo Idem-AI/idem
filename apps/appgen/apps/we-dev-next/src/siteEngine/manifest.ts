@@ -91,7 +91,9 @@ export const slugify = (value: unknown): string =>
     .replace(/[̀-ͯ]/g, '')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
-    .slice(0, 40);
+    .slice(0, 40)
+    // Coupé à 40 caractères, il pouvait finir sur un tiret.
+    .replace(/-+$/, '');
 
 const pascal = (slug: string): string => {
   const name = slug

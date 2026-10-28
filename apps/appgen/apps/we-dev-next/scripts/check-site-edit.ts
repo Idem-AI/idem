@@ -8,6 +8,8 @@ import { buildSiteMap, mapIds, readSiteData, renderSiteMap, writeSiteData } from
 import { checkDataValue, pointedScope } from '../src/siteEngine/edit.js';
 import { locateElement, readPointed, touchesElement } from '../src/siteEngine/pointed.js';
 import { buildCodeMap } from '../src/utils/codeMap.js';
+import { isAccountLimitError, isTransientModelError } from '../src/utils/resilientStream.js';
+import { accountLimitMessage } from '../src/siteEngine/modelCaller.js';
 import { insertSection } from '../src/siteEngine/edit.js';
 import { designSystemFiles, DESIGN_SYSTEM_PATHS } from '../src/siteEngine/template.js';
 
@@ -119,6 +121,15 @@ check('coordonnées : un numéro donné dans la demande est admis', 'value' in c
   const inside = HERO.slice(0, buttonAt + 7) + ' variant="secondary"' + HERO.slice(buttonAt + 7);
   check('désigné : une retouche de l’élément le touche…', !!span && touchesElement(HERO, inside, span));
   check('… une retouche ailleurs dans le fichier est refusée', !!span && !touchesElement(HERO, HERO.replace('export default function', '// x\nexport default function'), span));
+}
+
+// Le compte du fournisseur bloqué (plafond de la clé) : reconnu, pas pris pour une saturation passagère.
+{
+  const limit = Object.assign(new Error('Key limit exceeded (monthly limit). Manage it using https://openrouter.ai/workspaces/default/keys/x $50.04 of $50.00 used; resets 2026-11'), { statusCode: 403 });
+  check('compte bloqué : plafond de la clé reconnu', isAccountLimitError(limit) && !isTransientModelError(limit));
+  check('compte bloqué : crédits épuisés (402) reconnus', isAccountLimitError(Object.assign(new Error('Payment Required'), { statusCode: 402 })));
+  check('une saturation n’est pas un compte bloqué', !isAccountLimitError(Object.assign(new Error('Provider returned error: high demand'), { statusCode: 429 })));
+  check('compte bloqué : la personne lit la vérité', /limite de dépense/.test(accountLimitMessage(true)) && !/réessayez dans un instant/.test(accountLimitMessage(true)));
 }
 
 // La carte d'une application : une ligne par fichier, ce qu'il fait.
