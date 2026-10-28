@@ -1,6 +1,7 @@
 import { journeyService } from '../services/journey/journey.service';
 import { creativityOf } from '../middleware/billing.middleware';
 import { Response } from 'express';
+import { startSseHeartbeat } from '../utils/sse-heartbeat.util';
 import logger from '../config/logger';
 import { CustomRequest } from '../interfaces/express.interface';
 import {
@@ -46,6 +47,8 @@ function openSseStream(res: Response): void {
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
   res.setHeader('X-Accel-Buffering', 'no');
+  // Les proxys coupent un flux muet pendant une longue réponse du modèle.
+  startSseHeartbeat(res);
 }
 
 function requireAuth(req: CustomRequest, res: Response): string | null {

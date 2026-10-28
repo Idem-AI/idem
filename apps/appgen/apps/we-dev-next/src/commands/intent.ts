@@ -12,14 +12,16 @@ import { ChatLogger } from '../utils/logger.js';
 import { ModelCaller, Verdict } from '../siteEngine/modelCaller.js';
 import { findSiteUrl } from '../siteEngine/redesign/intent.js';
 
-export type Intent = 'redesign' | 'charter' | 'publish' | 'domain' | 'communication' | 'none';
+export type Intent = 'redesign' | 'charter' | 'publish' | 'domain' | 'communication' | 'translate' | 'resume' | 'none';
 
-const INTENTS: Intent[] = ['redesign', 'charter', 'publish', 'domain', 'communication', 'none'];
+const INTENTS: Intent[] = ['redesign', 'charter', 'publish', 'domain', 'communication', 'translate', 'resume', 'none'];
 
 export interface IntentResult {
   intent: Intent;
   /** L'adresse du site à refaire, normalisée, quand la demande en donne une. */
   url?: string;
+  /** Les langues demandées (`translate`), en codes ISO. */
+  languages?: string[];
   confidence: number;
 }
 
@@ -28,21 +30,27 @@ export interface IntentContext {
   hasSite: boolean;
   hasCharter: boolean;
   product: 'site' | 'app' | null;
+  /** Une génération s'est interrompue avant la fin (son plan n'est pas coché jusqu'au bout). */
+  unfinished?: boolean;
+  /** Les langues du site déjà construit. */
+  languages?: string[];
 }
 
 /** En dessous, la demande suit son chemin habituel : mieux vaut construire que poser une question à tort. */
 export const INTENT_THRESHOLD = 0.7;
 const TIMEOUT_MS = 8_000;
 
-const SYSTEM = `You classify ONE message sent to iCode, a tool that builds websites and apps by chat, into a workflow. Answer ONLY JSON: {"intent": "...", "url": "... or null", "confidence": 0..1}.
+const SYSTEM = `You classify ONE message sent to iCode, a tool that builds websites and apps by chat, into a workflow. Answer ONLY JSON: {"intent": "...", "url": "... or null", "languages": [], "confidence": 0..1}.
 Workflows:
 - "redesign": the user wants an EXISTING website of theirs rebuilt, modernised or improved as a whole (a new version of their current site). The address may or may not be given. Not: copying another site's style, editing one part of the site being built here.
 - "charter": the user wants brand guidelines / a visual identity document (charte graphique) for their business.
 - "publish": the user wants the site or app put online / deployed now.
 - "domain": the user wants their own domain name (example.com) bought or connected.
 - "communication": the user wants to promote the site on social networks, plan posts, marketing.
+- "translate": the user wants the site built here available in another language (or several): "en anglais aussi", "add Spanish", "make it bilingual". Not: rewriting one text in another language, a question about languages.
+- "resume": a generation was interrupted (context says so) and the user wants it to go on: "continue", "vas-y", "termine", "reprends". Only when the context says a generation is unfinished; otherwise "none".
 - "none": anything else — building or editing a site or an app, a question, a bug, a style change. When in doubt: "none".
-"url": the address of the site to redesign if the message contains it, else null. "confidence": how sure you are.`;
+"url": the address of the site to redesign if the message contains it, else null. "languages": for "translate", the ISO 639-1 codes asked (["en", "es"]), else []. "confidence": how sure you are.`;
 
 /** La réponse de l'agent, lue et bornée (exportée pour le contrôle sans modèle). */
 export function readIntent(raw: unknown): IntentResult | null {
@@ -50,7 +58,8 @@ export function readIntent(raw: unknown): IntentResult | null {
   if (!o || !INTENTS.includes(o.intent as Intent)) return null;
   const confidence = Math.max(0, Math.min(1, Number(o.confidence) || 0));
   const url = typeof o.url === 'string' && o.url !== 'null' ? findSiteUrl(o.url)?.url : undefined;
-  return { intent: o.intent as Intent, confidence, ...(url ? { url } : {}) };
+  const languages = Array.isArray(o.languages) ? [...new Set(o.languages.map((code) => String(code).trim().slice(0, 2).toLowerCase()).filter((code) => /^[a-z]{2}$/.test(code)))] : [];
+  return { intent: o.intent as Intent, confidence, ...(url ? { url } : {}), ...(languages.length ? { languages } : {}) };
 }
 
 export async function analyzeIntent(options: { text: string; context: IntentContext; userId: string | null; language: string }): Promise<IntentResult> {
@@ -68,7 +77,7 @@ export async function analyzeIntent(options: { text: string; context: IntentCont
     const caller = new ModelCaller(model, options.userId, controller.signal);
     const { context } = options;
     const prompt = [
-      `Context: ${context.hasProject ? 'an IDEM project is open' : 'no project yet'}; ${context.hasSite ? 'a site is already built here' : 'nothing built yet'}; ${context.hasCharter ? 'brand guidelines exist' : 'no brand guidelines'}; building ${context.product ?? 'unspecified'}.`,
+      `Context: ${context.hasProject ? 'an IDEM project is open' : 'no project yet'}; ${context.hasSite ? 'a site is already built here' : 'nothing built yet'}${context.languages?.length ? ` (languages: ${context.languages.join(', ')})` : ''}; ${context.hasCharter ? 'brand guidelines exist' : 'no brand guidelines'}; building ${context.product ?? 'unspecified'}; ${context.unfinished ? 'the last generation was INTERRUPTED before the end' : 'no interrupted generation'}.`,
       `Message: """${text.slice(0, 1500)}"""`,
     ].join('\n');
     const outcome = await caller.call(

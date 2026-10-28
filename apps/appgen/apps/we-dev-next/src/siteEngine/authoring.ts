@@ -26,7 +26,7 @@ import { cleanSlop } from './slopGuard.js';
 import { ModelCaller, Verdict } from './modelCaller.js';
 import { ChatLogger } from '../utils/logger.js';
 import { FactCheck } from './factGuard.js';
-import { ManifestPage, ManifestSection, SiteManifest } from './manifest.js';
+import { layoutBrief, ManifestPage, ManifestSection, SiteManifest } from './manifest.js';
 import { renderCheck } from './renderCheck.js';
 import { describeDataModule } from './siteData.js';
 import { SiteFacts } from './siteFacts.js';
@@ -309,6 +309,8 @@ export interface AuthoringContext {
   components: string[];
   /** Le thème en une ligne, pour situer le ton (ex. rayons nets, ombres douces). */
   themeSummary: string;
+  /** Les langues du site, la principale en tête (les textes s'écrivent dans la principale, le code les traduit). */
+  languages?: string[];
 }
 
 /**
@@ -331,7 +333,14 @@ export function authorSystemPrompt(ctx: AuthoringContext): string {
 
 # Contenu
 - ${fr ? 'Tout le texte visible est en français.' : 'All visible text is in English.'} Écris pour la clientèle de ce projet, avec ses mots : chaque phrase est propre à ce projet.
-- Richesse et substance : Écris des sections généreuses, détaillées et vivantes. Développe les descriptions de valeur, structure avec des grilles de cartes (@/components/ui/card), des puces descriptives avec icônes Lucide pertinentes, des titres soignés et des micro-animations fluides. Ne produis jamais de section squelettique de seulement 2 ou 3 lignes.
+- Richesse et substance : des sections généreuses, détaillées et vivantes, des titres soignés et des micro-animations sobres. Ne produis jamais de section squelettique de seulement 2 ou 3 lignes. La forme vient de la COMPOSITION donnée pour ta section : suis-la, elle n'est pas une grille de cartes sauf si elle le dit.
+
+# Ce qui trahit un site généré par une IA — interdit, sans exception
+- Une étiquette, un badge ou un petit texte en capitales AU-DESSUS d'un titre (« Notre mission », « Nos services », « ✦ Nouveau »). Le titre se suffit.
+- Une icône posée dans une pastille colorée (rond ou carré teinté) devant chaque élément ; l'icône Sparkles ; une icône dans chaque bouton.
+- Une rangée de cartes identiques « icône + titre + phrase » ; trois colonnes par défaut.
+- Une illustration dessinée en HTML/CSS : formes, cercles, blobs, fausses captures d'écran, faux graphiques, cadres vides, motifs de points. Un visuel vient UNIQUEMENT de \`media\` ; sans visuel prévu, la typographie, l'espace et les données composent la section.
+- Un bandeau d'« indicateurs de confiance » ou de chiffres que les faits ne donnent pas ; des dégradés ; des émojis.
 - N'invente aucun prix, délai, horaire, jour, quartier, nom de client, avis, récompense, partenaire ni garantie non vérifiés. Les prix, l'équipe, les coordonnées et les liens viennent de \`site\` (@/site/data) : importe-les, ne les recopie pas.
 - Pas de témoignage ni de citation de client, pas de moyen de paiement, pas de « gratuit », « express » ou « en X minutes » si les faits ne le disent pas.
 - Le site n'a ni serveur, ni compte, ni paiement en ligne : l'action passe par site.primaryAction ou site.contact.channels. Un formulaire de contact est possible : à l'envoi, il ouvre le message dans WhatsApp ou la messagerie avec \`messageLink(texte)\` (\`import { messageLink } from '@/lib/contact'\`, rend un lien ou null) — jamais de fetch ni de faux message « envoyé ».
@@ -403,6 +412,7 @@ ${others.join('\n') || '(aucune)'}
 Composant : ${section.component} — fichier src/sections/${page.key}/${section.component}.tsx
 Ancre : l'élément racine porte id="${section.id}" (utilise <Section id="${section.id}"> ou une balise <section id="${section.id}">).
 Ce qu'elle montre et dit : ${section.brief}${source}
+${section.layout ? `Composition imposée : ${layoutBrief(section.layout, ctx.language === 'fr')}. Suis-la ; elle diffère volontairement de celle des sections voisines.` : ''}
 ${task.opening ? 'C\'est la première section de la page : son titre principal est le seul <h1> de la page (Heading level={1}).' : 'Ses titres commencent au niveau 2 (Heading level={2}).'}
 ${visual}
 
@@ -421,6 +431,7 @@ Ce qu'il montre : ${ctx.manifest.header || 'la marque, le menu et l\'action prin
 - Sur mobile, affiche impérativement tous les liens de \`site.navigation\` dans un <Sheet> (@/components/ui/sheet) ouvert par un bouton icône (Menu de lucide-react).
 - L'action principale : site.primaryAction, si elle existe, avec <Button asChild><a href={site.primaryAction.href}>{site.primaryAction.label}</a></Button>.
 - L'en-tête reste visible au défilement (sticky top-0 z-40 avec un fond du thème et bordure subtile border-b).
+- Les langues : \`import LanguageSwitcher from '@/components/site/language-switcher'\` → \`<LanguageSwitcher current={current} />\`, à côté de l'action principale et dans le <Sheet> mobile. Pose-le toujours : il ne s'affiche que si le site a plusieurs langues${ctx.languages && ctx.languages.length > 1 ? ` (c'est le cas : ${ctx.languages.join(', ')})` : ''}.
 
 Réponds avec le fichier complet, et rien d'autre.`;
 }

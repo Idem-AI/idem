@@ -1,5 +1,7 @@
 {
   "common": {
+    "generationInterrupted": "The connection to the server was lost during generation. Please try again in a moment.",
+    "generationFailed": "Generation did not complete. Please try again in a moment.",
     "new": "New",
     "save": "Save",
     "cancel": "Cancel",
@@ -3176,6 +3178,7 @@
         "starting": "We're analyzing your project",
         "almost": "Final stretch",
         "finalizing": "Putting your document together",
+        "finalizingFinance": "Fitting your forecast to this data",
         "completed": "Done",
         "done": "All sections are ready"
       },

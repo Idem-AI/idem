@@ -20,6 +20,8 @@ import {
   buildPackageJson,
   buildTailwindConfig,
   buildUiKit,
+  buildI18nKit,
+  I18N_EDITABLE,
   CN_HELPER,
   fontLinks,
   packageName,
@@ -86,9 +88,14 @@ self.addEventListener('fetch', (event) => {
 const MAIN = `import { createRoot } from 'react-dom/client';
 // Sans extension : le produit peut être écrit en .jsx comme en .tsx.
 import App from './App';
+import { LanguageRoot } from './i18n';
 import './styles/index.css';
 
-createRoot(document.getElementById('root')).render(<App />);
+createRoot(document.getElementById('root')).render(
+  <LanguageRoot>
+    <App />
+  </LanguageRoot>
+);
 
 // En production seulement : dans l'aperçu, le service worker servirait des
 // fichiers périmés à chaque régénération.
@@ -347,12 +354,14 @@ export function buildMobileScaffold(
     'src/components/layout/TopBar.jsx': TOP_BAR,
     'src/hooks/useStoredState.js': USE_STORED_STATE,
     ...buildUiKit(),
+    ...Object.fromEntries(Object.entries(buildI18nKit(language)).filter(([path]) => !I18N_EDITABLE.includes(path))),
   };
 
   return {
     files: {
       ...locked,
       'src/tabs.js': TABS_PLACEHOLDER,
+      ...Object.fromEntries(Object.entries(buildI18nKit(language)).filter(([path]) => I18N_EDITABLE.includes(path))),
       'src/App.jsx': appPlaceholder(projectData, language),
     },
     locked: Object.keys(locked),

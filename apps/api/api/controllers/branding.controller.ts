@@ -4,6 +4,7 @@ import { Response } from 'express';
 import { BrandingService } from '../services/BandIdentity/branding.service';
 import { PromptService } from '../services/prompt.service';
 import { CustomRequest } from '../interfaces/express.interface';
+import { startSseHeartbeat } from '../utils/sse-heartbeat.util';
 import logger from '../config/logger';
 import { ISectionResult } from '../services/common/generic.service';
 import { projectService } from '../services/project.service';
@@ -268,6 +269,8 @@ export const generateLogoConceptsStreamController = async (
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
     res.setHeader('X-Accel-Buffering', 'no');
+    // Les proxys coupent un flux muet pendant une longue réponse du modèle.
+    startSseHeartbeat(res);
 
     // Client parti (navigation, sélection anticipée…) → annuler pour économiser les tokens
     req.on('close', () => {
@@ -413,6 +416,8 @@ export const generateLogoVariationsStreamController = async (
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
     res.setHeader('X-Accel-Buffering', 'no');
+    // Les proxys coupent un flux muet pendant une longue réponse du modèle.
+    startSseHeartbeat(res);
 
     // Fermeture de la page → annuler pour économiser les tokens
     req.on('close', () => {
@@ -758,6 +763,8 @@ export const generateBrandingStreamingController = async (
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
     res.setHeader('X-Accel-Buffering', 'no'); // Pour Nginx
+    // Les proxys coupent un flux muet pendant une longue réponse du modèle.
+    startSseHeartbeat(res);
 
     // Fonction de callback pour envoyer chaque résultat d'étape
     const streamCallback = async (stepResult: ISectionResult) => {

@@ -86,6 +86,8 @@ export function readFonts(branding: any): CharterFonts {
  * des URL de SVG — ou, pour les projets anciens, du SVG en ligne.
  */
 const LIGHT_HEADER_SLOTS = [
+  // Le logo d'origine d'un site refait (rogné, à l'identique) passe avant ses déclinaisons vectorisées.
+  'originalUrl',
   'assetUrls.withText.lightBackground',
   'variations.withText.lightBackground',
   'assetUrls.primary',

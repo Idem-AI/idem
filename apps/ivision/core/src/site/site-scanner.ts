@@ -27,6 +27,7 @@ import type { BrandKit, BrandPalette, BrandVoice } from '../brand/brand-kit';
 import { clusterColors, ColorCluster, PaletteProposal, paletteFromClusters, paletteProposals, SeenColor } from './palette';
 import { cleanFamilyName, firstFamily, SeenFont, typographyProposals, TypographyProposal } from './typography';
 import { evaluateSettled } from './settled';
+import { MACHINE_TRANSLATION } from './site-crawler';
 
 export type SiteScanStep = 'open' | 'colors' | 'fonts' | 'logo' | 'content' | 'voice' | 'art' | 'done';
 
@@ -363,7 +364,8 @@ async function openPage(browser: Browser, url: string, timeoutMs: number, sheets
   await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 1 });
   await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36 iVision/1.0');
   // Garde réseau : jamais d'adresse privée ; ni vidéo ni sons (inutiles au scan).
-  await installRenderNetworkGuard(page, (req) => !['media', 'websocket', 'eventsource'].includes(req.resourceType()));
+  // Sans traducteur automatique : la voix, les textes et la langue relevés sont ceux du site, pas une traduction machine.
+  await installRenderNetworkGuard(page, (req) => !['media', 'websocket', 'eventsource'].includes(req.resourceType()) && !MACHINE_TRANSLATION.test(req.url()));
   await page.goto(url, { waitUntil: 'networkidle2', timeout: timeoutMs }).catch(async (error: Error) => {
     if (/timeout/i.test(error.message)) return; // une page qui charge sans fin a quand même son premier écran
     throw error;

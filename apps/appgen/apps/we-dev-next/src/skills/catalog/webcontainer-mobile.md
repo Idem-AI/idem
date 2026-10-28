@@ -31,6 +31,7 @@ components.json  jsconfig.json   projet installable par le CLI shadcn (alias @/ 
 src/components/layout/AppShell.jsx   screen frame: scrolling area + bottom tab bar, reads TABS
 src/components/layout/TopBar.jsx     <TopBar title back action /> — sticky, safe area, back arrow
 src/hooks/useStoredState.js          useStoredState(key, initial) — persists to localStorage
+src/i18n/  src/components/LanguageSwitcher.jsx   t('text'), useLanguage, formatDate… — every visible text goes through t() (skill i18n)
 src/ui/*.jsx                     the component kit below
 ```
 

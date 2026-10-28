@@ -20,8 +20,12 @@ const router = Router();
  * configuration to depend on, and the bytes never pass through the model.
  */
 
-/** Beyond this the data URI is worse than the problem it solves. */
-const MAX_ASSET_BYTES = 512 * 1024;
+/**
+ * Beyond this the data URI is worse than the problem it solves. Raised from 512 KB: the photos of a redesigned
+ * site and generated hero images (1–2 MB) were silently left out, so the dev preview showed sections without
+ * images. Development only — production serves the bucket over HTTPS.
+ */
+const MAX_ASSET_BYTES = 2.5 * 1024 * 1024;
 const FETCH_TIMEOUT_MS = 5000;
 
 const ALLOWED_CONTENT_TYPES = [

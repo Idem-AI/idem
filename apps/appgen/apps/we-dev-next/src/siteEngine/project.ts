@@ -63,11 +63,19 @@ export function renderDocument(options: {
   themeColor?: string;
   /** L'icône du site (favicon, icône Apple), quand elle est connue (refonte : celle de l'ancien site). */
   icons?: { favicon?: string; appleIcon?: string; ogImage?: string };
+  /** La même page dans chaque langue du site (la principale en tête) : balises `hreflang`. */
+  alternates?: { lang: string; href: string }[];
 }): string {
   const title = escapeHtml(options.title);
+  const alternates =
+    options.alternates && options.alternates.length > 1
+      ? [...options.alternates, { lang: 'x-default', href: options.alternates[0].href }]
+          .map((alt) => `    <link rel="alternate" hreflang="${alt.lang}" href="${escapeHtml(alt.href)}" />\n`)
+          .join('')
+      : '';
   const description = escapeHtml(options.description);
   return `<!doctype html>
-<html lang="${options.language}">
+<html lang="${options.language}"${/^(ar|fa|he|ur)$/.test(options.language) ? ' dir="rtl"' : ''}>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -79,7 +87,7 @@ ${options.themeColor ? `    <meta name="theme-color" content="${options.themeCol
     <meta property="og:description" content="${description}" />
     <meta property="og:locale" content="${options.language}" />
     <meta name="twitter:card" content="summary_large_image" />
-${options.icons?.favicon ? `    <link rel="icon" href="${escapeHtml(options.icons.favicon)}" />\n` : ''}${options.icons?.appleIcon ? `    <link rel="apple-touch-icon" href="${escapeHtml(options.icons.appleIcon)}" />\n` : ''}${options.icons?.ogImage ? `    <meta property="og:image" content="${escapeHtml(options.icons.ogImage)}" />\n` : ''}    <!-- idem:fonts -->
+${alternates}${options.icons?.favicon ? `    <link rel="icon" href="${escapeHtml(options.icons.favicon)}" />\n` : ''}${options.icons?.appleIcon ? `    <link rel="apple-touch-icon" href="${escapeHtml(options.icons.appleIcon)}" />\n` : ''}${options.icons?.ogImage ? `    <meta property="og:image" content="${escapeHtml(options.icons.ogImage)}" />\n` : ''}    <!-- idem:fonts -->
   </head>
   <body>
     <div id="root"></div>
@@ -212,7 +220,18 @@ const pageComponentName = (page: ManifestPage) =>
     .join('')
     .replace(/^(\d)/, 'P$1')}Page`;
 
-/** Documents, points d'entrée et manifeste de pré-rendu de toutes les pages. */
+/** Le document d'une page dans une langue : `index.html`, `a-propos/index.html`, `en/a-propos/index.html`. */
+const pageHtml = (page: ManifestPage, lang: string, main: string) =>
+  `${lang === main ? '' : `${lang}/`}${page.key === 'home' ? 'index.html' : `${page.key}/index.html`}`;
+
+/** L'adresse d'une page dans une langue : `/a-propos/`, `/en/a-propos/`. */
+const pageAddress = (page: ManifestPage, lang: string, main: string) => (lang === main ? page.path : `/${lang}${page.path}`);
+
+/**
+ * Documents, points d'entrée et manifeste de pré-rendu de toutes les pages — dans chaque langue du site : une
+ * langue de plus, c'est un dossier (`en/`) qui reprend chaque page avec son `<html lang>`, son titre et sa
+ * description traduits. Le point d'entrée est le même : la langue est celle du document (`src/i18n`).
+ */
 export function renderPageShells(options: {
   manifest: SiteManifest;
   language: string;
@@ -220,33 +239,52 @@ export function renderPageShells(options: {
   description: string;
   themeColor?: string;
   icons?: { favicon?: string; appleIcon?: string; ogImage?: string };
+  /** Les langues du site, la principale en tête (par défaut : la seule `language`). */
+  languages?: string[];
+  /** Un texte dans une langue (le catalogue) ; l'original quand il manque. */
+  translate?: (lang: string, text: string) => string;
 }): Record<string, string> {
+  const main = options.language;
+  const languages = options.languages?.length ? options.languages : [main];
+  const tr = (lang: string, text: string) => (lang === main || !options.translate ? text : options.translate(lang, text));
   const files: Record<string, string> = {};
   for (const page of options.manifest.pages) {
-    const html = page.key === 'home' ? 'index.html' : `${page.key}/index.html`;
-    files[html] = renderDocument({
-      language: options.language,
-      siteName: options.siteName,
-      title: page.seoTitle || (page.key === 'home' ? options.siteName : `${page.label} | ${options.siteName}`),
-      description: page.seoDescription || options.description,
-      entry: `/src/entries/${page.key}.tsx`,
-      themeColor: options.themeColor,
-      icons: options.icons,
-    });
+    const alternates = languages.map((lang) => ({ lang, href: pageAddress(page, lang, main) }));
+    for (const lang of languages) {
+      files[pageHtml(page, lang, main)] = renderDocument({
+        language: lang,
+        siteName: options.siteName,
+        title: page.seoTitle ? tr(lang, page.seoTitle) : page.key === 'home' ? options.siteName : `${tr(lang, page.label)} | ${options.siteName}`,
+        description: tr(lang, page.seoDescription || options.description),
+        entry: `/src/entries/${page.key}.tsx`,
+        themeColor: options.themeColor,
+        icons: options.icons,
+        alternates,
+      });
+    }
     files[`src/entries/${page.key}.tsx`] = renderEntry(page.key);
   }
   files['idem.pages.json'] = `${JSON.stringify(
     {
-      pages: options.manifest.pages.map((page) => ({
-        path: page.path,
-        module: `src/pages/${page.key}.tsx`,
-        html: page.key === 'home' ? 'index.html' : `${page.key}/index.html`,
-      })),
+      languages,
+      pages: languages.flatMap((lang) =>
+        options.manifest.pages.map((page) => ({
+          path: pageAddress(page, lang, main),
+          module: `src/pages/${page.key}.tsx`,
+          html: pageHtml(page, lang, main),
+          lang,
+        }))
+      ),
     },
     null,
     2
   )}\n`;
   return files;
+}
+
+/** Les textes des documents à traduire (titres et descriptions des pages). */
+export function shellMessages(manifest: SiteManifest, description: string): string[] {
+  return [...new Set(manifest.pages.flatMap((page) => [page.seoTitle, page.label, page.seoDescription]).concat(description).filter((text): text is string => !!text && !!text.trim()))];
 }
 
 export interface SiteScaffold {
@@ -288,4 +326,54 @@ export function buildSiteScaffold(
     // modifie dans la conversation, et ses fichiers compilés suivent.
     locked: Object.keys(locked).filter((path) => !Object.values(DESIGN_SYSTEM_PATHS).includes(path as never)),
   };
+}
+
+/**
+ * Les documents de chaque langue d'un site déjà généré, refaits depuis ceux de la langue principale (titre,
+ * description, couleur, icônes) : ce que `/translate` écrit quand une langue s'ajoute.
+ */
+export function shellsFromFiles(
+  files: Record<string, string>,
+  languages: string[],
+  translate: (lang: string, text: string) => string
+): { files: Record<string, string>; texts: string[] } {
+  let pages: Array<{ path: string; module: string; html: string; lang?: string }> = [];
+  try {
+    const parsed = JSON.parse(files['idem.pages.json'] ?? '{}');
+    pages = (parsed.pages ?? []).filter((page: { lang?: string }) => !page.lang || page.lang === languages[0]);
+  } catch {
+    return { files: {}, texts: [] };
+  }
+  const attr = (html: string, pattern: RegExp) => (html.match(pattern)?.[1] ?? '').replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+  const home = files[pages.find((page) => page.path === '/')?.html ?? 'index.html'] ?? '';
+  const manifestPages: ManifestPage[] = pages.map((page) => {
+    const html = files[page.html] ?? '';
+    const key = page.module.replace(/^src\/pages\//, '').replace(/\.tsx$/, '');
+    return {
+      key,
+      path: page.path,
+      label: key,
+      purpose: '',
+      seoTitle: attr(html, /<title>([^<]*)<\/title>/),
+      seoDescription: attr(html, /<meta name="description" content="([^"]*)"/),
+      sections: [],
+    };
+  });
+  const texts = manifestPages.flatMap((page) => [page.seoTitle, page.seoDescription]).filter((text): text is string => !!text);
+  const shells = renderPageShells({
+    manifest: { pages: manifestPages, header: '', footer: '', components: [], dependencies: [], keywords: [], businessType: '', languages: languages.slice(1) },
+    language: languages[0],
+    siteName: attr(home, /<meta property="og:site_name" content="([^"]*)"/),
+    description: attr(home, /<meta name="description" content="([^"]*)"/),
+    themeColor: attr(home, /<meta name="theme-color" content="([^"]*)"/) || undefined,
+    icons: {
+      favicon: attr(home, /<link rel="icon" href="([^"]*)"/) || undefined,
+      appleIcon: attr(home, /<link rel="apple-touch-icon" href="([^"]*)"/) || undefined,
+      ogImage: attr(home, /<meta property="og:image" content="([^"]*)"/) || undefined,
+    },
+    languages,
+    translate,
+  });
+  // Les points d'entrée existent déjà : seuls les documents et le manifeste de pré-rendu changent.
+  return { files: Object.fromEntries(Object.entries(shells).filter(([path]) => !path.startsWith('src/entries/'))), texts };
 }

@@ -59,9 +59,23 @@ export interface InventoryPage {
   sections: InventorySection[];
 }
 
+/** Une langue dans laquelle le site existe, et l'adresse de son accueil quand le sélecteur la donne. */
+export interface SiteLanguage {
+  code: string;
+  url?: string;
+  /**
+   * Comment elle a été détectée : `hreflang`, sélecteur de langue (WPML, Polylang, TranslatePress…), chemin `/en/`,
+   * ou `widget` — un traducteur automatique (GTranslate, Weglot) qui propose dix langues sans qu'aucune page n'ait
+   * été traduite : ces langues-là sont proposées, jamais imposées.
+   */
+  via: 'html' | 'hreflang' | 'switcher' | 'path' | 'widget';
+}
+
 export interface SiteInventory {
   origin: string;
   language: string;
+  /** Toutes les langues du site, la principale en tête. Une seule : le site n'est pas traduit. */
+  languages: SiteLanguage[];
   pages: InventoryPage[];
   /** Les pages vues dans les liens mais pas relevées (au-delà de la limite) : leurs titres, pour mémoire. */
   skipped: { url: string; label: string }[];
@@ -87,6 +101,8 @@ interface PageRead {
   title: string;
   description: string;
   language: string;
+  /** Les versions de la page dans d'autres langues (hreflang, sélecteur de langue). */
+  alternates: { lang: string; href: string; via: 'hreflang' | 'switcher' | 'widget' }[];
   blocks: Omit<InventorySection, 'id'>[];
   navigation: { label: string; href: string }[];
   footerTexts: string[];
@@ -316,6 +332,50 @@ function readStructure(): PageRead {
   var og = document.querySelector('meta[property="og:image"]');
   var description = document.querySelector('meta[name="description"]') || document.querySelector('meta[property="og:description"]');
   var bodyClass = String(document.body.className || '');
+  // Les autres langues de la page : les balises hreflang, puis les sélecteurs de langue connus (WPML, Polylang,
+  // TranslatePress, GTranslate, Weglot) ou un lien dont le texte est un nom ou un code de langue.
+  var LANG_NAMES: any = { francais: 'fr', 'français': 'fr', french: 'fr', english: 'en', anglais: 'en', espanol: 'es', 'español': 'es', spanish: 'es', 'português': 'pt', portugues: 'pt', portuguese: 'pt', deutsch: 'de', german: 'de', italiano: 'it', italian: 'it', 'العربية': 'ar', arabic: 'ar', arabe: 'ar', kiswahili: 'sw', swahili: 'sw', 'nederlands': 'nl', '中文': 'zh', chinese: 'zh', wolof: 'wo', lingala: 'ln' };
+  var langCode = function (raw: any) {
+    var t = clean(raw).toLowerCase();
+    if (!t) return '';
+    if (LANG_NAMES[t]) return LANG_NAMES[t];
+    var m = t.match(/^([a-z]{2})(?:[-_][a-z]{2})?$/);
+    return m ? m[1] : '';
+  };
+  var alternates: any[] = [];
+  var addAlt = function (lang: string, href: string, via: string) {
+    if (!lang || (!href && via !== 'widget')) return;
+    for (var i = 0; i < alternates.length; i++) if (alternates[i].lang === lang) return;
+    alternates.push({ lang: lang, href: href, via: via });
+  };
+  Array.prototype.slice.call(document.querySelectorAll('link[rel="alternate"][hreflang]')).forEach(function (l: any) {
+    var h = String(l.getAttribute('hreflang') || '').toLowerCase();
+    if (h !== 'x-default') addAlt(h.slice(0, 2), abs(l.getAttribute('href')), 'hreflang');
+  });
+  Array.prototype.slice
+    .call(document.querySelectorAll('a[hreflang], .wpml-ls a, .wpml-ls-item a, .lang-item a, .pll-parent-menu-item a, .trp-language-switcher a, .trp-ls-shortcode-language a, a.glink, a[data-gt-lang], .weglot-lang a, [class*="lang-switch"] a, [class*="language-switch"] a, [class*="language-selector"] a, [class*="lang-select"] a'))
+    .forEach(function (a: any) {
+      var code = langCode(a.getAttribute('hreflang')) || langCode(a.getAttribute('data-gt-lang')) || langCode(a.getAttribute('lang')) || langCode(a.textContent) || langCode(a.getAttribute('title'));
+      var href = abs(a.getAttribute('href'));
+      var widget = /\bglink\b/.test(String(a.className || '')) || a.hasAttribute('data-gt-lang') || !!(a.closest && a.closest('.weglot-lang, .gtranslate_wrapper, #gtranslate_wrapper')) || /#(googtrans|$)/.test(href) || href === abs('#');
+      if (!code && href) {
+        var p = href.match(/^https?:\/\/[^/]+\/([a-z]{2})(?:[-_][a-z]{2})?\/?/i) || href.match(/[?&]lang=([a-z]{2})/i);
+        code = p ? p[1].toLowerCase() : '';
+      }
+      addAlt(code, widget ? '' : href, widget ? 'widget' : 'switcher');
+    });
+  // Un traducteur automatique déclare ses langues dans un script de la page (GTranslate : `gtranslateSettings`,
+  // parfois différé par un optimiseur, d'où la lecture du texte des scripts plutôt que de la variable).
+  Array.prototype.slice.call(document.querySelectorAll('script')).some(function (el: any) {
+    var text = String(el.textContent || '');
+    if (text.indexOf('gtranslateSettings') < 0) return false;
+    var m = text.match(/"languages"\s*:\s*\[([^\]]*)\]/);
+    if (!m) return false;
+    m[1].split(',').forEach(function (raw: string) {
+      addAlt(langCode(raw.replace(/["'\s]/g, '')), '', 'widget');
+    });
+    return true;
+  });
   return {
     // Un article : les classes d'un billet (WordPress `single-post`, `postid-…`), ou un <article> daté seul dans la page.
     post:
@@ -330,6 +390,7 @@ function readStructure(): PageRead {
     title: clean(document.title),
     description: description ? clean(description.getAttribute('content')) : '',
     language: String(document.documentElement.getAttribute('lang') || '').slice(0, 2).toLowerCase(),
+    alternates: alternates.slice(0, 12),
     blocks: read,
     navigation: header ? linksOf(header).filter(function (l: any) { return l.label; }).slice(0, 40) : [],
     footerTexts: footer ? uniq(Array.prototype.slice.call(footer.querySelectorAll('p, address, li, span')).map(function (n: any) { return clean(n.textContent).slice(0, 300); }).filter(function (t: string) { return t.length > 3; }), 30) : [],
@@ -346,13 +407,17 @@ function readStructure(): PageRead {
 const readSafely = (page: Page): Promise<PageRead> => evaluateSettled(page, readStructure);
 
 /** Ouvre une page et la fait défiler jusqu'en bas : les images chargées au défilement apparaissent. */
+export const MACHINE_TRANSLATION = /\/\/(?:translate\.google(?:apis)?\.com|translate-pa\.googleapis\.com|cdn\.gtranslate\.net|(?:www\.)?gtranslate\.(?:net|io)\/|cdn\.weglot\.com)/i;
+
 async function openForCrawl(browser: Browser, url: string, timeoutMs: number, language = 'fr'): Promise<Page> {
   const page = await browser.newPage();
   // Les sites qui traduisent selon le navigateur : toujours la langue du site (celle de l'accueil).
   await page.setExtraHTTPHeaders({ 'Accept-Language': language === 'en' ? 'en-US,en;q=0.9' : `${language}-${language.toUpperCase()},${language};q=0.9` });
   await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 1 });
   await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36 IDEM/1.0');
-  await installRenderNetworkGuard(page, (req) => !['media', 'websocket', 'eventsource'].includes(req.resourceType()));
+  // Les traducteurs automatiques sont coupés : ils traduisent la page selon la langue du navigateur, et le relevé
+  // lirait une traduction machine au lieu du texte du site.
+  await installRenderNetworkGuard(page, (req) => !['media', 'websocket', 'eventsource'].includes(req.resourceType()) && !MACHINE_TRANSLATION.test(req.url()));
   await page.goto(url, { waitUntil: 'networkidle2', timeout: timeoutMs }).catch((error: Error) => {
     if (!/timeout/i.test(error.message)) throw error;
   });
@@ -418,6 +483,7 @@ export async function crawlWebsite(options: CrawlOptions): Promise<SiteInventory
   const inventory: SiteInventory = {
     origin: start.origin,
     language: '',
+    languages: [],
     pages: [],
     skipped: [],
     navigation: [],
@@ -437,10 +503,37 @@ export async function crawlWebsite(options: CrawlOptions): Promise<SiteInventory
     const homeUrl = pageUrl(homePage.url(), origin) ?? start.toString();
     await homePage.close();
 
+    // Les autres langues : relevées comme langues, jamais comme pages (la version anglaise d'« À propos » n'est
+    // pas une page de plus). Le nouveau site est traduit dans chacune.
+    const mainLanguage = home.language || 'fr';
+    const others = new Set(home.alternates.map((a) => a.lang).filter((lang) => lang !== mainLanguage));
+    // Sans sélecteur reconnu : des liens internes sous `/en/`, `/es/`… (au moins deux) disent la même chose.
+    const LANGUAGE_PREFIX = /^(en|fr|es|pt|de|it|ar|sw|nl|zh|ru|tr|ja|ko|wo|ln|ha|yo|am)$/;
+    const prefixed = new Map<string, number>();
+    for (const link of [...home.navigation, ...home.links]) {
+      try {
+        const u = new URL(link.href);
+        if (u.origin.replace('://www.', '://') !== origin.replace('://www.', '://')) continue;
+        const prefix = u.pathname.split('/')[1]?.toLowerCase().replace(/[-_][a-z]{2}$/, '') ?? '';
+        if (LANGUAGE_PREFIX.test(prefix) && prefix !== mainLanguage) prefixed.set(prefix, (prefixed.get(prefix) ?? 0) + 1);
+      } catch {
+        /* lien illisible */
+      }
+    }
+    prefixed.forEach((count, prefix) => count >= 2 && others.add(prefix));
+    const otherLanguageUrls = new Set(home.alternates.filter((a) => a.href && others.has(a.lang)).map((a) => pageUrl(a.href, origin)).filter(Boolean) as string[]);
+    const inOtherLanguage = (u: string) => {
+      if (otherLanguageUrls.has(u)) return true;
+      const url = new URL(u);
+      const prefix = url.pathname.split('/')[1]?.toLowerCase().replace(/[-_][a-z]{2}$/, '') ?? '';
+      const query = url.searchParams.get('lang')?.slice(0, 2).toLowerCase() ?? '';
+      return (prefix.length === 2 && others.has(prefix)) || (!!query && others.has(query));
+    };
+
     const ordered: string[] = [homeUrl];
     const add = (raw: string, label = '') => {
       const u = pageUrl(raw, origin);
-      if (!u) return;
+      if (!u || inOtherLanguage(u)) return;
       if (label && !labels.has(u)) labels.set(u, label);
       if (!ordered.includes(u)) ordered.push(u);
     };
@@ -480,6 +573,16 @@ export async function crawlWebsite(options: CrawlOptions): Promise<SiteInventory
             continue;
           }
           if (read.post) posts += 1;
+          // Une page déclarée dans une autre langue (lang de la page) : sa langue est notée, la page écartée.
+          if (read.language && read.language !== mainLanguage && others.has(read.language)) {
+            reads.delete(url);
+            continue;
+          }
+          read.alternates.forEach((a) => {
+            if (a.lang !== mainLanguage && !others.has(a.lang)) others.add(a.lang);
+            const alt = a.href ? pageUrl(a.href, origin) : null;
+            if (alt && a.lang !== mainLanguage) otherLanguageUrls.add(alt);
+          });
           reads.set(url, read);
           read.links.forEach((l) => add(l.href, l.label));
           for (const u of ordered) if (!reads.has(u) && !queue.includes(u)) queue.push(u);
@@ -493,7 +596,14 @@ export async function crawlWebsite(options: CrawlOptions): Promise<SiteInventory
     };
     await Promise.all([worker(), worker(), worker(), worker()]);
 
-    inventory.language = home.language || 'fr';
+    inventory.language = mainLanguage;
+    inventory.languages = [
+      { code: mainLanguage, url: homeUrl, via: home.language ? 'html' : 'path' },
+      ...[...others].map((code) => {
+        const alt = home.alternates.find((a) => a.lang === code);
+        return alt ? { code, ...(alt.href ? { url: alt.href } : {}), via: alt.via } : { code, via: 'path' as const };
+      }),
+    ];
     inventory.navigation = home.navigation.filter((l, i, all) => all.findIndex((x) => x.href === l.href) === i);
     inventory.footer = { texts: home.footerTexts, links: home.footerLinks.filter((l) => l.label).slice(0, 40) };
     inventory.assets.favicon = home.favicon || undefined;

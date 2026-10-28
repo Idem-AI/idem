@@ -15,6 +15,7 @@ import { ChatLogger } from '../../utils/logger.js';
 import type { SiteStream } from '../stream.js';
 import type { ChatChoices } from '../../commands/choices.js';
 import type { RedesignFocus } from './brief.js';
+import { languageLabel } from '../i18n.js';
 import { chooseSitePalette, fetchProject, fetchSiteContent, generateCharter, IdemApiError, importSite, SiteContent, SiteImportStep } from './idemClient.js';
 
 export interface RedesignContext {
@@ -81,7 +82,7 @@ export async function prepareRedesign(options: {
    * Reprise après la question des couleurs : le site est déjà relevé et le projet existe ; seule la palette
    * choisie est appliquée.
    */
-  resume?: { projectId: string; colors: 'site' | 'logo' };
+  resume?: { projectId: string; colors: 'site' | 'logo'; languages?: string[]; billed?: boolean };
 }): Promise<Prepared | { stop: string } | { ask: { text: string; choices: ChatChoices } }> {
   const { stream, fr, signal } = options;
   const host = (() => {
@@ -125,37 +126,95 @@ export async function prepareRedesign(options: {
   }
   if (!imported.content) return { stop: failureText(null, host, fr) };
 
-  // Le logo et les couleurs du site ne vont pas ensemble : la décision revient à l'utilisateur, avant toute
-  // génération (rien n'est facturé). Par défaut la marque reste telle qu'elle est.
+  // Deux décisions peuvent revenir à l'utilisateur, posées ensemble avant toute génération (rien n'est facturé) :
+  //   - le logo et les couleurs du site ne vont pas ensemble (par défaut, la marque reste telle qu'elle est) ;
+  //   - le site propose des langues par un traducteur automatique, sans page vraiment traduite : les reprendre
+  //     toutes coûterait une traduction par langue, on propose la plus utile.
   const check = imported.content.brandCheck;
+  const inventory = imported.content.inventory;
+  const main = inventory.language || 'fr';
+  const real = new Set((inventory.languages ?? []).filter((l) => l.via !== 'widget').map((l) => l.code));
+  const widget = (inventory.languages ?? []).filter((l) => l.via === 'widget' && l.code !== main && !real.has(l.code)).map((l) => l.code);
+  const questions: ChatChoices['questions'] = [];
+  const said: string[] = [
+    fr
+      ? `J’ai tout relevé : ${inventory.pages.length} pages, ${imported.content.images.length} images, votre logo et vos polices.`
+      : `I’ve read everything: ${inventory.pages.length} pages, ${imported.content.images.length} images, your logo and fonts.`,
+  ];
   if (check && !check.coherent && imported.content.palettes?.logo) {
+    said.push(
+      fr
+        ? `Une chose me frappe : la couleur principale de votre site (${check.sitePrimary}) ne reprend pas celles de votre logo (${check.logoColors.join(', ')}).`
+        : `One thing stands out: your site’s main colour (${check.sitePrimary}) doesn’t match your logo’s (${check.logoColors.join(', ')}).`
+    );
+    questions.push({
+      id: 'colors',
+      question: fr ? 'Quelles couleurs pour le nouveau site ?' : 'Which colours for the new site?',
+      options: [
+        {
+          value: 'logo',
+          recommended: true,
+          label: fr ? 'Des couleurs fidèles à mon logo' : 'Colours true to my logo',
+          description: fr ? 'Le site et le logo parlent enfin d’une seule voix ; vos polices et vos images restent.' : 'Site and logo finally speak with one voice; your fonts and images stay.',
+        },
+        {
+          value: 'site',
+          label: fr ? 'Garder les couleurs actuelles du site' : 'Keep the site’s current colours',
+          description: fr ? 'Vos visiteurs retrouvent exactement les couleurs qu’ils connaissent.' : 'Your visitors find exactly the colours they know.',
+        },
+      ],
+    });
+  }
+  if (widget.length) {
+    // La langue la plus utile en plus : l'anglais, ou le français pour un site anglophone.
+    const second = widget.includes(main === 'en' ? 'fr' : 'en') ? (main === 'en' ? 'fr' : 'en') : widget[0];
+    const names = (codes: string[]) => codes.map((code) => languageLabel(code, fr)).join(fr ? ' et ' : ' and ');
+    said.push(
+      fr
+        ? `Votre site propose aussi ${widget.length} langue${widget.length > 1 ? 's' : ''} par un traducteur automatique : aucune page n’y est vraiment traduite. Le nouveau site peut l’être, avec de vraies traductions.`
+        : `Your site also offers ${widget.length} language${widget.length > 1 ? 's' : ''} through an automatic translator: no page is actually translated. The new site can be, with real translations.`
+    );
+    questions.push({
+      id: 'languages',
+      question: fr ? 'Dans quelles langues le nouveau site ?' : 'Which languages for the new site?',
+      options: [
+        {
+          value: 'pair',
+          recommended: true,
+          label: fr ? `En ${names([main, second])}` : `In ${names([main, second])}`,
+          description: fr ? 'Une vraie traduction, relue pour vos clients ; une page par langue, bien référencée.' : 'A real translation written for your customers; one page per language, properly indexed.',
+        },
+        ...(widget.length > 1
+          ? [
+              {
+                value: 'all',
+                label: fr ? `Toutes les langues proposées (${widget.length + 1})` : `Every language offered (${widget.length + 1})`,
+                description: names([main, ...widget]),
+              },
+            ]
+          : []),
+        {
+          value: 'main',
+          label: fr ? `Seulement en ${languageLabel(main, true)}` : `Only in ${languageLabel(main, false)}`,
+          description: fr ? 'Le site reste prêt : une langue s’ajoute plus tard avec /translate.' : 'The site stays ready: add a language later with /translate.',
+        },
+      ],
+    });
+  }
+  if (questions.length) {
     return {
       ask: {
-        text: fr
-          ? `J’ai tout relevé : ${imported.content.inventory.pages.length} pages, ${imported.content.images.length} images, votre logo et vos polices. Une chose me frappe : la couleur principale de votre site (${check.sitePrimary}) ne reprend pas celles de votre logo (${check.logoColors.join(', ')}).`
-          : `I’ve read everything: ${imported.content.inventory.pages.length} pages, ${imported.content.images.length} images, your logo and fonts. One thing stands out: your site’s main colour (${check.sitePrimary}) doesn’t match your logo’s (${check.logoColors.join(', ')}).`,
+        text: said.join(' '),
         choices: {
           purpose: 'redesign-colors',
-          questions: [
-            {
-              id: 'colors',
-              question: fr ? 'Quelles couleurs pour le nouveau site ?' : 'Which colours for the new site?',
-              options: [
-                {
-                  value: 'logo',
-                  recommended: true,
-                  label: fr ? 'Des couleurs fidèles à mon logo' : 'Colours true to my logo',
-                  description: fr ? 'Le site et le logo parlent enfin d’une seule voix ; vos polices et vos images restent.' : 'Site and logo finally speak with one voice; your fonts and images stay.',
-                },
-                {
-                  value: 'site',
-                  label: fr ? 'Garder les couleurs actuelles du site' : 'Keep the site’s current colours',
-                  description: fr ? 'Vos visiteurs retrouvent exactement les couleurs qu’ils connaissent.' : 'Your visitors find exactly the colours they know.',
-                },
-              ],
-            },
-          ],
-          context: { projectId: imported.projectId, url: options.url, path: options.choice, focus: options.focus },
+          questions,
+          context: {
+            projectId: imported.projectId,
+            url: options.url,
+            path: options.choice,
+            focus: options.focus,
+            ...(widget.length ? { mainLanguage: main, widgetLanguages: widget.join(','), pairLanguage: widget.includes(main === 'en' ? 'fr' : 'en') ? (main === 'en' ? 'fr' : 'en') : widget[0] } : {}),
+          },
         },
       },
     };
@@ -178,8 +237,9 @@ async function finish(
     }
   })();
 
-  // La génération est facturée au projet, maintenant qu'il existe et que le site a pu être lu.
-  const billing = await consumeGeneration({ credentials: options.credentials, action: 'initial_generation', projectId: imported.projectId });
+  // La génération est facturée au projet, maintenant qu'il existe et que le site a pu être lu (une fois : la reprise
+  // d'une génération interrompue ne repaie pas).
+  const billing = options.resume?.billed ? { allowed: true as const, refusal: undefined } : await consumeGeneration({ credentials: options.credentials, action: 'initial_generation', projectId: imported.projectId });
   if (!billing.allowed) {
     const message = String((billing.refusal as { message?: string } | undefined)?.message || '');
     return {

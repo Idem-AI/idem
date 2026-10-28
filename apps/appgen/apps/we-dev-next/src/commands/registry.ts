@@ -10,7 +10,7 @@
  * descriptions suivent la langue de l'interface.
  */
 
-export type CommandName = 'redesign' | 'site' | 'charter' | 'publish' | 'domain' | 'communication' | 'fix' | 'help';
+export type CommandName = 'redesign' | 'site' | 'charter' | 'translate' | 'continue' | 'publish' | 'domain' | 'communication' | 'fix' | 'help';
 
 export interface CommandSpec {
   name: CommandName;
@@ -55,6 +55,27 @@ export const COMMANDS: readonly CommandSpec[] = [
     description: {
       fr: 'Logo décliné, couleurs, typographies et règles d’usage dans un document, généré dans votre projet IDEM.',
       en: 'Logo variations, colours, typefaces and usage rules in one document, generated in your IDEM project.',
+    },
+  },
+  {
+    name: 'translate',
+    aliases: ['languages'],
+    run: 'server',
+    label: { fr: 'Traduire mon site', en: 'Translate my site' },
+    description: {
+      fr: 'Une langue de plus, avec ses pages et le choix de la langue ; vos sections ne sont pas réécrites.',
+      en: 'One more language, with its own pages and a language switch; your sections are not rewritten.',
+    },
+    args: { fr: 'langue', en: 'language' },
+  },
+  {
+    name: 'continue',
+    aliases: ['resume'],
+    run: 'server',
+    label: { fr: 'Reprendre la génération', en: 'Resume the generation' },
+    description: {
+      fr: 'Une génération interrompue (page actualisée, connexion coupée) reprend là où elle s’était arrêtée.',
+      en: 'An interrupted generation (page reloaded, connection lost) picks up where it stopped.',
     },
   },
   {

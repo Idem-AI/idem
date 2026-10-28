@@ -10,6 +10,7 @@ import { crawlWebsite } from '../src/site/site-crawler';
   if (process.argv[4]) fs.writeFileSync(process.argv[4], JSON.stringify(inv, null, 2));
   console.log('pages', inv.pages.length, 'sections', inv.pages.reduce((n, p) => n + p.sections.length, 0), 'images', inv.assets.images.length, 'skipped', inv.skipped.length, 's', Math.round((Date.now() - started) / 1000));
   for (const p of inv.pages) console.log('%s | %s | %d sections | %s', p.path, p.title, p.sections.length, p.sections.map((s) => s.headings[0] || s.texts[0]?.slice(0, 30) || `[${s.images.length} img]`).join(' / ').slice(0, 300));
+  console.log('languages', JSON.stringify(inv.languages));
   console.log('nav', inv.navigation.map((n) => n.label).join(', '));
   console.log('contact', JSON.stringify(inv.contact));
   console.log('favicon', inv.assets.favicon, 'og', inv.assets.ogImage);

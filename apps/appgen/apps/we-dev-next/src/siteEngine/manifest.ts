@@ -30,6 +30,8 @@ export interface ManifestSection {
   navLabel?: string;
   /** Refonte : les sections de l'ancien site qu'elle reprend (`p2.s3`). */
   sources?: string[];
+  /** Sa composition, dans le vocabulaire fermé `LAYOUTS` (variété garantie par `diversifyLayouts`). */
+  layout?: LayoutId;
 }
 
 export interface ManifestPage {
@@ -56,6 +58,8 @@ export interface SiteManifest {
   dependencies: string[];
   keywords: string[];
   businessType: string;
+  /** Les langues que la demande réclame en plus de celle du site (codes ISO : `en`, `es`…). Vide le plus souvent. */
+  languages: string[];
 }
 
 const BUSINESS_TYPES = [
@@ -138,6 +142,71 @@ export function completeCoverage(manifest: SiteManifest, coverage: Coverage, pag
   return { ...manifest, pages };
 }
 
+/**
+ * LES COMPOSITIONS — le vocabulaire fermé dans lequel l'architecte choisit la forme de chaque section. Ce n'est
+ * pas un gabarit (rien n'est écrit à la place de l'auteur) : c'est la contrainte qui empêche un site de devenir
+ * une pile de « titre + trois cartes à icône », la forme la plus reconnaissable d'un site généré.
+ *
+ * Variété garantie par le code (`diversifyLayouts`) : jamais deux fois la même composition de suite, les cartes au
+ * plus une fois par page, aucune composition plus de deux fois par page.
+ */
+export const LAYOUTS = {
+  'split-media': ['texte d’un côté, visuel de l’autre, colonnes inégales (7/5), le visuel déborde ou s’aligne sur le titre', 'copy on one side, visual on the other, unequal columns (7/5), the visual bleeds or aligns with the heading'],
+  'full-bleed-media': ['visuel pleine largeur, texte posé dessus (voile lisible) ou juste dessous', 'full-width visual, copy over it (readable scrim) or just below'],
+  editorial: ['mise en page de magazine : grand titre, texte en colonnes, une citation ou un chiffre réel en exergue', 'magazine layout: large heading, copy in columns, a pull quote or real figure set apart'],
+  statement: ['une seule grande phrase forte, beaucoup d’espace, une action', 'one large strong sentence, lots of space, one action'],
+  'list-rows': ['liste en rangées séparées par des filets fins, titre à gauche, détail à droite (pas de cartes)', 'list in rows separated by thin rules, title left, detail right (no cards)'],
+  timeline: ['étapes numérotées le long d’un fil vertical ou horizontal', 'numbered steps along a vertical or horizontal line'],
+  bento: ['grille de cases de tailles différentes (une grande, plusieurs petites), chacune avec son contenu propre', 'grid of different-sized tiles (one large, several small), each with its own content'],
+  gallery: ['mosaïque d’images de tailles variées, légendes sobres', 'mosaic of images in varied sizes, sober captions'],
+  'stats-band': ['bande de chiffres RÉELS (des faits uniquement), grands nombres, libellés courts', 'band of REAL figures (facts only), large numbers, short labels'],
+  quote: ['une citation ou un témoignage RÉEL en très grand, avec son auteur', 'one REAL quote or testimonial set very large, with its author'],
+  faq: ['questions et réponses en accordéon', 'questions and answers in an accordion'],
+  form: ['formulaire et coordonnées côte à côte', 'form and contact details side by side'],
+  table: ['tableau comparatif ou de tarifs lisible', 'readable comparison or pricing table'],
+  cards: ['cartes, chacune différente par son contenu (une seule fois par page)', 'cards, each different by its content (once per page)'],
+  'cta-band': ['bande d’appel à l’action pleine largeur, une phrase et un bouton', 'full-width call-to-action band, one sentence and one button'],
+} as const;
+
+export type LayoutId = keyof typeof LAYOUTS;
+const LAYOUT_IDS = Object.keys(LAYOUTS) as LayoutId[];
+
+/** La description d'une composition, dans la langue du site. */
+export function layoutBrief(layout: LayoutId | undefined, fr: boolean): string {
+  return layout ? LAYOUTS[layout][fr ? 0 : 1] : '';
+}
+
+/** Les compositions de repli, selon que la section a un visuel ou non. */
+const WITH_VISUAL: LayoutId[] = ['split-media', 'full-bleed-media', 'gallery', 'bento', 'editorial'];
+const WITHOUT_VISUAL: LayoutId[] = ['editorial', 'list-rows', 'statement', 'timeline', 'bento', 'cta-band'];
+
+/**
+ * La variété, garantie par le code (sans rappeler le modèle) : une composition absente, répétée juste après la
+ * même, des cartes une seconde fois sur la page, ou une composition déjà utilisée deux fois, est remplacée par la
+ * première de repli qui ne crée pas de nouvelle répétition. Rend le nombre de compositions changées.
+ */
+export function diversifyLayouts(manifest: SiteManifest): number {
+  let changed = 0;
+  for (const page of manifest.pages) {
+    const used = new Map<LayoutId, number>();
+    let previous: LayoutId | undefined;
+    for (const section of page.sections) {
+      const count = (id: LayoutId) => used.get(id) ?? 0;
+      const fits = (id: LayoutId | undefined): id is LayoutId =>
+        !!id && id !== previous && !(id === 'cards' && count('cards') >= 1) && count(id) < 2;
+      if (!fits(section.layout)) {
+        const pool = section.visual === 'none' ? WITHOUT_VISUAL : WITH_VISUAL;
+        const next = [...pool, ...LAYOUT_IDS].find((id) => fits(id) && id !== 'cards') ?? section.layout ?? pool[0];
+        if (next !== section.layout) changed += 1;
+        section.layout = next;
+      }
+      used.set(section.layout!, count(section.layout!) + 1);
+      previous = section.layout;
+    }
+  }
+  return changed;
+}
+
 /** Lecture structurelle de la réponse ; rend la liste des problèmes de forme. */
 export function readManifest(raw: unknown, limits: { maxPages?: number; maxSections?: number } = {}): { manifest: SiteManifest | null; problems: string[] } {
   const problems: string[] = [];
@@ -177,8 +246,9 @@ export function readManifest(raw: unknown, limits: { maxPages?: number; maxSecti
       components.add(component);
       const visual = VISUALS.includes(item?.visual) ? (item.visual as VisualKind) : 'none';
       const navLabel = cleanText(item?.navLabel, 28);
+      const layout = typeof item?.layout === 'string' && item.layout in LAYOUTS ? (item.layout as LayoutId) : undefined;
       const sources = Array.isArray(item?.sources) ? item.sources.map((v: unknown) => String(v).trim()).filter((v: string) => /^p\d+\.s\d+$/.test(v)).slice(0, 12) : [];
-      sections.push({ id, component, brief, visual, ...(navLabel ? { navLabel } : {}), ...(sources.length ? { sources } : {}) });
+      sections.push({ id, component, brief, visual, ...(navLabel ? { navLabel } : {}), ...(sources.length ? { sources } : {}), ...(layout ? { layout } : {}) });
     }
     if (sections.length < 2) {
       problems.push(`page « ${label || index + 1} » : au moins deux sections, chacune avec "id" et "brief"`);
@@ -214,6 +284,7 @@ export function readManifest(raw: unknown, limits: { maxPages?: number; maxSecti
       .filter(Boolean)
       .slice(0, 10),
     businessType: BUSINESS_TYPES.includes(data.businessType) ? data.businessType : '',
+    languages: [...new Set((Array.isArray(data.languages) ? data.languages : []).map((code: unknown) => String(code).trim().slice(0, 2).toLowerCase()).filter((code: string) => /^[a-z]{2}$/.test(code)))].slice(0, 6) as string[],
   };
 
   return { manifest, problems };
@@ -242,6 +313,7 @@ Tu es l'architecte du site de ce projet. À partir des informations ci-dessus (s
   * Un identifiant "id" (kebab-case).
   * Un "brief" précis de 2 à 4 phrases décrivant son contenu exact, ce qu'elle valorise, et sa disposition (grille de cartes, colonnes asymétriques, étapes pas à pas, citations fortes, liste de bénéfices...).
   * Un type visuel "visual" : "photo", "illustration", "video" (au plus une sur le site) ou "none".
+  * Une composition "layout" parmi : ${Object.entries(LAYOUTS).map(([id, [desc]]) => `"${id}" (${desc})`).join(' ; ')}. Varie-les : jamais la même deux fois de suite, "cards" au plus une fois par page. Choisis celle qui sert le contenu, pas la plus facile.
   * Si le site est sur une seule page, renseigne "navLabel" sur les sections principales pour le menu d'ancres.
 - La première section de l'accueil présente le projet avec force et oriente vers l'action principale.
 - Les données factuelles (coordonnées, canaux de contact, offres réelles, localisation) s'appuient sur les faits du projet.
@@ -259,9 +331,9 @@ Renvoie UNIQUEMENT un objet JSON valide avec la liste des pages que tu as choisi
       "seoTitle": "${fr ? 'titre SEO engageant (45 à 60 caractères)' : 'engaging SEO title (45 to 60 chars)'}",
       "seoDescription": "${fr ? 'description engageante (140 à 160 caractères)' : 'engaging meta description (140 to 160 chars)'}",
       "sections": [
-        { "id": "hero", "brief": "…", "visual": "photo" },
-        { "id": "presentation", "brief": "…", "visual": "none" },
-        { "id": "points-cles", "brief": "…", "visual": "illustration" }
+        { "id": "hero", "brief": "…", "visual": "photo", "layout": "split-media" },
+        { "id": "presentation", "brief": "…", "visual": "none", "layout": "editorial" },
+        { "id": "points-cles", "brief": "…", "visual": "illustration", "layout": "bento" }
       ]
     },
     {
@@ -281,8 +353,10 @@ Renvoie UNIQUEMENT un objet JSON valide avec la liste des pages que tu as choisi
   "components": ["card", "badge"],
   "dependencies": [],
   "keywords": ["expressions clés pertinentes"],
-  "businessType": "un type parmi : ${BUSINESS_TYPES.join(', ')}"
+  "businessType": "un type parmi : ${BUSINESS_TYPES.join(', ')}",
+  "languages": []
 }
+${fr ? '« languages » : les autres langues du site (codes ISO : "en", "es"…) SEULEMENT si la demande en réclame explicitement (« en français et en anglais », « bilingue ») ; sinon une liste vide. Tu écris tout dans la langue du site : la traduction est faite après toi.' : '"languages": the site’s other languages (ISO codes: "fr", "es"…) ONLY if the request explicitly asks for them ("in English and French", "bilingual"); otherwise an empty list. Write everything in the site language: translation happens after you.'}
 `;
 }
 
@@ -350,8 +424,11 @@ export async function designManifest(options: {
     redesign ? 14000 : 7000
   );
 
+  // La variété des compositions est garantie par le code, sans rappeler le modèle.
+  const diversified = outcome.value ? diversifyLayouts(outcome.value) : 0;
   if (outcome.value) {
     ChatLogger.info('SITE_MANIFEST', 'Architecture du site', {
+      layoutsAdjusted: diversified,
       pages: outcome.value.pages.map((page) => `${page.path} (${page.sections.length})`),
       components: outcome.value.components,
     });

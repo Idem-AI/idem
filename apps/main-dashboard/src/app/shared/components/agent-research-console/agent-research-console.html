@@ -100,7 +100,7 @@
           <span class="rc__current-title">
             @switch (now().mode) {
               @case ('starting') { {{ 'dashboard.researchConsole.now.starting' | translate }} }
-              @case ('finalizing') { {{ 'dashboard.researchConsole.now.finalizing' | translate }} }
+              @case ('finalizing') { {{ finalizingKey() | translate }} }
               @case ('done') { {{ 'dashboard.researchConsole.now.done' | translate }} }
             }
           </span>
@@ -132,7 +132,7 @@
         }
       </ul>
     </div>
-  } @else {
+  } @else if (isRunning() && doneCount() === 0) {
     <p class="rc__waiting">
       <idem-loader size="xs" />
       {{ 'dashboard.researchConsole.feed.starting' | translate }}

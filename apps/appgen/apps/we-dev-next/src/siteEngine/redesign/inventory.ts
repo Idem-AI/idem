@@ -40,9 +40,18 @@ export interface InventoryPage {
   sections: InventorySection[];
 }
 
+/** Une langue de l'ancien site ; `widget` : proposée par un traducteur automatique, sans page vraiment traduite. */
+export interface SiteLanguage {
+  code: string;
+  url?: string;
+  via: 'html' | 'hreflang' | 'switcher' | 'path' | 'widget';
+}
+
 export interface SiteInventory {
   origin: string;
   language: string;
+  /** Absent des relevés antérieurs aux langues. */
+  languages?: SiteLanguage[];
   pages: InventoryPage[];
   skipped: { url: string; label: string }[];
   navigation: { label: string; href: string }[];

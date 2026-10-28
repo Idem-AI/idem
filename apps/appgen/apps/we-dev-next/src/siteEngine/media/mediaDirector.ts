@@ -228,11 +228,12 @@ export async function directMedia(options: {
     if (decision.kind === 'pattern' && !hasPattern) decision.kind = slot.required ? 'photo' : 'none';
     if (decision.kind === 'none' && slot.required) decision.kind = 'photo';
 
-    const paid = decision.kind === 'illustration-3d' || (decision.kind === 'photo' && decision.source === 'generate');
+    // Une illustration est GÉNÉRÉE (illustration vectorielle professionnelle par le modèle d'image) : elle compte
+    // dans le plafond comme une photo générée. Au-delà, une vraie photo de banque — jamais un dessin bricolé.
+    const paid = decision.kind === 'illustration-3d' || decision.kind === 'illustration' || (decision.kind === 'photo' && decision.source === 'generate');
     if (paid && generated >= maxGenerated) {
-      // Au-delà du plafond : la banque d'images pour une photo, le dessin pour une 3D.
-      if (decision.kind === 'photo') decision.source = 'stock';
-      else decision.kind = 'illustration';
+      decision.kind = 'photo';
+      decision.source = 'stock';
     } else if (paid) {
       generated += 1;
     }
@@ -254,7 +255,8 @@ export async function directMedia(options: {
 
 const KIND_STYLE: Record<'photo' | 'illustration' | 'illustration-3d' | 'video', string> = {
   photo: 'photorealistic editorial photograph, natural light, real people and places, shallow depth of field',
-  illustration: 'clean flat vector illustration, simple geometric shapes, generous negative space',
+  illustration:
+    'professional editorial vector illustration in the style of a top design studio, flat shapes with subtle texture, considered composition, limited palette, crisp edges, generous negative space, no text, no letters, no logos, no UI mockups, no gradients mesh',
   'illustration-3d': 'soft 3D render, clay-like materials, studio lighting, rounded forms, subtle shadows',
   video: 'cinematic short clip, slow steady camera movement, natural light, realistic',
 };

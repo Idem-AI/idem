@@ -177,6 +177,13 @@
       "needsProject": "Cette commande a besoin d’un projet IDEM : ouvrez iCode depuis votre projet.",
       "nothingToFix": "Aucune erreur à corriger pour l’instant.",
       "empty": "Aucune commande ne correspond."
+    },
+    "resume": {
+      "question": "Votre dernière génération s’est arrêtée avant la fin. On la reprend ?",
+      "help": "{{done}} étapes sur {{total}} sont faites et gardées.",
+      "now": "Reprendre là où elle s’est arrêtée",
+      "nowHelp": "Seul ce qui reste est écrit, sans repayer ce qui est fait.",
+      "later": "Plus tard"
     }
   },
   "settings": {

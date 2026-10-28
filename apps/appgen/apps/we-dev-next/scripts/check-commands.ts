@@ -11,7 +11,9 @@ import { siteRequest } from '../src/commands/workflows/site.js';
 import { findSiteUrl } from '../src/siteEngine/redesign/intent.js';
 import { redesignArchitect, redesignFacts } from '../src/siteEngine/redesign/brief.js';
 import { inventoryOutline, linkMapper, SiteInventory, sourceContent } from '../src/siteEngine/redesign/inventory.js';
-import { completeCoverage, missingCoverage, readManifest } from '../src/siteEngine/manifest.js';
+import { completeCoverage, diversifyLayouts, missingCoverage, readManifest } from '../src/siteEngine/manifest.js';
+import { isIncomplete, PlanTracker, readPlan, remaining } from '../src/siteEngine/plan.js';
+import { SiteStream } from '../src/siteEngine/stream.js';
 import { cleanSlop } from '../src/siteEngine/slopGuard.js';
 import { tameNeon } from '../src/siteEngine/designConfig.js';
 
@@ -199,6 +201,61 @@ async function main() {
     const changed = tameNeon(config, ['#22c55e'], new Set(['tokens.colors.primary']));
     check('fluo apaisé', changed.join() === 'accent (fluo)' && config.tokens.colors.accent.startsWith('oklch('), { changed, config });
     check('marque intacte', config.tokens.colors.primary === '#22c55e' && config.tokens.colors.muted === '#f4f4f5');
+  }
+
+  // 12. Étiquettes au-dessus des titres, pastilles d'icône, Sparkles, décor en HTML.
+  {
+    const dirty = `<div><Badge variant="secondary">Nos services</Badge><Heading level={2}>Ce que nous faisons</Heading><p className="text-xs uppercase tracking-widest text-primary">Impact</p><h3>120 enfants</h3><div className="flex size-12 items-center justify-center rounded-xl bg-primary/10"><GraduationCap className="size-6" /></div><Sparkles className="size-4" /><div className="absolute -right-8 top-10 size-40 rounded-full border border-primary/20" /><div aria-hidden="true"></div><p className="uppercase tracking-wide text-xs">Note de bas</p><p>Un texte</p></div>`;
+    const { code } = cleanSlop(dirty);
+    check('slop : badge au-dessus du titre retiré', !code.includes('<Badge') && code.includes('Ce que nous faisons'), code);
+    check('slop : sur-titre en capitales retiré', !code.includes('>Impact<') && code.includes('120 enfants'), code);
+    check('slop : petit texte en capitales qui ne précède pas un titre gardé', code.includes('Note de bas'), code);
+    check('slop : pastille d’icône retirée, icône gardée', code.includes('<GraduationCap className="size-6" />') && !code.includes('rounded-xl bg-primary/10'), code);
+    check('slop : Sparkles et décor retirés', !code.includes('Sparkles') && !code.includes('size-40 rounded-full') && !code.includes('aria-hidden'), code);
+  }
+
+  // 13. Les mises en page varient : jamais deux fois la même de suite, une seule rangée de cartes par page.
+  {
+    const raw = { pages: [{ slug: '', label: 'Accueil', sections: ['a', 'b', 'c', 'd', 'e'].map((id) => ({ id, brief: id, visual: 'none', layout: 'cards' })) }] };
+    const { manifest } = readManifest(raw, { maxPages: 4, maxSections: 10 });
+    diversifyLayouts(manifest!);
+    const layouts = manifest!.pages[0].sections.map((section) => section.layout);
+    check('mises en page : pas deux fois de suite', layouts.every((layout, i) => i === 0 || layout !== layouts[i - 1]), layouts);
+    check('mises en page : une rangée de cartes au plus', layouts.filter((layout) => layout === 'cards').length <= 1, layouts);
+  }
+
+  // 14. Les langues et la reprise : `/translate`, `/continue`, le plan.
+  check('/translate et /languages', parseCommand('/translate anglais')?.command.name === 'translate' && parseCommand('/languages')?.command.name === 'translate');
+  check('/continue et /resume', parseCommand('/continue')?.command.name === 'continue' && parseCommand('/resume')?.command.name === 'continue');
+  check('agent : langues lues', JSON.stringify(readIntent({ intent: 'translate', languages: ['EN', 'es-ES', 'x'], confidence: 0.9 })?.languages) === JSON.stringify(['en', 'es']));
+  check('agent : reprise reconnue', readIntent({ intent: 'resume', confidence: 0.95 })?.intent === 'resume');
+  {
+    const nothing = await run(await dispatch(base({ text: '/continue', projectData: project })));
+    check('/continue sans plan : rien à reprendre', /rien à reprendre/.test(nothing.text), nothing.text);
+    const noSite = await run(await dispatch(base({ text: '/translate anglais', projectData: project })));
+    check('/translate sans site : on dit comment faire', /site créé ici/.test(noSite.text), noSite.text);
+
+    // Le plan, écrit dans le flux et coché étape par étape.
+    let raw = '';
+    const res = { writeHead: () => undefined, write: (chunk: string) => ((raw += chunk), true), end: () => undefined, on: () => undefined, writableEnded: false } as any;
+    const stream = new SiteStream(res);
+    const tracker = PlanTracker.create(stream, { request: 'Mon site', language: 'fr', languages: ['fr'], steps: [{ id: 'design', label: 'Design', status: 'pending' }] });
+    tracker.add([{ id: 'src/sections/home/Hero.tsx', label: 'Accueil · hero', path: 'src/sections/home/Hero.tsx' }, { id: 'pages', label: 'Pages' }]);
+    tracker.mark('design', 'done');
+    tracker.mark('src/sections/home/Hero.tsx', 'done');
+    const text = raw.split('\n').filter((line) => line.startsWith('0:')).map((line) => JSON.parse(line.slice(2)) as string).join('');
+    const writes = [...text.matchAll(/<boltAction type="file" filePath="idem\.plan\.json">\n([\s\S]*?)<\/boltAction>/g)].map((m) => m[1]);
+    const last = readPlan({ 'idem.plan.json': writes[writes.length - 1] ?? '' });
+    check('plan : écrit à chaque étape', writes.length === 4, writes.length);
+    check('plan : il reste l’assemblage', isIncomplete(last) && remaining(last!).map((step) => step.id).join() === 'pages', last);
+    tracker.mark('pages', 'done');
+    tracker.finish();
+    const final = readPlan({ 'idem.plan.json': JSON.stringify(tracker.plan) });
+    check('plan : terminé, plus rien à reprendre', !isIncomplete(final));
+
+    const incomplete = { 'idem.plan.json': JSON.stringify(last), 'idem.pages.json': '{}' };
+    const resumed = await run(await dispatch(base({ text: '/continue', projectData: undefined, siteFiles: incomplete, hasSite: true })));
+    check('/continue sans projet : on dit d’ouvrir le projet', /ouvrez iCode depuis votre projet/.test(resumed.text), resumed.text);
   }
 
   console.log(`${passed} contrôles réussis, ${failed} en échec`);

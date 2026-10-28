@@ -32,13 +32,35 @@ export class SSEService {
     this.closeConnection(serviceType);
 
     return new Observable<SSEStepEvent>((observer) => {
+      // Fin propre = message de fin reçu. Toute autre fin du flux est une
+      // coupure, jamais un succès : la présenter comme terminée afficherait un
+      // document incomplet.
+      let finished = false;
+      const interrupted = (cause?: unknown) => {
+        if (finished) return;
+        finished = true;
+        console.error(`${serviceType} SSE interrupted`, cause);
+        observer.error(new Error('generation_stream_interrupted'));
+      };
+
       const subscription = this.sseClient
         .stream(url, {
-          keepAlive: config.keepAlive || true,
-          reconnectionDelay: config.reconnectionDelay || 1000,
+          // JAMAIS de reconnexion : ces flux sont des GET qui LANCENT une
+          // génération. Se reconnecter la relançait depuis le début, la
+          // refacturait, et tournait en boucle dès que le flux était coupé
+          // (proxy, onglet en arrière-plan, réseau mobile).
+          keepAlive: false,
+          responseType: 'event',
         })
         .subscribe({
           next: (event: Event) => {
+            if (finished) return;
+            // La bibliothèque signale une coupure réseau par un événement
+            // `error`, sans erreur d'observable.
+            if (event.type === 'error') {
+              interrupted(event);
+              return;
+            }
             if (event.type === 'message') {
               const messageEvent = event as MessageEvent;
 
@@ -47,7 +69,17 @@ export class SSEService {
                 console.log(
                   `${serviceType} generation completed - stepName: completion, data: all_steps_completed`,
                 );
+                finished = true;
                 observer.complete();
+                this.closeConnection(serviceType);
+                return;
+              }
+
+              // Le serveur a échoué et le dit : on s'arrête là, avec son message.
+              const serverError = this.serverError(messageEvent.data);
+              if (serverError) {
+                finished = true;
+                observer.error(new Error(serverError));
                 this.closeConnection(serviceType);
                 return;
               }
@@ -68,14 +100,9 @@ export class SSEService {
               observer.next(data);
             }
           },
-          error: (error) => {
-            console.error(`${serviceType} SSE connection error:`, error);
-            observer.error(error);
-          },
-          complete: () => {
-            console.log(`${serviceType} SSE connection completed`);
-            observer.complete();
-          },
+          error: (error) => interrupted(error),
+          // Réponse close sans message de fin.
+          complete: () => interrupted('stream ended without completion message'),
         });
 
       this.connections.set(serviceType, subscription);
@@ -127,6 +154,22 @@ export class SSEService {
       return parsed && typeof parsed === 'object' && parsed.type;
     } catch {
       return false;
+    }
+  }
+
+  /**
+   * Message d'erreur envoyé par le serveur (`{ type: 'error', message }` ou
+   * `{ error }`), ou `null` si le message n'en est pas un.
+   */
+  private serverError(data: any): string | null {
+    try {
+      const parsed = JSON.parse(data);
+      if (!parsed || typeof parsed !== 'object') return null;
+      if (parsed.type === 'error') return parsed.message || parsed.error || 'generation_failed';
+      if (!parsed.type && typeof parsed.error === 'string') return parsed.error;
+      return null;
+    } catch {
+      return null;
     }
   }
 

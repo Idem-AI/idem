@@ -4,6 +4,7 @@ import { Response } from 'express';
 import { CustomRequest } from '../interfaces/express.interface';
 import { BusinessPlanService } from '../services/BusinessPlan/businessPlan.service';
 import { PromptService } from '../services/prompt.service';
+import { startSseHeartbeat } from '../utils/sse-heartbeat.util';
 import logger from '../config/logger';
 import { ISectionResult } from '../services/common/generic.service';
 import { ResearchStreamEvent } from '../services/research/research.types';
@@ -599,9 +600,12 @@ export const generateBusinessPlanStreamingController = async (
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
     res.setHeader('X-Accel-Buffering', 'no'); // Pour Nginx
+    // Arrêté par la fermeture de la réponse, quel que soit le chemin de sortie.
+    startSseHeartbeat(res);
 
     // Écriture d'un message SSE (avec flush immédiat).
     const writeSSE = (payload: unknown) => {
+      if (res.writableEnded) return;
       res.write(`data: ${JSON.stringify(payload)}\n\n`);
       (res as any).flush?.();
     };

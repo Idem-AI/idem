@@ -126,6 +126,11 @@ export class AgentResearchConsoleComponent {
     () => `dashboard.researchConsole.phase.${this.variant()}.${this.phase()}.title`,
   );
   protected readonly isRunning = computed(() => this.phase() === 'running');
+  protected readonly finalizingKey = computed(() =>
+    this.variant() === 'finance'
+      ? 'dashboard.researchConsole.now.finalizingFinance'
+      : 'dashboard.researchConsole.now.finalizing',
+  );
 
   // --- Chapitres ----------------------------------------------------------
   private readonly rows = computed<{ name: string; label: string; state: SectionState }[]>(() => {
@@ -167,6 +172,13 @@ export class AgentResearchConsoleComponent {
   protected readonly now = computed<NowVm>(() => {
     if (this.phase() === 'done') return { mode: 'done', icon: 'pi-check-circle' };
     if (this.phase() === 'finalizing') return { mode: 'finalizing', icon: 'pi-sparkles' };
+    // Toutes les sections sont prêtes mais le serveur assemble encore (pour
+    // les finances : le calage des prévisions, une longue réponse de modèle).
+    // Annoncer « Démarrage de la recherche » à ce moment faisait croire que
+    // tout recommençait.
+    if (this.totalCount() > 0 && this.doneCount() === this.totalCount()) {
+      return { mode: 'finalizing', icon: 'pi-sparkles' };
+    }
 
     const active = this.rows().find((r) => r.state === 'current');
     if (!active) return { mode: 'starting', icon: 'pi-compass' };
@@ -280,10 +292,13 @@ export class AgentResearchConsoleComponent {
 
   constructor() {
     // Compteur arrêté dès la fin : rien ne doit continuer à tourner derrière
-    // un écran terminé.
+    // un écran terminé. Le temps est lu sur l'horloge, pas compté : un onglet
+    // en arrière-plan ralentit les minuteries, et un compteur incrémenté
+    // semblait alors s'arrêter.
+    const startedAt = Date.now();
     const timer = setInterval(() => {
       if (this.phase() !== 'done') {
-        this.tick.update((value) => value + 1);
+        this.tick.set(Math.floor((Date.now() - startedAt) / 1000));
       }
     }, 1000);
     inject(DestroyRef).onDestroy(() => clearInterval(timer));

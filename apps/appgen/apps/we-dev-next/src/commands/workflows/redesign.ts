@@ -94,9 +94,19 @@ export function startRedesign(ctx: CommandContext, options: { url?: string | nul
   return createTextStream(intro, choices);
 }
 
+/** Les langues choisies parmi celles d'un traducteur automatique (« Dans quelles langues le nouveau site ? »). */
+function chosenLanguages(answer: ChoicesAnswer): string[] {
+  const context = answer.context ?? {};
+  const widget = String(context.widgetLanguages ?? '').split(',').filter((code) => /^[a-z]{2}$/.test(code));
+  if (answer.values.languages === 'all') return widget;
+  if (answer.values.languages === 'pair' && /^[a-z]{2}$/.test(String(context.pairLanguage ?? ''))) return [String(context.pairLanguage)];
+  return [];
+}
+
 /**
- * La réponse à « Quelles couleurs pour le nouveau site ? » (posée après le relevé, quand le logo et le site ne
- * s'accordent pas) : la refonte reprend là où elle s'était arrêtée, sans relire le site.
+ * Les réponses posées après le relevé — « Quelles couleurs pour le nouveau site ? » (le logo et le site ne
+ * s'accordent pas), « Dans quelles langues ? » (un traducteur automatique) : la refonte reprend là où elle
+ * s'était arrêtée, sans relire le site.
  */
 export function runRedesignColors(ctx: CommandContext, answer: ChoicesAnswer): Responder {
   const context = answer.context ?? {};
@@ -118,7 +128,7 @@ export function runRedesignColors(ctx: CommandContext, answer: ChoicesAnswer): R
       focus,
       consent: true,
       creativity: ctx.creativity,
-      resume: { projectId, colors: answer.values.colors === 'logo' ? 'logo' : 'site' },
+      resume: { projectId, colors: answer.values.colors === 'logo' ? 'logo' : 'site', languages: chosenLanguages(answer) },
     },
   });
 }

@@ -24,6 +24,7 @@ import { ChatLogger } from '../utils/logger.js';
 import { ResilientStream } from '../utils/resilientStream.js';
 import { authorComponent, authorSystemPrompt, ReviewContext, reviewComponent } from './authoring.js';
 import { createFactGuard } from './factGuard.js';
+import { localizeCode, siteLanguagesOf, syncCatalogs } from './i18n.js';
 import { ModelCaller, Verdict } from './modelCaller.js';
 import { contextFrom, displayOf, importPolicy, siteFilesOf, targetOf, themeOf } from './repair.js';
 import { detectSiteLanguage, readSiteFacts, renderFacts } from './siteFacts.js';
@@ -66,7 +67,8 @@ export function createSiteEditStream(input: SiteEditInput): ResilientStream {
   return {
     async pipeDataStreamToResponse(res: Response): Promise<void> {
       const { projectData, files, model, userId, request } = input;
-      const language = detectSiteLanguage(projectData.description ?? '', input.language);
+      // Un site en plusieurs langues s'écrit dans sa langue principale (les autres suivent par traduction).
+      const language = siteLanguagesOf(files)?.main ?? detectSiteLanguage(projectData.description ?? '', input.language);
       const fr = language === 'fr';
       const abort = new AbortController();
       res.on('close', () => {
@@ -139,6 +141,16 @@ export function createSiteEditStream(input: SiteEditInput): ResilientStream {
       }
 
       if (abort.signal.aborted) return;
+      // Le texte retouché reste traduisible (`t()`, `localePath()`), et un site en plusieurs langues reçoit la
+      // traduction des phrases nouvelles dans chacune.
+      for (const path of Object.keys(writes)) if (/\.tsx$/.test(path)) writes[path] = localizeCode(writes[path], path).code;
+      const languages = siteLanguagesOf(files)?.languages ?? [];
+      if (Object.keys(writes).length && languages.length > 1) {
+        stream.note(fr ? 'Je traduis les textes modifiés' : 'Translating the changed copy');
+        const synced = await syncCatalogs({ caller, files: { ...files, ...writes }, siteName: facts.name, context: facts.description.slice(0, 600) });
+        if (abort.signal.aborted) return;
+        for (const [path, content] of Object.entries(synced.files)) if (content !== files[path]) writes[path] = content;
+      }
       const paths = Object.keys(writes);
       if (paths.length) {
         stream.text(`<boltArtifact id="idem-site-edit-${Date.now().toString(36)}" title="${fr ? 'Modification' : 'Edit'}">\n`);
@@ -247,6 +259,7 @@ const EDIT_SYSTEM = (fr: boolean) =>
     'You edit ONE React component (TSX, Tailwind CSS) of a live showcase website.',
     'Golden rule: change ONLY what the request is about. Keep everything else byte for byte: fonts, colours, layout, structure, imports, other texts, the component name.',
     'Sizes and radii follow the design system classes (text-display, text-h1, text-h2, text-h3, text-h4, text-lead, text-body, text-small, rounded-card, rounded-button).',
+    'Displayed texts are written t("…") (the site translates them) and internal links localePath("…"): to change a text, change the words inside t("…"); new texts may be written plainly, in the site\'s main language. Never translate a text yourself.',
     'Answer ONLY with one or more blocks, each copying a SHORT passage EXACTLY as it is in the file (unique in the file), then its replacement:',
     '<<<<<<< SEARCH',
     '(exact passage)',

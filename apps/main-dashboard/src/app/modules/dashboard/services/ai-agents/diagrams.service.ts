@@ -36,8 +36,6 @@ export class DiagramsService {
 
     const config: SSEConnectionConfig = {
       url: `${this.apiUrl}/generate-stream/${projectId}`,
-      keepAlive: true,
-      reconnectionDelay: 1000,
     };
 
     return this.sseService.createConnection(config, 'diagram');

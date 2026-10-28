@@ -1,4 +1,5 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
+import { TranslateService } from '@ngx-translate/core';
 import { Observable, BehaviorSubject, Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import {
@@ -27,6 +28,7 @@ function emptyResearchState(): ResearchConsoleState {
 export class GenerationService {
   private generationStates = new Map<SSEServiceEventType, BehaviorSubject<SSEGenerationState>>();
   private destroy$ = new Subject<void>();
+  private readonly translate = inject(TranslateService);
 
   constructor(private sseService: SSEService) {}
 
@@ -80,8 +82,14 @@ export class GenerationService {
       },
       error: (error) => {
         console.error(`${serviceType} SSE error:`, error);
+        // Message lisible : les écrans l'affichent tel quel, et le texte brut
+        // (code interne, message technique du serveur) n'apprend rien à
+        // l'utilisateur.
+        const interrupted = error?.message === 'generation_stream_interrupted';
         this.updateGenerationState(serviceType, {
-          error: error.message || 'Generation failed',
+          error: this.translate.instant(
+            interrupted ? 'common.generationInterrupted' : 'common.generationFailed',
+          ),
           isGenerating: false,
         });
       },

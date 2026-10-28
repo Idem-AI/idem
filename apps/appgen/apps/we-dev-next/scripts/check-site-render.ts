@@ -14,6 +14,8 @@ import { seedDesignSystemFiles } from '../src/siteEngine/designConfig.js';
 import { renderBrandModule, renderDataModule, renderMediaModule } from '../src/siteEngine/siteData.js';
 import type { SiteFacts } from '../src/siteEngine/siteFacts.js';
 import type { SiteManifest } from '../src/siteEngine/manifest.js';
+import { localizeCode, pseudoLocaleFiles, renderI18nFiles } from '../src/siteEngine/i18n.js';
+import { templateFiles } from '../src/siteEngine/template.js';
 
 const facts: SiteFacts = {
   name: 'Light',
@@ -38,7 +40,50 @@ const files = {
 };
 
 /** Le composant, et ce que la vérification doit en dire (un extrait du problème, « vide » ou « ok »). */
-const CASES: Array<{ name: string; expect: string; code: string }> = [
+/** Un site en deux langues : ses fichiers de langues, et une section passée par `localizeCode`. */
+const bilingual = { ...files, ...renderI18nFiles('fr', { fr: {}, en: { 'Nos ateliers': 'Our workshops', 'Inscrire mon enfant': 'Enrol my child' } }) };
+const localized = localizeCode(`import { Section, Container, Heading, Button } from '@/components/ui';
+import LanguageSwitcher from '@/components/site/language-switcher';
+import { site } from '@/site/data';
+export default function Workshops() {
+  return (
+    <Section id="ateliers"><Container>
+      <LanguageSwitcher current="/" />
+      <Heading level={2}>Nos ateliers</Heading>
+      <p>Bienvenue chez {site.name}.</p>
+      <Button asChild><a href="/contact/">Inscrire mon enfant</a></Button>
+    </Container></Section>
+  );
+}`).code;
+
+// Une icône retrouvée par le titre : juste dans la langue principale, cassée une fois le titre traduit.
+const lookup = localizeCode(`import { GraduationCap, BookOpen } from 'lucide-react';
+const ICONS = { Formation: GraduationCap, Ressources: BookOpen };
+const items = [{ title: 'Formation' }, { title: 'Ressources' }];
+export default function Lookup() {
+  return <section id="l">{items.map((item) => { const Icon = ICONS[item.title as keyof typeof ICONS]; return <div key={item.title}><Icon /><h3>{item.title}</h3></div>; })}</section>;
+}`);
+const runtime = templateFiles()['src/i18n/index.ts'] ?? '';
+
+const CASES: Array<{ name: string; expect: string; code: string; files?: Record<string, string> }> = [
+  {
+    name: 'pseudo-langue : icône retrouvée par un titre traduit, refusée',
+    expect: 'Element type is invalid',
+    code: lookup.code,
+    files: { ...files, ...pseudoLocaleFiles(lookup.texts, runtime) },
+  },
+  {
+    name: 'pseudo-langue : section saine acceptée',
+    expect: 'ok',
+    code: localized,
+    files: { ...files, ...pseudoLocaleFiles(['Nos ateliers', 'Inscrire mon enfant', 'Bienvenue chez {name}.'], runtime) },
+  },
+  {
+    name: 'section traduite (t, localePath, choix de la langue) dans un site en deux langues',
+    expect: 'ok',
+    code: localized,
+    files: bilingual,
+  },
   {
     name: 'composant sain (Motion, Button asChild, action protégée)',
     expect: 'ok',
@@ -127,7 +172,7 @@ if (!renderCheckAvailable()) {
 
 const started = Date.now();
 const results = await Promise.all(
-  CASES.map(async (item, index) => ({ item, result: await renderCheck({ path: `src/sections/home/Case${index}.tsx`, code: item.code, files }) }))
+  CASES.map(async (item, index) => ({ item, result: await renderCheck({ path: `src/sections/home/Case${index}.tsx`, code: item.code, files: item.files ?? files }) }))
 );
 
 let failures = 0;

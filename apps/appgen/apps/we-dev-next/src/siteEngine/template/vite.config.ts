@@ -3,7 +3,8 @@
  *
  * Un site multi-pages : chaque page est un document HTML à part (son titre, sa
  * description, ses balises de partage), découvert à la volée. Ajouter une
- * page, c'est ajouter un dossier qui contient son `index.html`.
+ * page, c'est ajouter un dossier qui contient son `index.html` ; une langue,
+ * un dossier `en/` qui reprend les mêmes pages.
  */
 import { existsSync, readdirSync } from 'node:fs';
 import { fileURLToPath, URL } from 'node:url';
@@ -17,10 +18,16 @@ function pages() {
   const entries: Record<string, string> = { index: here('index.html') };
   const ignored = new Set(['node_modules', 'src', 'dist', 'public', 'scripts', '.git']);
 
-  for (const item of readdirSync(here('.'), { withFileTypes: true })) {
-    if (!item.isDirectory() || ignored.has(item.name) || item.name.startsWith('.')) continue;
-    if (existsSync(here(`${item.name}/index.html`))) entries[item.name] = here(`${item.name}/index.html`);
-  }
+  // Un niveau de plus pour les langues : `en/index.html`, `en/a-propos/index.html`.
+  const walk = (dir: string, depth: number) => {
+    for (const item of readdirSync(here(dir || '.'), { withFileTypes: true })) {
+      if (!item.isDirectory() || ignored.has(item.name) || item.name.startsWith('.')) continue;
+      const path = dir ? `${dir}/${item.name}` : item.name;
+      if (existsSync(here(`${path}/index.html`))) entries[path.replace(/\//g, '-')] = here(`${path}/index.html`);
+      if (depth < 1) walk(path, depth + 1);
+    }
+  };
+  walk('', 0);
 
   return entries;
 }

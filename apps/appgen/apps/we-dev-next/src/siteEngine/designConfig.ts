@@ -58,13 +58,38 @@ const DARK_REQUEST = /th[eè]me sombre|mode sombre|fond (noir|sombre)|dark (mode
 /**
  * La configuration de départ, tirée de la charte par la forge de jetons.
  */
+/**
+ * La PERSONNALITÉ d'un site, tirée de son projet (toujours la même pour un projet, différente d'un projet à
+ * l'autre) : la forme des composants, la densité, la casse des titres, le mouvement. Sans elle, deux projets à la
+ * même direction artistique partaient du même point et finissaient par se ressembler. Les couleurs et les polices
+ * de la marque n'en dépendent jamais.
+ */
+const PERSONALITIES = [
+  { id: 'sharp-editorial', radius: '0px', density: 'spacious', button: 'primary', card: 'flat', headingCase: 'none', motion: 'subtle', note: 'angles vifs, filets fins, grands blancs, typographie qui porte tout' },
+  { id: 'soft-generous', radius: '1.25rem', density: 'spacious', button: 'primary', card: 'filled', headingCase: 'none', motion: 'moderate', note: 'formes douces, aplats de couleur pâle, rythme ample' },
+  { id: 'bold-contrast', radius: '0.375rem', density: 'comfortable', button: 'accent', card: 'outline', headingCase: 'uppercase', motion: 'expressive', note: 'titres massifs en capitales, contrastes francs, bandes pleine largeur' },
+  { id: 'calm-precise', radius: '0.5rem', density: 'comfortable', button: 'secondary', card: 'outline', headingCase: 'none', motion: 'subtle', note: 'précision, alignements stricts, peu d’effets' },
+  { id: 'warm-organic', radius: '1.5rem', density: 'comfortable', button: 'primary', card: 'elevated', headingCase: 'none', motion: 'moderate', note: 'courbes, photos à bords arrondis, ombres douces' },
+  { id: 'compact-pro', radius: '0.25rem', density: 'compact', button: 'primary', card: 'flat', headingCase: 'none', motion: 'subtle', note: 'dense et informatif, tableaux et listes, peu de vide' },
+] as const;
+
+export type Personality = (typeof PERSONALITIES)[number];
+
+export function personalityOf(projectData?: ProjectModel): Personality {
+  const source = String(projectData?.id || projectData?.name || 'idem');
+  let hash = 0;
+  for (let i = 0; i < source.length; i++) hash = (hash * 31 + source.charCodeAt(i)) >>> 0;
+  return PERSONALITIES[hash % PERSONALITIES.length];
+}
+
 export function seedConfig(projectData: ProjectModel | undefined, system: DesignSystem = forgeDesignSystem(projectData)): Json {
   const branding = (projectData?.analysisResultModel?.branding ?? {}) as Json;
   const fonts = readFonts(branding);
   const { direction, colors } = system;
   const family = styleFamily(system);
+  const personality = personalityOf(projectData);
 
-  return {
+  return withPersonality(personality, {
     schemaVersion: 1,
     appearance: {
       colorMode: 'light',
@@ -107,7 +132,18 @@ export function seedConfig(projectData: ProjectModel | undefined, system: Design
       intensity: family === 'expressive' ? 'expressive' : family === 'soft' ? 'moderate' : 'subtle',
       respectReducedMotion: true,
     },
-  };
+  });
+}
+
+/** La personnalité posée sur la configuration de départ (le modèle peut encore l'ajuster, jamais la marque). */
+function withPersonality(personality: Personality, seed: Json): Json {
+  seed.appearance = { ...seed.appearance, density: personality.density };
+  seed.tokens.radius = { ...seed.tokens.radius, base: personality.radius };
+  seed.tokens.typography = { ...seed.tokens.typography, headingCase: personality.headingCase };
+  seed.components.button = { ...seed.components.button, variant: personality.button };
+  seed.components.card = { ...seed.components.card, variant: personality.card };
+  seed.motion = { ...seed.motion, intensity: personality.motion };
+  return seed;
 }
 
 /** Ce que la charte a décidé et que le modèle ne peut pas changer. */
@@ -172,7 +208,7 @@ const SCHEMA = `{
   }
 }`;
 
-function prompt(facts: SiteFacts, system: DesignSystem, seed: Json, request: string, locked: string[], redesign?: string): string {
+function prompt(facts: SiteFacts, system: DesignSystem, seed: Json, request: string, locked: string[], redesign: string | undefined, personality: string): string {
   const { direction, colors } = system;
   return `${redesign ? `${redesign}\n\n` : ''}# Le projet
 ${facts.name} : ${facts.description}
@@ -186,6 +222,9 @@ Polices : ${system.fonts.display} (titres), ${system.fonts.body} (texte).
 ${locked.length ? `Imposé par la charte, à garder tel quel : ${locked.join(', ')}.\n` : ''}
 # Configuration de départ (tirée de la charte)
 ${JSON.stringify(seed, null, 2)}
+
+# La personnalité de ce site
+${personality} (déjà posée dans la configuration de départ : garde-la, elle distingue ce site des autres).
 
 # Ta tâche
 Tu fixes le design system de ce site : l'apparence de ses composants de base (boutons, champs, cartes, badges, titres) et son mouvement. Tu ne décris aucune page.
@@ -229,7 +268,7 @@ export async function configureDesignSystem(options: {
   const outcome = await caller.json(
     'design-system',
     "Tu es directeur artistique et tu configures le design system d'un site vitrine. Tu réponds UNIQUEMENT par un objet JSON valide, sans texte autour.",
-    prompt(facts, system, seed, request, locks.map(([path]) => path.slice(1).join('.')), redesign),
+    prompt(facts, system, seed, request, locks.map(([path]) => path.slice(1).join('.')), redesign, personalityOf(projectData).note),
     (raw): Verdict<Json> =>
       raw && typeof raw === 'object' && !Array.isArray(raw) && (raw as Json).tokens ? { value: raw as Json } : { problem: SHAPE_REMINDER },
     2200

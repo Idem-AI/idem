@@ -165,9 +165,8 @@ export interface SectionCompletedEnvelope {
  */
 export interface SSEConnectionConfig {
   url: string;
-  keepAlive?: boolean;
-  reconnectionDelay?: number;
-  maxRetries?: number;
+  // Pas d'option de reconnexion : ces flux lancent une génération, se
+  // reconnecter la relancerait (voir SSEService).
 }
 
 /**

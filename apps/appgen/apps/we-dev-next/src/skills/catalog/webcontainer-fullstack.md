@@ -28,6 +28,7 @@ frontend/index.html         fonts linked, #root + the module script
 frontend/src/main.jsx       frontend/src/styles/index.css  frontend/src/lib/cn.js
 frontend/src/lib/utils.js   frontend/components.json  frontend/jsconfig.json (CLI shadcn, alias @/)
 frontend/src/api.js         api(path, options) — the only way to reach the backend
+frontend/src/i18n/          t('text'), useLanguage, formatDate… + LanguageSwitcher — every visible text goes through t() (skill i18n)
 frontend/src/ui/*.jsx       the component kit below
 ```
 

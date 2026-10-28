@@ -111,8 +111,6 @@ export class BusinessPlanService {
             generationParams.set('withAdditionalInfo', 'true');
             const config: SSEConnectionConfig = {
               url: `${this.apiUrl}/generate/${projectId}?${generationParams.toString()}`,
-              keepAlive: true,
-              reconnectionDelay: 1000,
             };
 
             this.sseService.createConnection(config, 'business-plan').subscribe({
@@ -132,8 +130,6 @@ export class BusinessPlanService {
       const query = generationParams.toString();
       const config: SSEConnectionConfig = {
         url: `${this.apiUrl}/generate/${projectId}${query ? `?${query}` : ''}`,
-        keepAlive: true,
-        reconnectionDelay: 1000,
       };
 
       return this.sseService.createConnection(config, 'business-plan');

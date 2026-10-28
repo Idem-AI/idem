@@ -16,6 +16,7 @@
  * iVision le suit étape par étape (`siteImportJobs`).
  */
 import crypto from 'crypto';
+import sharp from 'sharp';
 import logger from '../../config/logger';
 import type { ProjectModel } from '../../models/project.model';
 import type { BrandFontModel, ColorModel, TypographyModel } from '../../models/brand-identity.model';
@@ -312,8 +313,12 @@ async function hostInventory(userId: string, projectId: string, inventory: SiteI
       const url = urls[index];
       try {
         const file = await safeFetch(url, { accept: ['image/'], maxBytes: 12 * 1024 * 1024, timeoutMs: 20_000 });
-        const ext = (file.mimeType.split('/')[1] || 'jpg').replace('jpeg', 'jpg').replace('svg+xml', 'svg').replace('x-icon', 'ico').replace('vnd.microsoft.icon', 'ico').replace(/[^a-z0-9]/g, '');
-        const upload = await storageService.uploadFile(file.buffer, `site-${stamp}-${index + 1}.${ext}`, folder, file.mimeType);
+        // Prête pour le web : une photo de 1,6 Mo (PNG d'origine) ralentissait le site et dépassait ce que l'aperçu
+        // de développement sait afficher. Redimensionnée (2 000 px au plus) et recompressée en WebP ; les SVG, les
+        // icônes et les GIF animés restent tels quels.
+        const web = await webImage(file.buffer, file.mimeType);
+        const ext = web.ext ?? (file.mimeType.split('/')[1] || 'jpg').replace('jpeg', 'jpg').replace('svg+xml', 'svg').replace('x-icon', 'ico').replace('vnd.microsoft.icon', 'ico').replace(/[^a-z0-9]/g, '');
+        const upload = await storageService.uploadFile(web.buffer, `site-${stamp}-${index + 1}.${ext}`, folder, web.mimeType ?? file.mimeType);
         hosted.set(url, upload.downloadURL);
       } catch (error: any) {
         logger.warn('site_import.asset_copy_failed', { event: 'site_import.asset_copy_failed', projectId, url, error: error?.message });
@@ -332,6 +337,36 @@ async function hostInventory(userId: string, projectId: string, inventory: SiteI
       images: keep(inventory.assets.images),
     },
   };
+}
+
+/** Une image de contenu, prête pour le web (au plus 2 000 px, WebP qualité 82) ; le reste est rendu tel quel. */
+async function webImage(buffer: Buffer, mimeType: string): Promise<{ buffer: Buffer; mimeType?: string; ext?: string }> {
+  if (!/^image\/(png|jpe?g|webp|avif|tiff)$/i.test(mimeType)) return { buffer };
+  try {
+    const out = await sharp(buffer, { failOn: 'none' }).rotate().resize({ width: 2000, height: 2000, fit: 'inside', withoutEnlargement: true }).webp({ quality: 82 }).toBuffer();
+    return out.byteLength < buffer.byteLength ? { buffer: out, mimeType: 'image/webp', ext: 'webp' } : { buffer };
+  } catch {
+    return { buffer };
+  }
+}
+
+/**
+ * Le logo du site tel qu'il est, marges vides retirées : une refonte l'affiche à l'identique. La version
+ * vectorisée (déclinaisons de la charte) perd des détails sur un logo en photo, et un logo posé dans un carré
+ * aux trois quarts vide devenait illisible à la hauteur d'un en-tête.
+ */
+async function originalLogo(userId: string, projectId: string, scan: SiteScanResult): Promise<string | null> {
+  if (!scan.logo.url || scan.logo.url.startsWith('data:')) return null;
+  try {
+    const file = await safeFetch(scan.logo.url, { accept: ['image/'], maxBytes: 8 * 1024 * 1024, timeoutMs: 20_000 });
+    if (file.mimeType === 'image/svg+xml') return (await storageService.uploadFile(file.buffer, `logo-original-${Date.now().toString(36)}.svg`, `users/${userId}/projects/${projectId}/logos`, 'image/svg+xml')).downloadURL;
+    // Fond uni autour du logo retiré (blanc ou transparent), puis PNG (transparence gardée).
+    const trimmed = await sharp(file.buffer, { failOn: 'none' }).trim({ threshold: 18 }).resize({ height: 400, withoutEnlargement: true }).png().toBuffer();
+    return (await storageService.uploadFile(trimmed, `logo-original-${Date.now().toString(36)}.png`, `users/${userId}/projects/${projectId}/logos`, 'image/png')).downloadURL;
+  } catch (error: any) {
+    logger.warn('site_import.logo_original_failed', { event: 'site_import.logo_original_failed', projectId, error: error?.message });
+    return null;
+  }
 }
 
 /**
@@ -477,6 +512,11 @@ export async function createProjectFromSite(
     return null;
   });
   if (!logo) warnings.push('Logo introuvable ou illisible sur le site : ajoutez-le dans IDEM.');
+  // Une refonte affiche le logo du site tel quel (rogné), pas sa version vectorisée.
+  if (logo && !ownLogo && options.withContent) {
+    const original = await originalLogo(userId, projectId, scan);
+    if (original) (logo as LogoModel & { originalUrl?: string }).originalUrl = original;
+  }
 
   onStep('typography');
   const copied: string[] = [];

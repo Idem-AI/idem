@@ -48,8 +48,6 @@ export class PitchDeckService {
     const query = params.toString();
     const config: SSEConnectionConfig = {
       url: `${this.apiUrl}/generate/${projectId}${query ? `?${query}` : ''}`,
-      keepAlive: true,
-      reconnectionDelay: 1000,
     };
     return this.sseService.createConnection(config, 'pitch-deck');
   }

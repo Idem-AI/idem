@@ -213,10 +213,18 @@ export class CommunicationService {
             ? { headers: { Authorization: `Bearer ${token}` } }
             : undefined;
 
+          let ended = false;
           const sub = this.sse
-            .stream(url, { keepAlive: true, reconnectionDelay: 1000 }, requestOptions)
+            // Pas de reconnexion : ces GET lancent une génération, se
+            // reconnecter la relançait depuis le début à chaque coupure.
+            .stream(url, { keepAlive: false, responseType: 'event' }, requestOptions)
             .subscribe({
               next: (event: Event) => {
+                // Coupure réseau : signalée par un événement, pas par une erreur.
+                if (event.type === 'error') {
+                  observer.error(new Error('generation_stream_interrupted'));
+                  return;
+                }
                 if (event.type !== 'message') return;
                 const message = event as MessageEvent;
                 if (!message.data || typeof message.data !== 'string') return;
@@ -224,6 +232,7 @@ export class CommunicationService {
                   const payload = JSON.parse(message.data) as CommunicationStreamEvent;
                   observer.next(payload);
                   if (payload.type === 'complete' || payload.type === 'error') {
+                    ended = true;
                     observer.complete();
                   }
                 } catch {
@@ -231,7 +240,9 @@ export class CommunicationService {
                 }
               },
               error: (err) => observer.error(err),
-              complete: () => observer.complete(),
+              // Flux fermé sans fin annoncée : c'est une coupure.
+              complete: () =>
+                ended ? observer.complete() : observer.error(new Error('generation_stream_interrupted')),
             });
           return () => sub.unsubscribe();
         });

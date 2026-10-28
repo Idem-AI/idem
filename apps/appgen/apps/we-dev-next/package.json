@@ -12,6 +12,7 @@
         "check:site-render": "tsx scripts/check-site-render.ts",
         "check:site-edit": "tsx scripts/check-site-edit.ts",
         "check:commands": "tsx scripts/check-commands.ts",
+        "check:i18n": "tsx scripts/check-i18n.ts",
         "deps:plan": "tsx scripts/deps-plan.ts",
         "deps:bake": "node scripts/bake-deps.mjs",
         "check:deps": "tsx scripts/check-deps-route.ts",

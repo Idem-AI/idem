@@ -43,13 +43,19 @@ import { ModelCaller } from './modelCaller.js';
 import { createApiMediaClient, MediaClient } from './media/mediaClient.js';
 import { AssetDecision, directMedia, MediaSlot } from './media/mediaDirector.js';
 import { createLimiter, MediaAsset, produceMedia } from './media/mediaPipeline.js';
-import { buildSiteScaffold, renderPage, renderPageShells } from './project.js';
-import { renderBrandModule, renderDataModule, renderMediaModule, renderSeo } from './siteData.js';
+import { buildSiteScaffold, renderPage, renderPageShells, shellMessages } from './project.js';
+import { renderBrandModule, renderDataModule, renderMediaModule, renderSeo, siteDataOf } from './siteData.js';
+import { collectMessages, dataMessages, languageLabel, localizeCode, pseudoLocaleFiles, renderI18nFiles, translateCatalog, withLanguageSwitcher } from './i18n.js';
+import { renderCheck } from './renderCheck.js';
 import { detectSiteLanguage, readSiteFacts, renderFacts } from './siteFacts.js';
-import { FUNCTIONAL_DEPENDENCIES, SITE_ENGINE_ID } from './template.js';
+import { FUNCTIONAL_DEPENDENCIES, SITE_ENGINE_ID, templateFiles } from './template.js';
 import { marker } from '../commands/choices.js';
 import { redesignArchitect, redesignDesign, redesignFacts, RedesignFocus } from './redesign/brief.js';
 import { prepareRedesign, RedesignContext } from './redesign/flow.js';
+import { fetchSiteContent } from './redesign/idemClient.js';
+import { MANIFEST_PATH, PlanTracker, readSavedDesign, remaining, SavedDesign, SitePlan } from './plan.js';
+import { DESIGN_SYSTEM_PATHS } from './template.js';
+import type { DesignOutcome } from './designConfig.js';
 import { inventoryFacts, inventoryOutline, inventoryText, InventorySection, linkMapper, sectionIndex, sourceContent } from './redesign/inventory.js';
 
 /** Composants écrits en même temps. */
@@ -79,10 +85,46 @@ export interface SiteBuildInput {
     focus?: RedesignFocus;
     consent: boolean;
     creativity?: string;
-    /** Reprise après la question des couleurs : le site est déjà relevé, le projet existe. */
-    resume?: { projectId: string; colors: 'site' | 'logo' };
+    /** Reprise après la question des couleurs (et des langues) : le site est déjà relevé, le projet existe. */
+    resume?: { projectId: string; colors: 'site' | 'logo'; languages?: string[]; billed?: boolean };
   };
+  /**
+   * Reprise d'une génération interrompue (« continue ») : son plan et les fichiers déjà écrits. Ce qui est coché
+   * n'est ni refait ni refacturé ; sans manifeste enregistré, la génération repart de la demande du plan.
+   */
+  resume?: { plan: SitePlan; files: Record<string, string> };
 }
+
+/** Le design system tel que la génération interrompue l'avait posé, relu dans ses fichiers. */
+function savedDesignOutcome(files: Record<string, string>, saved: SavedDesign): DesignOutcome {
+  const config = JSON.parse(files[DESIGN_SYSTEM_PATHS.source] ?? '{}');
+  return {
+    files: {},
+    compiled: { config, css: files[DESIGN_SYSTEM_PATHS.css] ?? '', componentConfig: {}, fonts: [], report: { errors: [], derived: [], adjusted: [], files: [] } },
+    fromModel: true,
+    enforced: [],
+    mediaStyle: saved.mediaStyle,
+  } as DesignOutcome;
+}
+
+/** Les visuels déjà produits (`src/site/media.ts`), regroupés par emplacement (`clé`, `clé-2`…). */
+function savedMedia(files: Record<string, string>, keys: string[]): Record<string, MediaAsset[]> {
+  try {
+    const flat = JSON.parse(files['src/site/media.ts']?.match(/=\s*(\{[\s\S]*\});\s*$/)?.[1] ?? '{}') as Record<string, MediaAsset>;
+    const out: Record<string, MediaAsset[]> = {};
+    for (const key of keys) {
+      if (!flat[key]) continue;
+      out[key] = [flat[key]];
+      for (let i = 2; flat[`${key}-${i}`]; i++) out[key].push(flat[`${key}-${i}`]);
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+/** Au-delà, une langue de plus coûte plus qu'elle ne rapporte à un site vitrine. */
+const MAX_LANGUAGES = Math.max(1, Number(process.env.SITE_MAX_LANGUAGES ?? 6));
 
 /** Le moteur prend-il ce tour ? Le premier tour d'un site, quand il y a un projet. */
 export function shouldGenerateSite(options: {
@@ -212,12 +254,25 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
         projectData = prepared.projectData;
         redesign = prepared.redesign;
       }
+      // Reprise : le manifeste et le design system sont relus dans le projet ; une refonte retrouve le relevé de
+      // l'ancien site dans IDEM (rien n'est relu sur le site lui-même, rien n'est refacturé).
+      const saved = input.resume ? readSavedDesign(input.resume.files) : null;
+      const resuming = input.resume && saved ? input.resume : undefined;
+      if (resuming?.plan.redesign && !redesign) {
+        const plan = resuming.plan.redesign;
+        try {
+          const content = await fetchSiteContent(plan.projectId, input.credentials ?? {}, abort.signal);
+          redesign = { content, choice: plan.choice, focus: plan.focus, created: false };
+        } catch (error) {
+          ChatLogger.warn('SITE_ENGINE', 'Reprise : relevé du site introuvable', { message: (error as Error).message });
+        }
+      }
       if (!projectData) {
         stream.close({ promptTokens: 0, completionTokens: 0 }, 'project_required');
         return;
       }
 
-      const language = detectSiteLanguage(
+      const language = resuming ? resuming.plan.language : detectSiteLanguage(
         [request, projectData.description, (projectData as { longDescription?: string }).longDescription, redesign?.content.paragraphs.slice(0, 3).join(' ')].filter(Boolean).join('\n'),
         redesign?.content.language === 'en' || redesign?.content.language === 'fr' ? redesign.content.language : input.language
       );
@@ -236,7 +291,15 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
       const caller = new ModelCaller(writer && getFallbackModelKeys(writer).includes(writer) ? writer : model, userId, abort.signal);
       const usage = () => ({ promptTokens: caller.promptTokens, completionTokens: caller.completionTokens });
 
-      if (!redesign) {
+      if (resuming) {
+        const left = remaining(resuming.plan).length;
+        stream.text(
+          fr
+            ? `Je reprends la génération de ${facts.name} là où elle s'était arrêtée : ${left} étape${left > 1 ? 's' : ''} sur ${resuming.plan.steps.length} restent à faire, le reste est gardé tel quel.\n\n`
+            : `Resuming the ${facts.name} generation where it stopped: ${left} of ${resuming.plan.steps.length} step${resuming.plan.steps.length > 1 ? 's' : ''} left, everything else is kept as is.\n\n`
+        );
+        stream.text(`<boltArtifact id="idem-site-resume-${Date.now().toString(36)}" title="${facts.name.replace(/["<>]/g, '')}">\n`);
+      } else if (!redesign) {
         stream.text(
           fr
             ? `Je conçois le site de ${facts.name} : son architecture et son identité visuelle, puis chaque section.\n\n`
@@ -244,6 +307,19 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
         );
         stream.text(`<boltArtifact id="idem-site" title="${facts.name.replace(/["<>]/g, '')}">\n`);
       }
+
+      // Le plan de la génération, écrit avant la première étape et coché au fur et à mesure (`plan.ts`).
+      const tracker = resuming
+        ? PlanTracker.resume(stream, resuming.plan)
+        : PlanTracker.create(stream, {
+            request,
+            language,
+            languages: [language, ...(input.redesign?.resume?.languages ?? [])],
+            ...(redesign && input.redesign && projectData.id
+              ? { redesign: { projectId: projectData.id, url: input.redesign.url, choice: redesign.choice, focus: redesign.focus } }
+              : {}),
+            steps: [{ id: 'design', label: fr ? 'Architecture et design system' : 'Structure and design system', status: 'pending' }],
+          });
 
       // Les fichiers du site propres au projet, tels que l'aperçu les aura :
       // chaque composant y est monté avant d'être accepté (`renderCheck`).
@@ -256,7 +332,10 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
       // Socle absent (l'atelier n'a pas pu le monter) : il part dans le flux. Une refonte l'y met toujours :
       // celui de l'atelier a été monté avant que le projet (et son logo) n'existe.
       const scaffoldMounted = input.scaffoldMounted && !redesign;
-      if (!scaffoldMounted) {
+      if (resuming) {
+        // Les fichiers du site déjà écrits servent au montage de contrôle des composants qui restent.
+        for (const [path, content] of Object.entries(resuming.files)) if (/^src\/(site|design-system|i18n)\//.test(path)) siteFiles[path] = content;
+      } else if (!scaffoldMounted) {
         const scaffold = buildSiteScaffold(projectData, language);
         for (const [path, content] of Object.entries(scaffold.files)) emit(path, content);
       } else {
@@ -264,9 +343,11 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
         siteFiles['src/site/brand.tsx'] = renderBrandModule(projectData, facts.name);
       }
 
-      // Opération A : architecture et design system, en parallèle.
-      stream.note(fr ? "Je conçois l'architecture du site et son design system" : 'Designing the site structure and its design system');
-      const [architecture, design, pattern] = await Promise.all([
+      // Opération A : architecture et design system, en parallèle (relus dans le projet à la reprise).
+      if (!resuming) stream.note(fr ? "Je conçois l'architecture du site et son design system" : 'Designing the site structure and its design system');
+      const [architecture, design, pattern] = resuming && saved
+        ? [{ manifest: saved.manifest, providerDown: false }, savedDesignOutcome(resuming.files, saved), await resolveBrandPattern(projectData).catch(() => null)] as const
+        : await Promise.all([
         designManifest({
           facts,
           factsText,
@@ -324,6 +405,25 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
       manifest.footer = clean(manifest.footer, '');
       if (cleaned) ChatLogger.info('SITE_ENGINE', 'Briefs nettoyés des détails absents des faits', { items: cleaned });
 
+      // Les langues du site : celles de l'ancien site (pages vraiment traduites ; celles d'un traducteur automatique
+      // seulement si l'utilisateur les a choisies), et celles que la demande réclame. La principale en tête.
+      const siteLanguages = resuming ? resuming.plan.languages : [
+        language,
+        ...(inventory?.languages ?? []).filter((l) => l.via !== 'widget').map((l) => l.code),
+        ...(input.redesign?.resume?.languages ?? []),
+        ...manifest.languages,
+      ]
+        .map((code) => code.slice(0, 2).toLowerCase())
+        .filter((code, index, all) => /^[a-z]{2}$/.test(code) && all.indexOf(code) === index)
+        .slice(0, MAX_LANGUAGES);
+      if (!resuming) emit('src/i18n/config.json', renderI18nFiles(language, Object.fromEntries(siteLanguages.map((lang) => [lang, {}])))['src/i18n/config.json']);
+      if (siteLanguages.length > 1 && !resuming)
+        stream.note(
+          fr
+            ? `Le site sera en ${siteLanguages.map((lang) => languageLabel(lang, true)).join(', ')} : j'écris en ${languageLabel(language, true)}, puis je traduis`
+            : `The site will be in ${siteLanguages.map((lang) => languageLabel(lang, false)).join(', ')}: writing in ${languageLabel(language, false)}, then translating`
+        );
+
       // Refonte : ce que chaque section reprend de l'ancien site, et où mènent désormais ses liens internes. Une
       // section qui reprend des images d'origine en affiche (même si l'architecte n'en demandait pas).
       const sourcesBySection = new Map<string, InventorySection[]>();
@@ -341,19 +441,41 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
         mapLink = linkMapper(inventory, (pageIndex) => manifest.pages.find((p) => p.source === pageIndex)?.path);
       }
 
-      // Opération B : le design system compilé, puis les faits et les documents.
-      for (const [path, content] of Object.entries(design.files)) emit(path, content);
-      stream.note(
+      // Le plan complet : chaque composant à écrire, l'assemblage, la traduction. Le manifeste est gardé dans le
+      // projet pour qu'une reprise n'ait rien à redemander aux modèles.
+      tracker.plan.languages = siteLanguages;
+      tracker.add([
+        { id: 'src/components/site/SiteHeader.tsx', label: fr ? "L'en-tête" : 'The header', path: 'src/components/site/SiteHeader.tsx' },
+        { id: 'src/components/site/SiteFooter.tsx', label: fr ? 'Le pied de page' : 'The footer', path: 'src/components/site/SiteFooter.tsx' },
+        ...manifest.pages.flatMap((page) =>
+          page.sections.map((section) => {
+            const path = `src/sections/${page.key}/${section.component}.tsx`;
+            return { id: path, label: `${page.label} · ${section.id}`, path };
+          })
+        ),
+        { id: 'pages', label: fr ? 'Assemblage des pages' : 'Page assembly' },
+        ...(siteLanguages.length > 1 ? [{ id: 'translate', label: fr ? `Traduction (${siteLanguages.slice(1).join(', ')})` : `Translation (${siteLanguages.slice(1).join(', ')})` }] : []),
+      ]);
+      if (!resuming) {
+        stream.file(MANIFEST_PATH, `${JSON.stringify({ manifest, mediaStyle: design.mediaStyle, themeSummary: themeSummary(design.compiled.config) } satisfies SavedDesign, null, 2)}\n`);
+      }
+      tracker.mark('design', 'done');
+
+      // Opération B : le design system compilé, puis les faits et les documents (déjà posés à la reprise).
+      if (!resuming) for (const [path, content] of Object.entries(design.files)) emit(path, content);
+      if (!resuming) stream.note(
         fr
           ? `Design system appliqué : ${design.compiled.config.tokens.typography.headingFont} et ${design.compiled.config.tokens.typography.bodyFont}, ${manifest.pages.length} page${manifest.pages.length > 1 ? 's' : ''} (${manifest.pages.map((page) => page.label).join(', ')})`
           : `Design system applied: ${design.compiled.config.tokens.typography.headingFont} and ${design.compiled.config.tokens.typography.bodyFont}, ${manifest.pages.length} page${manifest.pages.length > 1 ? 's' : ''} (${manifest.pages.map((page) => page.label).join(', ')})`
       );
 
-      emit('src/site/data.ts', renderDataModule(facts, manifest, language));
-      stream.file('src/site/seo.json', renderSeo(facts, manifest, language));
-      emit('src/site/media.ts', renderMediaModule({}));
-      if (pattern) stream.file('public/brand/pattern.svg', `${pattern.svg}\n`);
-      const shells = renderPageShells({
+      if (!resuming) {
+        emit('src/site/data.ts', renderDataModule(facts, manifest, language));
+        stream.file('src/site/seo.json', renderSeo(facts, manifest, language));
+        emit('src/site/media.ts', renderMediaModule({}));
+        if (pattern) stream.file('public/brand/pattern.svg', `${pattern.svg}\n`);
+      }
+      const shellOptions = {
         manifest,
         language,
         siteName: facts.name,
@@ -361,19 +483,29 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
         themeColor: design.compiled.config.tokens.colors.primary,
         // Refonte : le favicon, l'icône et l'image de partage de l'ancien site (recopiés chez nous).
         icons: inventory ? { favicon: inventory.assets.favicon, appleIcon: inventory.assets.appleIcon, ogImage: inventory.assets.ogImage } : undefined,
-      });
-      for (const [path, content] of Object.entries(shells)) stream.file(path, content);
+        languages: siteLanguages,
+      };
+      if (!resuming) for (const [path, content] of Object.entries(renderPageShells(shellOptions))) stream.file(path, content);
 
       // Les visuels : choisis par l'agent média, produits pendant que les composants s'écrivent.
       const mediaEnabled = (process.env.SITE_MEDIA ?? 'on').toLowerCase() !== 'off';
       const slots = mediaEnabled ? mediaSlotsOf(manifest) : [];
       const produced: Record<string, MediaAsset[]> = {};
       const mediaBySlot = new Map<string, Promise<MediaAsset[]>>();
+      // Reprise : les visuels déjà produits restent ; un composant déjà écrit n'en demande pas d'autre.
+      if (resuming) {
+        const keys = manifest.pages.flatMap((page) => page.sections.map((section) => mediaKey(page, section)));
+        Object.assign(produced, savedMedia(resuming.files, keys));
+        for (const [key, assets] of Object.entries(produced)) mediaBySlot.set(key, Promise.resolve(assets));
+        for (const page of manifest.pages)
+          for (const section of page.sections)
+            if (tracker.done(`src/sections/${page.key}/${section.component}.tsx`) && !mediaBySlot.has(mediaKey(page, section))) mediaBySlot.set(mediaKey(page, section), Promise.resolve([]));
+      }
 
       // Refonte : chaque section reprend les images de SES sections d'origine (toutes, galeries comprises) ; seules
       // les sections sans image d'origine qui en demandent une passent par l'agent média (banque ou génération,
       // selon la direction artistique et la cible).
-      if (redesign && inventory) {
+      if (redesign && inventory && !resuming) {
         let reused = 0;
         for (const page of manifest.pages) {
           for (const section of page.sections) {
@@ -447,6 +579,7 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
         language,
         components: manifest.components,
         themeSummary: themeSummary(design.compiled.config),
+        languages: siteLanguages,
       };
       const system = authorSystemPrompt(ctx);
       const reference = `${factsText}\n${request}${sourceText}`;
@@ -460,6 +593,8 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
 
       const issues: Issue[] = [];
       const valid = new Set<string>();
+      // Le code accepté de chaque composant, ses textes enveloppés dans `t()` : la source du catalogue des langues.
+      const written: Record<string, string> = {};
       const limit = createLimiter(CONCURRENCY);
 
       const write = async (
@@ -470,16 +605,43 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
         props?: Record<string, unknown>
       ): Promise<boolean> => {
         if (abort.signal.aborted) return false;
+        // Déjà écrit avant l'interruption : gardé tel quel.
+        const kept = resuming?.files[path];
+        if (tracker.done(path) && kept) {
+          valid.add(path);
+          written[path] = kept;
+          return true;
+        }
         const authored = await authorComponent({ caller, label, system, prompt, review, language, target: { path, props } });
         if (abort.signal.aborted) return false;
         if (authored.removed.length) ChatLogger.info('SITE_ENGINE', `${label} : phrases non vérifiées retirées`, { removed: authored.removed });
-        if (authored.code) stream.file(path, authored.code);
+        // Chaque site sort prêt à être traduit : textes dans `t()`, liens internes dans `localePath()` (par le code).
+        // Un site en plusieurs langues : la version enveloppée est d'abord montée en pseudo-langue ; si elle ne
+        // s'affiche plus une fois traduite, le composant garde ses textes en clair (langue principale partout).
+        let code = authored.code;
+        if (authored.valid && authored.code) {
+          const localized = localizeCode(authored.code, path);
+          code = localized.code;
+          if (localized.changed && siteLanguages.length > 1) {
+            const pseudo = await renderCheck({ path, code, props, files: { ...siteFiles, ...pseudoLocaleFiles(localized.texts, templateFiles()['src/i18n/index.ts'] ?? '') } });
+            if (pseudo.problems.length) {
+              ChatLogger.warn('SITE_I18N', `${label} : textes laissés en clair (le composant casse une fois traduit)`, { problems: pseudo.problems.slice(0, 2) });
+              code = authored.code;
+            }
+          }
+        }
+        if (code) {
+          stream.file(path, code);
+          written[path] = code;
+        }
         if (!authored.valid) issues.push({ path, display, broken: true, unverified: [] });
         if (!authored.valid) {
           ChatLogger.warn('SITE_ENGINE', `${label} : conservé sans être affiché`, { problems: authored.problems });
+          tracker.mark(path, 'failed');
           return false;
         }
         valid.add(path);
+        tracker.mark(path, 'done');
         return true;
       };
 
@@ -539,12 +701,51 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
           renderPage(page, results, { header: hasHeader, footer: hasFooter })
         );
       }
+      tracker.mark('pages', 'done');
 
       // Les dépendances fonctionnelles font partie du socle (et de son instantané) : rien à installer en plus. Un
       // socle parti dans le flux demande seulement sa mise en place, que l'atelier fait depuis son cache ou
       // l'instantané en quelques secondes (`npm install` n'y est qu'un nom de commande, voir `fastCommands`).
       if (!scaffoldMounted) stream.command('shell', 'npm install');
       stream.command('start', 'npm run dev');
+
+      // Un en-tête écrit sans le choix de la langue : le pied de page le reçoit (le site traduit doit l'offrir).
+      const headerCode = written['src/components/site/SiteHeader.tsx'] ?? '';
+      const footerCode = written['src/components/site/SiteFooter.tsx'] ?? '';
+      if (siteLanguages.length > 1 && hasHeader && !/LanguageSwitcher/.test(headerCode) && hasFooter) {
+        const withSwitcher = withLanguageSwitcher(footerCode);
+        if (withSwitcher) {
+          stream.file('src/components/site/SiteFooter.tsx', withSwitcher);
+          written['src/components/site/SiteFooter.tsx'] = withSwitcher;
+        }
+      }
+
+      // Les autres langues : chaque texte du site (sections, faits, titres des pages) traduit par l'agent traducteur,
+      // une langue à la fois en parallèle ; puis les documents de chaque langue reprennent leurs titres traduits.
+      if (siteLanguages.length > 1 && !tracker.done('translate')) {
+        const others = siteLanguages.slice(1);
+        stream.note(fr ? `Je traduis le site en ${others.map((lang) => languageLabel(lang, true)).join(', ')}` : `Translating the site into ${others.map((lang) => languageLabel(lang, false)).join(', ')}`);
+        const texts = [...new Set([...collectMessages(written), ...dataMessages(siteDataOf(facts, manifest, language)), ...shellMessages(manifest, shellOptions.description)])];
+        const context = [facts.description, manifest.businessType, manifest.keywords.join(', ')].filter(Boolean).join(' · ').slice(0, 600);
+        const catalogs: Record<string, Record<string, string>> = Object.fromEntries(siteLanguages.map((lang) => [lang, {}]));
+        await Promise.all(
+          others.map(async (lang) => {
+            catalogs[lang] = await translateCatalog({ caller, texts, from: language, to: lang, siteName: facts.name, context });
+          })
+        );
+        if (abort.signal.aborted) return;
+        for (const [path, content] of Object.entries(renderI18nFiles(language, catalogs))) emit(path, content);
+        for (const [path, content] of Object.entries(renderPageShells({ ...shellOptions, translate: (lang, text) => catalogs[lang]?.[text] ?? text }))) stream.file(path, content);
+        tracker.mark('translate', 'done');
+        const missing = others.filter((lang) => Object.keys(catalogs[lang]).length < texts.length * 0.9);
+        ChatLogger.info('SITE_I18N', 'Site traduit', { languages: siteLanguages, texts: texts.length, translated: Object.fromEntries(others.map((lang) => [lang, Object.keys(catalogs[lang]).length])) });
+        if (missing.length)
+          stream.note(
+            fr
+              ? `Une partie des textes en ${missing.map((lang) => languageLabel(lang, true)).join(', ')} reste à traduire : demandez « /translate » pour la compléter`
+              : `Some ${missing.map((lang) => languageLabel(lang, false)).join(', ')} texts are still untranslated: ask “/translate” to finish them`
+          );
+      }
 
       // Identité visuelle pro : la charte, lancée avant le site, est attendue avant de conclure.
       let charterProblem: string | null = null;
@@ -553,6 +754,8 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
         charterProblem = await redesign.charter;
         if (abort.signal.aborted) return;
       }
+      // Tout ce qui pouvait être fait l'est : le plan est clos (un composant en échec reste à « Corriger »).
+      tracker.finish();
       stream.text('</boltArtifact>\n');
 
       // Ce qui reste à corriger, en clair, avec la marque du bouton « Corriger ».

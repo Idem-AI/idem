@@ -1,5 +1,7 @@
 {
   "common": {
+    "generationInterrupted": "La connexion avec le serveur a été coupée pendant la génération. Réessayez dans un instant.",
+    "generationFailed": "La génération n'a pas abouti. Réessayez dans un instant.",
     "new": "Nouveau",
     "save": "Enregistrer",
     "cancel": "Annuler",

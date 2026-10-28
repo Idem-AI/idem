@@ -177,6 +177,13 @@
       "needsProject": "This command needs an IDEM project: open iCode from your project.",
       "nothingToFix": "No error to fix right now.",
       "empty": "No command matches."
+    },
+    "resume": {
+      "question": "Your last generation stopped before the end. Shall we resume it?",
+      "help": "{{done}} of {{total}} steps are done and kept.",
+      "now": "Resume where it stopped",
+      "nowHelp": "Only what is left gets written, without paying again for what is done.",
+      "later": "Later"
     }
   },
   "settings": {

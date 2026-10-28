@@ -71,7 +71,7 @@ import { IdemLoader } from '@idem/shared-loader/react';
 import { JourneyCard } from '@idem/shared-journey/react';
 import { journeyClient, journeyUrls, useJourney } from '@/hooks/useJourney';
 import { readChoices, readJourney, readProject } from '@/utils/chatMarkers';
-import type { ChoicesAnswerEvent } from './components/ChatChoices';
+import { ChatChoices, type ChoicesAnswerEvent } from './components/ChatChoices';
 import { journeyLink } from '@idem/shared-journey';
 import { loadCommands, parseCommand } from '@/utils/commands';
 
@@ -205,23 +205,43 @@ async function fetchDefaultModel(): Promise<string> {
  * contiennent (il les a écrits), et les lui renvoyer à chaque message ajouterait
  * des milliers de jetons d'entrée pour une information qu'il possède.
  */
+/** Le plan d'une génération du moteur de sites, quand il n'est pas coché jusqu'au bout (voir `siteEngine/plan.ts`). */
+function unfinishedPlan(raw: string | undefined): { done: number; total: number } | null {
+  try {
+    const plan = JSON.parse(raw ?? '');
+    if (plan?.kind !== 'site-engine' || plan.status === 'done' || !Array.isArray(plan.steps)) return null;
+    const done = plan.steps.filter((step: { status?: string }) => step.status === 'done').length;
+    return done < plan.steps.length ? { done, total: plan.steps.length } : null;
+  } catch {
+    return null;
+  }
+}
+
 /**
- * Les fichiers d'un site du moteur de sites (sections, en-tête et pied, pages, design system, données) :
- * de quoi le retoucher sans rien deviner. `null` si le projet n'en est pas un (application, site d'avant).
+ * Les fichiers d'un site du moteur de sites (sections, en-tête et pied, pages, design system, données, langues,
+ * documents des pages, plan de la génération) : de quoi le retoucher, le traduire ou reprendre sa génération sans
+ * rien deviner. `null` si le projet n'en est pas un (application, site d'avant). Une génération interrompue avant
+ * ses premières pages envoie au moins son plan.
  */
 function currentSiteFiles(): Record<string, string> | null {
   const workspace = useFileStore.getState().files;
-  if (typeof workspace['idem.pages.json'] !== 'string') return null;
+  const site = typeof workspace['idem.pages.json'] === 'string';
+  if (!site && typeof workspace['idem.plan.json'] !== 'string') return null;
   const files: Record<string, string> = {};
   for (const [path, content] of Object.entries(workspace)) {
     if (typeof content !== 'string') continue;
     if (
-      /^src\/sections\/[^/]+\/\w+\.tsx$/.test(path) ||
-      /^src\/components\/site\/\w+\.tsx$/.test(path) ||
-      /^src\/pages\/[^/]+\.tsx$/.test(path) ||
-      path.startsWith('src/design-system/') ||
-      (path.startsWith('src/site/') && /\.(ts|tsx|json)$/.test(path)) ||
-      path === 'idem.pages.json'
+      path === 'idem.plan.json' ||
+      path === 'idem.manifest.json' ||
+      (site &&
+        (/^src\/sections\/[^/]+\/\w+\.tsx$/.test(path) ||
+          /^src\/components\/site\/\w+\.tsx$/.test(path) ||
+          /^src\/pages\/[^/]+\.tsx$/.test(path) ||
+          path.startsWith('src/design-system/') ||
+          (path.startsWith('src/site/') && /\.(ts|tsx|json)$/.test(path)) ||
+          (path.startsWith('src/i18n/') && /\.(ts|json)$/.test(path)) ||
+          /^(?:[\w-]+\/){0,2}index\.html$/.test(path) ||
+          path === 'idem.pages.json'))
     )
       files[path] = content;
   }
@@ -912,6 +932,18 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
 
   // La boucle IDEM : la carte « prochaine étape » (faire connaître le site, le mettre en ligne…).
   const journey = useJourney(projectId, isProjectLoaded && (hasGeneration || realMessages.some((m) => m.role === 'assistant')));
+
+  // Une génération du moteur de sites restée inachevée : la carte « Reprendre » s'affiche au-dessus de la saisie.
+  const planFile = useFileStore((state) => state.files['idem.plan.json']);
+  const resumable = useMemo(() => unfinishedPlan(typeof planFile === 'string' ? planFile : undefined), [planFile]);
+  const [resumeDismissed, setResumeDismissed] = useState(false);
+  useEffect(
+    () =>
+      eventEmitter.on('chat:choicesAnswer', (answer: ChoicesAnswerEvent) => {
+        if (answer.choices.purpose === 'resume') setResumeDismissed(true);
+      }),
+    []
+  );
 
   // Lu par l'effet de montage du socle sans le faire dépendre de `isLoading` :
   // une dépendance l'annulerait au moment même où la génération démarre.
@@ -2272,6 +2304,29 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       {/* Tutorial Modal */}
       {showTutorial && projectData && (
         <ProjectTutorial projectData={projectData} onClose={() => setShowTutorial(false)} />
+      )}
+
+      {/* Une génération interrompue (page actualisée, connexion coupée) : la reprendre là où elle s'était arrêtée. */}
+      {resumable && !isLoading && !resumeDismissed && (
+        <div className="px-3 pb-2">
+          <ChatChoices
+            active
+            choices={{
+              purpose: 'resume',
+              questions: [
+                {
+                  id: 'resume',
+                  question: t('chat.resume.question'),
+                  help: t('chat.resume.help', { done: resumable.done, total: resumable.total }),
+                  options: [
+                    { value: 'now', recommended: true, label: t('chat.resume.now'), description: t('chat.resume.nowHelp') },
+                    { value: 'later', dismiss: true, label: t('chat.resume.later') },
+                  ],
+                },
+              ],
+            }}
+          />
+        </div>
       )}
 
       {/* La boucle IDEM : l'étape suivante (faire connaître le site, le mettre en ligne…), une seule à la fois. */}

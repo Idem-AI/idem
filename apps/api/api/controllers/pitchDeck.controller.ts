@@ -5,6 +5,7 @@ import { CustomRequest } from '../interfaces/express.interface';
 import { PitchDeckService } from '../services/PitchDeck/pitchDeck.service';
 import { PromptService } from '../services/prompt.service';
 import { ISectionResult } from '../services/common/generic.service';
+import { startSseHeartbeat } from '../utils/sse-heartbeat.util';
 import logger from '../config/logger';
 import { getRequestLanguage } from '../utils/request-language';
 import { sectionEditingService } from '../services/common/section-editing.service';
@@ -281,6 +282,8 @@ export const generatePitchDeckStreamingController = async (
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
     res.setHeader('X-Accel-Buffering', 'no');
+    // Les proxys coupent un flux muet pendant une longue réponse du modèle.
+    startSseHeartbeat(res);
 
     const streamCallback = async (stepResult: ISectionResult) => {
       const eventType = stepResult.parsedData?.status || 'progress';
