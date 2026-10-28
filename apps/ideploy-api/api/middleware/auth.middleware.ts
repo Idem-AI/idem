@@ -12,7 +12,7 @@
  */
 import { Response, NextFunction } from 'express';
 import { CustomRequest } from '../interfaces/express.interface';
-import { verifySession, syncUser } from '../services/idem-auth.service';
+import { browserUserAgent, verifySession, syncUser } from '../services/idem-auth.service';
 import { resolveCurrentTeam } from '../services/user.service';
 import { verifyPat } from '../services/pat.service';
 import { fail } from '../utils/response';
@@ -28,7 +28,7 @@ export async function authenticate(
     // 1. Session cookie (primary, user-facing).
     const sessionCookie = req.cookies?.session as string | undefined;
     if (sessionCookie) {
-      const profile = await verifySession(sessionCookie);
+      const profile = await verifySession(sessionCookie, browserUserAgent(req.headers));
       if (profile) {
         const user = await syncUser(profile);
         const requestedTeam = req.headers['x-current-team']

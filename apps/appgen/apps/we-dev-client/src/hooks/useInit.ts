@@ -5,7 +5,6 @@ import { readLocaleCookie } from '@/utils/localeCookie';
 import { readThemeCookie, resolveIsDark } from '@/utils/themeCookie';
 import { useEffect } from 'react';
 import useMCPStore from '@/stores/useMCPSlice';
-import { eventEmitter } from '@/components/AiChat/utils/EventEmitter';
 
 // Version web - pas d'accès à Electron
 const useInit = (): { isDarkMode: boolean } => {
@@ -35,20 +34,8 @@ const useInit = (): { isDarkMode: boolean } => {
 
     const channel = new BroadcastChannel('login_channel');
 
-    // Auto-trigger prompt from URL (set by AppGen landing page)
+    // La demande `?prompt=` est lue par App (choix de la vue) et relayée au chat par `utils/startPrompt`.
     const urlParams = new URLSearchParams(window.location.search);
-    const promptParam = urlParams.get('prompt');
-    if (promptParam) {
-      const decoded = decodeURIComponent(promptParam);
-      // Remove prompt from URL to avoid re-triggering on refresh
-      const cleanUrl = new URL(window.location.href);
-      cleanUrl.searchParams.delete('prompt');
-      window.history.replaceState({}, '', cleanUrl.toString());
-      // Emit to chat after a short delay to let the app mount
-      setTimeout(() => {
-        eventEmitter.emit('chat:autoPrompt', decoded);
-      }, 500);
-    }
 
     // Check isLogin parameter in URL
     const isLogin = urlParams.get('isLogin') === 'true';

@@ -144,6 +144,26 @@ class SupabaseAdminClient {
     return data.users ?? [];
   }
 
+  /**
+   * Ferme toutes les sessions d'un compte sur le serveur d'authentification :
+   * ses refresh tokens Supabase ne rendent plus de jeton d'accès. GoTrue n'a
+   * pas de route d'administration pour cela ; on appelle `/logout?scope=global`
+   * avec un jeton d'une minute au nom du compte.
+   */
+  async signOutEverywhere(authId: string): Promise<void> {
+    const baseURL = requireEnv('SUPABASE_AUTH_URL').replace(/\/+$/, '');
+    const now = Math.floor(Date.now() / 1000);
+    const token = signHs256(
+      { sub: authId, role: 'authenticated', aud: 'authenticated', iss: 'idem-api', iat: now, exp: now + 60 },
+      supabaseJwtSecret()
+    );
+    await axios.post(`${baseURL}/logout`, null, {
+      params: { scope: 'global' },
+      timeout: 10_000,
+      headers: { Authorization: `Bearer ${token}`, apikey: token },
+    });
+  }
+
   async health(): Promise<boolean> {
     try {
       const baseURL = requireEnv('SUPABASE_AUTH_URL').replace(/\/+$/, '');

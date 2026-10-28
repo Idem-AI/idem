@@ -184,6 +184,10 @@
       "now": "Resume where it stopped",
       "nowHelp": "Only what is left gets written, without paying again for what is done.",
       "later": "Later"
+    },
+    "scroll": {
+      "working": "Work in progress below",
+      "new": "New message below"
     }
   },
   "settings": {

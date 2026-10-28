@@ -22,6 +22,7 @@ import { AuthSync } from './components/Auth/AuthSync';
 import { useTour } from './hooks/useTour';
 import { eventEmitter } from './components/AiChat/utils/EventEmitter';
 import { IdemLoader } from '@idem/shared-loader/react';
+import { consumePromptParam, setStartPrompt } from './utils/startPrompt';
 
 const PENDING_PROMPT_KEY = 'appgen_pending_prompt';
 
@@ -53,7 +54,9 @@ function App() {
     const urlParams = new URLSearchParams(window.location.search);
     const projectId = urlParams.get('projectId');
     const fromParam = urlParams.get('from');
-    const promptParam = urlParams.get('prompt');
+    // Lue et retirée de l'adresse : elle part au chat dès qu'il est prêt, une seule fois.
+    const promptParam = consumePromptParam();
+    if (promptParam) setStartPrompt(promptParam);
 
     // Restore AppGen context if returning from login redirect
     const pendingCtx = consumePendingContext();
@@ -87,12 +90,10 @@ function App() {
       fromParam === 'appgen' ||
       resumesStart
     ) {
-      // La demande mise de côté avant le login est rejouée via l'URL.
+      // La demande mise de côté avant le login part au chat dès qu'il est prêt.
       if (!promptParam && pendingPrompt) {
         localStorage.removeItem(PENDING_PROMPT_KEY);
-        const url = new URL(window.location.href);
-        url.searchParams.set('prompt', encodeURIComponent(pendingPrompt));
-        window.history.replaceState({}, '', url.toString());
+        setStartPrompt(pendingPrompt);
       }
       setView('chat');
       return;
@@ -101,13 +102,10 @@ function App() {
     setView('landing');
   }, []);
 
+  // La demande de l'accueil ouvre le chat ET y part aussitôt (comme si elle y avait été tapée).
   const handleLandingStart = (prompt?: string) => {
     updateDraftMetadata({});
-    if (prompt) {
-      const url = new URL(window.location.href);
-      url.searchParams.set('prompt', encodeURIComponent(prompt));
-      window.history.replaceState({}, '', url.toString());
-    }
+    setStartPrompt(prompt);
     setView('chat');
   };
 

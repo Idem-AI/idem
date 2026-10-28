@@ -184,6 +184,10 @@
       "now": "Reprendre là où elle s’est arrêtée",
       "nowHelp": "Seul ce qui reste est écrit, sans repayer ce qui est fait.",
       "later": "Plus tard"
+    },
+    "scroll": {
+      "working": "Ça avance plus bas",
+      "new": "Nouveau message plus bas"
     }
   },
   "settings": {

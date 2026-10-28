@@ -836,7 +836,7 @@ const MessageItemView: React.FC<MessageItemProps> = ({
               const choices = readChoices(message.content);
               return choices ? <ChatChoices choices={choices} active={isEndMessage && !isLoading} /> : null;
             })()}
-            {!isUser && <OpenLinks content={message.content} />}
+            {!isUser && <OpenLinks content={message.content} active={isEndMessage && !isLoading} />}
 
             {message.experimental_attachments &&
               message.experimental_attachments.length > 0 && (

@@ -153,6 +153,29 @@ export function quote(text: string): string {
 }
 
 /**
+ * Deux boutons côte à côte, pour une question à deux réponses : le premier
+ * plein, le second au trait. Même construction en tableau que le bouton
+ * d'action, pour Outlook.
+ */
+export function choiceButtons(
+  primary: { label: string; url: string },
+  secondary: { label: string; url: string }
+): string {
+  return `
+    <table role="presentation" cellpadding="0" cellspacing="0" style="margin:8px 0 24px;">
+      <tr>
+        <td style="background:${BRAND.primary};border-radius:8px;">
+          <a href="${escapeHtml(primary.url)}" style="display:inline-block;padding:13px 24px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;">${escapeHtml(primary.label)}</a>
+        </td>
+        <td style="width:12px;"></td>
+        <td style="border:1px solid ${BRAND.border};border-radius:8px;">
+          <a href="${escapeHtml(secondary.url)}" style="display:inline-block;padding:12px 24px;font-size:15px;font-weight:600;color:${BRAND.text};text-decoration:none;">${escapeHtml(secondary.label)}</a>
+        </td>
+      </tr>
+    </table>`;
+}
+
+/**
  * Assemble le message complet.
  *
  * Le bouton est construit en tableau plutôt qu'en `<a>` stylé : c'est la seule

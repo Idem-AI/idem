@@ -5,16 +5,21 @@ import { isSuperUser } from '../utils/super-user.util';
 import { toPublicProfile } from '../utils/public-profile.util';
 import {
   restoreSessionFromRefreshToken,
-  verifySessionCookie,
+  verifySessionForRequest,
 } from '../services/sessionCookie.service';
+import {
+  SUSPICIOUS_DEVICE_BODY,
+  SuspiciousDeviceError,
+} from '../services/identity/deviceCheck.service';
 import { CustomRequest } from '../interfaces/express.interface';
 import { OnboardingProfile, OnboardingUiMode } from '../models/userModel';
 
-async function isSessionValid(sessionCookie: string): Promise<boolean> {
+async function isSessionValid(req: Request, sessionCookie: string): Promise<boolean> {
   try {
-    await verifySessionCookie(sessionCookie, true);
+    await verifySessionForRequest(req, sessionCookie);
     return true;
-  } catch {
+  } catch (error) {
+    if (error instanceof SuspiciousDeviceError) throw error;
     return false;
   }
 }
@@ -41,8 +46,14 @@ export const profileController = async (req: Request, res: Response): Promise<vo
   // Les applications satellites (AppGen, iDeploy, simulateur) ne lisent que ce
   // point d'entrée : une session expirée y est renouvelée depuis le refresh
   // token, sans renvoyer l'utilisateur au login.
-  if (!sessionCookie || !(await isSessionValid(sessionCookie))) {
-    sessionCookie = (await restoreSessionFromRefreshToken(req, res)) ?? sessionCookie;
+  try {
+    if (!sessionCookie || !(await isSessionValid(req, sessionCookie))) {
+      sessionCookie = (await restoreSessionFromRefreshToken(req, res)) ?? sessionCookie;
+    }
+  } catch (error) {
+    if (!(error instanceof SuspiciousDeviceError)) throw error;
+    res.status(401).json(SUSPICIOUS_DEVICE_BODY);
+    return;
   }
 
   if (!sessionCookie) {
@@ -52,7 +63,7 @@ export const profileController = async (req: Request, res: Response): Promise<vo
   }
 
   try {
-    const identity = await verifySessionCookie(sessionCookie, true);
+    const identity = await verifySessionForRequest(req, sessionCookie);
     const profile = await userService.getUserProfile(identity.uid);
     userIdForLogging = profile.uid;
     logger.info(

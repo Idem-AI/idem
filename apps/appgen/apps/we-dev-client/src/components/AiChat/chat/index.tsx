@@ -70,10 +70,13 @@ import useRunStatus from '@/stores/runStatusSlice';
 import { IdemLoader } from '@idem/shared-loader/react';
 import { JourneyCard } from '@idem/shared-journey/react';
 import { journeyClient, journeyUrls, useJourney } from '@/hooks/useJourney';
+import { useChatAutoScroll } from '@/hooks/useChatAutoScroll';
+import { ArrowDown } from 'lucide-react';
 import { readChoices, readJourney, readProject } from '@/utils/chatMarkers';
 import { ChatChoices, type ChoicesAnswerEvent } from './components/ChatChoices';
 import { journeyLink } from '@idem/shared-journey';
 import { loadCommands, parseCommand } from '@/utils/commands';
+import { hasStartPrompt, onStartPrompt, takeStartPrompt } from '@/utils/startPrompt';
 
 type WeMessages = (Message & {
   experimental_attachments?: Array<{
@@ -1029,22 +1032,27 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
     setMessages(restored);
     setMessagesa(restored as WeMessages);
     setActiveChatUuid(chatUuid);
-    scrollToBottom();
+    // Une autre conversation : on l'ouvre sur son dernier message.
+    scrollToBottom(true);
   }, [chatUuid]);
 
-  // Listen for auto-prompt from AppGen landing page (placed here, after useChat, so isLoading/append are defined)
+  // La demande écrite sur la page d'accueil (ou arrivée par `?prompt=`, ou mise de côté avant la connexion) part
+  // dès que le chat est prêt — projet chargé, conversation restaurée — par le MÊME chemin qu'une saisie ici :
+  // commandes « / », images jointes, niveau de créativité choisi sur le bouton (`utils/startPrompt.ts`).
+  const submitRef = useRef<(text: string) => void>(() => undefined);
+  const [startPromptTick, setStartPromptTick] = useState(0);
+  useEffect(() => onStartPrompt(() => setStartPromptTick((n) => n + 1)), []);
   useEffect(() => {
-    const unsubscribe = eventEmitter.on('chat:autoPrompt', (prompt: string) => {
-      if (prompt && !isLoading) {
-        append({
-          id: uuidv4(),
-          role: 'user',
-          content: prompt,
-        });
-      }
-    });
-    return () => unsubscribe();
-  }, [isLoading, append]);
+    if (!hasStartPrompt() || isLoading) return;
+    if (projectId && !isProjectLoaded) return;
+    if (pendingSessionRef.current) return;
+    // Après les autres effets du montage (restauration, socle) : la demande ne doit pas être écrasée par eux.
+    const timer = setTimeout(() => {
+      const prompt = takeStartPrompt();
+      if (prompt) submitRef.current(prompt);
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [startPromptTick, isLoading, projectId, isProjectLoaded, chatUuid]);
 
   // « Corriger automatiquement » depuis l'aperçu : l'erreur et son journal
   // partent comme un message, que l'utilisateur voit dans la conversation.
@@ -1585,49 +1593,10 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
     }
   }, [realMessages, isLoading]);
 
-  const [userScrolling, setUserScrolling] = useState(false);
-  const userScrollTimeoutRef = useRef<NodeJS.Timeout>();
-
-  // handle user scrolling
-  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const target = e.target as HTMLDivElement;
-    const isScrolledToBottom =
-      Math.abs(target.scrollHeight - target.scrollTop - target.clientHeight) < 10;
-
-    if (!isScrolledToBottom) {
-      // user is scrolling to view history messages
-      setUserScrolling(true);
-
-      // clear previous timer
-      if (userScrollTimeoutRef.current) {
-        clearTimeout(userScrollTimeoutRef.current);
-      }
-
-      // set new timer, allow auto scroll after 3 seconds
-      userScrollTimeoutRef.current = setTimeout(() => {
-        setUserScrolling(false);
-      }, 3000);
-    }
-  };
-
-  // modify scroll to bottom function
-  const scrollToBottom = () => {
-    if (userScrolling) return; // if user is scrolling, do not execute auto scroll
-
-    const messageContainer = document.querySelector('.message-container');
-    if (messageContainer) {
-      messageContainer.scrollTop = messageContainer.scrollHeight;
-    }
-  };
-
-  // clean up timer when component unmounts
-  useEffect(() => {
-    return () => {
-      if (userScrollTimeoutRef.current) {
-        clearTimeout(userScrollTimeoutRef.current);
-      }
-    };
-  }, []);
+  // Le fil suit ce qui s'écrit, laisse lire plus haut, et ramène en bas quand une réponse finit ou demande
+  // d'agir (voir le hook).
+  const autoScroll = useChatAutoScroll(isLoading);
+  const scrollToBottom = (force = false) => autoScroll.follow({ force });
 
   // add upload status tracking
   const [isUploading, setIsUploading] = useState(false);
@@ -1757,6 +1726,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       toast.error(t('chat.errors.upload_files_failed'));
     }
   };
+  submitRef.current = (text: string) => void handleSubmitWithFiles(null as unknown as React.KeyboardEvent, text);
 
   // modify keyboard submit handler
   const handleKeySubmit = (e: React.KeyboardEvent) => {
@@ -2117,8 +2087,9 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
     // conversation devient inatteignable au lieu de défiler.
     return (
       <div
+        ref={autoScroll.containerRef}
         className="flex-1 min-h-0 overflow-y-auto px-1 py-2 message-container [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
-        onScroll={handleScroll} // add scroll event listener
+        onScroll={autoScroll.onScroll}
       >
         {/* Project Generation Workspace Header */}
         {projectData && (
@@ -2209,7 +2180,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
         {!projectData && (
           <Tips append={append} setInput={setInput} handleFileSelect={stableHandleFileSelect} />
         )}
-        <div className="max-w-[640px] w-full mx-auto space-y-3">
+        <div ref={autoScroll.contentRef} className="max-w-[640px] w-full mx-auto space-y-3">
           {filterMessages.map((message, index) => (
             <MessageItem
               handleRetry={() => {
@@ -2293,6 +2264,21 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       onDrop={handleDrop}
     >
       {showJsx}
+
+      {/* L'utilisateur lit plus haut pendant que ça avance : un bouton pour rejoindre la suite. */}
+      {autoScroll.showJump && (
+        <div className="relative h-0">
+          <button
+            type="button"
+            onClick={autoScroll.jump}
+            className="absolute bottom-3 left-1/2 z-10 inline-flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-[var(--glass-border)] bg-surface-1 px-3 py-1.5 text-xs font-medium text-text-primary shadow-md transition-colors hover:bg-surface-2"
+          >
+            {isLoading && <IdemLoader size="xs" />}
+            {isLoading ? t('chat.scroll.working') : t('chat.scroll.new')}
+            <ArrowDown size={14} aria-hidden="true" />
+          </button>
+        </div>
+      )}
 
       <CodeLoadError
         open={codeLoadFailed}

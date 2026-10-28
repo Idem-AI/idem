@@ -12,7 +12,9 @@
  *  5. cookies `session` / `refreshToken` posés par `/auth/sessionLogin`, lus
  *     par `/auth/me` et `/auth/profile`, renouvelés par `/auth/refresh` ;
  *  6. Bearer Supabase accepté par `authenticate` ;
- *  7. « déconnecter partout » révoque les sessions déjà émises.
+ *  7. sessions liées à leur appareil : refus depuis un autre appareil, relais
+ *     des satellites, « C'est moi » / « Ce n'est pas moi » (Redis requis) ;
+ *  8. « déconnecter partout » révoque les sessions déjà émises.
  *
  *   SUPABASE_AUTH_URL=http://localhost:9999 \
  *   SUPABASE_JWT_SECRET=… \
@@ -35,6 +37,9 @@ import {
   verifySessionCookie,
 } from '../services/sessionCookie.service';
 import { signHs256 } from '../utils/jwt-hs256.util';
+import { issueDeviceCheck } from '../services/identity/deviceCheck.service';
+import { deviceFingerprint } from '../utils/device-fingerprint.util';
+import RedisConnection from '../config/redis.config';
 
 const MONGO_URI = process.env.AUTH_CHECK_MONGODB_URI;
 const AUTH_URL = (process.env.SUPABASE_AUTH_URL || '').replace(/\/+$/, '');
@@ -177,6 +182,7 @@ async function main(): Promise<void> {
   const app = express();
   app.use(cookieParser());
   app.use(express.json());
+  app.use(express.urlencoded({ extended: true }));
   app.use('/auth', authRoutes);
   app.use('/auth', userRoutes);
   const server = app.listen(0);
@@ -230,6 +236,103 @@ async function main(): Promise<void> {
     assert.equal(refreshed.status, 200);
   });
 
+  // ── Sessions liées à leur appareil ──────────────────────────────────────
+  const PHONE = 'Mozilla/5.0 (Linux; Android 14; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36';
+  const LAPTOP = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36';
+  let phoneCookies = '';
+  let phoneBearer = '';
+  let phoneSid = '';
+  await step('session ouverte sur un téléphone : acceptée sur ce téléphone', async () => {
+    phoneBearer = await passwordSignIn(legacyEmail);
+    const res = await http.post('/auth/sessionLogin', { token: phoneBearer }, { headers: { 'User-Agent': PHONE } });
+    assert.equal(res.status, 200, JSON.stringify(res.data));
+    phoneCookies = cookieHeader(res.headers['set-cookie']);
+    const session = phoneCookies.split('; ').find((c) => c.startsWith('session='))!.slice('session='.length);
+    phoneSid = claimsOf(session).sid;
+    assert.ok(phoneSid);
+    assert.equal(claimsOf(session).dfp, 'android/chrome/mobile');
+    // Une nouvelle version du navigateur reste le même appareil.
+    const me = await http.get('/auth/me', { headers: { Cookie: phoneCookies, 'User-Agent': PHONE.replace('130.0', '131.0') } });
+    assert.equal(me.status, 200);
+  });
+
+  await step('même session depuis un autre appareil : refusée (cookie, refresh, Bearer)', async () => {
+    const me = await http.get('/auth/me', { headers: { Cookie: phoneCookies, 'User-Agent': LAPTOP } });
+    assert.equal(me.status, 401);
+    assert.equal(me.data.code, 'suspicious_device');
+    const refreshOnly = phoneCookies.split('; ').filter((c) => c.startsWith('refreshToken=')).join('; ');
+    const refresh = await http.post('/auth/refresh', {}, { headers: { Cookie: refreshOnly, 'User-Agent': LAPTOP } });
+    assert.equal(refresh.status, 401);
+    assert.equal(refresh.data.code, 'suspicious_device');
+    const profile = await http.get('/auth/profile', { headers: { Cookie: refreshOnly, 'User-Agent': LAPTOP } });
+    assert.equal(profile.status, 401);
+    const bearer = await http.get('/auth/me', { headers: { Authorization: `Bearer ${phoneBearer}`, 'User-Agent': LAPTOP } });
+    assert.equal(bearer.status, 401);
+    assert.equal(bearer.data.code, 'suspicious_device');
+    // L'alerte part en arrière-plan, une fois par heure et par appareil.
+    await new Promise((r) => setTimeout(r, 300));
+    const throttle = await RedisConnection.getInstance().get(
+      `auth:device-alert:${legacyUid}:${phoneSid}:${deviceFingerprint(LAPTOP)}`
+    );
+    assert.equal(throttle, '1');
+  });
+
+  await step('satellite qui relaie le User-Agent du navigateur : accepté', async () => {
+    const me = await http.get('/auth/profile', {
+      headers: { Cookie: phoneCookies, 'User-Agent': 'axios/1.7.7', 'X-Idem-Client-User-Agent': PHONE },
+    });
+    assert.equal(me.status, 200);
+    const bare = await http.get('/auth/profile', { headers: { Cookie: phoneCookies, 'User-Agent': 'axios/1.7.7' } });
+    assert.equal(bare.status, 401);
+  });
+
+  await step("e-mail « C'est moi » : la page ne change rien, le bouton ajoute l'appareil", async () => {
+    const token = await issueDeviceCheck({
+      uid: legacyUid, sessionId: phoneSid, fingerprint: deviceFingerprint(LAPTOP), ipAddress: '203.0.113.7', at: new Date().toISOString(),
+    });
+    const page = await http.get(`/auth/device-check/${token}?d=approve`);
+    assert.equal(page.status, 200);
+    assert.match(page.data, /Chrome sur Windows/);
+    const stillRefused = await http.get('/auth/me', { headers: { Cookie: phoneCookies, 'User-Agent': LAPTOP } });
+    assert.equal(stillRefused.status, 401);
+    const decided = await http.post(`/auth/device-check/${token}`, 'decision=approve', {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    });
+    assert.equal(decided.status, 200);
+    const me = await http.get('/auth/me', { headers: { Cookie: phoneCookies, 'User-Agent': LAPTOP } });
+    assert.equal(me.status, 200);
+    const reused = await http.post(`/auth/device-check/${token}`, 'decision=deny', {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    });
+    assert.equal(reused.status, 410);
+  });
+
+  await step("e-mail « Ce n'est pas moi » : toutes les sessions sont fermées", async () => {
+    const TABLET = 'Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1';
+    const token = await issueDeviceCheck({
+      uid: legacyUid, sessionId: phoneSid, fingerprint: deviceFingerprint(TABLET), ipAddress: '203.0.113.8', at: new Date().toISOString(),
+    });
+    await new Promise((r) => setTimeout(r, 5));
+    const decided = await http.post(`/auth/device-check/${token}`, 'decision=deny', {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    });
+    assert.equal(decided.status, 200);
+    const me = await http.get('/auth/me', { headers: { Cookie: phoneCookies, 'User-Agent': PHONE } });
+    assert.equal(me.status, 403);
+    const refresh = await http.post('/auth/refresh', {}, { headers: { Cookie: phoneCookies, 'User-Agent': PHONE } });
+    assert.equal(refresh.status, 401);
+    // Le serveur d'authentification a fermé la session : son refresh token est mort.
+    const bearer = await http.get('/auth/me', { headers: { Authorization: `Bearer ${phoneBearer}`, 'User-Agent': PHONE } });
+    assert.equal(bearer.status, 403);
+  });
+
+  // « Ce n'est pas moi » a tout fermé : on rouvre une session pour la suite.
+  await new Promise((r) => setTimeout(r, 1100));
+  {
+    const res = await http.post('/auth/sessionLogin', { token: await passwordSignIn(legacyEmail) });
+    cookies = cookieHeader(res.headers['set-cookie']);
+  }
+
   const oldBearer = await passwordSignIn(legacyEmail);
   await new Promise((r) => setTimeout(r, 1100));
   await step('POST /auth/logout-all : les sessions et jetons déjà émis sont refusés', async () => {
@@ -247,6 +350,7 @@ async function main(): Promise<void> {
   });
 
   server.close();
+  RedisConnection.getInstance().disconnect();
   await mongoose.connection.dropDatabase();
   await mongoose.disconnect();
 

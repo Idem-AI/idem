@@ -25,7 +25,7 @@ import logger from '../config/logger';
 import { ServerRow, PrivateKeyRow } from '../models/ideploy.types';
 import { decryptString } from '../utils/laravel-crypto';
 import { isLocalServer } from '../ssh/ssh';
-import { verifySession, syncUser } from './idem-auth.service';
+import { browserUserAgent, verifySession, syncUser } from './idem-auth.service';
 import { resolveCurrentTeam } from './user.service';
 import * as serverService from './server.service';
 import * as databaseService from './database.service';
@@ -76,7 +76,7 @@ export async function authenticateSocket(
   const session = cookies.session;
   if (!session) return null;
 
-  const profile = await verifySession(session);
+  const profile = await verifySession(session, browserUserAgent(req.headers));
   if (!profile) return null;
 
   const user = await syncUser(profile);

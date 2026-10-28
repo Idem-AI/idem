@@ -56,6 +56,11 @@ export function ChatChoices({ choices, active }: { choices: Choices; active: boo
   const options = useMemo(() => (current ? ordered(current) : []), [current]);
   const hasRecommended = questions.slice(step).some((q) => q.options?.some((o) => o.recommended));
 
+  // Des choix qui attendent une réponse : le fil descend jusqu'à eux, même si l'utilisateur lisait plus haut.
+  useEffect(() => {
+    if (active) eventEmitter.emit('chat:attention');
+  }, [active]);
+
   // La question qui arrive prend le focus (clavier, lecteurs d'écran) — sauf la toute première, posée par le fil.
   useEffect(() => {
     if (!active || step === 0) return;

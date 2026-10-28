@@ -4,10 +4,26 @@ import logger from '../config/logger';
 import { RefreshTokenData, UserModel } from '../models/userModel';
 import { IRepository } from '../repository/IRepository';
 import { RepositoryFactory } from '../repository/RepositoryFactory';
+import { deviceFingerprint } from '../utils/device-fingerprint.util';
 
 export interface RefreshTokenResult {
   refreshToken: string;
   expiresAt: Date;
+  sessionId: string;
+}
+
+/** Appareil auquel la session est liée. */
+export interface SessionBinding {
+  deviceFingerprint: string;
+  authSessionId?: string;
+}
+
+/** Vrai si l'empreinte est celle de la session ou d'un appareil confirmé. */
+export function isKnownDevice(session: RefreshTokenData, fingerprint: string): boolean {
+  return (
+    session.deviceFingerprint === fingerprint ||
+    (session.trustedFingerprints ?? []).includes(fingerprint)
+  );
 }
 
 export interface TokenValidationResult {
@@ -42,7 +58,8 @@ class RefreshTokenService {
   async generateRefreshToken(
     userId: string,
     deviceInfo?: string,
-    ipAddress?: string
+    ipAddress?: string,
+    binding?: SessionBinding
   ): Promise<RefreshTokenResult> {
     try {
       logger.info(`Generating refresh token for user: ${userId}`);
@@ -54,12 +71,16 @@ class RefreshTokenService {
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + this.REFRESH_TOKEN_EXPIRY_DAYS);
 
+      const sessionId = crypto.randomUUID();
       const refreshTokenData: RefreshTokenData = {
         token: hashRefreshToken(token),
         expiresAt,
         createdAt: new Date(),
         deviceInfo,
         ipAddress,
+        sessionId,
+        deviceFingerprint: binding?.deviceFingerprint ?? deviceFingerprint(deviceInfo),
+        ...(binding?.authSessionId && { authSessionId: binding.authSessionId }),
       };
 
       // Récupérer l'utilisateur
@@ -91,7 +112,7 @@ class RefreshTokenService {
       await this.userRepository.update(userId, { refreshTokens: user.refreshTokens }, 'users');
 
       logger.info(`Refresh token generated successfully for user: ${userId}`);
-      return { refreshToken: token, expiresAt };
+      return { refreshToken: token, expiresAt, sessionId };
     } catch (error) {
       logger.error(`Error generating refresh token for user ${userId}:`, {
         error: (error as Error).message,
@@ -136,6 +157,10 @@ class RefreshTokenService {
 
           // Mettre à jour la date de dernière utilisation
           tokenData.lastUsed = new Date();
+          // Session antérieure à la liaison aux appareils : elle reçoit son
+          // identifiant, et l'appareil enregistré à sa création.
+          tokenData.sessionId ??= crypto.randomUUID();
+          tokenData.deviceFingerprint ??= deviceFingerprint(tokenData.deviceInfo);
           await this.userRepository.update(
             user.uid,
             { refreshTokens: user.refreshTokens },
@@ -160,6 +185,43 @@ class RefreshTokenService {
       });
       return { isValid: false };
     }
+  }
+
+  /** Session encore valide d'un utilisateur, par son identifiant (`sid`). */
+  async findSession(userId: string, sessionId: string): Promise<RefreshTokenData | null> {
+    return this.findSessionWhere(userId, (rt) => rt.sessionId === sessionId);
+  }
+
+  /** Session ouverte avec une session donnée du serveur d'authentification. */
+  async findSessionByAuthSession(
+    userId: string,
+    authSessionId: string
+  ): Promise<RefreshTokenData | null> {
+    return this.findSessionWhere(userId, (rt) => rt.authSessionId === authSessionId);
+  }
+
+  private async findSessionWhere(
+    userId: string,
+    match: (rt: RefreshTokenData) => boolean
+  ): Promise<RefreshTokenData | null> {
+    const doc = await mongoose.connection
+      .collection('users')
+      .findOne({ _id: userId as any }, { projection: { refreshTokens: 1 } });
+    const session = ((doc?.refreshTokens ?? []) as RefreshTokenData[]).find(match);
+    if (!session || new Date(session.expiresAt) < new Date()) return null;
+    return session;
+  }
+
+  /**
+   * Ajoute un appareil confirmé par le titulaire à une session.
+   * Renvoie faux si la session n'existe plus.
+   */
+  async trustDevice(userId: string, sessionId: string, fingerprint: string): Promise<boolean> {
+    const result = await mongoose.connection.collection('users').updateOne(
+      { _id: userId as any, 'refreshTokens.sessionId': sessionId },
+      { $addToSet: { 'refreshTokens.$.trustedFingerprints': fingerprint } }
+    );
+    return result.matchedCount > 0;
   }
 
   /**

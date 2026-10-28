@@ -37,10 +37,22 @@ const IDEM_API_URL = process.env.IDEM_API_URL || 'http://localhost:3001';
  */
 const SESSION_CACHE_TTL_SECONDS = 20;
 
-function cacheKey(sessionCookie: string): string {
+function cacheKey(sessionCookie: string, userAgent: string): string {
   // The cookie itself is a live credential — never used as a Redis key or
-  // logged verbatim; only its hash identifies the cache entry.
-  return `ideploy:session-verify:${createHash('sha256').update(sessionCookie).digest('hex')}`;
+  // logged verbatim; only its hash identifies the cache entry. The user agent
+  // is part of it: the same cookie from another device is checked again.
+  return `ideploy:session-verify:${createHash('sha256').update(`${sessionCookie}|${userAgent}`).digest('hex')}`;
+}
+
+/**
+ * The browser's user agent for a request: the one AppGen forwards when it
+ * relays a call, otherwise the caller's own. The central API binds every
+ * session to its device and refuses a cookie presented with this server's
+ * user agent.
+ */
+export function browserUserAgent(headers: Record<string, string | string[] | undefined>): string {
+  const value = headers['x-idem-client-user-agent'] || headers['user-agent'] || '';
+  return (Array.isArray(value) ? value[0] : value) ?? '';
 }
 
 export interface IdemProfile {
@@ -78,10 +90,13 @@ const inFlight = new Map<string, Promise<IdemProfile | null>>();
  * invalid, and caching that would make a genuinely valid session look
  * logged-out for the whole TTL instead of just this one request.
  */
-export async function verifySession(sessionCookie: string | undefined): Promise<IdemProfile | null> {
+export async function verifySession(
+  sessionCookie: string | undefined,
+  userAgent = ''
+): Promise<IdemProfile | null> {
   if (!sessionCookie) return null;
 
-  const key = cacheKey(sessionCookie);
+  const key = cacheKey(sessionCookie, userAgent);
   try {
     const cached = await redis.get(key);
     if (cached) return JSON.parse(cached) as IdemProfile;
@@ -92,7 +107,7 @@ export async function verifySession(sessionCookie: string | undefined): Promise<
   const existing = inFlight.get(key);
   if (existing) return existing;
 
-  const verification = verifySessionUncached(sessionCookie)
+  const verification = verifySessionUncached(sessionCookie, userAgent)
     .then(async (profile) => {
       if (profile) {
         try {
@@ -108,10 +123,15 @@ export async function verifySession(sessionCookie: string | undefined): Promise<
   return verification;
 }
 
-async function verifySessionUncached(sessionCookie: string): Promise<IdemProfile | null> {
+async function verifySessionUncached(sessionCookie: string, userAgent: string): Promise<IdemProfile | null> {
   try {
     const { data, status } = await axios.get(`${IDEM_API_URL}/auth/profile`, {
-      headers: { Cookie: `session=${sessionCookie}`, Accept: 'application/json', ...traceHeaders() },
+      headers: {
+        Cookie: `session=${sessionCookie}`,
+        'X-Idem-Client-User-Agent': userAgent,
+        Accept: 'application/json',
+        ...traceHeaders(),
+      },
       timeout: 10000,
       validateStatus: () => true,
     });

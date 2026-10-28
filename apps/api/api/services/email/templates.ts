@@ -1,6 +1,7 @@
 import {
   BRAND,
   bullets,
+  choiceButtons,
   escapeHtml,
   formatDate,
   formatXaf,
@@ -570,5 +571,71 @@ export function meterAsleep(params: MeterAsleepParams): RenderedEmail {
       [greetingText(params.firstName), `${params.appName} s’est endormie. ${why}`, 'Rien n’est supprimé pendant 30 jours.'],
       { label: 'Réveiller', url: params.wakeUrl }
     ),
+  };
+}
+
+// ============================================
+// SÉCURITÉ DU COMPTE
+// ============================================
+
+export interface SuspiciousDeviceParams {
+  firstName?: string;
+  /** « Chrome sur Android ». */
+  device: string;
+  ipAddress: string;
+  at: Date;
+  /** Page de vérification, réponse « C'est moi » présélectionnée. */
+  approveUrl: string;
+  /** Même page, réponse « Ce n'est pas moi » présélectionnée. */
+  denyUrl: string;
+}
+
+/**
+ * Une session ouverte sur un appareil a été présentée depuis un autre : la
+ * requête a été refusée, le titulaire dit si c'était lui.
+ */
+export function suspiciousDevice(params: SuspiciousDeviceParams): RenderedEmail {
+  const when = new Date(params.at).toLocaleString('fr-FR', {
+    timeZone: 'Africa/Douala',
+    dateStyle: 'long',
+    timeStyle: 'short',
+  });
+  const approve = { label: "Oui, c'est moi", url: params.approveUrl };
+  const deny = { label: "Non, ce n'est pas moi", url: params.denyUrl };
+
+  const body = [
+    paragraph(greeting(params.firstName)),
+    paragraph(
+      "Votre session IDEM vient d'être utilisée depuis un appareil différent de celui où vous vous êtes connecté. Par précaution, nous avons refusé l'accès."
+    ),
+    panel('Connexion refusée', [
+      { label: 'Appareil', value: escapeHtml(params.device) },
+      { label: 'Adresse IP', value: escapeHtml(params.ipAddress) },
+      { label: 'Date', value: escapeHtml(when) },
+    ]),
+    paragraph('Était-ce vous ?'),
+    choiceButtons(approve, deny),
+    paragraph(
+      "Si ce n'était pas vous, toutes vos sessions seront fermées : vous vous reconnecterez, puis nous vous conseillons de changer votre mot de passe."
+    ),
+  ].join('');
+
+  return {
+    subject: 'Connexion suspecte sur votre compte IDEM',
+    html: renderEmail({
+      title: 'Connexion suspecte',
+      subtitle: params.device,
+      preheader: "Nous avons refusé l'accès. Dites-nous si c'était vous.",
+      body,
+      footerNote: 'Ce lien est valable 48 heures et ne sert qu’une fois.',
+    }),
+    text: toPlainText('Connexion suspecte sur votre compte IDEM', [
+      greetingText(params.firstName),
+      "Votre session IDEM vient d'être utilisée depuis un appareil différent de celui où vous vous êtes connecté. Par précaution, nous avons refusé l'accès.",
+      `Appareil : ${params.device}\nAdresse IP : ${params.ipAddress}\nDate : ${when}`,
+      `C'est moi : ${params.approveUrl}`,
+      `Ce n'est pas moi : ${params.denyUrl}`,
+      "Si ce n'était pas vous, toutes vos sessions seront fermées : vous vous reconnecterez, puis nous vous conseillons de changer votre mot de passe.",
+    ]),
   };
 }

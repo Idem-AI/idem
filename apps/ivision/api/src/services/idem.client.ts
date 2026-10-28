@@ -29,9 +29,15 @@ const SESSION_TTL_MS = 20_000;
 const sessionCache = new Map<string, { profile: IdemProfile; at: number }>();
 const inFlight = new Map<string, Promise<IdemProfile | null>>();
 
-export async function verifySession(sessionCookie: string): Promise<IdemProfile | null> {
-  // Le cookie est un secret : seule son empreinte sert de clé.
-  const key = createHash('sha256').update(sessionCookie).digest('hex');
+/**
+ * Vérifie un cookie `session` auprès d'IDEM. `userAgent` est celui du
+ * navigateur : IDEM lie chaque session à son appareil et refuserait la
+ * requête s'il voyait le User-Agent de ce serveur.
+ */
+export async function verifySession(sessionCookie: string, userAgent = ''): Promise<IdemProfile | null> {
+  // Le cookie est un secret : seule son empreinte sert de clé. Le User-Agent en
+  // fait partie : le même cookie présenté par un autre appareil est revérifié.
+  const key = createHash('sha256').update(`${sessionCookie}|${userAgent}`).digest('hex');
   const hit = sessionCache.get(key);
   if (hit && Date.now() - hit.at < SESSION_TTL_MS) return hit.profile;
   const pending = inFlight.get(key);
@@ -39,7 +45,7 @@ export async function verifySession(sessionCookie: string): Promise<IdemProfile 
   const job = (async () => {
     try {
       const res = await axios.get(`${env.idemApiUrl}/auth/profile`, {
-        headers: { Cookie: `session=${sessionCookie}`, ...traceHeaders() },
+        headers: { Cookie: `session=${sessionCookie}`, 'X-Idem-Client-User-Agent': userAgent, ...traceHeaders() },
         timeout: 8000,
         validateStatus: (s) => s < 500,
       });
