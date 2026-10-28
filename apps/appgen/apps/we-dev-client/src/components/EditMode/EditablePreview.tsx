@@ -248,6 +248,11 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
 
   // Rien à montrer encore, mais ça démarre : on dit quoi plutôt que « rien ».
   const waiting = !url && (warming || runPhase === 'installing' || runPhase === 'starting');
+  // Lancé mais jamais répondu dans le délai (voir `watchServerStart`) : on le dit, au lieu d'un « en cours » sans fin.
+  const warmReason = useWarmStart((state) => state.reason);
+  // Ou dont les dépendances n'ont pas pu être installées (npm en échec ou au-delà de son délai).
+  const startFailed = !url && !waiting && warmStep === 'failed' && (warmReason === 'server' || warmReason === 'deps');
+  const startFailedHint = warmReason === 'deps' ? 'preview.startFailed.depsHint' : 'preview.startFailed.hint';
 
   const generating = useChatStore((state) => state.isGenerating);
   const awaitingFirstGeneration = useChatStore((state) => state.canGenerate);
@@ -842,6 +847,8 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
                     <p className="text-[15px] font-semibold text-neutral-900">
                       {offerGeneration
                         ? t('chatWorkspace.readyToGenerate')
+                        : startFailed
+                          ? t('preview.startFailed.title')
                         : generating
                           ? t('chatWorkspace.inProgress')
                           : t(waiting ? 'preview.waiting.title' : 'preview.noserverTitle')}
@@ -849,6 +856,8 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
                     <p className="text-[13px] leading-relaxed text-neutral-500 text-pretty">
                       {offerGeneration
                         ? t('chatWorkspace.startHint')
+                        : startFailed
+                          ? t(startFailedHint)
                         : generating
                           ? t('chatWorkspace.inProgressBody')
                           : waiting
@@ -859,7 +868,7 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
                       variant={!offerGeneration && waiting ? 'secondary' : 'primary'}
                       size="sm"
                       onClick={offerGeneration ? startGeneration : runProject}
-                      loading={starting || (generating && !offerGeneration)}
+                      loading={starting || (generating && !offerGeneration && !startFailed)}
                       icon={<Play className="w-4 h-4" />}
                       className="mt-2"
                     >
@@ -890,6 +899,8 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
               <p className="text-sm font-medium text-text-secondary">
                 {offerGeneration
                   ? t('chatWorkspace.readyToGenerate')
+                  : startFailed
+                    ? t('preview.startFailed.title')
                   : generating
                     ? t('chatWorkspace.inProgress')
                     : t(waiting ? 'preview.waiting.title' : 'preview.noserverTitle')}
@@ -897,6 +908,8 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
               <p className="text-xs text-text-tertiary max-w-xs text-pretty">
                 {offerGeneration
                   ? t('chatWorkspace.startHint')
+                  : startFailed
+                    ? t(startFailedHint)
                   : generating
                     ? t('chatWorkspace.inProgressBody')
                     : waiting
@@ -907,7 +920,7 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
                 variant={!offerGeneration && waiting ? 'secondary' : 'primary'}
                 size="sm"
                 onClick={offerGeneration ? startGeneration : runProject}
-                loading={starting || (generating && !offerGeneration)}
+                loading={starting || (generating && !offerGeneration && !startFailed)}
                 icon={<Play className="w-4 h-4" />}
                 className="mt-1"
               >

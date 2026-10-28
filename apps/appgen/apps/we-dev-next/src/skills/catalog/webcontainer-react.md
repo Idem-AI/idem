@@ -30,7 +30,7 @@ Browser WebContainer running Node. **Vite, multi-page**, React 18, **TypeScript*
 
 ## Adding a page
 
-Create `<slug>/index.html` (same structure as `index.html`, its own title and description, script `/src/entries/<slug>.tsx`), `src/entries/<slug>.tsx` (same as `src/entries/home.tsx`, importing `../pages/<slug>.tsx`), `src/pages/<slug>.tsx`, its sections in `src/sections/<slug>/`, then add it to `idem.pages.json` and to `site.navigation` / `site.pages` in `src/site/data.ts`.
+Create `src/entries/<slug>.tsx` (same as `src/entries/home.tsx`, importing `../pages/<slug>.tsx`), `src/pages/<slug>.tsx`, its sections in `src/sections/<slug>/`, then add one entry per site language to `src/site/pages.json` (`path`, `lang`, `module`, `entry`, `html`: `<slug>/index.html`, `title`, `description`) and the page to `site.navigation` / `site.pages` in `src/site/data.ts`. Never create an HTML file for a page: the template builds each page document from `index.html` and `src/site/pages.json`.
 
 ## Files you never write
 

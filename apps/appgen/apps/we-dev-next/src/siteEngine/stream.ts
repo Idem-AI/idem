@@ -25,6 +25,8 @@ export class SiteStream {
   }
 
   text(chunk: string) {
+    // Une tâche lancée pendant la réponse (la charte) peut encore donner signe de vie après sa fin.
+    if (this.res.writableEnded) return;
     this.res.write(formatDataStreamPart('text', chunk));
   }
 

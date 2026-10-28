@@ -195,6 +195,9 @@ function themeSummary(config: Record<string, any>): string {
   ].join(' ');
 }
 
+/** Ce que la fin d'une refonte attend encore la charte, une fois le site écrit (au-delà, elle finit dans IDEM). */
+const CHARTER_GRACE_MS = Number(process.env.SITE_CHARTER_GRACE_MS) || 3 * 60_000;
+
 export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
   return {
     async pipeDataStreamToResponse(res: Response): Promise<void> {
@@ -253,6 +256,9 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
         }
         projectData = prepared.projectData;
         redesign = prepared.redesign;
+        // Le projet né de cette refonte, annoncé dès maintenant : l'atelier s'y rattache et y enregistre le site
+        // pendant qu'il s'écrit (annoncé à la fin seulement, une actualisation en cours de route perdait tout).
+        if (redesign.created && projectData.id) stream.text(marker('project', { id: projectData.id, name: projectData.name }));
       }
       // Reprise : le manifeste et le design system sont relus dans le projet ; une refonte retrouve le relevé de
       // l'ancien site dans IDEM (rien n'est relu sur le site lui-même, rien n'est refacturé).
@@ -747,12 +753,24 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
           );
       }
 
-      // Identité visuelle pro : la charte, lancée avant le site, est attendue avant de conclure.
+      // Identité visuelle pro : la charte, lancée avant le site, est attendue avant de conclure — un temps borné.
+      // Attendue sans limite, une charte lente (ou un flux d'IDEM qui ne se ferme pas) retenait la réponse des
+      // dizaines de minutes : rien n'était enregistré, l'aperçu n'était pas lancé, aucun message. Au-delà, elle
+      // continue dans IDEM (la réponse close normalement n'interrompt pas sa génération) et on le dit.
       let charterProblem: string | null = null;
       if (redesign?.charter) {
         stream.note(fr ? 'Je termine votre charte graphique' : 'Finishing your brand guidelines');
-        charterProblem = await redesign.charter;
+        const late = Symbol('late');
+        let timer: NodeJS.Timeout | undefined;
+        const outcome = await Promise.race([redesign.charter, new Promise<typeof late>((resolve) => (timer = setTimeout(() => resolve(late), CHARTER_GRACE_MS)))]);
+        clearTimeout(timer);
         if (abort.signal.aborted) return;
+        if (outcome === late) {
+          ChatLogger.warn('SITE_REDESIGN', 'Charte encore en cours à la fin du site', { projectId: projectData.id, graceMs: CHARTER_GRACE_MS });
+          charterProblem = fr
+            ? 'Votre charte graphique se termine dans votre projet IDEM : vous l’y trouverez dans quelques minutes.'
+            : 'Your brand guidelines are still being finished in your IDEM project: you will find them there in a few minutes.';
+        } else charterProblem = outcome;
       }
       // Tout ce qui pouvait être fait l'est : le plan est clos (un composant en échec reste à « Corriger »).
       tracker.finish();
@@ -778,9 +796,8 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
             ];
         stream.text(`${lines.filter(Boolean).join(' ')}\n`);
       }
-      // Ce qui vient de se passer, pour l'atelier : le projet auquel se rattacher (refonte qui l'a créé) et le
+      // Ce qui vient de se passer, pour l'atelier (le projet d'une refonte a été annoncé en tête de réponse) : le
       // geste à signaler à la boucle IDEM (qui proposera la suite : faire connaître le site, le mettre en ligne…).
-      if (redesign?.created && projectData.id) stream.text(marker('project', { id: projectData.id, name: projectData.name }));
       if (projectData.id) {
         stream.text(marker('journey', { event: redesign ? 'site.redesigned' : 'site.generated', projectId: projectData.id }));
         if (redesign?.choice === 'identity' && !charterProblem) stream.text(marker('journey', { event: 'charter.generated', projectId: projectData.id }));

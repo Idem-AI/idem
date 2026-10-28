@@ -228,12 +228,14 @@ function unfinishedPlan(raw: string | undefined): { done: number; total: number 
  */
 function currentSiteFiles(): Record<string, string> | null {
   const workspace = useFileStore.getState().files;
-  const site = typeof workspace['idem.pages.json'] === 'string';
-  if (!site && typeof workspace['idem.plan.json'] !== 'string') return null;
+  const site = typeof (workspace['src/site/pages.json'] ?? workspace['idem.pages.json']) === 'string';
+  if (!site && typeof (workspace['.idem/plan.json'] ?? workspace['idem.plan.json']) !== 'string') return null;
   const files: Record<string, string> = {};
   for (const [path, content] of Object.entries(workspace)) {
     if (typeof content !== 'string') continue;
     if (
+      path === '.idem/plan.json' ||
+      path === '.idem/manifest.json' ||
       path === 'idem.plan.json' ||
       path === 'idem.manifest.json' ||
       (site &&
@@ -937,7 +939,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
   const journey = useJourney(projectId, isProjectLoaded && (hasGeneration || realMessages.some((m) => m.role === 'assistant')));
 
   // Une génération du moteur de sites restée inachevée : la carte « Reprendre » s'affiche au-dessus de la saisie.
-  const planFile = useFileStore((state) => state.files['idem.plan.json']);
+  const planFile = useFileStore((state) => state.files['.idem/plan.json'] ?? state.files['idem.plan.json']);
   const resumable = useMemo(() => unfinishedPlan(typeof planFile === 'string' ? planFile : undefined), [planFile]);
   const [resumeDismissed, setResumeDismissed] = useState(false);
   useEffect(
@@ -1157,6 +1159,19 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
         return;
       }
       if (choices.prepare === 'site-reset') {
+        // Ce qui était là (une application, un autre site) : un point de restauration, et plus aucun envoi en vol
+        // — l'adresse passe au site juste après, et un envoi parti avant écrirait l'ancien code chez le site.
+        const before = useFileStore.getState().files;
+        const previous = depsTarget();
+        const blank = previous === 'site' && isStarterOnly(before);
+        if (!blank && Object.keys(before).length) {
+          await useVersionHistory
+            .getState()
+            .capture(t('versions.beforeRedesign'), before)
+            .catch((error) => console.warn('[refonte] point de restauration non enregistré', error));
+        }
+        cancelPendingCodeSync();
+        await waitForCodeSync();
         const url = new URL(window.location.href);
         if (url.searchParams.get('product') !== 'site') {
           url.searchParams.set('product', 'site');
@@ -1164,14 +1179,27 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
           window.history.replaceState({}, '', url.toString());
         }
         journey.clear();
+        clearScaffold();
+        settleScaffold();
+        // Un conteneur neuf, sauf s'il ne porte encore que le socle du site. Le montage n'efface jamais rien : les
+        // fichiers de l'ancien projet restaient sur le disque, la relecture les ramenait dans l'explorateur (puis
+        // dans le site enregistré), et le serveur de l'application, arrêté ou pas, laissait son adresse : l'aperçu
+        // du site croyait tourner déjà, ne démarrait jamais, sans erreur. Les dépendances du site reviennent du
+        // cache ou de l'instantané en quelques secondes.
+        if (!blank) {
+          stopStarted();
+          await resetWebContainer();
+          resetFileHashes();
+          execList.clear();
+          resetWarmStart();
+          resetInstallRepair();
+          useRunStatus.getState().reset();
+          resetTerminals();
+        }
         // Le socle du site monté TOUT DE SUITE et l'aperçu lancé pendant que le site est lu et écrit : à la fin,
         // il n'y a plus rien à installer ni à démarrer (objectif : moins de 20 s). Le serveur renverra le socle
         // construit avec le projet (logo compris) : non verrouillé ici, il remplacera celui-ci par rechargement à
-        // chaud. Un serveur qui servait une autre cible (une application) est arrêté d'abord.
-        const previous = depsTarget();
-        clearScaffold();
-        settleScaffold();
-        if (previous && previous !== 'site') stopStarted();
+        // chaud.
         try {
           const scaffold = await fetchScaffold(projectData, { product: 'site', language: i18n.language });
           setEmptyFiles();
@@ -1592,6 +1620,61 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       createMpIcon(files);
     }
   }, [realMessages, isLoading]);
+
+  /**
+   * Le projet d'une refonte lancée hors projet existe dès que le site est lu : le serveur le dit en tête de réponse.
+   * L'adresse le porte aussitôt — une actualisation rouvre ce projet, plus un atelier vide — et l'enregistrement
+   * part vers lui pendant la génération. Le rattachement complet (journal IDEM, rechargement) reste à la fin.
+   */
+  const liveProjectRef = useRef<string | null>(null);
+  const realMessagesRef = useRef(realMessages);
+  realMessagesRef.current = realMessages;
+  useEffect(() => {
+    if (!isLoading || projectId || liveProjectRef.current) return;
+    const last = realMessages[realMessages.length - 1];
+    const created = last?.role === 'assistant' ? readProject(last.content) : null;
+    if (!created) return;
+    liveProjectRef.current = created.id;
+    useAppGenContextStore.getState().setConnectedProject(created.id);
+    const url = new URL(window.location.href);
+    url.searchParams.set('projectId', created.id);
+    url.searchParams.set('product', 'site');
+    url.searchParams.delete('platform');
+    url.searchParams.delete('prompt');
+    window.history.replaceState({}, '', url.toString());
+  }, [realMessages, isLoading, projectId]);
+
+  /**
+   * Enregistré PENDANT la génération, pas seulement à la fin. Une refonte dure plusieurs minutes : tout ne partait
+   * qu'en fin de réponse, si bien qu'une actualisation, une coupure ou une réponse finie en erreur faisait tout perdre
+   * (les fichiers, et le plan dont « Reprendre » a besoin). Toutes les 20 s, dès que la réponse a écrit un fichier :
+   * le code (seul ce qui a changé part) et la conversation ; une dernière fois quand la réponse s'arrête, quelle
+   * qu'en soit l'issue.
+   */
+  useEffect(() => {
+    if (!isLoading) return;
+    const save = () => {
+      const target = projectId ?? liveProjectRef.current;
+      if (!target) return;
+      const all = realMessagesRef.current;
+      const last = all[all.length - 1];
+      if (last?.role !== 'assistant' || !/<boltAction\s+type="file"[\s\S]*?<\/boltAction>/.test(last.content)) return;
+      const workspace = useFileStore.getState().files;
+      if (Object.keys(workspace).length) {
+        pushProjectCode(target, workspace).catch((error) => console.warn('[enregistrement] code non envoyé', error));
+      }
+      saveProjectChatSession(target, {
+        sessionId: chatUuid,
+        title: deriveSessionTitle(all as Message[], projectData?.name || 'Nouvelle conversation'),
+        messages: compactMessagesForStorage(all as Message[]),
+      }).catch((error) => console.warn('[enregistrement] conversation non envoyée', error));
+    };
+    const timer = setInterval(save, 20_000);
+    return () => {
+      clearInterval(timer);
+      save();
+    };
+  }, [isLoading, projectId, chatUuid, projectData?.name]);
 
   // Le fil suit ce qui s'écrit, laisse lire plus haut, et ramène en bas quand une réponse finit ou demande
   // d'agir (voir le hook).

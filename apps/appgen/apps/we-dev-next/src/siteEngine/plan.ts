@@ -1,11 +1,11 @@
 /**
  * LE PLAN D'UNE GÉNÉRATION — la liste des choses à faire, écrite dans le projet avant la première section et cochée
- * au fur et à mesure (`idem.plan.json`). Si la génération s'interrompt (page actualisée, connexion coupée), le site
+ * au fur et à mesure (`.idem/plan.json`). Si la génération s'interrompt (page actualisée, connexion coupée), le site
  * garde ce qui était fait et le plan dit ce qui reste : « continue » (ou `/continue`) reprend là, sans refaire ni
  * refacturer ce qui existe.
  *
- *   idem.plan.json       les étapes et leur état (à faire, fait, en échec) — petit, réécrit à chaque étape
- *   idem.manifest.json   ce que la reprise doit retrouver sans rappeler l'architecte ni le directeur artistique :
+ *   .idem/plan.json      les étapes et leur état (à faire, fait, en échec) — petit, réécrit à chaque étape
+ *   .idem/manifest.json  ce que la reprise doit retrouver sans rappeler l'architecte ni le directeur artistique :
  *                        le manifeste, le style des visuels, le thème
  *
  * Le plan est écrit par le code, jamais par un modèle : une case cochée veut dire que le fichier est écrit.
@@ -15,8 +15,12 @@ import type { SiteManifest } from './manifest.js';
 import type { SiteStream } from './stream.js';
 import type { RedesignFocus } from './redesign/brief.js';
 
-export const PLAN_PATH = 'idem.plan.json';
-export const MANIFEST_PATH = 'idem.manifest.json';
+/** Rangés dans `.idem/`, que l'explorateur de l'atelier ne montre pas : ce sont les notes du moteur, pas le site. */
+export const PLAN_PATH = '.idem/plan.json';
+export const MANIFEST_PATH = '.idem/manifest.json';
+/** Leurs places d'avant (à la racine du projet), encore lues pour reprendre une génération plus ancienne. */
+const LEGACY_PLAN_PATH = 'idem.plan.json';
+const LEGACY_MANIFEST_PATH = 'idem.manifest.json';
 
 export type StepStatus = 'pending' | 'done' | 'failed';
 
@@ -51,7 +55,7 @@ export interface SavedDesign {
 
 export function readPlan(files: Record<string, string> | undefined): SitePlan | null {
   try {
-    const plan = JSON.parse(files?.[PLAN_PATH] ?? '');
+    const plan = JSON.parse(files?.[PLAN_PATH] ?? files?.[LEGACY_PLAN_PATH] ?? '');
     return plan && plan.kind === 'site-engine' && Array.isArray(plan.steps) ? (plan as SitePlan) : null;
   } catch {
     return null;
@@ -60,7 +64,7 @@ export function readPlan(files: Record<string, string> | undefined): SitePlan | 
 
 export function readSavedDesign(files: Record<string, string> | undefined): SavedDesign | null {
   try {
-    const saved = JSON.parse(files?.[MANIFEST_PATH] ?? '');
+    const saved = JSON.parse(files?.[MANIFEST_PATH] ?? files?.[LEGACY_MANIFEST_PATH] ?? '');
     return saved?.manifest?.pages?.length ? (saved as SavedDesign) : null;
   } catch {
     return null;

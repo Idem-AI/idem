@@ -2,15 +2,17 @@
  * Configuration Vite du site — posée par IDEM, NE PAS MODIFIER.
  *
  * Un site multi-pages : chaque page est un document HTML à part (son titre, sa
- * description, ses balises de partage), découvert à la volée. Ajouter une
- * page, c'est ajouter un dossier qui contient son `index.html` ; une langue,
- * un dossier `en/` qui reprend les mêmes pages.
+ * description, ses balises de partage). Ces documents ne sont pas des fichiers
+ * du projet : `scripts/pages/vite-plugin.mjs` les fabrique depuis `index.html`
+ * et la liste des pages (`src/site/pages.json`), dans l'aperçu comme à la
+ * construction. Un dossier qui contient un vrai `index.html` est aussi une page.
  */
 import { existsSync, readdirSync } from 'node:fs';
 import { fileURLToPath, URL } from 'node:url';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import idemDesignSystem from './scripts/design-system/vite-plugin.mjs';
+import idemPages, { virtualPages } from './scripts/pages/vite-plugin.mjs';
 
 const here = (path: string) => fileURLToPath(new URL(path, import.meta.url));
 
@@ -28,6 +30,9 @@ function pages() {
     }
   };
   walk('', 0);
+
+  // Les pages fabriquées : une entrée chacune, que le module des pages fournit.
+  for (const page of virtualPages(here('.'))) entries[page.html.replace(/\/index\.html$/, '').replace(/\//g, '-')] = here(page.html);
 
   return entries;
 }
@@ -69,7 +74,7 @@ const PREBUNDLED = [
 ];
 
 export default defineConfig({
-  plugins: [idemDesignSystem(), react()],
+  plugins: [idemPages(), idemDesignSystem(), react()],
   resolve: {
     alias: { '@': here('src') },
   },

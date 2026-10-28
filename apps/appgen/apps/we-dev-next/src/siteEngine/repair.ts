@@ -29,7 +29,7 @@ import { OPTIONAL_MODULES } from './catalog.js';
 import { createFactGuard } from './factGuard.js';
 import { SiteManifest } from './manifest.js';
 import { ModelCaller } from './modelCaller.js';
-import { restoreInPage } from './project.js';
+import { restoreInPage, pagesFileOf } from './project.js';
 import { renderBrandModule, renderDataModule, renderMediaModule } from './siteData.js';
 import { detectSiteLanguage, readSiteFacts, renderFacts } from './siteFacts.js';
 import { SiteStream } from './stream.js';
@@ -97,7 +97,7 @@ export function contextFrom(files: Record<string, string>, facts: ReturnType<typ
   let pages: Array<{ path: string; module: string; lang?: string }> = [];
   let languages: string[] = [];
   try {
-    const parsed = JSON.parse(files['idem.pages.json'] ?? '{}');
+    const parsed = JSON.parse(pagesFileOf(files) ?? '{}');
     languages = Array.isArray(parsed.languages) ? parsed.languages : [];
     // Une page par langue dans le manifeste de pré-rendu : on garde celles de la langue principale.
     pages = (parsed.pages ?? []).filter((page: { lang?: string }) => !page.lang || !languages.length || page.lang === languages[0]);
@@ -215,7 +215,7 @@ export function createSiteRepairStream(input: SiteRepairInput): ResilientStream 
       await Promise.all(
         targets.map(async (path) => {
           const display = displayOf(path, fr);
-          const target = targetOf(path, files['idem.pages.json'] ?? '{}');
+          const target = targetOf(path, pagesFileOf(files) ?? '{}');
           const current = await reviewComponent(files[path], review, target);
           let code = current.code;
           let valid = !current.problems.length;

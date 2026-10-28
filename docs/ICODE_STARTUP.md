@@ -68,6 +68,17 @@ A mounted `node_modules` that isn't exactly what the manifest expects produces t
 
 Any failure wipes the tree, forgets it from the browser cache, and falls back to `npm install`. A snapshot that is missing, truncated or cut for another scaffold slows a generation down; it never breaks one.
 
+**Exec bits.** An exported-then-mounted tree keeps its `.bin` links but not the mode of their targets. For example, `vite/bin/vite.js` comes back as 644, and `npm run dev` dies at once on `jsh: spawn vite EACCES`. The preview then stays on "Starting" forever, and the error only shows in the terminal.
+
+This affects every mounted tree: browser cache, server snapshot, or neighbour tree. Two fixes are in place:
+
+- **After every mount,** `mountTree` runs `repairExecBits` (a small `node -e` script, under a second) to chmod 755 every `.bin` target.
+- **When the dev server dies on `spawn … EACCES`,** `startCommand` repairs the bits and restarts once.
+
+The script spells `require` in two pieces on purpose. The workspace's `@originjs/vite-plugin-commonjs` rewrites any `require` with a module name it finds, even inside a string, and the mangled script repaired nothing.
+
+**Bounded installs.** An `npm install` is stopped after 15 minutes (`runCommand` `timeoutMs`). The preview then says it did not start, with the reason. `resetDeps()` also forgets setups started in a replaced container: one that never finished used to block every later start of that target.
+
 ### Commands no longer need a terminal
 
 `services/webcontainer/runner.ts` spawns on the container directly, feeds `runStatus`, and mirrors output into terminal 0 **if it exists** — output produced before a terminal appears is held and replayed, so the full log is there when you open it. Identical commands already in flight are not run twice: two concurrent `npm install` calls leave a half-linked tree (`EIO: failed to link packages`), and that is a failure we have already paid for.

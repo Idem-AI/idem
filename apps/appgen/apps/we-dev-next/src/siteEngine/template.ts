@@ -24,7 +24,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
  * (`design-system-version.json`) : un site garde la version avec laquelle il a
  * été généré, et une nouvelle version ne l'écrase jamais d'elle-même.
  */
-export const TEMPLATE_VERSION = '1.2.0';
+export const TEMPLATE_VERSION = '1.3.0';
 
 /** Marque des sites générés par ce moteur ; l'atelier s'en sert pour les reconnaître. */
 export const SITE_ENGINE_ID = 'idem-site-engine';

@@ -49,7 +49,7 @@ import {
   prefetchDepsSnapshots,
   resetDeps,
 } from '@/components/WeIde/services/webcontainer/deps';
-import { resetRunner, startCommand } from '@/components/WeIde/services/webcontainer/runner';
+import { resetRunner, startCommand, stopStarted } from '@/components/WeIde/services/webcontainer/runner';
 import type { DepsTargetName } from '@/api/deps';
 import useWarmStart from '@/stores/warmStartSlice';
 import { currentPlatform, currentProduct } from '@/utils/product';
@@ -114,6 +114,8 @@ export function prewarmWorkspace(target: DepsTargetName | null): void {
 
 /** Le préchauffage repart à zéro quand le conteneur est remplacé. */
 export function resetWarmStart(): void {
+  clearTimeout(startWatch);
+  useWarmStart.getState().reset();
   startupReset();
   warmed = false;
   started = false;
@@ -189,6 +191,26 @@ export async function warmStart(
 
   useWarmStart.getState().serverStarting();
   await startCommand(commands.start);
+  watchServerStart();
+}
+
+/** Un serveur de développement lancé qui ne répond toujours pas après ce délai ne répondra plus. */
+const SERVER_START_TIMEOUT_MS = 120_000;
+let startWatch: ReturnType<typeof setTimeout> | undefined;
+
+/**
+ * Le démarrage a une fin. Sans elle, un serveur mort en silence (ou jamais vraiment lancé) laissait l'aperçu sur
+ * « Démarrage en cours… » indéfiniment, sans erreur ni bouton utile : l'aperçu passe en échec, dit de quoi il
+ * s'agit et propose « Exécuter ».
+ */
+function watchServerStart(): void {
+  clearTimeout(startWatch);
+  startWatch = setTimeout(() => {
+    if (getLastServerUrl() || useWarmStart.getState().step !== 'starting') return;
+    console.warn('[chaud] aucun serveur après', SERVER_START_TIMEOUT_MS / 1000, 's');
+    started = false;
+    useWarmStart.getState().fail('server');
+  }, SERVER_START_TIMEOUT_MS);
 }
 
 /**
@@ -223,6 +245,8 @@ export const warmStartLaunched = (): boolean => started;
  */
 export async function startProject(): Promise<void> {
   started = false;
+  // Un serveur lancé qui n'a jamais répondu bloquerait la relance (une commande vivante n'est pas lancée deux fois).
+  if (!getLastServerUrl()) stopStarted();
   const target = lastTarget ?? targetFromChoice(currentProduct(), currentPlatform()) ?? 'site';
   await warmStart(target, lastCommands ?? { install: 'npm install', start: 'npm run dev' });
 }

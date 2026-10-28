@@ -13,6 +13,7 @@ import { build, transformSync } from 'esbuild';
 import { buildI18nKit } from '../src/scaffold/shared.js';
 import { buildScaffold } from '../src/scaffold/index.js';
 import { collectMessages, dataMessages, isProse, localizeCode, renderI18nFiles } from '../src/siteEngine/i18n.js';
+import { LEGACY_PAGES_PATH, PAGES_PATH, renderPageShells, shellsFromFiles } from '../src/siteEngine/project.js';
 
 let failures = 0;
 let passed = 0;
@@ -134,6 +135,36 @@ const mobile = buildScaffold({ target: 'mobile-app', language: 'en' });
 expect('application mobile : langues posées, anglais par défaut', JSON.parse(mobile.files['src/i18n/config.json'] ?? '{}').defaultLanguage === 'en' && mobile.locked.includes('src/components/LanguageSwitcher.jsx') && /<LanguageRoot>/.test(mobile.files['src/main.jsx'] ?? ''));
 const site = buildScaffold({ target: 'site', language: 'fr' });
 expect('site : système de langues du template présent', ['src/i18n/index.ts', 'src/i18n/config.json', 'src/components/site/language-switcher.tsx'].every((path) => path in site.files));
+
+// Les pages : un seul document HTML dans le projet (l'accueil), les autres fabriqués par le template depuis la liste.
+{
+  const manifest = {
+    pages: [
+      { key: 'home', path: '/', label: 'Accueil', purpose: '', seoTitle: 'Awa Couture', seoDescription: 'Couture sur mesure', sections: [] },
+      { key: 'a-propos', path: '/a-propos/', label: 'À propos', purpose: '', seoDescription: 'Notre atelier', sections: [] },
+    ],
+    header: '', footer: '', components: [], dependencies: [], keywords: [], businessType: '', languages: ['en'],
+  } as never;
+  const en: Record<string, string> = { 'Awa Couture': 'Awa Tailoring', 'Couture sur mesure': 'Made-to-measure', 'À propos': 'About', 'Notre atelier': 'Our workshop' };
+  const shells = renderPageShells({ manifest, language: 'fr', siteName: 'Awa Couture', description: 'Couture', languages: ['fr', 'en'], translate: (_lang, text) => en[text] ?? text });
+  const html = Object.keys(shells).filter((path) => path.endsWith('.html'));
+  expect('pages : un seul document HTML (l’accueil)', html.join() === 'index.html', html.join());
+  expect('pages : aucun lien hreflang écrit dans le document (la construction échouait)', !/hreflang/.test(shells['index.html']));
+  const list = JSON.parse(shells[PAGES_PATH] ?? '{}');
+  const about = list.pages?.find((page: { path: string }) => page.path === '/en/a-propos/');
+  expect('pages : liste par langue, traduite', list.pages?.length === 4 && about?.lang === 'en' && about?.title === 'About | Awa Couture' && about?.description === 'Our workshop' && about?.html === 'en/a-propos/index.html' && about?.entry === '/src/entries/a-propos.tsx', JSON.stringify(about));
+
+  // /translate : une langue de plus, ce sont des lignes de plus (rien d'autre n'est écrit).
+  const single = renderPageShells({ manifest, language: 'fr', siteName: 'Awa Couture', description: 'Couture' });
+  const added = shellsFromFiles(single, ['fr', 'es'], (lang, text) => (lang === 'es' && text === 'Notre atelier' ? 'Nuestro taller' : text));
+  const spanish = JSON.parse(added.files[PAGES_PATH] ?? '{}').pages?.find((page: { path: string }) => page.path === '/es/a-propos/');
+  expect('/translate : ligne ajoutée, aucun document', spanish?.description === 'Nuestro taller' && !Object.keys(added.files).some((path) => path.endsWith('.html') && path !== 'index.html'), Object.keys(added.files).join());
+
+  // Un site d'avant (un document par page) garde sa forme, sans les liens qui cassaient sa construction.
+  const legacy = { 'index.html': single['index.html'], 'a-propos/index.html': single['index.html'].replace('<title>Awa Couture</title>', '<title>À propos | Awa Couture</title>'), [LEGACY_PAGES_PATH]: JSON.stringify({ languages: ['fr'], pages: [{ path: '/', module: 'src/pages/home.tsx', html: 'index.html', lang: 'fr' }, { path: '/a-propos/', module: 'src/pages/a-propos.tsx', html: 'a-propos/index.html', lang: 'fr' }] }) };
+  const legacyAdded = shellsFromFiles(legacy, ['fr', 'en'], (_lang, text) => en[text] ?? text);
+  expect('site d’avant : documents de la langue écrits, sans hreflang', 'en/a-propos/index.html' in legacyAdded.files && LEGACY_PAGES_PATH in legacyAdded.files && !Object.values(legacyAdded.files).some((content) => /hreflang/.test(content)), Object.keys(legacyAdded.files).join());
+}
 
 console.log(`${passed} contrôles réussis, ${failures} en échec`);
 process.exit(failures ? 1 : 0);

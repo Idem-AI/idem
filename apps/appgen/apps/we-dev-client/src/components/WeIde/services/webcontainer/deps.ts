@@ -37,7 +37,7 @@ import {
   fetchSnapshot,
 } from '@/api/deps';
 import { getWebContainerInstance } from './instance';
-import { readWorkspaceFile, runCommand } from './runner';
+import { readWorkspaceFile, repairExecBits, runCommand } from './runner';
 import { syncFileSystem } from './filesystem';
 import { compress, decompress, forgetSnapshot, readSnapshot, writeSnapshot } from './depsStore';
 
@@ -162,12 +162,23 @@ export async function prefetchDepsSnapshots(
   }
 }
 
+/**
+ * Au-delà, une installation npm est considérée bloquée : arrêtée, et l'aperçu dit qu'il n'a pas démarré. Un arbre
+ * complet sans instantané prend 6 à 9 minutes dans la WebContainer (mesuré) ; une installation bloquée, elle,
+ * tournait sans fin.
+ */
+const NPM_TIMEOUT_MS = 15 * 60_000;
+
 /** Arbres déjà en place dans ce conteneur, pour ne pas y revenir. */
 const satisfied = new Set<string>();
 
 /** À appeler quand le conteneur est remplacé : son disque est vide. */
 export function resetDeps(): void {
   satisfied.clear();
+  // Une mise en place partie dans l'ancien conteneur n'a plus de sens, et elle peut ne jamais finir (ses processus
+  // meurent avec lui sans rendre la main) : gardée ici, chaque démarrage suivant de la cible l'attendait — l'aperçu
+  // « démarrait » indéfiniment jusqu'au rechargement de la page.
+  ensuring.clear();
 }
 
 /**
@@ -335,13 +346,17 @@ async function ensureTree(
   // 4. npm, comme avant.
   onProgress?.({ step: 'npm', tree: tree.id });
   const note = tree.baked ? 'instantané inutilisable' : 'pas encore préinstallé';
-  const result = await runCommand('npm install', { cwd: tree.dir || undefined });
+  const result = await runCommand('npm install', { cwd: tree.dir || undefined, timeoutMs: NPM_TIMEOUT_MS });
+
+  // Une installation qui n'a pas abouti dans le délai ne fera pas mieux au second essai (réseau, registre) : on le
+  // dit tout de suite au lieu de doubler l'attente.
+  if (result.timedOut) return { tree: tree.id, source: 'failed', ms: since(), note: 'npm install trop long' };
 
   if (result.exitCode !== 0) {
     // Une installation à moitié faite ne se répare pas par une seconde
     // tentative : npm croit le travail fait. On vide et on recommence une fois.
     await wipeTree(tree);
-    const retry = await runCommand('npm install', { cwd: tree.dir || undefined });
+    const retry = await runCommand('npm install', { cwd: tree.dir || undefined, timeoutMs: NPM_TIMEOUT_MS });
     if (retry.exitCode !== 0) {
       return { tree: tree.id, source: 'failed', ms: since(), note };
     }
@@ -359,7 +374,7 @@ async function ensureTree(
  */
 async function topUp(tree: DepsTreeInfo, onProgress?: (progress: DepsProgress) => void): Promise<boolean> {
   onProgress?.({ step: 'npm', tree: tree.id });
-  const result = await runCommand('npm install --no-audit --no-fund --prefer-offline', { cwd: tree.dir || undefined });
+  const result = await runCommand('npm install --no-audit --no-fund --prefer-offline', { cwd: tree.dir || undefined, timeoutMs: NPM_TIMEOUT_MS });
   if (result.exitCode !== 0) return false;
   await writeMarker(tree, 'top-up');
   return (await treeState(tree)) === 'ok';
@@ -404,12 +419,22 @@ async function mountTree(tree: DepsTreeInfo, snapshot: Uint8Array): Promise<bool
     // le sien pour l'écrire dans le cache.
     const transferable = snapshot.slice();
     await container.mount(transferable, { mountPoint: tree.mountPoint });
+    await restoreExecBits(tree);
     await writeMarker(tree, 'snapshot');
     return true;
   } catch (error) {
     console.warn(`[deps] montage de ${tree.id} impossible`, error);
     return false;
   }
+}
+
+/**
+ * Un arbre exporté puis remonté (cache du navigateur, instantané du serveur, arbre voisin) garde ses liens, mais pas
+ * le mode de leurs cibles : `vite/bin/vite.js` revenait en 644 et `npm run dev` mourait sur « spawn vite EACCES ».
+ * Rétabli à chaque montage (voir `repairExecBits`).
+ */
+async function restoreExecBits(tree: DepsTreeInfo): Promise<void> {
+  await repairExecBits([tree.mountPoint]);
 }
 
 async function writeMarker(tree: DepsTreeInfo, source: string): Promise<void> {

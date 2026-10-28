@@ -37,8 +37,13 @@ Le système de langues fait partie du template (`template/src/i18n/`). Il n'a au
 - `localePath(lien)` : `/contact/` devient `/en/contact/` dans la langue courante. Les liens externes, les fichiers et les ancres ne bougent pas.
 - `localize(objet)` : les faits de `@/site/data` se lisent traduits.
 - `components/site/language-switcher.tsx` : affiche des liens vers la même page dans chaque langue, et rien s'il n'y a qu'une langue.
-- Chaque langue a ses documents (`en/index.html`, `en/a-propos/index.html`) avec `<html lang>` (`dir="rtl"` pour l'arabe), le titre et la description traduits, et les balises `hreflang` + `x-default`.
-- `vite.config.ts` découvre ces dossiers. `scripts/prerender.mjs` pré-rend les pages langue par langue et relit les modules à chaque langue.
+- Les pages sont listées dans `src/site/pages.json` : une ligne par page et par langue (`path`, `lang`, `module`, `entry`, `html`, `title`, `description`). Seul `index.html` (l'accueil) est un fichier HTML du projet.
+- `scripts/pages/vite-plugin.mjs` fabrique le document de chaque autre page à partir d'`index.html` : même en-tête (icônes, couleur, polices), avec la langue (`dir="rtl"` pour l'arabe), le titre, la description et le point d'entrée de la page.
+  - Dans l'aperçu, l'adresse (`/a-propos/`, `/en/a-propos/`) reçoit son document.
+  - À la construction, chaque document est une entrée et sort dans `dist/` (`dist/en/a-propos/index.html`).
+  - Les balises `hreflang` + `x-default` sont posées après le traitement de Vite (ordre `post`). Écrites dans le document, `href="/"` faisait échouer `vite build` (EISDIR) : aucun site en plusieurs langues ne pouvait être mis en ligne.
+- Un site d'avant (un document par page à la racine, `idem.pages.json`) garde sa forme. `/translate` y écrit les documents de la nouvelle langue, sans `hreflang`.
+- `scripts/prerender.mjs` lit `src/site/pages.json` (ou `idem.pages.json`), pré-rend les pages langue par langue et relit les modules à chaque langue.
 
 Les auteurs écrivent en clair, dans la langue du site. Le code fait ensuite le reste (`src/siteEngine/i18n.ts`) :
 
@@ -81,24 +86,26 @@ Après la génération :
 
 Contrôles :
 
-- `npm run check:i18n` (29) : transformation, idempotence, catalogue, runtime exécuté, kit des applications.
+- `npm run check:i18n` (34) : transformation, idempotence, catalogue, runtime exécuté, kit des applications.
 - `npm run check:site-render` : section traduite montée dans un site en deux langues.
 
 ## 2. Le plan de génération et la reprise
 
-Le moteur de sites écrit deux fichiers dans le projet (`src/siteEngine/plan.ts`) :
+Le moteur de sites écrit deux fichiers dans `.idem/`, un dossier que l'explorateur de l'atelier ne montre pas (`src/siteEngine/plan.ts`). Ceux d'une génération plus ancienne, à la racine (`idem.plan.json`, `idem.manifest.json`), sont encore relus :
 
-- `idem.plan.json` : les étapes et leur état (`pending`, `done` ou `failed`).
+- `.idem/plan.json` : les étapes et leur état (`pending`, `done` ou `failed`).
   - L'étape `design` est posée d'emblée.
   - L'en-tête, le pied de page, chaque section, l'assemblage et la traduction s'ajoutent une fois le manifeste connu.
   - Le fichier est réécrit à chaque étape. Le code le coche, jamais un modèle : une case cochée veut dire que le fichier est écrit.
-- `idem.manifest.json` : le manifeste, le style des visuels et le thème. La reprise n'a ainsi rien à redemander aux modèles.
+- `.idem/manifest.json` : le manifeste, le style des visuels et le thème. La reprise n'a ainsi rien à redemander aux modèles.
 
 Une génération reprend dans trois cas :
 
 - l'utilisateur tape `/continue` (alias `/resume`) ;
 - l'agent reconnaît une demande de reprise (« continue », « vas-y ») alors que le contexte lui dit qu'une génération est inachevée ;
 - l'atelier envoie sa consigne automatique après une réponse coupée, et le plan n'est pas terminé (`routes/chat.ts`). Auparavant, cette consigne tombait dans la retouche de site, qui répondait « je n'ai pas compris quelle partie modifier ».
+
+La reprise suppose que le plan ait survécu à l'actualisation. L'atelier enregistre donc le code et la conversation **pendant** la génération : toutes les 20 s dès que la réponse a écrit un fichier, puis une dernière fois quand elle s'arrête, même en erreur. Une refonte lancée hors projet annonce son projet IDEM dès qu'il est créé (marque `idem:project` en tête de réponse). L'adresse le porte aussitôt, et l'enregistrement part vers lui.
 
 L'atelier affiche aussi au-dessus de la saisie la carte « Votre dernière génération s'est arrêtée avant la fin », avec le bouton « Reprendre » marqué « Recommandé ».
 
@@ -111,4 +118,4 @@ L'atelier affiche aussi au-dessus de la saisie la carte « Votre dernière gén�
 - **Rien n'est refacturé.**
 - Si la génération s'est arrêtée avant le manifeste, elle repart de la demande du plan. Pour une refonte, elle repart du relevé stocké, toujours sans refacturer.
 
-Contrôle : `npm run check:commands` (69). Il couvre `/translate`, `/continue`, le plan coché étape par étape et la reprise sans projet.
+Contrôle : `npm run check:commands` (71). Il couvre `/translate`, `/continue`, le plan coché étape par étape et la reprise sans projet.

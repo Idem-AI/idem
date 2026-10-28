@@ -220,17 +220,42 @@ const pageComponentName = (page: ManifestPage) =>
     .join('')
     .replace(/^(\d)/, 'P$1')}Page`;
 
-/** Le document d'une page dans une langue : `index.html`, `a-propos/index.html`, `en/a-propos/index.html`. */
+/**
+ * La liste des pages du site : leur adresse, leur langue, leur module, leur titre et leur description. Les
+ * documents HTML des pages en sont fabriqués par le template (`scripts/pages/vite-plugin.mjs`), dans l'aperçu comme
+ * à la construction : ils ne sont plus des fichiers du projet. Un site en comptait un par page et par langue, chacun
+ * dans son dossier à la racine (`a-propos/index.html`, `en/a-propos/index.html`…) : des dizaines pour une refonte,
+ * et l'explorateur saturé.
+ */
+export const PAGES_PATH = 'src/site/pages.json';
+/** La liste des pages d'un site d'avant (avec un document par page à la racine). */
+export const LEGACY_PAGES_PATH = 'idem.pages.json';
+
+/** La liste des pages d'un site, quelle que soit sa génération. */
+export const pagesFileOf = (files: Record<string, string> | undefined): string | undefined => files?.[PAGES_PATH] ?? files?.[LEGACY_PAGES_PATH];
+
+/** Le document d'une page dans une langue (son chemin dans `dist/`) : `index.html`, `a-propos/index.html`, `en/a-propos/index.html`. */
 const pageHtml = (page: ManifestPage, lang: string, main: string) =>
   `${lang === main ? '' : `${lang}/`}${page.key === 'home' ? 'index.html' : `${page.key}/index.html`}`;
 
 /** L'adresse d'une page dans une langue : `/a-propos/`, `/en/a-propos/`. */
 const pageAddress = (page: ManifestPage, lang: string, main: string) => (lang === main ? page.path : `/${lang}${page.path}`);
 
+export interface SitePageEntry {
+  path: string;
+  lang: string;
+  module: string;
+  entry: string;
+  html: string;
+  title: string;
+  description: string;
+}
+
 /**
- * Documents, points d'entrée et manifeste de pré-rendu de toutes les pages — dans chaque langue du site : une
- * langue de plus, c'est un dossier (`en/`) qui reprend chaque page avec son `<html lang>`, son titre et sa
- * description traduits. Le point d'entrée est le même : la langue est celle du document (`src/i18n`).
+ * Le document de l'accueil (`index.html`, le seul fichier HTML du site : l'en-tête commun dont les autres pages sont
+ * faites), les points d'entrée et la liste des pages — dans chaque langue du site : une langue de plus, ce sont des
+ * lignes de plus dans la liste, avec la langue, le titre et la description traduits. Le point d'entrée est le même :
+ * la langue est celle du document (`src/i18n`).
  */
 export function renderPageShells(options: {
   manifest: SiteManifest;
@@ -248,37 +273,34 @@ export function renderPageShells(options: {
   const languages = options.languages?.length ? options.languages : [main];
   const tr = (lang: string, text: string) => (lang === main || !options.translate ? text : options.translate(lang, text));
   const files: Record<string, string> = {};
-  for (const page of options.manifest.pages) {
-    const alternates = languages.map((lang) => ({ lang, href: pageAddress(page, lang, main) }));
-    for (const lang of languages) {
-      files[pageHtml(page, lang, main)] = renderDocument({
-        language: lang,
-        siteName: options.siteName,
+  const entries: SitePageEntry[] = [];
+  for (const lang of languages) {
+    for (const page of options.manifest.pages) {
+      entries.push({
+        path: pageAddress(page, lang, main),
+        lang,
+        module: `src/pages/${page.key}.tsx`,
+        entry: `/src/entries/${page.key}.tsx`,
+        html: pageHtml(page, lang, main),
         title: page.seoTitle ? tr(lang, page.seoTitle) : page.key === 'home' ? options.siteName : `${tr(lang, page.label)} | ${options.siteName}`,
         description: tr(lang, page.seoDescription || options.description),
-        entry: `/src/entries/${page.key}.tsx`,
-        themeColor: options.themeColor,
-        icons: options.icons,
-        alternates,
       });
     }
-    files[`src/entries/${page.key}.tsx`] = renderEntry(page.key);
   }
-  files['idem.pages.json'] = `${JSON.stringify(
-    {
-      languages,
-      pages: languages.flatMap((lang) =>
-        options.manifest.pages.map((page) => ({
-          path: pageAddress(page, lang, main),
-          module: `src/pages/${page.key}.tsx`,
-          html: pageHtml(page, lang, main),
-          lang,
-        }))
-      ),
-    },
-    null,
-    2
-  )}\n`;
+  for (const page of options.manifest.pages) files[`src/entries/${page.key}.tsx`] = renderEntry(page.key);
+  const home = entries.find((entry) => entry.html === 'index.html') ?? entries[0];
+  // Les liens entre langues (`hreflang`) ne s'écrivent pas ici : le template les pose après le traitement de Vite
+  // (écrits dans le document, `href="/"` faisait échouer la construction).
+  files['index.html'] = renderDocument({
+    language: main,
+    siteName: options.siteName,
+    title: home?.title ?? options.siteName,
+    description: home?.description ?? options.description,
+    entry: home?.entry ?? '/src/entries/home.tsx',
+    themeColor: options.themeColor,
+    icons: options.icons,
+  });
+  files[PAGES_PATH] = `${JSON.stringify({ languages, pages: entries }, null, 2)}\n`;
   return files;
 }
 
@@ -329,38 +351,44 @@ export function buildSiteScaffold(
 }
 
 /**
- * Les documents de chaque langue d'un site déjà généré, refaits depuis ceux de la langue principale (titre,
- * description, couleur, icônes) : ce que `/translate` écrit quand une langue s'ajoute.
+ * Les pages de chaque langue d'un site déjà généré, refaites depuis celles de la langue principale (titre,
+ * description ; couleur et icônes reprises de `index.html`) : ce que `/translate` écrit quand une langue s'ajoute.
+ * Un site d'avant (un document par page à la racine) garde sa forme : ses documents sont réécrits, sans les liens
+ * entre langues qui faisaient échouer sa construction.
  */
 export function shellsFromFiles(
   files: Record<string, string>,
   languages: string[],
   translate: (lang: string, text: string) => string
 ): { files: Record<string, string>; texts: string[] } {
-  let pages: Array<{ path: string; module: string; html: string; lang?: string }> = [];
+  const legacy = typeof files[PAGES_PATH] !== 'string';
+  let pages: Array<Partial<SitePageEntry> & { path: string; module: string }> = [];
   try {
-    const parsed = JSON.parse(files['idem.pages.json'] ?? '{}');
-    pages = (parsed.pages ?? []).filter((page: { lang?: string }) => !page.lang || page.lang === languages[0]);
+    const parsed = JSON.parse(pagesFileOf(files) ?? '{}');
+    const main = Array.isArray(parsed.languages) && parsed.languages.length ? parsed.languages[0] : languages[0];
+    pages = (parsed.pages ?? []).filter((page: { lang?: string }) => !page.lang || page.lang === main);
   } catch {
     return { files: {}, texts: [] };
   }
+  if (!pages.length) return { files: {}, texts: [] };
   const attr = (html: string, pattern: RegExp) => (html.match(pattern)?.[1] ?? '').replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
-  const home = files[pages.find((page) => page.path === '/')?.html ?? 'index.html'] ?? '';
+  const home = files['index.html'] ?? '';
   const manifestPages: ManifestPage[] = pages.map((page) => {
-    const html = files[page.html] ?? '';
+    // Le titre et la description : dans la liste (site actuel), ou dans le document de la page (site d'avant).
+    const html = legacy ? (files[page.html ?? ''] ?? '') : '';
     const key = page.module.replace(/^src\/pages\//, '').replace(/\.tsx$/, '');
     return {
       key,
       path: page.path,
       label: key,
       purpose: '',
-      seoTitle: attr(html, /<title>([^<]*)<\/title>/),
-      seoDescription: attr(html, /<meta name="description" content="([^"]*)"/),
+      seoTitle: legacy ? attr(html, /<title>([^<]*)<\/title>/) : (page.title ?? ''),
+      seoDescription: legacy ? attr(html, /<meta name="description" content="([^"]*)"/) : (page.description ?? ''),
       sections: [],
     };
   });
   const texts = manifestPages.flatMap((page) => [page.seoTitle, page.seoDescription]).filter((text): text is string => !!text);
-  const shells = renderPageShells({
+  const options = {
     manifest: { pages: manifestPages, header: '', footer: '', components: [], dependencies: [], keywords: [], businessType: '', languages: languages.slice(1) },
     language: languages[0],
     siteName: attr(home, /<meta property="og:site_name" content="([^"]*)"/),
@@ -373,7 +401,16 @@ export function shellsFromFiles(
     },
     languages,
     translate,
-  });
-  // Les points d'entrée existent déjà : seuls les documents et le manifeste de pré-rendu changent.
-  return { files: Object.fromEntries(Object.entries(shells).filter(([path]) => !path.startsWith('src/entries/'))), texts };
+  };
+  const shells = renderPageShells(options);
+  // Les points d'entrée existent déjà : seuls les documents et la liste des pages changent.
+  if (!legacy) return { files: Object.fromEntries(Object.entries(shells).filter(([path]) => !path.startsWith('src/entries/'))), texts };
+
+  // Site d'avant : un document par page et par langue, et sa liste à l'ancienne place.
+  const entries = JSON.parse(shells[PAGES_PATH]).pages as SitePageEntry[];
+  const legacyFiles: Record<string, string> = { [LEGACY_PAGES_PATH]: `${JSON.stringify({ languages, pages: entries.map(({ path, module, html, lang }) => ({ path, module, html, lang })) }, null, 2)}\n` };
+  for (const entry of entries) {
+    legacyFiles[entry.html] = renderDocument({ language: entry.lang, siteName: options.siteName, title: entry.title, description: entry.description, entry: entry.entry, themeColor: options.themeColor, icons: options.icons });
+  }
+  return { files: legacyFiles, texts };
 }

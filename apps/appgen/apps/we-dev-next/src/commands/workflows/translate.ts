@@ -6,7 +6,7 @@
  *
  *   1. envelopper ce qui ne l'est pas encore (un site d'avant les langues, une section retouchée à la main) ;
  *   2. traduire le catalogue dans la nouvelle langue (l'agent traducteur, les traductions existantes gardées) ;
- *   3. écrire les documents de la langue (`en/…/index.html`) et le choix de la langue s'il manque.
+ *   3. ajouter la langue à la liste des pages (`src/site/pages.json` ; un site d’avant reçoit ses documents `en/…/index.html`) et le choix de la langue s’il manque.
  *
  * Sans langue nommée, la question est posée (la plus utile en tête, marquée « Recommandé »). Facturé comme une
  * retouche, au moment où la traduction part.

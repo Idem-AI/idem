@@ -44,6 +44,7 @@ import {
   THEME_PATHS,
   themeChanges,
 } from './editPlan.js';
+import { pagesFileOf } from './project.js';
 
 export interface SiteEditInput {
   projectData: ProjectModel;
@@ -58,7 +59,7 @@ export interface SiteEditInput {
 
 /** Un site du moteur de sites (pages assemblées et design system compilé) : il se retouche ici. */
 export function isEditableSite(files: Record<string, string> | undefined): files is Record<string, string> {
-  return !!files && typeof files['idem.pages.json'] === 'string' && typeof files[DESIGN_SYSTEM_PATHS.source] === 'string' && siteComponents(files).length > 0;
+  return !!files && typeof pagesFileOf(files) === 'string' && typeof files[DESIGN_SYSTEM_PATHS.source] === 'string' && siteComponents(files).length > 0;
 }
 
 const MAX_FILES = 3;
@@ -278,7 +279,7 @@ async function editFile(
   fr: boolean
 ): Promise<{ code?: string; reply?: string; failure?: string }> {
   const before = files[path];
-  const target = targetOf(path, files['idem.pages.json'] ?? '{}');
+  const target = targetOf(path, pagesFileOf(files) ?? '{}');
   const prompt = `# Request\n${request.slice(0, 1500)}\n\n# The file: ${displayOf(path, false)}\n\`\`\`tsx\n${before}\n\`\`\``;
   const outcome = await caller.call<{ code: string; reply: string }>(
     `edit:${path}`,

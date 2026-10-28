@@ -23,7 +23,8 @@ const read = (path, fallback) => {
   }
 };
 
-const manifest = read('idem.pages.json', { pages: [] });
+// La liste des pages (`src/site/pages.json`) ; `idem.pages.json` pour un site d'avant.
+const manifest = read('src/site/pages.json', null) ?? read('idem.pages.json', { pages: [] });
 const pages = manifest.pages?.length ? manifest.pages : [{ path: '/', module: 'src/pages/home.tsx', html: 'index.html' }];
 const seo = read('src/site/seo.json', {});
 

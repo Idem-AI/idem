@@ -12,7 +12,7 @@ import { findSiteUrl } from '../src/siteEngine/redesign/intent.js';
 import { redesignArchitect, redesignFacts } from '../src/siteEngine/redesign/brief.js';
 import { inventoryOutline, linkMapper, SiteInventory, sourceContent } from '../src/siteEngine/redesign/inventory.js';
 import { completeCoverage, diversifyLayouts, missingCoverage, readManifest } from '../src/siteEngine/manifest.js';
-import { isIncomplete, PlanTracker, readPlan, remaining } from '../src/siteEngine/plan.js';
+import { isIncomplete, PlanTracker, readPlan, remaining, PLAN_PATH } from '../src/siteEngine/plan.js';
 import { SiteStream } from '../src/siteEngine/stream.js';
 import { cleanSlop } from '../src/siteEngine/slopGuard.js';
 import { tameNeon } from '../src/siteEngine/designConfig.js';
@@ -244,16 +244,18 @@ async function main() {
     tracker.mark('design', 'done');
     tracker.mark('src/sections/home/Hero.tsx', 'done');
     const text = raw.split('\n').filter((line) => line.startsWith('0:')).map((line) => JSON.parse(line.slice(2)) as string).join('');
-    const writes = [...text.matchAll(/<boltAction type="file" filePath="idem\.plan\.json">\n([\s\S]*?)<\/boltAction>/g)].map((m) => m[1]);
-    const last = readPlan({ 'idem.plan.json': writes[writes.length - 1] ?? '' });
+    const writes = [...text.matchAll(/<boltAction type="file" filePath="\.idem\/plan\.json">\n([\s\S]*?)<\/boltAction>/g)].map((m) => m[1]);
+    const last = readPlan({ '.idem/plan.json': writes[writes.length - 1] ?? '' });
+    check('plan : rangé dans .idem/ (caché dans l’explorateur)', PLAN_PATH === '.idem/plan.json' && !text.includes('filePath="idem.plan.json"'));
+    check('plan : relu à son ancienne place (génération d’avant)', isIncomplete(readPlan({ 'idem.plan.json': writes[writes.length - 1] ?? '' })));
     check('plan : écrit à chaque étape', writes.length === 4, writes.length);
     check('plan : il reste l’assemblage', isIncomplete(last) && remaining(last!).map((step) => step.id).join() === 'pages', last);
     tracker.mark('pages', 'done');
     tracker.finish();
-    const final = readPlan({ 'idem.plan.json': JSON.stringify(tracker.plan) });
+    const final = readPlan({ '.idem/plan.json': JSON.stringify(tracker.plan) });
     check('plan : terminé, plus rien à reprendre', !isIncomplete(final));
 
-    const incomplete = { 'idem.plan.json': JSON.stringify(last), 'idem.pages.json': '{}' };
+    const incomplete = { '.idem/plan.json': JSON.stringify(last), 'src/site/pages.json': '{}' };
     const resumed = await run(await dispatch(base({ text: '/continue', projectData: undefined, siteFiles: incomplete, hasSite: true })));
     check('/continue sans projet : on dit d’ouvrir le projet', /ouvrez iCode depuis votre projet/.test(resumed.text), resumed.text);
   }
