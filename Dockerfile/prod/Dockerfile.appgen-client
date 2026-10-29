@@ -23,6 +23,8 @@ COPY ./packages/shared-tour  ./packages/shared-tour
 COPY ./packages/shared-trusted-by ./packages/shared-trusted-by
 # La boucle IDEM (carte « prochaine étape ») : l'alias `../../../../packages/shared-journey` vise /packages.
 COPY ./packages/shared-journey /packages/shared-journey
+# Achat et branchement de nom de domaine : l'alias `../../../../packages/shared-idomain` vise /packages.
+COPY ./packages/shared-idomain /packages/shared-idomain
 # Install dependencies
 RUN pnpm install --no-frozen-lockfile
 
