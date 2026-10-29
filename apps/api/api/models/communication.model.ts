@@ -144,6 +144,40 @@ export type ContentStatus = 'idea' | 'approved' | 'scheduled' | 'published';
 import type { FlyerFormat, FlyerImageAnalysis, FlyerImageAttribution, FlyerImageSource, VisualIntent } from '../../../ivision/core/src/visual/visual.model';
 export type { FlyerFormat, FlyerImageAnalysis, FlyerImageAttribution, FlyerImageSource, VisualIntent };
 
+/** Les personnages de voix proposés par le calendrier (le moteur en a sept ; « energetic » n'est jamais proposé). */
+export const VIDEO_PLAN_VOICES = ['warm', 'bright', 'smooth', 'confident', 'friendly', 'deep'] as const;
+export type VideoPlanVoice = (typeof VIDEO_PLAN_VOICES)[number];
+export const VIDEO_PLAN_MUSIC = ['upbeat', 'calm', 'epic', 'corporate', 'afro'] as const;
+export type VideoPlanMusic = (typeof VIDEO_PLAN_MUSIC)[number];
+
+/** Un temps du déroulé d'une vidéo du calendrier. */
+export interface VideoPlanBeat {
+  /** Nom court (« Ouverture », « La promesse »). */
+  name: string;
+  /** Ce qu'on voit, concrètement. */
+  see: string;
+  /** Ce que dit le texte à l'écran (le sens). */
+  text?: string;
+  /** Ce que dit la voix off. */
+  voice?: string;
+}
+
+/** Le plan d'une vidéo du calendrier : de quoi produire un film, pas une suite de diapositives. */
+export interface ContentVideoPlan {
+  voiceover: boolean;
+  /** Le ton UNIQUE de la narration, en clair (« chaleureux et posé »). */
+  voiceTone?: string;
+  voicePersona?: VideoPlanVoice;
+  music?: VideoPlanMusic;
+  /** Le rythme et la façon dont les moments s'enchaînent. */
+  pacing?: string;
+  /** Les sujets concrets à montrer (produits, lieu, clients, équipe…). */
+  show: string[];
+  beats: VideoPlanBeat[];
+  /** La fin : la marque, l'appel à l'action. */
+  ending?: string;
+}
+
 export interface ContentIdea {
   id: string;
   title: string;
@@ -175,6 +209,11 @@ export interface ContentIdea {
   videoType?: VideoType;
   /** Durée de la vidéo en secondes (60, 90, 120 ou 180) : chaque vidéo du calendrier dure de 1 à 3 minutes. */
   videoDurationSec?: number;
+  /**
+   * Le PLAN de la vidéo, écrit avec le calendrier (contenus vidéo seulement) : voix off et son ton, musique, rythme,
+   * ce qu'on montre, le déroulé temps par temps. Montré dans le calendrier et transmis tel quel à la génération.
+   */
+  videoPlan?: ContentVideoPlan;
   /** Vidéos créées pour ce contenu. */
   videoIds?: string[];
   /**

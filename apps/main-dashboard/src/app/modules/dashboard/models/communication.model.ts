@@ -98,6 +98,29 @@ export type VisualIntent =
   | 'recruitment'
   | 'announcement';
 
+/** Un temps du déroulé d'une vidéo du calendrier. */
+export interface VideoPlanBeat {
+  name: string;
+  see: string;
+  text?: string;
+  voice?: string;
+}
+
+export type VideoPlanVoice = 'warm' | 'bright' | 'smooth' | 'confident' | 'friendly' | 'deep';
+export type VideoPlanMusic = 'upbeat' | 'calm' | 'epic' | 'corporate' | 'afro';
+
+/** Le plan d'une vidéo du calendrier (cf. API `ContentVideoPlan`). */
+export interface ContentVideoPlan {
+  voiceover: boolean;
+  voiceTone?: string;
+  voicePersona?: VideoPlanVoice;
+  music?: VideoPlanMusic;
+  pacing?: string;
+  show: string[];
+  beats: VideoPlanBeat[];
+  ending?: string;
+}
+
 export interface ContentIdea {
   id: string;
   title: string;
@@ -117,6 +140,8 @@ export interface ContentIdea {
   videoType?: VideoType;
   /** Durée de la vidéo en secondes (1 à 3 minutes). */
   videoDurationSec?: number;
+  /** Le plan de la vidéo écrit avec le calendrier : voix off, ton, musique, ce qu'on montre, déroulé. */
+  videoPlan?: ContentVideoPlan;
   /** Vidéos créées pour ce contenu. */
   videoIds?: string[];
   /** Période propriétaire. Absent = contenu libre né dans l'atelier. */

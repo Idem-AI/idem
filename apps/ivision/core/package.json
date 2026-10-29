@@ -15,6 +15,7 @@
     "check:intent": "ts-node --transpile-only scripts/check-intent.ts",
     "check:lottie": "ts-node --transpile-only scripts/check-lottie.ts",
     "check:demo": "ts-node --transpile-only scripts/check-demo.ts",
+    "check:brief": "ts-node --transpile-only scripts/check-brief.ts",
     "lottie:library": "ts-node --transpile-only scripts/build-lottie-library.ts"
   },
   "dependencies": {

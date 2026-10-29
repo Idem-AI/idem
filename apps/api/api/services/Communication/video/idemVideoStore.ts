@@ -9,7 +9,7 @@
 import type { MotionVideo } from '../../../models/motionVideo.model';
 import type { ContentIdea } from '../../../models/communication.model';
 import type { ContentBrief, VideoBrandContext, VideoStore, VideoTier } from '../../../../../ivision/core/src/video/contracts/store';
-import { objectiveForContent } from './video.calendar';
+import { objectiveForContent, videoRequestOf } from './video.calendar';
 
 /** Ce que l'adaptateur lit du module Communication (le service réel, ou son double dans les contrôles). */
 export interface CommunicationVideoSource {
@@ -68,11 +68,20 @@ export class IdemVideoStore implements VideoStore {
     const item = await this.source.findPlanItem?.(userId, projectId, contentId);
     if (!item) return null;
     const message = (item.hook || item.title || '').slice(0, 400);
+    const plan = item.videoPlan;
+    const project = await this.source.loadProjectForVideo(userId, projectId).catch(() => null);
+    const language = project?.analysisResultModel?.communication?.context?.language || 'fr';
     return {
       message,
       details: [item.title !== message ? item.title : '', item.description, item.callToAction].filter(Boolean).join('\n').slice(0, 800) || undefined,
       objective: objectiveForContent(item),
       type: item.videoType,
+      // Le plan écrit avec le calendrier devient la demande entière (déroulé, à montrer, ton, musique).
+      request: videoRequestOf(item, language),
+      ...(plan ? { voice: plan.voiceover } : {}),
+      ...(plan?.voicePersona ? { voicePersona: plan.voicePersona } : {}),
+      ...(plan?.music ? { musicMood: plan.music } : {}),
+      ...(item.videoDurationSec ? { durationSec: item.videoDurationSec } : {}),
     };
   }
 

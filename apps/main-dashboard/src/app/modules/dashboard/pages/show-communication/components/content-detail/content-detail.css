@@ -120,6 +120,52 @@
   margin-bottom: 0.4rem;
 }
 
+/* ── Plan de la vidéo (écrit avec le calendrier) ─────────────────────────── */
+
+.cd-plan {
+  margin-top: 1.25rem;
+  text-align: left;
+}
+
+.cd-plan .cd-label {
+  display: block;
+  margin-bottom: 0.4rem;
+}
+
+.cd-plan-show,
+.cd-plan-line {
+  margin-top: 0.35rem;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--color-text-secondary);
+}
+
+.cd-plan-key {
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.cd-plan-beats {
+  margin-top: 0.6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  counter-reset: beat;
+}
+
+.cd-plan-beats > li {
+  border-left: 2px solid var(--glass-border-medium);
+  padding-left: 0.7rem;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--color-text-secondary);
+}
+
+.cd-plan-beat-name {
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
 /* ── Champs modifiables ──────────────────────────────────────────────────── */
 
 .cd-fields {

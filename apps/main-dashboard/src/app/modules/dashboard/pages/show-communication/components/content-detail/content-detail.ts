@@ -146,6 +146,13 @@ export class ContentDetail {
     const allowed: VideoDuration[] = [60, 90, 120, 180];
     return allowed.reduce((best, d) => (Math.abs(d - wanted) < Math.abs(best - wanted) ? d : best));
   });
+  /** Le plan de la vidéo écrit avec le calendrier (déroulé, ce qu'on montre, ton, musique). */
+  protected readonly videoPlan = computed(() => this.item().videoPlan ?? null);
+  /** Voix off : celle du plan ; sans plan, oui dès 1 min 30 (une vidéo longue se raconte). */
+  protected readonly voiceOn = computed(() => {
+    const plan = this.videoPlan();
+    return plan ? plan.voiceover : this.videoDuration() >= 90;
+  });
   protected readonly videoOptions = signal<VideoOptions | null>(null);
   protected readonly videoBusy = signal(false);
   protected readonly videoProgress = signal<VideoProgressState>({});
@@ -324,7 +331,8 @@ export class ContentDetail {
     let finished = false;
     this.motionVideos
       .createStream(this.projectId(), {
-        brief: { musicMood: 'auto', sfx: true, allowStock: true, allowGenerate: true },
+        // La musique et le déroulé viennent du plan du contenu (lu par l'API) ; la voix off est celle choisie ici.
+        brief: { musicMood: 'auto', sfx: true, allowStock: true, allowGenerate: true, voice: this.voiceOn() },
         scope: { durationSec: this.videoDuration(), formats: [this.videoFormat()], quality: 'hd' },
         // Le type n'est plus imposé : l'intention (objectif, matière, mouvement) est lue dans le contenu.
         type: 'auto',
@@ -368,6 +376,21 @@ export class ContentDetail {
     const m = Math.floor(sec / 60);
     const s = sec % 60;
     return s ? `${m} min ${s}` : `${m} min`;
+  }
+
+  /** Voix off oui / non : enregistrée dans le plan du contenu, lue à la génération. */
+  protected setVoice(on: boolean): void {
+    if (on === this.voiceOn() || this.videoBusy()) return;
+    const plan = this.videoPlan() ?? { voiceover: on, show: [], beats: [] };
+    this.communication
+      .updatePlanItem(this.projectId(), this.planId(), this.item().id, { videoPlan: { ...plan, voiceover: on } })
+      .subscribe({
+        next: (updated) => {
+          const item = updated.items.find((candidate) => candidate.id === this.item().id);
+          if (item) this.itemChange.emit(item);
+        },
+        error: (err) => this.failed.emit(err?.error?.message || 'content-update'),
+      });
   }
 
   protected setDuration(duration: VideoDuration): void {

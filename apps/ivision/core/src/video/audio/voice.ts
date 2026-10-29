@@ -124,6 +124,49 @@ export function plainSpoken(text: string): string {
   return String(text || '').replace(VOICE_TAG, ' ').replace(/\s+([,.!?…])/g, '$1').replace(/\s+/g, ' ').trim();
 }
 
+/**
+ * UN TON POUR TOUT LE FILM. Les balises de jeu posées ligne par ligne (« [excited] » ici, « [softly] » là) faisaient
+ * crier le narrateur puis le calmaient d'un coup ; les points d'exclamation en série poussaient la voix au cri. La
+ * narration est donc ramenée à UNE direction de jeu :
+ *
+ *   - une seule balise de JEU dans tout le film, en tête de la première ligne, prise parmi les tons posés
+ *     (`STEADY_TAGS`) — la première que l'auteur a écrite, sinon celle du personnage ; les balises qui font monter la
+ *     voix (« excited », « shouting », « enthusiastic »…) disparaissent, les autres balises de jeu aussi ;
+ *   - les balises de RESPIRATION (« [short pause] », « [pause] ») restent où elles sont ;
+ *   - au plus UN point d'exclamation dans toute la narration (« !! », « ?! » réduits) ; les autres deviennent des points.
+ *
+ * Rend les lignes dans le même ordre, et la balise retenue (rejouée en tête de chaque ligne quand la voix est dite
+ * ligne par ligne, pour que chaque appel garde le même ton).
+ */
+const STEADY_TAGS = ['warmly', 'confident', 'reassuring', 'softly', 'calmly', 'curious', 'serious', 'proudly', 'thoughtfully', 'sincerely'];
+const BREATH_TAG = /^\[(?:short |long )?pause\]$/;
+const PERSONA_TAG: Record<string, string> = { warm: '[warmly]', bright: '[warmly]', smooth: '[calmly]', confident: '[confident]', friendly: '[warmly]', deep: '[serious]', energetic: '[confident]' };
+
+export function steadyNarration(lines: string[], personaId?: string): { lines: string[]; tag?: string } {
+  let tag: string | undefined;
+  const stripped = lines.map((line) =>
+    String(line || '').replace(VOICE_TAG, (t) => {
+      if (BREATH_TAG.test(t)) return t;
+      const word = t.slice(1, -1).trim();
+      if (!tag && STEADY_TAGS.includes(word)) tag = `[${word}]`;
+      return ' ';
+    })
+  );
+  tag ??= personaId ? PERSONA_TAG[personaId] : undefined;
+  let exclamations = 0;
+  const out = stripped.map((line) =>
+    line
+      .replace(/\?\s*!+/g, '?')
+      .replace(/!+/g, () => (exclamations++ < 1 ? '!' : '.'))
+      .replace(/\s+([,.!?…])/g, '$1')
+      .replace(/\s+/g, ' ')
+      .trim()
+  );
+  const first = out.findIndex((l) => plainSpoken(l));
+  if (tag && first >= 0) out[first] = `${tag} ${out[first]}`;
+  return { lines: out, ...(tag ? { tag } : {}) };
+}
+
 export function cleanSpoken(value: string, maxWords: number, language: string, briefText: string): string {
   // Les balises de jeu sont mises à l'abri pendant le nettoyage (les autres crochets sont retirés), puis rendues.
   const tags: string[] = [];
@@ -310,6 +353,8 @@ export async function synthesizeVoice(opts: {
   concurrency?: number;
   /** Toute la narration en une prise (création, voix refaite) ; faux pour la retouche d'une seule scène. */
   continuous?: boolean;
+  /** La direction de jeu du film (`steadyNarration`) : rejouée en tête de chaque ligne dite séparément. */
+  deliveryTag?: string;
 }): Promise<{ lines: SaidLine[]; provider: SpeechProvider; model: string; voice: string }> {
   const synth = coreHost().synthesizeSpeech;
   if (!synth) throw new VoiceUnavailableError('no_speech_model');
@@ -343,7 +388,9 @@ export async function synthesizeVoice(opts: {
       for (let line = queue.shift(); line; line = queue.shift()) {
         for (let attempt = 0; attempt < 2; attempt++) {
           try {
-            const speech = await synth(request(line.text));
+            // Dite seule, la ligne garde le ton du film : la même direction de jeu en tête de chaque appel.
+            const said = opts.deliveryTag && !line.text.trim().startsWith(opts.deliveryTag) ? `${opts.deliveryTag} ${line.text}` : line.text;
+            const speech = await synth(request(said));
             used = { provider: speech.provider, model: speech.model, voice: speech.voice };
             const key = crypto.createHash('sha1').update(`${line.index}:${line.text}:${speech.voice}`).digest('hex').slice(0, 12);
             const src = path.join(dir, `${key}.src`);

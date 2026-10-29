@@ -110,6 +110,13 @@ export class PlanPanel {
     return item.format === 'reel' || item.format === 'short-video' || !!item.videoType;
   }
 
+  /** « 1 min 30 » : la durée d'une vidéo du calendrier. */
+  protected videoLength(sec: number): string {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return s ? `${m} min ${s}` : `${m} min`;
+  }
+
   protected readonly channelIcon = channelIcon;
   protected readonly statusPillClass = statusPillClass;
   protected readonly planStatusPillClass = planStatusPillClass;

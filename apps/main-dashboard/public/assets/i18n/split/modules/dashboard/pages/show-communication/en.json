@@ -258,6 +258,24 @@
           "choose": "Choose this version",
           "undo": "Back to the previous one",
           "failed": "The change could not be applied. Try rephrasing."
+        },
+        "videoPlan": {
+          "title": "Video plan",
+          "voice": "Voice-over",
+          "voiceOn": "With voice-over",
+          "voiceOff": "No voice-over",
+          "tone": "Narration tone: {{tone}}",
+          "show": "To show:",
+          "onScreen": "On screen:",
+          "narration": "Voice:",
+          "ending": "Ending:",
+          "music": {
+            "upbeat": "Upbeat music",
+            "calm": "Calm music",
+            "epic": "Epic music",
+            "corporate": "Corporate music",
+            "afro": "Afro music"
+          }
         }
       },
       "studio": {

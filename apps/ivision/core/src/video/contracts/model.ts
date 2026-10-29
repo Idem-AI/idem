@@ -230,6 +230,11 @@ export interface VideoBrief {
   spec?: RequestSpec;
   /** L'intention lue (request/intent.ts) : objectif, mode de production, langage de motion — et d'où vient chaque décision. */
   intent?: import('../request/intent').VideoIntentSpec;
+  /**
+   * Le BRIEF DE PRODUCTION du directeur de création (`request/enhance.ts`) : déroulé, ce qu'on montre, ton unique de la
+   * voix, personnage, musique. Gardé avec la vidéo (une voix ajoutée plus tard reprend son personnage).
+   */
+  creative?: import('../request/enhance').CreativeBrief;
 }
 
 export interface VideoBeatGrid {

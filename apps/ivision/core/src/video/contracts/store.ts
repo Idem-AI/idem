@@ -9,7 +9,7 @@
  * Le service ne sait rien de MongoDB ni de la forme des projets : il ne voit que ce contrat.
  */
 import type { BrandKit, BrandVoice } from '../../brand/brand-kit';
-import type { MotionVideo, VideoObjective, VideoType } from './model';
+import type { MotionVideo, MusicMood, VideoObjective, VideoType } from './model';
 
 export interface VideoBrandContext {
   brandName: string;
@@ -37,6 +37,19 @@ export interface ContentBrief {
   details?: string;
   objective?: VideoObjective;
   type?: VideoType;
+  /**
+   * Le PLAN DE LA VIDÉO écrit avec le calendrier éditorial, mis en forme comme un brief de production (déroulé, ce
+   * qu'on montre, ton de la narration, musique) : la demande entière transmise au moteur, que le directeur de création
+   * complète au lieu de partir d'un angle de 280 signes.
+   */
+  request?: string;
+  /** Voix off prévue par le plan (l'utilisateur peut l'avoir changée). */
+  voice?: boolean;
+  /** Le personnage de voix prévu (`audio/voice.ts#VOICE_PERSONAS`). */
+  voicePersona?: string;
+  musicMood?: MusicMood;
+  /** Durée prévue (s). */
+  durationSec?: number;
 }
 
 export type VideoTier = 'mechanical' | 'writing' | 'reasoning';

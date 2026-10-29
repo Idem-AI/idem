@@ -60,7 +60,7 @@ import { AGENT_MOMENT_CONTENT_PROMPT } from './prompts/agent-moment-content.prom
 import { AGENT_OCCASIONS_PROMPT } from './prompts/agent-occasions.prompt';
 import { AGENT_PLAN_BRIEF_PROMPT } from './prompts/agent-plan-brief.prompt';
 import { AGENT_PLAN_CONTENT_PROMPT } from './prompts/agent-plan-content.prompt';
-import { ensureVideoShare, normaliseVideoDuration } from './video/video.calendar';
+import { ensureVideoShare, normaliseVideoDuration, normaliseVideoPlan } from './video/video.calendar';
 // La composition des visuels : le moteur partagé iVision (apps/ivision/core), qui en confie la page au
 // moteur de génération graphique (@idem/graphic-engine).
 import { sectionHtml } from '@idem/graphic-engine';
@@ -966,6 +966,12 @@ export class CommunicationService extends GenericService {
       if (duration) updates.videoDurationSec = duration;
       else delete updates.videoDurationSec;
     }
+    // Le plan de la vidéo (voix off activée ou non, ton, déroulé) : remis en forme, jamais enregistré tel quel.
+    if (updates.videoPlan !== undefined) {
+      const plan = normaliseVideoPlan(updates.videoPlan);
+      if (plan) updates.videoPlan = plan;
+      else delete updates.videoPlan;
+    }
     await this.patchCommunication(userId, projectId, (existing) => {
       const plans = (existing.plans || []).map((plan) => {
         if (plan.id !== planId) return plan;
@@ -1320,6 +1326,8 @@ export class CommunicationService extends GenericService {
       intent: raw.intent,
       videoType: raw.videoType,
       videoDurationSec: raw.videoDurationSec,
+      // Le plan de la vidéo (contenus vidéo) : nettoyé par `ensureVideoShare` (video.calendar.ts).
+      videoPlan: raw.videoPlan,
       status: 'idea',
       flyerIds: [],
       planId: plan.id,

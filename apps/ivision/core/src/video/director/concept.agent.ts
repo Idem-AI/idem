@@ -33,6 +33,9 @@ export function buildConceptPrompt(brief: FilmBrief): { system: string; user: st
     'Invent ONE original film for this request. You are free: composition, shapes, metaphors, typography, camera, rhythm, transitions — nothing is imposed, no template exists.',
     'The film will be coded in Motion Canvas (2D vector animation: shapes, lines, text, photos and video clips, masks, gradients, filters). Design for that medium: precise, physical, rhythmic motion design — not a slideshow.',
     'Serve the message first: the viewer must understand what is offered and what to do. Avoid clichés (floating icons, generic gradients, "Welcome to…" intros).',
+    'Make it a FILM, not slides: scenes flow into each other — the same subject stays while the text changes, the camera keeps moving through a cut, a shape or colour carries over, an image answers the previous line. Never a sequence of text cards that appear and disappear.',
+    'SHOW the business: most scenes are built around a concrete subject (its product, place, customers, team, craft, the problem it solves) as a photo, a filmed shot or an illustration — available media first, otherwise a new photo or clip. Pure typography only for a short statement or the call to action.',
+    'When the REQUEST is a production brief with a flow of beats, follow its beats in order (merge or split them to fit the scene count) and keep its subjects, its key message and its tone.',
     'Brand rule: use the brand colours and fonts; light backgrounds by default unless the client asks otherwise.',
     `Pick ONE named visual direction for the whole film (it sets type scale, colour use, motion personality and transitions — the code applies it), and a second choice:\n${directionMenu()}`,
     brief.previousDirections?.length ? `The previous film of this brand used "${brief.previousDirections[0]}": choose a different direction.` : '',
@@ -45,7 +48,7 @@ export function buildConceptPrompt(brief: FilmBrief): { system: string; user: st
     'ENERGY: one integer 1-5 per scene, comma-separated',
     'CONCEPT: the idea of the film in one or two sentences',
     'BIBLE: 3 to 6 lines — how colours are used, typography (sizes, case, weight), graphic language (shapes, lines, textures), motion personality (easing, speed, rhythm), how scenes connect',
-    scripted ? `SCENE n: one line per scene of the client's script (${brief.spec!.scenes.length} scenes) — what we see and how it moves` : `SCENE n: one line per scene (${min} to ${max} scenes) — what we see and how it moves`,
+    scripted ? `SCENE n: one line per scene of the client's script (${brief.spec!.scenes.length} scenes) — what we see and how it moves` : `SCENE n: one line per scene (${min} to ${max} scenes) — the concrete subject we see, how it moves, and what carries over to the next scene`,
   ]
     .filter((l) => l !== '')
     .join('\n');
