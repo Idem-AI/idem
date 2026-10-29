@@ -57,7 +57,7 @@ import type { VideoStore } from './contracts/store';
 import { CopyWriter } from './request/facts';
 import { MAX_REQUEST_CHARS, parseRequest, readRequest, RequestSpec, sceneTimeline } from './request/request';
 import { applyClarification, ClassifyInput, clarifyVideoIntent, classifyVideoIntent, describeVideoIntent, IntentAsset, legacyOf, refineVideoIntent, VideoClarification, VideoIntentSpec } from './request/intent';
-import { enhanceRequest } from './request/enhance';
+import { CreativeBrief, enhanceRequest } from './request/enhance';
 import { MediaInputError, MediaStorage, Orientation, processUpload } from './assets/media';
 import { ShotPlan, sourceShots, SourcingOptions } from './assets/sourcing';
 import { describeBrandMedia } from './assets/brandmedia';
@@ -72,7 +72,7 @@ import { vlmTieBreak } from './author/tiebreak';
 import { authorCard, planFilm, plannedCues, probeCandidates, relower, rescueOptions, sceneLowering, sceneMediaData, seamsOf } from './composition';
 import { fetchTrack, pickTrack, resolveMood, searchMusic, MUSIC_PROVIDERS } from './audio/music';
 import { ensureSfxLibrary, MUSIC_GAIN_DB, MUSIC_UNDER_VOICE_DB, SFX_UNDER_VOICE_DB, pickSounds, pickTakes, previewGain, publicSoundName, SFX_GAIN_DB, sfxLibrary, SfxLibrary, soundFile } from './audio/sfx';
-import { cleanSpoken, plainSpoken, fitScenesToVoice, personaById, personaMenu, speakable, speechAvailable, synthesizeVoice, voiceTimeline } from './audio/voice';
+import { cleanSpoken, plainSpoken, fitScenesToVoice, personaById, personaMenu, speakable, speechAvailable, steadyNarration, synthesizeVoice, voiceTimeline, VOICE_PERSONAS } from './audio/voice';
 import { callFilmModel, FilmCallContext, ModelRun, tierFor } from './agents';
 import { FilmBrief, sceneRange } from './director/brief';
 import { runConcept } from './director/concept.agent';
@@ -131,6 +131,8 @@ export interface CreateVideoInput {
    * (par défaut la demande), chaque écran devient un média avec le point de l'action (zoom automatique).
    */
   demo?: { url: string; goal?: string; device?: DemoDevice };
+  /** Le personnage de voix voulu (plan du calendrier) : il l'emporte sur celui que propose le directeur de création. */
+  voicePersona?: string;
 }
 
 /** Progression RÉELLE d'une création (flux SSE). */
@@ -264,6 +266,17 @@ export function normalizeBrief(raw: Partial<VideoBrief> | undefined, language?: 
   };
 }
 
+/**
+ * Le plafond d'images nouvelles d'une vidéo : il suit la durée (une image pour ~8 s, 6 au moins, 14 au plus) — six
+ * images pour trois minutes laissaient la plupart des scènes en typographie seule. `VIDEO_GEN_MAX_IMAGES` l'impose.
+ * Les clips, plus coûteux, gardent leur plafond fixe (`VIDEO_GEN_MAX_CLIPS`).
+ */
+export function imageCap(durationSec: number): number {
+  const forced = process.env.VIDEO_GEN_MAX_IMAGES;
+  if (forced !== undefined && forced !== '' && Number.isFinite(Number(forced))) return Math.max(0, Number(forced));
+  return Math.min(14, Math.max(6, Math.round(durationSec / 8)));
+}
+
 /** Un titre lisible : majuscule initiale, sans point final. */
 export function titleCase(title: string): string {
   const t = String(title || '').replace(/\s+/g, ' ').trim().replace(/[.。]+$/, '');
@@ -389,18 +402,35 @@ export class MotionVideoService {
    * reformulation AUTOMATIQUE de `createVideo` — jamais visible, jamais bloquante (une demande trop
    * courte ou un modèle en panne renvoie le texte tel quel, pas une erreur).
    */
-  private async enhanceVideoRequest(userId: string, text: string, media: VideoMediaAsset[], ctx: Awaited<ReturnType<MotionVideoService['brandContext']>>): Promise<{ prompt: string; source: 'llm' | 'template' }> {
+  private async enhanceVideoRequest(
+    userId: string,
+    text: string,
+    media: VideoMediaAsset[],
+    ctx: Awaited<ReturnType<MotionVideoService['brandContext']>>,
+    o: { durationSec?: number; voice?: boolean; objective?: string; mediaNotes?: string[]; language?: string } = {}
+  ): Promise<{ prompt: string; source: 'llm' | 'template'; brief?: CreativeBrief }> {
     if (parseRequest(String(text || '')).mode === 'script') return { prompt: String(text).trim().slice(0, MAX_REQUEST_CHARS), source: 'template' };
-    const clean = String(text || '').replace(/\s+/g, ' ').trim().slice(0, 1200);
-    if (clean.length < 3) return { prompt: text, source: 'template' };
+    // La demande gardée en entier (un brief déjà détaillé, celui du calendrier éditorial par exemple, est complété, pas résumé).
+    const clean = String(text || '').replace(/[ \t]+/g, ' ').trim().slice(0, 4000);
+    if (clean.replace(/\s+/g, '').length < 3) return { prompt: text, source: 'template' };
     const { brand, brandName, branding } = ctx;
     const count = (kind: string) => media.filter((m) => m?.kind === kind).length;
     const art = branding?.artDirection ? [branding.artDirection.styleName, branding.artDirection.tagline, (branding.artDirection.keywords || []).slice(0, 5).join(', ')].filter(Boolean).join(' · ') : undefined;
     const result = await enhanceRequest(
-      { text: clean, ctx: { brandName, businessType: brand.voice.businessType, tone: brand.voice.tone, valueProposition: brand.voice.valueProposition, keywords: brand.voice.keywords, language: brand.voice.language || 'fr' }, media: { images: count('image'), videos: count('video'), models: 0, lotties: 0 }, art },
-      this.writer(userId)
+      {
+        text: clean,
+        ctx: { brandName, businessType: brand.voice.businessType, tone: brand.voice.tone, valueProposition: brand.voice.valueProposition, keywords: brand.voice.keywords, language: o.language || brand.voice.language || 'fr' },
+        media: { images: count('image'), videos: count('video'), models: 0, lotties: 0 },
+        art,
+        ...(o.mediaNotes?.length ? { mediaNotes: o.mediaNotes } : {}),
+        ...(o.durationSec ? { durationSec: o.durationSec } : {}),
+        ...(typeof o.voice === 'boolean' ? { voice: o.voice } : {}),
+        ...(o.objective ? { objective: o.objective } : {}),
+      },
+      // Le directeur de création écrit un brief de production : l'étage « rédaction », pas l'étage mécanique.
+      this.writer(userId, 'writing', 'video.brief')
     ).catch(() => ({ prompt: text, source: 'template' as const, tokens: { input: 0, output: 0 } }));
-    return { prompt: result.prompt, source: result.source };
+    return { prompt: result.prompt, source: result.source, ...('brief' in result && result.brief ? { brief: result.brief } : {}) };
   }
 
   /** « Améliorer ma demande » : réécriture précise, faits conservés (gratuit, bouton dédié). */
@@ -410,6 +440,11 @@ export class MotionVideoService {
     return this.enhanceVideoRequest(userId, text, media, ctx);
   }
 
+  /**
+   * Un contenu du calendrier éditorial → la demande de la vidéo. Le PLAN écrit avec le calendrier (déroulé, ce qu'on
+   * montre, ton de la narration, musique, durée) devient la demande entière ; ce que l'utilisateur a choisi au moment de
+   * générer (durée, voix, musique) l'emporte toujours.
+   */
   private async inputFromContent(userId: string, projectId: string, input: CreateVideoInput): Promise<CreateVideoInput> {
     const content = (await this.store.briefFromContent?.(userId, projectId, input.contentId!)) || null;
     if (!content) return input;
@@ -417,7 +452,12 @@ export class MotionVideoService {
     if (!brief.message || String(brief.message).trim().length < 3) brief.message = content.message.slice(0, 400);
     if (!brief.details && content.details) brief.details = content.details.slice(0, 800);
     if (!brief.objective && content.objective) brief.objective = content.objective;
-    return { ...input, brief, type: input.type || content.type || 'auto' };
+    if (!brief.request && content.request) brief.request = content.request;
+    if (typeof brief.voice !== 'boolean' && typeof content.voice === 'boolean') brief.voice = content.voice;
+    if ((!brief.musicMood || brief.musicMood === 'auto') && content.musicMood) brief.musicMood = content.musicMood;
+    const rawScope = (input.scope && typeof input.scope === 'object' ? input.scope : {}) as Record<string, unknown>;
+    const scope = rawScope.durationSec || !content.durationSec ? input.scope : { ...rawScope, durationSec: content.durationSec };
+    return { ...input, brief, scope, type: input.type || content.type || 'auto', ...(content.voicePersona && !input.voicePersona ? { voicePersona: content.voicePersona } : {}) };
   }
 
   // ── Médias ────────────────────────────────────────────────────────────────
@@ -556,13 +596,16 @@ export class MotionVideoService {
   // ── Voix off ──────────────────────────────────────────────────────────────
 
   /** Dit les lignes des scènes et cale le film sur elles. Sans service de voix : la vidéo reste sans voix, et le dit. */
-  private async voiceFilm(o: { userId: string; projectId: string; videoId: string; film: VideoFilm; style: MotionStyle; seed: number; only?: string[]; scripted: boolean; previous?: VideoVoice }): Promise<{ film: VideoFilm; voice: VideoVoice; voiced: string[]; failed: string[] }> {
+  private async voiceFilm(o: { userId: string; projectId: string; videoId: string; film: VideoFilm; style: MotionStyle; seed: number; only?: string[]; scripted: boolean; previous?: VideoVoice; persona?: string }): Promise<{ film: VideoFilm; voice: VideoVoice; voiced: string[]; failed: string[] }> {
     const base: VideoVoice = { enabled: true, language: o.film.language.slice(0, 5), persona: o.previous?.persona || 'warm', provider: 'openrouter', model: '', voice: '', source: 'llm', lines: [] };
     if (!speechAvailable()) return { film: o.film, voice: { ...base, enabled: false, unavailable: 'no_speech_model' }, voiced: [], failed: [] };
-    const persona = o.previous?.persona ? personaById(o.previous.persona) : personaMenu(o.style, o.seed)[0];
+    // Le personnage : celui de la voix déjà dite, sinon celui que le brief de production a choisi, sinon le menu du style.
+    const persona = o.previous?.persona ? personaById(o.previous.persona) : o.persona ? personaById(o.persona) : personaMenu(o.style, o.seed)[0];
     const keep = (o.previous?.lines || []).filter((l) => o.only && !o.only.includes(l.sceneKey));
+    // UN ton pour tout le film (`steadyNarration`) : une seule direction de jeu, pas de cri, pas de saut d'énergie.
+    const steady = steadyNarration(o.film.scenes.map((sc) => cleanSpoken(sc.voiceText || '', 60, o.film.language, `${sc.voiceText}`)), persona.id);
     const wanted = o.film.scenes
-      .map((sc, i) => ({ sc, i, text: cleanSpoken(sc.voiceText || '', 60, o.film.language, `${sc.voiceText}`) }))
+      .map((sc, i) => ({ sc, i, text: plainSpoken(steady.lines[i]) ? steady.lines[i] : '' }))
       .filter((x) => x.text && (!o.only || o.only.includes(x.sc.key)));
     if (!wanted.length) return { film: o.film, voice: { ...base, persona: persona.id, lines: keep }, voiced: [], failed: [] };
     try {
@@ -574,6 +617,7 @@ export class MotionVideoService {
         folder: `users/${o.userId}/projects/${o.projectId}/videos/${o.videoId}/voice`,
         // Toute la narration d'une prise ; une retouche de scène ne redit que sa ligne.
         continuous: !o.only,
+        ...(steady.tag ? { deliveryTag: steady.tag } : {}),
       });
       const fresh = await Promise.all(said.lines.map(async (l) => ({ sceneKey: o.film.scenes[l.index].key, text: l.text, url: l.url, durationSec: l.durationSec, ...(await this.wordsOf(l.text, l.url, l.durationSec)) })));
       const all = [...keep.map(({ offset: _o, ...l }) => l), ...fresh];
@@ -1156,17 +1200,31 @@ export class MotionVideoService {
     // 1. Compréhension
     emit('plan', 'running');
     const rawRequest = brief.request || [brief.message, brief.details].filter(Boolean).join('\n');
-    // Reformulation transparente (même chargement, même étape « plan ») : la demande, souvent brève et
-    // orale, devient un brief détaillé et professionnel avant le reste de la génération — jamais pour un
-    // scénario mot pour mot (`enhanceVideoRequest` le renvoie alors tel quel).
-    const request = (await this.enhanceVideoRequest(userId, rawRequest, brief.media || [], ctx)).prompt || rawRequest;
-    // Le reste de la création (intention, storyboard…) lit la même demande reformulée.
+    // Les images de la marque, décrites (gardées par l'hôte) : le directeur de création sait ce qu'elles montrent.
+    const brandMedia = await this.describedBrandMedia(userId, projectId, ctx.brandMedia, brief.media || []);
+    // Le DIRECTEUR DE CRÉATION (même chargement, même étape « plan ») : la demande, souvent brève et orale, devient un
+    // brief de production complet — déroulé, ce qu'on montre, textes qui disent quelque chose, un ton de voix, le rythme
+    // d'un film — avant le reste de la génération. Jamais pour un scénario mot pour mot (rendu tel quel).
+    const enhanced = await this.enhanceVideoRequest(userId, rawRequest, brief.media || [], ctx, {
+      durationSec: scope.durationSec,
+      // Le choix de l'utilisateur (case « voix off », ou plan du calendrier) fait autorité : le brief ne le contredit jamais.
+      voice: brief.voice === true,
+      objective: brief.objective,
+      language: brief.language,
+      mediaNotes: [...(brief.media || []).filter((m) => m.kind === 'image' || m.kind === 'video').map((m) => `${m.kind === 'video' ? 'clip' : 'photo'} provided by the client${m.name ? `: ${m.name}` : ''}`), ...brandMedia.map((b) => `${b.kind === 'screen' ? 'screenshot of the brand' : 'brand photo'}: ${b.note}`)].filter((n) => n.length > 12),
+    });
+    const request = enhanced.prompt || rawRequest;
+    // Le reste de la création (intention, storyboard…) lit la même demande reformulée ; le brief structuré est gardé.
     brief.request = request;
+    if (enhanced.brief) {
+      brief.creative = { ...enhanced.brief, ...(input.voicePersona && VOICE_PERSONAS.some((p) => p.id === input.voicePersona) ? { persona: input.voicePersona as CreativeBrief['persona'] } : {}) };
+      // La musique que le brief propose, quand l'utilisateur a laissé le choix.
+      if (brief.musicMood === 'auto' && enhanced.brief.music) brief.musicMood = enhanced.brief.music;
+    }
     const read = await readRequest(request, { fallbackLanguages: [input.language, ctx.brand.voice.language], writer: this.writer(userId, 'mechanical', 'video.reader') });
     const spec: RequestSpec = { ...read.spec, language: brief.language || read.spec.language };
     const language = spec.language || brief.language || 'fr';
     const intent = await this.readIntent(userId, input, brief, spec, ctx.brandMedia, creativity);
-    const brandMedia = await this.describedBrandMedia(userId, projectId, ctx.brandMedia, brief.media || []);
     // Les médias du film : imports d'abord, puis les images de la marque (captures, photos).
     const uploads = (brief.media || []).filter((m) => m.kind === 'image' || m.kind === 'video');
     const assets: VideoMediaAsset[] = [];
@@ -1200,7 +1258,7 @@ export class MotionVideoService {
       durationSec: scope.durationSec,
       media: assets.map((m) => ({ id: m.id, kind: m.kind as 'image' | 'video', ...(m.name ? { note: m.name } : {}), ...(m.durationSec ? { durationSec: m.durationSec } : {}), origin: m.origin === 'upload' ? 'provided by the client' : 'brand' })),
       voice: brief.voice === true,
-      newMedia: { images: brief.allowGenerate || brief.allowStock ? Math.max(0, Number(process.env.VIDEO_GEN_MAX_IMAGES ?? 6)) : 0, clips: brief.allowGenerate || brief.allowStock ? Math.max(0, Number(process.env.VIDEO_GEN_MAX_CLIPS ?? 4)) : 0 },
+      newMedia: { images: brief.allowGenerate || brief.allowStock ? imageCap(scope.durationSec) : 0, clips: brief.allowGenerate || brief.allowStock ? Math.max(0, Number(process.env.VIDEO_GEN_MAX_CLIPS ?? 4)) : 0 },
       ...(reference ? { reference } : {}),
       ...(input.reference && !(spec.mode === 'script' && spec.scenes.length) ? { referenceShots: referenceShotCards(input.reference, sceneRange(scope.durationSec)[1]) } : {}),
       previous: ctx.others.filter((v) => v.film).slice(-6).map((v) => `${v.film!.title} — ${v.film!.concept}`.slice(0, 200)),
@@ -1350,7 +1408,7 @@ export class MotionVideoService {
     // La voix : dite avant le codage, pour que chaque scène connaisse sa durée finale et sa ligne.
     if (brief.voice) {
       emit('voice', 'running');
-      const v = await this.voiceFilm({ userId, projectId, videoId, film, style, seed, scripted: spec.mode === 'script' });
+      const v = await this.voiceFilm({ userId, projectId, videoId, film, style, seed, scripted: spec.mode === 'script', ...(brief.creative?.persona || input.voicePersona ? { persona: brief.creative?.persona || input.voicePersona } : {}) });
       film = v.film;
       video = { ...video, film, voice: v.voice };
       if (v.failed.length) film.fidelity = { notes: [...(film.fidelity?.notes || []), ...v.failed.map((k) => say(`Scène ${k.slice(1)} : la voix off n’a pas pu être dite.`, `Scene ${k.slice(1)}: the voice-over could not be recorded.`))] };
@@ -1508,7 +1566,9 @@ export class MotionVideoService {
     const voiceKeys = Object.keys(patch.voiceLines || {}).filter((k) => sceneOf(k));
     if (patch.voice === false && video.voice) video.voice = { ...video.voice, enabled: false };
     if (patch.voice === true || (voiceKeys.length && video.voice?.enabled)) {
-      const v = await this.voiceFilm({ userId, projectId, videoId, film, style: 'energetic', seed: film.seed, scripted: video.brief.spec?.mode === 'script', ...(patch.voice === true && !video.voice?.lines.length ? {} : { only: voiceKeys }), ...(video.voice ? { previous: video.voice } : {}) });
+      // Une voix ajoutée après coup : le personnage du brief de production, sinon une voix chaleureuse (jamais tirée au
+      // hasard parmi les voix « énergiques » : elles poussaient au cri).
+      const v = await this.voiceFilm({ userId, projectId, videoId, film, style: 'corporate', seed: film.seed, persona: video.brief.creative?.persona || 'warm', scripted: video.brief.spec?.mode === 'script', ...(patch.voice === true && !video.voice?.lines.length ? {} : { only: voiceKeys }), ...(video.voice ? { previous: video.voice } : {}) });
       film = v.film;
       video = { ...video, film, voice: v.voice };
       report.voiced.push(...v.voiced);

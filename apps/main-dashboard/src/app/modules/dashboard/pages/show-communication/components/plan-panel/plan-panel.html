@@ -282,6 +282,12 @@
                           <span class="pp-card-video">
                             <i class="pi pi-video" aria-hidden="true"></i>
                             {{ 'dashboard.showCommunication.video.types.' + (item.videoType || 'mix') + '.label' | translate }}
+                            @if (item.videoDurationSec) {
+                              · {{ videoLength(item.videoDurationSec) }}
+                            }
+                            @if (item.videoPlan) {
+                              · {{ (item.videoPlan.voiceover ? 'dashboard.showCommunication.detail.videoPlan.voiceOn' : 'dashboard.showCommunication.detail.videoPlan.voiceOff') | translate }}
+                            }
                           </span>
                           @if (!item.videoIds?.length) {
                             <span class="pp-card-todo">

@@ -28,6 +28,16 @@ export const AGENT_PLAN_CONTENT_PROMPT = `<role>Senior content planner</role>
       "intent": "awareness" | "celebration" | "promotion" | "recruitment" | "announcement",
       "videoType": "ONLY when format is reel or short-video: kinetic (typography) | product (product photos) | promo (offer, price) | footage (real-life clips) | showcase3d (3D object) | illustrated (animated illustrations) | slideshow (photo series) | logo (logo reveal) | mix (combines several, for richer stories)",
       "videoDurationSec": "ONLY when format is reel or short-video: 60 | 90 | 120 | 180 (seconds)",
+      "videoPlan": "ONLY when format is reel or short-video — the production plan of the video, see <video_plan_rules>: {
+        \"voiceover\": true | false,
+        \"voiceTone\": \"the ONE tone of the narrator, constant from start to finish (e.g. warm and steady)\",
+        \"voicePersona\": \"warm | bright | smooth | confident | friendly | deep\",
+        \"music\": \"upbeat | calm | epic | corporate | afro\",
+        \"pacing\": \"the rhythm and how the moments flow into each other\",
+        \"show\": [\"concrete subjects to show: the product, the place, the customers, the team, the craft…\"],
+        \"beats\": [{ \"name\": \"short name\", \"see\": \"what we see, concretely\", \"text\": \"what the on-screen text says\", \"voice\": \"what the narrator says\" }],
+        \"ending\": \"how it ends: the brand and the call to action\"
+      }",
       "theme": "label of the brief theme this content serves",
       "occasion": "occasion name — ONLY for contents tied to one, omit otherwise",
       "status": "idea"
@@ -51,9 +61,21 @@ These rules are arithmetic, not style — a date outside the period makes the co
 - Video performs best on social networks: at least one content in three is a video (format "reel" or "short-video") on the networks that favour it (TikTok, Instagram, Facebook, YouTube, LinkedIn). Give each video the videoType that fits its angle and what the brand can show.
 - Every video lasts BETWEEN 1 AND 3 MINUTES — never a 15-second clip. Set videoDurationSec to 60, 90, 120 or 180 and VARY it across the videos of the period: a quick teaser or announcement ≈ 60, a story or product demo ≈ 90, a tutorial or behind-the-scenes ≈ 120, a testimonial or deep dive ≈ 180. Never give all videos the same duration.
 - No two contents may share the same angle reworded. If you catch yourself writing "discover our…" twice, one of the two is filler.
-- Focus on textual angles; do NOT describe the visual in detail (the visual is composed later, by another agent, from the brand charter).
+- For posts, carousels and articles: focus on textual angles; do NOT describe the visual in detail (the visual is composed later, by another agent, from the brand charter).
+- For every video (reel, short-video): write its videoPlan, concrete and complete (see <video_plan_rules>).
 - Write in the language given by context.language.
 </editorial_rules>
+
+<video_plan_rules>
+A video is a FILM, not a slideshow of text cards. Its plan must be concrete enough for a storyboard artist:
+- voiceover: true when the video tells a story, explains, demonstrates, announces or testifies (most videos of 90 s and more); false only for a quick visual teaser understood without sound.
+- voiceTone and voicePersona: ONE narrator and ONE steady tone for the whole video, natural like a person talking to a friend — never shouting, never hype, no change of energy from one moment to the next.
+- show: what the viewer SEES of this business — its products, its place, its customers, its team, its craft, the problem it solves. Concrete subjects (who, what, where), never "beautiful images".
+- beats: 4 to 7 moments in order, scaled to the duration (≈ one per 15 to 25 seconds). Each beat: what we see (a concrete subject, as a photo, a filmed shot or an illustration — typography alone only for a short statement or the final call to action), what the on-screen text says (a benefit with its concrete detail, never an empty slogan), what the narrator says (when voiceover is true). Each beat carries on from the previous one: the same subject stays, the camera keeps moving, an image answers the previous line.
+- First seconds: a hook (a tension, a question, a striking image) — never a logo alone or "Welcome to…". The brand and the call to action land at the end.
+- No scene numbers, no timings, no quotation marks. Never invent a price, number, date, address or claim that is not in the context or the brief.
+- Write the plan in the language given by context.language.
+</video_plan_rules>
 
 <period_brief>
 {{PLAN_BRIEF}}

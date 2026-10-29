@@ -42,6 +42,7 @@ demande ─► compréhension ─► directeur ─► planificateur ─► plan 
 
 | Étape | Fichier | Rôle de modèle | Ce qu'elle produit |
 | --- | --- | --- | --- |
+| Directeur de création | `request/enhance.ts` | étage « rédaction » (`video.brief`) | la demande devient un **brief de production** : déroulé, ce qu'on montre, un ton de narration, rythme d'un film, musique (mis en forme par le code, jamais lu comme un scénario imposé) ; gardé dans `brief.creative` |
 | Compréhension | `request/request.ts`, `request/intent.ts` | `video.reader`, `video.intent-classifier` | `RequestSpec` : langue, scénario **mot pour mot**, voix écrite, durée, format, interdits ; l'intention |
 | Direction | `director/concept.agent.ts` | `video.concept` | titre, concept, bible visuelle, une idée par scène, **une direction nommée** (jamais celle de la vidéo précédente) et la **courbe d'énergie** |
 | Storyboard | `director/storyboard.agent.ts` | `video.planner` | par scène : durée, **rôle** (squelette en 8 temps : accroche → signature), **énergie 1–5**, intention, textes exacts, médias, voix |
@@ -319,6 +320,8 @@ fournisseurs épinglés (`--providers`). Un barreau se remplace sans code (`IDEM
 | `npm run check:motion` (apps/ivision/core) | le chemin programme (0.2.1) de bout en bout |
 | `npm run check:lottie` (apps/ivision/core) | Lottie → WebM transparent, recoloration, import refusé si ce n'est pas une animation |
 | `npm run check:demo` (apps/ivision/core) | carte de page, agent simulé, parcours réel, zoom vers le clic mesuré sur l'image |
+| `npm run check:brief` (apps/ivision/core) | directeur de création (agent simulé) : brief lu comme un brief, faits gardés, voix de l'utilisateur ; narration à ton constant |
+| `npm run check:comm` (apps/api) | périodes du calendrier, et le plan des vidéos : nettoyage, mise en forme de la demande |
 | `npm run check:roles` (apps/api) | les échelles de modèles et les nouveaux rôles |
 | `npm run typecheck` (apps/ivision/core) | Node et navigateur |
 | **payant** `npm run bench:quality --prefix packages/motion-compiler` | le banc réel par cran ; puis `bench:quality:rate`, `bench:quality:fit` |

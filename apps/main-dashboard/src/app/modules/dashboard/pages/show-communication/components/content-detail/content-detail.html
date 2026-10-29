@@ -124,6 +124,73 @@
                 </div>
               </fieldset>
 
+              <!-- La voix off : proposée par le plan, l'utilisateur tranche. -->
+              <fieldset class="cd-format-choice">
+                <legend class="cd-label">{{ 'dashboard.showCommunication.detail.videoPlan.voice' | translate }}</legend>
+                <div class="cd-chips">
+                  @for (on of [true, false]; track on) {
+                    <button
+                      type="button"
+                      class="rounded-xl px-3 py-1.5 text-sm"
+                      [class.inner-button]="voiceOn() === on"
+                      [class.outer-button]="voiceOn() !== on"
+                      [attr.aria-pressed]="voiceOn() === on"
+                      (click)="setVoice(on)"
+                    >
+                      {{ (on ? 'dashboard.showCommunication.detail.videoPlan.voiceOn' : 'dashboard.showCommunication.detail.videoPlan.voiceOff') | translate }}
+                    </button>
+                  }
+                </div>
+                @if (voiceOn() && videoPlan()?.voiceTone; as tone) {
+                  <p class="cd-note">{{ 'dashboard.showCommunication.detail.videoPlan.tone' | translate: { tone: tone } }}</p>
+                }
+              </fieldset>
+
+              <!-- Le plan de la vidéo : ce qu'elle montre et son déroulé, écrits avec le calendrier. -->
+              @if (videoPlan(); as plan) {
+                @if (plan.beats.length || plan.show.length) {
+                  <section class="cd-plan" [attr.aria-label]="'dashboard.showCommunication.detail.videoPlan.title' | translate">
+                    <h4 class="cd-label">{{ 'dashboard.showCommunication.detail.videoPlan.title' | translate }}</h4>
+                    @if (plan.music || plan.pacing) {
+                      <p class="cd-note">
+                        @if (plan.music) {
+                          {{ 'dashboard.showCommunication.detail.videoPlan.music.' + plan.music | translate }}
+                        }
+                        @if (plan.music && plan.pacing) {
+                          ·
+                        }
+                        {{ plan.pacing }}
+                      </p>
+                    }
+                    @if (plan.show.length) {
+                      <p class="cd-plan-show">
+                        <span class="cd-plan-key">{{ 'dashboard.showCommunication.detail.videoPlan.show' | translate }}</span>
+                        {{ plan.show.join(' · ') }}
+                      </p>
+                    }
+                    @if (plan.beats.length) {
+                      <ol class="cd-plan-beats">
+                        @for (beat of plan.beats; track $index) {
+                          <li>
+                            <p class="cd-plan-beat-name">{{ beat.name }}</p>
+                            <p>{{ beat.see }}</p>
+                            @if (beat.text) {
+                              <p class="cd-plan-line"><span class="cd-plan-key">{{ 'dashboard.showCommunication.detail.videoPlan.onScreen' | translate }}</span> {{ beat.text }}</p>
+                            }
+                            @if (voiceOn() && beat.voice) {
+                              <p class="cd-plan-line"><span class="cd-plan-key">{{ 'dashboard.showCommunication.detail.videoPlan.narration' | translate }}</span> {{ beat.voice }}</p>
+                            }
+                          </li>
+                        }
+                      </ol>
+                    }
+                    @if (plan.ending) {
+                      <p class="cd-plan-line"><span class="cd-plan-key">{{ 'dashboard.showCommunication.detail.videoPlan.ending' | translate }}</span> {{ plan.ending }}</p>
+                    }
+                  </section>
+                }
+              }
+
               @if (lastVideoId(); as videoId) {
                 <p class="cd-note">{{ 'dashboard.showCommunication.detail.videoDone' | translate }}</p>
                 <div class="cd-visual-actions">

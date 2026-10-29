@@ -31,6 +31,8 @@ import {
   weekOfPeriod,
 } from '../services/Communication/communication.migration';
 import { toContentChannel, toContentChannels } from '../services/Communication/channels';
+import { ensureVideoShare, normaliseVideoPlan, videoRequestOf } from '../services/Communication/video/video.calendar';
+import { parseRequest } from '../../../ivision/core/src/video/request/request';
 
 let failures = 0;
 
@@ -402,6 +404,47 @@ check(
 );
 
 // ───────────────────────────────────────────────────────────────────────────
+// 3. Le PLAN des vidéos du calendrier : de quoi produire un film, transmis tel quel à la génération.
+
+console.log('\nPlan des vidéos du calendrier');
+{
+  const plan = normaliseVideoPlan({
+    voiceover: true,
+    voiceTone: 'chaleureux et posé 🎉',
+    voicePersona: 'energetic',
+    music: 'afro',
+    pacing: 'chaque plan prolonge le précédent',
+    show: ['le torréfacteur à l’aube', 'un livreur à moto'],
+    beats: [
+      { name: 'Accroche', see: 'des grains qui craquent', text: '« Torréfié ce matin »', voice: 'Il est six heures.' },
+      { name: 'Le trajet', see: 'un livreur traverse Dakar', text: 'Livré chez vous', voice: 'Il arrive chez vous.' },
+      { name: 'vide', see: '' },
+    ],
+    ending: 'le logo et l’appel à commander',
+  });
+  check('le plan est lu', !!plan && plan.beats.length === 2, JSON.stringify(plan));
+  check('le personnage « energetic » n’est jamais retenu', !!plan && plan.voicePersona === undefined);
+  check('émojis et guillemets retirés', !!plan && !/[🎉«»]/u.test(JSON.stringify(plan)));
+  check('musique gardée', plan?.music === 'afro');
+  const silent = normaliseVideoPlan({ voiceover: false, voiceTone: 'x', beats: [{ name: 'a', see: 'b', voice: 'c' }] });
+  check('sans voix off : ni ton ni répliques', !!silent && !silent.voiceover && !silent.voiceTone && silent.beats.every((b) => !b.voice));
+  check('un plan vide n’est pas gardé', normaliseVideoPlan({ beats: [], show: [] }) === undefined);
+
+  const item = { title: 'Le lancement de Kora Café', hook: 'Votre café torréfié ce matin', description: 'On annonce l’ouverture.', callToAction: 'Commandez', videoPlan: plan };
+  const request = videoRequestOf(item, 'fr');
+  check('la demande vidéo porte le déroulé', (request.match(/^- /gm) || []).length === 2 && /livreur traverse Dakar/.test(request), request);
+  check('la demande dit le ton unique de la narration', /Ton de la narration : .*chaleureux et posé/.test(request));
+  check('la demande vidéo reste un BRIEF (jamais un scénario imposé)', parseRequest(request).mode === 'brief' && parseRequest(request).texts.length === 0, JSON.stringify(parseRequest(request).texts));
+  check('sans plan : l’angle du contenu', videoRequestOf({ ...item, videoPlan: undefined }).startsWith('Votre café torréfié ce matin'));
+
+  const ideas = [
+    { id: 'a', title: 'A', hook: 'h', description: 'd', format: 'reel', channel: 'instagram', scheduledFor: '2026-11-02', week: 1, hashtags: [], callToAction: '', status: 'idea', videoPlan: { voiceover: true, beats: [{ name: 'x', see: 'y' }], show: [] } },
+    { id: 'b', title: 'B', hook: 'h', description: 'd', format: 'post', channel: 'linkedin', scheduledFor: '2026-11-03', week: 1, hashtags: [], callToAction: '', status: 'idea', videoPlan: { voiceover: true, beats: [{ name: 'x', see: 'y' }], show: [] } },
+  ] as unknown as ContentIdea[];
+  const shared = ensureVideoShare(ideas, false);
+  check('une vidéo garde son plan', !!shared[0].videoPlan && shared[0].videoPlan.beats.length === 1);
+  check('une publication (non vidéo) n’a pas de plan vidéo', !shared.find((i) => i.id === 'b' && i.format === 'post')?.videoPlan);
+}
 
 console.log(
   failures === 0

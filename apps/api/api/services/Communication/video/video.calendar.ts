@@ -7,8 +7,9 @@
  * le valide, le complète quand il manque, et garantit la part de vidéos — une
  * contrainte de proportion n'a rien à faire dans un prompt.
  */
-import { ContentChannel, ContentFormat, ContentIdea, VisualIntent } from '../../../models/communication.model';
+import { ContentChannel, ContentFormat, ContentIdea, ContentVideoPlan, VIDEO_PLAN_MUSIC, VIDEO_PLAN_VOICES, VideoPlanBeat, VideoPlanMusic, VideoPlanVoice, VisualIntent } from '../../../models/communication.model';
 import { VIDEO_TYPES, VideoObjective, VideoType } from '../../../models/motionVideo.model';
+import { formatCreativeBrief } from '../../../../../ivision/core/src/video/request/enhance';
 
 /** Formats qui sont des vidéos. */
 export const VIDEO_FORMATS: ContentFormat[] = ['reel', 'short-video'];
@@ -48,7 +49,7 @@ function assignVideoDurations(items: ContentIdea[]): ContentIdea[] {
   const forceCycle = videos.length > 1 && distinct < Math.min(2, videos.length);
   let rank = 0;
   return items.map((item) => {
-    if (!isVideoFormat(item.format)) return { ...item, videoDurationSec: undefined };
+    if (!isVideoFormat(item.format)) return { ...item, videoDurationSec: undefined, videoPlan: undefined };
     const own = forceCycle ? undefined : normaliseVideoDuration(item.videoDurationSec);
     const videoDurationSec = own ?? DURATION_CYCLE[rank % DURATION_CYCLE.length];
     rank++;
@@ -116,7 +117,7 @@ export function normaliseVideoType(proposed: unknown, item: ContentIdea, hasPhot
  * période (jamais deux conversions de suite). Chaque vidéo reçoit son type.
  */
 export function ensureVideoShare(items: ContentIdea[], hasPhotos: boolean): ContentIdea[] {
-  const out = items.map((item) => (isVideoFormat(item.format) ? { ...item, videoType: normaliseVideoType(item.videoType, item, hasPhotos) } : { ...item, videoType: undefined }));
+  const out = items.map((item) => (isVideoFormat(item.format) ? { ...item, videoType: normaliseVideoType(item.videoType, item, hasPhotos), videoPlan: normaliseVideoPlan(item.videoPlan) } : { ...item, videoType: undefined, videoPlan: undefined }));
   const target = Math.ceil(out.length * VIDEO_SHARE);
   let count = out.filter((i) => isVideoFormat(i.format)).length;
   if (count >= target) return assignVideoDurations(out);
@@ -134,4 +135,68 @@ export function ensureVideoShare(items: ContentIdea[], hasPhotos: boolean): Cont
     count++;
   }
   return assignVideoDurations(out);
+}
+
+// ─── Le plan d'une vidéo du calendrier ────────────────────────────────────────
+
+const clip = (value: unknown, max: number): string =>
+  typeof value === 'string'
+    ? value
+        .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}]/gu, '')
+        .replace(/[«»“”"]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, max)
+    : '';
+
+/**
+ * Le plan proposé par le planificateur, ramené à sa forme : textes bornés, sans émoji ni guillemets (un texte entre
+ * guillemets serait exigé à la lettre par le lecteur de demande), personnage et musique pris dans leurs listes, 2 à 9
+ * temps. Rend `undefined` quand il n'y a rien d'exploitable : le directeur de création écrira le déroulé à la génération.
+ */
+export function normaliseVideoPlan(raw: unknown): ContentVideoPlan | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const r = raw as Record<string, unknown>;
+  const beats: VideoPlanBeat[] = (Array.isArray(r.beats) ? r.beats : [])
+    .map((b: any) => ({ name: clip(b?.name, 60), see: clip(b?.see, 320), text: clip(b?.text, 200) || undefined, voice: clip(b?.voice, 300) || undefined }))
+    .filter((b) => b.see)
+    .slice(0, 9);
+  const show = (Array.isArray(r.show) ? r.show : []).map((x) => clip(x, 140)).filter(Boolean).slice(0, 8);
+  const voiceover = r.voiceover !== false;
+  if (!beats.length && !show.length && typeof r.voiceover !== 'boolean') return undefined;
+  return {
+    voiceover,
+    ...(voiceover && clip(r.voiceTone, 160) ? { voiceTone: clip(r.voiceTone, 160) } : {}),
+    ...(voiceover && VIDEO_PLAN_VOICES.includes(r.voicePersona as VideoPlanVoice) ? { voicePersona: r.voicePersona as VideoPlanVoice } : {}),
+    ...(VIDEO_PLAN_MUSIC.includes(r.music as VideoPlanMusic) ? { music: r.music as VideoPlanMusic } : {}),
+    ...(clip(r.pacing, 240) ? { pacing: clip(r.pacing, 240) } : {}),
+    show,
+    beats: beats.map((b) => (voiceover ? b : { ...b, voice: undefined })),
+    ...(clip(r.ending, 240) ? { ending: clip(r.ending, 240) } : {}),
+  };
+}
+
+/**
+ * Le contenu et son plan → la DEMANDE de la vidéo, mise en forme comme un brief de production (même mise en forme que
+ * le directeur de création du moteur : jamais lue comme un scénario mot pour mot). Sans plan : l'angle du contenu.
+ */
+export function videoRequestOf(item: Pick<ContentIdea, 'title' | 'hook' | 'description' | 'callToAction' | 'videoPlan'>, language = 'fr'): string {
+  const angle = [item.hook || item.title, item.title !== item.hook ? item.title : '', item.description].filter(Boolean).join('. ').replace(/\.\s*\./g, '.');
+  const plan = item.videoPlan;
+  if (!plan || !plan.beats.length) return [angle, item.callToAction].filter(Boolean).join('\n');
+  return formatCreativeBrief(
+    {
+      keyMessage: item.hook || item.title,
+      story: item.description,
+      voiceover: plan.voiceover,
+      ...(plan.voiceTone ? { voiceTone: plan.voiceTone } : {}),
+      ...(plan.pacing ? { pacing: plan.pacing } : {}),
+      show: plan.show,
+      beats: plan.beats,
+      ...(plan.ending || item.callToAction ? { ending: [plan.ending, item.callToAction].filter(Boolean).join(', ') } : {}),
+      ...(plan.music ? { music: plan.music } : {}),
+    },
+    language,
+    item.title
+  );
 }

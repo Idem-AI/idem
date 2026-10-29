@@ -3798,6 +3798,24 @@
           "choose": "Choisir cette version",
           "undo": "Revenir à l’ancienne",
           "failed": "La modification n’a pas pu être appliquée. Reformulez votre demande."
+        },
+        "videoPlan": {
+          "title": "Plan de la vidéo",
+          "voice": "Voix off",
+          "voiceOn": "Avec voix off",
+          "voiceOff": "Sans voix off",
+          "tone": "Ton de la narration : {{tone}}",
+          "show": "À montrer :",
+          "onScreen": "À l'écran :",
+          "narration": "Voix :",
+          "ending": "Fin :",
+          "music": {
+            "upbeat": "Musique entraînante",
+            "calm": "Musique calme",
+            "epic": "Musique ample",
+            "corporate": "Musique sobre",
+            "afro": "Musique afro"
+          }
         }
       },
       "thumb": {

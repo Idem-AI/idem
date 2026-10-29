@@ -51,6 +51,36 @@ La demande est lue **en entier** (`request/request.ts`, 20 000 signes) et gardé
 Garde-fou de fond : un prix, une date, un numéro ou une adresse **absents de la demande** ne
 s'affichent pas — et la vidéo le dit (`film.fidelity.notes`).
 
+## Le directeur de création : une demande courte devient un brief de production
+
+Depuis le 29 octobre 2026, chaque création (IDEM et iVision) et le bouton « Améliorer ma demande » passent par un agent
+**directeur de création** (`request/enhance.ts`, étage « rédaction ») : à partir de la demande, de la marque (activité,
+promesse, ton, direction artistique), de ce que montrent les médias disponibles, de la durée et du choix de voix off,
+il écrit un brief complet — objectif, public, message clé, l'histoire, **un seul ton de narration**, le rythme et la
+continuité (« un film, pas une suite de diapositives »), **ce qu'on montre** concrètement, le **déroulé** temps par temps
+(ce qu'on voit, ce que dit le texte à l'écran, ce que dit la voix, le lien avec la suite), la fin et la musique.
+
+Le modèle répond en JSON, le **code** met le brief en forme : jamais de « Scène 1 », de minutage ni de guillemets
+inventés, donc jamais lu comme un scénario à suivre mot pour mot ; un chiffre absent de la demande et de la marque est
+retiré avec sa phrase ; un texte que le client a mis entre guillemets reste en tête, intact. Le choix de voix off de
+l'utilisateur fait autorité. Le brief structuré est gardé avec la vidéo (`brief.creative`) : sa musique sert quand
+l'utilisateur a laissé « auto », son personnage de voix sert à la narration. Contrôle : `npm run check:brief`
+(apps/ivision/core).
+
+Le storyboard suit ce brief : au moins deux scènes sur trois montrent un sujet concret (média disponible, ou nouvelle
+image ou nouveau clip), chaque scène prolonge la précédente, et les textes à l'écran disent quelque chose (un titre
+jusqu'à 8 mots, une ligne d'appui jusqu'à 14 mots). Le plafond d'images nouvelles suit la durée : une pour ~8 s, 6 au
+moins, 14 au plus (`VIDEO_GEN_MAX_IMAGES` l'impose) ; les clips gardent leur plafond de 4.
+
+## Les vidéos du calendrier éditorial
+
+Chaque vidéo proposée par le calendrier (module Communication) porte son **plan** (`ContentIdea.videoPlan`) : voix off
+oui ou non, le ton unique et le personnage de la voix, la musique, le rythme, ce qu'on montre et le déroulé en 4 à 7
+temps. Le détail d'une publication l'affiche (et la voix off se change d'un geste) ; la carte du calendrier montre la
+durée et la voix off. À la génération, le plan devient la demande entière (`video.calendar.ts#videoRequestOf`), que le
+directeur de création complète ; durée, voix, personnage et musique du plan sont repris sauf choix contraire de
+l'utilisateur.
+
 ## Les médias
 
 1. **Les imports de l'utilisateur** : photos, clips, et **animations Lottie** (`.json`, `.lottie`), rendues en clips
@@ -145,6 +175,11 @@ ou par l'utilisateur dans son scénario.
 - **Sous-titres** de la voix, posés au-dessus des scènes (activables dans le détail).
 - **Traitement** : compresseur et de-esser sur la voix ; sous-titres **mot par mot** quand les mots sont datés
   (service d'alignement `IDEM_ALIGN_URL`, sinon estimation sur les silences).
+- **Un seul ton** (`audio/voice.ts#steadyNarration`, garanti par le code) : une seule balise de jeu dans tout le film,
+  en tête, prise parmi les tons posés (`[warmly]`, `[confident]`, `[calmly]`…) ; les balises qui font monter la voix
+  (`[excited]`, `[shouting]`…) disparaissent ; au plus un point d'exclamation ; les respirations (`[short pause]`)
+  restent. Une ligne redite seule reçoit la même direction de jeu. Une voix ajoutée après coup prend le personnage du
+  brief, sinon une voix chaleureuse (plus jamais tirée parmi les voix « énergiques »).
 - **Mixage** : voix au premier plan, musique à −10 dB et compressée sous chaque ligne.
 
 ## Effets sonores
