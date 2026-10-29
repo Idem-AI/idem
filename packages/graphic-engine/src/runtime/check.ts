@@ -2,7 +2,8 @@
  * LE SEUL CONTRÔLE : la page s'affiche-t-elle ?
  *
  * Chromium (le même moteur que l'impression PDF) ouvre la page. Une page qui ne se charge pas, une racine sans
- * taille, une toile où rien n'est visible, ou — sur une toile fixe — un TEXTE COUPÉ par le bord (il ne s'affiche
+ * taille, une toile où rien n'est visible, un TEXTE COUPÉ par le bord — les quatre sur une toile fixe, la gauche
+ * et la droite sur une page de flux, dont seule la hauteur grandit — (il ne s'affiche
  * pas en entier) ou RECOUVERT par une forme, une image, un aplat (il ne se lit pas) est une ERREUR TECHNIQUE : elle part en correction. Rien d'autre n'est jugé : ni contraste, ni
  * équilibre, ni goût. C'est l'auteur qui décide de la page.
  */
@@ -41,8 +42,11 @@ const PROBE = `(function () {
     for (var c = el.firstChild; c; c = c.nextSibling) if (c.nodeType === 3 && c.textContent.trim()) { visible++; break; }
   }
   if (!visible) return { error: 'nothing is visible inside the canvas (no text, image or drawing within ' + Math.round(box.width) + 'x' + Math.round(box.height) + ' px)' };
-  // Une page FIXE : un texte coupé par le bord de la toile ne s'affiche pas (en entier).
-  if (root.getAttribute('data-ge-fixed') === '1') {
+  // Un texte coupé par le bord ne s'affiche pas (en entier). Page FIXE : les quatre bords. Page de FLUX
+  // (business plan) : la hauteur grandit, mais la largeur est celle du papier — un tableau ou une rangée de
+  // chiffres plus large que la page sort du PDF par la droite, colonnes décalées et chiffres rognés.
+  var fixed = root.getAttribute('data-ge-fixed') === '1';
+  {
     var cut = [];
     var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
     for (var n = walker.nextNode(); n && cut.length < 4; n = walker.nextNode()) {
@@ -53,9 +57,11 @@ const PROBE = `(function () {
       range.selectNodeContents(n);
       var r = range.getBoundingClientRect();
       if (r.width < 1 || r.height < 1) continue;
-      if (r.bottom > box.bottom + 2 || r.right > box.right + 2 || r.top < box.top - 2 || r.left < box.left - 2) cut.push('"' + n.textContent.trim().slice(0, 40) + '" (' + Math.round(Math.max(r.bottom - box.bottom, r.right - box.right, box.top - r.top, box.left - r.left)) + ' px outside)');
+      if (fixed && (r.bottom > box.bottom + 2 || r.top < box.top - 2) || r.right > box.right + 2 || r.left < box.left - 2) cut.push('"' + n.textContent.trim().slice(0, 40) + '" (' + Math.round(Math.max(fixed ? r.bottom - box.bottom : 0, r.right - box.right, fixed ? box.top - r.top : 0, box.left - r.left)) + ' px outside)');
     }
-    if (cut.length) return { error: 'text is cut off by the edge of the canvas: ' + cut.join(', ') + ' — the content must fit inside ' + Math.round(box.width) + 'x' + Math.round(box.height) + ' px (less space for decoration, smaller or fewer elements; never remove a content key)' };
+    if (cut.length) return { error: fixed
+      ? 'text is cut off by the edge of the canvas: ' + cut.join(', ') + ' — the content must fit inside ' + Math.round(box.width) + 'x' + Math.round(box.height) + ' px (less space for decoration, smaller or fewer elements; never remove a content key)'
+      : 'text is cut off by the edge of the canvas: ' + cut.join(', ') + ' — the page is ' + Math.round(box.width) + ' px wide and may grow downwards only: wrap wide tables and rows of figures (fewer columns, stacked rows, smaller figures, no fixed widths or negative margins); never remove a content key' };
   }
   // Un texte RECOUVERT par un élément peint (forme, image, aplat) ne se lit pas.
   var unlock = document.createElement('style');

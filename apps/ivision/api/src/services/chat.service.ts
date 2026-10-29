@@ -27,6 +27,7 @@ import { FLYER_FORMATS, FlyerFormat } from '../../../core/src/visual/visual.mode
 import { SiteScanError } from '../../../core/src/site/site-scanner';
 import { collection } from '../config/db';
 import logger from '../config/logger';
+import { idem } from './idem.client';
 import { HttpError } from '../middleware/error';
 import type { ChatAsk, ChatAttachment, ChatMessage, ChatMode, ChatOptions, ChatQuestion, ChatSession, ChoicesPurpose, IvisionBrand, IvisionReference } from '../models';
 import { AI_CLIP_XAF, charge, Charge, MAX_AI_CLIPS, PaymentRequired, quote, refund } from './billing';
@@ -51,6 +52,23 @@ import { visualFormatOfRatio } from '../../../core/src/reference/reference.analy
 const sessions = () => collection<ChatSession>('sessions');
 const now = () => new Date().toISOString();
 const newId = (prefix: string) => `${prefix}_${Date.now().toString(36)}${crypto.randomBytes(4).toString('hex')}`;
+
+
+/**
+ * La boucle IDEM : une création faite pour une marque rattachée à un projet IDEM est signalée, et l'étape suivante
+ * (le site, la charte, la communication…) s'affiche sous le résultat. Sans projet IDEM, rien : la carte mènerait
+ * nulle part. Jamais bloquant.
+ */
+async function journeyNext(userId: string, brand: { idemProjectId?: string }, type: 'video.created' | 'visual.created'): Promise<ChatMessage['next'] | undefined> {
+  if (!brand.idemProjectId) return undefined;
+  try {
+    const { recommendations } = await idem.journey.record({ userId, type, projectId: brand.idemProjectId });
+    return recommendations[0];
+  } catch (error) {
+    logger.warn('journey.record_failed', { event: 'journey.record_failed', type, error });
+    return undefined;
+  }
+}
 
 export type ChatEvent =
   | { type: 'message'; message: ChatMessage }
@@ -805,9 +823,11 @@ async function turn(userId: string, session: ChatSession, input: TurnInput, emit
           : `J’ai repris ${fromModel.includes('duration') ? `la durée du modèle (${scope.durationSec} s)` : ''}${fromModel.length === 2 ? ' et ' : ''}${fromModel.includes('format') ? `son format (${FORMAT_WORDS[scope.formats[0]]?.[0] || scope.formats[0]})` : ''}.`
         : '';
       const said = [voiceMissed ? `${ready} La voix off n’a pas pu être générée : réessayez-la depuis la retouche.` : ready, took, ...notes].filter(Boolean).join(' ');
+      const next = await journeyNext(userId, brand, 'video.created');
       const msg = message('assistant', said, {
         result: { kind: 'video', videoId: video.id },
         status: 'done',
+        ...(next ? { next } : {}),
         // Une phrase sur ce qui a été repris du modèle : le texte du serveur, tel quel.
         ...(took ? {} : { i18n: { key: `${reference ? 'chat.result.videoFromReference' : 'chat.result.video'}${voiceMissed ? 'NoVoice' : ''}` } }),
       });
@@ -833,9 +853,11 @@ async function turn(userId: string, session: ChatSession, input: TurnInput, emit
         paid.cost,
         (stage, state) => emit({ type: 'progress', stage, state })
       );
+      const next = await journeyNext(userId, brand, 'visual.created');
       const msg = message('assistant', image ? 'Voici votre visuel, composé comme le modèle, à votre marque.' : 'Voici votre visuel.', {
         result: { kind: 'visual', visualId: visual._id },
         status: 'done',
+        ...(next ? { next } : {}),
         i18n: { key: image ? 'chat.result.visualFromReference' : 'chat.result.visual' },
       });
       await push(session._id, msg, {}, ['pending']);

@@ -5,9 +5,11 @@ Module Communication (écran « Mes vidéos ») et iVision (atelier Vidéo). Cod
 `api/services/ivision/host.ts` et `Communication/video/idemVideoStore.ts`.
 
 Chaque vidéo est **conçue par l'IA et animée par Motion Canvas**, scène par scène, sans mise en page imposée.
-Depuis le 16 octobre 2026, l'IA écrit pour chaque scène un **programme d'animation** (langage de mouvement) que le
-code compile : un texte n'est jamais coupé, ce qui entre a fini avant la coupe, et la même vidéo s'affiche bien en
-vertical (mobile) comme en horizontal (ordinateur). Le fonctionnement du moteur : [VIDEO_ENGINE.md](VIDEO_ENGINE.md).
+Depuis le 29 octobre 2026 (compilateur 0.3), l'IA écrit pour chaque scène une **intention** (rôle, énergie, type de
+composition, hiérarchie, verbes de mouvement) ; le code calcule la géométrie et le temps de chaque format, écrit
+plusieurs variantes, les **mesure** et garde la meilleure. Un texte n'est jamais coupé, reste le temps d'être lu, et la
+même vidéo s'affiche bien dans chaque format, zones d'interface des plateformes comprises. Le fonctionnement du
+moteur : [VIDEO_ENGINE.md](VIDEO_ENGINE.md).
 
 ## Ce que voit l'utilisateur
 
@@ -51,7 +53,8 @@ s'affichent pas — et la vidéo le dit (`film.fidelity.notes`).
 
 ## Les médias
 
-1. **Les imports de l'utilisateur** (photos, clips ; le moteur ne lit ni 3D, ni Lottie, ni Rive).
+1. **Les imports de l'utilisateur** : photos, clips, et **animations Lottie** (`.json`, `.lottie`), rendues en clips
+   à fond transparent à l'import (le moteur ne lit ni 3D ni Rive).
 2. **Les images de la marque** (captures du site lu par iVision, photos), décrites une fois par la
    vision et proposées au storyboard (`m1`, `m2`…).
 3. **Ce que le storyboard demande** (`new image: …`, `new clip: …`) : image **FLUX.2 klein 4B**
@@ -61,46 +64,50 @@ s'affichent pas — et la vidéo le dit (`film.fidelity.notes`).
    puis **Pexels**, puis les
    photos des visuels de la marque. Plafonds : `VIDEO_GEN_MAX_IMAGES` (6), `VIDEO_GEN_MAX_CLIPS` (4).
    Un fournisseur sans crédit (402) coupe la génération pour toute la vidéo dès le premier refus.
-4. **Chaque média attribué à une scène y apparaît** : un programme qui l'ignore reçoit le premier en fond plein cadre
+4. **Une petite sélection d'animations** (coche, éclat, flèche, soulignement), dessinée pour IDEM et recolorée à la
+   couleur de la marque, proposée au storyboard comme n'importe quel média (`VIDEO_LOTTIE_LIBRARY=off` la retire).
+5. **Une démo produit** quand la création en demande une (`demo: { url, goal, device }`) : un agent parcourt
+   l'interface publique, chaque écran est capturé avec l'endroit cliqué, et la scène zoome vers ce clic.
+6. **Chaque média attribué à une scène y apparaît** : un programme qui l'ignore reçoit le premier en fond plein cadre
    (la vidéo de préférence), et les textes posés dessus passent par le contrôle d'affichage (aplat, encre lisible).
 
-## La jauge de créativité : la puissance des modèles
+Avant l'écriture des scènes, chaque média est **préparé** : sujet et zone calme trouvés par format, extrait de clip
+sans coupe ni image figée, et un **étalonnage commun** au film (jamais sur une capture d'interface).
 
-Depuis le 14 octobre 2026, **le cran choisit le modèle**, pas le travail : à tous les crans, le directeur
-invente le film, le planificateur écrit le storyboard et l'auteur écrit chaque scène, avec le même
-contexte. Plus le cran monte, plus les modèles qui le font sont puissants. Depuis le 16 octobre 2026, le moteur
-vidéo est servi par **Google Gemini, via OpenRouter** (`ROLE_MODEL_OVERRIDES` de `config/ai-models.config.ts`) ;
-Gemini 3.1 Pro raisonne toujours (son raisonnement ne peut pas être coupé : `canSuppressThinking`) :
+## La jauge de créativité : un budget d'essais et la puissance des modèles
 
-| Cran | Conception (`video.concept`, `video.planner`, `video.reviser`) | Code des scènes (`video.author`) |
-| --- | --- | --- |
-| Low | `google/gemini-3.5-flash` | `google/gemini-3.5-flash` |
-| Medium (défaut) | `google/gemini-3.8-flash` | `google/gemini-3.8-flash` |
-| High | `google/gemini-3.1-pro-preview` | `google/gemini-3.1-pro-preview` |
-| Ultra | `google/gemini-3.1-pro-preview` | `google/gemini-3.1-pro-preview` |
+Depuis le 29 octobre 2026, **le cran choisit un budget** : combien d'essais par scène, qui réécrit une scène encore
+faible, et si un modèle de vision départage deux finalistes. Le contexte et les étapes sont les mêmes partout. Tous les
+modèles sont open-weight, servis par OpenRouter (`config/ai-models.config.ts`) :
 
-Un barreau se remplace sans code : `IDEM_LADDER_DESIGN_<CRAN>` / `IDEM_LADDER_CODE_<CRAN>` (modèle de la liste
-blanche), ou pour un seul rôle `IDEM_ROLE_VIDEO_AUTHOR_MODEL_<CRAN>`. La qualité des clips générés suit aussi
-le cran (mode « qualité » dès High). Il n'y a aucune critique esthétique à aucun cran.
+| Cran | Essais par scène (selon sa difficulté) | Conception (concept, storyboard, retouche écrite) | Réécriture d'une scène faible | Départage visuel |
+| --- | --- | --- | --- | --- |
+| Low | 3 à 6 (`qwen/qwen3.6-35b-a3b`) | `qwen/qwen3.8-27b` | — | — |
+| Medium (défaut) | 3 à 8 | `qwen/qwen3.8-27b` | 1 (`qwen/qwen3.8-27b`) | — |
+| High | 3 à 10 | `z-ai/glm-5.3-flash` | 2 | — |
+| Ultra | 3 à 10 | `z-ai/glm-5.3-flash` | 2 | `qwen/qwen3.8-27b` (vision) |
+
+On s'arrête dès qu'une variante atteint le seuil de qualité mesuré : une scène simple coûte peu. Un barreau se
+remplace sans code (`IDEM_LADDER_VIDEO_SAMPLE_<CRAN>`, `IDEM_LADDER_VIDEO_DESIGN_<CRAN>`…, ou
+`IDEM_ROLE_VIDEO_SAMPLER_MODEL_<CRAN>` pour un rôle) ; le plafond d'essais par `VIDEO_SAMPLES_<CRAN>`. La qualité des
+clips générés suit aussi le cran (Veo 3.1 dès High). Le juge est fait de mesures (composition, mouvement, intention),
+jamais du goût d'un modèle.
 
 ## L'autocorrection des scènes
 
-Avant que la vidéo soit montrée, chaque scène dont le programme est refusé, qui plante à l'exécution ou dont un
-texte est coupé ou recouvert (dans un des formats) est **corrigée automatiquement**, dans des bornes strictes
-(`src/video/author/repair.ts`) ; un défaut d'affichage reçoit deux approches de l'IA puis un dernier recours du code (encre lisible, aplat sous le texte) ; ce qui résiste encore est dit sans bloquer l'export :
+Avant que la vidéo soit montrée, chaque scène qui plante, dont un texte est coupé, recouvert ou illisible (dans un des
+formats) est **corrigée automatiquement**, dans des bornes strictes (`src/video/author/repair.ts`) :
 
-1. **corriger** — le modèle du cran reçoit le code et l'erreur ;
-2. **réécrire autrement** — le modèle du **cran au-dessus** réécrit la scène depuis sa fiche, plus simplement,
-   en connaissant les erreurs précédentes ;
-3. **version minimale** — ce même modèle écrit la version la plus simple qui marche (formes, textes, médias).
+1. **sans modèle** d'abord : la seconde variante gardée par le juge, puis les variantes que le rapport mesuré propose
+   (un cran d'échelle, une autre zone pour le texte) ;
+2. **depuis le rapport** : le modèle de qualité réécrit l'intention en sachant exactement quel élément, dans quel
+   format, est en défaut et pourquoi ;
+3. le **dernier recours du code** : encre lisible d'après le fond réel, ou aplat sous le texte.
 
-Chaque tentative change d'approche (jamais deux fois la même), **une seule tentative à la fois par scène**, trois
-au plus ; après chaque tour, Motion Canvas réexécute le film (c'est lui, pas le modèle, qui dit si c'est corrigé).
-Le film entier a un budget : `VIDEO_REPAIR_TOKEN_BUDGET` (80 000 jetons), `VIDEO_REPAIR_MAX_MS` (4 min) ; réglages
-`VIDEO_REPAIR_ATTEMPTS` (3, 0 pour couper) et `VIDEO_REPAIR_CONCURRENCY` (3 scènes à la fois). Ce qui résiste reste
-signalé sur sa scène (« Corriger » relance la même boucle bornée) ; le journal est dans `film.repair` et
-`scene.author.repairs`. La même correction suit toute réécriture demandée (consigne, nouvelle version) ; une
-retouche visuelle qui ne s'exécute toujours pas rend l'ancien code, qui marchait.
+Une scène qui marchait n'est jamais remplacée par une version moins bonne ; après chaque tour, Motion Canvas réexécute
+le film. Budget du film : `VIDEO_REPAIR_TOKEN_BUDGET` (400 000 jetons), `VIDEO_REPAIR_MAX_MS` (10 min),
+`VIDEO_REPAIR_ATTEMPTS` (3), `VIDEO_REPAIR_CONCURRENCY` (3). Ce qui résiste reste signalé sur sa scène (« Corriger »
+relance la même boucle) ; le journal est dans `film.repair` et `scene.author.repairs`.
 
 ## Prix (crédits iBusiness)
 
@@ -136,12 +143,16 @@ ou par l'utilisateur dans son scénario.
   ligne qui ne tient pas est retirée (jamais coupée) et c'est dit. La voix est dite **avant** l'écriture
   des scènes : chaque auteur connaît sa durée finale et l'instant de sa ligne.
 - **Sous-titres** de la voix, posés au-dessus des scènes (activables dans le détail).
+- **Traitement** : compresseur et de-esser sur la voix ; sous-titres **mot par mot** quand les mots sont datés
+  (service d'alignement `IDEM_ALIGN_URL`, sinon estimation sur les silences).
 - **Mixage** : voix au premier plan, musique à −10 dB et compressée sous chaque ligne.
 
 ## Effets sonores
 
-Posés par le **code de chaque scène** (`ctx.sfx('whoosh')`, au plus deux par scène, à l'instant exact) :
-whoosh, softwhoosh, pop, click, tick, impact, shimmer, riser. Sonothèque CC0 (Openverse/Freesound,
+Les sons de **transition** sont planifiés pour le film (environ une transition sur deux, variés, le pic sur la
+coupe ; montée puis impact une seule fois, sur le moment fort) ; une scène peut poser un geste sonore à l'instant exact
+(`ctx.sfx('pop')`), de préférence sur un temps de la musique. Sortes : whoosh, softwhoosh, pop, click, tick, impact,
+shimmer, riser — plusieurs **prises** par sorte, tournées pour ne jamais répéter le même son. Sonothèque CC0 (Openverse/Freesound,
 SFXMint sans clé — `VIDEO_SFX_SFXMINT=off` pour la désactiver —, catalogue `VIDEO_SFX_CATALOG`,
 synthèse ffmpeg en dernier repli, `VIDEO_SFX_OFFLINE=1` pour la forcer en contrôle/CI), nettoyée, mixée
 par type (`SFX_GAIN_DB`), la musique s'efface sous chaque effet, −14 LUFS au final.
@@ -165,7 +176,9 @@ Licences acceptées : CC0, domaine public, CC BY (crédit fourni par l'interface
 | Jamendo | `JAMENDO_CLIENT_ID` | si la clé existe |
 | Freesound | `FREESOUND_API_KEY` | si la clé existe |
 
-Le tempo détecté est donné aux scènes (`ctx.beat`) : le code peut caler ses gestes sur les temps.
+La **grille des temps** de la piste (temps, temps forts, phrases — BeatRoot, `music-tempo`) est donnée aux scènes
+(`ctx.beats`, `at: "beat:3"`) ; les coupes sont rapprochées des temps (`VIDEO_SNAP_CUTS=off`) et l'extrait de musique
+finit sur une fin de phrase.
 
 ## Rendu
 
@@ -174,7 +187,11 @@ Le tempo détecté est donné aux scènes (`ctx.beat`) : le code peut caler ses 
 - `VIDEO_RENDER_CONCURRENCY` : onglets par rendu (défaut : ¾ des cœurs, 6 au plus) ;
   `VIDEO_RENDER_JOBS` : rendus simultanés par instance (défaut 1) ; `VIDEO_AUTHOR_CONCURRENCY` : scènes
   écrites en parallèle (défaut 4).
-- Mesuré en développement : MP4 de 15 s en 720p ≈ 7 s ; contrôle d'un film de 7 scènes ≈ 3 s.
+- **Flou de mouvement** à l'export (sous-images fondues, obturateur 180°) : `VIDEO_MOTION_BLUR=off`,
+  `VIDEO_MOTION_BLUR_SAMPLES` (6 ; 4 en premium), `VIDEO_MOTION_BLUR_SHUTTER` (180). Il multiplie le temps de rendu
+  par le nombre de sous-images.
+- Volume final par `loudnorm` en deux passes (−14 LUFS, crête −1,5 dBTP).
+- Mesuré en développement (avant le flou de mouvement) : MP4 de 15 s en 720p ≈ 7 s ; contrôle de 7 scènes ≈ 3 s.
 - Le code des scènes ne parle à aucun réseau (origine locale, interception ; CSP dans l'aperçu).
 - Un rendu interrompu (redémarrage) apparaît en échec et peut être relancé gratuitement.
 
@@ -185,5 +202,6 @@ prévisualisent ni ne se retouchent plus (le détail le dit et propose de créer
 
 ## Contrôle
 
-`npm run check:video` (apps/api) et `npm run check:request` (apps/ivision/core) — voir
-[VIDEO_ENGINE.md §11](VIDEO_ENGINE.md#11-contrôles).
+`npm run check:video` (apps/api), `npm run check:request`, `check:intent`, `check:lottie`, `check:demo`
+(apps/ivision/core) — voir
+[VIDEO_ENGINE.md §14](VIDEO_ENGINE.md#14-contrôles-gratuits-sauf-mention).

@@ -2,10 +2,11 @@ import { WebContainer } from '@webcontainer/api';
 import { useFileStore } from '../../stores/fileStore';
 import { getWebContainerInstance } from './instance';
 import { debounce } from 'lodash';
-import { resolveInsecureAssets, rewriteInsecureAssetUrls } from './insecureAssets';
+import { LOCAL_ASSETS_DIR, resetLocalAssets, resolveInsecureAssets, rewriteInsecureAssetUrls } from './insecureAssets';
 
-// Définition locale des fichiers masqués pour le mode web
-const isHiddenNodeModules = ['node_modules', '.git', '.DS_Store'];
+// Définition locale des fichiers masqués pour le mode web. Les copies d'images de l'aperçu (`_idem-assets`) ne
+// sont pas des fichiers du projet : jamais relues dans le magasin.
+const isHiddenNodeModules = ['node_modules', '.git', '.DS_Store', LOCAL_ASSETS_DIR];
 
 // Type definitions at the top of the file
 interface FileContent {
@@ -30,6 +31,7 @@ const fileHashMap = new Map<string, string>();
  */
 export function resetFileHashes(): void {
   fileHashMap.clear();
+  resetLocalAssets();
 }
 
 async function calculateMD5(content: string): Promise<string> {
@@ -100,10 +102,10 @@ export async function mountFileSystem(
 
     const fileTree: Record<string, FileTreeContent> = {};
 
-    // Assets `http://` (bucket local) → data URI, pour cette copie uniquement.
-    // La preview est servie en HTTPS et bloquerait l'image en mixed content.
-    // Le store — donc ce qui part au bucket — garde l'URL d'origine.
-    const insecureAssets = await resolveInsecureAssets(files);
+    // Assets `http://` (bucket local) → copie servie par l'aperçu (`/_idem-assets/…`), pour cette copie du code
+    // uniquement. La preview est servie en HTTPS et bloquerait l'image en mixed content. Le store — donc ce qui
+    // part au bucket — garde l'URL d'origine.
+    const insecureAssets = await resolveInsecureAssets(files, instance);
 
     for (const [path, rawContents] of Object.entries(files)) {
       if (typeof rawContents !== 'string') continue;
@@ -183,6 +185,10 @@ const readDirRecursive = async (
 
   for (const entry of entries) {
     const fullPath = `${dirPath}/${entry.name}`;
+    // La clé du montage (`src/a.tsx`), pas le chemin lu (`//src/a.tsx`) : sinon l'empreinte de ce qui a été monté
+    // n'était jamais retrouvée, et la copie réécrite pour l'aperçu (adresses d'images) revenait dans le magasin —
+    // puis dans le code enregistré du projet.
+    const key = fullPath.replace(/^\/+/, '');
 
     if (isHiddenNodeModules.some((item) => entry?.name?.indexOf(item) > -1)) continue;
 
@@ -193,16 +199,14 @@ const readDirRecursive = async (
       try {
         const content = (await instance?.fs.readFile(fullPath, 'utf-8')) || '';
         const newHash = await calculateMD5(content);
-        const oldHash = fileHashMap.get(fullPath);
-        const fileHash = await calculateMD5(filesObj[fullPath.substring(1)]);
+        const oldHash = fileHashMap.get(key);
+        const fileHash = await calculateMD5(filesObj[key] ?? '');
 
         if (oldHash !== newHash && fileHash !== newHash) {
-          files.push({
-            path: fullPath.startsWith('/') ? fullPath.slice(1) : fullPath,
-            content,
-          });
+          // `updateFileSystemNow` retire le premier caractère du chemin : il attend `/src/a.tsx`.
+          files.push({ path: `/${key}`, content });
         }
-        fileHashMap.set(fullPath, newHash);
+        fileHashMap.set(key, newHash);
       } catch (error) {
         console.warn(`Failed to read file ${fullPath}:`, error);
       }

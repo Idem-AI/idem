@@ -39,8 +39,9 @@ export function repairLimits(): RepairLimits {
   };
   return {
     attemptsPerScene: num('VIDEO_REPAIR_ATTEMPTS', 3, 0, REPAIR_PLAN.length),
-    tokenBudget: num('VIDEO_REPAIR_TOKEN_BUDGET', 80_000, 0, 1_000_000),
-    maxMs: num('VIDEO_REPAIR_MAX_MS', 240_000, 0, 1_800_000),
+    // Relevés le 29/10/2026 (plan qualité) : les jetons ne sont plus la contrainte, on les dépense à vérifier.
+    tokenBudget: num('VIDEO_REPAIR_TOKEN_BUDGET', 400_000, 0, 4_000_000),
+    maxMs: num('VIDEO_REPAIR_MAX_MS', 600_000, 0, 3_600_000),
     concurrency: num('VIDEO_REPAIR_CONCURRENCY', 3, 1, 8),
   };
 }

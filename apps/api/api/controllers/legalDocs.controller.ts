@@ -1,3 +1,4 @@
+import { journeyService } from '../services/journey/journey.service';
 import { Response } from 'express';
 import { CustomRequest } from '../interfaces/express.interface';
 import {
@@ -6,6 +7,7 @@ import {
 } from '../services/LegalDocs/legalDocs.service';
 import { PromptService } from '../services/prompt.service';
 import { ISectionResult } from '../services/common/generic.service';
+import { startSseHeartbeat } from '../utils/sse-heartbeat.util';
 import logger from '../config/logger';
 import { getRequestLanguage } from '../utils/request-language';
 import { LegalDocumentType } from '../models/legalDocs.model';
@@ -220,6 +222,8 @@ export const generateLegalDocsStreamingController = async (
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
     res.setHeader('X-Accel-Buffering', 'no');
+    // Les proxys coupent un flux muet pendant une longue réponse du modèle.
+    startSseHeartbeat(res);
 
     const streamCallback = async (stepResult: ISectionResult) => {
       const eventType = stepResult.parsedData?.status || 'progress';
@@ -254,6 +258,7 @@ export const generateLegalDocsStreamingController = async (
     logger.info(
       `generateLegalDocsStreamingController success projectId=${projectId} generated=${payload.types.length}`
     );
+    journeyService.signal(userId, 'legal.generated', projectId);
     res.write(
       `data: ${JSON.stringify({
         type: 'complete',

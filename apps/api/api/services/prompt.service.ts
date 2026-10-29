@@ -459,6 +459,10 @@ export class PromptService {
         usageSink.usage = extractOpenAIUsage(response);
         usageSink.modelUsed = (response as any)?.model || modelName;
       }
+      // Le fournisseur qui a RÉELLEMENT servi l'appel (un identifiant OpenRouter regroupe plusieurs fournisseurs, de
+      // précisions différentes) : journalisé pour relier une qualité à un fournisseur.
+      const servedBy = (response as any)?.provider;
+      if (servedBy) logger.info('ai.served', { event: 'ai.served', model: (response as any)?.model || modelName, provider: servedBy });
 
       // Certains gateways openai-compatible renvoient un HTTP 200
       // dont le corps est en réalité une enveloppe d'erreur ({code, msg, success:

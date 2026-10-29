@@ -9,6 +9,7 @@ import { IdemLoader } from '@idem/shared-loader/react';
 import { Wand2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { eventEmitter } from '../../../utils/EventEmitter';
+import { withoutMarkers } from '@/utils/chatMarkers';
 
 /**
  * La marque posée par le moteur de sites quand il reste quelque chose à
@@ -41,15 +42,18 @@ interface Step {
   filePath?: string;
 }
 
-// Extract file content from streaming boltArtifact content (for real-time editor updates)
+// Extract file content from streaming boltArtifact content (for real-time editor updates).
+// La DERNIÈRE écriture du fichier : le moteur de sites réécrit certains fichiers au fil des étapes (le plan coché à
+// chacune, le pied de page qui reçoit le choix de la langue, les pages traduites). La première recopiait une version
+// périmée dans l'éditeur — et dans ce qui s'enregistre pendant la génération.
 const extractStreamingFileContent = (filePath: string, content: string): string | null => {
   const escapedPath = filePath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const openTagRegex = new RegExp(`<boltAction[^>]*filePath="${escapedPath}"[^>]*>`);
-  const openMatch = content.match(openTagRegex);
+  const openTagRegex = new RegExp(`<boltAction[^>]*filePath="${escapedPath}"[^>]*>`, 'g');
+  const openMatch = Array.from(content.matchAll(openTagRegex)).pop();
 
-  if (!openMatch) return null;
+  if (!openMatch || openMatch.index === undefined) return null;
 
-  const startIndex = content.indexOf(openMatch[0]) + openMatch[0].length;
+  const startIndex = openMatch.index + openMatch[0].length;
   const closeTag = '</boltAction>';
   const closeIndex = content.indexOf(closeTag, startIndex);
 
@@ -82,9 +86,12 @@ function stepsOf(content: string): Step[] {
     }
   }
 
-  // Deux étapes de suite qui se disent pareil (deux fichiers d'un même
-  // composant) n'en font qu'une à l'écran.
-  return steps.filter((step, index) => index === 0 || step.label !== steps[index - 1].label);
+  // Un fichier réécrit (le plan, coché à chaque étape) reste une seule étape, à sa première place ; et deux étapes
+  // de suite qui se disent pareil (deux fichiers d'un même composant) n'en font qu'une à l'écran.
+  const seen = new Set<string>();
+  return steps
+    .filter((step) => !seen.has(step.key) && !!seen.add(step.key))
+    .filter((step, index, kept) => index === 0 || step.label !== kept[index - 1].label);
 }
 
 interface ArtifactViewProps {
@@ -137,7 +144,7 @@ export const ArtifactView: React.FC<ArtifactViewProps> = ({ title, isComplete, m
     const post = artifactEndIndex !== -1 ? content.substring(artifactEndIndex + '</boltArtifact>'.length) : '';
     // La marque de correction n'est pas du texte : retirée avant le filtre de
     // prose, qui écarterait tout le message à cause des chemins qu'elle porte.
-    const text = post.replace(REPAIR_MARK, '');
+    const text = withoutMarkers(post.replace(REPAIR_MARK, ''));
     return conversationalProse(isThinkContent(text) ? processThinkContent(text) : text);
   }, [content]);
 

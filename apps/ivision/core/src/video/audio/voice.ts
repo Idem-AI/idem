@@ -179,7 +179,7 @@ function inputArgs(file: string, mimeType: string): string[] {
 
 /**
  * Nettoie une ligne : silences retirés aux deux bouts, passe-haut, accélération (si elle
- * déborde de sa scène), loudness −16 LUFS, MP3 48 kHz stéréo. Rend la durée finale.
+ * déborde de sa scène), compression, dé-essage, loudness −16 LUFS, MP3 48 kHz stéréo. Rend la durée finale.
  */
 export async function processSpeech(input: string, mimeType: string, output: string, maxSec?: number): Promise<number> {
   const clean = `${output}.clean.wav`;
@@ -192,7 +192,9 @@ export async function processSpeech(input: string, mimeType: string, output: str
   const tempo = maxSec && natural > maxSec * 1.02 ? Math.min(MAX_TEMPO, natural / maxSec) : 1;
   await ffmpeg([
     '-y', '-v', 'error', '-i', clean,
-    '-af', [...(tempo > 1.001 ? [`atempo=${tempo.toFixed(3)}`] : []), 'loudnorm=I=-16:TP=-1.5:LRA=7', 'aresample=48000', 'afade=t=in:d=0.01'].join(','),
+    // La voix au premier plan : compression douce (régularité), dé-essage (les « s » qui sifflent sur un téléphone),
+    // puis la normalisation (−16 LUFS ; le mixage final vise −14).
+    '-af', [...(tempo > 1.001 ? [`atempo=${tempo.toFixed(3)}`] : []), 'acompressor=threshold=-20dB:ratio=3:attack=5:release=80:makeup=2', 'deesser=i=0.35', 'loudnorm=I=-16:TP=-1.5:LRA=7', 'aresample=48000', 'afade=t=in:d=0.01'].join(','),
     '-ar', '48000', '-ac', '2', '-c:a', 'libmp3lame', '-b:a', '160k', output,
   ]);
   fs.rmSync(clean, { force: true });
@@ -552,12 +554,12 @@ function chainScenes<S extends TimedScene>(scenes: S[], lines: Omit<VoiceLine, '
 }
 
 /** Les lignes à mixer : URL et instant absolu dans la vidéo. */
-export function voiceTimeline(scenes: TimedScene[], voice: VideoVoice | undefined, total: number): { url: string; at: number; durationSec: number; text: string }[] {
+export function voiceTimeline(scenes: TimedScene[], voice: VideoVoice | undefined, total: number): { url: string; at: number; durationSec: number; text: string; words?: { text: string; start: number; end: number }[] }[] {
   if (!voice?.enabled) return [];
   return voice.lines
     .map((l) => {
       const sc = scenes.find((s) => s.key === l.sceneKey);
-      return sc ? { url: l.url, text: l.text, at: Math.round((sc.start + l.offset) * 1000) / 1000, durationSec: l.durationSec } : null;
+      return sc ? { url: l.url, text: l.text, at: Math.round((sc.start + l.offset) * 1000) / 1000, durationSec: l.durationSec, ...(l.words?.length ? { words: l.words } : {}) } : null;
     })
     .filter((x): x is { url: string; at: number; durationSec: number; text: string } => !!x && x.at < total - 0.2);
 }

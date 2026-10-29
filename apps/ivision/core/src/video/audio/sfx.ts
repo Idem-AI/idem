@@ -463,6 +463,19 @@ export function pickSounds(lib: SfxLibrary, seed: number): Record<SfxKind, Libra
   return out;
 }
 
+/**
+ * D'autres prises par moment sonore (jusqu'à `n`, les meilleures de la sonothèque) : la rotation des transitions
+ * (« the same whoosh on every cut is the most common tell » — HyperFrames, `sound.md`).
+ */
+export function pickTakes(lib: SfxLibrary, n = 3): Partial<Record<SfxKind, LibrarySound[]>> {
+  const out: Partial<Record<SfxKind, LibrarySound[]>> = {};
+  for (const kind of SFX_KINDS) {
+    const pool = (lib.sounds[kind] || []).slice(0, n);
+    if (pool.length > 1) out[kind] = pool;
+  }
+  return out;
+}
+
 /** Retrouve le fichier d'un son retenu (rendu, aperçu). */
 export async function soundFile(sound: SfxSound): Promise<string | null> {
   const lib = await sfxLibrary();
@@ -494,6 +507,8 @@ export interface SfxCue {
   kind: SfxKind;
   /** Gain relatif (0..1) décidé par la scène. */
   gain?: number;
+  /** Prise (rotation) quand le moment sonore en a plusieurs. */
+  take?: number;
 }
 
 /**

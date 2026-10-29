@@ -49,10 +49,11 @@ import {
   prefetchDepsSnapshots,
   resetDeps,
 } from '@/components/WeIde/services/webcontainer/deps';
-import { resetRunner, startCommand } from '@/components/WeIde/services/webcontainer/runner';
+import { resetRunner, startCommand, stopStarted } from '@/components/WeIde/services/webcontainer/runner';
 import type { DepsTargetName } from '@/api/deps';
 import useWarmStart from '@/stores/warmStartSlice';
 import { currentPlatform, currentProduct } from '@/utils/product';
+import { startupBegin, startupPhase, startupReset, startupSource } from '@/utils/startupTimer';
 
 /**
  * La cible, telle que la connaît l'atelier avant d'avoir chargé le projet.
@@ -113,6 +114,9 @@ export function prewarmWorkspace(target: DepsTargetName | null): void {
 
 /** Le préchauffage repart à zéro quand le conteneur est remplacé. */
 export function resetWarmStart(): void {
+  clearTimeout(startWatch);
+  useWarmStart.getState().reset();
+  startupReset();
   warmed = false;
   started = false;
   resetDeps();
@@ -143,12 +147,16 @@ export async function warmStart(
   lastCommands = commands;
 
   useWarmStart.getState().begin(target);
+  startupBegin('warm-start', target);
 
   const onProgress = (progress: DepsProgress) => useWarmStart.getState().progress(progress);
 
   let outcomes: DepsOutcome[] = [];
+  const depsStarted = performance.now();
   try {
     outcomes = await ensureDependencies(target, onProgress);
+    startupPhase('dependencies', performance.now() - depsStarted);
+    outcomes.forEach((outcome) => startupSource(outcome.source));
   } catch (error) {
     console.warn('[chaud] dépendances non mises en place', error);
     useWarmStart.getState().fail('deps');
@@ -183,6 +191,44 @@ export async function warmStart(
 
   useWarmStart.getState().serverStarting();
   await startCommand(commands.start);
+  watchServerStart();
+}
+
+/** Un serveur de développement lancé qui ne répond toujours pas après ce délai ne répondra plus. */
+const SERVER_START_TIMEOUT_MS = 120_000;
+let startWatch: ReturnType<typeof setTimeout> | undefined;
+
+/**
+ * Le démarrage a une fin. Sans elle, un serveur mort en silence (ou jamais vraiment lancé) laissait l'aperçu sur
+ * « Démarrage en cours… » indéfiniment, sans erreur ni bouton utile : l'aperçu passe en échec, dit de quoi il
+ * s'agit et propose « Exécuter ».
+ */
+function watchServerStart(): void {
+  clearTimeout(startWatch);
+  startWatch = setTimeout(() => {
+    if (getLastServerUrl() || useWarmStart.getState().step !== 'starting') return;
+    console.warn('[chaud] aucun serveur après', SERVER_START_TIMEOUT_MS / 1000, 's');
+    started = false;
+    useWarmStart.getState().fail('server');
+  }, SERVER_START_TIMEOUT_MS);
+}
+
+/**
+ * La cible des dépendances de cet atelier : celle du dernier démarrage à chaud (le socle l'a dite), sinon celle
+ * de l'adresse. `null` : inconnue — on ne devine pas (voir `targetFromChoice`).
+ */
+export function depsTarget(): DepsTargetName | null {
+  return lastTarget ?? targetFromChoice(currentProduct(), currentPlatform());
+}
+
+/**
+ * Un nouveau démarrage à chaud pour une autre cible ou un socle remplacé (refonte, `/site`) : les dépendances déjà
+ * sur le disque sont gardées et vérifiées, rien n'est effacé. L'appelant arrête l'ancien serveur s'il servait une
+ * autre cible.
+ */
+export async function rewarm(target: DepsTargetName, commands: { install: string; start: string }): Promise<void> {
+  started = false;
+  await warmStart(target, commands);
 }
 
 /** Le serveur a-t-il déjà été lancé à chaud ? */
@@ -199,6 +245,8 @@ export const warmStartLaunched = (): boolean => started;
  */
 export async function startProject(): Promise<void> {
   started = false;
+  // Un serveur lancé qui n'a jamais répondu bloquerait la relance (une commande vivante n'est pas lancée deux fois).
+  if (!getLastServerUrl()) stopStarted();
   const target = lastTarget ?? targetFromChoice(currentProduct(), currentPlatform()) ?? 'site';
   await warmStart(target, lastCommands ?? { install: 'npm install', start: 'npm run dev' });
 }

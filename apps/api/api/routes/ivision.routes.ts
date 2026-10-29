@@ -37,6 +37,8 @@ import { recordConsent, SiteConsent, siteImportJobs } from '../services/SiteImpo
 import { chargeBrandSession } from './branding.routes';
 import { generateBrandingStreamingController } from '../controllers/branding.controller';
 import { CustomRequest } from '../interfaces/express.interface';
+import { isDestination, isJourneyEvent, journeyService } from '../services/journey/journey.service';
+import { JOURNEY_RULES } from '../../../../packages/shared-journey/src';
 
 const router = Router();
 const communicationService = new CommunicationService(new PromptService());
@@ -117,13 +119,22 @@ router.post(
 router.post(
   '/ai/agent',
   route(async (req, res) => {
-    const { projectId, element, role, profile, system, user, level } = req.body || {};
+    const { projectId, element, role, profile, system, user, level, options } = req.body || {};
     if (!(['agents', 'coder', 'critic'] satisfies AgentProfile[] as string[]).includes(profile)) {
       res.status(400).json({ error: 'invalid_profile' });
       return;
     }
     const call = runtimeCall({ userId: userIdOf(req) || undefined, projectId: text(projectId, 128) || undefined, element: text(element, 64) || 'ivision' });
-    const out = await asUser(req, 'communication', () => call({ role: text(role, 64) || 'agent', profile, system: text(system, 80_000), user: text(user, 80_000), ...(['low', 'medium', 'high', 'ultra'].includes(level) ? { level } : level === 'max' ? { level: 'high' } : {}) }));
+    // Les réglages d'un appel (échantillonnage vidéo) : seuls les champs et les formes attendus passent.
+    const o = options && typeof options === 'object' ? options : {};
+    const schemaJson = o.schema && typeof o.schema === 'object' && o.schema.schema && typeof o.schema.schema === 'object' ? JSON.stringify(o.schema.schema) : '';
+    const callOptions = {
+      ...(typeof o.temperature === 'number' && o.temperature >= 0 && o.temperature <= 2 ? { temperature: o.temperature } : {}),
+      ...(Number.isInteger(o.seed) ? { seed: o.seed } : {}),
+      ...(typeof o.reasoning === 'boolean' ? { reasoning: o.reasoning } : {}),
+      ...(schemaJson && schemaJson.length <= 40_000 ? { schema: { name: text(o.schema.name, 64) || 'answer', schema: JSON.parse(schemaJson) } } : {}),
+    };
+    const out = await asUser(req, 'communication', () => call({ role: text(role, 64) || 'agent', profile, system: text(system, 80_000), user: text(user, 80_000), ...(['low', 'medium', 'high', 'ultra'].includes(level) ? { level } : level === 'max' ? { level: 'high' } : {}), ...(Object.keys(callOptions).length ? { options: callOptions } : {}) }));
     res.json({ text: out });
   })
 );
@@ -151,7 +162,7 @@ router.post(
       res.status(400).json({ error: 'invalid_image' });
       return;
     }
-    const purpose = ['visual-analysis', 'shot-critic', 'reference', 'site', 'media-check'].includes(options?.purpose) ? options.purpose : undefined;
+    const purpose = ['visual-analysis', 'shot-critic', 'reference', 'site', 'media-check', 'video-tiebreak'].includes(options?.purpose) ? options.purpose : undefined;
     const out = await asUser(req, 'communication', () =>
       idemAnalyzeImage(base64, mimeType, text(instruction, 20_000), {
         ...(typeof options?.maxOutputTokens === 'number' ? { maxOutputTokens: Math.min(4000, options.maxOutputTokens) } : {}),
@@ -524,6 +535,62 @@ router.get(
       fonts: { primaryFont: branding?.typography?.primaryFont, secondaryFont: branding?.typography?.secondaryFont, fontUrl: branding?.typography?.url },
       sections,
     });
+  })
+);
+
+// ─── La boucle IDEM ─────────────────────────────────────────────────────────
+
+/**
+ * Ce qu'iVision voit faire (une vidéo, un visuel, une marque lue sur un site) rejoint la boucle d'IDEM, et
+ * iVision reçoit l'étape suivante à proposer (créer le site, la charte…). Le projet doit être à l'utilisateur.
+ */
+async function journeyProject(userId: string, value: unknown): Promise<string | undefined> {
+  const projectId = text(value, 128);
+  if (!projectId || !/^[\w.-]+$/.test(projectId)) return undefined;
+  return (await projectService.getUserProjectById(userId, projectId).catch(() => null)) ? projectId : undefined;
+}
+
+router.post(
+  '/journey/events',
+  route(async (req, res) => {
+    const userId = userIdOf(req);
+    const { type, place } = req.body || {};
+    if (!userId || !isJourneyEvent(type)) {
+      res.status(400).json({ error: 'invalid_input' });
+      return;
+    }
+    const projectId = await journeyProject(userId, req.body?.projectId);
+    const recommendations = await journeyService.record(userId, { type, app: 'ivision', projectId, place: isDestination(place) ? place : undefined });
+    res.json({ recommendations });
+  })
+);
+
+router.get(
+  '/journey/next',
+  route(async (req, res) => {
+    const userId = userIdOf(req);
+    if (!userId) {
+      res.status(400).json({ error: 'invalid_input' });
+      return;
+    }
+    const projectId = await journeyProject(userId, req.query.projectId);
+    res.json({ recommendations: projectId ? await journeyService.next(userId, { app: 'ivision', projectId, place: isDestination(req.query.place) ? req.query.place : undefined }) : [] });
+  })
+);
+
+const RULE_IDS = new Set(JOURNEY_RULES.map((rule) => rule.id));
+
+router.post(
+  '/journey/feedback',
+  route(async (req, res) => {
+    const userId = userIdOf(req);
+    const { id, action } = req.body || {};
+    if (!userId || typeof id !== 'string' || !RULE_IDS.has(id) || !['shown', 'clicked', 'dismissed'].includes(action)) {
+      res.status(400).json({ error: 'invalid_input' });
+      return;
+    }
+    await journeyService.feedback(userId, id, action);
+    res.status(204).end();
   })
 );
 

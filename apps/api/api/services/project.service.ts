@@ -623,6 +623,26 @@ class ProjectService {
     }
   }
 
+  /**
+   * Un document à identifiant fixe (`<projet>_generation`, `<projet>_chat`) : créé la première fois, mis à jour
+   * ensuite. `create` seul échouait en E11000 dès le deuxième enregistrement — la conversation restait figée à son
+   * premier tour — et deux enregistrements simultanés (celui de la génération en cours et celui de la fin) se
+   * heurtaient de même.
+   */
+  private async createOrUpdate(record: any, update: any, collectionPath: string, id: string): Promise<any> {
+    // La mise à jour d'abord : c'est le cas courant (chaque tour, et toutes les 20 s pendant une génération), et un
+    // `create` refusé laissait à chaque fois une erreur dans les journaux.
+    const updated = await this.projectRepository.update(id, update, collectionPath);
+    if (updated) return updated;
+    try {
+      return await this.projectRepository.create(record, collectionPath, id);
+    } catch (error: any) {
+      // Créé entre-temps par un enregistrement simultané : on met à jour celui-là.
+      if (error?.code !== 11000 && !/E11000/.test(error?.message ?? '')) throw error;
+      return this.projectRepository.update(id, update, collectionPath);
+    }
+  }
+
   async saveProjectGeneration(
     userId: string,
     projectId: string,
@@ -642,8 +662,10 @@ class ProjectService {
         updatedAt: new Date().toISOString(),
       };
 
-      await this.projectRepository.create(
+      const { createdAt: _createdAt, ...generationUpdate } = generationRecord;
+      await this.createOrUpdate(
         generationRecord,
+        generationUpdate,
         `users/${userId}/generations`,
         `${projectId}_generation`
       );
@@ -970,8 +992,9 @@ class ProjectService {
         lastMessageAt: new Date().toISOString(),
       };
 
-      const saved = await this.projectRepository.create(
-        record as any,
+      const saved = await this.createOrUpdate(
+        record,
+        record,
         `users/${userId}/appChats`,
         productDocId(projectId, 'chat', product)
       );

@@ -121,7 +121,8 @@ export class FilmEngine {
   }
 
   cueList(): SfxCueRecord[] {
-    return [...this.cues.values()].sort((a, b) => a.t - b.t);
+    // Les sons des transitions planifiés par le film s'ajoutent à ceux que posent les scènes.
+    return [...this.cues.values(), ...(this.data.cues || [])].sort((a, b) => a.t - b.t);
   }
 
   errorList(): SceneErrorRecord[] {

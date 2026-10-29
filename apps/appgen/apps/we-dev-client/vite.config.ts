@@ -107,6 +107,8 @@ export default defineConfig(async ({ mode, command }) => {
         // Bandeau « Ils nous font confiance », partagé par les landing pages.
         // Acheter et brancher un nom de domaine sans quitter iCode (API iDomain, même compte).
         '@idem/shared-idomain': path.resolve(__dirname, '../../../../packages/shared-idomain/src'),
+        // La boucle IDEM : recommander l'application suivante au bon moment (dashboard, iVision, iDeploy).
+        '@idem/shared-journey': path.resolve(__dirname, '../../../../packages/shared-journey/src'),
         '@idem/shared-trusted-by': path.resolve(
           __dirname,
           '../../../../packages/shared-trusted-by/src',

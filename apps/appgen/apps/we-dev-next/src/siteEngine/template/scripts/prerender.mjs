@@ -3,7 +3,9 @@
  *
  * Après `vite build`, chaque page est rendue en HTML dans son document : le
  * texte est lisible par les moteurs de recherche sans exécuter de JavaScript,
- * et le navigateur le reprend par hydratation. Le plan du site, le fichier
+ * et le navigateur le reprend par hydratation. Un site en plusieurs langues est
+ * rendu langue par langue (les modules relus à chaque fois : un texte écrit hors
+ * d'un composant se traduit aussi). Le plan du site, le fichier
  * robots et la fiche d'établissement (données structurées) sont écrits ici.
  */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
@@ -21,7 +23,8 @@ const read = (path, fallback) => {
   }
 };
 
-const manifest = read('idem.pages.json', { pages: [] });
+// La liste des pages (`src/site/pages.json`) ; `idem.pages.json` pour un site d'avant.
+const manifest = read('src/site/pages.json', null) ?? read('idem.pages.json', { pages: [] });
 const pages = manifest.pages?.length ? manifest.pages : [{ path: '/', module: 'src/pages/home.tsx', html: 'index.html' }];
 const seo = read('src/site/seo.json', {});
 
@@ -47,10 +50,19 @@ const vite = await createServer({ server: { middlewareMode: true }, appType: 'cu
 const base = (seo.url || '').replace(/\/$/, '');
 const jsonLd = structuredData();
 
+const absolute = (html) => (base ? html.replace(/(<link rel="alternate" hreflang="[^"]+" href=")\//g, '$1' + base + '/') : html);
+
 try {
-  for (const page of pages) {
+  let language = null;
+  for (const page of [...pages].sort((a, b) => String(a.lang || '').localeCompare(String(b.lang || '')))) {
     const file = join(DIST, page.html);
     if (!existsSync(file) || !existsSync(page.module)) continue;
+
+    if ((page.lang || null) !== language) {
+      language = page.lang || null;
+      globalThis.__IDEM_LANG__ = language || undefined;
+      vite.moduleGraph.invalidateAll();
+    }
 
     let markup = '';
     try {
@@ -61,7 +73,7 @@ try {
       console.warn('[prerender] ' + page.path + ' non pré-rendue : ' + error.message);
     }
 
-    let html = readFileSync(file, 'utf8');
+    let html = absolute(readFileSync(file, 'utf8'));
     if (markup) html = html.replace('<div id="root"></div>', '<div id="root">' + markup + '</div>');
     const canonical = base ? '<link rel="canonical" href="' + base + page.path + '" />' : '';
     html = html.replace('</head>', '  ' + canonical + jsonLd + '\n  </head>');

@@ -183,6 +183,16 @@ v1.post(
   })
 );
 
+/** La carte « prochaine étape » sous un livrable : affichée, suivie ou écartée (mémoire de la boucle IDEM). */
+v1.post(
+  '/journey/feedback',
+  validate({ body: z.object({ id: z.string().min(1).max(80), action: z.enum(['shown', 'clicked', 'dismissed']) }) }),
+  asyncRoute<AuthedRequest>(async (req, res) => {
+    await idem.journey.feedback({ userId: uid(req), id: req.body.id, action: req.body.action }).catch(() => undefined);
+    res.status(204).end();
+  })
+);
+
 v1.post(
   '/brands/import-idem',
   validate({ body: z.object({ projectId: z.string().min(1).max(128) }) }),

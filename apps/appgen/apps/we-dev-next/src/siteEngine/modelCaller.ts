@@ -10,8 +10,9 @@ import { generateText } from 'ai';
 import { getFallbackModelKeys, resolveModelCredentials } from '../config/modelConfig.js';
 import { getOpenAIModel } from '../services/aiService.js';
 import { reportUsage } from '../utils/tokens.js';
+import { logCritical } from '../config/logger.js';
 import { ChatLogger } from '../utils/logger.js';
-import { isTransientModelError, shouldTryNextModel } from '../utils/resilientStream.js';
+import { isTransientModelError, shouldTryNextModel, isAccountLimitError } from '../utils/resilientStream.js';
 import { readJsonObject } from './json.js';
 
 /** Essais par tâche, tous modèles confondus. */
@@ -27,6 +28,8 @@ export interface CallOutcome<T> {
   providerDown: boolean;
   /** La réponse retenue a été récupérée en retirant des phrases non vérifiées. */
   salvaged?: boolean;
+  /** Le compte du fournisseur a refusé l'appel (plafond, crédits) : rien ne passera avant qu'il soit relevé. */
+  accountLimit?: boolean;
 }
 
 /**
@@ -52,11 +55,25 @@ const FAILURES_BEFORE_DEMOTION = 2;
  * suffit pas — elle est souvent passagère, et changer de modèle en cours de
  * site change aussi sa voix.
  */
+/** Ce que la personne lit quand le compte du fournisseur bloque tout : la vérité, pas « réessayez dans un instant ». */
+export const accountLimitMessage = (fr: boolean): string =>
+  fr
+    ? 'Le service d’IA d’IDEM a atteint sa limite de dépense : aucune modification n’est possible pour le moment. L’équipe IDEM est prévenue, et votre site n’a pas changé.'
+    : 'IDEM’s AI service has reached its spending limit: no change can be made for now. The IDEM team has been alerted, and your site is unchanged.';
+
+/** Une alerte de compte bloqué par quart d'heure au plus : la règle Grafana envoie un e-mail à la première. */
+let lastAccountAlert = 0;
+
 export class ModelCaller {
   private readonly chain: string[];
   private readonly failures = new Map<string, number>();
   promptTokens = 0;
   completionTokens = 0;
+  /**
+   * Le compte du fournisseur refuse tout (plafond de la clé, crédits épuisés) : plus aucun appel n'est tenté, et
+   * l'appelant le dit tel quel au lieu de « réessayez dans un instant ».
+   */
+  accountLimit = false;
 
   constructor(
     preferred: string,
@@ -98,6 +115,8 @@ export class ModelCaller {
     /** Essais au plus, tous modèles confondus (trois par défaut). */
     maxAttempts = MAX_ATTEMPTS
   ): Promise<CallOutcome<T>> {
+    // Le compte a déjà refusé un appel de cette génération : inutile d'en tenter d'autres.
+    if (this.accountLimit) return { value: null, attempts: 0, providerDown: true, accountLimit: true };
     let attempts = 0;
     let providerErrors = 0;
     let reminder = '';
@@ -164,6 +183,14 @@ export class ModelCaller {
         } catch (error) {
           if (this.signal.aborted) return { value: null, attempts, providerDown: false };
           providerErrors += 1;
+          if (isAccountLimitError(error)) {
+            this.accountLimit = true;
+            if (Date.now() - lastAccountAlert > 15 * 60_000) {
+              lastAccountAlert = Date.now();
+              logCritical('model.account_limit', { label, model, message: error instanceof Error ? error.message.slice(0, 300) : String(error).slice(0, 300) });
+            }
+            return { value: null, attempts, providerDown: true, accountLimit: true };
+          }
           ChatLogger.warn('SITE_SECTION', `${label} : ${model} en échec`, {
             transient: isTransientModelError(error),
             message: error instanceof Error ? error.message.slice(0, 200) : String(error),

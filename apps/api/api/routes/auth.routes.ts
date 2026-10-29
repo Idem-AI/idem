@@ -10,6 +10,10 @@ import {
   validateIdeployTokenController,
 } from '../controllers/auth.controller';
 import { authenticate } from '../services/auth.service';
+import {
+  deviceCheckDecisionController,
+  deviceCheckPageController,
+} from '../controllers/deviceCheck.controller';
 
 export const authRoutes = Router();
 
@@ -274,3 +278,24 @@ authRoutes.post('/verify-session', verifySessionController);
 authRoutes.post('/ideploy-token', authenticate, generateIdeployTokenController);
 // iDeploy SSO — validate a one-time token (called by iDeploy Laravel backend)
 authRoutes.post('/ideploy-token/validate', validateIdeployTokenController);
+
+/**
+ * @openapi
+ * /device-check/{token}:
+ *   get:
+ *     tags:
+ *       - Authentication
+ *     summary: Page « Connexion suspecte » ouverte depuis l'e-mail d'alerte
+ *     description: >
+ *       Affiche l'appareil refusé et deux réponses. Ne change rien : les
+ *       messageries ouvrent les liens avant le destinataire.
+ *   post:
+ *     tags:
+ *       - Authentication
+ *     summary: Applique la réponse du titulaire
+ *     description: >
+ *       `decision=approve` ajoute l'appareil à la session ; `decision=deny`
+ *       ferme toutes les sessions du compte. Le lien ne sert qu'une fois.
+ */
+authRoutes.get('/device-check/:token', deviceCheckPageController);
+authRoutes.post('/device-check/:token', deviceCheckDecisionController);

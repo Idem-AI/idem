@@ -1,5 +1,4 @@
 import { Request, Response } from 'express';
-import mongoose from 'mongoose';
 import logger from '../config/logger';
 import { userService } from '../services/user.service';
 import { refreshTokenService } from '../services/refreshToken.service';
@@ -11,12 +10,17 @@ import RedisConnection from '../config/redis.config';
 import {
   clearCookieOptions,
   createSessionToken,
-  forgetRevocation,
-  mintSessionCookie,
   refreshCookieOptions,
   sessionCookieOptions,
-  verifySessionCookie,
+  sessionFromRefreshToken,
+  verifySessionForRequest,
 } from '../services/sessionCookie.service';
+import {
+  SUSPICIOUS_DEVICE_BODY,
+  SuspiciousDeviceError,
+  signOutEverywhere,
+} from '../services/identity/deviceCheck.service';
+import { clientUserAgent, deviceFingerprint } from '../utils/device-fingerprint.util';
 import { IdentityError, identityService } from '../services/identity/identity.service';
 import { verifySupabaseAccessToken } from '../services/identity/supabaseAuth.client';
 
@@ -50,14 +54,24 @@ export const sessionLoginController = async (req: Request, res: Response): Promi
     const user = await identityService.resolveUser(claims);
     logger.info('Session login', { uid: user.uid, authId: claims.sub });
 
-    res.cookie('session', createSessionToken(user), sessionCookieOptions());
-
-    const deviceInfo = req.headers['user-agent'] || 'Unknown device';
+    // La session est liée à l'appareil qui la crée : présentée ailleurs, elle
+    // sera refusée (`identity/deviceCheck.service`).
+    const deviceInfo = clientUserAgent(req) || 'Unknown device';
+    const fingerprint = deviceFingerprint(deviceInfo);
     const ipAddress = req.ip || req.socket.remoteAddress || 'Unknown IP';
     const refreshTokenResult = await refreshTokenService.generateRefreshToken(
       user.uid,
       deviceInfo,
-      ipAddress
+      ipAddress,
+      { deviceFingerprint: fingerprint, authSessionId: claims.session_id }
+    );
+    res.cookie(
+      'session',
+      createSessionToken(user, {
+        sessionId: refreshTokenResult.sessionId,
+        deviceFingerprint: fingerprint,
+      }),
+      sessionCookieOptions()
     );
     res.cookie('refreshToken', refreshTokenResult.refreshToken, refreshCookieOptions());
 
@@ -104,10 +118,11 @@ export const refreshTokenController = async (req: Request, res: Response): Promi
   }
 
   try {
-    // Valider le refresh token
-    const validation = await refreshTokenService.validateRefreshToken(refreshToken);
+    // Le cookie `session` est justement expiré ici : on ne peut pas s'en servir
+    // pour retrouver l'utilisateur, le refresh token suffit.
+    const restored = await sessionFromRefreshToken(req);
 
-    if (!validation.isValid || !validation.userId) {
+    if (!restored) {
       logger.warn('Invalid refresh token provided');
       res.status(401).send({
         success: false,
@@ -116,18 +131,19 @@ export const refreshTokenController = async (req: Request, res: Response): Promi
       return;
     }
 
-    // Le cookie `session` est justement expiré ici : on ne peut pas s'en servir
-    // pour retrouver l'utilisateur, le refresh token suffit.
-    const sessionCookie = await mintSessionCookie(validation.userId);
-    res.cookie('session', sessionCookie, sessionCookieOptions());
+    res.cookie('session', restored.sessionCookie, sessionCookieOptions());
 
-    logger.info(`Access token refreshed successfully for user: ${validation.userId}`);
+    logger.info(`Access token refreshed successfully for user: ${restored.uid}`);
 
     res.status(200).send({
       success: true,
       message: 'Access token refreshed successfully.',
     });
   } catch (error: any) {
+    if (error instanceof SuspiciousDeviceError) {
+      res.status(401).send(SUSPICIOUS_DEVICE_BODY);
+      return;
+    }
     logger.error('Error refreshing access token:', {
       errorMessage: error.message,
       errorStack: error.stack,
@@ -206,12 +222,9 @@ export const logoutAllController = async (req: CustomRequest, res: Response): Pr
   }
 
   try {
-    // Révoquer tous les refresh tokens, et toutes les sessions déjà émises.
-    await refreshTokenService.revokeAllRefreshTokens(userId);
-    await mongoose.connection
-      .collection('users')
-      .updateOne({ _id: userId as any }, { $set: { sessionsRevokedAt: new Date() } });
-    forgetRevocation(userId);
+    // Révoquer tous les refresh tokens, toutes les sessions déjà émises, et
+    // celles du serveur d'authentification.
+    await signOutEverywhere(userId);
 
     // Supprimer les cookies de la session actuelle
     res.clearCookie('session', clearCookieOptions());
@@ -260,7 +273,7 @@ export const verifySessionController = async (req: Request, res: Response): Prom
   }
 
   try {
-    const identity = await verifySessionCookie(sessionCookie, true);
+    const identity = await verifySessionForRequest(req, sessionCookie);
     const profile = await userService.getUserProfile(identity.uid);
 
     logger.info(`Session verified successfully for user: ${profile.uid}`);
@@ -269,6 +282,10 @@ export const verifySessionController = async (req: Request, res: Response): Prom
       user: toPublicProfile(profile),
     });
   } catch (error: any) {
+    if (error instanceof SuspiciousDeviceError) {
+      res.status(401).json(SUSPICIOUS_DEVICE_BODY);
+      return;
+    }
     logger.error('Session verification failed:', {
       errorMessage: error.message,
       errorStack: error.stack,

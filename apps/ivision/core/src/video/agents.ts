@@ -7,12 +7,19 @@
  * (erreur explicite), il ne la remplace jamais par une composition toute faite.
  */
 import { coreHost } from '../runtime/host';
-import type { AgentCall } from '../creativity/orchestrator';
+import type { AgentCall, AgentCallOptions } from '../creativity/orchestrator';
 import { atLeast, CreativityLevel } from '../creativity/levels';
 import { CopyWriter, estimateTokens } from './request/facts';
 
-/** Les rôles du film (modèle et plafond de sortie décidés par l'hôte). */
-export type FilmRole = 'video.concept' | 'video.planner' | 'video.author' | 'video.reviser';
+/**
+ * Les rôles du film (modèle et plafond de sortie décidés par l'hôte) :
+ *   video.concept / planner / reviser  concevoir (direction, storyboard, retouche écrite) ;
+ *   video.sampler                       écrire beaucoup de variantes de scène, vite et peu cher (échantillonnage) ;
+ *   video.author                        écrire et réécrire une scène difficile (le modèle de qualité du cran) ;
+ *   video.judge-vlm                     départager deux finalistes sur image (optionnel, questions fermées) ;
+ *   video.teacher                       hors ligne : fabriquer des scènes de référence (bibliothèque).
+ */
+export type FilmRole = 'video.concept' | 'video.planner' | 'video.author' | 'video.reviser' | 'video.sampler' | 'video.judge-vlm' | 'video.teacher';
 
 export interface ModelRun {
   raw: string;
@@ -30,23 +37,26 @@ export interface FilmCallContext {
   call?: AgentCall;
 }
 
-/** Gemini 3.1 Pro (crans High, Ultra) raisonne toujours avant de répondre : des délais à sa mesure. */
+/** Délais par rôle : un modèle qui raisonne (GLM-5.3 au cran High) y trouve sa marge ; le professeur, hors ligne, a le temps. */
 const TIMEOUTS: Record<FilmRole, number> = {
   'video.concept': 150_000,
   'video.planner': 180_000,
   'video.author': 240_000,
   'video.reviser': 90_000,
+  'video.sampler': 120_000,
+  'video.judge-vlm': 90_000,
+  'video.teacher': 600_000,
 };
 
 /** Un appel de modèle pour le film : jamais d'exception, une réponse (éventuellement vide) et sa raison. */
-export async function callFilmModel(ctx: FilmCallContext, role: FilmRole, system: string, user: string, validate?: (raw: string) => boolean): Promise<ModelRun> {
+export async function callFilmModel(ctx: FilmCallContext, role: FilmRole, system: string, user: string, validate?: (raw: string) => boolean, options?: AgentCallOptions): Promise<ModelRun> {
   const started = Date.now();
   const call = ctx.call || coreHost().agentCall?.({ userId: ctx.userId, projectId: ctx.projectId, element: 'video' });
   const tokensIn = estimateTokens(system + user);
   if (!call) return { raw: '', tokens: { input: 0, output: 0 }, ms: 0, failure: 'no_model' };
   try {
     const raw = await Promise.race([
-      call({ role, profile: role === 'video.author' || role === 'video.concept' ? 'coder' : 'agents', system, user, level: ctx.level, ...(validate ? { validate } : {}) }),
+      call({ role, profile: role === 'video.author' || role === 'video.sampler' || role === 'video.concept' || role === 'video.teacher' ? 'coder' : 'agents', system, user, level: ctx.level, ...(validate ? { validate } : {}), ...(options ? { options } : {}) }),
       new Promise<string>((_, reject) => setTimeout(() => reject(new Error('model_timeout')), TIMEOUTS[role])),
     ]);
     const text = String(raw || '');

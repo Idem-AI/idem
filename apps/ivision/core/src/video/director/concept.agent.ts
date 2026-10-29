@@ -6,7 +6,8 @@
  * la jauge de créativité choisit le MODÈLE qui le fait (`config/creative-roles.ts`, échelle « design »).
  */
 import { callFilmModel, FilmCallContext, ModelRun } from '../agents';
-import { FilmBrief, formatLine, intentLine, languageLine, mediaLines, sceneRange, scriptLines } from './brief';
+import { FilmBrief, formatLine, intentLine, languageLine, mediaLines, sceneRange, scriptLines, skeletonLine } from './brief';
+import { clampEnergy, directionMenu, directionOf, DirectionId } from '../../../../../../packages/motion-compiler/src';
 import { parseFilmPlan } from './film-format';
 import { specConstraints } from '../request/request';
 
@@ -16,6 +17,11 @@ export interface FilmConcept {
   bible: string;
   /** Une ligne par scène : ce qu'on voit et comment ça bouge. */
   outline: string[];
+  /** La direction visuelle nommée (et la seconde, si la première vient de servir au film précédent). */
+  direction?: DirectionId;
+  alternative?: DirectionId;
+  /** L'énergie de chaque scène (1 posé → 5 nerveux) : une courbe, un seul pic. */
+  energy?: number[];
   raw: string;
 }
 
@@ -28,9 +34,15 @@ export function buildConceptPrompt(brief: FilmBrief): { system: string; user: st
     'The film will be coded in Motion Canvas (2D vector animation: shapes, lines, text, photos and video clips, masks, gradients, filters). Design for that medium: precise, physical, rhythmic motion design — not a slideshow.',
     'Serve the message first: the viewer must understand what is offered and what to do. Avoid clichés (floating icons, generic gradients, "Welcome to…" intros).',
     'Brand rule: use the brand colours and fonts; light backgrounds by default unless the client asks otherwise.',
+    `Pick ONE named visual direction for the whole film (it sets type scale, colour use, motion personality and transitions — the code applies it), and a second choice:\n${directionMenu()}`,
+    brief.previousDirections?.length ? `The previous film of this brand used "${brief.previousDirections[0]}": choose a different direction.` : '',
+    'Give each scene an ENERGY from 1 (calm, slow, one thing at a time) to 5 (punchy, fast): one curve for the film with a single peak (the payoff, around 60–80 % of the film).',
+    brief.skeleton && !(brief.spec && brief.spec.mode === 'script' && brief.spec.scenes.length) ? `This is a product film: follow (scale, merge or skip) the eight beats ${skeletonLine()}.` : '',
     '',
     'Answer in English with exactly these fields:',
     'TITLE: a short working title',
+    'DIRECTION: <direction id>, second: <direction id>',
+    'ENERGY: one integer 1-5 per scene, comma-separated',
     'CONCEPT: the idea of the film in one or two sentences',
     'BIBLE: 3 to 6 lines — how colours are used, typography (sizes, case, weight), graphic language (shapes, lines, textures), motion personality (easing, speed, rhythm), how scenes connect',
     scripted ? `SCENE n: one line per scene of the client's script (${brief.spec!.scenes.length} scenes) — what we see and how it moves` : `SCENE n: one line per scene (${min} to ${max} scenes) — what we see and how it moves`,
@@ -56,10 +68,15 @@ export function buildConceptPrompt(brief: FilmBrief): { system: string; user: st
 }
 
 export function parseConcept(raw: string): FilmConcept | null {
-  const plan = parseFilmPlan(raw.replace(/^\s*IDEAS?:.*$/gim, ''));
+  const plan = parseFilmPlan(raw.replace(/^\s*(IDEAS?|DIRECTION|ENERGY):.*$/gim, ''));
   const outline = [...raw.matchAll(/^[\s#>*_-]*(?:scene|scène|shot|plan)\s*\d{1,2}\s*[:.)—–-]\s*(.+)$/gim)].map((m) => m[1].trim()).filter(Boolean);
   if (!plan.concept && !outline.length) return null;
-  return { title: plan.title, concept: plan.concept, bible: plan.bible, outline, raw };
+  // DIRECTION: tech, second: editorial — lu avec tolérance (la liste est fermée : un nom inconnu est ignoré).
+  const dirLine = raw.match(/^[\s*_#-]*DIRECTION\s*[:=]\s*(.+)$/im)?.[1] || '';
+  const [first, second] = dirLine.split(/,|;|\bsecond\b|\balternative\b/i).map((x) => directionOf(x.replace(/[:()]/g, ' ').trim().split(/\s+/).pop()));
+  const energyLine = raw.match(/^[\s*_#-]*ENERGY\s*[:=]\s*(.+)$/im)?.[1] || '';
+  const energy = (energyLine.match(/\d/g) || []).map((d) => clampEnergy(Number(d)));
+  return { title: plan.title, concept: plan.concept, bible: plan.bible, outline, ...(first ? { direction: first } : {}), ...(second && second !== first ? { alternative: second } : {}), ...(energy.length ? { energy } : {}), raw };
 }
 
 export async function runConcept(ctx: FilmCallContext, brief: FilmBrief): Promise<{ concept: FilmConcept | null; run: ModelRun }> {

@@ -9,6 +9,9 @@ import {
 import useChatModeStore from "@/stores/chatModeSlice";
 import { ChatMode } from "@/types/chat";
 import { ArtifactView } from "../ArtifactView";
+import { ChatChoices } from "../ChatChoices";
+import { OpenLinks } from "../OpenLinks";
+import { readChoices, withoutMarkers } from "@/utils/chatMarkers";
 import { ImageGrid } from "../ImageGrid";
 import { Message } from "ai";
 import { memo } from "react";
@@ -810,7 +813,7 @@ const MessageItemView: React.FC<MessageItemProps> = ({
                       // Le code éventuellement glissé hors des actions de
                       // fichier est récupéré ailleurs et écrit dans le projet :
                       // l'afficher ici ne renseigne personne et noie la phrase.
-                      const prose = sanitizeChatProse(processStreamParts(filterMessages.parts));
+                      const prose = sanitizeChatProse(withoutMarkers(processStreamParts(filterMessages.parts)));
                       // En mode Plan, une réponse longue et structurée est la
                       // réponse attendue. En mode Build, la conversation raconte
                       // le travail : une réponse qui n'est pas une phrase (le
@@ -826,6 +829,14 @@ const MessageItemView: React.FC<MessageItemProps> = ({
                 </div>
               </div>
             )}
+
+            {/* Des choix à cliquer posés par le serveur (seuls les derniers se répondent), et les boutons qui
+                mènent à une page d'IDEM (la charte…). */}
+            {!isUser && (() => {
+              const choices = readChoices(message.content);
+              return choices ? <ChatChoices choices={choices} active={isEndMessage && !isLoading} /> : null;
+            })()}
+            {!isUser && <OpenLinks content={message.content} active={isEndMessage && !isLoading} />}
 
             {message.experimental_attachments &&
               message.experimental_attachments.length > 0 && (

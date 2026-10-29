@@ -40,6 +40,8 @@ export const environment = {
     /** Le tableau de bord IDEM : connexion, crédits, projets. */
     dashboard: { url: '${process.env.SERVICES_DASHBOARD_URL || 'http://localhost:4200'}' },
     landing: { url: '${process.env.SERVICES_LANDING_URL || 'https://idem.africa'}' },
+    /** iCode : la carte « prochaine étape » peut y mener (créer le site d'un projet). */
+    icode: { url: '${process.env.SERVICES_WEBGEN_URL || process.env.WEBGEN_URL || (isProduction ? 'https://webgen.idem.africa' : 'http://localhost:5173')}' },
   },
 };
 `;

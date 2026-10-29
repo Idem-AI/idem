@@ -1,6 +1,7 @@
 import { getLastServerUrl } from '@/components/WeIde/services';
 import useRunStatus from '@/stores/runStatusSlice';
 import { queue } from '../useMessageParser';
+import { startupBegin } from '@/utils/startupTimer';
 
 /**
  * Garantit qu'un aperçu tourne après la génération.
@@ -31,9 +32,12 @@ const BROKEN_INSTALL = [
   /ENOTEMPTY: directory not empty/i,
 ];
 
-const POLL_MS = 3000;
-/** Laisser sa chance à la chaîne normale avant d'intervenir. */
-const GRACE_MS = 30000;
+const POLL_MS = 1000;
+/**
+ * Laisser sa chance à la chaîne normale avant d'intervenir — courte : rien ne s'installe ni ne démarre, c'est
+ * qu'aucune commande n'est partie. Trente secondes d'attente ici faisaient à elles seules rater l'objectif des 20 s.
+ */
+const GRACE_MS = 4000;
 /** Next met plus longtemps que Vite à répondre la première fois. */
 const GIVE_UP_MS = 180000;
 
@@ -54,6 +58,7 @@ export async function ensurePreviewRunning(startCommand = 'npm run dev'): Promis
   try {
     const started = Date.now();
     let forced = false;
+    startupBegin('after-generation');
 
     while (Date.now() - started < GIVE_UP_MS) {
       if (getLastServerUrl()) return;

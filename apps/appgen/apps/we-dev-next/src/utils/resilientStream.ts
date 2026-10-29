@@ -103,6 +103,21 @@ function isModelUnavailableError(error: unknown): boolean {
   return MODEL_UNAVAILABLE_PATTERNS.some((pattern) => text.includes(pattern));
 }
 
+/**
+ * Le compte du fournisseur refuse tout appel : plafond de dépense de la clé atteint, crédits épuisés, paiement
+ * requis. Aucun autre modèle n'y échappe (ils passent tous par la même clé), et réessayer ne sert à rien tant que
+ * le plafond n'est pas relevé.
+ */
+const ACCOUNT_LIMIT_PATTERNS = ['key limit exceeded', 'insufficient credits', 'requires more credits', 'credit limit', 'payment required', 'spending limit'];
+
+export function isAccountLimitError(error: unknown): boolean {
+  for (const node of flattenErrors(error)) {
+    if (node && typeof node === 'object' && (node as any).statusCode === 402) return true;
+  }
+  const text = errorText(error);
+  return ACCOUNT_LIMIT_PATTERNS.some((pattern) => text.includes(pattern));
+}
+
 /** Faut-il tenter le modèle suivant de la chaîne ? */
 export function shouldTryNextModel(error: unknown): boolean {
   return isTransientModelError(error) || isModelUnavailableError(error);

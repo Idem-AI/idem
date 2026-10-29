@@ -48,7 +48,8 @@ import { ProjectModel } from '@/api/persistence/models/project.model';
 import { MultiChatPromptService } from './services/multiChatPromptService';
 import { currentPlatform, currentProduct } from '@/utils/product';
 import { fetchScaffold } from '@/api/scaffold';
-import { resetWarmStart, targetFromChoice, warmStart } from '../utils/warmStart';
+import { depsTarget, resetWarmStart, rewarm, targetFromChoice, warmStart } from '../utils/warmStart';
+import { stopStarted } from '../../WeIde/services/webcontainer/runner';
 import { resetInstallRepair } from '../utils/ensurePreview';
 import { extractFilesFromText, isEngineSite, isGeneratedSite } from '@/utils/siteEngine';
 import { internalMessage } from '@/utils/stepLabels';
@@ -67,6 +68,15 @@ import {
 import useChatHistoryStore from '@/stores/chatHistoryStore';
 import useRunStatus from '@/stores/runStatusSlice';
 import { IdemLoader } from '@idem/shared-loader/react';
+import { JourneyCard } from '@idem/shared-journey/react';
+import { journeyClient, journeyUrls, useJourney } from '@/hooks/useJourney';
+import { useChatAutoScroll } from '@/hooks/useChatAutoScroll';
+import { ArrowDown } from 'lucide-react';
+import { readChoices, readJourney, readProject } from '@/utils/chatMarkers';
+import { ChatChoices, type ChoicesAnswerEvent } from './components/ChatChoices';
+import { journeyLink } from '@idem/shared-journey';
+import { loadCommands, parseCommand } from '@/utils/commands';
+import { hasStartPrompt, onStartPrompt, takeStartPrompt } from '@/utils/startPrompt';
 
 type WeMessages = (Message & {
   experimental_attachments?: Array<{
@@ -198,23 +208,45 @@ async function fetchDefaultModel(): Promise<string> {
  * contiennent (il les a écrits), et les lui renvoyer à chaque message ajouterait
  * des milliers de jetons d'entrée pour une information qu'il possède.
  */
+/** Le plan d'une génération du moteur de sites, quand il n'est pas coché jusqu'au bout (voir `siteEngine/plan.ts`). */
+function unfinishedPlan(raw: string | undefined): { done: number; total: number } | null {
+  try {
+    const plan = JSON.parse(raw ?? '');
+    if (plan?.kind !== 'site-engine' || plan.status === 'done' || !Array.isArray(plan.steps)) return null;
+    const done = plan.steps.filter((step: { status?: string }) => step.status === 'done').length;
+    return done < plan.steps.length ? { done, total: plan.steps.length } : null;
+  } catch {
+    return null;
+  }
+}
+
 /**
- * Les fichiers d'un site du moteur de sites (sections, en-tête et pied, pages, design system, données) :
- * de quoi le retoucher sans rien deviner. `null` si le projet n'en est pas un (application, site d'avant).
+ * Les fichiers d'un site du moteur de sites (sections, en-tête et pied, pages, design system, données, langues,
+ * documents des pages, plan de la génération) : de quoi le retoucher, le traduire ou reprendre sa génération sans
+ * rien deviner. `null` si le projet n'en est pas un (application, site d'avant). Une génération interrompue avant
+ * ses premières pages envoie au moins son plan.
  */
 function currentSiteFiles(): Record<string, string> | null {
   const workspace = useFileStore.getState().files;
-  if (typeof workspace['idem.pages.json'] !== 'string') return null;
+  const site = typeof (workspace['src/site/pages.json'] ?? workspace['idem.pages.json']) === 'string';
+  if (!site && typeof (workspace['.idem/plan.json'] ?? workspace['idem.plan.json']) !== 'string') return null;
   const files: Record<string, string> = {};
   for (const [path, content] of Object.entries(workspace)) {
     if (typeof content !== 'string') continue;
     if (
-      /^src\/sections\/[^/]+\/\w+\.tsx$/.test(path) ||
-      /^src\/components\/site\/\w+\.tsx$/.test(path) ||
-      /^src\/pages\/[^/]+\.tsx$/.test(path) ||
-      path.startsWith('src/design-system/') ||
-      (path.startsWith('src/site/') && /\.(ts|tsx|json)$/.test(path)) ||
-      path === 'idem.pages.json'
+      path === '.idem/plan.json' ||
+      path === '.idem/manifest.json' ||
+      path === 'idem.plan.json' ||
+      path === 'idem.manifest.json' ||
+      (site &&
+        (/^src\/sections\/[^/]+\/\w+\.tsx$/.test(path) ||
+          /^src\/components\/site\/\w+\.tsx$/.test(path) ||
+          /^src\/pages\/[^/]+\.tsx$/.test(path) ||
+          path.startsWith('src/design-system/') ||
+          (path.startsWith('src/site/') && /\.(ts|tsx|json)$/.test(path)) ||
+          (path.startsWith('src/i18n/') && /\.(ts|json)$/.test(path)) ||
+          /^(?:[\w-]+\/){0,2}index\.html$/.test(path) ||
+          path === 'idem.pages.json'))
     )
       files[path] = content;
   }
@@ -400,7 +432,11 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
         // produit : ni revue de design, ni relance, ni réécriture. Une erreur
         // technique s'affiche dans l'aperçu, et c'est l'utilisateur qui demande
         // la correction.
-        if (!isGeneratedSite(useFileStore.getState().files)) {
+        // Pas davantage pour une réponse du moteur (même arrêtée avant d'écrire un fichier : site illisible)
+        // ni pour une question à cliquer, qui n'a rien produit.
+        const last = messages[messages.length - 1]?.content ?? '';
+        const engineAnswer = last.includes('<boltArtifact id="idem-') || readChoices(last) !== null;
+        if (!engineAnswer && !isGeneratedSite(useFileStore.getState().files)) {
           runQualityPass(chatUuid, messages, append, t, projectData);
         }
       }
@@ -566,6 +602,42 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       console.log('⚠️ CLIENT: No projectData available for chat');
     }
   }, [projectData, mode, baseChatUrl]);
+
+  /**
+   * Une refonte lancée hors projet vient d'en créer un : le site refait y est enregistré (code, génération,
+   * conversation), la boucle IDEM est prévenue, puis l'atelier se rouvre SUR ce projet — l'enregistrement
+   * automatique, la mise en ligne et la carte « prochaine étape » suivent alors leur chemin habituel.
+   */
+  const attachToProject = async (
+    newProjectId: string,
+    finalMessages: Message[],
+    gestures: ReturnType<typeof readJourney>
+  ) => {
+    const pending = toast.info(t('chat.redesign.attaching'), { autoClose: false });
+    try {
+      const workspaceFiles = useFileStore.getState().files;
+      await pushProjectCode(newProjectId, workspaceFiles);
+      const project = await getProjectById(newProjectId);
+      if (project) await saveProjectGeneration(newProjectId, createProjectMetadata(project, finalMessages));
+      await saveProjectChatSession(newProjectId, {
+        sessionId: chatUuid,
+        title: deriveSessionTitle(finalMessages, project?.name || 'Nouvelle conversation'),
+        messages: compactMessagesForStorage(finalMessages),
+      });
+      await Promise.all(gestures.map((gesture) => journeyClient.record({ type: gesture.event, app: 'icode', projectId: newProjectId })));
+      useAppGenContextStore.getState().setConnectedProject(newProjectId);
+      const url = new URL(window.location.href);
+      url.searchParams.set('projectId', newProjectId);
+      url.searchParams.set('product', 'site');
+      url.searchParams.delete('platform');
+      url.searchParams.delete('prompt');
+      window.location.replace(url.toString());
+    } catch (error) {
+      console.error('[refonte] rattachement au projet impossible', error);
+      toast.dismiss(pending);
+      toast.error(t('chat.redesign.attachFailed'));
+    }
+  };
 
   // modify useChat configuration
   const {
@@ -830,6 +902,19 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
 
         setIsGenerationComplete(true);
       }
+
+      // Les marques du serveur : le projet IDEM qu'une refonte vient de créer (l'atelier s'y rattache), et
+      // les gestes à signaler à la boucle IDEM, qui proposera la suite.
+      const createdProject = readProject(message.content);
+      const gestures = readJourney(message.content);
+      if (createdProject && !projectId) {
+        await attachToProject(createdProject.id, [...messages, message], gestures);
+        return;
+      }
+      for (const gesture of gestures) eventEmitter.emit('journey:event', gesture.event);
+      if (!gestures.length && projectId && currentProduct() === 'app' && !messages.some((m) => m.role === 'assistant')) {
+        eventEmitter.emit('journey:event', 'app.generated');
+      }
     },
     onError: (error: any) => {
       // The server sends a readable message (model saturation, quota, ...) either
@@ -849,6 +934,21 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       }
     },
   });
+
+  // La boucle IDEM : la carte « prochaine étape » (faire connaître le site, le mettre en ligne…).
+  const journey = useJourney(projectId, isProjectLoaded && (hasGeneration || realMessages.some((m) => m.role === 'assistant')));
+
+  // Une génération du moteur de sites restée inachevée : la carte « Reprendre » s'affiche au-dessus de la saisie.
+  const planFile = useFileStore((state) => state.files['.idem/plan.json'] ?? state.files['idem.plan.json']);
+  const resumable = useMemo(() => unfinishedPlan(typeof planFile === 'string' ? planFile : undefined), [planFile]);
+  const [resumeDismissed, setResumeDismissed] = useState(false);
+  useEffect(
+    () =>
+      eventEmitter.on('chat:choicesAnswer', (answer: ChoicesAnswerEvent) => {
+        if (answer.choices.purpose === 'resume') setResumeDismissed(true);
+      }),
+    []
+  );
 
   // Lu par l'effet de montage du socle sans le faire dépendre de `isLoading` :
   // une dépendance l'annulerait au moment même où la génération démarre.
@@ -897,7 +997,9 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       // Une retouche d'un site vitrine déjà généré : son état ACTUEL (sections, pages, design system, données)
       // part avec la demande, pour que le serveur ne modifie que la partie visée.
       const body = (options?.body ?? {}) as Record<string, unknown>;
-      const outOfBand = body.siteRepair || body.qualityRepair || body.followUp;
+      // Une réponse cliquée part à son déroulé ; « continuer » renvoie la demande d'origine, traitée comme une saisie.
+      const answers = body.answers as { purpose?: string } | undefined;
+      const outOfBand = body.siteRepair || body.qualityRepair || body.followUp || (answers && answers.purpose !== 'passthrough');
       const siteEdit = mode === ChatMode.Builder && !outOfBand && message.role === 'user' ? currentSiteFiles() : null;
       return appendRaw(
         message,
@@ -932,22 +1034,27 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
     setMessages(restored);
     setMessagesa(restored as WeMessages);
     setActiveChatUuid(chatUuid);
-    scrollToBottom();
+    // Une autre conversation : on l'ouvre sur son dernier message.
+    scrollToBottom(true);
   }, [chatUuid]);
 
-  // Listen for auto-prompt from AppGen landing page (placed here, after useChat, so isLoading/append are defined)
+  // La demande écrite sur la page d'accueil (ou arrivée par `?prompt=`, ou mise de côté avant la connexion) part
+  // dès que le chat est prêt — projet chargé, conversation restaurée — par le MÊME chemin qu'une saisie ici :
+  // commandes « / », images jointes, niveau de créativité choisi sur le bouton (`utils/startPrompt.ts`).
+  const submitRef = useRef<(text: string) => void>(() => undefined);
+  const [startPromptTick, setStartPromptTick] = useState(0);
+  useEffect(() => onStartPrompt(() => setStartPromptTick((n) => n + 1)), []);
   useEffect(() => {
-    const unsubscribe = eventEmitter.on('chat:autoPrompt', (prompt: string) => {
-      if (prompt && !isLoading) {
-        append({
-          id: uuidv4(),
-          role: 'user',
-          content: prompt,
-        });
-      }
-    });
-    return () => unsubscribe();
-  }, [isLoading, append]);
+    if (!hasStartPrompt() || isLoading) return;
+    if (projectId && !isProjectLoaded) return;
+    if (pendingSessionRef.current) return;
+    // Après les autres effets du montage (restauration, socle) : la demande ne doit pas être écrasée par eux.
+    const timer = setTimeout(() => {
+      const prompt = takeStartPrompt();
+      if (prompt) submitRef.current(prompt);
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [startPromptTick, isLoading, projectId, isProjectLoaded, chatUuid]);
 
   // « Corriger automatiquement » depuis l'aperçu : l'erreur et son journal
   // partent comme un message, que l'utilisateur voit dans la conversation.
@@ -992,6 +1099,141 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       );
     });
   }, [isLoading, append, t]);
+
+  /**
+   * Les commandes que l'atelier règle lui-même (tapées après « / », ou choisies dans une confirmation) :
+   * la mise en ligne et le nom de domaine s'ouvrent sur place, la communication mène au module d'IDEM sur ce
+   * projet, « corriger » reprend l'erreur de l'aperçu, « aide » ouvre la liste des commandes.
+   */
+  const runClientCommand = useCallback(
+    async (name: string) => {
+      if (name === 'publish') return eventEmitter.emit('deploy:open');
+      if (name === 'domain') return eventEmitter.emit('deploy:open', 'domain');
+      if (name === 'help') return eventEmitter.emit('chat:slashMenu');
+      if (name === 'communication') {
+        if (!projectId) return toast.info(t('chat.commands.needsProject'));
+        await waitForCodeSync();
+        window.location.assign(journeyLink('communication', { urls: journeyUrls, projectId, from: 'icode' }));
+        return;
+      }
+      if (name === 'fix') {
+        const error = useRunStatus.getState().error;
+        if (error) {
+          useRunStatus.getState().clearError();
+          return append({ id: uuidv4(), role: 'user', content: [t('preview.fix.prompt', { summary: error.summary }), '', '```', error.log, '```'].join('\n') });
+        }
+        // Sinon, les sections d'un site restées à corriger (bouton « Corriger » de la dernière réponse).
+        const last = [...messages].reverse().find((m) => m.role === 'assistant')?.content ?? '';
+        const paths = (() => {
+          try {
+            return JSON.parse(last.match(/<!--\s*idem:repair\s+(\[[\s\S]*?\])\s*-->/)?.[1] ?? '[]') as string[];
+          } catch {
+            return [];
+          }
+        })();
+        if (paths.length) return eventEmitter.emit('chat:siteRepair', paths);
+        return toast.info(t('chat.commands.nothingToFix'));
+      }
+    },
+    [append, messages, projectId, t]
+  );
+
+  useEffect(() => eventEmitter.on('chat:command', (name: string) => void runClientCommand(name)), [runClientCommand]);
+
+  // La réponse cliquée à des choix posés par le serveur. Selon l'option : une action sur place, la demande
+  // d'origine renvoyée telle quelle (« continuer »), rien (« pas maintenant »), ou la réponse à son déroulé — en
+  // repartant d'un espace vide quand un site neuf va s'écrire (le serveur envoie le socle du site, construit
+  // avec le projet et son logo).
+  useEffect(() => {
+    return eventEmitter.on('chat:choicesAnswer', async (answer: ChoicesAnswerEvent) => {
+      if (isLoading) {
+        toast.info(t('preview.fix.busy'));
+        return;
+      }
+      const { choices, option } = answer;
+      if (option?.clientAction) return void runClientCommand(option.clientAction);
+      if (option?.dismiss) return;
+      if (option?.passthrough) {
+        const original = String(choices.context?.original ?? '');
+        if (original) append({ id: uuidv4(), role: 'user', content: original }, { body: { answers: { purpose: 'passthrough', values: {} } } });
+        return;
+      }
+      if (choices.prepare === 'site-reset') {
+        // Ce qui était là (une application, un autre site) : un point de restauration, et plus aucun envoi en vol
+        // — l'adresse passe au site juste après, et un envoi parti avant écrirait l'ancien code chez le site.
+        const before = useFileStore.getState().files;
+        const previous = depsTarget();
+        const blank = previous === 'site' && isStarterOnly(before);
+        if (!blank && Object.keys(before).length) {
+          await useVersionHistory
+            .getState()
+            .capture(t('versions.beforeRedesign'), before)
+            .catch((error) => console.warn('[refonte] point de restauration non enregistré', error));
+        }
+        cancelPendingCodeSync();
+        await waitForCodeSync();
+        const url = new URL(window.location.href);
+        if (url.searchParams.get('product') !== 'site') {
+          url.searchParams.set('product', 'site');
+          url.searchParams.delete('platform');
+          window.history.replaceState({}, '', url.toString());
+        }
+        journey.clear();
+        clearScaffold();
+        settleScaffold();
+        // Un conteneur neuf, sauf s'il ne porte encore que le socle du site. Le montage n'efface jamais rien : les
+        // fichiers de l'ancien projet restaient sur le disque, la relecture les ramenait dans l'explorateur (puis
+        // dans le site enregistré), et le serveur de l'application, arrêté ou pas, laissait son adresse : l'aperçu
+        // du site croyait tourner déjà, ne démarrait jamais, sans erreur. Les dépendances du site reviennent du
+        // cache ou de l'instantané en quelques secondes.
+        if (!blank) {
+          stopStarted();
+          await resetWebContainer();
+          resetFileHashes();
+          execList.clear();
+          resetWarmStart();
+          resetInstallRepair();
+          useRunStatus.getState().reset();
+          resetTerminals();
+        }
+        // Le socle du site monté TOUT DE SUITE et l'aperçu lancé pendant que le site est lu et écrit : à la fin,
+        // il n'y a plus rien à installer ni à démarrer (objectif : moins de 20 s). Le serveur renverra le socle
+        // construit avec le projet (logo compris) : non verrouillé ici, il remplacera celui-ci par rechargement à
+        // chaud.
+        try {
+          const scaffold = await fetchScaffold(projectData, { product: 'site', language: i18n.language });
+          setEmptyFiles();
+          await setFiles(scaffold.files);
+          void rewarm('site', scaffold.commands);
+        } catch (error) {
+          // Sans socle d'avance, le serveur l'envoie dans sa réponse : plus lent, jamais bloquant.
+          console.warn('[refonte] socle non monté d’avance', error);
+          setEmptyFiles();
+          await setFiles({});
+        }
+      }
+      append(
+        { id: uuidv4(), role: 'user', content: answer.summary },
+        { body: { answers: { purpose: choices.purpose, values: answer.values, consent: answer.consent, context: choices.context } } }
+      );
+    });
+  }, [isLoading, append, t, journey, runClientCommand, projectData, i18n.language]);
+
+  // Une demande dessinée sur l'aperçu : envoyée tout de suite, avec ce que les tracés désignent (le serveur ne
+  // modifie que cela). La note est déjà écrite dans le calque : rien à compléter, rien à renvoyer.
+  useEffect(
+    () =>
+      eventEmitter.on('chat:run', ({ text, pointed }: { text: string; pointed: unknown[] }) => {
+        if (!text?.trim()) return;
+        if (isLoading) {
+          toast.info(t('preview.fix.busy'));
+          return;
+        }
+        eventEmitter.emit('chat:focusInput');
+        append({ id: uuidv4(), role: 'user', content: text }, { body: { pointed: { elements: pointed ?? [] } } });
+      }),
+    [isLoading, append, t]
+  );
 
   // Contexte poussé depuis l'espace de travail : sélection d'un élément,
   // annotation dessinée, thème à appliquer. On préremplit la saisie au lieu
@@ -1395,49 +1637,65 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
     }
   }, [realMessages, isLoading]);
 
-  const [userScrolling, setUserScrolling] = useState(false);
-  const userScrollTimeoutRef = useRef<NodeJS.Timeout>();
-
-  // handle user scrolling
-  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const target = e.target as HTMLDivElement;
-    const isScrolledToBottom =
-      Math.abs(target.scrollHeight - target.scrollTop - target.clientHeight) < 10;
-
-    if (!isScrolledToBottom) {
-      // user is scrolling to view history messages
-      setUserScrolling(true);
-
-      // clear previous timer
-      if (userScrollTimeoutRef.current) {
-        clearTimeout(userScrollTimeoutRef.current);
-      }
-
-      // set new timer, allow auto scroll after 3 seconds
-      userScrollTimeoutRef.current = setTimeout(() => {
-        setUserScrolling(false);
-      }, 3000);
-    }
-  };
-
-  // modify scroll to bottom function
-  const scrollToBottom = () => {
-    if (userScrolling) return; // if user is scrolling, do not execute auto scroll
-
-    const messageContainer = document.querySelector('.message-container');
-    if (messageContainer) {
-      messageContainer.scrollTop = messageContainer.scrollHeight;
-    }
-  };
-
-  // clean up timer when component unmounts
+  /**
+   * Le projet d'une refonte lancée hors projet existe dès que le site est lu : le serveur le dit en tête de réponse.
+   * L'adresse le porte aussitôt — une actualisation rouvre ce projet, plus un atelier vide — et l'enregistrement
+   * part vers lui pendant la génération. Le rattachement complet (journal IDEM, rechargement) reste à la fin.
+   */
+  const liveProjectRef = useRef<string | null>(null);
+  const realMessagesRef = useRef(realMessages);
+  realMessagesRef.current = realMessages;
   useEffect(() => {
-    return () => {
-      if (userScrollTimeoutRef.current) {
-        clearTimeout(userScrollTimeoutRef.current);
+    if (!isLoading || projectId || liveProjectRef.current) return;
+    const last = realMessages[realMessages.length - 1];
+    const created = last?.role === 'assistant' ? readProject(last.content) : null;
+    if (!created) return;
+    liveProjectRef.current = created.id;
+    useAppGenContextStore.getState().setConnectedProject(created.id);
+    const url = new URL(window.location.href);
+    url.searchParams.set('projectId', created.id);
+    url.searchParams.set('product', 'site');
+    url.searchParams.delete('platform');
+    url.searchParams.delete('prompt');
+    window.history.replaceState({}, '', url.toString());
+  }, [realMessages, isLoading, projectId]);
+
+  /**
+   * Enregistré PENDANT la génération, pas seulement à la fin. Une refonte dure plusieurs minutes : tout ne partait
+   * qu'en fin de réponse, si bien qu'une actualisation, une coupure ou une réponse finie en erreur faisait tout perdre
+   * (les fichiers, et le plan dont « Reprendre » a besoin). Toutes les 20 s, dès que la réponse a écrit un fichier :
+   * le code (seul ce qui a changé part) et la conversation ; une dernière fois quand la réponse s'arrête, quelle
+   * qu'en soit l'issue.
+   */
+  useEffect(() => {
+    if (!isLoading) return;
+    const save = () => {
+      const target = projectId ?? liveProjectRef.current;
+      if (!target) return;
+      const all = realMessagesRef.current;
+      const last = all[all.length - 1];
+      if (last?.role !== 'assistant' || !/<boltAction\s+type="file"[\s\S]*?<\/boltAction>/.test(last.content)) return;
+      const workspace = useFileStore.getState().files;
+      if (Object.keys(workspace).length) {
+        pushProjectCode(target, workspace).catch((error) => console.warn('[enregistrement] code non envoyé', error));
       }
+      saveProjectChatSession(target, {
+        sessionId: chatUuid,
+        title: deriveSessionTitle(all as Message[], projectData?.name || 'Nouvelle conversation'),
+        messages: compactMessagesForStorage(all as Message[]),
+      }).catch((error) => console.warn('[enregistrement] conversation non envoyée', error));
     };
-  }, []);
+    const timer = setInterval(save, 20_000);
+    return () => {
+      clearInterval(timer);
+      save();
+    };
+  }, [isLoading, projectId, chatUuid, projectData?.name]);
+
+  // Le fil suit ce qui s'écrit, laisse lire plus haut, et ramène en bas quand une réponse finit ou demande
+  // d'agir (voir le hook).
+  const autoScroll = useChatAutoScroll(isLoading);
+  const scrollToBottom = (force = false) => autoScroll.follow({ force });
 
   // add upload status tracking
   const [isUploading, setIsUploading] = useState(false);
@@ -1509,6 +1767,17 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
   const handleSubmitWithFiles = async (_: React.KeyboardEvent, text?: string) => {
     if (!text && !input.trim() && uploadedImages.length === 0) return;
 
+    // Une commande que l'atelier règle lui-même (« /publier », « /aide »…) ne part pas au serveur.
+    const typed = (text || input).trim();
+    if (typed.startsWith('/')) {
+      const parsed = parseCommand(typed, await loadCommands());
+      if (parsed?.command.run === 'client') {
+        setInput('');
+        void runClientCommand(parsed.command.name);
+        return;
+      }
+    }
+
     console.log('💬 CLIENT: Submitting message to chat');
     console.log('📝 CLIENT: Message content:', text || input);
     console.log('📊 CLIENT: Mode:', mode);
@@ -1556,6 +1825,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       toast.error(t('chat.errors.upload_files_failed'));
     }
   };
+  submitRef.current = (text: string) => void handleSubmitWithFiles(null as unknown as React.KeyboardEvent, text);
 
   // modify keyboard submit handler
   const handleKeySubmit = (e: React.KeyboardEvent) => {
@@ -1916,8 +2186,9 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
     // conversation devient inatteignable au lieu de défiler.
     return (
       <div
+        ref={autoScroll.containerRef}
         className="flex-1 min-h-0 overflow-y-auto px-1 py-2 message-container [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
-        onScroll={handleScroll} // add scroll event listener
+        onScroll={autoScroll.onScroll}
       >
         {/* Project Generation Workspace Header */}
         {projectData && (
@@ -2008,7 +2279,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
         {!projectData && (
           <Tips append={append} setInput={setInput} handleFileSelect={stableHandleFileSelect} />
         )}
-        <div className="max-w-[640px] w-full mx-auto space-y-3">
+        <div ref={autoScroll.contentRef} className="max-w-[640px] w-full mx-auto space-y-3">
           {filterMessages.map((message, index) => (
             <MessageItem
               handleRetry={() => {
@@ -2093,6 +2364,21 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
     >
       {showJsx}
 
+      {/* L'utilisateur lit plus haut pendant que ça avance : un bouton pour rejoindre la suite. */}
+      {autoScroll.showJump && (
+        <div className="relative h-0">
+          <button
+            type="button"
+            onClick={autoScroll.jump}
+            className="absolute bottom-3 left-1/2 z-10 inline-flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-[var(--glass-border)] bg-surface-1 px-3 py-1.5 text-xs font-medium text-text-primary shadow-md transition-colors hover:bg-surface-2"
+          >
+            {isLoading && <IdemLoader size="xs" />}
+            {isLoading ? t('chat.scroll.working') : t('chat.scroll.new')}
+            <ArrowDown size={14} aria-hidden="true" />
+          </button>
+        </div>
+      )}
+
       <CodeLoadError
         open={codeLoadFailed}
         retrying={retryingCodeLoad}
@@ -2103,6 +2389,53 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       {/* Tutorial Modal */}
       {showTutorial && projectData && (
         <ProjectTutorial projectData={projectData} onClose={() => setShowTutorial(false)} />
+      )}
+
+      {/* Une génération interrompue (page actualisée, connexion coupée) : la reprendre là où elle s'était arrêtée. */}
+      {resumable && !isLoading && !resumeDismissed && (
+        <div className="px-3 pb-2">
+          <ChatChoices
+            active
+            choices={{
+              purpose: 'resume',
+              questions: [
+                {
+                  id: 'resume',
+                  question: t('chat.resume.question'),
+                  help: t('chat.resume.help', { done: resumable.done, total: resumable.total }),
+                  options: [
+                    { value: 'now', recommended: true, label: t('chat.resume.now'), description: t('chat.resume.nowHelp') },
+                    { value: 'later', dismiss: true, label: t('chat.resume.later') },
+                  ],
+                },
+              ],
+            }}
+          />
+        </div>
+      )}
+
+      {/* La boucle IDEM : l'étape suivante (faire connaître le site, le mettre en ligne…), une seule à la fois. */}
+      {journey.recommendation && !isLoading && (
+        <div className="px-3 pb-2">
+          <JourneyCard
+            recommendation={journey.recommendation}
+            urls={journeyUrls}
+            from="icode"
+            lang={i18n.language}
+            client={journeyClient}
+            beforeOpen={async (recommendation) => {
+              // La mise en ligne se fait ici même, dans la fenêtre habituelle.
+              if (recommendation.destination === 'publish-site' || recommendation.destination === 'publish-app' || recommendation.destination === 'domain') {
+                journey.clear();
+                eventEmitter.emit('deploy:open', recommendation.destination === 'domain' ? 'domain' : undefined);
+                return false;
+              }
+              // Le code part au stockage avant de quitter l'atelier.
+              await waitForCodeSync();
+            }}
+            onDismissed={journey.clear}
+          />
+        </div>
       )}
 
       {/* Hide ChatInput when chat is empty and projectData exists (show only project description + start button) */}

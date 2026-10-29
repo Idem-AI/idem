@@ -1,11 +1,18 @@
 import { FileItem } from '../types';
 
+/**
+ * Les notes du moteur de sites (`.idem/` : le plan de la génération, l'architecture gardée pour la reprendre) : elles
+ * servent à l'atelier, pas à la personne qui lit son code. Enregistrées et envoyées comme les autres fichiers, elles
+ * ne s'affichent pas dans l'explorateur.
+ */
+const HIDDEN = /^\.idem\//;
+
 export function buildFileTree(paths: string[]): FileItem[] {
   const root: FileItem[] = [];
   const map = new Map<string, FileItem>();
 
   // Sort paths to ensure consistent order
-  const sortedPaths = [...paths].sort();
+  const sortedPaths = paths.filter((path) => !HIDDEN.test(path)).sort();
 
   sortedPaths.forEach(path => {
     const parts = path.split('/');

@@ -15,6 +15,14 @@ export interface RefreshTokenData {
   lastUsed?: Date;
   deviceInfo?: string;
   ipAddress?: string;
+  /** Identifiant de la session, porté par le cookie `session` (`sid`). */
+  sessionId?: string;
+  /** Empreinte de l'appareil qui a ouvert la session (`utils/device-fingerprint.util`). */
+  deviceFingerprint?: string;
+  /** Autres appareils confirmés par le titulaire (« C'est moi » dans l'e-mail d'alerte). */
+  trustedFingerprints?: string[];
+  /** Session du serveur d'authentification (`session_id` du jeton Supabase). */
+  authSessionId?: string;
 }
 
 export interface PolicyAcceptanceStatus {

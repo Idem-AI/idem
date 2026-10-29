@@ -211,4 +211,14 @@ export interface ChatRequest {
    * données). Le moteur de modification ciblée (`siteEngine/edit.ts`) ne touche que ce qui est demandé.
    */
   siteEdit?: { files: Record<string, string> };
+  /**
+   * Ce que la personne a désigné dans l'aperçu (outil Dessin), résolu par l'aperçu : chaque élément, son fichier, sa
+   * position et la partie qui le porte. La retouche ne touche que cela (`siteEngine/pointed.ts`).
+   */
+  pointed?: unknown;
+  /**
+   * La réponse cliquée à des choix posés dans le chat (`commands/choices.ts`) : le déroulé qui les a posés
+   * (`purpose`), les valeurs, l'accord aux politiques d'IDEM s'il était demandé, et le contexte renvoyé tel quel.
+   */
+  answers?: { purpose: string; values: Record<string, string>; consent?: boolean; context?: Record<string, string | boolean | undefined> };
 }

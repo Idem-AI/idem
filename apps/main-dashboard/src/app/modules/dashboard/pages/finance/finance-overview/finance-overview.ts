@@ -306,6 +306,16 @@ export class FinanceOverviewComponent implements OnInit {
     this.researchSub?.unsubscribe();
     this.researchSub = this.generationService.startGeneration('finance-fill', connection).subscribe({
       next: (state) => {
+        // Échec ou coupure : le dire, au lieu de laisser la console tourner
+        // sans fin. Le serveur a pu finir malgré la coupure : on relit.
+        if (state.error) {
+          this.researchSub?.unsubscribe();
+          this.aiGlobalLoading.set(false);
+          this.researchVisible.set(false);
+          this.loadSummary();
+          this.error.set(this.translate.instant('dashboard.finance.errors.aiFillFailed'));
+          return;
+        }
         this.genState.set(state);
         if (state.completed) {
           this.aiGlobalLoading.set(false);

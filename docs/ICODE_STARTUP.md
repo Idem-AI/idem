@@ -68,6 +68,23 @@ A mounted `node_modules` that isn't exactly what the manifest expects produces t
 
 Any failure wipes the tree, forgets it from the browser cache, and falls back to `npm install`. A snapshot that is missing, truncated or cut for another scaffold slows a generation down; it never breaks one.
 
+**Exec bits.** An exported-then-mounted tree keeps its `.bin` links but not the mode of their targets. For example, `vite/bin/vite.js` comes back as 644, and `npm run dev` dies at once on `jsh: spawn vite EACCES`. The preview then stays on "Starting" forever, and the error only shows in the terminal.
+
+This affects every mounted tree: browser cache, server snapshot, or neighbour tree. Two fixes are in place:
+
+- **After every mount,** `mountTree` runs `repairExecBits` (a small `node -e` script, under a second) to chmod 755 every `.bin` target.
+- **When the dev server dies on `spawn … EACCES`,** `startCommand` repairs the bits and restarts once.
+
+The script spells `require` in two pieces on purpose. The workspace's `@originjs/vite-plugin-commonjs` rewrites any `require` with a module name it finds, even inside a string, and the mangled script repaired nothing.
+
+**Bucket images in the local preview.** In development the bucket is `http://localhost:9000`, and the HTTPS preview blocks those images as mixed content. Each such image is now downloaded once and written as a real file into the container's `public/_idem-assets/`. The mounted copy of the code points at `/_idem-assets/<name>`. Images come straight from the bucket, or through `/api/assets/inline` when the browser can't fetch them directly.
+
+They used to be inlined as data URIs. A redesign with 72 photos turned `src/site/media.ts` into megabytes of base64, which slowed every start, and some images never showed.
+
+The stored code keeps the bucket URLs. The container read-back now uses the mount keys (`src/a.tsx`, not `//src/a.tsx`), so the rewritten copy no longer leaks back into the store or the bucket.
+
+**Bounded installs.** An `npm install` is stopped after 15 minutes (`runCommand` `timeoutMs`). The preview then says it did not start, with the reason. `resetDeps()` also forgets setups started in a replaced container: one that never finished used to block every later start of that target.
+
 ### Commands no longer need a terminal
 
 `services/webcontainer/runner.ts` spawns on the container directly, feeds `runStatus`, and mirrors output into terminal 0 **if it exists** — output produced before a terminal appears is held and replayed, so the full log is there when you open it. Identical commands already in flight are not run twice: two concurrent `npm install` calls leave a half-linked tree (`EIO: failed to link packages`), and that is a failure we have already paid for.
@@ -77,6 +94,33 @@ Any failure wipes the tree, forgets it from the browser cache, and falls back to
 `warmStart()` puts the dependencies in place and starts the dev server while the model writes. The scaffold's placeholder page is no longer `Espace de travail prêt.` on a white page — it is a skeleton of the layout that is coming, in the project's own colours (`scaffold/awaiting.ts`). The first file the model writes replaces it by hot reload.
 
 Two token vocabularies, because the targets do not speak the same Tailwind: the application scaffold has its forged tokens (`bg-surface`, `text-ink`, `px-block`), while the site template **replaces** Tailwind's palette with its design system (`bg-background`, `text-muted-foreground`). `bg-neutral-200` does not exist there, so a skeleton bar written with it would be invisible — a waiting page with nothing on it, which is exactly the failure being avoided.
+
+## 2b. The 20-second budget (October 2026)
+
+Goal: **the preview is up in under 20 seconds after a generation, every time.** Measured, not hoped for. What used to break it, and what replaces it:
+
+| What made it slow | Mechanism |
+| --- | --- |
+| The site engine added functional packages (`date-fns`, `react-hook-form`, `zod`, `embla-carousel-react`) to `package.json`. The snapshot did not have them, so verification rejected the whole tree: **full `npm install`, ~3 min** | They are **always** in the site manifest (`renderPackageJson`), hence in the baked tree. The engine never asks for an install beyond the base |
+| `npm install` / `npm run dev` written at the end of a generation ran as is | **Fast command path** (`webcontainer/fastCommands.ts`, in front of the command queue): `npm install` → `ensureDependencies` (cache, snapshot, neighbour); `npm install <pkgs>` → nothing if already present; `npm run dev` → nothing if a server runs, otherwise deps then start. Anything unrecognised goes to the terminal unchanged |
+| A tree with one extra package was wiped and reinstalled | `treeState` distinguishes `missing-deps` from `bad`: the tree stays, **npm installs only the difference** (`--prefer-offline`) |
+| A version bump made every opening fall back to npm until someone ran the oven | The plan offers the **nearest snapshot** of the same tree (`nearest`): mounted, then topped up by npm |
+| After an npm fallback, the next opening paid it again | The installed tree is **exported to IndexedDB** (`rememberInstalled`), 15 s after start |
+| Redesign / `/site` wiped the workspace and waited for the server's scaffold, then installed | The site scaffold is **mounted and started at click time**, during the site read and generation; the server's scaffold then replaces it by HMR |
+| The post-generation safety net waited 30 s | 4 s grace when nothing is installing or starting |
+| Two `npm run dev` (warm start + safety net) could start two Vite servers | `startCommand` keeps one live server per command; `stopStarted()` stops it when the target changes |
+| Vite re-optimised and reloaded the page each time a section imported a not-yet-seen package | `optimizeDeps.include` lists every importable package; `server.warmup` pre-transforms entries, pages and UI components |
+| Nobody knew the real time | `utils/startupTimer.ts` measures from the first gesture to `server-ready`, with phases and deps source; the server logs `chat.startup` (warning above 20 s) |
+
+### Keeping the snapshots baked automatically
+
+`npm run deps:bake` (in `we-dev-next`) opens the oven page in headless Chrome, in automatic mode (`?deps-bake=1&auto=1#token=…`), bakes every tree whose fingerprint is not baked yet, and exits non-zero on failure. Run it after every deployment that touches the scaffold (CI can). At startup the server logs `DEPS_MISSING` with the list of trees to bake.
+
+| Env | |
+| --- | --- |
+| `ICODE_URL` | the workshop address (default `http://localhost:5173`) |
+| `APPGEN_DEPS_BAKE_TOKEN` | deposit token (required) |
+| `DEPS_BAKE_TIMEOUT_MIN` | default 30 |
 
 ## 3. Baking the snapshots
 

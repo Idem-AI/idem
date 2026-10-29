@@ -15,6 +15,11 @@ export class ApiService {
     return this.http.get<{ user: { uid: string; email: string; displayName?: string }; credits: number | null; walletXaf?: number | null; createur?: boolean; exportVisualXaf?: number; plan: string | null }>(`${this.base}/me`);
   }
 
+  /** La carte « prochaine étape » : affichée, suivie ou écartée (mémoire de la boucle IDEM). */
+  journeyFeedback(id: string, action: 'shown' | 'clicked' | 'dismissed') {
+    return this.http.post<void>(`${this.base}/journey/feedback`, { id, action });
+  }
+
   // ── Marques ──
   brands() {
     return this.http.get<{ brands: Brand[] }>(`${this.base}/brands`);

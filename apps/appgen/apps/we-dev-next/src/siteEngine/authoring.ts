@@ -22,10 +22,11 @@
 import { transform } from 'esbuild';
 import { CATALOG, catalogEntry, renderContract } from './catalog.js';
 import { autocorrect, lucideIcons, resolveIcon, stripClaims, ThemeColors } from './autocorrect.js';
+import { cleanSlop } from './slopGuard.js';
 import { ModelCaller, Verdict } from './modelCaller.js';
 import { ChatLogger } from '../utils/logger.js';
 import { FactCheck } from './factGuard.js';
-import { ManifestPage, ManifestSection, SiteManifest } from './manifest.js';
+import { layoutBrief, ManifestPage, ManifestSection, SiteManifest } from './manifest.js';
 import { renderCheck } from './renderCheck.js';
 import { describeDataModule } from './siteData.js';
 import { SiteFacts } from './siteFacts.js';
@@ -308,6 +309,8 @@ export interface AuthoringContext {
   components: string[];
   /** Le thème en une ligne, pour situer le ton (ex. rayons nets, ombres douces). */
   themeSummary: string;
+  /** Les langues du site, la principale en tête (les textes s'écrivent dans la principale, le code les traduit). */
+  languages?: string[];
 }
 
 /**
@@ -330,7 +333,14 @@ export function authorSystemPrompt(ctx: AuthoringContext): string {
 
 # Contenu
 - ${fr ? 'Tout le texte visible est en français.' : 'All visible text is in English.'} Écris pour la clientèle de ce projet, avec ses mots : chaque phrase est propre à ce projet.
-- Richesse et substance : Écris des sections généreuses, détaillées et vivantes. Développe les descriptions de valeur, structure avec des grilles de cartes (@/components/ui/card), des puces descriptives avec icônes Lucide pertinentes, des titres soignés et des micro-animations fluides. Ne produis jamais de section squelettique de seulement 2 ou 3 lignes.
+- Richesse et substance : des sections généreuses, détaillées et vivantes, des titres soignés et des micro-animations sobres. Ne produis jamais de section squelettique de seulement 2 ou 3 lignes. La forme vient de la COMPOSITION donnée pour ta section : suis-la, elle n'est pas une grille de cartes sauf si elle le dit.
+
+# Ce qui trahit un site généré par une IA — interdit, sans exception
+- Une étiquette, un badge ou un petit texte en capitales AU-DESSUS d'un titre (« Notre mission », « Nos services », « ✦ Nouveau »). Le titre se suffit.
+- Une icône posée dans une pastille colorée (rond ou carré teinté) devant chaque élément ; l'icône Sparkles ; une icône dans chaque bouton.
+- Une rangée de cartes identiques « icône + titre + phrase » ; trois colonnes par défaut.
+- Une illustration dessinée en HTML/CSS : formes, cercles, blobs, fausses captures d'écran, faux graphiques, cadres vides, motifs de points. Un visuel vient UNIQUEMENT de \`media\` ; sans visuel prévu, la typographie, l'espace et les données composent la section.
+- Un bandeau d'« indicateurs de confiance » ou de chiffres que les faits ne donnent pas ; des dégradés ; des émojis.
 - N'invente aucun prix, délai, horaire, jour, quartier, nom de client, avis, récompense, partenaire ni garantie non vérifiés. Les prix, l'équipe, les coordonnées et les liens viennent de \`site\` (@/site/data) : importe-les, ne les recopie pas.
 - Pas de témoignage ni de citation de client, pas de moyen de paiement, pas de « gratuit », « express » ou « en X minutes » si les faits ne le disent pas.
 - Le site n'a ni serveur, ni compte, ni paiement en ligne : l'action passe par site.primaryAction ou site.contact.channels. Un formulaire de contact est possible : à l'envoi, il ouvre le message dans WhatsApp ou la messagerie avec \`messageLink(texte)\` (\`import { messageLink } from '@/lib/contact'\`, rend un lien ou null) — jamais de fetch ni de faux message « envoyé ».
@@ -357,6 +367,10 @@ export interface SectionTask {
   mediaKey?: string;
   mediaKind?: string;
   mediaAspect?: string;
+  /** Plusieurs visuels prêts (galerie, cartes illustrées) : leurs clés et leur texte alternatif. */
+  mediaList?: { key: string; alt: string }[];
+  /** Refonte : le contenu intégral des sections de l'ancien site que celle-ci reprend. */
+  source?: string;
   /** Première section de l'accueil ou d'une page : porte le h1. */
   opening: boolean;
 }
@@ -370,9 +384,18 @@ ${ctx.factsText}${brief && brief !== ctx.facts.description ? `\n\n# La demande d
 export function sectionPrompt(ctx: AuthoringContext, task: SectionTask, request: string): string {
   const { page, section } = task;
   const others = page.sections.filter((item) => item !== section).map((item) => `- ${item.id} : ${item.brief}`);
-  const visual = task.mediaKey
-    ? `Un visuel est prêt pour cette section : \`media['${task.mediaKey}']\` (${task.mediaKind}${task.mediaAspect ? `, format ${task.mediaAspect}` : ''}). Affiche-le avec <Media asset={media['${task.mediaKey}']} … />.`
-    : "Aucune image pour cette section : compose avec la typographie, l'espace, les couleurs du thème et les composants. N'affiche pas de cadre vide ni d'image factice.";
+  const visual =
+    task.mediaList && task.mediaList.length > 1
+      ? `Visuels prêts pour cette section (les images de l'ancien site, à réutiliser toutes, mieux mises en valeur) :\n${task.mediaList.map((m) => `- \`media['${m.key}']\`${m.alt ? ` — ${m.alt}` : ''}`).join('\n')}\nAffiche-les avec <Media asset={media['…']} … /> (grille, galerie, cartes illustrées : selon le contenu).`
+      : task.mediaKey
+        ? `Un visuel est prêt pour cette section : \`media['${task.mediaKey}']\` (${task.mediaKind}${task.mediaAspect ? `, format ${task.mediaAspect}` : ''}). Affiche-le avec <Media asset={media['${task.mediaKey}']} … />.`
+        : "Aucune image pour cette section : compose avec la typographie, l'espace, les couleurs du thème et les composants. N'affiche pas de cadre vide ni d'image factice.";
+  const source = task.source
+    ? `\n# Le contenu de l'ancien site que cette section reprend — INTÉGRALEMENT
+${task.source}
+
+Tout ce contenu apparaît dans ta section : chaque titre, chaque paragraphe, chaque élément de liste, chaque bouton (avec sa destination). Tu peux le réorganiser, le resserrer et le réécrire pour qu'il parle mieux à la cible ; tu n'en retires rien et tu n'y ajoutes aucun fait (chiffre, nom, lieu, promesse) qui n'y est pas.\n`
+    : '';
 
   return `${projectBlock(ctx, request)}
 
@@ -388,7 +411,8 @@ ${others.join('\n') || '(aucune)'}
 # Ta section
 Composant : ${section.component} — fichier src/sections/${page.key}/${section.component}.tsx
 Ancre : l'élément racine porte id="${section.id}" (utilise <Section id="${section.id}"> ou une balise <section id="${section.id}">).
-Ce qu'elle montre et dit : ${section.brief}
+Ce qu'elle montre et dit : ${section.brief}${source}
+${section.layout ? `Composition imposée : ${layoutBrief(section.layout, ctx.language === 'fr')}. Suis-la ; elle diffère volontairement de celle des sections voisines.` : ''}
 ${task.opening ? 'C\'est la première section de la page : son titre principal est le seul <h1> de la page (Heading level={1}).' : 'Ses titres commencent au niveau 2 (Heading level={2}).'}
 ${visual}
 
@@ -407,6 +431,7 @@ Ce qu'il montre : ${ctx.manifest.header || 'la marque, le menu et l\'action prin
 - Sur mobile, affiche impérativement tous les liens de \`site.navigation\` dans un <Sheet> (@/components/ui/sheet) ouvert par un bouton icône (Menu de lucide-react).
 - L'action principale : site.primaryAction, si elle existe, avec <Button asChild><a href={site.primaryAction.href}>{site.primaryAction.label}</a></Button>.
 - L'en-tête reste visible au défilement (sticky top-0 z-40 avec un fond du thème et bordure subtile border-b).
+- Les langues : \`import LanguageSwitcher from '@/components/site/language-switcher'\` → \`<LanguageSwitcher current={current} />\`, à côté de l'action principale et dans le <Sheet> mobile. Pose-le toujours : il ne s'affiche que si le site a plusieurs langues${ctx.languages && ctx.languages.length > 1 ? ` (c'est le cas : ${ctx.languages.join(', ')})` : ''}.
 
 Réponds avec le fichier complet, et rien d'autre.`;
 }
@@ -485,6 +510,10 @@ export interface Review {
  */
 export async function reviewComponent(raw: string, ctx: ReviewContext, target?: ReviewTarget): Promise<Review> {
   const corrected = autocorrect(extractCode(raw), ctx.theme);
+  // Les marques d'un site « généré » (émojis, dégradés, effet verre…) : retirées par le code, comme partout.
+  const slop = cleanSlop(corrected.code);
+  if (slop.fixes.length) corrected.fixes = [...corrected.fixes, ...slop.fixes];
+  corrected.code = slop.code;
   const problems = await checkComponent(corrected.code, ctx.policy);
   if (problems.length) return { code: corrected.code, problems, invented: [], empty: false, fixes: corrected.fixes };
   const runtime =

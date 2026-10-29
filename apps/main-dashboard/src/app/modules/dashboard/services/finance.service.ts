@@ -162,8 +162,6 @@ export class FinanceService {
     this.sseService.closeConnection('finance-fill');
     const config: SSEConnectionConfig = {
       url: `${this.baseUrl}/${projectId}/ai-fill-stream`,
-      keepAlive: true,
-      reconnectionDelay: 1000,
     };
     return this.sseService.createConnection(config, 'finance-fill');
   }

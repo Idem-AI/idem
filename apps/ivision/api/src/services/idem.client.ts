@@ -29,9 +29,15 @@ const SESSION_TTL_MS = 20_000;
 const sessionCache = new Map<string, { profile: IdemProfile; at: number }>();
 const inFlight = new Map<string, Promise<IdemProfile | null>>();
 
-export async function verifySession(sessionCookie: string): Promise<IdemProfile | null> {
-  // Le cookie est un secret : seule son empreinte sert de clé.
-  const key = createHash('sha256').update(sessionCookie).digest('hex');
+/**
+ * Vérifie un cookie `session` auprès d'IDEM. `userAgent` est celui du
+ * navigateur : IDEM lie chaque session à son appareil et refuserait la
+ * requête s'il voyait le User-Agent de ce serveur.
+ */
+export async function verifySession(sessionCookie: string, userAgent = ''): Promise<IdemProfile | null> {
+  // Le cookie est un secret : seule son empreinte sert de clé. Le User-Agent en
+  // fait partie : le même cookie présenté par un autre appareil est revérifié.
+  const key = createHash('sha256').update(`${sessionCookie}|${userAgent}`).digest('hex');
   const hit = sessionCache.get(key);
   if (hit && Date.now() - hit.at < SESSION_TTL_MS) return hit.profile;
   const pending = inFlight.get(key);
@@ -39,7 +45,7 @@ export async function verifySession(sessionCookie: string): Promise<IdemProfile 
   const job = (async () => {
     try {
       const res = await axios.get(`${env.idemApiUrl}/auth/profile`, {
-        headers: { Cookie: `session=${sessionCookie}`, ...traceHeaders() },
+        headers: { Cookie: `session=${sessionCookie}`, 'X-Idem-Client-User-Agent': userAgent, ...traceHeaders() },
         timeout: 8000,
         validateStatus: (s) => s < 500,
       });
@@ -110,7 +116,7 @@ export const idem = {
     /** Copie et agents de la vidéo : l'étage que la jauge de créativité choisit. */
     text: (p: { userId: string; system: string; user: string; tier: ModelTier; kind?: 'copy' | 'agents' }) => call<{ text: string }>('post', '/ai/text', p).then((r) => r.text),
     /** Un agent créatif (codeur des plans Ultra, agents des visuels) : runtime d'agents d'IDEM. */
-    agent: (p: { userId?: string; projectId?: string; element?: string; role: string; profile: string; system: string; user: string; level?: string }) =>
+    agent: (p: { userId?: string; projectId?: string; element?: string; role: string; profile: string; system: string; user: string; level?: string; options?: { temperature?: number; seed?: number; reasoning?: boolean; schema?: { name: string; schema: Record<string, unknown> } } }) =>
       call<{ text: string }>('post', '/ai/agent', p, 180_000).then((r) => r.text),
     /** Une composition de visuel (prompt système + charge utile), au modèle de la fonction IDEM. */
     prompt: (p: { userId: string; feature: 'flyer' | 'imageBrief'; messages: { role: string; content: string }[] }) => call<{ text: string }>('post', '/ai/prompt', p, 180_000).then((r) => r.text),
@@ -141,6 +147,17 @@ export const idem = {
         10_000
       ),
   },
+  /**
+   * La boucle IDEM : ce qu'iVision voit faire rejoint celle d'IDEM, qui rend l'étape suivante à proposer (le site,
+   * la charte…). Une panne ne bloque jamais une création : l'appelant ignore l'erreur.
+   */
+  journey: {
+    record: (p: { userId: string; type: string; projectId: string; place?: string }) =>
+      call<{ recommendations: JourneyNext[] }>('post', '/journey/events', p, 8_000),
+    next: (userId: string, projectId: string, place?: string) =>
+      call<{ recommendations: JourneyNext[] }>('get', `/journey/next?userId=${encodeURIComponent(userId)}&projectId=${encodeURIComponent(projectId)}${place ? `&place=${encodeURIComponent(place)}` : ''}`, undefined, 8_000),
+    feedback: (p: { userId: string; id: string; action: 'shown' | 'clicked' | 'dismissed' }) => call<void>('post', '/journey/feedback', p, 8_000),
+  },
   projects: {
     list: (userId: string) => call<{ projects: { id: string; name: string; hasBrand: boolean; primary?: string; updatedAt?: string }[] }>('get', `/projects?userId=${encodeURIComponent(userId)}`),
     /** La charte d'un projet IDEM de l'utilisateur, au format du moteur partagé (BrandKit). */
@@ -169,6 +186,15 @@ export interface UserConsent {
 }
 
 const consentBody = (c: UserConsent) => ({ privacy: true, terms: true, beta: true, ...(c.ipAddress ? { ipAddress: c.ipAddress } : {}), ...(c.userAgent ? { userAgent: c.userAgent.slice(0, 400) } : {}) });
+
+/** Une recommandation de la boucle IDEM (forme de `@idem/shared-journey`). */
+export interface JourneyNext {
+  id: string;
+  destination: string;
+  projectId?: string;
+  because?: string;
+  score: number;
+}
 
 export interface CharterPages {
   name: string;

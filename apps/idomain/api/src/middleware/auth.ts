@@ -22,7 +22,7 @@ export interface AuthedRequest extends Request {
 export async function authenticate(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const cookie = req.cookies?.session as string | undefined;
-    const profile = cookie ? await verifySession(cookie) : null;
+    const profile = cookie ? await verifySession(cookie, req.get('user-agent') || '') : null;
     if (!profile) {
       res.status(401).json({ error: 'unauthenticated', message: 'Connectez-vous à IDEM pour gérer vos domaines.' });
       return;

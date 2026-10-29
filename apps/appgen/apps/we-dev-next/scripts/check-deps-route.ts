@@ -34,6 +34,7 @@ process.env.APPGEN_DEPS_BAKE_TOKEN = bakeToken;
 const { default: depsRouter } = await import('../src/routes/deps.js');
 
 const app = express();
+app.use(express.json());
 app.use('/api/scaffold/deps', depsRouter);
 const server = app.listen(0);
 const port = (server.address() as { port: number }).port;
@@ -76,10 +77,34 @@ const bytes = new Uint8Array(await got.arrayBuffer());
 console.log('octets servis (compressés)', payload.length, '→ reçus décompressés', bytes.length, '| attendus', original.length);
 console.log('identiques :', Buffer.from(bytes).equals(original));
 
+// Une version de paquet a changé : l'arbre n'est plus cuit sous la nouvelle empreinte, mais l'ancien instantané
+// est proposé comme voisin (l'atelier le monte et npm ne complète que la différence).
+const { mkdirSync, renameSync } = await import('node:fs');
+const cacheDir = process.env.APPGEN_DEPS_CACHE_DIR!;
+const staleDir = join(cacheDir, 'site', 'aaaaaaaaaaaaaaaa');
+mkdirSync(staleDir, { recursive: true });
+renameSync(join(cacheDir, 'site', tree.fingerprint, `${tree.id}.bin.gz`), join(staleDir, `${tree.id}.bin.gz`));
+const after = await (await fetch(`${base}/site`)).json();
+const near = after.trees.find((t: { id: string }) => t.id === tree.id)?.nearest;
+console.log('\n--- voisin proposé ---', JSON.stringify(near));
+const nearOk = near?.fingerprint === 'aaaaaaaaaaaaaaaa' && near?.url === `/api/scaffold/deps/site/aaaaaaaaaaaaaaaa/${tree.id}`;
+
+// La mesure d'un démarrage est acceptée, une mesure absurde refusée.
+const measured = await fetch(`${base}/startup`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ target: 'site', trigger: 'warm-start', ms: 8200, sources: ['cache'], phases: { dependencies: 2100 } }) });
+const refused = await fetch(`${base}/startup`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ms: 0 }) });
+
 server.close();
 
 if (!Buffer.from(bytes).equals(original)) {
   console.error('\nL\'instantané relu diffère de celui déposé.');
+  process.exit(1);
+}
+if (!nearOk) {
+  console.error('\nL\'arbre voisin n\'est pas proposé.');
+  process.exit(1);
+}
+if (measured.status !== 204 || refused.status !== 400) {
+  console.error('\nLa mesure du démarrage n\'est pas reçue comme attendu.', measured.status, refused.status);
   process.exit(1);
 }
 console.log('\nContrôle passé.');

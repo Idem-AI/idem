@@ -193,6 +193,10 @@
                   <div class="skeleton mt-3 h-64 w-64 rounded-xl"></div>
                 }
               }
+              <!-- La boucle IDEM : l'étape suivante (le site, la charte…), sous le dernier livrable seulement. -->
+              @if (m.next && m.id === lastResultId()) {
+                <iv-journey-next [recommendation]="m.next" />
+              }
             }
 
             @if (m.error === 'payment_required') {

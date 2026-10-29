@@ -106,9 +106,10 @@ export function configureCoreForIvision(): void {
     },
     // Le runtime d'IDEM ne voit pas la fonction de validation (elle ne voyage pas) : elle est
     // appliquée ici, et une réponse illisible est redemandée une fois — comme l'escalade d'IDEM.
-    agentCall: (ctx) => async ({ role, profile, system, user, validate, level }) => {
-      // Le cran voyage avec l'appel : IDEM y lit les plafonds du rôle (config/creative-roles.ts).
-      const ask = () => idem.ai.agent({ ...ctx, role, profile, system, user, ...(level ? { level } : {}) });
+    agentCall: (ctx) => async ({ role, profile, system, user, validate, level, options }) => {
+      // Le cran voyage avec l'appel : IDEM y lit les plafonds du rôle (config/creative-roles.ts) ; les réglages de
+      // l'appel (température, sortie structurée, raisonnement) aussi.
+      const ask = () => idem.ai.agent({ ...ctx, role, profile, system, user, ...(level ? { level } : {}), ...(options ? { options } : {}) });
       const first = await ask();
       if (!validate || validate(first)) return first;
       return ask();

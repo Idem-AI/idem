@@ -102,7 +102,8 @@ export function translateReasoning<T extends Record<string, any>>(body: T): T {
  */
 export function canSuppressThinking(modelName: string): boolean {
   // Gemini Pro (3.x) aussi : « Reasoning is mandatory for this endpoint » (OpenRouter, vérifié le 16/10/2026).
-  return !/-thinking|deepseek-r1|gemini-[\d.]+-pro/i.test(modelName);
+  // GLM-5.3 aussi : son raisonnement ne se coupe pas (notes de lancement Z.AI ; la version Flash, elle, le coupe).
+  return !/-thinking|deepseek-r1|gemini-[\d.]+-pro|z-ai\/glm-5\.3$/i.test(modelName);
 }
 
 const ALL_CAPABILITIES: ProviderCapabilities = {

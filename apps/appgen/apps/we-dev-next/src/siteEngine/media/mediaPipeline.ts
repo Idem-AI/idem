@@ -28,7 +28,7 @@ export interface MediaAsset {
   ground?: string;
   tile?: number;
   /** D'où il vient : utile à qui reprendra le site, jamais affiché. */
-  origin: 'pexels' | 'gemini' | 'veo' | 'svg' | 'pattern';
+  origin: 'pexels' | 'gemini' | 'veo' | 'svg' | 'pattern' | 'site';
   credit?: string;
 }
 
@@ -191,10 +191,12 @@ export async function produceMedia(slot: MediaSlot, decision: AssetDecision, ctx
     }
 
     case 'illustration': {
-      ctx.note(fr ? `Je compose une illustration pour ${place}` : `Composing an illustration for ${place}`);
-      assets = await drawSvg();
-      if (!assets.length) assets = await generateImage('illustration');
+      // L'illustration est dessinée par le modèle d'image (style vectoriel professionnel) ; à défaut une vraie
+      // photo ; le dessin composé par le code n'est qu'un dernier recours (jugé pauvre, 28/10/2026).
+      ctx.note(fr ? `Je génère une illustration pour ${place}` : `Generating an illustration for ${place}`);
+      assets = await generateImage('illustration');
       if (!assets.length) assets = await stockPhotos(decision.query);
+      if (!assets.length) assets = await drawSvg();
       break;
     }
 

@@ -1,0 +1,34 @@
+{
+  "name": "@idem/shared-journey",
+  "version": "1.0.0",
+  "description": "La boucle IDEM : événements, règles et cartes de recommandation qui relient les applications (dashboard, iCode, iVision, iDeploy)",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./angular": "./src/angular/index.ts",
+    "./react": "./src/react/index.ts"
+  },
+  "files": [
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "check": "tsx src/check.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "author": "Idem Team",
+  "license": "MIT",
+  "peerDependencies": {
+    "@angular/core": ">=20",
+    "react": ">=18"
+  },
+  "peerDependenciesMeta": {
+    "@angular/core": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    }
+  }
+}

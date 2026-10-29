@@ -1,5 +1,7 @@
+import { journeyService } from '../services/journey/journey.service';
 import { creativityOf } from '../middleware/billing.middleware';
 import { Response } from 'express';
+import { startSseHeartbeat } from '../utils/sse-heartbeat.util';
 import logger from '../config/logger';
 import { CustomRequest } from '../interfaces/express.interface';
 import {
@@ -45,6 +47,8 @@ function openSseStream(res: Response): void {
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
   res.setHeader('X-Accel-Buffering', 'no');
+  // Les proxys coupent un flux muet pendant une longue réponse du modèle.
+  startSseHeartbeat(res);
 }
 
 function requireAuth(req: CustomRequest, res: Response): string | null {
@@ -152,6 +156,7 @@ export const generateStrategyStreamController = async (
       },
     });
     writeEvent(res, { type: 'complete', payload: { strategy } });
+    journeyService.signal(userId, 'communication.started', projectId);
     res.end();
   } catch (error: any) {
     // Livrables manquants : ce n'est pas une panne mais un refus attendu, que
@@ -696,6 +701,7 @@ export const generatePlanStreamController = async (
       },
     });
     writeEvent(res, { type: 'complete', payload: { plan } });
+    journeyService.signal(userId, 'communication.started', projectId);
     res.end();
   } catch (error: any) {
     logger.error(`generatePlanStreamController error: ${error.message}`, { stack: error.stack });
@@ -1150,6 +1156,7 @@ export const studioMessageController = async (
         visuals: reply.visuals,
       },
     });
+    if (reply.visuals?.length) journeyService.signal(userId, 'visual.created', projectId);
     res.end();
   } catch (error: any) {
     if (error instanceof InsufficientCreditsError) {

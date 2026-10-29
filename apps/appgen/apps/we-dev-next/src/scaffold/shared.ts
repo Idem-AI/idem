@@ -526,3 +526,139 @@ export default function BrandMark({ fallback }) {
 }
 `;
 }
+
+/** Les fichiers de langues que le modèle complète (une langue de plus) ; les autres sont verrouillés. */
+export const I18N_EDITABLE = ['src/i18n/config.json', 'src/i18n/messages.js'];
+
+/**
+ * Les langues d'une application — posées dans chaque projet, même d'une seule langue, pour qu'une langue de plus
+ * réutilise ce qui est là au lieu d'inventer un système : `t("texte d'origine")` (le texte est la clé), un fichier
+ * de traductions par langue, le choix de la langue gardé dans le navigateur, `<html lang>` et `dir` tenus à jour.
+ * Sans dépendance.
+ */
+export function buildI18nKit(language: string): Record<string, string> {
+  // config.json et messages.js restent modifiables (une langue s'y ajoute) ; voir I18N_EDITABLE.
+  const main = /^[a-z]{2}$/.test(language) ? language : 'fr';
+  return {
+    'src/i18n/config.json': json({ defaultLanguage: main, languages: [main] }),
+    'src/i18n/messages.js': `/**
+ * Les traductions, une par langue : \`messages/<langue>.json\` (texte d'origine → traduction).
+ * Ajouter une langue : son code dans config.json, son fichier ici.
+ */
+export const messages = {};
+`,
+    'src/i18n/index.js': `/**
+ * Les langues de l'application — posé par IDEM.
+ *
+ *   t(texte, valeurs?)     le texte dans la langue choisie ; {nom} remplacé par valeurs.nom ; l'original si la
+ *                          traduction manque (le texte d'origine est la clé)
+ *   useLanguage()          la langue choisie (le composant se redessine quand elle change)
+ *   setLanguage(code)      change de langue (gardée dans le navigateur)
+ *   formatNumber, formatDate, formatCurrency   les nombres, dates et prix à la façon de la langue
+ *   languages, languageNames                   les langues de l'application et leur nom
+ */
+import { createElement, Fragment, useSyncExternalStore } from 'react';
+import config from './config.json';
+import { messages } from './messages';
+
+const STORAGE_KEY = 'idem.language';
+const RTL = new Set(['ar', 'fa', 'he', 'ur']);
+
+export const defaultLanguage = config.defaultLanguage;
+export const languages = config.languages.length ? config.languages : [config.defaultLanguage];
+export const languageNames = {
+  fr: 'Français', en: 'English', es: 'Español', pt: 'Português', de: 'Deutsch', it: 'Italiano', nl: 'Nederlands',
+  ar: 'العربية', sw: 'Kiswahili', zh: '中文', ru: 'Русский', tr: 'Türkçe', wo: 'Wolof', ln: 'Lingála', ha: 'Hausa', yo: 'Yorùbá', am: 'አማርኛ',
+};
+
+function initialLanguage() {
+  try {
+    const stored = window.localStorage.getItem(STORAGE_KEY);
+    if (stored && languages.includes(stored)) return stored;
+  } catch {
+    /* stockage indisponible */
+  }
+  const browser = typeof navigator !== 'undefined' ? String(navigator.language || '').slice(0, 2) : '';
+  return languages.includes(browser) ? browser : defaultLanguage;
+}
+
+let current = typeof window === 'undefined' ? defaultLanguage : initialLanguage();
+const listeners = new Set();
+
+function apply() {
+  if (typeof document === 'undefined') return;
+  document.documentElement.lang = current;
+  document.documentElement.dir = RTL.has(current) ? 'rtl' : 'ltr';
+}
+apply();
+
+export const getLanguage = () => current;
+
+export function setLanguage(language) {
+  if (!languages.includes(language) || language === current) return;
+  current = language;
+  try {
+    window.localStorage.setItem(STORAGE_KEY, language);
+  } catch {
+    /* stockage indisponible */
+  }
+  apply();
+  listeners.forEach((listener) => listener());
+}
+
+const subscribe = (listener) => {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+};
+
+export function useLanguage() {
+  return useSyncExternalStore(subscribe, getLanguage, () => defaultLanguage);
+}
+
+export function t(text, values) {
+  let out = current === defaultLanguage ? text : messages[current]?.[text] ?? text;
+  if (values) for (const [key, value] of Object.entries(values)) out = out.split('{' + key + '}').join(String(value));
+  return out;
+}
+
+export const formatNumber = (value, options) => new Intl.NumberFormat(current, options).format(value);
+export const formatDate = (value, options) => new Intl.DateTimeFormat(current, options ?? { dateStyle: 'medium' }).format(new Date(value));
+export const formatCurrency = (value, currency = 'XAF') => new Intl.NumberFormat(current, { style: 'currency', currency, maximumFractionDigits: 0 }).format(value);
+
+/** Autour de l'application (main.jsx) : changer de langue la redessine entièrement, dans la nouvelle langue. */
+export function LanguageRoot({ children }) {
+  const language = useLanguage();
+  return createElement(Fragment, { key: language }, children);
+}
+`,
+    'src/components/LanguageSwitcher.jsx': `import { languageNames, languages, setLanguage, useLanguage } from '@/i18n';
+import { cn } from '@/lib/utils';
+
+/** Le choix de la langue — posé par IDEM. Rien ne s'affiche tant que l'application n'a qu'une langue. */
+export default function LanguageSwitcher({ className }) {
+  const active = useLanguage();
+  if (languages.length < 2) return null;
+  return (
+    <div role="group" aria-label="Langue / Language" className={cn('inline-flex items-center gap-1 text-sm', className)}>
+      {languages.map((language) => (
+        <button
+          key={language}
+          type="button"
+          lang={language}
+          title={languageNames[language] ?? language}
+          aria-pressed={language === active}
+          onClick={() => setLanguage(language)}
+          className={cn(
+            'rounded-md px-2 py-1 font-medium uppercase transition-colors',
+            language === active ? 'text-ink' : 'text-ink-muted hover:text-ink'
+          )}
+        >
+          {language}
+        </button>
+      ))}
+    </div>
+  );
+}
+`,
+  };
+}

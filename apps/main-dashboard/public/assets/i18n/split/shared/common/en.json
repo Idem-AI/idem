@@ -1,5 +1,7 @@
 {
   "common": {
+    "generationInterrupted": "The connection to the server was lost during generation. Please try again in a moment.",
+    "generationFailed": "Generation did not complete. Please try again in a moment.",
     "new": "New",
     "save": "Save",
     "cancel": "Cancel",

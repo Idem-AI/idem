@@ -187,7 +187,7 @@ export function AppGenLanding({ onStart }: AppGenLandingProps) {
             className="mt-11 text-left"
             value={inputValue}
             onChange={setInputValue}
-            onSubmit={() => handleStart()}
+            onSubmit={(text) => handleStart(text)}
             placeholders={placeholders}
             attachments={attachments}
             onAttachmentsChange={setAttachments}

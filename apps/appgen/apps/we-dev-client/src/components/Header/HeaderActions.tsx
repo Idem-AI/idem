@@ -26,6 +26,8 @@ import {
 import Popover from '@/components/ui/Popover';
 import Button from '@/components/ui/Button';
 import { VersionList } from './VersionHistory';
+import { eventEmitter } from '../AiChat/utils/EventEmitter';
+import { currentProduct } from '@/utils/product';
 import {
   loadDeployment,
   persistDeployment,
@@ -136,11 +138,22 @@ export function HeaderActions() {
     setShowDeployChoiceModal(true);
   }, []);
 
+  // Ouverte pour choisir un nom de domaine (« /domaine », carte de la boucle) : l'achat s'ouvre aussitôt si l'application est en ligne.
+  const [domainIntent, setDomainIntent] = useState(false);
+
   const handleDeployClick = () => {
     setShowDeployChoiceModal(true);
     // Sync current files into AppGen context before deploying
     updateDraftFiles(files as Record<string, string>);
   };
+
+  // « Mettre en ligne » proposé par la boucle IDEM (carte « prochaine étape ») : la même fenêtre, sur place.
+  useEffect(() =>
+    eventEmitter.on('deploy:open', (intent?: 'domain') => {
+      setDomainIntent(intent === 'domain');
+      handleDeployClick();
+    })
+  );
 
   // Le nom proposé pour l'application en ligne (et pour son nom de domaine) : celui du projet
   // IDEM ; sans projet, celui retenu à la première génération, lu dans les fichiers de l'application.
@@ -158,6 +171,8 @@ export function HeaderActions() {
     updateDraftMetadata({ deployUrl: record.url });
     await persistDeployment(projectId, draftId, record);
     toast.success(t('deployModal.done.toast'));
+    // Le site (ou l'application) est en ligne : la boucle IDEM proposera la suite (le faire connaître, un nom).
+    eventEmitter.emit('journey:event', currentProduct() === 'app' ? 'app.published' : 'site.published');
   };
 
   const handleSendToGitHub = async () => {
@@ -231,7 +246,11 @@ export function HeaderActions() {
 
       <DeployModal
         open={showDeployChoiceModal}
-        onClose={() => setShowDeployChoiceModal(false)}
+        onClose={() => {
+          setShowDeployChoiceModal(false);
+          setDomainIntent(false);
+        }}
+        openDomain={domainIntent}
         deployment={deployment}
         defaultName={projectName || draft?.appName || deriveAppName(files as Record<string, unknown>) || 'mon-app'}
         onPublished={handlePublished}

@@ -3,11 +3,11 @@
  *
  * Une demande de retouche ne doit toucher QUE ce qui est demandé, au moindre coût :
  *
- *   1. la CIBLE se décide d'abord par le code : une demande sur l'apparence générale (taille des titres,
- *      police, couleurs, arrondis, espacements) vise le DESIGN SYSTEM — un réglage, pas une réécriture ;
- *      une demande qui nomme une section (« le hero », « le pied de page ») ou en cite un texte vise CE
- *      fichier. Le modèle n'est consulté (cheaply) que si rien ne tranche ;
- *   2. les retouches courantes du design system se font sans modèle (`quickTheme`) ;
+ *   1. la CIBLE est choisie par l'agent d'aiguillage, qui lit la carte du site (`siteMap.ts`) : sections, en-tête,
+ *      pied de page, données (menu, coordonnées), apparence. Seul un texte cité qui n'existe que dans une
+ *      section est aiguillé par le code ;
+ *   2. ce que la demande AUTORISE (changer une couleur, une police, retirer du contenu, passer en sombre) est
+ *      dit par ce même agent, qui a compris la demande — jamais déduit d'une liste de mots ;
  *   3. une retouche de section arrive en blocs RECHERCHER / REMPLACER : seuls les passages modifiés
  *      voyagent, et le reste du fichier ne peut pas changer ;
  *   4. des GARDE-FOUS refusent ce qui n'a pas été demandé : changer la police, les couleurs, le nom du
@@ -23,13 +23,20 @@ export const fold = (text: string) =>
 
 // ── Ce que la demande autorise ──────────────────────────────────────────────
 
-export const asksFont = (request: string) => /\b(polices?|fonts?|typo|typographie|typeface|caracteres)\b/.test(fold(request));
-export const asksColor = (request: string) =>
-  /\b(couleurs?|colou?rs?|palette|teintes?|fond|background|rouge|bleu|vert|jaune|noir|blanc|orange|violet|rose|gris|dore|marron|beige|turquoise|red|blue|green|yellow|black|white|purple|pink|grey|gray|gold|brown)\b/.test(fold(request));
-export const asksRemoval = (request: string) => /\b(supprim\w*|retir\w*|enlev\w*|remove\w*|delete\w*|cach\w*|masqu\w*|sans)\b/.test(fold(request));
-export const asksNewSection = (request: string) =>
-  /\b(ajout\w*|cre\w*|add|insert\w*|nouvelle?)\b.{0,30}\b(sections?|blocs?|rubriques?)\b/.test(fold(request)) && !/\bdans (la|le) (section|bloc)\b/.test(fold(request));
-export const asksDark = (request: string) => /theme sombre|mode sombre|fond (noir|sombre)|dark (mode|theme|background)|site sombre/.test(fold(request));
+/**
+ * Ce que la demande autorise, tel que l'agent d'aiguillage l'a compris (« donne plus de peps au site » autorise les
+ * couleurs ; « corrige la faute du titre » n'autorise rien de tout cela). Les garde-fous refusent le reste.
+ */
+export interface EditAllows {
+  fonts: boolean;
+  colors: boolean;
+  /** Retirer une part notable du contenu d'une section. */
+  removal: boolean;
+  /** Passer le site en thème sombre. */
+  dark: boolean;
+}
+
+export const NOTHING_ALLOWED: EditAllows = { fonts: false, colors: false, removal: false, dark: false };
 
 // ── Les sections du site ────────────────────────────────────────────────────
 
@@ -51,68 +58,16 @@ export function siteComponents(files: Record<string, string>): SiteFile[] {
   return out;
 }
 
-/** Les mots qui désignent un composant (son nom découpé, et les noms usuels en français et en anglais). */
-const SYNONYMS: Array<[RegExp, RegExp]> = [
-  [/^siteheader$/, /\b(en.?tete|header|menu|navigation|nav|barre du haut|logo en haut)\b/],
-  [/^sitefooter$/, /\b(pied de page|footer|bas de (la )?page|bas du site)\b/],
-  [/hero|banner|intro|accueil/, /\b(hero|banniere|haut de (la )?page|premiere section|section d accueil|en haut|accroche)\b/],
-  [/about|story|histoire|apropos/, /\b(a propos|qui sommes|notre histoire|about)\b/],
-  [/service|offer|offre|feature|prestation/, /\b(services?|offres?|prestations?|fonctionnalites?|features?)\b/],
-  [/testimonial|review|avis|temoign/, /\b(temoignages?|avis|testimonials?|reviews?)\b/],
-  [/contact/, /\b(contact|formulaire|coordonnees|nous joindre)\b/],
-  [/faq|question/, /\b(faq|questions?)\b/],
-  [/pricing|price|tarif|plan/, /\b(tarifs?|prix|pricing|forfaits?|plans?)\b/],
-  [/gallery|galerie|portfolio|realisation|work/, /\b(galerie|gallery|photos|portfolio|realisations?)\b/],
-  [/team|equipe/, /\b(equipe|team)\b/],
-  [/cta|calltoaction|action/, /\b(appel a l action|call to action|cta)\b/],
-  [/stat|chiffre|number/, /\b(chiffres?|statistiques?|stats?)\b/],
-];
-
-/** Les textes d'un composant entre guillemets (titres, phrases) : de quoi retrouver une section par ce qu'elle dit. */
-function quotedTexts(code: string): string[] {
-  return Array.from(code.matchAll(/>([^<>{}\n]{6,120})</g)).map((m) => fold(m[1].trim()));
-}
-
-export type EditRoute =
-  | { scope: 'theme' }
-  | { scope: 'files'; paths: string[] }
-  | { scope: 'new-section'; page: string }
-  | null;
-
 /**
- * La cible d'une demande, décidée par le code quand c'est possible : une section nommée (ou dont un texte
- * est cité), sinon l'apparence générale, sinon une nouvelle section. `null` : le modèle aiguillera.
+ * Les sections où se trouve, mot pour mot, un texte que la demande cite entre guillemets : un fait donné à l'agent
+ * d'aiguillage (la carte ne montre que les premiers textes de chaque section), pas une décision. C'est l'agent qui
+ * comprend la demande et choisit où la retouche se fait.
  */
-export function routeEdit(request: string, files: Record<string, string>): EditRoute {
-  const t = fold(request);
+export function quotedOwners(request: string, files: Record<string, string>): Array<{ quote: string; paths: string[] }> {
   const components = siteComponents(files);
-
-  // Un texte cité entre guillemets, présent dans un seul composant.
-  const quoted = Array.from(request.matchAll(/[«"“]\s*([^»"”]{4,120}?)\s*[»"”]/g)).map((m) => fold(m[1]));
-  for (const q of quoted) {
-    const owners = components.filter((c) => fold(files[c.path]).includes(q));
-    if (owners.length === 1) return { scope: 'files', paths: [owners[0].path] };
-  }
-
-  // Une section nommée : son nom de composant, ou un nom usuel.
-  const named = components.filter((c) => {
-    const id = fold(c.name);
-    const words = c.name.replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase();
-    if (t.includes(words) && words.length >= 4) return true;
-    return SYNONYMS.some(([component, said]) => component.test(id) && said.test(t));
-  });
-  if (asksNewSection(request)) {
-    const pages = Array.from(new Set(components.map((c) => c.page).filter((p): p is string => !!p)));
-    const page = pages.find((p) => t.includes(fold(p))) || pages.find((p) => p === 'home' || p === 'index') || pages[0];
-    if (page) return { scope: 'new-section', page };
-  }
-  if (named.length && named.length <= 3) return { scope: 'files', paths: named.map((c) => c.path) };
-
-  // L'apparence générale : titres, textes, police, couleurs, arrondis, espacements, ombres, boutons.
-  const global =
-    /\b(titres?|headings?|textes?|ecriture|polices?|fonts?|typo\w*|couleurs?|colou?rs?|palette|arrondi\w*|coins?|rounded|radius|ombres?|shadows?|espacements?|espaces?|marges?|aere\w*|compact\w*|interligne|tous les boutons|les boutons|site entier|tout le site|partout)\b/.test(t);
-  if (global && !named.length) return { scope: 'theme' };
-  return null;
+  return Array.from(request.matchAll(/[«"“]\s*([^»"”]{4,120}?)\s*[»"”]/g))
+    .map((m) => ({ quote: m[1], paths: components.filter((c) => fold(files[c.path]).includes(fold(m[1]))).map((c) => c.path) }))
+    .filter((found) => found.paths.length);
 }
 
 // ── Le design system ────────────────────────────────────────────────────────
@@ -120,48 +75,6 @@ export function routeEdit(request: string, files: Record<string, string>): EditR
 type Json = Record<string, any>;
 
 const get = (obj: Json, path: string): unknown => path.split('.').reduce<any>((node, key) => (node == null ? undefined : node[key]), obj);
-const clamp = (v: number, min: number, max: number) => Math.round(Math.min(max, Math.max(min, v)) * 1000) / 1000;
-const remOf = (v: unknown, fallback: number) => {
-  const m = String(v ?? '').match(/^([\d.]+)\s*(rem|px)?$/);
-  return m ? (m[2] === 'px' ? Number(m[1]) / 16 : Number(m[1])) : fallback;
-};
-
-/**
- * Les retouches courantes du design system, SANS modèle : titres plus petits / plus grands, texte plus
- * petit / plus grand, coins plus ou moins arrondis, site plus aéré / plus compact. `null` : pas reconnue.
- */
-export function quickTheme(request: string, config: Json): { set: Record<string, unknown>; fr: string; en: string } | null {
-  const t = fold(request);
-  const smaller = /\b(petit\w*|reduir\w*|redui\w*|diminu\w*|moins (gros|grand)\w*|smaller|reduce|decrease|less big)\b/.test(t);
-  const bigger = /\b(grand\w*|gros\w*|agrandi\w*|augment\w*|plus (gros|grand)\w*|bigger|larger|increase)\b/.test(t) && !smaller;
-  const typo = config.tokens?.typography ?? {};
-
-  if (/\b(titres?|headings?|titles?)\b/.test(t) && (smaller || bigger)) {
-    const scale = Number(typo.scale ?? 1.2);
-    const next = clamp(scale + (smaller ? -0.06 : 0.06), 1.05, 1.5);
-    if (next === scale) return null;
-    return { set: { 'tokens.typography.scale': next }, fr: smaller ? 'J’ai réduit la taille des titres' : 'J’ai agrandi les titres', en: smaller ? 'I made the headings smaller' : 'I made the headings bigger' };
-  }
-  if (/\b(textes?|ecriture|paragraphes?|body text|text size)\b/.test(t) && (smaller || bigger) && !/\btitres?\b/.test(t)) {
-    const base = remOf(typo.baseSize, 1);
-    const next = clamp(base + (smaller ? -0.0625 : 0.0625), 0.875, 1.25);
-    if (next === base) return null;
-    return { set: { 'tokens.typography.baseSize': `${next}rem` }, fr: smaller ? 'J’ai réduit la taille du texte' : 'J’ai agrandi le texte', en: smaller ? 'I made the text smaller' : 'I made the text bigger' };
-  }
-  if (/\b(arrondi\w*|coins?|rounded|radius)\b/.test(t)) {
-    const square = /\b(carre\w*|droits?|square|sharp|moins arrondi\w*|sans arrondi)\b/.test(t);
-    const base = remOf(config.tokens?.radius?.base, 0.5);
-    const next = square ? Math.max(0, base / 2) : clamp(base * 1.6 + 0.125, 0.25, 1.5);
-    return { set: { 'tokens.radius.base': square && next < 0.1 ? '0' : `${Math.round(next * 1000) / 1000}rem` }, fr: square ? 'J’ai rendu les coins plus droits' : 'J’ai arrondi davantage les coins', en: square ? 'I made the corners sharper' : 'I made the corners rounder' };
-  }
-  if (/\b(aere\w*|espace\w*|respir\w*|airy|spacious)\b/.test(t) && !/\bmoins\b/.test(t)) {
-    return { set: { 'appearance.density': 'spacious' }, fr: 'J’ai aéré le site', en: 'I gave the site more breathing room' };
-  }
-  if (/\b(compact\w*|serre\w*|moins d espace|denser|tighter)\b/.test(t)) {
-    return { set: { 'appearance.density': 'compact' }, fr: 'J’ai resserré le site', en: 'I tightened the site' };
-  }
-  return null;
-}
 
 /** Les réglages qu'une retouche peut changer (ceux du compilateur), et ceux qu'il faut avoir demandés. */
 export const THEME_PATHS = [
@@ -186,14 +99,14 @@ export const THEME_PATHS = [
 ];
 
 /** Les changements de réglage admis pour cette demande ; chaque refus est dit (pour le modèle, au besoin). */
-export function guardTheme(request: string, set: Record<string, unknown>): { allowed: Record<string, unknown>; refused: string[] } {
+export function guardTheme(allows: EditAllows, set: Record<string, unknown>): { allowed: Record<string, unknown>; refused: string[] } {
   const allowed: Record<string, unknown> = {};
   const refused: string[] = [];
   for (const [path, value] of Object.entries(set)) {
     if (!THEME_PATHS.includes(path)) refused.push(`${path} : réglage inconnu`);
-    else if (/typography\.(heading|body)Font/.test(path) && !asksFont(request)) refused.push(`${path} : la police n'a pas été demandée`);
-    else if (path.startsWith('tokens.colors.') && !asksColor(request)) refused.push(`${path} : les couleurs n'ont pas été demandées`);
-    else if (path === 'appearance.colorMode' && value === 'dark' && !asksDark(request)) refused.push(`${path} : le thème sombre n'a pas été demandé`);
+    else if (/typography\.(heading|body)Font/.test(path) && !allows.fonts) refused.push(`${path} : la police n'a pas été demandée`);
+    else if (path.startsWith('tokens.colors.') && !allows.colors) refused.push(`${path} : les couleurs n'ont pas été demandées`);
+    else if (path === 'appearance.colorMode' && value === 'dark' && !allows.dark) refused.push(`${path} : le thème sombre n'a pas été demandé`);
     else allowed[path] = value;
   }
   return { allowed, refused };
@@ -307,17 +220,17 @@ const diff = (before: string[], after: string[]) => {
  * Ce que la retouche a changé SANS que la demande le dise : la police, les couleurs, le nom du composant,
  * ou une section vidée. Chaque problème est une consigne pour le nouvel essai du modèle.
  */
-export function guardEdit(before: string, after: string, request: string): string[] {
+export function guardEdit(before: string, after: string, allows: EditAllows): string[] {
   const problems: string[] = [];
   const tb = styleTokens(before);
   const ta = styleTokens(after);
-  if (!asksFont(request)) {
+  if (!allows.fonts) {
     const f = diff(tb.filter((x) => FONT_CLASS.test(x)), ta.filter((x) => FONT_CLASS.test(x)));
     // Une police INTRODUITE (remplacée) : retirer un élément retire aussi sa classe, ce n'est pas changer la police.
     if (f.added.length || (/fontFamily/.test(after) && !/fontFamily/.test(before)))
       problems.push(`La police n'a pas été demandée : garde les classes de police telles quelles (${[...f.removed, ...f.added].slice(0, 4).join(', ') || 'fontFamily'}).`);
   }
-  if (!asksColor(request)) {
+  if (!allows.colors) {
     const c = diff(tb.filter((x) => COLOR_CLASS.test(x)), ta.filter((x) => COLOR_CLASS.test(x)));
     const hex = diff(before.match(HEX) ?? [], after.match(HEX) ?? []);
     if (c.added.length || hex.added.length)
@@ -325,7 +238,7 @@ export function guardEdit(before: string, after: string, request: string): strin
   }
   const name = (code: string) => code.match(/export\s+default\s+function\s+(\w+)/)?.[1];
   if (name(before) && name(after) !== name(before)) problems.push(`Le composant doit garder son nom (export default function ${name(before)}).`);
-  if (!asksRemoval(request) && after.trim().length < before.trim().length * 0.6)
+  if (!allows.removal && after.trim().length < before.trim().length * 0.6)
     problems.push('Ta retouche retire une grande partie de la section, ce qui n’a pas été demandé : ne change que ce qui est demandé.');
   return problems;
 }

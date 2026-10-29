@@ -18,7 +18,7 @@ import type { CreativityLevel } from '@idem/shared-models';
 import { AI_CONFIG, FeatureAIConfig, LLMProvider } from './ai.config';
 import { isProviderConfigured, providerSupports } from './ai-providers.config';
 import { isAllowedOpenRouterModel } from './openrouter.config';
-import { ladderModel, MODEL_LADDERS, ModelLadder, ROLE_LADDERS, ROLE_MODEL_OVERRIDES } from './ai-models.config';
+import { ladderFallbacks, ladderModel, MODEL_LADDERS, ModelLadder, ROLE_LADDERS, ROLE_MODEL_OVERRIDES } from './ai-models.config';
 import logger from './logger';
 
 export type RoleCapability = 'code' | 'vision' | 'json' | 'long-context';
@@ -52,10 +52,13 @@ export const CREATIVE_ROLES: Record<string, CreativeRole> = {
   'video.intent-classifier': { profile: 'agents', needs: ['json'], maxOutputTokens: UP_TO(300, 300, 300), mission: 'comprendre le besoin vidéo et les médias disponibles' },
   // Le film Motion Canvas : mêmes étapes à tous les crans ; le cran choisit le MODÈLE (échelles ci-dessus).
   'video.concept': { profile: 'coder', needs: ['long-context'], maxOutputTokens: ALL(8000), mission: 'inventer le film : concept, bible visuelle, idée de chaque scène' },
-  // Gemini 3.1 Pro raisonne toujours et son raisonnement est décompté du plafond : marge large.
-  'video.planner': { profile: 'agents', needs: ['long-context'], maxOutputTokens: ALL(16000), mission: 'écrire le storyboard : durées, intentions, idées, textes, médias, voix' },
-  'video.author': { profile: 'coder', needs: ['code', 'long-context'], maxOutputTokens: ALL(16000), mission: 'écrire (et corriger) le code Motion Canvas de chaque scène' },
+  // GLM-5.3-Flash (High, Ultra) raisonne et son raisonnement est décompté du plafond : marge large.
+  'video.planner': { profile: 'agents', needs: ['long-context'], maxOutputTokens: ALL(16000), mission: 'écrire le storyboard : durées, rôles, énergie, intentions, idées, textes, médias, voix' },
+  'video.author': { profile: 'coder', needs: ['code', 'json', 'long-context'], maxOutputTokens: ALL(16000), mission: 'écrire (et réécrire) l’intention ou le programme d’une scène difficile — l’auteur de qualité' },
   'video.reviser': { profile: 'agents', needs: [], maxOutputTokens: ALL(6000), mission: 'lire une retouche écrite par le client' },
+  'video.sampler': { profile: 'coder', needs: ['code', 'json'], maxOutputTokens: ALL(4000), mission: 'écrire beaucoup de variantes d’une scène (intention en sortie structurée) : l’échantillonnage' },
+  'video.judge-vlm': { profile: 'agents', needs: ['vision', 'json'], maxOutputTokens: ALL(400), mission: 'départager deux finalistes sur image (questions fermées, ordre inversé) — optionnel' },
+  'video.teacher': { profile: 'coder', needs: ['code', 'json', 'long-context'], maxOutputTokens: ALL(12000), mission: 'hors ligne : fabriquer des scènes de référence pour la bibliothèque' },
 };
 
 /** Les noms historiques des appelants (moteur graphique, cœur vidéo) → leur rôle logique. */
@@ -103,7 +106,10 @@ export function roleConfig(name: string, profile: CreativeProfile, requested?: C
   const ladder = ROLE_LADDERS[role];
   const fixed = level ? ROLE_MODEL_OVERRIDES[role]?.[level] : undefined;
   if (fixed && isAllowedOpenRouterModel(fixed)) return { ...base, modelName: fixed, pinModel: true, llmOptions };
-  if (ladder && level) return { ...base, modelName: ladderModel(ladder, level), pinModel: true, llmOptions };
+  if (ladder && level) {
+    const fallbacks = ladderFallbacks(ladder, level);
+    return { ...base, modelName: ladderModel(ladder, level), pinModel: true, llmOptions, ...(fallbacks.length ? { fallbackModels: fallbacks } : {}) };
+  }
   return { ...base, llmOptions };
 }
 

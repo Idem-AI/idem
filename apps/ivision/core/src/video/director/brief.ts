@@ -7,6 +7,7 @@ import type { VideoFormat } from '../contracts/model';
 import type { RequestSpec } from '../request/request';
 import type { VideoIntentSpec } from '../request/intent';
 import { languageName } from '../../text/language';
+import { PRODUCT_SKELETON } from '../../../../../../packages/motion-compiler/src';
 
 export interface FilmBrief {
   /** La demande de l'utilisateur, en entier (bornée). */
@@ -34,7 +35,16 @@ export interface FilmBrief {
   referenceShots?: { line: string; transition?: string }[];
   /** Les films déjà faits pour la marque (titre — concept) : pour ne pas refaire le même. */
   previous: string[];
+  /** Les directions visuelles des films précédents (la plus récente d'abord) : jamais la même deux films de suite. */
+  previousDirections?: string[];
+  /** Vidéo produit / promotion : les huit temps (accroche … signature) servent de squelette. */
+  skeleton?: boolean;
   level: CreativityLevel;
+}
+
+/** Les huit temps d'une vidéo produit, en une ligne (squelette donné au directeur et au planificateur). */
+export function skeletonLine(): string {
+  return PRODUCT_SKELETON.map((s, i) => `${i + 1}. ${s.role} (${s.en}, ~${Math.round(s.share * 100)} %)`).join(' · ');
 }
 
 /** Nombre de scènes admis pour une durée (lisibilité : ~2 à 4 s par scène). */

@@ -105,6 +105,10 @@ export function describeFile(path: string): string {
   const clean = path.replace(/^\.?\//, '');
 
   if (clean === 'idem.plan.json') return 'Je choisis les pages et les sections du site';
+  // Les notes du moteur de sites (plan coché, architecture gardée pour la reprise) et la liste des pages.
+  if (clean === '.idem/plan.json') return 'Je fais la liste de ce qu’il reste à écrire';
+  if (clean === '.idem/manifest.json') return 'Je garde l’architecture du site';
+  if (clean === 'src/site/pages.json') return 'Je prépare les pages du site';
   if (clean === 'src/seo.js') return 'Je règle le référencement';
   if (clean === 'public/brand/pattern.svg') return 'Je reprends le motif de la charte';
   if (clean === 'src/sections/BrandPattern.jsx') return 'Je prépare les visuels au motif de la charte';

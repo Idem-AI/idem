@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, Mic, ArrowUp, X, FileText, Image as ImageIcon, Square } from 'lucide-react';
+import { Plus, Mic, X, FileText, Image as ImageIcon, Square } from 'lucide-react';
 import { toast } from 'react-toastify';
+import { SlashMenu } from '@/components/AiChat/chat/components/SlashMenu';
+import { SendButton } from '@/components/AiChat/chat/components/ChatInput/SendButton';
+import { CommandSpec, filterCommands, loadCommands } from '@/utils/commands';
 
 /**
  * Types acceptés.
@@ -27,7 +30,8 @@ export interface ComposerAttachment {
 interface PromptComposerProps {
   value: string;
   onChange: (value: string) => void;
-  onSubmit: () => void;
+  /** Envoie la saisie, ou `text` (une commande choisie dans le menu « / »). */
+  onSubmit: (text?: string) => void;
   /** Textes qui défilent tant que le champ est vide. */
   placeholders: string[];
   attachments: ComposerAttachment[];
@@ -47,6 +51,9 @@ const ROTATE_MS = 3600;
  * joindre un document, dicter, écrire, envoyer — et fait défiler des exemples
  * en filigrane, ce qui remplace avantageusement une liste d'exemples posée en
  * dessous : la suggestion arrive là où l'on regarde déjà.
+ *
+ * Elle se comporte comme la saisie du chat : « / » ouvre le menu des commandes (mêmes commandes, mêmes touches),
+ * et le bouton d'envoi est le même — il propose le niveau de créativité, et le niveau choisi lance.
  */
 export function PromptComposer({
   value,
@@ -66,6 +73,39 @@ export function PromptComposer({
   const [fading, setFading] = useState(false);
   const [listening, setListening] = useState(false);
   const recognitionRef = useRef<any>(null);
+  const sendRef = useRef<HTMLButtonElement>(null);
+
+  /* -------- Commandes « / » (les mêmes que dans le chat) -------- */
+  const { i18n } = useTranslation();
+  const slashId = useId();
+  const [commands, setCommands] = useState<CommandSpec[] | null>(null);
+  const [slashIndex, setSlashIndex] = useState(0);
+  const slashQuery = /^\/[^\s]*$/.test(value) ? value : null;
+  const slashOptions = slashQuery !== null && commands ? filterCommands(slashQuery, commands, i18n.language?.startsWith('en') ? 'en' : 'fr') : [];
+  const showSlash = slashQuery !== null && commands !== null;
+
+  useEffect(() => {
+    if (slashQuery === null || commands) return;
+    void loadCommands().then(setCommands);
+  }, [slashQuery, commands]);
+
+  useEffect(() => setSlashIndex(0), [slashQuery]);
+
+  /** Une commande choisie : complétée si elle attend quelque chose, la liste entière pour « /help », sinon lancée. */
+  const pickCommand = (command: CommandSpec) => {
+    if (command.args) {
+      onChange(`/${command.name} `);
+      textareaRef.current?.focus();
+      return;
+    }
+    if (command.name === 'help') {
+      onChange('/');
+      textareaRef.current?.focus();
+      return;
+    }
+    onChange('');
+    onSubmit(`/${command.name}`);
+  };
 
   /* -------- Invite qui défile -------- */
   useEffect(() => {
@@ -189,9 +229,27 @@ export function PromptComposer({
   useEffect(() => () => recognitionRef.current?.stop?.(), []);
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (event.key === 'Enter' && !event.shiftKey) {
+    if (showSlash && slashOptions.length) {
+      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+        event.preventDefault();
+        setSlashIndex((i) => (event.key === 'ArrowDown' ? (i + 1) % slashOptions.length : (i - 1 + slashOptions.length) % slashOptions.length));
+        return;
+      }
+      if ((event.key === 'Enter' && !event.shiftKey) || event.key === 'Tab') {
+        event.preventDefault();
+        pickCommand(slashOptions[Math.min(slashIndex, slashOptions.length - 1)]);
+        return;
+      }
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onChange('');
+        return;
+      }
+    }
+    // Entrée ouvre le menu des niveaux du bouton d'envoi, comme dans le chat : le niveau choisi lance.
+    if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
       event.preventDefault();
-      if (value.trim()) onSubmit();
+      if (value.trim()) sendRef.current?.click();
     }
   };
 
@@ -238,9 +296,17 @@ export function PromptComposer({
         <label htmlFor={inputId} className="sr-only">
           {t('composer.label')}
         </label>
+        {showSlash && (
+          <SlashMenu id={slashId} commands={slashOptions} activeIndex={slashIndex} onHover={setSlashIndex} onPick={pickCommand} />
+        )}
         <textarea
           id={inputId}
           ref={textareaRef}
+          role={showSlash ? 'combobox' : undefined}
+          aria-expanded={showSlash || undefined}
+          aria-controls={showSlash ? slashId : undefined}
+          aria-autocomplete={showSlash ? 'list' : undefined}
+          aria-activedescendant={showSlash && slashOptions[slashIndex] ? `${slashId}-${slashOptions[slashIndex].name}` : undefined}
           value={value}
           onChange={(event) => onChange(event.target.value)}
           onKeyDown={handleKeyDown}
@@ -297,16 +363,15 @@ export function PromptComposer({
           icon={listening ? <Square className="w-3.5 h-3.5" /> : <Mic className="w-4 h-4" />}
         />
 
-        <button
-          type="button"
-          onClick={onSubmit}
-          disabled={!canSubmit}
-          aria-label={t('composer.submit')}
-          title={t('composer.submit')}
-          className="w-8 h-8 grid place-items-center rounded-full bg-primary text-white transition-opacity disabled:opacity-25 disabled:cursor-not-allowed enabled:hover:opacity-90"
-        >
-          <ArrowUp className="w-[18px] h-[18px]" />
-        </button>
+        <SendButton
+          buttonRef={sendRef}
+          isLoading={false}
+          isUploading={false}
+          hasInput={canSubmit}
+          hasUploadingImages={false}
+          stop={() => undefined}
+          onClick={() => onSubmit()}
+        />
       </div>
     </div>
   );

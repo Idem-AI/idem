@@ -37,7 +37,7 @@ let uid = 0;
           <span [id]="headingId" class="sr-only">{{ q.question }}</span>
         }
         <ul class="flex flex-col gap-2" role="list">
-          @for (o of q.options; track o.id) {
+          @for (o of ordered(); track o.id) {
             <li>
               <button
                 type="button"
@@ -76,6 +76,11 @@ export class AskChoices {
   protected readonly step = signal(0);
   protected readonly values = signal<Record<string, string>>({});
   protected readonly current = computed(() => this.questions()[this.step()] ?? null);
+  /** Le choix recommandé toujours en tête, les autres dans l'ordre donné (comme les assistants le présentent). */
+  protected readonly ordered = computed(() => {
+    const options = this.current()?.options ?? [];
+    return [...options.filter((o) => o.recommended), ...options.filter((o) => !o.recommended)];
+  });
   protected readonly hasRecommended = computed(() => this.questions().slice(this.step()).some((q) => q.options.some((o) => o.recommended)));
   private readonly heading = viewChild<ElementRef<HTMLElement>>('heading');
 

@@ -200,3 +200,92 @@ export function pickExcerptStart(analysis: TrackAnalysis, durationSec: number): 
   const snapped = analysis.offset + k * bar;
   return Math.max(0, Math.round(Math.min(snapped, analysis.durationSec - durationSec - 0.5) * 1000) / 1000);
 }
+
+// ─── La grille des temps (BeatRoot) et les phrases musicales ─────────────────────────────────────────────────────────
+
+export interface BeatGrid {
+  /** Tous les temps de la piste (s). */
+  beats: number[];
+  /** Les temps forts (premier temps de chaque mesure de 4). */
+  downbeats: number[];
+  /** Les débuts de phrase (toutes les 8 mesures, à défaut 4). */
+  phrases: number[];
+  bpm: number;
+}
+
+/**
+ * Les temps de la piste par l'algorithme BeatRoot (`music-tempo`, MIT) — une vraie liste de temps, pas une grille
+ * supposée régulière — puis les mesures (4 temps, phase choisie là où les attaques sont les plus fortes) et les phrases.
+ * Repli : la grille régulière de `analyzePcm`.
+ */
+export async function beatGrid(file: string, analysis?: TrackAnalysis): Promise<BeatGrid> {
+  const a = analysis || (await analyzeTrack(file));
+  let beats: number[] = [];
+  try {
+    const pcm = await decodePcmAt(file, 44100, 240);
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const MusicTempo = require('music-tempo') as new (data: Float32Array | number[], params?: Record<string, number>) => { tempo: string | number; beats: number[] };
+    const mt = new MusicTempo(pcm);
+    beats = (mt.beats || []).filter((b) => Number.isFinite(b)).map((b) => Math.round(b * 1000) / 1000);
+  } catch {
+    beats = [];
+  }
+  if (beats.length < 8) {
+    const period = 60 / a.bpm;
+    beats = [];
+    for (let t = a.offset; t < a.durationSec; t += period) beats.push(Math.round(t * 1000) / 1000);
+  }
+  // La phase des mesures : le temps (0..3) dont les attaques sont les plus fortes en moyenne.
+  const energyAt = (t: number) => a.energy[Math.max(0, Math.min(a.energy.length - 1, Math.round(t / a.hopSec)))] || 0;
+  const phase = [0, 1, 2, 3].map((p) => beats.filter((_, i) => i % 4 === p).reduce((s, b) => s + energyAt(b), 0)).reduce((best, v, p, arr) => (v > arr[best] ? p : best), 0);
+  const downbeats = beats.filter((_, i) => i % 4 === phase);
+  const phrases = downbeats.filter((_, i) => i % 2 === 0);
+  const span = beats.length > 1 ? (beats[beats.length - 1] - beats[0]) / (beats.length - 1) : 60 / a.bpm;
+  return { beats, downbeats, phrases, bpm: Math.round((60 / span) * 10) / 10 };
+}
+
+/** Décode à une fréquence donnée (BeatRoot attend 44,1 kHz). */
+function decodePcmAt(file: string, rate: number, maxSec: number): Promise<Float32Array> {
+  return new Promise((resolve, reject) => {
+    const ff = spawn(process.env.FFMPEG_PATH || 'ffmpeg', ['-v', 'error', '-i', file, '-t', String(maxSec), '-ac', '1', '-ar', String(rate), '-f', 'f32le', 'pipe:1']);
+    const chunks: Buffer[] = [];
+    ff.stdout.on('data', (c: Buffer) => chunks.push(c));
+    ff.on('error', reject);
+    ff.on('close', (code) => {
+      if (code !== 0) return reject(new Error('decode_failed'));
+      const buf = Buffer.concat(chunks);
+      const out = new Float32Array(buf.length / 4);
+      for (let i = 0; i < out.length; i++) out[i] = buf.readFloatLE(i * 4);
+      resolve(out);
+    });
+  });
+}
+
+/**
+ * L'extrait de `durationSec` qui COMMENCE sur une phrase forte et FINIT sur une fin de phrase (± une mesure) : la
+ * musique s'arrête sur une ligne de mesure, avec un fondu court, au lieu de s'arrêter au hasard. Parmi les départs
+ * possibles, le plus énergique (pas une introduction calme).
+ */
+export function phraseExcerpt(grid: BeatGrid, analysis: TrackAnalysis, durationSec: number): number {
+  const bar = (60 / grid.bpm) * 4;
+  const usable = grid.downbeats.filter((d) => d + durationSec <= analysis.durationSec - 0.3);
+  if (!usable.length) return pickExcerptStart(analysis, durationSec);
+  const energyOf = (start: number) => {
+    let s = 0;
+    const a = Math.round(start / analysis.hopSec);
+    const b = Math.round((start + durationSec) / analysis.hopSec);
+    for (let i = a; i < Math.min(b, analysis.energy.length); i++) s += analysis.energy[i];
+    return s / Math.max(1, b - a);
+  };
+  const scored = usable.map((start) => {
+    const end = start + durationSec;
+    const near = grid.phrases.reduce((best, p) => (Math.abs(p - end) < Math.abs(best - end) ? p : best), Infinity);
+    const nearBar = grid.downbeats.reduce((best, p) => (Math.abs(p - end) < Math.abs(best - end) ? p : best), Infinity);
+    const fit = Math.abs(near - end) <= bar * 0.5 ? 1 : Math.abs(nearBar - end) <= 0.25 ? 0.6 : 0;
+    const phraseStart = grid.phrases.some((p) => Math.abs(p - start) < 0.05) ? 0.3 : 0;
+    return { start, s: energyOf(start) * (0.6 + fit + phraseStart) };
+  });
+  const startFrom = analysis.durationSec > durationSec + 12 ? 4 : 0;
+  const best = scored.filter((x) => x.start >= startFrom).sort((a, b) => b.s - a.s)[0] || scored[0];
+  return Math.round(best.start * 1000) / 1000;
+}

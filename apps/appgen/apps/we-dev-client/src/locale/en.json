@@ -143,6 +143,51 @@
           "line": "The most powerful model, for ambitious projects."
         }
       }
+    },
+    "redesign": {
+      "attaching": "Saving your site to your IDEM project…",
+      "attachFailed": "The site is ready, but I couldn't save it to your project. Try again from the Save button."
+    },
+    "choices": {
+      "step": "Question {{current}} of {{total}}",
+      "back": "Back",
+      "forMe": "Choose for me",
+      "recommended": "Recommended",
+      "other": "Other…",
+      "otherPlaceholder": "Say it in your own words",
+      "continue": "Continue",
+      "review": "Summary",
+      "reviewTitle": "Your answers",
+      "edit": "Change",
+      "submit": "Start",
+      "consent": {
+        "lead": "Your site becomes an IDEM project. I accept IDEM’s",
+        "privacy": "privacy policy",
+        "terms": "terms of service",
+        "and": "and",
+        "beta": "beta programme terms",
+        "ofIdem": "",
+        "required": "Tick the box so I can create your IDEM project."
+      }
+    },
+    "commands": {
+      "menuLabel": "Commands",
+      "hint": "Enter to run · ↑↓ to choose · Esc to close",
+      "args": "then {{args}}",
+      "needsProject": "This command needs an IDEM project: open iCode from your project.",
+      "nothingToFix": "No error to fix right now.",
+      "empty": "No command matches."
+    },
+    "resume": {
+      "question": "Your last generation stopped before the end. Shall we resume it?",
+      "help": "{{done}} of {{total}} steps are done and kept.",
+      "now": "Resume where it stopped",
+      "nowHelp": "Only what is left gets written, without paying again for what is done.",
+      "later": "Later"
+    },
+    "scroll": {
+      "working": "Work in progress below",
+      "new": "New message below"
     }
   },
   "settings": {
@@ -285,11 +330,16 @@
       "dismiss": "Dismiss this error",
       "busy": "A generation is running: start the fix again once it has finished."
     },
+    "startFailed": {
+      "depsHint": "Installing the dependencies did not succeed (network or npm registry). Start again with “Run”: your files are kept.",
+      "title": "The preview did not start",
+      "hint": "The preview server is not responding. Open the terminal to see why, or start it again with “Run”: your files are kept."
+    },
     "waiting": {
       "title": "Starting…",
       "download": "Preparing the environment ({{percent}}%). Once only: after this your project opens right away.",
       "mount": "Setting up the environment.",
-      "install": "Installing dependencies. The first time, this takes one to two minutes.",
+      "install": "Installing the dependencies. Without a prepared environment on this server, the first time takes several minutes.",
       "start": "Starting the application.",
       "fullstack": "Starting the database, the server, then the interface. Everything connects on its own."
     }
@@ -670,7 +720,20 @@
     "askAI": "Ask the AI",
     "selectionPrompt": "About {{count}} element(s) selected in the preview:",
     "annotationPrompt": "Annotation drawn on the preview (area {{zone}}): {{note}}",
-    "annotationPromptEmpty": "Annotation drawn on the preview, area {{zone}}. Apply the change the sketch indicates."
+    "annotationPromptEmpty": "Apply the change shown by the drawing.",
+    "pointedIntro": "Pointed out in the preview:",
+    "kind": {
+      "image": "the image",
+      "link": "the link",
+      "button": "the button",
+      "heading": "the heading",
+      "text": "the text",
+      "icon": "the icon",
+      "input": "the field",
+      "list": "the list",
+      "container": "the block",
+      "generic": "the element"
+    }
   },
   "tour": {
     "common": {
@@ -791,7 +854,8 @@
     "restored": "Version restored",
     "restoreFailed": "Restore failed",
     "beforeRestore": "Before restore",
-    "beforeDelete": "Before deletion"
+    "beforeDelete": "Before deletion",
+    "beforeRedesign": "Before redesign"
   },
   "chatWorkspace": {
     "readyToGenerate": "Ready to generate your application",

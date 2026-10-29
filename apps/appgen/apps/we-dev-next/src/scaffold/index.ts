@@ -34,7 +34,7 @@ import { renderContract, OPTIONAL_MODULES } from '../siteEngine/catalog.js';
  * change : le client s'en sert pour savoir qu'un espace de travail ouvert
  * tourne sur un socle périmé.
  */
-export const SCAFFOLD_VERSION = '7';
+export const SCAFFOLD_VERSION = '8';
 
 export interface Scaffold {
   version: string;

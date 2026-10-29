@@ -1,4 +1,5 @@
 import { Response } from 'express';
+import { startSseHeartbeat } from '../utils/sse-heartbeat.util';
 import logger from '../config/logger';
 import { DiagramService } from '../services/Diagrams/diagram.service';
 import { CustomRequest } from '../interfaces/express.interface';
@@ -174,6 +175,8 @@ export const generateDiagramStreamingController = async (
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
     res.setHeader('X-Accel-Buffering', 'no'); // Pour Nginx
+    // Les proxys coupent un flux muet pendant une longue réponse du modèle.
+    startSseHeartbeat(res);
 
     // Fonction de callback pour envoyer chaque résultat d'étape
     const streamCallback = async (stepResult: ISectionResult) => {

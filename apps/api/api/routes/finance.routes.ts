@@ -4,6 +4,7 @@ import { authenticate } from '../services/auth.service';
 import {
   aiFillAllController,
   aiFillAllStreamController,
+  singleForecastRun,
   aiFillSectionController,
   analyzeFinanceImportController,
   applyFinanceImportController,
@@ -177,6 +178,7 @@ financeRoutes.get(
   `/${resource}/:projectId/ai-fill-stream`,
   authenticate,
   checkPolicyAcceptance,
+  singleForecastRun,
   chargeForecast,
   aiFillAllStreamController
 );

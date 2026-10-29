@@ -21,6 +21,8 @@ import {
   buildPackageJson,
   buildTailwindConfig,
   buildUiKit,
+  buildI18nKit,
+  I18N_EDITABLE,
   CN_HELPER,
   fontLinks,
   packageName,
@@ -193,11 +195,17 @@ export default defineConfig({
     // tableau vide, l'option ci-dessus ne s'applique à rien.
     exclude: [],
   },
-  optimizeDeps: { esbuildOptions: { loader: { '.js': 'jsx' } } },
+  // React pré-regroupé dès le démarrage (pas de « nouvelle dépendance, rechargement » à la première page), et
+  // les fichiers d'entrée transformés avant la première requête.
+  optimizeDeps: {
+    include: ['react', 'react/jsx-runtime', 'react/jsx-dev-runtime', 'react-dom', 'react-dom/client'],
+    esbuildOptions: { loader: { '.js': 'jsx' } },
+  },
   server: {
     host: true,
     port: 5173,
     proxy: { '/api': 'http://localhost:3001' },
+    warmup: { clientFiles: ['./src/main.jsx', './src/App.jsx'] },
   },
 });
 `;
@@ -230,9 +238,14 @@ export async function api(path, options = {}) {
 const MAIN = `import { createRoot } from 'react-dom/client';
 // Sans extension : le produit peut être écrit en .jsx comme en .tsx.
 import App from './App';
+import { LanguageRoot } from './i18n';
 import './styles/index.css';
 
-createRoot(document.getElementById('root')).render(<App />);
+createRoot(document.getElementById('root')).render(
+  <LanguageRoot>
+    <App />
+  </LanguageRoot>
+);
 `;
 
 /**
@@ -302,7 +315,10 @@ export function buildWebAppScaffold(
   projectData: ProjectModel | undefined,
   language: string
 ): { files: Record<string, string>; locked: string[] } {
+  const i18n = underFrontend(buildI18nKit(language));
+  const i18nFiles = Object.fromEntries(Object.entries(i18n).filter(([path]) => I18N_EDITABLE.includes(path.replace(/^frontend\//, ''))));
   const locked: Record<string, string> = {
+    ...Object.fromEntries(Object.entries(i18n).filter(([path]) => !(path in i18nFiles))),
     'package.json': ROOT_PACKAGE(packageName(projectData)),
     'README.md': README(projectTitle(projectData)),
     'backend/package.json': BACKEND_PACKAGE,
@@ -337,6 +353,7 @@ export function buildWebAppScaffold(
       'backend/src/schema.sql': SCHEMA_PLACEHOLDER,
       'backend/src/seed.sql': SEED_PLACEHOLDER,
       'frontend/src/App.jsx': appPlaceholder(projectData, language),
+      ...i18nFiles,
     },
     locked: Object.keys(locked),
   };

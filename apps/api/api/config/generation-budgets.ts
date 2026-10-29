@@ -609,12 +609,12 @@ export const GENERATION_ENVELOPES: Record<string, GenerationEnvelope> = {
     calls: [{ step: 'Assistant', model: 'cfg:deployment.terraform', calls: r(1, 1), input: r(4000, 8000), output: r(800, 4000) }],
   },
   'free.site_import': {
-    label: 'iVision : projet créé depuis un site',
+    label: 'iVision / iCode : projet créé depuis un site',
     engine: 'free',
     action: 'site_import',
     group: 'assist',
     creativity: false,
-    entrypoints: ['POST /internal/ivision/projects/from-site'],
+    entrypoints: ['POST /internal/ivision/projects/from-site', 'POST /appgen/site-import'],
     calls: [
       { step: 'Lecture des pages', model: 'role:vision', calls: r(2, 4), input: r(3000, 6000), output: r(600, 1400) },
       { step: 'Rédaction du projet', model: 'cfg:communication.videoWriting', calls: r(1, 2), input: r(6000, 10000), output: r(800, 1600) },

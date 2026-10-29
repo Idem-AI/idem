@@ -64,13 +64,19 @@ ok('les prompts des moteurs ne nomment ni fournisseur ni modèle', !/gemini|open
 for (const k of Object.keys(process.env)) if (/^IDEM_(ROLE_VIDEO|ROLE_GRAPHIC|LADDER)_/.test(k)) delete process.env[k];
 const levels = ['low', 'medium', 'high', 'ultra'] as const;
 ok('quatre crans seulement (Low, Medium, High, Ultra)', (Object.keys(MODEL_LADDERS) as (keyof typeof MODEL_LADDERS)[]).every((l) => Object.keys(MODEL_LADDERS[l]).join(',') === levels.join(',')));
-ok('échelles : chaque barreau est un modèle autorisé, et chaque cran en change', (Object.keys(MODEL_LADDERS) as (keyof typeof MODEL_LADDERS)[]).every((l) => levels.every((lv) => isAllowedOpenRouterModel(MODEL_LADDERS[l][lv])) && new Set(levels.map((lv) => MODEL_LADDERS[l][lv])).size === levels.length));
-ok('vidéo : le cran choisit le modèle Gemini (OpenRouter) de chaque rôle, épinglé et autorisé — 3.1 Pro en High et Ultra', levels.every((lv) => { const c = roleConfig('video.author', 'coder', lv); return c.modelName === ROLE_MODEL_OVERRIDES['video.author'][lv] && c.pinModel === true && isAllowedOpenRouterModel(c.modelName!); }) && roleConfig('video.author', 'coder', 'ultra').modelName === 'google/gemini-3.1-pro-preview' && roleConfig('video.planner', 'agents', 'low').modelName === ROLE_MODEL_OVERRIDES['video.planner'].low);
+const ladders = Object.keys(MODEL_LADDERS) as (keyof typeof MODEL_LADDERS)[];
+ok('échelles : chaque barreau est un modèle autorisé', ladders.every((l) => levels.every((lv) => isAllowedOpenRouterModel(MODEL_LADDERS[l][lv]))));
+// Les livrables graphiques changent de modèle à chaque cran ; la vidéo change surtout de BUDGET d'essais (plan qualité).
+ok('livrables graphiques : chaque cran change de modèle', (['design', 'code'] as const).every((l) => new Set(levels.map((lv) => MODEL_LADDERS[l][lv])).size === levels.length));
+ok('vidéo : petits modèles (≤ 35 Md de paramètres) en production, GLM-5.3-Flash au storyboard High/Ultra, le professeur à part', levels.every((lv) => roleConfig('video.sampler', 'coder', lv).modelName === 'qwen/qwen3.6-35b-a3b') && roleConfig('video.author', 'coder', 'medium').modelName === 'qwen/qwen3.8-27b' && roleConfig('video.author', 'coder', 'low').modelName === 'qwen/qwen3.6-35b-a3b' && roleConfig('video.planner', 'agents', 'high').modelName === 'z-ai/glm-5.3-flash' && roleConfig('video.planner', 'agents', 'medium').modelName === 'qwen/qwen3.8-27b' && roleConfig('video.judge-vlm', 'agents', 'ultra').modelName === 'qwen/qwen3.8-27b' && roleConfig('video.teacher', 'coder', 'high').modelName === 'qwen/qwen3.8-2.4t-a95b');
+ok('vidéo : chaque rôle a son repli autorisé (même cran)', levels.every((lv) => ['video.sampler', 'video.author', 'video.planner', 'video.judge-vlm', 'video.teacher'].every((r) => { const c = roleConfig(r, 'coder', lv); return c.pinModel === true && (c.fallbackModels || []).length > 0 && (c.fallbackModels || []).every((m) => isAllowedOpenRouterModel(m)); })));
 ok('livrables graphiques : l’auteur des pages suit l’échelle « code », le directeur l’échelle « design »', levels.every((lv) => roleConfig('graphic.author', 'coder', lv).modelName === MODEL_LADDERS.code[lv] && roleConfig('graphic.director', 'agents', lv).modelName === MODEL_LADDERS.design[lv]));
 process.env.IDEM_LADDER_CODE_HIGH = allowed;
+process.env.IDEM_LADDER_VIDEO_SAMPLE_LOW = allowed;
 process.env.IDEM_ROLE_VIDEO_AUTHOR_MODEL_ULTRA = allowed;
-ok('un barreau ou un modèle par cran se règlent par l’environnement', roleConfig('graphic.author', 'coder', 'high').modelName === allowed && roleConfig('video.author', 'coder', 'ultra').modelName === allowed && roleConfig('video.author', 'coder', 'low').modelName === ROLE_MODEL_OVERRIDES['video.author'].low);
+ok('un barreau ou un modèle par cran se règlent par l’environnement (échelles vidéo comprises)', roleConfig('graphic.author', 'coder', 'high').modelName === allowed && roleConfig('video.sampler', 'coder', 'low').modelName === allowed && roleConfig('video.author', 'coder', 'ultra').modelName === allowed && roleConfig('video.author', 'coder', 'medium').modelName === MODEL_LADDERS['video-code'].medium);
 delete process.env.IDEM_LADDER_CODE_HIGH;
+delete process.env.IDEM_LADDER_VIDEO_SAMPLE_LOW;
 delete process.env.IDEM_ROLE_VIDEO_AUTHOR_MODEL_ULTRA;
 
 console.log(`\n${failures ? '✗' : '✓'} Rôles créatifs : ${passed} vérification(s) réussie(s), ${failures} en échec.`);

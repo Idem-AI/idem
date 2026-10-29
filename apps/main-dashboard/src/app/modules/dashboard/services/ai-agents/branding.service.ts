@@ -70,8 +70,6 @@ export class BrandingService {
 
     const config: SSEConnectionConfig = {
       url: `${this.apiUrl}/generate/${projectId}?${params.toString()}`,
-      keepAlive: true,
-      reconnectionDelay: 1000,
     };
 
     return this.sseService.createConnection(config, 'branding');
@@ -116,8 +114,6 @@ export class BrandingService {
 
     const config: SSEConnectionConfig = {
       url: `${this.apiUrl}/generate/logo-concepts-stream/${projectId}${query ? `?${query}` : ''}`,
-      keepAlive: true,
-      reconnectionDelay: 1000,
     };
 
     return this.sseService.createConnection(config, 'logo');
@@ -159,8 +155,6 @@ export class BrandingService {
 
     const config: SSEConnectionConfig = {
       url: `${this.apiUrl}/generate/logo-variations-stream/${projectId}${force ? '?force=true' : ''}`,
-      keepAlive: true,
-      reconnectionDelay: 1000,
     };
 
     return this.sseService.createConnection(config, 'logo-variations');

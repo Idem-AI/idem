@@ -258,6 +258,41 @@ export default function DepsBakePage() {
     [bakeTree, layDown, plans]
   );
 
+  /**
+   * Le four sans personne devant : `?deps-bake=1&auto=1#token=…` (lancé par `npm run deps:bake` dans un Chrome
+   * sans écran). Toutes les cibles qui ont un arbre à refaire sont cuites, l'une après l'autre, puis le résultat
+   * est posé sur `window.__idemBake`, que le script lit. Le jeton voyage dans l'ancre : jamais envoyé au serveur
+   * dans une adresse, jamais journalisé.
+   */
+  const auto = useRef(false);
+  useEffect(() => {
+    if (auto.current || new URLSearchParams(window.location.search).get('auto') !== '1') return;
+    const fromHash = new URLSearchParams(window.location.hash.slice(1)).get('token');
+    if (fromHash && fromHash !== token) {
+      setToken(fromHash);
+      sessionStorage.setItem(TOKEN_KEY, fromHash);
+      return;
+    }
+    if (!token || TARGETS.some((target) => !plans[target])) return;
+    auto.current = true;
+    void (async () => {
+      const results: { target: string; tree: string; ok: boolean }[] = [];
+      for (const target of TARGETS) {
+        const plan = plans[target]!;
+        const stale = plan.trees.filter((tree) => !tree.baked);
+        if (!stale.length) continue;
+        const scaffold = await layDown(target);
+        if (!scaffold) {
+          stale.forEach((tree) => results.push({ target, tree: tree.id, ok: false }));
+          continue;
+        }
+        for (const tree of stale) results.push({ target, tree: tree.id, ok: await bakeTree(target, tree, scaffold) });
+      }
+      say(`four automatique : ${results.filter((r) => r.ok).length}/${results.length} arbre(s) cuits`);
+      (window as unknown as { __idemBake?: unknown }).__idemBake = { done: true, ok: results.every((r) => r.ok), results };
+    })();
+  }, [bakeTree, layDown, plans, say, token]);
+
   return (
     <div className="min-h-screen bg-white px-8 py-10 text-neutral-900">
       <div className="mx-auto max-w-3xl space-y-8">

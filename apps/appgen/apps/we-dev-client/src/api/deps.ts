@@ -31,6 +31,11 @@ export interface DepsTreeInfo {
   bytes: number;
   url: string | null;
   marker: string;
+  /**
+   * Pas encore cuit sous cette empreinte : l'instantané le plus récent du même arbre (une version de paquet vient
+   * de changer). Monté puis complété par npm, il évite l'installation complète.
+   */
+  nearest?: { fingerprint: string; url: string; bytes: number } | null;
 }
 
 export interface DepsPlanInfo {

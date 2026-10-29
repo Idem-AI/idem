@@ -1,4 +1,4 @@
-import { Response } from 'express';
+import { NextFunction, Response } from 'express';
 import { CustomRequest } from '../interfaces/express.interface';
 import { financeService } from '../services/Finance/finance.service';
 import { computeFinance } from '../services/Finance/finance-calculator.service';
@@ -21,6 +21,8 @@ import { researchTeamService } from '../services/research/research-team.service'
 import { ResearchStreamEvent } from '../services/research/research.types';
 import { SectionSource } from '../models/section.model';
 import { getRequestLanguage } from '../utils/request-language';
+import { startSseHeartbeat } from '../utils/sse-heartbeat.util';
+import { refundRequestCredits } from '../middleware/billing.middleware';
 import logger from '../config/logger';
 
 /**
@@ -425,6 +427,27 @@ export const aiFillAllController = async (req: CustomRequest, res: Response): Pr
 };
 
 /**
+ * Prévisionnels sourcés en cours, par utilisateur et projet.
+ *
+ * Un projet ne lance qu'un prévisionnel à la fois : un second onglet, ou un
+ * ancien client qui se reconnecte, relançait toute la recherche — et la
+ * refacturait — pendant que la première tournait encore.
+ */
+const runningForecasts = new Set<string>();
+const forecastKey = (userId: string, projectId: string) => `${userId}:${projectId}`;
+
+/** Refuse un prévisionnel déjà en cours, AVANT tout débit. */
+export const singleForecastRun = (req: CustomRequest, res: Response, next: NextFunction): void => {
+  const userId = req.user?.uid;
+  const projectId = req.params.projectId as string;
+  if (userId && projectId && runningForecasts.has(forecastKey(userId, projectId))) {
+    res.status(409).json({ message: 'forecast_already_running' });
+    return;
+  }
+  next();
+};
+
+/**
  * Auto-fill IA global SOURCÉ, en streaming (SSE): une équipe d'agents recherche
  * d'abord des benchmarks marché réels (grounding web), puis cale les prévisions
  * financières dessus. Chaque micro-action est diffusée en temps réel pour la
@@ -453,15 +476,19 @@ export const aiFillAllStreamController = async (
   res.setHeader('X-Accel-Buffering', 'no');
 
   const writeSSE = (payload: unknown) => {
+    if (res.writableEnded) return;
     res.write(`data: ${JSON.stringify(payload)}\n\n`);
     (res as any).flush?.();
   };
+  const stopHeartbeat = startSseHeartbeat(res);
+  const runKey = forecastKey(userId, projectId);
+  runningForecasts.add(runKey);
 
   try {
     const project = await projectService.getUserProjectById(userId, projectId);
     if (!project) {
       writeSSE({ type: 'error', message: 'Project not found', timestamp: new Date().toISOString() });
-      res.end();
+      await refundRequestCredits(req, 'Projet introuvable — montant restitué').catch(() => undefined);
       return;
     }
 
@@ -532,10 +559,15 @@ export const aiFillAllStreamController = async (
 
     writeSSE({ type: 'complete', finance: result.finance, sources: allSources });
     writeSSE({ type: 'completed', stepName: 'completion', data: 'all_steps_completed' });
-    res.end();
   } catch (error: any) {
     logger.error(`aiFillAllStreamController error: ${error.message}`, { stack: error.stack });
+    // Le débit a eu lieu avant l'ouverture du flux : un prévisionnel qui
+    // n'aboutit pas ne se paie pas.
+    await refundRequestCredits(req, 'Prévisionnel en échec — montant restitué').catch(() => undefined);
     writeSSE({ type: 'error', message: error.message || 'AI sourced auto-fill failed', timestamp: new Date().toISOString() });
+  } finally {
+    runningForecasts.delete(runKey);
+    stopHeartbeat();
     res.end();
   }
 };

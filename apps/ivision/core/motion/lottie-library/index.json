@@ -1,0 +1,22 @@
+[
+  {
+    "id": "check",
+    "note": "a circle then a check mark drawing themselves (done, validated, success)",
+    "file": "check.json"
+  },
+  {
+    "id": "burst",
+    "note": "eight short rays bursting outward from a center (highlight, new, celebration)",
+    "file": "burst.json"
+  },
+  {
+    "id": "arrow",
+    "note": "a curved arrow drawing itself from left to right (pointing at something, next step)",
+    "file": "arrow.json"
+  },
+  {
+    "id": "underline",
+    "note": "a hand-drawn wavy underline tracing itself (emphasis under a word)",
+    "file": "underline.json"
+  }
+]

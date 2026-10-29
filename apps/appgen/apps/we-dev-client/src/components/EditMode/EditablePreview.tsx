@@ -38,6 +38,9 @@ import {
   type SelectedElementInfo,
   type ParentToAgentMessage,
   type TreeNode,
+  type DrawMark,
+  type IdemNodeRef,
+  type PointedHit,
 } from './idemProtocol';
 import { EditToolbar } from './EditToolbar';
 import Button from '@/components/ui/Button';
@@ -84,6 +87,32 @@ export interface SelectionContext {
   }>;
   /** Présent quand la demande vient du mode dessin plutôt que d'une sélection. */
   annotation?: Annotation;
+  /**
+   * Ce que les tracés désignent, résolu dans l'aperçu : chaque élément, et la partie du code qui le porte (la section
+   * ou l'en-tête d'un site, le composant d'une application). Vide si l'aperçu n'a pas pu répondre.
+   */
+  pointed?: PointedElement[];
+}
+
+export interface PointedElement {
+  tag: string;
+  kind: string;
+  text: string;
+  /** Le fichier et la position de la balise de l'élément lui-même. */
+  filePath: string;
+  start: number;
+  /** La partie qui le contient : section, en-tête, pied de page, composant (fichier et position de sa balise). */
+  owner: string;
+  ownerStart: number;
+  how: 'point' | 'area';
+}
+
+/** La partie du code qui porte un élément : la première, en remontant, qui est une section, l'en-tête ou un composant du projet. */
+function ownerOf(chain: Array<{ filePath: string; start: number }>): { filePath: string; start: number } {
+  const site = chain.find((ref) => /^src\/(sections\/|components\/site\/)/.test(ref.filePath));
+  if (site) return site;
+  const own = chain.find((ref) => !/(^|\/)components\/ui\//.test(ref.filePath) && !/(^|\/)node_modules\//.test(ref.filePath));
+  return own ?? chain[0];
 }
 
 /** Un changement de fichier réversible (pour l'historique undo/redo). */
@@ -214,6 +243,9 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
   const canUndo = undoStackRef.current.length > 0;
   const canRedo = redoStackRef.current.length > 0;
 
+  /** Les réponses attendues de l'agent à une désignation (outil Dessin), par identifiant de demande. */
+  const hitWaiters = useRef(new Map<string, (hits: PointedHit[]) => void>());
+
   const sendToAgent = useCallback((msg: ParentToAgentMessage) => {
     iframeRef.current?.contentWindow?.postMessage(msg, '*');
   }, []);
@@ -248,6 +280,11 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
 
   // Rien à montrer encore, mais ça démarre : on dit quoi plutôt que « rien ».
   const waiting = !url && (warming || runPhase === 'installing' || runPhase === 'starting');
+  // Lancé mais jamais répondu dans le délai (voir `watchServerStart`) : on le dit, au lieu d'un « en cours » sans fin.
+  const warmReason = useWarmStart((state) => state.reason);
+  // Ou dont les dépendances n'ont pas pu être installées (npm en échec ou au-delà de son délai).
+  const startFailed = !url && !waiting && warmStep === 'failed' && (warmReason === 'server' || warmReason === 'deps');
+  const startFailedHint = warmReason === 'deps' ? 'preview.startFailed.depsHint' : 'preview.startFailed.hint';
 
   const generating = useChatStore((state) => state.isGenerating);
   const awaitingFirstGeneration = useChatStore((state) => state.canGenerate);
@@ -476,6 +513,14 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
       if (!isAgentMessage(event.data)) return;
       const msg = event.data;
       switch (msg.type) {
+        case 'HIT_RESULT': {
+          const waiter = hitWaiters.current.get(msg.requestId);
+          if (waiter) {
+            hitWaiters.current.delete(msg.requestId);
+            waiter(msg.hits ?? []);
+          }
+          break;
+        }
         case 'AGENT_READY':
           setAgentReady(true);
           sendToAgent({
@@ -658,16 +703,62 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
 
 
   /* -------- Annotation dessinée (P2.5) -------- */
-  const handleAnnotation = useCallback(
-    (annotation: Annotation) => {
-      setToolMode('off');
-      onAskAboutSelection?.({
-        count: 0,
-        elements: [],
-        annotation,
+  /**
+   * Ce que les tracés désignent, demandé à l'agent de l'aperçu AVANT de quitter le mode dessin (le quitter retire
+   * l'instrumentation). Les tracés arrivent en coordonnées de l'écran ; l'aperçu peut être zoomé ou réduit à un
+   * format de téléphone : on les ramène au repère de l'iframe.
+   */
+  const resolveMarks = useCallback(
+    (marks: Annotation['marks']): Promise<PointedElement[]> => {
+      const frame = iframeRef.current;
+      if (!frame || !agentReady || !marks?.length) return Promise.resolve([]);
+      const r = frame.getBoundingClientRect();
+      const sx = r.width ? frame.clientWidth / r.width : 1;
+      const sy = r.height ? frame.clientHeight / r.height : 1;
+      const toFrame = (x: number, y: number) => ({ x: (x - r.left) * sx, y: (y - r.top) * sy });
+      const framed: DrawMark[] = marks.map((mark) => {
+        if (mark.point) return { point: toFrame(mark.point.x, mark.point.y) };
+        const box = mark.box!;
+        const a = toFrame(box.left, box.top);
+        return { box: { left: a.x, top: a.y, width: box.width * sx, height: box.height * sy } };
+      });
+      const requestId = `hit-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+      return new Promise((resolve) => {
+        const timer = setTimeout(() => {
+          hitWaiters.current.delete(requestId);
+          resolve([]);
+        }, 2000);
+        hitWaiters.current.set(requestId, (hits) => {
+          clearTimeout(timer);
+          const pointed: PointedElement[] = [];
+          for (const hit of hits) {
+            const self = decodeIdemId(hit.id);
+            if (!self) continue;
+            const chain = [self, ...hit.ancestors.map((id) => decodeIdemId(id)).filter((ref): ref is IdemNodeRef => !!ref)];
+            const owner = ownerOf(chain);
+            if (pointed.some((p) => p.filePath === self.filePath && p.start === self.start)) continue;
+            pointed.push({ tag: hit.tag, kind: hit.kind, text: hit.text, filePath: self.filePath, start: self.start, owner: owner.filePath, ownerStart: owner.start, how: hit.how });
+          }
+          resolve(pointed);
+        });
+        sendToAgent({ source: IDEM_SOURCE, type: 'HIT_TEST', requestId, marks: framed });
       });
     },
-    [onAskAboutSelection]
+    [agentReady, sendToAgent]
+  );
+
+  const handleAnnotation = useCallback(
+    async (annotation: Annotation) => {
+      const pointed = await resolveMarks(annotation.marks);
+      setToolMode('off');
+      onAskAboutSelection?.({
+        count: pointed.length,
+        elements: [],
+        annotation,
+        pointed,
+      });
+    },
+    [onAskAboutSelection, resolveMarks]
   );
 
   /* -------- Remontée de la sélection vers la conversation (P1.4) -------- */
@@ -842,6 +933,8 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
                     <p className="text-[15px] font-semibold text-neutral-900">
                       {offerGeneration
                         ? t('chatWorkspace.readyToGenerate')
+                        : startFailed
+                          ? t('preview.startFailed.title')
                         : generating
                           ? t('chatWorkspace.inProgress')
                           : t(waiting ? 'preview.waiting.title' : 'preview.noserverTitle')}
@@ -849,6 +942,8 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
                     <p className="text-[13px] leading-relaxed text-neutral-500 text-pretty">
                       {offerGeneration
                         ? t('chatWorkspace.startHint')
+                        : startFailed
+                          ? t(startFailedHint)
                         : generating
                           ? t('chatWorkspace.inProgressBody')
                           : waiting
@@ -859,7 +954,7 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
                       variant={!offerGeneration && waiting ? 'secondary' : 'primary'}
                       size="sm"
                       onClick={offerGeneration ? startGeneration : runProject}
-                      loading={starting || (generating && !offerGeneration)}
+                      loading={starting || (generating && !offerGeneration && !startFailed)}
                       icon={<Play className="w-4 h-4" />}
                       className="mt-2"
                     >
@@ -890,6 +985,8 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
               <p className="text-sm font-medium text-text-secondary">
                 {offerGeneration
                   ? t('chatWorkspace.readyToGenerate')
+                  : startFailed
+                    ? t('preview.startFailed.title')
                   : generating
                     ? t('chatWorkspace.inProgress')
                     : t(waiting ? 'preview.waiting.title' : 'preview.noserverTitle')}
@@ -897,6 +994,8 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
               <p className="text-xs text-text-tertiary max-w-xs text-pretty">
                 {offerGeneration
                   ? t('chatWorkspace.startHint')
+                  : startFailed
+                    ? t(startFailedHint)
                   : generating
                     ? t('chatWorkspace.inProgressBody')
                     : waiting
@@ -907,7 +1006,7 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
                 variant={!offerGeneration && waiting ? 'secondary' : 'primary'}
                 size="sm"
                 onClick={offerGeneration ? startGeneration : runProject}
-                loading={starting || (generating && !offerGeneration)}
+                loading={starting || (generating && !offerGeneration && !startFailed)}
                 icon={<Play className="w-4 h-4" />}
                 className="mt-1"
               >

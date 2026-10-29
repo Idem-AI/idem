@@ -248,9 +248,9 @@ v1.delete(
 );
 
 /** La recherche sans connexion : l'identité est lue si elle est là, jamais exigée. */
-async function optionalUid(req: { cookies?: Record<string, string> }): Promise<string | null> {
+async function optionalUid(req: { cookies?: Record<string, string>; get(name: string): string | undefined }): Promise<string | null> {
   const cookie = req.cookies?.session;
   if (!cookie) return null;
   const { verifySession } = await import('../integrations/idem.client');
-  return (await verifySession(cookie).catch(() => null))?.uid ?? null;
+  return (await verifySession(cookie, req.get('user-agent') || '').catch(() => null))?.uid ?? null;
 }

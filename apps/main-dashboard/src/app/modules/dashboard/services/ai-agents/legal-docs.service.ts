@@ -83,8 +83,6 @@ export class LegalDocsService {
 
     const config: SSEConnectionConfig = {
       url,
-      keepAlive: true,
-      reconnectionDelay: 1000,
     };
     return this.sseService.createConnection(config, 'legal-docs');
   }

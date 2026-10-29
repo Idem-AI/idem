@@ -91,7 +91,9 @@ export function getOpenAIModel(baseURL: string, apiKey: string, model: string): 
  */
 export async function selectRelevantFiles(
   filesPath: string[],
-  request: string
+  request: string,
+  /** La carte du projet (`buildCodeMap`) : ce que chaque fichier déclare, affiche, sert et importe. */
+  map?: string
 ): Promise<string[]> {
   const modelKey = getDefaultModelKey();
   const { apiKey, apiUrl } = resolveModelCredentials(modelKey);
@@ -107,15 +109,15 @@ export async function selectRelevantFiles(
       {
         role: 'user',
         content: [
-          'Project file tree:',
-          filesPath.join('\n'),
+          map ? 'Project map (one line per file: what it declares, the screens it routes, the API it serves or calls, the texts it shows, the project files it imports):' : 'Project file tree:',
+          map ? map.slice(0, 60000) : filesPath.join('\n'),
           '',
           'User request:',
           // Une demande très longue n'aide pas au tri : ses premiers milliers de
           // caractères portent l'intention, le reste est du détail d'exécution.
           request.slice(0, 4000),
           '',
-          'Return ONLY the paths needed to satisfy this request. Do not return the whole tree.',
+          'Return ONLY the paths needed to satisfy this request: the files to modify, and the few files whose code must be read to modify them correctly (what they import, the API they call). Find them yourself from the map: the person does not know how the project is organised. Do not return the whole tree.',
         ].join('\n'),
       },
     ],

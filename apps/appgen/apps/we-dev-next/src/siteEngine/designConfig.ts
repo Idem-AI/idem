@@ -15,6 +15,7 @@
 import { ProjectModel } from '../types/project.js';
 import { forgeDesignSystem, DesignSystem } from '../design/tokenForge.js';
 import { isLightSurface, readFonts, readPalette } from '../design/charter.js';
+import { formatOklch, hexToRgb, rgbToOklch } from '../design/color.js';
 import { ChatLogger } from '../utils/logger.js';
 import { ModelCaller, SHAPE_REMINDER, Verdict } from './modelCaller.js';
 import { SiteFacts } from './siteFacts.js';
@@ -57,13 +58,38 @@ const DARK_REQUEST = /th[eè]me sombre|mode sombre|fond (noir|sombre)|dark (mode
 /**
  * La configuration de départ, tirée de la charte par la forge de jetons.
  */
+/**
+ * La PERSONNALITÉ d'un site, tirée de son projet (toujours la même pour un projet, différente d'un projet à
+ * l'autre) : la forme des composants, la densité, la casse des titres, le mouvement. Sans elle, deux projets à la
+ * même direction artistique partaient du même point et finissaient par se ressembler. Les couleurs et les polices
+ * de la marque n'en dépendent jamais.
+ */
+const PERSONALITIES = [
+  { id: 'sharp-editorial', radius: '0px', density: 'spacious', button: 'primary', card: 'flat', headingCase: 'none', motion: 'subtle', note: 'angles vifs, filets fins, grands blancs, typographie qui porte tout' },
+  { id: 'soft-generous', radius: '1.25rem', density: 'spacious', button: 'primary', card: 'filled', headingCase: 'none', motion: 'moderate', note: 'formes douces, aplats de couleur pâle, rythme ample' },
+  { id: 'bold-contrast', radius: '0.375rem', density: 'comfortable', button: 'accent', card: 'outline', headingCase: 'uppercase', motion: 'expressive', note: 'titres massifs en capitales, contrastes francs, bandes pleine largeur' },
+  { id: 'calm-precise', radius: '0.5rem', density: 'comfortable', button: 'secondary', card: 'outline', headingCase: 'none', motion: 'subtle', note: 'précision, alignements stricts, peu d’effets' },
+  { id: 'warm-organic', radius: '1.5rem', density: 'comfortable', button: 'primary', card: 'elevated', headingCase: 'none', motion: 'moderate', note: 'courbes, photos à bords arrondis, ombres douces' },
+  { id: 'compact-pro', radius: '0.25rem', density: 'compact', button: 'primary', card: 'flat', headingCase: 'none', motion: 'subtle', note: 'dense et informatif, tableaux et listes, peu de vide' },
+] as const;
+
+export type Personality = (typeof PERSONALITIES)[number];
+
+export function personalityOf(projectData?: ProjectModel): Personality {
+  const source = String(projectData?.id || projectData?.name || 'idem');
+  let hash = 0;
+  for (let i = 0; i < source.length; i++) hash = (hash * 31 + source.charCodeAt(i)) >>> 0;
+  return PERSONALITIES[hash % PERSONALITIES.length];
+}
+
 export function seedConfig(projectData: ProjectModel | undefined, system: DesignSystem = forgeDesignSystem(projectData)): Json {
   const branding = (projectData?.analysisResultModel?.branding ?? {}) as Json;
   const fonts = readFonts(branding);
   const { direction, colors } = system;
   const family = styleFamily(system);
+  const personality = personalityOf(projectData);
 
-  return {
+  return withPersonality(personality, {
     schemaVersion: 1,
     appearance: {
       colorMode: 'light',
@@ -106,16 +132,28 @@ export function seedConfig(projectData: ProjectModel | undefined, system: Design
       intensity: family === 'expressive' ? 'expressive' : family === 'soft' ? 'moderate' : 'subtle',
       respectReducedMotion: true,
     },
-  };
+  });
+}
+
+/** La personnalité posée sur la configuration de départ (le modèle peut encore l'ajuster, jamais la marque). */
+function withPersonality(personality: Personality, seed: Json): Json {
+  seed.appearance = { ...seed.appearance, density: personality.density };
+  seed.tokens.radius = { ...seed.tokens.radius, base: personality.radius };
+  seed.tokens.typography = { ...seed.tokens.typography, headingCase: personality.headingCase };
+  seed.components.button = { ...seed.components.button, variant: personality.button };
+  seed.components.card = { ...seed.components.card, variant: personality.card };
+  seed.motion = { ...seed.motion, intensity: personality.motion };
+  return seed;
 }
 
 /** Ce que la charte a décidé et que le modèle ne peut pas changer. */
-function charterLocks(projectData: ProjectModel, seed: Json): Array<[string[], unknown]> {
+function charterLocks(projectData: ProjectModel, seed: Json, preserve = false): Array<[string[], unknown]> {
   const branding = (projectData.analysisResultModel?.branding ?? {}) as Json;
   const palette = readPalette(branding);
   const fonts = readFonts(branding);
   const locks: Array<[string[], unknown]> = [];
-  if (palette.primary) locks.push([['tokens', 'colors', 'primary'], seed.tokens.colors.primary]);
+  // Une refonte garde la couleur EXACTE du site, pas une teinte voisine de la gamme calculée.
+  if (palette.primary) locks.push([['tokens', 'colors', 'primary'], preserve ? palette.primary : seed.tokens.colors.primary]);
   if (fonts.display) locks.push([['tokens', 'typography', 'headingFont'], seed.tokens.typography.headingFont]);
   if (fonts.body) locks.push([['tokens', 'typography', 'bodyFont'], seed.tokens.typography.bodyFont]);
   if (fonts.displayCss) locks.push([['tokens', 'typography', 'headingFontUrl'], fonts.displayCss]);
@@ -170,9 +208,9 @@ const SCHEMA = `{
   }
 }`;
 
-function prompt(facts: SiteFacts, system: DesignSystem, seed: Json, request: string, locked: string[]): string {
+function prompt(facts: SiteFacts, system: DesignSystem, seed: Json, request: string, locked: string[], redesign: string | undefined, personality: string): string {
   const { direction, colors } = system;
-  return `# Le projet
+  return `${redesign ? `${redesign}\n\n` : ''}# Le projet
 ${facts.name} : ${facts.description}
 ${facts.audience ? `Clientèle : ${facts.audience}\n` : ''}${request.trim() && request.trim() !== facts.description ? `Demande : ${request.trim().slice(0, 800)}\n` : ''}
 # La charte graphique du projet
@@ -184,6 +222,9 @@ Polices : ${system.fonts.display} (titres), ${system.fonts.body} (texte).
 ${locked.length ? `Imposé par la charte, à garder tel quel : ${locked.join(', ')}.\n` : ''}
 # Configuration de départ (tirée de la charte)
 ${JSON.stringify(seed, null, 2)}
+
+# La personnalité de ce site
+${personality} (déjà posée dans la configuration de départ : garde-la, elle distingue ce site des autres).
 
 # Ta tâche
 Tu fixes le design system de ce site : l'apparence de ses composants de base (boutons, champs, cartes, badges, titres) et son mouvement. Tu ne décris aucune page.
@@ -215,17 +256,19 @@ export async function configureDesignSystem(options: {
   facts: SiteFacts;
   request: string;
   caller: ModelCaller;
+  /** Refonte : le style relevé sur le site actuel, à moderniser sans perdre la marque (`redesign/brief.ts`). */
+  redesign?: string;
 }): Promise<DesignOutcome> {
-  const { projectData, facts, request, caller } = options;
+  const { projectData, facts, request, caller, redesign } = options;
   const system = forgeDesignSystem(projectData);
   const seed = seedConfig(projectData, system);
-  const locks = charterLocks(projectData, seed);
+  const locks = charterLocks(projectData, seed, !!redesign);
   const { parseColor } = compiler;
 
   const outcome = await caller.json(
     'design-system',
     "Tu es directeur artistique et tu configures le design system d'un site vitrine. Tu réponds UNIQUEMENT par un objet JSON valide, sans texte autour.",
-    prompt(facts, system, seed, request, locks.map(([path]) => path.slice(1).join('.'))),
+    prompt(facts, system, seed, request, locks.map(([path]) => path.slice(1).join('.')), redesign, personalityOf(projectData).note),
     (raw): Verdict<Json> =>
       raw && typeof raw === 'object' && !Array.isArray(raw) && (raw as Json).tokens ? { value: raw as Json } : { problem: SHAPE_REMINDER },
     2200
@@ -241,6 +284,10 @@ export async function configureDesignSystem(options: {
       if (current !== undefined) enforced.push(`${path.slice(1).join('.')} (charte)`);
     }
   }
+
+  // Pas de couleur fluo : une couleur choisie par le modèle (hors couleurs de la marque) trop saturée et trop
+  // lumineuse est ramenée à une teinte posée — même teinte, moins de chroma.
+  enforced.push(...tameNeon(config, Object.values(readPalette((projectData.analysisResultModel?.branding ?? {}) as Json)), new Set(locks.map(([path]) => path.join('.')))));
 
   // Surfaces claires, sauf demande explicite d'un thème sombre.
   if (!DARK_REQUEST.test(request)) {
@@ -278,6 +325,34 @@ export async function configureDesignSystem(options: {
       ground: system.colors.brand['50'] ?? system.colors.surface,
     },
   };
+}
+
+/** Au-delà de ce chroma (OKLCH) et dans cette lumière, une couleur passe pour fluo à l'écran. */
+const NEON_CHROMA = 0.2;
+const CALM_CHROMA = 0.13;
+
+/**
+ * Ramène les couleurs fluo choisies par le modèle à une teinte posée. Les couleurs de la marque (et leurs proches
+ * voisines) restent telles quelles : une marque vive a le droit de l'être.
+ */
+export function tameNeon(config: Json, brandHexes: string[], locked: Set<string>): string[] {
+  const colors = config.tokens?.colors;
+  if (!colors || typeof colors !== 'object') return [];
+  const brand = brandHexes.map((hex) => hexToRgb(hex)).filter((rgb): rgb is NonNullable<typeof rgb> => !!rgb).map(rgbToOklch);
+  const changed: string[] = [];
+  for (const [key, value] of Object.entries(colors)) {
+    if (locked.has(`tokens.colors.${key}`) || typeof value !== 'string') continue;
+    const parsed = compiler.parseColor(value);
+    if (!parsed) continue;
+    // `parseColor` rend des canaux 0–255, `color.ts` travaille en 0–1.
+    const lch = rgbToOklch({ r: parsed.r / 255, g: parsed.g / 255, b: parsed.b / 255 });
+    if (lch.c < NEON_CHROMA || lch.l < 0.5 || lch.l > 0.95) continue;
+    const nearBrand = brand.some((b) => Math.abs(b.l - lch.l) < 0.12 && Math.abs(b.c - lch.c) < 0.08 && Math.min(Math.abs(b.h - lch.h), 360 - Math.abs(b.h - lch.h)) < 18);
+    if (nearBrand) continue;
+    colors[key] = formatOklch({ ...lch, c: CALM_CHROMA });
+    changed.push(`${key} (fluo)`);
+  }
+  return changed;
 }
 
 /** Le design system de départ, sans modèle : celui que l'atelier monte avant la génération. */

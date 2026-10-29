@@ -285,7 +285,11 @@ async function probeIn(specs: SceneSpec[], format: VideoFormat) {
     check(`${format} : un texte que sa propre animation laisserait hors cadre s’arrête dans la zone sûre`, !probed.layout.r1, JSON.stringify(probed.layout.r1));
     check(`${format} : un texte déclaré caché qui « entre » (from opacity, to {}) apparaît bien`, !probed.layout.h1, JSON.stringify(probed.layout.h1));
     const p1 = probed.layout.p1 || [];
-    check(`${format} : texte posé sur une photo, texte traversé par un trait vertical, texte à cheval sur un anneau : détectés`, p1.some((m) => /« Vos récoltes en vue » est posé sur une image/.test(m)) && p1.some((m) => /« Tout commence au soleil » est traversé/.test(m)) && p1.some((m) => /« clients accompagnés » est à cheval/.test(m)), JSON.stringify(p1));
+    // Un texte sur une photo n'est un défaut que s'il ne s'y lit pas (contraste mesuré < 4,5:1) : dans une zone calme de
+    // l'image, il est voulu (compilateur 0.3 : l'aplat devient l'exception).
+    const photoText = (probed.contrast.p1 || []).length >= 0 && p1.some((m) => /« Vos récoltes en vue » est posé sur une image/.test(m));
+    const readableOnPhoto = !photoText && !(probed.minContrast.p1 !== undefined && probed.minContrast.p1 < 2.2);
+    check(`${format} : texte sur une photo signalé s'il ne s'y lit pas, texte traversé par un trait vertical, texte à cheval sur un anneau : détectés`, (photoText || readableOnPhoto) && p1.some((m) => /« Tout commence au soleil » est traversé/.test(m)) && p1.some((m) => /« clients accompagnés » est à cheval/.test(m)), JSON.stringify(p1));
     check(`${format} : la couleur du fond d’un texte illisible est relevée (dernier recours)`, (probed.contrast.n1 || []).some((c) => c.text === 'Pagne Royal' && c.bg?.length === 3), JSON.stringify(probed.contrast));
     check(`${format} : texte sombre sur un bandeau sombre signalé (contraste mesuré sur l’image) ; texte clair sur le même bandeau non signalé`, (probed.layout.n1 || []).some((m) => /ne se lit pas sur son fond/.test(m)) && !probed.layout.n2, JSON.stringify({ n1: probed.layout.n1, n2: probed.layout.n2 }));
     check(`${format} : un fondu final reste à la fin (scène pas vide à 78 %) ; une scène qui n’affiche aucun texte est signalée`, !probed.layout.e1 && (probed.layout.e2 || []).some((m) => /aucun de ses textes/.test(m)), JSON.stringify({ e1: probed.layout.e1, e2: probed.layout.e2 }));

@@ -4,6 +4,10 @@ import { modelForCreativity, normalizeCreativity } from '../config/modelConfig.j
 import { handleBuilderMode } from '../handlers/builderHandler.js';
 import { resolveBuildTarget } from '../config/buildTarget.js';
 import { handleChatMode } from '../handlers/chatHandler.js';
+import { dispatch } from '../commands/dispatch.js';
+import { hasUnfinishedGeneration, startResume } from '../commands/workflows/resume.js';
+import { isEditableSite } from '../siteEngine/edit.js';
+import { readPointed } from '../siteEngine/pointed.js';
 import { ChatLogger } from '../utils/logger.js';
 import { consumeGeneration, resolveBillableAction } from '../services/billingService.js';
 import { forwardedCredentials } from '../middleware/auth.js';
@@ -49,7 +53,10 @@ router.post('/', async (req: Request, res: Response) => {
       followUp,
       siteRepair,
       siteEdit,
+      answers,
+      pointed: pointedRaw,
     } = req.body as ChatRequest;
+    const pointed = readPointed(pointedRaw);
 
     // Le niveau de créativité choisit le modèle (l'interface n'en montre plus aucun) ; un ancien client qui
     // envoie encore un modèle garde son choix.
@@ -141,6 +148,45 @@ router.post('/', async (req: Request, res: Response) => {
      * `pipeDataStreamToResponse`, il serait trop tard pour refuser quoi que ce
      * soit — et le coût d'inférence serait déjà engagé.
      */
+    // Les déroulés d'iCode (commandes « / », réponses cliquées, demandes reconnues par l'agent) passent avant
+    // la facturation : une question est gratuite, chaque déroulé facture au moment où il génère.
+    const lastUser = [...(messages ?? [])].reverse().find((message) => message.role === 'user');
+    // Une réponse coupée en route : l'atelier envoie de lui-même sa consigne de reprise. Pour un site du moteur
+    // dont le plan n'est pas coché jusqu'au bout, c'est le plan qui reprend (ce qui est fait reste, rien n'est
+    // refacturé) — pas une retouche qui chercherait quelle partie changer.
+    if (mode === ChatMode.Builder && followUp?.trim() && hasUnfinishedGeneration(siteEdit?.files)) {
+      const responder = startResume({
+        messages,
+        text: '',
+        projectData,
+        fr: resolvedLanguage !== 'en',
+        model,
+        userId,
+        credentials: forwardedCredentials(req),
+        creativity: level ?? undefined,
+        siteFiles: siteEdit?.files,
+      });
+      return await responder.pipeDataStreamToResponse(res);
+    }
+    // Une demande dessinée sur l'aperçu désigne déjà ce qu'il faut changer : elle va droit à la retouche.
+    if (mode === ChatMode.Builder && !siteRepair && !qualityRepair?.trim() && !followUp?.trim() && !pointed) {
+      const responder = await dispatch({
+        messages,
+        text: lastUser ? String(lastUser.content) : '',
+        projectData,
+        fr: resolvedLanguage !== 'en',
+        model,
+        userId,
+        credentials: forwardedCredentials(req),
+        creativity: level ?? undefined,
+        answers,
+        hasSite: isEditableSite(siteEdit?.files),
+        product: product ?? null,
+        siteFiles: siteEdit?.files,
+      });
+      if (responder) return await responder.pipeDataStreamToResponse(res);
+    }
+
     const billable = resolveBillableAction(messages?.length ?? 0, mode as 'chat' | 'builder');
     const billing = await consumeGeneration({
       credentials: forwardedCredentials(req),
@@ -190,7 +236,8 @@ router.post('/', async (req: Request, res: Response) => {
         scaffold?.version,
         forwardedCredentials(req),
         siteRepair,
-        siteEdit
+        siteEdit,
+        pointed ?? undefined
       );
     }
 

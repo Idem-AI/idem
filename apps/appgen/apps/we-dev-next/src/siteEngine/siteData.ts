@@ -27,8 +27,9 @@ export interface BrandSource {
 
 const literal = (value: unknown): string => JSON.stringify(value, null, 2).replace(/</g, '\\u003c');
 
-/** Le menu : les pages d'un site multi-pages, les ancres choisies d'un site d'une page. */
+/** Le menu : celui de l'ancien site (refonte), sinon les pages d'un site multi-pages, les ancres choisies d'un site d'une page. */
 export function navigationOf(manifest: SiteManifest): NavLink[] {
+  if (manifest.menu?.length) return manifest.menu;
   if (manifest.pages.length > 1) return manifest.pages.map((page) => ({ label: page.label, href: page.path }));
   return manifest.pages[0].sections
     .filter((section, index) => index > 0 && section.navLabel)
@@ -50,8 +51,9 @@ export function primaryActionOf(facts: SiteFacts, language: string): NavLink | n
 }
 
 /** `src/site/data.ts` */
-export function renderDataModule(facts: SiteFacts, manifest: SiteManifest | null, language: string): string {
-  const site = {
+/** Les valeurs de `@/site/data` (leurs textes forment aussi une part du catalogue des langues). */
+export function siteDataOf(facts: SiteFacts, manifest: SiteManifest | null, language: string) {
+  return {
     name: facts.name,
     description: facts.description,
     language,
@@ -68,12 +70,19 @@ export function renderDataModule(facts: SiteFacts, manifest: SiteManifest | null
     team: facts.team.map((member) => ({ name: member.name, role: member.role, bio: member.bio, photo: member.photo ?? '' })),
     year: new Date().getFullYear(),
   };
+}
+
+export function renderDataModule(facts: SiteFacts, manifest: SiteManifest | null, language: string): string {
+  const site = siteDataOf(facts, manifest, language);
 
   return `/**
  * Les faits du site, posés par IDEM depuis le projet. Importez-les plutôt que
- * de les recopier : un prix, un numéro ou un lien n'existe qu'ici.
+ * de les recopier : un prix, un numéro ou un lien n'existe qu'ici. Leurs textes
+ * se lisent dans la langue de la page (\`localize\`, voir \`src/i18n\`).
  */
-export const site = ${literal(site)};
+import { localize } from '@/i18n';
+
+export const site = localize(${literal(site)});
 
 export type Site = typeof site;
 `;

@@ -6,6 +6,13 @@ import { refreshTokenService } from './refreshToken.service';
 import { IdemAuthUser } from './identity/identity.service';
 import { UserModel } from '../models/userModel';
 import { JwtPayload, signHs256, verifyHs256 } from '../utils/jwt-hs256.util';
+import { clientUserAgent, deviceFingerprint } from '../utils/device-fingerprint.util';
+import { isKnownDevice } from './refreshToken.service';
+import {
+  assertSessionDevice,
+  reportSuspiciousDevice,
+  SuspiciousDeviceError,
+} from './identity/deviceCheck.service';
 
 /** Durée de vie du cookie `session` partagé par toutes les applications IDEM. */
 export const SESSION_EXPIRES_IN = 14 * 24 * 60 * 60 * 1000; // 14 jours
@@ -83,10 +90,24 @@ interface SessionClaims extends JwtPayload {
   name?: string;
   picture?: string;
   aid?: string;
+  /** Session (refresh token) à laquelle ce cookie appartient. */
+  sid?: string;
+  /** Empreinte de l'appareil de la session. */
+  dfp?: string;
 }
 
-/** Émet le cookie `session` d'un utilisateur IDEM. */
-export function createSessionToken(user: UserModel): string {
+/** Session et appareil auxquels un cookie `session` est lié. */
+export interface SessionDeviceBinding {
+  sessionId: string;
+  deviceFingerprint: string;
+}
+
+/**
+ * Émet le cookie `session` d'un utilisateur IDEM. Sans `binding`, le jeton
+ * n'est accepté par aucune requête (`verifySessionForRequest`) : seuls les
+ * contrôles hors requête (scripts de vérification) s'en servent.
+ */
+export function createSessionToken(user: UserModel, binding?: SessionDeviceBinding): string {
   const now = Date.now();
   const claims: SessionClaims = {
     iss: SESSION_ISSUER,
@@ -100,6 +121,7 @@ export function createSessionToken(user: UserModel): string {
     ...(user.displayName && { name: user.displayName }),
     ...(user.photoURL && { picture: user.photoURL }),
     ...(user.authId && { aid: user.authId }),
+    ...(binding && { sid: binding.sessionId, dfp: binding.deviceFingerprint }),
   };
   return signHs256(claims, sessionSecret());
 }
@@ -135,14 +157,7 @@ export function forgetRevocation(uid: string): void {
   revocationCache.delete(uid);
 }
 
-/**
- * Vérifie un cookie `session` et rend l'identité qu'il porte.
- * Lève une erreur si le jeton est invalide, expiré ou révoqué.
- */
-export async function verifySessionCookie(
-  token: string,
-  checkRevoked = true
-): Promise<IdemAuthUser> {
+async function decodeSession(token: string, checkRevoked: boolean): Promise<SessionClaims> {
   const claims = verifyHs256<SessionClaims>(token, sessionSecret(), {
     issuer: SESSION_ISSUER,
     clockTolerance: 0,
@@ -153,6 +168,10 @@ export async function verifySessionCookie(
   if (checkRevoked && (await isIssuedBeforeRevocation(claims.sub, claims.iatMs ?? 0))) {
     throw new Error('Session revoked');
   }
+  return claims;
+}
+
+function identityOf(claims: SessionClaims): IdemAuthUser {
   return {
     uid: claims.sub,
     email: claims.email,
@@ -164,36 +183,92 @@ export async function verifySessionCookie(
 }
 
 /**
+ * Vérifie un cookie `session` et rend l'identité qu'il porte, sans contrôle
+ * d'appareil. Lève une erreur si le jeton est invalide, expiré ou révoqué.
+ * Toute requête HTTP passe par `verifySessionForRequest`.
+ */
+export async function verifySessionCookie(
+  token: string,
+  checkRevoked = true
+): Promise<IdemAuthUser> {
+  return identityOf(await decodeSession(token, checkRevoked));
+}
+
+/**
+ * Vérifie un cookie `session` présenté par une requête : signature, expiry,
+ * révocation, puis appareil. Un cookie émis avant la liaison aux appareils
+ * (sans `sid`) est refusé : le refresh token le remplace par un cookie lié.
+ * Lève `SuspiciousDeviceError` si l'appareil n'est pas celui de la session.
+ */
+export async function verifySessionForRequest(req: Request, token: string): Promise<IdemAuthUser> {
+  const claims = await decodeSession(token, true);
+  if (!claims.sid) throw new Error('Session not bound to a device');
+  await assertSessionDevice(req, claims.sub, claims.sid, claims.dfp);
+  return identityOf(claims);
+}
+
+/**
  * Émet un nouveau cookie de session pour un utilisateur, sans son navigateur
  * (renouvellement à partir du refresh token).
  */
-export async function mintSessionCookie(uid: string): Promise<string> {
+export async function mintSessionCookie(uid: string, binding: SessionDeviceBinding): Promise<string> {
   const doc = await mongoose.connection.collection('users').findOne({ _id: uid as any });
   if (!doc) throw new Error(`User ${uid} not found`);
-  return createSessionToken({ ...(doc as any), uid });
+  return createSessionToken({ ...(doc as any), uid }, binding);
+}
+
+/**
+ * Émet un cookie `session` à partir du cookie `refreshToken` de la requête,
+ * après contrôle de l'appareil. Renvoie `null` sans refresh token valide ;
+ * lève `SuspiciousDeviceError` si l'appareil n'est pas celui de la session.
+ */
+export async function sessionFromRefreshToken(
+  req: Request
+): Promise<{ uid: string; sessionCookie: string } | null> {
+  const refreshToken = req.cookies.refreshToken;
+  if (!refreshToken) return null;
+
+  const validation = await refreshTokenService.validateRefreshToken(refreshToken);
+  if (!validation.isValid || !validation.userId || !validation.tokenData) return null;
+  const session = validation.tokenData;
+
+  // `validateRefreshToken` a posé `sessionId` et `deviceFingerprint` sur les
+  // sessions antérieures à la liaison aux appareils.
+  const fingerprint = deviceFingerprint(clientUserAgent(req));
+  if (session.deviceFingerprint === 'unknown') {
+    // Ancienne session ouverte sans User-Agent : elle adopte cet appareil.
+    await refreshTokenService.trustDevice(validation.userId, session.sessionId!, fingerprint);
+  } else if (!isKnownDevice(session, fingerprint)) {
+    reportSuspiciousDevice(req, validation.userId, session.sessionId!, fingerprint, session.deviceFingerprint);
+    throw new SuspiciousDeviceError();
+  }
+
+  const sessionCookie = await mintSessionCookie(validation.userId, {
+    sessionId: session.sessionId!,
+    deviceFingerprint: fingerprint,
+  });
+  return { uid: validation.userId, sessionCookie };
 }
 
 /**
  * Rétablit le cookie `session` à partir du cookie `refreshToken` (30 jours),
  * quand la session a expiré ou manque. Renvoie le nouveau cookie, ou `null`
- * si aucun refresh token valide n'est disponible.
+ * si aucun refresh token valide n'est disponible ; lève `SuspiciousDeviceError`
+ * si l'appareil n'est pas celui de la session.
  */
 export async function restoreSessionFromRefreshToken(
   req: Request,
   res: Response
 ): Promise<string | null> {
-  const refreshToken = req.cookies.refreshToken;
-  if (!refreshToken) return null;
-
   try {
-    const validation = await refreshTokenService.validateRefreshToken(refreshToken);
-    if (!validation.isValid || !validation.userId) return null;
+    const restored = await sessionFromRefreshToken(req);
+    if (!restored) return null;
 
-    const sessionCookie = await mintSessionCookie(validation.userId);
-    res.cookie('session', sessionCookie, sessionCookieOptions());
-    logger.info(`Session cookie restored from refresh token for user: ${validation.userId}`);
-    return sessionCookie;
+    res.cookie('session', restored.sessionCookie, sessionCookieOptions());
+    logger.info(`Session cookie restored from refresh token for user: ${restored.uid}`);
+    return restored.sessionCookie;
   } catch (error: any) {
+    if (error instanceof SuspiciousDeviceError) throw error;
     logger.error(`Error restoring session from refresh token: ${error.message}`);
     return null;
   }

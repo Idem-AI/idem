@@ -30,11 +30,17 @@ declare module 'express-serve-static-core' {
 
 const cache = new Map<string, { user: IdemUser; at: number }>();
 
-/** En-têtes à transmettre à l'API IDEM pour prouver l'identité de l'appelant. */
+/**
+ * En-têtes à transmettre à l'API IDEM pour prouver l'identité de l'appelant.
+ * Le User-Agent du navigateur en fait partie : IDEM lie chaque session à son
+ * appareil et refuserait un cookie présenté avec celui de ce serveur.
+ */
 export function forwardedCredentials(req: Request): Record<string, string> {
   const headers: Record<string, string> = {};
   if (typeof req.headers.authorization === 'string') headers.Authorization = req.headers.authorization;
   if (typeof req.headers.cookie === 'string') headers.Cookie = req.headers.cookie;
+  const userAgent = req.get('x-idem-client-user-agent') || req.get('user-agent');
+  if (userAgent) headers['X-Idem-Client-User-Agent'] = userAgent;
   return headers;
 }
 
@@ -43,7 +49,7 @@ async function resolveUser(req: Request): Promise<IdemUser | null> {
   if (!credentials.Authorization && !credentials.Cookie) return null;
 
   const key = createHash('sha256')
-    .update(`${credentials.Authorization ?? ''}|${credentials.Cookie ?? ''}`)
+    .update(`${credentials.Authorization ?? ''}|${credentials.Cookie ?? ''}|${credentials['X-Idem-Client-User-Agent'] ?? ''}`)
     .digest('hex');
   const cached = cache.get(key);
   if (cached && Date.now() - cached.at < CACHE_TTL_MS) return cached.user;

@@ -143,6 +143,51 @@
           "line": "Le modèle le plus puissant, pour les projets ambitieux."
         }
       }
+    },
+    "redesign": {
+      "attaching": "J’enregistre votre site dans votre projet IDEM…",
+      "attachFailed": "Le site est prêt, mais je n’ai pas pu l’enregistrer dans votre projet. Réessayez depuis le bouton Enregistrer."
+    },
+    "choices": {
+      "step": "Question {{current}} sur {{total}}",
+      "back": "Précédent",
+      "forMe": "Choisir pour moi",
+      "recommended": "Recommandé",
+      "other": "Autre…",
+      "otherPlaceholder": "Dites-le avec vos mots",
+      "continue": "Continuer",
+      "review": "Récapitulatif",
+      "reviewTitle": "Vos réponses",
+      "edit": "Modifier",
+      "submit": "Lancer",
+      "consent": {
+        "lead": "Votre site devient un projet IDEM. J’accepte la",
+        "privacy": "politique de confidentialité",
+        "terms": "les conditions d’utilisation",
+        "and": "et",
+        "beta": "les conditions du programme bêta",
+        "ofIdem": "d’IDEM.",
+        "required": "Cochez la case pour que je puisse créer votre projet IDEM."
+      }
+    },
+    "commands": {
+      "menuLabel": "Commandes",
+      "hint": "Entrée pour lancer · ↑↓ pour choisir · Échap pour fermer",
+      "args": "puis {{args}}",
+      "needsProject": "Cette commande a besoin d’un projet IDEM : ouvrez iCode depuis votre projet.",
+      "nothingToFix": "Aucune erreur à corriger pour l’instant.",
+      "empty": "Aucune commande ne correspond."
+    },
+    "resume": {
+      "question": "Votre dernière génération s’est arrêtée avant la fin. On la reprend ?",
+      "help": "{{done}} étapes sur {{total}} sont faites et gardées.",
+      "now": "Reprendre là où elle s’est arrêtée",
+      "nowHelp": "Seul ce qui reste est écrit, sans repayer ce qui est fait.",
+      "later": "Plus tard"
+    },
+    "scroll": {
+      "working": "Ça avance plus bas",
+      "new": "Nouveau message plus bas"
     }
   },
   "settings": {
@@ -285,11 +330,16 @@
       "dismiss": "Ignorer cette erreur",
       "busy": "Une génération est en cours : relancez la correction quand elle sera terminée."
     },
+    "startFailed": {
+      "depsHint": "L'installation des dépendances n'a pas abouti (réseau ou registre npm). Relancez avec « Exécuter » : vos fichiers sont gardés.",
+      "title": "L'aperçu n'a pas démarré",
+      "hint": "Le serveur de l'aperçu ne répond pas. Ouvrez le terminal pour voir pourquoi, ou relancez avec « Exécuter » : vos fichiers sont gardés."
+    },
     "waiting": {
       "title": "Démarrage en cours…",
       "download": "Préparation de l'environnement ({{percent}} %). Une seule fois : ensuite votre projet s'ouvre tout de suite.",
       "mount": "Mise en place de l'environnement.",
-      "install": "Installation des dépendances. La première fois, cela prend une à deux minutes.",
+      "install": "Installation des dépendances. Sans environnement préparé sur ce serveur, la première fois prend plusieurs minutes.",
       "start": "Démarrage de l'application.",
       "fullstack": "Démarrage de la base de données, du serveur puis de l'interface. Tout se relie tout seul."
     }
@@ -670,7 +720,20 @@
     "askAI": "Demander à l'IA",
     "selectionPrompt": "À propos de {{count}} élément(s) sélectionné(s) dans l'aperçu :",
     "annotationPrompt": "Annotation dessinée sur l'aperçu (zone {{zone}}) : {{note}}",
-    "annotationPromptEmpty": "Annotation dessinée sur l'aperçu, zone {{zone}}. Applique le changement indiqué par le tracé."
+    "annotationPromptEmpty": "Applique le changement indiqué par le dessin.",
+    "pointedIntro": "Désigné dans l'aperçu :",
+    "kind": {
+      "image": "l'image",
+      "link": "le lien",
+      "button": "le bouton",
+      "heading": "le titre",
+      "text": "le texte",
+      "icon": "l'icône",
+      "input": "le champ",
+      "list": "la liste",
+      "container": "le bloc",
+      "generic": "l'élément"
+    }
   },
   "tour": {
     "common": {
@@ -791,7 +854,8 @@
     "restored": "Version restaurée",
     "restoreFailed": "La restauration a échoué",
     "beforeRestore": "Avant restauration",
-    "beforeDelete": "Avant suppression"
+    "beforeDelete": "Avant suppression",
+    "beforeRedesign": "Avant refonte"
   },
   "chatWorkspace": {
     "readyToGenerate": "Prêt à générer votre application",
