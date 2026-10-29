@@ -34,7 +34,7 @@ export interface GeneratedImageLike {
   model: string;
 }
 
-export type VisionPurpose = 'visual-analysis' | 'shot-critic' | 'reference' | 'site' | 'media-check';
+export type VisionPurpose = 'visual-analysis' | 'shot-critic' | 'reference' | 'site' | 'media-check' | 'video-tiebreak';
 export interface VisionOptions {
   maxOutputTokens?: number;
   temperature?: number;

@@ -15,6 +15,7 @@ import logger from '../../config/logger';
 import { COMMUNICATION_PRICES } from '../../models/offer.model';
 import { configureCore, ImageOptions, SpeechRequest, SynthesizedSpeech, VideoClipRequest, VisionOptions } from '../../../../ivision/core/src/runtime/host';
 import { AI_CONFIG } from '../../config/ai.config';
+import { roleConfig } from '../../config/creative-roles';
 import { setVideoPricingBase } from '../../../../ivision/core/src/video/pricing';
 import { apiBaseUrl } from '../Communication/visualUrl';
 import { runtimeCall } from '../creativity/orchestrator';
@@ -37,7 +38,15 @@ export async function idemAnalyzeImage(base64: string, mimeType: string, instruc
     base64,
     mimeType,
     instruction,
-    purpose === 'visual-analysis' ? { model: sourcing.visionModel, fallbackModel: sourcing.visionFallbackModel, maxOutputTokens: sourcing.visionMaxOutputTokens, ...rest } : rest
+    purpose === 'visual-analysis'
+      ? { model: sourcing.visionModel, fallbackModel: sourcing.visionFallbackModel, maxOutputTokens: sourcing.visionMaxOutputTokens, ...rest }
+      : purpose === 'video-tiebreak'
+        ? // Le départage visuel du moteur vidéo : le modèle du rôle `video.judge-vlm` (échelle « video-vision »).
+          (() => {
+            const role = roleConfig('video.judge-vlm', 'agents', 'ultra');
+            return { model: role.modelName, ...(role.fallbackModels?.[0] ? { fallbackModel: role.fallbackModels[0] } : {}), maxOutputTokens: 400, ...rest };
+          })()
+        : rest
   );
 }
 

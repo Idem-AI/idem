@@ -44,6 +44,56 @@ TypeScript (https://www.typescriptlang.org)
 - License: Apache 2.0
 - Copyright: Microsoft Corporation
 
+Motion Canvas (https://motioncanvas.io) — video engine
+- License: MIT
+- Copyright: Motion Canvas contributors
+
+HyperFrames (https://github.com/heygen-com/hyperframes) — video engine
+- License: Apache 2.0
+- Copyright: HeyGen, Inc.
+- Portions ported and modified by the Idem Team: the colour-grading LUT builder
+  (packages/motion-compiler/src/design/grade.ts, from cube-build.mjs); motion
+  measurements, transition ("seam") vocabulary and vector law from the motion,
+  motion-doctrine and cut-the-curve skills (packages/motion-compiler/src/design/
+  motion.ts, film.ts, directions.ts, src/intent/recipes.ts,
+  apps/ivision/core/motion/kit/seams.ts, apps/ivision/core/src/video/audio/sfx.ts).
+
+Lucide icons (https://lucide.dev) — icons drawn in videos
+- License: ISC
+- Copyright: Lucide Icons and Contributors; Cole Bemis (Feather, MIT)
+
+Kiwi.js / @lume/kiwi (Cassowary constraint solver) — video layout and timing solvers
+- License: BSD-3-Clause
+- Copyright: Nucleic Development Team; Joseph Orbegoso Pea; LUME
+
+Material Color Utilities (https://github.com/material-foundation/material-color-utilities)
+- License: Apache 2.0
+- Copyright: Google LLC
+
+Leonardo contrast colors (https://github.com/adobe/leonardo)
+- License: Apache 2.0
+- Copyright: Adobe Inc.
+
+Capsize metrics (https://github.com/seek-oss/capsize)
+- License: MIT
+- Copyright: SEEK
+
+tex-linebreak (Knuth-Plass line breaking) (https://github.com/robertknight/tex-linebreak)
+- License: MIT
+- Copyright: Robert Knight
+
+smartcrop-sharp (https://github.com/jwagner/smartcrop-sharp)
+- License: MIT
+- Copyright: Jonas Wagner
+
+music-tempo (BeatRoot beat tracking) (https://github.com/killercrush/music-tempo)
+- License: MIT
+- Copyright: killercrush
+
+dotLottie web player (https://github.com/LottieFiles/dotlottie-web)
+- License: MIT
+- Copyright: LottieFiles
+
 For a complete list of dependencies and their licenses, please refer to the
 package.json files in each workspace.
 

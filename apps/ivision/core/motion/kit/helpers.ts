@@ -7,6 +7,9 @@
  */
 import { useThread, waitFor } from '@motion-canvas/core';
 import type { SceneContext, SceneMedia } from './context';
+import { BASE_SIZE, PLATFORM_SAFE } from './safe';
+
+export { PLATFORM_SAFE };
 
 // ─── Géométrie ───────────────────────────────────────────────────────────────
 
@@ -22,11 +25,20 @@ export interface Box {
 }
 
 /**
- * La zone sûre : l'image moins une marge (en % du plus petit côté). En format vertical (story), le
- * haut et le bas gardent 9 % de plus, là où les applications posent leurs boutons.
+ * La zone sûre : celle de la plateforme (posée par le serveur dans `ctx.safe`, sinon la table ci-dessus). Une marge
+ * explicite (en % du petit côté) garde l'ancien calcul pour le code qui la demande.
  */
-export function safeArea(ctx: Pick<SceneContext, 'width' | 'height' | 'format'>, margin = 6): Box {
-  const m = (Math.min(ctx.width, ctx.height) * margin) / 100;
+export function safeArea(ctx: Pick<SceneContext, 'width' | 'height' | 'format'> & { safe?: SceneContext['safe'] }, margin?: number): Box {
+  if (margin === undefined && ctx.safe) return { x: 0, y: 0, ...ctx.safe };
+  if (margin === undefined && PLATFORM_SAFE[ctx.format]) {
+    const base = BASE_SIZE[ctx.format];
+    const mx = (PLATFORM_SAFE[ctx.format].x * ctx.width) / base.width;
+    const my = (PLATFORM_SAFE[ctx.format].y * ctx.height) / base.height;
+    const width = ctx.width - 2 * mx;
+    const height = ctx.height - 2 * my;
+    return { x: 0, y: 0, width, height, left: -width / 2, right: width / 2, top: -height / 2, bottom: height / 2 };
+  }
+  const m = (Math.min(ctx.width, ctx.height) * (margin ?? 6)) / 100;
   const extra = ctx.format === 'story' ? ctx.height * 0.09 : 0;
   const width = ctx.width - 2 * m;
   const height = ctx.height - 2 * (m + extra);
@@ -81,10 +93,19 @@ export function random(seed: number): () => number {
  * La taille à donner à un `<Img>` / `<Video>` pour COUVRIR un cadre (le surplus est rogné par un
  * parent `clip`), ou pour y TENIR entier (`contain`). Dimensions inconnues : la taille du cadre.
  */
-export function fitMedia(media: Pick<SceneMedia, 'width' | 'height'>, boxWidth: number, boxHeight: number, mode: 'cover' | 'contain' = 'cover'): { width: number; height: number } {
-  if (!media.width || !media.height) return { width: boxWidth, height: boxHeight };
+export function fitMedia(media: Pick<SceneMedia, 'width' | 'height'> & { focus?: { x: number; y: number }; transparent?: boolean }, boxWidth: number, boxHeight: number, mode: 'cover' | 'contain' = 'cover'): { width: number; height: number; x: number; y: number } {
+  if (!media.width || !media.height) return { width: boxWidth, height: boxHeight, x: 0, y: 0 };
+  // Une animation à fond transparent est un OBJET : montrée entière, jamais rognée.
+  if (media.transparent) mode = 'contain';
   const scale = mode === 'cover' ? Math.max(boxWidth / media.width, boxHeight / media.height) : Math.min(boxWidth / media.width, boxHeight / media.height);
-  return { width: media.width * scale, height: media.height * scale };
+  const width = media.width * scale;
+  const height = media.height * scale;
+  // Recadrage sur le SUJET (point d'intérêt trouvé par smartcrop sur le serveur) : le surplus rogné est pris du côté
+  // opposé au sujet, sans jamais laisser de bord vide.
+  const f = mode === 'cover' ? media.focus : undefined;
+  const x = f ? clamp((0.5 - f.x) * width, -(width - boxWidth) / 2, (width - boxWidth) / 2) : 0;
+  const y = f ? clamp((0.5 - f.y) * height, -(height - boxHeight) / 2, (height - boxHeight) / 2) : 0;
+  return { width, height, x, y };
 }
 
 // ─── Texte ───────────────────────────────────────────────────────────────────

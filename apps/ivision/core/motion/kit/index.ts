@@ -6,3 +6,8 @@
  */
 export type { SceneContext, SceneMedia, BrandTokens, BrandColors, SfxKind, FilmFormat } from './context';
 export * from './helpers';
+export { balanceLines } from './lines';
+export { beatAt, cubicBezier, designDur, designEase, designSize, designStagger, designWeight, readTime, springEase } from './design';
+export type { SceneDesignData, TypeLevel, DurToken, EaseName, StaggerToken } from './design';
+export { seamIn, seamOut, seamOutDuration } from './seams';
+export type { SeamData, SeamKind, SeamDir } from './seams';

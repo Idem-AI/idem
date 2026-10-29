@@ -28,7 +28,7 @@ import logger from './logger';
  *   design  concevoir : concept et storyboard vidéo, retouche écrite, direction d'un document
  *   code    écrire du code : scènes Motion Canvas, pages HTML/Tailwind (et les corriger)
  */
-export type ModelLadder = 'design' | 'code';
+export type ModelLadder = 'design' | 'code' | 'video-design' | 'video-code' | 'video-sample' | 'video-vision' | 'video-teacher';
 
 export const MODEL_LADDERS: Record<ModelLadder, Record<CreativityLevel, string>> = {
   design: {
@@ -43,16 +43,49 @@ export const MODEL_LADDERS: Record<ModelLadder, Record<CreativityLevel, string>>
     high: 'qwen/qwen3-coder',
     ultra: 'deepseek/deepseek-v4-pro',
   },
+  /**
+   * LE MOTEUR VIDÉO (plan qualité avec petits modèles, 29/10/2026) : des modèles de 27 à 35 milliards de paramètres,
+   * auto-hébergeables sur un GPU ; la qualité vient de l'outillage (système de design, solveurs, échantillonnage, juge).
+   * Le cran choisit le BUDGET d'essais autant que le modèle (`apps/ivision/core/src/video/author/sampler.ts`).
+   *
+   *   video-design   concept, storyboard, retouche écrite (GLM-5.3-Flash au cran High et Ultra) ;
+   *   video-code     l'auteur de QUALITÉ : réécriture d'une scène difficile (Low n'en a pas : il échantillonne) ;
+   *   video-sample   l'échantillonneur : 6 à 10 variantes par scène, rapide et peu cher ;
+   *   video-vision   le départage visuel optionnel (Ultra) ;
+   *   video-teacher  le professeur HORS LIGNE (bibliothèque de scènes de référence), jamais en production.
+   */
+  'video-design': { low: 'qwen/qwen3.8-27b', medium: 'qwen/qwen3.8-27b', high: 'z-ai/glm-5.3-flash', ultra: 'z-ai/glm-5.3-flash' },
+  'video-code': { low: 'qwen/qwen3.6-35b-a3b', medium: 'qwen/qwen3.8-27b', high: 'qwen/qwen3.8-27b', ultra: 'qwen/qwen3.8-27b' },
+  'video-sample': { low: 'qwen/qwen3.6-35b-a3b', medium: 'qwen/qwen3.6-35b-a3b', high: 'qwen/qwen3.6-35b-a3b', ultra: 'qwen/qwen3.6-35b-a3b' },
+  'video-vision': { low: 'qwen/qwen3.8-27b', medium: 'qwen/qwen3.8-27b', high: 'qwen/qwen3.8-27b', ultra: 'qwen/qwen3.8-27b' },
+  'video-teacher': { low: 'qwen/qwen3.8-2.4t-a95b', medium: 'qwen/qwen3.8-2.4t-a95b', high: 'qwen/qwen3.8-2.4t-a95b', ultra: 'qwen/qwen3.8-2.4t-a95b' },
 };
+
+/** Les replis d'une échelle (même cran) : le modèle qui prend le relais si le premier est indisponible. */
+export const LADDER_FALLBACKS: Partial<Record<ModelLadder, Partial<Record<CreativityLevel, string[]>>>> = {
+  'video-design': { low: ['z-ai/glm-5.3-flash'], medium: ['z-ai/glm-5.3-flash'], high: ['qwen/qwen3.8-27b'], ultra: ['qwen/qwen3.8-27b'] },
+  'video-code': { low: ['qwen/qwen3-coder-next'], medium: ['qwen/qwen3.6-27b'], high: ['qwen/qwen3.6-27b'], ultra: ['qwen/qwen3.6-27b'] },
+  'video-sample': { low: ['qwen/qwen3-coder-next'], medium: ['qwen/qwen3-coder-next'], high: ['qwen/qwen3-coder-next'], ultra: ['qwen/qwen3-coder-next'] },
+  'video-vision': { low: ['qwen/qwen3-vl-8b-instruct'], medium: ['qwen/qwen3-vl-8b-instruct'], high: ['qwen/qwen3-vl-8b-instruct'], ultra: ['qwen/qwen3-vl-8b-instruct'] },
+  'video-teacher': { low: ['deepseek/deepseek-v4.1-flash', 'z-ai/glm-5.3'], medium: ['deepseek/deepseek-v4.1-flash', 'z-ai/glm-5.3'], high: ['deepseek/deepseek-v4.1-flash', 'z-ai/glm-5.3'], ultra: ['deepseek/deepseek-v4.1-flash', 'z-ai/glm-5.3'] },
+};
+
+/** Les replis autorisés (liste blanche) d'une échelle à un cran. */
+export function ladderFallbacks(ladder: ModelLadder, level: CreativityLevel): string[] {
+  return (LADDER_FALLBACKS[ladder]?.[level] || []).filter((m) => isAllowedOpenRouterModel(m));
+}
 
 /** Quelle échelle suit chaque rôle créatif. Un rôle absent garde le modèle de son profil à tous les crans. */
 export const ROLE_LADDERS: Record<string, ModelLadder> = {
   'graphic.director': 'design',
   'graphic.author': 'code',
-  'video.concept': 'design',
-  'video.planner': 'design',
-  'video.author': 'code',
-  'video.reviser': 'design',
+  'video.concept': 'video-design',
+  'video.planner': 'video-design',
+  'video.author': 'video-code',
+  'video.reviser': 'video-design',
+  'video.sampler': 'video-sample',
+  'video.judge-vlm': 'video-vision',
+  'video.teacher': 'video-teacher',
 };
 
 /**
@@ -68,7 +101,7 @@ export const ROLE_MODEL_OVERRIDES: Record<string, Partial<Record<CreativityLevel
 /** Le modèle d'une échelle à un cran (variable d'environnement autorisée, sinon le barreau par défaut). */
 export function ladderModel(ladder: ModelLadder, requested: CreativityLevel): string {
   const level: CreativityLevel = MODEL_LADDERS[ladder][requested] ? requested : 'high';
-  const custom = process.env[`IDEM_LADDER_${ladder.toUpperCase()}_${level.toUpperCase()}`]?.trim();
+  const custom = process.env[`IDEM_LADDER_${ladder.toUpperCase().replace(/-/g, '_')}_${level.toUpperCase()}`]?.trim();
   if (custom) {
     if (isAllowedOpenRouterModel(custom)) return custom;
     logger.warn('creative.ladder_model_refused', { event: 'creative.ladder_model_refused', ladder, level, model: custom });

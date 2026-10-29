@@ -7,6 +7,7 @@
  * au code. Le MP4 est rendu sur nos serveurs (Motion Canvas dans Chromium, puis ffmpeg).
  */
 import type { RequestSpec } from '../request/request';
+import type { FilmDesign, SceneIntent, SeamSpec, TransitionCue, VariantChoice } from '../../../../../../packages/motion-compiler/src';
 
 /** Où la vidéo sera vue. */
 export type VideoFormat = 'story' | 'square' | 'portrait' | 'landscape';
@@ -103,6 +104,25 @@ export interface VideoMediaAsset {
   height?: number;
   /** Vignette (vidéo). */
   posterUrl?: string;
+  /** Clip à fond TRANSPARENT (animation Lottie rendue) : un objet posé dans la scène, jamais recadré ni étalonné. */
+  transparent?: boolean;
+  /**
+   * La PRÉPARATION du média par le code (avant l'auteur) : point d'intérêt et zone calme par format (smartcrop, densité
+   * de contours), teintes dominantes, extrait sans coupe d'un clip, étalonnage commun du film (l'URL est alors celle de
+   * la copie étalonnée ; l'original est gardé).
+   */
+  prep?: {
+    focus?: Partial<Record<VideoFormat, { x: number; y: number }>>;
+    calm?: Partial<Record<VideoFormat, { x: number; y: number; w: number; h: number; light?: boolean }>>;
+    palette?: string[];
+    startAt?: number;
+    graded?: string;
+    originalUrl?: string;
+    /** Capture d'interface : jamais étalonnée (ses couleurs sont celles du produit). */
+    screen?: boolean;
+    /** Le point à montrer de près (0..1) : l'endroit cliqué d'une démo produit scriptée (`assets/demo.ts`). */
+    point?: { x: number; y: number };
+  };
   /** Crédit (Pexels : auteur). */
   credit?: string;
   sourceUrl?: string;
@@ -129,6 +149,8 @@ export interface VideoSfx {
   enabled: boolean;
   /** Un son retenu par moment sonore (tiré par la graine dans la sonothèque). */
   sounds: Partial<Record<SfxKind, SfxSound>>;
+  /** D'autres prises du même moment (rotation : jamais le même whoosh à chaque coupe). */
+  takes?: Partial<Record<SfxKind, SfxSound[]>>;
   /** Intensité décidée par l'agent sound designer : discrète (-4 dB), normale, appuyée (+3 dB). */
   intensity?: 'subtle' | 'normal' | 'punchy';
 }
@@ -143,6 +165,8 @@ export interface VoiceLine {
   durationSec: number;
   /** Décalage depuis le début de la scène (laisse passer la transition). */
   offset: number;
+  /** L'instant de chaque mot (s, depuis le début de la ligne) : sous-titres mot par mot (`audio/align.ts`). */
+  words?: { text: string; start: number; end: number }[];
 }
 
 export interface VideoVoice {
@@ -213,6 +237,11 @@ export interface VideoBeatGrid {
   /** Position du premier temps fort, en secondes depuis le début de l'extrait. */
   offset: number;
   confidence: number;
+  /** Les temps de l'extrait (s, depuis son début), trouvés par BeatRoot (`music-tempo`), et les temps forts (mesures). */
+  beats?: number[];
+  downbeats?: number[];
+  /** Les fins de phrase musicale (4 ou 8 mesures) dans l'extrait (s) : la musique s'arrête sur l'une d'elles. */
+  phrases?: number[];
 }
 
 export type MusicLicense = 'cc0' | 'pdm' | 'cc-by' | 'cc-by-sa' | 'platform';
@@ -369,6 +398,16 @@ export interface FilmScene {
   contrast?: { text: string; kind?: 'ink' | 'plate' | 'front'; bg?: number[]; ink?: string }[];
   /** Vignette de la scène (image rendue au dernier contrôle). */
   thumbnail?: string;
+  /** Le rôle de la scène dans le récit (les huit temps d'une vidéo produit) et son énergie (1 → 5). */
+  role?: string;
+  energy?: number;
+  /** L'intention écrite par l'auteur (compilateur 0.3) et la variante gardée par le juge : le code se recalcule d'elles. */
+  intent?: SceneIntent;
+  variant?: VariantChoice;
+  /** Le jugement de la variante gardée : score, mesures sous leur seuil, variantes essayées. */
+  judge?: { score: number; features?: Record<string, number>; candidates: number; authored: number; report?: string[]; failed?: string[]; tieBreak?: boolean; rescued?: string };
+  /** La seconde meilleure variante (bascule sans appel de modèle si la première échoue au contrôle réel). */
+  runnerUp?: { intent: SceneIntent; variant: VariantChoice; score: number };
 }
 
 export interface FilmAgentTrace {
@@ -407,7 +446,16 @@ export interface VideoFilm {
    * L'autocorrection avant livraison : tentatives, scènes corrigées, scènes restées en erreur, jetons
    * dépensés, et pourquoi elle s'est arrêtée (`budget`, `time`) quand ce n'est pas la fin des approches.
    */
-  repair?: { attempts: number; fixed: string[]; unresolved: string[]; tokens: number; stopped?: 'budget' | 'time'; layoutFixed?: string[]; layoutLeft?: string[] };
+  repair?: { attempts: number; fixed: string[]; unresolved: string[]; tokens: number; stopped?: 'budget' | 'time'; layoutFixed?: string[]; layoutLeft?: string[]; firstPassLayout?: number; inkFallbacks?: number };
   /** La vidéo modèle dont le film s'inspire. */
   reference?: { id?: string; summary: string };
+  /** Le système de design du film (compilateur 0.3) : direction visuelle, couleurs par rôle, échelles, mouvement. */
+  design?: FilmDesign;
+  /** La direction choisie par le directeur et sa seconde (si la première vient de servir au film précédent). */
+  direction?: { id: string; alternative?: string; repeatedAvoided?: boolean };
+  /** Les coutures entre scènes (`seams[i]` : sortie de la scène i) et les sons des transitions, planifiés par le code. */
+  seams?: SeamSpec[];
+  transitionCues?: TransitionCue[];
+  /** L'échantillonnage : variantes écrites, jugées, gardées ; jetons ; scènes arrêtées au seuil. */
+  sampling?: { authored: number; candidates: number; probed: number; tokens: number; stoppedEarly: number };
 }

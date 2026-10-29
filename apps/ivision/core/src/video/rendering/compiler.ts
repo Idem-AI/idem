@@ -108,6 +108,10 @@ const IDEM_MOTION_EXPORTS = new Set([
   'safeArea', 'grid', 'circlePoints', 'fitMedia', 'measureText', 'fitFontSize',
   'words', 'readableOn', 'contrast', 'mix', 'alpha', 'beatTime', 'sceneTime',
   'waitUntilTime', 'random', 'lerp', 'clamp',
+  // système de design, lignes équilibrées, coutures (compilateur 0.3)
+  'balanceLines', 'beatAt', 'cubicBezier', 'designDur', 'designEase', 'designSize', 'designStagger', 'designWeight',
+  'readTime', 'springEase', 'seamIn', 'seamOut', 'seamOutDuration', 'PLATFORM_SAFE',
+  'SceneDesignData', 'TypeLevel', 'DurToken', 'EaseName', 'StaggerToken', 'SeamData', 'SeamKind', 'SeamDir',
   // types géométrie
   'Box',
 ]);

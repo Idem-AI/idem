@@ -23,7 +23,7 @@ export function scopeOf(options: ChatOptions) {
 export async function createVideo(
   userId: string,
   brandId: string,
-  input: { text: string; details?: string; options: ChatOptions; media: VideoMediaAsset[]; reference?: ReferenceBlueprint & { id: string }; language?: string },
+  input: { text: string; details?: string; options: ChatOptions; media: VideoMediaAsset[]; reference?: ReferenceBlueprint & { id: string }; language?: string; demo?: { url: string; goal?: string; device?: 'desktop' | 'mobile' } },
   paid: number,
   onProgress: VideoProgressListener
 ): Promise<MotionVideo> {
@@ -46,6 +46,7 @@ export async function createVideo(
       language: input.language,
       creativity: normalizeCreativity(input.options.creativity),
       ...(input.reference ? { reference: input.reference } : {}),
+      ...(input.demo ? { demo: input.demo } : {}),
     },
     paid,
     onProgress

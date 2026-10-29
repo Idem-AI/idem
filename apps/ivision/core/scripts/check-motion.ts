@@ -35,6 +35,9 @@ import type { MotionProgram } from '../../../../packages/motion-compiler/src';
 
 process.env.VIDEO_ALLOW_FILE_URLS = '1';
 process.env.VIDEO_SFX_OFFLINE = '1';
+// Ce contrôle prouve le chemin de l'auteur de PROGRAMMES (un jet par scène) ; le chemin des intentions échantillonnées
+// et jugées (compilateur 0.3) a son propre contrôle : `npm run check:intent` (core).
+process.env.VIDEO_AUTHOR_MODE = 'program';
 const OUT = path.resolve(__dirname, '../tmp/check-motion');
 let failures = 0;
 const check = (ok: boolean, label: string, detail = '') => {

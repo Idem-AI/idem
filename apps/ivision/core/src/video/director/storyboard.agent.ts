@@ -14,7 +14,7 @@ import { isGrounded, urlInBrief } from '../request/facts';
 import { specConstraints } from '../request/request';
 import { wordBudget } from '../audio/voice';
 import type { FilmConcept } from './concept.agent';
-import { FilmBrief, formatLine, intentLine, languageLine, mediaLines, sceneRange, scriptLines } from './brief';
+import { FilmBrief, formatLine, intentLine, languageLine, mediaLines, sceneRange, scriptLines, skeletonLine } from './brief';
 import { parseFilmPlan, PlannedFilm, PlannedScene } from './film-format';
 
 export interface StoryboardScene extends PlannedScene {
@@ -46,6 +46,8 @@ export function buildPlannerPrompt(brief: FilmBrief, concept: FilmConcept | null
     'CONCEPT: …',
     'BIBLE: …',
     'SCENE 1 | <seconds>',
+    'role: hook | problem | reveal | feature | benefits | proof | cta | signature | statement | data',
+    'energy: 1 to 5 (follow the director\'s curve when given)',
     'purpose: what this scene must make the viewer understand or feel',
     'visual: what is on screen — elements, their place in the frame, sizes, colours (brand colours by role: primary, secondary, accent, background, text), media used',
     'motion: how each element enters, moves and leaves, timing and easing, the strongest moment',
@@ -66,6 +68,8 @@ export function buildPlannerPrompt(brief: FilmBrief, concept: FilmConcept | null
     brief.newMedia.images || brief.newMedia.clips ? `- At most ${brief.newMedia.images} new images and ${brief.newMedia.clips} new clips in the whole film.` : '- No new image or clip can be produced: use the available media, shapes and typography.',
     '- Every new image/clip shows the subject of ITS scene (what the voice line and the texts of that scene talk about), described concretely in the shot — never a generic or decorative picture.',
     '- Visual and motion: specific and buildable (positions, sizes, directions, durations), different from scene to scene, coherent with the bible.',
+    brief.skeleton && !script ? `- Product film skeleton (scale it to the duration, merge or skip beats, keep the order): ${skeletonLine()}. The payoff is the biggest visual moment, once, around 60–80 % of the film.` : '',
+    '- The first two seconds are the densest: never open on a logo alone or "Welcome to…"; the brand mark lands once, with weight, at the end.',
   ]
     .filter((l) => l !== '')
     .join('\n');
@@ -78,7 +82,7 @@ export function buildPlannerPrompt(brief: FilmBrief, concept: FilmConcept | null
     script ? `CLIENT SCRIPT:\n${scriptLines(brief.spec!)}` : '',
     `MEDIA AVAILABLE:\n${mediaLines(brief)}`,
     brief.reference ? `REFERENCE FILM TO REPRODUCE (the client's model — write exactly ${brief.referenceShots?.length || 'its'} scenes, scene n = shot n, same composition and motion; your own texts and media):\n${brief.reference.slice(0, 6000)}` : '',
-    concept ? `CONCEPT (from the creative director):\nTITLE: ${concept.title}\nCONCEPT: ${concept.concept}\nBIBLE: ${concept.bible}\n${concept.outline.map((o, i) => `SCENE ${i + 1}: ${o}`).join('\n')}` : '',
+    concept ? `CONCEPT (from the creative director):\nTITLE: ${concept.title}\nCONCEPT: ${concept.concept}\nBIBLE: ${concept.bible}${concept.direction ? `\nDIRECTION: ${concept.direction}` : ''}${concept.energy?.length ? `\nENERGY: ${concept.energy.join(', ')}` : ''}\n${concept.outline.map((o, i) => `SCENE ${i + 1}: ${o}`).join('\n')}` : '',
     !concept && brief.previous.length ? `FILMS ALREADY MADE FOR THIS BRAND (do something different):\n${brief.previous.slice(0, 6).join('\n')}` : '',
   ]
     .filter(Boolean)

@@ -7,6 +7,17 @@ import { MUSIC_GAIN_DB, MUSIC_UNDER_VOICE_DB, SFX_UNDER_VOICE_DB, SfxCue } from 
 
 export const FFMPEG = process.env.FFMPEG_PATH || 'ffmpeg';
 
+/** ffmpeg, en gardant son journal (mesures de `loudnorm`). */
+export function runLog(args: string[]): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const ff = spawn(FFMPEG, args, { stdio: ['ignore', 'ignore', 'pipe'] });
+    let err = '';
+    ff.stderr.on('data', (c) => (err += c.toString()));
+    ff.on('error', reject);
+    ff.on('close', (code) => (code === 0 ? resolve(err) : reject(new Error(`ffmpeg ${code}: ${err.slice(-600)}`))));
+  });
+}
+
 export function run(args: string[], input?: NodeJS.ReadableStream): Promise<void> {
   return new Promise((resolve, reject) => {
     const ff = spawn(FFMPEG, args, { stdio: ['pipe', 'ignore', 'pipe'] });
@@ -38,7 +49,10 @@ export function encoding(quality: VideoQuality, fps: number): string[] {
  *   effets   franchement au-dessus de la musique : la musique (−7 dB) s'efface sous chacun ;
  *   voix     au premier plan : musique abaissée (−10 dB) et compressée sous chaque ligne, effets
  *            légèrement retenus pendant qu'elle parle (un whoosh ne couvre pas un mot) ;
- *   master   limiteur puis normalisation à −14 LUFS (niveau des réseaux sociaux).
+ *   master   limiteur puis normalisation à −14 LUFS (niveau des réseaux sociaux) EN DEUX PASSES : la première mesure
+ *            le mixage (`loudnorm` en JSON), la seconde l'applique linéairement (pas de pompage) ;
+ *   fin      une musique dont l'extrait finit sur une fin de phrase s'arrête par un fondu court (0,6 s) ;
+ *   prises   un moment sonore peut avoir plusieurs prises : la transition n prend la prise n (jamais le même whoosh).
  *
  * Exporté pour les contrôles (`check:video` mesure le niveau des effets sur la musique).
  */
@@ -46,12 +60,16 @@ export async function mixAudio(opts: {
   silent: string;
   file: string;
   d: number;
-  music?: { file: string; startAt: number };
-  cues: (SfxCue & { db: number })[];
-  files: Partial<Record<SfxKind, string>>;
+  music?: { file: string; startAt: number; phraseEnd?: boolean };
+  cues: (SfxCue & { db: number; take?: number })[];
+  files: Partial<Record<SfxKind, string | string[]>>;
   voice: { file: string; at: number }[];
 }): Promise<void> {
-  const { silent, file, d, music, cues, files, voice } = opts;
+  const { silent, file, d, music, cues, voice } = opts;
+  const fileOf = (kind: SfxKind, take = 0): string | undefined => {
+    const f = opts.files[kind];
+    return Array.isArray(f) ? f[take % f.length] : f;
+  };
   if (!music && !cues.length && !voice.length) {
     await run(['-y', '-v', 'error', '-i', silent, '-c', 'copy', '-movflags', '+faststart', file]);
     return;
@@ -62,7 +80,8 @@ export async function mixAudio(opts: {
   let bed = '';
   if (music) {
     args.push('-ss', String(Math.max(0, music.startAt)), '-t', String(d + 0.5), '-i', music.file);
-    const fadeOut = Math.min(1.5, d * 0.2);
+    // Un extrait calé sur une fin de phrase s'arrête net avec un fondu court ; sinon un fondu plus long le masque.
+    const fadeOut = music.phraseEnd ? Math.min(0.6, d * 0.1) : Math.min(1.5, d * 0.2);
     filters.push(
       `[${index}:a]atrim=0:${d},asetpts=PTS-STARTPTS,aresample=48000,aformat=channel_layouts=stereo,afade=t=in:st=0:d=0.35,afade=t=out:st=${Math.max(0, d - fadeOut).toFixed(3)}:d=${fadeOut.toFixed(3)},volume=${voice.length ? MUSIC_UNDER_VOICE_DB : MUSIC_GAIN_DB}dB[mus]`
     );
@@ -75,7 +94,9 @@ export async function mixAudio(opts: {
   };
   const sfxLabels: string[] = [];
   for (const cue of cues) {
-    args.push('-i', files[cue.kind]!);
+    const sound = fileOf(cue.kind, cue.take);
+    if (!sound) continue;
+    args.push('-i', sound);
     const ms = Math.round(cue.t * 1000);
     filters.push(`[${index}:a]aresample=48000,aformat=channel_layouts=stereo,volume=${cue.db + (voice.length ? SFX_UNDER_VOICE_DB : 0)}dB,adelay=${ms}|${ms}[s${index}]`);
     sfxLabels.push(`[s${index}]`);
@@ -120,8 +141,20 @@ export async function mixAudio(opts: {
     if (bed) finals.push(bed);
     if (sfx) finals.push(sfx);
   }
-  const master = 'alimiter=limit=0.94:level=disabled,loudnorm=I=-14:TP=-1.5:LRA=11,aresample=48000';
-  filters.push(finals.length > 1 ? `${finals.join('')}amix=inputs=${finals.length}:normalize=0:dropout_transition=0,${master}[a]` : `${finals[0]}${master}[a]`);
+  const sum = (master: string) => (finals.length > 1 ? `${finals.join('')}amix=inputs=${finals.length}:normalize=0:dropout_transition=0,${master}[a]` : `${finals[0]}${master}[a]`);
+  // Première passe : la mesure du mixage (sans écrire de fichier).
+  let master = 'alimiter=limit=0.94:level=disabled,loudnorm=I=-14:TP=-1.5:LRA=11,aresample=48000';
+  try {
+    const log = await runLog([...args, '-filter_complex', [...filters, sum('alimiter=limit=0.94:level=disabled,loudnorm=I=-14:TP=-1.5:LRA=11:print_format=json')].join(';'), '-map', '[a]', '-t', String(d), '-f', 'null', '-']);
+    const json = log.slice(log.lastIndexOf('{'), log.lastIndexOf('}') + 1);
+    const m = JSON.parse(json) as Record<string, string>;
+    if (Number.isFinite(Number(m.input_i)) && Number(m.input_i) > -70) {
+      master = `alimiter=limit=0.94:level=disabled,loudnorm=I=-14:TP=-1.5:LRA=11:measured_I=${m.input_i}:measured_TP=${m.input_tp}:measured_LRA=${m.input_lra}:measured_thresh=${m.input_thresh}:offset=${m.target_offset}:linear=true,aresample=48000`;
+    }
+  } catch {
+    // mesure impossible : une seule passe, comme avant
+  }
+  filters.push(sum(master));
   args.push(
     '-filter_complex', filters.join(';'),
     '-map', '0:v', '-map', '[a]',

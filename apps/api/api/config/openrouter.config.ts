@@ -132,12 +132,43 @@ export const OPENROUTER_MODELS: readonly OpenRouterModel[] = [
   {
     id: 'qwen/qwen3.6-35b-a3b', kind: 'text', hfId: 'Qwen/Qwen3.6-35B-A3B', license: 'apache-2.0',
     openWeights: true, commercialOk: true, selfHost: 'léger', roles: ['mechanical', 'vision'],
-    pricing: { input: 0.15, output: 1.0, cachedInput: 0.05 }, note: 'Candidat au remplacement de 3.5-35b.',
+    pricing: { input: 0.1, output: 0.9, cachedInput: 0.025 }, note: 'MoE 3 B actifs, sorties structurées. Échantillonneur des scènes vidéo (plan qualité 29/10/2026). Prix relevé le 29/10/2026.',
   },
   {
     id: 'qwen/qwen3.8-27b', kind: 'text', hfId: 'Qwen/Qwen3.8-27B', license: 'apache-2.0',
     openWeights: true, commercialOk: true, selfHost: 'moyen', roles: ['writing'],
-    pricing: { input: 0.24, output: 2.2, cachedInput: 0.05 }, note: '1 M de contexte. Candidat rédaction.',
+    pricing: { input: 0.039, output: 1.25, cachedInput: 0.0039 }, note: '1 M de contexte, dense, entrée image et vidéo. Auteur qualité, storyboard et départage visuel vidéo. Prix relevé le 29/10/2026.',
+  },
+  // ── Ajoutés le 29/10/2026 (plan qualité vidéo) : trois preuves vérifiées sur le catalogue et Hugging Face ──────
+  {
+    id: 'qwen/qwen3.6-27b', kind: 'text', hfId: 'Qwen/Qwen3.6-27B', license: 'apache-2.0',
+    openWeights: true, commercialOk: true, selfHost: 'moyen', roles: [],
+    pricing: { input: 0.45, output: 2.7 }, note: 'Repli de l’auteur qualité vidéo (qwen3.8-27b).',
+  },
+  {
+    id: 'qwen/qwen3-vl-8b-instruct', kind: 'text', hfId: 'Qwen/Qwen3-VL-8B-Instruct', license: 'apache-2.0',
+    openWeights: true, commercialOk: true, selfHost: 'léger', roles: [],
+    pricing: { input: 0.25, output: 0.75, cachedInput: 0.12 }, note: 'Vision légère : repli du départage visuel vidéo.',
+  },
+  {
+    id: 'z-ai/glm-5.3-flash', kind: 'text', hfId: 'zai-org/GLM-5.3-Flash', license: 'mit',
+    openWeights: true, commercialOk: true, selfHost: 'lourd', roles: [],
+    pricing: { input: 0.0457, output: 0.0742, cachedInput: 0.03 }, note: '320 B (18 B actifs), 1 M ctx. Storyboard vidéo au cran High et Ultra.',
+  },
+  {
+    id: 'z-ai/glm-5.3', kind: 'text', hfId: 'zai-org/GLM-5.3', license: 'glm-5.3 (permissive ; revue de sécurité Z.AI au-delà de 10 Md$ de CA « model as a service »)',
+    openWeights: true, commercialOk: true, selfHost: 'impossible', roles: [],
+    pricing: { input: 0.0699, output: 1.4, cachedInput: 0.0689 }, note: 'Raisonne toujours (ne se coupe pas). Repli du professeur hors ligne de la bibliothèque de scènes vidéo.',
+  },
+  {
+    id: 'qwen/qwen3.8-2.4t-a95b', kind: 'text', hfId: 'Qwen/Qwen3.8-2.4T-A95B', license: 'qwen3.8-max (permissive ; licence séparée au-delà de 50 M$ de CA « model as a service »)',
+    openWeights: true, commercialOk: true, selfHost: 'impossible', roles: [],
+    pricing: { input: 2, output: 6, cachedInput: 0.25 }, note: 'Professeur HORS LIGNE : fabrique les scènes de référence vidéo (jamais en production).',
+  },
+  {
+    id: 'deepseek/deepseek-v4.1-flash', kind: 'text', hfId: 'deepseek-ai/DeepSeek-V4.1-Flash', license: 'mit',
+    openWeights: true, commercialOk: true, selfHost: 'lourd', roles: [],
+    pricing: { input: 0.045, output: 0.5, cachedInput: 0.006 }, note: 'Second professeur hors ligne de la bibliothèque de scènes vidéo.',
   },
   // ── Texte : DeepSeek (alternative à tester) ───────────────────────────────
   {

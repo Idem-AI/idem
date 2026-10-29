@@ -17,10 +17,17 @@
  * Le programme source est gardé en tête du fichier (`@idem-motion-program`) : retoucher une scène, c'est
  * retoucher son programme.
  */
-import type { AnimProp, Fill, MotionNode, MotionProgram, MotionStep, RepeatNode, TextNode } from '../dsl/types';
+import type { AnimProp, Fill, MotionNode, MotionProgram, MotionStep, RepeatNode, TextNode, TypeLevel } from '../dsl/types';
+import { DUR_TOKENS, EASE_TOKENS, STAGGER_TOKENS, TYPE_LEVELS } from '../dsl/types';
 import { Axis, exprCode, ExprScope, relative } from '../dsl/expr';
 
-export const COMPILER_VERSION = '0.2.1';
+/**
+ * 0.3.0 — les valeurs NOMMÉES du système de design (`ctx.design` : niveaux, durées, courbes, décalages, rôles de
+ * couleur), les lignes équilibrées (Knuth-Plass), le recadrage sur le sujet, le temps de lecture garanti dans la piste
+ * mise à l'échelle, la piste RÉSOLUE (`timing: "solved"`, écrite par le solveur) respectée telle quelle, les coutures
+ * entre scènes jouées sur une enveloppe, les sons de transition planifiés par le film.
+ */
+export const COMPILER_VERSION = '0.3.0';
 export const PROGRAM_MARK = '@idem-motion-program';
 
 const EASE_CODE: Record<string, string> = {
@@ -47,7 +54,9 @@ class Emitter {
   /** Les nœuds dont le flou est animé (ils reçoivent un filtre dès leur création). */
   blurred = new Set<string>();
   /** Textes animés par un effet : count | type. */
-  effects = new Map<string, 'count' | 'type'>();
+  effects = new Map<string, 'count' | 'type' | 'point'>();
+  /** Les clés de texte que porte chaque nœud nommé (temps de lecture des pas qui le révèlent). */
+  textKeys = new Map<string, string[]>();
   counter = 0;
   uid(prefix: string): string {
     return `${prefix}${++this.counter}`;
@@ -55,24 +64,44 @@ class Emitter {
 }
 
 const L = (v: unknown, scope: ExprScope = {}, axis: Axis = 'u') => `(${exprCode(v, 'length', scope, axis)}) * U`;
-const T = (v: unknown) => `(${exprCode(v, 'time')})`;
+/** Un instant ou une durée : expression, temps de la musique (`beat:2`, `bar:1`) ou durée nommée (`medium`). */
+const T = (v: unknown) => {
+  const m = typeof v === 'string' ? /^(beat|bar):(\d+(?:\.\d+)?)$/.exec(v) : null;
+  if (m) return `beatAt(ctx, ${m[1] === 'bar' ? Number(m[2]) * 4 : Number(m[2])})`;
+  if (isDurToken(v)) return `designDur(ctx, '${v}')`;
+  return `(${exprCode(v, 'time')})`;
+};
 const safeId = (id: string) => id.replace(/-/g, '_');
 const num = (n: number) => String(Math.round(n * 1000) / 1000);
+
+/** Les rôles de couleur du système de design (noms acceptés → nom du rôle). */
+const DESIGN_ROLES: Record<string, string> = {
+  ground: 'ground', surface: 'surface', surfacestrong: 'surfaceStrong', 'surface-strong': 'surfaceStrong', inkmuted: 'inkMuted', 'ink-muted': 'inkMuted', line: 'line',
+  onprimary: 'onPrimary', onsecondary: 'onSecondary', onaccent: 'onAccent', highlight: 'highlight', onhighlight: 'onHighlight', 'on-highlight': 'onHighlight', neutral: 'neutral', onneutral: 'onNeutral', 'on-neutral': 'onNeutral',
+};
 
 export function colorCode(value: string, bg = 'BG'): string {
   const v = value.trim();
   const [base, op] = v.split('/');
   let code: string;
+  const role = DESIGN_ROLES[base] || DESIGN_ROLES[base.toLowerCase()];
   if (/^#/.test(base)) code = JSON.stringify(base);
-  else if (base === 'ink') code = `readableOn(${bg}, K.text)`;
-  else if (base === 'muted' || base === 'gray' || base === 'grey') code = op === undefined ? `alpha(readableOn(${bg}, K.text), 0.62)` : `readableOn(${bg}, K.text)`;
+  else if (base === 'ink') code = `readableOn(${bg}, KI)`;
+  else if (base === 'muted' || base === 'gray' || base === 'grey') code = op === undefined ? `MUTED(${bg})` : `readableOn(${bg}, KI)`;
   else if (base === 'white') code = `'#ffffff'`;
   else if (base === 'black') code = `'#111418'`;
   else if (base === 'transparent') return `'rgba(0, 0, 0, 0)'`;
-  else if (base.startsWith('on-')) code = `readableOn(K.${base.slice(3)})`;
+  else if (base === 'on-surface') code = `readableOn(DC('surface'), KI)`;
+  else if (role) code = `DC('${role}')`;
+  else if (base.startsWith('on-')) code = `ON('${base.slice(3)}')`;
   else code = `K.${base}`;
   return op !== undefined ? `alpha(${code}, ${num(Math.min(100, Number(op)) / 100)})` : code;
 }
+
+const isLevel = (v: unknown): v is TypeLevel => typeof v === 'string' && (TYPE_LEVELS as string[]).includes(v);
+const isDurToken = (v: unknown) => typeof v === 'string' && (DUR_TOKENS as string[]).includes(v);
+const isStaggerToken = (v: unknown) => typeof v === 'string' && (STAGGER_TOKENS as string[]).includes(v);
+const isEaseToken = (v: unknown) => typeof v === 'string' && (EASE_TOKENS as string[]).includes(v);
 
 function fillCode(fill: Fill | undefined, w: string, h: string, fallback?: string): string | undefined {
   if (fill === undefined) return fallback;
@@ -206,10 +235,19 @@ function nodeJsx(n: MotionNode, e: Emitter, place: Place): string {
       const h = n.h !== undefined ? L(n.h, scope, 'y') : 'H * U';
       const m = e.uid('m');
       const fit = e.uid('fit');
-      e.pre.push(`const ${m} = ctx.media[${n.media}];`, `const ${fit} = ${m} ? fitMedia(${m}, ${w}, ${h}, '${n.fit ?? 'cover'}') : { width: ${w}, height: ${h} };`);
-      if (n.type === 'video') e.post.push(`${inner}()?.play();`);
+      e.pre.push(`const ${m} = ctx.media[${n.media}];`, `const ${fit} = ${m} ? fitMedia(${m}, ${w}, ${h}, '${n.fit ?? 'cover'}') : { width: ${w}, height: ${h}, x: 0, y: 0 };`);
+      // Un clip commence à son extrait sans coupe ni image figée (trié sur le serveur).
+      if (n.type === 'video') e.post.push(`if (${m}?.startAt) ${inner}()?.seek(${m}.startAt);`, `${inner}()?.play();`);
+      // Effet « point » : le média s'agrandit VERS son point d'intérêt (le clic d'une démo produit, sinon le sujet),
+      // qui vient au centre du cadre — sans jamais découvrir un bord vide.
+      if (n.id && e.effects.get(n.id) === 'point') {
+        e.post.push(
+          `const PZ_${safeId(n.id)} = (z: number, d: number, ease: any) => { const i = ${inner}(); if (!i || !${m}) return waitFor(0); const p = ${m}.point || ${m}.focus || { x: 0.5, y: 0.5 }; const bx = Math.max(0, (z * ${fit}.width - (${w})) / 2), by = Math.max(0, (z * ${fit}.height - (${h})) / 2); const tx = Math.min(bx, Math.max(-bx, -z * (p.x - 0.5) * ${fit}.width)), ty = Math.min(by, Math.max(-by, -z * (p.y - 0.5) * ${fit}.height)); return all(i.scale(z, d, ease), i.position([tx, ty], d, ease)); };`
+        );
+      }
       const tag = n.type === 'video' ? 'Video' : 'Img';
-      const innerAttrs = [`ref={${inner}}`, `src={${m}.url}`, `width={${fit}.width}`, `height={${fit}.height}`, ...(n.zoom !== undefined ? [`scale={${num(n.zoom)}}`] : []), ...(n.panX ? [`x={${num(n.panX)} * U}`] : []), ...(n.panY ? [`y={${num(n.panY)} * U}`] : []), ...(n.type === 'video' ? [`loop={${n.loop !== false}}`] : [])];
+      // Le recadrage garde le sujet (point d'intérêt du format) ; un décalage demandé s'y ajoute.
+      const innerAttrs = [`ref={${inner}}`, `src={${m}.url}`, `width={${fit}.width}`, `height={${fit}.height}`, ...(n.zoom !== undefined ? [`scale={${num(n.zoom)}}`] : []), `x={${fit}.x${n.panX ? ` + ${num(n.panX)} * U` : ''}}`, `y={${fit}.y${n.panY ? ` + ${num(n.panY)} * U` : ''}}`, ...(n.type === 'video' ? [`loop={${n.loop !== false}}`] : [])];
       const fill = fillCode(n.fill, w, h);
       const attrs = [...refAttr, ...props, ...anchorProps(n), `width={${w}}`, `height={${h}}`, ...(n.radius !== undefined ? [`radius={${L(n.radius, scope)}}`] : []), ...(fill ? [`fill={${fill}}`] : []), 'clip'];
       return `<Rect ${attrs.join(' ')}>\n{${m} && <${tag} ${innerAttrs.join(' ')} />}\n</Rect>`;
@@ -245,6 +283,10 @@ function nodeJsx(n: MotionNode, e: Emitter, place: Place): string {
     }
     case 'repeat':
       return repeatJsx(n, e, place, key, ref, props);
+    case 'icon':
+    case 'device':
+      // Des macros : la validation les développe en nœuds simples (tracé, groupe) avant la compilation.
+      throw new Error(`nœud « ${n.type} » non développé : passez le programme par validateProgram`);
   }
 }
 
@@ -296,26 +338,31 @@ function textJsx(n: TextNode, e: Emitter, place: Place, key: string | undefined,
   const { scope, part } = place;
   const v = e.uid('tx');
   const raw = n.text.startsWith('$') ? `(ctx.texts[${JSON.stringify(n.text.slice(1))}] || '')` : JSON.stringify(n.text);
-  e.pre.push(`const ${v} = ${n.upper ? `${raw}.toUpperCase()` : raw};`);
-  const font = `ctx.brand.fonts.${n.font ?? 'display'}`;
-  const weight = n.weight ?? ((n.font ?? 'display') === 'display' ? 700 : 400);
+  // Un NIVEAU du film (« title », « body »…) : taille, graisse, police, interlettrage et casse viennent du système.
+  const level = isLevel(n.size) ? n.size : undefined;
+  const heading = level === 'display' || level === 'title' || level === 'subtitle';
+  const upper = n.upper !== undefined ? String(!!n.upper) : level === 'display' || level === 'title' ? '!!(DS && DS.uppercaseTitles)' : 'false';
+  e.pre.push(`const ${v} = ${upper === 'false' ? raw : upper === 'true' ? `${raw}.toUpperCase()` : `(${upper} ? ${raw}.toUpperCase() : ${raw})`};`);
+  const fontKind = n.font ?? (level ? (heading ? 'display' : 'body') : 'display');
+  const font = `ctx.brand.fonts.${fontKind}`;
+  const weight = n.weight ?? (level ? `designWeight(ctx, '${level}')` : fontKind === 'display' ? 700 : 400);
   const width = n.width !== undefined ? L(n.width, scope, 'x') : '0';
-  const lh = n.lineHeight ?? 1.12;
+  const lh = n.lineHeight ?? (heading ? 1.08 : 1.18);
   const a = ANCHOR[n.anchor ?? 'center'];
   const align = n.align ?? (a[0] < 0 ? 'left' : a[0] > 0 ? 'right' : 'center');
-  const ls = n.letterSpacing ? `${num(n.letterSpacing)} * U` : '0';
+  const ls = n.letterSpacing ? `${num(n.letterSpacing)} * U` : level ? `(DS ? DS.tracking.${heading ? 'title' : 'body'} : 0) * U` : '0';
   const mode = place.inStack ? 'stack' : place.top ? 'top' : 'nested';
   // LA GARANTIE D'AFFICHAGE : le texte tient dans sa boîte et (posé dans la scène) dans la zone sûre — la taille
   // demandée est un plafond, le compilateur ne la réduit que si le texte serait coupé.
   const tb = e.uid('tb');
   const fit = n.size === 'fit';
-  const size = fit ? '0' : n.size !== undefined ? L(n.size, scope) : '6 * U';
+  const size = fit ? '0' : level ? `designSize(ctx, '${level}') * U` : n.size !== undefined ? L(n.size, scope) : '6 * U';
   const x = mode === 'top' ? (n.x !== undefined ? L(n.x, scope, 'x') : '0') : '0';
   const y = mode === 'top' ? (n.y !== undefined ? L(n.y, scope, 'y') : '0') : '0';
   e.pre.push(`const ${tb} = FIT(${v}, { size: ${size}, fit: ${fit}, max: ${num(n.maxSize ?? 12)} * U, lines: ${n.lines ? Math.max(1, Math.floor(n.lines)) : 0}, font: ${font}, weight: ${weight}, ls: ${ls}, lh: ${num(lh)}, width: ${width}, x: ${x}, y: ${y}, ax: ${a[0]}, ay: ${a[1]}, mode: '${mode}' });`);
   const position = mode === 'top' ? [`x={${tb}.x}`, `y={${tb}.y}`] : [];
   const fill = fillCode(n.color, `${tb}.width`, `${tb}.size * 2`, 'readableOn(BG, K.text)');
-  const style = [`fontFamily={${font}}`, `fontWeight={${weight}}`, `fontSize={${tb}.size}`, `lineHeight={${tb}.size * ${num(lh)}}`, `fill={${fill}}`, ...(n.letterSpacing ? [`letterSpacing={${ls}}`] : []), ...(n.italic ? [`fontStyle={'italic'}`] : []), ...(n.stroke ? [`stroke={${colorCode(n.stroke)}}`, `lineWidth={${num(n.lineWidth ?? 0.2)} * U}`, `strokeFirst`] : [])];
+  const style = [`fontFamily={${font}}`, `fontWeight={${weight}}`, `fontSize={${tb}.size}`, `lineHeight={${tb}.size * ${num(lh)}}`, `fill={${fill}}`, ...(ls !== '0' ? [`letterSpacing={${ls}}`] : []), ...(n.italic ? [`fontStyle={'italic'}`] : []), ...(n.stroke ? [`stroke={${colorCode(n.stroke)}}`, `lineWidth={${num(n.lineWidth ?? 0.2)} * U}`, `strokeFirst`] : [])];
 
   if (n.split && key) {
     // Découpé : chaque mot (ou lettre) est un nœud posé à l'exécution (mesure réelle de la police, boîte garantie).
@@ -333,12 +380,14 @@ function textJsx(n: TextNode, e: Emitter, place: Place, key: string | undefined,
   // Un texte entier (éventuellement animé par un effet : nombre qui défile, écriture).
   const effect = key ? e.effects.get(n.id!) : undefined;
   let textAttr = `text={${v}}`;
+  // Le texte posé est celui des LIGNES ÉQUILIBRÉES (coupures choisies, jamais un mot orphelin).
+  textAttr = `text={${tb}.text}`;
   if (effect === 'count') {
     e.refs.push(`const C_${key} = NUM(${v});`, `const S_${key} = createSignal(0);`);
-    textAttr = `text={() => C_${key} ? C_${key}.pre + C_${key}.fmt(S_${key}()) + C_${key}.suf : ${v}}`;
+    textAttr = `text={() => C_${key} ? C_${key}.pre + C_${key}.fmt(S_${key}()) + C_${key}.suf : ${tb}.text}`;
   } else if (effect === 'type') {
     e.refs.push(`const S_${key} = createSignal(0);`);
-    textAttr = `text={() => ${v}.slice(0, Math.round(S_${key}() * ${v}.length))}`;
+    textAttr = `text={() => ${tb}.text.slice(0, Math.round(S_${key}() * ${tb}.text.length))}`;
   }
   if (ref) {
     e.refs.push(`const ${ref} = createRef<Txt>();`);
@@ -396,12 +445,13 @@ function stepCode(step: MotionStep, k: number, e: Emitter): string {
   if (step.sfx && !step.target) return `yield delay(${at}, (function* () { ctx.sfx('${step.sfx}'); })());`;
   const sfx = step.sfx ? `ctx.sfx('${step.sfx}'); ` : '';
   const dur = `DUR(${k})`;
-  const ease = EASE_CODE[step.ease ?? (step.repeat ? 'inOutSine' : 'outCubic')];
+  const ease = isEaseToken(step.ease) ? `designEase(ctx, '${step.ease}')` : EASE_CODE[step.ease ?? (step.repeat ? 'inOutSine' : 'outCubic')];
   const stagger = `TL[${k}][2] * TS`;
   const order = step.order ?? 'forward';
   if (step.effect) {
     const ids = (Array.isArray(step.target) ? step.target : [step.target!]).map((t) => safeId(t));
-    const anims = ids.map((id) => (step.effect === 'count' ? `C_${id} ? S_${id}(C_${id}.value, ${dur}, ${ease}) : waitFor(0)` : `S_${id}(1, ${dur}, ${step.ease ? ease : 'linear'})`));
+    const zoom = typeof step.to?.zoom === 'number' ? Math.min(2.6, Math.max(1.1, step.to.zoom)) : 1.7;
+    const anims = ids.map((id) => (step.effect === 'count' ? `C_${id} ? S_${id}(C_${id}.value, ${dur}, ${ease}) : waitFor(0)` : step.effect === 'point' ? `PZ_${id}(${zoom}, ${dur}, ${ease})` : `S_${id}(1, ${dur}, ${step.ease ? ease : 'linear'})`));
     return `yield delay(${at}, (function* () { ${sfx}yield* sequence(${stagger}, ${anims.join(', ')}); })());`;
   }
   const handles = targetHandles(step, e);
@@ -455,7 +505,7 @@ export function untangle(timeline: MotionStep[]): { timeline: MotionStep[]; note
       s.at = Math.round(at * 1000) / 1000;
     }
     if (dur === null) continue;
-    const stag = (s.stagger ?? 0) * (targets.some((t) => /\.\*$/.test(t)) ? 4 : Math.max(0, targets.length - 1));
+    const stag = (typeof s.stagger === 'number' ? s.stagger : s.stagger ? 0.08 : 0) * (targets.some((t) => /\.\*$/.test(t)) ? 4 : Math.max(0, targets.length - 1));
     for (const t of targets) for (const p of props) busy.set(`${t}|${p}`, at + dur + stag);
   }
   return { timeline: out, notes };
@@ -576,13 +626,18 @@ const HELPERS = `
     let size = o.fit ? fitTo(o.max, o.lines > 0 ? o.lines : 2) : o.size;
     const one = measureText(text, size, o.font, o.weight, o.ls);
     let width: number, n: number;
+    let shown = text;
     if (one <= maxW) {
       width = o.width > 0 ? maxW : Math.min(maxW, one * 1.03 + 2);
       n = 1;
     } else {
       size = Math.max(minSize, Math.min(size, fitTo(size, lines)));
+      // Des lignes ÉQUILIBRÉES (Knuth-Plass), sans mot orphelin : la boîte garde la largeur demandée.
+      const measure = (s: string) => measureText(s, size, o.font, o.weight, o.ls);
+      const rows = balanceLines(text, maxW, measure);
+      if (rows.length > 1 && rows.every((r) => measure(r) <= maxW + 1)) shown = rows.join('\\n');
       width = maxW;
-      n = LINES(text, size, o.font, o.weight, o.ls, maxW);
+      n = rows.length > 1 ? rows.length : LINES(text, size, o.font, o.weight, o.ls, maxW);
     }
     const h = n * size * o.lh;
     let x = o.x, y = o.y;
@@ -592,7 +647,7 @@ const HELPERS = `
       const top = y - ((1 + o.ay) / 2) * h, bottom = y + ((1 - o.ay) / 2) * h;
       if (h <= A.height) { if (top < A.top) y += A.top - top; else if (bottom > A.bottom) y -= bottom - A.bottom; }
     }
-    return { size, width, x, y, lines: n };
+    return { size, width, x, y, lines: n, text: shown };
   };
   // Un conteneur posé dans la scène (pile) : mesuré après sa mise en page, réduit s'il dépasse la zone sûre, ramené dedans.
   const KEEP = (n: any) => {
@@ -614,15 +669,10 @@ const HELPERS = `
   const SPLIT = (text: string, mode: string, size: number, font: string, weight: number, width: number, align: string, lh: number, ls: number, ax: number, ay: number) => {
     const space = measureText(' ', size, font, weight, ls);
     const words = text.split(/\\s+/).filter(Boolean);
-    const lines: { w: string[]; width: number }[] = [];
-    let line: string[] = [], lw = 0;
-    for (const w of words) {
-      const ww = measureText(w, size, font, weight, ls);
-      if (width > 0 && line.length && lw + space + ww > width) { lines.push({ w: line, width: lw }); line = []; lw = 0; }
-      lw += (line.length ? space : 0) + ww;
-      line.push(w);
-    }
-    if (line.length) lines.push({ w: line, width: lw });
+    // Les mêmes lignes équilibrées que le texte entier : découper ne change pas la coupure.
+    const rows = width > 0 ? balanceLines(words.join(' '), width, (s: string) => measureText(s, size, font, weight, ls)) : [words.join(' ')];
+    const lines: { w: string[]; width: number }[] = rows.map((r: string) => ({ w: r.split(' ').filter(Boolean), width: measureText(r, size, font, weight, ls) }));
+    void space;
     const boxW = width > 0 ? width : Math.max(0, ...lines.map((l) => l.width));
     const boxH = lines.length * size * lh;
     const out: { s: string; x: number; y: number }[] = [];
@@ -673,6 +723,16 @@ export function compileProgram(program: MotionProgram, opts: { warnings?: string
     if (s.effect) list.forEach((t) => e.effects.set(t, s.effect!));
     if ((s.to && 'blur' in s.to) || (s.from && 'blur' in s.from)) list.forEach((t) => e.blurred.add(safeId(t)));
   }
+  // Les textes portés par chaque nœud nommé (lui ou ses enfants) : un pas qui le révèle doit laisser le temps de les lire.
+  const collect = (n: MotionNode): string[] => {
+    const own = n.type === 'text' && n.text.startsWith('$') ? [n.text.slice(1)] : [];
+    const kids = (n as { children?: MotionNode[] }).children || [];
+    const item = n.type === 'repeat' ? [n.item] : [];
+    const all = [...own, ...[...kids, ...item].flatMap(collect)];
+    if (n.id && all.length) e.textKeys.set(n.id, [...new Set(all)]);
+    return all;
+  };
+  program.nodes.forEach(collect);
   const bgFill = program.bg;
   const bgColor = bgFill === undefined ? 'K.background' : typeof bgFill === 'string' ? colorCode(bgFill, 'K.background') : colorCode(bgFill.from, 'K.background');
   const tree = program.nodes.map((n) => nodeJsx(n, e, { scope: {}, inStack: false, top: true })).join('\n');
@@ -695,30 +755,49 @@ export function compileProgram(program: MotionProgram, opts: { warnings?: string
   const enter = program.enter && program.enter.type !== 'none' ? program.enter : undefined;
   const enterDur = num(enter?.dur ?? 0.6);
   const dir = { left: 'Left', right: 'Right', up: 'Top', down: 'Bottom' }[enter?.dir ?? 'left'];
-  const enterConst = !enter ? 'const E = 0;' : `const E = ctx.index > 0 ? ${enterDur} : 0;`;
-  const enterCode = !enter ? '' : `if (ctx.index > 0) yield* ${enter.type === 'fade' ? `fadeTransition(${enterDur})` : enter.type === 'slide' ? `slideTransition(Direction.${dir}, ${enterDur})` : `zoomInTransition(new BBox(-ctx.width / 6, -ctx.height / 6, ctx.width / 3, ctx.height / 3), ${enterDur})`};`;
-  // La table des temps : [instant, durée, décalage, nombre de cibles, nature] de chaque pas (0 entrée, 1 boucle, 2 sortie finale).
+  // Une couture planifiée (ctx.seamIn) remplace l'entrée propre au programme : la scène arrive en plein mouvement.
+  const enterConst = !enter ? 'const E = 0;' : `const E = ctx.index > 0 && !ctx.seamIn ? ${enterDur} : 0;`;
+  const enterCode = !enter ? '' : `if (ctx.index > 0 && !ctx.seamIn) yield* ${enter.type === 'fade' ? `fadeTransition(${enterDur})` : enter.type === 'slide' ? `slideTransition(Direction.${dir}, ${enterDur})` : `zoomInTransition(new BBox(-ctx.width / 6, -ctx.height / 6, ctx.width / 3, ctx.height / 3), ${enterDur})`};`;
+  // La table des temps : [instant, durée, décalage, nombre de cibles, nature, lecture] de chaque pas (nature : 0 entrée,
+  // 1 boucle, 2 sortie finale ; lecture : le temps qu'il faut pour lire les textes que le pas révèle).
   const exits = finalExits(timeline);
-  const table = timeline.map((s, k) => `[${T(s.at ?? 0)}, ${s.sfx && !s.target ? '0' : T(s.dur ?? 0.6)}, ${num(s.stagger ?? 0)}, ${s.sfx && !s.target ? '1' : stepCount(s, e)}, ${s.repeat ? 1 : exits.has(k) ? 2 : 0}]`);
+  const firstOf = new Set<string>();
+  const table = timeline.map((s, k) => {
+    const ids = (Array.isArray(s.target) ? s.target : s.target ? [s.target] : []).map((t) => t.split('.')[0]);
+    const keys = [...new Set(ids.flatMap((id) => e.textKeys.get(id) || []))];
+    const hidden = (v: unknown) => typeof v === 'number' && v <= 0.05;
+    const reveals = keys.length && !s.repeat && !exits.has(k) && (s.effect === 'type' || hidden(s.from?.opacity) || hidden(s.from?.scale) || hidden(s.from?.scaleX) || hidden(s.from?.scaleY) || ids.some((id) => !firstOf.has(id)));
+    ids.forEach((id) => firstOf.add(id));
+    const stagger = isStaggerToken(s.stagger) ? `designStagger(ctx, '${s.stagger}')` : num(Number(s.stagger ?? 0));
+    return `[${T(s.at ?? 0)}, ${s.sfx && !s.target ? '0' : T(s.dur ?? 0.6)}, ${stagger}, ${s.sfx && !s.target ? '1' : stepCount(s, e)}, ${s.repeat ? 1 : exits.has(k) ? 2 : 0}, ${reveals ? `RT(${JSON.stringify(keys)})` : '0'}]`;
+  });
+  const solved = program.timing === 'solved';
   const timing = `const TL: number[][] = [${table.join(', ')}];
+  // Une piste RÉSOLUE (solveur temporel du compilateur 0.3) est déjà juste : elle n'est pas remise à l'échelle.
+  const SOLVED = ${solved};
   // Un pas « d'ambiance » (lent, jusqu'à la fin : travelling, rotation continue) n'entre pas dans le calcul et garde sa durée.
   const AMB = (s: number[]) => s[4] === 1 || (s[1] >= D * 0.5 && s[0] + s[1] >= D * 0.8);
-  const REVEAL = Math.max(0.01, ...TL.filter((s) => !AMB(s) && s[4] !== 2).map((s) => s[0] + s[1] + s[2] * Math.max(0, s[3] - 1)));
-  // Ce qui se révèle doit avoir fini avant la coupe, avec un temps pour lire (jusqu'à 1,6 s, 30 % de la scène).
+  const END = (s: number[]) => s[0] + s[1] + s[2] * Math.max(0, s[3] - 1);
+  const REVEAL = Math.max(0.01, ...TL.filter((s) => !AMB(s) && s[4] !== 2).map(END));
+  // Ce qui se révèle doit avoir fini avant la coupe, avec un temps pour lire (jusqu'à 1,6 s, 30 % de la scène)…
   const AVAIL = Math.max(0.4, D - E - Math.min(1.6, D * 0.3));
-  const TS = Math.min(1, AVAIL / REVEAL);
+  // … et chaque texte révélé reste à l'écran au moins son TEMPS DE LECTURE (17 signes/s, 5/6 s au moins) avant la coupe.
+  const READ = Math.min(1, ...TL.filter((s) => s[5] > 0 && !AMB(s) && s[4] !== 2).map((s) => Math.max(0.35, (D - E - s[5]) / Math.max(0.01, END(s)))));
+  const TS = SOLVED ? 1 : Math.min(1, AVAIL / REVEAL, READ);
   // Une sortie finale dure 0,8 s au plus : une fin trop longue laisse un écran vide.
-  const DUR = (k: number) => (TL[k][4] === 2 ? Math.min(0.8, TL[k][1]) : AMB(TL[k]) ? Math.max(0.05, D - E - TL[k][0] * TS) : TL[k][1] * TS);
+  const DUR = (k: number) => (SOLVED ? TL[k][1] : TL[k][4] === 2 ? Math.min(0.8, TL[k][1]) : AMB(TL[k]) ? Math.max(0.05, D - E - TL[k][0] * TS) : TL[k][1] * TS);
   // Une sortie FINALE (ce qui disparaît à la fin, rien n'entre après) reste calée sur la fin de la scène : la mise à
   // l'échelle ne l'avance jamais au milieu (la scène finirait vide).
-  const AT = (k: number) => (TL[k][4] === 2 ? Math.max(REVEAL * TS, D - E - Math.min(0.8, TL[k][1]) - TL[k][2] * Math.max(0, TL[k][3] - 1) - 0.04) : TL[k][0] * TS);`;
+  const AT = (k: number) => (SOLVED ? TL[k][0] : TL[k][4] === 2 ? Math.max(REVEAL * TS, D - E - Math.min(0.8, TL[k][1]) - TL[k][2] * Math.max(0, TL[k][3] - 1) - 0.04) : TL[k][0] * TS);`;
   const allWarnings = [...(opts.warnings || []), ...untangled];
   // Le son de la transition : chaque scène (sauf la première) entre avec un effet — franc pour un glissement ou un
   // zoom, doux pour un fondu ou une coupe — sauf si le programme en pose déjà un dans ses premiers instants.
   const opensWithSfx = timeline.some((st) => st.sfx && typeof st.at === 'number' && st.at <= 0.3);
   // Le passage d'une scène à l'autre : un souffle doux, glissé sous la musique et la voix (≈ −12 dB).
   // Un whoosh franc à chaque changement de scène sonnait « effet de démo » et couvrait la voix.
-  const transitionSfx = opensWithSfx ? '' : `if (ctx.index > 0) ctx.sfx('softwhoosh', 0.45);`;
+  // Quand le film planifie ses sons de transition (une transition sur deux, variés : `design/film.ts`), la scène n'en
+  // pose plus d'office.
+  const transitionSfx = opensWithSfx ? '' : `if (ctx.index > 0 && !ctx.planned) ctx.sfx('softwhoosh', 0.45);`;
 
   const header = `/* ${PROGRAM_MARK} v${COMPILER_VERSION}\n${JSON.stringify(program).replace(/\*\//g, '*\\/')}\n*/`;
   const notes = allWarnings.length ? `\n// Avertissements de compilation :\n${allWarnings.map((w) => `//   - ${w.replace(/\n/g, ' ')}`).join('\n')}` : '';
@@ -726,27 +805,41 @@ export function compileProgram(program: MotionProgram, opts: { warnings?: string
 // Scène compilée par @idem/motion-compiler ${COMPILER_VERSION} : modifier le programme ci-dessus, pas ce code.${notes}
 import { blur, Circle, Gradient, Img, Layout, Line, Node, Path, Polygon, Rect, Txt, Video, View2D } from '@motion-canvas/2d';
 import { all, BBox, chain, createRef, createRefArray, createSignal, delay, Direction, easeInCubic, easeInOutBack, easeInOutCubic, easeInOutExpo, easeInOutSine, easeOutBack, easeOutBounce, easeOutCubic, easeOutElastic, easeOutExpo, easeOutQuart, fadeTransition, linear, loop, sequence, slideTransition, waitFor, zoomInTransition } from '@motion-canvas/core';
-import { alpha, contrast, fitFontSize, fitMedia, measureText, readableOn, safeArea, SceneContext } from '@idem/motion';
+import { alpha, balanceLines, beatAt, contrast, designDur, designEase, designSize, designStagger, designWeight, fitFontSize, fitMedia, measureText, readableOn, readTime, safeArea, SceneContext, seamIn, seamOut, seamOutDuration } from '@idem/motion';
 
 export default function* (view: View2D, ctx: SceneContext) {
   const U = ctx.unit;
   const A = safeArea(ctx);
   const W = ctx.width / U, H = ctx.height / U, L = A.left / U, R = A.right / U, T = A.top / U, B = A.bottom / U, SW = A.width / U, SH = A.height / U;
   const D = ctx.duration, V = ctx.voice ? Math.min(ctx.voice.at, D) : 0, VE = ctx.voice ? Math.min(ctx.voice.at + ctx.voice.duration, D) : 0; // la phrase peut finir dans la scène suivante
-  const K = ctx.brand.colors;
+  // Le système de design du film (absent sur les vidéos d'avant : la marque seule).
+  const DS = ctx.design;
+  const K = DS ? { ...ctx.brand.colors, primary: DS.colors.primary, secondary: DS.colors.secondary, accent: DS.colors.accent, background: DS.colors.ground, text: DS.colors.ink } : ctx.brand.colors;
+  const KI = DS ? DS.colors.ink : K.text;
+  const DC = (role: string): string => (DS && DS.colors[role]) || DFLT[role] || K.primary;
+  const DFLT: Record<string, string> = { ground: K.background, surface: alpha(K.primary, 0.06), surfaceStrong: alpha(K.primary, 0.12), inkMuted: alpha(K.text, 0.7), line: alpha(K.text, 0.22), highlight: alpha(K.accent, 0.35), neutral: alpha(K.text, 0.75), onPrimary: readableOn(K.primary), onSecondary: readableOn(K.secondary), onAccent: readableOn(K.accent), onHighlight: K.text, onNeutral: readableOn(K.text) };
+  const ON = (base: string): string => { const role = 'on' + base.charAt(0).toUpperCase() + base.slice(1); const c = DS && DS.colors[role]; const under = (K as Record<string, string>)[base] || K.primary; return c && contrast(c, under) >= 3 ? c : readableOn(under); };
   const BG = ${bgColor};
+  const MUTED = (bg: string): string => (DS && contrast(DS.colors.inkMuted, bg) >= 4.5 ? DS.colors.inkMuted : alpha(readableOn(bg, KI), 0.62));
+  const RT = (keys: string[]): number => Math.max(0, ...keys.map((k) => readTime(ctx.texts[k] || '')));
+  const FMT = ctx.format;
   const TALL = ctx.height > ctx.width * 1.15, SQUARE = !TALL && ctx.width <= ctx.height * 1.15;
-  void [W, H, L, R, T, B, SW, SH, D, V, VE, TALL, SQUARE, Circle, Layout, Line, Path, Polygon, Rect, Video, Img, createRefArray, createSignal];${HELPERS}${RUNTIME}
+  void [W, H, L, R, T, B, SW, SH, D, V, VE, TALL, SQUARE, FMT, DC, ON, MUTED, RT, Circle, Layout, Line, Path, Polygon, Rect, Video, Img, createRefArray, createSignal, beatAt, designDur, designEase, designSize, designStagger, designWeight];${HELPERS}${RUNTIME}
 
   ${e.pre.join('\n  ')}
   ${e.refs.join('\n  ')}
   const r_world = createRef<Node>();
+  // L'enveloppe des coutures : la sortie vers la scène suivante et l'entrée depuis la précédente la font bouger
+  // (le fond, lui, ne coupe jamais).
+  const r_seam = createRef<Node>();
   view.fill(BG);
   view.add(
     <>
       ${bgFill !== undefined && typeof bgFill === 'object' ? `<Rect width={ctx.width} height={ctx.height} fill={${fillCode(bgFill, 'ctx.width', 'ctx.height')}} />` : ''}
+      <Node ref={r_seam} filters={[blur(0)]}>
       <Node ref={r_world}${e.blurred.has('world') ? ' filters={[blur(0)]}' : ''}>
 ${tree}
+      </Node>
       </Node>
     </>
   );
@@ -757,6 +850,9 @@ ${tree}
   ${timing}
   ${transitionSfx}
   ${enterCode}
+  const SZ = { width: ctx.width, height: ctx.height, unit: U };
+  if (ctx.seamIn) yield seamIn(r_seam(), ctx.seamIn, SZ);
+  if (ctx.seamOut && seamOutDuration(ctx.seamOut) > 0) yield delay(Math.max(0, D - seamOutDuration(ctx.seamOut)), seamOut(r_seam(), view, ctx.seamOut, SZ));
   ${timeline.map((s, k) => stepCode(s, k, e)).join('\n  ')}
   yield* waitFor(ctx.duration);
 }

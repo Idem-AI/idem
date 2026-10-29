@@ -55,8 +55,15 @@ function* captions(view: View2D, data: FilmData, sceneStart: number, sceneEnd: n
     const at = Math.max(0, line.start - sceneStart);
     const rest = at - useThread().time();
     if (rest > 0) yield* waitFor(rest);
-    label().text(line.text);
     box().opacity(1);
+    if (line.words?.length) {
+      // Mot par mot, au rythme de la voix (alignement des mots) : le texte s'écrit pendant qu'il est dit.
+      for (let k = 0; k < line.words.length; k++) {
+        const wait = Math.max(0, line.words[k].start - sceneStart) - useThread().time();
+        if (wait > 0) yield* waitFor(wait);
+        label().text(line.words.slice(0, k + 1).map((w) => w.text).join(' '));
+      }
+    } else label().text(line.text);
     const hold = Math.min(line.end, sceneEnd) - sceneStart - useThread().time();
     if (hold > 0) yield* waitFor(hold);
     box().opacity(0);
@@ -71,9 +78,11 @@ export function buildScenes(modules: Record<string, AuthorScene | undefined>, da
       const scene = data.scenes.find((s) => s.key === plan.key) || plan;
       view.fill(data.background);
       const last = index === data.scenes.length - 1;
+      // L'instant réel de la scène dans le film (un contrôle de variantes la joue ailleurs dans la page).
+      const clock = scene.clock ?? scene.start;
       const ctx: SceneContext = {
         key: scene.key,
-        index,
+        index: scene.index ?? index,
         count: data.scenes.length,
         format: data.format,
         width: data.width,
@@ -85,7 +94,13 @@ export function buildScenes(modules: Record<string, AuthorScene | undefined>, da
         media: scene.media.map((m) => ({ ...m })),
         brand: data.brand,
         ...(scene.voice ? { voice: { ...scene.voice } } : {}),
-        ...(data.beat?.bpm ? { beat: { bpm: data.beat.bpm, first: firstBeat(data.beat, scene.start) } } : {}),
+        ...(data.beat?.bpm ? { beat: { bpm: data.beat.bpm, first: firstBeat(data.beat, clock) } } : {}),
+        ...(data.beats?.length ? { beats: data.beats.filter((b) => b >= clock - 1e-3 && b < clock + scene.duration + 1).map((b) => Math.round((b - clock) * 1000) / 1000) } : {}),
+        ...(scene.design ? { design: scene.design } : {}),
+        ...(scene.seamIn ? { seamIn: scene.seamIn } : {}),
+        ...(scene.seamOut ? { seamOut: scene.seamOut } : {}),
+        ...(data.cues ? { planned: true } : {}),
+        ...(data.safe ? { safe: data.safe } : {}),
         sfx: (kind: SfxKind, gain?: number) => hooks.onCue({ kind, t: Math.round((scene.start + useThread().time()) * 1000) / 1000, scene: scene.key, ...(gain !== undefined && gain > 0 && gain < 1 ? { gain } : {}) }),
       };
       const author = modules[scene.key];

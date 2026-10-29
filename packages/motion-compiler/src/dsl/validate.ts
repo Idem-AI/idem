@@ -9,8 +9,17 @@
  *
  * Jamais de jugement esthétique : aucune règle de mise en page, de couleur ou de rythme.
  */
-import { ANIM_PROPS, AnimProp, EASES, MotionNode, MotionProgram, MotionStep, NODE_TYPES, SFX_KINDS } from './types';
+import { ANIM_PROPS, AnimProp, DUR_TOKENS, EASE_TOKENS, EASES, MotionNode, MotionProgram, MotionStep, NODE_TYPES, SFX_KINDS, STAGGER_TOKENS, TYPE_LEVELS } from './types';
 import { constValue, exprError, relative } from './expr';
+import { expandDevice, scalePath } from './macros';
+
+/** Une icône résolue par le moteur : ses tracés dans une grille de `box` de côté. */
+export interface ResolvedIcon {
+  paths: string[];
+  box: number;
+  /** Icône pleine (sinon au trait). */
+  filled?: boolean;
+}
 
 export interface ValidationContext {
   /** Les clés des textes de la scène. */
@@ -21,6 +30,8 @@ export interface ValidationContext {
   media: ('image' | 'video')[];
   duration: number;
   hasLogo: boolean;
+  /** Le catalogue d'icônes du moteur (nom → tracés) ; absent, un nœud `icon` est retiré (et c'est dit). */
+  icons?: (name: string) => ResolvedIcon | null;
 }
 
 export interface ValidationResult {
@@ -42,6 +53,8 @@ const PROPS: Record<string, string[]> = {
   image: ['media', 'w', 'h', 'fit', 'radius', 'zoom', 'panX', 'panY', 'fill'],
   video: ['media', 'w', 'h', 'fit', 'radius', 'zoom', 'panX', 'panY', 'loop', 'fill'],
   logo: ['w', 'on'],
+  icon: ['name', 'size', 'color', 'lineWidth', 'paths', 'box', 'filled'],
+  device: ['kind', 'media', 'w', 'color'],
   group: ['children'],
   stack: ['dir', 'gap', 'align', 'justify', 'w', 'h', 'wrap', 'padding', 'fill', 'radius', 'children'],
   repeat: ['count', 'data', 'layout', 'cols', 'w', 'h', 'gap', 'r', 'item'],
@@ -67,6 +80,8 @@ const ANIMATABLE: Record<string, AnimProp[]> = {
   image: ['w', 'h', 'radius', 'zoom', 'panX', 'panY'],
   video: ['w', 'h', 'radius', 'zoom', 'panX', 'panY'],
   logo: [],
+  icon: [],
+  device: [],
   group: [],
   stack: ['w', 'h', 'fill', 'radius'],
   repeat: [],
@@ -108,11 +123,18 @@ export function validateProgram(input: unknown, ctx: ValidationContext): Validat
   const warnings: string[] = [];
   if (!input || typeof input !== 'object' || Array.isArray(input)) return { ok: false, errors: ['le programme doit être un objet { bg, enter, nodes, timeline }'], warnings };
   const p = JSON.parse(JSON.stringify(input)) as Record<string, unknown>;
-  for (const k of Object.keys(p)) if (!['bg', 'enter', 'nodes', 'timeline'].includes(k)) {
+  for (const k of Object.keys(p)) if (!['bg', 'enter', 'nodes', 'timeline', 'timing'].includes(k)) {
     warnings.push(`clé inconnue « ${k} » ignorée`);
     delete p[k];
   }
+  if (p.timing !== undefined && !['auto', 'solved'].includes(String(p.timing))) {
+    warnings.push(`timing « ${p.timing} » inconnu, ignoré`);
+    delete p.timing;
+  }
   if (!Array.isArray(p.nodes)) errors.push('« nodes » doit être une liste');
+  // Les macros : un cadre d'appareil devient un groupe de nœuds simples, une icône devient un tracé (ses tracés résolus
+  // par le catalogue du moteur — un nom inconnu n'affiche rien d'inventé).
+  if (Array.isArray(p.nodes)) p.nodes = expandMacros(p.nodes as unknown[], ctx, warnings);
   if (p.timeline === undefined) p.timeline = [];
   if (!Array.isArray(p.timeline)) errors.push('« timeline » doit être une liste');
   if (p.bg !== undefined) checkFill(p.bg, 'bg', errors);
@@ -149,7 +171,7 @@ export function validateProgram(input: unknown, ctx: ValidationContext): Validat
       const e = exprError(n[k], 'length', scope, AXIS[k] || 'u');
       if (e) errors.push(`${label}.${k} : ${e}`);
     }
-    if (n.size !== undefined && n.size !== 'fit') {
+    if (n.size !== undefined && n.size !== 'fit' && !(type === 'text' && (TYPE_LEVELS as string[]).includes(String(n.size)))) {
       const e = exprError(n.size, 'length', scope);
       if (e) errors.push(`${label}.size : ${e}`);
     }
@@ -286,20 +308,22 @@ export function validateProgram(input: unknown, ctx: ValidationContext): Validat
       delete s[key];
     }
     if (s.at === undefined) s.at = 0;
-    const atErr = exprError(s.at, 'time');
+    const musical = typeof s.at === 'string' && /^\s*(beat|bar)\s*:\s*\d+(\.\d+)?\s*$/.test(s.at);
+    if (musical) s.at = String(s.at).replace(/\s+/g, '');
+    const atErr = musical ? null : exprError(s.at, 'time');
     if (atErr) errors.push(`${where}.at : ${atErr}`);
     else {
       const at = typeof s.at === 'number' ? s.at : null;
       if (at !== null && (at < 0 || at >= ctx.duration)) warnings.push(`${where} : at=${at} hors de la scène (0 à ${ctx.duration.toFixed(2)} s)`);
     }
-    if (s.dur !== undefined) {
+    if (s.dur !== undefined && !(DUR_TOKENS as string[]).includes(String(s.dur))) {
       const e = exprError(s.dur, 'time');
       if (e) errors.push(`${where}.dur : ${e}`);
       else if (typeof s.dur === 'number' && (s.dur < 0 || s.dur > 60)) errors.push(`${where}.dur : secondes (0 à 60)`);
     }
-    if (s.stagger !== undefined && (typeof s.stagger !== 'number' || s.stagger < 0 || s.stagger > 5)) errors.push(`${where}.stagger : secondes (0 à 5)`);
-    if (typeof s.ease === 'string') s.ease = normalizeEase(s.ease);
-    if (s.ease !== undefined && !EASES.includes(s.ease as never)) {
+    if (s.stagger !== undefined && !(STAGGER_TOKENS as string[]).includes(String(s.stagger)) && (typeof s.stagger !== 'number' || s.stagger < 0 || s.stagger > 5)) errors.push(`${where}.stagger : secondes (0 à 5) ou ${STAGGER_TOKENS.join(' | ')}`);
+    if (typeof s.ease === 'string' && !(EASE_TOKENS as string[]).includes(s.ease)) s.ease = normalizeEase(s.ease);
+    if (s.ease !== undefined && !EASES.includes(s.ease as never) && !(EASE_TOKENS as string[]).includes(String(s.ease))) {
       warnings.push(`${where}.ease : courbe « ${s.ease} » inconnue, outCubic utilisée`);
       delete s.ease;
     }
@@ -352,8 +376,10 @@ export function validateProgram(input: unknown, ctx: ValidationContext): Validat
       } else resolved.push({ id: t, info: node, part: false });
     }
     if (s.effect !== undefined) {
-      if (!['count', 'type'].includes(String(s.effect))) errors.push(`${where}.effect : count | type`);
-      else for (const r of resolved) if (r.info && (r.info.type !== 'text' || r.part || r.info.parts !== undefined)) errors.push(`${where} : l'effet « ${s.effect} » s'applique à un texte entier (non découpé) — « ${r.id} » ne l'est pas`);
+      if (!['count', 'type', 'point'].includes(String(s.effect))) errors.push(`${where}.effect : count | type | point`);
+      else if (s.effect === 'point') {
+        for (const r of resolved) if (r.info && (!['image', 'video'].includes(r.info.type) || r.part)) errors.push(`${where} : l'effet « point » s'applique à un média (image ou clip) — « ${r.id} » n'en est pas un`);
+      } else for (const r of resolved) if (r.info && (r.info.type !== 'text' || r.part || r.info.parts !== undefined)) errors.push(`${where} : l'effet « ${s.effect} » s'applique à un texte entier (non découpé) — « ${r.id} » ne l'est pas`);
     }
     for (const key of ['from', 'to'] as const) {
       const values = s[key];
@@ -448,8 +474,42 @@ export function validateProgram(input: unknown, ctx: ValidationContext): Validat
   return { ok: !errors.length, errors: [...new Set(errors)].slice(0, 25), warnings: [...new Set(warnings)].slice(0, 25), ...(errors.length ? {} : { program: p as unknown as MotionProgram }) };
 }
 
+/** Les macros d'un programme : `device` → groupe de nœuds simples, `icon` → tracé. Récursif (piles, groupes). */
+function expandMacros(list: unknown[], ctx: ValidationContext, warnings: string[]): unknown[] {
+  const out: unknown[] = [];
+  for (const raw of list) {
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+      out.push(raw);
+      continue;
+    }
+    const n = raw as Record<string, unknown>;
+    if (Array.isArray(n.children)) n.children = expandMacros(n.children as unknown[], ctx, warnings);
+    if (n.item && typeof n.item === 'object') n.item = expandMacros([n.item], ctx, warnings)[0] ?? n.item;
+    if (n.type === 'device') {
+      const kind = ['phone', 'laptop', 'browser'].includes(String(n.kind)) ? (n.kind as 'phone' | 'laptop' | 'browser') : 'phone';
+      out.push(expandDevice({ ...n, kind } as never));
+      continue;
+    }
+    if (n.type === 'icon') {
+      const icon = typeof n.name === 'string' && ctx.icons ? ctx.icons(n.name) : null;
+      if (!icon || !icon.paths.length) {
+        warnings.push(`icône « ${String(n.name || '').slice(0, 40)} » inconnue du catalogue : nœud retiré`);
+        continue;
+      }
+      const size = typeof n.size === 'number' ? n.size : 8;
+      const k = size / icon.box;
+      const { type: _t, name: _n, size: _s, color, lineWidth, paths: _p, box: _b, filled: _f, ...rest } = n;
+      const d = icon.paths.map((path) => scalePath(path, k, -size / 2, -size / 2)).join(' ');
+      out.push({ ...rest, type: 'path', d, ...(icon.filled ? { fill: color ?? 'ink' } : { stroke: color ?? 'ink', lineWidth: typeof lineWidth === 'number' ? lineWidth : Math.max(0.25, size * 0.085) }) });
+      continue;
+    }
+    out.push(n);
+  }
+  return out;
+}
+
 const HEX = /^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i;
-const TOKEN = /^(primary|secondary|accent|background|text|ink|muted|gray|grey|white|black|transparent|on-(primary|secondary|accent|background|text))(\/\d{1,3})?$/;
+const TOKEN = /^(primary|secondary|accent|background|text|ink|muted|gray|grey|white|black|transparent|on-(primary|secondary|accent|background|text|highlight|neutral|surface)|ground|surface|surfaceStrong|surface-strong|inkMuted|ink-muted|line|onPrimary|onSecondary|onAccent|highlight|onHighlight|neutral|onNeutral)(\/\d{1,3})?$/;
 
 /** Les noms de courbes que les modèles écrivent d'instinct (easeOutCubic, ease-out, EaseInOut…) → ceux du langage. */
 export function normalizeEase(raw: string): string {

@@ -5,6 +5,8 @@
  * la page). Le CODE des scènes n'y est pas : il est compilé dans le paquet de la page.
  */
 import type { BrandTokens, FilmFormat, SceneMedia, SfxKind } from '../kit/context';
+import type { SceneDesignData } from '../kit/design';
+import type { SeamData } from '../kit/seams';
 
 export interface FilmSceneData {
   key: string;
@@ -16,6 +18,15 @@ export interface FilmSceneData {
   voice?: { text: string; at: number; duration: number };
   /** Le code de la scène n'a pas compilé : le message, montré à sa place (jamais une autre composition). */
   compileError?: string;
+  /** Le système de design résolu pour cette scène et ce format. */
+  design?: SceneDesignData;
+  /** Coutures planifiées par le film (entrée depuis la précédente, sortie vers la suivante). */
+  seamIn?: SeamData;
+  seamOut?: SeamData;
+  /** Le rang de la scène dans le film quand il diffère de sa place dans la page (contrôle de variantes). */
+  index?: number;
+  /** Son instant réel dans le film (musique, sous-titres) quand la page joue la scène ailleurs (contrôle de variantes). */
+  clock?: number;
 }
 
 export interface FilmCaption {
@@ -23,6 +34,8 @@ export interface FilmCaption {
   /** Instants absolus dans le film (secondes). */
   start: number;
   end: number;
+  /** L'instant de chaque mot (absolu) : la ligne apparaît mot par mot, avec la voix. */
+  words?: { text: string; start: number; end: number }[];
 }
 
 export interface FilmData {
@@ -45,6 +58,12 @@ export interface FilmData {
   fontFamilies: string[];
   /** Langue des messages du harnais (erreurs). */
   lang: 'fr' | 'en';
+  /** Les temps de la musique dans le film (s), calculés sur la piste. */
+  beats?: number[];
+  /** La zone sûre de la plateforme du format (px de composition, origine au centre). */
+  safe?: { width: number; height: number; left: number; right: number; top: number; bottom: number };
+  /** Les sons des transitions, planifiés par le film (instants absolus) : les scènes n'en posent plus d'office. */
+  cues?: SfxCueRecord[];
 }
 
 /** Ce que l'aperçu fait entendre (le rendu, lui, mixe le son avec ffmpeg). */
@@ -61,6 +80,8 @@ export interface SfxCueRecord {
   scene: string;
   /** Gain relatif (0..1) décidé par la scène (une transition se glisse sous le reste). */
   gain?: number;
+  /** La prise à jouer quand le moment sonore en a plusieurs (rotation). */
+  take?: number;
 }
 
 export interface SceneErrorRecord {

@@ -64,6 +64,16 @@ async function getBrowser(): Promise<Browser> {
   return browserJob;
 }
 
+/** Le navigateur partagé, pour un autre rendu image par image (animations Lottie) ; `releaseFilmBrowser` après usage. */
+export async function filmBrowser(): Promise<Browser> {
+  active++;
+  return getBrowser();
+}
+export function releaseFilmBrowser(): void {
+  active = Math.max(0, active - 1);
+  release();
+}
+
 function release(): void {
   if (active > 0) return;
   idleTimer = setTimeout(() => void closeFilmBrowser(), 120000);
@@ -217,6 +227,8 @@ export interface ProbeResult {
   layout: Record<string, string[]>;
   /** Les textes illisibles sur leur fond et la couleur de ce fond (dernier recours du moteur). */
   contrast: Record<string, ContrastFix[]>;
+  /** Le contraste du texte le moins lisible de chaque scène (mesuré sur l'image) : le juge s'en sert (figure-fond). */
+  minContrast: Record<string, number>;
 }
 
 export interface TextBox { text: string; x0: number; y0: number; x1: number; y1: number; group: string; order?: number; contrast?: number; bg?: number[]; best?: string; bestContrast?: number }
@@ -264,7 +276,7 @@ export function layoutIssues(texts: TextBox[], width: number, height: number, at
   }
   // Les textes découpés comptent pour leur boîte d'ensemble face aux traits, contours et images.
   const units: TextBox[] = [...texts.filter((t) => !t.group)];
-  for (const parts of byGroup.values()) units.push({ text: parts.map((p) => p.text).join(parts.every((p) => p.text.length <= 1) ? '' : ' '), x0: Math.min(...parts.map((p) => p.x0)), y0: Math.min(...parts.map((p) => p.y0)), x1: Math.max(...parts.map((p) => p.x1)), y1: Math.max(...parts.map((p) => p.y1)), group: '', order: Math.min(...parts.map((p) => p.order ?? 1e9)) });
+  for (const parts of byGroup.values()) units.push({ text: parts.map((p) => p.text).join(parts.every((p) => p.text.length <= 1) ? '' : ' '), x0: Math.min(...parts.map((p) => p.x0)), y0: Math.min(...parts.map((p) => p.y0)), x1: Math.max(...parts.map((p) => p.x1)), y1: Math.max(...parts.map((p) => p.y1)), group: '', order: Math.min(...parts.map((p) => p.order ?? 1e9)), ...(parts.every((p) => p.contrast !== undefined) ? { contrast: Math.min(...parts.map((p) => p.contrast!)) } : {}) });
   // Ce qui est dessiné PAR-DESSUS un texte (forme pleine, image, trait qui le barre) le rend illisible.
   for (const t of units) {
     if (t.order === undefined) continue;
@@ -294,9 +306,10 @@ export function layoutIssues(texts: TextBox[], width: number, height: number, at
     // À cheval sur un contour (cadre, anneau) : ni dedans ni dehors.
     const straddle = shapes.find((s) => s.kind === 'outline' && !plated(s) && inter(t, s) > 0.08 * ta && !(t.x0 >= s.x0 && t.x1 <= s.x1 && t.y0 >= s.y0 && t.y1 <= s.y1));
     if (straddle) out.push(`${label(t)} est à cheval sur le contour d'une forme à ${at.toFixed(1)} s`);
-    // Posé sur une image sans aplat entre les deux : le texte se perd dans la photo.
+    // Posé sur une image sans aplat entre les deux : le texte se perd dans la photo — sauf s'il est dans une zone CALME
+    // de l'image, où il se lit (contraste mesuré sur les pixels autour de lui d'au moins 4,5:1) : c'est voulu.
     const photo = shapes.find((s) => s.kind === 'image' && s.order < t.order! && inter(t, s) > 0.25 * ta && !plated(s));
-    if (photo) out.push(`${label(t)} est posé sur une image (aucun aplat entre les deux) à ${at.toFixed(1)} s`);
+    if (photo && !(t.contrast !== undefined && t.contrast >= 4.5)) out.push(`${label(t)} est posé sur une image (aucun aplat entre les deux) à ${at.toFixed(1)} s`);
   }
   for (const t of texts) if (t.contrast !== undefined && t.contrast < 2.2) out.push(`${label(t)} ne se lit pas sur son fond (contraste ${t.contrast.toFixed(1)} : couleur trop proche de ce qu'il recouvre) à ${at.toFixed(1)} s`);
   const tx = width * 0.015;
@@ -354,12 +367,14 @@ export async function probeFilm(input: FilmPageInput & { files?: Map<string, Ser
       // Le contrôle d'affichage : deux instants par scène, quand tout est installé (la piste du langage finit à 70 %).
       const layout: Record<string, string[]> = {};
       const contrast: Record<string, ContrastFix[]> = {};
+      const minContrast: Record<string, number> = {};
       if (opts.layout !== false) {
         for (const scene of input.data.scenes) {
           if (errors.has(scene.key) || scene.compileError) continue;
           const found = new Set<string>();
           for (const r of [0.78, 0.95]) {
-            const t = scene.start + scene.duration * r;
+            // Le second instant reste avant la sortie de couture (≈ 0,4 s avant la coupe : la scène y est en mouvement).
+            const t = scene.start + (r === 0.95 ? Math.max(scene.duration * 0.78, Math.min(scene.duration * r, scene.duration - 0.45)) : scene.duration * r);
             const res = (await p.evaluate((f: number) => (window as any).__IDEM_RENDER__.layout(f), Math.round(t * input.data.fps))) as { texts: TextBox[]; shapes?: ShapeBox[] };
             // Une scène installée qui n'affiche aucun de ses textes (tout est sorti avant la fin, ou rien n'est entré).
             // (un texte entièrement recouvert par ce qui est dessiné après lui ne compte pas comme affiché)
@@ -372,6 +387,7 @@ export async function probeFilm(input: FilmPageInput & { files?: Map<string, Ser
               const parts = res.texts.filter((t) => t.group === g);
               return { ...parts[0], text: parts.map((p) => p.text).join(parts.every((p) => p.text.length <= 1) ? '' : ' '), group: '' };
             });
+            for (const t of res.texts) if (t.contrast !== undefined) minContrast[scene.key] = Math.min(minContrast[scene.key] ?? 99, t.contrast);
             for (const t of [...res.texts, ...groupUnits]) {
               const list = (contrast[scene.key] ||= []);
               const label = `« ${t.text.length > 48 ? `${t.text.slice(0, 46)}…` : t.text} »`;
@@ -391,7 +407,7 @@ export async function probeFilm(input: FilmPageInput & { files?: Map<string, Ser
           if (found.size) layout[scene.key] = [...found].slice(0, 6);
         }
       }
-      return { errors: [...errors.values()], cues: init.cues, thumbnails, layout, contrast };
+      return { errors: [...errors.values()], cues: init.cues, thumbnails, layout, contrast, minContrast };
     })();
     return await Promise.race([job, new Promise<never>((_, reject) => setTimeout(() => reject(new Error('probe_timeout')), opts.timeoutMs ?? 120000))]);
   } finally {
@@ -407,10 +423,17 @@ export interface FilmRenderInput extends FilmPageInput {
   files?: Map<string, ServedFile>;
   durationSec: number;
   quality: VideoQuality;
-  /** Piste locale et début de l'extrait. */
-  music?: { file: string; startAt: number };
-  /** Effets sonores : un fichier par type, et le style (densité du mixage). */
-  sfx?: { files: Partial<Record<SfxKind, string>>; style: MotionStyle; intensity?: 'subtle' | 'normal' | 'punchy' };
+  /** Piste locale et début de l'extrait (qui finit sur une fin de phrase musicale quand `phraseEnd`). */
+  music?: { file: string; startAt: number; phraseEnd?: boolean };
+  /** Effets sonores : un fichier (ou plusieurs prises) par type, et le style (densité du mixage). */
+  sfx?: { files: Partial<Record<SfxKind, string | string[]>>; style: MotionStyle; intensity?: 'subtle' | 'normal' | 'punchy' };
+  /**
+   * Flou de mouvement : `samples` sous-images par image, dont celles d'un obturateur de `shutter` degrés sont
+   * moyennées (180° : la moitié). Les tronçons commencent sur une image : le mélange ne traverse jamais une coupe.
+   */
+  motionBlur?: { samples: number; shutter: number };
+  /** Images clés (s) vérifiées avant le rendu complet : une scène qui plante arrête le rendu tout de suite. */
+  gate?: number[];
   voice?: { file: string; at: number }[];
   posterAt?: number;
   onProgress?: (ratio: number) => void;
@@ -429,11 +452,14 @@ export interface FilmRenderOutput {
   errors: SceneErrorRecord[];
 }
 
-async function renderChunk(page: Page, input: FilmRenderInput, from: number, to: number, out: string, tick: () => void): Promise<InitResult> {
+async function renderChunk(page: Page, input: FilmRenderInput, from: number, to: number, out: string, tick: () => void, blur?: { samples: number; open: number; fps: number }): Promise<InitResult> {
   const init = (await page.evaluate((f: number) => (window as any).__IDEM_RENDER__.init(f), from)) as InitResult;
+  const fps = blur ? blur.fps : input.data.fps;
+  // Le flou : la page tourne à fps × N ; l'image k est la moyenne de ses `open` premières sous-images (obturateur).
+  const blurFilter = blur ? ['-vf', `tmix=frames=${blur.open},select=eq(mod(n\\,${blur.samples})\\,${blur.open - 1}),setpts=N/(${fps}*TB)`] : [];
   const ff = spawn(
     FFMPEG,
-    ['-y', '-v', 'error', '-f', 'image2pipe', '-framerate', String(input.data.fps), '-c:v', 'mjpeg', '-i', '-', ...encoding(input.quality, input.data.fps), '-r', String(input.data.fps), out],
+    ['-y', '-v', 'error', '-f', 'image2pipe', '-framerate', String(input.data.fps), '-c:v', 'mjpeg', '-i', '-', ...blurFilter, ...encoding(input.quality, fps), '-r', String(fps), out],
     { stdio: ['pipe', 'ignore', 'pipe'] }
   );
   let err = '';
@@ -461,8 +487,14 @@ async function renderChunk(page: Page, input: FilmRenderInput, from: number, to:
 export async function renderFilm(input: FilmRenderInput): Promise<FilmRenderOutput> {
   const workDir = fs.mkdtempSync(path.join(os.tmpdir(), 'idem-film-'));
   const fps = input.data.fps;
-  const total = Math.round(input.durationSec * fps);
-  const concurrency = Math.max(1, Math.min(input.concurrency ?? (Number(process.env.VIDEO_RENDER_CONCURRENCY) || Math.min(6, Math.max(1, Math.floor(os.cpus().length * 0.75)))), 8, Math.ceil(total / 45)));
+  const samples = input.motionBlur && input.motionBlur.samples > 1 ? Math.min(8, Math.round(input.motionBlur.samples)) : 1;
+  const open = Math.max(1, Math.min(samples, Math.round((samples * (input.motionBlur?.shutter ?? 180)) / 360)));
+  const blur = samples > 1 && open > 1 ? { samples, open, fps } : undefined;
+  // Avec le flou, la page calcule fps × N images par seconde (le code des scènes n'en sait rien : il lit le temps).
+  if (blur) input = { ...input, data: { ...input.data, fps: fps * samples } };
+  const step = blur ? samples : 1;
+  const total = Math.round(input.durationSec * fps) * step;
+  const concurrency = Math.max(1, Math.min(input.concurrency ?? (Number(process.env.VIDEO_RENDER_CONCURRENCY) || Math.min(6, Math.max(1, Math.floor(os.cpus().length * 0.75)))), 8, Math.ceil(total / (45 * step))));
   active++;
   const pages: Page[] = [];
   let done = 0;
@@ -477,14 +509,29 @@ export async function renderFilm(input: FilmRenderInput): Promise<FilmRenderOutp
   };
   try {
     const browser = await getBrowser();
-    const per = Math.ceil(total / concurrency);
+    // Les images clés d'abord : une scène qui plante (apparue après le contrôle) arrête tout de suite, sans rendre le reste.
+    if (input.gate?.length) {
+      const page = await openFilmPage(browser, input, input.files || new Map());
+      pages.push(page);
+      const init = (await page.evaluate(() => (window as any).__IDEM_RENDER__.init(0))) as InitResult;
+      const gateErrors = new Map(init.errors.map((e) => [e.key, e]));
+      for (const t of input.gate) {
+        const res = (await page.evaluate((f: number) => (window as any).__IDEM_RENDER__.layout(f), Math.round(t * input.data.fps))) as { texts: TextBox[]; shapes?: ShapeBox[] };
+        const issues = layoutIssues(res.texts, input.data.width, input.data.height, t, res.shapes || []);
+        if (issues.length) logger.warn('video.render.keyframe_issue', { t, issues: issues.slice(0, 3) });
+      }
+      for (const e of (await page.evaluate(() => (window as any).__IDEM_RENDER__.errors())) as SceneErrorRecord[]) gateErrors.set(e.key, e);
+      if (gateErrors.size) throw new Error(`scene_error: ${[...gateErrors.values()].map((e) => `${e.key} ${e.message}`).join(' · ').slice(0, 300)}`);
+    }
+    // Les tronçons commencent sur une image (multiple de N sous-images) : le flou ne mélange jamais deux images.
+    const per = Math.ceil(total / concurrency / step) * step;
     const chunks = Array.from({ length: concurrency }, (_, i) => ({ from: i * per, to: Math.min(total, (i + 1) * per), file: path.join(workDir, `part-${String(i).padStart(2, '0')}.mp4`) })).filter((c) => c.to > c.from);
     // Tous les tronçons vont jusqu'au bout (réussite ou échec) avant que le dossier de travail soit nettoyé.
     const settled = await Promise.allSettled(
       chunks.map(async (chunk) => {
         const page = await openFilmPage(browser, input, input.files || new Map());
         pages.push(page);
-        return renderChunk(page, input, chunk.from, chunk.to, chunk.file, tick);
+        return renderChunk(page, input, chunk.from, chunk.to, chunk.file, tick, blur);
       })
     );
     const failed = settled.find((r): r is PromiseRejectedResult => r.status === 'rejected');
@@ -503,6 +550,7 @@ export async function renderFilm(input: FilmRenderInput): Promise<FilmRenderOutp
     const d = input.durationSec;
     const rawCues = inits[0]?.cues || [];
     const cues = input.sfx ? refineCues(rawCues, input.sfx.style, d, input.sfx.intensity).filter((c) => input.sfx!.files[c.kind]) : [];
+    // Les sous-images du flou ne changent pas les instants des sons (en secondes).
     await mixAudio({ silent, file, d, music: input.music, cues, files: input.sfx?.files || {}, voice: input.voice || [] });
     const poster = path.join(workDir, 'poster.jpg');
     const posterAt = Math.max(0, Math.min(d - 0.1, input.posterAt ?? d * 0.2));
@@ -515,7 +563,7 @@ export async function renderFilm(input: FilmRenderInput): Promise<FilmRenderOutp
       workDir,
       width: Math.round(input.data.width * scale),
       height: Math.round(input.data.height * scale),
-      fps,
+      fps: blur ? blur.fps : fps,
       sizeBytes: fs.statSync(file).size,
       errors: [...errors.values()],
     };

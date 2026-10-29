@@ -37,8 +37,22 @@ export interface RunBudgetLike {
 export type AgentProfile = 'agents' | 'critic' | 'coder';
 export type AgentSource = 'llm' | 'graph';
 
+/**
+ * Les réglages d'UN appel (échantillonnage du moteur vidéo) : traduits par l'hôte pour son fournisseur (OpenRouter :
+ * `temperature`, `seed`, `response_format: json_schema` strict avec `require_parameters`, plugin `response-healing`,
+ * raisonnement coupé ou demandé). Un hôte qui ne les connaît pas les ignore : l'appel reste valide.
+ */
+export interface AgentCallOptions {
+  temperature?: number;
+  seed?: number;
+  /** Sortie structurée stricte : le schéma JSON de la réponse. */
+  schema?: { name: string; schema: Record<string, unknown> };
+  /** `false` : couper le raisonnement (échantillonnage) ; `true` : le demander (storyboard). */
+  reasoning?: boolean;
+}
+
 /** Un appel de modèle. `validate` permet au runtime d'escalader d'un étage si la réponse est illisible. */
-export type AgentCall = (request: { role: string; profile: AgentProfile; system: string; user: string; validate?: (raw: string) => boolean; level?: CreativityLevel }) => Promise<string>;
+export type AgentCall = (request: { role: string; profile: AgentProfile; system: string; user: string; validate?: (raw: string) => boolean; level?: CreativityLevel; options?: AgentCallOptions }) => Promise<string>;
 
 export interface AgentTask<T> {
   /** Rôle lisible (« artDirector », « animator »…). */

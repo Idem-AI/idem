@@ -11,7 +11,11 @@
     "check:choices": "ts-node --transpile-only scripts/check-choices.ts",
     "check:request": "ts-node --transpile-only scripts/check-request.ts",
     "check:motion": "ts-node --transpile-only scripts/check-motion.ts",
-    "crawl": "ts-node --transpile-only scripts/crawl-site.ts"
+    "crawl": "ts-node --transpile-only scripts/crawl-site.ts",
+    "check:intent": "ts-node --transpile-only scripts/check-intent.ts",
+    "check:lottie": "ts-node --transpile-only scripts/check-lottie.ts",
+    "check:demo": "ts-node --transpile-only scripts/check-demo.ts",
+    "lottie:library": "ts-node --transpile-only scripts/build-lottie-library.ts"
   },
   "dependencies": {
     "@idem/graphic-engine": "file:../../../packages/graphic-engine",
@@ -29,7 +33,15 @@
     "pdfjs-dist": "^4.8.69",
     "@motion-canvas/core": "3.17.2",
     "@motion-canvas/2d": "3.17.2",
-    "tailwindcss": "4.1.17"
+    "tailwindcss": "4.1.17",
+    "@lume/kiwi": "0.4.4",
+    "@capsizecss/metrics": "4.4.0",
+    "@material/material-color-utilities": "0.3.0",
+    "@adobe/leonardo-contrast-colors": "1.1.0",
+    "tex-linebreak": "0.9.0",
+    "smartcrop-sharp": "2.0.8",
+    "music-tempo": "1.0.3",
+    "@lottiefiles/dotlottie-web": "0.80.0"
   },
   "devDependencies": {
     "typescript": "^5.8.2"

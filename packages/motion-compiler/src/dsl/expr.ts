@@ -10,7 +10,8 @@
  * Opérateurs : + - * / et parenthèses ; fonctions min(a, b), max(a, b), abs(a), sin(deg), cos(deg).
  * Pourcentages : `30%` = 30 % de la largeur de l'image (x, w), de sa hauteur (y, h), du petit côté ailleurs.
  * Format : `pick(vertical, horizontal)` ou `pick(vertical, carré, horizontal)` — un seul programme pour tous
- * les formats de la vidéo (story, portrait → vertical ; carré ; paysage → horizontal).
+ * les formats de la vidéo (story, portrait → vertical ; carré ; paysage → horizontal) ; `fmt(story, portrait, carré,
+ * paysage)` donne une valeur exacte par format (ce qu'écrit le solveur géométrique du compilateur 0.3).
  * Rien d'autre n'est accepté : l'expression est traduite en TypeScript sûr (aucun nom libre).
  */
 
@@ -20,6 +21,7 @@ const LENGTH_VARS: Record<string, string> = { W: 'W', H: 'H', L: 'L', R: 'R', T:
 const TIME_VARS: Record<string, string> = { D: 'D', V: 'V', VE: 'VE' };
 const FUNCS: Record<string, { arity: number | number[]; code: (args: string[]) => string }> = {
   pick: { arity: [2, 3], code: (a) => (a.length === 2 ? `(TALL ? ${a[0]} : ${a[1]})` : `(TALL ? ${a[0]} : SQUARE ? ${a[1]} : ${a[2]})`) },
+  fmt: { arity: 4, code: (a) => `(FMT === 'story' ? ${a[0]} : FMT === 'portrait' ? ${a[1]} : FMT === 'square' ? ${a[2]} : ${a[3]})` },
   min: { arity: 2, code: (a) => `Math.min(${a[0]}, ${a[1]})` },
   max: { arity: 2, code: (a) => `Math.max(${a[0]}, ${a[1]})` },
   abs: { arity: 1, code: (a) => `Math.abs(${a[0]})` },
@@ -171,7 +173,7 @@ export function constValue(value: unknown, scope: ExprScope = {}): number | null
   try {
     const code = exprCode(value, 'length', scope);
     if (/[A-Za-z]/.test(code.replace(/Math\.\w+/g, ''))) return null;
-    if (/TALL|SQUARE/.test(code)) return null;
+    if (/TALL|SQUARE|FMT/.test(code)) return null;
     // Le code ne contient que des nombres, des opérateurs et Math.* : il s'évalue sans risque.
     return Number(Function(`"use strict"; return (${code});`)());
   } catch {

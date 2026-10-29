@@ -20,6 +20,8 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import logger from '../runtime/logger';
+import { libraryAnimationAssets } from './assets/lottie';
+import { DemoDevice, recordDemo } from './assets/demo';
 import { coreHost, requirePort } from '../runtime/host';
 import { atLeast, CreativityLevel, normalizeCreativity } from '../creativity/levels';
 import type { AgentCall } from '../creativity/orchestrator';
@@ -60,20 +62,28 @@ import { MediaInputError, MediaStorage, Orientation, processUpload } from './ass
 import { ShotPlan, sourceShots, SourcingOptions } from './assets/sourcing';
 import { describeBrandMedia } from './assets/brandmedia';
 import { embeddedFontCss, filmBrand, FilmBrand } from './assets/brand';
-import { analyzeTrack, pickExcerptStart } from './audio/beats';
+import { analyzeTrack, beatGrid, phraseExcerpt, pickExcerptStart } from './audio/beats';
+import { alignWords } from './audio/align';
+import { prepareMedia } from './assets/prepare';
+import { resolveIcon } from './assets/icons';
+import { sampleScene, SampleSceneInput } from './author/sampler';
+import { authorIntent } from './author/intent.author';
+import { vlmTieBreak } from './author/tiebreak';
+import { authorCard, planFilm, plannedCues, probeCandidates, relower, rescueOptions, sceneLowering, sceneMediaData, seamsOf } from './composition';
 import { fetchTrack, pickTrack, resolveMood, searchMusic, MUSIC_PROVIDERS } from './audio/music';
-import { ensureSfxLibrary, MUSIC_GAIN_DB, MUSIC_UNDER_VOICE_DB, SFX_UNDER_VOICE_DB, pickSounds, previewGain, publicSoundName, SFX_GAIN_DB, sfxLibrary, SfxLibrary, soundFile } from './audio/sfx';
+import { ensureSfxLibrary, MUSIC_GAIN_DB, MUSIC_UNDER_VOICE_DB, SFX_UNDER_VOICE_DB, pickSounds, pickTakes, previewGain, publicSoundName, SFX_GAIN_DB, sfxLibrary, SfxLibrary, soundFile } from './audio/sfx';
 import { cleanSpoken, plainSpoken, fitScenesToVoice, personaById, personaMenu, speakable, speechAvailable, synthesizeVoice, voiceTimeline } from './audio/voice';
 import { callFilmModel, FilmCallContext, ModelRun, tierFor } from './agents';
 import { FilmBrief, sceneRange } from './director/brief';
 import { runConcept } from './director/concept.agent';
 import { runPlanner, Storyboard } from './director/storyboard.agent';
 import { authorScene, authorScenes, AuthoredScene, AuthorContext, SceneAuthor } from './author/program.author';
-import { compileProgram, COMPILER_VERSION, PROGRAM_MARK, programOf, validateProgram } from '../../../../../packages/motion-compiler/src';
+import { compileProgram, COMPILER_VERSION, PROGRAM_MARK, programOf, validateProgram, resolveSceneDesign, safeBox, snapCutsToBeats, validateIntent, variantChoices } from '../../../../../packages/motion-compiler/src';
+import type { SceneIntent, VariantChoice } from '../../../../../packages/motion-compiler/src';
 import { RepairLedger, strategyLevel } from './author/repair';
 import { buildFilmBundle, BundleScene } from './rendering/compiler';
 import { COMPOSITION, frameSpec } from './rendering/formats';
-import { cleanupFilmRender, localizeFilm, probeFilm, renderFilm } from './rendering/runner';
+import { cleanupFilmRender, fetchMedia, localizeFilm, probeFilm, renderFilm } from './rendering/runner';
 import { previewPageHtml } from './rendering/preview';
 import { exportCost, normalizeScope, videoCost } from './pricing';
 import { recordFromVideo } from './record';
@@ -116,6 +126,11 @@ export interface CreateVideoInput {
   /** L'interprétation corrigée par l'utilisateur, ou sa réponse à la question de clarification. */
   intent?: Partial<Pick<VideoIntentSpec, 'objective' | 'productionModes' | 'motionDirection' | 'subtitles' | 'voiceover' | 'music'>>;
   clarification?: { id: string; option: string };
+  /**
+   * Une DÉMO PRODUIT à filmer (`assets/demo.ts`) : l'interface publique `url` est parcourue par un agent selon `goal`
+   * (par défaut la demande), chaque écran devient un média avec le point de l'action (zoom automatique).
+   */
+  demo?: { url: string; goal?: string; device?: DemoDevice };
 }
 
 /** Progression RÉELLE d'une création (flux SSE). */
@@ -267,7 +282,9 @@ export class MotionVideoService {
     /** Appel de modèle imposé (contrôles) : remplace `agentCall` de l'hôte pour les agents du film. */
     private readonly filmCall?: AgentCall,
     /** Qui écrit les scènes (création, retouches, autocorrection) : l'auteur de programmes (langage de mouvement compilé). */
-    private readonly sceneAuthor: SceneAuthor = authorScene
+    private readonly sceneAuthor: SceneAuthor = authorScene,
+    /** Qui écrit les INTENTIONS (compilateur 0.3) : l'auteur d'intentions ; les contrôles le simulent. */
+    private readonly intentWriter?: SampleSceneInput['writer']
   ) {}
 
   /** Un rédacteur simple, à l'étage voulu (lecture de la demande, intention, « améliorer », retouche écrite). */
@@ -405,9 +422,12 @@ export class MotionVideoService {
 
   // ── Médias ────────────────────────────────────────────────────────────────
 
-  /** Un import de l'utilisateur : photo ou clip (le moteur Motion Canvas ne lit ni 3D, ni Lottie, ni Rive). */
+  /**
+   * Un import de l'utilisateur : photo, clip, ou animation Lottie (.json / .lottie) rendue en clip transparent
+   * (`assets/lottie.ts`). Le moteur Motion Canvas ne lit ni 3D ni Rive.
+   */
   async uploadMedia(userId: string, projectId: string, file: { buffer: Buffer; mimetype: string; originalname: string }): Promise<VideoMediaAsset> {
-    const asset = await processUpload(file, this.mediaStorage(), `users/${userId}/projects/${projectId}/videos/uploads`);
+    const asset = await processUpload(file, this.mediaStorage(), `users/${userId}/projects/${projectId}/videos/uploads`, { lottieAsClip: true });
     if (asset.kind !== 'image' && asset.kind !== 'video') throw new MediaInputError('unsupported_media');
     return asset;
   }
@@ -440,21 +460,30 @@ export class MotionVideoService {
   }
 
   private async chooseSfx(seed: number): Promise<VideoSfx> {
-    const picked = pickSounds(await this.library(), seed);
+    const lib = await this.library();
+    const picked = pickSounds(lib, seed);
     const sounds: VideoSfx['sounds'] = {};
     for (const [kind, sound] of Object.entries(picked)) {
       const { file: _file, score: _score, ...rest } = sound;
       sounds[kind as SfxKind] = rest;
     }
-    return { enabled: true, sounds };
+    // Plusieurs prises par moment sonore : les transitions tournent (jamais le même whoosh à chaque coupe).
+    const takes: NonNullable<VideoSfx['takes']> = {};
+    for (const [kind, list] of Object.entries(pickTakes(lib))) takes[kind as SfxKind] = (list || []).map(({ file: _f, score: _s, ...rest }) => rest);
+    return { enabled: true, sounds, ...(Object.keys(takes).length ? { takes } : {}) };
   }
 
-  private async sfxFiles(sfx?: VideoSfx): Promise<Partial<Record<SfxKind, string>>> {
-    const out: Partial<Record<SfxKind, string>> = {};
+  /** Les fichiers des effets : un par moment sonore (aperçu), ou toutes ses prises (`withTakes`, rendu). */
+  private async sfxFiles(sfx?: VideoSfx): Promise<Partial<Record<SfxKind, string>>>;
+  private async sfxFiles(sfx: VideoSfx | undefined, withTakes: true): Promise<Partial<Record<SfxKind, string | string[]>>>;
+  private async sfxFiles(sfx?: VideoSfx, withTakes = false): Promise<Partial<Record<SfxKind, string | string[]>>> {
+    const out: Partial<Record<SfxKind, string | string[]>> = {};
     if (!sfx?.enabled) return out;
     for (const [kind, sound] of Object.entries(sfx.sounds)) {
       const file = sound ? await soundFile(sound) : null;
-      if (file) out[kind as SfxKind] = file;
+      if (!file) continue;
+      const takes = withTakes ? (await Promise.all((sfx.takes?.[kind as SfxKind] || []).map((t) => soundFile(t)))).filter((f): f is string => !!f) : [];
+      out[kind as SfxKind] = takes.length > 1 ? takes : file;
     }
     return out;
   }
@@ -495,11 +524,22 @@ export class MotionVideoService {
     }
     try {
       const analysis = await analyzeTrack(file);
+      // La grille des temps (BeatRoot) : l'extrait commence sur une phrase et FINIT sur une fin de phrase ; les temps de
+      // l'extrait servent au calage des coupes et des gestes.
+      const grid = await beatGrid(file, analysis).catch(() => null);
+      const startAt = grid ? phraseExcerpt(grid, analysis, durationSec) : pickExcerptStart(analysis, durationSec);
+      const local = (list?: number[]) => (list || []).filter((b) => b >= startAt - 1e-3 && b <= startAt + durationSec + 0.5).map((b) => Math.round((b - startAt) * 1000) / 1000);
+      const bpm = grid?.bpm || (track.bpm && Math.abs(track.bpm - analysis.bpm) < 4 ? track.bpm : analysis.bpm);
       return {
         ...track,
         durationSec: track.durationSec || analysis.durationSec,
-        startAt: pickExcerptStart(analysis, durationSec),
-        beat: { bpm: track.bpm && Math.abs(track.bpm - analysis.bpm) < 4 ? track.bpm : analysis.bpm, offset: 0, confidence: analysis.confidence },
+        startAt,
+        beat: {
+          bpm,
+          offset: grid ? local(grid.beats)[0] ?? 0 : 0,
+          confidence: analysis.confidence,
+          ...(grid ? { beats: local(grid.beats), downbeats: local(grid.downbeats), phrases: local(grid.phrases) } : {}),
+        },
       };
     } catch (error: any) {
       logger.warn('video.track_analysis_failed', { id: track.id, error: error?.message || String(error) });
@@ -535,7 +575,7 @@ export class MotionVideoService {
         // Toute la narration d'une prise ; une retouche de scène ne redit que sa ligne.
         continuous: !o.only,
       });
-      const fresh = said.lines.map((l) => ({ sceneKey: o.film.scenes[l.index].key, text: l.text, url: l.url, durationSec: l.durationSec }));
+      const fresh = await Promise.all(said.lines.map(async (l) => ({ sceneKey: o.film.scenes[l.index].key, text: l.text, url: l.url, durationSec: l.durationSec, ...(await this.wordsOf(l.text, l.url, l.durationSec)) })));
       const all = [...keep.map(({ offset: _o, ...l }) => l), ...fresh];
       const fit = fitScenesToVoice(o.film.scenes, all, o.film.durationSec, { keepTiming: o.scripted });
       const voiced = fresh.map((l) => l.sceneKey);
@@ -551,6 +591,21 @@ export class MotionVideoService {
     }
   }
 
+  /** L'instant de chaque mot d'une ligne dite (sous-titres mot par mot) ; rien si l'alignement échoue. */
+  private async wordsOf(text: string, url: string, durationSec: number): Promise<{ words?: { text: string; start: number; end: number }[] }> {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'idem-align-'));
+    try {
+      const file = path.join(dir, 'line.mp3');
+      fs.writeFileSync(file, (await fetchMedia(url)).buffer);
+      const words = await alignWords(plainSpoken(text), file, durationSec);
+      return words.length ? { words } : {};
+    } catch {
+      return {};
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  }
+
   // ── Données du film (aperçu, contrôle, rendu) ────────────────────────────
 
   /** Les données que lit le harnais : composition du format, marque, textes, médias, voix, tempo, sous-titres. */
@@ -561,7 +616,7 @@ export class MotionVideoService {
     const voiceOf = new Map((video.voice?.enabled ? video.voice.lines : []).map((l) => [l.sceneKey, l]));
     const captions =
       film.captions && video.voice?.enabled
-        ? voiceTimeline(film.scenes, video.voice, film.durationSec).map((l) => ({ text: plainSpoken(l.text), start: l.at, end: Math.min(film.durationSec, l.at + l.durationSec + 0.2) }))
+        ? voiceTimeline(film.scenes, video.voice, film.durationSec).map((l) => ({ text: plainSpoken(l.text), start: l.at, end: Math.min(film.durationSec, l.at + l.durationSec + 0.2), ...(l.words?.length ? { words: l.words.map((w) => ({ text: w.text, start: Math.round((l.at + w.start) * 1000) / 1000, end: Math.round((l.at + w.end) * 1000) / 1000 })) } : {}) }))
         : [];
     return {
       format,
@@ -573,23 +628,44 @@ export class MotionVideoService {
       fontFamilies: [...new Set([brand.tokens.fonts.display, brand.tokens.fonts.body])],
       lang: (film.language || 'fr').startsWith('en') ? 'en' : 'fr',
       ...(video.music?.beat?.bpm ? { beat: { bpm: video.music.beat.bpm, offset: video.music.beat.offset || 0 } } : {}),
+      ...(video.music?.beat?.beats?.length ? { beats: video.music.beat.beats } : {}),
       ...(captions.length ? { captions } : {}),
-      scenes: film.scenes.map((sc) => {
+      // La zone sûre de la plateforme, et les sons des transitions planifiés par le film (compilateur 0.3).
+      safe: safeBox(format),
+      ...(film.design ? { cues: plannedCues(film) } : {}),
+      scenes: film.scenes.map((sc, i) => {
         const line = voiceOf.get(sc.key);
+        const { seamIn, seamOut } = film.design ? seamsOf(film, i) : {};
+        void byId;
         return {
           key: sc.key,
           start: sc.start,
           duration: sc.duration,
           texts: sc.texts,
-          media: sc.media
-            .map((id) => byId.get(id))
-            .filter((m): m is VideoMediaAsset => !!m && (m.kind === 'image' || m.kind === 'video'))
-            .map((m) => ({ id: m.id, kind: m.kind as 'image' | 'video', url: m.url, width: m.width || 0, height: m.height || 0, ...(m.durationSec ? { durationSec: m.durationSec } : {}), ...(m.name ? { note: m.name } : {}) })),
+          media: sceneMediaData(video, sc, format),
+          ...(film.design ? { design: resolveSceneDesign(film.design, format, i) as never } : {}),
+          ...(seamIn ? { seamIn: seamIn as never } : {}),
+          ...(seamOut ? { seamOut: seamOut as never } : {}),
           ...(line ? { voice: { text: plainSpoken(line.text), at: line.offset, duration: line.durationSec } } : {}),
           ...(!sc.code || sc.error?.stage === 'compile' || sc.error?.stage === 'author' ? { compileError: sc.error?.message || 'aucun code' } : {}),
         };
       }),
     };
+  }
+
+  /**
+   * Les scènes d'intention écrites par une version antérieure du compilateur : leur code est recalculé depuis leur
+   * intention et leur variante (correctifs du solveur et du compilateur appliqués, aucun modèle rappelé).
+   */
+  private refreshIntentScenes(video: MotionVideo, brand: FilmBrand): MotionVideo {
+    const film = video.film;
+    if (!film?.design || !film.scenes.some((sc) => sc.intent && sc.variant && sc.code && !sc.code.includes(`${PROGRAM_MARK} v${COMPILER_VERSION}\n`))) return video;
+    const scenes = film.scenes.map((sc, i) => {
+      if (!sc.intent || !sc.variant || !sc.code || sc.code.includes(`${PROGRAM_MARK} v${COMPILER_VERSION}\n`)) return sc;
+      const r = relower(video, brand, i, sc.intent, sc.variant);
+      return r ? { ...sc, code: r.code } : sc;
+    });
+    return { ...video, film: { ...film, scenes } };
   }
 
   private bundleCache = new Map<string, Promise<string>>();
@@ -617,6 +693,7 @@ export class MotionVideoService {
    * sonores posés par le code relevés.
    */
   private async checkFilm(userId: string, projectId: string, video: MotionVideo, brand: FilmBrand): Promise<VideoFilm> {
+    video = this.refreshIntentScenes(video, brand);
     const film = video.film!;
     try {
       const formats = video.scope.formats.length ? video.scope.formats : (['story'] as VideoFormat[]);
@@ -737,16 +814,17 @@ export class MotionVideoService {
         .filter((x): x is { sc: FilmScene; strategy: NonNullable<ReturnType<RepairLedger['nextStrategy']>>; message: string } => !!x.strategy);
       if (!todo.length) break;
       emit?.('repair', 'running', { round: round + 1, scenes: todo.map((x) => x.sc.key) });
-      const results = new Array<{ key: string; strategy: string; a: AuthoredScene; before: FilmScene }>(todo.length);
+      const results = new Array<{ key: string; strategy: string; a: AuthoredScene & { intent?: SceneIntent; variant?: VariantChoice }; before: FilmScene }>(todo.length);
       let next = 0;
       const worker = async () => {
         while (next < todo.length) {
           const k = next++;
           const { sc, strategy, message } = todo[k];
-          const context = this.authorContext({ ...video, film }, ctx.film, sc, level, {
-            repair: { strategy, ...(sc.code ? { code: sc.code } : {}), error: message, history: ledger.history(sc.key) },
-          });
-          const a = await this.sceneAuthor(this.callContext(userId, projectId, strategyLevel(strategy, level)), context);
+          // Une scène d'intention se corrige en INTENTION (rapport mesuré, puis version minimale posée par le code) ;
+          // une scène de programme, comme avant.
+          const a = sc.intent
+            ? await this.intentRepair(userId, projectId, { ...video, film }, ctx, film.scenes.findIndex((x) => x.key === sc.key), strategy, `${message}${ledger.history(sc.key).length ? ` | déjà vu : ${ledger.history(sc.key).slice(-2).join(' | ')}` : ''}`, level)
+            : await this.sceneAuthor(this.callContext(userId, projectId, strategyLevel(strategy, level)), this.authorContext({ ...video, film }, ctx.film, sc, level, { repair: { strategy, ...(sc.code ? { code: sc.code } : {}), error: message, history: ledger.history(sc.key) } }));
           results[k] = { key: sc.key, strategy, a, before: sc };
         }
       };
@@ -756,7 +834,8 @@ export class MotionVideoService {
         const repairs = [...(before.author?.repairs || []), { strategy: strategy as 'fix' | 'rewrite' | 'minimal', ok: !!a.code && !a.error, ...(a.error ? { error: a.error.message.slice(0, 200) } : {}) }];
         // Une réponse sans code — ou en erreur pour une scène qui s'exécutait — ne remplace pas le code existant.
         const keep = !a.code || (before.status === 'ready' && !!a.error);
-        const updated = keep ? before : MotionVideoService.applyAuthored(before, a, before.author?.instruction);
+        const applied = keep ? before : MotionVideoService.applyAuthored(before, a, before.author?.instruction);
+        const updated = !keep && a.intent ? { ...applied, intent: a.intent, ...(a.variant ? { variant: a.variant } : {}) } : applied;
         film.scenes[i] = { ...updated, author: { ...(updated.author || { tokens: a.tokens, ms: a.ms, at: new Date().toISOString(), attempts: a.attempts }), repairs } };
         film.agents = [...film.agents, { agent: `video.author:${key}:repair-${strategy}`, source: a.code ? 'llm' : 'none', tokens: a.tokens, ms: a.ms, ...(a.code ? {} : { failure: a.error?.message.slice(0, 120) }) }];
         ledger.record(key, { strategy: strategy as 'fix' | 'rewrite' | 'minimal', ok: !!a.code && !a.error, tokens: a.tokens.input + a.tokens.output, ...(a.error ? { error: a.error.message } : {}) });
@@ -777,14 +856,17 @@ export class MotionVideoService {
         }
       }
     }
+    const codesBefore = new Map(film.scenes.map((sc) => [sc.key, sc.code]));
     film = await this.inkFallback(userId, projectId, { ...video, film }, ctx, only);
+    // Le banc compte les recours au dernier recours d'affichage (aplat, encre) : le solveur doit les rendre rares.
+    const inkFallbacks = film.scenes.filter((sc) => codesBefore.get(sc.key) !== sc.code).length;
     const unresolved = film.scenes.filter((sc) => failing(sc) && (!only || only.has(sc.key))).map((sc) => sc.key);
     const layoutLeft = film.scenes.filter((sc) => sc.status === 'ready' && sc.layout?.length && (!only || only.has(sc.key))).map((sc) => sc.key);
     const attempts = [...ledger.attempts.values()].reduce((n, a) => n + a.length, 0);
     const stopped = ledger.exhausted && unresolved.length ? (ledger.tokensUsed >= ledger.limits.tokenBudget ? 'budget' : 'time') : undefined;
     film = {
       ...film,
-      repair: { attempts, fixed: initialErrors.filter((k) => !unresolved.includes(k)), unresolved, tokens: ledger.tokensUsed, layoutFixed: initialLayout.filter((k) => !layoutLeft.includes(k)), layoutLeft, ...(stopped ? { stopped } : {}) },
+      repair: { attempts, fixed: initialErrors.filter((k) => !unresolved.includes(k)), unresolved, tokens: ledger.tokensUsed, layoutFixed: initialLayout.filter((k) => !layoutLeft.includes(k)), layoutLeft, firstPassLayout: initialLayout.length, inkFallbacks, ...(stopped ? { stopped } : {}) },
     };
     logger.info('video.repair', { event: 'video.repair', videoId: video.id, attempts, fixed: film.repair!.fixed, unresolved, layoutFixed: film.repair!.layoutFixed, layoutLeft, tokens: ledger.tokensUsed, ...(stopped ? { stopped } : {}) });
     emit?.('repair', 'done', { fixed: film.repair!.fixed.length, unresolved: unresolved.length, layoutFixed: film.repair!.layoutFixed!.length, layoutLeft: layoutLeft.length, attempts });
@@ -905,6 +987,157 @@ export class MotionVideoService {
     return film;
   }
 
+  // ── Compilateur 0.3 : échantillonnage, calage, sauvetage, correction ─────
+
+  /** Toutes les scènes échantillonnées et jugées (quelques scènes à la fois : chacune lance ses contrôles réels). */
+  private async sampleScenes(userId: string, projectId: string, video: MotionVideo, ctx: Awaited<ReturnType<MotionVideoService['brandContext']>>, level: CreativityLevel, screens: Set<string>, onDone?: (key: string, done: number, ok: boolean) => void): Promise<{ film: VideoFilm; traces: FilmAgentTrace[] }> {
+    const film = video.film!;
+    const fontCss = await embeddedFontCss(ctx.film, film.scenes.flatMap((s) => Object.values(s.texts)).join(' '));
+    const call = this.callContext(userId, projectId, level);
+    let done = 0;
+    const results = await mapLimit(
+      film.scenes.map((_, i) => i),
+      Number(process.env.VIDEO_SCENE_CONCURRENCY) || 3,
+      async (i) => {
+        const started = Date.now();
+        const lower = sceneLowering(video, ctx.film, i);
+        const r = await sampleScene({
+          call,
+          level,
+          author: authorCard(video, ctx.film, i, screens),
+          lower,
+          hasLogo: !!ctx.film.tokens.logo,
+          icons: resolveIcon,
+          designLead: resolveSceneDesign(film.design!, lower.formats[0], i),
+          seamOut: lower.seamOut ?? 0,
+          probe: (candidates) => probeCandidates(video, ctx.film, i, candidates, fontCss),
+          ...(level === 'ultra' && (process.env.VIDEO_VLM_TIEBREAK ?? 'on') !== 'off' ? { tieBreak: vlmTieBreak } : {}),
+          ...(this.intentWriter ? { writer: this.intentWriter } : {}),
+        });
+        onDone?.(film.scenes[i].key, ++done, !!r.best);
+        return { r, ms: Date.now() - started };
+      }
+    );
+    const traces: FilmAgentTrace[] = [];
+    const sampling = { authored: 0, candidates: 0, probed: 0, tokens: 0, stoppedEarly: 0 };
+    const at = new Date().toISOString();
+    const scenes = film.scenes.map((sc, i): FilmScene => {
+      const { r, ms } = results[i];
+      sampling.authored += r.authored;
+      sampling.candidates += r.candidates;
+      sampling.probed += r.probed;
+      sampling.tokens += r.tokens.input + r.tokens.output;
+      if (r.stoppedEarly) sampling.stoppedEarly++;
+      traces.push({ agent: `video.sampler:${sc.key}`, source: r.best ? 'llm' : 'none', tokens: r.tokens, ms, ...(r.best ? {} : { failure: (r.failures[0] || 'aucune intention').slice(0, 120) }) });
+      const author = { tokens: r.tokens, ms, at, attempts: r.authored };
+      if (!r.best) return { ...sc, status: 'error', error: { stage: 'author', message: (r.failures[0] || 'aucune intention utilisable').slice(0, 300) }, author };
+      const { error: _e, ...rest } = sc;
+      const best = r.best;
+      return {
+        ...rest,
+        code: best.code,
+        intent: best.intent,
+        variant: best.choice,
+        status: 'ready',
+        author,
+        judge: {
+          score: best.final?.score ?? best.pre.score,
+          // Les mesures de la variante gardée : le banc qualité étalonne les poids du juge sur elles.
+          features: Object.fromEntries(Object.entries(best.final?.features ?? best.pre.features).map(([k, v]) => [k, Math.round(v * 1000) / 1000])),
+          candidates: r.candidates,
+          authored: r.authored,
+          report: best.pre.report.slice(0, 4).map((l) => `${l.metric} ${l.value} < ${l.threshold} : ${l.fix}`),
+          ...(best.final?.reasons.length ? { failed: best.final.reasons.slice(0, 4) } : {}),
+          ...(r.tieBreak ? { tieBreak: true } : {}),
+        },
+        ...(r.runnerUp ? { runnerUp: { intent: r.runnerUp.intent, variant: r.runnerUp.choice, score: r.runnerUp.final?.score ?? r.runnerUp.pre.score } } : {}),
+      };
+    });
+    logger.info('video.sampling', { event: 'video.sampling', videoId: video.id, level, ...sampling, scores: scenes.map((sc) => sc.judge?.score ?? null) });
+    return { film: { ...film, scenes, sampling }, traces };
+  }
+
+  /**
+   * Les coupes calées sur les temps de la musique : chaque ligne de voix garde son instant ABSOLU (son décalage dans sa
+   * scène est recalculé) ; si une ligne devait commencer avant sa scène, rien n'est déplacé.
+   */
+  private snapToBeats(film: VideoFilm, voice: VideoVoice | undefined, beats: number[]): { film: VideoFilm; voice?: VideoVoice } | null {
+    const lineOf = new Map((voice?.enabled ? voice.lines : []).map((l) => [l.sceneKey, l]));
+    const snapped = snapCutsToBeats(film.scenes.map((sc) => ({ start: sc.start, duration: sc.duration, ...(lineOf.get(sc.key) ? { voice: { at: lineOf.get(sc.key)!.offset, duration: lineOf.get(sc.key)!.durationSec } } : {}) })), beats, { minDuration: 1 });
+    if (snapped.every((s, i) => Math.abs(s.start - film.scenes[i].start) < 1e-6)) return null;
+    const lines = (voice?.lines || []).map((l) => {
+      const i = film.scenes.findIndex((sc) => sc.key === l.sceneKey);
+      if (i < 0) return l;
+      return { ...l, offset: Math.round((film.scenes[i].start + l.offset - snapped[i].start) * 1000) / 1000 };
+    });
+    if (lines.some((l) => l.offset < 0.04)) return null;
+    return { film: { ...film, scenes: film.scenes.map((sc, i) => ({ ...sc, start: snapped[i].start, duration: snapped[i].duration })) }, ...(voice ? { voice: { ...voice, lines } } : {}) };
+  }
+
+  /**
+   * Les correctifs SANS MODÈLE des scènes d'intention en défaut (erreur ou affichage) : la seconde variante gardée par
+   * le juge, puis les variantes que propose le rapport mesuré. Un tour = un contrôle réel du film ; une version n'est
+   * gardée que si elle s'exécute et s'affiche mieux.
+   */
+  private async rescueIntentScenes(userId: string, projectId: string, video: MotionVideo, ctx: Awaited<ReturnType<MotionVideoService['brandContext']>>): Promise<VideoFilm> {
+    let film = video.film!;
+    const bad = (sc: FilmScene) => !!sc.intent && !!sc.variant && (sc.status === 'error' || !!sc.layout?.length);
+    const rescued: string[] = [];
+    for (let round = 0; round < 3; round++) {
+      const targets = film.scenes.map((sc, i) => ({ sc, i })).filter(({ sc }) => bad(sc));
+      if (!targets.length) break;
+      const options = targets.map(({ i }) => rescueOptions({ ...video, film }, ctx.film, i)[round]);
+      if (!options.some(Boolean)) break;
+      const trial: VideoFilm = { ...film, scenes: film.scenes.map((sc, i) => {
+        const o = options[targets.findIndex((t) => t.i === i)];
+        return o ? { ...sc, code: o.code, intent: o.intent, variant: o.choice } : sc;
+      }) };
+      const checked = await this.checkFilm(userId, projectId, { ...video, film: trial }, ctx.film);
+      film = { ...checked, scenes: film.scenes.map((sc, i) => {
+        const t = targets.findIndex((x) => x.i === i);
+        const o = t >= 0 ? options[t] : undefined;
+        if (!o) return checked.scenes[i].code === sc.code ? { ...sc, ...(checked.scenes[i].thumbnail ? { thumbnail: checked.scenes[i].thumbnail } : {}) } : sc;
+        const n = checked.scenes[i];
+        const better = n.status === 'ready' && (sc.status === 'error' || (n.layout?.length || 0) < (sc.layout?.length || 0));
+        if (!better) return sc;
+        rescued.push(`${sc.key} : ${o.label}`);
+        return { ...n, ...(sc.judge ? { judge: { ...sc.judge, rescued: o.label } } : {}) };
+      }) };
+    }
+    if (rescued.length) logger.info('video.rescue', { event: 'video.rescue', videoId: video.id, rescued });
+    return film;
+  }
+
+  /** La correction d'une scène d'intention : rapport mesuré → nouvelle intention (ou la version minimale du code). */
+  private async intentRepair(userId: string, projectId: string, video: MotionVideo, ctx: Awaited<ReturnType<MotionVideoService['brandContext']>>, i: number, strategy: 'fix' | 'rewrite' | 'minimal', message: string, level: CreativityLevel): Promise<AuthoredScene & { intent?: SceneIntent; variant?: VariantChoice }> {
+    const sc = video.film!.scenes[i];
+    const started = Date.now();
+    let tokens = { input: 0, output: 0 };
+    let attempts = 0;
+    let intent: SceneIntent | undefined;
+    if (strategy === 'minimal') {
+      // La version la plus simple, posée par le code (aucun modèle) : la composition par défaut, chaque texte et chaque
+      // média de la scène, des entrées sobres dans l'ordre des rangs.
+      const kinds = sc.media.map((id) => (video.media || []).find((m) => m.id === id)?.kind).filter((k): k is 'image' | 'video' => k === 'image' || k === 'video');
+      intent = validateIntent({ layout: kinds.length ? 'media-split' : 'hero', elements: [], beats: [] }, { texts: sc.texts, media: kinds, hasLogo: !!ctx.film.tokens.logo }).intent;
+    } else {
+      const writer = this.intentWriter || ((c, input, o) => authorIntent(c, input, o));
+      const a = await writer(this.callContext(userId, projectId, strategyLevel(strategy, level)), { ...authorCard(video, ctx.film, i, new Set()), repair: { ...(sc.intent ? { intent: sc.intent } : {}), report: message } }, { role: 'video.author', temperature: strategy === 'fix' ? 0.4 : 0.9 });
+      tokens = a.tokens;
+      attempts = 1;
+      intent = a.intent;
+      if (!intent) return { key: sc.key, error: { stage: 'author', message: a.error || 'aucune intention' }, tokens, ms: Date.now() - started, attempts };
+    }
+    if (!intent) return { key: sc.key, error: { stage: 'author', message: 'aucune intention' }, tokens, ms: Date.now() - started, attempts };
+    let best: { code: string; choice: VariantChoice; score: number } | null = null;
+    for (const choice of [...(sc.variant ? [sc.variant] : []), ...variantChoices(intent)].slice(0, 8)) {
+      const r = relower(video, ctx.film, i, intent, choice);
+      if (r && (!best || r.score > best.score)) best = { code: r.code, choice, score: r.score };
+    }
+    if (!best) return { key: sc.key, error: { stage: 'compile', message: 'intention impossible à résoudre' }, tokens, ms: Date.now() - started, attempts };
+    return { key: sc.key, code: best.code, tokens, ms: Date.now() - started, attempts, intent, variant: best.choice };
+  }
+
   // ── Création ──────────────────────────────────────────────────────────────
 
   async createVideo(userId: string, projectId: string, rawInput: CreateVideoInput, paidCredits: number, onProgress?: VideoProgressListener): Promise<MotionVideo> {
@@ -940,6 +1173,16 @@ export class MotionVideoService {
     const notes = new Map(brandMedia.map((b) => [b.url, b.note]));
     for (const m of uploads) assets.push({ ...m, id: `m${assets.length + 1}`, ...(notes.get(m.url) || m.name ? { name: (notes.get(m.url) || m.name)!.slice(0, 200) } : {}) });
     for (const b of brandMedia.filter((b) => !uploads.some((u) => u.url === b.url)).slice(0, 6)) assets.push({ id: `m${assets.length + 1}`, kind: 'image', url: b.url, origin: 'library', name: b.note.slice(0, 200) });
+    // La petite sélection d'animations (Lottie rendues en clips transparents) : proposée, jamais imposée.
+    for (const a of await libraryAnimationAssets(this.mediaStorage(), ctx.film.tokens.colors.primary).catch(() => [])) assets.push({ ...a, id: `m${assets.length + 1}` });
+    // La démo produit demandée : ses écrans (avec le point de chaque action) rejoignent les médias du film.
+    if (input.demo?.url) {
+      const shots = await recordDemo({ url: input.demo.url, goal: input.demo.goal || request, device: input.demo.device, storage: this.mediaStorage(), folder: `users/${userId}/projects/${projectId}/videos/demo`, call: this.callContext(userId, projectId, creativity) }).catch((error) => {
+        logger.warn('video.demo_failed', { error: (error as Error).message });
+        return [];
+      });
+      for (const s of shots) assets.push({ ...s, id: `m${assets.length + 1}` });
+    }
     emit('plan', 'done', { language, scripted: spec.mode === 'script', scenes: spec.scenes.length, media: assets.length });
 
     // 2-3. Direction et storyboard
@@ -961,6 +1204,10 @@ export class MotionVideoService {
       ...(reference ? { reference } : {}),
       ...(input.reference && !(spec.mode === 'script' && spec.scenes.length) ? { referenceShots: referenceShotCards(input.reference, sceneRange(scope.durationSec)[1]) } : {}),
       previous: ctx.others.filter((v) => v.film).slice(-6).map((v) => `${v.film!.title} — ${v.film!.concept}`.slice(0, 200)),
+      // Jamais la même direction visuelle deux films de suite (le plus récent d'abord).
+      previousDirections: ctx.others.filter((v) => v.film?.design).slice(-6).reverse().map((v) => v.film!.design!.direction),
+      // Vidéo produit : les huit temps (accroche … signature) servent de squelette.
+      skeleton: ['product', 'promotion', 'announce'].includes(brief.objective) || ['product', 'promo'].includes(String(input.type)),
       level: creativity,
     };
     const call = this.callContext(userId, projectId, creativity);
@@ -1012,6 +1259,19 @@ export class MotionVideoService {
       })),
     };
 
+    // Le plan du film, calculé par le code (compilateur 0.3) : la direction visuelle (jamais celle du film précédent),
+    // l'énergie de chaque scène, le système de design, les coutures entre scènes et les sons des transitions.
+    const intentMode = (process.env.VIDEO_AUTHOR_MODE || 'intent') !== 'program';
+    const plan = planFilm({ brand: ctx.film, scenes: sb.scenes.map((s) => ({ role: s.role, energy: s.energy })), direction: concept?.direction, alternative: concept?.alternative, energy: concept?.energy, previousDirection: filmBrief.previousDirections?.[0], seed });
+    film = {
+      ...film,
+      design: plan.design,
+      seams: plan.seams,
+      transitionCues: plan.cues,
+      direction: plan.direction,
+      scenes: film.scenes.map((sc, i) => ({ ...sc, ...(plan.roles[i] ? { role: plan.roles[i] } : {}), energy: plan.design.energy[i] })),
+    };
+
     // 4. Médias, musique, sons (en parallèle)
     const needs: ShotPlan[] = film.scenes.flatMap((sc, i) => (sc.needs || []).map((n, k) => ({ scene: i, sceneId: sc.key, kind: n.kind, slot: k, texts: Object.values(sc.texts), shot: n.shot, query: n.query, durationSec: sc.duration })));
     const mediaJob = (async () => {
@@ -1057,6 +1317,16 @@ export class MotionVideoService {
     if (missing.length) film.fidelity = { notes: [...(film.fidelity?.notes || []), ...missing.map((p) => say(`Scène ${p.scene + 1} : aucun${p.kind === 'video' ? ' clip' : 'e photo'} n’a pu être obtenu${p.kind === 'video' ? '' : 'e'} (« ${p.shot.slice(0, 80)} »).`, `Scene ${p.scene + 1}: no ${p.kind === 'video' ? 'clip' : 'photo'} could be obtained ("${p.shot.slice(0, 80)}").`))] };
     film.scenes = film.scenes.map(({ needs: _n, ...sc }) => sc);
 
+    // La préparation des médias (sans modèle) : recadrage par format, zone calme, teintes, extrait propre des clips,
+    // étalonnage commun du film (jamais sur une capture d'interface).
+    const screens = new Set([...brandMedia.filter((b) => b.kind === 'screen').map((b) => b.url), ...assets.filter((m) => m.prep?.screen).map((m) => m.url)]);
+    if (assets.length) {
+      emit('media', 'running', { preparing: assets.length });
+      const prepared = await mapLimit(assets, 3, (m) => prepareMedia(m, { storage: this.mediaStorage(), folder: `users/${userId}/projects/${projectId}/videos/${videoId}/prepared`, formats: scope.formats, grade: plan.design.grade, brandHex: plan.design.colors.primary, screen: screens.has(m.url) }));
+      assets.splice(0, assets.length, ...prepared);
+      emit('media', 'done', { prepared: prepared.filter((m) => m.prep).length, graded: prepared.filter((m) => m.prep?.graded).length });
+    }
+
     const style = (brief.style && brief.style !== 'auto' ? brief.style : 'energetic') as MotionStyle;
     let video: MotionVideo = {
       id: videoId,
@@ -1087,24 +1357,55 @@ export class MotionVideoService {
       emit('voice', 'done', { lines: v.voice.lines.length, ...(v.voice.unavailable ? { unavailable: v.voice.unavailable } : {}) });
     }
 
-    // 5. Auteur : le code de chaque scène
+    // Les coupes calées sur les temps de la musique (±120 ms), sans changer la durée achetée ni couper une ligne de voix.
+    if (video.music?.beat?.beats?.length && (process.env.VIDEO_SNAP_CUTS ?? 'on') !== 'off') {
+      const snapped = this.snapToBeats(film, video.voice, video.music.beat.beats);
+      if (snapped) {
+        film = snapped.film;
+        video = { ...video, film, ...(snapped.voice ? { voice: snapped.voice } : {}) };
+      }
+    }
+
+    // 5. Auteur : chaque scène écrite plusieurs fois, chaque variante jugée, la meilleure gardée (compilateur 0.3) ;
+    //    `VIDEO_AUTHOR_MODE=program` garde l'auteur de programmes (un jet par scène).
     emit('code', 'running', { scenes: film.scenes.length });
-    const contexts = film.scenes.map((sc) => this.authorContext(video, ctx.film, sc, creativity));
-    const authored = await authorScenes(call, contexts, Number(process.env.VIDEO_AUTHOR_CONCURRENCY) || 4, (a, done) => emit('code', 'running', { done, total: contexts.length, scene: a.key, ok: !a.error }), this.sceneAuthor);
-    authored.forEach((a) => agents.push({ agent: `video.author:${a.key}`, source: a.code ? 'llm' : 'none', tokens: a.tokens, ms: a.ms, ...(a.code ? {} : { failure: a.error?.message.slice(0, 120) }) }));
+    let authored: AuthoredScene[];
+    if (intentMode) {
+      video = { ...video, film };
+      const sampled = await this.sampleScenes(userId, projectId, video, ctx, creativity, screens, (key, done, ok) => emit('code', 'running', { done, total: film.scenes.length, scene: key, ok }));
+      film = sampled.film;
+      agents.push(...sampled.traces);
+      authored = film.scenes.map((sc) => ({ key: sc.key, ...(sc.code ? { code: sc.code } : {}), ...(sc.error ? { error: sc.error as AuthoredScene['error'] } : {}), tokens: sc.author?.tokens || { input: 0, output: 0 }, ms: sc.author?.ms || 0, attempts: sc.author?.attempts || 0 }));
+      // Une scène que l'échantillonnage n'a pas su écrire : l'auteur de programmes la reprend (le film se fait).
+      const missing = film.scenes.map((sc, i) => (sc.code ? -1 : i)).filter((i) => i >= 0);
+      if (missing.length) {
+        const fallback = await authorScenes(call, missing.map((i) => this.authorContext({ ...video, film }, ctx.film, film.scenes[i], creativity)), Number(process.env.VIDEO_AUTHOR_CONCURRENCY) || 4, undefined, this.sceneAuthor);
+        fallback.forEach((a, k) => {
+          const i = missing[k];
+          authored[i] = a;
+          film.scenes[i] = MotionVideoService.applyAuthored(film.scenes[i], a);
+          agents.push({ agent: `video.author:${a.key}:program`, source: a.code ? 'llm' : 'none', tokens: a.tokens, ms: a.ms, ...(a.code ? {} : { failure: a.error?.message.slice(0, 120) }) });
+        });
+      }
+    } else {
+      const contexts = film.scenes.map((sc) => this.authorContext(video, ctx.film, sc, creativity));
+      authored = await authorScenes(call, contexts, Number(process.env.VIDEO_AUTHOR_CONCURRENCY) || 4, (a, done) => emit('code', 'running', { done, total: contexts.length, scene: a.key, ok: !a.error }), this.sceneAuthor);
+      authored.forEach((a) => agents.push({ agent: `video.author:${a.key}`, source: a.code ? 'llm' : 'none', tokens: a.tokens, ms: a.ms, ...(a.code ? {} : { failure: a.error?.message.slice(0, 120) }) }));
+      film = { ...film, scenes: film.scenes.map((sc, i) => MotionVideoService.applyAuthored(sc, authored[i])) };
+    }
     if (authored.every((a) => !a.code)) {
       const noModel = authored.some((a) => /no_model/.test(a.error?.message || ''));
       throw new VideoInputError(noModel ? 'model_unavailable' : 'author_failed');
     }
-    film = { ...film, scenes: film.scenes.map((sc, i) => MotionVideoService.applyAuthored(sc, authored[i])) };
     video = { ...video, film };
-    emit('code', 'done', { ready: film.scenes.filter((s) => s.status === 'ready').length, errors: film.scenes.filter((s) => s.status === 'error').map((s) => s.key) });
+    emit('code', 'done', { ready: film.scenes.filter((s) => s.status === 'ready').length, errors: film.scenes.filter((s) => s.status === 'error').map((s) => s.key), ...(film.sampling ? { sampling: film.sampling } : {}) });
 
     // 6. Contrôle technique
     emit('check', 'running');
     film = await this.checkFilm(userId, projectId, video, ctx.film);
     emit('check', 'done', { errors: film.scenes.filter((s) => s.status === 'error').map((s) => ({ key: s.key, stage: s.error?.stage, message: s.error?.message })) });
-    // Autocorrection bornée AVANT de montrer la vidéo.
+    // Les correctifs sans modèle d'abord (seconde variante, correctifs du rapport du juge), puis l'autocorrection bornée.
+    film = await this.rescueIntentScenes(userId, projectId, { ...video, film }, ctx);
     film = await this.repairScenes(userId, projectId, { ...video, film }, ctx, creativity, undefined, emit);
     video = { ...video, film, record: recordFromVideo({ film, creativity, brief: video.brief }, Date.now() - started, (media.report?.assets || []).slice(0, 40)) };
 
@@ -1135,10 +1436,26 @@ export class MotionVideoService {
     let codeChanged = false;
 
     // Textes : seules les clés existantes de la scène (son code ne lit que celles-là).
+    const retexted = new Set<string>();
     for (const [key, texts] of Object.entries({ ...(patch.slots || {}), ...(patch.texts || {}) })) {
       const sc = sceneOf(key);
       if (!sc || !texts || typeof texts !== 'object') continue;
-      for (const [k, v] of Object.entries(texts)) if (k in sc.texts && typeof v === 'string') sc.texts[k] = v.replace(/\s+/g, ' ').trim().slice(0, 220);
+      for (const [k, v] of Object.entries(texts)) if (k in sc.texts && typeof v === 'string' && sc.texts[k] !== v) {
+        sc.texts[k] = v.replace(/\s+/g, ' ').trim().slice(0, 220);
+        retexted.add(key);
+      }
+    }
+    // Une scène d'intention dont un texte change : sa géométrie et son minutage (temps de lecture) se recalculent,
+    // sans modèle — le texte plus long trouve sa place au lieu d'être seulement réduit.
+    for (const key of retexted) {
+      const i = film.scenes.findIndex((sc) => sc.key === key);
+      const sc = film.scenes[i];
+      if (!sc?.intent || !sc.variant || !film.design) continue;
+      const r = relower({ ...video, film }, ctx.film, i, sc.intent, sc.variant);
+      if (r) {
+        film.scenes[i] = { ...sc, code: r.code };
+        codeChanged = true;
+      }
     }
     // Photos : la première image de la scène est remplacée par l'import.
     for (const [key, url] of Object.entries(patch.images || {})) {
@@ -1160,16 +1477,26 @@ export class MotionVideoService {
       for (const sc of film.scenes) visual[sc.key] ??= visual.all;
       delete visual.all;
     }
+    const intentJobs: { key: string; instruction?: string; regenerate?: boolean }[] = [];
     for (const [key, instruction] of Object.entries(visual)) {
       const sc = sceneOf(key);
       if (!sc || !String(instruction || '').trim()) continue;
+      // Une scène d'intention se retouche en intention (le code se recalcule) ; une scène de programme, comme avant.
+      if (sc.intent && film.design) {
+        intentJobs.push({ key, instruction: String(instruction).slice(0, 800) });
+        continue;
+      }
       jobs.push({ key, instruction: String(instruction), extra: sc.code ? { revise: { instruction: String(instruction).slice(0, 800), code: sc.code } } : {}, replaceBroken: sc.status === 'error' });
     }
     // « Corriger » (demandé) : pas d'appel ici — la boucle de correction bornée s'en charge plus bas.
     const fixKeys = (patch.fix || []).filter((key) => sceneOf(key)?.status === 'error' && !jobs.some((j) => j.key === key));
     for (const key of patch.regenerate || []) {
       const sc = sceneOf(key);
-      if (!sc || jobs.some((j) => j.key === key)) continue;
+      if (!sc || jobs.some((j) => j.key === key) || intentJobs.some((j) => j.key === key)) continue;
+      if (film.design && (process.env.VIDEO_AUTHOR_MODE || 'intent') !== 'program') {
+        intentJobs.push({ key, regenerate: true });
+        continue;
+      }
       jobs.push({ key, extra: {}, replaceBroken: true });
     }
 
@@ -1201,6 +1528,45 @@ export class MotionVideoService {
       }
     }
 
+    // Les retouches d'intention : la demande du client réécrit l'intention (auteur de qualité), la meilleure variante
+    // au jugement est gardée ; « Nouvelle version » relance l'échantillonnage jugé de la scène.
+    for (const job of intentJobs) {
+      const i = film.scenes.findIndex((sc) => sc.key === job.key);
+      const sc = film.scenes[i];
+      if (job.regenerate) {
+        const one = await this.sampleScenes(userId, projectId, { ...video, film: { ...film, scenes: film.scenes } }, ctx, level, new Set());
+        const next = one.film.scenes[i];
+        film.agents = [...film.agents, ...one.traces.filter((t) => t.agent.endsWith(`:${job.key}`))];
+        if (next.code) {
+          if (sc.status !== 'error') before.set(job.key, sc);
+          film.scenes[i] = next;
+          report.recoded.push(job.key);
+          codeChanged = true;
+        } else report.failed.push({ key: job.key, what: 'visual', reason: next.error?.message });
+        continue;
+      }
+      const writer = this.intentWriter || ((c, input, o) => authorIntent(c, input, o));
+      const a = await writer(call, { ...authorCard({ ...video, film }, ctx.film, i, new Set()), revise: { intent: sc.intent!, instruction: job.instruction! } }, { role: 'video.author', temperature: 0.5 });
+      film.agents = [...film.agents, { agent: `video.author:${job.key}:revise`, source: a.intent ? 'llm' : 'none', tokens: a.tokens, ms: a.ms, ...(a.intent ? {} : { failure: (a.error || '').slice(0, 120) }) }];
+      if (!a.intent) {
+        report.failed.push({ key: job.key, what: 'visual', reason: a.error });
+        continue;
+      }
+      let best: { code: string; choice: VariantChoice; score: number } | null = null;
+      for (const choice of [...(sc.variant ? [sc.variant] : []), ...variantChoices(a.intent)].slice(0, 8)) {
+        const r = relower({ ...video, film }, ctx.film, i, a.intent, choice);
+        if (r && (!best || r.score > best.score)) best = { code: r.code, choice, score: r.score };
+      }
+      if (!best) {
+        report.failed.push({ key: job.key, what: 'visual', reason: 'intention impossible à résoudre' });
+        continue;
+      }
+      if (sc.status !== 'error') before.set(job.key, sc);
+      film.scenes[i] = { ...sc, code: best.code, intent: a.intent, variant: best.choice, status: 'ready', author: { ...(sc.author || { tokens: a.tokens, ms: a.ms, at: new Date().toISOString(), attempts: 1 }), instruction: job.instruction!.slice(0, 400) } };
+      report.recoded.push(job.key);
+      codeChanged = true;
+    }
+
     video = { ...video, film };
     // Musique, effets, périmètre.
     if (patch.musicMood || patch.musicTrackId) {
@@ -1215,7 +1581,7 @@ export class MotionVideoService {
     }
     if (codeChanged || fixKeys.length || patch.voice !== undefined || voiceKeys.length) video.film = await this.checkFilm(userId, projectId, video, ctx.film);
     // Les scènes réécrites (ou à corriger) qui ne s'exécutent pas passent par la correction BORNÉE.
-    const touched = new Set([...jobs.map((j) => j.key), ...fixKeys]);
+    const touched = new Set([...jobs.map((j) => j.key), ...intentJobs.map((j) => j.key), ...fixKeys]);
     if (touched.size && video.film!.scenes.some((sc) => touched.has(sc.key) && sc.status === 'error')) {
       video.film = await this.repairScenes(userId, projectId, video, ctx, level, touched);
       for (const key of fixKeys) if (video.film.scenes.find((sc) => sc.key === key)?.status === 'ready') report.recoded.push(key);
@@ -1272,6 +1638,8 @@ export class MotionVideoService {
     if (!video) return null;
     if (!video.film) throw new VideoInputError('legacy_video');
     const ctx = await this.brandContext(userId, projectId);
+    const refreshed = this.refreshIntentScenes(video, ctx.film);
+    if (refreshed !== video) Object.assign(video, { film: refreshed.film });
     const target = format && video.scope.formats.includes(format) ? format : video.scope.formats[0];
     const data = this.filmData(video, ctx.film, target, 'preview');
     const sounds: FilmAudio['sfx'] = {};
@@ -1420,8 +1788,10 @@ export class MotionVideoService {
     const video = (await this.store.listVideos(userId, projectId)).find((v) => v.id === videoId);
     if (!video?.film) return;
     const ctx = await this.brandContext(userId, projectId);
-    const film = video.film;
-    const sfxFiles = await this.sfxFiles(video.sfx);
+    const refreshed = this.refreshIntentScenes(video, ctx.film);
+    const film = refreshed.film!;
+    video.film = film;
+    const sfxFiles = await this.sfxFiles(video.sfx, true);
     let musicFile: string | undefined;
     if (video.music) musicFile = await fetchTrack(video.music).catch((error) => (logger.warn('video.music_download_failed', { videoId, error: error.message }), undefined));
     const voiceDir = fs.mkdtempSync(path.join(os.tmpdir(), 'idem-voice-render-'));
@@ -1455,7 +1825,11 @@ export class MotionVideoService {
             fontCss,
             durationSec: film.durationSec,
             quality: video.scope.quality,
-            ...(musicFile && video.music ? { music: { file: musicFile, startAt: video.music.startAt } } : {}),
+            ...(musicFile && video.music ? { music: { file: musicFile, startAt: video.music.startAt, ...(video.music.beat?.phrases?.length ? { phraseEnd: true } : {}) } } : {}),
+            // Le flou de mouvement (sous-images, obturateur 180°) : à l'export seulement, `VIDEO_MOTION_BLUR=off` le coupe.
+            ...((process.env.VIDEO_MOTION_BLUR ?? 'on') !== 'off' ? { motionBlur: { samples: Number(process.env.VIDEO_MOTION_BLUR_SAMPLES) || (video.scope.quality === 'premium' ? 4 : 6), shutter: Number(process.env.VIDEO_MOTION_BLUR_SHUTTER) || 180 } } : {}),
+            // Quatre images clés (le milieu des scènes les plus énergiques) vérifiées avant de tout rendre.
+            gate: [...film.scenes].map((sc, i) => ({ sc, e: sc.energy ?? film.design?.energy[i] ?? 3 })).sort((a, b) => b.e - a.e).slice(0, 4).map(({ sc }) => Math.min(film.durationSec - 0.05, sc.start + sc.duration * 0.6)),
             ...(Object.keys(sfxFiles).length ? { sfx: { files: sfxFiles, style: (video.brief.style && video.brief.style !== 'auto' ? video.brief.style : 'energetic') as MotionStyle, intensity: video.sfx?.intensity } } : {}),
             voice: voiceFiles,
             posterAt: Math.min(film.durationSec - 0.1, (film.scenes[0]?.start || 0) + Math.min((film.scenes[0]?.duration || 2) * 0.85, 2)),
@@ -1685,4 +2059,18 @@ function withLiveProgress(video: MotionVideo): MotionVideo {
       return queuedAt >= 0 ? { ...r, status: 'queued' } : r;
     }),
   };
+}
+
+/** `fn` sur chaque élément, `limit` à la fois ; l'ordre des résultats suit celui des éléments. */
+async function mapLimit<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {
+  const out = new Array<R>(items.length);
+  let next = 0;
+  const worker = async () => {
+    while (next < items.length) {
+      const k = next++;
+      out[k] = await fn(items[k]);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.max(1, Math.min(limit, items.length)) }, worker));
+  return out;
 }

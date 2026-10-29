@@ -119,13 +119,22 @@ router.post(
 router.post(
   '/ai/agent',
   route(async (req, res) => {
-    const { projectId, element, role, profile, system, user, level } = req.body || {};
+    const { projectId, element, role, profile, system, user, level, options } = req.body || {};
     if (!(['agents', 'coder', 'critic'] satisfies AgentProfile[] as string[]).includes(profile)) {
       res.status(400).json({ error: 'invalid_profile' });
       return;
     }
     const call = runtimeCall({ userId: userIdOf(req) || undefined, projectId: text(projectId, 128) || undefined, element: text(element, 64) || 'ivision' });
-    const out = await asUser(req, 'communication', () => call({ role: text(role, 64) || 'agent', profile, system: text(system, 80_000), user: text(user, 80_000), ...(['low', 'medium', 'high', 'ultra'].includes(level) ? { level } : level === 'max' ? { level: 'high' } : {}) }));
+    // Les réglages d'un appel (échantillonnage vidéo) : seuls les champs et les formes attendus passent.
+    const o = options && typeof options === 'object' ? options : {};
+    const schemaJson = o.schema && typeof o.schema === 'object' && o.schema.schema && typeof o.schema.schema === 'object' ? JSON.stringify(o.schema.schema) : '';
+    const callOptions = {
+      ...(typeof o.temperature === 'number' && o.temperature >= 0 && o.temperature <= 2 ? { temperature: o.temperature } : {}),
+      ...(Number.isInteger(o.seed) ? { seed: o.seed } : {}),
+      ...(typeof o.reasoning === 'boolean' ? { reasoning: o.reasoning } : {}),
+      ...(schemaJson && schemaJson.length <= 40_000 ? { schema: { name: text(o.schema.name, 64) || 'answer', schema: JSON.parse(schemaJson) } } : {}),
+    };
+    const out = await asUser(req, 'communication', () => call({ role: text(role, 64) || 'agent', profile, system: text(system, 80_000), user: text(user, 80_000), ...(['low', 'medium', 'high', 'ultra'].includes(level) ? { level } : level === 'max' ? { level: 'high' } : {}), ...(Object.keys(callOptions).length ? { options: callOptions } : {}) }));
     res.json({ text: out });
   })
 );
@@ -153,7 +162,7 @@ router.post(
       res.status(400).json({ error: 'invalid_image' });
       return;
     }
-    const purpose = ['visual-analysis', 'shot-critic', 'reference', 'site', 'media-check'].includes(options?.purpose) ? options.purpose : undefined;
+    const purpose = ['visual-analysis', 'shot-critic', 'reference', 'site', 'media-check', 'video-tiebreak'].includes(options?.purpose) ? options.purpose : undefined;
     const out = await asUser(req, 'communication', () =>
       idemAnalyzeImage(base64, mimeType, text(instruction, 20_000), {
         ...(typeof options?.maxOutputTokens === 'number' ? { maxOutputTokens: Math.min(4000, options.maxOutputTokens) } : {}),

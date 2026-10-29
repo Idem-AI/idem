@@ -176,7 +176,8 @@ async function storeClip(
 export async function processUpload(
   file: { buffer: Buffer; mimetype: string; originalname: string },
   storage: MediaStorage,
-  folder: string
+  folder: string,
+  options: { lottieAsClip?: boolean } = {}
 ): Promise<VideoMediaAsset> {
   const kind = detectKind(file.buffer, file.mimetype, file.originalname);
   if (!kind) throw new MediaInputError('unsupported_media');
@@ -221,6 +222,11 @@ export async function processUpload(
     throw new MediaInputError('invalid_lottie');
   }
   if (!validateLottie(data)) throw new MediaInputError('invalid_lottie');
+  // Le moteur ne joue pas de Lottie : l'animation devient un clip WebM transparent, rendu image par image.
+  if (options.lottieAsClip) {
+    const { lottieToClipAsset } = await import('./lottie');
+    return lottieToClipAsset(data, storage, folder, { origin: 'upload', name });
+  }
   const key = id();
   const up = await storage.uploadFile(Buffer.from(JSON.stringify(data)), `${key}.json`, folder, 'application/json');
   return {

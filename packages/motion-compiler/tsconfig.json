@@ -16,5 +16,5 @@
       "@idem/graphic-engine": ["../graphic-engine/src"]
     }
   },
-  "include": ["src/**/*", "scripts/**/*", "bench/*.ts"]
+  "include": ["src/**/*", "scripts/**/*", "bench/*.ts", "bench/quality/*.ts", "bench/references/*.ts"]
 }

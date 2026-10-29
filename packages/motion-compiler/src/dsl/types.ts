@@ -11,8 +11,22 @@
  * `expr.ts` pour les variables (taille de l'image, zone sûre, rang d'une répétition).
  */
 
-/** Un nombre, ou une expression en texte (`"T+SH*0.3"`, `"i*12-30"`). */
+/** Un nombre, ou une expression en texte (`"T+SH*0.3"`, `"i*12-30"`, `"fmt(-40, -30, -20, 0)"`). */
 export type Expr = number | string;
+
+/**
+ * LES VALEURS NOMMÉES (système de design du film, `design/`) : le modèle nomme un niveau, une durée, une courbe, un
+ * décalage, un rôle de couleur ; le code en tient la valeur, par format et par énergie (`ctx.design`). Les nombres
+ * restent acceptés pour les programmes existants.
+ */
+export type TypeLevel = 'display' | 'title' | 'subtitle' | 'body' | 'caption' | 'label';
+export type DurToken = 'instant' | 'quick' | 'short' | 'medium' | 'long' | 'xlong';
+export type EaseToken = 'enter' | 'exit' | 'standard' | 'move' | 'arrive' | 'cut-in' | 'cut-out' | 'spring';
+export type StaggerToken = 'letters' | 'words' | 'items' | 'cards';
+export const TYPE_LEVELS: TypeLevel[] = ['display', 'title', 'subtitle', 'body', 'caption', 'label'];
+export const DUR_TOKENS: DurToken[] = ['instant', 'quick', 'short', 'medium', 'long', 'xlong'];
+export const EASE_TOKENS: EaseToken[] = ['enter', 'exit', 'standard', 'move', 'arrive', 'cut-in', 'cut-out', 'spring'];
+export const STAGGER_TOKENS: StaggerToken[] = ['letters', 'words', 'items', 'cards'];
 
 /** Une couleur : jeton de marque (`primary`, `ink`, `on-accent`…), `#hex`, avec opacité `primary/40`. */
 export type ColorRef = string;
@@ -52,8 +66,8 @@ export interface TextNode extends NodeBase {
   text: string;
   font?: 'display' | 'body';
   weight?: number;
-  /** Taille en u, ou `"fit"` : la plus grande qui tient dans `width` sur `lines` lignes (plafond `maxSize`). */
-  size?: Expr | 'fit';
+  /** Taille en u, un NIVEAU du film (`"title"`, `"body"`…), ou `"fit"` : la plus grande qui tient dans `width` sur `lines` lignes (plafond `maxSize`). */
+  size?: Expr | 'fit' | TypeLevel;
   maxSize?: number;
   lines?: number;
   /** Largeur de la boîte (u) : le texte passe à la ligne. */
@@ -158,6 +172,31 @@ export interface LogoNode extends NodeBase {
   on?: ColorRef;
 }
 
+/** Une icône du catalogue (Lucide, Tabler) : le moteur résout son nom en tracés (`paths`, posés par la validation). */
+export interface IconNode extends NodeBase {
+  type: 'icon';
+  name: string;
+  /** Taille (u). */
+  size?: Expr;
+  color?: ColorRef;
+  /** Épaisseur du trait (u). */
+  lineWidth?: number;
+  /** Tracés résolus (coordonnées de la grille de l'icône, `box` de côté) — posés par le moteur, jamais par le modèle. */
+  paths?: string[];
+  box?: number;
+  filled?: boolean;
+}
+
+/** Un cadre d'appareil dessiné en code (sans marque déposée), autour d'un média de la scène. Développé en nœuds simples par la validation. */
+export interface DeviceNode extends NodeBase {
+  type: 'device';
+  kind: 'phone' | 'laptop' | 'browser';
+  media: number;
+  /** Largeur du cadre (u). */
+  w?: Expr;
+  color?: ColorRef;
+}
+
 export interface GroupNode extends NodeBase {
   type: 'group';
   children: MotionNode[];
@@ -195,7 +234,7 @@ export interface RepeatNode extends NodeBase {
   item: MotionNode;
 }
 
-export type MotionNode = TextNode | RectNode | CircleNode | LineNode | PathNode | PolygonNode | MediaNode | LogoNode | GroupNode | StackNode | RepeatNode;
+export type MotionNode = TextNode | RectNode | CircleNode | LineNode | PathNode | PolygonNode | MediaNode | LogoNode | IconNode | DeviceNode | GroupNode | StackNode | RepeatNode;
 export type NodeType = MotionNode['type'];
 
 /** Ce qu'un pas peut faire varier. */
@@ -214,23 +253,24 @@ export type Ease =
 export type SfxKind = 'whoosh' | 'softwhoosh' | 'pop' | 'click' | 'tick' | 'impact' | 'shimmer' | 'riser';
 
 export interface MotionStep {
-  /** Instant de départ (s, temps de la scène) : nombre ou expression (`"D-1"`, `"V+0.2"`). */
+  /** Instant de départ (s, temps de la scène) : nombre, expression (`"D-1"`, `"V+0.2"`) ou temps de la musique (`"beat:2"`, `"bar:1"`). */
   at: Expr;
   /** Un nœud, ses morceaux (`title.*`, `bars.2`), `world` (toute la scène), ou une liste. */
   target?: string | string[];
-  /** Durée (s) : nombre ou expression (`"D"` = toute la scène, `"D-1.5"`). */
-  dur?: Expr;
-  ease?: Ease;
+  /** Durée (s) : nombre, expression (`"D"` = toute la scène, `"D-1.5"`) ou durée nommée (`"medium"`). */
+  dur?: Expr | DurToken;
+  ease?: Ease | EaseToken;
   /** L'état avant le pas (pour le premier pas d'un nœud : son état dès le début de la scène). */
   from?: Partial<Record<AnimProp, AnimValue>>;
   to?: Partial<Record<AnimProp, AnimValue>>;
-  /** Décalage entre les cibles (s). */
-  stagger?: number;
+  /** Décalage entre les cibles (s), ou nommé (`"words"`, `"items"`). */
+  stagger?: number | StaggerToken;
   order?: 'forward' | 'reverse' | 'center';
   /** Continue jusqu'à la fin de la scène : `loop` recommence, `yoyo` fait l'aller-retour. */
   repeat?: 'loop' | 'yoyo';
   /** `count` : le nombre du texte défile ; `type` : le texte s'écrit lettre par lettre. */
-  effect?: 'count' | 'type';
+  /** count : nombre qui défile · type : écriture · point : un média zoome vers son point d'intérêt (le clic d'une démo). */
+  effect?: 'count' | 'type' | 'point';
   sfx?: SfxKind;
 }
 
@@ -245,10 +285,17 @@ export interface MotionProgram {
   enter?: MotionEnter;
   nodes: MotionNode[];
   timeline: MotionStep[];
+  /**
+   * `solved` : la piste vient du solveur temporel (compilateur 0.3) — instants et durées sont déjà ceux de la scène
+   * (temps de lecture, fin avant la coupe, temps de la musique) ; le compilateur ne la remet pas à l'échelle.
+   */
+  timing?: 'auto' | 'solved';
 }
 
-export const NODE_TYPES: NodeType[] = ['text', 'rect', 'circle', 'line', 'path', 'polygon', 'image', 'video', 'logo', 'group', 'stack', 'repeat'];
+export const NODE_TYPES: NodeType[] = ['text', 'rect', 'circle', 'line', 'path', 'polygon', 'image', 'video', 'logo', 'icon', 'device', 'group', 'stack', 'repeat'];
 export const ANIM_PROPS: AnimProp[] = ['x', 'y', 'rotation', 'scale', 'scaleX', 'scaleY', 'opacity', 'skewX', 'w', 'h', 'size', 'radius', 'fill', 'stroke', 'lineWidth', 'start', 'end', 'blur', 'zoom', 'panX', 'panY', 'letterSpacing'];
 export const EASES: Ease[] = ['linear', 'in', 'out', 'inOut', 'inCubic', 'outCubic', 'inOutCubic', 'outQuart', 'outExpo', 'inOutExpo', 'outBack', 'inOutBack', 'outElastic', 'outBounce', 'inOutSine'];
 export const SFX_KINDS: SfxKind[] = ['whoosh', 'softwhoosh', 'pop', 'click', 'tick', 'impact', 'shimmer', 'riser'];
 export const COLOR_TOKENS = ['primary', 'secondary', 'accent', 'background', 'text', 'ink', 'white', 'black', 'transparent'] as const;
+/** Les rôles de couleur du système de design du film (`ctx.design.colors`). */
+export const DESIGN_COLOR_ROLES = ['ground', 'surface', 'surfaceStrong', 'inkMuted', 'line', 'onPrimary', 'onSecondary', 'onAccent', 'highlight', 'onHighlight', 'neutral', 'onNeutral'] as const;

@@ -93,6 +93,13 @@ const clarificationOf = (raw: unknown): CreateVideoInput['clarification'] => {
   return o && typeof o.id === 'string' && typeof o.option === 'string' ? { id: o.id.slice(0, 40), option: o.option.slice(0, 40) } : undefined;
 };
 
+/** Une démo produit à filmer : un lien http(s) (la garde réseau du moteur refuse les adresses privées). */
+const demoOf = (raw: unknown): CreateVideoInput['demo'] => {
+  const o = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : null;
+  if (!o || typeof o.url !== 'string' || !o.url.trim()) return undefined;
+  return { url: o.url.trim().slice(0, 500), ...(typeof o.goal === 'string' && o.goal.trim() ? { goal: o.goal.trim().slice(0, 600) } : {}), ...(o.device === 'mobile' ? { device: 'mobile' as const } : {}) };
+};
+
 /**
  * POST /project/communication/:projectId/videos/interpret — l'interprétation d'une demande AVANT la création
  * (gratuite) : objectif, matière, langage de motion, et la question à poser si une décision manque.
@@ -133,7 +140,7 @@ export const createVideoController = async (req: CustomRequest, res: Response): 
     const video = await motionVideoService.createVideo(
       id.userId,
       id.projectId,
-      { brief: req.body?.brief, scope, type: videoTypeOf(req.body?.type), contentId: typeof req.body?.contentId === 'string' ? req.body.contentId.slice(0, 120) : undefined, language: getRequestLanguage(), creativity: normalizeCreativity(req.body?.creativity), intent: intentOf(req.body?.intent), clarification: clarificationOf(req.body?.clarification) },
+      { brief: req.body?.brief, scope, type: videoTypeOf(req.body?.type), contentId: typeof req.body?.contentId === 'string' ? req.body.contentId.slice(0, 120) : undefined, language: getRequestLanguage(), creativity: normalizeCreativity(req.body?.creativity), intent: intentOf(req.body?.intent), clarification: clarificationOf(req.body?.clarification), demo: demoOf(req.body?.demo) },
       paid
     );
     res.status(201).json(video);
@@ -358,7 +365,7 @@ export const createVideoStreamController = async (req: CustomRequest, res: Respo
     const video = await motionVideoService.createVideo(
       id.userId,
       id.projectId,
-      { brief: req.body?.brief, scope, type: videoTypeOf(req.body?.type), contentId: typeof req.body?.contentId === 'string' ? req.body.contentId.slice(0, 120) : undefined, language: getRequestLanguage(), creativity: normalizeCreativity(req.body?.creativity), intent: intentOf(req.body?.intent), clarification: clarificationOf(req.body?.clarification) },
+      { brief: req.body?.brief, scope, type: videoTypeOf(req.body?.type), contentId: typeof req.body?.contentId === 'string' ? req.body.contentId.slice(0, 120) : undefined, language: getRequestLanguage(), creativity: normalizeCreativity(req.body?.creativity), intent: intentOf(req.body?.intent), clarification: clarificationOf(req.body?.clarification), demo: demoOf(req.body?.demo) },
       paid,
       (event) => send({ type: 'progress', ...event })
     );

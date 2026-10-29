@@ -31,6 +31,9 @@ export interface PlannedScene {
   media: string[];
   needs: { kind: 'image' | 'video'; shot: string; query: string }[];
   voice?: string;
+  /** Le rôle dans le récit (accroche, problème…) et l'énergie (1 → 5), écrits par le planificateur. */
+  role?: string;
+  energy?: number;
 }
 
 export interface PlannedFilm {
@@ -85,10 +88,15 @@ export function parseFilmPlan(raw: string): PlannedFilm {
       continue;
     }
     open = null;
-    if (key === 'purpose' || key === 'intention' || key === 'role') current.purpose = value;
+    if (key === 'purpose' || key === 'intention') current.purpose = value;
     else if (key === 'visual' || key === 'visuel' || key === 'image') current.visual = value;
     else if (key === 'motion' || key === 'mouvement' || key === 'animation') current.motion = value;
     else if (key === 'transition' || key === 'entrance' || key === 'entree') current.transition = value;
+    else if (key === 'role' || key === 'beat' || key === 'temps') current.role = value.toLowerCase().slice(0, 30);
+    else if (key === 'energy' || key === 'energie') {
+      const n = Number(value.match(/\d/)?.[0]);
+      if (n >= 1 && n <= 5) current.energy = n;
+    }
     else if (key === 'duration' || key === 'duree') {
       const n = Number(value.replace(',', '.').match(/\d+(?:\.\d+)?/)?.[0]);
       if (n > 0) current.duration = n;
