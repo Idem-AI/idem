@@ -35,6 +35,9 @@ import { exportPptx } from '../src/export/pptx';
 import { sectionHtml } from '../src/adapters/sections';
 import { BRANDS, CARD_BACK, CARD_FRONT, FINANCE_BP, MARKET } from './fixtures';
 import { TEXT_BUDGETS } from '../src/content/analyze';
+import { chartFromTable, parseFigure, withDataChart } from '../src/content/data-charts';
+import { sectionFromModel } from '../src/adapters/sections';
+import { resolveAssets } from '../src/asset-planner';
 
 const fast = process.argv.includes('--fast');
 let failures = 0;
@@ -49,7 +52,7 @@ const EX = path.resolve(__dirname, '../contracts/examples');
 const readJson = (rel: string) => JSON.parse(fs.readFileSync(path.join(EX, rel), 'utf8'));
 
 // ── L'auteur simulé : il place chaque clé reçue, et sait rendre une page vide ou une réponse sans HTML ─────
-type Mode = 'ok' | 'blank' | 'blank-once' | 'garbage' | 'down' | 'cut-once' | 'cut' | 'cover-once';
+type Mode = 'ok' | 'blank' | 'blank-once' | 'garbage' | 'down' | 'cut-once' | 'cut' | 'cover-once' | 'overlap-once' | 'empty-once' | 'decor-once' | 'crop-once' | 'tiny-once' | 'nochart-once';
 let mode: Mode = 'ok';
 const calls: Array<{
   role: string;
@@ -58,14 +61,19 @@ const calls: Array<{
   user: string;
   system?: string;
 }> = [];
+const pageDirections: typeof calls = [];
+/** Les primitives (graphiques, tableaux, galeries) que la page doit poser. */
+const primsOf = (user: string): string[] =>
+  [...user.matchAll(/<idem-(chart|table|gallery) data-block="([^"]+)">/g)].map(
+    (m) => `<idem-${m[1]} data-block="${m[2]}" class="w-full text-[12px]"></idem-${m[1]}>`
+  );
 const fakePage = (user: string): string => {
   const keys = [...user.matchAll(/^\{\{([\w.:-]+)\}\} = /gm)]
     .map((m) => m[1])
     .filter((k) => !['kicker', 'title', 'lede'].includes(k));
-  const prims = [...user.matchAll(/<idem-(chart|table|gallery) data-block="([^"]+)">/g)].map(
-    (m) => `<idem-${m[1]} data-block="${m[2]}" class="w-full text-[12px]"></idem-${m[1]}>`
-  );
-  const body = `<p class="text-[12px] uppercase text-brand-primary">{{kicker}}</p><h2 class="font-display text-[36px] font-bold text-ink">{{title}}</h2><p class="text-muted">{{lede}}</p>${keys.map((k) => `<p data-field="${k}" class="text-[12px]">{{${k}}}</p>`).join('')}${prims.join('')}<idem-logo class="h-[20px]"></idem-logo>`;
+  const prims = primsOf(user);
+  // Une adresse d'image se pose en image (un actif de la marque, en grand), un texte en paragraphe.
+  const body = `<p class="text-[12px] uppercase text-brand-primary">{{kicker}}</p><h2 class="font-display text-[36px] font-bold text-ink">{{title}}</h2><p class="text-muted">{{lede}}</p>${keys.map((k) => (/\.url$/.test(k) ? `<img src="{{${k}}}" alt="" class="h-[40%] w-auto self-start object-contain">` : `<p data-field="${k}" class="text-[12px]">{{${k}}}</p>`)).join('')}${prims.join('')}<idem-logo class="h-[20px]"></idem-logo>`;
   if (/business card/.test(user))
     return `\`\`\`html\n<div class="grid h-full w-full grid-cols-2 gap-x-[8px] bg-ground p-[12px] text-[8.5px] leading-[1.15]"><idem-logo class="h-[14px]"></idem-logo><div>${keys.map((k) => `<p data-field="${k}" class="break-all">{{${k}}}</p>`).join('')}</div></div>\n\`\`\``;
   return /A4 page that GROWS/.test(user)
@@ -77,6 +85,11 @@ configureGraphicEngine({
     () =>
     async ({ role, user, level, system }) => {
       const repair = /DID NOT DISPLAY|did not display/.test(user);
+      // Le directeur de page (une petite tâche avant l'auteur) : ses appels sont comptés à part.
+      if (role === 'graphic.page-director') {
+        pageDirections.push({ role, level, repair, user, system });
+        return mode === 'down' ? 'je ne sais pas' : 'FOCAL: the title, large, top left\nZONES: top 30%: title and lede; bottom 70%: the content keys in order\nGROUPS: each figure with its label\nAVOID: decoration';
+      }
       calls.push({ role, level, repair, user, system });
       if (mode === 'down') throw new Error('quota');
       if (role === 'graphic.director')
@@ -84,12 +97,26 @@ configureGraphicEngine({
           ? `IDEA: Large figures, one brand-primary rule per page.\n${[...user.matchAll(/^(\d+)\. /gm)].map((m) => `PAGE ${m[1]}: the key figure dominates, text in a narrow column`).join('\n')}`
           : 'LANGUAGE:\n- brand-primary for structure, ink for text, generous margins, a 4px brand-primary rule as signature.';
       if (/CHANGE REQUESTED BY THE CLIENT/.test(user))
-        return '```html\n<div class="relative h-full w-full bg-brand-primary p-[40px]"><h2 class="text-[60px] text-on-brand">{{title}}</h2></div>\n```';
+        return `\`\`\`html\n<div class="relative flex h-full w-full flex-col bg-brand-primary p-[40px]"><h2 class="text-[60px] text-on-brand">{{title}}</h2><div class="bg-ground">${primsOf(user).join('')}</div></div>\n\`\`\``;
       if (mode === 'garbage') return 'je ne sais pas';
       if (mode === 'blank' || (mode === 'blank-once' && !repair))
         return '```html\n<div class="hidden">{{title}}</div>\n```';
       if (mode === 'cover-once' && !repair)
         return '```html\n<div class="relative h-full w-full bg-ground p-[60px]"><h2 class="text-[48px] text-ink">{{title}}</h2><div class="absolute left-[40px] top-[40px] h-[200px] w-[900px] bg-brand-primary"></div></div>\n```';
+      // Les pages désordonnées que le code mesure (une fois chacune, puis la page juste).
+      if (!repair && mode === 'overlap-once')
+        return '```html\n<div class="relative h-full w-full bg-ground p-[60px]"><h2 class="absolute left-[60px] top-[80px] text-[48px] text-ink">{{title}}</h2><p class="absolute left-[60px] top-[90px] text-[40px] text-muted">Une seconde ligne posée dessus</p></div>\n```';
+      if (!repair && mode === 'empty-once')
+        return '```html\n<div class="flex h-full w-full flex-col gap-[24px] bg-ground p-[60px]"><h2 class="text-[48px] text-ink">{{title}}</h2><div class="flex gap-[24px]"><div class="h-[220px] w-[300px] rounded-[16px] bg-brand-soft"></div><div class="h-[220px] w-[300px] rounded-[16px] bg-brand-soft"></div></div></div>\n```';
+      if (!repair && mode === 'decor-once')
+        return `\`\`\`html\n<div class="flex h-full w-full flex-col gap-[24px] bg-ground p-[60px]"><h2 class="text-[48px] text-ink">{{title}}</h2><div class="flex flex-wrap gap-[12px]">${'<span class="block size-[14px] rounded-full bg-brand-primary"></span>'.repeat(14)}</div></div>\n\`\`\``;
+      if (!repair && (mode === 'crop-once' || mode === 'tiny-once')) {
+        const url = user.match(/^\{\{([\w.:-]+\.url)\}\} = /m)?.[1] ?? 'sys-1.variants.0.url';
+        return mode === 'crop-once'
+          ? `\`\`\`html\n<div class="flex h-full w-full flex-col bg-ground p-[60px]"><h2 class="text-[40px] text-ink">{{title}}</h2><div class="h-[60px] w-[500px] overflow-hidden"><img src="{{${url}}}" alt="" class="h-[500px] w-[500px]"></div></div>\n\`\`\``
+          : `\`\`\`html\n<div class="flex h-full w-full flex-col bg-ground p-[60px]"><h2 class="text-[40px] text-ink">{{title}}</h2><img src="{{${url}}}" alt="" class="h-[30px] w-[30px] object-contain"></div>\n\`\`\``;
+      }
+      if (!repair && mode === 'nochart-once') return '```html\n<div class="flex h-full w-full flex-col bg-ground p-[60px]"><h2 class="text-[40px] text-ink">{{title}}</h2></div>\n```';
       if (mode === 'cut' || (mode === 'cut-once' && !repair))
         return '```html\n<div class="relative h-full w-full bg-ground p-[40px]"><h2 class="absolute left-[40px] top-[1050px] text-[48px]">{{title}}</h2></div>\n```';
       return fakePage(user);
@@ -810,7 +837,8 @@ async function main(): Promise<void> {
   );
   ok(
     'aucun constat bloquant sur les pages d’actif',
-    assets.every((o) => !o.result.issues.some((i) => i.severity === 'blocking'))
+    assets.every((o) => !o.result.issues.some((i) => i.severity === 'blocking')),
+    assets.flatMap((o) => o.result.issues.filter((i) => i.severity === 'blocking').map((i) => `${o.result.sectionId}: ${i.message}`)).join(' / ').slice(0, 600)
   );
 
   section('§8 bis Export PowerPoint (le HTML reste la source)');
@@ -965,6 +993,65 @@ async function main(): Promise<void> {
     );
   }
   mode = 'ok';
+
+  section('§9 L’ordre de la page, mesuré par le code (la page repart à l’auteur, la mise en page reste la sienne)');
+  pageDirections.length = 0;
+  calls.length = 0;
+  const directed = await createDocument({ documentType: 'pitch-deck', format: 'slide-16x9', brand: BRANDS.kora, seed: 'pd', sections: [{ id: 'market' }, { id: 'finance' }] });
+  await directed.composeSection(MARKET, { index: 1, total: 2 });
+  ok(
+    'travail divisé : le directeur de page décide la hiérarchie (petite tâche), l’auteur la construit',
+    pageDirections.length === 1 &&
+      /FOCAL: .+\nZONES: /.test(pageDirections[0].system ?? '') &&
+      calls.some((c) => c.role === 'graphic.author' && c.user.includes('PAGE LAYOUT DECIDED BY THE ART DIRECTOR') && c.user.includes('FOCAL: the title'))
+  );
+  const fixedBy = async (m: Mode, content: SectionContent, format: 'slide-16x9' | 'flyer-square' = 'slide-16x9', documentType: 'pitch-deck' | 'brand-charter' | 'flyer' = 'pitch-deck') => {
+    mode = m;
+    calls.length = 0;
+    const doc = await createDocument({ documentType, format, brand: BRANDS.kora, seed: `q:${m}`, sections: [{ id: content.id }] });
+    const out = await doc.composeSection(content);
+    mode = 'ok';
+    const repair = calls.find((c) => c.repair);
+    return { out, prompt: repair?.user ?? '' };
+  };
+  const plain: SectionContent = { id: 'q', title: 'Une page simple', blocks: [{ id: 'p1', kind: 'prose', paragraphs: ['Un paragraphe.'] }] };
+  for (const [m, pattern, label] of [
+    ['overlap-once', /on top of each other/, 'un texte posé sur un autre texte'],
+    ['empty-once', /empty frames/, 'des cadres vides (cartes, avatars, emplacements)'],
+    ['decor-once', /decoration noise/, 'un semis de formes décoratives'],
+  ] as const) {
+    const r = await fixedBy(m, plain);
+    ok(`${label} : renvoyé à l’auteur avec la consigne, puis page juste`, r.out.result.repairs.some((x) => x.code === 'render_fix') && pattern.test(r.prompt));
+  }
+  const logoPage: SectionContent = { id: 'logo', title: 'Le symbole', blocks: [{ id: 'sys-1', kind: 'logoDisplay', origin: 'system', variants: [{ url: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIvPg==', label: 'Icône', background: 'light' }] }] };
+  const cropped = await fixedBy('crop-once', logoPage, 'slide-16x9', 'brand-charter');
+  ok('un logo rogné par son conteneur : renvoyé à l’auteur (entier, object-contain)', cropped.out.result.repairs.some((x) => x.code === 'render_fix') && /brand asset is cropped/.test(cropped.prompt));
+  const tiny = await fixedBy('tiny-once', logoPage, 'slide-16x9', 'brand-charter');
+  ok('un logo minuscule sur la page qui le montre : renvoyé à l’auteur (30 % au moins)', tiny.out.result.repairs.some((x) => x.code === 'render_fix') && /shown small/.test(tiny.prompt));
+  const noChart = await fixedBy('nochart-once', MARKET);
+  ok('un graphique oublié par l’auteur : renvoyé (la page perd sa preuve)', noChart.out.result.repairs.some((x) => x.code === 'render_fix') && /content is missing/.test(noChart.prompt) && /<idem-chart data-block="b2">/.test(noChart.prompt));
+
+  section('§9 bis Les chiffres montrés (business plan, deck)');
+  const metricsRead = sectionFromModel({ title: 'Problème', blocks: [{ kind: 'metrics', items: [{ value: '60 %', label: 'Sans smartphone' }, { value: 'Échec', label: 'Solutions existantes' }] }] }, { id: 'pb' });
+  const kept = metricsRead.section?.blocks.find((b) => b.kind === 'metrics');
+  ok('un chiffre-clé sans chiffre (« Échec ») n’est pas montré comme un indicateur', Boolean(kept && kept.kind === 'metrics' && kept.items.length === 1 && kept.items[0].value === '60 %'));
+  const yearly = chartFromTable({ id: 't1', kind: 'table', headers: ['Indicateur', '2026', '2027', '2028'], rows: [['Chiffre d’affaires (XAF)', '6 650 000', '31 680 000', '81 750 000'], ['Marge brute (%)', '65,0 %', '65,5 %', '66,4 %'], ['Résultat net (XAF)', '-83 811 333', '-67 285 607', '-33 705 608']] });
+  ok(
+    'tableau indicateurs × années → courbe des mêmes valeurs (mêmes unités seulement)',
+    Boolean(yearly && yearly.chartType === 'line' && yearly.series.length === 2 && yearly.series[0].data.join() === '6650000,31680000,81750000' && yearly.series[1].name.startsWith('Résultat net') && /6 650 000 à 81 750 000/.test(yearly.readingKey.replace(/ | /g, ' '))),
+    JSON.stringify(yearly?.series)
+  );
+  const segments = chartFromTable({ id: 't2', kind: 'table', headers: ['Segment', 'Exploitants', 'Disposition à payer'], rows: [['Vivriers', '1 200 000', 'Faible : < 1 000 XAF par transaction'], ['Maraîchers', '400 000', 'Moyenne'], ['Cultures de rente', '500 000', 'Élevée']] });
+  ok('tableau catégories × mesure → barres ; une phrase qui contient un nombre n’est pas un chiffre', Boolean(segments && segments.series[0].name === 'Exploitants' && segments.series[0].data.join() === '1200000,400000,500000') && parseFigure('Faible : < 1 000 XAF par transaction') === null);
+  const bp = withDataChart({ id: 'fin', title: 'Plan financier', blocks: [{ id: 'p', kind: 'prose', paragraphs: ['Analyse.'] }, { id: 't1', kind: 'table', headers: ['Indicateur', '2026', '2027'], rows: [['CA (XAF)', '6 650 000', '31 680 000']] }] });
+  ok('une section de business plan sans graphique reçoit celui de son tableau, juste avant lui', bp.blocks.map((b) => b.kind).join() === 'prose,chart,table' && withDataChart(MARKET) === MARKET);
+  const stock = await resolveAssets(
+    [{ assetId: 'x.photo', role: 'photo', purpose: 'le produit', subject: 'a farmer at a kiosk', aspectRatio: 1.4, safeArea: 'none', sources: ['user', 'project', 'generated', 'stock'], fallback: 'skip', target: {} }],
+    { stock: { resolve: async () => ({ url: 'https://stock/handshake.jpg', alt: 'x', provenance: { provider: 'stock' } }) } },
+    { level: 'medium', documentType: 'business-plan' },
+    { generationLeft: 0 }
+  );
+  ok('business plan : jamais un cliché de banque d’images (une vraie image du projet, une image faite pour lui, ou rien)', stock.resolved.length === 0);
 }
 
 main()

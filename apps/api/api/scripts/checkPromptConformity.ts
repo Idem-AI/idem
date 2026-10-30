@@ -418,6 +418,24 @@ console.log('\n  Équipe de recherche : consignes de section');
     missing.join(', ')
   );
 
+  // Le chemin de recherche du business plan (celui des PDF livrés) perdait les chiffres du module Finance : aucun
+  // graphique. Ils sont désormais posés par le code en tête des sections financières, et trois sections au plus
+  // appellent une image (jamais l'équipe : on ne fabrique pas le visage d'une personne réelle).
+  const finance = [{ kind: 'chart', chartType: 'line', labels: ['2026', '2027'], series: [{ name: 'CA', data: [1, 2] }], readingKey: 'x' }] as never[];
+  const withFinance = buildBusinessPlanSpec(BUSINESS_PLAN_SECTION_CATALOG, { audience: 'general', projectDescription: 'Des distributeurs tactiles pour agriculteurs.', financeContext: '', country: 'Cameroun', financeBlocks: finance });
+  const financeSections = BUSINESS_PLAN_SECTION_CATALOG.filter((d) => d.financeBlocks).map((d) => d.name);
+  check(
+    'recherche : les sections financières reçoivent le graphique et les tableaux du module Finance',
+    financeSections.length > 0 && withFinance.filter((s) => financeSections.includes(s.name)).every((s) => s.prependBlocks === finance),
+    financeSections.join(', ')
+  );
+  const imaged = withFinance.filter((s) => s.image);
+  check(
+    'images : trois sections au plus, sujets décrits pour le projet, jamais l’équipe',
+    imaged.length > 0 && imaged.length <= 3 && imaged.every((s) => s.image!.subject.includes('distributeurs tactiles') && !/team|équipe|promoter/i.test(s.name)),
+    imaged.map((s) => s.name).join(', ')
+  );
+
   // Le REGISTRE doit couvrir le catalogue exactement. Une section catalogable
   // sans prompt partirait avec une consigne vide — elle serait générée, mal, et
   // rien ne le signalerait : c'est très précisément le défaut que le registre

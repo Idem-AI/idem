@@ -134,10 +134,17 @@ esthétique ne la vérifie.
 
 **Aucun gabarit** : toutes les pages, celles qui montrent un actif de la marque comprises (logo, déclinaisons,
 motifs, palette, typographie, mockups), sont composées par l'auteur. Le code lui donne les outils exacts
-(`<idem-logo>`, `<idem-pattern-tile>`, `<idem-gallery>`, les codes des couleurs recopiés par les clés) et vérifie
-seulement l'affichage. Le gabarit des pages d'actif (15/10/2026), le régime « essentiel » des slides et les
-consignes de disposition de la carte ont été retirés le 30/10/2026 : ils donnaient la même mise en page à tous
-les projets.
+(`<idem-logo>`, `<idem-pattern-tile>`, `<idem-gallery>`, les codes des couleurs recopiés par les clés). Le gabarit des
+pages d'actif (15/10/2026) a été retiré le 30/10/2026 : il donnait la même mise en page à tous les projets.
+
+**L'essentiel**, lui, reste garanti sur le CONTENU, à tous les crans : slide sans chapô, deux blocs de preuve et trois
+points au plus, le surplus dans les notes de l'orateur (`slideEssentials`) ; pages de spécimens de la charte sans
+texte rédigé ; un chiffre-clé est un chiffre (`figuresOnly`). La consigne de l'auteur : un point focal, chaque
+élément porte un contenu (aucune forme, carte, pastille ou faux schéma vide), un seul signe de marque par page.
+
+**Le travail divisé** : avant l'auteur, le **directeur de page** (`graphic.page-director`, une petite tâche par
+page, `pageDirectorPrompt`) décide en quatre lignes le point focal, les zones, les groupes et l'erreur à éviter ;
+l'auteur construit cette hiérarchie. Sans réponse exploitable, l'auteur compose seul.
 
 ## Ce que l'auteur reçoit (contexte compact, identique à tous les crans)
 
@@ -196,6 +203,19 @@ bornée** (`engine.ts`) :
 Une tentative à la fois, jamais deux fois la même approche, trois au plus, et un budget par document
 (`GRAPHIC_REPAIR_ATTEMPTS` 3, `GRAPHIC_REPAIR_TOKEN_BUDGET` 60 000, `GRAPHIC_REPAIR_MAX_MS` 240 s). Ce qui
 résiste lève `GraphicRenderError` (le service traite la section comme en échec, et le dit).
+
+**L'ordre de la page, mesuré** (`QUALITY`, après l'affichage, cadre `qualityFrame` de la page) — renvoyé à
+l'auteur par la même correction bornée, la mise en page reste la sienne :
+
+- un texte posé sur un autre texte ;
+- un actif de la marque (logo, déclinaison) rogné par le bord, son conteneur ou `object-cover`, absent, ou trop
+  petit sur la page qui n'existe que pour lui (30 % seul, 15 % à deux ou trois, 10 % au-delà, 25 % logo commenté) ;
+- un cadre vide compact (carte, pastille, avatar, zone d'image) qui ne porte rien et ne sert de fond à rien ;
+- plus de dix formes décoratives vides (fausse grille, faux schéma, ronds) ;
+- un graphique, un tableau, une galerie ou un actif de la marque que l'auteur n'a pas posé (`content_missing`).
+
+Les aplats vides du nuancier et des démonstrations de grille sont du contenu (`allowEmptyShapes`). Si la correction
+échoue, la meilleure page est livrée avec son constat bloquant (`render_partial`) plutôt que perdue.
 
 Les constats non bloquants restent dans `result.issues` comme conseils, sans rien déclencher :
 `native_css_removed`, `content_not_shown` (une clé que l'auteur n'a pas placée), `unknown_keys`,

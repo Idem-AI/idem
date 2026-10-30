@@ -159,10 +159,12 @@ export function expandPage(template: string, map: ContentMap, tokens: DesignToke
         unknown.push(key);
         return '';
       }
+      // Une adresse ne s'imprime jamais : elle n'a de sens que dans un attribut (src) — écrite en texte, l'image
+      // n'est pas montrée (la clé reste « non placée »).
+      if (entry.kind === 'url' && !inTag) return '';
       used.add(key);
       if (map.markers.has(key)) return inTag ? `{{${key}}}` : `<span data-field="${key}">{{${key}}}</span>`;
-      // Une adresse ne s'imprime jamais : elle n'a de sens que dans un attribut (src).
-      if (entry.kind === 'url') return inTag ? esc(entry.value) : '';
+      if (entry.kind === 'url') return esc(entry.value);
       return inTag ? esc(entry.value) : esc(entry.value).replace(/\n/g, '<br>');
     });
   html = html

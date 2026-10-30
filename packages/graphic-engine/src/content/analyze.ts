@@ -114,11 +114,12 @@ function bodyWords(block: Block): { words: number; bullets: number } {
  */
 export const TEXT_BUDGETS = {
   // Une idée par slide, un titre qui AFFIRME, la preuve dessous ; le détail se dit (règle 10/20/30,
-  // structure affirmation-preuve, consignes de Y Combinator) : ~30 mots lisibles du fond de la salle.
-  statement: { headlineWords: 10, bodyWords: 15, maxBullets: 0 },
-  points: { headlineWords: 10, bodyWords: 30, maxBullets: 4 },
-  demonstration: { headlineWords: 10, bodyWords: 35, maxBullets: 4 },
-  data: { headlineWords: 12, bodyWords: 40, maxBullets: 5 },
+  // structure affirmation-preuve, consignes de Y Combinator) : l'essentiel, lisible du fond de la salle.
+  // Resserrés le 15/10/2026 (« on n'affiche que l'essentiel, précis, concis ») : 3 points au plus.
+  statement: { headlineWords: 10, bodyWords: 12, maxBullets: 0 },
+  points: { headlineWords: 10, bodyWords: 24, maxBullets: 3 },
+  demonstration: { headlineWords: 10, bodyWords: 28, maxBullets: 3 },
+  data: { headlineWords: 10, bodyWords: 30, maxBullets: 4 },
 } as const satisfies Record<string, TextBudget>;
 export type TextBudgetKind = keyof typeof TEXT_BUDGETS;
 

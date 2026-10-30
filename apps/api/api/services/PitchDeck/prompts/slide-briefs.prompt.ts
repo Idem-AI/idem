@@ -47,15 +47,15 @@ the team's ability to deliver and exactly what the prize or the grant will pay f
 };
 
 /** Ce qu'est un slide, quel que soit son sujet et son lecteur. */
-const SLIDE_RULES = `A slide carries ONE idea and is read in ten seconds from the back of the room. The
-TITLE is a full-sentence assertion of 10 words or fewer; the blocks are its EVIDENCE — a figure, a chart, a
-picture, three short labels. One to three blocks. Everything you would EXPLAIN goes in "notes" (what the
-speaker says aloud), never on the slide.
+const SLIDE_RULES = `A slide carries ONE idea and is read in ten seconds from the back of the room. Show only
+the essential — precise, concise. The TITLE is a full-sentence assertion of 10 words or fewer; the blocks are
+its EVIDENCE — a figure, a chart, three short labels. ONE or TWO blocks, never more. Everything you would
+EXPLAIN goes in "notes" (what the speaker says aloud), never on the slide.
 
 - Title: the conclusion, not the topic. "Le marché double d'ici 2028", never "Analyse du marché".
-- On the slide: about 30 words in total besides the title. "points" labels of 3 to 6 words; a detail line
-  only when it carries a figure.
-- No lede, no paragraph, unless nothing else can carry the proof — then one sentence.
+- On the slide: about 25 words in total besides the title. At most 3 points; "points" labels of 3 to 6
+  words; a detail line only when it carries a figure.
+- No lede, no paragraph, no explanation, no filler ("innovative", "unique", "leader").
 - Every figure carries a unit and a period.`;
 
 export interface SlideBriefParts {
@@ -89,8 +89,8 @@ optionally one "metrics" row of the gain it brings.`,
     mustCover: `- TAM / SAM / SOM, each with its unit, its year and how it was derived.
 - The growth driver: what is changing that makes this market move now.
 - The segment attacked first, and why that one.
-Blocks: one "chart" (bar or line, with a readingKey that states the conclusion),
-one "table" for the TAM/SAM/SOM breakdown, one "assumption" for the derivation.`,
+Blocks: one "chart" (bar, with a readingKey that states the conclusion) of TAM / SAM / SOM,
+or one "metrics" row of the three; the derivation goes in "notes".`,
   },
 
   Product: {
@@ -99,7 +99,7 @@ one "table" for the TAM/SAM/SOM breakdown, one "assumption" for the derivation.`
 - The single capability competitors cannot copy quickly, and why.
 - Where it stands today: shipped, in beta, in design.
 Blocks: one "points" block of the user's steps or of the key capabilities,
-plus one "metrics" row or one short "prose" block on the state of the build.`,
+optionally one "metrics" row on the state of the build.`,
   },
 
   'Business Model': {
@@ -116,8 +116,7 @@ one "metrics" row for the headline margin, optionally one "table" of the unit ec
     mustCover: `- What has actually happened: users, revenue, partnerships, pilots — with dates.
 - The trend, not the total: growth rate over a stated period.
 - The proof point a sceptic would ask for.
-Blocks: one "chart" of the trend, one "metrics" row of current figures,
-optionally one "quote" from a real user or partner.`,
+Blocks: one "chart" of the trend and one "metrics" row of current figures.`,
   },
 
   Competition: {
@@ -125,8 +124,8 @@ optionally one "quote" from a real user or partner.`,
     mustCover: `- Three to five real competitors, named.
 - The two or three axes on which the comparison actually matters to a buyer.
 - Where you lose, and why that is acceptable.
-Blocks: one "table" with competitors as rows and axes as columns,
-one "prose" block naming your own weakness.`,
+Blocks: one "table" with competitors as rows and axes as columns (your own weakness visible
+in your row); the reasoning goes in "notes".`,
   },
 
   Team: {
@@ -134,7 +133,7 @@ one "prose" block naming your own weakness.`,
     mustCover: `- Each founder: what they did before that bears DIRECTLY on this problem.
 - The gap in the team, and how it is being filled.
 Blocks: one "points" block, one point per person (label "Name — role", detail: the one prior
-experience that matters), optionally one "prose" sentence on the gap.`,
+experience that matters); the gap goes in "notes".`,
   },
 
   Financials: {
@@ -142,8 +141,8 @@ experience that matters), optionally one "prose" sentence on the gap.`,
     mustCover: `- Three-year projection: revenue, gross margin, net result.
 - The two or three hypotheses that drive the whole model.
 - Burn and runway at the current plan.
-Blocks: one "chart" (stacked or line) of the projection, one "table" of the
-yearly figures, one or two "assumption" blocks for the drivers.`,
+Blocks: one "chart" (bar or line) of the projection and one "metrics" row of the headline
+figures; the drivers go in "notes".`,
   },
 
   Ask: {
@@ -151,8 +150,8 @@ yearly figures, one or two "assumption" blocks for the drivers.`,
     mustCover: `- The amount, and the instrument.
 - The allocation, in three or four lines, each tied to a milestone.
 - What the round takes the company to — a stated, dated position.
-Blocks: one "metrics" row for the amount and the runway it buys,
-one "table" of the allocation, one "timeline" of the milestones.`,
+Blocks: one "metrics" row for the amount and the runway it buys, and one "table" of the
+allocation; the milestones go in "notes".`,
   },
 
   // ── Financement bancaire ──────────────────────────────────────────────────
@@ -161,8 +160,8 @@ one "table" of the allocation, one "timeline" of the milestones.`,
     mustCover: `- What the company does, in one sentence a non-specialist could repeat.
 - Legal form, creation date, location and headcount — the facts a file reviewer checks first.
 - The milestones already reached, dated.
-Blocks: one "metrics" row of 2-3 facts (founded, team, customers), one "points" block of
-what the company does, optionally one "timeline" of the milestones.`,
+Blocks: one "metrics" row of 2-3 facts (founded, team, customers) and one "points" block of
+what the company does.`,
   },
 
   'Funding Request': {
@@ -180,7 +179,7 @@ one "table" of the financing plan (uses and resources).`,
 - The coverage ratio (cash available divided by debt service), per year, and the break-even point.
 - The downside case: how far revenue can fall before an installment is missed.
 Blocks: one "chart" of cash flow against debt service, with a readingKey that states the conclusion,
-one "table" of the yearly figures, one "assumption" block for the downside case.`,
+and one "metrics" row of the coverage ratio; the downside case goes in "notes".`,
   },
 
   Guarantees: {
@@ -214,7 +213,7 @@ Blocks: one "points" block, one point per reference (who, before, after in figur
     mustCover: `- Two or three offers, each with its price, its billing period and what it includes.
 - The offer recommended for this kind of customer, and why.
 - What it takes to start: setup fee, commitment, trial.
-Blocks: one "table" comparing the offers, one "prose" block on the recommended offer.`,
+Blocks: one "table" comparing the offers (the recommended one marked in its name); why goes in "notes".`,
   },
 
   'Next Steps': {
@@ -222,7 +221,7 @@ Blocks: one "table" comparing the offers, one "prose" block on the recommended o
     mustCover: `- The concrete next step proposed, who takes it and by when.
 - The path from agreement to the first result, in three dated steps at most.
 - The person who follows up: name, role and contact details.
-Blocks: one "points" block of the next steps, each dated, one short "prose" block with the contact.`,
+Blocks: one "points" block of the next steps, each dated, the last one with the contact person.`,
   },
 
   // ── Partenariat ───────────────────────────────────────────────────────────
@@ -254,9 +253,9 @@ Blocks: one "metrics" row of impact indicators, one "points" block of who benefi
   Milestones: {
     objective: 'Show a credible, dated path from today to the next stage.',
     mustCover: `- The milestones already reached, dated.
-- The next four to six milestones, each dated and measurable.
+- The next three or four milestones, each dated and measurable.
 - The main dependency or risk on that path.
-Blocks: one "timeline" of reached and upcoming milestones, one "prose" block on the main risk.`,
+Blocks: one "timeline" of reached and upcoming milestones (four at most); the main risk goes in "notes".`,
   },
 
   'Use of Funds': {
@@ -264,7 +263,7 @@ Blocks: one "timeline" of reached and upcoming milestones, one "prose" block on 
     mustCover: `- The amount sought, and from whom.
 - The allocation in three or four lines, each with its amount and the milestone it unlocks.
 - What the project will have achieved once the money is spent.
-Blocks: one "metrics" row for the amount, one "table" of the allocation, one "prose" block on the outcome.`,
+Blocks: one "metrics" row for the amount and one "table" of the allocation; the outcome goes in "notes".`,
   },
 };
 

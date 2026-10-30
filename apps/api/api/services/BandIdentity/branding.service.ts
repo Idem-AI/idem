@@ -59,6 +59,7 @@ import {
   coverContent,
   ENGINE_VERSION,
   styleMotifs,
+  systemSection,
   WRITING_RULES,
 } from '@idem/graphic-engine';
 import {
@@ -1211,6 +1212,8 @@ export class BrandingService extends GenericService {
        * les pages où un modèle se trompe le plus : recopier six chiffres hexadécimaux, nommer une police,
        * choisir le fond qui contraste. Aucune de ces trois choses n'a besoin de lui.
        */
+      /** Les pages qui montrent sans rien rédiger : le titre de la charte et le spécimen exact. */
+      const SPECIMEN_ONLY_PAGES = new Set(['Logomark', 'Logo Variation Fond Clair', 'Logo Variation Fond Sombre', 'Logo Variation Monochrome', 'Graphic Patterns', 'Color Palette', 'Typography', 'Typeface Hierarchy']);
       const specimensFor = (stepName: string): BlockDraft[] | undefined => {
         const palette = project.analysisResultModel?.branding?.colors?.colors;
         const typography = project.analysisResultModel?.branding?.typography;
@@ -1409,6 +1412,19 @@ export class BrandingService extends GenericService {
               }),
               at
             );
+          };
+          return;
+        }
+        // Les pages qui MONTRENT (spécimens, actifs) : l'essentiel seulement — le titre et l'actif, aucun texte rédigé
+        // (décision de l'utilisateur, 15/10/2026). Les pages d'actif (logo, icône, déclinaisons, motifs) sont même
+        // dessinées par le code : l'actif en très grand.
+        if (SPECIMEN_ONLY_PAGES.has(step.stepName)) {
+          step.execute = async () => {
+            const blocks = specimensFor(step.stepName);
+            if (!blocks?.length) return null;
+            const heading = CHARTER_PAGE_HEADINGS[step.stepName];
+            const section = systemSection({ id: pageId(step.stepName), title: heading?.title ?? step.stepName, role: 'specimen', blocks });
+            return section ? renderGraphicPage(graphic, section, at) : null;
           };
           return;
         }

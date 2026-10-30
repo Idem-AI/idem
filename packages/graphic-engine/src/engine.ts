@@ -15,24 +15,24 @@
  * mêmes étapes et même contexte à tous les crans.
  */
 import type { CreativityLevel, DocumentType, FormatId, Issue } from './contracts/common';
-import type { SectionContent } from './contracts/content-model';
+import type { Block, SectionContent } from './contracts/content-model';
 import type { DesignSpec, SectionSpec } from './contracts/design-spec';
 import { isAuthoredSpec } from './contracts/design-spec';
 import type { RenderResult } from './contracts/render-result';
 import { validateSectionContent } from './contracts/validate';
 import { applyAssets, GENERATION_CAP, planAssets, resolveAssets } from './asset-planner';
 import { BrandInput, buildTokens, DesignTokens, DirectionInput } from './design-system/tokens';
-import { FORMATS } from './design-system/formats';
+import { FormatDef, FORMATS } from './design-system/formats';
 import { stableHash } from './foundation/hash';
 import { AgentCall, engineHost, FingerprintScope, log } from './host';
 import { GenerationTrace, TraceRecorder } from './observability/traces';
 import { ENGINE_VERSION, COMPONENT_LIBRARY_VERSION } from './version';
-import { authorSystem, authorUser, DocumentContext, DocumentPlan, languagePrompt, parseLanguage, parsePlan, planPrompt, PlannedPage, ReferenceComposition, RepairStrategy, repairUser, reviseUser, toolLines } from './author/prompts';
+import { authorSystem, authorUser, DocumentContext, DocumentPlan, languagePrompt, pageDirectorPrompt, parseLanguage, parsePageDirection, parsePlan, planPrompt, PlannedPage, ReferenceComposition, RepairStrategy, repairUser, reviseUser, toolLines } from './author/prompts';
 import { callModel, levelUp } from './author/model';
 import { buildContentMap, ContentMap, fixBrandNameTypos } from './runtime/content-map';
 import { expandPage, extractHtml, sanitizeHtml, withSize } from './runtime/expand';
 import { compileTailwind } from './runtime/tailwind';
-import { checkRender } from './runtime/check';
+import { checkRender, QualityFrame } from './runtime/check';
 
 export interface DocumentOptions {
   documentType: DocumentType;
@@ -102,6 +102,26 @@ export function repairLimits(): { attempts: number; tokenBudget: number; maxMs: 
 const REPAIR_PLAN: RepairStrategy[] = ['fix', 'rewrite', 'minimal'];
 const AUTHOR_TIMEOUT = 150_000;
 const DIRECTOR_TIMEOUT = 60_000;
+
+/** Les blocs dont les aplats vides SONT le contenu (nuancier, démonstrations de grille et de densité). */
+const SHAPE_CONTENT = new Set<Block['kind']>(['swatches', 'compositionPrinciples', 'typeScale', 'typeSpecimen']);
+const LOGO_BLOCKS = new Set<Block['kind']>(['logoDisplay', 'logoStory']);
+
+/**
+ * Ce que le code mesure sur CETTE page (`runtime/check.ts`, `QUALITY`) : les actifs de la marque qu'elle montre
+ * (entiers, et grands quand la page n'existe que pour eux), et si ses aplats vides sont du contenu.
+ */
+export function qualityFrame(section: SectionContent, map: ContentMap, format: FormatDef): QualityFrame {
+  const logoBlocks = section.blocks.filter((b) => LOGO_BLOCKS.has(b.kind)).map((b) => b.id);
+  const assets = [...map.entries.values()].filter((e) => e.kind === 'url' && logoBlocks.some((id) => e.key.startsWith(`${id}.`))).map((e) => e.value);
+  const only = section.blocks.length === 1 && logoBlocks.length === 1 && format.kind === 'fixed';
+  const minAssetSide = only ? (section.blocks[0].kind === 'logoStory' ? 0.25 : assets.length <= 1 ? 0.3 : assets.length <= 3 ? 0.15 : 0.1) : undefined;
+  return {
+    ...(assets.length ? { assets } : {}),
+    ...(minAssetSide ? { minAssetSide } : {}),
+    ...(section.blocks.some((b) => SHAPE_CONTENT.has(b.kind)) ? { allowEmptyShapes: true } : {}),
+  };
+}
 
 interface Rendered {
   template: string;
@@ -287,10 +307,19 @@ export class GraphicDocument {
       const system = authorSystem(ctx);
       const blocks = [...map.primitives.values()];
       const tools = toolLines(ctx, { charts: blocks.filter((b) => b.kind === 'chart').map((b) => b.id), tables: blocks.filter((b) => b.kind === 'table').map((b) => b.id), galleries: blocks.filter((b) => b.kind === 'mockupShowcase').map((b) => b.id), icons: [...map.entries.values()].some((e) => e.kind === 'icon') });
-      const base = authorUser(ctx, { section, listing: map.listing, tools, index, total, language, plan, reference: this.options.reference });
       const revising = o.revise?.instruction && o.revise.spec && isAuthoredSpec(o.revise.spec) ? o.revise : undefined;
+      // Le travail divisé : le directeur de page décide la hiérarchie (petite tâche), l'auteur la construit. Sans
+      // réponse exploitable, l'auteur compose seul ; une retouche écrite garde la hiérarchie de la page.
+      let direction: string | undefined;
+      if (!revising && !this.options.reference) {
+        const pd = pageDirectorPrompt(ctx, { section, listing: map.listing, tools, language, plan });
+        const run = await callModel({ call, recorder, task: 'direct', role: 'graphic.page-director', profile: 'agents', level, system: pd.system, user: pd.user, timeoutMs: DIRECTOR_TIMEOUT, validate: (raw) => parsePageDirection(raw) !== null });
+        direction = run.ok ? parsePageDirection(run.raw) ?? undefined : undefined;
+        if (direction) bible = [bible, `layout: ${direction.replace(/\n/g, ' · ')}`].filter(Boolean).join('\n');
+      }
+      const base = authorUser(ctx, { section, listing: map.listing, tools, index, total, language, plan, reference: this.options.reference, ...(direction ? { direction } : {}) });
       const user = revising ? reviseUser(base, (revising.spec as SectionSpec).html, revising.instruction) : base;
-      rendered = await this.author(section.id, map, recorder, { system, base, user, level, task: revising ? 'revise' : 'author' });
+      rendered = await this.author(section.id, map, recorder, { system, base, user, level, task: revising ? 'revise' : 'author', quality: qualityFrame(section, map, this.format) });
     }
 
     const spec: SectionSpec = { version: 2, ref: section.id, pattern: { id: 'authored' }, html: rendered.template, ...(bible ? { bible } : {}), level };
@@ -319,7 +348,7 @@ export class GraphicDocument {
    * L'auteur écrit la page ; si elle ne s'affiche pas, la correction bornée : une tentative à la fois, une
    * approche différente à chaque fois, le modèle du cran au-dessus dès la réécriture.
    */
-  private async author(sectionId: string, map: ContentMap, recorder: TraceRecorder, p: { system: string; base: string; user: string; level: CreativityLevel; task: 'author' | 'revise' }): Promise<Rendered> {
+  private async author(sectionId: string, map: ContentMap, recorder: TraceRecorder, p: { system: string; base: string; user: string; level: CreativityLevel; task: 'author' | 'revise'; quality?: QualityFrame }): Promise<Rendered> {
     const call = this.agent() as AgentCall;
     const valid = (raw: string) => /<[a-z][\s\S]*>/i.test(extractHtml(raw));
     const first = await callModel({ call, recorder, task: p.task, role: 'graphic.author', profile: 'coder', level: p.level, system: p.system, user: p.user, timeoutMs: AUTHOR_TIMEOUT, validate: valid });
@@ -328,7 +357,7 @@ export class GraphicDocument {
     /** La meilleure page presque affichée (un texte coupé) : livrée, et signalée, si rien ne fait mieux. */
     let partial: Rendered | undefined;
     if (code) {
-      const r = await this.render(code, map, sectionId, recorder);
+      const r = await this.render(code, map, sectionId, recorder, p.quality);
       if (r.ok) return r.page;
       error = r.error;
       code = r.template;
@@ -356,7 +385,7 @@ export class GraphicDocument {
         history.push(`${strategy}: ${error}`);
         continue;
       }
-      const r = await this.render(extractHtml(run.raw), map, sectionId, recorder);
+      const r = await this.render(extractHtml(run.raw), map, sectionId, recorder, p.quality);
       if (r.ok) {
         recorder.repair({ code: `render_${strategy}`, detail: `page corrigée (${strategy}, cran ${level}) après : ${history[history.length - 1].slice(0, 160)}`, by: 'agent' });
         return r.page;
@@ -376,7 +405,7 @@ export class GraphicDocument {
   }
 
   /** Assainir, remplir, compiler, puis demander à Chromium si la page s'affiche. Rien n'est jugé d'autre. */
-  private async render(raw: string, map: ContentMap, sectionId: string, recorder: TraceRecorder): Promise<{ ok: true; page: Rendered } | { ok: false; error: string; template: string; partial?: Rendered }> {
+  private async render(raw: string, map: ContentMap, sectionId: string, recorder: TraceRecorder, quality?: QualityFrame): Promise<{ ok: true; page: Rendered } | { ok: false; error: string; template: string; partial?: Rendered }> {
     const t0 = Date.now();
     const clean = sanitizeHtml(raw);
     if (!clean.html.trim()) return { ok: false, error: 'the page is empty after removing what is not allowed (scripts, styles, external resources)', template: clean.html };
@@ -399,7 +428,7 @@ export class GraphicDocument {
       recorder.task({ task: 'render', source: 'code', inputTokens: 0, outputTokens: 0, ms: Date.now() - t0, outcome: 'skipped' });
       return { ok: true, page: { template: clean.html, html: page.html, head, issues } };
     }
-    const check = await checkRender(page.html, head, this.format, { lang: this.options.locale, shoot: Boolean(this.options.png) });
+    const check = await checkRender(page.html, head, this.format, { lang: this.options.locale, shoot: Boolean(this.options.png), ...(quality ? { quality } : {}) });
     recorder.task({ task: 'render', source: 'code', inputTokens: 0, outputTokens: 0, ms: Date.now() - t0, outcome: check.ok ? 'accepted' : 'refused' });
     if (check.infra) log().warn('graphic.render_unchecked', { event: 'graphic.render_unchecked', section: sectionId, reason: check.error });
     if (!check.ok) {
@@ -407,7 +436,16 @@ export class GraphicDocument {
       const partial = check.cut ? { template: clean.html, html: page.html, head, png: check.png, issues: [...issues, { code: 'text_cut', severity: 'blocking' as const, message: (check.error ?? '').slice(0, 380) }] } : undefined;
       return { ok: false, error: check.error ?? 'the page did not display', template: clean.html, ...(partial ? { partial } : {}) };
     }
-    return { ok: true, page: { template: clean.html, html: page.html, head, png: check.png, width: check.width, height: check.height, issues } };
+    const done: Rendered = { template: clean.html, html: page.html, head, png: check.png, width: check.width, height: check.height, issues };
+    // Un graphique, un tableau, une galerie ou un actif de la marque oublié par l'auteur : la page perd sa preuve.
+    // Renvoyée à l'auteur ; livrée signalée si la correction échoue.
+    const missingAssets = quality?.assets?.length ? [...map.entries.values()].filter((e) => e.kind === 'url' && quality.assets!.includes(e.value) && !page.used.has(e.key)).map((e) => `{{${e.key}}}`) : [];
+    if (quality && (unusedBlocks.length || missingAssets.length)) {
+      const missing = [...unusedBlocks.map((id) => `<idem-${map.primitives.get(id)?.kind === 'table' ? 'table' : map.primitives.get(id)?.kind === 'mockupShowcase' ? 'gallery' : 'chart'} data-block="${id}">`), ...missingAssets];
+      const error = `content is missing from the page: ${missing.slice(0, 6).join(', ')} — place every chart, table, gallery and brand asset image, readable`;
+      return { ok: false, error, template: clean.html, partial: { ...done, issues: [...issues, { code: 'content_missing', severity: 'blocking', message: error.slice(0, 380) }] } };
+    }
+    return { ok: true, page: done };
   }
 
   /**

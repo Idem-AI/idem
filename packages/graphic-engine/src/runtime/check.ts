@@ -67,15 +67,21 @@ const PROBE = `(function () {
   var unlock = document.createElement('style');
   unlock.textContent = '.ge-page, .ge-page * { pointer-events: auto !important; }';
   document.head.appendChild(unlock);
+  // Une couleur peinte, quelle que soit sa notation (rgb, color(srgb …), oklab…) : seule une alpha nulle ne peint pas.
+  function opaque(c) {
+    if (!c || c === 'transparent') return false;
+    var a = c.match(/rgba\\([^)]*,\\s*([\\d.]+)\\)/) || c.match(/\\/\\s*([\\d.]+%?)\\s*\\)$/);
+    if (!a) return true;
+    var v = parseFloat(a[1]) / (/%$/.test(a[1]) ? 100 : 1);
+    return v > 0.04;
+  }
   function paints(el) {
     var cs = getComputedStyle(el);
     if (parseFloat(cs.opacity) < 0.04) return false;
     var tag = el.tagName.toLowerCase();
     if (tag === 'img' || tag === 'svg' || tag === 'video' || tag === 'figure' || tag === 'canvas') return true;
     if (cs.backgroundImage && cs.backgroundImage !== 'none') return true;
-    var bg = cs.backgroundColor.match(/rgba?\(([^)]+)\)/);
-    if (bg) { var p = bg[1].split(','); if (p.length < 4 || parseFloat(p[3]) > 0.04) return true; }
-    return false;
+    return opaque(cs.backgroundColor);
   }
   var covered = [];
   var tw = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
@@ -103,12 +109,144 @@ const PROBE = `(function () {
   return { width: box.width, height: box.height };
 })()`;
 
-export async function checkRender(html: string, head: string, format: FormatDef, o: { lang?: string; shoot?: boolean } = {}): Promise<RenderCheck> {
+/**
+ * L'ORDRE DE LA PAGE, mesuré — ce qui rend une page désordonnée ou amateur, quel que soit le modèle :
+ *
+ *   - un texte posé sur un autre texte ;
+ *   - un actif de la marque (logo, déclinaison) rogné par le bord, par son conteneur ou par `object-cover` ;
+ *   - un actif de la marque trop petit sur la page qui existe pour le montrer ;
+ *   - un cadre vide (carte, pastille, avatar, emplacement) : une forme peinte qui ne porte rien et ne sert de fond
+ *     à rien ;
+ *   - un semis de formes décoratives (fausse grille, faux schéma, ronds) au-delà de quelques repères.
+ *
+ * Chaque mesure renvoie la page à l'auteur avec une consigne ; la mise en page reste la sienne.
+ */
+export interface QualityFrame {
+  /** Les adresses des actifs de la marque montrés par la page (logo, déclinaisons). */
+  assets?: string[];
+  /** Le plus grand actif doit couvrir au moins cette part de la largeur OU de la hauteur de la page. */
+  minAssetSide?: number;
+  /** Les aplats vides sont le contenu (nuancier, spécimens) : pas de contrôle des cadres vides. */
+  allowEmptyShapes?: boolean;
+}
+
+const QUALITY = (f: QualityFrame) => `(function (f) {
+  var root = document.querySelector('.ge-page');
+  var box = root.getBoundingClientRect();
+  var pageArea = box.width * box.height;
+  var errors = [];
+  function short(t) { return '"' + t.trim().replace(/\\s+/g, ' ').slice(0, 36) + '"'; }
+  function visible(el) {
+    for (var e = el; e && e !== document.body; e = e.parentElement) {
+      var cs = getComputedStyle(e);
+      if (cs.display === 'none' || cs.visibility === 'hidden' || parseFloat(cs.opacity) < 0.04) return false;
+    }
+    return true;
+  }
+  // 1. Texte sur texte : deux lignes de deux éléments distincts qui se chevauchent.
+  var lines = [];
+  var tw = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  for (var t = tw.nextNode(); t && lines.length < 600; t = tw.nextNode()) {
+    var host = t.parentElement;
+    if (!t.textContent.trim() || !host || host.closest('svg,template,[data-ge-gallery],[data-ge-chart]') || !visible(host)) continue;
+    var rg = document.createRange();
+    rg.selectNodeContents(t);
+    var rs = rg.getClientRects();
+    for (var i = 0; i < rs.length; i++) if (rs[i].width > 2 && rs[i].height > 2) lines.push({ r: rs[i], host: host, text: t.textContent });
+  }
+  var clash = [];
+  for (var a = 0; a < lines.length && clash.length < 3; a++) {
+    for (var b = a + 1; b < lines.length; b++) {
+      var A = lines[a], B = lines[b];
+      if (A.host === B.host || A.host.contains(B.host) || B.host.contains(A.host)) continue;
+      var w = Math.min(A.r.right, B.r.right) - Math.max(A.r.left, B.r.left);
+      var h = Math.min(A.r.bottom, B.r.bottom) - Math.max(A.r.top, B.r.top);
+      if (w <= 0 || h <= 0) continue;
+      var smaller = Math.min(A.r.width * A.r.height, B.r.width * B.r.height);
+      if (w * h > smaller * 0.25) { clash.push(short(A.text) + ' over ' + short(B.text)); break; }
+    }
+  }
+  if (clash.length) errors.push('texts are written on top of each other: ' + clash.join('; ') + ' — give each text its own space (stack or separate the zones)');
+  // 2. Les actifs de la marque : entiers, jamais rognés ni recadrés.
+  var assets = [];
+  root.querySelectorAll('img').forEach(function (img) {
+    var src = img.getAttribute('src') || '';
+    if (img.hasAttribute('data-ge-logo') || (f.assets || []).indexOf(src) >= 0) assets.push(img);
+  });
+  var cropped = [];
+  var biggest = 0;
+  assets.forEach(function (img) {
+    if (!visible(img)) return;
+    var r = img.getBoundingClientRect();
+    if (r.width < 4 || r.height < 4) return;
+    var l = Math.max(r.left, box.left), tp = Math.max(r.top, box.top), rr = Math.min(r.right, box.right), bt = Math.min(r.bottom, box.bottom);
+    for (var e = img.parentElement; e && e !== root.parentElement; e = e.parentElement) {
+      var cs = getComputedStyle(e);
+      if (cs.overflow === 'visible' && cs.overflowX === 'visible' && cs.overflowY === 'visible') continue;
+      var er = e.getBoundingClientRect();
+      l = Math.max(l, er.left); tp = Math.max(tp, er.top); rr = Math.min(rr, er.right); bt = Math.min(bt, er.bottom);
+    }
+    var shown = Math.max(0, rr - l) * Math.max(0, bt - tp);
+    var fit = getComputedStyle(img).objectFit;
+    if (shown < r.width * r.height * 0.97 || fit === 'cover' || fit === 'none') cropped.push(img.hasAttribute('data-ge-logo') ? 'the logo' : 'a brand asset image');
+    if (!img.hasAttribute('data-ge-logo')) biggest = Math.max(biggest, Math.min(1, Math.max(r.width / box.width, r.height / box.height)));
+  });
+  if (cropped.length) errors.push('the brand asset is cropped (' + cropped.slice(0, 2).join(', ') + ' cut by the edge, its container or object-cover) — show it WHOLE with object-contain, inside the canvas');
+  var shownAssets = assets.filter(function (img) { return !img.hasAttribute('data-ge-logo') && visible(img); }).length;
+  if ((f.assets || []).length && !shownAssets) errors.push('the brand asset image is not shown — place it with <img src="{{…url}}" class="object-contain">, whole and readable');
+  else if (f.minAssetSide && (f.assets || []).length && biggest < f.minAssetSide) errors.push('the brand asset is the subject of this page but is shown small (' + Math.round(biggest * 100) + '% of the page) — make it at least ' + Math.round(f.minAssetSide * 100) + '% of the page width or height');
+  // 3. Les cadres vides et le semis de formes : une forme peinte qui ne porte rien et ne sert de fond à rien.
+  var anchors = [];
+  root.querySelectorAll('img,svg,canvas,video,[data-ge-chart],[data-ge-pattern],[data-ge-pattern-tile],[data-ge-gallery]').forEach(function (m) { if (visible(m)) anchors.push(m.getBoundingClientRect()); });
+  lines.forEach(function (ln) { anchors.push(ln.r); });
+  function opaque(c) {
+    if (!c || c === 'transparent') return false;
+    var a = c.match(/rgba\\([^)]*,\\s*([\\d.]+)\\)/) || c.match(/\\/\\s*([\\d.]+%?)\\s*\\)$/);
+    if (!a) return true;
+    var v = parseFloat(a[1]) / (/%$/.test(a[1]) ? 100 : 1);
+    return v > 0.04;
+  }
+  function paints(el, cs) {
+    if (cs.backgroundImage && cs.backgroundImage !== 'none') return true;
+    if (opaque(cs.backgroundColor)) return true;
+    return ['Top', 'Right', 'Bottom', 'Left'].some(function (s) { return parseFloat(cs['border' + s + 'Width']) > 0 && cs['border' + s + 'Style'] !== 'none'; });
+  }
+  var empty = [], decor = 0;
+  root.querySelectorAll('*').forEach(function (el) {
+    // (la racine porte elle-même data-ge-pattern="authored" : seuls les ancêtres SOUS elle comptent)
+    var inPrimitive = el.closest('svg,[data-ge-chart],[data-ge-pattern],[data-ge-pattern-tile],[data-ge-gallery],[data-ge-logo],table');
+    if (el === root || (inPrimitive && inPrimitive !== root && root.contains(inPrimitive))) return;
+    var tag = el.tagName.toLowerCase();
+    if (['img', 'svg', 'canvas', 'video', 'hr', 'br'].indexOf(tag) >= 0) return;
+    if (!visible(el)) return;
+    var cs = getComputedStyle(el);
+    if (!paints(el, cs)) return;
+    var r = el.getBoundingClientRect();
+    if (Math.min(r.width, r.height) < 6) return;
+    if (el.querySelector('img,svg,canvas,video') || (el.textContent || '').trim()) return;
+    var backs = anchors.some(function (q) { var cx = q.left + q.width / 2, cy = q.top + q.height / 2; return cx >= r.left && cx <= r.right && cy >= r.top && cy <= r.bottom; });
+    if (backs) return;
+    decor++;
+    // Un cadre vide est COMPACT (carte, pastille, avatar, zone d'image) ; une bande ou un filet de marque est allongé.
+    var compact = Math.max(r.width, r.height) / Math.min(r.width, r.height) <= 4;
+    if (!f.allowEmptyShapes && compact && r.width * r.height >= pageArea * 0.012 && Math.min(r.width, r.height) >= 24) empty.push(Math.round(r.width) + 'x' + Math.round(r.height));
+  });
+  if (empty.length) errors.push('empty frames: ' + empty.length + ' painted box(es) (' + empty.slice(0, 3).join(', ') + ' px) hold nothing — remove them or put the content they stand for inside (no placeholder, no empty card, avatar or image zone)');
+  else if (!f.allowEmptyShapes && decor > 10) errors.push('decoration noise: ' + decor + ' empty decorative shapes (dots, cells, rings, fake diagram) — keep at most a few brand marks; the content alone builds the page');
+  return errors;
+})(${JSON.stringify(f)})`;
+
+export async function checkRender(html: string, head: string, format: FormatDef, o: { lang?: string; shoot?: boolean; quality?: QualityFrame } = {}): Promise<RenderCheck> {
   try {
     return await withPage(pageDocument(html, head, { lang: o.lang, background: '#ffffff' }), { width: format.width, height: format.height }, async (page) => {
       const probe = (await page.evaluate(PROBE)) as { error?: string; width?: number; height?: number };
-      // Texte coupé ou recouvert : la page s'affiche presque entière — repli possible si la correction échoue.
-      const cut = Boolean(probe.error && /cut off by the edge|covered by another element/.test(probe.error));
+      if (!probe.error && o.quality) {
+        const faults = (await page.evaluate(QUALITY(o.quality))) as string[];
+        if (faults.length) probe.error = faults.join(' | ');
+      }
+      // Texte coupé, recouvert, page désordonnée : la page s'affiche presque entière — gardée comme repli si la
+      // correction échoue (livrée signalée plutôt que perdue).
+      const cut = Boolean(probe.error && /cut off by the edge|covered by another element|on top of each other|brand asset|empty frames|decoration noise/.test(probe.error));
       if (probe.error && !cut) return { ok: false, error: probe.error };
       let png: Buffer | undefined;
       if (o.shoot) {

@@ -11,6 +11,8 @@
  * l'utilisateur voie, à chaque instant, quel agent fait quoi.
  */
 
+import type { BlockDraft } from '@idem/graphic-engine';
+
 /** Rôle d'un agent dans l'équipe. */
 export type AgentRole =
   | 'orchestrator'
@@ -127,6 +129,16 @@ export interface DeliverableSection {
    * vérification. Le HTML rendu est le livrable.
    */
   compose?: () => Promise<string>;
+  /**
+   * Blocs POSÉS PAR LE CODE en tête de la section (tableaux et graphique du module Finance) : exacts, jamais
+   * recopiés par le rédacteur.
+   */
+  prependBlocks?: BlockDraft[];
+  /**
+   * L'image que la page appelle (sujet décrit pour CE projet) : le moteur prend une image du projet, ou en fait
+   * une dans le style de la charte aux crans qui la paient — jamais un cliché de banque d'images.
+   */
+  image?: { subject: string; framing?: string; mood?: string };
 }
 
 // ---------------------------------------------------------------------------

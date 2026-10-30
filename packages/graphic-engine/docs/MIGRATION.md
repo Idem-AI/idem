@@ -1,5 +1,24 @@
 # Migrations du moteur graphique
 
+## 2.3 — travail divisé, ordre mesuré, l'essentiel et les graphiques garantis (30 octobre 2026)
+
+Sur des livrables réels (AgriLink, cran Ultra) : textes superposés, logos rognés, cadres et pastilles vides, faux
+schémas, slide « Financials » vide, et un business plan sans aucun graphique. Sans revenir aux gabarits :
+
+- **Directeur de page** (`graphic.page-director`, échelle « design ») : avant l'auteur, une petite tâche par page
+  (point focal, zones, groupes, erreur à éviter) ; l'auteur construit la hiérarchie décidée.
+- **Ordre mesuré** (`runtime/check.ts`, `QUALITY`) : texte sur texte, actif rogné, absent ou minuscule, cadres
+  vides, semis décoratif, graphique ou tableau oublié — renvoyés à l'auteur, livrés signalés en dernier recours.
+- **L'essentiel rétabli sur le contenu** (deck et charte) : `slideEssentials`, budgets resserrés, briefs de slides à
+  deux blocs, pages de spécimens sans texte rédigé, règles d'usage en quatre points ; consigne de l'auteur sobre.
+  Les gabarits de pages d'actif restent retirés.
+- **Chiffres** : `figuresOnly` (un chiffre-clé sans chiffre n'est pas montré) ; `withDataChart` (une section de
+  business plan sans graphique reçoit celui de son tableau de chiffres, mêmes valeurs, Chart.js).
+- **Business plan** : le chemin de recherche pose enfin les blocs du module Finance (graphique, compte
+  d'exploitation…) ; trois sections au plus appellent une image du projet ou faite pour lui (crans High et Ultra),
+  jamais une banque d'images. **Deck** : la slide « Financials » reçoit le graphique et trois chiffres du module
+  Finance.
+
 ## 2.2.1 — retour à la composition libre (30 octobre 2026)
 
 Retour à la logique du 15/10/2026 à 0 h 42 (`1231240c5`) : l'IA compose chaque page, le cran choisit le modèle

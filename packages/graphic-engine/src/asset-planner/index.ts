@@ -239,6 +239,9 @@ export async function resolveAssets(requirements: AssetRequirement[], providers:
         }
       }
       if (source === 'generated' && (!atLeast(ctx.level, 'high') || out.generated >= o.generationLeft)) continue;
+      // Un dossier financier ne montre jamais un cliché de banque d'images : une vraie image du projet, une image
+      // faite pour lui dans le style de la charte, ou rien.
+      if (source === 'stock' && ctx.documentType === 'business-plan') continue;
       const provider = all[source];
       if (!provider) continue;
       try {

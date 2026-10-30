@@ -15,6 +15,7 @@ import { normalizeSection, NormalizeOptions } from '../contracts/normalize';
 import { looksLikeHtmlPage, salvageHtmlSection } from '../contracts/salvage';
 import type { SectionOutput } from '../engine';
 import { parseJsonObject } from '../foundation/json';
+import { figuresOnly } from '../content/data-charts';
 
 export interface SectionFromModelOptions {
   /** Identifiant stable de la section (il sème sa composition). */
@@ -67,7 +68,10 @@ export function sectionFromModel(raw: unknown, o: SectionFromModelOptions): Sect
   }
   const model = input ? normalizeSection(input, { id: o.id, role: o.role, allow: o.allow ?? 'model', intent: o.intent }) : { section: null, notes: [] as Issue[] };
   if (!model.section) return { section: null, notes: model.notes, salvaged };
-  const blocks = [...systemBlocks(o.prepend ?? [], 'sys'), ...model.section.blocks, ...systemBlocks(o.append ?? [], 'ref')];
+  // Un chiffre-clé sans chiffre (« Échec », un libellé recopié dans la valeur) n'est pas montré comme un indicateur.
+  const figures = figuresOnly(model.section.blocks);
+  if (figures.dropped.length) model.notes.push({ code: 'metric_without_figure', severity: 'advisory', message: `Chiffres-clés sans chiffre retirés : ${figures.dropped.slice(0, 4).join(', ')}`.slice(0, 380) });
+  const blocks = [...systemBlocks(o.prepend ?? [], 'sys'), ...figures.blocks, ...systemBlocks(o.append ?? [], 'ref')];
   const composed = o.compose ? o.compose(blocks) : blocks;
   const headed: Record<string, unknown> = { ...model.section, blocks: composed };
   if (o.heading) {

@@ -46,6 +46,8 @@ export const CREATIVE_ROLES: Record<string, CreativeRole> = {
   // Les livrables graphiques (flyers, business plan, charte, carte de visite, pitch deck) : mêmes étapes à tous les
   // crans ; le cran choisit le MODÈLE. Le directeur écrit la bible du document, l'auteur écrit chaque page en Tailwind.
   'graphic.director': { profile: 'agents', needs: ['long-context'], maxOutputTokens: ALL(2500), mission: 'concevoir la direction d’un document : la bible visuelle et l’idée de chaque page' },
+  // Le travail divisé : avant l'auteur, une petite tâche par page — le point focal, les zones, les groupes.
+  'graphic.page-director': { profile: 'agents', needs: [], maxOutputTokens: ALL(600), mission: 'décider la hiérarchie d’une page (point focal, zones, groupes) avant que l’auteur ne l’écrive' },
   'graphic.author': { profile: 'coder', needs: ['code', 'long-context'], maxOutputTokens: ALL(12000), mission: 'écrire (et corriger) le HTML Tailwind de chaque page' },
   'graphic.pattern-designer': { profile: 'coder', needs: ['code'], maxOutputTokens: ALL(3000), mission: 'dessiner la tuile de motif propre à la marque (SVG)' },
   'graphic.asset-planner': { profile: 'agents', needs: ['json'], maxOutputTokens: UP_TO(800, 1000), mission: 'déterminer les ressources visuelles nécessaires' },

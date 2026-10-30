@@ -1,5 +1,5 @@
 import { normalizeCreativity, CreativityLevel } from '../../models/creativity.model';
-import { coverContent, exportPptx, PptxMode, sectionHtml, TEXT_BUDGETS, WRITING_RULES } from '@idem/graphic-engine';
+import { BlockDraft, coverContent, exportPptx, PptxMode, sectionHtml, slideEssentials, TEXT_BUDGETS, WRITING_RULES } from '@idem/graphic-engine';
 import crypto from 'crypto';
 import { PromptConfig, PromptService } from '../prompt.service';
 import { AI_CONFIG } from '../../config/ai.config';
@@ -19,6 +19,7 @@ import { cacheService } from '../cache.service';
 
 import { composeSlideBrief, SLIDE_VISUAL_PLANS } from './prompts/slide-briefs.prompt';
 import { CoverBriefService } from '../common/coverBrief.service';
+import { buildFinanceBlocks } from '../Finance/finance-blocks';
 import { composeGraphicPage, coverDateLabel, GenerationJournal, openGraphicDocument, pageComposition, pageId, speakerNotesHtml, withProjectArtDirection } from '../graphic/graphic.service';
 import type { PitchDeckAudience } from './deck-types';
 
@@ -62,6 +63,17 @@ export interface PitchDeckTypeSummary {
 
 const pdfCacheKey = (userId: string, projectId: string, documentId: string): string =>
   cacheService.generateAIKey('pitch-deck-pdf', userId, projectId, documentId);
+
+/** Les chiffres du module Finance pour UNE slide : la trajectoire (graphique) et trois chiffres de tête. */
+function deckFinanceBlocks(finance: Parameters<typeof buildFinanceBlocks>[0], country?: string): BlockDraft[] {
+  const blocks = buildFinanceBlocks(finance, country);
+  const chart = blocks.find((b) => b.kind === 'chart');
+  const metrics = blocks.find((b) => b.kind === 'metrics');
+  return [
+    ...(chart ? [chart] : []),
+    ...(metrics && metrics.kind === 'metrics' ? [{ ...metrics, items: metrics.items.slice(0, 3) }] : []),
+  ];
+}
 
 export class PitchDeckService extends GenericService {
   private pdfService: PdfService;
@@ -303,6 +315,7 @@ export class PitchDeckService extends GenericService {
         .update(userId, projectId, 'pitchDeck', deck.id, (current) => ({ ...current, design: { ...(current.design ?? { level, pages: {} }), record: journal.finish() } }), { touch: false })
         .catch((error: any) => logger.warn('[DECK] Enregistrement de génération non gardé', { error: error?.message }));
 
+    const deckFinance = deckFinanceBlocks(project.analysisResultModel?.finance, project.additionalInfos?.country);
     const steps: IPromptStep[] = deckSlides.map((definition, index) => {
       const position = { index: index + 1, total };
       // La couverture est dessinée par le moteur : le modèle n'en écrit que les mots, une fois par
@@ -329,8 +342,8 @@ export class PitchDeckService extends GenericService {
         };
       }
       // Le brief ne porte QUE le contenu, lu par le destinataire du deck. Une slide est une toile fixe :
-      // le volume est bas (1 à 3 blocs) ; l'auteur du moteur graphique la compose librement.
-      const brief = composeSlideBrief(definition.name, deckType.audience) ?? `Write the "${definition.name}" slide of this pitch deck: one idea, one to three blocks.`;
+      // le volume est bas (1 ou 2 blocs) ; l'auteur du moteur graphique la compose librement.
+      const brief = composeSlideBrief(definition.name, deckType.audience) ?? `Write the "${definition.name}" slide of this pitch deck: one idea, one or two blocks.`;
       // L'INTENTION de la slide : comment elle démontre son message et ce qu'elle peut porter de texte — une
       // indication pour le rédacteur et l'auteur (à tous les crans), jamais un contrôle.
       const plan = SLIDE_VISUAL_PLANS[definition.name];
@@ -344,11 +357,17 @@ export class PitchDeckService extends GenericService {
         template: {
           deliverable: 'pitch-deck',
           sectionId: pageId(definition.name),
-          // Une slide porte une idée : un à trois blocs, jamais plus.
-          volume: '1 to 3',
+          // Une slide porte une idée : un ou deux blocs, jamais plus.
+          volume: '1 to 2',
           contentBrief: brief,
           ...(intent ? { intent } : {}),
-          render: async (slide) => {
+          // La slide des projections montre les chiffres du module Finance, posés par le code : son graphique et
+          // ses trois chiffres de tête (le rédacteur les recopiait mal, ou la slide restait vide).
+          ...(definition.name === 'Financials' && deckFinance.length ? { prependBlocks: deckFinance } : {}),
+          render: async (written) => {
+            // L'essentiel seulement, garanti par le code : ni chapô, deux blocs de preuve, trois points ; le reste
+            // part dans les notes de l'orateur (rien n'est perdu).
+            const { section: slide } = slideEssentials(written);
             const html = sectionHtml(journal.page(await composeGraphicPage(graphic, slide, position)));
             return slide.notes ? `${html}\n${speakerNotesHtml(slide.notes)}` : html;
           },

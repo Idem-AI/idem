@@ -47,7 +47,7 @@ export interface DocumentContext {
 const DELIVERABLE: Record<DocumentType, string> = {
   'pitch-deck': 'a slide of an investor pitch deck — one idea per slide, read in seconds on a screen',
   'business-plan': 'a page of a printed business plan — read closely by bankers and investors',
-  'brand-charter': "a page of the brand's identity guidelines (brand book) — it shows the brand system itself, exactly",
+  'brand-charter': "a page of the brand's identity guidelines (brand book) — it shows the brand system itself, exactly: the asset it shows (logo, colours, type, pattern, mockups) is the hero, shown whole and large; text is a short caption",
   'business-card': 'one face of a printed business card (85 × 55 mm)',
   flyer: 'a flyer / social-media visual — one message, understood at a glance',
   chart: 'a standalone chart',
@@ -155,7 +155,10 @@ function logoPlacementLine(ctx: DocumentContext): string {
 
 function professionalLines(ctx: DocumentContext): string {
   return [
-    'PROFESSIONAL STANDARD — a business document, designed by a senior studio:',
+    'PROFESSIONAL STANDARD — a business document, designed by a senior studio. Show the essential and nothing else; the layout is yours:',
+    '- One focal element per page; every other element is clearly secondary. Group related items, align everything on one grid, keep zones apart.',
+    '- Every element carries content. No shape, panel, circle, line pattern, grid or frame without a text, a figure, an image, a chart or the logo inside it — no fake diagram, no empty avatar, no empty card.',
+    '- At most ONE brand graphic device per page (a rule, a band, a corner of pattern); none on a page that shows a brand asset (logo, palette, type, pattern, mockups). No drop shadows, no rotations, no stacked shapes.',
     '- Hierarchy does the work: size, weight, spacing and alignment on a clear grid. Generous, consistent margins.',
     '- Decoration only when it carries the brand (its logo, its pattern, the graphic devices of its visual language). Never random circles, blobs, glows, gradients, drop shadows, emojis, ornaments, tilted text or filler shapes.',
     '- Few type sizes, the brand fonts only. Colour with intent: mostly ground and ink, brand colours for emphasis and structure.',
@@ -239,6 +242,47 @@ export function parsePlan(raw: string, count: number): DocumentPlan | null {
   }
   if (!idea && !pages.some(Boolean)) return null;
   return { idea: idea.slice(0, 300), pages };
+}
+
+// ── Le directeur de page (une petite tâche avant l'auteur) ─────────────────────────────────
+
+/**
+ * Le TRAVAIL DIVISÉ : avant que l'auteur n'écrive le code, le directeur de page décide, en quatre lignes, ce qui
+ * domine, ce qui va ensemble et comment la page se partage — sans écrire de code. L'auteur n'a plus qu'à
+ * construire une hiérarchie décidée ; un petit modèle tient mieux deux petites tâches qu'une grande.
+ */
+export function pageDirectorPrompt(ctx: DocumentContext, p: { section: SectionContent; listing: string; tools: string; language?: string; plan?: PageBrief['plan'] }): { system: string; user: string } {
+  const system = [
+    `You are the art director of ${deliverableLine(ctx)}. Before the designer codes the page, decide its hierarchy and its zones. You write no code and no text of the page.`,
+    'Professional and essential: one focal element, the rest clearly secondary, related items grouped, generous space. Every zone holds real content (a key, a chart, a table, an image, the logo) — never an empty card, avatar, fake diagram or decoration zone. The brand asset of the page, when there is one, is the focal element, whole and large.',
+    'Answer in English with exactly these four lines:',
+    'FOCAL: the one content key or block that dominates the page, and how (size, place)',
+    'ZONES: 2 to 4 zones with their share of the canvas and the keys/blocks each holds, in reading order',
+    'GROUPS: which keys belong together (a figure and its label, a point and its detail)',
+    'AVOID: the one mistake this page invites (crowding, a decoration, a tiny asset…)',
+  ].join('\n');
+  const user = [
+    `CANVAS: ${canvasLine(ctx.format)}`,
+    p.language ? `BRAND VISUAL LANGUAGE:\n${p.language}` : directionLines(ctx),
+    p.plan?.page ? `THIS PAGE IN THE DOCUMENT PLAN: ${p.plan.page}` : '',
+    ctx.layoutNote ? `THE CLIENT ASKS FOR THIS LAYOUT: ${ctx.layoutNote.slice(0, 400)}` : '',
+    p.section.intent?.keyMessage ? `THE READER MUST UNDERSTAND: ${p.section.intent.keyMessage}` : '',
+    p.tools,
+    `CONTENT (keys → texts):\n${p.listing.slice(0, 5000)}`,
+  ]
+    .filter(Boolean)
+    .join('\n\n');
+  return { system, user };
+}
+
+/** Les quatre lignes du directeur de page, ou `null` si la réponse ne décide ni le point focal ni les zones. */
+export function parsePageDirection(raw: string): string | null {
+  const text = (raw || '').replace(/```[a-z]*\n?|```/g, '');
+  const line = (name: string) => text.match(new RegExp(`^[\\s*#>-]*${name}\\s*:\\s*(.+)$`, 'im'))?.[1]?.trim().slice(0, 320);
+  const focal = line('FOCAL');
+  const zones = line('ZONES');
+  if (!focal || !zones) return null;
+  return [`FOCAL: ${focal}`, `ZONES: ${zones}`, line('GROUPS') && `GROUPS: ${line('GROUPS')}`, line('AVOID') && `AVOID: ${line('AVOID')}`].filter(Boolean).join('\n');
 }
 
 // ── L'auteur ───────────────────────────────────────────────────────────────────────────────
@@ -351,6 +395,8 @@ export interface PageBrief {
   /** L'idée du document et la ligne de CETTE page, avec celles de ses voisines. */
   plan?: { idea?: string; page?: string; previous?: string; next?: string };
   reference?: ReferenceComposition;
+  /** La hiérarchie et les zones décidées par le directeur de page (`pageDirectorPrompt`). */
+  direction?: string;
 }
 
 export function authorUser(ctx: DocumentContext, p: PageBrief): string {
@@ -368,6 +414,7 @@ export function authorUser(ctx: DocumentContext, p: PageBrief): string {
     ctx.layoutNote ? `THE CLIENT ASKS FOR THIS LAYOUT: ${ctx.layoutNote.slice(0, 600)}` : '',
     intent ? `INTENT: ${[intent.keyMessage ? `the reader must understand: ${intent.keyMessage}` : '', intent.visualStrategy ? `visual strategy: ${intent.visualStrategy}` : ''].filter(Boolean).join('; ')}` : '',
     referenceLines(p.reference),
+    p.direction ? `PAGE LAYOUT DECIDED BY THE ART DIRECTOR (build exactly this hierarchy; details are yours):\n${p.direction}` : '',
     p.tools,
     `CONTENT (keys → texts):\n${p.listing}`,
   ]

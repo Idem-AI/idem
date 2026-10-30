@@ -78,6 +78,7 @@ export function ladderFallbacks(ladder: ModelLadder, level: CreativityLevel): st
 /** Quelle échelle suit chaque rôle créatif. Un rôle absent garde le modèle de son profil à tous les crans. */
 export const ROLE_LADDERS: Record<string, ModelLadder> = {
   'graphic.director': 'design',
+  'graphic.page-director': 'design',
   'graphic.author': 'code',
   'video.concept': 'video-design',
   'video.planner': 'video-design',
