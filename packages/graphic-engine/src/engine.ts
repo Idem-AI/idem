@@ -29,6 +29,7 @@ import { GenerationTrace, TraceRecorder } from './observability/traces';
 import { ENGINE_VERSION, COMPONENT_LIBRARY_VERSION } from './version';
 import { authorSystem, authorUser, DocumentContext, DocumentPlan, languagePrompt, pageDirectorPrompt, parseLanguage, parsePageDirection, parsePlan, planPrompt, PlannedPage, ReferenceComposition, RepairStrategy, repairUser, reviseUser, toolLines } from './author/prompts';
 import { callModel, levelUp } from './author/model';
+import { parseReview, reviewInstruction } from './author/review';
 import { buildContentMap, ContentMap, fixBrandNameTypos } from './runtime/content-map';
 import { expandPage, extractHtml, sanitizeHtml, stripInventedText, withSize } from './runtime/expand';
 import { compileTailwind } from './runtime/tailwind';
@@ -104,7 +105,8 @@ const AUTHOR_TIMEOUT = 150_000;
 const DIRECTOR_TIMEOUT = 60_000;
 
 /** Les blocs dont les aplats vides SONT le contenu (nuancier, démonstrations de grille et de densité). */
-const SHAPE_CONTENT = new Set<Block['kind']>(['swatches', 'compositionPrinciples', 'typeScale', 'typeSpecimen']);
+// (Le nuancier n'en est pas : ses aplats sont reconnus à leur couleur ; un rond gris vide à côté reste un cadre vide.)
+const SHAPE_CONTENT = new Set<Block['kind']>(['compositionPrinciples', 'typeScale', 'typeSpecimen']);
 const LOGO_BLOCKS = new Set<Block['kind']>(['logoDisplay', 'logoStory']);
 
 /**
@@ -116,12 +118,36 @@ export function qualityFrame(section: SectionContent, map: ContentMap, format: F
   const assets = [...map.entries.values()].filter((e) => e.kind === 'url' && logoBlocks.some((id) => e.key.startsWith(`${id}.`))).map((e) => e.value);
   const only = section.blocks.length === 1 && logoBlocks.length === 1 && format.kind === 'fixed';
   const minAssetSide = only ? (section.blocks[0].kind === 'logoStory' ? 0.25 : assets.length <= 1 ? 0.3 : assets.length <= 3 ? 0.15 : 0.1) : undefined;
+  // Les fonds voulus des logos (une déclinaison « fond sombre » se pose sur du sombre).
+  const grounds: Array<{ src: string; ground: 'light' | 'dark' }> = [];
+  for (const b of section.blocks) {
+    if (b.kind === 'logoDisplay') for (const v of b.variants) if (v.background === 'dark' || v.background === 'light') grounds.push({ src: v.url, ground: v.background });
+  }
+  // Le nuancier : chaque couleur doit être peinte.
+  const swatches = section.blocks.flatMap((b) => (b.kind === 'swatches' ? b.items.map((i) => i.hex) : []));
+  // Les rôles des textes : le titre, et les textes simples qui ne doivent jamais lui ressembler. Les spécimens
+  // typographiques (leurs échantillons SONT des tailles), la couverture (sa composition est libre) et les faces de carte
+  // (sans titre à montrer) en sont exempts.
+  const specimen = section.role === 'cover' || section.role === 'card-face' || section.blocks.some((b) => b.kind === 'typeScale' || b.kind === 'typeSpecimen' || b.kind === 'cover');
+  const roles: Record<string, 'title' | 'text'> = {};
+  if (!specimen) {
+    for (const key of map.entries.keys()) {
+      if (key === 'title') roles[key] = 'title';
+      else if (TEXT_KEY.test(key)) roles[key] = 'text';
+    }
+  }
   return {
     ...(assets.length ? { assets } : {}),
     ...(minAssetSide ? { minAssetSide } : {}),
     ...(section.blocks.some((b) => SHAPE_CONTENT.has(b.kind)) ? { allowEmptyShapes: true } : {}),
+    ...(Object.keys(roles).length ? { roles } : {}),
+    ...(swatches.length ? { swatches } : {}),
+    ...(grounds.length ? { grounds } : {}),
   };
 }
+
+/** Les clés des textes SIMPLES : chapô, sur-titre, libellés, légendes, descriptions, paragraphes, notes. */
+const TEXT_KEY = /^(lede|kicker)$|\.(text|body|caption|label|note|detail|basis|readingKey|role|usage|description|rationale|statement|hex|family|name|subject)$|\.paragraphs\.\d+$|\.(items|dos|donts|keywords)\.\d+$/;
 
 interface Rendered {
   template: string;
@@ -315,15 +341,20 @@ export class GraphicDocument {
       await this.ensurePlan(recorder, language);
       const plan = this.planFor(section.id, index);
       bible = [language, plan?.idea && `idea: ${plan.idea}`, plan?.page && `this page: ${plan.page}`].filter(Boolean).join('\n') || undefined;
-      const ctx = this.context(pageFormat);
+      const ctx = { ...this.context(pageFormat), ...(section.role === 'cover' ? { cover: true } : {}) };
       const system = authorSystem(ctx);
       const blocks = [...map.primitives.values()];
       const tools = toolLines(ctx, { charts: blocks.filter((b) => b.kind === 'chart').map((b) => b.id), tables: blocks.filter((b) => b.kind === 'table').map((b) => b.id), galleries: blocks.filter((b) => b.kind === 'mockupShowcase').map((b) => b.id), icons: [...map.entries.values()].some((e) => e.kind === 'icon') });
       const revising = o.revise?.instruction && o.revise.spec && isAuthoredSpec(o.revise.spec) ? o.revise : undefined;
+      // LA COUVERTURE : la signature du document — toujours le modèle du cran Ultra, quel que soit le cran choisi,
+      // un grand budget d'écriture (rôle `graphic.cover`) et la liberté entière (pas de directeur de page).
+      const cover = section.role === 'cover';
+      const pageLevel: CreativityLevel = cover ? 'ultra' : level;
+      const authorRole = cover ? 'graphic.cover' : 'graphic.author';
       // Le travail divisé : le directeur de page décide la hiérarchie (petite tâche), l'auteur la construit. Sans
       // réponse exploitable, l'auteur compose seul ; une retouche écrite garde la hiérarchie de la page.
       let direction: string | undefined;
-      if (!revising && !this.options.reference) {
+      if (!revising && !this.options.reference && !cover) {
         const pd = pageDirectorPrompt(ctx, { section, listing: map.listing, tools, language, plan });
         const run = await callModel({ call, recorder, task: 'direct', role: 'graphic.page-director', profile: 'agents', level, system: pd.system, user: pd.user, timeoutMs: DIRECTOR_TIMEOUT, validate: (raw) => parsePageDirection(raw) !== null });
         direction = run.ok ? parsePageDirection(run.raw) ?? undefined : undefined;
@@ -331,7 +362,11 @@ export class GraphicDocument {
       }
       const base = authorUser(ctx, { section, listing: map.listing, tools, index, total, language, plan, reference: this.options.reference, ...(direction ? { direction } : {}) });
       const user = revising ? reviseUser(base, (revising.spec as SectionSpec).html, revising.instruction) : base;
-      rendered = await this.author(section.id, map, recorder, { system, base, user, level, task: revising ? 'revise' : 'author', quality: qualityFrame(section, map, pageFormat), format: pageFormat });
+      // Une retouche écrite du client (« sur un fond de marque ») est une demande explicite : le fond sombre y est admis.
+      const quality = { ...qualityFrame(section, map, pageFormat), ...(this.options.allowDark || revising ? { allowDark: true } : {}) };
+      const authored = await this.author(section.id, map, recorder, { system, base, user, level: pageLevel, role: authorRole, task: revising ? 'revise' : 'author', quality, format: pageFormat });
+      // Le RELECTEUR VISUEL : la page rendue, regardée ; ses défauts renvoyés à l'auteur (`author/review.ts`).
+      rendered = await this.reviewed(section, map, recorder, { system, base, level: pageLevel, role: authorRole, quality, format: pageFormat, rendered: authored });
     }
 
     const spec: SectionSpec = { version: 2, ref: section.id, pattern: { id: 'authored' }, html: rendered.template, ...(bible ? { bible } : {}), level };
@@ -357,13 +392,58 @@ export class GraphicDocument {
   }
 
   /**
+   * La relecture visuelle : un agent de vision regarde la page rendue et répond à une liste fermée (chevauchement,
+   * coupe, hiérarchie, cadre vide, désordre, superflu, couverture banale). S'il refuse, l'auteur reçoit ses
+   * corrections et réécrit ; la nouvelle page repasse la mesure du code. Une relecture par page, deux pour une
+   * couverture. Une page qui empire n'est pas gardée : la dernière page juste l'est.
+   */
+  private async reviewed(section: SectionContent, map: ContentMap, recorder: TraceRecorder, p: { system: string; base: string; level: CreativityLevel; role: string; quality: QualityFrame; format: FormatDef; rendered: Rendered }): Promise<Rendered> {
+    const host = engineHost();
+    const call = this.agent();
+    if (!host.reviewImage || !call || process.env.GRAPHIC_REVIEW === 'off') return p.rendered;
+    const cover = section.role === 'cover';
+    let current = p.rendered;
+    for (let round = 0; round < (cover ? 2 : 1); round++) {
+      if (!current.png) break;
+      const t0 = Date.now();
+      let raw = '';
+      try {
+        raw = await host.reviewImage(current.png, reviewInstruction({ documentType: this.options.documentType, cover, title: section.title }), { userId: this.options.user?.userId, projectId: this.options.user?.projectId, documentType: this.options.documentType });
+      } catch (error) {
+        recorder.task({ task: 'review', source: 'llm', role: 'graphic.reviewer', inputTokens: 0, outputTokens: 0, ms: Date.now() - t0, outcome: 'failed', reason: 'error' });
+        log().warn('graphic.review_failed', { event: 'graphic.review_failed', section: section.id, error: String((error as Error)?.message ?? error).slice(0, 200) });
+        break;
+      }
+      const review = parseReview(raw);
+      recorder.task({ task: 'review', source: 'llm', role: 'graphic.reviewer', inputTokens: 0, outputTokens: 0, ms: Date.now() - t0, outcome: review ? (review.ok ? 'accepted' : 'refused') : 'failed', ...(review ? {} : { reason: 'invalid' as const }) });
+      if (!review || review.ok) break;
+      const error = review.issues.map((issue, i) => `${i + 1}. ${issue}`).join('\n');
+      // La correction du relecteur passe elle-même la mesure du code ET sa correction bornée : un défaut qu'elle
+      // introduit (un texte coupé, un rond sur un chiffre) est corrigé à son tour, au lieu de jeter la correction.
+      let fixed: Rendered | null = null;
+      try {
+        fixed = await this.author(section.id, map, recorder, { system: p.system, base: p.base, user: repairUser(p.base, 'review', { code: current.template, error, history: [] }), level: p.level, role: p.role, task: 'revise', quality: p.quality, format: p.format });
+      } catch {
+        fixed = null;
+      }
+      if (!fixed || fixed.issues.some((i) => i.severity === 'blocking')) {
+        recorder.repair({ code: 'review_fix_refused', detail: 'la correction du relecteur ne passe pas la mesure du code : page précédente gardée', by: 'code' });
+        break;
+      }
+      recorder.repair({ code: 'review_fix', detail: `relecture visuelle : ${review.issues.slice(0, 3).join(' · ')}`.slice(0, 240), by: 'agent' });
+      current = fixed;
+    }
+    return current;
+  }
+
+  /**
    * L'auteur écrit la page ; si elle ne s'affiche pas, la correction bornée : une tentative à la fois, une
    * approche différente à chaque fois, le modèle du cran au-dessus dès la réécriture.
    */
-  private async author(sectionId: string, map: ContentMap, recorder: TraceRecorder, p: { system: string; base: string; user: string; level: CreativityLevel; task: 'author' | 'revise'; quality?: QualityFrame; format?: FormatDef }): Promise<Rendered> {
+  private async author(sectionId: string, map: ContentMap, recorder: TraceRecorder, p: { system: string; base: string; user: string; level: CreativityLevel; role?: string; task: 'author' | 'revise'; quality?: QualityFrame; format?: FormatDef }): Promise<Rendered> {
     const call = this.agent() as AgentCall;
     const valid = (raw: string) => /<[a-z][\s\S]*>/i.test(extractHtml(raw));
-    const first = await callModel({ call, recorder, task: p.task, role: 'graphic.author', profile: 'coder', level: p.level, system: p.system, user: p.user, timeoutMs: AUTHOR_TIMEOUT, validate: valid });
+    const first = await callModel({ call, recorder, task: p.task, role: p.role ?? 'graphic.author', profile: 'coder', level: p.level, system: p.system, user: p.user, timeoutMs: AUTHOR_TIMEOUT, validate: valid });
     let code = first.ok ? extractHtml(first.raw) : '';
     let error = first.ok ? '' : `the answer contained no HTML (${first.failure})`;
     /** La meilleure page presque affichée (un texte coupé) : livrée, et signalée, si rien ne fait mieux. */
@@ -390,7 +470,7 @@ export class GraphicDocument {
       }
       const level = strategy === 'fix' ? p.level : levelUp(p.level);
       const user = repairUser(p.base, strategy, { code: strategy === 'fix' ? code : undefined, error, history: history.slice(-3) });
-      const run = await callModel({ call, recorder, task: 'repair', role: 'graphic.author', profile: 'coder', level, system: p.system, user, timeoutMs: AUTHOR_TIMEOUT, validate: valid });
+      const run = await callModel({ call, recorder, task: 'repair', role: p.role ?? 'graphic.author', profile: 'coder', level, system: p.system, user, timeoutMs: AUTHOR_TIMEOUT, validate: valid });
       this.repairSpent.tokens += run.tokens;
       if (!run.ok) {
         error = `the answer contained no HTML (${run.failure})`;
@@ -422,6 +502,11 @@ export class GraphicDocument {
     const clean = sanitizeHtml(raw);
     if (!clean.html.trim()) return { ok: false, error: 'the page is empty after removing what is not allowed (scripts, styles, external resources)', template: clean.html };
     const issues: Issue[] = [];
+    // Une icône que le contenu ne demande pas (aucune clé d'icône) est une décoration inventée : retirée par le code.
+    if (![...map.entries.values()].some((e) => e.kind === 'icon') && /<idem-icon\b/i.test(clean.html)) {
+      clean.html = clean.html.replace(/<idem-icon\b[^>]*?\/?>(?:\s*<\/idem-icon>)?/gi, '');
+      issues.push({ code: 'invented_icon_removed', severity: 'advisory', message: 'Icônes décoratives non demandées par le contenu, retirées.' });
+    }
     // Les mots viennent du contenu : le texte écrit en dur par l'auteur est retiré (dit dans les constats).
     const words = stripInventedText(clean.html);
     if (words.loops) return { ok: false, error: 'template loops ({{#each}}, {{/each}}) do not exist here: write every content key explicitly, one element per item', template: clean.html };
@@ -447,9 +532,22 @@ export class GraphicDocument {
       recorder.task({ task: 'render', source: 'code', inputTokens: 0, outputTokens: 0, ms: Date.now() - t0, outcome: 'skipped' });
       return { ok: true, page: { template: clean.html, html: page.html, head, issues } };
     }
-    const check = await checkRender(page.html, head, format, { lang: this.options.locale, shoot: Boolean(this.options.png), ...(quality ? { quality } : {}) });
+    const check = await checkRender(page.html, head, format, { lang: this.options.locale, shoot: Boolean(this.options.png) || Boolean(quality && engineHost().reviewImage && process.env.GRAPHIC_REVIEW !== 'off'), ...(quality ? { quality } : {}) });
     recorder.task({ task: 'render', source: 'code', inputTokens: 0, outputTokens: 0, ms: Date.now() - t0, outcome: check.ok ? 'accepted' : 'refused' });
     if (check.infra) log().warn('graphic.render_unchecked', { event: 'graphic.render_unchecked', section: sectionId, reason: check.error });
+    // LE CODE FAIT TENIR : un contenu qui déborde d'une toile fixe est réduit à l'échelle exacte (plancher 0,6), la
+    // composition intacte — le modèle n'estime pas des hauteurs, et la page ne repart pas pour si peu.
+    if (!check.ok && check.fit && check.fit >= 0.6 && !/\[zoom:/.test(clean.html)) {
+      const z = check.fit;
+      const wrapped = `<div class="h-[${(100 / z).toFixed(3)}%] w-[${(100 / z).toFixed(3)}%] [zoom:${z}]">${clean.html}</div>`;
+      const fitted = await this.render(wrapped, map, sectionId, recorder, quality, format);
+      if (fitted.ok) {
+        recorder.repair({ code: 'auto_fit', detail: `contenu réduit à ${Math.round(z * 100)} % pour tenir dans la page`, by: 'code' });
+        return fitted;
+      }
+      // Réduite, la page a d'autres défauts : ceux-là partent à l'auteur (la version réduite sert de base).
+      return fitted;
+    }
     if (!check.ok) {
       // Un texte coupé par le bord : la page s'affiche presque entière — gardée comme REPLI si la correction échoue.
       const partial = check.cut ? { template: clean.html, html: page.html, head, png: check.png, issues: [...issues, { code: 'text_cut', severity: 'blocking' as const, message: (check.error ?? '').slice(0, 380) }] } : undefined;
@@ -459,8 +557,10 @@ export class GraphicDocument {
     // Un graphique, un tableau, une galerie ou un actif de la marque oublié par l'auteur : la page perd sa preuve.
     // Renvoyée à l'auteur ; livrée signalée si la correction échoue.
     const missingAssets = quality?.assets?.length ? [...map.entries.values()].filter((e) => e.kind === 'url' && quality.assets!.includes(e.value) && !page.used.has(e.key)).map((e) => `{{${e.key}}}`) : [];
-    if (quality && (unusedBlocks.length || missingAssets.length)) {
-      const missing = [...unusedBlocks.map((id) => `<idem-${map.primitives.get(id)?.kind === 'table' ? 'table' : map.primitives.get(id)?.kind === 'mockupShowcase' ? 'gallery' : 'chart'} data-block="${id}">`), ...missingAssets];
+    // Le titre de la page est toujours montré (une page de motifs sans titre ne se lit pas) — sauf sur la couverture.
+    const missingTitle = quality && quality.roles?.title && map.entries.has('title') && !page.used.has('title') ? ['{{title}}'] : [];
+    if (quality && (unusedBlocks.length || missingAssets.length || missingTitle.length)) {
+      const missing = [...missingTitle, ...unusedBlocks.map((id) => `<idem-${map.primitives.get(id)?.kind === 'table' ? 'table' : map.primitives.get(id)?.kind === 'mockupShowcase' ? 'gallery' : 'chart'} data-block="${id}">`), ...missingAssets];
       const error = `content is missing from the page: ${missing.slice(0, 6).join(', ')} — place every chart, table, gallery and brand asset image, readable`;
       return { ok: false, error, template: clean.html, partial: { ...done, issues: [...issues, { code: 'content_missing', severity: 'blocking', message: error.slice(0, 380) }] } };
     }

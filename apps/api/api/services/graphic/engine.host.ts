@@ -15,6 +15,8 @@
  * Importer ce module suffit (effet de bord idempotent). Tout est paresseux : rien ne se connecte avant
  * la première page.
  */
+import fs from 'fs';
+import path from 'path';
 import { configureGraphicEngine, FingerprintScope, GenerationTrace } from '@idem/graphic-engine';
 import logger from '../../config/logger';
 import { cacheService } from '../cache.service';
@@ -24,6 +26,13 @@ import { IDEM_ASSET_PROVIDERS } from './asset-providers';
 import { idemAssetRegistry } from './asset-registry';
 
 let configured = false;
+let chartSource: string | null | undefined;
+
+/**
+ * Hors ligne : sous un script de contrôle (`api/scripts/check*.ts`) ou avec `GRAPHIC_OFFLINE=1`, ni relecture visuelle
+ * ni génération d'image — aucun appel payant ne part d'un contrôle.
+ */
+const OFFLINE = process.env.GRAPHIC_OFFLINE === '1' || /[\\/]scripts[\\/]check[A-Z]/.test(process.argv[1] ?? '');
 
 /** Les empreintes d'une portée (marque, projet) : 30 jours, les 40 dernières. */
 const FINGERPRINT_TTL = 30 * 24 * 3600;
@@ -75,7 +84,29 @@ export function configureGraphicEngineForIdem(): void {
         await cacheService.set(`brand-language:${key}`, value, { prefix: 'graphic', ttl: 180 * 24 * 3600 });
       },
     },
-    assetProviders: IDEM_ASSET_PROVIDERS,
+    // Le relecteur visuel : la page rendue (PNG), lue par le modèle de vision du rôle `graphic.reviewer`.
+    reviewImage: OFFLINE ? undefined : async (png, instruction) => {
+      const [{ analyzeImage }, { roleConfig }] = await Promise.all([import('../media.service'), import('../../config/creative-roles')]);
+      const role = roleConfig('graphic.reviewer', 'agents', 'ultra');
+      return analyzeImage(png.toString('base64'), 'image/png', instruction, {
+        model: role.modelName,
+        ...(role.fallbackModels?.[0] ? { fallbackModel: role.fallbackModels[0] } : {}),
+        maxOutputTokens: 700,
+        temperature: 0.1,
+      });
+    },
+    // Chart.js, le même fichier que celui du service PDF : les graphiques sont dessinés avant la relecture visuelle.
+    chartScript: () => {
+      if (chartSource === undefined) {
+        try {
+          chartSource = fs.readFileSync(path.join(process.cwd(), 'public', 'scripts', 'chart.js'), 'utf8');
+        } catch {
+          chartSource = null;
+        }
+      }
+      return chartSource;
+    },
+    assetProviders: OFFLINE ? {} : IDEM_ASSET_PROVIDERS,
     // Le registre du projet : une image déjà obtenue (deck, visuel, vidéo) est reprise avant d'être regénérée.
     assetRegistry: idemAssetRegistry,
     browser: {

@@ -101,7 +101,9 @@ export function stripInventedText(html: string): { html: string; removed: string
       .map((part, i) => {
         if (i % 2 === 1) return part;
         const letters = part.replace(/&(#\d+|#x[\da-f]+|[a-z]+);/gi, ' ');
-        if (!/\p{L}/u.test(letters)) return part;
+        // Des débris de code (« ')]"> », « {} », « = ») ne sont jamais un signe de mise en page.
+        const debris = /[<>{}\[\]=`]|["'][)\]]/.test(part.replace(/&(#\d+|#x[\da-f]+|[a-z]+);/gi, ''));
+        if (!/\p{L}/u.test(letters) && !debris) return part;
         removed.push(part.trim().slice(0, 40));
         return part.replace(/\S+/g, '').replace(/\s+/g, ' ');
       })
@@ -191,7 +193,9 @@ export function expandPage(template: string, map: ContentMap, tokens: DesignToke
       used.add(key);
       if (map.markers.has(key)) return inTag ? `{{${key}}}` : `<span data-field="${key}">{{${key}}}</span>`;
       if (entry.kind === 'url') return esc(entry.value);
-      return inTag ? esc(entry.value) : esc(entry.value).replace(/\n/g, '<br>');
+      // Dans le texte, la clé reste repérable (`data-ge-k`) : la mesure vérifie qu'un texte simple n'est pas
+      // composé comme un titre.
+      return inTag ? esc(entry.value) : `<span data-ge-k="${esc(key)}">${esc(entry.value).replace(/\n/g, '<br>')}</span>`;
     });
   html = html
     .split(/(<[^>]*>)/)

@@ -54,7 +54,8 @@
     "check:offer": "ts-node --transpile-only -P tsconfig.json api/scripts/checkOfferModel.ts",
     "billing:migrate-offer": "ts-node --transpile-only -P tsconfig.json api/scripts/migrateOfferModel.ts",
     "docs:logo": "ts-node --transpile-only -P tsconfig.json api/scripts/docsLogoGenerators.ts",
-    "check:relayout": "ts-node --transpile-only api/scripts/checkRelayout.ts"
+    "check:relayout": "ts-node --transpile-only api/scripts/checkRelayout.ts",
+    "sample:graphic": "ts-node --transpile-only api/scripts/sampleGraphic.ts"
   },
   "author": "arolleaguekeng",
   "license": "MIT",

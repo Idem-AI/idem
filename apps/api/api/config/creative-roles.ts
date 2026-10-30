@@ -48,6 +48,10 @@ export const CREATIVE_ROLES: Record<string, CreativeRole> = {
   'graphic.director': { profile: 'agents', needs: ['long-context'], maxOutputTokens: ALL(2500), mission: 'concevoir la direction d’un document : la bible visuelle et l’idée de chaque page' },
   // Le travail divisé : avant l'auteur, une petite tâche par page — le point focal, les zones, les groupes.
   'graphic.page-director': { profile: 'agents', needs: [], maxOutputTokens: ALL(600), mission: 'décider la hiérarchie d’une page (point focal, zones, groupes) avant que l’auteur ne l’écrive' },
+  // La couverture, signature du document : le modèle Ultra quel que soit le cran choisi, un grand budget d'écriture.
+  'graphic.cover': { profile: 'coder', needs: ['code', 'long-context'], maxOutputTokens: ALL(24000), mission: 'composer librement la couverture d’un document, au meilleur modèle' },
+  // Le relecteur visuel : regarde la page rendue et refuse ce qu'un studio refuserait (liste fermée).
+  'graphic.reviewer': { profile: 'agents', needs: ['vision', 'json'], maxOutputTokens: ALL(700), mission: 'relire la page rendue (chevauchement, coupe, hiérarchie, cadre vide, désordre, superflu)' },
   'graphic.author': { profile: 'coder', needs: ['code', 'long-context'], maxOutputTokens: ALL(12000), mission: 'écrire (et corriger) le HTML Tailwind de chaque page' },
   'graphic.pattern-designer': { profile: 'coder', needs: ['code'], maxOutputTokens: ALL(3000), mission: 'dessiner la tuile de motif propre à la marque (SVG)' },
   'graphic.asset-planner': { profile: 'agents', needs: ['json'], maxOutputTokens: UP_TO(800, 1000), mission: 'déterminer les ressources visuelles nécessaires' },

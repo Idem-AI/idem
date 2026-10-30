@@ -1,5 +1,28 @@
 # Migrations du moteur graphique
 
+## 2.4 — la chaîne de qualité : relecteur visuel, ajustement par le code, mesures vérifiées sur de vrais rendus (30 octobre 2026)
+
+Les versions 2.3.x n'étaient vérifiées qu'avec un auteur SIMULÉ : plusieurs mesures étaient muettes sans le dire
+(expressions régulières dont les « \\d » avaient perdu leur barre, racine de page prise pour un motif), et les vrais
+modèles débordaient de la toile sans savoir corriger. Cette version a été validée sur de vrais rendus
+(`npm run sample:graphic`, trois échantillons de quatre pages). Chaque page passe par :
+
+1. le **directeur de page** (`graphic.page-director`) : point focal, zones, groupes — sauf la couverture ;
+2. l'**auteur** (`graphic.author`) ; la **couverture** au rôle `graphic.cover`, TOUJOURS au cran Ultra, budget de
+   24 000 jetons, consigne de liberté entière ;
+3. la **mesure du code** (`runtime/check.ts`) : en plus de 2.3 — un texte simple composé comme un titre (rôle de
+   chaque clé, `data-ge-k`), un nuancier écrit mais pas peint, un logo « fond sombre » sur fond clair, une page
+   sombre, une image coupée par le bord, une déclinaison absente, un titre absent, un texte à cheval sur un aplat,
+   des chiffres de tableau coupés sur deux lignes ; débris de code et icônes non demandées retirés ;
+4. l'**ajustement par le code** : un contenu qui déborde d'une toile fixe est réduit à l'échelle exacte
+   (`[zoom:…]`, plancher 0,6) sans appel de modèle ;
+5. le **relecteur visuel** (`graphic.reviewer`, port `reviewImage`) : la page RENDUE, graphiques dessinés
+   (Chart.js, port `chartScript`), jugée sur une liste fermée ; ses corrections passent à leur tour la mesure et la
+   correction bornée. Une relecture par page, deux pour une couverture ; `GRAPHIC_REVIEW=off` le coupe.
+
+Images : générées à tous les crans quand une page en appelle une (`GENERATION_CAP` 2/3/5/8), stockées dans le
+dossier du projet, posées par leur adresse. Aucun appel payant sous un script `check*` (`GRAPHIC_OFFLINE`).
+
 ## 2.3.2 — le PDF du business plan comme l'aperçu (30 octobre 2026)
 
 - **Couleurs perdues et décalage à droite** : le découpage en pages du PDF (`flow-pagination.runtime.ts`) remplace

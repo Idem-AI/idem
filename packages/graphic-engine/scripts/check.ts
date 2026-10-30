@@ -27,6 +27,7 @@ import { expandPage, extractHtml, sanitizeHtml } from '../src/runtime/expand';
 import { compileTailwind } from '../src/runtime/tailwind';
 import { chartHtml, tableHtml } from '../src/runtime/primitives';
 import { closeBrowser } from '../src/runtime/browser';
+import { QUALITY } from '../src/runtime/check';
 import { configureGraphicEngine } from '../src/host';
 import { cardFaces } from '../src/adapters/sections';
 import { createDocument, GraphicRenderError, renderSingle } from '../src/engine';
@@ -52,8 +53,10 @@ const EX = path.resolve(__dirname, '../contracts/examples');
 const readJson = (rel: string) => JSON.parse(fs.readFileSync(path.join(EX, rel), 'utf8'));
 
 // ── L'auteur simulé : il place chaque clé reçue, et sait rendre une page vide ou une réponse sans HTML ─────
-type Mode = 'ok' | 'blank' | 'blank-once' | 'garbage' | 'down' | 'cut-once' | 'cut' | 'cover-once' | 'overlap-once' | 'empty-once' | 'decor-once' | 'crop-once' | 'tiny-once' | 'nochart-once' | 'loud-once' | 'narrow-once' | 'invent' | 'loop-once' | 'iconcard-once';
+type Mode = 'ok' | 'blank' | 'blank-once' | 'garbage' | 'down' | 'cut-once' | 'cut' | 'cover-once' | 'overlap-once' | 'empty-once' | 'decor-once' | 'crop-once' | 'tiny-once' | 'nochart-once' | 'loud-once' | 'narrow-once' | 'invent' | 'loop-once' | 'iconcard-once' | 'raw-once';
 let mode: Mode = 'ok';
+/** La page que l'auteur simulé rend au premier appel en mode `raw-once` (un défaut relevé sur un PDF réel). */
+let rawPage = '';
 const calls: Array<{
   role: string;
   level?: CreativityLevel;
@@ -72,8 +75,11 @@ const fakePage = (user: string): string => {
     .map((m) => m[1])
     .filter((k) => !['kicker', 'title', 'lede'].includes(k));
   const prims = primsOf(user);
+  // Une couleur du nuancier se PEINT (aplat), en plus de son code écrit.
+  const hexOf = (k: string) => user.match(new RegExp(`^\\{\\{${k.replace(/[.]/g, '\\.')}\\}\\} = "?(#[0-9a-fA-F]{3,8})`, 'm'))?.[1];
+  const swatch = (k: string) => (/\.hex$/.test(k) && hexOf(k) ? `<div class="h-[26px] w-[26px] shrink-0 bg-[${hexOf(k)}]"></div>` : '');
   // Une adresse d'image se pose en image (un actif de la marque, en grand), un texte en paragraphe.
-  const body = `<p class="text-[12px] uppercase text-brand-primary">{{kicker}}</p><h2 class="font-display text-[36px] font-bold text-ink">{{title}}</h2><p class="text-muted">{{lede}}</p>${keys.map((k) => (/\.url$/.test(k) ? `<img src="{{${k}}}" alt="" class="h-[40%] w-auto self-start object-contain">` : `<p data-field="${k}" class="text-[12px]">{{${k}}}</p>`)).join('')}${prims.join('')}<idem-logo class="h-[20px]"></idem-logo>`;
+  const body = `<p class="text-[12px] uppercase text-brand-primary">{{kicker}}</p><h2 class="font-display text-[36px] font-bold text-ink">{{title}}</h2><p class="text-muted">{{lede}}</p>${keys.map((k) => (/\.url$/.test(k) ? `<img src="{{${k}}}" alt="" class="h-[40%] w-auto self-start object-contain">` : `${swatch(k)}<p data-field="${k}" class="text-[12px]">{{${k}}}</p>`)).join('')}${prims.join('')}<idem-logo class="h-[20px]"></idem-logo>`;
   if (/business card/.test(user))
     return `\`\`\`html\n<div class="grid h-full w-full grid-cols-2 gap-x-[8px] bg-ground p-[12px] text-[8.5px] leading-[1.15]"><idem-logo class="h-[14px]"></idem-logo><div>${keys.map((k) => `<p data-field="${k}" class="break-all">{{${k}}}</p>`).join('')}</div></div>\n\`\`\``;
   return /A4 page that GROWS/.test(user)
@@ -126,9 +132,10 @@ configureGraphicEngine({
         return '```html\n<div class="flex h-full w-full flex-col bg-ground p-[40px]"><h2 class="text-[40px] text-ink">{{title}}</h2>{{#each p1.paragraphs}}<p>{{this}}</p>{{/each}}</div>\n```';
       if (!repair && mode === 'iconcard-once')
         return '```html\n<div class="flex h-full w-full flex-col gap-[24px] bg-ground p-[60px]"><h2 class="text-[48px] text-ink">{{title}}</h2><p>{{p1.paragraphs.0}}</p><div class="flex gap-[24px]"><div class="relative h-[220px] w-[300px] rounded-[16px] border border-rule"><idem-icon name="check" class="absolute bottom-[12px] left-[12px] size-[14px]"></idem-icon></div><div class="relative h-[220px] w-[300px] rounded-[16px] border border-rule"><idem-icon name="check" class="absolute bottom-[12px] left-[12px] size-[14px]"></idem-icon></div></div></div>\n```';
+      if (!repair && mode === 'raw-once') return `\`\`\`html\n${rawPage}\n\`\`\``;
       if (!repair && mode === 'nochart-once') return '```html\n<div class="flex h-full w-full flex-col bg-ground p-[60px]"><h2 class="text-[40px] text-ink">{{title}}</h2></div>\n```';
       if (mode === 'cut' || (mode === 'cut-once' && !repair))
-        return '```html\n<div class="relative h-full w-full bg-ground p-[40px]"><h2 class="absolute left-[40px] top-[1050px] text-[48px]">{{title}}</h2></div>\n```';
+        return '```html\n<div class="relative h-full w-full bg-ground p-[40px]"><h2 class="absolute left-[40px] top-[1000px] text-[900px] leading-[1]">{{title}}</h2></div>\n```';
       return fakePage(user);
     },
 });
@@ -1037,7 +1044,7 @@ async function main(): Promise<void> {
   const cropped = await fixedBy('crop-once', logoPage, 'slide-16x9', 'brand-charter');
   ok('un logo rogné par son conteneur : renvoyé à l’auteur (entier, object-contain)', cropped.out.result.repairs.some((x) => x.code === 'render_fix') && /brand asset is cropped/.test(cropped.prompt));
   const tiny = await fixedBy('tiny-once', logoPage, 'slide-16x9', 'brand-charter');
-  ok('un logo minuscule sur la page qui le montre : renvoyé à l’auteur (30 % au moins)', tiny.out.result.repairs.some((x) => x.code === 'render_fix') && /shown small/.test(tiny.prompt));
+  ok('un logo minuscule sur la page qui le montre : renvoyé à l’auteur (30 % au moins)', tiny.out.result.repairs.some((x) => x.code === 'render_fix') && /shown small|missing or tiny/.test(tiny.prompt));
   const noChart = await fixedBy('nochart-once', MARKET);
   ok('un graphique oublié par l’auteur : renvoyé (la page perd sa preuve)', noChart.out.result.repairs.some((x) => x.code === 'render_fix') && /content is missing/.test(noChart.prompt) && /<idem-chart data-block="b2">/.test(noChart.prompt));
 
@@ -1089,6 +1096,93 @@ async function main(): Promise<void> {
     { generationLeft: 0 }
   );
   ok('une marque dont la charte n’est pas photographique ne reçoit jamais une photo de banque', vector.resolved.length === 0);
+
+  {
+    // La mesure s'exécute DANS le navigateur depuis une chaîne : un échappement perdu (« \\d » devenu « d ») la rendait
+    // muette sans erreur. Elle doit compiler et garder ses classes de caractères.
+    const probe = QUALITY({ swatches: ['#000000'], allowDark: false });
+    let compiles = true;
+    try {
+      new Function(probe);
+    } catch {
+      compiles = false;
+    }
+    ok('la mesure de la page compile et garde ses expressions (\\d, \\s, \\()', compiles && probe.includes('/[\\d.]+/g') && probe.includes('rgba\\(') && !/\/\[d\.\]\+\/g/.test(probe));
+  }
+  section('§9 quater Les défauts de la charte AgriLink (30/10/2026), un par un : chacun renvoyé à l’auteur');
+  const IMG = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCI+PHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjMWI3YTdhIi8+PC9zdmc+';
+  const IMG2 = IMG.replace('MWI3YTdh', 'ZmZmZmZm');
+  const IMG3 = IMG.replace('MWI3YTdh', 'MDAwMDAw');
+  const rawFix = async (html: string, content: SectionContent) => {
+    rawPage = html;
+    return fixedBy('raw-once', content, 'slide-16x9', 'brand-charter');
+  };
+  const paletteContent: SectionContent = { id: 'pal', title: 'Palette de couleurs', blocks: [{ id: 'sys-1', kind: 'swatches', origin: 'system', items: [{ hex: '#1B7A7A', name: 'Primaire' }, { hex: '#D4A017', name: 'Secondaire' }] }] };
+  const unpainted = await rawFix('<div class="flex h-full w-full flex-col gap-[16px] bg-ground p-[60px]"><h2 class="text-[44px]">{{title}}</h2><p>{{sys-1.items.0.name}} {{sys-1.items.0.hex}}</p><p>{{sys-1.items.1.name}} {{sys-1.items.1.hex}}</p></div>', paletteContent);
+  ok('palette écrite mais pas peinte (page 7) : renvoyée — chaque couleur en aplat', unpainted.out.result.repairs.some((x) => x.code === 'render_fix') && /palette colours are written but not shown/.test(unpainted.prompt));
+  const rules: SectionContent = { id: 'rules', title: 'Règles d’usage', blocks: [{ id: 'c1', kind: 'cards', items: [{ title: 'Zone de protection', body: 'Égale à la hauteur du A.' }] }] };
+  const shouting = await rawFix('<div class="flex h-full w-full flex-col gap-[16px] bg-ground p-[60px]"><h2 class="text-[28px]">{{title}}</h2><p class="text-[30px]">{{c1.items.0.title}}</p><p class="text-[40px] font-bold">{{c1.items.0.body}}</p></div>', rules);
+  ok('un texte simple composé comme un titre : renvoyé (taille de texte, seul le titre est grand)', shouting.out.result.repairs.some((x) => x.code === 'render_fix') && /plain text is set like a title/.test(shouting.prompt));
+  const darkLogo: SectionContent = { id: 'dark', title: 'Déclinaison sur fond sombre', blocks: [{ id: 'sys-1', kind: 'logoDisplay', origin: 'system', variants: [{ url: IMG2, label: 'Sur fond sombre', background: 'dark' }] }] };
+  const onLight = await rawFix('<div class="flex h-full w-full flex-col items-center gap-[16px] bg-ground p-[60px]"><h2 class="text-[40px]">{{title}}</h2><img src="{{sys-1.variants.0.url}}" alt="" class="h-[300px] w-[300px] object-contain"><p>{{sys-1.variants.0.label}}</p></div>', darkLogo);
+  ok('le logo « fond sombre » posé sur fond clair (page 5) : renvoyé (aplat sombre autour du logo)', /dark-ground logo sits on a light ground/.test(onLight.prompt), onLight.prompt.match(/ERROR: .*/)?.[0]?.slice(0, 200));
+  const symbolPage: SectionContent = { id: 'sym', title: 'Symbole seul', blocks: [{ id: 'sys-1', kind: 'logoDisplay', origin: 'system', variants: [{ url: IMG, label: 'Symbole', background: 'light' }] }] };
+  const darkPage = await rawFix('<div class="flex h-full w-full flex-col items-center gap-[16px] bg-[#1A2E2E] p-[60px]"><img src="{{sys-1.variants.0.url}}" alt="" class="h-[300px] w-[300px] object-contain"><h2 class="text-[40px] text-white">{{title}}</h2></div>', symbolPage);
+  ok('une page entière sur fond sombre (page 3) : renvoyée (surface claire)', darkPage.out.result.repairs.some((x) => x.code === 'render_fix') && /page is dark/.test(darkPage.prompt));
+  const variants: SectionContent = { id: 'usage', title: 'Règles d’usage du logo', blocks: [{ id: 'sys-1', kind: 'logoDisplay', origin: 'system', variants: [{ url: IMG, label: 'Sur fond clair', background: 'neutral' }, { url: IMG2, label: 'Sur fond sombre', background: 'neutral' }, { url: IMG3, label: 'Monochrome', background: 'neutral' }] }] };
+  const labelsOnly = await rawFix('<div class="flex h-full w-full flex-col gap-[16px] bg-ground p-[60px]"><h2 class="text-[40px]">{{title}}</h2><img src="{{sys-1.variants.0.url}}" alt="" class="h-[200px] w-[200px] object-contain"><p>{{sys-1.variants.0.label}} {{sys-1.variants.1.label}} {{sys-1.variants.2.label}}</p></div>', variants);
+  ok('des déclinaisons nommées mais absentes (page 19) : renvoyé (chaque logo montré)', labelsOnly.out.result.repairs.some((x) => x.code === 'render_fix') && /content is missing|missing or tiny/.test(labelsOnly.prompt));
+  const debris = await rawFix('<div class="flex h-full w-full flex-col gap-[16px] bg-ground p-[60px]">\')]"&gt;<h2 class="text-[40px]">{{title}}</h2><p>{{p1.paragraphs.0}}</p></div>', plain);
+  ok('des débris de code dans la page (« \')]"> », page 12) : retirés par le code', !/\)\]/.test(debris.out.result.html) && debris.out.result.html.includes('Un paragraphe.'));
+  const untitled = await rawFix('<div class="flex h-full w-full flex-col gap-[16px] bg-ground p-[60px]"><p>{{p1.paragraphs.0}}</p></div>', plain);
+  ok('une page sans son titre (page 14) : renvoyée', untitled.out.result.repairs.some((x) => x.code === 'render_fix') && /\{\{title\}\}/.test(untitled.prompt));
+  const bleeding = await rawFix(`<div class="relative h-full w-full bg-ground p-[60px]"><h2 class="text-[40px]">{{title}}</h2><p>{{p1.paragraphs.0}}</p><img src="${IMG}" alt="" class="absolute bottom-[-120px] left-[100px] h-[240px] w-[240px]"></div>`, plain);
+  ok('une image coupée par le bas de la page (page 13) : renvoyée', /cut by the page edge/.test(bleeding.prompt), bleeding.prompt.match(/ERROR: .*/)?.[0]?.slice(0, 200) ?? bleeding.out.result.html.slice(-500));
+
+  const overflowing = await rawFix(`<div class="flex h-full w-full flex-col gap-[20px] bg-ground p-[40px]"><h2 class="text-[56px]">{{title}}</h2>${'<div class="h-[150px] shrink-0 bg-brand-soft"><p class="p-[12px]">{{p1.paragraphs.0}}</p></div>'.repeat(4)}</div>`, plain);
+  ok(
+    'un contenu qui déborde un peu : le CODE le fait tenir (réduction exacte), sans appel de modèle ni texte coupé',
+    overflowing.out.result.repairs.some((x) => x.code === 'auto_fit') && !overflowing.prompt && !overflowing.out.result.issues.some((i) => i.severity === 'blocking') && /\[zoom:0\.\d+\]/.test(overflowing.out.spec.html),
+    overflowing.out.result.repairs.map((x) => x.code).join(',')
+  );
+
+  const straddling = await rawFix('<div class="relative h-full w-full bg-ground p-[60px]"><div class="absolute left-[300px] top-[40px] h-[200px] w-[300px] bg-brand-primary"></div><h2 class="relative text-[48px]">{{title}}</h2><p class="mt-[220px]">{{p1.paragraphs.0}}</p></div>', plain);
+  ok('un titre à cheval sur un aplat de couleur (palette réelle) : renvoyé', /straddles the edge of a coloured block/.test(straddling.prompt), straddling.prompt.match(/ERROR: .*/)?.[0]?.slice(0, 160));
+  const tablePage: SectionContent = { id: 'tab', title: 'Plan financier', blocks: [{ id: 't1', kind: 'table', headers: ['Indicateur', '2026', '2027', '2028'], rows: [['Chiffre d’affaires (XAF)', '6 650 000', '31 680 000', '81 750 000']] }] };
+  const squeezed = await rawFix('<div class="flex h-full w-full gap-[16px] bg-ground p-[60px]"><h2 class="text-[40px]">{{title}}</h2><div class="w-[230px] shrink-0"><idem-table data-block="t1" class="text-[13px]"></idem-table></div></div>', tablePage);
+  ok('les chiffres d’un tableau serré qui passent sur deux lignes (BP réel) : renvoyé', /figures of a table wrap/.test(squeezed.prompt), squeezed.prompt.match(/ERROR: .*/)?.[0]?.slice(0, 160) ?? JSON.stringify([squeezed.out.result.repairs, squeezed.out.result.issues]).slice(0, 400));
+
+  section('§9 quinquies Le relecteur visuel et la couverture');
+  const reviews: string[] = [];
+  configureGraphicEngine({
+    reviewImage: async (_png, instruction) => {
+      reviews.push(instruction);
+      return reviews.length === 1 ? '{"ok": false, "issues": ["HIERARCHY — the caption is as large as the title: set it at 13 px under the figure"]}' : '{"ok": true, "issues": []}';
+    },
+  });
+  calls.length = 0;
+  const reviewedDoc = await createDocument({ documentType: 'pitch-deck', format: 'slide-16x9', brand: BRANDS.kora, seed: 'rev', sections: [{ id: 'market' }] });
+  const reviewedOut = await reviewedDoc.composeSection(MARKET);
+  ok(
+    'le relecteur regarde la page rendue ; son refus part à l’auteur avec la correction, la page corrigée est gardée',
+    reviews.length === 1 &&
+      /OVERLAP[\s\S]*CUT[\s\S]*HIERARCHY/.test(reviews[0]) &&
+      calls.some((c) => /ART DIRECTOR LOOKED AT IT AND REFUSES IT[\s\S]*caption is as large/.test(c.user)) &&
+      reviewedOut.result.repairs.some((r) => r.code === 'review_fix') &&
+      reviewedOut.trace.tasks.some((t) => t.task === 'review'),
+    `${reviews.length} relecture(s), réparations ${reviewedOut.result.repairs.map((r) => r.code).join(',')}`
+  );
+  reviews.length = 0;
+  calls.length = 0;
+  pageDirections.length = 0;
+  const coverDoc = await createDocument({ documentType: 'business-plan', format: 'a4-portrait', brand: BRANDS.kora, creativity: 'low', seed: 'cov', sections: [{ id: 'cover', role: 'cover' }] });
+  const coverOut = await coverDoc.composeSection(coverContent({ id: 'cover', brandName: 'Kora', documentLabel: 'Business plan' }));
+  const coverAuthor = calls.find((c) => !c.repair);
+  ok(
+    'couverture : le modèle Ultra même au cran Low, rôle graphic.cover, consigne libre, aucun directeur de page, relue deux fois au plus',
+    coverAuthor?.role === 'graphic.cover' && coverAuthor.level === 'ultra' && /Total creative freedom/.test(coverAuthor.system ?? '') && pageDirections.length === 0 && reviews.length >= 1 && reviews.length <= 2 && /GENERIC COVER/.test(reviews[0]) && (coverOut.result.measured?.height ?? 0) > 1000
+  );
+  configureGraphicEngine({ reviewImage: undefined });
 }
 
 main()

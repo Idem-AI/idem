@@ -29,6 +29,8 @@ export interface ReferenceComposition {
 
 export interface DocumentContext {
   documentType: DocumentType;
+  /** La page est la COUVERTURE : la consigne laisse la composition entièrement libre (signature du document). */
+  cover?: boolean;
   documentLabel?: string;
   locale: string;
   tokens: DesignTokens;
@@ -154,6 +156,15 @@ function logoPlacementLine(ctx: DocumentContext): string {
 }
 
 function professionalLines(ctx: DocumentContext): string {
+  // La couverture : la liberté entière, seuls les interdits techniques restent.
+  if (ctx.cover)
+    return [
+      'THE COVER — the signature of the whole document. Total creative freedom: be bold, original and unmistakably this brand. Use scale, colour fields, the brand pattern, the logo as a graphic element, the image; break the grid if it serves the idea.',
+      '- Never a small centred name on an empty page; never a template look; never giant faded words or watermark text behind the content.',
+      '- Nothing sits on top of a text unless the text stays perfectly readable on it; nothing is cut by the edge by accident.',
+      '- The page ground stays light unless the brand language says otherwise; a large brand-colour field is welcome.',
+      '- Images: only the image keys of the CONTENT list; never an empty frame.',
+    ].join('\n');
   return [
     'PROFESSIONAL STANDARD — a business document, designed by a senior studio. Show the essential and nothing else; the layout is yours:',
     '- One focal element per page; every other element is clearly secondary. Group related items, align everything on one grid, keep zones apart.',
@@ -431,10 +442,12 @@ export function reviseUser(base: string, code: string, instruction: string): str
   return `${base}\n\nCURRENT PAGE CODE:\n\`\`\`html\n${code.slice(0, 16000)}\n\`\`\`\n\nCHANGE REQUESTED BY THE CLIENT: ${instruction.slice(0, 1200)}\nRewrite the whole page applying exactly this change and keep the rest. Same output format.`;
 }
 
-export type RepairStrategy = 'fix' | 'rewrite' | 'minimal';
+export type RepairStrategy = 'fix' | 'rewrite' | 'minimal' | 'review';
 
 export function repairUser(base: string, strategy: RepairStrategy, o: { code?: string; error: string; history: string[] }): string {
   const past = o.history.length ? `\nPREVIOUS FAILURES:\n${o.history.map((h) => `- ${h}`).join('\n')}` : '';
+  if (strategy === 'review')
+    return `${base}\n\nYOUR PAGE DISPLAYS, BUT AN ART DIRECTOR LOOKED AT IT AND REFUSES IT:\n${o.error}${o.code ? `\nYOUR CODE:\n\`\`\`html\n${o.code.slice(0, 14000)}\n\`\`\`` : ''}\nApply every fix, keep what was right, and return the whole corrected page. Same output format.`;
   if (strategy === 'fix')
     return `${base}\n\nYOUR PAGE DID NOT DISPLAY.\nERROR: ${o.error}${o.code ? `\nYOUR CODE:\n\`\`\`html\n${o.code.slice(0, 14000)}\n\`\`\`` : ''}\nFix the cause and return the whole corrected page. Same output format.`;
   if (strategy === 'rewrite') return `${base}\n\nEarlier versions of this page did not display.${past}\nWrite the page again from scratch, with a different and simpler construction (fewer layers). Same output format.`;

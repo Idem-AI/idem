@@ -125,7 +125,8 @@ export function buildContentMap(section: SectionContent, bindings: 'values' | 'm
       }
       continue;
     }
-    if (block.kind === 'patternGrid') lines.push(`\n# block ${block.id} — the brand's REAL patterns: draw each one with <idem-pattern-tile data-block="${block.id}" data-index="N" class="h-[…] w-full"></idem-pattern-tile> (never a flat colour), its name below`);
+    if (block.kind === 'swatches') lines.push(`\n# block ${block.id} — the brand palette: PAINT each colour as a large block (class bg-[<its hex>], e.g. bg-[${block.items[0]?.hex ?? '#000000'}]), its name and code beside or on it; a colour close to the page ground gets a thin border (border border-rule) so it stays visible`);
+    else if (block.kind === 'patternGrid') lines.push(`\n# block ${block.id} — the brand's REAL patterns: draw each one with <idem-pattern-tile data-block="${block.id}" data-index="N" class="h-[…] w-full"></idem-pattern-tile> (never a flat colour), its name below`);
     else lines.push(`\n# block ${block.id} — ${block.kind}${block.origin === 'system' ? ' (exact data: keep every item)' : ''}${LOGO_KINDS.has(block.kind) ? ' — the logo is the subject of this page: show it large, on its intended ground' : ''}`);
     walk(block.id, block);
   }

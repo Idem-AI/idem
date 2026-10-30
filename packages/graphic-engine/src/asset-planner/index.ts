@@ -13,14 +13,13 @@
  *               image redevient éditoriale), jamais une fausse image.
  *
  * Une capture de produit n'est jamais générée ni prise dans une banque : on ne fabrique pas une interface.
- * La génération est réservée aux crans qui la paient (High et au-delà) et plafonnée par document.
+ * La génération sert à tous les crans, plafonnée par document (`GENERATION_CAP`).
  */
 import type { CreativityLevel, DocumentType } from '../contracts/common';
 import type { Block, SectionContent } from '../contracts/content-model';
 import { ASSET_SOURCE_ORDER, AssetRecord, AssetRequirement, AssetRole, AssetSource, ResolvedAsset, VisualStrategy } from '../contracts/slide-intent';
 import { searchIcons } from '../capability-registry/local/icons';
 import type { FormatDef } from '../design-system/formats';
-import { creativityAtLeast as atLeast } from '../foundation/creativity';
 
 export interface AssetContext {
   level: CreativityLevel;
@@ -97,7 +96,12 @@ export function matchAsset(req: AssetRequirement, records: AssetRecord[], used: 
 }
 
 /** Combien d'images un document peut FAIRE GÉNÉRER, par cran : la génération coûte, elle se paie à High+. */
-export const GENERATION_CAP: Record<CreativityLevel, number> = { low: 0, medium: 0, high: 3, ultra: 8 };
+/**
+ * Images GÉNÉRÉES par document, par cran. Une page qui appelle une image la reçoit à TOUS les crans (décision du
+ * 30/10/2026 : « quand une partie demande une image, les agents la génèrent ») : faite au style de la charte,
+ * stockée dans le dossier du projet, posée par son adresse. Le plafond borne le coût, pas le besoin.
+ */
+export const GENERATION_CAP: Record<CreativityLevel, number> = { low: 2, medium: 3, high: 5, ultra: 8 };
 
 const IMAGE_SOURCES: AssetSource[] = ['user', 'project', 'generated', 'stock'];
 
@@ -242,7 +246,7 @@ export async function resolveAssets(requirements: AssetRequirement[], providers:
           break;
         }
       }
-      if (source === 'generated' && (!atLeast(ctx.level, 'high') || out.generated >= o.generationLeft)) continue;
+      if (source === 'generated' && out.generated >= o.generationLeft) continue;
       // Un dossier financier ne montre jamais un cliché de banque d'images : une vraie image du projet, une image
       // faite pour lui dans le style de la charte, ou rien.
       if (source === 'stock' && ctx.documentType === 'business-plan') continue;

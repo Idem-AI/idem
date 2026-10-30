@@ -44,10 +44,10 @@ export interface ComposedPagesContext {
 }
 
 /**
- * Raccourcit un texte à des phrases entières, sinon à une proposition entière — jamais à « … ».
+ * Raccourcit un texte à des phrases entières — jamais à « … », jamais en plein sens.
  *
  * Les champs d'une direction artistique sont écrits pour être lus seuls ; une page de charte ne montre pas un texte
- * coupé en plein mot. Ce qui ne tient pas, même réduit à sa première proposition, n'est pas montré (`''`) : la page
+ * coupé. Ce qui ne tient pas en phrases entières n'est pas montré (`''`) : la page
  * présente l'élément, pas sa description.
  */
 export function clip(text: string | undefined, max: number): string {
@@ -62,9 +62,7 @@ export function clip(text: string | undefined, max: number): string {
     kept = `${kept} ${sentence}`.trim();
   }
   if (kept && /[.!?]$/.test(kept)) return kept;
-  // Sinon la première proposition qui tient (avant « , ; : — ( »), assez longue pour dire quelque chose.
-  const clauses = [...value.slice(0, max + 1).matchAll(/[,;:(—–]/g)].map((m) => m.index ?? 0).filter((i) => i >= 12 && i <= max);
-  if (clauses.length) return value.slice(0, clauses[clauses.length - 1]).replace(/[\s,;:(—–-]+$/, '');
+  // Une proposition coupée change le sens (« Contraste chaud et élevé entre le texte ») : rien plutôt qu'un faux.
   return '';
 }
 
@@ -95,7 +93,7 @@ function densityText(value: string | undefined): string {
   const trimmed = (value ?? '').trim();
   return /^(airy|balanced|dense)$/i.test(trimmed) || trimmed.length < 12
     ? DENSITY_LABEL[densityOf(trimmed)]
-    : clip(trimmed, 60);
+    : clip(trimmed, 90);
 }
 
 export function buildComposedCharterPages(ctx: ComposedPagesContext): Record<string, ComposedPage> {
@@ -147,10 +145,10 @@ export function buildComposedCharterPages(ctx: ComposedPagesContext): Record<str
           density: densityOf(direction.layout.density),
           items: (
             [
-              { demo: 'grid', label: 'Grille', text: clip(direction.layout.grid, 60) },
+              { demo: 'grid', label: 'Grille', text: clip(direction.layout.grid, 90) },
               { demo: 'density', label: 'Densité', text: densityText(direction.layout.density) },
-              { demo: 'whitespace', label: 'Espace négatif', text: clip(direction.layout.whitespace, 60) },
-              { demo: 'signature', label: 'Geste signature', text: clip(direction.layout.signatureMove, 60) },
+              { demo: 'whitespace', label: 'Espace négatif', text: clip(direction.layout.whitespace, 90) },
+              { demo: 'signature', label: 'Geste signature', text: clip(direction.layout.signatureMove, 90) },
             ] as Array<{ demo: 'grid' | 'density' | 'whitespace' | 'signature'; label: string; text: string }>
           ).filter((item) => item.text),
         },
@@ -165,9 +163,9 @@ export function buildComposedCharterPages(ctx: ComposedPagesContext): Record<str
             kind: 'imageryShowcase',
             ...(imageUrl ? { imageUrl } : {}),
             rows: [
-              { label: 'Traitement', value: clip(direction.imagery.treatment, 60) },
-              { label: 'Lumière', value: clip(direction.imagery.lighting, 60) },
-              { label: 'Cadrage', value: clip(direction.imagery.framing, 60) },
+              { label: 'Traitement', value: clip(direction.imagery.treatment, 90) },
+              { label: 'Lumière', value: clip(direction.imagery.lighting, 90) },
+              { label: 'Cadrage', value: clip(direction.imagery.framing, 90) },
             ].filter((row) => row.value),
           },
         ],
@@ -180,13 +178,13 @@ export function buildComposedCharterPages(ctx: ComposedPagesContext): Record<str
           kind: 'artDirectionRules',
           rows: [
             // L'essentiel seulement : une page de règles se lit d'un coup d'œil (quatre règles, trois à faire, trois à éviter).
-            { label: 'Couleurs', value: clip(direction.color.distribution, 60) },
-            { label: 'Contraste', value: clip(direction.color.contrast, 60) },
-            { label: 'Échelle typographique', value: clip(direction.typography.scaleContrast, 60) },
-            { label: 'Casse', value: clip(direction.typography.caseAndTracking, 60) },
+            { label: 'Couleurs', value: clip(direction.color.distribution, 90) },
+            { label: 'Contraste', value: clip(direction.color.contrast, 90) },
+            { label: 'Échelle typographique', value: clip(direction.typography.scaleContrast, 90) },
+            { label: 'Casse', value: clip(direction.typography.caseAndTracking, 90) },
           ].filter((row) => row.value),
-          dos: direction.dos.map((rule) => clip(rule, 60)).filter(Boolean).slice(0, 3),
-          donts: direction.donts.map((rule) => clip(rule, 60)).filter(Boolean).slice(0, 3),
+          dos: direction.dos.map((rule) => clip(rule, 80)).filter(Boolean).slice(0, 3),
+          donts: direction.donts.map((rule) => clip(rule, 80)).filter(Boolean).slice(0, 3),
         },
       ],
     })),
