@@ -62,7 +62,7 @@ export interface PitchDeckTypeSummary {
 }
 
 const pdfCacheKey = (userId: string, projectId: string, documentId: string): string =>
-  cacheService.generateAIKey('pitch-deck-pdf', userId, projectId, documentId);
+  cacheService.generateAIKey('pitch-deck-pdf-r2', userId, projectId, documentId);
 
 /** Les chiffres du module Finance pour UNE slide : la trajectoire (graphique) et trois chiffres de tête. */
 function deckFinanceBlocks(finance: Parameters<typeof buildFinanceBlocks>[0], country?: string): BlockDraft[] {

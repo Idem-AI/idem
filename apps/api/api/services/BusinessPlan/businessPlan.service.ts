@@ -83,7 +83,8 @@ const orderIndexIn = (order: readonly string[], name: string): number => {
 
 /** PDF d'UN plan : un projet en garde plusieurs, chacun avec son rendu. */
 const businessPlanPdfCacheKey = (userId: string, projectId: string, documentId: string): string =>
-  cacheService.generateAIKey('business-plan-pdf', userId, projectId, documentId);
+  // « r2 » : la version du rendu PDF (feuilles des pages gardées au découpage) — l'ancien PDF n'est plus resservi.
+  cacheService.generateAIKey('business-plan-pdf-r2', userId, projectId, documentId);
 
 /** La langue des légendes de graphiques tirées d'un tableau. */
 const chartLocale = (language: string): string => (language === 'English' ? 'en' : 'fr');

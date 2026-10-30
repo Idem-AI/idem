@@ -1642,7 +1642,7 @@ export class BrandingService extends GenericService {
         await graphic.remember();
 
         // The stored PDF no longer matches the regenerated sections
-        const pdfCacheKey = cacheService.generateAIKey('branding-pdf', userId, projectId);
+        const pdfCacheKey = cacheService.generateAIKey('branding-pdf-r2', userId, projectId);
         await cacheService.delete(pdfCacheKey, { prefix: 'pdf' });
 
         // Return the updated project (it should be available in cache or fetch it again)
@@ -4371,7 +4371,7 @@ export class BrandingService extends GenericService {
         )
         .digest('hex')
         .slice(0, 24);
-      const pdfCacheKey = cacheService.generateAIKey('branding-pdf', userId, projectId, contentHash);
+      const pdfCacheKey = cacheService.generateAIKey('branding-pdf-r2', userId, projectId, contentHash);
 
       const cachedPdfPath = await cacheService.get<string>(pdfCacheKey, {
         prefix: 'pdf',

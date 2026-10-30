@@ -1837,6 +1837,13 @@ export const FLOW_PAGINATION_RUNTIME = `
       probe.parentNode.removeChild(probe);
       PLAN.fitScale = cfg.compact.minFitScale;
 
+      // Les feuilles et les polices d'une section (pages du moteur graphique : <style data-ge-tailwind>, <link>)
+      // vivent DANS son flux. Le flux est remplacé par ses pages : elles partaient avec lui, et le PDF sortait sans
+      // les couleurs de la marque ni sa mise en page exacte (seul restait le Tailwind générique). Elles sont
+      // remontées dans <head>, dans l'ordre, avant le découpage.
+      var sheets = [].slice.call(document.querySelectorAll('.idem-flow style, .idem-flow link[rel="stylesheet"], .idem-flow link[rel="preconnect"]'));
+      for (var h = 0; h < sheets.length; h++) { document.head.appendChild(sheets[h]); }
+
       var flows = [].slice.call(document.querySelectorAll('.idem-flow'));
       var tail = null;
       for (var i = 0; i < flows.length; i++) {

@@ -1,5 +1,17 @@
 # Migrations du moteur graphique
 
+## 2.3.2 — le PDF du business plan comme l'aperçu (30 octobre 2026)
+
+- **Couleurs perdues et décalage à droite** : le découpage en pages du PDF (`flow-pagination.runtime.ts`) remplace
+  chaque flux de section par ses pages ; la feuille compilée de la page (`<style data-ge-tailwind>`) et ses polices
+  partaient avec lui. Le PDF sortait au Tailwind générique (v3, sans le thème de la marque), mesuré avec une feuille
+  et imprimé avec une autre. Les feuilles sont désormais remontées dans `<head>` avant le découpage, et le Tailwind
+  générique n'est plus chargé quand toutes les pages viennent du moteur. Contrôle : `check:bpquality`.
+- **Couverture** : composée sur la page A4 FIXE (`page-a4`) dans un document en flux — elle occupe toute la page.
+- Une section en échec (« régénérer ») n'est plus imprimée dans le PDF livré ; les caches des PDF changent de clé
+  (`*-pdf-r2`) pour ne plus resservir l'ancien rendu ; légende d'un camembert sous le graphique quand ses libellés
+  sont longs.
+
 ## 2.3.1 — couvertures, mots du contenu seul, lisibilité, images de la charte (30 octobre 2026)
 
 Sur un second jeu AgriLink (business plan et charte) :

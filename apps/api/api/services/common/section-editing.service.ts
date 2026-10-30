@@ -29,9 +29,9 @@ export type EditFormatKey = keyof typeof EDIT_FORMAT_RULES;
 
 /** Clés de cache PDF à invalider après modification, par type de document. */
 const PDF_CACHE_KEY: Record<DocumentKey, string> = {
-  businessPlan: 'business-plan-pdf',
-  pitchDeck: 'pitch-deck-pdf',
-  branding: 'branding-pdf',
+  businessPlan: 'business-plan-pdf-r2',
+  pitchDeck: 'pitch-deck-pdf-r2',
+  branding: 'branding-pdf-r2',
   // Les cartes de visite sont rendues à la demande (pas de PDF pré-calculé) ;
   // la clé existe pour garder la table exhaustive.
   businessCard: 'business-card-pdf',

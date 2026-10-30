@@ -375,11 +375,12 @@ export class ResearchTeamService {
         status: 'error',
         message: `Échec sur "${section.name}": ${err.message}`,
       });
-      // On renvoie une section dégradée (HTML) plutôt que d'interrompre tout le run.
+      // On renvoie une section dégradée (HTML) plutôt que d'interrompre tout le run. Marquée `data-idem-failed` :
+      // l'application la montre (avec « régénérer »), le PDF livré ne l'imprime jamais.
       return {
         name: section.name,
         data:
-          '<div class="w-[210mm] min-h-[297mm] p-[12mm] flex items-center justify-center">' +
+          '<div data-idem-failed="1" class="w-[210mm] min-h-[297mm] p-[12mm] flex items-center justify-center">' +
           '<p class="text-sm text-gray-500">⚠️ La génération sourcée de cette section a échoué. ' +
           'Vous pouvez la régénérer.</p></div>',
         summary: `${section.name} — échec de génération`,

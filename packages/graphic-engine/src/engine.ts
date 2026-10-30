@@ -183,13 +183,24 @@ export class GraphicDocument {
     return withSize(FORMATS[this.options.format], this.options.size);
   }
 
-  private context(): DocumentContext {
+  /**
+   * La toile d'UNE page : la couverture d'un document A4 en flux (business plan) est une composition pleine page —
+   * elle se compose sur la page A4 FIXE (210 × 297 mm), et non dans un flux qui s'allonge, où elle ne pouvait pas
+   * occuper la hauteur de la page.
+   */
+  private formatOf(section: Pick<SectionContent, 'role'>): FormatDef {
+    const base = this.format;
+    if (section.role === 'cover' && base.kind === 'flow' && base.mm?.width === 210 && !this.options.size) return FORMATS['page-a4'];
+    return base;
+  }
+
+  private context(format: FormatDef = this.format): DocumentContext {
     return {
       documentType: this.options.documentType,
       documentLabel: this.options.documentLabel,
       locale: this.options.locale ?? 'fr',
       tokens: this.tokens,
-      format: this.format,
+      format,
       direction: this.options.direction,
       allowDark: this.options.allowDark === true,
       brief: this.options.brief,
@@ -282,6 +293,7 @@ export class GraphicDocument {
     const named = fixBrandNameTypos(prepared.section, this.options.brand.name);
     if (named.fixed) recorder.repair({ code: 'brand_name_typo', detail: `${named.fixed} coquille(s) du nom « ${this.options.brand.name} » corrigée(s)`, by: 'code' });
     const section = named.section;
+    const pageFormat = this.formatOf(section);
     const map = buildContentMap(section, this.options.bindings ?? 'values');
     const index = o.index ?? 1;
     const total = o.total ?? (this.options.sections?.length || 1);
@@ -291,7 +303,7 @@ export class GraphicDocument {
     let bible: string | undefined;
     // 1. Une page rejouée : son code, le nouveau contenu, aucun modèle.
     if (o.replay && isAuthoredSpec(o.replay) && !o.revise) {
-      const r = await this.render(o.replay.html, map, section.id, recorder);
+      const r = await this.render(o.replay.html, map, section.id, recorder, undefined, pageFormat);
       if (r.ok) rendered = r.page;
       else recorder.repair({ code: 'replay_failed', detail: `la page gardée ne s'affiche plus (${r.error.slice(0, 160)}) : réécrite`, by: 'code' });
       bible = o.replay.bible;
@@ -303,7 +315,7 @@ export class GraphicDocument {
       await this.ensurePlan(recorder, language);
       const plan = this.planFor(section.id, index);
       bible = [language, plan?.idea && `idea: ${plan.idea}`, plan?.page && `this page: ${plan.page}`].filter(Boolean).join('\n') || undefined;
-      const ctx = this.context();
+      const ctx = this.context(pageFormat);
       const system = authorSystem(ctx);
       const blocks = [...map.primitives.values()];
       const tools = toolLines(ctx, { charts: blocks.filter((b) => b.kind === 'chart').map((b) => b.id), tables: blocks.filter((b) => b.kind === 'table').map((b) => b.id), galleries: blocks.filter((b) => b.kind === 'mockupShowcase').map((b) => b.id), icons: [...map.entries.values()].some((e) => e.kind === 'icon') });
@@ -319,7 +331,7 @@ export class GraphicDocument {
       }
       const base = authorUser(ctx, { section, listing: map.listing, tools, index, total, language, plan, reference: this.options.reference, ...(direction ? { direction } : {}) });
       const user = revising ? reviseUser(base, (revising.spec as SectionSpec).html, revising.instruction) : base;
-      rendered = await this.author(section.id, map, recorder, { system, base, user, level, task: revising ? 'revise' : 'author', quality: qualityFrame(section, map, this.format) });
+      rendered = await this.author(section.id, map, recorder, { system, base, user, level, task: revising ? 'revise' : 'author', quality: qualityFrame(section, map, pageFormat), format: pageFormat });
     }
 
     const spec: SectionSpec = { version: 2, ref: section.id, pattern: { id: 'authored' }, html: rendered.template, ...(bible ? { bible } : {}), level };
@@ -348,7 +360,7 @@ export class GraphicDocument {
    * L'auteur écrit la page ; si elle ne s'affiche pas, la correction bornée : une tentative à la fois, une
    * approche différente à chaque fois, le modèle du cran au-dessus dès la réécriture.
    */
-  private async author(sectionId: string, map: ContentMap, recorder: TraceRecorder, p: { system: string; base: string; user: string; level: CreativityLevel; task: 'author' | 'revise'; quality?: QualityFrame }): Promise<Rendered> {
+  private async author(sectionId: string, map: ContentMap, recorder: TraceRecorder, p: { system: string; base: string; user: string; level: CreativityLevel; task: 'author' | 'revise'; quality?: QualityFrame; format?: FormatDef }): Promise<Rendered> {
     const call = this.agent() as AgentCall;
     const valid = (raw: string) => /<[a-z][\s\S]*>/i.test(extractHtml(raw));
     const first = await callModel({ call, recorder, task: p.task, role: 'graphic.author', profile: 'coder', level: p.level, system: p.system, user: p.user, timeoutMs: AUTHOR_TIMEOUT, validate: valid });
@@ -357,7 +369,7 @@ export class GraphicDocument {
     /** La meilleure page presque affichée (un texte coupé) : livrée, et signalée, si rien ne fait mieux. */
     let partial: Rendered | undefined;
     if (code) {
-      const r = await this.render(code, map, sectionId, recorder, p.quality);
+      const r = await this.render(code, map, sectionId, recorder, p.quality, p.format);
       if (r.ok) return r.page;
       error = r.error;
       code = r.template;
@@ -385,7 +397,7 @@ export class GraphicDocument {
         history.push(`${strategy}: ${error}`);
         continue;
       }
-      const r = await this.render(extractHtml(run.raw), map, sectionId, recorder, p.quality);
+      const r = await this.render(extractHtml(run.raw), map, sectionId, recorder, p.quality, p.format);
       if (r.ok) {
         recorder.repair({ code: `render_${strategy}`, detail: `page corrigée (${strategy}, cran ${level}) après : ${history[history.length - 1].slice(0, 160)}`, by: 'agent' });
         return r.page;
@@ -405,7 +417,7 @@ export class GraphicDocument {
   }
 
   /** Assainir, remplir, compiler, puis demander à Chromium si la page s'affiche. Rien n'est jugé d'autre. */
-  private async render(raw: string, map: ContentMap, sectionId: string, recorder: TraceRecorder, quality?: QualityFrame): Promise<{ ok: true; page: Rendered } | { ok: false; error: string; template: string; partial?: Rendered }> {
+  private async render(raw: string, map: ContentMap, sectionId: string, recorder: TraceRecorder, quality?: QualityFrame, format: FormatDef = this.format): Promise<{ ok: true; page: Rendered } | { ok: false; error: string; template: string; partial?: Rendered }> {
     const t0 = Date.now();
     const clean = sanitizeHtml(raw);
     if (!clean.html.trim()) return { ok: false, error: 'the page is empty after removing what is not allowed (scripts, styles, external resources)', template: clean.html };
@@ -418,7 +430,7 @@ export class GraphicDocument {
       issues.push({ code: 'invented_text_removed', severity: 'advisory', message: `Texte écrit par l'auteur hors contenu, retiré : ${words.removed.slice(0, 6).join(' · ')}`.slice(0, 380) });
     }
     if (clean.nativeCss) issues.push({ code: 'native_css_removed', severity: 'advisory', message: `${clean.nativeCss} style(s) CSS natif(s) retiré(s) : la page est en Tailwind.` });
-    const page = expandPage(clean.html, map, this.tokens, this.format, { sectionId, locale: this.options.locale ?? 'fr', engine: ENGINE_VERSION });
+    const page = expandPage(clean.html, map, this.tokens, format, { sectionId, locale: this.options.locale ?? 'fr', engine: ENGINE_VERSION });
     if (page.unknown.length) issues.push({ code: 'unknown_keys', severity: 'advisory', message: `Clés inconnues ignorées : ${page.unknown.slice(0, 8).join(', ')}` });
     if (page.orphans.length) issues.push({ code: 'unknown_blocks', severity: 'advisory', message: `Primitives sans bloc : ${page.orphans.slice(0, 6).join(', ')}` });
     const unused = [...map.entries.keys()].filter((k) => !page.used.has(k));
@@ -435,7 +447,7 @@ export class GraphicDocument {
       recorder.task({ task: 'render', source: 'code', inputTokens: 0, outputTokens: 0, ms: Date.now() - t0, outcome: 'skipped' });
       return { ok: true, page: { template: clean.html, html: page.html, head, issues } };
     }
-    const check = await checkRender(page.html, head, this.format, { lang: this.options.locale, shoot: Boolean(this.options.png), ...(quality ? { quality } : {}) });
+    const check = await checkRender(page.html, head, format, { lang: this.options.locale, shoot: Boolean(this.options.png), ...(quality ? { quality } : {}) });
     recorder.task({ task: 'render', source: 'code', inputTokens: 0, outputTokens: 0, ms: Date.now() - t0, outcome: check.ok ? 'accepted' : 'refused' });
     if (check.infra) log().warn('graphic.render_unchecked', { event: 'graphic.render_unchecked', section: sectionId, reason: check.error });
     if (!check.ok) {

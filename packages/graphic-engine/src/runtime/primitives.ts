@@ -66,7 +66,9 @@ function chartJsConfig(c: Chart, colors: string[], tokens: DesignTokens, hi: num
   const dimmed = (hex: string, i: number) => (hi >= 0 && i !== hi ? `${hex}52` : hex);
   const ink = tokens.color.ink;
   const font = { family: tokens.font.bodyStack, size: 12 };
-  const legend = { display: pie || c.series.length > 1, position: pie ? 'right' : 'top', align: 'start', labels: { color: ink, font, boxWidth: 12, boxHeight: 12, usePointStyle: true, pointStyle: 'rectRounded' } };
+  // Une légende à droite d'un camembert rogne les libellés longs : au-delà de 16 signes, elle passe dessous.
+  const longLabels = c.labels.some((l) => l.length > 16);
+  const legend = { display: pie || c.series.length > 1, position: pie ? (longLabels ? 'bottom' : 'right') : 'top', align: 'start', labels: { color: ink, font, boxWidth: 12, boxHeight: 12, usePointStyle: true, pointStyle: 'rectRounded' } };
   const base = { locale: numLocale, animation: false, responsive: true, maintainAspectRatio: false, color: ink, font, plugins: { legend, tooltip: { enabled: false }, title: { display: false } } };
   if (pie) {
     const s = c.series[0];
