@@ -420,6 +420,7 @@ export class FinanceService {
       bfr: number;
       coutTotalProjet: number;
       tri: number;
+      triCalculable: boolean;
       van: number;
       alerts: string[];
     };
@@ -464,6 +465,7 @@ export class FinanceService {
         bfr: c.bfr.monthlyBfr[c.bfr.monthlyBfr.length - 1] || 0,
         coutTotalProjet: c.financing.coutTotalProjet,
         tri: c.ratios.tri,
+        triCalculable: c.ratios.triCalculable !== false,
         van: c.ratios.van,
         alerts,
       },

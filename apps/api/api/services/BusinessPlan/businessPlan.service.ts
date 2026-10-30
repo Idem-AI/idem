@@ -40,7 +40,7 @@ import { BUSINESS_PLAN_PAGINATION } from './businessPlanPdf.options';
 import { TeamMember } from '../../models/project.model';
 import { storageService } from '../storage.service';
 import { CoverBriefService } from '../common/coverBrief.service';
-import { coverDateLabel, openGraphicDocument, pageComposition, pageId, renderGraphicPage, withProjectArtDirection } from '../graphic/graphic.service';
+import { coverDateLabel, coverImage, openGraphicDocument, pageComposition, pageId, renderGraphicPage, withProjectArtDirection } from '../graphic/graphic.service';
 import type { BusinessPlanAudience } from './structure/audience.types';
 
 /** Mention de destinataire sur la couverture du plan. */
@@ -695,6 +695,7 @@ export class BusinessPlanService extends GenericService {
         promise: brief.promise,
         detail: BUSINESS_PLAN_AUDIENCE_LABEL[audience as BusinessPlanAudience],
         dateLabel: coverDateLabel(),
+        image: coverImage(project),
       }),
       position
     );

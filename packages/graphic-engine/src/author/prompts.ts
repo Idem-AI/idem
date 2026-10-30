@@ -330,7 +330,7 @@ export function authorSystem(ctx: DocumentContext): string {
     '',
     TAILWIND_SHEET,
     '',
-    'CONTENT — every visible word comes from the CONTENT list: write {{key}} where its text goes. Never retype, translate, shorten or invent a text. Show every key (exact data blocks complete, in order). You may add only non-verbal elements (rules, the brand devices, icons that match the meaning of their text, numbering of real steps).',
+    'CONTENT — every visible word comes from the CONTENT list: write {{key}} where its text goes. Never retype, translate, shorten or invent a text: any word typed in the code outside a key is deleted. No template loops ({{#each}}): write each key. Show every key (exact data blocks complete, in order). You may add only non-verbal elements (rules, the brand devices, icons that match the meaning of their text, numbering of real steps). Paragraphs are set at the body size on a reading width; only titles, short statements and figures are large.',
     ctx.bindings === 'markers' ? 'This card is a TEMPLATE shared by several people: each field key in its own element, one line each — lines without a value are removed when printing.' : '',
     '',
     `SYNTAX EXAMPLE (syntax only — compose your own page):\n\`\`\`html\n${flow ? FLOW_EXAMPLE : FIXED_EXAMPLE}\n\`\`\``,
@@ -413,6 +413,9 @@ export function authorUser(ctx: DocumentContext, p: PageBrief): string {
       : '',
     ctx.layoutNote ? `THE CLIENT ASKS FOR THIS LAYOUT: ${ctx.layoutNote.slice(0, 600)}` : '',
     intent ? `INTENT: ${[intent.keyMessage ? `the reader must understand: ${intent.keyMessage}` : '', intent.visualStrategy ? `visual strategy: ${intent.visualStrategy}` : ''].filter(Boolean).join('; ')}` : '',
+    s.role === 'cover' && !p.reference
+      ? 'THE COVER is the signature of the whole document: make it memorable and unmistakably this brand. Compose it boldly from the brand language — a strong contrast of scale, a large field of brand colour or the brand pattern, the logo used as a graphic element, the image when the CONTENT has one (whole page or a large zone). Never small centred text on an empty page; never the composition of an earlier cover of this brand.'
+      : '',
     referenceLines(p.reference),
     p.direction ? `PAGE LAYOUT DECIDED BY THE ART DIRECTOR (build exactly this hierarchy; details are yours):\n${p.direction}` : '',
     p.tools,

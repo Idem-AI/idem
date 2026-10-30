@@ -72,7 +72,7 @@ import { logAIEvent } from '../../utils/ai-trace.util';
 import { type BrandPatternKind } from '../../../../ivision/core/src/design/brandPatterns';
 import { iconSymbol, sanitizeAuthoredTile, signaturePatterns } from '../../../../ivision/core/src/design/signaturePatterns';
 import { buildComposedCharterPages, clip } from './charterComposedPages';
-import { coverDateLabel, openGraphicDocument, pageCanvasOf as charterCanvasOf, pageId, projectBrand, renderGraphicPage } from '../graphic/graphic.service';
+import { coverDateLabel, coverImage, openGraphicDocument, pageCanvasOf as charterCanvasOf, pageId, projectBrand, renderGraphicPage } from '../graphic/graphic.service';
 import { atLeast, CreativityLevel, normalizeCreativity } from '../../models/creativity.model';
 import { composeTemplateLogos } from './logoTemplates';
 import { engineEditLogo, engineLogoConcepts, engineVariations, logoEngineEnabled, rememberIr } from '../logo-engine/idem.service';
@@ -1353,14 +1353,14 @@ export class BrandingService extends GenericService {
         if (!logoUrl) return blocks;
         const cards = blocks.find((block): block is Extract<GraphicBlock, { kind: 'cards' }> => block.kind === 'cards');
         const points = cards
-          ? cards.items.map((item) => ({ label: item.title.slice(0, 60), text: item.body.slice(0, 400) }))
-          : logo?.concept
+          ? cards.items.map((item) => ({ label: clip(item.title, 40), text: clip(item.body, 110) })).filter((point) => point.label && point.text)
+          : logo?.concept && clip(logo.concept, 150)
             ? [{ label: 'Le concept', text: clip(logo.concept, 150) }]
             : [];
         if (!points.length) return blocks;
         return [
           ...blocks.filter((block) => block !== cards),
-          { id: 'logo-story', kind: 'logoStory', origin: 'system', url: logoUrl, label: `Logo ${project.name ?? ''}`.trim(), background: 'light', points: points.slice(0, 5) },
+          { id: 'logo-story', kind: 'logoStory', origin: 'system', url: logoUrl, label: `Logo ${project.name ?? ''}`.trim(), background: 'light', points: points.slice(0, 3) },
         ];
       };
 
@@ -1409,6 +1409,7 @@ export class BrandingService extends GenericService {
                 promise: brief.promise,
                 detail: 'Version 1.0',
                 dateLabel: coverDateLabel(),
+                image: coverImage(project),
               }),
               at
             );
@@ -1440,10 +1441,20 @@ export class BrandingService extends GenericService {
         if (step.execute) return;
         // Une page RÉDIGÉE : la nomenclature de la charte pour titre, le spécimen posé par le code, le
         // texte du modèle autour — un volume propre à la page (une page qui montre n'a qu'un bloc à écrire).
+        // Les règles d'usage parlent des VRAIES couleurs et polices de la marque : sans elles, le rédacteur en
+        // inventait (« GT Pressura Mono », « le vert occupe 70 % »).
+        const usageFacts = (): string => {
+          const palette = project.analysisResultModel?.branding?.colors?.colors as Record<string, string> | undefined;
+          const typo = project.analysisResultModel?.branding?.typography;
+          const colors = Object.entries(palette ?? {}).filter(([, hex]) => typeof hex === 'string' && /^#/.test(hex)).map(([role, hex]) => `${role} ${hex}`).join(', ');
+          return JSON.stringify({ colors, titleFont: typo?.primaryFont, textFont: typo?.secondaryFont, colorDistribution: artDirection?.color?.distribution }, null, 2);
+        };
         const brief =
           step.stepName === 'Logo Principal'
             ? `${CHARTER_PAGE_BRIEFS[step.stepName]}\n\n<logo_facts>\n${JSON.stringify(logoFacts, null, 2)}\n</logo_facts>`
-            : CHARTER_PAGE_BRIEFS[step.stepName] ?? `Write the "${step.stepName}" page of the brand guidelines: one short usage rule.`;
+            : step.stepName === 'Usage Couleurs & Typographie'
+              ? `${CHARTER_PAGE_BRIEFS[step.stepName]}\n\n<brand_facts>\n${usageFacts()}\n</brand_facts>\nUse ONLY these colours and fonts, by these names; never another font or colour.`
+              : CHARTER_PAGE_BRIEFS[step.stepName] ?? `Write the "${step.stepName}" page of the brand guidelines: one short usage rule.`;
         step.promptConstant = brief;
         step.template = {
           deliverable: 'brand-charter',

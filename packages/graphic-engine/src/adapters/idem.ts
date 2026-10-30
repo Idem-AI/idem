@@ -25,7 +25,7 @@ export interface IdemBrandingLike {
     primary?: { family?: string; cssUrl?: string } | null;
     secondary?: { family?: string; cssUrl?: string } | null;
   } | null;
-  artDirection?: { styleId?: string; keywords?: unknown; layout?: object | null; typography?: object | null; color?: object | null; graphicDevices?: unknown; dos?: unknown; donts?: unknown } | null;
+  artDirection?: { styleId?: string; keywords?: unknown; layout?: object | null; typography?: object | null; color?: object | null; imagery?: object | null; imagePromptModifier?: unknown; graphicDevices?: unknown; dos?: unknown; donts?: unknown } | null;
   patterns?: { items?: Array<{ url?: string; tile?: number; ground?: string; kind?: string }> | null } | null;
 }
 
@@ -89,7 +89,7 @@ export function brandFromIdem(input: { name: string; branding?: IdemBrandingLike
       logos: logosFromIdem(input.logos, input.logoAspect),
       patterns: patternsFromIdem(b),
     },
-    direction: { styleId: str(b?.artDirection?.styleId), ...(keywords?.length ? { keywords } : {}), ...densityOf((b?.artDirection?.layout as { density?: unknown } | null | undefined)?.density), ...grammarOf(b?.artDirection) },
+    direction: { styleId: str(b?.artDirection?.styleId), ...(keywords?.length ? { keywords } : {}), ...densityOf((b?.artDirection?.layout as { density?: unknown } | null | undefined)?.density), ...grammarOf(b?.artDirection), ...imageryOf(b?.artDirection) },
   };
 }
 
@@ -98,6 +98,19 @@ function densityOf(raw: unknown): { density?: 'airy' | 'balanced' | 'dense' } {
   const v = typeof raw === 'string' ? raw.trim().toLowerCase() : '';
   const d = (['airy', 'balanced', 'dense'] as const).find((x) => v.startsWith(x));
   return d ? { density: d } : {};
+}
+
+/**
+ * Le TRAITEMENT DE L'IMAGE de la charte (médium, traitement, lumière, consigne pour les modèles d'image) : toute
+ * image faite pour un livrable le suit — une marque en aplats vectoriels ne reçoit pas de photographie.
+ */
+export function imageryOf(ad: IdemBrandingLike['artDirection']): { imagery?: string; imageryMedium?: string } {
+  if (!ad) return {};
+  const t = (v: unknown, max = 160) => (typeof v === 'string' && v.trim() ? v.trim().replace(/\s+/g, ' ').slice(0, max) : '');
+  const im = (ad.imagery ?? {}) as Record<string, unknown>;
+  const parts = [t(im.medium, 60) && `medium: ${t(im.medium, 60)}`, t(im.treatment) && `treatment: ${t(im.treatment)}`, t(im.lighting, 100) && `lighting: ${t(im.lighting, 100)}`, t(ad.imagePromptModifier, 300)].filter(Boolean);
+  const medium = t(im.medium, 40).toLowerCase();
+  return parts.length ? { imagery: parts.join('; ').slice(0, 600), ...(medium ? { imageryMedium: medium } : {}) } : {};
 }
 
 /**

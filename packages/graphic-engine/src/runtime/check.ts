@@ -167,6 +167,40 @@ const QUALITY = (f: QualityFrame) => `(function (f) {
     }
   }
   if (clash.length) errors.push('texts are written on top of each other: ' + clash.join('; ') + ' — give each text its own space (stack or separate the zones)');
+  // 1 bis. Un texte LONG se lit au corps du texte, sur une largeur de lecture : un paragraphe composé à la taille d'un
+  // titre, ou serré dans une colonne étroite, s'étire sur des pages (business plan) ou déborde (slide).
+  var base = parseFloat(getComputedStyle(root).fontSize) || 16;
+  var seen = [], loud = [], narrow = [];
+  lines.forEach(function (ln) {
+    var block = ln.host;
+    while (block !== root && getComputedStyle(block).display.indexOf('inline') === 0) block = block.parentElement;
+    if (seen.indexOf(block) >= 0) return;
+    seen.push(block);
+    var words = (block.textContent || '').trim().split(/\\s+/).filter(Boolean).length;
+    if (words < 30) return;
+    var size = parseFloat(getComputedStyle(ln.host).fontSize) || base;
+    var r = block.getBoundingClientRect();
+    if (size > base * 1.45) loud.push(short(block.textContent) + ' (' + words + ' words at ' + Math.round(size) + ' px)');
+    else if (r.width < box.width * 0.3 && words > 45) narrow.push(short(block.textContent) + ' (' + words + ' words in ' + Math.round(r.width) + ' px)');
+  });
+  if (loud.length) errors.push('a long text is set at title size: ' + loud.slice(0, 2).join('; ') + ' — set paragraphs at the body size (' + Math.round(base) + ' px); only titles, short statements and figures are large');
+  if (narrow.length) errors.push('a long text is squeezed into a narrow column: ' + narrow.slice(0, 2).join('; ') + ' — give paragraphs a reading width (about half the page or more)');
+  // 1 ter. Un texte posé SUR un mockup, un graphique ou un logo les cache : chacun a sa place.
+  var shown = [];
+  root.querySelectorAll('[data-ge-gallery],[data-ge-chart],img[data-ge-logo]').forEach(function (m) { if (visible(m)) shown.push(m); });
+  (f.assets || []).forEach(function (src) { root.querySelectorAll('img').forEach(function (img) { if (img.getAttribute('src') === src && visible(img)) shown.push(img); }); });
+  var over = [];
+  lines.forEach(function (ln) {
+    if (over.length >= 2) return;
+    shown.forEach(function (m) {
+      if (m.contains(ln.host)) return;
+      var q = m.getBoundingClientRect();
+      var w = Math.min(ln.r.right, q.right) - Math.max(ln.r.left, q.left);
+      var h = Math.min(ln.r.bottom, q.bottom) - Math.max(ln.r.top, q.top);
+      if (w > 0 && h > 0 && w * h > ln.r.width * ln.r.height * 0.3 && over.indexOf(short(ln.text)) < 0) over.push(short(ln.text));
+    });
+  });
+  if (over.length) errors.push('text is written over a mockup, chart or logo: ' + over.slice(0, 2).join(', ') + ' — give the text its own zone beside or above it');
   // 2. Les actifs de la marque : entiers, jamais rognés ni recadrés.
   var assets = [];
   root.querySelectorAll('img').forEach(function (img) {
@@ -196,9 +230,9 @@ const QUALITY = (f: QualityFrame) => `(function (f) {
   if ((f.assets || []).length && !shownAssets) errors.push('the brand asset image is not shown — place it with <img src="{{…url}}" class="object-contain">, whole and readable');
   else if (f.minAssetSide && (f.assets || []).length && biggest < f.minAssetSide) errors.push('the brand asset is the subject of this page but is shown small (' + Math.round(biggest * 100) + '% of the page) — make it at least ' + Math.round(f.minAssetSide * 100) + '% of the page width or height');
   // 3. Les cadres vides et le semis de formes : une forme peinte qui ne porte rien et ne sert de fond à rien.
-  var anchors = [];
-  root.querySelectorAll('img,svg,canvas,video,[data-ge-chart],[data-ge-pattern],[data-ge-pattern-tile],[data-ge-gallery]').forEach(function (m) { if (visible(m)) anchors.push(m.getBoundingClientRect()); });
-  lines.forEach(function (ln) { anchors.push(ln.r); });
+  // Ce qu'une forme peut porter en fond : un texte, ou un média d'une taille réelle (une pastille d'icône ne suffit pas).
+  var media = [];
+  root.querySelectorAll('img,svg,canvas,video,[data-ge-chart],[data-ge-pattern],[data-ge-pattern-tile],[data-ge-gallery]').forEach(function (m) { if (visible(m)) media.push(m.getBoundingClientRect()); });
   function opaque(c) {
     if (!c || c === 'transparent') return false;
     var a = c.match(/rgba\\([^)]*,\\s*([\\d.]+)\\)/) || c.match(/\\/\\s*([\\d.]+%?)\\s*\\)$/);
@@ -223,12 +257,23 @@ const QUALITY = (f: QualityFrame) => `(function (f) {
     if (!paints(el, cs)) return;
     var r = el.getBoundingClientRect();
     if (Math.min(r.width, r.height) < 6) return;
-    if (el.querySelector('img,svg,canvas,video') || (el.textContent || '').trim()) return;
-    var backs = anchors.some(function (q) { var cx = q.left + q.width / 2, cy = q.top + q.height / 2; return cx >= r.left && cx <= r.right && cy >= r.top && cy <= r.bottom; });
+    if ((el.textContent || '').trim()) return;
+    // Une pastille d'icône seule dans une grande carte ne la remplit pas : seul un média d'une taille réelle compte.
+    var holds = false;
+    el.querySelectorAll('img,svg,canvas,video').forEach(function (m) { var q = m.getBoundingClientRect(); if (q.width * q.height >= r.width * r.height * 0.08) holds = true; });
+    if (holds) return;
+    var inside = function (q) { var cx = q.left + q.width / 2, cy = q.top + q.height / 2; return cx >= r.left && cx <= r.right && cy >= r.top && cy <= r.bottom; };
+    var backs = lines.some(function (ln) { return inside(ln.r); }) || media.some(function (q) { return inside(q) && q.width * q.height >= r.width * r.height * 0.08; });
     if (backs) return;
     decor++;
     // Un cadre vide est COMPACT (carte, pastille, avatar, zone d'image) ; une bande ou un filet de marque est allongé.
     var compact = Math.max(r.width, r.height) / Math.min(r.width, r.height) <= 4;
+    // Un GRAND aplat de couleur de la marque est un geste de mise en page (couverture, bandeau) ; une grande boîte
+    // claire et neutre, ou un simple contour, est un emplacement réservé.
+    var large = r.width * r.height >= pageArea * 0.15;
+    var rgb = (cs.backgroundColor.match(/[\d.]+/g) || []).map(Number);
+    var neutral = cs.backgroundImage === 'none' && (!opaque(cs.backgroundColor) || (rgb.length >= 3 && Math.max(rgb[0], rgb[1], rgb[2]) - Math.min(rgb[0], rgb[1], rgb[2]) < 40 && (rgb[0] + rgb[1] + rgb[2]) / 3 > 200));
+    if (large && !neutral) return;
     if (!f.allowEmptyShapes && compact && r.width * r.height >= pageArea * 0.012 && Math.min(r.width, r.height) >= 24) empty.push(Math.round(r.width) + 'x' + Math.round(r.height));
   });
   if (empty.length) errors.push('empty frames: ' + empty.length + ' painted box(es) (' + empty.slice(0, 3).join(', ') + ' px) hold nothing — remove them or put the content they stand for inside (no placeholder, no empty card, avatar or image zone)');
@@ -246,7 +291,7 @@ export async function checkRender(html: string, head: string, format: FormatDef,
       }
       // Texte coupé, recouvert, page désordonnée : la page s'affiche presque entière — gardée comme repli si la
       // correction échoue (livrée signalée plutôt que perdue).
-      const cut = Boolean(probe.error && /cut off by the edge|covered by another element|on top of each other|brand asset|empty frames|decoration noise/.test(probe.error));
+      const cut = Boolean(probe.error && /cut off by the edge|covered by another element|on top of each other|brand asset|empty frames|decoration noise|long text|written over a mockup/.test(probe.error));
       if (probe.error && !cut) return { ok: false, error: probe.error };
       let png: Buffer | undefined;
       if (o.shoot) {

@@ -44,11 +44,11 @@ export interface ComposedPagesContext {
 }
 
 /**
- * Raccourcit un texte à des phrases entières, sinon à un mot entier.
+ * Raccourcit un texte à des phrases entières, sinon à une proposition entière — jamais à « … ».
  *
- * Les champs d'une direction artistique sont écrits pour être lus seuls ; posés
- * dans une cellule de page rognée, ils doivent tenir sans être coupés en plein
- * mot.
+ * Les champs d'une direction artistique sont écrits pour être lus seuls ; une page de charte ne montre pas un texte
+ * coupé en plein mot. Ce qui ne tient pas, même réduit à sa première proposition, n'est pas montré (`''`) : la page
+ * présente l'élément, pas sa description.
  */
 export function clip(text: string | undefined, max: number): string {
   const value = (text ?? '').replace(/\s+/g, ' ').trim();
@@ -62,9 +62,10 @@ export function clip(text: string | undefined, max: number): string {
     kept = `${kept} ${sentence}`.trim();
   }
   if (kept && /[.!?]$/.test(kept)) return kept;
-  const cut = value.slice(0, max);
-  const space = cut.lastIndexOf(' ');
-  return `${(space > max * 0.6 ? cut.slice(0, space) : cut).replace(/[,;:\s]+$/, '')}…`;
+  // Sinon la première proposition qui tient (avant « , ; : — ( »), assez longue pour dire quelque chose.
+  const clauses = [...value.slice(0, max + 1).matchAll(/[,;:(—–]/g)].map((m) => m.index ?? 0).filter((i) => i >= 12 && i <= max);
+  if (clauses.length) return value.slice(0, clauses[clauses.length - 1]).replace(/[\s,;:(—–-]+$/, '');
+  return '';
 }
 
 const MEDIUM_LABEL: Record<string, string> = {
@@ -94,7 +95,7 @@ function densityText(value: string | undefined): string {
   const trimmed = (value ?? '').trim();
   return /^(airy|balanced|dense)$/i.test(trimmed) || trimmed.length < 12
     ? DENSITY_LABEL[densityOf(trimmed)]
-    : clip(trimmed, 160);
+    : clip(trimmed, 60);
 }
 
 export function buildComposedCharterPages(ctx: ComposedPagesContext): Record<string, ComposedPage> {
@@ -138,10 +139,8 @@ export function buildComposedCharterPages(ctx: ComposedPagesContext): Record<str
       ],
     })),
 
+    // Les principes eux-mêmes (démonstrations dessinées par le code) : aucun chapô.
     'Art Direction Grammar': artDirectionPage('Art Direction Grammar', async (direction) => ({
-      lede: direction.graphicDevices.length
-        ? clip(`Éléments récurrents : ${direction.graphicDevices.slice(0, 2).join(', ')}.`, 90)
-        : undefined,
       blocks: [
         {
           kind: 'compositionPrinciples',
@@ -161,7 +160,6 @@ export function buildComposedCharterPages(ctx: ComposedPagesContext): Record<str
     'Art Direction Imagery': artDirectionPage('Art Direction Imagery', async (direction) => {
       const imageUrl = await ctx.imageryUrl();
       return {
-        lede: clip(direction.imagery.subjects, 90),
         blocks: [
           {
             kind: 'imageryShowcase',
@@ -187,8 +185,8 @@ export function buildComposedCharterPages(ctx: ComposedPagesContext): Record<str
             { label: 'Échelle typographique', value: clip(direction.typography.scaleContrast, 60) },
             { label: 'Casse', value: clip(direction.typography.caseAndTracking, 60) },
           ].filter((row) => row.value),
-          dos: direction.dos.slice(0, 3).map((rule) => clip(rule, 60)),
-          donts: direction.donts.slice(0, 3).map((rule) => clip(rule, 60)),
+          dos: direction.dos.map((rule) => clip(rule, 60)).filter(Boolean).slice(0, 3),
+          donts: direction.donts.map((rule) => clip(rule, 60)).filter(Boolean).slice(0, 3),
         },
       ],
     })),

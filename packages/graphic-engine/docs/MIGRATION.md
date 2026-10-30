@@ -1,5 +1,28 @@
 # Migrations du moteur graphique
 
+## 2.3.1 — couvertures, mots du contenu seul, lisibilité, images de la charte (30 octobre 2026)
+
+Sur un second jeu AgriLink (business plan et charte) :
+
+- **Les mots viennent du contenu** (`stripInventedText`) : tout texte écrit en dur par l'auteur (« SYS-1 »,
+  « SIGNATURE AGRILINK », « Exemple de citation », initiales d'avatars) est retiré par le code ; une boucle
+  `{{#each}}` renvoie la page à l'auteur.
+- **Lisibilité mesurée** : un paragraphe long composé à la taille d'un titre, ou serré dans une colonne étroite
+  (il s'étirait sur cinq pages du PDF), un texte posé sur un mockup, un graphique ou un logo — renvoyés à l'auteur.
+  Une carte vide avec une seule pastille d'icône compte comme un cadre vide ; un grand aplat de couleur de la marque,
+  non.
+- **Graphiques sans information** (toutes les valeurs égales, « TAM = SAM = SOM ») : non montrés.
+- **Couvertures** : une image du monde de la marque (`coverContent({ image })`, crans High et Ultra ou image du
+  projet) et une consigne de création propre à la couverture — jamais un petit texte centré sur une page vide.
+- **Images au traitement de la charte** (`DirectionInput.imagery`, `imageryMedium`) : le générateur reçoit le
+  médium et la consigne d'image de la direction artistique ; une marque non photographique ne reçoit jamais de
+  photo de banque.
+- **Charte** : plus de texte coupé par « … » (une proposition entière ou rien), plus de chapô sur les pages de
+  principes et d'image, trois points courts au plus à côté du logo, règles d'usage écrites avec les vraies polices
+  et couleurs.
+- **Finance** : un TRI sans flux positif est « non calculable » (il affichait 93 796 583 380 %) ; un point mort
+  au-delà de l'exercice est dit « non atteint ».
+
 ## 2.3 — travail divisé, ordre mesuré, l'essentiel et les graphiques garantis (30 octobre 2026)
 
 Sur des livrables réels (AgriLink, cran Ultra) : textes superposés, logos rognés, cadres et pastilles vides, faux

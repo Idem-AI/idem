@@ -324,6 +324,8 @@ export interface FluxTresorerieRow {
 export interface RatiosComputed {
   van: number;
   tri: number;
+  /** Faux : le TRI n'existe pas (aucun flux positif sur l'horizon) ; afficher « — ». */
+  triCalculable?: boolean;
   drci: number;
   indiceProfitabilite: number;
   dcf: {
@@ -401,6 +403,8 @@ export interface FinanceSummary {
   bfr: number;
   coutTotalProjet: number;
   tri: number;
+  /** Faux : le TRI n'existe pas (aucun flux positif sur l'horizon) ; afficher « — ». */
+  triCalculable?: boolean;
   van: number;
   alerts: string[];
 }

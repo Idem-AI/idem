@@ -379,7 +379,7 @@ export class FinancePdfService {
       `BESOIN DE FINANCEMENT (montant sollicité): ${Math.round(fp.besoinDeFinancement)}`,
       `Taux d'endettement: ${fp.tauxEndettementPct.toFixed(1)}%`,
       r.significant
-        ? `VAN ${Math.round(r.van)}, TRI ${r.tri.toFixed(1)}%, délai de récupération ${r.drci.toFixed(2)} ans, indice de profitabilité ${r.indiceProfitabilite.toFixed(2)}`
+        ? `VAN ${Math.round(r.van)}, TRI ${r.triCalculable === false ? 'non calculable' : `${r.tri.toFixed(1)}%`}, délai de récupération ${r.drci.toFixed(2)} ans, indice de profitabilité ${r.indiceProfitabilite.toFixed(2)}`
         : `VAN / TRI / indice de profitabilité NON SIGNIFICATIFS: ${r.significanceNote}`,
     ].join('\n');
 

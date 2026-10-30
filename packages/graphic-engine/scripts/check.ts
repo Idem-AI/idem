@@ -36,8 +36,8 @@ import { sectionHtml } from '../src/adapters/sections';
 import { BRANDS, CARD_BACK, CARD_FRONT, FINANCE_BP, MARKET } from './fixtures';
 import { TEXT_BUDGETS } from '../src/content/analyze';
 import { chartFromTable, parseFigure, withDataChart } from '../src/content/data-charts';
-import { sectionFromModel } from '../src/adapters/sections';
-import { resolveAssets } from '../src/asset-planner';
+import { coverContent, sectionFromModel } from '../src/adapters/sections';
+import { planAssets, resolveAssets } from '../src/asset-planner';
 
 const fast = process.argv.includes('--fast');
 let failures = 0;
@@ -52,7 +52,7 @@ const EX = path.resolve(__dirname, '../contracts/examples');
 const readJson = (rel: string) => JSON.parse(fs.readFileSync(path.join(EX, rel), 'utf8'));
 
 // ── L'auteur simulé : il place chaque clé reçue, et sait rendre une page vide ou une réponse sans HTML ─────
-type Mode = 'ok' | 'blank' | 'blank-once' | 'garbage' | 'down' | 'cut-once' | 'cut' | 'cover-once' | 'overlap-once' | 'empty-once' | 'decor-once' | 'crop-once' | 'tiny-once' | 'nochart-once';
+type Mode = 'ok' | 'blank' | 'blank-once' | 'garbage' | 'down' | 'cut-once' | 'cut' | 'cover-once' | 'overlap-once' | 'empty-once' | 'decor-once' | 'crop-once' | 'tiny-once' | 'nochart-once' | 'loud-once' | 'narrow-once' | 'invent' | 'loop-once' | 'iconcard-once';
 let mode: Mode = 'ok';
 const calls: Array<{
   role: string;
@@ -105,7 +105,7 @@ configureGraphicEngine({
         return '```html\n<div class="relative h-full w-full bg-ground p-[60px]"><h2 class="text-[48px] text-ink">{{title}}</h2><div class="absolute left-[40px] top-[40px] h-[200px] w-[900px] bg-brand-primary"></div></div>\n```';
       // Les pages désordonnées que le code mesure (une fois chacune, puis la page juste).
       if (!repair && mode === 'overlap-once')
-        return '```html\n<div class="relative h-full w-full bg-ground p-[60px]"><h2 class="absolute left-[60px] top-[80px] text-[48px] text-ink">{{title}}</h2><p class="absolute left-[60px] top-[90px] text-[40px] text-muted">Une seconde ligne posée dessus</p></div>\n```';
+        return '```html\n<div class="relative h-full w-full bg-ground p-[60px]"><h2 class="absolute left-[60px] top-[80px] text-[48px] text-ink">{{title}}</h2><p class="absolute left-[60px] top-[90px] text-[40px] text-muted">{{p1.paragraphs.0}}</p></div>\n```';
       if (!repair && mode === 'empty-once')
         return '```html\n<div class="flex h-full w-full flex-col gap-[24px] bg-ground p-[60px]"><h2 class="text-[48px] text-ink">{{title}}</h2><div class="flex gap-[24px]"><div class="h-[220px] w-[300px] rounded-[16px] bg-brand-soft"></div><div class="h-[220px] w-[300px] rounded-[16px] bg-brand-soft"></div></div></div>\n```';
       if (!repair && mode === 'decor-once')
@@ -116,6 +116,16 @@ configureGraphicEngine({
           ? `\`\`\`html\n<div class="flex h-full w-full flex-col bg-ground p-[60px]"><h2 class="text-[40px] text-ink">{{title}}</h2><div class="h-[60px] w-[500px] overflow-hidden"><img src="{{${url}}}" alt="" class="h-[500px] w-[500px]"></div></div>\n\`\`\``
           : `\`\`\`html\n<div class="flex h-full w-full flex-col bg-ground p-[60px]"><h2 class="text-[40px] text-ink">{{title}}</h2><img src="{{${url}}}" alt="" class="h-[30px] w-[30px] object-contain"></div>\n\`\`\``;
       }
+      if (!repair && mode === 'loud-once')
+        return '```html\n<div class="flex h-full w-full flex-col gap-[16px] bg-ground p-[40px]"><h2 class="text-[32px] text-ink">{{title}}</h2><p class="text-[30px] leading-[1.2] text-ink">{{p1.paragraphs.0}}</p></div>\n```';
+      if (!repair && mode === 'narrow-once')
+        return '```html\n<div class="flex h-full w-full flex-col gap-[16px] bg-ground p-[40px]"><h2 class="text-[32px] text-ink">{{title}}</h2><p class="w-[160px] text-[13px] text-ink">{{p1.paragraphs.0}}</p></div>\n```';
+      if (mode === 'invent')
+        return '```html\n<div class="flex h-full w-full flex-col gap-[16px] bg-ground p-[40px]"><p class="text-[12px] uppercase">SYS-1 · Signature de la marque</p><h2 class="text-[40px] text-ink">{{title}}</h2><p class="text-[16px]">« {{p1.paragraphs.0}} »</p><p class="text-[16px]">01</p></div>\n```';
+      if (!repair && mode === 'loop-once')
+        return '```html\n<div class="flex h-full w-full flex-col bg-ground p-[40px]"><h2 class="text-[40px] text-ink">{{title}}</h2>{{#each p1.paragraphs}}<p>{{this}}</p>{{/each}}</div>\n```';
+      if (!repair && mode === 'iconcard-once')
+        return '```html\n<div class="flex h-full w-full flex-col gap-[24px] bg-ground p-[60px]"><h2 class="text-[48px] text-ink">{{title}}</h2><p>{{p1.paragraphs.0}}</p><div class="flex gap-[24px]"><div class="relative h-[220px] w-[300px] rounded-[16px] border border-rule"><idem-icon name="check" class="absolute bottom-[12px] left-[12px] size-[14px]"></idem-icon></div><div class="relative h-[220px] w-[300px] rounded-[16px] border border-rule"><idem-icon name="check" class="absolute bottom-[12px] left-[12px] size-[14px]"></idem-icon></div></div></div>\n```';
       if (!repair && mode === 'nochart-once') return '```html\n<div class="flex h-full w-full flex-col bg-ground p-[60px]"><h2 class="text-[40px] text-ink">{{title}}</h2></div>\n```';
       if (mode === 'cut' || (mode === 'cut-once' && !repair))
         return '```html\n<div class="relative h-full w-full bg-ground p-[40px]"><h2 class="absolute left-[40px] top-[1050px] text-[48px]">{{title}}</h2></div>\n```';
@@ -1052,6 +1062,33 @@ async function main(): Promise<void> {
     { generationLeft: 0 }
   );
   ok('business plan : jamais un cliché de banque d’images (une vraie image du projet, une image faite pour lui, ou rien)', stock.resolved.length === 0);
+
+  section('§9 ter Les mots viennent du contenu ; un texte long se lit au corps du texte');
+  const long: SectionContent = { id: 'long', title: 'Une page de texte', blocks: [{ id: 'p1', kind: 'prose', paragraphs: [Array.from({ length: 60 }, (_, i) => `mot${i}`).join(' ')] }] };
+  const loud = await fixedBy('loud-once', long);
+  ok('un paragraphe long à la taille d’un titre : renvoyé (corps du texte)', loud.out.result.repairs.some((x) => x.code === 'render_fix') && /long text is set at title size/.test(loud.prompt));
+  const narrowCol = await fixedBy('narrow-once', long);
+  ok('un paragraphe long serré dans une colonne étroite : renvoyé (largeur de lecture)', narrowCol.out.result.repairs.some((x) => x.code === 'render_fix') && /squeezed into a narrow column/.test(narrowCol.prompt));
+  const invented = await fixedBy('invent', plain);
+  ok(
+    'texte écrit en dur par l’auteur (« SYS-1 · Signature… ») : retiré par le code, la ponctuation et les numéros restent',
+    !/SYS-1|Signature/.test(invented.out.result.html) && invented.out.result.html.includes('Un paragraphe.') && invented.out.result.html.includes('01') && invented.out.result.issues.some((i) => i.code === 'invented_text_removed')
+  );
+  const looped = await fixedBy('loop-once', plain);
+  ok('une boucle de gabarit ({{#each}}) : renvoyée, l’auteur écrit chaque clé', looped.out.result.repairs.some((x) => x.code === 'render_fix') && /template loops/.test(looped.prompt) && !looped.out.result.html.includes('{{'));
+  const iconCards = await fixedBy('iconcard-once', plain);
+  ok('des cartes vides avec une seule pastille d’icône : des cadres vides, renvoyés', iconCards.out.result.repairs.some((x) => x.code === 'render_fix') && /empty frames/.test(iconCards.prompt));
+  const flat = sectionFromModel({ title: 'Marché', blocks: [{ kind: 'chart', chartType: 'bar', labels: ['TAM', 'SAM', 'SOM'], series: [{ name: 'Taille', data: [2000, 2000, 2000] }], readingKey: 'À préciser.' }, { kind: 'prose', paragraphs: ['Le marché.'] }] }, { id: 'mk' });
+  ok('un graphique aux valeurs toutes égales (« à préciser ») n’est pas montré', Boolean(flat.section && !flat.section.blocks.some((b) => b.kind === 'chart')));
+  const cover = coverContent({ brandName: 'Kora', documentLabel: 'Business plan', image: { subject: 'the world of Kora' } });
+  ok('couverture : l’image du monde de la marque est demandée au planificateur (au traitement de la charte)', cover.intent?.visualStrategy === 'illustration' && cover.intent.image?.subject === 'the world of Kora' && planAssets(cover, FORMATS['a4-portrait']).some((r) => r.role === 'illustration'));
+  const vector = await resolveAssets(
+    [{ assetId: 'c.illustration', role: 'illustration', purpose: 'cover', subject: 'the world of Kora', aspectRatio: 1, safeArea: 'none', sources: ['user', 'project', 'generated', 'stock'], fallback: 'skip', target: {} }],
+    { stock: { resolve: async () => ({ url: 'https://stock/photo.jpg', alt: 'x', provenance: { provider: 'stock' } }) } },
+    { level: 'medium', documentType: 'pitch-deck', imageryMedium: 'illustration' },
+    { generationLeft: 0 }
+  );
+  ok('une marque dont la charte n’est pas photographique ne reçoit jamais une photo de banque', vector.resolved.length === 0);
 }
 
 main()

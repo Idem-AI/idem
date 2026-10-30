@@ -68,9 +68,10 @@ export function sectionFromModel(raw: unknown, o: SectionFromModelOptions): Sect
   }
   const model = input ? normalizeSection(input, { id: o.id, role: o.role, allow: o.allow ?? 'model', intent: o.intent }) : { section: null, notes: [] as Issue[] };
   if (!model.section) return { section: null, notes: model.notes, salvaged };
-  // Un chiffre-clé sans chiffre (« Échec », un libellé recopié dans la valeur) n'est pas montré comme un indicateur.
+  // Un chiffre-clé sans chiffre (« Échec », un libellé recopié dans la valeur) n'est pas montré comme un indicateur,
+  // ni un graphique dont toutes les valeurs sont égales.
   const figures = figuresOnly(model.section.blocks);
-  if (figures.dropped.length) model.notes.push({ code: 'metric_without_figure', severity: 'advisory', message: `Chiffres-clés sans chiffre retirés : ${figures.dropped.slice(0, 4).join(', ')}`.slice(0, 380) });
+  if (figures.dropped.length) model.notes.push({ code: 'metric_without_figure', severity: 'advisory', message: `Chiffres-clés sans chiffre ou graphiques sans information retirés : ${figures.dropped.slice(0, 4).join(', ')}`.slice(0, 380) });
   const blocks = [...systemBlocks(o.prepend ?? [], 'sys'), ...figures.blocks, ...systemBlocks(o.append ?? [], 'ref')];
   const composed = o.compose ? o.compose(blocks) : blocks;
   const headed: Record<string, unknown> = { ...model.section, blocks: composed };
@@ -100,7 +101,7 @@ export function sectionHtml(out: Pick<SectionOutput, 'result'>): string {
 // ── Les toiles qui ne sont pas rédigées en sections ─────────────────────────────────────────
 
 /** La couverture d'un livrable : le nom, ce qu'il est, sa promesse — des mots, jamais une mise en page. */
-export function coverContent(o: { id?: string; brandName: string; documentLabel: string; kicker?: string; promise?: string; detail?: string; dateLabel?: string }): SectionContent {
+export function coverContent(o: { id?: string; brandName: string; documentLabel: string; kicker?: string; promise?: string; detail?: string; dateLabel?: string; image?: { subject: string; framing?: string; mood?: string } }): SectionContent {
   const clip = (v: string | undefined, max: number) => (v && v.trim() ? v.trim().slice(0, max) : undefined);
   const block = {
     id: 'cover',
@@ -112,7 +113,10 @@ export function coverContent(o: { id?: string; brandName: string; documentLabel:
     ...(clip(o.detail, 80) ? { detail: clip(o.detail, 80) } : {}),
     ...(clip(o.dateLabel, 40) ? { dateLabel: clip(o.dateLabel, 40) } : {}),
   };
-  return { id: o.id ?? 'cover', role: 'cover', title: block.brandName, blocks: [block] };
+  // L'image de la couverture (le monde de la marque, au traitement de sa charte) : faite aux crans qui la paient,
+  // reprise du projet sinon ; sans elle, la couverture se compose avec la marque seule.
+  const image = o.image?.subject?.trim() ? { subject: o.image.subject.trim().slice(0, 240), ...(o.image.framing ? { framing: o.image.framing.slice(0, 80) } : {}), ...(o.image.mood ? { mood: o.image.mood.slice(0, 80) } : {}) } : undefined;
+  return { id: o.id ?? 'cover', role: 'cover', title: block.brandName, blocks: [block], ...(image ? { intent: { visualStrategy: 'illustration' as const, image } } : {}) };
 }
 
 /**

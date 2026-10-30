@@ -20,7 +20,7 @@ import { cacheService } from '../cache.service';
 import { composeSlideBrief, SLIDE_VISUAL_PLANS } from './prompts/slide-briefs.prompt';
 import { CoverBriefService } from '../common/coverBrief.service';
 import { buildFinanceBlocks } from '../Finance/finance-blocks';
-import { composeGraphicPage, coverDateLabel, GenerationJournal, openGraphicDocument, pageComposition, pageId, speakerNotesHtml, withProjectArtDirection } from '../graphic/graphic.service';
+import { composeGraphicPage, coverDateLabel, coverImage, GenerationJournal, openGraphicDocument, pageComposition, pageId, speakerNotesHtml, withProjectArtDirection } from '../graphic/graphic.service';
 import type { PitchDeckAudience } from './deck-types';
 
 /** Mention de destinataire sur la couverture du deck. */
@@ -335,6 +335,7 @@ export class PitchDeckService extends GenericService {
                 promise: brief.promise,
                 detail: DECK_AUDIENCE_LABEL[deckType.audience],
                 dateLabel: coverDateLabel(),
+                image: coverImage(project),
               }),
               position
             );

@@ -30,7 +30,7 @@ import { ENGINE_VERSION, COMPONENT_LIBRARY_VERSION } from './version';
 import { authorSystem, authorUser, DocumentContext, DocumentPlan, languagePrompt, pageDirectorPrompt, parseLanguage, parsePageDirection, parsePlan, planPrompt, PlannedPage, ReferenceComposition, RepairStrategy, repairUser, reviseUser, toolLines } from './author/prompts';
 import { callModel, levelUp } from './author/model';
 import { buildContentMap, ContentMap, fixBrandNameTypos } from './runtime/content-map';
-import { expandPage, extractHtml, sanitizeHtml, withSize } from './runtime/expand';
+import { expandPage, extractHtml, sanitizeHtml, stripInventedText, withSize } from './runtime/expand';
 import { compileTailwind } from './runtime/tailwind';
 import { checkRender, QualityFrame } from './runtime/check';
 
@@ -410,6 +410,13 @@ export class GraphicDocument {
     const clean = sanitizeHtml(raw);
     if (!clean.html.trim()) return { ok: false, error: 'the page is empty after removing what is not allowed (scripts, styles, external resources)', template: clean.html };
     const issues: Issue[] = [];
+    // Les mots viennent du contenu : le texte écrit en dur par l'auteur est retiré (dit dans les constats).
+    const words = stripInventedText(clean.html);
+    if (words.loops) return { ok: false, error: 'template loops ({{#each}}, {{/each}}) do not exist here: write every content key explicitly, one element per item', template: clean.html };
+    if (words.removed.length) {
+      clean.html = words.html;
+      issues.push({ code: 'invented_text_removed', severity: 'advisory', message: `Texte écrit par l'auteur hors contenu, retiré : ${words.removed.slice(0, 6).join(' · ')}`.slice(0, 380) });
+    }
     if (clean.nativeCss) issues.push({ code: 'native_css_removed', severity: 'advisory', message: `${clean.nativeCss} style(s) CSS natif(s) retiré(s) : la page est en Tailwind.` });
     const page = expandPage(clean.html, map, this.tokens, this.format, { sectionId, locale: this.options.locale ?? 'fr', engine: ENGINE_VERSION });
     if (page.unknown.length) issues.push({ code: 'unknown_keys', severity: 'advisory', message: `Clés inconnues ignorées : ${page.unknown.slice(0, 8).join(', ')}` });
@@ -460,7 +467,7 @@ export class GraphicDocument {
     const resolution = await resolveAssets(
       requirements,
       host.assetProviders ?? {},
-      { level: this.policy.level, documentType: this.options.documentType, locale: this.options.locale, userId: this.options.user?.userId, projectId: this.options.user?.projectId, brandName: this.options.brand.name, styleId: this.options.direction?.styleId, keywords: this.options.direction?.keywords },
+      { level: this.policy.level, documentType: this.options.documentType, locale: this.options.locale, userId: this.options.user?.userId, projectId: this.options.user?.projectId, brandName: this.options.brand.name, styleId: this.options.direction?.styleId, keywords: this.options.direction?.keywords, ...(this.options.direction?.imagery ? { imagery: this.options.direction.imagery } : {}), ...(this.options.direction?.imageryMedium ? { imageryMedium: this.options.direction.imageryMedium } : {}) },
       { generationLeft: Math.max(0, GENERATION_CAP[this.policy.level] - this.generatedAssets), registry: host.assetRegistry }
     );
     this.generatedAssets += resolution.generated;

@@ -2,7 +2,7 @@
  * LES CHIFFRES MONTRÉS, garantis par le code :
  *
  *   · `figuresOnly`   un chiffre-clé est un CHIFFRE : un « chiffre » sans chiffre (« Échec », un libellé recopié
- *                     dans la valeur) n'est pas montré comme un indicateur ;
+ *                     dans la valeur) n'est pas montré comme un indicateur, ni un graphique aux valeurs toutes égales ;
  *   · `withDataChart` une section de business plan qui porte un tableau de chiffres mais aucun graphique reçoit
  *                     le graphique de ce tableau — mêmes valeurs, tracées par Chart.js ; aucune donnée inventée.
  */
@@ -16,6 +16,15 @@ export function figuresOnly(blocks: Block[]): { blocks: Block[]; dropped: string
   const dropped: string[] = [];
   const out: Block[] = [];
   for (const block of blocks) {
+    // Un graphique dont toutes les valeurs sont égales (ou nulles) ne dit rien : des chiffres de remplissage
+    // (« TAM = SAM = SOM = 2 000 » quand la taille est « à préciser »). Il n'est pas montré.
+    if (block.kind === 'chart') {
+      const values = block.series.flatMap((s) => s.data);
+      if (values.length > 1 && values.every((v) => v === values[0])) {
+        dropped.push(block.title ?? 'graphique sans information');
+        continue;
+      }
+    }
     if (block.kind !== 'metrics') {
       out.push(block);
       continue;

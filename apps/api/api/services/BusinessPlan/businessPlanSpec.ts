@@ -39,13 +39,14 @@ export interface BusinessPlanSpecContext {
 /**
  * Les sections qui montrent une IMAGE (aérer, faire voir l'activité) — trois au plus, choisies pour ce qu'elles
  * racontent : l'entreprise au travail, ce qu'elle vend en usage, ses clients chez eux. Jamais l'équipe : on ne
- * fabrique pas le visage d'une personne réelle ; ses vraies photos passent par le registre du projet.
+ * fabrique pas le visage d'une personne réelle ; ses vraies photos passent par le registre du projet. Le style de
+ * l'image (médium, traitement) vient de la charte, pas d'ici.
  */
 const IMAGE_SECTIONS: Record<string, (project: string) => { subject: string; framing?: string; mood?: string }> = {
-  'company-summary': (project) => ({ subject: `the activity of this business, in its real setting: ${project}`, framing: 'wide shot', mood: 'natural daylight, credible, no staged smiles' }),
-  'products-services': (project) => ({ subject: `the product or service of this business in use by a real customer: ${project}`, framing: 'medium shot on the use', mood: 'natural, precise' }),
-  solution: (project) => ({ subject: `the solution of this business in use by a real customer: ${project}`, framing: 'medium shot on the use', mood: 'natural, precise' }),
-  'target-audience': (project) => ({ subject: `the customers of this business in their daily context: ${project}`, framing: 'environmental portrait', mood: 'natural daylight, respectful' }),
+  'company-summary': (project) => ({ subject: `the activity of this business, in its real setting: ${project}` }),
+  'products-services': (project) => ({ subject: `the product or service of this business in use by a customer: ${project}` }),
+  solution: (project) => ({ subject: `the solution of this business in use by a customer: ${project}` }),
+  'target-audience': (project) => ({ subject: `the customers of this business in their daily context: ${project}` }),
 };
 const MAX_IMAGE_SECTIONS = 3;
 

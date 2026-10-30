@@ -32,6 +32,10 @@ export interface AssetContext {
   brandName?: string;
   styleId?: string;
   keywords?: string[];
+  /** Le traitement de l'image de la charte : une image générée le suit (médium, traitement, lumière). */
+  imagery?: string;
+  /** Le médium de la charte : une banque de photos ne sert qu'une marque photographique. */
+  imageryMedium?: string;
 }
 
 /** Un fournisseur de médias, branché par l'hôte pour UNE source. `null` : rien trouvé (on passe au suivant). */
@@ -242,6 +246,8 @@ export async function resolveAssets(requirements: AssetRequirement[], providers:
       // Un dossier financier ne montre jamais un cliché de banque d'images : une vraie image du projet, une image
       // faite pour lui dans le style de la charte, ou rien.
       if (source === 'stock' && ctx.documentType === 'business-plan') continue;
+      // Une banque de PHOTOS ne sert qu'une marque dont la charte est photographique.
+      if (source === 'stock' && ctx.imageryMedium && !['photography', 'mixed'].includes(ctx.imageryMedium)) continue;
       const provider = all[source];
       if (!provider) continue;
       try {

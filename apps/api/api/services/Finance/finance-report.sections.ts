@@ -998,7 +998,7 @@ export function ratiosSection(c: ReportChrome, finance: FinanceModel): string {
     ${grid(
       [
         stat(c, 'Valeur actuelle nette', compact(r.van, c.currency), `Taux d'actualisation ${pct(finance.ratiosParams.vanDiscountRatePct, 0)}`),
-        stat(c, 'Taux de rentabilité interne', r.significant ? pct(r.tri) : 'n. s.'),
+        stat(c, 'Taux de rentabilité interne', !r.significant ? 'n. s.' : r.triCalculable === false ? 'non calculable' : pct(r.tri)),
         stat(
           c,
           'Délai de récupération',

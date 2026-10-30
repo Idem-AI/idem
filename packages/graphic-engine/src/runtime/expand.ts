@@ -85,6 +85,32 @@ export function sanitizeHtml(input: string): Sanitized {
   return { html: html.trim(), nativeCss, removed };
 }
 
+/**
+ * Les MOTS de la page viennent du contenu, jamais de l'auteur : un texte écrit en dur dans le code (« SYS-1 »,
+ * « SIGNATURE AGRILINK », « Exemple de citation », une initiale dans un faux avatar) est retiré par le code. Seuls
+ * restent, hors des clés, les signes sans lettre (numéros d'étapes, guillemets, ponctuation). Une boucle de gabarit
+ * (`{{#each}}`) n'existe pas ici : elle est signalée pour que l'auteur écrive chaque clé.
+ */
+export function stripInventedText(html: string): { html: string; removed: string[]; loops: boolean } {
+  const removed: string[] = [];
+  const loops = /\{\{\s*[#/^]/.test(html);
+  const KEY = /(\{\{\s*[\w.:-]+\s*\}\})/;
+  const out = html.replace(/>([^<]+)</g, (_m, text: string) => {
+    const kept = text
+      .split(KEY)
+      .map((part, i) => {
+        if (i % 2 === 1) return part;
+        const letters = part.replace(/&(#\d+|#x[\da-f]+|[a-z]+);/gi, ' ');
+        if (!/\p{L}/u.test(letters)) return part;
+        removed.push(part.trim().slice(0, 40));
+        return part.replace(/\S+/g, '').replace(/\s+/g, ' ');
+      })
+      .join('');
+    return `>${kept}<`;
+  });
+  return { html: out, removed, loops };
+}
+
 export interface Expanded {
   /** La page complète : la racine `.ge-page` et son contenu. */
   html: string;
