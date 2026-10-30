@@ -107,13 +107,13 @@ export function buildContentMap(section: SectionContent, bindings: 'values' | 'm
       continue;
     }
     if (block.kind === 'contact') {
-      // L'essentiel par face : le recto montre la marque (le logo, sa signature au plus), le verso la personne et
-      // ses coordonnées. Les dix champs sur chaque face donnaient deux cartes chargées et identiques.
+      // Le recto porte la marque, le verso la personne et ses coordonnées (les dix champs sur chaque face donnaient
+      // deux faces identiques). La disposition de chaque face reste celle de l'auteur.
       const fields = CARD_FIELDS.filter((f) => CARD_SIDE_FIELDS[block.side ?? 'back'].includes(f));
       lines.push(
         block.side === 'front'
-          ? `\n# block ${block.id} — business card FRONT: the brand logo, large, and nothing else${fields.length ? ' but the tagline below (in its own element with data-field="tagline")' : ''}.`
-          : `\n# block ${block.id} — business card BACK: the holder and their contacts, one line each, aligned; the logo small. Each field in its own element with data-field="<field>":`
+          ? `\n# block ${block.id} — business card FRONT: the brand face${fields.length ? ' (its tagline in its own element with data-field="tagline")' : ''}.`
+          : `\n# block ${block.id} — business card BACK: the holder and their contacts. Each field in its own element with data-field="<field>":`
       );
       for (const field of fields) {
         const value = block.fields[field];
@@ -126,7 +126,7 @@ export function buildContentMap(section: SectionContent, bindings: 'values' | 'm
       continue;
     }
     if (block.kind === 'patternGrid') lines.push(`\n# block ${block.id} — the brand's REAL patterns: draw each one with <idem-pattern-tile data-block="${block.id}" data-index="N" class="h-[…] w-full"></idem-pattern-tile> (never a flat colour), its name below`);
-    else lines.push(`\n# block ${block.id} — ${block.kind}${block.origin === 'system' ? ' (exact data: keep every item)' : ''}${LOGO_KINDS.has(block.kind) ? ' — THE LOGO IS THE HERO OF THIS PAGE: show each logo image very large (a single logo ≥ 40% of the page width), on its intended ground, with generous clear space; the texts stay short captions' : ''}`);
+    else lines.push(`\n# block ${block.id} — ${block.kind}${block.origin === 'system' ? ' (exact data: keep every item)' : ''}${LOGO_KINDS.has(block.kind) ? ' — the logo is the subject of this page: show it large, on its intended ground' : ''}`);
     walk(block.id, block);
   }
   return { entries, primitives, blocks: new Map(section.blocks.map((b) => [b.id, b])), markers, listing: lines.join('\n').trim() };

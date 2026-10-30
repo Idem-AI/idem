@@ -1,5 +1,23 @@
 # Migrations du moteur graphique
 
+## 2.2.1 — retour à la composition libre (30 octobre 2026)
+
+Retour à la logique du 15/10/2026 à 0 h 42 (`1231240c5`) : l'IA compose chaque page, le cran choisit le modèle
+(`graphic.director` sur l'échelle « design », `graphic.author` sur l'échelle « code »), aucun gabarit. Retirés :
+
+- le gabarit des pages d'actif (`runtime/asset-page.ts`) : logo, déclinaisons, motifs, palette, typographie et
+  mockups repassent par l'auteur, avec leurs outils exacts ;
+- la consigne « sobre et essentielle » (un seul signe graphique par page, aucun sur une page d'actif) et le
+  langage de marque qui ramenait tout style expressif à des règles sobres ;
+- côté API : les pages de spécimen sans texte de la charte, les textes de direction artistique coupés à
+  60 signes, les règles d'usage réduites à 4 cartes, le régime des slides (`slideEssentials`, 2 blocs, sans
+  chapô) et les budgets de texte resserrés ; les consignes de disposition de la carte de visite.
+
+Gardé : les corrections faites depuis (Chart.js, adresses jamais imprimées, indications techniques sans clé,
+tuiles de motif réelles, galerie de mockups, texte recouvert détecté, taille du logo selon la toile, modèle du
+client, recherche gardée du business plan). La version 3 (grammaire d'archétypes) reste sur sa branche
+`feat/graphic-engine-v3`, non fusionnée.
+
 ## 2.2 — retouche et remise en page sans réécriture, export PowerPoint (15 octobre 2026)
 
 - Le document garde le contenu et le code de chaque page (`page(id)`) ; IDEM les enregistre dans

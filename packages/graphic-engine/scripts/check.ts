@@ -34,7 +34,6 @@ import { applyTextEdits } from '../src/runtime/content-map';
 import { exportPptx } from '../src/export/pptx';
 import { sectionHtml } from '../src/adapters/sections';
 import { BRANDS, CARD_BACK, CARD_FRONT, FINANCE_BP, MARKET } from './fixtures';
-import { slideEssentials } from '../src/content/slide-diet';
 import { TEXT_BUDGETS } from '../src/content/analyze';
 
 const fast = process.argv.includes('--fast');
@@ -63,7 +62,7 @@ const fakePage = (user: string): string => {
   const keys = [...user.matchAll(/^\{\{([\w.:-]+)\}\} = /gm)]
     .map((m) => m[1])
     .filter((k) => !['kicker', 'title', 'lede'].includes(k));
-  const prims = [...user.matchAll(/<idem-(chart|table) data-block="([^"]+)">/g)].map(
+  const prims = [...user.matchAll(/<idem-(chart|table|gallery) data-block="([^"]+)">/g)].map(
     (m) => `<idem-${m[1]} data-block="${m[2]}" class="w-full text-[12px]"></idem-${m[1]}>`
   );
   const body = `<p class="text-[12px] uppercase text-brand-primary">{{kicker}}</p><h2 class="font-display text-[36px] font-bold text-ink">{{title}}</h2><p class="text-muted">{{lede}}</p>${keys.map((k) => `<p data-field="${k}" class="text-[12px]">{{${k}}}</p>`).join('')}${prims.join('')}<idem-logo class="h-[20px]"></idem-logo>`;
@@ -446,70 +445,6 @@ async function main(): Promise<void> {
       /nothing cut by the edge/.test(sys)
   );
 
-  section('§7 quinquies L’essentiel d’une slide, garanti par le code');
-  const heavy: SectionContent = {
-    id: 'fin',
-    title: 'Le chiffre d’affaires triple en trois ans',
-    lede: 'Une explication de trop.',
-    blocks: [
-      {
-        id: 'a1',
-        kind: 'assumption',
-        statement: 'Panier moyen stable',
-        basis: 'Observé sur six mois.',
-      },
-      {
-        id: 'c1',
-        kind: 'chart',
-        chartType: 'bar',
-        labels: ['2026', '2027', '2028'],
-        series: [{ name: 'CA', values: [10, 20, 30] }],
-      },
-      {
-        id: 'p1',
-        kind: 'points',
-        items: [
-          { label: 'Un' },
-          { label: 'Deux' },
-          { label: 'Trois' },
-          { label: 'Quatre' },
-          { label: 'Cinq' },
-        ],
-      },
-      { id: 'q1', kind: 'quote', text: 'Une citation en plus.' },
-    ],
-  } as SectionContent;
-  const lean = slideEssentials(heavy, { budget: TEXT_BUDGETS.data }).section;
-  ok(
-    'ni chapô, deux blocs au plus (la donnée d’abord), quatre points au plus',
-    !lean.lede &&
-      lean.blocks.map((b) => b.id).join() === 'c1,p1' &&
-      (lean.blocks[1] as { items: unknown[] }).items.length === 4
-  );
-  ok(
-    'rien n’est perdu : ce qui quitte la slide passe dans les notes de l’orateur',
-    ['Une explication de trop.', 'Panier moyen stable', 'Une citation en plus.', 'Cinq'].every(
-      (t) => lean.notes?.includes(t)
-    )
-  );
-  ok(
-    'une slide déjà sobre reste intacte',
-    JSON.stringify(slideEssentials(MARKET).section.blocks) === JSON.stringify(MARKET.blocks)
-  );
-  ok(
-    'consigne de la carte : l’essentiel par face, sans icône ni forme',
-    /BUSINESS CARD shows only the essential/.test(
-      authorSystem({
-        documentType: 'business-card',
-        locale: 'fr',
-        tokens: kora,
-        format: FORMATS['card-landscape'],
-        allowDark: false,
-        bindings: 'markers',
-      })
-    )
-  );
-
   section('§7 quater Défauts relevés sur une charte réelle (15/10/2026)');
   const charter: SectionContent = {
     id: 'logos',
@@ -555,8 +490,8 @@ async function main(): Promise<void> {
       /background: dark/.test(cm.listing)
   );
   ok(
-    'page de logo : le logo est désigné comme le héros de la page',
-    /THE LOGO IS THE HERO/.test(cm.listing)
+    'page de logo : le logo est désigné comme le sujet de la page, sans gabarit imposé',
+    /the logo is the subject of this page/.test(cm.listing)
   );
   const urlText = expandPage(
     '<p>{{sys-1.variants.0.url}}</p><img src="{{sys-1.variants.0.url}}">',
@@ -757,7 +692,7 @@ async function main(): Promise<void> {
         )
   );
 
-  section('§8 ter Pages d’actif de la charte : dessinées par le code, l’actif en très grand');
+  section('§8 ter Pages d’actif de la charte : composées par l’auteur, aucun gabarit');
   const img =
     'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIvPg==';
   const book = await createDocument({
@@ -854,30 +789,24 @@ async function main(): Promise<void> {
     ],
   });
   const assets = [symbol, posts, tiles, palette, scale];
+  const assetAuthors = calls.filter((c) => c.role === 'graphic.author' && !c.repair);
   ok(
-    'aucun appel de modèle : logo, mockups, motifs, palette et échelle sont posés par le code',
-    calls.length === 0 && assets.every((o) => o.result.repairs.some((r) => r.code === 'asset_page'))
+    'chaque page d’actif est composée par l’auteur (logo, mockups, motifs, palette, échelle) : aucun gabarit du code',
+    assetAuthors.length >= assets.length && !assets.some((o) => o.result.repairs.some((r) => r.code === 'asset_page'))
   );
   ok(
-    'symbole seul : une seule image, sans légende ni tuile ajoutée',
-    (symbol.result.html.match(/<img (?!data-ge-logo)/g) ?? []).length === 1 &&
-      !symbol.result.html.includes('Icône')
+    'l’auteur reçoit les outils exacts de l’actif : le logo à montrer en grand, les vraies tuiles de motif, la galerie de mockups',
+    assetAuthors.some((c) => c.user.includes('the logo is the subject of this page')) &&
+      assetAuthors.some((c) => c.user.includes('<idem-pattern-tile data-block="sys-1"')) &&
+      assetAuthors.some((c) => c.user.includes('<idem-gallery data-block="sys-1">'))
   );
   ok(
-    'mockups : entiers, sans cadre ni légende ni emplacement réservé',
-    (posts.result.html.match(/flex-1 object-contain/g) ?? []).length === 2 &&
-      !/LinkedIn|Facebook|réservé/.test(posts.result.html.replace(/ alt="[^"]*"/g, ''))
+    'mockups : posés par la galerie du code (images entières)',
+    (posts.result.html.match(/<img /g) ?? []).length >= 2
   );
   ok(
-    'motifs : les vrais motifs du projet en tuiles, rien d’autre',
-    tiles.result.html.includes('Motif principal') &&
-      tiles.result.html.includes('background-image') &&
-      !/Supports autorisés|Usage interdit/.test(tiles.result.html)
-  );
-  ok(
-    'palette et échelle : codes exacts, tailles réelles du document',
-    palette.result.html.includes('#1B5E20') &&
-      scale.result.html.includes(`${Math.round(book.tokens.size['3xl'])} px`)
+    'palette : codes exacts recopiés par le code',
+    palette.result.html.includes('#1B5E20')
   );
   ok(
     'aucun constat bloquant sur les pages d’actif',

@@ -132,27 +132,12 @@ son langage) — jamais de cercles, taches, halos, dégradés, ombres, émojis, 
 peu de corps, les polices de la marque, la couleur avec intention. C'est une consigne d'écriture : aucun contrôle
 esthétique ne la vérifie.
 
-La règle d'or : **montrer l'essentiel** — le contenu et rien d'autre (ni tuile d'exemple, ni emplacement réservé,
-ni cadre d'écran autour d'une image, ni badge), au plus un signe graphique par page, motif à 10 % d'opacité au plus.
-
-### Les pages d'actif : dessinées par le code (`src/runtime/asset-page.ts`)
-
-Une page fixe (slide ou A4) dont l'unique bloc est un actif de la marque — `logoStory`, `logoDisplay`,
-`patternGrid`, `mockupShowcase`, `swatches`, `typeScale` — ne passe pas par l'auteur, à aucun cran : le code pose
-le titre, puis l'actif en très grand sur toute la place qui reste. Le logo et sa description courte ; l'icône seule ;
-une seule déclinaison par page ; les vrais motifs du projet en tuiles avec leur nom ; les mockups entiers, sans
-cadre ni légende ; la palette en aplats avec nom, code et rôle ; l'échelle typographique à ses tailles réelles.
-Décision du 15/10/2026, après des chartes où l'auteur ajoutait tuiles inventées, cadres et logos minuscules.
-Les textes restent des clés : ces pages se rejouent et se retouchent comme les autres.
-
-### L'essentiel du pitch deck et de la carte de visite
-
-- **Slide** (`slideEssentials`, `src/content/slide-diet.ts`, appelé par l'API avant chaque slide) : pas de chapô,
-  deux blocs au plus (la donnée d'abord : graphique › chiffres › tableau › points ; l'explication en dernier),
-  trois ou quatre points au plus, puis le régime de texte. Ce qui quitte la slide part dans les notes de
-  l'orateur : rien n'est perdu. Budgets resserrés (`TEXT_BUDGETS`) : ~25 mots hors titre.
-- **Carte** : l'essentiel par face, dans la matière même — le recto ne reçoit que la signature (le logo en
-  grand), le verso la personne et ses coordonnées ; ni icône, ni forme, ni QR code.
+**Aucun gabarit** : toutes les pages, celles qui montrent un actif de la marque comprises (logo, déclinaisons,
+motifs, palette, typographie, mockups), sont composées par l'auteur. Le code lui donne les outils exacts
+(`<idem-logo>`, `<idem-pattern-tile>`, `<idem-gallery>`, les codes des couleurs recopiés par les clés) et vérifie
+seulement l'affichage. Le gabarit des pages d'actif (15/10/2026), le régime « essentiel » des slides et les
+consignes de disposition de la carte ont été retirés le 30/10/2026 : ils donnaient la même mise en page à tous
+les projets.
 
 ## Ce que l'auteur reçoit (contexte compact, identique à tous les crans)
 

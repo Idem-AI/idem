@@ -47,7 +47,7 @@ export interface DocumentContext {
 const DELIVERABLE: Record<DocumentType, string> = {
   'pitch-deck': 'a slide of an investor pitch deck — one idea per slide, read in seconds on a screen',
   'business-plan': 'a page of a printed business plan — read closely by bankers and investors',
-  'brand-charter': "a page of the brand's identity guidelines (brand book) — clean like a specimen sheet: the asset it shows (logo, colours, type, pattern, mockups) is the hero, very large; text is a short caption",
+  'brand-charter': "a page of the brand's identity guidelines (brand book) — it shows the brand system itself, exactly",
   'business-card': 'one face of a printed business card (85 × 55 mm)',
   flyer: 'a flyer / social-media visual — one message, understood at a glance',
   chart: 'a standalone chart',
@@ -155,11 +155,7 @@ function logoPlacementLine(ctx: DocumentContext): string {
 
 function professionalLines(ctx: DocumentContext): string {
   return [
-    'PROFESSIONAL STANDARD — a business document, designed by a senior studio. Sober and essential, whatever the brand style:',
-    '- One focal element per page. The rest is quiet: white space, alignment, a few sizes.',
-    '- At most ONE graphic device per page (a rule, a band, a corner of pattern), even if the brand language asks for collage, layers or shadows. None on a page that shows a brand asset (logo, palette, type, pattern, mockups, photos). No drop shadows, no rotations, no stacked squares.',
-    '- Nothing ever overlaps a text: shapes, images and panels sit beside or behind it with full contrast, never across it.',
-    '- Each image once on a page; never repeat the same picture.',
+    'PROFESSIONAL STANDARD — a business document, designed by a senior studio:',
     '- Hierarchy does the work: size, weight, spacing and alignment on a clear grid. Generous, consistent margins.',
     '- Decoration only when it carries the brand (its logo, its pattern, the graphic devices of its visual language). Never random circles, blobs, glows, gradients, drop shadows, emojis, ornaments, tilted text or filler shapes.',
     '- Few type sizes, the brand fonts only. Colour with intent: mostly ground and ink, brand colours for emphasis and structure.',
@@ -167,7 +163,8 @@ function professionalLines(ctx: DocumentContext): string {
     logoPlacementLine(ctx),
     '- No giant faded numerals or watermark words. Numbering (01, 02) only for a real sequence of steps.',
     '- Images: only the image keys of the CONTENT list. No image key, no image zone — never leave an empty frame for a picture.',
-    '- Show the essential: the CONTENT and nothing else. Never invent example tiles, sample swatches, placeholder boxes ("space reserved for…"), device frames around images, badges, check marks or extra labels.',
+    '- Never a placeholder box ("space reserved for…") and never an invented text.',
+    '- Nothing sits on top of a text: shapes, images and panels go beside or behind it with full contrast.',
     '- Everything fits inside the canvas: nothing cut by the edge; keep a safe margin.',
   ]
     .filter(Boolean)
@@ -178,7 +175,7 @@ function professionalLines(ctx: DocumentContext): string {
 
 export function languagePrompt(ctx: DocumentContext): { system: string; user: string } {
   const system = [
-    'You are the art director of an African brand. Write its VISUAL LANGUAGE: the short, concrete rules every one of its documents and visuals will apply (pitch decks, business plans, flyers, business cards, guidelines). It must be unmistakably this brand, professional and SOBER: translate even an expressive style (collage, maximalism…) into restrained, essential rules — one signature device used sparingly, no decoration for its own sake.',
+    'You are the art director of an African brand. Write its VISUAL LANGUAGE: the short, concrete rules every one of its documents and visuals will apply (pitch decks, business plans, flyers, business cards, guidelines). It must be unmistakably this brand, professional and sober — no decoration for its own sake.',
     'Answer in English with exactly:',
     'LANGUAGE:',
     '- 5 to 8 short lines: colour roles (by their names); typography (display/body, case, weight, scale contrast); grid and margins; the ONE or two graphic devices that are the brand signature (from its guidelines when given); imagery; how the logo is placed.',
@@ -290,9 +287,6 @@ export function authorSystem(ctx: DocumentContext): string {
     TAILWIND_SHEET,
     '',
     'CONTENT — every visible word comes from the CONTENT list: write {{key}} where its text goes. Never retype, translate, shorten or invent a text. Show every key (exact data blocks complete, in order). You may add only non-verbal elements (rules, the brand devices, icons that match the meaning of their text, numbering of real steps).',
-    ctx.documentType === 'business-card'
-      ? 'A BUSINESS CARD shows only the essential. Front: the logo, large, centred or on the grid, with at most the tagline. Back: the name, the role and the contact lines in ONE aligned column, the logo small. No icons, no shapes, no pattern band, no QR code, no invented text; generous margins.'
-      : '',
     ctx.bindings === 'markers' ? 'This card is a TEMPLATE shared by several people: each field key in its own element, one line each — lines without a value are removed when printing.' : '',
     '',
     `SYNTAX EXAMPLE (syntax only — compose your own page):\n\`\`\`html\n${flow ? FLOW_EXAMPLE : FIXED_EXAMPLE}\n\`\`\``,
