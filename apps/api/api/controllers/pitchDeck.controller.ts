@@ -246,7 +246,7 @@ export const generatePitchDeckStreamingController = async (
   res: Response
 ): Promise<void> => {
   const userId = req.user?.uid;
-  const { projectId } = req.params;
+  const projectId = req.params.projectId as string;
   const startedAt = Date.now();
 
   try {
