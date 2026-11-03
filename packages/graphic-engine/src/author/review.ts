@@ -28,7 +28,7 @@ const DOC: Partial<Record<DocumentType, string>> = {
 };
 
 /** La consigne du relecteur : une liste fermée, une réponse JSON. */
-export function reviewInstruction(o: { documentType: DocumentType; cover: boolean; title?: string }): string {
+export function reviewInstruction(o: { documentType: DocumentType; cover: boolean; title?: string; direction?: string }): string {
   return [
     `You are the senior art director of a design studio. This image is ${DOC[o.documentType] ?? 'a document page'}${o.cover ? ' — THE COVER of the document' : ''}${o.title ? `, titled "${o.title.slice(0, 80)}"` : ''}. Decide if it can be delivered to a paying client.`,
     'Check ONLY these defects, each one a reason to refuse:',
@@ -39,6 +39,7 @@ export function reviewInstruction(o: { documentType: DocumentType; cover: boolea
     '5. DISORDER: elements not aligned on a grid, a caption far from what it describes, a large empty area that unbalances the page, crowding.',
     '6. NOT ESSENTIAL: decoration or text that serves nothing (random icons, dots, repeated logos, filler sentences).',
     o.cover ? '7. GENERIC COVER: a plain centred name on an empty page, no use of the brand colour, pattern, image or a bold composition — not memorable.' : '',
+    o.direction ? `8. OFF-BRAND: the page ignores the brand's art direction below (its signature move, colour split, type rules, graphic devices, or does something it forbids):\n${o.direction.slice(0, 900)}` : '',
     'Answer ONLY JSON: {"ok": true|false, "issues": ["<defect> — <precise fix the designer must apply, naming the element and where it should go>", …at most 6]}. ok is true only if none of the defects is present.',
   ]
     .filter(Boolean)

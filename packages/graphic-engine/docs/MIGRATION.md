@@ -1,5 +1,16 @@
 # Migrations du moteur graphique
 
+## 2.4.1 — la direction artistique d'abord (30 octobre 2026)
+
+- **Charte** : la direction artistique, sa grammaire de composition, son traitement de l'image, ses principes et les
+  motifs sont composés AVANT toutes les autres pages (`charterGenerationOrder`, `CHARTER_FOUNDATION_PAGES`) ; les
+  autres pages les attendent sans relire leur HTML. L'ordre d'affichage ne change pas.
+- **Respect de la direction** : l'auteur, le plan et le directeur de page reçoivent le langage de la marque ET la
+  grammaire complète de la direction (le résumé seul en perdait le geste signature, les recettes et les interdits),
+  plus son traitement de l'image. Le relecteur visuel refuse une page qui l'ignore (défaut 8, « OFF-BRAND »).
+- **Motifs** : dessinés à partir des éléments graphiques, du geste signature et du traitement de la direction ;
+  renouvelés quand elle change (empreinte de la direction dans la clé).
+
 ## 2.4 — la chaîne de qualité : relecteur visuel, ajustement par le code, mesures vérifiées sur de vrais rendus (30 octobre 2026)
 
 Les versions 2.3.x n'étaient vérifiées qu'avec un auteur SIMULÉ : plusieurs mesures étaient muettes sans le dire

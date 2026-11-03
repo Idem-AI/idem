@@ -252,3 +252,22 @@ export function buildComposedCharterPages(ctx: ComposedPagesContext): Record<str
     },
   };
 }
+
+/**
+ * Les FONDATIONS de la charte : la direction artistique, sa grammaire, son traitement de l'image, ses principes et
+ * les motifs. Composées AVANT toutes les autres pages, qui en suivent le langage (décision du 30/10/2026).
+ */
+export const CHARTER_FOUNDATION_PAGES = new Set(['Direction Artistique', 'Art Direction Grammar', 'Art Direction Imagery', 'Art Direction Principles', 'Graphic Patterns']);
+
+/**
+ * L'ordre de GÉNÉRATION de la charte : les fondations d'abord, puis toutes les autres pages, qui les attendent
+ * (`requiresSteps`) sans les relire (`contextMode: 'none'` — la direction leur arrive par le moteur graphique). L'ordre
+ * d'AFFICHAGE reste celui des étapes reçues.
+ */
+export function charterGenerationOrder<T extends { stepName: string; hasDependencies?: boolean; requiresSteps?: string[]; contextMode?: string }>(steps: T[]): T[] {
+  const foundation = steps.filter((step) => CHARTER_FOUNDATION_PAGES.has(step.stepName));
+  const names = foundation.map((step) => step.stepName);
+  const rest = steps.filter((step) => !CHARTER_FOUNDATION_PAGES.has(step.stepName));
+  if (!names.length) return steps;
+  return [...foundation, ...rest.map((step) => ({ ...step, hasDependencies: true, requiresSteps: names, contextMode: 'none' }))];
+}

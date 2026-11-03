@@ -22,7 +22,7 @@ import { buildTokens } from '../src/design-system/tokens';
 import { FORMATS } from '../src/design-system/formats';
 import { contrastRatio, isDeep } from '../src/foundation/color';
 import { buildContentMap } from '../src/runtime/content-map';
-import { authorSystem } from '../src/author/prompts';
+import { authorSystem, authorUser } from '../src/author/prompts';
 import { expandPage, extractHtml, sanitizeHtml } from '../src/runtime/expand';
 import { compileTailwind } from '../src/runtime/tailwind';
 import { chartHtml, tableHtml } from '../src/runtime/primitives';
@@ -1151,6 +1151,12 @@ async function main(): Promise<void> {
   const tablePage: SectionContent = { id: 'tab', title: 'Plan financier', blocks: [{ id: 't1', kind: 'table', headers: ['Indicateur', '2026', '2027', '2028'], rows: [['Chiffre d’affaires (XAF)', '6 650 000', '31 680 000', '81 750 000']] }] };
   const squeezed = await rawFix('<div class="flex h-full w-full gap-[16px] bg-ground p-[60px]"><h2 class="text-[40px]">{{title}}</h2><div class="w-[230px] shrink-0"><idem-table data-block="t1" class="text-[13px]"></idem-table></div></div>', tablePage);
   ok('les chiffres d’un tableau serré qui passent sur deux lignes (BP réel) : renvoyé', /figures of a table wrap/.test(squeezed.prompt), squeezed.prompt.match(/ERROR: .*/)?.[0]?.slice(0, 160) ?? JSON.stringify([squeezed.out.result.repairs, squeezed.out.result.issues]).slice(0, 400));
+
+  {
+    const ctx = { documentType: 'brand-charter' as const, locale: 'fr', tokens: kora, format: FORMATS['slide-16x9'], allowDark: false, bindings: 'values' as const, direction: { styleId: 'swiss', grammar: 'SIGNATURE MOVE (visible on every page): a thick rule under every title' } };
+    const user = authorUser(ctx, { section: plain, listing: '{{title}} = "x"', tools: '', language: '- brand-primary for structure' });
+    ok('chaque page reçoit le langage de la marque ET la grammaire complète de la direction artistique', user.includes('BRAND VISUAL LANGUAGE') && user.includes('a thick rule under every title'));
+  }
 
   section('§9 quinquies Le relecteur visuel et la couverture');
   const reviews: string[] = [];

@@ -408,7 +408,7 @@ export class GraphicDocument {
       const t0 = Date.now();
       let raw = '';
       try {
-        raw = await host.reviewImage(current.png, reviewInstruction({ documentType: this.options.documentType, cover, title: section.title }), { userId: this.options.user?.userId, projectId: this.options.user?.projectId, documentType: this.options.documentType });
+        raw = await host.reviewImage(current.png, reviewInstruction({ documentType: this.options.documentType, cover, title: section.title, ...(this.options.direction?.grammar ? { direction: this.options.direction.grammar } : {}) }), { userId: this.options.user?.userId, projectId: this.options.user?.projectId, documentType: this.options.documentType });
       } catch (error) {
         recorder.task({ task: 'review', source: 'llm', role: 'graphic.reviewer', inputTokens: 0, outputTokens: 0, ms: Date.now() - t0, outcome: 'failed', reason: 'error' });
         log().warn('graphic.review_failed', { event: 'graphic.review_failed', section: section.id, error: String((error as Error)?.message ?? error).slice(0, 200) });

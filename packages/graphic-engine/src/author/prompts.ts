@@ -121,7 +121,8 @@ function directionLines(ctx: DocumentContext): string {
   const d = ctx.direction;
   return [
     d?.styleId ? `ART DIRECTION: ${ctx.tokens.style.name}${d.keywords?.length ? ` — ${d.keywords.join(', ')}` : ''}` : d?.keywords?.length ? `KEYWORDS: ${d.keywords.join(', ')}` : '',
-    d?.grammar ? `COMPOSITION GRAMMAR (from the brand guidelines):\n${d.grammar.slice(0, 1400)}` : '',
+    d?.grammar ? `COMPOSITION GRAMMAR of the brand's art direction — every page follows it (signature move, layout recipes, do, never):\n${d.grammar.slice(0, 1400)}` : '',
+    d?.imagery ? `IMAGE TREATMENT of the art direction: ${d.imagery.slice(0, 300)}` : '',
   ]
     .filter(Boolean)
     .join('\n');
@@ -230,7 +231,8 @@ export function planPrompt(ctx: DocumentContext, pages: PlannedPage[], language:
   const user = [
     `CANVAS: ${canvasLine(ctx.format)}`,
     `BRAND:\n${brandSheet(ctx)}`,
-    language ? `BRAND VISUAL LANGUAGE:\n${language}` : directionLines(ctx),
+    // Le résumé ET la direction elle-même : le langage résume, la grammaire de composition fait foi.
+    [language ? `BRAND VISUAL LANGUAGE:\n${language}` : '', directionLines(ctx)].filter(Boolean).join('\n\n'),
     ctx.brief ? `ABOUT THE BUSINESS: ${ctx.brief.slice(0, 600)}` : '',
     ctx.layoutNote ? `THE CLIENT ASKS FOR THIS LAYOUT: ${ctx.layoutNote.slice(0, 600)}` : '',
     ctx.reference ? `THE CLIENT GAVE A MODEL TO REPRODUCE — each page is organised exactly like it (same zones, hierarchy and proportions); describe the pages accordingly:\n${ctx.reference.description.slice(0, 900)}` : '',
@@ -274,7 +276,7 @@ export function pageDirectorPrompt(ctx: DocumentContext, p: { section: SectionCo
   ].join('\n');
   const user = [
     `CANVAS: ${canvasLine(ctx.format)}`,
-    p.language ? `BRAND VISUAL LANGUAGE:\n${p.language}` : directionLines(ctx),
+    [p.language ? `BRAND VISUAL LANGUAGE:\n${p.language}` : '', directionLines(ctx)].filter(Boolean).join('\n\n'),
     p.plan?.page ? `THIS PAGE IN THE DOCUMENT PLAN: ${p.plan.page}` : '',
     ctx.layoutNote ? `THE CLIENT ASKS FOR THIS LAYOUT: ${ctx.layoutNote.slice(0, 400)}` : '',
     p.section.intent?.keyMessage ? `THE READER MUST UNDERSTAND: ${p.section.intent.keyMessage}` : '',
@@ -418,7 +420,9 @@ export function authorUser(ctx: DocumentContext, p: PageBrief): string {
     `PAGE: ${p.index && p.total && p.total > 1 ? `${p.index} of ${p.total}` : 'single page'}${s.role && ROLE_HINT[s.role] ? ` — ${ROLE_HINT[s.role]}` : ''} · texts in ${ctx.locale}`,
     `CANVAS: ${canvasLine(ctx.format)}`,
     `BRAND:\n${brandSheet(ctx)}`,
-    p.language ? `BRAND VISUAL LANGUAGE (apply it):\n${p.language}` : directionLines(ctx),
+    // La DIRECTION ARTISTIQUE de la charte fait foi pour chaque page : son langage résumé ET sa grammaire complète
+    // (geste signature, recettes de mise en page, à faire, à ne jamais faire) — le résumé seul en perdait l'essentiel.
+    [p.language ? `BRAND VISUAL LANGUAGE (apply it):\n${p.language}` : '', directionLines(ctx)].filter(Boolean).join('\n\n'),
     plan && (plan.idea || plan.page)
       ? `DOCUMENT PLAN:${plan.idea ? `\nidea: ${plan.idea}` : ''}${plan.previous ? `\nprevious page: ${plan.previous}` : ''}${plan.page ? `\nTHIS PAGE: ${plan.page}` : ''}${plan.next ? `\nnext page: ${plan.next}` : ''}`
       : '',
