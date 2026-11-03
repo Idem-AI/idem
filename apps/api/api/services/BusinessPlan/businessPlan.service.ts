@@ -1,5 +1,5 @@
 import { CreativityLevel, normalizeCreativity } from '../../models/creativity.model';
-import { coverContent, GraphicDocument, WRITING_RULES } from '@idem/graphic-engine';
+import { coverContent, GraphicDocument, withDataChart, WRITING_RULES } from '@idem/graphic-engine';
 import { PromptConfig, PromptService } from '../prompt.service';
 import { AI_CONFIG } from '../../config/ai.config';
 
@@ -40,7 +40,7 @@ import { BUSINESS_PLAN_PAGINATION } from './businessPlanPdf.options';
 import { TeamMember } from '../../models/project.model';
 import { storageService } from '../storage.service';
 import { CoverBriefService } from '../common/coverBrief.service';
-import { coverDateLabel, openGraphicDocument, pageComposition, pageId, renderGraphicPage, withProjectArtDirection } from '../graphic/graphic.service';
+import { coverDateLabel, coverImage, openGraphicDocument, pageComposition, pageId, renderGraphicPage, withProjectArtDirection } from '../graphic/graphic.service';
 import type { BusinessPlanAudience } from './structure/audience.types';
 
 /** Mention de destinataire sur la couverture du plan. */
@@ -83,7 +83,11 @@ const orderIndexIn = (order: readonly string[], name: string): number => {
 
 /** PDF d'UN plan : un projet en garde plusieurs, chacun avec son rendu. */
 const businessPlanPdfCacheKey = (userId: string, projectId: string, documentId: string): string =>
-  cacheService.generateAIKey('business-plan-pdf', userId, projectId, documentId);
+  // « r2 » : la version du rendu PDF (feuilles des pages gardées au découpage) — l'ancien PDF n'est plus resservi.
+  cacheService.generateAIKey('business-plan-pdf-r2', userId, projectId, documentId);
+
+/** La langue des légendes de graphiques tirées d'un tableau. */
+const chartLocale = (language: string): string => (language === 'English' ? 'en' : 'fr');
 
 export class BusinessPlanService extends GenericService {
   private pdfService: PdfService;
@@ -247,7 +251,7 @@ export class BusinessPlanService extends GenericService {
             prependBlocks: section.financeBlocks
               ? buildFinanceBlocks(project.analysisResultModel?.finance, project.additionalInfos?.country)
               : undefined,
-            render: (content) => renderGraphicPage(graphic, content, position),
+            render: (content) => renderGraphicPage(graphic, withDataChart(content, chartLocale(language)), position),
           },
         };
       });
@@ -516,6 +520,8 @@ export class BusinessPlanService extends GenericService {
       projectDescription,
       financeContext,
       country,
+      // Le graphique et les tableaux du module Finance, posés par le code : le chemin de recherche les perdait.
+      financeBlocks: buildFinanceBlocks(project.analysisResultModel?.finance, project.additionalInfos?.country),
     });
     // LE DOCUMENT GRAPHIQUE : le même que dans le chemin standard — même charte, même plan, même graine.
     // Les sections issues de la recherche sont des sections du document, pas des pages à part.
@@ -615,10 +621,11 @@ export class BusinessPlanService extends GenericService {
           currentSections.filter((s) => s.research?.digest).map((s) => [s.name, s.research!])
         ),
         // Chaque page est composée DANS le document du plan, à son rang.
+        // Une section chiffrée sans graphique reçoit celui de son tableau de chiffres (Chart.js, mêmes valeurs).
         renderPage: (name, section, _index) =>
           renderGraphicPage(
             graphic,
-            { ...section, id: name === BP_RESOURCES_SECTION_NAME ? 'resources' : pageId(name) },
+            name === BP_RESOURCES_SECTION_NAME ? { ...section, id: 'resources' } : withDataChart({ ...section, id: pageId(name) }, chartLocale(language)),
             { index: orderIndex(name) + 1, total }
           ),
       },
@@ -689,6 +696,7 @@ export class BusinessPlanService extends GenericService {
         promise: brief.promise,
         detail: BUSINESS_PLAN_AUDIENCE_LABEL[audience as BusinessPlanAudience],
         dateLabel: coverDateLabel(),
+        image: coverImage(project),
       }),
       position
     );

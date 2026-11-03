@@ -78,6 +78,12 @@ export function ladderFallbacks(ladder: ModelLadder, level: CreativityLevel): st
 /** Quelle échelle suit chaque rôle créatif. Un rôle absent garde le modèle de son profil à tous les crans. */
 export const ROLE_LADDERS: Record<string, ModelLadder> = {
   'graphic.director': 'design',
+  'graphic.page-director': 'design',
+  // Le travail divisé : le plan de mise en page (petite sortie JSON), puis une zone par agent.
+  'graphic.layout': 'design',
+  'graphic.zone': 'code',
+  // La couverture : toujours appelée au cran Ultra par le moteur (le meilleur modèle de code).
+  'graphic.cover': 'code',
   'graphic.author': 'code',
   'video.concept': 'video-design',
   'video.planner': 'video-design',

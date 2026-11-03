@@ -135,6 +135,12 @@ interface PdfCacheEntry {
   ttl: number;
 }
 
+/**
+ * La version du RENDU des PDF, dans la clé de cache. 2 : les feuilles des pages du moteur graphique survivent au
+ * découpage en pages, sans Tailwind générique (couleurs de la marque, mise en page de l'aperçu).
+ */
+const PDF_RENDER_VERSION = 2;
+
 export class PdfService {
   private static browserInstance: Browser | null = null;
   private static resourcesCache: Map<string, string> = new Map();
@@ -294,6 +300,8 @@ export class PdfService {
   // Générer un hash pour le cache basé sur le contenu
   private static generateCacheKey(options: PdfGenerationOptions): string {
     const cacheData = {
+      // Monté à chaque changement du rendu : un PDF fabriqué par l'ancien rendu n'est plus resservi.
+      renderVersion: PDF_RENDER_VERSION,
       title: options.title,
       projectName: options.projectName,
       projectDescription: options.projectDescription,
@@ -699,12 +707,15 @@ export class PdfService {
 
     // Nettoyer les sections : préfixes de langage ("html"/"markdown"), clôtures
     // de code et bloc de sources markdown résiduel (voir sanitizeSectionHtml).
-    let cleanedSections = sections.map((section) => {
-      if (section.data && typeof section.data === 'string') {
-        return { ...section, data: sanitizeSectionHtml(section.data) };
-      }
-      return section;
-    });
+    let cleanedSections = sections
+      // Une section en échec (message « régénérer ») reste dans l'application, jamais dans le document livré.
+      .filter((section) => !(typeof section.data === 'string' && /data-idem-failed="1"/.test(section.data)))
+      .map((section) => {
+        if (section.data && typeof section.data === 'string') {
+          return { ...section, data: sanitizeSectionHtml(section.data) };
+        }
+        return section;
+      });
 
     // Convertir les URLs d'images en data URIs pour que Puppeteer puisse les charger
     cleanedSections = await this.convertImageUrlsToDataUris(cleanedSections);
@@ -810,8 +821,15 @@ export class PdfService {
       //
       // On réinjecte donc ici, avant le runtime qui les attend. Le contenu
       // vient du cache mémoire : la relecture disque n'a pas lieu.
+      // Les pages du moteur graphique portent leur feuille Tailwind v4 compilée au thème de la marque : le
+      // Tailwind générique (v3, sans les couleurs de la marque) y ajoutait ses propres règles pour les mêmes
+      // classes — d'autres espacements, d'autres valeurs — et le PDF ne ressemblait plus à l'aperçu. Il ne sert
+      // qu'aux anciennes pages.
+      const engineOnly = cleanedSections.every(
+        (section) => typeof section.data !== 'string' || !section.data.trim() || /<style data-ge-tailwind>/.test(section.data)
+      );
       const tailwindAfter = PdfService.resourcesCache.get('tailwind');
-      if (tailwindAfter) {
+      if (tailwindAfter && !engineOnly) {
         await page.addScriptTag({ content: tailwindAfter });
       }
       const chartjsAfter = PdfService.resourcesCache.get('chartjs');

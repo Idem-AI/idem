@@ -473,6 +473,31 @@ async function checkFixture(): Promise<void> {
   ];
   const sections = await renderAll(plan);
 
+  // Les feuilles des pages du moteur survivent au découpage : le paginateur remplace chaque flux par ses pages, et
+  // les <style data-ge-tailwind> partaient avec lui — le PDF sortait sans les couleurs de la marque, décalé.
+  {
+    const generator = new PdfService() as unknown as { generateOptimizedHtmlFromSections(options: object): string };
+    const html = generator.generateOptimizedHtmlFromSections({ title: 'Styles', projectName: BRAND, sections, footerText: '', multiPage: true });
+    const styleBrowser = await puppeteer.launch({ args: ['--no-sandbox'] });
+    try {
+      const page = await styleBrowser.newPage();
+      await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 60000 });
+      await page.addScriptTag({ content: FLOW_PAGINATION_RUNTIME });
+      await page.evaluate((cfg) => (window as any).__idemFlow.paginate(cfg), { pageWidthMm: 210, pageHeightMm: 297, ...BUSINESS_PLAN_PAGINATION });
+      const after = (await page.evaluate(`(function () {
+        var hosts = [].slice.call(document.querySelectorAll('.idem-page .ge-page'));
+        return { sheets: document.querySelectorAll('style[data-ge-tailwind]').length, pages: hosts.length, themed: hosts.filter(function (h) { return getComputedStyle(h).getPropertyValue('--color-ink').trim() !== ''; }).length };
+      })()`)) as { sheets: number; pages: number; themed: number };
+      check(
+        'Découpage en pages : les feuilles du moteur et le thème de la marque restent sur chaque page',
+        after.sheets === sections.length && after.pages > 0 && after.themed === after.pages,
+        `${after.sheets} feuille(s) sur ${sections.length}, ${after.themed} page(s) au thème sur ${after.pages}`
+      );
+    } finally {
+      await styleBrowser.close();
+    }
+  }
+
   await PdfService.initialize();
   try {
     const before = await print('controle-eteint', sections, false, outDir);

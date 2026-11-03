@@ -1,5 +1,126 @@
 # Migrations du moteur graphique
 
+## 2.5 — le travail divisé en petites tâches, sans relecteur (3 novembre 2026)
+
+- **Le relecteur visuel est retiré** (rôle `graphic.reviewer`, port `reviewImage`) : aucun modèle ne relit une
+  page — pas de jetons de relecture. La qualité vient de la façon de produire et de la mesure du code.
+- **Les pages de document (charte, deck, business plan) se font en petites tâches** (`src/author/zones.ts`) :
+  1. l'agent de mise en page (`graphic.layout`, échelle « design ») invente la grille et les zones de la page en
+     suivant la grammaire de la direction artistique — un plan JSON, aucun gabarit ;
+  2. le code vérifie le plan : zones dans la grille, aucune zone sur une autre (cellule en cause renvoyée à
+     l'agent, un second essai), chaque contenu placé une fois ;
+  3. un agent par zone (`graphic.zone`, échelle « code »), en parallèle, écrit SA zone : sa taille exacte, ses
+     seules clés, l'échelle typographique de la page (la même pour toutes les zones) ;
+  4. le code assemble les zones sur la grille (chevauchement impossible) et réduit une zone qui déborde
+     (`zone_fit`) ; un défaut restant part à la correction bornée à partir de la page assemblée.
+  Un plan ou une zone qui n'aboutit pas : l'auteur unique prend la page. La couverture (Ultra, liberté entière),
+  la retouche écrite, le modèle du client, les visuels et les cartes restent à l'auteur unique.
+
+## 2.4.1 — la direction artistique d'abord (30 octobre 2026)
+
+- **Charte** : la direction artistique, sa grammaire de composition, son traitement de l'image, ses principes et les
+  motifs sont composés AVANT toutes les autres pages (`charterGenerationOrder`, `CHARTER_FOUNDATION_PAGES`) ; les
+  autres pages les attendent sans relire leur HTML. L'ordre d'affichage ne change pas.
+- **Respect de la direction** : l'auteur, le plan et le directeur de page reçoivent le langage de la marque ET la
+  grammaire complète de la direction (le résumé seul en perdait le geste signature, les recettes et les interdits),
+  plus son traitement de l'image.
+- **Motifs** : dessinés à partir des éléments graphiques, du geste signature et du traitement de la direction ;
+  renouvelés quand elle change (empreinte de la direction dans la clé).
+
+## 2.4 — la chaîne de qualité : relecteur visuel, ajustement par le code, mesures vérifiées sur de vrais rendus (30 octobre 2026)
+
+Les versions 2.3.x n'étaient vérifiées qu'avec un auteur SIMULÉ : plusieurs mesures étaient muettes sans le dire
+(expressions régulières dont les « \\d » avaient perdu leur barre, racine de page prise pour un motif), et les vrais
+modèles débordaient de la toile sans savoir corriger. Cette version a été validée sur de vrais rendus
+(`npm run sample:graphic`, trois échantillons de quatre pages). Chaque page passe par :
+
+1. le **directeur de page** (`graphic.page-director`) : point focal, zones, groupes — sauf la couverture ;
+2. l'**auteur** (`graphic.author`) ; la **couverture** au rôle `graphic.cover`, TOUJOURS au cran Ultra, budget de
+   24 000 jetons, consigne de liberté entière ;
+3. la **mesure du code** (`runtime/check.ts`) : en plus de 2.3 — un texte simple composé comme un titre (rôle de
+   chaque clé, `data-ge-k`), un nuancier écrit mais pas peint, un logo « fond sombre » sur fond clair, une page
+   sombre, une image coupée par le bord, une déclinaison absente, un titre absent, un texte à cheval sur un aplat,
+   des chiffres de tableau coupés sur deux lignes ; débris de code et icônes non demandées retirés ;
+4. l'**ajustement par le code** : un contenu qui déborde d'une toile fixe est réduit à l'échelle exacte
+   (`[zoom:…]`, plancher 0,6) sans appel de modèle ;
+5. ~~le relecteur visuel~~ — retiré en 2.5 (coût de relecture refusé) ; les graphiques restent dessinés dans les
+   aperçus (Chart.js, port `chartScript`).
+
+Images : générées à tous les crans quand une page en appelle une (`GENERATION_CAP` 2/3/5/8), stockées dans le
+dossier du projet, posées par leur adresse. Aucun appel payant sous un script `check*` (`GRAPHIC_OFFLINE`).
+
+## 2.3.2 — le PDF du business plan comme l'aperçu (30 octobre 2026)
+
+- **Couleurs perdues et décalage à droite** : le découpage en pages du PDF (`flow-pagination.runtime.ts`) remplace
+  chaque flux de section par ses pages ; la feuille compilée de la page (`<style data-ge-tailwind>`) et ses polices
+  partaient avec lui. Le PDF sortait au Tailwind générique (v3, sans le thème de la marque), mesuré avec une feuille
+  et imprimé avec une autre. Les feuilles sont désormais remontées dans `<head>` avant le découpage, et le Tailwind
+  générique n'est plus chargé quand toutes les pages viennent du moteur. Contrôle : `check:bpquality`.
+- **Couverture** : composée sur la page A4 FIXE (`page-a4`) dans un document en flux — elle occupe toute la page.
+- Une section en échec (« régénérer ») n'est plus imprimée dans le PDF livré ; les caches des PDF changent de clé
+  (`*-pdf-r2`) pour ne plus resservir l'ancien rendu ; légende d'un camembert sous le graphique quand ses libellés
+  sont longs.
+
+## 2.3.1 — couvertures, mots du contenu seul, lisibilité, images de la charte (30 octobre 2026)
+
+Sur un second jeu AgriLink (business plan et charte) :
+
+- **Les mots viennent du contenu** (`stripInventedText`) : tout texte écrit en dur par l'auteur (« SYS-1 »,
+  « SIGNATURE AGRILINK », « Exemple de citation », initiales d'avatars) est retiré par le code ; une boucle
+  `{{#each}}` renvoie la page à l'auteur.
+- **Lisibilité mesurée** : un paragraphe long composé à la taille d'un titre, ou serré dans une colonne étroite
+  (il s'étirait sur cinq pages du PDF), un texte posé sur un mockup, un graphique ou un logo — renvoyés à l'auteur.
+  Une carte vide avec une seule pastille d'icône compte comme un cadre vide ; un grand aplat de couleur de la marque,
+  non.
+- **Graphiques sans information** (toutes les valeurs égales, « TAM = SAM = SOM ») : non montrés.
+- **Couvertures** : une image du monde de la marque (`coverContent({ image })`, crans High et Ultra ou image du
+  projet) et une consigne de création propre à la couverture — jamais un petit texte centré sur une page vide.
+- **Images au traitement de la charte** (`DirectionInput.imagery`, `imageryMedium`) : le générateur reçoit le
+  médium et la consigne d'image de la direction artistique ; une marque non photographique ne reçoit jamais de
+  photo de banque.
+- **Charte** : plus de texte coupé par « … » (une proposition entière ou rien), plus de chapô sur les pages de
+  principes et d'image, trois points courts au plus à côté du logo, règles d'usage écrites avec les vraies polices
+  et couleurs.
+- **Finance** : un TRI sans flux positif est « non calculable » (il affichait 93 796 583 380 %) ; un point mort
+  au-delà de l'exercice est dit « non atteint ».
+
+## 2.3 — travail divisé, ordre mesuré, l'essentiel et les graphiques garantis (30 octobre 2026)
+
+Sur des livrables réels (AgriLink, cran Ultra) : textes superposés, logos rognés, cadres et pastilles vides, faux
+schémas, slide « Financials » vide, et un business plan sans aucun graphique. Sans revenir aux gabarits :
+
+- **Directeur de page** (`graphic.page-director`, échelle « design ») : avant l'auteur, une petite tâche par page
+  (point focal, zones, groupes, erreur à éviter) ; l'auteur construit la hiérarchie décidée.
+- **Ordre mesuré** (`runtime/check.ts`, `QUALITY`) : texte sur texte, actif rogné, absent ou minuscule, cadres
+  vides, semis décoratif, graphique ou tableau oublié — renvoyés à l'auteur, livrés signalés en dernier recours.
+- **L'essentiel rétabli sur le contenu** (deck et charte) : `slideEssentials`, budgets resserrés, briefs de slides à
+  deux blocs, pages de spécimens sans texte rédigé, règles d'usage en quatre points ; consigne de l'auteur sobre.
+  Les gabarits de pages d'actif restent retirés.
+- **Chiffres** : `figuresOnly` (un chiffre-clé sans chiffre n'est pas montré) ; `withDataChart` (une section de
+  business plan sans graphique reçoit celui de son tableau de chiffres, mêmes valeurs, Chart.js).
+- **Business plan** : le chemin de recherche pose enfin les blocs du module Finance (graphique, compte
+  d'exploitation…) ; trois sections au plus appellent une image du projet ou faite pour lui (crans High et Ultra),
+  jamais une banque d'images. **Deck** : la slide « Financials » reçoit le graphique et trois chiffres du module
+  Finance.
+
+## 2.2.1 — retour à la composition libre (30 octobre 2026)
+
+Retour à la logique du 15/10/2026 à 0 h 42 (`1231240c5`) : l'IA compose chaque page, le cran choisit le modèle
+(`graphic.director` sur l'échelle « design », `graphic.author` sur l'échelle « code »), aucun gabarit. Retirés :
+
+- le gabarit des pages d'actif (`runtime/asset-page.ts`) : logo, déclinaisons, motifs, palette, typographie et
+  mockups repassent par l'auteur, avec leurs outils exacts ;
+- la consigne « sobre et essentielle » (un seul signe graphique par page, aucun sur une page d'actif) et le
+  langage de marque qui ramenait tout style expressif à des règles sobres ;
+- côté API : les pages de spécimen sans texte de la charte, les textes de direction artistique coupés à
+  60 signes, les règles d'usage réduites à 4 cartes, le régime des slides (`slideEssentials`, 2 blocs, sans
+  chapô) et les budgets de texte resserrés ; les consignes de disposition de la carte de visite.
+
+Gardé : les corrections faites depuis (Chart.js, adresses jamais imprimées, indications techniques sans clé,
+tuiles de motif réelles, galerie de mockups, texte recouvert détecté, taille du logo selon la toile, modèle du
+client, recherche gardée du business plan). La version 3 (grammaire d'archétypes) reste sur sa branche
+`feat/graphic-engine-v3`, non fusionnée.
+
 ## 2.2 — retouche et remise en page sans réécriture, export PowerPoint (15 octobre 2026)
 
 - Le document garde le contenu et le code de chaque page (`page(id)`) ; IDEM les enregistre dans

@@ -350,7 +350,7 @@ export class ResearchTeamService {
         );
       }
 
-      const finalizedHtml = await this.finalizeResearchedSection(finalData, ctx, section.name, sectionIndex + 1);
+      const finalizedHtml = await this.finalizeResearchedSection(finalData, ctx, section, sectionIndex + 1);
       const result: ResearchedSection = {
         name: section.name,
         data: finalizedHtml,
@@ -375,11 +375,12 @@ export class ResearchTeamService {
         status: 'error',
         message: `Échec sur "${section.name}": ${err.message}`,
       });
-      // On renvoie une section dégradée (HTML) plutôt que d'interrompre tout le run.
+      // On renvoie une section dégradée (HTML) plutôt que d'interrompre tout le run. Marquée `data-idem-failed` :
+      // l'application la montre (avec « régénérer »), le PDF livré ne l'imprime jamais.
       return {
         name: section.name,
         data:
-          '<div class="w-[210mm] min-h-[297mm] p-[12mm] flex items-center justify-center">' +
+          '<div data-idem-failed="1" class="w-[210mm] min-h-[297mm] p-[12mm] flex items-center justify-center">' +
           '<p class="text-sm text-gray-500">⚠️ La génération sourcée de cette section a échoué. ' +
           'Vous pouvez la régénérer.</p></div>',
         summary: `${section.name} — échec de génération`,
@@ -1056,8 +1057,17 @@ export class ResearchTeamService {
    * Les sources ne sont plus en pied de section : elles sont rassemblées sur la page « Ressources » en
    * fin de document (`buildResourcesSection`), numérotées comme dans le texte.
    */
-  private async finalizeResearchedSection(content: string, ctx: ResearchTeamContext, sectionName: string, index: number): Promise<string> {
-    const read = sectionFromModel(parseLlmJson(content) ?? content, { id: 'section', fallbackTitle: sectionName });
+  private async finalizeResearchedSection(content: string, ctx: ResearchTeamContext, spec: DeliverableSection, index: number): Promise<string> {
+    const sectionName = spec.name;
+    const read = sectionFromModel(parseLlmJson(content) ?? content, {
+      id: 'section',
+      fallbackTitle: sectionName,
+      // Les chiffres du module Finance sont posés par le code, en tête ; l'intention appelle l'image de la page.
+      ...(spec.prependBlocks?.length ? { prepend: spec.prependBlocks } : {}),
+      ...(spec.image ? { intent: { visualStrategy: 'illustration' as const } } : {}),
+    });
+    // Le sujet de l'image vient du code (décrit pour ce projet) quand le rédacteur n'en a pas donné.
+    if (read.section && spec.image && read.section.intent && !read.section.intent.image) read.section.intent = { ...read.section.intent, image: spec.image };
     if (!read.section) {
       const head = content.slice(0, 160).replace(/\s+/g, ' ');
       logger.error(`ResearchTeam « ${sectionName} » : sortie vide de tout contenu exploitable, même après récupération. Début : ${head}`);

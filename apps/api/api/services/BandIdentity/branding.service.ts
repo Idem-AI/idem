@@ -71,8 +71,8 @@ import { inspectSvg } from '../brand/svgGate';
 import { logAIEvent } from '../../utils/ai-trace.util';
 import { type BrandPatternKind } from '../../../../ivision/core/src/design/brandPatterns';
 import { iconSymbol, sanitizeAuthoredTile, signaturePatterns } from '../../../../ivision/core/src/design/signaturePatterns';
-import { buildComposedCharterPages, clip } from './charterComposedPages';
-import { coverDateLabel, openGraphicDocument, pageCanvasOf as charterCanvasOf, pageId, projectBrand, renderGraphicPage } from '../graphic/graphic.service';
+import { buildComposedCharterPages, charterGenerationOrder, clip } from './charterComposedPages';
+import { coverDateLabel, coverImage, openGraphicDocument, pageCanvasOf as charterCanvasOf, pageId, projectBrand, renderGraphicPage } from '../graphic/graphic.service';
 import { atLeast, CreativityLevel, normalizeCreativity } from '../../models/creativity.model';
 import { composeTemplateLogos } from './logoTemplates';
 import { engineEditLogo, engineLogoConcepts, engineVariations, logoEngineEnabled, rememberIr } from '../logo-engine/idem.service';
@@ -1353,14 +1353,14 @@ export class BrandingService extends GenericService {
         if (!logoUrl) return blocks;
         const cards = blocks.find((block): block is Extract<GraphicBlock, { kind: 'cards' }> => block.kind === 'cards');
         const points = cards
-          ? cards.items.map((item) => ({ label: item.title.slice(0, 60), text: item.body.slice(0, 400) }))
-          : logo?.concept
+          ? cards.items.map((item) => ({ label: clip(item.title, 40), text: clip(item.body, 110) })).filter((point) => point.label && point.text)
+          : logo?.concept && clip(logo.concept, 150)
             ? [{ label: 'Le concept', text: clip(logo.concept, 150) }]
             : [];
         if (!points.length) return blocks;
         return [
           ...blocks.filter((block) => block !== cards),
-          { id: 'logo-story', kind: 'logoStory', origin: 'system', url: logoUrl, label: `Logo ${project.name ?? ''}`.trim(), background: 'light', points: points.slice(0, 5) },
+          { id: 'logo-story', kind: 'logoStory', origin: 'system', url: logoUrl, label: `Logo ${project.name ?? ''}`.trim(), background: 'light', points: points.slice(0, 3) },
         ];
       };
 
@@ -1409,6 +1409,7 @@ export class BrandingService extends GenericService {
                 promise: brief.promise,
                 detail: 'Version 1.0',
                 dateLabel: coverDateLabel(),
+                image: coverImage(project),
               }),
               at
             );
@@ -1440,10 +1441,20 @@ export class BrandingService extends GenericService {
         if (step.execute) return;
         // Une page RÉDIGÉE : la nomenclature de la charte pour titre, le spécimen posé par le code, le
         // texte du modèle autour — un volume propre à la page (une page qui montre n'a qu'un bloc à écrire).
+        // Les règles d'usage parlent des VRAIES couleurs et polices de la marque : sans elles, le rédacteur en
+        // inventait (« GT Pressura Mono », « le vert occupe 70 % »).
+        const usageFacts = (): string => {
+          const palette = project.analysisResultModel?.branding?.colors?.colors as Record<string, string> | undefined;
+          const typo = project.analysisResultModel?.branding?.typography;
+          const colors = Object.entries(palette ?? {}).filter(([, hex]) => typeof hex === 'string' && /^#/.test(hex)).map(([role, hex]) => `${role} ${hex}`).join(', ');
+          return JSON.stringify({ colors, titleFont: typo?.primaryFont, textFont: typo?.secondaryFont, colorDistribution: artDirection?.color?.distribution }, null, 2);
+        };
         const brief =
           step.stepName === 'Logo Principal'
             ? `${CHARTER_PAGE_BRIEFS[step.stepName]}\n\n<logo_facts>\n${JSON.stringify(logoFacts, null, 2)}\n</logo_facts>`
-            : CHARTER_PAGE_BRIEFS[step.stepName] ?? `Write the "${step.stepName}" page of the brand guidelines: one short usage rule.`;
+            : step.stepName === 'Usage Couleurs & Typographie'
+              ? `${CHARTER_PAGE_BRIEFS[step.stepName]}\n\n<brand_facts>\n${usageFacts()}\n</brand_facts>\nUse ONLY these colours and fonts, by these names; never another font or colour.`
+              : CHARTER_PAGE_BRIEFS[step.stepName] ?? `Write the "${step.stepName}" page of the brand guidelines: one short usage rule.`;
         step.promptConstant = brief;
         step.template = {
           deliverable: 'brand-charter',
@@ -1491,9 +1502,16 @@ export class BrandingService extends GenericService {
       // retenue éditoriale) étaient concaténées à la FIN de chacune des douze
       // pages. Émises une fois en tête, elles deviennent le seul début de prompt
       // identique d'une page à l'autre, donc le seul candidat au cache.
+      // ── LA DIRECTION ARTISTIQUE D'ABORD ─────────────────────────────────
+      //
+      // La direction artistique, sa grammaire de composition, son traitement de l'image, ses principes et les motifs
+      // sont COMPOSÉS AVANT toute autre page ; les autres pages attendent qu'ils soient faits (`requiresSteps`) et
+      // composent dans leur langage. L'ORDRE D'AFFICHAGE, lui, reste celui de la charte (`displayOrder`).
+      const displayOrder = steps.map((step) => step.stepName);
+      const generationOrder = charterGenerationOrder(steps);
       const configuredSteps = withSectionConfigs(
         AI_CONFIG.branding.brandIdentity,
-        steps,
+        generationOrder,
         projectDescription
       );
 
@@ -1536,8 +1554,7 @@ export class BrandingService extends GenericService {
             }
 
             // Sort sections to match original step order
-            const stepOrder = steps.map((s) => s.stepName);
-            sections.sort((a, b) => stepOrder.indexOf(a.name) - stepOrder.indexOf(b.name));
+            sections.sort((a, b) => displayOrder.indexOf(a.name) - displayOrder.indexOf(b.name));
 
             // Prepare the updated project data
             const currentBranding = project.analysisResultModel?.branding;
@@ -1631,7 +1648,7 @@ export class BrandingService extends GenericService {
         await graphic.remember();
 
         // The stored PDF no longer matches the regenerated sections
-        const pdfCacheKey = cacheService.generateAIKey('branding-pdf', userId, projectId);
+        const pdfCacheKey = cacheService.generateAIKey('branding-pdf-r2', userId, projectId);
         await cacheService.delete(pdfCacheKey, { prefix: 'pdf' });
 
         // Return the updated project (it should be available in cache or fetch it again)
@@ -4360,7 +4377,7 @@ export class BrandingService extends GenericService {
         )
         .digest('hex')
         .slice(0, 24);
-      const pdfCacheKey = cacheService.generateAIKey('branding-pdf', userId, projectId, contentHash);
+      const pdfCacheKey = cacheService.generateAIKey('branding-pdf-r2', userId, projectId, contentHash);
 
       const cachedPdfPath = await cacheService.get<string>(pdfCacheKey, {
         prefix: 'pdf',
@@ -4754,7 +4771,10 @@ export class BrandingService extends GenericService {
     const repertoire = styleMotifs(artDirection?.styleId) as BrandPatternKind[];
     // v2 : les motifs SIGNATURE (symbole du logo, tuile de l'IA) — un logo ou une palette qui change les renouvelle.
     const logoHash = crypto.createHash('sha256').update(iconSvg || 'no-logo').digest('hex').slice(0, 16);
-    const key = crypto.createHash('sha256').update(JSON.stringify({ v: 2, logoHash, colors, repertoire })).digest('hex').slice(0, 24);
+    // La DIRECTION ARTISTIQUE fait partie de la clé : une nouvelle direction (même style, autres éléments graphiques,
+    // autre geste signature) renouvelle les motifs, qui la suivent.
+    const directionPrint = artDirection ? [artDirection.styleId, artDirection.graphicDevices, artDirection.layout?.signatureMove, artDirection.imagery?.treatment] : null;
+    const key = crypto.createHash('sha256').update(JSON.stringify({ v: 3, logoHash, colors, repertoire, directionPrint })).digest('hex').slice(0, 24);
     if (branding.patterns?.key === key && branding.patterns.items.length > 0) return branding.patterns.items;
 
     logger.info(`[ASSETS] Dépôt des motifs signature de la marque - projectId: ${projectId}`);
@@ -4794,6 +4814,11 @@ export class BrandingService extends GenericService {
       `Brand: ${project.name}`,
       project.description ? `Activity: ${String(project.description).slice(0, 300)}` : '',
       art.styleId ? `Art direction: ${art.styleId}${Array.isArray(art.keywords) ? ` — ${art.keywords.slice(0, 6).join(', ')}` : ''}` : '',
+      // Le motif est un ÉLÉMENT de la direction artistique : il en reprend les signes et le traitement.
+      Array.isArray(art.graphicDevices) && art.graphicDevices.length ? `Its graphic devices (the pattern is built from them): ${art.graphicDevices.slice(0, 4).join('; ')}` : '',
+      art.layout?.signatureMove ? `Its signature move: ${String(art.layout.signatureMove).slice(0, 200)}` : '',
+      art.imagery?.treatment ? `Its image treatment: ${String(art.imagery.treatment).slice(0, 160)}` : '',
+      Array.isArray(art.donts) && art.donts.length ? `It forbids: ${art.donts.slice(0, 3).join('; ')}` : '',
       rounded === undefined ? '' : `The logo is made of ${rounded ? 'curves and round forms' : 'straight lines and sharp angles'}: echo that language.`,
     ].filter(Boolean).join('\n');
     const raw = await call({ role: 'graphic.pattern-designer', profile: 'coder', system, user, level: 'high', validate: (r) => sanitizeAuthoredTile(r) !== null });

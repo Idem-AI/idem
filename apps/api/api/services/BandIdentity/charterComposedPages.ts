@@ -44,11 +44,11 @@ export interface ComposedPagesContext {
 }
 
 /**
- * Raccourcit un texte à des phrases entières, sinon à un mot entier.
+ * Raccourcit un texte à des phrases entières — jamais à « … », jamais en plein sens.
  *
- * Les champs d'une direction artistique sont écrits pour être lus seuls ; posés
- * dans une cellule de page rognée, ils doivent tenir sans être coupés en plein
- * mot.
+ * Les champs d'une direction artistique sont écrits pour être lus seuls ; une page de charte ne montre pas un texte
+ * coupé. Ce qui ne tient pas en phrases entières n'est pas montré (`''`) : la page
+ * présente l'élément, pas sa description.
  */
 export function clip(text: string | undefined, max: number): string {
   const value = (text ?? '').replace(/\s+/g, ' ').trim();
@@ -62,9 +62,8 @@ export function clip(text: string | undefined, max: number): string {
     kept = `${kept} ${sentence}`.trim();
   }
   if (kept && /[.!?]$/.test(kept)) return kept;
-  const cut = value.slice(0, max);
-  const space = cut.lastIndexOf(' ');
-  return `${(space > max * 0.6 ? cut.slice(0, space) : cut).replace(/[,;:\s]+$/, '')}…`;
+  // Une proposition coupée change le sens (« Contraste chaud et élevé entre le texte ») : rien plutôt qu'un faux.
+  return '';
 }
 
 const MEDIUM_LABEL: Record<string, string> = {
@@ -94,7 +93,7 @@ function densityText(value: string | undefined): string {
   const trimmed = (value ?? '').trim();
   return /^(airy|balanced|dense)$/i.test(trimmed) || trimmed.length < 12
     ? DENSITY_LABEL[densityOf(trimmed)]
-    : clip(trimmed, 160);
+    : clip(trimmed, 90);
 }
 
 export function buildComposedCharterPages(ctx: ComposedPagesContext): Record<string, ComposedPage> {
@@ -138,20 +137,18 @@ export function buildComposedCharterPages(ctx: ComposedPagesContext): Record<str
       ],
     })),
 
+    // Les principes eux-mêmes (démonstrations dessinées par le code) : aucun chapô.
     'Art Direction Grammar': artDirectionPage('Art Direction Grammar', async (direction) => ({
-      lede: direction.graphicDevices.length
-        ? clip(`Éléments récurrents : ${direction.graphicDevices.slice(0, 2).join(', ')}.`, 90)
-        : undefined,
       blocks: [
         {
           kind: 'compositionPrinciples',
           density: densityOf(direction.layout.density),
           items: (
             [
-              { demo: 'grid', label: 'Grille', text: clip(direction.layout.grid, 60) },
+              { demo: 'grid', label: 'Grille', text: clip(direction.layout.grid, 90) },
               { demo: 'density', label: 'Densité', text: densityText(direction.layout.density) },
-              { demo: 'whitespace', label: 'Espace négatif', text: clip(direction.layout.whitespace, 60) },
-              { demo: 'signature', label: 'Geste signature', text: clip(direction.layout.signatureMove, 60) },
+              { demo: 'whitespace', label: 'Espace négatif', text: clip(direction.layout.whitespace, 90) },
+              { demo: 'signature', label: 'Geste signature', text: clip(direction.layout.signatureMove, 90) },
             ] as Array<{ demo: 'grid' | 'density' | 'whitespace' | 'signature'; label: string; text: string }>
           ).filter((item) => item.text),
         },
@@ -161,15 +158,14 @@ export function buildComposedCharterPages(ctx: ComposedPagesContext): Record<str
     'Art Direction Imagery': artDirectionPage('Art Direction Imagery', async (direction) => {
       const imageUrl = await ctx.imageryUrl();
       return {
-        lede: clip(direction.imagery.subjects, 90),
         blocks: [
           {
             kind: 'imageryShowcase',
             ...(imageUrl ? { imageUrl } : {}),
             rows: [
-              { label: 'Traitement', value: clip(direction.imagery.treatment, 60) },
-              { label: 'Lumière', value: clip(direction.imagery.lighting, 60) },
-              { label: 'Cadrage', value: clip(direction.imagery.framing, 60) },
+              { label: 'Traitement', value: clip(direction.imagery.treatment, 90) },
+              { label: 'Lumière', value: clip(direction.imagery.lighting, 90) },
+              { label: 'Cadrage', value: clip(direction.imagery.framing, 90) },
             ].filter((row) => row.value),
           },
         ],
@@ -182,13 +178,13 @@ export function buildComposedCharterPages(ctx: ComposedPagesContext): Record<str
           kind: 'artDirectionRules',
           rows: [
             // L'essentiel seulement : une page de règles se lit d'un coup d'œil (quatre règles, trois à faire, trois à éviter).
-            { label: 'Couleurs', value: clip(direction.color.distribution, 60) },
-            { label: 'Contraste', value: clip(direction.color.contrast, 60) },
-            { label: 'Échelle typographique', value: clip(direction.typography.scaleContrast, 60) },
-            { label: 'Casse', value: clip(direction.typography.caseAndTracking, 60) },
+            { label: 'Couleurs', value: clip(direction.color.distribution, 90) },
+            { label: 'Contraste', value: clip(direction.color.contrast, 90) },
+            { label: 'Échelle typographique', value: clip(direction.typography.scaleContrast, 90) },
+            { label: 'Casse', value: clip(direction.typography.caseAndTracking, 90) },
           ].filter((row) => row.value),
-          dos: direction.dos.slice(0, 3).map((rule) => clip(rule, 60)),
-          donts: direction.donts.slice(0, 3).map((rule) => clip(rule, 60)),
+          dos: direction.dos.map((rule) => clip(rule, 80)).filter(Boolean).slice(0, 3),
+          donts: direction.donts.map((rule) => clip(rule, 80)).filter(Boolean).slice(0, 3),
         },
       ],
     })),
@@ -255,4 +251,23 @@ export function buildComposedCharterPages(ctx: ComposedPagesContext): Record<str
       );
     },
   };
+}
+
+/**
+ * Les FONDATIONS de la charte : la direction artistique, sa grammaire, son traitement de l'image, ses principes et
+ * les motifs. Composées AVANT toutes les autres pages, qui en suivent le langage (décision du 30/10/2026).
+ */
+export const CHARTER_FOUNDATION_PAGES = new Set(['Direction Artistique', 'Art Direction Grammar', 'Art Direction Imagery', 'Art Direction Principles', 'Graphic Patterns']);
+
+/**
+ * L'ordre de GÉNÉRATION de la charte : les fondations d'abord, puis toutes les autres pages, qui les attendent
+ * (`requiresSteps`) sans les relire (`contextMode: 'none'` — la direction leur arrive par le moteur graphique). L'ordre
+ * d'AFFICHAGE reste celui des étapes reçues.
+ */
+export function charterGenerationOrder<T extends { stepName: string; hasDependencies?: boolean; requiresSteps?: string[]; contextMode?: string }>(steps: T[]): T[] {
+  const foundation = steps.filter((step) => CHARTER_FOUNDATION_PAGES.has(step.stepName));
+  const names = foundation.map((step) => step.stepName);
+  const rest = steps.filter((step) => !CHARTER_FOUNDATION_PAGES.has(step.stepName));
+  if (!names.length) return steps;
+  return [...foundation, ...rest.map((step) => ({ ...step, hasDependencies: true, requiresSteps: names, contextMode: 'none' }))];
 }

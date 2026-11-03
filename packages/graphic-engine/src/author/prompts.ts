@@ -29,6 +29,8 @@ export interface ReferenceComposition {
 
 export interface DocumentContext {
   documentType: DocumentType;
+  /** La page est la COUVERTURE : la consigne laisse la composition entièrement libre (signature du document). */
+  cover?: boolean;
   documentLabel?: string;
   locale: string;
   tokens: DesignTokens;
@@ -47,7 +49,7 @@ export interface DocumentContext {
 const DELIVERABLE: Record<DocumentType, string> = {
   'pitch-deck': 'a slide of an investor pitch deck — one idea per slide, read in seconds on a screen',
   'business-plan': 'a page of a printed business plan — read closely by bankers and investors',
-  'brand-charter': "a page of the brand's identity guidelines (brand book) — clean like a specimen sheet: the asset it shows (logo, colours, type, pattern, mockups) is the hero, very large; text is a short caption",
+  'brand-charter': "a page of the brand's identity guidelines (brand book) — it shows the brand system itself, exactly: the asset it shows (logo, colours, type, pattern, mockups) is the hero, shown whole and large; text is a short caption",
   'business-card': 'one face of a printed business card (85 × 55 mm)',
   flyer: 'a flyer / social-media visual — one message, understood at a glance',
   chart: 'a standalone chart',
@@ -115,11 +117,12 @@ export function brandSheet(ctx: DocumentContext): string {
 }
 
 /** La direction artistique de la charte, brute (pour écrire le langage visuel, ou à défaut de langage). */
-function directionLines(ctx: DocumentContext): string {
+export function directionLines(ctx: DocumentContext): string {
   const d = ctx.direction;
   return [
     d?.styleId ? `ART DIRECTION: ${ctx.tokens.style.name}${d.keywords?.length ? ` — ${d.keywords.join(', ')}` : ''}` : d?.keywords?.length ? `KEYWORDS: ${d.keywords.join(', ')}` : '',
-    d?.grammar ? `COMPOSITION GRAMMAR (from the brand guidelines):\n${d.grammar.slice(0, 1400)}` : '',
+    d?.grammar ? `COMPOSITION GRAMMAR of the brand's art direction — every page follows it (signature move, layout recipes, do, never):\n${d.grammar.slice(0, 1400)}` : '',
+    d?.imagery ? `IMAGE TREATMENT of the art direction: ${d.imagery.slice(0, 300)}` : '',
   ]
     .filter(Boolean)
     .join('\n');
@@ -153,13 +156,21 @@ function logoPlacementLine(ctx: DocumentContext): string {
   return '- The logo is clearly legible at the size given in TOOLS for this canvas — present, with clear space, but never the focal element and never on or against a title or text. Do not shrink it further than that size.';
 }
 
-function professionalLines(ctx: DocumentContext): string {
+export function professionalLines(ctx: DocumentContext): string {
+  // La couverture : la liberté entière, seuls les interdits techniques restent.
+  if (ctx.cover)
+    return [
+      'THE COVER — the signature of the whole document. Total creative freedom: be bold, original and unmistakably this brand. Use scale, colour fields, the brand pattern, the logo as a graphic element, the image; break the grid if it serves the idea.',
+      '- Never a small centred name on an empty page; never a template look; never giant faded words or watermark text behind the content.',
+      '- Nothing sits on top of a text unless the text stays perfectly readable on it; nothing is cut by the edge by accident.',
+      '- The page ground stays light unless the brand language says otherwise; a large brand-colour field is welcome.',
+      '- Images: only the image keys of the CONTENT list; never an empty frame.',
+    ].join('\n');
   return [
-    'PROFESSIONAL STANDARD — a business document, designed by a senior studio. Sober and essential, whatever the brand style:',
-    '- One focal element per page. The rest is quiet: white space, alignment, a few sizes.',
-    '- At most ONE graphic device per page (a rule, a band, a corner of pattern), even if the brand language asks for collage, layers or shadows. None on a page that shows a brand asset (logo, palette, type, pattern, mockups, photos). No drop shadows, no rotations, no stacked squares.',
-    '- Nothing ever overlaps a text: shapes, images and panels sit beside or behind it with full contrast, never across it.',
-    '- Each image once on a page; never repeat the same picture.',
+    'PROFESSIONAL STANDARD — a business document, designed by a senior studio. Show the essential and nothing else; the layout is yours:',
+    '- One focal element per page; every other element is clearly secondary. Group related items, align everything on one grid, keep zones apart.',
+    '- Every element carries content. No shape, panel, circle, line pattern, grid or frame without a text, a figure, an image, a chart or the logo inside it — no fake diagram, no empty avatar, no empty card.',
+    '- At most ONE brand graphic device per page (a rule, a band, a corner of pattern); none on a page that shows a brand asset (logo, palette, type, pattern, mockups). No drop shadows, no rotations, no stacked shapes.',
     '- Hierarchy does the work: size, weight, spacing and alignment on a clear grid. Generous, consistent margins.',
     '- Decoration only when it carries the brand (its logo, its pattern, the graphic devices of its visual language). Never random circles, blobs, glows, gradients, drop shadows, emojis, ornaments, tilted text or filler shapes.',
     '- Few type sizes, the brand fonts only. Colour with intent: mostly ground and ink, brand colours for emphasis and structure.',
@@ -167,7 +178,8 @@ function professionalLines(ctx: DocumentContext): string {
     logoPlacementLine(ctx),
     '- No giant faded numerals or watermark words. Numbering (01, 02) only for a real sequence of steps.',
     '- Images: only the image keys of the CONTENT list. No image key, no image zone — never leave an empty frame for a picture.',
-    '- Show the essential: the CONTENT and nothing else. Never invent example tiles, sample swatches, placeholder boxes ("space reserved for…"), device frames around images, badges, check marks or extra labels.',
+    '- Never a placeholder box ("space reserved for…") and never an invented text.',
+    '- Nothing sits on top of a text: shapes, images and panels go beside or behind it with full contrast.',
     '- Everything fits inside the canvas: nothing cut by the edge; keep a safe margin.',
   ]
     .filter(Boolean)
@@ -178,7 +190,7 @@ function professionalLines(ctx: DocumentContext): string {
 
 export function languagePrompt(ctx: DocumentContext): { system: string; user: string } {
   const system = [
-    'You are the art director of an African brand. Write its VISUAL LANGUAGE: the short, concrete rules every one of its documents and visuals will apply (pitch decks, business plans, flyers, business cards, guidelines). It must be unmistakably this brand, professional and SOBER: translate even an expressive style (collage, maximalism…) into restrained, essential rules — one signature device used sparingly, no decoration for its own sake.',
+    'You are the art director of an African brand. Write its VISUAL LANGUAGE: the short, concrete rules every one of its documents and visuals will apply (pitch decks, business plans, flyers, business cards, guidelines). It must be unmistakably this brand, professional and sober — no decoration for its own sake.',
     'Answer in English with exactly:',
     'LANGUAGE:',
     '- 5 to 8 short lines: colour roles (by their names); typography (display/body, case, weight, scale contrast); grid and margins; the ONE or two graphic devices that are the brand signature (from its guidelines when given); imagery; how the logo is placed.',
@@ -219,7 +231,8 @@ export function planPrompt(ctx: DocumentContext, pages: PlannedPage[], language:
   const user = [
     `CANVAS: ${canvasLine(ctx.format)}`,
     `BRAND:\n${brandSheet(ctx)}`,
-    language ? `BRAND VISUAL LANGUAGE:\n${language}` : directionLines(ctx),
+    // Le résumé ET la direction elle-même : le langage résume, la grammaire de composition fait foi.
+    [language ? `BRAND VISUAL LANGUAGE:\n${language}` : '', directionLines(ctx)].filter(Boolean).join('\n\n'),
     ctx.brief ? `ABOUT THE BUSINESS: ${ctx.brief.slice(0, 600)}` : '',
     ctx.layoutNote ? `THE CLIENT ASKS FOR THIS LAYOUT: ${ctx.layoutNote.slice(0, 600)}` : '',
     ctx.reference ? `THE CLIENT GAVE A MODEL TO REPRODUCE — each page is organised exactly like it (same zones, hierarchy and proportions); describe the pages accordingly:\n${ctx.reference.description.slice(0, 900)}` : '',
@@ -244,9 +257,50 @@ export function parsePlan(raw: string, count: number): DocumentPlan | null {
   return { idea: idea.slice(0, 300), pages };
 }
 
+// ── Le directeur de page (une petite tâche avant l'auteur) ─────────────────────────────────
+
+/**
+ * Le TRAVAIL DIVISÉ : avant que l'auteur n'écrive le code, le directeur de page décide, en quatre lignes, ce qui
+ * domine, ce qui va ensemble et comment la page se partage — sans écrire de code. L'auteur n'a plus qu'à
+ * construire une hiérarchie décidée ; un petit modèle tient mieux deux petites tâches qu'une grande.
+ */
+export function pageDirectorPrompt(ctx: DocumentContext, p: { section: SectionContent; listing: string; tools: string; language?: string; plan?: PageBrief['plan'] }): { system: string; user: string } {
+  const system = [
+    `You are the art director of ${deliverableLine(ctx)}. Before the designer codes the page, decide its hierarchy and its zones. You write no code and no text of the page.`,
+    'Professional and essential: one focal element, the rest clearly secondary, related items grouped, generous space. Every zone holds real content (a key, a chart, a table, an image, the logo) — never an empty card, avatar, fake diagram or decoration zone. The brand asset of the page, when there is one, is the focal element, whole and large.',
+    'Answer in English with exactly these four lines:',
+    'FOCAL: the one content key or block that dominates the page, and how (size, place)',
+    'ZONES: 2 to 4 zones with their share of the canvas and the keys/blocks each holds, in reading order',
+    'GROUPS: which keys belong together (a figure and its label, a point and its detail)',
+    'AVOID: the one mistake this page invites (crowding, a decoration, a tiny asset…)',
+  ].join('\n');
+  const user = [
+    `CANVAS: ${canvasLine(ctx.format)}`,
+    [p.language ? `BRAND VISUAL LANGUAGE:\n${p.language}` : '', directionLines(ctx)].filter(Boolean).join('\n\n'),
+    p.plan?.page ? `THIS PAGE IN THE DOCUMENT PLAN: ${p.plan.page}` : '',
+    ctx.layoutNote ? `THE CLIENT ASKS FOR THIS LAYOUT: ${ctx.layoutNote.slice(0, 400)}` : '',
+    p.section.intent?.keyMessage ? `THE READER MUST UNDERSTAND: ${p.section.intent.keyMessage}` : '',
+    p.tools,
+    `CONTENT (keys → texts):\n${p.listing.slice(0, 5000)}`,
+  ]
+    .filter(Boolean)
+    .join('\n\n');
+  return { system, user };
+}
+
+/** Les quatre lignes du directeur de page, ou `null` si la réponse ne décide ni le point focal ni les zones. */
+export function parsePageDirection(raw: string): string | null {
+  const text = (raw || '').replace(/```[a-z]*\n?|```/g, '');
+  const line = (name: string) => text.match(new RegExp(`^[\\s*#>-]*${name}\\s*:\\s*(.+)$`, 'im'))?.[1]?.trim().slice(0, 320);
+  const focal = line('FOCAL');
+  const zones = line('ZONES');
+  if (!focal || !zones) return null;
+  return [`FOCAL: ${focal}`, `ZONES: ${zones}`, line('GROUPS') && `GROUPS: ${line('GROUPS')}`, line('AVOID') && `AVOID: ${line('AVOID')}`].filter(Boolean).join('\n');
+}
+
 // ── L'auteur ───────────────────────────────────────────────────────────────────────────────
 
-const TAILWIND_SHEET = [
+export const TAILWIND_SHEET = [
   'TAILWIND v4 — the ONLY way to style. Classes only; never <style>, never style="", never scripts.',
   '- Colours by their brand names: bg-brand-primary, text-ink, text-muted, bg-brand-soft, border-rule, text-on-brand; opacity bg-brand-primary/15.',
   '- Fonts font-display / font-body; font-medium…font-black, uppercase, tracking-[0.12em], leading-[1.1].',
@@ -289,10 +343,7 @@ export function authorSystem(ctx: DocumentContext): string {
     '',
     TAILWIND_SHEET,
     '',
-    'CONTENT — every visible word comes from the CONTENT list: write {{key}} where its text goes. Never retype, translate, shorten or invent a text. Show every key (exact data blocks complete, in order). You may add only non-verbal elements (rules, the brand devices, icons that match the meaning of their text, numbering of real steps).',
-    ctx.documentType === 'business-card'
-      ? 'A BUSINESS CARD shows only the essential. Front: the logo, large, centred or on the grid, with at most the tagline. Back: the name, the role and the contact lines in ONE aligned column, the logo small. No icons, no shapes, no pattern band, no QR code, no invented text; generous margins.'
-      : '',
+    'CONTENT — every visible word comes from the CONTENT list: write {{key}} where its text goes. Never retype, translate, shorten or invent a text: any word typed in the code outside a key is deleted. No template loops ({{#each}}): write each key. Show every key (exact data blocks complete, in order). You may add only non-verbal elements (rules, the brand devices, icons that match the meaning of their text, numbering of real steps). Paragraphs are set at the body size on a reading width; only titles, short statements and figures are large.',
     ctx.bindings === 'markers' ? 'This card is a TEMPLATE shared by several people: each field key in its own element, one line each — lines without a value are removed when printing.' : '',
     '',
     `SYNTAX EXAMPLE (syntax only — compose your own page):\n\`\`\`html\n${flow ? FLOW_EXAMPLE : FIXED_EXAMPLE}\n\`\`\``,
@@ -357,6 +408,8 @@ export interface PageBrief {
   /** L'idée du document et la ligne de CETTE page, avec celles de ses voisines. */
   plan?: { idea?: string; page?: string; previous?: string; next?: string };
   reference?: ReferenceComposition;
+  /** La hiérarchie et les zones décidées par le directeur de page (`pageDirectorPrompt`). */
+  direction?: string;
 }
 
 export function authorUser(ctx: DocumentContext, p: PageBrief): string {
@@ -367,13 +420,19 @@ export function authorUser(ctx: DocumentContext, p: PageBrief): string {
     `PAGE: ${p.index && p.total && p.total > 1 ? `${p.index} of ${p.total}` : 'single page'}${s.role && ROLE_HINT[s.role] ? ` — ${ROLE_HINT[s.role]}` : ''} · texts in ${ctx.locale}`,
     `CANVAS: ${canvasLine(ctx.format)}`,
     `BRAND:\n${brandSheet(ctx)}`,
-    p.language ? `BRAND VISUAL LANGUAGE (apply it):\n${p.language}` : directionLines(ctx),
+    // La DIRECTION ARTISTIQUE de la charte fait foi pour chaque page : son langage résumé ET sa grammaire complète
+    // (geste signature, recettes de mise en page, à faire, à ne jamais faire) — le résumé seul en perdait l'essentiel.
+    [p.language ? `BRAND VISUAL LANGUAGE (apply it):\n${p.language}` : '', directionLines(ctx)].filter(Boolean).join('\n\n'),
     plan && (plan.idea || plan.page)
       ? `DOCUMENT PLAN:${plan.idea ? `\nidea: ${plan.idea}` : ''}${plan.previous ? `\nprevious page: ${plan.previous}` : ''}${plan.page ? `\nTHIS PAGE: ${plan.page}` : ''}${plan.next ? `\nnext page: ${plan.next}` : ''}`
       : '',
     ctx.layoutNote ? `THE CLIENT ASKS FOR THIS LAYOUT: ${ctx.layoutNote.slice(0, 600)}` : '',
     intent ? `INTENT: ${[intent.keyMessage ? `the reader must understand: ${intent.keyMessage}` : '', intent.visualStrategy ? `visual strategy: ${intent.visualStrategy}` : ''].filter(Boolean).join('; ')}` : '',
+    s.role === 'cover' && !p.reference
+      ? 'THE COVER is the signature of the whole document: make it memorable and unmistakably this brand. Compose it boldly from the brand language — a strong contrast of scale, a large field of brand colour or the brand pattern, the logo used as a graphic element, the image when the CONTENT has one (whole page or a large zone). Never small centred text on an empty page; never the composition of an earlier cover of this brand.'
+      : '',
     referenceLines(p.reference),
+    p.direction ? `PAGE LAYOUT DECIDED BY THE ART DIRECTOR (build exactly this hierarchy; details are yours):\n${p.direction}` : '',
     p.tools,
     `CONTENT (keys → texts):\n${p.listing}`,
   ]

@@ -206,11 +206,18 @@ export function buildFinanceBlocks(
           label: 'Seuil de rentabilité',
           note: `Exercice ${labels[0]}`,
         },
-        {
-          value: `${Math.round(seuil.pointMortJours)} jours`,
-          label: 'Point mort',
-          note: 'Sur une base de 360 jours',
-        },
+        // Au-delà de 360 jours, le point mort n'est pas atteint dans l'exercice : « 6490 jours » ne se lit pas.
+        seuil.pointMortJours > 360
+          ? {
+              value: `${pctOf(ce[0].chiffreAffaires && seuil.seuilRentabilite ? (ce[0].chiffreAffaires / seuil.seuilRentabilite) * 100 : 0, 0)}`,
+              label: 'Point mort non atteint',
+              note: `Part du seuil couverte en ${labels[0]}`,
+            }
+          : {
+              value: `${Math.round(seuil.pointMortJours)} jours`,
+              label: 'Point mort',
+              note: 'Sur une base de 360 jours',
+            },
         {
           value: pctOf(ce[0].tauxMargePct),
           label: 'Taux de marge sur coûts variables',
@@ -225,6 +232,9 @@ export function buildFinanceBlocks(
   }
 
   // ── 7. Les indicateurs de rentabilité, avec leur réserve ─────────────────
+  // Un TRI stocké avant la correction du calcul peut valoir des milliards de % : il n'est montré que s'il existe et
+  // reste dans le réel (moins de 1 000 %).
+  const triShown = ratios.triCalculable !== false && Number.isFinite(ratios.tri) && Math.abs(ratios.tri) <= 1000;
   if (ratios.significant) {
     blocks.push({
       kind: 'table',
@@ -237,10 +247,12 @@ export function buildFinanceBlocks(
         ],
         [
           'Taux de rentabilité interne',
-          pctOf(ratios.tri),
-          ratios.tri >= finance.ratiosParams.vanDiscountRatePct
-            ? "Supérieur au taux d'actualisation retenu"
-            : "Inférieur au taux d'actualisation retenu",
+          !triShown ? 'Non calculable' : pctOf(ratios.tri),
+          !triShown
+            ? "Aucun flux de trésorerie positif sur l'horizon : le taux n'existe pas"
+            : ratios.tri >= finance.ratiosParams.vanDiscountRatePct
+              ? "Supérieur au taux d'actualisation retenu"
+              : "Inférieur au taux d'actualisation retenu",
         ],
         [
           'Délai de récupération',
@@ -332,7 +344,7 @@ export function buildFinanceNarrative(
     ...k.cashFlowOec.map((row) => `- Exercice ${row.label}: closing cash ${Math.round(row.tresorerieCloture)}`),
     '',
     k.ratios.significant
-      ? `Return indicators: NPV ${Math.round(k.ratios.van)}, IRR ${k.ratios.tri.toFixed(1)}%, payback ${k.ratios.drciAtteintAnnee === null ? 'not reached within the horizon' : `${k.ratios.drci.toFixed(2)} years`}, profitability index ${k.ratios.indiceProfitabilite.toFixed(2)}`
+      ? `Return indicators: NPV ${Math.round(k.ratios.van)}, IRR ${k.ratios.triCalculable === false || !Number.isFinite(k.ratios.tri) || Math.abs(k.ratios.tri) > 1000 ? 'not computable (no positive cash flow)' : `${k.ratios.tri.toFixed(1)}%`}, payback ${k.ratios.drciAtteintAnnee === null ? 'not reached within the horizon' : `${k.ratios.drci.toFixed(2)} years`}, profitability index ${k.ratios.indiceProfitabilite.toFixed(2)}`
       : `Return indicators are NOT SIGNIFICANT: ${k.ratios.significanceNote}`,
   ];
 

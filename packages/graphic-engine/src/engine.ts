@@ -15,25 +15,25 @@
  * mêmes étapes et même contexte à tous les crans.
  */
 import type { CreativityLevel, DocumentType, FormatId, Issue } from './contracts/common';
-import type { SectionContent } from './contracts/content-model';
+import type { Block, SectionContent } from './contracts/content-model';
 import type { DesignSpec, SectionSpec } from './contracts/design-spec';
 import { isAuthoredSpec } from './contracts/design-spec';
 import type { RenderResult } from './contracts/render-result';
 import { validateSectionContent } from './contracts/validate';
 import { applyAssets, GENERATION_CAP, planAssets, resolveAssets } from './asset-planner';
 import { BrandInput, buildTokens, DesignTokens, DirectionInput } from './design-system/tokens';
-import { FORMATS } from './design-system/formats';
+import { FormatDef, FORMATS } from './design-system/formats';
 import { stableHash } from './foundation/hash';
 import { AgentCall, engineHost, FingerprintScope, log } from './host';
 import { GenerationTrace, TraceRecorder } from './observability/traces';
 import { ENGINE_VERSION, COMPONENT_LIBRARY_VERSION } from './version';
-import { authorSystem, authorUser, DocumentContext, DocumentPlan, languagePrompt, parseLanguage, parsePlan, planPrompt, PlannedPage, ReferenceComposition, RepairStrategy, repairUser, reviseUser, toolLines } from './author/prompts';
+import { authorSystem, authorUser, DocumentContext, DocumentPlan, languagePrompt, pageDirectorPrompt, parseLanguage, parsePageDirection, parsePlan, planPrompt, PlannedPage, ReferenceComposition, RepairStrategy, repairUser, reviseUser, toolLines } from './author/prompts';
 import { callModel, levelUp } from './author/model';
+import { assembleLayout, layoutPrompt, listingUnits, parseLayout, zoneSize, zoneSystem, zoneUser, PageLayout } from './author/zones';
 import { buildContentMap, ContentMap, fixBrandNameTypos } from './runtime/content-map';
-import { expandPage, extractHtml, sanitizeHtml, withSize } from './runtime/expand';
+import { expandPage, extractHtml, sanitizeHtml, stripInventedText, withSize } from './runtime/expand';
 import { compileTailwind } from './runtime/tailwind';
-import { checkRender } from './runtime/check';
-import { assetPageTemplate, isAssetPage } from './runtime/asset-page';
+import { checkRender, QualityFrame } from './runtime/check';
 
 export interface DocumentOptions {
   documentType: DocumentType;
@@ -104,6 +104,55 @@ const REPAIR_PLAN: RepairStrategy[] = ['fix', 'rewrite', 'minimal'];
 const AUTHOR_TIMEOUT = 150_000;
 const DIRECTOR_TIMEOUT = 60_000;
 
+/** Les blocs dont les aplats vides SONT le contenu (nuancier, démonstrations de grille et de densité). */
+// (Le nuancier n'en est pas : ses aplats sont reconnus à leur couleur ; un rond gris vide à côté reste un cadre vide.)
+const SHAPE_CONTENT = new Set<Block['kind']>(['compositionPrinciples', 'typeScale', 'typeSpecimen']);
+const LOGO_BLOCKS = new Set<Block['kind']>(['logoDisplay', 'logoStory']);
+/** Les documents dont les pages se font en petites tâches (plan, zones, assemblage). */
+const ZONED_DOCUMENTS = new Set<DocumentType>(['brand-charter', 'pitch-deck', 'business-plan']);
+
+/**
+ * Ce que le code mesure sur CETTE page (`runtime/check.ts`, `QUALITY`) : les actifs de la marque qu'elle montre
+ * (entiers, et grands quand la page n'existe que pour eux), et si ses aplats vides sont du contenu.
+ */
+export function qualityFrame(section: SectionContent, map: ContentMap, format: FormatDef): QualityFrame {
+  const logoBlocks = section.blocks.filter((b) => LOGO_BLOCKS.has(b.kind)).map((b) => b.id);
+  const assets = [...map.entries.values()].filter((e) => e.kind === 'url' && logoBlocks.some((id) => e.key.startsWith(`${id}.`))).map((e) => e.value);
+  const only = section.blocks.length === 1 && logoBlocks.length === 1 && format.kind === 'fixed';
+  const minAssetSide = only ? (section.blocks[0].kind === 'logoStory' ? 0.25 : assets.length <= 1 ? 0.3 : assets.length <= 3 ? 0.15 : 0.1) : undefined;
+  // Les fonds voulus des logos (une déclinaison « fond sombre » se pose sur du sombre).
+  const grounds: Array<{ src: string; ground: 'light' | 'dark' }> = [];
+  for (const b of section.blocks) {
+    if (b.kind === 'logoDisplay') for (const v of b.variants) if (v.background === 'dark' || v.background === 'light') grounds.push({ src: v.url, ground: v.background });
+  }
+  // Le nuancier : chaque couleur doit être peinte.
+  const swatches = section.blocks.flatMap((b) => (b.kind === 'swatches' ? b.items.map((i) => i.hex) : []));
+  // Le NOM de chaque couleur se pose contre son aplat (le code et le rôle suivent le nom, dessous).
+  const swatchKeys = section.blocks.flatMap((b) => (b.kind === 'swatches' ? b.items.map((_, i) => [`${b.id}.items.${i}.name`]) : []));
+  // Les rôles des textes : le titre, et les textes simples qui ne doivent jamais lui ressembler. Les spécimens
+  // typographiques (leurs échantillons SONT des tailles), la couverture (sa composition est libre) et les faces de carte
+  // (sans titre à montrer) en sont exempts.
+  const specimen = section.role === 'cover' || section.role === 'card-face' || section.blocks.some((b) => b.kind === 'typeScale' || b.kind === 'typeSpecimen' || b.kind === 'cover');
+  const roles: Record<string, 'title' | 'text'> = {};
+  if (!specimen) {
+    for (const key of map.entries.keys()) {
+      if (key === 'title') roles[key] = 'title';
+      else if (TEXT_KEY.test(key)) roles[key] = 'text';
+    }
+  }
+  return {
+    ...(assets.length ? { assets } : {}),
+    ...(minAssetSide ? { minAssetSide } : {}),
+    ...(section.blocks.some((b) => SHAPE_CONTENT.has(b.kind)) ? { allowEmptyShapes: true } : {}),
+    ...(Object.keys(roles).length ? { roles } : {}),
+    ...(swatches.length ? { swatches, swatchKeys } : {}),
+    ...(grounds.length ? { grounds } : {}),
+  };
+}
+
+/** Les clés des textes SIMPLES : chapô, sur-titre, libellés, légendes, descriptions, paragraphes, notes. */
+const TEXT_KEY = /^(lede|kicker)$|\.(text|body|caption|label|note|detail|basis|readingKey|role|usage|description|rationale|statement|hex|family|name|subject)$|\.paragraphs\.\d+$|\.(items|dos|donts|keywords)\.\d+$/;
+
 interface Rendered {
   template: string;
   html: string;
@@ -164,13 +213,24 @@ export class GraphicDocument {
     return withSize(FORMATS[this.options.format], this.options.size);
   }
 
-  private context(): DocumentContext {
+  /**
+   * La toile d'UNE page : la couverture d'un document A4 en flux (business plan) est une composition pleine page —
+   * elle se compose sur la page A4 FIXE (210 × 297 mm), et non dans un flux qui s'allonge, où elle ne pouvait pas
+   * occuper la hauteur de la page.
+   */
+  private formatOf(section: Pick<SectionContent, 'role'>): FormatDef {
+    const base = this.format;
+    if (section.role === 'cover' && base.kind === 'flow' && base.mm?.width === 210 && !this.options.size) return FORMATS['page-a4'];
+    return base;
+  }
+
+  private context(format: FormatDef = this.format): DocumentContext {
     return {
       documentType: this.options.documentType,
       documentLabel: this.options.documentLabel,
       locale: this.options.locale ?? 'fr',
       tokens: this.tokens,
-      format: this.format,
+      format,
       direction: this.options.direction,
       allowDark: this.options.allowDark === true,
       brief: this.options.brief,
@@ -263,6 +323,7 @@ export class GraphicDocument {
     const named = fixBrandNameTypos(prepared.section, this.options.brand.name);
     if (named.fixed) recorder.repair({ code: 'brand_name_typo', detail: `${named.fixed} coquille(s) du nom « ${this.options.brand.name} » corrigée(s)`, by: 'code' });
     const section = named.section;
+    const pageFormat = this.formatOf(section);
     const map = buildContentMap(section, this.options.bindings ?? 'values');
     const index = o.index ?? 1;
     const total = o.total ?? (this.options.sections?.length || 1);
@@ -272,19 +333,10 @@ export class GraphicDocument {
     let bible: string | undefined;
     // 1. Une page rejouée : son code, le nouveau contenu, aucun modèle.
     if (o.replay && isAuthoredSpec(o.replay) && !o.revise) {
-      const r = await this.render(o.replay.html, map, section.id, recorder);
+      const r = await this.render(o.replay.html, map, section.id, recorder, undefined, pageFormat);
       if (r.ok) rendered = r.page;
       else recorder.repair({ code: 'replay_failed', detail: `la page gardée ne s'affiche plus (${r.error.slice(0, 160)}) : réécrite`, by: 'code' });
       bible = o.replay.bible;
-    }
-    // 2. Une page d'ACTIF (le logo, l'icône, une déclinaison, les motifs, des mockups) : dessinée par le code, sans
-    //    modèle — l'actif en très grand, rien d'autre (décision de l'utilisateur, 15/10/2026).
-    if (!rendered && !o.revise && isAssetPage(section, this.format)) {
-      const r = await this.render(assetPageTemplate(section, this.format, this.tokens), map, section.id, recorder);
-      if (r.ok) {
-        rendered = r.page;
-        recorder.repair({ code: 'asset_page', detail: `page d'actif (${section.blocks[0].kind}) dessinée par le code`, by: 'code' });
-      } else if (r.partial) rendered = r.partial;
     }
     if (!rendered) {
       const call = this.agent();
@@ -293,14 +345,40 @@ export class GraphicDocument {
       await this.ensurePlan(recorder, language);
       const plan = this.planFor(section.id, index);
       bible = [language, plan?.idea && `idea: ${plan.idea}`, plan?.page && `this page: ${plan.page}`].filter(Boolean).join('\n') || undefined;
-      const ctx = this.context();
+      const ctx = { ...this.context(pageFormat), ...(section.role === 'cover' ? { cover: true } : {}) };
       const system = authorSystem(ctx);
       const blocks = [...map.primitives.values()];
       const tools = toolLines(ctx, { charts: blocks.filter((b) => b.kind === 'chart').map((b) => b.id), tables: blocks.filter((b) => b.kind === 'table').map((b) => b.id), galleries: blocks.filter((b) => b.kind === 'mockupShowcase').map((b) => b.id), icons: [...map.entries.values()].some((e) => e.kind === 'icon') });
-      const base = authorUser(ctx, { section, listing: map.listing, tools, index, total, language, plan, reference: this.options.reference });
       const revising = o.revise?.instruction && o.revise.spec && isAuthoredSpec(o.revise.spec) ? o.revise : undefined;
-      const user = revising ? reviseUser(base, (revising.spec as SectionSpec).html, revising.instruction) : base;
-      rendered = await this.author(section.id, map, recorder, { system, base, user, level, task: revising ? 'revise' : 'author' });
+      // LA COUVERTURE : la signature du document — toujours le modèle du cran Ultra, quel que soit le cran choisi,
+      // un grand budget d'écriture (rôle `graphic.cover`) et la liberté entière (pas de directeur de page).
+      const cover = section.role === 'cover';
+      const pageLevel: CreativityLevel = cover ? 'ultra' : level;
+      const authorRole = cover ? 'graphic.cover' : 'graphic.author';
+      // Une retouche écrite du client (« sur un fond de marque ») est une demande explicite : le fond sombre y est admis.
+      const quality = { ...qualityFrame(section, map, pageFormat), ...(this.options.allowDark || revising ? { allowDark: true } : {}), ...(this.tokens.brand.logos.onDark ? { logoOnDark: this.tokens.brand.logos.onDark } : {}) };
+      // LE TRAVAIL DIVISÉ (`author/zones.ts`) : les pages des documents — charte, deck, business plan — se font en
+      // petites tâches (plan de mise en page, une zone par agent, assemblage par le code). La couverture, la retouche
+      // écrite, le modèle du client, les visuels et les cartes restent à l'auteur unique.
+      const zonable = !revising && !cover && !this.options.reference && ZONED_DOCUMENTS.has(this.options.documentType);
+      const zoned = zonable ? await this.composeByZones(section, map, recorder, { ctx, language, plan, level: pageLevel, quality, format: pageFormat, index, total }) : null;
+      if (zoned) {
+        rendered = zoned.page;
+        bible = [bible, `layout: ${zoned.summary}`].filter(Boolean).join('\n');
+      }
+      // L'auteur unique : le directeur de page décide la hiérarchie (petite tâche), l'auteur la construit.
+      let direction: string | undefined;
+      if (!rendered && !revising && !this.options.reference && !cover) {
+        const pd = pageDirectorPrompt(ctx, { section, listing: map.listing, tools, language, plan });
+        const run = await callModel({ call, recorder, task: 'direct', role: 'graphic.page-director', profile: 'agents', level, system: pd.system, user: pd.user, timeoutMs: DIRECTOR_TIMEOUT, validate: (raw) => parsePageDirection(raw) !== null });
+        direction = run.ok ? parsePageDirection(run.raw) ?? undefined : undefined;
+        if (direction) bible = [bible, `layout: ${direction.replace(/\n/g, ' · ')}`].filter(Boolean).join('\n');
+      }
+      if (!rendered) {
+        const base = authorUser(ctx, { section, listing: map.listing, tools, index, total, language, plan, reference: this.options.reference, ...(direction ? { direction } : {}) });
+        const user = revising ? reviseUser(base, (revising.spec as SectionSpec).html, revising.instruction) : base;
+        rendered = await this.author(section.id, map, recorder, { system, base, user, level: pageLevel, role: authorRole, task: revising ? 'revise' : 'author', quality, format: pageFormat });
+      }
     }
 
     const spec: SectionSpec = { version: 2, ref: section.id, pattern: { id: 'authored' }, html: rendered.template, ...(bible ? { bible } : {}), level };
@@ -326,19 +404,109 @@ export class GraphicDocument {
   }
 
   /**
+   * La page en PETITES TÂCHES : l'agent de mise en page invente la grille et les zones (suivant la direction
+   * artistique), le code vérifie le plan, un agent par zone écrit sa zone (en parallèle), le code assemble et ramène
+   * à sa taille une zone qui déborde. `null` : le plan ou une zone n'a pas abouti — l'auteur unique prend la page.
+   */
+  private async composeByZones(section: SectionContent, map: ContentMap, recorder: TraceRecorder, p: { ctx: DocumentContext; language?: string; plan?: { page?: string }; level: CreativityLevel; quality: QualityFrame; format: FormatDef; index: number; total: number }): Promise<{ page: Rendered; summary: string } | null> {
+    const call = this.agent();
+    if (!call) return null;
+    const units = listingUnits(map.listing);
+    if (units.size < 2) return null;
+    // 1. Le plan (deux essais : le second connaît l'erreur du premier).
+    const lp = layoutPrompt(p.ctx, { section, units, language: p.language, plan: p.plan });
+    let layout: PageLayout | null = null;
+    let layoutError = '';
+    for (let attempt = 0; attempt < 2 && !layout; attempt++) {
+      const user = attempt ? `${lp.user}\n\nYOUR PREVIOUS LAYOUT WAS REFUSED: ${layoutError}. Answer again.` : lp.user;
+      const run = await callModel({ call, recorder, task: 'direct', role: 'graphic.layout', profile: 'agents', level: p.level, system: lp.system, user, timeoutMs: DIRECTOR_TIMEOUT, validate: (raw) => parseLayout(raw, [...units.keys()], p.format).layout !== null });
+      if (!run.ok) break;
+      const parsed = parseLayout(run.raw, [...units.keys()], p.format);
+      layout = parsed.layout;
+      layoutError = parsed.error ?? '';
+    }
+    if (!layout) {
+      recorder.repair({ code: 'layout_refused', detail: `plan de mise en page inexploitable (${layoutError || 'pas de réponse'}) : auteur unique`, by: 'code' });
+      return null;
+    }
+    // 2. Les zones, chacune par son agent, en parallèle.
+    const system = zoneSystem(p.ctx);
+    const page = `${p.index} of ${p.total}${section.role ? ` (${section.role})` : ''} — ${layout.zones.length} zones on a ${layout.columns}-column grid`;
+    const valid = (raw: string) => /<[a-z][\s\S]*>/i.test(extractHtml(raw));
+    const written = await Promise.all(
+      layout.zones.map(async (zone) => {
+        const listing = zone.units.map((u) => units.get(u) ?? '').filter(Boolean).join('\n\n');
+        const prims = zone.units.map((u) => map.primitives.get(u)).filter((b): b is NonNullable<typeof b> => Boolean(b));
+        const tools = toolLines(p.ctx, { charts: prims.filter((b) => b.kind === 'chart').map((b) => b.id), tables: prims.filter((b) => b.kind === 'table').map((b) => b.id), galleries: prims.filter((b) => b.kind === 'mockupShowcase').map((b) => b.id), icons: /\.icon\}\}/.test(listing) });
+        const user = zoneUser(p.ctx, { zone, size: zoneSize(layout!, zone, p.format), listing, tools, language: p.language, page });
+        // Ce que la zone DOIT poser : ses clés et ses primitives — vérifié par le code avant l'assemblage.
+        const keys = [...map.entries.keys()].filter((k) => zone.units.some((u) => k === u || k.startsWith(`${u}.`)));
+        const missingIn = (html: string) => [...keys.filter((k) => !html.includes(`{{${k}}}`)).map((k) => `{{${k}}}`), ...prims.filter((b) => !html.includes(`data-block="${b.id}"`)).map((b) => `<idem-${b.kind === 'table' ? 'table' : b.kind === 'mockupShowcase' ? 'gallery' : 'chart'} data-block="${b.id}">`)];
+        let html = '';
+        for (const level of [p.level, levelUp(p.level)]) {
+          const run = await callModel({ call, recorder, task: 'author', role: 'graphic.zone', profile: 'coder', level, system, user, timeoutMs: AUTHOR_TIMEOUT, validate: valid });
+          if (run.ok) {
+            html = extractHtml(run.raw);
+            break;
+          }
+        }
+        if (!html) return [zone.id, ''] as const;
+        // Une zone incomplète est redemandée UNE fois, avec la liste exacte de ce qui manque.
+        const missing = missingIn(html);
+        if (missing.length) {
+          const again = await callModel({ call, recorder, task: 'repair', role: 'graphic.zone', profile: 'coder', level: p.level, system, user: `${user}\n\nYOUR ZONE:\n\`\`\`html\n${html.slice(0, 8000)}\n\`\`\`\nIT IS MISSING: ${missing.join(', ')}. Place every one of them in the zone (keep the rest). Same output format.`, timeoutMs: AUTHOR_TIMEOUT, validate: valid });
+          if (again.ok && missingIn(extractHtml(again.raw)).length < missing.length) {
+            html = extractHtml(again.raw);
+            recorder.repair({ code: 'zone_completed', detail: `zone ${zone.id} complétée : ${missing.slice(0, 4).join(', ')}`.slice(0, 240), by: 'agent' });
+          }
+        }
+        return [zone.id, html] as const;
+      })
+    );
+    if (written.some(([, html]) => !html)) {
+      recorder.repair({ code: 'zone_failed', detail: 'une zone n’a pas été écrite : auteur unique', by: 'code' });
+      return null;
+    }
+    const zones = new Map<string, string>(written);
+    const summary = `${layout.columns} columns · ${layout.zones.map((z) => `${z.id} [${z.units.join(', ')}] col ${z.col}+${z.span}${p.format.kind === 'flow' ? ` row ${z.row}` : ` row ${z.row}+${z.rows}`}`).join(' · ')}`;
+    // 3. L'assemblage ; une zone qui déborde est ramenée à sa taille par le code.
+    let template = assembleLayout(layout, zones, p.format);
+    let r = await this.render(template, map, section.id, recorder, p.quality, p.format);
+    if (!r.ok && p.format.kind === 'fixed' && r.zoneFits) {
+      const zoom = new Map(Object.entries(r.zoneFits).filter(([, k]) => k < 0.995 && k >= 0.5));
+      if (zoom.size) {
+        template = assembleLayout(layout, zones, p.format, zoom);
+        recorder.repair({ code: 'zone_fit', detail: `zones ramenées à leur taille : ${[...zoom.entries()].map(([id, k]) => `${id} ${Math.round(k * 100)} %`).join(', ')}`, by: 'code' });
+        r = await this.render(template, map, section.id, recorder, p.quality, p.format);
+      }
+    }
+    if (r.ok) return { page: r.page, summary };
+    // 4. Ce qui reste (un défaut mesuré) : la correction bornée, à partir de la page assemblée.
+    const ctx = p.ctx;
+    const base = authorUser(ctx, { section, listing: map.listing, tools: toolLines(ctx, { charts: [...map.primitives.values()].filter((b) => b.kind === 'chart').map((b) => b.id), tables: [...map.primitives.values()].filter((b) => b.kind === 'table').map((b) => b.id), galleries: [...map.primitives.values()].filter((b) => b.kind === 'mockupShowcase').map((b) => b.id), icons: [...map.entries.values()].some((e) => e.kind === 'icon') }), index: p.index, total: p.total, language: p.language, plan: p.plan });
+    try {
+      const fixed = await this.author(section.id, map, recorder, { system: authorSystem(ctx), base, user: base, level: p.level, task: 'author', quality: p.quality, format: p.format, initial: template });
+      return { page: fixed, summary };
+    } catch {
+      return null;
+    }
+  }
+
+  /**
    * L'auteur écrit la page ; si elle ne s'affiche pas, la correction bornée : une tentative à la fois, une
    * approche différente à chaque fois, le modèle du cran au-dessus dès la réécriture.
    */
-  private async author(sectionId: string, map: ContentMap, recorder: TraceRecorder, p: { system: string; base: string; user: string; level: CreativityLevel; task: 'author' | 'revise' }): Promise<Rendered> {
+  private async author(sectionId: string, map: ContentMap, recorder: TraceRecorder, p: { system: string; base: string; user: string; level: CreativityLevel; role?: string; task: 'author' | 'revise'; quality?: QualityFrame; format?: FormatDef; initial?: string }): Promise<Rendered> {
     const call = this.agent() as AgentCall;
     const valid = (raw: string) => /<[a-z][\s\S]*>/i.test(extractHtml(raw));
-    const first = await callModel({ call, recorder, task: p.task, role: 'graphic.author', profile: 'coder', level: p.level, system: p.system, user: p.user, timeoutMs: AUTHOR_TIMEOUT, validate: valid });
+    // `initial` : une page déjà écrite (assemblée par zones) — la correction bornée part d'elle, sans réécrire.
+    const first = p.initial ? { ok: true as const, raw: '```html\n' + p.initial + '\n```', failure: '' } : await callModel({ call, recorder, task: p.task, role: p.role ?? 'graphic.author', profile: 'coder', level: p.level, system: p.system, user: p.user, timeoutMs: AUTHOR_TIMEOUT, validate: valid });
     let code = first.ok ? extractHtml(first.raw) : '';
     let error = first.ok ? '' : `the answer contained no HTML (${first.failure})`;
     /** La meilleure page presque affichée (un texte coupé) : livrée, et signalée, si rien ne fait mieux. */
     let partial: Rendered | undefined;
     if (code) {
-      const r = await this.render(code, map, sectionId, recorder);
+      const r = await this.render(code, map, sectionId, recorder, p.quality, p.format);
       if (r.ok) return r.page;
       error = r.error;
       code = r.template;
@@ -359,14 +527,14 @@ export class GraphicDocument {
       }
       const level = strategy === 'fix' ? p.level : levelUp(p.level);
       const user = repairUser(p.base, strategy, { code: strategy === 'fix' ? code : undefined, error, history: history.slice(-3) });
-      const run = await callModel({ call, recorder, task: 'repair', role: 'graphic.author', profile: 'coder', level, system: p.system, user, timeoutMs: AUTHOR_TIMEOUT, validate: valid });
+      const run = await callModel({ call, recorder, task: 'repair', role: p.role ?? 'graphic.author', profile: 'coder', level, system: p.system, user, timeoutMs: AUTHOR_TIMEOUT, validate: valid });
       this.repairSpent.tokens += run.tokens;
       if (!run.ok) {
         error = `the answer contained no HTML (${run.failure})`;
         history.push(`${strategy}: ${error}`);
         continue;
       }
-      const r = await this.render(extractHtml(run.raw), map, sectionId, recorder);
+      const r = await this.render(extractHtml(run.raw), map, sectionId, recorder, p.quality, p.format);
       if (r.ok) {
         recorder.repair({ code: `render_${strategy}`, detail: `page corrigée (${strategy}, cran ${level}) après : ${history[history.length - 1].slice(0, 160)}`, by: 'agent' });
         return r.page;
@@ -386,13 +554,31 @@ export class GraphicDocument {
   }
 
   /** Assainir, remplir, compiler, puis demander à Chromium si la page s'affiche. Rien n'est jugé d'autre. */
-  private async render(raw: string, map: ContentMap, sectionId: string, recorder: TraceRecorder): Promise<{ ok: true; page: Rendered } | { ok: false; error: string; template: string; partial?: Rendered }> {
+  private async render(raw: string, map: ContentMap, sectionId: string, recorder: TraceRecorder, quality?: QualityFrame, format: FormatDef = this.format): Promise<{ ok: true; page: Rendered } | { ok: false; error: string; template: string; partial?: Rendered; zoneFits?: Record<string, number> }> {
     const t0 = Date.now();
     const clean = sanitizeHtml(raw);
     if (!clean.html.trim()) return { ok: false, error: 'the page is empty after removing what is not allowed (scripts, styles, external resources)', template: clean.html };
     const issues: Issue[] = [];
+    // Un dessin SVG écrit par l'auteur (une coche, un faux schéma, une illustration) est une décoration inventée : seuls
+    // les outils du code dessinent (logo, icônes, motifs, graphiques). Retiré par le code.
+    if (/<svg\b/i.test(clean.html)) {
+      clean.html = clean.html.replace(/<svg\b[\s\S]*?<\/svg>/gi, '');
+      issues.push({ code: 'invented_drawing_removed', severity: 'advisory', message: 'Dessin SVG écrit par l’auteur, retiré (seuls les outils du code dessinent).' });
+    }
+    // Une icône que le contenu ne demande pas (aucune clé d'icône) est une décoration inventée : retirée par le code.
+    if (![...map.entries.values()].some((e) => e.kind === 'icon') && /<idem-icon\b/i.test(clean.html)) {
+      clean.html = clean.html.replace(/<idem-icon\b[^>]*?\/?>(?:\s*<\/idem-icon>)?/gi, '');
+      issues.push({ code: 'invented_icon_removed', severity: 'advisory', message: 'Icônes décoratives non demandées par le contenu, retirées.' });
+    }
+    // Les mots viennent du contenu : le texte écrit en dur par l'auteur est retiré (dit dans les constats).
+    const words = stripInventedText(clean.html);
+    if (words.loops) return { ok: false, error: 'template loops ({{#each}}, {{/each}}) do not exist here: write every content key explicitly, one element per item', template: clean.html };
+    if (words.removed.length) {
+      clean.html = words.html;
+      issues.push({ code: 'invented_text_removed', severity: 'advisory', message: `Texte écrit par l'auteur hors contenu, retiré : ${words.removed.slice(0, 6).join(' · ')}`.slice(0, 380) });
+    }
     if (clean.nativeCss) issues.push({ code: 'native_css_removed', severity: 'advisory', message: `${clean.nativeCss} style(s) CSS natif(s) retiré(s) : la page est en Tailwind.` });
-    const page = expandPage(clean.html, map, this.tokens, this.format, { sectionId, locale: this.options.locale ?? 'fr', engine: ENGINE_VERSION });
+    const page = expandPage(clean.html, map, this.tokens, format, { sectionId, locale: this.options.locale ?? 'fr', engine: ENGINE_VERSION });
     if (page.unknown.length) issues.push({ code: 'unknown_keys', severity: 'advisory', message: `Clés inconnues ignorées : ${page.unknown.slice(0, 8).join(', ')}` });
     if (page.orphans.length) issues.push({ code: 'unknown_blocks', severity: 'advisory', message: `Primitives sans bloc : ${page.orphans.slice(0, 6).join(', ')}` });
     const unused = [...map.entries.keys()].filter((k) => !page.used.has(k));
@@ -409,15 +595,39 @@ export class GraphicDocument {
       recorder.task({ task: 'render', source: 'code', inputTokens: 0, outputTokens: 0, ms: Date.now() - t0, outcome: 'skipped' });
       return { ok: true, page: { template: clean.html, html: page.html, head, issues } };
     }
-    const check = await checkRender(page.html, head, this.format, { lang: this.options.locale, shoot: Boolean(this.options.png) });
+    const check = await checkRender(page.html, head, format, { lang: this.options.locale, shoot: Boolean(this.options.png), ...(quality ? { quality } : {}) });
     recorder.task({ task: 'render', source: 'code', inputTokens: 0, outputTokens: 0, ms: Date.now() - t0, outcome: check.ok ? 'accepted' : 'refused' });
     if (check.infra) log().warn('graphic.render_unchecked', { event: 'graphic.render_unchecked', section: sectionId, reason: check.error });
+    // LE CODE FAIT TENIR : un contenu qui déborde d'une toile fixe est réduit à l'échelle exacte (plancher 0,6), la
+    // composition intacte — le modèle n'estime pas des hauteurs, et la page ne repart pas pour si peu.
+    if (!check.ok && check.fit && check.fit >= 0.6 && !/\[zoom:/.test(clean.html)) {
+      const z = check.fit;
+      const wrapped = `<div class="h-[${(100 / z).toFixed(3)}%] w-[${(100 / z).toFixed(3)}%] [zoom:${z}]">${clean.html}</div>`;
+      const fitted = await this.render(wrapped, map, sectionId, recorder, quality, format);
+      if (fitted.ok) {
+        recorder.repair({ code: 'auto_fit', detail: `contenu réduit à ${Math.round(z * 100)} % pour tenir dans la page`, by: 'code' });
+        return fitted;
+      }
+      // Réduite, la page a d'autres défauts : ceux-là partent à l'auteur (la version réduite sert de base).
+      return fitted;
+    }
     if (!check.ok) {
       // Un texte coupé par le bord : la page s'affiche presque entière — gardée comme REPLI si la correction échoue.
       const partial = check.cut ? { template: clean.html, html: page.html, head, png: check.png, issues: [...issues, { code: 'text_cut', severity: 'blocking' as const, message: (check.error ?? '').slice(0, 380) }] } : undefined;
-      return { ok: false, error: check.error ?? 'the page did not display', template: clean.html, ...(partial ? { partial } : {}) };
+      return { ok: false, error: check.error ?? 'the page did not display', template: clean.html, ...(partial ? { partial } : {}), ...(check.zoneFits ? { zoneFits: check.zoneFits } : {}) };
     }
-    return { ok: true, page: { template: clean.html, html: page.html, head, png: check.png, width: check.width, height: check.height, issues } };
+    const done: Rendered = { template: clean.html, html: page.html, head, png: check.png, width: check.width, height: check.height, issues };
+    // Un graphique, un tableau, une galerie ou un actif de la marque oublié par l'auteur : la page perd sa preuve.
+    // Renvoyée à l'auteur ; livrée signalée si la correction échoue.
+    const missingAssets = quality?.assets?.length ? [...map.entries.values()].filter((e) => e.kind === 'url' && quality.assets!.includes(e.value) && !page.used.has(e.key)).map((e) => `{{${e.key}}}`) : [];
+    // Le titre de la page est toujours montré (une page de motifs sans titre ne se lit pas) — sauf sur la couverture.
+    const missingTitle = quality && quality.roles?.title && map.entries.has('title') && !page.used.has('title') ? ['{{title}}'] : [];
+    if (quality && (unusedBlocks.length || missingAssets.length || missingTitle.length)) {
+      const missing = [...missingTitle, ...unusedBlocks.map((id) => `<idem-${map.primitives.get(id)?.kind === 'table' ? 'table' : map.primitives.get(id)?.kind === 'mockupShowcase' ? 'gallery' : 'chart'} data-block="${id}">`), ...missingAssets];
+      const error = `content is missing from the page: ${missing.slice(0, 6).join(', ')} — place every chart, table, gallery and brand asset image, readable`;
+      return { ok: false, error, template: clean.html, partial: { ...done, issues: [...issues, { code: 'content_missing', severity: 'blocking', message: error.slice(0, 380) }] } };
+    }
+    return { ok: true, page: done };
   }
 
   /**
@@ -432,7 +642,7 @@ export class GraphicDocument {
     const resolution = await resolveAssets(
       requirements,
       host.assetProviders ?? {},
-      { level: this.policy.level, documentType: this.options.documentType, locale: this.options.locale, userId: this.options.user?.userId, projectId: this.options.user?.projectId, brandName: this.options.brand.name, styleId: this.options.direction?.styleId, keywords: this.options.direction?.keywords },
+      { level: this.policy.level, documentType: this.options.documentType, locale: this.options.locale, userId: this.options.user?.userId, projectId: this.options.user?.projectId, brandName: this.options.brand.name, styleId: this.options.direction?.styleId, keywords: this.options.direction?.keywords, ...(this.options.direction?.imagery ? { imagery: this.options.direction.imagery } : {}), ...(this.options.direction?.imageryMedium ? { imageryMedium: this.options.direction.imageryMedium } : {}) },
       { generationLeft: Math.max(0, GENERATION_CAP[this.policy.level] - this.generatedAssets), registry: host.assetRegistry }
     );
     this.generatedAssets += resolution.generated;

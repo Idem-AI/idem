@@ -55,6 +55,7 @@ import { INDUSTRY_MOCKUP_CATEGORIES, MOCKUP_CONFIG, supportScene } from '../conf
 import { mockupAnalyzerService } from '../services/BandIdentity/mockupAnalyzer.service';
 import { AI_CONFIG, FeatureAIConfig } from '../config/ai.config';
 import { buildBusinessPlanSpec } from '../services/BusinessPlan/businessPlanSpec';
+import { charterGenerationOrder } from '../services/BandIdentity/charterComposedPages';
 import { BUSINESS_PLAN_SECTION_CATALOG } from '../services/BusinessPlan/structure/section-catalog';
 import { SECTION_PROMPT_SPECS } from '../services/BusinessPlan/prompts/section-prompt.registry';
 import { BUSINESS_PLAN_TEMPLATES } from '../services/BusinessPlan/structure/templates';
@@ -375,6 +376,22 @@ console.log('\n  Consignes contradictoires');
 //
 // La règle : une section ne reçoit AUCUN marqueur de composition. La couverture
 // (`freeform`) n'en reçoit pas davantage : elle est composée par le moteur, sans modèle.
+{
+  // LA CHARTE : la direction artistique et les motifs d'abord ; les autres pages les attendent, sans les relire.
+  const steps = ['Brand Header', 'Logo Principal', 'Color Palette', 'Direction Artistique', 'Art Direction Grammar', 'Art Direction Imagery', 'Art Direction Principles', 'Graphic Patterns', 'Logo Bonnes Pratiques'].map((stepName) => ({ stepName, hasDependencies: false }));
+  const ordered = charterGenerationOrder(steps);
+  const foundation = ordered.slice(0, 5).map((s) => s.stepName);
+  check(
+    'charte : la direction artistique, sa grammaire et les motifs sont générés en premier',
+    foundation.join() === 'Direction Artistique,Art Direction Grammar,Art Direction Imagery,Art Direction Principles,Graphic Patterns',
+    ordered.map((s) => s.stepName).join(' → ')
+  );
+  check(
+    'charte : chaque autre page attend les fondations, sans relire leur HTML',
+    ordered.slice(5).every((s: any) => s.hasDependencies && s.requiresSteps?.length === 5 && s.contextMode === 'none')
+  );
+}
+
 console.log('\n  Équipe de recherche : consignes de section');
 
 {
@@ -416,6 +433,24 @@ console.log('\n  Équipe de recherche : consignes de section');
     'chaque section sous gabarit dispose de son brief de contenu',
     missing.length === 0,
     missing.join(', ')
+  );
+
+  // Le chemin de recherche du business plan (celui des PDF livrés) perdait les chiffres du module Finance : aucun
+  // graphique. Ils sont désormais posés par le code en tête des sections financières, et trois sections au plus
+  // appellent une image (jamais l'équipe : on ne fabrique pas le visage d'une personne réelle).
+  const finance = [{ kind: 'chart', chartType: 'line', labels: ['2026', '2027'], series: [{ name: 'CA', data: [1, 2] }], readingKey: 'x' }] as never[];
+  const withFinance = buildBusinessPlanSpec(BUSINESS_PLAN_SECTION_CATALOG, { audience: 'general', projectDescription: 'Des distributeurs tactiles pour agriculteurs.', financeContext: '', country: 'Cameroun', financeBlocks: finance });
+  const financeSections = BUSINESS_PLAN_SECTION_CATALOG.filter((d) => d.financeBlocks).map((d) => d.name);
+  check(
+    'recherche : les sections financières reçoivent le graphique et les tableaux du module Finance',
+    financeSections.length > 0 && withFinance.filter((s) => financeSections.includes(s.name)).every((s) => s.prependBlocks === finance),
+    financeSections.join(', ')
+  );
+  const imaged = withFinance.filter((s) => s.image);
+  check(
+    'images : trois sections au plus, sujets décrits pour le projet, jamais l’équipe',
+    imaged.length > 0 && imaged.length <= 3 && imaged.every((s) => s.image!.subject.includes('distributeurs tactiles') && !/team|équipe|promoter/i.test(s.name)),
+    imaged.map((s) => s.name).join(', ')
   );
 
   // Le REGISTRE doit couvrir le catalogue exactement. Une section catalogable

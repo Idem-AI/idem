@@ -170,7 +170,7 @@ export async function relayoutDocument(o: { userId: string; projectId: string; p
   return report;
 }
 
-const PDF_CACHE: Record<ComposedKind, string> = { businessPlan: 'business-plan-pdf', pitchDeck: 'pitch-deck-pdf' };
+const PDF_CACHE: Record<ComposedKind, string> = { businessPlan: 'business-plan-pdf-r2', pitchDeck: 'pitch-deck-pdf-r2' };
 
 /**
  * La nouvelle mise en page d'un document ENREGISTRÉ : lu, remis en page, réenregistré, son PDF oublié. `null` :

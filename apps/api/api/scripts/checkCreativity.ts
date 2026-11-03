@@ -122,8 +122,14 @@ const run = (n: number) => !only.length || only.includes(n);
     const body = `<p class="text-[12px] uppercase tracking-[0.2em] text-brand-primary">{{kicker}}</p><h2 class="font-display text-[34px] font-bold leading-[1.05] text-ink">{{title}}</h2>${keys.filter((k) => k.includes('.') || fields.includes(k)).map((k) => (fields.includes(k) ? `<p data-field="${k}" class="text-[9px]">{{${k}}}</p>` : `<p class="text-[14px] text-muted">{{${k}}}</p>`)).join('')}${prims.join('')}<idem-logo class="h-[24px]"></idem-logo>`;
     return flow ? `\`\`\`html\n${body}\n\`\`\`` : `\`\`\`html\n<div class="relative flex h-full w-full flex-col justify-center gap-[10px] bg-ground p-[6%]">${body}</div>\n\`\`\``;
   };
+  /** Le directeur de page (petite tâche avant l'auteur) : ses appels sont comptés à part. */
+  const pageDirectorCalls: Array<{ level?: CreativityLevel }> = [];
   const engineAgent = (): EngineAgentCall => async ({ role, user, level }) => {
     const repair = /DID NOT DISPLAY|did not display/.test(user);
+    if (role === 'graphic.page-director') {
+      pageDirectorCalls.push({ level });
+      return 'FOCAL: the headline, very large\nZONES: top 60%: headline; bottom 40%: subhead and logo\nGROUPS: kicker with headline\nAVOID: decoration';
+    }
     engineCalls.push({ role, level, repair });
     if (agentMode === 'down') throw new Error('quota');
     if (role === 'graphic.director') return /PAGES:/.test(user) ? `IDEA: Big display figures on a calm grid.\n${[...user.matchAll(/^(\d+)\. /gm)].map((m) => `PAGE ${m[1]}: one dominant element, text in a narrow column`).join('\n')}` : 'LANGUAGE:\n- brand-primary for structure, ink for text, generous margins, a 4px brand-primary rule under every title.';
@@ -149,10 +155,11 @@ const run = (n: number) => !only.length || only.includes(n);
     for (const level of CREATIVITY_LEVELS) {
       agentMode = 'ok';
       engineCalls.length = 0;
+      pageDirectorCalls.length = 0;
       const out = await flyerAt(level);
       check(
-        `${level} : un appel de l’auteur, au cran ${level} ; page écrite, affichée, texte exact`,
-        llmTasks(out).join(',') === 'author' && engineCalls.every((c) => c.level === level && c.role === 'graphic.author') && out.spec.pattern.id === 'authored' && blockingOf(out).length === 0 && Boolean(out.result.measured) && out.result.html.includes('Le jus de bissap pressé chaque matin à Dakar'),
+        `${level} : le directeur de page puis un appel de l’auteur, au cran ${level} ; page écrite, affichée, texte exact`,
+        llmTasks(out).join(',') === 'direct,author' && pageDirectorCalls.length === 1 && pageDirectorCalls[0].level === level && engineCalls.every((c) => c.level === level && c.role === 'graphic.author') && out.spec.pattern.id === 'authored' && blockingOf(out).length === 0 && Boolean(out.result.measured) && out.result.html.includes('Le jus de bissap pressé chaque matin à Dakar'),
         `appels ${engineCalls.map((c) => `${c.role}@${c.level}`).join(',')}`
       );
     }

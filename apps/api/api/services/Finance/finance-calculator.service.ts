@@ -733,6 +733,9 @@ export function computeVAN(fluxCash: number[], i0: number, ratePct: number): num
 export function computeTRI(fluxCash: number[], i0: number): number {
   // Inclut l'investissement initial à t=0 sous forme négative
   const cf = [-i0, ...fluxCash];
+  // Un TRI n'existe que si les flux changent de signe : sans aucun flux positif (ou sans décaissement), la méthode
+  // diverge et rendait un nombre absurde (« 93 796 583 380 % » sur un dossier livré). NaN : non calculable.
+  if (!cf.some((v) => v > 0) || !cf.some((v) => v < 0)) return Number.NaN;
   const npv = (rate: number): number => {
     let v = 0;
     for (let t = 0; t < cf.length; t++) v += cf[t] / Math.pow(1 + rate, t);
@@ -757,6 +760,8 @@ export function computeTRI(fluxCash: number[], i0: number): number {
     rate = next;
     if (rate < -0.99) rate = -0.99;
   }
+  // Une racine introuvable (pas de convergence) ou hors de toute réalité n'est pas un TRI.
+  if (!Number.isFinite(rate) || Math.abs(npv(rate)) > Math.max(1, Math.abs(i0)) * 1e-4 || rate > 10) return Number.NaN;
   return rate * 100;
 }
 
@@ -795,7 +800,10 @@ export function computeRatios(
   const i0 = financing.coutTotalProjet;
   const discountRate = finance.ratiosParams.vanDiscountRatePct;
   const van = computeVAN(fluxCash, i0, discountRate);
-  const tri = computeTRI(fluxCash, i0);
+  const triValue = computeTRI(fluxCash, i0);
+  // Gardé numérique pour les écrans existants ; `triCalculable` dit s'il existe.
+  const triCalculable = Number.isFinite(triValue);
+  const tri = triCalculable ? triValue : 0;
   const drci = computeDRCI(fluxCash, i0);
 
   // ── SINCÉRITÉ DU CALCUL ──────────────────────────────────────────────────
@@ -835,6 +843,7 @@ export function computeRatios(
   return {
     van,
     tri,
+    triCalculable,
     drci,
     indiceProfitabilite,
     indiceProfitabiliteVanSurI0,

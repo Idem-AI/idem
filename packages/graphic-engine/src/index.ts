@@ -59,6 +59,7 @@ export { applyAssets, GENERATION_CAP, iconFor, matchAsset, nativeProvider, planA
 export type { AssetContext, AssetProvider, AssetProviders, AssetRegistry, AssetResolution } from './asset-planner';
 export { sectionTextLoad, TEXT_BUDGETS, textLoad } from './content/analyze';
 export { slideDiet, slideEssentials } from './content/slide-diet';
+export { chartFromTable, figuresOnly, parseFigure, withDataChart } from './content/data-charts';
 export type { TextBudgetKind } from './content/analyze';
 
 // ── Export PowerPoint (le HTML reste la source) ──────────────────────────────────────────────────

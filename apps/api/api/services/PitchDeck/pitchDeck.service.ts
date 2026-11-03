@@ -1,5 +1,5 @@
 import { normalizeCreativity, CreativityLevel } from '../../models/creativity.model';
-import { coverContent, exportPptx, PptxMode, sectionHtml, slideEssentials, TEXT_BUDGETS, WRITING_RULES } from '@idem/graphic-engine';
+import { BlockDraft, coverContent, exportPptx, PptxMode, sectionHtml, slideEssentials, TEXT_BUDGETS, WRITING_RULES } from '@idem/graphic-engine';
 import crypto from 'crypto';
 import { PromptConfig, PromptService } from '../prompt.service';
 import { AI_CONFIG } from '../../config/ai.config';
@@ -19,7 +19,8 @@ import { cacheService } from '../cache.service';
 
 import { composeSlideBrief, SLIDE_VISUAL_PLANS } from './prompts/slide-briefs.prompt';
 import { CoverBriefService } from '../common/coverBrief.service';
-import { composeGraphicPage, coverDateLabel, GenerationJournal, openGraphicDocument, pageComposition, pageId, speakerNotesHtml, withProjectArtDirection } from '../graphic/graphic.service';
+import { buildFinanceBlocks } from '../Finance/finance-blocks';
+import { composeGraphicPage, coverDateLabel, coverImage, GenerationJournal, openGraphicDocument, pageComposition, pageId, speakerNotesHtml, withProjectArtDirection } from '../graphic/graphic.service';
 import type { PitchDeckAudience } from './deck-types';
 
 /** Mention de destinataire sur la couverture du deck. */
@@ -61,7 +62,18 @@ export interface PitchDeckTypeSummary {
 }
 
 const pdfCacheKey = (userId: string, projectId: string, documentId: string): string =>
-  cacheService.generateAIKey('pitch-deck-pdf', userId, projectId, documentId);
+  cacheService.generateAIKey('pitch-deck-pdf-r2', userId, projectId, documentId);
+
+/** Les chiffres du module Finance pour UNE slide : la trajectoire (graphique) et trois chiffres de tête. */
+function deckFinanceBlocks(finance: Parameters<typeof buildFinanceBlocks>[0], country?: string): BlockDraft[] {
+  const blocks = buildFinanceBlocks(finance, country);
+  const chart = blocks.find((b) => b.kind === 'chart');
+  const metrics = blocks.find((b) => b.kind === 'metrics');
+  return [
+    ...(chart ? [chart] : []),
+    ...(metrics && metrics.kind === 'metrics' ? [{ ...metrics, items: metrics.items.slice(0, 3) }] : []),
+  ];
+}
 
 export class PitchDeckService extends GenericService {
   private pdfService: PdfService;
@@ -303,6 +315,7 @@ export class PitchDeckService extends GenericService {
         .update(userId, projectId, 'pitchDeck', deck.id, (current) => ({ ...current, design: { ...(current.design ?? { level, pages: {} }), record: journal.finish() } }), { touch: false })
         .catch((error: any) => logger.warn('[DECK] Enregistrement de génération non gardé', { error: error?.message }));
 
+    const deckFinance = deckFinanceBlocks(project.analysisResultModel?.finance, project.additionalInfos?.country);
     const steps: IPromptStep[] = deckSlides.map((definition, index) => {
       const position = { index: index + 1, total };
       // La couverture est dessinée par le moteur : le modèle n'en écrit que les mots, une fois par
@@ -322,6 +335,7 @@ export class PitchDeckService extends GenericService {
                 promise: brief.promise,
                 detail: DECK_AUDIENCE_LABEL[deckType.audience],
                 dateLabel: coverDateLabel(),
+                image: coverImage(project),
               }),
               position
             );
@@ -348,6 +362,9 @@ export class PitchDeckService extends GenericService {
           volume: '1 to 2',
           contentBrief: brief,
           ...(intent ? { intent } : {}),
+          // La slide des projections montre les chiffres du module Finance, posés par le code : son graphique et
+          // ses trois chiffres de tête (le rédacteur les recopiait mal, ou la slide restait vide).
+          ...(definition.name === 'Financials' && deckFinance.length ? { prependBlocks: deckFinance } : {}),
           render: async (written) => {
             // L'essentiel seulement, garanti par le code : ni chapô, deux blocs de preuve, trois points ; le reste
             // part dans les notes de l'orateur (rien n'est perdu).

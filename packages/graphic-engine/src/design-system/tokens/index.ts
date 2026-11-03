@@ -72,6 +72,10 @@ export interface DirectionInput {
    * répartition des couleurs, éléments graphiques, à faire / à éviter), en texte compact : l'auteur la suit.
    */
   grammar?: string;
+  /** Le traitement de l'image de la charte (médium, traitement, consigne) : les images faites pour les pages le suivent. */
+  imagery?: string;
+  /** Son médium (`photography`, `illustration`, `render-3d`, `collage`, `abstract`, `mixed`). */
+  imageryMedium?: string;
 }
 
 export interface TokenInput {

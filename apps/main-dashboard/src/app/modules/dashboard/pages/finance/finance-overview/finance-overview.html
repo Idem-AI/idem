@@ -282,7 +282,7 @@
                 </div>
                 <div>
                   <dt class="text-sm text-text-secondary">{{ 'dashboard.finance.home.bank.tri' | translate }}</dt>
-                  <dd class="text-lg font-semibold text-text-primary tabular-nums">{{ formatPercent(s.tri) }}</dd>
+                  <dd class="text-lg font-semibold text-text-primary tabular-nums">{{ s.triCalculable === false ? '—' : formatPercent(s.tri) }}</dd>
                   <dd class="text-xs text-text-tertiary">{{ 'dashboard.finance.home.bank.triHint' | translate }}</dd>
                 </div>
               </div>

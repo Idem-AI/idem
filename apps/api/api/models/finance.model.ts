@@ -634,6 +634,8 @@ export interface FluxTresorerieRow {
 export interface RatiosComputed {
   van: number;                // Valeur Actuelle Nette
   tri: number;                // Taux de Rendement Interne (en %)
+  /** Le TRI existe (les flux changent de signe et la racine converge) ; faux : « non calculable », `tri` vaut 0. */
+  triCalculable?: boolean;
   drci: number;               // Délai de Récupération du Capital Investi (en années)
   indiceProfitabilite: number;
   /** VAN / I0 — la variante demandée au cahier des charges, distincte de l'IP. */

@@ -85,6 +85,34 @@ export function sanitizeHtml(input: string): Sanitized {
   return { html: html.trim(), nativeCss, removed };
 }
 
+/**
+ * Les MOTS de la page viennent du contenu, jamais de l'auteur : un texte écrit en dur dans le code (« SYS-1 »,
+ * « SIGNATURE AGRILINK », « Exemple de citation », une initiale dans un faux avatar) est retiré par le code. Seuls
+ * restent, hors des clés, les signes sans lettre (numéros d'étapes, guillemets, ponctuation). Une boucle de gabarit
+ * (`{{#each}}`) n'existe pas ici : elle est signalée pour que l'auteur écrive chaque clé.
+ */
+export function stripInventedText(html: string): { html: string; removed: string[]; loops: boolean } {
+  const removed: string[] = [];
+  const loops = /\{\{\s*[#/^]/.test(html);
+  const KEY = /(\{\{\s*[\w.:-]+\s*\}\})/;
+  const out = html.replace(/>([^<]+)</g, (_m, text: string) => {
+    const kept = text
+      .split(KEY)
+      .map((part, i) => {
+        if (i % 2 === 1) return part;
+        const letters = part.replace(/&(#\d+|#x[\da-f]+|[a-z]+);/gi, ' ');
+        // Des débris de code (« ')]"> », « {} », « = ») ne sont jamais un signe de mise en page.
+        const debris = /[<>{}\[\]=`]|["'][)\]]/.test(part.replace(/&(#\d+|#x[\da-f]+|[a-z]+);/gi, ''));
+        if (!/\p{L}/u.test(letters) && !debris) return part;
+        removed.push(part.trim().slice(0, 40));
+        return part.replace(/\S+/g, '').replace(/\s+/g, ' ');
+      })
+      .join('');
+    return `>${kept}<`;
+  });
+  return { html: out, removed, loops };
+}
+
 export interface Expanded {
   /** La page complète : la racine `.ge-page` et son contenu. */
   html: string;
@@ -159,11 +187,15 @@ export function expandPage(template: string, map: ContentMap, tokens: DesignToke
         unknown.push(key);
         return '';
       }
+      // Une adresse ne s'imprime jamais : elle n'a de sens que dans un attribut (src) — écrite en texte, l'image
+      // n'est pas montrée (la clé reste « non placée »).
+      if (entry.kind === 'url' && !inTag) return '';
       used.add(key);
       if (map.markers.has(key)) return inTag ? `{{${key}}}` : `<span data-field="${key}">{{${key}}}</span>`;
-      // Une adresse ne s'imprime jamais : elle n'a de sens que dans un attribut (src).
-      if (entry.kind === 'url') return inTag ? esc(entry.value) : '';
-      return inTag ? esc(entry.value) : esc(entry.value).replace(/\n/g, '<br>');
+      if (entry.kind === 'url') return esc(entry.value);
+      // Dans le texte, la clé reste repérable (`data-ge-k`) : la mesure vérifie qu'un texte simple n'est pas
+      // composé comme un titre.
+      return inTag ? esc(entry.value) : `<span data-ge-k="${esc(key)}">${esc(entry.value).replace(/\n/g, '<br>')}</span>`;
     });
   html = html
     .split(/(<[^>]*>)/)

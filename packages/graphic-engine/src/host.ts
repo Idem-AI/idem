@@ -47,6 +47,10 @@ export interface EngineHost {
   assetProviders?: import('./asset-planner').AssetProviders;
   /** Le registre des ressources du projet, commun aux documents et aux vidéos (réutiliser avant de générer). */
   assetRegistry?: import('./asset-planner').AssetRegistry;
+  /**
+   * Le code de Chart.js (UMD) : les graphiques sont DESSINÉS avant la mesure et la photographie (aperçus PNG). Absent, le moteur cherche le paquet `chart.js` ; introuvable, les graphiques restent vides à l'aperçu.
+   */
+  chartScript?: () => string | null;
 }
 
 const silent: EngineLogger = { info: () => undefined, warn: () => undefined, error: () => undefined };

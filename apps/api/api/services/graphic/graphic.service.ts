@@ -170,6 +170,16 @@ export function pageId(name: string): string {
   );
 }
 
+/**
+ * L'image de la couverture d'un livrable : le monde de la marque, décrit pour CE projet. Son style vient du
+ * traitement de l'image de la charte (le moteur le passe au générateur) ; aux crans qui ne génèrent pas, une image
+ * du projet la remplace, sinon la couverture se compose avec la marque seule.
+ */
+export function coverImage(project: Pick<ProjectModel, 'name'> & { description?: string; longDescription?: string }): { subject: string } | undefined {
+  const about = (project.description || project.longDescription || '').replace(/\s+/g, ' ').trim().slice(0, 180);
+  return about ? { subject: `the world of ${project.name || 'this business'}, one strong scene that says what it does: ${about}`.slice(0, 240) } : undefined;
+}
+
 /** La date de la couverture, dans la langue de la requête (« Octobre 2026 »). */
 export function coverDateLabel(date: Date = new Date()): string {
   const locale = getRequestLanguage() === 'fr' ? 'fr-FR' : 'en-US';

@@ -671,7 +671,7 @@
                   </div>
                   <div class="fs-metric">
                     <dt class="text-sm text-text-secondary">{{ 'dashboard.finance.home.bank.tri' | translate }}</dt>
-                    <dd class="text-2xl font-bold text-text-primary tabular-nums">{{ formatPercent(ratios.tri) }}</dd>
+                    <dd class="text-2xl font-bold text-text-primary tabular-nums">{{ ratios.triCalculable === false ? '—' : formatPercent(ratios.tri) }}</dd>
                     <dd class="text-xs text-text-tertiary mt-1">{{ 'dashboard.finance.home.bank.triHint' | translate }}</dd>
                   </div>
                   <div class="fs-metric">

@@ -29,11 +29,13 @@ const SAFE_AREA: Record<AssetRequirement['safeArea'], string> = {
 
 /** Le brief d'une image : ce qu'elle montre, son cadrage, son ambiance, la direction artistique, la zone calme. */
 export function imageBrief(req: AssetRequirement, ctx: AssetContext): ImageBrief {
-  const kind = req.role === 'illustration' ? 'An editorial illustration' : 'A documentary photograph';
+  // Le traitement de l'image de la CHARTE commande (médium, traitement, lumière) : une marque en aplats vectoriels
+  // ne reçoit pas de photographie. Sans charte, le rôle du besoin décide.
+  const kind = ctx.imagery ? 'An image' : req.role === 'illustration' ? 'An editorial illustration' : 'A documentary photograph';
   const style = [ctx.styleId ? `${ctx.styleId} art direction` : '', ...(ctx.keywords ?? []).slice(0, 4)].filter(Boolean).join(', ');
   return {
     searchQuery: req.subject.slice(0, 80),
-    generationPrompt: [`${kind}: ${req.subject}.`, req.framing ? `Framing: ${req.framing}.` : '', req.mood ? `Mood: ${req.mood}.` : '', style ? `Style: ${style}.` : '', SAFE_AREA[req.safeArea]].filter(Boolean).join(' '),
+    generationPrompt: [`${kind}: ${req.subject}.`, ctx.imagery ? `The brand's image treatment, to follow strictly: ${ctx.imagery}.` : '', req.framing ? `Framing: ${req.framing}.` : '', req.mood ? `Mood: ${req.mood}.` : '', style ? `Style: ${style}.` : '', 'Professional, clean, no text in the image.', SAFE_AREA[req.safeArea]].filter(Boolean).join(' '),
     orientation: orientationOf(req.aspectRatio),
     preferGenerated: true,
   };
