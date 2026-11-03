@@ -208,6 +208,19 @@ export function chartPalette(brand: { primary: string; accent: string; secondary
   }
   const report = validatePalette(palette, surface, mode);
   if (report.ok) return { colors: palette, report, source: 'brand+reference' };
+  // Avant la palette de référence : la COULEUR PRIMAIRE de la marque, complétée par les teintes de référence les plus
+  // éloignées d'elle — un graphique reste aux couleurs de la marque (une marque teal n'a pas de graphique bleu).
+  if (seeds.length) {
+    const first = seeds[0];
+    const rest = REFERENCE_PALETTE.filter((ref) => deltaE(ref, first) >= 20 && hueDistance(ref, first) >= 25).sort((a, b) => deltaE(b, first) - deltaE(a, first));
+    for (let k = 0; k + n - 1 <= rest.length; k++) {
+      const keep = [first, ...rest.slice(k, k + n - 1)];
+      const kept = validatePalette(keep, surface, mode);
+      // La couleur de la marque est juste par définition : sa chroma n'est pas un motif de refus ; le contraste et la
+      // lecture des daltoniens, si.
+      if (kept.cvd === 'pass' && !kept.offBand.length && !kept.lowContrast.length) return { colors: keep, report: kept, source: 'brand+reference' };
+    }
+  }
   const reference = REFERENCE_PALETTE.slice(0, n);
   return { colors: reference, report: validatePalette(reference, surface, mode), source: 'reference' };
 }

@@ -48,14 +48,7 @@ export interface EngineHost {
   /** Le registre des ressources du projet, commun aux documents et aux vidéos (réutiliser avant de générer). */
   assetRegistry?: import('./asset-planner').AssetRegistry;
   /**
-   * La VISION : un modèle regarde la page RENDUE (PNG) et répond à une consigne. Sert au relecteur visuel
-   * (`author/review.ts`), le seul à voir ce que la mesure ne voit pas (désordre, page banale, hiérarchie fausse).
-   * Absente : les pages passent sans relecture visuelle.
-   */
-  reviewImage?: (png: Buffer, instruction: string, ctx: { userId?: string; projectId?: string; documentType: string }) => Promise<string>;
-  /**
-   * Le code de Chart.js (UMD) : les graphiques sont DESSINÉS avant la mesure et la photographie (le relecteur doit
-   * les voir). Absent, le moteur cherche le paquet `chart.js` ; introuvable, les graphiques restent vides à l'aperçu.
+   * Le code de Chart.js (UMD) : les graphiques sont DESSINÉS avant la mesure et la photographie (aperçus PNG). Absent, le moteur cherche le paquet `chart.js` ; introuvable, les graphiques restent vides à l'aperçu.
    */
   chartScript?: () => string | null;
 }

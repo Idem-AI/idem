@@ -11,7 +11,7 @@ import type { Repair } from '../contracts/render-result';
 import { COMPONENT_LIBRARY_VERSION, ENGINE_VERSION } from '../version';
 
 /** direct : la bible du document ; author : une page ; revise : une retouche écrite ; repair : une page qui ne s'affichait pas ; render : assainir, compiler, afficher. */
-export type TaskName = 'direct' | 'author' | 'revise' | 'repair' | 'render' | 'review' | 'asset.resolve';
+export type TaskName = 'direct' | 'author' | 'revise' | 'repair' | 'render' | 'asset.resolve';
 
 export interface TaskTrace {
   task: TaskName;

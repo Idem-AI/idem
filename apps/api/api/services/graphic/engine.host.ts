@@ -29,8 +29,8 @@ let configured = false;
 let chartSource: string | null | undefined;
 
 /**
- * Hors ligne : sous un script de contrôle (`api/scripts/check*.ts`) ou avec `GRAPHIC_OFFLINE=1`, ni relecture visuelle
- * ni génération d'image — aucun appel payant ne part d'un contrôle.
+ * Hors ligne : sous un script de contrôle (`api/scripts/check*.ts`) ou avec `GRAPHIC_OFFLINE=1`, aucune génération
+ * d'image — aucun appel payant ne part d'un contrôle.
  */
 const OFFLINE = process.env.GRAPHIC_OFFLINE === '1' || /[\\/]scripts[\\/]check[A-Z]/.test(process.argv[1] ?? '');
 
@@ -84,18 +84,7 @@ export function configureGraphicEngineForIdem(): void {
         await cacheService.set(`brand-language:${key}`, value, { prefix: 'graphic', ttl: 180 * 24 * 3600 });
       },
     },
-    // Le relecteur visuel : la page rendue (PNG), lue par le modèle de vision du rôle `graphic.reviewer`.
-    reviewImage: OFFLINE ? undefined : async (png, instruction) => {
-      const [{ analyzeImage }, { roleConfig }] = await Promise.all([import('../media.service'), import('../../config/creative-roles')]);
-      const role = roleConfig('graphic.reviewer', 'agents', 'ultra');
-      return analyzeImage(png.toString('base64'), 'image/png', instruction, {
-        model: role.modelName,
-        ...(role.fallbackModels?.[0] ? { fallbackModel: role.fallbackModels[0] } : {}),
-        maxOutputTokens: 700,
-        temperature: 0.1,
-      });
-    },
-    // Chart.js, le même fichier que celui du service PDF : les graphiques sont dessinés avant la relecture visuelle.
+    // Chart.js, le même fichier que celui du service PDF : les graphiques sont dessinés dans les aperçus.
     chartScript: () => {
       if (chartSource === undefined) {
         try {

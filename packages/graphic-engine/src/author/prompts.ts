@@ -117,7 +117,7 @@ export function brandSheet(ctx: DocumentContext): string {
 }
 
 /** La direction artistique de la charte, brute (pour écrire le langage visuel, ou à défaut de langage). */
-function directionLines(ctx: DocumentContext): string {
+export function directionLines(ctx: DocumentContext): string {
   const d = ctx.direction;
   return [
     d?.styleId ? `ART DIRECTION: ${ctx.tokens.style.name}${d.keywords?.length ? ` — ${d.keywords.join(', ')}` : ''}` : d?.keywords?.length ? `KEYWORDS: ${d.keywords.join(', ')}` : '',
@@ -156,7 +156,7 @@ function logoPlacementLine(ctx: DocumentContext): string {
   return '- The logo is clearly legible at the size given in TOOLS for this canvas — present, with clear space, but never the focal element and never on or against a title or text. Do not shrink it further than that size.';
 }
 
-function professionalLines(ctx: DocumentContext): string {
+export function professionalLines(ctx: DocumentContext): string {
   // La couverture : la liberté entière, seuls les interdits techniques restent.
   if (ctx.cover)
     return [
@@ -300,7 +300,7 @@ export function parsePageDirection(raw: string): string | null {
 
 // ── L'auteur ───────────────────────────────────────────────────────────────────────────────
 
-const TAILWIND_SHEET = [
+export const TAILWIND_SHEET = [
   'TAILWIND v4 — the ONLY way to style. Classes only; never <style>, never style="", never scripts.',
   '- Colours by their brand names: bg-brand-primary, text-ink, text-muted, bg-brand-soft, border-rule, text-on-brand; opacity bg-brand-primary/15.',
   '- Fonts font-display / font-body; font-medium…font-black, uppercase, tracking-[0.12em], leading-[1.1].',
@@ -446,12 +446,10 @@ export function reviseUser(base: string, code: string, instruction: string): str
   return `${base}\n\nCURRENT PAGE CODE:\n\`\`\`html\n${code.slice(0, 16000)}\n\`\`\`\n\nCHANGE REQUESTED BY THE CLIENT: ${instruction.slice(0, 1200)}\nRewrite the whole page applying exactly this change and keep the rest. Same output format.`;
 }
 
-export type RepairStrategy = 'fix' | 'rewrite' | 'minimal' | 'review';
+export type RepairStrategy = 'fix' | 'rewrite' | 'minimal';
 
 export function repairUser(base: string, strategy: RepairStrategy, o: { code?: string; error: string; history: string[] }): string {
   const past = o.history.length ? `\nPREVIOUS FAILURES:\n${o.history.map((h) => `- ${h}`).join('\n')}` : '';
-  if (strategy === 'review')
-    return `${base}\n\nYOUR PAGE DISPLAYS, BUT AN ART DIRECTOR LOOKED AT IT AND REFUSES IT:\n${o.error}${o.code ? `\nYOUR CODE:\n\`\`\`html\n${o.code.slice(0, 14000)}\n\`\`\`` : ''}\nApply every fix, keep what was right, and return the whole corrected page. Same output format.`;
   if (strategy === 'fix')
     return `${base}\n\nYOUR PAGE DID NOT DISPLAY.\nERROR: ${o.error}${o.code ? `\nYOUR CODE:\n\`\`\`html\n${o.code.slice(0, 14000)}\n\`\`\`` : ''}\nFix the cause and return the whole corrected page. Same output format.`;
   if (strategy === 'rewrite') return `${base}\n\nEarlier versions of this page did not display.${past}\nWrite the page again from scratch, with a different and simpler construction (fewer layers). Same output format.`;

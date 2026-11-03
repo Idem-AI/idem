@@ -13,6 +13,11 @@
       "url": "https://dotnet.cm"
     },
     {
+      "name": "NVIDIA Inception",
+      "logo": "nvidia-inception.png",
+      "url": "https://www.nvidia.com/en-us/start/"
+    },
+    {
       "name": "AWS User Group Douala",
       "logo": "aws-user-group-douala.png",
       "url": "https://www.meetup.com/awsugdouala/"
@@ -52,5 +57,6 @@
       "logo": "ravisa.png",
       "url": "https://ravisa.org/index.html"
     }
+ 
   ]
 }

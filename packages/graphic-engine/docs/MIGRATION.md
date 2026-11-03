@@ -1,5 +1,21 @@
 # Migrations du moteur graphique
 
+## 2.5 — le travail divisé en petites tâches, sans relecteur (3 novembre 2026)
+
+- **Le relecteur visuel est retiré** (rôle `graphic.reviewer`, port `reviewImage`) : aucun modèle ne relit une
+  page — pas de jetons de relecture. La qualité vient de la façon de produire et de la mesure du code.
+- **Les pages de document (charte, deck, business plan) se font en petites tâches** (`src/author/zones.ts`) :
+  1. l'agent de mise en page (`graphic.layout`, échelle « design ») invente la grille et les zones de la page en
+     suivant la grammaire de la direction artistique — un plan JSON, aucun gabarit ;
+  2. le code vérifie le plan : zones dans la grille, aucune zone sur une autre (cellule en cause renvoyée à
+     l'agent, un second essai), chaque contenu placé une fois ;
+  3. un agent par zone (`graphic.zone`, échelle « code »), en parallèle, écrit SA zone : sa taille exacte, ses
+     seules clés, l'échelle typographique de la page (la même pour toutes les zones) ;
+  4. le code assemble les zones sur la grille (chevauchement impossible) et réduit une zone qui déborde
+     (`zone_fit`) ; un défaut restant part à la correction bornée à partir de la page assemblée.
+  Un plan ou une zone qui n'aboutit pas : l'auteur unique prend la page. La couverture (Ultra, liberté entière),
+  la retouche écrite, le modèle du client, les visuels et les cartes restent à l'auteur unique.
+
 ## 2.4.1 — la direction artistique d'abord (30 octobre 2026)
 
 - **Charte** : la direction artistique, sa grammaire de composition, son traitement de l'image, ses principes et les
@@ -7,7 +23,7 @@
   autres pages les attendent sans relire leur HTML. L'ordre d'affichage ne change pas.
 - **Respect de la direction** : l'auteur, le plan et le directeur de page reçoivent le langage de la marque ET la
   grammaire complète de la direction (le résumé seul en perdait le geste signature, les recettes et les interdits),
-  plus son traitement de l'image. Le relecteur visuel refuse une page qui l'ignore (défaut 8, « OFF-BRAND »).
+  plus son traitement de l'image.
 - **Motifs** : dessinés à partir des éléments graphiques, du geste signature et du traitement de la direction ;
   renouvelés quand elle change (empreinte de la direction dans la clé).
 
@@ -27,9 +43,8 @@ modèles débordaient de la toile sans savoir corriger. Cette version a été va
    des chiffres de tableau coupés sur deux lignes ; débris de code et icônes non demandées retirés ;
 4. l'**ajustement par le code** : un contenu qui déborde d'une toile fixe est réduit à l'échelle exacte
    (`[zoom:…]`, plancher 0,6) sans appel de modèle ;
-5. le **relecteur visuel** (`graphic.reviewer`, port `reviewImage`) : la page RENDUE, graphiques dessinés
-   (Chart.js, port `chartScript`), jugée sur une liste fermée ; ses corrections passent à leur tour la mesure et la
-   correction bornée. Une relecture par page, deux pour une couverture ; `GRAPHIC_REVIEW=off` le coupe.
+5. ~~le relecteur visuel~~ — retiré en 2.5 (coût de relecture refusé) ; les graphiques restent dessinés dans les
+   aperçus (Chart.js, port `chartScript`).
 
 Images : générées à tous les crans quand une page en appelle une (`GENERATION_CAP` 2/3/5/8), stockées dans le
 dossier du projet, posées par leur adresse. Aucun appel payant sous un script `check*` (`GRAPHIC_OFFLINE`).

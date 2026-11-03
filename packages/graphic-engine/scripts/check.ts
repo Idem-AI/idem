@@ -23,6 +23,7 @@ import { FORMATS } from '../src/design-system/formats';
 import { contrastRatio, isDeep } from '../src/foundation/color';
 import { buildContentMap } from '../src/runtime/content-map';
 import { authorSystem, authorUser } from '../src/author/prompts';
+import { assembleLayout, parseLayout } from '../src/author/zones';
 import { expandPage, extractHtml, sanitizeHtml } from '../src/runtime/expand';
 import { compileTailwind } from '../src/runtime/tailwind';
 import { chartHtml, tableHtml } from '../src/runtime/primitives';
@@ -53,7 +54,7 @@ const EX = path.resolve(__dirname, '../contracts/examples');
 const readJson = (rel: string) => JSON.parse(fs.readFileSync(path.join(EX, rel), 'utf8'));
 
 // ── L'auteur simulé : il place chaque clé reçue, et sait rendre une page vide ou une réponse sans HTML ─────
-type Mode = 'ok' | 'blank' | 'blank-once' | 'garbage' | 'down' | 'cut-once' | 'cut' | 'cover-once' | 'overlap-once' | 'empty-once' | 'decor-once' | 'crop-once' | 'tiny-once' | 'nochart-once' | 'loud-once' | 'narrow-once' | 'invent' | 'loop-once' | 'iconcard-once' | 'raw-once';
+type Mode = 'ok' | 'blank' | 'blank-once' | 'garbage' | 'down' | 'cut-once' | 'cut' | 'cover-once' | 'overlap-once' | 'empty-once' | 'decor-once' | 'crop-once' | 'tiny-once' | 'nochart-once' | 'loud-once' | 'narrow-once' | 'invent' | 'loop-once' | 'iconcard-once' | 'raw-once' | 'zone-incomplete';
 let mode: Mode = 'ok';
 /** La page que l'auteur simulé rend au premier appel en mode `raw-once` (un défaut relevé sur un PDF réel). */
 let rawPage = '';
@@ -65,6 +66,24 @@ const calls: Array<{
   system?: string;
 }> = [];
 const pageDirections: typeof calls = [];
+const layoutCalls: typeof calls = [];
+const zoneCalls: typeof calls = [];
+/** Le plan simulé : l'en-tête en haut, puis une zone par bloc, empilées (toile fixe) ou en rangées (flux). */
+const fakeLayout = (user: string): string => {
+  const units = [...user.matchAll(/^- ([\w.:-]+): /gm)].map((m) => m[1]);
+  const head = units.filter((u) => ['kicker', 'title', 'lede'].includes(u));
+  const rest = units.filter((u) => !head.includes(u)).slice(0, 4);
+  const groups = [head, ...rest.map((u) => [u])].filter((g) => g.length);
+  const rows = Math.min(12, groups.length * 3);
+  return JSON.stringify({ columns: 12, rows, background: 'ground', zones: groups.map((g, i) => ({ units: g, col: 1, span: 12, row: i * 3 + 1, rows: 3, align: 'start', intent: 'zone' })) });
+};
+/** Une zone simulée : chacune de ses clés, ses primitives, à la taille de la zone. */
+const fakeZone = (user: string): string => {
+  const keys = [...user.matchAll(/^\{\{([\w.:-]+)\}\} = /gm)].map((m) => m[1]);
+  const prims = primsOf(user);
+  const body = keys.map((k) => (k === 'title' ? `<h2 class="font-display text-[30px] font-bold text-ink">{{title}}</h2>` : /\.url$/.test(k) ? `<img src="{{${k}}}" alt="" class="h-[60px] w-auto self-start object-contain">` : `<p class="text-[12px]">{{${k}}}</p>`)).join('');
+  return `\`\`\`html\n<div class="flex h-full w-full flex-col gap-[4px]">${body}${prims.join('')}</div>\n\`\`\``;
+};
 /** Les primitives (graphiques, tableaux, galeries) que la page doit poser. */
 const primsOf = (user: string): string[] =>
   [...user.matchAll(/<idem-(chart|table|gallery) data-block="([^"]+)">/g)].map(
@@ -77,7 +96,7 @@ const fakePage = (user: string): string => {
   const prims = primsOf(user);
   // Une couleur du nuancier se PEINT (aplat), en plus de son code écrit.
   const hexOf = (k: string) => user.match(new RegExp(`^\\{\\{${k.replace(/[.]/g, '\\.')}\\}\\} = "?(#[0-9a-fA-F]{3,8})`, 'm'))?.[1];
-  const swatch = (k: string) => (/\.hex$/.test(k) && hexOf(k) ? `<div class="h-[26px] w-[26px] shrink-0 bg-[${hexOf(k)}]"></div>` : '');
+  const swatch = (k: string) => (/\.hex$/.test(k) && hexOf(k) ? `<div class="h-[100px] w-[100px] shrink-0 border border-rule bg-[${hexOf(k)}]"></div>` : '');
   // Une adresse d'image se pose en image (un actif de la marque, en grand), un texte en paragraphe.
   const body = `<p class="text-[12px] uppercase text-brand-primary">{{kicker}}</p><h2 class="font-display text-[36px] font-bold text-ink">{{title}}</h2><p class="text-muted">{{lede}}</p>${keys.map((k) => (/\.url$/.test(k) ? `<img src="{{${k}}}" alt="" class="h-[40%] w-auto self-start object-contain">` : `${swatch(k)}<p data-field="${k}" class="text-[12px]">{{${k}}}</p>`)).join('')}${prims.join('')}<idem-logo class="h-[20px]"></idem-logo>`;
   if (/business card/.test(user))
@@ -91,6 +110,19 @@ configureGraphicEngine({
     () =>
     async ({ role, user, level, system }) => {
       const repair = /DID NOT DISPLAY|did not display/.test(user);
+      // Le travail divisé : le plan de mise en page et les zones (comptés à part, comme le directeur de page).
+      if (role === 'graphic.layout') {
+        layoutCalls.push({ role, level, repair, user, system });
+        // Dans un mode de défaut, pas de plan : la page retombe sur l'auteur unique (les tests de défauts le visent).
+        if (mode !== 'ok' && mode !== 'zone-incomplete') return 'pas de plan';
+        return fakeLayout(user);
+      }
+      if (role === 'graphic.zone') {
+        zoneCalls.push({ role, level, repair, user, system });
+        // Une zone qui oublie ses contenus au premier essai (redemandée par le code avec la liste de ce qui manque).
+        if (mode === 'zone-incomplete' && !/IT IS MISSING/.test(user)) return '```html\n<div class="h-full w-full"></div>\n```';
+        return fakeZone(user);
+      }
       // Le directeur de page (une petite tâche avant l'auteur) : ses appels sont comptés à part.
       if (role === 'graphic.page-director') {
         pageDirections.push({ role, level, repair, user, system });
@@ -587,33 +619,31 @@ async function main(): Promise<void> {
     sections: [{ id: 'market' }, { id: 'finance' }],
     png: true,
   });
+  layoutCalls.length = 0;
+  zoneCalls.length = 0;
   const [m, f] = await Promise.all([
     deck.composeSection(MARKET, { index: 1, total: 2 }),
     deck.composeSection({ ...FINANCE_BP, id: 'finance' }, { index: 2, total: 2 }),
   ]);
   ok(
-    'sans mémoire : le langage de la marque et le plan (deux appels du directeur, pages en parallèle), un appel d’auteur par page, au cran choisi',
+    'travail divisé : langage et plan (deux appels du directeur), puis par page un plan de mise en page et une zone par agent — aucun auteur de page entière, au cran choisi',
     calls.filter((c) => c.role === 'graphic.director').length === 2 &&
-      calls.filter((c) => c.role === 'graphic.author').length === 2 &&
-      calls.every((c) => c.level === 'low')
-  );
-  const authorCalls = calls.filter((c) => c.role === 'graphic.author');
-  ok(
-    'l’auteur reçoit le langage de la marque, SA ligne du plan et celle de sa voisine, le support et la matière',
-    authorCalls.every(
-      (c) =>
-        c.user.includes('BRAND VISUAL LANGUAGE') &&
-        c.user.includes('THIS PAGE:') &&
-        /(previous|next) page:/.test(c.user) &&
-        c.user.includes('CANVAS:') &&
-        c.user.includes('{{title}}')
-    )
+      // (une correction bornée, à partir de la page assemblée, reste possible : elle n'écrit pas la page)
+      !calls.some((c) => c.role === 'graphic.author' && !c.repair) &&
+      layoutCalls.length === 2 &&
+      zoneCalls.length >= 4 &&
+      [...calls, ...layoutCalls, ...zoneCalls].every((c) => c.level === 'low'),
+    `directeur ${calls.filter((c) => c.role === 'graphic.director').length}, auteur ${calls.filter((c) => c.role === 'graphic.author').length}, plans ${layoutCalls.length}, zones ${zoneCalls.length}, crans ${[...new Set([...calls, ...layoutCalls, ...zoneCalls].map((c) => c.level))].join('/')}, réparations ${[m, f].map((o) => o.result.repairs.map((r) => r.code).join('+')).join(' | ')}`
   );
   ok(
-    'outils à la demande : une page sans tableau ne reçoit pas la documentation du tableau',
-    authorCalls.some(
-      (c) => c.user.includes('<idem-chart data-block="b2"') && !c.user.includes('<idem-table')
-    ) && authorCalls.some((c) => c.user.includes('<idem-table data-block="b1"'))
+    'le plan de mise en page reçoit le langage de la marque, la grammaire, SA ligne du plan et le support ; chaque zone sa taille, ses seules clés et l’échelle typographique de la page',
+    layoutCalls.every((c) => c.user.includes('BRAND VISUAL LANGUAGE') && c.user.includes('THIS PAGE IN THE DOCUMENT PLAN') && c.user.includes('CANVAS:') && c.user.includes('- title:')) &&
+      zoneCalls.every((c) => /THIS ZONE: \d+px wide/.test(c.user) && c.user.includes('TYPE SCALE OF THE PAGE')) &&
+      zoneCalls.filter((c) => c.user.includes('{{title}} = ')).length === 2
+  );
+  ok(
+    'outils à la demande : une zone sans tableau ne reçoit pas la documentation du tableau',
+    zoneCalls.some((c) => c.user.includes('<idem-chart data-block="b2"') && !c.user.includes('<idem-table')) && zoneCalls.some((c) => c.user.includes('<idem-table data-block="b1"'))
   );
   ok(
     'pages affichées, photographiées, textes exacts, aucun constat bloquant',
@@ -714,6 +744,7 @@ async function main(): Promise<void> {
     Boolean(deck.page('market')?.content.blocks.length && deck.page('market')?.spec.html)
   );
   const before2 = calls.length;
+  layoutCalls.length = 0;
   const relaid = await (
     await createDocument({
       documentType: 'pitch-deck',
@@ -727,15 +758,15 @@ async function main(): Promise<void> {
   ok(
     'nouvelle mise en page : l’auteur repart du contenu gardé et reçoit le souhait du client',
     relaid.result.html.includes('2,3 Md FCFA') &&
-      calls
-        .slice(before2)
+      [...calls.slice(before2), ...layoutCalls]
         .some(
           (c) =>
-            c.role === 'graphic.author' &&
+            (c.role === 'graphic.author' || c.role === 'graphic.layout') &&
             c.user.includes('THE CLIENT ASKS FOR THIS LAYOUT: plus aérée')
         )
   );
 
+  zoneCalls.length = 0;
   section('§8 ter Pages d’actif de la charte : composées par l’auteur, aucun gabarit');
   const img =
     'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIvPg==';
@@ -833,9 +864,9 @@ async function main(): Promise<void> {
     ],
   });
   const assets = [symbol, posts, tiles, palette, scale];
-  const assetAuthors = calls.filter((c) => c.role === 'graphic.author' && !c.repair);
+  const assetAuthors = [...calls.filter((c) => c.role === 'graphic.author' && !c.repair), ...zoneCalls];
   ok(
-    'chaque page d’actif est composée par l’auteur (logo, mockups, motifs, palette, échelle) : aucun gabarit du code',
+    'chaque page d’actif est composée par les agents (plan puis zones, ou auteur) : aucun gabarit du code',
     assetAuthors.length >= assets.length && !assets.some((o) => o.result.repairs.some((r) => r.code === 'asset_page'))
   );
   ok(
@@ -1014,10 +1045,10 @@ async function main(): Promise<void> {
   section('§9 L’ordre de la page, mesuré par le code (la page repart à l’auteur, la mise en page reste la sienne)');
   pageDirections.length = 0;
   calls.length = 0;
-  const directed = await createDocument({ documentType: 'pitch-deck', format: 'slide-16x9', brand: BRANDS.kora, seed: 'pd', sections: [{ id: 'market' }, { id: 'finance' }] });
-  await directed.composeSection(MARKET, { index: 1, total: 2 });
+  const directed = await createDocument({ documentType: 'flyer', format: 'flyer-square', brand: BRANDS.kora, seed: 'pd', sections: [{ id: 'market' }] });
+  await directed.composeSection(MARKET, { index: 1, total: 1 });
   ok(
-    'travail divisé : le directeur de page décide la hiérarchie (petite tâche), l’auteur la construit',
+    'travail divisé (visuel, auteur unique) : le directeur de page décide la hiérarchie, l’auteur la construit',
     pageDirections.length === 1 &&
       /FOCAL: .+\nZONES: /.test(pageDirections[0].system ?? '') &&
       calls.some((c) => c.role === 'graphic.author' && c.user.includes('PAGE LAYOUT DECIDED BY THE ART DIRECTOR') && c.user.includes('FOCAL: the title'))
@@ -1158,37 +1189,48 @@ async function main(): Promise<void> {
     ok('chaque page reçoit le langage de la marque ET la grammaire complète de la direction artistique', user.includes('BRAND VISUAL LANGUAGE') && user.includes('a thick rule under every title'));
   }
 
-  section('§9 quinquies Le relecteur visuel et la couverture');
-  const reviews: string[] = [];
-  configureGraphicEngine({
-    reviewImage: async (_png, instruction) => {
-      reviews.push(instruction);
-      return reviews.length === 1 ? '{"ok": false, "issues": ["HIERARCHY — the caption is as large as the title: set it at 13 px under the figure"]}' : '{"ok": true, "issues": []}';
-    },
-  });
-  calls.length = 0;
-  const reviewedDoc = await createDocument({ documentType: 'pitch-deck', format: 'slide-16x9', brand: BRANDS.kora, seed: 'rev', sections: [{ id: 'market' }] });
-  const reviewedOut = await reviewedDoc.composeSection(MARKET);
-  ok(
-    'le relecteur regarde la page rendue ; son refus part à l’auteur avec la correction, la page corrigée est gardée',
-    reviews.length === 1 &&
-      /OVERLAP[\s\S]*CUT[\s\S]*HIERARCHY/.test(reviews[0]) &&
-      calls.some((c) => /ART DIRECTOR LOOKED AT IT AND REFUSES IT[\s\S]*caption is as large/.test(c.user)) &&
-      reviewedOut.result.repairs.some((r) => r.code === 'review_fix') &&
-      reviewedOut.trace.tasks.some((t) => t.task === 'review'),
-    `${reviews.length} relecture(s), réparations ${reviewedOut.result.repairs.map((r) => r.code).join(',')}`
-  );
-  reviews.length = 0;
+  section('§9 sexies Le plan de mise en page, vérifié par le code');
+  {
+    const units = ['title', 'b1', 'b2'];
+    const overlap = parseLayout(JSON.stringify({ columns: 12, rows: 8, zones: [{ units: ['title'], col: 1, span: 8, row: 1, rows: 3 }, { units: ['b1'], col: 6, span: 7, row: 2, rows: 4 }] }), units, FORMATS['slide-16x9']);
+    ok('deux zones qui se chevauchent : plan refusé, avec la cellule en cause (l’agent recommence)', !overlap.layout && /overlap at row 2, column 6/.test(overlap.error ?? ''), overlap.error);
+    const partial = parseLayout(JSON.stringify({ columns: 12, rows: 8, zones: [{ units: ['title', 'b1', 'b1', 'inconnu'], col: 1, span: 12, row: 1, rows: 4 }] }), units, FORMATS['slide-16x9']);
+    ok('un contenu oublié rejoint la zone du titre ; un doublon et une unité inconnue sont retirés', Boolean(partial.layout && partial.layout.zones[0].units.join() === 'title,b1,b2'));
+    const html = partial.layout ? assembleLayout(partial.layout, new Map([['z1', '<p>{{title}}</p>']]), FORMATS['slide-16x9'], new Map([['z1', 0.8]])) : '';
+    ok('assemblage : la grille du plan, chaque zone à sa case, la zone qui déborde réduite par le code', /grid-cols-\[repeat\(12,minmax\(0,1fr\)\)\]/.test(html) && /data-ge-zone="z1" class="col-start-1 col-span-12 row-start-1 row-span-4/.test(html) && /\[zoom:0\.8\]/.test(html));
+  }
+
+  {
+    mode = 'zone-incomplete';
+    zoneCalls.length = 0;
+    const doc = await createDocument({ documentType: 'pitch-deck', format: 'slide-16x9', brand: BRANDS.kora, seed: 'zi', sections: [{ id: 'market' }] });
+    const out = await doc.composeSection(MARKET);
+    mode = 'ok';
+    ok(
+      'une zone qui oublie ses contenus : le code le voit avant l’assemblage et redemande CETTE zone, avec la liste exacte',
+      zoneCalls.some((c) => /IT IS MISSING: .*\{\{b1\.items\.0\.value\}\}/.test(c.user)) && out.result.repairs.some((r) => r.code === 'zone_completed') && out.result.html.includes('2,3 Md FCFA')
+    );
+    const drawn = await rawFix('<div class="flex h-full w-full flex-col gap-[16px] bg-ground p-[60px]"><h2 class="text-[40px]">{{title}}</h2><p>{{p1.paragraphs.0}}</p><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 2"/></svg></div>', plain);
+    ok('un dessin SVG écrit par l’auteur (la coche du BP réel) : retiré par le code', !/<path d="M1 5/.test(drawn.out.result.html) && drawn.out.result.issues.some((i) => i.code === 'invented_drawing_removed'));
+  }
+
+  {
+    const real: SectionContent = { id: 'pal2', title: 'Palette de couleurs', blocks: [{ id: 'sys-1', kind: 'swatches', origin: 'system', items: [{ hex: '#1B7A7A', name: 'Primaire', role: 'Identité, titres' }, { hex: '#D4A017', name: 'Secondaire', role: 'Zones calmes' }] }] };
+    const col = (i: number, hex: string) => `<div class="flex w-[300px] flex-col gap-[8px]"><div class="h-[120px] w-full rounded-[8px] bg-[${hex}]"></div><p class="text-[13px] font-semibold">{{sys-1.items.${i}.name}}</p><p class="text-[11px]">{{sys-1.items.${i}.role}}</p><p class="text-[11px]">{{sys-1.items.${i}.hex}}</p></div>`;
+    const good = await rawFix(`<div class="flex h-full w-full flex-col gap-[32px] bg-ground p-[48px]"><h2 class="text-[44px]">{{title}}</h2><div class="flex gap-[16px]">${col(0, '#1B7A7A')}${col(1, '#D4A017')}</div></div>`, real);
+    ok('la palette réelle (grands aplats, nom, rôle et code dessous) passe sans aucune correction', !good.prompt && !good.out.result.issues.some((i) => i.severity === 'blocking'), good.prompt.match(/ERROR: .*/)?.[0]?.slice(0, 200));
+  }
+
+  section('§9 quinquies La couverture');
   calls.length = 0;
   pageDirections.length = 0;
   const coverDoc = await createDocument({ documentType: 'business-plan', format: 'a4-portrait', brand: BRANDS.kora, creativity: 'low', seed: 'cov', sections: [{ id: 'cover', role: 'cover' }] });
   const coverOut = await coverDoc.composeSection(coverContent({ id: 'cover', brandName: 'Kora', documentLabel: 'Business plan' }));
   const coverAuthor = calls.find((c) => !c.repair);
   ok(
-    'couverture : le modèle Ultra même au cran Low, rôle graphic.cover, consigne libre, aucun directeur de page, relue deux fois au plus',
-    coverAuthor?.role === 'graphic.cover' && coverAuthor.level === 'ultra' && /Total creative freedom/.test(coverAuthor.system ?? '') && pageDirections.length === 0 && reviews.length >= 1 && reviews.length <= 2 && /GENERIC COVER/.test(reviews[0]) && (coverOut.result.measured?.height ?? 0) > 1000
+    'couverture : le modèle Ultra même au cran Low, rôle graphic.cover, consigne libre, aucun directeur de page, aucune relecture par un autre modèle',
+    coverAuthor?.role === 'graphic.cover' && coverAuthor.level === 'ultra' && /Total creative freedom/.test(coverAuthor.system ?? '') && pageDirections.length === 0 && !coverOut.trace.tasks.some((t) => (t.task as string) === 'review') && (coverOut.result.measured?.height ?? 0) > 1000
   );
-  configureGraphicEngine({ reviewImage: undefined });
 }
 
 main()

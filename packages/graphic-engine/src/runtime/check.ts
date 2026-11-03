@@ -29,7 +29,29 @@ export interface RenderCheck {
    * moteur l'applique lui-même (`[zoom:…]`), sans demander au modèle d'estimer des hauteurs.
    */
   fit?: number;
+  /** Par zone d'une page assemblée (`data-ge-zone`) : l'échelle qui fait tenir son contenu dans la zone (< 1 : déborde). */
+  zoneFits?: Record<string, number>;
 }
+
+/** Ce que chaque zone d'une page assemblée doit réduire pour tenir dans sa case de la grille. */
+const ZONE_FITS = `(function () {
+  var out = {};
+  document.querySelectorAll('[data-ge-zone]').forEach(function (z) {
+    var box = z.getBoundingClientRect();
+    if (box.width < 2 || box.height < 2) return;
+    var bottom = box.top, right = box.left;
+    var tw = document.createTreeWalker(z, NodeFilter.SHOW_TEXT);
+    for (var n = tw.nextNode(); n; n = tw.nextNode()) {
+      if (!n.textContent.trim()) continue;
+      var rg = document.createRange(); rg.selectNodeContents(n); var r = rg.getBoundingClientRect();
+      if (r.width && r.height) { bottom = Math.max(bottom, r.bottom); right = Math.max(right, r.right); }
+    }
+    z.querySelectorAll('img,canvas,[data-ge-chart],[data-ge-gallery],table').forEach(function (m) { var q = m.getBoundingClientRect(); if (q.width && q.height) { bottom = Math.max(bottom, q.bottom); right = Math.max(right, q.right); } });
+    var need = Math.max((bottom - box.top) / box.height, (right - box.left) / box.width);
+    out[z.getAttribute('data-ge-zone')] = need > 1.005 ? Math.floor((0.985 / need) * 1000) / 1000 : 1;
+  });
+  return out;
+})()`;
 
 /**
  * L'ÉTENDUE du contenu d'une toile fixe : l'échelle qui ramène tout le texte et toutes les images à l'intérieur.
@@ -183,10 +205,14 @@ export interface QualityFrame {
   roles?: Record<string, 'title' | 'text'>;
   /** Les couleurs d'un nuancier : chacune doit être PEINTE (un aplat), pas seulement écrite. */
   swatches?: string[];
+  /** La clé du nom de chaque couleur (même ordre) : il se pose SUR ou CONTRE son aplat. */
+  swatchKeys?: string[][];
   /** Le fond pour lequel chaque logo est fait : un logo « fond sombre » se pose sur un aplat sombre. */
   grounds?: Array<{ src: string; ground: 'light' | 'dark' }>;
   /** Fond sombre de page admis (demande explicite) ; sinon la page reste claire. */
   allowDark?: boolean;
+  /** L'adresse du logo « sur fond sombre » : sur un aplat sombre, c'est lui ; sur fond clair, jamais lui. */
+  logoOnDark?: string;
 }
 
 export const QUALITY = (f: QualityFrame) => `(function (f) {
@@ -328,6 +354,34 @@ export const QUALITY = (f: QualityFrame) => `(function (f) {
       return painted.indexOf(rgb) < 0;
     });
     if (missingHex.length) errors.push('the palette colours are written but not shown: ' + missingHex.slice(0, 4).join(', ') + ' — paint each colour as a large block (class bg-[' + missingHex[0] + ']) with its name and code beside it');
+    else {
+      // Chaque couleur a SON grand aplat ; son nom et son code sont dessus ou contre lui.
+      var minSide = Math.min(box.width, box.height) * 0.14;
+      var tiny = [], far = [];
+      f.swatches.forEach(function (hex, i) {
+        var h = hex.replace('#', ''); if (h.length === 3) h = h.split('').map(function (c) { return c + c; }).join('');
+        var rgb = [0, 2, 4].map(function (k) { return parseInt(h.slice(k, k + 2), 16); }).join(',');
+        var best = null, area = 0;
+        root.querySelectorAll('*').forEach(function (el) {
+          if (!visible(el)) return;
+          var m = (getComputedStyle(el).backgroundColor.match(/[\\d.]+/g) || []).map(Number);
+          if (m.length < 3 || m.slice(0, 3).join(',') !== rgb) return;
+          var q = el.getBoundingClientRect();
+          if (q.width * q.height > area) { area = q.width * q.height; best = q; }
+        });
+        if (!best) return;
+        if (Math.min(best.width, best.height) < minSide) tiny.push(hex);
+        ((f.swatchKeys || [])[i] || []).forEach(function (key) {
+          var sp = root.querySelector('[data-ge-k="' + key + '"]');
+          if (!sp || !visible(sp)) return;
+          var t = sp.getBoundingClientRect();
+          var dx = Math.max(0, best.left - t.right, t.left - best.right), dy = Math.max(0, best.top - t.bottom, t.top - best.bottom);
+          if (Math.max(dx, dy) > Math.max(48, Math.min(best.width, best.height) * 0.6) && far.indexOf(hex) < 0) far.push(hex);
+        });
+      });
+      if (tiny.length) errors.push('the palette swatches are too small: ' + tiny.slice(0, 3).join(', ') + ' — each colour is a LARGE block (at least ' + Math.round(minSide) + ' px on its short side); the colours are the subject of this page');
+      if (far.length) errors.push('a colour name or code is far from its colour block: ' + far.slice(0, 3).join(', ') + ' — put each name and code on its block or right against it');
+    }
   }
   // 2. Les actifs de la marque : entiers, jamais rognés ni recadrés.
   var assets = [];
@@ -377,6 +431,15 @@ export const QUALITY = (f: QualityFrame) => `(function (f) {
       if (g.ground === 'light' && L < 0.35) errors.push('the light-ground logo sits on a dark ground — put it on the light page ground');
     });
   });
+  // Le repère logo (<idem-logo>) : sur un aplat sombre, la déclinaison claire ; sur fond clair, jamais elle.
+  if (f.logoOnDark) {
+    root.querySelectorAll('img[data-ge-logo]').forEach(function (img) {
+      if (!visible(img)) return;
+      var L = groundOf(img), onDark = img.getAttribute('src') === f.logoOnDark;
+      if (L < 0.45 && !onDark && errors.indexOf('the logo sits on a dark ground — use <idem-logo variant="onDark">') < 0) errors.push('the logo sits on a dark ground — use <idem-logo variant="onDark">');
+      if (L > 0.6 && onDark && errors.indexOf('the light logo sits on a light ground — use <idem-logo variant="primary">') < 0) errors.push('the light logo sits on a light ground — use <idem-logo variant="primary">');
+    });
+  }
   // Une image coupée par le bord de la page.
   if (root.getAttribute('data-ge-fixed') === '1') {
     root.querySelectorAll('img').forEach(function (img) {
@@ -437,7 +500,7 @@ export const QUALITY = (f: QualityFrame) => `(function (f) {
     if (Math.min(r.width, r.height) < 6) return;
     if ((el.textContent || '').trim()) return;
     // Un aplat du nuancier EST le contenu (sa couleur est l'une de la palette).
-    if (swatchRgb.indexOf(((cs.backgroundColor.match(/[\\d.]+/g) || []).slice(0, 3).map(Number)).join(',')) >= 0) return;
+    if (Math.min(r.width, r.height) >= Math.min(box.width, box.height) * 0.1 && swatchRgb.indexOf(((cs.backgroundColor.match(/[\\d.]+/g) || []).slice(0, 3).map(Number)).join(',')) >= 0) return;
     // Une pastille d'icône seule dans une grande carte ne la remplit pas : seul un média d'une taille réelle compte.
     var holds = false;
     el.querySelectorAll('img,svg,canvas,video').forEach(function (m) { var q = m.getBoundingClientRect(); if (q.width * q.height >= r.width * r.height * 0.08) holds = true; });
@@ -474,14 +537,15 @@ export async function checkRender(html: string, head: string, format: FormatDef,
         }
       }
       const probe = (await page.evaluate(PROBE)) as { error?: string; width?: number; height?: number };
+      const zoneFits = (await page.$('[data-ge-zone]')) ? ((await page.evaluate(ZONE_FITS)) as Record<string, number>) : undefined;
       if (!probe.error && o.quality) {
         const faults = (await page.evaluate(QUALITY(o.quality))) as string[];
         if (faults.length) probe.error = faults.join(' | ');
       }
       // Texte coupé, recouvert, page désordonnée : la page s'affiche presque entière — gardée comme repli si la
       // correction échoue (livrée signalée plutôt que perdue).
-      const cut = Boolean(probe.error && /cut off by the edge|covered by another element|on top of each other|brand asset|empty frames|decoration noise|long text|written over a mockup|set like a title|palette colours|logo sits on|cut by the page edge|image is broken|page is dark|straddles the edge|table wrap/.test(probe.error));
-      if (probe.error && !cut) return { ok: false, error: probe.error };
+      const cut = Boolean(probe.error && /cut off by the edge|covered by another element|on top of each other|brand asset|empty frames|decoration noise|long text|written over a mockup|set like a title|palette colours|logo sits on|cut by the page edge|image is broken|page is dark|straddles the edge|table wrap|logo sits on|light logo sits|swatches are too small|far from its colour/.test(probe.error));
+      if (probe.error && !cut) return { ok: false, error: probe.error, ...(zoneFits ? { zoneFits } : {}) };
       // Un débordement d'une toile fixe : l'échelle qui le fait tenir, pour que le moteur l'applique lui-même.
       let fit: number | undefined;
       if (probe.error && /cut off by the edge/.test(probe.error) && format.kind === 'fixed') {
@@ -494,7 +558,7 @@ export async function checkRender(html: string, head: string, format: FormatDef,
         if (target) png = Buffer.from(await target.screenshot({ type: 'png' }));
       }
       // Un texte coupé : la photographie est gardée (la page servira de repli si la correction échoue).
-      if (cut) return { ok: false, cut: true, error: probe.error, ...(fit ? { fit } : {}), ...(png ? { png } : {}) };
+      if (cut) return { ok: false, cut: true, error: probe.error, ...(fit ? { fit } : {}), ...(zoneFits ? { zoneFits } : {}), ...(png ? { png } : {}) };
       return { ok: true, width: Math.round(probe.width ?? 0), height: Math.round(probe.height ?? 0), ...(png ? { png } : {}) };
     });
   } catch (error) {

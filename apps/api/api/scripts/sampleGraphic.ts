@@ -3,8 +3,9 @@
  *
  *   npm run sample:graphic -- <dossier de sortie> [couverture,palette,usage-logo,bp-finance]
  *
- * Quatre pages AgriLink au cran Medium (couverture forcée en Ultra) passent par toute la chaîne — directeur de page,
- * auteur, mesure du code, ajustement, relecteur visuel — et leurs rendus PNG sont enregistrés pour être REGARDÉS.
+ * Quatre pages AgriLink au cran Medium (couverture forcée en Ultra) passent par toute la chaîne — plan de mise en
+ * page, une zone par agent, assemblage, mesure et ajustement du code — et leurs rendus PNG sont enregistrés pour être
+ * REGARDÉS.
  * Les contrôles `check:*` simulent les modèles ; seul cet échantillon dit la qualité réelle. À lancer avec parcimonie.
  */
 import { loadSecrets } from '../config/secrets';
