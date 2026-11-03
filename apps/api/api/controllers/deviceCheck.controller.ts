@@ -93,7 +93,7 @@ const OUTCOMES: Record<DeviceDecisionOutcome, { title: string; body: string }> =
 /** GET /auth/device-check/:token */
 export const deviceCheckPageController = async (req: Request, res: Response): Promise<void> => {
   try {
-    const check = await peekDeviceCheck(req.params.token);
+    const check = await peekDeviceCheck(req.params.token as string);
     if (!check) return send(res, 410, OUTCOMES.expired.title, OUTCOMES.expired.body);
 
     const when = new Date(check.at).toLocaleString('fr-FR', {
@@ -135,7 +135,7 @@ export const deviceCheckDecisionController = async (req: Request, res: Response)
     return send(res, 400, 'Réponse manquante', '<h1>Réponse manquante</h1><p>Rouvrez le lien de l’e-mail et choisissez une réponse.</p>');
   }
   try {
-    const outcome = await resolveDeviceCheck(req.params.token, decision as DeviceDecision);
+    const outcome = await resolveDeviceCheck(req.params.token as string, decision as DeviceDecision);
     const { title, body } = OUTCOMES[outcome];
     send(res, outcome === 'expired' ? 410 : 200, title, body);
   } catch (error: any) {

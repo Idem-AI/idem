@@ -563,7 +563,7 @@ export const generateBusinessPlanStreamingController = async (
   req: CustomRequest,
   res: Response
 ): Promise<void> => {
-  const { projectId } = req.params;
+  const projectId = req.params.projectId as string;
   const userId = req.user?.uid;
   logger.info(
     `generateBusinessPlanStreamingController called - UserId: ${userId}, ProjectId: ${projectId}`
