@@ -27,13 +27,15 @@ import { stableHash } from './foundation/hash';
 import { AgentCall, engineHost, FingerprintScope, log } from './host';
 import { GenerationTrace, TraceRecorder } from './observability/traces';
 import { ENGINE_VERSION, COMPONENT_LIBRARY_VERSION } from './version';
-import { authorSystem, authorUser, DocumentContext, DocumentPlan, languagePrompt, pageDirectorPrompt, parseLanguage, parsePageDirection, parsePlan, planPrompt, PlannedPage, ReferenceComposition, RepairStrategy, repairUser, reviseUser, toolLines } from './author/prompts';
+import { authorSystem, authorUser, DocumentContext, DocumentPlan, explorePrompt, IdeaTrack, languagePrompt, pageDirectorPrompt, parseLanguage, parsePageDirection, parsePlan, parseTracks, planPrompt, PlannedPage, ReferenceComposition, refineUser, RepairStrategy, repairUser, reviseUser, toolLines } from './author/prompts';
 import { callModel, levelUp } from './author/model';
 import { assembleLayout, layoutPrompt, listingUnits, parseLayout, zoneSize, zoneSystem, zoneUser, PageLayout } from './author/zones';
 import { buildContentMap, ContentMap, fixBrandNameTypos } from './runtime/content-map';
 import { expandPage, extractHtml, sanitizeHtml, stripInventedText, withSize } from './runtime/expand';
 import { compileTailwind } from './runtime/tailwind';
 import { checkRender, QualityFrame } from './runtime/check';
+import { examplesLines, isCopy, natureOf, PageExample, pickExamples } from './examples/library';
+import { analyzeSaliency, axisLine, decodeVector, encodeVector, imageEmbedding, judgeImage, novelty, PageMetrics, pickAxis, scoreVariant, StartAxis, textEmbedding, VariantScore } from '@idem/design-tools';
 
 export interface DocumentOptions {
   documentType: DocumentType;
@@ -68,6 +70,41 @@ export interface DocumentOptions {
   brief?: string;
   /** Le souhait du client pour la mise en page (« plus aérée », « plus sobre ») : une nouvelle mise en page le suit. */
   layoutNote?: string;
+  /** Le pays de la marque (ISO alpha-2 ou alpha-3) : il oriente le tirage de l'axe de départ (13 pays ouverts). */
+  country?: string;
+  /**
+   * Des portées de mémoire de PLUS (utilisateur, secteur) : leurs idées sont relues pour ne pas les refaire, et l'idée
+   * de ce document y est écrite aussi. La portée principale reste `memoryScope`.
+   */
+  memoryScopes?: FingerprintScope[];
+}
+
+/** Ce que la mémoire de l'hôte rend pour un document : idées déjà faites, axes déjà servis, empreintes de rendus. */
+interface DocumentMemory {
+  ideas: string[];
+  axes: string[];
+  renders: Float32Array[];
+}
+
+/** Le plan qualité créative, par interrupteurs (tous actifs par défaut ; « 0 » coupe). */
+const QUALITY = {
+  explore: () => process.env.IDEM_QUALITY_EXPLORE !== '0',
+  select: () => process.env.IDEM_QUALITY_SELECT !== '0',
+  refine: () => process.env.IDEM_QUALITY_REFINE !== '0',
+};
+
+/**
+ * Le nombre de VARIANTES écrites pour une page, gardée la meilleure par la mesure : une toile seule (visuel, carte) 2 à
+ * Low et Medium, 3 à High et Ultra ; la couverture 2 ; les autres pages d'un document 1 (la retouche mesurée s'y
+ * applique). `IDEM_QUALITY_VARIANTS` impose un nombre (1 à 4).
+ */
+export function variantCount(o: { level: CreativityLevel; cover: boolean; single: boolean; fixed: boolean }): number {
+  if (!QUALITY.select()) return 1;
+  const forced = Number(process.env.IDEM_QUALITY_VARIANTS);
+  if (Number.isFinite(forced) && forced >= 1) return Math.min(4, Math.round(forced));
+  if (o.cover) return 2;
+  if (o.single && o.fixed) return o.level === 'high' || o.level === 'ultra' ? 3 : 2;
+  return 1;
 }
 
 export interface SectionOutput {
@@ -161,6 +198,8 @@ interface Rendered {
   width?: number;
   height?: number;
   issues: Issue[];
+  /** Les mesures de la page (quand le moteur choisit entre des variantes ou retouche par la mesure). */
+  metrics?: PageMetrics;
 }
 
 export class GraphicDocument {
@@ -178,20 +217,46 @@ export class GraphicDocument {
   private planValue: DocumentPlan | undefined;
   /** Le budget de correction de tout le document (jetons, durée). */
   private repairSpent = { tokens: 0, started: 0 };
+  /** Les idées déjà faites (marque, utilisateur, secteur), les plus récentes d'abord. */
+  private readonly previousIdeas: string[];
+  /** L'axe de départ tiré par le code pour ce document (absent : modèle du client, ou exploration coupée). */
+  readonly axis: StartAxis | undefined;
+  /** La piste d'idée retenue après l'exploration. */
+  private chosenTrack: IdeaTrack | undefined;
+  /** Les empreintes CLIP des pages retenues (gardées pour que les prochains documents fassent autrement). */
+  private readonly renderVectors: Float32Array[] = [];
 
   private constructor(
     readonly options: DocumentOptions,
-    private readonly previousIdeas: string[]
+    private readonly memory: DocumentMemory
   ) {
     this.tokens = buildTokens({ brand: options.brand, direction: options.direction, format: options.format, allowDark: options.allowDark, size: options.size });
     this.policy = { level: options.creativity === ('max' as CreativityLevel) ? 'high' : options.creativity ?? 'medium' };
     this.generationId = `${options.documentType}:${stableHash([options.seed, Date.now()], 10)}`;
+    this.previousIdeas = memory.ideas;
+    // L'axe de départ : déterministe (marque, livrable, graine), jamais deux fois le même pour la marque.
+    this.axis = QUALITY.explore() && !options.reference ? pickAxis({ seed: `${options.brand.name}|${options.documentType}|${options.seed}`, country: options.country, used: memory.axes, medium: 'document' }) : undefined;
+  }
+
+  /** Toutes les portées de mémoire du document (la principale d'abord). */
+  private static scopes(options: DocumentOptions): FingerprintScope[] {
+    return [options.memoryScope, ...(options.memoryScopes ?? [])].filter((s): s is FingerprintScope => Boolean(s?.key));
   }
 
   static async create(options: DocumentOptions): Promise<GraphicDocument> {
     const host = engineHost();
-    const recent = options.memoryScope && host.recentFingerprints ? await host.recentFingerprints(options.memoryScope).catch(() => []) : [];
-    return new GraphicDocument(options, recent.filter((r) => r.startsWith('idea:') || r.startsWith('bible:')).map((r) => r.replace(/^(idea|bible):/, '')));
+    const lists = host.recentFingerprints ? await Promise.all(GraphicDocument.scopes(options).map((scope) => host.recentFingerprints!(scope).catch(() => [] as string[]))) : [];
+    // Les plus récentes d'abord ; une idée déjà vue dans une autre portée n'est comptée qu'une fois.
+    const all = lists.flatMap((l) => [...l].reverse());
+    const pick = (prefix: RegExp) => [...new Set(all.filter((r) => prefix.test(r)).map((r) => r.replace(prefix, '')))];
+    const renders = pick(/^render:/).slice(0, 20).map((v) => {
+      try {
+        return decodeVector(v);
+      } catch {
+        return null;
+      }
+    }).filter((v): v is Float32Array => v !== null && v.length === 512);
+    return new GraphicDocument(options, { ideas: pick(/^(idea|bible):/).slice(0, 10), axes: pick(/^axis:/).reverse(), renders });
   }
 
   /** Les polices de la marque (le `<style>` Tailwind de chaque page est dans son `result.head`). */
@@ -237,6 +302,8 @@ export class GraphicDocument {
       layoutNote: this.options.layoutNote,
       ...(this.options.reference ? { reference: this.options.reference } : {}),
       bindings: this.options.bindings ?? 'values',
+      ...(this.axis ? { startingPoint: axisLine(this.axis, 'document') } : {}),
+      ...(this.chosenTrack ? { chosenIdea: `${this.chosenTrack.title} — ${this.chosenTrack.idea}` } : {}),
     };
   }
 
@@ -290,6 +357,7 @@ export class GraphicDocument {
       const call = this.agent();
       this.planPromise = (async () => {
         if (!call) return undefined;
+        if (QUALITY.explore() && !this.options.reference) await this.explore(recorder, call, pages, language);
         const { system, user } = planPrompt(this.context(), pages, language, this.previousIdeas);
         const run = await callModel({ call, recorder, task: 'direct', role: 'graphic.director', profile: 'agents', level: this.policy.level, system, user, timeoutMs: DIRECTOR_TIMEOUT, validate: (raw) => parsePlan(raw, pages.length) !== null });
         this.planValue = run.ok ? parsePlan(run.raw, pages.length) ?? undefined : undefined;
@@ -297,6 +365,22 @@ export class GraphicDocument {
       })();
     }
     return this.planPromise;
+  }
+
+  /**
+   * L'EXPLORATION (plan qualité créative) : quatre pistes d'idée qui divergent, puis le CODE en retient une — la plus
+   * éloignée des idées déjà faites (marque, utilisateur, secteur), mesurée par embedding de texte. Sans piste lisible,
+   * le plan s'écrit comme avant, avec le seul point de départ.
+   */
+  private async explore(recorder: TraceRecorder, call: AgentCall, pages: PlannedPage[], language: string | undefined): Promise<void> {
+    const { system, user } = explorePrompt(this.context(), pages, language, this.previousIdeas);
+    const run = await callModel({ call, recorder, task: 'direct', role: 'graphic.explore', profile: 'agents', level: this.policy.level, system, user, timeoutMs: DIRECTOR_TIMEOUT * 2, validate: (raw) => parseTracks(raw).length >= 2 });
+    const tracks = run.ok ? parseTracks(run.raw) : [];
+    if (!tracks.length) return;
+    const history = this.previousIdeas.map((i) => textEmbedding(i));
+    const ranked = tracks.map((t, i) => ({ t, i, n: novelty(textEmbedding(`${t.title} ${t.idea}`), history) })).sort((a, b) => b.n - a.n || a.i - b.i);
+    this.chosenTrack = ranked[0].t;
+    recorder.repair({ code: 'idea_explored', detail: `${tracks.length} pistes ; retenue « ${ranked[0].t.title} » (nouveauté ${ranked[0].n})`.slice(0, 240), by: 'code' });
   }
 
   /** Ce que le plan dit de CETTE page et de ses voisines. */
@@ -375,9 +459,14 @@ export class GraphicDocument {
         if (direction) bible = [bible, `layout: ${direction.replace(/\n/g, ' · ')}`].filter(Boolean).join('\n');
       }
       if (!rendered) {
-        const base = authorUser(ctx, { section, listing: map.listing, tools, index, total, language, plan, reference: this.options.reference, ...(direction ? { direction } : {}) });
+        // La bibliothèque d'exemples (phase 5) : deux principes proches de l'intention, éloignés entre eux.
+        const shown: PageExample[] = this.options.reference || revising ? [] : pickExamples({ nature: natureOf(pageFormat, section.role), role: section.role, intent: [section.intent?.keyMessage, section.title, plan?.page].filter(Boolean).join(' — ') || section.title || section.id });
+        const base = authorUser(ctx, { section, listing: map.listing, tools, index, total, language, plan, reference: this.options.reference, ...(direction ? { direction } : {}), ...(shown.length ? { examples: examplesLines(shown) } : {}) });
+        if (shown.length) recorder.repair({ code: 'examples_shown', detail: `exemples de principe : ${shown.map((e) => e.id).join(', ')}`, by: 'code' });
         const user = revising ? reviseUser(base, (revising.spec as SectionSpec).html, revising.instruction) : base;
-        rendered = await this.author(section.id, map, recorder, { system, base, user, level: pageLevel, role: authorRole, task: revising ? 'revise' : 'author', quality, format: pageFormat });
+        const authorP = { system, base, user, level: pageLevel, role: authorRole, task: (revising ? 'revise' : 'author') as 'revise' | 'author', quality, format: pageFormat };
+        // Une retouche écrite du client suit sa consigne : ni variantes ni retouche mesurée.
+        rendered = revising ? await this.author(section.id, map, recorder, authorP) : await this.authorBest(section, map, recorder, authorP, { cover, total, shown });
       }
     }
 
@@ -493,10 +582,83 @@ export class GraphicDocument {
   }
 
   /**
+   * PLUSIEURS VARIANTES, LA MEILLEURE GARDÉE PAR LA MESURE (plan qualité créative), puis UNE retouche guidée par les
+   * défauts mesurés. Le code ne réécrit rien : il mesure (défauts constatés, hiérarchie, couverture, saliency, juge
+   * visuel à questions fermées, nouveauté face aux rendus récents) et choisit ; l'auteur corrige ce qu'on lui dit.
+   */
+  private async authorBest(section: SectionContent, map: ContentMap, recorder: TraceRecorder, p: Parameters<GraphicDocument['author']>[3], o: { cover: boolean; total: number; shown?: PageExample[] }): Promise<Rendered> {
+    const format = p.format ?? this.format;
+    const n = variantCount({ level: this.policy.level, cover: o.cover, single: o.total <= 1, fixed: format.kind === 'fixed' });
+    const refine = QUALITY.refine() && this.policy.level !== 'low';
+    if (n <= 1 && !refine) return this.author(section.id, map, recorder, p);
+    const measured = { ...p, measure: true };
+    const attempts = await Promise.allSettled(
+      Array.from({ length: n }, (_, k) =>
+        this.author(section.id, map, recorder, k === 0 ? measured : { ...measured, user: `${p.user}\n\nVARIANT ${k + 1} OF ${n}: compose this page differently from the most obvious layout (another focal element, scale or grid), within the same brand language.` })
+      )
+    );
+    const pages = attempts.flatMap((a) => (a.status === 'fulfilled' ? [a.value] : []));
+    if (!pages.length) {
+      const failure = attempts.find((a): a is PromiseRejectedResult => a.status === 'rejected');
+      throw failure?.reason ?? new GraphicRenderError(section.id, 'aucune variante ne s’affiche');
+    }
+    const scored = await Promise.all(pages.map(async (page) => ({ page, ...(await this.evaluate(page, o.shown)) })));
+    scored.sort((a, b) => b.score.score - a.score.score);
+    let best = scored[0];
+    if (scored.length > 1) recorder.repair({ code: 'variant_selected', detail: `${scored.length} variantes ; gardée ${best.score.score} (autres : ${scored.slice(1).map((s) => s.score.score).join(', ')})`, by: 'code' });
+    // La retouche mesurée : une seule, gardée si elle mesure mieux.
+    const faults = [...best.score.faults, ...best.judgeFaults];
+    if (refine && faults.length) {
+      const call = this.agent() as AgentCall;
+      const valid = (raw: string) => /<[a-z][\s\S]*>/i.test(extractHtml(raw));
+      const run = await callModel({ call, recorder, task: 'repair', role: p.role ?? 'graphic.author', profile: 'coder', level: p.level, system: p.system, user: refineUser(p.base, best.page.template, faults), timeoutMs: AUTHOR_TIMEOUT, validate: valid });
+      if (run.ok) {
+        const r = await this.render(extractHtml(run.raw), map, section.id, recorder, p.quality, format, true);
+        if (r.ok) {
+          const again = await this.evaluate(r.page, o.shown);
+          if (again.score.score > best.score.score) {
+            recorder.repair({ code: 'measured_refine', detail: `retouche mesurée ${best.score.score} → ${again.score.score} : ${faults.slice(0, 3).join(' ; ')}`.slice(0, 240), by: 'agent' });
+            best = { page: r.page, ...again };
+          }
+        }
+      }
+    }
+    if (best.vector) this.renderVectors.push(best.vector);
+    return best.page;
+  }
+
+  /** Les mesures d'une page rendue, réunies en un score transparent (`@idem/design-tools`, `scoreVariant`). */
+  private async evaluate(page: Rendered, shown: PageExample[] = []): Promise<{ score: VariantScore; judgeFaults: string[]; vector?: Float32Array }> {
+    const blocking = page.issues.filter((i) => i.severity === 'blocking').length;
+    const advisory = page.issues.length - blocking;
+    if (!page.png) return { score: scoreVariant({ issues: { blocking, advisory }, ...(page.metrics ? { metrics: page.metrics } : {}) }), judgeFaults: [] };
+    const png = page.png;
+    const [sal, verdict, vector] = await Promise.all([
+      analyzeSaliency(png, page.metrics?.regions ?? {}).catch(() => undefined),
+      engineHost().judgeImage ? judgeImage(engineHost().judgeImage, png) : Promise.resolve(undefined),
+      imageEmbedding(png).catch(() => null),
+    ]);
+    const focalShare = sal ? Math.max(sal.shares.title ?? 0, sal.shares.visual ?? 0, sal.shares.logo ?? 0) : undefined;
+    const score = scoreVariant({
+      issues: { blocking, advisory },
+      ...(page.metrics ? { metrics: page.metrics } : {}),
+      ...(sal ? { focalCount: sal.focalCount, ...(focalShare !== undefined && page.metrics && Object.keys(page.metrics.regions).length ? { focalShare } : {}) } : {}),
+      ...(verdict && !verdict.unavailable ? { judge: verdict.score } : {}),
+      ...(vector ? { novelty: novelty(vector, [...this.memory.renders, ...this.renderVectors]) } : {}),
+    });
+    // La garde anti-copie : une page trop proche d'un exemple montré perd sa nouveauté, et l'auteur le sait.
+    if (vector && isCopy(vector, shown)) {
+      score.score = Math.round(score.score * 0.6 * 1000) / 1000;
+      score.faults.push('the page copies the layout of an example: keep its principle, compose your own page');
+    }
+    return { score, judgeFaults: verdict && !verdict.unavailable ? verdict.faults : [], ...(vector ? { vector } : {}) };
+  }
+
+  /**
    * L'auteur écrit la page ; si elle ne s'affiche pas, la correction bornée : une tentative à la fois, une
    * approche différente à chaque fois, le modèle du cran au-dessus dès la réécriture.
    */
-  private async author(sectionId: string, map: ContentMap, recorder: TraceRecorder, p: { system: string; base: string; user: string; level: CreativityLevel; role?: string; task: 'author' | 'revise'; quality?: QualityFrame; format?: FormatDef; initial?: string }): Promise<Rendered> {
+  private async author(sectionId: string, map: ContentMap, recorder: TraceRecorder, p: { system: string; base: string; user: string; level: CreativityLevel; role?: string; task: 'author' | 'revise'; quality?: QualityFrame; format?: FormatDef; initial?: string; measure?: boolean }): Promise<Rendered> {
     const call = this.agent() as AgentCall;
     const valid = (raw: string) => /<[a-z][\s\S]*>/i.test(extractHtml(raw));
     // `initial` : une page déjà écrite (assemblée par zones) — la correction bornée part d'elle, sans réécrire.
@@ -506,7 +668,7 @@ export class GraphicDocument {
     /** La meilleure page presque affichée (un texte coupé) : livrée, et signalée, si rien ne fait mieux. */
     let partial: Rendered | undefined;
     if (code) {
-      const r = await this.render(code, map, sectionId, recorder, p.quality, p.format);
+      const r = await this.render(code, map, sectionId, recorder, p.quality, p.format, p.measure);
       if (r.ok) return r.page;
       error = r.error;
       code = r.template;
@@ -534,7 +696,7 @@ export class GraphicDocument {
         history.push(`${strategy}: ${error}`);
         continue;
       }
-      const r = await this.render(extractHtml(run.raw), map, sectionId, recorder, p.quality, p.format);
+      const r = await this.render(extractHtml(run.raw), map, sectionId, recorder, p.quality, p.format, p.measure);
       if (r.ok) {
         recorder.repair({ code: `render_${strategy}`, detail: `page corrigée (${strategy}, cran ${level}) après : ${history[history.length - 1].slice(0, 160)}`, by: 'agent' });
         return r.page;
@@ -554,7 +716,7 @@ export class GraphicDocument {
   }
 
   /** Assainir, remplir, compiler, puis demander à Chromium si la page s'affiche. Rien n'est jugé d'autre. */
-  private async render(raw: string, map: ContentMap, sectionId: string, recorder: TraceRecorder, quality?: QualityFrame, format: FormatDef = this.format): Promise<{ ok: true; page: Rendered } | { ok: false; error: string; template: string; partial?: Rendered; zoneFits?: Record<string, number> }> {
+  private async render(raw: string, map: ContentMap, sectionId: string, recorder: TraceRecorder, quality?: QualityFrame, format: FormatDef = this.format, measure = false): Promise<{ ok: true; page: Rendered } | { ok: false; error: string; template: string; partial?: Rendered; zoneFits?: Record<string, number> }> {
     const t0 = Date.now();
     const clean = sanitizeHtml(raw);
     if (!clean.html.trim()) return { ok: false, error: 'the page is empty after removing what is not allowed (scripts, styles, external resources)', template: clean.html };
@@ -595,7 +757,7 @@ export class GraphicDocument {
       recorder.task({ task: 'render', source: 'code', inputTokens: 0, outputTokens: 0, ms: Date.now() - t0, outcome: 'skipped' });
       return { ok: true, page: { template: clean.html, html: page.html, head, issues } };
     }
-    const check = await checkRender(page.html, head, format, { lang: this.options.locale, shoot: Boolean(this.options.png), ...(quality ? { quality } : {}) });
+    const check = await checkRender(page.html, head, format, { lang: this.options.locale, shoot: Boolean(this.options.png), ...(quality ? { quality } : {}), ...(measure ? { measure: true } : {}) });
     recorder.task({ task: 'render', source: 'code', inputTokens: 0, outputTokens: 0, ms: Date.now() - t0, outcome: check.ok ? 'accepted' : 'refused' });
     if (check.infra) log().warn('graphic.render_unchecked', { event: 'graphic.render_unchecked', section: sectionId, reason: check.error });
     // LE CODE FAIT TENIR : un contenu qui déborde d'une toile fixe est réduit à l'échelle exacte (plancher 0,6), la
@@ -603,7 +765,7 @@ export class GraphicDocument {
     if (!check.ok && check.fit && check.fit >= 0.6 && !/\[zoom:/.test(clean.html)) {
       const z = check.fit;
       const wrapped = `<div class="h-[${(100 / z).toFixed(3)}%] w-[${(100 / z).toFixed(3)}%] [zoom:${z}]">${clean.html}</div>`;
-      const fitted = await this.render(wrapped, map, sectionId, recorder, quality, format);
+      const fitted = await this.render(wrapped, map, sectionId, recorder, quality, format, measure);
       if (fitted.ok) {
         recorder.repair({ code: 'auto_fit', detail: `contenu réduit à ${Math.round(z * 100)} % pour tenir dans la page`, by: 'code' });
         return fitted;
@@ -616,7 +778,7 @@ export class GraphicDocument {
       const partial = check.cut ? { template: clean.html, html: page.html, head, png: check.png, issues: [...issues, { code: 'text_cut', severity: 'blocking' as const, message: (check.error ?? '').slice(0, 380) }] } : undefined;
       return { ok: false, error: check.error ?? 'the page did not display', template: clean.html, ...(partial ? { partial } : {}), ...(check.zoneFits ? { zoneFits: check.zoneFits } : {}) };
     }
-    const done: Rendered = { template: clean.html, html: page.html, head, png: check.png, width: check.width, height: check.height, issues };
+    const done: Rendered = { template: clean.html, html: page.html, head, png: check.png, width: check.width, height: check.height, issues, ...(check.metrics ? { metrics: check.metrics } : {}) };
     // Un graphique, un tableau, une galerie ou un actif de la marque oublié par l'auteur : la page perd sa preuve.
     // Renvoyée à l'auteur ; livrée signalée si la correction échoue.
     const missingAssets = quality?.assets?.length ? [...map.entries.values()].filter((e) => e.kind === 'url' && quality.assets!.includes(e.value) && !page.used.has(e.key)).map((e) => `{{${e.key}}}`) : [];
@@ -688,7 +850,14 @@ export class GraphicDocument {
   /** L'idée de ce document, confiée à la mémoire de l'hôte : le prochain document de la marque fera autrement. */
   async remember(): Promise<void> {
     const host = engineHost();
-    if (this.options.memoryScope && host.rememberFingerprints && this.planValue?.idea) await host.rememberFingerprints(this.options.memoryScope, [`idea:${this.planValue.idea.slice(0, 300)}`]).catch(() => undefined);
+    if (!host.rememberFingerprints) return;
+    const idea = this.planValue?.idea || (this.chosenTrack ? `${this.chosenTrack.title} — ${this.chosenTrack.idea}` : '');
+    const marks = [...(idea ? [`idea:${idea.slice(0, 300)}`] : []), ...(this.axis ? [`axis:${this.axis.id}`] : []), ...this.renderVectors.slice(0, 3).map((v) => `render:${encodeVector(v)}`)];
+    if (!marks.length) return;
+    // L'idée et l'axe vont dans toutes les portées (marque, utilisateur, secteur) ; les empreintes de rendu, dans la
+    // portée principale seulement (elles sont lourdes).
+    const scopes = GraphicDocument.scopes(this.options);
+    await Promise.all(scopes.map((scope, i) => host.rememberFingerprints!(scope, i === 0 ? marks : marks.filter((m) => !m.startsWith('render:'))).catch(() => undefined)));
   }
 }
 

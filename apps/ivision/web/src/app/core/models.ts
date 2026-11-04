@@ -196,6 +196,10 @@ export interface FilmScene {
   media: string[];
   voiceText?: string;
   code?: string;
+  /** Rendu HyperFrames : fragment HTML et script d'animation de la scène. */
+  html?: string;
+  script?: string;
+  animation?: 'gsap' | 'anime';
   author?: { at: string; instruction?: string };
   status: 'planned' | 'ready' | 'error';
   error?: { stage: 'author' | 'compile' | 'runtime'; message: string };

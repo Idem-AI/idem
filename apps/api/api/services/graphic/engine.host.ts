@@ -96,6 +96,9 @@ export function configureGraphicEngineForIdem(): void {
       return chartSource;
     },
     assetProviders: OFFLINE ? {} : IDEM_ASSET_PROVIDERS,
+    // Le juge visuel à questions fermées (plan qualité créative) : le modèle de vision du rôle `graphic.judge`
+    // (échelle « video-vision », OpenRouter). Hors ligne (contrôles) : aucun appel.
+    ...(OFFLINE ? {} : { judgeImage: async (base64: string, mimeType: string, instruction: string) => (await import('../ivision/host')).idemAnalyzeImage(base64, mimeType, instruction, { purpose: 'design-judge' }) }),
     // Le registre du projet : une image déjà obtenue (deck, visuel, vidéo) est reprise avant d'être regénérée.
     assetRegistry: idemAssetRegistry,
     browser: {

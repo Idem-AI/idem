@@ -33,6 +33,7 @@
   "author": "Idem Team",
   "license": "MIT",
   "dependencies": {
+    "@idem/design-tools": "*",
     "@tabler/icons": "^3.48.0",
     "lucide-static": "^1.52.0",
     "pptxgenjs": "4.0.1",

@@ -31,7 +31,62 @@ export interface RenderCheck {
   fit?: number;
   /** Par zone d'une page assemblée (`data-ge-zone`) : l'échelle qui fait tenir son contenu dans la zone (< 1 : déborde). */
   zoneFits?: Record<string, number>;
+  /** Les mesures de la page (`measure: true`) : servent à choisir entre des variantes, jamais à refuser une page. */
+  metrics?: import('@idem/design-tools').PageMetrics;
 }
+
+/**
+ * LA MESURE D'UNE PAGE (plan qualité créative) : la hiérarchie typographique (plus grand corps / corps médian), le
+ * nombre de tailles, la part couverte par du contenu, le plus grand élément, et les rectangles du titre, du logo et du
+ * visuel principal (pour la saliency). Lue après rendu, quand la page s'affiche.
+ */
+export const MEASURE = `(function () {
+  var root = document.querySelector('.ge-page');
+  if (!root) return null;
+  var box = root.getBoundingClientRect();
+  var area = Math.max(1, box.width * box.height);
+  var sizes = [], weights = [];
+  var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  var seen = new Set();
+  while (walker.nextNode()) {
+    var t = walker.currentNode;
+    var el = t.parentElement;
+    if (!el || seen.has(el) || !(t.textContent || '').trim()) continue;
+    seen.add(el);
+    var r = el.getBoundingClientRect();
+    if (r.width < 1 || r.height < 1) continue;
+    var fs = parseFloat(getComputedStyle(el).fontSize) || 0;
+    if (!fs) continue;
+    sizes.push(Math.round(fs));
+    weights.push((t.textContent || '').trim().length);
+  }
+  var distinct = Array.from(new Set(sizes));
+  var weighted = [];
+  sizes.forEach(function (s, i) { for (var k = 0; k < Math.min(50, weights[i]); k++) weighted.push(s); });
+  weighted.sort(function (a, b) { return a - b; });
+  var median = weighted.length ? weighted[Math.floor(weighted.length / 2)] : 16;
+  var largest = distinct.length ? Math.max.apply(null, distinct) : median;
+  // La couverture : les rectangles des éléments porteurs (texte, média), à la grille de 32 × 32 cases.
+  var G = 32, cells = new Uint8Array(G * G), biggest = 0;
+  function mark(r) {
+    var x0 = Math.max(0, Math.floor((r.left - box.left) / box.width * G)), x1 = Math.min(G, Math.ceil((r.right - box.left) / box.width * G));
+    var y0 = Math.max(0, Math.floor((r.top - box.top) / box.height * G)), y1 = Math.min(G, Math.ceil((r.bottom - box.top) / box.height * G));
+    for (var y = y0; y < y1; y++) for (var x = x0; x < x1; x++) cells[y * G + x] = 1;
+  }
+  var media = Array.from(root.querySelectorAll('img,svg,canvas,video,[data-ge-chart],[data-ge-gallery]'));
+  media.forEach(function (m) { var r = m.getBoundingClientRect(); if (r.width * r.height > 4) { mark(r); biggest = Math.max(biggest, r.width * r.height / area); } });
+  seen.forEach(function (el) { var r = el.getBoundingClientRect(); mark(r); biggest = Math.max(biggest, r.width * r.height / area); });
+  var covered = 0; for (var i = 0; i < cells.length; i++) covered += cells[i];
+  function rel(el) { if (!el) return null; var r = el.getBoundingClientRect(); return { x: (r.left - box.left) / box.width, y: (r.top - box.top) / box.height, w: r.width / box.width, h: r.height / box.height }; }
+  var regions = {};
+  var title = root.querySelector('[data-ge-key="title"]') || Array.from(seen).sort(function (a, b) { return parseFloat(getComputedStyle(b).fontSize) - parseFloat(getComputedStyle(a).fontSize); })[0];
+  if (title) regions.title = rel(title);
+  var logo = root.querySelector('[data-ge-logo], img[src*="logo"]');
+  if (logo) regions.logo = rel(logo);
+  var main = media.sort(function (a, b) { var p = a.getBoundingClientRect(), q = b.getBoundingClientRect(); return q.width * q.height - p.width * p.height; })[0];
+  if (main && main !== logo) regions.visual = rel(main);
+  return { sizes: distinct.length, hierarchy: Math.round(largest / Math.max(1, median) * 100) / 100, coverage: Math.round(covered / cells.length * 1000) / 1000, focalArea: Math.round(biggest * 1000) / 1000, regions: regions };
+})()`;
 
 /** Ce que chaque zone d'une page assemblée doit réduire pour tenir dans sa case de la grille. */
 const ZONE_FITS = `(function () {
@@ -524,7 +579,7 @@ export const QUALITY = (f: QualityFrame) => `(function (f) {
   return errors;
 })(${JSON.stringify(f)})`;
 
-export async function checkRender(html: string, head: string, format: FormatDef, o: { lang?: string; shoot?: boolean; quality?: QualityFrame } = {}): Promise<RenderCheck> {
+export async function checkRender(html: string, head: string, format: FormatDef, o: { lang?: string; shoot?: boolean; quality?: QualityFrame; measure?: boolean } = {}): Promise<RenderCheck> {
   try {
     return await withPage(pageDocument(html, head, { lang: o.lang, background: '#ffffff' }), { width: format.width, height: format.height }, async (page) => {
       // Les graphiques sont dessinés (Chart.js) avant toute mesure et toute photographie : vides, ils passaient pour
@@ -553,13 +608,14 @@ export async function checkRender(html: string, head: string, format: FormatDef,
         if (scale > 0 && scale < 1) fit = Math.floor(scale * 1000) / 1000;
       }
       let png: Buffer | undefined;
-      if (o.shoot) {
+      const metrics = o.measure && !probe.error ? ((await page.evaluate(MEASURE).catch(() => null)) as RenderCheck['metrics'] | null) ?? undefined : undefined;
+      if (o.shoot || o.measure) {
         const target = await page.$('.ge-page');
         if (target) png = Buffer.from(await target.screenshot({ type: 'png' }));
       }
       // Un texte coupé : la photographie est gardée (la page servira de repli si la correction échoue).
       if (cut) return { ok: false, cut: true, error: probe.error, ...(fit ? { fit } : {}), ...(zoneFits ? { zoneFits } : {}), ...(png ? { png } : {}) };
-      return { ok: true, width: Math.round(probe.width ?? 0), height: Math.round(probe.height ?? 0), ...(png ? { png } : {}) };
+      return { ok: true, width: Math.round(probe.width ?? 0), height: Math.round(probe.height ?? 0), ...(png ? { png } : {}), ...(metrics ? { metrics } : {}) };
     });
   } catch (error) {
     const message = String((error as Error)?.message ?? error);

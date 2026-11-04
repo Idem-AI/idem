@@ -78,6 +78,14 @@ export function ladderFallbacks(ladder: ModelLadder, level: CreativityLevel): st
 /** Quelle échelle suit chaque rôle créatif. Un rôle absent garde le modèle de son profil à tous les crans. */
 export const ROLE_LADDERS: Record<string, ModelLadder> = {
   'graphic.director': 'design',
+  // Plan qualité créative (04/11/2026) : l'exploration d'idées (4 pistes) suit l'échelle « design » au cran le plus
+  // haut, quel que soit le cran choisi (`pinLevel` dans `creative-roles.ts`).
+  'graphic.explore': 'design',
+  'video.concept-explore': 'design',
+  // Le juge visuel à questions fermées des pages : le modèle de vision du moteur vidéo.
+  'graphic.judge': 'video-vision',
+  // L'auteur des scènes HTML (HyperFrames) : les modèles de code du moteur graphique, qui écrivent déjà du HTML Tailwind.
+  'video.html-author': 'code',
   'graphic.page-director': 'design',
   // Le travail divisé : le plan de mise en page (petite sortie JSON), puis une zone par agent.
   'graphic.layout': 'design',

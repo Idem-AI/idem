@@ -12,7 +12,8 @@
     "forceConsistentCasingInFileNames": true,
     "baseUrl": ".",
     "paths": {
-      "@idem/graphic-engine": ["../../../packages/graphic-engine/src"]
+      "@idem/graphic-engine": ["../../../packages/graphic-engine/src"],
+      "@idem/design-tools": ["../../../packages/design-tools/src"]
     }
   },
   "include": ["src/**/*"]

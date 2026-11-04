@@ -38,6 +38,9 @@ process.env.VIDEO_SFX_OFFLINE = '1';
 // Ce contrôle prouve le chemin de l'auteur de PROGRAMMES (un jet par scène) ; le chemin des intentions échantillonnées
 // et jugées (compilateur 0.3) a son propre contrôle : `npm run check:intent` (core).
 process.env.VIDEO_AUTHOR_MODE = 'program';
+// Le rendu par défaut est HyperFrames depuis le 04/11/2026 ; ce contrôle prouve le chemin Motion Canvas (`check:hyperframes` prouve l'autre).
+process.env.IDEM_VIDEO_RENDERER = 'motion-canvas';
+process.env.IDEM_QUALITY_EXPLORE = '0';
 const OUT = path.resolve(__dirname, '../tmp/check-motion');
 let failures = 0;
 const check = (ok: boolean, label: string, detail = '') => {

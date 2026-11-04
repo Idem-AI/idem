@@ -44,6 +44,10 @@ export interface DocumentContext {
   /** Le modèle du client : la mise en page de chaque page en découle. */
   reference?: ReferenceComposition;
   bindings: 'values' | 'markers';
+  /** L'axe de départ tiré par le code (`@idem/design-tools`, plan qualité créative), en une consigne. */
+  startingPoint?: string;
+  /** La piste d'idée retenue après l'exploration (documents de plusieurs pages). */
+  chosenIdea?: string;
 }
 
 const DELIVERABLE: Record<DocumentType, string> = {
@@ -238,11 +242,58 @@ export function planPrompt(ctx: DocumentContext, pages: PlannedPage[], language:
     ctx.reference ? `THE CLIENT GAVE A MODEL TO REPRODUCE — each page is organised exactly like it (same zones, hierarchy and proportions); describe the pages accordingly:\n${ctx.reference.description.slice(0, 900)}` : '',
     `PAGES:\n${pages.map((p, i) => `${i + 1}. ${p.id}${p.role ? ` (${p.role})` : ''}${p.purpose ? ` — ${p.purpose.slice(0, 140)}` : ''}`).join('\n').slice(0, 3000)}`,
     // Un modèle fourni n'a pas à s'écarter des documents précédents : il les ressemblera peut-être, c'est voulu.
-    previous.length && !ctx.reference ? `DOCUMENTS ALREADY MADE FOR THIS BRAND (do not repeat their idea):\n${previous.slice(0, 3).join('\n')}` : '',
+    previous.length && !ctx.reference ? `DOCUMENTS ALREADY MADE FOR THIS BRAND OR ITS SECTOR (do not repeat their idea):\n${previous.slice(0, 10).join('\n')}` : '',
+    !ctx.reference && ctx.chosenIdea ? `THE IDEA CHOSEN FOR THIS DOCUMENT (develop it — IDEA keeps its spirit):\n${ctx.chosenIdea}` : '',
+    !ctx.reference && !ctx.chosenIdea && ctx.startingPoint ? ctx.startingPoint : '',
   ]
     .filter(Boolean)
     .join('\n\n');
   return { system, user };
+}
+
+// ── L'exploration (plan qualité créative) : quatre pistes avant le plan ─────────────────────
+
+export interface IdeaTrack {
+  title: string;
+  idea: string;
+}
+
+/**
+ * Avant le plan, le directeur propose QUATRE pistes qui divergent vraiment (métaphore, composition, rythme, matière),
+ * à partir du point de départ tiré par le code. Le code en retient une (la plus éloignée de ce qui a déjà été fait),
+ * que le plan développe. Les pistes sont courtes : l'exploration coûte peu, la répétition coûte cher.
+ */
+export function explorePrompt(ctx: DocumentContext, pages: PlannedPage[], language: string | undefined, previous: string[]): { system: string; user: string } {
+  const system = [
+    `You are the art director of ${deliverableLine(ctx)}, for an African business. Before planning the document, propose FOUR clearly different visual ideas for it.`,
+    'The four ideas must differ in kind, not in wording: each one takes a different metaphor, a different way of composing pages (scale, grid, image, type), a different rhythm across pages and a different material or texture. One of them must start from the STARTING POINT below. None may repeat a document already made.',
+    'Every idea stays within the brand (its colours, fonts, logo and visual language), professional and sober — no decoration for its own sake.',
+    'Answer in English with exactly four blocks:',
+    'TRACK n: <a short title> — <the idea in two sentences: the metaphor and how the pages are composed>',
+  ].join('\n');
+  const user = [
+    `CANVAS: ${canvasLine(ctx.format)}`,
+    `BRAND:\n${brandSheet(ctx)}`,
+    [language ? `BRAND VISUAL LANGUAGE:\n${language}` : '', directionLines(ctx)].filter(Boolean).join('\n\n'),
+    ctx.brief ? `ABOUT THE BUSINESS: ${ctx.brief.slice(0, 600)}` : '',
+    `PAGES (${pages.length}): ${pages.map((p) => p.purpose || p.role || p.id).join(' · ').slice(0, 1200)}`,
+    ctx.startingPoint ?? '',
+    previous.length ? `DOCUMENTS ALREADY MADE FOR THIS BRAND OR ITS SECTOR (never repeat them):\n${previous.slice(0, 10).join('\n')}` : '',
+  ]
+    .filter(Boolean)
+    .join('\n\n');
+  return { system, user };
+}
+
+export function parseTracks(raw: string): IdeaTrack[] {
+  const text = (raw || '').replace(/```[a-z]*\n?|```/g, '');
+  const tracks: IdeaTrack[] = [];
+  for (const m of text.matchAll(/^[\s*#>-]*TRACK\s*\d\s*[:.)—–-]\s*(.+?)\s*[—–:-]\s+(.+)$/gim)) {
+    const title = m[1].replace(/\*+/g, '').trim();
+    const idea = m[2].replace(/\*+/g, '').trim();
+    if (idea.length >= 20) tracks.push({ title: title.slice(0, 80), idea: idea.slice(0, 400) });
+  }
+  return tracks.slice(0, 4);
 }
 
 export function parsePlan(raw: string, count: number): DocumentPlan | null {
@@ -410,6 +461,8 @@ export interface PageBrief {
   reference?: ReferenceComposition;
   /** La hiérarchie et les zones décidées par le directeur de page (`pageDirectorPrompt`). */
   direction?: string;
+  /** Les exemples de principe tirés de la bibliothèque (`examples/library.ts`), déjà mis en forme. */
+  examples?: string;
 }
 
 export function authorUser(ctx: DocumentContext, p: PageBrief): string {
@@ -427,12 +480,15 @@ export function authorUser(ctx: DocumentContext, p: PageBrief): string {
       ? `DOCUMENT PLAN:${plan.idea ? `\nidea: ${plan.idea}` : ''}${plan.previous ? `\nprevious page: ${plan.previous}` : ''}${plan.page ? `\nTHIS PAGE: ${plan.page}` : ''}${plan.next ? `\nnext page: ${plan.next}` : ''}`
       : '',
     ctx.layoutNote ? `THE CLIENT ASKS FOR THIS LAYOUT: ${ctx.layoutNote.slice(0, 600)}` : '',
+    // Une toile seule (visuel, carte) n'a pas de plan : le point de départ tiré par le code lui parvient ici.
+    !plan?.idea && !p.reference && ctx.startingPoint && !(p.total && p.total > 1) ? ctx.startingPoint : '',
     intent ? `INTENT: ${[intent.keyMessage ? `the reader must understand: ${intent.keyMessage}` : '', intent.visualStrategy ? `visual strategy: ${intent.visualStrategy}` : ''].filter(Boolean).join('; ')}` : '',
     s.role === 'cover' && !p.reference
       ? 'THE COVER is the signature of the whole document: make it memorable and unmistakably this brand. Compose it boldly from the brand language — a strong contrast of scale, a large field of brand colour or the brand pattern, the logo used as a graphic element, the image when the CONTENT has one (whole page or a large zone). Never small centred text on an empty page; never the composition of an earlier cover of this brand.'
       : '',
     referenceLines(p.reference),
     p.direction ? `PAGE LAYOUT DECIDED BY THE ART DIRECTOR (build exactly this hierarchy; details are yours):\n${p.direction}` : '',
+    !p.reference && p.examples ? p.examples : '',
     p.tools,
     `CONTENT (keys → texts):\n${p.listing}`,
   ]
@@ -444,6 +500,14 @@ export function authorUser(ctx: DocumentContext, p: PageBrief): string {
 
 export function reviseUser(base: string, code: string, instruction: string): string {
   return `${base}\n\nCURRENT PAGE CODE:\n\`\`\`html\n${code.slice(0, 16000)}\n\`\`\`\n\nCHANGE REQUESTED BY THE CLIENT: ${instruction.slice(0, 1200)}\nRewrite the whole page applying exactly this change and keep the rest. Same output format.`;
+}
+
+/**
+ * La RETOUCHE MESURÉE (plan qualité créative) : la page s'affiche, mais le code a mesuré des défauts (hiérarchie plate,
+ * foyers concurrents, contraste, zone vide). Une seule retouche, qui garde la composition et corrige ces points.
+ */
+export function refineUser(base: string, code: string, faults: string[]): string {
+  return `${base}\n\nYOUR PAGE:\n\`\`\`html\n${code.slice(0, 14000)}\n\`\`\`\n\nTHE PAGE DISPLAYS, BUT THESE PROBLEMS WERE MEASURED:\n${faults.slice(0, 6).map((f) => `- ${f}`).join('\n')}\nKeep the composition and its idea; correct exactly these points and return the whole page. Same output format.`;
 }
 
 export type RepairStrategy = 'fix' | 'rewrite' | 'minimal';

@@ -41,6 +41,12 @@ import { chartFromTable, parseFigure, withDataChart } from '../src/content/data-
 import { coverContent, sectionFromModel } from '../src/adapters/sections';
 import { planAssets, resolveAssets } from '../src/asset-planner';
 
+// Les contrôles historiques (§1–§9) comptent les appels d'un auteur unique : le plan qualité créative (exploration,
+// variantes, retouche mesurée) y est coupé, puis rallumé et contrôlé à part (§10).
+process.env.IDEM_QUALITY_EXPLORE = '0';
+process.env.IDEM_QUALITY_SELECT = '0';
+process.env.IDEM_QUALITY_REFINE = '0';
+process.env.IDEM_DESIGN_TOOLS_OFFLINE = '1';
 const fast = process.argv.includes('--fast');
 let failures = 0;
 let passed = 0;
@@ -130,6 +136,8 @@ configureGraphicEngine({
       }
       calls.push({ role, level, repair, user, system });
       if (mode === 'down') throw new Error('quota');
+      if (role === 'graphic.explore')
+        return 'TRACK 1: Market stage — the market stall becomes a stage and the trader is the hero of every page.\nTRACK 2: Woven rows — every page is built from narrow woven strips of figures and photos, sewn side by side.\nTRACK 3: One big number — each page is dominated by one huge figure, the rest whispers.\nTRACK 4: Field notebook — pages read like a hand-annotated field notebook with photos pinned on a grid.';
       if (role === 'graphic.director')
         return /PAGES:/.test(user)
           ? `IDEA: Large figures, one brand-primary rule per page.\n${[...user.matchAll(/^(\d+)\. /gm)].map((m) => `PAGE ${m[1]}: the key figure dominates, text in a narrow column`).join('\n')}`
@@ -1231,6 +1239,87 @@ async function main(): Promise<void> {
     'couverture : le modèle Ultra même au cran Low, rôle graphic.cover, consigne libre, aucun directeur de page, aucune relecture par un autre modèle',
     coverAuthor?.role === 'graphic.cover' && coverAuthor.level === 'ultra' && /Total creative freedom/.test(coverAuthor.system ?? '') && pageDirections.length === 0 && !coverOut.trace.tasks.some((t) => (t.task as string) === 'review') && (coverOut.result.measured?.height ?? 0) > 1000
   );
+
+  section('§10 Plan qualité créative : exploration, axe de départ, variantes choisies par la mesure, retouche mesurée');
+  process.env.IDEM_QUALITY_EXPLORE = '1';
+  process.env.IDEM_QUALITY_SELECT = '1';
+  process.env.IDEM_QUALITY_REFINE = '1';
+  mode = 'ok';
+  const remembered: string[] = [];
+  const judged: string[] = [];
+  configureGraphicEngine({
+    // La marque a déjà eu l'idée « marché-scène » : l'exploration doit en retenir une autre.
+    recentFingerprints: async () => ['idea:Market stage — the market stall becomes a stage and the trader is the hero'],
+    rememberFingerprints: async (_scope, marks) => {
+      remembered.push(...marks);
+    },
+    // Le juge simulé : la première capture a « deux foyers », les suivantes rien.
+    judgeImage: async (_b64, mime) => {
+      judged.push(mime);
+      return judged.length === 1 ? '1: no\n2: yes\n3: no\n4: no\n5: no' : '1: no\n2: no\n3: no\n4: no\n5: no';
+    },
+  });
+  calls.length = 0;
+  const explored = await createDocument({ documentType: 'pitch-deck', format: 'slide-16x9', brand: BRANDS.kora, creativity: 'medium', seed: 'q10', country: 'SN', memoryScope: { documentType: 'pitch-deck', key: 'kora' }, memoryScopes: [{ documentType: 'pitch-deck', key: 'sector:agri' }], sections: [{ id: 's1', purpose: 'the problem' }, { id: 's2', purpose: 'the market' }] });
+  await explored.composeSection(MARKET, { index: 2, total: 2 });
+  const exploreCall = calls.find((c) => c.role === 'graphic.explore');
+  const planCall = calls.find((c) => c.role === 'graphic.director' && /PAGES:/.test(c.user));
+  ok('exploration : quatre pistes demandées avant le plan, au rôle graphic.explore, avec le point de départ tiré par le code', !!exploreCall && /FOUR clearly different/.test(exploreCall.system ?? '') && /STARTING POINT/.test(exploreCall.user));
+  ok('exploration : le code écarte la piste déjà faite et transmet la piste retenue au plan', !!planCall && /THE IDEA CHOSEN/.test(planCall.user) && !/Market stage/.test(planCall.user.split('THE IDEA CHOSEN')[1] ?? ''), (planCall?.user.match(/THE IDEA CHOSEN[^\n]*\n([^\n]*)/)?.[1] ?? '').slice(0, 80));
+  ok('axe de départ : déterministe et tiré pour le pays de la marque ou une forme', !!explored.axis && (explored.axis.country === 'SEN' || !explored.axis.country), explored.axis?.id);
+  await explored.remember();
+  ok('mémoire : idée et axe écrits dans la marque ET le secteur', remembered.filter((m) => m.startsWith('idea:')).length === 2 && remembered.filter((m) => m.startsWith('axis:')).length === 2);
+
+  if (!fast) {
+    calls.length = 0;
+    judged.length = 0;
+    const flyer = await renderSingle({ documentType: 'flyer', format: 'flyer-square', brand: BRANDS.kora, creativity: 'high', seed: 'q10-flyer', content: { id: 'v1', title: 'Récoltez plus', lede: 'Des semences adaptées à votre sol', blocks: [{ id: 'b1', kind: 'prose', paragraphs: ['Livraison en 48 h dans tout le pays.'] }] } });
+    const authorCalls = calls.filter((c) => c.role === 'graphic.author' && !c.repair);
+    ok('variantes : 3 au cran High pour une toile seule, la 2e et la 3e invitées à composer autrement', authorCalls.filter((c) => !/THE PAGE DISPLAYS, BUT/.test(c.user)).length === 3 && authorCalls.some((c) => /VARIANT 2 OF 3/.test(c.user)));
+    ok('variantes : chaque variante mesurée et jugée sur sa capture (PNG)', judged.length >= 3 && judged.every((m) => m === 'image/png'), `${judged.length} capture(s) jugée(s)`);
+    ok('variantes : le choix est dit dans la trace', flyer.result.repairs.some((r) => r.code === 'variant_selected'), flyer.result.repairs.map((r) => r.code).join(', '));
+    ok('toile seule : le point de départ parvient à l’auteur (pas de plan)', authorCalls.some((c) => /STARTING POINT/.test(c.user)));
+
+    // La retouche mesurée : un seul auteur (Medium, document), le juge voit deux foyers → une retouche, gardée si meilleure.
+    calls.length = 0;
+    judged.length = 0;
+    process.env.IDEM_QUALITY_VARIANTS = '1';
+    const one = await renderSingle({ documentType: 'flyer', format: 'flyer-square', brand: BRANDS.kora, creativity: 'medium', seed: 'q10-refine', content: { id: 'v2', title: 'Récoltez plus', blocks: [{ id: 'b1', kind: 'prose', paragraphs: ['Livraison en 48 h.'] }] } });
+    const refineCall = calls.find((c) => /THE PAGE DISPLAYS, BUT THESE PROBLEMS WERE MEASURED/.test(c.user));
+    ok('retouche mesurée : le défaut vu par le juge est renvoyé à l’auteur, une seule fois', !!refineCall && /two elements compete/.test(refineCall.user) && calls.filter((c) => /THE PAGE DISPLAYS, BUT/.test(c.user)).length === 1);
+    ok('retouche mesurée : la page livrée s’affiche', !one.result.issues.some((i) => i.severity === 'blocking'));
+    delete process.env.IDEM_QUALITY_VARIANTS;
+
+    // Au cran Low : pas de retouche mesurée ; interrupteur coupé : une seule écriture.
+    calls.length = 0;
+    process.env.IDEM_QUALITY_SELECT = '0';
+    await renderSingle({ documentType: 'flyer', format: 'flyer-square', brand: BRANDS.kora, creativity: 'low', seed: 'q10-low', content: { id: 'v3', title: 'Récoltez plus', blocks: [{ id: 'b1', kind: 'prose', paragraphs: ['Livraison.'] }] } });
+    ok('interrupteurs : IDEM_QUALITY_SELECT=0 et cran Low → une seule écriture, aucune retouche', calls.filter((c) => c.role === 'graphic.author').length === 1);
+  }
+  // La bibliothèque d'exemples (phase 5) : deux principes proches de l'intention, éloignés entre eux ; anti-copie.
+  {
+    const { pickExamples, examplesLines, isCopy } = await import('../src/examples/library');
+    const { encodeVector, normalize } = await import('@idem/design-tools');
+    const v = (k: number) => normalize(Float32Array.from({ length: 512 }, (_, i) => (i % 7 === k ? 1 : 0.01)));
+    const file = path.join(require('os').tmpdir(), `ge-examples-${Date.now()}.json`);
+    fs.writeFileSync(file, JSON.stringify({ examples: [
+      { id: 'a', nature: 'slide', intent: 'one key figure that proves traction', html: '<div class="grid">…</div>', vector: encodeVector(v(1)) },
+      { id: 'b', nature: 'slide', intent: 'one key figure that proves traction, giant number', html: '<div class="flex">…</div>', vector: encodeVector(v(1)) },
+      { id: 'c', nature: 'slide', intent: 'key figure shown as a growth chart', html: '<div class="relative">…</div>', vector: encodeVector(v(3)) },
+      { id: 'd', nature: 'document', intent: 'a financial table', html: '<table>…</table>' },
+    ] }));
+    process.env.IDEM_EXAMPLES_FILE = file;
+    const picked = pickExamples({ nature: 'slide', intent: 'a key figure proving traction' });
+    ok('exemples : deux exemples de la bonne toile, le second choisi pour sa différence', picked.length === 2 && picked.every((e) => e.nature === 'slide') && picked[0].id !== picked[1].id, picked.map((e) => e.id).join(','));
+    ok('exemples : la consigne interdit de reproduire la mise en page', /never reproduce their layout/.test(examplesLines(picked)));
+    ok('anti-copie : une page à l’empreinte d’un exemple montré est reconnue, une autre non', isCopy(v(1), picked.filter((e) => e.id !== 'c').slice(0, 1)) && !isCopy(v(5), picked));
+    process.env.IDEM_QUALITY_EXAMPLES = '0';
+    ok('exemples : IDEM_QUALITY_EXAMPLES=0 les coupe', pickExamples({ nature: 'slide', intent: 'traction' }).length === 0);
+    delete process.env.IDEM_QUALITY_EXAMPLES;
+    delete process.env.IDEM_EXAMPLES_FILE;
+    fs.rmSync(file, { force: true });
+  }
+  configureGraphicEngine({ recentFingerprints: undefined, rememberFingerprints: undefined, judgeImage: undefined });
 }
 
 main()
