@@ -344,7 +344,14 @@ export class PitchDeckService extends GenericService {
       }
       // Le brief ne porte QUE le contenu, lu par le destinataire du deck. Une slide est une toile fixe :
       // le volume est bas (1 ou 2 blocs) ; l'auteur du moteur graphique la compose librement.
-      const brief = composeSlideBrief(definition.name, deckType.audience) ?? `Write the "${definition.name}" slide of this pitch deck: one idea, one or two blocks.`;
+      let brief = composeSlideBrief(definition.name, deckType.audience) ?? `Write the "${definition.name}" slide of this pitch deck: one idea, one or two blocks.`;
+      // Quand le code POSE les chiffres (graphique de trajectoire et chiffres de tête du module Finance), le brief
+      // ne doit plus les demander : le rédacteur en écrivait un second jeu, la slide finissait à quatre blocs — deux
+      // graphiques à placer sur une toile 16/9 — et la page était refusée à chaque génération (05/11/2026).
+      const posted = definition.name === 'Financials' && deckFinance.length > 0;
+      if (posted) {
+        brief = `${brief}\n\n<already_on_the_slide>The projection CHART and the headline FIGURES are already placed on this slide by the engine, from the project's real financial model. Do NOT write a chart, a metrics row or a table: they would duplicate them. Write only the TITLE (the conclusion those figures support) and the "notes" (the two or three hypotheses that drive the model, the burn and the runway, in the speaker's words).</already_on_the_slide>`;
+      }
       // L'INTENTION de la slide : comment elle démontre son message et ce qu'elle peut porter de texte — une
       // indication pour le rédacteur et l'auteur (à tous les crans), jamais un contrôle.
       const plan = SLIDE_VISUAL_PLANS[definition.name];
@@ -358,8 +365,8 @@ export class PitchDeckService extends GenericService {
         template: {
           deliverable: 'pitch-deck',
           sectionId: pageId(definition.name),
-          // Une slide porte une idée : un ou deux blocs, jamais plus.
-          volume: '1 to 2',
+          // Une slide porte une idée : un ou deux blocs, jamais plus — aucun quand le code les a déjà posés.
+          volume: posted ? '0 to 1' : '1 to 2',
           contentBrief: brief,
           ...(intent ? { intent } : {}),
           // La slide des projections montre les chiffres du module Finance, posés par le code : son graphique et

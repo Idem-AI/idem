@@ -122,10 +122,16 @@ export function slideEssentials(section: SectionContent, o: { maxBlocks?: number
     moved.push(s.lede);
     delete s.lede;
   }
+  // Le plafond est celui de la SLIDE, pas celui du rédacteur : les blocs posés par le code (graphique et
+  // chiffres du module Finance) occupent la place en premier, et le rédacteur n'a que ce qui reste. Les compter
+  // à part donnait quatre blocs sur une slide 16/9 — deux graphiques à placer, page refusée puis coupée
+  // (« Financials » en échec à chaque génération, 05/11/2026).
+  const roomTaken = s.blocks.filter((b) => b.origin === 'system' && !MEDIA_KINDS.has(b.kind)).length;
+  const room = Math.max(0, maxBlocks - roomTaken);
   const text = s.blocks.filter((b) => b.origin !== 'system' && !MEDIA_KINDS.has(b.kind));
-  if (text.length > maxBlocks) {
+  if (text.length > room) {
     const rank = (b: Block) => (EVIDENCE_ORDER.indexOf(b.kind) + 1 || EVIDENCE_ORDER.length + 1) * 100 + text.indexOf(b);
-    const keep = new Set([...text].sort((a, b) => rank(a) - rank(b)).slice(0, maxBlocks));
+    const keep = new Set([...text].sort((a, b) => rank(a) - rank(b)).slice(0, room));
     for (const b of text) if (!keep.has(b)) moved.push(blockText(b));
     s.blocks = s.blocks.filter((b) => b.origin === 'system' || MEDIA_KINDS.has(b.kind) || keep.has(b));
   }

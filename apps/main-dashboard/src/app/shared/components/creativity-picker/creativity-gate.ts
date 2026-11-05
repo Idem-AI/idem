@@ -25,6 +25,12 @@ const GAP = 10;
  * LA BULLE DU NIVEAU DE CRÉATIVITÉ — un menu déroulant sous le bouton de génération qui l'a ouverte (au-dessus
  * s'il manque la place), une petite flèche vers lui. Chaque cran : son nom, ce que l'IA décide, son prix. Cliquer un cran
  * LANCE la génération. Échap ou un clic ailleurs referme sans rien lancer.
+ *
+ * ELLE N'EST « AILLEURS » POUR PERSONNE. La bulle vit dans `document.body`, donc hors du menu qui porte le
+ * bouton : son `pointerdown` remontait jusqu'aux écouteurs « clic à l'extérieur » des pages, qui refermaient ce
+ * menu et retiraient le bouton du DOM — le clic rejoué ne tombait plus sur rien, et choisir un cran ne lançait
+ * rien (« Tout régénérer » du deck, 05/11/2026). Son `pointerdown` ne remonte donc plus. Un hôte qui écoute en
+ * phase de CAPTURE doit, lui, vérifier que la cible n'est pas dans `.cg-bubble`.
  */
 @Component({
   selector: 'app-creativity-bubble',
@@ -39,6 +45,7 @@ const GAP = 10;
     '[style.top.px]': 'top()',
     '[style.width.px]': 'width()',
     '(keydown.escape)': 'dismissed.emit()',
+    '(pointerdown)': '$event.stopPropagation()',
   },
   template: `
     <div class="cp-menu cg-panel" role="menu" [attr.aria-label]="'common.creativity.choose' | translate">

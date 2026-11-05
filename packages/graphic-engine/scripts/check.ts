@@ -37,6 +37,7 @@ import { exportPptx } from '../src/export/pptx';
 import { sectionHtml } from '../src/adapters/sections';
 import { BRANDS, CARD_BACK, CARD_FRONT, FINANCE_BP, MARKET } from './fixtures';
 import { TEXT_BUDGETS } from '../src/content/analyze';
+import { slideEssentials } from '../src/content/slide-diet';
 import { chartFromTable, parseFigure, withDataChart } from '../src/content/data-charts';
 import { coverContent, sectionFromModel } from '../src/adapters/sections';
 import { planAssets, resolveAssets } from '../src/asset-planner';
@@ -1217,6 +1218,50 @@ async function main(): Promise<void> {
     ok('maquettes sur l’essentiel de la page, titre dans sa zone : plan accepté', Boolean(big.layout), big.error);
     const html = partial.layout ? assembleLayout(partial.layout, new Map([['z1', '<p>{{title}}</p>']]), FORMATS['slide-16x9'], new Map([['z1', 0.8]])) : '';
     ok('assemblage : la grille du plan, chaque zone à sa case, la zone qui déborde réduite par le code', /grid-cols-\[repeat\(12,minmax\(0,1fr\)\)\]/.test(html) && /data-ge-zone="z1" class="col-start-1 col-span-12 row-start-1 row-span-4/.test(html) && /\[zoom:0\.8\]/.test(html));
+  }
+
+  section('§9 septies Les blocs posés par le code occupent la place en premier (slide des projections)');
+  {
+    // Les chiffres réels du module Finance, posés par le code, et le jeu que le rédacteur écrivait en double.
+    const financeChart = { kind: 'chart' as const, chartType: 'bar' as const, title: 'Trajectoire', labels: ['2026', '2027', '2028'], series: [{ name: 'CA', data: [120, 340, 780] }], unit: 'M FCFA', readingKey: 'Le CA sextuple en trois ans.' };
+    const financeMetrics = { kind: 'metrics' as const, items: [{ value: '120 M FCFA', label: "Chiffre d'affaires 2026" }, { value: '18 M FCFA', label: 'Résultat net 2026' }, { value: '450 M FCFA', label: 'Coût total du projet' }] };
+    const doubled = sectionFromModel(
+      { title: 'Le CA sextuple en trois ans', blocks: [{ kind: 'chart', chartType: 'line', labels: ['2026', '2027', '2028'], series: [{ name: 'CA', data: [100, 300, 700] }], readingKey: 'Croissance.' }, { kind: 'metrics', items: [{ value: '780 M', label: 'CA 2028' }] }], notes: 'Hypothèses : 3 000 clients.' },
+      { id: 'financials', prepend: [financeChart, financeMetrics], intent: { visualStrategy: 'data-visualization', textBudget: TEXT_BUDGETS.data } }
+    );
+    const lean = doubled.section ? slideEssentials(doubled.section).section : null;
+    const charts = (s: SectionContent | null) => (s?.blocks ?? []).filter((b) => b.kind === 'chart');
+    ok(
+      'deux graphiques sur une slide 16/9 (le code et le rédacteur) : celui du CODE reste, celui du rédacteur part dans les notes',
+      Boolean(lean) && charts(lean).length === 1 && charts(lean)[0].origin === 'system' && (lean?.blocks.length ?? 0) === 2 && /780 M/.test(lean?.notes ?? ''),
+      `${charts(lean).length} graphique(s), ${lean?.blocks.length} bloc(s)`
+    );
+    // Le brief dit désormais au rédacteur de ne plus écrire de graphique : il ne reste qu'un titre et des notes.
+    const titleOnly = sectionFromModel(
+      { title: 'Rentable dès le deuxième exercice', notes: 'Hypothèses : 3 000 clients à 4 000 F, 12 % de désabonnement.' },
+      { id: 'financials', prepend: [financeChart, financeMetrics] }
+    );
+    ok(
+      'le rédacteur n’écrit plus qu’un titre et des notes : la page vit des blocs du code (elle échouait, « contenu illisible »)',
+      Boolean(titleOnly.section) && titleOnly.section?.blocks.length === 2 && titleOnly.section?.blocks.every((b) => b.origin === 'system') && titleOnly.section?.title === 'Rentable dès le deuxième exercice' && /3 000 clients/.test(titleOnly.section?.notes ?? ''),
+      titleOnly.notes.map((n) => n.code).join(', ')
+    );
+    ok(
+      'sans bloc du code, une sortie sans bloc exploitable reste refusée (jamais une page vide)',
+      sectionFromModel({ title: 'Problème', notes: 'Rien.' }, { id: 'pb' }).section === null
+    );
+    // L'illustration d'une slide : demandée par la STRATÉGIE, même quand le rédacteur a omis la clé `image`.
+    const silent: SectionContent = { id: 'problem', title: 'Les producteurs perdent 30 % de leur récolte', blocks: [{ id: 'b1', kind: 'points', items: [{ label: 'Pas de stockage', detail: '30 % perdus', visual: 'coffee beans' }, { label: 'Prix imposé', detail: 'Marge divisée par deux', visual: 'market stall' }] }], intent: { visualStrategy: 'illustration', keyMessage: 'La perte est mesurable.' } };
+    const planned = planAssets(silent, FORMATS['slide-16x9']);
+    ok(
+      'stratégie « illustration » sans clé `image` du rédacteur : l’illustration est demandée quand même, sur le sujet de la page',
+      planned.some((r) => r.role === 'illustration' && r.subject === silent.title),
+      planned.map((r) => r.role).join(', ')
+    );
+    ok(
+      'une slide qui porte déjà sa photo n’en demande pas une seconde',
+      !planAssets({ ...silent, blocks: [...silent.blocks, { id: 'f1', kind: 'figure', url: 'https://x/p.jpg', alt: 'Récolte' }] }, FORMATS['slide-16x9']).some((r) => r.role === 'illustration')
+    );
   }
 
   {

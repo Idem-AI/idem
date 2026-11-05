@@ -140,7 +140,11 @@ export function planAssets(section: SectionContent, format: Pick<FormatDef, 'wid
       if (!hasFigure) out.push(image('product-capture', 1.6, 'none', ['user', 'project', 'capture'], 'downgrade'));
       break;
     case 'illustration':
-      if (!hasFigure && intent.image) out.push(image('illustration', 1.4, 'none', IMAGE_SOURCES, 'skip'));
+      // L'illustration est demandée dès que la stratégie est celle-ci : son sujet est celui que le rédacteur a
+      // écrit, ou le titre de la page. L'exiger du rédacteur (`intent.image`) privait d'image toutes les pages
+      // où il omettait la clé — le contrat de contenu lui dit « omit if none » (deck : Problème, Solution,
+      // Équipe, Références… sans illustration, 05/11/2026).
+      if (!hasFigure) out.push(image('illustration', 1.4, 'none', IMAGE_SOURCES, 'skip'));
       break;
     default:
       break;
