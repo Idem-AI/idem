@@ -1,4 +1,4 @@
-import { isPlatformBrowser } from '@angular/common';
+import { DatePipe, isPlatformBrowser } from '@angular/common';
 import { ChangeDetectionStrategy, Component, PLATFORM_ID, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { BUILDERS_PROGRAM, type BuilderShowcaseEntry } from '@idem/shared-models/builders/program';
@@ -32,7 +32,7 @@ const francs = (amount: number) => amount.toLocaleString('fr-FR').replace(/\s/g,
 @Component({
   selector: 'app-builders-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, PageArtComponent, BuildersArtComponent, BuilderCoverComponent],
+  imports: [RouterLink, DatePipe, PageArtComponent, BuildersArtComponent, BuilderCoverComponent],
   templateUrl: './builders-page.html',
   styleUrls: ['../../shared/styles/editorial-page.css', './builders-page.css'],
 })

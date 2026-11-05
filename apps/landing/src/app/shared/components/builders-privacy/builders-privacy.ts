@@ -111,7 +111,7 @@ export class BuildersPrivacy implements OnInit {
         id: 'public',
         title: $localize`:@@buildersPrivacy.public.title:5. WHAT BECOMES PUBLIC`,
         titleI18n: '@@buildersPrivacy.public.title',
-        content: $localize`:@@buildersPrivacy.public.content:If your project is admitted, its page and the showcase show: its name, description, country and city, public address, date of admission, the text in which you present it, its cover image, its brand identity (logo, colours, typefaces) and the list of what it does with IDEM (online, marketing, brand, business plan…). The team appears only if you chose it, without email addresses. Your own email address, the reason for a decision and your proof of acceptance are never published. You can ask at any time to hide the project from the showcase, or to remove the team from its page.`,
+        content: $localize`:@@buildersPrivacy.public.content:If your project is admitted, its page and the showcase show: its name, description, country and city, public address, your display name as the person behind it, date of admission, the text in which you present it, its cover image, its brand identity (logo, colours, typefaces) and the list of what it does with IDEM (online, marketing, brand, business plan…). The team appears only if you chose it, without email addresses. Your own email address, the reason for a decision and your proof of acceptance are never published. You can ask at any time to hide the project from the showcase, or to remove the team from its page.`,
         contentI18n: '@@buildersPrivacy.public.content',
       },
       {

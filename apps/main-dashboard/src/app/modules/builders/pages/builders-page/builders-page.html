@@ -178,6 +178,63 @@
             }
 
             @if (canApply()) {
+              <!-- La couverture : la première chose que verra la vitrine. Mise en
+                   avant, au format exact de la fiche, cadrée avant l'envoi. -->
+              <section class="rounded-2xl border border-[var(--glass-border)] p-5 sm:p-6" aria-labelledby="builder-cover-title">
+                <div class="flex flex-wrap items-baseline justify-between gap-2">
+                  <h3 id="builder-cover-title" class="text-base font-semibold text-text-primary">{{ 'builders.cover.title' | translate }}</h3>
+                  <span class="tag">{{ 'builders.cover.format' | translate: { width: program.coverWidth, height: program.coverHeight } }}</span>
+                </div>
+                <p id="builder-cover-help" class="mt-1 text-sm text-text-tertiary">{{ 'builders.cover.help' | translate }}</p>
+
+                <div class="mt-4">
+                  @if (coverFile(); as file) {
+                    <app-cover-cropper [file]="file" (confirmed)="uploadCropped($event)" (cancelled)="coverFile.set(null)" />
+                  } @else if (coverUploading()) {
+                    <div class="grid aspect-video w-full place-items-center rounded-xl border border-[var(--glass-border)]">
+                      <idem-loader [label]="'builders.cover.uploading' | translate" />
+                    </div>
+                  } @else if (coverPreview(); as preview) {
+                    <img [src]="preview" [alt]="'builders.cover.previewAlt' | translate" class="block aspect-video w-full rounded-xl object-cover" />
+                    <div class="mt-3 flex flex-wrap gap-2">
+                      <label for="builder-cover" class="outer-button button-sm !mb-0 cursor-pointer">{{ 'builders.cover.replace' | translate }}</label>
+                      <button type="button" class="button-ghost button-sm" (click)="removeCover()">{{ 'builders.cover.remove' | translate }}</button>
+                    </div>
+                  } @else {
+                    <div
+                      class="flex aspect-video w-full flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed px-6 text-center transition-colors"
+                      [class]="coverDragOver() ? 'border-[var(--color-primary)] bg-[var(--glass-bg-light)]' : 'border-[var(--glass-border)]'"
+                      (dragover)="onCoverDragOver($event)"
+                      (dragleave)="coverDragOver.set(false)"
+                      (drop)="onCoverDrop($event)"
+                    >
+                      <span class="grid h-14 w-14 place-items-center rounded-2xl bg-[var(--glass-bg-light)]" aria-hidden="true">
+                        <i class="pi pi-image text-2xl text-primary-500"></i>
+                      </span>
+                      <p class="text-base font-semibold text-text-primary">{{ 'builders.cover.dropTitle' | translate }}</p>
+                      <p class="max-w-md text-sm text-text-tertiary">{{ 'builders.cover.dropBody' | translate }}</p>
+                      <label for="builder-cover" class="inner-button !mb-0 cursor-pointer">{{ 'builders.cover.choose' | translate }}</label>
+                    </div>
+                  }
+                  <input
+                    id="builder-cover"
+                    type="file"
+                    class="sr-only"
+                    accept="image/jpeg,image/png,image/webp"
+                    aria-describedby="builder-cover-help"
+                    [disabled]="coverUploading()"
+                    (change)="onCoverSelected($event)"
+                  />
+                </div>
+
+                @if (coverError(); as code) {
+                  <p class="mt-3 text-sm text-danger" role="alert">{{ 'builders.cover.errors.' + code | translate: { width: program.coverWidth, height: program.coverHeight } }}</p>
+                }
+                @if (!coverPreview() && !coverFile()) {
+                  <p class="mt-3 text-xs text-text-tertiary">{{ 'builders.cover.fallback' | translate }}</p>
+                }
+              </section>
+
               <div>
                 <label for="builder-pitch">{{ 'builders.apply.pitch' | translate }}</label>
                 <p id="builder-pitch-help" class="mb-2 text-xs text-text-tertiary">{{ 'builders.apply.pitchHelp' | translate }}</p>
@@ -200,48 +257,6 @@
               <div>
                 <label for="builder-url">{{ 'builders.apply.url' | translate }}</label>
                 <input id="builder-url" type="url" formControlName="publicUrl" placeholder="https://" inputmode="url" />
-              </div>
-
-              <!-- La couverture, facultative : sans elle, IDEM la compose depuis la charte. -->
-              <div>
-                <p class="mb-1 text-sm font-semibold text-text-primary">{{ 'builders.cover.title' | translate }}</p>
-                <p id="builder-cover-help" class="mb-3 text-xs text-text-tertiary">
-                  {{ 'builders.cover.help' | translate: { width: program.coverMinWidth, height: program.coverMinHeight } }}
-                </p>
-                @if (coverPreview(); as preview) {
-                  <div class="relative overflow-hidden rounded-xl border border-[var(--glass-border)]">
-                    <img [src]="preview" [alt]="'builders.cover.previewAlt' | translate" class="block aspect-[16/9] w-full object-cover" />
-                  </div>
-                  <div class="mt-2 flex flex-wrap gap-2">
-                    <label for="builder-cover" class="outer-button button-sm !mb-0 cursor-pointer">{{ 'builders.cover.replace' | translate }}</label>
-                    <button type="button" class="button-ghost button-sm" (click)="removeCover()">{{ 'builders.cover.remove' | translate }}</button>
-                  </div>
-                } @else {
-                  <label
-                    for="builder-cover"
-                    class="!mb-0 flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-[var(--glass-border)] px-4 py-8 text-center transition-colors hover:border-[var(--color-primary)]"
-                  >
-                    @if (coverUploading()) {
-                      <idem-loader size="sm" [label]="'builders.cover.uploading' | translate" />
-                    } @else {
-                      <i class="pi pi-image text-xl text-text-tertiary" aria-hidden="true"></i>
-                      <span class="text-sm font-medium text-text-primary">{{ 'builders.cover.add' | translate }}</span>
-                      <span class="text-xs text-text-tertiary">{{ 'builders.cover.fallback' | translate }}</span>
-                    }
-                  </label>
-                }
-                <input
-                  id="builder-cover"
-                  type="file"
-                  class="sr-only"
-                  accept="image/jpeg,image/png,image/webp"
-                  aria-describedby="builder-cover-help"
-                  [disabled]="coverUploading()"
-                  (change)="onCoverSelected($event)"
-                />
-                @if (coverError(); as code) {
-                  <p class="mt-2 text-sm text-danger" role="alert">{{ 'builders.cover.errors.' + code | translate: { width: program.coverMinWidth, height: program.coverMinHeight } }}</p>
-                }
               </div>
 
               <!-- Ce que la fiche publique montrera ; l'équipe, seulement sur choix. -->

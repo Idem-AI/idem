@@ -108,7 +108,7 @@ buildersRoutes.post(
   (req: Request, res: Response, next: NextFunction) =>
     coverUpload.single('cover')(req, res, (error: unknown) => {
       if ((error as { code?: string })?.code === 'LIMIT_FILE_SIZE') {
-        res.status(400).json({ error: 'COVER_TOO_HEAVY', message: 'La couverture dépasse 6 Mo.' });
+        res.status(400).json({ error: 'COVER_TOO_HEAVY', message: 'La couverture dépasse 8 Mo.' });
         return;
       }
       next(error);

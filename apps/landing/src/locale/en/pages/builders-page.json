@@ -72,7 +72,8 @@
     "builders-page.showcase.previewName": "Your project",
     "builders-page.showcase.previewTagline": "One sentence on what it does, and for whom.",
     "builders-page.showcase.previewFoot": "Your country · your-site.africa",
-    "builders-page.showcase.open": "See the project",
-    "builders-page.showcase.previewCountry": "Your country"
+    "builders-page.showcase.previewCountry": "Your country",
+    "builders-page.showcase.owner": "Led by",
+    "builders-page.showcase.discover": "Discover the project"
   }
 }

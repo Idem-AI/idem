@@ -66,6 +66,16 @@ function slugFor(projectName: string, id: string): string {
   return `${base}-${id.slice(-6)}`.toLowerCase();
 }
 
+/**
+ * Le nom public du porteur : son nom affiché, jamais une adresse e-mail (un
+ * compte sans nom affiché garde parfois l'adresse à la place).
+ */
+function ownerName(displayName?: string): string | undefined {
+  const name = String(displayName ?? '').trim();
+  if (!name || name.includes('@')) return undefined;
+  return name.slice(0, 80);
+}
+
 /** Le logo ancien (SVG en base) d'une fiche, servi par l'API. */
 function logoPath(slug: string): string {
   return `/builders/projects/${slug}/logo.svg`;
@@ -243,7 +253,7 @@ export class BuildersService {
     const docs = await BuilderApplication.find({ status: 'approved', 'showcase.visible': true })
       .sort({ 'showcase.featured': -1, decidedAt: -1 })
       .limit(Math.min(Math.max(limit, 1), 120))
-      .select('projectId projectName projectDescription country publicUrl showcase publication cover slug decidedAt createdAt')
+      .select('projectId projectName projectDescription country publicUrl showcase publication cover slug displayName decidedAt createdAt')
       .lean();
 
     const projects = await loadProjectExcerpts(docs.map((doc) => doc.projectId)).catch(() => new Map<string, ProjectExcerpt>());
@@ -311,6 +321,7 @@ export class BuildersService {
       featured: !!doc.showcase?.featured,
       since: (doc.decidedAt ?? doc.createdAt).toISOString(),
       coverUrl: doc.cover?.url || undefined,
+      owner: ownerName(doc.displayName),
     };
   }
 

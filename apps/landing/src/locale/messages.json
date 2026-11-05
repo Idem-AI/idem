@@ -1340,7 +1340,7 @@
     "buildersTerms.benefits.badge": "The right to display the Idem Builder badge, under section 7.",
     "buildersTerms.benefits.rules.title": "Rules that apply to every credit",
     "buildersTerms.benefits.rules.content": "Credits granted by the programme are spent on IDEM services only. They cannot be converted into cash, transferred to another account or refunded. IDEM may change the benefits for the future with 30 days notice; credits already granted remain yours, except in case of fraud (section 9).",
-    "buildersTerms.showcase.content": "To present your project, you grant IDEM a non-exclusive, free and worldwide licence to reproduce and show, on idem.africa, the IDEM blog, social networks, newsletters and presentations about the programme: its name, its description, its country and city, its public address, the text in which you present it, the cover image you upload, if any, and its brand identity as created in IDEM (logo, colours, typefaces). Without an uploaded cover, the project page composes one from that identity. This licence lasts for your membership; content already published (blog posts, past newsletters) may stay online as an archive. Any other element (screenshots, quotes, photographs) is only used with your explicit agreement, given for each feature.",
+    "buildersTerms.showcase.content": "To present your project, you grant IDEM a non-exclusive, free and worldwide licence to reproduce and show, on idem.africa, the IDEM blog, social networks, newsletters and presentations about the programme: its name, its description, its country and city, its public address, your display name as the person behind it, the text in which you present it, the cover image you upload, if any, and its brand identity as created in IDEM (logo, colours, typefaces). Without an uploaded cover, the project page composes one from that identity. This licence lasts for your membership; content already published (blog posts, past newsletters) may stay online as an archive. Any other element (screenshots, quotes, photographs) is only used with your explicit agreement, given for each feature.",
     "buildersTerms.showcase.badge.title": "The Idem Builder badge",
     "buildersTerms.showcase.badge.content": "While you are a member, IDEM grants you a personal, free and revocable right to display the badge on the channels of the admitted project, without altering it. The badge says that the project belongs to the programme; it is not a certification, a guarantee or an endorsement of your products by IDEM, and must not be presented as such. You remove it within 15 days of leaving the programme.",
     "buildersTerms.commitments.content": "As a member, you undertake to:",
@@ -1390,7 +1390,7 @@
     "buildersPrivacy.purposes.emails": "Writing to you about your application and the programme — basis: performance of the programme terms.",
     "buildersPrivacy.purposes.proof": "Keeping the proof of your acceptance and preventing fraud (multiple accounts, fictitious projects) — basis: the legitimate interest of IDEM.",
     "buildersPrivacy.purposes.stats": "Measuring the programme with aggregated statistics, which identify no one — basis: the legitimate interest of IDEM.",
-    "buildersPrivacy.public.content": "If your project is admitted, its page and the showcase show: its name, description, country and city, public address, date of admission, the text in which you present it, its cover image, its brand identity (logo, colours, typefaces) and the list of what it does with IDEM (online, marketing, brand, business plan…). The team appears only if you chose it, without email addresses. Your own email address, the reason for a decision and your proof of acceptance are never published. You can ask at any time to hide the project from the showcase, or to remove the team from its page.",
+    "buildersPrivacy.public.content": "If your project is admitted, its page and the showcase show: its name, description, country and city, public address, your display name as the person behind it, date of admission, the text in which you present it, its cover image, its brand identity (logo, colours, typefaces) and the list of what it does with IDEM (online, marketing, brand, business plan…). The team appears only if you chose it, without email addresses. Your own email address, the reason for a decision and your proof of acceptance are never published. You can ask at any time to hide the project from the showcase, or to remove the team from its page.",
     "buildersPrivacy.recipients.team": "The IDEM team members in charge of the programme, through the administration panel; their access requires authentication and their actions are logged.",
     "buildersPrivacy.recipients.providers": "The technical providers IDEM relies on to host the platform and send emails, bound by confidentiality and acting only on IDEM instructions.",
     "buildersPrivacy.recipients.authorities": "Public authorities, only when the law requires it.",
@@ -1548,10 +1548,11 @@
     "builder-detail.story": "The project",
     "builder-detail.team": "The team",
     "builder-detail.visit": "Visit {$INTERPOLATION}",
-    "builders-page.showcase.open": "See the project",
     "builders-page.showcase.previewCountry": "Your country",
     "buildersTerms.showcase.cover.title": "The cover image you upload",
     "buildersTerms.showcase.cover.content": "By uploading a cover, you confirm that you hold the rights to it and that it shows nothing unlawful, misleading or that infringes the rights of others (in particular the image rights of the people shown). IDEM resizes it and removes its metadata, and may remove it from the page at any time if it breaks these rules; the composed cover then takes its place.",
-    "buildersPrivacy.data.cover": "the cover image you upload, if any, resized and stripped of its metadata (including any location);"
+    "buildersPrivacy.data.cover": "the cover image you upload, if any, resized and stripped of its metadata (including any location);",
+    "builders-page.showcase.owner": "Led by",
+    "builders-page.showcase.discover": "Discover the project"
   }
 }

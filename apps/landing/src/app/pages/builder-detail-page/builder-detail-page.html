@@ -57,6 +57,9 @@
                   @if (place()) {
                     <li>{{ place() }}</li>
                   }
+                  @if (b.owner) {
+                    <li><ng-container i18n="@@builders-page.showcase.owner">Led by</ng-container> {{ b.owner }}</li>
+                  }
                   <li>
                     <ng-container i18n="@@builder-detail.since">Builder since</ng-container>
                     {{ b.since | date: 'MMMM y' }}

@@ -15,13 +15,14 @@ import {
 import { environment } from '../../../../../environments/environment';
 import { CurrentProjectService } from '../../../../shared/services/current-project.service';
 import { BuildersIllustrationComponent } from '../../../../shared/components/builders-illustration/builders-illustration';
+import { CoverCropperComponent } from '../../components/cover-cropper/cover-cropper';
 import { BuilderApplicationView, BuilderEligibility, BuildersService } from '../../services/builders.service';
 
 /** Refus de l'API qui ont leur propre phrase dans les traductions (`builders.errors.*`). */
 const KNOWN_ERRORS = ['COVER_INVALID', 'TERMS_REQUIRED', 'TERMS_OUTDATED', 'ALREADY_APPLIED', 'NOT_ELIGIBLE', 'PITCH_TOO_SHORT', 'PITCH_TOO_LONG', 'INVALID_URL', 'PROJECT_NOT_FOUND'];
 
 /** Refus d'envoi de couverture qui ont leur phrase (`builders.cover.errors.*`). */
-const COVER_ERRORS = ['COVER_FORMAT', 'COVER_TOO_HEAVY', 'COVER_TOO_SMALL', 'COVER_UNREADABLE'];
+const COVER_ERRORS = ['COVER_FORMAT', 'COVER_TOO_HEAVY', 'COVER_TOO_SMALL', 'COVER_RATIO', 'COVER_UNREADABLE'];
 
 /**
  * Idem Builders, côté candidat : choisir un projet, voir s'il est géré avec
@@ -43,6 +44,7 @@ const COVER_ERRORS = ['COVER_FORMAT', 'COVER_TOO_HEAVY', 'COVER_TOO_SMALL', 'COV
     TranslateModule,
     IdemLoaderComponent,
     BuildersIllustrationComponent,
+    CoverCropperComponent,
   ],
   templateUrl: './builders-page.html',
 })
@@ -198,6 +200,7 @@ export class BuildersPage {
         this.applications.update((list) => [application, ...(list ?? [])]);
         this.form.reset();
         this.coverPreview.set(null);
+        this.coverFile.set(null);
         this.eligibility.set(null);
       },
       error: (error: HttpErrorResponse) => {
@@ -213,13 +216,31 @@ export class BuildersPage {
   protected readonly coverError = signal<string | null>(null);
   protected readonly coverPreview = signal<string | null>(null);
 
-  /** Envoie la couverture dès qu'elle est choisie : l'aperçu montre ce que l'API a gardé. */
+  /** L'image choisie, en attente de cadrage. */
+  protected readonly coverFile = signal<File | null>(null);
+  protected readonly coverDragOver = signal(false);
+
+  /** Une image choisie passe d'abord par le cadrage, au format exact de la fiche. */
   protected onCoverSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
     input.value = '';
-    if (!file) return;
+    if (file) this.takeCover(file);
+  }
 
+  protected onCoverDragOver(event: DragEvent): void {
+    event.preventDefault();
+    this.coverDragOver.set(true);
+  }
+
+  protected onCoverDrop(event: DragEvent): void {
+    event.preventDefault();
+    this.coverDragOver.set(false);
+    const file = event.dataTransfer?.files?.[0];
+    if (file) this.takeCover(file);
+  }
+
+  private takeCover(file: File): void {
     this.coverError.set(null);
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
       this.coverError.set('COVER_FORMAT');
@@ -229,9 +250,14 @@ export class BuildersPage {
       this.coverError.set('COVER_TOO_HEAVY');
       return;
     }
+    this.coverFile.set(file);
+  }
 
+  /** Le cadrage validé part à l'API ; l'aperçu montre ce qu'elle a gardé. */
+  protected uploadCropped(blob: Blob): void {
+    this.coverFile.set(null);
     this.coverUploading.set(true);
-    this.builders.uploadCover(file).subscribe({
+    this.builders.uploadCover(new File([blob], 'cover.jpg', { type: 'image/jpeg' })).subscribe({
       next: ({ url }) => {
         this.coverUploading.set(false);
         this.form.controls.coverUrl.setValue(url);

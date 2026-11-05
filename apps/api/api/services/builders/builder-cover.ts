@@ -8,9 +8,10 @@ import { BUILDERS_PROGRAM } from '../../../../../packages/shared-models/src/buil
 /**
  * La couverture qu'un candidat choisit pour sa fiche Idem Builders.
  *
- * Le fichier envoyé n'est jamais publié tel quel : il est réorienté, ramené à
- * 2 000 px de large au plus, réencodé en WebP et dépouillé de ses métadonnées
- * (dont la position GPS qu'une photo de téléphone emporte souvent). Il est
+ * Le fichier envoyé n'est jamais publié tel quel : il est réorienté, vérifié
+ * (paysage 16:9, 1600 × 900 au moins), ramené à 1600 × 900, réencodé en WebP
+ * et dépouillé de ses métadonnées (dont la position GPS qu'une photo de
+ * téléphone emporte souvent). Il est
  * rangé sous le compte de son auteur : la candidature n'accepte qu'une
  * couverture rangée là, jamais l'adresse d'une image prise ailleurs.
  */
@@ -30,7 +31,7 @@ export async function storeBuilderCover(
     throw new BuildersError(400, 'COVER_FORMAT', 'La couverture doit être une image JPG, PNG ou WebP.');
   }
   if (file.size > BUILDERS_PROGRAM.coverMaxBytes) {
-    throw new BuildersError(400, 'COVER_TOO_HEAVY', 'La couverture dépasse 6 Mo.');
+    throw new BuildersError(400, 'COVER_TOO_HEAVY', 'La couverture dépasse 8 Mo.');
   }
 
   let image: ReturnType<typeof sharp>;
@@ -47,17 +48,20 @@ export async function storeBuilderCover(
     throw new BuildersError(400, 'COVER_UNREADABLE', "L'image n'a pas pu être lue.");
   }
 
-  if (width < BUILDERS_PROGRAM.coverMinWidth || height < BUILDERS_PROGRAM.coverMinHeight) {
-    throw new BuildersError(
-      400,
-      'COVER_TOO_SMALL',
-      `La couverture doit mesurer au moins ${BUILDERS_PROGRAM.coverMinWidth} × ${BUILDERS_PROGRAM.coverMinHeight} px.`
-    );
+  const { coverWidth, coverHeight } = BUILDERS_PROGRAM;
+  const ratio = width / Math.max(height, 1);
+  if (Math.abs(ratio - coverWidth / coverHeight) > 0.02) {
+    throw new BuildersError(400, 'COVER_RATIO', 'La couverture doit être au format paysage 16:9.');
+  }
+  if (width < coverWidth || height < coverHeight) {
+    throw new BuildersError(400, 'COVER_TOO_SMALL', `La couverture doit mesurer au moins ${coverWidth} × ${coverHeight} px.`);
   }
 
+  // Toutes les couvertures publiées ont la même taille : la vitrine les montre
+  // entières, sans recadrage.
   const output = await image
-    .resize({ width: 2000, height: 2000, fit: 'inside', withoutEnlargement: true })
-    .webp({ quality: 82 })
+    .resize({ width: coverWidth, height: coverHeight, fit: 'cover' })
+    .webp({ quality: 84 })
     .toBuffer({ resolveWithObject: true });
 
   const stored = await storageService.uploadFile(output.data, `${randomUUID()}.webp`, folderFor(userId), 'image/webp');

@@ -124,7 +124,7 @@
       },
       "publication": {
         "title": "Ce que verra le public",
-        "body": "La fiche du projet montrera son nom, sa description, son pays, son adresse, votre présentation et son identité de marque (logo, couleurs, polices).",
+        "body": "La fiche du projet montrera son nom, sa description, son pays, son adresse, votre présentation, sa couverture, son identité de marque (logo, couleurs, polices) et votre nom comme porteur du projet.",
         "team": "Afficher aussi l’équipe du projet : noms, rôles, photos et liens professionnels",
         "teamNote": "Chaque personne affichée doit être d’accord. Les adresses e-mail ne sont jamais publiées."
       }
@@ -181,20 +181,33 @@
       "COVER_INVALID": "La couverture doit être envoyée depuis ce formulaire."
     },
     "cover": {
-      "title": "Couverture du projet (facultatif)",
-      "help": "Une image large qui présente le projet : JPG, PNG ou WebP, 6 Mo au plus, {{width}} × {{height}} px au moins (1600 × 900 conseillé).",
-      "add": "Ajouter une couverture",
-      "fallback": "Sans couverture, nous en composons une à partir de votre charte : couleurs et logo.",
-      "replace": "Remplacer",
+      "title": "Couverture du projet",
+      "format": "Paysage 16:9 · {{width}} × {{height}} px",
+      "help": "C’est la grande image de votre fiche dans la vitrine. Choisissez une image large et nette ; vous la cadrerez juste après.",
+      "dropTitle": "Ajoutez la couverture de votre projet",
+      "dropBody": "Glissez une image ici ou choisissez-la : JPG, PNG ou WebP, 8 Mo au plus. Une capture de votre site, une photo de votre équipe ou de votre produit.",
+      "choose": "Choisir une image",
+      "fallback": "Facultatif : sans couverture, IDEM en compose une à partir de votre charte (couleurs et logo).",
+      "replace": "Changer d’image",
       "remove": "Retirer",
-      "uploading": "Envoi de l’image…",
+      "uploading": "Envoi de la couverture…",
       "previewAlt": "Aperçu de la couverture",
+      "cropper": {
+        "frameLabel": "Cadrage de la couverture",
+        "dragHint": "Faites glisser pour cadrer",
+        "zoom": "Zoom",
+        "confirm": "Valider ce cadrage",
+        "chooseAnother": "Choisir une autre image",
+        "tooSmallTitle": "Cette image est trop petite",
+        "tooSmallBody": "Elle mesure {{actualWidth}} × {{actualHeight}} px : pour remplir la couverture sans flou, il faut au moins {{width}} × {{height}} px au format paysage."
+      },
       "errors": {
         "COVER_FORMAT": "Choisissez une image JPG, PNG ou WebP.",
-        "COVER_TOO_HEAVY": "L’image dépasse 6 Mo.",
+        "COVER_TOO_HEAVY": "L’image dépasse 8 Mo.",
         "COVER_TOO_SMALL": "L’image doit mesurer au moins {{width}} × {{height}} px.",
+        "COVER_RATIO": "La couverture doit être au format paysage 16:9.",
         "COVER_UNREADABLE": "Cette image n’a pas pu être lue.",
-        "COVER_GENERIC": "L’image n’est pas partie. Réessayez."
+        "COVER_GENERIC": "La couverture n’est pas partie. Réessayez."
       }
     }
   }

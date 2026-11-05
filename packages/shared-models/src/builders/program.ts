@@ -45,10 +45,14 @@ export const BUILDERS_PROGRAM = {
   pitchMaxLength: 1_500,
   /** Délai d'examen annoncé au candidat, en jours ouvrés. */
   reviewDays: 5,
-  /** Couverture envoyée par le candidat : poids maximal et taille minimale. */
-  coverMaxBytes: 6 * 1024 * 1024,
-  coverMinWidth: 1000,
-  coverMinHeight: 560,
+  /**
+   * Couverture envoyée par le candidat : toujours en paysage 16:9, publiée en
+   * 1600 × 900 exactement. Le formulaire la cadre à ce format avant l'envoi ;
+   * l'API refuse tout autre rapport ou une image plus petite.
+   */
+  coverMaxBytes: 8 * 1024 * 1024,
+  coverWidth: 1600,
+  coverHeight: 900,
 } as const;
 
 /**
@@ -58,7 +62,7 @@ export const BUILDERS_PROGRAM = {
  * deux textes change cette version : l'API refuse alors une acceptation
  * d'une version antérieure, et la candidature garde celle qui a été lue.
  */
-export const BUILDERS_LEGAL_VERSION = '2026-11-05.3';
+export const BUILDERS_LEGAL_VERSION = '2026-11-05.4';
 
 /** Bonus Builders d'une recharge, en francs. */
 export function builderTopupBonusXaf(amountXaf: number): number {
@@ -111,8 +115,10 @@ export interface BuilderShowcaseEntry {
   url?: string;
   featured: boolean;
   since: string;
-  /** La couverture choisie par le projet ; sans elle, la couverture est composée depuis la charte. */
+  /** La couverture choisie par le projet (16:9) ; sans elle, la couverture est composée depuis la charte. */
   coverUrl?: string;
+  /** Le porteur du projet : la personne qui l'a présenté au programme. */
+  owner?: string;
   brand?: BuilderBrand;
   /** Les premiers membres (nom, photo), pour la pile d'avatars de la fiche. */
   team?: { name: string; pictureUrl?: string }[];

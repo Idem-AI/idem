@@ -159,10 +159,16 @@
 
       @switch (showcaseState()) {
         @case ('loading') {
-          <ul class="bx-cards" aria-hidden="true">
-            @for (i of [0, 1, 2]; track i) {
+          <ul class="bx-projects" aria-hidden="true">
+            @for (i of [0, 1]; track i) {
               <li>
-                <div class="skeleton bx-tile"></div>
+                <div class="bx-project">
+                  <div class="skeleton bx-project-media"></div>
+                  <div class="bx-project-body">
+                    <div class="skeleton h-8 w-1/2 rounded"></div>
+                    <div class="skeleton h-4 w-full rounded ed-mt-4"></div>
+                  </div>
+                </div>
               </li>
             }
           </ul>
@@ -179,15 +185,15 @@
           @if (builders().length === 0) {
             <!-- Vide : l'aperçu de la fiche qu'aura le premier projet admis. -->
             <div class="bx-empty">
-              <div class="bx-tile bx-tile-preview" aria-hidden="true">
-                <app-builder-cover class="bx-tile-cover" [name]="previewName" />
-                <span class="bx-tile-label">
-                  <span class="bx-tile-name">{{ previewName }}</span>
-                  <span class="bx-tile-tagline" i18n="@@builders-page.showcase.previewTagline">One sentence on what it does, and for whom.</span>
-                  <span class="bx-tile-meta">
-                    <span class="bx-tile-country" i18n="@@builders-page.showcase.previewCountry">Your country</span>
-                  </span>
-                </span>
+              <div class="bx-project bx-project-preview" aria-hidden="true">
+                <div class="bx-project-media">
+                  <app-builder-cover class="bx-project-cover" [name]="previewName" />
+                </div>
+                <div class="bx-project-body">
+                  <p class="bx-project-meta"><span i18n="@@builders-page.showcase.previewCountry">Your country</span></p>
+                  <p class="bx-project-name">{{ previewName }}</p>
+                  <p class="bx-project-desc" i18n="@@builders-page.showcase.previewTagline">One sentence on what it does, and for whom.</p>
+                </div>
               </div>
               <div>
                 <p class="bx-empty-title">{{ emptyFirst }}</p>
@@ -198,27 +204,39 @@
               </div>
             </div>
           } @else {
-            <ul class="bx-cards">
+            <ul class="bx-projects">
               @for (builder of builders(); track builder.id) {
-                <li [class.bx-card-featured]="builder.featured">
-                  <a class="bx-tile" [routerLink]="['/builders', builder.slug]">
-                    <app-builder-cover class="bx-tile-cover" [brand]="builder.brand" [coverUrl]="builder.coverUrl" [name]="builder.projectName" />
-
-                    <span class="bx-tile-go" aria-hidden="true">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                        <path d="M7 17L17 7m0 0H9m8 0v8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                      </svg>
-                    </span>
-                    @if (builder.featured) {
-                      <span class="bx-tile-flag" i18n="@@builders-page.showcase.featured">Featured</span>
-                    }
-
-                    <span class="bx-tile-label">
-                      <span class="bx-tile-name">{{ builder.projectName }}</span>
-                      @if (builder.tagline) {
-                        <span class="bx-tile-tagline">{{ builder.tagline }}</span>
+                <li [class.bx-project-featured]="builder.featured">
+                  <a class="bx-project" [routerLink]="['/builders', builder.slug]">
+                    <div class="bx-project-media">
+                      <app-builder-cover class="bx-project-cover" [brand]="builder.brand" [coverUrl]="builder.coverUrl" [name]="builder.projectName" />
+                      @if (builder.featured) {
+                        <span class="bx-project-flag" i18n="@@builders-page.showcase.featured">Featured</span>
                       }
-                      <span class="bx-tile-meta">
+                    </div>
+
+                    <div class="bx-project-body">
+                      <p class="bx-project-meta">
+                        @if (builder.country) {
+                          <span>{{ builder.country }}</span>
+                        }
+                        <span><ng-container i18n="@@builder-detail.since">Builder since</ng-container> {{ builder.since | date: 'MMMM y' }}</span>
+                      </p>
+                      <h3 class="bx-project-name">{{ builder.projectName }}</h3>
+                      @if (builder.tagline) {
+                        <p class="bx-project-desc">{{ builder.tagline }}</p>
+                      }
+
+                      <div class="bx-project-foot">
+                        @if (builder.owner) {
+                          <span class="bx-owner">
+                            <span class="bx-owner-avatar" aria-hidden="true">{{ initials(builder.owner) }}</span>
+                            <span class="bx-owner-text">
+                              <span class="bx-owner-label" i18n="@@builders-page.showcase.owner">Led by</span>
+                              <span class="bx-owner-name">{{ builder.owner }}</span>
+                            </span>
+                          </span>
+                        }
                         @if (builder.team?.length) {
                           <span class="bx-avatars" aria-hidden="true">
                             @for (member of builder.team; track member.name) {
@@ -230,11 +248,14 @@
                             }
                           </span>
                         }
-                        @if (builder.country) {
-                          <span class="bx-tile-country">{{ builder.country }}</span>
-                        }
-                      </span>
-                    </span>
+                        <span class="bx-project-cta">
+                          <ng-container i18n="@@builders-page.showcase.discover">Discover the project</ng-container>
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="M5 12h13m0 0l-5-5m5 5l-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                          </svg>
+                        </span>
+                      </div>
+                    </div>
                   </a>
                 </li>
               }

@@ -280,10 +280,11 @@
   }
 }
 
-/* ── La vitrine : chaque projet est une affiche ───────────────────────
-   La couverture remplit la fiche ; une étiquette posée en bas porte le nom.
-   Pas d'ombre portée : au survol, l'image avance d'un rien, la pastille
-   fléchée se remplit et l'étiquette s'aligne sur la couleur d'IDEM. */
+/* ── La vitrine : de grandes fiches de projet ─────────────────────────
+   La couverture en 16:9, entière, jamais recadrée ; dessous, le projet dit
+   en grand. Le projet à la une prend toute la largeur, couverture et texte
+   côte à côte. Pas d'ombre : au survol, l'image avance d'un rien, le nom
+   passe au bleu d'IDEM et la flèche avance. */
 .bx-stats {
   margin: 0;
   font-size: var(--font-size-sm);
@@ -291,140 +292,175 @@
   color: var(--color-text-secondary);
 }
 
-.bx-cards {
+.bx-projects {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr));
-  grid-auto-flow: dense;
-  gap: clamp(1rem, 2vw, 1.5rem);
+  gap: clamp(3rem, 6vw, 4.5rem) clamp(1.5rem, 3vw, 2.5rem);
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.bx-cards > li {
+@media (min-width: 900px) {
+  .bx-projects {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .bx-project-featured {
+    grid-column: 1 / -1;
+  }
+}
+
+.bx-projects > li {
   display: flex;
   min-width: 0;
 }
 
-@media (min-width: 1024px) {
-  .bx-card-featured {
-    grid-column: span 2;
-  }
-}
-
-.bx-tile {
-  position: relative;
-  display: block;
+.bx-project {
+  display: flex;
+  flex-direction: column;
   width: 100%;
-  min-height: clamp(26rem, 38vw, 32rem);
-  border-radius: 1.5rem;
-  overflow: hidden;
-  isolation: isolate;
+  min-width: 0;
   color: inherit;
   text-decoration: none;
 }
 
-.bx-tile:focus-visible {
+a.bx-project:focus-visible {
   outline: 3px solid var(--color-primary-500);
-  outline-offset: 4px;
+  outline-offset: 6px;
+  border-radius: 1.75rem;
 }
 
-/* La couverture, en pleine fiche ; le logo remonte au-dessus de l'étiquette. */
-.bx-tile-cover {
+.bx-project-media {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  border-radius: 1.5rem;
+  overflow: hidden;
+  isolation: isolate;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+}
+
+.bx-project-cover {
   position: absolute;
   inset: 0;
-  padding-bottom: 34%;
 }
 
-.bx-tile-go {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  display: grid;
-  place-items: center;
-  width: 2.75rem;
-  height: 2.75rem;
-  border-radius: 9999px;
-  background: color-mix(in srgb, white 88%, transparent);
-  color: #0f172a;
-  backdrop-filter: blur(6px);
-  transition:
-    background-color 0.35s var(--bx-ease),
-    color 0.35s var(--bx-ease),
-    transform 0.35s var(--bx-ease);
-}
-
-.bx-tile:hover .bx-tile-go,
-.bx-tile:focus-visible .bx-tile-go {
-  background: var(--color-primary-500);
-  color: var(--color-on-primary);
-  transform: rotate(45deg);
-}
-
-.bx-tile-flag {
+.bx-project-flag {
   position: absolute;
   top: 1rem;
   left: 1rem;
-  padding: 0.4rem 0.8rem;
+  padding: 0.4rem 0.85rem;
   border-radius: 9999px;
-  background: color-mix(in srgb, white 88%, transparent);
+  background: color-mix(in srgb, white 90%, transparent);
   color: #0f172a;
   font-size: 0.75rem;
   font-weight: var(--font-weight-bold);
   backdrop-filter: blur(6px);
 }
 
-/* L'étiquette : une surface du thème, posée dans la couverture. */
-.bx-tile-label {
-  position: absolute;
-  left: 0.75rem;
-  right: 0.75rem;
-  bottom: 0.75rem;
+.bx-project-body {
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
-  padding: 1.15rem 1.25rem 1.1rem;
-  border-radius: 1.1rem;
-  background: var(--color-surface-1, var(--color-background));
-  border: 1px solid transparent;
-  transition: border-color 0.35s var(--bx-ease);
+  flex: 1;
+  padding-top: 1.5rem;
 }
 
-.bx-tile:hover .bx-tile-label,
-.bx-tile:focus-visible .bx-tile-label {
-  border-color: var(--color-primary-500);
-}
-
-.bx-tile-name {
-  font-size: clamp(1.25rem, 1.8vw, 1.5rem);
-  font-weight: var(--font-weight-bold);
-  line-height: 1.15;
-  color: var(--color-text-primary);
-}
-
-.bx-tile-tagline {
-  display: -webkit-box;
-  overflow: hidden;
+.bx-project-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1.25rem;
+  margin: 0;
   font-size: var(--font-size-sm);
-  line-height: 1.55;
   color: var(--color-text-secondary);
-  -webkit-line-clamp: 2;
+}
+
+.bx-project-meta span + span::before {
+  content: '';
+  display: inline-block;
+  width: 0.3rem;
+  height: 0.3rem;
+  margin-right: 1.25rem;
+  margin-left: -0.15rem;
+  border-radius: 9999px;
+  background: currentColor;
+  vertical-align: middle;
+  opacity: 0.5;
+}
+
+.bx-project-name {
+  margin: 0.6rem 0 0;
+  font-size: clamp(1.75rem, 3vw, 2.5rem);
+  font-weight: var(--font-weight-black);
+  line-height: 1.05;
+  letter-spacing: -0.015em;
+  color: var(--color-text-primary);
+  text-wrap: balance;
+  transition: color 0.3s var(--bx-ease);
+}
+
+a.bx-project:hover .bx-project-name,
+a.bx-project:focus-visible .bx-project-name {
+  color: var(--color-primary-500);
+}
+
+.bx-project-desc {
+  display: -webkit-box;
+  margin: 0.85rem 0 0;
+  max-width: 40rem;
+  overflow: hidden;
+  font-size: var(--font-size-lg, 1.125rem);
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
 }
 
-.bx-tile-meta {
+.bx-project-foot {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem 1.5rem;
+  margin-top: auto;
+  padding-top: 1.5rem;
+}
+
+/* Le porteur du projet : celui qui l'a présenté. */
+.bx-owner {
+  display: inline-flex;
   align-items: center;
   gap: 0.75rem;
-  min-height: 1.85rem;
-  margin-top: 0.35rem;
-  font-size: var(--font-size-sm);
+  min-width: 0;
+}
+
+.bx-owner-avatar {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 9999px;
+  background: var(--color-primary-500);
+  color: var(--color-on-primary);
+  font-size: 0.8rem;
+  font-weight: var(--font-weight-bold);
+}
+
+.bx-owner-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.bx-owner-label {
+  font-size: 0.75rem;
   color: var(--color-text-secondary);
 }
 
-.bx-tile-country {
-  min-width: 0;
+.bx-owner-name {
   overflow: hidden;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -439,11 +475,11 @@
 .bx-avatars > span {
   display: grid;
   place-items: center;
-  width: 1.85rem;
-  height: 1.85rem;
+  width: 2rem;
+  height: 2rem;
   margin-left: -0.5rem;
   border-radius: 9999px;
-  border: 2px solid var(--color-surface-1, white);
+  border: 2px solid var(--color-background, var(--color-surface-1, white));
   object-fit: cover;
   background: color-mix(in srgb, var(--color-primary-500) 14%, var(--color-surface-1, white));
   color: var(--color-primary-500);
@@ -455,10 +491,60 @@
   margin-left: 0;
 }
 
-.bx-tile-preview {
-  max-width: 24rem;
-  outline: 2px dashed color-mix(in srgb, var(--color-primary-500) 45%, transparent);
-  outline-offset: 4px;
+.bx-project-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-left: auto;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary-500);
+  white-space: nowrap;
+}
+
+.bx-project-cta svg {
+  transition: transform 0.3s var(--bx-ease);
+}
+
+a.bx-project:hover .bx-project-cta svg,
+a.bx-project:focus-visible .bx-project-cta svg {
+  transform: translateX(4px);
+}
+
+/* Le projet à la une : couverture et récit côte à côte, en plus grand. */
+@media (min-width: 900px) {
+  .bx-project-featured .bx-project {
+    display: grid;
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    column-gap: clamp(2rem, 4vw, 3.5rem);
+    align-items: center;
+  }
+
+  .bx-project-featured .bx-project-body {
+    padding-top: 0;
+  }
+
+  .bx-project-featured .bx-project-name {
+    font-size: clamp(2.25rem, 4vw, 3.5rem);
+  }
+
+  .bx-project-featured .bx-project-desc {
+    -webkit-line-clamp: 5;
+  }
+
+  .bx-project-featured .bx-project-foot {
+    margin-top: 0;
+    padding-top: 2rem;
+  }
+}
+
+.bx-project-preview {
+  max-width: 30rem;
+  opacity: 0.92;
+}
+
+.bx-project-preview .bx-project-media {
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--color-primary-500) 45%, transparent);
 }
 
 /* Vide : l'aperçu de la fiche, puis l'invitation. */
@@ -599,7 +685,7 @@
 @supports (animation-timeline: view()) {
   @media (prefers-reduced-motion: no-preference) {
     .bx-step,
-    .bx-cards > li,
+    .bx-projects > li,
     .bx-benefit {
       animation: bx-rise linear both;
       animation-timeline: view();
@@ -618,14 +704,14 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .bx-tile-go,
-  .bx-tile-label,
+  .bx-project-name,
+  .bx-project-cta svg,
   .bx-toggle::before,
   .bx-toggle::after {
     transition: none;
   }
 
-  .bx-tile:hover .bx-tile-go {
+  a.bx-project:hover .bx-project-cta svg {
     transform: none;
   }
 }

@@ -6180,7 +6180,7 @@
       },
       "publication": {
         "title": "What the public will see",
-        "body": "The project page will show its name, description, country, address, your presentation and its brand identity (logo, colours, typefaces).",
+        "body": "The project page will show its name, description, country, address, your presentation, its cover, its brand identity (logo, colours, typefaces) and your name as the person behind it.",
         "team": "Also show the project team: names, roles, photos and professional links",
         "teamNote": "Each person shown must agree. Email addresses are never published."
       }
@@ -6237,20 +6237,33 @@
       "COVER_INVALID": "The cover must be uploaded from this form."
     },
     "cover": {
-      "title": "Project cover (optional)",
-      "help": "A wide image that presents the project: JPG, PNG or WebP, 6 MB at most, at least {{width}} × {{height}} px (1600 × 900 recommended).",
-      "add": "Add a cover",
-      "fallback": "Without a cover, we compose one from your brand: colours and logo.",
-      "replace": "Replace",
+      "title": "Project cover",
+      "format": "Landscape 16:9 · {{width}} × {{height}} px",
+      "help": "This is the large image of your card in the showcase. Choose a wide, sharp image; you will frame it right after.",
+      "dropTitle": "Add your project cover",
+      "dropBody": "Drop an image here or choose one: JPG, PNG or WebP, 8 MB at most. A screenshot of your site, a photo of your team or your product.",
+      "choose": "Choose an image",
+      "fallback": "Optional: without a cover, IDEM composes one from your brand (colours and logo).",
+      "replace": "Change image",
       "remove": "Remove",
-      "uploading": "Uploading the image…",
+      "uploading": "Uploading the cover…",
       "previewAlt": "Cover preview",
+      "cropper": {
+        "frameLabel": "Cover framing",
+        "dragHint": "Drag to frame",
+        "zoom": "Zoom",
+        "confirm": "Use this framing",
+        "chooseAnother": "Choose another image",
+        "tooSmallTitle": "This image is too small",
+        "tooSmallBody": "It is {{actualWidth}} × {{actualHeight}} px: to fill the cover without blur, it needs at least {{width}} × {{height}} px in landscape."
+      },
       "errors": {
         "COVER_FORMAT": "Choose a JPG, PNG or WebP image.",
-        "COVER_TOO_HEAVY": "The image is over 6 MB.",
+        "COVER_TOO_HEAVY": "The image is over 8 MB.",
         "COVER_TOO_SMALL": "The image must be at least {{width}} × {{height}} px.",
+        "COVER_RATIO": "The cover must be landscape 16:9.",
         "COVER_UNREADABLE": "This image could not be read.",
-        "COVER_GENERIC": "The image did not upload. Try again."
+        "COVER_GENERIC": "The cover did not upload. Try again."
       }
     }
   }
