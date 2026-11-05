@@ -156,6 +156,22 @@ export function patternHtml(tokens: DesignTokens, index: number, o: { className?
   return `<div aria-hidden="true" data-ge-pattern${cls(o.className)} style="background-image:url('${p.url.replace(/'/g, '%27')}');background-size:${p.tile}px ${p.tile}px;background-repeat:repeat"></div>`;
 }
 
+/**
+ * Un MOTIF PROCÉDURAL (plan qualité créative) : semis, lignes de flux, grain ou tracés à la main, dessiné par le code
+ * (`@idem/design-tools`) aux couleurs de la marque, déterministe pour la page. L'auteur le pose et le dimensionne ; il ne
+ * dessine jamais lui-même (ses SVG sont retirés).
+ */
+export function proceduralPatternHtml(tokens: DesignTokens, kind: string, o: { className?: string; density?: number; seed: string }): string {
+  const kinds = ['scatter', 'flow', 'grain', 'hand-lines', 'hand-circles'] as const;
+  const k = (kinds as readonly string[]).includes(kind) ? (kind as (typeof kinds)[number]) : 'flow';
+  const density = Number.isFinite(o.density) ? Math.min(1, Math.max(0, o.density as number)) : 0.35;
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const { patternSvg } = require('@idem/design-tools') as typeof import('@idem/design-tools');
+  const svg = patternSvg({ kind: k, size: 480, colors: [tokens.color.primary, tokens.color.accent], density, seed: `${o.seed}|${k}` });
+  const url = `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
+  return `<div aria-hidden="true" data-ge-pattern="procedural"${cls(discreet(o.className))} style="background-image:url('${url}');background-size:480px 480px;background-repeat:repeat"></div>`;
+}
+
 type Mockups = Extract<Block, { kind: 'mockupShowcase' }>;
 
 /**

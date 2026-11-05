@@ -17,6 +17,8 @@ export * from './embed';
 export * from './judge';
 export * from './score';
 export * from './seed';
+export * from './cutout';
+export * from './treat';
 
 import { paletteTool, contrastTool } from './color';
 import { typePairsTool } from './typography';

@@ -414,6 +414,9 @@ export function toolLines(ctx: DocumentContext, o: { charts: string[]; tables: s
   if (o.galleries?.length) lines.push(`- <idem-gallery data-block="${o.galleries[0]}" class="h-[70%] w-full"></idem-gallery> the finished mockups of a block, side by side, WHOLE and with their names: give them most of the page; nothing on top of them, no rotation, no frame.`);
   if (o.icons) lines.push('- <idem-icon name="{{…icon}}" class="size-[32px] text-brand-primary"></idem-icon> a line icon: use the icon keys of the CONTENT (chosen for each item); an English noun only if it literally matches the text.');
   if (ctx.tokens.brand.patterns.length) lines.push('- <idem-pattern index="0" class="absolute right-0 top-0 h-full w-[18%] opacity-[0.12]"></idem-pattern> the brand pattern: a band, a panel or a corner, on a few pages only — never the whole page background.');
+  // Les motifs PROCÉDURAUX (dessinés par le code) : surtout pour les visuels, une matière à la fois, jamais sous un petit texte.
+  lines.push('- <idem-pattern kind="flow|scatter|grain|hand-lines|hand-circles" density="0.3" class="absolute inset-0 opacity-[0.14]"></idem-pattern> a texture drawn by code in the brand colours (flowing lines, a scatter of dots, a grain, hand-drawn strokes): optional, at most one, behind or beside the content — never under small text.');
+  if (ctx.tokens.font.accent) lines.push(`- font-accent: an expressive face ("${ctx.tokens.font.accent}") for the HEADLINE ONLY, at a bold scale; everything else stays in the brand fonts.`);
   return lines.join('\n');
 }
 
@@ -480,8 +483,10 @@ export function authorUser(ctx: DocumentContext, p: PageBrief): string {
       ? `DOCUMENT PLAN:${plan.idea ? `\nidea: ${plan.idea}` : ''}${plan.previous ? `\nprevious page: ${plan.previous}` : ''}${plan.page ? `\nTHIS PAGE: ${plan.page}` : ''}${plan.next ? `\nnext page: ${plan.next}` : ''}`
       : '',
     ctx.layoutNote ? `THE CLIENT ASKS FOR THIS LAYOUT: ${ctx.layoutNote.slice(0, 600)}` : '',
-    // Une toile seule (visuel, carte) n'a pas de plan : le point de départ tiré par le code lui parvient ici.
-    !plan?.idea && !p.reference && ctx.startingPoint && !(p.total && p.total > 1) ? ctx.startingPoint : '',
+    // Une toile seule (visuel, carte) n'a pas de plan : son IDÉE (étape concept de l'hôte) ou, à défaut, le point de
+    // départ tiré par le code lui parviennent ici.
+    !plan?.idea && !p.reference && ctx.chosenIdea && !(p.total && p.total > 1) ? `THE IDEA OF THIS VISUAL (build the page from it — composition, scale, the image's role):\n${ctx.chosenIdea}` : '',
+    !plan?.idea && !p.reference && !ctx.chosenIdea && ctx.startingPoint && !(p.total && p.total > 1) ? ctx.startingPoint : '',
     intent ? `INTENT: ${[intent.keyMessage ? `the reader must understand: ${intent.keyMessage}` : '', intent.visualStrategy ? `visual strategy: ${intent.visualStrategy}` : ''].filter(Boolean).join('; ')}` : '',
     s.role === 'cover' && !p.reference
       ? 'THE COVER is the signature of the whole document: make it memorable and unmistakably this brand. Compose it boldly from the brand language — a strong contrast of scale, a large field of brand colour or the brand pattern, the logo used as a graphic element, the image when the CONTENT has one (whole page or a large zone). Never small centred text on an empty page; never the composition of an earlier cover of this brand.'

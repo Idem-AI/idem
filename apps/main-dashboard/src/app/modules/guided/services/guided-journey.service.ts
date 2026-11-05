@@ -60,8 +60,8 @@ export const GUIDED_STEPS: readonly GuidedStepDefinition[] = [
     icon: 'pi pi-palette',
     route: '/project/branding',
     // Le workflow de complétion (logo → couleurs → typographie → variations)
-    // est le bon point d'entrée tant que la marque n'existe pas ; la page de
-    // génération, elle, produit la charte une fois ces choix faits.
+    // est le bon point d'entrée tant que la marque n'existe pas. La charte
+    // qui en découle est l'étape suivante (`brandGuide`).
     generateRoute: '/project/complete-branding',
     paths: ['/project/branding', '/project/complete-branding', '/project/business-cards'],
     navLabelKey: 'dashboard.sidebar.branding',
@@ -74,6 +74,22 @@ export const GUIDED_STEPS: readonly GuidedStepDefinition[] = [
       const hasColors = !!branding.colors?.colors?.primary;
       const hasTypography = !!branding.typography?.primaryFont;
       return hasLogo && hasColors && hasTypography;
+    },
+  },
+  {
+    id: 'brandGuide',
+    icon: 'pi pi-book',
+    route: '/project/branding/display',
+    // Logo, couleurs et typographie choisis, la charte graphique s'écrit à
+    // partir d'eux : sans elle, les livrables suivants n'ont pas de référence.
+    generateRoute: '/project/branding/generate',
+    paths: ['/project/branding/generate', '/project/branding/display', '/project/branding/edit'],
+    navLabelKey: 'dashboard.sidebar.branding',
+    required: true,
+    estimatedMinutes: 5,
+    isDone: (project) => {
+      const sections = project?.analysisResultModel?.branding?.sections;
+      return Array.isArray(sections) && sections.length > 0;
     },
   },
   {
@@ -258,7 +274,18 @@ export class GuidedJourneyService {
   /** Étape qui ouvrira cette page, pour expliquer le refus à l'utilisateur. */
   stepForRoute(url: string): GuidedStep | null {
     const path = this.normalize(url);
-    return this.steps().find((step) => matchesPath(path, step.paths)) ?? null;
+    // Plusieurs étapes peuvent partager un préfixe (/project/branding) : la plus précise gagne.
+    let best: GuidedStep | null = null;
+    let bestLength = -1;
+    for (const step of this.steps()) {
+      for (const prefix of step.paths) {
+        if (matchesPath(path, [prefix]) && prefix.length > bestLength) {
+          best = step;
+          bestLength = prefix.length;
+        }
+      }
+    }
+    return best;
   }
 
   /** Signale une tentative refusée : la modale de blocage s'ouvre. */

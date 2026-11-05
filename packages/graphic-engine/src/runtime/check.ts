@@ -79,7 +79,7 @@ export const MEASURE = `(function () {
   var covered = 0; for (var i = 0; i < cells.length; i++) covered += cells[i];
   function rel(el) { if (!el) return null; var r = el.getBoundingClientRect(); return { x: (r.left - box.left) / box.width, y: (r.top - box.top) / box.height, w: r.width / box.width, h: r.height / box.height }; }
   var regions = {};
-  var title = root.querySelector('[data-ge-key="title"]') || Array.from(seen).sort(function (a, b) { return parseFloat(getComputedStyle(b).fontSize) - parseFloat(getComputedStyle(a).fontSize); })[0];
+  var title = (root.querySelector('[data-ge-k="title"]') || {}).parentElement || Array.from(seen).sort(function (a, b) { return parseFloat(getComputedStyle(b).fontSize) - parseFloat(getComputedStyle(a).fontSize); })[0];
   if (title) regions.title = rel(title);
   var logo = root.querySelector('[data-ge-logo], img[src*="logo"]');
   if (logo) regions.logo = rel(logo);

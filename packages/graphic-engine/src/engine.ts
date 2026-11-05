@@ -24,6 +24,7 @@ import { applyAssets, GENERATION_CAP, planAssets, resolveAssets } from './asset-
 import { BrandInput, buildTokens, DesignTokens, DirectionInput } from './design-system/tokens';
 import { FormatDef, FORMATS } from './design-system/formats';
 import { stableHash } from './foundation/hash';
+import { fontStack, googleFontLinks } from './foundation/fonts';
 import { AgentCall, engineHost, FingerprintScope, log } from './host';
 import { GenerationTrace, TraceRecorder } from './observability/traces';
 import { ENGINE_VERSION, COMPONENT_LIBRARY_VERSION } from './version';
@@ -77,6 +78,10 @@ export interface DocumentOptions {
    * de ce document y est écrite aussi. La portée principale reste `memoryScope`.
    */
   memoryScopes?: FingerprintScope[];
+  /** L'IDÉE d'une toile seule (visuel), décidée par l'étape concept de l'hôte : l'auteur en part. */
+  concept?: string;
+  /** Une police d'accroche (Google Fonts) pour le titre seul (`font-accent`), proposée par l'hôte. */
+  accentFont?: string;
 }
 
 /** Ce que la mémoire de l'hôte rend pour un document : idées déjà faites, axes déjà servis, empreintes de rendus. */
@@ -112,6 +117,13 @@ export interface SectionOutput {
   result: RenderResult;
   png?: Buffer;
   trace: GenerationTrace;
+  /**
+   * Les AUTRES variantes écrites pour cette page (plan qualité créative), de la mieux mesurée à la moins bien : déjà
+   * payées, elles peuvent être proposées au client. Absentes quand une seule variante a été écrite.
+   */
+  alternatives?: Array<{ spec: SectionSpec; result: RenderResult; png?: Buffer; score: number }>;
+  /** Le score de la page retenue (quand plusieurs variantes ont été mesurées). */
+  score?: number;
 }
 
 export class ContentError extends Error {
@@ -200,6 +212,9 @@ interface Rendered {
   issues: Issue[];
   /** Les mesures de la page (quand le moteur choisit entre des variantes ou retouche par la mesure). */
   metrics?: PageMetrics;
+  /** Les variantes écartées (la meilleure étant celle-ci), avec leur score. */
+  alternatives?: Array<{ page: Rendered; score: number }>;
+  score?: number;
 }
 
 export class GraphicDocument {
@@ -230,7 +245,10 @@ export class GraphicDocument {
     readonly options: DocumentOptions,
     private readonly memory: DocumentMemory
   ) {
-    this.tokens = buildTokens({ brand: options.brand, direction: options.direction, format: options.format, allowDark: options.allowDark, size: options.size });
+    const tokens = buildTokens({ brand: options.brand, direction: options.direction, format: options.format, allowDark: options.allowDark, size: options.size });
+    const accent = options.accentFont?.trim();
+    // La police d'accroche (visuels) : chargée avec les polices de la marque, réservée au titre (`font-accent`).
+    this.tokens = accent && accent !== tokens.font.display ? { ...tokens, font: { ...tokens.font, accent, accentStack: fontStack(accent, 'display'), headHtml: [tokens.font.headHtml, googleFontLinks([accent])].filter(Boolean).join('\n') } } : tokens;
     this.policy = { level: options.creativity === ('max' as CreativityLevel) ? 'high' : options.creativity ?? 'medium' };
     this.generationId = `${options.documentType}:${stableHash([options.seed, Date.now()], 10)}`;
     this.previousIdeas = memory.ideas;
@@ -303,7 +321,7 @@ export class GraphicDocument {
       ...(this.options.reference ? { reference: this.options.reference } : {}),
       bindings: this.options.bindings ?? 'values',
       ...(this.axis ? { startingPoint: axisLine(this.axis, 'document') } : {}),
-      ...(this.chosenTrack ? { chosenIdea: `${this.chosenTrack.title} — ${this.chosenTrack.idea}` } : {}),
+      ...(this.chosenTrack ? { chosenIdea: `${this.chosenTrack.title} — ${this.chosenTrack.idea}` } : this.options.concept?.trim() ? { chosenIdea: this.options.concept.trim().slice(0, 600) } : {}),
     };
   }
 
@@ -489,7 +507,14 @@ export class GraphicDocument {
       issues: rendered.issues,
       usage: { agentCalls: usage.agentCalls, inputTokens: usage.inputTokens, outputTokens: usage.outputTokens, ms: usage.ms },
     };
-    return { spec, result, png: rendered.png, trace };
+    // Les variantes écartées, prêtes à être proposées au client (même contenu, même trace, autre composition).
+    const alternatives = (rendered.alternatives ?? []).map(({ page, score }) => ({
+      spec: { ...spec, html: page.template },
+      result: { ...result, html: page.html, head: page.head, issues: page.issues, provenance: { ...result.provenance, specHash: stableHash(page.template, 12) }, ...(page.width ? { measured: { width: page.width, height: page.height ?? 0 } } : {}) },
+      ...(page.png ? { png: page.png } : {}),
+      score,
+    }));
+    return { spec, result, png: rendered.png, trace, ...(alternatives.length ? { alternatives } : {}), ...(rendered.score !== undefined ? { score: rendered.score } : {}) };
   }
 
   /**
@@ -624,7 +649,8 @@ export class GraphicDocument {
       }
     }
     if (best.vector) this.renderVectors.push(best.vector);
-    return best.page;
+    const others = scored.filter((x) => x.page !== best.page).map((x) => ({ page: x.page, score: x.score.score }));
+    return { ...best.page, score: best.score.score, ...(others.length ? { alternatives: others } : {}) };
   }
 
   /** Les mesures d'une page rendue, réunies en un score transparent (`@idem/design-tools`, `scoreVariant`). */
@@ -851,7 +877,7 @@ export class GraphicDocument {
   async remember(): Promise<void> {
     const host = engineHost();
     if (!host.rememberFingerprints) return;
-    const idea = this.planValue?.idea || (this.chosenTrack ? `${this.chosenTrack.title} — ${this.chosenTrack.idea}` : '');
+    const idea = this.planValue?.idea || (this.chosenTrack ? `${this.chosenTrack.title} — ${this.chosenTrack.idea}` : this.options.concept?.trim() || '');
     const marks = [...(idea ? [`idea:${idea.slice(0, 300)}`] : []), ...(this.axis ? [`axis:${this.axis.id}`] : []), ...this.renderVectors.slice(0, 3).map((v) => `render:${encodeVector(v)}`)];
     if (!marks.length) return;
     // L'idée et l'axe vont dans toutes les portées (marque, utilisateur, secteur) ; les empreintes de rendu, dans la
