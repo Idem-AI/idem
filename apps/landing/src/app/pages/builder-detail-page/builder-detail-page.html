@@ -38,7 +38,7 @@
       @if (builder(); as b) {
         <!-- ═══ L'en-tête : la couverture, puis le nom dans sa police ═══ -->
         <header class="ed-wrap bd-header">
-          <app-builder-cover class="bd-cover" size="hero" [brand]="b.brand" [name]="b.projectName" />
+          <app-builder-cover class="bd-cover" size="hero" [brand]="b.brand" [coverUrl]="b.coverUrl" [name]="b.projectName" />
 
           <div class="bd-identity">
             @if (b.brand?.logoOnLight) {

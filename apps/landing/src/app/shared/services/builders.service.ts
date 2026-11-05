@@ -37,6 +37,6 @@ export class BuildersService {
   private resolve(brand: BuilderBrand | undefined): BuilderBrand | undefined {
     if (!brand) return brand;
     const absolute = (url?: string) => (url?.startsWith('/') ? `${this.api}${url}` : url);
-    return { ...brand, logoOnBrand: absolute(brand.logoOnBrand), logoOnLight: absolute(brand.logoOnLight) };
+    return { ...brand, logoOnDark: absolute(brand.logoOnDark), logoOnLight: absolute(brand.logoOnLight) };
   }
 }

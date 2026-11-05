@@ -202,6 +202,48 @@
                 <input id="builder-url" type="url" formControlName="publicUrl" placeholder="https://" inputmode="url" />
               </div>
 
+              <!-- La couverture, facultative : sans elle, IDEM la compose depuis la charte. -->
+              <div>
+                <p class="mb-1 text-sm font-semibold text-text-primary">{{ 'builders.cover.title' | translate }}</p>
+                <p id="builder-cover-help" class="mb-3 text-xs text-text-tertiary">
+                  {{ 'builders.cover.help' | translate: { width: program.coverMinWidth, height: program.coverMinHeight } }}
+                </p>
+                @if (coverPreview(); as preview) {
+                  <div class="relative overflow-hidden rounded-xl border border-[var(--glass-border)]">
+                    <img [src]="preview" [alt]="'builders.cover.previewAlt' | translate" class="block aspect-[16/9] w-full object-cover" />
+                  </div>
+                  <div class="mt-2 flex flex-wrap gap-2">
+                    <label for="builder-cover" class="outer-button button-sm !mb-0 cursor-pointer">{{ 'builders.cover.replace' | translate }}</label>
+                    <button type="button" class="button-ghost button-sm" (click)="removeCover()">{{ 'builders.cover.remove' | translate }}</button>
+                  </div>
+                } @else {
+                  <label
+                    for="builder-cover"
+                    class="!mb-0 flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-[var(--glass-border)] px-4 py-8 text-center transition-colors hover:border-[var(--color-primary)]"
+                  >
+                    @if (coverUploading()) {
+                      <idem-loader size="sm" [label]="'builders.cover.uploading' | translate" />
+                    } @else {
+                      <i class="pi pi-image text-xl text-text-tertiary" aria-hidden="true"></i>
+                      <span class="text-sm font-medium text-text-primary">{{ 'builders.cover.add' | translate }}</span>
+                      <span class="text-xs text-text-tertiary">{{ 'builders.cover.fallback' | translate }}</span>
+                    }
+                  </label>
+                }
+                <input
+                  id="builder-cover"
+                  type="file"
+                  class="sr-only"
+                  accept="image/jpeg,image/png,image/webp"
+                  aria-describedby="builder-cover-help"
+                  [disabled]="coverUploading()"
+                  (change)="onCoverSelected($event)"
+                />
+                @if (coverError(); as code) {
+                  <p class="mt-2 text-sm text-danger" role="alert">{{ 'builders.cover.errors.' + code | translate: { width: program.coverMinWidth, height: program.coverMinHeight } }}</p>
+                }
+              </div>
+
               <!-- Ce que la fiche publique montrera ; l'équipe, seulement sur choix. -->
               <div class="rounded-xl border border-[var(--glass-border)] p-4">
                 <p class="text-sm font-semibold text-text-primary">{{ 'builders.apply.publication.title' | translate }}</p>
@@ -233,7 +275,7 @@
                 <p class="text-sm text-danger" role="alert">{{ 'builders.errors.' + code | translate }}</p>
               }
 
-              <button type="submit" class="inner-button" [disabled]="submitting() || form.invalid">
+              <button type="submit" class="inner-button" [disabled]="submitting() || coverUploading() || form.invalid">
                 @if (submitting()) {
                   <idem-loader size="xs" />
                 }

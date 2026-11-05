@@ -6199,7 +6199,25 @@
       "PROJECT_NOT_FOUND": "Projet introuvable.",
       "GENERIC": "La candidature n'est pas partie. Réessayez dans un instant.",
       "TERMS_REQUIRED": "Acceptez les conditions et la politique de confidentialité pour envoyer la candidature.",
-      "TERMS_OUTDATED": "Les conditions du programme ont changé. Rechargez la page pour lire la nouvelle version."
+      "TERMS_OUTDATED": "Les conditions du programme ont changé. Rechargez la page pour lire la nouvelle version.",
+      "COVER_INVALID": "La couverture doit être envoyée depuis ce formulaire."
+    },
+    "cover": {
+      "title": "Couverture du projet (facultatif)",
+      "help": "Une image large qui présente le projet : JPG, PNG ou WebP, 6 Mo au plus, {{width}} × {{height}} px au moins (1600 × 900 conseillé).",
+      "add": "Ajouter une couverture",
+      "fallback": "Sans couverture, nous en composons une à partir de votre charte : couleurs et logo.",
+      "replace": "Remplacer",
+      "remove": "Retirer",
+      "uploading": "Envoi de l’image…",
+      "previewAlt": "Aperçu de la couverture",
+      "errors": {
+        "COVER_FORMAT": "Choisissez une image JPG, PNG ou WebP.",
+        "COVER_TOO_HEAVY": "L’image dépasse 6 Mo.",
+        "COVER_TOO_SMALL": "L’image doit mesurer au moins {{width}} × {{height}} px.",
+        "COVER_UNREADABLE": "Cette image n’a pas pu être lue.",
+        "COVER_GENERIC": "L’image n’est pas partie. Réessayez."
+      }
     }
   }
 }

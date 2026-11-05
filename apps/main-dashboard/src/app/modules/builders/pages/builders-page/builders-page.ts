@@ -18,7 +18,10 @@ import { BuildersIllustrationComponent } from '../../../../shared/components/bui
 import { BuilderApplicationView, BuilderEligibility, BuildersService } from '../../services/builders.service';
 
 /** Refus de l'API qui ont leur propre phrase dans les traductions (`builders.errors.*`). */
-const KNOWN_ERRORS = ['TERMS_REQUIRED', 'TERMS_OUTDATED', 'ALREADY_APPLIED', 'NOT_ELIGIBLE', 'PITCH_TOO_SHORT', 'PITCH_TOO_LONG', 'INVALID_URL', 'PROJECT_NOT_FOUND'];
+const KNOWN_ERRORS = ['COVER_INVALID', 'TERMS_REQUIRED', 'TERMS_OUTDATED', 'ALREADY_APPLIED', 'NOT_ELIGIBLE', 'PITCH_TOO_SHORT', 'PITCH_TOO_LONG', 'INVALID_URL', 'PROJECT_NOT_FOUND'];
+
+/** Refus d'envoi de couverture qui ont leur phrase (`builders.cover.errors.*`). */
+const COVER_ERRORS = ['COVER_FORMAT', 'COVER_TOO_HEAVY', 'COVER_TOO_SMALL', 'COVER_UNREADABLE'];
 
 /**
  * Idem Builders, côté candidat : choisir un projet, voir s'il est géré avec
@@ -88,6 +91,8 @@ export class BuildersPage {
       ],
     }),
     publicUrl: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(300)] }),
+    // Facultative : sans elle, la vitrine compose la couverture depuis la charte.
+    coverUrl: new FormControl('', { nonNullable: true }),
     // L'équipe est faite de données personnelles : sa publication est un choix exprès.
     showTeam: new FormControl(false, { nonNullable: true }),
     // Conditions et politique de confidentialité du programme : jamais cochées d'avance.
@@ -172,7 +177,7 @@ export class BuildersPage {
       return;
     }
 
-    const { projectId, pitch, publicUrl, showTeam, acceptTerms } = this.form.getRawValue();
+    const { projectId, pitch, publicUrl, showTeam, coverUrl, acceptTerms } = this.form.getRawValue();
     this.submitting.set(true);
     this.submitError.set(null);
 
@@ -182,6 +187,7 @@ export class BuildersPage {
         pitch: pitch.trim(),
         publicUrl: publicUrl.trim() || undefined,
         showTeam,
+        coverUrl: coverUrl || undefined,
         acceptTerms,
         termsVersion: BUILDERS_LEGAL_VERSION,
       })
@@ -191,6 +197,7 @@ export class BuildersPage {
         this.submitted.set(application);
         this.applications.update((list) => [application, ...(list ?? [])]);
         this.form.reset();
+        this.coverPreview.set(null);
         this.eligibility.set(null);
       },
       error: (error: HttpErrorResponse) => {
@@ -200,6 +207,48 @@ export class BuildersPage {
         this.submitError.set(KNOWN_ERRORS.includes(code) ? code : 'GENERIC');
       },
     });
+  }
+
+  protected readonly coverUploading = signal(false);
+  protected readonly coverError = signal<string | null>(null);
+  protected readonly coverPreview = signal<string | null>(null);
+
+  /** Envoie la couverture dès qu'elle est choisie : l'aperçu montre ce que l'API a gardé. */
+  protected onCoverSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+
+    this.coverError.set(null);
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      this.coverError.set('COVER_FORMAT');
+      return;
+    }
+    if (file.size > BUILDERS_PROGRAM.coverMaxBytes) {
+      this.coverError.set('COVER_TOO_HEAVY');
+      return;
+    }
+
+    this.coverUploading.set(true);
+    this.builders.uploadCover(file).subscribe({
+      next: ({ url }) => {
+        this.coverUploading.set(false);
+        this.form.controls.coverUrl.setValue(url);
+        this.coverPreview.set(url);
+      },
+      error: (error: HttpErrorResponse) => {
+        this.coverUploading.set(false);
+        const code = String(error.error?.error ?? '');
+        this.coverError.set(COVER_ERRORS.includes(code) ? code : 'COVER_GENERIC');
+      },
+    });
+  }
+
+  protected removeCover(): void {
+    this.form.controls.coverUrl.setValue('');
+    this.coverPreview.set(null);
+    this.coverError.set(null);
   }
 
   protected async copyBadge(): Promise<void> {

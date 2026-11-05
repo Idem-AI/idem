@@ -140,7 +140,7 @@ export class BuildersTerms implements OnInit {
         id: 'showcase',
         title: $localize`:@@buildersTerms.showcase.title:7. SHOWCASE, BADGE AND LICENCE`,
         titleI18n: '@@buildersTerms.showcase.title',
-        content: $localize`:@@buildersTerms.showcase.content:To present your project, you grant IDEM a non-exclusive, free and worldwide licence to reproduce and show, on idem.africa, the IDEM blog, social networks, newsletters and presentations about the programme: its name, its description, its country and city, its public address, the text in which you present it, and its brand identity as created in IDEM (logo, colours, typefaces). The project page composes a cover from that identity. This licence lasts for your membership; content already published (blog posts, past newsletters) may stay online as an archive. Any other element (screenshots, quotes, photographs) is only used with your explicit agreement, given for each feature.`,
+        content: $localize`:@@buildersTerms.showcase.content:To present your project, you grant IDEM a non-exclusive, free and worldwide licence to reproduce and show, on idem.africa, the IDEM blog, social networks, newsletters and presentations about the programme: its name, its description, its country and city, its public address, the text in which you present it, the cover image you upload, if any, and its brand identity as created in IDEM (logo, colours, typefaces). Without an uploaded cover, the project page composes one from that identity. This licence lasts for your membership; content already published (blog posts, past newsletters) may stay online as an archive. Any other element (screenshots, quotes, photographs) is only used with your explicit agreement, given for each feature.`,
         contentI18n: '@@buildersTerms.showcase.content',
         subsections: [
           {
@@ -148,6 +148,12 @@ export class BuildersTerms implements OnInit {
             titleI18n: '@@buildersTerms.showcase.team.title',
             content: $localize`:@@buildersTerms.showcase.team.content:The members of the team, as entered in the IDEM project (name, role, short biography, photograph, professional links), appear on the project page only if you choose it when you apply. By making that choice, you confirm that each person shown has agreed to it. You can withdraw that choice at any time by writing to us; the team then disappears from the page. Email addresses are never published.`,
             contentI18n: '@@buildersTerms.showcase.team.content',
+          },
+          {
+            title: $localize`:@@buildersTerms.showcase.cover.title:The cover image you upload`,
+            titleI18n: '@@buildersTerms.showcase.cover.title',
+            content: $localize`:@@buildersTerms.showcase.cover.content:By uploading a cover, you confirm that you hold the rights to it and that it shows nothing unlawful, misleading or that infringes the rights of others (in particular the image rights of the people shown). IDEM resizes it and removes its metadata, and may remove it from the page at any time if it breaks these rules; the composed cover then takes its place.`,
+            contentI18n: '@@buildersTerms.showcase.cover.content',
           },
           {
             title: $localize`:@@buildersTerms.showcase.badge.title:The Idem Builder badge`,

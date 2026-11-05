@@ -17,6 +17,8 @@ import {
   isBuilderEligible,
 } from '../../../../../packages/shared-models/src/builders/program';
 import { slugify } from '../blog.service';
+import { BuildersError } from './builder-errors';
+import { isOwnCover } from './builder-cover';
 import { ProjectExcerpt, brandOf, cityOf, inlineLogo, loadProjectExcerpts, storyOf, teamOf } from './builder-profile';
 
 /**
@@ -35,16 +37,7 @@ import { ProjectExcerpt, brandOf, cityOf, inlineLogo, loadProjectExcerpts, story
  * peut le renvoyer sans reverser le bonus.
  */
 
-export class BuildersError extends Error {
-  constructor(
-    public readonly status: number,
-    public readonly code: string,
-    message: string
-  ) {
-    super(message);
-    this.name = 'BuildersError';
-  }
-}
+export { BuildersError };
 
 export interface BuilderEligibility {
   project: { id: string; name: string; description?: string; country?: string };
@@ -93,6 +86,7 @@ function forApplicant(doc: BuilderApplicationDocument | Record<string, any>): Re
     showcase: { visible: !!doc.showcase?.visible },
     slug: doc.status === 'approved' ? doc.slug : undefined,
     publication: { showTeam: !!doc.publication?.showTeam },
+    coverUrl: doc.cover?.url,
     createdAt: doc.createdAt,
   };
 }
@@ -157,6 +151,7 @@ export class BuildersService {
       acceptTerms?: unknown;
       termsVersion?: unknown;
       showTeam?: unknown;
+      coverUrl?: unknown;
     },
     context: { ipAddress?: string; userAgent?: string } = {}
   ): Promise<Record<string, unknown>> {
@@ -190,6 +185,11 @@ export class BuildersService {
     }
 
     const publicUrl = normalizeUrl(input.publicUrl) ?? check.suggestedUrl;
+    // La couverture doit avoir été envoyée par ce compte (POST /builders/covers).
+    const coverUrl = typeof input.coverUrl === 'string' && input.coverUrl ? input.coverUrl : undefined;
+    if (coverUrl && !isOwnCover(user.uid, coverUrl)) {
+      throw new BuildersError(400, 'COVER_INVALID', 'La couverture doit être envoyée depuis ce formulaire.');
+    }
     const created = await BuilderApplication.create({
       userId: user.uid,
       email: user.email ?? '',
@@ -210,6 +210,7 @@ export class BuildersService {
       status: 'pending',
       showcase: { visible: true, featured: false, tagline: check.project.description?.slice(0, 200) },
       publication: { showTeam: input.showTeam === true },
+      ...(coverUrl ? { cover: { url: coverUrl, uploadedAt: new Date() } } : {}),
     });
     created.slug = slugFor(check.project.name, String(created._id));
     await created.save();
@@ -242,7 +243,7 @@ export class BuildersService {
     const docs = await BuilderApplication.find({ status: 'approved', 'showcase.visible': true })
       .sort({ 'showcase.featured': -1, decidedAt: -1 })
       .limit(Math.min(Math.max(limit, 1), 120))
-      .select('projectId projectName projectDescription country publicUrl showcase publication slug decidedAt createdAt')
+      .select('projectId projectName projectDescription country publicUrl showcase publication cover slug decidedAt createdAt')
       .lean();
 
     const projects = await loadProjectExcerpts(docs.map((doc) => doc.projectId)).catch(() => new Map<string, ProjectExcerpt>());
@@ -309,6 +310,7 @@ export class BuildersService {
       url: doc.publicUrl || undefined,
       featured: !!doc.showcase?.featured,
       since: (doc.decidedAt ?? doc.createdAt).toISOString(),
+      coverUrl: doc.cover?.url || undefined,
     };
   }
 
@@ -426,8 +428,13 @@ export class BuildersService {
   }
 
   /** Présence sur la vitrine : visible, mise en avant, phrase d'accroche. */
-  async updateShowcase(id: string, patch: { visible?: unknown; featured?: unknown; tagline?: unknown }): Promise<Record<string, unknown>> {
+  async updateShowcase(
+    id: string,
+    patch: { visible?: unknown; featured?: unknown; tagline?: unknown; removeCover?: unknown }
+  ): Promise<Record<string, unknown>> {
     const doc = await this.load(id);
+    // Modération : la couverture retirée, la vitrine revient à celle composée depuis la charte.
+    if (patch.removeCover === true) doc.set('cover', undefined);
     if (typeof patch.visible === 'boolean') doc.showcase.visible = patch.visible;
     if (typeof patch.featured === 'boolean') doc.showcase.featured = patch.featured;
     if (typeof patch.tagline === 'string') doc.showcase.tagline = patch.tagline.trim().slice(0, 200);

@@ -48,6 +48,8 @@ export interface BuilderApplicationDocument extends Document {
    * est faite de données personnelles : elle n'apparaît que sur choix exprès.
    */
   publication?: { showTeam: boolean };
+  /** La couverture choisie par le candidat ; sans elle, la vitrine la compose depuis la charte. */
+  cover?: { url: string; uploadedAt: Date };
   /** Envoi de l'e-mail de décision, inscrit par le panel. */
   email_state?: { sentAt?: Date; messageId?: string; error?: string; attempts?: number };
   createdAt: Date;
@@ -103,6 +105,10 @@ const BuilderApplicationSchema = new Schema<BuilderApplicationDocument>(
     },
     publication: {
       showTeam: { type: Boolean, default: false },
+    },
+    cover: {
+      url: { type: String },
+      uploadedAt: { type: Date },
     },
     email_state: {
       sentAt: { type: Date },

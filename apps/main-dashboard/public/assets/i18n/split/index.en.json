@@ -177,7 +177,25 @@
       "PROJECT_NOT_FOUND": "Project not found.",
       "GENERIC": "The application did not go through. Try again in a moment.",
       "TERMS_REQUIRED": "Accept the terms and the privacy policy to send the application.",
-      "TERMS_OUTDATED": "The programme terms have changed. Reload the page to read the new version."
+      "TERMS_OUTDATED": "The programme terms have changed. Reload the page to read the new version.",
+      "COVER_INVALID": "The cover must be uploaded from this form."
+    },
+    "cover": {
+      "title": "Project cover (optional)",
+      "help": "A wide image that presents the project: JPG, PNG or WebP, 6 MB at most, at least {{width}} × {{height}} px (1600 × 900 recommended).",
+      "add": "Add a cover",
+      "fallback": "Without a cover, we compose one from your brand: colours and logo.",
+      "replace": "Replace",
+      "remove": "Remove",
+      "uploading": "Uploading the image…",
+      "previewAlt": "Cover preview",
+      "errors": {
+        "COVER_FORMAT": "Choose a JPG, PNG or WebP image.",
+        "COVER_TOO_HEAVY": "The image is over 6 MB.",
+        "COVER_TOO_SMALL": "The image must be at least {{width}} × {{height}} px.",
+        "COVER_UNREADABLE": "This image could not be read.",
+        "COVER_GENERIC": "The image did not upload. Try again."
+      }
     }
   }
 }

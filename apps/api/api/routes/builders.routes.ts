@@ -4,7 +4,9 @@ import { CustomRequest } from '../interfaces/express.interface';
 import { verifyApiKey } from '../middleware/verifyApiKey';
 import { rateLimitByUser } from '../middleware/rate-limit.middleware';
 import { authenticate } from '../services/auth.service';
+import multer from 'multer';
 import { BuildersError, buildersService } from '../services/builders/builders.service';
+import { storeBuilderCover } from '../services/builders/builder-cover';
 import { BUILDERS_PROGRAM } from '../../../../packages/shared-models/src/builders/program';
 
 /**
@@ -89,6 +91,31 @@ buildersRoutes.get(
   authenticate,
   handle(async (req, res) => {
     res.json(await buildersService.eligibility((req as CustomRequest).user!.uid, String(req.params.projectId)));
+  })
+);
+
+/** Couverture : un fichier, en mémoire, refusé au-delà de la limite avant toute lecture. */
+const coverUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: BUILDERS_PROGRAM.coverMaxBytes, files: 1 },
+});
+const coverLimit = rateLimitByUser({ windowMs: 3_600_000, maxRequests: 15, keyPrefix: 'ratelimit:builders-cover' });
+
+buildersRoutes.post(
+  '/covers',
+  authenticate,
+  coverLimit,
+  (req: Request, res: Response, next: NextFunction) =>
+    coverUpload.single('cover')(req, res, (error: unknown) => {
+      if ((error as { code?: string })?.code === 'LIMIT_FILE_SIZE') {
+        res.status(400).json({ error: 'COVER_TOO_HEAVY', message: 'La couverture dépasse 6 Mo.' });
+        return;
+      }
+      next(error);
+    }),
+  handle(async (req, res) => {
+    const file = (req as Request & { file?: { buffer: Buffer; mimetype: string; size: number } }).file;
+    res.status(201).json(await storeBuilderCover((req as CustomRequest).user!.uid, file));
   })
 );
 

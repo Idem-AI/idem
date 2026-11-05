@@ -45,6 +45,10 @@ export const BUILDERS_PROGRAM = {
   pitchMaxLength: 1_500,
   /** Délai d'examen annoncé au candidat, en jours ouvrés. */
   reviewDays: 5,
+  /** Couverture envoyée par le candidat : poids maximal et taille minimale. */
+  coverMaxBytes: 6 * 1024 * 1024,
+  coverMinWidth: 1000,
+  coverMinHeight: 560,
 } as const;
 
 /**
@@ -54,7 +58,7 @@ export const BUILDERS_PROGRAM = {
  * deux textes change cette version : l'API refuse alors une acceptation
  * d'une version antérieure, et la candidature garde celle qui a été lue.
  */
-export const BUILDERS_LEGAL_VERSION = '2026-11-05.2';
+export const BUILDERS_LEGAL_VERSION = '2026-11-05.3';
 
 /** Bonus Builders d'une recharge, en francs. */
 export function builderTopupBonusXaf(amountXaf: number): number {
@@ -75,12 +79,14 @@ export interface BuilderBrand {
   primary: string;
   secondary?: string;
   accent?: string;
-  /** Vrai quand la couleur principale est foncée : le logo posé dessus est sa variante claire. */
+  /** Vrai quand la couleur principale est foncée : le logo posé dessus doit être clair. */
   dark: boolean;
-  /** Le logo dans la variante lisible sur la couleur principale. */
-  logoOnBrand?: string;
-  /** Le logo sur fond clair (charte, bloc d'identité). */
+  /** La déclinaison du logo prévue pour un fond sombre ou coloré, quand elle existe. */
+  logoOnDark?: string;
+  /** Le logo sur fond clair (charte, bloc d'identité, plaque). */
   logoOnLight?: string;
+  /** Les couleurs du logo : de quoi vérifier qu'il se lit sur la couleur principale. */
+  logoColors?: string[];
   fonts?: { primary?: string; secondary?: string; stylesheet?: string };
   /** La palette complète, dans l'ordre de la charte. */
   palette?: { role: 'primary' | 'secondary' | 'accent' | 'background' | 'text'; hex: string }[];
@@ -105,6 +111,8 @@ export interface BuilderShowcaseEntry {
   url?: string;
   featured: boolean;
   since: string;
+  /** La couverture choisie par le projet ; sans elle, la couverture est composée depuis la charte. */
+  coverUrl?: string;
   brand?: BuilderBrand;
   /** Les premiers membres (nom, photo), pour la pile d'avatars de la fiche. */
   team?: { name: string; pictureUrl?: string }[];

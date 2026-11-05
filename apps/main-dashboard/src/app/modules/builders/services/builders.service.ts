@@ -51,11 +51,21 @@ export class BuildersService {
     });
   }
 
+  /** Envoie une couverture ; l'API la redimensionne et rend son adresse. */
+  uploadCover(file: File): Observable<{ url: string; width: number; height: number }> {
+    const body = new FormData();
+    body.append('cover', file);
+    return this.http.post<{ url: string; width: number; height: number }>(`${this.base}/covers`, body, {
+      withCredentials: true,
+    });
+  }
+
   apply(input: {
     projectId: string;
     pitch: string;
     publicUrl?: string;
     showTeam: boolean;
+    coverUrl?: string;
     acceptTerms: boolean;
     termsVersion: string;
   }): Observable<{ application: BuilderApplicationView }> {

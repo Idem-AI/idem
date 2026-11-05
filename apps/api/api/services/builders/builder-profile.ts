@@ -112,8 +112,15 @@ export function brandOf(project: ProjectExcerpt | undefined, logoPath: string): 
   const main = httpUrl(logo.svg);
   const inline = typeof logo.svg === 'string' && logo.svg.trim().startsWith('<svg');
 
+  // La version monochrome n'est pas un repli : elle est souvent à la couleur
+  // principale, et donnait un logo bleu sur une couverture bleue. Sans
+  // déclinaison pour fond sombre, la couverture passe le logo en blanc.
   const onLight = httpUrl(withText.lightBackground) ?? main ?? (inline ? logoPath : undefined);
-  const onBrand = dark ? httpUrl(withText.darkBackground) ?? httpUrl(withText.monochrome) : onLight;
+  const onDark = httpUrl(withText.darkBackground);
+  const logoColors = (Array.isArray(logo.colors) ? logo.colors : [])
+    .map(hex)
+    .filter((color: string | undefined): color is string => Boolean(color))
+    .slice(0, 8);
 
   const palette = (['primary', 'secondary', 'accent', 'background', 'text'] as const)
     .map((role) => ({ role, hex: hex(colors[role]) }))
@@ -131,8 +138,9 @@ export function brandOf(project: ProjectExcerpt | undefined, logoPath: string): 
     secondary: hex(colors.secondary),
     accent: hex(colors.accent),
     dark,
-    logoOnBrand: onBrand,
+    logoOnDark: onDark,
     logoOnLight: onLight,
+    logoColors: logoColors.length ? logoColors : undefined,
     fonts: fonts.primary || fonts.secondary ? fonts : undefined,
     palette,
   };
