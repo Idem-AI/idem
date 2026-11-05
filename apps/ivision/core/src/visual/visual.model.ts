@@ -49,6 +49,8 @@ export interface FlyerImageAttribution {
  */
 export interface VisualBrandContext {
   brandName: string;
+  /** Le pays de la marque (ISO ou nom usuel) : l'axe de départ et la mémoire du secteur en dépendent. */
+  country?: string;
   businessType: string;
   tone: string;
   keywords: string[];

@@ -80,8 +80,12 @@ const fakeLayout = (user: string): string => {
   const head = units.filter((u) => ['kicker', 'title', 'lede'].includes(u));
   const rest = units.filter((u) => !head.includes(u)).slice(0, 4);
   const groups = [head, ...rest.map((u) => [u])].filter((g) => g.length);
-  const rows = Math.min(12, groups.length * 3);
-  return JSON.stringify({ columns: 12, rows, background: 'ground', zones: groups.map((g, i) => ({ units: g, col: 1, span: 12, row: i * 3 + 1, rows: 3, align: 'start', intent: 'zone' })) });
+  // L'en-tête a la hauteur de son titre (le code refuse une zone trop basse pour lui) ; les blocs se partagent le reste.
+  const each = Math.max(2, Math.floor((12 - (head.length ? 3 : 0)) / Math.max(1, rest.length)));
+  const span = groups.map((g) => (g === head ? 3 : each));
+  const starts = span.map((_, i) => 1 + span.slice(0, i).reduce((a, b) => a + b, 0));
+  const rows = Math.min(12, span.reduce((a, b) => a + b, 0));
+  return JSON.stringify({ columns: 12, rows, background: 'ground', zones: groups.map((g, i) => ({ units: g, col: 1, span: 12, row: starts[i], rows: span[i], align: 'start', intent: 'zone' })) });
 };
 /** Une zone simulée : chacune de ses clés, ses primitives, à la taille de la zone. */
 const fakeZone = (user: string): string => {
@@ -1204,6 +1208,13 @@ async function main(): Promise<void> {
     ok('deux zones qui se chevauchent : plan refusé, avec la cellule en cause (l’agent recommence)', !overlap.layout && /overlap at row 2, column 6/.test(overlap.error ?? ''), overlap.error);
     const partial = parseLayout(JSON.stringify({ columns: 12, rows: 8, zones: [{ units: ['title', 'b1', 'b1', 'inconnu'], col: 1, span: 12, row: 1, rows: 4 }] }), units, FORMATS['slide-16x9']);
     ok('un contenu oublié rejoint la zone du titre ; un doublon et une unité inconnue sont retirés', Boolean(partial.layout && partial.layout.zones[0].units.join() === 'title,b1,b2'));
+    const tall = (u: string) => (u === 'title' ? 150 : 0);
+    const thin = parseLayout(JSON.stringify({ columns: 8, rows: 12, zones: [{ units: ['title'], col: 1, span: 4, row: 1, rows: 1 }, { units: ['b1', 'b2'], col: 1, span: 7, row: 2, rows: 9 }] }), units, FORMATS['slide-16x9'], { height: tall });
+    ok('le titre de 68 px sur deux lignes dans une rangée de 21 px (charte réelle) : plan refusé, avec la hauteur qu’il demande', !thin.layout && /needs about 150px/.test(thin.error ?? ''), thin.error);
+    const small = parseLayout(JSON.stringify({ columns: 8, rows: 10, zones: [{ units: ['title'], col: 2, span: 4, row: 1, rows: 3 }, { units: ['b1'], col: 2, span: 6, row: 4, rows: 5 }, { units: ['b2'], col: 1, span: 8, row: 9, rows: 2 }] }), units, FORMATS['slide-16x9'], { galleries: ['b1'] });
+    ok('des maquettes reléguées à une petite zone (bannières réelles) : plan refusé — elles sont la page', !small.layout && /mockups \(b1\) get only/.test(small.error ?? ''), small.error);
+    const big = parseLayout(JSON.stringify({ columns: 12, rows: 6, zones: [{ units: ['title', 'b2'], col: 1, span: 12, row: 1, rows: 1 }, { units: ['b1'], col: 1, span: 12, row: 2, rows: 5 }] }), units, FORMATS['slide-16x9'], { galleries: ['b1'], height: (u) => (u === 'title' ? 40 : 0) });
+    ok('maquettes sur l’essentiel de la page, titre dans sa zone : plan accepté', Boolean(big.layout), big.error);
     const html = partial.layout ? assembleLayout(partial.layout, new Map([['z1', '<p>{{title}}</p>']]), FORMATS['slide-16x9'], new Map([['z1', 0.8]])) : '';
     ok('assemblage : la grille du plan, chaque zone à sa case, la zone qui déborde réduite par le code', /grid-cols-\[repeat\(12,minmax\(0,1fr\)\)\]/.test(html) && /data-ge-zone="z1" class="col-start-1 col-span-12 row-start-1 row-span-4/.test(html) && /\[zoom:0\.8\]/.test(html));
   }
@@ -1318,6 +1329,28 @@ async function main(): Promise<void> {
     delete process.env.IDEM_QUALITY_EXAMPLES;
     delete process.env.IDEM_EXAMPLES_FILE;
     fs.rmSync(file, { force: true });
+  }
+  // Les visuels (plan qualité créative) : motif procédural, police d'accroche, idée de l'hôte, variantes renvoyées.
+  {
+    const tokens = buildTokens({ brand: BRANDS.kora, format: 'flyer-square' });
+    const map = buildContentMap({ id: 'v', title: 'Récoltez plus', blocks: [] } as SectionContent, 'values');
+    const page = expandPage('<div class="relative h-full w-full"><idem-pattern kind="flow" density="0.4" class="absolute inset-0 opacity-[0.14]"></idem-pattern><h1>{{title}}</h1></div>', map, tokens, FORMATS['flyer-square'], { sectionId: 'v', locale: 'fr', engine: 'x' });
+    ok('motif procédural : dessiné par le code (SVG en ligne aux couleurs de la marque), reconnu comme primitive', /data-ge-pattern="procedural"/.test(page.html) && /data:image\/svg\+xml;base64,/.test(page.html));
+    calls.length = 0;
+    process.env.IDEM_QUALITY_SELECT = '1';
+    process.env.IDEM_QUALITY_VARIANTS = '2';
+    const v = await renderSingle({ documentType: 'flyer', format: 'flyer-square', brand: BRANDS.kora, creativity: 'medium', seed: 'q10-visual', concept: 'Morning ritual — a steaming cup seen from above', accentFont: 'Bebas Neue', content: { id: 'v1', title: 'Récoltez plus', blocks: [{ id: 'b1', kind: 'prose', paragraphs: ['Livraison en 48 h.'] }] } });
+    const authorUserText = calls.filter((c) => c.role === 'graphic.author').map((c) => c.user).join('\n');
+    ok('visuel : l’idée de l’hôte parvient à l’auteur (au lieu du point de départ)', /THE IDEA OF THIS VISUAL/.test(authorUserText) && /Morning ritual/.test(authorUserText) && !/STARTING POINT/.test(authorUserText));
+    ok('visuel : la police d’accroche est proposée à l’auteur et chargée avec la page', /font-accent: an expressive face \("Bebas Neue"\)/.test(authorUserText) && /Bebas\+Neue|Bebas Neue/.test(v.result.head ?? ''));
+    ok('motif procédural : proposé à l’auteur', /<idem-pattern kind="flow\|scatter/.test(authorUserText));
+    if (!fast) {
+      ok('variantes : la composition écartée est renvoyée (spec, rendu, image, score) pour le choix du client', (v.alternatives?.length ?? 0) === 1 && !!v.alternatives![0].png && typeof v.alternatives![0].score === 'number' && typeof v.score === 'number', String(v.alternatives?.length));
+      calls.length = 0;
+      await renderSingle({ documentType: 'brand-charter', format: 'flyer-square', brand: BRANDS.kora, creativity: 'high', seed: 'q10-one', variants: 1, content: { id: 'v2', title: 'Bannière', blocks: [] } as unknown as SectionContent }).catch(() => undefined);
+      ok('variantes : l’hôte peut imposer une seule écriture (fichiers de la charte)', calls.filter((c) => (c.role === 'graphic.author' || c.role === 'graphic.cover') && !c.repair && !/THE PAGE DISPLAYS, BUT/.test(c.user)).length === 1, String(calls.filter((c) => c.role === 'graphic.author').length));
+    }
+    delete process.env.IDEM_QUALITY_VARIANTS;
   }
   configureGraphicEngine({ recentFingerprints: undefined, rememberFingerprints: undefined, judgeImage: undefined });
 }

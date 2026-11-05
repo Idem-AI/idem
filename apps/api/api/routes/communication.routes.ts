@@ -2,6 +2,7 @@ import { Router } from 'express';
 import {
   addPlanItemController,
   aiEditFlyerController,
+  chooseFlyerVariantController,
   archivePlanController,
   clearStudioController,
   createMomentController,
@@ -332,6 +333,24 @@ communicationRoutes.put(
   authenticate,
   saveFlyerHtmlController
 );
+
+/**
+ * @openapi
+ * /project/communication/{projectId}/flyer/{flyerId}/variant:
+ *   post:
+ *     tags: [Communication]
+ *     summary: Choose another composition proposed for this visual (already paid) — it becomes the visual.
+ *     security: [{ bearerAuth: [] }]
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [variantId]
+ *             properties:
+ *               variantId: { type: string }
+ */
+communicationRoutes.post(`/${resource}/:projectId/flyer/:flyerId/variant`, authenticate, chooseFlyerVariantController);
 
 /**
  * @openapi

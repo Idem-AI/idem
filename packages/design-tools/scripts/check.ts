@@ -4,7 +4,7 @@
  * Chaque outil est aussi chronométré : les budgets de temps du plan doivent tenir sur la machine.
  */
 import sharp from 'sharp';
-import { analyzeSaliency, axisLine, bestOf, contrastRatio, CULTURAL_AXES, COUNTRIES, derivePalette, fixContrast, imageEmbedding, judgeImage, modelsDir, novelty, parseVerdict, patternSvg, pickAxis, runTool, scoreVariant, textEmbedding, typePairsTool, vectorizeImage, contrastTool } from '../src';
+import { cutout, treatPhoto, analyzeSaliency, axisLine, bestOf, contrastRatio, CULTURAL_AXES, COUNTRIES, derivePalette, fixContrast, imageEmbedding, judgeImage, modelsDir, novelty, parseVerdict, patternSvg, pickAxis, runTool, scoreVariant, textEmbedding, typePairsTool, vectorizeImage, contrastTool } from '../src';
 import fs from 'fs';
 import path from 'path';
 
@@ -79,6 +79,23 @@ async function main() {
     ok('CLIP : embedding de 512 dimensions', e1?.length === 512, `${msC} ms (premier appel, chargement compris)`);
     ok('CLIP : deux visuels proches plus proches qu’un visuel différent', !!e1 && !!e2 && !!e3 && novelty(e2!, [e1!]) < novelty(e3!, [e1!]));
   } else console.log(`· CLIP non essayé (modèle absent de ${modelsDir()} ; il se télécharge au premier usage réel)`);
+
+  // Traitement d'une photo : duotone aux couleurs de la marque, teinte, monochrome.
+  const duo = await treatPhoto(one, 'duotone', { dark: '#14324a', light: '#f2a93b' });
+  const { data: px } = await sharp(duo).resize(1, 1).raw().toBuffer({ resolveWithObject: true });
+  // Chaque pixel d'un duotone est sur le segment entre les deux couleurs : t lu sur le rouge prédit le vert et le bleu.
+  const t = (px[0] - 0x14) / (0xf2 - 0x14);
+  ok('traitement : duotone dans les deux couleurs de la marque', Math.abs(px[1] - (0x32 + t * (0xa9 - 0x32))) < 6 && Math.abs(px[2] - (0x4a + t * (0x3b - 0x4a))) < 6, Array.from(px).join(','));
+  const [tint, msT] = await timed(() => treatPhoto(one, 'tint', { dark: '#14324a', light: '#fff', tint: '#E4572E' }));
+  ok('traitement : teinte de marque en < 1 s', tint.length > 1000 && msT < 1000, `${msT} ms`);
+
+  // Détourage (seulement si le petit modèle est déjà en cache : aucun téléchargement pendant un contrôle).
+  if (fs.existsSync(path.join(modelsDir(), 'u2netp.onnx'))) {
+    const subject = await sharp(Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="900" height="1200"><rect width="900" height="1200" fill="#cfd8dc"/><ellipse cx="450" cy="420" rx="170" ry="210" fill="#7a4b2a"/><rect x="250" y="600" width="400" height="600" rx="120" fill="#c0392b"/></svg>')).jpeg().toBuffer();
+    const [cut, msCut] = await timed(() => cutout(subject, 'u2netp'));
+    const meta = cut ? await sharp(cut.png).metadata() : null;
+    ok('détourage : PNG transparent, cadre du sujet juste (U²-Net-p)', !!cut && meta?.hasAlpha === true && Math.abs(cut.box.x - 0.28) < 0.05 && Math.abs(cut.box.y - 0.175) < 0.05 && cut.coverage > 0.2 && cut.coverage < 0.5, `${JSON.stringify(cut?.box)} ${msCut} ms`);
+  } else console.log(`· détourage non essayé (modèle absent de ${modelsDir()})`);
 
   // Juge visuel : lecture des réponses et repli.
   const v = parseVerdict('1: no\n2: yes\n3: no\n4: no\n5: no');

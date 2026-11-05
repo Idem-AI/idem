@@ -20,7 +20,10 @@
     "check": "ts-node --transpile-only scripts/check.ts",
     "check:fast": "ts-node --transpile-only scripts/check.ts --fast",
     "schemas": "ts-node --transpile-only scripts/generate-schemas.ts",
-    "prompt-size": "ts-node --transpile-only scripts/prompt-size.ts"
+    "prompt-size": "ts-node --transpile-only scripts/prompt-size.ts",
+    "corpus:render": "ts-node --transpile-only scripts/render-corpus.ts corpus/rendered",
+    "corpus:build": "ts-node --transpile-only scripts/build-examples.ts corpus/rendered library/examples.json",
+    "corpus:build:all": "ts-node --transpile-only scripts/build-examples.ts corpus/rendered library/examples.all.json --keep-all"
   },
   "keywords": [
     "idem",

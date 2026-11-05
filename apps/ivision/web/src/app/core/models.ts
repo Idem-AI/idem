@@ -168,6 +168,8 @@ export interface Visual {
   /** Export HD sans signature déjà réglé. */
   exported?: boolean;
   createdAt: string;
+  /** Les autres compositions écrites en même temps (sans frais) : le client peut en choisir une. */
+  alternatives?: Array<{ id: string; imageUrl: string }>;
 }
 
 export interface VideoRender {

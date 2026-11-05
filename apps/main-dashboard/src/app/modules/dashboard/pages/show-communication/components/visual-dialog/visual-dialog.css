@@ -156,3 +156,31 @@
     -webkit-backdrop-filter: blur(12px);
   }
 }
+
+/* Les autres propositions : des vignettes à la proportion du visuel, cliquables. */
+.vd-proposals {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.vd-proposal {
+  position: relative;
+  overflow: hidden;
+  padding: 0;
+  border: 1px solid var(--glass-border);
+  border-radius: 0.5rem;
+  background: var(--glass-bg-light);
+  cursor: pointer;
+}
+
+.vd-proposal:hover,
+.vd-proposal:focus-visible {
+  border-color: var(--color-primary-500);
+}
+
+.vd-proposal img {
+  display: block;
+  width: 100%;
+  height: auto;
+}

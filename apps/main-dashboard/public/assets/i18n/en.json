@@ -3813,7 +3813,11 @@
             "corporate": "Corporate music",
             "afro": "Afro music"
           }
-        }
+        },
+        "otherProposals": "Other proposals",
+        "otherProposalsHint": "Composed together with this visual, at no extra cost: pick the one you prefer.",
+        "useProposal": "Use this proposal",
+        "proposalAlt": "Another composition of this visual"
       },
       "thumb": {
         "loading": "Loading the image…",

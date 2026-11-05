@@ -615,7 +615,7 @@ export async function checkRender(html: string, head: string, format: FormatDef,
       }
       // Un texte coupé : la photographie est gardée (la page servira de repli si la correction échoue).
       if (cut) return { ok: false, cut: true, error: probe.error, ...(fit ? { fit } : {}), ...(zoneFits ? { zoneFits } : {}), ...(png ? { png } : {}) };
-      return { ok: true, width: Math.round(probe.width ?? 0), height: Math.round(probe.height ?? 0), ...(png ? { png } : {}), ...(metrics ? { metrics } : {}) };
+      return { ok: true, width: Math.round(probe.width ?? 0), height: Math.round(probe.height ?? 0), ...(png ? { png } : {}), ...(metrics ? { metrics } : {}), ...(zoneFits ? { zoneFits } : {}) };
     });
   } catch (error) {
     const message = String((error as Error)?.message ?? error);

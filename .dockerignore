@@ -36,6 +36,9 @@ apps/ideploy/storage
 apps/ideploy/vendor
 apps/ideploy/public/js/monaco-editor-*
 
+# Rendus du corpus d'exemples (html + png, ~11 Mo) : seuls library/*.json servent à l'exécution.
+packages/graphic-engine/corpus/rendered
+
 # Docs
 docs
 **/*.md

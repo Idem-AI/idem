@@ -35,6 +35,7 @@ export class IvisionVideoStore implements VideoStore {
       voice: { ...brand.voice, brandName: brand.name },
       visuals: brand.photos.map((url) => ({ backgroundImageUrl: url, createdAt: brand.updatedAt })),
       videos: await this.listVideos(userId, brandId),
+      ...(brand.country ? { country: brand.country } : {}),
       // Les images propres à la marque : la capture de son site (lue au scan), puis ses photos et
       // captures — décrites une fois, gardées sur la marque.
       media: [

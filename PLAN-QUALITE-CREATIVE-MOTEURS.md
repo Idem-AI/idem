@@ -35,9 +35,30 @@ n'a été lancée (les bancs réels attendent votre accord, §10).
 | 2 | `@idem/design-tools` : couleur OKLCH et contraste WCAG 2, paires de polices, motifs (semis, flux, grain, tracés à la main), saliency « frequency-tuned », vectorisation (vtracer), embeddings CLIP en WebAssembly, juge à questions fermées, score transparent, axes ; `check:licenses` | `packages/design-tools/`, `scripts/check-licenses.mjs` | `check:design-tools` (37), `check:licenses` |
 | 3 | variantes mesurées (2 à 3 pour une toile seule, 2 pour une couverture), choisies par le score (défauts, hiérarchie, couverture, saliency, juge OpenRouter, nouveauté) ; une retouche guidée par les défauts mesurés ; juge branché chez IDEM et iVision (`graphic.judge`) | `graphic-engine/src/engine.ts`, `runtime/check.ts` (mesure DOM), `api/services/graphic/engine.host.ts`, `ivision/core/src/runtime/host.ts` | `check:graphic` (141), `check:creativity` |
 | 4 | HyperFrames, moteur vidéo par défaut : auteur HTML des scènes (GSAP ou Anime.js), contrôle du code, contrôle dans Chrome avec vignettes, correction bornée, aperçu, retouches, export MP4 avec mixage du son ; repli Motion Canvas si une scène ne s'écrit pas ; Node 22 en production | `ivision/core/src/video/rendering/hyperframes/`, `author/html.author.ts`, `motionVideo.service.ts`, `Dockerfile/prod/Dockerfile.{api,ivision-api}` | `check:hyperframes` (28, dont un export MP4 de 15 s rendu en 38 s), `check`, `check:motion`, `check:request` |
-| 5 | bibliothèque d'exemples : choix de 2 exemples proches et différents, consigne « principe, pas composition », garde anti-copie ; professeur (`teach:examples`, payant) et assembleur (`build-examples.ts`, gratuit) | `graphic-engine/src/examples/library.ts`, `scripts/build-examples.ts`, `apps/api/api/scripts/teachExamples.ts` | `check:graphic` §10 ; bibliothèque **non construite** (payant) |
+| 5 | bibliothèque d'exemples : choix de 2 exemples proches et différents, consigne « principe, pas composition », garde anti-copie ; assembleur (`build-examples.ts`, gratuit). **Construite le 05/11/2026 sans aucun appel payant** : 160 pages écrites à la main par Claude (20 par support, plus 20 chartes en paysage ajoutées le 05/11 : business plan, pitch deck, charte, carte de visite, visuels réseaux, couvertures de documents, couvertures de profil), rendues par le vrai moteur (`corpus/`, `scripts/render-corpus.ts`), 160/160 affichées sans constat bloquant. Deux fichiers : `library/examples.json` (99, tri du plan : ≤ 2 foyers) et `library/examples.all.json` (160, `--keep-all`). Le professeur payant (`teachExamples.ts`) reste disponible mais n'est plus nécessaire pour démarrer | `graphic-engine/src/examples/library.ts`, `scripts/build-examples.ts`, `scripts/render-corpus.ts`, `corpus/`, `library/` | rendu des 160 pages ; récupération testée (`pickExamples`) ; `tsc --noEmit` ; **effet sur la hiérarchie et la nouveauté non mesuré** (critère de sortie, §Phase 5) |
 | 6 | **non fait** (optionnelle) : GEPA demande Python ≥ 3.10 et des appels payants ; le score est prêt à lui servir de métrique | — | — |
 | 7 | décision, non engagée | — | — |
+
+**Visuels (05/11/2026, les 7 points + le détourage)** — `apps/ivision/core/src/visual/visual.concept.ts`,
+`visual.composer.ts`, `packages/design-tools/src/{cutout,treat}.ts`, contrôle `check:visual-quality` (11) :
+1. **Une idée avant les mots** : 4 pistes (`graphic.explore`), chacune avec son rôle d'image, son traitement et son
+   registre typographique ; la plus nouvelle retenue par le code ; les mots, l'image et la page la suivent.
+2. **Pays et mémoire** : le pays du projet (IDEM, et les marques iVision importées d'un projet IDEM) et les portées
+   utilisateur et secteur+pays.
+3. **Images façonnées** : illustration vectorielle aux couleurs de la marque (vtracer), **sujet détouré** (ISNet,
+   Apache 2.0, 5,3 s par image sur la machine ; U²-Net-p en option rapide, 1,3 s), duotone, teinte, monochrome.
+4. **Motifs procéduraux** : `<idem-pattern kind="flow|scatter|grain|hand-lines|hand-circles">`, dessinés par le code.
+5. **Les variantes proposées au client** : IDEM (fenêtre du visuel, « Autres propositions ») et iVision (résultat du
+   chat) ; le choix est journalisé (`visual.variant_chosen`) pour régler un jour les poids du score.
+6. **Déclinaison cohérente** : la déclinaison IDEM existante et la nouvelle déclinaison iVision (`POST /visuals/:id/decline`)
+   reprennent les mots, l'image et l'idée ; seule la composition s'adapte.
+7. **Police d'accroche** pour le titre seul, quand l'idée est « expressive ».
+
+**Même logique dans IDEM et iVision (vérifié le 05/11/2026)** : les vidéos des deux passent par le même
+`MotionVideoService` (HyperFrames par défaut, exploration, axes), les visuels par le même `composeVisual` ; aucune
+variable d'environnement ne les désactive dans les `.env` ni l'infra. Écart trouvé et corrigé : la passerelle interne
+d'IDEM écartait l'usage `design-judge` — le juge d'iVision tournait sur le modèle de vision par défaut. Les bannières et
+l'avatar de la charte imposent une seule variante (`variants: 1` : des fichiers que personne ne choisit).
 
 **Écarts assumés par rapport au plan** :
 - La requête sur `ai-trace` (taux de troncature) n'est pas écrite : les plafonds étaient déjà larges et le rôle

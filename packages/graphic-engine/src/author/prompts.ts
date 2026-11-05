@@ -404,14 +404,20 @@ export function authorSystem(ctx: DocumentContext): string {
 }
 
 /** Les outils dont CETTE page a besoin, et eux seuls (documentation à la demande). */
-export function toolLines(ctx: DocumentContext, o: { charts: string[]; tables: string[]; icons: boolean; galleries?: string[] }): string {
+export function toolLines(ctx: DocumentContext, o: { charts: string[]; tables: string[]; icons: boolean; galleries?: string[]; zone?: boolean }): string {
   const lines = ['TOOLS (drawn by code — you place and size them):', `- <idem-logo variant="primary" class="h-[${logoSizePx(ctx)}px]"></idem-logo> the brand logo (variant from BRAND); this height is sized for this canvas, keep it unless the brand language asks for another.`];
   if (o.charts.length)
     lines.push(
       `- <idem-chart data-block="${o.charts[0]}" class="w-full text-ink"></idem-chart> the exact chart of a block, drawn from its data. Optional: data-aspect="16/9"; data-type="bar|horizontalBar|line|area|groupedBar|stacked|pie|doughnut|radar" to choose another representation; data-highlight="<label>" to bring one category forward.`
     );
   if (o.tables.length) lines.push(`- <idem-table data-block="${o.tables[0]}" class="w-full text-[13px] [&_th]:bg-brand-primary [&_th]:text-on-brand"></idem-table> the exact table of a block, styled from the tag.`);
-  if (o.galleries?.length) lines.push(`- <idem-gallery data-block="${o.galleries[0]}" class="h-[70%] w-full"></idem-gallery> the finished mockups of a block, side by side, WHOLE and with their names: give them most of the page; nothing on top of them, no rotation, no frame.`);
+  if (o.galleries?.length)
+    lines.push(
+      o.zone
+        ? // Dans une zone : la galerie EST la zone (une marge ou un conteneur à 70 % les réduisait de moitié).
+          `- <idem-gallery data-block="${o.galleries[0]}" class="h-full w-full"></idem-gallery> the finished mockups of a block, side by side, WHOLE and with their names: the gallery fills the WHOLE zone — no padding, no smaller wrapper, nothing else in the zone; nothing on top of them, no rotation, no frame.`
+        : `- <idem-gallery data-block="${o.galleries[0]}" class="h-[70%] w-full"></idem-gallery> the finished mockups of a block, side by side, WHOLE and with their names: give them most of the page; nothing on top of them, no rotation, no frame.`
+    );
   if (o.icons) lines.push('- <idem-icon name="{{…icon}}" class="size-[32px] text-brand-primary"></idem-icon> a line icon: use the icon keys of the CONTENT (chosen for each item); an English noun only if it literally matches the text.');
   if (ctx.tokens.brand.patterns.length) lines.push('- <idem-pattern index="0" class="absolute right-0 top-0 h-full w-[18%] opacity-[0.12]"></idem-pattern> the brand pattern: a band, a panel or a corner, on a few pages only — never the whole page background.');
   // Les motifs PROCÉDURAUX (dessinés par le code) : surtout pour les visuels, une matière à la fois, jamais sous un petit texte.

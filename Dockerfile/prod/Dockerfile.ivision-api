@@ -78,6 +78,8 @@ ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
 ENV PUPPETEER_SKIP_DOWNLOAD=true
 ENV NODE_ENV=${BUILD_ENV:-production}
 ENV PORT=3006
+# Bibliothèque d'exemples du moteur graphique (visuels, charte) : copiée avec /app/packages ci-dessous.
+ENV IDEM_EXAMPLES_FILE=/app/packages/graphic-engine/library/examples.json
 
 COPY --from=whisper /usr/local/bin/whisper-cli /usr/local/bin/whisper-cli
 COPY --from=whisper /models /opt/whisper

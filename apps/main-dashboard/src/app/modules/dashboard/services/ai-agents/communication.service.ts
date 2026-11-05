@@ -180,6 +180,13 @@ export class CommunicationService {
       .pipe(catchError((err) => throwError(() => err)));
   }
 
+  /** POST …/flyer/:flyerId/variant — une autre composition proposée devient le visuel. */
+  chooseFlyerVariant(projectId: string, flyerId: string, variantId: string): Observable<Flyer> {
+    return this.http
+      .post<Flyer>(`${this.apiUrl}/${projectId}/flyer/${flyerId}/variant`, { variantId })
+      .pipe(catchError((err) => throwError(() => err)));
+  }
+
   /** POST une consigne de retouche IA sur un visuel ; renvoie le visuel modifié. */
   aiEditFlyer(projectId: string, flyerId: string, instruction: string): Observable<Flyer> {
     return this.http

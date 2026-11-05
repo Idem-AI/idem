@@ -161,7 +161,7 @@ export const idem = {
   projects: {
     list: (userId: string) => call<{ projects: { id: string; name: string; hasBrand: boolean; primary?: string; updatedAt?: string }[] }>('get', `/projects?userId=${encodeURIComponent(userId)}`),
     /** La charte d'un projet IDEM de l'utilisateur, au format du moteur partagé (BrandKit). */
-    brand: (userId: string, projectId: string) => call<{ name: string; branding: any; voice: any; photos: string[] }>('get', `/projects/${encodeURIComponent(projectId)}/brand?userId=${encodeURIComponent(userId)}`),
+    brand: (userId: string, projectId: string) => call<{ name: string; branding: any; voice: any; photos: string[]; country?: string }>('get', `/projects/${encodeURIComponent(projectId)}/brand?userId=${encodeURIComponent(userId)}`),
     /** Un projet IDEM complet depuis un site (projet, logo et déclinaisons, palettes, polices, direction, motifs) : tâche de fond. */
     fromSite: (userId: string, url: string, consent?: UserConsent) =>
       call<{ jobId: string; status: string; step: string }>('post', '/projects/from-site', { userId, url, ...(consent ? { consent: consentBody(consent) } : {}) }, 20_000),

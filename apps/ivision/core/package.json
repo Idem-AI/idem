@@ -12,6 +12,7 @@
     "check:request": "ts-node --transpile-only scripts/check-request.ts",
     "check:motion": "ts-node --transpile-only scripts/check-motion.ts",
     "check:hyperframes": "ts-node --transpile-only scripts/check-hyperframes.ts",
+    "check:visual-quality": "ts-node --transpile-only scripts/check-visual-quality.ts",
     "crawl": "ts-node --transpile-only scripts/crawl-site.ts",
     "check:intent": "ts-node --transpile-only scripts/check-intent.ts",
     "check:lottie": "ts-node --transpile-only scripts/check-lottie.ts",

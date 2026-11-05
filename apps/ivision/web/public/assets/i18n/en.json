@@ -462,7 +462,14 @@
       "fit": "Fit to screen",
       "actualSize": "Actual size",
       "imageFailed": "The image could not be loaded.",
-      "retry": "Try again"
+      "retry": "Try again",
+      "otherProposals": "Other proposals",
+      "otherProposalsHint": "Composed together, at no extra cost: pick the one you prefer.",
+      "useProposal": "Use this proposal",
+      "proposalAlt": "Another composition of this visual",
+      "decline": "Also in another format",
+      "declined": "Open",
+      "declineFailed": "The new format could not be made. Try again."
     },
     "payment": {
       "cta": "Top up my wallet",

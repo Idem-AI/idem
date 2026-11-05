@@ -17,6 +17,7 @@
  */
 import {
   brandFromIdem,
+  engineHost,
   BrandInput,
   DirectionInput,
   FORMATS,
@@ -42,6 +43,9 @@ import { imageSourcingService, ImageSourcingPreferences, SourcedImage } from './
 import { copyTask, CopyBrief, inferCopyIntent, reformulateBriefTask, WrittenCopy } from './visual.copy';
 import { classifyImage, describePhoto, rankByRelevance, VisualPhoto } from './visual.images';
 import { FlyerFormat, VisualAuditReport, VisualBrandContext, VisualContent, VisualIntent, VisualMeta } from './visual.model';
+import { accentFontFor, chooseVisualConcept, ConceptChoice, conceptText, VisualConcept } from './visual.concept';
+import { cutout, treatPhoto, vectorizeImage } from '../../../../../packages/design-tools/src';
+import { safeFetch } from '../render/safe-fetch';
 
 export interface PromptMessage {
   role: 'system' | 'user' | 'assistant';
@@ -82,6 +86,15 @@ export interface ComposedVisual {
   /** Visuel photographié après mesure et réparation. */
   png: Buffer;
   audit: VisualAuditReport;
+  /** L'idée retenue (étape concept), quand elle a eu lieu. */
+  concept?: ConceptChoice;
+  /**
+   * Les autres compositions écrites pour ce visuel (déjà payées), de la mieux mesurée à la moins bien : proposées au
+   * client, qui choisit. Absentes quand une seule variante a été écrite.
+   */
+  alternatives?: Array<{ html: string; spec: SectionSpec; png: Buffer; score: number }>;
+  /** Le score de la composition retenue (quand plusieurs ont été mesurées). */
+  score?: number;
 }
 
 /** Le format du moteur graphique de chaque format de visuel. */
@@ -138,6 +151,11 @@ export async function composeVisual(
     avoid?: { template?: string; scheme?: string }[];
     /** L'avancement réel, pour l'interface (iVision : la liste des étapes du chat). */
     onStage?: (stage: string, state: 'running' | 'done') => void;
+    /**
+     * DÉCLINER un visuel déjà fait dans un autre format : mêmes mots, même image, même idée ; seule la composition
+     * s'adapte à la nouvelle toile (l'auteur part du code du visuel d'origine). Aucun concept, aucun rédacteur.
+     */
+    adaptFrom?: { spec: SectionSpec; copy: WrittenCopy; photo?: VisualPhotoRef; concept?: string; format: FlyerFormat };
   } = {}
 ): Promise<ComposedVisual> {
   const started = Date.now();
@@ -152,6 +170,25 @@ export async function composeVisual(
   const orch = new CreativeOrchestrator({ level, call: ports.agentCall, timeoutMs: { agents: 45_000, critic: 60_000 } });
   const message = [content.title, content.hook].filter(Boolean).join(' — ');
   const copyIntent = inferCopyIntent(`${message} ${content.description || ''}`);
+  const scopes = memoryScopesOf(context, userId, projectId);
+
+  // La DÉCLINAISON d'un visuel déjà fait (autre format) : la même idée, recomposée pour la nouvelle toile.
+  if (creative.adaptFrom) {
+    const from = creative.adaptFrom;
+    stage('design', 'running');
+    const instruction = `Adapt this exact visual to the new ${format} canvas (it was made for ${from.format}): keep its idea, words, image, colours and hierarchy; recompose the proportions and positions for the new canvas so it reads as the same campaign.`;
+    const adapted = await renderVisual(context, format, from.copy, from.photo, { level, seed: `${seedKey}:adapt`, userId, projectId, allowDark: creative.allowDark, revise: { spec: from.spec, instruction }, ...(from.concept ? { concept: from.concept } : {}), ...scopes });
+    stage('design', 'done');
+    if (!adapted.png) throw new Error('visual_render_failed');
+    return {
+      html: sectionHtml(adapted),
+      parsed: { layout: adapted.spec.pattern.id, copy: from.copy, ...(from.photo ? { photo: from.photo } : {}), seed: `${seedKey}:adapt`, spec: adapted.spec, concept: from.concept || adapted.spec.pattern.id, marketingText: { headline: from.copy.headline, subheadline: from.copy.sub, body: from.copy.facts.map((f) => f.text).join(' · ') }, creativity: level, agents: orch.traces },
+      sourced: null,
+      intent: inferVisualIntent(content),
+      png: adapted.png,
+      audit: auditOf(adapted),
+    };
+  }
 
   // 0. La reformulation — transparente (même chargement) : la demande, souvent brève, devient un brief
   // détaillé et professionnel ; un mot de style (« grandiose », « épuré »…) en est extrait comme direction
@@ -169,6 +206,30 @@ export async function composeVisual(
     language: context.language || 'fr',
   };
 
+  // 0 bis. L'IDÉE du visuel (plan qualité créative) : quatre pistes, la plus nouvelle retenue par le code ; les mots,
+  // l'image et la page la suivent. Pas d'idée propre quand le client donne un MODÈLE à reproduire.
+  stage('concept', 'running');
+  const previous = creative.reference ? { ideas: [] as string[], axes: [] as string[] } : await recentIdeas(scopes);
+  const chosen = creative.reference
+    ? null
+    : await chooseVisualConcept(ports.agentCall, {
+        request: rawAsk || message,
+        brand: context.brandName,
+        business: context.businessType,
+        tone: context.tone,
+        format,
+        language: context.language || 'fr',
+        previous: previous.ideas,
+        hasUserPhoto: !!creative.image?.url,
+        level,
+        seed: `${projectId}|${seedKey}`,
+        country: context.country,
+        usedAxes: previous.axes,
+      }).catch(() => null);
+  const concept: VisualConcept | undefined = chosen?.concept;
+  stage('concept', 'done');
+  if (concept) brief.details = `${brief.details}\n\nVISUAL IDEA (the words must serve it): ${conceptText(concept)}`;
+
   // 1. Les mots.
   let copyRun = await orch.run(copyTask(brief, copyIntent, creative.feedback));
   // Les mots font le visuel : un modèle muet (délai, panne) a droit à un second essai.
@@ -181,12 +242,17 @@ export async function composeVisual(
   // 2. La photo.
   stage('photo', 'running');
   // Le sujet jugé par la vision : la scène voulue par le rédacteur, puis le message.
-  const subject = `${copy.photo ? `${copy.photo.idea}. ` : ''}${copy.headline}. ${message}`.slice(0, 300);
+  // L'image que l'IDÉE demande, sinon la scène voulue par le rédacteur, puis le message.
+  const subject = `${concept?.imageSubject ? `${concept.imageSubject}. ` : copy.photo ? `${copy.photo.idea}. ` : ''}${copy.headline}. ${message}`.slice(0, 300);
   const highUp = level === 'high' || level === 'ultra';
-  const { photo, sourced, unavailable } =
-    skipImage && !creative.image?.url
-      ? { photo: undefined, sourced: null, unavailable: undefined }
-      : await choosePhoto({ userId, projectId, tag, context, format, copy, subject, sourcing, userPhoto: creative.image?.url, brandPhotos: creative.brandPhotos, preferGenerated: highUp });
+  const noImage = (skipImage || concept?.image === 'none') && !creative.image?.url;
+  const chosenPhoto = noImage
+    ? { photo: undefined, sourced: null, unavailable: undefined }
+    : await choosePhoto({ userId, projectId, tag, context, format, copy, subject, sourcing, userPhoto: creative.image?.url, brandPhotos: creative.brandPhotos, preferGenerated: highUp || concept?.image === 'illustration' });
+  const { sourced, unavailable } = chosenPhoto;
+  // L'image FAÇONNÉE par l'idée : illustration vectorielle aux couleurs de la marque, sujet détouré, traitement.
+  const shaped = concept && chosenPhoto.photo ? await shapeImage(chosenPhoto.photo, concept, context, tag).catch((error) => (logger.warn('visual.image_shaping_failed', { event: 'visual.image_shaping_failed', role: concept.image, error: (error as Error)?.message }), null)) : null;
+  const photo = shaped?.photo ?? chosenPhoto.photo;
   stage('photo', 'done');
 
   // 3. La page, écrite par l'auteur du moteur graphique (HTML Tailwind). Un retour (« autre chose ») est un
@@ -209,6 +275,10 @@ export async function composeVisual(
     allowDark,
     imageColors: sourced?.analysis?.dominantColors,
     ...(reformulated.styleKeywords.length ? { keywords: reformulated.styleKeywords } : {}),
+    ...(concept ? { concept: `${conceptText(concept)}${shaped?.note ? ` ${shaped.note}` : ''}`, ...(chosen?.axis ? { axisId: chosen.axis } : {}) } : {}),
+    // Une idée « expressive » : une police d'accroche pour le titre seul, qui contraste avec celles de la marque.
+    ...(concept?.type === 'expressive' ? { accentFont: accentFontFor(context.branding, seedKey) } : {}),
+    ...scopes,
   };
   let out = await renderVisual(context, format, copy, photo, renderOptions);
   stage('design', 'done');
@@ -249,7 +319,11 @@ export async function composeVisual(
     ms: Date.now() - started,
   });
   if (!out.png) throw new Error('visual_render_failed');
+  const alternatives = (out.alternatives ?? []).filter((a) => a.png).map((a) => ({ html: sectionHtml({ result: a.result }), spec: a.spec, png: a.png!, score: a.score }));
   return {
+    ...(chosen ? { concept: chosen } : {}),
+    ...(alternatives.length ? { alternatives } : {}),
+    ...(out.score !== undefined ? { score: out.score } : {}),
     html: sectionHtml(out),
     parsed: {
       layout: out.spec.pattern.id,
@@ -319,7 +393,7 @@ export async function renderVisual(
   format: FlyerFormat,
   copy: WrittenCopy,
   photo: VisualPhotoRef | undefined,
-  o: { level: CreativityLevel; seed: string; userId?: string; projectId?: string; allowDark?: boolean; imageColors?: string[]; keywords?: string[]; reference?: ReferenceComposition; replay?: SectionSpec; revise?: { spec: SectionSpec; instruction: string } }
+  o: { level: CreativityLevel; seed: string; userId?: string; projectId?: string; allowDark?: boolean; imageColors?: string[]; keywords?: string[]; reference?: ReferenceComposition; replay?: SectionSpec; revise?: { spec: SectionSpec; instruction: string }; concept?: string; accentFont?: string; axisId?: string; memoryScopes?: Array<{ documentType: string; key: string }>; country?: string }
 ): Promise<SectionOutput> {
   const { brand, direction } = engineBrand(context);
   const content = visualContent({
@@ -342,6 +416,11 @@ export async function renderVisual(
     locale: (context.language || 'fr').slice(0, 5),
     user: { userId: o.userId, projectId: o.projectId },
     memoryScope: o.projectId ? { documentType: 'flyer', key: o.projectId } : undefined,
+    ...(o.memoryScopes?.length ? { memoryScopes: o.memoryScopes } : {}),
+    ...(o.country ? { country: o.country } : {}),
+    ...(o.concept ? { concept: o.concept } : {}),
+    ...(o.accentFont ? { accentFont: o.accentFont } : {}),
+    ...(o.axisId ? { axisId: o.axisId } : {}),
     ...(o.reference ? { reference: o.reference } : {}),
     ...(o.replay ? { replay: o.replay } : {}),
     ...(o.revise ? { revise: o.revise } : {}),
@@ -506,6 +585,65 @@ async function choosePhoto(req: {
     sourced = { url: image.url, source: 'upload', attribution: { provider: 'other', author: ctx.brandName }, analysis: { subject: image.subject || '', mood: '', dominantColors: [], luminance: 'mixed' } };
   }
   return { photo: image ? { url: image.url, focal: image.focal, ...(image.subject ? { subject: image.subject } : {}) } : undefined, sourced, ...(image ? {} : unavailable ? { unavailable } : {}) };
+}
+
+/** Les portées de mémoire d'un visuel : l'utilisateur et le secteur (avec le pays), en plus du projet. */
+function memoryScopesOf(context: VisualBrandContext, userId: string, projectId: string): { memoryScopes: Array<{ documentType: string; key: string }>; country?: string } {
+  const sector = (context.businessType || '').trim().toLowerCase().slice(0, 60);
+  return {
+    memoryScopes: [...(userId ? [{ documentType: 'flyer', key: `user:${userId}` }] : []), ...(sector ? [{ documentType: 'flyer', key: `sector:${sector}:${(context.country || '').toLowerCase()}` }] : [])].filter((s) => s.key !== `user:${projectId}`),
+    ...(context.country ? { country: context.country } : {}),
+  };
+}
+
+/** Les idées et les axes déjà servis (projet, utilisateur, secteur), les plus récents d'abord. */
+async function recentIdeas(scopes: { memoryScopes: Array<{ documentType: string; key: string }> }): Promise<{ ideas: string[]; axes: string[] }> {
+  const host = engineHost();
+  if (!host.recentFingerprints) return { ideas: [], axes: [] };
+  const lists = await Promise.all(scopes.memoryScopes.map((s) => host.recentFingerprints!(s).catch(() => [] as string[])));
+  const all = lists.flatMap((l) => [...l].reverse());
+  return { ideas: [...new Set(all.filter((r) => r.startsWith('idea:')).map((r) => r.slice(5)))].slice(0, 10), axes: [...new Set(all.filter((r) => r.startsWith('axis:')).map((r) => r.slice(5)))].reverse() };
+}
+
+async function imageBytes(url: string): Promise<Buffer> {
+  const data = url.match(/^data:[^;,]+;base64,(.+)$/);
+  if (data) return Buffer.from(data[1], 'base64');
+  return (await safeFetch(url, { maxBytes: 25 * 1024 * 1024, timeoutMs: 45_000, accept: ['image/'] })).buffer;
+}
+
+/** Dépose une image façonnée (stockage de l'hôte, sinon en ligne) et rend son adresse. */
+async function storeImage(content: Buffer, name: string, contentType: string, tag: string): Promise<string> {
+  const storage = coreHost().storage;
+  if (storage) return (await storage.uploadFile(content, name, `visuals/shaped/${tag.replace(/[^\w-]+/g, '-').slice(0, 80)}`, contentType)).downloadURL;
+  return `data:${contentType};base64,${content.toString('base64')}`;
+}
+
+/**
+ * L'image façonnée par l'idée (plan qualité créative) : illustration vectorielle dans la palette de la marque,
+ * sujet détouré (sur fond transparent), ou photo traitée (duotone, teinte, monochrome). Ce que l'auteur doit en savoir
+ * est rendu dans `note` (anglais) ; une étape impossible garde l'image d'origine.
+ */
+async function shapeImage(photo: VisualPhotoRef, concept: VisualConcept, context: VisualBrandContext, tag: string): Promise<{ photo: VisualPhotoRef; note?: string } | null> {
+  const b = context.branding;
+  const palette = [b.primary, b.secondary, b.accent, b.background || '#ffffff', b.text || '#111111'].filter((c): c is string => !!c && /^#[0-9a-f]{3,8}$/i.test(c));
+  const stamp = Date.now().toString(36);
+  if (concept.image === 'illustration') {
+    const vec = await vectorizeImage({ image: await imageBytes(photo.url), palette, detail: 0.35 });
+    const url = await storeImage(Buffer.from(vec.svg), `illustration-${stamp}.svg`, 'image/svg+xml', tag);
+    return { photo: { ...photo, url }, note: 'The image is a flat vector illustration in the brand colours: show it whole and large, never cropped tight.' };
+  }
+  if (concept.image === 'cutout') {
+    const cut = await cutout(await imageBytes(photo.url));
+    if (!cut || cut.coverage < 0.04 || cut.coverage > 0.92) return null;
+    const url = await storeImage(cut.png, `cutout-${stamp}.png`, 'image/png', tag);
+    return { photo: { ...photo, url, focal: { x: cut.box.x + cut.box.w / 2, y: cut.box.y + cut.box.h / 2 } }, note: 'The image is a subject CUT OUT of its background (transparent PNG): set it on a brand colour field, large, with object-contain — never in a frame or a card.' };
+  }
+  if (concept.treatment !== 'natural') {
+    const treated = await treatPhoto(await imageBytes(photo.url), concept.treatment, { dark: b.secondary || b.primary, light: b.accent || b.background || '#f5f1e8', tint: b.primary });
+    const url = await storeImage(treated, `photo-${concept.treatment}-${stamp}.jpg`, 'image/jpeg', tag);
+    return { photo: { ...photo, url }, note: `The photo has a ${concept.treatment} treatment in the brand colours.` };
+  }
+  return null;
 }
 
 /** Le rapport d'un visuel : les constats techniques (aucune note esthétique) et les corrections d'affichage. */

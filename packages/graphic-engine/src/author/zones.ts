@@ -61,21 +61,49 @@ export function pageGeometry(format: FormatDef): { pad: number; gap: number } {
   return { pad: Math.round(format.pad ?? 48), gap: Math.max(12, Math.round((format.unit ?? 4) * 5)) };
 }
 
+/**
+ * Le nombre de lignes au-delà duquel une rangée de la toile devient plus mince qu'une ligne de titre (conseil donné à
+ * l'agent ; c'est la hauteur de chaque zone face à son contenu qui est EXIGÉE, cf. `parseLayout`). Douze rangées sur
+ * une diapositive de 631 px laissaient 21 px par rangée, et le titre de 68 px posé dans une seule d'entre elles
+ * débordait sur les maquettes (charte réelle, 05/11/2026).
+ */
+export function maxRows(format: FormatDef): number {
+  if (format.kind === 'flow') return 12;
+  const { pad, gap } = pageGeometry(format);
+  const minRow = Math.max(36, Math.round(1.5 * gap));
+  return Math.max(3, Math.min(12, Math.floor((format.height - 2 * pad + gap) / (minRow + gap))));
+}
+
+/** Ce que le code exige des zones : la hauteur minimale d'une unité (le titre à sa taille), les galeries de maquettes. */
+export interface LayoutNeeds {
+  /** La hauteur (px) qu'une unité demande pour une largeur de zone donnée ; 0 : rien d'exigé. */
+  height?: (unit: Unit, width: number) => number;
+  /** Les blocs de maquettes : la démonstration de la page, à qui revient la plus grande part de la toile. */
+  galleries?: Unit[];
+}
+
+/** La part minimale de la toile utile qu'une galerie de maquettes occupe : elles sont la page. */
+export const GALLERY_SHARE = 0.5;
+
 // ── 1. L'agent de mise en page ───────────────────────────────────────────────────────────────
 
-export function layoutPrompt(ctx: DocumentContext, p: { section: SectionContent; units: Map<Unit, string>; language?: string; plan?: { page?: string } }): { system: string; user: string } {
+export function layoutPrompt(ctx: DocumentContext, p: { section: SectionContent; units: Map<Unit, string>; language?: string; plan?: { page?: string }; galleries?: Unit[] }): { system: string; user: string } {
   const flow = ctx.format.kind === 'flow';
+  const rowsMax = maxRows(ctx.format);
   const system = [
     `You are the layout designer of ${deliverableLine(ctx)}. Invent the grid and the zones of THIS page — no HTML. Other designers will each fill ONE zone.`,
     'Follow the brand art direction: its grid, white space, signature move and layout recipes. The layout is yours: never a template, shaped by what this page has to show.',
     'Professional and essential: one focal zone that dominates, the others clearly secondary, related content in the same zone, generous space. 2 to 5 zones.',
     flow
       ? 'The page is A4 and GROWS DOWNWARD: zones sit on rows read from top to bottom; zones on the same row stand side by side. Long text and tables take the full width.'
-      : 'The page is a FIXED canvas: the zones together must fit it; give each zone room for its content (a table or a chart needs a large zone; a title a short one).',
+      : `The page is a FIXED canvas: the zones together must fit it; give each zone room for its content (a table or a chart needs a large zone; a title a short one, but tall enough for the title at the page title size). Prefer at most ${rowsMax} rows: beyond that a single row is thinner than a line of title.`,
+    p.galleries?.length ? `The mockups (${p.galleries.join(', ')}) ARE this page: their zone takes at least ${Math.round(GALLERY_SHARE * 100)} % of the canvas, as wide and tall as possible; the title is a short label beside or above them.` : '',
     'Every content unit goes to exactly one zone. Zones never overlap.',
     'Answer ONLY JSON:',
-    `{"columns": 4-12, ${flow ? '' : '"rows": 4-12, '}"background": "ground"|"soft", "zones": [{"units": ["title", …], "col": 1…, "span": n, "row": 1…, ${flow ? '' : '"rows": n, '}"align": "start"|"center"|"end", "intent": "what this zone does, one short sentence"}]}`,
-  ].join('\n');
+    `{"columns": 4-12, ${flow ? '' : `"rows": 3-12, `}"background": "ground"|"soft", "zones": [{"units": ["title", …], "col": 1…, "span": n, "row": 1…, ${flow ? '' : '"rows": n, '}"align": "start"|"center"|"end", "intent": "what this zone does, one short sentence"}]}`,
+  ]
+    .filter(Boolean)
+    .join('\n');
   const user = [
     `CANVAS: ${canvasLine(ctx.format)}`,
     `BRAND:\n${brandSheet(ctx)}`,
@@ -95,7 +123,7 @@ export function layoutPrompt(ctx: DocumentContext, p: { section: SectionContent;
  * recommence ou la page retombe sur l'auteur unique. Une unité oubliée rejoint la zone du titre ; un doublon est
  * retiré ; une unité inconnue est ignorée.
  */
-export function parseLayout(raw: string, units: Unit[], format: FormatDef): { layout: PageLayout | null; error?: string } {
+export function parseLayout(raw: string, units: Unit[], format: FormatDef, needs: LayoutNeeds = {}): { layout: PageLayout | null; error?: string } {
   const match = String(raw || '').replace(/```[a-z]*\n?/gi, '').match(/\{[\s\S]*\}/);
   if (!match) return { layout: null, error: 'no JSON layout' };
   let json: Record<string, unknown>;
@@ -138,7 +166,22 @@ export function parseLayout(raw: string, units: Unit[], format: FormatDef): { la
       }
     }
   }
-  return { layout: { columns, rows, background: json.background === 'soft' ? 'soft' : 'ground', zones }, error: undefined };
+  const layout: PageLayout = { columns, rows, background: json.background === 'soft' ? 'soft' : 'ground', zones };
+  // Une zone trop basse pour ce qu'elle porte (le titre à la taille de la page) : il déborderait sur la voisine.
+  if (!flow) {
+    const { pad } = pageGeometry(format);
+    const inner = (format.width - 2 * pad) * (format.height - 2 * pad);
+    for (const z of zones) {
+      const size = zoneSize(layout, z, format);
+      const need = z.units.reduce((sum, u) => sum + (needs.height?.(u, size.width) ?? 0), 0);
+      // Un léger excès est ramené par le code (réduction de la zone, plancher 0,6) ; au-delà, la zone ne peut pas le porter.
+      if (size.height !== undefined && need * 0.6 > size.height) return { layout: null, error: `zone ${z.id} (${z.units.join(', ')}) is ${size.height}px high but its content needs about ${Math.round(need)}px: give it more rows or more columns` };
+      const gallery = z.units.find((u) => needs.galleries?.includes(u));
+      if (gallery && size.height !== undefined && (size.width * size.height) / inner < GALLERY_SHARE)
+        return { layout: null, error: `the mockups (${gallery}) get only ${Math.round(((size.width * size.height) / inner) * 100)} % of the page: they are the page, give their zone at least ${Math.round(GALLERY_SHARE * 100)} %` };
+    }
+  }
+  return { layout, error: undefined };
 }
 
 /** La taille d'une zone en px (largeur, et hauteur sur une toile fixe). */
@@ -154,9 +197,10 @@ export function zoneSize(layout: PageLayout, zone: LayoutZone, format: FormatDef
 // ── 3. Les agents de zone ────────────────────────────────────────────────────────────────────
 
 /** L'échelle typographique de la PAGE, la même pour toutes ses zones (la hiérarchie ne se décide pas zone par zone). */
-export function typeScaleLine(ctx: DocumentContext): string {
+export function typeScaleLine(ctx: DocumentContext, showcase = false): string {
   const s = ctx.tokens.size;
-  return `TYPE SCALE OF THE PAGE (use exactly these sizes, the same in every zone): page title ${Math.round(s['4xl'])}px font-display; heading ${Math.round(s['2xl'])}px font-display; lead ${Math.round(s.lg)}px; body ${Math.round(s.base)}px; caption and labels ${Math.round(s.sm)}px; key figures up to ${Math.round(s['5xl'])}px.`;
+  // Une page de maquettes : le titre est une étiquette, les maquettes sont la page.
+  return `TYPE SCALE OF THE PAGE (use exactly these sizes, the same in every zone): page title ${Math.round(showcase ? s['2xl'] : s['4xl'])}px font-display; heading ${Math.round(s['2xl'])}px font-display; lead ${Math.round(s.lg)}px; body ${Math.round(s.base)}px; caption and labels ${Math.round(s.sm)}px; key figures up to ${Math.round(s['5xl'])}px.`;
 }
 
 export function zoneSystem(ctx: DocumentContext): string {
@@ -175,13 +219,13 @@ export function zoneSystem(ctx: DocumentContext): string {
   ].join('\n');
 }
 
-export function zoneUser(ctx: DocumentContext, p: { zone: LayoutZone; size: { width: number; height?: number }; listing: string; tools: string; language?: string; page: string }): string {
+export function zoneUser(ctx: DocumentContext, p: { zone: LayoutZone; size: { width: number; height?: number }; listing: string; tools: string; language?: string; page: string; showcase?: boolean }): string {
   return [
     `PAGE: ${p.page}`,
     `THIS ZONE: ${p.size.width}px wide${p.size.height ? ` × ${p.size.height}px high (fixed)` : ', height grows with its content'} — content aligned ${p.zone.align === 'center' ? 'to the vertical centre' : p.zone.align === 'end' ? 'to the bottom' : 'to the top'}. Its job: ${p.zone.intent || 'show its content clearly'}.`,
     `BRAND:\n${brandSheet(ctx)}`,
     [p.language ? `BRAND VISUAL LANGUAGE (apply it):\n${p.language}` : '', directionLines(ctx)].filter(Boolean).join('\n\n'),
-    typeScaleLine(ctx),
+    typeScaleLine(ctx, p.showcase),
     p.tools,
     `CONTENT OF THIS ZONE (keys → texts):\n${p.listing}`,
   ]

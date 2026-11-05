@@ -52,6 +52,8 @@ export interface ComposedPagesContext {
  */
 export function clip(text: string | undefined, max: number): string {
   const value = (text ?? '').replace(/\s+/g, ' ').trim();
+  // « Non applicable (absence de volume…) » : une règle qui ne s'applique pas n'a rien à montrer sur la page.
+  if (/^(non applicable|not applicable|n\/a|sans objet|aucun(e)?\b\.?$)/i.test(value)) return '';
   if (value.length <= max) return value;
   // Des phrases entières, prises DEPUIS LE DÉBUT : une fin de phrase est une ponctuation suivie d'un espace — jamais le
   // point d'un nombre (« Ratio 1.250 », « 0.05em » n'étaient plus coupés qu'en « 250 », « 05em »).
@@ -62,8 +64,20 @@ export function clip(text: string | undefined, max: number): string {
     kept = `${kept} ${sentence}`.trim();
   }
   if (kept && /[.!?]$/.test(kept)) return kept;
+  // Sinon, les PROPOSITIONS entières du début de la première phrase (coupées à « , », « ; », « : », « — ») :
+  // « Grille à 8 colonnes, gouttières de 16px, marges… » → « Grille à 8 colonnes, gouttières de 16px ». Une
+  // direction artistique écrit souvent des phrases longues sans point final : les rejeter vidait des pages
+  // entières (« Direction artistique » et « Grammaire de composition » omises à chaque génération, 05/11/2026).
+  const parts = sentences[0].split(/(\s*[,;:]\s+|\s+[—–]\s+)/);
+  let clause = '';
+  for (let i = 0; i < parts.length; i += 2) {
+    const next = `${clause}${i > 0 ? parts[i - 1] : ''}${parts[i]}`;
+    if (next.trim().length > max) break;
+    clause = next;
+  }
+  clause = clause.trim().replace(/[\s,;:—–-]+$/, '');
   // Une proposition coupée change le sens (« Contraste chaud et élevé entre le texte ») : rien plutôt qu'un faux.
-  return '';
+  return clause.length >= 16 ? clause : '';
 }
 
 const MEDIUM_LABEL: Record<string, string> = {
@@ -93,7 +107,7 @@ function densityText(value: string | undefined): string {
   const trimmed = (value ?? '').trim();
   return /^(airy|balanced|dense)$/i.test(trimmed) || trimmed.length < 12
     ? DENSITY_LABEL[densityOf(trimmed)]
-    : clip(trimmed, 90);
+    : clip(trimmed, 90) || DENSITY_LABEL[densityOf(trimmed)];
 }
 
 export function buildComposedCharterPages(ctx: ComposedPagesContext): Record<string, ComposedPage> {
@@ -131,7 +145,8 @@ export function buildComposedCharterPages(ctx: ComposedPagesContext): Record<str
         {
           kind: 'artDirectionStance',
           styleName: direction.styleName,
-          rationale: clip(direction.rationale, 110),
+          // Le parti pris est obligatoire dans le bloc : à défaut d'une proposition courte, la signature de la direction.
+          rationale: clip(direction.rationale, 110) || clip(direction.tagline, 110) || direction.styleName,
           keywords: direction.keywords.slice(0, 4),
         },
       ],

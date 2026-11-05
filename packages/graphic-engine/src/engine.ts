@@ -30,13 +30,13 @@ import { GenerationTrace, TraceRecorder } from './observability/traces';
 import { ENGINE_VERSION, COMPONENT_LIBRARY_VERSION } from './version';
 import { authorSystem, authorUser, DocumentContext, DocumentPlan, explorePrompt, IdeaTrack, languagePrompt, pageDirectorPrompt, parseLanguage, parsePageDirection, parsePlan, parseTracks, planPrompt, PlannedPage, ReferenceComposition, refineUser, RepairStrategy, repairUser, reviseUser, toolLines } from './author/prompts';
 import { callModel, levelUp } from './author/model';
-import { assembleLayout, layoutPrompt, listingUnits, parseLayout, zoneSize, zoneSystem, zoneUser, PageLayout } from './author/zones';
+import { assembleLayout, layoutPrompt, LayoutNeeds, listingUnits, parseLayout, zoneSize, zoneSystem, zoneUser, PageLayout } from './author/zones';
 import { buildContentMap, ContentMap, fixBrandNameTypos } from './runtime/content-map';
 import { expandPage, extractHtml, sanitizeHtml, stripInventedText, withSize } from './runtime/expand';
 import { compileTailwind } from './runtime/tailwind';
 import { checkRender, QualityFrame } from './runtime/check';
 import { examplesLines, isCopy, natureOf, PageExample, pickExamples } from './examples/library';
-import { analyzeSaliency, axisLine, decodeVector, encodeVector, imageEmbedding, judgeImage, novelty, PageMetrics, pickAxis, scoreVariant, StartAxis, textEmbedding, VariantScore } from '@idem/design-tools';
+import { ALL_AXES, analyzeSaliency, axisLine, decodeVector, encodeVector, imageEmbedding, judgeImage, novelty, PageMetrics, pickAxis, scoreVariant, StartAxis, textEmbedding, VariantScore } from '@idem/design-tools';
 
 export interface DocumentOptions {
   documentType: DocumentType;
@@ -82,6 +82,10 @@ export interface DocumentOptions {
   concept?: string;
   /** Une police d'accroche (Google Fonts) pour le titre seul (`font-accent`), proposée par l'hôte. */
   accentFont?: string;
+  /** L'axe de départ déjà tiré par l'hôte (étape concept d'un visuel) : gardé tel quel en mémoire. */
+  axisId?: string;
+  /** Le nombre de variantes imposé par l'hôte (1 : une seule écriture, quand personne ne choisira). */
+  variants?: number;
 }
 
 /** Ce que la mémoire de l'hôte rend pour un document : idées déjà faites, axes déjà servis, empreintes de rendus. */
@@ -253,7 +257,7 @@ export class GraphicDocument {
     this.generationId = `${options.documentType}:${stableHash([options.seed, Date.now()], 10)}`;
     this.previousIdeas = memory.ideas;
     // L'axe de départ : déterministe (marque, livrable, graine), jamais deux fois le même pour la marque.
-    this.axis = QUALITY.explore() && !options.reference ? pickAxis({ seed: `${options.brand.name}|${options.documentType}|${options.seed}`, country: options.country, used: memory.axes, medium: 'document' }) : undefined;
+    this.axis = QUALITY.explore() && !options.reference ? ALL_AXES.find((a) => a.id === options.axisId) ?? pickAxis({ seed: `${options.brand.name}|${options.documentType}|${options.seed}`, country: options.country, used: memory.axes, medium: 'document' }) : undefined;
   }
 
   /** Toutes les portées de mémoire du document (la principale d'abord). */
@@ -528,14 +532,28 @@ export class GraphicDocument {
     const units = listingUnits(map.listing);
     if (units.size < 2) return null;
     // 1. Le plan (deux essais : le second connaît l'erreur du premier).
-    const lp = layoutPrompt(p.ctx, { section, units, language: p.language, plan: p.plan });
+    // Ce que le code exige du plan : le titre tient dans sa zone à la taille de la page, les maquettes ont la plus
+    // grande part de la toile (elles sont la démonstration d'une page de mise en situation).
+    const galleries = [...map.primitives.values()].filter((b) => b.kind === 'mockupShowcase').map((b) => b.id).filter((id) => units.has(id));
+    const showcase = galleries.length > 0;
+    // La plus petite taille acceptable d'un titre (celle des intertitres) : la zone doit au moins le porter ainsi ; un
+    // titre plus grand qui déborde un peu est ramené par la réduction de la zone.
+    const titleSize = p.ctx.tokens.size['2xl'];
+    const titleText = String(map.entries.get('title')?.value ?? '');
+    const needs: LayoutNeeds = {
+      galleries,
+      // Une estimation prudente (un signe ≈ 0,58 de la taille, interligne 1,15) : la zone du titre ne peut pas être plus
+      // basse que ses lignes.
+      height: (unit, width) => (unit === 'title' && titleText ? Math.ceil((titleText.length * 0.58 * titleSize) / Math.max(1, width)) * titleSize * 1.15 : 0),
+    };
+    const lp = layoutPrompt(p.ctx, { section, units, language: p.language, plan: p.plan, galleries });
     let layout: PageLayout | null = null;
     let layoutError = '';
     for (let attempt = 0; attempt < 2 && !layout; attempt++) {
       const user = attempt ? `${lp.user}\n\nYOUR PREVIOUS LAYOUT WAS REFUSED: ${layoutError}. Answer again.` : lp.user;
-      const run = await callModel({ call, recorder, task: 'direct', role: 'graphic.layout', profile: 'agents', level: p.level, system: lp.system, user, timeoutMs: DIRECTOR_TIMEOUT, validate: (raw) => parseLayout(raw, [...units.keys()], p.format).layout !== null });
+      const run = await callModel({ call, recorder, task: 'direct', role: 'graphic.layout', profile: 'agents', level: p.level, system: lp.system, user, timeoutMs: DIRECTOR_TIMEOUT, validate: (raw) => parseLayout(raw, [...units.keys()], p.format, needs).layout !== null });
       if (!run.ok) break;
-      const parsed = parseLayout(run.raw, [...units.keys()], p.format);
+      const parsed = parseLayout(run.raw, [...units.keys()], p.format, needs);
       layout = parsed.layout;
       layoutError = parsed.error ?? '';
     }
@@ -551,8 +569,8 @@ export class GraphicDocument {
       layout.zones.map(async (zone) => {
         const listing = zone.units.map((u) => units.get(u) ?? '').filter(Boolean).join('\n\n');
         const prims = zone.units.map((u) => map.primitives.get(u)).filter((b): b is NonNullable<typeof b> => Boolean(b));
-        const tools = toolLines(p.ctx, { charts: prims.filter((b) => b.kind === 'chart').map((b) => b.id), tables: prims.filter((b) => b.kind === 'table').map((b) => b.id), galleries: prims.filter((b) => b.kind === 'mockupShowcase').map((b) => b.id), icons: /\.icon\}\}/.test(listing) });
-        const user = zoneUser(p.ctx, { zone, size: zoneSize(layout!, zone, p.format), listing, tools, language: p.language, page });
+        const tools = toolLines(p.ctx, { charts: prims.filter((b) => b.kind === 'chart').map((b) => b.id), tables: prims.filter((b) => b.kind === 'table').map((b) => b.id), galleries: prims.filter((b) => b.kind === 'mockupShowcase').map((b) => b.id), icons: /\.icon\}\}/.test(listing), zone: true });
+        const user = zoneUser(p.ctx, { zone, size: zoneSize(layout!, zone, p.format), listing, tools, language: p.language, page, showcase });
         // Ce que la zone DOIT poser : ses clés et ses primitives — vérifié par le code avant l'assemblage.
         const keys = [...map.entries.keys()].filter((k) => zone.units.some((u) => k === u || k.startsWith(`${u}.`)));
         const missingIn = (html: string) => [...keys.filter((k) => !html.includes(`{{${k}}}`)).map((k) => `{{${k}}}`), ...prims.filter((b) => !html.includes(`data-block="${b.id}"`)).map((b) => `<idem-${b.kind === 'table' ? 'table' : b.kind === 'mockupShowcase' ? 'gallery' : 'chart'} data-block="${b.id}">`)];
@@ -586,7 +604,14 @@ export class GraphicDocument {
     // 3. L'assemblage ; une zone qui déborde est ramenée à sa taille par le code.
     let template = assembleLayout(layout, zones, p.format);
     let r = await this.render(template, map, section.id, recorder, p.quality, p.format);
-    if (!r.ok && p.format.kind === 'fixed' && r.zoneFits) {
+    // Une zone qui déborde se mesure même quand la page passe : son contenu recouvre la zone voisine (un titre sur
+    // des maquettes) sans que ce soit un texte coupé. Trop grand pour une simple réduction : l'auteur unique reprend.
+    const tooBig = r.zoneFits ? Object.entries(r.zoneFits).filter(([, k]) => k < 0.5) : [];
+    if (p.format.kind === 'fixed' && tooBig.length) {
+      recorder.repair({ code: 'zone_overflow', detail: `zones deux fois trop petites pour leur contenu : ${tooBig.map(([id, k]) => `${id} ${Math.round(k * 100)} %`).join(', ')} — auteur unique`, by: 'code' });
+      return null;
+    }
+    if (p.format.kind === 'fixed' && r.zoneFits) {
       const zoom = new Map(Object.entries(r.zoneFits).filter(([, k]) => k < 0.995 && k >= 0.5));
       if (zoom.size) {
         template = assembleLayout(layout, zones, p.format, zoom);
@@ -613,7 +638,7 @@ export class GraphicDocument {
    */
   private async authorBest(section: SectionContent, map: ContentMap, recorder: TraceRecorder, p: Parameters<GraphicDocument['author']>[3], o: { cover: boolean; total: number; shown?: PageExample[] }): Promise<Rendered> {
     const format = p.format ?? this.format;
-    const n = variantCount({ level: this.policy.level, cover: o.cover, single: o.total <= 1, fixed: format.kind === 'fixed' });
+    const n = this.options.variants !== undefined ? Math.max(1, Math.min(4, Math.round(this.options.variants))) : variantCount({ level: this.policy.level, cover: o.cover, single: o.total <= 1, fixed: format.kind === 'fixed' });
     const refine = QUALITY.refine() && this.policy.level !== 'low';
     if (n <= 1 && !refine) return this.author(section.id, map, recorder, p);
     const measured = { ...p, measure: true };
@@ -742,7 +767,7 @@ export class GraphicDocument {
   }
 
   /** Assainir, remplir, compiler, puis demander à Chromium si la page s'affiche. Rien n'est jugé d'autre. */
-  private async render(raw: string, map: ContentMap, sectionId: string, recorder: TraceRecorder, quality?: QualityFrame, format: FormatDef = this.format, measure = false): Promise<{ ok: true; page: Rendered } | { ok: false; error: string; template: string; partial?: Rendered; zoneFits?: Record<string, number> }> {
+  private async render(raw: string, map: ContentMap, sectionId: string, recorder: TraceRecorder, quality?: QualityFrame, format: FormatDef = this.format, measure = false): Promise<{ ok: true; page: Rendered; zoneFits?: Record<string, number> } | { ok: false; error: string; template: string; partial?: Rendered; zoneFits?: Record<string, number> }> {
     const t0 = Date.now();
     const clean = sanitizeHtml(raw);
     if (!clean.html.trim()) return { ok: false, error: 'the page is empty after removing what is not allowed (scripts, styles, external resources)', template: clean.html };
@@ -815,7 +840,7 @@ export class GraphicDocument {
       const error = `content is missing from the page: ${missing.slice(0, 6).join(', ')} — place every chart, table, gallery and brand asset image, readable`;
       return { ok: false, error, template: clean.html, partial: { ...done, issues: [...issues, { code: 'content_missing', severity: 'blocking', message: error.slice(0, 380) }] } };
     }
-    return { ok: true, page: done };
+    return { ok: true, page: done, ...(check.zoneFits ? { zoneFits: check.zoneFits } : {}) };
   }
 
   /**

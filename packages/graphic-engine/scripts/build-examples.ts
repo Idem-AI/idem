@@ -2,11 +2,12 @@
  * Assemble la BIBLIOTHÈQUE D'EXEMPLES (phase 5) à partir de pages déjà fabriquées hors ligne par le professeur
  * (`apps/api/api/scripts/teachExamples.ts`) — sans modèle, sans réseau :
  *
- *   npx ts-node --transpile-only scripts/build-examples.ts <dossier des pages> <fichier de sortie.json>
+ *   npx ts-node --transpile-only scripts/build-examples.ts <dossier des pages> <fichier de sortie.json> [--keep-all]
  *
  * Chaque page est un trio `<id>.html` (le code de la page, textes en clés), `<id>.json` ({ nature, role, intent }) et
  * `<id>.png` (son rendu). Une page n'entre que si la mesure la tient pour lisible : un seul foyer d'attention (deux au
- * plus), et aucun constat bloquant noté dans son `.json`. Son empreinte CLIP est calculée pour la garde anti-copie.
+ * plus), et aucun constat bloquant noté dans son `.json`. `--keep-all` garde toutes les pages affichées (seul le constat
+ * bloquant écarte) : la bibliothèque COMPLÈTE, à comparer à la bibliothèque triée avant de choisir (critère de sortie, phase 5). Son empreinte CLIP est calculée pour la garde anti-copie.
  */
 import fs from 'fs';
 import path from 'path';
@@ -14,7 +15,8 @@ import { analyzeSaliency, encodeVector, imageEmbedding } from '@idem/design-tool
 import type { PageExample } from '../src/examples/library';
 
 async function main() {
-  const [dir, out] = process.argv.slice(2);
+  const keepAll = process.argv.includes('--keep-all');
+  const [dir, out] = process.argv.slice(2).filter((a) => !a.startsWith('--'));
   if (!dir || !out) throw new Error('usage : build-examples.ts <dossier des pages> <sortie.json>');
   const ids = fs.readdirSync(dir).filter((f) => f.endsWith('.html')).map((f) => f.slice(0, -5));
   const examples: PageExample[] = [];
@@ -28,7 +30,7 @@ async function main() {
     }
     const image = fs.readFileSync(png);
     const sal = await analyzeSaliency(image);
-    if (sal.focalCount > 2) {
+    if (!keepAll && sal.focalCount > 2) {
       refused++;
       continue;
     }

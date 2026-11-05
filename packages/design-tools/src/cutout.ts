@@ -90,7 +90,8 @@ export async function cutout(image: Buffer, model: CutoutModel = cutoutModel()):
   }
   const mask = Buffer.alloc(n);
   for (let i = 0; i < n; i++) mask[i] = Math.round(((pred[i] - lo) / Math.max(1e-6, hi - lo)) * 255);
-  const alpha = await sharp(mask, { raw: { width: spec.size, height: spec.size, channels: 1 } }).resize(width, height, { fit: 'fill' }).raw().toBuffer();
+  // Une seule couche : sans `extractChannel`, sharp repasse le masque en sRGB (3 canaux) et l'alpha est mal relu.
+  const alpha = await sharp(mask, { raw: { width: spec.size, height: spec.size, channels: 1 } }).resize(width, height, { fit: 'fill' }).extractChannel(0).raw().toBuffer();
   // La part et le cadre du sujet (alpha > 50 %).
   let count = 0;
   let x0 = width;
