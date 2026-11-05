@@ -30,18 +30,34 @@ import logger from './logger';
  */
 export type ModelLadder = 'design' | 'code' | 'video-design' | 'video-code' | 'video-sample' | 'video-vision' | 'video-teacher';
 
+/**
+ * Mise à jour 05/11/2026 (demande de l'utilisateur : « les modèles sont très anciens, pas très
+ * performants, trop peu de paramètres, les rendus ne sont pas très originaux »). Chaque remplacement est
+ * vérifié aux trois preuves de `openrouter.config.ts` (poids publiés, licence lue sur Hugging Face,
+ * identifiant OpenRouter exact) avant d'entrer ici — jamais sur la seule ressemblance du nom.
+ *
+ *   design.low     qwen3.5-9b (dense 9B)       → qwen3.6-35b-a3b (MoE plus récente, même coût d'inférence)
+ *   design.medium  qwen3.5-27b (dense, 3.5)    → qwen3.8-27b (dense, 3.8, 1 M ctx — déjà l'auteur qualité vidéo)
+ *   design.high    qwen3.5-397b-a17b (3.5)     → z-ai/glm-5.3-flash (320 B/18 B actifs, 3.5× moins cher,
+ *                                                 déjà le storyboard vidéo aux crans High/Ultra en production)
+ *   design.ultra, code.ultra   deepseek-v4-pro → deepseek-v4.1-flash : comparatif OFFICIEL DeepSeek, devant
+ *                                                 V4 Pro sur la plupart des bancs de code/agents, 4× moins cher
+ *
+ * `high` est le plafond RÉEL de la plupart des générations (Ultra n'est forcé qu'en version Signature,
+ * cf. [[idem-creativity-gauge]]) : c'est le cran qui change le plus visiblement le rendu perçu.
+ */
 export const MODEL_LADDERS: Record<ModelLadder, Record<CreativityLevel, string>> = {
   design: {
-    low: 'qwen/qwen3.5-9b',
-    medium: 'qwen/qwen3.5-27b',
-    high: 'qwen/qwen3.5-397b-a17b',
-    ultra: 'deepseek/deepseek-v4-pro',
+    low: 'qwen/qwen3.6-35b-a3b',
+    medium: 'qwen/qwen3.8-27b',
+    high: 'z-ai/glm-5.3-flash',
+    ultra: 'deepseek/deepseek-v4.1-flash',
   },
   code: {
     low: 'qwen/qwen3-coder-30b-a3b-instruct',
     medium: 'qwen/qwen3-coder-next',
     high: 'qwen/qwen3-coder',
-    ultra: 'deepseek/deepseek-v4-pro',
+    ultra: 'deepseek/deepseek-v4.1-flash',
   },
   /**
    * LE MOTEUR VIDÉO (plan qualité avec petits modèles, 29/10/2026) : des modèles de 27 à 35 milliards de paramètres,

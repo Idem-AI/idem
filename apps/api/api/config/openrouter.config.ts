@@ -28,7 +28,7 @@
 
 import type { ModelRole } from './ai.config';
 
-export const VERIFIED_ON = '2026-10-15';
+export const VERIFIED_ON = '2026-11-05';
 
 export type OpenRouterKind = 'text' | 'image' | 'video' | 'speech';
 
@@ -166,9 +166,13 @@ export const OPENROUTER_MODELS: readonly OpenRouterModel[] = [
     pricing: { input: 2, output: 6, cachedInput: 0.25 }, note: 'Professeur HORS LIGNE : fabrique les scènes de référence vidéo (jamais en production).',
   },
   {
+    // Mise à jour 05/11/2026 : promu échelles « design » et « code » au cran Ultra (repli deepseek-v4-pro).
+    // Comparatif officiel DeepSeek (V4.1 Flash vs V4 Pro 0813) : devant sur la plupart des bancs de code,
+    // terminal, sécurité et agents ; V4 Pro ne garde l'avantage que sur GPQA Diamond et HLE sans outils.
+    // 4× moins cher, 3× plus rapide (Artificial Analysis, relevé le 29/10/2026).
     id: 'deepseek/deepseek-v4.1-flash', kind: 'text', hfId: 'deepseek-ai/DeepSeek-V4.1-Flash', license: 'mit',
-    openWeights: true, commercialOk: true, selfHost: 'lourd', roles: [],
-    pricing: { input: 0.045, output: 0.5, cachedInput: 0.006 }, note: 'Second professeur hors ligne de la bibliothèque de scènes vidéo.',
+    openWeights: true, commercialOk: true, selfHost: 'lourd', roles: ['reasoning', 'writing'],
+    pricing: { input: 0.045, output: 0.5, cachedInput: 0.006 }, note: '1 M ctx. Licence MIT. Devant V4 Pro sur la plupart des bancs de code et d’agents, moins cher. Échelles design/code au cran Ultra ; professeur hors ligne de la bibliothèque de scènes vidéo.',
   },
   // ── Texte : DeepSeek (alternative à tester) ───────────────────────────────
   {
@@ -179,7 +183,7 @@ export const OPENROUTER_MODELS: readonly OpenRouterModel[] = [
   {
     id: 'deepseek/deepseek-v4-pro', kind: 'text', hfId: 'deepseek-ai/DeepSeek-V4-Pro', license: 'mit',
     openWeights: true, commercialOk: true, selfHost: 'lourd', roles: ['reasoning'],
-    pricing: { input: 0.4308, output: 0.8616, cachedInput: 0.0359 }, note: '1 M ctx. Licence MIT. Cluster multi-nœuds.',
+    pricing: { input: 0.4308, output: 0.8616, cachedInput: 0.0359 }, note: '1 M ctx. Licence MIT. Cluster multi-nœuds. Repli du cran Ultra (design/code) depuis le 05/11/2026 : deepseek-v4.1-flash le devance sur la plupart des bancs et coûte moins cher.',
   },
   // ── Image : FLUX.2 ─────────────────────────────────────────────────────────
   {
