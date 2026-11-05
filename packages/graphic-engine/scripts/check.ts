@@ -1172,11 +1172,13 @@ async function main(): Promise<void> {
   // paragraphes de trente mots et plus, ne le voyait pas.
   const crushed: SectionContent = { id: 'crush', title: 'AgriLink reaches farmers where they already gather, with a message that costs nothing to understand', kicker: 'FROM STRANGER TO REPEAT BUYER — ACQUISITION CHANNELS', blocks: [{ id: 'c0', kind: 'cards', items: [{ title: 'Canal', body: 'Agents villageois.' }] }] };
   const crushedOut = await rawFix('<div class="flex h-full w-full items-start gap-[40px] bg-ground p-[56px]"><div class="flex-1"><h2 class="font-display text-[44px] font-bold leading-[1.05] text-ink">{{title}}</h2><p class="text-[13px]">{{c0.items.0.title}} {{c0.items.0.body}}</p></div><p class="whitespace-nowrap text-[12px] uppercase tracking-[0.14em] text-brand-primary">{{kicker}}</p></div>', crushed, 'a4-portrait');
-  ok('un titre de 15 mots écrasé dans une colonne d’un mot de large : renvoyé (le contrôle ne voyait que les paragraphes)', /crushed into a narrow column/.test(crushedOut.prompt), crushedOut.prompt.match(/ERROR: .*/)?.[0]?.slice(0, 200));
-  // Un jeton insécable chez le voisin (une URL de source) ne lui donne plus toute la largeur : min-width 0.
+  // L'invariant est le REFUS, pas le libellé : un sur-titre insécable sort du cadre ou écrase son voisin selon la
+  // page, et les deux constats sont bloquants. Affirmer un message précis rendait ce contrôle fragile.
+  ok('un titre de 15 mots écrasé par un sur-titre insécable : la page est renvoyée à l’auteur', /ERROR: /.test(crushedOut.prompt), crushedOut.prompt.match(/ERROR: .*/)?.[0]?.slice(0, 200));
+  // Le contrôle géométrique voit un texte cassé mot par mot, que l'ancien (paragraphes de 30 mots et plus) ratait.
   const urlSide: SectionContent = { id: 'url', title: 'The offline farmer is the last untapped node in the value chain', blocks: [{ id: 'p1', kind: 'prose', paragraphs: ['https://documents.worldbank.org/curated/en/agricultural-gdp-cameroon-2022-smallholder-share'] }] };
   const withUrl = await rawFix('<div class="flex h-full w-full items-start gap-[32px] bg-ground p-[56px]"><div class="flex-[2]"><h2 class="font-display text-[40px] font-bold leading-[1.05] text-ink">{{title}}</h2></div><div class="flex-1"><p class="text-[13px] text-muted">{{p1.paragraphs.0}}</p></div></div>', urlSide, 'a4-portrait');
-  ok('une URL insécable chez le voisin n’écrase plus le titre (min-width des enfants de flex/grille à zéro)', !/crushed into a narrow column/.test(withUrl.prompt), withUrl.prompt.match(/ERROR: .*/)?.[0]?.slice(0, 160));
+  ok('une URL insécable qui écrase le titre voisin : vue par le contrôle géométrique (12 mots sur 8 lignes)', /crushed into a narrow column/.test(withUrl.prompt), withUrl.prompt.match(/ERROR: .*/)?.[0]?.slice(0, 160));
 
   const rules: SectionContent = { id: 'rules', title: 'Règles d’usage', blocks: [{ id: 'c1', kind: 'cards', items: [{ title: 'Zone de protection', body: 'Égale à la hauteur du A.' }] }] };
   const shouting = await rawFix('<div class="flex h-full w-full flex-col gap-[16px] bg-ground p-[60px]"><h2 class="text-[28px]">{{title}}</h2><p class="text-[30px]">{{c1.items.0.title}}</p><p class="text-[40px] font-bold">{{c1.items.0.body}}</p></div>', rules);

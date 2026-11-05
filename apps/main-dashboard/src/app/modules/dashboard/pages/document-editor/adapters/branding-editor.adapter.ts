@@ -23,7 +23,6 @@ export class BrandingEditorAdapter extends HtmlSectionsEditorAdapter {
   readonly i18nTitleKey = 'dashboard.documentEditor.branding.title';
   readonly backRoute = '/project/branding/display';
   readonly editRoute = '/project/branding/edit';
-  readonly pdfFileName = 'branding-guide.pdf';
   protected readonly resource = 'brandings';
   protected readonly analysisKey = 'branding' as const;
 

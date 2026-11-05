@@ -57,6 +57,7 @@
         documentType="business-plan"
         [documentId]="documentId()"
         [heading]="heading()"
+        [projectName]="project()?.name ?? null"
         [outline]="previewOutline()"
         sectionLabelPrefix="dashboard.generationPanel.sections.businessPlan."
         (regenerateSection)="regenerateSection($event)"

@@ -15,8 +15,6 @@ export class PitchDeckEditorAdapter extends HtmlSectionsEditorAdapter {
   /** Liste des decks ; un deck précis s'affiche sous `backRoute/<documentId>`. */
   readonly backRoute = '/project/pitch-deck';
   readonly editRoute = '/project/pitch-deck/edit';
-  readonly pdfFileName = 'pitch-deck.pdf';
-  readonly pptxFileName = 'pitch-deck.pptx';
   protected readonly resource = 'pitchDecks';
   protected readonly analysisKey = 'pitchDeck' as const;
 

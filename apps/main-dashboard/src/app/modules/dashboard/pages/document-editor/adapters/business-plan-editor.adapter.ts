@@ -18,7 +18,6 @@ export class BusinessPlanEditorAdapter extends HtmlSectionsEditorAdapter {
   /** Liste des plans ; un plan précis s'affiche sous `backRoute/<documentId>`. */
   readonly backRoute = '/project/business-plan';
   readonly editRoute = '/project/business-plan/edit';
-  readonly pdfFileName = 'business-plan.pdf';
   protected readonly resource = 'businessPlans';
   protected readonly analysisKey = 'businessPlan' as const;
 

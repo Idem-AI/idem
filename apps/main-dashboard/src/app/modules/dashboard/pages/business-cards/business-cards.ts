@@ -35,6 +35,7 @@ import { CreativityLevel, DEFAULT_CREATIVITY } from '@idem/shared-models';
 import { CreativityGateDirective } from '../../../../shared/components/creativity-picker/creativity-gate';
 import { CreativityCostPipe } from '../../../../shared/pipes/creativity-cost.pipe';
 import { CreativityService } from '../../../../shared/services/creativity.service';
+import { downloadName } from '../../../../shared/utils/download-name';
 
 /** Panneau de droite : consultation d'une carte ou saisie d'une personne. */
 type WorkspaceMode = 'view' | 'form';
@@ -404,9 +405,8 @@ export class BusinessCardsPage implements OnInit {
       next: (blob) => {
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
-        const slug = holder.fullName.replace(/[^a-z0-9]+/gi, '-').toLowerCase();
         link.href = url;
-        link.download = `${slug}-${side}.${format}`;
+        link.download = downloadName({ project: this.project()?.name, label: `carte de visite ${holder.fullName}`, suffix: side, ext: format });
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);

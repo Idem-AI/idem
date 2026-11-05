@@ -126,6 +126,7 @@
         sectionLabelPrefix="dashboard.showPitchDeck.slides."
         [busy]="isGenerating()"
         [creativity]="creativity()"
+        [projectName]="project()?.name ?? null"
         (regenerateSection)="regenerateSection($event)"
         (resumeGeneration)="startGeneration(false)"
         (regenerateAll)="startGeneration(true)"
