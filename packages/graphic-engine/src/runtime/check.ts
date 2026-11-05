@@ -325,6 +325,32 @@ export const QUALITY = (f: QualityFrame) => `(function (f) {
   });
   if (loud.length) errors.push('a long text is set at title size: ' + loud.slice(0, 2).join('; ') + ' — set paragraphs at the body size (' + Math.round(base) + ' px); only titles, short statements and figures are large');
   if (narrow.length) errors.push('a long text is squeezed into a narrow column: ' + narrow.slice(0, 2).join('; ') + ' — give paragraphs a reading width (about half the page or more)');
+  // 1 bis·2. UN TEXTE CASSÉ MOT PAR MOT. Le contrôle ci-dessus ne regarde que les PARAGRAPHES (30 mots et
+  // plus) : un titre de quinze mots réduit à une colonne d'un mot de large, sur toute la hauteur, passait au
+  // travers alors que c'est le défaut le plus visible de la page (signalé sur toutes les générations,
+  // 05/11/2026). Ici on mesure la GÉOMÉTRIE : beaucoup de lignes, très peu de signes par ligne, dans une
+  // colonne étroite — quelle que soit la longueur du texte.
+  var blocks = [], counts = [];
+  lines.forEach(function (ln) {
+    var b = ln.host;
+    while (b !== root && getComputedStyle(b).display.indexOf('inline') === 0) b = b.parentElement;
+    var i = blocks.indexOf(b);
+    if (i < 0) { blocks.push(b); counts.push(0); i = blocks.length - 1; }
+    counts[i]++;
+  });
+  var crushed = [];
+  blocks.forEach(function (b, i) {
+    if (counts[i] < 4) return;
+    var text = (b.textContent || '').trim();
+    var words = text.split(/\\s+/).filter(Boolean).length;
+    if (words < 6) return;
+    var r = b.getBoundingClientRect();
+    // Une colonne étroite ET des lignes très courtes : les deux, sinon une colonne de texte normale serait prise.
+    if (r.width < box.width * 0.34 && text.length / counts[i] < 18) {
+      crushed.push(short(text) + ' (' + words + ' words in ' + Math.round(r.width) + ' px, ' + counts[i] + ' lines)');
+    }
+  });
+  if (crushed.length) errors.push('a text is crushed into a narrow column, breaking one word per line: ' + crushed.slice(0, 2).join('; ') + ' — it is squeezed because a neighbour takes the width: let that neighbour wrap or shrink, and give this text at least a third of the canvas');
   // 1 ter. Un texte posé SUR un mockup, un graphique ou un logo les cache : chacun a sa place.
   var shown = [];
   root.querySelectorAll('[data-ge-gallery],[data-ge-chart],img[data-ge-logo]').forEach(function (m) { if (visible(m)) shown.push(m); });
@@ -599,7 +625,7 @@ export async function checkRender(html: string, head: string, format: FormatDef,
       }
       // Texte coupé, recouvert, page désordonnée : la page s'affiche presque entière — gardée comme repli si la
       // correction échoue (livrée signalée plutôt que perdue).
-      const cut = Boolean(probe.error && /cut off by the edge|covered by another element|on top of each other|brand asset|empty frames|decoration noise|long text|written over a mockup|set like a title|palette colours|logo sits on|cut by the page edge|image is broken|page is dark|straddles the edge|table wrap|logo sits on|light logo sits|swatches are too small|far from its colour/.test(probe.error));
+      const cut = Boolean(probe.error && /cut off by the edge|covered by another element|on top of each other|brand asset|empty frames|decoration noise|long text|crushed into a narrow column|written over a mockup|set like a title|palette colours|logo sits on|cut by the page edge|image is broken|page is dark|straddles the edge|table wrap|logo sits on|light logo sits|swatches are too small|far from its colour/.test(probe.error));
       if (probe.error && !cut) return { ok: false, error: probe.error, ...(zoneFits ? { zoneFits } : {}) };
       // Un débordement d'une toile fixe : l'échelle qui le fait tenir, pour que le moteur l'applique lui-même.
       let fit: number | undefined;

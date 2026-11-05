@@ -95,7 +95,16 @@ const BASE = `:where(.ge-page),:where(.ge-page) *,:where(.ge-page) ::before,:whe
 :where(.ge-page) :where(img,svg,video){display:block;vertical-align:middle}
 :where(.ge-page) :where(img){max-width:100%}
 :where(.ge-page) :where(table){border-collapse:collapse;text-indent:0;border-color:inherit}
-:where(.ge-page) :where(a){color:inherit;text-decoration:inherit}`;
+:where(.ge-page) :where(a){color:inherit;text-decoration:inherit}
+/* AUCUN ÉLÉMENT N'IMPOSE SA LARGEUR AUX AUTRES. Par défaut, un enfant de flex ou de grille porte
+   min-width:auto : il refuse de se réduire sous la largeur de son contenu. Un seul texte qui ne se coupe
+   pas (un sur-titre en haut à droite, une cellule, une URL) prenait alors toute la place et renvoyait le
+   reste de la page dans une colonne d'un mot de large — le texte comprimé à gauche, au centre ou à droite,
+   signalé sur toutes les générations (05/11/2026). À zéro, la place se partage selon la mise en page voulue.
+   Spécificité nulle : une classe de l'auteur (min-w-*, shrink-0, w-[...]) passe devant. */
+:where(.ge-page) :where(*){min-width:0}
+/* Un mot plus long que sa colonne se coupe au lieu de l'élargir. */
+:where(.ge-page) :where(p,h1,h2,h3,h4,h5,h6,li,td,th,dd,dt,figcaption,blockquote){overflow-wrap:break-word}`;
 
 /** Dans les DÉCLARATIONS seulement : un sélecteur échappé (`.text-\[1\.5rem\]`) garde son nom. */
 const remToPx = (css: string) => css.replace(/:[^;{}]*[;}]/g, (decl) => decl.replace(/(-?\d*\.?\d+)rem\b/g, (_, n) => `${Math.round(parseFloat(n) * 16 * 1000) / 1000}px`));

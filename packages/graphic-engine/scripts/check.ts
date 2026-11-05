@@ -1066,7 +1066,7 @@ async function main(): Promise<void> {
       /FOCAL: .+\nZONES: /.test(pageDirections[0].system ?? '') &&
       calls.some((c) => c.role === 'graphic.author' && c.user.includes('PAGE LAYOUT DECIDED BY THE ART DIRECTOR') && c.user.includes('FOCAL: the title'))
   );
-  const fixedBy = async (m: Mode, content: SectionContent, format: 'slide-16x9' | 'flyer-square' = 'slide-16x9', documentType: 'pitch-deck' | 'brand-charter' | 'flyer' = 'pitch-deck') => {
+  const fixedBy = async (m: Mode, content: SectionContent, format: 'slide-16x9' | 'flyer-square' | 'a4-portrait' = 'slide-16x9', documentType: 'pitch-deck' | 'brand-charter' | 'flyer' | 'business-plan' = 'pitch-deck') => {
     mode = m;
     calls.length = 0;
     const doc = await createDocument({ documentType, format, brand: BRANDS.kora, seed: `q:${m}`, sections: [{ id: content.id }] });
@@ -1157,13 +1157,27 @@ async function main(): Promise<void> {
   const IMG = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCI+PHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjMWI3YTdhIi8+PC9zdmc+';
   const IMG2 = IMG.replace('MWI3YTdh', 'ZmZmZmZm');
   const IMG3 = IMG.replace('MWI3YTdh', 'MDAwMDAw');
-  const rawFix = async (html: string, content: SectionContent) => {
+  const rawFix = async (html: string, content: SectionContent, page: 'slide-16x9' | 'a4-portrait' = 'slide-16x9') => {
     rawPage = html;
-    return fixedBy('raw-once', content, 'slide-16x9', 'brand-charter');
+    return page === 'a4-portrait'
+      ? fixedBy('raw-once', content, 'a4-portrait', 'business-plan')
+      : fixedBy('raw-once', content, 'slide-16x9', 'brand-charter');
   };
   const paletteContent: SectionContent = { id: 'pal', title: 'Palette de couleurs', blocks: [{ id: 'sys-1', kind: 'swatches', origin: 'system', items: [{ hex: '#1B7A7A', name: 'Primaire' }, { hex: '#D4A017', name: 'Secondaire' }] }] };
   const unpainted = await rawFix('<div class="flex h-full w-full flex-col gap-[16px] bg-ground p-[60px]"><h2 class="text-[44px]">{{title}}</h2><p>{{sys-1.items.0.name}} {{sys-1.items.0.hex}}</p><p>{{sys-1.items.1.name}} {{sys-1.items.1.hex}}</p></div>', paletteContent);
   ok('palette écrite mais pas peinte (page 7) : renvoyée — chaque couleur en aplat', unpainted.out.result.repairs.some((x) => x.code === 'render_fix') && /palette colours are written but not shown/.test(unpainted.prompt));
+  // ── Le texte comprimé (business plan réel, 05/11/2026) ────────────────────────────────────────
+  // Un sur-titre insécable prend la largeur de sa ligne entière et renvoie le titre voisin dans une colonne
+  // d'un mot de large, sur toute la hauteur. Quinze mots : l'ancien contrôle, qui ne regardait que les
+  // paragraphes de trente mots et plus, ne le voyait pas.
+  const crushed: SectionContent = { id: 'crush', title: 'AgriLink reaches farmers where they already gather, with a message that costs nothing to understand', kicker: 'FROM STRANGER TO REPEAT BUYER — ACQUISITION CHANNELS', blocks: [{ id: 'c0', kind: 'cards', items: [{ title: 'Canal', body: 'Agents villageois.' }] }] };
+  const crushedOut = await rawFix('<div class="flex h-full w-full items-start gap-[40px] bg-ground p-[56px]"><div class="flex-1"><h2 class="font-display text-[44px] font-bold leading-[1.05] text-ink">{{title}}</h2><p class="text-[13px]">{{c0.items.0.title}} {{c0.items.0.body}}</p></div><p class="whitespace-nowrap text-[12px] uppercase tracking-[0.14em] text-brand-primary">{{kicker}}</p></div>', crushed, 'a4-portrait');
+  ok('un titre de 15 mots écrasé dans une colonne d’un mot de large : renvoyé (le contrôle ne voyait que les paragraphes)', /crushed into a narrow column/.test(crushedOut.prompt), crushedOut.prompt.match(/ERROR: .*/)?.[0]?.slice(0, 200));
+  // Un jeton insécable chez le voisin (une URL de source) ne lui donne plus toute la largeur : min-width 0.
+  const urlSide: SectionContent = { id: 'url', title: 'The offline farmer is the last untapped node in the value chain', blocks: [{ id: 'p1', kind: 'prose', paragraphs: ['https://documents.worldbank.org/curated/en/agricultural-gdp-cameroon-2022-smallholder-share'] }] };
+  const withUrl = await rawFix('<div class="flex h-full w-full items-start gap-[32px] bg-ground p-[56px]"><div class="flex-[2]"><h2 class="font-display text-[40px] font-bold leading-[1.05] text-ink">{{title}}</h2></div><div class="flex-1"><p class="text-[13px] text-muted">{{p1.paragraphs.0}}</p></div></div>', urlSide, 'a4-portrait');
+  ok('une URL insécable chez le voisin n’écrase plus le titre (min-width des enfants de flex/grille à zéro)', !/crushed into a narrow column/.test(withUrl.prompt), withUrl.prompt.match(/ERROR: .*/)?.[0]?.slice(0, 160));
+
   const rules: SectionContent = { id: 'rules', title: 'Règles d’usage', blocks: [{ id: 'c1', kind: 'cards', items: [{ title: 'Zone de protection', body: 'Égale à la hauteur du A.' }] }] };
   const shouting = await rawFix('<div class="flex h-full w-full flex-col gap-[16px] bg-ground p-[60px]"><h2 class="text-[28px]">{{title}}</h2><p class="text-[30px]">{{c1.items.0.title}}</p><p class="text-[40px] font-bold">{{c1.items.0.body}}</p></div>', rules);
   ok('un texte simple composé comme un titre : renvoyé (taille de texte, seul le titre est grand)', shouting.out.result.repairs.some((x) => x.code === 'render_fix') && /plain text is set like a title/.test(shouting.prompt));

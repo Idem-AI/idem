@@ -620,6 +620,9 @@ export class BusinessPlanService extends GenericService {
         storedResearch: Object.fromEntries(
           currentSections.filter((s) => s.research?.digest).map((s) => [s.name, s.research!])
         ),
+        // RÉGÉNÉRER NE CHERCHE PAS. Une régénération (totale ou d'une section) refait la FORME : elle relit
+        // la trace web enregistrée et n'interroge jamais le web, même si une section n'a rien d'enregistré.
+        reuseOnly: forceRegenerate || targetSections.length > 0,
         // Chaque page est composée DANS le document du plan, à son rang.
         // Une section chiffrée sans graphique reçoit celui de son tableau de chiffres (Chart.js, mêmes valeurs).
         renderPage: (name, section, _index) =>

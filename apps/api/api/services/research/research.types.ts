@@ -87,10 +87,26 @@ export interface ResearchedSection {
   research?: StoredResearch;
 }
 
-/** Une recherche web conservée : les sources et la synthèse remise au rédacteur. */
+/**
+ * UNE RECHERCHE WEB CONSERVÉE — la TRACE ENTIÈRE de ce que le web a rendu, sans exception.
+ *
+ * Tout est gardé, y compris ce que le rédacteur n'a pas utilisé : une source non citée, un fait écarté, le
+ * texte complet au-delà de ce que le résumé tenait. Une régénération ne change que la FORME ; elle relit
+ * cette trace et n'interroge jamais le web une seconde fois (demande du 05/11/2026).
+ */
 export interface StoredResearch {
+  /** Toutes les sources rendues par le moteur, citées ou non. */
   sources: ResearchSource[];
+  /** La synthèse remise au rédacteur (bornée en jetons) — reconstruite depuis `narrative` à la relecture. */
   digest: string;
+  /** Le texte INTÉGRAL rendu par la recherche, avant le bornage du résumé. */
+  narrative?: string;
+  /** Tous les faits sourcés relevés, y compris ceux qu'aucune page n'a repris. */
+  findings?: ResearchFinding[];
+  /** Les axes de recherche effectivement lancés. */
+  briefs?: string[];
+  /** Quand la collecte a eu lieu (ISO). */
+  collectedAt?: string;
 }
 
 /**
