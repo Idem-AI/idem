@@ -3813,7 +3813,11 @@
             "corporate": "Corporate music",
             "afro": "Afro music"
           }
-        }
+        },
+        "otherProposals": "Other proposals",
+        "otherProposalsHint": "Composed together with this visual, at no extra cost: pick the one you prefer.",
+        "useProposal": "Use this proposal",
+        "proposalAlt": "Another composition of this visual"
       },
       "thumb": {
         "loading": "Loading the image…",
@@ -5615,6 +5619,11 @@
         "title": "Create your visual identity",
         "why": "A logo, colours and typography: this is what makes your business recognisable and credible from the first contact.",
         "outcome": "You get a logo, a palette, a typeface and your brand guidelines as a PDF."
+      },
+      "brandGuide": {
+        "title": "Write your brand guidelines",
+        "why": "The guidelines bring your logo, colors and fonts together with their usage rules. It is the reference document for everything you publish next.",
+        "outcome": "You get your complete brand guidelines, ready to read and export as PDF."
       },
       "businessPlan": {
         "title": "Write your business plan",

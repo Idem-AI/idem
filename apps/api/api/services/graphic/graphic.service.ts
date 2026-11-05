@@ -53,7 +53,7 @@ export async function withProjectArtDirection(promptService: PromptService, user
 }
 
 export interface OpenGraphicDocumentOptions {
-  project: Pick<ProjectModel, 'id' | 'name' | 'analysisResultModel'> & { description?: string };
+  project: Pick<ProjectModel, 'id' | 'name' | 'analysisResultModel'> & { description?: string; type?: string; additionalInfos?: { country?: string } };
   documentType: DocumentType;
   format: FormatId;
   /** La clé du livrable (`documentDesignKey`) : journaux et mémoire des bibles du document. */
@@ -96,6 +96,10 @@ export function openGraphicDocument(o: OpenGraphicDocumentOptions): Promise<Grap
     locale: getRequestLanguage() === 'fr' ? 'fr' : 'en',
     user: { userId: o.userId, projectId: o.project.id },
     memoryScope: o.project.id ? { documentType: o.documentType, key: o.project.id } : undefined,
+    // Plan qualité créative : les idées de l'utilisateur et du secteur sont relues aussi (ne pas les refaire), et le
+    // pays de la marque oriente l'axe de départ.
+    memoryScopes: [...(o.userId ? [{ documentType: o.documentType, key: `user:${o.userId}` }] : []), ...(o.project.type ? [{ documentType: o.documentType, key: `sector:${o.project.type}:${o.project.additionalInfos?.country ?? ''}` }] : [])],
+    ...(o.project.additionalInfos?.country ? { country: o.project.additionalInfos.country } : {}),
     bindings: o.bindings,
     footer: o.footer,
     imageColors: o.imageColors,

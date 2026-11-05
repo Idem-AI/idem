@@ -276,7 +276,11 @@
             "corporate": "Musique sobre",
             "afro": "Musique afro"
           }
-        }
+        },
+        "otherProposals": "Autres propositions",
+        "otherProposalsHint": "Composées en même temps que ce visuel, sans frais : choisissez celle que vous préférez.",
+        "useProposal": "Utiliser cette proposition",
+        "proposalAlt": "Autre composition de ce visuel"
       },
       "studio": {
         "empty": {

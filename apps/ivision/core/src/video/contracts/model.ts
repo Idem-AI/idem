@@ -381,6 +381,10 @@ export interface FilmScene {
   voiceText?: string;
   /** Le code Motion Canvas (TSX) écrit par l'IA. Jamais réécrit par le code d'IDEM. */
   code?: string;
+  /** Rendu HyperFrames : le fragment HTML Tailwind de la scène, son script d'animation et sa bibliothèque. */
+  html?: string;
+  script?: string;
+  animation?: 'gsap' | 'anime';
   /** Qui l'a écrit, et à quelle demande. */
   author?: {
     tokens: { input: number; output: number };
@@ -426,7 +430,8 @@ export interface FilmAgentTrace {
 
 export interface VideoFilm {
   version: 2;
-  engine: 'motion-canvas';
+  /** Le moteur de rendu : HyperFrames (HTML animé, défaut depuis le 04/11/2026) ou Motion Canvas (repli). */
+  engine: 'motion-canvas' | 'hyperframes';
   title: string;
   /** Le concept du film, en une ou deux phrases. */
   concept: string;
@@ -463,4 +468,8 @@ export interface VideoFilm {
   transitionCues?: TransitionCue[];
   /** L'échantillonnage : variantes écrites, jugées, gardées ; jetons ; scènes arrêtées au seuil. */
   sampling?: { authored: number; candidates: number; probed: number; tokens: number; stoppedEarly: number };
+  /** L'axe de départ tiré par le code (plan qualité créative) : jamais deux fois le même pour la marque. */
+  axis?: string;
+  /** L'exploration du concept : pistes proposées et piste retenue (par la nouveauté face aux films déjà faits). */
+  explored?: { tracks: number; chosen: string; novelty: number };
 }

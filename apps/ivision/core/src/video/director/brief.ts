@@ -40,6 +40,8 @@ export interface FilmBrief {
   /** Vidéo produit / promotion : les huit temps (accroche … signature) servent de squelette. */
   skeleton?: boolean;
   level: CreativityLevel;
+  /** L'axe de départ tiré par le code (plan qualité créative), et sa consigne. */
+  axis?: { id: string; line: string };
 }
 
 /** Les huit temps d'une vidéo produit, en une ligne (squelette donné au directeur et au planificateur). */

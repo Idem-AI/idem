@@ -9,6 +9,7 @@ import { ProjectModel } from '@idem/shared-models';
 export type GuidedStepId =
   | 'project'
   | 'branding'
+  | 'brandGuide'
   | 'businessPlan'
   | 'finance'
   | 'pitchDeck'

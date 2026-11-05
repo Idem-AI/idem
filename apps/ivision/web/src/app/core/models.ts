@@ -168,6 +168,8 @@ export interface Visual {
   /** Export HD sans signature déjà réglé. */
   exported?: boolean;
   createdAt: string;
+  /** Les autres compositions écrites en même temps (sans frais) : le client peut en choisir une. */
+  alternatives?: Array<{ id: string; imageUrl: string }>;
 }
 
 export interface VideoRender {
@@ -196,6 +198,10 @@ export interface FilmScene {
   media: string[];
   voiceText?: string;
   code?: string;
+  /** Rendu HyperFrames : fragment HTML et script d'animation de la scène. */
+  html?: string;
+  script?: string;
+  animation?: 'gsap' | 'anime';
   author?: { at: string; instruction?: string };
   status: 'planned' | 'ready' | 'error';
   error?: { stage: 'author' | 'compile' | 'runtime'; message: string };

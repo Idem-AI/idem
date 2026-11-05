@@ -527,6 +527,34 @@ export const saveFlyerHtmlController = async (
 };
 
 /**
+ * POST /project/communication/:projectId/flyer/:flyerId/variant
+ * Le client choisit une autre composition proposée pour ce visuel (déjà payée) : elle devient le visuel.
+ */
+export const chooseFlyerVariantController = async (req: CustomRequest, res: Response): Promise<void> => {
+  const userId = requireAuth(req, res);
+  if (!userId) return;
+  const projectId = requireProjectId(req, res);
+  if (!projectId) return;
+  const flyerId = req.params.flyerId as string;
+  const variantId = (req.body?.variantId ?? '').toString().trim();
+  if (!flyerId || !variantId) {
+    res.status(400).json({ message: 'Flyer ID and variantId are required' });
+    return;
+  }
+  try {
+    const flyer = await communicationService.chooseFlyerVariant(userId, projectId, flyerId, variantId);
+    if (!flyer) {
+      res.status(404).json({ message: 'Flyer or variant not found' });
+      return;
+    }
+    res.status(200).json(flyer);
+  } catch (error: any) {
+    logger.error(`chooseFlyerVariantController error: ${error.message}`, { stack: error.stack });
+    res.status(500).json({ message: error.message || 'Failed to choose the variant' });
+  }
+};
+
+/**
  * POST /project/communication/:projectId/flyer/:flyerId/ai-edit
  * Retouche du visuel par l'IA, à partir d'une consigne en langue naturelle.
  */

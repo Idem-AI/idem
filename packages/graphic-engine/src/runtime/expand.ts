@@ -14,7 +14,7 @@
 import type { DesignTokens } from '../design-system/tokens';
 import type { FormatDef } from '../design-system/formats';
 import type { ContentMap } from './content-map';
-import { chartHtml, galleryHtml, iconHtml, logoHtml, patternHtml, patternTileHtml, tableHtml } from './primitives';
+import { chartHtml, galleryHtml, iconHtml, logoHtml, patternHtml, patternTileHtml, proceduralPatternHtml, tableHtml } from './primitives';
 
 const esc = (v: string) => v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 
@@ -165,6 +165,7 @@ export function expandPage(template: string, map: ContentMap, tokens: DesignToke
       }
       return iconHtml(name, { className });
     }
+    if (k === 'pattern' && attrOf(attrs, 'kind')) return proceduralPatternHtml(tokens, attrOf(attrs, 'kind') ?? 'flow', { className, density: Number(attrOf(attrs, 'density')), seed: frame.sectionId });
     if (k === 'pattern') return patternHtml(tokens, Number(attrOf(attrs, 'index') ?? 0), { className });
     const id = attrOf(attrs, 'data-block') ?? '';
     const block = k === 'pattern-tile' ? map.blocks.get(id) : map.primitives.get(id);

@@ -47,6 +47,7 @@ export class IdemVideoStore implements VideoStore {
       },
       visuals: analysis.communication?.visuals || [],
       videos: analysis.communication?.videos || [],
+      ...((project as any).additionalInfos?.country ? { country: (project as any).additionalInfos.country } : {}),
     };
   }
 

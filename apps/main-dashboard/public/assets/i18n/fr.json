@@ -3816,7 +3816,11 @@
             "corporate": "Musique sobre",
             "afro": "Musique afro"
           }
-        }
+        },
+        "otherProposals": "Autres propositions",
+        "otherProposalsHint": "Composées en même temps que ce visuel, sans frais : choisissez celle que vous préférez.",
+        "useProposal": "Utiliser cette proposition",
+        "proposalAlt": "Autre composition de ce visuel"
       },
       "thumb": {
         "loading": "Chargement de l'image…",
@@ -5581,6 +5585,11 @@
         "title": "Créer votre identité visuelle",
         "why": "Un logo, des couleurs, une typographie : c'est ce qui rend votre activité reconnaissable et crédible dès le premier contact.",
         "outcome": "Vous obtenez un logo, une palette, une typographie et votre charte en PDF."
+      },
+      "brandGuide": {
+        "title": "Écrire votre charte graphique",
+        "why": "La charte réunit votre logo, vos couleurs et vos polices avec leurs règles d'usage. C'est le document de référence pour tout ce que vous publierez ensuite.",
+        "outcome": "Vous obtenez votre charte graphique complète, à consulter et à exporter en PDF."
       },
       "businessPlan": {
         "title": "Rédiger votre business plan",

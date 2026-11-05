@@ -460,7 +460,14 @@
       "fit": "Ajuster à l’écran",
       "actualSize": "Taille réelle",
       "imageFailed": "L’image n’a pas pu être chargée.",
-      "retry": "Réessayer"
+      "retry": "Réessayer",
+      "otherProposals": "Autres propositions",
+      "otherProposalsHint": "Composées en même temps, sans frais : choisissez celle que vous préférez.",
+      "useProposal": "Utiliser cette proposition",
+      "proposalAlt": "Autre composition de ce visuel",
+      "decline": "Aussi dans un autre format",
+      "declined": "Ouvrir",
+      "declineFailed": "La déclinaison n’a pas abouti. Réessayez."
     },
     "payment": {
       "cta": "Recharger mon portefeuille",

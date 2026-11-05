@@ -34,7 +34,7 @@ export interface GeneratedImageLike {
   model: string;
 }
 
-export type VisionPurpose = 'visual-analysis' | 'shot-critic' | 'reference' | 'site' | 'media-check' | 'video-tiebreak';
+export type VisionPurpose = 'visual-analysis' | 'shot-critic' | 'reference' | 'site' | 'media-check' | 'video-tiebreak' | 'design-judge';
 export interface VisionOptions {
   maxOutputTokens?: number;
   temperature?: number;
@@ -148,6 +148,8 @@ export function configureCore(next: Partial<CoreHost> & { logger?: CoreLogger })
     ...(logger ? { logger: { info: (m, meta) => logger.info(m, meta), warn: (m, meta) => logger.warn(m, meta), error: (m, meta) => logger.error(m, meta) } } : {}),
     ...(host.assetRegistry ? { assetRegistry: host.assetRegistry } : {}),
     ...(host.brandMemory ? { brandMemory: host.brandMemory } : {}),
+    // Le juge visuel des variantes (plan qualité créative) : le modèle de vision de l'hôte.
+    ...(host.analyzeImage ? { judgeImage: (base64: string, mimeType: string, instruction: string) => host.analyzeImage!(base64, mimeType, instruction, { purpose: 'design-judge' }) } : {}),
     browser: { allow: (url) => isRenderUrlAllowed(url) },
   });
 }

@@ -982,6 +982,47 @@ v1.put(
   })
 );
 
+/** Une autre composition proposée (déjà payée) devient le visuel (gratuit). */
+v1.post(
+  '/visuals/:id/variant',
+  validate({ body: z.object({ variantId: z.string().min(1).max(200) }) }),
+  asyncRoute<AuthedRequest>(async (req, res) => {
+    const updated = await visuals.chooseVariant(uid(req), req.params.id, req.body.variantId);
+    res.json({ ...visuals.visualView(updated), html: updated.html });
+  })
+);
+
+/**
+ * DÉCLINER un visuel dans un autre format : mêmes mots, même image, même idée ; la composition s'adapte à la toile.
+ * Payé comme une création (un auteur réécrit la page), restitué en cas d'échec.
+ */
+v1.post(
+  '/visuals/:id/decline',
+  validate({ body: z.object({ format: z.enum(FLYER_FORMATS as [string, ...string[]]) }) }),
+  asyncRoute<AuthedRequest>(async (req, res: Response) => {
+    const source = await visuals.getVisual(uid(req), req.params.id);
+    if (source.format === req.body.format) throw new HttpError(400, 'same_format', 'Le visuel est déjà dans ce format.');
+    const brand = await brands.getBrand(uid(req), source.brandId);
+    let paid;
+    try {
+      paid = await charge(uid(req), quote.visual(source.creativity), String(source._id));
+    } catch (error) {
+      if (error instanceof PaymentRequired) {
+        res.status(error.status).json(error.body);
+        return;
+      }
+      throw error;
+    }
+    try {
+      const created = await visuals.createVisual(uid(req), brand, { prompt: source.prompt, format: req.body.format, creativity: source.creativity, withPhoto: !!source.photo, ...(source.sessionId ? { sessionId: source.sessionId } : {}), adaptFrom: source }, paid.cost);
+      res.status(201).json({ ...visuals.visualView(created), html: created.html });
+    } catch (error) {
+      await refund(uid(req), paid, 'Déclinaison du visuel en échec — montant restitué');
+      throw error;
+    }
+  })
+);
+
 v1.get(
   '/visuals/:id',
   asyncRoute<AuthedRequest>(async (req, res) => {

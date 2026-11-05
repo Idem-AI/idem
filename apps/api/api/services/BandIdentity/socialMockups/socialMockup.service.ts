@@ -317,6 +317,8 @@ export class SocialMockupService {
       brand: kit.brand,
       direction: kit.direction,
       seed: `avatar:${kit.projectKey}`,
+      // Des fichiers de la charte, que personne ne choisit : une seule composition (pas de variantes payées pour rien).
+      variants: 1,
       memoryScope: { documentType: 'brand-charter', key: kit.projectKey },
       png: true,
       content: { id: 'avatar', role: 'visual', title: kit.brandName.slice(0, 160) || 'Marque', blocks: [] },
@@ -367,6 +369,8 @@ export class SocialMockupService {
       brand: kit.brand,
       direction: kit.direction,
       seed: `banner:${kit.projectKey}:${format}`,
+      // Des fichiers de la charte, que personne ne choisit : une seule composition (pas de variantes payées pour rien).
+      variants: 1,
       memoryScope: { documentType: 'brand-charter', key: kit.projectKey },
       png: true,
       content,

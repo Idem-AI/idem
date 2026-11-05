@@ -1,0 +1,132 @@
+import type { CorpusPage } from './types';
+
+/** Visuels de réseaux sociaux et flyers — une toile unique, un message (20). Le logo reste présent mais jamais le foyer. */
+export const PAGES: CorpusPage[] = [
+  {
+    id: 'fl01', doc: 'flyer', format: 'flyer-square', role: 'visual', brand: 8, style: 'maximalism',
+    intent: 'promotion: a huge price figure on a brand-colour ground with the offer line above and a call to action below',
+    texts: { kicker: 'Offre de rentrée', title: 'Le premier mois', 'price': '0 F', 'detail': 'Inscription avant le 30 septembre, places limitées à 30 par campus.', cta: 'Écrivez « CODE » sur WhatsApp' },
+    html: `<div class="relative flex h-full w-full flex-col justify-between bg-brand-primary p-[76px] text-on-brand"><div><p class="text-[26px] font-bold uppercase tracking-[0.2em]">{{kicker}}</p><p class="mt-[14px] font-display text-[78px] font-bold leading-[1]">{{title}}</p></div><p class="font-display text-[360px] font-black leading-[0.8] tracking-[-0.04em]">{{price}}</p><div class="flex items-end justify-between gap-[40px]"><div><p class="max-w-[560px] text-[28px] leading-[1.35]">{{detail}}</p><p class="mt-[18px] inline-block bg-brand-accent px-[22px] py-[10px] text-[28px] font-bold text-on-accent">{{cta}}</p></div><idem-logo variant="onDark" class="h-[56px]"></idem-logo></div></div>`,
+  },
+  {
+    id: 'fl02', doc: 'flyer', format: 'flyer-story', role: 'visual', brand: 3,
+    intent: 'story announcement: a big photograph on the upper half, headline and a date block below, inside the safe area',
+    texts: { kicker: 'Marché du terroir', title: 'Ce samedi, tout le Bénin dans un panier', date: 'Sam. 14', month: 'Mars', time: '8 h – 14 h', place: 'Place de l’Étoile Rouge, Cotonou' },
+    images: { 'hero.url': 'photo:#f6ae2d,#b5422f,#2f4858' },
+    html: `<div class="relative h-full w-full bg-ground"><img src="{{hero.url}}" alt="" class="absolute inset-x-0 top-0 h-[56%] w-full object-cover"><div class="absolute inset-x-0 bottom-0 flex h-[44%] flex-col justify-between bg-ground px-[76px] pb-[288px] pt-[44px]"><div><p class="text-[28px] font-bold uppercase tracking-[0.18em] text-brand-primary">{{kicker}}</p><h2 class="mt-[12px] font-display text-[76px] font-bold leading-[1.02] text-ink">{{title}}</h2></div></div><div class="absolute bottom-[290px] left-[76px] right-[76px] flex items-center gap-[32px] border-t-[4px] border-brand-primary pt-[22px]"><div class="text-center"><p class="font-display text-[64px] font-black leading-none text-brand-primary">{{date}}</p><p class="text-[28px] font-bold uppercase">{{month}}</p></div><div class="text-[30px] leading-[1.3] text-ink"><p class="font-bold">{{time}}</p><p>{{place}}</p></div></div></div>`,
+  },
+  {
+    id: 'fl03', doc: 'flyer', format: 'flyer-square', role: 'visual', brand: 0, style: 'editorial',
+    intent: 'quote card: a large pull quote with the speaker’s name and role, quiet ground, brand rule and logo',
+    texts: { quote: 'Je connais enfin le prix avant la récolte. Ça change tout pour ma famille.', who: 'Salimata Coulibaly', role: 'Productrice de cajou, Korhogo' },
+    html: `<div class="flex h-full w-full flex-col justify-between bg-brand-soft p-[84px]"><idem-logo variant="primary" class="h-[56px] self-start"></idem-logo><div><div class="mb-[30px] h-[8px] w-[110px] bg-brand-primary"></div><p class="font-display text-[84px] font-medium italic leading-[1.1] text-ink">{{quote}}</p><p class="mt-[40px] text-[32px] font-bold text-ink">{{who}}</p><p class="text-[26px] text-muted">{{role}}</p></div></div>`,
+  },
+  {
+    id: 'fl04', doc: 'flyer', format: 'flyer-post', role: 'visual', brand: 6,
+    intent: 'a statistic post: one number set huge, its meaning in a sentence, the source small at the bottom',
+    texts: { kicker: 'Did you know?', 'fig': '1 in 4', 'lede': 'prescriptions in Lusaka are collected from a second pharmacy because the first could not deliver on time.', 'src': 'Source: LastMile survey of 40 pharmacies, 2026.', cta: 'We fix that. Same-day delivery.' },
+    html: `<div class="flex h-full w-full flex-col justify-between bg-ground p-[80px]"><p class="text-[28px] font-bold uppercase tracking-[0.18em] text-brand-primary">{{kicker}}</p><div><p class="font-display text-[300px] font-black leading-[0.85] tracking-[-0.04em] text-brand-primary">{{fig}}</p><p class="mt-[30px] max-w-[880px] font-display text-[48px] font-bold leading-[1.15] text-ink">{{lede}}</p></div><div class="flex items-end justify-between border-t-[3px] border-ink pt-[22px]"><div><p class="text-[30px] font-bold text-ink">{{cta}}</p><p class="mt-[6px] text-[22px] text-muted">{{src}}</p></div><idem-logo variant="primary" class="h-[52px]"></idem-logo></div></div>`,
+  },
+  {
+    id: 'fl05', doc: 'flyer', format: 'flyer-banner', role: 'visual', brand: 7,
+    intent: 'link-preview banner: headline left on the brand colour, a short subline, the logo right on a lighter panel',
+    texts: { title: 'Savings groups, now on every phone', sub: 'Osusu Digital · USSD · no smartphone needed', url: 'osusu.example' },
+    html: `<div class="grid h-full w-full grid-cols-[1fr_340px]"><div class="flex flex-col justify-between bg-brand-primary p-[60px] text-on-brand"><p class="font-display text-[68px] font-bold leading-[1.02]">{{title}}</p><p class="text-[28px]">{{sub}}</p></div><div class="flex flex-col items-center justify-between bg-brand-soft p-[44px]"><idem-logo variant="primary" class="h-[70px]"></idem-logo><p class="text-[26px] font-bold text-brand-primary">{{url}}</p></div></div>`,
+  },
+  {
+    id: 'fl06', doc: 'flyer', format: 'flyer-square', role: 'visual', brand: 11, style: 'pop-art',
+    intent: 'new collection: a full-bleed photograph with a coloured label carrying the name and a thin caption',
+    texts: { kicker: 'Nova colecção', title: 'Verão em capulana', cap: 'Disponível online e na loja do Mercado Central, Maputo.' },
+    images: { 'hero.url': 'photo:#ffb703,#d6336c,#1b4965' },
+    html: `<div class="relative h-full w-full"><img src="{{hero.url}}" alt="" class="absolute inset-0 h-full w-full object-cover"><div class="absolute bottom-[76px] left-[76px] max-w-[760px] bg-brand-primary p-[40px] text-on-brand"><p class="text-[26px] font-bold uppercase tracking-[0.2em]">{{kicker}}</p><p class="mt-[10px] font-display text-[100px] font-black leading-[0.95]">{{title}}</p><p class="mt-[16px] text-[26px] leading-[1.35]">{{cap}}</p></div><idem-logo variant="onDark" class="absolute right-[76px] top-[76px] h-[60px]"></idem-logo></div>`,
+  },
+  {
+    id: 'fl07', doc: 'flyer', format: 'flyer-story', role: 'visual', brand: 10,
+    intent: 'story for a workshop: the headline stacked huge, three practical details as ruled rows, a clear call to action',
+    texts: { kicker: 'Workshop', title: 'Photograph the dawn', 'r0.k': 'When', 'r0.v': 'Sat 21 March, 5:30 am', 'r1.k': 'Where', 'r1.v': 'Nanyuki Show Ground', 'r2.k': 'Price', 'r2.v': 'KES 6,500, lunch included', cta: 'Book via the link in bio' },
+    html: `<div class="flex h-full w-full flex-col justify-between bg-deep px-[76px] pb-[288px] pt-[230px] text-on-deep"><div><p class="text-[30px] font-bold uppercase tracking-[0.2em] text-brand-accent">{{kicker}}</p><h2 class="mt-[20px] font-display text-[160px] font-black leading-[0.9] tracking-[-0.03em]">{{title}}</h2></div><div><div class="border-t border-on-deep/40"><div class="flex justify-between gap-[30px] border-b border-on-deep/40 py-[26px]"><span class="text-[28px] uppercase tracking-[0.1em] opacity-70">{{r0.k}}</span><span class="text-[38px] font-bold">{{r0.v}}</span></div><div class="flex justify-between gap-[30px] border-b border-on-deep/40 py-[26px]"><span class="text-[28px] uppercase tracking-[0.1em] opacity-70">{{r1.k}}</span><span class="text-[38px] font-bold">{{r1.v}}</span></div><div class="flex justify-between gap-[30px] border-b border-on-deep/40 py-[26px]"><span class="text-[28px] uppercase tracking-[0.1em] opacity-70">{{r2.k}}</span><span class="text-[38px] font-bold">{{r2.v}}</span></div></div><div class="mt-[34px] flex items-center justify-between"><p class="bg-brand-accent px-[26px] py-[14px] text-[32px] font-bold text-on-accent">{{cta}}</p><idem-logo variant="onDark" class="h-[56px]"></idem-logo></div></div></div>`,
+  },
+  {
+    id: 'fl08', doc: 'flyer', format: 'flyer-square', role: 'visual', brand: 4,
+    intent: 'product spotlight: a photograph in a framed zone on the left half, product name, price and a short note on the right',
+    texts: { kicker: 'New in the shop', title: 'The Kampala belt', price: 'UGX 85,000', note: 'Bark cloth and vegetable-tanned leather. Made in batches of fifty.', cta: 'Shop at barkandco.example' },
+    images: { 'hero.url': 'photo:#d4a373,#9c4a1a,#2b2d42' },
+    html: `<div class="grid h-full w-full grid-cols-2 bg-ground"><img src="{{hero.url}}" alt="" class="h-full w-full object-cover"><div class="flex flex-col justify-between p-[60px]"><idem-logo variant="primary" class="h-[52px] self-start"></idem-logo><div><p class="text-[24px] font-bold uppercase tracking-[0.18em] text-brand-primary">{{kicker}}</p><p class="mt-[12px] font-display text-[78px] font-bold leading-[1] text-ink">{{title}}</p><p class="mt-[22px] text-[28px] leading-[1.35] text-muted">{{note}}</p></div><div><p class="font-display text-[56px] font-bold tabular-nums text-ink">{{price}}</p><p class="mt-[6px] text-[24px] font-semibold text-brand-primary">{{cta}}</p></div></div></div>`,
+  },
+  {
+    id: 'fl09', doc: 'flyer', format: 'flyer-post', role: 'visual', brand: 9,
+    intent: 'a tip post: a numbered how-to of three steps in large type, each separated by a rule',
+    texts: { kicker: 'Astuce café', title: 'Réussir son café filtre en 3 gestes', 's0.n': '1', 's0.t': 'Moudre juste avant', 's1.n': '2', 's1.t': 'Eau à 93 °C, pas plus', 's2.n': '3', 's2.t': 'Verser en spirale, en 3 fois', foot: 'Café des Grassfields · arabica de l’Ouest' },
+    html: `<div class="flex h-full w-full flex-col bg-brand-soft p-[80px]"><p class="text-[28px] font-bold uppercase tracking-[0.18em] text-brand-primary">{{kicker}}</p><h2 class="mt-[16px] font-display text-[90px] font-bold leading-[1.02] text-ink">{{title}}</h2><ol class="mt-auto flex flex-col border-t-[4px] border-ink"><li class="flex items-center gap-[36px] border-b border-rule py-[34px]"><span class="font-display text-[110px] font-black leading-none text-brand-primary">{{s0.n}}</span><span class="font-display text-[50px] font-bold leading-[1.1] text-ink">{{s0.t}}</span></li><li class="flex items-center gap-[36px] border-b border-rule py-[34px]"><span class="font-display text-[110px] font-black leading-none text-brand-primary">{{s1.n}}</span><span class="font-display text-[50px] font-bold leading-[1.1] text-ink">{{s1.t}}</span></li><li class="flex items-center gap-[36px] border-b border-rule py-[34px]"><span class="font-display text-[110px] font-black leading-none text-brand-primary">{{s2.n}}</span><span class="font-display text-[50px] font-bold leading-[1.1] text-ink">{{s2.t}}</span></li></ol><div class="mt-[30px] flex items-center justify-between"><p class="text-[24px] text-muted">{{foot}}</p><idem-logo variant="primary" class="h-[52px]"></idem-logo></div></div>`,
+  },
+  {
+    id: 'fl10', doc: 'flyer', format: 'flyer-square', role: 'visual', brand: 5, style: 'collage-art',
+    intent: 'a hiring post: the role in huge type on one colour, requirements as a short list, application line at the bottom',
+    texts: { kicker: 'On recrute', title: 'Couturier·ère confirmé·e', 'l0': '5 ans d’expérience en couture sur mesure', 'l1': 'Maîtrise de la coupe à plat', 'l2': 'Disponible dès avril, Brazzaville', cta: 'Envoyez votre CV à emploi@brazzamode.example' },
+    html: `<div class="flex h-full w-full flex-col justify-between bg-brand-primary p-[76px] text-on-brand"><div class="flex items-start justify-between"><p class="bg-brand-accent px-[22px] py-[10px] text-[28px] font-black uppercase tracking-[0.16em] text-on-accent">{{kicker}}</p><idem-logo variant="onDark" class="h-[56px]"></idem-logo></div><div><h2 class="font-display text-[130px] font-black uppercase leading-[0.92] tracking-[-0.01em]">{{title}}</h2><ul class="mt-[34px] flex flex-col gap-[10px] text-[32px] leading-[1.3]"><li class="border-t border-on-brand/50 pt-[10px]">{{l0}}</li><li class="border-t border-on-brand/50 pt-[10px]">{{l1}}</li><li class="border-t border-on-brand/50 pt-[10px]">{{l2}}</li></ul></div><p class="text-[30px] font-bold">{{cta}}</p></div>`,
+  },
+  {
+    id: 'fl11', doc: 'flyer', format: 'flyer-story', role: 'visual', brand: 2,
+    intent: 'a holiday greeting story: a photograph full bleed, a short seasonal wish centred in the safe area on a translucent panel',
+    texts: { title: 'Bonne année depuis la Lopé', wish: 'Que 2027 vous apporte le calme de la forêt et le chant des oiseaux au réveil.', sign: 'L’équipe de Lopé Écolodge' },
+    images: { 'hero.url': 'photo:#9fd3a8,#355e3b,#1b2e20' },
+    html: `<div class="relative h-full w-full"><img src="{{hero.url}}" alt="" class="absolute inset-0 h-full w-full object-cover"><div class="absolute inset-x-[76px] top-[620px] bg-ground/95 p-[56px]"><p class="font-display text-[100px] font-bold leading-[1] text-brand-primary">{{title}}</p><p class="mt-[26px] text-[36px] leading-[1.35] text-ink">{{wish}}</p><p class="mt-[26px] text-[28px] font-bold text-ink">{{sign}}</p></div><idem-logo variant="onDark" class="absolute bottom-[300px] left-[76px] h-[60px]"></idem-logo></div>`,
+  },
+  {
+    id: 'fl12', doc: 'flyer', format: 'flyer-square', role: 'visual', brand: 1,
+    intent: 'comparison post: two columns before and after with a figure each, the improvement highlighted in brand colour',
+    texts: { title: 'Fertiliser, measured', 'b.k': 'Without a soil test', 'b.v': '40 %', 'b.l': 'of fertiliser wasted', 'a.k': 'With SoilSense', 'a.v': '9 %', 'a.l': 'of fertiliser wasted', cta: 'Test your plot this season' },
+    html: `<div class="flex h-full w-full flex-col bg-ground"><div class="p-[76px] pb-[40px]"><p class="font-display text-[84px] font-bold leading-[1] text-ink">{{title}}</p></div><div class="grid flex-1 grid-cols-2"><div class="flex flex-col justify-end bg-sunken p-[60px]"><p class="text-[26px] font-bold uppercase tracking-[0.14em] text-muted">{{b.k}}</p><p class="font-display text-[190px] font-black leading-[0.9] tabular-nums text-ink">{{b.v}}</p><p class="text-[28px] text-muted">{{b.l}}</p></div><div class="flex flex-col justify-end bg-brand-primary p-[60px] text-on-brand"><p class="text-[26px] font-bold uppercase tracking-[0.14em]">{{a.k}}</p><p class="whitespace-nowrap font-display text-[150px] font-black leading-[0.9] tabular-nums">{{a.v}}</p><p class="text-[28px]">{{a.l}}</p></div></div><div class="flex items-center justify-between px-[76px] py-[30px]"><p class="text-[30px] font-bold text-ink">{{cta}}</p><idem-logo variant="primary" class="h-[52px]"></idem-logo></div></div>`,
+  },
+  {
+    id: 'fl13', doc: 'flyer', format: 'flyer-banner', role: 'visual', brand: 3,
+    intent: 'event banner: date block on the left in the brand colour, event name and place in large type on the right',
+    texts: { day: '14', month: 'MARS', title: 'Marché du terroir', place: 'Place de l’Étoile Rouge · 8 h – 14 h' },
+    html: `<div class="flex h-full w-full bg-ground"><div class="flex w-[280px] flex-col items-center justify-center bg-brand-primary text-on-brand"><p class="font-display text-[170px] font-black leading-[0.85] tabular-nums">{{day}}</p><p class="mt-[10px] text-[40px] font-bold tracking-[0.2em]">{{month}}</p></div><div class="flex flex-1 flex-col justify-between p-[54px]"><idem-logo variant="primary" class="h-[48px] self-end"></idem-logo><div><p class="font-display text-[88px] font-bold leading-[1] text-ink">{{title}}</p><p class="mt-[14px] text-[30px] text-muted">{{place}}</p></div></div></div>`,
+  },
+  {
+    id: 'fl14', doc: 'flyer', format: 'flyer-post', role: 'visual', brand: 10,
+    intent: 'photographic post: full-bleed picture with the caption bar at the bottom carrying the place, the date and the logo',
+    texts: { place: 'Laikipia, 06:40', cap: 'First light on the plains', credit: 'Print edition of 50 · wildlens.example' },
+    images: { 'hero.url': 'photo:#ffd166,#e07a3f,#1d3a2a' },
+    html: `<div class="relative h-full w-full"><img src="{{hero.url}}" alt="" class="absolute inset-0 h-full w-full object-cover"><div class="absolute inset-x-0 bottom-0 flex items-end justify-between bg-ground/95 px-[70px] py-[44px]"><div><p class="text-[24px] font-bold uppercase tracking-[0.18em] text-brand-primary">{{place}}</p><p class="mt-[6px] font-display text-[60px] font-bold leading-[1.05] text-ink">{{cap}}</p><p class="mt-[8px] text-[22px] text-muted">{{credit}}</p></div><idem-logo variant="primary" class="h-[56px]"></idem-logo></div></div>`,
+  },
+  {
+    id: 'fl15', doc: 'flyer', format: 'flyer-square', role: 'visual', brand: 7, style: 'glassmorphism',
+    intent: 'a three-point feature post: the headline over a procedural flow texture, three numbered benefits in a row',
+    texts: { title: 'Save together, from any phone', 'f0.t': 'Dial *123#', 'f0.b': 'No app, no data.', 'f1.t': 'Pay your share', 'f1.b': 'Mobile money in seconds.', 'f2.t': 'Get paid out', 'f2.b': 'On the day agreed by the group.' },
+    html: `<div class="relative flex h-full w-full flex-col justify-between overflow-hidden bg-deep p-[76px] text-on-deep"><idem-pattern kind="flow" density="0.5" class="absolute inset-0 opacity-100"></idem-pattern><div class="relative flex items-start justify-between"><p class="max-w-[720px] font-display text-[96px] font-bold leading-[1]">{{title}}</p><idem-logo variant="onDark" class="h-[56px]"></idem-logo></div><div class="relative grid grid-cols-3 gap-[24px]"><div class="border-t-[4px] border-brand-accent pt-[18px]"><p class="font-display text-[40px] font-bold">{{f0.t}}</p><p class="mt-[6px] text-[26px] opacity-85">{{f0.b}}</p></div><div class="border-t-[4px] border-brand-accent pt-[18px]"><p class="font-display text-[40px] font-bold">{{f1.t}}</p><p class="mt-[6px] text-[26px] opacity-85">{{f1.b}}</p></div><div class="border-t-[4px] border-brand-accent pt-[18px]"><p class="font-display text-[40px] font-bold">{{f2.t}}</p><p class="mt-[6px] text-[26px] opacity-85">{{f2.b}}</p></div></div></div>`,
+  },
+  {
+    id: 'fl16', doc: 'flyer', format: 'flyer-a4', role: 'visual', brand: 3,
+    intent: 'printed A4 flyer: headline, a photograph, a short price list and the contact strip at the foot',
+    texts: { kicker: 'Épicerie fine béninoise', title: 'Le panier du marché, livré le jeudi', 'p0.n': 'Panier découverte', 'p0.v': '12 000 F', 'p1.n': 'Panier famille', 'p1.v': '22 000 F', 'p2.n': 'Panier traiteur', 'p2.v': '45 000 F', 'c0': 'WhatsApp +229 01 96 00 00 00', 'c1': 'Rue 214, Haie Vive, Cotonou' },
+    images: { 'hero.url': 'photo:#f6ae2d,#b5422f,#2f4858' },
+    html: `<div class="flex h-full w-full flex-col bg-ground"><div class="flex items-start justify-between p-[80px] pb-[40px]"><div><p class="text-[22px] font-bold uppercase tracking-[0.18em] text-brand-primary">{{kicker}}</p><h2 class="mt-[14px] max-w-[760px] font-display text-[84px] font-bold leading-[1.02] text-ink">{{title}}</h2></div><idem-logo variant="primary" class="h-[54px]"></idem-logo></div><img src="{{hero.url}}" alt="" class="h-[560px] w-full object-cover"><div class="flex flex-1 flex-col justify-center px-[80px]"><div class="border-t-[3px] border-ink"><div class="flex items-baseline justify-between border-b border-rule py-[20px]"><span class="font-display text-[40px] font-bold text-ink">{{p0.n}}</span><span class="font-display text-[44px] font-bold tabular-nums text-brand-primary">{{p0.v}}</span></div><div class="flex items-baseline justify-between border-b border-rule py-[20px]"><span class="font-display text-[40px] font-bold text-ink">{{p1.n}}</span><span class="font-display text-[44px] font-bold tabular-nums text-brand-primary">{{p1.v}}</span></div><div class="flex items-baseline justify-between border-b border-rule py-[20px]"><span class="font-display text-[40px] font-bold text-ink">{{p2.n}}</span><span class="font-display text-[44px] font-bold tabular-nums text-brand-primary">{{p2.v}}</span></div></div></div><div class="flex justify-between bg-brand-primary px-[80px] py-[28px] text-[26px] font-semibold text-on-brand"><span>{{c0}}</span><span>{{c1}}</span></div></div>`,
+  },
+  {
+    id: 'fl17', doc: 'flyer', format: 'flyer-story', role: 'visual', brand: 6,
+    intent: 'a countdown story: one giant number of days, a single line of context, the logo and a link line in the safe area',
+    texts: { kicker: 'Launch', 'n': '7', 'unit': 'days to go', 'lede': 'LastMile opens in Ndola on Monday 2 March.', cta: 'Pharmacies: register at lastmile.example' },
+    html: `<div class="flex h-full w-full flex-col justify-between bg-brand-primary px-[76px] pb-[288px] pt-[230px] text-on-brand"><p class="text-[32px] font-bold uppercase tracking-[0.22em]">{{kicker}}</p><div><p class="font-display text-[760px] font-black leading-[0.75] tracking-[-0.05em] tabular-nums">{{n}}</p><p class="mt-[30px] font-display text-[84px] font-bold uppercase leading-[1]">{{unit}}</p><p class="mt-[22px] max-w-[760px] text-[38px] leading-[1.3]">{{lede}}</p></div><div class="flex items-end justify-between"><p class="max-w-[600px] text-[30px] font-bold">{{cta}}</p><idem-logo variant="onDark" class="h-[60px]"></idem-logo></div></div>`,
+  },
+  {
+    id: 'fl18', doc: 'flyer', format: 'flyer-square', role: 'visual', brand: 0,
+    intent: 'a thank-you post: a warm large word, a two-line message and the logo, calm layout with a brand-colour band',
+    texts: { title: 'Merci', msg: '420 producteurs nous font confiance cette année. Chaque tonne décortiquée à Korhogo, c’est vous.', sign: 'L’équipe Noix d’Or' },
+    html: `<div class="flex h-full w-full flex-col bg-ground"><div class="flex flex-1 flex-col justify-end p-[76px]"><p class="font-display text-[340px] font-black leading-[0.85] tracking-[-0.04em] text-brand-primary">{{title}}</p></div><div class="flex items-end justify-between gap-[40px] bg-brand-primary p-[60px] text-on-brand"><div><p class="max-w-[640px] text-[32px] leading-[1.35]">{{msg}}</p><p class="mt-[14px] text-[26px] font-bold">{{sign}}</p></div><idem-logo variant="onDark" class="h-[60px]"></idem-logo></div></div>`,
+  },
+  {
+    id: 'fl19', doc: 'flyer', format: 'flyer-post', role: 'visual', brand: 8,
+    intent: 'a poll or question post: one large question, two answer blocks side by side, the brand logo at the foot',
+    texts: { kicker: 'Question du jour', title: 'Vous apprenez mieux…', 'a.k': 'A', 'a.t': 'Le matin', 'b.k': 'B', 'b.t': 'Le soir', foot: 'Répondez en commentaire' },
+    html: `<div class="flex h-full w-full flex-col bg-brand-soft p-[80px]"><p class="text-[28px] font-bold uppercase tracking-[0.18em] text-brand-primary">{{kicker}}</p><h2 class="mt-[20px] font-display text-[120px] font-black leading-[0.98] tracking-[-0.02em] text-ink">{{title}}</h2><div class="mt-auto grid grid-cols-2 gap-[24px]"><div class="flex flex-col justify-between bg-brand-primary p-[40px] text-on-brand" style="min-height:360px"><p class="font-display text-[120px] font-black leading-none">{{a.k}}</p><p class="font-display text-[56px] font-bold">{{a.t}}</p></div><div class="flex flex-col justify-between bg-ink p-[40px] text-ground" style="min-height:360px"><p class="font-display text-[120px] font-black leading-none">{{b.k}}</p><p class="font-display text-[56px] font-bold">{{b.t}}</p></div></div><div class="mt-[34px] flex items-center justify-between"><p class="text-[28px] font-semibold text-ink">{{foot}}</p><idem-logo variant="primary" class="h-[52px]"></idem-logo></div></div>`,
+  },
+  {
+    id: 'fl20', doc: 'flyer', format: 'flyer-banner', role: 'visual', brand: 9,
+    intent: 'a wide offer banner: a photograph on the right, the offer and the code on the left over the brand colour',
+    texts: { kicker: 'Récolte 2026', title: 'Arabica de l’Ouest, lots de 60 kg', code: 'Échantillons gratuits', url: 'grassfields.example' },
+    images: { 'hero.url': 'photo:#d9a441,#5b3a29,#2f6b4f' },
+    html: `<div class="grid h-full w-full grid-cols-[1fr_440px]"><div class="flex flex-col justify-between bg-brand-primary p-[56px] text-on-brand"><div class="flex items-center justify-between"><p class="text-[24px] font-bold uppercase tracking-[0.2em]">{{kicker}}</p><idem-logo variant="onDark" class="h-[44px]"></idem-logo></div><p class="font-display text-[70px] font-bold leading-[1.02]">{{title}}</p><div class="flex items-center gap-[24px] text-[28px]"><span class="bg-brand-accent px-[18px] py-[8px] font-bold text-on-accent">{{code}}</span><span>{{url}}</span></div></div><img src="{{hero.url}}" alt="" class="h-full w-full object-cover"></div>`,
+  },
+];

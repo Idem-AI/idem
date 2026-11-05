@@ -8,12 +8,12 @@
   >
     <header class="vd-header">
       <div class="min-w-0">
-        <h2 id="vd-title" class="vd-title">{{ visual().marketingText.headline }}</h2>
+        <h2 id="vd-title" class="vd-title">{{ shown().marketingText.headline }}</h2>
         <p class="vd-sub">
-          {{ 'dashboard.showCommunication.formats.' + visual().format | translate }}
-          @if (visual().origin) {
+          {{ 'dashboard.showCommunication.formats.' + shown().format | translate }}
+          @if (shown().origin) {
             <span aria-hidden="true">·</span>
-            {{ 'dashboard.showCommunication.library.origins.' + visual().origin | translate }}
+            {{ 'dashboard.showCommunication.library.origins.' + shown().origin | translate }}
           }
         </p>
       </div>
@@ -32,7 +32,7 @@
       <div class="vd-preview">
         <app-visual-preview
           [projectId]="projectId()"
-          [visual]="visual()"
+          [visual]="shown()"
           [fonts]="fonts()"
           [maxHeight]="500"
           (editRequested)="close()"
@@ -46,7 +46,7 @@
           {{ 'dashboard.showCommunication.visual.download' | translate }}
         </button>
 
-        @if (schedulablePlans().length > 0 && !visual().contentId) {
+        @if (schedulablePlans().length > 0 && !shown().contentId) {
           @if (scheduling()) {
             <div class="vd-schedule">
               <label class="vd-label" for="vd-plan">
@@ -98,6 +98,32 @@
           }
         }
 
+        <!-- Les autres compositions écrites en même temps (déjà payées) : le client choisit -->
+        @if (shown().alternatives?.length) {
+          <div class="vd-block">
+            <p class="vd-label">{{ 'dashboard.showCommunication.detail.otherProposals' | translate }}</p>
+            <div class="vd-proposals">
+              @for (alt of shown().alternatives; track alt.id) {
+                <button
+                  type="button"
+                  class="vd-proposal"
+                  [disabled]="!!choosingId()"
+                  [attr.aria-label]="'dashboard.showCommunication.detail.useProposal' | translate"
+                  (click)="chooseProposal(alt.id)"
+                >
+                  @if (alt.imageUrl) {
+                    <img [src]="alt.imageUrl" [alt]="'dashboard.showCommunication.detail.proposalAlt' | translate" loading="lazy" />
+                  }
+                  @if (choosingId() === alt.id) {
+                    <idem-loader overlay />
+                  }
+                </button>
+              }
+            </div>
+            <p class="vd-note">{{ 'dashboard.showCommunication.detail.otherProposalsHint' | translate }}</p>
+          </div>
+        }
+
         <!-- Déclinaisons -->
         <div class="vd-block">
           <p class="vd-label">
@@ -105,7 +131,7 @@
           </p>
           <div class="vd-chips">
             @for (format of formats; track format) {
-              @if (format !== visual().format) {
+              @if (format !== shown().format) {
                 <button
                   type="button"
                   class="outer-button button-sm"
@@ -155,10 +181,10 @@
           }
         </div>
 
-        @if (visual().brief) {
+        @if (shown().brief) {
           <div class="vd-block">
             <p class="vd-label">{{ 'dashboard.showCommunication.library.brief' | translate }}</p>
-            <p class="vd-text">{{ visual().brief }}</p>
+            <p class="vd-text">{{ shown().brief }}</p>
           </div>
         }
       </div>

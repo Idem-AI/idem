@@ -315,6 +315,8 @@ services:
     environment:
       NODE_ENV: development
       PORT: 3000
+      # Bibliothèque d'exemples du moteur graphique (./packages est monté dans le conteneur).
+      IDEM_EXAMPLES_FILE: '/app/packages/graphic-engine/library/examples.json'
       # Secrets depuis l'Infisical local (profil `secrets`) : DEV_USE_INFISICAL=true.
       USE_SECRET_MANAGER: '${DEV_USE_INFISICAL:-false}'
       INFISICAL_SITE_URL: 'http://infisical:8080'

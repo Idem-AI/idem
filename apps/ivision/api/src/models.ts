@@ -24,6 +24,8 @@ export interface IvisionBrand {
   _id: string;
   userId: string;
   name: string;
+  /** Le pays de la marque, quand il est connu (projet IDEM importé, saisie) : il ancre l'axe de départ des créations. */
+  country?: string;
   /**
    * D'où vient la charte : un site scanné, un projet IDEM importé, une saisie, un fichier de
    * charte (PDF, image, logo), ou `auto` — la marque provisoire d'une création sans charte
@@ -213,6 +215,12 @@ export interface IvisionVisual {
   parentId?: string;
   /** Retouché à la main dans l'éditeur : son HTML ne correspond plus à son arbre. */
   handEdited?: boolean;
+  /** Les autres compositions écrites pour ce visuel (déjà payées), proposées au choix (plan qualité créative). */
+  alternatives?: Array<{ id: string; imageUrl: string; html: string; spec?: SectionSpec; score?: number }>;
+  /** Le score de la composition retenue (mesures du code). */
+  score?: number;
+  /** L'idée du visuel (étape concept) : reprise pour le décliner dans un autre format. */
+  idea?: string;
 }
 
 /** Une vidéo d'iVision : la vidéo du moteur, rangée sous sa marque. */

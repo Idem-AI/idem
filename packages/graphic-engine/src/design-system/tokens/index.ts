@@ -127,7 +127,7 @@ export interface DesignTokens {
   density: Density;
   color: TokenColors;
   contrast: { inkOnGround: number; mutedOnGround: number; onBrand: number; onAccent: number };
-  font: { display: string; body: string; displayStack: string; bodyStack: string; displayClass: FontClass; bodyClass: FontClass; headHtml: string };
+  font: { display: string; body: string; displayStack: string; bodyStack: string; displayClass: FontClass; bodyClass: FontClass; headHtml: string; /** Police d'accroche (visuels) : pour le titre seul. */ accent?: string; accentStack?: string };
   size: Record<TextSizeToken, number>;
   leading: { tight: number; normal: number; loose: number };
   /** En em. */

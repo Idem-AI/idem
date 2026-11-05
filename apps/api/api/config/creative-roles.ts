@@ -32,6 +32,15 @@ export interface CreativeRole {
   maxOutputTokens: Record<CreativityLevel, number>;
   /** Ce que fait le rôle (documentation, journaux). */
   mission: string;
+  /**
+   * Le cran du MODÈLE imposé, quel que soit le cran choisi (plan qualité créative : l'idée se décide au modèle le plus
+   * fort, l'exécution reste au cran du client). Le plafond de sortie suit toujours le cran demandé.
+   */
+  pinLevel?: CreativityLevel;
+  /** Raisonnement demandé (le plafond de sortie doit le permettre : `MIN_TOKENS_FOR_THINKING`). */
+  thinking?: boolean;
+  /** Température propre au rôle (écrêtée à 0,65 quand le raisonnement est actif, par `reconcileThinkingBudget`). */
+  temperature?: number;
 }
 
 export { MODEL_LADDERS, ladderModel };
@@ -45,7 +54,13 @@ export const CREATIVE_ROLES: Record<string, CreativeRole> = {
   'graphic.content': { profile: 'agents', needs: ['json'], maxOutputTokens: ALL(3500), mission: 'rédiger le contenu structuré des livrables' },
   // Les livrables graphiques (flyers, business plan, charte, carte de visite, pitch deck) : mêmes étapes à tous les
   // crans ; le cran choisit le MODÈLE. Le directeur écrit la bible du document, l'auteur écrit chaque page en Tailwind.
-  'graphic.director': { profile: 'agents', needs: ['long-context'], maxOutputTokens: ALL(2500), mission: 'concevoir la direction d’un document : la bible visuelle et l’idée de chaque page' },
+  // Plan qualité créative (04/11/2026) : le directeur décide au modèle le plus fort de son échelle, en raisonnant
+  // (plafond porté à 9 000 : le raisonnement en est décompté, `MIN_TOKENS_FOR_THINKING` = 8 000).
+  'graphic.director': { profile: 'agents', needs: ['long-context'], maxOutputTokens: ALL(9000), mission: 'concevoir la direction d’un document : la bible visuelle et l’idée de chaque page', pinLevel: 'ultra', thinking: true, temperature: 0.5 },
+  // L'exploration : quatre pistes d'idée qui divergent sur des axes donnés, avant que le directeur n'en développe une.
+  'graphic.explore': { profile: 'agents', needs: ['long-context'], maxOutputTokens: ALL(9000), mission: 'proposer quatre pistes d’idée distinctes pour un document', pinLevel: 'ultra', thinking: true, temperature: 0.65 },
+  // Le juge visuel : cinq questions fermées sur la capture d'une page (départage des variantes, défauts dits à l'auteur).
+  'graphic.judge': { profile: 'agents', needs: ['vision'], maxOutputTokens: ALL(120), mission: 'répondre par oui ou non à cinq questions sur la capture d’une page', temperature: 0 },
   // Le travail divisé : avant l'auteur, une petite tâche par page — le point focal, les zones, les groupes.
   'graphic.page-director': { profile: 'agents', needs: [], maxOutputTokens: ALL(600), mission: 'décider la hiérarchie d’une page (point focal, zones, groupes) avant que l’auteur ne l’écrive' },
   // Le travail divisé des pages de document : un plan de mise en page (grille et zones, JSON), puis une zone par agent.
@@ -58,7 +73,11 @@ export const CREATIVE_ROLES: Record<string, CreativeRole> = {
   'graphic.asset-planner': { profile: 'agents', needs: ['json'], maxOutputTokens: UP_TO(800, 1000), mission: 'déterminer les ressources visuelles nécessaires' },
   'video.intent-classifier': { profile: 'agents', needs: ['json'], maxOutputTokens: UP_TO(300, 300, 300), mission: 'comprendre le besoin vidéo et les médias disponibles' },
   // Le film Motion Canvas : mêmes étapes à tous les crans ; le cran choisit le MODÈLE (échelles ci-dessus).
-  'video.concept': { profile: 'coder', needs: ['long-context'], maxOutputTokens: ALL(8000), mission: 'inventer le film : concept, bible visuelle, idée de chaque scène' },
+  // Plan qualité créative (04/11/2026) : le concept au modèle le plus fort de son échelle, en raisonnant.
+  'video.concept': { profile: 'coder', needs: ['long-context'], maxOutputTokens: ALL(12000), mission: 'inventer le film : concept, bible visuelle, idée de chaque scène', pinLevel: 'ultra', thinking: true, temperature: 0.5 },
+  'video.concept-explore': { profile: 'agents', needs: ['long-context'], maxOutputTokens: ALL(9000), mission: 'proposer quatre pistes de film distinctes avant le concept', pinLevel: 'ultra', thinking: true, temperature: 0.65 },
+  // Le rendu HyperFrames : chaque scène écrite en HTML Tailwind animé (CSS, WAAPI, Anime.js — jamais GSAP).
+  'video.html-author': { profile: 'coder', needs: ['code'], maxOutputTokens: ALL(12000), mission: 'écrire une scène de film en HTML Tailwind animé pour HyperFrames' },
   // GLM-5.3-Flash (High, Ultra) raisonne et son raisonnement est décompté du plafond : marge large.
   'video.planner': { profile: 'agents', needs: ['long-context'], maxOutputTokens: ALL(16000), mission: 'écrire le storyboard : durées, rôles, énergie, intentions, idées, textes, médias, voix' },
   'video.author': { profile: 'coder', needs: ['code', 'json', 'long-context'], maxOutputTokens: ALL(16000), mission: 'écrire (et réécrire) l’intention ou le programme d’une scène difficile — l’auteur de qualité' },
@@ -90,14 +109,26 @@ export function roleConfig(name: string, profile: CreativeProfile, requested?: C
   // Un cran « max » gardé avec une ancienne génération vaut « high » (le cran Max n'existe plus).
   const level = requested === ('max' as CreativityLevel) ? 'high' : requested;
   const role = roleOf(name);
-  const def = CREATIVE_ROLES[role];
+  const declared = CREATIVE_ROLES[role];
+  // `IDEM_QUALITY_PIN=0` rend aux rôles leur réglage d'avant le plan qualité créative (modèle au cran du client, sans
+  // raisonnement ni température propre) : la ligne de base se mesure ainsi sur l'ancien comportement.
+  const def = declared && process.env.IDEM_QUALITY_PIN === '0' ? { ...declared, pinLevel: undefined, thinking: undefined, temperature: undefined } : declared;
   const base: FeatureAIConfig = AI_CONFIG.creative[def?.profile ?? profile];
   const key = envKey(role);
   // Priorité : modèle du rôle à CE cran › modèle du rôle (tous crans) › échelle du rôle au cran.
   const model = (level && process.env[`IDEM_ROLE_${key}_MODEL_${level.toUpperCase()}`]?.trim()) || process.env[`IDEM_ROLE_${key}_MODEL`]?.trim();
   const endpoint = process.env[`IDEM_ROLE_${key}_ENDPOINT`]?.trim().toLowerCase();
   const cap = def && level ? def.maxOutputTokens[level] : 0;
-  const llmOptions = { ...base.llmOptions, ...(cap ? { maxOutputTokens: cap } : {}) };
+  // Le raisonnement et la température du rôle (plan qualité créative) : posés ici, dans les deux dialectes, pour que
+  // `reconcileThinkingBudget` les voie (il coupe le raisonnement si le plafond est trop court, écrête la température).
+  const llmOptions = {
+    ...base.llmOptions,
+    ...(cap ? { maxOutputTokens: cap } : {}),
+    ...(def?.temperature !== undefined ? { temperature: def.temperature } : {}),
+    ...(def?.thinking ? { thinkingBudget: undefined, extraBody: { ...base.llmOptions?.extraBody, thinking: { type: 'enabled' } } } : {}),
+  };
+  // Le cran du MODÈLE : imposé par le rôle (l'idée au modèle le plus fort), sinon celui du client.
+  const modelLevel: CreativityLevel | undefined = def?.pinLevel ?? level;
 
   if (endpoint === 'selfhosted') {
     const visionOk = !def?.needs.includes('vision') || providerSupports(LLMProvider.SELFHOSTED, 'vision');
@@ -111,11 +142,11 @@ export function roleConfig(name: string, profile: CreativeProfile, requested?: C
     logger.warn('creative.role_model_refused', { event: 'creative.role_model_refused', role, model });
   }
   const ladder = ROLE_LADDERS[role];
-  const fixed = level ? ROLE_MODEL_OVERRIDES[role]?.[level] : undefined;
+  const fixed = modelLevel ? ROLE_MODEL_OVERRIDES[role]?.[modelLevel] : undefined;
   if (fixed && isAllowedOpenRouterModel(fixed)) return { ...base, modelName: fixed, pinModel: true, llmOptions };
-  if (ladder && level) {
-    const fallbacks = ladderFallbacks(ladder, level);
-    return { ...base, modelName: ladderModel(ladder, level), pinModel: true, llmOptions, ...(fallbacks.length ? { fallbackModels: fallbacks } : {}) };
+  if (ladder && modelLevel) {
+    const fallbacks = ladderFallbacks(ladder, modelLevel);
+    return { ...base, modelName: ladderModel(ladder, modelLevel), pinModel: true, llmOptions, ...(fallbacks.length ? { fallbackModels: fallbacks } : {}) };
   }
   return { ...base, llmOptions };
 }

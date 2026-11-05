@@ -51,6 +51,11 @@ export interface EngineHost {
    * Le code de Chart.js (UMD) : les graphiques sont DESSINÉS avant la mesure et la photographie (aperçus PNG). Absent, le moteur cherche le paquet `chart.js` ; introuvable, les graphiques restent vides à l'aperçu.
    */
   chartScript?: () => string | null;
+  /**
+   * Le modèle de VISION de l'hôte (image base64 + consigne → texte), pour le juge à questions fermées qui départage
+   * les variantes d'une page (plan qualité créative). Absent : le choix se fait sur les seules mesures du code.
+   */
+  judgeImage?: (base64: string, mimeType: string, instruction: string) => Promise<string>;
 }
 
 const silent: EngineLogger = { info: () => undefined, warn: () => undefined, error: () => undefined };

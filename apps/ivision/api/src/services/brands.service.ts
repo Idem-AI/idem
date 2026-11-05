@@ -285,6 +285,7 @@ export async function importIdemProject(userId: string, projectId: string, into?
     kit: (brand.branding || {}) as BrandKit,
     voice: brand.voice as BrandVoice,
     photos: brand.photos || [],
+    ...(brand.country ? { country: brand.country } : {}),
     status: 'ready' as const,
     updatedAt: now(),
   };

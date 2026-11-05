@@ -41,6 +41,12 @@ import { chartFromTable, parseFigure, withDataChart } from '../src/content/data-
 import { coverContent, sectionFromModel } from '../src/adapters/sections';
 import { planAssets, resolveAssets } from '../src/asset-planner';
 
+// Les contrôles historiques (§1–§9) comptent les appels d'un auteur unique : le plan qualité créative (exploration,
+// variantes, retouche mesurée) y est coupé, puis rallumé et contrôlé à part (§10).
+process.env.IDEM_QUALITY_EXPLORE = '0';
+process.env.IDEM_QUALITY_SELECT = '0';
+process.env.IDEM_QUALITY_REFINE = '0';
+process.env.IDEM_DESIGN_TOOLS_OFFLINE = '1';
 const fast = process.argv.includes('--fast');
 let failures = 0;
 let passed = 0;
@@ -74,8 +80,12 @@ const fakeLayout = (user: string): string => {
   const head = units.filter((u) => ['kicker', 'title', 'lede'].includes(u));
   const rest = units.filter((u) => !head.includes(u)).slice(0, 4);
   const groups = [head, ...rest.map((u) => [u])].filter((g) => g.length);
-  const rows = Math.min(12, groups.length * 3);
-  return JSON.stringify({ columns: 12, rows, background: 'ground', zones: groups.map((g, i) => ({ units: g, col: 1, span: 12, row: i * 3 + 1, rows: 3, align: 'start', intent: 'zone' })) });
+  // L'en-tête a la hauteur de son titre (le code refuse une zone trop basse pour lui) ; les blocs se partagent le reste.
+  const each = Math.max(2, Math.floor((12 - (head.length ? 3 : 0)) / Math.max(1, rest.length)));
+  const span = groups.map((g) => (g === head ? 3 : each));
+  const starts = span.map((_, i) => 1 + span.slice(0, i).reduce((a, b) => a + b, 0));
+  const rows = Math.min(12, span.reduce((a, b) => a + b, 0));
+  return JSON.stringify({ columns: 12, rows, background: 'ground', zones: groups.map((g, i) => ({ units: g, col: 1, span: 12, row: starts[i], rows: span[i], align: 'start', intent: 'zone' })) });
 };
 /** Une zone simulée : chacune de ses clés, ses primitives, à la taille de la zone. */
 const fakeZone = (user: string): string => {
@@ -130,6 +140,8 @@ configureGraphicEngine({
       }
       calls.push({ role, level, repair, user, system });
       if (mode === 'down') throw new Error('quota');
+      if (role === 'graphic.explore')
+        return 'TRACK 1: Market stage — the market stall becomes a stage and the trader is the hero of every page.\nTRACK 2: Woven rows — every page is built from narrow woven strips of figures and photos, sewn side by side.\nTRACK 3: One big number — each page is dominated by one huge figure, the rest whispers.\nTRACK 4: Field notebook — pages read like a hand-annotated field notebook with photos pinned on a grid.';
       if (role === 'graphic.director')
         return /PAGES:/.test(user)
           ? `IDEA: Large figures, one brand-primary rule per page.\n${[...user.matchAll(/^(\d+)\. /gm)].map((m) => `PAGE ${m[1]}: the key figure dominates, text in a narrow column`).join('\n')}`
@@ -1196,6 +1208,13 @@ async function main(): Promise<void> {
     ok('deux zones qui se chevauchent : plan refusé, avec la cellule en cause (l’agent recommence)', !overlap.layout && /overlap at row 2, column 6/.test(overlap.error ?? ''), overlap.error);
     const partial = parseLayout(JSON.stringify({ columns: 12, rows: 8, zones: [{ units: ['title', 'b1', 'b1', 'inconnu'], col: 1, span: 12, row: 1, rows: 4 }] }), units, FORMATS['slide-16x9']);
     ok('un contenu oublié rejoint la zone du titre ; un doublon et une unité inconnue sont retirés', Boolean(partial.layout && partial.layout.zones[0].units.join() === 'title,b1,b2'));
+    const tall = (u: string) => (u === 'title' ? 150 : 0);
+    const thin = parseLayout(JSON.stringify({ columns: 8, rows: 12, zones: [{ units: ['title'], col: 1, span: 4, row: 1, rows: 1 }, { units: ['b1', 'b2'], col: 1, span: 7, row: 2, rows: 9 }] }), units, FORMATS['slide-16x9'], { height: tall });
+    ok('le titre de 68 px sur deux lignes dans une rangée de 21 px (charte réelle) : plan refusé, avec la hauteur qu’il demande', !thin.layout && /needs about 150px/.test(thin.error ?? ''), thin.error);
+    const small = parseLayout(JSON.stringify({ columns: 8, rows: 10, zones: [{ units: ['title'], col: 2, span: 4, row: 1, rows: 3 }, { units: ['b1'], col: 2, span: 6, row: 4, rows: 5 }, { units: ['b2'], col: 1, span: 8, row: 9, rows: 2 }] }), units, FORMATS['slide-16x9'], { galleries: ['b1'] });
+    ok('des maquettes reléguées à une petite zone (bannières réelles) : plan refusé — elles sont la page', !small.layout && /mockups \(b1\) get only/.test(small.error ?? ''), small.error);
+    const big = parseLayout(JSON.stringify({ columns: 12, rows: 6, zones: [{ units: ['title', 'b2'], col: 1, span: 12, row: 1, rows: 1 }, { units: ['b1'], col: 1, span: 12, row: 2, rows: 5 }] }), units, FORMATS['slide-16x9'], { galleries: ['b1'], height: (u) => (u === 'title' ? 40 : 0) });
+    ok('maquettes sur l’essentiel de la page, titre dans sa zone : plan accepté', Boolean(big.layout), big.error);
     const html = partial.layout ? assembleLayout(partial.layout, new Map([['z1', '<p>{{title}}</p>']]), FORMATS['slide-16x9'], new Map([['z1', 0.8]])) : '';
     ok('assemblage : la grille du plan, chaque zone à sa case, la zone qui déborde réduite par le code', /grid-cols-\[repeat\(12,minmax\(0,1fr\)\)\]/.test(html) && /data-ge-zone="z1" class="col-start-1 col-span-12 row-start-1 row-span-4/.test(html) && /\[zoom:0\.8\]/.test(html));
   }
@@ -1231,6 +1250,109 @@ async function main(): Promise<void> {
     'couverture : le modèle Ultra même au cran Low, rôle graphic.cover, consigne libre, aucun directeur de page, aucune relecture par un autre modèle',
     coverAuthor?.role === 'graphic.cover' && coverAuthor.level === 'ultra' && /Total creative freedom/.test(coverAuthor.system ?? '') && pageDirections.length === 0 && !coverOut.trace.tasks.some((t) => (t.task as string) === 'review') && (coverOut.result.measured?.height ?? 0) > 1000
   );
+
+  section('§10 Plan qualité créative : exploration, axe de départ, variantes choisies par la mesure, retouche mesurée');
+  process.env.IDEM_QUALITY_EXPLORE = '1';
+  process.env.IDEM_QUALITY_SELECT = '1';
+  process.env.IDEM_QUALITY_REFINE = '1';
+  mode = 'ok';
+  const remembered: string[] = [];
+  const judged: string[] = [];
+  configureGraphicEngine({
+    // La marque a déjà eu l'idée « marché-scène » : l'exploration doit en retenir une autre.
+    recentFingerprints: async () => ['idea:Market stage — the market stall becomes a stage and the trader is the hero'],
+    rememberFingerprints: async (_scope, marks) => {
+      remembered.push(...marks);
+    },
+    // Le juge simulé : la première capture a « deux foyers », les suivantes rien.
+    judgeImage: async (_b64, mime) => {
+      judged.push(mime);
+      return judged.length === 1 ? '1: no\n2: yes\n3: no\n4: no\n5: no' : '1: no\n2: no\n3: no\n4: no\n5: no';
+    },
+  });
+  calls.length = 0;
+  const explored = await createDocument({ documentType: 'pitch-deck', format: 'slide-16x9', brand: BRANDS.kora, creativity: 'medium', seed: 'q10', country: 'SN', memoryScope: { documentType: 'pitch-deck', key: 'kora' }, memoryScopes: [{ documentType: 'pitch-deck', key: 'sector:agri' }], sections: [{ id: 's1', purpose: 'the problem' }, { id: 's2', purpose: 'the market' }] });
+  await explored.composeSection(MARKET, { index: 2, total: 2 });
+  const exploreCall = calls.find((c) => c.role === 'graphic.explore');
+  const planCall = calls.find((c) => c.role === 'graphic.director' && /PAGES:/.test(c.user));
+  ok('exploration : quatre pistes demandées avant le plan, au rôle graphic.explore, avec le point de départ tiré par le code', !!exploreCall && /FOUR clearly different/.test(exploreCall.system ?? '') && /STARTING POINT/.test(exploreCall.user));
+  ok('exploration : le code écarte la piste déjà faite et transmet la piste retenue au plan', !!planCall && /THE IDEA CHOSEN/.test(planCall.user) && !/Market stage/.test(planCall.user.split('THE IDEA CHOSEN')[1] ?? ''), (planCall?.user.match(/THE IDEA CHOSEN[^\n]*\n([^\n]*)/)?.[1] ?? '').slice(0, 80));
+  ok('axe de départ : déterministe et tiré pour le pays de la marque ou une forme', !!explored.axis && (explored.axis.country === 'SEN' || !explored.axis.country), explored.axis?.id);
+  await explored.remember();
+  ok('mémoire : idée et axe écrits dans la marque ET le secteur', remembered.filter((m) => m.startsWith('idea:')).length === 2 && remembered.filter((m) => m.startsWith('axis:')).length === 2);
+
+  if (!fast) {
+    calls.length = 0;
+    judged.length = 0;
+    const flyer = await renderSingle({ documentType: 'flyer', format: 'flyer-square', brand: BRANDS.kora, creativity: 'high', seed: 'q10-flyer', content: { id: 'v1', title: 'Récoltez plus', lede: 'Des semences adaptées à votre sol', blocks: [{ id: 'b1', kind: 'prose', paragraphs: ['Livraison en 48 h dans tout le pays.'] }] } });
+    const authorCalls = calls.filter((c) => c.role === 'graphic.author' && !c.repair);
+    ok('variantes : 3 au cran High pour une toile seule, la 2e et la 3e invitées à composer autrement', authorCalls.filter((c) => !/THE PAGE DISPLAYS, BUT/.test(c.user)).length === 3 && authorCalls.some((c) => /VARIANT 2 OF 3/.test(c.user)));
+    ok('variantes : chaque variante mesurée et jugée sur sa capture (PNG)', judged.length >= 3 && judged.every((m) => m === 'image/png'), `${judged.length} capture(s) jugée(s)`);
+    ok('variantes : le choix est dit dans la trace', flyer.result.repairs.some((r) => r.code === 'variant_selected'), flyer.result.repairs.map((r) => r.code).join(', '));
+    ok('toile seule : le point de départ parvient à l’auteur (pas de plan)', authorCalls.some((c) => /STARTING POINT/.test(c.user)));
+
+    // La retouche mesurée : un seul auteur (Medium, document), le juge voit deux foyers → une retouche, gardée si meilleure.
+    calls.length = 0;
+    judged.length = 0;
+    process.env.IDEM_QUALITY_VARIANTS = '1';
+    const one = await renderSingle({ documentType: 'flyer', format: 'flyer-square', brand: BRANDS.kora, creativity: 'medium', seed: 'q10-refine', content: { id: 'v2', title: 'Récoltez plus', blocks: [{ id: 'b1', kind: 'prose', paragraphs: ['Livraison en 48 h.'] }] } });
+    const refineCall = calls.find((c) => /THE PAGE DISPLAYS, BUT THESE PROBLEMS WERE MEASURED/.test(c.user));
+    ok('retouche mesurée : le défaut vu par le juge est renvoyé à l’auteur, une seule fois', !!refineCall && /two elements compete/.test(refineCall.user) && calls.filter((c) => /THE PAGE DISPLAYS, BUT/.test(c.user)).length === 1);
+    ok('retouche mesurée : la page livrée s’affiche', !one.result.issues.some((i) => i.severity === 'blocking'));
+    delete process.env.IDEM_QUALITY_VARIANTS;
+
+    // Au cran Low : pas de retouche mesurée ; interrupteur coupé : une seule écriture.
+    calls.length = 0;
+    process.env.IDEM_QUALITY_SELECT = '0';
+    await renderSingle({ documentType: 'flyer', format: 'flyer-square', brand: BRANDS.kora, creativity: 'low', seed: 'q10-low', content: { id: 'v3', title: 'Récoltez plus', blocks: [{ id: 'b1', kind: 'prose', paragraphs: ['Livraison.'] }] } });
+    ok('interrupteurs : IDEM_QUALITY_SELECT=0 et cran Low → une seule écriture, aucune retouche', calls.filter((c) => c.role === 'graphic.author').length === 1);
+  }
+  // La bibliothèque d'exemples (phase 5) : deux principes proches de l'intention, éloignés entre eux ; anti-copie.
+  {
+    const { pickExamples, examplesLines, isCopy } = await import('../src/examples/library');
+    const { encodeVector, normalize } = await import('@idem/design-tools');
+    const v = (k: number) => normalize(Float32Array.from({ length: 512 }, (_, i) => (i % 7 === k ? 1 : 0.01)));
+    const file = path.join(require('os').tmpdir(), `ge-examples-${Date.now()}.json`);
+    fs.writeFileSync(file, JSON.stringify({ examples: [
+      { id: 'a', nature: 'slide', intent: 'one key figure that proves traction', html: '<div class="grid">…</div>', vector: encodeVector(v(1)) },
+      { id: 'b', nature: 'slide', intent: 'one key figure that proves traction, giant number', html: '<div class="flex">…</div>', vector: encodeVector(v(1)) },
+      { id: 'c', nature: 'slide', intent: 'key figure shown as a growth chart', html: '<div class="relative">…</div>', vector: encodeVector(v(3)) },
+      { id: 'd', nature: 'document', intent: 'a financial table', html: '<table>…</table>' },
+    ] }));
+    process.env.IDEM_EXAMPLES_FILE = file;
+    const picked = pickExamples({ nature: 'slide', intent: 'a key figure proving traction' });
+    ok('exemples : deux exemples de la bonne toile, le second choisi pour sa différence', picked.length === 2 && picked.every((e) => e.nature === 'slide') && picked[0].id !== picked[1].id, picked.map((e) => e.id).join(','));
+    ok('exemples : la consigne interdit de reproduire la mise en page', /never reproduce their layout/.test(examplesLines(picked)));
+    ok('anti-copie : une page à l’empreinte d’un exemple montré est reconnue, une autre non', isCopy(v(1), picked.filter((e) => e.id !== 'c').slice(0, 1)) && !isCopy(v(5), picked));
+    process.env.IDEM_QUALITY_EXAMPLES = '0';
+    ok('exemples : IDEM_QUALITY_EXAMPLES=0 les coupe', pickExamples({ nature: 'slide', intent: 'traction' }).length === 0);
+    delete process.env.IDEM_QUALITY_EXAMPLES;
+    delete process.env.IDEM_EXAMPLES_FILE;
+    fs.rmSync(file, { force: true });
+  }
+  // Les visuels (plan qualité créative) : motif procédural, police d'accroche, idée de l'hôte, variantes renvoyées.
+  {
+    const tokens = buildTokens({ brand: BRANDS.kora, format: 'flyer-square' });
+    const map = buildContentMap({ id: 'v', title: 'Récoltez plus', blocks: [] } as SectionContent, 'values');
+    const page = expandPage('<div class="relative h-full w-full"><idem-pattern kind="flow" density="0.4" class="absolute inset-0 opacity-[0.14]"></idem-pattern><h1>{{title}}</h1></div>', map, tokens, FORMATS['flyer-square'], { sectionId: 'v', locale: 'fr', engine: 'x' });
+    ok('motif procédural : dessiné par le code (SVG en ligne aux couleurs de la marque), reconnu comme primitive', /data-ge-pattern="procedural"/.test(page.html) && /data:image\/svg\+xml;base64,/.test(page.html));
+    calls.length = 0;
+    process.env.IDEM_QUALITY_SELECT = '1';
+    process.env.IDEM_QUALITY_VARIANTS = '2';
+    const v = await renderSingle({ documentType: 'flyer', format: 'flyer-square', brand: BRANDS.kora, creativity: 'medium', seed: 'q10-visual', concept: 'Morning ritual — a steaming cup seen from above', accentFont: 'Bebas Neue', content: { id: 'v1', title: 'Récoltez plus', blocks: [{ id: 'b1', kind: 'prose', paragraphs: ['Livraison en 48 h.'] }] } });
+    const authorUserText = calls.filter((c) => c.role === 'graphic.author').map((c) => c.user).join('\n');
+    ok('visuel : l’idée de l’hôte parvient à l’auteur (au lieu du point de départ)', /THE IDEA OF THIS VISUAL/.test(authorUserText) && /Morning ritual/.test(authorUserText) && !/STARTING POINT/.test(authorUserText));
+    ok('visuel : la police d’accroche est proposée à l’auteur et chargée avec la page', /font-accent: an expressive face \("Bebas Neue"\)/.test(authorUserText) && /Bebas\+Neue|Bebas Neue/.test(v.result.head ?? ''));
+    ok('motif procédural : proposé à l’auteur', /<idem-pattern kind="flow\|scatter/.test(authorUserText));
+    if (!fast) {
+      ok('variantes : la composition écartée est renvoyée (spec, rendu, image, score) pour le choix du client', (v.alternatives?.length ?? 0) === 1 && !!v.alternatives![0].png && typeof v.alternatives![0].score === 'number' && typeof v.score === 'number', String(v.alternatives?.length));
+      calls.length = 0;
+      await renderSingle({ documentType: 'brand-charter', format: 'flyer-square', brand: BRANDS.kora, creativity: 'high', seed: 'q10-one', variants: 1, content: { id: 'v2', title: 'Bannière', blocks: [] } as unknown as SectionContent }).catch(() => undefined);
+      ok('variantes : l’hôte peut imposer une seule écriture (fichiers de la charte)', calls.filter((c) => (c.role === 'graphic.author' || c.role === 'graphic.cover') && !c.repair && !/THE PAGE DISPLAYS, BUT/.test(c.user)).length === 1, String(calls.filter((c) => c.role === 'graphic.author').length));
+    }
+    delete process.env.IDEM_QUALITY_VARIANTS;
+  }
+  configureGraphicEngine({ recentFingerprints: undefined, rememberFingerprints: undefined, judgeImage: undefined });
 }
 
 main()

@@ -40,7 +40,13 @@ export async function idemAnalyzeImage(base64: string, mimeType: string, instruc
     instruction,
     purpose === 'visual-analysis'
       ? { model: sourcing.visionModel, fallbackModel: sourcing.visionFallbackModel, maxOutputTokens: sourcing.visionMaxOutputTokens, ...rest }
-      : purpose === 'video-tiebreak'
+      : purpose === 'design-judge'
+        ? // Le juge des pages et des scènes (plan qualité créative) : le modèle du rôle `graphic.judge`, réponse courte.
+          (() => {
+            const role = roleConfig('graphic.judge', 'agents', 'medium');
+            return { model: role.modelName, ...(role.fallbackModels?.[0] ? { fallbackModel: role.fallbackModels[0] } : {}), maxOutputTokens: 120, temperature: 0, ...rest };
+          })()
+        : purpose === 'video-tiebreak'
         ? // Le départage visuel du moteur vidéo : le modèle du rôle `video.judge-vlm` (échelle « video-vision »).
           (() => {
             const role = roleConfig('video.judge-vlm', 'agents', 'ultra');

@@ -18,7 +18,7 @@ const QUALITIES = ['standard', 'hd', 'premium'];
 const MOODS = ['auto', 'upbeat', 'afro', 'calm', 'epic', 'corporate', 'none'];
 
 /** Ce que l'aperçu montre (minutage, code des scènes) : s'il change après une retouche, l'aperçu est recomposé. */
-const timing = (v: MotionVideo | null) => (v?.film?.scenes ?? []).map((s) => `${s.key}:${s.start}:${s.duration}:${s.code?.length ?? 0}:${s.author?.at ?? ''}`).join('|');
+const timing = (v: MotionVideo | null) => (v?.film?.scenes ?? []).map((s) => `${s.key}:${s.start}:${s.duration}:${s.code?.length ?? 0}:${s.html?.length ?? 0}:${s.author?.at ?? ''}`).join('|');
 
 /**
  * Retoucher une vidéo : l'éditeur partagé avec IDEM (aperçu Motion Canvas, textes en direct, et

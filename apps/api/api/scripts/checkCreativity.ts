@@ -29,6 +29,12 @@ import { brandInitials, composeTemplateLogos, logoMenu, markInks } from '../serv
 import { logoDirectionsTask, logoDraftCount, logoJuryTask } from '../services/BandIdentity/logoCreative';
 import { inspectSvg } from '../services/brand/svgGate';
 
+// Ces contrôles comptent les appels du parcours historique (un auteur par page) : le plan qualité créative
+// (exploration, variantes, retouche mesurée) y est coupé ; il a son propre contrôle (`check:graphic`, §10).
+process.env.IDEM_QUALITY_EXPLORE = '0';
+process.env.IDEM_QUALITY_SELECT = '0';
+process.env.IDEM_QUALITY_REFINE = '0';
+
 let failures = 0;
 function check(label: string, ok: boolean, detail = '') {
   if (!ok) failures++;
