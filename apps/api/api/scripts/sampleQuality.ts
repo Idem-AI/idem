@@ -39,7 +39,7 @@ function engineBrand(brand: SampleBrand) {
   return brandFromIdem({ name: brand.name, branding: branding as never, logos: { primary: light, withTextLight: light, withTextDark: dark, withTextMono: light, icon: light } });
 }
 
-function pages(s: GraphicSample): { sections: SectionContent[]; label: string } {
+export function pages(s: GraphicSample): { sections: SectionContent[]; label: string } {
   const t = T[s.brand.locale];
   const cover = coverContent({ id: 'cover', brandName: s.brand.name, documentLabel: s.deliverable === 'pitch-deck' ? t.deck : s.deliverable === 'brand-charter' ? t.guidelines : t.bp, promise: s.subject, detail: s.brand.sector, dateLabel: '2026' });
   if (s.deliverable === 'brand-charter') {
@@ -150,6 +150,25 @@ async function noveltyReport(groups: Record<string, Record<string, string[]>>): 
   return report;
 }
 
+if (process.argv.includes('--validate')) {
+  // Validation hors ligne du contenu des échantillons (aucun modèle) : `--validate`.
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const { validateSectionContent } = require('../../../../packages/graphic-engine/src/contracts/validate');
+  let bad = 0;
+  for (const s of GRAPHIC_SAMPLES) {
+    const list = s.deliverable === 'business-card' ? Object.values(cardFaces({ binding: 'values', fields: { fullName: 'X', jobTitle: s.brand.sector, companyName: s.brand.name, email: 'contact@example.com', phone: '+000 00 00 00 00', website: 'example.com' } })) : pages(s).sections;
+    for (const sec of list) {
+      const r = validateSectionContent(sec);
+      if (!r.ok) {
+        bad++;
+        console.log(`✗ ${s.id}/${sec.id} : ${r.issues.map((i: { message: string }) => i.message).join(' · ')}`);
+      }
+    }
+  }
+  console.log(bad ? `${bad} page(s) invalide(s)` : '✓ contenu des 12 échantillons graphiques valide');
+  process.exit(bad ? 1 : 0);
+}
+
 (async () => {
   if (!OUT) throw new Error('usage : npm run sample:quality -- <dossier> [filtre] [--no-export] [--level=medium]');
   await loadSecrets();
@@ -171,6 +190,8 @@ async function noveltyReport(groups: Record<string, Record<string, string[]>>): 
       console.log(`  ÉCHEC ${s.id} : ${(error as Error).message}`);
     }
   }
+  // Les vignettes vidéo sont relues dans le dossier (ce qui a vraiment été écrit), pas dans les listes rendues.
+  for (const id of Object.keys(groups.video ?? {})) groups.video[id] = fs.readdirSync(OUT).filter((f) => f.startsWith(`${id}-s`) && f.endsWith('.jpg')).map((f) => path.join(OUT, f));
   const report = await noveltyReport(groups);
   fs.writeFileSync(path.join(OUT, 'novelty.json'), JSON.stringify({ at: new Date().toISOString(), level, report }, null, 2));
   console.log('\nNouveauté entre marques (distance CLIP moyenne, plus haut = plus différent) :');
