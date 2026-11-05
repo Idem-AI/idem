@@ -1,0 +1,211 @@
+import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import { DatePipe, DecimalPipe } from '@angular/common';
+import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { HttpErrorResponse } from '@angular/common/http';
+import { Router, RouterLink } from '@angular/router';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
+import { TranslateModule } from '@ngx-translate/core';
+import { IdemLoaderComponent } from '@idem/shared-loader/angular';
+import {
+  BUILDERS_LEGAL_VERSION,
+  BUILDERS_PROGRAM,
+  BUILDER_BUILDING_SIGNALS,
+  BUILDER_OPERATING_SIGNALS,
+} from '@idem/shared-models/builders/program';
+import { environment } from '../../../../../environments/environment';
+import { CurrentProjectService } from '../../../../shared/services/current-project.service';
+import { BuildersIllustrationComponent } from '../../../../shared/components/builders-illustration/builders-illustration';
+import { BuilderApplicationView, BuilderEligibility, BuildersService } from '../../services/builders.service';
+
+/** Refus de l'API qui ont leur propre phrase dans les traductions (`builders.errors.*`). */
+const KNOWN_ERRORS = ['TERMS_REQUIRED', 'TERMS_OUTDATED', 'ALREADY_APPLIED', 'NOT_ELIGIBLE', 'PITCH_TOO_SHORT', 'PITCH_TOO_LONG', 'INVALID_URL', 'PROJECT_NOT_FOUND'];
+
+/**
+ * Idem Builders, côté candidat : choisir un projet, voir s'il est géré avec
+ * IDEM, le présenter, suivre la décision.
+ *
+ * La condition d'entrée est montrée **avant** le formulaire, projet par
+ * projet : un candidat dont le projet n'est ni en ligne ni suivi en
+ * communication apprend ce qui lui manque et y va en un clic, au lieu de
+ * remplir une présentation que l'API refusera.
+ */
+@Component({
+  selector: 'app-builders-page',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [
+    ReactiveFormsModule,
+    RouterLink,
+    DatePipe,
+    DecimalPipe,
+    TranslateModule,
+    IdemLoaderComponent,
+    BuildersIllustrationComponent,
+  ],
+  templateUrl: './builders-page.html',
+})
+export class BuildersPage {
+  private readonly builders = inject(BuildersService);
+  private readonly currentProject = inject(CurrentProjectService);
+  private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
+
+  protected readonly program = BUILDERS_PROGRAM;
+  protected readonly operatingSignals = BUILDER_OPERATING_SIGNALS;
+  protected readonly buildingSignals = BUILDER_BUILDING_SIGNALS;
+  protected readonly topupPercent = Math.round(BUILDERS_PROGRAM.topupBonusRate * 100);
+  protected readonly hostingPercent = Math.round(BUILDERS_PROGRAM.hostingDiscountRate * 100);
+  protected readonly showcaseUrl = `${environment.services.domain}/builders`;
+  protected readonly termsUrl = `${environment.services.domain}/builders-terms`;
+  protected readonly privacyUrl = `${environment.services.domain}/builders-privacy`;
+  /** Le badge est servi par la landing : c'est la même adresse que celle du code à copier. */
+  protected readonly badgeImageUrl = `${environment.services.domain}/assets/builders/idem-builder-badge.svg`;
+  protected readonly badgeSnippet = `<a href="https://idem.africa/builders" target="_blank" rel="noopener"><img src="https://idem.africa/assets/builders/idem-builder-badge.svg" alt="Idem Builder" width="168" height="44"></a>`;
+
+  protected readonly projects = this.currentProject.projects;
+  protected readonly projectsLoaded = this.currentProject.isLoaded;
+
+  protected readonly applications = signal<BuilderApplicationView[] | null>(null);
+  protected readonly isBuilder = signal(false);
+  protected readonly loadError = signal(false);
+
+  protected readonly eligibility = signal<BuilderEligibility | null>(null);
+  protected readonly checking = signal(false);
+  protected readonly checkError = signal(false);
+
+  protected readonly submitting = signal(false);
+  protected readonly submitError = signal<string | null>(null);
+  protected readonly submitted = signal<BuilderApplicationView | null>(null);
+  protected readonly copied = signal(false);
+
+  protected readonly form = new FormGroup({
+    projectId: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+    pitch: new FormControl('', {
+      nonNullable: true,
+      validators: [
+        Validators.required,
+        Validators.minLength(BUILDERS_PROGRAM.pitchMinLength),
+        Validators.maxLength(BUILDERS_PROGRAM.pitchMaxLength),
+      ],
+    }),
+    publicUrl: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(300)] }),
+    // Conditions et politique de confidentialité du programme : jamais cochées d'avance.
+    acceptTerms: new FormControl(false, { nonNullable: true, validators: [Validators.requiredTrue] }),
+  });
+
+  private readonly pitchValue = toSignal(this.form.controls.pitch.valueChanges, { initialValue: '' });
+  protected readonly pitchLength = computed(() => this.pitchValue().trim().length);
+
+  /** Le projet choisi peut être présenté : géré avec IDEM, sans candidature en cours. */
+  protected readonly canApply = computed(() => {
+    const check = this.eligibility();
+    return !!check && check.eligible && !check.current;
+  });
+
+  /** Ce que le projet a été construit avec IDEM, en plus de ce qui le fait tourner. */
+  protected readonly builtWith = computed(() => {
+    const check = this.eligibility();
+    return check ? this.buildingSignals.filter((signal) => check.signals[signal]) : [];
+  });
+
+  constructor() {
+    this.currentProject.load().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({ error: () => undefined });
+    this.loadMine();
+
+    this.form.controls.projectId.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((projectId) => this.check(projectId));
+  }
+
+  protected loadMine(): void {
+    this.loadError.set(false);
+    this.builders.me().subscribe({
+      next: (me) => {
+        this.applications.set(me.applications);
+        this.isBuilder.set(me.isBuilder);
+      },
+      error: () => {
+        this.applications.set([]);
+        this.loadError.set(true);
+      },
+    });
+  }
+
+  private check(projectId: string): void {
+    this.eligibility.set(null);
+    this.checkError.set(false);
+    this.submitError.set(null);
+    if (!projectId) return;
+
+    this.checking.set(true);
+    this.builders.eligibility(projectId).subscribe({
+      next: (check) => {
+        this.eligibility.set(check);
+        this.checking.set(false);
+        if (check.suggestedUrl && !this.form.controls.publicUrl.value) {
+          this.form.controls.publicUrl.setValue(check.suggestedUrl);
+        }
+      },
+      error: () => {
+        this.checking.set(false);
+        this.checkError.set(true);
+      },
+    });
+  }
+
+  protected retryCheck(): void {
+    this.check(this.form.controls.projectId.value);
+  }
+
+  /** Ouvre le projet sur l'écran qui le rend éligible. */
+  protected goTo(path: '/project/ideploy' | '/project/communication'): void {
+    const projectId = this.form.controls.projectId.value;
+    if (!projectId) return;
+    this.currentProject.select(projectId, { navigate: false });
+    void this.router.navigate([path]);
+  }
+
+  protected submit(): void {
+    if (this.form.invalid || !this.canApply() || this.submitting()) {
+      this.form.markAllAsTouched();
+      return;
+    }
+
+    const { projectId, pitch, publicUrl, acceptTerms } = this.form.getRawValue();
+    this.submitting.set(true);
+    this.submitError.set(null);
+
+    this.builders
+      .apply({
+        projectId,
+        pitch: pitch.trim(),
+        publicUrl: publicUrl.trim() || undefined,
+        acceptTerms,
+        termsVersion: BUILDERS_LEGAL_VERSION,
+      })
+      .subscribe({
+      next: ({ application }) => {
+        this.submitting.set(false);
+        this.submitted.set(application);
+        this.applications.update((list) => [application, ...(list ?? [])]);
+        this.form.reset();
+        this.eligibility.set(null);
+      },
+      error: (error: HttpErrorResponse) => {
+        this.submitting.set(false);
+        // Le code de l'API, traduit ici : ses messages ne sont écrits qu'en français.
+        const code = String(error.error?.error ?? '');
+        this.submitError.set(KNOWN_ERRORS.includes(code) ? code : 'GENERIC');
+      },
+    });
+  }
+
+  protected async copyBadge(): Promise<void> {
+    try {
+      await navigator.clipboard.writeText(this.badgeSnippet);
+      this.copied.set(true);
+      setTimeout(() => this.copied.set(false), 2_000);
+    } catch {
+      this.copied.set(false);
+    }
+  }
+}

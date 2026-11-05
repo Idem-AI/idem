@@ -1,0 +1,29 @@
+/* Idem Builders — ce qui n'appartient qu'à cette page. */
+
+/* Le numéro d'étape : une séquence se lit dans l'ordre, le chiffre le dit
+   avant le titre. Couleur de la marque, sans pastille autour. */
+.bp-step {
+  font-size: var(--font-size-2xl, 1.5rem);
+  font-weight: var(--font-weight-bold);
+  line-height: 1;
+  color: var(--color-primary-500);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Pays et adresse d'un projet de la vitrine : une ligne discrète sous la
+   description. */
+.bp-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+  margin-bottom: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-tertiary);
+}
+
+.bp-link {
+  color: var(--color-primary-500);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  overflow-wrap: anywhere;
+}

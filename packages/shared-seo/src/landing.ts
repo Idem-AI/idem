@@ -19,9 +19,12 @@ export type LandingPageId =
   | 'blog'
   | 'contact'
   | 'premium-beta'
+  | 'builders'
   | 'privacy-policy'
   | 'terms-of-service'
   | 'beta-policy'
+  | 'builders-terms'
+  | 'builders-privacy'
   | 'simulation-terms'
   | 'not-found';
 
@@ -48,10 +51,13 @@ export const LANDING_PAGES: Record<LandingPageId, LandingPage> = {
   'african-market': { id: 'african-market', path: '/african-market', og: 'african-market', about: 'platform', pageType: 'WebPage', sitemap: { priority: 0.7, changefreq: 'monthly' } },
   blog: { id: 'blog', path: '/blog', og: 'blog', about: 'platform', pageType: 'CollectionPage', sitemap: { priority: 0.7, changefreq: 'weekly' } },
   contact: { id: 'contact', path: '/contact', og: 'contact', about: 'platform', pageType: 'ContactPage', sitemap: { priority: 0.6, changefreq: 'yearly' } },
+  builders: { id: 'builders', path: '/builders', og: 'builders', about: 'platform', pageType: 'CollectionPage', sitemap: { priority: 0.8, changefreq: 'weekly' } },
   'premium-beta': { id: 'premium-beta', path: '/premium-beta', og: 'beta', about: 'platform', pageType: 'WebPage', sitemap: { priority: 0.5, changefreq: 'monthly' } },
   'privacy-policy': { id: 'privacy-policy', path: '/privacy-policy', og: 'legal', about: 'platform', pageType: 'WebPage', sitemap: { priority: 0.3, changefreq: 'yearly' } },
   'terms-of-service': { id: 'terms-of-service', path: '/terms-of-service', og: 'legal', about: 'platform', pageType: 'WebPage', sitemap: { priority: 0.3, changefreq: 'yearly' } },
   'beta-policy': { id: 'beta-policy', path: '/beta-policy', og: 'legal', about: 'platform', pageType: 'WebPage', sitemap: { priority: 0.3, changefreq: 'yearly' } },
+  'builders-terms': { id: 'builders-terms', path: '/builders-terms', og: 'legal', about: 'platform', pageType: 'WebPage', sitemap: { priority: 0.3, changefreq: 'yearly' } },
+  'builders-privacy': { id: 'builders-privacy', path: '/builders-privacy', og: 'legal', about: 'platform', pageType: 'WebPage', sitemap: { priority: 0.3, changefreq: 'yearly' } },
   'simulation-terms': { id: 'simulation-terms', path: '/simulation-terms', og: 'legal', about: 'simulator', pageType: 'WebPage', sitemap: { priority: 0.3, changefreq: 'yearly' } },
   'not-found': { id: 'not-found', path: '/not-found', og: 'not-found', about: 'platform', pageType: 'WebPage', sitemap: null },
 };

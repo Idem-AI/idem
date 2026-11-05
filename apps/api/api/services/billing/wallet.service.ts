@@ -1,6 +1,8 @@
 import logger from '../../config/logger';
 import { LEGACY_CREDIT_XAF, WALLET_ACCOUNT, topupBonusXaf } from '../../models/offer.model';
 import { creditLedgerService, LedgerContext } from './credit-ledger.service';
+import { isActiveBuilder } from '../builders/builder-status';
+import { builderTopupBonusXaf } from '../../../../../packages/shared-models/src/builders/program';
 
 /**
  * Le portefeuille en francs : un solde, pour tous les services.
@@ -102,14 +104,23 @@ export class WalletService {
       ...context,
       note: context.note ?? `Recharge de ${amountXaf} F`,
     });
-    const bonusXaf = topupBonusXaf(amountXaf);
-    if (bonusXaf > 0) {
-      balanceXaf = await creditLedgerService.grant(userId, WALLET_ACCOUNT, bonusXaf, 'bonus', {
+    const tierBonusXaf = topupBonusXaf(amountXaf);
+    if (tierBonusXaf > 0) {
+      balanceXaf = await creditLedgerService.grant(userId, WALLET_ACCOUNT, tierBonusXaf, 'bonus', {
         ...context,
-        note: `Bonus de recharge (+${bonusXaf} F)`,
+        note: `Bonus de recharge (+${tierBonusXaf} F)`,
       });
     }
-    return { balanceXaf, bonusXaf };
+    // Idem Builders : un bonus de plus, cumulable avec le palier, écrit à part
+    // pour que le relevé dise d'où vient chaque franc.
+    const builderBonusXaf = (await isActiveBuilder(userId)) ? builderTopupBonusXaf(amountXaf) : 0;
+    if (builderBonusXaf > 0) {
+      balanceXaf = await creditLedgerService.grant(userId, WALLET_ACCOUNT, builderBonusXaf, 'bonus', {
+        ...context,
+        note: `Bonus Idem Builders (+${builderBonusXaf} F)`,
+      });
+    }
+    return { balanceXaf, bonusXaf: tierBonusXaf + builderBonusXaf };
   }
 
   /** Versement au portefeuille hors paiement (geste commercial, code, remboursement de commande). */

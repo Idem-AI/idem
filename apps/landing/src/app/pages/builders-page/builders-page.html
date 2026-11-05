@@ -1,0 +1,230 @@
+<!-- Idem Builders. Le pagne commémoratif dit « être reconnu, porté haut par
+     une communauté » (AGENTS.md § 4) : c'est ce que le programme fait pour
+     un projet. -->
+<div class="ed-page">
+  <!-- ═══ La promesse ══════════════════════════════════════════════════ -->
+  <header class="ed-section ed-section-hero ed-wrap">
+    <h1 class="ed-display ed-rise">
+      <span i18n="@@builders-page.hero.line1">Built with IDEM.</span><br />
+      <span class="i-underline" i18n="@@builders-page.hero.line2">Carried by Africa.</span>
+    </h1>
+
+    <div class="grid gap-12 ed-mt-12 ed-mt-lg-16 lg:grid-cols-12 lg:gap-16 lg:items-center">
+      <div class="lg:col-span-6 ed-rise ed-rise-2">
+        <p class="ed-lede ed-lede-wide" i18n="@@builders-page.hero.lede">
+          Idem Builders shows the projects that put Africa forward and that run on IDEM. Your
+          project gets seen, and keeping it alive costs you less.
+        </p>
+        <div class="ed-mt-8 flex flex-col gap-3 sm:flex-row">
+          <a [href]="joinUrl" class="inner-button">
+            <ng-container i18n="@@builders-page.hero.join">Join Idem Builders</ng-container>
+          </a>
+          <a href="#builders-showcase" class="outer-button">
+            <ng-container i18n="@@builders-page.hero.see">See the builders</ng-container>
+          </a>
+        </div>
+      </div>
+
+      <figure class="lg:col-span-6 ed-art ed-art-fill ed-rise ed-rise-3">
+        <app-page-art scene="commemorative-cloth" />
+      </figure>
+    </div>
+  </header>
+
+  <!-- ═══ La condition ═════════════════════════════════════════════════
+       Une seule, vérifiée sur le projet avant même le formulaire. -->
+  <section class="ed-rule">
+    <div class="ed-section ed-wrap">
+      <div class="grid gap-12 lg:grid-cols-12 lg:gap-16">
+        <div class="lg:col-span-5">
+          <h2 class="ed-h2" i18n="@@builders-page.condition.title">One condition: run it with IDEM</h2>
+          <p class="ed-body ed-mt-6" i18n="@@builders-page.condition.body">
+            The programme is for projects that live on IDEM, not only projects that started there.
+            One of these three is enough, and IDEM checks it for you when you apply.
+          </p>
+          <p class="ed-body ed-mt-4" i18n="@@builders-page.condition.africa">
+            Then the team looks at what the project brings to Africa: the people it serves, the
+            problem it solves, where it is built.
+          </p>
+        </div>
+
+        <ul class="lg:col-span-7 ed-rows ed-rows-closed">
+          @for (way of ways; track way.title) {
+            <li class="ed-row">
+              <h3 class="ed-h3">{{ way.title }}</h3>
+              <p class="ed-body ed-mt-2">{{ way.description }}</p>
+            </li>
+          }
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ Ce que le programme apporte ═════════════════════════════════ -->
+  <section class="ed-rule">
+    <div class="ed-section ed-wrap">
+      <h2 class="ed-h2" i18n="@@builders-page.perks.title">What you get</h2>
+      <p class="ed-lede ed-lede-wide ed-mt-6" i18n="@@builders-page.perks.lede">
+        Visibility, and lower costs on what you already use. Applied automatically from the day
+        you are accepted.
+      </p>
+
+      <ul class="ed-rows ed-rows-3 ed-rows-closed ed-mt-12">
+        @for (perk of perks; track perk.title) {
+          <li class="ed-row">
+            <h3 class="ed-h3">{{ perk.title }}</h3>
+            <p class="ed-body ed-mt-2">{{ perk.description }}</p>
+          </li>
+        }
+      </ul>
+    </div>
+  </section>
+
+  <!-- ═══ Rejoindre : une séquence, donc numérotée ════════════════════ -->
+  <section class="ed-rule">
+    <div class="ed-section ed-wrap">
+      <div class="grid gap-12 lg:grid-cols-12 lg:gap-16">
+        <div class="lg:col-span-5">
+          <h2 class="ed-h2" i18n="@@builders-page.steps.title">How to join</h2>
+          <p class="ed-body ed-mt-6" i18n="@@builders-page.steps.body">
+            Everything happens in your IDEM console. It takes a few minutes.
+          </p>
+          <a [href]="joinUrl" class="inner-button ed-mt-8 inline-flex">
+            <ng-container i18n="@@builders-page.steps.join">Apply now</ng-container>
+          </a>
+        </div>
+
+        <ol class="lg:col-span-7 ed-rows ed-rows-closed">
+          @for (step of steps; track step.title; let i = $index) {
+            <li class="ed-row grid gap-x-6 gap-y-2 sm:grid-cols-[3rem_1fr] sm:items-baseline">
+              <span class="bp-step" aria-hidden="true">{{ i + 1 }}</span>
+              <div>
+                <h3 class="ed-h3">{{ step.title }}</h3>
+                <p class="ed-body ed-mt-2">{{ step.description }}</p>
+              </div>
+            </li>
+          }
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ La vitrine ══════════════════════════════════════════════════ -->
+  <section class="ed-rule" id="builders-showcase" aria-labelledby="builders-showcase-title">
+    <div class="ed-section ed-wrap">
+      <h2 id="builders-showcase-title" class="ed-h2" i18n="@@builders-page.showcase.title">
+        The builders
+      </h2>
+
+      @switch (showcaseState()) {
+        @case ('loading') {
+          <ul class="ed-rows ed-rows-2 ed-mt-10" aria-hidden="true">
+            @for (i of [0, 1, 2, 3]; track i) {
+              <li class="ed-row">
+                <div class="skeleton h-6 w-1/2 rounded"></div>
+                <div class="skeleton ed-mt-3 h-4 w-5/6 rounded"></div>
+              </li>
+            }
+          </ul>
+        }
+        @case ('error') {
+          <p class="ed-body ed-mt-8" role="alert">
+            <ng-container i18n="@@builders-page.showcase.error">The showcase could not be loaded.</ng-container>
+            <button type="button" class="button-ghost button-sm" (click)="loadShowcase()" i18n="@@builders-page.showcase.retry">
+              Try again
+            </button>
+          </p>
+        }
+        @default {
+          @if (builders().length === 0) {
+            <div class="grid gap-10 ed-mt-10 lg:grid-cols-12 lg:items-center">
+              <p class="ed-lede lg:col-span-7" i18n="@@builders-page.showcase.empty">
+                The first applications are being reviewed. Yours could open this list.
+              </p>
+              <div class="lg:col-span-5 lg:text-right">
+                <a [href]="joinUrl" class="inner-button" i18n="@@builders-page.showcase.emptyCta">Submit my project</a>
+              </div>
+            </div>
+          } @else {
+            <ul class="ed-rows ed-rows-2 ed-mt-10">
+              @for (builder of builders(); track builder.id) {
+                <li class="ed-row">
+                  <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                    <h3 class="ed-h3">{{ builder.projectName }}</h3>
+                    @if (builder.featured) {
+                      <span class="tag" i18n="@@builders-page.showcase.featured">Featured</span>
+                    }
+                  </div>
+                  @if (builder.tagline) {
+                    <p class="ed-body ed-mt-2">{{ builder.tagline }}</p>
+                  }
+                  <p class="bp-meta ed-mt-3">
+                    @if (builder.country) {
+                      <span>{{ builder.country }}</span>
+                    }
+                    @if (builder.url) {
+                      <a [href]="builder.url" target="_blank" rel="noopener noreferrer nofollow" class="bp-link">
+                        {{ host(builder.url) }}
+                      </a>
+                    }
+                  </p>
+                </li>
+              }
+            </ul>
+          }
+        }
+      }
+    </div>
+  </section>
+
+  <!-- ═══ Questions ═══════════════════════════════════════════════════ -->
+  <section class="ed-rule">
+    <div class="ed-section ed-wrap">
+      <div class="grid gap-12 lg:grid-cols-12 lg:gap-16">
+        <div class="lg:col-span-5">
+          <h2 class="ed-h2" i18n="@@builders-page.faq.title">Questions</h2>
+          <p class="ed-body ed-mt-6" i18n="@@builders-page.faq.legal">
+            The full rules are in the participation terms and the programme privacy policy, which
+            you accept before applying.
+          </p>
+          <div class="ed-mt-8 flex flex-col gap-3 sm:flex-row lg:flex-col xl:flex-row">
+            <a routerLink="/builders-terms" class="outer-button">
+              <ng-container i18n="@@builders-page.faq.terms">Participation terms</ng-container>
+            </a>
+            <a routerLink="/builders-privacy" class="outer-button">
+              <ng-container i18n="@@builders-page.faq.privacy">Privacy policy</ng-container>
+            </a>
+          </div>
+        </div>
+
+        <dl class="lg:col-span-7 ed-rows ed-rows-closed">
+          @for (question of questions; track question.title) {
+            <div class="ed-row">
+              <dt class="ed-h3">{{ question.title }}</dt>
+              <dd class="ed-body ed-mt-2">{{ question.description }}</dd>
+            </div>
+          }
+        </dl>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ L'appel ═════════════════════════════════════════════════════ -->
+  <section class="ed-rule">
+    <div class="ed-section ed-wrap">
+      <div class="grid gap-10 lg:grid-cols-12 lg:gap-16 lg:items-end">
+        <div class="lg:col-span-7">
+          <h2 class="ed-h2" i18n="@@builders-page.cta.title">Your project deserves to be seen</h2>
+          <p class="ed-lede ed-mt-6" i18n="@@builders-page.cta.body">
+            Run it with IDEM, tell us what it does for Africa, and we will show it.
+          </p>
+        </div>
+        <div class="lg:col-span-5 flex flex-col gap-3 sm:flex-row lg:justify-end">
+          <a [href]="joinUrl" class="inner-button">
+            <ng-container i18n="@@builders-page.cta.join">Join Idem Builders</ng-container>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>

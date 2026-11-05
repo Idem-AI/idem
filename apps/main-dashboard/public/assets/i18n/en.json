@@ -5432,7 +5432,8 @@
       "pitchDecks": "My pitch decks",
       "pitchDeckNew": "New pitch deck",
       "legalDoc": "Legal document",
-      "legalDocEdit": "Legal document editing"
+      "legalDocEdit": "Legal document editing",
+      "builders": "Idem Builders"
     }
   },
   "notFound": {
@@ -6108,5 +6109,124 @@
     "accept": "Accept and continue",
     "done": "Done. Start your generation again.",
     "failed": "Your acceptance could not be saved. Try again."
+  },
+  "builders": {
+    "eyebrow": "Idem Builders",
+    "title": {
+      "lead": "Get noticed for a project that",
+      "accent": "puts Africa forward"
+    },
+    "lede": "Idem Builders showcases African projects run with IDEM: put online, marketed and developed here. Submit yours; the team reviews it and replies by email.",
+    "seeShowcase": "See the projects in the programme",
+    "navLabel": "Idem Builders",
+    "member": {
+      "title": "You are an Idem Builder",
+      "topup": "+{{percent}}% credit on every top-up, already applied",
+      "hosting": "-{{percent}}% on iDeploy hosting, already applied",
+      "showcase": "Your project is featured on idem.africa/builders",
+      "portrait": "A possible feature on IDEM's blog and social channels"
+    },
+    "badge": {
+      "title": "The Idem Builder badge",
+      "body": "Paste this code in your site's footer: the badge links to the programme showcase.",
+      "copy": "Copy the code",
+      "copied": "Code copied"
+    },
+    "mine": {
+      "title": "Your applications",
+      "sentOn": "Sent on {{date}}",
+      "reviewDelay": "answer within {{days}} working days",
+      "bonusPaid": "{{amount}} F welcome bonus added to your wallet.",
+      "reason": "Reason:",
+      "loadError": "Your applications did not load."
+    },
+    "status": {
+      "pending": "In review",
+      "approved": "Accepted",
+      "rejected": "Not selected"
+    },
+    "apply": {
+      "title": "Submit a project",
+      "subtitle": "One condition: the project is run with IDEM. Pick it, and we check what it already does here.",
+      "project": "Project",
+      "projectPlaceholder": "Choose a project",
+      "noProject": "You don't have a project yet. Create it, run it with IDEM, then come back to submit it.",
+      "createProject": "Create a project",
+      "checking": "Checking the project…",
+      "checkError": "This project cannot be checked right now.",
+      "managedTitle": "Run with IDEM",
+      "done": "done",
+      "notYet": "not yet",
+      "builtWith": "Also built with IDEM",
+      "alreadyMember": "This project is already in the programme.",
+      "alreadyPending": "An application for this project is already in review.",
+      "notEligible": "This project is not run with IDEM yet. Put it online with iDeploy or manage its marketing in IDEM, then come back: either one is enough.",
+      "goDeploy": "Put it online",
+      "goCommunication": "Open marketing",
+      "pitch": "How does your project put Africa forward?",
+      "pitchHelp": "The problem you solve, for whom, where. This is what the team reads before deciding.",
+      "pitchRemaining": "{{count}} more characters at least",
+      "url": "Public address of the project (optional)",
+      "submit": "Send the application",
+      "sentTitle": "Application sent for {{project}}",
+      "sentBody": "The team reviews it within {{days}} working days. You will get the answer by email, and it will show here.",
+      "terms": {
+        "accept": "I have read and accept the",
+        "terms": "participation terms",
+        "and": "and the",
+        "privacy": "programme privacy policy",
+        "note": "Your agreement is recorded with the application (text version, date, IP address, browser)."
+      }
+    },
+    "signals": {
+      "sitePublished": "Website put online with IDEM",
+      "appPublished": "App put online with IDEM",
+      "communication": "Marketing managed in IDEM",
+      "domain": "Domain name registered with IDEM",
+      "brand": "Brand identity",
+      "charter": "Brand book",
+      "businessPlan": "Business plan",
+      "pitchDeck": "Pitch deck",
+      "legal": "Legal documents",
+      "video": "Promotional video"
+    },
+    "perks": {
+      "title": "What you get",
+      "welcome": {
+        "title": "{{amount}} F on us",
+        "body": "Added to your wallet when accepted, once per account."
+      },
+      "topup": {
+        "title": "+{{percent}}% on every top-up",
+        "body": "Stacks with the tier bonus, for as long as you are a member."
+      },
+      "hosting": {
+        "title": "-{{percent}}% on hosting",
+        "body": "The iDeploy meters of your sites and apps cost less every day."
+      },
+      "showcase": {
+        "title": "A place in the showcase",
+        "body": "Your project presented on idem.africa/builders, with a link to it."
+      },
+      "portrait": {
+        "title": "A feature in our channels",
+        "body": "The team regularly picks projects to tell on IDEM's blog and social channels."
+      },
+      "badge": {
+        "title": "The Idem Builder badge",
+        "body": "Put it on your site to show you are part of it."
+      }
+    },
+    "errors": {
+      "ALREADY_APPLIED": "An application already exists for this project.",
+      "NOT_ELIGIBLE": "This project is not run with IDEM yet.",
+      "PITCH_TOO_SHORT": "The description is too short.",
+      "PITCH_TOO_LONG": "The description is too long.",
+      "INVALID_URL": "The project address is not valid.",
+      "PROJECT_NOT_FOUND": "Project not found.",
+      "GENERIC": "The application did not go through. Try again in a moment.",
+      "TERMS_REQUIRED": "Accept the terms and the privacy policy to send the application.",
+      "TERMS_OUTDATED": "The programme terms have changed. Reload the page to read the new version."
+    }
   }
 }

@@ -48,6 +48,7 @@ import { UsageQuotaCounter } from './schemas/usageQuota.schema';
 import { pricingService } from './services/billing/pricing.service';
 import { BetaTester } from './schemas/betaTester.schema';
 import { BlogPost } from './schemas/blogPost.schema';
+import { BuilderApplication } from './schemas/builderApplication.schema';
 import { EmailLog } from './schemas/emailLog.schema';
 import { billingService } from './services/billing.service';
 import { billingSettingsService } from './services/billing/billing-settings.service';
@@ -111,6 +112,7 @@ import { communicationRoutes } from './routes/communication.routes';
 import { financeRoutes } from './routes/finance.routes';
 import { simulationRoutes } from './routes/simulation.routes';
 import { blogRoutes, blogInternalRoutes } from './routes/blog.routes';
+import { buildersRoutes, buildersInternalRoutes } from './routes/builders.routes';
 
 // Tout ce qui s'écrit désormais — y compris les `console.*` restants et les
 // crashes — part en JSON corrélé vers les fichiers collectés par Grafana.
@@ -256,6 +258,9 @@ app.use('/og', ogRoutes);
 // Blog : lecture publique pour le landing, écriture par clé de service pour le panel admin.
 app.use('/blog', blogRoutes);
 app.use('/internal/blog', blogInternalRoutes);
+// Idem Builders : vitrine publique et candidature (console) ; décision par le panel admin.
+app.use('/builders', buildersRoutes);
+app.use('/internal/builders', buildersInternalRoutes);
 
 // L'API n'a rien à indexer, sauf les images de partage : les robots des
 // réseaux sociaux respectent robots.txt avant de les télécharger.
@@ -399,6 +404,8 @@ function startServer() {
         BetaTester.init(),
         // Blog : l'adresse d'un billet est unique dans sa langue.
         BlogPost.init(),
+        // Idem Builders : file d'examen, « ce compte est-il Builder ? », vitrine.
+        BuilderApplication.init(),
         EmailLog.init(),
         // Quotas d'usage IA : un compteur par (utilisateur, groupe, période),
         // unique pour l'incrément conditionnel, purgé par TTL.

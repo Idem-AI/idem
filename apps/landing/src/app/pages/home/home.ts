@@ -9,6 +9,7 @@ import { OfferPickerComponent } from '../../components/offer-picker/offer-picker
 import { TechnologySovereigntyComponent } from '../../components/technology-sovereignty/technology-sovereignty';
 import { Cta } from '../../components/cta/cta';
 import { BetaProgram } from '../../components/beta-program/beta-program';
+import { BuildersProgram } from '../../components/builders-program/builders-program';
 
 /**
  * L'accueil. Son référencement (titre, partage, JSON-LD) est posé par
@@ -26,6 +27,7 @@ import { BetaProgram } from '../../components/beta-program/beta-program';
     TechnologySovereigntyComponent,
     Cta,
     BetaProgram,
+    BuildersProgram,
   ],
   templateUrl: './home.html',
   styleUrl: './home.css',

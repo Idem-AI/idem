@@ -113,6 +113,16 @@ export class Header implements OnInit {
       type: 'link',
     },
     {
+      // Idem Builders est mis en avant au premier niveau, badge compris : un
+      // programme qu'on lance se cherche, il ne se trouve pas dans un sous-menu.
+      // Retirer le badge quand le programme n'est plus une nouveauté.
+      id: 'builders',
+      label: 'Idem Builders',
+      route: '/builders',
+      type: 'link',
+      badge: $localize`:@@header.badge.new:New`,
+    },
+    {
       id: 'company',
       label: $localize`:@@header.menu.company:Company`,
       type: 'dropdown',

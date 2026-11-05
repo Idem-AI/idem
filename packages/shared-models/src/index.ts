@@ -15,6 +15,9 @@ export * from './pricing/defaults';
 // Jauge de créativité : crans, multiplicateurs de prix, normalisation (API + dashboard).
 export * from './creativity/creativity';
 
+// Idem Builders : règles d'entrée et avantages du programme (API, console, landing).
+export * from './builders/program';
+
 // Utility types
 export interface BaseModel {
   id?: string;

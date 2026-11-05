@@ -34,15 +34,11 @@
             <a
               [routerLink]="item.route"
               routerLinkActive="active"
-              class="glass-nav-link hover:text-text-primary transition-all py-2 px-3 text-sm font-medium rounded-lg flex items-center gap-2"
+              class="glass-nav-link hover:text-text-primary transition-all py-2 px-3 text-sm font-medium rounded-lg flex items-center gap-2 whitespace-nowrap"
             >
               {{ item.label }}
               @if (item.badge) {
-                <span
-                  class="text-[10px] font-bold bg-primary text-white px-1.5 py-0.5 rounded shadow-lg shadow-primary/20 uppercase leading-none"
-                >
-                  {{ item.badge }}
-                </span>
+                <span class="nav-badge">{{ item.badge }}</span>
               }
             </a>
           } @else if (item.type === 'dropdown') {
@@ -50,7 +46,7 @@
               <button
                 (click)="toggleMenuDropdown(item.id)"
                 [ngClass]="{ 'text-text-primary': activeDropdown() === item.id }"
-                class="glass-nav-link hover:text-text-primary transition-all py-2 px-3 text-sm font-medium flex items-center gap-1 rounded-lg"
+                class="glass-nav-link hover:text-text-primary transition-all py-2 px-3 text-sm font-medium flex items-center gap-1 rounded-lg whitespace-nowrap"
               >
                 <span>{{ item.label }}</span>
                 <svg
@@ -263,11 +259,7 @@
               >
                 <span>{{ item.label }}</span>
                 @if (item.badge) {
-                  <span
-                    class="text-[10px] font-bold bg-primary text-white px-1.5 py-0.5 rounded shadow-lg shadow-primary/20 uppercase leading-none"
-                  >
-                    {{ item.badge }}
-                  </span>
+                  <span class="nav-badge">{{ item.badge }}</span>
                 }
               </a>
             } @else if (item.type === 'dropdown' && item.items) {

@@ -10,6 +10,8 @@ import { BillingEngine, BillingInterval } from '../models/billing.model';
 import { PaymentCallbackRaw } from '../schemas/payment.schema';
 import { paymentRequiredBody } from '../middleware/billing.middleware';
 import { ICODE, topupBonusXaf } from '../models/offer.model';
+import { isActiveBuilder } from '../services/builders/builder-status';
+import { builderTopupBonusXaf } from '../../../../packages/shared-models/src/builders/program';
 import { walletService } from '../services/billing/wallet.service';
 import { sendQuotaRefusal } from '../middleware/usage-quota.middleware';
 import { QUOTA_GROUPS, QuotaGroup, quotaGroupOf } from '../models/usage-quota.model';
@@ -258,7 +260,11 @@ export class BillingController {
         amountXaf: quote.amountXaf,
         country: quote.country,
         credits: quote.product.credits,
-        bonusXaf: quote.product.code === WALLET_TOPUP_CODE ? topupBonusXaf(quote.amountXaf) : 0,
+        bonusXaf:
+          quote.product.code === WALLET_TOPUP_CODE
+            ? topupBonusXaf(quote.amountXaf) +
+              (req.user?.uid && (await isActiveBuilder(req.user.uid)) ? builderTopupBonusXaf(quote.amountXaf) : 0)
+            : 0,
       });
     } catch (error) {
       handleError(res, error, 'Impossible de calculer le prix.');

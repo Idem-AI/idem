@@ -57,6 +57,7 @@ on l'ajoute ici avec sa source (règle complète : `AGENTS.md` § 4).
 | Baobab qui porte son fruit | le business qui rapporte | promesse d'IDEM (image de partage de l'accueil) |
 | Daba (houe à lame plate perpendiculaire au manche) | aller sur le terrain, vérifier en vrai | simulateur : « Ce qu'il faut vérifier » — source : [Daba (outil), Wikipédia](https://fr.wikipedia.org/wiki/Daba_(outil)) |
 | Kyinie (ombrelle d'apparat akan) | abriter, protéger des intempéries et des crises | simulateur : « Les imprévus » — source : [Ohene Kyinie, « le roi couvre »](https://adinkra.art/ohene-kyiniie-the-symbol-of-leadership-and-protection/) |
+| Pagne commémoratif (étoffe imprimée pour honorer une personne, une association, un événement) | être reconnu, mis en avant par une communauté | Idem Builders : landing, console, image de partage, badge — source : [African Commemorative Textiles Project, National Museums Scotland](https://www.nms.ac.uk/collections-research/our-research/highlights-of-previous-projects/african-commemorative-textiles-project/) |
 
 Les motifs (chevrons, dents de scie, losanges, points) vivent dans les objets,
 jamais en fond. Le losange bleu du bouclier revient comme signature.
@@ -254,6 +255,7 @@ le même tracé qu'y.
 | Simulateur : les deux entrées | **grenier plein** (`granary-full`) pour un projet IDEM ; **feuillet apporté** (`leaflet-import`) pour un business plan importé | captures de livrables en vignette de carte |
 | Simulateur : l'appel final | **daba** (`daba`) — aller retourner la terre avant de semer, c'est-à-dire vérifier en vrai | photographie « entrepreneurs qui se lancent » sous dégradé noir vers primaire |
 | Accueil : programme bêta | **clé à anneau-bouclier** (`key-shield`) — l'accès premium ; même dessin que l'invitation bêta, ramené au cadre commun | — |
+| Idem Builders (`/builders`) et console (`/builders`, `builders-illustration`) | **pagne commémoratif** (`commemorative-cloth`, nouveau) — l'étoffe qu'on imprime pour honorer et qu'on porte en public ; son médaillon empile trois briques de banco (ce qui se bâtit), en couleur | drapeau asafo fante (sens juste — l'emblème d'une compagnie — mais décrit comme sacré par les musées) ; tambour parleur (réservé à « communiquer ») ; architecture de terre (dit « construire », pas « être reconnu ») |
 
 Les deux colonnes de secteurs du simulateur (livraison urbaine / agriculture)
 n'ont **pas** d'illustration : ce qui s'y lit est le contraste entre deux
@@ -287,7 +289,8 @@ motif IDEM, sans panneau ni aplat derrière.
 | `african-market` | `/african-market` | **étal du marché** | silhouette du continent (interdite par défaut) |
 | `contact` | `/contact` | **tambour parleur**, ses ondes en couleur | — |
 | `beta` | `/premium-beta` | **clé à anneau-bouclier** (même dessin que l'invitation bêta) | — |
-| `legal` | conditions, confidentialité, bêta, simulateur | **balance akan à peser l'or** | feuillet et calame (dit l'écriture, pas la règle) |
+| `builders` | `/builders` | **pagne commémoratif**, le médaillon en couleur | drapeau asafo (objet sacré) |
+| `legal` | conditions, confidentialité, bêta, simulateur, conditions et confidentialité Idem Builders | **balance akan à peser l'or** | feuillet et calame (dit l'écriture, pas la règle) |
 | `not-found` | `/not-found` | **Sankofa** | — |
 
 Sur une image de partage, les graines de l'awalé sont rangées en ligne : en

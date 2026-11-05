@@ -23,6 +23,7 @@ export const OG_KEYS = [
   'blog',
   'contact',
   'beta',
+  'builders',
   'legal',
   'not-found',
 ] as const;
