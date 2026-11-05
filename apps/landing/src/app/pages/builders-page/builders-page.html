@@ -162,9 +162,11 @@
           <ul class="bx-cards" aria-hidden="true">
             @for (i of [0, 1, 2]; track i) {
               <li class="bx-card">
-                <div class="skeleton bx-mono"></div>
-                <div class="skeleton h-5 w-2/3 rounded ed-mt-6"></div>
-                <div class="skeleton h-4 w-full rounded ed-mt-3"></div>
+                <div class="skeleton bx-cover"></div>
+                <div class="bx-card-body">
+                  <div class="skeleton h-6 w-2/3 rounded"></div>
+                  <div class="skeleton h-4 w-full rounded ed-mt-3"></div>
+                </div>
               </li>
             }
           </ul>
@@ -182,10 +184,14 @@
             <!-- Vide : l'aperçu de la fiche qu'aura le premier projet admis. -->
             <div class="bx-empty">
               <div class="bx-card bx-card-preview" aria-hidden="true">
-                <span class="bx-mono">?</span>
-                <p class="bx-card-name ed-mt-6" i18n="@@builders-page.showcase.previewName">Your project</p>
-                <p class="ed-body ed-mt-2" i18n="@@builders-page.showcase.previewTagline">One sentence on what it does, and for whom.</p>
-                <p class="bx-card-foot" i18n="@@builders-page.showcase.previewFoot">Your country · your-site.africa</p>
+                <app-builder-cover class="bx-cover" [name]="previewName" />
+                <div class="bx-card-body">
+                  <p class="bx-card-name">{{ previewName }}</p>
+                  <p class="bx-card-tagline" i18n="@@builders-page.showcase.previewTagline">One sentence on what it does, and for whom.</p>
+                  <div class="bx-card-foot">
+                    <span class="bx-card-country" i18n="@@builders-page.showcase.previewCountry">Your country</span>
+                  </div>
+                </div>
               </div>
               <div>
                 <p class="bx-empty-title">{{ emptyFirst }}</p>
@@ -198,27 +204,43 @@
           } @else {
             <ul class="bx-cards">
               @for (builder of builders(); track builder.id) {
-                <li class="bx-card" [class.bx-card-featured]="builder.featured">
-                  <div class="bx-card-top">
-                    <span class="bx-mono" aria-hidden="true">{{ initials(builder.projectName) }}</span>
-                    @if (builder.featured) {
-                      <span class="tag" i18n="@@builders-page.showcase.featured">Featured</span>
-                    }
-                  </div>
-                  <h3 class="bx-card-name ed-mt-6">{{ builder.projectName }}</h3>
-                  @if (builder.tagline) {
-                    <p class="ed-body ed-mt-2">{{ builder.tagline }}</p>
-                  }
-                  <p class="bx-card-foot">
-                    @if (builder.country) {
-                      <span>{{ builder.country }}</span>
-                    }
-                    @if (builder.url) {
-                      <a [href]="builder.url" target="_blank" rel="noopener noreferrer nofollow" class="bx-card-link">
-                        {{ host(builder.url) }}
-                      </a>
-                    }
-                  </p>
+                <li [class.bx-card-featured]="builder.featured">
+                  <a class="bx-card" [routerLink]="['/builders', builder.slug]">
+                    <app-builder-cover class="bx-cover" [brand]="builder.brand" [name]="builder.projectName" />
+                    <div class="bx-card-body">
+                      <div class="bx-card-head">
+                        <h3 class="bx-card-name">{{ builder.projectName }}</h3>
+                        @if (builder.featured) {
+                          <span class="tag" i18n="@@builders-page.showcase.featured">Featured</span>
+                        }
+                      </div>
+                      @if (builder.tagline) {
+                        <p class="bx-card-tagline">{{ builder.tagline }}</p>
+                      }
+                      <div class="bx-card-foot">
+                        @if (builder.team?.length) {
+                          <span class="bx-avatars" aria-hidden="true">
+                            @for (member of builder.team; track member.name) {
+                              @if (member.pictureUrl) {
+                                <img [src]="member.pictureUrl" alt="" loading="lazy" />
+                              } @else {
+                                <span>{{ initials(member.name) }}</span>
+                              }
+                            }
+                          </span>
+                        }
+                        @if (builder.country) {
+                          <span class="bx-card-country">{{ builder.country }}</span>
+                        }
+                        <span class="bx-card-more">
+                          <ng-container i18n="@@builders-page.showcase.open">See the project</ng-container>
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="M5 12h13m0 0l-5-5m5 5l-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                          </svg>
+                        </span>
+                      </div>
+                    </div>
+                  </a>
                 </li>
               }
             </ul>

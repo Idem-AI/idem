@@ -1,0 +1,207 @@
+<div class="ed-page bd-page" [style.--bd-brand]="accent()">
+  <div class="ed-wrap bd-top">
+    <a routerLink="/builders" class="bd-back">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M19 12H6m0 0l5-5m-5 5l5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+      <ng-container i18n="@@builder-detail.back">All the builders</ng-container>
+    </a>
+  </div>
+
+  @switch (state()) {
+    @case ('loading') {
+      <div class="ed-wrap" aria-busy="true">
+        <div class="skeleton bd-cover-skeleton"></div>
+        <div class="skeleton h-12 w-1/2 rounded ed-mt-12"></div>
+        <div class="skeleton h-5 w-2/3 rounded ed-mt-4"></div>
+      </div>
+    }
+
+    @case ('notfound') {
+      <div class="ed-wrap bd-state">
+        <h1 class="ed-h2" i18n="@@builder-detail.notfound.title">This project is not in the showcase</h1>
+        <p class="ed-lede ed-mt-6" i18n="@@builder-detail.notfound.body">
+          It may have been hidden by its team, or the address is wrong.
+        </p>
+        <a routerLink="/builders" class="inner-button ed-mt-8 inline-flex" i18n="@@builder-detail.notfound.cta">See all the builders</a>
+      </div>
+    }
+
+    @case ('error') {
+      <div class="ed-wrap bd-state" role="alert">
+        <h1 class="ed-h2" i18n="@@builder-detail.error.title">The project could not be loaded</h1>
+        <button type="button" class="outer-button ed-mt-8" (click)="retry()" i18n="@@builder-detail.error.retry">Try again</button>
+      </div>
+    }
+
+    @default {
+      @if (builder(); as b) {
+        <!-- ═══ L'en-tête : la couverture, puis le nom dans sa police ═══ -->
+        <header class="ed-wrap bd-header">
+          <app-builder-cover class="bd-cover" size="hero" [brand]="b.brand" [name]="b.projectName" />
+
+          <div class="bd-identity">
+            @if (b.brand?.logoOnLight) {
+              <span class="bd-logo-tile">
+                <img [src]="b.brand!.logoOnLight" [alt]="b.projectName" />
+              </span>
+            }
+
+            <div class="bd-title-row">
+              <div class="bd-title">
+                <h1 class="bd-name" [style.font-family]="titleFont()">{{ b.projectName }}</h1>
+                @if (b.tagline) {
+                  <p class="bd-tagline">{{ b.tagline }}</p>
+                }
+                <ul class="bd-meta">
+                  @if (place()) {
+                    <li>{{ place() }}</li>
+                  }
+                  <li>
+                    <ng-container i18n="@@builder-detail.since">Builder since</ng-container>
+                    {{ b.since | date: 'MMMM y' }}
+                  </li>
+                  @if (b.featured) {
+                    <li class="bd-featured" i18n="@@builder-detail.featured">Featured</li>
+                  }
+                </ul>
+              </div>
+
+              <div class="bd-actions">
+                @if (b.url) {
+                  <a class="inner-button" [href]="b.url" target="_blank" rel="noopener noreferrer">
+                    <ng-container i18n="@@builder-detail.visit">Visit {{ host(b.url) }}</ng-container>
+                  </a>
+                }
+                <button type="button" class="outer-button" (click)="copyLink()">
+                  @if (copied()) {
+                    <ng-container i18n="@@builder-detail.copied">Link copied</ng-container>
+                  } @else {
+                    <ng-container i18n="@@builder-detail.share">Copy the link</ng-container>
+                  }
+                </button>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <!-- ═══ Le corps : le récit à gauche, l'identité à droite ═══ -->
+        <div class="ed-wrap bd-body">
+          <div class="bd-main">
+            @if (paragraphs().length) {
+              <section aria-labelledby="bd-story">
+                <h2 id="bd-story" class="bd-h2" i18n="@@builder-detail.story">The project</h2>
+                @for (paragraph of paragraphs(); track $index) {
+                  <p class="bd-text">{{ paragraph }}</p>
+                }
+              </section>
+            }
+
+            <section aria-labelledby="bd-africa">
+              <h2 id="bd-africa" class="bd-h2" i18n="@@builder-detail.africa">What it brings to Africa</h2>
+              <blockquote class="bd-quote">
+                <p>{{ b.pitch }}</p>
+              </blockquote>
+            </section>
+
+            @if (b.team.length) {
+              <section aria-labelledby="bd-team">
+                <h2 id="bd-team" class="bd-h2" i18n="@@builder-detail.team">The team</h2>
+                <ul class="bd-team">
+                  @for (member of b.team; track member.name) {
+                    <li class="bd-member">
+                      @if (member.pictureUrl) {
+                        <img class="bd-avatar" [src]="member.pictureUrl" alt="" loading="lazy" />
+                      } @else {
+                        <span class="bd-avatar bd-avatar-initials" aria-hidden="true">{{ initials(member.name) }}</span>
+                      }
+                      <div class="bd-member-copy">
+                        <p class="bd-member-name">{{ member.name }}</p>
+                        @if (member.role) {
+                          <p class="bd-member-role">{{ member.role }}</p>
+                        }
+                        @if (member.bio) {
+                          <p class="bd-member-bio">{{ member.bio }}</p>
+                        }
+                        @if (member.links) {
+                          <p class="bd-member-links">
+                            @if (member.links.linkedin) {
+                              <a [href]="member.links.linkedin" target="_blank" rel="noopener noreferrer nofollow">LinkedIn</a>
+                            }
+                            @if (member.links.github) {
+                              <a [href]="member.links.github" target="_blank" rel="noopener noreferrer nofollow">GitHub</a>
+                            }
+                            @if (member.links.twitter) {
+                              <a [href]="member.links.twitter" target="_blank" rel="noopener noreferrer nofollow">X</a>
+                            }
+                          </p>
+                        }
+                      </div>
+                    </li>
+                  }
+                </ul>
+              </section>
+            }
+          </div>
+
+          <aside class="bd-aside">
+            @if (b.brand; as brand) {
+              <section class="bd-panel" aria-labelledby="bd-brand">
+                <h2 id="bd-brand" class="bd-panel-title" i18n="@@builder-detail.brand">Brand identity</h2>
+                @if (brand.palette?.length) {
+                  <ul class="bd-palette">
+                    @for (swatch of brand.palette; track swatch.role) {
+                      <li>
+                        <span class="bd-swatch" [style.background]="swatch.hex"></span>
+                        <span class="bd-swatch-label">{{ roleLabel(swatch.role) }}</span>
+                        <span class="bd-swatch-hex">{{ swatch.hex }}</span>
+                      </li>
+                    }
+                  </ul>
+                }
+                @if (brand.fonts; as fonts) {
+                  <dl class="bd-fonts">
+                    @if (fonts.primary) {
+                      <div>
+                        <dt i18n="@@builder-detail.font.titles">Titles</dt>
+                        <dd [style.font-family]="titleFont()">{{ fonts.primary }}</dd>
+                      </div>
+                    }
+                    @if (fonts.secondary) {
+                      <div>
+                        <dt i18n="@@builder-detail.font.text">Text</dt>
+                        <dd [style.font-family]="textFont()">{{ fonts.secondary }}</dd>
+                      </div>
+                    }
+                  </dl>
+                }
+              </section>
+            }
+
+            @if (builtWith().length) {
+              <section class="bd-panel" aria-labelledby="bd-built">
+                <h2 id="bd-built" class="bd-panel-title" i18n="@@builder-detail.built">Built and run with IDEM</h2>
+                <ul class="bd-built">
+                  @for (item of builtWith(); track item) {
+                    <li>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />
+                      </svg>
+                      {{ item }}
+                    </li>
+                  }
+                </ul>
+              </section>
+            }
+
+            <section class="bd-panel bd-join">
+              <p class="bd-join-title" i18n="@@builder-detail.join.title">Your project puts Africa forward too?</p>
+              <p class="bd-join-body" i18n="@@builder-detail.join.body">Run it with IDEM and apply to Idem Builders.</p>
+              <a [href]="joinUrl" class="inner-button bd-join-cta" i18n="@@builder-detail.join.cta">Join Idem Builders</a>
+            </section>
+          </aside>
+        </div>
+      }
+    }
+  }
+</div>

@@ -1,11 +1,12 @@
 import { isPlatformBrowser } from '@angular/common';
-import { HttpClient } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, PLATFORM_ID, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { BUILDERS_PROGRAM, type BuilderShowcaseEntry } from '@idem/shared-models/builders/program';
 import { environment } from '../../../environments/environment';
 import { PageArtComponent } from '../../shared/components/page-art/page-art';
 import { BuildersArtComponent } from './builders-art';
+import { BuilderCoverComponent } from './builder-cover';
+import { BuildersService } from '../../shared/services/builders.service';
 
 interface Row {
   title: string;
@@ -31,12 +32,12 @@ const francs = (amount: number) => amount.toLocaleString('fr-FR').replace(/\s/g,
 @Component({
   selector: 'app-builders-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, PageArtComponent, BuildersArtComponent],
+  imports: [RouterLink, PageArtComponent, BuildersArtComponent, BuilderCoverComponent],
   templateUrl: './builders-page.html',
   styleUrls: ['../../shared/styles/editorial-page.css', './builders-page.css'],
 })
 export class BuildersPage {
-  private readonly http = inject(HttpClient);
+  private readonly buildersApi = inject(BuildersService);
   private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
 
   /** Sans compte, la console fait créer le compte puis revient sur la candidature. */
@@ -138,6 +139,9 @@ export class BuildersPage {
     },
   ];
 
+  /** Le nom de la fiche d'exemple, quand la vitrine est vide. */
+  protected readonly previewName = $localize`:@@builders-page.showcase.previewName:Your project`;
+
   /** La vitrine vide : le premier projet admis l'ouvre. */
   protected readonly emptyFirst = $localize`:@@builders-page.showcase.emptyFirst:This list opens with you`;
 
@@ -162,10 +166,10 @@ export class BuildersPage {
 
   protected loadShowcase(): void {
     this.showcaseState.set('loading');
-    this.http
-      .get<{ builders: BuilderShowcaseEntry[] }>(`${environment.services.api.url}/builders/showcase`)
+    this.buildersApi
+      .showcase()
       .subscribe({
-        next: ({ builders }) => {
+        next: (builders) => {
           this.builders.set(builders);
           this.showcaseState.set('ready');
         },
@@ -173,7 +177,7 @@ export class BuildersPage {
       });
   }
 
-  /** Les initiales, dans le médaillon du pagne de chaque projet. */
+  /** Les initiales d'un membre, quand il n'a pas de photo. */
   protected initials(name: string): string {
     const words = name.trim().split(/\s+/).filter(Boolean);
     const letters = words.length > 1 ? words[0][0] + words[1][0] : (words[0] ?? '?').slice(0, 2);

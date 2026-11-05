@@ -280,7 +280,7 @@
   }
 }
 
-/* ── La vitrine ───────────────────────────────────────────────────────── */
+/* ── La vitrine : de grandes fiches, chacune avec sa couverture ──────── */
 .bx-stats {
   margin: 0;
   font-size: var(--font-size-sm);
@@ -290,30 +290,17 @@
 
 .bx-cards {
   display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr));
   grid-auto-flow: dense;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));
-  gap: 1.25rem;
+  gap: clamp(1.25rem, 2.5vw, 2rem);
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.bx-card {
+.bx-cards > li {
   display: flex;
-  flex-direction: column;
   min-width: 0;
-  padding: 1.75rem;
-  border: 1px solid var(--bx-line);
-  border-radius: var(--bx-radius);
-  background: var(--color-surface-1, transparent);
-  transition:
-    border-color 0.3s var(--bx-ease),
-    transform 0.3s var(--bx-ease);
-}
-
-.bx-card:hover {
-  border-color: color-mix(in srgb, var(--color-primary-500) 50%, transparent);
-  transform: translateY(-2px);
 }
 
 @media (min-width: 1024px) {
@@ -322,50 +309,136 @@
   }
 }
 
-.bx-card-top {
+/* Toute la fiche est le lien vers la page du projet. */
+.bx-card {
   display: flex;
-  align-items: flex-start;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--bx-line);
+  border-radius: 1.25rem;
+  overflow: hidden;
+  background: var(--color-surface-1, transparent);
+  color: inherit;
+  text-decoration: none;
+  transition:
+    border-color 0.35s var(--bx-ease),
+    transform 0.35s var(--bx-ease),
+    box-shadow 0.35s var(--bx-ease);
+}
+
+a.bx-card:hover {
+  border-color: color-mix(in srgb, var(--color-primary-500) 40%, transparent);
+  transform: translateY(-4px);
+  box-shadow: 0 28px 56px -32px color-mix(in srgb, black 45%, transparent);
+}
+
+a.bx-card:focus-visible {
+  outline: 2px solid var(--color-primary-500);
+  outline-offset: 3px;
+}
+
+.bx-cover {
+  height: clamp(12rem, 20vw, 16rem);
+  flex: none;
+}
+
+.bx-card-featured .bx-cover {
+  height: clamp(12rem, 24vw, 18rem);
+}
+
+.bx-card-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding: 1.5rem 1.5rem 1.35rem;
+}
+
+.bx-card-head {
+  display: flex;
+  align-items: center;
   justify-content: space-between;
   gap: 1rem;
 }
 
-/* Le monogramme : les initiales du projet, à la place d'un logo qu'il n'a
-   pas forcément fourni. */
-.bx-mono {
-  display: grid;
-  place-items: center;
-  width: 3rem;
-  height: 3rem;
-  border-radius: 0.75rem;
-  background: color-mix(in srgb, var(--color-primary-500) 12%, transparent);
-  color: var(--color-primary-500);
-  font-weight: var(--font-weight-black);
-  font-size: 1.05rem;
-  letter-spacing: 0.02em;
+.bx-card-name {
+  margin: 0;
+  font-size: clamp(1.25rem, 2vw, 1.5rem);
+  font-weight: var(--font-weight-bold);
+  line-height: 1.2;
+  color: var(--color-text-primary);
 }
 
-.bx-card-name {
-  margin-bottom: 0;
-  font-size: var(--font-size-lg, 1.125rem);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text-primary);
+.bx-card-tagline {
+  display: -webkit-box;
+  margin: 0.5rem 0 0;
+  overflow: hidden;
+  font-size: var(--font-size-sm);
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
 .bx-card-foot {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.25rem 1rem;
-  margin: auto 0 0;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: auto;
   padding-top: 1.25rem;
   font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
 }
 
-.bx-card-link {
+.bx-card-country {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bx-card-more {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-left: auto;
+  font-weight: var(--font-weight-bold);
   color: var(--color-primary-500);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
+}
+
+.bx-card-more svg {
+  transition: transform 0.35s var(--bx-ease);
+}
+
+a.bx-card:hover .bx-card-more svg {
+  transform: translateX(3px);
+}
+
+/* L'équipe en pile d'avatars. */
+.bx-avatars {
+  display: inline-flex;
+  flex: none;
+}
+
+.bx-avatars > img,
+.bx-avatars > span {
+  display: grid;
+  place-items: center;
+  width: 1.85rem;
+  height: 1.85rem;
+  margin-left: -0.5rem;
+  border-radius: 9999px;
+  border: 2px solid var(--color-surface-1, white);
+  object-fit: cover;
+  background: color-mix(in srgb, var(--color-primary-500) 14%, var(--color-surface-1, white));
+  color: var(--color-primary-500);
+  font-size: 0.625rem;
+  font-weight: var(--font-weight-bold);
+}
+
+.bx-avatars > :first-child {
+  margin-left: 0;
 }
 
 /* Vide : l'aperçu de la fiche, puis l'invitation. */
@@ -376,9 +449,9 @@
 }
 
 .bx-card-preview {
+  max-width: 26rem;
   border-style: dashed;
   border-color: color-mix(in srgb, var(--color-primary-500) 45%, transparent);
-  max-width: 24rem;
 }
 
 .bx-empty-title {
@@ -532,12 +605,14 @@
 
 @media (prefers-reduced-motion: reduce) {
   .bx-card,
+  .bx-card-more svg,
   .bx-toggle::before,
   .bx-toggle::after {
     transition: none;
   }
 
-  .bx-card:hover {
+  a.bx-card:hover,
+  a.bx-card:hover .bx-card-more svg {
     transform: none;
   }
 }

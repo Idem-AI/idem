@@ -71,6 +71,13 @@ export const routes: Routes = [
     data: { layout: 'public', seo: 'ideploy' },
   },
   {
+    // La fiche d'un projet admis : rendue dans le navigateur (voir app.routes.server.ts).
+    path: 'builders/:slug',
+    loadComponent: () =>
+      import('./pages/builder-detail-page/builder-detail-page').then((m) => m.BuilderDetailPage),
+    data: { layout: 'public', seo: 'builders' },
+  },
+  {
     // Idem Builders : le programme, ses avantages et la vitrine des projets admis.
     path: 'builders',
     loadComponent: () => import('./pages/builders-page/builders-page').then((m) => m.BuildersPage),

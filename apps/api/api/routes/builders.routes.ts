@@ -54,6 +54,29 @@ buildersRoutes.get(
 );
 
 buildersRoutes.get(
+  '/projects/:slug',
+  handle(async (req, res) => {
+    res.set('Cache-Control', PUBLIC_CACHE).json({ builder: await buildersService.profile(String(req.params.slug)) });
+  })
+);
+
+// Le logo d'un projet ancien, enregistré en SVG dans la base. Servi comme une
+// image, jamais comme un document : la politique de sécurité interdit tout
+// script, au cas où le fichier serait ouvert directement.
+buildersRoutes.get(
+  '/projects/:slug/logo.svg',
+  handle(async (req, res) => {
+    const svg = await buildersService.legacyLogo(String(req.params.slug));
+    res
+      .set('Content-Type', 'image/svg+xml; charset=utf-8')
+      .set('Content-Security-Policy', "default-src 'none'; style-src 'unsafe-inline'; img-src data:; font-src data:")
+      .set('X-Content-Type-Options', 'nosniff')
+      .set('Cache-Control', PUBLIC_CACHE)
+      .send(svg);
+  })
+);
+
+buildersRoutes.get(
   '/me',
   authenticate,
   handle(async (req, res) => {

@@ -1,0 +1,431 @@
+/* La page d'un projet Idem Builders.
+   La couleur de la marque (`--bd-brand`) ne sert qu'aux détails — guillemet,
+   repères, initiales — jamais au texte courant : elle est choisie par le
+   projet, pas pour la lisibilité de cette page. */
+
+:host {
+  --bd-line: var(--glass-border-subtle);
+  --bd-ease: cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.bd-page {
+  padding-bottom: clamp(4rem, 8vw, 7rem);
+}
+
+.bd-top {
+  padding-top: clamp(6.5rem, 10vw, 8rem);
+  padding-bottom: 1.25rem;
+}
+
+.bd-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-secondary);
+  text-decoration: none;
+}
+
+.bd-back:hover,
+.bd-back:focus-visible {
+  color: var(--color-text-primary);
+}
+
+.bd-back svg {
+  transition: transform 0.3s var(--bd-ease);
+}
+
+.bd-back:hover svg {
+  transform: translateX(-3px);
+}
+
+.bd-state {
+  padding-block: clamp(3rem, 8vw, 6rem);
+}
+
+/* ── L'en-tête ────────────────────────────────────────────────────────── */
+.bd-cover,
+.bd-cover-skeleton {
+  display: grid;
+  height: clamp(15rem, 36vw, 30rem);
+  border-radius: 1.75rem;
+}
+
+.bd-identity {
+  position: relative;
+  padding-top: 1.5rem;
+}
+
+/* Le logo sur sa plaque, qui mord sur le bas de la couverture. */
+.bd-logo-tile {
+  display: grid;
+  place-items: center;
+  width: clamp(5.5rem, 10vw, 7.5rem);
+  aspect-ratio: 1;
+  margin-top: calc(clamp(5.5rem, 10vw, 7.5rem) / -2 - 1.5rem);
+  margin-left: clamp(1rem, 3vw, 2.5rem);
+  margin-bottom: 1.5rem;
+  padding: 0.9rem;
+  border-radius: 1.25rem;
+  background: #ffffff;
+  box-shadow:
+    0 0 0 4px var(--color-background, var(--color-surface-1)),
+    0 20px 40px -20px color-mix(in srgb, black 40%, transparent);
+}
+
+.bd-logo-tile img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.bd-title-row {
+  display: grid;
+  gap: 1.75rem;
+}
+
+.bd-name {
+  margin: 0;
+  font-size: clamp(2.5rem, 6vw, 4.5rem);
+  font-weight: var(--font-weight-black);
+  line-height: 1.02;
+  letter-spacing: -0.02em;
+  color: var(--color-text-primary);
+  text-wrap: balance;
+}
+
+.bd-tagline {
+  margin: 1rem 0 0;
+  max-width: 42rem;
+  font-size: clamp(1.125rem, 1.8vw, 1.375rem);
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+  text-wrap: pretty;
+}
+
+.bd-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 1.5rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bd-meta li {
+  padding: 0.35rem 0.85rem;
+  border: 1px solid var(--bd-line);
+  border-radius: 9999px;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.bd-meta .bd-featured {
+  border-color: transparent;
+  background: var(--color-primary-500);
+  color: var(--color-on-primary);
+  font-weight: var(--font-weight-bold);
+}
+
+.bd-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+@media (min-width: 1024px) {
+  .bd-title-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: 3rem;
+    align-items: end;
+  }
+
+  .bd-actions {
+    justify-content: flex-end;
+  }
+}
+
+/* ── Le corps ─────────────────────────────────────────────────────────── */
+.bd-body {
+  display: grid;
+  gap: 3.5rem;
+  margin-top: clamp(3.5rem, 7vw, 5.5rem);
+}
+
+.bd-main {
+  display: grid;
+  gap: clamp(3rem, 6vw, 4.5rem);
+  align-content: start;
+  min-width: 0;
+}
+
+.bd-h2 {
+  margin: 0 0 1.25rem;
+  font-size: clamp(1.5rem, 2.6vw, 2rem);
+  font-weight: var(--font-weight-black);
+  line-height: 1.15;
+  color: var(--color-text-primary);
+}
+
+.bd-text {
+  margin: 0 0 1rem;
+  max-width: 68ch;
+  font-size: var(--font-size-lg, 1.125rem);
+  line-height: 1.75;
+  color: var(--color-text-secondary);
+  white-space: pre-line;
+  text-wrap: pretty;
+}
+
+/* La présentation du candidat, en grand : c'est le cœur de la fiche. */
+.bd-quote {
+  position: relative;
+  margin: 0;
+  padding: clamp(2rem, 4vw, 3rem);
+  border-radius: 1.5rem;
+  background: color-mix(in srgb, var(--bd-brand) 7%, var(--color-surface-1, transparent));
+}
+
+.bd-quote::before {
+  content: '“';
+  position: absolute;
+  top: -0.15em;
+  left: 0.35em;
+  font-size: clamp(5rem, 10vw, 8rem);
+  font-weight: var(--font-weight-black);
+  line-height: 1;
+  color: var(--bd-brand);
+  opacity: 0.85;
+}
+
+.bd-quote p {
+  position: relative;
+  margin: 0;
+  font-size: clamp(1.25rem, 2.2vw, 1.625rem);
+  line-height: 1.55;
+  color: var(--color-text-primary);
+  white-space: pre-line;
+  text-wrap: pretty;
+}
+
+/* L'équipe. */
+.bd-team {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bd-member {
+  display: flex;
+  gap: 1rem;
+  padding: 1.25rem;
+  border: 1px solid var(--bd-line);
+  border-radius: 1.25rem;
+}
+
+.bd-avatar {
+  flex: none;
+  width: 4rem;
+  height: 4rem;
+  border-radius: 9999px;
+  object-fit: cover;
+}
+
+.bd-avatar-initials {
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--bd-brand) 16%, var(--color-surface-1, white));
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-bold);
+}
+
+.bd-member-copy {
+  min-width: 0;
+}
+
+.bd-member-name {
+  margin: 0;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+}
+
+.bd-member-role {
+  margin: 0.15rem 0 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.bd-member-bio {
+  margin: 0.6rem 0 0;
+  font-size: var(--font-size-sm);
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+}
+
+.bd-member-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 0.75rem 0 0;
+  font-size: var(--font-size-sm);
+}
+
+.bd-member-links a {
+  color: var(--color-primary-500);
+  font-weight: var(--font-weight-bold);
+}
+
+/* ── La colonne d'identité ────────────────────────────────────────────── */
+.bd-aside {
+  display: grid;
+  gap: 1rem;
+  align-content: start;
+}
+
+.bd-panel {
+  padding: 1.5rem;
+  border: 1px solid var(--bd-line);
+  border-radius: 1.25rem;
+}
+
+.bd-panel-title {
+  margin: 0 0 1rem;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-secondary);
+}
+
+.bd-palette {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bd-palette li {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: var(--font-size-sm);
+}
+
+.bd-swatch {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.6rem;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, black 12%, transparent);
+}
+
+.bd-swatch-label {
+  color: var(--color-text-primary);
+}
+
+.bd-swatch-hex {
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+  text-transform: uppercase;
+}
+
+.bd-fonts {
+  display: grid;
+  gap: 0.75rem;
+  margin: 1.25rem 0 0;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--bd-line);
+}
+
+.bd-fonts div {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+}
+
+.bd-fonts dt {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.bd-fonts dd {
+  margin: 0;
+  font-size: 1.125rem;
+  color: var(--color-text-primary);
+  text-align: right;
+}
+
+.bd-built {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bd-built li {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+}
+
+.bd-built svg {
+  flex: none;
+  color: var(--color-primary-500);
+}
+
+.bd-join {
+  border-color: transparent;
+  background: var(--color-primary-500);
+  color: var(--color-on-primary);
+}
+
+.bd-join-title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: var(--font-weight-bold);
+  line-height: 1.3;
+}
+
+.bd-join-body {
+  margin: 0.5rem 0 0;
+  font-size: var(--font-size-sm);
+  color: color-mix(in srgb, var(--color-on-primary) 82%, transparent);
+}
+
+/* Sur le bleu, le bouton principal passe en clair pour rester visible. */
+.bd-join-cta {
+  display: inline-flex;
+  margin-top: 1.25rem;
+  background: var(--color-on-primary);
+  color: var(--color-primary-500);
+}
+
+@media (min-width: 1024px) {
+  .bd-body {
+    grid-template-columns: minmax(0, 8fr) minmax(0, 4fr);
+    column-gap: 4rem;
+  }
+
+  .bd-aside {
+    position: sticky;
+    top: 6.5rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bd-back svg {
+    transition: none;
+  }
+
+  .bd-back:hover svg {
+    transform: none;
+  }
+}

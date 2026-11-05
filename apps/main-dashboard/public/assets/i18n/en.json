@@ -6138,7 +6138,8 @@
       "reviewDelay": "answer within {{days}} working days",
       "bonusPaid": "{{amount}} F welcome bonus added to your wallet.",
       "reason": "Reason:",
-      "loadError": "Your applications did not load."
+      "loadError": "Your applications did not load.",
+      "publicPage": "See the public page"
     },
     "status": {
       "pending": "In review",
@@ -6176,6 +6177,12 @@
         "and": "and the",
         "privacy": "programme privacy policy",
         "note": "Your agreement is recorded with the application (text version, date, IP address, browser)."
+      },
+      "publication": {
+        "title": "What the public will see",
+        "body": "The project page will show its name, description, country, address, your presentation and its brand identity (logo, colours, typefaces).",
+        "team": "Also show the project team: names, roles, photos and professional links",
+        "teamNote": "Each person shown must agree. Email addresses are never published."
       }
     },
     "signals": {

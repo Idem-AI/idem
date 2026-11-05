@@ -15,6 +15,9 @@ export interface BuilderApplicationView {
   decisionNote?: string;
   welcomeBonusXaf?: number;
   showcase: { visible: boolean };
+  /** Adresse de la fiche publique, une fois la candidature acceptée. */
+  slug?: string;
+  publication?: { showTeam: boolean };
   createdAt: string;
 }
 
@@ -52,6 +55,7 @@ export class BuildersService {
     projectId: string;
     pitch: string;
     publicUrl?: string;
+    showTeam: boolean;
     acceptTerms: boolean;
     termsVersion: string;
   }): Observable<{ application: BuilderApplicationView }> {

@@ -75,6 +75,8 @@ export class BuildersPrivacy implements OnInit {
           { text: $localize`:@@buildersPrivacy.data.identity:your IDEM account identifier, email address and display name;`, textI18n: '@@buildersPrivacy.data.identity' },
           { text: $localize`:@@buildersPrivacy.data.project:the project you submit: its name, description, country and public address;`, textI18n: '@@buildersPrivacy.data.project' },
           { text: $localize`:@@buildersPrivacy.data.pitch:the text in which you explain how the project puts Africa forward;`, textI18n: '@@buildersPrivacy.data.pitch' },
+          { text: $localize`:@@buildersPrivacy.data.brand:the brand identity of the project created in IDEM (logo, colours, typefaces), read from the project when the page is displayed;`, textI18n: '@@buildersPrivacy.data.brand' },
+          { text: $localize`:@@buildersPrivacy.data.team:if you choose to publish it, the team entered in the project: name, role, short biography, photograph and professional links of each member;`, textI18n: '@@buildersPrivacy.data.team' },
           { text: $localize`:@@buildersPrivacy.data.signals:a snapshot, taken on the day you apply, of what the project does with IDEM — only yes or no for each item (online with iDeploy, marketing in IDEM, domain, brand, business plan…), never the content of your documents;`, textI18n: '@@buildersPrivacy.data.signals' },
           { text: $localize`:@@buildersPrivacy.data.consent:the proof that you accepted the terms: version, date and time, IP address and browser identifier;`, textI18n: '@@buildersPrivacy.data.consent' },
           { text: $localize`:@@buildersPrivacy.data.decision:the decision: status, date, team member who decided and, in case of refusal, the reason;`, textI18n: '@@buildersPrivacy.data.decision' },
@@ -98,7 +100,7 @@ export class BuildersPrivacy implements OnInit {
         list: [
           { text: $localize`:@@buildersPrivacy.purposes.review:Reviewing your application and answering it — basis: your request and these terms.`, textI18n: '@@buildersPrivacy.purposes.review' },
           { text: $localize`:@@buildersPrivacy.purposes.benefits:Granting and applying the benefits (bonus, top-up credit, hosting discount) — basis: performance of the programme terms.`, textI18n: '@@buildersPrivacy.purposes.benefits' },
-          { text: $localize`:@@buildersPrivacy.purposes.showcase:Publishing the project on the showcase — basis: your consent, which you can withdraw at any time.`, textI18n: '@@buildersPrivacy.purposes.showcase' },
+          { text: $localize`:@@buildersPrivacy.purposes.showcase:Publishing the project on the showcase and on its own page, with its team if you chose it — basis: your consent, which you can withdraw at any time.`, textI18n: '@@buildersPrivacy.purposes.showcase' },
           { text: $localize`:@@buildersPrivacy.purposes.emails:Writing to you about your application and the programme — basis: performance of the programme terms.`, textI18n: '@@buildersPrivacy.purposes.emails' },
           { text: $localize`:@@buildersPrivacy.purposes.proof:Keeping the proof of your acceptance and preventing fraud (multiple accounts, fictitious projects) — basis: the legitimate interest of IDEM.`, textI18n: '@@buildersPrivacy.purposes.proof' },
           { text: $localize`:@@buildersPrivacy.purposes.stats:Measuring the programme with aggregated statistics, which identify no one — basis: the legitimate interest of IDEM.`, textI18n: '@@buildersPrivacy.purposes.stats' },
@@ -108,7 +110,7 @@ export class BuildersPrivacy implements OnInit {
         id: 'public',
         title: $localize`:@@buildersPrivacy.public.title:5. WHAT BECOMES PUBLIC`,
         titleI18n: '@@buildersPrivacy.public.title',
-        content: $localize`:@@buildersPrivacy.public.content:If your project is admitted, the showcase shows only its name, its short description, its country, its public address and the date of admission. Your email address, your name, your application text, the reason for a decision and the usage snapshot are never published. You can ask at any time to hide the project from the showcase.`,
+        content: $localize`:@@buildersPrivacy.public.content:If your project is admitted, its page and the showcase show: its name, description, country and city, public address, date of admission, the text in which you present it, its brand identity (logo, colours, typefaces) and the list of what it does with IDEM (online, marketing, brand, business plan…). The team appears only if you chose it, without email addresses. Your own email address, the reason for a decision and your proof of acceptance are never published. You can ask at any time to hide the project from the showcase, or to remove the team from its page.`,
         contentI18n: '@@buildersPrivacy.public.content',
       },
       {

@@ -20,6 +20,8 @@ export interface BuilderApplicationDocument extends Document {
   displayName?: string;
   projectId: string;
   projectName: string;
+  /** Adresse publique de la fiche : idem.africa/builders/<slug>. */
+  slug?: string;
   projectDescription?: string;
   country?: string;
   /** Ce que le projet apporte à l'Afrique, dans les mots du candidat. */
@@ -41,6 +43,11 @@ export interface BuilderApplicationDocument extends Document {
   welcomeBonusAt?: Date;
   /** Présence sur la vitrine publique d'idem.africa/builders. */
   showcase: { visible: boolean; featured: boolean; tagline?: string };
+  /**
+   * Ce que le candidat accepte de publier en plus du projet lui-même. L'équipe
+   * est faite de données personnelles : elle n'apparaît que sur choix exprès.
+   */
+  publication?: { showTeam: boolean };
   /** Envoi de l'e-mail de décision, inscrit par le panel. */
   email_state?: { sentAt?: Date; messageId?: string; error?: string; attempts?: number };
   createdAt: Date;
@@ -70,6 +77,7 @@ const BuilderApplicationSchema = new Schema<BuilderApplicationDocument>(
     displayName: { type: String },
     projectId: { type: String, required: true },
     projectName: { type: String, required: true },
+    slug: { type: String },
     projectDescription: { type: String },
     country: { type: String },
     pitch: { type: String, required: true },
@@ -93,6 +101,9 @@ const BuilderApplicationSchema = new Schema<BuilderApplicationDocument>(
       featured: { type: Boolean, default: false },
       tagline: { type: String },
     },
+    publication: {
+      showTeam: { type: Boolean, default: false },
+    },
     email_state: {
       sentAt: { type: Date },
       messageId: { type: String },
@@ -113,6 +124,9 @@ BuilderApplicationSchema.index({ userId: 1, status: 1 });
 // le service. Pas d'index unique partiel — `$in` n'y est accepté qu'à partir de
 // MongoDB 6, et un double clic se rattrape mieux qu'une base qui refuse l'index.
 BuilderApplicationSchema.index({ projectId: 1, status: 1 });
+
+// La fiche publique, par son adresse.
+BuilderApplicationSchema.index({ slug: 1 }, { sparse: true });
 
 // La vitrine publique.
 BuilderApplicationSchema.index({ status: 1, 'showcase.visible': 1, 'showcase.featured': -1, decidedAt: -1 });

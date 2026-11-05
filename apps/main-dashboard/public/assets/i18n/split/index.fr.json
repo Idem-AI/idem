@@ -82,7 +82,8 @@
       "reviewDelay": "réponse sous {{days}} jours ouvrés",
       "bonusPaid": "{{amount}} F de bienvenue versés dans votre portefeuille.",
       "reason": "Motif :",
-      "loadError": "Vos candidatures ne se sont pas chargées."
+      "loadError": "Vos candidatures ne se sont pas chargées.",
+      "publicPage": "Voir la fiche publique"
     },
     "status": {
       "pending": "En examen",
@@ -120,6 +121,12 @@
         "and": "et la",
         "privacy": "politique de confidentialité du programme",
         "note": "Votre accord est enregistré avec la candidature (version des textes, date, adresse IP, navigateur)."
+      },
+      "publication": {
+        "title": "Ce que verra le public",
+        "body": "La fiche du projet montrera son nom, sa description, son pays, son adresse, votre présentation et son identité de marque (logo, couleurs, polices).",
+        "team": "Afficher aussi l’équipe du projet : noms, rôles, photos et liens professionnels",
+        "teamNote": "Chaque personne affichée doit être d’accord. Les adresses e-mail ne sont jamais publiées."
       }
     },
     "signals": {

@@ -88,6 +88,8 @@ export class BuildersPage {
       ],
     }),
     publicUrl: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(300)] }),
+    // L'équipe est faite de données personnelles : sa publication est un choix exprès.
+    showTeam: new FormControl(false, { nonNullable: true }),
     // Conditions et politique de confidentialité du programme : jamais cochées d'avance.
     acceptTerms: new FormControl(false, { nonNullable: true, validators: [Validators.requiredTrue] }),
   });
@@ -170,7 +172,7 @@ export class BuildersPage {
       return;
     }
 
-    const { projectId, pitch, publicUrl, acceptTerms } = this.form.getRawValue();
+    const { projectId, pitch, publicUrl, showTeam, acceptTerms } = this.form.getRawValue();
     this.submitting.set(true);
     this.submitError.set(null);
 
@@ -179,6 +181,7 @@ export class BuildersPage {
         projectId,
         pitch: pitch.trim(),
         publicUrl: publicUrl.trim() || undefined,
+        showTeam,
         acceptTerms,
         termsVersion: BUILDERS_LEGAL_VERSION,
       })

@@ -71,6 +71,8 @@
     "builders-page.proof.badge": "Votre badge, prêt à poser sur votre site",
     "builders-page.showcase.previewName": "Votre projet",
     "builders-page.showcase.previewTagline": "Une phrase sur ce qu’il fait, et pour qui.",
-    "builders-page.showcase.previewFoot": "Votre pays · votre-site.africa"
+    "builders-page.showcase.previewFoot": "Votre pays · votre-site.africa",
+    "builders-page.showcase.open": "Voir le projet",
+    "builders-page.showcase.previewCountry": "Votre pays"
   }
 }

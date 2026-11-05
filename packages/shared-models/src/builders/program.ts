@@ -54,7 +54,7 @@ export const BUILDERS_PROGRAM = {
  * deux textes change cette version : l'API refuse alors une acceptation
  * d'une version antérieure, et la candidature garde celle qui a été lue.
  */
-export const BUILDERS_LEGAL_VERSION = '2026-11-05';
+export const BUILDERS_LEGAL_VERSION = '2026-11-05.2';
 
 /** Bonus Builders d'une recharge, en francs. */
 export function builderTopupBonusXaf(amountXaf: number): number {
@@ -66,13 +66,58 @@ export function builderHostingPriceXaf(priceXaf: number): number {
   return Math.round(priceXaf * (1 - BUILDERS_PROGRAM.hostingDiscountRate));
 }
 
-/** Un Builder tel que la vitrine publique le montre — rien de privé. */
+/**
+ * L'identité de marque d'un projet, lue dans IDEM : de quoi composer sa
+ * couverture (fond à la couleur principale, logo dans la variante qui s'y lit)
+ * et montrer sa charte. Les adresses commençant par `/` sont servies par l'API.
+ */
+export interface BuilderBrand {
+  primary: string;
+  secondary?: string;
+  accent?: string;
+  /** Vrai quand la couleur principale est foncée : le logo posé dessus est sa variante claire. */
+  dark: boolean;
+  /** Le logo dans la variante lisible sur la couleur principale. */
+  logoOnBrand?: string;
+  /** Le logo sur fond clair (charte, bloc d'identité). */
+  logoOnLight?: string;
+  fonts?: { primary?: string; secondary?: string; stylesheet?: string };
+  /** La palette complète, dans l'ordre de la charte. */
+  palette?: { role: 'primary' | 'secondary' | 'accent' | 'background' | 'text'; hex: string }[];
+}
+
+/** Un membre de l'équipe, publié seulement si le candidat l'a choisi. */
+export interface BuilderTeamMember {
+  name: string;
+  role?: string;
+  bio?: string;
+  pictureUrl?: string;
+  links?: { linkedin?: string; github?: string; twitter?: string };
+}
+
+/** Un Builder tel que la vitrine publique le montre — rien de ce qui n'a pas été accepté pour publication. */
 export interface BuilderShowcaseEntry {
   id: string;
+  slug: string;
   projectName: string;
   tagline: string;
   country?: string;
   url?: string;
   featured: boolean;
   since: string;
+  brand?: BuilderBrand;
+  /** Les premiers membres (nom, photo), pour la pile d'avatars de la fiche. */
+  team?: { name: string; pictureUrl?: string }[];
+}
+
+/** La page publique d'un projet admis. */
+export interface BuilderProfile extends BuilderShowcaseEntry {
+  city?: string;
+  /** Ce que fait le projet, dans ses propres mots (description longue d'IDEM). */
+  story?: string;
+  /** En quoi le projet fait rayonner l'Afrique, tel que présenté à la candidature. */
+  pitch: string;
+  team: BuilderTeamMember[];
+  /** Ce que le projet a construit ou fait tourner avec IDEM. */
+  builtWith: BuilderSignal[];
 }

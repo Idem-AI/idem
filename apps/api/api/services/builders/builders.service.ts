@@ -10,10 +10,14 @@ import {
   BUILDERS_PROGRAM,
   BUILDER_BUILDING_SIGNALS,
   BUILDER_OPERATING_SIGNALS,
+  BuilderProfile,
   BuilderShowcaseEntry,
+  BuilderSignal,
   BuilderSignals,
   isBuilderEligible,
 } from '../../../../../packages/shared-models/src/builders/program';
+import { slugify } from '../blog.service';
+import { ProjectExcerpt, brandOf, cityOf, inlineLogo, loadProjectExcerpts, storyOf, teamOf } from './builder-profile';
 
 /**
  * Idem Builders : candidature (console), décision (panel admin), vitrine (landing).
@@ -63,6 +67,17 @@ export interface BuilderDecision {
 
 const URL_MAX = 300;
 
+/** L'adresse publique d'une fiche : le nom, puis la fin de l'identifiant (unique). */
+function slugFor(projectName: string, id: string): string {
+  const base = slugify(projectName || 'projet', 60) || 'projet';
+  return `${base}-${id.slice(-6)}`.toLowerCase();
+}
+
+/** Le logo ancien (SVG en base) d'une fiche, servi par l'API. */
+function logoPath(slug: string): string {
+  return `/builders/projects/${slug}/logo.svg`;
+}
+
 /** Ce que le candidat voit de sa candidature : rien de ce que l'équipe garde pour elle. */
 function forApplicant(doc: BuilderApplicationDocument | Record<string, any>): Record<string, unknown> {
   return {
@@ -76,6 +91,8 @@ function forApplicant(doc: BuilderApplicationDocument | Record<string, any>): Re
     decisionNote: doc.status === 'rejected' ? doc.decisionNote : undefined,
     welcomeBonusXaf: doc.welcomeBonusXaf,
     showcase: { visible: !!doc.showcase?.visible },
+    slug: doc.status === 'approved' ? doc.slug : undefined,
+    publication: { showTeam: !!doc.publication?.showTeam },
     createdAt: doc.createdAt,
   };
 }
@@ -133,7 +150,14 @@ export class BuildersService {
   /** Dépose une candidature. La condition d'entrée est revérifiée au dépôt. */
   async apply(
     user: IdemAuthUser,
-    input: { projectId?: unknown; pitch?: unknown; publicUrl?: unknown; acceptTerms?: unknown; termsVersion?: unknown },
+    input: {
+      projectId?: unknown;
+      pitch?: unknown;
+      publicUrl?: unknown;
+      acceptTerms?: unknown;
+      termsVersion?: unknown;
+      showTeam?: unknown;
+    },
     context: { ipAddress?: string; userAgent?: string } = {}
   ): Promise<Record<string, unknown>> {
     // Les conditions et la politique de confidentialité, dans la version en
@@ -185,7 +209,10 @@ export class BuildersService {
       },
       status: 'pending',
       showcase: { visible: true, featured: false, tagline: check.project.description?.slice(0, 200) },
+      publication: { showTeam: input.showTeam === true },
     });
+    created.slug = slugFor(check.project.name, String(created._id));
+    await created.save();
 
     logger.info('builders.applied', { event: 'builders.applied', userId: user.uid, projectId, applicationId: String(created._id) });
     return forApplicant(created);
@@ -206,23 +233,91 @@ export class BuildersService {
 
   // ── Public ───────────────────────────────────────────────────────────────
 
-  /** La vitrine : les projets acceptés, mis en avant d'abord. Rien de privé. */
+  /**
+   * La vitrine : les projets acceptés, mis en avant d'abord, avec leur
+   * identité de marque lue en direct sur le projet. L'équipe n'y figure que si
+   * le candidat a choisi de la publier.
+   */
   async showcase(limit = 60): Promise<BuilderShowcaseEntry[]> {
     const docs = await BuilderApplication.find({ status: 'approved', 'showcase.visible': true })
       .sort({ 'showcase.featured': -1, decidedAt: -1 })
       .limit(Math.min(Math.max(limit, 1), 120))
-      .select('projectName projectDescription country publicUrl showcase decidedAt')
+      .select('projectId projectName projectDescription country publicUrl showcase publication slug decidedAt createdAt')
       .lean();
 
-    return docs.map((doc) => ({
+    const projects = await loadProjectExcerpts(docs.map((doc) => doc.projectId)).catch(() => new Map<string, ProjectExcerpt>());
+    const entries: BuilderShowcaseEntry[] = [];
+    for (const doc of docs) {
+      const slug = await this.ensureSlug(doc);
+      const project = projects.get(doc.projectId);
+      const entry: BuilderShowcaseEntry = {
+        ...this.publicBase(doc, slug),
+        brand: brandOf(project, logoPath(slug)),
+      };
+      if (doc.publication?.showTeam) {
+        const team = teamOf(project);
+        if (team.length > 0) entry.team = team.slice(0, 4).map(({ name, pictureUrl }) => ({ name, pictureUrl }));
+      }
+      entries.push(entry);
+    }
+    return entries;
+  }
+
+  /** La page publique d'un projet admis, par son adresse. */
+  async profile(slug: string): Promise<BuilderProfile> {
+    const doc = await this.publicBySlug(slug);
+    const project = (await loadProjectExcerpts([doc.projectId]).catch(() => new Map<string, ProjectExcerpt>())).get(doc.projectId);
+    const builtWith = (Object.entries(doc.signals ?? {}) as [BuilderSignal, boolean][])
+      .filter(([, value]) => value === true)
+      .map(([key]) => key);
+
+    return {
+      ...this.publicBase(doc, doc.slug!),
+      brand: brandOf(project, logoPath(doc.slug!)),
+      city: cityOf(project),
+      story: storyOf(project) ?? doc.projectDescription,
+      pitch: doc.pitch,
+      team: doc.publication?.showTeam ? teamOf(project) : [],
+      builtWith,
+    };
+  }
+
+  /** Le SVG d'un logo ancien, enregistré dans la base plutôt qu'en fichier. */
+  async legacyLogo(slug: string): Promise<string> {
+    const doc = await this.publicBySlug(slug);
+    const project = (await loadProjectExcerpts([doc.projectId])).get(doc.projectId);
+    const svg = inlineLogo(project);
+    if (!svg) throw new BuildersError(404, 'NO_LOGO', 'Ce projet n’a pas de logo enregistré.');
+    return svg;
+  }
+
+  private async publicBySlug(slug: string) {
+    const clean = String(slug ?? '').trim().toLowerCase();
+    if (!/^[a-z0-9-]{3,120}$/.test(clean)) throw new BuildersError(404, 'NOT_FOUND', 'Projet introuvable.');
+    const doc = await BuilderApplication.findOne({ slug: clean, status: 'approved', 'showcase.visible': true }).lean();
+    if (!doc) throw new BuildersError(404, 'NOT_FOUND', 'Projet introuvable.');
+    return doc;
+  }
+
+  private publicBase(doc: Record<string, any>, slug: string): BuilderShowcaseEntry {
+    return {
       id: String(doc._id),
+      slug,
       projectName: doc.projectName,
       tagline: doc.showcase?.tagline || doc.projectDescription || '',
       country: doc.country || undefined,
       url: doc.publicUrl || undefined,
       featured: !!doc.showcase?.featured,
       since: (doc.decidedAt ?? doc.createdAt).toISOString(),
-    }));
+    };
+  }
+
+  /** Les candidatures d'avant les adresses publiques en reçoivent une à la première lecture. */
+  private async ensureSlug(doc: Record<string, any>): Promise<string> {
+    if (doc.slug) return doc.slug;
+    const slug = slugFor(doc.projectName, String(doc._id));
+    await BuilderApplication.updateOne({ _id: doc._id, slug: { $exists: false } }, { $set: { slug } }).catch(() => undefined);
+    return slug;
   }
 
   // ── Panel admin ──────────────────────────────────────────────────────────
