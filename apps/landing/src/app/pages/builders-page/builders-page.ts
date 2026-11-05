@@ -1,10 +1,11 @@
 import { isPlatformBrowser } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, PLATFORM_ID, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, PLATFORM_ID, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { BUILDERS_PROGRAM, type BuilderShowcaseEntry } from '@idem/shared-models/builders/program';
 import { environment } from '../../../environments/environment';
 import { PageArtComponent } from '../../shared/components/page-art/page-art';
+import { BuildersArtComponent } from './builders-art';
 
 interface Row {
   title: string;
@@ -30,7 +31,7 @@ const francs = (amount: number) => amount.toLocaleString('fr-FR').replace(/\s/g,
 @Component({
   selector: 'app-builders-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, PageArtComponent],
+  imports: [RouterLink, PageArtComponent, BuildersArtComponent],
   templateUrl: './builders-page.html',
   styleUrls: ['../../shared/styles/editorial-page.css', './builders-page.css'],
 })
@@ -44,6 +45,7 @@ export class BuildersPage {
   protected readonly showcaseState = signal<ShowcaseState>('loading');
   protected readonly builders = signal<BuilderShowcaseEntry[]>([]);
 
+  /** Les trois façons d'être « géré avec IDEM » : une seule suffit. */
   protected readonly ways: Row[] = [
     {
       title: $localize`:@@builders-page.way.deploy.title:Put it online with iDeploy`,
@@ -59,32 +61,44 @@ export class BuildersPage {
     },
   ];
 
+  /** Les avantages, chiffres compris : ils viennent de `BUILDERS_PROGRAM`. */
   protected readonly perks: Row[] = [
     {
-      title: $localize`:@@builders-page.perk.welcome.title:${francs(BUILDERS_PROGRAM.welcomeBonusXaf)}:amount: F in your wallet`,
-      description: $localize`:@@builders-page.perk.welcome.description:Credited when you are accepted, once per account. Spend it on any IDEM service.`,
+      title: $localize`:@@builders-page.benefit.welcome.title:${francs(BUILDERS_PROGRAM.welcomeBonusXaf)}:amount: F when you are accepted`,
+      description: $localize`:@@builders-page.benefit.welcome.body:Paid into your wallet once per account, for any IDEM service.`,
     },
     {
-      title: $localize`:@@builders-page.perk.topup.title:+${percent(BUILDERS_PROGRAM.topupBonusRate)}:percent:% on every top-up`,
-      description: $localize`:@@builders-page.perk.topup.description:Extra credit added to each wallet top-up, on top of the tier bonus, for as long as you are a member.`,
+      title: $localize`:@@builders-page.benefit.topup.title:+${percent(BUILDERS_PROGRAM.topupBonusRate)}:percent:% on every top-up`,
+      description: $localize`:@@builders-page.benefit.topup.body:Added on top of the tier bonus, for as long as you are a member.`,
     },
     {
-      title: $localize`:@@builders-page.perk.hosting.title:-${percent(BUILDERS_PROGRAM.hostingDiscountRate)}:percent:% on hosting`,
-      description: $localize`:@@builders-page.perk.hosting.description:The daily iDeploy meters of your sites and apps cost less. Keeping a project online should not be what stops it.`,
+      title: $localize`:@@builders-page.benefit.hosting.title:-${percent(BUILDERS_PROGRAM.hostingDiscountRate)}:percent:% on hosting`,
+      description: $localize`:@@builders-page.benefit.hosting.body:The daily price of your iDeploy meters drops, for sites and apps alike.`,
     },
     {
       title: $localize`:@@builders-page.perk.showcase.title:A place in the showcase`,
-      description: $localize`:@@builders-page.perk.showcase.description:Your project on this page, with its country and a link to it, in front of everyone who visits IDEM.`,
+      description: $localize`:@@builders-page.benefit.showcase.body:Your project on idem.africa/builders, with its country and a link to it.`,
     },
     {
-      title: $localize`:@@builders-page.perk.portrait.title:A story told by IDEM`,
-      description: $localize`:@@builders-page.perk.portrait.description:The team regularly picks projects to feature on the IDEM blog and social channels, prepared with you.`,
+      title: $localize`:@@builders-page.benefit.portrait.title:A feature by the team`,
+      description: $localize`:@@builders-page.benefit.portrait.body:Selected projects are told on the IDEM blog and social channels, prepared with you.`,
     },
     {
       title: $localize`:@@builders-page.perk.badge.title:The Idem Builder badge`,
-      description: $localize`:@@builders-page.perk.badge.description:A badge for your own site that says you are part of the programme and links back here.`,
+      description: $localize`:@@builders-page.benefit.badge.body:For your own site: it shows you belong and links back here.`,
     },
   ];
+
+  /**
+   * L'aperçu du portefeuille d'un membre : les écritures exactes que l'API
+   * inscrit (bonus de bienvenue, bonus Builders sur une recharge de 10 000 F).
+   */
+  protected readonly ledger = {
+    welcome: `+${francs(BUILDERS_PROGRAM.welcomeBonusXaf)} F`,
+    topup: `+${francs(10_000)} F`,
+    topupBonus: `+${francs(Math.round(10_000 * BUILDERS_PROGRAM.topupBonusRate))} F`,
+    topupRate: percent(BUILDERS_PROGRAM.topupBonusRate),
+  };
 
   protected readonly steps: Row[] = [
     {
@@ -124,6 +138,23 @@ export class BuildersPage {
     },
   ];
 
+  /** La vitrine vide : le premier projet admis l'ouvre. */
+  protected readonly emptyFirst = $localize`:@@builders-page.showcase.emptyFirst:This list opens with you`;
+
+  /** Ce que la vitrine dit d'elle-même : combien de projets, combien de pays. */
+  protected readonly stats = computed(() => {
+    const builders = this.builders();
+    const countries = new Set(builders.map((b) => b.country?.trim()).filter((c): c is string => !!c));
+    return { projects: builders.length, countries: countries.size };
+  });
+
+  protected readonly statsLabel = computed(() => {
+    const { projects, countries } = this.stats();
+    return countries > 0
+      ? $localize`:@@builders-page.showcase.stats:${projects}:projects: projects · ${countries}:countries: countries`
+      : $localize`:@@builders-page.showcase.statsNoCountry:${projects}:projects: projects`;
+  });
+
   constructor() {
     // Pas d'appel au prérendu : la vitrine se charge chez le visiteur.
     if (this.isBrowser) this.loadShowcase();
@@ -140,6 +171,13 @@ export class BuildersPage {
         },
         error: () => this.showcaseState.set('error'),
       });
+  }
+
+  /** Les initiales, dans le médaillon du pagne de chaque projet. */
+  protected initials(name: string): string {
+    const words = name.trim().split(/\s+/).filter(Boolean);
+    const letters = words.length > 1 ? words[0][0] + words[1][0] : (words[0] ?? '?').slice(0, 2);
+    return letters.toUpperCase();
   }
 
   /** L'adresse affichée sous le nom : le domaine seul, lisible. */

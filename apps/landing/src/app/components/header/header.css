@@ -169,3 +169,21 @@
     animation: none;
   }
 }
+
+/* Entre 1024 et 1280 px, la barre de bureau n'a pas la place du mot : le badge
+   garde sa pastille et son point, le mot reste lu par les lecteurs d'écran.
+   (Le menu mobile, lui, affiche toujours le badge entier.) */
+@media (max-width: 1279.98px) {
+  .nav-badge-compact {
+    padding: 0.3rem;
+  }
+
+  .nav-badge-compact .nav-badge-text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+}

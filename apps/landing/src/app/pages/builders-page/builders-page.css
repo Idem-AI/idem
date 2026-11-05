@@ -1,29 +1,543 @@
-/* Idem Builders — ce qui n'appartient qu'à cette page. */
+/* Idem Builders — ce qui n'appartient qu'à cette page.
+   Le héros suit la trame éditoriale commune. Dessous, une grille nette, un
+   seul bloc de couleur franche (les avantages, au bleu d'IDEM), et le produit
+   montré tel qu'il est plutôt que des tuiles décoratives. */
 
-/* Le numéro d'étape : une séquence se lit dans l'ordre, le chiffre le dit
-   avant le titre. Couleur de la marque, sans pastille autour. */
-.bp-step {
-  font-size: var(--font-size-2xl, 1.5rem);
+:host {
+  --bx-radius: 1rem;
+  --bx-line: var(--glass-border-subtle);
+  --bx-ease: cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+/* ── En-têtes de section : titre et chapô alignés sur la même ligne ───── */
+.bx-head {
+  display: grid;
+  gap: 1.25rem;
+  margin-bottom: clamp(2.5rem, 5vw, 3.5rem);
+}
+
+@media (min-width: 1024px) {
+  .bx-head {
+    grid-template-columns: minmax(0, 6fr) minmax(0, 5fr);
+    column-gap: 4rem;
+    align-items: end;
+  }
+
+  .bx-head-split {
+    grid-template-columns: 1fr auto;
+  }
+}
+
+.ed-h2,
+.ed-h3 {
+  text-wrap: balance;
+}
+
+/* ── La condition ─────────────────────────────────────────────────────── */
+.bx-condition {
+  display: grid;
+  gap: clamp(2.5rem, 6vw, 4rem);
+  align-items: center;
+}
+
+.bx-condition-art {
+  margin: 0;
+  width: min(100%, 20rem);
+  justify-self: center;
+}
+
+.bx-condition-copy {
+  min-width: 0;
+}
+
+.bx-ways {
+  margin-bottom: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--bx-line);
+}
+
+.bx-way {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 1rem;
+  padding-block: 1.25rem;
+  border-bottom: 1px solid var(--bx-line);
+}
+
+/* Un cercle vide : une des trois cases, et une seule suffit. */
+.bx-way-mark {
+  width: 1.125rem;
+  height: 1.125rem;
+  margin-top: 0.3rem;
+  border: 2px solid var(--color-primary-500);
+  border-radius: 9999px;
+}
+
+.bx-africa {
+  margin-bottom: 0;
+  max-width: 40rem;
+  font-size: var(--font-size-lg, 1.125rem);
+  line-height: 1.6;
+  color: var(--color-text-primary);
+  text-wrap: pretty;
+}
+
+@media (min-width: 1024px) {
+  .bx-condition {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    column-gap: 5rem;
+  }
+
+  .bx-condition-art {
+    width: 100%;
+    max-width: 28rem;
+  }
+}
+
+/* ── Les avantages : le bloc bleu ─────────────────────────────────────── */
+.bx-benefits {
+  --bx-on: var(--color-on-primary);
+  --bx-on-soft: color-mix(in srgb, var(--color-on-primary) 82%, transparent);
+  --bx-on-line: color-mix(in srgb, var(--color-on-primary) 22%, transparent);
+  padding-block: clamp(4.5rem, 9vw, 7.5rem);
+  background: var(--color-primary-500);
+  color: var(--bx-on);
+}
+
+.bx-benefits .ed-h2 {
+  color: var(--bx-on);
+}
+
+.bx-benefits-grid {
+  display: grid;
+  gap: 3.5rem;
+}
+
+.bx-benefits-lede {
+  margin: 1.5rem 0 0;
+  max-width: 34rem;
+  font-size: var(--font-size-lg, 1.125rem);
+  line-height: 1.6;
+  color: var(--bx-on-soft);
+}
+
+.bx-benefit-list {
+  display: grid;
+  margin: 2.5rem 0 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--bx-on-line);
+}
+
+.bx-benefit {
+  padding-block: 1.25rem;
+  border-bottom: 1px solid var(--bx-on-line);
+}
+
+.bx-benefit h3 {
+  margin: 0;
+  font-size: var(--font-size-lg, 1.125rem);
   font-weight: var(--font-weight-bold);
-  line-height: 1;
+  line-height: 1.3;
+  color: var(--bx-on);
+}
+
+.bx-benefit p {
+  margin: 0.35rem 0 0;
+  font-size: var(--font-size-sm);
+  line-height: 1.6;
+  color: var(--bx-on-soft);
+}
+
+@media (min-width: 768px) {
+  .bx-benefit-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 2.5rem;
+  }
+}
+
+/* Les preuves : deux panneaux du produit, posés en léger décalage. */
+.bx-proof {
+  display: grid;
+  gap: 1rem;
+  align-content: center;
+}
+
+.bx-panel {
+  padding: 1.5rem;
+  border-radius: var(--bx-radius);
+  background: var(--color-surface-1, var(--color-background));
+  color: var(--color-text-primary);
+  box-shadow: 0 24px 48px -24px color-mix(in srgb, black 45%, transparent);
+}
+
+.bx-panel-title {
+  margin: 0 0 1rem;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-secondary);
+}
+
+.bx-ledger {
+  margin: 0;
+}
+
+.bx-ledger > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-block: 0.75rem;
+  border-top: 1px solid var(--bx-line);
+  font-size: var(--font-size-sm);
+}
+
+.bx-ledger dt {
+  color: var(--color-text-secondary);
+}
+
+.bx-ledger dd {
+  margin: 0;
+  font-weight: var(--font-weight-bold);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+}
+
+.bx-ledger > div:first-child dd,
+.bx-ledger-bonus dd {
+  color: var(--color-primary-500);
+}
+
+.bx-badge {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem 1.25rem;
+}
+
+.bx-badge p {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+@media (min-width: 1024px) {
+  .bx-benefits-grid {
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    column-gap: 5rem;
+    align-items: center;
+  }
+
+  .bx-badge {
+    margin-left: 3rem;
+    margin-right: -1.5rem;
+  }
+}
+
+/* ── Rejoindre : l'os d'Ishango au-dessus des quatre étapes ────────────── */
+.bx-bone {
+  margin: 0 0 1.5rem;
+}
+
+.bx-steps {
+  display: grid;
+  gap: 2rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bx-step {
+  min-width: 0;
+}
+
+.bx-step-num {
+  display: block;
+  margin-bottom: 0.75rem;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
   color: var(--color-primary-500);
   font-variant-numeric: tabular-nums;
 }
 
-/* Pays et adresse d'un projet de la vitrine : une ligne discrète sous la
-   description. */
-.bp-meta {
+.bx-steps-cta {
+  display: inline-flex;
+  margin-top: clamp(2.5rem, 5vw, 3.5rem);
+}
+
+@media (min-width: 768px) {
+  .bx-steps {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    column-gap: 2rem;
+  }
+}
+
+/* Sous 768 px les étapes s'empilent : la frise reste, en guise d'en-tête. */
+@media (max-width: 767.98px) {
+  .bx-bone {
+    max-width: 28rem;
+  }
+}
+
+/* ── La vitrine ───────────────────────────────────────────────────────── */
+.bx-stats {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-secondary);
+}
+
+.bx-cards {
+  display: grid;
+  grid-auto-flow: dense;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));
+  gap: 1.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bx-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 1.75rem;
+  border: 1px solid var(--bx-line);
+  border-radius: var(--bx-radius);
+  background: var(--color-surface-1, transparent);
+  transition:
+    border-color 0.3s var(--bx-ease),
+    transform 0.3s var(--bx-ease);
+}
+
+.bx-card:hover {
+  border-color: color-mix(in srgb, var(--color-primary-500) 50%, transparent);
+  transform: translateY(-2px);
+}
+
+@media (min-width: 1024px) {
+  .bx-card-featured {
+    grid-column: span 2;
+  }
+}
+
+.bx-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+/* Le monogramme : les initiales du projet, à la place d'un logo qu'il n'a
+   pas forcément fourni. */
+.bx-mono {
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, var(--color-primary-500) 12%, transparent);
+  color: var(--color-primary-500);
+  font-weight: var(--font-weight-black);
+  font-size: 1.05rem;
+  letter-spacing: 0.02em;
+}
+
+.bx-card-name {
+  margin-bottom: 0;
+  font-size: var(--font-size-lg, 1.125rem);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+}
+
+.bx-card-foot {
   display: flex;
   flex-wrap: wrap;
   gap: 0.25rem 1rem;
-  margin-bottom: 0;
+  margin: auto 0 0;
+  padding-top: 1.25rem;
   font-size: var(--font-size-sm);
-  color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
 }
 
-.bp-link {
+.bx-card-link {
   color: var(--color-primary-500);
   text-decoration: underline;
   text-underline-offset: 3px;
   overflow-wrap: anywhere;
+}
+
+/* Vide : l'aperçu de la fiche, puis l'invitation. */
+.bx-empty {
+  display: grid;
+  gap: 2.5rem;
+  align-items: center;
+}
+
+.bx-card-preview {
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--color-primary-500) 45%, transparent);
+  max-width: 24rem;
+}
+
+.bx-empty-title {
+  margin: 0;
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: var(--font-weight-bold);
+  line-height: 1.2;
+  color: var(--color-text-primary);
+  text-wrap: balance;
+}
+
+@media (min-width: 768px) {
+  .bx-empty {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    column-gap: 4rem;
+  }
+}
+
+/* ── Questions ────────────────────────────────────────────────────────── */
+.bx-faq {
+  display: grid;
+  gap: 3rem;
+}
+
+.bx-faq-art {
+  margin: 2rem 0;
+  width: min(100%, 13rem);
+}
+
+.bx-faq-list {
+  border-top: 1px solid var(--bx-line);
+  align-self: start;
+}
+
+.bx-question {
+  border-bottom: 1px solid var(--bx-line);
+}
+
+.bx-question summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding-block: 1.35rem;
+  cursor: pointer;
+  list-style: none;
+  font-size: var(--font-size-lg, 1.125rem);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+}
+
+.bx-question summary::-webkit-details-marker {
+  display: none;
+}
+
+.bx-question summary:focus-visible {
+  outline: 2px solid var(--color-primary-500);
+  outline-offset: 4px;
+  border-radius: 0.25rem;
+}
+
+.bx-question > p {
+  margin: 0;
+  max-width: 40rem;
+  padding-bottom: 1.5rem;
+}
+
+.bx-toggle {
+  position: relative;
+  flex: none;
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.bx-toggle::before,
+.bx-toggle::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 100%;
+  height: 2px;
+  margin-top: -1px;
+  background: var(--color-primary-500);
+  transition: transform 0.3s var(--bx-ease);
+}
+
+.bx-toggle::after {
+  transform: rotate(90deg);
+}
+
+.bx-question[open] .bx-toggle::after {
+  transform: rotate(0deg);
+}
+
+@media (min-width: 1024px) {
+  .bx-faq {
+    grid-template-columns: minmax(0, 4fr) minmax(0, 7fr);
+    column-gap: 5rem;
+  }
+}
+
+/* ── L'appel ──────────────────────────────────────────────────────────── */
+.bx-cta {
+  display: grid;
+  gap: 2rem;
+}
+
+.bx-cta-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+@media (min-width: 1024px) {
+  .bx-cta {
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    column-gap: 4rem;
+    align-items: end;
+  }
+
+  .bx-cta-actions {
+    justify-content: flex-end;
+  }
+}
+
+/* ── Mouvement ────────────────────────────────────────────────────────── */
+/* Les étapes, les avantages et les fiches glissent en entrant, l'un après
+   l'autre. Jamais d'opacité à zéro : sans timeline de défilement, ou au
+   prérendu, tout est visible tel quel. */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .bx-step,
+    .bx-card,
+    .bx-benefit {
+      animation: bx-rise linear both;
+      animation-timeline: view();
+      animation-range: entry 10% entry 70%;
+    }
+  }
+}
+
+@keyframes bx-rise {
+  from {
+    transform: translateY(1.25rem);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bx-card,
+  .bx-toggle::before,
+  .bx-toggle::after {
+    transition: none;
+  }
+
+  .bx-card:hover {
+    transform: none;
+  }
 }

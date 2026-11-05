@@ -24,29 +24,6 @@
   min-width: 0;
 }
 
-/* Le nom du programme, et le badge qui dit qu'il vient d'ouvrir — le même
-   que dans la barre de navigation. */
-.bh-kicker {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  margin: 0;
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-bold);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--color-primary-500);
-}
-
-.bh-new {
-  padding: 0.2rem 0.45rem;
-  border-radius: 9999px;
-  font-size: 0.625rem;
-  line-height: 1;
-  background: var(--color-primary-500);
-  color: var(--color-on-primary);
-}
-
 /* Trois chiffres, séparés par des filets : ce que le programme rapporte. */
 .bh-figures {
   display: grid;

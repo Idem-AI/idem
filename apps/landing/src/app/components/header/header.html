@@ -34,11 +34,11 @@
             <a
               [routerLink]="item.route"
               routerLinkActive="active"
-              class="glass-nav-link hover:text-text-primary transition-all py-2 px-3 text-sm font-medium rounded-lg flex items-center gap-2 whitespace-nowrap"
+              class="glass-nav-link hover:text-text-primary transition-all py-2 px-2 xl:px-3 text-sm font-medium rounded-lg flex items-center gap-2 whitespace-nowrap"
             >
               {{ item.label }}
               @if (item.badge) {
-                <span class="nav-badge">{{ item.badge }}</span>
+                <span class="nav-badge nav-badge-compact"><span class="nav-badge-text">{{ item.badge }}</span></span>
               }
             </a>
           } @else if (item.type === 'dropdown') {
@@ -46,7 +46,7 @@
               <button
                 (click)="toggleMenuDropdown(item.id)"
                 [ngClass]="{ 'text-text-primary': activeDropdown() === item.id }"
-                class="glass-nav-link hover:text-text-primary transition-all py-2 px-3 text-sm font-medium flex items-center gap-1 rounded-lg whitespace-nowrap"
+                class="glass-nav-link hover:text-text-primary transition-all py-2 px-2 xl:px-3 text-sm font-medium flex items-center gap-1 rounded-lg whitespace-nowrap"
               >
                 <span>{{ item.label }}</span>
                 <svg
@@ -87,12 +87,12 @@
       </div>
 
       <!-- Right Actions -->
-      <div class="hidden lg:flex items-center gap-4 ml-auto">
+      <div class="hidden lg:flex items-center gap-3 xl:gap-4 ml-auto">
         <a
           href="https://github.com/Idem-AI"
           target="_blank"
           rel="noopener noreferrer"
-          class="text-text-secondary hover:text-text-primary transition-colors"
+          class="hidden xl:block text-text-secondary hover:text-text-primary transition-colors"
           i18n-aria-label="@@header.aria.github"
           aria-label="Visit IDEM on GitHub"
         >

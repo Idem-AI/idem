@@ -132,12 +132,9 @@ export class Header implements OnInit {
         { label: $localize`:@@header.menu.about:About`, route: '/about' },
       ],
     },
-    {
-      id: 'about',
-      label: $localize`:@@header.nav.about:About`,
-      route: '/about',
-      type: 'link',
-    },
+    // « À propos » n'a plus de lien de premier niveau : il est déjà dans le
+    // menu « Entreprise », et la place libérée tient Idem Builders et son badge
+    // sur une ligne dès 1024 px.
     {
       id: 'blog',
       label: $localize`:@@header.menu.blog:Blog`,
