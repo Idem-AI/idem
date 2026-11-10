@@ -560,6 +560,78 @@ export function capPlainText(html: string, base: number, isText: (key: string) =
   });
 }
 
+// ── La page de flux (business plan) ──────────────────────────────────────────────────────────
+
+/** Les unités qu'on ne coupe jamais entre deux pages (une carte de chiffres, une citation, un graphique, une image). */
+// Les chiffres-clés n'y sont pas : en rangée, le paginateur ne les coupe déjà pas ; empilés, c'est une liste qui se
+// coupe proprement entre deux lignes (sinon, un trou en bas de page). Une persona est une carte : jamais coupée.
+const ATOMIC_KINDS = new Set(['header', 'quote', 'assumption', 'chart', 'figure', 'persona', 'swot', 'funnel', 'contact', 'cover', 'copy', 'logoDisplay', 'swatches', 'logoStory', 'artDirectionStance', 'typeSpecimen', 'imageryShowcase']);
+
+/**
+ * LA PAGE DE FLUX : une SUITE de blocs de premier niveau, un par unité, dans l'ordre de lecture du squelette.
+ *
+ * Le paginateur du PDF découpe une page de flux entre ses blocs de premier niveau et ne coupe jamais une rangée de
+ * plusieurs éléments côte à côte : des zones en colonnes, enveloppées dans une seule grille, partaient entières à la
+ * page suivante (une page presque vide avant) ou y étaient réduites jusqu'à l'illisible (business plan AgriLink,
+ * 10/11/2026). Ici, chaque unité est son propre bloc : le texte se coupe à la ligne, un tableau à la rangée, les
+ * blocs compacts (chiffres, citation, graphique) restent entiers. Le squelette garde son caractère par la MESURE et le
+ * RETRAIT de ses zones : une zone large garde sa largeur et sa position (texte en retrait d'une page « titre en
+ * marge », colonne de lecture d'une page « colonne et notes ») ; une zone étroite passe en pleine largeur, à la suite.
+ */
+/**
+ * L'espacement d'une page de flux, compatible avec le paginateur : dans une colonne flex, l'écart vertical
+ * (`gap-[N]`) devient une marge entre enfants (`*:not-first:mt-[N]`). Le paginateur réapplique les écarts mesurés en marges
+ * en ligne quand il coupe un conteneur : une marge est REMPLACÉE, un `gap` CSS s'y AJOUTAIT (écart compté deux fois,
+ * page qui déborde, bloc entier repoussé sur une page insérée — un trou de 60 %).
+ */
+export function flowSpacing(html: string): string {
+  return html.replace(/\sclass="([^"]*)"/g, (m, cls: string) => {
+    const list = cls.split(/\s+/).filter(Boolean);
+    if (!list.includes('flex-col')) return m;
+    const out = list.flatMap((c) => {
+      const g = c.match(/^gap(?:-y)?-\[([^\]]+)\]$/);
+      // `*:not-first:` (enfants directs sauf le premier) : aucun « > » dans la classe — le découpage des balises le
+      // prendrait pour la fin de la balise.
+      return g ? [`*:not-first:mt-[${g[1]}]`] : [c];
+    });
+    return ` class="${out.join(' ')}"`;
+  });
+}
+
+function flowBlocks(zones: LayoutZone[], assigned: Map<string, PageUnit[]>, cols: number, env: Env, unitHtml: (u: PageUnit, s: Surface | undefined, w: number, alone: boolean) => string, zoneExtra: Record<string, string>): string {
+  const ordered = [...zones].sort((a, b) => a.row - b.row || a.col - b.col);
+  const blocks: string[] = [];
+  for (const z of ordered) {
+    const list = assigned.get(z.id) ?? [];
+    const share = z.span / cols;
+    const wide = share >= 0.55;
+    for (const u of list) {
+      const header = u.kind === 'header';
+      // La mesure et le retrait de la zone (en part de la page), pour une zone large ; sinon la pleine largeur.
+      const measure = !header && wide && share < 0.999 ? `w-[${(share * 100).toFixed(3)}%]${z.col > 1 ? ` ml-[${(((z.col - 1) / cols) * 100).toFixed(3)}%]` : ''}` : 'w-full';
+      const surface = z.surface && z.surface !== 'none' ? `${SURFACE_BG[z.surface]} p-[${px(env.gap * (z.inset ?? 1))}]` : '';
+      // Une image de flux a une hauteur EXPLICITE (un tiers de page au plus) : sa hauteur ne dépend plus du contexte
+      // (« h-full », « flex-1 »), elle est la même à la mesure et dans la page construite par le paginateur — sinon
+      // la page débordait et le texte suivant partait sur une page insérée.
+      const mediaH = Math.round(Math.min(380, env.ctx.format.height * 0.3));
+      const media = u.category === 'media' && u.kind === 'figure' ? `h-[${mediaH}px] overflow-hidden *:h-full [&_figure]:h-full [&_figure]:min-h-0 [&_img]:h-full [&_img]:min-h-0 [&_img]:object-cover` : u.category === 'media' ? '[&_img]:max-h-[380px] [&_img]:object-contain' : '';
+      const keep = ATOMIC_KINDS.has(u.kind) ? ' data-keep-together' : '';
+      // L'espace AU-DESSUS est intérieur au bloc (padding), jamais une marge : le paginateur mesure la hauteur des
+      // blocs et réapplique lui-même les écarts ; une marge externe, comptée deux fois quand une section reprend sur la
+      // page entamée de la précédente, faisait déborder la page prévue (un trou de 60 % à la page suivante).
+      const space = blocks.length ? `pt-[${px(env.gap * (header ? 1.6 : 1.2))}]` : '';
+      blocks.push(`<section data-ge-zone="${z.id}"${keep} class="${[measure, space, surface, media, zoneExtra[z.id] ?? ''].filter(Boolean).join(' ')}">${flowSpacing(unitHtml(u, z.surface, wide ? share : 1, true))}</section>`);
+    }
+  }
+  // Un dernier bloc court (citation, hypothèse) ne part jamais seul sur une page : il reste avec celui qui le précède.
+  const last = ordered.flatMap((z) => assigned.get(z.id) ?? []).pop();
+  if (last && SHORT_TAIL.has(last.kind) && blocks.length >= 2) blocks[blocks.length - 2] = blocks[blocks.length - 2].replace(/^<section /, '<section data-keep-with-next ');
+  return blocks.join('');
+}
+
+/** Les blocs courts qu'on ne laisse pas seuls en fin de section. */
+const SHORT_TAIL = new Set(['quote', 'assumption', 'sources']);
+
 // ── La page ──────────────────────────────────────────────────────────────────────────────────
 
 export interface Assembled {
@@ -636,15 +708,7 @@ export function assemblePage(ctx: AssemblyContext, choice: AssemblyChoice, units
   const grid = `grid-cols-[repeat(${cols},minmax(0,1fr))]`;
   let html: string;
   if (flow) {
-    const byRow = new Map<number, LayoutZone[]>();
-    for (const z of [...zones].sort((a, b) => a.row - b.row || a.col - b.col)) byRow.set(z.row, [...(byRow.get(z.row) ?? []), z]);
-    const body = [...byRow.values()]
-      .map((row) => row.map(zoneHtml).join(''))
-      .filter(Boolean)
-      .map((cells, i) => `<div class="grid ${grid} gap-x-[${px(env.gap)}] pb-[${px(env.gap * 1.4)}]"${i === 0 ? ' data-keep-together' : ''}>${cells}</div>`)
-      .join('');
-    // Une page de flux garde le fond de la racine (une teinte s'arrêterait à la marge d'impression).
-    html = `<div class="w-full">${chrome}${body}</div>`;
+    html = `${chrome}${flowBlocks(zones, assigned.zones, cols, env, unitHtml, zoneExtra)}`;
   } else {
     const s = ctx.format.safe;
     const padding = `pt-[${px(s.top)}] pr-[${px(s.right)}] pb-[${px(s.bottom)}] pl-[${px(s.left)}]`;

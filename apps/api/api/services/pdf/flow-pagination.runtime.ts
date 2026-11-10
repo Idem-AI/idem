@@ -1448,7 +1448,10 @@ export const FLOW_PAGINATION_RUNTIME = `
       var separator = sectionSeparator(items);
       var room = capacity - tailUsed - separator;
       if (tailUsed < compact.continueBelow * capacity && room >= capacity * 0.22) {
-        var start = packInto(items, room, capacity, minSplitPx);
+        // Une marge de sécurité de 3 % : la page entamée est mesurée telle qu'elle est déjà construite, les blocs
+        // reportés tels qu'ils étaient dans leur section ; un petit écart entre les deux faisait déborder la page, et le
+        // filet de sécurité repoussait alors un bloc ENTIER sur une page insérée (un trou de 60 à 90 %).
+        var start = packInto(items, room - capacity * 0.03, capacity, minSplitPx);
         if (start) {
           // Marges latérales différentes : les blocs sont posés dans un cadre
           // qui rend à la section SA largeur de texte. Ils gardent ainsi la
@@ -1493,12 +1496,16 @@ export const FLOW_PAGINATION_RUNTIME = `
       }
     }
 
+    // Le plan garde une marge de 1,2 % (6 px au moins) : la page construite peut mesurer quelques pixels de plus que
+    // prévu (arrondis des lignes coupées) et le filet de sécurité repoussait alors un bloc ENTIER à la page suivante
+    // (une page à moitié vide). Le remplissage, ensuite, répartit cette marge entre les blocs.
+    var planCapacity = capacity - Math.max(6, capacity * 0.012);
     var plan = opts.balance
-      ? balancePlan(items, capacity, minSplitPx, opts.maxGapAddHard)
-      : planPages(items, capacity, minSplitPx, 0, 1);
+      ? balancePlan(items, planCapacity, minSplitPx, opts.maxGapAddHard)
+      : planPages(items, planCapacity, minSplitPx, 0, 1);
 
     if (compact.orphanFolio || compact.pullBackBelow > 0) {
-      var refined = refinePlan(items, capacity, minSplitPx, plan, compact, folio);
+      var refined = refinePlan(items, planCapacity, minSplitPx, plan, compact, folio);
       plan = refined.plan;
       section.pulledBack = !!refined.pulledBack;
       section.droppedFolio = !!refined.droppedFolio;

@@ -45,6 +45,7 @@
     "check:inputs": "ts-node --transpile-only api/scripts/checkProjectInputs.ts",
     "check:auth": "ts-node --transpile-only api/scripts/checkAuthFlow.ts",
     "check:creativity": "ts-node --transpile-only api/scripts/checkCreativity.ts",
+    "check:bpcatalog": "ts-node --transpile-only api/scripts/checkCatalogBusinessPlan.ts",
     "check:video:intent": "ts-node --transpile-only api/scripts/checkVideoIntent.ts",
     "check:ivision": "ts-node --transpile-only api/scripts/checkIvisionGateway.ts",
     "check:logo": "ts-node --transpile-only -P tsconfig.json api/scripts/checkLogoEngine.ts",

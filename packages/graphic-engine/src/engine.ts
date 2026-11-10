@@ -239,7 +239,7 @@ export function qualityFrame(section: SectionContent, map: ContentMap, format: F
 }
 
 /** Les clés des textes SIMPLES : chapô, sur-titre, libellés, légendes, descriptions, paragraphes, notes. */
-const TEXT_KEY = /^(lede|kicker)$|\.(text|body|caption|label|note|detail|basis|readingKey|role|usage|description|rationale|statement|hex|family|name|subject)$|\.paragraphs\.\d+$|\.(items|dos|donts|keywords)\.\d+$/;
+const TEXT_KEY = /^(lede|kicker)$|\.(text|body|caption|label|note|detail|basis|readingKey|role|usage|description|rationale|statement|hex|family|name|subject|quote)$|\.paragraphs\.\d+$|\.(items|dos|donts|keywords)\.\d+$/;
 
 interface Rendered {
   template: string;

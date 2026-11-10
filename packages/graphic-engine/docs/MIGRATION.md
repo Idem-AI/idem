@@ -16,6 +16,19 @@
   tournent en mode `author` ; le catalogue a le sien, `check:catalog` (rendu Chromium de chaque gabarit).
 - **Page gardée** : `SectionSpec.catalog = { version, config }` ; une retouche écrite modifie la configuration.
 
+### 2.6.1 — le business plan imprimé (10 novembre 2026, sur un PDF AgriLink réel)
+
+- **Pages de flux en suite de blocs** (`flowBlocks`, `src/catalog/assemble.ts`) : une unité = un bloc de premier niveau ;
+  le squelette garde son caractère par la mesure et le retrait de ses zones larges, une zone étroite passe en pleine
+  largeur. Avant : des rangées de zones côte à côte que le paginateur ne coupe jamais (page 2 vide, page 13 réduite à une
+  colonne illisible).
+- `data-keep-together` sur les blocs compacts, `data-keep-with-next` avant une citation ou hypothèse finale ; espacement
+  par marges d'enfants (`*:not-first:mt-[…]`, jamais de `>` dans une classe — refusé par le registre et le dépôt) ;
+  images de flux à hauteur explicite ; citation de persona plafonnée comme un texte courant.
+- Paginateur (`apps/api/api/services/pdf/flow-pagination.runtime.ts`) : marge de plan de 1,2 %, marge de 3 % à la reprise
+  d'une section ; page Chromium fermée même en cas d'échec (`pdf.service.ts`).
+- Contrôle : `npm run check:bpcatalog` (apps/api).
+
 ### Ce que la 2.6 change, comparé à la 2.5 (estimations du 10/11/2026)
 
 Mesuré sans appel payant : tailles de prompt (`estimateTokens`) sur un deck de test, temps de rendu côté code (modèle

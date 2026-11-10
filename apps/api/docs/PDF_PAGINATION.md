@@ -53,6 +53,28 @@ Attributes recognised in the generated HTML:
 | `data-keep-together` | the block is never fragmented (scaled down if too tall) |
 | `data-keep-with-next` | the block stays attached to the next block |
 
+## Safety margins (10 November 2026)
+
+The verification step (7) moves a WHOLE block to an inserted page when a built page overflows its plan. A drift of a few
+pixels (rounding of cut lines) therefore used to produce a half-empty page. Two margins prevent it:
+
+- every section is **planned at 98.8 % of the page** (6 px minimum); the filling step (6) redistributes that space;
+- a section that **continues on the previous section's last page** packs into the remaining room minus 3 %.
+
+`PdfService.generatePdf` also closes its Chromium page on every path: a failed print used to leave a tab open on the
+shared browser. `pagination.debug` is now forwarded to the runtime (plan and fill traces in `report.warnings`).
+
+## Pages from the template catalogue (graphic engine 2.6)
+
+The engine assembles a business-plan page as a **flat sequence of top-level blocks** (one per content unit), never as
+rows of side-by-side zones: a multi-element row is never cut and used to be pushed whole or scaled down. Compact blocks
+(heading, chart, image, quote, hypothesis, persona…) carry `data-keep-together`; a short final quote or hypothesis is
+kept with the block before it (`data-keep-with-next`). Vertical spacing is padding or child margins
+(`*:not-first:mt-[…]`), never a flex `gap` (the paginator re-applies measured gaps as margins: a `gap` was counted twice).
+Images in a flow page have an explicit height. Check: `npm run check:bpcatalog` (real `PdfService`, every business-plan
+template: no near-blank page, no scaled block, no block moved by the safety net, no section page under 60 %, all text
+printed).
+
 ## Special cases
 
 - **Cover**: passed in `fixedPageSections`, it is rendered as is on an exact page (full-page composition, never stretched or re-cut).

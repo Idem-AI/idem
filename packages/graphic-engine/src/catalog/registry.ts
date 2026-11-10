@@ -48,6 +48,8 @@ const FORBIDDEN: Array<[RegExp, string]> = [
   [/javascript:|vbscript:|data:text\/html/i, 'adresse exécutable'],
   [/https?:\/\/|\/\/[a-z0-9-]+\.[a-z]/i, 'adresse étrangère'],
   [/\sstyle\s*=|url\s*\(|@import|expression\s*\(/i, 'CSS natif'],
+  // Un « > » dans une classe (`[&>p]:…`) ferme la balise pour le découpage du HTML : la classe est perdue. Écrire `*:…`.
+  [/class="[^"]*>/i, '« > » dans une classe (écrire *:… ou [&_x]:…)'],
 ];
 
 /** Le texte visible d'un fragment, directives et clés retirées : un mot écrit en dur est refusé (les mots viennent du contenu). */
