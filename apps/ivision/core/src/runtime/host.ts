@@ -126,6 +126,9 @@ export interface CoreHost {
   assetRegistry?: import('@idem/graphic-engine').AssetRegistry;
   /** La mémoire de la marque du moteur graphique (son langage visuel, écrit une fois et relu par tous ses visuels). */
   brandMemory?: import('@idem/graphic-engine').EngineHost['brandMemory'];
+  /** La mémoire des idées déjà servies (par portée : projet, utilisateur, secteur), pour que le prochain visuel fasse autrement. */
+  recentFingerprints?: import('@idem/graphic-engine').EngineHost['recentFingerprints'];
+  rememberFingerprints?: import('@idem/graphic-engine').EngineHost['rememberFingerprints'];
 }
 
 const host: CoreHost = {
@@ -148,6 +151,8 @@ export function configureCore(next: Partial<CoreHost> & { logger?: CoreLogger })
     ...(logger ? { logger: { info: (m, meta) => logger.info(m, meta), warn: (m, meta) => logger.warn(m, meta), error: (m, meta) => logger.error(m, meta) } } : {}),
     ...(host.assetRegistry ? { assetRegistry: host.assetRegistry } : {}),
     ...(host.brandMemory ? { brandMemory: host.brandMemory } : {}),
+    ...(host.recentFingerprints ? { recentFingerprints: host.recentFingerprints } : {}),
+    ...(host.rememberFingerprints ? { rememberFingerprints: host.rememberFingerprints } : {}),
     // Le juge visuel des variantes (plan qualité créative) : le modèle de vision de l'hôte.
     ...(host.analyzeImage ? { judgeImage: (base64: string, mimeType: string, instruction: string) => host.analyzeImage!(base64, mimeType, instruction, { purpose: 'design-judge' }) } : {}),
     browser: { allow: (url) => isRenderUrlAllowed(url) },

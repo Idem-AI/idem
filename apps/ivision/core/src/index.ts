@@ -7,6 +7,7 @@
  */
 export { configureCore, coreHost, requirePort, type CoreHost, type CoreStorage, type ImageOptions, type VisionOptions } from './runtime/host';
 export { setCoreLogger } from './runtime/logger';
+export { creativeStatus } from './creative.status';
 
 export type { BrandKit, BrandVoice, BrandPalette } from './brand/brand-kit';
 

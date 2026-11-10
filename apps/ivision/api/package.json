@@ -10,6 +10,7 @@
     "start": "node dist/apps/ivision/api/src/index.js",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "check": "ts-node --transpile-only scripts/check-api.ts",
+    "clear:memory": "ts-node --transpile-only scripts/clear-memory.ts",
     "dev:offline": "ts-node --transpile-only scripts/dev-offline.ts"
   },
   "author": "arolleaguekeng",

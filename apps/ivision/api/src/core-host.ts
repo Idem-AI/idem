@@ -14,7 +14,7 @@ import { giveBackClip, takeClip } from './utils/clip-allowance';
 import logger from './config/logger';
 import { storage } from './config/storage';
 import { idem } from './services/idem.client';
-import type { AssetRecord } from '@idem/graphic-engine';
+import { MEMORY_TTL_S, mergeMemory, type AssetRecord } from '@idem/graphic-engine';
 import { createAssetRegistry } from '../../core/src/media/asset-registry';
 import { IvisionVideoStore } from './stores/video.store';
 
@@ -121,6 +121,18 @@ export function configureCoreForIvision(): void {
       write: async (key, value) => {
         await collection<{ _id: string; value: string; updatedAt: Date }>('brand_memory').updateOne({ _id: key }, { $set: { value, updatedAt: new Date() } }, { upsert: true });
       },
+    },
+    // La mémoire des idées déjà servies (30 jours, les 40 dernières marques par portée), comme dans IDEM.
+    recentFingerprints: async (scope) => {
+      const doc = await collection<{ _id: string; items: string[]; updatedAt: Date }>('graphic_memory').findOne({ _id: `${scope.documentType}:${scope.key}` });
+      return doc && Date.now() - doc.updatedAt.getTime() < MEMORY_TTL_S * 1000 ? doc.items : [];
+    },
+    rememberFingerprints: async (scope, fingerprints) => {
+      const col = collection<{ _id: string; items: string[]; updatedAt: Date }>('graphic_memory');
+      const _id = `${scope.documentType}:${scope.key}`;
+      const doc = await col.findOne({ _id });
+      const previous = doc && Date.now() - doc.updatedAt.getTime() < MEMORY_TTL_S * 1000 ? doc.items : [];
+      await col.updateOne({ _id }, { $set: { items: mergeMemory(previous, fingerprints), updatedAt: new Date() } }, { upsert: true });
     },
     refundCredits: async (userId, cost, meta) => {
       await idem.billing.refund({ userId, cost, action: meta.action, note: meta.note, releaseQuota: true });

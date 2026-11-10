@@ -12,6 +12,7 @@
     "check:retry": "ts-node --transpile-only api/scripts/verifyRetry.ts",
     "dev": "nodemon api/index.ts",
     "build": "tsc",
+    "cache:clear": "ts-node --transpile-only api/scripts/clearCreativeCaches.ts",
     "build:mermaid": "ts-node --transpile-only api/scripts/buildMermaid.ts",
     "start": "ts-node api/index.ts",
     "vercel-build": "tsc",

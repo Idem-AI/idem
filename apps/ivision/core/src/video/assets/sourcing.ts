@@ -220,7 +220,7 @@ export async function sourceShots(opts: SourcingOptions): Promise<{ byNeed: Map<
     for (let attempt = 0; attempt < GENERATION_ATTEMPTS && !blocked.video; attempt++) {
       const image = first && attempt < 2 ? { base64: first.jpeg.toString('base64'), mimeType: 'image/jpeg' } : undefined;
       try {
-        return await generateClip({ prompt: prompts[attempt], image, orientation: opts.orientation, quality: image ? opts.clipQuality : 'speed', durationSec, model: image && opts.clipQuality === 'quality' ? 'google/veo-3.1' : 'google/veo-3.1-fast' }, opts.storage, opts.folder, plan.query);
+        return await generateClip({ prompt: prompts[attempt], image, orientation: opts.orientation, quality: image ? opts.clipQuality : 'speed', durationSec, model: image && opts.clipQuality === 'quality' ? 'bytedance/seedance-2.5' : 'google/gemini-omni-1.2-flash' }, opts.storage, opts.folder, plan.query);
       } catch (error: any) {
         report.failedAttempts++;
         if (trip('video', error)) break;

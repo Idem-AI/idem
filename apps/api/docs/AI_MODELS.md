@@ -6,12 +6,12 @@
 
 | Échelle | low | medium | high | ultra |
 |---|---|---|---|---|
-| design | `qwen/qwen3.6-35b-a3b` | `qwen/qwen3.8-27b` | `z-ai/glm-5.3-flash` | `deepseek/deepseek-v4.1-flash` |
-| code | `qwen/qwen3-coder-30b-a3b-instruct` | `qwen/qwen3-coder-next` | `qwen/qwen3-coder` | `deepseek/deepseek-v4.1-flash` |
-| video-design | `qwen/qwen3.8-27b` | `qwen/qwen3.8-27b` | `z-ai/glm-5.3-flash` | `z-ai/glm-5.3-flash` |
-| video-code | `qwen/qwen3.6-35b-a3b` | `qwen/qwen3.8-27b` | `qwen/qwen3.8-27b` | `qwen/qwen3.8-27b` |
-| video-sample | `qwen/qwen3.6-35b-a3b` | `qwen/qwen3.6-35b-a3b` | `qwen/qwen3.6-35b-a3b` | `qwen/qwen3.6-35b-a3b` |
-| video-vision | `qwen/qwen3.8-27b` | `qwen/qwen3.8-27b` | `qwen/qwen3.8-27b` | `qwen/qwen3.8-27b` |
+| design | `deepseek/deepseek-v4.1-flash-1017` | `meta/muse-ember` | `openai/gpt-6.1-sol` | `anthropic/claude-opus-5.5` |
+| code | `deepseek/deepseek-v4.1-flash-1017` | `meta/muse-ember` | `openai/gpt-6.1-sol` | `anthropic/claude-opus-5.5` |
+| video-design | `meta/muse-ember` | `meta/muse-ember` | `openai/gpt-6.1-sol` | `anthropic/claude-opus-5.5` |
+| video-code | `deepseek/deepseek-v4.1-flash-1017` | `meta/muse-ember` | `openai/gpt-6.1-sol` | `anthropic/claude-opus-5.5` |
+| video-sample | `deepseek/deepseek-v4.1-flash-1017` | `deepseek/deepseek-v4.1-flash-1017` | `deepseek/deepseek-v4.1-flash-1017` | `deepseek/deepseek-v4.1-flash-1017` |
+| video-vision | `meta/muse-ember` | `meta/muse-ember` | `meta/muse-ember` | `meta/muse-ember` |
 | video-teacher | `qwen/qwen3.8-2.4t-a95b` | `qwen/qwen3.8-2.4t-a95b` | `qwen/qwen3.8-2.4t-a95b` | `qwen/qwen3.8-2.4t-a95b` |
 
 ## 2. Rôles créatifs (vidéo, livrables graphiques) — modèle et plafond de sortie par cran
@@ -19,25 +19,25 @@
 | Rôle | Échelle | low | medium | high | ultra | Mission |
 |---|---|---|---|---|---|---|
 | graphic.content | (modèle du profil) | `qwen/qwen3.5-9b` · 3500 tok | `qwen/qwen3.5-9b` · 3500 tok | `qwen/qwen3.5-9b` · 3500 tok | `qwen/qwen3.5-9b` · 3500 tok | rédiger le contenu structuré des livrables |
-| graphic.director | design | `deepseek/deepseek-v4.1-flash` · 9000 tok | `deepseek/deepseek-v4.1-flash` · 9000 tok | `deepseek/deepseek-v4.1-flash` · 9000 tok | `deepseek/deepseek-v4.1-flash` · 9000 tok | concevoir la direction d’un document : la bible visuelle et l’idée de chaque page |
-| graphic.explore | design | `deepseek/deepseek-v4.1-flash` · 9000 tok | `deepseek/deepseek-v4.1-flash` · 9000 tok | `deepseek/deepseek-v4.1-flash` · 9000 tok | `deepseek/deepseek-v4.1-flash` · 9000 tok | proposer quatre pistes d’idée distinctes pour un document |
-| graphic.judge | video-vision | `qwen/qwen3.8-27b` · 120 tok | `qwen/qwen3.8-27b` · 120 tok | `qwen/qwen3.8-27b` · 120 tok | `qwen/qwen3.8-27b` · 120 tok | répondre par oui ou non à cinq questions sur la capture d’une page |
-| graphic.page-director | design | `qwen/qwen3.6-35b-a3b` · 600 tok | `qwen/qwen3.8-27b` · 600 tok | `z-ai/glm-5.3-flash` · 600 tok | `deepseek/deepseek-v4.1-flash` · 600 tok | décider la hiérarchie d’une page (point focal, zones, groupes) avant que l’auteur ne l’écrive |
-| graphic.layout | design | `qwen/qwen3.6-35b-a3b` · 1200 tok | `qwen/qwen3.8-27b` · 1200 tok | `z-ai/glm-5.3-flash` · 1200 tok | `deepseek/deepseek-v4.1-flash` · 1200 tok | inventer la grille et les zones d’une page en suivant la direction artistique |
-| graphic.zone | code | `qwen/qwen3-coder-30b-a3b-instruct` · 5000 tok | `qwen/qwen3-coder-next` · 5000 tok | `qwen/qwen3-coder` · 5000 tok | `deepseek/deepseek-v4.1-flash` · 5000 tok | écrire le HTML Tailwind d’une seule zone de page |
-| graphic.cover | code | `qwen/qwen3-coder-30b-a3b-instruct` · 24000 tok | `qwen/qwen3-coder-next` · 24000 tok | `qwen/qwen3-coder` · 24000 tok | `deepseek/deepseek-v4.1-flash` · 24000 tok | composer librement la couverture d’un document, au meilleur modèle |
-| graphic.author | code | `qwen/qwen3-coder-30b-a3b-instruct` · 12000 tok | `qwen/qwen3-coder-next` · 12000 tok | `qwen/qwen3-coder` · 12000 tok | `deepseek/deepseek-v4.1-flash` · 12000 tok | écrire (et corriger) le HTML Tailwind de chaque page |
+| graphic.director | design | `anthropic/claude-opus-5.5` · 9000 tok | `anthropic/claude-opus-5.5` · 9000 tok | `anthropic/claude-opus-5.5` · 9000 tok | `anthropic/claude-opus-5.5` · 9000 tok | concevoir la direction d’un document : la bible visuelle et l’idée de chaque page |
+| graphic.explore | design | `anthropic/claude-opus-5.5` · 9000 tok | `anthropic/claude-opus-5.5` · 9000 tok | `anthropic/claude-opus-5.5` · 9000 tok | `anthropic/claude-opus-5.5` · 9000 tok | proposer quatre pistes d’idée distinctes pour un document |
+| graphic.judge | video-vision | `meta/muse-ember` · 120 tok | `meta/muse-ember` · 120 tok | `meta/muse-ember` · 120 tok | `meta/muse-ember` · 120 tok | répondre par oui ou non à cinq questions sur la capture d’une page |
+| graphic.page-director | design | `deepseek/deepseek-v4.1-flash-1017` · 600 tok | `meta/muse-ember` · 600 tok | `openai/gpt-6.1-sol` · 600 tok | `anthropic/claude-opus-5.5` · 600 tok | décider la hiérarchie d’une page (point focal, zones, groupes) avant que l’auteur ne l’écrive |
+| graphic.layout | design | `deepseek/deepseek-v4.1-flash-1017` · 1200 tok | `meta/muse-ember` · 1200 tok | `openai/gpt-6.1-sol` · 1200 tok | `anthropic/claude-opus-5.5` · 1200 tok | inventer la grille et les zones d’une page en suivant la direction artistique |
+| graphic.zone | code | `deepseek/deepseek-v4.1-flash-1017` · 5000 tok | `meta/muse-ember` · 5000 tok | `openai/gpt-6.1-sol` · 5000 tok | `anthropic/claude-opus-5.5` · 5000 tok | écrire le HTML Tailwind d’une seule zone de page |
+| graphic.cover | code | `deepseek/deepseek-v4.1-flash-1017` · 24000 tok | `meta/muse-ember` · 24000 tok | `openai/gpt-6.1-sol` · 24000 tok | `anthropic/claude-opus-5.5` · 24000 tok | composer librement la couverture d’un document, au meilleur modèle |
+| graphic.author | code | `deepseek/deepseek-v4.1-flash-1017` · 12000 tok | `meta/muse-ember` · 12000 tok | `openai/gpt-6.1-sol` · 12000 tok | `anthropic/claude-opus-5.5` · 12000 tok | écrire (et corriger) le HTML Tailwind de chaque page |
 | graphic.pattern-designer | (modèle du profil) | `qwen/qwen3.5-122b-a10b` · 3000 tok | `qwen/qwen3.5-122b-a10b` · 3000 tok | `qwen/qwen3.5-122b-a10b` · 3000 tok | `qwen/qwen3.5-122b-a10b` · 3000 tok | dessiner la tuile de motif propre à la marque (SVG) |
 | graphic.asset-planner | (modèle du profil) | `qwen/qwen3.5-9b` · 400 tok | `qwen/qwen3.5-9b` · 400 tok | `qwen/qwen3.5-9b` · 800 tok | `qwen/qwen3.5-9b` · 1000 tok | déterminer les ressources visuelles nécessaires |
 | video.intent-classifier | (modèle du profil) | `qwen/qwen3.5-9b` · 400 tok | `qwen/qwen3.5-9b` · 300 tok | `qwen/qwen3.5-9b` · 300 tok | `qwen/qwen3.5-9b` · 300 tok | comprendre le besoin vidéo et les médias disponibles |
-| video.concept | video-design | `z-ai/glm-5.3-flash` · 12000 tok | `z-ai/glm-5.3-flash` · 12000 tok | `z-ai/glm-5.3-flash` · 12000 tok | `z-ai/glm-5.3-flash` · 12000 tok | inventer le film : concept, bible visuelle, idée de chaque scène |
-| video.concept-explore | design | `deepseek/deepseek-v4.1-flash` · 9000 tok | `deepseek/deepseek-v4.1-flash` · 9000 tok | `deepseek/deepseek-v4.1-flash` · 9000 tok | `deepseek/deepseek-v4.1-flash` · 9000 tok | proposer quatre pistes de film distinctes avant le concept |
-| video.html-author | code | `qwen/qwen3-coder-30b-a3b-instruct` · 12000 tok | `qwen/qwen3-coder-next` · 12000 tok | `qwen/qwen3-coder` · 12000 tok | `deepseek/deepseek-v4.1-flash` · 12000 tok | écrire une scène de film en HTML Tailwind animé pour HyperFrames |
-| video.planner | video-design | `qwen/qwen3.8-27b` · 16000 tok | `qwen/qwen3.8-27b` · 16000 tok | `z-ai/glm-5.3-flash` · 16000 tok | `z-ai/glm-5.3-flash` · 16000 tok | écrire le storyboard : durées, rôles, énergie, intentions, idées, textes, médias, voix |
-| video.author | video-code | `qwen/qwen3.6-35b-a3b` · 16000 tok | `qwen/qwen3.8-27b` · 16000 tok | `qwen/qwen3.8-27b` · 16000 tok | `qwen/qwen3.8-27b` · 16000 tok | écrire (et réécrire) l’intention ou le programme d’une scène difficile — l’auteur de qualité |
-| video.reviser | video-design | `qwen/qwen3.8-27b` · 6000 tok | `qwen/qwen3.8-27b` · 6000 tok | `z-ai/glm-5.3-flash` · 6000 tok | `z-ai/glm-5.3-flash` · 6000 tok | lire une retouche écrite par le client |
-| video.sampler | video-sample | `qwen/qwen3.6-35b-a3b` · 4000 tok | `qwen/qwen3.6-35b-a3b` · 4000 tok | `qwen/qwen3.6-35b-a3b` · 4000 tok | `qwen/qwen3.6-35b-a3b` · 4000 tok | écrire beaucoup de variantes d’une scène (intention en sortie structurée) : l’échantillonnage |
-| video.judge-vlm | video-vision | `qwen/qwen3.8-27b` · 400 tok | `qwen/qwen3.8-27b` · 400 tok | `qwen/qwen3.8-27b` · 400 tok | `qwen/qwen3.8-27b` · 400 tok | départager deux finalistes sur image (questions fermées, ordre inversé) — optionnel |
+| video.concept | video-design | `anthropic/claude-opus-5.5` · 12000 tok | `anthropic/claude-opus-5.5` · 12000 tok | `anthropic/claude-opus-5.5` · 12000 tok | `anthropic/claude-opus-5.5` · 12000 tok | inventer le film : concept, bible visuelle, idée de chaque scène |
+| video.concept-explore | design | `anthropic/claude-opus-5.5` · 9000 tok | `anthropic/claude-opus-5.5` · 9000 tok | `anthropic/claude-opus-5.5` · 9000 tok | `anthropic/claude-opus-5.5` · 9000 tok | proposer quatre pistes de film distinctes avant le concept |
+| video.html-author | code | `deepseek/deepseek-v4.1-flash-1017` · 12000 tok | `meta/muse-ember` · 12000 tok | `openai/gpt-6.1-sol` · 12000 tok | `anthropic/claude-opus-5.5` · 12000 tok | écrire une scène de film en HTML Tailwind animé pour HyperFrames |
+| video.planner | video-design | `meta/muse-ember` · 16000 tok | `meta/muse-ember` · 16000 tok | `openai/gpt-6.1-sol` · 16000 tok | `anthropic/claude-opus-5.5` · 16000 tok | écrire le storyboard : durées, rôles, énergie, intentions, idées, textes, médias, voix |
+| video.author | video-code | `deepseek/deepseek-v4.1-flash-1017` · 16000 tok | `meta/muse-ember` · 16000 tok | `openai/gpt-6.1-sol` · 16000 tok | `anthropic/claude-opus-5.5` · 16000 tok | écrire (et réécrire) l’intention ou le programme d’une scène difficile — l’auteur de qualité |
+| video.reviser | video-design | `meta/muse-ember` · 6000 tok | `meta/muse-ember` · 6000 tok | `openai/gpt-6.1-sol` · 6000 tok | `anthropic/claude-opus-5.5` · 6000 tok | lire une retouche écrite par le client |
+| video.sampler | video-sample | `deepseek/deepseek-v4.1-flash-1017` · 4000 tok | `deepseek/deepseek-v4.1-flash-1017` · 4000 tok | `deepseek/deepseek-v4.1-flash-1017` · 4000 tok | `deepseek/deepseek-v4.1-flash-1017` · 4000 tok | écrire beaucoup de variantes d’une scène (intention en sortie structurée) : l’échantillonnage |
+| video.judge-vlm | video-vision | `meta/muse-ember` · 400 tok | `meta/muse-ember` · 400 tok | `meta/muse-ember` · 400 tok | `meta/muse-ember` · 400 tok | départager deux finalistes sur image (questions fermées, ordre inversé) — optionnel |
 | video.teacher | video-teacher | `qwen/qwen3.8-2.4t-a95b` · 12000 tok | `qwen/qwen3.8-2.4t-a95b` · 12000 tok | `qwen/qwen3.8-2.4t-a95b` · 12000 tok | `qwen/qwen3.8-2.4t-a95b` · 12000 tok | hors ligne : fabriquer des scènes de référence pour la bibliothèque |
 
 ## 3. Fonctionnalités (`AI_CONFIG`) — indépendantes du cran

@@ -22,6 +22,7 @@ import {
   DirectionInput,
   FORMATS,
   FormatId,
+  memoryEnabled,
   pageDocument,
   ReferenceComposition,
   renderSingle,
@@ -599,7 +600,7 @@ function memoryScopesOf(context: VisualBrandContext, userId: string, projectId: 
 /** Les idées et les axes déjà servis (projet, utilisateur, secteur), les plus récents d'abord. */
 async function recentIdeas(scopes: { memoryScopes: Array<{ documentType: string; key: string }> }): Promise<{ ideas: string[]; axes: string[] }> {
   const host = engineHost();
-  if (!host.recentFingerprints) return { ideas: [], axes: [] };
+  if (!host.recentFingerprints || !memoryEnabled()) return { ideas: [], axes: [] };
   const lists = await Promise.all(scopes.memoryScopes.map((s) => host.recentFingerprints!(s).catch(() => [] as string[])));
   const all = lists.flatMap((l) => [...l].reverse());
   return { ideas: [...new Set(all.filter((r) => r.startsWith('idea:')).map((r) => r.slice(5)))].slice(0, 10), axes: [...new Set(all.filter((r) => r.startsWith('axis:')).map((r) => r.slice(5)))].reverse() };

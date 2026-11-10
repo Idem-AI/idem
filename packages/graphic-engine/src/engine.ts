@@ -95,12 +95,25 @@ interface DocumentMemory {
   renders: Float32Array[];
 }
 
+/** La mémoire des idées, par portée (projet, utilisateur, secteur) : 30 jours, les 40 dernières marques. Tous les hôtes s'y tiennent. */
+export const MEMORY_TTL_S = 30 * 24 * 3600;
+export const MEMORY_MAX = 40;
+/** `IDEM_QUALITY_MEMORY=0` : ni lecture ni écriture de la mémoire (essais répétés sur un même projet ou une même marque). */
+export const memoryEnabled = (): boolean => process.env.IDEM_QUALITY_MEMORY !== '0';
+/** Ajoute des marques à la mémoire d'une portée, en gardant les plus récentes. */
+export const mergeMemory = (previous: string[], added: string[]): string[] => [...previous, ...added].slice(-MEMORY_MAX);
+
 /** Le plan qualité créative, par interrupteurs (tous actifs par défaut ; « 0 » coupe). */
 const QUALITY = {
   explore: () => process.env.IDEM_QUALITY_EXPLORE !== '0',
   select: () => process.env.IDEM_QUALITY_SELECT !== '0',
   refine: () => process.env.IDEM_QUALITY_REFINE !== '0',
 };
+
+/** L'état des interrupteurs du moteur, écrit au démarrage des services : un processus resté sur l'ancien code se voit. */
+export function qualityStatus(): Record<string, boolean> {
+  return { explore: QUALITY.explore(), select: QUALITY.select(), refine: QUALITY.refine(), memory: memoryEnabled(), examples: process.env.IDEM_QUALITY_EXAMPLES !== '0' };
+}
 
 /**
  * Le nombre de VARIANTES écrites pour une page, gardée la meilleure par la mesure : une toile seule (visuel, carte) 2 à
@@ -267,7 +280,7 @@ export class GraphicDocument {
 
   static async create(options: DocumentOptions): Promise<GraphicDocument> {
     const host = engineHost();
-    const lists = host.recentFingerprints ? await Promise.all(GraphicDocument.scopes(options).map((scope) => host.recentFingerprints!(scope).catch(() => [] as string[]))) : [];
+    const lists = memoryEnabled() && host.recentFingerprints ? await Promise.all(GraphicDocument.scopes(options).map((scope) => host.recentFingerprints!(scope).catch(() => [] as string[]))) : [];
     // Les plus récentes d'abord ; une idée déjà vue dans une autre portée n'est comptée qu'une fois.
     const all = lists.flatMap((l) => [...l].reverse());
     const pick = (prefix: RegExp) => [...new Set(all.filter((r) => prefix.test(r)).map((r) => r.replace(prefix, '')))];
@@ -278,7 +291,11 @@ export class GraphicDocument {
         return null;
       }
     }).filter((v): v is Float32Array => v !== null && v.length === 512);
-    return new GraphicDocument(options, { ideas: pick(/^(idea|bible):/).slice(0, 10), axes: pick(/^axis:/).reverse(), renders });
+    const ideas = pick(/^(idea|bible):/).slice(0, 10);
+    const axes = pick(/^axis:/).reverse();
+    // Ce que la mémoire écarte est dit, pas caché : un résultat contraint s'explique.
+    if (ideas.length || axes.length) log().info('graphic.memory', { documentType: options.documentType, ideas: ideas.length, axes: axes.length, renders: renders.length, scopes: GraphicDocument.scopes(options).map((s) => s.key.slice(0, 60)) });
+    return new GraphicDocument(options, { ideas, axes, renders });
   }
 
   /** Les polices de la marque (le `<style>` Tailwind de chaque page est dans son `result.head`). */
@@ -901,7 +918,7 @@ export class GraphicDocument {
   /** L'idée de ce document, confiée à la mémoire de l'hôte : le prochain document de la marque fera autrement. */
   async remember(): Promise<void> {
     const host = engineHost();
-    if (!host.rememberFingerprints) return;
+    if (!host.rememberFingerprints || !memoryEnabled()) return;
     const idea = this.planValue?.idea || (this.chosenTrack ? `${this.chosenTrack.title} — ${this.chosenTrack.idea}` : this.options.concept?.trim() || '');
     const marks = [...(idea ? [`idea:${idea.slice(0, 300)}`] : []), ...(this.axis ? [`axis:${this.axis.id}`] : []), ...this.renderVectors.slice(0, 3).map((v) => `render:${encodeVector(v)}`)];
     if (!marks.length) return;

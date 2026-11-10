@@ -325,6 +325,9 @@ export interface GenerateVideoOptions {
  * `IDEM_OPENROUTER_VIDEO_MODEL` choisit une autre variante (`-fast`, `-mini`) ou un
  * candidat de test (Wan, avec `OPENROUTER_OPEN_ONLY=off`).
  */
+/** Modèles vidéo plafonnés à 720p (catalogue OpenRouter du 10/11/2026). */
+const VIDEO_MODEL_MAX_RESOLUTION: Record<string, '720p'> = { 'bytedance/seedance-2.5': '720p', 'bytedance/seedance-2.0-fast': '720p', 'bytedance/seedance-2.0-mini': '720p' };
+
 export function openRouterVideoModel(): string | undefined {
   const model = process.env.IDEM_OPENROUTER_VIDEO_MODEL?.trim() || DEFAULT_VIDEO_MODEL;
   return isAllowedOpenRouterModel(model) ? model : undefined;
@@ -360,7 +363,9 @@ export async function generateVideo(
   const auth = headers();
   const started = Date.now();
   const timeoutMs = options.timeoutMs ?? AI_CONFIG.communication.videoMedia.clipTimeoutMs;
-  const resolution = Number(options.size.split('x')[1] ?? 720) >= 1000 ? '1080p' : '720p';
+  // Résolution demandée, ramenée à ce que le modèle accepte (Seedance 2.5 : 480p–720p seulement).
+  const wantedRes: '720p' | '1080p' = Math.max(...options.size.split('x').map(Number)) >= 1500 ? '1080p' : '720p';
+  const resolution = VIDEO_MODEL_MAX_RESOLUTION[model] === '720p' ? '720p' : wantedRes;
   // Veo (OpenRouter) n'accepte que 16:9 ou 9:16 et 4, 6 ou 8 s : un autre format ou une autre durée était refusé
   // (HTTP 400) et le moteur retombait sur la banque d'images. Le clip est recadré par la scène.
   const veo = model.startsWith('google/veo');

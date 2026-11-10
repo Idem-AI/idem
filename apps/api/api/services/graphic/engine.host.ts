@@ -17,7 +17,7 @@
  */
 import fs from 'fs';
 import path from 'path';
-import { configureGraphicEngine, FingerprintScope, GenerationTrace } from '@idem/graphic-engine';
+import { configureGraphicEngine, FingerprintScope, GenerationTrace, MEMORY_TTL_S, mergeMemory } from '@idem/graphic-engine';
 import logger from '../../config/logger';
 import { cacheService } from '../cache.service';
 import { runtimeCall } from '../creativity/orchestrator';
@@ -34,8 +34,6 @@ let chartSource: string | null | undefined;
  */
 const OFFLINE = process.env.GRAPHIC_OFFLINE === '1' || /[\\/]scripts[\\/]check[A-Z]/.test(process.argv[1] ?? '');
 
-/** Les empreintes d'une portée (marque, projet) : 30 jours, les 40 dernières. */
-const FINGERPRINT_TTL = 30 * 24 * 3600;
 const fingerprintKey = (scope: FingerprintScope): string => `graphic-fingerprints:${scope.documentType}:${scope.key}`;
 
 function traceSummary(trace: GenerationTrace): Record<string, unknown> {
@@ -74,7 +72,7 @@ export function configureGraphicEngineForIdem(): void {
     recentFingerprints: async (scope) => (await cacheService.get<string[]>(fingerprintKey(scope), { prefix: 'graphic' })) ?? [],
     rememberFingerprints: async (scope, fingerprints) => {
       const previous = (await cacheService.get<string[]>(fingerprintKey(scope), { prefix: 'graphic' })) ?? [];
-      await cacheService.set(fingerprintKey(scope), [...previous, ...fingerprints].slice(-40), { prefix: 'graphic', ttl: FINGERPRINT_TTL });
+      await cacheService.set(fingerprintKey(scope), mergeMemory(previous, fingerprints), { prefix: 'graphic', ttl: MEMORY_TTL_S });
     },
     // Le langage visuel de la marque (écrit une fois par charte, relu par tous ses livrables) : 180 jours ; la clé
     // change avec la charte, une nouvelle charte écrit donc un nouveau langage.

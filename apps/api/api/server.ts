@@ -361,6 +361,8 @@ function startServer() {
       logLevel: logger.level,
     });
 
+    void import('../../ivision/core/src/creative.status').then(({ creativeStatus }) => logger.info('creative.status', { event: 'creative.status', ...creativeStatus() }));
+
     // Initialize MongoDB connection
     try {
       await mongoDBConnection.connect();

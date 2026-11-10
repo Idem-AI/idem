@@ -26,7 +26,7 @@ export { configureGraphicEngine, engineHost } from './host';
 export type { AgentCall, AgentProfile, EngineHost, EngineLogger, FingerprintScope } from './host';
 
 // ── Les documents ────────────────────────────────────────────────────────────────────────────
-export { ContentError, createDocument, GraphicDocument, GraphicRenderError, renderSingle, repairLimits } from './engine';
+export { ContentError, createDocument, GraphicDocument, GraphicRenderError, MEMORY_MAX, MEMORY_TTL_S, memoryEnabled, mergeMemory, qualityStatus, renderSingle, repairLimits } from './engine';
 export type { DocumentOptions, SectionOutput } from './engine';
 export type { ReferenceComposition } from './author/prompts';
 
