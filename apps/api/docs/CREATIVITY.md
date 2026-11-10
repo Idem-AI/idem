@@ -4,22 +4,41 @@ Avant chaque génération, l'utilisateur choisit un cran. Le réglage vaut pour 
 
 Quatre crans : **Low · Medium · High · Ultra** (le cran Max a été retiré le 14 octobre 2026 ; une donnée enregistrée en « max » est lue comme High, `normalizeCreativity`).
 
-## Le principe : le cran choisit la puissance du modèle
+## Le principe
 
-Depuis le 14 octobre 2026 (vidéo, puis livrables graphiques), **le cran ne change ni les étapes ni la liberté de l'IA** : à tous les crans, l'IA conçoit et écrit le livrable librement, avec le même contexte. Le cran choisit le MODÈLE qui le fait — plus il monte, plus le modèle est puissant — et le prix suit.
+Depuis le 10 novembre 2026, deux logiques coexistent :
 
-| Cran | Conception (échelle « design ») | Écriture du code (échelle « code ») |
-| --- | --- | --- |
-| Low | `qwen/qwen3.5-9b` | `qwen/qwen3-coder-30b-a3b-instruct` |
-| Medium (défaut) | `qwen/qwen3.5-27b` | `qwen/qwen3-coder-next` |
-| High | `qwen/qwen3.5-397b-a17b` | `qwen/qwen3-coder` (480B) |
-| Ultra | `deepseek/deepseek-v4-pro` | `deepseek/deepseek-v4-pro` |
+- **Livrables graphiques** (business plan, pitch deck, charte, cartes de visite, visuels, bannières) : chaque page est
+  **assemblée depuis un catalogue de gabarits en ligne** (dépôt `idem-templates`, publié sur MinIO). L'IA ne compose plus
+  la page : elle choisit un gabarit documenté et met à jour sa configuration. Le cran règle la **finesse** de
+  l'assemblage, la **profondeur** de la configuration, la **largeur** de l'exploration et l'**exigence de nouveauté**
+  (tableau plus bas). Détail : [README du moteur](../../../packages/graphic-engine/README.md).
+- **Vidéo motion et logo** : le cran choisit la puissance du modèle, les étapes restent les mêmes.
 
-Les échelles sont dans `config/creative-roles.ts#MODEL_LADDERS`. Rôles sur l'échelle « design » : `video.concept`, `video.planner`, `video.reviser`, `graphic.director`. Sur l'échelle « code » : `video.author`, `graphic.author`. Un barreau se remplace sans code (`IDEM_LADDER_<ÉCHELLE>_<CRAN>`, modèle de la liste blanche), un rôle à un cran aussi (`IDEM_ROLE_<RÔLE>_MODEL_<CRAN>`).
+### Les modèles (poids ouverts uniquement)
 
-**Aucune critique esthétique, aucune réécriture automatique, aucun gabarit de repli, à aucun cran.** La seule vérification est technique : le rendu s'affiche-t-il ? Ce qui ne s'affiche pas est corrigé dans des bornes strictes (une tentative à la fois, jamais deux fois la même approche, la réécriture passe au modèle du cran au-dessus), puis signalé s'il résiste.
+Le 10/11/2026, des modèles fermés « meilleur rapport qualité/prix » ont été essayés, puis retirés le même jour : les
+échelles sont revenues à celles du 5 novembre, toutes à poids ouverts.
 
-Ce que garantit le code, à tous les crans, parce que c'est de l'exactitude et non du goût : les textes et chiffres du contenu (posés par le code, jamais recopiés par un modèle), les tableaux et graphiques (dessinés par le code), la charte (couleurs et polices de la marque), les cotes du support (formats d'impression, zones de sécurité données à l'auteur), une surface claire sauf demande explicite.
+| Cran | Conception (« design ») | Code (« code ») | Choix de gabarit (« catalog ») |
+| --- | --- | --- | --- |
+| Low | `qwen/qwen3.6-35b-a3b` | `qwen/qwen3-coder-30b-a3b-instruct` | aucun appel (le code choisit) |
+| Medium (défaut) | `qwen/qwen3.8-27b` | `qwen/qwen3-coder-next` | `qwen/qwen3.6-35b-a3b` |
+| High | `z-ai/glm-5.3-flash` | `qwen/qwen3-coder` | `qwen/qwen3.5-122b-a10b` |
+| Ultra | `deepseek/deepseek-v4.1-flash` | `deepseek/deepseek-v4.1-flash` | `deepseek/deepseek-v4.1-flash` |
+
+Vidéo : `video-design` qwen3.8-27b (Low, Medium) puis glm-5.3-flash (High, Ultra) ; `video-code` qwen3.6-35b-a3b puis
+qwen3.8-27b ; échantillonneur qwen3.6-35b-a3b. Médias : images FLUX.2 klein (rôle `image`) ; dérogations inchangées
+d'avant le 10/11 — clips Veo 3.1 / 3.1 Fast, mises en situation de la charte Gemini 3.1 Flash Image (aucun modèle ouvert
+équivalent sur OpenRouter).
+
+Tableau complet, rôle par rôle : [AI_MODELS.md](AI_MODELS.md) (`npm run ai:matrix`). Les échelles sont dans
+`config/ai-models.config.ts#MODEL_LADDERS` ; un barreau se remplace sans code (`IDEM_LADDER_<ÉCHELLE>_<CRAN>`), un rôle
+à un cran aussi (`IDEM_ROLE_<RÔLE>_MODEL_<CRAN>`).
+
+Ce que garantit le code, à tous les crans : les textes et chiffres du contenu (posés par le code, jamais recopiés par un
+modèle), les tableaux et graphiques (dessinés par le code), la charte (couleurs et polices de la marque), les cotes du
+support, une surface claire sauf demande explicite.
 
 ## Prix
 
@@ -74,17 +93,33 @@ Moteur Motion Canvas ([VIDEO_ENGINE.md](VIDEO_ENGINE.md)) : directeur, planifica
 
 ## Visuels, cartes de visite et documents : le moteur graphique (`packages/graphic-engine`)
 
-Business plan, pitch deck, charte graphique, cartes de visite et visuels (flyers, publications, bannières) passent par **un seul moteur**, le paquet `@idem/graphic-engine` (doc : [README du paquet](../../../packages/graphic-engine/README.md)). Depuis le 14 octobre 2026, **l'IA écrit chaque page en HTML Tailwind** :
+Business plan, pitch deck, charte graphique, cartes de visite et visuels passent par **un seul moteur**, le paquet
+`@idem/graphic-engine` (doc : [README du paquet](../../../packages/graphic-engine/README.md)). Depuis la version 2.6
+(10 novembre 2026), **chaque page est assemblée depuis le catalogue de gabarits** :
 
 1. le rédacteur écrit le CONTENU (blocs typés : prose, chiffres-clés, tableau, graphique…), comme avant ;
-2. le **directeur** (`graphic.director`) écrit le LANGAGE VISUEL de la marque une fois par charte (gardé : Redis chez IDEM, Mongo chez iVision, relu par tous les livrables), puis, pour un document de plusieurs pages, son PLAN : une idée et une ligne par page ;
-3. l'**auteur** (`graphic.author`, une fois par page) écrit la page en classes Tailwind, librement — aucun gabarit, aucun menu de compositions — au niveau d'un document professionnel (aucune décoration gratuite), avec sa ligne du plan, celles de ses voisines et la documentation des seuls outils dont la page a besoin. Il place les textes par leurs clés (`{{title}}`, `{{b2.items.0.value}}`) et pose les primitives du code (`<idem-chart>`, `<idem-table>`, `<idem-logo>`, `<idem-icon>`, `<idem-pattern>`) ;
-4. le code **assainit** (scripts, cadres, adresses étrangères retirés ; tout CSS natif — `<style>`, `style=""` — retiré et signalé), **remplit** (textes exacts, graphiques et tableaux dessinés), **compile Tailwind** avec le thème de la marque, puis demande à Chromium si la page **s'affiche** ;
-5. une page qui ne s'affiche pas (réponse sans HTML, rien de visible, rendu impossible) est corrigée : corriger (même cran) › réécrire autrement (cran au-dessus) › version minimale (cran au-dessus). Ce qui résiste lève `GraphicRenderError` : la section est en échec, et c'est dit.
+2. le **code** parcourt le graphe du catalogue sans aucun appel : il garde les squelettes qui peuvent porter ce contenu
+   (capacité réelle des zones, largeur minimale des composants), les classe (direction artistique de la marque,
+   enchaînement avec la page voisine, mémoire des combinaisons déjà livrées) et n'en montre que quelques-uns ;
+3. le **modèle** `graphic.template` (dès Medium) choisit un gabarit et met à jour sa configuration : une petite réponse
+   JSON vérifiée par le code. Au cran Low, le code choisit seul ;
+4. le code **assemble** (textes exacts par clés, graphiques et tableaux dessinés, couleurs de la charte), **compile
+   Tailwind**, **rend** dans Chromium et **mesure** ; une zone qui déborde est réduite à la bonne taille, un gabarit qui
+   ne tient pas cède la place au suivant, puis au squelette intégré. Une page n'est jamais perdue faute de place.
 
-Mêmes étapes et même contexte à tous les crans ; seul le modèle change. Ce qui n'est PAS fait, à aucun cran : mesure de débordement, contraste recalculé, score, critique visuelle, révision sur critique, repli sur une composition du code.
+| Cran | Qui choisit | Finesse | Candidats | Rendus mesurés | Mémoire de nouveauté |
+|---|---|---|---|---|---|
+| Low | le code | gabarit entier | 6 | 1 (2 : visuel seul) | marque |
+| Medium | modèle | + réglages | 4 | 1 (2 : visuel seul) | marque |
+| High | modèle | + un composant par unité, habillage choisi | 8 | 2 | toutes les portées |
+| Ultra | modèle | + squelettes de tout le graphe, réglages continus | 12 | 3 | + tous les clients |
 
-La page gardée (`SectionSpec` v2) est le CODE de l'auteur, clés et primitives en place : une retouche de texte, de chiffre ou de photo le **rejoue sans modèle** ; une retouche écrite de forme (« titre plus grand ») le donne à l'auteur avec la consigne. Une page de l'ancien moteur (arbre v1) ne se rejoue plus : elle est réécrite.
+La page gardée (`SectionSpec` v2) garde son HTML à clés **et** sa configuration (`spec.catalog.config`) : une retouche
+de texte ou de photo la rejoue sans modèle ; une retouche écrite (« en miroir », « plus aérée ») modifie la configuration
+en un petit appel. `GRAPHIC_ENGINE_MODE=author` rétablit l'écriture libre d'avant (retour arrière d'exploitation).
+
+Le catalogue se met à jour **sans rebuild** : un push sur `main` du dépôt `idem-templates` le publie sur MinIO, les API le
+relisent aussitôt (`POST /catalog/refresh`). En local : `npm run publish:local` dans `idem-templates`.
 
 ### Visuels
 

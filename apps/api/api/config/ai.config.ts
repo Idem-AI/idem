@@ -1398,8 +1398,8 @@ export const AI_CONFIG = {
       //
       // Seules les mises en situation produit passent ici : les mockups de
       // réseaux sociaux et les bannières sont des gabarits HTML, sans IA.
-      imageModel: 'google/gemini-nano-banana-2.1',
-      imageFallbackModel: 'google/gemini-3.1-flash-image',
+      imageModel: 'google/gemini-3.1-flash-image',
+      imageFallbackModel: MEDIA_MODELS.image,
       visionModel: MEDIA_MODELS.vision,
       visionFallbackModel: MEDIA_MODELS.visionFallback,
       // Le JSON de zone tient en ~60 tokens, mais le modèle est « thinking » :

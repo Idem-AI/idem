@@ -42,6 +42,10 @@ contenu → médias → matière à plat (clés)                                
 | High | modèle | + un composant par unité, habillage choisi | 8 | 2 | toutes les portées |
 | Ultra | modèle | + squelettes de tout le graphe, réglages continus | 12 | 3 | + tous les clients |
 
+Le modèle `graphic.template` suit l'échelle `catalog`, à poids ouverts : qwen3.6-35b-a3b (Medium), qwen3.5-122b-a10b
+(High), deepseek-v4.1-flash (Ultra) ; aucun appel au cran Low. Comparaison chiffrée avec l'écriture libre :
+[docs/MIGRATION.md](docs/MIGRATION.md#26--le-catalogue-de-gabarits-en-ligne-à-tous-les-crans-10-novembre-2026).
+
 Le registre (`catalog/registry.ts`) lit, dans l'ordre : `IDEM_TEMPLATES_DIR` (dépôt local, relu toutes les 10 s),
 `IDEM_TEMPLATES_URL` (le seau MinIO, ETag, `IDEM_TEMPLATES_TTL_S`, `POST /catalog/refresh` ; en local
 `http://localhost:9000/idem-templates`, publié par `npm run publish:local` dans `idem-templates`), le cache disque

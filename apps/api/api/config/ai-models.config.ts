@@ -23,7 +23,8 @@ import logger from './logger';
 
 /**
  * LES ÉCHELLES DE MODÈLES — la créativité EST la puissance du modèle : Low le plus léger, Ultra le plus
- * capable. Quatre crans, tous dans la liste blanche (depuis le 10/11/2026, des modèles fermés par dérogation).
+ * capable. Quatre crans. Toutes à poids ouverts (liste blanche) : la dérogation « meilleurs modèles du marché,
+ * fermés compris » du 10/11/2026 a été RETIRÉE le même jour à la demande de l'utilisateur (retour aux échelles du 05/11).
  *
  *   design  concevoir : concept et storyboard vidéo, retouche écrite, direction d'un document
  *   code    écrire du code : scènes Motion Canvas, pages HTML/Tailwind (et les corriger)
@@ -47,25 +48,17 @@ export type ModelLadder = 'design' | 'code' | 'catalog' | 'video-design' | 'vide
  * cf. [[idem-creativity-gauge]]) : c'est le cran qui change le plus visiblement le rendu perçu.
  */
 export const MODEL_LADDERS: Record<ModelLadder, Record<CreativityLevel, string>> = {
-  /**
-   * 10/11/2026 — décision produit : le meilleur rapport qualité/prix du marché à chaque cran, sans exiger les
-   * poids ouverts (dérogation `allowClosed`). Relevé DesignArena (Website, Overall Agentic) du 10/11/2026 :
-   *   low     deepseek-v4.1-flash-1017  Website 1302, 0,5 $/M en sortie
-   *   medium  meta/muse-ember           Website ≈ 1327 (niveau frontière) pour 0,5 $/M en sortie
-   *   high    openai/gpt-6.1-sol        Agentic 1423 (2e), moitié du prix d'Opus
-   *   ultra   anthropic/claude-opus-5.5 Agentic 1459 (1er)
-   */
   design: {
-    low: 'deepseek/deepseek-v4.1-flash-1017',
-    medium: 'meta/muse-ember',
-    high: 'openai/gpt-6.1-sol',
-    ultra: 'anthropic/claude-opus-5.5',
+    low: 'qwen/qwen3.6-35b-a3b',
+    medium: 'qwen/qwen3.8-27b',
+    high: 'z-ai/glm-5.3-flash',
+    ultra: 'deepseek/deepseek-v4.1-flash',
   },
   code: {
-    low: 'deepseek/deepseek-v4.1-flash-1017',
-    medium: 'meta/muse-ember',
-    high: 'openai/gpt-6.1-sol',
-    ultra: 'anthropic/claude-opus-5.5',
+    low: 'qwen/qwen3-coder-30b-a3b-instruct',
+    medium: 'qwen/qwen3-coder-next',
+    high: 'qwen/qwen3-coder',
+    ultra: 'deepseek/deepseek-v4.1-flash',
   },
   /**
    * LE CATALOGUE DE GABARITS (10/11/2026) : le modèle ne fait plus que CHOISIR dans une liste courte documentée et
@@ -74,30 +67,30 @@ export const MODEL_LADDERS: Record<ModelLadder, Record<CreativityLevel, string>>
    */
   catalog: { low: 'qwen/qwen3.5-35b-a3b', medium: 'qwen/qwen3.6-35b-a3b', high: 'qwen/qwen3.5-122b-a10b', ultra: 'deepseek/deepseek-v4.1-flash' },
   /**
-   * LE MOTEUR VIDÉO : mêmes modèles que le graphique pour la conception et l'écriture des scènes ; l'échantillonneur
-   * (6 à 10 variantes par scène) reste sur le modèle le moins cher à bon niveau ; le juge visuel est multimodal.
-   *   video-design   concept, storyboard, retouche écrite
-   *   video-code     l'auteur de QUALITÉ (Low n'en a pas : il échantillonne)
-   *   video-sample   l'échantillonneur, volume élevé
-   *   video-vision   le départage visuel optionnel (Ultra)
-   *   video-teacher  le professeur HORS LIGNE, jamais en production (inchangé)
+   * LE MOTEUR VIDÉO (plan qualité avec petits modèles, 29/10/2026) : des modèles de 27 à 35 milliards de paramètres,
+   * auto-hébergeables sur un GPU ; la qualité vient de l'outillage (système de design, solveurs, échantillonnage, juge).
+   * Le cran choisit le BUDGET d'essais autant que le modèle (`apps/ivision/core/src/video/author/sampler.ts`).
+   *
+   *   video-design   concept, storyboard, retouche écrite (GLM-5.3-Flash au cran High et Ultra) ;
+   *   video-code     l'auteur de QUALITÉ : réécriture d'une scène difficile (Low n'en a pas : il échantillonne) ;
+   *   video-sample   l'échantillonneur : 6 à 10 variantes par scène, rapide et peu cher ;
+   *   video-vision   le départage visuel optionnel (Ultra) ;
+   *   video-teacher  le professeur HORS LIGNE (bibliothèque de scènes de référence), jamais en production.
    */
-  'video-design': { low: 'meta/muse-ember', medium: 'meta/muse-ember', high: 'openai/gpt-6.1-sol', ultra: 'anthropic/claude-opus-5.5' },
-  'video-code': { low: 'deepseek/deepseek-v4.1-flash-1017', medium: 'meta/muse-ember', high: 'openai/gpt-6.1-sol', ultra: 'anthropic/claude-opus-5.5' },
-  'video-sample': { low: 'deepseek/deepseek-v4.1-flash-1017', medium: 'deepseek/deepseek-v4.1-flash-1017', high: 'deepseek/deepseek-v4.1-flash-1017', ultra: 'deepseek/deepseek-v4.1-flash-1017' },
-  'video-vision': { low: 'meta/muse-ember', medium: 'meta/muse-ember', high: 'meta/muse-ember', ultra: 'meta/muse-ember' },
+  'video-design': { low: 'qwen/qwen3.8-27b', medium: 'qwen/qwen3.8-27b', high: 'z-ai/glm-5.3-flash', ultra: 'z-ai/glm-5.3-flash' },
+  'video-code': { low: 'qwen/qwen3.6-35b-a3b', medium: 'qwen/qwen3.8-27b', high: 'qwen/qwen3.8-27b', ultra: 'qwen/qwen3.8-27b' },
+  'video-sample': { low: 'qwen/qwen3.6-35b-a3b', medium: 'qwen/qwen3.6-35b-a3b', high: 'qwen/qwen3.6-35b-a3b', ultra: 'qwen/qwen3.6-35b-a3b' },
+  'video-vision': { low: 'qwen/qwen3.8-27b', medium: 'qwen/qwen3.8-27b', high: 'qwen/qwen3.8-27b', ultra: 'qwen/qwen3.8-27b' },
   'video-teacher': { low: 'qwen/qwen3.8-2.4t-a95b', medium: 'qwen/qwen3.8-2.4t-a95b', high: 'qwen/qwen3.8-2.4t-a95b', ultra: 'qwen/qwen3.8-2.4t-a95b' },
 };
 
 /** Les replis d'une échelle (même cran) : le modèle qui prend le relais si le premier est indisponible. */
 export const LADDER_FALLBACKS: Partial<Record<ModelLadder, Partial<Record<CreativityLevel, string[]>>>> = {
-  design: { low: ['deepseek/deepseek-v4.1-flash'], medium: ['deepseek/deepseek-v4.1-flash-1017'], high: ['anthropic/claude-opus-5.5', 'meta/muse-ember'], ultra: ['openai/gpt-6.1-sol', 'meta/muse-ember'] },
   catalog: { low: ['qwen/qwen3.5-9b'], medium: ['qwen/qwen3.5-35b-a3b'], high: ['qwen/qwen3.5-397b-a17b'], ultra: ['qwen/qwen3.5-397b-a17b'] },
-  code: { low: ['deepseek/deepseek-v4.1-flash'], medium: ['deepseek/deepseek-v4.1-flash-1017'], high: ['anthropic/claude-opus-5.5', 'meta/muse-ember'], ultra: ['openai/gpt-6.1-sol', 'meta/muse-ember'] },
-  'video-design': { low: ['deepseek/deepseek-v4.1-flash-1017'], medium: ['deepseek/deepseek-v4.1-flash-1017'], high: ['anthropic/claude-opus-5.5', 'meta/muse-ember'], ultra: ['openai/gpt-6.1-sol', 'meta/muse-ember'] },
-  'video-code': { low: ['meta/muse-ember'], medium: ['deepseek/deepseek-v4.1-flash-1017'], high: ['anthropic/claude-opus-5.5', 'meta/muse-ember'], ultra: ['openai/gpt-6.1-sol', 'meta/muse-ember'] },
-  'video-sample': { low: ['meta/muse-ember'], medium: ['meta/muse-ember'], high: ['meta/muse-ember'], ultra: ['meta/muse-ember'] },
-  'video-vision': { low: ['google/gemini-3.8-flash'], medium: ['google/gemini-3.8-flash'], high: ['google/gemini-3.8-flash'], ultra: ['google/gemini-3.8-flash'] },
+  'video-design': { low: ['z-ai/glm-5.3-flash'], medium: ['z-ai/glm-5.3-flash'], high: ['qwen/qwen3.8-27b'], ultra: ['qwen/qwen3.8-27b'] },
+  'video-code': { low: ['qwen/qwen3-coder-next'], medium: ['qwen/qwen3.6-27b'], high: ['qwen/qwen3.6-27b'], ultra: ['qwen/qwen3.6-27b'] },
+  'video-sample': { low: ['qwen/qwen3-coder-next'], medium: ['qwen/qwen3-coder-next'], high: ['qwen/qwen3-coder-next'], ultra: ['qwen/qwen3-coder-next'] },
+  'video-vision': { low: ['qwen/qwen3-vl-8b-instruct'], medium: ['qwen/qwen3-vl-8b-instruct'], high: ['qwen/qwen3-vl-8b-instruct'], ultra: ['qwen/qwen3-vl-8b-instruct'] },
   'video-teacher': { low: ['deepseek/deepseek-v4.1-flash', 'z-ai/glm-5.3'], medium: ['deepseek/deepseek-v4.1-flash', 'z-ai/glm-5.3'], high: ['deepseek/deepseek-v4.1-flash', 'z-ai/glm-5.3'], ultra: ['deepseek/deepseek-v4.1-flash', 'z-ai/glm-5.3'] },
 };
 

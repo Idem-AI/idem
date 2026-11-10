@@ -1,5 +1,38 @@
 # Migrations du moteur graphique
 
+## 2.6 — le catalogue de gabarits en ligne, à tous les crans (10 novembre 2026)
+
+- **Plus d'écriture libre par défaut, à aucun cran.** Chaque page est assemblée depuis le catalogue (dépôt
+  `idem-templates` : 36 squelettes, 8 habillages, 67 composants, 36 gabarits — au moins 5 par élément). Le code
+  parcourt le graphe ; le modèle `graphic.template` choisit et met à jour une configuration JSON ; le code assemble,
+  rend, mesure et fait tenir. Code : `src/catalog/` ; crans : `CATALOG_EFFORT` (`src/foundation/effort.ts`).
+- **Mise à jour sans rebuild** : registre `src/catalog/registry.ts` (dépôt local › MinIO avec ETag › cache disque ›
+  `catalog/snapshot.json` › minimum intégré), manifeste signé ed25519, HTML vérifié par son empreinte, nœuds dangereux ou
+  porteurs de mots écartés. Publication : CI du dépôt sur push `main`, `npm run publish:local` en local.
+- **Modèles** : échelle `catalog` à poids ouverts ; les échelles design/code/vidéo sont revenues à celles du 5 novembre
+  (les modèles fermés essayés le 10/11 sont retirés).
+- **Retour arrière** : `GRAPHIC_ENGINE_MODE=author` (l'écriture libre 2.5) ; `GRAPHIC_CATALOG_FALLBACK=author` la garde
+  comme dernier recours. Les contrôles historiques (`check`, `check:creativity`, `check:relayout`, `check:bpquality`)
+  tournent en mode `author` ; le catalogue a le sien, `check:catalog` (rendu Chromium de chaque gabarit).
+- **Page gardée** : `SectionSpec.catalog = { version, config }` ; une retouche écrite modifie la configuration.
+
+### Ce que la 2.6 change, comparé à la 2.5 (estimations du 10/11/2026)
+
+Mesuré sans appel payant : tailles de prompt (`estimateTokens`) sur un deck de test, temps de rendu côté code (modèle
+simulé), rendu réel des 36 gabarits. **Non mesuré** : jetons et latence réels des modèles, qualité jugée par des
+humains — à confirmer sur de vraies générations.
+
+| | 2.5 (auteur libre) | 2.6 (catalogue) |
+|---|---|---|
+| Entrée par page | ≈ 1 600 jetons (auteur) + directeur de page, plan de grille, zones aux crans High/Ultra | ≈ 300 (Medium), 560 (High), 870 (Ultra) ; 0 au cran Low |
+| Sortie par page | ≈ 3 000 à 6 000 jetons de HTML (+ raisonnement en High/Ultra), plus les réparations | ≈ 60 à 250 jetons de JSON |
+| Appels par page | 1 (Low/Medium) à 4–6 (High/Ultra : directeur, grille, zones, retouche, juge) | 0 (Low), 1 (Medium à Ultra) + 1 habillage par document (High/Ultra) |
+| Temps par page | dominé par la génération : ≈ 30 à 90 s par page (sortie longue) | rendu code ≈ 2 s (Low/Medium), 4 s (High), 8 s (Ultra) + un appel court (≈ 1 à 4 s) |
+| Échecs de rendu | corrections bornées, puis page en erreur ou livrée signalée | candidat suivant, squelette intégré, puis réduction forcée : jamais perdue faute de place |
+| Reproductibilité | une même graine ne refait pas la même page | Low : identique pour une même graine ; retouche = configuration |
+| Variété | élevée en théorie, mais « mêmes layouts » constatés le 29/10 | combinatoire mesurée : 18 combinaisons différentes sur 24 marques pour une même page ; plafonnée par la taille du catalogue |
+| Plafond créatif | celui du meilleur modèle | celui du catalogue : il monte avec chaque contribution |
+
 ## 2.5 — le travail divisé en petites tâches, sans relecteur (3 novembre 2026)
 
 - **Le relecteur visuel est retiré** (rôle `graphic.reviewer`, port `reviewImage`) : aucun modèle ne relit une
