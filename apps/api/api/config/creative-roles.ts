@@ -22,6 +22,7 @@ import { ladderFallbacks, ladderModel, MODEL_LADDERS, ModelLadder, ROLE_LADDERS,
 import logger from './logger';
 
 export type RoleCapability = 'code' | 'vision' | 'json' | 'long-context';
+export type ReasoningEffort = 'low' | 'medium' | 'high';
 export type CreativeProfile = 'agents' | 'critic' | 'coder';
 
 export interface CreativeRole {
@@ -33,12 +34,16 @@ export interface CreativeRole {
   /** Ce que fait le rôle (documentation, journaux). */
   mission: string;
   /**
-   * Le cran du MODÈLE imposé, quel que soit le cran choisi (plan qualité créative : l'idée se décide au modèle le plus
-   * fort, l'exécution reste au cran du client). Le plafond de sortie suit toujours le cran demandé.
+   * Le modèle de ce rôle monte d'UN cran (Low → Medium, Medium → High, High reste High, Ultra reste Ultra) : l'idée se
+   * décide un cran au-dessus de l'exécution, sans payer le modèle le plus cher à tous les crans (10/11/2026).
+   * Le plafond de sortie suit toujours le cran demandé.
    */
-  pinLevel?: CreativityLevel;
-  /** Raisonnement demandé (le plafond de sortie doit le permettre : `MIN_TOKENS_FOR_THINKING`). */
-  thinking?: boolean;
+  boost?: boolean;
+  /**
+   * Raisonnement demandé, et son EFFORT, par cran (le raisonnement est facturé en jetons de sortie) : un cran absent
+   * ne raisonne pas. Le plafond de sortie doit le permettre (`MIN_TOKENS_FOR_THINKING`).
+   */
+  thinking?: Partial<Record<CreativityLevel, ReasoningEffort>>;
   /** Température propre au rôle (écrêtée à 0,65 quand le raisonnement est actif, par `reconcileThinkingBudget`). */
   temperature?: number;
 }
@@ -56,9 +61,9 @@ export const CREATIVE_ROLES: Record<string, CreativeRole> = {
   // crans ; le cran choisit le MODÈLE. Le directeur écrit la bible du document, l'auteur écrit chaque page en Tailwind.
   // Plan qualité créative (04/11/2026) : le directeur décide au modèle le plus fort de son échelle, en raisonnant
   // (plafond porté à 9 000 : le raisonnement en est décompté, `MIN_TOKENS_FOR_THINKING` = 8 000).
-  'graphic.director': { profile: 'agents', needs: ['long-context'], maxOutputTokens: ALL(9000), mission: 'concevoir la direction d’un document : la bible visuelle et l’idée de chaque page', pinLevel: 'ultra', thinking: true, temperature: 0.5 },
+  'graphic.director': { profile: 'agents', needs: ['long-context'], maxOutputTokens: { low: 3500, medium: 4000, high: 9000, ultra: 9000 }, mission: 'concevoir la direction d’un document : la bible visuelle et l’idée de chaque page', boost: true, thinking: { high: 'low', ultra: 'medium' }, temperature: 0.5 },
   // L'exploration : quatre pistes d'idée qui divergent sur des axes donnés, avant que le directeur n'en développe une.
-  'graphic.explore': { profile: 'agents', needs: ['long-context'], maxOutputTokens: ALL(9000), mission: 'proposer quatre pistes d’idée distinctes pour un document', pinLevel: 'ultra', thinking: true, temperature: 0.65 },
+  'graphic.explore': { profile: 'agents', needs: ['long-context'], maxOutputTokens: ALL(9000), mission: 'proposer quatre pistes d’idée distinctes pour un document', boost: true, thinking: { high: 'low', ultra: 'medium' }, temperature: 0.65 },
   // Le juge visuel : cinq questions fermées sur la capture d'une page (départage des variantes, défauts dits à l'auteur).
   'graphic.judge': { profile: 'agents', needs: ['vision'], maxOutputTokens: ALL(120), mission: 'répondre par oui ou non à cinq questions sur la capture d’une page', temperature: 0 },
   // Le travail divisé : avant l'auteur, une petite tâche par page — le point focal, les zones, les groupes.
@@ -67,15 +72,15 @@ export const CREATIVE_ROLES: Record<string, CreativeRole> = {
   'graphic.layout': { profile: 'agents', needs: ['json'], maxOutputTokens: ALL(1200), mission: 'inventer la grille et les zones d’une page en suivant la direction artistique' },
   'graphic.zone': { profile: 'coder', needs: ['code'], maxOutputTokens: ALL(5000), mission: 'écrire le HTML Tailwind d’une seule zone de page' },
   // La couverture, signature du document : le modèle Ultra quel que soit le cran choisi, un grand budget d'écriture.
-  'graphic.cover': { profile: 'coder', needs: ['code', 'long-context'], maxOutputTokens: ALL(24000), mission: 'composer librement la couverture d’un document, au meilleur modèle' },
+  'graphic.cover': { profile: 'coder', needs: ['code', 'long-context'], maxOutputTokens: { low: 12000, medium: 14000, high: 24000, ultra: 24000 }, mission: 'composer librement la couverture d’un document, au meilleur modèle' },
   'graphic.author': { profile: 'coder', needs: ['code', 'long-context'], maxOutputTokens: ALL(12000), mission: 'écrire (et corriger) le HTML Tailwind de chaque page' },
   'graphic.pattern-designer': { profile: 'coder', needs: ['code'], maxOutputTokens: ALL(3000), mission: 'dessiner la tuile de motif propre à la marque (SVG)' },
   'graphic.asset-planner': { profile: 'agents', needs: ['json'], maxOutputTokens: UP_TO(800, 1000), mission: 'déterminer les ressources visuelles nécessaires' },
   'video.intent-classifier': { profile: 'agents', needs: ['json'], maxOutputTokens: UP_TO(300, 300, 300), mission: 'comprendre le besoin vidéo et les médias disponibles' },
   // Le film Motion Canvas : mêmes étapes à tous les crans ; le cran choisit le MODÈLE (échelles ci-dessus).
   // Plan qualité créative (04/11/2026) : le concept au modèle le plus fort de son échelle, en raisonnant.
-  'video.concept': { profile: 'coder', needs: ['long-context'], maxOutputTokens: ALL(12000), mission: 'inventer le film : concept, bible visuelle, idée de chaque scène', pinLevel: 'ultra', thinking: true, temperature: 0.5 },
-  'video.concept-explore': { profile: 'agents', needs: ['long-context'], maxOutputTokens: ALL(9000), mission: 'proposer quatre pistes de film distinctes avant le concept', pinLevel: 'ultra', thinking: true, temperature: 0.65 },
+  'video.concept': { profile: 'coder', needs: ['long-context'], maxOutputTokens: { low: 5000, medium: 6000, high: 12000, ultra: 12000 }, mission: 'inventer le film : concept, bible visuelle, idée de chaque scène', boost: true, thinking: { high: 'low', ultra: 'medium' }, temperature: 0.5 },
+  'video.concept-explore': { profile: 'agents', needs: ['long-context'], maxOutputTokens: ALL(9000), mission: 'proposer quatre pistes de film distinctes avant le concept', boost: true, thinking: { high: 'low', ultra: 'medium' }, temperature: 0.65 },
   // Le rendu HyperFrames : chaque scène écrite en HTML Tailwind animé (CSS, WAAPI, Anime.js — jamais GSAP).
   'video.html-author': { profile: 'coder', needs: ['code'], maxOutputTokens: ALL(12000), mission: 'écrire une scène de film en HTML Tailwind animé pour HyperFrames' },
   // GLM-5.3-Flash (High, Ultra) raisonne et son raisonnement est décompté du plafond : marge large.
@@ -112,7 +117,7 @@ export function roleConfig(name: string, profile: CreativeProfile, requested?: C
   const declared = CREATIVE_ROLES[role];
   // `IDEM_QUALITY_PIN=0` rend aux rôles leur réglage d'avant le plan qualité créative (modèle au cran du client, sans
   // raisonnement ni température propre) : la ligne de base se mesure ainsi sur l'ancien comportement.
-  const def = declared && process.env.IDEM_QUALITY_PIN === '0' ? { ...declared, pinLevel: undefined, thinking: undefined, temperature: undefined } : declared;
+  const def = declared && process.env.IDEM_QUALITY_PIN === '0' ? { ...declared, boost: undefined, thinking: undefined, temperature: undefined } : declared;
   const base: FeatureAIConfig = AI_CONFIG.creative[def?.profile ?? profile];
   const key = envKey(role);
   // Priorité : modèle du rôle à CE cran › modèle du rôle (tous crans) › échelle du rôle au cran.
@@ -121,14 +126,16 @@ export function roleConfig(name: string, profile: CreativeProfile, requested?: C
   const cap = def && level ? def.maxOutputTokens[level] : 0;
   // Le raisonnement et la température du rôle (plan qualité créative) : posés ici, dans les deux dialectes, pour que
   // `reconcileThinkingBudget` les voie (il coupe le raisonnement si le plafond est trop court, écrête la température).
+  const effort = def?.thinking && level ? def.thinking[level] : undefined;
   const llmOptions = {
     ...base.llmOptions,
     ...(cap ? { maxOutputTokens: cap } : {}),
     ...(def?.temperature !== undefined ? { temperature: def.temperature } : {}),
-    ...(def?.thinking ? { thinkingBudget: undefined, extraBody: { ...base.llmOptions?.extraBody, thinking: { type: 'enabled' } } } : {}),
+    ...(effort ? { thinkingBudget: undefined, extraBody: { ...base.llmOptions?.extraBody, thinking: { type: 'enabled' }, reasoning_effort: effort } } : {}),
   };
-  // Le cran du MODÈLE : imposé par le rôle (l'idée au modèle le plus fort), sinon celui du client.
-  const modelLevel: CreativityLevel | undefined = def?.pinLevel ?? level;
+  // Le cran du MODÈLE : un cran au-dessus pour les rôles d'idée (`boost`), sinon celui du client.
+  const BOOSTED: Record<CreativityLevel, CreativityLevel> = { low: 'medium', medium: 'high', high: 'high', ultra: 'ultra' };
+  const modelLevel: CreativityLevel | undefined = def?.boost ? BOOSTED[level ?? 'medium'] : level;
 
   if (endpoint === 'selfhosted') {
     const visionOk = !def?.needs.includes('vision') || providerSupports(LLMProvider.SELFHOSTED, 'vision');

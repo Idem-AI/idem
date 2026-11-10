@@ -87,9 +87,13 @@ export interface ProviderDefinition {
  * consommer le budget de sortie.
  */
 export function translateReasoning<T extends Record<string, any>>(body: T): T {
-  if (!body.thinking) return body;
-  const { thinking, ...rest } = body;
-  return { ...rest, reasoning: { enabled: thinking?.type === 'enabled' } } as unknown as T;
+  // `reasoning_effort` (low | medium | high) : l'effort de raisonnement, facturé en jetons de sortie — sans lui, les
+  // modèles qui raisonnent partent sur « medium » même pour une petite décision.
+  const { reasoning_effort: effort, ...clean } = body as Record<string, any>;
+  if (!clean.thinking) return clean as T;
+  const { thinking, ...rest } = clean;
+  const enabled = thinking?.type === 'enabled';
+  return { ...rest, reasoning: { enabled, ...(enabled && effort ? { effort } : {}) } } as unknown as T;
 }
 
 /**

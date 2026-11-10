@@ -134,7 +134,9 @@ export async function runConcept(ctx: FilmCallContext, brief: FilmBrief): Promis
   // L'exploration : seulement pour un film à inventer (ni scénario du client, ni vidéo modèle à reproduire).
   const scripted = !!brief.spec && brief.spec.mode === 'script' && brief.spec.scenes.length > 0;
   let explore: { run: ModelRun; tracks: number; chosen?: FilmTrack; novelty?: number } | undefined;
-  if (process.env.IDEM_QUALITY_EXPLORE !== '0' && !scripted && !brief.reference) {
+  // Économie (10/11/2026) : quatre pistes écrites par un agent au cran Ultra seulement ; en dessous, l'axe de départ
+  // tiré par le code et la mémoire des idées suffisent à varier les films.
+  if (process.env.IDEM_QUALITY_EXPLORE !== '0' && ctx.level === 'ultra' && !scripted && !brief.reference) {
     const p = buildExplorePrompt(brief);
     const run = await callFilmModel(ctx, 'video.concept-explore', p.system, p.user, (raw) => parseTracks(raw).length >= 2);
     const tracks = parseTracks(run.raw);

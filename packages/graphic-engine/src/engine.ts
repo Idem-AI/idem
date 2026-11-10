@@ -30,6 +30,7 @@ import { GenerationTrace, TraceRecorder } from './observability/traces';
 import { ENGINE_VERSION, COMPONENT_LIBRARY_VERSION } from './version';
 import { authorSystem, authorUser, DocumentContext, DocumentPlan, explorePrompt, IdeaTrack, languagePrompt, pageDirectorPrompt, parseLanguage, parsePageDirection, parsePlan, parseTracks, planPrompt, PlannedPage, ReferenceComposition, refineUser, RepairStrategy, repairUser, reviseUser, toolLines } from './author/prompts';
 import { callModel, levelUp } from './author/model';
+import { effortFor } from './foundation/effort';
 import { assembleLayout, layoutPrompt, LayoutNeeds, listingUnits, parseLayout, zoneSize, zoneSystem, zoneUser, PageLayout } from './author/zones';
 import { buildContentMap, ContentMap, fixBrandNameTypos } from './runtime/content-map';
 import { expandPage, extractHtml, sanitizeHtml, stripInventedText, withSize } from './runtime/expand';
@@ -124,8 +125,9 @@ export function variantCount(o: { level: CreativityLevel; cover: boolean; single
   if (!QUALITY.select()) return 1;
   const forced = Number(process.env.IDEM_QUALITY_VARIANTS);
   if (Number.isFinite(forced) && forced >= 1) return Math.min(4, Math.round(forced));
-  if (o.cover) return 2;
-  if (o.single && o.fixed) return o.level === 'high' || o.level === 'ultra' ? 3 : 2;
+  const effort = effortFor(o.level);
+  if (o.cover) return effort.variantsCover;
+  if (o.single && o.fixed) return effort.variantsSingle;
   return 1;
 }
 
@@ -396,7 +398,7 @@ export class GraphicDocument {
       const call = this.agent();
       this.planPromise = (async () => {
         if (!call) return undefined;
-        if (QUALITY.explore() && !this.options.reference) await this.explore(recorder, call, pages, language);
+        if (QUALITY.explore() && effortFor(this.policy.level).explore && !this.options.reference) await this.explore(recorder, call, pages, language);
         const { system, user } = planPrompt(this.context(), pages, language, this.previousIdeas);
         const run = await callModel({ call, recorder, task: 'direct', role: 'graphic.director', profile: 'agents', level: this.policy.level, system, user, timeoutMs: DIRECTOR_TIMEOUT, validate: (raw) => parsePlan(raw, pages.length) !== null });
         this.planValue = run.ok ? parsePlan(run.raw, pages.length) ?? undefined : undefined;
@@ -473,17 +475,18 @@ export class GraphicDocument {
       const blocks = [...map.primitives.values()];
       const tools = toolLines(ctx, { charts: blocks.filter((b) => b.kind === 'chart').map((b) => b.id), tables: blocks.filter((b) => b.kind === 'table').map((b) => b.id), galleries: blocks.filter((b) => b.kind === 'mockupShowcase').map((b) => b.id), icons: [...map.entries.values()].some((e) => e.kind === 'icon') });
       const revising = o.revise?.instruction && o.revise.spec && isAuthoredSpec(o.revise.spec) ? o.revise : undefined;
-      // LA COUVERTURE : la signature du document — toujours le modèle du cran Ultra, quel que soit le cran choisi,
+      // LA COUVERTURE : la signature du document — le modèle du cran au-dessus de celui choisi (Ultra au plus),
       // un grand budget d'écriture (rôle `graphic.cover`) et la liberté entière (pas de directeur de page).
       const cover = section.role === 'cover';
-      const pageLevel: CreativityLevel = cover ? 'ultra' : level;
+      // La couverture monte d'UN cran (jamais au-delà d'Ultra) : au cran Low elle n'est plus écrite par le modèle le plus cher.
+      const pageLevel: CreativityLevel = cover ? levelUp(level) : level;
       const authorRole = cover ? 'graphic.cover' : 'graphic.author';
       // Une retouche écrite du client (« sur un fond de marque ») est une demande explicite : le fond sombre y est admis.
       const quality = { ...qualityFrame(section, map, pageFormat), ...(this.options.allowDark || revising ? { allowDark: true } : {}), ...(this.tokens.brand.logos.onDark ? { logoOnDark: this.tokens.brand.logos.onDark } : {}) };
       // LE TRAVAIL DIVISÉ (`author/zones.ts`) : les pages des documents — charte, deck, business plan — se font en
       // petites tâches (plan de mise en page, une zone par agent, assemblage par le code). La couverture, la retouche
       // écrite, le modèle du client, les visuels et les cartes restent à l'auteur unique.
-      const zonable = !revising && !cover && !this.options.reference && ZONED_DOCUMENTS.has(this.options.documentType);
+      const zonable = !revising && !cover && !this.options.reference && effortFor(level).zones && ZONED_DOCUMENTS.has(this.options.documentType);
       const zoned = zonable ? await this.composeByZones(section, map, recorder, { ctx, language, plan, level: pageLevel, quality, format: pageFormat, index, total }) : null;
       if (zoned) {
         rendered = zoned.page;
@@ -491,7 +494,7 @@ export class GraphicDocument {
       }
       // L'auteur unique : le directeur de page décide la hiérarchie (petite tâche), l'auteur la construit.
       let direction: string | undefined;
-      if (!rendered && !revising && !this.options.reference && !cover) {
+      if (!rendered && !revising && !this.options.reference && !cover && effortFor(level).pageDirector) {
         const pd = pageDirectorPrompt(ctx, { section, listing: map.listing, tools, language, plan });
         const run = await callModel({ call, recorder, task: 'direct', role: 'graphic.page-director', profile: 'agents', level, system: pd.system, user: pd.user, timeoutMs: DIRECTOR_TIMEOUT, validate: (raw) => parsePageDirection(raw) !== null });
         direction = run.ok ? parsePageDirection(run.raw) ?? undefined : undefined;
@@ -656,7 +659,7 @@ export class GraphicDocument {
   private async authorBest(section: SectionContent, map: ContentMap, recorder: TraceRecorder, p: Parameters<GraphicDocument['author']>[3], o: { cover: boolean; total: number; shown?: PageExample[] }): Promise<Rendered> {
     const format = p.format ?? this.format;
     const n = this.options.variants !== undefined ? Math.max(1, Math.min(4, Math.round(this.options.variants))) : variantCount({ level: this.policy.level, cover: o.cover, single: o.total <= 1, fixed: format.kind === 'fixed' });
-    const refine = QUALITY.refine() && this.policy.level !== 'low';
+    const refine = QUALITY.refine() && effortFor(this.policy.level).refine;
     if (n <= 1 && !refine) return this.author(section.id, map, recorder, p);
     const measured = { ...p, measure: true };
     const attempts = await Promise.allSettled(
@@ -703,7 +706,7 @@ export class GraphicDocument {
     const png = page.png;
     const [sal, verdict, vector] = await Promise.all([
       analyzeSaliency(png, page.metrics?.regions ?? {}).catch(() => undefined),
-      engineHost().judgeImage ? judgeImage(engineHost().judgeImage, png) : Promise.resolve(undefined),
+      engineHost().judgeImage && effortFor(this.policy.level).judge ? judgeImage(engineHost().judgeImage, png) : Promise.resolve(undefined),
       imageEmbedding(png).catch(() => null),
     ]);
     const focalShare = sal ? Math.max(sal.shares.title ?? 0, sal.shares.visual ?? 0, sal.shares.logo ?? 0) : undefined;

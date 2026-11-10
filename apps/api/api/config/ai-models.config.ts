@@ -103,7 +103,7 @@ export function ladderFallbacks(ladder: ModelLadder, level: CreativityLevel): st
 export const ROLE_LADDERS: Record<string, ModelLadder> = {
   'graphic.director': 'design',
   // Plan qualité créative (04/11/2026) : l'exploration d'idées (4 pistes) suit l'échelle « design » au cran le plus
-  // haut, quel que soit le cran choisi (`pinLevel` dans `creative-roles.ts`).
+  // haut, quel que soit le cran choisi (`boost` dans `creative-roles.ts`).
   'graphic.explore': 'design',
   'video.concept-explore': 'design',
   // Le juge visuel à questions fermées des pages : le modèle de vision du moteur vidéo.

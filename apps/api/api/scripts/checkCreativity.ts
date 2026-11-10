@@ -164,8 +164,8 @@ const run = (n: number) => !only.length || only.includes(n);
       pageDirectorCalls.length = 0;
       const out = await flyerAt(level);
       check(
-        `${level} : le directeur de page puis un appel de l’auteur, au cran ${level} ; page écrite, affichée, texte exact`,
-        llmTasks(out).join(',') === 'direct,author' && pageDirectorCalls.length === 1 && pageDirectorCalls[0].level === level && engineCalls.every((c) => c.level === level && c.role === 'graphic.author') && out.spec.pattern.id === 'authored' && blockingOf(out).length === 0 && Boolean(out.result.measured) && out.result.html.includes('Le jus de bissap pressé chaque matin à Dakar'),
+        `${level} : ${level === 'low' || level === 'medium' ? 'un seul appel d’auteur (aucun directeur de page : le code porte la hiérarchie)' : 'le directeur de page puis un appel de l’auteur'}, au cran ${level} ; page écrite, affichée, texte exact`,
+        llmTasks(out).join(',') === (level === 'low' || level === 'medium' ? 'author' : 'direct,author') && pageDirectorCalls.length === (level === 'low' || level === 'medium' ? 0 : 1) && (level === 'low' || level === 'medium' || pageDirectorCalls[0].level === level) && engineCalls.every((c) => c.level === level && c.role === 'graphic.author') && out.spec.pattern.id === 'authored' && blockingOf(out).length === 0 && Boolean(out.result.measured) && out.result.html.includes('Le jus de bissap pressé chaque matin à Dakar'),
         `appels ${engineCalls.map((c) => `${c.role}@${c.level}`).join(',')}`
       );
     }
