@@ -1255,6 +1255,15 @@ export class PdfService {
         return;
       }
 
+      // Une section DÉJÀ MISE EN PAGES par le moteur graphique (pages A4 fixes `data-ge-page`) : imprimée page par
+      // page, telle que l'aperçu la montre — ni ramenée au flux ni redécoupée.
+      if (/\sdata-ge-page="/.test(sectionData)) {
+        htmlContent += `
+        <div class="idem-flow" data-section-name="${escapeAttr(section.name || '')}" data-fixed-page="0" data-paged="1">${sectionData}</div>
+      `;
+        return;
+      }
+
       // Multi-page : le conteneur racine généré par l'IA est ramené au flux
       // (hauteur fixe → min-h, pas de clipping) ; le paginateur mesure ce flux
       // puis le redécoupe en pages exactes. Le style interne n'est pas touché.

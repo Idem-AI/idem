@@ -435,7 +435,11 @@ function render(env: Env, scope: Scope, nodes: Node[]): string {
       const found = lookup(scope, n.path.startsWith('.') || n.path.startsWith('$') ? n.path : `.${n.path}`);
       const list = Array.isArray(found?.data) ? (found!.data as unknown[]) : [];
       list.forEach((data, index) => {
-        out += render(env, { ...scope, items: [...scope.items, { key: `${found!.key}.${index}`, data, index, length: list.length }] }, n.body);
+        let item = render(env, { ...scope, items: [...scope.items, { key: `${found!.key}.${index}`, data, index, length: list.length }] }, n.body);
+        // Un élément d'une liste DU BLOC (premier niveau) est marqué : la mise en pages du business plan coupe une liste
+        // entre deux éléments, en retirant du HTML ceux qui partent sur la page suivante.
+        if (!scope.items.length && scope.blockId) item = item.replace(/^(\s*<[a-zA-Z][\w-]*)/, `$1 data-ge-item="${n.path.replace(/^[.$]+/, '')}:${index}"`);
+        out += item;
       });
     }
   }
@@ -601,14 +605,15 @@ export function flowSpacing(html: string): string {
 function flowBlocks(zones: LayoutZone[], assigned: Map<string, PageUnit[]>, cols: number, env: Env, unitHtml: (u: PageUnit, s: Surface | undefined, w: number, alone: boolean) => string, zoneExtra: Record<string, string>): string {
   const ordered = [...zones].sort((a, b) => a.row - b.row || a.col - b.col);
   const blocks: string[] = [];
+  void cols;
   for (const z of ordered) {
     const list = assigned.get(z.id) ?? [];
-    const share = z.span / cols;
-    const wide = share >= 0.55;
     for (const u of list) {
       const header = u.kind === 'header';
-      // La mesure et le retrait de la zone (en part de la page), pour une zone large ; sinon la pleine largeur.
-      const measure = !header && wide && share < 0.999 ? `w-[${(share * 100).toFixed(3)}%]${z.col > 1 ? ` ml-[${(((z.col - 1) / cols) * 100).toFixed(3)}%]` : ''}` : 'w-full';
+      // TOUJOURS la pleine largeur (demande du 10/11/2026) : sur une page A4 qui se lit de haut en bas, une colonne
+      // étroite ou décalée ne laissait que du vide à côté d'elle. Le gabarit garde son caractère par l'en-tête, la
+      // typographie, la couleur et le traitement des blocs.
+      const measure = 'w-full';
       const surface = z.surface && z.surface !== 'none' ? `${SURFACE_BG[z.surface]} p-[${px(env.gap * (z.inset ?? 1))}]` : '';
       // Une image de flux a une hauteur EXPLICITE (un tiers de page au plus) : sa hauteur ne dépend plus du contexte
       // (« h-full », « flex-1 »), elle est la même à la mesure et dans la page construite par le paginateur — sinon
@@ -620,7 +625,7 @@ function flowBlocks(zones: LayoutZone[], assigned: Map<string, PageUnit[]>, cols
       // blocs et réapplique lui-même les écarts ; une marge externe, comptée deux fois quand une section reprend sur la
       // page entamée de la précédente, faisait déborder la page prévue (un trou de 60 % à la page suivante).
       const space = blocks.length ? `pt-[${px(env.gap * (header ? 1.6 : 1.2))}]` : '';
-      blocks.push(`<section data-ge-zone="${z.id}"${keep} class="${[measure, space, surface, media, zoneExtra[z.id] ?? ''].filter(Boolean).join(' ')}">${flowSpacing(unitHtml(u, z.surface, wide ? share : 1, true))}</section>`);
+      blocks.push(`<section data-ge-piece="${u.id}" data-ge-kind="${u.kind}" data-ge-zone="${z.id}"${keep} class="${[measure, space, surface, media, zoneExtra[z.id] ?? ''].filter(Boolean).join(' ')}">${flowSpacing(unitHtml(u, z.surface, 1, true))}</section>`);
     }
   }
   // Un dernier bloc court (citation, hypothèse) ne part jamais seul sur une page : il reste avec celui qui le précède.
@@ -708,7 +713,7 @@ export function assemblePage(ctx: AssemblyContext, choice: AssemblyChoice, units
   const grid = `grid-cols-[repeat(${cols},minmax(0,1fr))]`;
   let html: string;
   if (flow) {
-    html = `${chrome}${flowBlocks(zones, assigned.zones, cols, env, unitHtml, zoneExtra)}`;
+    html = `${chrome ? `<section data-ge-piece="chrome" data-ge-kind="chrome" data-keep-with-next class="w-full">${chrome}</section>` : ''}${flowBlocks(zones, assigned.zones, cols, env, unitHtml, zoneExtra)}`;
   } else {
     const s = ctx.format.safe;
     const padding = `pt-[${px(s.top)}] pr-[${px(s.right)}] pb-[${px(s.bottom)}] pl-[${px(s.left)}]`;

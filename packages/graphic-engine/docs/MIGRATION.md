@@ -29,6 +29,21 @@
   d'une section ; page Chromium fermée même en cas d'échec (`pdf.service.ts`).
 - Contrôle : `npm run check:bpcatalog` (apps/api).
 
+### 2.6.2 — le business plan composé en pages A4 par le moteur (11 novembre 2026)
+
+Retour sur un deuxième PDF AgriLink : colonnes étroites, vides inutiles, rangées désordonnées, aperçu différent du PDF.
+
+- **Le moteur compose les pages** (`renderPaged`, `src/catalog/paginate.ts`) : blocs en pleine largeur, mesurés dans
+  Chromium, posés sur des pages de 297 mm ; listes coupées entre éléments, tableaux entre rangées (en-tête répété),
+  blocs compacts jamais coupés, titre jamais seul en bas, jamais un élément isolé d'un côté d'une coupe.
+- **Fin de section gardée** : dernière page < 25 % → la section est repassée jusqu'à 14 % plus serrée ; une page trop
+  pleine est resserrée par un `zoom` calculé (pleine largeur gardée).
+- **Chiffres trop longs** ramenés à leur case par le code, tous les chiffres d'un bloc à la même échelle (`fitFigures`).
+- **Aperçu = PDF** : la section est une suite de `data-ge-page` ; le PDF les imprime telles quelles (`data-paged`),
+  l'aperçu les montre en feuilles A4, sans CDN Tailwind. `GRAPHIC_BP_PAGED=0` revient au flux.
+- Contrôle : `npm run check:bpcatalog` vérifie aussi l'aperçu (mêmes pages que le PDF, aucune feuille qui déborde).
+- Limite : chaque section commence sur une nouvelle page.
+
 ### Ce que la 2.6 change, comparé à la 2.5 (estimations du 10/11/2026)
 
 Mesuré sans appel payant : tailles de prompt (`estimateTokens`) sur un deck de test, temps de rendu côté code (modèle

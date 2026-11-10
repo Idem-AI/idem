@@ -175,7 +175,10 @@ export function expandPage(template: string, map: ContentMap, tokens: DesignToke
     }
     used.add(`#${id}`);
     if (block.kind === 'chart') return chartHtml(block, tokens, { className, aspect: attrOf(attrs, 'data-aspect'), locale: frame.locale, type: attrOf(attrs, 'data-type'), highlight: attrOf(attrs, 'data-highlight') });
-    if (block.kind === 'table') return tableHtml(block, { className });
+    if (block.kind === 'table') {
+      const range = attrOf(attrs, 'data-rows')?.match(/^(\d+)-(\d+)$/);
+      return tableHtml(block, { className, ...(range ? { rows: [Number(range[1]), Number(range[2])] as [number, number] } : {}) });
+    }
     if (block.kind === 'mockupShowcase') return galleryHtml(block, { className, labels: attrOf(attrs, 'data-labels') !== 'none' });
     if (block.kind === 'patternGrid' && k === 'pattern-tile') return patternTileHtml(block, Number(attrOf(attrs, 'data-index') ?? 0), { className });
     return '';

@@ -1391,6 +1391,27 @@ export const FLOW_PAGINATION_RUNTIME = `
       display: st(root).display
     };
 
+    // Pages déjà composées par le moteur graphique (business plan du catalogue) : chacune devient UNE page, telle
+    // quelle — l'aperçu et le PDF montrent exactement les mêmes pages.
+    if (flow.getAttribute('data-paged') === '1') {
+      var made = [].slice.call(flow.querySelectorAll('[data-ge-page]'));
+      var frag = document.createDocumentFragment();
+      for (var pg = 0; pg < made.length; pg++) {
+        var holder = document.createElement('div');
+        holder.className = 'idem-page';
+        holder.setAttribute('data-idem-kind', 'fixed');
+        holder.setAttribute('data-section-name', name);
+        made[pg].style.width = geo.pageW + 'px';
+        made[pg].style.height = geo.pageH + 'px';
+        made[pg].style.overflow = 'hidden';
+        holder.appendChild(made[pg]);
+        frag.appendChild(holder);
+      }
+      flow.parentNode.replaceChild(frag, flow);
+      report.sections.push({ name: name, pages: made.length, fills: made.map(function () { return 1; }), splits: 0, scaled: 0, repaired: 0, fixed: true });
+      return null;
+    }
+
     // Full-bleed designed page (cover): exactly one page, never re-flowed.
     if (flow.getAttribute('data-fixed-page') === '1') {
       root.style.width = geo.pageW + 'px';

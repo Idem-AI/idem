@@ -42,6 +42,7 @@ import { assemblePage, capPlainText, pageUnits } from './catalog/assemble';
 import { brandTraits, Candidate, CatalogState, comboFingerprint, compatibleComponents, newCatalogState, rankSkins, shortlist } from './catalog/graph';
 import { chooseSystem, chooseUser, parseChoices, parseSkin, skinUser } from './catalog/choose';
 import { CatalogElement, ComponentNode, elementOf, LayoutNode, PageConfig, SkinNode } from './catalog/types';
+import { chunkHtml, fitFigures, flowPieces, measureFlow, packPages, pageTemplate, PieceMetrics } from './catalog/paginate';
 import { catalogEffortFor } from './foundation/effort';
 import { deliverableLine } from './author/prompts';
 import { ALL_AXES, analyzeSaliency, axisLine, decodeVector, encodeVector, imageEmbedding, judgeImage, novelty, PageMetrics, pickAxis, scoreVariant, StartAxis, textEmbedding, VariantScore } from '@idem/design-tools';
@@ -489,7 +490,7 @@ export class GraphicDocument {
     let bible: string | undefined;
     // 1. Une page rejouée : son code, le nouveau contenu, aucun modèle.
     if (o.replay && isAuthoredSpec(o.replay) && !o.revise) {
-      const r = await this.render(o.replay.html, map, section.id, recorder, undefined, pageFormat);
+      const r = o.replay.catalog && this.pagedFlow(pageFormat) ? await this.renderPaged(o.replay.html, map, section.id, recorder, undefined, pageFormat) : await this.render(o.replay.html, map, section.id, recorder, undefined, pageFormat);
       if (r.ok) rendered = r.page;
       else recorder.repair({ code: 'replay_failed', detail: `la page gardée ne s'affiche plus (${r.error.slice(0, 160)}) : réécrite`, by: 'code' });
       bible = o.replay.bible;
@@ -710,6 +711,16 @@ export class GraphicDocument {
         return;
       }
       // Premier rendu sans réduction de la page entière : on mesure d'abord ce que chaque ZONE doit réduire.
+      // Le business plan : le moteur compose lui-même ses pages A4 fixes (aperçu = PDF).
+      if (this.pagedFlow(o.format)) {
+        const paged = await this.renderPaged(asm.html, map, section.id, recorder, o.quality, o.format);
+        if (paged.ok) done.push({ page: paged.page, cand });
+        else {
+          tried.push(`${cand.config.gabarit ?? cand.layout.id}: ${paged.error.slice(0, 120)}`);
+          if (paged.partial && !partial) partial = { page: paged.partial, cand };
+        }
+        return;
+      }
       let r = await this.render(asm.html, map, section.id, recorder, o.quality, o.format, picks > 1, o.format.kind !== 'fixed');
       // LE CODE FAIT TENIR chaque zone : celle qui déborde est réduite à l'échelle exacte ; deux fois trop petite, le
       // candidat est écarté (le suivant prend la page).
@@ -1028,8 +1039,71 @@ export class GraphicDocument {
     throw new GraphicRenderError(sectionId, history[history.length - 1] ?? error, history);
   }
 
+  /** Une page de flux du catalogue (business plan, rapport) : mise en pages A4 par le moteur (`catalog/paginate.ts`). */
+  private pagedFlow(format: FormatDef): boolean {
+    return catalogMode() && format.kind === 'flow' && (this.options.documentType === 'business-plan' || this.options.documentType === 'report') && process.env.GRAPHIC_BP_PAGED !== '0';
+  }
+
+  /**
+   * LA MISE EN PAGES : le flux est mesuré dans Chromium, réparti en pages A4 de hauteur exacte, puis chaque page est
+   * rendue et contrôlée comme une toile fixe. La page gardée reste le flux (rejouable) ; le rendu, ce sont les pages
+   * (`data-ge-page`), que l'aperçu affiche et que le PDF imprime telles quelles.
+   */
+  private async renderPaged(template: string, map: ContentMap, sectionId: string, recorder: TraceRecorder, quality: QualityFrame | undefined, format: FormatDef): Promise<{ ok: true; page: Rendered } | { ok: false; error: string; template: string; partial?: Rendered }> {
+    const t0 = Date.now();
+    const pieces = flowPieces(template);
+    if (!pieces.length) return this.render(template, map, sectionId, recorder, quality, format);
+    // 1. La mesure du flux (même largeur que la page : 210 mm moins les marges d'impression).
+    const clean = sanitizeHtml(template).html;
+    const flow = expandPage(clean, map, this.tokens, format, { sectionId, locale: this.options.locale ?? 'fr', engine: ENGINE_VERSION });
+    const flowCss = await compileTailwind(flow.html, this.tokens);
+    const flowHead = `${this.head ? `${this.head}\n` : ''}<style data-ge-tailwind>${flowCss}</style>`;
+    let metrics: PieceMetrics[];
+    try {
+      metrics = await measureFlow(flow.html, flowHead, format.width, pieces);
+      // Des chiffres trop longs pour leur case : réduits par le code, puis le flux est mesuré de nouveau.
+      const fits = (metrics as { fits?: Array<{ key: string; scale: number }> }).fits ?? [];
+      if (fits.length) {
+        template = fitFigures(template, fits);
+        pieces.splice(0, pieces.length, ...flowPieces(template));
+        const again = expandPage(sanitizeHtml(template).html, map, this.tokens, format, { sectionId, locale: this.options.locale ?? 'fr', engine: ENGINE_VERSION });
+        const againHead = `${this.head ? `${this.head}\n` : ''}<style data-ge-tailwind>${await compileTailwind(again.html, this.tokens)}</style>`;
+        metrics = await measureFlow(again.html, againHead, format.width, pieces);
+        recorder.repair({ code: 'figure_fit', detail: `${fits.length} chiffre(s) ramené(s) à leur case`, by: 'code' });
+      }
+    } catch (error) {
+      log().warn('graphic.paged_measure_failed', { section: sectionId, reason: String((error as Error)?.message ?? error).slice(0, 160) });
+      return this.render(template, map, sectionId, recorder, quality, format);
+    }
+    // 2. Les pages : A4 (297 mm), moins les marges d'impression (12 mm) et une marge de sécurité.
+    const MM = 96 / 25.4;
+    const pageH = (format.mm?.height ?? 297) * MM;
+    const pad = 12 * MM;
+    const capacity = pageH - 2 * pad - 6;
+    const pages = packPages(pieces, metrics, { capacity });
+    const pageFormat: FormatDef = { ...format, kind: 'fixed', height: Math.round(pageH), css: { ...format.css, height: `${format.mm?.height ?? 297}mm` } };
+    // 3. Chaque page, rendue et contrôlée comme une toile fixe (un léger dépassement est ramené à sa taille).
+    const htmls: string[] = [];
+    const issues: Issue[] = [];
+    for (const [i, p] of pages.entries()) {
+      const tpl = pageTemplate(p.chunks.map((c, k) => chunkHtml(pieces[c.piece], metrics[c.piece], c, k === 0)), '12mm', p.used / capacity);
+      const r = await this.render(tpl, map, sectionId, recorder, quality, pageFormat, false, true, true);
+      const page = r.ok ? r.page : r.partial;
+      if (!page) return { ok: false, error: `page ${i + 1} : ${r.ok ? '' : r.error}`, template };
+      if (!r.ok) issues.push({ code: 'page_defect', severity: 'advisory', message: `Page ${i + 1} : ${r.error}`.slice(0, 380) });
+      issues.push(...page.issues.filter((x) => x.code !== 'content_not_shown'));
+      htmls.push(page.html.replace(/^<div /, `<div data-ge-page="${i + 1}" `));
+    }
+    const html = htmls.join('');
+    const css = await compileTailwind(html, this.tokens);
+    const head = `${this.head ? `${this.head}\n` : ''}<style data-ge-tailwind>${css}</style>`;
+    recorder.repair({ code: 'paged', detail: `${pages.length} page(s) A4 composée(s) : ${pages.map((p) => `${Math.round((p.used / (pageH - 2 * pad)) * 100)} %`).join(' / ')}`, by: 'code' });
+    recorder.task({ task: 'render', source: 'code', inputTokens: 0, outputTokens: 0, ms: Date.now() - t0, outcome: 'accepted' });
+    return { ok: true, page: { template, html, head, issues } };
+  }
+
   /** Assainir, remplir, compiler, puis demander à Chromium si la page s'affiche. Rien n'est jugé d'autre. */
-  private async render(raw: string, map: ContentMap, sectionId: string, recorder: TraceRecorder, quality?: QualityFrame, format: FormatDef = this.format, measure = false, autoFit = true): Promise<{ ok: true; page: Rendered; zoneFits?: Record<string, number> } | { ok: false; error: string; template: string; partial?: Rendered; zoneFits?: Record<string, number> }> {
+  private async render(raw: string, map: ContentMap, sectionId: string, recorder: TraceRecorder, quality?: QualityFrame, format: FormatDef = this.format, measure = false, autoFit = true, partial = false): Promise<{ ok: true; page: Rendered; zoneFits?: Record<string, number> } | { ok: false; error: string; template: string; partial?: Rendered; zoneFits?: Record<string, number> }> {
     const t0 = Date.now();
     const clean = sanitizeHtml(raw);
     if (!clean.html.trim()) return { ok: false, error: 'the page is empty after removing what is not allowed (scripts, styles, external resources)', template: clean.html };
@@ -1060,7 +1134,8 @@ export class GraphicDocument {
     // n'a pas à être posé.
     const unused = [...map.entries.keys()].filter((k) => !page.used.has(k) && !(k === 'title' && quality && !quality.roles?.title) && !/\.visual$/.test(k));
     const unusedBlocks = [...map.primitives.keys()].filter((id) => !page.used.has(`#${id}`));
-    if (unused.length || unusedBlocks.length) issues.push({ code: 'content_not_shown', severity: 'advisory', message: `Contenu non placé par l'auteur : ${[...unusedBlocks.map((b) => `#${b}`), ...unused].slice(0, 12).join(', ')}` });
+    // Une PAGE d'une section mise en pages ne montre qu'une partie du contenu : rien n'y manque.
+    if (!partial && (unused.length || unusedBlocks.length)) issues.push({ code: 'content_not_shown', severity: 'advisory', message: `Contenu non placé par l'auteur : ${[...unusedBlocks.map((b) => `#${b}`), ...unused].slice(0, 12).join(', ')}` });
     let css: string;
     try {
       css = await compileTailwind(page.html, this.tokens);
@@ -1080,7 +1155,7 @@ export class GraphicDocument {
     if (autoFit && !check.ok && check.fit && check.fit >= 0.6 && !/\[zoom:/.test(clean.html)) {
       const z = check.fit;
       const wrapped = `<div class="h-[${(100 / z).toFixed(3)}%] w-[${(100 / z).toFixed(3)}%] [zoom:${z}]">${clean.html}</div>`;
-      const fitted = await this.render(wrapped, map, sectionId, recorder, quality, format, measure);
+      const fitted = await this.render(wrapped, map, sectionId, recorder, quality, format, measure, true, partial);
       if (fitted.ok) {
         recorder.repair({ code: 'auto_fit', detail: `contenu réduit à ${Math.round(z * 100)} % pour tenir dans la page`, by: 'code' });
         return fitted;
@@ -1099,7 +1174,7 @@ export class GraphicDocument {
     const missingAssets = quality?.assets?.length ? [...map.entries.values()].filter((e) => e.kind === 'url' && quality.assets!.includes(e.value) && !page.used.has(e.key)).map((e) => `{{${e.key}}}`) : [];
     // Le titre de la page est toujours montré (une page de motifs sans titre ne se lit pas) — sauf sur la couverture.
     const missingTitle = quality && quality.roles?.title && map.entries.has('title') && !page.used.has('title') ? ['{{title}}'] : [];
-    if (quality && (unusedBlocks.length || missingAssets.length || missingTitle.length)) {
+    if (!partial && quality && (unusedBlocks.length || missingAssets.length || missingTitle.length)) {
       const missing = [...missingTitle, ...unusedBlocks.map((id) => `<idem-${map.primitives.get(id)?.kind === 'table' ? 'table' : map.primitives.get(id)?.kind === 'mockupShowcase' ? 'gallery' : 'chart'} data-block="${id}">`), ...missingAssets];
       const error = `content is missing from the page: ${missing.slice(0, 6).join(', ')} — place every chart, table, gallery and brand asset image, readable`;
       return { ok: false, error, template: clean.html, partial: { ...done, issues: [...issues, { code: 'content_missing', severity: 'blocking', message: error.slice(0, 380) }] } };

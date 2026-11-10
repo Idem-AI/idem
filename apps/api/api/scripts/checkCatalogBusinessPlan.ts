@@ -18,6 +18,8 @@ import { BUSINESS_PLAN_PAGINATION } from '../services/BusinessPlan/businessPlanP
 import { PdfService } from '../services/pdf.service';
 import { FlowPaginationReport } from '../services/pdf/flow-pagination.runtime';
 import { measurePdfPages } from '../services/pdf/pdfQualityGate';
+import puppeteer from 'puppeteer';
+import type { buildIframeDocument as BuildIframeDocument } from '../../../../packages/shared-document-editor/src/angular/runtime/editor-iframe';
 
 process.env.IDEM_DESIGN_TOOLS_OFFLINE = '1';
 process.env.IDEM_QUALITY_MEMORY = '0';
@@ -91,6 +93,16 @@ const textOf = (s: SectionContent): string[] => {
 };
 const letters = (t: string) => t.toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
 
+/** Le document de l'aperçu, tel que l'éditeur partagé (paquet ESM) le construit : transpilé ici pour ce contrôle. */
+function loadIframeBuilder(): typeof BuildIframeDocument {
+  const ts = require('typescript') as typeof import('typescript');
+  const file = resolve(__dirname, '../../../../packages/shared-document-editor/src/angular/runtime/editor-iframe.ts');
+  const js = ts.transpileModule(readFileSync(file, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText;
+  const mod = { exports: {} as Record<string, unknown> };
+  new Function('module', 'exports', 'require', js)(mod, mod.exports, require);
+  return mod.exports.buildIframeDocument as typeof BuildIframeDocument;
+}
+
 async function pagesToPng(pdf: Uint8Array, prefix: string): Promise<void> {
   const { createCanvas } = require('canvas');
   const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
@@ -155,7 +167,44 @@ async function main(): Promise<void> {
     ok('aucun bloc repoussé (mesure et page construite identiques)', repaired === 0, `${repaired} bloc(s) repoussé(s)`);
     const thin = r ? r.sections.filter((sec) => !sec.fixed).flatMap((sec) => sec.fills.slice(0, -1).map((f, i) => ({ f, at: `${sec.name} p.${i + 1}` }))).filter((x) => x.f < 0.6) : [];
     ok('aucune page de section remplie à moins de 60 % (sauf la dernière)', !thin.length, thin.map((x) => `${x.at} ${Math.round(x.f * 100)} %`).join(', '));
+    // Les pages composées par le moteur : aucune grande bande blanche, sauf sur la dernière page d'une section.
+    if (r) {
+      let at = 0;
+      const holes: string[] = [];
+      for (const sec of r.sections) {
+        for (let k = 0; k < sec.pages; k++) {
+          const pg = ink[at + k];
+          if (pg && k < sec.pages - 1 && pg.largestBlank > 0.4) holes.push(`${sec.name} p.${k + 1} (${Math.round(pg.largestBlank * 100)} % de blanc)`);
+        }
+        at += sec.pages;
+      }
+      ok('aucune page avec plus de 40 % de blanc (sauf la dernière d’une section)', !holes.length, holes.join(', '));
+    }
     ok('tout le texte du contenu est imprimé', !missing.length, missing.slice(0, 2).join(' | '));
+    // L'APERÇU du tableau de bord (même document que l'iframe de l'éditeur) : les mêmes pages, ni plus ni moins, aucune
+    // ne déborde de sa feuille.
+    if (r) {
+      const html = loadIframeBuilder()(models.map((m) => ({ id: m.name, name: m.name, type: 'html', html: (m as unknown as { data: string }).data })), { dark: false }, { width: '210mm', height: '297mm' }, true, false, 'preview');
+      const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
+      try {
+        const page = await browser.newPage();
+        await page.setViewport({ width: 900, height: 1200 });
+        await page.setContent(html, { waitUntil: 'load', timeout: 60000 });
+        await page.evaluate(() => document.fonts.ready.then(() => undefined));
+        const preview = await page.evaluate(() => [...document.querySelectorAll('.idem-section')].map((sec) => {
+          const sheets = [...sec.querySelectorAll(':scope > [data-ge-page]')] as HTMLElement[];
+          return { paged: sheets.length > 0, pages: sheets.length || 1, overflow: sheets.filter((p) => p.scrollHeight > p.clientHeight + 2).length };
+        }));
+        const pdfPerSection = r.sections.map((sec) => sec.pages);
+        const previewPerSection = preview.map((p) => p.pages);
+        ok('l’aperçu montre les mêmes pages que le PDF', JSON.stringify(previewPerSection) === JSON.stringify(pdfPerSection), `aperçu ${previewPerSection.join('/')} · PDF ${pdfPerSection.join('/')}`);
+        const over = preview.reduce((n, p) => n + p.overflow, 0);
+        ok('aucune page de l’aperçu ne déborde de sa feuille', over === 0, `${over} page(s)`);
+        if (shots) writeFileSync(resolve(shots, `${gid}-preview.png`), await page.screenshot({ fullPage: true, type: 'png' }));
+      } finally {
+        await browser.close();
+      }
+    }
     if (shots) await pagesToPng(bytes, resolve(shots, gid));
   }
   await PdfService.closeBrowser();
