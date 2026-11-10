@@ -579,6 +579,8 @@ export const QUALITY = (f: QualityFrame) => `(function (f) {
     if (!paints(el, cs)) return;
     var r = el.getBoundingClientRect();
     if (Math.min(r.width, r.height) < 6) return;
+    // Un fond qui couvre toute la page est un FOND (teinte de page), pas un cadre.
+    if (r.width >= box.width * 0.9 && r.height >= box.height * 0.9) return;
     if ((el.textContent || '').trim()) return;
     // Un aplat du nuancier EST le contenu (sa couleur est l'une de la palette).
     if (Math.min(r.width, r.height) >= Math.min(box.width, box.height) * 0.1 && swatchRgb.indexOf(((cs.backgroundColor.match(/[\\d.]+/g) || []).slice(0, 3).map(Number)).join(',')) >= 0) return;

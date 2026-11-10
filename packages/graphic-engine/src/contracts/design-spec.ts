@@ -49,6 +49,24 @@ export const SectionSpec = z.strictObject({
   bible: z.string().max(2400).optional(),
   /** Le cran qui l'a écrite. */
   level: CreativityLevel.optional(),
+  /**
+   * La page ASSEMBLÉE depuis le catalogue de gabarits : la version du catalogue et la configuration retenue (ce que
+   * le modèle met à jour) — une retouche écrite modifie cette configuration au lieu de réécrire la page.
+   */
+  catalog: z
+    .strictObject({
+      version: z.string().max(60),
+      config: z.strictObject({
+        gabarit: z.string().max(80).optional(),
+        layout: z.string().max(80),
+        skin: z.string().max(80),
+        components: z.record(z.string().max(96), z.string().max(80)),
+        vars: z.record(z.string().max(32), z.string().max(32)),
+        params: z.record(z.string().max(32), z.number()),
+        mirror: z.boolean(),
+      }),
+    })
+    .optional(),
 });
 export type SectionSpec = z.infer<typeof SectionSpec>;
 

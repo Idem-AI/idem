@@ -81,3 +81,8 @@ export { brandFromIdem, logosFromIdem, patternsFromIdem } from './adapters/idem'
 export type { IdemBrandingLike, IdemLogoSetLike, IdemPaletteLike } from './adapters/idem';
 export { cardFaces, coverContent, sectionFromModel, sectionHtml, systemBlocks, systemSection, visualContent } from './adapters/sections';
 export type { SectionFromModelOptions, SectionFromModelResult, VisualCopy } from './adapters/sections';
+
+// Le catalogue de gabarits en ligne (10/11/2026) : registre, graphe, assemblage.
+export { catalog, refreshCatalog, resetCatalog } from './catalog/registry';
+export type { CatalogOverrides, LoadedCatalog, PageConfig } from './catalog/types';
+export { catalogMode } from './engine';

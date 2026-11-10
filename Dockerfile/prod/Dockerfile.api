@@ -105,6 +105,8 @@ ENV NODE_ENV=${BUILD_ENV:-production}
 # Bibliothèque d'exemples du moteur graphique (phase 5 du plan qualité) : copiée avec /app/packages ci-dessous.
 # `IDEM_QUALITY_EXAMPLES=0` la coupe sans reconstruire l'image.
 ENV IDEM_EXAMPLES_FILE=/app/packages/graphic-engine/library/examples.json
+# L'instantané du catalogue de gabarits : le repli quand le CDN (IDEM_TEMPLATES_URL) ne répond pas.
+ENV IDEM_TEMPLATES_SNAPSHOT=/app/packages/graphic-engine/catalog/snapshot.json
 
 # Copy built application and dependencies
 COPY --from=builder --chown=apiuser:nodejs /app/apps/api/package*.json ./

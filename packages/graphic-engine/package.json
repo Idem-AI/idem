@@ -9,6 +9,7 @@
     "dist",
     "src",
     "contracts",
+    "catalog",
     "docs",
     "README.md"
   ],
@@ -19,6 +20,8 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "check": "ts-node --transpile-only scripts/check.ts",
     "check:fast": "ts-node --transpile-only scripts/check.ts --fast",
+    "check:catalog": "ts-node --transpile-only scripts/check-catalog.ts",
+    "catalog:snapshot": "ts-node --transpile-only scripts/catalog-snapshot.ts",
     "schemas": "ts-node --transpile-only scripts/generate-schemas.ts",
     "prompt-size": "ts-node --transpile-only scripts/prompt-size.ts",
     "corpus:render": "ts-node --transpile-only scripts/render-corpus.ts corpus/rendered",

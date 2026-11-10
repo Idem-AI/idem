@@ -67,6 +67,9 @@ export const CREATIVE_ROLES: Record<string, CreativeRole> = {
   // Le juge visuel : cinq questions fermées sur la capture d'une page (départage des variantes, défauts dits à l'auteur).
   'graphic.judge': { profile: 'agents', needs: ['vision'], maxOutputTokens: ALL(120), mission: 'répondre par oui ou non à cinq questions sur la capture d’une page', temperature: 0 },
   // Le travail divisé : avant l'auteur, une petite tâche par page — le point focal, les zones, les groupes.
+  // Le catalogue de gabarits (10/11/2026) : choisir dans une liste courte documentée et mettre à jour une petite
+  // configuration JSON — aucune ligne de HTML. Sans raisonnement : la tâche est courte et fermée.
+  'graphic.template': { profile: 'agents', needs: ['json'], maxOutputTokens: { low: 300, medium: 300, high: 500, ultra: 700 }, mission: 'choisir un gabarit du catalogue et mettre à jour sa configuration', temperature: 0.4 },
   'graphic.page-director': { profile: 'agents', needs: [], maxOutputTokens: ALL(600), mission: 'décider la hiérarchie d’une page (point focal, zones, groupes) avant que l’auteur ne l’écrive' },
   // Le travail divisé des pages de document : un plan de mise en page (grille et zones, JSON), puis une zone par agent.
   'graphic.layout': { profile: 'agents', needs: ['json'], maxOutputTokens: ALL(1200), mission: 'inventer la grille et les zones d’une page en suivant la direction artistique' },

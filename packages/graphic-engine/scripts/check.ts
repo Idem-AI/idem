@@ -48,6 +48,9 @@ process.env.IDEM_QUALITY_EXPLORE = '0';
 process.env.IDEM_QUALITY_SELECT = '0';
 process.env.IDEM_QUALITY_REFINE = '0';
 process.env.IDEM_DESIGN_TOOLS_OFFLINE = '1';
+// Ces contrôles visent l'auteur libre (retour arrière `GRAPHIC_ENGINE_MODE=author`) ; le catalogue a les siens
+// (`npm run check:catalog`).
+process.env.GRAPHIC_ENGINE_MODE = 'author';
 const fast = process.argv.includes('--fast');
 let failures = 0;
 let passed = 0;

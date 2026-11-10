@@ -96,6 +96,7 @@ import { userRoutes } from './routes/user.routes';
 import githubRoutes from './routes/github.routes';
 import archetypeRoutes from './routes/archetype.routes';
 import cacheRoutes from './routes/cache.routes';
+import catalogRoutes from './routes/catalog.routes';
 import fontRoutes from './routes/font.routes';
 import { PdfService } from './services/pdf.service';
 import RedisConnection from './config/redis.config';
@@ -236,6 +237,8 @@ app.use('/journey', journeyRoutes);
 app.use('/archetypes', archetypeRoutes);
 app.use('/github', githubRoutes);
 app.use('/cache', cacheRoutes);
+// Le catalogue de gabarits en ligne : état, rafraîchissement par la CI du dépôt `idem-templates`, surcharges.
+app.use('/catalog', catalogRoutes);
 app.use('/fonts', fontRoutes);
 app.use('/project', policyRoutes);
 

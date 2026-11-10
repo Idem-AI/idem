@@ -24,5 +24,9 @@ export const fakeAuthorCall: AgentCall = async ({ role, user }) =>
 
 /** Branche l'auteur simulé sur le moteur graphique (à appeler avant toute page). */
 export function useFakeGraphicAuthor(): void {
-  configureGraphicEngine({ agentCall: () => fakeAuthorCall });
+  configureGraphicEngine({
+    agentCall: () => fakeAuthorCall,
+    // Une page que le catalogue n'a pas pu composer est DITE dans les contrôles (les compositions écartées et pourquoi).
+    logger: { info: () => undefined, warn: (message, meta) => (/catalog/.test(message) ? console.warn(`  ! ${message} ${JSON.stringify(meta).slice(0, 1200)}`) : undefined), error: () => undefined },
+  });
 }

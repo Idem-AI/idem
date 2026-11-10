@@ -12,9 +12,47 @@ Il produit, à partir d'un contenu structuré et de la charte d'un projet :
 - les **visuels** : flyers, publications, stories, bannières et avatars des réseaux ;
 - les **graphiques** (SVG dessinés depuis les données, palette de la marque).
 
+## Depuis la 2.6 (10 novembre 2026) : le catalogue de gabarits en ligne
+
+**Chaque page est ASSEMBLÉE depuis un catalogue en ligne** (dépôt `idem-templates`, publié sur un CDN avec un manifeste
+signé), à tous les crans. Le modèle n'écrit plus de HTML : il choisit dans une liste courte de gabarits documentés et met
+à jour leur `config.json` (≈ 100 jetons de sortie au lieu de 3 000 à 6 000). Ajouter ou corriger un gabarit ne
+demande ni rebuild ni redéploiement.
+
+```
+contenu → médias → matière à plat (clés)                                     (inchangé)
+  → le CODE parcourt le graphe (0 jeton)     catalog/graph.ts
+       filtre : élément, toile, rôle, CAPACITÉ (les unités tiennent dans les zones, largeur minimale des composants)
+       score  : direction artistique (humeurs, densité, image), enchaînement (follows/contrasts/avoidAfter),
+                usure dans le document, mémoire des combinaisons déjà livrées, poids d'exploitation, graine
+       jamais le même squelette sur deux pages voisines
+  → habillage du document : le code (Low, Medium) ou le modèle parmi 4 (High, Ultra), une fois par document
+  → le MODÈLE choisit et met à jour la configuration (Medium+ ; Low : le code seul)   catalog/choose.ts
+  → le CODE assemble (catalog/assemble.ts) : unités dans les zones, listes déroulées, couleurs de surface,
+       hiérarchie tenue (un texte courant ≤ 72 % du titre), rien de perdu (textes oubliés posés à la suite)
+  → rendu Chromium ; une zone qui déborde voit ses tailles réduites (jusqu'à trois passes) ; sous la moitié,
+       le candidat suivant ; puis le squelette intégré
+  → page gardée : HTML à clés (rejeu, PPTX, éditeur) + spec.catalog.config (une retouche écrite modifie la config)
+```
+
+| Cran | Qui choisit | Finesse | Liste courte | Rendus mesurés | Mémoire de nouveauté |
+|---|---|---|---|---|---|
+| Low | le code | gabarit entier, réglages tirés par la graine | 6 | 1 (2 : visuel seul) | marque |
+| Medium | modèle `graphic.template` | + réglages discrets | 4 | 1 (2 : visuel seul) | marque |
+| High | modèle | + un composant par unité, habillage choisi | 8 | 2 | toutes les portées |
+| Ultra | modèle | + squelettes de tout le graphe, réglages continus | 12 | 3 | + tous les clients |
+
+Le registre (`catalog/registry.ts`) lit, dans l'ordre : `IDEM_TEMPLATES_DIR` (dépôt local, relu toutes les 10 s),
+`IDEM_TEMPLATES_URL` (CDN, ETag, `IDEM_TEMPLATES_TTL_S`, `POST /catalog/refresh`), le cache disque
+(`IDEM_TEMPLATES_CACHE`), l'instantané `catalog/snapshot.json`, puis le minimum intégré. Un manifeste non signé est
+refusé dès que `IDEM_TEMPLATES_PUBKEY` est posée ; un HTML dont l'empreinte diffère est refusé ; un nœud dangereux ou
+qui écrit des mots est écarté. `GRAPHIC_ENGINE_MODE=author` rétablit l'écriture libre (retour arrière d'exploitation) ;
+`GRAPHIC_CATALOG_FALLBACK=author` la garde comme dernier recours technique. Contrôle : `npm run check:catalog`.
+
+## Avant la 2.6 : l'écriture libre (mode `author`)
+
 Le principe (version 2.0, 14 octobre 2026) : **l'IA conçoit et écrit chaque page en HTML Tailwind, librement ;
-le code garantit l'exactitude et l'affichage ; la jauge de créativité choisit le modèle.** Aucun gabarit,
-aucun catalogue de mises en page, aucune note esthétique, aucune critique, aucune réécriture automatique.
+le code garantit l'exactitude et l'affichage ; la jauge de créativité choisit le modèle.**
 Historique : [docs/MIGRATION.md](docs/MIGRATION.md).
 
 ## Le flux

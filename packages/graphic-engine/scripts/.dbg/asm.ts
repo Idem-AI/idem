@@ -1,0 +1,38 @@
+process.env.IDEM_TEMPLATES_DIR = '/Users/pharaon/Documents/pharaon/IDEM AFRICA/idem-templates';
+import { catalog } from '../../src/catalog/registry';
+import { assemblePage } from '../../src/catalog/assemble';
+import { buildContentMap } from '../../src/runtime/content-map';
+import { buildTokens } from '../../src/design-system/tokens';
+import { FORMATS } from '../../src/design-system/formats';
+import * as F from '../fixtures';
+(async () => {
+  const cat = await catalog();
+  const [layout, skin, comp] = process.argv.slice(2);
+  const section = F.CARD_BACK;
+  const map = buildContentMap(section, 'markers');
+  console.log([...map.entries.keys()]);
+  const out = assemblePage({ section, map, format: FORMATS['card-landscape'], tokens: buildTokens({ brand: F.BRANDS.kora, format: 'card-landscape' }), documentType: 'business-card' }, { layout: cat.nodes.get(layout) as any, skin: cat.nodes.get(skin) as any, components: new Map([['c', cat.nodes.get(comp) as any]]), config: { layout, skin, components: {}, vars: {}, params: {}, mirror: false } });
+  console.log(JSON.stringify(out).slice(0, 1500));
+})();
+import { expandPage, sanitizeHtml, stripInventedText } from '../../src/runtime/expand';
+import { compileTailwind } from '../../src/runtime/tailwind';
+import { checkRender } from '../../src/runtime/check';
+import { closeBrowser } from '../../src/runtime/browser';
+(async () => {
+  await new Promise((r) => setTimeout(r, 1500));
+  const cat = await catalog();
+  const [layout, skin, comp] = process.argv.slice(2);
+  const section = F.CARD_BACK;
+  const map = buildContentMap(section, 'markers');
+  const tokens = buildTokens({ brand: F.BRANDS.kora, format: 'card-landscape' });
+  const out: any = assemblePage({ section, map, format: FORMATS['card-landscape'], tokens, documentType: 'business-card' }, { layout: cat.nodes.get(layout) as any, skin: cat.nodes.get(skin) as any, components: new Map([['c', cat.nodes.get(comp) as any]]), config: { layout, skin, components: {}, vars: {}, params: {}, mirror: false } });
+  const clean = sanitizeHtml(out.html);
+  const words = stripInventedText(clean.html);
+  console.log('REMOVED', words.removed);
+  const page = expandPage(words.html, map, tokens, FORMATS['card-landscape'], { sectionId: 'back', locale: 'fr', engine: 'x' });
+  const css = await compileTailwind(page.html, tokens);
+  const r = await checkRender(page.html, `<style>${css}</style>`, FORMATS['card-landscape'], { shoot: true });
+  console.log('CHECK', r.ok, r.error);
+  require('fs').writeFileSync('/private/tmp/claude-501/-Users-pharaon-Documents-pharaon-IDEM-AFRICA/3fc5af67-5820-406c-b15f-48b5394cd7f0/scratchpad/back.html', page.html);
+  await closeBrowser();
+})();

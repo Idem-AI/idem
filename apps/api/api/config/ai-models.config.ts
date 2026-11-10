@@ -28,7 +28,7 @@ import logger from './logger';
  *   design  concevoir : concept et storyboard vidéo, retouche écrite, direction d'un document
  *   code    écrire du code : scènes Motion Canvas, pages HTML/Tailwind (et les corriger)
  */
-export type ModelLadder = 'design' | 'code' | 'video-design' | 'video-code' | 'video-sample' | 'video-vision' | 'video-teacher';
+export type ModelLadder = 'design' | 'code' | 'catalog' | 'video-design' | 'video-code' | 'video-sample' | 'video-vision' | 'video-teacher';
 
 /**
  * Mise à jour 05/11/2026 (demande de l'utilisateur : « les modèles sont très anciens, pas très
@@ -68,6 +68,12 @@ export const MODEL_LADDERS: Record<ModelLadder, Record<CreativityLevel, string>>
     ultra: 'anthropic/claude-opus-5.5',
   },
   /**
+   * LE CATALOGUE DE GABARITS (10/11/2026) : le modèle ne fait plus que CHOISIR dans une liste courte documentée et
+   * remplir une petite configuration JSON (≈ 100 jetons de sortie) — une tâche à la portée des modèles open-weight
+   * légers. Low ne l'appelle pas (le code choisit seul).
+   */
+  catalog: { low: 'qwen/qwen3.5-35b-a3b', medium: 'qwen/qwen3.6-35b-a3b', high: 'qwen/qwen3.5-122b-a10b', ultra: 'deepseek/deepseek-v4.1-flash' },
+  /**
    * LE MOTEUR VIDÉO : mêmes modèles que le graphique pour la conception et l'écriture des scènes ; l'échantillonneur
    * (6 à 10 variantes par scène) reste sur le modèle le moins cher à bon niveau ; le juge visuel est multimodal.
    *   video-design   concept, storyboard, retouche écrite
@@ -86,6 +92,7 @@ export const MODEL_LADDERS: Record<ModelLadder, Record<CreativityLevel, string>>
 /** Les replis d'une échelle (même cran) : le modèle qui prend le relais si le premier est indisponible. */
 export const LADDER_FALLBACKS: Partial<Record<ModelLadder, Partial<Record<CreativityLevel, string[]>>>> = {
   design: { low: ['deepseek/deepseek-v4.1-flash'], medium: ['deepseek/deepseek-v4.1-flash-1017'], high: ['anthropic/claude-opus-5.5', 'meta/muse-ember'], ultra: ['openai/gpt-6.1-sol', 'meta/muse-ember'] },
+  catalog: { low: ['qwen/qwen3.5-9b'], medium: ['qwen/qwen3.5-35b-a3b'], high: ['qwen/qwen3.5-397b-a17b'], ultra: ['qwen/qwen3.5-397b-a17b'] },
   code: { low: ['deepseek/deepseek-v4.1-flash'], medium: ['deepseek/deepseek-v4.1-flash-1017'], high: ['anthropic/claude-opus-5.5', 'meta/muse-ember'], ultra: ['openai/gpt-6.1-sol', 'meta/muse-ember'] },
   'video-design': { low: ['deepseek/deepseek-v4.1-flash-1017'], medium: ['deepseek/deepseek-v4.1-flash-1017'], high: ['anthropic/claude-opus-5.5', 'meta/muse-ember'], ultra: ['openai/gpt-6.1-sol', 'meta/muse-ember'] },
   'video-code': { low: ['meta/muse-ember'], medium: ['deepseek/deepseek-v4.1-flash-1017'], high: ['anthropic/claude-opus-5.5', 'meta/muse-ember'], ultra: ['openai/gpt-6.1-sol', 'meta/muse-ember'] },
@@ -111,6 +118,8 @@ export const ROLE_LADDERS: Record<string, ModelLadder> = {
   // L'auteur des scènes HTML (HyperFrames) : les modèles de code du moteur graphique, qui écrivent déjà du HTML Tailwind.
   'video.html-author': 'code',
   'graphic.page-director': 'design',
+  // Le catalogue de gabarits : le choix d'un gabarit et de ses réglages (et de l'habillage du document).
+  'graphic.template': 'catalog',
   // Le travail divisé : le plan de mise en page (petite sortie JSON), puis une zone par agent.
   'graphic.layout': 'design',
   'graphic.zone': 'code',

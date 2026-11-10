@@ -8,6 +8,9 @@
  *  4. une consigne qui demande du contenu nouveau retombe sur la réécriture du HTML ;
  *  5. une page réécrite ailleurs retrouve sa feuille Tailwind (nouvelles classes comprises).
  */
+// Ce contrôle vise l'écriture libre par l'auteur (mode `author`, retour arrière d'exploitation) ; le catalogue a le sien
+// (`npm run check:catalog --prefix packages/graphic-engine`).
+process.env.GRAPHIC_ENGINE_MODE = 'author';
 import { closeBrowser, configureGraphicEngine, SectionContent } from '@idem/graphic-engine';
 import { fakeAuthorCall } from './fakeGraphicAuthor';
 import { composeGraphicPage, openGraphicDocument, pageComposition } from '../services/graphic/graphic.service';

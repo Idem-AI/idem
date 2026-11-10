@@ -28,6 +28,9 @@
  *   npx ts-node --transpile-only api/scripts/checkBusinessPlanQuality.ts --pdf a.pdf b.pdf
  */
 
+// Ce contrôle vise l'écriture libre par l'auteur (mode `author`, retour arrière d'exploitation) ; le catalogue a le sien
+// (`npm run check:catalog --prefix packages/graphic-engine`).
+process.env.GRAPHIC_ENGINE_MODE = 'author';
 import { copyFileSync, mkdirSync, readFileSync } from 'fs';
 import { resolve } from 'path';
 

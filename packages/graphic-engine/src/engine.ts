@@ -37,6 +37,13 @@ import { expandPage, extractHtml, sanitizeHtml, stripInventedText, withSize } fr
 import { compileTailwind } from './runtime/tailwind';
 import { checkRender, QualityFrame } from './runtime/check';
 import { examplesLines, isCopy, natureOf, PageExample, pickExamples } from './examples/library';
+import { catalog as loadCatalog, catalogOverrides, ensureHtml } from './catalog/registry';
+import { assemblePage, capPlainText, pageUnits } from './catalog/assemble';
+import { brandTraits, Candidate, CatalogState, comboFingerprint, compatibleComponents, newCatalogState, rankSkins, shortlist } from './catalog/graph';
+import { chooseSystem, chooseUser, parseChoices, parseSkin, skinUser } from './catalog/choose';
+import { CatalogElement, ComponentNode, elementOf, LayoutNode, PageConfig, SkinNode } from './catalog/types';
+import { catalogEffortFor } from './foundation/effort';
+import { deliverableLine } from './author/prompts';
 import { ALL_AXES, analyzeSaliency, axisLine, decodeVector, encodeVector, imageEmbedding, judgeImage, novelty, PageMetrics, pickAxis, scoreVariant, StartAxis, textEmbedding, VariantScore } from '@idem/design-tools';
 
 export interface DocumentOptions {
@@ -94,7 +101,20 @@ interface DocumentMemory {
   ideas: string[];
   axes: string[];
   renders: Float32Array[];
+  /** Les combinaisons du catalogue déjà livrées (portée exigée par le cran) et les habillages de la marque. */
+  templates: string[];
+  skins: string[];
 }
+
+/**
+ * LE MODE DU MOTEUR (10/11/2026) : `catalog` (défaut) — chaque page est ASSEMBLÉE depuis le catalogue de gabarits en
+ * ligne, le cran règle la finesse et l'exploration ; `author` — l'ancienne écriture libre par un modèle (retour arrière
+ * d'exploitation seulement).
+ */
+export const catalogMode = (): boolean => (process.env.GRAPHIC_ENGINE_MODE ?? 'catalog') !== 'author';
+/** La portée mondiale de la mémoire du catalogue (Ultra : jamais une combinaison déjà livrée à un autre client). */
+const GLOBAL_CATALOG_SCOPE: FingerprintScope = { documentType: 'catalog', key: 'catalog:global' };
+const CHOOSE_TIMEOUT = 45_000;
 
 /** La mémoire des idées, par portée (projet, utilisateur, secteur) : 30 jours, les 40 dernières marques. Tous les hôtes s'y tiennent. */
 export const MEMORY_TTL_S = 30 * 24 * 3600;
@@ -200,7 +220,7 @@ export function qualityFrame(section: SectionContent, map: ContentMap, format: F
   // Les rôles des textes : le titre, et les textes simples qui ne doivent jamais lui ressembler. Les spécimens
   // typographiques (leurs échantillons SONT des tailles), la couverture (sa composition est libre) et les faces de carte
   // (sans titre à montrer) en sont exempts.
-  const specimen = section.role === 'cover' || section.role === 'card-face' || section.blocks.some((b) => b.kind === 'typeScale' || b.kind === 'typeSpecimen' || b.kind === 'cover');
+  const specimen = section.role === 'cover' || section.role === 'card-face' || section.role === 'visual' || section.blocks.some((b) => b.kind === 'typeScale' || b.kind === 'typeSpecimen' || b.kind === 'cover' || b.kind === 'copy' || b.kind === 'contact');
   const roles: Record<string, 'title' | 'text'> = {};
   if (!specimen) {
     for (const key of map.entries.keys()) {
@@ -259,6 +279,10 @@ export class GraphicDocument {
   private chosenTrack: IdeaTrack | undefined;
   /** Les empreintes CLIP des pages retenues (gardées pour que les prochains documents fassent autrement). */
   private readonly renderVectors: Float32Array[] = [];
+  /** Le catalogue : l'état du document (habillage, squelettes pris), son habillage, les combinaisons livrées. */
+  private catalogState: CatalogState | undefined;
+  private skinPromise: Promise<string> | null = null;
+  private readonly templateMarks: string[] = [];
 
   private constructor(
     readonly options: DocumentOptions,
@@ -295,9 +319,16 @@ export class GraphicDocument {
     }).filter((v): v is Float32Array => v !== null && v.length === 512);
     const ideas = pick(/^(idea|bible):/).slice(0, 10);
     const axes = pick(/^axis:/).reverse();
+    // La mémoire du catalogue : la marque (Low, Medium), toutes les portées (High), plus tous les clients (Ultra).
+    const level = options.creativity === ('max' as CreativityLevel) ? 'high' : options.creativity ?? 'medium';
+    const novelty = catalogEffortFor(level).novelty;
+    const scoped = novelty === 'brand' ? (lists[0] ?? []) : lists.flat();
+    const global = novelty === 'global' && memoryEnabled() && host.recentFingerprints ? await host.recentFingerprints(GLOBAL_CATALOG_SCOPE).catch(() => [] as string[]) : [];
+    const templates = [...new Set([...scoped, ...global].filter((r) => r.startsWith('tpl:')).map((r) => r.slice(4)))];
+    const skins = [...new Set((lists[0] ?? []).filter((r) => r.startsWith('skin:')).map((r) => r.slice(5)))];
     // Ce que la mémoire écarte est dit, pas caché : un résultat contraint s'explique.
     if (ideas.length || axes.length) log().info('graphic.memory', { documentType: options.documentType, ideas: ideas.length, axes: axes.length, renders: renders.length, scopes: GraphicDocument.scopes(options).map((s) => s.key.slice(0, 60)) });
-    return new GraphicDocument(options, { ideas, axes, renders });
+    return new GraphicDocument(options, { ideas, axes, renders, templates, skins });
   }
 
   /** Les polices de la marque (le `<style>` Tailwind de chaque page est dans son `result.head`). */
@@ -463,6 +494,19 @@ export class GraphicDocument {
       else recorder.repair({ code: 'replay_failed', detail: `la page gardée ne s'affiche plus (${r.error.slice(0, 160)}) : réécrite`, by: 'code' });
       bible = o.replay.bible;
     }
+    /** La configuration du catalogue retenue pour la page (absente : page écrite par l'auteur libre). */
+    let catalogInfo: SectionSpec['catalog'];
+    if (!rendered && catalogMode()) {
+      const quality = { ...qualityFrame(section, map, pageFormat), ...(this.options.allowDark ? { allowDark: true } : {}), ...(this.tokens.brand.logos.onDark ? { logoOnDark: this.tokens.brand.logos.onDark } : {}) };
+      const out = await this.composeFromCatalog(section, map, recorder, { index, total, format: pageFormat, quality, revise: o.revise });
+      if (out) {
+        rendered = out.page;
+        catalogInfo = { version: out.version, config: out.config };
+        bible = out.summary;
+      } else if (process.env.GRAPHIC_CATALOG_FALLBACK !== 'author') {
+        throw new GraphicRenderError(section.id, 'aucune composition du catalogue ne s’affiche');
+      }
+    }
     if (!rendered) {
       const call = this.agent();
       if (!call) throw new GraphicRenderError(section.id, 'aucun modèle n’est branché (port agentCall absent)');
@@ -512,11 +556,12 @@ export class GraphicDocument {
       }
     }
 
-    const spec: SectionSpec = { version: 2, ref: section.id, pattern: { id: 'authored' }, html: rendered.template, ...(bible ? { bible } : {}), level };
+    const patternId = catalogInfo ? 'catalog' : 'authored';
+    const spec: SectionSpec = { version: 2, ref: section.id, pattern: { id: patternId }, html: rendered.template, ...(bible ? { bible: bible.slice(0, 2400) } : {}), level, ...(catalogInfo ? { catalog: catalogInfo } : {}) };
     this.specs.set(section.id, spec);
     this.contents.set(section.id, section);
     const usage = recorder.usage();
-    const trace = recorder.finish({ pattern: 'authored', ...(assets.length ? { assets } : {}) });
+    const trace = recorder.finish({ pattern: patternId, ...(assets.length ? { assets } : {}) });
     engineHost().onTrace?.(trace);
     const result: RenderResult = {
       version: '1.0',
@@ -525,7 +570,7 @@ export class GraphicDocument {
       sectionId: section.id,
       html: rendered.html,
       head: rendered.head,
-      provenance: { engine: ENGINE_VERSION, components: COMPONENT_LIBRARY_VERSION, specHash: stableHash(spec.html, 12), tokensHash: this.tokens.hash, pattern: 'authored', fingerprint: `authored|${level}` },
+      provenance: { engine: ENGINE_VERSION, components: COMPONENT_LIBRARY_VERSION, specHash: stableHash(spec.html, 12), tokensHash: this.tokens.hash, pattern: patternId, fingerprint: catalogInfo ? `catalog|${comboFingerprint(catalogInfo.config)}|${level}` : `authored|${level}` },
       ...(rendered.width ? { measured: { width: rendered.width, height: rendered.height ?? 0 } } : {}),
       repairs: recorder.repairs,
       issues: rendered.issues,
@@ -539,6 +584,203 @@ export class GraphicDocument {
       score,
     }));
     return { spec, result, png: rendered.png, trace, ...(alternatives.length ? { alternatives } : {}), ...(rendered.score !== undefined ? { score: rendered.score } : {}) };
+  }
+
+  /** L'élément du catalogue de ce document (un graphique seul prend le squelette intégré). */
+  private catalogElement(format: FormatDef): CatalogElement {
+    return elementOf(this.options.documentType, format) ?? (format.kind === 'flow' ? 'business-plan' : 'pitch-deck');
+  }
+
+  /** Une ligne sur la marque pour le modèle qui choisit (nom, style, mots, rapport à l'image). */
+  private brandLine(): string {
+    const d = this.options.direction;
+    return [this.options.brand.name, d?.styleId && `style ${d.styleId}`, d?.keywords?.length && `keywords ${d.keywords.slice(0, 8).join(', ')}`, d?.imageryMedium && `imagery ${d.imageryMedium}`, this.options.brief && `project: ${this.options.brief.replace(/\s+/g, ' ').slice(0, 220)}`].filter(Boolean).join(' · ');
+  }
+
+  /**
+   * L'HABILLAGE du document, une fois pour toutes ses pages : choisi par le code (accord avec la direction artistique,
+   * cohérence avec les livrables déjà faits pour la marque, graine), ou par le modèle parmi quatre (High, Ultra, plus
+   * d'une page).
+   */
+  private ensureSkin(element: CatalogElement, recorder: TraceRecorder, cat: Awaited<ReturnType<typeof loadCatalog>>, overrides: Awaited<ReturnType<typeof catalogOverrides>>): Promise<string> {
+    if (!this.skinPromise) {
+      this.skinPromise = (async () => {
+        const traits = brandTraits(this.options.direction, this.options.allowDark === true);
+        const ranked = rankSkins(cat, element, traits, this.catalogState!, `${this.options.brand.name}|${this.options.seed}`, overrides);
+        const call = this.agent();
+        const multi = (this.options.sections?.length ?? 0) >= 2;
+        if (catalogEffortFor(this.policy.level).docSkin === 'model' && multi && ranked.length > 1 && call) {
+          const options = ranked.slice(0, 4);
+          const language = await this.ensureLanguage(recorder);
+          const run = await callModel({ call, recorder, task: 'direct', role: 'graphic.template', profile: 'agents', level: this.policy.level, system: chooseSystem(deliverableLine(this.context())), user: skinUser({ deliverable: '', brandLine: this.brandLine(), language, traits }, options), timeoutMs: CHOOSE_TIMEOUT, validate: (raw) => Boolean(parseSkin(raw, options)) });
+          const picked = run.ok ? parseSkin(run.raw, options) : undefined;
+          if (picked) {
+            recorder.repair({ code: 'catalog_skin', detail: `habillage du document : ${picked.id} (choisi par le modèle parmi ${options.length})`, by: 'agent' });
+            return picked.id;
+          }
+        }
+        recorder.repair({ code: 'catalog_skin', detail: `habillage du document : ${ranked[0].id} (choisi par le code)`, by: 'code' });
+        return ranked[0].id;
+      })();
+    }
+    return this.skinPromise;
+  }
+
+  /**
+   * LA PAGE ASSEMBLÉE DEPUIS LE CATALOGUE. Le code filtre et classe le graphe (0 jeton), le modèle choisit et met à jour
+   * la configuration (Medium et au-delà, une petite réponse JSON), le code assemble, rend et mesure. Une composition qui
+   * ne s'affiche pas cède la place au candidat suivant (sans modèle), puis au squelette intégré. `null` : rien ne s'affiche.
+   */
+  private async composeFromCatalog(
+    section: SectionContent,
+    map: ContentMap,
+    recorder: TraceRecorder,
+    o: { index: number; total: number; format: FormatDef; quality: QualityFrame; revise?: { spec?: SectionSpec; instruction: string } }
+  ): Promise<{ page: Rendered; config: PageConfig; version: string; summary: string } | null> {
+    const level = this.policy.level;
+    const effort = catalogEffortFor(level);
+    const [cat, overrides] = await Promise.all([loadCatalog(), catalogOverrides()]);
+    const element = this.catalogElement(o.format);
+    const traits = brandTraits(this.options.direction, this.options.allowDark === true);
+    if (!this.catalogState) this.catalogState = newCatalogState(this.memory.templates, this.memory.skins);
+    const state = this.catalogState;
+    const skinId = await this.ensureSkin(element, recorder, cat, overrides);
+    // Un habillage retiré du catalogue en cours de document : le minimum intégré prend le relais.
+    const skin = (cat.nodes.get(skinId)?.kind === 'skin' ? cat.nodes.get(skinId) : cat.nodes.get('builtin.plain')) as SkinNode;
+    const units = pageUnits(section);
+    const facts = { element, format: o.format, role: section.role, units, index: o.index, total: o.total };
+    const seed = `${this.options.brand.name}|${this.options.seed}|${section.id}`;
+    const current = o.revise?.spec?.catalog?.config;
+    let candidates = shortlist(cat, facts, { level, skin: skin.id, traits, state, seed, overrides });
+    // Une retouche écrite part de la configuration actuelle (en tête de liste).
+    if (current) {
+      const layout = cat.nodes.get(current.layout);
+      if (layout?.kind === 'layout') candidates = [{ ref: 'A', layout: layout as LayoutNode, config: { ...current, skin: skin.id }, score: 99, fingerprint: comboFingerprint(current) }, ...candidates.filter((c) => c.fingerprint !== comboFingerprint(current))].map((c, i) => ({ ...c, ref: String.fromCharCode(65 + i) }));
+    }
+    const single = o.total <= 1 && o.format.kind === 'fixed';
+    // L'hôte peut imposer le nombre de compositions (1 : personne ne choisira — fichiers de la charte).
+    const wanted = this.options.variants !== undefined ? Math.max(1, Math.min(4, Math.round(this.options.variants))) : Math.max(effort.picks, single ? 2 : 1);
+    const picks = Math.min(candidates.length, wanted);
+    let chosen: Candidate[] = candidates.slice(0, picks);
+    let by: 'code' | 'agent' = 'code';
+    // LE MODÈLE CHOISIT (Medium et au-delà, ou une retouche écrite) : une réponse JSON vérifiée.
+    const call = this.agent();
+    const askModel = call && (effort.chooser === 'model' || o.revise) && (candidates.length > 1 || o.revise);
+    if (askModel) {
+      const disabled = new Set(overrides.disabled ?? []);
+      const componentOptions = new Map<string, ComponentNode[]>();
+      if (effort.assembly === 'zones' || effort.assembly === 'mixed' || o.revise) {
+        for (const u of units) {
+          const comps = compatibleComponents(cat, u, ['header', 'main', 'side', 'media', 'any'], disabled).slice(0, effort.assembly === 'mixed' ? 5 : 3);
+          if (comps.length > 1) componentOptions.set(u.id, comps);
+        }
+      }
+      const language = await this.ensureLanguage(recorder);
+      if (effort.assembly === 'zones' || effort.assembly === 'mixed') await this.ensurePlan(recorder, language);
+      const planLine = this.planFor(section.id, o.index)?.page;
+      const layoutNote = [this.options.layoutNote, !current ? o.revise?.instruction : undefined].filter(Boolean).join(' — ') || undefined;
+      const user = chooseUser(cat, { deliverable: '', brandLine: this.brandLine(), language, traits, ...(planLine ? { plan: planLine } : {}), ...(layoutNote ? { layoutNote } : {}), ...(this.options.reference ? { reference: JSON.stringify(this.options.reference).slice(0, 400) } : {}) }, { section, units, candidates, level, componentOptions, skin, ...(current ? { current, instruction: o.revise?.instruction } : {}) });
+      const parseOpts = { componentOptions, skin, params: effort.assembly === 'mixed' };
+      const run = await callModel({ call: call!, recorder, task: o.revise ? 'revise' : 'direct', role: 'graphic.template', profile: 'agents', level, system: chooseSystem(deliverableLine(this.context(o.format))), user, timeoutMs: CHOOSE_TIMEOUT, validate: (raw) => parseChoices(raw, cat, candidates, parseOpts).length > 0 });
+      const parsed = run.ok ? parseChoices(run.raw, cat, candidates, parseOpts).map((c) => ({ ...c, fingerprint: comboFingerprint(c.config) })) : [];
+      if (parsed.length) {
+        by = 'agent';
+        const seen = new Set(parsed.map((c) => c.fingerprint));
+        chosen = [...parsed, ...candidates.filter((c) => !seen.has(c.fingerprint))].slice(0, Math.max(picks, parsed.length));
+      }
+    }
+    // Le HTML des composants retenus (et des candidats de repli) : téléchargé, vérifié par son empreinte.
+    const queue = [...chosen, ...candidates.filter((c) => !chosen.includes(c))].slice(0, chosen.length + 3);
+    await ensureHtml(cat, queue.flatMap((c) => Object.values(c.config.components)));
+    const ctx = { section, map, format: o.format, tokens: this.tokens, documentType: this.options.documentType };
+    const done: Array<{ page: Rendered; cand: Candidate }> = [];
+    let partial: { page: Rendered; cand: Candidate } | undefined;
+    const tried: string[] = [];
+    /** `force` : le dernier recours — la zone est réduite autant qu'il faut (plancher 0,35) et la page livrée, signalée. */
+    const tryCandidate = async (cand: Candidate, force = false): Promise<void> => {
+      const comps = new Map(Object.entries(cand.config.components).map(([unit, id]) => [unit, cat.nodes.get(id) as ComponentNode | undefined]));
+      const choice = { layout: cand.layout, skin, components: comps, config: cand.config };
+      const assemble = (zoom?: Map<string, number>) => {
+        const a = assemblePage(ctx, choice, units, zoom);
+        return 'error' in a || !o.quality.roles ? a : { ...a, html: capPlainText(a.html, o.format.base, (k) => o.quality.roles?.[k] === 'text') };
+      };
+      let asm = assemble();
+      if ('error' in asm) {
+        tried.push(`${cand.config.gabarit ?? cand.layout.id}: ${asm.error}`);
+        return;
+      }
+      // Premier rendu sans réduction de la page entière : on mesure d'abord ce que chaque ZONE doit réduire.
+      let r = await this.render(asm.html, map, section.id, recorder, o.quality, o.format, picks > 1, o.format.kind !== 'fixed');
+      // LE CODE FAIT TENIR chaque zone : celle qui déborde est réduite à l'échelle exacte ; deux fois trop petite, le
+      // candidat est écarté (le suivant prend la page).
+      const over = o.format.kind === 'fixed' && r.zoneFits ? Object.entries(r.zoneFits).filter(([, k]) => k < 0.995) : [];
+      if (!force && over.some(([, k]) => k < 0.5)) {
+        tried.push(`${cand.config.gabarit ?? cand.layout.id}: zone trop petite (${over.map(([z, k]) => `${z} ${Math.round(k * 100)} %`).join(', ')})`);
+        return;
+      }
+      if (over.length) {
+        // Jusqu'à trois passes : le texte réduit se recompose, la mesure suivante affine l'échelle de chaque zone.
+        const scale = new Map<string, number>(over.map(([z, k]) => [z, force ? Math.max(0.35, k) : k]));
+        for (let pass = 0; pass < 3; pass++) {
+          const zoomed = assemble(scale);
+          if ('error' in zoomed) break;
+          asm = zoomed;
+          r = await this.render(asm.html, map, section.id, recorder, o.quality, o.format, picks > 1, pass === 2);
+          const still = r.zoneFits ? Object.entries(r.zoneFits).filter(([, k]) => k < 0.995) : [];
+          if (!still.length) break;
+          for (const [z, k] of still) scale.set(z, Math.max(force ? 0.35 : 0.45, (scale.get(z) ?? 1) * k));
+        }
+        recorder.repair({ code: 'zone_fit', detail: `zones ramenées à leur taille : ${[...scale.entries()].map(([z, k]) => `${z} ${Math.round(k * 100)} %`).join(', ')}`, by: 'code' });
+        if (!r.ok && o.format.kind === 'fixed') r = await this.render(asm.html, map, section.id, recorder, o.quality, o.format, picks > 1);
+      } else if (!r.ok && o.format.kind === 'fixed') {
+        // Aucune zone ne déborde mais la page dépasse : la réduction de la page entière (plancher 0,6).
+        r = await this.render(asm.html, map, section.id, recorder, o.quality, o.format, picks > 1);
+      }
+      if (r.ok) done.push({ page: r.page, cand });
+      else {
+        tried.push(`${cand.config.gabarit ?? cand.layout.id}: ${r.error.slice(0, 120)}`);
+        if (r.partial && !partial) partial = { page: r.partial, cand };
+      }
+    };
+    for (const cand of queue) {
+      if (done.length >= picks) break;
+      await tryCandidate(cand);
+    }
+    // Le squelette intégré ferme la marche.
+    if (!done.length && !partial) {
+      const builtin = shortlist({ ...cat, nodes: new Map([...cat.nodes].filter(([, n]) => n.id.startsWith('builtin.') || n.kind === 'component')) }, facts, { level: 'low', skin: skin.id, traits, state, seed, overrides });
+      for (const cand of builtin.slice(0, 1)) await tryCandidate(cand);
+    }
+    // LE DERNIER RECOURS : rien ne s'est affiché proprement ni presque — le premier candidat, réduit autant qu'il faut.
+    // Une page n'est jamais perdue faute de place ; elle est livrée et signalée.
+    if (!done.length && !partial && queue.length) await tryCandidate(queue[0], true);
+    if (tried.length) recorder.repair({ code: 'catalog_fallback', detail: `écartés : ${tried.slice(0, 4).join(' ; ')}`.slice(0, 240), by: 'code' });
+    let best = done[0] ?? partial;
+    if (!best) {
+      log().warn('graphic.catalog_failed', { event: 'graphic.catalog_failed', documentType: this.options.documentType, section: section.id, tried: tried.slice(0, 8) });
+      return null;
+    }
+    let alternatives: Array<{ page: Rendered; score: number }> = [];
+    let score: number | undefined;
+    if (done.length > 1) {
+      const scored = await Promise.all(done.map(async (d) => ({ d, ...(await this.evaluate(d.page)) })));
+      // Le choix du modèle garde une légère préséance ; la mesure départage.
+      scored.sort((a, b) => b.score.score + (b.d === done[0] && by === 'agent' ? 0.03 : 0) - (a.score.score + (a.d === done[0] && by === 'agent' ? 0.03 : 0)));
+      best = scored[0].d;
+      score = scored[0].score.score;
+      if (scored[0].vector) this.renderVectors.push(scored[0].vector);
+      alternatives = scored.slice(1).map((x) => ({ page: x.d.page, score: x.score.score }));
+      recorder.repair({ code: 'variant_selected', detail: `${scored.length} compositions du catalogue rendues ; gardée ${scored[0].score.score}`, by: 'code' });
+    }
+    const config = best.cand.config;
+    const fingerprint = comboFingerprint(config);
+    state.byIndex.set(o.index, { layout: config.layout, ...(config.gabarit ? { gabarit: config.gabarit } : {}) });
+    for (const id of [config.layout, config.gabarit, ...Object.values(config.components)]) if (id) state.use.set(id, (state.use.get(id) ?? 0) + 1);
+    state.seen.add(fingerprint);
+    this.templateMarks.push(`tpl:${fingerprint}`);
+    const summary = `catalog ${cat.version} · ${config.gabarit ? `gabarit ${config.gabarit} · ` : ''}layout ${config.layout}${config.mirror ? ' (mirror)' : ''} · skin ${config.skin} · ${Object.entries(config.components).map(([u, c]) => `${u}=${c}`).join(', ')}`;
+    recorder.repair({ code: 'catalog_pick', detail: summary.slice(0, 240), by });
+    return { page: { ...best.page, ...(score !== undefined ? { score } : {}), ...(alternatives.length ? { alternatives } : {}) }, config, version: cat.version, summary };
   }
 
   /**
@@ -787,7 +1029,7 @@ export class GraphicDocument {
   }
 
   /** Assainir, remplir, compiler, puis demander à Chromium si la page s'affiche. Rien n'est jugé d'autre. */
-  private async render(raw: string, map: ContentMap, sectionId: string, recorder: TraceRecorder, quality?: QualityFrame, format: FormatDef = this.format, measure = false): Promise<{ ok: true; page: Rendered; zoneFits?: Record<string, number> } | { ok: false; error: string; template: string; partial?: Rendered; zoneFits?: Record<string, number> }> {
+  private async render(raw: string, map: ContentMap, sectionId: string, recorder: TraceRecorder, quality?: QualityFrame, format: FormatDef = this.format, measure = false, autoFit = true): Promise<{ ok: true; page: Rendered; zoneFits?: Record<string, number> } | { ok: false; error: string; template: string; partial?: Rendered; zoneFits?: Record<string, number> }> {
     const t0 = Date.now();
     const clean = sanitizeHtml(raw);
     if (!clean.html.trim()) return { ok: false, error: 'the page is empty after removing what is not allowed (scripts, styles, external resources)', template: clean.html };
@@ -814,7 +1056,9 @@ export class GraphicDocument {
     const page = expandPage(clean.html, map, this.tokens, format, { sectionId, locale: this.options.locale ?? 'fr', engine: ENGINE_VERSION });
     if (page.unknown.length) issues.push({ code: 'unknown_keys', severity: 'advisory', message: `Clés inconnues ignorées : ${page.unknown.slice(0, 8).join(', ')}` });
     if (page.orphans.length) issues.push({ code: 'unknown_blocks', severity: 'advisory', message: `Primitives sans bloc : ${page.orphans.slice(0, 6).join(', ')}` });
-    const unused = [...map.entries.keys()].filter((k) => !page.used.has(k));
+    // Le titre d'un visuel, d'une face de carte ou d'une couverture est une étiquette (le texte du visuel le porte) : il
+    // n'a pas à être posé.
+    const unused = [...map.entries.keys()].filter((k) => !page.used.has(k) && !(k === 'title' && quality && !quality.roles?.title) && !/\.visual$/.test(k));
     const unusedBlocks = [...map.primitives.keys()].filter((id) => !page.used.has(`#${id}`));
     if (unused.length || unusedBlocks.length) issues.push({ code: 'content_not_shown', severity: 'advisory', message: `Contenu non placé par l'auteur : ${[...unusedBlocks.map((b) => `#${b}`), ...unused].slice(0, 12).join(', ')}` });
     let css: string;
@@ -833,7 +1077,7 @@ export class GraphicDocument {
     if (check.infra) log().warn('graphic.render_unchecked', { event: 'graphic.render_unchecked', section: sectionId, reason: check.error });
     // LE CODE FAIT TENIR : un contenu qui déborde d'une toile fixe est réduit à l'échelle exacte (plancher 0,6), la
     // composition intacte — le modèle n'estime pas des hauteurs, et la page ne repart pas pour si peu.
-    if (!check.ok && check.fit && check.fit >= 0.6 && !/\[zoom:/.test(clean.html)) {
+    if (autoFit && !check.ok && check.fit && check.fit >= 0.6 && !/\[zoom:/.test(clean.html)) {
       const z = check.fit;
       const wrapped = `<div class="h-[${(100 / z).toFixed(3)}%] w-[${(100 / z).toFixed(3)}%] [zoom:${z}]">${clean.html}</div>`;
       const fitted = await this.render(wrapped, map, sectionId, recorder, quality, format, measure);
@@ -923,8 +1167,11 @@ export class GraphicDocument {
     const host = engineHost();
     if (!host.rememberFingerprints || !memoryEnabled()) return;
     const idea = this.planValue?.idea || (this.chosenTrack ? `${this.chosenTrack.title} — ${this.chosenTrack.idea}` : this.options.concept?.trim() || '');
-    const marks = [...(idea ? [`idea:${idea.slice(0, 300)}`] : []), ...(this.axis ? [`axis:${this.axis.id}`] : []), ...this.renderVectors.slice(0, 3).map((v) => `render:${encodeVector(v)}`)];
+    const skin = this.skinPromise ? await this.skinPromise.catch(() => undefined) : undefined;
+    const marks = [...(idea ? [`idea:${idea.slice(0, 300)}`] : []), ...(this.axis ? [`axis:${this.axis.id}`] : []), ...this.renderVectors.slice(0, 3).map((v) => `render:${encodeVector(v)}`), ...this.templateMarks, ...(skin ? [`skin:${skin}`] : [])];
     if (!marks.length) return;
+    // Ultra : les combinaisons livrées vont aussi dans la mémoire de TOUS les clients.
+    if (this.templateMarks.length && catalogEffortFor(this.policy.level).novelty === 'global') await host.rememberFingerprints(GLOBAL_CATALOG_SCOPE, this.templateMarks).catch(() => undefined);
     // L'idée et l'axe vont dans toutes les portées (marque, utilisateur, secteur) ; les empreintes de rendu, dans la
     // portée principale seulement (elles sont lourdes).
     const scopes = GraphicDocument.scopes(this.options);
