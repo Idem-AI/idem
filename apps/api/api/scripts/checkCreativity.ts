@@ -16,6 +16,9 @@
  *  9. Tailwind seul — CSS natif et scripts retirés, feuille compilée avec le thème de la marque.
  *  10. Identité visuelle : logos composés par le code (Low), directeur de création, jury.
  */
+// Ce contrôle vise l'écriture libre par l'auteur (mode `author`, retour arrière d'exploitation) ; le catalogue a le sien
+// (`npm run check:catalog --prefix packages/graphic-engine`).
+process.env.GRAPHIC_ENGINE_MODE = 'author';
 import { CREATIVITY_LEVELS, CREATIVITY_MULTIPLIER, creativityCost, normalizeCreativity, atLeast } from '../models/creativity.model';
 import { CreativeOrchestrator, AgentCall } from '../services/creativity/orchestrator';
 import { createRunBudget } from '../services/agents/run-budget';

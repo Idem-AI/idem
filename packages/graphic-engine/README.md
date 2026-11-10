@@ -14,7 +14,7 @@ Il produit, à partir d'un contenu structuré et de la charte d'un projet :
 
 ## Depuis la 2.6 (10 novembre 2026) : le catalogue de gabarits en ligne
 
-**Chaque page est ASSEMBLÉE depuis un catalogue en ligne** (dépôt `idem-templates`, publié sur un CDN avec un manifeste
+**Chaque page est ASSEMBLÉE depuis un catalogue en ligne** (dépôt `idem-templates`, publié sur MinIO avec un manifeste
 signé), à tous les crans. Le modèle n'écrit plus de HTML : il choisit dans une liste courte de gabarits documentés et met
 à jour leur `config.json` (≈ 100 jetons de sortie au lieu de 3 000 à 6 000). Ajouter ou corriger un gabarit ne
 demande ni rebuild ni redéploiement.
@@ -43,7 +43,8 @@ contenu → médias → matière à plat (clés)                                
 | Ultra | modèle | + squelettes de tout le graphe, réglages continus | 12 | 3 | + tous les clients |
 
 Le registre (`catalog/registry.ts`) lit, dans l'ordre : `IDEM_TEMPLATES_DIR` (dépôt local, relu toutes les 10 s),
-`IDEM_TEMPLATES_URL` (CDN, ETag, `IDEM_TEMPLATES_TTL_S`, `POST /catalog/refresh`), le cache disque
+`IDEM_TEMPLATES_URL` (le seau MinIO, ETag, `IDEM_TEMPLATES_TTL_S`, `POST /catalog/refresh` ; en local
+`http://localhost:9000/idem-templates`, publié par `npm run publish:local` dans `idem-templates`), le cache disque
 (`IDEM_TEMPLATES_CACHE`), l'instantané `catalog/snapshot.json`, puis le minimum intégré. Un manifeste non signé est
 refusé dès que `IDEM_TEMPLATES_PUBKEY` est posée ; un HTML dont l'empreinte diffère est refusé ; un nœud dangereux ou
 qui écrit des mots est écarté. `GRAPHIC_ENGINE_MODE=author` rétablit l'écriture libre (retour arrière d'exploitation) ;

@@ -573,6 +573,12 @@ export interface Assembled {
 
 export function assemblePage(ctx: AssemblyContext, choice: AssemblyChoice, units: PageUnit[] = pageUnits(ctx.section), zoom: Map<string, number> = new Map()): Assembled | { error: string } {
   const { layout, skin, config } = choice;
+  // Une toile sans contenu à poser (avatar, face de marque) : la marque seule, au centre.
+  if (!units.length) {
+    const env0: Env = { ctx, roles: { ...skin.classes } as Record<string, string>, skin, titleScale: 1, gap: pageGeometry(ctx.format).gap };
+    const mark = render(env0, { items: [] }, parse('<div class="flex h-full w-full items-center justify-center p-[12%]"><div class="scale-[1.6]">[[logo-lg]]</div></div>'));
+    return { html: dedupeClasses(mark), zones: {}, generic: [] };
+  }
   const zones = placedZones(layout, config);
   const assigned = assignUnits(layout, units, zones);
   if (assigned.error) return { error: assigned.error };

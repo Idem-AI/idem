@@ -19,7 +19,7 @@ export const BUILTIN_NODES: CatalogNode[] = [
     grid: { columns: 1, rows: 1 },
     zones: [
       { id: 'head', accepts: ['header'], col: 1, span: 1, row: 1, rows: 1, align: 'start', optional: true },
-      { id: 'main', accepts: ['main', 'side', 'media', 'any'], col: 1, span: 1, row: 2, rows: 1, align: 'start' },
+      { id: 'main', accepts: ['main', 'side', 'media', 'any'], col: 1, span: 1, row: 2, rows: 1, align: 'start', optional: true },
     ],
     capacity: { minBlocks: 0, maxBlocks: 40 },
     mirrorable: false,
@@ -35,7 +35,7 @@ export const BUILTIN_NODES: CatalogNode[] = [
     grid: { columns: 12, rows: 6 },
     zones: [
       { id: 'head', accepts: ['header'], col: 1, span: 12, row: 1, rows: 2, align: 'end', optional: true },
-      { id: 'main', accepts: ['main', 'side', 'media', 'any'], col: 1, span: 12, row: 3, rows: 4, align: 'start' },
+      { id: 'main', accepts: ['main', 'side', 'media', 'any'], col: 1, span: 12, row: 3, rows: 4, align: 'start', optional: true },
     ],
     capacity: { minBlocks: 0, maxBlocks: 40 },
     mirrorable: false,
