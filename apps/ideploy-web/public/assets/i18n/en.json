@@ -303,7 +303,27 @@
     "optionsTitle": "Options by the day",
     "compareTitle": "Compared with other hosts",
     "perYear": "/yr",
-    "monthlyApprox": "≈ {{amount}} F a month"
+    "monthlyApprox": "≈ {{amount}} F a month",
+    "tonight": {
+      "online": {
+        "title": "Online, on free Standby",
+        "text": "It wakes up on the first visit. A meter paid by the day only if it must stay on.",
+        "when": "Tonight"
+      },
+      "connect": {
+        "title": "Send your code",
+        "text": "From iCode, your GitHub repository or an archive: iDeploy handles the rest.",
+        "when": "Now"
+      },
+      "note": "No bank card. Paid by mobile money when you want.",
+      "address": {
+        "title": "Your address and SSL, included",
+        "text": "Your site answers right away on yourproject.idem.africa, over https.",
+        "when": "Right after"
+      },
+      "url": "yourproject.idem.africa",
+      "live": "Online"
+    }
   },
   "dashboard": {
     "searchProjects": "Search Projects…",
