@@ -18,6 +18,7 @@ import { idemCodesService, PACK_CODE_VALUE_XAF } from './idem-codes.service';
 import { ownershipService } from './ownership.service';
 import { passService } from './pass.service';
 import { walletService } from './wallet.service';
+import { PromotionError, promotionService } from './promotion.service';
 
 /**
  * L'achat d'une offre depuis le portefeuille : forfaits, packs, Pass Projet iCode, modifications,
@@ -127,7 +128,9 @@ export class OfferService {
     if (owned) return { ok: true, message: 'Ce projet est déjà débloqué.', chargedXaf: 0, balanceXaf: await walletService.balance(userId) };
 
     let charged = 0;
-    const voucher = await creditLedgerService.debit(userId, 'icode_pass', 1, { action: 'icode_project_pass', projectId, note: 'Pass Projet prépayé' });
+    // Pendant une campagne qui rend le Pass gratuit, le Pass prépayé (pack) reste pour plus tard.
+    const promoFree = await promotionService.wouldBeFree(userId, 'icode_project_pass', undefined, ICODE.projectPassXaf);
+    const voucher = promoFree ? { allowed: false } : await creditLedgerService.debit(userId, 'icode_pass', 1, { action: 'icode_project_pass', projectId, note: 'Pass Projet prépayé' });
     if (!voucher.allowed) {
       const spend = await walletService.spend(userId, { priceXaf: ICODE.projectPassXaf, label: 'Pass Projet iCode', action: 'icode_project_pass', projectId });
       if (!spend.allowed) return insufficient(spend);
@@ -205,6 +208,17 @@ export class OfferService {
   /** Utilise un code IDEM (portefeuille ou Pack Lancement). */
   async redeemCode(userId: string, code: string, projectId?: string): Promise<OfferOutcome> {
     const claim = await idemCodesService.claim(userId, code, projectId);
+    // Un seul champ « code » pour l'utilisateur : un code inconnu des codes IDEM est essayé comme
+    // code promo (coupon du panel).
+    if (!claim.ok && claim.reason === 'unknown_code') {
+      try {
+        const coupon = await promotionService.claim(userId, code);
+        await entitlementsService.invalidate(userId);
+        return { ok: true, message: coupon.message, chargedXaf: 0, balanceXaf: await walletService.balance(userId), details: { promotion: coupon.promotion, walletCreditXaf: coupon.walletCreditXaf } };
+      } catch (error) {
+        if (error instanceof PromotionError && error.code !== 'unknown_code') return { ok: false, error: error.code, message: error.message };
+      }
+    }
     if (!claim.ok) {
       const messages: Record<string, string> = {
         unknown_code: 'Ce code est introuvable. Vérifiez-le et réessayez.',

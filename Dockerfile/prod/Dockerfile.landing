@@ -15,6 +15,8 @@ COPY ./packages/shared-styles ./packages/shared-styles
 COPY ./packages/shared-loader ./packages/shared-loader
 COPY ./packages/shared-trusted-by ./packages/shared-trusted-by
 COPY ./packages/shared-seo ./packages/shared-seo
+# Promotions (prix barrés, bandeau de campagne).
+COPY ./packages/shared-promotions ./packages/shared-promotions
 
 # Copier l'application landing
 COPY ./apps/landing ./apps/landing

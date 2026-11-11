@@ -5886,7 +5886,7 @@
       "packsHint": "Applied to the current project: {{project}}.",
       "domain": "Domain name (.africa or .com)",
       "codeTitle": "IDEM code",
-      "codeHint": "An agent code, a gift or a Launch Pack: it tops up your wallet or applies to the current project.",
+      "codeHint": "An agent code, a gift, a Launch Pack or a promo code: it tops up your wallet, applies to the current project or lowers your next purchases.",
       "redeem": "Redeem",
       "statementTitle": "Wallet statement",
       "noStatement": "No transactions yet.",
@@ -5938,7 +5938,9 @@
       "finalTitle": "Final version",
       "signatureTitle": "Signature version",
       "editableUntil": "Free edits until {{date}}",
-      "signature": "Upgrade to Signature — {{price}} F"
+      "signature": "Upgrade to Signature — {{price}} F",
+      "unlockLabel": "Unlock the final version —",
+      "signatureLabel": "Upgrade to Signature —"
     }
   },
   "account": {

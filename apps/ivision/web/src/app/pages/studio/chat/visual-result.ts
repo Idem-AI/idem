@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, ElementRef, OnInit, computed, inject, input, linkedSignal, signal, viewChild } from '@angular/core';
+import { PromotionsStore } from '@idem/shared-promotions/angular';
 import { Router } from '@angular/router';
 import { EditTarget, FontHints, IdemDocumentPreviewComponent } from '@idem/shared-document-editor/angular';
 import { VISUAL_PAGES } from '../visual-edit/visual-adapter';
@@ -146,7 +147,10 @@ const SIZES: Record<string, [number, number]> = {
             @if (exporting()) {
               <idem-loader size="xs" />
             }
-            {{ 'chat.result.exportHd' | translate: { price: state.exportVisualXaf() } }}
+            {{ 'chat.result.exportHd' | translate: { price: exportPrice().final } }}
+            @if (exportPrice().discounted) {
+              <del class="opacity-70"><span class="sr-only">Prix normal : </span>{{ exportPrice().original }} F</del>
+            }
           </button>
         }
       </figcaption>
@@ -306,6 +310,12 @@ export class VisualResult implements OnInit {
   protected readonly downloading = signal(false);
   protected readonly failed = signal(false);
   protected readonly state = inject(StudioState);
+  private readonly promotions = inject(PromotionsStore);
+  /** L'export HD, remisé pendant une promotion (le débit chez IDEM fait le même calcul). */
+  protected readonly exportPrice = computed(() => {
+    const price = this.promotions.price('ivision.export_visual', this.state.exportVisualXaf());
+    return { final: price.finalXaf, original: price.originalXaf, discounted: price.discountXaf > 0 };
+  });
   /** Export HD réglé (ou inclus) : le fichier sort sans « Créé avec iVision ». */
   protected readonly exported = signal(false);
   protected readonly exporting = signal(false);

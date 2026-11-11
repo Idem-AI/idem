@@ -53,6 +53,7 @@ import { EmailLog } from './schemas/emailLog.schema';
 import { billingService } from './services/billing.service';
 import { billingSettingsService } from './services/billing/billing-settings.service';
 import { startBillingScheduler } from './services/billing/billing-scheduler';
+import { promotionService } from './services/billing/promotion.service';
 import { billingRoutes } from './routes/billing.routes';
 import { ideployRepairRoutes } from './routes/ideploy-repair.routes';
 import { appgenMediaRoutes } from './routes/appgenMedia.routes';
@@ -429,6 +430,8 @@ function startServer() {
 
       // Réglages commerciaux (bêta, mode d'application du barème, grâce).
       await billingSettingsService.ensureExists();
+      // Promotions : la bêta gratuite est créée au premier démarrage, puis pilotée depuis le panel.
+      await promotionService.ensureDefaults();
       console.log('MongoDB indexes created successfully');
 
       // Réconciliation des paiements : le filet qui rattrape les callbacks

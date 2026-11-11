@@ -3,6 +3,7 @@ import { CREATIVITY_LEVELS } from '../models/creativity.model';
 import { COMMUNICATION_PRICES, DELIVERABLES, SIGNATURE_PRICE_XAF, isDeliverable } from '../models/offer.model';
 import billingController from '../controllers/billing.controller';
 import offerController from '../controllers/offer.controller';
+import promotionController from '../controllers/promotion.controller';
 import { ownershipService } from '../services/billing/ownership.service';
 import { entitlementsService } from '../services/billing/entitlements.service';
 import { authenticate } from '../services/auth.service';
@@ -325,6 +326,29 @@ router.get('/creativity/:projectId', authenticate, async (req: Request, res: Res
 // PORTEFEUILLE ET OFFRES
 // ============================================
 
+// ============================================
+// PROMOTIONS (campagnes, coupons, prix barrés)
+// ============================================
+
+/**
+ * @openapi
+ * /billing/promotions:
+ *   get:
+ *     tags: [Billing]
+ *     summary: Promotions en cours pour ce visiteur (public ; coupons saisis inclus si connecté)
+ */
+router.get('/promotions', (req: Request, res: Response) => promotionController.publicList(req, res));
+router.get('/promotions/mine', authenticate, (req: Request, res: Response) => promotionController.mine(req as any, res));
+/**
+ * @openapi
+ * /billing/promotions/claim:
+ *   post:
+ *     tags: [Billing]
+ *     summary: Saisit un code promo (coupon du panel)
+ *     security: [{ bearerAuth: [] }]
+ */
+router.post('/promotions/claim', authenticate, checkoutLimit, (req: Request, res: Response) => promotionController.claim(req as any, res));
+
 // Les prix du modèle, publics comme `/pricing` : la landing les affiche sans connexion.
 router.get('/offers', (req: Request, res: Response) => offerController.getOffers(req, res));
 
@@ -547,6 +571,17 @@ router.post('/internal/codes', verifyApiKey, (req: Request, res: Response) =>
 router.get('/internal/codes/agents/:agentId', verifyApiKey, (req: Request, res: Response) =>
   offerController.internalAgentReport(req, res)
 );
+// Promotions : réglées et terminées depuis le panel admin.
+router.get('/internal/promotions', verifyApiKey, (req: Request, res: Response) => promotionController.internalList(req, res));
+router.get('/internal/promotions/quota-preset', verifyApiKey, (req: Request, res: Response) => promotionController.internalQuotaPreset(req, res));
+router.get('/internal/promotions/:id', verifyApiKey, (req: Request, res: Response) => promotionController.internalGet(req, res));
+router.post('/internal/promotions', verifyApiKey, (req: Request, res: Response) => promotionController.internalCreate(req, res));
+router.put('/internal/promotions/:id', verifyApiKey, (req: Request, res: Response) => promotionController.internalUpdate(req, res));
+router.post('/internal/promotions/:id/state', verifyApiKey, (req: Request, res: Response) => promotionController.internalSetState(req, res));
+router.post('/internal/promotions/:id/end', verifyApiKey, (req: Request, res: Response) => promotionController.internalEnd(req, res));
+router.post('/internal/promotions/:id/duplicate', verifyApiKey, (req: Request, res: Response) => promotionController.internalDuplicate(req, res));
+router.delete('/internal/promotions/:id', verifyApiKey, (req: Request, res: Response) => promotionController.internalRemove(req, res));
+
 router.post('/internal/meters/run', verifyApiKey, (_req: Request, res: Response) =>
   offerController.internalRunMeters(_req, res)
 );

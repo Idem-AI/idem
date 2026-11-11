@@ -109,6 +109,8 @@ export default defineConfig(async ({ mode, command }) => {
         '@idem/shared-idomain': path.resolve(__dirname, '../../../../packages/shared-idomain/src'),
         // La boucle IDEM : recommander l'application suivante au bon moment (dashboard, iVision, iDeploy).
         '@idem/shared-journey': path.resolve(__dirname, '../../../../packages/shared-journey/src'),
+        // Promotions (bêta gratuite, soldes, codes promo) : prix barrés, même calcul que l'API.
+        '@idem/shared-promotions': path.resolve(__dirname, '../../../../packages/shared-promotions/src'),
         '@idem/shared-trusted-by': path.resolve(
           __dirname,
           '../../../../packages/shared-trusted-by/src',

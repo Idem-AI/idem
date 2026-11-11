@@ -30,7 +30,7 @@
         <p class="panel-note">{{ tab.note }}</p>
         <dl class="price-list">
           @for (row of tab.rows; track row.label) {
-            <div class="price-row"><dt>{{ row.label }}</dt><dd>{{ row.price }}</dd></div>
+            <div class="price-row"><dt>{{ row.label }}</dt><dd><idem-promo-text [text]="row.price" [item]="row.item ?? null" [xaf]="row.xaf ?? null" /></dd></div>
           }
         </dl>
         <a class="outer-button button-sm panel-cta" [href]="tab.href"><span i18n="@@pricing-page.detail.open">Open</span>&nbsp;{{ tab.label }}</a>
@@ -72,7 +72,7 @@
       @for (item of moreOffers; track item.href) {
         <li class="more-row">
           <span class="more-label">{{ item.label }}</span>
-          <span class="more-price">{{ item.price }}</span>
+          <span class="more-price"><idem-promo-text [text]="item.price" [item]="item.item" [xaf]="item.xaf" /></span>
           <a class="outer-button button-sm" [href]="item.href" i18n="@@pricing-page.more.cta">Choose</a>
         </li>
       }

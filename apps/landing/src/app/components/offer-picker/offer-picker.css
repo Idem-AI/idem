@@ -26,6 +26,12 @@
   text-underline-offset: 4px;
 }
 
+/* Bandeau de la campagne en cours (bêta gratuite…), rendu seulement s'il y en a une. */
+.picker-banner {
+  display: block;
+  margin-bottom: 1.5rem;
+}
+
 /* ── Offres ────────────────────────────────────────────────────────────── */
 .picker-grid {
   display: grid;

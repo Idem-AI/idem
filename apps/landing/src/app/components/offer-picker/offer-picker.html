@@ -4,6 +4,7 @@
   @if (summary()) {
     <p class="picker-lead" i18n="@@offer-picker.lead">Creating is free. You pay to keep the result, by mobile money, from 500 F.</p>
   }
+  <idem-promo-banner class="picker-banner" [dismissible]="false" />
   <div class="picker-grid">
     @for (offer of offers; track offer.id) {
       <article class="offer" [class.offer-recommended]="offer.recommended" [attr.aria-labelledby]="'offer-' + offer.id">
@@ -13,7 +14,7 @@
         <app-offer-illustration [kind]="offer.art" class="offer-art" />
         <p class="offer-need">{{ offer.need }}</p>
         <h3 class="offer-name" [id]="'offer-' + offer.id">{{ offer.name }}</h3>
-        <p class="offer-price"><span class="offer-amount">{{ formatPrice(offer.price) }}&#8239;F</span> <span class="offer-cadence">{{ offer.cadence }}</span></p>
+        <p class="offer-price"><span class="offer-amount"><idem-promo-price [item]="offer.item ?? null"  [xaf]="offer.price" /></span> <span class="offer-cadence">{{ offer.cadence }}</span></p>
         <p class="offer-anchor">{{ offer.anchor }}</p>
         <ul class="offer-list">
           @for (line of offer.bullets; track line) {

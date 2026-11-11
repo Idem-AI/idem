@@ -14,6 +14,8 @@
       "@idem/shared-loader": ["packages/shared-loader/src"],
       "@idem/shared-loader/*": ["packages/shared-loader/src/*"],
       "@idem/shared-seo": ["packages/shared-seo/src"],
+      "@idem/shared-promotions": ["packages/shared-promotions/src"],
+      "@idem/shared-promotions/*": ["packages/shared-promotions/src/*"],
       "@idem/shared-styles": ["packages/shared-styles"],
       "@idem/shared-styles/*": ["packages/shared-styles/*"],
       "@idem/shared-trusted-by": ["packages/shared-trusted-by/src"],

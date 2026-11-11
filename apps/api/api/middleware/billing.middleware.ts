@@ -28,6 +28,7 @@ import { ownershipService } from '../services/billing/ownership.service';
 import { passService } from '../services/billing/pass.service';
 import { usageQuotaService } from '../services/billing/usage-quota.service';
 import { walletService } from '../services/billing/wallet.service';
+import { promotionService } from '../services/billing/promotion.service';
 import type { QuotaReservation } from '../services/billing/usage-counters';
 import { QuotaRefusal } from '../models/usage-quota.model';
 import { setAiUsageContext } from '../utils/ai-usage-context.util';
@@ -605,8 +606,10 @@ export async function chargeForService(
     const quantity = Math.max(1, Math.min(50, Math.floor(resolved.quantity ?? 1)));
     const label = known?.label ?? resolved.note ?? resolved.action;
 
-    // Une image de site se paie d'abord en modifications incluses.
-    if (known?.units === 'appgen') {
+    // Une image de site se paie d'abord en modifications incluses — sauf si une campagne la rend
+    // gratuite : on ne consomme alors pas les modifications de l'utilisateur.
+    const promoFree = known?.units === 'appgen' && (await promotionService.wouldBeFree(userId, resolved.action, context.feature ?? engine, known.priceXaf));
+    if (known?.units === 'appgen' && !promoFree) {
       const units = await creditLedgerService.debit(userId, 'appgen', quantity, { action: resolved.action, projectId: context.projectId, feature: context.feature ?? engine, note: label });
       if (units.allowed) {
         await entitlementsService.invalidate(userId);

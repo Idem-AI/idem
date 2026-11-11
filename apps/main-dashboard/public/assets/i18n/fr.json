@@ -5852,7 +5852,7 @@
       "packsHint": "Appliqués au projet en cours : {{project}}.",
       "domain": "Nom de domaine (.africa ou .com)",
       "codeTitle": "Code IDEM",
-      "codeHint": "Un code d’agent, un cadeau ou un Pack Lancement offert : il crédite votre portefeuille ou s’applique au projet en cours.",
+      "codeHint": "Un code d’agent, un cadeau, un Pack Lancement offert ou un code promo : il crédite votre portefeuille, s’applique au projet en cours ou réduit vos prochains achats.",
       "redeem": "Utiliser",
       "statementTitle": "Relevé du portefeuille",
       "noStatement": "Aucun mouvement pour le moment.",
@@ -5904,7 +5904,9 @@
       "finalTitle": "Version finale",
       "signatureTitle": "Version Signature",
       "editableUntil": "Retouches gratuites jusqu’au {{date}}",
-      "signature": "Passer en Signature — {{price}} F"
+      "signature": "Passer en Signature — {{price}} F",
+      "unlockLabel": "Débloquer la version finale —",
+      "signatureLabel": "Passer en Signature —"
     }
   },
   "account": {

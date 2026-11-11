@@ -1,0 +1,48 @@
+import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
+import { localAmountAfter } from '../engine';
+import { rewriteAmount } from '../format';
+import { PromotionsStore } from './promotions.store';
+
+/**
+ * Une chaîne de prix existante, barrée quand une promotion la réduit, suivie du prix remisé écrit
+ * avec les mêmes mots : « ~~10 F par jour~~ 0 F CFA par jour ».
+ *
+ *   <idem-promo-text [text]="row.price" item="ideploy.meter" [xaf]="10" />
+ *
+ * `xaf` est le prix de référence de l'article (celui que l'API remise) ; le montant écrit dans
+ * `text` (éventuellement en devise locale) est remisé dans la même proportion.
+ */
+@Component({
+  selector: 'idem-promo-text',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { class: 'idem-promo-text' },
+  styles: `
+    :host { display: inline-flex; align-items: baseline; flex-wrap: wrap; justify-content: inherit; gap: 0.4em; }
+    del { font-size: 0.85em; font-weight: 400; color: var(--color-text-tertiary, currentColor); opacity: 0.85; }
+  `,
+  template: `
+    @if (view(); as v) {
+      <del><span class="sr-only">Prix normal : </span>{{ text() }}</del>
+      <span><span class="sr-only">Prix pendant la promotion : </span>{{ v }}</span>
+    } @else {
+      <span>{{ text() }}</span>
+    }
+  `,
+})
+export class PromoTextComponent {
+  private readonly store = inject(PromotionsStore);
+  readonly text = input.required<string>();
+  readonly item = input<string | null>(null);
+  readonly xaf = input<number | null>(null);
+  readonly locale = input('fr-FR');
+
+  protected readonly view = computed(() => {
+    const xaf = this.xaf();
+    if (!this.item() || !xaf) return null;
+    const price = this.store.price(this.item(), xaf);
+    if (price.discountXaf <= 0) return null;
+    const promotion = this.store.promotions().find((entry) => entry.id === price.applied[0]?.id);
+    if (promotion?.display?.strikethrough === false) return null;
+    return rewriteAmount(this.text(), (amount) => localAmountAfter(price, amount), this.locale());
+  });
+}

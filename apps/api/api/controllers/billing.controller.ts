@@ -13,6 +13,7 @@ import { ICODE, topupBonusXaf } from '../models/offer.model';
 import { isActiveBuilder } from '../services/builders/builder-status';
 import { builderTopupBonusXaf } from '../../../../packages/shared-models/src/builders/program';
 import { walletService } from '../services/billing/wallet.service';
+import { promotionService } from '../services/billing/promotion.service';
 import { sendQuotaRefusal } from '../middleware/usage-quota.middleware';
 import { QUOTA_GROUPS, QuotaGroup, quotaGroupOf } from '../models/usage-quota.model';
 import { usageQuotaService } from '../services/billing/usage-quota.service';
@@ -482,6 +483,14 @@ export class BillingController {
 
       if (entitlements.beta.active) {
         res.json({ allowed: true, cost: 0, enforcement, included: true });
+        return;
+      }
+
+      // Une campagne qui rend la modification gratuite (bêta gratuite) : on ne consomme ni les
+      // modifications incluses ni le portefeuille.
+      if (await promotionService.wouldBeFree(userId, `icode_${action}`, 'appgen', priceXaf)) {
+        if (enforcement === 'enforce') await walletService.spend(userId, { priceXaf, label, action: `icode_${action}`, projectId, feature: 'appgen' });
+        res.json({ allowed: true, cost: 0, enforcement, included: true, promotion: true });
         return;
       }
 

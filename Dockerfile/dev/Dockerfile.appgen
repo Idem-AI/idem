@@ -13,6 +13,7 @@ COPY package.json package-lock.json tsconfig.base.json ./
 
 # Copy shared packages
 COPY ./packages/shared-styles ./packages/shared-styles
+COPY ./packages/shared-promotions ./packages/shared-promotions
 
 # Copy appgen monorepo
 COPY ./apps/appgen ./apps/appgen

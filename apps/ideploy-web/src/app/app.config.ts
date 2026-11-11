@@ -7,12 +7,16 @@ import { provideTranslateService } from '@ngx-translate/core';
 import { provideTranslateHttpLoader } from '@ngx-translate/http-loader';
 
 import { routes } from './app.routes';
+import { provideIdemPromotions } from '@idem/shared-promotions/angular';
+import { environment } from '../environments/environment';
 import { authInterceptor } from './shared/interceptors/auth.interceptor';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(routes),
+    // Promotions en cours (bêta gratuite…) : compteurs barrés et bandeau, lus sur l'API IDEM.
+    provideIdemPromotions({ apiUrl: environment.services.api.url }),
     provideHttpClient(withInterceptors([authInterceptor])),
     provideAnimations(),
     providePrimeNG({}),

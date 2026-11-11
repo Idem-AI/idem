@@ -31,6 +31,7 @@
       "@features/*": ["./src/app/features/*"],
       "@layouts/*": ["./src/app/layouts/*"],
       "@idem/shared-tour": ["../../packages/shared-tour/src"],
+      "@idem/shared-promotions": ["../../packages/shared-promotions/src"],
       "@env": ["./src/environments/environment"]
     }
   },

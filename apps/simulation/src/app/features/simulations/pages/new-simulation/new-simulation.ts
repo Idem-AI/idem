@@ -1,4 +1,6 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, signal, untracked } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, inject, signal, untracked } from '@angular/core';
+// Le cœur seul (sans Angular) : cette appli tourne sur une autre version d'Angular que le paquet.
+import { createPromotionsClient, priceWithPromotions, type PromoPrice, type PublicPromotion } from '@idem/shared-promotions';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
@@ -147,6 +149,12 @@ export class NewSimulation {
    * que la sortie de bêta soit un redéploiement, pas une modification de code.
    */
   protected readonly isBeta = environment.isBeta;
+
+  /**
+   * Promotions en cours (bêta gratuite, soldes) : elles seules décident du prix barré. Quand l'équipe
+   * met fin à la campagne dans le panel, le prix normal revient ici dans la minute.
+   */
+  private readonly promotions = signal<PublicPromotion[]>([]);
 
   protected readonly pricing = signal<SimulationPricing | null>(null);
   protected readonly selectedTier = signal<SimulationTier>('pack');
@@ -337,6 +345,9 @@ export class NewSimulation {
   protected readonly draftAtRisk = computed(() => !canStashFile(this.selectedFile()));
 
   constructor() {
+    const stopPromotions = createPromotionsClient({ apiUrl: environment.services.api.url }).subscribe((list) => this.promotions.set(list));
+    inject(DestroyRef).onDestroy(stopPromotions);
+
     // Page publique, hors de la coquille de l'espace de travail : personne
     // n'a résolu la session ni chargé les projets avant d'arriver ici.
     void this.loadProjects();
@@ -781,6 +792,16 @@ export class NewSimulation {
 
   protected planPrice(plan: SimulationPlan): string {
     return `${plan.price.toLocaleString('fr-FR')} ${plan.currency}`;
+  }
+
+  /** Le prix d'un niveau pendant une promotion (même calcul que le débit chez IDEM). */
+  protected planPromo(plan: SimulationPlan): PromoPrice {
+    return priceWithPromotions(this.promotions(), plan.tier === 'report' ? 'isimulate.report' : 'isimulate.run', plan.price);
+  }
+
+  protected planPromoPrice(plan: SimulationPlan): string {
+    const promo = this.planPromo(plan);
+    return `${promo.finalXaf.toLocaleString('fr-FR')} ${plan.currency}`;
   }
 
   protected planListPrice(plan: SimulationPlan): string | null {

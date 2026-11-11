@@ -27,7 +27,9 @@
       "@idem/shared-idomain": ["../../packages/shared-idomain/src"],
       "@idem/shared-idomain/*": ["../../packages/shared-idomain/src/*"],
       "@idem/shared-journey": ["../../packages/shared-journey/src"],
-      "@idem/shared-journey/*": ["../../packages/shared-journey/src/*"]
+      "@idem/shared-journey/*": ["../../packages/shared-journey/src/*"],
+      "@idem/shared-promotions": ["../../packages/shared-promotions/src"],
+      "@idem/shared-promotions/*": ["../../packages/shared-promotions/src/*"]
     }
   },
   "angularCompilerOptions": {
