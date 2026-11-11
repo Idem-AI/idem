@@ -110,7 +110,7 @@ async function main(): Promise<void> {
         const brandKey = BRAND_ORDER[(gi + mi) % BRAND_ORDER.length];
         const brand = BRANDS[brandKey];
         // La DA du gabarit (un flyer signature n'appartient qu'à la sienne) ; sinon celle de la marque de test.
-        const styleId = g.directions?.length === 1 ? g.directions[0] : brand.styleId;
+        const styleId = !g.directions?.length || g.directions.includes(brand.styleId) ? brand.styleId : g.directions[0];
         const darkGround = (layout as { darkGround?: boolean }).darkGround === true || (cat.nodes.get(g.config.skin) as { dark?: boolean } | undefined)?.dark === true;
         const doc = await createDocument({ documentType: 'flyer', format, brand, direction: { styleId }, creativity: 'low', ...(darkGround ? { allowDark: true } : {}), seed: `${g.id}|${message.id}|${format}`, png: true, sections: [{ id: message.id, role: 'visual' }] });
         const name = `${g.id}--${message.id}--${format.replace('flyer-', '')}`;

@@ -211,7 +211,8 @@ async function main(): Promise<void> {
       if (layout.shape.minAspect && fmt.width / fmt.height < layout.shape.minAspect) continue;
       calls.length = 0;
       // Un gabarit d'une seule DA (flyer signature) se rend avec sa DA : c'est elle qui sert son habillage.
-      const styleId = g.directions?.length === 1 ? g.directions[0] : brand.styleId;
+      // Rendu avec une DA que le gabarit sert : la marque de test si elle en est, sinon la première de sa liste.
+      const styleId = !g.directions?.length || g.directions.includes(brand.styleId) ? brand.styleId : g.directions[0];
       const skinDark = (cat.nodes.get(g.config.skin) as { dark?: boolean } | undefined)?.dark === true;
       const doc = await createDocument({ documentType: c.documentType, format: c.format, brand, direction: { styleId }, creativity: 'low', ...(darkGround || skinDark ? { allowDark: true } : {}), seed: `${g.id}|${c.content.id}`, png: Boolean(shots), sections: [{ id: c.content.id, role: c.content.role }] });
       try {
