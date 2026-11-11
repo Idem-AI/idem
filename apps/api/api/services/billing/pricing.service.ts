@@ -1,5 +1,5 @@
 import logger from '../../config/logger';
-import { loadPricingDefaults, pricingConfigPath, pricingSource } from '../../config/pricing.loader';
+import { loadPricingDefaults, pricingConfigPath, pricingSource, publishPricingDefaults } from '../../config/pricing.loader';
 import { BillingProduct } from '../../schemas/billing.schema';
 import { PricingChange, PricingOverride } from '../../schemas/pricingOverride.schema';
 import {
@@ -137,6 +137,7 @@ class PricingService {
    */
   async materialize(): Promise<{ updated: number }> {
     const config = await this.effective();
+    await publishPricingDefaults();
     const products = await BillingProduct.find({}, { code: 1, priceXaf: 1, idemPriceXaf: 1 }).lean();
 
     let updated = 0;

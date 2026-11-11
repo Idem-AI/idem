@@ -28,7 +28,8 @@ import type {
 } from '../../../../../packages/shared-promotions/src/model';
 import { QUOTA_GROUPS, type QuotaGroup, type WindowLimits } from '../../models/usage-quota.model';
 import { creditLedgerService } from './credit-ledger.service';
-import { campaignQuotaPreset } from './promotion-quotas';
+import mongoose from 'mongoose';
+import { campaignQuotaPreset, roundCostUsd, roundCounts } from './promotion-quotas';
 
 /**
  * Les promotions : campagnes (bêta gratuite, soldes), coupons (codes à saisir), bonus de recharge et
@@ -638,6 +639,7 @@ export class PromotionService {
    * s'efface pas, elle se termine).
    */
   async ensureDefaults(): Promise<void> {
+    await this.publishRound();
     try {
       if (await Promotion.exists({ slug: BETA_CAMPAIGN_SLUG })) return;
       const preset = campaignQuotaPreset(5);
@@ -670,6 +672,23 @@ export class PromotionService {
       logger.info('promotions.beta_campaign_created', { event: 'promotions.beta_campaign_created' });
     } catch (error: any) {
       logger.error(`promotions.ensure_defaults_failed: ${error.message}`, { event: 'promotions.ensure_defaults_failed' });
+    }
+  }
+
+  /**
+   * Le « tour complet » (générations par groupe, coût IA plafond) écrit en base, dans
+   * `promotion_presets` : le panel admin calcule les crédits du jour à partir de lui sans appeler
+   * l'API. Recalculé à chaque démarrage, donc toujours aligné sur les enveloppes de coût.
+   */
+  private async publishRound(): Promise<void> {
+    try {
+      await mongoose.connection.collection('promotion_presets').updateOne(
+        { key: 'round' },
+        { $set: { key: 'round', counts: roundCounts(), costUsd: Math.round(roundCostUsd() * 100) / 100, updatedAt: new Date() } },
+        { upsert: true }
+      );
+    } catch (error: any) {
+      logger.warn(`promotions.round_publish_failed: ${error.message}`, { event: 'promotions.round_publish_failed' });
     }
   }
 
