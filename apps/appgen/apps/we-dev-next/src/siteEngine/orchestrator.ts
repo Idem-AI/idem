@@ -59,7 +59,7 @@ import type { DesignOutcome } from './designConfig.js';
 import { inventoryFacts, inventoryOutline, inventoryText, InventorySection, linkMapper, sectionIndex, sourceContent } from './redesign/inventory.js';
 import { sectionCatalog } from './sectionCatalog/registry.js';
 import { CopyResult, CopyTask, writePageCopy } from './sectionCatalog/copy.js';
-import { composeSection, composeShell, seedOf } from './sectionCatalog/compose.js';
+import { composeSection, composeShell, inDirection, seedOf } from './sectionCatalog/compose.js';
 import type { ActionValue } from './sectionCatalog/assemble.js';
 import type { Authored } from './authoring.js';
 
@@ -640,6 +640,8 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
       // refusé). `SITE_SECTION_CATALOG=off` : tout repasse par l'auteur.
       const catalog = (process.env.SITE_SECTION_CATALOG ?? 'on').toLowerCase() === 'off' ? null : await sectionCatalog();
       const useCatalog = !!catalog && catalog.sections.length > 0;
+      // La DA de la charte : le site ne prend que les variantes et les en-têtes de sa DA (ou de ses voisines).
+      const direction = String((projectData.analysisResultModel?.branding as { artDirection?: { styleId?: string } } | undefined)?.artDirection?.styleId ?? '').trim() || undefined;
       const seed = seedOf(`${projectData.id ?? facts.name}:${manifest.pages.map((p) => p.key).join(',')}`);
       const usedVariants = new Map<string, number>();
       const primaryHref = siteDataOf(facts, manifest, language).primaryAction?.href ?? null;
@@ -742,7 +744,7 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
       const headerProps = { current: manifest.pages[0]?.path ?? '/' };
       const shellFrom = (shells: 'headers' | 'footers', path: string, props?: Record<string, unknown>) =>
         useCatalog && catalog![shells].length
-          ? async () => (await composeShell(catalog![shells], review, { path, props }, seed, shells))?.code ?? null
+          ? async () => (await composeShell(inDirection(catalog!, catalog![shells], direction), review, { path, props }, seed, shells))?.code ?? null
           : undefined;
       const header = limit(() =>
         write('src/components/site/SiteHeader.tsx', 'header', fr ? "l'en-tête" : 'the header', headerPrompt(ctx, request), headerProps, shellFrom('headers', 'src/components/site/SiteHeader.tsx', headerProps))
@@ -780,6 +782,7 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
                         used: usedVariants,
                         seed: seed + seedOf(section.id),
                         label: `${page.key}/${section.id}`,
+                        direction,
                       })
                     )?.code ?? null
                 : undefined;

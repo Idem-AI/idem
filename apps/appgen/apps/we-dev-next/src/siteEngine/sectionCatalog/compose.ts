@@ -33,8 +33,21 @@ export function fitContent(node: SectionNode, content: SectionContent, visuals: 
 }
 
 /** Les variantes d'une composition, dans l'ordre où les essayer. */
-export function rankVariants(catalog: LoadedSectionCatalog, layout: string, visuals: number, used: Map<string, number>, seed: number): SectionNode[] {
-  const pool = catalog.sections.filter((s) => s.layout === layout);
+/**
+ * Les nœuds de la DA de la marque ; aucun : ceux de ses voisines ; aucun non plus : tous (un site ne s'arrête jamais
+ * faute de couverture). Sans DA connue, aucun filtre.
+ */
+export function inDirection<T extends { directions?: string[] }>(catalog: LoadedSectionCatalog, list: T[], direction?: string): T[] {
+  if (!direction || !catalog.directions?.size || !catalog.directions.has(direction)) return list;
+  const own = list.filter((n) => n.directions?.includes(direction));
+  if (own.length) return own;
+  const neighbors = catalog.directions.get(direction)?.neighbors ?? [];
+  const near = list.filter((n) => n.directions?.some((d) => neighbors.includes(d)));
+  return near.length ? near : list;
+}
+
+export function rankVariants(catalog: LoadedSectionCatalog, layout: string, visuals: number, used: Map<string, number>, seed: number, direction?: string): SectionNode[] {
+  const pool = inDirection(catalog, catalog.sections.filter((s) => s.layout === layout), direction);
   const score = (s: SectionNode, i: number) => {
     // Avec un visuel prêt, une variante qui le montre ; sans, une variante qui n'en attend pas.
     const visualFit = visuals ? (s.visual === 'none' ? 2 : 0) : s.visual === 'optional' ? 1 : 0;
@@ -58,6 +71,8 @@ export interface ComposeOptions {
   used: Map<string, number>;
   seed: number;
   label: string;
+  /** La DA de la marque : seules ses variantes (ou celles de ses voisines) sont essayées. */
+  direction?: string;
 }
 
 export interface Composed {
@@ -67,7 +82,7 @@ export interface Composed {
 }
 
 export async function composeSection(o: ComposeOptions): Promise<Composed | null> {
-  const ranked = rankVariants(o.catalog, o.layout, o.mediaKeys.length, o.used, o.seed);
+  const ranked = rankVariants(o.catalog, o.layout, o.mediaKeys.length, o.used, o.seed, o.direction);
   const tried: string[] = [];
   for (const node of ranked) {
     const content = fitContent(node, o.content, o.mediaKeys.length);

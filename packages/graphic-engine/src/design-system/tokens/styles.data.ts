@@ -1,5 +1,8 @@
 /**
- * Les 20 directions artistiques du catalogue d'IDEM, réduites à ce que le moteur LIT : un rayon, un
+ * REPLI SEULEMENT : les fiches du catalogue des DA (`src/directions`, dépôt idem-templates) remplacent ces entrées au
+ * premier accès et ajoutent les nouvelles DA. Cette table ne sert que si aucune fiche n'a pu être lue.
+ *
+ * Les 20 directions artistiques d'origine, réduites à ce que le moteur LIT : un rayon, un
  * ratio typographique, un fond, et l'espace de choix (couleurs, humeurs, tensions, accents) dans lequel
  * le classement tire. Un « Design suisse » ne sort donc jamais en néon sur fond noir : la variété reste,
  * à l'intérieur du style.

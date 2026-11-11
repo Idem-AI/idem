@@ -23,6 +23,7 @@ import { engineHost, log } from '../host';
 import { ENGINE_VERSION } from '../version';
 import { BUILTIN_NODES } from './builtin';
 import { CatalogNode, CatalogOverrides, LoadedCatalog, Manifest } from './types';
+import { DirectionInfo, readDirectionsDir } from '../directions';
 
 /** L'instantané embarqué : `IDEM_TEMPLATES_SNAPSHOT` (image Docker), sinon à côté des sources du paquet. */
 const snapshotFile = (): string => process.env.IDEM_TEMPLATES_SNAPSHOT?.trim() || path.resolve(__dirname, '../../catalog/snapshot.json');
@@ -142,10 +143,15 @@ const sha256 = (text: string | Buffer): string => crypto.createHash('sha256').up
 // ── Construction d'un catalogue à partir de nœuds bruts ──────────────────────────────────────
 
 /** Valide des nœuds bruts (manifeste, dossier, instantané) et rend le catalogue chargé. Le minimum intégré est toujours là. */
-export function buildCatalog(raw: Array<{ node: unknown; html?: { file: string; sha256: string } }>, meta: { version: string; source: LoadedCatalog['source'] }): LoadedCatalog {
+export function buildCatalog(raw: Array<{ node: unknown; html?: { file: string; sha256: string } }>, meta: { version: string; source: LoadedCatalog['source'] }, rawDirections: unknown[] = []): LoadedCatalog {
   const nodes = new Map<string, CatalogNode>();
   const htmlRefs = new Map<string, { file: string; sha256: string }>();
   const rejected: LoadedCatalog['rejected'] = [];
+  const directions = new Map<string, DirectionInfo>();
+  for (const r of rawDirections) {
+    const d = DirectionInfo.safeParse(r);
+    if (d.success) directions.set(d.data.id, d.data);
+  }
   for (const b of BUILTIN_NODES) nodes.set(b.id, b);
   for (const entry of raw) {
     const id = String((entry.node as { id?: unknown })?.id ?? '?');
@@ -163,6 +169,15 @@ export function buildCatalog(raw: Array<{ node: unknown; html?: { file: string; 
       rejected.push({ id, reason: bad });
       continue;
     }
+    // Un catalogue rangé par DA : chaque nœud appartient à au moins une DA EXISTANTE, sinon il n'est pas servi.
+    if (directions.size) {
+      const own = parsed.data.directions ?? [];
+      const unknown = own.filter((d) => !directions.has(d));
+      if (!own.length || unknown.length) {
+        rejected.push({ id, reason: own.length ? `direction artistique inconnue : ${unknown.join(', ')}` : 'aucune direction artistique' });
+        continue;
+      }
+    }
     if (nodes.has(id)) {
       rejected.push({ id, reason: 'identifiant en double' });
       continue;
@@ -178,7 +193,7 @@ export function buildCatalog(raw: Array<{ node: unknown; html?: { file: string; 
       rejected.push({ id: node.id, reason: why });
     }
   }
-  return { version: meta.version, source: meta.source, nodes, htmlRefs, rejected };
+  return { version: meta.version, source: meta.source, nodes, htmlRefs, rejected, directions };
 }
 
 // ── Les sources ──────────────────────────────────────────────────────────────────────────────
@@ -219,7 +234,7 @@ function readSnapshot(): LoadedCatalog | null {
     const file = snapshotFile();
     if (!fs.existsSync(file)) return null;
     const manifest = Manifest.parse(JSON.parse(fs.readFileSync(file, 'utf8')));
-    return buildCatalog(manifest.entries, { version: manifest.version, source: 'snapshot' });
+    return buildCatalog(manifest.entries, { version: manifest.version, source: 'snapshot' }, manifest.directions ?? []);
   } catch (error) {
     log().warn('catalog.snapshot_invalid', { reason: String((error as Error)?.message ?? error).slice(0, 200) });
     return null;
@@ -243,7 +258,7 @@ function fromManifest(manifest: Manifest, source: LoadedCatalog['source']): Load
   if (!engineSupports(manifest.engine)) return { error: `le catalogue ${manifest.version} demande le moteur ${manifest.engine} (ici ${ENGINE_VERSION})` };
   const signed = verifyManifest(manifest);
   if (!signed.ok) return { error: signed.reason ?? 'signature refusée' };
-  return buildCatalog(manifest.entries, { version: manifest.version, source });
+  return buildCatalog(manifest.entries, { version: manifest.version, source }, manifest.directions ?? []);
 }
 
 async function loadFromUrl(base: string): Promise<LoadedCatalog | 'unchanged' | null> {
@@ -286,7 +301,7 @@ async function load(): Promise<LoadedCatalog> {
   const dir = process.env.IDEM_TEMPLATES_DIR?.trim();
   if (dir) {
     try {
-      return buildCatalog(readTemplatesDir(dir), { version: `dir:${new Date().toISOString().slice(0, 19)}`, source: 'dir' });
+      return buildCatalog(readTemplatesDir(dir), { version: `dir:${new Date().toISOString().slice(0, 19)}`, source: 'dir' }, readDirectionsDir(dir));
     } catch (error) {
       log().error('catalog.dir_failed', { dir, reason: String((error as Error)?.message ?? error).slice(0, 200) });
     }

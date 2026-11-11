@@ -11,7 +11,7 @@
 import crypto from 'crypto';
 import { Request, Response, Router } from 'express';
 import mongoose from 'mongoose';
-import { catalog, refreshCatalog } from '@idem/graphic-engine';
+import { catalog, refreshCatalog, refreshDirections } from '@idem/graphic-engine';
 import { refreshVideoCatalog, videoCatalog } from '../../../ivision/core/src/video/catalog/registry';
 import logger from '../config/logger';
 import { requireAdminAccess } from '../middleware/super-user.middleware';
@@ -39,8 +39,10 @@ router.post('/refresh', async (req: Request, res: Response) => {
   if (!expected || !given || !sameSecret(given, expected)) return res.status(401).json({ error: 'unauthorized' });
   const out = await refreshCatalog();
   const videos = await refreshVideoCatalog();
-  logger.info('catalog.refreshed', { version: out.version, source: out.source, nodes: out.nodes, rejected: out.rejected.length, videoVersion: videos.version, videoSource: videos.source, videoRejected: videos.rejected.length });
-  return res.json({ ...out, videos: { version: videos.version, source: videos.source, nodes: videos.nodes.size, rejected: videos.rejected.length } });
+  // Les directions artistiques d'abord publiées avec les gabarits : les agents choisissent dans la version à jour.
+  const directions = await refreshDirections();
+  logger.info('catalog.refreshed', { version: out.version, source: out.source, nodes: out.nodes, rejected: out.rejected.length, videoVersion: videos.version, videoSource: videos.source, videoRejected: videos.rejected.length, directionsVersion: directions.version, directions: directions.directions });
+  return res.json({ ...out, videos: { version: videos.version, source: videos.source, nodes: videos.nodes.size, rejected: videos.rejected.length }, directions });
 });
 
 router.put('/overrides', requireAdminAccess, async (req: Request, res: Response) => {

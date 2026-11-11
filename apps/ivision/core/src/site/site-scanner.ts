@@ -23,6 +23,9 @@ import puppeteer, { Browser, Page } from 'puppeteer';
 import logger from '../runtime/logger';
 import { installRenderNetworkGuard, isRenderUrlAllowed, RENDER_BROWSER_ARGS } from '../render/network-guard';
 import type { ArtDirectionModel, ArtDirectionStyleId } from '../brand/art-direction.model';
+import { artDirectionStyleIds } from '../design/artDirection.catalog';
+import { getDirection } from '@idem/graphic-engine';
+import { composeArtDirection } from '../brand/art-direction.compose';
 import type { BrandKit, BrandPalette, BrandVoice } from '../brand/brand-kit';
 import { clusterColors, ColorCluster, PaletteProposal, paletteFromClusters, paletteProposals, SeenColor } from './palette';
 import { cleanFamilyName, firstFamily, SeenFont, typographyProposals, TypographyProposal } from './typography';
@@ -381,7 +384,7 @@ async function openPage(browser: Browser, url: string, timeoutMs: number, sheets
   return page;
 }
 
-const STYLE_IDS: ArtDirectionStyleId[] = ['minimalism', 'maximalism', 'futuristic', 'vector-art', 'collage-art', 'retro', 'cyberpunk', 'pop-art', 'glassmorphism', 'clay', 'pixel-art', 'editorial', 'y2k', 'swiss', 'surreal', 'bohemian', 'victorian', 'graffiti', 'aurora', 'handwritten'];
+
 
 function parseJson(raw: string): Record<string, any> | null {
   const m = String(raw || '').replace(/```[a-z]*\n?/gi, '').match(/\{[\s\S]*\}/);
@@ -438,13 +441,13 @@ async function readArtDirection(screenshot: Buffer, brandName: string, vision?: 
   if (!vision) return undefined;
   const instruction = [
     `This is the top of the website of the brand "${brandName}". Describe its art direction precisely enough for a designer to make social-media visuals that look like they come from the same studio. Answer ONLY JSON:`,
-    `{"styleId": one of ${STYLE_IDS.join('|')}, "keywords": ["4 concrete words: materials, light, objects"], "density": "airy|balanced|dense", "contrast": "soft|balanced|strong", "imagery": "photography|illustration|3d|mixed|none", "treatment": "how photos are treated (crop, colour grade, masks, overlays), 10 words", "composition": "how the hero is laid out: where the title, the image, the buttons sit and how much is empty, 25 words", "shapes": "rounded|sharp|organic|mixed, and where (buttons, images, sections), 12 words", "ornaments": "recurring graphic devices (rules, shapes, badges, patterns, gradients, outlines), 15 words", "typography": "how titles are set (case, weight, size contrast, tight or loose), 12 words", "signature": "the most recognisable graphic device, 8 words", "avoid": ["2 things this brand would never do"]}`,
+    `{"styleId": one of ${artDirectionStyleIds().join('|')}, "keywords": ["4 concrete words: materials, light, objects"], "density": "airy|balanced|dense", "contrast": "soft|balanced|strong", "imagery": "photography|illustration|3d|mixed|none", "treatment": "how photos are treated (crop, colour grade, masks, overlays), 10 words", "composition": "how the hero is laid out: where the title, the image, the buttons sit and how much is empty, 25 words", "shapes": "rounded|sharp|organic|mixed, and where (buttons, images, sections), 12 words", "ornaments": "recurring graphic devices (rules, shapes, badges, patterns, gradients, outlines), 15 words", "typography": "how titles are set (case, weight, size contrast, tight or loose), 12 words", "signature": "the most recognisable graphic device, 8 words", "avoid": ["2 things this brand would never do"]}`,
   ].join('\n');
   try {
     const json = parseJson(await vision(screenshot.toString('base64'), 'image/jpeg', instruction));
     if (!json) return undefined;
     const said = (v: unknown, max: number) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : undefined);
-    const styleId = STYLE_IDS.includes(json.styleId) ? (json.styleId as ArtDirectionStyleId) : 'minimalism';
+    const styleId = artDirectionStyleIds().includes(json.styleId) ? (json.styleId as ArtDirectionStyleId) : 'minimalism';
     const keywords = Array.isArray(json.keywords) ? json.keywords.map(String).slice(0, 5) : [];
     return {
       styleId,
@@ -707,8 +710,15 @@ export function brandKitFromScan(scan: Pick<SiteScanResult, 'palettes' | 'typogr
         ...(logo.iconUrl ? { icon: logo.iconUrl } : {}),
       },
     },
-    artDirection: (scan.artDirection as ArtDirectionModel | undefined) || null,
+    // Jamais l'ébauche lue par la vision telle quelle (ce serait une DA inventée) : la DA du catalogue la plus proche,
+    // composée depuis sa fiche. L'agent de la charte, avec les relevés du site, choisira ensuite ses déclinaisons.
+    artDirection: catalogDirectionOf(scan.artDirection?.styleId),
   };
+}
+
+function catalogDirectionOf(styleId?: string): ArtDirectionModel | null {
+  const d = getDirection(styleId);
+  return d ? composeArtDirection(d, undefined, { rationale: 'Direction du catalogue la plus proche du site de la marque (lecture iVision).' }) : null;
 }
 
 export { firstFamily };

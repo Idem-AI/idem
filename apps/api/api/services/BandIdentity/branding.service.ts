@@ -40,13 +40,11 @@ import {
   LOGO_REVISION_PROMPT,
 } from './prompts/singleGenerations/logo-revision.prompt';
 
-import { buildArtDirectionPrompt } from './prompts/singleGenerations/art-direction.prompt';
-import { ArtDirectionModel, ArtDirectionStyleId } from '../../models/art-direction.model';
-import {
-  ART_DIRECTION_STYLES,
-  ART_DIRECTION_STYLE_IDS,
-  resolveStyle,
-} from '../brand/artDirection.catalog';
+import { buildArtDirectionChoicePrompt, buildArtDirectionVariantsPrompt, ArtDirectionPromptInput } from './prompts/singleGenerations/art-direction.prompt';
+import { ArtDirectionModel } from '../../models/art-direction.model';
+import { resolveStyle } from '../brand/artDirection.catalog';
+import { getDirection, directionCatalog } from '@idem/graphic-engine';
+import { directionFromReplies, DIRECTION_FIELDS, recomposeArtDirection } from '../../../../ivision/core/src/brand/art-direction.compose';
 import {
   buildPaletteConstraint,
   buildTypographyConstraint,
@@ -2269,142 +2267,64 @@ export class BrandingService extends GenericService {
   // --------------------------------------------------------------------------
 
   /**
-   * Ramène une sortie de modèle à un {@link ArtDirectionModel} exploitable.
+   * Produit la direction artistique du projet (sans la persister) — CHOISIE dans le catalogue des DA, jamais rédigée.
    *
-   * Le champ qui compte vraiment est `styleId` : tout le reste (fiche de style,
-   * espace de tirage de la graine, prompt négatif des images) en dépend. Un
-   * identifiant inventé par le modèle casserait la chaîne en silence, donc on
-   * le valide contre le catalogue et on retombe sur un style plausible plutôt
-   * que de laisser passer une valeur inconnue.
-   */
-  private normalizeArtDirection(
-    raw: any,
-    fallbackStyleId: ArtDirectionStyleId = 'editorial'
-  ): ArtDirectionModel {
-    const requested = String(raw?.styleId || '')
-      .trim()
-      .toLowerCase();
-    const styleId = (ART_DIRECTION_STYLE_IDS as string[]).includes(requested)
-      ? (requested as ArtDirectionStyleId)
-      : fallbackStyleId;
-    const style = ART_DIRECTION_STYLES[styleId];
-
-    const list = (value: any, fallback: string[] = []): string[] => {
-      const arr = Array.isArray(value) ? value : [];
-      const clean = arr.map((v: any) => String(v || '').trim()).filter(Boolean);
-      return clean.length ? clean : fallback;
-    };
-    const str = (value: any, fallback: string): string => {
-      const v = String(value ?? '').trim();
-      return v || fallback;
-    };
-
-    return {
-      styleId,
-      styleName: str(raw?.styleName, style.name),
-      tagline: str(raw?.tagline, style.essence),
-      rationale: str(raw?.rationale, style.essence),
-      keywords: list(raw?.keywords, [style.name]),
-      layout: {
-        grid: str(raw?.layout?.grid, style.layout),
-        density: str(raw?.layout?.density, 'balanced'),
-        whitespace: str(raw?.layout?.whitespace, 'marges généreuses et régulières'),
-        signatureMove: str(raw?.layout?.signatureMove, style.devices),
-        recipes: (Array.isArray(raw?.layout?.recipes) ? raw.layout.recipes : [])
-          .map((r: any) => ({ name: String(r?.name || '').trim().slice(0, 60), use: String(r?.use || '').trim().slice(0, 40), zones: String(r?.zones || '').trim().slice(0, 400) }))
-          .filter((r: { name: string; zones: string }) => r.name && r.zones)
-          .slice(0, 4),
-      },
-      color: {
-        distribution: str(raw?.color?.distribution, '60 / 30 / 10'),
-        application: str(raw?.color?.application, style.color),
-        contrast: str(raw?.color?.contrast, 'franc'),
-      },
-      typography: {
-        scaleContrast: str(
-          raw?.typography?.scaleContrast,
-          `rapport ${style.typeRatio} entre deux niveaux, trois niveaux minimum`
-        ),
-        caseAndTracking: str(raw?.typography?.caseAndTracking, style.typography),
-        treatment: str(raw?.typography?.treatment, 'aucun'),
-      },
-      imagery: {
-        medium: str(raw?.imagery?.medium, 'photography'),
-        subjects: str(raw?.imagery?.subjects, "l'activité réelle de la marque"),
-        treatment: str(raw?.imagery?.treatment, style.imagery),
-        lighting: str(raw?.imagery?.lighting, 'cohérente sur toute la marque'),
-        framing: str(raw?.imagery?.framing, 'constant'),
-      },
-      graphicDevices: list(raw?.graphicDevices, [style.devices]),
-      dos: list(raw?.dos, [style.layout]),
-      donts: list(raw?.donts, style.bans),
-      imagePromptModifier: str(raw?.imagePromptModifier, style.imagePromptModifier),
-      updatedAt: new Date(),
-    };
-  }
-
-  /**
-   * Produit la direction artistique du projet (sans la persister).
+   * Deux appels courts : la DA (identifiant + raison du choix), puis une déclinaison par champ dans sa fiche (+ les
+   * sujets des images de la marque). Le code compose la direction mot pour mot depuis la fiche. Un identifiant hors
+   * catalogue ne passe jamais : la DA retombe sur une DA proposable, une déclinaison inconnue sur la première.
    *
-   * `excludeStyleIds` sert la régénération : sans elle, un utilisateur qui
-   * demande « autre chose » reçoit deux fois la même proposition, le brief
-   * n'ayant pas changé.
+   * `excludeStyleIds` sert la régénération : sans elle, « proposer une autre direction » rendrait la même.
    */
   async generateArtDirection(
     userId: string,
     project: ProjectModel,
     excludeStyleIds: string[] = [],
-    /** Le style relevé sur le site de la marque (projet créé depuis un site) : la direction le codifie. */
+    /** Le style relevé sur le site de la marque (projet créé depuis un site) : la DA la plus proche est choisie. */
     siteEvidence?: string
   ): Promise<ArtDirectionModel> {
     const projectDescription = this.extractProjectDescription(project);
     const projectContext = this.extractProjectContext(projectDescription);
     const branding = project.analysisResultModel?.branding;
-
-    const prompt = buildArtDirectionPrompt({
+    const input: ArtDirectionPromptInput = {
       projectName: project.name || 'Marque',
       projectDescription: projectDescription.slice(0, 4000),
       industry: projectContext.industry,
       targetAudience: projectContext.targetAudience,
       colorsJson: JSON.stringify(branding?.colors?.colors || {}),
-      typographyJson: JSON.stringify({
-        primaryFont: branding?.typography?.primaryFont,
-        secondaryFont: branding?.typography?.secondaryFont,
-      }),
+      typographyJson: JSON.stringify({ primaryFont: branding?.typography?.primaryFont, secondaryFont: branding?.typography?.secondaryFont }),
       logoConcept: branding?.logo?.concept,
       logoType: branding?.logo?.type,
       excludeStyleIds,
-      // La mémoire des grammaires déjà données (toutes marques) : la prochaine ne les répète pas.
-      recentGrammars: (await cacheService.get<string[]>(RECENT_GRAMMARS_KEY, { prefix: 'branding' }).catch(() => null)) ?? [],
-      // Une marque importée de son site garde ce style comme référence, régénération comprise.
       ...((siteEvidence || branding?.siteSource?.evidence) ? { siteEvidence: siteEvidence || branding?.siteSource?.evidence } : {}),
-    });
-
+    };
+    const catalog = await directionCatalog();
+    const ask = async (content: string): Promise<any> => {
+      const raw = await this.promptService.runPrompt(
+        {
+          provider: AI_CONFIG.branding.artDirection.provider,
+          modelName: AI_CONFIG.branding.artDirection.modelName,
+          fallbackModels: AI_CONFIG.branding.artDirection.fallbackModels,
+          llmOptions: AI_CONFIG.branding.artDirection.llmOptions,
+          userId,
+        },
+        [{ role: 'user', content }]
+      );
+      return parseLlmJson<any>(raw);
+    };
     setAiUsageContext({ feature: 'branding', element: 'art-direction' });
 
-    const raw = await this.promptService.runPrompt(
-      {
-        provider: AI_CONFIG.branding.artDirection.provider,
-        modelName: AI_CONFIG.branding.artDirection.modelName,
-        fallbackModels: AI_CONFIG.branding.artDirection.fallbackModels,
-        llmOptions: AI_CONFIG.branding.artDirection.llmOptions,
-        userId,
-      },
-      [{ role: 'user', content: prompt }]
-    );
-
-    const parsed = parseLlmJson<any>(raw);
-    const direction = this.normalizeArtDirection(parsed, 'editorial');
-    // Le geste et la grille retenus rejoignent la mémoire (30 derniers, 90 jours).
+    // 1. La DA : un identifiant du catalogue (les proposables, hors des écartées) ; 2. une déclinaison par champ dans sa
+    //    fiche, la mémoire des combinaisons déjà données évitant les doublons. Le code compose (directionFromReplies).
+    const first = await ask(buildArtDirectionChoicePrompt(input)).catch(() => null);
+    const chosen = getDirection(directionFromReplies(first, null, { excluded: excludeStyleIds }).styleId)!;
     const recent = (await cacheService.get<string[]>(RECENT_GRAMMARS_KEY, { prefix: 'branding' }).catch(() => null)) ?? [];
-    await cacheService
-      .set(RECENT_GRAMMARS_KEY, [`${direction.layout.signatureMove} — ${direction.layout.grid}`.slice(0, 240), ...recent].slice(0, 30), { prefix: 'branding', ttl: 90 * 24 * 3600 })
-      .catch(() => undefined);
-    logger.info(`[ArtDirection] Direction retenue: ${direction.styleId} (${direction.styleName})`, {
-      projectId: project.id,
-      tagline: direction.tagline,
-    });
-    return direction;
+    const second = await ask(buildArtDirectionVariantsPrompt({ ...input, direction: chosen, recentCombos: recent })).catch(() => null);
+    const { direction: composed, requested, styleId } = directionFromReplies(first, second, { excluded: excludeStyleIds, catalogVersion: catalog.version });
+    if (requested && requested !== styleId) logger.warn('[ArtDirection] DA hors catalogue ou écartée, repli', { requested, styleId });
+    const combo = `${styleId}:${DIRECTION_FIELDS.map((f) => composed.variants?.[f]).join('.')}`;
+    await cacheService.set(RECENT_GRAMMARS_KEY, [combo, ...recent.filter((c) => c !== combo)].slice(0, 60), { prefix: 'branding', ttl: 90 * 24 * 3600 }).catch(() => undefined);
+    logger.info(`[ArtDirection] DA du catalogue retenue : ${styleId}`, { projectId: project.id, combo, catalogVersion: catalog.version });
+    return composed;
   }
 
   /**
@@ -2424,7 +2344,9 @@ export class BrandingService extends GenericService {
     const branding = project.analysisResultModel?.branding;
     if (!branding) return null;
     if (!opts.force && branding.artDirection?.styleId) {
-      return branding.artDirection;
+      // Une direction choisie dans le catalogue se recompose depuis sa fiche : une fiche corrigée dans le dépôt corrige
+      // toutes les marques. Une direction d'avant le catalogue (sans déclinaisons) est rendue telle quelle.
+      return branding.artDirection.variants ? recomposeArtDirection(branding.artDirection) : branding.artDirection;
     }
 
     try {

@@ -22,7 +22,8 @@
     "check:fast": "ts-node --transpile-only scripts/check.ts --fast",
     "check:catalog": "ts-node --transpile-only scripts/check-catalog.ts",
     "catalog:snapshot": "ts-node --transpile-only scripts/catalog-snapshot.ts",
-    "schemas": "ts-node --transpile-only scripts/generate-schemas.ts"
+    "schemas": "ts-node --transpile-only scripts/generate-schemas.ts",
+    "sample:flyers": "ts-node --transpile-only scripts/sample-flyers.ts"
   },
   "keywords": [
     "idem",

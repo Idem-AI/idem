@@ -34,6 +34,8 @@ interface BaseNode {
   energy?: [number, number];
   tags?: { style?: VideoStyle[]; mood?: string[] };
   weight?: number;
+  /** Les DA servies (catalogue `directions` du dépôt) : un film ne prend que les nœuds de la DA de sa marque. */
+  directions?: string[];
 }
 
 export interface SlotDef {
@@ -132,6 +134,8 @@ export interface LoadedVideoCatalog {
   source: 'dir' | 'url' | 'cache' | 'snapshot' | 'builtin';
   nodes: Map<string, VideoNode>;
   rejected: Array<{ id: string; reason: string }>;
+  /** Les DA du dépôt et leurs voisines (vide : catalogue sans DA, aucun filtre). */
+  directions: Map<string, { id: string; neighbors: string[] }>;
 }
 
 /** Ce qui est gardé avec le film : la version du catalogue et le thème ; avec chaque scène, sa configuration. */

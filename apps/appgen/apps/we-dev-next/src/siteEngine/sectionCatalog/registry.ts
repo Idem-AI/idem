@@ -16,9 +16,10 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ChatLogger } from '../../utils/logger.js';
-import { KindNode, LoadedSectionCatalog, nodeErrors, SectionNode, ShellNode } from './types.js';
+import { CatalogDirection, KindNode, LoadedSectionCatalog, nodeErrors, SectionNode, ShellNode } from './types.js';
 
-export const ICODE_CATALOG_ENGINE = '1.0.0';
+// 2.0 : chaque nœud déclare ses directions artistiques (catalogue `directions` du dépôt).
+export const ICODE_CATALOG_ENGINE = '2.0.0';
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const snapshotFile = (): string => process.env.IDEM_ICODE_TEMPLATES_SNAPSHOT?.trim() || path.join(HERE, 'snapshot.json');
 const cacheFile = (): string => path.join(process.env.IDEM_TEMPLATES_CACHE || path.join(os.tmpdir(), 'idem-templates-cache'), 'icode-manifest.json');
@@ -33,6 +34,7 @@ interface IcodeManifest {
   schema: number;
   version: string;
   engine?: string;
+  directions?: Array<Record<string, unknown>>;
   entries: RawEntry[];
   signature?: string;
 }
@@ -68,13 +70,33 @@ function verify(manifest: IcodeManifest): { ok: boolean; reason?: string } {
 }
 
 /** Des entrées brutes → un catalogue VÉRIFIÉ. */
-export function buildSectionCatalog(entries: RawEntry[], version: string, source: LoadedSectionCatalog['source']): LoadedSectionCatalog {
+export function buildSectionCatalog(entries: RawEntry[], version: string, source: LoadedSectionCatalog['source'], rawDirections: Array<Record<string, any>> = []): LoadedSectionCatalog {
   const rejected: LoadedSectionCatalog['rejected'] = [];
+  const directions = new Map<string, CatalogDirection>();
+  for (const d of rawDirections) {
+    if (typeof d?.id !== 'string') continue;
+    directions.set(d.id, {
+      id: d.id,
+      neighbors: Array.isArray(d.neighbors) ? d.neighbors.map(String) : [],
+      ...(d.name ? { name: d.name } : {}),
+      ...(typeof d.radius === 'number' ? { radius: d.radius } : {}),
+      ...(typeof d.typeRatio === 'number' ? { typeRatio: d.typeRatio } : {}),
+      ...(d.tags?.density ? { density: d.tags.density } : {}),
+    });
+  }
+  // Rangé par DA : un nœud sans DA, ou d'une DA inconnue, n'est pas servi.
+  const directionErrors = (n: { directions?: string[] }): string[] => {
+    if (!directions.size) return [];
+    const own = Array.isArray(n.directions) ? n.directions : [];
+    if (!own.length) return ['aucune direction artistique'];
+    const unknown = own.filter((d) => !directions.has(d));
+    return unknown.length ? [`direction artistique inconnue : ${unknown.join(', ')}`] : [];
+  };
   const kinds = new Map<string, KindNode>();
   for (const e of entries) {
     const n = e.node as unknown as KindNode;
     if (n?.kind !== 'kind') continue;
-    const errors = nodeErrors(n, kinds);
+    const errors = [...nodeErrors(n, kinds), ...directionErrors(n)];
     if (errors.length) rejected.push({ id: String(n.id), reason: errors.join(' · ') });
     else kinds.set(n.layout, n);
   }
@@ -84,7 +106,7 @@ export function buildSectionCatalog(entries: RawEntry[], version: string, source
   for (const e of entries) {
     const n = { ...e.node, ...(e.template ? { template: e.template } : {}) } as unknown as SectionNode | ShellNode;
     if ((n as { kind: string }).kind === 'kind') continue;
-    const errors = nodeErrors(n, kinds);
+    const errors = [...nodeErrors(n, kinds), ...directionErrors(n)];
     if (errors.length) {
       rejected.push({ id: String(n.id), reason: errors.slice(0, 3).join(' · ') });
       continue;
@@ -93,7 +115,30 @@ export function buildSectionCatalog(entries: RawEntry[], version: string, source
     else if (n.kind === 'header') headers.push(n);
     else if (n.kind === 'footer') footers.push(n);
   }
-  return { version, source, kinds, sections, headers, footers, rejected };
+  return { version, source, kinds, sections, headers, footers, rejected, directions };
+}
+
+/** Les DA du dépôt sur le disque (`catalog/directions/<id>/node.json`), en version légère. */
+export function readDirectionsDir(dir: string): Array<Record<string, unknown>> {
+  const root = path.join(dir, 'catalog', 'directions');
+  if (!fs.existsSync(root)) return [];
+  const out: Array<Record<string, unknown>> = [];
+  for (const name of fs.readdirSync(root).sort()) {
+    const file = path.join(root, name, 'node.json');
+    if (!fs.existsSync(file)) continue;
+    try {
+      const n = JSON.parse(fs.readFileSync(file, 'utf8')) as Record<string, any>;
+      out.push({ id: n.id, name: n.name, surface: n.surface, selectable: n.selectable, radius: n.radius, typeRatio: n.typeRatio, neighbors: n.neighbors, tags: n.tags });
+    } catch {
+      /* une fiche illisible est écartée par la construction du dépôt */
+    }
+  }
+  return out;
+}
+
+/** La DA telle que le catalogue chargé la connaît (rayon, échelle, densité), pour le design system du site. */
+export function catalogDirection(id?: string | null): CatalogDirection | undefined {
+  return id ? current?.directions.get(String(id).trim()) : undefined;
 }
 
 /** Le dépôt sur le disque : `catalog/icode/**​/node.json` (+ `template.tsx`). */
@@ -125,7 +170,7 @@ function fromManifest(manifest: IcodeManifest, source: LoadedSectionCatalog['sou
   if (major(manifest.engine) !== major(ICODE_CATALOG_ENGINE)) return { error: `catalogue pour le moteur ${manifest.engine}` };
   const signed = verify(manifest);
   if (!signed.ok) return { error: signed.reason ?? 'signature refusée' };
-  return buildSectionCatalog(manifest.entries, manifest.version, source);
+  return buildSectionCatalog(manifest.entries, manifest.version, source, manifest.directions ?? []);
 }
 
 async function fromUrl(base: string): Promise<LoadedSectionCatalog | null> {
@@ -168,7 +213,7 @@ async function load(): Promise<LoadedSectionCatalog> {
   const dir = process.env.IDEM_TEMPLATES_DIR?.trim();
   if (dir) {
     try {
-      next = buildSectionCatalog(readIcodeTemplatesDir(dir), `dir:${new Date().toISOString().slice(0, 19)}`, 'dir');
+      next = buildSectionCatalog(readIcodeTemplatesDir(dir), `dir:${new Date().toISOString().slice(0, 19)}`, 'dir', readDirectionsDir(dir));
     } catch (error) {
       ChatLogger.error('SITE_CATALOG', 'Dépôt de gabarits illisible', { dir, reason: (error as Error).message.slice(0, 200) });
     }

@@ -24,12 +24,17 @@ import {
   STYLE_DATA,
 } from '@idem/graphic-engine';
 import {
-  ART_DIRECTION_STYLES,
-  ART_DIRECTION_STYLE_IDS,
+  artDirectionStyles,
+  artDirectionStyleIds,
   buildStyleCatalogBrief,
   resolveStyle,
-  SELECTABLE_ART_DIRECTION_STYLE_IDS,
+  selectableArtDirectionStyleIds,
 } from '../services/brand/artDirection.catalog';
+
+// Le catalogue des DA vient du dépôt (idem-templates) : les fiches remplissent aussi STYLE_DATA du moteur.
+const ART_DIRECTION_STYLES = artDirectionStyles();
+const ART_DIRECTION_STYLE_IDS: string[] = artDirectionStyleIds();
+const SELECTABLE_ART_DIRECTION_STYLE_IDS: string[] = selectableArtDirectionStyleIds();
 import { ArtDirectionModel } from '../models/art-direction.model';
 import { buildImageNegativePrompt, buildImageStyleModifier } from '../utils/art-direction.util';
 import { resolveLogoDeclensions } from '../utils/brand-context.util';
@@ -103,7 +108,7 @@ for (const id of ART_DIRECTION_STYLE_IDS) {
   const tokens = buildTokens({ brand, direction, format: 'a4-portrait' });
   if (tokens.color.dark || contrastRatio(tokens.color.ink, tokens.color.ground) < 4.5) darkened.push(`${id} (${tokens.color.ground} / ${tokens.color.ink})`);
 }
-check('palette sombre, 20 styles : fond clair et encre lisible (≥ 4,5:1) sans demande explicite', darkened.length === 0, darkened.join(' · '));
+check(`palette sombre, ${ART_DIRECTION_STYLE_IDS.length} styles : fond clair et encre lisible (≥ 4,5:1) sans demande explicite`, darkened.length === 0, darkened.join(' · '));
 const asked = buildTokens({ brand: { name: 'Acme', palette: darkPalette }, direction: { styleId: 'cyberpunk' }, format: 'a4-portrait', allowDark: true });
 check('demande explicite : le fond sombre de la marque est honoré, toujours lisible', asked.color.dark && contrastRatio(asked.color.ink, asked.color.ground) >= 4.5, `${asked.color.ground} / ${asked.color.ink}`);
 

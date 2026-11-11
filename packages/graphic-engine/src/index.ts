@@ -44,6 +44,20 @@ export type { FormatDef, FormatFamily, FormatKind } from './design-system/format
 export { buildTokens, DEFAULT_STYLE_ID, resolveStyle } from './design-system/tokens';
 export type { BrandInput, BrandLogos, BrandPattern, DesignTokens, DirectionInput } from './design-system/tokens';
 export { STYLE_DATA } from './design-system/tokens/styles.data';
+export {
+  DirectionNode,
+  DirectionInfo,
+  directionsSync,
+  directionCatalog,
+  refreshDirections,
+  resetDirections,
+  getDirection,
+  selectableDirections,
+  pickVariant,
+  readDirectionsDir,
+  DIRECTIONS_ENGINE,
+} from './directions';
+export type { DirectionVariantField, LoadedDirections } from './directions';
 export { chartPalette, validatePalette } from './design-system/charts/palette';
 export { motifCss, styleMotifs } from './design-system/kit/motifs';
 export type { MotifName } from './design-system/kit/motifs';

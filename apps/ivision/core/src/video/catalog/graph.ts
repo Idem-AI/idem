@@ -150,8 +150,21 @@ export interface FilmState {
 export const sceneFingerprint = (c: SceneConfig): string => stableHash([c.gabarit ?? '', c.layout, ...Object.entries(c.animations ?? {}).sort().map(([r, a]) => `${r}=${a}`), c.transition ?? ''], 10);
 
 /** La liste courte d'une scène : gabarits et mises en page qui la montrent entière, du plus juste au moins juste. */
-export function shortlist(cat: LoadedVideoCatalog, f: SceneFacts, o: { style?: VideoStyle; state: FilmState; seed: string; size: number }): SceneCandidate[] {
-  const layouts = [...cat.nodes.values()].filter((n): n is LayoutNode => n.kind === 'layout' && !n.id.startsWith('builtin.') && layoutFits(n, f));
+/**
+ * Les nœuds de la DA de la marque ; aucun : ceux de ses voisines ; aucun non plus : la liste entière (un film ne
+ * s'arrête jamais faute de couverture). Sans DA connue, aucun filtre.
+ */
+export function inDirection<T extends { directions?: string[] }>(cat: LoadedVideoCatalog, list: T[], direction?: string): T[] {
+  if (!direction || !cat.directions?.size || !cat.directions.has(direction)) return list;
+  const own = list.filter((n) => n.directions?.includes(direction));
+  if (own.length) return own;
+  const neighbors = cat.directions.get(direction)?.neighbors ?? [];
+  const near = list.filter((n) => n.directions?.some((d) => neighbors.includes(d)));
+  return near.length ? near : list;
+}
+
+export function shortlist(cat: LoadedVideoCatalog, f: SceneFacts, o: { style?: VideoStyle; direction?: string; state: FilmState; seed: string; size: number }): SceneCandidate[] {
+  const layouts = inDirection(cat, [...cat.nodes.values()].filter((n): n is LayoutNode => n.kind === 'layout' && !n.id.startsWith('builtin.') && layoutFits(n, f)), o.direction);
   const fitting = new Set(layouts.map((l) => l.id));
   const previous = o.state.layouts[f.index - 1];
   const score = (layout: LayoutNode, node: { roles?: string[]; energy?: [number, number]; tags?: { style?: VideoStyle[] }; weight?: number; id: string }, config: SceneConfig): number => {
@@ -165,8 +178,9 @@ export function shortlist(cat: LoadedVideoCatalog, f: SceneFacts, o: { style?: V
     return s + 0.06 * (node.weight ?? 1) + 0.08 * jitter(`${o.seed}|${f.index}|${node.id}`);
   };
   const out: SceneCandidate[] = [];
-  for (const g of cat.nodes.values()) {
-    if (g.kind !== 'gabarit' || !fitting.has(g.config.layout) || roleMatch(g.roles, f.role) === 0) continue;
+  const gabarits = inDirection(cat, [...cat.nodes.values()].filter((g): g is GabaritNode => g.kind === 'gabarit'), o.direction);
+  for (const g of gabarits) {
+    if (!fitting.has(g.config.layout) || roleMatch(g.roles, f.role) === 0) continue;
     const layout = cat.nodes.get(g.config.layout) as LayoutNode;
     const config: SceneConfig = { gabarit: g.id, layout: layout.id, animations: { ...g.config.animations }, ...(g.config.transition ? { transition: g.config.transition } : {}), vars: { ...(g.config.vars ?? {}) } };
     out.push({ ref: '', layout, gabarit: g, config, score: score(layout, g, config) + 0.1 });
@@ -189,8 +203,8 @@ export function shortlist(cat: LoadedVideoCatalog, f: SceneFacts, o: { style?: V
 }
 
 /** Les thèmes du film, classés : style demandé, énergie moyenne du film, fond sombre seulement s'il est permis. */
-export function rankThemes(cat: LoadedVideoCatalog, o: { style?: VideoStyle; energy: number; allowDark: boolean; seed: string; used: string[] }): ThemeNode[] {
-  const themes = [...cat.nodes.values()].filter((n): n is ThemeNode => n.kind === 'theme' && !n.id.startsWith('builtin.') && (o.allowDark || !n.requiresDark));
+export function rankThemes(cat: LoadedVideoCatalog, o: { style?: VideoStyle; direction?: string; energy: number; allowDark: boolean; seed: string; used: string[] }): ThemeNode[] {
+  const themes = inDirection(cat, [...cat.nodes.values()].filter((n): n is ThemeNode => n.kind === 'theme' && !n.id.startsWith('builtin.') && (o.allowDark || !n.requiresDark)), o.direction);
   if (!themes.length) return [cat.nodes.get('builtin.plain') as ThemeNode];
   return themes
     .map((t) => ({ t, s: (o.style && t.tags?.style?.includes(o.style) ? 0.5 : 0) + 0.3 * energyMatch(t.energy, Math.round(o.energy)) - (o.used.includes(t.id) ? 0.25 : 0) + 0.15 * jitter(`${o.seed}|${t.id}`) }))

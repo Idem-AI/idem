@@ -37,6 +37,9 @@ process.env.IDEM_TEMPLATES_DIR = DIR;
 const fast = process.argv.includes('--fast');
 const shotsAt = process.argv.indexOf('--shots');
 const shots = shotsAt > 0 ? process.argv[shotsAt + 1] : undefined;
+// `--only visual.` : ne rend (§4) que les gabarits dont l'identifiant commence ainsi (planche-contact d'un élément).
+const onlyAt = process.argv.indexOf('--only');
+const only = onlyAt > 0 ? process.argv[onlyAt + 1] : undefined;
 if (shots) fs.mkdirSync(shots, { recursive: true });
 
 let failures = 0;
@@ -190,6 +193,7 @@ async function main(): Promise<void> {
     ];
   };
   for (const g of gabarits) {
+    if (only && !g.id.startsWith(only)) continue;
     // Le gabarit testé est le seul servi pour son élément (les autres sont retirés par surcharge d'exploitation).
     disabled = gabarits.filter((x) => x.id !== g.id).map((x) => x.id);
     resetCatalog(); // les surcharges sont gardées 15 s : relues pour ce gabarit
@@ -206,7 +210,10 @@ async function main(): Promise<void> {
       if (layout.shape.orientations?.length && !layout.shape.orientations.includes(fmt.orientation)) continue;
       if (layout.shape.minAspect && fmt.width / fmt.height < layout.shape.minAspect) continue;
       calls.length = 0;
-      const doc = await createDocument({ documentType: c.documentType, format: c.format, brand, direction: { styleId: brand.styleId }, creativity: 'low', ...(darkGround ? { allowDark: true } : {}), seed: `${g.id}|${c.content.id}`, png: Boolean(shots), sections: [{ id: c.content.id, role: c.content.role }] });
+      // Un gabarit d'une seule DA (flyer signature) se rend avec sa DA : c'est elle qui sert son habillage.
+      const styleId = g.directions?.length === 1 ? g.directions[0] : brand.styleId;
+      const skinDark = (cat.nodes.get(g.config.skin) as { dark?: boolean } | undefined)?.dark === true;
+      const doc = await createDocument({ documentType: c.documentType, format: c.format, brand, direction: { styleId }, creativity: 'low', ...(darkGround || skinDark ? { allowDark: true } : {}), seed: `${g.id}|${c.content.id}`, png: Boolean(shots), sections: [{ id: c.content.id, role: c.content.role }] });
       try {
         const out = await doc.composeSection(c.content);
         const picked = out.spec.catalog?.config.gabarit;

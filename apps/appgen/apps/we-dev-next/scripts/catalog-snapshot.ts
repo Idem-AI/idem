@@ -10,20 +10,20 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { buildSectionCatalog, ICODE_CATALOG_ENGINE, readIcodeTemplatesDir } from '../src/siteEngine/sectionCatalog/registry.js';
+import { buildSectionCatalog, ICODE_CATALOG_ENGINE, readDirectionsDir, readIcodeTemplatesDir } from '../src/siteEngine/sectionCatalog/registry.js';
 
 const dir = path.resolve(process.env.IDEM_TEMPLATES_DIR ?? path.join(path.dirname(fileURLToPath(import.meta.url)), '../../../../../../idem-templates'));
 const out = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'src', 'siteEngine', 'sectionCatalog', 'snapshot.json');
 const built = path.join(dir, 'dist', 'icode', 'manifest.json');
 
-let manifest: { version: string; entries: unknown[] };
+let manifest: { version: string; entries: unknown[]; directions?: Array<Record<string, unknown>> };
 if (fs.existsSync(built)) manifest = JSON.parse(fs.readFileSync(built, 'utf8'));
 else {
   const entries = readIcodeTemplatesDir(dir);
   const pkg = JSON.parse(fs.readFileSync(path.join(dir, 'package.json'), 'utf8')) as { version?: string };
-  manifest = { schema: 1, version: `${pkg.version ?? '0.0.0'}+snapshot`, engine: ICODE_CATALOG_ENGINE, entries } as typeof manifest;
+  manifest = { schema: 1, version: `${pkg.version ?? '0.0.0'}+snapshot`, engine: ICODE_CATALOG_ENGINE, directions: readDirectionsDir(dir), entries } as typeof manifest;
 }
-const check = buildSectionCatalog(manifest.entries as never, manifest.version, 'snapshot');
+const check = buildSectionCatalog(manifest.entries as never, manifest.version, 'snapshot', (manifest.directions ?? []) as never);
 if (check.rejected.length) {
   console.error('✗ nœuds refusés :', check.rejected);
   process.exit(1);

@@ -34,7 +34,7 @@ export interface CatalogScene {
 export interface ComposeInput {
   scenes: CatalogScene[];
   film: { title: string; concept: string; style?: string; seed: string | number };
-  brand: { name: string; hasLogo: boolean; hasDarkLogo?: boolean; line: string };
+  brand: { name: string; hasLogo: boolean; hasDarkLogo?: boolean; line: string; /** La DA de la marque (catalogue des DA). */ direction?: string };
   formats: FilmFormatId[];
   level: CreativityLevel;
   call: FilmCallContext;
@@ -148,13 +148,13 @@ export async function composeFilmFromCatalog(input: ComposeInput): Promise<Compo
   const state: FilmState = { layouts: [], use: new Map(), seen: memory.templates };
   const lists: SceneCandidate[][] = [];
   for (const f of facts) {
-    const list = shortlist(cat, f, { style, state, seed, size: effort.shortlist });
+    const list = shortlist(cat, f, { style, direction: input.brand.direction, state, seed, size: effort.shortlist });
     lists.push(list);
     state.layouts[f.index] = list[0].layout.id;
     state.use.set(list[0].layout.id, (state.use.get(list[0].layout.id) ?? 0) + 1);
   }
   const avgEnergy = facts.reduce((n, f) => n + f.energy, 0) / Math.max(1, facts.length);
-  const themes = rankThemes(cat, { style, energy: avgEnergy, allowDark: input.allowDark === true, seed, used: memory.themes });
+  const themes = rankThemes(cat, { style, direction: input.brand.direction, energy: avgEnergy, allowDark: input.allowDark === true, seed, used: memory.themes });
   let theme = themes[0];
   let configs = lists.map((l) => l[0].config);
   let trace: ComposedFilm['trace'] = { source: 'code', tokens: { input: 0, output: 0 }, ms: 0, detail: '' };
@@ -213,7 +213,7 @@ export async function nextSceneConfig(input: Pick<ComposeInput, 'scenes' | 'bran
   const cat = await videoCatalog();
   const facts = factsOf(input.scenes, input.formats, input.brand.hasLogo);
   const style = STYLES.includes(input.film.style as VideoStyle) ? (input.film.style as VideoStyle) : undefined;
-  const list = shortlist(cat, facts[index], { style, state: { layouts: [], use: new Map(), seen: new Set() }, seed: `${input.brand.name}|${input.film.seed}`, size: 12 });
+  const list = shortlist(cat, facts[index], { style, direction: input.brand.direction, state: { layouts: [], use: new Map(), seen: new Set() }, seed: `${input.brand.name}|${input.film.seed}`, size: 12 });
   const done = new Set(tried.map(sceneFingerprint));
   const fresh = list.find((c) => !done.has(sceneFingerprint(c.config)));
   if (fresh) return fresh.config;
@@ -242,7 +242,7 @@ export async function reviseSceneConfig(input: ComposeInput, index: number, them
   const f = facts[index];
   const theme = (cat.nodes.get(themeId)?.kind === 'theme' ? cat.nodes.get(themeId) : cat.nodes.get('builtin.plain')) as ThemeNode;
   const style = STYLES.includes(input.film.style as VideoStyle) ? (input.film.style as VideoStyle) : undefined;
-  let list = shortlist(cat, f, { style, state: { layouts: [], use: new Map(), seen: new Set() }, seed: `${input.brand.name}|${input.film.seed}|revise`, size: Math.max(6, effort.shortlist) });
+  let list = shortlist(cat, f, { style, direction: input.brand.direction, state: { layouts: [], use: new Map(), seen: new Set() }, seed: `${input.brand.name}|${input.film.seed}|revise`, size: Math.max(6, effort.shortlist) });
   // La configuration actuelle en tête (« A ») : la consigne la modifie, elle ne repart pas de zéro.
   const layout = cat.nodes.get(current.layout);
   if (layout?.kind === 'layout') list = [{ ref: 'A', layout: layout as LayoutNode, config: current, score: 99 }, ...list.filter((c) => sceneFingerprint(c.config) !== sceneFingerprint(current))].map((c, i) => ({ ...c, ref: String.fromCharCode(65 + i) }));

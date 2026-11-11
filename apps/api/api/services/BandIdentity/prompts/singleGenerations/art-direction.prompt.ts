@@ -1,17 +1,19 @@
 /**
- * Agent « direction artistique ».
+ * Agent « direction artistique » — il CHOISIT, il n'écrit pas.
  *
- * Il ne dessine rien : il DÉCIDE. Une fois pour la marque, il choisit un style
- * dans le catalogue et l'adapte au projet, puis toutes les générations
- * (charte, visuels, business plan, deck, mockups, site) s'y conforment.
+ * Décision du 11/11/2026 : la direction artistique d'une marque vient TOUJOURS du catalogue des DA
+ * (`idem-templates/catalog/directions`) ; le modèle n'invente aucun élément de direction. Deux appels courts :
  *
- * Le choix est contraint au catalogue, délibérément. Laissé libre, un modèle
- * répond « moderne, épuré, professionnel » — trois mots qui ne contraignent
- * rien et produisent la moyenne du corpus. En le forçant à retenir un style
- * nommé, avec sa grammaire, on obtient un parti pris exécutable et vérifiable.
+ *   1. le choix de la DA : un identifiant du catalogue, et la raison du choix pour CETTE marque (texte montré dans la
+ *      charte, ce n'est pas un élément de direction) ;
+ *   2. le choix des déclinaisons : pour chaque champ (formule, mots-clés, grille, blanc, geste signature, recettes,
+ *      couleur, typographie, image, dispositifs graphiques), l'identifiant d'une déclinaison rédigée d'avance ; et les
+ *      SUJETS des images de la marque (ce qu'on photographie : son activité, pas un style).
+ *
+ * Le code compose ensuite la direction mot pour mot depuis la fiche (`art-direction.compose.ts`).
  */
-
 import { buildStyleCatalogBrief } from '../../../brand/artDirection.catalog';
+import type { DirectionNode } from '@idem/graphic-engine';
 
 export interface ArtDirectionPromptInput {
   projectName: string;
@@ -22,140 +24,102 @@ export interface ArtDirectionPromptInput {
   colorsJson: string;
   /** Typographie de la charte, sérialisée. */
   typographyJson: string;
-  /** Concept du logo retenu, s'il existe. */
   logoConcept?: string;
-  /** Type de logo (icon / name / initial). */
   logoType?: string;
-  /**
-   * Styles à écarter. Sert à la régénération : sans cela, le modèle propose
-   * deux fois le même style et l'utilisateur qui demande « autre chose »
-   * reçoit la même réponse.
-   */
+  /** DA à écarter (régénération : « proposer une autre direction »). */
   excludeStyleIds?: string[];
-  /**
-   * Les gestes signature et grilles DÉJÀ donnés à d'autres marques récemment : à ne pas reproduire. Sans
-   * cette mémoire, le modèle ressort la même formule de projet en projet (« grand titre ferré à gauche… »).
-   */
-  recentGrammars?: string[];
-  /**
-   * Ce que le SITE de la marque montre de son style (projet créé depuis un site) : relevés du navigateur et
-   * lecture de la capture. La direction CODIFIE alors cette marque existante au lieu d'en inventer une.
-   */
+  /** Ce que le SITE de la marque montre de son style (projet créé depuis un site). */
   siteEvidence?: string;
 }
 
-export function buildArtDirectionPrompt(input: ArtDirectionPromptInput): string {
-  const excluded = (input.excludeStyleIds || []).filter(Boolean);
-
-  const RECENT = (input.recentGrammars || []).length
-    ? `These gestures were already given to OTHER brands — do not reuse them or close variants: ${(input.recentGrammars || []).slice(0, 12).map((g) => `« ${g.slice(0, 120)} »`).join(' ; ')}.`
-    : '';
-  return `<role>Art director in a branding studio. You are settling the visual stance of a brand for the next three years.</role>
-<objective>Pick ONE style from the catalogue below, then adapt it to this brand into an executable art direction. Output: strict JSON.</objective>
-
-<brand_brief>
+const brief = (input: ArtDirectionPromptInput) => `<brand_brief>
 Brand: ${input.projectName}
 Description: ${input.projectDescription}
 Industry: ${input.industry}
 Audience: ${input.targetAudience}
-Approved palette (fixed, do not change): ${input.colorsJson}
-Approved typography (fixed, do not change): ${input.typographyJson}
+Approved palette (fixed): ${input.colorsJson}
+Approved typography (fixed): ${input.typographyJson}
 ${input.logoConcept ? `Logo concept: ${input.logoConcept}` : ''}
 ${input.logoType ? `Logo type: ${input.logoType}` : ''}
-</brand_brief>
+</brand_brief>`;
 
-${
+const evidence = (input: ArtDirectionPromptInput) =>
   input.siteEvidence
     ? `<existing_brand>
-This brand ALREADY EXISTS: it has a website, and its clients know its look. Your job is to CODIFY that look, not to
-reinvent it. Pick the catalogue style CLOSEST to what the site shows; derive the grid, the signature move, the
-recipes, the graphic devices, the typographic treatment (case, weight, tracking, scale) and the corner shapes FROM
-the evidence below, so that a visual made with this direction looks like it comes from the same studio as the site.
-Where the evidence is silent, decide in the same spirit.
+This brand ALREADY EXISTS and has a website. Choose what is CLOSEST to what the site shows, not what you would prefer.
 EVIDENCE FROM THE SITE:
 ${input.siteEvidence.slice(0, 2400)}
-</existing_brand>
-`
-    : ''
-}
-<style_catalog>
+</existing_brand>`
+    : '';
+
+/** Appel 1 : la DA du catalogue. */
+export function buildArtDirectionChoicePrompt(input: ArtDirectionPromptInput): string {
+  const excluded = (input.excludeStyleIds || []).filter(Boolean);
+  return `<role>Art director in a branding studio. You pick the visual stance of a brand for the next three years, FROM A CATALOGUE.</role>
+<objective>Pick ONE art direction from the catalogue below. You invent nothing: every rule of the direction is already written in the catalogue. Output: strict JSON.</objective>
+
+${brief(input)}
+${evidence(input)}
+<catalogue>
 ${buildStyleCatalogBrief()}
-</style_catalog>
-${
-  excluded.length
-    ? `\n<excluded_styles>\nThese styles have already been proposed and are ruled out: ${excluded.join(', ')}. Pick a different one.\n</excluded_styles>\n`
-    : ''
-}
+</catalogue>
+${excluded.length ? `<excluded>\nAlready proposed, ruled out: ${excluded.join(', ')}. Pick a different one.\n</excluded>\n` : ''}
 <how_to_choose>
-1. Name, to yourself, what this brand actually SELLS — not its industry, its promise (trust, speed, warmth, rigour, status, accessibility).
-2. Eliminate the styles that contradict that promise. An audit firm cannot be Y2K; a festival brand cannot be Swiss Design.
-3. Among those left, keep the one that makes the brand RECOGNISABLE against its direct competitors — not the one that makes it look like the average of its sector.
-4. Check compatibility with the already-approved palette and typography: every deliverable is composed on a LIGHT ground, so pick a style whose grammar holds up there (the palette itself never changes).
-5. Never keep a style "because it is safe". Minimalism chosen by default, with no reason specific to this brand, is the worst pick of all: it is the average wearing the costume of a stance.
+1. Name, to yourself, what this brand actually SELLS: its promise (trust, speed, warmth, rigour, status, accessibility, celebration).
+2. Eliminate the directions that contradict that promise. An audit firm cannot be Y2K; a street-food brand cannot be Quiet Luxury.
+3. Among those left, keep the one that makes the brand RECOGNISABLE against its direct competitors, not the average of its sector.
+4. Every deliverable is composed on a LIGHT ground with the approved palette and typography: keep a direction that holds up there.
+5. Never keep a direction "because it is safe". Minimalism without a reason specific to this brand is the worst pick.
+6. Directions rooted in African visual cultures are first-class choices when the brand lives in that world, never a costume.
 </how_to_choose>
-
-<originality>
-The grammar must belong to THIS brand, not to the style. Derive it from what is specific here: the logo's
-geometry (its curves or angles, its proportions), the product and its materials, the audience's world, the
-city or culture the brand lives in. Name the signature move after something from that world.
-Never copy the catalogue's sentences. ${RECENT}
-</originality>
-
-<what_makes_it_executable>
-The direction is only useful if it decides on behalf of whoever composes next. Every field must be an INSTRUCTION, not an adjective.
-- "clean and modern" decides nothing.
-- "one occupied zone per page, aligned to a 12-column grid, 55% of the frame left empty, a single 1px rule as the only ornament" decides everything.
-Each field must be executable by someone who has not read the rest of the document.
-</what_makes_it_executable>
-
-<constraints>
-- styleId MUST be an identifier from the catalogue, character for character.
-- The supplied palette and typography are fixed: the direction states how to USE them, never what to change.
-- imagePromptModifier is in ENGLISH (it is concatenated onto image-model prompts) and describes the RENDER only — light, material, grain, grading, framing — never the subject. 25 to 60 words.
-- Every other field is written in FRENCH (they are shown to the user in the brand book).
-- dos and donts: 4 to 6 entries each, imperative, specific to THIS brand (not a generic copy of the style sheet).
-- keywords: 5 to 8 moodboard words, concrete (a material, a light, an object), never brand adjectives.
-</constraints>
 
 <output_format>
 Strict JSON, no surrounding text, no code fences.
-{
-  "styleId": "exact identifier from the catalogue",
-  "styleName": "style name",
-  "tagline": "the direction as one formula of 8 words max, specific to this brand",
-  "rationale": "2 to 3 sentences: why this style for THIS brand, and what it rules out",
-  "keywords": ["", "", "", "", ""],
-  "layout": {
-    "grid": "precise grid system (column count, gutters, margin behaviour)",
-    "density": "airy | balanced | dense, plus one sentence on how it applies",
-    "whitespace": "how much of the frame stays empty and where it sits",
-    "signatureMove": "THE compositional gesture that must be visible on every deliverable",
-    "recipes": [
-      {"name": "short name", "use": "social post | flyer | slide | document page", "zones": "where each element sits, in % of the frame (e.g. photo 0-60% height full width; title bottom-left 8% margin; logo top-right)"}
-    ]
-  },
-  "color": {
-    "distribution": "numeric split between the charter colours",
-    "application": "where each colour goes (flats, text, rules, images)",
-    "contrast": "the kind of contrast sought"
-  },
-  "typography": {
-    "scaleContrast": "scale ratio between levels and number of levels",
-    "caseAndTracking": "dominant case and tracking, values included",
-    "treatment": "specific typographic treatment, or 'none'"
-  },
-  "imagery": {
-    "medium": "photography | illustration | render-3d | collage | abstract | mixed",
-    "subjects": "what this brand's images show",
-    "treatment": "treatment applied to every image (duotone, grain, crop, overlay...)",
-    "lighting": "direction and quality of light, constant across the brand",
-    "framing": "dominant framing and point of view"
-  },
-  "graphicDevices": ["3 to 5 recurring graphic devices, described precisely enough to be redrawn"],
-  "dos": ["", "", "", ""],
-  "donts": ["", "", "", ""],
-  "imagePromptModifier": "english render-only modifier, 25-60 words"
+{"styleId": "exact identifier from the catalogue", "rationale": "2 to 3 sentences IN FRENCH: why this direction for THIS brand, and what it rules out"}
+</output_format>
+`;
 }
+
+/** Appel 2 : une déclinaison par champ, dans la fiche de la DA retenue. */
+export function buildArtDirectionVariantsPrompt(input: ArtDirectionPromptInput & { direction: DirectionNode; recentCombos?: string[] }): string {
+  const d = input.direction;
+  const lines: string[] = [];
+  const add = (field: string, label: string, items: Array<{ id: string; text: string }>) => {
+    lines.push(`${field} — ${label}`);
+    for (const it of items) lines.push(`  ${it.id}: ${it.text}`);
+  };
+  add('tagline', 'formula', d.variants.tagline.map((v) => ({ id: v.id, text: v.text })));
+  add('keywords', 'moodboard words', d.variants.keywords.map((v) => ({ id: v.id, text: v.items.join(', ') })));
+  add('grid', 'grid', d.variants.grid.map((v) => ({ id: v.id, text: `${v.text} (${v.density})` })));
+  add('whitespace', 'empty space', d.variants.whitespace.map((v) => ({ id: v.id, text: v.text })));
+  add('signatureMove', 'signature move', d.variants.signatureMove.map((v) => ({ id: v.id, text: v.text })));
+  add('recipes', 'layout recipes', d.variants.recipes.map((v) => ({ id: v.id, text: v.items.map((r) => `${r.name} (${r.use})`).join(' ; ') })));
+  add('color', 'colour use', d.variants.color.map((v) => ({ id: v.id, text: `${v.distribution} : ${v.application}` })));
+  add('typography', 'typography', d.variants.typography.map((v) => ({ id: v.id, text: `${v.scaleContrast} ${v.caseAndTracking}` })));
+  add('imagery', 'imagery', d.variants.imagery.map((v) => ({ id: v.id, text: `${v.medium} : ${v.treatment} ; ${v.lighting} ; ${v.framing}` })));
+  add('graphicDevices', 'graphic devices', d.variants.graphicDevices.map((v) => ({ id: v.id, text: v.items.join(', ') })));
+  const recent = (input.recentCombos || []).filter((c) => c.startsWith(`${d.id}:`)).slice(0, 8);
+  return `<role>Art director. The brand's art direction is "${d.name.en}". You now pick, for each field, ONE variant already written in the catalogue. You write no rule yourself.</role>
+
+${brief(input)}
+${evidence(input)}
+<direction>
+${d.name.en} — ${d.essence.en}
+</direction>
+
+<variants>
+${lines.join('\n')}
+</variants>
+${recent.length ? `<already_given>\nThese combinations were given to other brands recently; do not repeat one exactly: ${recent.join(' | ')}\n</already_given>\n` : ''}
+<how_to_choose>
+- For each field, the variant that fits THIS brand's product, audience and palette best.
+- imagery: photography for a brand with real places, people or products to show; illustration or 3D only when the brand has nothing to photograph or sells to children.
+- subjects: what this brand's images show (its activity, its people, its places), in French, 20 words at most. This is subject matter, not style.
+</how_to_choose>
+
+<output_format>
+Strict JSON, no surrounding text, no code fences.
+{"variants": {"tagline": "id", "keywords": "id", "grid": "id", "whitespace": "id", "signatureMove": "id", "recipes": "id", "color": "id", "typography": "id", "imagery": "id", "graphicDevices": "id"}, "subjects": "French, 20 words at most"}
 </output_format>
 `;
 }

@@ -27,6 +27,8 @@ export interface KindNode {
   layout: LayoutId;
   doc: NodeDoc;
   fields: Record<string, FieldDef>;
+  /** Les DA servies (catalogue `directions` du dépôt). */
+  directions?: string[];
 }
 
 export interface SectionNode {
@@ -40,6 +42,8 @@ export interface SectionNode {
   /** Les nombres d'éléments que la variante sait mettre en page (`tiles: [3, 6]`, `gallery: [3, 12]`). */
   fits?: Record<string, [number, number]>;
   template: string;
+  /** Les DA servies : un site ne prend que les variantes de la DA de sa marque (ou de ses voisines). */
+  directions?: string[];
 }
 
 export interface ShellNode {
@@ -48,6 +52,7 @@ export interface ShellNode {
   medium: 'icode';
   doc: NodeDoc;
   template: string;
+  directions?: string[];
 }
 
 export interface LoadedSectionCatalog {
@@ -58,6 +63,17 @@ export interface LoadedSectionCatalog {
   headers: ShellNode[];
   footers: ShellNode[];
   rejected: Array<{ id: string; reason: string }>;
+  /** Les DA du dépôt (version légère : voisines, rayon, échelle, densité). Vide : catalogue sans DA. */
+  directions: Map<string, CatalogDirection>;
+}
+
+export interface CatalogDirection {
+  id: string;
+  neighbors: string[];
+  name?: { fr?: string; en?: string };
+  radius?: number;
+  typeRatio?: number;
+  density?: 'airy' | 'balanced' | 'dense';
 }
 
 // ── Les règles ───────────────────────────────────────────────────────────────────────────────

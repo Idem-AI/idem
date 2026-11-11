@@ -30,6 +30,7 @@ import { stableHash } from '../../foundation/hash';
 import { classifyFont, FontClass } from '../../foundation/typeset';
 import { FORMATS, FormatDef } from '../formats';
 import { STYLE_DATA, StyleData } from './styles.data';
+import { directionsSync } from '../../directions';
 
 export interface BrandLogos {
   /** Le logo complet de référence. */
@@ -145,6 +146,8 @@ const FALLBACK = { primary: '#1f4e5f', secondary: '#4a5a60', accent: '#c6553d' }
 export const DEFAULT_STYLE_ID = 'editorial';
 
 export function resolveStyle(styleId?: string | null): StyleData {
+  // Les fiches du catalogue des DA remplissent STYLE_DATA (premier accès : lecture disque, puis mise à jour en fond).
+  directionsSync();
   return STYLE_DATA[String(styleId ?? '').trim()] ?? STYLE_DATA[DEFAULT_STYLE_ID];
 }
 

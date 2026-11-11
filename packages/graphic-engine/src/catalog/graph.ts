@@ -20,40 +20,19 @@ import { stableHash } from '../foundation/hash';
 import { catalogEffortFor } from '../foundation/effort';
 import { assignUnits, PageUnit, placedZones } from './assemble';
 import { BUILTIN_LAYOUT, BUILTIN_SKIN } from './builtin';
+import { getDirection } from '../directions';
 import type { CatalogElement, CatalogNode, CatalogOverrides, ComponentNode, GabaritNode, LayoutNode, LoadedCatalog, PageConfig, SkinNode, ZoneAccept } from './types';
 
 // ── Les traits de la marque ──────────────────────────────────────────────────────────────────
 
 export interface BrandTraits {
+  /** La DA de la marque (catalogue `directions`) : le graphe ne sert que ses nœuds, ou ceux de ses voisines. */
+  styleId?: string;
   moods: string[];
   density?: 'airy' | 'balanced' | 'dense';
   imagery: 'photo' | 'illustration' | 'none' | 'any';
   allowDark: boolean;
 }
-
-/** Les humeurs du catalogue que suggère chaque style de la direction artistique. */
-const STYLE_MOODS: Record<string, string[]> = {
-  minimalism: ['sober', 'airy'],
-  maximalism: ['bold', 'vibrant'],
-  futuristic: ['tech', 'bold'],
-  'vector-art': ['playful', 'vibrant'],
-  'collage-art': ['editorial', 'bold'],
-  retro: ['warm', 'playful'],
-  cyberpunk: ['tech', 'bold'],
-  'pop-art': ['bold', 'playful', 'vibrant'],
-  glassmorphism: ['tech', 'sober'],
-  clay: ['playful', 'warm'],
-  'pixel-art': ['playful', 'tech'],
-  editorial: ['editorial', 'sober'],
-  y2k: ['playful', 'vibrant'],
-  swiss: ['sober', 'institutional'],
-  surreal: ['editorial', 'luxury'],
-  bohemian: ['warm', 'organic'],
-  victorian: ['luxury', 'editorial'],
-  graffiti: ['bold', 'vibrant'],
-  aurora: ['tech', 'luxury'],
-  handwritten: ['warm', 'organic', 'playful'],
-};
 
 /** Des mots de la direction (mots-clés, grammaire) qui disent une humeur : un indice, pas une règle. */
 const WORD_MOODS: Array<[RegExp, string]> = [
@@ -70,12 +49,27 @@ const WORD_MOODS: Array<[RegExp, string]> = [
 ];
 
 export function brandTraits(direction: DirectionInput | undefined, allowDark: boolean): BrandTraits {
-  const moods = new Set<string>(STYLE_MOODS[direction?.styleId ?? ''] ?? []);
+  // Les humeurs de la DA, lues dans sa fiche du catalogue (plus de table recopiée).
+  const moods = new Set<string>(getDirection(direction?.styleId)?.tags.mood ?? []);
   const words = [...(direction?.keywords ?? []), direction?.grammar ?? ''].join(' ').slice(0, 2000);
   for (const [re, mood] of WORD_MOODS) if (re.test(words)) moods.add(mood);
   const medium = direction?.imageryMedium ?? '';
   const imagery = medium === 'photography' ? 'photo' : medium === 'illustration' || medium === 'render-3d' || medium === 'collage' ? 'illustration' : medium === 'abstract' ? 'none' : 'any';
-  return { moods: [...moods], density: direction?.density, imagery, allowDark };
+  return { ...(direction?.styleId ? { styleId: direction.styleId } : {}), moods: [...moods], density: direction?.density, imagery, allowDark };
+}
+
+/**
+ * Les nœuds de la DA de la marque. Aucun pour cette liste : ceux de ses DA voisines (déclarées dans sa fiche). Aucun
+ * non plus : la liste entière — une génération ne s'arrête jamais faute de couverture (le dépôt la contrôle à la
+ * construction). Sans DA connue (marque sans direction, catalogue sans DA), aucun filtre.
+ */
+export function inDirection<T extends { directions?: string[] }>(cat: LoadedCatalog, list: T[], styleId?: string): T[] {
+  if (!styleId || !cat.directions?.size || !cat.directions.has(styleId)) return list;
+  const own = list.filter((n) => n.directions?.includes(styleId));
+  if (own.length) return own;
+  const neighbors = cat.directions.get(styleId)?.neighbors ?? [];
+  const near = list.filter((n) => n.directions?.some((d) => neighbors.includes(d)));
+  return near.length ? near : list;
 }
 
 // ── Le filtre dur ────────────────────────────────────────────────────────────────────────────
@@ -123,7 +117,11 @@ export function compatibleLayouts(cat: LoadedCatalog, facts: PageFacts, disabled
 }
 
 export function compatibleSkins(cat: LoadedCatalog, element: CatalogElement, traits: BrandTraits, disabled: Set<string>): SkinNode[] {
-  return [...cat.nodes.values()].filter((n): n is SkinNode => n.kind === 'skin' && !disabled.has(n.id) && !n.id.startsWith('builtin.') && forElement(n, element) && (!n.dark || traits.allowDark));
+  return inDirection(
+    cat,
+    [...cat.nodes.values()].filter((n): n is SkinNode => n.kind === 'skin' && !disabled.has(n.id) && !n.id.startsWith('builtin.') && forElement(n, element) && (!n.dark || traits.allowDark)),
+    traits.styleId
+  );
 }
 
 /** Les composants qui savent rendre cette unité dans cette zone. */
@@ -234,10 +232,10 @@ export function pickComponents(cat: LoadedCatalog, layout: LayoutNode, facts: Pa
   const out: Record<string, string> = {};
   for (const u of facts.units) {
     const at = zoneOf.get(u.id) ?? { accepts: ['any'] as ZoneAccept[], width: 1 };
-    const comps = compatibleComponents(cat, u, at.accepts, disabled, at.width);
+    const comps = inDirection(cat, compatibleComponents(cat, u, at.accepts, disabled, at.width), traits.styleId);
     if (!comps.length) continue;
     const ranked = comps
-      .map((c) => ({ c, v: ((prefer[u.kind] === c.id ? 0.6 : 0) + tagFit(c, traits, facts.units.some((x) => x.category === 'media')) + 0.35 * jitter(`${seed}|${u.id}|${rank}`, c.id)) * weightOf(overrides, c.id) }))
+      .map((c) => ({ c, v: ((prefer[u.kind] === c.id ? 1.5 : 0) + tagFit(c, traits, facts.units.some((x) => x.category === 'media')) + 0.35 * jitter(`${seed}|${u.id}|${rank}`, c.id)) * weightOf(overrides, c.id) }))
       .sort((a, b) => b.v - a.v);
     out[u.id] = ranked[Math.min(rank, ranked.length - 1)].c.id;
   }
@@ -258,12 +256,17 @@ export function drawVars(nodes: Array<{ vars?: Array<{ name: string; options: Ar
 export function shortlist(cat: LoadedCatalog, facts: PageFacts, o: { level: CreativityLevel; skin: string; traits: BrandTraits; state: CatalogState; seed: string; overrides: CatalogOverrides; exclude?: string[] }): Candidate[] {
   const effort = catalogEffortFor(o.level);
   const disabled = new Set(o.overrides.disabled ?? []);
-  const layouts = compatibleLayouts(cat, facts, disabled, o.traits.allowDark);
+  const layouts = inDirection(cat, compatibleLayouts(cat, facts, disabled, o.traits.allowDark), o.traits.styleId);
   const layoutIds = new Set(layouts.map((l) => l.id));
   const hasMedia = facts.units.some((u) => u.category === 'media');
   const seed = `${o.seed}|${facts.index}`;
   const skin = cat.nodes.get(o.skin) as SkinNode | undefined;
-  const gabarits = [...cat.nodes.values()].filter((n): n is GabaritNode => n.kind === 'gabarit' && !disabled.has(n.id) && n.elements.includes(facts.element) && fitsRole(n.roles, facts.role) && layoutIds.has(n.config.layout));
+  // Les gabarits de la DA de la marque (ou de ses voisines).
+  const gabarits = inDirection(
+    cat,
+    [...cat.nodes.values()].filter((n): n is GabaritNode => n.kind === 'gabarit' && !disabled.has(n.id) && n.elements.includes(facts.element) && fitsRole(n.roles, facts.role) && layoutIds.has(n.config.layout)),
+    o.traits.styleId
+  );
   const raw: Array<Omit<Candidate, 'ref'>> = [];
   const push = (layout: LayoutNode, gabarit: GabaritNode | undefined, rank: number) => {
     const prefer = gabarit?.config.components ?? {};

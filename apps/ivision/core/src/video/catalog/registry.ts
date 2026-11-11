@@ -17,19 +17,21 @@
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import { hardcodedWords, unsafeReasons, verifyManifest } from '@idem/graphic-engine';
+import { hardcodedWords, readDirectionsDir, unsafeReasons, verifyManifest } from '@idem/graphic-engine';
 import logger from '../../runtime/logger';
 import { BUILTIN_VIDEO_NODES } from './builtin';
 import { LoadedVideoCatalog, nodeErrors, refErrors, VideoNode } from './types';
 
 /** La version du moteur vidéo par catalogue : un manifeste d'une autre version MAJEURE est refusé. */
-export const VIDEO_CATALOG_ENGINE = '1.0.0';
+// 2.0 : chaque nœud déclare ses directions artistiques (catalogue `directions` du dépôt).
+export const VIDEO_CATALOG_ENGINE = '2.0.0';
 
 interface VideoManifest {
   schema: number;
   medium?: string;
   version: string;
   engine?: string;
+  directions?: Array<Record<string, unknown>>;
   entries: Array<{ node: Record<string, unknown>; html?: string }>;
   signature?: string;
 }
@@ -59,9 +61,11 @@ function unsafe(node: VideoNode): string[] {
 }
 
 /** Des entrées brutes → un catalogue VÉRIFIÉ (le minimum intégré toujours présent, jamais remplacé). */
-export function buildVideoCatalog(entries: Array<{ node: Record<string, unknown>; html?: string }>, version: string, source: LoadedVideoCatalog['source']): LoadedVideoCatalog {
+export function buildVideoCatalog(entries: Array<{ node: Record<string, unknown>; html?: string }>, version: string, source: LoadedVideoCatalog['source'], rawDirections: Array<Record<string, unknown>> = []): LoadedVideoCatalog {
   const nodes = new Map<string, VideoNode>(BUILTIN_VIDEO_NODES.map((n) => [n.id, n]));
   const rejected: LoadedVideoCatalog['rejected'] = [];
+  const directions = new Map<string, { id: string; neighbors: string[] }>();
+  for (const d of rawDirections) if (typeof d?.id === 'string') directions.set(d.id, { id: d.id, neighbors: Array.isArray(d.neighbors) ? d.neighbors.map(String) : [] });
   const candidates: VideoNode[] = [];
   for (const entry of entries) {
     const raw = { ...entry.node, ...(entry.html ? { html: entry.html } : {}) } as unknown as VideoNode;
@@ -71,6 +75,13 @@ export function buildVideoCatalog(entries: Array<{ node: Record<string, unknown>
       continue;
     }
     const errors = [...nodeErrors(raw), ...unsafe(raw)];
+    // Rangé par DA : chaque nœud appartient à au moins une DA existante, sinon il n'est pas servi.
+    if (directions.size) {
+      const own = Array.isArray(raw.directions) ? raw.directions : [];
+      const unknown = own.filter((d) => !directions.has(d));
+      if (!own.length) errors.push('aucune direction artistique');
+      else if (unknown.length) errors.push(`direction artistique inconnue : ${unknown.join(', ')}`);
+    }
     if (errors.length) rejected.push({ id, reason: errors.slice(0, 3).join(' · ') });
     else candidates.push(raw);
   }
@@ -86,7 +97,7 @@ export function buildVideoCatalog(entries: Array<{ node: Record<string, unknown>
       }
     }
   }
-  return { version, source, nodes, rejected };
+  return { version, source, nodes, rejected, directions };
 }
 
 /** Le dépôt sur le disque : `catalog/videos/<sorte>/<groupe>/<id>/node.json` (+ `template.html`, `config.json`). */
@@ -120,7 +131,7 @@ function fromManifest(manifest: VideoManifest, source: LoadedVideoCatalog['sourc
   if (major(manifest.engine) !== major(VIDEO_CATALOG_ENGINE)) return { error: `catalogue pour le moteur vidéo ${manifest.engine} (celui-ci : ${VIDEO_CATALOG_ENGINE})` };
   const signed = verifyManifest(manifest as never);
   if (!signed.ok) return { error: signed.reason ?? 'signature refusée' };
-  return buildVideoCatalog(manifest.entries, manifest.version, source);
+  return buildVideoCatalog(manifest.entries, manifest.version, source, manifest.directions ?? []);
 }
 
 async function fromUrl(base: string): Promise<LoadedVideoCatalog | null> {
@@ -164,7 +175,7 @@ async function load(): Promise<LoadedVideoCatalog> {
   const dir = process.env.IDEM_TEMPLATES_DIR?.trim();
   if (dir) {
     try {
-      next = buildVideoCatalog(readVideoTemplatesDir(dir), `dir:${new Date().toISOString().slice(0, 19)}`, 'dir');
+      next = buildVideoCatalog(readVideoTemplatesDir(dir), `dir:${new Date().toISOString().slice(0, 19)}`, 'dir', readDirectionsDir(dir) as Array<Record<string, unknown>>);
     } catch (error) {
       logger.error('video.catalog_dir_failed', { dir, reason: String((error as Error)?.message ?? error).slice(0, 200) });
     }

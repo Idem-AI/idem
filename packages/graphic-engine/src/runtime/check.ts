@@ -377,6 +377,9 @@ export const QUALITY = (f: QualityFrame) => `(function (f) {
     var c = cs.backgroundColor;
     var painted = cs.backgroundImage !== 'none' || (c && c !== 'transparent' && !/rgba\\([^)]*,\\s*0(\\.0+)?\\)/.test(c));
     if (!painted || el.closest('[data-ge-chart],[data-ge-gallery],[data-ge-pattern]:not(.ge-page),[data-ge-pattern-tile],table')) return;
+    // Le décor de l'habillage et les voiles d'image (bichromie) sont un FOND : un texte peut les traverser (contraste et
+    // recouvrement restent contrôlés par ailleurs).
+    if (el.closest('[data-ge-decor]')) return;
     var q = el.getBoundingClientRect();
     if (q.width * q.height < pageArea * 0.01 || q.width * q.height > pageArea * 0.9) return;
     panels.push({ el: el, q: q });
@@ -574,6 +577,8 @@ export const QUALITY = (f: QualityFrame) => `(function (f) {
     if (el === root || (inPrimitive && inPrimitive !== root && root.contains(inPrimitive))) return;
     var tag = el.tagName.toLowerCase();
     if (['img', 'svg', 'canvas', 'video', 'hr', 'br'].indexOf(tag) >= 0) return;
+    // Le décor de l'habillage (cercles, bandes, motifs) est vide par nature : ce n'est pas un cadre réservé.
+    if (el.closest('[data-ge-decor]')) return;
     if (!visible(el)) return;
     var cs = getComputedStyle(el);
     if (!paints(el, cs)) return;

@@ -8,7 +8,7 @@
  */
 import crypto from 'crypto';
 import { Request, Response, Router } from 'express';
-import { refreshCatalog } from '@idem/graphic-engine';
+import { refreshCatalog, refreshDirections } from '@idem/graphic-engine';
 import { refreshVideoCatalog } from '../../../core/src/video/catalog/registry';
 import logger from '../config/logger';
 
@@ -26,6 +26,8 @@ catalogRoutes.post('/refresh', async (req: Request, res: Response) => {
   if (!expected || !given || !sameSecret(given, expected)) return res.status(401).json({ error: 'unauthorized' });
   const images = await refreshCatalog();
   const videos = await refreshVideoCatalog();
-  logger.info('catalog.refreshed', { event: 'catalog.refreshed', version: images.version, source: images.source, rejected: images.rejected.length, videoVersion: videos.version, videoSource: videos.source, videoRejected: videos.rejected.length });
-  return res.json({ ...images, videos: { version: videos.version, source: videos.source, nodes: videos.nodes.size, rejected: videos.rejected.length } });
+  // Les directions artistiques d'abord publiées avec les gabarits : les agents choisissent dans la version à jour.
+  const directions = await refreshDirections();
+  logger.info('catalog.refreshed', { event: 'catalog.refreshed', version: images.version, source: images.source, rejected: images.rejected.length, videoVersion: videos.version, videoSource: videos.source, videoRejected: videos.rejected.length, directionsVersion: directions.version, directions: directions.directions });
+  return res.json({ ...images, videos: { version: videos.version, source: videos.source, nodes: videos.nodes.size, rejected: videos.rejected.length }, directions });
 });

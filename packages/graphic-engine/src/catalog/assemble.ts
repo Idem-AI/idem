@@ -765,7 +765,10 @@ export function assemblePage(ctx: AssemblyContext, choice: AssemblyChoice, units
     const s = ctx.format.safe;
     const padding = `pt-[${px(s.top)}] pr-[${px(s.right)}] pb-[${px(s.bottom)}] pl-[${px(s.left)}]`;
     void pad;
-    html = `<div class="relative grid h-full w-full ${grid} grid-rows-[repeat(${rows},minmax(0,1fr))] gap-[${px(env.gap)}] ${padding} ${page}">${zones.map(zoneHtml).join('')}${chrome}</div>`;
+    // Le décor de l'habillage est marqué : les contrôles savent qu'une forme du décor est vide par nature (ce n'est ni
+    // un cadre réservé ni une carte sans contenu). `contents` : l'enveloppe ne fait pas de boîte, le décor se place
+    // toujours par rapport à la page.
+    html = `<div class="relative grid h-full w-full ${grid} grid-rows-[repeat(${rows},minmax(0,1fr))] gap-[${px(env.gap)}] ${padding} ${page}">${zones.map(zoneHtml).join('')}${chrome ? `<div data-ge-decor class="contents">${chrome}</div>` : ''}</div>`;
   }
   return { html: dedupeClasses(html), zones: Object.fromEntries([...assigned.zones.entries()].map(([k, v]) => [k, v.map((u) => u.id)])), generic };
 }

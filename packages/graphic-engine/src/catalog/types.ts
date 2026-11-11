@@ -132,6 +132,11 @@ const common = {
   edges: NodeEdges.optional(),
   /** Auteurs (pseudonymes GitHub) : l'attribution des contributions. */
   authors: z.array(Short(60)).max(10).optional(),
+  /**
+   * Les DIRECTIONS ARTISTIQUES servies (catalogue `directions` du dépôt) : un nœud n'appartient qu'à des DA existantes,
+   * et le moteur ne sert à une marque que les nœuds de sa DA (ou de ses voisines). Absent : vieux catalogue sans DA.
+   */
+  directions: z.array(z.string().regex(/^[a-z][a-z0-9-]{1,39}$/)).min(1).max(60).optional(),
 };
 
 // ── layout ──────────────────────────────────────────────────────────────────────────────────
@@ -287,6 +292,8 @@ export const Manifest = z.strictObject({
   /** La version minimale du moteur qui sait lire ce catalogue (`2.6.0`). */
   engine: z.string().max(20),
   license: z.string().max(80).optional(),
+  /** La liste des DA du dépôt (version légère) : les `directions` de chaque nœud y sont vérifiées. */
+  directions: z.array(z.record(z.string(), z.unknown())).max(200).optional(),
   entries: z.array(ManifestEntry).max(20_000),
   /** Signature ed25519 (base64) du manifeste sans ce champ, JSON canonique. */
   signature: z.string().max(200).optional(),
@@ -310,6 +317,9 @@ export interface LoadedCatalog {
   htmlRefs: Map<string, { file: string; sha256: string }>;
   /** Ce qui a été écarté au chargement, et pourquoi (journalisé, montré par `check:catalog`). */
   rejected: Array<{ id: string; reason: string }>;
+  /** Les DA du dépôt (vide : catalogue sans DA, aucun filtre). */
+  directions: Map<string, DirectionInfo>;
 }
 
 export type { FormatId };
+import type { DirectionInfo } from '../directions';

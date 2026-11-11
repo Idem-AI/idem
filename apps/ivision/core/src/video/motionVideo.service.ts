@@ -854,7 +854,7 @@ export class MotionVideoService {
         ...(beat ? { beat: { bpm: beat.bpm, first: round3(((((beat.offset || 0) - sc.start) % period) + period) % period) } } : {}),
       })),
       film: { title: film.title, concept: film.concept, style: video.brief.style, seed: film.seed },
-      brand: { name: brand.tokens.name, hasLogo: Boolean(brand.tokens.logo?.light), hasDarkLogo: Boolean(brand.tokens.logo?.dark), line: [brand.tokens.name, (brand.art || '').split('\n')[0]].filter(Boolean).join(' · ').slice(0, 220) },
+      brand: { name: brand.tokens.name, hasLogo: Boolean(brand.tokens.logo?.light), hasDarkLogo: Boolean(brand.tokens.logo?.dark), line: [brand.tokens.name, (brand.art || '').split('\n')[0]].filter(Boolean).join(' · ').slice(0, 220), ...(brand.styleId ? { direction: brand.styleId } : {}) },
       formats: (video.scope.formats.length ? video.scope.formats : ['story']) as FilmFormatId[],
       level,
       call: this.callContext(userId, projectId, level),
