@@ -3,7 +3,8 @@ import { environment } from '../../../environments/environment';
 import { OfferPickerComponent } from '../../components/offer-picker/offer-picker';
 import { OfferIllustrationComponent } from '../../shared/components/offer-illustration/offer-illustration';
 import { PromoTextComponent, PromotionsStore } from '@idem/shared-promotions/angular';
-import { LivePhrase, livePhrase } from '../../shared/live-phrases';
+import { LivePhrase, livePhrase, livePhraseValue } from '../../shared/live-phrases';
+import { offerPriceXaf } from '@idem/shared-promotions';
 
 interface PriceRow {
   label: string;
@@ -26,6 +27,16 @@ interface ServiceTab {
 }
 
 /**
+ * Refonte du 11/11/2026, appuyée sur la recherche en psychologie des prix :
+ *  - **héros « au juste prix »** : la gratuité d'abord, puis les plus petits montants réels (une
+ *    version finale dès 500 F, une modification 25 F, « le prix d'un SMS ») — l'ancre basse qu'on
+ *    retient (ancrage, Tversky & Kahneman) et la logique « au détail » des marchés (économie du
+ *    sachet : acheter la quantité voulue, au jour) ;
+ *  - **le détail par service annonce « dès X F »** et liste les prix du moins cher au plus cher : le
+ *    premier prix lu sert de référence (effet d'ordre, Suk, Lee & Lichtenstein 2012) ;
+ *  - **les garanties** (plafond du Kit, génération ratée remboursée, sans abonnement, rien n'est
+ *    supprimé) lèvent la peur de payer pour rien (aversion à la perte).
+ *
  * Les tarifs publics. Une seule action principale (commencer gratuitement), trois offres choisies
  * par BESOIN plutôt que par produit, et le détail des prix révélé à la demande, service par
  * service. Chaque offre affichée a son bouton de souscription : il ouvre la console sur l'achat
@@ -64,11 +75,45 @@ export class PricingPage {
     { id: 'sim', label: $localize`:@@pricing-page.detail.sim:Simulation`, note: $localize`:@@pricing-page.detail.simNote:A free first analysis, then a full test of your business before you launch.`, rows: [{ label: $localize`:@@pricing-page.row.spre:First analysis`, price: $localize`:@@pricing-page.free:Free` }, { label: $localize`:@@pricing-page.row.srun:Full simulation`, price: '1 500 F', item: 'isimulate.run', xaf: 1500 }, { label: $localize`:@@pricing-page.row.sreport:Report for your bank`, price: '2 000 F', item: 'isimulate.report', xaf: 2000 }], href: this.urls['simulation'] },
   ];
   private readonly store = inject(PromotionsStore);
-  private readonly heroText = $localize`:@@pricing-page.hero.description:Create your business plan, logo, website and more for free. When you like the result, keep the final version from 500 F, paid by mobile money.`;
+  private amount(value: number): string {
+    return value.toLocaleString(typeof document !== 'undefined' && document.documentElement.lang.startsWith('en') ? 'en-US' : 'fr-FR');
+  }
 
-  /** « à partir de 500 F » : le prix de la version finale la moins chère, lu sur l'API. */
+  /** Les plus petits montants réels, lus sur l'API : la version finale la moins chère, une modification. */
   protected heroDescription(): string {
-    return livePhrase(this.heroText, this.store.offers(), 'minFinal');
+    const offers = this.store.offers();
+    const final = this.amount(livePhraseValue(offers, 'minFinal') ?? 500);
+    const change = this.amount(offerPriceXaf(offers, 'icode.modification') ?? 25);
+    return $localize`:@@pricing-page.hero.lead:Everything is created for free. You pay only to keep a result: a finished document from ${final}:FINAL: F, a change to your website ${change}:CHANGE: F, the price of an SMS.`;
+  }
+
+  /** Prix d'une ligne, tel que l'API le sert (sinon le prix de secours) ; `0` pour une ligne gratuite. */
+  private rowXaf(row: PriceRow): number {
+    if (!row.xaf) return 0;
+    return this.store.offerPrice(row.source ?? row.item ?? null, row.xaf);
+  }
+
+  /** Lignes d'un service, de la moins chère à la plus chère (les gratuites d'abord). */
+  protected sortedRows(tab: ServiceTab): PriceRow[] {
+    return [...tab.rows].sort((a, b) => this.rowXaf(a) - this.rowXaf(b));
+  }
+
+  /** « dès 100 F » sous le nom de l'onglet : le plus petit prix payant du service. */
+  protected fromLabel(tab: ServiceTab): string {
+    const paid = tab.rows.map((row) => this.rowXaf(row)).filter((value) => value > 0);
+    if (paid.length === 0) return $localize`:@@pricing-page.tab.free:free`;
+    return $localize`:@@pricing-page.tab.from:from ${this.amount(Math.min(...paid))}:AMOUNT: F`;
+  }
+
+  /** Ce qui protège l'acheteur (aversion à la perte) : quatre garanties, montants lus sur l'API. */
+  protected guarantees(): { title: string; text: string }[] {
+    const kit = this.amount(livePhraseValue(this.store.offers(), 'kitCap') ?? 2500);
+    return [
+      { title: $localize`:@@pricing-page.guarantee.cap.title:Never more than the Kit`, text: $localize`:@@pricing-page.guarantee.cap.text:On a project, your purchases stop at ${kit}:AMOUNT: F: beyond that, the whole Business Kit is unlocked.` },
+      { title: $localize`:@@pricing-page.guarantee.refund.title:A failed generation is not charged`, text: $localize`:@@pricing-page.guarantee.refund.text:If a generation fails, the amount goes back to your wallet automatically.` },
+      { title: $localize`:@@pricing-page.guarantee.free.title:No subscription required`, text: $localize`:@@pricing-page.guarantee.free.text:Pay as you go. Plans are optional, without commitment, and your monthly purchases stop at their price.` },
+      { title: $localize`:@@pricing-page.guarantee.keep.title:Nothing is deleted`, text: $localize`:@@pricing-page.guarantee.keep.text:An empty wallet only puts your website to sleep. Your drafts and documents stay yours.` },
+    ];
   }
 
   protected noteOf(tab: ServiceTab): string {

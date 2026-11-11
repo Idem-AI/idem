@@ -1,21 +1,57 @@
-<!-- Les quatre offres, par besoin : de la gratuite au forfait du mois. -->
+<!-- Par besoin : la gratuité en entrée, puis trois offres, la recommandée au centre. -->
 <section class="picker" aria-labelledby="picker-title">
   <h2 class="picker-title" id="picker-title" i18n="@@offer-picker.offers.title">What do you need?</h2>
-  @if (summary()) {
-    <p class="picker-lead">{{ lead() }}</p>
-  }
   <idem-promo-banner class="picker-banner" [dismissible]="false" />
+
+  <!-- 1. Tout commence gratuitement (effet du prix zéro) -->
+  <div class="free-strip">
+    <app-offer-illustration kind="sprout" class="free-art" />
+    <div class="free-copy">
+      <p class="free-title"><span class="free-zero">0&#8239;F</span>{{ ' ' }}<span i18n="@@offer-picker.free.title">to start, with no time limit</span></p>
+      <p class="free-text">{{ freeText() }}</p>
+    </div>
+    <a class="outer-button free-cta" [href]="startUrl" i18n="@@offer-picker.free.cta">Start for free</a>
+  </div>
+
+  <!-- 2. Trois offres : la recommandée au centre (et en premier sur téléphone) -->
   <div class="picker-grid">
-    @for (offer of offers; track offer.id) {
+    @for (offer of cards(); track offer.id) {
       <article class="offer" [class.offer-recommended]="offer.recommended" [attr.aria-labelledby]="'offer-' + offer.id">
         @if (offer.recommended) {
           <p class="offer-flag" i18n="@@offer-picker.offers.recommended">Most complete</p>
         }
-        <app-offer-illustration [kind]="offer.art" class="offer-art" />
-        <p class="offer-need">{{ offer.need }}</p>
-        <h3 class="offer-name" [id]="'offer-' + offer.id">{{ offer.name }}</h3>
-        <p class="offer-price"><span class="offer-amount"><idem-promo-price [item]="offer.item ?? null" [xaf]="offer.price" [source]="offer.item ?? null" /></span> <span class="offer-cadence">{{ offer.cadence }}</span></p>
-        <p class="offer-anchor">{{ anchorOf(offer) }}</p>
+        <div class="offer-head">
+          <app-offer-illustration [kind]="offer.art" class="offer-art" />
+          <div>
+            <p class="offer-need">{{ offer.need }}</p>
+            <h3 class="offer-name" [id]="'offer-' + offer.id">{{ offer.name }}</h3>
+          </div>
+        </div>
+
+        <div class="offer-price">
+          @if (offer.anchorXaf && !offer.promoted) {
+            <p class="offer-anchor"><del>{{ anchorLabel(offer.anchorXaf) }}</del></p>
+          }
+          @if (offer.dayXaf !== null && !offer.promoted) {
+            <p class="offer-amount-line">
+              <span class="offer-amount">{{ amount(offer.dayXaf) }}</span><span class="offer-unit">&#8239;F</span>
+              <span class="offer-per">{{ perDayLabel() }}</span>
+            </p>
+            <p class="offer-cadence">{{ perMonth(offer.priceXaf) }}, {{ offer.cadence }}</p>
+          } @else {
+            <p class="offer-amount-line">
+              <span class="offer-amount"><idem-promo-price [item]="offer.item" [xaf]="offer.priceXaf" unit="" /></span>
+              @if (!offer.promoted) {
+                <span class="offer-unit">&#8239;F</span>
+              }
+            </p>
+            <p class="offer-cadence">{{ offer.cadence }}</p>
+          }
+          @if (offer.savingXaf && !offer.promoted) {
+            <p class="offer-saving">{{ saving(offer.savingXaf) }}</p>
+          }
+        </div>
+
         <ul class="offer-list">
           @for (line of offer.bullets; track line) {
             <li><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5 L6.5 12 L13 4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg>{{ line }}</li>
@@ -28,6 +64,7 @@
       </article>
     }
   </div>
+
   @if (summary()) {
     <a class="picker-all" routerLink="/pricing" i18n="@@offer-picker.all">See every price, service by service</a>
   }

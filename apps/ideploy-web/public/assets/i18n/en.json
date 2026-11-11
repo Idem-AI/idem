@@ -302,7 +302,8 @@
     "step3D": "An e-mail 3 days before your balance runs out. Without a top-up, the app falls asleep, then wakes up as soon as you top up.",
     "optionsTitle": "Options by the day",
     "compareTitle": "Compared with other hosts",
-    "perYear": "/yr"
+    "perYear": "/yr",
+    "monthlyApprox": "≈ {{amount}} F a month"
   },
   "dashboard": {
     "searchProjects": "Search Projects…",

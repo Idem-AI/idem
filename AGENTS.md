@@ -163,6 +163,7 @@ Choisir l'élément par le **sens**, jamais par le décor :
 | Adresse, nom de domaine, être trouvé à son nom | Façade ndebele peinte |
 | Être reconnu, mis en avant par une communauté (Idem Builders) | Pagne commémoratif imprimé, médaillon aux briques de banco |
 | Faire tourner au quotidien, le travail de chaque jour | Mortier et pilon |
+| Payer la juste quantité, au détail, ce qu'on garde | Mesure du marché (bol à grain arasé) |
 | Compter, avancer étape par étape (frise d'étapes) | Os d'Ishango et ses encoches groupées |
 | Questions et réponses, l'appel et la réponse | Cloche double gankogui (ewe) |
 

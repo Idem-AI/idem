@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 import { localAmountAfter } from '../engine';
-import { formatAmount, currencyUnit, freeLabel } from '../format';
+import { formatAmount, currencyUnit, freeLabel, srLabels } from '../format';
 import { PromotionsStore } from './promotions.store';
 
 /**
@@ -18,6 +18,7 @@ import { PromotionsStore } from './promotions.store';
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'idem-promo-price' },
   styles: `
+    .vh { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
     :host { display: inline-flex; align-items: baseline; flex-wrap: wrap; gap: 0.4em; }
     del { font-size: 0.62em; font-weight: 500; color: var(--color-text-tertiary, currentColor); opacity: 0.85; text-decoration-thickness: 0.08em; }
     .badge { font-size: 0.5em; font-weight: 600; letter-spacing: 0.02em; padding: 0.15em 0.55em; border-radius: 999px;
@@ -25,8 +26,8 @@ import { PromotionsStore } from './promotions.store';
   `,
   template: `
     @if (view().discounted) {
-      <del><span class="sr-only">Prix normal : </span>{{ view().original }}</del>
-      <span><span class="sr-only">Prix pendant la promotion : </span>{{ view().final }}</span>
+      <del><span class="vh">{{ labels().normal }} </span>{{ view().original }}</del>
+      <span><span class="vh">{{ labels().promo }} </span>{{ view().final }}</span>
       @if (showBadge() && view().badge) {
         <span class="badge">{{ view().badge }}</span>
       }
@@ -37,6 +38,8 @@ import { PromotionsStore } from './promotions.store';
 })
 export class PromoPriceComponent {
   private readonly store = inject(PromotionsStore);
+  /** Libellés pour les lecteurs d'écran, dans la langue de la page. */
+  protected readonly labels = computed(() => srLabels());
 
   /** Article du catalogue des promotions (`pack.lancement`, `deliverable.business_plan`…). */
   readonly item = input<string | null>(null);

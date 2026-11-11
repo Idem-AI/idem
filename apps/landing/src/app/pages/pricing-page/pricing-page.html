@@ -11,7 +11,7 @@
       </div>
       <p class="pricing-note" i18n="@@pricing-page.hero.note">No bank card. 7 days of IDEM Growth offered at signup.</p>
     </div>
-    <app-offer-illustration kind="wallet" class="pricing-hero-art" />
+    <app-offer-illustration kind="measure" class="pricing-hero-art" />
   </section>
 
   <!-- Quatre offres, par besoin -->
@@ -22,20 +22,42 @@
     <h2 class="pricing-h2" id="detail-title" i18n="@@pricing-page.detail.title">Every price, service by service</h2>
     <div class="tabs" role="tablist" aria-labelledby="detail-title">
       @for (tab of services; track tab.id; let i = $index) {
-        <button type="button" role="tab" class="tab" [id]="'tab-' + tab.id" [attr.aria-selected]="activeService() === tab.id" [attr.aria-controls]="'panel-' + tab.id" [attr.tabindex]="activeService() === tab.id ? 0 : -1" (click)="activeService.set(tab.id)" (keydown)="onTabKey($event, i)">{{ tab.label }}</button>
+        <button type="button" role="tab" class="tab" [id]="'tab-' + tab.id" [attr.aria-selected]="activeService() === tab.id" [attr.aria-controls]="'panel-' + tab.id" [attr.tabindex]="activeService() === tab.id ? 0 : -1" (click)="activeService.set(tab.id)" (keydown)="onTabKey($event, i)">
+          <span class="tab-name">{{ tab.label }}</span>
+          <span class="tab-from">{{ fromLabel(tab) }}</span>
+        </button>
       }
     </div>
     @if (service(); as tab) {
       <div class="panel" role="tabpanel" [id]="'panel-' + tab.id" [attr.aria-labelledby]="'tab-' + tab.id">
         <p class="panel-note">{{ noteOf(tab) }}</p>
         <dl class="price-list">
-          @for (row of tab.rows; track row.label) {
+          @for (row of sortedRows(tab); track row.label) {
             <div class="price-row"><dt>{{ row.label }}</dt><dd><idem-promo-text [text]="row.price" [item]="row.item ?? null" [xaf]="row.xaf ?? null" [source]="row.source ?? row.item ?? null" /></dd></div>
           }
         </dl>
         <a class="outer-button button-sm panel-cta" [href]="tab.href"><span i18n="@@pricing-page.detail.open">Open</span>&nbsp;{{ tab.label }}</a>
       </div>
     }
+  </section>
+
+  <!-- Ce qui vous protège : la peur de payer pour rien, levée avant le paiement -->
+  <section class="pricing-section guarantees" aria-labelledby="guarantees-title">
+    <app-offer-illustration kind="kyinie" class="guarantees-art" />
+    <div>
+      <h2 class="pricing-h2" id="guarantees-title" i18n="@@pricing-page.guarantee.title">What protects you</h2>
+      <ul class="guarantee-list">
+        @for (item of guarantees(); track item.title) {
+          <li>
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5 L6.5 12 L13 4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg>
+            <div>
+              <p class="guarantee-title">{{ item.title }}</p>
+              <p class="guarantee-text">{{ item.text }}</p>
+            </div>
+          </li>
+        }
+      </ul>
+    </div>
   </section>
 
   <!-- Comment payer : une vraie suite d'étapes -->

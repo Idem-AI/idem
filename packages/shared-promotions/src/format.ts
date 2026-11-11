@@ -44,3 +44,9 @@ export function freeLabel(locale?: string): string {
   const lang = (locale ?? (typeof document !== 'undefined' ? document.documentElement.lang : '') ?? 'fr').toLowerCase();
   return lang.startsWith('en') ? 'Free' : 'Gratuit';
 }
+
+/** Ce que lit un lecteur d'écran devant un prix barré, dans la langue de la page. */
+export function srLabels(locale?: string): { normal: string; promo: string } {
+  const lang = (locale ?? (typeof document !== 'undefined' ? document.documentElement.lang : '') ?? 'fr').toLowerCase();
+  return lang.startsWith('en') ? { normal: 'Regular price:', promo: 'Price during the offer:' } : { normal: 'Prix normal :', promo: 'Prix pendant la promotion :' };
+}

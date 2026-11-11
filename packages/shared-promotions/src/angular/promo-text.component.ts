@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 import { localAmountAfter } from '../engine';
-import { freeLabel, rewriteAmount } from '../format';
+import { freeLabel, rewriteAmount, srLabels } from '../format';
 import { PromotionsStore } from './promotions.store';
 
 /**
@@ -17,13 +17,14 @@ import { PromotionsStore } from './promotions.store';
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'idem-promo-text' },
   styles: `
+    .vh { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
     :host { display: inline-flex; align-items: baseline; flex-wrap: wrap; justify-content: inherit; gap: 0.4em; }
     del { font-size: 0.85em; font-weight: 400; color: var(--color-text-tertiary, currentColor); opacity: 0.85; }
   `,
   template: `
     @if (view(); as v) {
-      <del><span class="sr-only">Prix normal : </span>{{ liveText() }}</del>
-      <span><span class="sr-only">Prix pendant la promotion : </span>{{ v }}</span>
+      <del><span class="vh">{{ labels().normal }} </span>{{ liveText() }}</del>
+      <span><span class="vh">{{ labels().promo }} </span>{{ v }}</span>
     } @else {
       <span>{{ liveText() }}</span>
     }
@@ -31,6 +32,8 @@ import { PromotionsStore } from './promotions.store';
 })
 export class PromoTextComponent {
   private readonly store = inject(PromotionsStore);
+  /** Libellés pour les lecteurs d'écran, dans la langue de la page. */
+  protected readonly labels = computed(() => srLabels());
   readonly text = input.required<string>();
   readonly item = input<string | null>(null);
   readonly xaf = input<number | null>(null);

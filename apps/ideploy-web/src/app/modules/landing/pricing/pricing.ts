@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject } from '@angular/core';
+import { PromoPriceComponent, PromotionsStore } from '@idem/shared-promotions/angular';
 import { Router } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 import { LandingNavComponent } from '../shared/landing-nav';
@@ -11,7 +12,8 @@ type MeterTier = 'veille' | 'vitrine' | 'application' | 'application_plus';
 
 interface Meter {
   tier: MeterTier;
-  price: string;
+  /** Prix de secours au jour (l'API fait foi : `meter:<tier>`). */
+  fallbackXaf: number;
   recommended: boolean;
 }
 
@@ -21,11 +23,17 @@ interface Meter {
  * réglage des compteurs, connexion d'abord si besoin), on voit comment on paie, puis les
  * options et la comparaison pour qui veut le détail.
  *
- * Montants : `offer.model.ts` côté API (ce que l'API débite vraiment).
+ * Montants : lus sur l'API (grille réglée dans le panel admin, ce que l'API débite vraiment) ;
+ * ceux écrits ici ne servent que de secours.
+ *
+ * Refonte du 11/11/2026 (psychologie des prix) : le prix au jour en grand et le mois en petit
+ * (« pennies-a-day », Gourville 1998 : 10 F par jour pèse moins que 300 F par mois), la Veille
+ * gratuite en premier (effet du prix zéro), les options du moins cher au plus cher (effet d'ordre),
+ * et la comparaison avec les hébergeurs connus comme prix d'ancrage.
  */
 @Component({
   selector: 'app-pricing',
-  imports: [TranslateModule, LandingNavComponent, LandingFooterComponent, IllustrationComponent],
+  imports: [TranslateModule, LandingNavComponent, LandingFooterComponent, IllustrationComponent, PromoPriceComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="relative min-h-screen overflow-hidden text-text-primary">
@@ -46,7 +54,7 @@ interface Meter {
             </div>
             <p class="mt-4 text-sm text-text-secondary">{{ 'pricing.heroNote' | translate }}</p>
           </div>
-          <app-illustration name="facade" [width]="300" class="mx-auto hidden text-text-tertiary sm:block" />
+          <app-illustration name="mortar" [width]="300" class="mx-auto hidden text-text-tertiary sm:block" />
         </div>
       </section>
 
@@ -65,11 +73,21 @@ interface Meter {
                   <p class="absolute -top-3 left-6 rounded-full bg-primary-500 px-3 py-0.5 text-xs font-bold text-white">{{ 'pricing.mostPopular' | translate }}</p>
                 }
                 <h3 class="text-lg font-black" [id]="'meter-' + meter.tier">{{ 'pricing.meters.' + meter.tier + '.name' | translate }}</h3>
-                <p class="mt-3">
-                  <span class="text-4xl font-black tabular-nums">{{ meter.price }}</span>
+                <p class="mt-3 flex items-baseline gap-1">
+                  @if (dayXaf(meter) === 0) {
+                    <span class="text-4xl font-black tabular-nums">0</span><span class="text-base font-semibold text-text-secondary">&#8239;F</span>
+                  } @else {
+                    <span class="text-4xl font-black tabular-nums"><idem-promo-price item="ideploy.meter" [xaf]="dayXaf(meter)" unit="" [showBadge]="false" /></span><span class="text-base font-semibold text-text-secondary">&#8239;F</span>
+                  }
                   <span class="text-sm text-text-secondary">{{ 'pricing.perDay' | translate }}</span>
                 </p>
-                <p class="mt-1 text-sm font-semibold text-primary-500">{{ 'pricing.meters.' + meter.tier + '.monthly' | translate }}</p>
+                <p class="mt-1 text-sm font-semibold text-primary-500">
+                  @if (dayXaf(meter) === 0) {
+                    {{ 'pricing.meters.' + meter.tier + '.monthly' | translate }}
+                  } @else {
+                    {{ 'pricing.monthlyApprox' | translate: { amount: amount(dayXaf(meter) * 30) } }}
+                  }
+                </p>
                 <p class="mt-4 text-sm leading-relaxed text-text-secondary">{{ 'pricing.meters.' + meter.tier + '.tagline' | translate }}</p>
                 <ul class="mb-7 mt-5 flex grow flex-col gap-2.5">
                   @for (n of features; track n) {
@@ -119,13 +137,13 @@ interface Meter {
           <h2 class="mb-2 text-balance text-3xl font-black">{{ 'pricing.optionsTitle' | translate }}</h2>
           <p class="mb-8 max-w-2xl text-text-secondary">{{ 'pricing.managedSubtitle' | translate }}</p>
           <dl class="grid gap-x-12 md:grid-cols-2">
-            @for (option of options; track option.key) {
+            @for (option of sortedOptions(); track option.key) {
               <div class="flex items-baseline justify-between gap-6 border-b border-[var(--glass-border-subtle)] py-4">
                 <dt>
                   <span class="block font-semibold">{{ 'pricing.options.' + option.key | translate }}</span>
                   <span class="block text-sm text-text-secondary">{{ 'pricing.options.' + option.key + 'Note' | translate }}</span>
                 </dt>
-                <dd class="flex-none font-bold tabular-nums">{{ option.price }}<span class="text-sm font-normal text-text-secondary">{{ 'pricing.perDay' | translate }}</span></dd>
+                <dd class="flex-none font-bold tabular-nums">{{ amount(option.xaf) }}&#8239;F<span class="text-sm font-normal text-text-secondary">{{ 'pricing.perDay' | translate }}</span></dd>
               </div>
             }
           </dl>
@@ -148,7 +166,7 @@ interface Meter {
                 </tr>
               </thead>
               <tbody>
-                @for (row of comparison; track row.resource) {
+                @for (row of comparison(); track row.resource) {
                   <tr class="border-b border-[var(--glass-border-subtle)]">
                     <th scope="row" class="py-4 pr-4 text-left font-medium">{{ row.resource | translate }}</th>
                     @for (value of row.values; track $index; let first = $first) {
@@ -195,34 +213,59 @@ export class PricingComponent implements OnInit {
 
   protected readonly loginUrl = `${environment.services.console.url}/login?redirect=ideploy`;
 
+  private readonly promotions = inject(PromotionsStore);
+
   protected readonly meters: Meter[] = [
-    { tier: 'veille', price: '0 F', recommended: false },
-    { tier: 'vitrine', price: '10 F', recommended: true },
-    { tier: 'application', price: '50 F', recommended: false },
-    { tier: 'application_plus', price: '150 F', recommended: false },
+    { tier: 'veille', fallbackXaf: 0, recommended: false },
+    { tier: 'vitrine', fallbackXaf: 10, recommended: true },
+    { tier: 'application', fallbackXaf: 50, recommended: false },
+    { tier: 'application_plus', fallbackXaf: 150, recommended: false },
   ];
   protected readonly features = [1, 2, 3, 4];
   protected readonly steps = [1, 2, 3];
 
-  /** Options à la journée, sur n'importe quel compteur payant. */
-  protected readonly options = [
-    { key: 'backups', price: '35 F' },
-    { key: 'monitoring', price: '35 F' },
-    { key: 'database', price: '35 F' },
-    { key: 'logs', price: '15 F' },
-    { key: 'waf', price: '50 F' },
-    { key: 'autoscaling', price: '70 F' },
-    { key: 'staticIp', price: '70 F' },
-    { key: 'sovereign', price: '70 F' },
+  /** Prix au jour d'un compteur, lu sur l'API. */
+  protected dayXaf(meter: Meter): number {
+    return meter.fallbackXaf === 0 ? 0 : this.promotions.offerPrice(`meter:${meter.tier}`, meter.fallbackXaf);
+  }
+
+  protected amount(value: number): string {
+    return value.toLocaleString('fr-FR');
+  }
+
+  /** Options à la journée, sur n'importe quel compteur payant (prix de secours ; l'API fait foi). */
+  private readonly options = [
+    { key: 'backups', code: 'backups', xaf: 35 },
+    { key: 'monitoring', code: 'monitoring', xaf: 35 },
+    { key: 'database', code: 'database', xaf: 35 },
+    { key: 'logs', code: 'logs', xaf: 15 },
+    { key: 'waf', code: 'waf', xaf: 50 },
+    { key: 'autoscaling', code: 'autoscaling', xaf: 70 },
+    { key: 'staticIp', code: 'static_ip', xaf: 70 },
+    { key: 'sovereign', code: 'sovereign', xaf: 70 },
   ];
 
-  /** Prix relevés en septembre 2026 (575 F le dollar) ; `null` = l'offre n'existe pas. */
-  protected readonly comparison = [
-    { resource: 'pricing.compare.showcase', unit: 'pricing.perMonth', values: ['300 F', '11 500 F', '2 900 F'] },
-    { resource: 'pricing.compare.app', unit: 'pricing.perMonth', values: ['1 500 F', '11 500 F', '~2 900 F'] },
-    { resource: 'pricing.compare.deployments', unit: null, values: ['pricing.compare.unlimited', 'pricing.compare.unlimited', 'pricing.compare.unlimited'] },
-    { resource: 'pricing.compare.domain', unit: 'pricing.perYear', values: ['6 500 F', '~11 500 F', null] },
-  ];
+  /** Du moins cher au plus cher : le premier prix lu sert de référence. */
+  protected readonly sortedOptions = computed(() =>
+    this.options
+      .map((option) => ({ ...option, xaf: this.promotions.offerPrice(`meter-option:${option.code}`, option.xaf) }))
+      .sort((a, b) => a.xaf - b.xaf)
+  );
+
+  /**
+   * Face aux hébergeurs connus (prix relevés en septembre 2026, 575 F le dollar ; `null` = l'offre
+   * n'existe pas) : notre colonne est calculée sur nos prix réels, au mois.
+   */
+  protected readonly comparison = computed(() => {
+    const vitrine = this.promotions.offerPrice('meter:vitrine', 10) * 30;
+    const application = this.promotions.offerPrice('meter:application', 50) * 30;
+    return [
+      { resource: 'pricing.compare.showcase', unit: 'pricing.perMonth', values: [`${this.amount(vitrine)} F`, '11 500 F', '2 900 F'] },
+      { resource: 'pricing.compare.app', unit: 'pricing.perMonth', values: [`${this.amount(application)} F`, '11 500 F', '~2 900 F'] },
+      { resource: 'pricing.compare.deployments', unit: null, values: ['pricing.compare.unlimited', 'pricing.compare.unlimited', 'pricing.compare.unlimited'] },
+      { resource: 'pricing.compare.domain', unit: 'pricing.perYear', values: ['6 500 F', '~11 500 F', null] },
+    ];
+  });
 
   ngOnInit(): void {
     void this.auth.ensureLoaded();

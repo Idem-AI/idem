@@ -1,6 +1,6 @@
 import { bannerPromotion } from '../client';
 import { localAmountAfter, priceWithPromotions } from '../engine';
-import { currencyUnit, formatAmount, freeLabel, rewriteAmount } from '../format';
+import { currencyUnit, formatAmount, freeLabel, rewriteAmount, srLabels } from '../format';
 import type { PublicPromotion } from '../model';
 import { offerPriceXaf, type OffersCatalog } from '../offers';
 
@@ -29,11 +29,11 @@ export function PromoPrice({ promotions, item, xaf, amount = null, currency = 'X
   return (
     <span className={className} style={{ display: 'inline-flex', alignItems: 'baseline', flexWrap: 'wrap', gap: '0.4em' }}>
       <del style={{ fontSize: '0.62em', fontWeight: 500, opacity: 0.7 }}>
-        <span style={srOnly}>Prix normal : </span>
+        <span style={srOnly}>{srLabels().normal} </span>
         {write(base)}
       </del>
       <span>
-        <span style={srOnly}>Prix pendant la promotion : </span>
+        <span style={srOnly}>{srLabels().promo} </span>
         {price.free ? freeLabel() : write(localAmountAfter(price, base, decimals))}
       </span>
       {showBadge && promotion?.display?.badge ? (
@@ -86,11 +86,11 @@ export function PromoText({
   return (
     <span className={className} style={{ display: 'inline-flex', alignItems: 'baseline', flexWrap: 'wrap', gap: '0.4em' }}>
       <del style={{ opacity: 0.7 }}>
-        <span style={srOnly}>Prix normal : </span>
+        <span style={srOnly}>{srLabels().normal} </span>
         {text}
       </del>
       <span>
-        <span style={srOnly}>Prix pendant la promotion : </span>
+        <span style={srOnly}>{srLabels().promo} </span>
         {price.free ? freeLabel() : rewriteAmount(text, (amount) => localAmountAfter(price, amount))}
       </span>
     </span>

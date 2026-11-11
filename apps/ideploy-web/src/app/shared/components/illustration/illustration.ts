@@ -16,7 +16,8 @@ export type IllustrationName =
   | 'beads'
   | 'net'
   | 'cowries'
-  | 'facade';
+  | 'facade'
+  | 'mortar';
 
 /**
  * Les illustrations de l'interface, dessinées en ligne plutôt que livrées en
@@ -249,6 +250,27 @@ export type IllustrationName =
           <g transform="rotate(-6 64 27)"><ellipse cx="64" cy="27" rx="7.5" ry="5" stroke-width="1.5"/><path d="M59.5 27 C62.5 25.8 65.5 28.2 68.5 27" stroke-width="1.1"/><path d="M61 25.4 v3.2 M64 25.2 v3.6 M67 25.4 v3.2" stroke-width=".7" opacity=".7"/></g>
           <g transform="rotate(8 80 28)"><ellipse cx="80" cy="28" rx="7.5" ry="5" stroke-width="1.5"/><path d="M75.5 28 C78.5 26.8 81.5 29.2 84.5 28" stroke-width="1.1"/><path d="M77 26.4 v3.2 M80 26.2 v3.6 M83 26.4 v3.2" stroke-width=".7" opacity=".7"/></g>
           <g style="color: var(--color-primary-500)"><g transform="rotate(-4 60 15)"><ellipse cx="60" cy="15" rx="7.5" ry="5" stroke-width="1.5"/><path d="M55.5 15 C58.5 13.8 61.5 16.2 64.5 15" stroke-width="1.1"/><path d="M57 13.4 v3.2 M60 13.2 v3.6 M63 13.4 v3.2" stroke-width=".7" opacity=".7"/></g></g>
+        }
+        @case ('mortar') {
+          <!-- Faire tourner au quotidien : le mortier et son pilon, le geste de chaque jour qui fait
+               tourner la maison (même dessin que la landing Idem Builders, même sens). Le pilon,
+               ce qui agit, porte la couleur. Tarifs : le compteur payé au jour. -->
+          <g transform="translate(16 0) scale(0.4)" stroke-width="4.5">
+            <path d="M36 204 H184" opacity=".35" />
+            <ellipse cx="110" cy="86" rx="50" ry="10" />
+            <path d="M70 87.5 Q110 95 150 87.5" opacity=".45" />
+            <path d="M60 86 C62 114 80 128 88 140 C80 158 68 178 66 196" />
+            <path d="M160 86 C158 114 140 128 132 140 C140 158 152 178 154 196" />
+            <path d="M66 196 Q110 208 154 196" />
+            <path d="M86 134 Q110 140 134 134 M86 146 Q110 152 134 146" stroke-width="3.6" />
+            <path d="M68 106 l6 7 l6 -7 l6 7 l6 -7 l6 7 l6 -7 l6 7 l6 -7 l6 7 l6 -7 l6 7 l6 -7 l6 7 l6 -7" stroke-width="3.2" opacity=".7" />
+            <path d="M96 176 l4 -5 l4 5 l-4 5 Z M108 178 l4 -5 l4 5 l-4 5 Z M120 176 l4 -5 l4 5 l-4 5 Z" stroke-width="3" opacity=".7" />
+            <g opacity=".55" stroke-width="3.6">
+              <path d="M44 64 q-8 10 0 20" />
+              <path d="M34 58 q-12 16 0 32" />
+            </g>
+            <path style="color: var(--color-primary-500)" d="M118 95 C124 78 132 58 138 40 C141 30 140 20 146 12 C150 6 160 6 164 12 C168 18 164 26 160 34 C152 52 142 74 134 97" stroke-width="5.4" />
+          </g>
         }
         @case ('facade') {
           <!-- Un nom de domaine : la façade ndebele peinte, que l'on reconnaît de loin et qui dit à qui est la maison. -->

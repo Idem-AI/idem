@@ -302,7 +302,8 @@
     "step3D": "Un e-mail 3 jours avant la fin du solde. Sans recharge, l’application s’endort, puis se réveille dès la recharge.",
     "optionsTitle": "Des options à la journée",
     "compareTitle": "Comparé aux autres hébergeurs",
-    "perYear": "/an"
+    "perYear": "/an",
+    "monthlyApprox": "≈ {{amount}} F par mois"
   },
   "dashboard": {
     "searchProjects": "Rechercher des projets…",

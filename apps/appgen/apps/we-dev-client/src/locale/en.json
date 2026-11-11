@@ -1020,7 +1020,8 @@
           "The full code, as a ZIP or on GitHub",
           "One-click deployment on iDeploy",
           "Paid by mobile money, no bank card"
-        ]
+        ],
+        "frame": "Paid once: the app is yours for good, with {{count}} changes included."
       },
       "usage": {
         "title": "Then, as you go",
@@ -1033,30 +1034,54 @@
         "change": {
           "name": "One change",
           "note": "The price of a text message. A failed change is not charged.",
-          "price": "25 F"
+          "price": "25 F",
+          "frame": "The price of a text message"
         },
         "premium": {
           "name": "One change with the most powerful model",
           "note": "For the hard changes",
-          "price": "75 F"
+          "price": "75 F",
+          "frame": "Counts as 3 changes ({{amount}} F)"
         },
         "pack100": {
           "name": "100 changes pack",
           "note": "20 F per change, across all your projects",
-          "price": "2,000 F"
+          "price": "2,000 F",
+          "frame": "{{amount}} F per change: -{{saving}}%"
         },
         "growth": {
           "name": "IDEM Growth",
           "note": "20 changes a month, your site always online, and communication",
-          "price": "3,000 F / month"
+          "price": "3,000 F / month",
+          "frame": "{{amount}} F a day, no commitment"
         },
         "launch": {
           "name": "Launch Pack",
           "note": "The Project Pass, the Business Kit and 3 months of website online",
-          "price": "5,000 F"
+          "price": "5,000 F",
+          "frame": "Instead of {{worth}} F: you save {{saving}} F"
         }
       },
-      "wallet": "Everything is paid from your IDEM wallet, topped up by mobile money from 100 F. The same balance pays for iCode, hosting and your documents."
+      "wallet": "Everything is paid from your IDEM wallet, topped up by mobile money from 100 F. The same balance pays for iCode, hosting and your documents.",
+      "free": {
+        "title": "To generate your app and watch it run",
+        "body": "First generation and unlimited preview in the browser, with no bank card and no time limit."
+      },
+      "guaranteesTitle": "What protects you",
+      "guarantees": [
+        {
+          "title": "A failed change is not charged",
+          "text": "If a change fails, the amount goes back to your wallet automatically."
+        },
+        {
+          "title": "Your code is yours",
+          "text": "With the Project Pass you download it or push it to GitHub, and you can host it anywhere."
+        },
+        {
+          "title": "No bank card, no subscription",
+          "text": "You top up by mobile money, from 100 F, and only pay for what you use."
+        }
+      ]
     }
   },
   "composer": {
