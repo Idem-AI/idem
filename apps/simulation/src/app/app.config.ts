@@ -24,6 +24,7 @@ import { provideSimulationBackend } from './features/simulations/data-access';
 // Les dates s'affichent dans la langue choisie : « 2 oct. 2026 », pas « Oct 2, 2026 ».
 registerLocaleData(localeFr);
 import { routes } from './app.routes';
+import { provideIdemPromotions } from '@idem/shared-promotions/angular';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -36,6 +37,8 @@ export const appConfig: ApplicationConfig = {
     ),
     provideHttpClient(withFetch(), withInterceptors([authInterceptor])),
     provideSimulationBackend(),
+    // Prix (barrés pendant la bêta) et paiement mobile money : page /pricing.
+    provideIdemPromotions({ apiUrl: environment.services.api.url }),
     provideTranslateService({
       loader: provideTranslateHttpLoader({ prefix: '/assets/i18n/', suffix: '.json' }),
       fallbackLang: environment.defaultLanguage,

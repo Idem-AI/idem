@@ -22,12 +22,12 @@ on l'ajoute ici avec sa source (règle complète : `AGENTS.md` § 4).
 | --- | --- | --- |
 | Bouclier aux lances croisées | accès, sécurité | connexion, iDeploy `shield`, vérification |
 | Clé à anneau-bouclier | compte, accès premium | invitation bêta, AppGen connexion et réglages |
-| Cauris (et calebasse de cauris) | argent, prêt | module finance, banque, tontine ; tarifs de la landing (héros, `app-offer-illustration` `wallet`) et « Autres offres » (`tontine`) |
+| Cauris (et calebasse de cauris) | argent, prêt | module finance, banque, tontine ; tarifs de la landing (héros, `app-offer-illustration` `wallet`) et « Autres offres » (`tontine`) ; section « Payez avec votre téléphone », commune à toutes les landings (`COWRIES_SVG`, `@idem/shared-promotions`) |
 | Baobab et son fruit (pain de singe) | croissance qui rapporte | business plan, investisseur |
 | Jeune pousse | projet qu'on aide à grandir | SASU, bailleur ; offre « Gratuit » (`app-offer-picker`, `sprout`) |
 | Croix d'Agadez (tanaghilt) sur son cordon tressé | « je te donne les quatre coins du monde » : de quoi choisir sa route | création de projet — source : [Club des Voyages, « Les croix touarègues »](https://www.club-des-voyages.com/niger/les-croix-touaregues-12196.html) |
 | Tambour parleur (tama) | parole portée loin, conversation | pitch deck, mode chat, communication, aide ; offre IDEM Croissance (`drum`) |
-| Kora (harpe-luth des griots), chevalet en couleur | raconter une histoire en musique | vidéos de promotion (état vide) ; image de partage d'iVision (`og/illustrations/ivision.svg`) — source : [Kora (instrument), Wikipédia](https://fr.wikipedia.org/wiki/Kora_(instrument)) |
+| Kora (harpe-luth des griots), chevalet en couleur | raconter une histoire en musique | vidéos de promotion (état vide) ; landing, page Tarifs : bande « iVision » de « Ce que coûte chaque service » (`kora`) ; image de partage d'iVision (`og/illustrations/ivision.svg`) — source : [Kora (instrument), Wikipédia](https://fr.wikipedia.org/wiki/Kora_(instrument)) |
 | Métier à tisser (bande étroite) | construire fil à fil, le code | développement, dépôt de code, document qui se tisse ; Pass Projet d'iCode (`ProjectPassIllustration` : bande tissée roulée sur l'ensouple, la navette en couleur) |
 | Pirogue à la proue dressée | départ, mise en ligne, équipage | publication, déploiements, SAS, équipe interne ; offre Pack Lancement (`launch`) |
 | Grenier dogon (vide / fermé / plein) | réserve, serveur, récolte | serveur, cloud géré, projet absent, projet IDEM |
@@ -62,6 +62,8 @@ on l'ajoute ici avec sa source (règle complète : `AGENTS.md` § 4).
 | Os d'Ishango (encoches groupées, quartz serti) | compter, avancer étape par étape | Idem Builders : « Comment rejoindre » — source : [Ishango bone, Wikipédia](https://en.wikipedia.org/wiki/Ishango_bone) (Institut royal des sciences naturelles de Belgique) |
 | Mesure du marché (bol à grain arasé par une règle de bois, la règle en couleur) | acheter exactement la quantité voulue, à un prix connu par mesure : « ne payez que ce que vous gardez » | landing, héros de la page Tarifs (`app-offer-illustration` `measure`) — source : commerce du grain « au bol », à prix fixe par mesure, sur les marchés d'Afrique de l'Ouest ([Inter-Réseaux, unités de mesure sur les marchés céréaliers](https://www.inter-reseaux.org/wp-content/uploads/pdf_Chap2Fiche9.pdf)) ; le nom local (*tia*, *koro*) n'a pas été confirmé, il n'est donc pas employé |
 | Gankogui (cloche double ewe) | l'appel et la réponse, le repère sur lequel tous se calent | Idem Builders : questions fréquentes — source : [Ewe music, Wikipédia](https://en.wikipedia.org/wiki/Ewe_music) |
+| Pièce de wax pliée sous sa bague de papier (la bague en couleur) | le wax s'achète à la pièce (6 yards, ou 3 et 12) : on paie la pièce qu'on emporte, le fichier HD qu'on garde | iVision, héros de la page Tarifs (`iv-illustration` `wax`) — source : vente du wax à la pièce de 6 yards ([exemple d'annonce, Anka](https://marketplace.anka.africa/article/6-yards-ankara-wax-print-african-print-floral-high-quality-fabric-100-cotton-no-fading-ankara-wax-print-brown/ATI77Y7)) ; la bague de papier comme convention de vente n'a pas été confirmée, elle n'est pas nommée dans l'interface |
+| Perche du piroguier plantée jusqu'au fond (les encoches de profondeur en couleur) | sonder le fond avant d'avancer : tester son projet avant d'y mettre de l'argent | simulateur, héros de la page Tarifs (`sim-illustration` `pole`) — écarté : canari qu'on frappe pour l'entendre sonner (pratique non sourcée en Afrique de l'Ouest) |
 
 Les motifs (chevrons, dents de scie, losanges, points) vivent dans les objets,
 jamais en fond. Le losange bleu du bouclier revient comme signature.

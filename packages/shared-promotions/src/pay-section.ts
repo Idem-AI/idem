@@ -99,11 +99,12 @@ export const COWRIES_SVG = `<svg viewBox="0 0 120 88" fill="none" stroke="curren
  * les marques), celle de MTN à sa couleur.
  */
 export const PAY_CSS = `
-.idem-pay { --idem-pay-ink: var(--color-on-primary, #fff); --idem-pay-accent: var(--color-accent-500, #22d3ee);
-  position: relative; margin-inline: auto; max-width: 76rem; padding: clamp(2rem, 6vw, 5rem) clamp(1.25rem, 5vw, 4.5rem);
-  border-radius: clamp(1.5rem, 3vw, 2.5rem); background: var(--color-primary-500, #1447e6); color: var(--idem-pay-ink); overflow: hidden; isolation: isolate; }
-.idem-pay::after { content: ''; position: absolute; inset: auto -10% -45% auto; width: 60%; aspect-ratio: 1; border-radius: 50%; z-index: -1;
-  background: color-mix(in srgb, var(--color-primary-700, #10267a) 70%, transparent); }
+/* Pleine largeur de l'écran, sans marge ni arrondi : l'aplat déborde du conteneur de la page par une
+   ombre étendue (rognée en hauteur), le contenu reste aligné sur les autres sections. Aucune barre de
+   défilement horizontale, quel que soit le conteneur. */
+.idem-pay { --idem-pay-ink: var(--color-on-primary, #fff); --idem-pay-accent: var(--color-accent-500, #22d3ee); --idem-pay-bg: var(--color-primary-500, #1447e6);
+  position: relative; padding: clamp(3.5rem, 8vw, 6.5rem) 0; background: var(--idem-pay-bg); color: var(--idem-pay-ink); isolation: isolate;
+  box-shadow: 0 0 0 100vmax var(--idem-pay-bg); clip-path: inset(0 -100vmax); }
 .idem-pay-top { display: grid; gap: 2rem; align-items: center; grid-template-columns: 1fr; }
 @media (min-width: 900px) { .idem-pay-top { grid-template-columns: 1.6fr 1fr; } }
 .idem-pay-title { margin: 0; font-size: clamp(2.4rem, 6vw, 4.5rem); line-height: 1.02; font-weight: 800; letter-spacing: -0.025em; color: var(--idem-pay-ink); text-wrap: balance; }

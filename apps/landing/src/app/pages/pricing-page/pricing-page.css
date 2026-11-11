@@ -39,7 +39,8 @@
     grid-template-columns: 1.3fr 1fr;
   }
   .pricing-hero-art {
-    width: min(100%, 22rem);
+    width: 100%;
+    max-width: 34rem;
   }
 }
 .pricing-lead {
@@ -68,7 +69,7 @@
   color: var(--color-text-secondary);
 }
 .pricing-hero-art {
-  width: min(60%, 22rem);
+  width: min(88%, 26rem);
   justify-self: center;
 }
 

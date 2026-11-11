@@ -54,7 +54,7 @@ import { PromotionsStore } from './promotions.store';
 
       @if (ctaHref()) {
         <div class="idem-pay-foot">
-          <a class="idem-pay-cta" [href]="ctaHref()">{{ t.cta }}</a>
+          <a class="idem-pay-cta" [href]="ctaHref()">{{ ctaLabel() || t.cta }}</a>
           <p>{{ t.ctaNote }}</p>
         </div>
       }
@@ -67,6 +67,8 @@ export class PaySectionComponent {
   readonly lang = input<string | null>(null);
   /** Lien du bouton « Commencer gratuitement » ; sans lien, pas de bouton. */
   readonly ctaHref = input<string | null>(null);
+  /** Libellé du bouton, quand « Commencer gratuitement » ne convient pas (iDomain : « Chercher mon nom »). */
+  readonly ctaLabel = input<string | null>(null);
 
   protected readonly operators = PAYMENT_OPERATORS;
   protected readonly art = inject(DomSanitizer).bypassSecurityTrustHtml(COWRIES_SVG);

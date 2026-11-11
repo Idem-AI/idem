@@ -55,7 +55,7 @@ interface Meter {
             <p class="mt-4 text-sm text-text-secondary">{{ 'pricing.heroNote' | translate }}</p>
             <idem-pay-strip class="mt-6 block" [lang]="translate.currentLang" />
           </div>
-          <app-illustration name="mortar" [width]="300" class="mx-auto hidden text-text-tertiary sm:block" />
+          <app-illustration name="mortar" [width]="0" class="mx-auto hidden w-full max-w-[34rem] text-text-tertiary sm:block" />
         </div>
       </section>
 
@@ -112,9 +112,9 @@ interface Meter {
       </section>
 
       <!-- Comment payer : la même section sur toutes les landings (mobile money, sans abonnement) -->
-      <section class="px-6 py-16">
-        <idem-pay-section [ctaHref]="loginUrl" [lang]="translate.currentLang" />
-      </section>
+      <div class="my-16 px-6">
+        <idem-pay-section class="mx-auto block max-w-6xl" [ctaHref]="loginUrl" [lang]="translate.currentLang" />
+      </div>
 
       <!-- Les options à la journée : une liste, pas une grille -->
       <section class="border-t border-[var(--glass-border-subtle)] px-6 py-24">

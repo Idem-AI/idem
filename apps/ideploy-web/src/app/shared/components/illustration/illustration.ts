@@ -49,8 +49,8 @@ export type IllustrationName =
       role="img"
       [attr.aria-label]="alt()"
       [attr.aria-hidden]="alt() ? null : true"
-      [style.width.px]="width()"
-      class="h-auto"
+      [style.width]="width() ? width() + 'px' : '100%'"
+      class="block h-auto max-w-full"
       style="color: var(--color-text-tertiary);"
     >
       @switch (name()) {
@@ -304,6 +304,7 @@ export type IllustrationName =
 })
 export class IllustrationComponent {
   readonly name = input<IllustrationName>('box');
+  /** Largeur en px ; `0` : toute la largeur de l'emplacement. */
   readonly width = input(140);
   /** Renseigné seulement quand le dessin porte une information à lui seul. */
   readonly alt = input<string | null>(null);

@@ -41,7 +41,8 @@
       "timeMachine": "Votre projet dans 5 ans",
       "experiments": "Ce qu'il faut vérifier"
     },
-    "labs": "Aller plus loin"
+    "labs": "Aller plus loin",
+    "pricing": "Tarifs"
   },
   "theme": {
     "switchToLight": "Passer en thème clair",
@@ -808,5 +809,106 @@
   },
   "evidence": {
     "reliability": "Fiabilité : {{level}}"
+  },
+  "pricePage": {
+    "hero": {
+      "title": "Testez votre projet",
+      "titleAccent": "avant d'y mettre un franc.",
+      "lead": "La première analyse est gratuite. La simulation met votre projet à l'épreuve de nombreuses situations réelles, dès 1 500 F avec un projet IDEM, payés par mobile money.",
+      "cta": "Tester mon projet",
+      "secondary": "Voir les prix"
+    },
+    "free": {
+      "title": "pour la première analyse",
+      "text": "Téléversez votre business plan ou partez d'un projet IDEM : vous voyez tout de suite ce qui tient et ce qui fragilise votre projet.",
+      "cta": "Commencer gratuitement"
+    },
+    "offers": {
+      "title": "Ce que vous payez, quand vous voulez aller plus loin",
+      "lead": "Chaque offre se paie une fois, quand vous la lancez. Aucun abonnement.",
+      "recommended": "Le plus complet",
+      "anchor": "{{amount}} F sans projet IDEM",
+      "run": {
+        "who": "Pour savoir si votre projet tient",
+        "name": "Simulation",
+        "cadence": "par simulation, payée une fois",
+        "bullets": [
+          "Votre projet testé dans de nombreuses situations",
+          "Ce qui compte le plus pour réussir",
+          "Une note sur 100 facile à comprendre"
+        ],
+        "cta": "Lancer ma simulation",
+        "foot": "Moins cher avec un projet IDEM"
+      },
+      "pack": {
+        "who": "Pour décider, puis convaincre votre banque",
+        "name": "Simulation + rapport",
+        "cadence": "payé une fois",
+        "bullets": [
+          "Tout ce que contient la simulation",
+          "Le rapport complet à télécharger (PDF)",
+          "Des conseils classés par priorité"
+        ],
+        "cta": "Choisir simulation + rapport",
+        "foot": "Le plus complet"
+      },
+      "report": {
+        "who": "Pour une simulation déjà faite",
+        "name": "Rapport pour la banque",
+        "cadence": "par rapport, payé une fois",
+        "bullets": [
+          "Le rapport complet à télécharger (PDF)",
+          "Les objectifs à atteindre pour tenir",
+          "Des conseils classés par priorité"
+        ],
+        "cta": "Obtenir mon rapport",
+        "foot": "À joindre à une demande de prêt"
+      }
+    },
+    "guarantees": {
+      "title": "Ce qui vous protège",
+      "free": {
+        "title": "La première analyse est gratuite",
+        "text": "Vous voyez ce que dit le simulateur avant de payer quoi que ce soit."
+      },
+      "failed": {
+        "title": "Une simulation ratée n'est pas débitée",
+        "text": "Si la simulation échoue, vos crédits vous sont rendus automatiquement."
+      },
+      "stop": {
+        "title": "Aucun abonnement",
+        "text": "Chaque simulation se paie une fois, quand vous la lancez."
+      }
+    },
+    "pay": {
+      "cta": "Tester mon projet"
+    },
+    "faq": {
+      "title": "Questions",
+      "free": {
+        "q": "Qu'est-ce qui est gratuit ?",
+        "a": "La première analyse de votre projet. Vous ne payez la simulation et le rapport que si vous les voulez."
+      },
+      "project": {
+        "q": "Pourquoi c'est moins cher avec un projet IDEM ?",
+        "a": "Le simulateur lit directement votre business plan et vos chiffres dans IDEM : il a moins à reconstruire, la simulation vous coûte donc moins cher."
+      },
+      "report": {
+        "q": "À quoi sert le rapport pour la banque ?",
+        "a": "C'est un document complet (PDF) qui montre comment votre projet résiste aux situations testées. Vous le joignez à une demande de prêt ou de financement."
+      },
+      "pay": {
+        "q": "Comment je paie ?",
+        "a": "Par mobile money (Orange Money, MTN MoMo, Wave, Moov Money, Airtel Money, M-Pesa), en rechargeant votre portefeuille IDEM dès 100 F. Aucune carte bancaire."
+      },
+      "beta": {
+        "q": "Et pendant la bêta ?",
+        "a": "Pendant la bêta, les simulations sont gratuites : les prix s'affichent barrés. Seule limite : vos crédits du jour."
+      }
+    },
+    "final": {
+      "title": "Testez ce soir, décidez demain en connaissance de cause.",
+      "cta": "Tester mon projet"
+    }
   }
 }

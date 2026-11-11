@@ -664,6 +664,11 @@ export class PromotionService {
           message: 'pendant la bêta, tout est gratuit sur IDEM, packs et forfaits compris. Seule limite : vos crédits du jour.',
           strikethrough: true,
           badge: 'Bêta',
+          en: {
+            title: 'Free beta: ',
+            message: 'during the beta, everything on IDEM is free, packs and plans included. The only limit: your daily credits.',
+            badge: 'Beta',
+          },
         },
         quotas: { enabled: true, timesPerDay: preset.timesPerDay, limits: preset.limits, spendCapsUsd: preset.spendCapsUsd },
         stats: { redemptions: 0, discountXaf: 0, claims: 0, topupBonusXaf: 0, walletCreditXaf: 0 },
@@ -828,6 +833,11 @@ function sanitize(input: Record<string, unknown>, current: Lean | null): Record<
     message: String(display.message ?? '').slice(0, 280),
     strikethrough: bool(display.strikethrough, true),
     badge: String(display.badge ?? '').slice(0, 24),
+    en: {
+      title: String((display.en as Record<string, unknown> | undefined)?.title ?? '').slice(0, 80),
+      message: String((display.en as Record<string, unknown> | undefined)?.message ?? '').slice(0, 280),
+      badge: String((display.en as Record<string, unknown> | undefined)?.badge ?? '').slice(0, 24),
+    },
   };
 
   if (quotasInput && quotasInput.enabled) {

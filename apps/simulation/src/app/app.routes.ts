@@ -124,6 +124,13 @@ const simulationRoutes: Routes = [
 
 export const routes: Routes = [
   {
+    // Les tarifs, publics, dans la même coquille pleine largeur que l'entrée du produit.
+    path: 'pricing',
+    title: 'nav.pricing',
+    loadComponent: () => import('./layouts/focus-shell/focus-shell').then((m) => m.FocusShell),
+    children: [{ path: '', loadComponent: () => import('./features/pricing/pricing-page').then((m) => m.PricingPage) }],
+  },
+  {
     // Point d'entrée public, pleine largeur : on choisit sa source et on
     // téléverse son business plan sans compte ; la connexion est demandée à
     // l'action qui en a besoin. Hors de la coquille à colonne : c'est un écran

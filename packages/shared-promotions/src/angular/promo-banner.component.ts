@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
-import { bannerPromotion } from '../client';
+import { bannerPromotion, promotionTexts } from '../client';
+import { pageLang } from '../pay-section';
 import { PromotionsStore } from './promotions.store';
 
 /**
@@ -17,18 +18,18 @@ import { PromotionsStore } from './promotions.store';
     .promo-until { display: block; font-size: 0.85em; color: var(--color-text-tertiary, inherit); }
   `,
   template: `
-    @if (promotion(); as promo) {
+    @if (texts(); as t) {
       @if (!closed()) {
-        <aside class="glass-card promo" role="status" [attr.aria-label]="promo.display.title">
-          <span class="tag">{{ promo.display.badge || 'Offre' }}</span>
+        <aside class="glass-card promo" role="status" [attr.aria-label]="t.title">
+          <span class="tag">{{ t.badge || t.fallbackBadge }}</span>
           <p class="promo-text">
-            <span class="promo-title">{{ promo.display.title }}</span>{{ promo.display.message }}
+            <span class="promo-title">{{ t.title }}</span>{{ t.message }}
             @if (until()) {
-              <span class="promo-until">Jusqu’au {{ until() }}</span>
+              <span class="promo-until">{{ until() }}</span>
             }
           </p>
           @if (dismissible()) {
-            <button type="button" class="button-icon button-sm" aria-label="Masquer ce message" (click)="closed.set(true)">
+            <button type="button" class="button-icon button-sm" [attr.aria-label]="t.hide" (click)="closed.set(true)">
               <i class="pi pi-times" aria-hidden="true"></i>
             </button>
           }
@@ -40,10 +41,17 @@ import { PromotionsStore } from './promotions.store';
 export class PromoBannerComponent {
   private readonly store = inject(PromotionsStore);
   readonly dismissible = input(true);
+  /** Langue forcée (sinon celle de la page, `<html lang>`). */
+  readonly lang = input<string | null>(null);
   protected readonly closed = signal(false);
   protected readonly promotion = computed(() => bannerPromotion(this.store.promotions()));
+  protected readonly texts = computed(() => {
+    const promotion = this.promotion();
+    return promotion ? promotionTexts(promotion, pageLang(this.lang())) : null;
+  });
   protected readonly until = computed(() => {
     const end = this.promotion()?.endsAt;
-    return end ? new Date(end).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+    const texts = this.texts();
+    return end && texts ? texts.until(end) : '';
   });
 }

@@ -13,12 +13,14 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
  *   calabash  calebasse vide : rien encore
  *   cracked   calebasse fêlée : une erreur
  *   cauris    cauris : les crédits
+ *   wax       pièce de wax pliée sous sa bague de papier (le wax se vend à la pièce de 6 yards) :
+ *             on paie la pièce qu'on emporte — les TARIFS (le fichier HD qu'on garde)
  *   kuba      étoffe de raphia kuba : une zone découpée, une pièce appliquée cousue — le MONTAGE
  *             (on coupe la prise, puis on l'habille)
  *
  * Sources des objets ajoutés pour iVision : `docs/ILLUSTRATIONS.md`.
  */
-export type IllustrationKind = 'kora' | 'kente' | 'stamp' | 'stencil' | 'calame' | 'calabash' | 'cracked' | 'cauris' | 'kuba';
+export type IllustrationKind = 'kora' | 'kente' | 'stamp' | 'stencil' | 'calame' | 'calabash' | 'cracked' | 'cauris' | 'kuba' | 'wax';
 
 @Component({
   selector: 'iv-illustration',
@@ -127,6 +129,28 @@ export type IllustrationKind = 'kora' | 'kente' | 'stamp' | 'stencil' | 'calame'
           </g>
           <path d="M46 98 L58 110 L46 122 L34 110Z" style="fill: var(--color-surface-1)" />
           <path d="M46 92 L64 110 L46 128 L28 110Z" stroke-width="1.1" stroke-dasharray="2 5" />
+        }
+        @case ('wax') {
+          <!-- La pièce de wax pliée, telle qu'elle s'achète au marché : les plis de l'étoffe à gauche,
+               les motifs imprimés, la lisière, et la bague de papier (en couleur) qui la ferme. -->
+          <path d="M22 118 H138" stroke-width="1.2" opacity=".35" />
+          <path d="M30 112 H132 M34 106 H130" stroke-width="1.3" opacity=".6" />
+          <rect x="28" y="52" width="104" height="48" rx="5" stroke-width="2" />
+          <path d="M28 58 C20 64 20 94 28 100 M28 100 C24 104 26 110 30 112" stroke-width="1.6" />
+          <path d="M34 92 H68 M100 92 H126" stroke-width="1" stroke-dasharray="3 3" opacity=".6" />
+          <circle cx="46" cy="68" r="7" stroke-width="1.5" />
+          <circle cx="46" cy="68" r="2.5" stroke-width="1.2" />
+          <path d="M56 80 C60 72 68 72 70 78 C66 82 60 84 56 80Z" stroke-width="1.3" />
+          <circle cx="112" cy="66" r="7" stroke-width="1.5" />
+          <circle cx="112" cy="66" r="2.5" stroke-width="1.2" />
+          <path d="M100 82 C104 74 112 74 114 80 C110 84 104 86 100 82Z" stroke-width="1.3" />
+          <path d="M122 80 C124 76 128 76 128 80" stroke-width="1.1" opacity=".7" />
+          <path d="M38 82 C40 78 44 78 44 82" stroke-width="1.1" opacity=".7" />
+          <g style="color: var(--color-primary-500)">
+            <path d="M74 46 H94 V106 H74 Z" stroke-width="2" />
+            <path d="M84 66 L90 74 L84 82 L78 74Z" stroke-width="1.6" />
+            <path d="M78 56 H90 M78 92 H90" stroke-width="1.2" />
+          </g>
         }
         @case ('cauris') {
           @for (c of cowries; track c.x; let i = $index) {

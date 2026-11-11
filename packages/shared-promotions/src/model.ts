@@ -84,6 +84,14 @@ export interface PromotionDisplay {
   strikethrough: boolean;
   /** Petit libellé à côté du prix (« Bêta », « -30 % »). */
   badge: string;
+  /** Les mêmes textes en anglais (pages en anglais). Vide : texte anglais par défaut de la campagne, sinon le français. */
+  en?: PromotionDisplayTexts | null;
+}
+
+export interface PromotionDisplayTexts {
+  title?: string;
+  message?: string;
+  badge?: string;
 }
 
 export type QuotaWindowKey = 'day' | 'week' | 'month';

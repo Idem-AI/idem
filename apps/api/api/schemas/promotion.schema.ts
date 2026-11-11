@@ -95,6 +95,11 @@ const PromotionSchema = new Schema<PromotionDocument>(
       message: { type: String, default: '' },
       strikethrough: { type: Boolean, default: true },
       badge: { type: String, default: '' },
+      en: {
+        title: { type: String, default: '' },
+        message: { type: String, default: '' },
+        badge: { type: String, default: '' },
+      },
     },
     // Groupe → fenêtre → limite : `Mixed`, comme les surcharges de quotas des réglages.
     quotas: { type: Schema.Types.Mixed, default: null },

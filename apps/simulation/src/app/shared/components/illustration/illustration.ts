@@ -19,7 +19,8 @@ export type IllustrationName =
   | 'balance'
   | 'calabash-empty'
   | 'calabash-cracked'
-  | 'sankofa';
+  | 'sankofa'
+  | 'pole';
 
 /**
  * Les illustrations du simulateur, dessinées en ligne (AGENTS.md § 4) : chacune
@@ -230,6 +231,25 @@ export type IllustrationName =
           <g style="color: var(--color-primary-500)">
             <path d="M60 16 V10" stroke-width="1.6"/>
             <path d="M60 2 L64 6 L60 10 L56 6Z" stroke-width="1.8"/>
+          </g>
+        }
+        @case ('pole') {
+          <!-- Sonder avant d'avancer : la perche du piroguier, plantée jusqu'au fond du fleuve
+               avant de pousser la pirogue. Les encoches qui mesurent la profondeur portent la
+               couleur : on connaît le fond avant de s'engager (les tarifs du simulateur). -->
+          <path d="M4 46 Q12 42 20 46 T36 46 T52 46 T68 46 T84 46 T100 46 T116 46" stroke-width="1.2" opacity=".6"/>
+          <path d="M14 54 Q20 51 26 54 M88 56 Q94 53 100 56" stroke-width=".9" opacity=".4"/>
+          <path d="M4 80 C28 76 50 82 70 78 C90 75 104 80 116 78" stroke-width="1.4" opacity=".7"/>
+          <path d="M24 80 a2.5 1.6 0 1 0 0.1 0 M98 78 a2 1.3 0 1 0 0.1 0" stroke-width="1" opacity=".55"/>
+          <path d="M4 36 C16 46 44 46 58 36 L64 30" stroke-width="2"/>
+          <path d="M4 36 H58" stroke-width="1.4"/>
+          <path d="M14 38 L18 42 M26 39 L30 43 M38 39 L42 43" stroke-width=".9" opacity=".6"/>
+          <path d="M44 6 L68 46" stroke-width="2.2"/>
+          <path d="M68 46 L88 79" stroke-width="2.2" opacity=".75"/>
+          <ellipse cx="68" cy="46" rx="7" ry="1.8" stroke-width="1" opacity=".6"/>
+          <g style="color: var(--color-primary-500)">
+            <path d="M70.4 56.6 L76.4 53 M75 64.2 L81 60.6 M79.6 71.8 L85.6 68.2" stroke-width="1.8"/>
+            <path d="M86 79 L90 79" stroke-width="2"/>
           </g>
         }
         @case ('winnow') {

@@ -1,4 +1,5 @@
-import { bannerPromotion } from '../client';
+import { bannerPromotion, promotionTexts } from '../client';
+import { pageLang } from '../pay-section';
 import { localAmountAfter, priceWithPromotions } from '../engine';
 import { currencyUnit, formatAmount, freeLabel, rewriteAmount, srLabels } from '../format';
 import type { PublicPromotion } from '../model';
@@ -36,9 +37,9 @@ export function PromoPrice({ promotions, item, xaf, amount = null, currency = 'X
         <span style={srOnly}>{srLabels().promo} </span>
         {price.free ? freeLabel() : write(localAmountAfter(price, base, decimals))}
       </span>
-      {showBadge && promotion?.display?.badge ? (
+      {showBadge && promotion && promotionTexts(promotion, pageLang()).badge ? (
         <span style={{ fontSize: '0.5em', fontWeight: 600, padding: '0.15em 0.55em', borderRadius: 999, alignSelf: 'center', background: 'color-mix(in srgb, currentColor 10%, transparent)' }}>
-          {promotion.display.badge}
+          {promotionTexts(promotion, pageLang()).badge}
         </span>
       ) : null}
     </span>
@@ -46,14 +47,15 @@ export function PromoPrice({ promotions, item, xaf, amount = null, currency = 'X
 }
 
 /** Le bandeau de la campagne en cours, ou rien. */
-export function PromoBanner({ promotions, className }: { promotions: PublicPromotion[]; className?: string }) {
+export function PromoBanner({ promotions, className, lang }: { promotions: PublicPromotion[]; className?: string; lang?: string | null }) {
   const promo = bannerPromotion(promotions);
   if (!promo) return null;
-  const until = promo.endsAt ? new Date(promo.endsAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+  const texts = promotionTexts(promo, pageLang(lang));
+  const until = promo.endsAt ? texts.until(promo.endsAt) : '';
   return (
-    <aside role="status" aria-label={promo.display.title} className={className}>
-      <strong>{promo.display.title}</strong> {promo.display.message}
-      {until ? <span style={{ display: 'block', opacity: 0.75, fontSize: '0.85em' }}>Jusqu’au {until}</span> : null}
+    <aside role="status" aria-label={texts.title} className={className}>
+      <strong>{texts.title}</strong> {texts.message}
+      {until ? <span style={{ display: 'block', opacity: 0.75, fontSize: '0.85em' }}>{until}</span> : null}
     </aside>
   );
 }

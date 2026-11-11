@@ -1,5 +1,7 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { PayStripComponent } from '@idem/shared-promotions/angular';
+import { LanguageService } from '../../../core/language.service';
 import { TranslateModule } from '@ngx-translate/core';
 import { DisplayTitle } from './display-title';
 import { InView } from './in-view';
@@ -9,7 +11,7 @@ import { LandingArt } from './landing-art';
 /** La fin : le compte et les crédits IDEM suffisent (calebasse de cauris), et les deux portes d'entrée. */
 @Component({
   selector: 'iv-landing-closing',
-  imports: [RouterLink, TranslateModule, DisplayTitle, InView, LandingArt, Wrap],
+  imports: [RouterLink, TranslateModule, DisplayTitle, InView, LandingArt, Wrap, PayStripComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'block' },
   template: `
@@ -21,9 +23,14 @@ import { LandingArt } from './landing-art';
           <a class="inner-button button-lg" routerLink="/studio/video"><i class="pi pi-video" aria-hidden="true"></i> {{ 'landing.ctaVideo' | translate }}</a>
           <a class="outer-button button-lg" routerLink="/studio/image"><i class="pi pi-image" aria-hidden="true"></i> {{ 'landing.ctaImage' | translate }}</a>
         </div>
+        <!-- Le paiement : mobile money, sans carte ni abonnement, et le lien vers les tarifs. -->
+        <idem-pay-strip class="mt-8" [lang]="language.current()" />
+        <a class="mt-4 inline-block font-semibold text-text-primary underline underline-offset-4" routerLink="/pricing">{{ 'landing.closing.pricing' | translate }}</a>
       </div>
       <iv-landing-art kind="cauris" ivInView class="mx-auto w-full max-w-md text-text-primary lg:col-span-5 lg:max-w-none" />
     </section>
   `,
 })
-export class LandingClosing {}
+export class LandingClosing {
+  protected readonly language = inject(LanguageService);
+}

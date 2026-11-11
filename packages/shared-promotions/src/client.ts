@@ -107,3 +107,34 @@ export function createPromotionsClient(options: { apiUrl: string; headers?: () =
 export function bannerPromotion(promotions: readonly PublicPromotion[]): PublicPromotion | null {
   return [...promotions].filter((promotion) => promotion.display?.banner).sort((a, b) => b.priority - a.priority)[0] ?? null;
 }
+
+/** Les textes anglais de la campagne bêta, quand la campagne en base n'en porte pas (créée avant leur ajout). */
+const BETA_EN = {
+  title: 'Free beta: ',
+  message: 'during the beta, everything on IDEM is free, packs and plans included. The only limit: your daily credits.',
+  badge: 'Beta',
+};
+
+/**
+ * Les textes d'une promotion dans la langue de la page : le français saisi dans le panel, ou
+ * l'anglais (`display.en`), sinon l'anglais par défaut de la bêta, sinon le français.
+ */
+export function promotionTexts(promotion: PublicPromotion, lang: 'fr' | 'en'): { title: string; message: string; badge: string; until: (endsAt: string) => string; fallbackBadge: string; hide: string } {
+  const display = promotion.display;
+  const fr = { title: display.title ?? '', message: display.message ?? '', badge: display.badge ?? '' };
+  const isBeta = /^beta-gratuite/.test(promotion.slug ?? '');
+  const en = {
+    title: display.en?.title || (isBeta ? BETA_EN.title : fr.title),
+    message: display.en?.message || (isBeta ? BETA_EN.message : fr.message),
+    badge: display.en?.badge || (isBeta ? BETA_EN.badge : fr.badge),
+  };
+  const texts = lang === 'en' ? en : fr;
+  const locale = lang === 'en' ? 'en-US' : 'fr-FR';
+  const date = (endsAt: string) => new Date(endsAt).toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' });
+  return {
+    ...texts,
+    until: (endsAt) => (lang === 'en' ? `Until ${date(endsAt)}` : `Jusqu’au ${date(endsAt)}`),
+    fallbackBadge: lang === 'en' ? 'Offer' : 'Offre',
+    hide: lang === 'en' ? 'Hide this message' : 'Masquer ce message',
+  };
+}

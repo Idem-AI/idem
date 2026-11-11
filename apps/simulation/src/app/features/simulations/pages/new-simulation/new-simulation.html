@@ -352,6 +352,9 @@
             <p class="mt-1.5 text-sm leading-relaxed text-text-secondary md:text-base">
               {{ (isBeta ? 'newRun.plan.betaBody' : 'newRun.plan.body') | translate }}
             </p>
+            <!-- Payé en mobile money, sans carte ni abonnement ; le détail des prix sur /pricing. -->
+            <idem-pay-strip class="mt-4" [lang]="language.language()" />
+            <a class="mt-2 inline-block text-sm font-semibold text-text-primary underline underline-offset-4" routerLink="/pricing">{{ 'nav.pricing' | translate }}</a>
           </div>
 
           @if (isBeta) {

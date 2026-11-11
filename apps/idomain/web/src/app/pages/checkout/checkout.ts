@@ -12,6 +12,8 @@ import { Application, Contact, DomainSession, PaymentRequiredBody, PriceSession 
 import { ContactForm } from '../../shared/components/contact-form';
 import { Illustration } from '../../shared/components/illustration';
 import { XafPipe } from '../../shared/xaf.pipe';
+import { PayStripComponent } from '@idem/shared-promotions/angular';
+import { LanguageService } from '../../core/language.service';
 
 /**
  * Commander un nom : le prix garanti (le temps de la commande), le titulaire, l'application à
@@ -20,7 +22,7 @@ import { XafPipe } from '../../shared/xaf.pipe';
  */
 @Component({
   selector: 'idm-checkout',
-  imports: [DatePipe, FormsModule, RouterLink, TranslateModule, IdemLoaderComponent, ContactForm, Illustration, XafPipe],
+  imports: [DatePipe, FormsModule, RouterLink, TranslateModule, IdemLoaderComponent, ContactForm, Illustration, XafPipe, PayStripComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="mx-auto max-w-2xl px-4 py-10">
@@ -118,6 +120,7 @@ import { XafPipe } from '../../shared/xaf.pipe';
               {{ 'checkout.pay' | translate: { price: (s.priceXaf | xaf) } }}
             </button>
             <p class="mt-2 text-center text-xs text-[var(--color-text-tertiary)]">{{ 'checkout.payHint' | translate }}</p>
+            <idem-pay-strip class="mt-5" [lang]="language.current()" />
           }
         </section>
       }
@@ -125,6 +128,7 @@ import { XafPipe } from '../../shared/xaf.pipe';
   `,
 })
 export class CheckoutPage {
+  protected readonly language = inject(LanguageService);
   private readonly api = inject(ApiService);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);

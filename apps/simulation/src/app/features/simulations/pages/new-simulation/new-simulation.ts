@@ -34,6 +34,8 @@ import {
   groupKnowledge,
 } from '../../models';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
+import { PayStripComponent } from '@idem/shared-promotions/angular';
+import { LanguageService } from '../../../../core/i18n/language.service';
 
 /**
  * Où l'on produit chaque livrable d'appui, dans le tableau de bord IDEM.
@@ -79,11 +81,12 @@ type Step = 'source' | 'analysis' | 'plan' | 'confirm';
     DisclaimerNote,
     SignInDialog,
     InputsRequiredDialog,
-    TrustedByComponent, IdemLoaderComponent],
+    TrustedByComponent, IdemLoaderComponent, PayStripComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './new-simulation.html',
 })
 export class NewSimulation {
+  protected readonly language = inject(LanguageService);
   private readonly gateway = inject(SimulationGateway);
   private readonly store = inject(SimulationStore);
   private readonly router = inject(Router);

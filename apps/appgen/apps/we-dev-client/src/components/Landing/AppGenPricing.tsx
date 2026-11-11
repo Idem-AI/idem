@@ -95,7 +95,7 @@ export function AppGenPricing({ onGetStarted }: AppGenPricingProps) {
         <h2 className="max-w-2xl text-[clamp(1.75rem,3.4vw,2.5rem)] font-semibold leading-tight text-balance">{title}</h2>
         <p className="mt-4 max-w-xl text-text-tertiary text-pretty">{t('landing.pricing.lede')}</p>
         <PayStrip lang={i18n.language} className="mt-6" />
-        <PromoBanner promotions={promotions} className="mt-6 max-w-2xl rounded-2xl border border-primary/40 bg-surface-1 px-5 py-4 text-sm text-text-secondary" />
+        <PromoBanner promotions={promotions} lang={i18n.language} className="mt-6 max-w-2xl rounded-2xl border border-primary/40 bg-surface-1 px-5 py-4 text-sm text-text-secondary" />
 
         {/* 0 F pour générer : la gratuité d'abord. */}
         <div className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-3 rounded-2xl border border-dashed border-[var(--glass-border)] bg-surface-1 px-6 py-5">

@@ -1,4 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
+import { promotionTexts } from '../client';
+import { pageLang } from '../pay-section';
 import { localAmountAfter } from '../engine';
 import { formatAmount, currencyUnit, freeLabel, srLabels } from '../format';
 import { PromotionsStore } from './promotions.store';
@@ -71,7 +73,7 @@ export class PromoPriceComponent {
       original: write(base),
       // Un prix offert s'écrit « Gratuit », pas « 0 F CFA ».
       final: price.free ? freeLabel() : write(localAmountAfter(price, base, decimals)),
-      badge: promotion?.display?.badge ?? '',
+      badge: promotion ? promotionTexts(promotion, pageLang()).badge : '',
     };
   });
 }

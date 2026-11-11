@@ -1,0 +1,214 @@
+/* Tarifs d'iVision : mêmes jetons que la landing (design system partagé). */
+
+.section-title {
+  margin: 0;
+  font-size: clamp(1.9rem, 3.6vw, 2.75rem);
+  line-height: 1.1;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--color-text-primary);
+  text-wrap: balance;
+}
+
+/* ── 0 F pour créer ─────────────────────────────────────────────────────── */
+.free {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem 1.75rem;
+  padding: 1.5rem 1.75rem;
+  border: 1px dashed var(--glass-border);
+  border-radius: 1.5rem;
+  background: var(--color-surface-1);
+}
+.free-zero {
+  margin: 0;
+  font-size: clamp(2.5rem, 5vw, 3.25rem);
+  font-weight: 800;
+  line-height: 1;
+  color: var(--color-primary-500);
+  font-variant-numeric: tabular-nums;
+}
+.free-title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+.free-text {
+  margin: 0.3rem 0 0;
+  max-width: 44rem;
+  color: var(--color-text-secondary);
+  text-wrap: pretty;
+}
+
+/* ── Trois offres ───────────────────────────────────────────────────────── */
+.offers {
+  display: grid;
+  gap: 1.25rem;
+  margin-top: 3rem;
+  grid-template-columns: 1fr;
+  align-items: stretch;
+}
+@media (min-width: 960px) {
+  .offers {
+    grid-template-columns: 1fr 1.12fr 1fr;
+    align-items: center;
+  }
+}
+.offer {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 2rem 1.75rem 1.75rem;
+  border: 1px solid var(--glass-border);
+  border-radius: 1.75rem;
+  background: var(--color-surface-1);
+}
+.offer-recommended {
+  padding-block: 2.75rem 2.25rem;
+  border: 2px solid var(--color-primary-500);
+  box-shadow: 0 30px 60px -30px color-mix(in srgb, var(--color-primary-500) 55%, transparent);
+}
+/* Sur téléphone, l'offre recommandée passe en premier. */
+@media (max-width: 959px) {
+  .offer-recommended {
+    order: -1;
+  }
+}
+.offer-flag {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  translate: -50% -50%;
+  margin: 0;
+  padding: 0.35rem 1rem;
+  border-radius: 999px;
+  white-space: nowrap;
+  font-size: 0.85rem;
+  font-weight: 700;
+  background: var(--color-primary-500);
+  color: var(--color-on-primary, #fff);
+}
+.offer-who {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--color-text-secondary);
+}
+.offer-name {
+  margin: 0.35rem 0 0;
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--color-text-primary);
+}
+.offer-price {
+  margin-top: 1.5rem;
+}
+.offer-anchor {
+  margin: 0 0 0.25rem;
+  font-size: 0.95rem;
+  color: var(--color-text-tertiary);
+}
+.offer-amount {
+  margin: 0;
+  font-size: clamp(2.4rem, 4.5vw, 3.1rem);
+  font-weight: 800;
+  line-height: 1.05;
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+.offer-cadence {
+  margin: 0.4rem 0 0;
+  font-size: 0.95rem;
+  color: var(--color-text-secondary);
+}
+.offer-list {
+  display: grid;
+  gap: 0.7rem;
+  margin: 1.75rem 0 2rem;
+  padding: 0;
+  list-style: none;
+  flex: 1;
+}
+.offer-list li {
+  display: flex;
+  gap: 0.6rem;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+.offer-list svg,
+.guarantees svg {
+  flex: none;
+  width: 1rem;
+  height: 1rem;
+  margin-top: 0.3rem;
+  color: var(--color-primary-500);
+}
+.offer-cta {
+  justify-content: center;
+  width: 100%;
+  text-align: center;
+}
+.offer-foot {
+  margin: 0.75rem 0 0;
+  font-size: 0.85rem;
+  text-align: center;
+  color: var(--color-text-tertiary);
+}
+
+/* ── Garanties ──────────────────────────────────────────────────────────── */
+.guarantees {
+  display: grid;
+  gap: 1.75rem 2.5rem;
+  margin: 2.25rem 0 0;
+  padding: 0;
+  list-style: none;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 820px) {
+  .guarantees {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+.guarantees li {
+  display: flex;
+  gap: 0.75rem;
+}
+.guarantee-title {
+  margin: 0;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+.guarantee-text {
+  margin: 0.3rem 0 0;
+  color: var(--color-text-secondary);
+  line-height: 1.55;
+}
+
+/* ── Questions ──────────────────────────────────────────────────────────── */
+.faq {
+  margin-top: 2rem;
+  max-width: 52rem;
+  border-top: 1px solid var(--glass-border-subtle);
+}
+.faq details {
+  border-bottom: 1px solid var(--glass-border-subtle);
+}
+.faq summary {
+  cursor: pointer;
+  padding: 1.15rem 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+.faq summary:focus-visible {
+  outline: 2px solid var(--color-primary-500);
+  outline-offset: 2px;
+}
+.faq details p {
+  margin: 0 0 1.25rem;
+  max-width: 65ch;
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+}
