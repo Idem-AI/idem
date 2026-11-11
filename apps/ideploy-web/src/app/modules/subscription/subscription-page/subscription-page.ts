@@ -7,6 +7,7 @@ import { AppMeter, MeterCatalog, MeterService, MeterTier, UserDomain } from '../
 import { environment } from '../../../../environments/environment';
 import { DomainPurchaseComponent } from '@idem/shared-idomain/angular';
 import { PromoBannerComponent, PromoPriceComponent, PromotionsStore } from '@idem/shared-promotions/angular';
+import { freeLabel } from '@idem/shared-promotions';
 import { IllustrationComponent } from '../../../shared/components/illustration/illustration';
 
 /**
@@ -86,7 +87,7 @@ import { IllustrationComponent } from '../../../shared/components/illustration/i
                 {{ 'meters.tier' | translate }}
                 <select class="!w-56" [ngModel]="meter.tier" (ngModelChange)="setTier(meter, $event)" [disabled]="busy() === meter.appUuid">
                   @for (tier of catalog()?.meters ?? []; track tier.tier) {
-                    <option [value]="tier.tier">{{ tier.label }} — {{ dayPrice(tier.perDayXaf) }}/{{ 'meters.day' | translate }}</option>
+                    <option [value]="tier.tier">{{ tier.label }} — {{ dayPrice(tier.perDayXaf) }}</option>
                   }
                 </select>
               </label>
@@ -113,7 +114,7 @@ import { IllustrationComponent } from '../../../shared/components/illustration/i
                   @for (option of catalog()?.meterOptions ?? []; track option.code) {
                     <label class="flex items-center gap-2 text-xs">
                       <input type="checkbox" [checked]="meter.options.includes(option.code)" (change)="toggleOption(meter, option.code)" [disabled]="busy() === meter.appUuid" />
-                      <span>{{ option.label }} · {{ dayPrice(option.perDayXaf) }}/{{ 'meters.day' | translate }}</span>
+                      <span>{{ option.label }} · {{ dayPrice(option.perDayXaf) }}</span>
                     </label>
                   }
                 </div>
@@ -172,9 +173,13 @@ export class SubscriptionPageComponent implements OnInit {
   protected dayPrice(xaf: number): string {
     const price = this.promotions.price('ideploy.meter', xaf);
     const write = (value: number) => value.toLocaleString('fr-FR').replace(/\s/g, '\u202f');
-    if (price.discountXaf <= 0) return `${write(xaf)} F`;
-    return `${write(price.finalXaf)} F CFA (${this.translate.instant('meters.insteadOf', { price: write(xaf) })})`;
+    const perDay = `${write(xaf)} F/${this.translate.instant('meters.day')}`;
+    if (price.discountXaf <= 0) return perDay;
+    // Offert pendant la bêta : « Gratuit (au lieu de 10 F/jour) ».
+    if (price.free) return `${freeLabel(this.translate.currentLang)} (${this.translate.instant('meters.insteadOf', { price: perDay })})`;
+    return `${write(price.finalXaf)} F/${this.translate.instant('meters.day')} (${this.translate.instant('meters.insteadOf', { price: perDay })})`;
   }
+
 
   protected readonly view = signal<{ meters: AppMeter[]; walletXaf: number; daysCovered: number | null } | null>(null);
   protected readonly catalog = signal<MeterCatalog | null>(null);

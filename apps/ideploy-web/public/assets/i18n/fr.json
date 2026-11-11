@@ -2262,7 +2262,7 @@
     "hide": "Masquer les valeurs"
   },
   "meters": {
-    "insteadOf": "au lieu de {{price}} F",
+    "insteadOf": "au lieu de {{price}}",
     "title": "Compteurs",
     "subtitle": "Chaque application a son compteur, payé au jour depuis votre portefeuille IDEM. Rien à souscrire : changez de compteur quand vous voulez.",
     "wallet": "Portefeuille IDEM",

@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 import { localAmountAfter } from '../engine';
-import { rewriteAmount } from '../format';
+import { freeLabel, rewriteAmount } from '../format';
 import { PromotionsStore } from './promotions.store';
 
 /**
@@ -43,6 +43,8 @@ export class PromoTextComponent {
     if (price.discountXaf <= 0) return null;
     const promotion = this.store.promotions().find((entry) => entry.id === price.applied[0]?.id);
     if (promotion?.display?.strikethrough === false) return null;
+    // Un prix offert s'écrit « Gratuit » ; une remise partielle garde les mots d'origine (« 7 F par jour »).
+    if (price.free) return freeLabel(this.locale().startsWith('en') ? 'en' : undefined);
     return rewriteAmount(this.text(), (amount) => localAmountAfter(price, amount), this.locale());
   });
 }

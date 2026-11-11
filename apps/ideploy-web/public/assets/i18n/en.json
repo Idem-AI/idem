@@ -2262,7 +2262,7 @@
     "hide": "Hide values"
   },
   "meters": {
-    "insteadOf": "instead of {{price}} F",
+    "insteadOf": "instead of {{price}}",
     "title": "Meters",
     "subtitle": "Each application has its own meter, paid daily from your IDEM wallet. Nothing to subscribe to: change meters whenever you like.",
     "wallet": "IDEM wallet",

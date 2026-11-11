@@ -147,7 +147,7 @@ export class ChatPage {
   /** Le prix de l'export HD, remisé pendant une promotion. */
   protected readonly promoPrice = computed(() => {
     const price = this.promotions.price(this.mode() === 'video' ? 'ivision.export_video' : 'ivision.export_visual', this.price() ?? 0);
-    return { final: price.finalXaf, original: price.originalXaf, discounted: price.discountXaf > 0 };
+    return { final: price.finalXaf, original: price.originalXaf, discounted: price.discountXaf > 0, free: price.free };
   });
   /** Plans filmés par l'IA commandés pour la prochaine vidéo (1 000 F l'un). */
   protected readonly aiClips = signal(0);

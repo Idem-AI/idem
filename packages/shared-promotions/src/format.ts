@@ -35,3 +35,12 @@ export function rewriteAmount(original: string, finalOf: (amount: number) => num
   if (final === 0) out = out.replace(/^(\s*0[\s  ]*)F(?![A-Za-z])(?![\s  ]*CFA)/, '$1F CFA');
   return out;
 }
+
+/**
+ * Le mot affiché à la place d'un prix tombé à zéro par une promotion : « Gratuit » (« Free » sur
+ * une page anglaise). La langue vient de l'argument, sinon de `<html lang>`.
+ */
+export function freeLabel(locale?: string): string {
+  const lang = (locale ?? (typeof document !== 'undefined' ? document.documentElement.lang : '') ?? 'fr').toLowerCase();
+  return lang.startsWith('en') ? 'Free' : 'Gratuit';
+}

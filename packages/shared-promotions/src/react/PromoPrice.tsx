@@ -1,6 +1,6 @@
 import { bannerPromotion } from '../client';
 import { localAmountAfter, priceWithPromotions } from '../engine';
-import { currencyUnit, formatAmount, rewriteAmount } from '../format';
+import { currencyUnit, formatAmount, freeLabel, rewriteAmount } from '../format';
 import type { PublicPromotion } from '../model';
 
 export interface PromoPriceProps {
@@ -33,7 +33,7 @@ export function PromoPrice({ promotions, item, xaf, amount = null, currency = 'X
       </del>
       <span>
         <span style={srOnly}>Prix pendant la promotion : </span>
-        {write(localAmountAfter(price, base, decimals))}
+        {price.free ? freeLabel() : write(localAmountAfter(price, base, decimals))}
       </span>
       {showBadge && promotion?.display?.badge ? (
         <span style={{ fontSize: '0.5em', fontWeight: 600, padding: '0.15em 0.55em', borderRadius: 999, alignSelf: 'center', background: 'color-mix(in srgb, currentColor 10%, transparent)' }}>
@@ -70,7 +70,7 @@ export function PromoText({ promotions, item, xaf, text, className }: { promotio
       </del>
       <span>
         <span style={srOnly}>Prix pendant la promotion : </span>
-        {rewriteAmount(text, (amount) => localAmountAfter(price, amount))}
+        {price.free ? freeLabel() : rewriteAmount(text, (amount) => localAmountAfter(price, amount))}
       </span>
     </span>
   );

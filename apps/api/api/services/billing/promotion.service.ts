@@ -641,7 +641,8 @@ export class PromotionService {
   async ensureDefaults(): Promise<void> {
     await this.publishRound();
     try {
-      if (await Promotion.exists({ slug: BETA_CAMPAIGN_SLUG })) return;
+      // Toute campagne bêta, y compris créée par l'interrupteur du panel (`beta-gratuite…`).
+      if (await Promotion.exists({ slug: /^beta-gratuite/ })) return;
       const preset = campaignQuotaPreset(5);
       await Promotion.create({
         slug: BETA_CAMPAIGN_SLUG,
