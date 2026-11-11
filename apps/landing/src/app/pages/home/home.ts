@@ -6,6 +6,8 @@ import { Hero } from '../../components/hero/hero';
 import { VideoTrailer } from '../../components/video-trailer/video-trailer';
 import { JourneyComponent } from '../../components/journey/journey';
 import { OfferPickerComponent } from '../../components/offer-picker/offer-picker';
+import { PaySectionComponent } from '@idem/shared-promotions/angular';
+import { environment } from '../../../environments/environment';
 import { TechnologySovereigntyComponent } from '../../components/technology-sovereignty/technology-sovereignty';
 import { Cta } from '../../components/cta/cta';
 import { BetaProgram } from '../../components/beta-program/beta-program';
@@ -28,8 +30,12 @@ import { BuildersProgram } from '../../components/builders-program/builders-prog
     Cta,
     BetaProgram,
     BuildersProgram,
+    PaySectionComponent,
   ],
   templateUrl: './home.html',
   styleUrl: './home.css',
 })
-export class Home {}
+export class Home {
+  /** Le bouton « Commencer gratuitement » de la section de paiement. */
+  protected readonly startUrl = `${environment.services.dashboard.url}/create-project`;
+}

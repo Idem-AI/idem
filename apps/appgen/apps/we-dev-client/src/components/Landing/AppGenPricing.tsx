@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { Check } from 'lucide-react';
 import Button, { ButtonLink } from '@/components/ui/Button';
 import { ProjectPassIllustration } from '@/components/ui/Illustrations';
-import { PromoBanner, PromoText, useOffers, usePromotions } from '@idem/shared-promotions/react';
+import { PaySection, PayStrip, PromoBanner, PromoText, useOffers, usePromotions } from '@idem/shared-promotions/react';
 import { offerPriceXaf, rewriteAmount, type OffersCatalog } from '@idem/shared-promotions';
 
 const IDEM_API = process.env.REACT_APP_IDEM_API_BASE_URL || 'http://localhost:3001';
@@ -94,6 +94,7 @@ export function AppGenPricing({ onGetStarted }: AppGenPricingProps) {
       <div className="max-w-[68rem] mx-auto">
         <h2 className="max-w-2xl text-[clamp(1.75rem,3.4vw,2.5rem)] font-semibold leading-tight text-balance">{title}</h2>
         <p className="mt-4 max-w-xl text-text-tertiary text-pretty">{t('landing.pricing.lede')}</p>
+        <PayStrip lang={i18n.language} className="mt-6" />
         <PromoBanner promotions={promotions} className="mt-6 max-w-2xl rounded-2xl border border-primary/40 bg-surface-1 px-5 py-4 text-sm text-text-secondary" />
 
         {/* 0 F pour générer : la gratuité d'abord. */}
@@ -186,6 +187,11 @@ export function AppGenPricing({ onGetStarted }: AppGenPricingProps) {
               ))}
             </ul>
           </div>
+        </div>
+
+        {/* Comment payer : la même section sur toutes les landings (mobile money, sans abonnement). */}
+        <div className="mt-24">
+          <PaySection offers={offers} lang={i18n.language} onCta={onGetStarted} />
         </div>
       </div>
     </section>

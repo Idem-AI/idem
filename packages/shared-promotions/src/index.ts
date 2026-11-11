@@ -14,3 +14,5 @@ export * from './engine';
 export * from './format';
 export * from './client';
 export * from './offers';
+export * from './operators';
+export * from './pay-section';

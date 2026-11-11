@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject } from '@angular/core';
-import { PromoPriceComponent, PromotionsStore } from '@idem/shared-promotions/angular';
+import { PaySectionComponent, PayStripComponent, PromoPriceComponent, PromotionsStore } from '@idem/shared-promotions/angular';
 import { Router } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { LandingNavComponent } from '../shared/landing-nav';
 import { LandingFooterComponent } from '../shared/landing-footer';
 import { AuthService } from '../../../shared/services/auth.service';
@@ -33,7 +33,7 @@ interface Meter {
  */
 @Component({
   selector: 'app-pricing',
-  imports: [TranslateModule, LandingNavComponent, LandingFooterComponent, IllustrationComponent, PromoPriceComponent],
+  imports: [TranslateModule, LandingNavComponent, LandingFooterComponent, IllustrationComponent, PromoPriceComponent, PaySectionComponent, PayStripComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="relative min-h-screen overflow-hidden text-text-primary">
@@ -53,6 +53,7 @@ interface Meter {
               <a href="#meters" class="font-semibold text-primary-500 underline underline-offset-4">{{ 'pricing.seeMeters' | translate }}</a>
             </div>
             <p class="mt-4 text-sm text-text-secondary">{{ 'pricing.heroNote' | translate }}</p>
+            <idem-pay-strip class="mt-6 block" [lang]="translate.currentLang" />
           </div>
           <app-illustration name="mortar" [width]="300" class="mx-auto hidden text-text-tertiary sm:block" />
         </div>
@@ -110,25 +111,9 @@ interface Meter {
         </div>
       </section>
 
-      <!-- Comment on paie : une vraie suite d'étapes -->
-      <section class="border-t border-[var(--glass-border-subtle)] px-6 py-24">
-        <div class="mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-[1fr_14rem]">
-          <div>
-            <h2 class="mb-10 text-balance text-3xl font-black">{{ 'pricing.stepsTitle' | translate }}</h2>
-            <ol class="grid gap-8 md:grid-cols-3">
-              @for (n of steps; track n) {
-                <li class="flex gap-4">
-                  <span class="grid h-9 w-9 flex-none place-items-center rounded-full bg-primary-500 font-bold text-white" aria-hidden="true">{{ n }}</span>
-                  <div>
-                    <p class="font-bold">{{ 'pricing.step' + n + 'T' | translate }}</p>
-                    <p class="mt-1 text-sm leading-relaxed text-text-secondary">{{ 'pricing.step' + n + 'D' | translate }}</p>
-                  </div>
-                </li>
-              }
-            </ol>
-          </div>
-          <app-illustration name="cowries" [width]="200" class="mx-auto hidden text-text-tertiary lg:block" />
-        </div>
+      <!-- Comment payer : la même section sur toutes les landings (mobile money, sans abonnement) -->
+      <section class="px-6 py-16">
+        <idem-pay-section [ctaHref]="loginUrl" [lang]="translate.currentLang" />
       </section>
 
       <!-- Les options à la journée : une liste, pas une grille -->
@@ -209,6 +194,7 @@ interface Meter {
 })
 export class PricingComponent implements OnInit {
   private readonly auth = inject(AuthService);
+  protected readonly translate = inject(TranslateService);
   private readonly router = inject(Router);
 
   protected readonly loginUrl = `${environment.services.console.url}/login?redirect=ideploy`;
@@ -222,7 +208,6 @@ export class PricingComponent implements OnInit {
     { tier: 'application_plus', fallbackXaf: 150, recommended: false },
   ];
   protected readonly features = [1, 2, 3, 4];
-  protected readonly steps = [1, 2, 3];
 
   /** Prix au jour d'un compteur, lu sur l'API. */
   protected dayXaf(meter: Meter): number {

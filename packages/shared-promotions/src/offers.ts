@@ -19,6 +19,7 @@ export interface OffersCatalog {
   simulations: Record<string, { idemXaf: number; publicXaf: number }>;
   packs: { code: string; priceXaf: number }[];
   domains?: Record<string, { priceXaf: number | null; renewalXaf: number | null; packXaf: number | null }>;
+  topup?: { minXaf: number; maxXaf?: number; stepXaf?: number; bonuses?: { fromXaf: number; rate: number }[] };
 }
 
 /**
