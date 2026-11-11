@@ -2,7 +2,7 @@
 <section class="picker" aria-labelledby="picker-title">
   <h2 class="picker-title" id="picker-title" i18n="@@offer-picker.offers.title">What do you need?</h2>
   @if (summary()) {
-    <p class="picker-lead" i18n="@@offer-picker.lead">Creating is free. You pay to keep the result, by mobile money, from 500 F.</p>
+    <p class="picker-lead">{{ lead() }}</p>
   }
   <idem-promo-banner class="picker-banner" [dismissible]="false" />
   <div class="picker-grid">
@@ -15,7 +15,7 @@
         <p class="offer-need">{{ offer.need }}</p>
         <h3 class="offer-name" [id]="'offer-' + offer.id">{{ offer.name }}</h3>
         <p class="offer-price"><span class="offer-amount"><idem-promo-price [item]="offer.item ?? null" [xaf]="offer.price" [source]="offer.item ?? null" /></span> <span class="offer-cadence">{{ offer.cadence }}</span></p>
-        <p class="offer-anchor">{{ offer.anchor }}</p>
+        <p class="offer-anchor">{{ anchorOf(offer) }}</p>
         <ul class="offer-list">
           @for (line of offer.bullets; track line) {
             <li><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5 L6.5 12 L13 4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg>{{ line }}</li>

@@ -23,21 +23,28 @@ export function usePromotions(apiUrl: string): { promotions: PublicPromotion[]; 
   return { promotions, client };
 }
 
-const offersByApi = new Map<string, Promise<OffersCatalog | null>>();
-
-/** Le catalogue des offres servi par l'API (prix réglés dans le panel), lu une fois par page. */
+/** Le catalogue des offres servi par l'API (prix réglés dans le panel), relu chaque minute et
+ * toutes les 10 s tant que l'API n'a pas répondu. */
 export function useOffers(apiUrl: string): OffersCatalog | null {
   const [offers, setOffers] = useState<OffersCatalog | null>(null);
   useEffect(() => {
     let alive = true;
-    let pending = offersByApi.get(apiUrl);
-    if (!pending) {
-      pending = fetchOffers(apiUrl);
-      offersByApi.set(apiUrl, pending);
-    }
-    void pending.then((value) => alive && setOffers(value));
+    let loaded = false;
+    const load = () =>
+      void fetchOffers(apiUrl).then((value) => {
+        if (!alive || !value) return;
+        loaded = true;
+        setOffers(value);
+      });
+    load();
+    const every = setInterval(load, 60_000);
+    const retry = setInterval(() => {
+      if (!loaded) load();
+    }, 10_000);
     return () => {
       alive = false;
+      clearInterval(every);
+      clearInterval(retry);
     };
   }, [apiUrl]);
   return offers;

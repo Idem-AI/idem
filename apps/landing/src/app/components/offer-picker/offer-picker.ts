@@ -1,8 +1,9 @@
-import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { environment } from '../../../environments/environment';
 import { OfferIllustrationComponent, OfferIllustrationKind } from '../../shared/components/offer-illustration/offer-illustration';
-import { PromoBannerComponent, PromoPriceComponent } from '@idem/shared-promotions/angular';
+import { PromoBannerComponent, PromoPriceComponent, PromotionsStore } from '@idem/shared-promotions/angular';
+import { LivePhrase, livePhrase } from '../../shared/live-phrases';
 
 interface Offer {
   id: string;
@@ -13,6 +14,8 @@ interface Offer {
   item?: string;
   cadence: string;
   anchor: string;
+  /** Le montant de `anchor` se recalcule depuis les prix de l'API. */
+  anchorLive?: LivePhrase;
   bullets: string[];
   cta: string;
   href: string;
@@ -38,6 +41,18 @@ interface Offer {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class OfferPickerComponent {
+  private readonly store = inject(PromotionsStore);
+  private readonly leadText = $localize`:@@offer-picker.lead:Creating is free. You pay to keep the result, by mobile money, from 500 F.`;
+
+  /** « dès 500 F » : le prix de la version finale la moins chère, lu sur l'API. */
+  protected lead(): string {
+    return livePhrase(this.leadText, this.store.offers(), 'minFinal');
+  }
+
+  protected anchorOf(offer: Offer): string {
+    return offer.anchorLive ? livePhrase(offer.anchor, this.store.offers(), offer.anchorLive) : offer.anchor;
+  }
+
   /** Sur la home : une phrase d'introduction et le lien vers tous les prix. */
   readonly summary = input(false);
 
@@ -48,7 +63,7 @@ export class OfferPickerComponent {
   protected readonly offers: Offer[] = [
     { id: 'free', need: $localize`:@@offer-picker.free.need:Try without paying`, name: $localize`:@@offer-picker.free.name:Free`, price: 0, cadence: $localize`:@@offer-picker.free.cadence:forever`, anchor: $localize`:@@offer-picker.free.anchor:No bank card, no time limit`, bullets: [$localize`:@@offer-picker.free.b1:Drafts of all your documents: business plan, logo, deck`, $localize`:@@offer-picker.free.b2:Your app generated and running in the browser`, $localize`:@@offer-picker.free.b3:Your website online on Standby`], cta: $localize`:@@offer-picker.free.cta:Get started`, href: this.startUrl, art: 'sprout' },
     { id: 'kit', need: $localize`:@@offer-picker.kit.need:My business documents`, name: $localize`:@@offer-picker.kit.name:Business Kit`, price: 2500, item: 'deliverable.kit', cadence: $localize`:@@offer-picker.offers.once:one-time payment`, anchor: $localize`:@@offer-picker.kit.anchor:Instead of 500,000 F at a consultant`, bullets: [$localize`:@@offer-picker.kit.b1:Business plan with sourced market data`, $localize`:@@offer-picker.kit.b2:Logo and brand guidelines`, $localize`:@@offer-picker.kit.b3:Pitch deck, OHADA statutes, 3-year forecast, business cards`], cta: $localize`:@@offer-picker.kit.cta:Create my project`, href: this.startUrl, art: 'kit', note: $localize`:@@offer-picker.kit.how:You pay when you keep the final version.` },
-    { id: 'launch', need: $localize`:@@offer-picker.launch.need:Launch my business online`, name: $localize`:@@offer-picker.launch.name:Launch Pack`, price: 5000, item: 'pack.lancement', cadence: $localize`:@@offer-picker.offers.once:one-time payment`, anchor: $localize`:@@offer-picker.launch.anchor:Worth 9,400 F bought one by one`, bullets: [$localize`:@@offer-picker.launch.b1:The whole Business Kit`, $localize`:@@offer-picker.launch.b2:Your website or app, with its code (iCode Project Pass)`, $localize`:@@offer-picker.launch.b3:3 months of website online`], cta: $localize`:@@offer-picker.launch.cta:Get the pack`, href: this.buy('pack-lancement'), art: 'launch', recommended: true },
-    { id: 'growth', need: $localize`:@@offer-picker.growth.need:Communicate every month`, name: $localize`:@@offer-picker.growth.name:IDEM Growth`, price: 3000, item: 'pass.croissance', cadence: $localize`:@@offer-picker.offers.month:per month`, anchor: $localize`:@@offer-picker.growth.anchor:That is 100 F a day`, bullets: [$localize`:@@offer-picker.growth.b1:Visuals and videos for your networks, unlimited (fair use)`, $localize`:@@offer-picker.growth.b2:Approve and publish from WhatsApp`, $localize`:@@offer-picker.growth.b3:Your website always online, 20 app changes a month`], cta: $localize`:@@offer-picker.growth.cta:Activate the plan`, href: this.buy('pass-croissance'), art: 'drum' },
+    { id: 'launch', need: $localize`:@@offer-picker.launch.need:Launch my business online`, name: $localize`:@@offer-picker.launch.name:Launch Pack`, price: 5000, item: 'pack.lancement', cadence: $localize`:@@offer-picker.offers.once:one-time payment`, anchor: $localize`:@@offer-picker.launch.anchor:Worth 9,400 F bought one by one`, anchorLive: 'launchWorth', bullets: [$localize`:@@offer-picker.launch.b1:The whole Business Kit`, $localize`:@@offer-picker.launch.b2:Your website or app, with its code (iCode Project Pass)`, $localize`:@@offer-picker.launch.b3:3 months of website online`], cta: $localize`:@@offer-picker.launch.cta:Get the pack`, href: this.buy('pack-lancement'), art: 'launch', recommended: true },
+    { id: 'growth', need: $localize`:@@offer-picker.growth.need:Communicate every month`, name: $localize`:@@offer-picker.growth.name:IDEM Growth`, price: 3000, item: 'pass.croissance', cadence: $localize`:@@offer-picker.offers.month:per month`, anchor: $localize`:@@offer-picker.growth.anchor:That is 100 F a day`, anchorLive: 'growthPerDay', bullets: [$localize`:@@offer-picker.growth.b1:Visuals and videos for your networks, unlimited (fair use)`, $localize`:@@offer-picker.growth.b2:Approve and publish from WhatsApp`, $localize`:@@offer-picker.growth.b3:Your website always online, 20 app changes a month`], cta: $localize`:@@offer-picker.growth.cta:Activate the plan`, href: this.buy('pass-croissance'), art: 'drum' },
   ];
 }

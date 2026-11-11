@@ -34,7 +34,18 @@ export class PromotionsStore {
 
   constructor() {
     if (!this.config || !this.browser) return;
-    void fetchOffers(this.config.apiUrl).then((offers) => offers && this.offers.set(offers));
+    // Les prix sont relus chaque minute (un prix changé dans le panel arrive sans recharger la page),
+    // et toutes les 10 s tant que l'API n'a jamais répondu (page ouverte pendant qu'elle redémarre).
+    const apiUrl = this.config.apiUrl;
+    const loadOffers = () => fetchOffers(apiUrl).then((offers) => offers && this.offers.set(offers));
+    void loadOffers();
+    const timers = [
+      setInterval(() => void loadOffers(), 60_000),
+      setInterval(() => {
+        if (!this.offers()) void loadOffers();
+      }, 10_000),
+    ];
+    inject(DestroyRef).onDestroy(() => timers.forEach((timer) => clearInterval(timer)));
     if (!this.client) return;
     const stop = this.client.subscribe((list) => this.promotions.set(list));
     inject(DestroyRef).onDestroy(stop);

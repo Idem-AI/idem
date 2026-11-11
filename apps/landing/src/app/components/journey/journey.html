@@ -71,7 +71,7 @@
                 />
               </svg>
             </a>
-            <span class="jn-price">{{ stage.price }}</span>
+            <idem-promo-text class="jn-price" [text]="stage.price" [item]="stage.item ?? null" [xaf]="stage.xaf ?? null" [source]="stage.source ?? stage.item ?? null" />
           </div>
         </div>
 

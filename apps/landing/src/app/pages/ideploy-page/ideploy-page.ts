@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { environment } from '../../../environments/environment';
 import { PageArtComponent, PageArtScene } from '../../shared/components/page-art/page-art';
+import { PromoTextComponent } from '@idem/shared-promotions/angular';
 
 interface Step {
   title: string;
@@ -43,11 +44,14 @@ interface EcosystemLink {
 @Component({
   selector: 'app-ideploy-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [PageArtComponent],
+  imports: [PageArtComponent, PromoTextComponent],
   templateUrl: './ideploy-page.html',
   styleUrls: ['../../shared/styles/editorial-page.css', './ideploy-page.css'],
 })
 export class IdeployPage {
+  /** Prix d'un jour de site toujours en ligne : secours, remplacé par celui de l'API (`meter:vitrine`). */
+  protected readonly alwaysOnPrice = $localize`:@@ideploy-page.price.perDay:10 F a day`;
+
   protected readonly idevUrl = environment.services.idev.url;
   protected readonly ideployUrl = environment.services.ideploy.url;
   protected readonly dashboardUrl = environment.services.dashboard.url;

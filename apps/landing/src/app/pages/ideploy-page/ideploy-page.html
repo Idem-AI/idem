@@ -230,8 +230,10 @@
             }
           </ul>
 
-          <p class="ed-body ed-mt-8" i18n="@@ideploy-page.price.paid">
-            Paid plans start at 2 999 F per month. Mobile Money accepted, no card required.
+          <p class="ed-body ed-mt-8">
+            <span i18n="@@ideploy-page.price.paidLead">Always-online hosting:</span>
+            <idem-promo-text [text]="alwaysOnPrice" item="ideploy.meter" [xaf]="10" source="meter:vitrine" />
+            <span i18n="@@ideploy-page.price.paidTail">Paid daily from your wallet, by Mobile Money, no card required.</span>
           </p>
         </div>
 
