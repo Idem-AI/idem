@@ -27,7 +27,8 @@ interface Offer {
  * Chaque carte a son bouton : la gratuite et le Kit ouvrent un projet (on paie en gardant),
  * les autres ouvrent l'achat dans la console (`/account/plans?buy=…`), connexion d'abord.
  *
- * Montants : `apps/api/api/models/offer.model.ts`.
+ * Montants : lus sur l'API (`/billing/offers`, la grille réglée dans le panel admin) ; ceux écrits
+ * ici ne servent que de secours si l'API ne répond pas.
  */
 @Component({
   selector: 'app-offer-picker',

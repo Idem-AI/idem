@@ -568,15 +568,18 @@ export type ServiceChargeResult =
  * service appelant. `quantity` multiplie le prix (secondes de vidéo exportées sont déjà dans
  * le prix d'un export vidéo : la quantité est le nombre d'unités demandées).
  */
-const SERVICE_ACTIONS: Record<string, { priceXaf: number; label: string; cap?: 'createur'; units?: 'appgen' }> = {
-  // iVision : la création est gratuite (signée) ; l'export HD se paie, plafonné au forfait Créateur.
-  export_visual: { priceXaf: 100, label: 'Export HD d’un visuel', cap: 'createur' },
-  export_video: { priceXaf: 300, label: 'Export HD d’une vidéo', cap: 'createur' },
-  ai_clip: { priceXaf: COMMUNICATION_PRICES.ai_clip, label: 'Plan filmé par l’IA' },
-  // iCode : une image de site vaut une modification ; un clip, un plan filmé par l'IA.
-  site_image: { priceXaf: ICODE.modificationXaf, label: 'Image de site générée', units: 'appgen' },
-  site_video: { priceXaf: ICODE.siteVideoXaf, label: 'Clip vidéo de site' },
-};
+/** Lue à chaque débit (fonction, pas constante) : les prix suivent la grille réglée dans le panel. */
+function serviceActions(): Record<string, { priceXaf: number; label: string; cap?: 'createur'; units?: 'appgen' }> {
+  return {
+    // iVision : la création est gratuite (signée) ; l'export HD se paie, plafonné au forfait Créateur.
+    export_visual: { priceXaf: COMMUNICATION_PRICES.flyer, label: 'Export HD d’un visuel', cap: 'createur' },
+    export_video: { priceXaf: COMMUNICATION_PRICES.motion_video, label: 'Export HD d’une vidéo', cap: 'createur' },
+    ai_clip: { priceXaf: COMMUNICATION_PRICES.ai_clip, label: 'Plan filmé par l’IA' },
+    // iCode : une image de site vaut une modification ; un clip, un plan filmé par l'IA.
+    site_image: { priceXaf: ICODE.modificationXaf, label: 'Image de site générée', units: 'appgen' },
+    site_video: { priceXaf: COMMUNICATION_PRICES.ai_clip, label: 'Clip vidéo de site' },
+  };
+}
 
 /**
  * Débit d'un service de l'écosystème, au nom d'un utilisateur. Mêmes règles que les routes :
@@ -602,7 +605,7 @@ export async function chargeForService(
     const reservation = quota.reservation;
 
     const entitlements = await entitlementsService.resolve(userId);
-    const known = SERVICE_ACTIONS[resolved.action];
+    const known = serviceActions()[resolved.action];
     const quantity = Math.max(1, Math.min(50, Math.floor(resolved.quantity ?? 1)));
     const label = known?.label ?? resolved.note ?? resolved.action;
 
@@ -847,4 +850,9 @@ export async function releaseSimulationPayment(req: CustomRequest): Promise<void
 }
 
 /** Plafond d'un projet, exposé pour les écrans. */
-export const KIT = { capXaf: KIT_CAP_XAF, capKey: kitCapKey };
+export const KIT = {
+  get capXaf(): number {
+    return KIT_CAP_XAF;
+  },
+  capKey: kitCapKey,
+};

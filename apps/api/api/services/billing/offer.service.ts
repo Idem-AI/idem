@@ -14,7 +14,7 @@ import { domainExtension, idomainClient } from '../idomain/idomain.client';
 import { creditLedgerService } from './credit-ledger.service';
 import { deployMeterService } from './deploy-meter.service';
 import { entitlementsService } from './entitlements.service';
-import { idemCodesService, PACK_CODE_VALUE_XAF } from './idem-codes.service';
+import { idemCodesService } from './idem-codes.service';
 import { ownershipService } from './ownership.service';
 import { passService } from './pass.service';
 import { walletService } from './wallet.service';
@@ -177,7 +177,7 @@ export class OfferService {
     if (!spend.allowed) return insufficient(spend);
 
     if (request.code === 'a_plusieurs') {
-      const { codes } = await idemCodesService.generate({ kind: 'pack_lancement', valueXaf: PACK_CODE_VALUE_XAF, count: PACK_GROUP_SIZE, createdBy: userId });
+      const { codes } = await idemCodesService.generate({ kind: 'pack_lancement', valueXaf: PACKS.lancement.priceXaf, count: PACK_GROUP_SIZE, createdBy: userId });
       return { ok: true, message: `${codes.length} codes Pack Lancement à offrir.`, chargedXaf: spend.chargedXaf, balanceXaf: spend.balanceXaf, details: { codes } };
     }
 

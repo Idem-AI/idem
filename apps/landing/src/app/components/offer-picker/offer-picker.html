@@ -14,7 +14,7 @@
         <app-offer-illustration [kind]="offer.art" class="offer-art" />
         <p class="offer-need">{{ offer.need }}</p>
         <h3 class="offer-name" [id]="'offer-' + offer.id">{{ offer.name }}</h3>
-        <p class="offer-price"><span class="offer-amount"><idem-promo-price [item]="offer.item ?? null"  [xaf]="offer.price" /></span> <span class="offer-cadence">{{ offer.cadence }}</span></p>
+        <p class="offer-price"><span class="offer-amount"><idem-promo-price [item]="offer.item ?? null" [xaf]="offer.price" [source]="offer.item ?? null" /></span> <span class="offer-cadence">{{ offer.cadence }}</span></p>
         <p class="offer-anchor">{{ offer.anchor }}</p>
         <ul class="offer-list">
           @for (line of offer.bullets; track line) {

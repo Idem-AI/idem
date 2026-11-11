@@ -427,6 +427,8 @@ function startServer() {
       // sont recopiés sur les produits : tout le code qui lit `priceXaf` voit
       // ainsi le prix réellement appliqué, dès le démarrage.
       await pricingService.materialize();
+      // Les offres au portefeuille suivent la grille réglée dans le panel (relue chaque minute).
+      pricingService.startOfferRefresh();
 
       // Réglages commerciaux (bêta, mode d'application du barème, grâce).
       await billingSettingsService.ensureExists();

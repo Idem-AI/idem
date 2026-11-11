@@ -13,3 +13,4 @@ export * from './items';
 export * from './engine';
 export * from './format';
 export * from './client';
+export * from './offers';

@@ -2,7 +2,8 @@ import { useTranslation } from 'react-i18next';
 import { Check } from 'lucide-react';
 import Button, { ButtonLink } from '@/components/ui/Button';
 import { ProjectPassIllustration } from '@/components/ui/Illustrations';
-import { PromoBanner, PromoText, usePromotions } from '@idem/shared-promotions/react';
+import { PromoBanner, PromoText, useOffers, usePromotions } from '@idem/shared-promotions/react';
+import { offerPriceXaf, rewriteAmount } from '@idem/shared-promotions';
 
 const IDEM_API = process.env.REACT_APP_IDEM_API_BASE_URL || 'http://localhost:3001';
 
@@ -37,6 +38,10 @@ export function AppGenPricing({ onGetStarted }: AppGenPricingProps) {
   const { t } = useTranslation();
   // Promotions en cours : les prix se barrent (« 1 000 F » → « 0 F CFA ») pendant une campagne.
   const { promotions } = usePromotions(IDEM_API);
+  // Les prix viennent de l'API (grille réglée dans le panel admin) ; ceux des textes sont des secours.
+  const offers = useOffers(IDEM_API);
+  const livePass = offerPriceXaf(offers, 'icode.project_pass');
+  const passTitle = livePass !== null ? rewriteAmount(t('landing.pricing.title'), () => livePass) : t('landing.pricing.title');
 
   // `returnObjects` rend un tableau quand la clé existe, et la clé elle-même
   // sinon : une clé manquante rend la section incomplète au lieu de la casser.
@@ -51,7 +56,7 @@ export function AppGenPricing({ onGetStarted }: AppGenPricingProps) {
     <section id="pricing" className="px-6 py-28">
       <div className="max-w-[68rem] mx-auto">
         <h2 className="max-w-2xl text-[clamp(1.75rem,3.4vw,2.5rem)] font-semibold leading-tight text-balance">
-          {t('landing.pricing.title')}
+          {passTitle}
         </h2>
         <p className="mt-4 max-w-xl text-text-tertiary text-pretty">{t('landing.pricing.lede')}</p>
         <PromoBanner promotions={promotions} className="mt-6 max-w-2xl rounded-2xl border border-primary/40 bg-surface-1 px-5 py-4 text-sm text-text-secondary" />
@@ -62,7 +67,7 @@ export function AppGenPricing({ onGetStarted }: AppGenPricingProps) {
             <h3 className="text-xl font-semibold">{t('landing.pricing.pass.name')}</h3>
             <p className="mt-3 flex flex-wrap items-baseline gap-x-3">
               <span className="text-[clamp(3rem,7vw,4.5rem)] font-bold leading-none tabular-nums text-text-primary">
-                <PromoText promotions={promotions} item="icode.project_pass" xaf={1000} text={t('landing.pricing.pass.price')} />
+                <PromoText promotions={promotions} offers={offers} source="icode.project_pass" item="icode.project_pass" xaf={1000} text={t('landing.pricing.pass.price')} />
               </span>
               <span className="text-base text-text-tertiary">{t('landing.pricing.pass.once')}</span>
             </p>
@@ -104,7 +109,7 @@ export function AppGenPricing({ onGetStarted }: AppGenPricingProps) {
                     <p className="text-sm text-text-tertiary text-pretty">{text('note')}</p>
                   </div>
                   <p className="font-semibold tabular-nums whitespace-nowrap text-text-primary">
-                    {item && xaf ? <PromoText promotions={promotions} item={item} xaf={xaf} text={text('price')} /> : text('price')}
+                    {item && xaf ? <PromoText promotions={promotions} offers={offers} source={item} item={item} xaf={xaf} text={text('price')} /> : text('price')}
                   </p>
                   <div className="col-span-2 sm:col-span-1 sm:justify-self-end">
                     {offer && (

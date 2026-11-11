@@ -1,6 +1,7 @@
 import logger from '../../config/logger';
 import { loadPricingDefaults, pricingConfigPath, pricingSource, publishPricingDefaults } from '../../config/pricing.loader';
 import { BillingProduct } from '../../schemas/billing.schema';
+import { applyOfferPricing } from '../../models/offer.model';
 import { PricingChange, PricingOverride } from '../../schemas/pricingOverride.schema';
 import {
   LocalPrice,
@@ -135,9 +136,40 @@ class PricingService {
    * elle reste gratuite quand rien n'a changé, et propage en moins d'une minute
    * une modification du fichier.
    */
+  /**
+   * Applique la grille effective (fichier + surcharges du panel) aux offres du modèle au
+   * portefeuille (`offer.model.ts`) : affichage et débit suivent le prix réglé.
+   */
+  async refreshOffers(): Promise<number> {
+    try {
+      const changed = applyOfferPricing(await this.effective());
+      if (changed > 0) logger.info('billing.offer_prices_applied', { event: 'billing.offer_prices_applied', changed });
+      return changed;
+    } catch (error: any) {
+      logger.error(`billing.offer_prices_failed: ${error.message}`, { event: 'billing.offer_prices_failed' });
+      return 0;
+    }
+  }
+
+  private offersTimer: ReturnType<typeof setInterval> | null = null;
+
+  /**
+   * Relit la grille chaque minute : le panel admin écrit ses surcharges directement en base, sans
+   * prévenir l'API. Une instance par processus (chaque instance tient ses propres montants).
+   */
+  startOfferRefresh(intervalMs = 60_000): void {
+    if (this.offersTimer) return;
+    this.offersTimer = setInterval(() => {
+      this.invalidate();
+      void this.refreshOffers();
+    }, intervalMs);
+    this.offersTimer.unref?.();
+  }
+
   async materialize(): Promise<{ updated: number }> {
     const config = await this.effective();
     await publishPricingDefaults();
+    await this.refreshOffers();
     const products = await BillingProduct.find({}, { code: 1, priceXaf: 1, idemPriceXaf: 1 }).lean();
 
     let updated = 0;

@@ -49,10 +49,16 @@ export class PromoPriceComponent {
   /** Unité écrite après le nombre ; `''` pour laisser l'hôte l'écrire. */
   readonly unit = input<string | null>(null);
   readonly showBadge = input(true);
+  /**
+   * Où lire le prix à jour sur l'API (`pack.lancement`, `pass.croissance:year`, `meter:vitrine`…) :
+   * `xaf` n'est alors qu'un prix de secours. Sans `source`, `xaf` fait foi.
+   */
+  readonly source = input<string | null>(null);
 
   protected readonly view = computed(() => {
-    const price = this.store.price(this.item(), this.xaf());
-    const base = this.amount() ?? this.xaf();
+    const xaf = this.store.offerPrice(this.source(), this.xaf());
+    const price = this.store.price(this.item(), xaf);
+    const base = this.amount() ?? xaf;
     const decimals = this.decimals();
     const unit = this.unit() ?? currencyUnit(this.currency());
     const write = (value: number) => (unit ? `${formatAmount(value, decimals)} ${unit}` : formatAmount(value, decimals));

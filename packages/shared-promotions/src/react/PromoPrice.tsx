@@ -2,6 +2,7 @@ import { bannerPromotion } from '../client';
 import { localAmountAfter, priceWithPromotions } from '../engine';
 import { currencyUnit, formatAmount, freeLabel, rewriteAmount } from '../format';
 import type { PublicPromotion } from '../model';
+import { offerPriceXaf, type OffersCatalog } from '../offers';
 
 export interface PromoPriceProps {
   promotions: PublicPromotion[];
@@ -58,7 +59,27 @@ export function PromoBanner({ promotions, className }: { promotions: PublicPromo
 }
 
 /** Une chaîne de prix existante, barrée et réécrite avec le montant remisé (même rendu que `<idem-promo-text>`). */
-export function PromoText({ promotions, item, xaf, text, className }: { promotions: PublicPromotion[]; item: string | null; xaf: number; text: string; className?: string }) {
+export function PromoText({
+  promotions,
+  item,
+  xaf: fallbackXaf,
+  text: fallbackText,
+  className,
+  offers = null,
+  source = null,
+}: {
+  promotions: PublicPromotion[];
+  item: string | null;
+  xaf: number;
+  text: string;
+  className?: string;
+  /** Catalogue servi par l'API (`useOffers`) et où y lire le prix : le montant écrit n'est qu'un secours. */
+  offers?: OffersCatalog | null;
+  source?: string | null;
+}) {
+  const live = source ? offerPriceXaf(offers, source) : null;
+  const xaf = live ?? fallbackXaf;
+  const text = live !== null && live !== fallbackXaf ? rewriteAmount(fallbackText, () => live) : fallbackText;
   const price = priceWithPromotions(promotions, item, xaf);
   const promotion = price.applied[0] ? promotions.find((entry) => entry.id === price.applied[0].id) : undefined;
   if (price.discountXaf <= 0 || promotion?.display?.strikethrough === false) return <span className={className}>{text}</span>;

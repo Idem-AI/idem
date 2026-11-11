@@ -108,19 +108,19 @@ export function isDeliverable(value: unknown): value is DeliverableKey {
 }
 
 /** Plafond d'un projet : au-delà, tout le Kit Entreprise est débloqué. */
-export const KIT_CAP_XAF = 2500;
+export let KIT_CAP_XAF = 2500;
 
 /** Somme des versions finales à l'unité (ancrage affiché à côté du Kit). */
-export const KIT_SUM_XAF = DELIVERABLE_KEYS.reduce((sum, key) => sum + DELIVERABLES[key].priceXaf, 0);
+export let KIT_SUM_XAF = DELIVERABLE_KEYS.reduce((sum, key) => sum + DELIVERABLES[key].priceXaf, 0);
 
 /** Version Signature (modèles les plus puissants), par livrable, hors plafond. */
-export const SIGNATURE_PRICE_XAF = 1000;
+export let SIGNATURE_PRICE_XAF = 1000;
 
 /** Retouches gratuites sur une version finale, après son achat. */
 export const FINAL_EDIT_WINDOW_DAYS = 30;
 
 /** Une retouche hors fenêtre et hors forfait. */
-export const EDIT_PRICE_XAF = 100;
+export let EDIT_PRICE_XAF = 100;
 
 /** Nouvelle mise en page d'un document déjà rédigé, hors fenêtre et hors forfait. */
 export const RELAYOUT_PRICE_XAF: Partial<Record<DeliverableKey, number>> = {
@@ -299,7 +299,7 @@ export const METER_ALERT_DAYS = 3;
 export const METER_SLEEP_GRACE_DAYS = 30;
 
 /** Espace équipe iDeploy (jusqu'à 5 membres), par mois. */
-export const DEPLOY_TEAM_SPACE_XAF = 1500;
+export let DEPLOY_TEAM_SPACE_XAF = 1500;
 
 /** Prix d'un compteur pour une journée, options comprises. */
 export function meterDailyXaf(tier: MeterTier, options: MeterOption[] = []): number {
@@ -382,3 +382,138 @@ export type IdemCodeKind = 'wallet' | 'pack_lancement';
 
 /** Commission d'un agent sur les codes qu'il vend. */
 export const AGENT_COMMISSION_RATE = 0.08;
+
+// ============================================
+// PRIX RÉGLABLES DEPUIS LE PANEL
+// ============================================
+
+/**
+ * Les montants ci-dessus sont les VALEURS PAR DÉFAUT. Chaque offre a aussi un code dans la grille
+ * de prix (`pricing.config.json`, produits `offer-…`, marqués `wallet: true`) : le panel admin peut
+ * les surcharger, et l'API applique la grille effective à ces objets (au démarrage puis chaque
+ * minute, `pricingService.refreshOffers`). Tout le code qui lit `DELIVERABLES`, `PASSES`, `ICODE`…
+ * voit donc le prix réglé — l'affichage (`/billing/offers`) comme le débit.
+ */
+
+interface OfferPriceSlot {
+  /** Libellé dans le panel. */
+  label: string;
+  /** Rubrique dans le panel. */
+  group: OfferPriceGroup;
+  get(): number;
+  set(value: number): void;
+  /** Prix « projet IDEM » (iSimulate) : le prix principal est le prix public. */
+  idem?: { get(): number; set(value: number): void };
+}
+
+export type OfferPriceGroup = 'offer-idem' | 'offer-communication' | 'offer-passes' | 'offer-packs' | 'offer-icode' | 'offer-ideploy' | 'offer-isimulate';
+
+type Mutable<T> = { -readonly [K in keyof T]: T[K] };
+const mutableIcode = ICODE as Mutable<typeof ICODE>;
+const mutableCommunication = COMMUNICATION_PRICES as Mutable<typeof COMMUNICATION_PRICES>;
+
+const COMMUNICATION_LABELS: Record<CommunicationItem, string> = {
+  flyer: 'Visuel (et export HD iVision d’un visuel)',
+  ai_visual: 'Visuel généré par l’IA',
+  carousel: 'Carrousel',
+  motion_video: 'Vidéo motion design (et export HD iVision d’une vidéo)',
+  motion_video_rerender: 'Nouvel export vidéo',
+  ai_clip: 'Plan filmé par l’IA (5 s)',
+  editorial_calendar: 'Calendrier éditorial',
+  communication_plan: 'Période de communication',
+  communication_strategy: 'Stratégie de communication',
+  short_video: 'Clip vidéo IA',
+};
+
+export const OFFER_PRICE_SLOTS: Record<string, OfferPriceSlot> = {
+  ...Object.fromEntries(
+    DELIVERABLE_KEYS.map((key) => [
+      `offer-deliverable-${key}`,
+      { label: `${DELIVERABLES[key].label} — version finale`, group: 'offer-idem', get: () => DELIVERABLES[key].priceXaf, set: (v: number) => (DELIVERABLES[key].priceXaf = v) },
+    ])
+  ),
+  'offer-kit-cap': { label: 'Kit Entreprise complet (plafond par projet)', group: 'offer-idem', get: () => KIT_CAP_XAF, set: (v) => (KIT_CAP_XAF = v) },
+  'offer-signature': { label: 'Version Signature (par livrable)', group: 'offer-idem', get: () => SIGNATURE_PRICE_XAF, set: (v) => (SIGNATURE_PRICE_XAF = v) },
+  'offer-edit': { label: 'Retouche hors fenêtre et hors forfait', group: 'offer-idem', get: () => EDIT_PRICE_XAF, set: (v) => (EDIT_PRICE_XAF = v) },
+  'offer-relayout-business_plan': { label: 'Nouvelle mise en page du business plan', group: 'offer-idem', get: () => RELAYOUT_PRICE_XAF.business_plan ?? 0, set: (v) => (RELAYOUT_PRICE_XAF.business_plan = v) },
+  'offer-relayout-pitch_deck': { label: 'Nouvelle mise en page du pitch deck', group: 'offer-idem', get: () => RELAYOUT_PRICE_XAF.pitch_deck ?? 0, set: (v) => (RELAYOUT_PRICE_XAF.pitch_deck = v) },
+  ...Object.fromEntries(
+    (Object.keys(COMMUNICATION_PRICES) as CommunicationItem[]).map((item) => [
+      `offer-comm-${item}`,
+      { label: COMMUNICATION_LABELS[item], group: 'offer-communication', get: () => COMMUNICATION_PRICES[item], set: (v: number) => (mutableCommunication[item] = v as never) },
+    ])
+  ),
+  ...Object.fromEntries(
+    (Object.keys(PASSES) as PassCode[]).flatMap((code) => [
+      [`offer-pass-${code}-month`, { label: `${PASSES[code].label} — par mois`, group: 'offer-passes', get: () => PASSES[code].monthlyXaf, set: (v: number) => (PASSES[code].monthlyXaf = v) }],
+      [`offer-pass-${code}-year`, { label: `${PASSES[code].label} — par an`, group: 'offer-passes', get: () => PASSES[code].annualXaf, set: (v: number) => (PASSES[code].annualXaf = v) }],
+    ])
+  ),
+  ...Object.fromEntries(
+    (Object.keys(PACKS) as PackCode[]).map((code) => [
+      `offer-pack-${code}`,
+      { label: PACKS[code].label, group: 'offer-packs', get: () => PACKS[code].priceXaf, set: (v: number) => (PACKS[code].priceXaf = v) },
+    ])
+  ),
+  'offer-icode-project-pass': { label: 'Pass Projet iCode', group: 'offer-icode', get: () => ICODE.projectPassXaf, set: (v) => (mutableIcode.projectPassXaf = v as never) },
+  'offer-icode-modification': { label: 'Modification iCode', group: 'offer-icode', get: () => ICODE.modificationXaf, set: (v) => (mutableIcode.modificationXaf = v as never) },
+  'offer-icode-premium': { label: 'Modification iCode (modèle le plus puissant)', group: 'offer-icode', get: () => ICODE.premiumModificationXaf, set: (v) => (mutableIcode.premiumModificationXaf = v as never) },
+  'offer-icode-pack-100': { label: 'Pack 100 modifications iCode', group: 'offer-icode', get: () => ICODE.pack100Xaf, set: (v) => (mutableIcode.pack100Xaf = v as never) },
+  ...Object.fromEntries(
+    METER_TIERS.filter((tier) => tier !== 'veille' && tier !== 'boutique').map((tier) => [
+      `offer-meter-${tier}`,
+      { label: `Compteur ${METERS[tier].label} — par jour`, group: 'offer-ideploy', get: () => METERS[tier].perDayXaf, set: (v: number) => (METERS[tier].perDayXaf = v) },
+    ])
+  ),
+  ...Object.fromEntries(
+    (Object.keys(METER_OPTIONS) as MeterOption[]).map((option) => [
+      `offer-meter-option-${option}`,
+      { label: `Option ${METER_OPTIONS[option].label} — par jour`, group: 'offer-ideploy', get: () => METER_OPTIONS[option].perDayXaf, set: (v: number) => (METER_OPTIONS[option].perDayXaf = v) },
+    ])
+  ),
+  'offer-deploy-team': { label: 'Espace équipe iDeploy — par mois', group: 'offer-ideploy', get: () => DEPLOY_TEAM_SPACE_XAF, set: (v) => (DEPLOY_TEAM_SPACE_XAF = v) },
+  ...Object.fromEntries(
+    (Object.keys(SIMULATION_PRICES) as SimulationOffer[]).map((offer) => [
+      `offer-sim-${offer}`,
+      {
+        label: SIMULATION_PRICES[offer].label,
+        group: 'offer-isimulate',
+        get: () => SIMULATION_PRICES[offer].publicXaf,
+        set: (v: number) => (SIMULATION_PRICES[offer].publicXaf = v),
+        idem: { get: () => SIMULATION_PRICES[offer].idemXaf, set: (v: number) => (SIMULATION_PRICES[offer].idemXaf = v) },
+      },
+    ])
+  ),
+};
+
+/** Ce qu'il faut de la grille de prix pour régler les offres (forme minimale de `PricingConfig`). */
+export interface OfferPricingSource {
+  products: Record<string, { priceXaf: number; idemPriceXaf?: number }>;
+}
+
+/**
+ * Applique la grille effective aux offres. Un code absent de la grille garde sa valeur par défaut ;
+ * un montant invalide (négatif, non entier) est ignoré. Rend le nombre de montants modifiés.
+ */
+export function applyOfferPricing(source: OfferPricingSource): number {
+  let changed = 0;
+  for (const [code, slot] of Object.entries(OFFER_PRICE_SLOTS)) {
+    const product = source.products[code];
+    if (!product) continue;
+    if (Number.isInteger(product.priceXaf) && product.priceXaf >= 0 && slot.get() !== product.priceXaf) {
+      slot.set(product.priceXaf);
+      changed += 1;
+    }
+    if (slot.idem && Number.isInteger(product.idemPriceXaf) && product.idemPriceXaf! >= 0 && slot.idem.get() !== product.idemPriceXaf) {
+      slot.idem.set(product.idemPriceXaf!);
+      changed += 1;
+    }
+  }
+  if (changed > 0) {
+    KIT_SUM_XAF = DELIVERABLE_KEYS.reduce((sum, key) => sum + DELIVERABLES[key].priceXaf, 0);
+    MONTHLY_CAPS.croissance = PASSES.croissance.monthlyXaf;
+    MONTHLY_CAPS.createur = PASSES.createur.monthlyXaf;
+    mutableIcode.siteVideoXaf = COMMUNICATION_PRICES.ai_clip as never;
+  }
+  return changed;
+}

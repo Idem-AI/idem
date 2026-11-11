@@ -734,7 +734,8 @@ export class BillingController {
     try {
       const effective = await pricingService.effective();
       const products = Object.fromEntries(
-        Object.entries(effective.products).filter(([, product]) => product.isActive)
+        // Les offres au portefeuille (`offer-…`) sont servies par `/billing/offers`, pas ici.
+        Object.entries(effective.products).filter(([, product]) => product.isActive && !product.wallet)
       );
 
       res.set('Cache-Control', 'public, max-age=60');

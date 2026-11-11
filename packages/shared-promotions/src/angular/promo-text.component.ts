@@ -22,10 +22,10 @@ import { PromotionsStore } from './promotions.store';
   `,
   template: `
     @if (view(); as v) {
-      <del><span class="sr-only">Prix normal : </span>{{ text() }}</del>
+      <del><span class="sr-only">Prix normal : </span>{{ liveText() }}</del>
       <span><span class="sr-only">Prix pendant la promotion : </span>{{ v }}</span>
     } @else {
-      <span>{{ text() }}</span>
+      <span>{{ liveText() }}</span>
     }
   `,
 })
@@ -35,16 +35,26 @@ export class PromoTextComponent {
   readonly item = input<string | null>(null);
   readonly xaf = input<number | null>(null);
   readonly locale = input('fr-FR');
+  /** Où lire le prix à jour sur l'API : le montant de `text` est alors remplacé par celui de l'API. */
+  readonly source = input<string | null>(null);
+
+  /** Le texte, montant mis à jour d'après l'API quand `source` est donné. */
+  protected readonly liveText = computed(() => {
+    const fallback = this.xaf();
+    const live = fallback === null ? null : this.store.offerPrice(this.source(), fallback);
+    return live === null || live === fallback ? this.text() : rewriteAmount(this.text(), () => live, this.locale());
+  });
 
   protected readonly view = computed(() => {
-    const xaf = this.xaf();
-    if (!this.item() || !xaf) return null;
+    const fallback = this.xaf();
+    if (!this.item() || !fallback) return null;
+    const xaf = this.store.offerPrice(this.source(), fallback);
     const price = this.store.price(this.item(), xaf);
     if (price.discountXaf <= 0) return null;
     const promotion = this.store.promotions().find((entry) => entry.id === price.applied[0]?.id);
     if (promotion?.display?.strikethrough === false) return null;
     // Un prix offert s'écrit « Gratuit » ; une remise partielle garde les mots d'origine (« 7 F par jour »).
     if (price.free) return freeLabel(this.locale().startsWith('en') ? 'en' : undefined);
-    return rewriteAmount(this.text(), (amount) => localAmountAfter(price, amount), this.locale());
+    return rewriteAmount(this.liveText(), (amount) => localAmountAfter(price, amount), this.locale());
   });
 }

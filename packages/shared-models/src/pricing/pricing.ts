@@ -31,6 +31,14 @@ export interface PricedProduct {
   idemPriceXaf?: number;
   highlighted?: boolean;
   discountLabel?: string;
+  /**
+   * Offre du modèle au portefeuille (`offer-…`) : payée en francs depuis le portefeuille, donc sans
+   * prix par pays (seule la recharge se vend en devise locale). L'API applique son prix aux
+   * montants d'`offer.model.ts`.
+   */
+  wallet?: boolean;
+  /** Rubrique dans le panel admin. */
+  group?: string;
   isActive: boolean;
   sortOrder: number;
 }
@@ -207,7 +215,8 @@ export function pricingWarnings(
   const catalogUsdRate = config.usdRates?.[config.baseCurrency];
 
   const paid = Object.entries(config.products)
-    .filter(([, product]) => product.isActive && product.priceXaf > 0)
+    // Les offres au portefeuille n'ont pas de grille par pays : rien à comparer.
+    .filter(([, product]) => product.isActive && product.priceXaf > 0 && !product.wallet)
     .sort(([, a], [, b]) => a.priceXaf - b.priceXaf);
 
   for (const [countryCode, country] of Object.entries(config.countries)) {

@@ -217,7 +217,7 @@ export class BillingService {
    */
   private catalogFromDefaults(): BillingCatalog {
     const products = Object.entries(PRICING_DEFAULTS.products)
-      .filter(([, product]) => product.isActive)
+      .filter(([, product]) => product.isActive && !product.wallet)
       .sort(([, a], [, b]) => a.sortOrder - b.sortOrder)
       .map(([code, product]) => ({
         code,

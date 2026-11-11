@@ -3,6 +3,7 @@ import { isPlatformBrowser } from '@angular/common';
 import { createPromotionsClient, type PromotionsClient } from '../client';
 import { priceWithPromotions, type PromoPrice } from '../engine';
 import type { PublicPromotion } from '../model';
+import { fetchOffers, offerPriceXaf, type OffersCatalog } from '../offers';
 
 export interface IdemPromotionsConfig {
   /** Adresse de l'API IDEM (sans `/billing`). */
@@ -28,15 +29,24 @@ export class PromotionsStore {
   private readonly client: PromotionsClient | null = this.config ? createPromotionsClient({ apiUrl: this.config.apiUrl }) : null;
 
   readonly promotions = signal<PublicPromotion[]>([]);
+  /** Le catalogue des offres servi par l'API (prix réglés dans le panel) ; `null` tant qu'il n'est pas lu. */
+  readonly offers = signal<OffersCatalog | null>(null);
 
   constructor() {
-    if (!this.client || !this.browser) return;
+    if (!this.config || !this.browser) return;
+    void fetchOffers(this.config.apiUrl).then((offers) => offers && this.offers.set(offers));
+    if (!this.client) return;
     const stop = this.client.subscribe((list) => this.promotions.set(list));
     inject(DestroyRef).onDestroy(stop);
   }
 
   price(item: string | null, priceXaf: number): PromoPrice {
     return priceWithPromotions(this.promotions(), item, priceXaf);
+  }
+
+  /** Le prix d'une offre tel que l'API le sert, sinon `fallback` (prix écrit dans la page). */
+  offerPrice(source: string | null | undefined, fallback: number): number {
+    return (source ? offerPriceXaf(this.offers(), source) : null) ?? fallback;
   }
 
   refresh(): Promise<PublicPromotion[]> {
