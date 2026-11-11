@@ -162,40 +162,34 @@ export class ImageSourcingService {
     mediumUrl: string;
     attribution: FlyerImageAttribution;
   } | null> {
-    const apiKey = process.env.PEXELS_API_KEY!;
-    const orientation =
-      brief.orientation === 'portrait' ? 'portrait'
-      : brief.orientation === 'landscape' ? 'landscape'
-      : 'square';
+    const [best] = await this.pexelsPhotos(brief.searchQuery, brief.orientation, 1);
+    if (best) logger.info(`[ImageSourcing] Pexels hit`, { author: best.attribution.author, url: best.url });
+    return best ?? null;
+  }
 
+  /**
+   * Plusieurs photos de la banque pour une recherche (les premières de Pexels, dans leur ordre). Le repli des
+   * visuels quand la génération échoue : l'appelant en classe plusieurs par pertinence au lieu de juger la seule
+   * première — c'est elle qui était rejetée (« sujet sans rapport ») et laissait le visuel sans image.
+   */
+  async pexelsPhotos(query: string, orientation: ImageBrief['orientation'] | undefined, count: number): Promise<Array<{ url: string; mediumUrl: string; attribution: FlyerImageAttribution }>> {
+    const apiKey = process.env.PEXELS_API_KEY;
+    if (!apiKey || !query.trim()) return [];
     const response = await axios.get(PEXELS_ENDPOINT, {
       headers: { Authorization: apiKey },
-      params: { query: brief.searchQuery, per_page: 5, orientation },
+      params: { query: query.trim().slice(0, 80), per_page: Math.max(1, Math.min(15, count)), orientation: orientation === 'portrait' ? 'portrait' : orientation === 'landscape' ? 'landscape' : 'square' },
       timeout: 8000,
     });
-
     const photos: any[] = response.data?.photos || [];
-    if (!photos.length) {
-      logger.info(`[ImageSourcing] No stock photos found for query`, { query: brief.searchQuery });
-      return null;
-    }
-
-    const best = photos[0];
-    const url: string = best.src?.large2x || best.src?.large || best.src?.original;
-    // "medium" is ~1200px wide — plenty for color/composition analysis, ~85% smaller payload.
-    const mediumUrl: string = best.src?.medium || url;
-    if (!url) return null;
-
-    logger.info(`[ImageSourcing] Pexels hit`, { author: best.photographer, url });
-    return {
-      url,
-      mediumUrl,
-      attribution: {
-        provider: 'pexels',
-        author: best.photographer,
-        sourceUrl: best.url,
-      },
-    };
+    if (!photos.length) logger.info(`[ImageSourcing] No stock photos found for query`, { query });
+    return photos
+      .map((p) => {
+        const url: string = p.src?.large2x || p.src?.large || p.src?.original;
+        // "medium" is ~1200px wide — plenty for color/composition analysis, ~85% smaller payload.
+        return url ? { url, mediumUrl: p.src?.medium || url, attribution: { provider: 'pexels' as const, author: p.photographer, sourceUrl: p.url } } : null;
+      })
+      .filter((p): p is NonNullable<typeof p> => !!p)
+      .slice(0, count);
   }
 
   // ─────────────────────────────────────────────────────────────────────────

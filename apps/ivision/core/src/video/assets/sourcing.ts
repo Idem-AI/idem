@@ -279,14 +279,20 @@ export async function sourceShots(opts: SourcingOptions): Promise<{ byNeed: Map<
   const used = new Set<string>();
   for (const plan of shots.filter((s) => !byNeed.has(s))) {
     if (!opts.allowStock) break;
-    const query = stockQuery(plan.query, opts.cast);
+    // La requête du plan, puis une plus large (ses deux premiers mots) : une recherche trop précise revient souvent vide.
+    const first = stockQuery(plan.query, opts.cast);
+    const queries = [...new Set([first, first.split(/\s+/).slice(0, 2).join(' ')].filter(Boolean))];
     try {
       if (plan.kind === 'video') {
-        const found = (await searchPexelsVideos(query, opts.orientation, 3, opts.storage, opts.folder, { locale: 'en-US' })).find((v) => !used.has(v.url));
-        if (found) {
-          used.add(found.url);
-          byNeed.set(plan, found);
-          assets.push(found);
+        let clipFound: VideoMediaAsset | undefined;
+        for (const query of queries) {
+          clipFound = (await searchPexelsVideos(query, opts.orientation, 3, opts.storage, opts.folder, { locale: 'en-US' })).find((v) => !used.has(v.url));
+          if (clipFound) break;
+        }
+        if (clipFound) {
+          used.add(clipFound.url);
+          byNeed.set(plan, clipFound);
+          assets.push(clipFound);
           report.stockVideos++;
           continue;
         }
@@ -295,14 +301,17 @@ export async function sourceShots(opts: SourcingOptions): Promise<{ byNeed: Map<
       // Une photo de banque est relue par la vision comme une image générée : le bon sujet, sinon la suivante
       // (le texte d'une enseigne y est toléré). Mieux vaut une scène sans photo qu'une photo hors sujet.
       let found: VideoMediaAsset | undefined;
-      for (const photo of (await searchPexelsPhotos(query, opts.orientation, 4, 'en-US')).filter((p) => !used.has(p.url))) {
-        const bytes = await axios.get<ArrayBuffer>(photo.url, { responseType: 'arraybuffer', timeout: 15000 }).then((r) => Buffer.from(r.data), () => null);
-        const jpeg = bytes ? await sharp(bytes).resize({ width: 768, height: 768, fit: 'inside' }).jpeg({ quality: 80 }).toBuffer().catch(() => null) : null;
-        if (jpeg && (await imageAccepted(jpeg, plan, { textAllowed: true }))) {
-          found = photo;
-          break;
+      for (const query of queries) {
+        for (const photo of (await searchPexelsPhotos(query, opts.orientation, 4, 'en-US')).filter((p) => !used.has(p.url))) {
+          const bytes = await axios.get<ArrayBuffer>(photo.url, { responseType: 'arraybuffer', timeout: 15000 }).then((r) => Buffer.from(r.data), () => null);
+          const jpeg = bytes ? await sharp(bytes).resize({ width: 768, height: 768, fit: 'inside' }).jpeg({ quality: 80 }).toBuffer().catch(() => null) : null;
+          if (jpeg && (await imageAccepted(jpeg, plan, { textAllowed: true }))) {
+            found = photo;
+            break;
+          }
+          logger.info('video.media.stock_rejected', { scene: plan.scene, query });
         }
-        logger.info('video.media.stock_rejected', { scene: plan.scene });
+        if (found) break;
       }
       if (found) {
         used.add(found.url);

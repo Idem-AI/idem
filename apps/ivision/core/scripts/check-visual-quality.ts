@@ -1,9 +1,9 @@
 /**
  * `npm run check:visual-quality` — les visuels du plan qualité créative, sans modèle (agents simulés) :
  *
- *   1. l'idée : quatre pistes lues (rôle d'image, traitement, typographie), la plus nouvelle retenue ;
- *   2. un visuel dont l'idée demande un sujet DÉTOURÉ et une police d'ACCROCHE : l'idée parvient au rédacteur et à
- *      l'auteur, l'image est détourée (U²-Net-p) et posée, `font-accent` est compilée ;
+ *   1. l'idée : quatre pistes lues (rôle d'image, traitement), la plus nouvelle retenue ;
+ *   2. un visuel dont l'idée demande un sujet DÉTOURÉ : l'idée parvient au rédacteur et à l'auteur, l'image est
+ *      détourée (U²-Net-p) et posée ; le titre garde la police de la CHARTE (jamais une police d'accroche hors charte) ;
  *   3. les variantes (cran High) : les compositions écartées sont renvoyées, avec leur image, pour le choix du client ;
  *   4. la déclinaison dans un autre format : aucune idée nouvelle, aucun rédacteur, l'auteur adapte la même page ;
  *   5. une idée « illustration » : l'image est vectorisée aux couleurs de la marque (SVG).
@@ -12,8 +12,8 @@ import fs from 'fs';
 import path from 'path';
 import sharp from 'sharp';
 import { configureGraphicEngine } from '@idem/graphic-engine';
-import { composeVisual } from '../src/visual/visual.composer';
-import { accentFontFor, chooseConcept, parseConcepts } from '../src/visual/visual.concept';
+import { composeVisual, stockQueries } from '../src/visual/visual.composer';
+import { chooseConcept, parseConcepts } from '../src/visual/visual.concept';
 
 process.env.IDEM_CUTOUT_MODEL = 'u2netp';
 process.env.IDEM_DESIGN_TOOLS_OFFLINE = process.env.IDEM_DESIGN_TOOLS_OFFLINE ?? '0';
@@ -43,10 +43,11 @@ async function main() {
 
   // 1. L'idée
   const concepts = parseConcepts(`**${TRACKS('cutout', 'duotone', 'expressive')}**`);
-  check('idée : deux pistes lues avec leur rôle d’image, traitement et typographie', concepts.length === 2 && concepts[0].image === 'cutout' && concepts[0].treatment === 'duotone' && concepts[0].type === 'expressive' && concepts[1].image === 'photo', JSON.stringify(concepts.map((c) => [c.image, c.treatment, c.type])));
+  check('idée : deux pistes lues avec leur rôle d’image et leur traitement', concepts.length === 2 && concepts[0].image === 'cutout' && concepts[0].treatment === 'duotone' && concepts[1].image === 'photo', JSON.stringify(concepts.map((c) => [c.image, c.treatment])));
+  // Le repli Pexels d'un visuel : plusieurs recherches, de la plus précise à la plus large.
+  const queries = stockQueries({ headline: 'Le café qui réveille Abidjan', facts: [], photo: { idea: 'barista pouring coffee in a small Abidjan cafe', query: 'barista coffee cafe' } } as never, { brandName: 'Kafé', businessType: 'coffee shop' } as never, 'steaming cup on a wooden counter');
+  check('banque : la requête du rédacteur, la scène, le métier (sans doublon, 3 au plus)', queries[0] === 'barista coffee cafe' && queries.length >= 2 && queries.length <= 3 && new Set(queries).size === queries.length, JSON.stringify(queries));
   check('idée : la piste déjà faite est écartée', chooseConcept(concepts, ['Morning ritual — a steaming cup seen from above, the headline wraps around it like steam.'])?.concept.title === 'The roaster');
-  const accent = accentFontFor({ primaryFont: 'Inter', secondaryFont: 'Inter' }, 'seed-1');
-  check('police d’accroche : une face de titre différente des polices de la marque, déterministe', !!accent && accent !== 'Inter' && accent === accentFontFor({ primaryFont: 'Inter', secondaryFont: 'Inter' }, 'seed-1'), accent);
 
   // L'auteur simulé du moteur graphique : il pose chaque clé (l'image en grand) et retient ce qu'on lui dit.
   const authorPrompts: string[] = [];
@@ -72,7 +73,7 @@ async function main() {
     return '';
   };
 
-  // 2. Un sujet détouré, une police d'accroche
+  // 2. Un sujet détouré, dans les polices de la charte
   const cut = await composeVisual({ runPrompt: async () => '', agentCall: agentCall as never }, 'u', 'brand-1', { id: 'c1', title: 'Le café qui réveille Abidjan', description: 'Torréfié chaque lundi, livré en 24 h.' }, context, 'square', 'check', 'check:cut', undefined, false, { creativity: 'medium', image: { url: photoUrl } });
   fs.writeFileSync(path.join(OUT, 'cutout.png'), cut.png);
   const explore = calls.find((c) => c.role === 'graphic.explore');
@@ -82,7 +83,7 @@ async function main() {
   const choice = authorPrompts.filter((u) => /TEMPLATES:/.test(u)).pop() ?? '';
   check('idée : elle parvient au choix de la composition dans le catalogue', /Morning ritual/.test(choice), choice.slice(0, 200));
   check('image : le sujet est détouré (PNG transparent) et posé dans la page', /^data:image\/png;base64,/.test(cut.parsed.photo?.url ?? '') && cut.html.includes('data:image/png;base64,'), (cut.parsed.photo?.url ?? '').slice(0, 30));
-  check('typographie : la police d’accroche est compilée dans la page et portée par le titre', /--font-accent/.test(cut.html) && /class="[^"]*font-accent/.test(cut.html));
+  check('typographie : aucune police hors charte (pas de font-accent), les polices de la marque compilées', !/--font-accent|font-accent/.test(cut.html) && /--font-display/.test(cut.html));
   check('mémoire : l’idée retenue est rendue avec le visuel', cut.concept?.concept.title === 'Morning ritual');
 
   // 3. Les variantes (cran High : deux compositions du catalogue, l'écartée renvoyée)

@@ -51,7 +51,7 @@ export function themeCss(tokens: DesignTokens): string {
   const colors = Object.entries(themeColors(tokens))
     .map(([k, v]) => `--color-${k}: ${v};`)
     .join(' ');
-  return `@theme { ${colors} --font-display: ${tokens.font.displayStack}; --font-body: ${tokens.font.bodyStack};${tokens.font.accentStack ? ` --font-accent: ${tokens.font.accentStack};` : ''} }`;
+  return `@theme { ${colors} --font-display: ${tokens.font.displayStack}; --font-body: ${tokens.font.bodyStack}; }`;
 }
 
 const compilers = new Map<string, Promise<Compiler>>();

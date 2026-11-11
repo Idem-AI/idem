@@ -16,7 +16,10 @@ import fs from 'fs';
 import path from 'path';
 import { buildCatalog, canonicalJson, catalog, engineSupports, resetCatalog, verifyManifest } from '../src/catalog/registry';
 import { brandTraits, newCatalogState, rankSkins, shortlist } from '../src/catalog/graph';
-import { pageUnits } from '../src/catalog/assemble';
+import { pageUnits, surfaceColors } from '../src/catalog/assemble';
+import { buildTokens } from '../src/design-system/tokens';
+import { contrastRatio } from '../src/foundation/color';
+import { planAssets, resolveAssets } from '../src/asset-planner';
 import type { CatalogElement, GabaritNode, Manifest } from '../src/catalog/types';
 import { configureGraphicEngine } from '../src/host';
 import { closeBrowser } from '../src/runtime/browser';
@@ -132,6 +135,29 @@ async function main(): Promise<void> {
   state.seen.add(first.fingerprint);
   const again = shortlist(cat, deckFacts, { level: 'low', skin: skins[0].id, traits, state, seed: 'y', overrides: {} })[0];
   ok('mémoire : une combinaison déjà livrée à la marque n’est pas reprise', again.fingerprint !== first.fingerprint);
+
+  title('§3 bis La charte : ses trois couleurs, ses images');
+  // Avant le 11/11/2026, chaque rôle de couleur (accent, filet fort, teinte) renvoyait à la couleur principale.
+  const kora = buildTokens({ brand: BRANDS.kora, direction: { styleId: 'swiss' }, format: 'flyer-square' });
+  const roles = surfaceColors(kora);
+  ok('accent : la couleur d’accent de la charte (ou sa nuance lisible), jamais la principale', /text-(brand-accent|accent-\d{3})/.test(roles.light.accent), roles.light.accent);
+  ok('accent lisible : 4,5:1 sur le fond', (() => {
+    const shade = roles.light.accent.replace('text-', '');
+    const hex = shade === 'brand-accent' ? kora.color.accent : kora.color.accentRamp[shade.replace('accent-', '')];
+    return !!hex && contrastRatio(hex, kora.color.ground) >= 4.5;
+  })(), roles.light.accent);
+  ok('teinte d’une carte mise en avant : celle de l’accent', roles.light.tint === 'bg-accent-soft');
+  const navyGold = buildTokens({ brand: { name: 'N', palette: { primary: '#14365D', secondary: '#1F4D2B', accent: '#E3B341' } }, format: 'flyer-square' });
+  ok('sur l’aplat de la couleur principale, l’accent s’y lit en accent', surfaceColors(navyGold).brand.accent === 'text-brand-accent', surfaceColors(navyGold).brand.accent);
+  ok('aplat profond : la couleur secondaire de la charte quand elle est sombre', navyGold.color.deep.toLowerCase() === '#1f4d2b', navyGold.color.deep);
+  // Le repli Pexels : la génération est TENTÉE et échoue (crédits) → la banque prend le relais, même pour un business plan.
+  const failing = { resolve: async () => null };
+  const bank = { resolve: async () => ({ url: 'https://images.pexels.com/x.jpg', alt: 'x', provenance: { provider: 'pexels' } }) };
+  const req = planAssets({ id: 'p', role: 'problem', title: 'Les pertes après récolte', intent: { visualStrategy: 'illustration' }, blocks: [] } as unknown as SectionContent, FORMATS['a4-portrait']);
+  const bp = await resolveAssets(req, { generated: failing, stock: bank } as never, { level: 'high', documentType: 'business-plan', imageryMedium: 'illustration' } as never, { generationLeft: 3 });
+  ok('repli : génération échouée → image Pexels (business plan, charte illustrée)', bp.resolved.some((r) => r.source === 'stock'), bp.log.join(' · '));
+  const untried = await resolveAssets(req, { stock: bank } as never, { level: 'low', documentType: 'business-plan' } as never, { generationLeft: 0 });
+  ok('sans génération tentée, un business plan ne prend pas de cliché de banque', !untried.resolved.some((r) => r.source === 'stock'), untried.log.join(' · '));
 
   if (fast) return;
 

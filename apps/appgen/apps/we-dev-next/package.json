@@ -16,6 +16,8 @@
         "deps:plan": "tsx scripts/deps-plan.ts",
         "deps:bake": "node scripts/bake-deps.mjs",
         "check:deps": "tsx scripts/check-deps-route.ts",
+        "catalog:snapshot": "tsx scripts/catalog-snapshot.ts",
+        "check:section-catalog": "tsx scripts/check-section-catalog.ts",
         "lint": "eslint src --ext .ts"
     },
     "dependencies": {

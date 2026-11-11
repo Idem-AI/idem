@@ -15,9 +15,11 @@ import type { Density, RadiusToken, SpaceToken, StrokeToken, TextSizeToken } fro
 import {
   buildNeutralRamp,
   buildRamp,
+  colorDistance,
   contrastRatio,
   hexToOklch,
   isDark,
+  isDeep,
   isHex,
   mixHex,
   normalizeHex,
@@ -127,7 +129,7 @@ export interface DesignTokens {
   density: Density;
   color: TokenColors;
   contrast: { inkOnGround: number; mutedOnGround: number; onBrand: number; onAccent: number };
-  font: { display: string; body: string; displayStack: string; bodyStack: string; displayClass: FontClass; bodyClass: FontClass; headHtml: string; /** Police d'accroche (visuels) : pour le titre seul. */ accent?: string; accentStack?: string };
+  font: { display: string; body: string; displayStack: string; bodyStack: string; displayClass: FontClass; bodyClass: FontClass; headHtml: string };
   size: Record<TextSizeToken, number>;
   leading: { tight: number; normal: number; loose: number };
   /** En em. */
@@ -199,7 +201,10 @@ export function buildTokens(input: TokenInput): DesignTokens {
   const ink = readableInk(textSeed, ground, 7);
   const muted = readableInk(dark ? neutral['300'] : neutral['600'], ground, 4.5);
   const faint = readableInk(dark ? neutral['400'] : neutral['500'], ground, 3);
-  const deep = brandRamp['900'] ?? neutral['900'];
+  // L'aplat profond (bandeaux, panneaux d'inversion) : la couleur SECONDAIRE de la charte quand elle est assez sombre
+  // et distincte de la principale — sans quoi la secondaire n'apparaissait sur aucun livrable — sinon la principale
+  // assombrie.
+  const deep = isDeep(secondary) && colorDistance(secondary, primary) > 12 ? secondary : brandRamp['900'] ?? neutral['900'];
 
   const color: TokenColors = {
     primary,

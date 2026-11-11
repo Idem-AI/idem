@@ -238,6 +238,9 @@ export async function resolveAssets(requirements: AssetRequirement[], providers:
   const fresh: AssetRecord[] = [];
   for (const req of requirements) {
     let hit: ResolvedAsset | null = null;
+    // La génération a été TENTÉE et a échoué (crédits, délai, refus, image écrite) : la banque (Pexels) prend
+    // alors le relais, même là où elle n'est pas d'office admise — une page sans l'image prévue est pire.
+    let generationFailed = false;
     const sources = ASSET_SOURCE_ORDER.filter((s) => req.sources.includes(s));
     for (const source of sources) {
       // Le projet a déjà une image qui convient (générée ou trouvée par un autre livrable) : on la reprend —
@@ -253,9 +256,9 @@ export async function resolveAssets(requirements: AssetRequirement[], providers:
       if (source === 'generated' && out.generated >= o.generationLeft) continue;
       // Un dossier financier ne montre jamais un cliché de banque d'images : une vraie image du projet, une image
       // faite pour lui dans le style de la charte, ou rien.
-      if (source === 'stock' && ctx.documentType === 'business-plan') continue;
-      // Une banque de PHOTOS ne sert qu'une marque dont la charte est photographique.
-      if (source === 'stock' && ctx.imageryMedium && !['photography', 'mixed'].includes(ctx.imageryMedium)) continue;
+      if (source === 'stock' && ctx.documentType === 'business-plan' && !generationFailed) continue;
+      // Une banque de PHOTOS ne sert d'office qu'une marque dont la charte est photographique (sinon : repli seulement).
+      if (source === 'stock' && ctx.imageryMedium && !['photography', 'mixed'].includes(ctx.imageryMedium) && !generationFailed) continue;
       const provider = all[source];
       if (!provider) continue;
       try {
@@ -267,8 +270,10 @@ export async function resolveAssets(requirements: AssetRequirement[], providers:
           if ((source === 'generated' || source === 'stock') && found.url) fresh.push({ id: `${ctx.documentType}:${req.assetId}`.slice(0, 120), url: found.url, kind: 'image', role: req.role, source, subject: req.subject, origin: ctx.documentType === 'pitch-deck' ? 'deck' : 'document', provenance: found.provenance, createdAt: new Date().toISOString() });
           break;
         }
+        if (source === 'generated') generationFailed = true;
       } catch {
         // Un fournisseur en panne n'arrête rien : la source suivante est essayée.
+        if (source === 'generated') generationFailed = true;
       }
     }
     if (hit) {

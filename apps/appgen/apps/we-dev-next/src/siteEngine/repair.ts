@@ -45,6 +45,8 @@ export function importPolicy(dependencies: string[] = []): ImportPolicy {
       '@/design-system': { names: ['motionTokens', 'componentConfig'] },
       '@/lib/utils': { names: ['cn'] },
       '@/lib/contact': { names: ['messageLink', 'contactChannel'] },
+      // Le choix de la langue, que la consigne de l'en-tête demande de poser (il ne s'affiche qu'en site multilingue).
+      '@/components/site/language-switcher': { default: true, names: [] },
     },
     packages: dependencies.filter((name) => name in FUNCTIONAL_DEPENDENCIES),
   };

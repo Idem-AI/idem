@@ -19,7 +19,6 @@ import { applyAssets, GENERATION_CAP, planAssets, resolveAssets } from './asset-
 import { BrandInput, buildTokens, DesignTokens, DirectionInput } from './design-system/tokens';
 import { FormatDef, FORMATS } from './design-system/formats';
 import { stableHash } from './foundation/hash';
-import { fontStack, googleFontLinks } from './foundation/fonts';
 import { AgentCall, engineHost, FingerprintScope, log } from './host';
 import { GenerationTrace, TraceRecorder } from './observability/traces';
 import { ENGINE_VERSION, COMPONENT_LIBRARY_VERSION } from './version';
@@ -80,8 +79,6 @@ export interface DocumentOptions {
   memoryScopes?: FingerprintScope[];
   /** L'IDÉE d'une toile seule (visuel), décidée par l'étape concept de l'hôte : l'auteur en part. */
   concept?: string;
-  /** Une police d'accroche (Google Fonts) pour le titre seul (`font-accent`), proposée par l'hôte. */
-  accentFont?: string;
   /** L'axe de départ déjà tiré par l'hôte (étape concept d'un visuel) : gardé tel quel en mémoire. */
   axisId?: string;
   /** Le nombre de variantes imposé par l'hôte (1 : une seule écriture, quand personne ne choisira). */
@@ -244,10 +241,8 @@ export class GraphicDocument {
     readonly options: DocumentOptions,
     private readonly memory: DocumentMemory
   ) {
-    const tokens = buildTokens({ brand: options.brand, direction: options.direction, format: options.format, allowDark: options.allowDark, size: options.size });
-    const accent = options.accentFont?.trim();
-    // La police d'accroche (visuels) : chargée avec les polices de la marque, réservée au titre (`font-accent`).
-    this.tokens = accent && accent !== tokens.font.display ? { ...tokens, font: { ...tokens.font, accent, accentStack: fontStack(accent, 'display'), headHtml: [tokens.font.headHtml, googleFontLinks([accent])].filter(Boolean).join('\n') } } : tokens;
+    // Les polices sont TOUJOURS celles de la charte (la « police d'accroche » hors charte des visuels est retirée, 11/11/2026).
+    this.tokens = buildTokens({ brand: options.brand, direction: options.direction, format: options.format, allowDark: options.allowDark, size: options.size });
     this.policy = { level: options.creativity === ('max' as CreativityLevel) ? 'high' : options.creativity ?? 'medium' };
     this.generationId = `${options.documentType}:${stableHash([options.seed, Date.now()], 10)}`;
     this.previousIdeas = memory.ideas;

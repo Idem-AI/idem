@@ -34,6 +34,7 @@ import type { DesignTokens } from '../design-system/tokens';
 import type { ContentMap } from '../runtime/content-map';
 import type { ComponentNode, LayoutNode, LayoutZone, NodeVar, PageConfig, SkinNode, SkinRole, ZoneAccept } from './types';
 import { SKIN_ROLES } from './types';
+import { colorDistance, contrastRatio } from '../foundation/color';
 
 /** La géométrie d'une page : marge et gouttière, d'après le format (des cotes d'impression, pas un gabarit). */
 export function pageGeometry(format: FormatDef): { pad: number; gap: number } {
@@ -163,11 +164,45 @@ type Surface = NonNullable<LayoutZone['surface']>;
 const COLOR_ROLES = ['ink', 'muted', 'accent', 'faint', 'rule', 'ruleStrong', 'fill', 'onFill', 'tint'] as const;
 type ColorRole = (typeof COLOR_ROLES)[number];
 
-const SURFACE_COLORS: Record<'light' | 'brand' | 'deep', Record<ColorRole, string>> = {
-  light: { ink: 'text-ink', muted: 'text-muted', accent: 'text-brand-primary', faint: 'text-faint', rule: 'border-rule', ruleStrong: 'border-brand-primary', fill: 'bg-brand-primary', onFill: 'text-on-brand', tint: 'bg-brand-soft' },
-  brand: { ink: 'text-on-brand', muted: 'text-on-brand/80', accent: 'text-on-brand', faint: 'text-on-brand/60', rule: 'border-on-brand/30', ruleStrong: 'border-on-brand', fill: 'bg-on-brand', onFill: 'text-brand-primary', tint: 'bg-on-brand/10' },
-  deep: { ink: 'text-on-deep', muted: 'text-on-deep/75', accent: 'text-on-deep', faint: 'text-on-deep/55', rule: 'border-on-deep/25', ruleStrong: 'border-on-deep', fill: 'bg-brand-primary', onFill: 'text-on-brand', tint: 'bg-on-deep/10' },
-};
+/**
+ * Les rôles de couleur d'un habillage (`[[accent]]`, `[[ruleStrong]]`, `[[tint]]`…), traduits dans la CHARTE du client.
+ * Jusqu'au 11/11/2026 ils renvoyaient tous à la couleur principale : la secondaire et l'accent de la charte
+ * n'apparaissaient jamais sur un visuel. Désormais :
+ *   - l'accent (sur-titres, index, puces, filets forts) prend la couleur d'ACCENT de la charte, ou sa nuance la plus
+ *     proche qui reste lisible (4,5:1 pour un texte, 3:1 pour un filet) ; la principale seulement si aucune ne l'est ;
+ *   - la teinte d'une carte mise en avant est celle de l'accent ;
+ *   - sur un aplat de la couleur principale ou profond, l'accent reste l'accent quand il s'y lit.
+ * Une couleur fluo ne porte jamais un texte.
+ */
+const ACCENT_STEPS = ['500', '600', '700', '800', '400', '300'];
+function readableAccent(tokens: DesignTokens, background: string, target: number): string | null {
+  const c = tokens.color;
+  if (!c.neonAccent && contrastRatio(c.accent, background) >= target) return 'brand-accent';
+  for (const step of ACCENT_STEPS) {
+    const shade = c.accentRamp[step];
+    if (shade && contrastRatio(shade, background) >= target && colorDistance(shade, c.accent) < 30) return `accent-${step}`;
+  }
+  return null;
+}
+const surfaceCache = new Map<string, Record<'light' | 'brand' | 'deep', Record<ColorRole, string>>>();
+export function surfaceColors(tokens: DesignTokens): Record<'light' | 'brand' | 'deep', Record<ColorRole, string>> {
+  const known = surfaceCache.get(tokens.hash);
+  if (known) return known;
+  const c = tokens.color;
+  const onLight = readableAccent(tokens, c.ground, 4.5);
+  const ruleLight = readableAccent(tokens, c.ground, 3);
+  const onBrand = readableAccent(tokens, c.primary, 4.5);
+  const ruleBrand = readableAccent(tokens, c.primary, 3);
+  const onDeep = readableAccent(tokens, c.deep, 4.5);
+  const ruleDeep = readableAccent(tokens, c.deep, 3);
+  const out = {
+    light: { ink: 'text-ink', muted: 'text-muted', accent: onLight ? `text-${onLight}` : 'text-brand-primary', faint: 'text-faint', rule: 'border-rule', ruleStrong: ruleLight ? `border-${ruleLight}` : 'border-brand-primary', fill: 'bg-brand-primary', onFill: 'text-on-brand', tint: 'bg-accent-soft' },
+    brand: { ink: 'text-on-brand', muted: 'text-on-brand/80', accent: onBrand ? `text-${onBrand}` : 'text-on-brand', faint: 'text-on-brand/60', rule: 'border-on-brand/30', ruleStrong: ruleBrand ? `border-${ruleBrand}` : 'border-on-brand', fill: 'bg-on-brand', onFill: 'text-brand-primary', tint: 'bg-on-brand/10' },
+    deep: { ink: 'text-on-deep', muted: 'text-on-deep/75', accent: onDeep ? `text-${onDeep}` : 'text-on-deep', faint: 'text-on-deep/55', rule: 'border-on-deep/25', ruleStrong: ruleDeep ? `border-${ruleDeep}` : 'border-on-deep', fill: 'bg-brand-primary', onFill: 'text-on-brand', tint: 'bg-on-deep/10' },
+  };
+  surfaceCache.set(tokens.hash, out);
+  return out;
+}
 const SURFACE_BG: Record<Surface, string> = { none: '', soft: 'bg-brand-soft', raised: 'bg-raised', brand: 'bg-brand-primary text-on-brand', deep: 'bg-deep text-on-deep' };
 /** Les unités qui prennent la place restante de leur zone (graphique, tableau, image, galerie, spécimens). */
 /** Les blocs dont la hauteur EST le contenu (rangées, aplats) : jamais comprimés quand ils partagent une zone. */
@@ -190,7 +225,7 @@ export function dedupeClasses(html: string): string {
     return ` class="${kept.join(' ')}"`;
   });
 }
-const paletteOf = (s: Surface | undefined): Record<ColorRole, string> => SURFACE_COLORS[s === 'brand' ? 'brand' : s === 'deep' ? 'deep' : 'light'];
+const paletteOf = (tokens: DesignTokens, s: Surface | undefined): Record<ColorRole, string> => surfaceColors(tokens)[s === 'brand' ? 'brand' : s === 'deep' ? 'deep' : 'light'];
 
 const SIZE_STEPS = ['xs', 'sm', 'base', 'lg', 'xl', '2xl', '3xl', '4xl', '5xl', '6xl'] as const;
 
@@ -345,7 +380,7 @@ function rawOf(scope: Scope, path: string): unknown {
 
 function directive(env: Env, scope: Scope, d: string): string {
   const { ctx } = env;
-  const colors = paletteOf(scope.surface);
+  const colors = paletteOf(ctx.tokens, scope.surface);
   const resolveColors = (s: string) => s.replace(/\[\[(\w+)\]\]/g, (m, r: string) => ((COLOR_ROLES as readonly string[]).includes(r) ? colors[r as ColorRole] : m));
   if ((COLOR_ROLES as readonly string[]).includes(d)) return colors[d as ColorRole];
   if (d.startsWith('s.')) {
@@ -669,8 +704,6 @@ export function assemblePage(ctx: AssemblyContext, choice: AssemblyChoice, units
   const vars = resolveVars(allVars, config.vars ?? {});
   const { roles, zones: zoneExtra } = skinClasses(skin, vars);
   for (const r of SKIN_ROLES) roles[r] = roles[r] ?? '';
-  // La police d'accroche proposée pour un visuel (`font-accent`) : pour le titre seul, à la place de la police de titre.
-  if (ctx.tokens.font.accent) roles.title = /\bfont-display\b/.test(roles.title) ? roles.title.replace(/\bfont-display\b/g, 'font-accent') : `${roles.title} font-accent`.trim();
   const { pad, gap: baseGap } = pageGeometry(ctx.format);
   const param = (name: string, lo: number, hi: number, d: number) => {
     const v = config.params?.[name];

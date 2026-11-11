@@ -118,6 +118,19 @@ const recommended = (q: ReturnType<typeof montageQuestions>[number] | undefined)
   const sb2 = normalizeStoryboard(tooFew, brief, null);
   check('planificateur trop court : complété jusqu’au nombre de plans, la fin gardée', sb2.scenes.length === 4 && sb2.scenes[3].texts.headline === 'Fin' && sb2.scenes[1].visual.startsWith("AS IN THE CLIENT'S MODEL"));
   check('les durées font la durée achetée', Math.abs(sb.scenes.reduce((a, s) => a + s.duration, 0) - 8) < 0.01);
+
+  // « Montrer » tenu par le code : un storyboard sans aucune ligne `new image:` reçoit des images de ses scènes.
+  const shown = (purpose: string, role?: string) => ({ purpose, visual: 'full-frame image, headline 72px bottom-left', motion: 'slow push in', texts: { headline: purpose }, media: [], needs: [], ...(role ? { role } : {}) });
+  const bare: PlannedFilm = { title: 'T', concept: 'C', bible: 'B', scenes: [shown('farmers losing harvest to pests', 'hook'), shown('women selling vegetables at the market', 'problem'), shown('a kiosk shelf with seed packets', 'reveal'), shown('Order today', 'cta')] };
+  const free = { ...brief, referenceShots: undefined, durationSec: 16, newMedia: { images: 4, clips: 2 } } as unknown as FilmBrief;
+  const sb3 = normalizeStoryboard(bare, free, null);
+  const withMedia = sb3.scenes.filter((s) => s.needs.length > 0);
+  check('aucun média demandé : le code en ajoute aux scènes de récit (au moins 2 scènes sur 3)', withMedia.length >= 2 && withMedia.length <= 3, String(withMedia.length));
+  check('la scène d’appel à l’action reste typographique', sb3.scenes[3].needs.length === 0);
+  check('l’image ajoutée montre le sujet de SA scène, sans les cotes de mise en page', /farmers losing harvest/.test(sb3.scenes[0].needs[0]?.shot ?? '') && !/72px/.test(sb3.scenes[0].needs[0]?.shot ?? ''), sb3.scenes[0].needs[0]?.shot);
+  check('sa recherche de banque : les mots porteurs', sb3.scenes[0].needs[0]?.query === 'farmers losing harvest', sb3.scenes[0].needs[0]?.query);
+  const none = normalizeStoryboard(bare, { ...free, newMedia: { images: 0, clips: 0 } } as unknown as FilmBrief, null);
+  check('sans droit de produire un média, rien n’est ajouté', none.scenes.every((s) => s.needs.length === 0));
 }
 
 // eslint-disable-next-line no-console

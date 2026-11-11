@@ -35,3 +35,10 @@ if (!existsSync(templateSource)) {
 }
 cpSync(templateSource, templateTarget, { recursive: true });
 console.log('[copy-skills] copied the site template to dist/siteEngine/template');
+
+// L'instantané du catalogue iCode (sections des sites vitrines) : le repli quand le dépôt et le CDN sont injoignables.
+const snapshotSource = join(root, 'src', 'siteEngine', 'sectionCatalog', 'snapshot.json');
+if (existsSync(snapshotSource)) {
+  cpSync(snapshotSource, join(root, 'dist', 'siteEngine', 'sectionCatalog', 'snapshot.json'));
+  console.log('[copy-skills] copied the iCode section catalog snapshot');
+} else console.warn('[copy-skills] no iCode section catalog snapshot (npm run catalog:snapshot)');

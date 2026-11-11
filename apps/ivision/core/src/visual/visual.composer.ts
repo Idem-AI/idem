@@ -44,7 +44,7 @@ import { imageSourcingService, ImageSourcingPreferences, SourcedImage } from './
 import { copyTask, CopyBrief, inferCopyIntent, reformulateBriefTask, WrittenCopy } from './visual.copy';
 import { classifyImage, describePhoto, rankByRelevance, VisualPhoto } from './visual.images';
 import { FlyerFormat, VisualAuditReport, VisualBrandContext, VisualContent, VisualIntent, VisualMeta } from './visual.model';
-import { accentFontFor, chooseVisualConcept, ConceptChoice, conceptText, VisualConcept } from './visual.concept';
+import { chooseVisualConcept, ConceptChoice, conceptText, VisualConcept } from './visual.concept';
 import { cutout, treatPhoto, vectorizeImage } from '../../../../../packages/design-tools/src';
 import { safeFetch } from '../render/safe-fetch';
 
@@ -249,7 +249,7 @@ export async function composeVisual(
   const noImage = (skipImage || concept?.image === 'none') && !creative.image?.url;
   const chosenPhoto = noImage
     ? { photo: undefined, sourced: null, unavailable: undefined }
-    : await choosePhoto({ userId, projectId, tag, context, format, copy, subject, sourcing, userPhoto: creative.image?.url, brandPhotos: creative.brandPhotos, preferGenerated: highUp || concept?.image === 'illustration' });
+    : await choosePhoto({ userId, projectId, tag, context, format, copy, subject, sourcing, userPhoto: creative.image?.url, brandPhotos: creative.brandPhotos, preferGenerated: highUp || concept?.image === 'illustration', scene: concept?.imageSubject || copy.photo?.idea });
   const { sourced, unavailable } = chosenPhoto;
   // L'image FAÇONNÉE par l'idée : illustration vectorielle aux couleurs de la marque, sujet détouré, traitement.
   const shaped = concept && chosenPhoto.photo ? await shapeImage(chosenPhoto.photo, concept, context, tag).catch((error) => (logger.warn('visual.image_shaping_failed', { event: 'visual.image_shaping_failed', role: concept.image, error: (error as Error)?.message }), null)) : null;
@@ -278,7 +278,6 @@ export async function composeVisual(
     ...(reformulated.styleKeywords.length ? { keywords: reformulated.styleKeywords } : {}),
     ...(concept ? { concept: `${conceptText(concept)}${shaped?.note ? ` ${shaped.note}` : ''}`, ...(chosen?.axis ? { axisId: chosen.axis } : {}) } : {}),
     // Une idée « expressive » : une police d'accroche pour le titre seul, qui contraste avec celles de la marque.
-    ...(concept?.type === 'expressive' ? { accentFont: accentFontFor(context.branding, seedKey) } : {}),
     ...scopes,
   };
   let out = await renderVisual(context, format, copy, photo, renderOptions);
@@ -394,7 +393,7 @@ export async function renderVisual(
   format: FlyerFormat,
   copy: WrittenCopy,
   photo: VisualPhotoRef | undefined,
-  o: { level: CreativityLevel; seed: string; userId?: string; projectId?: string; allowDark?: boolean; imageColors?: string[]; keywords?: string[]; reference?: ReferenceComposition; replay?: SectionSpec; revise?: { spec: SectionSpec; instruction: string }; concept?: string; accentFont?: string; axisId?: string; memoryScopes?: Array<{ documentType: string; key: string }>; country?: string }
+  o: { level: CreativityLevel; seed: string; userId?: string; projectId?: string; allowDark?: boolean; imageColors?: string[]; keywords?: string[]; reference?: ReferenceComposition; replay?: SectionSpec; revise?: { spec: SectionSpec; instruction: string }; concept?: string; axisId?: string; memoryScopes?: Array<{ documentType: string; key: string }>; country?: string }
 ): Promise<SectionOutput> {
   const { brand, direction } = engineBrand(context);
   const content = visualContent({
@@ -420,7 +419,6 @@ export async function renderVisual(
     ...(o.memoryScopes?.length ? { memoryScopes: o.memoryScopes } : {}),
     ...(o.country ? { country: o.country } : {}),
     ...(o.concept ? { concept: o.concept } : {}),
-    ...(o.accentFont ? { accentFont: o.accentFont } : {}),
     ...(o.axisId ? { axisId: o.axisId } : {}),
     ...(o.reference ? { reference: o.reference } : {}),
     ...(o.replay ? { replay: o.replay } : {}),
@@ -531,6 +529,8 @@ async function choosePhoto(req: {
   brandPhotos?: string[];
   /** La génération passe avant la banque (crans High et au-delà). */
   preferGenerated?: boolean;
+  /** La scène voulue, en anglais (l'idée retenue, sinon celle du rédacteur) : une des recherches de la banque. */
+  scene?: string;
 }): Promise<{ photo?: VisualPhotoRef; sourced: SourcedImage | null; unavailable?: 'payment' | 'rejected' }> {
   const ctx = req.context;
   let image: VisualPhoto | undefined;
@@ -551,36 +551,45 @@ async function choosePhoto(req: {
   }
   let unavailable: 'payment' | 'rejected' | undefined;
   if (!image) {
-    // Banque ou génération, VÉRIFIÉE : une photo hors sujet est pire que pas de photo. Aux crans High et
-    // au-delà (payés plus cher), l'image faite POUR la scène passe avant la banque, dont les clichés sont
-    // souvent rejetés. Une image générée d'après la scène est admise un cran plus bas (4/10) : elle a été
-    // faite pour elle, la vision ne lui reproche souvent qu'un « style banque ».
-    const order = req.preferGenerated ? [true, false] : [false, true];
-    for (const preferGenerated of order) {
+    // Banque ou génération, VÉRIFIÉE : une photo hors sujet est pire que pas de photo. Aux crans High et au-delà
+    // (et pour une illustration), l'image faite POUR la scène passe d'abord ; sinon la banque d'abord.
+    // PEXELS EST LE REPLI de la génération : si le modèle d'image échoue (crédits, délai, refus, image écrite), la
+    // banque prend le relais — plusieurs recherches, plusieurs photos chacune, la plus pertinente retenue.
+    const brief = imageBriefFor(req.copy, ctx, req.format, req.subject);
+    const generate = async (): Promise<boolean> => {
       try {
-        const found = await imageSourcingService.sourceImage(
-          { ...imageBriefFor(req.copy, ctx, req.format, req.subject), preferGenerated },
-          { userId: req.userId, projectId: req.projectId, tag: req.tag, ...req.sourcing, ...(preferGenerated ? { preferStock: false } : {}) }
-        );
+        const found = await imageSourcingService.generatedImage({ ...brief, preferGenerated: true }, { userId: req.userId, projectId: req.projectId, tag: req.tag, ...req.sourcing });
         const [check] = await rankByRelevance([found.url], req.subject, { name: ctx.brandName, business: ctx.businessType });
-        if (check.score >= (found.source === 'generated' ? 4 : 5)) {
-          image = (await describePhoto(found.url, found.source === 'generated' ? 'generated' : 'stock')) || undefined;
+        // Une image générée d'après la scène est admise un cran plus bas (4/10) : elle a été faite pour elle.
+        if (check.score >= 4) {
+          image = (await describePhoto(found.url, 'generated')) || undefined;
           if (image) image.subject = found.analysis?.subject || undefined;
           sourced = found;
-          break;
+          return !!image;
         }
         unavailable = 'rejected';
-        logger.info('visual.image_rejected', { event: 'visual.image_rejected', source: found.source, score: check.score, reason: check.reason });
+        logger.info('visual.image_rejected', { event: 'visual.image_rejected', source: 'generated', score: check.score, reason: check.reason });
       } catch (error: any) {
-        // Fournisseur d'images sans crédit (402) : inutile d'insister — et le visuel le DIT.
-        if (/\b402\b|insufficient credits/i.test(String(error?.message || ''))) {
-          unavailable = 'payment';
-          logger.error('visual.generation_blocked', { event: 'visual.generation_blocked', reason: 'payment', error: error?.message });
-          if (preferGenerated) continue;
-        }
-        logger.warn('visual.sourcing_failed', { event: 'visual.sourcing_failed', error });
+        const payment = /\b402\b|insufficient credits/i.test(String(error?.message || ''));
+        if (payment) unavailable = 'payment';
+        logger.warn(payment ? 'visual.generation_blocked' : 'visual.generation_failed', { event: payment ? 'visual.generation_blocked' : 'visual.generation_failed', ...(payment ? { reason: 'payment' } : {}), error: String(error?.message || error).slice(0, 300) });
       }
-    }
+      return false;
+    };
+    const stock = async (): Promise<boolean> => {
+      const picked = await stockPhoto({ queries: stockQueries(req.copy, ctx, req.scene), orientation: brief.orientation, subject: req.subject, brand: { name: ctx.brandName, business: ctx.businessType } }).catch((error) => {
+        logger.warn('visual.stock_failed', { event: 'visual.stock_failed', error: String((error as Error)?.message || error).slice(0, 300) });
+        return null;
+      });
+      if (!picked) return false;
+      image = (await describePhoto(picked.url, 'stock')) || undefined;
+      if (!image) return false;
+      sourced = { url: picked.url, source: 'stock', attribution: picked.attribution, analysis: { subject: picked.query, mood: '', dominantColors: [], luminance: 'mixed' } };
+      return true;
+    };
+    const order = req.preferGenerated ? [generate, stock] : [stock, generate];
+    for (const step of order) if (await step()) break;
+    if (!image && !unavailable) unavailable = 'rejected';
   }
   if (image && !sourced) {
     sourced = { url: image.url, source: 'upload', attribution: { provider: 'other', author: ctx.brandName }, analysis: { subject: image.subject || '', mood: '', dominantColors: [], luminance: 'mixed' } };
@@ -604,6 +613,33 @@ async function recentIdeas(scopes: { memoryScopes: Array<{ documentType: string;
   const lists = await Promise.all(scopes.memoryScopes.map((s) => host.recentFingerprints!(s).catch(() => [] as string[])));
   const all = lists.flatMap((l) => [...l].reverse());
   return { ideas: [...new Set(all.filter((r) => r.startsWith('idea:')).map((r) => r.slice(5)))].slice(0, 10), axes: [...new Set(all.filter((r) => r.startsWith('axis:')).map((r) => r.slice(5)))].reverse() };
+}
+
+/** Les recherches de la banque, de la plus précise à la plus large : les mots du rédacteur, la scène, le métier. */
+export function stockQueries(copy: WrittenCopy, context: VisualBrandContext, scene?: string): string[] {
+  const words = (text: string | undefined, n: number) => (text ?? '').replace(/[^\p{L}\p{N}\s]/gu, ' ').split(/\s+/).filter((w) => w.length > 2 && !STOP.has(w.toLowerCase())).slice(0, n).join(' ');
+  const list = [copy.photo?.query, words(scene, 4), words(copy.photo?.idea, 4), words(context.businessType, 3)].map((q) => (q ?? '').trim()).filter(Boolean);
+  return [...new Set(list.map((q) => q.toLowerCase()))].slice(0, 3);
+}
+const STOP = new Set(['the', 'and', 'with', 'for', 'from', 'into', 'onto', 'over', 'near', 'while', 'their', 'his', 'her', 'its', 'des', 'les', 'une', 'pour', 'avec', 'dans', 'sur']);
+
+/**
+ * La photo de la banque (Pexels) la plus pertinente : jusqu'à 4 photos par recherche, classées par la vision ; la
+ * première recherche qui donne une photo à 5/10 ou plus l'emporte, sinon la meilleure de toutes si elle atteint 4/10.
+ */
+export async function stockPhoto(o: { queries: string[]; orientation?: 'portrait' | 'landscape' | 'square'; subject: string; brand: { name: string; business?: string } }): Promise<{ url: string; attribution: SourcedImage['attribution']; query: string } | null> {
+  let best: { url: string; attribution: SourcedImage['attribution']; query: string; score: number } | null = null;
+  for (const query of o.queries) {
+    const photos = await imageSourcingService.pexelsPhotos(query, o.orientation, 4);
+    if (!photos.length) continue;
+    const ranked = await rankByRelevance(photos.map((p) => p.mediumUrl), o.subject, o.brand);
+    const top = ranked[0];
+    const photo = photos.find((p) => p.mediumUrl === top?.url);
+    logger.info('visual.stock_ranked', { event: 'visual.stock_ranked', query, candidates: photos.length, best: top?.score, reason: top?.reason });
+    if (photo && top && (!best || top.score > best.score)) best = { url: photo.url, attribution: photo.attribution, query, score: top.score };
+    if (best && best.score >= 5) break;
+  }
+  return best && best.score >= 4 ? best : null;
 }
 
 async function imageBytes(url: string): Promise<Buffer> {
