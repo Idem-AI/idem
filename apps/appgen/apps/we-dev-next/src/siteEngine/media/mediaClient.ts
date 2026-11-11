@@ -8,7 +8,9 @@
  * facturation de la génération elle-même.
  */
 
-export type Aspect = '16:9' | '4:3' | '1:1' | '3:4';
+import { ChatLogger } from '../../utils/logger.js';
+
+export type Aspect ='16:9' | '4:3' | '1:1' | '3:4';
 
 export interface StockItem {
   url: string;
@@ -21,6 +23,8 @@ export interface StockItem {
 export interface MediaClient {
   /** Faux sans session à relayer : tout appel échouerait, les replis sans réseau prennent la main. */
   readonly available: boolean;
+  /** Vrai quand le fournisseur a déjà refusé faute de crédits : inutile d'écrire une consigne d'image. */
+  generationBlocked?(): boolean;
   generateImage(prompt: string, aspect: Aspect, tag: string): Promise<{ url: string; model?: string }>;
   generateVideo(prompt: string, tag: string): Promise<{ url: string; model?: string }>;
   stock(
@@ -53,9 +57,14 @@ export function createApiMediaClient(options: {
 }): MediaClient {
   const base = (process.env.IDEM_API_URL || 'http://localhost:3001').replace(/\/+$/, '');
   const available = Boolean(options.credentials.Authorization || options.credentials.Cookie);
+  // Le fournisseur a refusé une génération faute de crédits : les autres emplacements du même site vont droit au
+  // repli (Pexels, dessin), sans un appel de plus ni une ligne d'avertissement par emplacement.
+  let creditsOut = false;
+  const paid = (path: string) => path === 'image' || path === 'video';
 
   async function post<T>(path: string, body: Record<string, unknown>, timeoutMs: number): Promise<T> {
     if (!available) throw new MediaError('no_credentials');
+    if (creditsOut && paid(path)) throw new MediaError(`${path} skipped: credits`, 402);
     const controller = new AbortController();
     const abort = () => controller.abort();
     options.signal?.addEventListener('abort', abort, { once: true });
@@ -69,6 +78,17 @@ export function createApiMediaClient(options: {
       });
       if (!response.ok) {
         const detail = await response.text().catch(() => '');
+        // L'API IDEM rend 502 en relayant le 402 du fournisseur : c'est le texte qui le dit.
+        if (paid(path) && (response.status === 402 || /\b402\b|insufficient credits/i.test(detail))) {
+          if (!creditsOut) {
+            ChatLogger.warn('SITE_MEDIA', 'Crédits de génération épuisés : les visuels de ce site viennent de Pexels', {
+              component: 'MediaClient',
+              detail: detail.slice(0, 160),
+            });
+          }
+          creditsOut = true;
+          throw new MediaError(`${path} skipped: credits`, 402);
+        }
         throw new MediaError(`${path} ${response.status} ${detail.slice(0, 160)}`, response.status);
       }
       return (await response.json()) as T;
@@ -83,6 +103,7 @@ export function createApiMediaClient(options: {
 
   return {
     available,
+    generationBlocked: () => creditsOut,
     generateImage: (prompt, aspect, tag) => post('image', { prompt, aspect, tag }, IMAGE_TIMEOUT_MS),
     generateVideo: (prompt, tag) => post('video', { prompt, aspect: '16:9', tag }, VIDEO_TIMEOUT_MS),
     stock: async (query, kind, orientation, count = 1, locale) => {

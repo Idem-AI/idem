@@ -39,7 +39,9 @@ import {
 import { getWebContainerInstance } from './instance';
 import { readWorkspaceFile, repairExecBits, runCommand } from './runner';
 import { syncFileSystem } from './filesystem';
+import { useFileStore } from '../../stores/fileStore';
 import { compress, decompress, forgetSnapshot, readSnapshot, writeSnapshot } from './depsStore';
+import { timed } from '@/utils/startupTimer';
 
 export type DepsSource = 'cache' | 'snapshot' | 'nearest' | 'npm' | 'already-there' | 'failed';
 
@@ -90,6 +92,7 @@ export function resetDepsPlan(): void {
   planTarget = null;
   satisfied.clear();
   inflight.clear();
+  cachedReads.clear();
 }
 
 /**
@@ -135,6 +138,25 @@ function snapshotOnce(
 }
 
 /**
+ * L'arbre gardé dans le navigateur, lu et décompressé une seule fois : le préchauffage le lance dès la première image
+ * (la cible est connue), `ensureTree` attend la même promesse. Les deux postes — lire 30 Mo dans IndexedDB, en
+ * décompresser 100 — se font ainsi pendant le chargement du projet, plus après.
+ */
+const cachedReads = new Map<string, Promise<Uint8Array | null>>();
+
+function cachedOnce(target: DepsTargetName, tree: DepsTreeInfo): Promise<Uint8Array | null> {
+  const key = inflightKey(target, tree);
+  const known = cachedReads.get(key);
+  if (known) return known;
+  const task = (async () => {
+    const stored = await readSnapshot(target, tree.id, tree.fingerprint);
+    return stored ? decompress(stored) : null;
+  })().catch(() => null);
+  cachedReads.set(key, task);
+  return task;
+}
+
+/**
  * Précharge les arbres d'une cible, avant que le conteneur ou le socle existent.
  *
  * Appelé seulement quand la cible est **certaine** — c'est-à-dire quand
@@ -151,10 +173,8 @@ export async function prefetchDepsSnapshots(
   if (!plan) return;
 
   for (const tree of plan.trees) {
+    if (await cachedOnce(target, tree)) continue;
     if (!tree.baked || !tree.url) continue;
-
-    // Déjà dans le navigateur : il n'y a rien à transférer.
-    if (await readSnapshot(target, tree.id, tree.fingerprint)) continue;
 
     // En série : deux transferts de 17 Mo en parallèle sur une connexion lente
     // se partagent la bande passante et arrivent tous les deux en retard.
@@ -202,6 +222,7 @@ async function ensureDependenciesNow(
   onProgress?: (progress: DepsProgress) => void
 ): Promise<DepsOutcome[]> {
   const plan = await prefetchDepsPlan(target);
+  await timed('deps.boot', () => getWebContainerInstance());
 
   // Les manifestes doivent être sur le disque du conteneur avant tout : sans
   // eux, `npm install` n'a rien à installer et la vérification d'un arbre monté
@@ -212,7 +233,8 @@ async function ensureDependenciesNow(
   // tout de suite, bien avant que les fichiers soient montés. Le démarrage à
   // chaud, lui, part aussitôt — c'est tout son intérêt — et arrivait donc avant
   // le socle.
-  await waitForManifests(plan?.trees ?? [{ dir: '' }]);
+  await timed('deps.manifests', () => waitForManifests(plan?.trees ?? [{ dir: '' }]));
+  await dropStaleLockfiles(plan?.trees ?? [{ dir: '' }]);
 
   if (!plan) {
     // Pas de plan : on ne sait pas quels arbres existent. `npm install` à la
@@ -274,16 +296,17 @@ async function ensureTree(
     return { tree: tree.id, source: 'npm', ms: since(), note: 'arbre en place complété' };
   }
 
-  // 1. Le cache du navigateur.
-  const cached = await readSnapshot(target, tree.id, tree.fingerprint);
-  if (cached) {
+  // 1. Le cache du navigateur, déjà lu et décompressé par le préchauffage le plus souvent (attente presque nulle).
+  const bytes = await timed('deps.cache', () => cachedOnce(target, tree));
+  cachedReads.delete(inflightKey(target, tree));
+  if (bytes) {
     onProgress?.({ step: 'mount', tree: tree.id });
-    const bytes = await decompress(cached);
-    if (bytes && (await mountTree(tree, bytes))) {
+    if (await mountTree(tree, bytes)) {
       onProgress?.({ step: 'verify', tree: tree.id });
-      const state = await treeState(tree);
+      const state = await timed('deps.verify', () => treeState(tree));
       if (state === 'ok' || (state === 'missing-deps' && (await topUp(tree, onProgress)))) {
         satisfied.add(key);
+        keepPrebundle(target, tree);
         return { tree: tree.id, source: 'cache', ms: since() };
       }
       // Un arbre gardé qui ne passe pas la vérification est inutilisable :
@@ -300,13 +323,13 @@ async function ensureTree(
     // Le transfert a peut-être déjà été lancé par le préchargement, avant même
     // que le conteneur existe : on attend la même promesse, on n'en démarre pas
     // une seconde.
-    const bytes = await snapshotOnce(target, tree, onProgress);
+    const bytes = await timed('deps.download', () => snapshotOnce(target, tree, onProgress));
 
     if (bytes?.length) {
       onProgress?.({ step: 'mount', tree: tree.id });
       if (await mountTree(tree, bytes)) {
         onProgress?.({ step: 'verify', tree: tree.id });
-        const state = await treeState(tree);
+        const state = await timed('deps.verify', () => treeState(tree));
         if (state === 'ok' || (state === 'missing-deps' && (await topUp(tree, onProgress)))) {
           satisfied.add(key);
           // Gardé pour la prochaine ouverture — après le montage, pour ne pas
@@ -322,6 +345,7 @@ async function ensureTree(
             });
           })();
           inflight.delete(inflightKey(target, tree));
+          keepPrebundle(target, tree);
           return { tree: tree.id, source: 'snapshot', ms: since() };
         }
         await wipeTree(tree);
@@ -334,7 +358,7 @@ async function ensureTree(
   if (!tree.baked && tree.nearest?.url) {
     onProgress?.({ step: 'download', tree: tree.id, ratio: 0, bytes: 0, totalBytes: tree.nearest.bytes });
     const near: DepsTreeInfo = { ...tree, fingerprint: tree.nearest.fingerprint, url: tree.nearest.url, bytes: tree.nearest.bytes, baked: true };
-    const bytes = await snapshotOnce(target, near, onProgress);
+    const bytes = await timed('deps.download', () => snapshotOnce(target, near, onProgress));
     if (bytes?.length && (await mountTree(near, bytes)) && (await topUp(tree, onProgress))) {
       satisfied.add(key);
       rememberInstalled(target, tree);
@@ -346,7 +370,7 @@ async function ensureTree(
   // 4. npm, comme avant.
   onProgress?.({ step: 'npm', tree: tree.id });
   const note = tree.baked ? 'instantané inutilisable' : 'pas encore préinstallé';
-  const result = await runCommand('npm install', { cwd: tree.dir || undefined, timeoutMs: NPM_TIMEOUT_MS });
+  const result = await timed('deps.npm', () => runCommand('npm install', { cwd: tree.dir || undefined, timeoutMs: NPM_TIMEOUT_MS }));
 
   // Une installation qui n'a pas abouti dans le délai ne fera pas mieux au second essai (réseau, registre) : on le
   // dit tout de suite au lieu de doubler l'attente.
@@ -374,7 +398,9 @@ async function ensureTree(
  */
 async function topUp(tree: DepsTreeInfo, onProgress?: (progress: DepsProgress) => void): Promise<boolean> {
   onProgress?.({ step: 'npm', tree: tree.id });
-  const result = await runCommand('npm install --no-audit --no-fund --prefer-offline', { cwd: tree.dir || undefined, timeoutMs: NPM_TIMEOUT_MS });
+  const result = await timed('deps.npm', () =>
+    runCommand('npm install --no-audit --no-fund --prefer-offline', { cwd: tree.dir || undefined, timeoutMs: NPM_TIMEOUT_MS })
+  );
   if (result.exitCode !== 0) return false;
   await writeMarker(tree, 'top-up');
   return (await treeState(tree)) === 'ok';
@@ -384,22 +410,68 @@ async function topUp(tree: DepsTreeInfo, onProgress?: (progress: DepsProgress) =
  * Une installation passée par npm (complète ou complétée) est gardée dans le cache du navigateur sous
  * l'empreinte de l'arbre : la prochaine ouverture la monte en quelques secondes. Faite après coup, une fois
  * l'aperçu lancé : exporter un arbre de 100 Mo ne doit rien retarder.
+ *
+ * Un arbre qui porte Vite est gardé APRÈS son pré-regroupement (`node_modules/.vite/deps/_metadata.json`) : la
+ * prochaine ouverture trouve alors les dépendances déjà regroupées, et Vite sert la première page sans les refaire
+ * (le dossier de travail est fixe, voir `instance.ts` ; le site n'écrit pas de `package-lock.json`, voir son
+ * `.npmrc` — les deux entrent dans la signature du cache de Vite).
  */
+const remembering = new Set<string>();
+
 function rememberInstalled(target: DepsTargetName, tree: DepsTreeInfo): void {
-  setTimeout(() => {
-    void (async () => {
-      try {
-        const container = await getWebContainerInstance();
-        if (!container) return;
-        const exported = (await container.export(tree.mountPoint, { format: 'binary' })) as Uint8Array;
-        const packed = await compress(exported);
-        await writeSnapshot({ target, tree: tree.id, fingerprint: tree.fingerprint, bytes: packed.bytes, compressed: packed.compressed });
-        console.log(`[deps] ${tree.id} gardé dans le cache du navigateur`);
-      } catch (error) {
-        console.warn(`[deps] ${tree.id} : mise en cache impossible`, error);
-      }
-    })();
-  }, 15_000);
+  const key = inflightKey(target, tree);
+  if (remembering.has(key)) return;
+  remembering.add(key);
+  void (async () => {
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 15_000));
+      if (await hasVite(tree)) await waitForPrebundle(tree);
+      const container = await getWebContainerInstance();
+      if (!container) return;
+      const exported = (await container.export(tree.mountPoint, { format: 'binary' })) as Uint8Array;
+      const packed = await compress(exported);
+      await writeSnapshot({ target, tree: tree.id, fingerprint: tree.fingerprint, bytes: packed.bytes, compressed: packed.compressed });
+      console.log(`[deps] ${tree.id} gardé dans le cache du navigateur${(await hasPrebundle(tree)) ? ', dépendances pré-regroupées comprises' : ''}`);
+    } catch (error) {
+      console.warn(`[deps] ${tree.id} : mise en cache impossible`, error);
+    } finally {
+      remembering.delete(key);
+    }
+  })();
+}
+
+/**
+ * Un arbre monté sans pré-regroupement (instantané du four, ancien cache) est regardé une fois Vite passé : s'il a
+ * regroupé, l'arbre est regardé de nouveau, et l'ouverture suivante en profite.
+ */
+const upgraded = new Set<string>();
+
+function keepPrebundle(target: DepsTargetName, tree: DepsTreeInfo): void {
+  const key = inflightKey(target, tree);
+  if (upgraded.has(key)) return;
+  upgraded.add(key);
+  void (async () => {
+    if ((await hasVite(tree)) && !(await hasPrebundle(tree))) rememberInstalled(target, tree);
+  })();
+}
+
+const PREBUNDLE_WAIT_MS = 180_000;
+
+async function hasVite(tree: DepsTreeInfo): Promise<boolean> {
+  return (await readWorkspaceFile(`${tree.mountPoint}/vite/package.json`)) !== null;
+}
+
+async function hasPrebundle(tree: DepsTreeInfo): Promise<boolean> {
+  return (await readWorkspaceFile(`${tree.mountPoint}/.vite/deps/_metadata.json`)) !== null;
+}
+
+/** Attend que Vite ait fini de regrouper (le fichier de métadonnées est écrit en dernier). */
+async function waitForPrebundle(tree: DepsTreeInfo): Promise<void> {
+  const deadline = Date.now() + PREBUNDLE_WAIT_MS;
+  while (Date.now() < deadline) {
+    if (await hasPrebundle(tree)) return;
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+  }
 }
 
 /** Monte l'instantané. L'arbre est posé tel quel, sans passer par npm. */
@@ -418,8 +490,8 @@ async function mountTree(tree: DepsTreeInfo, snapshot: Uint8Array): Promise<bool
     // `mount` transfère le tampon : on en donne une copie, l'appelant garde
     // le sien pour l'écrire dans le cache.
     const transferable = snapshot.slice();
-    await container.mount(transferable, { mountPoint: tree.mountPoint });
-    await restoreExecBits(tree);
+    await timed('deps.mount', () => container.mount(transferable, { mountPoint: tree.mountPoint }));
+    await timed('deps.exec', () => restoreExecBits(tree));
     await writeMarker(tree, 'snapshot');
     return true;
   } catch (error) {
@@ -564,6 +636,27 @@ async function waitForManifests(trees: Array<Pick<DepsTreeInfo, 'dir'>>): Promis
   }
 
   console.warn('[deps] socle absent du conteneur après 20 s : on tente quand même');
+}
+
+/**
+ * Un projet qui déclare `package-lock=false` (le site, voir son `.npmrc`) mais garde un `package-lock.json` d'une
+ * ancienne session : retiré avant le démarrage de Vite, sinon la signature de son cache de dépendances ne
+ * correspond plus à celle de l'instantané et tout le pré-regroupement est refait.
+ */
+async function dropStaleLockfiles(trees: Array<Pick<DepsTreeInfo, 'dir'>>): Promise<void> {
+  for (const tree of trees) {
+    const at = (path: string) => (tree.dir ? `${tree.dir}/${path}` : path);
+    const npmrc = await readWorkspaceFile(at('.npmrc'));
+    if (!npmrc || !/^\s*package-lock\s*=\s*false\s*$/m.test(npmrc)) continue;
+    if ((await readWorkspaceFile(at('package-lock.json'))) === null) continue;
+    try {
+      if (useFileStore.getState().files[at('package-lock.json')] !== undefined) await useFileStore.getState().deleteFile(at('package-lock.json'));
+      const container = await getWebContainerInstance();
+      await container?.fs.rm(at('package-lock.json'), { force: true });
+    } catch {
+      // Gardé : Vite refera son regroupement, rien de plus.
+    }
+  }
 }
 
 /** Efface l'arbre : c'est la seule façon de repartir d'un npm propre. */

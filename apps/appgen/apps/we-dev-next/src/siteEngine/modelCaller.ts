@@ -172,7 +172,9 @@ export class ModelCaller {
             return { value: verdict.value, model, attempts, providerDown: false };
           }
 
-          ChatLogger.warn('SITE_SECTION', `${label} : réponse refusée`, {
+          // Un renvoi pour correction fait partie du déroulé normal (le modèle a un essai de plus) : une information,
+          // pas un avertissement. L'échec réel, essais épuisés, est dit plus bas.
+          ChatLogger.info('SITE_SECTION', `${label} : à corriger, nouvel essai`, {
             model,
             attempt: attempts,
             problem: verdict.problem.slice(0, 200),

@@ -108,6 +108,19 @@ const clean = (value: string): string =>
     .replace(/\s+/g, ' ')
     .trim();
 
+/**
+ * Une prose ramenée sous la limite en retirant ses DERNIÈRES phrases entières — jamais un mot coupé. `null` quand ce
+ * n'est pas possible proprement : une seule phrase (un titre), ou ce qui resterait serait trop maigre (moins de la
+ * moitié de la place), et le modèle réécrit alors.
+ */
+export function fitProse(text: string, limit: number): string | null {
+  const sentences = text.split(/(?<=[.!?…])\s+(?=[A-ZÀ-ÖØ-Ý«"“0-9])/u);
+  if (sentences.length < 2) return null;
+  while (sentences.length > 1 && sentences.join(' ').length > limit) sentences.pop();
+  const kept = sentences.join(' ').trim();
+  return kept.length <= limit && kept.length >= limit * 0.5 && /[.!?…»"”]$/u.test(kept) ? kept : null;
+}
+
 /** Un champ selon son schéma : la valeur retenue, et ce qui ne va pas. */
 function readField(def: FieldDef, raw: unknown, where: string, problems: string[], targets: Set<string>): unknown {
   if (def.type === 'text') {
@@ -117,7 +130,13 @@ function readField(def: FieldDef, raw: unknown, where: string, problems: string[
       return undefined;
     }
     // Une marge de 15 % : au-delà, le texte casserait la composition.
-    if (text.length > Math.round(def.max * 1.15)) problems.push(`${where} : ${text.length} signes pour ${def.max} au plus`);
+    const limit = Math.round(def.max * 1.15);
+    if (text.length <= limit) return text;
+    // Une prose trop longue (chapeau, paragraphe) perd ses dernières phrases, par le code : c'était la cause de
+    // presque tous les renvois au modèle (300 signes pour 240), quinze secondes et un appel payé chacun.
+    const fitted = fitProse(text, limit);
+    if (fitted) return fitted;
+    problems.push(`${where} : ${text.length} signes pour ${def.max} au plus`);
     return text;
   }
   if (def.type === 'action') {

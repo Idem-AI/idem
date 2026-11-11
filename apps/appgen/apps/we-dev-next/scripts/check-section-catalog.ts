@@ -26,7 +26,7 @@ import type { SiteFacts } from '../src/siteEngine/siteFacts.js';
 import { templateFiles } from '../src/siteEngine/template.js';
 import { assembleSection, assembleShell, jsxText } from '../src/siteEngine/sectionCatalog/assemble.js';
 import { fitContent } from '../src/siteEngine/sectionCatalog/compose.js';
-import { readCopy, type CopyTask } from '../src/siteEngine/sectionCatalog/copy.js';
+import { fitProse, readCopy, type CopyTask } from '../src/siteEngine/sectionCatalog/copy.js';
 import { buildSectionCatalog, readIcodeTemplatesDir, sectionCatalog } from '../src/siteEngine/sectionCatalog/registry.js';
 import type { FieldDef, KindNode, SectionNode } from '../src/siteEngine/sectionCatalog/types.js';
 
@@ -188,6 +188,17 @@ async function main() {
   ok('rédacteur : texte trop long et liste trop courte signalés', (tooLong.problems.q ?? []).length >= 2, JSON.stringify(tooLong.problems));
   const fine = readCopy({ sections: { q: { title: 'Vos questions — nos réponses', faqs: Array.from({ length: 3 }, () => ({ question: 'Une question ?', answer: 'Une réponse **utile**.' })) } } }, [task], ['/']);
   ok('rédacteur : contenu juste accepté, tiret cadratin et Markdown nettoyés', !fine.problems.q && (fine.sections.q.title as string) === 'Vos questions, nos réponses' && !JSON.stringify(fine.sections.q).includes('**'));
+  // Prose trop longue : ramenée par le code en retirant ses dernières phrases entières (plus de renvoi au modèle).
+  const prose = 'AgriLink relie les agriculteurs aux fournisseurs par un simple appel. Chaque commande est confirmée par SMS en moins d’une minute. Les intrants sont livrés au point de collecte du village. Le paiement se fait à la livraison, en espèces ou par mobile money, sans frais cachés ni engagement.';
+  const fitted = fitProse(prose, 200);
+  ok('rédacteur : prose trop longue ramenée à des phrases entières', !!fitted && fitted.length <= 200 && fitted.endsWith('.') && prose.startsWith(fitted), String(fitted));
+  ok('rédacteur : une seule phrase trop longue reste à réécrire', fitProse('x'.repeat(300), 200) === null);
+  ok('rédacteur : ce qui resterait trop maigre reste à réécrire', fitProse(`Court. ${'y'.repeat(300)}.`, 200) === null);
+  const lede = (kinds.get('faq') as KindNode).fields.lede;
+  if (lede && lede.type === 'text') {
+    const long = readCopy({ sections: { q: { title: 'Vos questions', lede: `${prose} ${prose}`.slice(0, Math.round(lede.max * 1.6)), faqs: Array.from({ length: 3 }, () => ({ question: 'Une question ?', answer: 'Une réponse.' })) } } }, [task], ['/']);
+    ok('rédacteur : chapeau trop long accepté une fois ramené', !long.problems.q && String(long.sections.q.lede).length <= Math.round(lede.max * 1.15), JSON.stringify(long.problems));
+  }
   const statement = catalog.sections.filter((s: SectionNode) => s.layout === 'gallery' && s.visual === 'required')[0];
   ok('aiguilleur : galerie sans visuel écartée', !!statement && fitContent(statement, {}, 0) === null);
 

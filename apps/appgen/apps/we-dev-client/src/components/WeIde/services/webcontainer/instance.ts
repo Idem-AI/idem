@@ -1,6 +1,9 @@
-import { WebContainer } from '@webcontainer/api';
+import { WebContainer, type DirectoryNode, type FileSystemTree } from '@webcontainer/api';
 import { useFileStore } from '../../stores/fileStore';
 import useWarmStart from '@/stores/warmStartSlice';
+
+/** Le dossier de travail, toujours le même (`/home/project`) : voir le démarrage plus bas. */
+export const WORKDIR_NAME = 'project';
 
 let webcontainerInstance: WebContainer | null = null;
 let bootPromise: Promise<WebContainer> | null = null;
@@ -91,6 +94,23 @@ export async function resetWebContainer(): Promise<void> {
   notifyServers();
 }
 
+/** Les fichiers du magasin en arbre de montage. */
+function asTree(files: Record<string, string | Uint8Array>): FileSystemTree {
+  const tree: FileSystemTree = {};
+  for (const [path, contents] of Object.entries(files)) {
+    const parts = path.split('/').filter(Boolean);
+    if (!parts.length) continue;
+    let dir = tree;
+    for (const part of parts.slice(0, -1)) {
+      const node = dir[part];
+      if (!node || !('directory' in node)) dir[part] = { directory: {} };
+      dir = (dir[part] as DirectoryNode).directory;
+    }
+    dir[parts[parts.length - 1]] = { file: { contents } };
+  }
+  return tree;
+}
+
 export async function getWebContainerInstance(): Promise<WebContainer | null> {
   if (webcontainerInstance) return webcontainerInstance;
   if (bootPromise) return bootPromise;
@@ -100,7 +120,12 @@ export async function getWebContainerInstance(): Promise<WebContainer | null> {
     // l'aperçu est servi en `require-corp` : toute image d'un autre domaine
     // sans en-tête Cross-Origin-Resource-Policy y est bloquée — les photos
     // Pexels et les images générées (MinIO) des sites ne s'affichaient pas.
-    bootPromise = WebContainer.boot({ coep: 'credentialless' });
+    //
+    // `workdirName` fixe : sans lui, le dossier de travail porte un nom tiré au hasard à chaque démarrage. Or Vite
+    // signe son cache de dépendances pré-regroupées (`node_modules/.vite`) avec la racine du projet : ce cache,
+    // gardé dans l'arbre (instantané du four, cache du navigateur), n'était JAMAIS réutilisable, et chaque ouverture
+    // refaisait le regroupement complet (esbuild en WebAssembly, la plus longue attente avant la première page).
+    bootPromise = WebContainer.boot({ coep: 'credentialless', workdirName: WORKDIR_NAME });
     webcontainerInstance = await bootPromise;
 
     if (webcontainerInstance) {
@@ -132,8 +157,15 @@ export async function getWebContainerInstance(): Promise<WebContainer | null> {
       // Initialize the root directory
       await webcontainerInstance.fs.mkdir('/', { recursive: true });
       
-      // Mount initial files
+      // Les fichiers déjà connus, en un seul montage (un aller-retour avec le conteneur au lieu de deux par fichier) ;
+      // fichier par fichier seulement si l'arbre est refusé.
       const { files } = useFileStore.getState();
+      try {
+        await webcontainerInstance.mount(asTree(files));
+        return webcontainerInstance;
+      } catch (error) {
+        console.warn('[conteneur] montage groupé refusé, fichier par fichier', error);
+      }
       for (const [path, contents] of Object.entries(files)) {
         const fullPath = `//${path}`;
         // Create parent directories

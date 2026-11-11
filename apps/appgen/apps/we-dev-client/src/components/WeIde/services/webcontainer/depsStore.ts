@@ -101,7 +101,9 @@ export async function readSnapshot(
     if (!entry) return null;
 
     const stored = entry as StoredSnapshot;
-    store.put({ ...stored, usedAt: Date.now() });
+    // La date d'usage ne sert qu'à l'éviction : rafraîchie une fois par jour. La réécrire à chaque lecture recopiait
+    // tout l'arbre (20 à 40 Mo) dans IndexedDB au moment même où l'atelier démarre.
+    if (Date.now() - stored.usedAt > 24 * 3600_000) store.put({ ...stored, usedAt: Date.now() });
     return stored;
   } catch {
     return null;
