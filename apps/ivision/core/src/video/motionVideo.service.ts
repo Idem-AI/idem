@@ -90,6 +90,8 @@ import { animationLib, buildComposition, CompositionInput, CompositionMedia, vid
 import { probeComposition, ProbeFile } from './rendering/hyperframes/probe';
 import { renderHyperFrames } from './rendering/hyperframes/render';
 import { authorHtmlScene, HtmlAuthored } from './author/html.author';
+import { ComposeInput, composeFilmFromCatalog, ComposedScene, nextSceneConfig, reassembleFilm, reviseSceneConfig } from './catalog/compose';
+import type { FilmFormatId, SceneConfig } from './catalog/types';
 import { refineCues } from './audio/sfx';
 import { exportCost, normalizeScope, videoCost } from './pricing';
 import { recordFromVideo } from './record';
@@ -839,9 +841,72 @@ export class MotionVideoService {
     return { ...rest, html: a.html, script: a.script, animation: a.animation, author, status: 'ready' };
   }
 
+  // ── Le CATALOGUE vidéo (11/11/2026) : les scènes HTML assemblées par le code depuis le dépôt `idem-templates` ──
+
+  /** Le catalogue est la voie normale des films HTML ; `IDEM_VIDEO_CATALOG=0` rend la main à l'auteur HTML libre. */
+  private static catalogEnabled(): boolean {
+    return process.env.IDEM_VIDEO_CATALOG !== '0';
+  }
+
+  /** Ce que le catalogue lit d'un film : scènes (rôle, énergie, textes, médias, temps fort), marque, formats, cran. */
+  private catalogInput(userId: string, projectId: string, video: MotionVideo, brand: FilmBrand, level: CreativityLevel): ComposeInput {
+    const film = video.film!;
+    const byId = new Map((video.media || []).map((m) => [m.id, m]));
+    const beat = video.music?.beat?.bpm ? video.music.beat : undefined;
+    const period = beat ? 60 / beat.bpm : 0;
+    return {
+      scenes: film.scenes.map((sc) => ({
+        key: sc.key,
+        duration: sc.duration,
+        texts: sc.texts,
+        media: sc.media.map((id) => byId.get(id)).filter((m): m is VideoMediaAsset => !!m && (m.kind === 'image' || m.kind === 'video')).map((m) => ({ id: m.id, kind: m.kind as 'image' | 'video' })),
+        ...(sc.role ? { role: sc.role } : {}),
+        ...(sc.energy ? { energy: sc.energy } : {}),
+        ...(beat ? { beat: { bpm: beat.bpm, first: round3(((((beat.offset || 0) - sc.start) % period) + period) % period) } } : {}),
+      })),
+      film: { title: film.title, concept: film.concept, style: video.brief.style, seed: film.seed },
+      brand: { name: brand.tokens.name, hasLogo: Boolean(brand.tokens.logo?.light), hasDarkLogo: Boolean(brand.tokens.logo?.dark), line: [brand.tokens.name, (brand.art || '').split('\n')[0]].filter(Boolean).join(' · ').slice(0, 220) },
+      formats: (video.scope.formats.length ? video.scope.formats : ['story']) as FilmFormatId[],
+      level,
+      call: this.callContext(userId, projectId, level),
+      memoryKey: projectId,
+    };
+  }
+
+  /** Les scènes assemblées posées sur le film (HTML, script, configuration ; aucun auteur, aucun jeton par scène). */
+  private static applyCatalog(film: VideoFilm, scenes: ComposedScene[], info: { version: string; theme: string }, keep?: Map<string, string[]>): VideoFilm {
+    const byKey = new Map(scenes.map((s) => [s.key, s]));
+    return {
+      ...film,
+      engine: 'hyperframes',
+      catalog: { version: info.version, theme: info.theme },
+      scenes: film.scenes.map((sc) => {
+        const c = byKey.get(sc.key);
+        if (!c) return sc;
+        const { error: _e, ...rest } = sc;
+        return { ...rest, html: c.html, script: c.script, animation: 'gsap' as const, status: 'ready' as const, catalog: { ...c.config, ...(keep?.get(sc.key)?.length ? { tried: keep.get(sc.key) } : {}) } };
+      }),
+    };
+  }
+
+  /** Le film réassemblé depuis ses configurations (une scène changée change aussi la transition et la sortie voisines). */
+  private async reassembleCatalogFilm(video: MotionVideo, brand: FilmBrand, film: VideoFilm, level: CreativityLevel): Promise<VideoFilm> {
+    const input = this.catalogInput('', '', { ...video, film }, brand, level);
+    const configs = film.scenes.map((sc) => sc.catalog ?? ({ layout: 'builtin.stack', animations: {} } as SceneConfig));
+    const scenes = await reassembleFilm(input, film.catalog?.theme ?? 'builtin.plain', configs);
+    return MotionVideoService.applyCatalog(film, scenes, { version: film.catalog?.version ?? '', theme: film.catalog?.theme ?? 'builtin.plain' }, new Map(film.scenes.map((sc) => [sc.key, sc.catalog?.tried ?? []])));
+  }
+
   /** Toutes les scènes écrites en HTML ; `film: null` si une seule échoue (le film repasse alors par Motion Canvas). */
   private async authorHtmlFilm(userId: string, projectId: string, video: MotionVideo, ctx: Awaited<ReturnType<MotionVideoService['brandContext']>>, level: CreativityLevel, onDone?: (key: string, done: number, ok: boolean) => void): Promise<{ film: VideoFilm | null; traces: FilmAgentTrace[]; failed: string[] }> {
     const film = video.film!;
+    // LE CATALOGUE : un choix (code, ou un appel de modèle pour tout le film), puis l'assemblage par le code.
+    if (MotionVideoService.catalogEnabled()) {
+      const composed = await composeFilmFromCatalog(this.catalogInput(userId, projectId, video, ctx.film, level));
+      composed.scenes.forEach((s, i) => onDone?.(s.key, i + 1, true));
+      const trace: FilmAgentTrace = { agent: 'video.template', source: composed.trace.source === 'llm' ? 'llm' : 'none', tokens: composed.trace.tokens, ms: composed.trace.ms, ...(composed.trace.failure ? { failure: composed.trace.failure.slice(0, 120) } : {}) };
+      return { film: MotionVideoService.applyCatalog(film, composed.scenes, composed), traces: [trace], failed: [] };
+    }
     const call = this.callContext(userId, projectId, level);
     const lib = animationLib();
     let done = 0;
@@ -900,6 +965,8 @@ export class MotionVideoService {
       const project = await this.hyperframesProject(video, brand, format, 'render', 'standard');
       const probed = await probeComposition(project.html, project.files, film.scenes, project.out);
       const errors = new Map(probed.errors.map((e) => [e.key, e.message]));
+      // Une scène du catalogue dont un texte ne tient pas, même au plus petit corps : à recomposer (candidat suivant).
+      for (const key of probed.fit ?? []) if (!errors.has(key) && film.scenes.find((s) => s.key === key)?.catalog) errors.set(key, 'a text does not fit its zone, even at the smallest size allowed');
       const storage = this.mediaStorage();
       const folder = `users/${userId}/projects/${projectId}/videos/${video.id}/thumbs`;
       const stamp = Date.now().toString(36);
@@ -925,6 +992,29 @@ export class MotionVideoService {
     let film = video.film!;
     const broken = film.scenes.filter((sc) => sc.status === 'error' && sc.error);
     if (!broken.length) return film;
+    // Un film du CATALOGUE se corrige SANS modèle : chaque scène en défaut prend le candidat suivant de sa liste, deux
+    // fois au plus, puis le film est réassemblé et recontrôlé.
+    if (film.catalog) {
+      for (let round = 0; round < 2; round++) {
+        const bad = film.scenes.filter((sc) => sc.status === 'error' && sc.catalog);
+        if (!bad.length) break;
+        const input = this.catalogInput(userId, projectId, { ...video, film }, ctx.film, level);
+        const scenes = [...film.scenes];
+        let changed = false;
+        for (const sc of bad) {
+          const i = scenes.findIndex((s) => s.key === sc.key);
+          const tried = [...(sc.catalog?.tried ?? []), JSON.stringify(sc.catalog)];
+          const next = await nextSceneConfig(input, i, tried.map((t) => JSON.parse(t) as SceneConfig));
+          if (!next) continue;
+          scenes[i] = { ...sc, catalog: { ...next, tried } };
+          changed = true;
+        }
+        if (!changed) break;
+        film = await this.reassembleCatalogFilm(video, ctx.film, { ...film, scenes }, level);
+        film = await this.checkHtmlFilm(userId, projectId, { ...video, film }, ctx.film);
+      }
+      return film;
+    }
     const call = this.callContext(userId, projectId, level);
     const fixed = await mapLimit(broken, 4, async (sc) => {
       const a = await authorHtmlScene(call, this.authorContext({ ...video, film }, ctx.film, sc, level, { repair: { strategy: 'fix', error: sc.error!.message, history: [] } }), sc.animation ?? animationLib(), sc.html && sc.script ? { html: sc.html, script: sc.script } : undefined);
@@ -1705,9 +1795,31 @@ export class MotionVideoService {
         ...(patch.regenerate || []).filter((key) => sceneOf(key)).map((key) => ({ key, instruction: undefined as string | undefined })),
         ...(patch.fix || []).filter((key) => sceneOf(key)?.status === 'error').map((key) => ({ key, instruction: undefined as string | undefined, fix: true })),
       ];
+      let catalogChanged = false;
       for (const job of htmlJobs) {
         const i = film.scenes.findIndex((sc) => sc.key === job.key);
         const sc = film.scenes[i];
+        // Une scène du CATALOGUE : la consigne modifie sa configuration (un petit appel) ; « nouvelle version » et
+        // « corriger » prennent le candidat suivant (aucun modèle). Le film est réassemblé une fois, à la fin.
+        if (sc.catalog && film.catalog) {
+          const input = this.catalogInput(userId, projectId, { ...video, film }, ctx.film, level);
+          const tried = [...(sc.catalog.tried ?? []), JSON.stringify({ ...sc.catalog, tried: undefined })];
+          let next: SceneConfig | null;
+          if (job.instruction) {
+            const r = await reviseSceneConfig(input, i, film.catalog.theme, { ...sc.catalog, tried: undefined } as SceneConfig, job.instruction);
+            film.agents = [...film.agents, { agent: `video.template:${job.key}:revise`, source: r.trace.source === 'llm' ? 'llm' : 'none', tokens: r.trace.tokens, ms: r.trace.ms, ...(r.trace.failure ? { failure: r.trace.failure.slice(0, 120) } : {}) }];
+            next = r.config;
+          } else next = await nextSceneConfig(input, i, tried.map((t) => JSON.parse(t) as SceneConfig));
+          if (!next) {
+            report.failed.push({ key: job.key, what: 'visual', reason: 'no other composition in the catalogue' });
+            continue;
+          }
+          if (sc.status !== 'error') before.set(job.key, sc);
+          film.scenes[i] = { ...sc, catalog: { ...next, tried }, author: { tokens: { input: 0, output: 0 }, ms: 0, at: new Date().toISOString(), attempts: 1, ...(job.instruction ? { instruction: job.instruction.slice(0, 400) } : {}) } };
+          report.recoded.push(job.key);
+          catalogChanged = true;
+          continue;
+        }
         const c = this.authorContext({ ...video, film }, ctx.film, sc, level, job.instruction ? { revise: { instruction: job.instruction, code: '' } } : 'fix' in job && sc.error ? { repair: { strategy: 'fix', error: sc.error.message, history: [] } } : {});
         const a = await authorHtmlScene(call, c, sc.animation ?? animationLib(), job.instruction || 'fix' in job ? (sc.html && sc.script ? { html: sc.html, script: sc.script } : undefined) : undefined);
         film.agents = [...film.agents, { agent: `video.html-author:${job.key}:${job.instruction ? 'revise' : 'new'}`, source: a.html ? 'llm' : 'none', tokens: a.tokens, ms: a.ms, ...(a.html ? {} : { failure: (a.error || '').slice(0, 120) }) }];
@@ -1718,6 +1830,10 @@ export class MotionVideoService {
         if (sc.status !== 'error') before.set(job.key, sc);
         film.scenes[i] = MotionVideoService.applyHtml(sc, a, job.instruction);
         report.recoded.push(job.key);
+        codeChanged = true;
+      }
+      if (catalogChanged) {
+        film = await this.reassembleCatalogFilm(video, ctx.film, film, level);
         codeChanged = true;
       }
     }

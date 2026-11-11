@@ -1,8 +1,8 @@
 /**
  * LE CATALOGUE DE GABARITS — exploitation sans rebuild ni redéploiement.
  *
- *   GET  /catalog              état (version, source, nœuds, nœuds écartés)            administrateurs
- *   POST /catalog/refresh      relire le catalogue publié tout de suite                 webhook de publication
+ *   GET  /catalog              état des deux catalogues (images, vidéos)               administrateurs
+ *   POST /catalog/refresh      relire les catalogues publiés tout de suite              webhook de publication
  *   PUT  /catalog/overrides    retirer des nœuds, régler leurs poids (effet en 15 s)    administrateurs
  *
  * Le webhook est appelé par la CI du dépôt `idem-templates` après chaque publication, avec l'en-tête
@@ -12,6 +12,7 @@ import crypto from 'crypto';
 import { Request, Response, Router } from 'express';
 import mongoose from 'mongoose';
 import { catalog, refreshCatalog } from '@idem/graphic-engine';
+import { refreshVideoCatalog, videoCatalog } from '../../../ivision/core/src/video/catalog/registry';
 import logger from '../config/logger';
 import { requireAdminAccess } from '../middleware/super-user.middleware';
 
@@ -27,7 +28,9 @@ const sameSecret = (a: string, b: string): boolean => {
 router.get('/', requireAdminAccess, async (_req: Request, res: Response) => {
   const cat = await catalog();
   const counts = [...cat.nodes.values()].reduce<Record<string, number>>((acc, n) => ((acc[n.kind] = (acc[n.kind] ?? 0) + 1), acc), {});
-  res.json({ version: cat.version, source: cat.source, counts, rejected: cat.rejected });
+  const videos = await videoCatalog();
+  const videoCounts = [...videos.nodes.values()].filter((n) => !n.id.startsWith('builtin.')).reduce<Record<string, number>>((acc, n) => ((acc[n.kind] = (acc[n.kind] ?? 0) + 1), acc), {});
+  res.json({ version: cat.version, source: cat.source, counts, rejected: cat.rejected, videos: { version: videos.version, source: videos.source, counts: videoCounts, rejected: videos.rejected } });
 });
 
 router.post('/refresh', async (req: Request, res: Response) => {
@@ -35,8 +38,9 @@ router.post('/refresh', async (req: Request, res: Response) => {
   const given = String(req.header('x-idem-templates-token') ?? '');
   if (!expected || !given || !sameSecret(given, expected)) return res.status(401).json({ error: 'unauthorized' });
   const out = await refreshCatalog();
-  logger.info('catalog.refreshed', { version: out.version, source: out.source, nodes: out.nodes, rejected: out.rejected.length });
-  return res.json(out);
+  const videos = await refreshVideoCatalog();
+  logger.info('catalog.refreshed', { version: out.version, source: out.source, nodes: out.nodes, rejected: out.rejected.length, videoVersion: videos.version, videoSource: videos.source, videoRejected: videos.rejected.length });
+  return res.json({ ...out, videos: { version: videos.version, source: videos.source, nodes: videos.nodes.size, rejected: videos.rejected.length } });
 });
 
 router.put('/overrides', requireAdminAccess, async (req: Request, res: Response) => {

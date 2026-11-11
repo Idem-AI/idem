@@ -28,19 +28,18 @@
  *   npx ts-node --transpile-only api/scripts/checkBusinessPlanQuality.ts --pdf a.pdf b.pdf
  */
 
-// Ce contrôle vise l'écriture libre par l'auteur (mode `author`, retour arrière d'exploitation) ; le catalogue a le sien
-// (`npm run check:catalog --prefix packages/graphic-engine`).
-process.env.GRAPHIC_ENGINE_MODE = 'author';
+// Ce contrôle vise le PAGINATEUR du PDF, qui imprime toujours les business plans écrits avant le catalogue (pages en
+// flux, pied de section). Les pages de ce contrôle ont donc cette forme, rejouées par le moteur sans modèle. Les pages
+// du catalogue, composées en A4 par le moteur, ont leur contrôle : `npm run check:bpcatalog`.
 import { copyFileSync, mkdirSync, readFileSync } from 'fs';
 import { resolve } from 'path';
 
 import puppeteer, { Browser } from 'puppeteer';
 
-import { brandFromIdem, closeBrowser, createDocument, SectionContent, sectionHtml } from '@idem/graphic-engine';
-import { useFakeGraphicAuthor } from './fakeGraphicAuthor';
+import { brandFromIdem, buildContentMap, closeBrowser, configureGraphicEngine, createDocument, SectionContent, sectionHtml } from '@idem/graphic-engine';
 
-// Les pages sont écrites par un auteur SIMULÉ (aucun modèle) : ce contrôle porte sur ce qui suit l'écriture.
-useFakeGraphicAuthor();
+// Aucun modèle : chaque page est REJOUÉE depuis son code (`legacyPage`), comme une page gardée.
+configureGraphicEngine({ agentCall: undefined });
 
 import { SectionModel } from '../models/section.model';
 import { BUSINESS_PLAN_PAGINATION } from '../services/BusinessPlan/businessPlanPdf.options';
@@ -218,6 +217,20 @@ interface Planned {
  * un document A4 portrait semé par sa clé, chaque page composée puis MESURÉE dans Chromium, et stockée en
  * fragment autonome (polices puis racine) — la forme que le PDF imprime.
  */
+/**
+ * Une page de business plan de la forme écrite avant le catalogue : un en-tête, les textes du contenu dans l'ordre, les
+ * graphiques et tableaux, puis un PIED DE SECTION (logo, titre courant) — celui qui, seul sur sa page, faisait le défaut 1.
+ */
+function legacyPage(content: SectionContent): string {
+  const map = buildContentMap(content);
+  const keys = [...map.entries.keys()].filter((k) => !['kicker', 'title', 'lede'].includes(k));
+  const texts = keys.map((k) => (/\.url$|Url$/.test(k) ? `<div><img src="{{${k}}}" alt="" class="mt-[12px] h-[120px] w-auto object-contain"></div>` : `<div><p class="mt-[10px] text-[14px] leading-[1.55] text-ink">{{${k}}}</p></div>`));
+  const prims = [...map.primitives.values()].map((b) => `<section class="mt-[18px]"><idem-${b.kind === 'table' ? 'table' : 'chart'} data-block="${b.id}" data-aspect="16/9" class="w-full text-[12px] text-ink [&_th]:bg-brand-primary [&_th]:text-on-brand"></idem-${b.kind === 'table' ? 'table' : 'chart'}></section>`);
+  const header = `<header class="border-b-[3px] border-brand-primary pb-[12px]"><p class="text-[11px] uppercase tracking-[0.2em] text-brand-primary">{{kicker}}</p><h2 class="font-display text-[30px] font-bold leading-[1.1] text-ink">{{title}}</h2></header><p class="mt-[14px] text-[16px] text-muted">{{lede}}</p>`;
+  const footer = `<footer data-keep-together class="mt-[24px] flex items-center justify-between border-t border-rule pt-[8px]"><idem-logo class="h-[16px]"></idem-logo><span class="text-[10px] text-muted">{{title}}</span></footer>`;
+  return [header, ...texts, ...prims, footer].join('\n');
+}
+
 async function renderAll(sections: Planned[], validate = true): Promise<SectionModel[]> {
   const { brand, direction } = brandFromIdem({ name: BRAND, branding: { ...CHARTER, artDirection: { styleId: STYLE } }, logos: { primary: LOGO, withTextLight: LOGO } });
   const doc = await createDocument({
@@ -233,7 +246,7 @@ async function renderAll(sections: Planned[], validate = true): Promise<SectionM
   });
   const out: SectionModel[] = [];
   for (const [index, section] of sections.entries()) {
-    const composed = await doc.composeSection(section.content, { index: index + 1, total: sections.length });
+    const composed = await doc.composeSection(section.content, { index: index + 1, total: sections.length, replay: { version: 2, ref: section.content.id, pattern: { id: 'authored' }, html: legacyPage(section.content) } as never });
     out.push({ name: section.name, data: sectionHtml(composed) } as unknown as SectionModel);
   }
   return out;

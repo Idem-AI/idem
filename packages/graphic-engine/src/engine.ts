@@ -1,18 +1,13 @@
 /**
- * LE FLUX D'UNE GÉNÉRATION — l'orchestrateur du moteur.
+ * LE FLUX D'UNE GÉNÉRATION — l'orchestrateur du moteur (2.7, catalogue seul).
  *
- *   contenu → médias → matière à plat (clés) → langage visuel de la MARQUE (une fois par marque, gardé) → plan du
- *   DOCUMENT (une ligne par page) → page écrite en HTML
- *   Tailwind (auteur) → assainie, remplie, compilée → « s'affiche-t-elle ? » → RenderResult + trace
+ *   contenu → médias → matière à plat (clés) → [langage visuel de la marque, plan du document : crans hauts] →
+ *   graphe du catalogue filtré et classé par le code → le modèle choisit et règle la configuration (petite réponse
+ *   JSON) → le code assemble la page → assainie, remplie, compilée → « s'affiche-t-elle ? » → RenderResult + trace
  *
- * Aucun gabarit, aucune note esthétique, aucune critique, aucune réécriture automatique : le rendu est celui que
- * l'auteur a écrit. La seule correction est TECHNIQUE et bornée — une page qui ne s'affiche pas (réponse
- * inutilisable, rien de visible, rendu impossible) : corriger › réécrire autrement (modèle du cran au-dessus) ›
- * version minimale ; une tentative à la fois, jamais deux fois la même approche, dans un budget par document.
- * Ce qui résiste lève `GraphicRenderError` : l'hôte le dit, rien n'est remplacé en silence.
- *
- * La jauge de créativité choisit le MODÈLE (`level` transmis à l'hôte, qui résout le rôle sur son échelle) :
- * mêmes étapes et même contexte à tous les crans.
+ * Aucune page n'est écrite librement par un modèle (l'ancien auteur libre est retiré le 11/11/2026). Une composition
+ * qui ne s'affiche pas cède la place au candidat suivant, puis au squelette intégré ; ce qui résiste lève
+ * `GraphicRenderError` : l'hôte le dit, rien n'est remplacé en silence.
  */
 import type { CreativityLevel, DocumentType, FormatId, Issue } from './contracts/common';
 import type { Block, SectionContent } from './contracts/content-model';
@@ -28,23 +23,19 @@ import { fontStack, googleFontLinks } from './foundation/fonts';
 import { AgentCall, engineHost, FingerprintScope, log } from './host';
 import { GenerationTrace, TraceRecorder } from './observability/traces';
 import { ENGINE_VERSION, COMPONENT_LIBRARY_VERSION } from './version';
-import { authorSystem, authorUser, DocumentContext, DocumentPlan, explorePrompt, IdeaTrack, languagePrompt, pageDirectorPrompt, parseLanguage, parsePageDirection, parsePlan, parseTracks, planPrompt, PlannedPage, ReferenceComposition, refineUser, RepairStrategy, repairUser, reviseUser, toolLines } from './author/prompts';
-import { callModel, levelUp } from './author/model';
-import { effortFor } from './foundation/effort';
-import { assembleLayout, layoutPrompt, LayoutNeeds, listingUnits, parseLayout, zoneSize, zoneSystem, zoneUser, PageLayout } from './author/zones';
+import { deliverableLine, DocumentContext, DocumentPlan, explorePrompt, IdeaTrack, languagePrompt, parseLanguage, parsePlan, parseTracks, planPrompt, PlannedPage, ReferenceComposition } from './author/prompts';
+import { callModel } from './author/model';
+import { catalogEffortFor, effortFor } from './foundation/effort';
 import { buildContentMap, ContentMap, fixBrandNameTypos } from './runtime/content-map';
-import { expandPage, extractHtml, sanitizeHtml, stripInventedText, withSize } from './runtime/expand';
+import { expandPage, sanitizeHtml, stripInventedText, withSize } from './runtime/expand';
 import { compileTailwind } from './runtime/tailwind';
 import { checkRender, QualityFrame } from './runtime/check';
-import { examplesLines, isCopy, natureOf, PageExample, pickExamples } from './examples/library';
 import { catalog as loadCatalog, catalogOverrides, ensureHtml } from './catalog/registry';
 import { assemblePage, capPlainText, pageUnits } from './catalog/assemble';
 import { brandTraits, Candidate, CatalogState, comboFingerprint, compatibleComponents, newCatalogState, rankSkins, shortlist } from './catalog/graph';
 import { chooseSystem, chooseUser, parseChoices, parseSkin, skinUser } from './catalog/choose';
 import { CatalogElement, ComponentNode, elementOf, LayoutNode, PageConfig, SkinNode } from './catalog/types';
 import { chunkHtml, fitFigures, flowPieces, measureFlow, packPages, pageTemplate, PieceMetrics } from './catalog/paginate';
-import { catalogEffortFor } from './foundation/effort';
-import { deliverableLine } from './author/prompts';
 import { ALL_AXES, analyzeSaliency, axisLine, decodeVector, encodeVector, imageEmbedding, judgeImage, novelty, PageMetrics, pickAxis, scoreVariant, StartAxis, textEmbedding, VariantScore } from '@idem/design-tools';
 
 export interface DocumentOptions {
@@ -107,15 +98,12 @@ interface DocumentMemory {
   skins: string[];
 }
 
-/**
- * LE MODE DU MOTEUR (10/11/2026) : `catalog` (défaut) — chaque page est ASSEMBLÉE depuis le catalogue de gabarits en
- * ligne, le cran règle la finesse et l'exploration ; `author` — l'ancienne écriture libre par un modèle (retour arrière
- * d'exploitation seulement).
- */
-export const catalogMode = (): boolean => (process.env.GRAPHIC_ENGINE_MODE ?? 'catalog') !== 'author';
 /** La portée mondiale de la mémoire du catalogue (Ultra : jamais une combinaison déjà livrée à un autre client). */
 const GLOBAL_CATALOG_SCOPE: FingerprintScope = { documentType: 'catalog', key: 'catalog:global' };
 const CHOOSE_TIMEOUT = 45_000;
+const DIRECTOR_TIMEOUT = 60_000;
+/** La plus petite réduction d'une zone qui reste lisible ; en dessous, la composition est écartée. */
+const MIN_ZONE_SCALE = 0.7;
 
 /** La mémoire des idées, par portée (projet, utilisateur, secteur) : 30 jours, les 40 dernières marques. Tous les hôtes s'y tiennent. */
 export const MEMORY_TTL_S = 30 * 24 * 3600;
@@ -125,31 +113,12 @@ export const memoryEnabled = (): boolean => process.env.IDEM_QUALITY_MEMORY !== 
 /** Ajoute des marques à la mémoire d'une portée, en gardant les plus récentes. */
 export const mergeMemory = (previous: string[], added: string[]): string[] => [...previous, ...added].slice(-MEMORY_MAX);
 
-/** Le plan qualité créative, par interrupteurs (tous actifs par défaut ; « 0 » coupe). */
-const QUALITY = {
-  explore: () => process.env.IDEM_QUALITY_EXPLORE !== '0',
-  select: () => process.env.IDEM_QUALITY_SELECT !== '0',
-  refine: () => process.env.IDEM_QUALITY_REFINE !== '0',
-};
+/** L'exploration des idées (plan du document, crans hauts) : active par défaut ; `IDEM_QUALITY_EXPLORE=0` la coupe. */
+const exploreEnabled = (): boolean => process.env.IDEM_QUALITY_EXPLORE !== '0';
 
 /** L'état des interrupteurs du moteur, écrit au démarrage des services : un processus resté sur l'ancien code se voit. */
 export function qualityStatus(): Record<string, boolean> {
-  return { explore: QUALITY.explore(), select: QUALITY.select(), refine: QUALITY.refine(), memory: memoryEnabled(), examples: process.env.IDEM_QUALITY_EXAMPLES !== '0' };
-}
-
-/**
- * Le nombre de VARIANTES écrites pour une page, gardée la meilleure par la mesure : une toile seule (visuel, carte) 2 à
- * Low et Medium, 3 à High et Ultra ; la couverture 2 ; les autres pages d'un document 1 (la retouche mesurée s'y
- * applique). `IDEM_QUALITY_VARIANTS` impose un nombre (1 à 4).
- */
-export function variantCount(o: { level: CreativityLevel; cover: boolean; single: boolean; fixed: boolean }): number {
-  if (!QUALITY.select()) return 1;
-  const forced = Number(process.env.IDEM_QUALITY_VARIANTS);
-  if (Number.isFinite(forced) && forced >= 1) return Math.min(4, Math.round(forced));
-  const effort = effortFor(o.level);
-  if (o.cover) return effort.variantsCover;
-  if (o.single && o.fixed) return effort.variantsSingle;
-  return 1;
+  return { catalog: true, explore: exploreEnabled(), memory: memoryEnabled() };
 }
 
 export interface SectionOutput {
@@ -183,22 +152,10 @@ export class GraphicRenderError extends Error {
   }
 }
 
-/** Les bornes de la correction technique, par document. */
-export function repairLimits(): { attempts: number; tokenBudget: number; maxMs: number } {
-  const n = (v: string | undefined, d: number) => (v !== undefined && v !== '' && Number.isFinite(Number(v)) ? Math.max(0, Number(v)) : d);
-  return { attempts: Math.min(3, n(process.env.GRAPHIC_REPAIR_ATTEMPTS, 3)), tokenBudget: n(process.env.GRAPHIC_REPAIR_TOKEN_BUDGET, 60000), maxMs: n(process.env.GRAPHIC_REPAIR_MAX_MS, 240000) };
-}
-
-const REPAIR_PLAN: RepairStrategy[] = ['fix', 'rewrite', 'minimal'];
-const AUTHOR_TIMEOUT = 150_000;
-const DIRECTOR_TIMEOUT = 60_000;
-
 /** Les blocs dont les aplats vides SONT le contenu (nuancier, démonstrations de grille et de densité). */
 // (Le nuancier n'en est pas : ses aplats sont reconnus à leur couleur ; un rond gris vide à côté reste un cadre vide.)
 const SHAPE_CONTENT = new Set<Block['kind']>(['compositionPrinciples', 'typeScale', 'typeSpecimen']);
 const LOGO_BLOCKS = new Set<Block['kind']>(['logoDisplay', 'logoStory']);
-/** Les documents dont les pages se font en petites tâches (plan, zones, assemblage). */
-const ZONED_DOCUMENTS = new Set<DocumentType>(['brand-charter', 'pitch-deck', 'business-plan']);
 
 /**
  * Ce que le code mesure sur CETTE page (`runtime/check.ts`, `QUALITY`) : les actifs de la marque qu'elle montre
@@ -270,8 +227,6 @@ export class GraphicDocument {
   private languageText: string | undefined;
   private planPromise: Promise<DocumentPlan | undefined> | null = null;
   private planValue: DocumentPlan | undefined;
-  /** Le budget de correction de tout le document (jetons, durée). */
-  private repairSpent = { tokens: 0, started: 0 };
   /** Les idées déjà faites (marque, utilisateur, secteur), les plus récentes d'abord. */
   private readonly previousIdeas: string[];
   /** L'axe de départ tiré par le code pour ce document (absent : modèle du client, ou exploration coupée). */
@@ -297,7 +252,7 @@ export class GraphicDocument {
     this.generationId = `${options.documentType}:${stableHash([options.seed, Date.now()], 10)}`;
     this.previousIdeas = memory.ideas;
     // L'axe de départ : déterministe (marque, livrable, graine), jamais deux fois le même pour la marque.
-    this.axis = QUALITY.explore() && !options.reference ? ALL_AXES.find((a) => a.id === options.axisId) ?? pickAxis({ seed: `${options.brand.name}|${options.documentType}|${options.seed}`, country: options.country, used: memory.axes, medium: 'document' }) : undefined;
+    this.axis = exploreEnabled() && !options.reference ? ALL_AXES.find((a) => a.id === options.axisId) ?? pickAxis({ seed: `${options.brand.name}|${options.documentType}|${options.seed}`, country: options.country, used: memory.axes, medium: 'document' }) : undefined;
   }
 
   /** Toutes les portées de mémoire du document (la principale d'abord). */
@@ -430,7 +385,7 @@ export class GraphicDocument {
       const call = this.agent();
       this.planPromise = (async () => {
         if (!call) return undefined;
-        if (QUALITY.explore() && effortFor(this.policy.level).explore && !this.options.reference) await this.explore(recorder, call, pages, language);
+        if (exploreEnabled() && effortFor(this.policy.level).explore && !this.options.reference) await this.explore(recorder, call, pages, language);
         const { system, user } = planPrompt(this.context(), pages, language, this.previousIdeas);
         const run = await callModel({ call, recorder, task: 'direct', role: 'graphic.director', profile: 'agents', level: this.policy.level, system, user, timeoutMs: DIRECTOR_TIMEOUT, validate: (raw) => parsePlan(raw, pages.length) !== null });
         this.planValue = run.ok ? parsePlan(run.raw, pages.length) ?? undefined : undefined;
@@ -495,66 +450,15 @@ export class GraphicDocument {
       else recorder.repair({ code: 'replay_failed', detail: `la page gardée ne s'affiche plus (${r.error.slice(0, 160)}) : réécrite`, by: 'code' });
       bible = o.replay.bible;
     }
-    /** La configuration du catalogue retenue pour la page (absente : page écrite par l'auteur libre). */
-    let catalogInfo: SectionSpec['catalog'];
-    if (!rendered && catalogMode()) {
+    /** La configuration du catalogue retenue pour la page (absente : une page gardée, rejouée telle quelle). */
+    let catalogInfo: SectionSpec['catalog'] = o.replay?.catalog;
+    if (!rendered) {
       const quality = { ...qualityFrame(section, map, pageFormat), ...(this.options.allowDark ? { allowDark: true } : {}), ...(this.tokens.brand.logos.onDark ? { logoOnDark: this.tokens.brand.logos.onDark } : {}) };
       const out = await this.composeFromCatalog(section, map, recorder, { index, total, format: pageFormat, quality, revise: o.revise });
-      if (out) {
-        rendered = out.page;
-        catalogInfo = { version: out.version, config: out.config };
-        bible = out.summary;
-      } else if (process.env.GRAPHIC_CATALOG_FALLBACK !== 'author') {
-        throw new GraphicRenderError(section.id, 'aucune composition du catalogue ne s’affiche');
-      }
-    }
-    if (!rendered) {
-      const call = this.agent();
-      if (!call) throw new GraphicRenderError(section.id, 'aucun modèle n’est branché (port agentCall absent)');
-      const language = (await this.ensureLanguage(recorder)) ?? (bible || undefined);
-      await this.ensurePlan(recorder, language);
-      const plan = this.planFor(section.id, index);
-      bible = [language, plan?.idea && `idea: ${plan.idea}`, plan?.page && `this page: ${plan.page}`].filter(Boolean).join('\n') || undefined;
-      const ctx = { ...this.context(pageFormat), ...(section.role === 'cover' ? { cover: true } : {}) };
-      const system = authorSystem(ctx);
-      const blocks = [...map.primitives.values()];
-      const tools = toolLines(ctx, { charts: blocks.filter((b) => b.kind === 'chart').map((b) => b.id), tables: blocks.filter((b) => b.kind === 'table').map((b) => b.id), galleries: blocks.filter((b) => b.kind === 'mockupShowcase').map((b) => b.id), icons: [...map.entries.values()].some((e) => e.kind === 'icon') });
-      const revising = o.revise?.instruction && o.revise.spec && isAuthoredSpec(o.revise.spec) ? o.revise : undefined;
-      // LA COUVERTURE : la signature du document — le modèle du cran au-dessus de celui choisi (Ultra au plus),
-      // un grand budget d'écriture (rôle `graphic.cover`) et la liberté entière (pas de directeur de page).
-      const cover = section.role === 'cover';
-      // La couverture monte d'UN cran (jamais au-delà d'Ultra) : au cran Low elle n'est plus écrite par le modèle le plus cher.
-      const pageLevel: CreativityLevel = cover ? levelUp(level) : level;
-      const authorRole = cover ? 'graphic.cover' : 'graphic.author';
-      // Une retouche écrite du client (« sur un fond de marque ») est une demande explicite : le fond sombre y est admis.
-      const quality = { ...qualityFrame(section, map, pageFormat), ...(this.options.allowDark || revising ? { allowDark: true } : {}), ...(this.tokens.brand.logos.onDark ? { logoOnDark: this.tokens.brand.logos.onDark } : {}) };
-      // LE TRAVAIL DIVISÉ (`author/zones.ts`) : les pages des documents — charte, deck, business plan — se font en
-      // petites tâches (plan de mise en page, une zone par agent, assemblage par le code). La couverture, la retouche
-      // écrite, le modèle du client, les visuels et les cartes restent à l'auteur unique.
-      const zonable = !revising && !cover && !this.options.reference && effortFor(level).zones && ZONED_DOCUMENTS.has(this.options.documentType);
-      const zoned = zonable ? await this.composeByZones(section, map, recorder, { ctx, language, plan, level: pageLevel, quality, format: pageFormat, index, total }) : null;
-      if (zoned) {
-        rendered = zoned.page;
-        bible = [bible, `layout: ${zoned.summary}`].filter(Boolean).join('\n');
-      }
-      // L'auteur unique : le directeur de page décide la hiérarchie (petite tâche), l'auteur la construit.
-      let direction: string | undefined;
-      if (!rendered && !revising && !this.options.reference && !cover && effortFor(level).pageDirector) {
-        const pd = pageDirectorPrompt(ctx, { section, listing: map.listing, tools, language, plan });
-        const run = await callModel({ call, recorder, task: 'direct', role: 'graphic.page-director', profile: 'agents', level, system: pd.system, user: pd.user, timeoutMs: DIRECTOR_TIMEOUT, validate: (raw) => parsePageDirection(raw) !== null });
-        direction = run.ok ? parsePageDirection(run.raw) ?? undefined : undefined;
-        if (direction) bible = [bible, `layout: ${direction.replace(/\n/g, ' · ')}`].filter(Boolean).join('\n');
-      }
-      if (!rendered) {
-        // La bibliothèque d'exemples (phase 5) : deux principes proches de l'intention, éloignés entre eux.
-        const shown: PageExample[] = this.options.reference || revising ? [] : pickExamples({ nature: natureOf(pageFormat, section.role), role: section.role, intent: [section.intent?.keyMessage, section.title, plan?.page].filter(Boolean).join(' — ') || section.title || section.id });
-        const base = authorUser(ctx, { section, listing: map.listing, tools, index, total, language, plan, reference: this.options.reference, ...(direction ? { direction } : {}), ...(shown.length ? { examples: examplesLines(shown) } : {}) });
-        if (shown.length) recorder.repair({ code: 'examples_shown', detail: `exemples de principe : ${shown.map((e) => e.id).join(', ')}`, by: 'code' });
-        const user = revising ? reviseUser(base, (revising.spec as SectionSpec).html, revising.instruction) : base;
-        const authorP = { system, base, user, level: pageLevel, role: authorRole, task: (revising ? 'revise' : 'author') as 'revise' | 'author', quality, format: pageFormat };
-        // Une retouche écrite du client suit sa consigne : ni variantes ni retouche mesurée.
-        rendered = revising ? await this.author(section.id, map, recorder, authorP) : await this.authorBest(section, map, recorder, authorP, { cover, total, shown });
-      }
+      if (!out) throw new GraphicRenderError(section.id, 'aucune composition du catalogue ne s’affiche');
+      rendered = out.page;
+      catalogInfo = { version: out.version, config: out.config };
+      bible = out.summary;
     }
 
     const patternId = catalogInfo ? 'catalog' : 'authored';
@@ -678,7 +582,8 @@ export class GraphicDocument {
       }
       const language = await this.ensureLanguage(recorder);
       if (effort.assembly === 'zones' || effort.assembly === 'mixed') await this.ensurePlan(recorder, language);
-      const planLine = this.planFor(section.id, o.index)?.page;
+      // L'idée retenue d'un visuel (étape concept de l'hôte) guide le choix comme la ligne du plan guide une page.
+      const planLine = this.planFor(section.id, o.index)?.page ?? (this.options.concept?.trim() ? `idea: ${this.options.concept.trim().slice(0, 280)}` : undefined);
       const layoutNote = [this.options.layoutNote, !current ? o.revise?.instruction : undefined].filter(Boolean).join(' — ') || undefined;
       const user = chooseUser(cat, { deliverable: '', brandLine: this.brandLine(), language, traits, ...(planLine ? { plan: planLine } : {}), ...(layoutNote ? { layoutNote } : {}), ...(this.options.reference ? { reference: JSON.stringify(this.options.reference).slice(0, 400) } : {}) }, { section, units, candidates, level, componentOptions, skin, ...(current ? { current, instruction: o.revise?.instruction } : {}) });
       const parseOpts = { componentOptions, skin, params: effort.assembly === 'mixed' };
@@ -722,10 +627,10 @@ export class GraphicDocument {
         return;
       }
       let r = await this.render(asm.html, map, section.id, recorder, o.quality, o.format, picks > 1, o.format.kind !== 'fixed');
-      // LE CODE FAIT TENIR chaque zone : celle qui déborde est réduite à l'échelle exacte ; deux fois trop petite, le
-      // candidat est écarté (le suivant prend la page).
+      // LE CODE FAIT TENIR chaque zone : celle qui déborde est réduite à l'échelle exacte ; sous 70 % (un corps de
+      // texte illisible, un graphique écrasé), le candidat est écarté (le suivant prend la page).
       const over = o.format.kind === 'fixed' && r.zoneFits ? Object.entries(r.zoneFits).filter(([, k]) => k < 0.995) : [];
-      if (!force && over.some(([, k]) => k < 0.5)) {
+      if (!force && over.some(([, k]) => k < MIN_ZONE_SCALE)) {
         tried.push(`${cand.config.gabarit ?? cand.layout.id}: zone trop petite (${over.map(([z, k]) => `${z} ${Math.round(k * 100)} %`).join(', ')})`);
         return;
       }
@@ -739,7 +644,7 @@ export class GraphicDocument {
           r = await this.render(asm.html, map, section.id, recorder, o.quality, o.format, picks > 1, pass === 2);
           const still = r.zoneFits ? Object.entries(r.zoneFits).filter(([, k]) => k < 0.995) : [];
           if (!still.length) break;
-          for (const [z, k] of still) scale.set(z, Math.max(force ? 0.35 : 0.45, (scale.get(z) ?? 1) * k));
+          for (const [z, k] of still) scale.set(z, Math.max(force ? 0.35 : MIN_ZONE_SCALE - 0.05, (scale.get(z) ?? 1) * k));
         }
         recorder.repair({ code: 'zone_fit', detail: `zones ramenées à leur taille : ${[...scale.entries()].map(([z, k]) => `${z} ${Math.round(k * 100)} %`).join(', ')}`, by: 'code' });
         if (!r.ok && o.format.kind === 'fixed') r = await this.render(asm.html, map, section.id, recorder, o.quality, o.format, picks > 1);
@@ -794,165 +699,8 @@ export class GraphicDocument {
     return { page: { ...best.page, ...(score !== undefined ? { score } : {}), ...(alternatives.length ? { alternatives } : {}) }, config, version: cat.version, summary };
   }
 
-  /**
-   * La page en PETITES TÂCHES : l'agent de mise en page invente la grille et les zones (suivant la direction
-   * artistique), le code vérifie le plan, un agent par zone écrit sa zone (en parallèle), le code assemble et ramène
-   * à sa taille une zone qui déborde. `null` : le plan ou une zone n'a pas abouti — l'auteur unique prend la page.
-   */
-  private async composeByZones(section: SectionContent, map: ContentMap, recorder: TraceRecorder, p: { ctx: DocumentContext; language?: string; plan?: { page?: string }; level: CreativityLevel; quality: QualityFrame; format: FormatDef; index: number; total: number }): Promise<{ page: Rendered; summary: string } | null> {
-    const call = this.agent();
-    if (!call) return null;
-    const units = listingUnits(map.listing);
-    if (units.size < 2) return null;
-    // 1. Le plan (deux essais : le second connaît l'erreur du premier).
-    // Ce que le code exige du plan : le titre tient dans sa zone à la taille de la page, les maquettes ont la plus
-    // grande part de la toile (elles sont la démonstration d'une page de mise en situation).
-    const galleries = [...map.primitives.values()].filter((b) => b.kind === 'mockupShowcase').map((b) => b.id).filter((id) => units.has(id));
-    const showcase = galleries.length > 0;
-    // La plus petite taille acceptable d'un titre (celle des intertitres) : la zone doit au moins le porter ainsi ; un
-    // titre plus grand qui déborde un peu est ramené par la réduction de la zone.
-    const titleSize = p.ctx.tokens.size['2xl'];
-    const titleText = String(map.entries.get('title')?.value ?? '');
-    const needs: LayoutNeeds = {
-      galleries,
-      // Une estimation prudente (un signe ≈ 0,58 de la taille, interligne 1,15) : la zone du titre ne peut pas être plus
-      // basse que ses lignes.
-      height: (unit, width) => (unit === 'title' && titleText ? Math.ceil((titleText.length * 0.58 * titleSize) / Math.max(1, width)) * titleSize * 1.15 : 0),
-    };
-    const lp = layoutPrompt(p.ctx, { section, units, language: p.language, plan: p.plan, galleries });
-    let layout: PageLayout | null = null;
-    let layoutError = '';
-    for (let attempt = 0; attempt < 2 && !layout; attempt++) {
-      const user = attempt ? `${lp.user}\n\nYOUR PREVIOUS LAYOUT WAS REFUSED: ${layoutError}. Answer again.` : lp.user;
-      const run = await callModel({ call, recorder, task: 'direct', role: 'graphic.layout', profile: 'agents', level: p.level, system: lp.system, user, timeoutMs: DIRECTOR_TIMEOUT, validate: (raw) => parseLayout(raw, [...units.keys()], p.format, needs).layout !== null });
-      if (!run.ok) break;
-      const parsed = parseLayout(run.raw, [...units.keys()], p.format, needs);
-      layout = parsed.layout;
-      layoutError = parsed.error ?? '';
-    }
-    if (!layout) {
-      recorder.repair({ code: 'layout_refused', detail: `plan de mise en page inexploitable (${layoutError || 'pas de réponse'}) : auteur unique`, by: 'code' });
-      return null;
-    }
-    // 2. Les zones, chacune par son agent, en parallèle.
-    const system = zoneSystem(p.ctx);
-    const page = `${p.index} of ${p.total}${section.role ? ` (${section.role})` : ''} — ${layout.zones.length} zones on a ${layout.columns}-column grid`;
-    const valid = (raw: string) => /<[a-z][\s\S]*>/i.test(extractHtml(raw));
-    const written = await Promise.all(
-      layout.zones.map(async (zone) => {
-        const listing = zone.units.map((u) => units.get(u) ?? '').filter(Boolean).join('\n\n');
-        const prims = zone.units.map((u) => map.primitives.get(u)).filter((b): b is NonNullable<typeof b> => Boolean(b));
-        const tools = toolLines(p.ctx, { charts: prims.filter((b) => b.kind === 'chart').map((b) => b.id), tables: prims.filter((b) => b.kind === 'table').map((b) => b.id), galleries: prims.filter((b) => b.kind === 'mockupShowcase').map((b) => b.id), icons: /\.icon\}\}/.test(listing), zone: true });
-        const user = zoneUser(p.ctx, { zone, size: zoneSize(layout!, zone, p.format), listing, tools, language: p.language, page, showcase });
-        // Ce que la zone DOIT poser : ses clés et ses primitives — vérifié par le code avant l'assemblage.
-        const keys = [...map.entries.keys()].filter((k) => zone.units.some((u) => k === u || k.startsWith(`${u}.`)));
-        const missingIn = (html: string) => [...keys.filter((k) => !html.includes(`{{${k}}}`)).map((k) => `{{${k}}}`), ...prims.filter((b) => !html.includes(`data-block="${b.id}"`)).map((b) => `<idem-${b.kind === 'table' ? 'table' : b.kind === 'mockupShowcase' ? 'gallery' : 'chart'} data-block="${b.id}">`)];
-        let html = '';
-        for (const level of [p.level, levelUp(p.level)]) {
-          const run = await callModel({ call, recorder, task: 'author', role: 'graphic.zone', profile: 'coder', level, system, user, timeoutMs: AUTHOR_TIMEOUT, validate: valid });
-          if (run.ok) {
-            html = extractHtml(run.raw);
-            break;
-          }
-        }
-        if (!html) return [zone.id, ''] as const;
-        // Une zone incomplète est redemandée UNE fois, avec la liste exacte de ce qui manque.
-        const missing = missingIn(html);
-        if (missing.length) {
-          const again = await callModel({ call, recorder, task: 'repair', role: 'graphic.zone', profile: 'coder', level: p.level, system, user: `${user}\n\nYOUR ZONE:\n\`\`\`html\n${html.slice(0, 8000)}\n\`\`\`\nIT IS MISSING: ${missing.join(', ')}. Place every one of them in the zone (keep the rest). Same output format.`, timeoutMs: AUTHOR_TIMEOUT, validate: valid });
-          if (again.ok && missingIn(extractHtml(again.raw)).length < missing.length) {
-            html = extractHtml(again.raw);
-            recorder.repair({ code: 'zone_completed', detail: `zone ${zone.id} complétée : ${missing.slice(0, 4).join(', ')}`.slice(0, 240), by: 'agent' });
-          }
-        }
-        return [zone.id, html] as const;
-      })
-    );
-    if (written.some(([, html]) => !html)) {
-      recorder.repair({ code: 'zone_failed', detail: 'une zone n’a pas été écrite : auteur unique', by: 'code' });
-      return null;
-    }
-    const zones = new Map<string, string>(written);
-    const summary = `${layout.columns} columns · ${layout.zones.map((z) => `${z.id} [${z.units.join(', ')}] col ${z.col}+${z.span}${p.format.kind === 'flow' ? ` row ${z.row}` : ` row ${z.row}+${z.rows}`}`).join(' · ')}`;
-    // 3. L'assemblage ; une zone qui déborde est ramenée à sa taille par le code.
-    let template = assembleLayout(layout, zones, p.format);
-    let r = await this.render(template, map, section.id, recorder, p.quality, p.format);
-    // Une zone qui déborde se mesure même quand la page passe : son contenu recouvre la zone voisine (un titre sur
-    // des maquettes) sans que ce soit un texte coupé. Trop grand pour une simple réduction : l'auteur unique reprend.
-    const tooBig = r.zoneFits ? Object.entries(r.zoneFits).filter(([, k]) => k < 0.5) : [];
-    if (p.format.kind === 'fixed' && tooBig.length) {
-      recorder.repair({ code: 'zone_overflow', detail: `zones deux fois trop petites pour leur contenu : ${tooBig.map(([id, k]) => `${id} ${Math.round(k * 100)} %`).join(', ')} — auteur unique`, by: 'code' });
-      return null;
-    }
-    if (p.format.kind === 'fixed' && r.zoneFits) {
-      const zoom = new Map(Object.entries(r.zoneFits).filter(([, k]) => k < 0.995 && k >= 0.5));
-      if (zoom.size) {
-        template = assembleLayout(layout, zones, p.format, zoom);
-        recorder.repair({ code: 'zone_fit', detail: `zones ramenées à leur taille : ${[...zoom.entries()].map(([id, k]) => `${id} ${Math.round(k * 100)} %`).join(', ')}`, by: 'code' });
-        r = await this.render(template, map, section.id, recorder, p.quality, p.format);
-      }
-    }
-    if (r.ok) return { page: r.page, summary };
-    // 4. Ce qui reste (un défaut mesuré) : la correction bornée, à partir de la page assemblée.
-    const ctx = p.ctx;
-    const base = authorUser(ctx, { section, listing: map.listing, tools: toolLines(ctx, { charts: [...map.primitives.values()].filter((b) => b.kind === 'chart').map((b) => b.id), tables: [...map.primitives.values()].filter((b) => b.kind === 'table').map((b) => b.id), galleries: [...map.primitives.values()].filter((b) => b.kind === 'mockupShowcase').map((b) => b.id), icons: [...map.entries.values()].some((e) => e.kind === 'icon') }), index: p.index, total: p.total, language: p.language, plan: p.plan });
-    try {
-      const fixed = await this.author(section.id, map, recorder, { system: authorSystem(ctx), base, user: base, level: p.level, task: 'author', quality: p.quality, format: p.format, initial: template });
-      return { page: fixed, summary };
-    } catch {
-      return null;
-    }
-  }
-
-  /**
-   * PLUSIEURS VARIANTES, LA MEILLEURE GARDÉE PAR LA MESURE (plan qualité créative), puis UNE retouche guidée par les
-   * défauts mesurés. Le code ne réécrit rien : il mesure (défauts constatés, hiérarchie, couverture, saliency, juge
-   * visuel à questions fermées, nouveauté face aux rendus récents) et choisit ; l'auteur corrige ce qu'on lui dit.
-   */
-  private async authorBest(section: SectionContent, map: ContentMap, recorder: TraceRecorder, p: Parameters<GraphicDocument['author']>[3], o: { cover: boolean; total: number; shown?: PageExample[] }): Promise<Rendered> {
-    const format = p.format ?? this.format;
-    const n = this.options.variants !== undefined ? Math.max(1, Math.min(4, Math.round(this.options.variants))) : variantCount({ level: this.policy.level, cover: o.cover, single: o.total <= 1, fixed: format.kind === 'fixed' });
-    const refine = QUALITY.refine() && effortFor(this.policy.level).refine;
-    if (n <= 1 && !refine) return this.author(section.id, map, recorder, p);
-    const measured = { ...p, measure: true };
-    const attempts = await Promise.allSettled(
-      Array.from({ length: n }, (_, k) =>
-        this.author(section.id, map, recorder, k === 0 ? measured : { ...measured, user: `${p.user}\n\nVARIANT ${k + 1} OF ${n}: compose this page differently from the most obvious layout (another focal element, scale or grid), within the same brand language.` })
-      )
-    );
-    const pages = attempts.flatMap((a) => (a.status === 'fulfilled' ? [a.value] : []));
-    if (!pages.length) {
-      const failure = attempts.find((a): a is PromiseRejectedResult => a.status === 'rejected');
-      throw failure?.reason ?? new GraphicRenderError(section.id, 'aucune variante ne s’affiche');
-    }
-    const scored = await Promise.all(pages.map(async (page) => ({ page, ...(await this.evaluate(page, o.shown)) })));
-    scored.sort((a, b) => b.score.score - a.score.score);
-    let best = scored[0];
-    if (scored.length > 1) recorder.repair({ code: 'variant_selected', detail: `${scored.length} variantes ; gardée ${best.score.score} (autres : ${scored.slice(1).map((s) => s.score.score).join(', ')})`, by: 'code' });
-    // La retouche mesurée : une seule, gardée si elle mesure mieux.
-    const faults = [...best.score.faults, ...best.judgeFaults];
-    if (refine && faults.length) {
-      const call = this.agent() as AgentCall;
-      const valid = (raw: string) => /<[a-z][\s\S]*>/i.test(extractHtml(raw));
-      const run = await callModel({ call, recorder, task: 'repair', role: p.role ?? 'graphic.author', profile: 'coder', level: p.level, system: p.system, user: refineUser(p.base, best.page.template, faults), timeoutMs: AUTHOR_TIMEOUT, validate: valid });
-      if (run.ok) {
-        const r = await this.render(extractHtml(run.raw), map, section.id, recorder, p.quality, format, true);
-        if (r.ok) {
-          const again = await this.evaluate(r.page, o.shown);
-          if (again.score.score > best.score.score) {
-            recorder.repair({ code: 'measured_refine', detail: `retouche mesurée ${best.score.score} → ${again.score.score} : ${faults.slice(0, 3).join(' ; ')}`.slice(0, 240), by: 'agent' });
-            best = { page: r.page, ...again };
-          }
-        }
-      }
-    }
-    if (best.vector) this.renderVectors.push(best.vector);
-    const others = scored.filter((x) => x.page !== best.page).map((x) => ({ page: x.page, score: x.score.score }));
-    return { ...best.page, score: best.score.score, ...(others.length ? { alternatives: others } : {}) };
-  }
-
   /** Les mesures d'une page rendue, réunies en un score transparent (`@idem/design-tools`, `scoreVariant`). */
-  private async evaluate(page: Rendered, shown: PageExample[] = []): Promise<{ score: VariantScore; judgeFaults: string[]; vector?: Float32Array }> {
+  private async evaluate(page: Rendered): Promise<{ score: VariantScore; judgeFaults: string[]; vector?: Float32Array }> {
     const blocking = page.issues.filter((i) => i.severity === 'blocking').length;
     const advisory = page.issues.length - blocking;
     if (!page.png) return { score: scoreVariant({ issues: { blocking, advisory }, ...(page.metrics ? { metrics: page.metrics } : {}) }), judgeFaults: [] };
@@ -970,78 +718,12 @@ export class GraphicDocument {
       ...(verdict && !verdict.unavailable ? { judge: verdict.score } : {}),
       ...(vector ? { novelty: novelty(vector, [...this.memory.renders, ...this.renderVectors]) } : {}),
     });
-    // La garde anti-copie : une page trop proche d'un exemple montré perd sa nouveauté, et l'auteur le sait.
-    if (vector && isCopy(vector, shown)) {
-      score.score = Math.round(score.score * 0.6 * 1000) / 1000;
-      score.faults.push('the page copies the layout of an example: keep its principle, compose your own page');
-    }
     return { score, judgeFaults: verdict && !verdict.unavailable ? verdict.faults : [], ...(vector ? { vector } : {}) };
-  }
-
-  /**
-   * L'auteur écrit la page ; si elle ne s'affiche pas, la correction bornée : une tentative à la fois, une
-   * approche différente à chaque fois, le modèle du cran au-dessus dès la réécriture.
-   */
-  private async author(sectionId: string, map: ContentMap, recorder: TraceRecorder, p: { system: string; base: string; user: string; level: CreativityLevel; role?: string; task: 'author' | 'revise'; quality?: QualityFrame; format?: FormatDef; initial?: string; measure?: boolean }): Promise<Rendered> {
-    const call = this.agent() as AgentCall;
-    const valid = (raw: string) => /<[a-z][\s\S]*>/i.test(extractHtml(raw));
-    // `initial` : une page déjà écrite (assemblée par zones) — la correction bornée part d'elle, sans réécrire.
-    const first = p.initial ? { ok: true as const, raw: '```html\n' + p.initial + '\n```', failure: '' } : await callModel({ call, recorder, task: p.task, role: p.role ?? 'graphic.author', profile: 'coder', level: p.level, system: p.system, user: p.user, timeoutMs: AUTHOR_TIMEOUT, validate: valid });
-    let code = first.ok ? extractHtml(first.raw) : '';
-    let error = first.ok ? '' : `the answer contained no HTML (${first.failure})`;
-    /** La meilleure page presque affichée (un texte coupé) : livrée, et signalée, si rien ne fait mieux. */
-    let partial: Rendered | undefined;
-    if (code) {
-      const r = await this.render(code, map, sectionId, recorder, p.quality, p.format, p.measure);
-      if (r.ok) return r.page;
-      error = r.error;
-      code = r.template;
-      partial = r.partial ?? partial;
-    }
-    const limits = repairLimits();
-    const history: string[] = [error];
-    if (!this.repairSpent.started) this.repairSpent.started = Date.now();
-    for (let i = 0; i < Math.min(limits.attempts, REPAIR_PLAN.length); i++) {
-      const strategy = REPAIR_PLAN[i];
-      if (this.repairSpent.tokens >= limits.tokenBudget) {
-        history.push('budget de correction du document épuisé');
-        break;
-      }
-      if (Date.now() - this.repairSpent.started > limits.maxMs) {
-        history.push('temps de correction du document épuisé');
-        break;
-      }
-      const level = strategy === 'fix' ? p.level : levelUp(p.level);
-      const user = repairUser(p.base, strategy, { code: strategy === 'fix' ? code : undefined, error, history: history.slice(-3) });
-      const run = await callModel({ call, recorder, task: 'repair', role: p.role ?? 'graphic.author', profile: 'coder', level, system: p.system, user, timeoutMs: AUTHOR_TIMEOUT, validate: valid });
-      this.repairSpent.tokens += run.tokens;
-      if (!run.ok) {
-        error = `the answer contained no HTML (${run.failure})`;
-        history.push(`${strategy}: ${error}`);
-        continue;
-      }
-      const r = await this.render(extractHtml(run.raw), map, sectionId, recorder, p.quality, p.format, p.measure);
-      if (r.ok) {
-        recorder.repair({ code: `render_${strategy}`, detail: `page corrigée (${strategy}, cran ${level}) après : ${history[history.length - 1].slice(0, 160)}`, by: 'agent' });
-        return r.page;
-      }
-      error = r.error;
-      code = r.template;
-      partial = r.partial ?? partial;
-      history.push(`${strategy}: ${error}`);
-    }
-    if (partial) {
-      log().warn('graphic.page_text_cut', { event: 'graphic.page_text_cut', documentType: this.options.documentType, section: sectionId, attempts: history });
-      recorder.repair({ code: 'render_partial', detail: `livrée avec un texte coupé après ${history.length} essai(s)`.slice(0, 240), by: 'code' });
-      return partial;
-    }
-    log().warn('graphic.page_failed', { event: 'graphic.page_failed', documentType: this.options.documentType, section: sectionId, attempts: history });
-    throw new GraphicRenderError(sectionId, history[history.length - 1] ?? error, history);
   }
 
   /** Une page de flux du catalogue (business plan, rapport) : mise en pages A4 par le moteur (`catalog/paginate.ts`). */
   private pagedFlow(format: FormatDef): boolean {
-    return catalogMode() && format.kind === 'flow' && (this.options.documentType === 'business-plan' || this.options.documentType === 'report') && process.env.GRAPHIC_BP_PAGED !== '0';
+    return format.kind === 'flow' && (this.options.documentType === 'business-plan' || this.options.documentType === 'report') && process.env.GRAPHIC_BP_PAGED !== '0';
   }
 
   /**

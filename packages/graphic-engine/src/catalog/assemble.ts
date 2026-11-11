@@ -32,9 +32,13 @@ import type { Block, SectionContent } from '../contracts/content-model';
 import type { FormatDef } from '../design-system/formats';
 import type { DesignTokens } from '../design-system/tokens';
 import type { ContentMap } from '../runtime/content-map';
-import { pageGeometry } from '../author/zones';
 import type { ComponentNode, LayoutNode, LayoutZone, NodeVar, PageConfig, SkinNode, SkinRole, ZoneAccept } from './types';
 import { SKIN_ROLES } from './types';
+
+/** La géométrie d'une page : marge et gouttière, d'après le format (des cotes d'impression, pas un gabarit). */
+export function pageGeometry(format: FormatDef): { pad: number; gap: number } {
+  return { pad: Math.round(format.pad ?? 48), gap: Math.max(12, Math.round((format.unit ?? 4) * 5)) };
+}
 
 // ── Les unités de contenu ────────────────────────────────────────────────────────────────────
 
@@ -166,6 +170,8 @@ const SURFACE_COLORS: Record<'light' | 'brand' | 'deep', Record<ColorRole, strin
 };
 const SURFACE_BG: Record<Surface, string> = { none: '', soft: 'bg-brand-soft', raised: 'bg-raised', brand: 'bg-brand-primary text-on-brand', deep: 'bg-deep text-on-deep' };
 /** Les unités qui prennent la place restante de leur zone (graphique, tableau, image, galerie, spécimens). */
+/** Les blocs dont la hauteur EST le contenu (rangées, aplats) : jamais comprimés quand ils partagent une zone. */
+const CONTENT_HEIGHT_KINDS = new Set(['table', 'swatches', 'patternGrid']);
 const FILL_KINDS = new Set(['chart', 'table', 'mockupShowcase', 'figure', 'logoDisplay', 'swatches', 'patternGrid', 'imageryShowcase', 'logoStory', 'socialPosts', 'socialBanners']);
 
 /**
@@ -663,6 +669,8 @@ export function assemblePage(ctx: AssemblyContext, choice: AssemblyChoice, units
   const vars = resolveVars(allVars, config.vars ?? {});
   const { roles, zones: zoneExtra } = skinClasses(skin, vars);
   for (const r of SKIN_ROLES) roles[r] = roles[r] ?? '';
+  // La police d'accroche proposée pour un visuel (`font-accent`) : pour le titre seul, à la place de la police de titre.
+  if (ctx.tokens.font.accent) roles.title = /\bfont-display\b/.test(roles.title) ? roles.title.replace(/\bfont-display\b/g, 'font-accent') : `${roles.title} font-accent`.trim();
   const { pad, gap: baseGap } = pageGeometry(ctx.format);
   const param = (name: string, lo: number, hi: number, d: number) => {
     const v = config.params?.[name];
@@ -680,8 +688,14 @@ export function assemblePage(ctx: AssemblyContext, choice: AssemblyChoice, units
     const scope: Scope = { blockId: u.block?.id, data: u.block as unknown as Record<string, unknown>, items: [], surface, width };
     const body = render(env, scope, parse(src));
     const rest = render(env, scope, parse(leftovers(body, u, ctx.map)));
-    // Seule dans sa zone, l'unité la remplit ; à plusieurs, les graphiques et images prennent la place restante.
-    const fill = alone || FILL_KINDS.has(u.kind) ? 'min-h-0 flex-1' : 'shrink-0';
+    // Seule dans sa zone, l'unité la remplit ; à plusieurs, les graphiques et images prennent la place restante — sans
+    // jamais descendre sous une hauteur lisible (28 % de la toile) : écrasé à zéro, un graphique posait son titre et sa
+    // légende sur le tableau voisin sans que la zone paraisse déborder. Ainsi, trop de contenu est un VRAI débordement,
+    // que la mesure voit (zone réduite, ou composition écartée).
+    // Un tableau, un nuancier, une grille de motifs ont la hauteur de leur contenu : partagés, ils ne rétrécissent pas.
+    const natural = !alone && CONTENT_HEIGHT_KINDS.has(u.kind);
+    const floor = !alone && !natural && FILL_KINDS.has(u.kind) && ctx.format.kind === 'fixed' ? ` min-h-[${Math.round(ctx.format.height * 0.28)}px]` : '';
+    const fill = natural ? 'shrink-0' : alone || FILL_KINDS.has(u.kind) ? `min-h-0 flex-1${floor}` : 'shrink-0';
     return `<div data-ge-unit="${u.id}" class="flex min-w-0 flex-col ${fill}">${body}${rest}</div>`;
   };
   const cols = layout.grid.columns;

@@ -19,6 +19,8 @@ import fs from 'fs';
 import path from 'path';
 import { buildTokens, compileTailwind } from '@idem/graphic-engine';
 import type { BrandTokens } from '../../../../motion/kit/context';
+import { CATALOG_RUNTIME } from '../../catalog/runtime';
+import { isCatalogScript } from '../../catalog/assemble';
 
 export type AnimationLib = 'gsap' | 'anime';
 
@@ -59,8 +61,9 @@ export interface CompositionInput {
   durationSec: number;
   brand: BrandTokens;
   media: Record<string, CompositionMedia>;
-  /** Le logo servi (fichier du rendu ou URL d'aperçu). */
+  /** Le logo servi (fichier du rendu ou URL d'aperçu), et sa déclinaison pour fond sombre. */
   logo?: string;
+  logoDark?: string;
   /** Les polices embarquées (`embeddedFontCss`). */
   fontCss: string;
   mode: 'render' | 'preview';
@@ -71,9 +74,12 @@ export interface CompositionInput {
 const escapeHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 /** Pose les textes exacts et les médias à la place des clés ; une clé inconnue disparaît (jamais imprimée). */
-export function fillScene(html: string, scene: Pick<HtmlScene, 'texts'>, media: Record<string, CompositionMedia>, logo?: string): string {
-  return html.replace(/\{\{\s*(text|media)\.([\w-]+)\s*\}\}|\{\{\s*logo\s*\}\}/g, (_m, kind?: string, key?: string) => {
-    if (!kind) return logo ? escapeHtml(logo) : '';
+export function fillScene(html: string, scene: Pick<HtmlScene, 'texts'>, media: Record<string, CompositionMedia>, logo?: string, logoDark?: string): string {
+  return html.replace(/\{\{\s*(text|media)\.([\w-]+)\s*\}\}|\{\{\s*(logo|logoDark)\s*\}\}/g, (_m, kind?: string, key?: string, which?: string) => {
+    if (!kind) {
+      const src = which === 'logoDark' ? logoDark || logo : logo;
+      return src ? escapeHtml(src) : '';
+    }
     if (kind === 'text') return escapeHtml(scene.texts[key!] ?? '');
     return media[key!] ? escapeHtml(media[key!].src) : '';
   });
@@ -114,11 +120,21 @@ function sceneScript(s: HtmlScene): string {
 })();`;
 }
 
+/** Le code d'un format pour les variantes des mises en page du catalogue (`group-data-[f=ls]/f:…`). */
+export function formatCode(width: number, height: number): 'st' | 'po' | 'sq' | 'ls' {
+  if (width > height * 1.05) return 'ls';
+  if (Math.abs(width - height) <= height * 0.05) return 'sq';
+  return height / width > 1.6 ? 'st' : 'po';
+}
+
 export async function buildComposition(input: CompositionInput): Promise<string> {
   const out = input.output ?? { width: input.width, height: input.height };
   const scale = out.width / input.width;
+  // Les scènes du CATALOGUE : leur script n'est que des données pour le runtime `__ge` (découpe, mise à la taille,
+  // tweens, transitions), embarqué avant elles ; leurs panneaux de transition vivent dans un calque au-dessus.
+  const catalog = input.scenes.some((s) => isCatalogScript(s.script));
   const scenesHtml = input.scenes
-    .map((s) => `<section id="${s.key}" class="clip scene" data-start="${s.start.toFixed(3)}" data-duration="${s.duration.toFixed(3)}" data-track-index="0" style="position:absolute;left:0;top:0;width:${input.width}px;height:${input.height}px;overflow:hidden">${fillScene(s.html, s, input.media, input.logo)}</section>`)
+    .map((s) => `<section id="${s.key}" class="clip scene" data-start="${s.start.toFixed(3)}" data-duration="${s.duration.toFixed(3)}" data-track-index="0" style="position:absolute;left:0;top:0;width:${input.width}px;height:${input.height}px;overflow:hidden">${fillScene(s.html, s, input.media, input.logo, input.logoDark)}</section>`)
     .join('\n');
   // La feuille Tailwind de la marque (portée `.ge-page`), compilée comme les pages du moteur graphique.
   const tokens = buildTokens({
@@ -138,8 +154,9 @@ ${input.fontCss}
 <style data-ge-tailwind>${css}</style>
 </head><body>
 <div id="stage" data-composition-id="film" data-start="0" data-duration="${input.durationSec.toFixed(3)}" data-width="${out.width}" data-height="${out.height}">
-<div id="comp" class="ge-page bg-ground font-body text-ink">
+<div id="comp" data-f="${formatCode(input.width, input.height)}" class="ge-page group/f bg-ground font-body text-ink" style="container-type:size">
 ${scenesHtml}
+${catalog ? '<div id="ge-fx" style="position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;overflow:hidden"></div>' : ''}
 </div>
 </div>
 <script>${libs.gsap}</script>
@@ -147,6 +164,9 @@ ${needsAnime ? `<script>${libs.anime}</script>` : ''}
 <script>
 window.__sceneErrors = [];
 var master = gsap.timeline({ paused: true });
+</script>
+${catalog ? `<script>${CATALOG_RUNTIME}</script>` : ''}
+<script>
 ${input.scenes.map(sceneScript).join('\n')}
 master.set({}, {}, ${input.durationSec.toFixed(3)});
 window.__timelines = window.__timelines || {};

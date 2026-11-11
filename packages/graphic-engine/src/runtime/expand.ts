@@ -18,19 +18,6 @@ import { chartHtml, galleryHtml, iconHtml, logoHtml, patternHtml, patternTileHtm
 
 const esc = (v: string) => v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 
-/** La réponse d'un modèle → le fragment (le plus long bloc de code HTML, ou le texte à partir de la première balise). */
-export function extractHtml(raw: string): string {
-  let text = (raw || '').trim();
-  const fences = [...text.matchAll(/```[a-zA-Z]*\s*\n([\s\S]*?)```/g)].map((m) => m[1]);
-  if (fences.length) text = fences.sort((a, b) => b.length - a.length)[0];
-  else text = text.replace(/^```[a-zA-Z]*\s*/, '').replace(/```\s*$/, '');
-  const body = text.match(/<body\b[^>]*>([\s\S]*?)(<\/body>|$)/i);
-  if (body) text = body[1];
-  text = text.replace(/<!doctype[^>]*>/gi, '').replace(/<\/?html\b[^>]*>/gi, '').replace(/<head\b[\s\S]*?<\/head>/gi, '');
-  const first = text.indexOf('<');
-  return first > 0 ? text.slice(first).trim() : text.trim();
-}
-
 export interface Sanitized {
   html: string;
   /** Blocs `<style>` et attributs `style` retirés (la consigne est Tailwind seul). */

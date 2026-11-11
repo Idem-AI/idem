@@ -1,5 +1,29 @@
 # Migrations du moteur graphique
 
+## 2.7 — le catalogue seul : l'écriture libre retirée (11 novembre 2026)
+
+Demandé par l'utilisateur : retirer le code mort de l'ancienne logique.
+
+- **Retiré** : l'auteur libre (`graphic.author`), la couverture écrite (`graphic.cover`), le directeur de page
+  (`graphic.page-director`), le travail par zones (`graphic.layout`, `graphic.zone`, `author/zones.ts`), les variantes
+  écrites et la retouche mesurée (`authorBest`), la correction par réécriture (`GRAPHIC_REPAIR_*`), la bibliothèque
+  d'exemples (`examples/`, `library/`, `corpus/`, `IDEM_EXAMPLES_FILE`, `teach:examples`), les interrupteurs
+  `GRAPHIC_ENGINE_MODE`, `GRAPHIC_CATALOG_FALLBACK`, `IDEM_QUALITY_SELECT|REFINE|VARIANTS|EXAMPLES`, `extractHtml`,
+  `repairLimits`, `catalogMode`, `variantCount`. Les rôles sont retirés de `creative-roles.ts` et `ai-models.config.ts`.
+- **Gardé** (le catalogue s'en sert) : langage de la marque, plan du document, exploration (Ultra), juge visuel et
+  notation des compositions rendues (`@idem/design-tools`), mémoire de nouveauté, rejeu des pages déjà écrites.
+- **Corrigé en passant** (relevé par le nouveau contrôle §8) : dans une zone partagée, un graphique s'écrasait à zéro
+  et posait son titre sur le tableau voisin sans que la zone paraisse déborder. Un tableau garde la hauteur de ses
+  rangées, un graphique ou une image 28 % de la toile au moins ; une zone qui doit descendre sous 70 % fait écarter
+  la composition (avant : 50 %, texte illisible). Un rejeu garde désormais la configuration du catalogue.
+- **Deux trous comblés** (relevés en mettant à jour `check:visual-quality`) : la police d'accroche proposée pour un
+  visuel n'était plus employée par le catalogue — elle porte désormais le titre (`font-accent`) ; l'idée retenue d'un
+  visuel n'atteignait plus le modèle qui choisit la composition — elle lui parvient comme la ligne du plan d'une page.
+- Le catalogue est rangé sous `catalog/images/` dans `idem-templates` (le catalogue vidéo est sous `catalog/videos/`,
+  lu par le moteur vidéo) ; un dépôt à l'ancienne disposition reste lu.
+- Contrôles réécrits sans auteur simulé : `check` (71), `check:creativity`, `check:relayout`, `check:roles` ;
+  `check:bpquality` fabrique ses pages « d'avant le catalogue » pour garder le paginateur sous contrôle.
+
 ## 2.6 — le catalogue de gabarits en ligne, à tous les crans (10 novembre 2026)
 
 - **Plus d'écriture libre par défaut, à aucun cran.** Chaque page est assemblée depuis le catalogue (dépôt

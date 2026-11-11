@@ -10,10 +10,10 @@ import { CREATIVE_ROLES, hasRoleRouting, MODEL_LADDERS, roleConfig, roleOf } fro
 import { AI_CONFIG, LLMProvider } from '../config/ai.config';
 import { getProvider } from '../config/ai-providers.config';
 import { OPENROUTER_DEFAULT_ROLES } from '../config/openrouter.config';
-import { authorSystem, authorUser, languagePrompt, planPrompt, toolLines } from '../../../../packages/graphic-engine/src/author/prompts';
+import { languagePrompt, planPrompt } from '../../../../packages/graphic-engine/src/author/prompts';
+import { chooseSystem } from '../../../../packages/graphic-engine/src/catalog/choose';
 import { FORMATS } from '../../../../packages/graphic-engine/src/design-system/formats';
 import { buildTokens } from '../../../../packages/graphic-engine/src/design-system/tokens';
-import { buildContentMap } from '../../../../packages/graphic-engine/src/runtime/content-map';
 
 let failures = 0;
 let passed = 0;
@@ -28,9 +28,9 @@ const reset = () => {
 
 console.log('\nRôles créatifs\n');
 reset();
-ok('les rôles sont inscrits', ['graphic.content', 'graphic.director', 'graphic.author', 'graphic.asset-planner', 'video.intent-classifier', 'video.concept', 'video.planner', 'video.author'].every((r) => CREATIVE_ROLES[r]));
+ok('les rôles sont inscrits', ['graphic.content', 'graphic.director', 'graphic.template', 'graphic.asset-planner', 'video.intent-classifier', 'video.concept', 'video.planner', 'video.author'].every((r) => CREATIVE_ROLES[r]));
 ok('aucun rôle de critique ni de réparation esthétique', !CREATIVE_ROLES['visual.critic'] && !CREATIVE_ROLES['generation.repair'] && !CREATIVE_ROLES['graphic.artDirector']);
-ok('les noms historiques mènent au rôle logique', roleOf('author') === 'video.author' && roleOf('creative.graphic.composer') === 'graphic.author' && roleOf('video.author:s3') === 'video.author');
+ok('les noms historiques mènent au rôle logique', roleOf('author') === 'video.author' && roleOf('video.author:s3') === 'video.author');
 const plain = roleConfig('graphic.content', 'agents', 'high');
 ok('sans configuration ni échelle : le profil du rôle, plafonné', plain.modelName === AI_CONFIG.creative.agents.modelName && plain.llmOptions?.maxOutputTokens === CREATIVE_ROLES['graphic.content'].maxOutputTokens.high && !hasRoleRouting('graphic.content'));
 ok('un ancien cran « max » vaut « high »', roleConfig('video.author', 'coder', 'max' as never).modelName === roleConfig('video.author', 'coder', 'high').modelName);
@@ -54,12 +54,11 @@ ok('auto-hébergé configuré : le codeur part sur nos machines, avec son modèl
 reset();
 
 // Aucun prompt de moteur ne nomme un fournisseur ni un modèle.
-const section = { id: 's', title: 'Titre', blocks: [{ id: 'b1', kind: 'prose' as const, paragraphs: ['Un paragraphe.'] }] };
 const tokens = buildTokens({ brand: { name: 'Marque' }, format: 'slide-16x9' });
 const ctx = { documentType: 'pitch-deck' as const, locale: 'fr', tokens, format: FORMATS['slide-16x9'], allowDark: false, bindings: 'values' as const };
 const plan = planPrompt(ctx, [{ id: 's' }, { id: 't' }], undefined, []);
 const language = languagePrompt(ctx);
-const prompt = authorSystem(ctx) + authorUser(ctx, { section, listing: buildContentMap(section).listing, tools: toolLines(ctx, { charts: [], tables: [], icons: false }) }) + plan.system + plan.user + language.system + language.user;
+const prompt = chooseSystem('a slide of an investor pitch deck') + plan.system + plan.user + language.system + language.user;
 ok('les prompts des moteurs ne nomment ni fournisseur ni modèle', !/gemini|openai|gpt-?\d|qwen|claude|llama|openrouter/i.test(prompt));
 
 // Les échelles de modèles (vidéo et livrables graphiques) : le cran choisit le modèle.
@@ -73,7 +72,7 @@ ok('livrables graphiques : chaque cran change de modèle', (['design', 'code'] a
 ok('vidéo : petits modèles (≤ 35 Md de paramètres) en production, GLM-5.3-Flash au storyboard High/Ultra, le professeur à part', levels.every((lv) => roleConfig('video.sampler', 'coder', lv).modelName === 'qwen/qwen3.6-35b-a3b') && roleConfig('video.author', 'coder', 'medium').modelName === 'qwen/qwen3.8-27b' && roleConfig('video.author', 'coder', 'low').modelName === 'qwen/qwen3.6-35b-a3b' && roleConfig('video.planner', 'agents', 'high').modelName === 'z-ai/glm-5.3-flash' && roleConfig('video.planner', 'agents', 'medium').modelName === 'qwen/qwen3.8-27b' && roleConfig('video.judge-vlm', 'agents', 'ultra').modelName === 'qwen/qwen3.8-27b' && roleConfig('video.teacher', 'coder', 'high').modelName === 'qwen/qwen3.8-2.4t-a95b');
 ok('aucun modèle fermé dans les échelles (retour aux poids ouverts, 10/11/2026)', Object.values(MODEL_LADDERS).every((l) => Object.values(l).every((m) => !/muse-ember|gpt-6|claude-opus|v4\.1-flash-1017/.test(m))));
 ok('vidéo : chaque rôle a son repli autorisé (même cran)', levels.every((lv) => ['video.sampler', 'video.author', 'video.planner', 'video.judge-vlm', 'video.teacher'].every((r) => { const c = roleConfig(r, 'coder', lv); return c.pinModel === true && (c.fallbackModels || []).length > 0 && (c.fallbackModels || []).every((m) => isAllowedOpenRouterModel(m)); })));
-ok('livrables graphiques : l’auteur des pages suit l’échelle « code » au cran choisi, le directeur l’échelle « design » au cran le plus haut', levels.every((lv) => roleConfig('graphic.author', 'coder', lv).modelName === MODEL_LADDERS.code[lv] && roleConfig('graphic.director', 'agents', lv).modelName === MODEL_LADDERS.design[({ low: 'medium', medium: 'high', high: 'high', ultra: 'ultra' } as const)[lv]]));
+ok('livrables graphiques : l’auteur HTML (scènes) suit l’échelle « code » au cran choisi, le directeur l’échelle « design » au cran le plus haut', levels.every((lv) => roleConfig('video.html-author', 'coder', lv).modelName === MODEL_LADDERS.code[lv] && roleConfig('graphic.director', 'agents', lv).modelName === MODEL_LADDERS.design[({ low: 'medium', medium: 'high', high: 'high', ultra: 'ultra' } as const)[lv]]));
 // Plan qualité créative (04/11/2026) : l'idée au modèle le plus fort, en raisonnant ; l'exécution au cran du client.
 ok('économie : les rôles d’idée montent d’UN cran (Low→Medium, Medium→High, High→High, Ultra→Ultra), jamais Ultra à tous les crans', roleConfig('graphic.director', 'agents', 'low').modelName === MODEL_LADDERS.design.medium && roleConfig('graphic.director', 'agents', 'medium').modelName === MODEL_LADDERS.design.high && roleConfig('graphic.director', 'agents', 'high').modelName === MODEL_LADDERS.design.high && roleConfig('graphic.explore', 'agents', 'ultra').modelName === MODEL_LADDERS.design.ultra && roleConfig('video.concept', 'coder', 'low').modelName === MODEL_LADDERS['video-design'].medium);
 ok('économie : le raisonnement n’est demandé qu’à High et Ultra, avec un effort borné et un plafond qui le permet', ['graphic.explore', 'graphic.director', 'video.concept', 'video.concept-explore'].every((r) => (['low', 'medium'] as const).every((lv) => (roleConfig(r, 'agents', lv).llmOptions?.extraBody as any)?.thinking?.type !== 'enabled') && (['high', 'ultra'] as const).every((lv) => { const o = roleConfig(r, 'agents', lv).llmOptions || {}; return (o.extraBody as any)?.thinking?.type === 'enabled' && ['low', 'medium'].includes((o.extraBody as any)?.reasoning_effort) && (o.maxOutputTokens ?? 0) >= 8000; })));
@@ -82,7 +81,7 @@ ok('qualité créative : l’auteur HTML des scènes suit l’échelle « code �
 process.env.IDEM_LADDER_CODE_HIGH = allowed;
 process.env.IDEM_LADDER_VIDEO_SAMPLE_LOW = allowed;
 process.env.IDEM_ROLE_VIDEO_AUTHOR_MODEL_ULTRA = allowed;
-ok('un barreau ou un modèle par cran se règlent par l’environnement (échelles vidéo comprises)', roleConfig('graphic.author', 'coder', 'high').modelName === allowed && roleConfig('video.sampler', 'coder', 'low').modelName === allowed && roleConfig('video.author', 'coder', 'ultra').modelName === allowed && roleConfig('video.author', 'coder', 'medium').modelName === MODEL_LADDERS['video-code'].medium);
+ok('un barreau ou un modèle par cran se règlent par l’environnement (échelles vidéo comprises)', roleConfig('video.html-author', 'coder', 'high').modelName === allowed && roleConfig('video.sampler', 'coder', 'low').modelName === allowed && roleConfig('video.author', 'coder', 'ultra').modelName === allowed && roleConfig('video.author', 'coder', 'medium').modelName === MODEL_LADDERS['video-code'].medium);
 delete process.env.IDEM_LADDER_CODE_HIGH;
 delete process.env.IDEM_LADDER_VIDEO_SAMPLE_LOW;
 delete process.env.IDEM_ROLE_VIDEO_AUTHOR_MODEL_ULTRA;

@@ -77,16 +77,19 @@ async function main() {
   fs.writeFileSync(path.join(OUT, 'cutout.png'), cut.png);
   const explore = calls.find((c) => c.role === 'graphic.explore');
   check('idée : quatre pistes demandées avant les mots, avec le point de départ et la photo du client', !!explore && /STARTING POINT/.test(explore.user) && /THE CLIENT GAVE A PHOTO/.test(explore.user));
-  const lastAuthor = authorPrompts[authorPrompts.length - 1] ?? '';
-  check('idée : elle parvient à l’auteur de la page', /THE IDEA OF THIS VISUAL/.test(lastAuthor) && /Morning ritual/.test(lastAuthor));
-  check('image : le sujet est détouré (PNG transparent), l’auteur le sait', /^data:image\/png;base64,/.test(cut.parsed.photo?.url ?? '') && /CUT OUT of its background/.test(lastAuthor), (cut.parsed.photo?.url ?? '').slice(0, 30));
-  check('typographie : la police d’accroche est proposée à l’auteur et compilée dans la page', /font-accent: an expressive face/.test(lastAuthor) && /--font-accent/.test(cut.html), lastAuthor.match(/font-accent[^\n]*/)?.[0]);
+  // Depuis le catalogue (moteur graphique 2.7), aucun modèle n'écrit la page : l'idée guide le CHOIX de la composition.
+  // Le moteur graphique passe par l'appel de l'hôte (`configureGraphicEngine`, ci-dessus) : ses demandes y sont notées.
+  const choice = authorPrompts.filter((u) => /TEMPLATES:/.test(u)).pop() ?? '';
+  check('idée : elle parvient au choix de la composition dans le catalogue', /Morning ritual/.test(choice), choice.slice(0, 200));
+  check('image : le sujet est détouré (PNG transparent) et posé dans la page', /^data:image\/png;base64,/.test(cut.parsed.photo?.url ?? '') && cut.html.includes('data:image/png;base64,'), (cut.parsed.photo?.url ?? '').slice(0, 30));
+  check('typographie : la police d’accroche est compilée dans la page et portée par le titre', /--font-accent/.test(cut.html) && /class="[^"]*font-accent/.test(cut.html));
   check('mémoire : l’idée retenue est rendue avec le visuel', cut.concept?.concept.title === 'Morning ritual');
 
-  // 3. Les variantes (cran High : trois compositions, deux écartées et renvoyées)
+  // 3. Les variantes (cran High : deux compositions du catalogue, l'écartée renvoyée)
   authorPrompts.length = 0;
   const high = await composeVisual({ runPrompt: async () => '', agentCall: agentCall as never }, 'u', 'brand-1', { id: 'c2', title: 'Le café qui réveille Abidjan' }, context, 'square', 'check', 'check:high', undefined, true, { creativity: 'high' });
-  check('variantes : les compositions écartées sont renvoyées avec leur image, pour le choix du client', (high.alternatives?.length ?? 0) === 2 && high.alternatives!.every((a) => a.png.length > 1000 && /<div/.test(a.html)) && typeof high.score === 'number', String(high.alternatives?.length));
+  // Le catalogue au cran High rend deux compositions (CATALOG_EFFORT) : la meilleure, l'autre proposée au client.
+  check('variantes : les compositions écartées sont renvoyées avec leur image, pour le choix du client', (high.alternatives?.length ?? 0) >= 1 && high.alternatives!.every((a) => a.png.length > 1000 && /<div/.test(a.html)) && typeof high.score === 'number', String(high.alternatives?.length));
 
   // 4. La déclinaison
   calls.length = 0;

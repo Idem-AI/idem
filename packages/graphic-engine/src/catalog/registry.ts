@@ -183,7 +183,10 @@ export function buildCatalog(raw: Array<{ node: unknown; html?: { file: string; 
 
 // ── Les sources ──────────────────────────────────────────────────────────────────────────────
 
-/** Le dépôt sur le disque : `catalog/<sorte>/…/<id>/node.json` (+ `config.json` d'un gabarit, `template.html` d'un composant). */
+/**
+ * Le dépôt sur le disque : `catalog/images/<sorte>/…/<id>/node.json` (+ `config.json` d'un gabarit, `template.html` d'un
+ * composant). Le catalogue VIDÉO (`catalog/videos/`) a son propre registre, dans le moteur vidéo : il n'est jamais lu ici.
+ */
 export function readTemplatesDir(dir: string): Array<{ node: unknown }> {
   const out: Array<{ node: unknown }> = [];
   const walk = (d: string) => {
@@ -205,7 +208,8 @@ export function readTemplatesDir(dir: string): Array<{ node: unknown }> {
       }
     }
   };
-  const root = fs.existsSync(path.join(dir, 'catalog')) ? path.join(dir, 'catalog') : dir;
+  // `catalog/images/` depuis la séparation images / vidéos (11/11/2026) ; `catalog/` pour un dépôt plus ancien.
+  const root = fs.existsSync(path.join(dir, 'catalog', 'images')) ? path.join(dir, 'catalog', 'images') : fs.existsSync(path.join(dir, 'catalog')) ? path.join(dir, 'catalog') : dir;
   if (fs.existsSync(root)) walk(root);
   return out;
 }

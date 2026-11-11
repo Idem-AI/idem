@@ -110,15 +110,10 @@ export const ROLE_LADDERS: Record<string, ModelLadder> = {
   'graphic.judge': 'video-vision',
   // L'auteur des scènes HTML (HyperFrames) : les modèles de code du moteur graphique, qui écrivent déjà du HTML Tailwind.
   'video.html-author': 'code',
-  'graphic.page-director': 'design',
   // Le catalogue de gabarits : le choix d'un gabarit et de ses réglages (et de l'habillage du document).
   'graphic.template': 'catalog',
-  // Le travail divisé : le plan de mise en page (petite sortie JSON), puis une zone par agent.
-  'graphic.layout': 'design',
-  'graphic.zone': 'code',
-  // La couverture : toujours appelée au cran Ultra par le moteur (le meilleur modèle de code).
-  'graphic.cover': 'code',
-  'graphic.author': 'code',
+  // Le catalogue vidéo : la même échelle de petits modèles (un choix JSON pour tout le film).
+  'video.template': 'catalog',
   'video.concept': 'video-design',
   'video.planner': 'video-design',
   'video.author': 'video-code',

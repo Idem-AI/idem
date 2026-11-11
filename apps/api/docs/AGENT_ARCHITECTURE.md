@@ -122,7 +122,8 @@ It is an **estimate** (≈ 4 characters per token) that acts as a circuit breake
 ### 7. Creative roles (`config/creative-roles.ts`)
 
 The graphic and video engines call LOGICAL roles, never a model: `graphic.content`, `graphic.director`
-(the document's bible), `graphic.author` (each page, in Tailwind HTML), `graphic.asset-planner`,
+(the brand language and document plan), `graphic.template` (picks and configures a catalogue template per page — no
+model writes page HTML since engine 2.7), `graphic.asset-planner`,
 `video.intent-classifier`, `video.concept`, `video.planner`, `video.author`, `video.reviser`. Each role
 declares what it needs (code, vision, structured output, long context) and an output-token cap per
 creativity level. Since October 2026 the creativity level (Low, Medium, High, Ultra — Max was removed)

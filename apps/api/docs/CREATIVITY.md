@@ -116,7 +116,7 @@ Business plan, pitch deck, charte graphique, cartes de visite et visuels passent
 
 La page gardée (`SectionSpec` v2) garde son HTML à clés **et** sa configuration (`spec.catalog.config`) : une retouche
 de texte ou de photo la rejoue sans modèle ; une retouche écrite (« en miroir », « plus aérée ») modifie la configuration
-en un petit appel. `GRAPHIC_ENGINE_MODE=author` rétablit l'écriture libre d'avant (retour arrière d'exploitation).
+en un petit appel. L'écriture libre d'avant (un modèle qui écrivait chaque page) est retirée depuis le 11/11/2026 (moteur 2.7).
 
 Le catalogue se met à jour **sans rebuild** : un push sur `main` du dépôt `idem-templates` le publie sur MinIO, les API le
 relisent aussitôt (`POST /catalog/refresh`). En local : `npm run publish:local` dans `idem-templates`.

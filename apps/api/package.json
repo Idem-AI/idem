@@ -58,8 +58,7 @@
     "docs:logo": "ts-node --transpile-only -P tsconfig.json api/scripts/docsLogoGenerators.ts",
     "check:relayout": "ts-node --transpile-only api/scripts/checkRelayout.ts",
     "sample:graphic": "ts-node --transpile-only api/scripts/sampleGraphic.ts",
-    "sample:quality": "ts-node --transpile-only api/scripts/sampleQuality.ts",
-    "teach:examples": "ts-node --transpile-only api/scripts/teachExamples.ts"
+    "sample:quality": "ts-node --transpile-only api/scripts/sampleQuality.ts"
   },
   "author": "arolleaguekeng",
   "license": "MIT",
