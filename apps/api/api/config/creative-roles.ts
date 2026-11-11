@@ -79,8 +79,6 @@ export const CREATIVE_ROLES: Record<string, CreativeRole> = {
   // Plan qualité créative (04/11/2026) : le concept au modèle le plus fort de son échelle, en raisonnant.
   'video.concept': { profile: 'coder', needs: ['long-context'], maxOutputTokens: { low: 5000, medium: 6000, high: 12000, ultra: 12000 }, mission: 'inventer le film : concept, bible visuelle, idée de chaque scène', boost: true, thinking: { high: 'low', ultra: 'medium' }, temperature: 0.5 },
   'video.concept-explore': { profile: 'agents', needs: ['long-context'], maxOutputTokens: ALL(9000), mission: 'proposer quatre pistes de film distinctes avant le concept', boost: true, thinking: { high: 'low', ultra: 'medium' }, temperature: 0.65 },
-  // Le rendu HyperFrames : chaque scène écrite en HTML Tailwind animé (CSS, WAAPI, Anime.js — jamais GSAP).
-  'video.html-author': { profile: 'coder', needs: ['code'], maxOutputTokens: ALL(12000), mission: 'écrire une scène de film en HTML Tailwind animé pour HyperFrames' },
   // GLM-5.3-Flash (High, Ultra) raisonne et son raisonnement est décompté du plafond : marge large.
   'video.planner': { profile: 'agents', needs: ['long-context'], maxOutputTokens: ALL(16000), mission: 'écrire le storyboard : durées, rôles, énergie, intentions, idées, textes, médias, voix' },
   'video.author': { profile: 'coder', needs: ['code', 'json', 'long-context'], maxOutputTokens: ALL(16000), mission: 'écrire (et réécrire) l’intention ou le programme d’une scène difficile — l’auteur de qualité' },

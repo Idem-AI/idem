@@ -108,8 +108,6 @@ export const ROLE_LADDERS: Record<string, ModelLadder> = {
   'video.concept-explore': 'design',
   // Le juge visuel à questions fermées des pages : le modèle de vision du moteur vidéo.
   'graphic.judge': 'video-vision',
-  // L'auteur des scènes HTML (HyperFrames) : les modèles de code du moteur graphique, qui écrivent déjà du HTML Tailwind.
-  'video.html-author': 'code',
   // Le catalogue de gabarits : le choix d'un gabarit et de ses réglages (et de l'habillage du document).
   'graphic.template': 'catalog',
   // Le catalogue vidéo : la même échelle de petits modèles (un choix JSON pour tout le film).

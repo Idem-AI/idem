@@ -20,7 +20,7 @@ import { CopyWriter, estimateTokens } from './request/facts';
  *   video.teacher                       hors ligne : fabriquer des scènes de référence (bibliothèque) ;
  *   video.template                      choisir dans le catalogue vidéo (thème, gabarits, animations, transitions) : JSON court.
  */
-export type FilmRole = 'video.concept' | 'video.concept-explore' | 'video.planner' | 'video.author' | 'video.html-author' | 'video.reviser' | 'video.sampler' | 'video.judge-vlm' | 'video.teacher' | 'video.template';
+export type FilmRole = 'video.concept' | 'video.concept-explore' | 'video.planner' | 'video.author' | 'video.reviser' | 'video.sampler' | 'video.judge-vlm' | 'video.teacher' | 'video.template';
 
 export interface ModelRun {
   raw: string;
@@ -42,7 +42,6 @@ export interface FilmCallContext {
 const TIMEOUTS: Record<FilmRole, number> = {
   'video.concept': 180_000,
   'video.concept-explore': 150_000,
-  'video.html-author': 180_000,
   'video.planner': 180_000,
   'video.author': 240_000,
   'video.reviser': 90_000,
@@ -60,7 +59,7 @@ export async function callFilmModel(ctx: FilmCallContext, role: FilmRole, system
   if (!call) return { raw: '', tokens: { input: 0, output: 0 }, ms: 0, failure: 'no_model' };
   try {
     const raw = await Promise.race([
-      call({ role, profile: role === 'video.author' || role === 'video.html-author' || role === 'video.sampler' || role === 'video.concept' || role === 'video.teacher' ? 'coder' : 'agents', system, user, level: ctx.level, ...(validate ? { validate } : {}), ...(options ? { options } : {}) }),
+      call({ role, profile: role === 'video.author' || role === 'video.sampler' || role === 'video.concept' || role === 'video.teacher' ? 'coder' : 'agents', system, user, level: ctx.level, ...(validate ? { validate } : {}), ...(options ? { options } : {}) }),
       new Promise<string>((_, reject) => setTimeout(() => reject(new Error('model_timeout')), TIMEOUTS[role])),
     ]);
     const text = String(raw || '');

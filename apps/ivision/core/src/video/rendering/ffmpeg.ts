@@ -191,3 +191,29 @@ export function probe(file: string): Promise<{ duration: number; width: number; 
   });
 }
 
+/**
+ * Un clip SANS DURÉE (WebM écrit vers un tube : ni durée ni index dans son en-tête) est illisible pour le rendu
+ * HyperFrames (« invalid_media : no positive duration »). Une remise en conteneur sans réencodage (`-c copy` vers un
+ * FICHIER) écrit la durée et l'index. Un clip déjà lisible est rendu tel quel ; un échec rend le clip d'origine.
+ */
+export async function seekableClip(data: Buffer, ext: string): Promise<Buffer> {
+  const os = await import('os');
+  const fs = await import('fs');
+  const path = await import('path');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'idem-clip-'));
+  try {
+    const input = path.join(dir, `in${ext}`);
+    fs.writeFileSync(input, data);
+    const info = await probe(input).catch(() => null);
+    if (info && info.duration > 0) return data;
+    const output = path.join(dir, `out${ext}`);
+    await run(['-y', '-v', 'error', '-i', input, '-map', '0', '-c', 'copy', output]);
+    const fixed = await probe(output).catch(() => null);
+    return fixed && fixed.duration > 0 ? fs.readFileSync(output) : data;
+  } catch {
+    return data;
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+}
+

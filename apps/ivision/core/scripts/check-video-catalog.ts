@@ -243,6 +243,34 @@ async function main() {
   }
   await browser.close();
   check(identical, 'déterminisme : le même film assemblé deux fois est identique');
+
+  // 5. L'export réel avec un CLIP SANS DURÉE (WebM écrit vers un tube, comme les anciens clips Lottie) : le clip est
+  //    remis en conteneur par le code, HyperFrames l'accepte et le MP4 a la bonne durée.
+  if (!fast) {
+    const { spawnSync } = await import('child_process');
+    const { seekableClip, probe } = await import('../src/video/rendering/ffmpeg');
+    const { renderHyperFrames } = await import('../src/video/rendering/hyperframes/render');
+    const piped = spawnSync('ffmpeg', ['-v', 'error', '-f', 'lavfi', '-i', 'color=c=0x1b7a5a@0.8:s=480x480:d=2,format=rgba', '-c:v', 'libvpx-vp9', '-pix_fmt', 'yuva420p', '-f', 'webm', 'pipe:1'], { maxBuffer: 50 * 1024 * 1024 }).stdout as Buffer;
+    const raw = path.join(OUT, 'piped.webm');
+    fs.writeFileSync(raw, piped);
+    const before = (await probe(raw)).duration;
+    const clip = await seekableClip(piped, '.webm');
+    const g = gabarits.find((x) => x.config.layout === 'vlayout.media-full-caption')!;
+    const scene: CatalogScene = { key: 's1', duration: 3, texts: { headline: 'Un clip qui se joue' }, media: [{ id: 'clip', kind: 'video' }], role: 'reveal', energy: 3 };
+    const [a] = assembleFilm(cat, { ...base, scenes: [scene], formats: ['square'] }, themes[0], [{ gabarit: g.id, layout: g.config.layout, animations: { ...g.config.animations } }]);
+    const size = COMPOSITION.square;
+    const html = await buildComposition({ scenes: [{ key: 's1', start: 0, duration: 3, html: a.html, script: a.script, animation: 'gsap', texts: scene.texts }], width: size.width, height: size.height, output: { width: 540, height: 540 }, durationSec: 3, brand: { ...BRAND, logo: { light: 'logo.png', width: 480, height: 120 } } as never, media: { clip: { src: 'clip.webm', kind: 'video' } }, logo: 'logo.png', fontCss: '', mode: 'render' });
+    let mp4 = 0;
+    let error = '';
+    try {
+      const out = await renderHyperFrames({ html, files: [{ name: 'clip.webm', data: clip }, { name: 'logo.png', data: logo }], durationSec: 3, fps: 30, quality: 'standard' });
+      mp4 = (await probe(out.file)).duration;
+      fs.copyFileSync(out.file, path.join(OUT, 'clip-export.mp4'));
+    } catch (e) {
+      error = String((e as Error)?.message || e).slice(0, 300);
+    }
+    check(before === 0 && Math.abs(mp4 - 3) < 0.2, 'export : un clip WebM sans durée est remis en conteneur et le MP4 se rend (HyperFrames réel)', `durée du clip avant ${before} s · MP4 ${mp4} s ${error}`);
+  }
   check(problems.length === 0, `rendu : ${renders} scènes (${gabarits.length} gabarits × ${picked.length} thèmes × ${formats.length} formats) sans erreur, textes tenus, dans la zone sûre, visibles, sans chevauchement, tout le texte présent`, `${problems.length} défaut(s) :\n    ${problems.slice(0, 40).join('\n    ')}`);
   console.log(`\nPlanches : ${OUT}`);
   console.log(`\n${failures ? '✗' : '✓'} Catalogue vidéo : ${passed} vérification(s) réussie(s), ${failures} en échec.`);

@@ -33,8 +33,11 @@ storyboard → emplacements de chaque scène (code) → graphe : liste courte pa
 - **Registre** (`catalog/registry.ts`) : `IDEM_TEMPLATES_DIR` › `IDEM_TEMPLATES_URL` (+ `/videos/manifest.json`, ETag) ›
   cache disque › instantané `apps/ivision/core/catalog/video-snapshot.json` (`npm run catalog:video-snapshot`) › minimum
   intégré. `POST /catalog/refresh` relit les deux catalogues.
-- **Retour arrière** : `IDEM_VIDEO_CATALOG=0` rend la main à l'auteur HTML libre (`video.html-author`), gardé tant que le
-  catalogue n'a pas fait ses preuves en production.
+- **Seule voie** : l'auteur HTML libre (`video.html-author`) est retiré le 11/11/2026, comme l'auteur libre des pages.
+  Un film HTML écrit avant passe au catalogue la première fois qu'il est retouché ou corrigé (un appel pour tout le
+  film) ; tel quel, il se rend et s'exporte toujours (Anime.js compris).
+- **Clips sans durée** : un WebM écrit vers un tube (anciens clips Lottie) est remis en conteneur au rendu
+  (`seekableClip`, sans réencodage) — HyperFrames refusait ces clips (« invalid_media »).
 - **Contrôles** : `npm run check:video-catalog` (cœur iVision : 10 gabarits × 10 thèmes × 4 formats rendus et mesurés
   dans Chrome, planches dans `tmp/check-video-catalog/`) ; `npm run check:hyperframes` (section 8 : le service de bout
   en bout).

@@ -4,7 +4,8 @@
  *
  * Pourquoi : les petits modèles écrivent mal le TSX de Motion Canvas (banc : 3 MP4 valides sur 8) mais bien le HTML
  * Tailwind — celui que le moteur graphique leur fait déjà écrire. Chaque scène est un fragment HTML Tailwind aux
- * couleurs de la marque, animé par un court script : GSAP par défaut, Anime.js au choix (`IDEM_VIDEO_ANIMATION`).
+ * couleurs de la marque, animé par GSAP. Depuis le 11/11/2026 les scènes sont ASSEMBLÉES depuis le catalogue vidéo
+ * (`video/catalog/`) ; les films écrits avant (HTML libre, parfois Anime.js) se rendent toujours tels quels.
  *
  * Ce que le CODE garantit (l'IA ne fait que le fragment et son animation) :
  *   · les textes EXACTS (`{{text.clé}}`) et les médias (`{{media.id}}`, `{{logo}}`) posés par le code ;
@@ -23,11 +24,6 @@ import { CATALOG_RUNTIME } from '../../catalog/runtime';
 import { isCatalogScript } from '../../catalog/assemble';
 
 export type AnimationLib = 'gsap' | 'anime';
-
-/** La bibliothèque d'animation des nouvelles scènes : GSAP par défaut (décision du 04/11/2026), Anime.js au choix. */
-export function animationLib(): AnimationLib {
-  return (process.env.IDEM_VIDEO_ANIMATION || 'gsap').trim().toLowerCase() === 'anime' ? 'anime' : 'gsap';
-}
 
 /** Le moteur de rendu des nouveaux films : HyperFrames par défaut, Motion Canvas au choix (et en repli). */
 export function videoRenderer(): 'hyperframes' | 'motion-canvas' {
