@@ -78,8 +78,8 @@ ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
 ENV PUPPETEER_SKIP_DOWNLOAD=true
 ENV NODE_ENV=${BUILD_ENV:-production}
 ENV PORT=3006
-# Bibliothèque d'exemples du moteur graphique (visuels, charte) : copiée avec /app/packages ci-dessous.
-ENV IDEM_EXAMPLES_FILE=/app/packages/graphic-engine/library/examples.json
+# L'instantané du catalogue de gabarits : le repli quand le CDN (IDEM_TEMPLATES_URL) ne répond pas.
+ENV IDEM_TEMPLATES_SNAPSHOT=/app/packages/graphic-engine/catalog/snapshot.json
 
 COPY --from=whisper /usr/local/bin/whisper-cli /usr/local/bin/whisper-cli
 COPY --from=whisper /models /opt/whisper
@@ -93,6 +93,8 @@ COPY --from=builder --chown=ivision:nodejs /app/apps/ivision/api/package.json ./
 COPY --from=builder --chown=ivision:nodejs /app/apps/ivision/api/dist ./dist
 # Les sources du runtime vidéo (kit, harnais, lecteur, exemples) : esbuild les compile avec chaque film.
 COPY --from=builder --chown=ivision:nodejs /app/apps/ivision/core/motion ./dist/apps/ivision/core/motion
+# L'instantané du catalogue VIDÉO (repli quand le CDN ne répond pas) : `npm run catalog:video-snapshot` dans le cœur.
+COPY --from=builder --chown=ivision:nodejs /app/apps/ivision/core/catalog ./dist/apps/ivision/core/catalog
 
 RUN mkdir -p /app/apps/ivision/api/logs && chown -R ivision:nodejs /app/apps/ivision/api/logs
 USER ivision

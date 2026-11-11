@@ -18,7 +18,9 @@
     "check:lottie": "ts-node --transpile-only scripts/check-lottie.ts",
     "check:demo": "ts-node --transpile-only scripts/check-demo.ts",
     "check:brief": "ts-node --transpile-only scripts/check-brief.ts",
-    "lottie:library": "ts-node --transpile-only scripts/build-lottie-library.ts"
+    "lottie:library": "ts-node --transpile-only scripts/build-lottie-library.ts",
+    "check:video-catalog": "ts-node --transpile-only scripts/check-video-catalog.ts",
+    "catalog:video-snapshot": "ts-node --transpile-only scripts/video-catalog-snapshot.ts"
   },
   "dependencies": {
     "@adobe/leonardo-contrast-colors": "1.1.0",

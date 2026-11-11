@@ -1,10 +1,10 @@
 /**
  * Contrôle de la REMISE EN PAGE et de la RETOUCHE sans réécriture — `npm run check:relayout`.
  *
- * Aucun réseau, aucun modèle : l'auteur des pages est simulé (`fakeGraphicAuthor`), le modèle d'écriture aussi.
- *  1. une page générée garde son contenu et son code (`SectionModel.composition`) ;
- *  2. une nouvelle mise en page refait les pages depuis ce contenu, garde telles quelles celles qui n'en ont pas ;
- *  3. une retouche de MOTS rejoue la page sans auteur ; une retouche de FORME passe par l'auteur avec son code ;
+ * Aucun réseau, aucun modèle : le choix dans le catalogue est simulé (`fakeGraphicAuthor`), le modèle d'écriture aussi.
+ *  1. une page générée garde son contenu et sa configuration (`SectionModel.composition`) ;
+ *  2. une nouvelle mise en page recompose les pages depuis ce contenu, garde telles quelles celles qui n'en ont pas ;
+ *  3. une retouche de MOTS rejoue la page sans modèle ; une retouche de FORME repart de sa configuration du catalogue ;
  *  4. une consigne qui demande du contenu nouveau retombe sur la réécriture du HTML ;
  *  5. une page réécrite ailleurs retrouve sa feuille Tailwind (nouvelles classes comprises).
  */
@@ -25,10 +25,11 @@ const check = (label: string, ok: boolean, detail = '') => {
   console.log(`  ${ok ? '✓' : '✗'} ${label}${detail ? ` — ${detail}` : ''}`);
 };
 
+/** Les demandes faites au modèle qui CHOISIT dans le catalogue (rôle `graphic.template`). */
 const authorCalls: string[] = [];
 configureGraphicEngine({
   agentCall: () => async (req) => {
-    if (req.role === 'graphic.author') authorCalls.push(req.user);
+    if (req.role === 'graphic.template' && !/Pick the visual treatment/.test(req.user)) authorCalls.push(req.user);
     return fakeAuthorCall(req);
   },
   brandMemory: undefined,
@@ -63,17 +64,17 @@ const TEAM: SectionContent = { id: 'team', title: 'Une équipe de quatre personn
 
   authorCalls.length = 0;
   const report = await relayoutDocument({ userId: 'u', projectId: project.id as string, project, kind: 'pitchDeck', documentId: 'd1', sections, creativity: 'high', note: 'plus aérée' });
-  check('2. nouvelle mise en page : deux pages refaites par l’auteur, la page sans contenu gardée telle quelle', report.relaid.length === 2 && report.kept.join() === 'Legacy' && authorCalls.length === 2 && report.sections[2].data === sections[2].data);
-  check('2. aucun texte réécrit : les chiffres de la page sont ceux du contenu, le souhait du client est transmis', String(report.sections[0].data).includes('+70 %') && authorCalls.every((u) => u.includes('THE CLIENT ASKS FOR THIS LAYOUT: plus aérée')));
+  check('2. nouvelle mise en page : deux pages recomposées depuis le catalogue, la page sans contenu gardée telle quelle', report.relaid.length === 2 && report.kept.join() === 'Legacy' && authorCalls.length === 2 && report.sections[2].data === sections[2].data, `${report.relaid.length} recomposée(s), ${authorCalls.length} choix`);
+  check('2. aucun texte réécrit : les chiffres de la page sont ceux du contenu, le souhait du client est transmis', String(report.sections[0].data).includes('+70 %') && authorCalls.every((u) => u.includes('THE CLIENT ASKS: plus aérée')));
 
   authorCalls.length = 0;
   writerAnswer = JSON.stringify({ set: { title: 'Un marché qui a doublé en un an' }, design: null, needsNewContent: false });
   const words = await editComposedSection({ userId: 'u', projectId: project.id as string, project, kind: 'pitchDeck', section: report.sections[0], instruction: 'change le titre' });
-  check('3. retouche de mots : la page est rejouée sans auteur, avec le nouveau titre', words?.mode === 'words' && authorCalls.length === 0 && String(words.section.data).includes('Un marché qui a doublé en un an') && words.section.composition?.content.title === 'Un marché qui a doublé en un an');
+  check('3. retouche de mots : la page est rejouée sans modèle, avec le nouveau titre', words?.mode === 'words' && authorCalls.length === 0 && String(words.section.data).includes('Un marché qui a doublé en un an') && words.section.composition?.content.title === 'Un marché qui a doublé en un an');
 
   writerAnswer = JSON.stringify({ set: {}, design: 'make the key figures much larger', needsNewContent: false });
   const design = await editComposedSection({ userId: 'u', projectId: project.id as string, project, kind: 'pitchDeck', section: report.sections[0], instruction: 'les chiffres plus grands' });
-  check('3. retouche de forme : l’auteur reçoit son code et la consigne', design?.mode === 'design' && authorCalls.length === 1 && authorCalls[0].includes('CURRENT PAGE CODE') && authorCalls[0].includes('make the key figures much larger'));
+  check('3. retouche de forme : le choix repart de la configuration actuelle, avec la consigne', design?.mode === 'design' && authorCalls.length === 1 && authorCalls[0].includes('CURRENT CONFIG') && authorCalls[0].includes('make the key figures much larger'));
 
   writerAnswer = JSON.stringify({ set: {}, design: null, needsNewContent: true });
   const fresh = await editComposedSection({ userId: 'u', projectId: project.id as string, project, kind: 'pitchDeck', section: report.sections[0], instruction: 'ajoute un tableau des concurrents' });

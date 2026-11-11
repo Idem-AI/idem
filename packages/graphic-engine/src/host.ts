@@ -56,6 +56,11 @@ export interface EngineHost {
    * les variantes d'une page (plan qualité créative). Absent : le choix se fait sur les seules mesures du code.
    */
   judgeImage?: (base64: string, mimeType: string, instruction: string) => Promise<string>;
+  /**
+   * Les surcharges d'exploitation du CATALOGUE de gabarits (nœuds retirés, poids), sans republier le catalogue :
+   * relues toutes les 15 s (`catalog/registry.ts`).
+   */
+  catalogOverrides?: () => Promise<import('./catalog/types').CatalogOverrides>;
 }
 
 const silent: EngineLogger = { info: () => undefined, warn: () => undefined, error: () => undefined };

@@ -66,14 +66,12 @@ export const CREATIVE_ROLES: Record<string, CreativeRole> = {
   'graphic.explore': { profile: 'agents', needs: ['long-context'], maxOutputTokens: ALL(9000), mission: 'proposer quatre pistes d’idée distinctes pour un document', boost: true, thinking: { high: 'low', ultra: 'medium' }, temperature: 0.65 },
   // Le juge visuel : cinq questions fermées sur la capture d'une page (départage des variantes, défauts dits à l'auteur).
   'graphic.judge': { profile: 'agents', needs: ['vision'], maxOutputTokens: ALL(120), mission: 'répondre par oui ou non à cinq questions sur la capture d’une page', temperature: 0 },
-  // Le travail divisé : avant l'auteur, une petite tâche par page — le point focal, les zones, les groupes.
-  'graphic.page-director': { profile: 'agents', needs: [], maxOutputTokens: ALL(600), mission: 'décider la hiérarchie d’une page (point focal, zones, groupes) avant que l’auteur ne l’écrive' },
-  // Le travail divisé des pages de document : un plan de mise en page (grille et zones, JSON), puis une zone par agent.
-  'graphic.layout': { profile: 'agents', needs: ['json'], maxOutputTokens: ALL(1200), mission: 'inventer la grille et les zones d’une page en suivant la direction artistique' },
-  'graphic.zone': { profile: 'coder', needs: ['code'], maxOutputTokens: ALL(5000), mission: 'écrire le HTML Tailwind d’une seule zone de page' },
-  // La couverture, signature du document : le modèle Ultra quel que soit le cran choisi, un grand budget d'écriture.
-  'graphic.cover': { profile: 'coder', needs: ['code', 'long-context'], maxOutputTokens: { low: 12000, medium: 14000, high: 24000, ultra: 24000 }, mission: 'composer librement la couverture d’un document, au meilleur modèle' },
-  'graphic.author': { profile: 'coder', needs: ['code', 'long-context'], maxOutputTokens: ALL(12000), mission: 'écrire (et corriger) le HTML Tailwind de chaque page' },
+  // Le catalogue de gabarits (10/11/2026) : choisir dans une liste courte documentée et mettre à jour une petite
+  // configuration JSON — aucune ligne de HTML. Sans raisonnement : la tâche est courte et fermée.
+  'graphic.template': { profile: 'agents', needs: ['json'], maxOutputTokens: { low: 300, medium: 300, high: 500, ultra: 700 }, mission: 'choisir un gabarit du catalogue et mettre à jour sa configuration', temperature: 0.4 },
+  // Le catalogue VIDÉO (11/11/2026) : choisir pour tout le film, en un appel, le thème, le gabarit de chaque scène et
+  // (crans hauts) ses animations, sa transition, son rythme — une configuration JSON, aucune ligne de code.
+  'video.template': { profile: 'agents', needs: ['json'], maxOutputTokens: { low: 600, medium: 900, high: 1600, ultra: 2200 }, mission: 'choisir dans le catalogue vidéo le thème, le gabarit de chaque scène, ses animations et transitions', temperature: 0.4 },
   'graphic.pattern-designer': { profile: 'coder', needs: ['code'], maxOutputTokens: ALL(3000), mission: 'dessiner la tuile de motif propre à la marque (SVG)' },
   'graphic.asset-planner': { profile: 'agents', needs: ['json'], maxOutputTokens: UP_TO(800, 1000), mission: 'déterminer les ressources visuelles nécessaires' },
   'video.intent-classifier': { profile: 'agents', needs: ['json'], maxOutputTokens: UP_TO(300, 300, 300), mission: 'comprendre le besoin vidéo et les médias disponibles' },
@@ -94,7 +92,6 @@ export const CREATIVE_ROLES: Record<string, CreativeRole> = {
 
 /** Les noms historiques des appelants (moteur graphique, cœur vidéo) → leur rôle logique. */
 export const ROLE_ALIASES: Record<string, string> = {
-  'graphic.composer': 'graphic.author',
   director: 'video.concept',
   author: 'video.author',
 };

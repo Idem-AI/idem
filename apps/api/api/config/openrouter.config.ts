@@ -185,10 +185,10 @@ export const OPENROUTER_MODELS: readonly OpenRouterModel[] = [
     openWeights: true, commercialOk: true, selfHost: 'lourd', roles: ['reasoning'],
     pricing: { input: 0.4308, output: 0.8616, cachedInput: 0.0359 }, note: '1 M ctx. Licence MIT. Cluster multi-nœuds. Repli du cran Ultra (design/code) depuis le 05/11/2026 : deepseek-v4.1-flash le devance sur la plupart des bancs et coûte moins cher.',
   },
-  // ── Mise à jour 10/11/2026 : meilleurs modèles du marché pour les moteurs graphique et vidéo ──────────────
-  // Décision produit : qualité maximale au meilleur rapport qualité/prix, en dérogation à « poids ouverts
-  // seulement » (`allowClosed`). Sources : DesignArena (Website / Overall Agentic) et Artificial Analysis
-  // (T2I, T2V, I2V v2.1), relevées le 10/11/2026 ; prix = catalogue OpenRouter du même jour.
+  // ── Relevé du 10/11/2026 : meilleurs modèles du marché (fermés compris) ─────────────────────────────────────
+  // Ajoutés le 10/11/2026 puis RETIRÉS des échelles le même jour (retour aux modèles ouverts, demande de
+  // l'utilisateur). Gardés dans la liste blanche pour un essai à chaud (`npm run ai:models`) : aucune
+  // configuration ne les appelle par défaut.
   {
     id: 'meta/muse-ember', kind: 'text', license: 'propriétaire',
     openWeights: false, allowClosed: true, commercialOk: true, selfHost: 'impossible', roles: [],
@@ -383,19 +383,19 @@ export const OPENROUTER_DEFAULT_ROLES: Record<ModelRole, string> = {
 
 /** Repli du fournisseur : modèles ouverts de la liste, d'une autre famille en dernier. */
 /** Vidéo par défaut (dérogation produit à l'open-weight, cf. `allowClosed`). */
-export const DEFAULT_VIDEO_MODEL = 'google/gemini-omni-1.2-flash';
-/** Clip en qualité (crans High/Ultra, image de départ) : 1er du classement image→vidéo d'Artificial Analysis. */
-export const QUALITY_VIDEO_MODEL = process.env.IDEM_VIDEO_QUALITY_MODEL?.trim() || 'bytedance/seedance-2.5';
+export const DEFAULT_VIDEO_MODEL = 'google/veo-3.1-fast';
+/** Clip en qualité (crans High/Ultra, image de départ) : Veo 3.1 (dérogation vidéo d'avant le 10/11/2026). */
+export const QUALITY_VIDEO_MODEL = process.env.IDEM_VIDEO_QUALITY_MODEL?.trim() || 'google/veo-3.1';
 
 /**
  * Les modèles des médias, sous les noms que les configurations de features
  * emploient. Texte : voir `OPENROUTER_DEFAULT_ROLES` (par rôle).
  */
 export const OPENROUTER_MEDIA = {
-  /** Images des livrables et des vidéos (10/11/2026) : Nano Banana 2.1. Les esquisses gardent le modèle du rôle `image` (FLUX.2 klein). */
-  image: process.env.IDEM_OPENROUTER_MEDIA_IMAGE_MODEL?.trim() || 'google/gemini-nano-banana-2.1',
-  /** Repli image : Muse Image, d'une autre famille, peu cher. */
-  imageFallback: process.env.IDEM_OPENROUTER_IMAGE_FALLBACK_MODEL?.trim() || 'meta/muse-image',
+  /** Images des livrables et des vidéos : le modèle ouvert du rôle `image` (FLUX.2 klein) — retour du 10/11/2026. */
+  image: process.env.IDEM_OPENROUTER_MEDIA_IMAGE_MODEL?.trim() || OPENROUTER_DEFAULT_ROLES.image,
+  /** Repli image : à défaut de variable, le même modèle (la saturation est rare, le repli ouvert unique). */
+  imageFallback: process.env.IDEM_OPENROUTER_IMAGE_FALLBACK_MODEL?.trim() || OPENROUTER_DEFAULT_ROLES.image,
   vision: OPENROUTER_DEFAULT_ROLES.vision,
   /** Repli vision : le modèle de lecture de texte, d'une autre taille. */
   visionFallback: OPENROUTER_DEFAULT_ROLES.ocr,

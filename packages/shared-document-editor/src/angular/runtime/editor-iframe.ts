@@ -18,6 +18,14 @@ function attr(value: string): string {
 }
 
 /**
+ * Section déjà composée en pages A4 fixes par le moteur graphique (`data-ge-page`) : l'aperçu
+ * montre ces pages telles quelles, exactement celles que le PDF imprime.
+ */
+function isPagedSection(html: string): boolean {
+  return html.includes('data-ge-page="');
+}
+
+/**
  * Business plan (multi-page) uniquement : sur le CONTENEUR RACINE seul, remplace
  * la hauteur fixe par min-h et enlève overflow-hidden pour laisser le contenu
  * s'étendre (parité avec le PDF). Ne modifie que les classes de la racine : la
@@ -910,6 +918,18 @@ function pageStyles(
       border-radius: 2px;
     }
     ${rootFit}
+    /* Section composée en pages A4 par le moteur : chaque page est une feuille fixe, comme au PDF. */
+    .idem-section.idem-paged {
+      min-height: 0; height: auto; overflow: visible;
+      background: transparent; box-shadow: none; border-radius: 0;
+      display: flex; flex-direction: column; gap: 20px;
+    }
+    .idem-paged > [data-ge-page] {
+      width: ${format.width}; height: ${format.height}; overflow: hidden; flex: none;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.18); border-radius: 2px;
+    }
+    /* Blanc par défaut seulement (spécificité nulle) : le fond de page du gabarit l'emporte, comme au PDF. */
+    :where(.idem-paged) > :where([data-ge-page]) { background: #ffffff; }
     ${mode === 'preview' ? previewPageStyles(multiPage) : ''}
     ${mode === 'preview' && fitRoot && !multiPage ? SINGLE_VISUAL_PREVIEW : ''}
     [data-section-id] * { cursor: ${mode === 'preview' ? 'pointer' : 'default'}; }
@@ -939,17 +959,28 @@ export function buildIframeDocument(
       if (s.placeholder) {
         return `<section class="idem-section idem-placeholder" data-idem-placeholder="${attr(s.id)}" data-section-index="${i}">${s.html}</section>`;
       }
-      const inner = multiPage ? normalizeRootForFlow(s.html) : s.html;
+      if (isPagedSection(s.html)) {
+        return `<section class="idem-section idem-paged" data-section-id="${attr(s.id)}" data-section-index="${i}">${s.html}</section>`;
+      }
+      // Page du moteur graphique (feuille compilée embarquée) : sa hauteur est déjà la bonne, et une classe
+      // réécrite ici (min-h-[…]) n'existerait pas dans cette feuille.
+      const engineMade = s.html.includes('data-ge-tailwind');
+      const inner = multiPage && !engineMade ? normalizeRootForFlow(s.html) : s.html;
       return `<section class="idem-section" data-section-id="${attr(s.id)}" data-section-index="${i}">${inner}</section>`;
     })
     .join('');
+
+  // Sections déjà compilées par le moteur (feuille Tailwind 4 embarquée) : le CDN Tailwind n'est
+  // pas chargé — il réécrirait les mêmes classes autrement et l'aperçu s'écarterait du PDF.
+  const real = sections.filter((s) => !s.placeholder);
+  const precompiled = real.length > 0 && real.every((s) => s.html.includes('data-ge-tailwind'));
 
   return `<!doctype html>
 <html class="${ctx.dark ? 'dark' : ''}">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<script src="/scripts/tailwind.js"></script>
+${precompiled ? '' : '<script src="/scripts/tailwind.js"></script>'}
 <script src="/scripts/chart.js"></script>
 ${CHART_CAPTURE_SNIPPET ? `<script>${CHART_CAPTURE_SNIPPET}</script>` : ''}
 ${ctx.fontUrl ? `<link href="${attr(ctx.fontUrl)}" rel="stylesheet" />` : ''}

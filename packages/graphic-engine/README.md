@@ -5,39 +5,67 @@ Un **paquet du monorepo**, importé par les applications — l'API IDEM (`apps/a
 
 Il produit, à partir d'un contenu structuré et de la charte d'un projet :
 
-- les pages du **business plan** (A4 portrait, qui s'allongent ; le PDF les pagine) ;
+- les pages du **business plan** (A4 portrait, composées en pages par le moteur : l'aperçu est le PDF) ;
 - les pages de la **charte graphique** (16:9, A4 portrait ou paysage) et leur couverture ;
 - les diapositives du **pitch deck** ;
 - les deux faces des **cartes de visite** (85 × 55 mm, gabarit à marqueurs `{{champ}}`) ;
 - les **visuels** : flyers, publications, stories, bannières et avatars des réseaux ;
 - les **graphiques** (SVG dessinés depuis les données, palette de la marque).
 
-Le principe (version 2.0, 14 octobre 2026) : **l'IA conçoit et écrit chaque page en HTML Tailwind, librement ;
-le code garantit l'exactitude et l'affichage ; la jauge de créativité choisit le modèle.** Aucun gabarit,
-aucun catalogue de mises en page, aucune note esthétique, aucune critique, aucune réécriture automatique.
-Historique : [docs/MIGRATION.md](docs/MIGRATION.md).
+## Le catalogue de gabarits en ligne (2.6, seul mode depuis la 2.7 du 11 novembre 2026)
 
-## Le flux
+**Chaque page est ASSEMBLÉE depuis un catalogue en ligne** (dépôt `idem-templates`, publié sur MinIO avec un manifeste
+signé), à tous les crans. Le modèle n'écrit plus de HTML : il choisit dans une liste courte de gabarits documentés et met
+à jour leur `config.json` (≈ 100 jetons de sortie au lieu de 3 000 à 6 000). Ajouter ou corriger un gabarit ne
+demande ni rebuild ni redéploiement.
 
 ```
-contenu (ContentModel : sections de blocs typés, écrit par le rédacteur de l'hôte)
-  → validation et normalisation (un petit modèle se trompe : on répare la forme, jamais le fond)
-  → médias (si la page a une intention) : plan, sources dans l'ordre, pose, repli tracé
-  → matière à plat : chaque texte reçoit une clé ({{title}}, {{b2.items.0.value}}) ; graphiques et tableaux
-    deviennent des primitives du code
-  → langage visuel de la MARQUE (directeur, une fois par charte, gardé par l'hôte : port brandMemory)
-  → plan du DOCUMENT (directeur, documents de plusieurs pages) : une idée, une ligne par page
-  → page écrite en HTML Tailwind (auteur, rôle graphic.author, une fois par page) avec SA ligne du plan
-    et celles de ses voisines, et la documentation des seuls outils dont elle a besoin
-  → assainie (scripts, cadres, adresses étrangères, CSS natif retirés) → remplie par le code
-    (textes exacts, primitives dessinées, racine .ge-page aux cotes du support)
-  → Tailwind compilé côté serveur avec le thème de la marque → « s'affiche-t-elle ? » (Chromium)
-  → sinon correction bornée → RenderResult + trace de génération
+contenu → médias → matière à plat (clés)                                     (inchangé)
+  → le CODE parcourt le graphe (0 jeton)     catalog/graph.ts
+       filtre : élément, toile, rôle, CAPACITÉ (les unités tiennent dans les zones, largeur minimale des composants)
+       score  : direction artistique (humeurs, densité, image), enchaînement (follows/contrasts/avoidAfter),
+                usure dans le document, mémoire des combinaisons déjà livrées, poids d'exploitation, graine
+       jamais le même squelette sur deux pages voisines
+  → habillage du document : le code (Low, Medium) ou le modèle parmi 4 (High, Ultra), une fois par document
+  → le MODÈLE choisit et met à jour la configuration (Medium+ ; Low : le code seul)   catalog/choose.ts
+  → le CODE assemble (catalog/assemble.ts) : unités dans les zones, listes déroulées, couleurs de surface,
+       hiérarchie tenue (un texte courant ≤ 72 % du titre), rien de perdu (textes oubliés posés à la suite)
+  → rendu Chromium ; une zone qui déborde voit ses tailles réduites (jusqu'à trois passes) ; sous 70 %,
+       le candidat suivant ; puis le squelette intégré ; un graphique ou une image qui partagent une zone gardent
+       28 % de la toile au moins, un tableau la hauteur de ses rangées (rien n'est écrasé sous un voisin)
+  → business plan, rapport : le moteur compose lui-même ses pages A4 (catalog/paginate.ts) — aperçu = PDF
+  → page gardée : HTML à clés (rejeu, PPTX, éditeur) + spec.catalog.config (une retouche écrite modifie la config)
 ```
 
-Mêmes étapes, même contexte à tous les crans : le cran (`low`, `medium`, `high`, `ultra`) est transmis à
-l'hôte avec chaque appel, et l'hôte résout le modèle du rôle sur son échelle (`apps/api/api/config/creative-roles.ts`,
-`MODEL_LADDERS`).
+| Cran | Qui choisit | Finesse | Liste courte | Rendus mesurés | Mémoire de nouveauté |
+|---|---|---|---|---|---|
+| Low | le code | gabarit entier, réglages tirés par la graine | 6 | 1 (2 : visuel seul) | marque |
+| Medium | modèle `graphic.template` | + réglages discrets | 4 | 1 (2 : visuel seul) | marque |
+| High | modèle | + un composant par unité, habillage choisi | 8 | 2 | toutes les portées |
+| Ultra | modèle | + squelettes de tout le graphe, réglages continus | 12 | 3 | + tous les clients |
+
+Le modèle `graphic.template` suit l'échelle `catalog`, à poids ouverts : qwen3.6-35b-a3b (Medium), qwen3.5-122b-a10b
+(High), deepseek-v4.1-flash (Ultra) ; aucun appel au cran Low. Comparaison chiffrée avec l'écriture libre :
+[docs/MIGRATION.md](docs/MIGRATION.md#26--le-catalogue-de-gabarits-en-ligne-à-tous-les-crans-10-novembre-2026).
+
+Le registre (`catalog/registry.ts`) lit, dans l'ordre : `IDEM_TEMPLATES_DIR` (dépôt local, relu toutes les 10 s),
+`IDEM_TEMPLATES_URL` (le seau MinIO, ETag, `IDEM_TEMPLATES_TTL_S`, `POST /catalog/refresh` ; en local
+`http://localhost:9000/idem-templates`, publié par `npm run publish:local` dans `idem-templates`), le cache disque
+(`IDEM_TEMPLATES_CACHE`), l'instantané `catalog/snapshot.json`, puis le minimum intégré. Un manifeste non signé est
+refusé dès que `IDEM_TEMPLATES_PUBKEY` est posée ; un HTML dont l'empreinte diffère est refusé ; un nœud dangereux ou
+qui écrit des mots est écarté. Contrôle : `npm run check:catalog`.
+
+**Ce que le modèle fait encore** (crans hauts) : le **langage visuel de la marque** (une fois par charte, gardé par l'hôte),
+le **plan du document** et l'**exploration** de quatre pistes d'idée (Ultra) — ils guident le CHOIX dans le catalogue ;
+le **juge visuel** départage les compositions rendues (High, Ultra). Aucun modèle n'écrit plus de HTML.
+
+## Avant la 2.6 : l'écriture libre (retirée le 11 novembre 2026)
+
+De la 2.0 (14 octobre 2026) à la 2.5, un modèle écrivait chaque page en HTML Tailwind (auteur, directeur de page,
+travail par zones, variantes écrites, correction par réécriture, bibliothèque d'exemples). Ce chemin et ses rôles
+(`graphic.author`, `graphic.cover`, `graphic.page-director`, `graphic.layout`, `graphic.zone`) sont retirés depuis la
+2.7 ; les pages qu'il a écrites se rejouent toujours (même code, même assainissement). Historique :
+[docs/MIGRATION.md](docs/MIGRATION.md).
 
 ## Utiliser le moteur
 
@@ -58,7 +86,7 @@ configureGraphicEngine({
 });
 ```
 
-Sans `agentCall`, aucune page ne s'écrit (`GraphicRenderError`) : il n'y a plus de composition du code.
+Sans `agentCall`, le code choisit seul dans le catalogue (comme au cran Low) : aucune page n'est perdue faute de modèle.
 Branchements actuels : `apps/api/api/services/graphic/engine.host.ts` (IDEM) et
 `apps/ivision/core/src/runtime/host.ts` (cœur iVision).
 
@@ -73,7 +101,7 @@ const doc = await createDocument({
   brand, direction,                 // brandFromIdem(...) : couleurs, polices, logos, motifs, direction artistique
   creativity: 'medium', seed: designKey,
   sections: slides.map((s) => ({ id: s.id, role: s.role })),
-  brief: project.description,       // ce que fait le projet, pour le directeur et l'auteur
+  brief: project.description,       // ce que fait le projet, pour le directeur et le choix
   user: { userId, projectId }, memoryScope: { documentType: 'pitch-deck', key: projectId },
 });
 const out = await doc.composeSection(section, { index: 2, total: 12 });   // pages en parallèle possibles
@@ -91,15 +119,16 @@ Chromium).
 - `composeSection(content, { replay: out.spec })` : le CODE gardé, rejoué avec un contenu retouché (texte,
   chiffre, photo) — **aucun modèle**.
 - `composeSection(content, { revise: { spec: out.spec, instruction } })` : une retouche de FORME (« titre plus
-  grand, logo en bas ») — l'auteur reçoit son code et la consigne.
-- Une page de l'ancien moteur (arbre v1, `isAuthoredSpec(spec) === false`) ne se rejoue pas : elle est réécrite.
+  grand, logo en bas ») — le choix repart de la configuration actuelle (`CURRENT CONFIG`) avec la consigne.
+- Une page de l'ancien moteur (arbre v1, `isAuthoredSpec(spec) === false`) ne se rejoue pas : elle est recomposée
+  depuis le catalogue.
 
 ## Retoucher, remettre en page, exporter — sans réécrire
 
 - `doc.page(id)` rend le **contenu final** d'une page (textes, chiffres, médias déjà posés) et son **code** : l'hôte les
   garde avec la section (`SectionModel.composition` chez IDEM).
-- **Retouche de mots** : `applyTextEdits(content, { "<clé>": "nouveau texte" })` (mêmes clés que celles de l'auteur ;
-  les blocs posés par le code restent intouchables), puis `composeSection(content, { replay })` — aucun auteur.
+- **Retouche de mots** : `applyTextEdits(content, { "<clé>": "nouveau texte" })` (les clés de la page ; les blocs
+  posés par le code restent intouchables), puis `composeSection(content, { replay })` — aucun modèle.
 - **Retouche de forme** : `composeSection(content, { revise: { spec, instruction } })`.
 - **Nouvelle mise en page** : `composeSection(content)` dans un nouveau document, avec `layoutNote` (« plus aérée ») —
   aucun texte réécrit, aucun média recherché.
@@ -112,65 +141,28 @@ Chromium).
   en gras conservés) ; un texte pivoté ou dans un graphique reste dans l'image. Les notes de l'orateur suivent.
   L'export ne modifie jamais le HTML et ne redemande rien à l'IA.
 
-## Économiser les jetons sans brider l'IA
+## Économiser les jetons
 
-- **Ce qui dure est écrit une fois** : le langage visuel de la marque (≈ 520 jetons d'entrée, une fois par charte ;
-  la clé change avec la charte), relu par tous ses livrables — decks, plans, flyers, cartes, pages de charte.
-- **Le plan du document** tient en une ligne par page ; chaque page ne reçoit que sa ligne et celles de ses voisines.
-- **La consigne système de l'auteur est la même pour toutes les pages** d'un support (le fournisseur peut la garder
-  en cache) ; la fiche de la marque est compacte ; la documentation des outils est donnée à la demande (graphique,
-  tableau, icône, motif seulement si la page en a).
+- **Aucune page écrite par un modèle** : au cran Low, aucun appel ; au-dessus, une réponse JSON de quelques dizaines
+  de jetons par page (le choix et ses réglages), et rien quand un seul gabarit convient.
+- **Ce qui dure est écrit une fois** : le langage visuel de la marque, relu par tous ses livrables.
 - **Les données ne passent jamais par le modèle** : textes par clés, graphiques et tableaux dessinés par le code ;
   une retouche de texte rejoue la page sans appel.
-- Mesure : `npm run prompt-size` (au 14/10/2026 : ≈ 690 + 770 jetons par page, contre ≈ 900 + 880 avant).
 
 ## Un rendu professionnel
 
-La consigne de l'auteur pose le niveau d'un studio : la hiérarchie fait le travail (taille, graisse, espace,
-alignement sur une grille) ; la décoration n'est permise que lorsqu'elle porte la marque (logo, motif, signes de
-son langage) — jamais de cercles, taches, halos, dégradés, ombres, émojis, ornements ou textes penchés gratuits ;
-peu de corps, les polices de la marque, la couleur avec intention. C'est une consigne d'écriture : aucun contrôle
-esthétique ne la vérifie.
-
-**Aucun gabarit** : toutes les pages, celles qui montrent un actif de la marque comprises (logo, déclinaisons,
-motifs, palette, typographie, mockups), sont composées par l'auteur. Le code lui donne les outils exacts
-(`<idem-logo>`, `<idem-pattern-tile>`, `<idem-gallery>`, les codes des couleurs recopiés par les clés). Le gabarit des
-pages d'actif (15/10/2026) a été retiré le 30/10/2026 : il donnait la même mise en page à tous les projets.
-
-**L'essentiel**, lui, reste garanti sur le CONTENU, à tous les crans : slide sans chapô, deux blocs de preuve et trois
-points au plus, le surplus dans les notes de l'orateur (`slideEssentials`) ; pages de spécimens de la charte sans
-texte rédigé ; un chiffre-clé est un chiffre (`figuresOnly`). La consigne de l'auteur : un point focal, chaque
-élément porte un contenu (aucune forme, carte, pastille ou faux schéma vide), un seul signe de marque par page.
-
-**Le travail divisé** : avant l'auteur, le **directeur de page** (`graphic.page-director`, une petite tâche par
-page, `pageDirectorPrompt`) décide en quatre lignes le point focal, les zones, les groupes et l'erreur à éviter ;
-l'auteur construit cette hiérarchie. Sans réponse exploitable, l'auteur compose seul.
-
-## Ce que l'auteur reçoit (contexte compact, identique à tous les crans)
-
-`src/author/prompts.ts` :
-
-- le livrable et le **support** : cotes en px et en mm, nature (toile fixe ou page A4 qui s'allonge), zone de
-  sécurité (cartes, stories, couvertures), corps minimal — des contraintes d'impression, pas de design ;
-- la **marque** : couleurs sous leurs noms Tailwind (`bg-brand-primary`, `text-ink`, `bg-brand-soft`…),
-  polices (`font-display`, `font-body`), logos disponibles, motif, direction artistique et grammaire de
-  composition de la charte, surface claire par défaut ;
-- la **bible** du document ;
-- la **matière** : chaque clé et son texte (les images par leur description et leur point d'intérêt) ;
-- une **référence Tailwind** courte, les **primitives**, et UN exemple de syntaxe (« invente ta propre
-  composition »).
-
-Contrat de sortie : un bloc ```html, le fragment seul. Toile fixe : l'élément de tête remplit la toile
-(`relative w-full h-full`). Page A4 : une suite de blocs de premier niveau (le PDF coupe entre eux ;
-`data-keep-together` pour un bloc insécable). Tous les mots viennent des clés ; l'auteur n'ajoute que du
-non-verbal (formes, filets, icônes, numérotation).
+Le niveau vient du CATALOGUE (gabarits documentés, relus, versionnés dans `idem-templates`) et des mesures du code :
+un texte courant ne ressemble jamais au titre, une zone qui déborde est ramenée à sa taille ou la composition écartée,
+un graphique n'est jamais écrasé, un actif de la marque est montré entier. **L'essentiel** reste garanti sur le
+CONTENU : slide sans chapô, deux blocs de preuve et trois points au plus, le surplus dans les notes de l'orateur
+(`slideEssentials`) ; un chiffre-clé est un chiffre (`figuresOnly`).
 
 ### Les primitives (`src/runtime/primitives.ts`)
 
 | Balise | Ce que dessine le code |
 |---|---|
-| `<idem-chart data-block="b3" data-aspect="16/9" class="…">` | le graphique exact (bar, groupedBar, stacked, horizontalBar, line, area, pie, doughnut, radar), palette de la marque déclarée (`data-ge-palette`, recalculée par la traduction de marque) ; les libellés prennent la couleur du texte. L'auteur choisit la représentation (`data-type`, refusée si elle trahit les données : camembert à plusieurs séries…) et met une catégorie en avant (`data-highlight`) |
-| `<idem-table data-block="b4" class="… [&_th]:bg-brand-primary">` | le tableau, cellule pour cellule, colonnes chiffrées à droite ; l'auteur le stylise depuis la balise |
+| `<idem-chart data-block="b3" data-aspect="16/9" class="…">` | le graphique exact (bar, groupedBar, stacked, horizontalBar, line, area, pie, doughnut, radar), palette de la marque déclarée (`data-ge-palette`, recalculée par la traduction de marque) ; les libellés prennent la couleur du texte. Le composant choisit la représentation (`data-type`, refusée si elle trahit les données : camembert à plusieurs séries…) et peut mettre une catégorie en avant (`data-highlight`) |
+| `<idem-table data-block="b4" data-rows="0-3" class="… [&_th]:bg-brand-primary">` | le tableau, cellule pour cellule, colonnes chiffrées à droite (`data-rows` : une plage de rangées, en-tête répété — pages A4) ; le composant le stylise depuis la balise |
 | `<idem-logo variant="primary\|onLight\|onDark\|mono\|icon" class="h-[40px]">` | le logo (ou le nom en wordmark si la marque n'en a pas) |
 | `<idem-icon name="truck" class="size-[40px] text-brand-primary">` | une icône vectorielle locale (Tabler, Lucide) |
 | `<idem-pattern index="0" class="absolute inset-0 opacity-[0.1]">` | la tuile de motif de la marque |
@@ -193,40 +185,23 @@ avec le constat bloquant `text_cut` (réparation `render_partial`). Une image do
 remplissage, jamais laissée cassée. Les clés acceptent `-` et `:` (médias `asset-1`, blocs du code `sys-1`). Une ressource lente (police distante) ne fait jamais échouer
 le rendu ; un navigateur absent n'est pas une faute de la page (`infra`).
 
-Ce qui ne s'affiche pas — réponse sans HTML, rien de visible, rendu impossible — passe par la **correction
-bornée** (`engine.ts`) :
-
-1. **corriger** : le modèle du cran reçoit son code et l'erreur ;
-2. **réécrire autrement** : le modèle du cran au-dessus, plus simplement, en connaissant les échecs ;
-3. **version minimale** : le même, la page la plus simple qui s'affiche.
-
-Une tentative à la fois, jamais deux fois la même approche, trois au plus, et un budget par document
-(`GRAPHIC_REPAIR_ATTEMPTS` 3, `GRAPHIC_REPAIR_TOKEN_BUDGET` 60 000, `GRAPHIC_REPAIR_MAX_MS` 240 s). Ce qui
-résiste lève `GraphicRenderError` (le service traite la section comme en échec, et le dit).
-
-**L'ordre de la page, mesuré** (`QUALITY`, après l'affichage, cadre `qualityFrame` de la page) — renvoyé à
-l'auteur par la même correction bornée, la mise en page reste la sienne :
-
-- un texte posé sur un autre texte ;
-- un actif de la marque (logo, déclinaison) rogné par le bord, son conteneur ou `object-cover`, absent, ou trop
-  petit sur la page qui n'existe que pour lui (30 % seul, 15 % à deux ou trois, 10 % au-delà, 25 % logo commenté) ;
-- un cadre vide compact (carte, pastille, avatar, zone d'image) qui ne porte rien et ne sert de fond à rien ;
-- plus de dix formes décoratives vides (fausse grille, faux schéma, ronds) ;
-- un graphique, un tableau, une galerie ou un actif de la marque que l'auteur n'a pas posé (`content_missing`).
-
-Les aplats vides du nuancier et des démonstrations de grille sont du contenu (`allowEmptyShapes`). Si la correction
-échoue, la meilleure page est livrée avec son constat bloquant (`render_partial`) plutôt que perdue.
+Une composition qui ne s'affiche pas, ou dont l'ordre mesuré (`QUALITY`) est fautif — un texte posé sur un autre, un
+actif de la marque rogné ou trop petit, un cadre vide, un graphique ou un tableau absent (`content_missing`) — cède la
+place au candidat suivant du catalogue, puis au squelette intégré, sans modèle. En dernier recours, la meilleure page
+est livrée avec son constat bloquant (`render_partial`) plutôt que perdue ; rien ne s'affiche du tout :
+`GraphicRenderError` (le service traite la section comme en échec, et le dit).
 
 Les constats non bloquants restent dans `result.issues` comme conseils, sans rien déclencher :
-`native_css_removed`, `content_not_shown` (une clé que l'auteur n'a pas placée), `unknown_keys`,
+`native_css_removed`, `content_not_shown` (une clé que la page ne place pas), `unknown_keys`,
 `unknown_blocks`.
 
 ## Les modules
 
 | Dossier | Rôle |
 |---|---|
-| `contracts/` | ContentModel (blocs typés), SectionSpec/DesignSpec v2 (le code de l'auteur), RenderResult ; validation, normalisation, récupération d'une page HTML rendue par erreur |
-| `author/` | prompts du directeur et de l'auteur, retouche et correction ; appel de modèle tracé (`model.ts`) |
+| `contracts/` | ContentModel (blocs typés), SectionSpec/DesignSpec v2 (le code de la page et sa configuration du catalogue), RenderResult ; validation, normalisation, récupération d'une page HTML rendue par erreur |
+| `catalog/` | registre (dépôt, CDN, cache, instantané), graphe, assemblage, choix par le modèle, mise en pages A4 (`paginate.ts`) |
+| `author/` | prompts du directeur (langage de la marque, plan, exploration) ; appel de modèle tracé (`model.ts`) |
 | `runtime/` | matière à plat, assainissement et remplissage, primitives, pages d'actif, Tailwind, contrôle d'affichage, navigateur |
 | `content/` | analyse du volume de texte (budgets des slides), régime de texte (`slideDiet`) |
 | `asset-planner/` | les médias d'une page : besoins, sources dans l'ordre, génération plafonnée par cran |
@@ -238,11 +213,12 @@ Les constats non bloquants restent dans `result.issues` comme conseils, sans rie
 ## Contrôles
 
 ```
-npm run check --prefix packages/graphic-engine        # 91 vérifications, auteur simulé, Chromium
-npm run check:fast --prefix packages/graphic-engine   # sans Chromium
+npm run check --prefix packages/graphic-engine          # 71 vérifications, aucun modèle, Chromium
+npm run check:fast --prefix packages/graphic-engine     # sans Chromium
+npm run check:catalog --prefix packages/graphic-engine  # chaque gabarit rendu dans Chromium (65 vérifications)
 npm run schemas --prefix packages/graphic-engine      # régénère contracts/*.schema.json
 ```
 
-Côté API : `check:creativity`, `check:roles`, `check:brand`, `check:bpquality`, `check:mockups` (ces trois
-derniers avec l'auteur simulé `apps/api/api/scripts/fakeGraphicAuthor.ts`). Aucun contrôle ne juge
-l'esthétique : ils vérifient l'exactitude, le contrat et l'affichage.
+Côté API : `check:creativity`, `check:roles`, `check:relayout`, `check:brand`, `check:mockups` (choix simulé dans le
+catalogue, `apps/api/api/scripts/fakeGraphicAuthor.ts`), `check:bpcatalog` (business plan imprimé, aperçu = PDF) et
+`check:bpquality` (le paginateur des pages écrites avant le catalogue).

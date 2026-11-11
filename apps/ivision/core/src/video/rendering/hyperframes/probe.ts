@@ -18,6 +18,8 @@ export interface ProbeFile {
 export interface CompositionProbe {
   errors: { key: string; message: string }[];
   thumbnails: Record<string, Buffer>;
+  /** Scènes du catalogue dont un texte ne tient pas, même au plus petit corps permis (la composition est à changer). */
+  fit?: string[];
 }
 
 export async function probeComposition(html: string, files: ProbeFile[], scenes: { key: string; start: number; duration: number }[], size: { width: number; height: number }): Promise<CompositionProbe> {
@@ -45,6 +47,8 @@ export async function probeComposition(html: string, files: ProbeFile[], scenes:
     await page.evaluate('document.fonts && document.fonts.ready').catch(() => undefined);
     const ready = await page.evaluate('Boolean(window.__timelines && window.__timelines.film)');
     if (!ready) return { errors: scenes.map((s) => ({ key: s.key, message: `the page did not register its timeline: ${pageErrors.join(' · ').slice(0, 240) || 'unknown error'}` })), thumbnails: {} };
+    // Les scènes du catalogue se construisent quand les polices sont prêtes : on laisse passer cette tâche.
+    await page.evaluate('new Promise(function (r) { setTimeout(r, 0); })').catch(() => undefined);
     const thumbnails: Record<string, Buffer> = {};
     for (const s of scenes) {
       const t = s.start + s.duration * 0.6;
@@ -58,9 +62,10 @@ export async function probeComposition(html: string, files: ProbeFile[], scenes:
       thumbnails[s.key] = Buffer.from(shot);
     }
     const errors = (await page.evaluate('window.__sceneErrors || []')) as { key: string; message: string }[];
+    const fit = (await page.evaluate('window.__fitIssues || []').catch(() => [])) as string[];
     // Une erreur levée hors d'une scène (syntaxe d'un script) est attribuée à toutes : la page entière ne tourne pas.
-    if (pageErrors.length && !errors.length) return { errors: scenes.map((s) => ({ key: s.key, message: pageErrors[0].slice(0, 300) })), thumbnails };
-    return { errors, thumbnails };
+    if (pageErrors.length && !errors.length) return { errors: scenes.map((s) => ({ key: s.key, message: pageErrors[0].slice(0, 300) })), thumbnails, fit };
+    return { errors, thumbnails, ...(fit.length ? { fit: [...new Set(fit)] } : {}) };
   } finally {
     await page?.close().catch(() => undefined);
     releaseFilmBrowser();

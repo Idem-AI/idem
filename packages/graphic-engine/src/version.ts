@@ -4,7 +4,7 @@
  * de composition change `COMPONENT_LIBRARY_VERSION` ; modifier la forme d'un contrat change sa
  * version — et les clés de cache qui en dépendent s'invalident d'elles-mêmes.
  */
-export const ENGINE_VERSION = '2.0.0';
+export const ENGINE_VERSION = '2.7.0';
 /** Les primitives dessinées par le code (graphiques, tableaux, logo, icônes, motifs). */
 export const COMPONENT_LIBRARY_VERSION = '2.0.0';
 

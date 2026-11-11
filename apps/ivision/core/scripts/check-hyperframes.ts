@@ -8,7 +8,12 @@
  *   4. une scène dont le script plante au jeu : attribuée à SA scène, corrigée par l'auteur ;
  *   5. l'aperçu (page autonome, sans réseau sauf médias https, bouton « Lire ») ; une retouche écrite (auteur HTML) ;
  *   6. une scène Anime.js pilotée par la timeline GSAP ;
- *   7. l'export MP4 par HyperFrames (durée exacte), sauf avec `--fast`.
+ *   7. l'export MP4 par HyperFrames (durée exacte), sauf avec `--fast` ;
+ *   8. le CATALOGUE vidéo (voie normale depuis le 11/11/2026) de bout en bout : un appel `video.template` pour tout le
+ *      film, aucun auteur HTML, scènes prêtes et photographiées, aperçu, retouche écrite (configuration actuelle +
+ *      consigne), nouvelle version sans modèle.
+ *
+ * Les sections 3 à 6 visent l'auteur HTML libre (`IDEM_VIDEO_CATALOG=0`, retour arrière) ; la 8 le catalogue.
  *
  * Sorties dans `apps/ivision/core/tmp/check-hyperframes/`.
  */
@@ -32,6 +37,8 @@ process.env.VIDEO_SFX_OFFLINE = '1';
 process.env.IDEM_VIDEO_RENDERER = 'hyperframes';
 process.env.IDEM_VIDEO_ANIMATION = 'gsap';
 process.env.IDEM_DESIGN_TOOLS_OFFLINE = '1';
+process.env.IDEM_VIDEO_CATALOG = '0';
+process.env.IDEM_TEMPLATES_DIR = process.env.IDEM_TEMPLATES_DIR || path.resolve(__dirname, '../../../../../idem-templates');
 const fast = process.argv.includes('--fast');
 const OUT = path.resolve(__dirname, '../tmp/check-hyperframes');
 let failures = 0;
@@ -124,6 +131,7 @@ async function main() {
       return scene(keys, media);
     }
     if (role === 'video.reviser') return 'VISUAL s2: le cadre entre plus lentement\nREPLY: C’est fait.';
+    if (role === 'video.template') return /CLIENT'S REQUEST FOR/.test(user) ? '{"scenes":[{"scene":"s2","pick":"B"}]}' : JSON.stringify({ scenes: [1, 2, 3, 4].map((n) => ({ scene: `s${n}`, pick: 'A' })) });
     return '';
   };
   const service = new MotionVideoService(store, call);
@@ -184,6 +192,27 @@ async function main() {
     check(!!meta && Math.abs(meta.duration - 15) < 0.25 && meta.height === 1280, 'export : MP4 HyperFrames de 15 s en 720 × 1280 (qualité standard)', JSON.stringify({ meta, error: videos.get(video.id)!.renders.map((r) => r.error) }));
     console.log(`  (rendu : ${Math.round((Date.now() - started) / 1000)} s)`);
   }
+
+  // 8. Le catalogue vidéo, de bout en bout
+  process.env.IDEM_VIDEO_CATALOG = '1';
+  calls.length = 0;
+  const cat = await create();
+  const cf = cat.film!;
+  check(!!cf.catalog?.theme && cf.scenes.every((s) => !!s.catalog?.layout && !!s.html && /^__ge\.scene\(/.test(s.script || '')), 'catalogue : chaque scène assemblée depuis le catalogue (configuration gardée, thème du film)', `${cf.catalog?.theme} · ${cf.scenes.map((s) => s.catalog?.gabarit ?? s.catalog?.layout).join(', ')}`);
+  check(calls.filter((c) => c.role === 'video.template').length === 1 && !calls.some((c) => c.role === 'video.html-author'), 'catalogue : UN appel video.template pour tout le film, aucun auteur HTML', calls.map((c) => c.role).join(','));
+  check(cf.scenes.every((s) => s.status === 'ready' && !!s.thumbnail), 'catalogue : contrôle dans Chrome, toutes prêtes, vignettes prises', JSON.stringify(cf.scenes.map((s) => [s.key, s.status, s.error?.message])));
+  const cprev = (await service.previewHtml('u1', 'p1', cat.id)) || '';
+  check(/Le café qui réveille Dakar/.test(cprev) && /window\.__ge/.test(cprev) && /id="ge-fx"/.test(cprev) && /data-f="st"/.test(cprev), 'catalogue : aperçu autonome (textes exacts, runtime, calque des transitions, format)');
+  fs.writeFileSync(path.join(OUT, 'preview-catalog.html'), cprev);
+  calls.length = 0;
+  const before2 = cf.scenes[1].catalog;
+  const crev = await service.updateVideo('u1', 'p1', cat.id, { visual: { s2: 'le cadre entre plus lentement' } });
+  const tcall = calls.find((c) => c.role === 'video.template');
+  check(!!tcall && /CURRENT CONFIG OF s2/.test(tcall.user) && /le cadre entre plus lentement/.test(tcall.user) && !calls.some((c) => c.role === 'video.html-author') && crev!.film!.scenes[1].author?.instruction === 'le cadre entre plus lentement', 'catalogue : retouche écrite — la configuration actuelle et la consigne, un petit appel', tcall?.user.slice(-300));
+  check(JSON.stringify(crev!.film!.scenes[1].catalog?.layout) !== undefined && crev!.film!.scenes.every((s) => s.status === 'ready'), 'catalogue : le film est réassemblé et recontrôlé après la retouche', JSON.stringify({ before: before2?.gabarit ?? before2?.layout, after: crev!.film!.scenes[1].catalog?.gabarit ?? crev!.film!.scenes[1].catalog?.layout }));
+  calls.length = 0;
+  const regen = await service.updateVideo('u1', 'p1', cat.id, { regenerate: ['s3'] });
+  check(calls.length === 0 && JSON.stringify(regen!.film!.scenes[2].catalog?.layout) !== undefined && (regen!.film!.scenes[2].catalog?.tried?.length ?? 0) >= 1, 'catalogue : « nouvelle version » d’une scène = le candidat suivant, sans modèle', `${calls.length} appel(s)`);
 
   await closeFilmBrowser();
   console.log(`\n${passed} vérifications réussies, ${failures} en échec · fichiers : ${OUT}`);

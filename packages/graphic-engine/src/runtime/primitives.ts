@@ -105,11 +105,13 @@ function chartJsConfig(c: Chart, colors: string[], tokens: DesignTokens, hi: num
 const NUMERIC = /^[\s(+−-]*[\d\s.,]+\s*(%|[A-Za-z€$£₦]{0,4}|F\s?CFA|FCFA|XAF|XOF)?\)?\s*$/;
 
 /** Un tableau exact. Les colonnes chiffrées s'alignent à droite ; le reste du style vient de l'auteur. */
-export function tableHtml(t: Table, o: { className?: string }): string {
+/** `rows` : une plage de rangées [début, fin) — un tableau coupé entre deux pages répète son en-tête. */
+export function tableHtml(t: Table, o: { className?: string; rows?: [number, number] }): string {
   const numeric = t.headers.map((_, ci) => t.rows.filter((r) => (r[ci] ?? '').trim()).every((r) => NUMERIC.test(r[ci] ?? '')) && t.rows.some((r) => (r[ci] ?? '').trim()));
   const align = (ci: number) => (numeric[ci] ? ' class="text-right tabular-nums"' : '');
   const head = `<thead><tr>${t.headers.map((h, ci) => `<th${align(ci)}>${esc(h)}</th>`).join('')}</tr></thead>`;
-  const body = `<tbody>${t.rows.map((r) => `<tr>${t.headers.map((_, ci) => `<td${align(ci)}>${esc(r[ci] ?? '')}</td>`).join('')}</tr>`).join('')}</tbody>`;
+  const rows = o.rows ? t.rows.slice(Math.max(0, o.rows[0]), Math.max(0, o.rows[1])) : t.rows;
+  const body = `<tbody>${rows.map((r) => `<tr>${t.headers.map((_, ci) => `<td${align(ci)}>${esc(r[ci] ?? '')}</td>`).join('')}</tr>`).join('')}</tbody>`;
   // Des valeurs de départ lisibles ; les variantes de l'auteur sur la balise (`[&_th]:…`) passent devant.
   const base = 'w-full border-collapse text-left [&_th]:font-semibold [&_th]:py-[0.45em] [&_th]:px-[0.6em] [&_th]:border-b-2 [&_th]:border-current [&_td]:py-[0.4em] [&_td]:px-[0.6em] [&_td]:border-b [&_td]:border-rule';
   return `<table data-ge-block="${esc(t.id)}" class="${esc(`${base} ${o.className ?? ''}`.trim())}">${head}${body}</table>`;

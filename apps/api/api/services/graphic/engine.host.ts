@@ -69,6 +69,14 @@ export function configureGraphicEngineForIdem(): void {
       error: (message, meta) => logger.error(message, meta),
     },
     onTrace: (trace) => logger.info('graphic.trace', traceSummary(trace)),
+    // Les surcharges du catalogue de gabarits (nœuds retirés, poids) : `platform_settings/catalog`, posé par
+    // `PUT /catalog/overrides`, relu toutes les 15 s par le moteur.
+    catalogOverrides: async () => {
+      const mongoose = (await import('mongoose')).default;
+      if (mongoose.connection.readyState !== 1) return {};
+      const doc = (await mongoose.connection.collection('platform_settings').findOne({ _id: 'catalog' } as any)) as { disabled?: string[]; weights?: Record<string, number> } | null;
+      return { disabled: Array.isArray(doc?.disabled) ? doc!.disabled : [], weights: doc?.weights && typeof doc.weights === 'object' ? doc.weights : {} };
+    },
     recentFingerprints: async (scope) => (await cacheService.get<string[]>(fingerprintKey(scope), { prefix: 'graphic' })) ?? [],
     rememberFingerprints: async (scope, fingerprints) => {
       const previous = (await cacheService.get<string[]>(fingerprintKey(scope), { prefix: 'graphic' })) ?? [];

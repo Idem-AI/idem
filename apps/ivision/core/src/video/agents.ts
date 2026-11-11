@@ -17,9 +17,10 @@ import { CopyWriter, estimateTokens } from './request/facts';
  *   video.sampler                       écrire beaucoup de variantes de scène, vite et peu cher (échantillonnage) ;
  *   video.author                        écrire et réécrire une scène difficile (le modèle de qualité du cran) ;
  *   video.judge-vlm                     départager deux finalistes sur image (optionnel, questions fermées) ;
- *   video.teacher                       hors ligne : fabriquer des scènes de référence (bibliothèque).
+ *   video.teacher                       hors ligne : fabriquer des scènes de référence (bibliothèque) ;
+ *   video.template                      choisir dans le catalogue vidéo (thème, gabarits, animations, transitions) : JSON court.
  */
-export type FilmRole = 'video.concept' | 'video.concept-explore' | 'video.planner' | 'video.author' | 'video.html-author' | 'video.reviser' | 'video.sampler' | 'video.judge-vlm' | 'video.teacher';
+export type FilmRole = 'video.concept' | 'video.concept-explore' | 'video.planner' | 'video.author' | 'video.html-author' | 'video.reviser' | 'video.sampler' | 'video.judge-vlm' | 'video.teacher' | 'video.template';
 
 export interface ModelRun {
   raw: string;
@@ -48,6 +49,7 @@ const TIMEOUTS: Record<FilmRole, number> = {
   'video.sampler': 120_000,
   'video.judge-vlm': 90_000,
   'video.teacher': 600_000,
+  'video.template': 60_000,
 };
 
 /** Un appel de modèle pour le film : jamais d'exception, une réponse (éventuellement vide) et sa raison. */

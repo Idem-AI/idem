@@ -53,6 +53,52 @@ Attributes recognised in the generated HTML:
 | `data-keep-together` | the block is never fragmented (scaled down if too tall) |
 | `data-keep-with-next` | the block stays attached to the next block |
 
+## Safety margins (10 November 2026)
+
+The verification step (7) moves a WHOLE block to an inserted page when a built page overflows its plan. A drift of a few
+pixels (rounding of cut lines) therefore used to produce a half-empty page. Two margins prevent it:
+
+- every section is **planned at 98.8 % of the page** (6 px minimum); the filling step (6) redistributes that space;
+- a section that **continues on the previous section's last page** packs into the remaining room minus 3 %.
+
+`PdfService.generatePdf` also closes its Chromium page on every path: a failed print used to leave a tab open on the
+shared browser. `pagination.debug` is now forwarded to the runtime (plan and fill traces in `report.warnings`).
+
+## Pages from the template catalogue (graphic engine 2.6)
+
+The engine assembles a business-plan page as a **flat sequence of top-level blocks** (one per content unit), never as
+rows of side-by-side zones: a multi-element row is never cut and used to be pushed whole or scaled down. Compact blocks
+(heading, chart, image, quote, hypothesis, persona…) carry `data-keep-together`; a short final quote or hypothesis is
+kept with the block before it (`data-keep-with-next`). Vertical spacing is padding or child margins
+(`*:not-first:mt-[…]`), never a flex `gap` (the paginator re-applies measured gaps as margins: a `gap` was counted twice).
+Images in a flow page have an explicit height. Check: `npm run check:bpcatalog` (real `PdfService`, every business-plan
+template: no near-blank page, no scaled block, no block moved by the safety net, no section page under 60 %, all text
+printed).
+
+## Business-plan pages composed by the engine (graphic engine 2.6.2, 11 November 2026)
+
+In catalogue mode the engine no longer hands the paginator a flow to re-cut: it **composes the A4 pages itself**
+(`renderPaged`, `packages/graphic-engine/src/catalog/paginate.ts`), and the preview and the PDF show the same sheets.
+
+1. The flow is laid out once in Chromium at full width; every block (`data-ge-piece`) is measured, with its list items
+   (`data-ge-item`) and table rows.
+2. `packPages` fills 297 mm pages minus 12 mm print margins: a block that fits is placed; a list is cut between items and
+   a table between rows (header repeated, `data-rows="a-b"`); compact blocks are never cut; a heading never ends a page;
+   never a single item on either side of a cut in a list of 4+.
+3. The end of a section stays together: a final block overflowing by ≤ 6 % stays on its page, and when the last page of a
+   section would be under 25 % full, the section is packed again up to 14 % tighter. An over-full page is tightened by a
+   computed `zoom` (full width kept, text reflows) — never cropped.
+4. Figures too long for their cell (`*.value`, `*.offer` overflowing, or more than two lines) are scaled down by the code,
+   every figure of the block to the same scale.
+5. Each page is rendered and checked as a fixed canvas; the section is a list of `<div data-ge-page="n">` sheets.
+
+`PdfService` prints such a section with `data-paged="1"`: the runtime turns each sheet into an `idem-page` as is (no
+re-measure, no re-cut). The shared editor's preview (`editor-iframe.ts`) shows each sheet as a fixed A4 page and no longer
+loads the Tailwind CDN when every section carries its compiled sheet (`data-ge-tailwind`), nor rewrites engine roots.
+`GRAPHIC_BP_PAGED=0` falls back to the flow. Known limit: every section starts on a new page.
+
+`npm run check:bpcatalog` also checks the preview: same pages per section as the PDF, no sheet overflowing.
+
 ## Special cases
 
 - **Cover**: passed in `fixedPageSections`, it is rendered as is on an exact page (full-page composition, never stretched or re-cut).

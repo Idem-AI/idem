@@ -102,9 +102,8 @@ WORKDIR /app
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 ENV NODE_ENV=${BUILD_ENV:-production}
-# Bibliothèque d'exemples du moteur graphique (phase 5 du plan qualité) : copiée avec /app/packages ci-dessous.
-# `IDEM_QUALITY_EXAMPLES=0` la coupe sans reconstruire l'image.
-ENV IDEM_EXAMPLES_FILE=/app/packages/graphic-engine/library/examples.json
+# L'instantané du catalogue de gabarits : le repli quand le CDN (IDEM_TEMPLATES_URL) ne répond pas.
+ENV IDEM_TEMPLATES_SNAPSHOT=/app/packages/graphic-engine/catalog/snapshot.json
 
 # Copy built application and dependencies
 COPY --from=builder --chown=apiuser:nodejs /app/apps/api/package*.json ./
@@ -112,6 +111,8 @@ COPY --from=builder --chown=apiuser:nodejs /app/apps/api/dist ./dist
 COPY --from=builder --chown=apiuser:nodejs /app/apps/api/public ./public
 # Les sources du runtime vidéo (kit, harnais, lecteur, exemples) : esbuild les compile avec chaque film.
 COPY --from=builder --chown=apiuser:nodejs /app/apps/ivision/core/motion ./dist/apps/ivision/core/motion
+# L'instantané du catalogue VIDÉO (repli quand le CDN ne répond pas) : `npm run catalog:video-snapshot` dans le cœur.
+COPY --from=builder --chown=apiuser:nodejs /app/apps/ivision/core/catalog ./dist/apps/ivision/core/catalog
 
 # Copy node_modules from root (npm installs them there in monorepo)
 COPY --from=builder --chown=apiuser:nodejs /app/node_modules ./node_modules

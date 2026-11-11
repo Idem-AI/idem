@@ -408,11 +408,11 @@ export class MontageService {
         if (!canVideo) return null;
         try {
           const clip = await generateClip(
-            { prompt: promptText, orientation, durationSec: 6, quality: 'speed', model: 'google/gemini-omni-1.2-flash' },
+            { prompt: promptText, orientation, durationSec: 6, quality: 'speed', model: 'google/veo-3.1-fast' },
             storage,
             folder
           );
-          return { video: clip.url, poster: clip.posterUrl, credit: 'Généré (google/gemini-omni-1.2-flash)' };
+          return { video: clip.url, poster: clip.posterUrl, credit: 'Généré (google/veo-3.1-fast)' };
         } catch (error: any) {
           logger.warn('montage.broll_video_failed', { montageId: id, error: error?.message });
           return null;

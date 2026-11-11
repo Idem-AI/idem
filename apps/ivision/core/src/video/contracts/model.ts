@@ -417,6 +417,9 @@ export interface FilmScene {
   judge?: { score: number; features?: Record<string, number>; candidates: number; authored: number; report?: string[]; failed?: string[]; tieBreak?: boolean; rescued?: string };
   /** La seconde meilleure variante (bascule sans appel de modèle si la première échoue au contrôle réel). */
   runnerUp?: { intent: SceneIntent; variant: VariantChoice; score: number };
+  /** Rendu par le CATALOGUE vidéo : la configuration de la scène (mise en page, animations, transition) — le HTML et
+   *  le script s'en recalculent sans modèle ; les configurations déjà essayées (correction sans modèle). */
+  catalog?: import('../catalog/types').SceneConfig & { tried?: string[] };
 }
 
 export interface FilmAgentTrace {
@@ -432,6 +435,8 @@ export interface VideoFilm {
   version: 2;
   /** Le moteur de rendu : HyperFrames (HTML animé, défaut depuis le 04/11/2026) ou Motion Canvas (repli). */
   engine: 'motion-canvas' | 'hyperframes';
+  /** Film assemblé depuis le catalogue vidéo : la version du catalogue et le thème du film. */
+  catalog?: import('../catalog/types').FilmCatalogInfo;
   title: string;
   /** Le concept du film, en une ou deux phrases. */
   concept: string;
