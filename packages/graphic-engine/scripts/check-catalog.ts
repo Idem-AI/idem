@@ -87,7 +87,7 @@ const CHARTER_TWO = (): SectionContent => {
 /** Une couverture de réseau réelle porte peu de mots : une accroche et un sur-titre. */
 const SHORT_COVER: SectionContent = { id: 'banner', role: 'visual', title: 'Bannière', blocks: [{ id: 'copy', kind: 'copy', kicker: 'Fintech à Douala', headline: 'Le crédit simple pour les commerçants' }] };
 
-const ELEMENTS: CatalogElement[] = ['business-plan', 'pitch-deck', 'brand-charter', 'business-card', 'social-visual', 'social-cover'];
+const ELEMENTS: CatalogElement[] = ['business-plan', 'pitch-deck', 'brand-charter', 'business-card', 'social-visual', 'social-cover', 'print-flyer', 'web-banner'];
 
 async function main(): Promise<void> {
   title('§1 Le dépôt se charge');

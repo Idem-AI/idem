@@ -250,9 +250,11 @@ export const FORMATS: Record<FormatId, FormatDef> = {
     minSize: Math.round(mm(850) / 40),
   },
   // Publicité en ligne : toiles exactes de l'IAB, pas de marge perdue.
-  'ad-leaderboard': visual('ad-leaderboard', 'cover', 728, 90, { pad: 10, safe: even(10), base: 16, minSize: 11, maxSize: 34 }),
-  'ad-rectangle': visual('ad-rectangle', 'cover', 300, 250, { pad: 16, safe: even(16), base: 16, minSize: 11, maxSize: 54 }),
-  'ad-skyscraper': visual('ad-skyscraper', 'cover', 160, 600, { pad: 12, safe: even(12), base: 14, minSize: 10, maxSize: 40 }),
+  // Plancher à 9 px : une publicité se lit à 40 cm d'un écran, pas à deux mètres.
+  'ad-leaderboard': visual('ad-leaderboard', 'cover', 728, 90, { pad: 8, safe: even(8), base: 15, minSize: 9, maxSize: 30 }),
+  'ad-rectangle': visual('ad-rectangle', 'cover', 300, 250, { pad: 14, safe: even(14), base: 15, minSize: 10, maxSize: 48 }),
+  // Gratte-ciel : 144 px de large une fois la marge retirée — le titre y part déjà petit, sinon rien ne tient.
+  'ad-skyscraper': visual('ad-skyscraper', 'cover', 160, 600, { pad: 8, safe: even(8), base: 12, minSize: 9, maxSize: 18 }),
   'email-header': visual('email-header', 'cover', 600, 200, { pad: 24, safe: even(24), base: 18, minSize: 12, maxSize: 56 }),
   'chart-free': {
     id: 'chart-free',
