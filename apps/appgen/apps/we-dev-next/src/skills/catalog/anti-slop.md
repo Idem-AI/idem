@@ -17,7 +17,7 @@ Match and refuse. If you are about to write one of these, rewrite the element wi
 - **Gradient text.** `bg-clip-text` over a gradient. Decorative, never meaningful. One solid colour; emphasis through weight or size.
 - **Inter as the default typeface.** Use the fonts named in the design system. If none were given, anything but Inter.
 - **The three-identical-cards row.** `grid-cols-3` of icon + heading + two lines of text, repeated. If three things genuinely differ, express the difference: different sizes, different weights, one of them wide.
-- **Tiny uppercase tracked eyebrows above every section.** `text-xs uppercase tracking-widest` reading "ABOUT" / "FEATURES" / "PRICING". One named kicker used deliberately is voice; an eyebrow on every section is generated grammar.
+- **Tiny uppercase tracked eyebrows above a title.** `text-xs uppercase tracking-widest` reading "ABOUT" / "FEATURES" / "PRICING" above a heading. Never — not even once: it is the clearest tell of generated copy, and it says nothing the heading itself does not already say.
 - **Numbered section markers as scaffolding** (`01 · About`, `02 · Process`). Numbers are for actual sequences the reader must follow in order.
 - **Coloured side-stripe borders.** `border-l-4 border-{color}` on cards, alerts, list items, blockquotes. Use a full border, a background tint, or nothing.
 - **Glassmorphism by default.** `backdrop-blur` + translucent white cards as a look. Rare and purposeful, or absent.

@@ -84,11 +84,6 @@ const VISION_INSTRUCTION = `Return ONLY strict JSON, no prose, no fences:
 Rules: subject<=80 chars, mood=1-3 adjectives, dominantColors=3-5 hex primary-first, composition<=120 chars.`;
 
 // ─── Combined generation + analysis instruction ───────────────────────────
-const COMBINED_INSTRUCTION = (searchQuery: string) =>
-  `Generate the image described above.
-Then return ONLY this strict JSON on a NEW LINE after the image (no prose, no fences):
-{"subject":string,"mood":string,"dominantColors":string[],"luminance":"dark"|"light"|"mixed","composition":string,"detectedText":string}
-Rules: subject<=80 chars describing "${searchQuery}", mood=1-3 adjectives, dominantColors=3-5 hex, composition<=120 chars empty-space guide.`;
 
 export class ImageSourcingService {
   constructor() {}

@@ -1046,7 +1046,6 @@ export class ResearchTeamService {
     const section = systemSection({
       id: 'resources',
       role: 'appendix',
-      kicker: french ? 'Références' : 'References',
       title: sectionName,
       lede: french
         ? `${total} source${total > 1 ? 's' : ''} consultée${total > 1 ? 's' : ''} et vérifiée${total > 1 ? 's' : ''}. Les numéros renvoient aux appels de note de chaque section.`

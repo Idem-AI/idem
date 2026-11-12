@@ -6,7 +6,7 @@
  * l'agent, et aucun n'est un élément de direction : la raison du choix (montrée dans la charte) et les sujets des
  * images de la marque (ce qu'on photographie, propre à son activité).
  */
-import { directionCatalog, getDirection, pickVariant, selectableDirections, type DirectionNode, type DirectionVariantField } from '@idem/graphic-engine';
+import { getDirection, pickVariant, selectableDirections, type DirectionNode, type DirectionVariantField } from '@idem/graphic-engine';
 import type { ArtDirectionModel } from './art-direction.model';
 
 export const DIRECTION_FIELDS: DirectionVariantField[] = ['tagline', 'keywords', 'grid', 'whitespace', 'signatureMove', 'recipes', 'color', 'typography', 'imagery', 'graphicDevices'];
@@ -53,11 +53,6 @@ export function recomposeArtDirection(saved: ArtDirectionModel): ArtDirectionMod
   const d = getDirection(saved.styleId);
   if (!d) return saved;
   return { ...composeArtDirection(d, saved.variants, { rationale: saved.rationale, subjects: saved.imagery?.subjects, catalogVersion: saved.catalogVersion }), ...(saved.id ? { id: saved.id } : {}), ...(saved.createdAt ? { createdAt: saved.createdAt } : {}) };
-}
-
-/** La version du catalogue des DA servi en ce moment (tracée avec chaque direction). */
-export async function directionCatalogVersion(): Promise<string> {
-  return (await directionCatalog()).version;
 }
 
 /**

@@ -54,20 +54,6 @@ const DELIVERABLE: Record<DocumentType, string> = {
   report: 'a page of a printed report',
 };
 
-const ROLE_HINT: Partial<Record<SectionRole, string>> = {
-  cover: 'the cover',
-  opening: 'an opening page',
-  closing: 'the closing page',
-  data: 'a page carried by its data',
-  comparison: 'a comparison',
-  process: 'a process',
-  specimen: 'a specimen page (exact brand assets)',
-  showcase: 'a showcase page',
-  visual: 'the whole visual',
-  'card-face': 'a card face',
-  appendix: 'an appendix page',
-};
-
 export function deliverableLine(ctx: DocumentContext): string {
   return `${DELIVERABLE[ctx.documentType]}${ctx.documentLabel ? ` (« ${ctx.documentLabel} »)` : ''}`;
 }

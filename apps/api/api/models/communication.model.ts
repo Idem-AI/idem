@@ -391,7 +391,6 @@ export interface Flyer {
   layout?: string;
   /** Les mots du visuel, case par case : une retouche les reprend et le moteur recompose la page. */
   copy?: {
-    kicker?: string;
     headline: string;
     sub?: string;
     facts: Array<{ kind: 'date' | 'time' | 'place' | 'price' | 'contact' | 'other'; text: string }>;

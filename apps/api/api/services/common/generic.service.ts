@@ -63,7 +63,7 @@ export interface SectionTemplate {
    * Titre IMPOSÉ par le livrable, à la place de celui du modèle — et son sur-titre avec lui : une charte
    * se consulte par sa nomenclature (« Déclinaison sur fond sombre »).
    */
-  heading?: { title: string; kicker?: string };
+  heading?: { title: string };
   /** Recompose les blocs (spécimens compris) avant le rendu : le logo et son explication dans UN objet. */
   composeBlocks?: (blocks: Block[]) => Block[];
   /**

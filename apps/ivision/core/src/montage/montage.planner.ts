@@ -88,7 +88,7 @@ export function buildPlannerPrompt(input: PlannerInput): { system: string; user:
     '- Never invent a fact, number, name or contact. Displayed text comes from what is said (or from the request).',
     '- Respect the request: if it asks for a style, a call to action or specific elements, do it.',
     `- captions: pick "pop" (bold, word-by-word, energetic), "karaoke" (full line, the spoken word lights up) or "minimal" (calm, sober).`,
-    `- intro: an animated opening title (motion design, 2.5 s, before the speech) — {title (≤ 6 words: the hook of the video, in the speech language), kicker? (≤ 3 words)} — when the request asks for an intro / opening / title, or when the speech starts abruptly; otherwise null.`,
+    `- intro: an animated opening title (motion design, 2.5 s, before the speech) — {title (≤ 6 words: the hook of the video, in the speech language)} — when the request asks for an intro / opening / title, or when the speech starts abruptly; otherwise null.`,
     `- outro: a 2.5 s end card after the speech — {text (≤ 6 words, the call or the brand promise), detail? (contact from request/contacts only)} — or null when the video must end on the speaker.`,
     '- title: ≤ 6 words naming the video, same language as the speech.',
     'Answer with ONE JSON object only: {"title":"…","captions":"pop|karaoke|minimal","elements":[…],"intro":{…}|null,"outro":{…}|null}',
@@ -257,8 +257,7 @@ function introOf(raw: any, input: PlannerInput): MontageIntro | undefined {
   if (!title) return undefined;
   const heardDigits = digits(input.words.map((w) => w.text).join(' ') + ' ' + input.prompt).split(' ');
   if (digits(title) && !digits(title).split(' ').every((d) => heardDigits.includes(d))) return undefined;
-  const kicker = wordsMax(clip(raw.kicker, 30), 3);
-  return { title, ...(kicker ? { kicker } : {}), durationSec: INTRO_SEC };
+  return { title, durationSec: INTRO_SEC };
 }
 
 /** L'intro demandée en clair (« avec une intro », « un générique d'ouverture »). */
@@ -438,7 +437,7 @@ Answer with the FULL new edit in the same JSON, plus:
 - "settings": only what the client asked among {"music":true|false,"cuts":"tight|natural|none","format":"story|square|portrait|landscape"} (or {}),
 - "reply": ONE short friendly sentence in the client's language saying what you changed (no jargon).`;
   const user = `${base.user}
-CURRENT EDIT: ${JSON.stringify({ captions: current.captions, elements: describe, intro: current.intro ? { title: current.intro.title, kicker: current.intro.kicker } : null, outro: current.outro ? { text: current.outro.text, detail: current.outro.detail } : null })}
+CURRENT EDIT: ${JSON.stringify({ captions: current.captions, elements: describe, intro: current.intro ? { title: current.intro.title } : null, outro: current.outro ? { text: current.outro.text, detail: current.outro.detail } : null })}
 CLIENT FEEDBACK: ${feedback.slice(0, 600)}`;
   try {
     const json = extractJson(await writer(system, user));

@@ -18,10 +18,6 @@ export function stableHash(value: unknown, length = 12): string {
   return createHash('sha1').update(canonicalJson(value)).digest('hex').slice(0, length);
 }
 
-export function textHash(text: string, length = 12): string {
-  return createHash('sha1').update(text).digest('hex').slice(0, length);
-}
-
 /** Identifiant court et lisible : `prefix-1a2b3c4d`. */
 export function shortId(prefix: string, ...parts: unknown[]): string {
   return `${prefix}-${stableHash(parts, 8)}`;

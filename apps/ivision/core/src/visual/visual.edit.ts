@@ -68,7 +68,7 @@ export function visualRetouchPrompt(i: Pick<VisualEditInput, 'instruction' | 'la
       `You RETOUCH one existing social-media visual of the brand "${i.context.brandName}". The user wants THIS visual changed, not a new one: change ONLY what is asked, everything else stays exactly as it is.`,
       'You get its WORDS (JSON). Answer with ONE JSON object:',
       '{"newRequest": true ONLY if the message asks for a different visual about another subject (not a change of this one),',
-      ' "words": {"kicker": string|null, "headline": string, "sub": string|null, "facts": [{"kind": "date|time|place|price|contact|other", "text": string}], "offer": string|null, "quote": {"text": string, "author": string|null}|null} — ALL the words after the change (unchanged ones copied as they are),',
+      ' "words": {"headline": string, "sub": string|null, "facts": [{"kind": "date|time|place|price|contact|other", "text": string}], "offer": string|null, "quote": {"text": string, "author": string|null}|null} — ALL the words after the change (unchanged ones copied as they are),',
       ' "design": "the change of FORM asked (size, position, colour, emphasis, logo place, background…), in English, precise — or null when only words or the photo change",',
       ' "photo": "keep|remove|replace", "photoIdea": "english description of the new photo scene, only when replace",',
       ' "layout": "keep" — "change" only if the user asks for another layout, composition or version,',

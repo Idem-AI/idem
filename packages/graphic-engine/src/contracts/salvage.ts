@@ -138,9 +138,6 @@ function listOf(node: HtmlNode): Record<string, unknown> | null {
   return titled.length === items.length && titled.length >= 2 ? { kind: 'cards', items: titled } : { kind: 'prose', paragraphs: texts };
 }
 
-const looksLikeKicker = (node: HtmlNode, text: string): boolean =>
-  Boolean(text) && text.length <= 60 && (/uppercase|tracking-wid/.test(node.classes) || (text === text.toUpperCase() && /[A-ZÀ-Ÿ]/.test(text)));
-
 /**
  * La sortie est-elle une PAGE HTML, et non du JSON mal formé ? Un contenu tronqué contient souvent des
  * balises DANS ses chaînes : on exige que la sortie COMMENCE par une balise (clôture de code retirée).
@@ -159,7 +156,6 @@ export function salvageHtmlSection(html: string, fallbackTitle: string, options:
   const elements: HtmlNode[] = [];
   flatten(parse(html), elements);
 
-  let kicker: string | undefined;
   let title = '';
   let lede: string | undefined;
   const blocks: Array<Record<string, unknown>> = [];
@@ -204,10 +200,6 @@ export function salvageHtmlSection(html: string, fallbackTitle: string, options:
       continue;
     }
     flushCards();
-    if (!title && !kicker && looksLikeKicker(element, text)) {
-      kicker = text;
-      continue;
-    }
     if (title && !lede && !blocks.length && !prose.length && text.length <= 320) {
       lede = text;
       continue;
@@ -217,5 +209,5 @@ export function salvageHtmlSection(html: string, fallbackTitle: string, options:
   flushProse();
   flushCards();
   if (!title && !blocks.length) return null;
-  return normalizeSection({ ...(kicker ? { kicker } : {}), title: title || fallbackTitle, ...(lede ? { lede } : {}), blocks }, { id: options.id }).section;
+  return normalizeSection({ title: title || fallbackTitle, ...(lede ? { lede } : {}), blocks }, { id: options.id }).section;
 }

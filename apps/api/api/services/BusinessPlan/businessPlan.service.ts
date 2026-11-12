@@ -695,7 +695,6 @@ export class BusinessPlanService extends GenericService {
         id: pageId(section.name),
         brandName: project.name || 'Marque',
         documentLabel: 'Business plan',
-        kicker: brief.kicker,
         promise: brief.promise,
         detail: BUSINESS_PLAN_AUDIENCE_LABEL[audience as BusinessPlanAudience],
         dateLabel: coverDateLabel(),

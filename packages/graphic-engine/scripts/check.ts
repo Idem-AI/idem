@@ -33,8 +33,6 @@ import { applyTextEdits } from '../src/runtime/content-map';
 import { exportPptx } from '../src/export/pptx';
 import { sectionHtml } from '../src/adapters/sections';
 import { BRANDS, CARD_BACK, CARD_FRONT, FINANCE_BP, MARKET } from './fixtures';
-import { TEXT_BUDGETS } from '../src/content/analyze';
-import { slideEssentials } from '../src/content/slide-diet';
 import { chartFromTable, parseFigure, withDataChart } from '../src/content/data-charts';
 import { coverContent, sectionFromModel } from '../src/adapters/sections';
 import { planAssets, resolveAssets } from '../src/asset-planner';

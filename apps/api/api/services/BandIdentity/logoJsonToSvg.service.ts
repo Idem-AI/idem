@@ -147,7 +147,6 @@ export class LogoJsonToSvgService {
 
     // Calculate aspect ratios
     const iconRatio = iconWidth / iconHeight;
-    const textRatio = textWidth / textHeight;
 
     // Determine optimal layout based on dimensions
     let optimalPosition: 'right' | 'bottom';

@@ -500,7 +500,7 @@ export class MontageService {
   async update(
     userId: string,
     id: string,
-    patch: { captions?: string; words?: Record<string, string>; elements?: unknown[]; intro?: { title?: string; kicker?: string } | null; outro?: { text?: string; detail?: string } | null; music?: boolean; cuts?: string; format?: string; title?: string }
+    patch: { captions?: string; words?: Record<string, string>; elements?: unknown[]; intro?: { title?: string } | null; outro?: { text?: string; detail?: string } | null; music?: boolean; cuts?: string; format?: string; title?: string }
   ): Promise<MontageVideo | null> {
     const found = await this.store.get(userId, id);
     if (!found) return null;
@@ -521,7 +521,7 @@ export class MontageService {
       if (patch.intro === null) next.intro = undefined;
       else if (patch.intro && typeof patch.intro === 'object') {
         const title = String(patch.intro.title || '').trim().slice(0, 60);
-        next.intro = title ? { title, kicker: String(patch.intro.kicker || '').trim().slice(0, 30) || undefined, durationSec: m.intro?.durationSec || 2.6 } : undefined;
+        next.intro = title ? { title, durationSec: m.intro?.durationSec || 2.6 } : undefined;
       }
       if (patch.outro === null) next.outro = undefined;
       else if (patch.outro && typeof patch.outro === 'object') {

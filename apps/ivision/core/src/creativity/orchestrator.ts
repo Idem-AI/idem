@@ -175,7 +175,3 @@ export class CreativeOrchestrator {
   }
 }
 
-/** Adapte un rédacteur simple (system, user → texte) en appel d'agent — contrôles, modules existants. */
-export function writerCall(writer: ((system: string, user: string) => Promise<string>) | undefined): AgentCall | undefined {
-  return writer ? ({ system, user }) => writer(system, user) : undefined;
-}

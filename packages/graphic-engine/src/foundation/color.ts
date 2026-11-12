@@ -217,25 +217,6 @@ export function mixHex(a: string, b: string, t: number): string {
   return rgbToHex({ r: ra.r + (rb.r - ra.r) * k, g: ra.g + (rb.g - ra.g) * k, b: ra.b + (rb.b - ra.b) * k });
 }
 
-/** `rgba(r,g,b,a)` d'une couleur hexadécimale. */
-export function withAlpha(hex: string, alpha: number): string {
-  const rgb = hexToRgb(hex) ?? { r: 0, g: 0, b: 0 };
-  const c = (v: number) => Math.round(v * 255);
-  return `rgba(${c(rgb.r)},${c(rgb.g)},${c(rgb.b)},${Math.round(clamp(alpha, 0, 1) * 1000) / 1000})`;
-}
-
-/** Décale la clarté OKLCH (positif = plus clair). */
-export function shiftLightness(hex: string, delta: number): string {
-  const oklch = hexToOklch(hex);
-  return oklch ? oklchToHex({ ...oklch, l: clamp(oklch.l + delta, 0, 1) }) : hex;
-}
-
-/** Multiplie le chroma (0 = gris, 1 = inchangé). */
-export function scaleChroma(hex: string, factor: number): string {
-  const oklch = hexToOklch(hex);
-  return oklch ? oklchToHex({ ...oklch, c: Math.max(0, oklch.c * factor) }) : hex;
-}
-
 /** Distance perceptuelle approchée entre deux couleurs (norme euclidienne dans OKLab, ×100). */
 export function colorDistance(a: string, b: string): number {
   const ca = hexToOklch(a);

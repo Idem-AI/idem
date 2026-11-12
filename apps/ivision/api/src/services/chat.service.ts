@@ -190,10 +190,6 @@ const FEEDBACK = /(pas (?:assez |tr[eè]s )?(?:pro|professionn?el|beau|terrible|
 /** Un AUTRE visuel demandé en clair (et non une retouche du visuel en cours). */
 const NEW_VISUAL = /\b(?:nouveau|nouvelle|autre|deuxi[eè]me|second)\s+(?:visuel|affiche|flyer|publication|post|story|banni[eè]re|image)|^\s*(?:(?:fais|cr[ée]e|g[ée]n[èe]re)(?:-moi)?|je veux|je voudrais|j['’]aimerais)\s+(?:une?|des)\s+(?:visuels?|affiches?|flyers?|publications?|posts?|stor(?:y|ies)|banni[eè]res?|images?)|^\s*une?\s+(?:petite?\s+)?(?:affiche|visuel|flyer|publication|post|story|banni[eè]re)\s+(?:pour|sur|qui|de|annon)|\bnew (?:visual|poster|post|flyer)|\banother (?:visual|poster|flyer)|^\s*an? (?:poster|visual|flyer|post) (?:for|about)/i;
 
-export function isNewVisual(text: string): boolean {
-  return NEW_VISUAL.test(text);
-}
-
 export function isFeedback(text: string): boolean {
   return FEEDBACK.test(text) && text.split(/\s+/).length <= 16;
 }

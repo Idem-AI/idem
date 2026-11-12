@@ -80,7 +80,6 @@ const KIND_ALIASES: Record<string, BlockKind> = {
   numbers: 'metrics',
 };
 
-const HEX_RE = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
 const URL_RE = /^(https?:\/\/|\/|\.\/|\.\.\/|data:image\/(png|jpe?g|gif|webp|svg\+xml|avif);)/i;
 const CHART_TYPES = new Set<string>(['bar', 'groupedBar', 'stacked', 'horizontalBar', 'line', 'area', 'pie', 'doughnut', 'radar']);
 
@@ -247,7 +246,6 @@ function buildBlock(kind: string, b: Record<string, unknown>): Record<string, un
         .slice(0, 5);
       const quote = b.quote && typeof b.quote === 'object' ? (b.quote as Record<string, unknown>) : null;
       return {
-        ...(clip(b.kicker, 60) ? { kicker: clip(b.kicker, 60) } : {}),
         headline,
         ...(clip(b.subhead, 240) ? { subhead: clip(b.subhead, 240) } : {}),
         ...(clip(b.body, 600) ? { body: clip(b.body, 600) } : {}),
@@ -329,7 +327,6 @@ export function normalizeSection(raw: unknown, options: NormalizeOptions = {}): 
   const section: SectionContent = {
     id: options.id && ID_RE.test(options.id) ? options.id : slug(title),
     ...(options.role ? { role: options.role } : {}),
-    ...(clip(input.kicker, 80) ? { kicker: clip(input.kicker, 80) } : {}),
     title,
     ...(clip(input.lede, 320) ? { lede: clip(input.lede, 320) } : {}),
     blocks: blocks.slice(0, 40),
@@ -370,5 +367,3 @@ export function normalizeIntent(raw: unknown, base: NormalizeOptions['intent'], 
   };
 }
 
-/** Une couleur hexadécimale valide, ou le repli. */
-export const hexOr = (value: unknown, fallback: string): string => (typeof value === 'string' && HEX_RE.test(value.trim()) ? value.trim() : fallback);

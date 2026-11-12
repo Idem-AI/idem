@@ -160,8 +160,6 @@ variant: outline | flat | elevated | filled (défaut : celle du thème). Bordure
   { module: 'switch', exports: ['Switch'], usage: `<Switch id="s" aria-label="…" />` },
 ];
 
-export const CATALOG_MODULES = new Set(CATALOG.map((entry) => entry.module));
-
 export const catalogEntry = (module: string): ComponentContract | undefined =>
   CATALOG.find((entry) => entry.module === module);
 

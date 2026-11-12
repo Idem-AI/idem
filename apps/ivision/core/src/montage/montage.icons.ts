@@ -174,9 +174,3 @@ export function conceptFor(text: string, exclude: string[] = []): string | null 
   return best?.id ?? null;
 }
 
-/** Concept validé : celui proposé par le modèle s'il existe, sinon le repli par mots-clés, sinon `check`. */
-export function resolveConcept(proposed: string | undefined, text: string, used: string[]): string {
-  const p = (proposed || '').toLowerCase().trim();
-  if (p && ICON_CONCEPTS[p] && !used.includes(p)) return p;
-  return conceptFor(text, used) || (used.includes('check') ? 'star' : 'check');
-}

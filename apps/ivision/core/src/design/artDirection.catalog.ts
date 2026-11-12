@@ -90,7 +90,3 @@ export function resolveStyle(id?: string | null): ArtDirectionStyle {
   return toStyle(d);
 }
 
-/** La fiche complète (déclinaisons, inspirations), pour la charte et l'agent qui choisit. */
-export function directionNode(id?: string | null): DirectionNode | undefined {
-  return getDirection(id);
-}

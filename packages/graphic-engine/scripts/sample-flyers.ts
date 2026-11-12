@@ -50,7 +50,7 @@ const MESSAGES = (i: number): SectionContent[] => [
     role: 'visual',
     title: 'Visuel',
     blocks: [
-      { id: 'copy', kind: 'copy', kicker: 'Atelier pratique', headline: 'La tech au féminin prend le micro', subhead: 'Une soirée de témoignages et d’ateliers pour se lancer', facts: [{ label: 'Date', text: 'Samedi 18 octobre' }, { label: 'Heure', text: '18 h' }, { label: 'Lieu', text: 'Akwa, Douala' }] },
+      { id: 'copy', kind: 'copy', headline: 'La tech au féminin prend le micro', subhead: 'Une soirée de témoignages et d’ateliers pour se lancer', facts: [{ label: 'Date', text: 'Samedi 18 octobre' }, { label: 'Heure', text: '18 h' }, { label: 'Lieu', text: 'Akwa, Douala' }] },
       { id: 'photo', kind: 'figure', url: pic(i), alt: 'Une intervenante sur scène' },
     ],
   },
@@ -58,7 +58,7 @@ const MESSAGES = (i: number): SectionContent[] => [
     id: 'offer',
     role: 'visual',
     title: 'Visuel',
-    blocks: [{ id: 'copy', kind: 'copy', kicker: 'Jusqu’au 30 novembre', headline: 'Vos intrants livrés au village', subhead: 'Commandez par un simple appel, payez à la livraison', offer: '−20 %', facts: [{ text: 'Livraison en 48 h' }, { text: 'Sans smartphone' }] }],
+    blocks: [{ id: 'copy', kind: 'copy', headline: 'Vos intrants livrés au village', subhead: 'Commandez par un simple appel, payez à la livraison', offer: '−20 %', facts: [{ text: 'Livraison en 48 h' }, { text: 'Sans smartphone' }] }],
   },
   {
     id: 'quote',
@@ -74,7 +74,7 @@ const MESSAGES = (i: number): SectionContent[] => [
     role: 'visual',
     title: 'Visuel',
     blocks: [
-      { id: 'copy', kind: 'copy', kicker: 'Nouveau', headline: 'Le marché vient à vous', subhead: 'AgriLink relie 2 000 producteurs aux acheteurs de Douala', body: 'Un numéro, une commande, une livraison suivie par SMS.', footnote: 'agrilink.cm' },
+      { id: 'copy', kind: 'copy', headline: 'Le marché vient à vous', subhead: 'AgriLink relie 2 000 producteurs aux acheteurs de Douala', body: 'Un numéro, une commande, une livraison suivie par SMS.', footnote: 'agrilink.cm' },
       { id: 'photo', kind: 'figure', url: pic(i + 2), alt: 'Un étal de légumes au marché' },
     ],
   },

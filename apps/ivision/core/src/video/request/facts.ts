@@ -45,12 +45,6 @@ const RE = {
   place: /\b(?:à|au|aux|at|in)\s+((?:[A-ZÀ-Ý][\p{L}'’-]*|\d+)(?:\s+(?:de|du|des|la|le|d’|d'|[A-ZÀ-Ý][\p{L}'’-]*|\d+)){0,5})/gu,
 };
 
-/** Mots qui suivent un nombre sans en faire un chiffre-clé (dates, monnaies, unités). */
-const STAT_STOP = new RegExp(
-  `^(?:${MONTHS}|${DAYS}|fcfa|cfa|xof|xaf|euros?|usd|dollars?|francs?|naira|cedis?|shillings?|dirhams?|cl|ml|kg|km|cm|mm|grammes?|litres?|liters?|heures?|hours?|minutes?|min|jours?|days?|ans?|years?|am|pm|h)$`,
-  'i'
-);
-
 const uniq = (values: string[]): string[] => {
   const seen = new Set<string>();
   return values

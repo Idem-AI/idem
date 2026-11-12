@@ -384,8 +384,6 @@ export const OPENROUTER_DEFAULT_ROLES: Record<ModelRole, string> = {
 /** Repli du fournisseur : modèles ouverts de la liste, d'une autre famille en dernier. */
 /** Vidéo par défaut (dérogation produit à l'open-weight, cf. `allowClosed`). */
 export const DEFAULT_VIDEO_MODEL = 'google/veo-3.1-fast';
-/** Clip en qualité (crans High/Ultra, image de départ) : Veo 3.1 (dérogation vidéo d'avant le 10/11/2026). */
-export const QUALITY_VIDEO_MODEL = process.env.IDEM_VIDEO_QUALITY_MODEL?.trim() || 'google/veo-3.1';
 
 /**
  * Les modèles des médias, sous les noms que les configurations de features

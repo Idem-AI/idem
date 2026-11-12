@@ -1,7 +1,7 @@
 import { getRequestLanguage } from '../../utils/request-language';
 import logger from '../../config/logger';
 import { ProjectModel } from '../../models/project.model';
-import { LLMProvider, PromptService } from '../prompt.service';
+import { PromptService } from '../prompt.service';
 import { AI_CONFIG } from '../../config/ai.config';
 import { isRateLimited } from '../../utils/retry';
 import { SvgToPsdService } from '../svgToPsd.service';
@@ -15,7 +15,6 @@ import {
   FontSourceId,
   TypographyModel,
 } from '../../models/brand-identity.model';
-import { LOGO_GENERATION_PROMPT } from './prompts/singleGenerations/00_logo-generation-section.prompt';
 import { LOGO_GENERATION_ICON_TYPE_PROMPT } from './prompts/singleGenerations/00_logo-generation-icon-type.prompt';
 import { LOGO_GENERATION_NAME_TYPE_PROMPT } from './prompts/singleGenerations/00_logo-generation-name-type.prompt';
 import { LOGO_GENERATION_INITIAL_TYPE_PROMPT } from './prompts/singleGenerations/00_logo-generation-initial-type.prompt';
@@ -42,7 +41,6 @@ import {
 
 import { buildArtDirectionChoicePrompt, buildArtDirectionVariantsPrompt, ArtDirectionPromptInput } from './prompts/singleGenerations/art-direction.prompt';
 import { ArtDirectionModel } from '../../models/art-direction.model';
-import { resolveStyle } from '../brand/artDirection.catalog';
 import { getDirection, directionCatalog } from '@idem/graphic-engine';
 import { directionFromReplies, DIRECTION_FIELDS, recomposeArtDirection } from '../../../../ivision/core/src/brand/art-direction.compose';
 import {
@@ -126,7 +124,6 @@ import {
 import { LOGO_VARIATION_CRITIQUE_PROMPT } from './prompts/singleGenerations/logo-variation-critique.prompt';
 import { resolveSvgContent } from '../logo-import.service';
 import { parseLlmJson } from '../../utils/llm-json.util';
-import { summarizeLogoForPrompt } from '../../utils/logo-context.util';
 import { LOGO_VARIATION_RECOLOR_PROMPT } from './prompts/singleGenerations/logo-variation-recolor.prompt';
 import { PdfService, PAGE_FORMATS } from '../pdf.service';
 import { cacheService } from '../cache.service';
@@ -135,7 +132,6 @@ import { cacheService } from '../cache.service';
 const RECENT_GRAMMARS_KEY = 'art-direction:recent-grammars';
 import crypto from 'crypto';
 import { projectService } from '../project.service';
-import { LogoJsonToSvgService } from './logoJsonToSvg.service';
 import { SvgOptimizerService } from './svgOptimizer.service';
 import {
   brandMockupService,
@@ -442,7 +438,6 @@ export class GenerationCancelledError extends Error {
 
 export class BrandingService extends GenericService {
   private pdfService: PdfService;
-  private logoJsonToSvgService: LogoJsonToSvgService;
   private storageService: StorageService;
 
   /**
@@ -538,7 +533,6 @@ export class BrandingService extends GenericService {
   constructor(promptService: PromptService) {
     super(promptService);
     this.pdfService = new PdfService();
-    this.logoJsonToSvgService = new LogoJsonToSvgService();
     this.storageService = new StorageService();
     logger.info('BrandingService initialized with optimized logo generation');
   }
@@ -966,7 +960,6 @@ export class BrandingService extends GenericService {
     const level = normalizeCreativity(creativity);
 
     // Generate cache key based on project content
-    const branding = project.analysisResultModel?.branding;
     // Description BRUTE du projet : la génération d'images la reprend telle quelle.
     const baseProjectDescription = this.extractProjectDescription(project);
     // Le PRÉFIXE des rédacteurs de la charte : ce qui sert à ÉCRIRE — le projet, la marque, sa direction,
@@ -1403,7 +1396,6 @@ export class BrandingService extends GenericService {
                 id: pageId(step.stepName),
                 brandName: project.name || 'Marque',
                 documentLabel: 'Charte graphique',
-                kicker: brief.kicker,
                 promise: brief.promise,
                 detail: 'Version 1.0',
                 dateLabel: coverDateLabel(),
@@ -6165,425 +6157,6 @@ ${description.slice(0, 3000)}`,
       logger.error('AI recolor fallback failed (variation kept as-is):', error);
       return null;
     }
-  }
-
-  /**
-   * Infers a style hint from logo colors for typography prompt context
-   */
-  /**
-   * Construit le HTML A4 des mockups avec les vraies images générées
-   * Design dynamique basé sur l'industrie et le contexte du projet
-   */
-  private buildMockupsHtmlWithRealImages(
-    mockupResults: Array<{ url: string; title: string; description: string }>,
-    project: ProjectModel
-  ): string {
-    const branding = project.analysisResultModel?.branding;
-    const primaryColor = branding?.colors?.colors?.primary || '#1a1a2e';
-    const secondaryColor = branding?.colors?.colors?.secondary || '#16213e';
-    const accentColor = branding?.colors?.colors?.accent || '#0f3460';
-    const bgColor = branding?.colors?.colors?.background || '#ffffff';
-    const textColor = branding?.colors?.colors?.text || '#1f2937';
-    const brandName = project.name || 'Brand';
-
-    // Extraire le contexte du projet pour adapter le design
-    const projectDescription = this.extractProjectDescription(project);
-    const projectContext = this.extractProjectContext(projectDescription);
-    const industry = projectContext.industry;
-
-    logger.info('[MOCKUP][HTML] Building dynamic mockup HTML', {
-      projectId: project.id,
-      industry,
-      mockupCount: mockupResults.length,
-      brandName,
-      primaryColor,
-      secondaryColor,
-      accentColor,
-    });
-
-    const hexToRgba = (hex: string, alpha: number) => {
-      try {
-        const r = parseInt(hex.slice(1, 3), 16);
-        const g = parseInt(hex.slice(3, 5), 16);
-        const b = parseInt(hex.slice(5, 7), 16);
-        return `rgba(${r},${g},${b},${alpha})`;
-      } catch {
-        return `rgba(0,0,0,${alpha})`;
-      }
-    };
-
-    // Déterminer si le fond est sombre ou clair pour adapter le texte
-    const bgR = parseInt(bgColor.slice(1, 3), 16) || 255;
-    const bgG = parseInt(bgColor.slice(3, 5), 16) || 255;
-    const bgB = parseInt(bgColor.slice(5, 7), 16) || 255;
-    const bgLuminance = (0.299 * bgR + 0.587 * bgG + 0.114 * bgB) / 255;
-    const isDarkBg = bgLuminance < 0.5;
-    const subtitleColor = isDarkBg ? 'rgba(255,255,255,0.6)' : '#6b7280';
-    const ruleTextColor = isDarkBg ? 'rgba(255,255,255,0.7)' : '#4b5563';
-    const ruleBgAlpha = isDarkBg ? 0.15 : 0.06;
-
-    // Titre de section dynamique selon l'industrie
-    const sectionTitles: Record<string, { tag: string; title: string; subtitle: string }> = {
-      'Delivery & Logistics': {
-        tag: 'Logistique',
-        title: 'Applications Terrain',
-        subtitle: 'Mise en situation de la marque sur les supports de livraison et logistique',
-      },
-      'Food & Beverage': {
-        tag: 'Restauration',
-        title: 'Univers Culinaire',
-        subtitle: "L'identité visuelle au service de l'expérience gastronomique",
-      },
-      Healthcare: {
-        tag: 'Santé',
-        title: 'Environnement Médical',
-        subtitle: "La marque au cœur de l'univers de la santé et du bien-être",
-      },
-      Finance: {
-        tag: 'Finance',
-        title: 'Image Corporate',
-        subtitle: 'Une identité visuelle qui inspire confiance et professionnalisme',
-      },
-      Education: {
-        tag: 'Éducation',
-        title: 'Supports Pédagogiques',
-        subtitle: "La marque au service de l'apprentissage et de la formation",
-      },
-      'Retail & E-commerce': {
-        tag: 'Commerce',
-        title: 'Expérience Client',
-        subtitle: "L'identité visuelle en point de vente et en ligne",
-      },
-      'Sports & Fitness': {
-        tag: 'Sport',
-        title: 'Univers Sportif',
-        subtitle: 'La marque en mouvement, sur le terrain et en salle',
-      },
-      'Travel & Hospitality': {
-        tag: 'Voyage',
-        title: 'Expérience Voyageur',
-        subtitle: "La marque au service de l'évasion et de l'hospitalité",
-      },
-      'Beauty & Cosmetics': {
-        tag: 'Beauté',
-        title: 'Univers Beauté',
-        subtitle: "L'élégance de la marque sur les produits et en salon",
-      },
-      Construction: {
-        tag: 'Construction',
-        title: 'Présence Chantier',
-        subtitle: 'La marque visible et professionnelle sur le terrain',
-      },
-      'Real Estate': {
-        tag: 'Immobilier',
-        title: 'Visibilité Terrain',
-        subtitle: 'La marque au cœur du marché immobilier',
-      },
-      Fashion: {
-        tag: 'Mode',
-        title: 'Univers Mode',
-        subtitle: "L'identité visuelle au service du style et de l'élégance",
-      },
-      Sustainability: {
-        tag: 'Durable',
-        title: 'Engagement Responsable',
-        subtitle: 'La marque engagée pour un avenir durable',
-      },
-      Technology: {
-        tag: 'Tech',
-        title: 'Présence Digitale',
-        subtitle: "La marque dans l'écosystème numérique et technologique",
-      },
-    };
-
-    const sectionInfo = sectionTitles[industry] || {
-      tag: 'Marque',
-      title: 'Applications de Marque',
-      subtitle: "Mise en situation de l'identité visuelle dans son environnement",
-    };
-
-    // Principes d'application dynamiques selon l'industrie
-    const applicationRules: Record<string, Array<{ title: string; text: string }>> = {
-      'Delivery & Logistics': [
-        {
-          title: 'Visibilité',
-          text: 'Le logo doit être visible à distance sur les véhicules et emballages, même en mouvement.',
-        },
-        {
-          title: 'Résistance',
-          text: 'Les applications doivent résister aux conditions extérieures : pluie, soleil, usure.',
-        },
-        {
-          title: 'Reconnaissance',
-          text: 'Le client doit identifier la marque instantanément à la réception du colis.',
-        },
-      ],
-      'Food & Beverage': [
-        {
-          title: 'Appétence',
-          text: "L'identité visuelle doit évoquer la qualité et le plaisir gustatif.",
-        },
-        {
-          title: 'Hygiène',
-          text: 'Les supports doivent refléter la propreté et le soin apporté aux produits.',
-        },
-        {
-          title: 'Ambiance',
-          text: 'La marque crée une atmosphère cohérente du menu à la décoration intérieure.',
-        },
-      ],
-      Healthcare: [
-        {
-          title: 'Confiance',
-          text: "L'identité visuelle doit inspirer sérénité et professionnalisme médical.",
-        },
-        {
-          title: 'Clarté',
-          text: 'Les informations doivent être lisibles et accessibles à tous les patients.',
-        },
-        {
-          title: 'Propreté',
-          text: "Le design reflète l'environnement stérile et soigné du milieu médical.",
-        },
-      ],
-      Technology: [
-        {
-          title: 'Cohérence',
-          text: 'Maintenir les couleurs et proportions du logo sur tous les supports numériques.',
-        },
-        {
-          title: 'Adaptabilité',
-          text: "Le logo s'adapte parfaitement du favicon à l'affichage grand écran.",
-        },
-        {
-          title: 'Modernité',
-          text: "L'interface reflète l'innovation et la fiabilité technologique.",
-        },
-      ],
-      Finance: [
-        {
-          title: 'Prestige',
-          text: "L'identité visuelle doit refléter la solidité et la fiabilité financière.",
-        },
-        {
-          title: 'Sobriété',
-          text: 'Un design épuré qui inspire confiance et sérieux professionnel.',
-        },
-        {
-          title: 'Sécurité',
-          text: 'Les supports véhiculent un sentiment de protection et de confidentialité.',
-        },
-      ],
-      Education: [
-        {
-          title: 'Accessibilité',
-          text: 'Le logo doit être accueillant et lisible pour tous les publics, jeunes et adultes.',
-        },
-        {
-          title: 'Savoir',
-          text: "L'identité visuelle évoque la connaissance, la progression et l'ouverture d'esprit.",
-        },
-        {
-          title: 'Dynamisme',
-          text: "Les supports reflètent l'énergie et la motivation liées à l'apprentissage.",
-        },
-      ],
-      'Retail & E-commerce': [
-        {
-          title: 'Impact',
-          text: "Le logo doit capter l'attention immédiatement en vitrine et en ligne.",
-        },
-        {
-          title: 'Premium',
-          text: 'Le packaging et les sacs reflètent la qualité et le positionnement de la marque.',
-        },
-        {
-          title: 'Fidélisation',
-          text: "L'expérience visuelle cohérente renforce la mémorisation de la marque.",
-        },
-      ],
-      'Sports & Fitness': [
-        {
-          title: 'Énergie',
-          text: "L'identité visuelle doit transmettre dynamisme, force et motivation.",
-        },
-        {
-          title: 'Performance',
-          text: "Les supports sportifs doivent résister à l'usage intensif et rester visibles.",
-        },
-        {
-          title: 'Communauté',
-          text: "La marque fédère et crée un sentiment d'appartenance chez les sportifs.",
-        },
-      ],
-      'Travel & Hospitality': [
-        {
-          title: 'Évasion',
-          text: "L'identité visuelle évoque le voyage, la découverte et le dépaysement.",
-        },
-        {
-          title: 'Confort',
-          text: "Les supports reflètent l'hospitalité, le luxe et l'attention aux détails.",
-        },
-        {
-          title: 'Mémorabilité',
-          text: 'Le voyageur garde un souvenir positif de la marque après son expérience.',
-        },
-      ],
-      'Beauty & Cosmetics': [
-        {
-          title: 'Élégance',
-          text: 'Le packaging et les supports doivent respirer le luxe et le raffinement.',
-        },
-        {
-          title: 'Sensorialité',
-          text: "L'identité visuelle éveille les sens et évoque la beauté et le bien-être.",
-        },
-        {
-          title: 'Exclusivité',
-          text: 'Chaque application renforce le positionnement premium de la marque.',
-        },
-      ],
-      Construction: [
-        {
-          title: 'Robustesse',
-          text: 'Le logo doit être visible et lisible même sur des supports de chantier.',
-        },
-        {
-          title: 'Sécurité',
-          text: 'Les applications respectent les normes de visibilité et de sécurité.',
-        },
-        {
-          title: 'Professionnalisme',
-          text: "L'identité visuelle inspire confiance et compétence technique.",
-        },
-      ],
-      'Real Estate': [
-        {
-          title: 'Prestige',
-          text: "L'identité visuelle reflète la valeur et la qualité des biens proposés.",
-        },
-        {
-          title: 'Visibilité',
-          text: 'Le logo doit être impactant sur les panneaux, en agence et en ligne.',
-        },
-        {
-          title: 'Confiance',
-          text: "Les supports inspirent la fiabilité et l'expertise du marché immobilier.",
-        },
-      ],
-      Fashion: [
-        {
-          title: 'Style',
-          text: "L'identité visuelle incarne l'esthétique et la créativité de la marque.",
-        },
-        {
-          title: 'Tendance',
-          text: "Les applications reflètent la modernité et l'avant-garde du secteur.",
-        },
-        {
-          title: 'Distinction',
-          text: 'Chaque support renforce le caractère unique et reconnaissable de la marque.',
-        },
-      ],
-      Sustainability: [
-        {
-          title: 'Authenticité',
-          text: "L'identité visuelle reflète l'engagement sincère pour l'environnement.",
-        },
-        {
-          title: 'Nature',
-          text: 'Les supports évoquent la connexion avec la nature et le développement durable.',
-        },
-        {
-          title: 'Responsabilité',
-          text: 'Les matériaux et applications respectent les principes éco-responsables.',
-        },
-      ],
-    };
-
-    const rules = applicationRules[industry] || [
-      {
-        title: 'Cohérence',
-        text: 'Maintenir les couleurs et proportions du logo sur tous les supports.',
-      },
-      {
-        title: 'Lisibilité',
-        text: "Le logo reste lisible et impactant quelle que soit la taille d'application.",
-      },
-      {
-        title: 'Zone de protection',
-        text: 'Respecter un espace minimum autour du logo pour garantir sa visibilité.',
-      },
-    ];
-
-    // Construire les cartes de mockup
-    const mockupCards = mockupResults
-      .map((mockup, index) => {
-        const isFirst = index === 0;
-        const cardHeight = mockupResults.length === 1 ? '100%' : isFirst ? '55%' : '42%';
-
-        return `<div style="width:100%;height:${cardHeight};position:relative;overflow:hidden;border-radius:12px;box-shadow:0 8px 32px ${hexToRgba(primaryColor, 0.12)},0 2px 8px rgba(0,0,0,0.06);">
-        <img src="${mockup.url}" alt="${mockup.title}" style="width:100%;height:100%;object-fit:cover;display:block;" />
-        <div style="position:absolute;bottom:0;left:0;right:0;padding:16px 20px;background:linear-gradient(transparent,rgba(0,0,0,0.75));">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
-            <div style="width:6px;height:6px;border-radius:50%;background:${isFirst ? primaryColor : accentColor};"></div>
-            <div style="font-size:12px;font-weight:700;color:white;text-shadow:0 1px 3px rgba(0,0,0,0.5);">${mockup.title}</div>
-          </div>
-          <div style="font-size:9px;color:rgba(255,255,255,0.85);line-height:1.4;padding-left:14px;">${mockup.description}</div>
-        </div>
-      </div>`;
-      })
-      .join('\n');
-
-    // Construire les règles
-    const rulesHtml = rules
-      .map((rule, index) => {
-        const colors = [primaryColor, accentColor, secondaryColor];
-        const color = colors[index % colors.length];
-        return `<div style="flex:1;padding:10px 14px;background:${hexToRgba(color, ruleBgAlpha)};border-radius:8px;border-left:3px solid ${color};">
-        <div style="font-size:9px;font-weight:700;color:${color};margin-bottom:2px;">${rule.title}</div>
-        <div style="font-size:8px;color:${ruleTextColor};line-height:1.5;">${rule.text}</div>
-      </div>`;
-      })
-      .join('\n');
-
-    const html = `<div style="width:210mm;height:297mm;overflow:hidden;position:relative;background:${bgColor};padding:0;box-sizing:border-box;font-family:'Inter','Helvetica Neue',Arial,sans-serif;display:flex;flex-direction:column;">
-  <div style="position:absolute;top:0;right:0;width:45%;height:200px;background:linear-gradient(135deg,${hexToRgba(primaryColor, 0.05)},${hexToRgba(accentColor, 0.02)});border-bottom-left-radius:120px;"></div>
-  <div style="position:absolute;bottom:0;left:0;width:35%;height:100px;background:linear-gradient(45deg,${hexToRgba(accentColor, 0.03)},transparent);border-top-right-radius:80px;"></div>
-  <div style="position:relative;z-index:1;padding:10mm 12mm 8mm 12mm;display:flex;flex-direction:column;height:100%;gap:16px;">
-    <div style="display:flex;align-items:flex-end;justify-content:space-between;">
-      <div>
-        <div style="display:inline-block;padding:3px 10px;background:${primaryColor};color:white;border-radius:4px;font-size:7px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;">${sectionInfo.tag}</div>
-        <h2 style="margin:0;font-size:26px;font-weight:900;color:${primaryColor};letter-spacing:-0.5px;line-height:1.1;">${sectionInfo.title}</h2>
-        <p style="margin:5px 0 0 0;font-size:10px;color:${subtitleColor};font-weight:400;">${sectionInfo.subtitle}</p>
-      </div>
-      <div style="display:flex;gap:5px;align-items:center;">
-        <div style="width:20px;height:20px;border-radius:50%;background:${primaryColor};"></div>
-        <div style="width:20px;height:20px;border-radius:50%;background:${secondaryColor};"></div>
-        <div style="width:20px;height:20px;border-radius:50%;background:${accentColor};"></div>
-      </div>
-    </div>
-    <div style="width:50px;height:3px;background:linear-gradient(90deg,${primaryColor},${accentColor});border-radius:2px;"></div>
-    <div style="flex:1;display:flex;flex-direction:column;gap:12px;min-height:0;">
-      ${mockupCards}
-    </div>
-    <div style="display:flex;gap:12px;align-items:flex-start;padding-top:8px;">
-      ${rulesHtml}
-    </div>
-  </div>
-</div>`;
-
-    logger.info('[MOCKUP][HTML] Dynamic HTML built successfully', {
-      projectId: project.id,
-      industry,
-      htmlLength: html.length,
-      mockupCount: mockupResults.length,
-      rulesCount: rules.length,
-      sectionTitle: sectionInfo.title,
-    });
-
-    return html;
   }
 
   private inferStyleFromColors(colors: string[]): string {

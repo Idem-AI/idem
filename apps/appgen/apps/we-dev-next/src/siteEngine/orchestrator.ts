@@ -48,7 +48,7 @@ import { renderBrandModule, renderDataModule, renderMediaModule, renderSeo, site
 import { collectMessages, dataMessages, languageLabel, localizeCode, pseudoLocaleFiles, renderI18nFiles, translateCatalog, withHeaderLanguageSwitcher, withLanguageSwitcher } from './i18n.js';
 import { renderCheck } from './renderCheck.js';
 import { detectSiteLanguage, readSiteFacts, renderFacts, writtenInOtherLanguage } from './siteFacts.js';
-import { FUNCTIONAL_DEPENDENCIES, SITE_ENGINE_ID, templateFiles } from './template.js';
+import { SITE_ENGINE_ID, templateFiles } from './template.js';
 import { marker } from '../commands/choices.js';
 import { redesignArchitect, redesignDesign, redesignFacts, RedesignFocus } from './redesign/brief.js';
 import { prepareRedesign, RedesignContext } from './redesign/flow.js';

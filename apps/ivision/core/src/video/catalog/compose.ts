@@ -90,7 +90,7 @@ function factsOf(scenes: CatalogScene[], formats: FilmFormatId[], hasLogo: boole
 /** La forme d'une scène pour le modèle : des longueurs et des genres, jamais les mots. */
 function shapeOf(slots: SceneSlots, texts: Record<string, string>): string {
   const parts: string[] = [];
-  for (const k of ['title', 'body', 'kicker', 'figure', 'label', 'cta', 'attribution'] as const) if (slots[k]) parts.push(`${k} ${(texts[slots[k]!] ?? '').length} chars`);
+  for (const k of ['title', 'body', 'figure', 'label', 'cta', 'attribution'] as const) if (slots[k]) parts.push(`${k} ${(texts[slots[k]!] ?? '').length} chars`);
   if (slots.items.length) parts.push(`${slots.items.length} items`);
   if (slots.media) parts.push(`media ${slots.media.kind}`);
   return parts.join(', ') || 'no text';

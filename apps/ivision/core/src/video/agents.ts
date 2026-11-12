@@ -9,7 +9,7 @@
 import { coreHost } from '../runtime/host';
 import type { AgentCall, AgentCallOptions } from '../creativity/orchestrator';
 import { atLeast, CreativityLevel } from '../creativity/levels';
-import { CopyWriter, estimateTokens } from './request/facts';
+import { estimateTokens } from './request/facts';
 
 /**
  * Les rôles du film (modèle et plafond de sortie décidés par l'hôte) :
@@ -81,26 +81,3 @@ export function tierFor(level: CreativityLevel, role: 'copy' | 'strategist' | 'a
   return 'writing';
 }
 
-/** Une décision d'agent mesurée (voix, médias). */
-export interface AgentRun {
-  agent: string;
-  source: 'llm' | 'graph';
-  tokens: { input: number; output: number };
-  ms: number;
-  kept?: number;
-}
-
-const AGENT_TIMEOUT_MS = 25000;
-
-/** Un appel court par un rédacteur simple (system, user → texte) ; vide en cas de panne. */
-export async function callAgent(writer: CopyWriter | undefined, system: string, user: string): Promise<{ raw: string; tokens: { input: number; output: number }; ms: number }> {
-  const started = Date.now();
-  if (!writer) return { raw: '', tokens: { input: 0, output: 0 }, ms: 0 };
-  let raw = '';
-  try {
-    raw = await Promise.race([writer(system, user), new Promise<string>((_, reject) => setTimeout(() => reject(new Error('agent_timeout')), AGENT_TIMEOUT_MS))]);
-  } catch {
-    raw = '';
-  }
-  return { raw: String(raw || ''), tokens: { input: estimateTokens(system + user), output: estimateTokens(raw || '') }, ms: Date.now() - started };
-}

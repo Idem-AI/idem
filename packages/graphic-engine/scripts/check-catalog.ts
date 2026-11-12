@@ -74,7 +74,7 @@ const PHOTO = photo('#1A2A4F', '#7F9CE5', '#C9A227');
 const BP_PHOTO: SectionContent = { ...SUMMARY_BP, id: 'summary-photo', blocks: [{ id: 'ph', kind: 'figure', url: PHOTO, alt: 'Le comptoir de Bonanjo' }, ...SUMMARY_BP.blocks] };
 const STATEMENT: SectionContent = { id: 'vision-quote', role: 'opening', title: 'Le café d’ici, torréfié ici', lede: 'Nous gardons au Cameroun la valeur de son café.', blocks: [{ id: 'q', kind: 'quote', text: 'Enfin un café d’ici, torréfié la semaine où je le bois.', attribution: 'Awa N., cliente' }] };
 const COVER_PHOTO = (label: string): SectionContent => {
-  const c = coverSection('Kora', label, 'Fintech', 'Le crédit simple pour les commerçants de Douala');
+  const c = coverSection('Kora', label, 'Le crédit simple pour les commerçants de Douala');
   return { ...c, blocks: [...c.blocks, { id: 'ph', kind: 'figure', url: PHOTO, alt: 'Un marché de Douala au matin' }] };
 };
 const CHARTER_TWO = (): SectionContent => {
@@ -85,7 +85,7 @@ const CHARTER_TWO = (): SectionContent => {
 };
 
 /** Une couverture de réseau réelle porte peu de mots : une accroche et un sur-titre. */
-const SHORT_COVER: SectionContent = { id: 'banner', role: 'visual', title: 'Bannière', blocks: [{ id: 'copy', kind: 'copy', kicker: 'Fintech à Douala', headline: 'Le crédit simple pour les commerçants' }] };
+const SHORT_COVER: SectionContent = { id: 'banner', role: 'visual', title: 'Bannière', blocks: [{ id: 'copy', kind: 'copy', headline: 'Le crédit simple pour les commerçants' }] };
 
 const ELEMENTS: CatalogElement[] = ['business-plan', 'pitch-deck', 'brand-charter', 'business-card', 'social-visual', 'social-cover', 'print-flyer', 'web-banner'];
 
@@ -201,7 +201,7 @@ async function main(): Promise<void> {
     const portrait = layout?.kind === 'layout' && layout.shape.orientations?.includes('portrait');
     const format = (portrait ? 'page-a4' : 'slide-16x9') as FormatId;
     return [
-      { format, documentType: 'pitch-deck' as const, content: coverSection('Kora', 'Pitch deck', 'Fintech', 'Le crédit simple pour les commerçants de Douala') },
+      { format, documentType: 'pitch-deck' as const, content: coverSection('Kora', 'Pitch deck', 'Le crédit simple pour les commerçants de Douala') },
       { format, documentType: 'pitch-deck' as const, content: COVER_PHOTO('Pitch deck') },
     ];
   };

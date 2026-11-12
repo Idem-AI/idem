@@ -78,7 +78,6 @@ export interface MontageElement {
  */
 export interface MontageIntro {
   title: string;
-  kicker?: string;
   durationSec: number;
 }
 

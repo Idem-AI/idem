@@ -331,7 +331,6 @@ export class PitchDeckService extends GenericService {
                 id: pageId(definition.name),
                 brandName,
                 documentLabel: 'Pitch deck',
-                kicker: brief.kicker,
                 promise: brief.promise,
                 detail: DECK_AUDIENCE_LABEL[deckType.audience],
                 dateLabel: coverDateLabel(),

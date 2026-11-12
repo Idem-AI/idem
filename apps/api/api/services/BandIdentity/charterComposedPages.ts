@@ -80,15 +80,6 @@ export function clip(text: string | undefined, max: number): string {
   return clause.length >= 16 ? clause : '';
 }
 
-const MEDIUM_LABEL: Record<string, string> = {
-  photography: 'Photographie',
-  illustration: 'Illustration',
-  'render-3d': 'Rendu 3D',
-  collage: 'Collage',
-  abstract: 'Abstrait',
-  mixed: 'Mixte',
-};
-
 const DENSITY_LABEL: Record<'airy' | 'balanced' | 'dense', string> = {
   airy: "Aérée : peu d'éléments par surface, et de l'air entre chacun.",
   balanced: 'Équilibrée : le contenu et le vide se partagent la surface.',

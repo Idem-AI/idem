@@ -106,36 +106,6 @@ function bakedTracking(): string {
   return '-0.09em';
 }
 
-let cachedIcons: string | null = null;
-
-/**
- * Les icônes seules, pour un document composé dans une AUTRE police.
- *
- * Un visuel de communication est mis dans la typographie du projet, pas dans
- * Vilevile — mais ses icônes viennent quand même de chez nous. On n'embarque
- * alors que la tranche qui les porte, pas tout le latin.
- */
-export function brandIconStyle(): string {
-  if (cachedIcons !== null) return cachedIcons;
-
-  try {
-    const cssPath = require.resolve('@idem/shared-styles/fonts/fonts.css');
-    const fontsDir = dirname(cssPath);
-    const faces = readFileSync(cssPath, 'utf8').match(/@font-face \{[^}]*\}/g) || [];
-    const iconFace = faces.find((face) => /-icons\.woff2/.test(face)) || '';
-    cachedIcons = [
-      '<style>',
-      iconFace.replace(/url\('\.\/([^']+)'\)/, (_m, file: string) =>
-        `url(data:font/woff2;base64,${readFileSync(join(fontsDir, file)).toString('base64')})`),
-      iconStyles(fontsDir),
-      '</style>',
-    ].join('\n');
-  } catch {
-    cachedIcons = '';
-  }
-  return cachedIcons;
-}
-
 /** Vrai si la famille demandée est servie depuis le paquet partagé. */
 export function isSelfHostedFamily(family?: string | null): boolean {
   return SELF_HOSTED_FAMILIES.has(String(family ?? '').trim().toLowerCase());

@@ -18,19 +18,6 @@
 /** Le vocabulaire de motifs d'une marque. `weave` reprend la géométrie des étoffes d'Afrique de l'Ouest. */
 export type BrandPatternKind = 'stripes' | 'grid' | 'dots' | 'chevron' | 'arcs' | 'checker' | 'weave';
 
-export const BRAND_PATTERN_KINDS: BrandPatternKind[] = ['stripes', 'grid', 'dots', 'chevron', 'arcs', 'checker', 'weave'];
-
-/** Ce que chaque motif dit, pour les menus des agents et les légendes de la charte. */
-export const BRAND_PATTERN_SUMMARY: Record<BrandPatternKind, string> = {
-  stripes: 'fine diagonal stripes',
-  grid: 'a fine technical grid',
-  dots: 'a regular dot field',
-  chevron: 'a chevron zigzag',
-  arcs: 'interlocking quarter circles',
-  checker: 'a two-tone checker',
-  weave: 'a woven band (West-African textile geometry)',
-};
-
 export interface BrandPatternInput {
   kind: BrandPatternKind;
   /** L'encre du motif et son fond, en #rrggbb. */
@@ -111,56 +98,6 @@ export function brandPatternSvg(input: BrandPatternInput): string {
   ].join('');
 }
 
-/**
- * Le motif en `background-image`, répété : la seule façon correcte d'employer une tuile.
- *
- * Guillemets SIMPLES autour de l'URL : la valeur finit dans un attribut `style="…"`, où un
- * guillemet double refermerait l'attribut — le motif disparaissait sans un mot d'erreur.
- */
-export function brandPatternCss(url: string, scalePx: number): Record<string, string> {
-  return {
-    'background-image': `url('${url.replace(/'/g, "%27")}')`,
-    'background-repeat': 'repeat',
-    'background-size': `${Math.round(scalePx)}px ${Math.round(scalePx)}px`,
-  };
-}
-
-/**
- * UN MOTIF EN FOND — l'opacité est tenue par le code, pas par l'appelant.
- *
- * Un motif de marque a deux emplois, et ils n'ont pas la même force :
- *  - SPÉCIMEN (la page « Motifs » de la charte) : il se montre, à pleine force ;
- *  - FOND (couverture, bande de page, face de carte) : il se devine. Au-delà, il mange le texte
- *    et la page paraît bruyante — c'est exactement ce qu'on voyait sur les couvertures, où le
- *    motif était tramé à l'encre d'ACCENT à 55 %.
- *
- * `strength` dit l'intention, le code dit l'opacité : « whisper » sous un texte, « quiet » sur un
- * aplat, « present » sur une bande qui ne porte rien.
- */
-export type PatternStrength = 'whisper' | 'quiet' | 'present';
-
-export const PATTERN_OPACITY: Record<PatternStrength, number> = { whisper: 0.06, quiet: 0.12, present: 0.22 };
-
-/** Le motif posé en fond, à l'opacité que son emploi autorise. */
-export function backgroundPatternCss(url: string, scalePx: number, strength: PatternStrength = 'quiet'): Record<string, string> {
-  return { ...brandPatternCss(url, scalePx), opacity: String(PATTERN_OPACITY[strength]) };
-}
-
-/** Un motif de la marque, tel qu'il est déposé dans le stockage et gardé sur la marque. */
-export interface BrandPatternAsset {
-  id: string;
-  /** « Motif principal », « Trame fine »… */
-  label: string;
-  kind: BrandPatternKind;
-  /** À quoi il sert, en une ligne (légende de la charte, menu des agents). */
-  role: string;
-  ink: string;
-  ground: string;
-  /** Côté de la tuile en px, pour l'échelle d'affichage. */
-  tile: number;
-  url: string;
-}
-
 export interface BrandPatternPlan {
   id: string;
   label: string;
@@ -171,25 +108,3 @@ export interface BrandPatternPlan {
   tile: number;
 }
 
-/**
- * Les quatre motifs d'une marque, tirés de son vocabulaire de style.
- *
- * Le répertoire vient de la FAMILLE de style (angles vifs → grille et filets ; rayon franc →
- * arcs et points), comme avant : deux marques proches partagent leur grammaire, deux marques
- * éloignées non. Ce qui change, c'est que le résultat est déposé une fois pour toutes.
- */
-export function planBrandPatterns(input: {
-  repertoire: BrandPatternKind[];
-  primary: string;
-  accent: string;
-  surface: string;
-  subtle: string;
-}): BrandPatternPlan[] {
-  const [a, b, c, d] = [0, 1, 2, 3].map((i) => input.repertoire[i % input.repertoire.length]);
-  return [
-    { id: 'primary', label: 'Motif principal', role: 'Aplats et fonds de page', kind: a, ink: input.primary, ground: input.surface, tile: 48 },
-    { id: 'secondary', label: 'Motif secondaire', role: 'Zones de rappel', kind: b, ink: input.accent, ground: input.surface, tile: 48 },
-    { id: 'subtle', label: 'Trame fine', role: 'Fonds discrets', kind: c, ink: input.primary, ground: input.subtle, tile: 32 },
-    { id: 'inverted', label: 'Motif inversé', role: 'Sur fond de marque', kind: d, ink: input.surface, ground: input.primary, tile: 48 },
-  ];
-}

@@ -8,9 +8,8 @@
  */
 import type { z } from 'zod/v4';
 import { Issue } from './common';
-import { Block, ContentModel, SectionContent } from './content-model';
+import { ContentModel, SectionContent } from './content-model';
 import { DesignSpec } from './design-spec';
-import { RenderResult } from './render-result';
 
 export interface Report<T> {
   ok: boolean;
@@ -76,11 +75,6 @@ export function validateSectionContent(raw: unknown): Report<SectionContent> {
   return parsed.success ? { ok: true, value: parsed.data, issues: [] } : { ok: false, issues: zodIssues(parsed.error) };
 }
 
-export function validateBlock(raw: unknown): Report<Block> {
-  const parsed = Block.safeParse(raw);
-  return parsed.success ? { ok: true, value: parsed.data, issues: [] } : { ok: false, issues: zodIssues(parsed.error) };
-}
-
 // ── DesignSpec ─────────────────────────────────────────────────────────────────────────────
 
 export function validateDesignSpec(raw: unknown): Report<DesignSpec> {
@@ -88,7 +82,3 @@ export function validateDesignSpec(raw: unknown): Report<DesignSpec> {
   return parsed.success ? { ok: true, value: parsed.data, issues: [] } : { ok: false, issues: zodIssues(parsed.error) };
 }
 
-export function validateRenderResult(raw: unknown): Report<RenderResult> {
-  const parsed = RenderResult.safeParse(raw);
-  return parsed.success ? { ok: true, value: parsed.data, issues: [] } : { ok: false, issues: zodIssues(parsed.error) };
-}

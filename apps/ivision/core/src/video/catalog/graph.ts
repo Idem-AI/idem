@@ -17,7 +17,6 @@ export const stableHash = (parts: unknown[], length = 10): string => crypto.crea
 export interface SceneSlots {
   title?: string;
   body?: string;
-  kicker?: string;
   cta?: string;
   figure?: string;
   label?: string;
@@ -31,7 +30,6 @@ export interface SceneSlots {
 const KEY_SLOT: Array<[RegExp, Exclude<Slot, 'items' | 'media' | 'logo'>]> = [
   [/^(headline|title|heading|hook)$/i, 'title'],
   [/^(sub|subhead|subtitle|body|detail|support)$/i, 'body'],
-  [/^(kicker|eyebrow|tag|overline)$/i, 'kicker'],
   [/^(cta|action|button)$/i, 'cta'],
   [/^(figure|stat|number|metric|price|offer|value)$/i, 'figure'],
   [/^(label|caption|unit)$/i, 'label'],
@@ -78,7 +76,7 @@ export function sceneSlots(texts: Record<string, string>, media: Array<{ id: str
   return out;
 }
 
-const SLOT_KEYS: Array<Exclude<Slot, 'items' | 'media' | 'logo'>> = ['title', 'body', 'kicker', 'cta', 'figure', 'label', 'attribution'];
+const SLOT_KEYS: Array<Exclude<Slot, 'items' | 'media' | 'logo'>> = ['title', 'body', 'cta', 'figure', 'label', 'attribution'];
 
 /** Les emplacements présents (le logo n'en est un que si la mise en page le prévoit). */
 export function presentSlots(s: SceneSlots): Slot[] {
@@ -248,7 +246,7 @@ export function animationFor(cat: LoadedVideoCatalog, theme: ThemeNode, config: 
   };
   const chosen = config.animations?.[role];
   if (ok(chosen)) return chosen;
-  const byTheme = role === 'body' || role === 'kicker' || role === 'label' || role === 'attribution' ? theme.defaults.body ?? theme.defaults.text : theme.defaults[target];
+  const byTheme = role === 'body' || role === 'label' || role === 'attribution' ? theme.defaults.body ?? theme.defaults.text : theme.defaults[target];
   if (ok(byTheme)) return byTheme;
   const any = [...cat.nodes.values()].find((n) => n.kind === 'animation' && n.targets.includes(target) && !n.id.startsWith('builtin.'));
   return any?.id ?? 'builtin.rise';

@@ -99,7 +99,6 @@ export class SvgOptimizerService {
     // For now, just remove duplicate style definitions
     const styleMatches = svg.match(/style="[^"]*"/g);
     if (styleMatches) {
-      const uniqueStyles = [...new Set(styleMatches)];
       // Could implement CSS class extraction here for repeated styles
     }
     return svg;

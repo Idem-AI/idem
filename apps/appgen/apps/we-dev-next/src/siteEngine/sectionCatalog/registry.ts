@@ -246,14 +246,3 @@ export async function sectionCatalog(): Promise<LoadedSectionCatalog> {
   return inflight;
 }
 
-/** Relire tout de suite (webhook de publication). */
-export async function refreshSectionCatalog(): Promise<LoadedSectionCatalog> {
-  loadedAt = 0;
-  return sectionCatalog();
-}
-
-export function resetSectionCatalog(): void {
-  current = null;
-  loadedAt = 0;
-  etag = undefined;
-}

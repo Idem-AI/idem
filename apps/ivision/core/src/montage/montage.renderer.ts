@@ -88,26 +88,6 @@ async function closeBrowsers(): Promise<void> {
   }
 }
 
-/**
- * Une page de contrôle sur le navigateur de rendu partagé : même préparation qu'un rendu
- * (garde réseau, focus, polices, médias prêts), un délai borné, la page toujours refermée.
- * Sert au contrôle des scènes écrites par l'IA (video.coder.ts).
- */
-export async function withRenderPage<T>(input: { html: string; width: number; height: number; strict?: boolean }, fn: (page: Page) => Promise<T>, timeoutMs = 90000): Promise<T> {
-  activeRenders++;
-  let page: Page | null = null;
-  try {
-    const browser = await getBrowser();
-    page = await preparePage(browser, { ...input, fps: 30, durationSec: 0, quality: 'standard' } as RenderInput);
-    const p = page;
-    return await Promise.race([fn(p), new Promise<never>((_, reject) => setTimeout(() => reject(new Error('render_check_timeout')), timeoutMs))]);
-  } finally {
-    await page?.close().catch(() => undefined);
-    activeRenders--;
-    releaseBrowser();
-  }
-}
-
 export async function closeRenderBrowser(): Promise<void> {
   if (idleTimer) clearTimeout(idleTimer);
   await closeBrowsers();

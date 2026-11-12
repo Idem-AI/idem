@@ -59,7 +59,7 @@ break, at any level: the words (validated above, placed by the code through `{{k
 (brand colours and fonts as Tailwind theme), the resources (only the photos and logo provided), and the
 display (a page that does not display is fixed within strict bounds, otherwise the error is reported).
 
-A written edit of a visual (`parseVisualEdit`, `visualEditPrompt`) changes WORDS only: the model
+A written edit of a visual (`parseVisualEdit`) changes WORDS only: the model
 answers in JSON (headline, facts, keep or remove the photo, keep or change the layout); the page is
 composed again by the engine with the same seed unless a new layout was asked for. A model that answers
 with HTML is refused — it never reaches the visual.

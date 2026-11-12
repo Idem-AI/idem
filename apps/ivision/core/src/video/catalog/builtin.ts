@@ -18,11 +18,10 @@ export const BUILTIN_VIDEO_NODES: VideoNode[] = [
     roles: ['*'],
     energy: [1, 5],
     weight: 0.1,
-    slots: { title: { need: 'optional' }, body: { need: 'optional' }, kicker: { need: 'optional' }, cta: { need: 'optional' }, figure: { need: 'optional' }, label: { need: 'optional' }, attribution: { need: 'optional' }, items: { need: 'optional', max: 6 }, media: { need: 'optional', kinds: ['image', 'video'] }, logo: { need: 'optional' } },
+    slots: { title: { need: 'optional' }, body: { need: 'optional' }, cta: { need: 'optional' }, figure: { need: 'optional' }, label: { need: 'optional' }, attribution: { need: 'optional' }, items: { need: 'optional', max: 6 }, media: { need: 'optional', kinds: ['image', 'video'] }, logo: { need: 'optional' } },
     html: [
       '[[if media]]<div data-v="media" class="absolute inset-x-0 top-0 h-[40%] overflow-hidden [[ls:inset-x-auto left-0 h-full w-[45%]]]">[[media]]</div>[[/if]]',
       '<div data-safe class="[[safe]] flex flex-col justify-center gap-[2.6cqmin] [[if media]]top-[44%] [[sq:top-[44%]]] [[po:top-[44%]]] [[ls:top-[8%] left-[50%]]][[/if]]">',
-      '[[if kicker]]<p data-v="kicker" data-fit="kicker" data-fk="0.03" data-fmin="0.022" class="[[t.kicker]] [[t.accentInk]]">{{kicker}}</p>[[/if]]',
       '[[if figure]]<p data-v="figure" data-fit="figure" data-fk="0.16" data-fmin="0.08" class="whitespace-nowrap tabular-nums [[t.figure]] [[t.accentInk]]">{{figure}}</p>[[/if]]',
       '[[if label]]<p data-v="label" data-fit="label" data-fk="0.036" data-fmin="0.026" class="[[t.label]] [[t.ink]]">{{label}}</p>[[/if]]',
       '[[if title]]<h1 data-v="title" data-fit="title" data-fk="0.075" data-fmin="0.04" class="text-balance [[t.title]] [[t.ink]]">{{title}}</h1>[[/if]]',

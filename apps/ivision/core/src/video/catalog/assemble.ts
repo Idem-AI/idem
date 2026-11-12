@@ -21,7 +21,7 @@ import { ROLE_TARGET } from './types';
 import { animationFor, isFigure, rolesIn, SceneSlots } from './graph';
 
 /** L'ordre d'entrée des rôles. */
-const ENTRANCE: AnimRole[] = ['media', 'mark', 'kicker', 'figure', 'title', 'rule', 'label', 'body', 'attribution', 'items', 'cta', 'logo'];
+const ENTRANCE: AnimRole[] = ['media', 'mark', 'figure', 'title', 'rule', 'label', 'body', 'attribution', 'items', 'cta', 'logo'];
 /** Signes lus par seconde à l'écran (sous-titrage professionnel : 12 à 17) et temps minimal d'un texte posé. */
 const READ_CPS = 15;
 const READ_MIN = 0.9;
@@ -116,7 +116,7 @@ export function sceneHtml(layout: LayoutNode, theme: ThemeNode, slots: SceneSlot
   // 2. La liste.
   html = html.replace(/\[\[each items\]\]([\s\S]*?)\[\[\/each\]\]/g, (_m, body: string) => slots.items.map((key, i) => body.replace(/\{\{\s*item\s*\}\}/g, `{{text.${key}}}`).replace(/\[\[n\]\]/g, String(i + 1).padStart(2, '0'))).join(''));
   // 3. Les emplacements → les clés de la scène.
-  html = html.replace(/\{\{\s*(title|body|kicker|cta|figure|label|attribution)\s*\}\}/g, (_m, slot: string) => {
+  html = html.replace(/\{\{\s*(title|body|cta|figure|label|attribution)\s*\}\}/g, (_m, slot: string) => {
     const key = (slots as unknown as Record<string, string | undefined>)[slot];
     return key ? `{{text.${key}}}` : '';
   });

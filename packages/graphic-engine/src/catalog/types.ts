@@ -286,7 +286,6 @@ export type GabaritNode = z.infer<typeof GabaritNode>;
 
 export const CatalogNode = z.discriminatedUnion('kind', [LayoutNode, SkinNode, ComponentNode, GabaritNode]);
 export type CatalogNode = z.infer<typeof CatalogNode>;
-export type NodeKind = CatalogNode['kind'];
 
 // ── manifeste ───────────────────────────────────────────────────────────────────────────────
 

@@ -18,7 +18,7 @@ import type { FormatDef } from '../design-system/formats';
 import type { DirectionInput } from '../design-system/tokens';
 import { stableHash } from '../foundation/hash';
 import { catalogEffortFor } from '../foundation/effort';
-import { assignUnits, PageUnit, placedZones } from './assemble';
+import { assignUnits, PageUnit } from './assemble';
 import { BUILTIN_LAYOUT, BUILTIN_SKIN } from './builtin';
 import { getDirection } from '../directions';
 import { ALL_ELEMENTS, type CatalogElement, type CatalogNode, type CatalogOverrides, type ComponentNode, type GabaritNode, type LayoutNode, type LoadedCatalog, type PageConfig, type SkinNode, type ZoneAccept } from './types';
@@ -149,8 +149,6 @@ function fitsRole(roles: string[], role: SectionRole | undefined): boolean {
   if (coverOnly) return false;
   return roles.includes('*') || !role || roles.includes(role);
 }
-
-const forElement = (n: { elements?: CatalogElement[] }, e: CatalogElement) => !n.elements?.length || n.elements.includes(e);
 
 /**
  * Les squelettes qui savent tenir CETTE page. Deux étages, dans cet ordre de coût :
@@ -428,5 +426,3 @@ export function shortlist(cat: LoadedCatalog, facts: PageFacts, o: { level: Crea
   return list.map((c, i) => ({ ...c, ref: String.fromCharCode(65 + i) }));
 }
 
-/** Les zones placées d'un candidat (miroir et réglages compris), pour l'assemblage. */
-export const candidateZones = (c: Candidate) => placedZones(c.layout, c.config);

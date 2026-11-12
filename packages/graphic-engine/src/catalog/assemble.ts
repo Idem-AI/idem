@@ -8,11 +8,11 @@
  * rejoue sans modèle et s'exporte en PowerPoint.
  *
  * LE LANGAGE DES COMPOSANTS (documenté pour les contributeurs dans le dépôt `idem-templates`) :
- *   {{title}} {{kicker}} {{lede}}        les textes de l'en-tête (et les champs d'une carte : {{fullName}}…)
+ *   {{title}} {{lede}}                  les textes de l'en-tête (et les champs d'une carte : {{fullName}}…)
  *   {{.chemin}}                          un texte du bloc rendu (`{{.caption}}`)
  *   {{$.chemin}} {{$}}                   un texte de l'élément courant d'une liste
  *   [[each items]] … [[/each]]           une liste du bloc (`[[each $.items]]` : la liste de l'élément courant)
- *   [[if .x]] … [[else]] … [[/if]]       présent ? (`$.x`, `.x`, `kicker`, `first`, `last`, `odd`, `even`, `.side=front`, `!x`)
+ *   [[if .x]] … [[else]] … [[/if]]       présent ? (`$.x`, `.x`, `first`, `last`, `odd`, `even`, `.side=front`, `!x`)
  *   [[s.title]]                          les classes d'un rôle d'habillage, sa taille comprise
  *   [[ink]] [[muted]] [[accent]] [[faint]] [[rule]] [[ruleStrong]] [[fill]] [[onFill]] [[tint]]
  *                                        les couleurs de la marque, justes sur la surface de la zone
@@ -494,7 +494,7 @@ function render(env: Env, scope: Scope, nodes: Node[]): string {
  * rôles d'habillage — une liste d'objets devient une rangée de cartes. Rien n'est perdu, rien n'est inventé.
  */
 export function genericComponent(unit: PageUnit): string {
-  if (unit.kind === 'header') return '<div class="flex flex-col [[gap-sm]]">[[if kicker]]<p class="[[s.kicker]]">{{kicker}}</p>[[/if]]<h2 class="[[s.title]]">{{title}}</h2>[[if lede]]<p class="max-w-[60ch] [[s.lede]]">{{lede}}</p>[[/if]]</div>';
+  if (unit.kind === 'header') return '<div class="flex flex-col [[gap-sm]]"><h2 class="[[s.title]]">{{title}}</h2>[[if lede]]<p class="max-w-[60ch] [[s.lede]]">{{lede}}</p>[[/if]]</div>';
   const b = unit.block!;
   if (b.kind === 'chart') return '<div class="flex min-h-0 flex-1 flex-col [[gap-sm]]">[[if .title]]<p class="[[s.heading]]">{{.title}}</p>[[/if]]<idem-chart data-block="[[id]]" class="min-h-0 w-full flex-1 [[ink]]"></idem-chart>[[if .readingKey]]<p class="[[s.caption]]">{{.readingKey}}</p>[[/if]]</div>';
   if (b.kind === 'table') return '<div class="flex flex-col [[gap-sm]]"><idem-table data-block="[[id]]" class="w-full [[t.sm]] [&_th]:bg-brand-primary [&_th]:text-on-brand"></idem-table>[[if .caption]]<p class="[[s.caption]]">{{.caption}}</p>[[/if]]</div>';
@@ -507,8 +507,8 @@ export function genericComponent(unit: PageUnit): string {
   if (b.kind === 'logoDisplay') return '<div class="grid h-full grid-cols-[[cols variants 3]] [[gap]]">[[each variants]]<div class="flex flex-col [[gap-sm]]"><div class="flex min-h-[140px] flex-1 items-center justify-center p-[24px] [[ground $.background]]"><img src="{{$.url}}" alt="" class="max-h-[120px] max-w-[80%] object-contain"></div><p class="[[s.label]]">{{$.label}}</p></div>[[/each]]</div>';
   if (b.kind === 'typeScale') return '<div class="flex flex-col [[gap-sm]]">[[each levels]]<div class="flex items-baseline [[gap]] border-b-[1px] [[rule]] pb-[8px]"><p class="w-[18%] shrink-0 [[s.label]]">{{$.label}}</p><p class="[[family $.family]] [[size $.step]] [[weight $.weight]] leading-[1.15] [[ink]]">{{$.sample}}</p></div>[[/each]]</div>';
   if (b.kind === 'typeSpecimen') return '<div class="grid grid-cols-[[cols specimens 2]] [[gap-lg]]">[[each specimens]]<div class="flex flex-col [[gap-sm]]"><p class="[[s.label]]">{{$.role}}</p><p class="[[family $.family]] [[t.5xl]] leading-[1] [[ink]]">{{$.family}}</p><p class="[[family $.family]] [[s.body]]">{{$.sample}}</p></div>[[/each]]</div>';
-  if (b.kind === 'cover') return '<div class="flex h-full flex-col justify-between [[gap]]">[[logo-lg]]<div class="flex flex-col [[gap-sm]]">[[if .kicker]]<p class="[[s.kicker]]">{{.kicker}}</p>[[/if]]<h1 class="[[s.title]]">{{.brandName}}</h1>[[if .promise]]<p class="max-w-[40ch] [[s.lede]]">{{.promise}}</p>[[/if]]</div><div class="flex items-end justify-between border-t-[1px] [[rule]] pt-[12px]"><p class="[[s.label]]">{{.documentLabel}}</p><p class="[[s.caption]]">[[if .dateLabel]]{{.dateLabel}}[[/if]] [[if .detail]]{{.detail}}[[/if]]</p></div></div>';
-  if (b.kind === 'copy') return '<div class="flex h-full flex-col justify-end [[gap]]">[[if .kicker]]<p class="[[s.kicker]]">{{.kicker}}</p>[[/if]]<h1 class="[[s.title]]">{{.headline}}</h1>[[if .subhead]]<p class="[[s.lede]]">{{.subhead}}</p>[[/if]][[if .body]]<p class="[[s.body]]">{{.body}}</p>[[/if]][[if .offer]]<p class="[[s.value]]">{{.offer}}</p>[[/if]][[each facts]]<p class="[[s.label]]">[[if $.label]]{{$.label}} [[/if]]{{$.text}}</p>[[/each]][[if .quote]]<p class="[[s.quote]]">{{.quote.text}}</p>[[if .quote.author]]<p class="[[s.caption]]">{{.quote.author}}</p>[[/if]][[/if]][[if .footnote]]<p class="[[s.caption]]">{{.footnote}}</p>[[/if]]</div>';
+  if (b.kind === 'cover') return '<div class="flex h-full flex-col justify-between [[gap]]">[[logo-lg]]<div class="flex flex-col [[gap-sm]]"><h1 class="[[s.title]]">{{.brandName}}</h1>[[if .promise]]<p class="max-w-[40ch] [[s.lede]]">{{.promise}}</p>[[/if]]</div><div class="flex items-end justify-between border-t-[1px] [[rule]] pt-[12px]"><p class="[[s.label]]">{{.documentLabel}}</p><p class="[[s.caption]]">[[if .dateLabel]]{{.dateLabel}}[[/if]] [[if .detail]]{{.detail}}[[/if]]</p></div></div>';
+  if (b.kind === 'copy') return '<div class="flex h-full flex-col justify-end [[gap]]"><h1 class="[[s.title]]">{{.headline}}</h1>[[if .subhead]]<p class="[[s.lede]]">{{.subhead}}</p>[[/if]][[if .body]]<p class="[[s.body]]">{{.body}}</p>[[/if]][[if .offer]]<p class="[[s.value]]">{{.offer}}</p>[[/if]][[each facts]]<p class="[[s.label]]">[[if $.label]]{{$.label}} [[/if]]{{$.text}}</p>[[/each]][[if .quote]]<p class="[[s.quote]]">{{.quote.text}}</p>[[if .quote.author]]<p class="[[s.caption]]">{{.quote.author}}</p>[[/if]][[/if]][[if .footnote]]<p class="[[s.caption]]">{{.footnote}}</p>[[/if]]</div>';
   if (b.kind === 'contact' && b.side === 'front') return '<div class="flex h-full flex-col items-start justify-center [[gap]]">[[logo-lg]][[if tagline]]<p data-field="tagline" class="[[s.lede]]">{{tagline}}</p>[[/if]]</div>';
   if (b.kind === 'contact') return '<div class="flex h-full flex-col justify-center [[gap-sm]]">[[if fullName]]<p data-field="fullName" class="[[s.heading]]">{{fullName}}</p>[[/if]][[if jobTitle]]<p data-field="jobTitle" class="[[s.label]]">{{jobTitle}}</p>[[/if]]<div class="mt-[8px] flex flex-col gap-[2px] [[s.caption]]">[[if phone]]<p data-field="phone">{{phone}}</p>[[/if]][[if mobile]]<p data-field="mobile">{{mobile}}</p>[[/if]][[if email]]<p data-field="email">{{email}}</p>[[/if]][[if website]]<p data-field="website">{{website}}</p>[[/if]][[if address]]<p data-field="address">{{address}}</p>[[/if]][[if linkedin]]<p data-field="linkedin">{{linkedin}}</p>[[/if]]</div></div>';
   return structuralComponent(b);
@@ -557,13 +557,13 @@ function blockKeys(map: ContentMap, blockId: string): string[] {
 /** Ce que le composant a oublié du bloc (ou de l'en-tête) : posé à la suite, discrètement, pour que rien ne se perde. */
 function leftovers(html: string, unit: PageUnit, map: ContentMap): string {
   const used = new Set([...html.matchAll(/\{\{\s*([\w.:-]+)\s*\}\}/g)].map((m) => m[1]));
-  if (unit.kind === 'header') return (['kicker', 'title', 'lede'] as const).filter((k) => map.entries.has(k) && !used.has(k)).map((k) => `<p class="[[s.${k === 'title' ? 'title' : k}]]">{{${k}}}</p>`).join('');
+  if (unit.kind === 'header') return (['title', 'lede'] as const).filter((k) => map.entries.has(k) && !used.has(k)).map((k) => `<p class="[[s.${k === 'title' ? 'title' : k}]]">{{${k}}}</p>`).join('');
   const parts: string[] = [];
   if (map.primitives.has(unit.id) && !html.includes(`data-block="${unit.id}"`) && !html.includes('data-block="[[id]]"')) {
     const b = map.primitives.get(unit.id)!;
     parts.push(b.kind === 'chart' ? `<idem-chart data-block="${unit.id}" class="w-full [[ink]]"></idem-chart>` : b.kind === 'table' ? `<idem-table data-block="${unit.id}" class="w-full [[t.sm]]"></idem-table>` : `<idem-gallery data-block="${unit.id}" class="w-full"></idem-gallery>`);
   }
-  const fieldKeys = unit.block?.kind === 'contact' ? [...map.entries.keys()].filter((k) => !k.includes('.') && !['title', 'kicker', 'lede'].includes(k)) : blockKeys(map, unit.id);
+  const fieldKeys = unit.block?.kind === 'contact' ? [...map.entries.keys()].filter((k) => !k.includes('.') && !['title', 'lede'].includes(k)) : blockKeys(map, unit.id);
   for (const k of fieldKeys) {
     // Une consigne d'image (`visual`) n'est pas un texte ; l'adresse d'une source n'est pas une image.
     if (used.has(k) || /\.(visual|alt)$/.test(k)) continue;

@@ -1,4 +1,3 @@
-import { Type } from '../../types/ai-tools';
 import logger from '../../config/logger';
 import { AI_CONFIG } from '../../config/ai.config';
 import { analyzeImage, isMediaConfigured } from '../media.service';
@@ -20,61 +19,6 @@ export interface LogoAnalysisResult {
   weaknesses: string;
   improvementBrief: string;
 }
-
-/**
- * Strict JSON schema for LogoAnalysisResult to document the expected structure.
- */
-const logoAnalysisSchema = {
-  type: Type.OBJECT,
-  properties: {
-    logoType: {
-      type: Type.STRING,
-      enum: ['icon', 'name', 'initial'],
-      description: 'The type classification of the logo. "icon" for symbol/pictorial mark, "name" for full brand name wordmark, "initial" for stylized monogram.',
-    },
-    style: {
-      type: Type.STRING,
-      description: 'Overall visual style of the logo in a few words.',
-    },
-    shapes: {
-      type: Type.STRING,
-      description: 'Geometric description of the shapes and layout of the mark.',
-    },
-    colors: {
-      type: Type.ARRAY,
-      items: {
-        type: Type.STRING,
-      },
-      description: 'The estimated colors present in the logo as 6-digit hex values.',
-    },
-    typographyStyle: {
-      type: Type.STRING,
-      description: 'Typography style details (e.g. serif, sans-serif, weight) or "none".',
-    },
-    symbolism: {
-      type: Type.STRING,
-      description: 'What the logo mark evokes or represents.',
-    },
-    weaknesses: {
-      type: Type.STRING,
-      description: 'Flaws and weaknesses in the current design (alignment, kerning, colors, etc.).',
-    },
-    improvementBrief: {
-      type: Type.STRING,
-      description: 'Concrete design instructions to recreate and improve this logo. Must be 60-120 words.',
-    },
-  },
-  required: [
-    'logoType',
-    'style',
-    'shapes',
-    'colors',
-    'typographyStyle',
-    'symbolism',
-    'weaknesses',
-    'improvementBrief',
-  ],
-};
 
 /**
  * Analyzes a user-imported logo with a multimodal model and produces a

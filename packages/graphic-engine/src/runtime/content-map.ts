@@ -45,8 +45,6 @@ const CARD_SIDE_FIELDS: Record<'front' | 'back', readonly string[]> = {
   front: ['tagline'],
   back: ['fullName', 'jobTitle', 'phone', 'mobile', 'email', 'website', 'address', 'linkedin'],
 };
-/** Les blocs que l'auteur pose comme une primitive du code. */
-export const PRIMITIVE_KINDS = new Set<Block['kind']>(['chart', 'table', 'mockupShowcase']);
 /** Les blocs qui MONTRENT le logo : le logo est le héros de la page. */
 const LOGO_KINDS = new Set<Block['kind']>(['logoDisplay', 'logoStory']);
 
@@ -86,7 +84,7 @@ export function buildContentMap(section: SectionContent, bindings: 'values' | 'm
     } else put(prefix, value);
   };
 
-  for (const k of ['kicker', 'title', 'lede'] as const) put(k, section[k]);
+  for (const k of ['title', 'lede'] as const) put(k, section[k]);
   for (const block of section.blocks) {
     if (block.kind === 'chart') {
       primitives.set(block.id, block);
@@ -147,8 +145,8 @@ export function applyTextEdits(section: SectionContent, edits: Record<string, st
   for (const [key, raw] of Object.entries(edits)) {
     const value = typeof raw === 'string' ? raw.trim() : '';
     const parts = key.split('.');
-    if (parts.length === 1 && ['kicker', 'title', 'lede'].includes(parts[0])) {
-      if (value) next[parts[0]] = value.slice(0, parts[0] === 'title' ? 160 : parts[0] === 'kicker' ? 80 : 320);
+    if (parts.length === 1 && ['title', 'lede'].includes(parts[0])) {
+      if (value) next[parts[0]] = value.slice(0, parts[0] === 'title' ? 160 : 320);
       else if (parts[0] !== 'title') delete next[parts[0]];
       else {
         refused.push(key);

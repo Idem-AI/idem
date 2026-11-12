@@ -486,7 +486,6 @@ function engineBrand(context: VisualBrandContext): { brand: BrandInput; directio
 /** Les cases du rédacteur, dans le contrat du moteur (un fait se montre par son texte). */
 function engineCopy(copy: WrittenCopy): VisualCopy {
   return {
-    ...(copy.kicker ? { kicker: copy.kicker } : {}),
     headline: copy.headline,
     ...(copy.sub ? { subhead: copy.sub } : {}),
     ...(copy.offer ? { offer: copy.offer } : {}),
@@ -709,16 +708,6 @@ export function inferVisualIntent(content: { intent?: VisualIntent; title?: stri
   if (has(['launch', 'lance', 'nouveau', 'new ', 'introducing', 'annonce', 'announce', 'disponible', 'now available', 'sortie'])) return 'announcement';
   if (has(['fête', 'célèbr', 'celebrat', 'anniversa', 'happy ', 'joyeux', 'congrat', 'félicit', 'merci', 'thank you', 'holiday'])) return 'celebration';
   return 'awareness';
-}
-
-/** Toutes les adresses connues du logo de la marque, dédoublonnées. */
-export function knownLogoUrls(context: VisualBrandContext): string[] {
-  const logos = context.branding.logoUrls;
-  if (!logos) return [];
-  const raw = [logos.primary, logos.withText?.light, logos.withText?.dark, logos.withText?.mono, logos.iconOnly?.light, logos.iconOnly?.dark, logos.iconOnly?.mono].filter(
-    (u): u is string => typeof u === 'string' && u.trim().length > 0
-  );
-  return [...new Set(raw)];
 }
 
 export function escapeHtml(raw: string): string {

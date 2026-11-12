@@ -299,17 +299,3 @@ export function buildTokens(input: TokenInput): DesignTokens {
 
 const round1 = (v: number): number => Math.round(v * 10) / 10;
 
-/** Résumé d'une ligne pour les journaux : les contrastes sont AU-DESSUS des seuils, et cela se lit. */
-export function describeTokens(t: DesignTokens): string {
-  return (
-    `style=${t.style.id} format=${t.format.id} densité=${t.density} fond=${t.color.dark ? 'sombre' : 'clair'} ` +
-    `encre ${t.contrast.inkOnGround}:1 · secondaire ${t.contrast.mutedOnGround}:1 · sur marque ${t.contrast.onBrand}:1 · ` +
-    `corps ${t.size.base}px, ${t.size.xs}→${t.size['6xl']}px · rayon ${t.radius.md}px · ${t.font.display} / ${t.font.body}`
-  );
-}
-
-/** Toutes les couleurs que le rendu peut produire : la palette déclarée et ce qui en DÉRIVE. */
-export function tokenPalette(t: DesignTokens): string[] {
-  const c = t.color;
-  return [...new Set([c.primary, c.secondary, c.accent, c.ground, c.raised, c.sunken, c.ink, c.muted, c.faint, c.rule, c.ruleStrong, c.brandSoft, c.accentSoft, c.onBrand, c.onAccent, c.deep, c.onDeep, ...Object.values(c.brandRamp), ...Object.values(c.accentRamp), ...Object.values(c.neutral)])];
-}
