@@ -48,6 +48,8 @@ const DELIVERABLE: Record<DocumentType, string> = {
   'brand-charter': "a page of the brand's identity guidelines (brand book) — it shows the brand system itself, exactly: the asset it shows (logo, colours, type, pattern, mockups) is the hero, shown whole and large; text is a short caption",
   'business-card': 'one face of a printed business card (85 × 55 mm)',
   flyer: 'a flyer / social-media visual — one message, understood at a glance',
+  poster: 'a PRINTED poster or flyer — read from two metres away, then up close; nothing vital within 3 mm of the trim',
+  banner: 'an online advertising banner — one claim and one action, read in under two seconds',
   chart: 'a standalone chart',
   report: 'a page of a printed report',
 };

@@ -44,6 +44,8 @@ export interface FormatDef {
   scale: number;
   /** Facteur de résolution à l'export PNG (cartes : 300 dpi). */
   exportScale: number;
+  /** Fond perdu d'une toile imprimée : ce que le rendu déborde de chaque côté, avant la coupe. */
+  bleed?: { mm: number; px: number };
   /** Les cotes CSS de la racine : en millimètres pour les pages imprimées, en pixels sinon. */
   css: { width: string; height: string; padding: string };
 }
@@ -73,6 +75,37 @@ function visual(id: FormatId, family: FormatFamily, width: number, height: numbe
     exportScale: 1,
     css: { width: `${width}px`, height: `${height}px`, padding: `${pad}px` },
     ...extra,
+  };
+}
+
+/**
+ * Une toile d'IMPRESSION : cotes en millimètres, export à 300 dpi, et un fond perdu de 3 mm que le rendu
+ * déborde de chaque côté (les zones `bleed` d'un squelette y vont jusqu'au trait de coupe).
+ */
+function print(id: FormatId, wmm: number, hmm: number, padMm: number, bleedMm = 3): FormatDef {
+  const width = Math.round(mm(wmm));
+  const height = Math.round(mm(hmm));
+  const pad = Math.round(mm(padMm));
+  const u = Math.min(width, height) / 100;
+  return {
+    id,
+    family: 'visual',
+    kind: 'fixed',
+    orientation: height > width * 1.15 ? 'portrait' : width > height * 1.15 ? 'landscape' : 'square',
+    width,
+    height,
+    mm: { width: wmm, height: hmm },
+    pad,
+    safe: even(pad),
+    base: Math.round(Math.min(width, height) / 38),
+    // Plancher d'impression : jamais sous 6 pt une fois sur le papier.
+    minSize: Math.max(8.5, Math.round(Math.min(width, height) / 60)),
+    maxSize: Math.round(Math.min(width, height) * 0.26),
+    unit: Math.max(6, Math.round(u * 0.9)),
+    scale: Math.max(1.4, u / 4.5),
+    exportScale: 300 / 96,
+    bleed: { mm: bleedMm, px: Math.round(mm(bleedMm)) },
+    css: { width: `${wmm}mm`, height: `${hmm}mm`, padding: `${padMm}mm` },
   };
 }
 
@@ -206,6 +239,21 @@ export const FORMATS: Record<FormatId, FormatDef> = {
   'cover-x': cover('cover-x', 1500, 500, { left: 0.32, top: 0.16, right: 0.94, bottom: 0.84 }),
   'cover-youtube': cover('cover-youtube', 2560, 1440, { left: 0.24, top: 0.14, right: 0.76, bottom: 0.86 }),
   'avatar-square': visual('avatar-square', 'cover', 800, 800, { pad: 80, safe: even(80), base: 30, minSize: 18 }),
+  // Impression (300 dpi, fond perdu 3 mm).
+  'print-flyer-a4': print('print-flyer-a4', 210, 297, 14),
+  'print-poster-a3': print('print-poster-a3', 297, 420, 18),
+  // Kakémono : lu debout, à deux mètres — la zone sûre épargne le pied d'enrouleur (les 20 derniers centimètres).
+  'rollup-85x200': {
+    ...print('rollup-85x200', 850, 2000, 70, 10),
+    safe: { top: Math.round(mm(90)), right: Math.round(mm(70)), bottom: Math.round(mm(220)), left: Math.round(mm(70)) },
+    base: Math.round(mm(850) / 26),
+    minSize: Math.round(mm(850) / 40),
+  },
+  // Publicité en ligne : toiles exactes de l'IAB, pas de marge perdue.
+  'ad-leaderboard': visual('ad-leaderboard', 'cover', 728, 90, { pad: 10, safe: even(10), base: 16, minSize: 11, maxSize: 34 }),
+  'ad-rectangle': visual('ad-rectangle', 'cover', 300, 250, { pad: 16, safe: even(16), base: 16, minSize: 11, maxSize: 54 }),
+  'ad-skyscraper': visual('ad-skyscraper', 'cover', 160, 600, { pad: 12, safe: even(12), base: 14, minSize: 10, maxSize: 40 }),
+  'email-header': visual('email-header', 'cover', 600, 200, { pad: 24, safe: even(24), base: 18, minSize: 12, maxSize: 56 }),
   'chart-free': {
     id: 'chart-free',
     family: 'chart',

@@ -27,11 +27,17 @@ import type { FormatDef } from '../design-system/formats';
 export const CATALOG_SCHEMA_VERSION = 1;
 
 /** Les éléments que le moteur graphique produit (un catalogue par élément, des nœuds partagés). */
-export const CatalogElement = z.enum(['business-plan', 'pitch-deck', 'brand-charter', 'business-card', 'social-visual', 'social-cover']);
+export const CatalogElement = z.enum(['business-plan', 'pitch-deck', 'brand-charter', 'business-card', 'social-visual', 'social-cover', 'print-flyer', 'web-banner']);
 export type CatalogElement = z.infer<typeof CatalogElement>;
 
 /** L'élément d'une génération : le type de document et la toile. `null` : rien au catalogue (graphique seul). */
+const PRINT_FORMATS = new Set<FormatId>(['print-flyer-a4', 'print-poster-a3', 'rollup-85x200']);
+const AD_FORMATS = new Set<FormatId>(['ad-leaderboard', 'ad-rectangle', 'ad-skyscraper', 'email-header']);
+
 export function elementOf(documentType: DocumentType, format: Pick<FormatDef, 'family' | 'id'>): CatalogElement | null {
+  // Les toiles d'impression et de publicité ont leur propre élément : une affiche n'est pas un visuel de réseau.
+  if (PRINT_FORMATS.has(format.id)) return 'print-flyer';
+  if (AD_FORMATS.has(format.id)) return 'web-banner';
   // La TOILE d'abord : une bannière ou un visuel de réseau reste une bannière ou un visuel, même produit pour la charte.
   if (format.family === 'cover') return 'social-cover';
   if (format.family === 'visual') return 'social-visual';
@@ -48,6 +54,10 @@ export function elementOf(documentType: DocumentType, format: Pick<FormatDef, 'f
       return 'business-card';
     case 'flyer':
       return 'social-visual';
+    case 'poster':
+      return 'print-flyer';
+    case 'banner':
+      return 'web-banner';
     default:
       return null;
   }
@@ -170,7 +180,7 @@ export type LayoutZone = z.infer<typeof LayoutZone>;
 export const LayoutNode = z.strictObject({
   ...common,
   kind: z.literal('layout'),
-  elements: z.array(CatalogElement).min(1).max(6),
+  elements: z.array(CatalogElement).min(1).max(8),
   shape: NodeShape,
   roles: SectionRoles,
   /** La grille : colonnes, et lignes sur une toile fixe (une page de flux grandit). */
@@ -265,7 +275,7 @@ export type PageConfig = z.infer<typeof PageConfig>;
 export const GabaritNode = z.strictObject({
   ...common,
   kind: z.literal('gabarit'),
-  elements: z.array(CatalogElement).min(1).max(6),
+  elements: z.array(CatalogElement).min(1).max(8),
   roles: SectionRoles,
   /** La configuration par défaut (`config.json` dans le dépôt). */
   config: PageConfig,

@@ -166,7 +166,7 @@ async function main(): Promise<void> {
 
   title('§4 Rendu réel de chaque gabarit (Low, zéro appel)');
   const brand = BRANDS.kora;
-  const cases: Record<CatalogElement, Array<{ format: FormatId; documentType: 'business-plan' | 'pitch-deck' | 'brand-charter' | 'business-card' | 'flyer'; content: SectionContent }>> = {
+  const cases: Record<CatalogElement, Array<{ format: FormatId; documentType: 'business-plan' | 'pitch-deck' | 'brand-charter' | 'business-card' | 'flyer' | 'poster' | 'banner'; content: SectionContent }>> = {
     'business-plan': [SUMMARY_BP, FINANCE_BP, SWOT_BP, BP_PHOTO].map((content) => ({ format: 'a4-portrait' as FormatId, documentType: 'business-plan' as const, content })),
     'pitch-deck': [MARKET, PROBLEM, TRACTION, TEAM, ASK, VISION_BLEED(PHOTO), PROBLEM_VISUAL, STATEMENT].map((content) => ({ format: 'slide-16x9' as FormatId, documentType: 'pitch-deck' as const, content })),
     'brand-charter': [...CHARTER(brand).slice(0, 6), CHARTER_TWO()].map((content) => ({ format: 'page-a4' as FormatId, documentType: 'brand-charter' as const, content })),
@@ -181,6 +181,19 @@ async function main(): Promise<void> {
       { format: 'cover-facebook' as FormatId, documentType: 'flyer' as const, content: SHORT_COVER },
       { format: 'cover-x' as FormatId, documentType: 'flyer' as const, content: SHORT_COVER },
       { format: 'cover-linkedin' as FormatId, documentType: 'flyer' as const, content: SHORT_COVER },
+    ],
+    // Impression : la même matière qu'un visuel, mais sur une toile en millimètres, avec fond perdu et 300 dpi.
+    'print-flyer': [
+      { format: 'print-flyer-a4' as FormatId, documentType: 'poster' as const, content: flyer(true, { a: '#1A2A4F', b: '#7F9CE5', c: '#C9A227' }) },
+      { format: 'print-poster-a3' as FormatId, documentType: 'poster' as const, content: flyer(false, { a: '#1A2A4F', b: '#7F9CE5', c: '#C9A227' }) },
+      { format: 'rollup-85x200' as FormatId, documentType: 'poster' as const, content: flyer(true, { a: '#1A2A4F', b: '#7F9CE5', c: '#C9A227' }) },
+    ],
+    // Publicité en ligne : des toiles très étroites — le pire cas pour un texte qui doit tenir.
+    'web-banner': [
+      { format: 'ad-leaderboard' as FormatId, documentType: 'banner' as const, content: SHORT_COVER },
+      { format: 'ad-rectangle' as FormatId, documentType: 'banner' as const, content: SHORT_COVER },
+      { format: 'ad-skyscraper' as FormatId, documentType: 'banner' as const, content: SHORT_COVER },
+      { format: 'email-header' as FormatId, documentType: 'banner' as const, content: SHORT_COVER },
     ],
   };
   const coverCase = (g: GabaritNode) => {

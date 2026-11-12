@@ -7,6 +7,7 @@ export * from './button';
 export * from './card';
 export * from './checkbox';
 export * from './container';
+export * from './counter';
 export * from './dialog';
 export * from './dropdown-menu';
 export * from './form-message';
