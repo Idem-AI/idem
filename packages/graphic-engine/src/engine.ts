@@ -100,6 +100,11 @@ const GLOBAL_CATALOG_SCOPE: FingerprintScope = { documentType: 'catalog', key: '
 const CHOOSE_TIMEOUT = 45_000;
 const DIRECTOR_TIMEOUT = 60_000;
 /** La plus petite réduction d'une zone qui reste lisible ; en dessous, la composition est écartée. */
+/** Les nœuds du catalogue qui composent une page : ce qui est mesuré ensuite par l'usage réel. */
+function nodesOf(config: PageConfig): string[] {
+  return [...new Set([config.layout, config.skin, ...(config.gabarit ? [config.gabarit] : []), ...Object.values(config.components ?? {})].filter(Boolean))];
+}
+
 const MIN_ZONE_SCALE = 0.7;
 
 /** La mémoire des idées, par portée (projet, utilisateur, secteur) : 30 jours, les 40 dernières marques. Tous les hôtes s'y tiennent. */
@@ -461,7 +466,7 @@ export class GraphicDocument {
     this.specs.set(section.id, spec);
     this.contents.set(section.id, section);
     const usage = recorder.usage();
-    const trace = recorder.finish({ pattern: patternId, ...(assets.length ? { assets } : {}) });
+    const trace = recorder.finish({ pattern: patternId, ...(assets.length ? { assets } : {}), ...(catalogInfo ? { nodes: nodesOf(catalogInfo.config) } : {}) });
     engineHost().onTrace?.(trace);
     const result: RenderResult = {
       version: '1.0',

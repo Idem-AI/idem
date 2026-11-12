@@ -24,6 +24,7 @@ import { runtimeCall } from '../creativity/orchestrator';
 import { isRenderUrlAllowed } from '../../utils/render-network-guard';
 import { IDEM_ASSET_PROVIDERS } from './asset-providers';
 import { idemAssetRegistry } from './asset-registry';
+import { mergeWeights, performanceWeights } from './catalog-performance.service';
 
 let configured = false;
 let chartSource: string | null | undefined;
@@ -75,7 +76,12 @@ export function configureGraphicEngineForIdem(): void {
       const mongoose = (await import('mongoose')).default;
       if (mongoose.connection.readyState !== 1) return {};
       const doc = (await mongoose.connection.collection('platform_settings').findOne({ _id: 'catalog' } as any)) as { disabled?: string[]; weights?: Record<string, number> } | null;
-      return { disabled: Array.isArray(doc?.disabled) ? doc!.disabled : [], weights: doc?.weights && typeof doc.weights === 'object' ? doc.weights : {} };
+      // Les poids posés à la main (console) MULTIPLIENT ceux que l'usage réel a mesurés.
+      const measured = await performanceWeights();
+      return {
+        disabled: Array.isArray(doc?.disabled) ? doc!.disabled : [],
+        weights: mergeWeights(doc?.weights && typeof doc.weights === 'object' ? doc.weights : {}, measured),
+      };
     },
     recentFingerprints: async (scope) => (await cacheService.get<string[]>(fingerprintKey(scope), { prefix: 'graphic' })) ?? [],
     rememberFingerprints: async (scope, fingerprints) => {

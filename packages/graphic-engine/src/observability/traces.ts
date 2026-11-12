@@ -41,6 +41,8 @@ export interface GenerationTrace {
   components: string;
   /** Les médias de la page : `assetId ← source (fournisseur)`, ou `assetId ✗` quand aucun n'a été trouvé. */
   assets?: string[];
+  /** Les nœuds du catalogue qui ont servi cette page (squelette, habillage, gabarit, composants) : la mesure de leur tenue. */
+  nodes?: string[];
 }
 
 /** ≈ 4 signes par jeton : l'estimation des runtimes de l'hôte, gardée pour comparer. */

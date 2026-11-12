@@ -144,6 +144,68 @@ export function jitter(seed: string, id: string): number {
   return parseInt(stableHash([seed, id], 8), 16) / 0xffffffff;
 }
 
+/**
+ * LE PROFIL DU CONTENU — ce que la page a RÉELLEMENT à montrer, mesuré par le code (0 jeton).
+ *
+ * Le filtre dur dit déjà si une composition PEUT tenir le contenu (`assignUnits` : nombre de blocs, types, éléments).
+ * Le profil, lui, sert le CLASSEMENT : une grille serrée pour deux blocs légers reste vide, un squelette aéré pour
+ * huit blocs chargés étouffe. Les deux passent le filtre dur ; ils ne se valent pas.
+ */
+export interface ContentProfile {
+  blocks: number;
+  items: number;
+  /** Signes de texte des blocs (titres, libellés, corps). */
+  chars: number;
+  hasMedia: boolean;
+  /** La charge rapportée à la surface de la toile : < 0,55 aérée, > 1,35 dense. */
+  load: number;
+  density: 'airy' | 'balanced' | 'dense';
+}
+
+/** Les signes portés par un bloc : ce que le lecteur aura sous les yeux, pas la structure. */
+function charsOf(u: PageUnit): number {
+  const b = u.block as Record<string, unknown> | undefined;
+  if (!b) return 0;
+  let n = 0;
+  const walk = (v: unknown, depth: number): void => {
+    if (depth > 3) return;
+    if (typeof v === 'string') n += v.length;
+    else if (Array.isArray(v)) for (const x of v.slice(0, 24)) walk(x, depth + 1);
+    else if (v && typeof v === 'object') for (const x of Object.values(v as Record<string, unknown>).slice(0, 24)) walk(x, depth + 1);
+  };
+  walk(b, 0);
+  return n;
+}
+
+export function contentProfile(units: PageUnit[], format: FormatDef): ContentProfile {
+  const blocks = units.filter((u) => u.category !== 'header');
+  const items = blocks.reduce((n, u) => n + u.items, 0);
+  const chars = units.reduce((n, u) => n + charsOf(u), 0);
+  const hasMedia = units.some((u) => u.category === 'media');
+  // Une page A4 (≈ 744 × 1052) tient confortablement ~1 800 signes et ~6 blocs : la référence de la charge.
+  const area = (format.width * format.height) / (744 * 1052);
+  const load = (chars / 1800 + blocks.length / 6 + items / 14) / 3 / Math.max(0.35, area);
+  return { blocks: blocks.length, items, chars, hasMedia, load, density: load < 0.55 ? 'airy' : load > 1.35 ? 'dense' : 'balanced' };
+}
+
+/**
+ * L'accord entre une composition et le contenu réel : sa densité annoncée, et le remplissage qu'elle vise.
+ * Volontairement plus faible que l'accord artistique — le contenu départage, il ne commande pas.
+ */
+function contentFit(node: CatalogNode, profile: ContentProfile): number {
+  let s = 0;
+  const d = node.tags?.density;
+  if (d) s += d === profile.density ? 0.2 : d === 'balanced' || profile.density === 'balanced' ? 0 : -0.25;
+  if (node.kind === 'layout') {
+    const cap = (node as LayoutNode).capacity;
+    // Le milieu de ce que le squelette sait tenir : trop loin, la page sonne vide ou se bouscule.
+    const mid = (Math.max(1, cap.minBlocks) + Math.min(12, cap.maxBlocks)) / 2;
+    s -= Math.min(0.3, Math.abs(profile.blocks - mid) * 0.06);
+    if (cap.maxItems && profile.items > cap.maxItems * 0.9) s -= 0.1;
+  }
+  return s;
+}
+
 function tagFit(node: CatalogNode, traits: BrandTraits, hasMedia: boolean): number {
   const t = node.tags;
   if (!t) return 0;
@@ -259,6 +321,7 @@ export function shortlist(cat: LoadedCatalog, facts: PageFacts, o: { level: Crea
   const layouts = inDirection(cat, compatibleLayouts(cat, facts, disabled, o.traits.allowDark), o.traits.styleId);
   const layoutIds = new Set(layouts.map((l) => l.id));
   const hasMedia = facts.units.some((u) => u.category === 'media');
+  const profile = contentProfile(facts.units, facts.format);
   const seed = `${o.seed}|${facts.index}`;
   const skin = cat.nodes.get(o.skin) as SkinNode | undefined;
   // Les gabarits de la DA de la marque (ou de ses voisines).
@@ -279,7 +342,8 @@ export function shortlist(cat: LoadedCatalog, facts: PageFacts, o: { level: Crea
     const fingerprint = comboFingerprint(config);
     const ids = [layout.id, ...(gabarit ? [gabarit.id] : [])];
     const fit = tagFit(layout, o.traits, hasMedia) + (gabarit ? tagFit(gabarit, o.traits, hasMedia) : 0);
-    let score = 1 + fit + sequenceScore(ids, gabarit ?? layout, facts, o.state) + 0.3 * jitter(seed, `${ids.join('|')}|${rank}`);
+    const content = contentFit(layout, profile) + (gabarit ? contentFit(gabarit, profile) : 0);
+    let score = 1 + fit + content + sequenceScore(ids, gabarit ?? layout, facts, o.state) + 0.3 * jitter(seed, `${ids.join('|')}|${rank}`);
     if (o.state.seen.has(fingerprint)) score -= 0.6;
     if (o.exclude?.includes(fingerprint) || o.exclude?.includes(layout.id)) score -= 2;
     score *= weightOf(o.overrides, layout.id) * (gabarit ? weightOf(o.overrides, gabarit.id) : 1);

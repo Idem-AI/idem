@@ -32,6 +32,7 @@ import type { SectionComposition } from '../../models/section.model';
 import { resolveLogoDeclensions } from '../../utils/brand-context.util';
 import { getRequestLanguage } from '../../utils/request-language';
 import { ensureProjectArtDirection } from '../brand/artDirection.provider';
+import { recordTemplatePerformance } from './catalog-performance.service';
 import type { PromptService } from '../prompt.service';
 
 /** La marque d'un projet telle que le moteur la lit. Rien n'est inventé : ce qui manque, le moteur le dérive. */
@@ -218,6 +219,9 @@ export class GenerationJournal {
   finish(): GenerationRecord {
     const record = recordFromTraces({ deliverable: this.deliverable, level: this.level, traces: this.traces, issues: this.issues, fallbacks: this.notes, modelOf: (role) => roleConfig(role, 'agents').modelName });
     logger.info('generation.record', recordSummary(record));
+    // La tenue des nœuds employés nourrit le classement des prochaines générations. En arrière-plan : une
+    // statistique ne retarde ni ne casse un livrable.
+    void recordTemplatePerformance(record);
     return record;
   }
 }
