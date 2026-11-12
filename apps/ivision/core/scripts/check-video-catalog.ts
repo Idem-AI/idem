@@ -57,9 +57,15 @@ function sceneFor(g: GabaritNode, key: string, duration: number): CatalogScene {
     'vlayout.media-framed': { headline: 'Une borne pensée pour le village', sub: 'Solaire, solide, utilisable sans savoir lire.' },
     'vlayout.cta-end': { headline: 'Installez une borne dans votre village', sub: 'Les dix premières coopératives sont équipées gratuitement.', cta: 'Écrire sur WhatsApp' },
     'vlayout.logo-sting': { headline: 'Les intrants à portée de main' },
+    'vlayout.figure-media': { figure: '3 200', label: 'Commandes passées à la borne', headline: 'La borne tourne tous les jours' },
+    'vlayout.data-rows': { kicker: 'Résultats', headline: 'Ce que la borne change', text2: 'Deux jours de marche économisés par saison', text3: 'Trente pour cent de moins sur les intrants', text4: 'Un reçu imprimé à chaque commande' },
+    'vlayout.figure-footer': { figure: '98 %', label: 'Des commandes livrées le lendemain', headline: 'Un service qui tient ses promesses' },
+    'vlayout.cta-split': { headline: 'Équipez votre coopérative cette saison', sub: 'Les dix premières installations sont offertes.', cta: 'Écrire sur WhatsApp' },
+    'vlayout.signature-lockup': { headline: 'Les intrants à portée de main', cta: 'idem.africa' },
+    'vlayout.problem-list': { kicker: 'Le problème', headline: 'Trois obstacles à chaque saison', text2: 'Le dépôt le plus proche est à douze kilomètres', text3: 'Les prix changent sans prévenir', text4: 'Aucun reçu, aucun recours' },
   };
   const texts = base[layout] ?? { headline: 'Une scène' };
-  const needsMedia = ['vlayout.media-full-caption', 'vlayout.split-media-text', 'vlayout.media-framed'].includes(layout);
+  const needsMedia = ['vlayout.media-full-caption', 'vlayout.split-media-text', 'vlayout.media-framed', 'vlayout.figure-media'].includes(layout);
   return { key, duration, texts, media: needsMedia ? media : [], role, energy: 3 };
 }
 
