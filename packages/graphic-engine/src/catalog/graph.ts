@@ -21,7 +21,7 @@ import { catalogEffortFor } from '../foundation/effort';
 import { assignUnits, PageUnit, placedZones } from './assemble';
 import { BUILTIN_LAYOUT, BUILTIN_SKIN } from './builtin';
 import { getDirection } from '../directions';
-import type { CatalogElement, CatalogNode, CatalogOverrides, ComponentNode, GabaritNode, LayoutNode, LoadedCatalog, PageConfig, SkinNode, ZoneAccept } from './types';
+import { ALL_ELEMENTS, type CatalogElement, type CatalogNode, type CatalogOverrides, type ComponentNode, type GabaritNode, type LayoutNode, type LoadedCatalog, type PageConfig, type SkinNode, type ZoneAccept } from './types';
 
 // ── Les traits de la marque ──────────────────────────────────────────────────────────────────
 
@@ -72,6 +72,54 @@ export function inDirection<T extends { directions?: string[] }>(cat: LoadedCata
   return near.length ? near : list;
 }
 
+// ── L'INDEX DU CATALOGUE ─────────────────────────────────────────────────────────────────────
+
+/**
+ * Le catalogue rangé une fois par version, pour que le parcours d'une page ne relise jamais tout.
+ *
+ * Sans index, chaque page relit les N nœuds et appelle `assignUnits` (le placement réel des unités, la partie
+ * chère) sur CHAQUE squelette. À 300 nœuds c'est gratuit ; à 10 000, une page de business plan paierait
+ * 10 000 placements. L'index range par élément et par type de bloc : une page ne voit plus que ce qui la concerne.
+ *
+ * L'index vit dans une `WeakMap` sur l'objet catalogue : une nouvelle version du dépôt est un nouvel objet, donc
+ * un nouvel index — rien à invalider, rien à vider.
+ */
+export interface CatalogIndex {
+  layoutsByElement: Map<CatalogElement, LayoutNode[]>;
+  gabaritsByElement: Map<CatalogElement, GabaritNode[]>;
+  skinsByElement: Map<CatalogElement, SkinNode[]>;
+  /** Les composants par type de bloc accepté (`metrics`, `chart`…). */
+  componentsByKind: Map<string, ComponentNode[]>;
+  nodes: number;
+}
+
+const INDEXES = new WeakMap<LoadedCatalog, CatalogIndex>();
+
+/** Au-delà de ce nombre de squelettes compatibles, on ne mesure le placement que des mieux classés. */
+export const PLACEMENT_BUDGET = 60;
+
+export function catalogIndex(cat: LoadedCatalog): CatalogIndex {
+  const found = INDEXES.get(cat);
+  if (found) return found;
+  const index: CatalogIndex = { layoutsByElement: new Map(), gabaritsByElement: new Map(), skinsByElement: new Map(), componentsByKind: new Map(), nodes: cat.nodes.size };
+  const push = <T>(map: Map<string, T[]>, key: string, value: T): void => {
+    const list = map.get(key);
+    if (list) list.push(value);
+    else map.set(key, [value]);
+  };
+  // Un nœud sans `elements` sert TOUS les éléments : il entre dans chaque panier (le filtre dur le disait déjà).
+  const elementsOf = (n: { elements?: CatalogElement[] }): CatalogElement[] => (n.elements?.length ? n.elements : (ALL_ELEMENTS as CatalogElement[]));
+  for (const n of cat.nodes.values()) {
+    if (n.id.startsWith('builtin.')) continue;
+    if (n.kind === 'layout') for (const e of elementsOf(n)) push(index.layoutsByElement as Map<string, LayoutNode[]>, e, n);
+    else if (n.kind === 'gabarit') for (const e of elementsOf(n)) push(index.gabaritsByElement as Map<string, GabaritNode[]>, e, n);
+    else if (n.kind === 'skin') for (const e of elementsOf(n)) push(index.skinsByElement as Map<string, SkinNode[]>, e, n);
+    else if (n.kind === 'component') for (const k of n.accepts) push(index.componentsByKind, k, n);
+  }
+  INDEXES.set(cat, index);
+  return index;
+}
+
 // ── Le filtre dur ────────────────────────────────────────────────────────────────────────────
 
 export interface PageFacts {
@@ -104,34 +152,39 @@ function fitsRole(roles: string[], role: SectionRole | undefined): boolean {
 
 const forElement = (n: { elements?: CatalogElement[] }, e: CatalogElement) => !n.elements?.length || n.elements.includes(e);
 
-export function compatibleLayouts(cat: LoadedCatalog, facts: PageFacts, disabled: Set<string>, allowDark = false): LayoutNode[] {
-  const out: LayoutNode[] = [];
-  for (const n of cat.nodes.values()) {
-    if (n.kind !== 'layout' || disabled.has(n.id) || n.id.startsWith('builtin.')) continue;
-    if (n.darkGround && !allowDark) continue;
-    if (!forElement(n, facts.element) || !fitsShape(n, facts.format) || !fitsRole(n.roles, facts.role)) continue;
-    if (assignUnits(n, facts.units).error) continue;
-    out.push(n);
+/**
+ * Les squelettes qui savent tenir CETTE page. Deux étages, dans cet ordre de coût :
+ *   1. les tests qui ne coûtent rien (élément — lu dans l'index —, toile, rôle, fond sombre) ;
+ *   2. le placement réel des unités (`assignUnits`), seul test cher, fait en dernier.
+ *
+ * `rank` trie les survivants du premier étage quand ils sont trop nombreux : on ne mesure alors le placement
+ * que des `PLACEMENT_BUDGET` mieux classés. En deçà du budget (le cas d'aujourd'hui), rien ne change.
+ */
+export function compatibleLayouts(cat: LoadedCatalog, facts: PageFacts, disabled: Set<string>, allowDark = false, rank?: (n: LayoutNode) => number): LayoutNode[] {
+  const pool = catalogIndex(cat).layoutsByElement.get(facts.element) ?? [];
+  let eligible = pool.filter((n) => !disabled.has(n.id) && (!n.darkGround || allowDark) && fitsShape(n, facts.format) && fitsRole(n.roles, facts.role));
+  if (rank && eligible.length > PLACEMENT_BUDGET) {
+    eligible = eligible
+      .map((n) => ({ n, v: rank(n) }))
+      .sort((a, b) => b.v - a.v)
+      .slice(0, PLACEMENT_BUDGET)
+      .map((x) => x.n);
   }
-  return out;
+  return eligible.filter((n) => !assignUnits(n, facts.units).error);
 }
 
 export function compatibleSkins(cat: LoadedCatalog, element: CatalogElement, traits: BrandTraits, disabled: Set<string>): SkinNode[] {
-  return inDirection(
-    cat,
-    [...cat.nodes.values()].filter((n): n is SkinNode => n.kind === 'skin' && !disabled.has(n.id) && !n.id.startsWith('builtin.') && forElement(n, element) && (!n.dark || traits.allowDark)),
-    traits.styleId
-  );
+  const pool = catalogIndex(cat).skinsByElement.get(element) ?? [];
+  return inDirection(cat, pool.filter((n) => !disabled.has(n.id) && (!n.dark || traits.allowDark)), traits.styleId);
 }
 
 /** Les composants qui savent rendre cette unité dans cette zone. */
 export function compatibleComponents(cat: LoadedCatalog, unit: PageUnit, zone: ZoneAccept[], disabled: Set<string>, width = 1): ComponentNode[] {
-  return [...cat.nodes.values()].filter(
-    (n): n is ComponentNode =>
-      n.kind === 'component' &&
+  const pool = catalogIndex(cat).componentsByKind.get(unit.kind) ?? [];
+  return pool.filter(
+    (n) =>
       !disabled.has(n.id) &&
       (!n.minWidth || width + 1e-6 >= n.minWidth) &&
-      n.accepts.includes(unit.kind) &&
       (!n.items || (unit.items >= n.items.min && unit.items <= n.items.max)) &&
       (!n.zones?.length || n.zones.some((z) => zone.includes(z) || z === 'any'))
   );
@@ -318,7 +371,9 @@ export function drawVars(nodes: Array<{ vars?: Array<{ name: string; options: Ar
 export function shortlist(cat: LoadedCatalog, facts: PageFacts, o: { level: CreativityLevel; skin: string; traits: BrandTraits; state: CatalogState; seed: string; overrides: CatalogOverrides; exclude?: string[] }): Candidate[] {
   const effort = catalogEffortFor(o.level);
   const disabled = new Set(o.overrides.disabled ?? []);
-  const layouts = inDirection(cat, compatibleLayouts(cat, facts, disabled, o.traits.allowDark), o.traits.styleId);
+  // Le pré-classement qui borne le travail : il ne coûte que des comparaisons de traits, jamais un placement.
+  const preRank = (n: LayoutNode): number => tagFit(n, o.traits, facts.units.some((u) => u.category === 'media')) + contentFit(n, contentProfile(facts.units, facts.format)) - 0.18 * (o.state.use.get(n.id) ?? 0);
+  const layouts = inDirection(cat, compatibleLayouts(cat, facts, disabled, o.traits.allowDark, preRank), o.traits.styleId);
   const layoutIds = new Set(layouts.map((l) => l.id));
   const hasMedia = facts.units.some((u) => u.category === 'media');
   const profile = contentProfile(facts.units, facts.format);
@@ -327,7 +382,7 @@ export function shortlist(cat: LoadedCatalog, facts: PageFacts, o: { level: Crea
   // Les gabarits de la DA de la marque (ou de ses voisines).
   const gabarits = inDirection(
     cat,
-    [...cat.nodes.values()].filter((n): n is GabaritNode => n.kind === 'gabarit' && !disabled.has(n.id) && n.elements.includes(facts.element) && fitsRole(n.roles, facts.role) && layoutIds.has(n.config.layout)),
+    (catalogIndex(cat).gabaritsByElement.get(facts.element) ?? []).filter((n) => !disabled.has(n.id) && fitsRole(n.roles, facts.role) && layoutIds.has(n.config.layout)),
     o.traits.styleId
   );
   const raw: Array<Omit<Candidate, 'ref'>> = [];

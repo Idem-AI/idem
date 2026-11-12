@@ -5,7 +5,7 @@
  * cette liste courte.
  */
 import crypto from 'crypto';
-import type { AnimRole, FilmFormatId, GabaritNode, LayoutNode, LoadedVideoCatalog, SceneConfig, SceneRole, Slot, ThemeNode, TransitionNode, VideoStyle } from './types';
+import type { AnimRole, FilmFormatId, GabaritNode, LayoutNode, LoadedVideoCatalog, SceneConfig, SceneRole, Slot, ThemeNode, TransitionNode, VideoNode, VideoStyle } from './types';
 import { ROLE_TARGET } from './types';
 
 /** Une empreinte stable (graine, mémoire) : les mêmes entrées donnent toujours la même. */
@@ -163,8 +163,30 @@ export function inDirection<T extends { directions?: string[] }>(cat: LoadedVide
   return near.length ? near : list;
 }
 
+/**
+ * Le catalogue rangé par sorte, une fois par version : sans ce rangement, CHAQUE scène d'un film relit tous les
+ * nœuds trois fois (mises en page, gabarits, thèmes). À 70 nœuds c'est gratuit ; à plusieurs milliers, un film de
+ * dix scènes paierait trente parcours complets. La `WeakMap` suit l'objet catalogue : nouvelle version, nouvel index.
+ */
+const BY_KIND = new WeakMap<LoadedVideoCatalog, Map<string, VideoNode[]>>();
+
+export function videoIndex(cat: LoadedVideoCatalog): Map<string, VideoNode[]> {
+  const found = BY_KIND.get(cat);
+  if (found) return found;
+  const map = new Map<string, VideoNode[]>();
+  for (const n of cat.nodes.values()) {
+    if (n.id.startsWith('builtin.')) continue;
+    const list = map.get(n.kind);
+    if (list) list.push(n);
+    else map.set(n.kind, [n]);
+  }
+  BY_KIND.set(cat, map);
+  return map;
+}
+
 export function shortlist(cat: LoadedVideoCatalog, f: SceneFacts, o: { style?: VideoStyle; direction?: string; state: FilmState; seed: string; size: number }): SceneCandidate[] {
-  const layouts = inDirection(cat, [...cat.nodes.values()].filter((n): n is LayoutNode => n.kind === 'layout' && !n.id.startsWith('builtin.') && layoutFits(n, f)), o.direction);
+  const index = videoIndex(cat);
+  const layouts = inDirection(cat, (index.get('layout') ?? []).filter((n): n is LayoutNode => layoutFits(n as LayoutNode, f)), o.direction);
   const fitting = new Set(layouts.map((l) => l.id));
   const previous = o.state.layouts[f.index - 1];
   const score = (layout: LayoutNode, node: { roles?: string[]; energy?: [number, number]; tags?: { style?: VideoStyle[] }; weight?: number; id: string }, config: SceneConfig): number => {
@@ -178,7 +200,7 @@ export function shortlist(cat: LoadedVideoCatalog, f: SceneFacts, o: { style?: V
     return s + 0.06 * (node.weight ?? 1) + 0.08 * jitter(`${o.seed}|${f.index}|${node.id}`);
   };
   const out: SceneCandidate[] = [];
-  const gabarits = inDirection(cat, [...cat.nodes.values()].filter((g): g is GabaritNode => g.kind === 'gabarit'), o.direction);
+  const gabarits = inDirection(cat, (index.get('gabarit') ?? []) as GabaritNode[], o.direction);
   for (const g of gabarits) {
     if (!fitting.has(g.config.layout) || roleMatch(g.roles, f.role) === 0) continue;
     const layout = cat.nodes.get(g.config.layout) as LayoutNode;
@@ -204,7 +226,7 @@ export function shortlist(cat: LoadedVideoCatalog, f: SceneFacts, o: { style?: V
 
 /** Les thèmes du film, classés : style demandé, énergie moyenne du film, fond sombre seulement s'il est permis. */
 export function rankThemes(cat: LoadedVideoCatalog, o: { style?: VideoStyle; direction?: string; energy: number; allowDark: boolean; seed: string; used: string[] }): ThemeNode[] {
-  const themes = inDirection(cat, [...cat.nodes.values()].filter((n): n is ThemeNode => n.kind === 'theme' && !n.id.startsWith('builtin.') && (o.allowDark || !n.requiresDark)), o.direction);
+  const themes = inDirection(cat, (videoIndex(cat).get('theme') ?? []).filter((n): n is ThemeNode => o.allowDark || !(n as ThemeNode).requiresDark), o.direction);
   if (!themes.length) return [cat.nodes.get('builtin.plain') as ThemeNode];
   return themes
     .map((t) => ({ t, s: (o.style && t.tags?.style?.includes(o.style) ? 0.5 : 0) + 0.3 * energyMatch(t.energy, Math.round(o.energy)) - (o.used.includes(t.id) ? 0.25 : 0) + 0.15 * jitter(`${o.seed}|${t.id}`) }))

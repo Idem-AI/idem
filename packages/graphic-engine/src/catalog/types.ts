@@ -29,6 +29,8 @@ export const CATALOG_SCHEMA_VERSION = 1;
 /** Les éléments que le moteur graphique produit (un catalogue par élément, des nœuds partagés). */
 export const CatalogElement = z.enum(['business-plan', 'pitch-deck', 'brand-charter', 'business-card', 'social-visual', 'social-cover', 'print-flyer', 'web-banner']);
 export type CatalogElement = z.infer<typeof CatalogElement>;
+/** La liste des éléments, pour ranger un nœud qui n'en déclare aucun (il les sert tous). */
+export const ALL_ELEMENTS = CatalogElement.options;
 
 /** L'élément d'une génération : le type de document et la toile. `null` : rien au catalogue (graphique seul). */
 const PRINT_FORMATS = new Set<FormatId>(['print-flyer-a4', 'print-poster-a3', 'rollup-85x200']);
