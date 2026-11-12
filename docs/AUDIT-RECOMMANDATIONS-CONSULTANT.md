@@ -75,9 +75,42 @@ c'est l'accumulation sur beaucoup de générations qui désigne le fragile.
 | Embeddings visuels pour les images | Vrai manque, mais c'est un chantier à part (indexation de toute la banque) |
 | Trois statuts de validation | Le moteur distingue déjà `blocking` / `advisory`. Étendre la revue du dépôt à `production_ready` demande d'y faire entrer la licence des médias : à faire quand la banque d'images sera indexée |
 
-## Le banc de mesure recommandé
+### 3. Le coût par résultat accepté
 
-Le consultant a raison sur un point qu'aucun de nos contrôles ne couvre : **personne ne mesure aujourd'hui le
-coût par résultat accepté**. `GenerationRecord` a tout ce qu'il faut (jetons, appels, durées, réparations,
-constats) ; il manque l'agrégation par lot de référence et la comparaison avant/après. C'est le prochain
-chantier utile, et il ne coûte aucun appel de modèle supplémentaire.
+C'était le point le plus juste du consultant : nous mesurions le coût d'un APPEL, jamais celui d'un **résultat
+qu'on peut livrer**. `services/graphic/generation-analytics.service.ts` agrège les enregistrements déjà écrits :
+
+| Mesure | Ce qu'elle dit |
+|---|---|
+| `acceptanceRate` | part des générations livrées sans constat bloquant |
+| `firstPassRate` | part livrée du premier jet : ni réparation ni constat |
+| `agentCallsPerGeneration` | appels de modèle par création |
+| `costPerAcceptedUsd` | **le prix réel d'un résultat livrable**, au tarif de chaque modèle employé |
+| `msMedian` / `msP95` | la durée médiane et le 95e centile — jamais la moyenne, qu'une génération ratée écrase |
+
+```bash
+npm run analytics:generation            # les 30 derniers jours, par livrable
+npm run analytics:generation -- --by level --json
+npm run check:analytics                 # le contrôle déterministe des deux services (aucun appel)
+```
+
+Le rapport liste aussi **les dix nœuds les plus fragiles** (au moins 12 usages, classés par part de pages
+propres) : la même matière que les poids, mais lisible par un humain.
+
+#### Ce que la mesure a déjà appris
+
+Le contrôle cherche le seuil de bascule entre un petit et un gros modèle de la liste blanche
+(`qwen3.5-9b` à 0,10 $/M contre `qwen3.5-397b-a17b` à 0,50 $/M en entrée). Résultat :
+
+> **Il faut 9 échecs pour une réussite** avant que le gros modèle revienne moins cher.
+
+Autrement dit, l'intuition « un petit modèle qui rate coûte plus cher » est **fausse dans nos ordres de
+grandeur** : l'écart de prix est trop large. C'est exactement pourquoi il fallait mesurer au lieu de supposer.
+
+## Ce qui reste
+
+- **Embeddings visuels pour la banque d'images** : vrai manque, chantier à part.
+- **Le statut `production_ready`** : attend l'indexation des licences de médias.
+- **Un lot de référence** (10 sites, 10 flyers, 5 cartes, 5 BP, 5 decks, 5 vidéos) à passer avant/après chaque
+  changement de moteur. `compare(before, after)` est prêt à le lire ; il manque le lot lui-même, et le passer
+  coûtera des appels réels — c'est une décision de budget, pas de code.

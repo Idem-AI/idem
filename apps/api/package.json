@@ -5,6 +5,8 @@
   "main": "index.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    "check:analytics": "ts-node --transpile-only api/scripts/checkGenerationAnalytics.ts",
+    "analytics:generation": "ts-node --transpile-only api/scripts/generationAnalytics.ts",
     "check:agents": "ts-node --transpile-only api/scripts/checkAgentPipeline.ts",
     "check:design": "ts-node --transpile-only api/scripts/checkDesignSystem.ts",
     "check:graphic": "npm --prefix ../../packages/graphic-engine run check",
