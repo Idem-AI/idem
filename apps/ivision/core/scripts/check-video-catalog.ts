@@ -47,10 +47,10 @@ function sceneFor(g: GabaritNode, key: string, duration: number): CatalogScene {
   const media = [{ id: 'photo', kind: 'image' as const }];
   const layout = g.config.layout;
   const base: Record<string, Record<string, string>> = {
-    'vlayout.title-center': { kicker: 'Agriculture connectée', headline: 'Le marché vient à vous, même sans smartphone', sub: 'Une borne tactile au cœur de chaque village du Moungo.' },
-    'vlayout.title-left-rule': { kicker: 'Le problème', headline: 'Douze kilomètres à pied pour acheter ses semences', sub: 'Chaque saison, les exploitants perdent deux jours de travail et paient 30 % de plus.' },
+    'vlayout.title-center': { headline: 'Le marché vient à vous, même sans smartphone', sub: 'Une borne tactile au cœur de chaque village du Moungo.' },
+    'vlayout.title-left-rule': { headline: 'Douze kilomètres à pied pour acheter ses semences', sub: 'Chaque saison, les exploitants perdent deux jours de travail et paient 30 % de plus.' },
     'vlayout.media-full-caption': { headline: 'Marie vend sa récolte depuis la place du village', sub: 'Payée en 24 heures, sans intermédiaire.' },
-    'vlayout.split-media-text': { kicker: 'Commande', headline: 'Trois touches pour commander ses intrants', sub: 'La borne parle la langue de l’exploitant et imprime un reçu.' },
+    'vlayout.split-media-text': { headline: 'Trois touches pour commander ses intrants', sub: 'La borne parle la langue de l’exploitant et imprime un reçu.' },
     'vlayout.big-figure': { figure: '1 200', label: 'Exploitants servis en 2026', headline: 'Une croissance mois après mois' },
     'vlayout.list-steps': { headline: 'Comment ça marche', text2: 'L’exploitant choisit ses intrants à la borne', text3: 'Le dépôt prépare la commande en une heure', text4: 'Le paiement passe par mobile money', text5: 'La livraison arrive au village le lendemain' },
     'vlayout.quote': { headline: 'Je ne marche plus jusqu’au marché : la borne est à côté de chez moi.', author: 'Marie Ngo, productrice de manioc' },
@@ -58,11 +58,11 @@ function sceneFor(g: GabaritNode, key: string, duration: number): CatalogScene {
     'vlayout.cta-end': { headline: 'Installez une borne dans votre village', sub: 'Les dix premières coopératives sont équipées gratuitement.', cta: 'Écrire sur WhatsApp' },
     'vlayout.logo-sting': { headline: 'Les intrants à portée de main' },
     'vlayout.figure-media': { figure: '3 200', label: 'Commandes passées à la borne', headline: 'La borne tourne tous les jours' },
-    'vlayout.data-rows': { kicker: 'Résultats', headline: 'Ce que la borne change', text2: 'Deux jours de marche économisés par saison', text3: 'Trente pour cent de moins sur les intrants', text4: 'Un reçu imprimé à chaque commande' },
+    'vlayout.data-rows': { headline: 'Ce que la borne change', text2: 'Deux jours de marche économisés par saison', text3: 'Trente pour cent de moins sur les intrants', text4: 'Un reçu imprimé à chaque commande' },
     'vlayout.figure-footer': { figure: '98 %', label: 'Des commandes livrées le lendemain', headline: 'Un service qui tient ses promesses' },
     'vlayout.cta-split': { headline: 'Équipez votre coopérative cette saison', sub: 'Les dix premières installations sont offertes.', cta: 'Écrire sur WhatsApp' },
     'vlayout.signature-lockup': { headline: 'Les intrants à portée de main', cta: 'idem.africa' },
-    'vlayout.problem-list': { kicker: 'Le problème', headline: 'Trois obstacles à chaque saison', text2: 'Le dépôt le plus proche est à douze kilomètres', text3: 'Les prix changent sans prévenir', text4: 'Aucun reçu, aucun recours' },
+    'vlayout.problem-list': { headline: 'Trois obstacles à chaque saison', text2: 'Le dépôt le plus proche est à douze kilomètres', text3: 'Les prix changent sans prévenir', text4: 'Aucun reçu, aucun recours' },
   };
   const texts = base[layout] ?? { headline: 'Une scène' };
   const needsMedia = ['vlayout.media-full-caption', 'vlayout.split-media-text', 'vlayout.media-framed', 'vlayout.figure-media'].includes(layout);

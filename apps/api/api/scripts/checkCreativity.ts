@@ -130,7 +130,7 @@ const run = (n: number) => !only.length || only.includes(n);
   const engineSections = [5, 6, 7, 8, 9].some(run);
   if (engineSections) configureGraphicEngine({ agentCall: engineAgent, onTrace: undefined, recentFingerprints: undefined, rememberFingerprints: undefined });
 
-  const FLYER = visualContent({ id: 'flyer', copy: { kicker: 'Nouveau', headline: 'Le jus de bissap pressé chaque matin à Dakar', subhead: 'Livré en 24 h dans tout Dakar.' } }) as SectionContent;
+  const FLYER = visualContent({ id: 'flyer', copy: { headline: 'Le jus de bissap pressé chaque matin à Dakar', subhead: 'Livré en 24 h dans tout Dakar.' } }) as SectionContent;
   const flyerAt = (level: CreativityLevel, seed = 'check') =>
     renderSingle({ documentType: 'flyer', format: 'flyer-square', brand: VERDA.brand, direction: VERDA.direction, creativity: level, seed: `${seed}:${level}`, content: FLYER });
 

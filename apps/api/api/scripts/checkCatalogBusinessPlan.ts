@@ -42,9 +42,9 @@ const para = (topic: string, n: number) => `${topic} : ${'Les petits exploitants
 const prose = (id: string, topic: string, paragraphs: number, len = 3) => ({ id, kind: 'prose' as const, paragraphs: Array.from({ length: paragraphs }, (_, i) => para(`${topic} ${i + 1}`, len)) });
 
 const SECTIONS: SectionContent[] = [
-  { id: 'cover', role: 'cover', title: 'AgriLink', blocks: [{ id: 'c', kind: 'cover', brandName: 'AgriLink', kicker: 'Agriculture', promise: 'Les intrants à portée de main, sans smartphone', documentLabel: 'Business plan', dateLabel: 'Novembre 2026' }] },
+  { id: 'cover', role: 'cover', title: 'AgriLink', blocks: [{ id: 'c', kind: 'cover', brandName: 'AgriLink', promise: 'Les intrants à portée de main, sans smartphone', documentLabel: 'Business plan', dateLabel: 'Novembre 2026' }] },
   {
-    id: 'company-summary', role: 'opening', kicker: 'Qui nous sommes', title: 'AgriLink : un pont tactile pour les exploitants exclus', lede: 'Une entreprise camerounaise qui met les intrants et les marchés à portée des exploitants sans smartphone.',
+    id: 'company-summary', role: 'opening', title: 'AgriLink : un pont tactile pour les exploitants exclus', lede: 'Une entreprise camerounaise qui met les intrants et les marchés à portée des exploitants sans smartphone.',
     blocks: [
       { id: 'ph', kind: 'figure', url: PHOTO, alt: 'Une borne AgriLink au marché' },
       prose('b1', 'Présentation', 3, 4),
@@ -54,7 +54,7 @@ const SECTIONS: SectionContent[] = [
     ],
   },
   {
-    id: 'opportunity', role: 'data', kicker: 'Un marché qui bouge', title: 'Pourquoi l’exploitant hors ligne est la prochaine frontière', lede: 'Le problème n’est pas la demande : c’est l’accès.',
+    id: 'opportunity', role: 'data', title: 'Pourquoi l’exploitant hors ligne est la prochaine frontière', lede: 'Le problème n’est pas la demande : c’est l’accès.',
     blocks: [
       prose('b1', 'Marché', 2, 4),
       { id: 'b2', kind: 'metrics', items: [{ value: '~80 %', label: 'Exploitants sans smartphone', note: 'UIT' }, { value: '33 M', label: 'Exploitations en Afrique subsaharienne', note: 'FAO 2022' }, { value: '60 %', label: 'Part de l’emploi agricole au Cameroun', note: 'Banque mondiale' }] },
@@ -64,7 +64,7 @@ const SECTIONS: SectionContent[] = [
     ],
   },
   {
-    id: 'target-audience', role: 'narrative', kicker: 'Qui nous servons', title: 'Trois profils, une majorité mal servie', lede: 'L’exploitant qui possède une parcelle, cultive une culture vivrière et n’a pas de smartphone.',
+    id: 'target-audience', role: 'narrative', title: 'Trois profils, une majorité mal servie', lede: 'L’exploitant qui possède une parcelle, cultive une culture vivrière et n’a pas de smartphone.',
     blocks: [
       { id: 'p1', kind: 'persona', name: 'Marie Ngo', role: 'Productrice de manioc, 42 ans', traits: ['Téléphone basique', 'Épargne en tontine', 'Pertes après récolte'], needs: ['Acheter avant la saison', 'Vendre en une semaine'], quote: 'Si je pouvais acheter sans marcher douze kilomètres, je nourrirais mes enfants toute l’année.' },
       { id: 'p2', kind: 'persona', name: 'Paul Abanda', role: 'Président de coopérative, 55 ans', traits: ['Smartphone, mais pas ses membres', 'Commandes collectées à pied'], needs: ['Un point de commande unique', 'Des prix transparents'], quote: 'Je passe trois jours à collecter les commandes à pied.' },
@@ -74,7 +74,7 @@ const SECTIONS: SectionContent[] = [
     ],
   },
   {
-    id: 'financial-plan', role: 'data', kicker: 'De la subvention à l’autonomie', title: 'Trois années d’investissement avant l’équilibre', lede: 'Le réseau doit atteindre sa densité avant que la marge couvre les coûts fixes.',
+    id: 'financial-plan', role: 'data', title: 'Trois années d’investissement avant l’équilibre', lede: 'Le réseau doit atteindre sa densité avant que la marge couvre les coûts fixes.',
     blocks: [
       { id: 'b1', kind: 'metrics', items: [{ value: '7 M XAF', label: 'Chiffre d’affaires 2026' }, { value: '−84 M XAF', label: 'Résultat net 2026' }, { value: '50 M XAF', label: 'Coût total du projet' }, { value: '20 M XAF', label: 'Besoin de financement' }] },
       prose('b2', 'Modèle de revenus', 3, 4),

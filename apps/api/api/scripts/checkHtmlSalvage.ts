@@ -70,7 +70,11 @@ if (recovered) {
     recovered.title === 'Deux segments distincts, une même exigence de fiabilité',
     recovered.title
   );
-  check('le sur-titre est reconnu', recovered.kicker === 'Clientèles ciblées', recovered.kicker ?? '—');
+  check(
+    'le court préambule avant le titre n’est pas perdu : il devient une prose, pas un sur-titre',
+    recovered.blocks.some((b) => b.kind === 'prose' && b.paragraphs.includes('Clientèles ciblées')),
+    JSON.stringify(recovered.blocks[0])
+  );
   check(
     'le chapô est conservé avec sa citation',
     Boolean(recovered.lede?.includes('[s0]')),
@@ -156,7 +160,7 @@ console.log('\nLe chemin des services : `sectionFromModel`');
   check('les identifiants des blocs du code ne croisent jamais ceux du modèle', new Set(blocks.map((b) => b.id)).size === blocks.length && blocks[0]?.id.startsWith('sys-') === true, blocks.map((b) => b.id).join(', '));
 
   const headed = sectionFromModel(SAMPLE, { id: 'target-audience', heading: { title: 'Clientèles cibles' } });
-  check('le titre du plan de section remplace celui du modèle', headed.section?.title === 'Clientèles cibles' && headed.section?.kicker === undefined, headed.section?.title ?? '—');
+  check('le titre du plan de section remplace celui du modèle', headed.section?.title === 'Clientèles cibles', headed.section?.title ?? '—');
 
   const fromJson = sectionFromModel('```json\n{"title":"Le marché","lede":"Il croît de 18 % par an.","blocks":[{"kind":"prose","paragraphs":["La demande double à Douala."]}]}\n```', { id: 'market' });
   check('une réponse JSON sous clôture de code est lue directement (pas récupérée)', !fromJson.salvaged && fromJson.section?.title === 'Le marché' && fromJson.section.blocks.length === 1);

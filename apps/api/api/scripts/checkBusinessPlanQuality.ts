@@ -138,19 +138,18 @@ const POOL = [
 
 const LEDE = "La torréfaction locale capte pour la première fois la valeur qui partait à l'export.";
 
-function prose(id: string, title: string, kicker: string, offset: number, sentences: number): SectionContent {
+function prose(id: string, title: string, offset: number, sentences: number): SectionContent {
   const picked = Array.from({ length: sentences }, (_, index) => POOL[(offset + index) % POOL.length]);
   const paragraphs: string[] = [];
   for (let index = 0; index < picked.length; index += 3) {
     paragraphs.push(picked.slice(index, index + 3).join(' '));
   }
-  return { id, kicker, title, lede: LEDE, blocks: [{ id: 'prose', kind: 'prose', paragraphs }] };
+  return { id, title, lede: LEDE, blocks: [{ id: 'prose', kind: 'prose', paragraphs }] };
 }
 
 /** Section chiffrée : les blocs insécables (tableau, cartes, graphique) du plan. */
 const FINANCE: SectionContent = {
   id: 'financial-plan',
-  kicker: 'Finances',
   title: 'Un besoin de financement couvert à quatorze mois',
   lede: 'Le plan de trésorerie reste positif sous les hypothèses de volume retenues.',
   blocks: [
@@ -223,10 +222,10 @@ interface Planned {
  */
 function legacyPage(content: SectionContent): string {
   const map = buildContentMap(content);
-  const keys = [...map.entries.keys()].filter((k) => !['kicker', 'title', 'lede'].includes(k));
+  const keys = [...map.entries.keys()].filter((k) => !['title', 'lede'].includes(k));
   const texts = keys.map((k) => (/\.url$|Url$/.test(k) ? `<div><img src="{{${k}}}" alt="" class="mt-[12px] h-[120px] w-auto object-contain"></div>` : `<div><p class="mt-[10px] text-[14px] leading-[1.55] text-ink">{{${k}}}</p></div>`));
   const prims = [...map.primitives.values()].map((b) => `<section class="mt-[18px]"><idem-${b.kind === 'table' ? 'table' : 'chart'} data-block="${b.id}" data-aspect="16/9" class="w-full text-[12px] text-ink [&_th]:bg-brand-primary [&_th]:text-on-brand"></idem-${b.kind === 'table' ? 'table' : 'chart'}></section>`);
-  const header = `<header class="border-b-[3px] border-brand-primary pb-[12px]"><p class="text-[11px] uppercase tracking-[0.2em] text-brand-primary">{{kicker}}</p><h2 class="font-display text-[30px] font-bold leading-[1.1] text-ink">{{title}}</h2></header><p class="mt-[14px] text-[16px] text-muted">{{lede}}</p>`;
+  const header = `<header class="border-b-[3px] border-brand-primary pb-[12px]"><h2 class="font-display text-[30px] font-bold leading-[1.1] text-ink">{{title}}</h2></header><p class="mt-[14px] text-[16px] text-muted">{{lede}}</p>`;
   const footer = `<footer data-keep-together class="mt-[24px] flex items-center justify-between border-t border-rule pt-[8px]"><idem-logo class="h-[16px]"></idem-logo><span class="text-[10px] text-muted">{{title}}</span></footer>`;
   return [header, ...texts, ...prims, footer].join('\n');
 }
@@ -460,9 +459,9 @@ async function checkFixture(): Promise<void> {
   let orphan: Shape | undefined;
   let tail: Shape | undefined;
   try {
-    const summary = await shapes(browser, [], 'Company Summary', (n) => prose('company-summary', 'Une torréfaction de spécialité à Douala', 'Projet', 0, n), volumes);
+    const summary = await shapes(browser, [], 'Company Summary', (n) => prose('company-summary', 'Une torréfaction de spécialité à Douala', 0, n), volumes);
     orphan = summary.find((shape) => shape.pages >= 2 && shape.folioOnly);
-    const market = await shapes(browser, ['Company Summary'], 'Market Analysis', (n) => prose('market-analysis', 'Le café de spécialité arrive au Cameroun', 'Marché', 13, n), volumes);
+    const market = await shapes(browser, ['Company Summary'], 'Market Analysis', (n) => prose('market-analysis', 'Le café de spécialité arrive au Cameroun', 13, n), volumes);
     tail = market.find((shape) => shape.pages >= 2 && !shape.folioOnly && shape.lastFill < 0.3);
   } finally {
     await browser.close();
@@ -482,10 +481,10 @@ async function checkFixture(): Promise<void> {
   console.log(`  (pied orphelin à ${orphan.sentences} phrases, fin creuse à ${tail.sentences} phrases à ${Math.round(tail.lastFill * 100)} %)`);
 
   const plan: Planned[] = [
-    { name: 'Company Summary', content: prose('company-summary', 'Une torréfaction de spécialité à Douala', 'Projet', 0, orphan.sentences) },
-    { name: 'Market Analysis', content: prose('market-analysis', 'Le café de spécialité arrive au Cameroun', 'Marché', 13, tail.sentences) },
+    { name: 'Company Summary', content: prose('company-summary', 'Une torréfaction de spécialité à Douala', 0, orphan.sentences) },
+    { name: 'Market Analysis', content: prose('market-analysis', 'Le café de spécialité arrive au Cameroun', 13, tail.sentences) },
     { name: 'Financial Plan', content: FINANCE },
-    { name: 'Ressources', content: prose('resources', 'Ce que le projet mobilise déjà', 'Ressources', 27, 5) },
+    { name: 'Ressources', content: prose('resources', 'Ce que le projet mobilise déjà', 27, 5) },
   ];
   const sections = await renderAll(plan);
 

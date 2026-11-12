@@ -153,8 +153,8 @@ async function main(): Promise<void> {
   section('§4 La matière à plat : chaque texte a sa clé, chiffres exacts');
   const map = buildContentMap(MARKET);
   ok(
-    'titre, sur-titre, chapeau et chiffres-clés ont leur clé',
-    ['title', 'kicker', 'lede', 'b1.items.0.value', 'b1.items.2.label'].every((k) =>
+    'titre, chapeau et chiffres-clés ont leur clé',
+    ['title', 'lede', 'b1.items.0.value', 'b1.items.2.label'].every((k) =>
       map.entries.has(k)
     )
   );

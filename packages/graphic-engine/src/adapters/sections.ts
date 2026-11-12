@@ -25,8 +25,8 @@ export interface SectionFromModelOptions {
   prepend?: Array<BlockDraft | Block>;
   /** Blocs posés par le code après ceux du modèle (références d'une section sourcée). */
   append?: Array<BlockDraft | Block>;
-  /** La nomenclature du livrable l'emporte sur le titre du modèle — et son sur-titre avec lui. */
-  heading?: { title: string; kicker?: string };
+  /** La nomenclature du livrable l'emporte sur le titre du modèle. */
+  heading?: { title: string };
   /** Recompose les blocs (spécimens compris) : le logo et son explication dans UN objet graphique. */
   compose?: (blocks: Block[]) => Block[];
   /** Titre de repli d'une page récupérée sans titre. */
@@ -68,7 +68,6 @@ function carrier(raw: unknown, o: SectionFromModelOptions): SectionContent | nul
     title,
     blocks: [],
     ...(o.role ? { role: o.role } : {}),
-    ...(clip(input.kicker, 80) ? { kicker: clip(input.kicker, 80) } : {}),
     ...(clip(input.lede, 320) ? { lede: clip(input.lede, 320) } : {}),
     ...(intent ? { intent } : {}),
     ...(notes ? { notes } : {}),
@@ -105,8 +104,6 @@ export function sectionFromModel(raw: unknown, o: SectionFromModelOptions): Sect
   const headed: Record<string, unknown> = { ...written, blocks: composed };
   if (o.heading) {
     headed.title = o.heading.title;
-    if (o.heading.kicker) headed.kicker = o.heading.kicker;
-    else delete headed.kicker;
   }
   if (o.role) headed.role = o.role;
   const final = normalizeSection(headed, { id: o.id, role: o.role, allow: 'all' });
@@ -114,8 +111,8 @@ export function sectionFromModel(raw: unknown, o: SectionFromModelOptions): Sect
 }
 
 /** Une section entièrement posée par le code (page de spécimens, page de références). */
-export function systemSection(o: { id: string; title: string; kicker?: string; lede?: string; role?: SectionRole; blocks: Array<BlockDraft | Block> }): SectionContent | null {
-  return normalizeSection({ title: o.title, ...(o.kicker ? { kicker: o.kicker } : {}), ...(o.lede ? { lede: o.lede } : {}), blocks: systemBlocks(o.blocks) }, { id: o.id, role: o.role, allow: 'all' }).section;
+export function systemSection(o: { id: string; title: string; lede?: string; role?: SectionRole; blocks: Array<BlockDraft | Block> }): SectionContent | null {
+  return normalizeSection({ title: o.title, ...(o.lede ? { lede: o.lede } : {}), blocks: systemBlocks(o.blocks) }, { id: o.id, role: o.role, allow: 'all' }).section;
 }
 
 /**
@@ -129,14 +126,13 @@ export function sectionHtml(out: Pick<SectionOutput, 'result'>): string {
 // ── Les toiles qui ne sont pas rédigées en sections ─────────────────────────────────────────
 
 /** La couverture d'un livrable : le nom, ce qu'il est, sa promesse — des mots, jamais une mise en page. */
-export function coverContent(o: { id?: string; brandName: string; documentLabel: string; kicker?: string; promise?: string; detail?: string; dateLabel?: string; image?: { subject: string; framing?: string; mood?: string } }): SectionContent {
+export function coverContent(o: { id?: string; brandName: string; documentLabel: string; promise?: string; detail?: string; dateLabel?: string; image?: { subject: string; framing?: string; mood?: string } }): SectionContent {
   const clip = (v: string | undefined, max: number) => (v && v.trim() ? v.trim().slice(0, max) : undefined);
   const block = {
     id: 'cover',
     kind: 'cover' as const,
     brandName: clip(o.brandName, 80) ?? 'Marque',
     documentLabel: clip(o.documentLabel, 60) ?? 'Document',
-    ...(clip(o.kicker, 80) ? { kicker: clip(o.kicker, 80) } : {}),
     ...(clip(o.promise, 200) ? { promise: clip(o.promise, 200) } : {}),
     ...(clip(o.detail, 80) ? { detail: clip(o.detail, 80) } : {}),
     ...(clip(o.dateLabel, 40) ? { dateLabel: clip(o.dateLabel, 40) } : {}),
@@ -158,7 +154,6 @@ export function cardFaces(o: { binding: 'markers' | 'values'; fields?: Partial<R
 }
 
 export interface VisualCopy {
-  kicker?: string;
   headline: string;
   subhead?: string;
   body?: string;

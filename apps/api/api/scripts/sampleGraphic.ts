@@ -39,7 +39,7 @@ const branding = {
     sections: [{ id: 'cover', role: 'cover' }, { id: 'palette', role: 'specimen' }, { id: 'logo-usage', role: 'specimen' }],
     user,
   });
-  if (want('1-couverture')) shots.push({ name: '1-couverture', out: await charter.composeSection(coverContent({ id: 'cover', brandName: 'AgriLink', documentLabel: 'Charte graphique', kicker: 'Agriculture connectée', promise: 'Le marché à portée de main, sans smartphone ni internet.', detail: 'Version 1.0', dateLabel: 'Octobre 2026' }), { index: 1, total: 3 }) });
+  if (want('1-couverture')) shots.push({ name: '1-couverture', out: await charter.composeSection(coverContent({ id: 'cover', brandName: 'AgriLink', documentLabel: 'Charte graphique', promise: 'Le marché à portée de main, sans smartphone ni internet.', detail: 'Version 1.0', dateLabel: 'Octobre 2026' }), { index: 1, total: 3 }) });
   const palette: SectionContent = { id: 'palette', role: 'specimen', title: 'Palette de couleurs', blocks: [{ id: 'sys-1', kind: 'swatches', origin: 'system', items: [
     { hex: '#1B7A7A', name: 'Primaire', role: 'Identité, titres, aplats' }, { hex: '#D4A017', name: 'Secondaire', role: 'Zones calmes' }, { hex: '#E85D3A', name: 'Accent', role: 'Chiffres, appels' }, { hex: '#F2F7F7', name: 'Fond', role: 'Surface de page' }, { hex: '#1A2E2E', name: 'Encre', role: 'Texte courant' } ] }] } as SectionContent;
   if (want('2-palette')) shots.push({ name: '2-palette', out: await charter.composeSection(palette, { index: 2, total: 3 }) });
