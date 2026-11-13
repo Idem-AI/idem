@@ -890,6 +890,12 @@
         "investments": "Achats de départ",
         "financing": "Financement",
         "reports": "Tableaux pour la banque"
+      },
+      "aiSuccessDialog": {
+        "title": "Prévisions générées",
+        "headline": "Vos prévisions financières sont prêtes",
+        "description": "Les chiffres ont été calés sur des données de marché réelles et sourcées. Vous pouvez dès à présent les consulter et les ajuster.",
+        "finish": "Terminer"
       }
     },
     "sidebar": {

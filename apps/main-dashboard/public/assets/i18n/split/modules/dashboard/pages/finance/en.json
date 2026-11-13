@@ -85,6 +85,12 @@
         "headline": "Generate Your Business Plan First",
         "description": "The AI needs your Business Plan to generate consistent and personalized financial forecasts. Please generate your business plan before continuing.",
         "generateCta": "Create My Business Plan"
+      },
+      "aiSuccessDialog": {
+        "title": "Forecast generated",
+        "headline": "Your financial forecast is ready",
+        "description": "The figures have been calibrated on real, sourced market data. You can now review and adjust them.",
+        "finish": "Finish"
       }
     }
   }

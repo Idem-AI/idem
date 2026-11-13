@@ -890,6 +890,12 @@
         "investments": "Start-up purchases",
         "financing": "Funding",
         "reports": "Tables for the bank"
+      },
+      "aiSuccessDialog": {
+        "title": "Forecast generated",
+        "headline": "Your financial forecast is ready",
+        "description": "The figures have been calibrated on real, sourced market data. You can now review and adjust them.",
+        "finish": "Finish"
       }
     },
     "sidebar": {

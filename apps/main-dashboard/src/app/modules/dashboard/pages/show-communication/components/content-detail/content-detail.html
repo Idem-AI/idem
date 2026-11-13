@@ -241,8 +241,20 @@
               <i class="pi pi-download" aria-hidden="true"></i>
               {{ 'dashboard.showCommunication.visual.download' | translate }}
             </button>
-            <button type="button" class="outer-button button-sm" [disabled]="isCreatingVisual() || aiBusy()" (click)="regenerateVisual()">
-              <i class="pi pi-refresh" aria-hidden="true"></i>
+            <button
+              type="button"
+              class="outer-button button-sm"
+              [disabled]="isCreatingVisual() || aiBusy()"
+              (click)="regenerateVisual()"
+              appCreativityGate
+              [(creativity)]="creativity"
+              [creativityCost]="visualBaseCost()"
+            >
+              @if (isCreatingVisual()) {
+                <idem-loader size="xs" />
+              } @else {
+                <i class="pi pi-refresh" aria-hidden="true"></i>
+              }
               {{ 'dashboard.showCommunication.detail.ai.regenerate' | translate }}
             </button>
             <button type="button" class="outer-button button-sm" (click)="toggleAiPanel()">
