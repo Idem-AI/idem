@@ -118,5 +118,6 @@
     "skipLibCheck": true
   },
   "include": ["api/**/*"],
+  "exclude": ["api/scripts/checkCatalogBusinessPlan.ts"],
   "files": ["api/types/potrace.d.ts", "api/types/uuid.d.ts", "api/types/opentype.d.ts"]
 }
