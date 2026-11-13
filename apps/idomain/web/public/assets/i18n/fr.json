@@ -156,6 +156,9 @@
           "body": "Nous transférons et réglons un nom acheté ailleurs."
         }
       }
+    },
+    "pay": {
+      "cta": "Chercher mon nom"
     }
   },
   "search": {

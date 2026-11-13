@@ -41,6 +41,8 @@ import type { SectionSpec } from '@idem/graphic-engine';
 
 export interface CommunicationContext {
   brandName: string;
+  /** Le pays du projet : l'axe de départ et la mémoire du secteur des visuels en dépendent. */
+  country?: string;
   businessType: string;
   valueProposition: string;
   targetAudience: string;
@@ -389,7 +391,6 @@ export interface Flyer {
   layout?: string;
   /** Les mots du visuel, case par case : une retouche les reprend et le moteur recompose la page. */
   copy?: {
-    kicker?: string;
     headline: string;
     sub?: string;
     facts: Array<{ kind: 'date' | 'time' | 'place' | 'price' | 'contact' | 'other'; text: string }>;
@@ -403,6 +404,15 @@ export interface Flyer {
   seed?: string;
   /** L'arbre de la page (moteur graphique) : une retouche le modifie et REJOUE la même page. */
   spec?: SectionSpec;
+  /**
+   * Les AUTRES compositions écrites pour ce visuel (plan qualité créative), déjà payées : proposées au client, qui
+   * choisit (`chooseFlyerVariant`). Leur image est servie sous leur propre id.
+   */
+  alternatives?: Array<{ id: string; html: string; spec?: SectionSpec; score?: number; imageUrl?: string }>;
+  /** Le score de la composition retenue (mesures du code), quand plusieurs ont été mesurées. */
+  score?: number;
+  /** L'idée du visuel (étape concept) : gardée pour décliner le visuel dans un autre format. */
+  idea?: string;
   /** Cran de la jauge de créativité choisi pour ce visuel. */
   creativity?: 'low' | 'medium' | 'high' | 'ultra';
   /** Ce que chaque agent a décidé (source modèle ou code, tokens). */

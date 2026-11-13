@@ -111,6 +111,27 @@ export function pageSeoText(id: LandingPageId, locale: 'fr' | 'en'): PageSeoText
         crumb: $localize`:@@seo.contact.crumb:Contact`,
         imageAlt: $localize`:@@seo.contact.imageAlt:Contact IDEM — A talking drum.`,
       };
+    case 'builders':
+      return {
+        title: $localize`:@@seo.builders.title:Idem Builders — African projects built with IDEM`,
+        description: $localize`:@@seo.builders.description:Idem Builders showcases African projects run with IDEM, with visibility, a wallet bonus and lower hosting costs to help them grow profitably.`,
+        crumb: 'Idem Builders',
+        imageAlt: $localize`:@@seo.builders.imageAlt:Idem Builders — A commemorative printed cloth, its medallion stacked with mud bricks.`,
+      };
+    case 'builders-terms':
+      return {
+        title: $localize`:@@seo.buildersTerms.title:Idem Builders — Participation terms`,
+        description: $localize`:@@seo.buildersTerms.description:The rules of the Idem Builders programme: who can apply, how applications are reviewed, the benefits granted, the showcase licence and how to leave.`,
+        crumb: $localize`:@@seo.buildersTerms.crumb:Idem Builders terms`,
+        imageAlt: $localize`:@@seo.legal.imageAlt:IDEM legal information — An Akan gold-weighing scale.`,
+      };
+    case 'builders-privacy':
+      return {
+        title: $localize`:@@seo.buildersPrivacy.title:Idem Builders — Privacy policy`,
+        description: $localize`:@@seo.buildersPrivacy.description:What personal data the Idem Builders programme processes, why, what becomes public on the showcase, how long it is kept and how to exercise your rights.`,
+        crumb: $localize`:@@seo.buildersPrivacy.crumb:Idem Builders privacy`,
+        imageAlt: $localize`:@@seo.legal.imageAlt:IDEM legal information — An Akan gold-weighing scale.`,
+      };
     case 'premium-beta':
       return {
         title: $localize`:@@seo.beta.title:IDEM premium beta — Launch your business with us`,

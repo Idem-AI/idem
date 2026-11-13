@@ -204,6 +204,7 @@
     [plans]="plans()"
     (closed)="close()"
     (visualCreated)="visualCreated.emit($event)"
+    (visualChanged)="visualCreated.emit($event)"
     (publicationCreated)="publicationCreated.emit($event)"
     (failed)="failed.emit($event)"
   />

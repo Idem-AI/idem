@@ -23,6 +23,7 @@
  */
 
 import { contrastRatio, hexToOklch, oklchToHex } from './color.js';
+import { catalogDirection } from '../siteEngine/sectionCatalog/registry.js';
 
 export type PaletteRole = 'primary' | 'secondary' | 'accent' | 'background' | 'text';
 const PALETTE_ROLES: PaletteRole[] = ['primary', 'secondary', 'accent', 'background', 'text'];
@@ -166,6 +167,12 @@ export const CHARTER_STYLES: Record<string, CharterStyle> = {
 
 export function resolveCharterStyle(styleId: unknown): CharterStyle | null {
   const key = typeof styleId === 'string' ? styleId.trim() : '';
+  // Le catalogue des DA (chargé avec le catalogue iCode) d'abord : il connaît les 30 DA et leurs valeurs à jour ; la
+  // table ci-dessus n'est qu'un repli quand aucun catalogue n'a encore été lu.
+  const fromCatalog = catalogDirection(key);
+  if (fromCatalog && typeof fromCatalog.radius === 'number' && typeof fromCatalog.typeRatio === 'number') {
+    return { id: key, name: fromCatalog.name?.en ?? key, radius: fromCatalog.radius, typeRatio: fromCatalog.typeRatio, density: fromCatalog.density ?? 'balanced' };
+  }
   return CHARTER_STYLES[key] ?? null;
 }
 

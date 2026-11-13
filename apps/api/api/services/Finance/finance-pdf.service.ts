@@ -38,7 +38,6 @@ import {
   methodSection,
   ratiosSection,
   revenueSection,
-  summarySection,
   taxesSection,
 } from './finance-report.sections';
 import { TypographyModel } from '../../models/brand-identity.model';
@@ -47,12 +46,20 @@ import { AI_CONFIG } from '../../config/ai.config';
 
 import { cacheService } from '../cache.service';
 import * as crypto from 'crypto';
-import { AGENT_FINANCE_COVER_PROMPT } from './prompts/agent-finance-cover.prompt';
 import { resolveLogoDeclensions } from '../../utils/brand-context.util';
+import { openGraphicDocument, renderGraphicPage, coverDateLabel } from '../graphic/graphic.service';
+import { documentDesignKey } from '../common/deliverable-documents';
+import { financeReportCoverCatalogSection, financeReportSummaryCatalogSection } from './finance-report-catalog';
 
 
 /** Doit correspondre à `fixedPageSections` : la couverture n'est jamais paginée. */
 const COVER_SECTION_NAME = 'Couverture';
+/**
+ * La synthèse aussi : composée par le moteur graphique comme la couverture, c'est une page déjà mesurée et
+ * ajustée à son format — le paginateur de flux (pensé pour des tableaux qui débordent) ne doit pas tenter
+ * de la redécouper.
+ */
+const CATALOG_SUMMARY_SECTION_NAME = 'Synthèse';
 
 function section(name: string, html: string): SectionModel {
   return { name, type: 'finance-report', data: html, summary: '' };
@@ -87,20 +94,48 @@ export class FinancePdfService {
 
     const typography = this.extractTypography(project);
     const companyName = project.name || 'Projet';
-    
-    // La couverture est CONSTRUITE, pas générée : élément fixe, aucun jugement
-    // à porter. Un appel de modèle et son attente disparaissent du chemin
-    // critique — le rapport ne dépend plus que de l'interprétation.
-    const designSystem = this.designSystemOf(project);
+    const currency = finance.meta?.currency || 'FCFA';
+
     // La juridiction comptable vient du PAYS du projet : le rapport cite le
     // référentiel réellement applicable, et non celui d'une zone supposée.
     const jurisdiction = resolveJurisdiction(project.additionalInfos?.country);
-    const coverSection = this.buildCoverSection(
-      companyName,
-      designSystem,
+    const designSystem = this.designSystemOf(project);
+
+    // La couverture et la synthèse passent par le MOTEUR GRAPHIQUE, la même
+    // logique que le business plan : le catalogue choisit le squelette, l'habillage
+    // et le gabarit selon la charte réelle du projet (cran bas : 0 appel, le code
+    // choisit). Les chapitres chiffrés qui suivent restent sur la grammaire fixe
+    // ci-dessous — un barème fiscal ou un bilan SYSCOHADA ne gagne rien à varier.
+    const graphic = await openGraphicDocument({
       project,
-      project.id ?? projectId
+      documentType: 'report',
+      format: 'a4-portrait',
+      seed: documentDesignKey('financereport', projectId, project.id ?? projectId),
+      creativity: 'low',
+      documentLabel: 'Rapport financier',
+      userId,
+      sections: [
+        { id: 'cover', role: 'cover' },
+        { id: 'summary', role: 'data' },
+      ],
+    });
+    const coverHtml = await renderGraphicPage(
+      graphic,
+      financeReportCoverCatalogSection({
+        companyName,
+        currency,
+        exercises: finance.computed.compteExploitation.length,
+        dateLabel: coverDateLabel(),
+      }),
+      { index: 0, total: 2 }
     );
+    const summaryHtml = await renderGraphicPage(
+      graphic,
+      financeReportSummaryCatalogSection({ finance, jurisdiction, currency }),
+      { index: 1, total: 2 }
+    );
+    const coverSection: SectionModel = { name: COVER_SECTION_NAME, type: 'cover', data: coverHtml, summary: '' };
+
     const interpretation = await this.generateInterpretation(project, finance, jurisdiction);
 
     // ── L'ORDRE DE LECTURE D'UN ANALYSTE CRÉDIT ─────────────────────────────
@@ -121,7 +156,7 @@ export class FinancePdfService {
 
     const sections: SectionModel[] = [
       coverSection,
-      section('Synthèse', summarySection(chrome, finance, jurisdiction)),
+      section(CATALOG_SUMMARY_SECTION_NAME, summaryHtml),
       section('Modèle de revenus', revenueSection(chrome, finance)),
       section('Structure de coûts', costStructureSection(chrome, finance)),
       section('Fiscalité', taxesSection(chrome, finance)),
@@ -146,7 +181,7 @@ export class FinancePdfService {
       // paginateur de flux, tout ce qui dépassait la première page était
       // simplement rogné — un compte d'exploitation amputé de son résultat net.
       multiPage: true,
-      fixedPageSections: [COVER_SECTION_NAME],
+      fixedPageSections: [COVER_SECTION_NAME, CATALOG_SUMMARY_SECTION_NAME],
       // Un rapport aussi tabulaire se distend mal : mieux vaut une page qui
       // s'arrête qu'une page aux interlignes creusés.
       pagination: { maxGapAddMm: 2, maxGapAddHardMm: 4, minFillRatio: 0.2 },
@@ -245,101 +280,13 @@ export class FinancePdfService {
   // -----------------------------------------------------------------
   // Section builders (chaque section retourne un SectionModel)
   // -----------------------------------------------------------------
-
-  /**
-   * Couverture du rapport financier — construite par le CODE.
-   *
-   * ── POURQUOI PLUS D'IA ICI ─────────────────────────────────────────────────
-   *
-   * Une couverture de rapport financier est un élément FIXE : un titre, un nom
-   * d'entreprise, une date, un logo. Rien n'y demande de jugement. La faire
-   * écrire par un modèle coûtait des tokens et de la latence pour un résultat
-   * que le code produit à l'identique — et sans jamais garantir la charte, ce
-   * qui était précisément le reproche.
-   *
-   * ── CE QUI A CHANGÉ DANS LA COMPOSITION ────────────────────────────────────
-   *
-   * L'ancienne version empilait trois à cinq disques flous (`blur(120px)`) sous
-   * une carte translucide bordée de blanc. C'est le vocabulaire visuel par
-   * défaut des générateurs, et il contredit frontalement la direction
-   * artistique de ce projet, qui prescrit des aplats nets, des filets d'1px et
-   * aucune ombre portée. La direction artistique n'était d'ailleurs lue nulle
-   * part dans ce fichier.
-   *
-   * La composition vient maintenant du design system : aplats, filet, échelle
-   * typographique, rayon hérité du style. La variation d'un projet à l'autre
-   * reste déterministe, mais elle porte sur la MISE EN PAGE (position de la
-   * bande, alignement) et non sur des effets — donc elle ne peut pas sortir de
-   * la charte.
-   */
-  private buildCoverSection(
-    companyName: string,
-    ds: DocumentDesignSystem,
-    project: ProjectModel,
-    projectId: string
-  ): SectionModel {
-    const today = new Date().toLocaleDateString('fr-FR', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-
-    const rand = this.getSeededRandom(projectId || companyName);
-    // Deux décisions de mise en page seulement, tirées de la graine : la bande
-    // colorée est en haut ou en bas, et le bloc de titre est haut ou bas de
-    // page. Quatre compositions, toutes tenables — on ne tire pas au sort ce
-    // qui pourrait être laid.
-    const bandAtTop = rand() > 0.5;
-    const titleLow = rand() > 0.5;
-
-    const logoHtml = this.buildCoverLogoHtml(project, ds, companyName);
-
-    // La bande porte la couleur de marque en aplat : c'est le seul grand geste
-    // de la page, et il suffit.
-    const band = `<div style="position:absolute;left:0;right:0;${bandAtTop ? 'top:0' : 'bottom:0'};height:34mm;background-color:${ds.colors.primary};"></div>`;
-
-    // Le nom est ajusté à sa longueur : un nom long ne doit pas casser en
-    // escalier, défaut déjà corrigé sur les autres livrables.
-    const nameSize = Math.round(
-      Math.max(ds.typeScale.xl, Math.min(ds.typeScale["4xl"], 1400 / Math.max(companyName.length, 8)))
-    );
-
-    const html = `
-    <div style="width:210mm;height:297mm;position:relative;overflow:hidden;box-sizing:border-box;background-color:${ds.colors.surface};color:${ds.colors.ink};font-family:'${ds.fonts.body}', sans-serif;padding:28mm 24mm;display:flex;flex-direction:column;justify-content:${titleLow ? 'flex-end' : 'flex-start'};">
-      ${band}
-      <div style="position:relative;z-index:1;">
-        ${logoHtml}
-        <div style="text-transform:uppercase;letter-spacing:0.28em;font-size:${ds.typeScale.xs}px;font-weight:700;color:${ds.colors.primary};margin-bottom:${ds.spacing * 1.5}px;">
-          Rapport financier
-        </div>
-        <h1 style="margin:0;font-family:'${ds.fonts.display}', serif;font-size:${nameSize}px;line-height:1.05;font-weight:700;color:${ds.colors.ink};">
-          ${this.esc(companyName)}
-        </h1>
-        <div style="margin-top:${ds.spacing * 2}px;border-top:2px solid ${ds.colors.primary};width:46mm;"></div>
-        <p style="margin:${ds.spacing * 1.5}px 0 0;font-size:${ds.typeScale.base}px;color:${ds.colors.inkMuted};max-width:120mm;line-height:1.55;">
-          États financiers prévisionnels, seuil de rentabilité et ratios de gestion.
-        </p>
-      </div>
-      <div style="position:absolute;left:24mm;right:24mm;${bandAtTop ? 'bottom:16mm' : 'top:16mm'};z-index:1;display:flex;justify-content:space-between;font-size:${ds.typeScale.xs}px;color:${ds.colors.inkMuted};text-transform:uppercase;letter-spacing:0.12em;">
-        <span>${this.esc(today)}</span>
-        <span>Idem</span>
-      </div>
-    </div>`;
-
-    return { name: COVER_SECTION_NAME, type: 'cover', data: html, summary: '' };
-  }
-
-  private getSeededRandom(seed: string): () => number {
-    let hash = 0;
-    for (let i = 0; i < seed.length; i++) {
-      hash = (hash << 5) - hash + seed.charCodeAt(i);
-      hash |= 0;
-    }
-    return () => {
-      const x = Math.sin(hash++) * 10000;
-      return x - Math.floor(x);
-    };
-  }
+  //
+  // La couverture et la synthèse sont désormais composées par le moteur
+  // graphique (`finance-report-catalog.ts`), la même logique que le business
+  // plan : voir leur construction au début de `generateFinancePdf`. Elles ont
+  // remplacé ici une couverture dessinée à la main (quatre compositions fixes
+  // tirées d'une graine, hors du catalogue, qui portait encore un sur-titre en
+  // bandeau — le motif retiré partout ailleurs).
 
   // -----------------------------------------------------------------
   // AI interpretation

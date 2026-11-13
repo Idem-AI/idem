@@ -5,10 +5,12 @@ import { SidebarDashboard } from '../../modules/dashboard/components/sidebar-das
 import { GuidedStepBarComponent } from '../../modules/guided/components/guided-step-bar/guided-step-bar';
 import { TopbarComponent } from '../../shared/components/topbar/topbar';
 
+import { PromoBannerComponent } from '@idem/shared-promotions/angular';
+
 @Component({
   selector: 'app-dashboard-layout',
   standalone: true,
-  imports: [RouterOutlet, SidebarDashboard, CommonModule, GuidedStepBarComponent, TopbarComponent],
+  imports: [RouterOutlet, SidebarDashboard, CommonModule, GuidedStepBarComponent, TopbarComponent, PromoBannerComponent],
   templateUrl: './dashboard-layout.html',
   styleUrl: './dashboard-layout.css',
 })

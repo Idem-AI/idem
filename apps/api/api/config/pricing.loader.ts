@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import mongoose from 'mongoose';
 import logger from './logger';
 import type { PricingConfig } from '../../../../packages/shared-models/src/pricing/pricing';
 
@@ -74,6 +75,7 @@ export function loadPricingDefaults(): PricingConfig {
 
     const firstLoad = current === null;
     current = { path: file, mtimeMs: stat.mtimeMs, loadedAt: new Date(), config };
+    void publishPricingDefaults();
 
     logger.info(firstLoad ? 'billing.pricing_loaded' : 'billing.pricing_reloaded', {
       event: firstLoad ? 'billing.pricing_loaded' : 'billing.pricing_reloaded',
@@ -142,5 +144,24 @@ function assertPricingConfig(value: any): asserts value is PricingConfig {
         }
       }
     }
+  }
+}
+
+
+/**
+ * Publie la grille par défaut chargée dans `pricing_defaults` (document `key: 'defaults'`) : le
+ * panel admin lit la grille et écrit ses surcharges directement en base, sans appeler l'API.
+ * Appelée à chaque (re)chargement du fichier et au démarrage ; sans base connectée, ne fait rien.
+ */
+export async function publishPricingDefaults(): Promise<void> {
+  if (!current || mongoose.connection.readyState !== 1) return;
+  try {
+    await mongoose.connection.collection('pricing_defaults').updateOne(
+      { key: 'defaults' },
+      { $set: { key: 'defaults', config: current.config, path: current.path, version: current.config.version, loadedAt: current.loadedAt, publishedAt: new Date() } },
+      { upsert: true }
+    );
+  } catch (error: any) {
+    logger.warn(`billing.pricing_publish_failed: ${error.message}`, { event: 'billing.pricing_publish_failed' });
   }
 }

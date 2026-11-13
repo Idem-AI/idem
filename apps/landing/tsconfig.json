@@ -6,7 +6,9 @@
     "paths": {
       "@idem/shared-loader": ["../../packages/shared-loader/src"],
       "@idem/shared-loader/*": ["../../packages/shared-loader/src/*"],
-      "@idem/shared-seo": ["../../packages/shared-seo/src"]
+      "@idem/shared-seo": ["../../packages/shared-seo/src"],
+      "@idem/shared-promotions": ["../../packages/shared-promotions/src"],
+      "@idem/shared-promotions/*": ["../../packages/shared-promotions/src/*"]
     },
     "strict": true,
     "noImplicitOverride": true,

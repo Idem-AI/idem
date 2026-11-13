@@ -8,14 +8,11 @@
   font-weight: 700;
   color: var(--color-text-primary);
   text-wrap: balance;
-  margin-bottom: 1.75rem;
+  margin-bottom: 1.5rem;
 }
-.picker-lead {
-  margin: -0.75rem 0 2rem;
-  max-width: 36rem;
-  font-size: 1.1rem;
-  line-height: 1.6;
-  color: var(--color-text-secondary);
+.picker-banner {
+  display: block;
+  margin-bottom: 1.25rem;
 }
 .picker-all {
   display: inline-block;
@@ -26,17 +23,69 @@
   text-underline-offset: 4px;
 }
 
-/* ── Offres ────────────────────────────────────────────────────────────── */
+/* ── La gratuité en entrée ──────────────────────────────────────────────── */
+.free-strip {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  align-items: center;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 2.5rem;
+  border-radius: 1.25rem;
+  border: 1px dashed var(--glass-border);
+  background: var(--color-surface-1);
+}
+@media (min-width: 760px) {
+  .free-strip {
+    grid-template-columns: 5rem 1fr auto;
+  }
+}
+.free-art {
+  width: 5rem;
+}
+.free-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+.free-zero {
+  color: var(--color-primary-500);
+  font-variant-numeric: tabular-nums;
+}
+.free-text {
+  margin-top: 0.25rem;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: var(--color-text-secondary);
+}
+.free-cta {
+  white-space: nowrap;
+}
+
+/* ── Trois offres, la recommandée au centre ─────────────────────────────── */
 .picker-grid {
   display: grid;
   gap: 1.25rem;
-  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  grid-template-columns: 1fr;
   align-items: stretch;
+}
+@media (min-width: 960px) {
+  .picker-grid {
+    grid-template-columns: 1fr 1.12fr 1fr;
+    align-items: center;
+  }
+}
+/* Sur téléphone, l'offre recommandée passe en premier. */
+@media (max-width: 959px) {
+  .offer-recommended {
+    order: -1;
+  }
 }
 .offer {
   position: relative;
   display: flex;
   flex-direction: column;
+  height: 100%;
   padding: 1.5rem;
   border-radius: 1.5rem;
   border: 1px solid var(--glass-border);
@@ -44,6 +93,12 @@
 }
 .offer-recommended {
   border: 2px solid var(--color-primary-500);
+  padding: 2rem 1.75rem;
+}
+@media (min-width: 960px) {
+  .offer-recommended {
+    min-height: calc(100% + 2.5rem);
+  }
 }
 .offer-flag {
   position: absolute;
@@ -56,39 +111,75 @@
   font-size: 0.8rem;
   font-weight: 600;
 }
+.offer-head {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
 .offer-art {
-  width: 7.5rem;
-  margin-bottom: 1rem;
+  flex: none;
+  width: 4.5rem;
 }
 .offer-need {
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   color: var(--color-text-secondary);
 }
 .offer-name {
-  margin-top: 0.25rem;
-  font-size: 1.35rem;
+  margin-top: 0.15rem;
+  font-size: 1.3rem;
   font-weight: 700;
   color: var(--color-text-primary);
 }
+
+/* Le prix : le nombre en grand, l'unité en petit (la monnaie rappelle la dépense). */
 .offer-price {
-  margin-top: 1rem;
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--glass-border-subtle);
+}
+.offer-anchor {
+  font-size: 0.9rem;
+  color: var(--color-text-tertiary);
+}
+.offer-amount-line {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.15rem 0.4rem;
 }
 .offer-amount {
-  font-size: 2.5rem;
+  font-size: 2.6rem;
+  line-height: 1.1;
   font-weight: 800;
   color: var(--color-text-primary);
   font-variant-numeric: tabular-nums;
 }
-.offer-cadence {
-  display: block;
-  font-size: 0.95rem;
+.offer-recommended .offer-amount {
+  font-size: 3rem;
+}
+.offer-unit {
+  font-size: 1rem;
+  font-weight: 600;
   color: var(--color-text-secondary);
 }
-.offer-anchor {
-  margin-top: 0.25rem;
+.offer-per {
+  font-size: 1rem;
+  color: var(--color-text-secondary);
+}
+.offer-cadence {
+  margin-top: 0.2rem;
   font-size: 0.9rem;
+  color: var(--color-text-secondary);
+}
+.offer-saving {
+  display: inline-block;
+  margin-top: 0.6rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
   font-weight: 600;
   color: var(--color-primary-500);
+  background: color-mix(in srgb, var(--color-primary-500) 12%, transparent);
 }
 .offer-list {
   margin: 1.25rem 0 1.75rem;
@@ -121,4 +212,3 @@
   text-align: center;
   color: var(--color-text-secondary);
 }
-

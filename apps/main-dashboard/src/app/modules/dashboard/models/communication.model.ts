@@ -265,6 +265,8 @@ export interface Flyer {
   };
   html: string;
   imageUrl?: string;
+  /** Les autres compositions écrites pour ce visuel (déjà payées) : le client peut en choisir une. */
+  alternatives?: Array<{ id: string; imageUrl?: string; score?: number }>;
   backgroundImageUrl?: string;
   imageSource?: FlyerImageSource;
   imageAnalysis?: FlyerImageAnalysis;

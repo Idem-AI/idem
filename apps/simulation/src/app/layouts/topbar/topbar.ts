@@ -9,7 +9,7 @@ import {
   output,
   signal,
 } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 
 import { environment } from '@env';
@@ -32,7 +32,7 @@ import { ThemeToggle } from '../../shared/components/theme-toggle/theme-toggle';
  */
 @Component({
   selector: 'sim-topbar',
-  imports: [RouterLink, TranslatePipe, NgOptimizedImage, ThemeToggle, LanguageMenu],
+  imports: [RouterLink, RouterLinkActive, TranslatePipe, NgOptimizedImage, ThemeToggle, LanguageMenu],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     '(document:click)': 'onDocumentClick($event)',

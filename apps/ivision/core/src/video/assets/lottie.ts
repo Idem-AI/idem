@@ -108,14 +108,23 @@ export async function renderLottieClip(data: unknown, opts: { size?: number; fps
       })()`)) as string;
       out.push(Buffer.from(png, 'base64'));
     }
+    // Encodé vers un FICHIER (et non un tube) : le WebM porte sa durée et son index, sans quoi le rendu HyperFrames le
+    // refuse (« no positive duration »).
+    const tmp = fs.mkdtempSync(path.join(require('os').tmpdir(), 'idem-lottie-'));
+    const file = path.join(tmp, 'clip.webm');
     const webm = await new Promise<Buffer>((resolve, reject) => {
-      const ff = spawn(FFMPEG, ['-v', 'error', '-f', 'image2pipe', '-framerate', String(fps), '-c:v', 'png', '-i', '-', '-c:v', 'libvpx-vp9', '-pix_fmt', 'yuva420p', '-auto-alt-ref', '0', '-b:v', '0', '-crf', '30', '-deadline', 'realtime', '-cpu-used', '8', '-f', 'webm', 'pipe:1'], { stdio: ['pipe', 'pipe', 'pipe'] });
-      const chunks: Buffer[] = [];
+      const ff = spawn(FFMPEG, ['-y', '-v', 'error', '-f', 'image2pipe', '-framerate', String(fps), '-c:v', 'png', '-i', '-', '-c:v', 'libvpx-vp9', '-pix_fmt', 'yuva420p', '-auto-alt-ref', '0', '-b:v', '0', '-crf', '30', '-deadline', 'realtime', '-cpu-used', '8', file], { stdio: ['pipe', 'ignore', 'pipe'] });
       let err = '';
-      ff.stdout.on('data', (c: Buffer) => chunks.push(c));
       ff.stderr.on('data', (c: Buffer) => (err += c.toString()));
       ff.on('error', reject);
-      ff.on('close', (code) => (code === 0 ? resolve(Buffer.concat(chunks)) : reject(new Error(`ffmpeg lottie ${code}: ${err.slice(-200)}`))));
+      ff.on('close', (code) => {
+        try {
+          if (code === 0) resolve(fs.readFileSync(file));
+          else reject(new Error(`ffmpeg lottie ${code}: ${err.slice(-200)}`));
+        } finally {
+          fs.rmSync(tmp, { recursive: true, force: true });
+        }
+      });
       for (const png of out) ff.stdin.write(png);
       ff.stdin.end();
     });

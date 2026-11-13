@@ -229,7 +229,8 @@
           "end": "."
         }
       ],
-      "text": "The same wallet and the same prices as in your IDEM dashboard. Import an IDEM project’s brand in one click."
+      "text": "The same wallet and the same prices as in your IDEM dashboard. Import an IDEM project’s brand in one click.",
+      "pricing": "See the prices"
     },
     "request": {
       "label": "Your request to iVision",
@@ -275,7 +276,8 @@
         "how": "How it works",
         "workshops": "Studios",
         "creativity": "Creativity",
-        "montage": "Editing"
+        "montage": "Editing",
+        "pricing": "Pricing"
       },
       "language": "Language",
       "signIn": "Sign in",
@@ -458,11 +460,19 @@
       "downloadSigned": "Download (signed)",
       "downloadHd": "Download in HD",
       "exportHd": "HD export without the mark · {{price}} F",
+      "exportHdFree": "HD export without the mark · Free",
       "exportMissing": "Your wallet is {{missing}} F short.",
       "fit": "Fit to screen",
       "actualSize": "Actual size",
       "imageFailed": "The image could not be loaded.",
-      "retry": "Try again"
+      "retry": "Try again",
+      "otherProposals": "Other proposals",
+      "otherProposalsHint": "Composed together, at no extra cost: pick the one you prefer.",
+      "useProposal": "Use this proposal",
+      "proposalAlt": "Another composition of this visual",
+      "decline": "Also in another format",
+      "declined": "Open",
+      "declineFailed": "The new format could not be made. Try again."
     },
     "payment": {
       "cta": "Top up my wallet",
@@ -504,6 +514,7 @@
       "voice": "Voice-over",
       "voiceHint": "A voice says the message, scene by scene, in the language of your request.",
       "price": "Free to create · HD export {{cost}} F",
+      "priceFree": "Free creation · free HD export",
       "removeSilences": "Remove silences",
       "music": "Music",
       "readFromText": "Duration and format read from your request.",
@@ -998,5 +1009,113 @@
     "creating": "Creating your brand on IDEM…",
     "created": "Your brand is created on IDEM. You can now create its brand guidelines.",
     "failed": "Your brand could not be created. Try again in a moment."
+  },
+  "pricing": {
+    "hero": {
+      "title": [
+        {
+          "t": "Create for free."
+        },
+        {
+          "t": "Pay for ",
+          "em": "what you publish",
+          "end": "."
+        }
+      ],
+      "lead": "Visuals and videos are free to create, marked “Made with iVision”. You only pay for the HD file without the mark, from 100 F, by mobile money.",
+      "secondary": "See the prices"
+    },
+    "free": {
+      "title": "to create, with no time limit",
+      "text": "Visuals, videos, written edits: everything is created for free with your daily credits. The file carries a “Made with iVision” mark."
+    },
+    "offers": {
+      "title": "What you pay, and only when you keep it",
+      "lead": "One file at a time, or all your exports for the month with iVision Creator.",
+      "recommended": "Best value",
+      "visual": {
+        "who": "For a visual now and then",
+        "name": "HD visual",
+        "cadence": "per visual, paid once",
+        "bullets": [
+          "The high-definition file, without the mark",
+          "Every format: post, story, poster",
+          "An edited visual stays yours"
+        ],
+        "cta": "Create a visual",
+        "foot": "The price of a text message"
+      },
+      "creator": {
+        "who": "For those who post every week",
+        "name": "iVision Creator",
+        "cadence": "a month",
+        "perDay": "{{amount}} F a day",
+        "worth": "{{amount}} F one by one",
+        "bullets": [
+          "Every HD export without the mark",
+          "Up to 60 visuals and 6 videos a month",
+          "Stop whenever you want, no fee"
+        ],
+        "cta": "Get iVision Creator",
+        "foot": "Paid by mobile money, no commitment"
+      },
+      "video": {
+        "who": "For a video that matters",
+        "name": "HD video",
+        "cadence": "per video, paid once",
+        "bullets": [
+          "The high-definition video, without the mark",
+          "Free written edits before the export",
+          "Every format: 16:9, story, square"
+        ],
+        "cta": "Create a video",
+        "foot": "A failed generation is not charged"
+      }
+    },
+    "guarantees": {
+      "title": "What protects you",
+      "free": {
+        "title": "Creating stays free",
+        "text": "You see the result before you pay anything."
+      },
+      "failed": {
+        "title": "A failed generation is not charged",
+        "text": "If a creation fails, your credits are refunded automatically."
+      },
+      "stop": {
+        "title": "No subscription required",
+        "text": "Pay one file at a time; iVision Creator stops whenever you want."
+      }
+    },
+    "pay": {
+      "cta": "Create a video"
+    },
+    "faq": {
+      "title": "Questions",
+      "free": {
+        "q": "What is free?",
+        "a": "Creating and editing your visuals and videos, as far as your daily credits go. Only the HD export without the mark is paid."
+      },
+      "mark": {
+        "q": "What is the “Made with iVision” mark?",
+        "a": "A small mention on free files. The HD export removes it, and the file is yours."
+      },
+      "pay": {
+        "q": "How do I pay?",
+        "a": "By mobile money (Orange Money, MTN MoMo, Wave, Moov Money, Airtel Money, M-Pesa), by topping up your IDEM wallet from 100 F. No bank card."
+      },
+      "stop": {
+        "q": "Can I stop iVision Creator?",
+        "a": "Yes, at any time, from your IDEM account. You keep the files you already exported."
+      },
+      "failed": {
+        "q": "What if I don't like the video?",
+        "a": "Edit it by writing what to change, for free. You only pay for the export you keep."
+      }
+    },
+    "final": {
+      "title": "Create tonight, pay only for what you publish.",
+      "cta": "Start for free"
+    }
   }
 }

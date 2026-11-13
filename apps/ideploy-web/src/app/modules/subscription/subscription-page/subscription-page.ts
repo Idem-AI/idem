@@ -6,6 +6,8 @@ import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 import { AppMeter, MeterCatalog, MeterService, MeterTier, UserDomain } from '../../../shared/services/meter.service';
 import { environment } from '../../../../environments/environment';
 import { DomainPurchaseComponent } from '@idem/shared-idomain/angular';
+import { PromoBannerComponent, PromoPriceComponent, PromotionsStore } from '@idem/shared-promotions/angular';
+import { freeLabel } from '@idem/shared-promotions';
 import { IllustrationComponent } from '../../../shared/components/illustration/illustration';
 
 /**
@@ -20,7 +22,7 @@ import { IllustrationComponent } from '../../../shared/components/illustration/i
  */
 @Component({
   selector: 'app-subscription-page',
-  imports: [TranslateModule, FormsModule, DecimalPipe, DatePipe, IdemLoaderComponent, IllustrationComponent, DomainPurchaseComponent],
+  imports: [TranslateModule, FormsModule, DecimalPipe, DatePipe, IdemLoaderComponent, IllustrationComponent, DomainPurchaseComponent, PromoPriceComponent, PromoBannerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <h1 class="mb-1 text-2xl font-bold">{{ 'meters.title' | translate }}</h1>
@@ -31,6 +33,8 @@ import { IllustrationComponent } from '../../../shared/components/illustration/i
     }
 
     @if (view(); as v) {
+      <!-- La campagne en cours (bêta gratuite…) : rien sans campagne. -->
+      <idem-promo-banner class="mb-6 block" />
       <!-- 1. Le solde -->
       <section class="glass-card mb-6 flex flex-wrap items-center gap-6 p-5">
         <app-illustration name="cowries" [width]="96" />
@@ -73,7 +77,7 @@ import { IllustrationComponent } from '../../../shared/components/illustration/i
                 </p>
               </div>
               <div class="text-right">
-                <p class="text-lg font-semibold tabular-nums">{{ meter.perDayXaf | number: '1.0-0' }} F</p>
+                <p class="text-lg font-semibold tabular-nums"><idem-promo-price item="ideploy.meter" [xaf]="meter.perDayXaf" unit="F" [showBadge]="false" /></p>
                 <p class="text-xs" style="color: var(--color-text-tertiary)">{{ 'meters.perDay' | translate }}</p>
               </div>
             </div>
@@ -83,7 +87,7 @@ import { IllustrationComponent } from '../../../shared/components/illustration/i
                 {{ 'meters.tier' | translate }}
                 <select class="!w-56" [ngModel]="meter.tier" (ngModelChange)="setTier(meter, $event)" [disabled]="busy() === meter.appUuid">
                   @for (tier of catalog()?.meters ?? []; track tier.tier) {
-                    <option [value]="tier.tier">{{ tier.label }} — {{ tier.perDayXaf | number: '1.0-0' }} F/{{ 'meters.day' | translate }}</option>
+                    <option [value]="tier.tier">{{ tier.label }} — {{ dayPrice(tier.perDayXaf) }}</option>
                   }
                 </select>
               </label>
@@ -110,7 +114,7 @@ import { IllustrationComponent } from '../../../shared/components/illustration/i
                   @for (option of catalog()?.meterOptions ?? []; track option.code) {
                     <label class="flex items-center gap-2 text-xs">
                       <input type="checkbox" [checked]="meter.options.includes(option.code)" (change)="toggleOption(meter, option.code)" [disabled]="busy() === meter.appUuid" />
-                      <span>{{ option.label }} · {{ option.perDayXaf | number: '1.0-0' }} F/{{ 'meters.day' | translate }}</span>
+                      <span>{{ option.label }} · {{ dayPrice(option.perDayXaf) }}</span>
                     </label>
                   }
                 </div>
@@ -159,6 +163,23 @@ import { IllustrationComponent } from '../../../shared/components/illustration/i
 export class SubscriptionPageComponent implements OnInit {
   private readonly meters = inject(MeterService);
   private readonly translate = inject(TranslateService);
+
+  private readonly promotions = inject(PromotionsStore);
+
+  /**
+   * Prix d'un jour de compteur, écrit dans une liste (un <option> ne peut pas contenir de prix
+   * barré) : « 0 F CFA (au lieu de 10 F) » pendant une promotion.
+   */
+  protected dayPrice(xaf: number): string {
+    const price = this.promotions.price('ideploy.meter', xaf);
+    const write = (value: number) => value.toLocaleString('fr-FR').replace(/\s/g, '\u202f');
+    const perDay = `${write(xaf)} F/${this.translate.instant('meters.day')}`;
+    if (price.discountXaf <= 0) return perDay;
+    // Offert pendant la bêta : « Gratuit (au lieu de 10 F/jour) ».
+    if (price.free) return `${freeLabel(this.translate.currentLang)} (${this.translate.instant('meters.insteadOf', { price: perDay })})`;
+    return `${write(price.finalXaf)} F/${this.translate.instant('meters.day')} (${this.translate.instant('meters.insteadOf', { price: perDay })})`;
+  }
+
 
   protected readonly view = signal<{ meters: AppMeter[]; walletXaf: number; daysCovered: number | null } | null>(null);
   protected readonly catalog = signal<MeterCatalog | null>(null);

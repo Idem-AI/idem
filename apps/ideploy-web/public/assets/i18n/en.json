@@ -302,7 +302,28 @@
     "step3D": "An e-mail 3 days before your balance runs out. Without a top-up, the app falls asleep, then wakes up as soon as you top up.",
     "optionsTitle": "Options by the day",
     "compareTitle": "Compared with other hosts",
-    "perYear": "/yr"
+    "perYear": "/yr",
+    "monthlyApprox": "≈ {{amount}} F a month",
+    "tonight": {
+      "online": {
+        "title": "Online, on free Standby",
+        "text": "It wakes up on the first visit. A meter paid by the day only if it must stay on.",
+        "when": "Tonight"
+      },
+      "connect": {
+        "title": "Send your code",
+        "text": "From iCode, your GitHub repository or an archive: iDeploy handles the rest.",
+        "when": "Now"
+      },
+      "note": "No bank card. Paid by mobile money when you want.",
+      "address": {
+        "title": "Your address and SSL, included",
+        "text": "Your site answers right away on yourproject.idem.africa, over https.",
+        "when": "Right after"
+      },
+      "url": "yourproject.idem.africa",
+      "live": "Online"
+    }
   },
   "dashboard": {
     "searchProjects": "Search Projects…",
@@ -2262,6 +2283,7 @@
     "hide": "Hide values"
   },
   "meters": {
+    "insteadOf": "instead of {{price}}",
     "title": "Meters",
     "subtitle": "Each application has its own meter, paid daily from your IDEM wallet. Nothing to subscribe to: change meters whenever you like.",
     "wallet": "IDEM wallet",

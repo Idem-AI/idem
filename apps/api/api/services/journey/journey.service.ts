@@ -113,6 +113,12 @@ class JourneyService {
     );
   }
 
+  /** Ce que le projet a déjà, gestes compris — lu aussi par l'éligibilité à Idem Builders. */
+  async projectFacts(userId: string, projectId: string): Promise<ProjectFacts> {
+    const { state } = await this.load(userId);
+    return this.facts(userId, projectId, state.events);
+  }
+
   /**
    * Le projet IDEM d'une application iDeploy : iDeploy ne connaît pas les projets d'IDEM, mais une mise en ligne
    * faite depuis iCode garde les identifiants de ses applications (`users/<uid>/appDeployments`). Une

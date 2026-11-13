@@ -1,84 +1,118 @@
-<!-- Les tarifs : une promesse, trois offres par besoin, le détail à la demande. -->
+<!-- Les tarifs : une promesse, trois offres par besoin, le prix de chaque service, le paiement par mobile money. -->
 <div class="pricing">
-  <!-- Héros -->
+  <!-- Héros : la promesse, et tout de suite le moyen de payer -->
   <section class="pricing-hero">
     <div class="pricing-hero-copy">
       <h1 class="pricing-h1" i18n="@@pricing-page.hero.title">Pay only for <span class="i-underline">what you keep</span>.</h1>
-      <p class="pricing-lead" i18n="@@pricing-page.hero.description">Create your business plan, logo, website and more for free. When you like the result, keep the final version from 500 F, paid by mobile money.</p>
+      <p class="pricing-lead">{{ heroDescription() }}</p>
       <div class="pricing-actions">
         <a class="inner-button button-lg" [href]="startUrl" i18n="@@pricing-page.hero.cta">Start for free</a>
         <a class="pricing-textlink" href="#offres" i18n="@@pricing-page.hero.secondary">See the offers</a>
       </div>
-      <p class="pricing-note" i18n="@@pricing-page.hero.note">No bank card. 7 days of IDEM Growth offered at signup.</p>
+      <idem-pay-strip class="pricing-paystrip" />
     </div>
-    <app-offer-illustration kind="wallet" class="pricing-hero-art" />
+    <app-offer-illustration kind="measure" class="pricing-hero-art" />
   </section>
 
-  <!-- Quatre offres, par besoin -->
+  <!-- Trois offres, par besoin -->
   <app-offer-picker id="offres" class="pricing-section" />
 
-  <!-- Tous les prix, à la demande -->
+  <!-- Le prix de chaque service : ce qu'il fait, ce qui est gratuit, ce qu'on paie, et l'action -->
   <section class="pricing-section" aria-labelledby="detail-title">
-    <h2 class="pricing-h2" id="detail-title" i18n="@@pricing-page.detail.title">Every price, service by service</h2>
-    <div class="tabs" role="tablist" aria-labelledby="detail-title">
-      @for (tab of services; track tab.id; let i = $index) {
-        <button type="button" role="tab" class="tab" [id]="'tab-' + tab.id" [attr.aria-selected]="activeService() === tab.id" [attr.aria-controls]="'panel-' + tab.id" [attr.tabindex]="activeService() === tab.id ? 0 : -1" (click)="activeService.set(tab.id)" (keydown)="onTabKey($event, i)">{{ tab.label }}</button>
+    <h2 class="pricing-h2" id="detail-title" i18n="@@pricing-page.svc.title">What each service costs</h2>
+    <p class="pricing-sub" i18n="@@pricing-page.svc.lead">Everything starts for free. Here is what you pay, service by service, when you decide to keep a result.</p>
+
+    <div class="svc-list">
+      @for (tab of services; track tab.id) {
+        <article class="svc" [attr.aria-labelledby]="'svc-' + tab.id">
+          <div class="svc-art">
+            @if (tab.art.kind === 'offer') {
+              <app-offer-illustration [kind]="tab.art.name" />
+            } @else {
+              <app-page-art [scene]="tab.art.name" />
+            }
+          </div>
+
+          <div class="svc-body">
+            <div class="svc-head">
+              <h3 class="svc-name" [id]="'svc-' + tab.id">{{ tab.label }}</h3>
+              <span class="svc-from">{{ fromLabel(tab) }}</span>
+            </div>
+            <p class="svc-what">{{ tab.what }}</p>
+
+            <ul class="svc-prices">
+              @for (row of sortedRows(tab); track row.label) {
+                <li class="svc-row">
+                  <span class="svc-row-label">{{ row.label }}</span>
+                  <span class="svc-row-price">
+                    @if (row.xaf) {
+                      <idem-promo-text [text]="row.price" [item]="row.item ?? null" [xaf]="row.xaf" [source]="row.source ?? row.item ?? null" />
+                    } @else {
+                      <span class="svc-free">{{ row.price }}</span>
+                    }
+                  </span>
+                  @if (row.buy) {
+                    <a class="svc-take" [href]="buyUrl(row.buy)" i18n="@@pricing-page.svc.take">Take it</a>
+                  }
+                </li>
+              }
+            </ul>
+            <p class="svc-note">{{ noteOf(tab) }}</p>
+          </div>
+
+          <div class="svc-cta">
+            <a class="inner-button" [href]="tab.href">{{ tab.cta }}</a>
+            <span class="svc-cta-note" i18n="@@pricing-page.svc.ctaNote">Free to start</span>
+          </div>
+        </article>
       }
     </div>
-    @if (service(); as tab) {
-      <div class="panel" role="tabpanel" [id]="'panel-' + tab.id" [attr.aria-labelledby]="'tab-' + tab.id">
-        <p class="panel-note">{{ tab.note }}</p>
-        <dl class="price-list">
-          @for (row of tab.rows; track row.label) {
-            <div class="price-row"><dt>{{ row.label }}</dt><dd>{{ row.price }}</dd></div>
-          }
-        </dl>
-        <a class="outer-button button-sm panel-cta" [href]="tab.href"><span i18n="@@pricing-page.detail.open">Open</span>&nbsp;{{ tab.label }}</a>
-      </div>
-    }
   </section>
 
-  <!-- Comment payer : une vraie suite d'étapes -->
-  <section class="pricing-section pay" aria-labelledby="pay-title">
+  <!-- Ce qui vous protège : la peur de payer pour rien, levée avant le paiement -->
+  <section class="pricing-section guarantees" aria-labelledby="guarantees-title">
+    <app-offer-illustration kind="kyinie" class="guarantees-art" />
     <div>
-      <h2 class="pricing-h2" id="pay-title" i18n="@@pricing-page.pay.title">How to pay</h2>
-      <ol class="steps">
-        <li><span class="step-num" aria-hidden="true">1</span><div><p class="step-title" i18n="@@pricing-page.pay.s1t">Top up your wallet</p><p class="step-text" i18n="@@pricing-page.pay.s1d">By mobile money, from 100 F. Bonus: +5% from 5,000 F, +10% from 10,000 F.</p></div></li>
-        <li><span class="step-num" aria-hidden="true">2</span><div><p class="step-title" i18n="@@pricing-page.pay.s2t">Choose what you keep</p><p class="step-text" i18n="@@pricing-page.pay.s2d">A final version, a plan, a pack. The price is shown before you pay.</p></div></li>
-        <li><span class="step-num" aria-hidden="true">3</span><div><p class="step-title" i18n="@@pricing-page.pay.s3t">It is yours</p><p class="step-text" i18n="@@pricing-page.pay.s3d">Files without the mark, your site online. A failed generation is refunded automatically.</p></div></li>
-      </ol>
-      <p class="methods">
-        @for (method of payMethods; track method) {
-          <span class="tag">{{ method }}</span>
+      <h2 class="pricing-h2" id="guarantees-title" i18n="@@pricing-page.guarantee.title">What protects you</h2>
+      <ul class="guarantee-list">
+        @for (item of guarantees(); track item.title) {
+          <li>
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5 L6.5 12 L13 4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg>
+            <div>
+              <p class="guarantee-title">{{ item.title }}</p>
+              <p class="guarantee-text">{{ item.text }}</p>
+            </div>
+          </li>
         }
-      </p>
-      <div class="country">
-        <label for="pricing-country" i18n="@@pricing-page.pay.country">Price in your country</label>
-        <select id="pricing-country" class="!w-56" (change)="country.set($any($event.target).value)">
-          @for (item of countries; track item.code) {
-            <option [value]="item.code" [selected]="item.code === country()">{{ item.name }}</option>
-          }
-        </select>
-        <p class="country-price" aria-live="polite">{{ referenceText() }}</p>
-      </div>
+      </ul>
     </div>
   </section>
 
-  <!-- Autres offres -->
+  <!-- Comment payer : la même section sur toutes les landings -->
+  <idem-pay-section class="pricing-section pricing-pay" [ctaHref]="startUrl" />
+
+  <!-- Autres offres : pour qui, ce qui est inclus, le prix, et le bouton -->
   <section class="pricing-section" aria-labelledby="more-title">
-    <h2 class="pricing-h2" id="more-title" i18n="@@pricing-page.more.title">Other offers</h2>
-    <div class="more-wrap">
+    <div class="more-head">
+      <div>
+        <h2 class="pricing-h2" id="more-title" i18n="@@pricing-page.more.title">Other offers</h2>
+        <p class="pricing-sub" i18n="@@pricing-page.more.lead">For a company that runs every day, for those who post often, or to buy together.</p>
+      </div>
+      <app-offer-illustration kind="tontine" class="more-art" />
+    </div>
     <ul class="more">
       @for (item of moreOffers; track item.href) {
         <li class="more-row">
-          <span class="more-label">{{ item.label }}</span>
-          <span class="more-price">{{ item.price }}</span>
-          <a class="outer-button button-sm" [href]="item.href" i18n="@@pricing-page.more.cta">Choose</a>
+          <div class="more-text">
+            <p class="more-who">{{ item.who }}</p>
+            <h3 class="more-name">{{ item.name }}</h3>
+            <p class="more-label">{{ detailOf(item.label) }}</p>
+          </div>
+          <p class="more-price"><idem-promo-text [text]="item.price" [item]="item.item" [xaf]="item.xaf" [source]="item.item" /></p>
+          <a class="outer-button more-cta" [href]="item.href" i18n="@@pricing-page.more.take">Take this offer</a>
         </li>
       }
     </ul>
-    <app-offer-illustration kind="tontine" class="more-art" />
-    </div>
   </section>
 
   <!-- Questions -->

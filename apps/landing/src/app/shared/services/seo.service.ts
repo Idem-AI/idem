@@ -20,6 +20,7 @@ import {
 import { environment } from '../../../environments/environment';
 import { pageSeoText } from '../seo/page-seo';
 import type { BlogPost } from '../models/blog.model';
+import type { BuilderProfile } from '@idem/shared-models/builders/program';
 
 /**
  * Le référencement du landing, piloté par le routeur.
@@ -191,6 +192,65 @@ export class SeoService {
             authorName: post.authorName,
             tags: post.tags,
           },
+        }),
+      ),
+    );
+  }
+
+  /**
+   * Le référencement d'une fiche Idem Builders, connu une fois la fiche lue.
+   *
+   * L'image de partage reste celle du programme : les logos sont des SVG, que
+   * les réseaux sociaux n'acceptent pas en aperçu.
+   */
+  applyBuilder(builder: BuilderProfile): void {
+    const locale = this.locale();
+    const path = `/builders/${builder.slug}`;
+    const url = landingUrl(path, locale);
+    const title = brandedTitle(`${builder.projectName} · Idem Builders`);
+    const description = (builder.tagline || builder.pitch).slice(0, 160);
+    const image = ogImageUrl(LANDING_PAGES['builders'].og, locale);
+    const imageAlt = builder.projectName;
+
+    this.title.setTitle(title);
+    this.name('description', description);
+    this.name('robots', 'index, follow, max-image-preview:large, max-snippet:-1');
+
+    this.property('og:type', 'website');
+    this.property('og:site_name', IDEM.name);
+    this.property('og:url', url);
+    this.property('og:title', title);
+    this.property('og:description', description);
+    this.property('og:image', image);
+    this.property('og:image:secure_url', image);
+    this.property('og:image:alt', imageAlt);
+    this.property('og:locale', OG_LOCALE[locale]);
+
+    this.name('twitter:card', 'summary_large_image');
+    this.name('twitter:title', title);
+    this.name('twitter:description', description);
+    this.name('twitter:image', image);
+    this.name('twitter:image:alt', imageAlt);
+
+    this.links(path, url, [locale]);
+
+    this.jsonLd(
+      jsonLdString(
+        buildPageGraph({
+          locale,
+          url,
+          title,
+          description,
+          image,
+          imageAlt,
+          about: 'platform',
+          site: 'idem',
+          pageType: 'WebPage',
+          breadcrumbs: [
+            { name: IDEM.name, url: landingUrl('', locale) },
+            { name: pageSeoText('builders', locale).crumb, url: landingUrl('/builders', locale) },
+            { name: builder.projectName, url },
+          ],
         }),
       ),
     );

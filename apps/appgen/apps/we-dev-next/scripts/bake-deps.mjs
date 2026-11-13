@@ -34,6 +34,12 @@ if (!token) {
 }
 
 const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--enable-features=SharedArrayBuffer'] });
+// Arrêté de l'extérieur : le Chrome sans écran part avec le script, au lieu de rester orphelin.
+for (const signal of ['SIGTERM', 'SIGINT', 'SIGHUP']) {
+  process.once(signal, () => {
+    browser.close().finally(() => process.exit(130));
+  });
+}
 try {
   const page = await browser.newPage();
   page.on('console', (message) => {
@@ -41,7 +47,21 @@ try {
     if (text.startsWith('[four]')) console.log(text);
   });
   await page.goto(`${url}/?deps-bake=1&auto=1#token=${encodeURIComponent(token)}`, { waitUntil: 'domcontentloaded', timeout: 60_000 });
-  await page.waitForFunction('window.__idemBake && window.__idemBake.done', { timeout, polling: 2000 });
+  // La page peut être rechargée en route (le serveur de développement de l'atelier recharge après une modification) :
+  // elle repart seule en mode automatique et saute ce qui est déjà cuit. On attend donc de nouveau, au lieu
+  // d'abandonner sur « Execution context was destroyed ».
+  const deadline = Date.now() + timeout;
+  for (let reloads = 0; ; reloads++) {
+    try {
+      await page.waitForFunction('window.__idemBake && window.__idemBake.done', { timeout: Math.max(1000, deadline - Date.now()), polling: 2000 });
+      break;
+    } catch (error) {
+      const reloaded = /context was destroyed|Waiting failed|navigat|detached/i.test(String(error?.message));
+      if (!reloaded || reloads >= 8 || Date.now() > deadline) throw error;
+      console.log(`[four] page rechargée, reprise (${reloads + 1})`);
+      await page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 60_000 }).catch(() => undefined);
+    }
+  }
   const outcome = await page.evaluate('window.__idemBake');
   for (const r of outcome?.results ?? []) console.log(`${r.ok ? '✓' : '✗'} ${r.target}/${r.tree}`);
   if (!outcome?.results?.length) console.log('Rien à cuire : tous les instantanés sont à jour.');

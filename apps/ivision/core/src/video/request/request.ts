@@ -739,16 +739,3 @@ export function specConstraints(spec: RequestSpec | undefined): string {
   return lines.filter(Boolean).join('\n');
 }
 
-/** Les mots interdits par la demande, pour les modèles d'image et de vidéo (« no robots, no holograms »). */
-export function negativeCues(spec: RequestSpec | undefined): string {
-  if (!spec) return '';
-  const words = new Set<string>();
-  const all = spec.avoid.join(' ').toLowerCase();
-  if (/robot/.test(all)) words.add('no robots');
-  if (/hologra/.test(all)) words.add('no holograms');
-  if (/futuris/.test(all)) words.add('no futuristic sci-fi effects');
-  if (/g[ée]n[ée]rique|generic|ia\b|\bai\b/.test(all)) words.add('no generic AI imagery');
-  if (/richesse|luxe|wealth|luxury|argent|money/.test(all)) words.add('no displays of wealth');
-  if (/texte|text/.test(all)) words.add('no text');
-  return [...words].join(', ');
-}

@@ -9,7 +9,7 @@
 import { coreHost } from '../runtime/host';
 import type { AgentCall, AgentCallOptions } from '../creativity/orchestrator';
 import { atLeast, CreativityLevel } from '../creativity/levels';
-import { CopyWriter, estimateTokens } from './request/facts';
+import { estimateTokens } from './request/facts';
 
 /**
  * Les rôles du film (modèle et plafond de sortie décidés par l'hôte) :
@@ -17,9 +17,10 @@ import { CopyWriter, estimateTokens } from './request/facts';
  *   video.sampler                       écrire beaucoup de variantes de scène, vite et peu cher (échantillonnage) ;
  *   video.author                        écrire et réécrire une scène difficile (le modèle de qualité du cran) ;
  *   video.judge-vlm                     départager deux finalistes sur image (optionnel, questions fermées) ;
- *   video.teacher                       hors ligne : fabriquer des scènes de référence (bibliothèque).
+ *   video.teacher                       hors ligne : fabriquer des scènes de référence (bibliothèque) ;
+ *   video.template                      choisir dans le catalogue vidéo (thème, gabarits, animations, transitions) : JSON court.
  */
-export type FilmRole = 'video.concept' | 'video.planner' | 'video.author' | 'video.reviser' | 'video.sampler' | 'video.judge-vlm' | 'video.teacher';
+export type FilmRole = 'video.concept' | 'video.concept-explore' | 'video.planner' | 'video.author' | 'video.reviser' | 'video.sampler' | 'video.judge-vlm' | 'video.teacher' | 'video.template';
 
 export interface ModelRun {
   raw: string;
@@ -39,13 +40,15 @@ export interface FilmCallContext {
 
 /** Délais par rôle : un modèle qui raisonne (GLM-5.3 au cran High) y trouve sa marge ; le professeur, hors ligne, a le temps. */
 const TIMEOUTS: Record<FilmRole, number> = {
-  'video.concept': 150_000,
+  'video.concept': 180_000,
+  'video.concept-explore': 150_000,
   'video.planner': 180_000,
   'video.author': 240_000,
   'video.reviser': 90_000,
   'video.sampler': 120_000,
   'video.judge-vlm': 90_000,
   'video.teacher': 600_000,
+  'video.template': 60_000,
 };
 
 /** Un appel de modèle pour le film : jamais d'exception, une réponse (éventuellement vide) et sa raison. */
@@ -78,26 +81,3 @@ export function tierFor(level: CreativityLevel, role: 'copy' | 'strategist' | 'a
   return 'writing';
 }
 
-/** Une décision d'agent mesurée (voix, médias). */
-export interface AgentRun {
-  agent: string;
-  source: 'llm' | 'graph';
-  tokens: { input: number; output: number };
-  ms: number;
-  kept?: number;
-}
-
-const AGENT_TIMEOUT_MS = 25000;
-
-/** Un appel court par un rédacteur simple (system, user → texte) ; vide en cas de panne. */
-export async function callAgent(writer: CopyWriter | undefined, system: string, user: string): Promise<{ raw: string; tokens: { input: number; output: number }; ms: number }> {
-  const started = Date.now();
-  if (!writer) return { raw: '', tokens: { input: 0, output: 0 }, ms: 0 };
-  let raw = '';
-  try {
-    raw = await Promise.race([writer(system, user), new Promise<string>((_, reject) => setTimeout(() => reject(new Error('agent_timeout')), AGENT_TIMEOUT_MS))]);
-  } catch {
-    raw = '';
-  }
-  return { raw: String(raw || ''), tokens: { input: estimateTokens(system + user), output: estimateTokens(raw || '') }, ms: Date.now() - started };
-}

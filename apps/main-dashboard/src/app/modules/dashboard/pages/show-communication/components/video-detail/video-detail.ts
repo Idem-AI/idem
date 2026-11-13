@@ -41,7 +41,7 @@ const MOODS: MusicMood[] = ['auto', 'upbeat', 'afro', 'calm', 'epic', 'corporate
 type Edits = Record<string, Record<string, string>>;
 
 /** Ce que l'aperçu montre : minutage et code des scènes. S'il change, l'aperçu est recomposé. */
-const shape = (v: MotionVideo | null) => (v?.film?.scenes ?? []).map((s) => `${s.key}:${s.start}:${s.duration}:${s.code?.length ?? 0}:${s.author?.at ?? ''}`).join('|');
+const shape = (v: MotionVideo | null) => (v?.film?.scenes ?? []).map((s) => `${s.key}:${s.start}:${s.duration}:${s.code?.length ?? 0}:${s.html?.length ?? 0}:${s.author?.at ?? ''}`).join('|');
 
 type SavingKind = 'texts' | 'photo' | 'music' | 'sfx' | 'voice' | 'captions' | 'revise';
 

@@ -88,6 +88,10 @@ export interface FilmScene {
   media: string[];
   voiceText?: string;
   code?: string;
+  /** Rendu HyperFrames : fragment HTML et script d'animation de la scène. */
+  html?: string;
+  script?: string;
+  animation?: 'gsap' | 'anime';
   author?: { tokens: { input: number; output: number }; ms: number; at: string; attempts: number; instruction?: string };
   status: 'planned' | 'ready' | 'error';
   error?: { stage: 'author' | 'compile' | 'runtime'; message: string };
@@ -96,7 +100,7 @@ export interface FilmScene {
 
 export interface VideoFilm {
   version: 2;
-  engine: 'motion-canvas';
+  engine: 'motion-canvas' | 'hyperframes';
   title: string;
   concept: string;
   bible: string;

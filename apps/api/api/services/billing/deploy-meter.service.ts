@@ -18,6 +18,8 @@ import { creditLedgerService } from './credit-ledger.service';
 import { entitlementsService } from './entitlements.service';
 import { ideploySyncService } from './ideploy-sync.service';
 import { walletService } from './wallet.service';
+import { isActiveBuilder } from '../builders/builder-status';
+import { builderHostingPriceXaf } from '../../../../../packages/shared-models/src/builders/program';
 
 /**
  * iDeploy au compteur : chaque application a un compteur prépayé, débité une fois par jour depuis
@@ -251,6 +253,13 @@ export class DeployMeterService {
     }
 
     if (due === 0) return done(tierCoveredBy ?? 'pass');
+
+    // Idem Builders : le palier payé au portefeuille coûte moins cher. Les
+    // options (veille…) restent au prix plein — c'est l'hébergement que le
+    // programme veut rendre abordable.
+    if (!tierCoveredBy && (await isActiveBuilder(meter.userId))) {
+      due = builderHostingPriceXaf(price - optionsXaf) + optionsXaf;
+    }
 
     const spend = await walletService.spend(meter.userId, {
       priceXaf: due,

@@ -32,6 +32,7 @@
     "baseUrl": "." /* Specify the base directory to resolve non-relative module names. */,
     "paths": {
       "@idem/graphic-engine": ["../../packages/graphic-engine/src"],
+      "@idem/design-tools": ["../../packages/design-tools/src"],
       "@idem/shared-models": ["../../packages/shared-models/src"],
       "@idem/shared-models/*": ["../../packages/shared-models/src/*"],
       "@idem/shared-auth-client": ["../../packages/shared-auth-client/src"],

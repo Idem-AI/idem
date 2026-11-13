@@ -51,15 +51,6 @@ export function pairs(value: string | undefined): [number, string][] {
   return [...value.matchAll(/(\d{1,2})\s*[=:→>-]+\s*([a-zA-Z][a-zA-Z-]*)/g)].map((m) => [Number(m[1]), m[2]] as [number, string]);
 }
 
-/** Un menu, une option par ligne : « a) identifiant — description ». */
-export const menuLines = (ids: readonly string[], describe: (id: string) => string) => ids.map((id, i) => `${LETTERS[i]}) ${id} — ${describe(id)}`);
-
-/** Un nombre lu dans une réponse, ramené dans ses bornes (null si absent). */
-export function boundedNumber(value: string | undefined, min: number, max: number): number | null {
-  const n = Number(String(value ?? '').replace(',', '.').match(/-?\d+(\.\d+)?/)?.[0]);
-  return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : null;
-}
-
 export interface BrandSheetInput {
   brandName: string;
   businessType?: string;

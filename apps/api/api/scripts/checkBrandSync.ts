@@ -277,7 +277,6 @@ console.log('\n5. Pages réelles rendues par le moteur graphique');
 const CONTENT = systemSection({
   id: 'palette',
   role: 'specimen',
-  kicker: 'Couleurs',
   title: 'La palette de la marque',
   lede: 'Cinq valeurs, chacune avec un rôle.',
   blocks: [
@@ -312,7 +311,6 @@ const CONTENT = systemSection({
 /** Une page de business plan ou de deck : chiffres-clés et graphique (palette de séries dérivée de la marque). */
 const MARKET = systemSection({
   id: 'market',
-  kicker: 'Marché',
   title: 'Un marché qui double en trois ans',
   lede: 'Les ventes de café de spécialité progressent à Douala.',
   blocks: [

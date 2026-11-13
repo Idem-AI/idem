@@ -20,6 +20,8 @@ export interface FilmBrand {
   art?: string;
   /** Balises `<link>`/`<style>` des polices (à embarquer avec `embeddedFontCss`). */
   fontLinks: string;
+  /** L'identifiant de la DA de la charte (catalogue des DA) : le catalogue vidéo ne sert que ses nœuds. */
+  styleId?: string;
 }
 
 /** Un SVG brut devient une source d'image ; une URL ou un data URI passe tel quel. */
@@ -102,8 +104,10 @@ export function filmBrand(branding: Partial<BrandKit> | null | undefined, brandN
   const dark = imageSrc(resolveLogoSlot(logo, 'assetUrls.withText.darkBackground'));
   const size = svgSize(svg);
   const art = artSummary((branding as any)?.artDirection);
+  const styleId = typeof (branding as any)?.artDirection?.styleId === 'string' ? String((branding as any).artDirection.styleId) : undefined;
   return {
     ...(art ? { art } : {}),
+    ...(styleId && !opts.anonymous ? { styleId } : {}),
     tokens: {
       name: opts.anonymous ? '' : brandName,
       colors,

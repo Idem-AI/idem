@@ -17,13 +17,14 @@
  */
 import fs from 'fs';
 import path from 'path';
-import { configureGraphicEngine, FingerprintScope, GenerationTrace } from '@idem/graphic-engine';
+import { configureGraphicEngine, FingerprintScope, GenerationTrace, MEMORY_TTL_S, mergeMemory } from '@idem/graphic-engine';
 import logger from '../../config/logger';
 import { cacheService } from '../cache.service';
 import { runtimeCall } from '../creativity/orchestrator';
 import { isRenderUrlAllowed } from '../../utils/render-network-guard';
 import { IDEM_ASSET_PROVIDERS } from './asset-providers';
 import { idemAssetRegistry } from './asset-registry';
+import { mergeWeights, performanceWeights } from './catalog-performance.service';
 
 let configured = false;
 let chartSource: string | null | undefined;
@@ -34,8 +35,6 @@ let chartSource: string | null | undefined;
  */
 const OFFLINE = process.env.GRAPHIC_OFFLINE === '1' || /[\\/]scripts[\\/]check[A-Z]/.test(process.argv[1] ?? '');
 
-/** Les empreintes d'une portée (marque, projet) : 30 jours, les 40 dernières. */
-const FINGERPRINT_TTL = 30 * 24 * 3600;
 const fingerprintKey = (scope: FingerprintScope): string => `graphic-fingerprints:${scope.documentType}:${scope.key}`;
 
 function traceSummary(trace: GenerationTrace): Record<string, unknown> {
@@ -71,10 +70,23 @@ export function configureGraphicEngineForIdem(): void {
       error: (message, meta) => logger.error(message, meta),
     },
     onTrace: (trace) => logger.info('graphic.trace', traceSummary(trace)),
+    // Les surcharges du catalogue de gabarits (nœuds retirés, poids) : `platform_settings/catalog`, posé par
+    // `PUT /catalog/overrides`, relu toutes les 15 s par le moteur.
+    catalogOverrides: async () => {
+      const mongoose = (await import('mongoose')).default;
+      if (mongoose.connection.readyState !== 1) return {};
+      const doc = (await mongoose.connection.collection('platform_settings').findOne({ _id: 'catalog' } as any)) as { disabled?: string[]; weights?: Record<string, number> } | null;
+      // Les poids posés à la main (console) MULTIPLIENT ceux que l'usage réel a mesurés.
+      const measured = await performanceWeights();
+      return {
+        disabled: Array.isArray(doc?.disabled) ? doc!.disabled : [],
+        weights: mergeWeights(doc?.weights && typeof doc.weights === 'object' ? doc.weights : {}, measured),
+      };
+    },
     recentFingerprints: async (scope) => (await cacheService.get<string[]>(fingerprintKey(scope), { prefix: 'graphic' })) ?? [],
     rememberFingerprints: async (scope, fingerprints) => {
       const previous = (await cacheService.get<string[]>(fingerprintKey(scope), { prefix: 'graphic' })) ?? [];
-      await cacheService.set(fingerprintKey(scope), [...previous, ...fingerprints].slice(-40), { prefix: 'graphic', ttl: FINGERPRINT_TTL });
+      await cacheService.set(fingerprintKey(scope), mergeMemory(previous, fingerprints), { prefix: 'graphic', ttl: MEMORY_TTL_S });
     },
     // Le langage visuel de la marque (écrit une fois par charte, relu par tous ses livrables) : 180 jours ; la clé
     // change avec la charte, une nouvelle charte écrit donc un nouveau langage.
@@ -96,6 +108,9 @@ export function configureGraphicEngineForIdem(): void {
       return chartSource;
     },
     assetProviders: OFFLINE ? {} : IDEM_ASSET_PROVIDERS,
+    // Le juge visuel à questions fermées (plan qualité créative) : le modèle de vision du rôle `graphic.judge`
+    // (échelle « video-vision », OpenRouter). Hors ligne (contrôles) : aucun appel.
+    ...(OFFLINE ? {} : { judgeImage: async (base64: string, mimeType: string, instruction: string) => (await import('../ivision/host')).idemAnalyzeImage(base64, mimeType, instruction, { purpose: 'design-judge' }) }),
     // Le registre du projet : une image déjà obtenue (deck, visuel, vidéo) est reprise avant d'être regénérée.
     assetRegistry: idemAssetRegistry,
     browser: {

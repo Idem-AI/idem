@@ -1,5 +1,5 @@
 {
-  "watch": ["src", "../core/src", ".env", ".env.secret"],
+  "watch": ["src", "../core/src", "../../../packages/graphic-engine/src", "../../../packages/design-tools/src", ".env", ".env.secret"],
   "ext": "ts,json,env",
   "ignore": ["dist"],
   "exec": "ts-node --transpile-only src/index.ts"

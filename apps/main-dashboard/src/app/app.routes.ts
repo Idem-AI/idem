@@ -113,6 +113,23 @@ export const routes: Routes = [
   },
 
   // ============================================
+  // IDEM BUILDERS
+  //
+  // La candidature au programme : hors de tout projet (on y choisit justement
+  // le projet à présenter), donc sans barre latérale de projet. Adresse liée
+  // depuis le bouton « Rejoindre » de la landing : un visiteur sans compte
+  // passe par /login?returnUrl=/builders et revient ici.
+  // ============================================
+  {
+    path: 'builders',
+    title: 'navigation.titles.builders',
+    loadComponent: () =>
+      import('./modules/builders/pages/builders-page/builders-page').then((m) => m.BuildersPage),
+    canActivate: [authGuard],
+    data: { layout: 'empty' },
+  },
+
+  // ============================================
   // FACTURATION
   //
   // `/billing/*` reste l'adresse publique du paiement : AppGen, Simulation et

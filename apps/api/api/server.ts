@@ -48,10 +48,12 @@ import { UsageQuotaCounter } from './schemas/usageQuota.schema';
 import { pricingService } from './services/billing/pricing.service';
 import { BetaTester } from './schemas/betaTester.schema';
 import { BlogPost } from './schemas/blogPost.schema';
+import { BuilderApplication } from './schemas/builderApplication.schema';
 import { EmailLog } from './schemas/emailLog.schema';
 import { billingService } from './services/billing.service';
 import { billingSettingsService } from './services/billing/billing-settings.service';
 import { startBillingScheduler } from './services/billing/billing-scheduler';
+import { promotionService } from './services/billing/promotion.service';
 import { billingRoutes } from './routes/billing.routes';
 import { ideployRepairRoutes } from './routes/ideploy-repair.routes';
 import { appgenMediaRoutes } from './routes/appgenMedia.routes';
@@ -95,6 +97,7 @@ import { userRoutes } from './routes/user.routes';
 import githubRoutes from './routes/github.routes';
 import archetypeRoutes from './routes/archetype.routes';
 import cacheRoutes from './routes/cache.routes';
+import catalogRoutes from './routes/catalog.routes';
 import fontRoutes from './routes/font.routes';
 import { PdfService } from './services/pdf.service';
 import RedisConnection from './config/redis.config';
@@ -111,6 +114,7 @@ import { communicationRoutes } from './routes/communication.routes';
 import { financeRoutes } from './routes/finance.routes';
 import { simulationRoutes } from './routes/simulation.routes';
 import { blogRoutes, blogInternalRoutes } from './routes/blog.routes';
+import { buildersRoutes, buildersInternalRoutes } from './routes/builders.routes';
 
 // Tout ce qui s'écrit désormais — y compris les `console.*` restants et les
 // crashes — part en JSON corrélé vers les fichiers collectés par Grafana.
@@ -234,6 +238,8 @@ app.use('/journey', journeyRoutes);
 app.use('/archetypes', archetypeRoutes);
 app.use('/github', githubRoutes);
 app.use('/cache', cacheRoutes);
+// Le catalogue de gabarits en ligne : état, rafraîchissement par la CI du dépôt `idem-templates`, surcharges.
+app.use('/catalog', catalogRoutes);
 app.use('/fonts', fontRoutes);
 app.use('/project', policyRoutes);
 
@@ -256,6 +262,9 @@ app.use('/og', ogRoutes);
 // Blog : lecture publique pour le landing, écriture par clé de service pour le panel admin.
 app.use('/blog', blogRoutes);
 app.use('/internal/blog', blogInternalRoutes);
+// Idem Builders : vitrine publique et candidature (console) ; décision par le panel admin.
+app.use('/builders', buildersRoutes);
+app.use('/internal/builders', buildersInternalRoutes);
 
 // L'API n'a rien à indexer, sauf les images de partage : les robots des
 // réseaux sociaux respectent robots.txt avant de les télécharger.
@@ -356,6 +365,8 @@ function startServer() {
       logLevel: logger.level,
     });
 
+    void import('../../ivision/core/src/creative.status').then(({ creativeStatus }) => logger.info('creative.status', { event: 'creative.status', ...creativeStatus() }));
+
     // Initialize MongoDB connection
     try {
       await mongoDBConnection.connect();
@@ -399,6 +410,8 @@ function startServer() {
         BetaTester.init(),
         // Blog : l'adresse d'un billet est unique dans sa langue.
         BlogPost.init(),
+        // Idem Builders : file d'examen, « ce compte est-il Builder ? », vitrine.
+        BuilderApplication.init(),
         EmailLog.init(),
         // Quotas d'usage IA : un compteur par (utilisateur, groupe, période),
         // unique pour l'incrément conditionnel, purgé par TTL.
@@ -414,9 +427,13 @@ function startServer() {
       // sont recopiés sur les produits : tout le code qui lit `priceXaf` voit
       // ainsi le prix réellement appliqué, dès le démarrage.
       await pricingService.materialize();
+      // Les offres au portefeuille suivent la grille réglée dans le panel (relue chaque minute).
+      pricingService.startOfferRefresh();
 
       // Réglages commerciaux (bêta, mode d'application du barème, grâce).
       await billingSettingsService.ensureExists();
+      // Promotions : la bêta gratuite est créée au premier démarrage, puis pilotée depuis le panel.
+      await promotionService.ensureDefaults();
       console.log('MongoDB indexes created successfully');
 
       // Réconciliation des paiements : le filet qui rattrape les callbacks

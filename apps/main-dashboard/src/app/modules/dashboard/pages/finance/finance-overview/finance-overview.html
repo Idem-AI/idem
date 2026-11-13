@@ -30,7 +30,7 @@
             @if (aiGlobalLoading()) { <idem-loader size="xs" /> } @else { <i class="pi pi-sparkles" aria-hidden="true"></i> }
             {{ 'dashboard.finance.home.actions.ai' | translate }}
           </button>
-          <button type="button" class="outer-button button-sm" [disabled]="pdfLoading()" (click)="onDownloadPdf()">
+          <button type="button" class="inner-button button-sm" [disabled]="pdfLoading()" (click)="onDownloadPdf()">
             @if (pdfLoading()) { <idem-loader size="xs" /> } @else { <i class="pi pi-file-pdf" aria-hidden="true"></i> }
             {{ 'dashboard.finance.pdf.download' | translate }}
           </button>
@@ -384,5 +384,28 @@
         }
       </div>
     </ng-template>
+  </p-dialog>
+
+  <!-- Génération terminée — la salle de contrôle s'est refermée d'elle-même. -->
+  <p-dialog
+    [header]="'dashboard.finance.aiSuccessDialog.title' | translate"
+    [modal]="true"
+    [(visible)]="successVisible"
+    [style]="{ width: 'min(28rem, 94vw)' }"
+    styleClass="centered-modal"
+  >
+    <div class="text-center p-2">
+      <app-finance-illustration scene="harvest" class="w-24 mx-auto" />
+      <h3 class="mt-3 text-lg font-semibold text-text-primary">
+        {{ 'dashboard.finance.aiSuccessDialog.headline' | translate }}
+      </h3>
+      <p class="text-text-secondary text-sm mt-2 mb-6">
+        {{ 'dashboard.finance.aiSuccessDialog.description' | translate }}
+      </p>
+      <button type="button" class="inner-button mx-auto" (click)="closeSuccessModal()">
+        <i class="pi pi-check" aria-hidden="true"></i>
+        {{ 'dashboard.finance.aiSuccessDialog.finish' | translate }}
+      </button>
+    </div>
   </p-dialog>
 }

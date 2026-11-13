@@ -75,6 +75,11 @@
       "eyebrow": "Page introuvable",
       "title": "Cette page n’existe plus",
       "subtitle": "Revenez à l’accueil pour créer et lancer votre business rentable."
+    },
+    "builders": {
+      "eyebrow": "Idem Builders",
+      "title": "Bâti avec IDEM, porté par l’Afrique",
+      "subtitle": "Le programme qui fait connaître les projets africains gérés avec IDEM : visibilité, réductions et bonus."
     }
   }
 }

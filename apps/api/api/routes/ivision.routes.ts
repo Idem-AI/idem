@@ -162,7 +162,8 @@ router.post(
       res.status(400).json({ error: 'invalid_image' });
       return;
     }
-    const purpose = ['visual-analysis', 'shot-critic', 'reference', 'site', 'media-check', 'video-tiebreak'].includes(options?.purpose) ? options.purpose : undefined;
+    // `design-judge` : le juge à questions fermées des variantes (plan qualité créative), le même modèle qu'IDEM.
+    const purpose = ['visual-analysis', 'shot-critic', 'reference', 'site', 'media-check', 'video-tiebreak', 'design-judge'].includes(options?.purpose) ? options.purpose : undefined;
     const out = await asUser(req, 'communication', () =>
       idemAnalyzeImage(base64, mimeType, text(instruction, 20_000), {
         ...(typeof options?.maxOutputTokens === 'number' ? { maxOutputTokens: Math.min(4000, options.maxOutputTokens) } : {}),
@@ -401,6 +402,8 @@ router.get(
       },
       // Les photos des visuels déjà faits : payées, à la charte, réutilisables.
       photos: (analysis?.communication?.visuals || []).map((v) => v.backgroundImageUrl).filter((u): u is string => !!u).slice(0, 24),
+      // Le pays du projet : il ancre l'axe de départ des créations d'iVision (plan qualité créative).
+      ...((project as any)?.additionalInfos?.country ? { country: (project as any).additionalInfos.country } : {}),
     });
   })
 );

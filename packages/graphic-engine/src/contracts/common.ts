@@ -25,7 +25,7 @@ export const text = (max: number) => z.string().min(1).max(max);
 export const Locale = z.string().regex(/^[a-z]{2,3}(-[A-Za-z]{2,4})?$/, 'langue attendue (fr, en, fr-CM…)');
 
 /** Le livrable que le moteur compose. */
-export const DocumentType = z.enum(['business-plan', 'pitch-deck', 'brand-charter', 'business-card', 'flyer', 'chart', 'report']);
+export const DocumentType = z.enum(['business-plan', 'pitch-deck', 'brand-charter', 'business-card', 'flyer', 'poster', 'banner', 'chart', 'report']);
 export type DocumentType = z.infer<typeof DocumentType>;
 
 /** Les toiles : pages de document, diapositives, cartes, visuels, couvertures de réseaux. */
@@ -46,6 +46,15 @@ export const FormatId = z.enum([
   'cover-x',
   'cover-youtube',
   'avatar-square',
+  // Impression : fonds perdus et export 300 dpi (affiche, dépliant, kakémono).
+  'print-flyer-a4',
+  'print-poster-a3',
+  'rollup-85x200',
+  // Publicité en ligne : les trois formats de l'IAB les plus servis, et l'en-tête d'e-mail.
+  'ad-leaderboard',
+  'ad-rectangle',
+  'ad-skyscraper',
+  'email-header',
   'chart-free',
 ]);
 export type FormatId = z.infer<typeof FormatId>;

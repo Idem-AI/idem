@@ -15,7 +15,7 @@
 import { ChatLogger } from '../../utils/logger.js';
 import { ModelCaller } from '../modelCaller.js';
 import { SiteFacts } from '../siteFacts.js';
-import { Aspect, MediaClient, StockItem } from './mediaClient.js';
+import { Aspect, MediaClient, MediaError, StockItem } from './mediaClient.js';
 import { AssetDecision, MediaSlot, MediaStyle, writeGenerationPrompt } from './mediaDirector.js';
 import { composeSpot, pickIcons, SpotLayout } from './spotIllustration.js';
 
@@ -81,10 +81,13 @@ export async function produceMedia(slot: MediaSlot, decision: AssetDecision, ctx
   const alt = decision.alt || ctx.facts.name;
   const tag = slot.id;
 
-  const fail = (step: string, error: unknown) =>
+  const fail = (step: string, error: unknown) => {
+    // Crédits épuisés : dit une fois par le client ; ici, c'est le repli prévu.
+    if (error instanceof MediaError && error.status === 402) return;
     ChatLogger.warn('SITE_MEDIA', `${slot.id} : ${step} sans résultat`, {
-      message: error instanceof Error ? error.message.slice(0, 200) : String(error),
+      detail: error instanceof Error ? error.message.slice(0, 200) : String(error),
     });
+  };
 
   const fromStock = (items: StockItem[], kind: 'image' | 'video'): MediaAsset[] =>
     items.map((item) => ({
@@ -108,7 +111,7 @@ export async function produceMedia(slot: MediaSlot, decision: AssetDecision, ctx
   };
 
   const generateImage = async (kind: 'photo' | 'illustration' | 'illustration-3d'): Promise<MediaAsset[]> => {
-    if (!ctx.client.available) return [];
+    if (!ctx.client.available || ctx.client.generationBlocked?.()) return [];
     try {
       const prompt = await writeGenerationPrompt({ caller: ctx.caller, decision, slot, kind, facts: ctx.facts, style: ctx.style });
       const image = await ctx.limit(() => ctx.client.generateImage(prompt, slot.aspect, tag));
@@ -159,7 +162,7 @@ export async function produceMedia(slot: MediaSlot, decision: AssetDecision, ctx
 
   switch (decision.kind) {
     case 'video': {
-      if (ctx.client.available) {
+      if (ctx.client.available && !ctx.client.generationBlocked?.()) {
         ctx.note(fr ? `Je génère la vidéo de ${place} (une à deux minutes)` : `Generating the video for ${place} (one to two minutes)`);
         try {
           const prompt = await writeGenerationPrompt({ caller: ctx.caller, decision, slot, kind: 'video', facts: ctx.facts, style: ctx.style });

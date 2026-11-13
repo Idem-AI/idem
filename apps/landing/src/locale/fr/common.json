@@ -413,6 +413,15 @@
     "seo.blog.title": "Blog IDEM — Articles et notes de version",
     "seo.blog.description": "Nouveautés du produit, notes de version et enseignements de l'équipe qui construit IDEM, l'IA qui aide les entrepreneurs africains à créer des business rentables.",
     "seo.blog.crumb": "Blog",
-    "seo.blog.imageAlt": "Le blog d'IDEM — Un feuillet manuscrit et son calame."
+    "seo.blog.imageAlt": "Le blog d'IDEM — Un feuillet manuscrit et son calame.",
+    "seo.builders.title": "Idem Builders — Projets africains bâtis avec IDEM",
+    "seo.builders.description": "Idem Builders met en avant les projets africains gérés avec IDEM : visibilité, bonus au portefeuille et hébergement moins cher pour grandir de façon rentable.",
+    "seo.builders.imageAlt": "Idem Builders — Un pagne commémoratif imprimé, son médaillon orné de briques de banco.",
+    "seo.buildersTerms.title": "Idem Builders — Conditions de participation",
+    "seo.buildersTerms.description": "Les règles du programme Idem Builders : qui peut candidater, comment les candidatures sont examinées, les avantages, la licence de la vitrine et la sortie.",
+    "seo.buildersTerms.crumb": "Conditions Idem Builders",
+    "seo.buildersPrivacy.title": "Idem Builders — Politique de confidentialité",
+    "seo.buildersPrivacy.description": "Les données personnelles traitées par le programme Idem Builders, pourquoi, ce qui devient public sur la vitrine, leur conservation et comment exercer vos droits.",
+    "seo.buildersPrivacy.crumb": "Confidentialité Idem Builders"
   }
 }

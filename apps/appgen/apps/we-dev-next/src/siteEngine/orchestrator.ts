@@ -48,7 +48,7 @@ import { renderBrandModule, renderDataModule, renderMediaModule, renderSeo, site
 import { collectMessages, dataMessages, languageLabel, localizeCode, pseudoLocaleFiles, renderI18nFiles, translateCatalog, withHeaderLanguageSwitcher, withLanguageSwitcher } from './i18n.js';
 import { renderCheck } from './renderCheck.js';
 import { detectSiteLanguage, readSiteFacts, renderFacts, writtenInOtherLanguage } from './siteFacts.js';
-import { FUNCTIONAL_DEPENDENCIES, SITE_ENGINE_ID, templateFiles } from './template.js';
+import { SITE_ENGINE_ID, templateFiles } from './template.js';
 import { marker } from '../commands/choices.js';
 import { redesignArchitect, redesignDesign, redesignFacts, RedesignFocus } from './redesign/brief.js';
 import { prepareRedesign, RedesignContext } from './redesign/flow.js';
@@ -57,6 +57,11 @@ import { MANIFEST_PATH, PlanTracker, readSavedDesign, remaining, SavedDesign, Si
 import { DESIGN_SYSTEM_PATHS } from './template.js';
 import type { DesignOutcome } from './designConfig.js';
 import { inventoryFacts, inventoryOutline, inventoryText, InventorySection, linkMapper, sectionIndex, sourceContent } from './redesign/inventory.js';
+import { sectionCatalog } from './sectionCatalog/registry.js';
+import { CopyResult, CopyTask, writePageCopy } from './sectionCatalog/copy.js';
+import { composeSection, composeShell, inDirection, seedOf } from './sectionCatalog/compose.js';
+import type { ActionValue } from './sectionCatalog/assemble.js';
+import type { Authored } from './authoring.js';
 
 /** Composants écrits en même temps. */
 const CONCURRENCY = 4;
@@ -630,12 +635,65 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
       const written: Record<string, string> = {};
       const limit = createLimiter(CONCURRENCY);
 
+      // Le catalogue iCode (idem-templates) : les sections assemblées par le code à partir de textes rédigés en un
+      // appel JSON par page ; l'auteur de code n'écrit plus que ce que le catalogue ne sait pas faire (ou ce qu'il a
+      // refusé). `SITE_SECTION_CATALOG=off` : tout repasse par l'auteur.
+      const catalog = (process.env.SITE_SECTION_CATALOG ?? 'on').toLowerCase() === 'off' ? null : await sectionCatalog();
+      const useCatalog = !!catalog && catalog.sections.length > 0;
+      // La DA de la charte : le site ne prend que les variantes et les en-têtes de sa DA (ou de ses voisines).
+      const direction = String((projectData.analysisResultModel?.branding as { artDirection?: { styleId?: string } } | undefined)?.artDirection?.styleId ?? '').trim() || undefined;
+      const seed = seedOf(`${projectData.id ?? facts.name}:${manifest.pages.map((p) => p.key).join(',')}`);
+      const usedVariants = new Map<string, number>();
+      const primaryHref = siteDataOf(facts, manifest, language).primaryAction?.href ?? null;
+      const contactPage = manifest.pages.find((p) => /contact/.test(p.key) || p.sections.some((s) => s.layout === 'form'));
+      const targetsOf = (page: ManifestPage) => [...manifest.pages.map((p) => p.path), ...page.sections.map((s) => `#${s.id}`), 'contact'];
+      const resolverOf = (page: ManifestPage) => (action: ActionValue): string | null => {
+        const target = action.target ?? 'contact';
+        if (manifest.pages.some((p) => p.path === target)) return target === page.path ? null : target;
+        if (target.startsWith('#') && page.sections.some((s) => `#${s.id}` === target)) return target;
+        const form = page.sections.find((s) => s.layout === 'form');
+        if (form) return `#${form.id}`;
+        if (contactPage && contactPage !== page) return contactPage.path;
+        return primaryHref;
+      };
+      const copies = new Map<string, Promise<CopyResult>>();
+      // Une file à part : une section attend ses textes AVANT de prendre une place d'écriture (jamais d'interblocage).
+      const copyLimit = createLimiter(3);
+      if (useCatalog) {
+        for (const page of manifest.pages) {
+          const tasks: CopyTask[] = page.sections
+            .filter((s) => s.layout && catalog!.kinds.has(s.layout) && !tracker.done(`src/sections/${page.key}/${s.component}.tsx`))
+            .map((s) => {
+              const key = mediaKey(page, s);
+              return {
+                section: s,
+                kind: catalog!.kinds.get(s.layout!)!,
+                visuals: mediaBySlot.has(key) ? Math.max(1, (sourcesBySection.get(key) ?? []).flatMap((x) => x.images).length) : 0,
+                ...(sourcesBySection.has(key) ? { source: sourceContent(sourcesBySection.get(key)!, mapLink, fr) } : {}),
+              };
+            });
+          if (!tasks.length) continue;
+          copies.set(
+            page.key,
+            copyLimit(() =>
+              writePageCopy({ caller, label: `${page.key}/textes`, language, manifest, page, tasks, factsText, request, check, targets: targetsOf(page) })
+            ).catch((error) => {
+              ChatLogger.warn('SITE_CATALOG', `${page.key} : textes non rédigés`, { message: (error as Error).message });
+              return { sections: {}, removed: [], providerDown: false };
+            })
+          );
+        }
+        ChatLogger.info('SITE_CATALOG', 'Sections composées depuis le catalogue', { version: catalog!.version, source: catalog!.source, pages: copies.size });
+      }
+
+      /** Un composant : celui du catalogue s'il passe, sinon écrit par l'auteur de code. */
       const write = async (
         path: string,
         label: string,
         display: string,
         prompt: string,
-        props?: Record<string, unknown>
+        props?: Record<string, unknown>,
+        fromCatalog?: () => Promise<string | null>
       ): Promise<boolean> => {
         if (abort.signal.aborted) return false;
         // Déjà écrit avant l'interruption : gardé tel quel.
@@ -645,7 +703,11 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
           written[path] = kept;
           return true;
         }
-        const authored = await authorComponent({ caller, label, system, prompt, review, language, target: { path, props } });
+        const assembled = fromCatalog ? await fromCatalog().catch((error) => (ChatLogger.warn('SITE_CATALOG', `${label} : assemblage impossible`, { message: (error as Error).message }), null)) : null;
+        if (abort.signal.aborted) return false;
+        const authored: Authored = assembled
+          ? { code: assembled, valid: true, problems: [], unverified: [], removed: [], providerDown: false }
+          : await authorComponent({ caller, label, system, prompt, review, language, target: { path, props } });
         if (abort.signal.aborted) return false;
         if (authored.removed.length) ChatLogger.info('SITE_ENGINE', `${label} : phrases non vérifiées retirées`, { removed: authored.removed });
         // Chaque site sort prêt à être traduit : textes dans `t()`, liens internes dans `localePath()` (par le code).
@@ -679,13 +741,16 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
       };
 
       stream.note(fr ? "J'écris l'en-tête, le pied de page et chaque section" : 'Writing the header, the footer and every section');
+      const headerProps = { current: manifest.pages[0]?.path ?? '/' };
+      const shellFrom = (shells: 'headers' | 'footers', path: string, props?: Record<string, unknown>) =>
+        useCatalog && catalog![shells].length
+          ? async () => (await composeShell(inDirection(catalog!, catalog![shells], direction), review, { path, props }, seed, shells))?.code ?? null
+          : undefined;
       const header = limit(() =>
-        write('src/components/site/SiteHeader.tsx', 'header', fr ? "l'en-tête" : 'the header', headerPrompt(ctx, request), {
-          current: manifest.pages[0]?.path ?? '/',
-        })
+        write('src/components/site/SiteHeader.tsx', 'header', fr ? "l'en-tête" : 'the header', headerPrompt(ctx, request), headerProps, shellFrom('headers', 'src/components/site/SiteHeader.tsx', headerProps))
       );
       const footer = limit(() =>
-        write('src/components/site/SiteFooter.tsx', 'footer', fr ? 'le pied de page' : 'the footer', footerPrompt(ctx, request))
+        write('src/components/site/SiteFooter.tsx', 'footer', fr ? 'le pied de page' : 'the footer', footerPrompt(ctx, request), undefined, shellFrom('footers', 'src/components/site/SiteFooter.tsx'))
       );
 
       const pageJobs = manifest.pages.map(async (page) => {
@@ -693,6 +758,34 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
           page.sections.map(async (section, index) => {
             const key = mediaKey(page, section);
             const assets = (await mediaBySlot.get(key)) ?? [];
+            const path = `src/sections/${page.key}/${section.component}.tsx`;
+            // Les textes de la page, attendus avant de prendre une place d'écriture.
+            const copy = copies.has(page.key) ? await copies.get(page.key)! : null;
+            const content = copy?.sections[section.id];
+            if (copy?.removed.length) ChatLogger.info('SITE_CATALOG', `${page.key} : phrases non vérifiées retirées`, { removed: copy.removed });
+            const fromCatalog =
+              content && section.layout
+                ? async () =>
+                    (
+                      await composeSection({
+                        catalog: catalog!,
+                        review,
+                        target: { path },
+                        component: section.component,
+                        id: section.id,
+                        layout: section.layout!,
+                        opening: index === 0,
+                        content,
+                        // Les clés de `renderMediaModule` : la 1re garde la clé, les suivantes `clé-2`, `clé-3`…
+                        mediaKeys: assets.map((_, i) => (i ? `${key}-${i + 1}` : key)),
+                        resolveHref: resolverOf(page),
+                        used: usedVariants,
+                        seed: seed + seedOf(section.id),
+                        label: `${page.key}/${section.id}`,
+                        direction,
+                      })
+                    )?.code ?? null
+                : undefined;
             const ok = await limit(() =>
               write(
                 `src/sections/${page.key}/${section.component}.tsx`,
@@ -712,7 +805,9 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
                     ...(sourcesBySection.has(key) ? { source: sourceContent(sourcesBySection.get(key)!, mapLink, fr) } : {}),
                   },
                   request
-                )
+                ),
+                undefined,
+                fromCatalog
               )
             );
             return { name: section.component, ok };

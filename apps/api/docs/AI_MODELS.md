@@ -6,8 +6,9 @@
 
 | Échelle | low | medium | high | ultra |
 |---|---|---|---|---|
-| design | `qwen/qwen3.5-9b` | `qwen/qwen3.5-27b` | `qwen/qwen3.5-397b-a17b` | `deepseek/deepseek-v4-pro` |
-| code | `qwen/qwen3-coder-30b-a3b-instruct` | `qwen/qwen3-coder-next` | `qwen/qwen3-coder` | `deepseek/deepseek-v4-pro` |
+| design | `qwen/qwen3.6-35b-a3b` | `qwen/qwen3.8-27b` | `z-ai/glm-5.3-flash` | `deepseek/deepseek-v4.1-flash` |
+| code | `qwen/qwen3-coder-30b-a3b-instruct` | `qwen/qwen3-coder-next` | `qwen/qwen3-coder` | `deepseek/deepseek-v4.1-flash` |
+| catalog | `qwen/qwen3.5-35b-a3b` | `qwen/qwen3.6-35b-a3b` | `qwen/qwen3.5-122b-a10b` | `deepseek/deepseek-v4.1-flash` |
 | video-design | `qwen/qwen3.8-27b` | `qwen/qwen3.8-27b` | `z-ai/glm-5.3-flash` | `z-ai/glm-5.3-flash` |
 | video-code | `qwen/qwen3.6-35b-a3b` | `qwen/qwen3.8-27b` | `qwen/qwen3.8-27b` | `qwen/qwen3.8-27b` |
 | video-sample | `qwen/qwen3.6-35b-a3b` | `qwen/qwen3.6-35b-a3b` | `qwen/qwen3.6-35b-a3b` | `qwen/qwen3.6-35b-a3b` |
@@ -19,12 +20,16 @@
 | Rôle | Échelle | low | medium | high | ultra | Mission |
 |---|---|---|---|---|---|---|
 | graphic.content | (modèle du profil) | `qwen/qwen3.5-9b` · 3500 tok | `qwen/qwen3.5-9b` · 3500 tok | `qwen/qwen3.5-9b` · 3500 tok | `qwen/qwen3.5-9b` · 3500 tok | rédiger le contenu structuré des livrables |
-| graphic.director | design | `qwen/qwen3.5-9b` · 2500 tok | `qwen/qwen3.5-27b` · 2500 tok | `qwen/qwen3.5-397b-a17b` · 2500 tok | `deepseek/deepseek-v4-pro` · 2500 tok | concevoir la direction d’un document : la bible visuelle et l’idée de chaque page |
-| graphic.author | code | `qwen/qwen3-coder-30b-a3b-instruct` · 12000 tok | `qwen/qwen3-coder-next` · 12000 tok | `qwen/qwen3-coder` · 12000 tok | `deepseek/deepseek-v4-pro` · 12000 tok | écrire (et corriger) le HTML Tailwind de chaque page |
+| graphic.director | design | `qwen/qwen3.8-27b` · 3500 tok | `z-ai/glm-5.3-flash` · 4000 tok | `z-ai/glm-5.3-flash` · 9000 tok | `deepseek/deepseek-v4.1-flash` · 9000 tok | concevoir la direction d’un document : la bible visuelle et l’idée de chaque page |
+| graphic.explore | design | `qwen/qwen3.8-27b` · 9000 tok | `z-ai/glm-5.3-flash` · 9000 tok | `z-ai/glm-5.3-flash` · 9000 tok | `deepseek/deepseek-v4.1-flash` · 9000 tok | proposer quatre pistes d’idée distinctes pour un document |
+| graphic.judge | video-vision | `qwen/qwen3.8-27b` · 120 tok | `qwen/qwen3.8-27b` · 120 tok | `qwen/qwen3.8-27b` · 120 tok | `qwen/qwen3.8-27b` · 120 tok | répondre par oui ou non à cinq questions sur la capture d’une page |
+| graphic.template | catalog | `qwen/qwen3.5-35b-a3b` · 300 tok | `qwen/qwen3.6-35b-a3b` · 300 tok | `qwen/qwen3.5-122b-a10b` · 500 tok | `deepseek/deepseek-v4.1-flash` · 700 tok | choisir un gabarit du catalogue et mettre à jour sa configuration |
+| video.template | catalog | `qwen/qwen3.5-35b-a3b` · 600 tok | `qwen/qwen3.6-35b-a3b` · 900 tok | `qwen/qwen3.5-122b-a10b` · 1600 tok | `deepseek/deepseek-v4.1-flash` · 2200 tok | choisir dans le catalogue vidéo le thème, le gabarit de chaque scène, ses animations et transitions |
 | graphic.pattern-designer | (modèle du profil) | `qwen/qwen3.5-122b-a10b` · 3000 tok | `qwen/qwen3.5-122b-a10b` · 3000 tok | `qwen/qwen3.5-122b-a10b` · 3000 tok | `qwen/qwen3.5-122b-a10b` · 3000 tok | dessiner la tuile de motif propre à la marque (SVG) |
 | graphic.asset-planner | (modèle du profil) | `qwen/qwen3.5-9b` · 400 tok | `qwen/qwen3.5-9b` · 400 tok | `qwen/qwen3.5-9b` · 800 tok | `qwen/qwen3.5-9b` · 1000 tok | déterminer les ressources visuelles nécessaires |
 | video.intent-classifier | (modèle du profil) | `qwen/qwen3.5-9b` · 400 tok | `qwen/qwen3.5-9b` · 300 tok | `qwen/qwen3.5-9b` · 300 tok | `qwen/qwen3.5-9b` · 300 tok | comprendre le besoin vidéo et les médias disponibles |
-| video.concept | video-design | `qwen/qwen3.8-27b` · 8000 tok | `qwen/qwen3.8-27b` · 8000 tok | `z-ai/glm-5.3-flash` · 8000 tok | `z-ai/glm-5.3-flash` · 8000 tok | inventer le film : concept, bible visuelle, idée de chaque scène |
+| video.concept | video-design | `qwen/qwen3.8-27b` · 5000 tok | `z-ai/glm-5.3-flash` · 6000 tok | `z-ai/glm-5.3-flash` · 12000 tok | `z-ai/glm-5.3-flash` · 12000 tok | inventer le film : concept, bible visuelle, idée de chaque scène |
+| video.concept-explore | design | `qwen/qwen3.8-27b` · 9000 tok | `z-ai/glm-5.3-flash` · 9000 tok | `z-ai/glm-5.3-flash` · 9000 tok | `deepseek/deepseek-v4.1-flash` · 9000 tok | proposer quatre pistes de film distinctes avant le concept |
 | video.planner | video-design | `qwen/qwen3.8-27b` · 16000 tok | `qwen/qwen3.8-27b` · 16000 tok | `z-ai/glm-5.3-flash` · 16000 tok | `z-ai/glm-5.3-flash` · 16000 tok | écrire le storyboard : durées, rôles, énergie, intentions, idées, textes, médias, voix |
 | video.author | video-code | `qwen/qwen3.6-35b-a3b` · 16000 tok | `qwen/qwen3.8-27b` · 16000 tok | `qwen/qwen3.8-27b` · 16000 tok | `qwen/qwen3.8-27b` · 16000 tok | écrire (et réécrire) l’intention ou le programme d’une scène difficile — l’auteur de qualité |
 | video.reviser | video-design | `qwen/qwen3.8-27b` · 6000 tok | `qwen/qwen3.8-27b` · 6000 tok | `z-ai/glm-5.3-flash` · 6000 tok | `z-ai/glm-5.3-flash` · 6000 tok | lire une retouche écrite par le client |

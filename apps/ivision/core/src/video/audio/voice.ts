@@ -41,13 +41,6 @@ const langOf = (language: string) => (language || 'fr').toLowerCase().slice(0, 2
 const WORDS_PER_SEC: Record<string, number> = { fr: 2.7, en: 2.6, es: 2.8, pt: 2.6, it: 2.7, de: 2.3, ar: 2.2, sw: 2.4, zh: 4.5 };
 export const wordsPerSecond = (language: string) => WORDS_PER_SEC[langOf(language)] ?? 2.5;
 
-/** Compte des « mots » parlés (caractères CJK un par un). */
-export function spokenUnits(text: string, language: string): number {
-  const t = plainSpoken(text || '');
-  if (!t) return 0;
-  return langOf(language) === 'zh' ? t.replace(/\s+/g, '').length : t.split(/\s+/).filter(Boolean).length;
-}
-
 /**
  * Les personnages de voix : un caractère (que l'agent choisit), transmis à l'hôte comme
  * consigne de jeu. La voix elle-même est choisie par l'hôte selon la langue : Kokoro n'a

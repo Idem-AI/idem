@@ -15,12 +15,13 @@
  *
  * ## Ce que fait le four, par arbre
  *
- * 1. monte les fichiers du socle de la cible dans `/bake/<cible>` ;
+ * 1. pose les fichiers du socle de la cible à la racine du conteneur (là où un atelier les pose) ;
  * 2. `npm install` dans le dossier de l'arbre ;
  * 3. **vérifie** — `npm run build` quand le dossier en a un, sinon la présence
  *    des dépendances directes et du binaire de démarrage. C'est la seule étape
  *    qui distingue un instantané d'un pari ;
- * 4. `export(node_modules, binary)`, compresse, et dépose par `PUT`.
+ * 4. pré-regroupe les dépendances de Vite (`vite optimize`), gardées dans `node_modules/.vite` ;
+ * 5. `export(node_modules, binary)`, compresse, et dépose par `PUT`.
  *
  * ## Quand s'en servir
  *
@@ -102,24 +103,28 @@ export default function DepsBakePage() {
     }));
   }, []);
 
-  /** Monte les fichiers du socle d'une cible dans `/bake/<cible>`. */
+  /**
+   * Pose les fichiers du socle d'une cible à la RACINE du conteneur, vidée d'abord : exactement où un atelier les
+   * pose (`/home/project`). Vite signe son cache de dépendances pré-regroupées avec la racine du projet ; cuit
+   * ailleurs (`/bake/<cible>`, avant), ce cache n'aurait servi à aucun atelier.
+   */
   const layDown = useCallback(
     async (target: DepsTargetName): Promise<Scaffold | null> => {
       const container = await getContainerInstance();
       if (!container) return null;
 
       const scaffold = await fetchScaffold(undefined, { product: productOf(target), platform: platformOf(target) });
-      const root = `bake/${target}`;
 
-      await container.fs.mkdir(root, { recursive: true });
+      for (const name of await container.fs.readdir('.')) {
+        await container.fs.rm(name, { recursive: true, force: true });
+      }
       for (const [path, content] of Object.entries(scaffold.files)) {
-        const full = `${root}/${path}`;
-        const parent = full.slice(0, full.lastIndexOf('/'));
+        const parent = path.includes('/') ? path.slice(0, path.lastIndexOf('/')) : '';
         if (parent) await container.fs.mkdir(parent, { recursive: true });
-        await container.fs.writeFile(full, content);
+        await container.fs.writeFile(path, content);
       }
 
-      say(`${target} : ${Object.keys(scaffold.files).length} fichiers du socle posés dans /${root}`);
+      say(`${target} : ${Object.keys(scaffold.files).length} fichiers du socle posés à la racine`);
       return scaffold;
     },
     [say]
@@ -134,7 +139,8 @@ export default function DepsBakePage() {
         return false;
       }
 
-      const cwd = tree.dir ? `bake/${target}/${tree.dir}` : `bake/${target}`;
+      const cwd = tree.dir || '.';
+      const at = (path: string) => (tree.dir ? `${tree.dir}/${path}` : path);
 
       // Le manifeste du serveur plutôt que celui du socle : c'est lui qui
       // porte l'empreinte sous laquelle l'instantané sera demandé.
@@ -161,7 +167,7 @@ export default function DepsBakePage() {
       }
 
       setState(key, { phase: 'running', step: 'npm install' });
-      say(`${key} : npm install dans /${cwd}`);
+      say(`${key} : npm install dans ${tree.dir ? `/${tree.dir}` : 'la racine'}`);
       const install = await shell(`cd ${cwd} && npm install --no-audit --no-fund`, say);
       if (install !== 0) {
         setState(key, { phase: 'failed', step: `npm install (code ${install})` });
@@ -190,7 +196,7 @@ export default function DepsBakePage() {
         ];
         for (const name of names) {
           try {
-            await container.fs.readdir(`${cwd}/node_modules/${name}`);
+            await container.fs.readdir(at(`node_modules/${name}`));
           } catch {
             setState(key, { phase: 'failed', step: `${name} absent de l'arbre` });
             return false;
@@ -199,9 +205,34 @@ export default function DepsBakePage() {
         say(`${key} : ${names.length} dépendances directes présentes`);
       }
 
+      // --- Le pré-regroupement de Vite, gardé dans l'arbre. ---
+      // Sans lui, chaque atelier refait au premier affichage le regroupement des dépendances (esbuild en
+      // WebAssembly : la plus longue attente avant la page). Fait ici une fois, à la même racine et sans
+      // `package-lock.json` — comme dans un atelier monté depuis un instantané —, il est valable partout.
+      let prebundled = false;
+      try {
+        await container.fs.readFile(at('node_modules/vite/bin/vite.js'), 'utf-8');
+        setState(key, { phase: 'running', step: 'pré-regroupement Vite' });
+        say(`${key} : vite optimize`);
+        const optimize = await shell(
+          `cd ${cwd} && rm -f package-lock.json && rm -rf node_modules/.vite && node node_modules/vite/bin/vite.js optimize`,
+          say
+        );
+        if (optimize === 0) {
+          await container.fs.readFile(at('node_modules/.vite/deps/_metadata.json'), 'utf-8');
+          prebundled = true;
+          say(`${key} : dépendances pré-regroupées`);
+        } else {
+          say(`${key} : pré-regroupement impossible (code ${optimize}), arbre exporté sans`);
+          await container.fs.rm(at('node_modules/.vite'), { recursive: true, force: true });
+        }
+      } catch {
+        // Pas de Vite dans cet arbre (serveur, racine d'une application complète), ou pas de métadonnées.
+      }
+
       // --- L'export. ---
       setState(key, { phase: 'running', step: 'export' });
-      const snapshot = (await container.export(`${cwd}/node_modules`, {
+      const snapshot = (await container.export(at('node_modules'), {
         format: 'binary',
       })) as Uint8Array;
       say(`${key} : arbre exporté, ${megabytes(snapshot.byteLength)}`);
@@ -214,7 +245,7 @@ export default function DepsBakePage() {
       const result = await putSnapshot(target, tree, gzipped, {
         token,
         unpackedBytes: snapshot.byteLength,
-        verified: scripts?.build ? 'npm run build' : 'dépendances directes',
+        verified: `${scripts?.build ? 'npm run build' : 'dépendances directes'}${prebundled ? ' + vite optimize' : ''}`,
       });
 
       if (!result.stored) {
@@ -286,7 +317,15 @@ export default function DepsBakePage() {
           stale.forEach((tree) => results.push({ target, tree: tree.id, ok: false }));
           continue;
         }
-        for (const tree of stale) results.push({ target, tree: tree.id, ok: await bakeTree(target, tree, scaffold) });
+        for (const tree of stale) {
+          // Une exception (réseau, conteneur) compte comme un échec : sans cela le résultat n'était jamais posé, et
+          // le script attendait trente minutes.
+          const ok = await bakeTree(target, tree, scaffold).catch((error) => {
+            say(`${target}/${tree.id} : échec (${error instanceof Error ? error.message : String(error)})`);
+            return false;
+          });
+          results.push({ target, tree: tree.id, ok });
+        }
       }
       say(`four automatique : ${results.filter((r) => r.ok).length}/${results.length} arbre(s) cuits`);
       (window as unknown as { __idemBake?: unknown }).__idemBake = { done: true, ok: results.every((r) => r.ok), results };

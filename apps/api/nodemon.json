@@ -1,4 +1,4 @@
 {
-  "watch": ["api", "../ivision/core/src"],
+  "watch": ["api", "../ivision/core/src", "../../packages/graphic-engine/src", "../../packages/design-tools/src"],
   "ext": "ts,json"
 }

@@ -112,5 +112,6 @@ export class IdemCodesService {
 }
 
 export const idemCodesService = new IdemCodesService();
-export const PACK_CODE_VALUE_XAF = PACKS.lancement.priceXaf;
+/** Valeur d’un code Pack Lancement : lue au moment de l’achat (le prix suit la grille réglée). */
+export const packCodeValueXaf = (): number => PACKS.lancement.priceXaf;
 export default idemCodesService;

@@ -1,0 +1,336 @@
+<div class="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 lg:py-12">
+  <!-- ═══ Le programme, en une phrase ═══ -->
+  <header class="grid items-center gap-8 md:grid-cols-[1fr_14rem]">
+    <div class="min-w-0">
+      <p class="text-sm font-medium text-primary-500">{{ 'builders.eyebrow' | translate }}</p>
+      <h1 class="mt-2 text-3xl font-bold text-text-primary sm:text-4xl">
+        {{ 'builders.title.lead' | translate }}
+        <span class="i-underline">{{ 'builders.title.accent' | translate }}</span>
+      </h1>
+      <p class="mt-4 max-w-2xl text-base text-text-secondary">{{ 'builders.lede' | translate }}</p>
+      <a class="mt-4 inline-flex text-sm font-medium text-primary-500 hover:underline" [href]="showcaseUrl" target="_blank" rel="noopener">
+        {{ 'builders.seeShowcase' | translate }}
+        <i class="pi pi-arrow-up-right ml-1 text-xs" aria-hidden="true"></i>
+      </a>
+    </div>
+    <app-builders-illustration class="mx-auto w-48 md:w-full" />
+  </header>
+
+  <!-- ═══ Membre : ce qui est actif ═══ -->
+  @if (isBuilder()) {
+    <section class="glass-card mt-10 p-6" aria-labelledby="builder-active-title">
+      <h2 id="builder-active-title" class="text-lg font-semibold text-text-primary">
+        <i class="pi pi-verified mr-2 text-success" aria-hidden="true"></i>{{ 'builders.member.title' | translate }}
+      </h2>
+      <ul class="mt-4 grid gap-2 text-sm text-text-secondary sm:grid-cols-2">
+        <li>{{ 'builders.member.topup' | translate: { percent: topupPercent } }}</li>
+        <li>{{ 'builders.member.hosting' | translate: { percent: hostingPercent } }}</li>
+        <li>{{ 'builders.member.showcase' | translate }}</li>
+        <li>{{ 'builders.member.portrait' | translate }}</li>
+      </ul>
+
+      <div class="mt-6 border-t border-[var(--glass-border)] pt-5">
+        <h3 class="text-sm font-semibold text-text-primary">{{ 'builders.badge.title' | translate }}</h3>
+        <p class="mt-1 text-sm text-text-tertiary">{{ 'builders.badge.body' | translate }}</p>
+        <div class="mt-3 flex flex-wrap items-center gap-4">
+          <img [src]="badgeImageUrl" alt="Idem Builder" width="168" height="44" />
+          <button type="button" class="outer-button button-sm" (click)="copyBadge()">
+            <i class="pi" [class.pi-check]="copied()" [class.pi-copy]="!copied()" aria-hidden="true"></i>
+            {{ (copied() ? 'builders.badge.copied' : 'builders.badge.copy') | translate }}
+          </button>
+        </div>
+      </div>
+    </section>
+  }
+
+  <div class="mt-10 grid gap-10 lg:grid-cols-[1fr_20rem]">
+    <div class="min-w-0 space-y-10">
+      <!-- ═══ Mes candidatures ═══ -->
+      @if (applications() === null) {
+        <div class="h-24 animate-pulse rounded-xl bg-[var(--color-surface-2)]"></div>
+      } @else if (applications()!.length > 0) {
+        <section aria-labelledby="builder-mine-title">
+          <h2 id="builder-mine-title" class="text-lg font-semibold text-text-primary">{{ 'builders.mine.title' | translate }}</h2>
+          <ul class="mt-4 divide-y divide-[var(--glass-border)] rounded-xl border border-[var(--glass-border)]">
+            @for (application of applications(); track application.id) {
+              <li class="p-4">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                  <span class="font-medium text-text-primary">{{ application.projectName }}</span>
+                  <span
+                    class="tag"
+                    [class.text-warning]="application.status === 'pending'"
+                    [class.text-success]="application.status === 'approved'"
+                    [class.text-danger]="application.status === 'rejected'"
+                  >
+                    {{ 'builders.status.' + application.status | translate }}
+                  </span>
+                </div>
+                <p class="mt-1 text-xs text-text-tertiary">
+                  {{ 'builders.mine.sentOn' | translate: { date: (application.createdAt | date: 'longDate') } }}
+                  @if (application.status === 'pending') {
+                    · {{ 'builders.mine.reviewDelay' | translate: { days: program.reviewDays } }}
+                  }
+                </p>
+                @if (application.status === 'approved' && application.slug) {
+                  <a class="mt-2 inline-flex text-sm font-medium text-primary-500 hover:underline" [href]="showcaseUrl + '/' + application.slug" target="_blank" rel="noopener">
+                    {{ 'builders.mine.publicPage' | translate }}
+                    <i class="pi pi-arrow-up-right ml-1 text-xs" aria-hidden="true"></i>
+                  </a>
+                }
+                @if (application.status === 'approved' && application.welcomeBonusXaf) {
+                  <p class="mt-2 text-sm text-text-secondary">
+                    {{ 'builders.mine.bonusPaid' | translate: { amount: (application.welcomeBonusXaf | number: '1.0-0') } }}
+                  </p>
+                }
+                @if (application.status === 'rejected' && application.decisionNote) {
+                  <p class="mt-2 text-sm text-text-secondary">
+                    <span class="font-medium text-text-primary">{{ 'builders.mine.reason' | translate }}</span>
+                    {{ application.decisionNote }}
+                  </p>
+                }
+              </li>
+            }
+          </ul>
+        </section>
+      }
+      @if (loadError()) {
+        <p class="text-sm text-danger" role="alert">
+          {{ 'builders.mine.loadError' | translate }}
+          <button type="button" class="button-ghost button-sm" (click)="loadMine()">{{ 'common.retry' | translate }}</button>
+        </p>
+      }
+
+      <!-- ═══ Présenter un projet ═══ -->
+      <section aria-labelledby="builder-apply-title">
+        <h2 id="builder-apply-title" class="text-lg font-semibold text-text-primary">{{ 'builders.apply.title' | translate }}</h2>
+        <p class="mt-1 text-sm text-text-tertiary">{{ 'builders.apply.subtitle' | translate }}</p>
+
+        @if (submitted(); as done) {
+          <div class="glass-card mt-4 p-5" role="status">
+            <p class="font-medium text-text-primary">{{ 'builders.apply.sentTitle' | translate: { project: done.projectName } }}</p>
+            <p class="mt-1 text-sm text-text-secondary">{{ 'builders.apply.sentBody' | translate: { days: program.reviewDays } }}</p>
+          </div>
+        }
+
+        @if (!projectsLoaded()) {
+          <div class="mt-4 h-12 animate-pulse rounded-xl bg-[var(--color-surface-2)]"></div>
+        } @else if (projects().length === 0) {
+          <div class="mt-4 rounded-xl border border-[var(--glass-border)] p-5">
+            <p class="text-sm text-text-secondary">{{ 'builders.apply.noProject' | translate }}</p>
+            <a routerLink="/create-project" class="inner-button button-sm mt-3 inline-flex">{{ 'builders.apply.createProject' | translate }}</a>
+          </div>
+        } @else {
+          <form class="mt-4 space-y-6" [formGroup]="form" (ngSubmit)="submit()">
+            <div>
+              <label for="builder-project">{{ 'builders.apply.project' | translate }}</label>
+              <select id="builder-project" formControlName="projectId">
+                <option value="">{{ 'builders.apply.projectPlaceholder' | translate }}</option>
+                @for (project of projects(); track project.id) {
+                  <option [value]="project.id">{{ project.name }}</option>
+                }
+              </select>
+            </div>
+
+            @if (checking()) {
+              <idem-loader block [label]="'builders.apply.checking' | translate" />
+            } @else if (checkError()) {
+              <p class="text-sm text-danger" role="alert">
+                {{ 'builders.apply.checkError' | translate }}
+                <button type="button" class="button-ghost button-sm" (click)="retryCheck()">{{ 'common.retry' | translate }}</button>
+              </p>
+            } @else if (eligibility(); as check) {
+              <!-- La condition d'entrée, vérifiée sur le projet -->
+              <div class="rounded-xl border border-[var(--glass-border)] p-5">
+                <p class="text-sm font-semibold text-text-primary">{{ 'builders.apply.managedTitle' | translate }}</p>
+                <ul class="mt-3 space-y-2">
+                  @for (signal of operatingSignals; track signal) {
+                    <li class="flex items-center gap-2 text-sm" [class.text-text-primary]="check.signals[signal]" [class.text-text-tertiary]="!check.signals[signal]">
+                      <i class="pi" [class.pi-check-circle]="check.signals[signal]" [class.text-success]="check.signals[signal]" [class.pi-circle]="!check.signals[signal]" aria-hidden="true"></i>
+                      {{ 'builders.signals.' + signal | translate }}
+                      <span class="sr-only">— {{ (check.signals[signal] ? 'builders.apply.done' : 'builders.apply.notYet') | translate }}</span>
+                    </li>
+                  }
+                </ul>
+
+                @if (builtWith().length > 0) {
+                  <p class="mt-4 text-xs text-text-tertiary">{{ 'builders.apply.builtWith' | translate }}</p>
+                  <div class="mt-2 flex flex-wrap gap-2">
+                    @for (signal of builtWith(); track signal) {
+                      <span class="tag">{{ 'builders.signals.' + signal | translate }}</span>
+                    }
+                  </div>
+                }
+
+                @if (check.current) {
+                  <p class="mt-4 text-sm text-text-secondary" role="status">
+                    {{ (check.current.status === 'approved' ? 'builders.apply.alreadyMember' : 'builders.apply.alreadyPending') | translate }}
+                  </p>
+                } @else if (!check.eligible) {
+                  <div class="mt-4 border-t border-[var(--glass-border)] pt-4">
+                    <p class="text-sm text-text-secondary">{{ 'builders.apply.notEligible' | translate }}</p>
+                    <div class="mt-3 flex flex-wrap gap-2">
+                      <button type="button" class="inner-button button-sm" (click)="goTo('/project/ideploy')">{{ 'builders.apply.goDeploy' | translate }}</button>
+                      <button type="button" class="outer-button button-sm" (click)="goTo('/project/communication')">{{ 'builders.apply.goCommunication' | translate }}</button>
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+
+            @if (canApply()) {
+              <!-- La couverture : la première chose que verra la vitrine. Mise en
+                   avant, au format exact de la fiche, cadrée avant l'envoi. -->
+              <section class="rounded-2xl border border-[var(--glass-border)] p-5 sm:p-6" aria-labelledby="builder-cover-title">
+                <div class="flex flex-wrap items-baseline justify-between gap-2">
+                  <h3 id="builder-cover-title" class="text-base font-semibold text-text-primary">{{ 'builders.cover.title' | translate }}</h3>
+                  <span class="tag">{{ 'builders.cover.format' | translate: { width: program.coverWidth, height: program.coverHeight } }}</span>
+                </div>
+                <p id="builder-cover-help" class="mt-1 text-sm text-text-tertiary">{{ 'builders.cover.help' | translate }}</p>
+
+                <div class="mt-4">
+                  @if (coverFile(); as file) {
+                    <app-cover-cropper [file]="file" (confirmed)="uploadCropped($event)" (cancelled)="coverFile.set(null)" />
+                  } @else if (coverUploading()) {
+                    <div class="grid aspect-video w-full place-items-center rounded-xl border border-[var(--glass-border)]">
+                      <idem-loader [label]="'builders.cover.uploading' | translate" />
+                    </div>
+                  } @else if (coverPreview(); as preview) {
+                    <img [src]="preview" [alt]="'builders.cover.previewAlt' | translate" class="block aspect-video w-full rounded-xl object-cover" />
+                    <div class="mt-3 flex flex-wrap gap-2">
+                      <label for="builder-cover" class="outer-button button-sm !mb-0 cursor-pointer">{{ 'builders.cover.replace' | translate }}</label>
+                      <button type="button" class="button-ghost button-sm" (click)="removeCover()">{{ 'builders.cover.remove' | translate }}</button>
+                    </div>
+                  } @else {
+                    <div
+                      class="flex aspect-video w-full flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed px-6 text-center transition-colors"
+                      [class]="coverDragOver() ? 'border-[var(--color-primary)] bg-[var(--glass-bg-light)]' : 'border-[var(--glass-border)]'"
+                      (dragover)="onCoverDragOver($event)"
+                      (dragleave)="coverDragOver.set(false)"
+                      (drop)="onCoverDrop($event)"
+                    >
+                      <span class="grid h-14 w-14 place-items-center rounded-2xl bg-[var(--glass-bg-light)]" aria-hidden="true">
+                        <i class="pi pi-image text-2xl text-primary-500"></i>
+                      </span>
+                      <p class="text-base font-semibold text-text-primary">{{ 'builders.cover.dropTitle' | translate }}</p>
+                      <p class="max-w-md text-sm text-text-tertiary">{{ 'builders.cover.dropBody' | translate }}</p>
+                      <label for="builder-cover" class="inner-button !mb-0 cursor-pointer">{{ 'builders.cover.choose' | translate }}</label>
+                    </div>
+                  }
+                  <input
+                    id="builder-cover"
+                    type="file"
+                    class="sr-only"
+                    accept="image/jpeg,image/png,image/webp"
+                    aria-describedby="builder-cover-help"
+                    [disabled]="coverUploading()"
+                    (change)="onCoverSelected($event)"
+                  />
+                </div>
+
+                @if (coverError(); as code) {
+                  <p class="mt-3 text-sm text-danger" role="alert">{{ 'builders.cover.errors.' + code | translate: { width: program.coverWidth, height: program.coverHeight } }}</p>
+                }
+                @if (!coverPreview() && !coverFile()) {
+                  <p class="mt-3 text-xs text-text-tertiary">{{ 'builders.cover.fallback' | translate }}</p>
+                }
+              </section>
+
+              <div>
+                <label for="builder-pitch">{{ 'builders.apply.pitch' | translate }}</label>
+                <p id="builder-pitch-help" class="mb-2 text-xs text-text-tertiary">{{ 'builders.apply.pitchHelp' | translate }}</p>
+                <textarea
+                  id="builder-pitch"
+                  rows="6"
+                  formControlName="pitch"
+                  aria-describedby="builder-pitch-help builder-pitch-count"
+                  [attr.maxlength]="program.pitchMaxLength"
+                ></textarea>
+                <p id="builder-pitch-count" class="mt-1 text-xs" [class.text-text-tertiary]="pitchLength() >= program.pitchMinLength" [class.text-warning]="pitchLength() < program.pitchMinLength">
+                  @if (pitchLength() < program.pitchMinLength) {
+                    {{ 'builders.apply.pitchRemaining' | translate: { count: program.pitchMinLength - pitchLength() } }}
+                  } @else {
+                    {{ pitchLength() }} / {{ program.pitchMaxLength }}
+                  }
+                </p>
+              </div>
+
+              <div>
+                <label for="builder-url">{{ 'builders.apply.url' | translate }}</label>
+                <input id="builder-url" type="url" formControlName="publicUrl" placeholder="https://" inputmode="url" />
+              </div>
+
+              <!-- Ce que la fiche publique montrera ; l'équipe, seulement sur choix. -->
+              <div class="rounded-xl border border-[var(--glass-border)] p-4">
+                <p class="text-sm font-semibold text-text-primary">{{ 'builders.apply.publication.title' | translate }}</p>
+                <p class="mt-1 text-sm text-text-tertiary">{{ 'builders.apply.publication.body' | translate }}</p>
+                <div class="mt-3 flex items-start gap-3">
+                  <input id="builder-team" type="checkbox" class="mt-1 shrink-0" formControlName="showTeam" aria-describedby="builder-team-note" />
+                  <div>
+                    <label for="builder-team" class="!mb-0 text-sm text-text-secondary">{{ 'builders.apply.publication.team' | translate }}</label>
+                    <p id="builder-team-note" class="mt-1 text-xs text-text-tertiary">{{ 'builders.apply.publication.teamNote' | translate }}</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Accord exprès : les deux textes s'ouvrent à côté, la case n'est jamais cochée d'avance. -->
+              <div class="flex items-start gap-3">
+                <input id="builder-terms" type="checkbox" class="mt-1 shrink-0" formControlName="acceptTerms" aria-describedby="builder-terms-note" />
+                <div>
+                  <label for="builder-terms" class="!mb-0 text-sm text-text-secondary">
+                    {{ 'builders.apply.terms.accept' | translate }}
+                    <a class="text-primary-500 underline" [href]="termsUrl" target="_blank" rel="noopener">{{ 'builders.apply.terms.terms' | translate }}</a>
+                    {{ 'builders.apply.terms.and' | translate }}
+                    <a class="text-primary-500 underline" [href]="privacyUrl" target="_blank" rel="noopener">{{ 'builders.apply.terms.privacy' | translate }}</a>
+                  </label>
+                  <p id="builder-terms-note" class="mt-1 text-xs text-text-tertiary">{{ 'builders.apply.terms.note' | translate }}</p>
+                </div>
+              </div>
+
+              @if (submitError(); as code) {
+                <p class="text-sm text-danger" role="alert">{{ 'builders.errors.' + code | translate }}</p>
+              }
+
+              <button type="submit" class="inner-button" [disabled]="submitting() || coverUploading() || form.invalid">
+                @if (submitting()) {
+                  <idem-loader size="xs" />
+                }
+                {{ 'builders.apply.submit' | translate }}
+              </button>
+            }
+          </form>
+        }
+      </section>
+    </div>
+
+    <!-- ═══ Ce que le programme apporte ═══ -->
+    <aside aria-labelledby="builder-perks-title">
+      <h2 id="builder-perks-title" class="text-lg font-semibold text-text-primary">{{ 'builders.perks.title' | translate }}</h2>
+      <dl class="mt-4 space-y-4">
+        <div>
+          <dt class="text-sm font-semibold text-text-primary">{{ 'builders.perks.welcome.title' | translate: { amount: (program.welcomeBonusXaf | number: '1.0-0') } }}</dt>
+          <dd class="mt-1 text-sm text-text-tertiary">{{ 'builders.perks.welcome.body' | translate }}</dd>
+        </div>
+        <div>
+          <dt class="text-sm font-semibold text-text-primary">{{ 'builders.perks.topup.title' | translate: { percent: topupPercent } }}</dt>
+          <dd class="mt-1 text-sm text-text-tertiary">{{ 'builders.perks.topup.body' | translate }}</dd>
+        </div>
+        <div>
+          <dt class="text-sm font-semibold text-text-primary">{{ 'builders.perks.hosting.title' | translate: { percent: hostingPercent } }}</dt>
+          <dd class="mt-1 text-sm text-text-tertiary">{{ 'builders.perks.hosting.body' | translate }}</dd>
+        </div>
+        <div>
+          <dt class="text-sm font-semibold text-text-primary">{{ 'builders.perks.showcase.title' | translate }}</dt>
+          <dd class="mt-1 text-sm text-text-tertiary">{{ 'builders.perks.showcase.body' | translate }}</dd>
+        </div>
+        <div>
+          <dt class="text-sm font-semibold text-text-primary">{{ 'builders.perks.portrait.title' | translate }}</dt>
+          <dd class="mt-1 text-sm text-text-tertiary">{{ 'builders.perks.portrait.body' | translate }}</dd>
+        </div>
+        <div>
+          <dt class="text-sm font-semibold text-text-primary">{{ 'builders.perks.badge.title' | translate }}</dt>
+          <dd class="mt-1 text-sm text-text-tertiary">{{ 'builders.perks.badge.body' | translate }}</dd>
+        </div>
+      </dl>
+    </aside>
+  </div>
+</div>

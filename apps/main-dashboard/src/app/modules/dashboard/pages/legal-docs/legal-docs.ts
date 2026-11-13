@@ -36,6 +36,7 @@ import { ProjectModel } from '@idem/shared-models';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 import { LegalIllustrationComponent } from './components/legal-illustration/legal-illustration';
 import { LegalFormSectionComponent } from './components/legal-form-section/legal-form-section';
+import { downloadName } from '../../../../shared/utils/download-name';
 
 type RequiredFieldKey =
   | 'country'
@@ -498,7 +499,7 @@ export class LegalDocsPage implements OnInit {
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
-          a.download = `${doc.name}.pdf`;
+          a.download = downloadName({ project: this.project()?.name, label: doc.name, ext: 'pdf' });
           a.click();
           setTimeout(() => URL.revokeObjectURL(url), 1000);
           this.downloading.set(null);

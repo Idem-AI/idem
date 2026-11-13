@@ -391,13 +391,13 @@ class MemoryStore implements VideoStore {
     { creativity: 'low' }
   );
   fs.writeFileSync(path.join(OUT, 'visual.png'), composed.png);
-  const visualText = composed.html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+  const visualText = composed.html.replace(/<style[\s\S]*?<\/style>/g, ' ').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
   check(
     `visuel écrit, affiché et photographié (${composed.png.length} octets, page ${composed.parsed.layout})`,
     composed.png.length > 10000 &&
       !composed.audit.blocking &&
       /café qui r(é|&eacute;)veille/i.test(visualText) &&
-      composed.parsed.layout === 'authored',
+      composed.parsed.layout === 'catalog',
     visualText.slice(0, 160)
   );
 
@@ -446,11 +446,9 @@ class MemoryStore implements VideoStore {
     );
     fs.writeFileSync(path.join(OUT, 'visual-photo.png'), withPhoto.png);
     check(
-      `story avec la photo de l’utilisateur : son point d’intérêt est donné à l’auteur (${withPhoto.parsed.layout})`,
-      !!withPhoto.parsed.photo &&
-        /its subject is at \d+% × \d+%/.test(authorPrompts[authorPrompts.length - 1] ?? '') &&
-        /object-\[\d+%_\d+%\]/.test(withPhoto.html) &&
-        !withPhoto.audit.blocking
+      // Le catalogue cadre la photo par le code, sur son point d'intérêt (`[[focal]]`) : aucun modèle n'a à le savoir.
+      `story avec la photo de l’utilisateur : cadrée par le code sur son point d’intérêt (${withPhoto.parsed.layout})`,
+      !!withPhoto.parsed.photo && withPhoto.parsed.layout === 'catalog' && /object-\[\d+%_\d+%\]/.test(withPhoto.html) && !withPhoto.audit.blocking
     );
   }
 

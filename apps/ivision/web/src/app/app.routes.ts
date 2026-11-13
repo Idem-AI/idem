@@ -12,6 +12,8 @@ export function chatMatcher(segments: UrlSegment[]): UrlMatchResult | null {
 
 export const routes: Routes = [
   { path: '', pathMatch: 'full', loadComponent: () => import('./pages/landing/landing').then((m) => m.Landing) },
+  // Les tarifs : publics, comme la landing.
+  { path: 'pricing', loadComponent: () => import('./pages/pricing/pricing').then((m) => m.PricingPage) },
   // L'éditeur d'un visuel occupe tout l'écran (hors de la barre latérale du studio).
   {
     path: 'studio/visual/:brandId/:visualId',

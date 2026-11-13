@@ -1020,7 +1020,8 @@
           "Le code complet, en ZIP ou sur GitHub",
           "Mise en ligne sur iDeploy en un clic",
           "Payé en mobile money, sans carte bancaire"
-        ]
+        ],
+        "frame": "Payé une fois : l’application est à vous pour de bon, avec {{count}} modifications incluses."
       },
       "usage": {
         "title": "Ensuite, à l’usage",
@@ -1033,30 +1034,54 @@
         "change": {
           "name": "Une modification",
           "note": "Le prix d’un SMS. Une modification ratée n’est pas débitée.",
-          "price": "25 F"
+          "price": "25 F",
+          "frame": "Le prix d’un SMS"
         },
         "premium": {
           "name": "Une modification avec le modèle le plus puissant",
           "note": "Pour les changements difficiles",
-          "price": "75 F"
+          "price": "75 F",
+          "frame": "Compte pour 3 modifications ({{amount}} F)"
         },
         "pack100": {
           "name": "Pack 100 modifications",
           "note": "20 F la modification, sur tous vos projets",
-          "price": "2 000 F"
+          "price": "2 000 F",
+          "frame": "{{amount}} F la modification : -{{saving}} %"
         },
         "growth": {
           "name": "IDEM Croissance",
           "note": "20 modifications par mois, votre site toujours en ligne et la communication",
-          "price": "3 000 F / mois"
+          "price": "3 000 F / mois",
+          "frame": "{{amount}} F par jour, sans engagement"
         },
         "launch": {
           "name": "Pack Lancement",
           "note": "Le Pass Projet, le Kit Entreprise et 3 mois de site en ligne",
-          "price": "5 000 F"
+          "price": "5 000 F",
+          "frame": "Au lieu de {{worth}} F : vous économisez {{saving}} F"
         }
       },
-      "wallet": "Tout se paie depuis votre portefeuille IDEM, rechargé en mobile money dès 100 F. Le même solde sert à iCode, à l’hébergement et à vos documents."
+      "wallet": "Tout se paie depuis votre portefeuille IDEM, rechargé en mobile money dès 100 F. Le même solde sert à iCode, à l’hébergement et à vos documents.",
+      "free": {
+        "title": "Pour générer votre application et la voir tourner",
+        "body": "Première génération et aperçu illimité dans le navigateur, sans carte bancaire et sans limite de durée."
+      },
+      "guaranteesTitle": "Ce qui vous protège",
+      "guarantees": [
+        {
+          "title": "Une modification ratée n’est pas débitée",
+          "text": "Si une modification échoue, le montant revient tout seul dans votre portefeuille."
+        },
+        {
+          "title": "Votre code est à vous",
+          "text": "Avec le Pass Projet, vous le téléchargez ou l’envoyez sur GitHub, et vous l’hébergez où vous voulez."
+        },
+        {
+          "title": "Sans carte bancaire, sans abonnement",
+          "text": "Vous rechargez en mobile money dès 100 F, et vous ne payez que ce que vous utilisez."
+        }
+      ]
     }
   },
   "composer": {

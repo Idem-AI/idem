@@ -36,7 +36,7 @@
  * de garder le repli pour toujours.
  */
 import axios from 'axios';
-import { spawn, spawnSync } from 'child_process';
+import { spawn } from 'child_process';
 import crypto from 'crypto';
 import fs from 'fs';
 import os from 'os';
@@ -495,11 +495,6 @@ export function resolvePublicSound(name: string): string | null {
   if (!/^[a-z]+-[a-f0-9]{12}\.mp3$|^synth-[a-z]+\.mp3$/.test(name)) return null;
   const file = path.join(sfxDir(), name);
   return fs.existsSync(file) ? file : null;
-}
-
-/** Vérifie que ffmpeg sait synthétiser (contrôles). */
-export function ffmpegAvailable(): boolean {
-  return spawnSync(FFMPEG, ['-version']).status === 0;
 }
 
 export interface SfxCue {

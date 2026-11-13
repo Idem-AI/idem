@@ -95,10 +95,16 @@ export default {
       keyframes: {
         'accordion-down': { from: { height: '0' }, to: { height: 'var(--radix-accordion-content-height)' } },
         'accordion-up': { from: { height: 'var(--radix-accordion-content-height)' }, to: { height: '0' } },
+        // Bandeau défilant : la piste est rendue DEUX fois ; à -50 % la seconde copie est exactement là où
+        // était la première, et la boucle ne saute pas.
+        'marquee-x': { from: { transform: 'translateX(0)' }, to: { transform: 'translateX(-50%)' } },
+        'marquee-y': { from: { transform: 'translateY(0)' }, to: { transform: 'translateY(-50%)' } },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
+        'marquee-x': 'marquee-x var(--marquee-duration, 40s) linear infinite',
+        'marquee-y': 'marquee-y var(--marquee-duration, 40s) linear infinite',
       },
     },
   },

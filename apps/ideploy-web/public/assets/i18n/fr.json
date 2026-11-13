@@ -302,7 +302,28 @@
     "step3D": "Un e-mail 3 jours avant la fin du solde. Sans recharge, l’application s’endort, puis se réveille dès la recharge.",
     "optionsTitle": "Des options à la journée",
     "compareTitle": "Comparé aux autres hébergeurs",
-    "perYear": "/an"
+    "perYear": "/an",
+    "monthlyApprox": "≈ {{amount}} F par mois",
+    "tonight": {
+      "online": {
+        "title": "En ligne, en Veille gratuite",
+        "text": "Il se réveille à la première visite. Un compteur payé au jour seulement s'il doit rester allumé.",
+        "when": "Ce soir"
+      },
+      "connect": {
+        "title": "Envoyez votre code",
+        "text": "Depuis iCode, votre dépôt GitHub ou une archive : iDeploy s'occupe du reste.",
+        "when": "Maintenant"
+      },
+      "note": "Sans carte bancaire. Payé en mobile money quand vous le voulez.",
+      "address": {
+        "title": "Votre adresse et le SSL, offerts",
+        "text": "Votre site répond tout de suite sur votreprojet.idem.africa, en https.",
+        "when": "Dans la foulée"
+      },
+      "url": "votreprojet.idem.africa",
+      "live": "En ligne"
+    }
   },
   "dashboard": {
     "searchProjects": "Rechercher des projets…",
@@ -2262,6 +2283,7 @@
     "hide": "Masquer les valeurs"
   },
   "meters": {
+    "insteadOf": "au lieu de {{price}}",
     "title": "Compteurs",
     "subtitle": "Chaque application a son compteur, payé au jour depuis votre portefeuille IDEM. Rien à souscrire : changez de compteur quand vous voulez.",
     "wallet": "Portefeuille IDEM",

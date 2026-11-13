@@ -13,6 +13,7 @@ import logger from './config/logger';
 import { errorHandler, notFound } from './middleware/error';
 import { requestTraceMiddleware } from './middleware/request-trace.middleware';
 import { v1 } from './routes/v1';
+import { catalogRoutes } from './routes/catalog';
 
 export function createApp(): Express {
   const app = express();
@@ -46,6 +47,8 @@ export function createApp(): Express {
     const db = databaseReady();
     res.status(db ? 200 : 503).json({ status: db ? 'ok' : 'degraded', service: 'ivision-api', db });
   });
+  // Le webhook de publication des catalogues (images et vidéos) : hors `/v1`, au même chemin que l'API IDEM.
+  app.use('/catalog', catalogRoutes);
   app.use('/v1', v1);
   app.use(notFound);
   app.use(errorHandler);

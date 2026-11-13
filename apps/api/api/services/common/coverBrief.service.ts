@@ -16,8 +16,6 @@ import { PromptService } from '../prompt.service';
  * le type de document viennent du code : ce ne sont pas des choses à inventer.
  */
 export interface CoverBrief {
-  /** Sur-titre : le secteur, en deux à quatre mots. */
-  kicker: string;
   /** La promesse, en une phrase de douze mots au plus. */
   promise: string;
   /** Un mot de la promesse à mettre en valeur, ou vide. */
@@ -53,7 +51,6 @@ function projectText(project: ProjectModel): string {
 export function fallbackCoverBrief(project: ProjectModel): CoverBrief {
   const firstSentence = projectText(project).split(/(?<=[.!?])\s/)[0] ?? '';
   return {
-    kicker: '',
     promise: clip(firstSentence, 90) || project.name || '',
   };
 }
@@ -112,9 +109,8 @@ export class CoverBriefService {
           role: 'user',
           content: `Tu écris les mots de la couverture des documents d'une marque (charte graphique, business plan, pitch deck), en français.
 Réponds par UN objet JSON, sans bloc markdown, sans réfléchir longuement :
-{"kicker":"…","promise":"…","highlight":"…"}
+{"promise":"…","highlight":"…"}
 
-- kicker : le secteur de la marque, 2 à 4 mots, sans point.
 - promise : ce que la marque apporte à ses clients, une phrase de 12 mots au plus, sans point final.
 - highlight : UN mot de promise, recopié à l'identique, qui porte le sens ; vide si aucun ne s'impose.
 
@@ -132,7 +128,6 @@ ${description.slice(0, 2000)}`,
     if (!promise) return null;
     const highlight = clip(parsed.highlight, 30);
     return {
-      kicker: clip(parsed.kicker, 40).replace(/[.。]+$/, ''),
       promise,
       // Un mot absent de la promesse ne peut pas y être mis en valeur.
       highlight: highlight && promise.toLowerCase().includes(highlight.toLowerCase()) ? highlight : undefined,

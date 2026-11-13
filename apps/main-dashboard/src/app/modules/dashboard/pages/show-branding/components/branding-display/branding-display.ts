@@ -50,6 +50,9 @@ export class BrandingDisplayComponent implements OnInit {
   /** Format PDF choisi à la génération : le transmettre évite l'écran de choix. */
   private pdfFormat: string | undefined;
 
+  /** Le nom du projet : il ouvre le nom du PDF de la charte. */
+  protected readonly projectName = signal<string | null>(null);
+
   ngOnInit(): void {
     const projectId = this.cookieService.get('projectId');
     if (!projectId) {
@@ -59,6 +62,7 @@ export class BrandingDisplayComponent implements OnInit {
 
     this.projectService.getProjectById(projectId).subscribe({
       next: (project) => {
+        this.projectName.set(project?.name ?? null);
         const branding = project?.analysisResultModel?.branding as unknown as
           | StoredBranding
           | undefined;

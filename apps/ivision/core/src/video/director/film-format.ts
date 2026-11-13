@@ -118,8 +118,3 @@ export function parseFilmPlan(raw: string): PlannedFilm {
   return film;
 }
 
-/** Les clés de texte d'une scène, lisibles dans un prompt : « headline = "…" ». */
-export function textsLine(texts: Record<string, string>): string {
-  const entries = Object.entries(texts);
-  return entries.length ? entries.map(([k, v]) => `${k} = ${JSON.stringify(v)}`).join(' · ') : '(no text on screen)';
-}

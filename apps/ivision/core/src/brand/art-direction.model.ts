@@ -8,32 +8,15 @@
  *
  * La direction artistique est ce parti pris, décidé UNE fois à partir du projet
  * et de son identité, puis imposé à toutes les générations. Elle s'ancre sur un
- * style du catalogue (`ART_DIRECTION_STYLES`) que le modèle choisit — pas qu'il
- * invente — puis l'adapte à la marque.
+ * DA du catalogue (`idem-templates/catalog/directions`) que le modèle CHOISIT, avec une déclinaison par champ
+ * rédigée d'avance : il n'invente aucun élément de direction (décision du 11/11/2026).
  */
 
-/** Identifiants des styles du catalogue (cf. artDirection.catalog.ts). */
-export type ArtDirectionStyleId =
-  | 'minimalism'
-  | 'maximalism'
-  | 'futuristic'
-  | 'vector-art'
-  | 'collage-art'
-  | 'retro'
-  | 'cyberpunk'
-  | 'pop-art'
-  | 'glassmorphism'
-  | 'clay'
-  | 'pixel-art'
-  | 'editorial'
-  | 'y2k'
-  | 'swiss'
-  | 'surreal'
-  | 'bohemian'
-  | 'victorian'
-  | 'graffiti'
-  | 'aurora'
-  | 'handwritten';
+/**
+ * Identifiant d'une DA du catalogue (`idem-templates/catalog/directions`) : une chaîne, validée contre le catalogue
+ * chargé (il évolue sans redéploiement). Les 20 d'origine restent valables, 10 nouvelles s'y ajoutent.
+ */
+export type ArtDirectionStyleId = string;
 
 /**
  * Traitement de l'imagerie : ce que montrent les photos/illustrations et
@@ -160,6 +143,13 @@ export interface ArtDirectionModel {
    * sourcés/générés). Décrit le rendu, pas le sujet.
    */
   imagePromptModifier: string;
+
+  /** Les déclinaisons du catalogue retenues pour cette marque, par champ (`grid: 'g2'`…) : la direction se recompose d'elles. */
+  variants?: Record<string, string>;
+  /** La version du catalogue des DA au moment du choix. */
+  catalogVersion?: string;
+  /** Les sources d'inspiration de la DA (catalogue), montrées dans la charte. */
+  inspirations?: Array<{ title: string; author: string; year?: number; note: string; url?: string }>;
 
   createdAt?: Date;
   updatedAt?: Date;

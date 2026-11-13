@@ -100,6 +100,8 @@ export class FinanceOverviewComponent implements OnInit {
 
   // Salle de contrôle de l'auto-fill sourcé (équipe d'agents).
   protected readonly researchVisible = signal<boolean>(false);
+  // Affichée une fois la salle de contrôle refermée automatiquement, à la fin de la génération.
+  protected readonly successVisible = signal<boolean>(false);
   protected readonly genState = signal<SSEGenerationState | null>(null);
   protected readonly researchState = computed(() => this.genState()?.research ?? null);
   protected readonly researchDone = computed(() => this.genState()?.completed ?? false);
@@ -318,8 +320,11 @@ export class FinanceOverviewComponent implements OnInit {
         }
         this.genState.set(state);
         if (state.completed) {
-          this.aiGlobalLoading.set(false);
+          // La salle de contrôle se referme d'elle-même : l'utilisateur n'a
+          // rien à cliquer pour sortir d'un écran de chargement terminé.
+          this.closeResearchConsole();
           this.loadSummary();
+          this.successVisible.set(true);
         }
       },
       error: (err) => {
@@ -336,6 +341,10 @@ export class FinanceOverviewComponent implements OnInit {
     this.researchSub?.unsubscribe();
     this.financeService.closeAutoFillStream();
     this.aiGlobalLoading.set(false);
+  }
+
+  protected closeSuccessModal(): void {
+    this.successVisible.set(false);
   }
 
   protected navigateToBpGeneration(): void {

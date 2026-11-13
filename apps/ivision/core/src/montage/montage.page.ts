@@ -50,7 +50,7 @@ html,body{background:#0b0d10;overflow:hidden}
 #logo img{height:calc(var(--u)*4.2);width:auto;max-width:calc(var(--u)*24);object-fit:contain;display:block}
 #bar{position:absolute;left:0;top:0;height:calc(var(--u)*0.7);background:var(--accent);width:0}
 #intro{position:absolute;inset:0;background:var(--primary);color:var(--on-primary);display:flex;flex-direction:column;justify-content:center;padding:0 9%;overflow:hidden;will-change:transform}
-#intro .k{display:inline-block;align-self:flex-start;background:var(--accent);color:var(--on-accent);font-weight:800;font-size:calc(var(--u)*3.8);letter-spacing:.06em;text-transform:uppercase;padding:calc(var(--u)*0.8) calc(var(--u)*2);border-radius:99px;margin-bottom:calc(var(--u)*3)}
+
 #intro h1{font-family:var(--f-display);font-weight:900;font-size:calc(var(--u)*11);line-height:1.02;letter-spacing:-.01em}
 #intro h1 span{display:inline-block;margin-right:.22em}
 #intro .rule{height:calc(var(--u)*1.2);background:var(--accent);border-radius:99px;margin-top:calc(var(--u)*4);width:0}
@@ -120,7 +120,7 @@ if(D.logo){logo=el('div','','<img alt="" src="'+esc(D.logo)+'">');logo.id='logo'
 var bar=el('div');bar.id='bar';stage.appendChild(bar);
 // L'intro animée (motion design) : par-dessus tout, jusqu'à ce que le volet découvre la vidéo.
 var intro=null,introWords=[];
-if(D.intro){intro=el('div','',(D.intro.kicker?'<span class="k">'+esc(D.intro.kicker)+'</span>':'')+'<h1>'+String(D.intro.title).split(/\s+/).map(function(w){return '<span>'+esc(w)+'</span>'}).join('')+'</h1><div class="rule"></div>'+(D.logo?'<img alt="" src="'+esc(D.logo)+'">':''));intro.id='intro';
+if(D.intro){intro=el('div','','<h1>'+String(D.intro.title).split(/\s+/).map(function(w){return '<span>'+esc(w)+'</span>'}).join('')+'</h1><div class="rule"></div>'+(D.logo?'<img alt="" src="'+esc(D.logo)+'">':''));intro.id='intro';
   introWords=Array.prototype.slice.call(intro.querySelectorAll('h1 span'))}
 var outro=null;
 if(D.outro){outro=el('div','',(D.logo?'<img alt="" src="'+esc(D.logo)+'">':'')+'<h2>'+esc(D.outro.text)+'</h2><hr>'+(D.outro.detail?'<p>'+esc(D.outro.detail)+'</p>':''));outro.id='outro';stage.appendChild(outro)}

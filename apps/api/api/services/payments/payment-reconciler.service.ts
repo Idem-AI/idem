@@ -4,6 +4,7 @@ import { PENDING_PAYMENT_STATUSES } from '../../models/payment.model';
 import { PaymentTransaction } from '../../schemas/payment.schema';
 import { paymentEventsService } from './payment-events.service';
 import { MAX_FULFILL_ATTEMPTS, paymentService } from './payment.service';
+import { paymentAdminActionsService } from './payment-admin-actions.service';
 
 /**
  * Réconciliation des paiements : le filet qui rattrape tout le reste.
@@ -44,6 +45,9 @@ export interface ReconcileReport {
 export class PaymentReconcilerService {
   /** Un passage complet. Appelé chaque minute par le planificateur. */
   async run(): Promise<ReconcileReport> {
+    // Les demandes du panel admin (revérifier, relancer, livrer, rembourser), écrites en base.
+    await paymentAdminActionsService.process().catch((error) => logger.error('payment.admin_actions_failed', { event: 'payment.admin_actions_failed', error }));
+    await paymentAdminActionsService.publishHealth().catch((error) => logger.warn('payment.health_publish_failed', { event: 'payment.health_publish_failed', error }));
     const [polled, refulfilled, stuck] = [
       await this.pollPending(),
       await this.retryFailedFulfillments(),

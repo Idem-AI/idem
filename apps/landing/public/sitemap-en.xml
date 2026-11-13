@@ -83,6 +83,14 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://idem.africa/en/builders</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://idem.africa/fr/builders" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://idem.africa/en/builders" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://idem.africa/en/builders" />
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://idem.africa/en/premium-beta</loc>
     <xhtml:link rel="alternate" hreflang="fr" href="https://idem.africa/fr/premium-beta" />
     <xhtml:link rel="alternate" hreflang="en" href="https://idem.africa/en/premium-beta" />
@@ -111,6 +119,22 @@
     <xhtml:link rel="alternate" hreflang="fr" href="https://idem.africa/fr/beta-policy" />
     <xhtml:link rel="alternate" hreflang="en" href="https://idem.africa/en/beta-policy" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://idem.africa/en/beta-policy" />
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://idem.africa/en/builders-terms</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://idem.africa/fr/builders-terms" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://idem.africa/en/builders-terms" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://idem.africa/en/builders-terms" />
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://idem.africa/en/builders-privacy</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://idem.africa/fr/builders-privacy" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://idem.africa/en/builders-privacy" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://idem.africa/en/builders-privacy" />
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>

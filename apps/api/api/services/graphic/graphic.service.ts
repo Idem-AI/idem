@@ -32,6 +32,7 @@ import type { SectionComposition } from '../../models/section.model';
 import { resolveLogoDeclensions } from '../../utils/brand-context.util';
 import { getRequestLanguage } from '../../utils/request-language';
 import { ensureProjectArtDirection } from '../brand/artDirection.provider';
+import { recordTemplatePerformance } from './catalog-performance.service';
 import type { PromptService } from '../prompt.service';
 
 /** La marque d'un projet telle que le moteur la lit. Rien n'est inventé : ce qui manque, le moteur le dérive. */
@@ -53,7 +54,7 @@ export async function withProjectArtDirection(promptService: PromptService, user
 }
 
 export interface OpenGraphicDocumentOptions {
-  project: Pick<ProjectModel, 'id' | 'name' | 'analysisResultModel'> & { description?: string };
+  project: Pick<ProjectModel, 'id' | 'name' | 'analysisResultModel'> & { description?: string; type?: string; additionalInfos?: { country?: string } };
   documentType: DocumentType;
   format: FormatId;
   /** La clé du livrable (`documentDesignKey`) : journaux et mémoire des bibles du document. */
@@ -96,6 +97,10 @@ export function openGraphicDocument(o: OpenGraphicDocumentOptions): Promise<Grap
     locale: getRequestLanguage() === 'fr' ? 'fr' : 'en',
     user: { userId: o.userId, projectId: o.project.id },
     memoryScope: o.project.id ? { documentType: o.documentType, key: o.project.id } : undefined,
+    // Plan qualité créative : les idées de l'utilisateur et du secteur sont relues aussi (ne pas les refaire), et le
+    // pays de la marque oriente l'axe de départ.
+    memoryScopes: [...(o.userId ? [{ documentType: o.documentType, key: `user:${o.userId}` }] : []), ...(o.project.type ? [{ documentType: o.documentType, key: `sector:${o.project.type}:${o.project.additionalInfos?.country ?? ''}` }] : [])],
+    ...(o.project.additionalInfos?.country ? { country: o.project.additionalInfos.country } : {}),
     bindings: o.bindings,
     footer: o.footer,
     imageColors: o.imageColors,
@@ -214,6 +219,9 @@ export class GenerationJournal {
   finish(): GenerationRecord {
     const record = recordFromTraces({ deliverable: this.deliverable, level: this.level, traces: this.traces, issues: this.issues, fallbacks: this.notes, modelOf: (role) => roleConfig(role, 'agents').modelName });
     logger.info('generation.record', recordSummary(record));
+    // La tenue des nœuds employés nourrit le classement des prochaines générations. En arrière-plan : une
+    // statistique ne retarde ni ne casse un livrable.
+    void recordTemplatePerformance(record);
     return record;
   }
 }

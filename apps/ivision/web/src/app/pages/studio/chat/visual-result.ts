@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, ElementRef, OnInit, computed, inject, input, signal, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, OnInit, computed, inject, input, linkedSignal, signal, viewChild } from '@angular/core';
+import { PromotionsStore } from '@idem/shared-promotions/angular';
 import { Router } from '@angular/router';
 import { EditTarget, FontHints, IdemDocumentPreviewComponent } from '@idem/shared-document-editor/angular';
 import { VISUAL_PAGES } from '../visual-edit/visual-adapter';
@@ -10,6 +11,9 @@ import { StudioState } from '../../../core/studio.state';
 import { Visual } from '../../../core/models';
 
 /** Dimensions réelles des formats (celles du rendu, `core/src/visual/flyer.render.ts`). */
+/** Les formats proposés à la déclinaison (ceux de la conversation). */
+const DECLINE_FORMATS = ['square', 'story', 'post', 'banner'];
+
 const SIZES: Record<string, [number, number]> = {
   square: [1080, 1080],
   story: [1080, 1920],
@@ -143,10 +147,56 @@ const SIZES: Record<string, [number, number]> = {
             @if (exporting()) {
               <idem-loader size="xs" />
             }
-            {{ 'chat.result.exportHd' | translate: { price: state.exportVisualXaf() } }}
+            {{ (exportPrice().free ? 'chat.result.exportHdFree' : 'chat.result.exportHd') | translate: { price: exportPrice().final } }}
+            @if (exportPrice().discounted) {
+              <del class="opacity-70"><span class="sr-only">Prix normal : </span>{{ exportPrice().original }} F</del>
+            }
           </button>
         }
       </figcaption>
+      @if (shown().alternatives?.length) {
+        <div class="w-full max-w-[26rem]">
+          <p class="text-xs font-medium text-[var(--color-text-secondary)]">{{ 'chat.result.otherProposals' | translate }}</p>
+          <div class="mt-1.5 grid grid-cols-3 gap-2">
+            @for (alt of shown().alternatives; track alt.id) {
+              <button
+                type="button"
+                class="relative overflow-hidden rounded-lg border border-[var(--glass-border-subtle)] bg-[var(--color-surface-1)] p-0 hover:border-[var(--color-primary-500)] focus-visible:border-[var(--color-primary-500)]"
+                [disabled]="!!choosingId()"
+                [attr.aria-label]="'chat.result.useProposal' | translate"
+                (click)="chooseProposal(alt.id)"
+              >
+                <img class="block h-auto w-full" [src]="alt.imageUrl" [alt]="'chat.result.proposalAlt' | translate" loading="lazy" />
+                @if (choosingId() === alt.id) {
+                  <idem-loader overlay />
+                }
+              </button>
+            }
+          </div>
+          <p class="mt-1 text-xs text-[var(--color-text-tertiary)]">{{ 'chat.result.otherProposalsHint' | translate }}</p>
+        </div>
+      }
+      <div class="w-full max-w-[26rem]">
+        <p class="text-xs font-medium text-[var(--color-text-secondary)]">{{ 'chat.result.decline' | translate }}</p>
+        <div class="mt-1.5 flex flex-wrap gap-2">
+          @for (format of declineFormats(); track format) {
+            <button type="button" class="outer-button button-sm" [disabled]="!!decliningFormat()" (click)="decline(format)">
+              @if (decliningFormat() === format) {
+                <idem-loader size="xs" />
+              }
+              {{ 'formats.' + format | translate }}
+            </button>
+          }
+        </div>
+        @for (v of declined(); track v.id) {
+          <button type="button" class="button-ghost button-sm mt-1.5" (click)="openDeclined(v)">
+            <i class="pi pi-external-link" aria-hidden="true"></i> {{ 'formats.' + v.format | translate }} · {{ 'chat.result.declined' | translate }}
+          </button>
+        }
+        @if (declineFailed()) {
+          <p class="mt-1 text-xs text-[var(--color-text-tertiary)]" role="alert">{{ 'chat.result.declineFailed' | translate }}</p>
+        }
+      </div>
       @if (exportRefused(); as missing) {
         <p class="text-xs text-[var(--color-text-secondary)]" role="alert">
           {{ 'chat.result.exportMissing' | translate: { missing } }}
@@ -163,12 +213,12 @@ const SIZES: Record<string, [number, number]> = {
       fenêtre modale). Barre d'actions en haut, l'image au centre ; cliquer l'image passe en taille réelle,
       cliquer à côté ou Échap ferme.
     -->
-    <dialog #lightbox class="viewer" [attr.aria-label]="visual().prompt" (click)="onBackdrop($event)" (close)="opened.set(false)">
+    <dialog #lightbox class="viewer" [attr.aria-label]="shown().prompt" (click)="onBackdrop($event)" (close)="opened.set(false)">
       @if (opened()) {
         <header class="viewer-bar">
           <div class="min-w-0 flex-1">
-            <p class="truncate text-sm font-medium">{{ visual().prompt }}</p>
-            <p class="text-xs text-[var(--color-text-tertiary)]">{{ 'formats.' + visual().format | translate }} · {{ size()[0] }} × {{ size()[1] }} px</p>
+            <p class="truncate text-sm font-medium">{{ shown().prompt }}</p>
+            <p class="text-xs text-[var(--color-text-tertiary)]">{{ 'formats.' + shown().format | translate }} · {{ size()[0] }} × {{ size()[1] }} px</p>
           </div>
           <button type="button" class="button-ghost button-sm" [disabled]="!imgLoaded()" [attr.aria-pressed]="zoomed()" (click)="toggleZoom()">
             <i [class]="zoomed() ? 'pi pi-search-minus' : 'pi pi-search-plus'" aria-hidden="true"></i>
@@ -205,7 +255,7 @@ const SIZES: Record<string, [number, number]> = {
               class="viewer-img"
               [class.hidden]="!imgLoaded()"
               [src]="imageSrc()"
-              [alt]="visual().prompt"
+              [alt]="shown().prompt"
               [attr.width]="size()[0]"
               [attr.height]="size()[1]"
               (load)="imgLoaded.set(true)"
@@ -222,6 +272,13 @@ export class VisualResult implements OnInit {
   private readonly api = inject(ApiService);
   private readonly router = inject(Router);
   readonly visual = input.required<Visual>();
+  /** Le visuel montré : celui reçu, puis celui choisi parmi les propositions. */
+  protected readonly shown = linkedSignal(() => this.visual());
+  protected readonly choosingId = signal<string | null>(null);
+  protected readonly declineFormats = computed(() => DECLINE_FORMATS.filter((f) => f !== this.shown().format));
+  protected readonly decliningFormat = signal<string | null>(null);
+  protected readonly declined = signal<Visual[]>([]);
+  protected readonly declineFailed = signal(false);
   /** Polices de la marque (sans elles, le rendu retomberait sur la police système). */
   readonly fonts = input<FontHints>({});
 
@@ -229,22 +286,22 @@ export class VisualResult implements OnInit {
   protected readonly html = signal('');
   protected readonly loading = signal(false);
   protected readonly loadFailed = signal(false);
-  protected readonly page = computed(() => VISUAL_PAGES[this.visual().format] ?? VISUAL_PAGES['square']);
-  protected readonly section = computed(() => ({ id: this.visual().id, name: this.visual().prompt.slice(0, 60), type: `flyer-${this.visual().format}` }));
+  protected readonly page = computed(() => VISUAL_PAGES[this.shown().format] ?? VISUAL_PAGES['square']);
+  protected readonly section = computed(() => ({ id: this.shown().id, name: this.shown().prompt.slice(0, 60), type: `flyer-${this.shown().format}` }));
   /** Visionneuse : l'image (fichier rendu), son chargement et la taille réelle. */
   protected readonly imgLoaded = signal(false);
   protected readonly imgFailed = signal(false);
   protected readonly zoomed = signal(false);
   private readonly retries = signal(0);
   protected readonly imageSrc = computed(() => {
-    const url = this.visual().imageUrl;
+    const url = this.shown().imageUrl;
     const n = this.retries();
     return n ? `${url}${url.includes('?') ? '&' : '?'}r=${n}` : url;
   });
   private readonly lightbox = viewChild.required<ElementRef<HTMLDialogElement>>('lightbox');
   protected readonly opened = signal(false);
 
-  protected readonly size = computed(() => SIZES[this.visual().format] ?? SIZES['square']);
+  protected readonly size = computed(() => SIZES[this.shown().format] ?? SIZES['square']);
   /** Au plus 28rem de haut et 26rem de large : la largeur découle des proportions du format. */
   protected readonly width = computed(() => {
     const [w, h] = this.size();
@@ -253,6 +310,12 @@ export class VisualResult implements OnInit {
   protected readonly downloading = signal(false);
   protected readonly failed = signal(false);
   protected readonly state = inject(StudioState);
+  private readonly promotions = inject(PromotionsStore);
+  /** L'export HD, remisé pendant une promotion (le débit chez IDEM fait le même calcul). */
+  protected readonly exportPrice = computed(() => {
+    const price = this.promotions.price('ivision.export_visual', this.state.exportVisualXaf());
+    return { final: price.finalXaf, original: price.originalXaf, discounted: price.discountXaf > 0, free: price.free };
+  });
   /** Export HD réglé (ou inclus) : le fichier sort sans « Créé avec iVision ». */
   protected readonly exported = signal(false);
   protected readonly exporting = signal(false);
@@ -260,9 +323,9 @@ export class VisualResult implements OnInit {
   protected readonly exportRefused = signal<number | null>(null);
 
   ngOnInit(): void {
-    this.exported.set(Boolean(this.visual().exported));
+    this.exported.set(Boolean(this.shown().exported));
     this.loading.set(true);
-    this.api.visual(this.visual().id).subscribe({
+    this.api.visual(this.shown().id).subscribe({
       next: (v) => {
         this.html.set(v.html || '');
         this.loading.set(false);
@@ -295,7 +358,7 @@ export class VisualResult implements OnInit {
   /** « Modifier » depuis la visionneuse : l'éditeur partagé, sur le visuel entier. */
   protected editWhole(): void {
     this.close();
-    const v = this.visual();
+    const v = this.shown();
     void this.router.navigate(['/studio/visual', v.brandId, v.id]);
   }
 
@@ -307,7 +370,7 @@ export class VisualResult implements OnInit {
   /** « Modifier » sur un élément : l'éditeur partagé s'ouvre sur lui. */
   protected edit(target: EditTarget): void {
     if (this.opened()) this.close();
-    const v = this.visual();
+    const v = this.shown();
     this.router.navigate(['/studio/visual', v.brandId, v.id], { queryParams: { section: target.sectionId, ...(target.path !== null ? { path: target.path } : {}) } });
   }
 
@@ -324,7 +387,7 @@ export class VisualResult implements OnInit {
   protected exportHd(): void {
     this.exporting.set(true);
     this.exportRefused.set(null);
-    this.api.exportVisual(this.visual().id).subscribe({
+    this.api.exportVisual(this.shown().id).subscribe({
       next: () => {
         this.exporting.set(false);
         this.exported.set(true);
@@ -339,8 +402,47 @@ export class VisualResult implements OnInit {
     });
   }
 
+  /** Une autre composition proposée (sans frais) devient le visuel ; l'actuelle rejoint les propositions. */
+  protected chooseProposal(variantId: string): void {
+    if (this.choosingId()) return;
+    this.choosingId.set(variantId);
+    this.api.chooseVisualVariant(this.shown().id, variantId).subscribe({
+      next: (v) => {
+        this.shown.set(v);
+        this.html.set(v.html || '');
+        this.retries.set(0);
+        this.choosingId.set(null);
+      },
+      error: () => {
+        this.choosingId.set(null);
+        this.failed.set(true);
+      },
+    });
+  }
+
+  /** La même idée recomposée pour un autre format : le nouveau visuel s'ouvre dans l'éditeur. */
+  protected decline(format: string): void {
+    if (this.decliningFormat()) return;
+    this.decliningFormat.set(format);
+    this.declineFailed.set(false);
+    this.api.declineVisual(this.shown().id, format).subscribe({
+      next: (v) => {
+        this.declined.update((list) => [...list, v]);
+        this.decliningFormat.set(null);
+      },
+      error: () => {
+        this.decliningFormat.set(null);
+        this.declineFailed.set(true);
+      },
+    });
+  }
+
+  protected openDeclined(v: Visual): void {
+    void this.router.navigate(['/studio/visual', v.brandId, v.id]);
+  }
+
   protected download(): void {
-    const v = this.visual();
+    const v = this.shown();
     this.downloading.set(true);
     this.failed.set(false);
     this.api.saveFile(`/visuals/${v.id}/file`, `ivision-${v.format}.jpg`).subscribe({

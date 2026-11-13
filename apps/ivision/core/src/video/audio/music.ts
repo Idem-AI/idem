@@ -138,10 +138,6 @@ export function registerLocalTracks(tracks: MusicTrack[]): void {
   localTracks = [...(localTracks || []), ...tracks];
 }
 
-export function resetLocalTracks(): void {
-  localTracks = null;
-}
-
 async function loadLocalCatalog(): Promise<MusicTrack[]> {
   if (localTracks) return localTracks;
   const source = process.env.VIDEO_MUSIC_CATALOG;

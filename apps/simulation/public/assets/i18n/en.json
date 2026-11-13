@@ -41,7 +41,8 @@
       "timeMachine": "Your project in 5 years",
       "experiments": "What to check"
     },
-    "labs": "Go further"
+    "labs": "Go further",
+    "pricing": "Pricing"
   },
   "theme": {
     "switchToLight": "Switch to light theme",
@@ -808,5 +809,106 @@
   },
   "evidence": {
     "reliability": "Reliability: {{level}}"
+  },
+  "pricePage": {
+    "hero": {
+      "title": "Test your project",
+      "titleAccent": "before you spend a franc.",
+      "lead": "The first analysis is free. The simulation puts your project through many real situations, from 1,500 F with an IDEM project, paid by mobile money.",
+      "cta": "Test my project",
+      "secondary": "See the prices"
+    },
+    "free": {
+      "title": "for the first analysis",
+      "text": "Upload your business plan or start from an IDEM project: you see right away what holds and what weakens your project.",
+      "cta": "Start for free"
+    },
+    "offers": {
+      "title": "What you pay, when you want to go further",
+      "lead": "Each offer is paid once, when you run it. No subscription.",
+      "recommended": "Most complete",
+      "anchor": "{{amount}} F without an IDEM project",
+      "run": {
+        "who": "To know if your project holds",
+        "name": "Simulation",
+        "cadence": "per simulation, paid once",
+        "bullets": [
+          "Your project tested in many situations",
+          "What matters most to succeed",
+          "A score out of 100 that is easy to read"
+        ],
+        "cta": "Run my simulation",
+        "foot": "Cheaper with an IDEM project"
+      },
+      "pack": {
+        "who": "To decide, then convince your bank",
+        "name": "Simulation + report",
+        "cadence": "paid once",
+        "bullets": [
+          "Everything in the simulation",
+          "The complete report to download (PDF)",
+          "Advice ranked by priority"
+        ],
+        "cta": "Choose simulation + report",
+        "foot": "The most complete"
+      },
+      "report": {
+        "who": "For a simulation already done",
+        "name": "Report for your bank",
+        "cadence": "per report, paid once",
+        "bullets": [
+          "The complete report to download (PDF)",
+          "The targets to reach to hold on",
+          "Advice ranked by priority"
+        ],
+        "cta": "Get my report",
+        "foot": "To attach to a loan request"
+      }
+    },
+    "guarantees": {
+      "title": "What protects you",
+      "free": {
+        "title": "The first analysis is free",
+        "text": "You see what the simulator says before you pay anything."
+      },
+      "failed": {
+        "title": "A failed simulation is not charged",
+        "text": "If a simulation fails, your credits are refunded automatically."
+      },
+      "stop": {
+        "title": "No subscription",
+        "text": "Each simulation is paid once, when you run it."
+      }
+    },
+    "pay": {
+      "cta": "Test my project"
+    },
+    "faq": {
+      "title": "Questions",
+      "free": {
+        "q": "What is free?",
+        "a": "The first analysis of your project. You only pay for the simulation and the report if you want them."
+      },
+      "project": {
+        "q": "Why is it cheaper with an IDEM project?",
+        "a": "The simulator reads your business plan and figures straight from IDEM: it has less to rebuild, so the simulation costs you less."
+      },
+      "report": {
+        "q": "What is the bank report for?",
+        "a": "A complete document (PDF) showing how your project holds up in the tested situations. You attach it to a loan or funding request."
+      },
+      "pay": {
+        "q": "How do I pay?",
+        "a": "By mobile money (Orange Money, MTN MoMo, Wave, Moov Money, Airtel Money, M-Pesa), by topping up your IDEM wallet from 100 F. No bank card."
+      },
+      "beta": {
+        "q": "What about the beta?",
+        "a": "During the beta, simulations are free: prices are shown struck through. The only limit: your daily credits."
+      }
+    },
+    "final": {
+      "title": "Test tonight, decide tomorrow knowing the facts.",
+      "cta": "Test my project"
+    }
   }
 }

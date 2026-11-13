@@ -41,6 +41,7 @@ import { PREVIEW_PAGE_GAP_PX } from '@idem/shared-document-editor/angular';
 import { buildPlaceholderHtml, composePages, PreviewPage } from './preview-pages';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 import { ErrorStateComponent } from '../../../../shared/components/error-state/error-state';
+import { downloadName } from '../../../../shared/utils/download-name';
 
 /** Documents qui ont une page d'affichage avec aperçu. */
 export type PreviewDocumentType = Extract<
@@ -141,6 +142,11 @@ export class DocumentPreviewComponent implements OnInit, OnDestroy {
   readonly documentId = input<string | null>(null);
   /** Le cran de créativité choisi sur la page : la nouvelle mise en page le suit. */
   readonly creativity = input<string | null>(null);
+  /**
+   * Le nom du projet : il ouvre le nom de tout fichier téléchargé depuis cet aperçu. Absent, le fichier garde
+   * le nom du livrable seul — mais deux projets donneraient alors le même nom.
+   */
+  readonly projectName = input<string | null>(null);
 
   /** Régénérer une section (nom canonique). */
   readonly regenerateSection = output<string>();
@@ -572,7 +578,7 @@ export class DocumentPreviewComponent implements OnInit, OnDestroy {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (blob) => {
-          this.saveBlob(blob, adapter.pdfFileName ?? 'document.pdf');
+          this.saveBlob(blob, this.fileName('pdf'));
           this.setDownloadState('done');
         },
         error: (err) => {
@@ -599,8 +605,7 @@ export class DocumentPreviewComponent implements OnInit, OnDestroy {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (blob) => {
-          const name = adapter.pptxFileName ?? 'presentation.pptx';
-          this.saveBlob(blob, mode === 'editable' ? name.replace(/\.pptx$/, '-modifiable.pptx') : name);
+          this.saveBlob(blob, this.fileName('pptx', mode === 'editable' ? 'modifiable' : null));
           this.setDownloadState('done');
         },
         error: (err) => {
@@ -647,6 +652,14 @@ export class DocumentPreviewComponent implements OnInit, OnDestroy {
         state === 'error' ? 4000 : 2500,
       );
     }
+  }
+
+  /**
+   * Le nom du fichier : le projet, puis CE document (son nom propre quand l'utilisateur l'a renommé, sinon le
+   * type et sa variante — « Pitch deck — investisseurs »), puis l'horodatage.
+   */
+  private fileName(ext: string, suffix: string | null = null): string {
+    return downloadName({ project: this.projectName(), label: this.heading() || this.documentType(), suffix, ext });
   }
 
   private saveBlob(blob: Blob, fileName: string): void {

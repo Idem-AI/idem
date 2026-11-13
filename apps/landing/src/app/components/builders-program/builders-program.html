@@ -1,0 +1,39 @@
+<!-- Idem Builders sur l'accueil. Le pagne commémoratif (AGENTS.md § 4) tient
+     la gauche : être reconnu, porté haut par une communauté. À droite, la
+     promesse, trois chiffres réels et deux portes — lire, ou rejoindre. -->
+<section id="idem-builders" class="bh-band" aria-labelledby="idem-builders-title">
+  <div class="ed-wrap bh-stage">
+    <figure class="bh-art" aria-hidden="true">
+      <app-page-art scene="commemorative-cloth" />
+    </figure>
+
+    <div class="bh-copy">
+      <h2 id="idem-builders-title" class="ed-h2">
+        <ng-container i18n="@@buildersProgram.title.lead">Your project puts Africa forward?</ng-container>
+        <span class="i-underline" i18n="@@buildersProgram.title.accent">We show it.</span>
+      </h2>
+      <p class="ed-lede ed-mt-6" i18n="@@buildersProgram.lede">
+        Idem Builders showcases the African projects run with IDEM — put online, marketed or
+        hosted here. Members are featured on idem.africa and pay less to keep their project alive.
+      </p>
+
+      <ul class="bh-figures ed-mt-10">
+        @for (figure of figures; track figure.label) {
+          <li class="bh-figure">
+            <span class="bh-value">{{ figure.value }}</span>
+            <span class="bh-label">{{ figure.label }}</span>
+          </li>
+        }
+      </ul>
+
+      <div class="bh-actions ed-mt-10">
+        <a class="inner-button" routerLink="/builders">
+          <ng-container i18n="@@buildersProgram.learnMore">Learn more</ng-container>
+        </a>
+        <a class="outer-button" [href]="joinUrl">
+          <ng-container i18n="@@buildersProgram.join">Join the programme</ng-container>
+        </a>
+      </div>
+    </div>
+  </div>
+</section>

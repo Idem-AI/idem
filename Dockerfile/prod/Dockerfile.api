@@ -1,7 +1,8 @@
 # Build arguments for environment-specific builds
 ARG BUILD_ENV=production
 
-FROM node:20-alpine AS builder
+# Node 22 : HyperFrames (rendu vidéo HTML, défaut depuis le 04/11/2026) l'exige.
+FROM node:22-alpine AS builder
 
 # Install security updates and build dependencies
 RUN apk update && apk upgrade && \
@@ -19,10 +20,14 @@ COPY ./packages/shared-auth-client ./packages/shared-auth-client
 COPY ./packages/shared-styles ./packages/shared-styles
 # Le moteur de génération graphique (business plan, charte, pitch deck, cartes, visuels, graphiques).
 COPY ./packages/graphic-engine ./packages/graphic-engine
+# La boîte à outils des agents créatifs (couleur, saliency, vectorisation, embeddings CLIP en WebAssembly, axes) :
+# importée par le moteur graphique sous son nom, par le cœur vidéo par chemin relatif ; compilée avec l'API.
+COPY ./packages/design-tools ./packages/design-tools
 # Le langage de mouvement et son compilateur (vidéos) : importé par le cœur iVision par chemin relatif.
 COPY ./packages/motion-compiler ./packages/motion-compiler
 # La boucle IDEM (règles de recommandation entre applications) : importée par chemin relatif.
 COPY ./packages/shared-journey ./packages/shared-journey
+COPY ./packages/shared-promotions ./packages/shared-promotions
 
 # Build shared-models first
 WORKDIR /app/packages/shared-models
@@ -64,9 +69,13 @@ RUN npm run build
 RUN rm -rf /app/node_modules/@idem/graphic-engine && mkdir -p /app/node_modules/@idem/graphic-engine \
     && cp -r dist/packages/graphic-engine/src/. /app/node_modules/@idem/graphic-engine/ \
     && node -e "require('fs').writeFileSync('/app/node_modules/@idem/graphic-engine/package.json', JSON.stringify({ name: '@idem/graphic-engine', version: '1.0.0', main: 'index.js' }))"
+# @idem/design-tools, de même : sa copie compilée remplace le lien du workspace (des sources TypeScript).
+RUN rm -rf /app/node_modules/@idem/design-tools && mkdir -p /app/node_modules/@idem/design-tools \
+    && cp -r dist/packages/design-tools/src/. /app/node_modules/@idem/design-tools/ \
+    && node -e "require('fs').writeFileSync('/app/node_modules/@idem/design-tools/package.json', JSON.stringify({ name: '@idem/design-tools', version: '0.1.0', main: 'index.js' }))"
 
 # Production stage
-FROM node:20-alpine AS production
+FROM node:22-alpine AS production
 ARG BUILD_ENV
 
 # Install security updates and runtime dependencies
@@ -94,6 +103,8 @@ WORKDIR /app
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 ENV NODE_ENV=${BUILD_ENV:-production}
+# L'instantané du catalogue de gabarits : le repli quand le CDN (IDEM_TEMPLATES_URL) ne répond pas.
+ENV IDEM_TEMPLATES_SNAPSHOT=/app/packages/graphic-engine/catalog/snapshot.json
 
 # Copy built application and dependencies
 COPY --from=builder --chown=apiuser:nodejs /app/apps/api/package*.json ./
@@ -101,6 +112,8 @@ COPY --from=builder --chown=apiuser:nodejs /app/apps/api/dist ./dist
 COPY --from=builder --chown=apiuser:nodejs /app/apps/api/public ./public
 # Les sources du runtime vidéo (kit, harnais, lecteur, exemples) : esbuild les compile avec chaque film.
 COPY --from=builder --chown=apiuser:nodejs /app/apps/ivision/core/motion ./dist/apps/ivision/core/motion
+# L'instantané du catalogue VIDÉO (repli quand le CDN ne répond pas) : `npm run catalog:video-snapshot` dans le cœur.
+COPY --from=builder --chown=apiuser:nodejs /app/apps/ivision/core/catalog ./dist/apps/ivision/core/catalog
 
 # Copy node_modules from root (npm installs them there in monorepo)
 COPY --from=builder --chown=apiuser:nodejs /app/node_modules ./node_modules

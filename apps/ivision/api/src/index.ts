@@ -33,6 +33,7 @@ async function bootstrap(): Promise<void> {
 
   const { createApp } = await import('./app');
   createApp().listen(env.port, () => {
+    void import('../../core/src/creative.status').then(({ creativeStatus }) => logger.info('creative.status', { event: 'creative.status', ...creativeStatus() }));
     logger.info('ivision.started', { event: 'ivision.started', port: env.port, idemApi: env.idemApiUrl, publicUrl: env.publicUrl });
   });
 }

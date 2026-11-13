@@ -29,6 +29,7 @@ import { LogoSrcPipe } from '../../../../shared/pipes/logo-src.pipe';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 import { IdentityEditorComponent } from './components/identity-editor/identity-editor';
 import { ErrorStateComponent } from '../../../../shared/components/error-state/error-state';
+import { downloadName } from '../../../../shared/utils/download-name';
 
 type LogoGround = 'light' | 'dark';
 
@@ -473,10 +474,7 @@ export class ShowBrandingComponent implements OnInit {
           const link = document.createElement('a');
           link.href = url;
 
-          // Get project name for filename
-          const projectName = this.currentProject()?.name || 'project';
-          const sanitizedName = projectName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-          link.download = `${sanitizedName}_logos_${extension}.zip`;
+          link.download = downloadName({ project: this.currentProject()?.name, label: `logos ${extension}`, ext: 'zip' });
 
           // Trigger download
           document.body.appendChild(link);
@@ -555,7 +553,7 @@ export class ShowBrandingComponent implements OnInit {
     this.brandingService.downloadSocialAsset(projectId, asset.id).subscribe({
       next: (blob) => {
         this.downloadingAssetId.set(null);
-        this.saveBlob(blob, `${this.fileSlug()}-${asset.id}-${asset.width}x${asset.height}.png`);
+        this.saveBlob(blob, downloadName({ project: this.currentProject()?.name, label: `visuel ${asset.id}`, suffix: `${asset.width}x${asset.height}`, ext: 'png' }));
       },
       error: (err: any) => {
         this.downloadingAssetId.set(null);
@@ -577,7 +575,7 @@ export class ShowBrandingComponent implements OnInit {
           alert(this.translate.instant('dashboard.showBranding.errors.emptyZip'));
           return;
         }
-        this.saveBlob(blob, `${this.fileSlug()}-assets.zip`);
+        this.saveBlob(blob, downloadName({ project: this.currentProject()?.name, label: 'charte et assets', ext: 'zip' }));
       },
       error: (err: any) => {
         this.isDownloadingAssets.set(false);
@@ -587,16 +585,6 @@ export class ShowBrandingComponent implements OnInit {
     });
   }
 
-  private fileSlug(): string {
-    return (
-      (this.currentProject()?.name || 'marque')
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '') || 'marque'
-    );
-  }
 
   private saveBlob(blob: Blob, fileName: string): void {
     const url = window.URL.createObjectURL(blob);

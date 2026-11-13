@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, afterNextRender, inject, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { RouterLink, RouterLinkActive } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 import { environment } from '../../../../environments/environment';
 import { AuthService } from '../../../core/auth.service';
@@ -23,7 +23,7 @@ const LINKS = [
  */
 @Component({
   selector: 'iv-landing-header',
-  imports: [RouterLink, TranslateModule, BrandMark, Wrap],
+  imports: [RouterLink, RouterLinkActive, TranslateModule, BrandMark, Wrap],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     class: 'header',
@@ -40,10 +40,13 @@ const LINKS = [
 
       <nav class="mx-auto hidden items-center gap-1 lg:flex" [attr.aria-label]="'landing.header.label' | translate">
         @for (link of links; track link.id) {
-          <a class="nav-link" [href]="'#' + link.id" [class.is-active]="active() === link.id" [attr.aria-current]="active() === link.id ? 'true' : null">
+          <a class="nav-link" routerLink="/" [fragment]="link.id" [class.is-active]="active() === link.id" [attr.aria-current]="active() === link.id ? 'true' : null">
             <span class="diamond" aria-hidden="true"></span>{{ 'landing.header.links.' + link.key | translate }}
           </a>
         }
+        <a class="nav-link" routerLink="/pricing" routerLinkActive="is-active" ariaCurrentWhenActive="page">
+          <span class="diamond" aria-hidden="true"></span>{{ 'landing.header.links.pricing' | translate }}
+        </a>
       </nav>
 
       <div class="ml-auto flex items-center gap-2 lg:ml-0">
@@ -81,8 +84,9 @@ const LINKS = [
       <div id="iv-landing-menu" ivWrap class="pb-6 lg:hidden">
         <nav class="flex flex-col border-t border-[var(--glass-border-subtle)] pt-3" [attr.aria-label]="'landing.header.label' | translate">
           @for (link of links; track link.id) {
-            <a class="menu-link" [href]="'#' + link.id" (click)="menuOpen.set(false)">{{ 'landing.header.links.' + link.key | translate }}</a>
+            <a class="menu-link" routerLink="/" [fragment]="link.id" (click)="menuOpen.set(false)">{{ 'landing.header.links.' + link.key | translate }}</a>
           }
+          <a class="menu-link" routerLink="/pricing" (click)="menuOpen.set(false)">{{ 'landing.header.links.pricing' | translate }}</a>
         </nav>
         <div class="mt-5 flex flex-wrap items-center justify-between gap-3">
           @if (!signedIn()) {

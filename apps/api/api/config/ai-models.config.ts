@@ -23,26 +23,49 @@ import logger from './logger';
 
 /**
  * LES ÉCHELLES DE MODÈLES — la créativité EST la puissance du modèle : Low le plus léger, Ultra le plus
- * capable. Quatre crans. Toutes à poids ouverts (liste blanche).
+ * capable. Quatre crans. Toutes à poids ouverts (liste blanche) : la dérogation « meilleurs modèles du marché,
+ * fermés compris » du 10/11/2026 a été RETIRÉE le même jour à la demande de l'utilisateur (retour aux échelles du 05/11).
  *
  *   design  concevoir : concept et storyboard vidéo, retouche écrite, direction d'un document
  *   code    écrire du code : scènes Motion Canvas, pages HTML/Tailwind (et les corriger)
  */
-export type ModelLadder = 'design' | 'code' | 'video-design' | 'video-code' | 'video-sample' | 'video-vision' | 'video-teacher';
+export type ModelLadder = 'design' | 'code' | 'catalog' | 'video-design' | 'video-code' | 'video-sample' | 'video-vision' | 'video-teacher';
 
+/**
+ * Mise à jour 05/11/2026 (demande de l'utilisateur : « les modèles sont très anciens, pas très
+ * performants, trop peu de paramètres, les rendus ne sont pas très originaux »). Chaque remplacement est
+ * vérifié aux trois preuves de `openrouter.config.ts` (poids publiés, licence lue sur Hugging Face,
+ * identifiant OpenRouter exact) avant d'entrer ici — jamais sur la seule ressemblance du nom.
+ *
+ *   design.low     qwen3.5-9b (dense 9B)       → qwen3.6-35b-a3b (MoE plus récente, même coût d'inférence)
+ *   design.medium  qwen3.5-27b (dense, 3.5)    → qwen3.8-27b (dense, 3.8, 1 M ctx — déjà l'auteur qualité vidéo)
+ *   design.high    qwen3.5-397b-a17b (3.5)     → z-ai/glm-5.3-flash (320 B/18 B actifs, 3.5× moins cher,
+ *                                                 déjà le storyboard vidéo aux crans High/Ultra en production)
+ *   design.ultra, code.ultra   deepseek-v4-pro → deepseek-v4.1-flash : comparatif OFFICIEL DeepSeek, devant
+ *                                                 V4 Pro sur la plupart des bancs de code/agents, 4× moins cher
+ *
+ * `high` est le plafond RÉEL de la plupart des générations (Ultra n'est forcé qu'en version Signature,
+ * cf. [[idem-creativity-gauge]]) : c'est le cran qui change le plus visiblement le rendu perçu.
+ */
 export const MODEL_LADDERS: Record<ModelLadder, Record<CreativityLevel, string>> = {
   design: {
-    low: 'qwen/qwen3.5-9b',
-    medium: 'qwen/qwen3.5-27b',
-    high: 'qwen/qwen3.5-397b-a17b',
-    ultra: 'deepseek/deepseek-v4-pro',
+    low: 'qwen/qwen3.6-35b-a3b',
+    medium: 'qwen/qwen3.8-27b',
+    high: 'z-ai/glm-5.3-flash',
+    ultra: 'deepseek/deepseek-v4.1-flash',
   },
   code: {
     low: 'qwen/qwen3-coder-30b-a3b-instruct',
     medium: 'qwen/qwen3-coder-next',
     high: 'qwen/qwen3-coder',
-    ultra: 'deepseek/deepseek-v4-pro',
+    ultra: 'deepseek/deepseek-v4.1-flash',
   },
+  /**
+   * LE CATALOGUE DE GABARITS (10/11/2026) : le modèle ne fait plus que CHOISIR dans une liste courte documentée et
+   * remplir une petite configuration JSON (≈ 100 jetons de sortie) — une tâche à la portée des modèles open-weight
+   * légers. Low ne l'appelle pas (le code choisit seul).
+   */
+  catalog: { low: 'qwen/qwen3.5-35b-a3b', medium: 'qwen/qwen3.6-35b-a3b', high: 'qwen/qwen3.5-122b-a10b', ultra: 'deepseek/deepseek-v4.1-flash' },
   /**
    * LE MOTEUR VIDÉO (plan qualité avec petits modèles, 29/10/2026) : des modèles de 27 à 35 milliards de paramètres,
    * auto-hébergeables sur un GPU ; la qualité vient de l'outillage (système de design, solveurs, échantillonnage, juge).
@@ -63,6 +86,7 @@ export const MODEL_LADDERS: Record<ModelLadder, Record<CreativityLevel, string>>
 
 /** Les replis d'une échelle (même cran) : le modèle qui prend le relais si le premier est indisponible. */
 export const LADDER_FALLBACKS: Partial<Record<ModelLadder, Partial<Record<CreativityLevel, string[]>>>> = {
+  catalog: { low: ['qwen/qwen3.5-9b'], medium: ['qwen/qwen3.5-35b-a3b'], high: ['qwen/qwen3.5-397b-a17b'], ultra: ['qwen/qwen3.5-397b-a17b'] },
   'video-design': { low: ['z-ai/glm-5.3-flash'], medium: ['z-ai/glm-5.3-flash'], high: ['qwen/qwen3.8-27b'], ultra: ['qwen/qwen3.8-27b'] },
   'video-code': { low: ['qwen/qwen3-coder-next'], medium: ['qwen/qwen3.6-27b'], high: ['qwen/qwen3.6-27b'], ultra: ['qwen/qwen3.6-27b'] },
   'video-sample': { low: ['qwen/qwen3-coder-next'], medium: ['qwen/qwen3-coder-next'], high: ['qwen/qwen3-coder-next'], ultra: ['qwen/qwen3-coder-next'] },
@@ -78,13 +102,16 @@ export function ladderFallbacks(ladder: ModelLadder, level: CreativityLevel): st
 /** Quelle échelle suit chaque rôle créatif. Un rôle absent garde le modèle de son profil à tous les crans. */
 export const ROLE_LADDERS: Record<string, ModelLadder> = {
   'graphic.director': 'design',
-  'graphic.page-director': 'design',
-  // Le travail divisé : le plan de mise en page (petite sortie JSON), puis une zone par agent.
-  'graphic.layout': 'design',
-  'graphic.zone': 'code',
-  // La couverture : toujours appelée au cran Ultra par le moteur (le meilleur modèle de code).
-  'graphic.cover': 'code',
-  'graphic.author': 'code',
+  // Plan qualité créative (04/11/2026) : l'exploration d'idées (4 pistes) suit l'échelle « design » au cran le plus
+  // haut, quel que soit le cran choisi (`boost` dans `creative-roles.ts`).
+  'graphic.explore': 'design',
+  'video.concept-explore': 'design',
+  // Le juge visuel à questions fermées des pages : le modèle de vision du moteur vidéo.
+  'graphic.judge': 'video-vision',
+  // Le catalogue de gabarits : le choix d'un gabarit et de ses réglages (et de l'habillage du document).
+  'graphic.template': 'catalog',
+  // Le catalogue vidéo : la même échelle de petits modèles (un choix JSON pour tout le film).
+  'video.template': 'catalog',
   'video.concept': 'video-design',
   'video.planner': 'video-design',
   'video.author': 'video-code',

@@ -28,6 +28,7 @@
     "header.menu.about": "About",
     "header.nav.about": "About",
     "header.nav.contact": "Contact",
-    "header.menu.blog": "Blog"
+    "header.menu.blog": "Blog",
+    "header.badge.new": "New"
   }
 }

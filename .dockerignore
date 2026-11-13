@@ -36,6 +36,7 @@ apps/ideploy/storage
 apps/ideploy/vendor
 apps/ideploy/public/js/monaco-editor-*
 
+
 # Docs
 docs
 **/*.md

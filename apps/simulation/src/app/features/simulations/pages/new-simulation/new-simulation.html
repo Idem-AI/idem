@@ -352,6 +352,9 @@
             <p class="mt-1.5 text-sm leading-relaxed text-text-secondary md:text-base">
               {{ (isBeta ? 'newRun.plan.betaBody' : 'newRun.plan.body') | translate }}
             </p>
+            <!-- Payé en mobile money, sans carte ni abonnement ; le détail des prix sur /pricing. -->
+            <idem-pay-strip class="mt-4" [lang]="language.language()" />
+            <a class="mt-2 inline-block text-sm font-semibold text-text-primary underline underline-offset-4" routerLink="/pricing">{{ 'nav.pricing' | translate }}</a>
           </div>
 
           @if (isBeta) {
@@ -398,12 +401,16 @@
                     </span>
                   </span>
                   <span class="flex shrink-0 flex-row items-center justify-between gap-3 sm:flex-col sm:items-end">
-                    @if (isBeta) {
+                    @let promo = planPromo(plan);
+                    @if (promo.free) {
                       <span class="text-xl font-bold uppercase text-success">{{ 'newRun.plan.free' | translate }}</span>
                       <s class="text-xs tabular-nums text-text-tertiary">
                         <span class="sr-only">{{ 'newRun.plan.priceAfterBeta' | translate }}</span>
                         {{ planPrice(plan) }}
                       </s>
+                    } @else if (promo.discountXaf > 0) {
+                      <span class="text-xl font-bold tabular-nums text-text-primary">{{ planPromoPrice(plan) }}</span>
+                      <s class="text-xs tabular-nums text-text-tertiary">{{ planPrice(plan) }}</s>
                     } @else {
                       <span class="text-xl font-bold tabular-nums text-text-primary">{{ planPrice(plan) }}</span>
                       @if (planListPrice(plan); as listPrice) {

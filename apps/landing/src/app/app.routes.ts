@@ -71,6 +71,19 @@ export const routes: Routes = [
     data: { layout: 'public', seo: 'ideploy' },
   },
   {
+    // La fiche d'un projet admis : rendue dans le navigateur (voir app.routes.server.ts).
+    path: 'builders/:slug',
+    loadComponent: () =>
+      import('./pages/builder-detail-page/builder-detail-page').then((m) => m.BuilderDetailPage),
+    data: { layout: 'public', seo: 'builders' },
+  },
+  {
+    // Idem Builders : le programme, ses avantages et la vitrine des projets admis.
+    path: 'builders',
+    loadComponent: () => import('./pages/builders-page/builders-page').then((m) => m.BuildersPage),
+    data: { layout: 'public', seo: 'builders' },
+  },
+  {
     path: 'premium-beta',
     loadComponent: () =>
       import('./pages/premium-beta-access/premium-beta-access').then((m) => m.PremiumBetaAccess),
@@ -101,6 +114,20 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./shared/components/beta-policy/beta-policy').then((m) => m.BetaPolicy),
     data: { layout: 'public', seo: 'beta-policy' },
+  },
+  {
+    // Les deux textes acceptés avant une candidature Idem Builders (même version,
+    // BUILDERS_LEGAL_VERSION) : conditions de participation et données personnelles.
+    path: 'builders-terms',
+    loadComponent: () =>
+      import('./shared/components/builders-terms/builders-terms').then((m) => m.BuildersTerms),
+    data: { layout: 'public', seo: 'builders-terms' },
+  },
+  {
+    path: 'builders-privacy',
+    loadComponent: () =>
+      import('./shared/components/builders-privacy/builders-privacy').then((m) => m.BuildersPrivacy),
+    data: { layout: 'public', seo: 'builders-privacy' },
   },
   {
     // Conditions propres à la simulation : les conditions générales ne disent

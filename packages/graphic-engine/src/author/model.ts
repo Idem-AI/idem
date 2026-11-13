@@ -5,11 +5,6 @@ import type { CreativityLevel } from '../contracts/common';
 import type { AgentCall, AgentProfile } from '../host';
 import { estimateTokens, TaskName, TraceRecorder } from '../observability/traces';
 
-const ORDER: CreativityLevel[] = ['low', 'medium', 'high', 'ultra'];
-
-/** Le cran au-dessus (Ultra reste Ultra) : la réécriture d'une page qui ne s'affiche pas monte d'un modèle. */
-export const levelUp = (level: CreativityLevel): CreativityLevel => ORDER[Math.min(ORDER.length - 1, Math.max(0, ORDER.indexOf(level)) + 1)];
-
 export interface ModelRun {
   raw: string;
   ok: boolean;

@@ -7,6 +7,43 @@
 > coordonnées : elle écrit une **intention de scène** ; le code calcule la géométrie et le temps, produit plusieurs
 > variantes, les **mesure** et garde la meilleure. Produit, prix et crans : [MOTION_VIDEO.md](MOTION_VIDEO.md).
 
+## 0. Depuis le 11 novembre 2026 : le CATALOGUE vidéo (voie normale du rendu HyperFrames)
+
+Comme les pages du moteur graphique, les scènes HTML des films sont **assemblées par le code** depuis un catalogue en
+ligne : le dépôt `idem-templates`, dossier `catalog/videos/` (référence : `idem-templates/docs/VIDEOS.md`), publié sur
+MinIO avec son propre manifeste signé (`videos/manifest.json`).
+
+```
+storyboard → emplacements de chaque scène (code) → graphe : liste courte par scène, thèmes classés (code, 0 jeton)
+  → UN appel `video.template` pour tout le film (Medium et au-delà ; Low : le code seul)
+  → assemblage par le code (`apps/ivision/core/src/video/catalog/`) : HTML + chorégraphie + transitions
+  → composition HyperFrames (runtime `__ge` : découpe des textes, mise à la taille mesurée, tweens GSAP)
+```
+
+- **Bibliothèque** : 10 mises en page de scène, 10 thèmes, 10 animations, 10 transitions, 10 gabarits ; animations et
+  transitions DÉCLARATIVES (tweens JSON sur liste blanche, aucun JavaScript publié ; ni rebond ni élastique).
+- **Ce que le code garantit** : aucun texte perdu ni réécrit, chaque texte tient dans la zone sûre de son format
+  (story, portrait, carré, paysage), temps de lecture (≈ 15 signes/s), titre calé sur le temps fort, mouvement continu,
+  jamais deux fois la même mise en page de suite, au plus deux transitions par film, fond sombre sur demande seulement.
+- **Correction sans modèle** : une scène qui plante ou dont un texte ne tient pas prend le candidat suivant de sa liste.
+  **Retouche écrite** : un petit appel repart de la configuration actuelle de la scène (`CURRENT CONFIG`). **Nouvelle
+  version** : le candidat suivant, ou une autre animation du rôle principal.
+- **Gardé** : `FilmScene.catalog` (la configuration), `VideoFilm.catalog` (version, thème) — le film se réassemble sans
+  modèle (`reassembleFilm`). Les textes restent des clés (`{{text.<clé>}}`) : une retouche de mot ne réassemble rien.
+- **Registre** (`catalog/registry.ts`) : `IDEM_TEMPLATES_DIR` › `IDEM_TEMPLATES_URL` (+ `/videos/manifest.json`, ETag) ›
+  cache disque › instantané `apps/ivision/core/catalog/video-snapshot.json` (`npm run catalog:video-snapshot`) › minimum
+  intégré. `POST /catalog/refresh` relit les deux catalogues, sur l'API IDEM ET sur l'API iVision (même jeton).
+- **Seule voie** : l'auteur HTML libre (`video.html-author`) est retiré le 11/11/2026, comme l'auteur libre des pages.
+  Un film HTML écrit avant passe au catalogue la première fois qu'il est retouché ou corrigé (un appel pour tout le
+  film) ; tel quel, il se rend et s'exporte toujours (Anime.js compris).
+- **Clips sans durée** : un WebM écrit vers un tube (anciens clips Lottie) est remis en conteneur au rendu
+  (`seekableClip`, sans réencodage) — HyperFrames refusait ces clips (« invalid_media »).
+- **Contrôles** : `npm run check:video-catalog` (cœur iVision : 10 gabarits × 10 thèmes × 4 formats rendus et mesurés
+  dans Chrome, planches dans `tmp/check-video-catalog/`) ; `npm run check:hyperframes` (le service de bout en bout,
+  exploration à l'Ultra, correction sans modèle, passage d'un ancien film au catalogue, export MP4).
+
+Le reste de ce document décrit le chemin Motion Canvas (repli) et les étapes communes (storyboard, médias, voix, export).
+
 ## 1. Les quatre principes
 
 1. **Motion Canvas est le seul moteur de composition et d'animation.** Rien d'autre ne dessine une scène. Les outils

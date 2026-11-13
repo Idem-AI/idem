@@ -235,6 +235,7 @@
     [plans]="plans()"
     (closed)="closeDialog()"
     (visualCreated)="visualCreated.emit($event)"
+    (visualChanged)="visualCreated.emit($event)"
     (failed)="failed.emit($event)"
   />
 }

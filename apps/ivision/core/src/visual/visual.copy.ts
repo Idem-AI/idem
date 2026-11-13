@@ -22,7 +22,6 @@ export interface CopyFact {
 
 /** Les mots d'un visuel, case par case : le moteur graphique les compose, il n'en écrit aucun. */
 export interface WrittenCopy {
-  kicker?: string;
   headline: string;
   sub?: string;
   facts: CopyFact[];
@@ -181,8 +180,7 @@ export function polish(copy: WrittenCopy, language: string, source: string): Wri
     if (fr) v = v.replace(/\b([lLjJmMtTsSdDnNcC]|[qQ]u|[jJ]usqu|[lL]orsqu|[pP]uisqu) (?=[aeiouyhéèêàâîôûAEIOUYHÉÈÊÀÂÎÔÛ])/g, '$1’');
     return v;
   };
-  const out: WrittenCopy = { ...copy, headline: fix(copy.headline)!, kicker: fix(copy.kicker), sub: fix(copy.sub) };
-  if (!out.kicker) delete out.kicker;
+  const out: WrittenCopy = { ...copy, headline: fix(copy.headline)!, sub: fix(copy.sub) };
   if (!out.sub) delete out.sub;
   if (copy.quote) out.quote = { ...copy.quote, text: fix(copy.quote.text)! };
   if (copy.offer) out.offer = normalizeOffer(copy.offer);
@@ -208,11 +206,9 @@ export function heuristicCopy(brief: CopyBrief, intent: CopyIntent): WrittenCopy
   let message = base.replace(LEAD, '').replace(/^(?:de|du|d['’]|des|pour)\s+/i, '').trim();
   message = message.charAt(0).toUpperCase() + message.slice(1);
   let [first, ...others] = message.split(/(?<=[.!?:])\s/);
-  let kicker: string | undefined;
   let restText = others.join(' ');
-  // « Atelier pratique : créez… » — le court préambule devient le sur-titre, la suite le titre.
+  // « Atelier pratique : créez… » — le court préambule n'apporte rien à la phrase qui suit : on le laisse tomber.
   if (/:$/.test(first) && wordsOf(first).length <= 3 && others.length) {
-    kicker = first.replace(/\s*:$/, '');
     const [head, ...tail] = others.join(' ').split(/,\s/);
     first = head.charAt(0).toUpperCase() + head.slice(1);
     restText = tail.join(', ');
@@ -222,7 +218,6 @@ export function heuristicCopy(brief: CopyBrief, intent: CopyIntent): WrittenCopy
   if (!validHeadline(headline, brief)) headline = intent === 'event' ? (brief.language.startsWith('fr') ? 'On se retrouve' : 'See you there') : brief.brandName || clip(brief.message, 44);
   const rest = clip(restText.replace(/^[\s,.;:!?]+/, ''), 110);
   const copy = {
-    kicker: kicker || (intent === 'event' && brief.brandName ? brief.brandName : undefined),
     headline,
     // (faits dédoublonnés plus bas)
     sub: rest && rest !== headline && languageMatches(rest, brief.language) ? rest : brief.valueProposition && languageMatches(brief.valueProposition, brief.language) ? clip(brief.valueProposition, 100) : undefined,
@@ -304,7 +299,6 @@ export function copyTask(brief: CopyBrief, intent: CopyIntent, feedback?: string
       system: [
         `You write the words of ONE social-media visual (${INTENT_HINT[intent]}) for the brand ${brief.brandName}. Write ONLY in ${lang}.`,
         'Output ONLY these lines (write "none" when empty):',
-        'kicker: 1-3 words above the title (category, series, brand), or none',
         'headline: the message, 3 to 7 words, strong and concrete — NOT the request ("A story to announce…"), never the words visual, poster, story, post, design',
         'sub: one sentence of at most 14 words that adds information, or none',
         'date: the date copied from the request, or none',
@@ -340,7 +334,6 @@ export function copyTask(brief: CopyBrief, intent: CopyIntent, feedback?: string
       const idea = clip(l.photo || '', 200);
       const query = clip(l.photoquery || l.photo_query || '', 60);
       if (!none(idea) && wordsOf(idea).length >= 4) copy.photo = { idea, query: !none(query) && wordsOf(query).length <= 6 ? query : wordsOf(idea).slice(0, 4).join(' ') };
-      if (!none(l.kicker) && wordsOf(l.kicker).length <= 4 && !META.test(l.kicker) && languageMatches(l.kicker, brief.language) && !(brief.language.startsWith('fr') && (l.kicker.replace(brief.brandName, '').match(ENGLISH) || []).length)) copy.kicker = clip(l.kicker, 30);
       if (!none(l.sub) && wordsOf(l.sub).length <= 18 && !META.test(l.sub) && !inventsFormat(l.sub, source) && !STOP_END.test(l.sub) && languageMatches(l.sub, brief.language) && digits(l.sub).every((d) => digits(source).includes(d))) copy.sub = clip(l.sub, 120);
       const facts: CopyFact[] = [];
       for (const kind of ['date', 'time', 'place', 'price'] as const) {
@@ -384,25 +377,6 @@ export interface CopyEdit {
   layout: 'keep' | 'change';
 }
 
-export function visualEditPrompt(o: { instruction: string; copy: WrittenCopy; brandName: string; language: string; hasPhoto: boolean }): string {
-  const lang = o.language.startsWith('fr') ? 'French' : o.language.startsWith('en') ? 'English' : o.language;
-  return [
-    `You edit the WORDS of one social-media visual for the brand ${o.brandName}. Write ONLY in ${lang}.`,
-    'The page is composed by the graphic engine: you never write HTML, CSS, colours or positions.',
-    'CURRENT WORDS (JSON):',
-    JSON.stringify(o.copy),
-    `USER INSTRUCTION: ${o.instruction.slice(0, 600)}`,
-    'Apply the instruction to the words, and change nothing else. Rules:',
-    '- headline: 3 to 7 strong words, never the words visual, poster, story, post, design;',
-    '- sub: one sentence of at most 14 words, or null;',
-    '- facts: date, time, place, price or contact lines — only facts present in the current words or in the instruction, never invented;',
-    '- offer: a discount or figure copied from the current words or the instruction, or null.',
-    `- photo: "remove" only if the user asks for a visual without photo${o.hasPhoto ? '' : ' (there is none now: answer "keep")'}, else "keep";`,
-    '- layout: "change" only if the user asks for another layout or composition, else "keep".',
-    'Answer with ONE JSON object: {"kicker": string|null, "headline": string, "sub": string|null, "facts": [{"kind": "date|time|place|price|contact|other", "text": string}], "offer": string|null, "quote": {"text": string, "author": string|null}|null, "photo": "keep|remove", "layout": "keep|change"}',
-  ].join('\n');
-}
-
 /** La retouche lue et CONTRÔLÉE : un fait ou un chiffre absent des mots d'avant et de l'instruction est retiré. */
 export function parseVisualEdit(raw: string, previous: WrittenCopy, o: { instruction: string; language: string; brandName: string }): CopyEdit | null {
   const match = (raw || '').match(/\{[\s\S]*\}/);
@@ -419,8 +393,6 @@ export function parseVisualEdit(raw: string, previous: WrittenCopy, o: { instruc
   const proposed = clip(text(json.headline), 60);
   const headline = proposed && digits(proposed).every((d) => digits(source).includes(d)) && validHeadline(proposed, brief) ? proposed : previous.headline;
   const copy: WrittenCopy = { headline, facts: [] };
-  const kicker = clip(text(json.kicker), 30);
-  if (kicker && wordsOf(kicker).length <= 4) copy.kicker = kicker;
   const sub = clip(text(json.sub), 120);
   if (sub && wordsOf(sub).length <= 18 && digits(sub).every((d) => digits(source).includes(d))) copy.sub = sub;
   const kinds = new Set(['date', 'time', 'place', 'price', 'contact', 'other']);

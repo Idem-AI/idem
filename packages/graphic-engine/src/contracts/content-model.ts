@@ -232,7 +232,7 @@ const Ground = z.enum(['primary', 'accent', 'dark', 'light']);
 export const SocialPostsBlock = z.strictObject({
   ...base,
   kind: z.literal('socialPosts'),
-  posts: z.array(z.strictObject({ platform: S(40), headline: S(160), kicker: S(60).optional(), ground: Ground, logoUrl: Url.optional() })).min(1).max(6),
+  posts: z.array(z.strictObject({ platform: S(40), headline: S(160), ground: Ground, logoUrl: Url.optional() })).min(1).max(6),
 });
 
 export const SocialBannersBlock = z.strictObject({
@@ -301,7 +301,6 @@ export const SourcesBlock = z.strictObject({
 export const CopyBlock = z.strictObject({
   ...base,
   kind: z.literal('copy'),
-  kicker: S(60).optional(),
   headline: S(180),
   subhead: S(240).optional(),
   body: S(600).optional(),
@@ -316,8 +315,6 @@ export const CoverBlock = z.strictObject({
   ...base,
   kind: z.literal('cover'),
   brandName: S(80),
-  /** Sur-titre court (« Torréfaction artisanale »). */
-  kicker: S(80).optional(),
   /** La promesse, en une phrase. */
   promise: S(200).optional(),
   documentLabel: S(60),
@@ -393,8 +390,6 @@ export type SectionRole = z.infer<typeof SectionRole>;
 export const SectionContent = z.strictObject({
   id: Id,
   role: SectionRole.optional(),
-  /** Sur-titre court. La composition décide s'il est affiché — un par page suffit. */
-  kicker: S(80).optional(),
   title: S(160),
   /** Une phrase qui ÉNONCE le constat. Jamais « dans cette section, nous allons… ». */
   lede: S(320).optional(),

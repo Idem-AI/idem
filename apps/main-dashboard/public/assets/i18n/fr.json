@@ -890,6 +890,12 @@
         "investments": "Achats de départ",
         "financing": "Financement",
         "reports": "Tableaux pour la banque"
+      },
+      "aiSuccessDialog": {
+        "title": "Prévisions générées",
+        "headline": "Vos prévisions financières sont prêtes",
+        "description": "Les chiffres ont été calés sur des données de marché réelles et sourcées. Vous pouvez dès à présent les consulter et les ajuster.",
+        "finish": "Terminer"
       }
     },
     "sidebar": {
@@ -3816,7 +3822,11 @@
             "corporate": "Musique sobre",
             "afro": "Musique afro"
           }
-        }
+        },
+        "otherProposals": "Autres propositions",
+        "otherProposalsHint": "Composées en même temps que ce visuel, sans frais : choisissez celle que vous préférez.",
+        "useProposal": "Utiliser cette proposition",
+        "proposalAlt": "Autre composition de ce visuel"
       },
       "thumb": {
         "loading": "Chargement de l'image…",
@@ -5386,7 +5396,8 @@
       "pitchDecks": "Mes pitch decks",
       "pitchDeckNew": "Nouveau pitch deck",
       "legalDoc": "Document juridique",
-      "legalDocEdit": "Édition du document juridique"
+      "legalDocEdit": "Édition du document juridique",
+      "builders": "Idem Builders"
     }
   },
   "notFound": {
@@ -5581,6 +5592,11 @@
         "title": "Créer votre identité visuelle",
         "why": "Un logo, des couleurs, une typographie : c'est ce qui rend votre activité reconnaissable et crédible dès le premier contact.",
         "outcome": "Vous obtenez un logo, une palette, une typographie et votre charte en PDF."
+      },
+      "brandGuide": {
+        "title": "Écrire votre charte graphique",
+        "why": "La charte réunit votre logo, vos couleurs et vos polices avec leurs règles d'usage. C'est le document de référence pour tout ce que vous publierez ensuite.",
+        "outcome": "Vous obtenez votre charte graphique complète, à consulter et à exporter en PDF."
       },
       "businessPlan": {
         "title": "Rédiger votre business plan",
@@ -5842,7 +5858,7 @@
       "packsHint": "Appliqués au projet en cours : {{project}}.",
       "domain": "Nom de domaine (.africa ou .com)",
       "codeTitle": "Code IDEM",
-      "codeHint": "Un code d’agent, un cadeau ou un Pack Lancement offert : il crédite votre portefeuille ou s’applique au projet en cours.",
+      "codeHint": "Un code d’agent, un cadeau, un Pack Lancement offert ou un code promo : il crédite votre portefeuille, s’applique au projet en cours ou réduit vos prochains achats.",
       "redeem": "Utiliser",
       "statementTitle": "Relevé du portefeuille",
       "noStatement": "Aucun mouvement pour le moment.",
@@ -5894,7 +5910,9 @@
       "finalTitle": "Version finale",
       "signatureTitle": "Version Signature",
       "editableUntil": "Retouches gratuites jusqu’au {{date}}",
-      "signature": "Passer en Signature — {{price}} F"
+      "signature": "Passer en Signature — {{price}} F",
+      "unlockLabel": "Débloquer la version finale —",
+      "signatureLabel": "Passer en Signature —"
     }
   },
   "account": {
@@ -6065,5 +6083,162 @@
     "accept": "Accepter et continuer",
     "done": "C’est fait. Relancez votre génération.",
     "failed": "L’accord n’a pas pu être enregistré. Réessayez."
+  },
+  "builders": {
+    "eyebrow": "Idem Builders",
+    "title": {
+      "lead": "Faites connaître un projet qui",
+      "accent": "fait rayonner l'Afrique"
+    },
+    "lede": "Idem Builders met en avant les projets africains qui se gèrent avec IDEM : mis en ligne, suivis en communication, développés ici. Présentez le vôtre ; l'équipe l'examine et vous répond par e-mail.",
+    "seeShowcase": "Voir les projets du programme",
+    "navLabel": "Idem Builders",
+    "member": {
+      "title": "Vous êtes Idem Builder",
+      "topup": "+{{percent}} % de crédit sur chaque recharge, déjà appliqué",
+      "hosting": "-{{percent}} % sur l'hébergement iDeploy, déjà appliqué",
+      "showcase": "Votre projet est présenté sur idem.africa/builders",
+      "portrait": "Portrait possible sur le blog et les réseaux d'IDEM"
+    },
+    "badge": {
+      "title": "Le badge Idem Builder",
+      "body": "Copiez ce code dans le pied de page de votre site : le badge renvoie vers la vitrine du programme.",
+      "copy": "Copier le code",
+      "copied": "Code copié"
+    },
+    "mine": {
+      "title": "Vos candidatures",
+      "sentOn": "Envoyée le {{date}}",
+      "reviewDelay": "réponse sous {{days}} jours ouvrés",
+      "bonusPaid": "{{amount}} F de bienvenue versés dans votre portefeuille.",
+      "reason": "Motif :",
+      "loadError": "Vos candidatures ne se sont pas chargées.",
+      "publicPage": "Voir la fiche publique"
+    },
+    "status": {
+      "pending": "En examen",
+      "approved": "Acceptée",
+      "rejected": "Non retenue"
+    },
+    "apply": {
+      "title": "Présenter un projet",
+      "subtitle": "Une condition : le projet est géré avec IDEM. Choisissez-le, nous vérifions ce qu'il fait déjà ici.",
+      "project": "Projet",
+      "projectPlaceholder": "Choisir un projet",
+      "noProject": "Vous n'avez pas encore de projet. Créez-le, gérez-le avec IDEM, puis revenez le présenter.",
+      "createProject": "Créer un projet",
+      "checking": "Vérification du projet…",
+      "checkError": "Impossible de vérifier ce projet pour l'instant.",
+      "managedTitle": "Géré avec IDEM",
+      "done": "fait",
+      "notYet": "pas encore",
+      "builtWith": "Aussi construit avec IDEM",
+      "alreadyMember": "Ce projet fait déjà partie du programme.",
+      "alreadyPending": "Une candidature est déjà en examen pour ce projet.",
+      "notEligible": "Ce projet n'est pas encore géré avec IDEM. Mettez-le en ligne avec iDeploy ou tenez sa communication dans IDEM, puis revenez : une seule de ces conditions suffit.",
+      "goDeploy": "Mettre en ligne",
+      "goCommunication": "Ouvrir la communication",
+      "pitch": "En quoi votre projet fait-il rayonner l'Afrique ?",
+      "pitchHelp": "Le problème que vous réglez, pour qui, où. Ce que l'équipe lira avant de décider.",
+      "pitchRemaining": "Encore {{count}} caractères au minimum",
+      "url": "Adresse publique du projet (facultatif)",
+      "submit": "Envoyer la candidature",
+      "sentTitle": "Candidature envoyée pour {{project}}",
+      "sentBody": "L'équipe l'examine sous {{days}} jours ouvrés. Vous recevrez la réponse par e-mail, et elle s'affichera ici.",
+      "terms": {
+        "accept": "J’ai lu et j’accepte les",
+        "terms": "conditions de participation",
+        "and": "et la",
+        "privacy": "politique de confidentialité du programme",
+        "note": "Votre accord est enregistré avec la candidature (version des textes, date, adresse IP, navigateur)."
+      },
+      "publication": {
+        "title": "Ce que verra le public",
+        "body": "La fiche du projet montrera son nom, sa description, son pays, son adresse, votre présentation, sa couverture, son identité de marque (logo, couleurs, polices) et votre nom comme porteur du projet.",
+        "team": "Afficher aussi l’équipe du projet : noms, rôles, photos et liens professionnels",
+        "teamNote": "Chaque personne affichée doit être d’accord. Les adresses e-mail ne sont jamais publiées."
+      }
+    },
+    "signals": {
+      "sitePublished": "Site mis en ligne avec IDEM",
+      "appPublished": "Application mise en ligne avec IDEM",
+      "communication": "Communication tenue dans IDEM",
+      "domain": "Nom de domaine pris avec IDEM",
+      "brand": "Identité de marque",
+      "charter": "Charte graphique",
+      "businessPlan": "Business plan",
+      "pitchDeck": "Pitch deck",
+      "legal": "Documents juridiques",
+      "video": "Vidéo de promotion"
+    },
+    "perks": {
+      "title": "Ce que vous obtenez",
+      "welcome": {
+        "title": "{{amount}} F offerts",
+        "body": "Versés dans votre portefeuille à la validation, une fois par compte."
+      },
+      "topup": {
+        "title": "+{{percent}} % sur chaque recharge",
+        "body": "Cumulable avec le bonus de palier, tant que vous êtes membre."
+      },
+      "hosting": {
+        "title": "-{{percent}} % sur l'hébergement",
+        "body": "Les compteurs iDeploy de vos sites et applications coûtent moins cher chaque jour."
+      },
+      "showcase": {
+        "title": "Une place sur la vitrine",
+        "body": "Votre projet présenté sur idem.africa/builders, avec un lien vers lui."
+      },
+      "portrait": {
+        "title": "Un portrait dans nos canaux",
+        "body": "L'équipe choisit régulièrement des projets à raconter sur le blog et les réseaux d'IDEM."
+      },
+      "badge": {
+        "title": "Le badge Idem Builder",
+        "body": "À poser sur votre site pour montrer que vous en faites partie."
+      }
+    },
+    "errors": {
+      "ALREADY_APPLIED": "Une candidature existe déjà pour ce projet.",
+      "NOT_ELIGIBLE": "Ce projet n'est pas encore géré avec IDEM.",
+      "PITCH_TOO_SHORT": "La présentation est trop courte.",
+      "PITCH_TOO_LONG": "La présentation est trop longue.",
+      "INVALID_URL": "L'adresse du projet n'est pas valide.",
+      "PROJECT_NOT_FOUND": "Projet introuvable.",
+      "GENERIC": "La candidature n'est pas partie. Réessayez dans un instant.",
+      "TERMS_REQUIRED": "Acceptez les conditions et la politique de confidentialité pour envoyer la candidature.",
+      "TERMS_OUTDATED": "Les conditions du programme ont changé. Rechargez la page pour lire la nouvelle version.",
+      "COVER_INVALID": "La couverture doit être envoyée depuis ce formulaire."
+    },
+    "cover": {
+      "title": "Couverture du projet",
+      "format": "Paysage 16:9 · {{width}} × {{height}} px",
+      "help": "C’est la grande image de votre fiche dans la vitrine. Choisissez une image large et nette ; vous la cadrerez juste après.",
+      "dropTitle": "Ajoutez la couverture de votre projet",
+      "dropBody": "Glissez une image ici ou choisissez-la : JPG, PNG ou WebP, 8 Mo au plus. Une capture de votre site, une photo de votre équipe ou de votre produit.",
+      "choose": "Choisir une image",
+      "fallback": "Facultatif : sans couverture, IDEM en compose une à partir de votre charte (couleurs et logo).",
+      "replace": "Changer d’image",
+      "remove": "Retirer",
+      "uploading": "Envoi de la couverture…",
+      "previewAlt": "Aperçu de la couverture",
+      "cropper": {
+        "frameLabel": "Cadrage de la couverture",
+        "dragHint": "Faites glisser pour cadrer",
+        "zoom": "Zoom",
+        "confirm": "Valider ce cadrage",
+        "chooseAnother": "Choisir une autre image",
+        "tooSmallTitle": "Cette image est trop petite",
+        "tooSmallBody": "Elle mesure {{actualWidth}} × {{actualHeight}} px : pour remplir la couverture sans flou, il faut au moins {{width}} × {{height}} px au format paysage."
+      },
+      "errors": {
+        "COVER_FORMAT": "Choisissez une image JPG, PNG ou WebP.",
+        "COVER_TOO_HEAVY": "L’image dépasse 8 Mo.",
+        "COVER_TOO_SMALL": "L’image doit mesurer au moins {{width}} × {{height}} px.",
+        "COVER_RATIO": "La couverture doit être au format paysage 16:9.",
+        "COVER_UNREADABLE": "Cette image n’a pas pu être lue.",
+        "COVER_GENERIC": "La couverture n’est pas partie. Réessayez."
+      }
+    }
   }
 }

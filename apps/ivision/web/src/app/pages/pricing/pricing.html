@@ -1,0 +1,124 @@
+<div class="min-h-dvh overflow-x-clip">
+  <iv-landing-header />
+  <main>
+    <!-- Héros : créer est gratuit, on paie le fichier qu'on garde, en mobile money -->
+    <section ivWrap class="grid items-center gap-12 pb-16 pt-10 sm:pt-14 lg:grid-cols-12 lg:gap-10 lg:pb-24">
+      <div class="lg:col-span-7">
+        <iv-display-title [level]="1" [lines]="'pricing.hero.title' | translate" />
+        <p class="mt-8 max-w-xl text-lg leading-relaxed text-text-secondary">{{ 'pricing.hero.lead' | translate }}</p>
+        <div class="mt-10 flex flex-wrap items-center gap-3">
+          <a class="inner-button button-lg" routerLink="/studio/video"><i class="pi pi-video" aria-hidden="true"></i> {{ 'landing.ctaVideo' | translate }}</a>
+          <a class="outer-button button-lg" href="#offres">{{ 'pricing.hero.secondary' | translate }}</a>
+        </div>
+        <idem-pay-strip class="mt-8" [lang]="language.current()" />
+      </div>
+      <iv-illustration kind="wax" class="mx-auto w-full max-w-md text-text-primary lg:col-span-5 lg:max-w-none" />
+    </section>
+
+    <!-- 0 F pour créer, d'abord -->
+    <section ivWrap>
+      <div class="free">
+        <p class="free-zero">0&#8239;F</p>
+        <div class="min-w-0 flex-1">
+          <p class="free-title">{{ 'pricing.free.title' | translate }}</p>
+          <p class="free-text">{{ 'pricing.free.text' | translate }}</p>
+        </div>
+        <a class="outer-button" routerLink="/studio/image">{{ 'landing.ctaImage' | translate }}</a>
+      </div>
+    </section>
+
+    <!-- Trois offres, la recommandée au centre -->
+    <section id="offres" ivWrap class="scroll-mt-24 py-20 lg:py-28" aria-labelledby="offres-title">
+      <h2 id="offres-title" class="section-title">{{ 'pricing.offers.title' | translate }}</h2>
+      <p class="mt-4 max-w-2xl text-lg text-text-secondary">{{ 'pricing.offers.lead' | translate }}</p>
+
+      <div class="offers">
+        @for (offer of offers; track offer.key) {
+          <article class="offer" [class.offer-recommended]="offer.recommended" [attr.aria-labelledby]="'offer-' + offer.key">
+            @if (offer.recommended) {
+              <p class="offer-flag">{{ 'pricing.offers.recommended' | translate }}</p>
+            }
+            <p class="offer-who">{{ 'pricing.offers.' + offer.key + '.who' | translate }}</p>
+            <h3 class="offer-name" [id]="'offer-' + offer.key">{{ 'pricing.offers.' + offer.key + '.name' | translate }}</h3>
+
+            <div class="offer-price">
+              @if (offer.key === 'creator' && !creatorPromoted() && creatorWorthXaf() > creatorXaf()) {
+                <p class="offer-anchor"><del>{{ 'pricing.offers.creator.worth' | translate: { amount: amount(creatorWorthXaf()) } }}</del></p>
+              }
+              <p class="offer-amount"><idem-promo-price [item]="offer.source" [source]="offer.source" [xaf]="offer.fallbackXaf" unit="F" /></p>
+              <p class="offer-cadence">
+                @if (offer.key === 'creator') {
+                  {{ 'pricing.offers.creator.cadence' | translate }}
+                  @if (!creatorPromoted()) {
+                    · {{ 'pricing.offers.creator.perDay' | translate: { amount: amount(creatorPerDay()) } }}
+                  }
+                } @else {
+                  {{ 'pricing.offers.' + offer.key + '.cadence' | translate }}
+                }
+              </p>
+            </div>
+
+            <ul class="offer-list">
+              @for (line of ('pricing.offers.' + offer.key + '.bullets' | translate); track $index) {
+                <li>
+                  <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5 L6.5 12 L13 4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                  <span>{{ line }}</span>
+                </li>
+              }
+            </ul>
+
+            @if (offer.key === 'creator') {
+              <a class="inner-button offer-cta" [href]="buyCreatorUrl">{{ 'pricing.offers.creator.cta' | translate }}</a>
+            } @else if (offer.key === 'video') {
+              <a class="outer-button offer-cta" routerLink="/studio/video">{{ 'pricing.offers.video.cta' | translate }}</a>
+            } @else {
+              <a class="outer-button offer-cta" routerLink="/studio/image">{{ 'pricing.offers.visual.cta' | translate }}</a>
+            }
+            <p class="offer-foot">{{ 'pricing.offers.' + offer.key + '.foot' | translate }}</p>
+          </article>
+        }
+      </div>
+    </section>
+
+    <!-- Ce qui vous protège -->
+    <section ivWrap class="pb-20 lg:pb-28" aria-labelledby="garanties-title">
+      <h2 id="garanties-title" class="section-title">{{ 'pricing.guarantees.title' | translate }}</h2>
+      <ul class="guarantees">
+        @for (g of guarantees; track g) {
+          <li>
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5 L6.5 12 L13 4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg>
+            <div>
+              <p class="guarantee-title">{{ 'pricing.guarantees.' + g + '.title' | translate }}</p>
+              <p class="guarantee-text">{{ 'pricing.guarantees.' + g + '.text' | translate }}</p>
+            </div>
+          </li>
+        }
+      </ul>
+    </section>
+
+    <!-- Le paiement : la même section sur toutes les landings (pleine largeur) -->
+    <div ivWrap>
+      <idem-pay-section ctaHref="/studio/video" [ctaLabel]="'pricing.pay.cta' | translate" [lang]="language.current()" />
+    </div>
+
+    <!-- Questions -->
+    <section ivWrap class="py-20 lg:py-28" aria-labelledby="faq-title">
+      <h2 id="faq-title" class="section-title">{{ 'pricing.faq.title' | translate }}</h2>
+      <div class="faq">
+        @for (q of faq; track q) {
+          <details>
+            <summary>{{ 'pricing.faq.' + q + '.q' | translate }}</summary>
+            <p>{{ 'pricing.faq.' + q + '.a' | translate }}</p>
+          </details>
+        }
+      </div>
+    </section>
+
+    <!-- Dernier appel -->
+    <section ivWrap class="flex flex-col items-start gap-6 pb-24 sm:flex-row sm:items-center sm:justify-between">
+      <h2 class="section-title max-w-2xl">{{ 'pricing.final.title' | translate }}</h2>
+      <a class="inner-button button-lg" routerLink="/studio/video">{{ 'pricing.final.cta' | translate }}</a>
+    </section>
+  </main>
+  <iv-landing-footer />
+</div>

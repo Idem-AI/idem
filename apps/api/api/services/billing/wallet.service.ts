@@ -1,6 +1,9 @@
 import logger from '../../config/logger';
 import { LEGACY_CREDIT_XAF, WALLET_ACCOUNT, topupBonusXaf } from '../../models/offer.model';
 import { creditLedgerService, LedgerContext } from './credit-ledger.service';
+import { isActiveBuilder } from '../builders/builder-status';
+import { builderTopupBonusXaf } from '../../../../../packages/shared-models/src/builders/program';
+import { promotionService } from './promotion.service';
 
 /**
  * Le portefeuille en francs : un solde, pour tous les services.
@@ -35,6 +38,16 @@ export interface SpendInput {
   element?: string;
   feature?: string;
   cap?: CapRef;
+  /** Vrai : prix ferme, aucune promotion (rare : régularisations, tests). */
+  skipPromotions?: boolean;
+}
+
+/** La remise appliquée à un débit, pour que l'appelant puisse l'afficher. */
+export interface SpendPromotion {
+  originalXaf: number;
+  discountXaf: number;
+  promotionIds: string[];
+  free: boolean;
 }
 
 export type SpendResult =
@@ -46,6 +59,7 @@ export type SpendResult =
       ledgerEntryId?: string;
       /** Vrai quand ce paiement atteint (ou avait déjà atteint) le plafond. */
       capReached: boolean;
+      promotion?: SpendPromotion;
     }
   | {
       allowed: false;
@@ -102,14 +116,31 @@ export class WalletService {
       ...context,
       note: context.note ?? `Recharge de ${amountXaf} F`,
     });
-    const bonusXaf = topupBonusXaf(amountXaf);
-    if (bonusXaf > 0) {
-      balanceXaf = await creditLedgerService.grant(userId, WALLET_ACCOUNT, bonusXaf, 'bonus', {
+    const tierBonusXaf = topupBonusXaf(amountXaf);
+    if (tierBonusXaf > 0) {
+      balanceXaf = await creditLedgerService.grant(userId, WALLET_ACCOUNT, tierBonusXaf, 'bonus', {
         ...context,
-        note: `Bonus de recharge (+${bonusXaf} F)`,
+        note: `Bonus de recharge (+${tierBonusXaf} F)`,
       });
     }
-    return { balanceXaf, bonusXaf };
+    // Promotions : un bonus de recharge de campagne ou de coupon, écrit à part lui aussi.
+    const promo = await promotionService.topupBonus(userId, amountXaf);
+    if (promo.bonusXaf > 0) {
+      balanceXaf = await creditLedgerService.grant(userId, WALLET_ACCOUNT, promo.bonusXaf, 'bonus', {
+        ...context,
+        note: `Bonus ${promo.promotion?.name ?? 'promotion'} (+${promo.bonusXaf} F)`,
+      });
+    }
+    // Idem Builders : un bonus de plus, cumulable avec le palier, écrit à part
+    // pour que le relevé dise d'où vient chaque franc.
+    const builderBonusXaf = (await isActiveBuilder(userId)) ? builderTopupBonusXaf(amountXaf) : 0;
+    if (builderBonusXaf > 0) {
+      balanceXaf = await creditLedgerService.grant(userId, WALLET_ACCOUNT, builderBonusXaf, 'bonus', {
+        ...context,
+        note: `Bonus Idem Builders (+${builderBonusXaf} F)`,
+      });
+    }
+    return { balanceXaf, bonusXaf: tierBonusXaf + builderBonusXaf + promo.bonusXaf };
   }
 
   /** Versement au portefeuille hors paiement (geste commercial, code, remboursement de commande). */
@@ -135,17 +166,36 @@ export class WalletService {
   async spend(userId: string, input: SpendInput): Promise<SpendResult> {
     await this.convertLegacyCredits(userId);
 
-    let due = Math.max(0, Math.round(input.priceXaf));
-    let spentBefore = 0;
-    if (input.cap) {
-      spentBefore = await this.spentUnderCap(userId, input.cap.key);
-      due = Math.min(due, Math.max(0, input.cap.capXaf - spentBefore));
+    // Promotions : le prix remisé, la remise réservée (limites comptées) avant le débit.
+    const reservation = input.skipPromotions
+      ? null
+      : await promotionService.reserveForSpend(userId, { action: input.action, feature: input.feature, priceXaf: input.priceXaf, projectId: input.projectId });
+    const promo = reservation?.price;
+    const promotion: SpendPromotion | undefined = promo
+      ? { originalXaf: promo.originalXaf, discountXaf: promo.discountXaf, promotionIds: promo.applied.map((entry) => entry.id), free: promo.free }
+      : undefined;
+
+    // Sous plafond, une remise proportionnelle réduit le plafond dans la même proportion (sinon le
+    // client paierait le plein plafond en plus d'achats remisés) ; un achat rendu gratuit ne
+    // compte pas pour le plafond (il n'accorde ni Kit ni forfait par ricochet).
+    let cap = input.cap;
+    if (promo && cap) {
+      if (promo.finalXaf === 0) cap = undefined;
+      else if (promo.proportional && promo.originalXaf > 0) cap = { ...cap, capXaf: Math.round((cap.capXaf * promo.finalXaf) / promo.originalXaf) };
     }
 
-    const capReached = Boolean(input.cap && spentBefore + due >= input.cap.capXaf);
+    let due = Math.max(0, Math.round(promo ? promo.finalXaf : input.priceXaf));
+    let spentBefore = 0;
+    if (cap) {
+      spentBefore = await this.spentUnderCap(userId, cap.key);
+      due = Math.min(due, Math.max(0, cap.capXaf - spentBefore));
+    }
+
+    const capReached = Boolean(cap && spentBefore + due >= cap.capXaf);
 
     if (due === 0) {
-      return { allowed: true, chargedXaf: 0, balanceXaf: await creditLedgerService.getBalance(userId, WALLET_ACCOUNT), capReached };
+      if (reservation) await promotionService.commit(reservation, 0);
+      return { allowed: true, chargedXaf: 0, balanceXaf: await creditLedgerService.getBalance(userId, WALLET_ACCOUNT), capReached, promotion };
     }
 
     const result = await creditLedgerService.debit(userId, WALLET_ACCOUNT, due, {
@@ -153,14 +203,16 @@ export class WalletService {
       projectId: input.projectId,
       element: input.element,
       feature: input.feature,
-      note: input.label,
-      capKey: input.cap?.key,
+      note: promotion ? `${input.label} (remise ${promotion.discountXaf} F)` : input.label,
+      capKey: cap?.key,
     });
 
     if (!result.allowed) {
+      if (reservation) await promotionService.release(reservation);
       return { allowed: false, chargedXaf: 0, balanceXaf: result.balance, missingXaf: due - result.balance, dueXaf: due };
     }
-    return { allowed: true, chargedXaf: due, balanceXaf: result.balance, ledgerEntryId: result.ledgerEntryId, capReached };
+    if (reservation) await promotionService.commit(reservation, due, result.ledgerEntryId);
+    return { allowed: true, chargedXaf: due, balanceXaf: result.balance, ledgerEntryId: result.ledgerEntryId, capReached, promotion };
   }
 
   /**

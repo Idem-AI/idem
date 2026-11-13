@@ -122,3 +122,68 @@
 .glass-mobile-sidebar::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.3);
 }
+
+/* Badge d'un lien mis en avant (« Nouveau » sur Idem Builders). Les couleurs
+   sont celles du bouton principal — primaire et son encre — pour rester
+   lisible dans les deux thèmes ; le point qui bat dit « c'est récent » et se
+   tait quand le visiteur a demandé moins d'animations. */
+.nav-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.45rem;
+  border-radius: 9999px;
+  font-size: 0.625rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  background: var(--color-primary-500);
+  color: var(--color-on-primary);
+}
+
+.nav-badge::before {
+  content: '';
+  width: 0.375rem;
+  height: 0.375rem;
+  border-radius: 9999px;
+  background: currentColor;
+  animation: nav-badge-beat 1.8s ease-in-out infinite;
+}
+
+@keyframes nav-badge-beat {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.35;
+    transform: scale(0.7);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-badge::before {
+    animation: none;
+  }
+}
+
+/* Entre 1024 et 1280 px, la barre de bureau n'a pas la place du mot : le badge
+   garde sa pastille et son point, le mot reste lu par les lecteurs d'écran.
+   (Le menu mobile, lui, affiche toujours le badge entier.) */
+@media (max-width: 1279.98px) {
+  .nav-badge-compact {
+    padding: 0.3rem;
+  }
+
+  .nav-badge-compact .nav-badge-text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+}

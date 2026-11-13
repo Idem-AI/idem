@@ -10,11 +10,15 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
  *  - `kit`      pagnes pliés en pile : les livrables complets ;
  *  - `launch`   pirogue à la proue dressée : le départ, la mise en ligne ;
  *  - `drum`     tambour parleur : la communication de chaque mois ;
- *  - `tontine`  calebasse de la tontine : acheter à plusieurs.
+ *  - `tontine`  calebasse de la tontine : acheter à plusieurs ;
+ *  - `measure`  la mesure du marché, rase : on achète au bol la quantité voulue, à prix connu
+ *               — « ne payez que ce que vous gardez » (héros des tarifs) ;
+ *  - `kyinie`   l'ombrelle d'apparat akan (« le roi couvre ») : à l'abri des mauvaises surprises
+ *               (garanties des tarifs ; même dessin que le simulateur, même sens).
  *
  * Décoratif (`aria-hidden`) : le texte voisin porte le sens.
  */
-export type OfferIllustrationKind = 'wallet' | 'sprout' | 'kit' | 'launch' | 'drum' | 'tontine';
+export type OfferIllustrationKind = 'wallet' | 'sprout' | 'kit' | 'launch' | 'drum' | 'tontine' | 'measure' | 'kyinie';
 
 @Component({
   selector: 'app-offer-illustration',
@@ -114,6 +118,41 @@ export type OfferIllustrationKind = 'wallet' | 'sprout' | 'kit' | 'launch' | 'dr
               <path d="M32 22 C28 26 28 32 32 36" />
               <path d="M26 16 C19 23 19 35 26 42" />
             </g>
+          </g>
+        }
+        @case ('measure') {
+          <!-- La mesure du marché : le bol rempli de grain, arasé par la règle de bois (en couleur) —
+               on achète exactement la quantité voulue, à un prix connu par mesure. Quelques grains
+               tombent sur la natte : ce qu'on ne prend pas, on ne le paie pas. -->
+          <path d="M10 80 H110" stroke-width="1.2" opacity=".45" />
+          <path d="M14 80 L18 76 M24 80 L28 76 M34 80 L38 76 M84 80 L88 76 M94 80 L98 76" stroke-width="1" opacity=".35" />
+          <ellipse cx="56" cy="42" rx="34" ry="7" stroke-width="1.8" />
+          <path d="M22 42 C22 64 38 74 56 74 C74 74 90 64 90 42" stroke-width="1.8" />
+          <path d="M30 56 L35 52 L40 56 L45 52 L50 56 L55 52 L60 56 L65 52 L70 56 L75 52 L80 56" stroke-width="1.2" opacity=".6" />
+          <path d="M36 66 H76" stroke-width="1" opacity=".45" />
+          <path d="M27 40 C30 35 40 33 56 33 C72 33 82 35 85 40" stroke-width="1.5" />
+          <path d="M34 38 h.01 M40 36 h.01 M46 37 h.01 M52 35 h.01 M58 36 h.01 M64 35 h.01 M70 37 h.01 M76 36 h.01 M44 40 h.01 M62 40 h.01 M74 40 h.01" stroke-width="2.4" opacity=".7" />
+          <path d="M96 48 h.01 M99 57 h.01 M101 66 h.01" stroke-width="2.4" opacity=".6" />
+          <path d="M94 80 C97 74 105 74 108 80" stroke-width="1.4" />
+          <path d="M98 78 h.01 M102 77 h.01 M105 78 h.01" stroke-width="2.2" opacity=".7" />
+          <g class="accent">
+            <path d="M16 31 L98 33" stroke-width="2.4" />
+            <path d="M98 33 L106 33.2" stroke-width="3.2" />
+          </g>
+        }
+        @case ('kyinie') {
+          <!-- À l'abri des mauvaises surprises : le kyinie, l'ombrelle d'apparat akan (« le roi couvre »),
+               qui protège de la pluie et du soleil. La flèche de son sommet porte la couleur. -->
+          <path d="M8 22 L5 30 M15 12 L12 20 M10 40 L7 48 M112 22 L115 30 M105 12 L108 20 M110 40 L113 48" stroke-width="1.3" opacity=".45" />
+          <path d="M16 48 C20 28 38 16 60 16 C82 16 100 28 104 48" stroke-width="2" />
+          <path d="M16 48 Q22 56 28 48 Q34 56 40 48 Q46 56 52 48 Q58 56 64 48 Q70 56 76 48 Q82 56 88 48 Q94 56 100 48 Q102 52 104 48" stroke-width="1.6" />
+          <path d="M22 38 C34 32 86 32 98 38" stroke-width="1" opacity=".6" />
+          <path d="M26 33 L30 37 L34 33 L38 37 L42 33 L46 37 L50 33 L54 37 L58 33 L62 37 L66 33 L70 37 L74 33 L78 37 L82 33 L86 37 L90 33 L94 37" stroke-width=".9" opacity=".7" />
+          <path d="M40 22 C46 26 50 34 50 44 M80 22 C74 26 70 34 70 44" stroke-width=".9" opacity=".5" />
+          <path d="M60 48 V84 M54 84 H66" stroke-width="2" />
+          <g class="accent">
+            <path d="M60 16 V10" stroke-width="1.6" />
+            <path d="M60 2 L64 6 L60 10 L56 6Z" stroke-width="1.8" />
           </g>
         }
         @case ('tontine') {

@@ -31,7 +31,62 @@ export interface RenderCheck {
   fit?: number;
   /** Par zone d'une page assemblée (`data-ge-zone`) : l'échelle qui fait tenir son contenu dans la zone (< 1 : déborde). */
   zoneFits?: Record<string, number>;
+  /** Les mesures de la page (`measure: true`) : servent à choisir entre des variantes, jamais à refuser une page. */
+  metrics?: import('@idem/design-tools').PageMetrics;
 }
+
+/**
+ * LA MESURE D'UNE PAGE (plan qualité créative) : la hiérarchie typographique (plus grand corps / corps médian), le
+ * nombre de tailles, la part couverte par du contenu, le plus grand élément, et les rectangles du titre, du logo et du
+ * visuel principal (pour la saliency). Lue après rendu, quand la page s'affiche.
+ */
+export const MEASURE = `(function () {
+  var root = document.querySelector('.ge-page');
+  if (!root) return null;
+  var box = root.getBoundingClientRect();
+  var area = Math.max(1, box.width * box.height);
+  var sizes = [], weights = [];
+  var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  var seen = new Set();
+  while (walker.nextNode()) {
+    var t = walker.currentNode;
+    var el = t.parentElement;
+    if (!el || seen.has(el) || !(t.textContent || '').trim()) continue;
+    seen.add(el);
+    var r = el.getBoundingClientRect();
+    if (r.width < 1 || r.height < 1) continue;
+    var fs = parseFloat(getComputedStyle(el).fontSize) || 0;
+    if (!fs) continue;
+    sizes.push(Math.round(fs));
+    weights.push((t.textContent || '').trim().length);
+  }
+  var distinct = Array.from(new Set(sizes));
+  var weighted = [];
+  sizes.forEach(function (s, i) { for (var k = 0; k < Math.min(50, weights[i]); k++) weighted.push(s); });
+  weighted.sort(function (a, b) { return a - b; });
+  var median = weighted.length ? weighted[Math.floor(weighted.length / 2)] : 16;
+  var largest = distinct.length ? Math.max.apply(null, distinct) : median;
+  // La couverture : les rectangles des éléments porteurs (texte, média), à la grille de 32 × 32 cases.
+  var G = 32, cells = new Uint8Array(G * G), biggest = 0;
+  function mark(r) {
+    var x0 = Math.max(0, Math.floor((r.left - box.left) / box.width * G)), x1 = Math.min(G, Math.ceil((r.right - box.left) / box.width * G));
+    var y0 = Math.max(0, Math.floor((r.top - box.top) / box.height * G)), y1 = Math.min(G, Math.ceil((r.bottom - box.top) / box.height * G));
+    for (var y = y0; y < y1; y++) for (var x = x0; x < x1; x++) cells[y * G + x] = 1;
+  }
+  var media = Array.from(root.querySelectorAll('img,svg,canvas,video,[data-ge-chart],[data-ge-gallery]'));
+  media.forEach(function (m) { var r = m.getBoundingClientRect(); if (r.width * r.height > 4) { mark(r); biggest = Math.max(biggest, r.width * r.height / area); } });
+  seen.forEach(function (el) { var r = el.getBoundingClientRect(); mark(r); biggest = Math.max(biggest, r.width * r.height / area); });
+  var covered = 0; for (var i = 0; i < cells.length; i++) covered += cells[i];
+  function rel(el) { if (!el) return null; var r = el.getBoundingClientRect(); return { x: (r.left - box.left) / box.width, y: (r.top - box.top) / box.height, w: r.width / box.width, h: r.height / box.height }; }
+  var regions = {};
+  var title = (root.querySelector('[data-ge-k="title"]') || {}).parentElement || Array.from(seen).sort(function (a, b) { return parseFloat(getComputedStyle(b).fontSize) - parseFloat(getComputedStyle(a).fontSize); })[0];
+  if (title) regions.title = rel(title);
+  var logo = root.querySelector('[data-ge-logo], img[src*="logo"]');
+  if (logo) regions.logo = rel(logo);
+  var main = media.sort(function (a, b) { var p = a.getBoundingClientRect(), q = b.getBoundingClientRect(); return q.width * q.height - p.width * p.height; })[0];
+  if (main && main !== logo) regions.visual = rel(main);
+  return { sizes: distinct.length, hierarchy: Math.round(largest / Math.max(1, median) * 100) / 100, coverage: Math.round(covered / cells.length * 1000) / 1000, focalArea: Math.round(biggest * 1000) / 1000, regions: regions };
+})()`;
 
 /** Ce que chaque zone d'une page assemblée doit réduire pour tenir dans sa case de la grille. */
 const ZONE_FITS = `(function () {
@@ -270,6 +325,32 @@ export const QUALITY = (f: QualityFrame) => `(function (f) {
   });
   if (loud.length) errors.push('a long text is set at title size: ' + loud.slice(0, 2).join('; ') + ' — set paragraphs at the body size (' + Math.round(base) + ' px); only titles, short statements and figures are large');
   if (narrow.length) errors.push('a long text is squeezed into a narrow column: ' + narrow.slice(0, 2).join('; ') + ' — give paragraphs a reading width (about half the page or more)');
+  // 1 bis·2. UN TEXTE CASSÉ MOT PAR MOT. Le contrôle ci-dessus ne regarde que les PARAGRAPHES (30 mots et
+  // plus) : un titre de quinze mots réduit à une colonne d'un mot de large, sur toute la hauteur, passait au
+  // travers alors que c'est le défaut le plus visible de la page (signalé sur toutes les générations,
+  // 05/11/2026). Ici on mesure la GÉOMÉTRIE : beaucoup de lignes, très peu de signes par ligne, dans une
+  // colonne étroite — quelle que soit la longueur du texte.
+  var blocks = [], counts = [];
+  lines.forEach(function (ln) {
+    var b = ln.host;
+    while (b !== root && getComputedStyle(b).display.indexOf('inline') === 0) b = b.parentElement;
+    var i = blocks.indexOf(b);
+    if (i < 0) { blocks.push(b); counts.push(0); i = blocks.length - 1; }
+    counts[i]++;
+  });
+  var crushed = [];
+  blocks.forEach(function (b, i) {
+    if (counts[i] < 4) return;
+    var text = (b.textContent || '').trim();
+    var words = text.split(/\\s+/).filter(Boolean).length;
+    if (words < 6) return;
+    var r = b.getBoundingClientRect();
+    // Une colonne étroite ET des lignes très courtes : les deux, sinon une colonne de texte normale serait prise.
+    if (r.width < box.width * 0.34 && text.length / counts[i] < 18) {
+      crushed.push(short(text) + ' (' + words + ' words in ' + Math.round(r.width) + ' px, ' + counts[i] + ' lines)');
+    }
+  });
+  if (crushed.length) errors.push('a text is crushed into a narrow column, breaking one word per line: ' + crushed.slice(0, 2).join('; ') + ' — it is squeezed because a neighbour takes the width: let that neighbour wrap or shrink, and give this text at least a third of the canvas');
   // 1 ter. Un texte posé SUR un mockup, un graphique ou un logo les cache : chacun a sa place.
   var shown = [];
   root.querySelectorAll('[data-ge-gallery],[data-ge-chart],img[data-ge-logo]').forEach(function (m) { if (visible(m)) shown.push(m); });
@@ -296,6 +377,9 @@ export const QUALITY = (f: QualityFrame) => `(function (f) {
     var c = cs.backgroundColor;
     var painted = cs.backgroundImage !== 'none' || (c && c !== 'transparent' && !/rgba\\([^)]*,\\s*0(\\.0+)?\\)/.test(c));
     if (!painted || el.closest('[data-ge-chart],[data-ge-gallery],[data-ge-pattern]:not(.ge-page),[data-ge-pattern-tile],table')) return;
+    // Le décor de l'habillage et les voiles d'image (bichromie) sont un FOND : un texte peut les traverser (contraste et
+    // recouvrement restent contrôlés par ailleurs).
+    if (el.closest('[data-ge-decor]')) return;
     var q = el.getBoundingClientRect();
     if (q.width * q.height < pageArea * 0.01 || q.width * q.height > pageArea * 0.9) return;
     panels.push({ el: el, q: q });
@@ -493,11 +577,15 @@ export const QUALITY = (f: QualityFrame) => `(function (f) {
     if (el === root || (inPrimitive && inPrimitive !== root && root.contains(inPrimitive))) return;
     var tag = el.tagName.toLowerCase();
     if (['img', 'svg', 'canvas', 'video', 'hr', 'br'].indexOf(tag) >= 0) return;
+    // Le décor de l'habillage (cercles, bandes, motifs) est vide par nature : ce n'est pas un cadre réservé.
+    if (el.closest('[data-ge-decor]')) return;
     if (!visible(el)) return;
     var cs = getComputedStyle(el);
     if (!paints(el, cs)) return;
     var r = el.getBoundingClientRect();
     if (Math.min(r.width, r.height) < 6) return;
+    // Un fond qui couvre toute la page est un FOND (teinte de page), pas un cadre.
+    if (r.width >= box.width * 0.9 && r.height >= box.height * 0.9) return;
     if ((el.textContent || '').trim()) return;
     // Un aplat du nuancier EST le contenu (sa couleur est l'une de la palette).
     if (Math.min(r.width, r.height) >= Math.min(box.width, box.height) * 0.1 && swatchRgb.indexOf(((cs.backgroundColor.match(/[\\d.]+/g) || []).slice(0, 3).map(Number)).join(',')) >= 0) return;
@@ -524,7 +612,7 @@ export const QUALITY = (f: QualityFrame) => `(function (f) {
   return errors;
 })(${JSON.stringify(f)})`;
 
-export async function checkRender(html: string, head: string, format: FormatDef, o: { lang?: string; shoot?: boolean; quality?: QualityFrame } = {}): Promise<RenderCheck> {
+export async function checkRender(html: string, head: string, format: FormatDef, o: { lang?: string; shoot?: boolean; quality?: QualityFrame; measure?: boolean } = {}): Promise<RenderCheck> {
   try {
     return await withPage(pageDocument(html, head, { lang: o.lang, background: '#ffffff' }), { width: format.width, height: format.height }, async (page) => {
       // Les graphiques sont dessinés (Chart.js) avant toute mesure et toute photographie : vides, ils passaient pour
@@ -544,7 +632,7 @@ export async function checkRender(html: string, head: string, format: FormatDef,
       }
       // Texte coupé, recouvert, page désordonnée : la page s'affiche presque entière — gardée comme repli si la
       // correction échoue (livrée signalée plutôt que perdue).
-      const cut = Boolean(probe.error && /cut off by the edge|covered by another element|on top of each other|brand asset|empty frames|decoration noise|long text|written over a mockup|set like a title|palette colours|logo sits on|cut by the page edge|image is broken|page is dark|straddles the edge|table wrap|logo sits on|light logo sits|swatches are too small|far from its colour/.test(probe.error));
+      const cut = Boolean(probe.error && /cut off by the edge|covered by another element|on top of each other|brand asset|empty frames|decoration noise|long text|crushed into a narrow column|written over a mockup|set like a title|palette colours|logo sits on|cut by the page edge|image is broken|page is dark|straddles the edge|table wrap|logo sits on|light logo sits|swatches are too small|far from its colour/.test(probe.error));
       if (probe.error && !cut) return { ok: false, error: probe.error, ...(zoneFits ? { zoneFits } : {}) };
       // Un débordement d'une toile fixe : l'échelle qui le fait tenir, pour que le moteur l'applique lui-même.
       let fit: number | undefined;
@@ -553,13 +641,14 @@ export async function checkRender(html: string, head: string, format: FormatDef,
         if (scale > 0 && scale < 1) fit = Math.floor(scale * 1000) / 1000;
       }
       let png: Buffer | undefined;
-      if (o.shoot) {
+      const metrics = o.measure && !probe.error ? ((await page.evaluate(MEASURE).catch(() => null)) as RenderCheck['metrics'] | null) ?? undefined : undefined;
+      if (o.shoot || o.measure) {
         const target = await page.$('.ge-page');
         if (target) png = Buffer.from(await target.screenshot({ type: 'png' }));
       }
       // Un texte coupé : la photographie est gardée (la page servira de repli si la correction échoue).
       if (cut) return { ok: false, cut: true, error: probe.error, ...(fit ? { fit } : {}), ...(zoneFits ? { zoneFits } : {}), ...(png ? { png } : {}) };
-      return { ok: true, width: Math.round(probe.width ?? 0), height: Math.round(probe.height ?? 0), ...(png ? { png } : {}) };
+      return { ok: true, width: Math.round(probe.width ?? 0), height: Math.round(probe.height ?? 0), ...(png ? { png } : {}), ...(metrics ? { metrics } : {}), ...(zoneFits ? { zoneFits } : {}) };
     });
   } catch (error) {
     const message = String((error as Error)?.message ?? error);

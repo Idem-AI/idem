@@ -1,0 +1,324 @@
+<!-- Idem Builders. Le pagne commémoratif dit « être reconnu, porté haut par
+     une communauté » (AGENTS.md § 4) : c'est ce que le programme fait pour
+     un projet. -->
+<div class="ed-page">
+  <!-- ═══ La promesse ══════════════════════════════════════════════════ -->
+  <header class="ed-section ed-section-hero ed-wrap">
+    <h1 class="ed-display ed-rise">
+      <span i18n="@@builders-page.hero.line1">Built with IDEM.</span><br />
+      <span class="i-underline" i18n="@@builders-page.hero.line2">Carried by Africa.</span>
+    </h1>
+
+    <div class="grid gap-12 ed-mt-12 ed-mt-lg-16 lg:grid-cols-12 lg:gap-16 lg:items-center">
+      <div class="lg:col-span-6 ed-rise ed-rise-2">
+        <p class="ed-lede ed-lede-wide" i18n="@@builders-page.hero.lede">
+          Idem Builders shows the projects that put Africa forward and that run on IDEM. Your
+          project gets seen, and keeping it alive costs you less.
+        </p>
+        <div class="ed-mt-8 flex flex-col gap-3 sm:flex-row">
+          <a [href]="joinUrl" class="inner-button">
+            <ng-container i18n="@@builders-page.hero.join">Join Idem Builders</ng-container>
+          </a>
+          <a href="#builders-showcase" class="outer-button">
+            <ng-container i18n="@@builders-page.hero.see">See the builders</ng-container>
+          </a>
+        </div>
+      </div>
+
+      <figure class="lg:col-span-6 ed-art ed-art-fill ed-rise ed-rise-3">
+        <app-page-art scene="commemorative-cloth" />
+      </figure>
+    </div>
+  </header>
+
+  <!-- ═══ La condition ═════════════════════════════════════════════════
+       Le mortier et son pilon : le geste de chaque jour. Un projet entre
+       dans le programme s'il tourne avec IDEM, pas seulement s'il y est né. -->
+  <section class="ed-rule">
+    <div class="ed-section ed-wrap bx-condition">
+      <figure class="bx-condition-art">
+        <app-builders-art scene="mortar" />
+      </figure>
+
+      <div class="bx-condition-copy">
+        <h2 class="ed-h2" i18n="@@builders-page.condition.title">One condition: run it with IDEM</h2>
+        <p class="ed-lede ed-mt-6" i18n="@@builders-page.condition.body">
+          The programme is for projects that live on IDEM, not only projects that started there.
+          One of these three is enough, and IDEM checks it for you when you apply.
+        </p>
+
+        <ul class="bx-ways ed-mt-10">
+          @for (way of ways; track way.title) {
+            <li class="bx-way">
+              <span class="bx-way-mark" aria-hidden="true"></span>
+              <div>
+                <h3 class="ed-h3">{{ way.title }}</h3>
+                <p class="ed-body ed-mt-1">{{ way.description }}</p>
+              </div>
+            </li>
+          }
+        </ul>
+
+        <p class="bx-africa ed-mt-8" i18n="@@builders-page.condition.africa">
+          Then the team looks at what the project brings to Africa: the people it serves, the
+          problem it solves, where it is built.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ Ce que le programme apporte ═══════════════════════════════════
+       Le seul bloc de couleur franche de la page, au bleu d'IDEM. À droite,
+       le produit tel qu'un membre le voit : son portefeuille, son badge. -->
+  <section class="bx-benefits" aria-labelledby="bx-benefits-title">
+    <div class="ed-wrap bx-benefits-grid">
+      <div class="bx-benefits-copy">
+        <h2 id="bx-benefits-title" class="ed-h2" i18n="@@builders-page.perks.title">What you get</h2>
+        <p class="bx-benefits-lede" i18n="@@builders-page.perks.lede">
+          Visibility, and lower costs on what you already use. Applied automatically from the day
+          you are accepted.
+        </p>
+
+        <ul class="bx-benefit-list">
+          @for (perk of perks; track perk.title) {
+            <li class="bx-benefit">
+              <h3>{{ perk.title }}</h3>
+              <p>{{ perk.description }}</p>
+            </li>
+          }
+        </ul>
+      </div>
+
+      <div class="bx-proof" aria-hidden="true">
+        <div class="bx-panel bx-wallet">
+          <p class="bx-panel-title" i18n="@@builders-page.proof.wallet">Wallet</p>
+          <dl class="bx-ledger">
+            <div>
+              <dt i18n="@@builders-page.proof.welcome">Welcome to Idem Builders</dt>
+              <dd>{{ ledger.welcome }}</dd>
+            </div>
+            <div>
+              <dt i18n="@@builders-page.proof.topup">Top-up</dt>
+              <dd>{{ ledger.topup }}</dd>
+            </div>
+            <div class="bx-ledger-bonus">
+              <dt i18n="@@builders-page.proof.bonus">Idem Builders bonus ({{ ledger.topupRate }} %)</dt>
+              <dd>{{ ledger.topupBonus }}</dd>
+            </div>
+          </dl>
+        </div>
+
+        <div class="bx-panel bx-badge">
+          <img src="/assets/builders/idem-builder-badge.svg" alt="" width="168" height="44" loading="lazy" />
+          <p i18n="@@builders-page.proof.badge">Your badge, ready to paste on your site</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ Rejoindre : l'os d'Ishango compte les étapes ═══════════════════
+       Un groupe d'encoches au-dessus de chaque étape. -->
+  <section>
+    <div class="ed-section ed-wrap">
+      <div class="bx-head">
+        <h2 class="ed-h2" i18n="@@builders-page.steps.title">How to join</h2>
+        <p class="ed-lede" i18n="@@builders-page.steps.body">
+          Everything happens in your IDEM console. It takes a few minutes.
+        </p>
+      </div>
+
+      <figure class="bx-bone">
+        <app-builders-art scene="ishango" />
+      </figure>
+
+      <ol class="bx-steps">
+        @for (step of steps; track step.title; let i = $index) {
+          <li class="bx-step" [style.--bx-i]="i">
+            <span class="bx-step-num" aria-hidden="true">{{ i + 1 }}</span>
+            <h3 class="ed-h3">{{ step.title }}</h3>
+            <p class="ed-body ed-mt-2">{{ step.description }}</p>
+          </li>
+        }
+      </ol>
+
+      <a [href]="joinUrl" class="inner-button bx-steps-cta">
+        <ng-container i18n="@@builders-page.steps.join">Apply now</ng-container>
+      </a>
+    </div>
+  </section>
+
+  <!-- ═══ La vitrine ══════════════════════════════════════════════════ -->
+  <section class="ed-rule" id="builders-showcase" aria-labelledby="builders-showcase-title">
+    <div class="ed-section ed-wrap">
+      <div class="bx-head bx-head-split">
+        <h2 id="builders-showcase-title" class="ed-h2" i18n="@@builders-page.showcase.title">The builders</h2>
+        @if (showcaseState() === 'ready' && builders().length > 0) {
+          <p class="bx-stats">{{ statsLabel() }}</p>
+        }
+      </div>
+
+      @switch (showcaseState()) {
+        @case ('loading') {
+          <ul class="bx-projects" aria-hidden="true">
+            @for (i of [0, 1]; track i) {
+              <li>
+                <div class="bx-project">
+                  <div class="skeleton bx-project-media"></div>
+                  <div class="bx-project-body">
+                    <div class="skeleton h-8 w-1/2 rounded"></div>
+                    <div class="skeleton h-4 w-full rounded ed-mt-4"></div>
+                  </div>
+                </div>
+              </li>
+            }
+          </ul>
+        }
+        @case ('error') {
+          <p class="ed-body" role="alert">
+            <ng-container i18n="@@builders-page.showcase.error">The showcase could not be loaded.</ng-container>
+            <button type="button" class="button-ghost button-sm" (click)="loadShowcase()" i18n="@@builders-page.showcase.retry">
+              Try again
+            </button>
+          </p>
+        }
+        @default {
+          @if (builders().length === 0) {
+            <!-- Vide : l'aperçu de la fiche qu'aura le premier projet admis. -->
+            <div class="bx-empty">
+              <div class="bx-project bx-project-preview" aria-hidden="true">
+                <div class="bx-project-media">
+                  <app-builder-cover class="bx-project-cover" [name]="previewName" />
+                </div>
+                <div class="bx-project-body">
+                  <p class="bx-project-meta"><span i18n="@@builders-page.showcase.previewCountry">Your country</span></p>
+                  <p class="bx-project-name">{{ previewName }}</p>
+                  <p class="bx-project-desc" i18n="@@builders-page.showcase.previewTagline">One sentence on what it does, and for whom.</p>
+                </div>
+              </div>
+              <div>
+                <p class="bx-empty-title">{{ emptyFirst }}</p>
+                <p class="ed-body ed-mt-4" i18n="@@builders-page.showcase.emptyBody">
+                  Run your project with IDEM and tell us what it does for Africa.
+                </p>
+                <a [href]="joinUrl" class="inner-button bx-steps-cta" i18n="@@builders-page.showcase.emptyCta">Submit my project</a>
+              </div>
+            </div>
+          } @else {
+            <ul class="bx-projects">
+              @for (builder of builders(); track builder.id) {
+                <li [class.bx-project-featured]="builder.featured">
+                  <a class="bx-project" [routerLink]="['/builders', builder.slug]">
+                    <div class="bx-project-media">
+                      <app-builder-cover class="bx-project-cover" [brand]="builder.brand" [coverUrl]="builder.coverUrl" [name]="builder.projectName" />
+                      @if (builder.featured) {
+                        <span class="bx-project-flag" i18n="@@builders-page.showcase.featured">Featured</span>
+                      }
+                    </div>
+
+                    <div class="bx-project-body">
+                      <p class="bx-project-meta">
+                        @if (builder.country) {
+                          <span>{{ builder.country }}</span>
+                        }
+                        <span><ng-container i18n="@@builder-detail.since">Builder since</ng-container> {{ builder.since | date: 'MMMM y' }}</span>
+                      </p>
+                      <h3 class="bx-project-name">{{ builder.projectName }}</h3>
+                      @if (builder.tagline) {
+                        <p class="bx-project-desc">{{ builder.tagline }}</p>
+                      }
+
+                      <div class="bx-project-foot">
+                        @if (builder.owner) {
+                          <span class="bx-owner">
+                            <span class="bx-owner-avatar" aria-hidden="true">{{ initials(builder.owner) }}</span>
+                            <span class="bx-owner-text">
+                              <span class="bx-owner-label" i18n="@@builders-page.showcase.owner">Led by</span>
+                              <span class="bx-owner-name">{{ builder.owner }}</span>
+                            </span>
+                          </span>
+                        }
+                        @if (builder.team?.length) {
+                          <span class="bx-avatars" aria-hidden="true">
+                            @for (member of builder.team; track member.name) {
+                              @if (member.pictureUrl) {
+                                <img [src]="member.pictureUrl" alt="" loading="lazy" />
+                              } @else {
+                                <span>{{ initials(member.name) }}</span>
+                              }
+                            }
+                          </span>
+                        }
+                        <span class="bx-project-cta">
+                          <ng-container i18n="@@builders-page.showcase.discover">Discover the project</ng-container>
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="M5 12h13m0 0l-5-5m5 5l-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                          </svg>
+                        </span>
+                      </div>
+                    </div>
+                  </a>
+                </li>
+              }
+            </ul>
+          }
+        }
+      }
+    </div>
+  </section>
+
+  <!-- ═══ Questions : la cloche double, l'appel et la réponse ═══════════ -->
+  <section class="ed-rule">
+    <div class="ed-section ed-wrap bx-faq">
+      <div class="bx-faq-side">
+        <h2 class="ed-h2" i18n="@@builders-page.faq.title">Questions</h2>
+        <figure class="bx-faq-art">
+          <app-builders-art scene="gankogui" />
+        </figure>
+        <p class="ed-body" i18n="@@builders-page.faq.legal">
+          The full rules are in the participation terms and the programme privacy policy, which
+          you accept before applying.
+        </p>
+        <div class="ed-mt-6 flex flex-wrap gap-3">
+          <a routerLink="/builders-terms" class="outer-button">
+            <ng-container i18n="@@builders-page.faq.terms">Participation terms</ng-container>
+          </a>
+          <a routerLink="/builders-privacy" class="outer-button">
+            <ng-container i18n="@@builders-page.faq.privacy">Privacy policy</ng-container>
+          </a>
+        </div>
+      </div>
+
+      <div class="bx-faq-list">
+        @for (question of questions; track question.title; let first = $first) {
+          <details class="bx-question" [open]="first">
+            <summary>
+              <span>{{ question.title }}</span>
+              <span class="bx-toggle" aria-hidden="true"></span>
+            </summary>
+            <p class="ed-body">{{ question.description }}</p>
+          </details>
+        }
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ L'appel ═════════════════════════════════════════════════════ -->
+  <section class="ed-rule">
+    <div class="ed-section ed-wrap bx-cta">
+      <div>
+        <h2 class="ed-h2" i18n="@@builders-page.cta.title2">Grow it here. We will make it known.</h2>
+        <p class="ed-lede ed-mt-6" i18n="@@builders-page.cta.body">
+          Run it with IDEM, tell us what it does for Africa, and we will show it.
+        </p>
+      </div>
+      <div class="bx-cta-actions">
+        <a [href]="joinUrl" class="inner-button">
+          <ng-container i18n="@@builders-page.cta.join">Join Idem Builders</ng-container>
+        </a>
+        <a href="#builders-showcase" class="outer-button">
+          <ng-container i18n="@@builders-page.hero.see">See the builders</ng-container>
+        </a>
+      </div>
+    </div>
+  </section>
+</div>

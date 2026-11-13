@@ -1,0 +1,14 @@
+{
+  "locale": "fr",
+  "translations": {
+    "buildersProgram.new": "Nouveau",
+    "buildersProgram.title.lead": "Votre projet fait rayonner l’Afrique ?",
+    "buildersProgram.title.accent": "Nous le montrons.",
+    "buildersProgram.lede": "Idem Builders met en avant les projets africains gérés avec IDEM — mis en ligne, promus ou hébergés ici. Les membres sont présentés sur idem.africa et paient moins cher pour faire vivre leur projet.",
+    "buildersProgram.figure.welcome": "offerts dans votre portefeuille à l’admission",
+    "buildersProgram.figure.topup": "de crédit sur chaque recharge",
+    "buildersProgram.figure.hosting": "sur l’hébergement iDeploy, chaque jour",
+    "buildersProgram.learnMore": "En savoir plus",
+    "buildersProgram.join": "Rejoindre le programme"
+  }
+}

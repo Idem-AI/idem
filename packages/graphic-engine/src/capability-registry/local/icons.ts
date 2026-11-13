@@ -40,8 +40,6 @@ export function iconDir(set: IconSet): string | null {
   return null;
 }
 
-export const iconSetAvailable = (set: IconSet): boolean => iconDir(set) !== null;
-
 /** Le SVG d'une icône, nettoyé (aucun script, aucun gestionnaire d'évènement), ou `null`. */
 export function iconSvg(name: string, set: IconSet = 'tabler'): string | null {
   const safe = name.toLowerCase().replace(/[^a-z0-9-]/g, '');
@@ -79,7 +77,3 @@ export function searchIcons(query: string, set: IconSet = 'tabler', limit = 12):
     .slice(0, limit);
 }
 
-export function iconCount(set: IconSet): number {
-  const dir = iconDir(set);
-  return dir ? fs.readdirSync(dir).filter((f) => f.endsWith('.svg')).length : 0;
-}

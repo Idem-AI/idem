@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { startupPageLoaded } from '@/utils/startupTimer';
 import { getContainerInstance, onServersChange } from '../WeIde/services';
 import useRunStatus, { API_PORT } from '@/stores/runStatusSlice';
 import { eventEmitter } from '../AiChat/utils/EventEmitter';
@@ -921,6 +922,7 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
                   <iframe
                     ref={iframeRef}
                     src={url}
+                    onLoad={startupPageLoaded}
                     className="w-full h-full border-none bg-white block"
                     title="preview"
                     sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-downloads"
@@ -974,6 +976,7 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
               <iframe
                 ref={iframeRef}
                 src={url}
+                onLoad={startupPageLoaded}
                 className="w-full h-full border-none bg-white block"
                 title="preview"
                 sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-downloads"

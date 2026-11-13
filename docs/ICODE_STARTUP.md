@@ -112,9 +112,36 @@ Goal: **the preview is up in under 20 seconds after a generation, every time.** 
 | Vite re-optimised and reloaded the page each time a section imported a not-yet-seen package | `optimizeDeps.include` lists every importable package; `server.warmup` pre-transforms entries, pages and UI components |
 | Nobody knew the real time | `utils/startupTimer.ts` measures from the first gesture to `server-ready`, with phases and deps source; the server logs `chat.startup` (warning above 20 s) |
 
+## 2c. The first page, not the open port (November 2026)
+
+Logged on 11/11: a warm start from the browser cache took **30 s**, 26 s of them in "dependencies", and the measure stopped at `server-ready` — Vite opens its port *before* pre-bundling, so the first page still waited for esbuild (WebAssembly in the WebContainer). The real wait was longer than the one reported.
+
+| What made it slow | Mechanism |
+| --- | --- |
+| Vite signs its pre-bundle cache (`node_modules/.vite`) with the project root. The WebContainer workdir name was **random on every boot**, so a kept pre-bundle never matched and every opening re-bundled everything | `WebContainer.boot({ workdirName: 'project' })` — the root is always `/home/project` (what the prompts already say) |
+| The signature also hashes `package-lock.json`: present after an npm install, absent after a snapshot mount — never the same | The site ships an `.npmrc` with `package-lock=false` (its Dockerfile runs `npm install`, it needs no lock) |
+| The snapshot and the browser cache held `node_modules` without the pre-bundle | The oven lays each target **at the container root** and runs `vite optimize` before exporting; the browser cache is written **after** Vite has pre-bundled (`_metadata.json`), and a tree mounted without one is re-kept once Vite is done |
+| The browser cache was read and decompressed (≈100 MB) only once the scaffold had arrived | Read and decompressed during prewarm, as soon as the target is known; `ensureTree` awaits the same promise |
+| Each cache read rewrote the whole 20–40 MB record to refresh its "last used" date | Refreshed once a day at most |
+| Initial files were written one by one (two round trips per file) | One `mount()` of the whole tree |
+| Nobody knew where the 26 s went | `startupTimer` now stops at the preview iframe's `load` and records `deps.boot`, `deps.manifests`, `deps.cache`, `deps.download`, `deps.mount`, `deps.exec`, `deps.verify`, `deps.npm`, `server`, `page` |
+
+Two more defects kept the snapshots from ever existing: the server's CORS did not allow the oven's headers (`X-Idem-Bake-Token`, `X-Idem-Unpacked-Bytes`, `X-Idem-Verified`), so the browser refused every deposit; and the failed `fetch` was thrown, not returned, so the automatic oven waited 30 minutes for a result it never posted. Both fixed.
+
+**Measured on 11/11** (headless Chrome, site target, scaffold → page loaded in an iframe; boot excluded, the prewarm does it during project loading):
+
+| | Dependencies | Vite server | Page | Total | Vite pre-bundle |
+| --- | --- | --- | --- | --- | --- |
+| First opening (server snapshot, 17.9 MB) | 7.0 s | 3.0 s | 0.8 s | **11.2 s** | reused (28 deps, same `browserHash`) |
+| Next openings (browser cache) | 1.1 s | 3.2 s | 0.1 s | **4.4 s** | reused |
+
+Before: 30 s up to `server-ready`, then the hidden re-bundling.
+
 ### Keeping the snapshots baked automatically
 
-`npm run deps:bake` (in `we-dev-next`) opens the oven page in headless Chrome, in automatic mode (`?deps-bake=1&auto=1#token=…`), bakes every tree whose fingerprint is not baked yet, and exits non-zero on failure. Run it after every deployment that touches the scaffold (CI can). At startup the server logs `DEPS_MISSING` with the list of trees to bake.
+**In development the server bakes by itself.** At startup, if a tree is not baked, it waits for the workshop (`ICODE_URL`, default `http://localhost:5173`) to answer, then runs `scripts/bake-deps.mjs` in the background (headless Chrome) and logs `chat.deps_bake` lines: launched, each tree, finished. Without `APPGEN_DEPS_BAKE_TOKEN`, a local token is drawn once and kept in `deps-cache/.bake-token` (mode 600), so it survives `tsx watch` restarts; `deps-cache/.bake.lock` keeps two processes from baking at once. A warning is left only when the oven cannot start or fails. `APPGEN_DEPS_AUTOBAKE=off` disables it; in production it is off unless set to `on`, and no implicit token exists there.
+
+`npm run deps:bake` (in `we-dev-next`) opens the oven page in headless Chrome, in automatic mode (`?deps-bake=1&auto=1#token=…`), bakes every tree whose fingerprint is not baked yet, and exits non-zero on failure. Run it after every deployment that touches the scaffold (CI can).
 
 | Env | |
 | --- | --- |
@@ -128,7 +155,7 @@ Snapshots are produced **by a WebContainer**, never by the server's npm. `npm in
 
 So the oven is a page of the workshop: **`<icode-url>/?deps-bake=1`**.
 
-Per tree it lays the target's scaffold down in `/bake/<target>`, runs `npm install`, **verifies** (`npm run build` where the directory has one, otherwise the presence of every direct dependency and the start binary), exports `node_modules` as a binary snapshot, gzips it, and `PUT`s it to the server.
+Per target it empties the container and lays the scaffold down **at its root** (where a workshop has it); per tree it runs `npm install`, **verifies** (`npm run build` where the directory has one, otherwise the presence of every direct dependency and the start binary), pre-bundles Vite's dependencies (`vite optimize`, kept in `node_modules/.vite`) when the tree has Vite, exports `node_modules` as a binary snapshot, gzips it, and `PUT`s it to the server.
 
 | | |
 | --- | --- |

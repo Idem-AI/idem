@@ -310,7 +310,7 @@ export const generateLogoConceptsStreamController = async (
           }
         : undefined;
 
-    const logos = await brandingService.generateLogoConceptsWithStreaming(
+    await brandingService.generateLogoConceptsWithStreaming(
       userId,
       projectId as string,
       streamCallback,

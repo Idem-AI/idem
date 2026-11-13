@@ -1,3 +1,4 @@
+import { AsyncLocalStorage } from 'node:async_hooks';
 import logger from '../config/logger.js';
 
 export enum LogLevel {
@@ -15,11 +16,18 @@ export enum LogLevel {
  * champs JSON interrogeables dans Grafana, et le requestId/userId de la
  * requête suivent automatiquement.
  */
+/**
+ * Le composant courant, par requête. Il était statique : la route de mesure du démarrage (`DepsRoute`), appelée
+ * pendant une génération, renommait toutes les lignes de la génération en cours (`component=DepsRoute`).
+ */
+const components = new AsyncLocalStorage<string>();
+
 export class ChatLogger {
   private static context: string = 'ChatAPI';
 
   static setContext(context: string): void {
-    this.context = context;
+    // Seulement pour la suite de l'exécution en cours (et ce qu'elle lance), jamais pour une autre requête.
+    components.enterWith(context);
   }
 
   private static write(
@@ -29,15 +37,21 @@ export class ChatLogger {
     data?: unknown,
     extra: Record<string, unknown> = {}
   ): void {
-    const fields =
+    const fields: Record<string, unknown> =
       data === undefined
         ? {}
         : data !== null && typeof data === 'object' && !Array.isArray(data) && !(data instanceof Error)
-          ? (data as Record<string, unknown>)
+          ? { ...(data as Record<string, unknown>) }
           : { data };
+    // Un champ `message` dans les données remplaçait la phrase du journal (winston fusionne les deux) : on lisait
+    // « image 502 {…} » au lieu de « home-hero : génération d'image sans résultat ». Il devient `detail`.
+    if ('message' in fields) {
+      fields.detail = fields.message;
+      delete fields.message;
+    }
     logger.log(level, message, {
       event: `chat.${step.toLowerCase()}`,
-      component: this.context,
+      component: components.getStore() ?? this.context,
       ...fields,
       ...extra,
     });

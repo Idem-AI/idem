@@ -26,7 +26,6 @@ export class LegalDocEditorAdapter implements DocumentTypeAdapter {
   /** Espace juridique ; un document précis s'affiche sous `backRoute/<documentId>`. */
   readonly backRoute = '/project/legal-docs';
   readonly editRoute = '/project/legal-docs/edit';
-  readonly pdfFileName = 'document-juridique.pdf';
 
   private readonly legalDocsService = inject(LegalDocsService);
 

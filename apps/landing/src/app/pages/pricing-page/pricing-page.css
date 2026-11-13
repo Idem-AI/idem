@@ -39,7 +39,8 @@
     grid-template-columns: 1.3fr 1fr;
   }
   .pricing-hero-art {
-    width: min(100%, 22rem);
+    width: 100%;
+    max-width: 34rem;
   }
 }
 .pricing-lead {
@@ -68,7 +69,7 @@
   color: var(--color-text-secondary);
 }
 .pricing-hero-art {
-  width: min(60%, 22rem);
+  width: min(88%, 26rem);
   justify-self: center;
 }
 
@@ -77,162 +78,6 @@
   display: block;
   margin-top: clamp(4.5rem, 9vw, 7.5rem);
   scroll-margin-top: 6rem;
-}
-
-/* ── Onglets ───────────────────────────────────────────────────────────── */
-.tabs {
-  display: flex;
-  gap: 0.25rem;
-  overflow-x: auto;
-  border-bottom: 1px solid var(--glass-border);
-  scrollbar-width: none;
-}
-.tab {
-  flex: none;
-  padding: 0.75rem 1rem;
-  font-weight: 600;
-  color: var(--color-text-secondary);
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
-  transition: color 0.2s ease-out, border-color 0.2s ease-out;
-}
-.tab[aria-selected='true'] {
-  color: var(--color-primary-500);
-  border-bottom-color: var(--color-primary-500);
-}
-.tab:focus-visible {
-  outline: 2px solid var(--color-primary-500);
-  outline-offset: 2px;
-  border-radius: 0.5rem;
-}
-.panel {
-  padding-top: 1.5rem;
-  max-width: 44rem;
-}
-.panel-note {
-  color: var(--color-text-secondary);
-  line-height: 1.6;
-}
-.price-list {
-  margin-top: 1rem;
-}
-.price-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 1.5rem;
-  padding: 0.85rem 0;
-  border-bottom: 1px solid var(--glass-border-subtle);
-}
-.price-row dt {
-  color: var(--color-text-primary);
-}
-.price-row dd {
-  flex: none;
-  font-weight: 700;
-  color: var(--color-text-primary);
-  font-variant-numeric: tabular-nums;
-}
-.panel-cta {
-  margin-top: 1.5rem;
-  display: inline-flex;
-}
-
-/* ── Comment payer ─────────────────────────────────────────────────────── */
-.steps {
-  display: grid;
-  gap: 1.5rem;
-  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
-}
-.steps li {
-  display: flex;
-  gap: 1rem;
-}
-.step-num {
-  flex: none;
-  width: 2.25rem;
-  height: 2.25rem;
-  display: grid;
-  place-items: center;
-  border-radius: 999px;
-  background: var(--color-primary-500);
-  color: #fff;
-  font-weight: 700;
-}
-.step-title {
-  font-weight: 700;
-  color: var(--color-text-primary);
-}
-.step-text {
-  margin-top: 0.25rem;
-  font-size: 0.95rem;
-  line-height: 1.55;
-  color: var(--color-text-secondary);
-}
-.methods {
-  margin-top: 2rem;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-.country {
-  margin-top: 1.5rem;
-  display: grid;
-  gap: 0.5rem;
-}
-.country label {
-  font-weight: 600;
-  color: var(--color-text-primary);
-}
-.country-price {
-  color: var(--color-text-secondary);
-}
-
-/* ── Autres offres ─────────────────────────────────────────────────────── */
-.more-wrap {
-  display: grid;
-  gap: 2rem;
-  align-items: center;
-}
-@media (min-width: 1024px) {
-  .more-wrap {
-    grid-template-columns: 1fr 14rem;
-  }
-}
-.more-row {
-  display: grid;
-  grid-template-columns: 1fr auto auto;
-  align-items: center;
-  gap: 1rem;
-  padding: 1rem 0;
-  border-bottom: 1px solid var(--glass-border-subtle);
-}
-.more-label {
-  color: var(--color-text-primary);
-  line-height: 1.45;
-}
-.more-price {
-  font-weight: 700;
-  color: var(--color-text-primary);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-.more-art {
-  display: none;
-}
-@media (min-width: 1024px) {
-  .more-art {
-    display: block;
-    width: 100%;
-  }
-}
-@media (max-width: 640px) {
-  .more-row {
-    grid-template-columns: 1fr auto;
-  }
-  .more-row .outer-button {
-    grid-column: 1 / -1;
-    justify-self: start;
-  }
 }
 
 /* ── FAQ ───────────────────────────────────────────────────────────────── */
@@ -291,4 +136,253 @@
   .tab {
     transition: none;
   }
+}
+
+/* ── Ce qui vous protège ───────────────────────────────────────────────── */
+.guarantees {
+  display: grid;
+  gap: 2rem;
+  align-items: center;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 900px) {
+  .guarantees {
+    grid-template-columns: 14rem 1fr;
+  }
+}
+.guarantees-art {
+  width: min(55%, 14rem);
+  justify-self: center;
+}
+.guarantee-list {
+  display: grid;
+  gap: 1.25rem 2rem;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 700px) {
+  .guarantee-list {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+.guarantee-list li {
+  display: flex;
+  gap: 0.75rem;
+}
+.guarantee-list svg {
+  flex: none;
+  width: 1.1rem;
+  height: 1.1rem;
+  margin-top: 0.2rem;
+  color: var(--color-primary-500);
+}
+.guarantee-title {
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+.guarantee-text {
+  margin-top: 0.2rem;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: var(--color-text-secondary);
+}
+
+.pricing-sub {
+  margin-top: -1rem;
+  margin-bottom: 2rem;
+  max-width: 44rem;
+  font-size: 1.05rem;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+}
+.pricing-paystrip {
+  display: block;
+  margin-top: 1.5rem;
+}
+
+/* ── Ce que coûte chaque service : une bande par service ───────────────── */
+.svc-list {
+  display: grid;
+  border-top: 1px solid var(--glass-border);
+}
+.svc {
+  display: grid;
+  gap: 1.25rem 2.5rem;
+  padding: 2rem 0;
+  border-bottom: 1px solid var(--glass-border);
+  grid-template-columns: 1fr;
+}
+@media (min-width: 760px) {
+  .svc {
+    grid-template-columns: 7.5rem 1fr;
+  }
+  .svc-cta {
+    grid-column: 2;
+  }
+}
+@media (min-width: 1080px) {
+  .svc {
+    grid-template-columns: 8.5rem 1fr 15rem;
+    align-items: start;
+  }
+  .svc-cta {
+    grid-column: 3;
+    position: sticky;
+    top: 6rem;
+  }
+}
+.svc-art {
+  width: 6.5rem;
+}
+.svc-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem 1rem;
+}
+.svc-name {
+  font-size: clamp(1.35rem, 2.4vw, 1.75rem);
+  font-weight: 800;
+  color: var(--color-text-primary);
+}
+.svc-from {
+  padding: 0.15rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-primary-500);
+  background: color-mix(in srgb, var(--color-primary-500) 12%, transparent);
+}
+.svc-what {
+  margin-top: 0.5rem;
+  max-width: 40rem;
+  line-height: 1.55;
+  color: var(--color-text-secondary);
+}
+.svc-prices {
+  margin-top: 1.25rem;
+  display: grid;
+  max-width: 40rem;
+}
+.svc-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: baseline;
+  gap: 1rem;
+  padding: 0.65rem 0;
+  border-top: 1px dashed var(--glass-border-subtle);
+}
+.svc-row-label {
+  color: var(--color-text-primary);
+}
+.svc-row-price {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-primary);
+  text-align: right;
+}
+.svc-free {
+  color: var(--color-primary-500);
+}
+.svc-take {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--color-primary-500);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  white-space: nowrap;
+}
+.svc-note {
+  margin-top: 0.85rem;
+  max-width: 40rem;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: var(--color-text-tertiary);
+}
+.svc-cta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: flex-start;
+}
+.svc-cta .inner-button {
+  width: 100%;
+  max-width: 18rem;
+  text-align: center;
+}
+.svc-cta-note {
+  font-size: 0.85rem;
+  color: var(--color-text-tertiary);
+}
+
+/* ── Comment payer (section commune) : pleine largeur de la page ───────── */
+.pricing-pay {
+  display: block;
+}
+
+/* ── Autres offres : pour qui, ce qui est inclus, le prix, le bouton ───── */
+.more-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.5rem;
+}
+.more-art {
+  display: none;
+  width: 9rem;
+  flex: none;
+}
+@media (min-width: 900px) {
+  .more-art {
+    display: block;
+  }
+}
+.more {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 900px) {
+  .more {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+.more-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas: 'text text' 'price cta';
+  align-items: center;
+  gap: 1rem 1.25rem;
+  padding: 1.5rem;
+  border-radius: 1.25rem;
+  border: 1px solid var(--glass-border);
+  background: var(--color-surface-1);
+}
+.more-text {
+  grid-area: text;
+}
+.more-who {
+  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+}
+.more-name {
+  margin-top: 0.15rem;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--color-text-primary);
+}
+.more-label {
+  margin-top: 0.4rem;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+}
+.more-price {
+  grid-area: price;
+  font-size: 1.35rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-primary);
+}
+.more-cta {
+  grid-area: cta;
+  white-space: nowrap;
 }

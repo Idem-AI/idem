@@ -1,0 +1,717 @@
+/* Idem Builders — ce qui n'appartient qu'à cette page.
+   Le héros suit la trame éditoriale commune. Dessous, une grille nette, un
+   seul bloc de couleur franche (les avantages, au bleu d'IDEM), et le produit
+   montré tel qu'il est plutôt que des tuiles décoratives. */
+
+:host {
+  --bx-radius: 1rem;
+  --bx-line: var(--glass-border-subtle);
+  --bx-ease: cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+/* ── En-têtes de section : titre et chapô alignés sur la même ligne ───── */
+.bx-head {
+  display: grid;
+  gap: 1.25rem;
+  margin-bottom: clamp(2.5rem, 5vw, 3.5rem);
+}
+
+@media (min-width: 1024px) {
+  .bx-head {
+    grid-template-columns: minmax(0, 6fr) minmax(0, 5fr);
+    column-gap: 4rem;
+    align-items: end;
+  }
+
+  .bx-head-split {
+    grid-template-columns: 1fr auto;
+  }
+}
+
+.ed-h2,
+.ed-h3 {
+  text-wrap: balance;
+}
+
+/* ── La condition ─────────────────────────────────────────────────────── */
+.bx-condition {
+  display: grid;
+  gap: clamp(2.5rem, 6vw, 4rem);
+  align-items: center;
+}
+
+.bx-condition-art {
+  margin: 0;
+  width: min(100%, 20rem);
+  justify-self: center;
+}
+
+.bx-condition-copy {
+  min-width: 0;
+}
+
+.bx-ways {
+  margin-bottom: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--bx-line);
+}
+
+.bx-way {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 1rem;
+  padding-block: 1.25rem;
+  border-bottom: 1px solid var(--bx-line);
+}
+
+/* Un cercle vide : une des trois cases, et une seule suffit. */
+.bx-way-mark {
+  width: 1.125rem;
+  height: 1.125rem;
+  margin-top: 0.3rem;
+  border: 2px solid var(--color-primary-500);
+  border-radius: 9999px;
+}
+
+.bx-africa {
+  margin-bottom: 0;
+  max-width: 40rem;
+  font-size: var(--font-size-lg, 1.125rem);
+  line-height: 1.6;
+  color: var(--color-text-primary);
+  text-wrap: pretty;
+}
+
+@media (min-width: 1024px) {
+  .bx-condition {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    column-gap: 5rem;
+  }
+
+  .bx-condition-art {
+    width: 100%;
+    max-width: 28rem;
+  }
+}
+
+/* ── Les avantages : le bloc bleu ─────────────────────────────────────── */
+.bx-benefits {
+  --bx-on: var(--color-on-primary);
+  --bx-on-soft: color-mix(in srgb, var(--color-on-primary) 82%, transparent);
+  --bx-on-line: color-mix(in srgb, var(--color-on-primary) 22%, transparent);
+  padding-block: clamp(4.5rem, 9vw, 7.5rem);
+  background: var(--color-primary-500);
+  color: var(--bx-on);
+}
+
+.bx-benefits .ed-h2 {
+  color: var(--bx-on);
+}
+
+.bx-benefits-grid {
+  display: grid;
+  gap: 3.5rem;
+}
+
+.bx-benefits-lede {
+  margin: 1.5rem 0 0;
+  max-width: 34rem;
+  font-size: var(--font-size-lg, 1.125rem);
+  line-height: 1.6;
+  color: var(--bx-on-soft);
+}
+
+.bx-benefit-list {
+  display: grid;
+  margin: 2.5rem 0 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--bx-on-line);
+}
+
+.bx-benefit {
+  padding-block: 1.25rem;
+  border-bottom: 1px solid var(--bx-on-line);
+}
+
+.bx-benefit h3 {
+  margin: 0;
+  font-size: var(--font-size-lg, 1.125rem);
+  font-weight: var(--font-weight-bold);
+  line-height: 1.3;
+  color: var(--bx-on);
+}
+
+.bx-benefit p {
+  margin: 0.35rem 0 0;
+  font-size: var(--font-size-sm);
+  line-height: 1.6;
+  color: var(--bx-on-soft);
+}
+
+@media (min-width: 768px) {
+  .bx-benefit-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 2.5rem;
+  }
+}
+
+/* Les preuves : deux panneaux du produit, posés en léger décalage. */
+.bx-proof {
+  display: grid;
+  gap: 1rem;
+  align-content: center;
+}
+
+.bx-panel {
+  padding: 1.5rem;
+  border-radius: var(--bx-radius);
+  background: var(--color-surface-1, var(--color-background));
+  color: var(--color-text-primary);
+  box-shadow: 0 24px 48px -24px color-mix(in srgb, black 45%, transparent);
+}
+
+.bx-panel-title {
+  margin: 0 0 1rem;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-secondary);
+}
+
+.bx-ledger {
+  margin: 0;
+}
+
+.bx-ledger > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-block: 0.75rem;
+  border-top: 1px solid var(--bx-line);
+  font-size: var(--font-size-sm);
+}
+
+.bx-ledger dt {
+  color: var(--color-text-secondary);
+}
+
+.bx-ledger dd {
+  margin: 0;
+  font-weight: var(--font-weight-bold);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+}
+
+.bx-ledger > div:first-child dd,
+.bx-ledger-bonus dd {
+  color: var(--color-primary-500);
+}
+
+.bx-badge {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem 1.25rem;
+}
+
+.bx-badge p {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+@media (min-width: 1024px) {
+  .bx-benefits-grid {
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    column-gap: 5rem;
+    align-items: center;
+  }
+
+  .bx-badge {
+    margin-left: 3rem;
+    margin-right: -1.5rem;
+  }
+}
+
+/* ── Rejoindre : l'os d'Ishango au-dessus des quatre étapes ────────────── */
+.bx-bone {
+  margin: 0 0 1.5rem;
+}
+
+.bx-steps {
+  display: grid;
+  gap: 2rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bx-step {
+  min-width: 0;
+}
+
+.bx-step-num {
+  display: block;
+  margin-bottom: 0.75rem;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary-500);
+  font-variant-numeric: tabular-nums;
+}
+
+.bx-steps-cta {
+  display: inline-flex;
+  margin-top: clamp(2.5rem, 5vw, 3.5rem);
+}
+
+@media (min-width: 768px) {
+  .bx-steps {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    column-gap: 2rem;
+  }
+}
+
+/* Sous 768 px les étapes s'empilent : la frise reste, en guise d'en-tête. */
+@media (max-width: 767.98px) {
+  .bx-bone {
+    max-width: 28rem;
+  }
+}
+
+/* ── La vitrine : de grandes fiches de projet ─────────────────────────
+   La couverture en 16:9, entière, jamais recadrée ; dessous, le projet dit
+   en grand. Le projet à la une prend toute la largeur, couverture et texte
+   côte à côte. Pas d'ombre : au survol, l'image avance d'un rien, le nom
+   passe au bleu d'IDEM et la flèche avance. */
+.bx-stats {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-secondary);
+}
+
+.bx-projects {
+  display: grid;
+  gap: clamp(3rem, 6vw, 4.5rem) clamp(1.5rem, 3vw, 2.5rem);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 900px) {
+  .bx-projects {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .bx-project-featured {
+    grid-column: 1 / -1;
+  }
+}
+
+.bx-projects > li {
+  display: flex;
+  min-width: 0;
+}
+
+.bx-project {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+}
+
+a.bx-project:focus-visible {
+  outline: 3px solid var(--color-primary-500);
+  outline-offset: 6px;
+  border-radius: 1.75rem;
+}
+
+.bx-project-media {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  border-radius: 1.5rem;
+  overflow: hidden;
+  isolation: isolate;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+}
+
+.bx-project-cover {
+  position: absolute;
+  inset: 0;
+}
+
+.bx-project-flag {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  padding: 0.4rem 0.85rem;
+  border-radius: 9999px;
+  background: color-mix(in srgb, white 90%, transparent);
+  color: #0f172a;
+  font-size: 0.75rem;
+  font-weight: var(--font-weight-bold);
+  backdrop-filter: blur(6px);
+}
+
+.bx-project-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding-top: 1.5rem;
+}
+
+.bx-project-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1.25rem;
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.bx-project-meta span + span::before {
+  content: '';
+  display: inline-block;
+  width: 0.3rem;
+  height: 0.3rem;
+  margin-right: 1.25rem;
+  margin-left: -0.15rem;
+  border-radius: 9999px;
+  background: currentColor;
+  vertical-align: middle;
+  opacity: 0.5;
+}
+
+.bx-project-name {
+  margin: 0.6rem 0 0;
+  font-size: clamp(1.75rem, 3vw, 2.5rem);
+  font-weight: var(--font-weight-black);
+  line-height: 1.05;
+  letter-spacing: -0.015em;
+  color: var(--color-text-primary);
+  text-wrap: balance;
+  transition: color 0.3s var(--bx-ease);
+}
+
+a.bx-project:hover .bx-project-name,
+a.bx-project:focus-visible .bx-project-name {
+  color: var(--color-primary-500);
+}
+
+.bx-project-desc {
+  display: -webkit-box;
+  margin: 0.85rem 0 0;
+  max-width: 40rem;
+  overflow: hidden;
+  font-size: var(--font-size-lg, 1.125rem);
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+.bx-project-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem 1.5rem;
+  margin-top: auto;
+  padding-top: 1.5rem;
+}
+
+/* Le porteur du projet : celui qui l'a présenté. */
+.bx-owner {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.bx-owner-avatar {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 9999px;
+  background: var(--color-primary-500);
+  color: var(--color-on-primary);
+  font-size: 0.8rem;
+  font-weight: var(--font-weight-bold);
+}
+
+.bx-owner-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.bx-owner-label {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+.bx-owner-name {
+  overflow: hidden;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* L'équipe en pile d'avatars. */
+.bx-avatars {
+  display: inline-flex;
+  flex: none;
+}
+
+.bx-avatars > img,
+.bx-avatars > span {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  margin-left: -0.5rem;
+  border-radius: 9999px;
+  border: 2px solid var(--color-background, var(--color-surface-1, white));
+  object-fit: cover;
+  background: color-mix(in srgb, var(--color-primary-500) 14%, var(--color-surface-1, white));
+  color: var(--color-primary-500);
+  font-size: 0.625rem;
+  font-weight: var(--font-weight-bold);
+}
+
+.bx-avatars > :first-child {
+  margin-left: 0;
+}
+
+.bx-project-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-left: auto;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary-500);
+  white-space: nowrap;
+}
+
+.bx-project-cta svg {
+  transition: transform 0.3s var(--bx-ease);
+}
+
+a.bx-project:hover .bx-project-cta svg,
+a.bx-project:focus-visible .bx-project-cta svg {
+  transform: translateX(4px);
+}
+
+/* Le projet à la une : couverture et récit côte à côte, en plus grand. */
+@media (min-width: 900px) {
+  .bx-project-featured .bx-project {
+    display: grid;
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    column-gap: clamp(2rem, 4vw, 3.5rem);
+    align-items: center;
+  }
+
+  .bx-project-featured .bx-project-body {
+    padding-top: 0;
+  }
+
+  .bx-project-featured .bx-project-name {
+    font-size: clamp(2.25rem, 4vw, 3.5rem);
+  }
+
+  .bx-project-featured .bx-project-desc {
+    -webkit-line-clamp: 5;
+  }
+
+  .bx-project-featured .bx-project-foot {
+    margin-top: 0;
+    padding-top: 2rem;
+  }
+}
+
+.bx-project-preview {
+  max-width: 30rem;
+  opacity: 0.92;
+}
+
+.bx-project-preview .bx-project-media {
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--color-primary-500) 45%, transparent);
+}
+
+/* Vide : l'aperçu de la fiche, puis l'invitation. */
+.bx-empty {
+  display: grid;
+  gap: 2.5rem;
+  align-items: center;
+}
+
+.bx-empty-title {
+  margin: 0;
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: var(--font-weight-bold);
+  line-height: 1.2;
+  color: var(--color-text-primary);
+  text-wrap: balance;
+}
+
+@media (min-width: 768px) {
+  .bx-empty {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    column-gap: 4rem;
+  }
+}
+
+/* ── Questions ────────────────────────────────────────────────────────── */
+.bx-faq {
+  display: grid;
+  gap: 3rem;
+}
+
+.bx-faq-art {
+  margin: 2rem 0;
+  width: min(100%, 13rem);
+}
+
+.bx-faq-list {
+  border-top: 1px solid var(--bx-line);
+  align-self: start;
+}
+
+.bx-question {
+  border-bottom: 1px solid var(--bx-line);
+}
+
+.bx-question summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding-block: 1.35rem;
+  cursor: pointer;
+  list-style: none;
+  font-size: var(--font-size-lg, 1.125rem);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+}
+
+.bx-question summary::-webkit-details-marker {
+  display: none;
+}
+
+.bx-question summary:focus-visible {
+  outline: 2px solid var(--color-primary-500);
+  outline-offset: 4px;
+  border-radius: 0.25rem;
+}
+
+.bx-question > p {
+  margin: 0;
+  max-width: 40rem;
+  padding-bottom: 1.5rem;
+}
+
+.bx-toggle {
+  position: relative;
+  flex: none;
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.bx-toggle::before,
+.bx-toggle::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 100%;
+  height: 2px;
+  margin-top: -1px;
+  background: var(--color-primary-500);
+  transition: transform 0.3s var(--bx-ease);
+}
+
+.bx-toggle::after {
+  transform: rotate(90deg);
+}
+
+.bx-question[open] .bx-toggle::after {
+  transform: rotate(0deg);
+}
+
+@media (min-width: 1024px) {
+  .bx-faq {
+    grid-template-columns: minmax(0, 4fr) minmax(0, 7fr);
+    column-gap: 5rem;
+  }
+}
+
+/* ── L'appel ──────────────────────────────────────────────────────────── */
+.bx-cta {
+  display: grid;
+  gap: 2rem;
+}
+
+.bx-cta-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+@media (min-width: 1024px) {
+  .bx-cta {
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    column-gap: 4rem;
+    align-items: end;
+  }
+
+  .bx-cta-actions {
+    justify-content: flex-end;
+  }
+}
+
+/* ── Mouvement ────────────────────────────────────────────────────────── */
+/* Les étapes, les avantages et les fiches glissent en entrant, l'un après
+   l'autre. Jamais d'opacité à zéro : sans timeline de défilement, ou au
+   prérendu, tout est visible tel quel. */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .bx-step,
+    .bx-projects > li,
+    .bx-benefit {
+      animation: bx-rise linear both;
+      animation-timeline: view();
+      animation-range: entry 10% entry 70%;
+    }
+  }
+}
+
+@keyframes bx-rise {
+  from {
+    transform: translateY(1.25rem);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bx-project-name,
+  .bx-project-cta svg,
+  .bx-toggle::before,
+  .bx-toggle::after {
+    transition: none;
+  }
+
+  a.bx-project:hover .bx-project-cta svg {
+    transform: none;
+  }
+}

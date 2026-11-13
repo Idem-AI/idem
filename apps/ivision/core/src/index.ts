@@ -7,6 +7,7 @@
  */
 export { configureCore, coreHost, requirePort, type CoreHost, type CoreStorage, type ImageOptions, type VisionOptions } from './runtime/host';
 export { setCoreLogger } from './runtime/logger';
+export { creativeStatus } from './creative.status';
 
 export type { BrandKit, BrandVoice, BrandPalette } from './brand/brand-kit';
 
@@ -15,6 +16,8 @@ export type { VideoStore, VideoBrandContext } from './video/contracts/store';
 export { normalizeScope, videoCost, exportCost, setVideoPricingBase } from './video/pricing';
 export { videoOptions } from './video/options';
 export { closeFilmBrowser } from './video/rendering/runner';
+// Le catalogue vidéo (dépôt idem-templates, `catalog/videos/`) : état et relecture après une publication.
+export { videoCatalog, refreshVideoCatalog } from './video/catalog/registry';
 
 export { composeVisual, type VisualPorts } from './visual/visual.composer';
 export { visualBrandingFromKit, visualContextFromBrand } from './visual/visual.context';

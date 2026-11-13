@@ -161,6 +161,11 @@ Choisir l'élément par le **sens**, jamais par le décor :
 | S'abriter des imprévus, protéger d'une crise | Kyinie (ombrelle d'apparat akan, « le roi couvre ») |
 | Partir faire sa vie, choisir sa route, définir son projet | Croix d'Agadez (« je te donne les quatre coins du monde ») |
 | Adresse, nom de domaine, être trouvé à son nom | Façade ndebele peinte |
+| Être reconnu, mis en avant par une communauté (Idem Builders) | Pagne commémoratif imprimé, médaillon aux briques de banco |
+| Faire tourner au quotidien, le travail de chaque jour | Mortier et pilon |
+| Payer la juste quantité, au détail, ce qu'on garde | Mesure du marché (bol à grain arasé) |
+| Compter, avancer étape par étape (frise d'étapes) | Os d'Ishango et ses encoches groupées |
+| Questions et réponses, l'appel et la réponse | Cloche double gankogui (ewe) |
 
 ### Quand aucun objet ne colle : chercher, dessiner, ajouter
 

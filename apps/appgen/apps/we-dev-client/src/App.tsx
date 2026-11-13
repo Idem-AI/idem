@@ -10,7 +10,6 @@ import './utils/i18';
 import { ChatMode } from './types/chat';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { UpdateTip } from './components/UpdateTip';
 import useInit from './hooks/useInit';
 import { Loading } from './components/loading';
 import TopViewContainer from './components/TopView';
@@ -154,7 +153,6 @@ function App() {
           }
         />
       </div>
-      <UpdateTip />
       <ToastContainer
         position="top-center"
         autoClose={2000}

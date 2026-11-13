@@ -31,10 +31,12 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { createReadStream, existsSync, mkdirSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import { closeSync, createReadStream, existsSync, mkdirSync, openSync, readdirSync, readFileSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import { rename, writeFile } from 'node:fs/promises';
-import { join, resolve } from 'node:path';
-import { createHash, timingSafeEqual } from 'node:crypto';
+import { dirname, join, resolve } from 'node:path';
+import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
+import { spawn } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import { BuildTarget } from '../config/buildTarget.js';
 import { buildScaffold } from '../scaffold/index.js';
 import { BAKED_TARGETS, DepsPlan, depsPlanFromFiles, treeFingerprint, treeManifest } from '../scaffold/deps.js';
@@ -48,8 +50,34 @@ const router = Router();
  */
 const CACHE_DIR = resolve(process.env.APPGEN_DEPS_CACHE_DIR ?? 'deps-cache');
 
-/** Le dépôt d'un instantané est réservé au four. Sans jeton, pas de dépôt. */
-const BAKE_TOKEN = process.env.APPGEN_DEPS_BAKE_TOKEN ?? '';
+const PRODUCTION = process.env.NODE_ENV === 'production';
+
+/**
+ * Le dépôt d'un instantané est réservé au four. Sans jeton, pas de dépôt.
+ *
+ * En développement, sans jeton configuré, un jeton local est tiré une fois et gardé dans le dossier des
+ * instantanés (lisible par ce seul utilisateur) : le four automatique s'en sert, et il survit aux redémarrages de
+ * `tsx watch` — un four lancé avant un redémarrage peut encore déposer. En production, jamais de jeton implicite.
+ */
+const BAKE_TOKEN = process.env.APPGEN_DEPS_BAKE_TOKEN || (PRODUCTION ? '' : localBakeToken());
+
+function localBakeToken(): string {
+  const file = join(CACHE_DIR, '.bake-token');
+  try {
+    const known = readFileSync(file, 'utf8').trim();
+    if (/^[a-f0-9]{48}$/.test(known)) return known;
+  } catch {
+    /* pas encore tiré */
+  }
+  try {
+    mkdirSync(CACHE_DIR, { recursive: true });
+    const token = randomBytes(24).toString('hex');
+    writeFileSync(file, `${token}\n`, { mode: 0o600 });
+    return token;
+  } catch {
+    return '';
+  }
+}
 
 /** Un arbre `node_modules` complet pèse de 20 à 60 Mo compressé. */
 const MAX_SNAPSHOT_BYTES = 256 * 1024 * 1024;
@@ -131,18 +159,20 @@ router.post('/startup', (req: Request, res: Response) => {
   const body = (req.body ?? {}) as Record<string, unknown>;
   const ms = Math.round(Number(body.ms) || 0);
   if (!ms || ms > 30 * 60_000) return res.status(400).json({ error: 'Bad measure.' });
-  const phases = body.phases && typeof body.phases === 'object' ? Object.fromEntries(Object.entries(body.phases as Record<string, unknown>).slice(0, 12).map(([k, v]) => [String(k).slice(0, 30), Math.round(Number(v) || 0)])) : {};
-  ChatLogger.setContext('DepsRoute');
+  const phases = body.phases && typeof body.phases === 'object' ? Object.fromEntries(Object.entries(body.phases as Record<string, unknown>).slice(0, 20).map(([k, v]) => [String(k).slice(0, 30), Math.round(Number(v) || 0)])) : {};
   const entry = {
+    component: 'DepsRoute',
     target: String(body.target ?? '').slice(0, 20),
     trigger: String(body.trigger ?? '').slice(0, 30),
+    // `page` : mesuré jusqu'à la page chargée dans l'aperçu ; `no-page` : jusqu'au serveur seulement.
+    end: String(body.end ?? '').slice(0, 10),
     ms,
     withinBudget: ms <= 20_000,
     sources: Array.isArray(body.sources) ? (body.sources as unknown[]).map((s) => String(s).slice(0, 40)).slice(0, 6) : [],
     phases,
   };
-  if (entry.withinBudget) ChatLogger.info('STARTUP', 'Aperçu prêt', entry);
-  else ChatLogger.warn('STARTUP', 'Aperçu au-delà de 20 s', entry);
+  if (entry.withinBudget) ChatLogger.info('STARTUP', 'Page affichée', entry);
+  else ChatLogger.warn('STARTUP', 'Page affichée au-delà de 20 s', entry);
   return res.status(204).end();
 });
 
@@ -314,8 +344,8 @@ router.put('/:target/:fingerprint/:id', async (req: Request, res: Response) => {
   };
   await writeFile(metaPath(target, fingerprint, id), `${JSON.stringify(meta, null, 2)}\n`);
 
-  ChatLogger.setContext('DepsRoute');
   ChatLogger.info('DEPS_BAKED', 'Dependency snapshot stored', {
+    component: 'DepsRoute',
     target,
     tree: id,
     fingerprint,
@@ -350,7 +380,12 @@ router.get('/', (_req: Request, res: Response) => {
 
 /**
  * Au démarrage du serveur : ce qui n'est pas encore cuit. Un arbre sans instantané, c'est trois minutes de
- * `npm install` à la première ouverture de chaque atelier — dit fort dans les journaux, avec la commande qui répare.
+ * `npm install` à la première ouverture de chaque atelier.
+ *
+ * En développement (et en production si `APPGEN_DEPS_AUTOBAKE=on`), le four part TOUT SEUL, en arrière-plan : il
+ * attend que l'atelier réponde, l'ouvre dans un Chrome sans écran (`scripts/bake-deps.mjs`), cuit ce qui manque et
+ * dépose ici. Plus de commande à penser à lancer, plus d'avertissement à chaque démarrage : un avertissement reste
+ * seulement quand le four ne peut pas partir ou échoue.
  */
 export function reportBakedSnapshots(): void {
   const missing: string[] = [];
@@ -362,9 +397,123 @@ export function reportBakedSnapshots(): void {
       }
     }
   }
-  ChatLogger.setContext('DepsRoute');
-  if (missing.length) ChatLogger.warn('DEPS_MISSING', `Instantanés à cuire : npm run deps:bake (${missing.length})`, { missing, cacheDir: CACHE_DIR });
-  else ChatLogger.info('DEPS_READY', 'Tous les instantanés de dépendances sont cuits', { cacheDir: CACHE_DIR });
+  const fields = { component: 'DepsRoute', cacheDir: CACHE_DIR };
+  if (!missing.length) {
+    ChatLogger.info('DEPS_READY', 'Tous les instantanés de dépendances sont cuits', fields);
+    return;
+  }
+  // Une seule cuisson automatique par processus : un arbre qui manque encore après elle est un vrai problème.
+  const why = autoBakeTried ? 'déjà tenté depuis le démarrage, sans tout cuire' : autoBakeBlocker();
+  if (why) {
+    ChatLogger.warn('DEPS_MISSING', `Instantanés à cuire : npm run deps:bake (${missing.length})`, { ...fields, missing, autoBake: why });
+    return;
+  }
+  ChatLogger.info('DEPS_MISSING', `Instantanés à cuire (${missing.length}) : four automatique en arrière-plan`, { ...fields, missing });
+  autoBakeTried = true;
+  void autoBake();
+}
+
+let autoBakeTried = false;
+
+const AUTOBAKE = (process.env.APPGEN_DEPS_AUTOBAKE ?? (PRODUCTION ? 'off' : 'on')).toLowerCase() !== 'off';
+const ICODE_URL = (process.env.ICODE_URL || 'http://localhost:5173').replace(/\/+$/, '');
+/** Le temps laissé à l'atelier pour répondre (il démarre souvent après ce serveur). */
+const CLIENT_WAIT_MS = 15 * 60_000;
+const LOCK_FILE = join(CACHE_DIR, '.bake.lock');
+const BAKE_SCRIPT = resolve(dirname(fileURLToPath(import.meta.url)), '../../scripts/bake-deps.mjs');
+
+/** Pourquoi le four automatique ne peut pas partir, ou `null`. */
+function autoBakeBlocker(): string | null {
+  if (!AUTOBAKE) return 'désactivé (APPGEN_DEPS_AUTOBAKE=off)';
+  if (!BAKE_TOKEN) return 'aucun jeton de dépôt (APPGEN_DEPS_BAKE_TOKEN)';
+  if (!existsSync(BAKE_SCRIPT)) return 'script du four introuvable';
+  return null;
+}
+
+/** Un four déjà lancé par un autre processus (redémarrage de `tsx watch`, seconde instance) et toujours vivant. */
+function bakeRunning(): boolean {
+  try {
+    const pid = Number(readFileSync(LOCK_FILE, 'utf8').trim());
+    if (!pid) return false;
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function clientAnswers(): Promise<boolean> {
+  try {
+    const response = await fetch(ICODE_URL, { signal: AbortSignal.timeout(5000) });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
+async function autoBake(): Promise<void> {
+  const fields = { component: 'DepsRoute' };
+  if (bakeRunning()) {
+    ChatLogger.info('DEPS_BAKE', 'Four déjà en cours (lancé avant un redémarrage) : suivi', fields);
+    watchBake(Date.now());
+    return;
+  }
+  const deadline = Date.now() + CLIENT_WAIT_MS;
+  while (!(await clientAnswers())) {
+    if (Date.now() > deadline) {
+      ChatLogger.warn('DEPS_BAKE', `Four automatique abandonné : l'atelier ne répond pas sur ${ICODE_URL} (ICODE_URL)`, fields);
+      return;
+    }
+    await new Promise((done) => setTimeout(done, 10_000));
+  }
+  if (bakeRunning()) return watchBake(Date.now());
+
+  // Détaché, sa sortie dans un fichier : un redémarrage de ce serveur (`tsx watch` à chaque modification) ne l'arrête
+  // plus. Lié par un tube, il mourait avec lui et laissait son Chrome orphelin.
+  mkdirSync(CACHE_DIR, { recursive: true });
+  const log = openSync(BAKE_LOG, 'w');
+  const child = spawn(process.execPath, [BAKE_SCRIPT], {
+    env: { ...process.env, APPGEN_DEPS_BAKE_TOKEN: BAKE_TOKEN, ICODE_URL },
+    stdio: ['ignore', log, log],
+    detached: true,
+  });
+  child.unref();
+  closeSync(log);
+  try {
+    writeFileSync(LOCK_FILE, String(child.pid ?? ''));
+  } catch {
+    /* sans verrou, au pire deux fours : le second ne recuit que ce qui manque encore */
+  }
+  ChatLogger.info('DEPS_BAKE', 'Four automatique lancé (Chrome sans écran)', { ...fields, url: ICODE_URL, pid: child.pid, log: BAKE_LOG });
+  watchBake(Date.now());
+}
+
+const BAKE_LOG = join(CACHE_DIR, 'bake.log');
+
+/** Suit le four (le sien ou celui d'un processus précédent) et dit comment il a fini. */
+function watchBake(since: number): void {
+  const fields = { component: 'DepsRoute' };
+  const timer = setInterval(() => {
+    if (bakeRunning()) return;
+    clearInterval(timer);
+    try {
+      unlinkSync(LOCK_FILE);
+    } catch {
+      /* déjà retiré */
+    }
+    let tail = '';
+    try {
+      tail = readFileSync(BAKE_LOG, 'utf8').slice(-4000);
+    } catch {
+      /* pas de journal */
+    }
+    const trees = tail.split('\n').filter((line) => /^[✓✗] /.test(line.trim())).map((line) => line.trim());
+    const missing = BAKED_TARGETS.flatMap((target) => planFor(target).trees.filter((tree) => !existsSync(snapshotPath(target, treeFingerprint(tree), tree.id))).map((tree) => `${target}/${tree.id}`));
+    const minutes = Math.round((Date.now() - since) / 6000) / 10;
+    if (!missing.length) ChatLogger.info('DEPS_BAKE', `Four automatique terminé (${minutes} min suivies) : tous les instantanés sont cuits`, { ...fields, trees });
+    else ChatLogger.warn('DEPS_BAKE', `Four automatique terminé sans tout cuire (${missing.length}) : voir ${BAKE_LOG}`, { ...fields, missing, trees, tail: tail.slice(-600) });
+  }, 15_000);
+  timer.unref();
 }
 
 export default router;

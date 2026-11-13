@@ -1,0 +1,108 @@
+<div class="overflow-x-clip">
+  <!-- Héros : tester avant d'y mettre un franc, payé en mobile money -->
+  <section class="wrap hero">
+    <div class="hero-copy">
+      <h1 class="hero-title">
+        {{ 'pricePage.hero.title' | translate }}
+        <span class="i-underline">{{ 'pricePage.hero.titleAccent' | translate }}</span>
+      </h1>
+      <p class="mt-7 max-w-xl text-lg leading-relaxed text-text-secondary">{{ 'pricePage.hero.lead' | translate }}</p>
+      <div class="mt-9 flex flex-wrap items-center gap-3">
+        <a class="inner-button button-lg" routerLink="/simulations/new">{{ 'pricePage.hero.cta' | translate }}</a>
+        <a class="outer-button button-lg" href="#offres">{{ 'pricePage.hero.secondary' | translate }}</a>
+      </div>
+      <idem-pay-strip class="mt-8" [lang]="language.language()" />
+    </div>
+    <sim-illustration name="pole" class="hero-art" />
+  </section>
+
+  <!-- 0 F pour la première analyse -->
+  <section class="wrap">
+    <div class="free">
+      <p class="free-zero">0&#8239;F</p>
+      <div class="min-w-0 flex-1">
+        <p class="free-title">{{ 'pricePage.free.title' | translate }}</p>
+        <p class="free-text">{{ 'pricePage.free.text' | translate }}</p>
+      </div>
+      <a class="outer-button" routerLink="/simulations/new">{{ 'pricePage.free.cta' | translate }}</a>
+    </div>
+  </section>
+
+  <!-- Trois offres, la simulation complète au centre -->
+  <section id="offres" class="wrap block-space scroll-mt-24" aria-labelledby="offres-title">
+    <h2 id="offres-title" class="section-title">{{ 'pricePage.offers.title' | translate }}</h2>
+    <p class="mt-4 max-w-2xl text-lg text-text-secondary">{{ 'pricePage.offers.lead' | translate }}</p>
+
+    <div class="offers">
+      @for (offer of offers(); track offer.key) {
+        <article class="offer" [class.offer-recommended]="offer.recommended" [attr.aria-labelledby]="'offer-' + offer.key">
+          @if (offer.recommended) {
+            <p class="offer-flag">{{ 'pricePage.offers.recommended' | translate }}</p>
+          }
+          <p class="offer-who">{{ 'pricePage.offers.' + offer.key + '.who' | translate }}</p>
+          <h3 class="offer-name" [id]="'offer-' + offer.key">{{ 'pricePage.offers.' + offer.key + '.name' | translate }}</h3>
+
+          <div class="offer-price">
+            @if (offer.anchor) {
+              <p class="offer-anchor"><del>{{ 'pricePage.offers.anchor' | translate: { amount: amount(offer.publicXaf) } }}</del></p>
+            }
+            <p class="offer-amount"><idem-promo-price [item]="offer.item" [xaf]="offer.xaf" unit="F" /></p>
+            <p class="offer-cadence">{{ 'pricePage.offers.' + offer.key + '.cadence' | translate }}</p>
+          </div>
+
+          <ul class="offer-list">
+            @for (line of ('pricePage.offers.' + offer.key + '.bullets' | translate); track $index) {
+              <li>
+                <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5 L6.5 12 L13 4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                <span>{{ line }}</span>
+              </li>
+            }
+          </ul>
+
+          <a class="offer-cta" [class]="offer.recommended ? 'inner-button' : 'outer-button'" routerLink="/simulations/new">{{ 'pricePage.offers.' + offer.key + '.cta' | translate }}</a>
+          <p class="offer-foot">{{ 'pricePage.offers.' + offer.key + '.foot' | translate }}</p>
+        </article>
+      }
+    </div>
+  </section>
+
+  <!-- Ce qui vous protège -->
+  <section class="wrap block-bottom" aria-labelledby="garanties-title">
+    <h2 id="garanties-title" class="section-title">{{ 'pricePage.guarantees.title' | translate }}</h2>
+    <ul class="guarantees">
+      @for (g of guarantees; track g) {
+        <li>
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5 L6.5 12 L13 4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg>
+          <div>
+            <p class="guarantee-title">{{ 'pricePage.guarantees.' + g + '.title' | translate }}</p>
+            <p class="guarantee-text">{{ 'pricePage.guarantees.' + g + '.text' | translate }}</p>
+          </div>
+        </li>
+      }
+    </ul>
+  </section>
+
+  <!-- Le paiement : la même section sur toutes les landings (pleine largeur) -->
+  <div class="wrap">
+    <idem-pay-section ctaHref="/simulations/new" [ctaLabel]="'pricePage.pay.cta' | translate" [lang]="language.language()" />
+  </div>
+
+  <!-- Questions -->
+  <section class="wrap block-space" aria-labelledby="faq-title">
+    <h2 id="faq-title" class="section-title">{{ 'pricePage.faq.title' | translate }}</h2>
+    <div class="faq">
+      @for (q of faq; track q) {
+        <details>
+          <summary>{{ 'pricePage.faq.' + q + '.q' | translate }}</summary>
+          <p>{{ 'pricePage.faq.' + q + '.a' | translate }}</p>
+        </details>
+      }
+    </div>
+  </section>
+
+  <!-- Dernier appel -->
+  <section class="wrap final">
+    <h2 class="section-title max-w-2xl">{{ 'pricePage.final.title' | translate }}</h2>
+    <a class="inner-button button-lg" routerLink="/simulations/new">{{ 'pricePage.final.cta' | translate }}</a>
+  </section>
+</div>

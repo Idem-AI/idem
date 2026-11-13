@@ -75,6 +75,11 @@
       "eyebrow": "Page not found",
       "title": "This page no longer exists",
       "subtitle": "Head back home to build and launch your profitable business."
+    },
+    "builders": {
+      "eyebrow": "Idem Builders",
+      "title": "Built with IDEM, carried by Africa",
+      "subtitle": "The programme that showcases African projects run with IDEM: visibility, discounts and bonuses."
     }
   }
 }

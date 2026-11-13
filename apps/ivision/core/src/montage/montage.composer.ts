@@ -129,7 +129,7 @@ export async function composeMontageHtml(opts: ComposeMontageOptions): Promise<{
     speechEnd,
     /** Instant où la vidéo filmée commence (après l'intro). */
     videoStart: introSec,
-    intro: montage.intro ? { title: montage.intro.title, kicker: montage.intro.kicker, end: introSec } : null,
+    intro: montage.intro ? { title: montage.intro.title, end: introSec } : null,
     video: opts.videoUrl,
     poster: montage.edit?.posterUrl,
     music: opts.mode === 'preview' && opts.musicUrl ? { url: opts.musicUrl, startAt: montage.music?.startAt || 0 } : undefined,
@@ -156,7 +156,7 @@ export async function composeMontageHtml(opts: ComposeMontageOptions): Promise<{
     square: spec.width === spec.height,
   };
   const json = JSON.stringify(data).replace(/</g, '\\u003c');
-  const allText = [theme.brandName, montage.intro?.title, montage.intro?.kicker, ...montage.words.map((w) => w.text), ...elements.flatMap((e) => [e.text, e.value, e.label, ...(e.items || [])]), outro?.text, outro?.detail].filter(Boolean).join(' ');
+  const allText = [theme.brandName, montage.intro?.title, ...montage.words.map((w) => w.text), ...elements.flatMap((e) => [e.text, e.value, e.label, ...(e.items || [])]), outro?.text, outro?.detail].filter(Boolean).join(' ');
   const fonts = opts.mode === 'render' ? await inlineFontLinks(theme.fonts.links, allText) : theme.fonts.links;
   const html = `<!doctype html>
 <html lang="${montage.language || 'fr'}"><head><meta charset="utf-8">

@@ -11,7 +11,7 @@
 import type { Issue } from '../contracts/common';
 import type { Block, BlockDraft, CardField, SectionContent, SectionRole } from '../contracts/content-model';
 import { CARD_FIELDS } from '../contracts/content-model';
-import { normalizeSection, NormalizeOptions } from '../contracts/normalize';
+import { clip, normalizeIntent, normalizeSection, NormalizeOptions } from '../contracts/normalize';
 import { looksLikeHtmlPage, salvageHtmlSection } from '../contracts/salvage';
 import type { SectionOutput } from '../engine';
 import { parseJsonObject } from '../foundation/json';
@@ -25,8 +25,8 @@ export interface SectionFromModelOptions {
   prepend?: Array<BlockDraft | Block>;
   /** Blocs posés par le code après ceux du modèle (références d'une section sourcée). */
   append?: Array<BlockDraft | Block>;
-  /** La nomenclature du livrable l'emporte sur le titre du modèle — et son sur-titre avec lui. */
-  heading?: { title: string; kicker?: string };
+  /** La nomenclature du livrable l'emporte sur le titre du modèle. */
+  heading?: { title: string };
   /** Recompose les blocs (spécimens compris) : le logo et son explication dans UN objet graphique. */
   compose?: (blocks: Block[]) => Block[];
   /** Titre de repli d'une page récupérée sans titre. */
@@ -53,6 +53,28 @@ export function systemBlocks(raw: unknown[], prefix = 'sys'): Block[] {
 }
 
 /**
+ * Une section PORTEUSE : les mots du rédacteur (titre, chapô, notes, intention) sans aucun bloc de lui — les
+ * blocs viennent du code. Son titre est celui du livrable, ou celui qu'il a écrit, ou le repli : une page dont
+ * le code fait tout le contenu n'a pas besoin de lui pour exister.
+ */
+function carrier(raw: unknown, o: SectionFromModelOptions): SectionContent | null {
+  const input = (raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {}) as Record<string, unknown>;
+  const title = clip(o.heading?.title ?? input.title ?? o.fallbackTitle, 160);
+  if (!title) return null;
+  const intent = normalizeIntent(input.intent ?? input.visual, o.intent);
+  const notes = typeof input.notes === 'string' ? input.notes.replace(/\s+/g, ' ').trim().slice(0, 4000) : '';
+  return {
+    id: o.id,
+    title,
+    blocks: [],
+    ...(o.role ? { role: o.role } : {}),
+    ...(clip(input.lede, 320) ? { lede: clip(input.lede, 320) } : {}),
+    ...(intent ? { intent } : {}),
+    ...(notes ? { notes } : {}),
+  };
+}
+
+/**
  * La sortie d'un rédacteur → une section. `raw` est un objet déjà lu (l'hôte a son propre réparateur de
  * JSON tronqué) ou le texte brut. `section: null` : rien d'exploitable — l'appelant traite la section comme
  * échouée (jamais une page de JSON brut).
@@ -67,18 +89,21 @@ export function sectionFromModel(raw: unknown, o: SectionFromModelOptions): Sect
     } else input = parseJsonObject(raw);
   }
   const model = input ? normalizeSection(input, { id: o.id, role: o.role, allow: o.allow ?? 'model', intent: o.intent }) : { section: null, notes: [] as Issue[] };
-  if (!model.section) return { section: null, notes: model.notes, salvaged };
+  // LE CODE A DE QUOI FAIRE LA PAGE. Quand des blocs sont posés par le code (chiffres du module Finance,
+  // spécimens de la charte), une sortie sans bloc exploitable ne coûte plus la page : le titre et les notes du
+  // rédacteur suffisent. Exiger un bloc de lui faisait échouer la section alors qu'il n'avait plus rien à y
+  // placer (slide des projections du deck, 05/11/2026).
+  const written = model.section ?? (o.prepend?.length || o.append?.length ? carrier(input, o) : null);
+  if (!written) return { section: null, notes: model.notes, salvaged };
   // Un chiffre-clé sans chiffre (« Échec », un libellé recopié dans la valeur) n'est pas montré comme un indicateur,
   // ni un graphique dont toutes les valeurs sont égales.
-  const figures = figuresOnly(model.section.blocks);
+  const figures = figuresOnly(written.blocks);
   if (figures.dropped.length) model.notes.push({ code: 'metric_without_figure', severity: 'advisory', message: `Chiffres-clés sans chiffre ou graphiques sans information retirés : ${figures.dropped.slice(0, 4).join(', ')}`.slice(0, 380) });
   const blocks = [...systemBlocks(o.prepend ?? [], 'sys'), ...figures.blocks, ...systemBlocks(o.append ?? [], 'ref')];
   const composed = o.compose ? o.compose(blocks) : blocks;
-  const headed: Record<string, unknown> = { ...model.section, blocks: composed };
+  const headed: Record<string, unknown> = { ...written, blocks: composed };
   if (o.heading) {
     headed.title = o.heading.title;
-    if (o.heading.kicker) headed.kicker = o.heading.kicker;
-    else delete headed.kicker;
   }
   if (o.role) headed.role = o.role;
   const final = normalizeSection(headed, { id: o.id, role: o.role, allow: 'all' });
@@ -86,8 +111,8 @@ export function sectionFromModel(raw: unknown, o: SectionFromModelOptions): Sect
 }
 
 /** Une section entièrement posée par le code (page de spécimens, page de références). */
-export function systemSection(o: { id: string; title: string; kicker?: string; lede?: string; role?: SectionRole; blocks: Array<BlockDraft | Block> }): SectionContent | null {
-  return normalizeSection({ title: o.title, ...(o.kicker ? { kicker: o.kicker } : {}), ...(o.lede ? { lede: o.lede } : {}), blocks: systemBlocks(o.blocks) }, { id: o.id, role: o.role, allow: 'all' }).section;
+export function systemSection(o: { id: string; title: string; lede?: string; role?: SectionRole; blocks: Array<BlockDraft | Block> }): SectionContent | null {
+  return normalizeSection({ title: o.title, ...(o.lede ? { lede: o.lede } : {}), blocks: systemBlocks(o.blocks) }, { id: o.id, role: o.role, allow: 'all' }).section;
 }
 
 /**
@@ -101,14 +126,13 @@ export function sectionHtml(out: Pick<SectionOutput, 'result'>): string {
 // ── Les toiles qui ne sont pas rédigées en sections ─────────────────────────────────────────
 
 /** La couverture d'un livrable : le nom, ce qu'il est, sa promesse — des mots, jamais une mise en page. */
-export function coverContent(o: { id?: string; brandName: string; documentLabel: string; kicker?: string; promise?: string; detail?: string; dateLabel?: string; image?: { subject: string; framing?: string; mood?: string } }): SectionContent {
+export function coverContent(o: { id?: string; brandName: string; documentLabel: string; promise?: string; detail?: string; dateLabel?: string; image?: { subject: string; framing?: string; mood?: string } }): SectionContent {
   const clip = (v: string | undefined, max: number) => (v && v.trim() ? v.trim().slice(0, max) : undefined);
   const block = {
     id: 'cover',
     kind: 'cover' as const,
     brandName: clip(o.brandName, 80) ?? 'Marque',
     documentLabel: clip(o.documentLabel, 60) ?? 'Document',
-    ...(clip(o.kicker, 80) ? { kicker: clip(o.kicker, 80) } : {}),
     ...(clip(o.promise, 200) ? { promise: clip(o.promise, 200) } : {}),
     ...(clip(o.detail, 80) ? { detail: clip(o.detail, 80) } : {}),
     ...(clip(o.dateLabel, 40) ? { dateLabel: clip(o.dateLabel, 40) } : {}),
@@ -130,7 +154,6 @@ export function cardFaces(o: { binding: 'markers' | 'values'; fields?: Partial<R
 }
 
 export interface VisualCopy {
-  kicker?: string;
   headline: string;
   subhead?: string;
   body?: string;

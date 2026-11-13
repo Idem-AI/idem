@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="168" height="44" viewBox="0 0 168 44" role="img" aria-label="Idem Builder">
+  <!-- Badge Idem Builder, posé sur les sites des membres (conditions, art. 7).
+       Fichier autonome : couleurs écrites en dur, comme dans un e-mail, car il
+       s'affiche hors du design system, sur des fonds que nous ne choisissons pas.
+       Le médaillon du pagne commémoratif reprend l'illustration du programme. -->
+  <rect x="0.5" y="0.5" width="167" height="43" rx="10" fill="#ffffff" stroke="#e5e7eb"/>
+  <g fill="none" stroke="#1447e6" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="22" cy="22" r="12" stroke-width="1.8"/>
+    <circle cx="22" cy="22" r="8.5" stroke-width="1" stroke-dasharray="1.2 2"/>
+    <rect x="16.5" y="23.5" width="11" height="4" rx="0.7" stroke-width="1.5"/>
+    <rect x="18" y="19.5" width="8" height="4" rx="0.7" stroke-width="1.5"/>
+    <rect x="19.5" y="15.5" width="5" height="4" rx="0.7" stroke-width="1.5"/>
+  </g>
+  <text x="42" y="19" font-family="'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="9" font-weight="600" letter-spacing=".08em" fill="#6b7280">MEMBRE · MEMBER</text>
+  <text x="42" y="33" font-family="'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="14" font-weight="700" fill="#0f172a">Idem Builder</text>
+</svg>

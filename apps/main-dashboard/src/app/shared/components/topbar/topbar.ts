@@ -320,6 +320,7 @@ export class TopbarComponent {
     { route: '/account', icon: 'pi pi-wallet', labelKey: 'account.title' },
     { route: '/account/profile', icon: 'pi pi-user', labelKey: 'dashboard.sidebar.userMenu.profile' },
     { route: '/projects', icon: 'pi pi-folder', labelKey: 'dashboard.sidebar.viewAllProjects' },
+    { route: '/builders', icon: 'pi pi-verified', labelKey: 'builders.navLabel' },
   ];
 
   /**

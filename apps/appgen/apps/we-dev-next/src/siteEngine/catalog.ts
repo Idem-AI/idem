@@ -48,6 +48,12 @@ Lien d'action : <Button asChild><a href="/contact">Nous écrire</a></Button>. Ic
     usage: `<Container>…</Container> — largeur de contenu et marges latérales du thème. <Container wide> : pleine largeur avec marges.`,
   },
   {
+    module: 'counter',
+    exports: ['Counter'],
+    core: true,
+    usage: `<Counter value="1 200 F" /> — le chiffre compte jusqu'à sa valeur quand il entre dans l'écran. Il n'invente aucun chiffre : passe-lui le TEXTE EXACT du contenu, il n'anime que la partie numérique. Sans mouvement (préférence système) ou sans chiffre, la valeur s'affiche telle quelle.`,
+  },
+  {
     module: 'section',
     exports: ['Section'],
     core: true,
@@ -153,8 +159,6 @@ variant: outline | flat | elevated | filled (défaut : celle du thème). Bordure
   },
   { module: 'switch', exports: ['Switch'], usage: `<Switch id="s" aria-label="…" />` },
 ];
-
-export const CATALOG_MODULES = new Set(CATALOG.map((entry) => entry.module));
 
 export const catalogEntry = (module: string): ComponentContract | undefined =>
   CATALOG.find((entry) => entry.module === module);

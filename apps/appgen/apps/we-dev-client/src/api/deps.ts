@@ -153,15 +153,19 @@ export async function putSnapshot(
   if (options.unpackedBytes) headers['X-Idem-Unpacked-Bytes'] = String(options.unpackedBytes);
   if (options.verified) headers['X-Idem-Verified'] = options.verified;
 
-  const response = await fetch(
-    `${apiBase()}/api/scaffold/deps/${target}/${tree.fingerprint}/${tree.id}`,
-    {
+  let response: Response;
+  try {
+    response = await fetch(`${apiBase()}/api/scaffold/deps/${target}/${tree.fingerprint}/${tree.id}`, {
       method: 'PUT',
       credentials: 'include',
       headers,
       body: gzipped as unknown as BodyInit,
-    }
-  );
+    });
+  } catch (error) {
+    // Refus CORS, serveur arrêté : dit comme un dépôt refusé. Lancée, l'erreur bloquait le four automatique sans
+    // fin (le résultat n'était jamais posé).
+    return { stored: false, error: error instanceof Error ? error.message : String(error) };
+  }
 
   if (!response.ok) {
     let error = `HTTP ${response.status}`;

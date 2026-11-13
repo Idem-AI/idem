@@ -9,6 +9,12 @@ export const serverRoutes: ServerRoute[] = [
     renderMode: RenderMode.Client,
   },
   {
+    // Les fiches Idem Builders : un projet est admis depuis le panel, sans
+    // nouvelle version du site. Rendues dans le navigateur, comme les billets.
+    path: 'builders/:slug',
+    renderMode: RenderMode.Client,
+  },
+  {
     path: '**',
     renderMode: RenderMode.Prerender,
   },

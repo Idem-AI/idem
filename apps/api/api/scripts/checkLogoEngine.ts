@@ -55,7 +55,6 @@ import { extractFontFileUrl } from '../services/BandIdentity/lockup/fontLoader.s
 import { estimateTokens } from '../../../ivision/core/src/creativity/orchestrator';
 import type { AgentCall } from '../../../ivision/core/src/creativity/orchestrator';
 import { LOGO_GENERATION_ICON_TYPE_PROMPT } from '../services/BandIdentity/prompts/singleGenerations/00_logo-generation-icon-type.prompt';
-import { LOGO_GENERATION_NAME_TYPE_PROMPT } from '../services/BandIdentity/prompts/singleGenerations/00_logo-generation-name-type.prompt';
 import { LOGO_CRITIQUE_PROMPT } from '../services/BandIdentity/prompts/singleGenerations/logo-critique.prompt';
 
 let failures = 0;
@@ -489,7 +488,6 @@ async function main(): Promise<void> {
   // ── 13. Budget de tokens ────────────────────────────────────────────────
   section('13. Budget : combien de tokens, comparé à l\'ancien pipeline');
   const legacyPrompt = estimateTokens(LOGO_GENERATION_ICON_TYPE_PROMPT);
-  const legacyNamePrompt = estimateTokens(LOGO_GENERATION_NAME_TYPE_PROMPT);
   const legacyCritique = estimateTokens(LOGO_CRITIQUE_PROMPT);
   const LEGACY_OUT = 3500; // maxOutputTokens du SVG dessiné par le modèle
   const legacyPerDraft = legacyPrompt + LEGACY_OUT;

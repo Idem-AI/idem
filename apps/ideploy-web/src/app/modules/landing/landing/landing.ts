@@ -250,7 +250,7 @@ interface ServiceGroup {
             class="absolute inset-0 z-10"
             style="background: linear-gradient(to bottom, rgba(6,8,13,0.6), rgba(6,8,13,0.72), rgba(6,8,13,0.94));"></div>
           <img
-            src="https://images.unsplash.com/photo-1558494949-ef010cbdcc31?q=80&w=2000&auto=format&fit=crop"
+            src="/assets/images/hero-bg.webp"
             [alt]="'landing.heroImageAlt' | translate"
             class="w-full h-full object-cover opacity-85"
             style="filter: grayscale(35%) brightness(1.15);" />

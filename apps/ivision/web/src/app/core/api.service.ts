@@ -252,6 +252,16 @@ export class ApiService {
     return this.http.get<Visual & { html: string }>(`${this.base}/visuals/${id}`);
   }
   /** HTML retouché dans l'éditeur : l'API l'enregistre et re-rend l'image. */
+  /** Une autre composition proposée devient le visuel. */
+  chooseVisualVariant(id: string, variantId: string) {
+    return this.http.post<Visual & { html: string }>(`${this.base}/visuals/${id}/variant`, { variantId });
+  }
+
+  /** Le même visuel (mêmes mots, même image, même idée) recomposé pour un autre format. */
+  declineVisual(id: string, format: string) {
+    return this.http.post<Visual & { html: string }>(`${this.base}/visuals/${id}/decline`, { format });
+  }
+
   saveVisualHtml(id: string, html: string) {
     return this.http.put<Visual & { html: string }>(`${this.base}/visuals/${id}/html`, { html });
   }

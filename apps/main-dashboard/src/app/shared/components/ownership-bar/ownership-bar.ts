@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, effect, inject, input, ou
 import { CommonModule } from '@angular/common';
 import { TranslateModule } from '@ngx-translate/core';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
+import { PromoPriceComponent } from '@idem/shared-promotions/angular';
 import { BillingService } from '../../../modules/billing/services/billing.service';
 import { DeliverableKey, OwnershipStatus } from '../../../modules/billing/models/billing.model';
 
@@ -20,7 +21,7 @@ import { DeliverableKey, OwnershipStatus } from '../../../modules/billing/models
 @Component({
   selector: 'app-ownership-bar',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, TranslateModule, IdemLoaderComponent],
+  imports: [CommonModule, TranslateModule, IdemLoaderComponent, PromoPriceComponent],
   template: `
     @if (betaActive()) {
       <div class="glass-card mb-4 flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-sm">
@@ -47,7 +48,8 @@ import { DeliverableKey, OwnershipStatus } from '../../../modules/billing/models
             @if (busy()) {
               <idem-loader size="xs" />
             }
-            {{ 'billing.ownership.unlock' | translate: { price: (unlockPrice() | number: '1.0-0') } }}
+            {{ 'billing.ownership.unlockLabel' | translate }}
+            <idem-promo-price [item]="'deliverable.' + deliverable()" [xaf]="unlockPrice()" unit="F" [showBadge]="false" />
           </button>
         } @else if (!d.finalGenerated && canRegenerate()) {
           <p class="font-medium text-text-primary">{{ 'billing.ownership.unlocked' | translate }}</p>
@@ -68,7 +70,8 @@ import { DeliverableKey, OwnershipStatus } from '../../../modules/billing/models
               @if (busy()) {
                 <idem-loader size="xs" />
               }
-              {{ 'billing.ownership.signature' | translate: { price: ((status()?.signaturePriceXaf ?? 1000) | number: '1.0-0') } }}
+              {{ 'billing.ownership.signatureLabel' | translate }}
+              <idem-promo-price item="deliverable.signature" [xaf]="status()?.signaturePriceXaf ?? 1000" unit="F" [showBadge]="false" />
             </button>
           }
         }

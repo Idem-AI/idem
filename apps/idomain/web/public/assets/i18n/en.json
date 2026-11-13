@@ -156,6 +156,9 @@
           "body": "We transfer and set up a name bought elsewhere."
         }
       }
+    },
+    "pay": {
+      "cta": "Find my name"
     }
   },
   "search": {

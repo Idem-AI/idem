@@ -4,6 +4,7 @@ import {
   computed,
   inject,
   input,
+  linkedSignal,
   output,
   signal,
 } from '@angular/core';
@@ -54,6 +55,8 @@ export class VisualDialog {
   readonly plans = input<CommunicationPlan[]>([]);
 
   readonly closed = output<void>();
+  /** Le visuel a changé ici (une autre proposition choisie) : l'écran parent remplace le sien. */
+  readonly visualChanged = output<Flyer>();
   readonly visualCreated = output<Flyer>();
   readonly publicationCreated = output<Publication>();
   readonly failed = output<string>();
@@ -62,6 +65,9 @@ export class VisualDialog {
   protected readonly networks = NETWORKS;
   protected readonly channelIcon = channelIcon;
 
+  /** Le visuel montré : celui reçu, puis celui choisi parmi les propositions. */
+  protected readonly shown = linkedSignal(() => this.visual());
+  protected readonly choosingId = signal<string | null>(null);
   protected readonly isBusy = signal(false);
   protected readonly publishingNetwork = signal<SocialNetwork | null>(null);
   protected readonly scheduling = signal(false);
@@ -73,14 +79,31 @@ export class VisualDialog {
   );
 
   /** Publier suppose une publication planifiée : c'est elle qui porte la légende. */
-  protected readonly canPublish = computed(() => !!this.visual().contentId);
+  protected readonly canPublish = computed(() => !!this.shown().contentId);
 
   protected close(): void {
     this.closed.emit();
   }
 
+  /** Une autre composition proposée (déjà payée) devient le visuel ; l'actuelle rejoint les propositions. */
+  protected chooseProposal(variantId: string): void {
+    if (this.choosingId()) return;
+    this.choosingId.set(variantId);
+    this.communication.chooseFlyerVariant(this.projectId(), this.shown().id, variantId).subscribe({
+      next: (updated) => {
+        this.shown.set(updated);
+        this.visualChanged.emit(updated);
+        this.choosingId.set(null);
+      },
+      error: (err) => {
+        this.failed.emit(err?.error?.message || 'variant');
+        this.choosingId.set(null);
+      },
+    });
+  }
+
   protected download(): void {
-    const visual = this.visual();
+    const visual = this.shown();
     if (!visual.imageUrl) return;
     this.communication.downloadFlyerImage(visual.imageUrl).subscribe({
       next: (blob) => {
@@ -98,7 +121,7 @@ export class VisualDialog {
   protected declinate(format: FlyerFormat): void {
     if (this.isBusy()) return;
     this.isBusy.set(true);
-    this.communication.declinateVisual(this.projectId(), this.visual().id, [format]).subscribe({
+    this.communication.declinateVisual(this.projectId(), this.shown().id, [format]).subscribe({
       next: (created) => {
         for (const item of created) this.visualCreated.emit(item);
         this.isBusy.set(false);
@@ -126,7 +149,7 @@ export class VisualDialog {
     if (!planId || !date) return;
     this.isBusy.set(true);
     this.communication
-      .scheduleVisual(this.projectId(), this.visual().id, { planId, date })
+      .scheduleVisual(this.projectId(), this.shown().id, { planId, date })
       .subscribe({
         next: () => {
           this.scheduling.set(false);
@@ -144,7 +167,7 @@ export class VisualDialog {
    * l'utilisateur qui publie. Rien n'est envoyé en son nom.
    */
   protected publish(network: SocialNetwork): void {
-    const contentId = this.visual().contentId;
+    const contentId = this.shown().contentId;
     if (!contentId || this.publishingNetwork()) return;
     this.publishingNetwork.set(network);
 
@@ -152,7 +175,7 @@ export class VisualDialog {
       .preparePublication(this.projectId(), {
         contentId,
         network,
-        flyerId: this.visual().id,
+        flyerId: this.shown().id,
       })
       .subscribe({
         next: ({ publication, share }) => {

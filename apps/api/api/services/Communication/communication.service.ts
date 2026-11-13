@@ -476,6 +476,7 @@ export class CommunicationService extends GenericService {
     const branding = project.analysisResultModel?.branding;
     const context: CommunicationContext = {
       brandName: parsed.brandName || project.name,
+      ...((project as any)?.additionalInfos?.country ? { country: (project as any).additionalInfos.country } : {}),
       businessType: parsed.businessType || project.type || 'business',
       valueProposition: parsed.valueProposition || project.longDescription || project.description || '',
       targetAudience: parsed.targetAudience || project.targets || '',
@@ -1495,7 +1496,12 @@ export class CommunicationService extends GenericService {
     }
 
     const flyerId = `flyer-${contentId}-${format}-${Date.now().toString(36)}`;
-    const { html, parsed, sourced, intent, png, audit } = await this.composeFlyer(
+    // La DÉCLINAISON : ce contenu a déjà un visuel dans un autre format — mêmes mots, même image, même idée, la
+    // composition s'adapte à la nouvelle toile (une campagne garde son unité).
+    const sibling = this.visualsOf(communication)
+      .filter((v) => v.contentId === contentId && v.format !== format && v.spec && v.copy)
+      .sort((a, b) => new Date(b.createdAt as any).getTime() - new Date(a.createdAt as any).getTime())[0];
+    const composed = await this.composeFlyer(
       userId,
       projectId,
       content,
@@ -1505,8 +1511,14 @@ export class CommunicationService extends GenericService {
       `flyer:${projectId}:${contentId}:${format}`,
       undefined,
       undefined,
-      { creativity: opts.creativity, recentLayouts: this.recentVisualLayouts(communication) }
+      {
+        creativity: opts.creativity,
+        recentLayouts: this.recentVisualLayouts(communication),
+        ...(sibling ? { adaptFrom: { spec: sibling.spec!, copy: sibling.copy as any, ...(sibling.photo ? { photo: sibling.photo as any } : {}), ...(sibling.idea ? { concept: sibling.idea } : {}), format: sibling.format as FlyerFormat } } : {}),
+      }
     );
+    const { html, parsed, sourced, intent, png, audit } = composed;
+    const alternatives = await this.storeAlternatives(projectId, flyerId, composed);
 
     // Note: We no longer need the post-processing regex replace for {{IMAGE_URL}} 
     // because we correctly populate the system prompt now. The AI will see 
@@ -1547,6 +1559,9 @@ export class CommunicationService extends GenericService {
       },
       html,
       imageUrl: renderedUrl,
+      ...(alternatives.length ? { alternatives } : {}),
+      ...(composed.score !== undefined ? { score: composed.score } : {}),
+      ...(composed.concept ? { idea: `${composed.concept.concept.title} — ${composed.concept.concept.idea}` } : sibling?.idea ? { idea: sibling.idea } : {}),
       backgroundImageUrl: sourced?.url,
       imageSource: sourced?.source,
       imageAnalysis: sourced?.analysis,
@@ -1591,12 +1606,18 @@ export class CommunicationService extends GenericService {
     seedKey: string,
     sourcing?: ImageSourcingPreferences,
     skipImage?: boolean,
-    creative: { creativity?: CreativityLevel; recentLayouts?: string[] } = {}
+    creative: Parameters<typeof composeVisual>[10] = {}
   ): Promise<ComposedVisual> {
     const ports: VisualPorts = {
       runPrompt: (feature, messages) => this.runVisualPrompt(userId, feature, messages),
       agentCall: runtimeCall({ userId, projectId, element: 'flyer' }),
     };
+    // Un contexte enregistré avant le plan qualité créative n'a pas de pays : relu sur le projet.
+    if (!context.country) {
+      const project = await this.getProject(projectId, userId).catch(() => null);
+      const country = (project as any)?.additionalInfos?.country;
+      if (country) context = { ...context, country };
+    }
     return composeVisual(ports, userId, projectId, content, context, format, tag, seedKey, sourcing, skipImage, creative);
   }
 
@@ -1683,6 +1704,8 @@ export class CommunicationService extends GenericService {
       variantIndex?: number;
       /** Cran de la jauge de créativité. */
       creativity?: CreativityLevel;
+      /** DÉCLINAISON : le visuel d'origine, dont les mots, l'image et l'idée sont repris (seule la composition change). */
+      adaptFrom?: Flyer;
     }
   ): Promise<Flyer> {
     const brief = (input.brief || '').trim();
@@ -1693,7 +1716,8 @@ export class CommunicationService extends GenericService {
     const visualId = `visual-${Date.now().toString(36)}-${crypto.randomInt(1e6).toString(36)}`;
     const content = this.syntheticContent(visualId, brief, input.intent, format);
 
-    const { html, parsed, sourced, intent, png, audit } = await this.composeFlyer(
+    const from = input.adaptFrom;
+    const composed = await this.composeFlyer(
       userId,
       projectId,
       content,
@@ -1706,8 +1730,14 @@ export class CommunicationService extends GenericService {
       `studio:${projectId}:${this.shortHash(brief)}:${format}:${input.variantIndex ?? 0}`,
       undefined,
       input.withPhoto === false,
-      { creativity: input.creativity, recentLayouts: this.recentVisualLayouts(await this.getCommunication(userId, projectId).catch(() => null)) }
+      {
+        creativity: input.creativity,
+        recentLayouts: this.recentVisualLayouts(await this.getCommunication(userId, projectId).catch(() => null)),
+        ...(from?.spec && from.copy ? { adaptFrom: { spec: from.spec, copy: from.copy as any, ...(from.photo ? { photo: from.photo as any } : {}), ...(from.idea ? { concept: from.idea } : {}), format: from.format as FlyerFormat } } : {}),
+      }
     );
+    const { html, parsed, sourced, intent, png, audit } = composed;
+    const alternatives = await this.storeAlternatives(projectId, visualId, composed);
 
     const visual: Flyer = {
       id: visualId,
@@ -1735,7 +1765,10 @@ export class CommunicationService extends GenericService {
       },
       html,
       imageUrl: signedVisualImageUrl(projectId, visualId),
-      backgroundImageUrl: sourced?.url,
+      ...(alternatives.length ? { alternatives } : {}),
+      ...(composed.score !== undefined ? { score: composed.score } : {}),
+      ...(composed.concept ? { idea: `${composed.concept.concept.title} — ${composed.concept.concept.idea}` } : from?.idea ? { idea: from.idea } : {}),
+      backgroundImageUrl: sourced?.url ?? from?.backgroundImageUrl,
       imageSource: sourced?.source,
       imageAnalysis: sourced?.analysis,
       imageAttribution: sourced?.attribution,
@@ -1849,6 +1882,8 @@ export class CommunicationService extends GenericService {
           origin: source.origin || 'studio',
           contentId: source.contentId,
           planId: source.planId,
+          // La même idée, les mêmes mots et la même image : seule la composition s'adapte au format.
+          adaptFrom: source,
         })
       )
     );
@@ -2047,7 +2082,7 @@ export class CommunicationService extends GenericService {
    * s'afficher sans migration de données.
    */
   private withSignedUrl(projectId: string, visual: Flyer): Flyer {
-    return { ...visual, imageUrl: signedVisualImageUrl(projectId, visual.id) };
+    return { ...visual, imageUrl: signedVisualImageUrl(projectId, visual.id), ...(visual.alternatives?.length ? { alternatives: visual.alternatives.map((a) => ({ ...a, imageUrl: signedVisualImageUrl(projectId, a.id) })) } : {}) };
   }
 
   /** Les visuels du projet, quelle que soit la version du schéma. */
@@ -2398,6 +2433,55 @@ export class CommunicationService extends GenericService {
     await invalidateVisualImage(projectId, flyerId);
   }
 
+  /**
+   * Les variantes écartées d'un visuel (déjà payées) : leur PNG est mis en cache sous leur propre id, servi par la
+   * même route signée que le visuel. Le client les voit et peut en choisir une.
+   */
+  private async storeAlternatives(projectId: string, flyerId: string, composed: ComposedVisual): Promise<NonNullable<Flyer['alternatives']>> {
+    const list = composed.alternatives ?? [];
+    return Promise.all(
+      list.slice(0, 3).map(async (alt, i) => {
+        const id = `${flyerId}--alt${i + 1}`;
+        await cacheService.set(this.flyerImageCacheKey(projectId, id), alt.png.toString('base64'), { prefix: 'flyer', ttl: 86400 });
+        return { id, html: alt.html, spec: alt.spec, score: alt.score, imageUrl: signedVisualImageUrl(projectId, id) };
+      })
+    );
+  }
+
+  /**
+   * Le CLIENT CHOISIT une autre composition : elle devient le visuel, l'ancienne rejoint les propositions. Le choix
+   * est journalisé avec les scores du code (`visual.variant_chosen`) : ces préférences réelles régleront un jour les
+   * poids du score (`IDEM_QUALITY_WEIGHTS`) sur le goût des clients.
+   */
+  async chooseFlyerVariant(userId: string, projectId: string, flyerId: string, variantId: string): Promise<Flyer | null> {
+    const current = await this.getFlyer(userId, projectId, flyerId);
+    const chosen = current?.alternatives?.find((a) => a.id === variantId);
+    if (!current || !chosen) return null;
+    const demoted = { id: variantId, html: current.html, ...(current.spec ? { spec: current.spec } : {}), ...(current.score !== undefined ? { score: current.score } : {}), imageUrl: signedVisualImageUrl(projectId, variantId) };
+    const patched = await this.patchCommunication(userId, projectId, (existing) => ({
+      ...existing,
+      visuals: (existing.visuals || existing.flyers || []).map((visual) =>
+        visual.id === flyerId
+          ? { ...visual, html: chosen.html, ...(chosen.spec ? { spec: chosen.spec } : {}), ...(chosen.score !== undefined ? { score: chosen.score } : {}), alternatives: (visual.alternatives || []).map((a) => (a.id === variantId ? demoted : a)), updatedAt: new Date() }
+          : visual
+      ),
+    }));
+    const updated = this.visualsOf(patched).find((visual) => visual.id === flyerId) ?? null;
+    if (!updated) return null;
+    // Les deux images changent de place : le cache de chacune est recalculé à la demande.
+    const [mainPng, altPng] = await Promise.all([cacheService.get<string>(this.flyerImageCacheKey(projectId, variantId), { prefix: 'flyer' }), cacheService.get<string>(this.flyerImageCacheKey(projectId, flyerId), { prefix: 'flyer' })]);
+    await this.invalidateFlyerImage(projectId, flyerId);
+    await this.invalidateFlyerImage(projectId, variantId);
+    if (mainPng) await cacheService.set(this.flyerImageCacheKey(projectId, flyerId), mainPng, { prefix: 'flyer', ttl: 86400 });
+    if (altPng) await cacheService.set(this.flyerImageCacheKey(projectId, variantId), altPng, { prefix: 'flyer', ttl: 86400 });
+    logger.info('visual.variant_chosen', { event: 'visual.variant_chosen', projectId, flyerId, variantId, chosenScore: chosen.score, keptScore: current.score });
+    // Les adresses signées ne changent pas d'un rendu à l'autre : une version les distingue, sans quoi le navigateur
+    // remontrerait l'image d'avant le choix.
+    const v = `&v=${Date.now().toString(36)}`;
+    const signed = this.withSignedUrl(projectId, updated);
+    return { ...signed, imageUrl: `${signed.imageUrl}${v}`, ...(signed.alternatives ? { alternatives: signed.alternatives.map((a) => ({ ...a, imageUrl: `${a.imageUrl}${v}` })) } : {}) };
+  }
+
   async getFlyerImage(projectId: string, flyerId: string): Promise<Buffer> {
     const cacheKey = this.flyerImageCacheKey(projectId, flyerId);
     const cachedBase64 = await cacheService.get<string>(cacheKey, { prefix: 'flyer', ttl: 86400 });
@@ -2413,7 +2497,12 @@ export class CommunicationService extends GenericService {
     
     const communication = (project.analysisResultModel as any)?.communication;
     const library: any[] = communication?.visuals || communication?.flyers || [];
-    const flyer = library.find((f: any) => f.id === flyerId);
+    // Une VARIANTE (`<id>--altN`) : son HTML est gardé dans le visuel dont elle est une proposition.
+    const flyer = library.find((f: any) => f.id === flyerId) ?? (() => {
+      const base = library.find((f: any) => flyerId.startsWith(`${f.id}--alt`));
+      const alt = base?.alternatives?.find((a: any) => a.id === flyerId);
+      return alt ? { ...alt, format: base.format } : undefined;
+    })();
     if (!flyer || !flyer.html) {
       const availableFlyers = library.map((f: any) => f.id);
       logger.error(`Flyer not found or missing HTML: ${flyerId}`, { availableFlyers, flyerId, projectId });

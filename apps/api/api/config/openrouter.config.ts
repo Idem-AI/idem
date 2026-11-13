@@ -28,7 +28,7 @@
 
 import type { ModelRole } from './ai.config';
 
-export const VERIFIED_ON = '2026-10-15';
+export const VERIFIED_ON = '2026-11-05';
 
 export type OpenRouterKind = 'text' | 'image' | 'video' | 'speech';
 
@@ -166,9 +166,13 @@ export const OPENROUTER_MODELS: readonly OpenRouterModel[] = [
     pricing: { input: 2, output: 6, cachedInput: 0.25 }, note: 'Professeur HORS LIGNE : fabrique les scènes de référence vidéo (jamais en production).',
   },
   {
+    // Mise à jour 05/11/2026 : promu échelles « design » et « code » au cran Ultra (repli deepseek-v4-pro).
+    // Comparatif officiel DeepSeek (V4.1 Flash vs V4 Pro 0813) : devant sur la plupart des bancs de code,
+    // terminal, sécurité et agents ; V4 Pro ne garde l'avantage que sur GPQA Diamond et HLE sans outils.
+    // 4× moins cher, 3× plus rapide (Artificial Analysis, relevé le 29/10/2026).
     id: 'deepseek/deepseek-v4.1-flash', kind: 'text', hfId: 'deepseek-ai/DeepSeek-V4.1-Flash', license: 'mit',
-    openWeights: true, commercialOk: true, selfHost: 'lourd', roles: [],
-    pricing: { input: 0.045, output: 0.5, cachedInput: 0.006 }, note: 'Second professeur hors ligne de la bibliothèque de scènes vidéo.',
+    openWeights: true, commercialOk: true, selfHost: 'lourd', roles: ['reasoning', 'writing'],
+    pricing: { input: 0.045, output: 0.5, cachedInput: 0.006 }, note: '1 M ctx. Licence MIT. Devant V4 Pro sur la plupart des bancs de code et d’agents, moins cher. Échelles design/code au cran Ultra ; professeur hors ligne de la bibliothèque de scènes vidéo.',
   },
   // ── Texte : DeepSeek (alternative à tester) ───────────────────────────────
   {
@@ -179,7 +183,62 @@ export const OPENROUTER_MODELS: readonly OpenRouterModel[] = [
   {
     id: 'deepseek/deepseek-v4-pro', kind: 'text', hfId: 'deepseek-ai/DeepSeek-V4-Pro', license: 'mit',
     openWeights: true, commercialOk: true, selfHost: 'lourd', roles: ['reasoning'],
-    pricing: { input: 0.4308, output: 0.8616, cachedInput: 0.0359 }, note: '1 M ctx. Licence MIT. Cluster multi-nœuds.',
+    pricing: { input: 0.4308, output: 0.8616, cachedInput: 0.0359 }, note: '1 M ctx. Licence MIT. Cluster multi-nœuds. Repli du cran Ultra (design/code) depuis le 05/11/2026 : deepseek-v4.1-flash le devance sur la plupart des bancs et coûte moins cher.',
+  },
+  // ── Relevé du 10/11/2026 : meilleurs modèles du marché (fermés compris) ─────────────────────────────────────
+  // Ajoutés le 10/11/2026 puis RETIRÉS des échelles le même jour (retour aux modèles ouverts, demande de
+  // l'utilisateur). Gardés dans la liste blanche pour un essai à chaud (`npm run ai:models`) : aucune
+  // configuration ne les appelle par défaut.
+  {
+    id: 'meta/muse-ember', kind: 'text', license: 'propriétaire',
+    openWeights: false, allowClosed: true, commercialOk: true, selfHost: 'impossible', roles: [],
+    pricing: { input: 0.1, output: 0.5, cachedInput: 0.004 },
+    note: 'Multimodal, 1 M ctx. DesignArena Website ≈ 1325-1329, au niveau des modèles frontière pour ~20× moins cher. Échelles design/code (Medium) et juge visuel.',
+  },
+  {
+    id: 'deepseek/deepseek-v4.1-flash-1017', kind: 'text', hfId: 'deepseek-ai/DeepSeek-V4.1-Flash-1017', license: 'mit',
+    openWeights: true, commercialOk: true, selfHost: 'lourd', roles: [],
+    pricing: { input: 0.006, output: 0.5, cachedInput: 0.005 },
+    note: 'Version 1017 de V4.1 Flash : DesignArena Website 1302, Agentic 1301 (6e). Cran Low des échelles design/code et échantillonneur vidéo.',
+  },
+  {
+    id: 'openai/gpt-6.1-sol', kind: 'text', license: 'propriétaire',
+    openWeights: false, allowClosed: true, commercialOk: true, selfHost: 'impossible', roles: [],
+    pricing: { input: 2, output: 10, cachedInput: 0.1 },
+    note: 'DesignArena Overall Agentic 1423 (2e) à moitié prix d’Opus 5.5. Cran High des échelles design/code.',
+  },
+  {
+    id: 'anthropic/claude-opus-5.5', kind: 'text', license: 'propriétaire',
+    openWeights: false, allowClosed: true, commercialOk: true, selfHost: 'impossible', roles: [],
+    pricing: { input: 4, output: 20, cachedInput: 0.2 },
+    note: 'DesignArena Overall Agentic 1459 (1er). Cran Ultra des échelles design/code.',
+  },
+  {
+    id: 'google/gemini-nano-banana-2.1', kind: 'image', license: 'propriétaire',
+    openWeights: false, allowClosed: true, commercialOk: true, selfHost: 'impossible', roles: [],
+    pricing: { perImage: 0.0336 },
+    note: 'Artificial Analysis T2I : 1176 (6e), 33,6 $/1000 images. Moitié du prix et +34 Elo sur Nano Banana 2 : meilleur rapport qualité/prix. Images du moteur graphique et vidéo, mises en situation.',
+  },
+  {
+    id: 'meta/muse-image', kind: 'image', license: 'propriétaire',
+    openWeights: false, allowClosed: true, commercialOk: true, selfHost: 'impossible', roles: [],
+    pricing: { perImage: 0.01 },
+    note: 'Artificial Analysis T2I : 1128, 10 $/1000 images. Repli d’image économique.',
+  },
+  {
+    id: 'bytedance/seedance-2.5', kind: 'video', license: 'propriétaire',
+    openWeights: false, allowClosed: true, commercialOk: true, selfHost: 'impossible', roles: [],
+    note: 'Artificial Analysis image→vidéo : 1161 (1er avec API). 480p–720p, jusqu’à 30 s, audio. Clips en qualité (High/Ultra).',
+  },
+  {
+    id: 'google/gemini-omni-1.2-flash', kind: 'video', license: 'propriétaire',
+    openWeights: false, allowClosed: true, commercialOk: true, selfHost: 'impossible', roles: [],
+    note: 'Gemini Omni Flash (1.1 : T2V 1128). 720p/1080p, 3–15 s, ≈ 0,07 $/s en 720p avec audio : clips rapides (Low/Medium).',
+  },
+  {
+    id: 'alibaba/wan-3.0', kind: 'video', license: 'propriétaire',
+    openWeights: false, allowClosed: true, commercialOk: true, selfHost: 'impossible', roles: [],
+    note: 'Artificial Analysis texte→vidéo : 1175 (1er avec API), 0,10 $/s en 720p. Clip sans image de départ.',
   },
   // ── Image : FLUX.2 ─────────────────────────────────────────────────────────
   {
@@ -331,7 +390,8 @@ export const DEFAULT_VIDEO_MODEL = 'google/veo-3.1-fast';
  * emploient. Texte : voir `OPENROUTER_DEFAULT_ROLES` (par rôle).
  */
 export const OPENROUTER_MEDIA = {
-  image: OPENROUTER_DEFAULT_ROLES.image,
+  /** Images des livrables et des vidéos : le modèle ouvert du rôle `image` (FLUX.2 klein) — retour du 10/11/2026. */
+  image: process.env.IDEM_OPENROUTER_MEDIA_IMAGE_MODEL?.trim() || OPENROUTER_DEFAULT_ROLES.image,
   /** Repli image : à défaut de variable, le même modèle (la saturation est rare, le repli ouvert unique). */
   imageFallback: process.env.IDEM_OPENROUTER_IMAGE_FALLBACK_MODEL?.trim() || OPENROUTER_DEFAULT_ROLES.image,
   vision: OPENROUTER_DEFAULT_ROLES.vision,

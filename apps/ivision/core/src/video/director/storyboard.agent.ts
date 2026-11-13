@@ -176,6 +176,25 @@ export function normalizeStoryboard(plan: PlannedFilm, brief: FilmBrief, concept
     needs: s.needs.filter((n) => (n.kind === 'video' ? clips-- > 0 : images-- > 0)),
   }));
 
+  // « Montrer, pas seulement dire » tenu par le CODE : un storyboard qui n'a demandé aucun média (le modèle oublie
+  // souvent les lignes `new image:`) donnait un film sans une image. Tant qu'il reste de quoi produire, les scènes
+  // de récit sans média reçoivent une image de LEUR sujet (sa raison d'être et son visuel), obtenue comme les autres :
+  // génération, puis Pexels en repli. L'accroche finale, la signature et une affirmation restent typographiques.
+  const shown = (s: PlannedScene) => s.media.length > 0 || s.needs.length > 0;
+  const target = Math.ceil((scenes.length * 2) / 3);
+  const typographic = (s: PlannedScene, i: number) => /^(cta|signature|statement)$/i.test(s.role ?? '') || (i === scenes.length - 1 && !brief.anonymous);
+  let added = 0;
+  for (const [i, s] of scenes.entries()) {
+    if (scenes.filter(shown).length >= target || images <= 0) break;
+    if (shown(s) || typographic(s, i)) continue;
+    const shot = sceneShot(s);
+    if (!shot) continue;
+    s.needs = [{ kind: 'image', shot, query: shotQuery(s) }];
+    images--;
+    added++;
+  }
+  if (added) fidelity.push(say(`${added} image(s) ajoutée(s) aux scènes qui n’en montraient aucune.`, `${added} image(s) added to scenes that showed none.`));
+
   // Les durées : celles du scénario, sinon celles du planificateur, mises à l'échelle de la durée achetée.
   const total = brief.durationSec;
   let durations: number[];
@@ -209,6 +228,21 @@ export function normalizeStoryboard(plan: PlannedFilm, brief: FilmBrief, concept
     scenes: placed,
     fidelity,
   };
+}
+
+const SHOT_STOP = new Set(['the', 'and', 'with', 'for', 'from', 'into', 'onto', 'over', 'this', 'that', 'scene', 'viewer', 'understand', 'feel', 'show', 'shows', 'must', 'make', 'their', 'brand', 'text', 'headline', 'screen', 'frame', 'left', 'right', 'top', 'bottom', 'center', 'centre', 'large', 'small']);
+const contentWords = (text: string) => text.replace(/[^\p{L}\p{N}\s]/gu, ' ').split(/\s+/).filter((w) => w.length > 2 && !SHOT_STOP.has(w.toLowerCase()) && !/^\d/.test(w));
+
+/** Ce que l'image d'une scène montre : son visuel décrit (sans les cotes de mise en page), sinon sa raison d'être. */
+export function sceneShot(s: PlannedScene): string {
+  const visual = s.visual.replace(/\b\d+(?:\.\d+)?\s?(?:px|%|s|ms)\b/gi, '').replace(/\s+/g, ' ').trim();
+  const text = [s.purpose, visual].filter(Boolean).join('. ');
+  return contentWords(text).length >= 3 ? text.slice(0, 300) : '';
+}
+
+/** La recherche de la banque pour cette image : trois mots porteurs de la raison d'être de la scène. */
+export function shotQuery(s: PlannedScene): string {
+  return contentWords(s.purpose || s.visual).slice(0, 3).join(' ').toLowerCase() || contentWords(s.visual).slice(0, 3).join(' ').toLowerCase();
 }
 
 export async function runPlanner(ctx: FilmCallContext, brief: FilmBrief, concept: FilmConcept | null, timeline?: { start: number; duration: number }[]): Promise<{ storyboard: Storyboard | null; runs: ModelRun[] }> {

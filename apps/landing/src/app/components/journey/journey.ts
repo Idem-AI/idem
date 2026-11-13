@@ -13,6 +13,7 @@ import {
 } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { environment } from '../../../environments/environment';
+import { PromoTextComponent } from '@idem/shared-promotions/angular';
 
 interface Stage {
   /** Stable, non-localized path fragment shown in the mock browser bar. */
@@ -23,6 +24,10 @@ interface Stage {
   readonly caption: string;
   /** Product name and price, the only place a product is named. */
   readonly price: string;
+  /** Article des promotions et où lire le prix sur l'API (le montant de `price` n'est qu'un secours). */
+  readonly item?: string;
+  readonly xaf?: number;
+  readonly source?: string;
   readonly ctaLabel: string;
   readonly link: string;
   readonly images: readonly string[];
@@ -80,7 +85,7 @@ function smoothstep(value: number): number {
  */
 @Component({
   selector: 'app-journey',
-  imports: [],
+  imports: [PromoTextComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './journey.html',
   styleUrl: './journey.css',
@@ -120,7 +125,7 @@ export class JourneyComponent implements AfterViewInit, OnDestroy {
       step: $localize`:@@journey.step.name:The name`,
       title: $localize`:@@journey.name.title:Her business has a name: Verda`,
       caption: $localize`:@@journey.name.caption:A logo, colours, business cards. Enough to introduce herself to a customer on day one.`,
-      price: $localize`:@@journey.name.price:Identity Pack · from 1,999 F`,
+      price: $localize`:@@journey.name.price:Logo and brand guidelines · 1,500 F`, item: 'deliverable.logo_brand', xaf: 1500,
       ctaLabel: $localize`:@@journey.name.cta:Create my brand`,
       link: '/pricing',
       images: [
@@ -135,7 +140,7 @@ export class JourneyComponent implements AfterViewInit, OnDestroy {
       step: $localize`:@@journey.step.plan:The plan`,
       title: $localize`:@@journey.plan.title:Her business plan is written`,
       caption: $localize`:@@journey.plan.caption:What she sells, to whom, at what cost. The document a bank asks for, plus the deck she shows an investor.`,
-      price: $localize`:@@journey.plan.price:Strategy Pack · from 2,999 F`,
+      price: $localize`:@@journey.plan.price:Business plan · 2,000 F`, item: 'deliverable.business_plan', xaf: 2000,
       ctaLabel: $localize`:@@journey.plan.cta:Write my plan`,
       link: '/pricing',
       images: [
@@ -151,7 +156,7 @@ export class JourneyComponent implements AfterViewInit, OnDestroy {
       step: $localize`:@@journey.step.numbers:The numbers`,
       title: $localize`:@@journey.numbers.title:She knows when she starts earning`,
       caption: $localize`:@@journey.numbers.caption:Price per kilo collected, running costs, the month she breaks even. Three years ahead, updated as the real numbers come in.`,
-      price: $localize`:@@journey.numbers.price:Included in the Strategy Pack`,
+      price: $localize`:@@journey.numbers.price:3-year forecast · 1,000 F`, item: 'deliverable.financial_forecast', xaf: 1000,
       ctaLabel: $localize`:@@journey.numbers.cta:See the pricing`,
       link: '/pricing',
       images: [
@@ -165,7 +170,7 @@ export class JourneyComponent implements AfterViewInit, OnDestroy {
       step: $localize`:@@journey.step.test:The test`,
       title: $localize`:@@journey.test.title:She tests it before spending a franc`,
       caption: $localize`:@@journey.test.caption:What if the price of plastic drops? What if a competitor opens next door? The simulator plays out the scenarios and shows which ones she survives.`,
-      price: $localize`:@@journey.test.price:IDEM Simulator · free during the beta`,
+      price: $localize`:@@journey.test.price:IDEM Simulator · 1,500 F`, item: 'isimulate.run', xaf: 1500,
       ctaLabel: $localize`:@@journey.test.cta:Try the simulator`,
       link: '/simulator',
       images: [
@@ -179,7 +184,7 @@ export class JourneyComponent implements AfterViewInit, OnDestroy {
       step: $localize`:@@journey.step.papers:The paperwork`,
       title: $localize`:@@journey.papers.title:Her company is on the right side of the law`,
       caption: $localize`:@@journey.papers.caption:Articles of association, shareholder agreement, terms of sale. OHADA-compliant and ready to file.`,
-      price: $localize`:@@journey.papers.price:Compliance Pack · from 2,499 F`,
+      price: $localize`:@@journey.papers.price:OHADA legal kit · 1,500 F`, item: 'deliverable.legal_kit', xaf: 1500,
       ctaLabel: $localize`:@@journey.papers.cta:See the pricing`,
       link: '/pricing',
       images: [
@@ -193,7 +198,7 @@ export class JourneyComponent implements AfterViewInit, OnDestroy {
       step: $localize`:@@journey.step.clients:The customers`,
       title: $localize`:@@journey.clients.title:Her first customers find her`,
       caption: $localize`:@@journey.clients.caption:A month of posts planned, the visuals already designed, and one button to publish them on her networks.`,
-      price: $localize`:@@journey.clients.price:IDEM Media · 1,999–4,999 F/mo`,
+      price: $localize`:@@journey.clients.price:Communication · 100 F a visual`, item: 'communication.flyer', xaf: 100,
       ctaLabel: $localize`:@@journey.clients.cta:See the pricing`,
       link: '/pricing',
       images: [
@@ -219,7 +224,7 @@ export class JourneyComponent implements AfterViewInit, OnDestroy {
       step: $localize`:@@journey.step.online:Online`,
       title: $localize`:@@journey.online.title:Her website is live`,
       caption: $localize`:@@journey.online.caption:verda.idem.africa — address, security certificate and hosting on African servers, in one click.`,
-      price: $localize`:@@journey.online.price:iDeploy · 5 free deployments`,
+      price: $localize`:@@journey.online.price:iDeploy · always online from 10 F a day`, item: 'ideploy.meter', xaf: 10, source: 'meter:vitrine',
       ctaLabel: $localize`:@@journey.online.cta:Deploy with iDeploy`,
       link: '/ideploy',
       images: [
@@ -233,7 +238,7 @@ export class JourneyComponent implements AfterViewInit, OnDestroy {
       step: $localize`:@@journey.step.funding:The funding`,
       title: $localize`:@@journey.funding.title:An advisor helps her get funded`,
       caption: $localize`:@@journey.funding.caption:A certified expert goes through her file with her, then introduces her to banks and investors.`,
-      price: $localize`:@@journey.funding.price:IDEM Conseil · from 2,500 F/mo`,
+      price: $localize`:@@journey.funding.price:Pitch deck · 1,000 F`, item: 'deliverable.pitch_deck', xaf: 1000,
       ctaLabel: $localize`:@@journey.funding.cta:Talk to an advisor`,
       link: '/pricing',
       images: ['assets/images/journey/09-conseil-accompagnement.webp'],

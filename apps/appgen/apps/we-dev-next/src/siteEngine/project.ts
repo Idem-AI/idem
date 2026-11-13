@@ -208,11 +208,6 @@ export function restoreInPage(page: string, names: string[]): string {
   return out;
 }
 
-/** Les composants qu'une page garde sans les afficher. */
-export function skippedInPage(page: string): string[] {
-  return Array.from(page.matchAll(new RegExp(`^// ${SKIPPED} import (\\w+) from`, 'gm'))).map((match) => match[1]);
-}
-
 const pageComponentName = (page: ManifestPage) =>
   `${page.key
     .split('-')

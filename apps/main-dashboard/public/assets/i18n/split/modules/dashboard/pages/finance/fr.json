@@ -85,6 +85,12 @@
         "headline": "Générez d'abord votre Business Plan",
         "description": "L'IA a besoin de votre Business Plan pour générer des prévisions financières cohérentes et personnalisées. Veuillez générer votre business plan avant de continuer.",
         "generateCta": "Créer mon Business Plan"
+      },
+      "aiSuccessDialog": {
+        "title": "Prévisions générées",
+        "headline": "Vos prévisions financières sont prêtes",
+        "description": "Les chiffres ont été calés sur des données de marché réelles et sourcées. Vous pouvez dès à présent les consulter et les ajuster.",
+        "finish": "Terminer"
       }
     }
   }

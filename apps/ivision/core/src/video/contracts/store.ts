@@ -29,6 +29,8 @@ export interface VideoBrandContext {
    * proposées, seulement un dernier recours). `note` : leur description, si l'hôte la garde.
    */
   media?: { url: string; kind?: 'screen' | 'photo'; note?: string }[];
+  /** Le pays de la marque (ISO ou nom usuel) : il oriente l'axe de départ du film (plan qualité créative). */
+  country?: string;
 }
 
 /** Ce qu'un contenu du calendrier éditorial apporte au brief (IDEM). */

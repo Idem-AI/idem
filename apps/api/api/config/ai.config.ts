@@ -1194,7 +1194,7 @@ export const AI_CONFIG = {
     videoMedia: {
       imageModel: MEDIA_MODELS.image,
       imageFallbackModel: MEDIA_MODELS.imageFallback,
-      videoModel: process.env.IDEM_VIDEO_CLIP_MODEL || 'google/veo-3.1-fast',
+      videoModel: MEDIA_MODELS.video,
       ttsModel: MEDIA_MODELS.tts,
       /** Attente maximale d'un clip (Seedance répond en 1 à 3 minutes). */
       clipTimeoutMs: Number(process.env.IDEM_VIDEO_CLIP_TIMEOUT_MS ?? 6 * 60 * 1000),

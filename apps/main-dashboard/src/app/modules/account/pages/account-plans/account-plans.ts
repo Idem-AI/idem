@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
+import { PromoBannerComponent, PromoPriceComponent, PromotionsStore } from '@idem/shared-promotions/angular';
 import { BillingService } from '../../../billing/services/billing.service';
 import {
   BuyOfferRequest,
@@ -37,9 +38,11 @@ import { WalletIllustrationComponent } from '../../../../shared/components/walle
 @Component({
   selector: 'app-account-plans',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, RouterLink, TranslateModule, IdemLoaderComponent, CheckoutComponent, WalletIllustrationComponent],
+  imports: [CommonModule, FormsModule, RouterLink, TranslateModule, IdemLoaderComponent, CheckoutComponent, WalletIllustrationComponent, PromoPriceComponent, PromoBannerComponent],
   template: `
     @if (offers() && wallet(); as w) {
+      <!-- La campagne en cours (bêta gratuite…) : rien ne s'affiche sans campagne. -->
+      <idem-promo-banner class="mb-6 block" />
       <!-- 1. Le solde et la recharge -->
       <section class="glass-card mb-8 grid gap-6 p-5 sm:grid-cols-[1fr_10rem] sm:items-center">
         <div>
@@ -122,7 +125,7 @@ import { WalletIllustrationComponent } from '../../../../shared/components/walle
             <p class="text-xs text-text-tertiary">{{ 'billing.wallet.intent.title' | translate }}</p>
             <h2 id="intent-title" class="mt-1 text-lg font-semibold text-text-primary">{{ want.label }}</h2>
             <p class="mt-2">
-              <span class="text-3xl font-bold tabular-nums text-text-primary">{{ want.priceXaf | number: '1.0-0' }} F</span>
+              <span class="text-3xl font-bold tabular-nums text-text-primary"><idem-promo-price [item]="want.item" [xaf]="want.priceXaf" unit="F" /></span>
               @if (want.cadence) {
                 <span class="text-sm text-text-tertiary"> {{ want.cadence | translate }}</span>
               }
@@ -158,7 +161,7 @@ import { WalletIllustrationComponent } from '../../../../shared/components/walle
 
             <p class="mt-4 text-sm text-text-secondary">
               {{ 'billing.wallet.intent.balance' | translate: { amount: (w.balanceXaf | number: '1.0-0') } }}
-              @if (w.balanceXaf < want.priceXaf) {
+              @if (w.balanceXaf < want.finalXaf) {
                 · {{ 'billing.wallet.intent.topUpFirst' | translate }}
               }
             </p>
@@ -171,7 +174,7 @@ import { WalletIllustrationComponent } from '../../../../shared/components/walle
                 @if (busy() === 'intent') {
                   <idem-loader size="xs" />
                 }
-                {{ 'billing.wallet.intent.confirm' | translate: { amount: (want.priceXaf | number: '1.0-0') } }}
+                {{ 'billing.wallet.intent.confirm' | translate: { amount: (want.finalXaf | number: '1.0-0') } }}
               </button>
             </div>
           </div>
@@ -208,9 +211,9 @@ import { WalletIllustrationComponent } from '../../../../shared/components/walle
               <p class="text-sm font-semibold text-text-primary">{{ pass.label }}</p>
               <p class="mt-2">
                 <span class="text-2xl font-bold tabular-nums text-text-primary">
-                  {{ (interval() === 'year' ? pass.annualXaf : pass.monthlyXaf) | number: '1.0-0' }}
+                  <idem-promo-price [item]="'pass.' + pass.code" [xaf]="interval() === 'year' ? pass.annualXaf : pass.monthlyXaf" unit="F" />
                 </span>
-                <span class="text-sm text-text-tertiary">F{{ (interval() === 'year' ? 'billing.plans.perYear' : 'billing.plans.perMonth') | translate }}</span>
+                <span class="text-sm text-text-tertiary">{{ (interval() === 'year' ? 'billing.plans.perYear' : 'billing.plans.perMonth') | translate }}</span>
               </p>
               <p class="text-xs font-medium text-primary">
                 {{ 'billing.wallet.perDay' | translate: { amount: (pass.monthlyXaf / 30 | number: '1.0-0') } }}
@@ -253,11 +256,12 @@ import { WalletIllustrationComponent } from '../../../../shared/components/walle
           @for (pack of offers()!.packs; track pack.code) {
             <div class="glass-card flex flex-col p-4">
               <p class="text-sm font-semibold text-text-primary">{{ pack.label }}</p>
-              @if (packValue(pack.code); as value) {
+              @let packDiscounted = discounted('pack.' + pack.code, pack.priceXaf);
+              @if (!packDiscounted && packValue(pack.code); as value) {
                 <p class="mt-2 text-xs tabular-nums text-text-tertiary line-through">{{ value | number: '1.0-0' }} F</p>
               }
-              <p class="text-xl font-bold tabular-nums text-text-primary">{{ pack.priceXaf | number: '1.0-0' }} F</p>
-              @if (packValue(pack.code); as value) {
+              <p class="text-xl font-bold tabular-nums text-text-primary" [class.mt-2]="packDiscounted"><idem-promo-price [item]="'pack.' + pack.code" [xaf]="pack.priceXaf" unit="F" /></p>
+              @if (!packDiscounted && packValue(pack.code); as value) {
                 <p class="text-xs font-medium text-success">{{ 'billing.wallet.saveYear' | translate: { amount: ((value - pack.priceXaf) | number: '1.0-0') } }}</p>
               }
               <p class="mt-2 text-xs text-text-secondary">{{ pack.description }}</p>
@@ -333,6 +337,7 @@ export class AccountPlansPage {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly translate = inject(TranslateService);
+  private readonly promotions = inject(PromotionsStore);
 
   protected readonly offers = signal<OffersCatalog | null>(null);
   protected readonly wallet = signal<WalletView | null>(null);
@@ -379,7 +384,7 @@ export class AccountPlansPage {
       const pass = offers.passes.find((p) => p.code === code);
       if (!pass) return null;
       const yearly = this.interval() === 'year';
-      return {
+      return this.withPromo(`pass.${pass.code}`, {
         label: pass.label,
         priceXaf: yearly ? pass.annualXaf : pass.monthlyXaf,
         cadence: yearly ? 'billing.wallet.intent.perYear' : 'billing.wallet.intent.perMonth',
@@ -387,12 +392,12 @@ export class AccountPlansPage {
         lines: pass.covers,
         needsProject: false,
         request: { kind: 'pass', code: pass.code, interval: this.interval() } as BuyOfferRequest,
-      };
+      });
     }
     if (family === 'pack') {
       const pack = offers.packs.find((p) => p.code === code);
       if (!pack) return null;
-      return {
+      return this.withPromo(`pack.${pack.code}`, {
         label: pack.label,
         priceXaf: pack.priceXaf,
         cadence: null,
@@ -400,10 +405,10 @@ export class AccountPlansPage {
         lines: [] as string[],
         needsProject: pack.code !== 'a_plusieurs',
         request: { kind: 'pack', code: pack.code } as BuyOfferRequest,
-      };
+      });
     }
     if (wanted === 'icode-pack-100') {
-      return {
+      return this.withPromo('icode.pack_100', {
         label: this.translate.instant('billing.wallet.intent.icodePack100') as string,
         priceXaf: offers.icode['pack100Xaf'] ?? 0,
         cadence: null,
@@ -411,7 +416,7 @@ export class AccountPlansPage {
         lines: [] as string[],
         needsProject: false,
         request: { kind: 'icode_pack_100' } as BuyOfferRequest,
-      };
+      });
     }
     return null;
   });
@@ -447,6 +452,16 @@ export class AccountPlansPage {
       next: (wallet) => this.wallet.set(wallet),
       error: () => this.loadFailed.set(true),
     });
+  }
+
+  /** L'offre et ce qu'elle coûte vraiment pendant une promotion (le débit fait le même calcul). */
+  private withPromo<T extends { priceXaf: number }>(item: string, offer: T): T & { item: string; finalXaf: number } {
+    return { ...offer, item, finalXaf: this.promotions.price(item, offer.priceXaf).finalXaf };
+  }
+
+  /** Vrai si une promotion réduit ce prix (la valeur « à l'unité » barrée s'efface alors). */
+  protected discounted(item: string, priceXaf: number): boolean {
+    return this.promotions.price(item, priceXaf).discountXaf > 0;
   }
 
   protected passUntil(code: PassCode): string | null {

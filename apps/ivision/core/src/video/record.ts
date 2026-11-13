@@ -19,6 +19,25 @@ export function recordFromVideo(video: Pick<MotionVideo, 'film' | 'creativity' |
     outcome: a.source === 'llm' ? 'accepted' : `failed${a.failure ? ` (${a.failure})` : ''}`,
   }));
   const intent = video.brief?.intent;
+  // LA TENUE DES NŒUDS DU CATALOGUE VIDÉO : une scène qui n'a pas tourné, ou dont un texte s'affiche mal, compte
+  // contre TOUS les nœuds qui l'ont composée (mise en page, animations, transition, thème). Même mesure que les
+  // documents : c'est l'accumulation qui désigne un nœud fragile, jamais un film isolé.
+  const templates = new Map<string, { uses: number; repairs: number; blocking: number }>();
+  const theme = film?.catalog?.theme;
+  for (const scene of film?.scenes ?? []) {
+    const config = scene.catalog;
+    if (!config) continue;
+    const ids = new Set([config.layout, ...Object.values(config.animations ?? {}), ...(config.transition ? [config.transition] : []), ...(theme ? [theme] : [])].filter(Boolean) as string[]);
+    const repaired = (scene.layout?.length ?? 0) > 0 || (config.tried?.length ?? 0) > 0 ? 1 : 0;
+    const blocked = scene.error ? 1 : 0;
+    for (const id of ids) {
+      const e = templates.get(id) ?? { uses: 0, repairs: 0, blocking: 0 };
+      e.uses += 1;
+      e.repairs += repaired;
+      e.blocking += blocked;
+      templates.set(id, e);
+    }
+  }
   return {
     v: 1,
     deliverable: 'video',
@@ -35,6 +54,7 @@ export function recordFromVideo(video: Pick<MotionVideo, 'film' | 'creativity' |
       blocking: (film?.scenes || []).filter((s) => s.error).map((s) => `${s.key}: ${s.error!.stage} — ${s.error!.message}`.slice(0, 240)),
       advisory: (film?.fidelity?.notes || []).map((n) => `demande : ${n}`.slice(0, 240)),
     },
+    templates: [...templates.entries()].map(([id, e]) => ({ id, ...e })).sort((a, b) => b.uses - a.uses),
     tokens: decisions.reduce((s, d) => ({ input: s.input + d.tokens.input, output: s.output + d.tokens.output }), { input: 0, output: 0 }),
     ms,
   };

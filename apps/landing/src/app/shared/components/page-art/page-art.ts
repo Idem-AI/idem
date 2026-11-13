@@ -25,7 +25,9 @@ export type PageArtScene =
   | 'leaflet'
   | 'leaflet-import'
   | 'basket'
-  | 'key-shield';
+  | 'key-shield'
+  | 'commemorative-cloth'
+  | 'kora';
 
 /**
  * Les illustrations des pages de présentation du site (Société, Produit),
@@ -607,6 +609,57 @@ export type PageArtScene =
             />
             <g class="accent">
               <path d="M66 66 L73 75 L66 84 L59 75 Z" stroke-width="4" />
+            </g>
+          </g>
+        }
+        @case ('kora') {
+          <!-- Faire connaître en visuels et en vidéos : la kora du griot, qui raconte en musique
+               (même tracé que l'image de partage d'iVision). Le chevalet est le seul détail en
+               couleur : là où la voix devient son. -->
+          <svg x="31" y="0" width="58" height="88" viewBox="24 0 80 134" overflow="visible">
+            <g stroke-width="2.2">
+              <path d="M51 68 V4.5 Q52.5 2 54 4.5 V68" stroke-width="2.4" />
+              <path d="M36.5 71.5 V50.5 Q37.5 48.5 38.5 50.5 V71.5 M66.5 71.5 V50.5 Q67.5 48.5 68.5 50.5 V71.5" stroke-width="2" />
+              <circle cx="52.5" cy="100" r="32.5" stroke-width="2.6" />
+              <circle cx="52.5" cy="100" r="29.25" stroke-width="2.2" stroke-dasharray="0 2.9" />
+              <path d="M50.75 12 H47.5 M50.75 21 H47.5 M50.75 30 H47.5 M50.75 39 H47.5 M50.75 48 H47.5 M54.25 16.5 H57.5 M54.25 25.5 H57.5 M54.25 34.5 H57.5 M54.25 43.5 H57.5 M54.25 52.5 H57.5" stroke-width="1.6" />
+              <path d="M50.75 12 L40 76 L52.5 130 M50.75 21 L40 80.5 L52.5 130 M50.75 30 L40 85 L52.5 130 M50.75 39 L40 89.5 L52.5 130 M50.75 48 L40 94 L52.5 130" stroke-width="1" />
+              <path d="M54.25 16.5 L65 78 L52.5 130 M54.25 25.5 L65 82.5 L52.5 130 M54.25 34.5 L65 87 L52.5 130 M54.25 43.5 L65 91.5 L52.5 130 M54.25 52.5 L65 96 L52.5 130" stroke-width="1" />
+              <path d="M75 27 q4 4.5 0 9 M79.5 24 q7 7.5 0 15 M84 21 q10 10.5 0 21" stroke-width="1.6" opacity=".5" />
+              <g class="accent">
+                <rect x="40" y="72.5" width="25" height="28" rx=".8" stroke-width="2.4" style="fill: var(--color-surface-1)" />
+                <path d="M40 76 h2.5 M40 80.5 h2.5 M40 85 h2.5 M40 89.5 h2.5 M40 94 h2.5 M65 78 h-2.5 M65 82.5 h-2.5 M65 87 h-2.5 M65 91.5 h-2.5 M65 96 h-2.5" stroke-width="1.6" />
+              </g>
+            </g>
+          </svg>
+        }
+        @case ('commemorative-cloth') {
+          <!-- Être reconnu, porté haut par une communauté : le pagne
+               commémoratif, imprimé pour honorer une personne ou une
+               association et porté en public. Le médaillon et ses briques de
+               banco — ce qui se bâtit — portent la couleur. -->
+          <g transform="translate(0 -6)">
+            <path d="M8 14 Q60 10 112 14" stroke-width="1.6" />
+            <path d="M26 12.6 v4 M94 12.6 v4" stroke-width="1.6" />
+            <path d="M22 16 H98 V84 Q86 88 74 85 T50 85 T22 84 Z" stroke-width="1.8" />
+            <path
+              d="M28 24 l4 -3 l4 3 l4 -3 l4 3 l4 -3 l4 3 l4 -3 l4 3 l4 -3 l4 3 l4 -3 l4 3 l4 -3 l4 3 l4 -3 l4 3"
+              stroke-width="1.2"
+            />
+            <path
+              d="M28 76 l4 3 l4 -3 l4 3 l4 -3 l4 3 l4 -3 l4 3 l4 -3 l4 3 l4 -3 l4 3 l4 -3 l4 3 l4 -3 l4 3 l4 -3"
+              stroke-width="1.2"
+            />
+            <path
+              d="M32 34 l3 3 l-3 3 l-3 -3 Z M88 34 l3 3 l-3 3 l-3 -3 Z M32 60 l3 3 l-3 3 l-3 -3 Z M88 60 l3 3 l-3 3 l-3 -3 Z"
+              stroke-width="1.2"
+            />
+            <g class="accent">
+              <circle cx="60" cy="50" r="17" stroke-width="1.8" />
+              <circle cx="60" cy="50" r="12.5" stroke-width="1" stroke-dasharray="1.5 2.5" />
+              <rect x="53" y="52" width="14" height="5" rx="0.8" stroke-width="1.6" />
+              <rect x="55" y="47" width="10" height="5" rx="0.8" stroke-width="1.6" />
+              <rect x="57" y="42" width="6" height="5" rx="0.8" stroke-width="1.6" />
             </g>
           </g>
         }

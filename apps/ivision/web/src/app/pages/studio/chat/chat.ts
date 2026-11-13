@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, computed, effect, inject, input, signal, untracked, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { PromotionsStore } from '@idem/shared-promotions/angular';
 import { Router, RouterLink } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
@@ -142,6 +143,12 @@ export class ChatPage {
   protected readonly showRecent = signal(false);
   /** Création gratuite : le prix affiché est celui de l'export HD sans signature. */
   protected readonly price = signal<number | null>(null);
+  private readonly promotions = inject(PromotionsStore);
+  /** Le prix de l'export HD, remisé pendant une promotion. */
+  protected readonly promoPrice = computed(() => {
+    const price = this.promotions.price(this.mode() === 'video' ? 'ivision.export_video' : 'ivision.export_visual', this.price() ?? 0);
+    return { final: price.finalXaf, original: price.originalXaf, discounted: price.discountXaf > 0, free: price.free };
+  });
   /** Plans filmés par l'IA commandés pour la prochaine vidéo (1 000 F l'un). */
   protected readonly aiClips = signal(0);
   protected readonly aiClipChoices = [0, 1, 2, 3, 4];

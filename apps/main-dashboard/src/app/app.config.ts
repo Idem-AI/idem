@@ -20,6 +20,8 @@ import { MyPreset } from './my-preset';
 import { provideMarkdown, MARKED_OPTIONS, MERMAID_OPTIONS } from 'ngx-markdown';
 import { CustomTitleStrategy } from './shared/services/custom-title-strategy';
 import { adoptIncomingProject } from './shared/services/incoming-project';
+import { provideIdemPromotions } from '@idem/shared-promotions/angular';
+import { environment } from '../environments/environment';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -29,6 +31,8 @@ export const appConfig: ApplicationConfig = {
     // désigner le projet à ouvrir, et les pages lisent le cookie dès leur
     // initialisation.
     provideAppInitializer(adoptIncomingProject),
+    // Promotions en cours (bêta gratuite, soldes, codes promo) : prix barrés et bandeau.
+    provideIdemPromotions({ apiUrl: environment.services.api.url }),
     provideRouter(routes),
     { provide: TitleStrategy, useClass: CustomTitleStrategy },
     // `paymentRequiredInterceptor` après l'authentification : un 402 n'a de

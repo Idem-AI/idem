@@ -90,7 +90,6 @@ export const BRANDS: Record<string, BrandInput & { styleId: string }> = {
 
 export const MARKET: SectionContent = {
   id: 'market',
-  kicker: 'Marché',
   title: 'Un marché de 2,3 milliards de FCFA qui croît de 18 % par an',
   lede: 'La demande en café de spécialité double à Douala et Yaoundé, portée par une classe moyenne urbaine qui consomme hors du foyer.',
   blocks: [
@@ -117,7 +116,6 @@ export const MARKET: SectionContent = {
 
 export const PROBLEM: SectionContent = {
   id: 'problem',
-  kicker: 'Problème',
   title: 'Le café camerounais est exporté vert et racheté torréfié',
   blocks: [
     {
@@ -144,7 +142,6 @@ export const PROBLEM: SectionContent = {
 
 export const TRACTION: SectionContent = {
   id: 'traction',
-  kicker: 'Traction',
   title: 'Six mois après l’ouverture, 640 abonnés et un comptoir rentable',
   lede: 'Le comptoir de Bonanjo couvre ses charges depuis avril ; l’abonnement livré à domicile croît de 22 % par mois.',
   blocks: [
@@ -171,7 +168,6 @@ export const TRACTION: SectionContent = {
 
 export const TEAM: SectionContent = {
   id: 'team',
-  kicker: 'Équipe',
   title: 'Une équipe qui connaît la terre et la ville',
   blocks: [
     {
@@ -201,7 +197,6 @@ export const TEAM: SectionContent = {
 
 export const ASK: SectionContent = {
   id: 'ask',
-  kicker: 'Demande',
   title: 'Nous levons 85 millions de FCFA pour ouvrir deux comptoirs',
   lede: 'Le financement couvre l’équipement de torréfaction, deux comptoirs à Yaoundé et dix-huit mois de fonctionnement.',
   blocks: [
@@ -230,7 +225,6 @@ export const ASK: SectionContent = {
 
 export const SUMMARY_BP: SectionContent = {
   id: 'company-summary',
-  kicker: 'Présentation',
   title: 'Café des Hauts torréfie à Douala le café des coopératives de l’Ouest',
   lede: 'Une entreprise de torréfaction et de distribution qui garde au Cameroun la valeur de son café.',
   blocks: [
@@ -264,7 +258,6 @@ export const SUMMARY_BP: SectionContent = {
 
 export const FINANCE_BP: SectionContent = {
   id: 'financial-plan',
-  kicker: 'Plan financier',
   title: 'Un résultat net positif dès le premier exercice',
   lede: 'Les projections suivent l’exercice comptable OHADA, du 1er janvier au 31 décembre.',
   blocks: [
@@ -307,7 +300,6 @@ export const FINANCE_BP: SectionContent = {
 
 export const SWOT_BP: SectionContent = {
   id: 'swot',
-  kicker: 'Analyse',
   title: 'Forces, faiblesses, opportunités et menaces',
   blocks: [
     {
@@ -327,7 +319,6 @@ export const SWOT_BP: SectionContent = {
 export function coverSection(
   name: string,
   label: string,
-  kicker: string,
   promise: string
 ): SectionContent {
   return {
@@ -339,7 +330,6 @@ export function coverSection(
         id: 'c',
         kind: 'cover',
         brandName: name,
-        kicker,
         promise,
         documentLabel: label,
         detail: 'Version 1.0',
@@ -352,7 +342,6 @@ export function coverSection(
 export const CHARTER = (brand: BrandInput): SectionContent[] => [
   {
     id: 'palette',
-    kicker: 'Couleurs',
     title: 'Palette de couleurs',
     lede: 'Trois couleurs portent la marque ; le bleu nuit domine, l’or ne sert qu’à l’emphase.',
     blocks: [
@@ -384,7 +373,6 @@ export const CHARTER = (brand: BrandInput): SectionContent[] => [
   },
   {
     id: 'typography',
-    kicker: 'Typographie',
     title: 'Typographie',
     blocks: [
       {
@@ -408,7 +396,6 @@ export const CHARTER = (brand: BrandInput): SectionContent[] => [
   },
   {
     id: 'logo',
-    kicker: 'Logo',
     title: 'Déclinaisons du logo',
     blocks: [
       {
@@ -425,7 +412,6 @@ export const CHARTER = (brand: BrandInput): SectionContent[] => [
   },
   {
     id: 'direction',
-    kicker: 'Direction artistique',
     title: 'Direction artistique',
     blocks: [
       {
@@ -448,7 +434,6 @@ export const CHARTER = (brand: BrandInput): SectionContent[] => [
   },
   {
     id: 'social',
-    kicker: 'Réseaux sociaux',
     title: 'Publications sociales',
     blocks: [
       {
@@ -465,7 +450,6 @@ export const CHARTER = (brand: BrandInput): SectionContent[] => [
           {
             platform: 'LinkedIn',
             headline: '640 abonnés en six mois',
-            kicker: 'Traction',
             ground: 'light',
             logoUrl: brand.logos?.onLight,
           },
@@ -519,7 +503,6 @@ export function flyer(withPhoto: boolean, p: { a: string; b: string; c: string }
       {
         id: 'copy',
         kind: 'copy',
-        kicker: 'Atelier pratique',
         headline: 'La tech au féminin prend le micro',
         subhead: 'Une soirée de témoignages et d’ateliers pour se lancer',
         facts: [{ text: 'Samedi 18 octobre' }, { text: '18 h, Akwa' }],
@@ -549,7 +532,6 @@ export function capture(primary: string, soft: string): string {
 
 export const PROBLEM_VISUAL: SectionContent = {
   id: 'problem-visual',
-  kicker: 'Problème',
   title: 'Le café camerounais part vert et revient torréfié',
   intent: {
     visualStrategy: 'illustration',
@@ -584,7 +566,6 @@ export const PROBLEM_VISUAL: SectionContent = {
 
 export const MODEL_HUB: SectionContent = {
   id: 'model-hub',
-  kicker: 'Modèle',
   title: 'Un comptoir qui relie la terre à la ville',
   intent: {
     visualStrategy: 'diagram',
@@ -606,7 +587,6 @@ export const MODEL_HUB: SectionContent = {
 
 export const VISION_BLEED = (photoUrl: string): SectionContent => ({
   id: 'vision',
-  kicker: 'Vision',
   title: 'Le café d’ici, bu ici',
   lede: 'Faire du café camerounais torréfié le premier choix des bureaux de Douala d’ici 2028.',
   intent: {
@@ -621,7 +601,6 @@ export const VISION_BLEED = (photoUrl: string): SectionContent => ({
 
 export const PRODUCT_CAPTURE = (captureUrl: string): SectionContent => ({
   id: 'product',
-  kicker: 'Produit',
   title: 'L’abonnement se gère en trois gestes',
   intent: {
     visualStrategy: 'product-capture',

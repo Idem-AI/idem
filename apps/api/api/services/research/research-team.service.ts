@@ -82,6 +82,12 @@ export interface ResearchTeamContext {
    * Une régénération change la forme, jamais les faits : une section qui en a une n'interroge pas le web.
    */
   storedResearch?: Record<string, StoredResearch>;
+  /**
+   * RÉGÉNÉRATION : aucun appel web, en aucun cas. Les sections relisent `storedResearch` (ou le cache) ;
+   * celle qui n'a rien d'enregistré est écrite sans données web. Régénérer refait la FORME, jamais la
+   * collecte — l'utilisateur ne paie pas deux fois la même recherche.
+   */
+  reuseOnly?: boolean;
 
   /**
    * La PAGE : le moteur graphique (@idem/graphic-engine) compose la section DANS le document du
@@ -326,11 +332,13 @@ export class ResearchTeamService {
 
       let sources: ResearchSource[] = [];
       let researchDigest = '';
+      /** La trace entière de la recherche, enregistrée avec la section (relue par une régénération). */
+      let collected: StoredResearch | undefined;
 
       if (section.needsResearch) {
-        const research = await this.research(runId, section, ctx, emit);
-        sources = research.sources;
-        researchDigest = research.digest;
+        collected = await this.research(runId, section, ctx, emit);
+        sources = collected.sources;
+        researchDigest = collected.digest;
       }
 
       const draft = await this.write(runId, section, ctx, sources, researchDigest, emit);
@@ -357,7 +365,8 @@ export class ResearchTeamService {
         summary: `${section.name} — ${sources.length} source(s) vérifiée(s)`,
         sources,
         verdict,
-        ...(section.needsResearch ? { research: { sources, digest: researchDigest } } : {}),
+        // La trace ENTIÈRE voyage avec la section : sources non citées, faits écartés et texte complet compris.
+        ...(collected ? { research: collected } : {}),
       };
 
       await this.emitAgent(emit, runId, 'writer', `writer:${section.name}`, section.name, {
@@ -398,7 +407,7 @@ export class ResearchTeamService {
     section: DeliverableSection,
     ctx: ResearchTeamContext,
     emit: ResearchEmit
-  ): Promise<{ sources: ResearchSource[]; digest: string }> {
+  ): Promise<StoredResearch> {
     const agentId = `researcher:${section.name}`;
     const briefs = (section.researchBriefs && section.researchBriefs.length > 0
       ? section.researchBriefs
@@ -416,17 +425,12 @@ export class ResearchTeamService {
             prefix: 'ai',
             ttl: RESEARCH_CACHE_TTL,
           });
-    if (!cached) {
-      logger.info(
-        `ResearchTeam « ${section.name} » : aucune recherche en cache (clé ${cacheKey}), collecte web.`
-      );
-    }
     if (cached && Array.isArray(cached.sources)) {
       // Tracé explicitement : sans cette ligne, personne ne peut dire si le
       // cache sert réellement, et une régénération lente reste inexplicable.
       logger.info(
         `ResearchTeam « ${section.name} » : recherche RÉUTILISÉE ${cached === stored ? 'du livrable' : 'du cache'} ` +
-          `(${cached.sources.length} source(s), aucun appel web).`
+          `(${cached.sources.length} source(s), ${cached.findings?.length ?? 0} fait(s), aucun appel web).`
       );
       await this.emitAgent(emit, runId, 'researcher', agentId, section.name, {
         kind: 'agent_status',
@@ -439,13 +443,40 @@ export class ResearchTeamService {
           source,
         });
       }
+      // Les faits relevés la première fois sont rejoués : la page régénérée dispose de la même matière, y
+      // compris de ce que la version précédente n'avait pas repris.
+      for (const finding of cached.findings ?? []) {
+        await this.emitAgent(emit, runId, 'researcher', agentId, section.name, { kind: 'finding', finding });
+      }
       await this.emitAgent(emit, runId, 'researcher', agentId, section.name, {
         kind: 'agent_status',
         status: 'done',
         message: `${cached.sources.length} source(s) réutilisée(s)`,
       });
-      return cached;
+      // Le résumé est reconstruit depuis le TEXTE INTÉGRAL gardé : une recherche relue vaut la première,
+      // jamais une version déjà rognée d'elle-même.
+      return cached.narrative
+        ? { ...cached, digest: this.buildResearchDigest([cached.narrative], cached.sources) }
+        : cached;
     }
+
+    // RÉGÉNÉRER NE CHERCHE PAS. Sans trace à relire, la section est écrite sans données web plutôt que de
+    // relancer une collecte que l'utilisateur a explicitement exclue de la régénération (05/11/2026).
+    if (ctx.reuseOnly) {
+      logger.warn(
+        `ResearchTeam « ${section.name} » : régénération sans recherche enregistrée — écrite SANS données web (aucun appel).`
+      );
+      await this.emitAgent(emit, runId, 'researcher', agentId, section.name, {
+        kind: 'agent_status',
+        status: 'done',
+        message: 'Aucune recherche enregistrée pour cette section — régénérée sans appel web',
+      });
+      return { sources: [], digest: this.buildResearchDigest([], []) };
+    }
+
+    logger.info(
+      `ResearchTeam « ${section.name} » : aucune recherche en cache (clé ${cacheKey}), collecte web.`
+    );
 
     await this.emitAgent(emit, runId, 'researcher', agentId, section.name, {
       kind: 'agent_status',
@@ -481,12 +512,16 @@ export class ResearchTeamService {
       localIdxToGlobalId.set(src.index, id);
     }
 
+    // Tous les faits relevés sont GARDÉS, pas seulement diffusés : une régénération les relit (le rédacteur
+    // n'en reprend qu'une partie, le reste se perdait avec le flux).
+    const findings: ResearchFinding[] = [];
     for (const support of result.supports) {
       const sourceIds = support.sourceIndexes
         .map((idx) => localIdxToGlobalId.get(idx))
         .filter((v): v is string => !!v);
       if (sourceIds.length === 0) continue;
       const finding: ResearchFinding = { claim: support.text, sourceIds };
+      findings.push(finding);
       await this.emitAgent(emit, runId, 'researcher', agentId, section.name, {
         kind: 'finding',
         finding,
@@ -499,9 +534,17 @@ export class ResearchTeamService {
       message: `${globalSources.length} source(s) réelle(s) collectée(s)`,
     });
 
-    const narratives = result.narrative.trim() ? [result.narrative.trim()] : [];
-    const digest = this.buildResearchDigest(narratives, globalSources);
-    const payload = { sources: globalSources, digest };
+    const narrative = result.narrative.trim();
+    const digest = this.buildResearchDigest(narrative ? [narrative] : [], globalSources);
+    // La TRACE ENTIÈRE : le texte complet (le résumé en est une version bornée), les faits et les axes lancés.
+    const payload: StoredResearch = {
+      sources: globalSources,
+      digest,
+      ...(narrative ? { narrative } : {}),
+      ...(findings.length ? { findings } : {}),
+      briefs,
+      collectedAt: new Date().toISOString(),
+    };
     logger.info(
       `ResearchTeam : ${globalSources.length} source(s) collectée(s) et mises en cache ` +
         `pour ${Math.round(RESEARCH_CACHE_TTL / 3600)} h.`
@@ -1003,7 +1046,6 @@ export class ResearchTeamService {
     const section = systemSection({
       id: 'resources',
       role: 'appendix',
-      kicker: french ? 'Références' : 'References',
       title: sectionName,
       lede: french
         ? `${total} source${total > 1 ? 's' : ''} consultée${total > 1 ? 's' : ''} et vérifiée${total > 1 ? 's' : ''}. Les numéros renvoient aux appels de note de chaque section.`

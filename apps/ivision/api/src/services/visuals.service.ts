@@ -50,13 +50,15 @@ export async function createVisual(
     avoid?: { template?: string; scheme?: string }[];
     /** Fond sombre demandé explicitement. */
     wantsDark?: boolean;
+    /** DÉCLINAISON d'un visuel existant dans un autre format : mêmes mots, même image, même idée. */
+    adaptFrom?: IvisionVisual;
   },
   paidCredits: number,
   /** L'avancement réel de la composition (étapes du chat). */
   onStage?: (stage: string, state: 'running' | 'done') => void
 ): Promise<IvisionVisual> {
   const id = `vis_${Date.now().toString(36)}${crypto.randomBytes(4).toString('hex')}`;
-  const context = visualContextFromBrand({ brandName: brand.name, voice: brand.voice, branding: brand.kit });
+  const context = { ...visualContextFromBrand({ brandName: brand.name, voice: brand.voice, branding: brand.kit }), ...(brand.country ? { country: brand.country } : {}) };
   const recent = await visuals().find({ userId, brandId: brand._id }, { projection: { layout: 1 } }).sort({ createdAt: -1 }).limit(6).toArray();
   // Les propres visuels de la marque (affiches trouvées sur son site) disent si elle assume les
   // fonds sombres ; sinon, surfaces claires. Classé une fois par photo et persisté sur la marque
@@ -112,9 +114,18 @@ export async function createVisual(
       ...(input.feedback ? { feedback: input.feedback } : {}),
       ...(input.avoid?.length ? { avoid: input.avoid } : {}),
       ...(onStage ? { onStage } : {}),
+      ...(input.adaptFrom?.spec && input.adaptFrom.copy ? { adaptFrom: { spec: input.adaptFrom.spec, copy: input.adaptFrom.copy, ...(input.adaptFrom.photo ? { photo: input.adaptFrom.photo } : {}), ...(input.adaptFrom.idea ? { concept: input.adaptFrom.idea } : {}), format: input.adaptFrom.format } } : {}),
     }
   );
   const uploaded = await storage.uploadFile(composed.png, `${id}.png`, `users/${userId}/brands/${brand._id}/visuals`, 'image/png');
+  // Les autres compositions écrites en même temps (déjà payées) : déposées, proposées au choix.
+  const alternatives = await Promise.all(
+    (composed.alternatives ?? []).slice(0, 3).map(async (alt, i) => {
+      const altId = `${id}--alt${i + 1}`;
+      const file = await storage.uploadFile(alt.png, `${altId}.png`, `users/${userId}/brands/${brand._id}/visuals`, 'image/png');
+      return { id: altId, imageUrl: file.downloadURL, html: alt.html, spec: alt.spec, score: alt.score };
+    })
+  );
   const visual: IvisionVisual = {
     _id: id,
     userId,
@@ -133,6 +144,10 @@ export async function createVisual(
     ...(composed.parsed.photo ? { photo: composed.parsed.photo } : {}),
     seed: composed.parsed.seed,
     spec: composed.parsed.spec,
+    ...(alternatives.length ? { alternatives } : {}),
+    ...(composed.score !== undefined ? { score: composed.score } : {}),
+    ...(composed.concept ? { idea: `${composed.concept.concept.title} — ${composed.concept.concept.idea}` } : input.adaptFrom?.idea ? { idea: input.adaptFrom.idea } : {}),
+    ...(input.adaptFrom ? { parentId: input.adaptFrom._id } : {}),
     createdAt: new Date().toISOString(),
   };
   await visuals().insertOne(visual);
@@ -168,7 +183,7 @@ export async function updateVisualHtml(userId: string, brand: IvisionBrand, id: 
   const visual = await getVisual(userId, id);
   const cleaned = stripActiveContent(sanitizeSectionHtml(html));
   if (!/<[a-z][\s\S]*>/i.test(cleaned) || !cleaned.replace(/<[^>]*>/g, '').trim() && !/<img\b/i.test(cleaned)) throw new HttpError(400, 'empty_html', 'Le visuel ne peut pas être vide.');
-  const context = visualContextFromBrand({ brandName: brand.name, voice: brand.voice, branding: brand.kit });
+  const context = { ...visualContextFromBrand({ brandName: brand.name, voice: brand.voice, branding: brand.kit }), ...(brand.country ? { country: brand.country } : {}) };
   // Une page du moteur graphique porte ses styles et ses polices : photographiée telle quelle. Les
   // visuels plus anciens restent lisibles (document complet, ou fragment écrit en classes Tailwind).
   const png = await renderVisualHtml(cleaned, visual.format, { primaryFont: context.branding.primaryFont, secondaryFont: context.branding.secondaryFont, url: context.branding.fontUrl });
@@ -192,7 +207,7 @@ export async function retouchVisual(
   instruction: string,
   o: { language: string; photoUrl?: string; sessionId?: string }
 ): Promise<{ outcome: 'edited' | 'recomposed' | 'new-request' | 'not-understood'; visual?: IvisionVisual; reply: string; rejected: string[]; handEdited: boolean }> {
-  const context = visualContextFromBrand({ brandName: brand.name, voice: brand.voice, branding: brand.kit });
+  const context = { ...visualContextFromBrand({ brandName: brand.name, voice: brand.voice, branding: brand.kit }), ...(brand.country ? { country: brand.country } : {}) };
   const copy = previous.copy ?? { headline: previous.prompt.slice(0, 60), facts: [] };
   const result = await editVisual(
     { text: (system, user) => idem.ai.text({ userId, system, user, tier: 'writing', kind: 'copy' }) },
@@ -242,7 +257,25 @@ export async function retouchVisual(
 }
 
 export function visualView(v: IvisionVisual) {
-  return { id: v._id, brandId: v.brandId, sessionId: v.sessionId, prompt: v.prompt, format: v.format, imageUrl: v.imageUrl, layout: v.layout, creativity: v.creativity, referenceId: v.referenceId, score: v.audit?.score, exported: Boolean(v.exportedAt), createdAt: v.createdAt };
+  return { id: v._id, brandId: v.brandId, sessionId: v.sessionId, prompt: v.prompt, format: v.format, imageUrl: v.imageUrl, layout: v.layout, creativity: v.creativity, referenceId: v.referenceId, score: v.audit?.score, exported: Boolean(v.exportedAt), createdAt: v.createdAt, ...(v.alternatives?.length ? { alternatives: v.alternatives.map((a) => ({ id: a.id, imageUrl: a.imageUrl })) } : {}), ...(v.idea ? { idea: v.idea } : {}) };
+}
+
+/**
+ * Le CLIENT CHOISIT une autre composition proposée (déjà payée) : elle devient le visuel, l'actuelle rejoint les
+ * propositions. Journalisé avec les scores du code (`visual.variant_chosen`) : les préférences réelles régleront les
+ * poids du score.
+ */
+export async function chooseVariant(userId: string, id: string, variantId: string): Promise<IvisionVisual> {
+  const visual = await getVisual(userId, id);
+  const chosen = visual.alternatives?.find((a) => a.id === variantId);
+  if (!chosen) throw new HttpError(404, 'variant_not_found', 'Cette proposition n’existe pas.');
+  const demoted = { id: variantId, imageUrl: visual.imageUrl, html: visual.html, ...(visual.spec ? { spec: visual.spec } : {}), ...(visual.score !== undefined ? { score: visual.score } : {}) };
+  const alternatives = (visual.alternatives ?? []).map((a) => (a.id === variantId ? demoted : a));
+  const updatedAt = new Date().toISOString();
+  const set = { html: chosen.html, imageUrl: chosen.imageUrl, ...(chosen.spec ? { spec: chosen.spec } : {}), ...(chosen.score !== undefined ? { score: chosen.score } : {}), alternatives, updatedAt };
+  await visuals().updateOne({ _id: id, userId }, { $set: set });
+  logger.info('visual.variant_chosen', { event: 'visual.variant_chosen', visualId: id, variantId, chosenScore: chosen.score, keptScore: visual.score });
+  return { ...visual, ...set };
 }
 
 /** L'export HD sans signature est réglé : le fichier sortira propre, sans repayer. */

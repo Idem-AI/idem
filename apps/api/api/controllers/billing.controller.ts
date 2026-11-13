@@ -10,7 +10,10 @@ import { BillingEngine, BillingInterval } from '../models/billing.model';
 import { PaymentCallbackRaw } from '../schemas/payment.schema';
 import { paymentRequiredBody } from '../middleware/billing.middleware';
 import { ICODE, topupBonusXaf } from '../models/offer.model';
+import { isActiveBuilder } from '../services/builders/builder-status';
+import { builderTopupBonusXaf } from '../../../../packages/shared-models/src/builders/program';
 import { walletService } from '../services/billing/wallet.service';
+import { promotionService } from '../services/billing/promotion.service';
 import { sendQuotaRefusal } from '../middleware/usage-quota.middleware';
 import { QUOTA_GROUPS, QuotaGroup, quotaGroupOf } from '../models/usage-quota.model';
 import { usageQuotaService } from '../services/billing/usage-quota.service';
@@ -258,7 +261,11 @@ export class BillingController {
         amountXaf: quote.amountXaf,
         country: quote.country,
         credits: quote.product.credits,
-        bonusXaf: quote.product.code === WALLET_TOPUP_CODE ? topupBonusXaf(quote.amountXaf) : 0,
+        bonusXaf:
+          quote.product.code === WALLET_TOPUP_CODE
+            ? topupBonusXaf(quote.amountXaf) +
+              (req.user?.uid && (await isActiveBuilder(req.user.uid)) ? builderTopupBonusXaf(quote.amountXaf) : 0)
+            : 0,
       });
     } catch (error) {
       handleError(res, error, 'Impossible de calculer le prix.');
@@ -476,6 +483,14 @@ export class BillingController {
 
       if (entitlements.beta.active) {
         res.json({ allowed: true, cost: 0, enforcement, included: true });
+        return;
+      }
+
+      // Une campagne qui rend la modification gratuite (bêta gratuite) : on ne consomme ni les
+      // modifications incluses ni le portefeuille.
+      if (await promotionService.wouldBeFree(userId, `icode_${action}`, 'appgen', priceXaf)) {
+        if (enforcement === 'enforce') await walletService.spend(userId, { priceXaf, label, action: `icode_${action}`, projectId, feature: 'appgen' });
+        res.json({ allowed: true, cost: 0, enforcement, included: true, promotion: true });
         return;
       }
 
@@ -719,7 +734,8 @@ export class BillingController {
     try {
       const effective = await pricingService.effective();
       const products = Object.fromEntries(
-        Object.entries(effective.products).filter(([, product]) => product.isActive)
+        // Les offres au portefeuille (`offer-…`) sont servies par `/billing/offers`, pas ici.
+        Object.entries(effective.products).filter(([, product]) => product.isActive && !product.wallet)
       );
 
       res.set('Cache-Control', 'public, max-age=60');

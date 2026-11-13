@@ -15,9 +15,11 @@ import type { Density, RadiusToken, SpaceToken, StrokeToken, TextSizeToken } fro
 import {
   buildNeutralRamp,
   buildRamp,
+  colorDistance,
   contrastRatio,
   hexToOklch,
   isDark,
+  isDeep,
   isHex,
   mixHex,
   normalizeHex,
@@ -28,6 +30,7 @@ import { stableHash } from '../../foundation/hash';
 import { classifyFont, FontClass } from '../../foundation/typeset';
 import { FORMATS, FormatDef } from '../formats';
 import { STYLE_DATA, StyleData } from './styles.data';
+import { directionsSync } from '../../directions';
 
 export interface BrandLogos {
   /** Le logo complet de référence. */
@@ -143,6 +146,8 @@ const FALLBACK = { primary: '#1f4e5f', secondary: '#4a5a60', accent: '#c6553d' }
 export const DEFAULT_STYLE_ID = 'editorial';
 
 export function resolveStyle(styleId?: string | null): StyleData {
+  // Les fiches du catalogue des DA remplissent STYLE_DATA (premier accès : lecture disque, puis mise à jour en fond).
+  directionsSync();
   return STYLE_DATA[String(styleId ?? '').trim()] ?? STYLE_DATA[DEFAULT_STYLE_ID];
 }
 
@@ -199,7 +204,10 @@ export function buildTokens(input: TokenInput): DesignTokens {
   const ink = readableInk(textSeed, ground, 7);
   const muted = readableInk(dark ? neutral['300'] : neutral['600'], ground, 4.5);
   const faint = readableInk(dark ? neutral['400'] : neutral['500'], ground, 3);
-  const deep = brandRamp['900'] ?? neutral['900'];
+  // L'aplat profond (bandeaux, panneaux d'inversion) : la couleur SECONDAIRE de la charte quand elle est assez sombre
+  // et distincte de la principale — sans quoi la secondaire n'apparaissait sur aucun livrable — sinon la principale
+  // assombrie.
+  const deep = isDeep(secondary) && colorDistance(secondary, primary) > 12 ? secondary : brandRamp['900'] ?? neutral['900'];
 
   const color: TokenColors = {
     primary,
@@ -291,17 +299,3 @@ export function buildTokens(input: TokenInput): DesignTokens {
 
 const round1 = (v: number): number => Math.round(v * 10) / 10;
 
-/** Résumé d'une ligne pour les journaux : les contrastes sont AU-DESSUS des seuils, et cela se lit. */
-export function describeTokens(t: DesignTokens): string {
-  return (
-    `style=${t.style.id} format=${t.format.id} densité=${t.density} fond=${t.color.dark ? 'sombre' : 'clair'} ` +
-    `encre ${t.contrast.inkOnGround}:1 · secondaire ${t.contrast.mutedOnGround}:1 · sur marque ${t.contrast.onBrand}:1 · ` +
-    `corps ${t.size.base}px, ${t.size.xs}→${t.size['6xl']}px · rayon ${t.radius.md}px · ${t.font.display} / ${t.font.body}`
-  );
-}
-
-/** Toutes les couleurs que le rendu peut produire : la palette déclarée et ce qui en DÉRIVE. */
-export function tokenPalette(t: DesignTokens): string[] {
-  const c = t.color;
-  return [...new Set([c.primary, c.secondary, c.accent, c.ground, c.raised, c.sunken, c.ink, c.muted, c.faint, c.rule, c.ruleStrong, c.brandSoft, c.accentSoft, c.onBrand, c.onAccent, c.deep, c.onDeep, ...Object.values(c.brandRamp), ...Object.values(c.accentRamp), ...Object.values(c.neutral)])];
-}

@@ -6,7 +6,7 @@
  *  · `generated` — le service de sourcing des visuels : image sans texte (consigne positive, relue par la
  *    vision, second essai si elle en voit), stockée dans le dossier du projet. Le moteur ne l'appelle
  *    qu'aux crans High et au-delà, dans un plafond par document ;
- *  · `stock`     — la banque Pexels du même service, sans génération en repli (le moteur ordonne).
+ *  · `stock`     — la banque Pexels du même service : le REPLI d'une génération qui échoue (le moteur ordonne).
  *
  * Les sources `user`, `project` et `capture` sont servies par le REGISTRE des ressources du projet
  * (`asset-registry.ts`, commun aux documents et aux vidéos) : imports, captures du site, médias des visuels et
@@ -51,10 +51,25 @@ const generated: AssetProvider = {
   },
 };
 
+/**
+ * La recherche de la banque : les mots porteurs du sujet (une banque d'images comprend « market women vegetables »,
+ * pas une phrase entière), du plus précis au plus large.
+ */
+const STOP = new Set(['the', 'and', 'with', 'for', 'from', 'into', 'over', 'their', 'that', 'this', 'des', 'les', 'une', 'pour', 'avec', 'dans', 'sur', 'qui', 'que', 'aux', 'par']);
+export function stockQueries(subject: string): string[] {
+  const words = subject.replace(/[^\p{L}\p{N}\s]/gu, ' ').split(/\s+/).filter((w) => w.length > 2 && !STOP.has(w.toLowerCase()));
+  return [...new Set([words.slice(0, 5).join(' '), words.slice(0, 3).join(' ')].filter(Boolean))];
+}
+
+/** La banque Pexels : le repli d'une image que la génération n'a pas pu faire (ou la source d'une charte photographique). */
 const stock: AssetProvider = {
   async resolve(req) {
     if (!IMAGE_ROLES.has(req.role)) return null;
-    const image = await imageSourcingService.stockImage({ ...imageBrief(req, { level: 'medium', documentType: 'pitch-deck' }), preferGenerated: false });
+    let image: Awaited<ReturnType<typeof imageSourcingService.stockImage>> = null;
+    for (const searchQuery of stockQueries(req.subject)) {
+      image = await imageSourcingService.stockImage({ ...imageBrief(req, { level: 'medium', documentType: 'pitch-deck' }), searchQuery, preferGenerated: false });
+      if (image) break;
+    }
     if (!image) return null;
     return {
       url: image.url,

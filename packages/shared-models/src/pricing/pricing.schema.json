@@ -35,10 +35,15 @@
           "description": { "type": "string" },
           "kind": {
             "type": "string",
-            "enum": ["subscription", "pack", "recharge", "day_pass", "project_pass", "addon", "bundle"]
+            "enum": ["subscription", "pack", "recharge", "day_pass", "project_pass", "addon", "bundle", "wallet_offer"]
           },
           "engine": { "enum": ["business", "appgen", "ideploy", null] },
           "interval": { "enum": ["month", "year", "one_time"] },
+          "wallet": {
+            "type": "boolean",
+            "description": "Offre du modèle au portefeuille : payée en francs depuis le portefeuille, sans grille par pays."
+          },
+          "group": { "type": "string", "description": "Rubrique dans le panel admin (offer-idem, offer-passes…)." },
           "credits": { "type": "integer", "minimum": 0 },
           "priceXaf": {
             "type": "integer",

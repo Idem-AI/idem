@@ -128,3 +128,6 @@ scratch/
 
 # Sorties de build des packages partagés (produites aussi par le hook pre-push)
 packages/*/dist/
+
+# Rendus du corpus d'exemples (html + png + json, ~11 Mo) : régénérables par `npm run corpus:render`, jamais versionnés.
+packages/graphic-engine/corpus/rendered/

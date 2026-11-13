@@ -10,6 +10,8 @@ import { FacadeScene } from './facade-scene';
 import { FeaturesSection } from './features-section';
 import { PricesSection } from './prices-section';
 import { SetupTimeline } from './setup-timeline';
+import { PaySectionComponent, PayStripComponent } from '@idem/shared-promotions/angular';
+import { LanguageService } from '../../core/language.service';
 
 /**
  * L'accueil d'iDomain, ouvert à tous. Une idée par écran :
@@ -22,7 +24,7 @@ import { SetupTimeline } from './setup-timeline';
  */
 @Component({
   selector: 'idm-home',
-  imports: [TranslateModule, DomainSearch, FacadeScene, SetupTimeline, PricesSection, FeaturesSection, AppsSection],
+  imports: [TranslateModule, DomainSearch, FacadeScene, SetupTimeline, PricesSection, FeaturesSection, AppsSection, PaySectionComponent, PayStripComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'block overflow-x-clip' },
   template: `
@@ -35,6 +37,8 @@ import { SetupTimeline } from './setup-timeline';
         </h1>
         <p class="mt-8 max-w-md text-lg leading-relaxed text-[var(--color-text-secondary)] sm:text-xl">{{ 'home.hero.lead' | translate }}</p>
         <idm-domain-search #search class="mt-10" [initial]="initialQuery" [catalog]="catalog() ?? []" (queryChange)="typed.set($event)" (chosen)="choose($event)" />
+        <!-- Payé en mobile money : dit dès le premier écran. -->
+        <idem-pay-strip class="mt-8" [lang]="language.current()" />
       </div>
       <idm-facade-scene class="mx-auto w-full max-w-[38rem] lg:sticky lg:top-24 lg:-mr-12 lg:w-[calc(100%_+_3rem)] lg:max-w-none xl:-mr-20 xl:w-[calc(100%_+_5rem)]" [query]="typed()" [suffix]="catalog()?.[0]?.tld ?? 'africa'" />
     </section>
@@ -53,6 +57,11 @@ import { SetupTimeline } from './setup-timeline';
     <section id="prix" class="border-t border-[var(--glass-border-subtle)] py-24 sm:py-32">
       <div class="idm-wrap"><idm-prices-section [catalog]="catalog()" (pick)="searchTld($event)" /></div>
     </section>
+
+    <!-- 4 bis. Le paiement : mobile money, sans carte ni abonnement (la même section sur toutes les landings). -->
+    <div class="idm-wrap pb-24 sm:pb-32">
+      <idem-pay-section ctaHref="#chercher" [ctaLabel]="'home.pay.cta' | translate" [lang]="language.current()" />
+    </div>
 
     <!-- 5. Déjà en ligne avec IDEM. -->
     <section id="applications" class="border-t border-[var(--glass-border-subtle)] py-24 sm:py-32">
@@ -79,6 +88,7 @@ import { SetupTimeline } from './setup-timeline';
   `,
 })
 export class HomePage {
+  protected readonly language = inject(LanguageService);
   private readonly api = inject(ApiService);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);

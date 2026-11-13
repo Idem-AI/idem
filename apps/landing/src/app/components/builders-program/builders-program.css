@@ -1,0 +1,93 @@
+/* Idem Builders sur l'accueil — ce qui n'appartient qu'à ce bloc.
+   L'échelle typographique et les marges `ed-mt-*` viennent de
+   `shared/styles/editorial-page.css`. */
+
+.bh-band {
+  position: relative;
+  border-top: 1px solid var(--glass-border-subtle);
+  padding-block: clamp(4.5rem, 9vw, 8rem);
+}
+
+.bh-stage {
+  display: grid;
+  gap: clamp(2.5rem, 5vw, 4rem);
+  align-items: center;
+}
+
+.bh-art {
+  margin: 0;
+  width: min(100%, 18rem);
+  justify-self: center;
+}
+
+.bh-copy {
+  min-width: 0;
+}
+
+/* Trois chiffres, séparés par des filets : ce que le programme rapporte. */
+.bh-figures {
+  display: grid;
+  margin-bottom: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--glass-border-subtle);
+}
+
+.bh-figure {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  padding-block: 1rem;
+  border-bottom: 1px solid var(--glass-border-subtle);
+  min-width: 0;
+}
+
+.bh-value {
+  flex: none;
+  min-width: 6.5rem;
+  font-weight: var(--font-weight-black);
+  font-size: clamp(1.375rem, 2.2vw, 1.75rem);
+  line-height: 1;
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.bh-label {
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+  color: var(--color-text-tertiary);
+}
+
+.bh-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .bh-figures {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    column-gap: clamp(1.5rem, 3vw, 2.5rem);
+  }
+
+  .bh-figure {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .bh-stage {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    column-gap: clamp(2rem, 4vw, 4rem);
+  }
+
+  .bh-art {
+    grid-column: 1 / 5;
+    width: 100%;
+  }
+
+  .bh-copy {
+    grid-column: 6 / -1;
+  }
+}

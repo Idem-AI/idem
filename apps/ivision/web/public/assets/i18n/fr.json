@@ -227,7 +227,8 @@
           "end": "."
         }
       ],
-      "text": "Le même portefeuille et les mêmes prix que dans votre tableau de bord IDEM. Importez la charte d’un projet IDEM en un clic."
+      "text": "Le même portefeuille et les mêmes prix que dans votre tableau de bord IDEM. Importez la charte d’un projet IDEM en un clic.",
+      "pricing": "Voir les tarifs"
     },
     "request": {
       "label": "Votre demande à iVision",
@@ -273,7 +274,8 @@
         "how": "Comment ça marche",
         "workshops": "Ateliers",
         "creativity": "Créativité",
-        "montage": "Montage"
+        "montage": "Montage",
+        "pricing": "Tarifs"
       },
       "language": "Langue",
       "signIn": "Se connecter",
@@ -456,11 +458,19 @@
       "downloadSigned": "Télécharger (signé)",
       "downloadHd": "Télécharger en HD",
       "exportHd": "Export HD sans signature · {{price}} F",
+      "exportHdFree": "Export HD sans signature · Gratuit",
       "exportMissing": "Il manque {{missing}} F dans votre portefeuille.",
       "fit": "Ajuster à l’écran",
       "actualSize": "Taille réelle",
       "imageFailed": "L’image n’a pas pu être chargée.",
-      "retry": "Réessayer"
+      "retry": "Réessayer",
+      "otherProposals": "Autres propositions",
+      "otherProposalsHint": "Composées en même temps, sans frais : choisissez celle que vous préférez.",
+      "useProposal": "Utiliser cette proposition",
+      "proposalAlt": "Autre composition de ce visuel",
+      "decline": "Aussi dans un autre format",
+      "declined": "Ouvrir",
+      "declineFailed": "La déclinaison n’a pas abouti. Réessayez."
     },
     "payment": {
       "cta": "Recharger mon portefeuille",
@@ -502,6 +512,7 @@
       "voice": "Voix off",
       "voiceHint": "Une voix dit le message, scène par scène, dans la langue de votre demande.",
       "price": "Création gratuite · export HD {{cost}} F",
+      "priceFree": "Création gratuite · export HD gratuit",
       "removeSilences": "Retirer les blancs",
       "music": "Musique",
       "readFromText": "Durée et format lus dans votre demande.",
@@ -996,5 +1007,113 @@
     "creating": "Je crée votre marque sur IDEM…",
     "created": "Votre marque est créée sur IDEM. Vous pouvez maintenant créer sa charte graphique.",
     "failed": "Votre marque n’a pas pu être créée. Réessayez dans un instant."
+  },
+  "pricing": {
+    "hero": {
+      "title": [
+        {
+          "t": "Créez gratuitement."
+        },
+        {
+          "t": "Payez ",
+          "em": "ce que vous publiez",
+          "end": "."
+        }
+      ],
+      "lead": "Visuels et vidéos se créent gratuitement, marqués « Fait avec iVision ». Vous ne payez que le fichier HD sans la marque, dès 100 F, par mobile money.",
+      "secondary": "Voir les prix"
+    },
+    "free": {
+      "title": "pour créer, sans limite de durée",
+      "text": "Visuels, vidéos, retouches écrites : tout se crée gratuitement avec vos crédits du jour. Le fichier porte la mention « Fait avec iVision »."
+    },
+    "offers": {
+      "title": "Ce que vous payez, et seulement quand vous gardez",
+      "lead": "Un fichier à l'unité, ou tous vos exports du mois avec iVision Créateur.",
+      "recommended": "Le plus avantageux",
+      "visual": {
+        "who": "Pour un visuel de temps en temps",
+        "name": "Visuel HD",
+        "cadence": "par visuel, payé une fois",
+        "bullets": [
+          "Le fichier en haute définition, sans la marque",
+          "Tous les formats : publication, story, affiche",
+          "Le même visuel retouché reste à vous"
+        ],
+        "cta": "Créer un visuel",
+        "foot": "Le prix d'un SMS"
+      },
+      "creator": {
+        "who": "Pour qui publie chaque semaine",
+        "name": "iVision Créateur",
+        "cadence": "par mois",
+        "perDay": "{{amount}} F par jour",
+        "worth": "{{amount}} F à l'unité",
+        "bullets": [
+          "Tous vos exports HD sans la marque",
+          "Jusqu'à 60 visuels et 6 vidéos par mois",
+          "S'arrête quand vous voulez, sans frais"
+        ],
+        "cta": "Prendre iVision Créateur",
+        "foot": "Payé en mobile money, sans engagement"
+      },
+      "video": {
+        "who": "Pour une vidéo qui compte",
+        "name": "Vidéo HD",
+        "cadence": "par vidéo, payée une fois",
+        "bullets": [
+          "La vidéo en haute définition, sans la marque",
+          "Retouches écrites gratuites avant l’export",
+          "Tous les formats : 16:9, story, carré"
+        ],
+        "cta": "Créer une vidéo",
+        "foot": "Une génération ratée n'est pas débitée"
+      }
+    },
+    "guarantees": {
+      "title": "Ce qui vous protège",
+      "free": {
+        "title": "Créer reste gratuit",
+        "text": "Vous voyez le résultat avant de payer quoi que ce soit."
+      },
+      "failed": {
+        "title": "Une génération ratée n'est pas débitée",
+        "text": "Si la création échoue, vos crédits vous sont rendus automatiquement."
+      },
+      "stop": {
+        "title": "Aucun abonnement obligatoire",
+        "text": "Payez à l'unité ; iVision Créateur s'arrête quand vous voulez."
+      }
+    },
+    "pay": {
+      "cta": "Créer une vidéo"
+    },
+    "faq": {
+      "title": "Questions",
+      "free": {
+        "q": "Qu'est-ce qui est gratuit ?",
+        "a": "Créer et retoucher vos visuels et vidéos, autant que vos crédits du jour le permettent. Seul l'export HD sans la marque est payant."
+      },
+      "mark": {
+        "q": "Qu'est-ce que la marque « Fait avec iVision » ?",
+        "a": "Une petite mention posée sur les fichiers gratuits. L'export HD la retire, et le fichier est à vous."
+      },
+      "pay": {
+        "q": "Comment je paie ?",
+        "a": "Par mobile money (Orange Money, MTN MoMo, Wave, Moov Money, Airtel Money, M-Pesa), en rechargeant votre portefeuille IDEM dès 100 F. Aucune carte bancaire."
+      },
+      "stop": {
+        "q": "Je peux arrêter iVision Créateur ?",
+        "a": "Oui, à tout moment, depuis votre compte IDEM. Vous gardez vos fichiers déjà exportés."
+      },
+      "failed": {
+        "q": "Et si la vidéo ne me plaît pas ?",
+        "a": "Retouchez-la en écrivant ce qu'il faut changer, gratuitement. Vous ne payez que l'export que vous gardez."
+      }
+    },
+    "final": {
+      "title": "Créez ce soir, payez seulement ce que vous publiez.",
+      "cta": "Commencer gratuitement"
+    }
   }
 }

@@ -23,6 +23,7 @@ import { billingService } from '../billing.service';
 import { billingSettingsService } from './billing-settings.service';
 import { Entitlements, entitlementsService } from './entitlements.service';
 import { QuotaReservation, usageCounters } from './usage-counters';
+import { PromotionService, promotionService } from './promotion.service';
 
 /**
  * Quotas d'usage IA : palier du compte, limites effectives, réservation, refus.
@@ -93,6 +94,20 @@ export class UsageQuotaService {
     return merge(DEFAULT_SPEND_CAPS_USD[tier], overrides?.spendCapsUsd?.[tier]);
   }
 
+  /**
+   * Limites d'un compte, élargies par les crédits du jour de ses promotions (bêta gratuite…). Une
+   * promotion n'abaisse jamais une limite : on garde la plus large.
+   */
+  async effectiveLimits(userId: string, tier: QuotaTier, group: QuotaGroup): Promise<WindowLimits> {
+    const [limits, boost] = await Promise.all([this.limitsFor(tier, group), promotionService.quotaBoost(userId)]);
+    return PromotionService.widen(limits, boost?.limits[group]);
+  }
+
+  async effectiveSpendCaps(userId: string, tier: QuotaTier): Promise<WindowLimits> {
+    const [caps, boost] = await Promise.all([this.spendCapsFor(tier), promotionService.quotaBoost(userId)]);
+    return PromotionService.widen(caps, boost?.spendCapsUsd);
+  }
+
   // ============================================
   // RÉSERVATION
   // ============================================
@@ -119,7 +134,7 @@ export class UsageQuotaService {
 
       // 1. Le disjoncteur de coût : avant de compter, parce qu'un compte arrêté pour dépense ne doit
       //    pas en plus consommer une place.
-      const [caps, spent] = await Promise.all([this.spendCapsFor(tier), usageCounters.spend(userId)]);
+      const [caps, spent] = await Promise.all([this.effectiveSpendCaps(userId, tier), usageCounters.spend(userId)]);
       for (const window of QUOTA_WINDOWS) {
         const cap = caps[window];
         if (cap === null || spent[window] < cap) continue;
@@ -131,7 +146,7 @@ export class UsageQuotaService {
       }
 
       // 2. Le nombre de générations du groupe.
-      const limits = await this.limitsFor(tier, group);
+      const limits = await this.effectiveLimits(userId, tier, group);
       const outcome = await usageCounters.reserve(userId, group, limits, enforce);
 
       if (!outcome.ok) {
@@ -191,7 +206,7 @@ export class UsageQuotaService {
     const groups = await Promise.all(
       QUOTA_GROUPS.map(async (group) => {
         const tier = this.tierFor(entitlements, group);
-        const limits = await this.limitsFor(tier, group);
+        const limits = await this.effectiveLimits(userId, tier, group);
         return {
           group,
           label: QUOTA_GROUP_LABELS[group],
@@ -212,7 +227,7 @@ export class UsageQuotaService {
     );
 
     const overallTier = this.tierFor(entitlements, 'assist');
-    const caps = await this.spendCapsFor(overallTier);
+    const caps = await this.effectiveSpendCaps(userId, overallTier);
     const capacity = Object.fromEntries(
       QUOTA_WINDOWS.map((window) => {
         const cap = caps[window];

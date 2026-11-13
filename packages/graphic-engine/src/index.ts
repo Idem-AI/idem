@@ -6,12 +6,12 @@
  * pages du business plan, de la charte graphique, du pitch deck, les faces des cartes de visite, les
  * visuels (flyers, publications, bannières) et les graphiques.
  *
- *   contenu (ContentModel) → médias → bible du document (directeur) → page écrite en HTML Tailwind (auteur)
- *   → assainie, remplie par le code (textes exacts, graphiques, tableaux), compilée → « s'affiche-t-elle ? »
- *   → RenderResult + trace
+ *   contenu (ContentModel) → médias → graphe du catalogue de gabarits (code) → configuration choisie et réglée
+ *   (modèle, petite réponse JSON) → page assemblée par le code (textes exacts, graphiques, tableaux), compilée
+ *   → « s'affiche-t-elle ? » → RenderResult + trace
  *
- * Aucun gabarit, aucune note esthétique : l'IA conçoit, le code garantit l'exactitude et l'affichage. La jauge de
- * créativité choisit le MODÈLE. L'hôte branche ses ports une fois (`configureGraphicEngine`) : appel d'agent,
+ * L'IA choisit et règle ; le code assemble et garantit l'exactitude et l'affichage. La jauge de créativité règle la
+ * finesse du choix et l'exploration (`CATALOG_EFFORT`). L'hôte branche ses ports une fois (`configureGraphicEngine`) : appel d'agent,
  * journaux, traces, mémoire, navigateur partagé, médias.
  */
 
@@ -26,7 +26,7 @@ export { configureGraphicEngine, engineHost } from './host';
 export type { AgentCall, AgentProfile, EngineHost, EngineLogger, FingerprintScope } from './host';
 
 // ── Les documents ────────────────────────────────────────────────────────────────────────────
-export { ContentError, createDocument, GraphicDocument, GraphicRenderError, renderSingle, repairLimits } from './engine';
+export { ContentError, createDocument, GraphicDocument, GraphicRenderError, MEMORY_MAX, MEMORY_TTL_S, memoryEnabled, mergeMemory, qualityStatus, renderSingle } from './engine';
 export type { DocumentOptions, SectionOutput } from './engine';
 export type { ReferenceComposition } from './author/prompts';
 
@@ -44,6 +44,20 @@ export type { FormatDef, FormatFamily, FormatKind } from './design-system/format
 export { buildTokens, DEFAULT_STYLE_ID, resolveStyle } from './design-system/tokens';
 export type { BrandInput, BrandLogos, BrandPattern, DesignTokens, DirectionInput } from './design-system/tokens';
 export { STYLE_DATA } from './design-system/tokens/styles.data';
+export {
+  DirectionNode,
+  DirectionInfo,
+  directionsSync,
+  directionCatalog,
+  refreshDirections,
+  resetDirections,
+  getDirection,
+  selectableDirections,
+  pickVariant,
+  readDirectionsDir,
+  DIRECTIONS_ENGINE,
+} from './directions';
+export type { DirectionVariantField, LoadedDirections } from './directions';
 export { chartPalette, validatePalette } from './design-system/charts/palette';
 export { motifCss, styleMotifs } from './design-system/kit/motifs';
 export type { MotifName } from './design-system/kit/motifs';
@@ -81,3 +95,9 @@ export { brandFromIdem, logosFromIdem, patternsFromIdem } from './adapters/idem'
 export type { IdemBrandingLike, IdemLogoSetLike, IdemPaletteLike } from './adapters/idem';
 export { cardFaces, coverContent, sectionFromModel, sectionHtml, systemBlocks, systemSection, visualContent } from './adapters/sections';
 export type { SectionFromModelOptions, SectionFromModelResult, VisualCopy } from './adapters/sections';
+
+// Le catalogue de gabarits en ligne (10/11/2026) : registre, graphe, assemblage.
+export { catalog, refreshCatalog, resetCatalog } from './catalog/registry';
+// Les garanties communes aux deux catalogues (images ici, vidéos dans le moteur vidéo) : signature, contenu interdit, mots en dur.
+export { canonicalJson, hardcodedWords, unsafeReasons, verifyManifest } from './catalog/registry';
+export type { CatalogOverrides, LoadedCatalog, PageConfig } from './catalog/types';

@@ -89,6 +89,8 @@ export interface PdfGenerationOptions {
     balance?: boolean;
     /** Hauteur restante sous laquelle un bloc n'est plus découpé (défaut 0.18). */
     minSplitRatio?: number;
+    /** Trace le plan et le remplissage page par page dans `report.warnings` (contrôles). */
+    debug?: boolean;
     /** Pages vides et grands blancs, corrigés à la composition (cf. `FlowCompactOptions`). */
     compact?: FlowCompactOptions;
   };
@@ -742,6 +744,7 @@ export class PdfService {
 
     logger.info(`❌ CACHE MISS - Generating new PDF for project: ${projectName}`);
 
+    let openPage: Page | null = null;
     try {
       // Trier les sections selon l'ordre spécifié
       const sortedSections = this.sortSectionsByOrder(cleanedSections, sectionDisplayOrder);
@@ -773,6 +776,7 @@ export class PdfService {
 
       // Utiliser une page optimisée avec ressources pré-chargées
       const page = await PdfService.createOptimizedPage();
+      openPage = page;
 
       // Définir le contenu HTML (ressources déjà injectées)
       await page.setContent(htmlContent, {
@@ -866,6 +870,7 @@ export class PdfService {
             balance: pagination?.balance,
             minSplitRatio: pagination?.minSplitRatio,
             compact: pagination?.compact,
+            debug: pagination?.debug,
           }
         )) as FlowPaginationReport;
 
@@ -950,6 +955,7 @@ export class PdfService {
       }
 
       await page.close(); // Fermer seulement la page, pas le browser
+      openPage = null;
 
       // Mettre en cache le PDF généré
       PdfService.setCachedPdf(cacheKey, pdfPath);
@@ -959,6 +965,10 @@ export class PdfService {
     } catch (error) {
       logger.error(`Error generating PDF for project ${projectName}:`, error);
       throw error;
+    } finally {
+      // Une impression ratée fermait jamais sa page : chaque échec laissait un onglet Chromium ouvert, et le
+      // navigateur partagé finissait par ne plus monter de document dans les délais.
+      if (openPage) await openPage.close().catch(() => undefined);
     }
   }
 
@@ -1241,6 +1251,15 @@ export class PdfService {
         <div class="section" data-section-name="${escapeAttr(section.name || '')}">
             <div class="data-content">${balanceHtmlFragment(sectionData)}</div>
         </div>
+      `;
+        return;
+      }
+
+      // Une section DÉJÀ MISE EN PAGES par le moteur graphique (pages A4 fixes `data-ge-page`) : imprimée page par
+      // page, telle que l'aperçu la montre — ni ramenée au flux ni redécoupée.
+      if (/\sdata-ge-page="/.test(sectionData)) {
+        htmlContent += `
+        <div class="idem-flow" data-section-name="${escapeAttr(section.name || '')}" data-fixed-page="0" data-paged="1">${sectionData}</div>
       `;
         return;
       }

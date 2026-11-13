@@ -16,7 +16,9 @@ export type IllustrationName =
   | 'beads'
   | 'net'
   | 'cowries'
-  | 'facade';
+  | 'facade'
+  | 'mortar'
+  | 'night-stall';
 
 /**
  * Les illustrations de l'interface, dessinées en ligne plutôt que livrées en
@@ -48,8 +50,8 @@ export type IllustrationName =
       role="img"
       [attr.aria-label]="alt()"
       [attr.aria-hidden]="alt() ? null : true"
-      [style.width.px]="width()"
-      class="h-auto"
+      [style.width]="width() ? width() + 'px' : '100%'"
+      class="block h-auto max-w-full"
       style="color: var(--color-text-tertiary);"
     >
       @switch (name()) {
@@ -250,6 +252,55 @@ export type IllustrationName =
           <g transform="rotate(8 80 28)"><ellipse cx="80" cy="28" rx="7.5" ry="5" stroke-width="1.5"/><path d="M75.5 28 C78.5 26.8 81.5 29.2 84.5 28" stroke-width="1.1"/><path d="M77 26.4 v3.2 M80 26.2 v3.6 M83 26.4 v3.2" stroke-width=".7" opacity=".7"/></g>
           <g style="color: var(--color-primary-500)"><g transform="rotate(-4 60 15)"><ellipse cx="60" cy="15" rx="7.5" ry="5" stroke-width="1.5"/><path d="M55.5 15 C58.5 13.8 61.5 16.2 64.5 15" stroke-width="1.1"/><path d="M57 13.4 v3.2 M60 13.2 v3.6 M63 13.4 v3.2" stroke-width=".7" opacity=".7"/></g></g>
         }
+        @case ('mortar') {
+          <!-- Faire tourner au quotidien : le mortier et son pilon, le geste de chaque jour qui fait
+               tourner la maison (même dessin que la landing Idem Builders, même sens). Le pilon,
+               ce qui agit, porte la couleur. Tarifs : le compteur payé au jour. -->
+          <g transform="translate(16 0) scale(0.4)" stroke-width="4.5">
+            <path d="M36 204 H184" opacity=".35" />
+            <ellipse cx="110" cy="86" rx="50" ry="10" />
+            <path d="M70 87.5 Q110 95 150 87.5" opacity=".45" />
+            <path d="M60 86 C62 114 80 128 88 140 C80 158 68 178 66 196" />
+            <path d="M160 86 C158 114 140 128 132 140 C140 158 152 178 154 196" />
+            <path d="M66 196 Q110 208 154 196" />
+            <path d="M86 134 Q110 140 134 134 M86 146 Q110 152 134 146" stroke-width="3.6" />
+            <path d="M68 106 l6 7 l6 -7 l6 7 l6 -7 l6 7 l6 -7 l6 7 l6 -7 l6 7 l6 -7 l6 7 l6 -7 l6 7 l6 -7" stroke-width="3.2" opacity=".7" />
+            <path d="M96 176 l4 -5 l4 5 l-4 5 Z M108 178 l4 -5 l4 5 l-4 5 Z M120 176 l4 -5 l4 5 l-4 5 Z" stroke-width="3" opacity=".7" />
+            <g opacity=".55" stroke-width="3.6">
+              <path d="M44 64 q-8 10 0 20" />
+              <path d="M34 58 q-12 16 0 32" />
+            </g>
+            <path style="color: var(--color-primary-500)" d="M118 95 C124 78 132 58 138 40 C141 30 140 20 146 12 C150 6 160 6 164 12 C168 18 164 26 160 34 C152 52 142 74 134 97" stroke-width="5.4" />
+          </g>
+        }
+        @case ('night-stall') {
+          <!-- Ouvert dès ce soir : l'étal du marché de nuit, éclairé par sa lampe-tempête pendue
+               sous l'auvent (Tamale, Lagos : le commerce continue après la tombée du jour). La
+               flamme et sa lueur portent la couleur : votre site, allumé ce soir. -->
+          <path d="M104 5 a9 9 0 1 0 9 13 a7 7 0 1 1 -9 -13Z" stroke-width="1.3" opacity=".7"/>
+          <path d="M18 8 v4 M16 10 h4 M36 4 v3 M34.5 5.5 h3 M84 10 v3 M82.5 11.5 h3" stroke-width="1" opacity=".55"/>
+          <path d="M6 82 H114" opacity=".4"/>
+          <path d="M16 30 Q38 21 60 30 Q82 21 104 30" stroke-width="1.8"/>
+          <path d="M16 30 Q21 36 26 30 Q31 36 36 30 Q41 36 46 30 Q51 36 56 30 M64 30 Q69 36 74 30 Q79 36 84 30 Q89 36 94 30 Q99 36 104 30" stroke-width="1.2"/>
+          <path d="M22 30 V82 M98 30 V82" stroke-width="1.8"/>
+          <path d="M26 60 H94" stroke-width="2.2"/>
+          <path d="M32 60 V82 M88 60 V82" stroke-width="1.5"/>
+          <path d="M28 66 H92" stroke-width="1" opacity=".5"/>
+          <path d="M32 60 C34 53 44 53 46 60" stroke-width="1.4"/>
+          <path d="M35 57 h2 M40 55.5 h2 M42 58 h2" stroke-width="1" opacity=".6"/>
+          <path d="M50 60 C50 53.5 64 53.5 64 60" stroke-width="1.4"/>
+          <path d="M53 57 Q57 55.5 61 57" stroke-width="1" opacity=".6"/>
+          <circle cx="75" cy="57" r="3"/><circle cx="81" cy="57" r="3"/><circle cx="87" cy="57" r="3"/><circle cx="78" cy="51.8" r="3"/><circle cx="84" cy="51.8" r="3"/>
+          <path d="M60 30 V33" stroke-width="1.2"/>
+          <path d="M56 37 C56 32 64 32 64 37" stroke-width="1.2"/>
+          <path d="M55 37 H65 L63 39.5 H57Z" stroke-width="1.3"/>
+          <path d="M57 39.5 C53.5 42.5 53.5 47 57 50 H63 C66.5 47 66.5 42.5 63 39.5" stroke-width="1.4"/>
+          <path d="M55.5 50 H64.5 V52.5 H55.5Z" stroke-width="1.3"/>
+          <g style="color: var(--color-primary-500)">
+            <path d="M60 41.5 C62.6 44 62.2 47 60 48.2 C57.8 47 57.4 44 60 41.5Z" stroke-width="1.6"/>
+            <path d="M45 45 H50 M70 45 H75 M49 36 L52.5 39 M71 36 L67.5 39 M50 53 L53 50.5 M70 53 L67 50.5" stroke-width="1.3" opacity=".8"/>
+          </g>
+        }
         @case ('facade') {
           <!-- Un nom de domaine : la façade ndebele peinte, que l'on reconnaît de loin et qui dit à qui est la maison. -->
           <path d="M8 80 H112" opacity=".7"/>
@@ -282,6 +333,7 @@ export type IllustrationName =
 })
 export class IllustrationComponent {
   readonly name = input<IllustrationName>('box');
+  /** Largeur en px ; `0` : toute la largeur de l'emplacement. */
   readonly width = input(140);
   /** Renseigné seulement quand le dessin porte une information à lui seul. */
   readonly alt = input<string | null>(null);

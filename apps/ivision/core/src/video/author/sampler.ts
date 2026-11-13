@@ -3,8 +3,8 @@
  * est gardée (un petit modèle rattrape un grand quand on multiplie les essais et qu'un vérificateur choisit :
  * « Large Language Monkeys », Snell et al.).
  *
- *   budget       selon la difficulté de la scène (3 simple, 6 moyenne, 10 données / interface / texte long), plafonné par
- *                le cran (Low 6, Medium 8, High et Ultra 10 — `VIDEO_SAMPLES_<CRAN>`) ; on s'arrête dès qu'une
+ *   budget       selon la difficulté de la scène (2 simple, 4 moyenne, 6 données / interface / texte long), plafonné par
+ *                le cran (Low 3, Medium 4, High 6, Ultra 8 — `VIDEO_SAMPLES_<CRAN>`) ; on s'arrête dès qu'une
  *                variante dépasse le seuil (`GOOD_ENOUGH`) ;
  *   variété      la température (0,4 → 1,0), la scène de référence retrouvée, et à partir de Medium la réécriture par
  *                l'auteur de QUALITÉ (rôle `video.author`) depuis le rapport mesuré de la meilleure ;
@@ -83,8 +83,13 @@ export interface SampleResult {
   tieBreak?: boolean;
 }
 
-const BY_DIFFICULTY: Record<Difficulty, number> = { simple: 3, medium: 6, hard: 10 };
-const BY_LEVEL: Record<CreativityLevel, number> = { low: 6, medium: 8, high: 10, ultra: 10 };
+// Économie de jetons (10/11/2026) : chaque intention écrite par l'agent est déjà multipliée par le CODE (4 à 12
+// compositions résolues, pré-jugées sans rendu, deux gardées) — la variété ne vient donc pas du nombre d'appels.
+// Budgets réduits, et la première vague d'un cran bas n'écrit qu'UNE intention : si elle passe le seuil, c'est tout.
+const BY_DIFFICULTY: Record<Difficulty, number> = { simple: 2, medium: 4, hard: 6 };
+const BY_LEVEL: Record<CreativityLevel, number> = { low: 3, medium: 4, high: 6, ultra: 8 };
+/** Taille de la première vague, puis des suivantes (parallèles) : un essai d'abord aux crans bas. */
+const WAVES: Record<CreativityLevel, [number, number]> = { low: [1, 2], medium: [1, 2], high: [2, 3], ultra: [3, 3] };
 
 /** La difficulté d'une scène : données, interface, texte long ou nombreux éléments = difficile. */
 export function difficultyOf(card: IntentAuthorInput['scene']): Difficulty {
@@ -171,7 +176,7 @@ export async function sampleScene(input: SampleSceneInput): Promise<SampleResult
 
   let stoppedEarly = false;
   for (let k = 0; k < budget; ) {
-    const wave = Math.min(3, budget - k);
+    const wave = Math.min(k === 0 ? WAVES[input.level][0] : WAVES[input.level][1], budget - k);
     await Promise.all(Array.from({ length: wave }, (_, i) => attempt(k + i)));
     k += wave;
     await probeTop(3);
@@ -183,7 +188,7 @@ export async function sampleScene(input: SampleSceneInput): Promise<SampleResult
   }
 
   // Sous le seuil (Medium et plus) : l'auteur de qualité réécrit la meilleure depuis le rapport MESURÉ.
-  const rewrites = input.level === 'low' ? 0 : input.level === 'medium' ? 1 : 2;
+  const rewrites = input.level === 'low' ? 0 : input.level === 'ultra' ? 2 : 1;
   for (let r = 0; r < rewrites && (best()?.final?.score ?? 0) < GOOD_ENOUGH; r++) {
     const top = best() || pool.sort((a, b) => b.pre.score - a.pre.score)[0];
     const report = top ? reportText({ ...top.pre, reasons: top.final?.reasons || top.pre.reasons }) : 'no usable intention yet';
