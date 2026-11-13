@@ -1,0 +1,42 @@
+name: Bake iCode deps
+
+# Pre-installs the iCode workshop node_modules snapshots (DEVOPS_PROD_ACTIONS.md § B4) after every successful
+# AppGen deploy on main. Snapshots must be built inside a WebContainer, so this opens the bake page of the live
+# workshop in headless Chrome and uploads to appgen-server. Already-baked fingerprints are skipped.
+#
+# Secret: APPGEN_DEPS_BAKE_TOKEN (same value as appgen-server, Infisical project appgen).
+# Variable (optional): ICODE_URL, default https://appgen.idem.africa
+
+on:
+  workflow_run:
+    workflows: [Deploy AppGen server, Deploy AppGen client]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: bake-icode-deps
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  bake:
+    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Bake
+        working-directory: apps/appgen/apps/we-dev-next
+        env:
+          ICODE_URL: ${{ vars.ICODE_URL || 'https://appgen.idem.africa' }}
+          APPGEN_DEPS_BAKE_TOKEN: ${{ secrets.APPGEN_DEPS_BAKE_TOKEN }}
+          DEPS_BAKE_TIMEOUT_MIN: 40
+        run: npm run deps:bake
