@@ -9,6 +9,7 @@
  */
 import { ContentChannel, ContentFormat, ContentIdea, ContentVideoPlan, VIDEO_PLAN_MUSIC, VIDEO_PLAN_VOICES, VideoPlanBeat, VideoPlanMusic, VideoPlanVoice, VisualIntent } from '../../../models/communication.model';
 import { VIDEO_TYPES, VideoObjective, VideoType } from '../../../models/motionVideo.model';
+import { narrationTarget } from '../plan/placement';
 import { formatCreativeBrief } from '../../../../../ivision/core/src/video/request/enhance';
 
 /** Formats qui sont des vidéos. */
@@ -180,17 +181,25 @@ export function normaliseVideoPlan(raw: unknown): ContentVideoPlan | undefined {
  * Le contenu et son plan → la DEMANDE de la vidéo, mise en forme comme un brief de production (même mise en forme que
  * le directeur de création du moteur : jamais lue comme un scénario mot pour mot). Sans plan : l'angle du contenu.
  */
-export function videoRequestOf(item: Pick<ContentIdea, 'title' | 'hook' | 'description' | 'callToAction' | 'videoPlan'>, language = 'fr'): string {
+export function videoRequestOf(item: Pick<ContentIdea, 'title' | 'hook' | 'description' | 'callToAction' | 'videoPlan' | 'videoDurationSec'>, language = 'fr'): string {
   const angle = [item.hook || item.title, item.title !== item.hook ? item.title : '', item.description].filter(Boolean).join('. ').replace(/\.\s*\./g, '.');
   const plan = item.videoPlan;
-  if (!plan || !plan.beats.length) return [angle, item.callToAction].filter(Boolean).join('\n');
+  // Couverture : la voix off dit de quoi remplir TOUTE la durée — sinon la fin du film reste muette (sous-titres arrêtés, musique seule).
+  const fr = (language || 'fr').startsWith('fr');
+  const coverage =
+    item.videoDurationSec && (!plan || plan.voiceover)
+      ? fr
+        ? `La narration couvre tout le film, de la première à la dernière seconde : environ ${narrationTarget(item.videoDurationSec, language).target} mots dits en tout, répartis également entre les moments, y compris le dernier.`
+        : `The narration covers the whole film, first to last second: about ${narrationTarget(item.videoDurationSec, language).target} spoken words in total, spread evenly across the moments, the last one included.`
+      : '';
+  if (!plan || !plan.beats.length) return [angle, item.callToAction, coverage].filter(Boolean).join('\n');
   return formatCreativeBrief(
     {
       keyMessage: item.hook || item.title,
       story: item.description,
       voiceover: plan.voiceover,
       ...(plan.voiceTone ? { voiceTone: plan.voiceTone } : {}),
-      ...(plan.pacing ? { pacing: plan.pacing } : {}),
+      ...(plan.pacing || coverage ? { pacing: [plan.pacing, coverage].filter(Boolean).join('. ') } : {}),
       show: plan.show,
       beats: plan.beats,
       ...(plan.ending || item.callToAction ? { ending: [plan.ending, item.callToAction].filter(Boolean).join(', ') } : {}),

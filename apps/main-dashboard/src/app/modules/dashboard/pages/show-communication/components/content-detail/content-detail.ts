@@ -156,7 +156,9 @@ export class ContentDetail {
   protected readonly videoOptions = signal<VideoOptions | null>(null);
   protected readonly videoBusy = signal(false);
   protected readonly videoProgress = signal<VideoProgressState>({});
-  protected readonly videoFormat = computed<VideoFormat>(() => VIDEO_FORMAT_BY_CHANNEL[this.item().channel] ?? 'story');
+  protected readonly videoFormat = computed<VideoFormat>(() => this.item().videoFormat ?? VIDEO_FORMAT_BY_CHANNEL[this.item().channel] ?? 'story');
+  /** Format et durée posés par le calendrier : affichés, plus proposés au choix (le minutage en dépend). */
+  protected readonly locked = computed(() => !!this.item().formatLocked);
   /** La jauge de créativité de ce contenu (visuel et vidéo) ; Medium par défaut. */
   protected readonly creativity = signal<CreativityLevel>(DEFAULT_CREATIVITY);
   /** Prix du visuel au cran Low / Medium pour ce projet (lu sur l'API). */
@@ -175,6 +177,11 @@ export class ContentDetail {
   private visualPriceRequested = false;
 
   constructor() {
+    // Le format du visuel est déjà réglé par le calendrier : on arrive sur le bon.
+    effect(() => {
+      const preset = this.item().visualFormat;
+      if (preset) untracked(() => this.chosenFormat.set(preset));
+    });
     // Le prix d'un visuel pour ce projet (cran Low / Medium) : la jauge en déduit chaque cran.
     effect(() => {
       if (this.visualPriceRequested) return;
@@ -394,7 +401,7 @@ export class ContentDetail {
   }
 
   protected setDuration(duration: VideoDuration): void {
-    if (duration === this.videoDuration() || this.videoBusy()) return;
+    if (this.locked() || duration === this.videoDuration() || this.videoBusy()) return;
     this.communication
       .updatePlanItem(this.projectId(), this.planId(), this.item().id, { videoDurationSec: duration })
       .subscribe({

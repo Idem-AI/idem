@@ -27,6 +27,7 @@ import type { ConceptType, LogoDocument } from './ir/logo.schema';
 import { applyPatch } from './ir/patch';
 import { idemFontProvider } from './kernel/fontProviders';
 import { produceLogo } from './pipeline';
+import { improveLogo } from './improve/improve';
 import type { PlannedLogo } from './planner/planner';
 import type { CharterPalette, LogoKind, PlanBrief } from './planner/brief';
 import { inkPalette } from './planner/brief';
@@ -107,6 +108,8 @@ export interface EngineConceptsRequest extends EngineProjectInput {
   /** Une relance propose d'autres formes ; une reprise garde celles du projet. */
   fresh: boolean;
   onStage?: (stage: string, detail?: string) => void;
+  /** Voie « améliorer mon logo » : le SVG envoyé par l'utilisateur (contenu, pas l'URL). */
+  reference?: { svg: string };
 }
 
 export interface EngineConcepts {
@@ -192,6 +195,42 @@ export async function engineLogoConcepts(req: EngineConceptsRequest): Promise<En
   const call = runtimeCall({ userId: req.userId, projectId: req.projectId, element: 'logo' });
   const seen = new Set(req.existing.map((l) => l.name));
 
+  // Voie « améliorer mon logo » : un observateur décrit l'original, un dessinateur le redessine, le code contrôle.
+  // Ce qui n'atteint pas le compte est complété par le moteur standard (même charte, mêmes garde-fous).
+  let improved: LogoModel[] = [];
+  let improvedDecisions: AgentResult['decisions'] = [];
+  if (req.reference?.svg) {
+    try {
+      const made = await improveLogo({
+        svg: req.reference.svg,
+        brief,
+        build: buildOptionsFor(fonts, req.level),
+        level: req.level,
+        count: req.count,
+        call,
+        vision: async (png, instruction) => idemAnalyzeImage(png.toString('base64'), 'image/png', instruction, { maxOutputTokens: 1800, temperature: 0 }),
+        cache: { get: (k) => cacheService.get(k, { prefix: 'logoreading' }), set: (k, v) => cacheService.set(k, v, { prefix: 'logoreading', ttl: 24 * 3600 }).then(() => undefined) },
+        wish: req.preferences?.customDescription,
+        seed: `${req.projectId}:improve${req.fresh ? `:${Date.now()}` : ''}`,
+        onStage: (s) => req.onStage?.(s),
+      });
+      improvedDecisions = made.decisions;
+      const labels = { faithful: 'Fidèle', refined: 'Affiné', evolved: 'Évolué' } as const;
+      improved = made.logos.map((planned, i) => ({
+        ...toLogoModel(planned, req.existing.length + i, { preferences: req.preferences, level: req.level, decisions: made.decisions }, fonts),
+        name: `Logo amélioré — ${labels[planned.degree]}`,
+      }));
+      logger.info(`[LogoEngine] amélioration : ${improved.length} proposition(s) — ${made.decisions.map((d) => `${d.stage}:${d.detail ?? ''}`).join(' | ')}`);
+    } catch (error) {
+      logger.warn(`[LogoEngine] amélioration impossible, moteur standard : ${(error as Error).message}`);
+    }
+    if (improved.length >= req.count) {
+      const logos = improved.slice(0, req.count).map((l, i) => ({ ...l, id: `concept${String(req.existing.length + i + 1).padStart(2, '0')}` }));
+      await Promise.all(logos.map((l) => rememberIr(l.svg, l.ir)));
+      return { logos, result: { logos: [], decisions: improvedDecisions, traces: [], tokens: { input: 0, output: 0 }, stats: { pool: 0, ms: 0, level: req.level } } };
+    }
+  }
+
   const result = await designLogos(
     {
       brief,
@@ -200,7 +239,7 @@ export async function engineLogoConcepts(req: EngineConceptsRequest): Promise<En
       kind,
       withName: kind !== 'initial',
       seed: req.fresh ? `${req.projectId}:${Date.now()}` : req.projectId,
-      count: req.count + (seen.size ? 1 : 0),
+      count: req.count - improved.length + (seen.size ? 1 : 0),
       level: req.level,
       sheet,
       wish: req.preferences?.customDescription,
@@ -219,13 +258,13 @@ export async function engineLogoConcepts(req: EngineConceptsRequest): Promise<En
   // Les noms nouveaux d'abord, complétés au besoin par les autres. Écarter les noms déjà vus SANS compléter vidait
   // la liste quand toutes les propositions portaient un nom existant — et `logo_engine_empty` renvoyait alors vers
   // l'ancien pipeline (SVG écrit par le modèle, critique et révision avec raisonnement) : ~20 fois plus de tokens.
-  const logos = [...built.filter((logo) => !seen.has(logo.name)), ...built.filter((logo) => seen.has(logo.name))]
+  const logos = [...improved, ...built.filter((logo) => !seen.has(logo.name)), ...built.filter((logo) => seen.has(logo.name))]
     .slice(0, req.count)
     .map((logo, i) => ({ ...logo, id: `concept${String(offset + i + 1).padStart(2, '0')}` }));
   if (!logos.length) throw new Error('logo_engine_empty');
   logger.info(`[LogoEngine] ${logos.length} proposition(s) (${req.level}) en ${result.stats.ms} ms — ${result.tokens.input + result.tokens.output} tokens estimés — ${logos.map((l) => `${l.engine?.category}:${l.engine?.score}`).join(' ')}`);
   await Promise.all(logos.map((l) => rememberIr(l.svg, l.ir)));
-  return { logos, result };
+  return { logos, result: { ...result, decisions: [...improvedDecisions, ...result.decisions] } };
 }
 
 // ─── Reprise d'un logo du moteur ────────────────────────────────────────────

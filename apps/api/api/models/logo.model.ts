@@ -211,6 +211,8 @@ export interface LogoPreferences {
   type: LogoType;
   useAIGeneration: boolean;
   customDescription?: string;
+  /** Voie « améliorer mon logo » : le logo importé du projet est redessiné (observateur + dessinateur), pas remplacé. */
+  improveImported?: boolean;
 }
 
 /**

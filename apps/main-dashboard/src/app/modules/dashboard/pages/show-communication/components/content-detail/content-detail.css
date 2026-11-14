@@ -446,3 +446,20 @@
 
 .cd-ai { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.75rem; }
 .cd-choose { display: flex; flex-direction: column; gap: 0.5rem; }
+
+/* Le bouton « Générer » reste visible sans défiler, quelle que soit la longueur du plan. */
+.cd-video .cd-go {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  padding: 0.75rem 0;
+  background: linear-gradient(to top, var(--color-bg-light) 70%, transparent);
+}
+
+.cd-plan-more > summary {
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  padding: 0.25rem 0;
+}
+.cd-plan-more[open] > summary { margin-bottom: 0.5rem; }

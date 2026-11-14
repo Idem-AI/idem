@@ -215,6 +215,7 @@
         "contentTitle": "What will be published",
         "noVisual": "No visual for this post yet. It will be created with your colours, your font and your logo.",
         "chooseFormat": "What is it for?",
+        "formatFixed": "Format set for this network: {{format}}",
         "createVisual": "Create the visual — 2 credits",
         "creating": "Composing the visual…",
         "otherFormats": "Also in another format",
@@ -249,6 +250,7 @@
         "createVideo": "Generate the video · {{price}} credits",
         "visualInstead": "Make a visual instead",
         "duration": "Video length",
+        "durationFixed": "Length set by the calendar: {{duration}}",
         "ai": {
           "edit": "Edit with AI",
           "regenerate": "Regenerate",
@@ -266,6 +268,7 @@
           "voiceOff": "No voice-over",
           "tone": "Narration tone: {{tone}}",
           "show": "To show:",
+          "seeBeats": "See the {{count}} moments of the plan",
           "onScreen": "On screen:",
           "narration": "Voice:",
           "ending": "Ending:",

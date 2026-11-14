@@ -211,6 +211,14 @@ export interface ContentIdea {
   videoType?: VideoType;
   /** Durée de la vidéo en secondes (60, 90, 120 ou 180) : chaque vidéo du calendrier dure de 1 à 3 minutes. */
   videoDurationSec?: number;
+  /** Ce que le visuel doit MONTRER (sujet concret, ambiance, message unique) : transmis au moteur d'image. */
+  visualBrief?: string;
+  /** Format du visuel, posé par le code à la génération du calendrier (réseau × type de contenu). */
+  visualFormat?: FlyerFormat;
+  /** Cadrage de la vidéo, posé par le code (le réseau décide). */
+  videoFormat?: 'story' | 'square' | 'portrait' | 'landscape';
+  /** Vrai quand le format (et la durée d'une vidéo) sont fixés par le calendrier : l'interface ne les propose plus au choix. */
+  formatLocked?: boolean;
   /**
    * Le PLAN de la vidéo, écrit avec le calendrier (contenus vidéo seulement) : voix off et son ton, musique, rythme,
    * ce qu'on montre, le déroulé temps par temps. Montré dans le calendrier et transmis tel quel à la génération.
@@ -272,6 +280,8 @@ export interface PlanBrief {
   successSignals: string[];
   /** Occasions du calendrier retenues pour cette période. */
   occasions?: { label: string; date: string }[];
+  /** Tendances actuelles trouvées sur le web pour ce projet, avant la génération. */
+  trends?: { label: string; description?: string; source?: string }[];
 }
 
 export type PlanStatus = 'draft' | 'active' | 'done' | 'archived';

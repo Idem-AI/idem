@@ -89,6 +89,8 @@ export interface VisualContent {
   intent?: VisualIntent;
   hashtags?: string[];
   callToAction?: string;
+  /** Ce que l'image doit MONTRER et promettre (écrit par le planificateur) : sujet concret, ambiance, message unique. */
+  visualBrief?: string;
 }
 
 /** Ce que la composition dit d'elle-même (métadonnées gardées avec le visuel). */

@@ -31,6 +31,7 @@ import {
   weekOfPeriod,
 } from '../services/Communication/communication.migration';
 import { toContentChannel, toContentChannels } from '../services/Communication/channels';
+import { narrationCovers, narrationTarget, placeItem } from '../services/Communication/plan/placement';
 import { ensureVideoShare, normaliseVideoPlan, videoRequestOf } from '../services/Communication/video/video.calendar';
 import { parseRequest } from '../../../ivision/core/src/video/request/request';
 
@@ -444,6 +445,23 @@ console.log('\nPlan des vidéos du calendrier');
   const shared = ensureVideoShare(ideas, false);
   check('une vidéo garde son plan', !!shared[0].videoPlan && shared[0].videoPlan.beats.length === 1);
   check('une publication (non vidéo) n’a pas de plan vidéo', !shared.find((i) => i.id === 'b' && i.format === 'post')?.videoPlan);
+}
+
+console.log('\nPlacement des formats et couverture de la voix off');
+{
+  const base = { id: 'x', title: 't', hook: '', description: '', hashtags: [], callToAction: '', scheduledFor: '2026-11-20', week: 1, status: 'idea' } as unknown as ContentIdea;
+  check('Instagram post → portrait', placeItem({ ...base, channel: 'instagram', format: 'post' }, false).visualFormat === 'post');
+  check('story → story', placeItem({ ...base, channel: 'facebook', format: 'story' }, false).visualFormat === 'story');
+  check('article → bannière', placeItem({ ...base, channel: 'blog', format: 'article' }, false).visualFormat === 'banner');
+  const v = placeItem({ ...base, channel: 'tiktok', format: 'reel', videoDurationSec: 60 }, true);
+  check('TikTok vidéo → cadrage vertical, verrouillé', v.videoFormat === 'story' && v.formatLocked === true && !v.visualFormat);
+  const target = narrationTarget(90, 'fr').target;
+  check('90 s de film : une narration de ≈ 200 mots', target > 180 && target < 230, String(target));
+  const short = { voiceover: true, show: [], beats: [{ name: 'a', see: 'b', voice: 'Trois mots seulement' }] };
+  check('une voix off trop courte est refusée', !narrationCovers(short as any, 90, 'fr'));
+  check('sans voix off, la couverture ne se vérifie pas', narrationCovers({ ...short, voiceover: false } as any, 90, 'fr'));
+  const long = { voiceover: true, show: [], beats: [{ name: 'a', see: 'b', voice: Array.from({ length: target }, () => 'mot').join(' ') }] };
+  check('une voix off de la bonne longueur est acceptée', narrationCovers(long as any, 90, 'fr'));
 }
 
 console.log(

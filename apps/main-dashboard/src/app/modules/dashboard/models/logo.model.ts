@@ -42,6 +42,8 @@ export interface LogoPreferencesModel {
   type: LogoType;
   useAIGeneration: boolean;
   customDescription?: string;
+  /** « Améliorer mon logo » : le serveur redessine le logo importé. */
+  improveImported?: boolean;
 }
 export interface LogoVariationSet {
   lightBackground?: string; // SVG optimized for light backgrounds

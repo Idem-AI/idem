@@ -140,6 +140,12 @@ export interface ContentIdea {
   videoType?: VideoType;
   /** Durée de la vidéo en secondes (1 à 3 minutes). */
   videoDurationSec?: number;
+  /** Format du visuel posé à la génération du calendrier. */
+  visualFormat?: FlyerFormat;
+  /** Cadrage de la vidéo posé par le calendrier. */
+  videoFormat?: 'story' | 'square' | 'portrait' | 'landscape';
+  /** Format et durée fixés par le calendrier : plus au choix. */
+  formatLocked?: boolean;
   /** Le plan de la vidéo écrit avec le calendrier : voix off, ton, musique, ce qu'on montre, déroulé. */
   videoPlan?: ContentVideoPlan;
   /** Vidéos créées pour ce contenu. */
@@ -164,6 +170,7 @@ export interface PlanBrief {
   themes: { label: string; why: string }[];
   successSignals: string[];
   occasions?: { label: string; date: string }[];
+  trends?: { label: string; description?: string; source?: string }[];
 }
 
 export type PlanStatus = 'draft' | 'active' | 'done' | 'archived';

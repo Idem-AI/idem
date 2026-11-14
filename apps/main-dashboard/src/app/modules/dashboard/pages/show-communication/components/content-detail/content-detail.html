@@ -105,24 +105,31 @@
                 {{ 'dashboard.showCommunication.video.formats.' + videoFormat() + '.label' | translate }} · HD
               </p>
 
-              <!-- La durée : l'IA en propose une, l'utilisateur choisit. -->
-              <fieldset class="cd-format-choice">
-                <legend class="cd-label">{{ 'dashboard.showCommunication.detail.duration' | translate }}</legend>
-                <div class="cd-chips">
-                  @for (d of calendarDurations; track d) {
-                    <button
-                      type="button"
-                      class="rounded-xl px-3 py-1.5 text-sm"
-                      [class.inner-button]="videoDuration() === d"
-                      [class.outer-button]="videoDuration() !== d"
-                      [attr.aria-pressed]="videoDuration() === d"
-                      (click)="setDuration(d)"
-                    >
-                      {{ durationLabel(d) }}
-                    </button>
-                  }
-                </div>
-              </fieldset>
+              <!-- La durée : fixée par le calendrier (le minutage en dépend) ; au choix seulement pour une vidéo libre. -->
+              @if (locked()) {
+                <p class="cd-note">
+                  <i class="pi pi-clock" aria-hidden="true"></i>
+                  {{ 'dashboard.showCommunication.detail.durationFixed' | translate: { duration: durationLabel(videoDuration()) } }}
+                </p>
+              } @else {
+                <fieldset class="cd-format-choice">
+                  <legend class="cd-label">{{ 'dashboard.showCommunication.detail.duration' | translate }}</legend>
+                  <div class="cd-chips">
+                    @for (d of calendarDurations; track d) {
+                      <button
+                        type="button"
+                        class="rounded-xl px-3 py-1.5 text-sm"
+                        [class.inner-button]="videoDuration() === d"
+                        [class.outer-button]="videoDuration() !== d"
+                        [attr.aria-pressed]="videoDuration() === d"
+                        (click)="setDuration(d)"
+                      >
+                        {{ durationLabel(d) }}
+                      </button>
+                    }
+                  </div>
+                </fieldset>
+              }
 
               <!-- La voix off : proposée par le plan, l'utilisateur tranche. -->
               <fieldset class="cd-format-choice">
@@ -169,6 +176,8 @@
                       </p>
                     }
                     @if (plan.beats.length) {
+                      <details class="cd-plan-more">
+                        <summary>{{ 'dashboard.showCommunication.detail.videoPlan.seeBeats' | translate: { count: plan.beats.length } }}</summary>
                       <ol class="cd-plan-beats">
                         @for (beat of plan.beats; track $index) {
                           <li>
@@ -183,6 +192,7 @@
                           </li>
                         }
                       </ol>
+                      </details>
                     }
                     @if (plan.ending) {
                       <p class="cd-plan-line"><span class="cd-plan-key">{{ 'dashboard.showCommunication.detail.videoPlan.ending' | translate }}</span> {{ plan.ending }}</p>
@@ -311,26 +321,33 @@
               {{ 'dashboard.showCommunication.detail.noVisual' | translate }}
             </p>
 
-            <!-- 2. Choix du format -->
-            <fieldset class="cd-format-choice">
-              <legend class="cd-label">
-                {{ 'dashboard.showCommunication.detail.chooseFormat' | translate }}
-              </legend>
-              <div class="cd-chips">
-                @for (format of formats; track format) {
-                  <button
-                    type="button"
-                    class="rounded-xl px-3 py-1.5 text-sm"
-                    [class.inner-button]="chosenFormat() === format"
-                    [class.outer-button]="chosenFormat() !== format"
-                    [attr.aria-pressed]="chosenFormat() === format"
-                    (click)="setFormat(format)"
-                  >
-                    {{ 'dashboard.showCommunication.formats.' + format | translate }}
-                  </button>
-                }
-              </div>
-            </fieldset>
+            <!-- 2. Format : déjà réglé par le calendrier (réseau × type) ; au choix seulement hors calendrier. -->
+            @if (locked()) {
+              <p class="cd-note">
+                <i class="pi pi-check-circle" aria-hidden="true"></i>
+                {{ 'dashboard.showCommunication.detail.formatFixed' | translate: { format: ('dashboard.showCommunication.formats.' + chosenFormat() | translate) } }}
+              </p>
+            } @else {
+              <fieldset class="cd-format-choice">
+                <legend class="cd-label">
+                  {{ 'dashboard.showCommunication.detail.chooseFormat' | translate }}
+                </legend>
+                <div class="cd-chips">
+                  @for (format of formats; track format) {
+                    <button
+                      type="button"
+                      class="rounded-xl px-3 py-1.5 text-sm"
+                      [class.inner-button]="chosenFormat() === format"
+                      [class.outer-button]="chosenFormat() !== format"
+                      [attr.aria-pressed]="chosenFormat() === format"
+                      (click)="setFormat(format)"
+                    >
+                      {{ 'dashboard.showCommunication.formats.' + format | translate }}
+                    </button>
+                  }
+                </div>
+              </fieldset>
+            }
 
             <!-- 3. Lancer : le niveau de créativité se choisit sur le bouton (bulle), prix compris. -->
             <div class="cd-go">

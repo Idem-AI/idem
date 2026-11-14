@@ -3762,6 +3762,7 @@
         "contentTitle": "Ce qui sera publié",
         "noVisual": "Pas encore de visuel pour cette publication. Il sera créé avec vos couleurs, votre police et votre logo.",
         "chooseFormat": "Pour quel usage ?",
+        "formatFixed": "Format réglé pour ce réseau : {{format}}",
         "createVisual": "Créer le visuel — 2 crédits",
         "creating": "Je compose le visuel…",
         "otherFormats": "Aussi dans un autre format",
@@ -3796,6 +3797,7 @@
         "createVideo": "Générer la vidéo · {{price}} crédits",
         "visualInstead": "Créer plutôt un visuel",
         "duration": "Durée de la vidéo",
+        "durationFixed": "Durée réglée par le calendrier : {{duration}}",
         "ai": {
           "edit": "Modifier avec l’IA",
           "regenerate": "Régénérer",
@@ -3813,6 +3815,7 @@
           "voiceOff": "Sans voix off",
           "tone": "Ton de la narration : {{tone}}",
           "show": "À montrer :",
+          "seeBeats": "Voir les {{count}} moments du déroulé",
           "onScreen": "À l'écran :",
           "narration": "Voix :",
           "ending": "Fin :",

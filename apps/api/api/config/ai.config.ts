@@ -1081,26 +1081,45 @@ export const AI_CONFIG = {
       thinking: false,
       json: true,
     }),
-    // Brief d'une période : cinq champs courts dérivés de la boussole. C'est un
-    // travail de décision, pas de volume — budget modeste, mais raisonnement
-    // actif : c'est ce brief qui pilote ensuite TOUS les contenus de la période.
+    // Brief d'une période : cinq champs courts dérivés de la boussole et des
+    // tendances trouvées sur le web. Court : étage de rédaction, sans raisonnement.
     planBrief: feature({
-      role: 'reasoning',
+      role: 'writing',
       promptType: 'communication_plan_brief',
-      temperature: 0.7,
-      topP: 0.95,
-      tokens: 8000,
+      temperature: 0.6,
+      tokens: 2500,
+      thinking: false,
+      json: true,
     }),
-    // Contenus datés d'une période. Mêmes réglages que l'ancien calendrier : le
-    // volume de sortie ET l'exigence de non-répétition sur 12 à 20 idées
-    // justifient le modèle de raisonnement et une température haute.
+    // Contenus datés d'UN LOT de la période (≈ 8 contenus, lots lancés en parallèle).
+    // Sans plan vidéo (écrit à part) ni raisonnement : la sortie est courte, donc
+    // rapide, et un lot tronqué n'en perd qu'un.
     planContent: feature({
-      role: 'reasoning',
+      role: 'writing',
       promptType: 'communication_plan_content',
       temperature: 0.8,
       topP: 0.95,
-      topK: 64,
-      tokens: 20000,
+      tokens: 5000,
+      thinking: false,
+      json: true,
+    }),
+    // Plan de production d'UNE vidéo du calendrier, durée connue : déroulé, voix
+    // off couvrant toute la durée. Petit appel, lancé en parallèle pour toutes les vidéos.
+    planVideo: feature({
+      role: 'writing',
+      promptType: 'communication_plan_video',
+      temperature: 0.7,
+      tokens: 3500,
+      thinking: false,
+      json: true,
+    }),
+    // Tendances ACTUELLES : recherche web (appel fondé) avant la période.
+    planTrends: feature({
+      role: 'writing',
+      promptType: 'communication_plan_trends',
+      temperature: 0.3,
+      tokens: 2500,
+      thinking: false,
     }),
     // Textes à l'écran d'une vidéo motion design : des cases numérotées à
     // remplir, une ligne par case. Tâche MÉCANIQUE par construction (le code
