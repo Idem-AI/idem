@@ -106,15 +106,8 @@ export class VisualDialog {
     const visual = this.shown();
     if (!visual.imageUrl) return;
     this.communication.downloadFlyerImage(visual.imageUrl).subscribe({
-      next: (blob) => {
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `${visual.id}.png`;
-        link.click();
-        URL.revokeObjectURL(url);
-      },
-      error: (err) => this.failed.emit(err?.error?.message || 'download'),
+      next: (blob) => this.communication.saveBlob(blob, `${visual.id}.png`),
+      error: () => this.communication.openDirect(visual.imageUrl!, `${visual.id}.png`),
     });
   }
 

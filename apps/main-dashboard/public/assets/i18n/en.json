@@ -5680,6 +5680,11 @@
       "goToCurrent": "Go to my current step",
       "stayOnJourney": "Back to my journey",
       "switchToAdvanced": "Or switch to Dashboard mode to open everything"
+    },
+    "next": {
+      "label": "Recommended next step",
+      "go": "Continue",
+      "later": "Later"
     }
   },
   "tour": {

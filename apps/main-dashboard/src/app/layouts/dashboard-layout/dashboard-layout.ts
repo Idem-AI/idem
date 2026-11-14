@@ -3,6 +3,7 @@ import { RouterOutlet } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { SidebarDashboard } from '../../modules/dashboard/components/sidebar-dashboard/sidebar-dashboard';
 import { GuidedStepBarComponent } from '../../modules/guided/components/guided-step-bar/guided-step-bar';
+import { NextStepBarComponent } from '../../modules/guided/components/next-step-bar/next-step-bar';
 import { TopbarComponent } from '../../shared/components/topbar/topbar';
 
 import { PromoBannerComponent } from '@idem/shared-promotions/angular';
@@ -10,7 +11,7 @@ import { PromoBannerComponent } from '@idem/shared-promotions/angular';
 @Component({
   selector: 'app-dashboard-layout',
   standalone: true,
-  imports: [RouterOutlet, SidebarDashboard, CommonModule, GuidedStepBarComponent, TopbarComponent, PromoBannerComponent],
+  imports: [RouterOutlet, SidebarDashboard, CommonModule, GuidedStepBarComponent, NextStepBarComponent, TopbarComponent, PromoBannerComponent],
   templateUrl: './dashboard-layout.html',
   styleUrl: './dashboard-layout.css',
 })
