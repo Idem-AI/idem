@@ -29,6 +29,7 @@ import { buildContentMap, ContentMap, fixBrandNameTypos } from './runtime/conten
 import { expandPage, sanitizeHtml, stripInventedText, withSize } from './runtime/expand';
 import { compileTailwind } from './runtime/tailwind';
 import { checkRender, QualityFrame } from './runtime/check';
+import { directLogo } from './runtime/logo-director';
 import { catalog as loadCatalog, catalogOverrides, ensureHtml } from './catalog/registry';
 import { assemblePage, capPlainText, pageUnits } from './catalog/assemble';
 import { brandTraits, Candidate, CatalogState, comboFingerprint, compatibleComponents, newCatalogState, rankSkins, shortlist } from './catalog/graph';
@@ -461,6 +462,9 @@ export class GraphicDocument {
       bible = out.summary;
     }
 
+    // Le LOGO d'un visuel : déclinaison, place, taille et ombre décidées sur la photo réelle (runtime/logo-director.ts).
+    rendered = await this.directLogos(rendered, pageFormat, recorder);
+
     const patternId = catalogInfo ? 'catalog' : 'authored';
     const spec: SectionSpec = { version: 2, ref: section.id, pattern: { id: patternId }, html: rendered.template, ...(bible ? { bible: bible.slice(0, 2400) } : {}), level, ...(catalogInfo ? { catalog: catalogInfo } : {}) };
     this.specs.set(section.id, spec);
@@ -489,6 +493,24 @@ export class GraphicDocument {
       score,
     }));
     return { spec, result, png: rendered.png, trace, ...(alternatives.length ? { alternatives } : {}), ...(rendered.score !== undefined ? { score: rendered.score } : {}) };
+  }
+
+  /**
+   * Visuels (toile fixe) : le logo est mesuré sur l'image, agrandi, posé et décliné par le code. Les variantes écartées
+   * reçoivent le même traitement. Une page qui ne se vérifie pas est gardée telle quelle.
+   */
+  private async directLogos(page: Rendered, format: FormatDef, recorder: TraceRecorder): Promise<Rendered> {
+    if (this.options.documentType !== 'flyer' || format.kind !== 'fixed' || process.env.GRAPHIC_LOGO_DIRECTOR === '0') return page;
+    const logos = this.tokens.brand.logos;
+    const run = async (p: Rendered): Promise<{ page: Rendered; detail?: string }> => {
+      const directed = await directLogo({ html: p.html, head: p.head, format, logos, name: this.options.brand.name, lang: this.options.locale, shoot: Boolean(p.png) });
+      if (!directed) return { page: p };
+      return { page: { ...p, html: directed.html, ...(directed.png ? { png: directed.png } : {}) }, detail: directed.decision.reason + (directed.decision.shadow ? `, ombre discrète ${directed.decision.shadow.alpha}` : '') };
+    };
+    const main = await run(page);
+    if (main.detail) recorder.repair({ code: 'logo_directed', detail: `logo posé par mesure : ${main.detail}`, by: 'code' });
+    const alternatives = page.alternatives ? await Promise.all(page.alternatives.map(async (alt) => ({ ...alt, page: (await run(alt.page)).page }))) : undefined;
+    return { ...main.page, ...(alternatives ? { alternatives } : {}) };
   }
 
   /** L'élément du catalogue de ce document (un graphique seul prend le squelette intégré). */
