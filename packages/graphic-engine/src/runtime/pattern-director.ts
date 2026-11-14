@@ -16,6 +16,7 @@ import type { BrandPattern } from '../design-system/tokens';
 import type { FormatDef } from '../design-system/formats';
 import { stableHash } from '../foundation/hash';
 import { hexToRgb } from '../foundation/color';
+import { engineHost } from '../host';
 import { pageDocument, withPage } from './browser';
 import { ANALYZE, COLLECT } from './logo-director';
 import type { Box, Region } from './logo-director';
@@ -114,6 +115,51 @@ export function usableTiles(patterns: BrandPattern[] | undefined, resolve: (url:
   });
 }
 
+const HEX3 = /^#([0-9a-f])([0-9a-f])([0-9a-f])$/i;
+const hex6 = (h: string) => (HEX3.test(h) ? h.replace(HEX3, '#$1$1$2$2$3$3') : h).toLowerCase();
+const inkCache = new Map<string, { ink: string; ground: string } | null>();
+
+/** L'encre et le fond d'une tuile SVG lus dans son code : le fond est le premier aplat, l'encre la couleur la plus employée après lui. */
+export function inkOfSvg(svg: string, ground?: string): { ink: string; ground: string } | null {
+  const colours = [...svg.matchAll(/(?:fill|stroke)\s*[=:]\s*["']?\s*(#[0-9a-fA-F]{3,6})\b/g)].map((m) => hex6(m[1])).filter((c) => /^#[0-9a-f]{6}$/.test(c));
+  if (!colours.length) return null;
+  const g = ground && /^#[0-9a-f]{3,6}$/i.test(ground) ? hex6(ground) : colours[0];
+  const count = new Map<string, number>();
+  for (const c of colours) if (c !== g) count.set(c, (count.get(c) ?? 0) + 1);
+  const ink = [...count.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+  return ink ? { ink, ground: g } : null;
+}
+
+/**
+ * Les motifs de la charte, tous utilisables : ceux dont l'encre est connue tels quels ; pour les autres (charte
+ * enregistrée avant que l'encre soit transmise), l'encre est lue dans la tuile SVG elle-même (une seule fois par adresse).
+ */
+export async function patternTiles(patterns: BrandPattern[] | undefined): Promise<PatternTile[]> {
+  const out = await Promise.all(
+    (patterns ?? []).map(async (p): Promise<PatternTile | null> => {
+      if (!p.url) return null;
+      const tile = p.tile > 0 ? p.tile : 48;
+      if (p.ink && p.ground) return { src: p.url, tile, ink: p.ink, ground: p.ground, ...(p.motif ? { kind: p.motif } : {}) };
+      if (!inkCache.has(p.url)) {
+        let svg = '';
+        try {
+          if (p.url.startsWith('data:image/svg')) svg = p.url.includes(';base64,') ? Buffer.from(p.url.split(';base64,')[1], 'base64').toString('utf8') : decodeURIComponent(p.url.split(',')[1] ?? '');
+          else if (/^https?:\/\//i.test(p.url) && (await (engineHost().browser?.allow?.(p.url) ?? true))) {
+            const res = await fetch(p.url, { signal: AbortSignal.timeout(6000) });
+            if (res.ok && /svg/.test(res.headers.get('content-type') ?? '')) svg = (await res.text()).slice(0, 200_000);
+          }
+        } catch {
+          svg = '';
+        }
+        inkCache.set(p.url, svg ? inkOfSvg(svg, p.ground) : null);
+      }
+      const read = inkCache.get(p.url);
+      return read ? { src: p.url, tile, ink: p.ink ?? read.ink, ground: p.ground ?? read.ground, ...(p.motif ? { kind: p.motif } : {}) } : null;
+    })
+  );
+  return out.filter((t): t is PatternTile => !!t);
+}
+
 export type Fade = 'full-tl' | 'full-tr' | 'full-bl' | 'full-br' | 'top' | 'bottom' | 'left' | 'right';
 
 /** Le masque : le motif se fond vers le texte ou vers l'intérieur de la page. */
@@ -188,6 +234,8 @@ export async function directPattern(o: { html: string; head: string; format: For
       if (!collected || collected.w < 200 || collected.h < 200) return null;
       const root = await page.$('.ge-page');
       if (!root) return null;
+      // Les images (photo, illustration, fond en `url(…)`) se posent PAR-DESSUS le calque : leur zone n'est pas libre.
+      const images = (await page.evaluate(IMAGE_RECTS)) as Box[];
       const bare = Buffer.from(await root.screenshot({ type: 'png' }));
       const W = collected.w;
       const H = collected.h;
@@ -195,7 +243,7 @@ export async function directPattern(o: { html: string; head: string; format: For
       for (let gy = 0; gy < GRID; gy++) for (let gx = 0; gx < GRID; gx++) rects.push({ x: (gx * W) / GRID, y: (gy * H) / GRID, w: W / GRID, h: H / GRID });
       const stats = (await page.evaluate(`${ANALYZE}(${JSON.stringify(`data:image/png;base64,${bare.toString('base64')}`)}, ${JSON.stringify(rects)})`)) as Region[];
       const cells: Cell[] = rects.map((r, i) => ({ ...r, ...stats[i], text: collected.obstacles.some((b) => overlaps(r, b)) }));
-      const calm = (c: Cell) => c.std < 0.07;
+      const calm = (c: Cell) => c.std < 0.07 && !images.some((b) => overlaps(c, b));
       const calmShare = cells.filter(calm).length / cells.length;
       const textShare = cells.filter((c) => c.text).length / cells.length;
       if (!wantsPattern({ seed: o.seed, quiet: o.quiet, calmShare, textShare })) return null;
@@ -243,6 +291,12 @@ export async function directPattern(o: { html: string; head: string; format: For
     return null;
   }
 }
+
+const IMAGE_RECTS = `(function(){var root=document.querySelector('.ge-page'),rb=root.getBoundingClientRect(),out=[];
+  function add(el){var r=el.getBoundingClientRect();if(r.width>24&&r.height>24)out.push({x:r.left-rb.left,y:r.top-rb.top,w:r.width,h:r.height});}
+  root.querySelectorAll('img:not([data-ge-logo]),video,picture').forEach(add);
+  root.querySelectorAll('*').forEach(function(el){var bg=getComputedStyle(el).backgroundImage;if(bg&&bg.indexOf('url(')>=0&&!el.hasAttribute('data-ge-pattern-layer'))add(el);});
+  return out;})()`;
 
 /** Le fond d'un calque n'est pas une <img> : on laisse le temps de charger la tuile avant la photographie. */
 const WAIT_PATTERN_IMAGE = `(async function(){var l=document.querySelector('[data-ge-pattern-layer]');var m=(l&&getComputedStyle(l).backgroundImage||'').match(/url\\(["']?([^"')]+)/);if(!m)return;await new Promise(function(res){var i=new Image();i.onload=res;i.onerror=res;i.src=m[1];setTimeout(res,3000);});})()`;

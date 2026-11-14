@@ -30,7 +30,7 @@ import { expandPage, sanitizeHtml, stripInventedText, withSize } from './runtime
 import { compileTailwind } from './runtime/tailwind';
 import { checkRender, QualityFrame } from './runtime/check';
 import { directLogo } from './runtime/logo-director';
-import { directPattern, QUIET_STYLES, usableTiles } from './runtime/pattern-director';
+import { directPattern, patternTiles, QUIET_STYLES } from './runtime/pattern-director';
 import { catalog as loadCatalog, catalogOverrides, ensureHtml } from './catalog/registry';
 import { assemblePage, capPlainText, pageUnits } from './catalog/assemble';
 import { brandTraits, Candidate, CatalogState, comboFingerprint, compatibleComponents, newCatalogState, rankSkins, shortlist } from './catalog/graph';
@@ -503,7 +503,7 @@ export class GraphicDocument {
   private async directLogos(page: Rendered, format: FormatDef, recorder: TraceRecorder): Promise<Rendered> {
     if (this.options.documentType !== 'flyer' || format.kind !== 'fixed' || process.env.GRAPHIC_LOGO_DIRECTOR === '0') return page;
     const logos = this.tokens.brand.logos;
-    const tiles = usableTiles(this.tokens.brand.patterns);
+    const tiles = await patternTiles(this.tokens.brand.patterns);
     const quiet = QUIET_STYLES.has(this.options.direction?.styleId ?? '');
     const run = async (p: Rendered, key: string): Promise<{ page: Rendered; detail?: string; pattern?: string }> => {
       // 1. Le motif de la charte (quand la page le gagne), puis 2. le logo, mesuré sur la page déjà motivée.
