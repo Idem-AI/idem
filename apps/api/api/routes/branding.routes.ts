@@ -953,7 +953,7 @@ brandingRoutes.get(
  *         required: true
  *         schema:
  *           type: string
- *           enum: [facebook-cover, linkedin-cover, x-header, youtube-banner, profile-picture]
+ *           enum: [facebook-cover, linkedin-cover, x-header, youtube-banner, rollup, profile-picture]
  *     responses:
  *       '200':
  *         description: PNG file

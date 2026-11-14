@@ -42,7 +42,7 @@ import {
 } from './library';
 
 /** Une bannière : une couverture de profil, une vignette vidéo, ou un visuel générique de secours. */
-export type BannerFormat = CoverFormat | MediaFormat;
+export type BannerFormat = CoverFormat | MediaFormat | 'rollup';
 
 /**
  * Le format du moteur graphique de chaque bannière. Les couvertures ont leur zone sûre (l'avatar qui mord
@@ -58,6 +58,8 @@ const ENGINE_FORMAT: Record<BannerFormat, { format: FormatId; canonical?: boolea
   banner: { format: 'flyer-banner' },
   post: { format: 'flyer-post' },
   square: { format: 'flyer-square' },
+  // Roll-up 85 × 200 cm : rendu à 850 × 2000 px (1 px = 1 mm), sa zone sûre épargne le pied d'enrouleur.
+  rollup: { format: 'rollup-85x200' },
 };
 
 export interface SocialPostIdea {
@@ -168,6 +170,7 @@ export const DOWNLOADABLE_BANNERS: readonly {
   { id: 'linkedin-cover', label: 'Couverture LinkedIn', format: 'linkedin-cover', width: 1128, height: 191 },
   { id: 'x-header', label: 'En-tête X', format: 'x-header', width: 1500, height: 500 },
   { id: 'youtube-banner', label: 'Bannière YouTube', format: 'youtube-banner', width: 2560, height: 1440 },
+  { id: 'rollup', label: 'Roll-up 85 × 200 cm', format: 'rollup', width: 850, height: 2000 },
 ];
 
 /** Photo de profil : le carré que tous les réseaux recadrent en cercle. */
