@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Check, CornerDownLeft } from 'lucide-react';
 import type { ChatChoices as Choices, ChoiceOption, ChoiceQuestion } from '@/utils/chatMarkers';
 import { eventEmitter } from '../../../utils/EventEmitter';
+import { alertChoicePending } from '@/utils/choiceAlert';
 
 const LANDING_URL = (process.env.REACT_APP_IDEM_LANDING_URL || 'https://idem.africa').replace(/\/+$/, '');
 
@@ -58,7 +59,10 @@ export function ChatChoices({ choices, active }: { choices: Choices; active: boo
 
   // Des choix qui attendent une réponse : le fil descend jusqu'à eux, même si l'utilisateur lisait plus haut.
   useEffect(() => {
-    if (active) eventEmitter.emit('chat:attention');
+    if (!active) return;
+    eventEmitter.emit('chat:attention');
+    alertChoicePending(t('chat.choices.alertTitle'), questions[0]?.question ?? t('chat.choices.alertBody'));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active]);
 
   // La question qui arrive prend le focus (clavier, lecteurs d'écran) — sauf la toute première, posée par le fil.
