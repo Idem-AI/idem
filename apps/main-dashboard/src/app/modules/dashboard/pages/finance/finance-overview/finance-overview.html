@@ -59,26 +59,32 @@
         </h2>
         <p class="text-sm text-text-secondary mt-1">{{ 'dashboard.finance.home.start.lead' | translate }}</p>
 
-        <div class="grid gap-4 md:grid-cols-3 mt-5">
-          <!-- Deux voies pour qui a déjà ses chiffres : un tableau à coller, ou un fichier. -->
-          <div class="glass-card fo-choice">
-            <app-finance-illustration scene="import" class="w-28" />
+        <!-- Import mis en avant : grande carte en tête, deux gestes clairs. -->
+        <div class="glass-card fo-hero mt-5">
+          <app-finance-illustration scene="import" class="w-28 shrink-0" />
+          <div class="flex-1 min-w-0">
             <span class="fo-choice__title">{{ 'dashboard.finance.home.start.import.title' | translate }}</span>
-            <span class="fo-choice__body">{{ 'dashboard.finance.home.start.import.body' | translate }}</span>
-            <span class="fo-choice__cta flex-wrap gap-x-4">
-              <button type="button" class="inline-flex items-center gap-1.5 hover:underline" (click)="openSheet()">
-                {{ 'dashboard.finance.home.start.import.paste' | translate }}
-                <i class="pi pi-arrow-right text-xs" aria-hidden="true"></i>
-              </button>
-              <button type="button" class="inline-flex items-center gap-1.5 hover:underline" (click)="openImport()">
-                {{ 'dashboard.finance.home.start.import.cta' | translate }}
-                <i class="pi pi-arrow-right text-xs" aria-hidden="true"></i>
-              </button>
-            </span>
+            <p class="fo-choice__body mt-1">{{ 'dashboard.finance.home.start.import.body' | translate }}</p>
           </div>
+          <div class="flex flex-col sm:flex-row md:flex-col gap-2 w-full md:w-auto">
+            <button type="button" class="inner-button" (click)="openImport()">
+              <i class="pi pi-upload" aria-hidden="true"></i>
+              {{ 'dashboard.finance.home.start.import.cta' | translate }}
+            </button>
+            <button type="button" class="outer-button" (click)="openSheet()">
+              <i class="pi pi-table" aria-hidden="true"></i>
+              {{ 'dashboard.finance.home.start.import.paste' | translate }}
+            </button>
+          </div>
+        </div>
 
-          <button type="button" class="glass-card fo-choice" [disabled]="aiGlobalLoading()" (click)="onAutoFillGlobal()">
-            <app-finance-illustration scene="ai" class="w-28" />
+        <div class="grid gap-4 md:grid-cols-2 mt-4">
+          <button type="button" class="glass-card fo-choice fo-choice--recommended" [disabled]="aiGlobalLoading()" (click)="onAutoFillGlobal()">
+            <span class="fo-badge">
+              <i class="pi pi-star-fill text-[10px]" aria-hidden="true"></i>
+              {{ 'dashboard.finance.home.start.ai.recommended' | translate }}
+            </span>
+            <app-finance-illustration scene="ai" class="w-24" />
             <span class="fo-choice__title">{{ 'dashboard.finance.home.start.ai.title' | translate }}</span>
             <span class="fo-choice__body">{{ 'dashboard.finance.home.start.ai.body' | translate }}</span>
             <span class="fo-choice__cta">
@@ -89,7 +95,7 @@
           </button>
 
           <button type="button" class="glass-card fo-choice" (click)="startManually()">
-            <app-finance-illustration scene="manual" class="w-28" />
+            <app-finance-illustration scene="manual" class="w-24" />
             <span class="fo-choice__title">{{ 'dashboard.finance.home.start.manual.title' | translate }}</span>
             <span class="fo-choice__body">{{ 'dashboard.finance.home.start.manual.body' | translate }}</span>
             <span class="fo-choice__cta">
@@ -200,6 +206,7 @@
     }
 
     <!-- ═════════════ Les six étapes ═════════════ -->
+    @if (hasData()) {
     <section aria-labelledby="fo-steps">
       <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-4">
         <div>
@@ -239,6 +246,7 @@
         }
       </ol>
     </section>
+    }
 
     @if (hasData()) {
       <!-- ═════════════ Pour la banque ═════════════ -->

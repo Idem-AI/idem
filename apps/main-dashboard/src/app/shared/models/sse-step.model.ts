@@ -180,4 +180,5 @@ export type SSEServiceEventType =
   | 'business-plan'
   | 'pitch-deck'
   | 'legal-docs'
-  | 'finance-fill';
+  | 'finance-fill'
+  | 'finance-pdf';

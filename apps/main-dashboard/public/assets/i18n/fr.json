@@ -329,6 +329,7 @@
             "title": "L'IA propose pour moi",
             "body": "À partir de votre business plan et des prix réels de votre marché, l'IA prépare un premier prévisionnel que vous ajustez.",
             "cta": "Lancer la proposition",
+            "recommended": "Recommandé",
             "preparing": "Préparation de la recherche…"
           },
           "manual": {

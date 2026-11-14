@@ -329,6 +329,7 @@
             "title": "Let the AI suggest",
             "body": "Using your business plan and real prices in your market, the AI prepares a first forecast that you then adjust.",
             "cta": "Get a suggestion",
+            "recommended": "Recommended",
             "preparing": "Preparing the research…"
           },
           "manual": {

@@ -360,7 +360,7 @@ export class FinanceOverviewComponent implements OnInit {
     const projectId = this.projectId();
     if (!projectId || this.pdfLoading()) return;
     this.pdfLoading.set(true);
-    this.financeService.downloadFinancePdf(projectId).subscribe({
+    this.financeService.generateFinancePdfStream(projectId).subscribe({
       next: (blob) => {
         FinanceService.triggerPdfDownload(blob, `rapport-financier-${projectId}.pdf`);
         this.pdfLoading.set(false);

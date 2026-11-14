@@ -1,4 +1,5 @@
 import { NextFunction, Response } from 'express';
+import { randomUUID } from 'crypto';
 import { CustomRequest } from '../interfaces/express.interface';
 import { financeService } from '../services/Finance/finance.service';
 import { computeFinance } from '../services/Finance/finance-calculator.service';
@@ -675,6 +676,112 @@ export const generateFinancePdfController = async (
     res.status(500).json({
       message: error.message || 'Failed to generate finance PDF',
     });
+  }
+};
+
+/** PDF prêts à télécharger : id opaque → fichier, valable 10 min, lié à son propriétaire. */
+const READY_PDFS = new Map<string, { path: string; userId: string; projectId: string; expires: number }>();
+const READY_PDF_TTL_MS = 10 * 60 * 1000;
+const pdfRuns = new Set<string>();
+
+function purgeReadyPdfs(): void {
+  const now = Date.now();
+  for (const [id, entry] of READY_PDFS) if (entry.expires < now) READY_PDFS.delete(id);
+}
+
+/**
+ * Génère le rapport PDF en streaming (SSE) : le flux reste ouvert (battement
+ * toutes les 15 s) pendant la génération, ce qui évite le 504 des proxys, puis
+ * annonce un identifiant de fichier à télécharger via `/pdf/:fileId`.
+ * URL: GET /project/finance/:projectId/pdf-stream
+ */
+export const generateFinancePdfStreamController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const userId = req.user?.uid;
+  const projectId = req.params.projectId as string;
+  if (!userId) {
+    res.status(401).json({ message: 'User not authenticated' });
+    return;
+  }
+  if (!projectId) {
+    res.status(400).json({ message: 'Project ID is required' });
+    return;
+  }
+  const runKey = `${userId}:${projectId}`;
+  if (pdfRuns.has(runKey)) {
+    res.status(409).json({ message: 'pdf_already_running' });
+    return;
+  }
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+  const writeSSE = (payload: unknown) => {
+    if (res.writableEnded) return;
+    res.write(`data: ${JSON.stringify(payload)}\n\n`);
+    (res as any).flush?.();
+  };
+  const stopHeartbeat = startSseHeartbeat(res);
+  pdfRuns.add(runKey);
+  try {
+    writeSSE({
+      type: 'progress',
+      stepName: 'pdf',
+      data: 'started',
+      summary: '',
+      timestamp: new Date().toISOString(),
+    });
+    logger.info(`generateFinancePdfStreamController userId=${userId} projectId=${projectId}`);
+    const pdfPath = await financePdfService.generateFinancePdf(userId, projectId);
+    purgeReadyPdfs();
+    const fileId = randomUUID();
+    READY_PDFS.set(fileId, { path: pdfPath, userId, projectId, expires: Date.now() + READY_PDF_TTL_MS });
+    writeSSE({ type: 'ready', fileId, timestamp: new Date().toISOString() });
+    writeSSE({ type: 'completed', stepName: 'completion', data: 'all_steps_completed' });
+  } catch (error: any) {
+    logger.error(`generateFinancePdfStreamController error: ${error.message}`, { stack: error.stack });
+    writeSSE({
+      type: 'error',
+      message: error.message || 'Failed to generate finance PDF',
+      timestamp: new Date().toISOString(),
+    });
+  } finally {
+    pdfRuns.delete(runKey);
+    stopHeartbeat();
+    res.end();
+  }
+};
+
+/**
+ * Sert le PDF préparé par le flux. URL: GET /project/finance/:projectId/pdf/:fileId
+ */
+export const downloadReadyFinancePdfController = async (
+  req: CustomRequest,
+  res: Response
+): Promise<void> => {
+  const userId = req.user?.uid;
+  const projectId = req.params.projectId as string;
+  const fileId = req.params.fileId as string;
+  purgeReadyPdfs();
+  const entry = READY_PDFS.get(fileId);
+  if (!userId || !entry || entry.userId !== userId || entry.projectId !== projectId) {
+    res.status(404).json({ message: 'pdf_not_found' });
+    return;
+  }
+  try {
+    const fs = require('fs-extra');
+    const buffer = await fs.readFile(entry.path);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="rapport-financier-${projectId}.pdf"`);
+    res.setHeader('Content-Length', buffer.length);
+    res.send(buffer);
+  } catch (error: any) {
+    logger.error(`downloadReadyFinancePdfController error: ${error.message}`);
+    READY_PDFS.delete(fileId);
+    res.status(404).json({ message: 'pdf_not_found' });
   }
 };
 
