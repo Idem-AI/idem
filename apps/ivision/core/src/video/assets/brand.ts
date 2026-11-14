@@ -22,6 +22,8 @@ export interface FilmBrand {
   fontLinks: string;
   /** L'identifiant de la DA de la charte (catalogue des DA) : le catalogue vidéo ne sert que ses nœuds. */
   styleId?: string;
+  /** Les motifs déposés avec la charte (adresse, tuile, encre, fond) : le film en pose quand une scène le gagne. */
+  patterns?: { url: string; tile: number; ink: string; ground: string; kind?: string }[];
 }
 
 /** Un SVG brut devient une source d'image ; une URL ou un data URI passe tel quel. */
@@ -105,7 +107,12 @@ export function filmBrand(branding: Partial<BrandKit> | null | undefined, brandN
   const size = svgSize(svg);
   const art = artSummary((branding as any)?.artDirection);
   const styleId = typeof (branding as any)?.artDirection?.styleId === 'string' ? String((branding as any).artDirection.styleId) : undefined;
+  const patterns = (((branding as any)?.patterns?.items ?? []) as any[])
+    .filter((p) => p && typeof p.url === 'string' && /^#[0-9a-f]{6}$/i.test(p.ink || '') && /^#[0-9a-f]{6}$/i.test(p.ground || ''))
+    .slice(0, 6)
+    .map((p) => ({ url: String(p.url), tile: Number(p.tile) > 0 ? Number(p.tile) : 48, ink: String(p.ink), ground: String(p.ground), ...(p.kind ? { kind: String(p.kind) } : {}) }));
   return {
+    ...(patterns.length && !opts.anonymous ? { patterns } : {}),
     ...(art ? { art } : {}),
     ...(styleId && !opts.anonymous ? { styleId } : {}),
     tokens: {

@@ -1,0 +1,95 @@
+<div class="pcm-wrap glass-card" role="status" aria-live="polite">
+  <!-- Le calendrier qui se remplit : chaque publication s'inscrit sur son jour dès qu'elle est écrite. -->
+  <div class="pcm-board">
+    <p class="pcm-board-head">
+      <span class="pcm-board-name">{{ name() || ('dashboard.showCommunication.plans.composing.untitled' | translate) }}</span>
+      <span class="pcm-board-month">{{ monthLabel() }}</span>
+    </p>
+
+    @if (cells().length) {
+      <div class="pcm-grid" aria-hidden="true">
+        @for (cell of cells(); track cell.iso) {
+          <span class="pcm-cell" [class.pcm-out]="!cell.inside" [class.pcm-has]="cell.items.length" [class.pcm-occasion]="cell.occasion" [attr.title]="cell.occasion || null">
+            <span class="pcm-day">{{ cell.day }}</span>
+            @if (cell.items.length) {
+              <i class="pi pcm-pin" [class]="channelIcon(cell.items[0].channel)"></i>
+              @if (cell.items.length > 1) {
+                <span class="pcm-more">+{{ cell.items.length - 1 }}</span>
+              }
+            }
+          </span>
+        }
+      </div>
+    } @else {
+      <div class="pcm-skeleton" aria-hidden="true">
+        <span class="skeleton"></span><span class="skeleton"></span><span class="skeleton"></span>
+      </div>
+    }
+
+    <div class="pcm-bar" role="progressbar" [attr.aria-valuenow]="percent()" aria-valuemin="0" aria-valuemax="100">
+      <span [style.width.%]="percent()"></span>
+    </div>
+    <p class="pcm-count">
+      {{ 'dashboard.showCommunication.plans.composing.count' | translate: { done: written(), total: expected() } }}
+    </p>
+  </div>
+
+  <div class="pcm-side">
+    <p class="pcm-heading">{{ 'dashboard.showCommunication.plans.composing.title' | translate }}</p>
+
+    <ol class="pcm-steps">
+      @for (stage of stages; track stage) {
+        <li class="pcm-step" [class.pcm-done]="state(stage) === 'done'" [class.pcm-current]="state(stage) === 'running'">
+          <span class="pcm-bullet" aria-hidden="true">
+            @if (state(stage) === 'done') {
+              <i class="pi pi-check"></i>
+            } @else if (state(stage) === 'running') {
+              <idem-loader size="xs" />
+            }
+          </span>
+          <span class="pcm-step-text">
+            <span class="pcm-step-label">{{ 'dashboard.showCommunication.plans.composing.stages.' + stage | translate }}</span>
+            @if (detail(stage); as d) {
+              <span class="pcm-step-detail">{{ 'dashboard.showCommunication.plans.composing.details.' + d.key | translate: d.params }}</span>
+            }
+          </span>
+        </li>
+      }
+    </ol>
+
+    <!-- Ce que l'IA a trouvé, posé au fur et à mesure -->
+    @if (progress().trends.length) {
+      <div class="pcm-found">
+        <p class="pcm-found-title"><i class="pi pi-chart-line" aria-hidden="true"></i> {{ 'dashboard.showCommunication.plans.composing.trendsTitle' | translate }}</p>
+        <ul class="pcm-chips">
+          @for (trend of progress().trends; track trend.label) {
+            <li class="tag" [style.animation-delay.ms]="$index * 90" [attr.title]="trend.description || null">{{ trend.label }}</li>
+          }
+        </ul>
+      </div>
+    }
+
+    @if (progress().brief?.angle; as angle) {
+      <div class="pcm-found">
+        <p class="pcm-found-title"><i class="pi pi-compass" aria-hidden="true"></i> {{ 'dashboard.showCommunication.plans.composing.angleTitle' | translate }}</p>
+        <p class="pcm-angle">{{ angle }}</p>
+        <ul class="pcm-chips">
+          @for (theme of progress().brief?.themes ?? []; track theme.label) {
+            <li class="tag" [style.animation-delay.ms]="$index * 90">{{ theme.label }}</li>
+          }
+        </ul>
+      </div>
+    }
+
+    @if (progress().items.length) {
+      <ul class="pcm-feed" aria-hidden="true">
+        @for (item of progress().items.slice(-3).reverse(); track item.id) {
+          <li class="pcm-feed-item">
+            <i class="pi" [class]="channelIcon(item.channel)"></i>
+            <span>{{ item.title }}</span>
+          </li>
+        }
+      </ul>
+    }
+  </div>
+</div>

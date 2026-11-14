@@ -12,6 +12,8 @@ import {
   appendAISuggestionsController,
   deleteFinanceController,
   generateFinancePdfController,
+  generateFinancePdfStreamController,
+  downloadReadyFinancePdfController,
   getFinanceController,
   getFinanceSummaryController,
   parseChatIntentController,
@@ -312,4 +314,35 @@ financeRoutes.get(
   requireOwnership('financial_forecast'),
   pdfTimeout,
   generateFinancePdfController
+);
+
+/**
+ * @openapi
+ * /project/finance/{projectId}/pdf-stream:
+ *   get:
+ *     tags: [Finance]
+ *     summary: Génère le rapport financier PDF en streaming (SSE, sans 504)
+ *     security: [{ bearerAuth: [] }]
+ */
+financeRoutes.get(
+  `/${resource}/:projectId/pdf-stream`,
+  authenticate,
+  requireOwnership('financial_forecast'),
+  pdfTimeout,
+  generateFinancePdfStreamController
+);
+
+/**
+ * @openapi
+ * /project/finance/{projectId}/pdf/{fileId}:
+ *   get:
+ *     tags: [Finance]
+ *     summary: Télécharge le PDF préparé par le flux
+ *     security: [{ bearerAuth: [] }]
+ */
+financeRoutes.get(
+  `/${resource}/:projectId/pdf/:fileId`,
+  authenticate,
+  requireOwnership('financial_forecast'),
+  downloadReadyFinancePdfController
 );

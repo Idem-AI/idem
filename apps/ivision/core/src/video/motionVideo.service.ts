@@ -749,7 +749,7 @@ export class MotionVideoService {
     const film = video.film!;
     try {
       const formats = video.scope.formats.length ? video.scope.formats : (['story'] as VideoFormat[]);
-      const fontCss = await embeddedFontCss(brand, film.scenes.flatMap((s) => Object.values(s.texts)).join(' '));
+    const fontCss = await embeddedFontCss(brand, film.scenes.flatMap((s) => Object.values(s.texts)).join(' '));
       const bundle = await this.bundle(film, 'render');
       const runs = await Promise.all(
         formats.map(async (format, k) => {
@@ -942,9 +942,24 @@ export class MotionVideoService {
         logo = name;
       } else logo = undefined;
     }
+      // Les motifs de la charte : en rendu, la tuile devient un fichier du dossier (la page n'a pas de réseau) ; en aperçu, son adresse.
+    const patterns = (
+      await Promise.all(
+        (brand.patterns ?? []).map(async (p, i) => {
+          let src: string | undefined = p.url;
+          if (mode === 'render') {
+            const served = await fetchMedia(p.url).catch(() => null);
+            if (!served || !/svg|image/.test(served.mimeType)) return null;
+            src = `pattern-${i}${/svg/.test(served.mimeType) ? '.svg' : '.png'}`;
+            files.push({ name: src, data: served.buffer, mimeType: served.mimeType });
+          }
+          return { src, tile: p.tile, ink: p.ink, ground: p.ground, ...(p.kind ? { kind: p.kind } : {}) };
+        })
+      )
+    ).filter((p): p is NonNullable<typeof p> => !!p);
     const fontCss = await embeddedFontCss(brand, film.scenes.flatMap((s) => Object.values(s.texts)).join(' '));
     const scenes = film.scenes.filter((s) => s.html && s.script).map((s) => ({ key: s.key, start: s.start, duration: s.duration, html: s.html!, script: s.script!, animation: s.animation ?? 'gsap', texts: s.texts }));
-    const html = await buildComposition({ scenes, width: comp.width, height: comp.height, output: { width: spec.width, height: spec.height }, durationSec: film.durationSec, brand: brand.tokens, media, ...(logo ? { logo } : {}), fontCss, mode, ...(audio ? { audio } : {}) });
+    const html = await buildComposition({ scenes, width: comp.width, height: comp.height, output: { width: spec.width, height: spec.height }, durationSec: film.durationSec, brand: brand.tokens, media, ...(logo ? { logo } : {}), fontCss, mode, ...(patterns.length ? { patterns } : {}), ...(brand.styleId ? { styleId: brand.styleId } : {}), ...(audio ? { audio } : {}) });
     return { html, files, size: comp, out: { width: spec.width, height: spec.height }, fps: spec.fps };
   }
 

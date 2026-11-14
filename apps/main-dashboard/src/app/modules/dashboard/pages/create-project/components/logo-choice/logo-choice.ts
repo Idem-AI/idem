@@ -218,6 +218,7 @@ export class LogoChoiceComponent {
           type: analysis.logoType,
           useAIGeneration: true,
           customDescription: `${analysis.improvementBrief}\n\n${reference}`,
+          improveImported: true,
         };
 
         // Un SEUL patch combiné (logo importé en référence + préférences IA) :

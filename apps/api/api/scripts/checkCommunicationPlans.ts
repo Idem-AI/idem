@@ -31,6 +31,8 @@ import {
   weekOfPeriod,
 } from '../services/Communication/communication.migration';
 import { toContentChannel, toContentChannels } from '../services/Communication/channels';
+import { arcLine, arcRoleAt, checkItem, keepTrends, normaliseFranchises, pillarQuota, sameAngle, snapToWeekday, weekdayOf } from '../services/Communication/plan/editorial';
+import { narrationCovers, narrationTarget, placeItem } from '../services/Communication/plan/placement';
 import { ensureVideoShare, normaliseVideoPlan, videoRequestOf } from '../services/Communication/video/video.calendar';
 import { parseRequest } from '../../../ivision/core/src/video/request/request';
 
@@ -444,6 +446,49 @@ console.log('\nPlan des vidéos du calendrier');
   const shared = ensureVideoShare(ideas, false);
   check('une vidéo garde son plan', !!shared[0].videoPlan && shared[0].videoPlan.beats.length === 1);
   check('une publication (non vidéo) n’a pas de plan vidéo', !shared.find((i) => i.id === 'b' && i.format === 'post')?.videoPlan);
+}
+
+console.log('\nPlacement des formats et couverture de la voix off');
+{
+  const base = { id: 'x', title: 't', hook: '', description: '', hashtags: [], callToAction: '', scheduledFor: '2026-11-20', week: 1, status: 'idea' } as unknown as ContentIdea;
+  check('Instagram post → portrait', placeItem({ ...base, channel: 'instagram', format: 'post' }, false).visualFormat === 'post');
+  check('story → story', placeItem({ ...base, channel: 'facebook', format: 'story' }, false).visualFormat === 'story');
+  check('article → bannière', placeItem({ ...base, channel: 'blog', format: 'article' }, false).visualFormat === 'banner');
+  const v = placeItem({ ...base, channel: 'tiktok', format: 'reel', videoDurationSec: 60 }, true);
+  check('TikTok vidéo → cadrage vertical, verrouillé', v.videoFormat === 'story' && v.formatLocked === true && !v.visualFormat);
+  const target = narrationTarget(90, 'fr').target;
+  check('90 s de film : une narration de ≈ 200 mots', target > 180 && target < 230, String(target));
+  const short = { voiceover: true, show: [], beats: [{ name: 'a', see: 'b', voice: 'Trois mots seulement' }] };
+  check('une voix off trop courte est refusée', !narrationCovers(short as any, 90, 'fr'));
+  check('sans voix off, la couverture ne se vérifie pas', narrationCovers({ ...short, voiceover: false } as any, 90, 'fr'));
+  const long = { voiceover: true, show: [], beats: [{ name: 'a', see: 'b', voice: Array.from({ length: target }, () => 'mot').join(' ') }] };
+  check('une voix off de la bonne longueur est acceptée', narrationCovers(long as any, 90, 'fr'));
+}
+
+console.log('\nMéthode éditoriale (piliers, arc, franchises, qualité)');
+{
+  const q = pillarQuota(12);
+  check('les quotas de piliers font exactement le total', Object.values(q).reduce((a, b) => a + b, 0) === 12);
+  check('le pilier éducation pèse le plus', q['reality-education'] >= q.demonstration && q.demonstration >= q.vision);
+  check('même sur 1 contenu, le total est exact', Object.values(pillarQuota(1)).reduce((a, b) => a + b, 0) === 1);
+  check('arc : début = problème, fin = preuve', arcRoleAt(0.05) === 'problem' && arcRoleAt(0.95) === 'proof');
+  check('période courte : pas d’arc forcé', /no forced arc/.test(arcLine(0, 1, 10)));
+  check('l’arc d’une tranche enchaîne ses rôles', /problem.*→.*method/.test(arcLine(0, 0.5, 28)));
+  // 2026-11-17 est un mardi.
+  check('weekdayOf : mardi = 2', weekdayOf('2026-11-17') === 2);
+  check('snapToWeekday : ramène au mardi le plus proche dans la tranche', snapToWeekday('2026-11-19', 2, { start: '2026-11-16', end: '2026-11-22' }) === '2026-11-17');
+  check('snapToWeekday : jamais hors de la tranche', snapToWeekday('2026-11-22', 1, { start: '2026-11-18', end: '2026-11-22' }) === '2026-11-22');
+  const f = normaliseFranchises([{ name: 'Décode', role: 'participation', weekday: 2, mechanisms: ['morse', 'quiz'] }, { name: 'Doublon de jour', weekday: 2 }, { name: 'Hors jour', weekday: 9 }]);
+  check('franchises : un seul par jour, jour valide', f.length === 1 && f[0].name === 'Décode');
+  const ok = { title: 'Acme aide à fixer ses prix', anchor: 'Acme est un outil de prix', callToAction: 'Essayer', hashtags: ['a'] };
+  check('contrôle : un contenu ancré passe', checkItem(ok, 'Acme').issues.length === 0);
+  check('contrôle : promesse de gain = bloquant', checkItem({ ...ok, hook: 'Succès garanti en 30 jours' }, 'Acme').blocking);
+  check('contrôle : urgence factice = bloquant', checkItem({ ...ok, hook: 'Dernière chance !' }, 'Acme').blocking);
+  check('contrôle : ancrage de marque absent signalé', checkItem({ ...ok, title: 'Fixer ses prix', anchor: 'Un outil de prix' }, 'Acme').issues.includes('no-brand-anchor'));
+  check('même angle reformulé détecté', sameAngle('Comment fixer le prix de vos produits artisanaux', 'Fixer le prix de vos produits artisanaux : comment faire'));
+  check('angles différents conservés', !sameAngle('Comment fixer le prix de vos produits', 'Un client satisfait raconte sa commande'));
+  const t = keepTrends([{ label: 'Réponse en vidéo', score: 8, mechanism: 'réagir' }, { label: 'Trop faible', score: 4 }, { label: 'Sans note' }], '2026-11-14', 'example.com');
+  check('tendances : seuil 7/10, date d’observation posée', t.length === 2 && t[0].observedAt === '2026-11-14' && !t.some((x) => x.label === 'Trop faible'));
 }
 
 console.log(

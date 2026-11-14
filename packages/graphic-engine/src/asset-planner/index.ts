@@ -219,11 +219,12 @@ export interface AssetResolution {
  * Essaie chaque besoin chez les fournisseurs de ses sources, dans l'ordre fixe. Un fournisseur qui échoue
  * (réseau, quota) passe la main au suivant ; il ne fait jamais échouer la page.
  */
-export async function resolveAssets(requirements: AssetRequirement[], providers: AssetProviders, ctx: AssetContext, o: { generationLeft: number; registry?: AssetRegistry }): Promise<AssetResolution> {
+export async function resolveAssets(requirements: AssetRequirement[], providers: AssetProviders, ctx: AssetContext, o: { generationLeft: number; registry?: AssetRegistry; used?: Set<string> }): Promise<AssetResolution> {
   // Le registre du projet sert les sources « utilisateur », « projet » et « capture » quand l'hôte ne les a
   // pas branchées autrement : une ressource déjà obtenue passe AVANT toute génération.
   const records = o.registry && requirements.some((r) => r.role !== 'icon') ? await o.registry.list(ctx).catch(() => [] as AssetRecord[]) : [];
-  const used = new Set<string>();
+  // Les adresses déjà posées : partagées par toutes les sections du document, une image ne sert jamais deux pages.
+  const used = o.used ?? new Set<string>();
   const fromRegistry = (source: AssetSource): AssetProvider => ({
     async resolve(req) {
       const hit = matchAsset({ ...req, sources: [source] }, records, used);
@@ -246,7 +247,9 @@ export async function resolveAssets(requirements: AssetRequirement[], providers:
       // Le projet a déjà une image qui convient (générée ou trouvée par un autre livrable) : on la reprend —
       // à tous les crans, puisqu'elle est déjà payée.
       if ((source === 'generated' || source === 'stock') && records.length) {
-        const again = matchAsset({ ...req, sources: [source] }, records, used);
+        // Reprise d'une image GÉNÉRÉE ou de banque : seulement pour le MÊME besoin (même page, même sujet) — jamais
+        // l'image d'une autre section sous prétexte de deux mots communs (le nom de la marque).
+        const again = matchAsset({ ...req, sources: [source] }, records.filter((r) => r.id === `${ctx.documentType}:${req.assetId}`.slice(0, 120) && r.subject === req.subject), used);
         if (again) {
           used.add(again.url);
           hit = { assetId: req.assetId, source, url: again.url, alt: again.subject.slice(0, 200), provenance: { ...again.provenance, provider: `registre (${again.provenance.provider})`.slice(0, 60) } };
@@ -265,6 +268,7 @@ export async function resolveAssets(requirements: AssetRequirement[], providers:
         const found = await provider.resolve(req, ctx);
         if (found && (found.url || found.icon)) {
           hit = { assetId: req.assetId, source, ...found };
+          if (found.url) used.add(found.url);
           if (source === 'generated') out.generated += 1;
           // Ce qui vient d'être généré ou trouvé rejoint le registre : le livrable suivant le reprendra.
           if ((source === 'generated' || source === 'stock') && found.url) fresh.push({ id: `${ctx.documentType}:${req.assetId}`.slice(0, 120), url: found.url, kind: 'image', role: req.role, source, subject: req.subject, origin: ctx.documentType === 'pitch-deck' ? 'deck' : 'document', provenance: found.provenance, createdAt: new Date().toISOString() });

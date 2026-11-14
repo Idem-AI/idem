@@ -29,6 +29,8 @@ import { buildContentMap, ContentMap, fixBrandNameTypos } from './runtime/conten
 import { expandPage, sanitizeHtml, stripInventedText, withSize } from './runtime/expand';
 import { compileTailwind } from './runtime/tailwind';
 import { checkRender, QualityFrame } from './runtime/check';
+import { directLogo } from './runtime/logo-director';
+import { directPattern, QUIET_STYLES, usableTiles } from './runtime/pattern-director';
 import { catalog as loadCatalog, catalogOverrides, ensureHtml } from './catalog/registry';
 import { assemblePage, capPlainText, pageUnits } from './catalog/assemble';
 import { brandTraits, Candidate, CatalogState, comboFingerprint, compatibleComponents, newCatalogState, rankSkins, shortlist } from './catalog/graph';
@@ -461,6 +463,9 @@ export class GraphicDocument {
       bible = out.summary;
     }
 
+    // Le LOGO d'un visuel : déclinaison, place, taille et ombre décidées sur la photo réelle (runtime/logo-director.ts).
+    rendered = await this.directLogos(rendered, pageFormat, recorder);
+
     const patternId = catalogInfo ? 'catalog' : 'authored';
     const spec: SectionSpec = { version: 2, ref: section.id, pattern: { id: patternId }, html: rendered.template, ...(bible ? { bible: bible.slice(0, 2400) } : {}), level, ...(catalogInfo ? { catalog: catalogInfo } : {}) };
     this.specs.set(section.id, spec);
@@ -489,6 +494,31 @@ export class GraphicDocument {
       score,
     }));
     return { spec, result, png: rendered.png, trace, ...(alternatives.length ? { alternatives } : {}), ...(rendered.score !== undefined ? { score: rendered.score } : {}) };
+  }
+
+  /**
+   * Visuels (toile fixe) : le logo est mesuré sur l'image, agrandi, posé et décliné par le code. Les variantes écartées
+   * reçoivent le même traitement. Une page qui ne se vérifie pas est gardée telle quelle.
+   */
+  private async directLogos(page: Rendered, format: FormatDef, recorder: TraceRecorder): Promise<Rendered> {
+    if (this.options.documentType !== 'flyer' || format.kind !== 'fixed' || process.env.GRAPHIC_LOGO_DIRECTOR === '0') return page;
+    const logos = this.tokens.brand.logos;
+    const tiles = usableTiles(this.tokens.brand.patterns);
+    const quiet = QUIET_STYLES.has(this.options.direction?.styleId ?? '');
+    const run = async (p: Rendered, key: string): Promise<{ page: Rendered; detail?: string; pattern?: string }> => {
+      // 1. Le motif de la charte (quand la page le gagne), puis 2. le logo, mesuré sur la page déjà motivée.
+      const motif = tiles.length ? await directPattern({ html: p.html, head: p.head, format, tiles, seed: `${this.options.seed}|${key}`, quiet, lang: this.options.locale, shoot: Boolean(p.png) }) : null;
+      const base: Rendered = motif ? { ...p, html: motif.html, ...(motif.png ? { png: motif.png } : {}) } : p;
+      const directed = await directLogo({ html: base.html, head: base.head, format, logos, name: this.options.brand.name, lang: this.options.locale, shoot: Boolean(base.png) });
+      const pattern = motif ? motif.where : undefined;
+      if (!directed) return { page: base, ...(pattern ? { pattern } : {}) };
+      return { page: { ...base, html: directed.html, ...(directed.png ? { png: directed.png } : {}) }, detail: directed.decision.reason + (directed.decision.shadow ? `, ombre discrète ${directed.decision.shadow.alpha}` : ''), ...(pattern ? { pattern } : {}) };
+    };
+    const main = await run(page, 'main');
+    if (main.detail) recorder.repair({ code: 'logo_directed', detail: `logo posé par mesure : ${main.detail}`, by: 'code' });
+    if (main.pattern) recorder.repair({ code: 'pattern_directed', detail: `motif de la charte posé : ${main.pattern}`, by: 'code' });
+    const alternatives = page.alternatives ? await Promise.all(page.alternatives.map(async (alt, i) => ({ ...alt, page: (await run(alt.page, `alt${i}`)).page }))) : undefined;
+    return { ...main.page, ...(alternatives ? { alternatives } : {}) };
   }
 
   /** L'élément du catalogue de ce document (un graphique seul prend le squelette intégré). */
@@ -868,6 +898,9 @@ export class GraphicDocument {
    * Planifie, résout et pose les médias de la section (`asset-planner`). Une section sans intention, ou dont
    * les médias sont déjà là (contenu rejoué), passe telle quelle. Un média introuvable applique son repli.
    */
+  /** Les images déjà posées dans ce document : aucune n'est reprise par une autre section. */
+  private readonly usedAssetUrls = new Set<string>();
+
   private async prepareAssets(content: SectionContent, recorder: TraceRecorder): Promise<{ section: SectionContent; assets: string[] }> {
     const requirements = planAssets(content, this.tokens.format);
     if (!requirements.length) return { section: content, assets: [] };
@@ -877,7 +910,7 @@ export class GraphicDocument {
       requirements,
       host.assetProviders ?? {},
       { level: this.policy.level, documentType: this.options.documentType, locale: this.options.locale, userId: this.options.user?.userId, projectId: this.options.user?.projectId, brandName: this.options.brand.name, styleId: this.options.direction?.styleId, keywords: this.options.direction?.keywords, ...(this.options.direction?.imagery ? { imagery: this.options.direction.imagery } : {}), ...(this.options.direction?.imageryMedium ? { imageryMedium: this.options.direction.imageryMedium } : {}) },
-      { generationLeft: Math.max(0, GENERATION_CAP[this.policy.level] - this.generatedAssets), registry: host.assetRegistry }
+      { generationLeft: Math.max(0, GENERATION_CAP[this.policy.level] - this.generatedAssets), registry: host.assetRegistry, used: this.usedAssetUrls }
     );
     this.generatedAssets += resolution.generated;
     const applied = applyAssets(content, resolution, requirements);

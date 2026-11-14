@@ -149,6 +149,8 @@
       "attachFailed": "The site is ready, but I couldn't save it to your project. Try again from the Save button."
     },
     "choices": {
+      "alertTitle": "A choice is waiting for you",
+      "alertBody": "Answer so the generation can continue.",
       "step": "Question {{current}} of {{total}}",
       "back": "Back",
       "forMe": "Choose for me",

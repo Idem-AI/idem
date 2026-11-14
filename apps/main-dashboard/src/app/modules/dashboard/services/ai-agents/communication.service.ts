@@ -202,6 +202,41 @@ export class CommunicationService {
    * l'authentification sur cet endpoint (une balise `<img>` ne peut pas envoyer
    * d'en-tête `Authorization`). Un chemin reconstruit à la main serait refusé.
    */
+  /**
+   * Déclenche l'enregistrement d'un Blob. Le lien est attaché au DOM (Firefox/Safari
+   * ignorent un clic sur un lien détaché) et l'URL n'est révoquée qu'après coup
+   * (la révoquer aussitôt annule le téléchargement sur certains navigateurs).
+   */
+  saveBlob(blob: Blob, fileName: string): void {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    setTimeout(() => {
+      link.remove();
+      URL.revokeObjectURL(url);
+    }, 1000);
+  }
+
+  /**
+   * Repli : si la requête XHR échoue (CORS en production), on ouvre l'URL
+   * capacitaire directement ; le navigateur la télécharge sans CORS.
+   */
+  openDirect(imageUrl: string, fileName: string): void {
+    const link = document.createElement('a');
+    link.href = imageUrl;
+    link.download = fileName;
+    link.target = '_blank';
+    link.rel = 'noopener';
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    setTimeout(() => link.remove(), 1000);
+  }
+
   downloadFlyerImage(imageUrl: string): Observable<Blob> {
     return this.http
       .get(imageUrl, { responseType: 'blob', headers: { Accept: 'image/png' } })

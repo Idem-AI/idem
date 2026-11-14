@@ -49,6 +49,8 @@ import { LogoDocumentSchema, LOGO_IR_VERSION } from '../services/logo-engine/ir/
 import { fixOnce } from '../services/logo-engine/validate/autofix';
 import { randomParams, resolveParams, seeded } from '../services/logo-engine/render/generators';
 import { candidateDocs, docForDirection } from '../services/logo-engine/planner/planner';
+import { improveLogo, observeLogo, normalizedGrid } from '../services/logo-engine/improve/improve';
+import { parseReading } from '../services/logo-engine/improve/reading';
 import { PaperGeometryKernel } from '../services/logo-engine/kernel/paper.kernel';
 import { circlePath, rectPath } from '../services/logo-engine/kernel/primitives';
 import { extractFontFileUrl } from '../services/BandIdentity/lockup/fontLoader.service';
@@ -555,6 +557,44 @@ async function main(): Promise<void> {
   check(`${total} logos : tous acceptés par les mesures`, accepted === total, `${accepted}/${total}`);
   check('score moyen ≥ 90', mean(scores) >= 90, mean(scores).toFixed(1));
   check('un lot de 3 propositions se construit en moins de 6 s', slowest < 6000, `${slowest} ms`);
+
+  // ── 16. Améliorer mon logo : observateur → dessinateur → contrôle ──────
+  section('16. Améliorer mon logo : observateur (vision) → dessinateur (texte) → contrôle par le code');
+  const original = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect width="200" height="200" fill="#fff"/><circle cx="100" cy="100" r="70" fill="#e8742a"/><rect x="85" y="55" width="30" height="90" fill="#ffffff"/></svg>';
+  const reading = JSON.stringify({
+    brandText: '', kind: 'icon', layout: 'symbol-only', conceptType: 'abstract',
+    summary: 'An orange disc with a white vertical bar cut through its centre, symmetrical on the vertical axis.',
+    elements: [{ id: 'e1', role: 'symbol', description: 'orange disc', geometry: 'circle filling 70% of the canvas, solid fill', position: 'centred', size: '70% of height', color: '#e8742a' }, { id: 'e2', role: 'accent', description: 'white bar', geometry: 'rectangle 30x90, sharp corners', position: 'centred', size: '45% of height', color: '#ffffff' }],
+    symmetry: 'vertical', construction: 'concentric, single axis', typography: 'none', paletteUsage: [{ hex: '#e8742a', usage: 'disc' }],
+    symbolism: 'a sun split by a path', weaknesses: ['bar corners are sharp against the round disc'], keep: ['orange disc', 'white vertical cut'], fix: ['round the bar corners'],
+  });
+  check('observateur : une description sans géométrie est refusée avec son motif', !!parseReading('{"summary":"x"}').problem && !!parseReading(JSON.stringify({ ...JSON.parse(reading), elements: [{ description: 'a thing here' }] })).problem);
+  let visionCalls = 0;
+  const store = new Map<string, unknown>();
+  const cache = { get: async (k: string) => store.get(k) ?? null, set: async (k: string, v: unknown) => void store.set(k, v) };
+  const vision = async () => {
+    visionCalls++;
+    return visionCalls === 1 ? '{"nope":true}' : reading;
+  };
+  const observed = await observeLogo(original, vision, cache);
+  check('observateur : réponse refusée → seconde tentative', visionCalls === 2 && observed.reading.elements.length === 2);
+  check('observateur : la palette est MESURÉE sur les pixels (orange dominant)', /^#e[0-9a-f][5-9a-f][0-9a-f]{3}$/.test(observed.reading.palette[0]?.hex ?? '') || observed.reading.palette[0]?.hex.startsWith('#e'), observed.reading.palette.map((p) => p.hex).join(' '));
+  await observeLogo(original, vision, cache);
+  check('observateur : la lecture est mise en cache (pas de nouvel appel)', visionCalls === 2);
+  const logoCalls: string[] = [];
+  const redraw: AgentCall = async (req) => {
+    logoCalls.push(req.user);
+    return JSON.stringify({ rationale: 'Disc with a rounded cut.', layers: [{ kind: 'shape', id: 'disc', geometry: { type: 'circle', cx: 50, cy: 50, r: 38 }, fill: 'ink' }, { kind: 'shape', id: 'bar', geometry: { type: 'rect', x: 42, y: 28, w: 16, h: 44, r: 8 }, fill: 'paper' }], composition: { layout: 'symbol-only' } });
+  };
+  const improved = await improveLogo({ svg: original, brief: { brandName: 'Verda' }, build: BUILD, level: 'medium', count: 3, call: redraw, vision: async () => reading, seed: 'improve' });
+  check('dessinateur : il reçoit la description, jamais l\'image', logoCalls.length === 3 && logoCalls.every((u) => /KEEP \(recognition/.test(u) && /orange disc/.test(u)));
+  check('contrôle : les brouillons gardent la silhouette (ressemblance mesurée)', improved.logos.length >= 1 && improved.logos.every((l) => l.similarity >= 0.3), improved.logos.map((l) => `${l.degree} ${l.similarity}`).join(' · '));
+  check('contrôle : la teinte d\'origine est conservée', improved.logos.every((l) => /^#(e|f|d|c)/.test(l.doc.palette.ink)), improved.logos.map((l) => l.doc.palette.ink).join(' '));
+  const stranger = await improveLogo({ svg: original, brief: { brandName: 'Verda' }, build: BUILD, level: 'medium', count: 1, call: async () => JSON.stringify({ rationale: 'x', layers: [{ kind: 'shape', id: 's', geometry: { type: 'rect', x: 0, y: 40, w: 100, h: 4 }, fill: 'ink' }], composition: { layout: 'symbol-only' } }), vision: async () => reading, seed: 'x' });
+  check('contrôle : un dessin méconnaissable est écarté (repli sur le moteur standard)', stranger.logos.length === 0, `${stranger.logos.length}`);
+  const noModelImprove = await improveLogo({ svg: original, brief: { brandName: 'Verda' }, build: BUILD, level: 'high', count: 3, seed: 'x' });
+  check('sans modèle : liste vide, aucune erreur', noModelImprove.logos.length === 0);
+  check('grille normalisée : deux marges différentes se comparent', !!normalizedGrid({ width: 4, height: 4, rgba: new Uint8Array(64).map((_, i) => (i % 4 === 3 ? 255 : 0)) }));
 
   console.log(`\n${passes} vérifications réussies, ${failures} échec(s) — ${((Date.now() - started) / 1000).toFixed(1)} s`);
   if (failures) process.exit(1);

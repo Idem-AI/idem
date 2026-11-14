@@ -1,0 +1,26 @@
+@if (visible() && step(); as s) {
+  @if (isDashboard()) {
+    <section class="glass-card flex flex-wrap items-center gap-4 p-5 mb-6" aria-live="polite">
+      <div class="flex-1 min-w-[220px]">
+        <span class="tag">{{ 'guided.next.label' | translate }}</span>
+        <h2 class="text-lg font-bold text-text-primary mt-2 mb-1">
+          <span class="i-underline">{{ 'guided.steps.' + s.id + '.title' | translate }}</span>
+        </h2>
+        <p class="text-sm text-text-secondary m-0">{{ 'guided.steps.' + s.id + '.why' | translate }}</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <button type="button" class="button-ghost button-sm" (click)="dismiss()">{{ 'guided.next.later' | translate }}</button>
+        <button type="button" class="inner-button button-sm" (click)="open()">{{ 'guided.next.go' | translate }}</button>
+      </div>
+    </section>
+  } @else {
+    <div class="glass-card flex items-center gap-3 px-4 py-2 mb-4" aria-live="polite">
+      <span class="tag shrink-0">{{ 'guided.next.label' | translate }}</span>
+      <p class="flex-1 min-w-0 truncate text-sm text-text-primary m-0">{{ 'guided.steps.' + s.id + '.title' | translate }}</p>
+      <button type="button" class="inner-button button-sm shrink-0" (click)="open()">{{ 'guided.next.go' | translate }}</button>
+      <button type="button" class="button-icon shrink-0" [attr.aria-label]="'guided.next.later' | translate" (click)="dismiss()">
+        <i class="pi pi-times"></i>
+      </button>
+    </div>
+  }
+}

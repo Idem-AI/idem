@@ -133,6 +133,13 @@ export class ContentDetail {
     return this.visuals().filter((candidate) => ids.has(candidate.id));
   });
 
+  /** Les défauts relevés par le contrôle de la période, dits en clair. */
+  protected readonly issuesLabel = computed(() =>
+    (this.item().qualityIssues ?? [])
+      .map((rule) => this.translate.instant(`dashboard.showCommunication.detail.why.rules.${rule}`))
+      .join(' · ')
+  );
+
   protected readonly hashtagsText = computed(() => (this.item().hashtags ?? []).join(', '));
 
   // ── Vidéo (contenus vidéo du calendrier) ─────────────────────────────────
@@ -156,7 +163,9 @@ export class ContentDetail {
   protected readonly videoOptions = signal<VideoOptions | null>(null);
   protected readonly videoBusy = signal(false);
   protected readonly videoProgress = signal<VideoProgressState>({});
-  protected readonly videoFormat = computed<VideoFormat>(() => VIDEO_FORMAT_BY_CHANNEL[this.item().channel] ?? 'story');
+  protected readonly videoFormat = computed<VideoFormat>(() => this.item().videoFormat ?? VIDEO_FORMAT_BY_CHANNEL[this.item().channel] ?? 'story');
+  /** Format et durée posés par le calendrier : affichés, plus proposés au choix (le minutage en dépend). */
+  protected readonly locked = computed(() => !!this.item().formatLocked);
   /** La jauge de créativité de ce contenu (visuel et vidéo) ; Medium par défaut. */
   protected readonly creativity = signal<CreativityLevel>(DEFAULT_CREATIVITY);
   /** Prix du visuel au cran Low / Medium pour ce projet (lu sur l'API). */
@@ -175,6 +184,11 @@ export class ContentDetail {
   private visualPriceRequested = false;
 
   constructor() {
+    // Le format du visuel est déjà réglé par le calendrier : on arrive sur le bon.
+    effect(() => {
+      const preset = this.item().visualFormat;
+      if (preset) untracked(() => this.chosenFormat.set(preset));
+    });
     // Le prix d'un visuel pour ce projet (cran Low / Medium) : la jauge en déduit chaque cran.
     effect(() => {
       if (this.visualPriceRequested) return;
@@ -394,7 +408,7 @@ export class ContentDetail {
   }
 
   protected setDuration(duration: VideoDuration): void {
-    if (duration === this.videoDuration() || this.videoBusy()) return;
+    if (this.locked() || duration === this.videoDuration() || this.videoBusy()) return;
     this.communication
       .updatePlanItem(this.projectId(), this.planId(), this.item().id, { videoDurationSec: duration })
       .subscribe({
@@ -424,6 +438,7 @@ export class ContentDetail {
   protected regenerateVisual(): void {
     const current = this.visual();
     if (!current || this.isCreatingVisual()) return;
+    this.chosenFormat.set(current.format);
     this.isCreatingVisual.set(true);
     this.pendingChoice.set(null);
     this.communication.regenerateFlyer(this.projectId(), this.item().id, current.format, this.creativity()).subscribe({
@@ -537,15 +552,8 @@ export class ContentDetail {
     const visual = this.visual();
     if (!visual?.imageUrl) return;
     this.communication.downloadFlyerImage(visual.imageUrl).subscribe({
-      next: (blob) => {
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `${visual.id}.png`;
-        link.click();
-        URL.revokeObjectURL(url);
-      },
-      error: (err) => this.failed.emit(err?.error?.message || 'download'),
+      next: (blob) => this.communication.saveBlob(blob, `${visual.id}.png`),
+      error: () => this.communication.openDirect(visual.imageUrl!, `${visual.id}.png`),
     });
   }
 

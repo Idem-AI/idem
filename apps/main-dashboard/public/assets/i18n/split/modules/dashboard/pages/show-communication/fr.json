@@ -146,7 +146,27 @@
           "sun": "Dim"
         },
         "briefToggle": "L'idée de ce calendrier",
-        "videoToDo": "Vidéo à générer"
+        "videoToDo": "Vidéo à générer",
+        "composing": {
+          "title": "Je construis votre période",
+          "untitled": "Votre période",
+          "count": "{{done}} / {{total}} publications écrites",
+          "trendsTitle": "Tendances du moment sur le web",
+          "angleTitle": "Ligne éditoriale",
+          "stages": {
+            "context": "Je relis votre marque",
+            "research": "Je cherche les tendances et les dates clés",
+            "brief": "Je choisis l'angle de la période",
+            "content": "J'écris et je place vos publications",
+            "videos": "Je prépare le déroulé de vos vidéos"
+          },
+          "details": {
+            "research": "{{trends}} tendances · {{occasions}} dates clés",
+            "brief": "{{count}} thèmes retenus",
+            "content": "{{done}} sur {{total}}",
+            "videos": "{{done}} sur {{total}} déroulés"
+          }
+        }
       },
       "wizard": {
         "progress": "Avancement",
@@ -215,6 +235,7 @@
         "contentTitle": "Ce qui sera publié",
         "noVisual": "Pas encore de visuel pour cette publication. Il sera créé avec vos couleurs, votre police et votre logo.",
         "chooseFormat": "Pour quel usage ?",
+        "formatFixed": "Format réglé pour ce réseau : {{format}}",
         "createVisual": "Créer le visuel — 2 crédits",
         "creating": "Je compose le visuel…",
         "otherFormats": "Aussi dans un autre format",
@@ -249,6 +270,7 @@
         "createVideo": "Générer la vidéo · {{price}} crédits",
         "visualInstead": "Créer plutôt un visuel",
         "duration": "Durée de la vidéo",
+        "durationFixed": "Durée réglée par le calendrier : {{duration}}",
         "ai": {
           "edit": "Modifier avec l’IA",
           "regenerate": "Régénérer",
@@ -266,6 +288,7 @@
           "voiceOff": "Sans voix off",
           "tone": "Ton de la narration : {{tone}}",
           "show": "À montrer :",
+          "seeBeats": "Voir les {{count}} moments du déroulé",
           "onScreen": "À l'écran :",
           "narration": "Voix :",
           "ending": "Fin :",
@@ -280,7 +303,31 @@
         "otherProposals": "Autres propositions",
         "otherProposalsHint": "Composées en même temps que ce visuel, sans frais : choisissez celle que vous préférez.",
         "useProposal": "Utiliser cette proposition",
-        "proposalAlt": "Autre composition de ce visuel"
+        "proposalAlt": "Autre composition de ce visuel",
+        "why": {
+          "mechanism": "Ce qui le rend mémorable :",
+          "kpi": "À regarder :",
+          "issues": "À corriger avant de publier :",
+          "pillars": {
+            "reality-education": "Réalité & éducation",
+            "demonstration": "Démonstration",
+            "proof": "Preuve",
+            "culture": "Culture & humour",
+            "vision": "Vision & communauté",
+            "activation": "Invitation directe"
+          },
+          "rules": {
+            "guaranteed-result": "promesse de résultat",
+            "fake-urgency": "urgence factice",
+            "shame-or-fear": "honte ou peur",
+            "absolute-claim": "affirmation absolue",
+            "no-brand-anchor": "la marque n'apparaît pas",
+            "no-anchor-sentence": "ancrage de marque manquant",
+            "no-call-to-action": "pas d'appel à l'action",
+            "too-many-hashtags": "trop de hashtags",
+            "generic-title": "titre trop générique"
+          }
+        }
       },
       "studio": {
         "empty": {

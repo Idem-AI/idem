@@ -5,6 +5,7 @@ import { uploadImage } from '@/api/chat';
 import useChatStore from '../../../stores/chatSlice';
 import { useFileStore } from '../../WeIde/stores/fileStore';
 import { db } from '../../../utils/indexDB';
+import { primeChoiceNotifications } from '../../../utils/choiceAlert';
 import { v4 as uuidv4 } from 'uuid';
 import { eventEmitter } from '../utils/EventEmitter';
 import { MessageItem } from './components/MessageItem';
@@ -1766,6 +1767,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
   // modify submit handler
   const handleSubmitWithFiles = async (_: React.KeyboardEvent, text?: string) => {
     if (!text && !input.trim() && uploadedImages.length === 0) return;
+    primeChoiceNotifications();
 
     // Une commande que l'atelier règle lui-même (« /publier », « /aide »…) ne part pas au serveur.
     const typed = (text || input).trim();

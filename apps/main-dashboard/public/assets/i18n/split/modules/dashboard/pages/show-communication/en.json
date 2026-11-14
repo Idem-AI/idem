@@ -146,7 +146,27 @@
           "sun": "Sun"
         },
         "briefToggle": "The idea behind this calendar",
-        "videoToDo": "Video to generate"
+        "videoToDo": "Video to generate",
+        "composing": {
+          "title": "Building your period",
+          "untitled": "Your period",
+          "count": "{{done}} / {{total}} posts written",
+          "trendsTitle": "What is trending on the web",
+          "angleTitle": "Editorial line",
+          "stages": {
+            "context": "Reading your brand",
+            "research": "Finding trends and key dates",
+            "brief": "Choosing the angle of the period",
+            "content": "Writing and placing your posts",
+            "videos": "Preparing your video plans"
+          },
+          "details": {
+            "research": "{{trends}} trends · {{occasions}} key dates",
+            "brief": "{{count}} themes kept",
+            "content": "{{done}} of {{total}}",
+            "videos": "{{done}} of {{total}} plans"
+          }
+        }
       },
       "wizard": {
         "progress": "Progress",
@@ -215,6 +235,7 @@
         "contentTitle": "What will be published",
         "noVisual": "No visual for this post yet. It will be created with your colours, your font and your logo.",
         "chooseFormat": "What is it for?",
+        "formatFixed": "Format set for this network: {{format}}",
         "createVisual": "Create the visual — 2 credits",
         "creating": "Composing the visual…",
         "otherFormats": "Also in another format",
@@ -249,6 +270,7 @@
         "createVideo": "Generate the video · {{price}} credits",
         "visualInstead": "Make a visual instead",
         "duration": "Video length",
+        "durationFixed": "Length set by the calendar: {{duration}}",
         "ai": {
           "edit": "Edit with AI",
           "regenerate": "Regenerate",
@@ -266,6 +288,7 @@
           "voiceOff": "No voice-over",
           "tone": "Narration tone: {{tone}}",
           "show": "To show:",
+          "seeBeats": "See the {{count}} moments of the plan",
           "onScreen": "On screen:",
           "narration": "Voice:",
           "ending": "Ending:",
@@ -280,7 +303,31 @@
         "otherProposals": "Other proposals",
         "otherProposalsHint": "Composed together with this visual, at no extra cost: pick the one you prefer.",
         "useProposal": "Use this proposal",
-        "proposalAlt": "Another composition of this visual"
+        "proposalAlt": "Another composition of this visual",
+        "why": {
+          "mechanism": "What makes it memorable:",
+          "kpi": "Watch:",
+          "issues": "To fix before publishing:",
+          "pillars": {
+            "reality-education": "Reality & education",
+            "demonstration": "Demonstration",
+            "proof": "Proof",
+            "culture": "Culture & humour",
+            "vision": "Vision & community",
+            "activation": "Direct invitation"
+          },
+          "rules": {
+            "guaranteed-result": "promised result",
+            "fake-urgency": "fake urgency",
+            "shame-or-fear": "shame or fear",
+            "absolute-claim": "absolute claim",
+            "no-brand-anchor": "brand not mentioned",
+            "no-anchor-sentence": "brand anchor missing",
+            "no-call-to-action": "no call to action",
+            "too-many-hashtags": "too many hashtags",
+            "generic-title": "title too generic"
+          }
+        }
       },
       "studio": {
         "empty": {

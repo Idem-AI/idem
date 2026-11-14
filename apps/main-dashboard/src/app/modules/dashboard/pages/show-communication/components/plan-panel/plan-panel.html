@@ -29,15 +29,15 @@
 
   <app-screen-guide guideKey="plans" />
 
-  @if (generatingPlanId()) {
-    <p
-      class="glass mb-4 flex items-center gap-2 rounded-xl px-3 py-2 text-sm text-[var(--color-accent-500)]"
-      role="status"
-      aria-live="polite"
-    >
-      <idem-loader size="xs" />
-      <span>{{ stepLabel() | translate }}</span>
-    </p>
+  @if (generatingPlan(); as generating) {
+    <app-plan-composing
+      class="mb-5"
+      [name]="generating.name"
+      [start]="generating.period.start"
+      [end]="generating.period.end"
+      [postsPerWeek]="generating.postsPerWeek"
+      [progress]="progress()"
+    />
   }
 
   <!-- ─────────────── Aucun planning ─────────────── -->

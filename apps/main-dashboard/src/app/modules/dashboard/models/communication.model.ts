@@ -140,6 +140,28 @@ export interface ContentIdea {
   videoType?: VideoType;
   /** Durée de la vidéo en secondes (1 à 3 minutes). */
   videoDurationSec?: number;
+  /** Rendez-vous récurrent auquel ce contenu appartient (jour fixe de la semaine), s'il y en a un. */
+  franchise?: string;
+  /** Pilier éditorial : sert la répartition équilibrée de la période. */
+  pillar?: 'reality-education' | 'demonstration' | 'proof' | 'culture' | 'vision' | 'activation';
+  /** Public visé quand il diffère du public principal de la période. */
+  audience?: string;
+  /** Ce qui rend le contenu mémorable : le mécanisme (énigme, contraste, scène, démonstration…). */
+  mechanism?: string;
+  /** L'ancrage de marque en une phrase : la marque, ce qu'elle fait ici, le bénéfice. */
+  anchor?: string;
+  /** L'indicateur à regarder pour juger ce contenu (partages, enregistrements, clics, messages…). */
+  kpi?: string;
+  /** Tendance (de la veille de la période) que ce contenu reprend. */
+  trend?: string;
+  /** Défauts relevés par le contrôle de la période (ancrage absent, promesse de gain, hashtags…). */
+  qualityIssues?: string[];
+  /** Format du visuel posé à la génération du calendrier. */
+  visualFormat?: FlyerFormat;
+  /** Cadrage de la vidéo posé par le calendrier. */
+  videoFormat?: 'story' | 'square' | 'portrait' | 'landscape';
+  /** Format et durée fixés par le calendrier : plus au choix. */
+  formatLocked?: boolean;
   /** Le plan de la vidéo écrit avec le calendrier : voix off, ton, musique, ce qu'on montre, déroulé. */
   videoPlan?: ContentVideoPlan;
   /** Vidéos créées pour ce contenu. */
@@ -164,6 +186,11 @@ export interface PlanBrief {
   themes: { label: string; why: string }[];
   successSignals: string[];
   occasions?: { label: string; date: string }[];
+  trends?: { label: string; description?: string; mechanism?: string; score?: number; source?: string; observedAt?: string }[];
+  /** Rendez-vous récurrents de la période (jour fixe, mécanismes à faire tourner). */
+  franchises?: { name: string; role: 'participation' | 'identification' | 'teaching' | 'behind'; weekday: number; mechanisms: string[] }[];
+  /** Le public principal de la période, en une phrase. */
+  audience?: string;
 }
 
 export type PlanStatus = 'draft' | 'active' | 'done' | 'archived';
@@ -374,7 +401,7 @@ export interface CommunicationModel {
 /** Streaming event emitted by the backend during strategy/calendar generation. */
 export interface CommunicationStreamEvent {
   type: 'step-start' | 'step-complete' | 'complete' | 'error';
-  step?: 'context' | 'trends' | 'strategy' | 'calendar' | 'occasions' | 'brief' | 'content';
+  step?: 'context' | 'trends' | 'strategy' | 'calendar' | 'occasions' | 'brief' | 'content' | 'content-batch' | 'videos' | 'videos-count' | 'video-plan';
   payload?: any;
   message?: string;
   /**

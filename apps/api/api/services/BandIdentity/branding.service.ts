@@ -2057,7 +2057,19 @@ export class BrandingService extends GenericService {
     onStage?: (stage: string) => void
   ): Promise<LogoModel[]> {
     const description = this.extractProjectDescription(project);
+    // Voie « améliorer mon logo » : le logo importé du projet est la référence que le moteur redessine.
+    let reference: { svg: string } | undefined;
+    const imported = project.analysisResultModel?.branding?.logo;
+    if (imported?.svg && imported.concept === 'User-imported logo' && (preferences?.improveImported || /Original logo reference/i.test(preferences?.customDescription ?? ''))) {
+      try {
+        const { resolveSvgContent } = await import('../logo-import.service');
+        reference = { svg: await resolveSvgContent(imported.svg) };
+      } catch (error) {
+        logger.warn(`[LOGO] logo importé illisible, moteur standard : ${(error as Error).message}`);
+      }
+    }
     const { logos } = await engineLogoConcepts({
+      reference,
       userId,
       projectId,
       project,

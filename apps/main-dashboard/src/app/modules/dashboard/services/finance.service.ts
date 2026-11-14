@@ -241,6 +241,46 @@ export class FinanceService {
     );
   }
 
+  /**
+   * Génère le rapport PDF en streaming (SSE) puis le télécharge : le flux reste
+   * ouvert pendant la génération, ce qui évite le 504 des proxys. Émet le Blob
+   * une fois le fichier prêt.
+   */
+  generateFinancePdfStream(projectId: string): Observable<Blob> {
+    this.sseService.closeConnection('finance-pdf');
+    return new Observable<Blob>((observer) => {
+      let fileId: string | null = null;
+      const sub = this.sseService
+        .createConnection({ url: `${this.baseUrl}/${projectId}/pdf-stream` }, 'finance-pdf')
+        .subscribe({
+          next: (event) => {
+            const id = (event as unknown as { fileId?: string }).fileId;
+            if (id) fileId = id;
+          },
+          error: (err) => observer.error(err),
+          complete: () => {
+            if (!fileId) {
+              observer.error(new Error('pdf_not_ready'));
+              return;
+            }
+            this.http
+              .get(`${this.baseUrl}/${projectId}/pdf/${fileId}`, { responseType: 'blob' })
+              .subscribe({
+                next: (blob) => {
+                  observer.next(blob);
+                  observer.complete();
+                },
+                error: (err) => observer.error(err),
+              });
+          },
+        });
+      return () => {
+        sub.unsubscribe();
+        this.sseService.closeConnection('finance-pdf');
+      };
+    });
+  }
+
   /** Helper: déclenche le téléchargement navigateur du PDF généré. */
   static triggerPdfDownload(blob: Blob, filename: string): void {
     const url = URL.createObjectURL(blob);

@@ -149,6 +149,8 @@
       "attachFailed": "Le site est prêt, mais je n’ai pas pu l’enregistrer dans votre projet. Réessayez depuis le bouton Enregistrer."
     },
     "choices": {
+      "alertTitle": "Un choix vous attend",
+      "alertBody": "Répondez pour que la génération continue.",
       "step": "Question {{current}} sur {{total}}",
       "back": "Précédent",
       "forMe": "Choisir pour moi",

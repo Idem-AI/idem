@@ -80,6 +80,21 @@ const MESSAGES = (i: number): SectionContent[] => [
   },
 ];
 
+/** `--patterns` : deux motifs de charte (tuiles SVG répétables, comme ceux déposés par la charte) ajoutés à chaque marque de test. */
+function withPatterns<T extends { palette?: { primary?: string; background?: string } }>(brand: T): T {
+  if (!process.argv.includes('--patterns')) return brand;
+  const ink = brand.palette?.primary ?? '#1A2A4F';
+  const ground = brand.palette?.background ?? '#FFFFFF';
+  const uri = (body: string) => `data:image/svg+xml;base64,${Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48"><rect width="48" height="48" fill="${ground}"/>${body}</svg>`).toString('base64')}`;
+  return {
+    ...brand,
+    patterns: [
+      { url: uri(`<path d="M-4,48 L48,-4 L52,0 L0,52Z" fill="${ink}"/>`), tile: 48, ground, ink, motif: 'stripes' },
+      { url: uri(`<circle cx="24" cy="24" r="4" fill="${ink}"/><circle cx="0" cy="0" r="4" fill="${ink}"/><circle cx="48" cy="0" r="4" fill="${ink}"/><circle cx="0" cy="48" r="4" fill="${ink}"/><circle cx="48" cy="48" r="4" fill="${ink}"/>`), tile: 48, ground, ink, motif: 'dots' },
+    ],
+  };
+}
+
 const BRAND_ORDER = ['kora', 'Makam', 'baobab'] as const;
 
 let disabled: string[] = [];
@@ -112,7 +127,7 @@ async function main(): Promise<void> {
         // La DA du gabarit (un flyer signature n'appartient qu'à la sienne) ; sinon celle de la marque de test.
         const styleId = !g.directions?.length || g.directions.includes(brand.styleId) ? brand.styleId : g.directions[0];
         const darkGround = (layout as { darkGround?: boolean }).darkGround === true || (cat.nodes.get(g.config.skin) as { dark?: boolean } | undefined)?.dark === true;
-        const doc = await createDocument({ documentType: 'flyer', format, brand, direction: { styleId }, creativity: 'low', ...(darkGround ? { allowDark: true } : {}), seed: `${g.id}|${message.id}|${format}`, png: true, sections: [{ id: message.id, role: 'visual' }] });
+        const doc = await createDocument({ documentType: 'flyer', format, brand: withPatterns(brand), direction: { styleId }, creativity: 'low', ...(darkGround ? { allowDark: true } : {}), seed: `${g.id}|${message.id}|${format}`, png: true, sections: [{ id: message.id, role: 'visual' }] });
         const name = `${g.id}--${message.id}--${format.replace('flyer-', '')}`;
         try {
           const res = await doc.composeSection(message);

@@ -195,7 +195,7 @@ export async function composeVisual(
   // détaillé et professionnel ; un mot de style (« grandiose », « épuré »…) en est extrait comme direction
   // pour la page plutôt que laissé dans le texte, où le rédacteur le recopierait tel quel.
   stage('copy', 'running');
-  const rawAsk = [message, content.description].filter(Boolean).join(' ').trim();
+  const rawAsk = [message, content.description, content.visualBrief ? `What the image must show: ${content.visualBrief}` : ''].filter(Boolean).join(' ').trim();
   const reformulated = rawAsk ? (await orch.run(reformulateBriefTask(rawAsk, context.language || 'fr'))).value : { brief: rawAsk, styleKeywords: [] };
   const brief: CopyBrief = {
     message: reformulated.brief || rawAsk,

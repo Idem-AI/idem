@@ -373,7 +373,11 @@
               <ul class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                 @for (asset of socialAssets(); track asset.id) {
                   <li class="rounded-xl overflow-hidden border border-[var(--glass-border-subtle)] flex flex-col">
-                    <div class="h-40 p-4 flex items-center justify-center bg-[var(--color-bg-dark)]">
+                    <div
+                      class="p-4 flex items-center justify-center bg-[var(--color-bg-dark)]"
+                      [class.h-40]="asset.id !== 'rollup'"
+                      [class.h-72]="asset.id === 'rollup'"
+                    >
                       <img
                         [src]="asset.url"
                         [alt]="asset.label"
