@@ -133,6 +133,13 @@ export class ContentDetail {
     return this.visuals().filter((candidate) => ids.has(candidate.id));
   });
 
+  /** Les défauts relevés par le contrôle de la période, dits en clair. */
+  protected readonly issuesLabel = computed(() =>
+    (this.item().qualityIssues ?? [])
+      .map((rule) => this.translate.instant(`dashboard.showCommunication.detail.why.rules.${rule}`))
+      .join(' · ')
+  );
+
   protected readonly hashtagsText = computed(() => (this.item().hashtags ?? []).join(', '));
 
   // ── Vidéo (contenus vidéo du calendrier) ─────────────────────────────────

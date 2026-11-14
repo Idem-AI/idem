@@ -371,6 +371,36 @@
           {{ 'dashboard.showCommunication.detail.contentTitle' | translate }}
         </h3>
 
+        <!-- Pourquoi ce contenu : ce que le calendrier a décidé (rendez-vous, mécanisme, ancrage, indicateur). -->
+        @if (item().franchise || item().pillar || item().mechanism || item().kpi || item().qualityIssues?.length) {
+          <div class="cd-why">
+            <ul class="cd-chips">
+              @if (item().franchise; as franchise) {
+                <li class="tag"><i class="pi pi-calendar" aria-hidden="true"></i> {{ franchise }}</li>
+              }
+              @if (item().pillar; as pillar) {
+                <li class="tag">{{ 'dashboard.showCommunication.detail.why.pillars.' + pillar | translate }}</li>
+              }
+              @if (item().trend; as trend) {
+                <li class="tag"><i class="pi pi-chart-line" aria-hidden="true"></i> {{ trend }}</li>
+              }
+            </ul>
+            @if (item().mechanism; as mechanism) {
+              <p class="cd-note"><strong>{{ 'dashboard.showCommunication.detail.why.mechanism' | translate }}</strong> {{ mechanism }}</p>
+            }
+            @if (item().kpi; as kpi) {
+              <p class="cd-note"><strong>{{ 'dashboard.showCommunication.detail.why.kpi' | translate }}</strong> {{ kpi }}</p>
+            }
+            @if (item().qualityIssues?.length) {
+              <p class="cd-note cd-why-warn" role="note">
+                <i class="pi pi-exclamation-triangle" aria-hidden="true"></i>
+                {{ 'dashboard.showCommunication.detail.why.issues' | translate }}
+                {{ issuesLabel() }}
+              </p>
+            }
+          </div>
+        }
+
         <!-- Titre -->
         <div class="cd-field">
           <div class="cd-field-head">

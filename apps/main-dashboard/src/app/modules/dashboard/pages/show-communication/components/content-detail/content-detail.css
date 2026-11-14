@@ -463,3 +463,8 @@
   padding: 0.25rem 0;
 }
 .cd-plan-more[open] > summary { margin-bottom: 0.5rem; }
+
+/* « Pourquoi ce contenu » : ce que le calendrier a décidé, en lecture. */
+.cd-why { display: grid; gap: 0.4rem; margin-bottom: 1rem; }
+.cd-why .cd-chips { list-style: none; padding: 0; margin: 0; }
+.cd-why-warn { color: var(--color-accent-500); }

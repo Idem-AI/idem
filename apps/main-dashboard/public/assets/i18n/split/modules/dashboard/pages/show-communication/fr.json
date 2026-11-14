@@ -303,7 +303,31 @@
         "otherProposals": "Autres propositions",
         "otherProposalsHint": "Composées en même temps que ce visuel, sans frais : choisissez celle que vous préférez.",
         "useProposal": "Utiliser cette proposition",
-        "proposalAlt": "Autre composition de ce visuel"
+        "proposalAlt": "Autre composition de ce visuel",
+        "why": {
+          "mechanism": "Ce qui le rend mémorable :",
+          "kpi": "À regarder :",
+          "issues": "À corriger avant de publier :",
+          "pillars": {
+            "reality-education": "Réalité & éducation",
+            "demonstration": "Démonstration",
+            "proof": "Preuve",
+            "culture": "Culture & humour",
+            "vision": "Vision & communauté",
+            "activation": "Invitation directe"
+          },
+          "rules": {
+            "guaranteed-result": "promesse de résultat",
+            "fake-urgency": "urgence factice",
+            "shame-or-fear": "honte ou peur",
+            "absolute-claim": "affirmation absolue",
+            "no-brand-anchor": "la marque n'apparaît pas",
+            "no-anchor-sentence": "ancrage de marque manquant",
+            "no-call-to-action": "pas d'appel à l'action",
+            "too-many-hashtags": "trop de hashtags",
+            "generic-title": "titre trop générique"
+          }
+        }
       },
       "studio": {
         "empty": {

@@ -62,6 +62,7 @@ import { AGENT_PLAN_BRIEF_PROMPT } from './prompts/agent-plan-brief.prompt';
 import { AGENT_PLAN_CONTENT_PROMPT } from './prompts/agent-plan-content.prompt';
 import { AGENT_PLAN_VIDEO_PROMPT } from './prompts/agent-plan-video.prompt';
 import { AGENT_PLAN_TRENDS_PROMPT } from './prompts/agent-plan-trends.prompt';
+import { EDITORIAL_PRINCIPLES, PlanTrend, arcLine, checkItem, franchisesLine, keepTrends, normaliseFranchises, pillarQuota, quotaLine, sameAngle, snapToWeekday, toPillar, weekdayOf } from './plan/editorial';
 import { beatCountFor, narrationCovers, narrationTarget, placeItem, planNarrationWords, wordsPerSecondOf } from './plan/placement';
 import { ensureVideoShare, isVideoFormat, normaliseVideoDuration, normaliseVideoPlan } from './video/video.calendar';
 // La composition des visuels : le moteur partagé iVision (apps/ivision/core), qui en confie la page au
@@ -1196,7 +1197,7 @@ export class CommunicationService extends GenericService {
     projectId: string,
     plan: CommunicationPlan,
     context: CommunicationContext
-  ): Promise<{ label: string; description?: string; source?: string }[]> {
+  ): Promise<PlanTrend[]> {
     const project = await this.getProject(projectId, userId);
     const country = (project as any)?.additionalInfos?.country || '';
     const cacheKey = cacheService.generateAIKey(
@@ -1210,8 +1211,8 @@ export class CommunicationService extends GenericService {
         language: context.language,
       })
     );
-    type Trend = { label: string; description?: string; source?: string };
-    const cached = await cacheService.get<Trend[]>(cacheKey, { prefix: 'ai', ttl: 60 * 60 * 24 * 3 });
+    const today = new Date().toISOString().slice(0, 10);
+    const cached = await cacheService.get<PlanTrend[]>(cacheKey, { prefix: 'ai', ttl: 60 * 60 * 24 * 3 });
     if (cached?.length) return cached;
 
     try {
@@ -1237,16 +1238,9 @@ export class CommunicationService extends GenericService {
           },
         ]
       );
-      const parsed = this.safeJson<{ trends: Partial<Trend>[] }>(result.text);
-      const domain = result.sources[0]?.domain;
-      const trends: Trend[] = (parsed?.trends || [])
-        .filter((t) => t && t.label)
-        .slice(0, 5)
-        .map((t) => ({
-          label: String(t.label).slice(0, 80),
-          description: t.description ? String(t.description).slice(0, 220) : undefined,
-          source: domain,
-        }));
+      const parsed = this.safeJson<{ trends: unknown }>(result.text);
+      // Seules les tendances notées 7/10 au moins restent ; chacune porte sa date d'observation.
+      const trends = keepTrends(parsed?.trends, today, result.sources[0]?.domain);
       if (trends.length) {
         await cacheService.set(cacheKey, trends, { prefix: 'ai', ttl: 60 * 60 * 24 * 3 });
         return trends;
@@ -1261,7 +1255,7 @@ export class CommunicationService extends GenericService {
     // Repli : signaux sans web (cache sectoriel 24 h), jamais bloquant.
     try {
       const signals = await this.getTrendSignals(userId, projectId, context);
-      return signals.map((s) => ({ label: s.label, description: s.description }));
+      return signals.map((s) => ({ label: s.label, description: s.description, observedAt: today }));
     } catch {
       return [];
     }
@@ -1273,7 +1267,7 @@ export class CommunicationService extends GenericService {
     plan: CommunicationPlan,
     context: CommunicationContext,
     occasions: MomentSuggestion[],
-    trends: { label: string; description?: string; source?: string }[] = []
+    trends: PlanTrend[] = []
   ): Promise<PlanBrief> {
     const days = daysBetween(plan.period.start, plan.period.end);
     const systemPrompt = this.applyPlaceholders(AGENT_PLAN_BRIEF_PROMPT, {
@@ -1288,8 +1282,10 @@ export class CommunicationService extends GenericService {
       PERIOD_OCCASIONS:
         occasions.map((o) => `${o.date || '?'} — ${o.occasion}`).join(' · ') || '(none)',
       PERIOD_TRENDS:
-        trends.map((t) => `${t.label}${t.description ? ` (${t.description})` : ''}`).join(' · ') ||
-        '(none found)',
+        trends
+          .map((t) => `${t.label}${t.description ? ` (${t.description})` : ''}${t.mechanism ? ` — mechanism: ${t.mechanism}` : ''}${t.observedAt ? ` — seen ${t.observedAt}` : ''}`)
+          .join(' · ') || '(none found)',
+      PRINCIPLES: EDITORIAL_PRINCIPLES,
     });
 
     const compass = await this.compassForPrompt(userId, projectId);
@@ -1329,6 +1325,9 @@ export class CommunicationService extends GenericService {
       successSignals: Array.isArray(parsed.successSignals)
         ? parsed.successSignals.filter(Boolean).slice(0, 3)
         : [],
+      audience: typeof parsed.audience === 'string' ? parsed.audience.slice(0, 200) : undefined,
+      // Un rendez-vous hebdomadaire n'a de sens que si la période contient plusieurs semaines.
+      franchises: days >= 21 ? normaliseFranchises(parsed.franchises) : [],
       occasions: occasions
         .filter((occasion) => occasion.date)
         .map((occasion) => ({ label: occasion.occasion, date: occasion.date! })),
@@ -1394,6 +1393,7 @@ export class CommunicationService extends GenericService {
       plan.objective;
     const briefJson = JSON.stringify(brief);
     const themes = brief.themes.map((t) => t.label);
+    const franchises = normaliseFranchises(brief.franchises);
 
     const runSlice = async (slice: (typeof slices)[number]): Promise<Partial<ContentIdea>[]> => {
       const lead = themes.length ? themes[slice.index % themes.length] : '';
@@ -1415,6 +1415,14 @@ export class CommunicationService extends GenericService {
             ? `you write slice ${slice.index + 1} of ${chunkCount}; start from the theme "${lead}" and rotate through the others so the whole period stays varied; never reuse the same angle twice.`
             : '(none — you write the whole period)',
         PLAN_BRIEF: briefJson,
+        PRINCIPLES: EDITORIAL_PRINCIPLES,
+        ARC_LINE: arcLine(
+          (daysBetween(plan.period.start, slice.start) - 1) / Math.max(1, days),
+          (daysBetween(plan.period.start, slice.end) / Math.max(1, days)),
+          days
+        ),
+        PILLAR_QUOTA: quotaLine(pillarQuota(slice.count)),
+        FRANCHISES: franchisesLine(franchises),
       });
       for (let attempt = 0; attempt < 2; attempt++) {
         try {
@@ -1429,11 +1437,17 @@ export class CommunicationService extends GenericService {
           const items = Array.isArray(parsed?.items) ? parsed!.items.filter((it) => it && it.title) : [];
           if (items.length) {
             // Les dates restent dans la TRANCHE : sinon deux lots se marcheraient dessus.
-            const kept = items.slice(0, slice.count).map((it, k) => ({
-              ...it,
-              id: `${it.id || 'c'}-${slice.index + 1}${k + 1}`,
-              scheduledFor: this.clampToPeriod(it.scheduledFor || slice.start, slice),
-            }));
+            const kept = items.slice(0, slice.count).map((it, k) => {
+              const clamped = this.clampToPeriod(it.scheduledFor || slice.start, slice);
+              // Un rendez-vous récurrent tombe SON jour de la semaine : arithmétique, donc faite ici.
+              const franchise = franchises.find((f) => f.name.toLowerCase() === String(it.franchise || '').toLowerCase());
+              return {
+                ...it,
+                id: `${it.id || 'c'}-${slice.index + 1}${k + 1}`,
+                franchise: franchise?.name,
+                scheduledFor: franchise ? snapToWeekday(clamped, franchise.weekday, slice) : clamped,
+              };
+            });
             // L'interface voit le lot arriver : chaque idée s'inscrit au calendrier dès qu'elle existe.
             await stream?.({
               type: 'step-complete',
@@ -1455,11 +1469,12 @@ export class CommunicationService extends GenericService {
 
     const sliced = await this.pool(slices, 3, runSlice);
     const seen = new Set<string>();
-    const merged = sliced.flat().filter((item) => {
+    const merged = sliced.flat().filter((item, index, all) => {
       const key = (item.title || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
       if (!key || seen.has(key)) return false;
       seen.add(key);
-      return true;
+      // Deux contenus qui disent la même chose reformulée : le second est du remplissage.
+      return !all.slice(0, index).some((earlier) => sameAngle(earlier.title || '', item.title || ''));
     });
     if (!merged.length) throw new Error('plan_content_empty');
 
@@ -1468,9 +1483,12 @@ export class CommunicationService extends GenericService {
       .sort((a, b) => (a.scheduledFor || '').localeCompare(b.scheduledFor || ''))
       .map((item, index) => this.normalisePlanItem(item, index, plan, itemCount));
 
+    // Contrôle de la période par le code : ancrage de marque, une action, hashtags, promesses interdites.
+    const checked = await this.enforceEditorialQuality(userId, normalised, context);
+
     // Vidéos : une sur trois au moins, chacune avec son type et sa durée (cf. video.calendar.ts).
     const hasPhotos = await this.projectHasPhotos(userId, projectId);
-    const shared = ensureVideoShare(normalised, hasPhotos);
+    const shared = ensureVideoShare(checked, hasPhotos);
 
     // Le plan de chaque vidéo, écrit à part (durée connue) et en parallèle.
     const videos = shared.filter((item) => isVideoFormat(item.format));
@@ -1487,6 +1505,62 @@ export class CommunicationService extends GenericService {
       const video = isVideoFormat(item.format);
       return placeItem(video ? { ...item, videoPlan: planOf.get(item.id) ?? item.videoPlan } : item, video);
     });
+  }
+
+  /**
+   * Contrôle déterministe de chaque contenu (ancrage de marque, une seule action, hashtags,
+   * promesse de gain, urgence factice, honte) ; les contenus qui portent une promesse interdite
+   * sont réécrits en UN seul appel groupé. Le défaut qui reste est noté sur le contenu
+   * (`qualityIssues`) plutôt que caché : le journal le dit, l'utilisateur peut corriger.
+   */
+  private async enforceEditorialQuality(userId: string, items: ContentIdea[], context: CommunicationContext): Promise<ContentIdea[]> {
+    const brand = context.brandName || '';
+    const reports = items.map((item) => checkItem(item, brand));
+    let out = items.map((item, i) => ({ ...item, hashtags: item.hashtags.slice(0, 5), qualityIssues: reports[i].issues.length ? reports[i].issues : undefined }));
+
+    const blocking = out.filter((_, i) => reports[i].blocking);
+    if (blocking.length) {
+      try {
+        const raw = await this.promptService.runPrompt(promptConfigFor(AI_CONFIG.communication.planContent, userId), [
+          {
+            role: 'system',
+            content:
+              `Rewrite each content so it no longer breaks these rules, keeping its idea, language and tone. ${EDITORIAL_PRINCIPLES}\n` +
+              'Output ONLY valid JSON: { "items": [ { "id": "same id", "title": "", "hook": "", "description": "", "callToAction": "", "caption": "", "anchor": "" } ] }. Never add a number, price or claim that is not already in the content.',
+          },
+          {
+            role: 'user',
+            content: JSON.stringify({
+              brand,
+              language: context.language,
+              items: blocking.map((item) => ({
+                id: item.id,
+                issues: reports[items.findIndex((x) => x.id === item.id)].issues,
+                title: item.title,
+                hook: item.hook,
+                description: item.description,
+                callToAction: item.callToAction,
+                caption: item.caption,
+                anchor: item.anchor,
+              })),
+            }),
+          },
+        ]);
+        const fixed = new Map((this.safeJson<{ items: Partial<ContentIdea>[] }>(raw)?.items || []).map((x) => [x.id, x]));
+        out = out.map((item) => {
+          const patch = fixed.get(item.id);
+          if (!patch) return item;
+          const next = { ...item, ...Object.fromEntries(Object.entries(patch).filter(([key, value]) => key !== 'id' && typeof value === 'string' && value.trim())) } as ContentIdea;
+          const again = checkItem(next, brand);
+          return { ...next, qualityIssues: again.issues.length ? again.issues : undefined };
+        });
+      } catch (error) {
+        logger.warn('[Communication] Editorial repair failed', { error: (error as Error)?.message });
+      }
+    }
+    const left = out.filter((item) => item.qualityIssues?.length);
+    if (left.length) logger.info('[Communication] Plan quality issues', { count: left.length, rules: [...new Set(left.flatMap((item) => item.qualityIssues!))] });
+    return out;
   }
 
   /**
@@ -1514,6 +1588,7 @@ export class CommunicationService extends GenericService {
       VOICE_TARGET: String(target),
       VOICE_MIN: String(min),
       VOICE_PER_BEAT: String(Math.round(target / ((beats.min + beats.max) / 2))),
+      PRINCIPLES: EDITORIAL_PRINCIPLES,
     });
     const user =
       JSON.stringify({
@@ -1603,6 +1678,13 @@ export class CommunicationService extends GenericService {
       // une consigne de composition.
       callToAction: raw.callToAction || '',
       visualBrief: typeof raw.visualBrief === 'string' ? raw.visualBrief.replace(/\s+/g, ' ').trim().slice(0, 260) || undefined : undefined,
+      franchise: typeof raw.franchise === 'string' && raw.franchise.trim() ? raw.franchise.trim().slice(0, 40) : undefined,
+      pillar: toPillar(raw.pillar),
+      audience: typeof raw.audience === 'string' ? raw.audience.trim().slice(0, 100) || undefined : undefined,
+      mechanism: typeof raw.mechanism === 'string' ? raw.mechanism.trim().slice(0, 100) || undefined : undefined,
+      anchor: typeof raw.anchor === 'string' ? raw.anchor.trim().slice(0, 200) || undefined : undefined,
+      kpi: typeof raw.kpi === 'string' ? raw.kpi.trim().slice(0, 50) || undefined : undefined,
+      trend: typeof raw.trend === 'string' ? raw.trend.trim().slice(0, 80) || undefined : undefined,
       intent: raw.intent,
       videoType: raw.videoType,
       videoDurationSec: raw.videoDurationSec,

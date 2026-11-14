@@ -22,6 +22,8 @@ export const AGENT_PLAN_VIDEO_PROMPT = `<role>Video director planning ONE film f
 }
 </output_schema>
 
+{{PRINCIPLES}}
+
 <hard_numbers>
 These numbers are arithmetic, verified by code after your answer. A plan below them is rejected.
 - Exactly {{BEATS_MIN}} to {{BEATS_MAX}} beats, in order, each carrying on from the previous one.
