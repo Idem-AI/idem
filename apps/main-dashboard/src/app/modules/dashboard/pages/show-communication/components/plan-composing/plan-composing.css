@@ -1,0 +1,109 @@
+:host { display: block; }
+
+.pcm-wrap {
+  display: grid;
+  gap: 1.5rem;
+  padding: 1.25rem;
+}
+
+@media (min-width: 48rem) {
+  .pcm-wrap { grid-template-columns: minmax(0, 22rem) minmax(0, 1fr); align-items: start; }
+}
+
+@keyframes pcm-in {
+  from { opacity: 0; transform: translateY(6px) scale(0.94); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ── Le calendrier ─────────────────────────────────────────────────────── */
+.pcm-board-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.6rem;
+}
+.pcm-board-name { font-weight: 700; color: var(--color-text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pcm-board-month { font-size: 0.75rem; color: var(--color-text-secondary); font-variant-numeric: tabular-nums; }
+
+.pcm-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+  max-height: 20rem;
+  overflow-y: auto;
+}
+
+.pcm-cell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1;
+  border-radius: 0.5rem;
+  border: 1px solid var(--glass-border-subtle);
+  background: var(--glass-bg-light);
+  font-size: 0.65rem;
+  color: var(--color-text-tertiary);
+  transition: background 0.3s ease, border-color 0.3s ease;
+}
+.pcm-out { opacity: 0.35; border-style: dashed; }
+.pcm-day { line-height: 1; }
+
+.pcm-has {
+  border-color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 14%, transparent);
+  color: var(--color-text-primary);
+  animation: pcm-in 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.pcm-pin { margin-top: 0.15rem; font-size: 0.8rem; color: var(--color-primary); }
+.pcm-more { position: absolute; top: 1px; right: 3px; font-size: 0.55rem; font-weight: 700; color: var(--color-primary); }
+
+/* Une occasion trouvée : un liseré d'accent sur le jour. */
+.pcm-occasion { border-color: var(--color-accent-500); box-shadow: inset 0 0 0 1px var(--color-accent-500); }
+
+.pcm-skeleton { display: grid; gap: 0.5rem; }
+.pcm-skeleton .skeleton { height: 2.2rem; border-radius: 0.5rem; }
+
+.pcm-bar { height: 4px; margin-top: 0.9rem; border-radius: 999px; background: var(--glass-bg-medium); overflow: hidden; }
+.pcm-bar span { display: block; height: 100%; border-radius: inherit; background: var(--color-primary); transition: width 0.6s ease; }
+.pcm-count { margin-top: 0.4rem; font-size: 0.75rem; color: var(--color-text-secondary); font-variant-numeric: tabular-nums; }
+
+/* ── Les étapes ────────────────────────────────────────────────────────── */
+.pcm-heading { font-weight: 700; font-size: 1rem; color: var(--color-text-primary); margin-bottom: 0.75rem; }
+
+.pcm-steps { display: grid; gap: 0.6rem; list-style: none; padding: 0; margin: 0; }
+.pcm-step { display: flex; gap: 0.6rem; align-items: flex-start; opacity: 0.5; transition: opacity 0.3s ease; }
+.pcm-step.pcm-done, .pcm-step.pcm-current { opacity: 1; }
+
+.pcm-bullet {
+  display: inline-flex; align-items: center; justify-content: center;
+  flex: none; width: 1.4rem; height: 1.4rem; border-radius: 999px;
+  border: 1px solid var(--glass-border-medium); font-size: 0.7rem;
+}
+.pcm-done .pcm-bullet { background: var(--color-primary); border-color: var(--color-primary); color: var(--color-text-on-primary, #fff); }
+
+.pcm-step-text { display: flex; flex-direction: column; gap: 0.1rem; }
+.pcm-step-label { font-size: 0.9rem; font-weight: 600; color: var(--color-text-primary); }
+.pcm-step-detail { font-size: 0.75rem; color: var(--color-text-secondary); animation: pcm-in 0.35s ease both; }
+
+/* ── Ce qui est trouvé ─────────────────────────────────────────────────── */
+.pcm-found { margin-top: 1.1rem; animation: pcm-in 0.4s ease both; }
+.pcm-found-title { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.02em; color: var(--color-text-secondary); margin-bottom: 0.4rem; }
+.pcm-angle { font-size: 0.85rem; line-height: 1.4; color: var(--color-text-primary); margin-bottom: 0.5rem; }
+.pcm-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; list-style: none; padding: 0; margin: 0; }
+.pcm-chips .tag { animation: pcm-in 0.4s ease both; }
+
+.pcm-feed { display: grid; gap: 0.3rem; margin: 1rem 0 0; padding: 0; list-style: none; }
+.pcm-feed-item {
+  display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem;
+  color: var(--color-text-secondary); animation: pcm-in 0.35s ease both;
+}
+.pcm-feed-item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pcm-feed-item i { color: var(--color-primary); }
+
+@media (prefers-reduced-motion: reduce) {
+  .pcm-has, .pcm-found, .pcm-chips .tag, .pcm-step-detail, .pcm-feed-item { animation: none; }
+  .pcm-bar span { transition: none; }
+}

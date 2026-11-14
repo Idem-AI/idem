@@ -14,6 +14,7 @@ import { CommunicationService } from '../../../../services/ai-agents/communicati
 import { FontHints } from '@idem/shared-document-editor/angular';
 import {
   CommunicationPlan,
+  CommunicationStreamEvent,
   ContentChannel,
   ContentIdea,
   Flyer,
@@ -32,7 +33,7 @@ import { ContentDetail } from '../content-detail/content-detail';
 import { PlanWizard, PlanWizardResult } from '../plan-wizard/plan-wizard';
 import { ScreenGuide } from '../screen-guide/screen-guide';
 import { VisualThumb } from '../visual-thumb/visual-thumb';
-import { IdemLoaderComponent } from '@idem/shared-loader/angular';
+import { EMPTY_PLAN_PROGRESS, PlanComposing, PlanProgressState, PlanStage } from '../plan-composing/plan-composing';
 
 /**
  * Ce qu'un autre écran demande au planning en y envoyant l'utilisateur :
@@ -78,7 +79,7 @@ interface MonthView {
     PlanWizard,
     ScreenGuide,
     VisualThumb,
-    IdemLoaderComponent,
+    PlanComposing,
   ],
   templateUrl: './plan-panel.html',
   styleUrls: ['./plan-panel.css'],
@@ -235,6 +236,44 @@ export class PlanPanel {
   // ── Génération ──────────────────────────────────────────────────────────
   protected readonly generatingPlanId = signal<string | null>(null);
   protected readonly stepLabel = signal('');
+  /** Ce que le flux a déjà livré : alimente la vue « en direct » de la génération. */
+  protected readonly progress = signal<PlanProgressState>(EMPTY_PLAN_PROGRESS);
+  protected readonly generatingPlan = computed<CommunicationPlan | null>(() => {
+    const id = this.generatingPlanId();
+    return id ? (this.plans().find((plan) => plan.id === id) ?? null) : null;
+  });
+
+  /** La recherche se ferme quand le web ET le calendrier ont répondu. */
+  private readonly researchIn = new Set<string>();
+
+  /** Range un événement du flux dans l'état affiché. */
+  private applyEvent(event: CommunicationStreamEvent): void {
+    const stageOf: Partial<Record<string, PlanStage>> = { context: 'context', trends: 'research', occasions: 'research', brief: 'brief', content: 'content', videos: 'videos' };
+    const step = event.step ?? '';
+    const stage = stageOf[step];
+    this.progress.update((state) => {
+      const next: PlanProgressState = { ...state, stages: { ...state.stages } };
+      const payload = event.payload;
+      if (event.type === 'step-start' && stage) {
+        next.stages[stage] = 'running';
+      } else if (event.type === 'step-complete') {
+        if (step === 'trends' && Array.isArray(payload)) next.trends = payload;
+        else if (step === 'occasions' && Array.isArray(payload)) next.occasions = payload;
+        else if (step === 'brief' && payload) next.brief = payload;
+        else if (step === 'content-batch' && Array.isArray(payload)) next.items = [...state.items, ...payload];
+        else if (step === 'videos-count' && Array.isArray(payload)) next.videos = payload.map((v: { id: string; title: string }) => ({ id: v.id, title: v.title, done: false }));
+        else if (step === 'video-plan' && payload?.id) next.videos = state.videos.map((v) => (v.id === payload.id ? { ...v, done: true } : v));
+
+        if (step === 'trends' || step === 'occasions') {
+          this.researchIn.add(step);
+          if (this.researchIn.size === 2) next.stages.research = 'done';
+        } else if (stage) {
+          next.stages[stage] = 'done';
+        }
+      }
+      return next;
+    });
+  }
 
   constructor() {
     // Une demande de l'accueil (« Créer mon calendrier », une publication
@@ -319,9 +358,12 @@ export class PlanPanel {
   protected generate(planId: string): void {
     this.generatingPlanId.set(planId);
     this.stepLabel.set('dashboard.showCommunication.steps.context');
+    this.researchIn.clear();
+    this.progress.set({ ...EMPTY_PLAN_PROGRESS, stages: { context: 'running' } });
 
     this.communication.streamPlanGeneration(this.projectId(), planId).subscribe({
       next: (event) => {
+        this.applyEvent(event);
         if (event.type === 'step-start' && event.step) {
           this.stepLabel.set(`dashboard.showCommunication.steps.${event.step}`);
         } else if (event.type === 'complete' && event.payload?.plan) {

@@ -146,7 +146,27 @@
           "sun": "Dim"
         },
         "briefToggle": "L'idée de ce calendrier",
-        "videoToDo": "Vidéo à générer"
+        "videoToDo": "Vidéo à générer",
+        "composing": {
+          "title": "Je construis votre période",
+          "untitled": "Votre période",
+          "count": "{{done}} / {{total}} publications écrites",
+          "trendsTitle": "Tendances du moment sur le web",
+          "angleTitle": "Ligne éditoriale",
+          "stages": {
+            "context": "Je relis votre marque",
+            "research": "Je cherche les tendances et les dates clés",
+            "brief": "Je choisis l'angle de la période",
+            "content": "J'écris et je place vos publications",
+            "videos": "Je prépare le déroulé de vos vidéos"
+          },
+          "details": {
+            "research": "{{trends}} tendances · {{occasions}} dates clés",
+            "brief": "{{count}} thèmes retenus",
+            "content": "{{done}} sur {{total}}",
+            "videos": "{{done}} sur {{total}} déroulés"
+          }
+        }
       },
       "wizard": {
         "progress": "Avancement",

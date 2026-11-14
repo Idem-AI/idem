@@ -146,7 +146,27 @@
           "sun": "Sun"
         },
         "briefToggle": "The idea behind this calendar",
-        "videoToDo": "Video to generate"
+        "videoToDo": "Video to generate",
+        "composing": {
+          "title": "Building your period",
+          "untitled": "Your period",
+          "count": "{{done}} / {{total}} posts written",
+          "trendsTitle": "What is trending on the web",
+          "angleTitle": "Editorial line",
+          "stages": {
+            "context": "Reading your brand",
+            "research": "Finding trends and key dates",
+            "brief": "Choosing the angle of the period",
+            "content": "Writing and placing your posts",
+            "videos": "Preparing your video plans"
+          },
+          "details": {
+            "research": "{{trends}} trends · {{occasions}} key dates",
+            "brief": "{{count}} themes kept",
+            "content": "{{done}} of {{total}}",
+            "videos": "{{done}} of {{total}} plans"
+          }
+        }
       },
       "wizard": {
         "progress": "Progress",

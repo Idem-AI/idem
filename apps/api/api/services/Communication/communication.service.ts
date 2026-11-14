@@ -852,23 +852,31 @@ export class CommunicationService extends GenericService {
     await stream?.({ type: 'step-complete', step: 'context', payload: context });
 
     // ── Occasions de la fenêtre ET tendances du web, en parallèle : les deux
-    // ancrent le plan dans le réel (calendrier, ce qui marche aujourd'hui).
+    // ancrent le plan dans le réel. Chacune est annoncée DÈS qu'elle arrive.
+    await stream?.({ type: 'step-start', step: 'trends' });
     await stream?.({ type: 'step-start', step: 'occasions' });
     const [occasions, trends] = await Promise.all([
-      this.getOccasions(userId, projectId, existingPlan.period.start, existingPlan.period.end),
-      this.researchPlanTrends(userId, projectId, existingPlan, context),
+      this.getOccasions(userId, projectId, existingPlan.period.start, existingPlan.period.end).then(
+        async (found) => {
+          await stream?.({ type: 'step-complete', step: 'occasions', payload: found });
+          return found;
+        }
+      ),
+      this.researchPlanTrends(userId, projectId, existingPlan, context).then(async (found) => {
+        await stream?.({ type: 'step-complete', step: 'trends', payload: found });
+        return found;
+      }),
     ]);
-    await stream?.({ type: 'step-complete', step: 'occasions', payload: occasions });
 
     // ── Le brief de la période, dérivé de la boussole et des tendances
     await stream?.({ type: 'step-start', step: 'brief' });
     const brief = await this.generatePlanBrief(userId, projectId, existingPlan, context, occasions, trends);
     await stream?.({ type: 'step-complete', step: 'brief', payload: brief });
 
-    // ── Les contenus datés (lots parallèles), puis le plan de chaque vidéo (parallèle)
+    // ── Les contenus datés (lots parallèles, annoncés au fil de l'eau), puis le plan de chaque vidéo
     await stream?.({ type: 'step-start', step: 'content' });
-    const items = await this.generatePlanContent(userId, existingPlan, context, brief, projectId);
-    await stream?.({ type: 'step-complete', step: 'content', payload: items });
+    const items = await this.generatePlanContent(userId, existingPlan, context, brief, projectId, stream);
+    await stream?.({ type: 'step-complete', step: 'content', payload: items.length });
 
     const generated: CommunicationPlan = {
       ...existingPlan,
@@ -1350,7 +1358,8 @@ export class CommunicationService extends GenericService {
     plan: CommunicationPlan,
     context: CommunicationContext,
     brief: PlanBrief,
-    projectId?: string
+    projectId?: string,
+    stream?: (e: CommunicationStreamEvent) => Promise<void>
   ): Promise<ContentIdea[]> {
     const itemCount = this.expectedItemCount(plan);
     const channelEnum = plan.channels.map((channel) => `"${channel}"`).join(' | ');
@@ -1420,11 +1429,18 @@ export class CommunicationService extends GenericService {
           const items = Array.isArray(parsed?.items) ? parsed!.items.filter((it) => it && it.title) : [];
           if (items.length) {
             // Les dates restent dans la TRANCHE : sinon deux lots se marcheraient dessus.
-            return items.slice(0, slice.count).map((it, k) => ({
+            const kept = items.slice(0, slice.count).map((it, k) => ({
               ...it,
               id: `${it.id || 'c'}-${slice.index + 1}${k + 1}`,
               scheduledFor: this.clampToPeriod(it.scheduledFor || slice.start, slice),
             }));
+            // L'interface voit le lot arriver : chaque idée s'inscrit au calendrier dès qu'elle existe.
+            await stream?.({
+              type: 'step-complete',
+              step: 'content-batch',
+              payload: kept.map((it) => ({ id: it.id, title: it.title, format: it.format, channel: toContentChannel(it.channel) || plan.channels[0], scheduledFor: it.scheduledFor })),
+            });
+            return kept;
           }
         } catch (error) {
           logger.warn('[Communication] Plan content slice failed', {
@@ -1458,7 +1474,13 @@ export class CommunicationService extends GenericService {
 
     // Le plan de chaque vidéo, écrit à part (durée connue) et en parallèle.
     const videos = shared.filter((item) => isVideoFormat(item.format));
-    const plans = await this.pool(videos, 4, (video) => this.generateVideoPlan(userId, plan, context, brief, video));
+    await stream?.({ type: 'step-start', step: 'videos' });
+    await stream?.({ type: 'step-complete', step: 'videos-count', payload: videos.map((v) => ({ id: v.id, title: v.title, durationSec: v.videoDurationSec })) });
+    const plans = await this.pool(videos, 4, async (video) => {
+      const written = await this.generateVideoPlan(userId, plan, context, brief, video);
+      await stream?.({ type: 'step-complete', step: 'video-plan', payload: { id: video.id } });
+      return written;
+    });
     const planOf = new Map(videos.map((video, i) => [video.id, plans[i]]));
 
     return shared.map((item) => {

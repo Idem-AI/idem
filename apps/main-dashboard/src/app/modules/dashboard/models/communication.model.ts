@@ -381,7 +381,7 @@ export interface CommunicationModel {
 /** Streaming event emitted by the backend during strategy/calendar generation. */
 export interface CommunicationStreamEvent {
   type: 'step-start' | 'step-complete' | 'complete' | 'error';
-  step?: 'context' | 'trends' | 'strategy' | 'calendar' | 'occasions' | 'brief' | 'content';
+  step?: 'context' | 'trends' | 'strategy' | 'calendar' | 'occasions' | 'brief' | 'content' | 'content-batch' | 'videos' | 'videos-count' | 'video-plan';
   payload?: any;
   message?: string;
   /**
