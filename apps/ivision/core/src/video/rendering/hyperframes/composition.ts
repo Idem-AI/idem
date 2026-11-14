@@ -18,7 +18,8 @@
  */
 import fs from 'fs';
 import path from 'path';
-import { buildTokens, compileTailwind } from '@idem/graphic-engine';
+import { buildTokens, compileTailwind, lightnessOf, patternLayerHtml, patternUnit, planPattern, QUIET_STYLES, wantsPattern } from '@idem/graphic-engine';
+import type { PatternFade, PatternTile } from '@idem/graphic-engine';
 import type { BrandTokens } from '../../../../motion/kit/context';
 import { CATALOG_RUNTIME } from '../../catalog/runtime';
 import { isCatalogScript } from '../../catalog/assemble';
@@ -62,6 +63,10 @@ export interface CompositionInput {
   logoDark?: string;
   /** Les polices embarquées (`embeddedFontCss`). */
   fontCss: string;
+  /** Les motifs de la charte, déjà servis (fichier du rendu ou URL d'aperçu) : posés par scène quand elle les gagne. */
+  patterns?: PatternTile[];
+  /** La direction artistique de la charte (une direction sobre pose moins de motifs). */
+  styleId?: string;
   mode: 'render' | 'preview';
   /** Aperçu : la musique et la voix jouées en même temps que la timeline (le rendu les mixe avec FFmpeg). */
   audio?: { music?: { url: string; startAt: number; gain: number }; voice: { url: string; at: number }[] };
@@ -79,6 +84,33 @@ export function fillScene(html: string, scene: Pick<HtmlScene, 'texts'>, media: 
     if (kind === 'text') return escapeHtml(scene.texts[key!] ?? '');
     return media[key!] ? escapeHtml(media[key!].src) : '';
   });
+}
+
+/**
+ * Le motif d'une scène, décidé sans modèle ni mesure : jamais sur une scène qui montre une photo ou un clip, moins
+ * sur une direction sobre, moins quand le texte est dense, et jamais partout (au plus une scène sur deux). Le même
+ * motif sert tout le film (cohérence) ; son opacité (4 à 10 %) suit la luminosité du fond de la scène, et il se fond
+ * vers un coin qui change de scène en scène. Posé APRÈS la scène, mélangé (multiply / screen) : aucun script de
+ * scène n'est touché.
+ */
+export function scenePattern(input: Pick<CompositionInput, 'patterns' | 'styleId' | 'width' | 'height' | 'brand'>, scene: Pick<HtmlScene, 'key' | 'start' | 'duration' | 'html' | 'texts'>, index: number, used: { n: number }, total: number): string {
+  const tiles = input.patterns ?? [];
+  if (!tiles.length || /\{\{\s*media\./.test(scene.html)) return '';
+  if (used.n >= Math.ceil(total / 2)) return '';
+  const textKeys = Object.keys(scene.texts).length;
+  const textShare = Math.min(0.6, textKeys * 0.12);
+  const seed = `${input.brand.name}|${scene.key}`;
+  if (!wantsPattern({ seed, quiet: QUIET_STYLES.has(input.styleId ?? ''), calmShare: 1, textShare })) return '';
+  const dark = /\bbg-(ink|deep|brand|secondary|primary|black)\b|bg-\[#[0-3][0-9a-f]{5}\]/i.test(scene.html);
+  const ground = dark ? (lightnessOf(input.brand.colors.secondary) < 0.5 ? input.brand.colors.secondary : '#101828') : input.brand.colors.background;
+  const regionLum = Math.pow(lightnessOf(ground), 2.4);
+  // Le motif du film : le même pour toutes les scènes (graine du film), sinon celui qui se lit sur CE fond.
+  const plan = planPattern({ regionLum, tiles, textShare, seed: input.brand.name });
+  if (!plan) return '';
+  used.n++;
+  const fades: PatternFade[] = ['full-tr', 'full-bl', 'full-tl', 'full-br'];
+  const layer = patternLayerHtml(plan, { x: 0, y: 0, w: input.width, h: input.height }, fades[(index + Math.floor(patternUnit(seed) * 4)) % 4], Math.min(input.width, input.height) / 1080);
+  return `<section id="${scene.key}-pat" class="clip scene" data-start="${scene.start.toFixed(3)}" data-duration="${scene.duration.toFixed(3)}" data-track-index="1" style="position:absolute;left:0;top:0;width:${input.width}px;height:${input.height}px;overflow:hidden;pointer-events:none">${layer}</section>`;
 }
 
 let libCache: { gsap: string; anime: string } | null = null;
@@ -129,8 +161,9 @@ export async function buildComposition(input: CompositionInput): Promise<string>
   // Les scènes du CATALOGUE : leur script n'est que des données pour le runtime `__ge` (découpe, mise à la taille,
   // tweens, transitions), embarqué avant elles ; leurs panneaux de transition vivent dans un calque au-dessus.
   const catalog = input.scenes.some((s) => isCatalogScript(s.script));
+  const usedPatterns = { n: 0 };
   const scenesHtml = input.scenes
-    .map((s) => `<section id="${s.key}" class="clip scene" data-start="${s.start.toFixed(3)}" data-duration="${s.duration.toFixed(3)}" data-track-index="0" style="position:absolute;left:0;top:0;width:${input.width}px;height:${input.height}px;overflow:hidden">${fillScene(s.html, s, input.media, input.logo, input.logoDark)}</section>`)
+    .map((s, i) => `<section id="${s.key}" class="clip scene" data-start="${s.start.toFixed(3)}" data-duration="${s.duration.toFixed(3)}" data-track-index="0" style="position:absolute;left:0;top:0;width:${input.width}px;height:${input.height}px;overflow:hidden">${fillScene(s.html, s, input.media, input.logo, input.logoDark)}</section>${scenePattern(input, s, i, usedPatterns, input.scenes.length)}`)
     .join('\n');
   // La feuille Tailwind de la marque (portée `.ge-page`), compilée comme les pages du moteur graphique.
   const tokens = buildTokens({

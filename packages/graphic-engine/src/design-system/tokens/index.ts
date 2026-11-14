@@ -53,6 +53,8 @@ export interface BrandPattern {
   /** Côté de la tuile, px. */
   tile: number;
   ground?: string;
+  /** L'encre du motif (hex) : de quoi mesurer sa visibilité sans lire l'image. */
+  ink?: string;
   motif?: string;
 }
 

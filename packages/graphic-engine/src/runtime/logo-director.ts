@@ -211,7 +211,7 @@ export function choose(input: PlanInput, candidates: Candidate[], regions: Regio
 
 // ─── Dans la page (chaînes : la cible ES2016 casserait des fonctions TypeScript) ───
 
-const COLLECT = `(function () {
+export const COLLECT = `(function () {
   var root = document.querySelector('.ge-page');
   if (!root) return null;
   var rb = root.getBoundingClientRect();
@@ -265,7 +265,7 @@ const MEASURE_INK = `(async function (sources) {
   return out;
 })`;
 
-const ANALYZE = `(async function (url, rects) {
+export const ANALYZE = `(async function (url, rects) {
   var img = new Image(); img.src = url; await img.decode();
   var c = document.createElement('canvas'); c.width = img.naturalWidth; c.height = img.naturalHeight;
   var ctx = c.getContext('2d', { willReadFrequently: true }); ctx.drawImage(img, 0, 0);

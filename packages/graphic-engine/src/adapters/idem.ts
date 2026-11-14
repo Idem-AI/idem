@@ -26,7 +26,7 @@ export interface IdemBrandingLike {
     secondary?: { family?: string; cssUrl?: string } | null;
   } | null;
   artDirection?: { styleId?: string; keywords?: unknown; layout?: object | null; typography?: object | null; color?: object | null; imagery?: object | null; imagePromptModifier?: unknown; graphicDevices?: unknown; dos?: unknown; donts?: unknown } | null;
-  patterns?: { items?: Array<{ url?: string; tile?: number; ground?: string; kind?: string }> | null } | null;
+  patterns?: { items?: Array<{ url?: string; tile?: number; ground?: string; ink?: string; kind?: string }> | null } | null;
 }
 
 /** Les déclinaisons du logo, déjà résolues en adresses affichables (`resolveLogoDeclensions` de l'API). */
@@ -62,8 +62,8 @@ export function logosFromIdem(set?: IdemLogoSetLike | null, aspect?: number): Br
 
 export function patternsFromIdem(branding?: IdemBrandingLike | null): BrandPattern[] | undefined {
   const items = (branding?.patterns?.items ?? [])
-    .filter((p): p is { url: string; tile?: number; ground?: string; kind?: string } => Boolean(p && typeof p.url === 'string' && p.url))
-    .map((p) => ({ url: p.url, tile: typeof p.tile === 'number' && p.tile > 0 ? p.tile : 48, ...(hex(p.ground) ? { ground: hex(p.ground) } : {}), ...(p.kind ? { motif: p.kind } : {}) }));
+    .filter((p): p is { url: string; tile?: number; ground?: string; ink?: string; kind?: string } => Boolean(p && typeof p.url === 'string' && p.url))
+    .map((p) => ({ url: p.url, tile: typeof p.tile === 'number' && p.tile > 0 ? p.tile : 48, ...(hex(p.ground) ? { ground: hex(p.ground) } : {}), ...(hex(p.ink) ? { ink: hex(p.ink) } : {}), ...(p.kind ? { motif: p.kind } : {}) }));
   return items.length ? items : undefined;
 }
 

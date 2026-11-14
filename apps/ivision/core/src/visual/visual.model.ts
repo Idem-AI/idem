@@ -73,7 +73,7 @@ export interface VisualBrandContext {
       iconOnly?: { light?: string; dark?: string; mono?: string };
     };
     /** Les MOTIFS de la charte (tuiles SVG déposées) : seuls motifs qu'un visuel a le droit de poser. */
-    patterns?: Array<{ url: string; tile?: number; ground?: string; kind?: string }>;
+    patterns?: Array<{ url: string; tile?: number; ground?: string; ink?: string; kind?: string }>;
   };
   artDirection?: ArtDirectionModel;
 }

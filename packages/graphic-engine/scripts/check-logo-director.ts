@@ -4,6 +4,8 @@
 import { bestVariant, choose, inkTarget, plannedCandidates, shadowFor } from '../src/runtime/logo-director';
 import type { PlanInput, Region, VariantInfo } from '../src/runtime/logo-director';
 
+import { planPattern, wantsPattern } from '../src/runtime/pattern-director';
+
 let failures = 0;
 const check = (label: string, ok: boolean, detail = '') => {
   if (!ok) failures++;
@@ -29,5 +31,14 @@ check('aucun emplacement ne recouvre un texte', candidates.every((c) => !(c.box.
 check('le logo actuel est agrandi, jamais rapetissé', plannedCandidates({ ...input, obstacles: [], current: { x: 700, y: 900, w: 400, h: 140 } }).find((c) => c.id === 'current')!.box.w >= 400);
 const picked = choose(input, candidates, candidates.map((c) => (c.id.startsWith('t') ? calm(0.05) : calm(0.5, 0.25))));
 check('la zone calme et sombre l\'emporte, en déclinaison claire', !!picked && picked.where.startsWith('t') && picked.variant.key === 'onDark', picked?.reason);
+const tile = (ink: string, ground: string, kind = 'dots') => ({ src: 'x.svg', tile: 48, ink, ground, kind });
+const onLight = planPattern({ regionLum: 0.95, tiles: [tile('#1a2a4f', '#f8f9fb')], textShare: 0.2, seed: 'a' });
+check('motif : zone claire → multiply, opacité entre 4 et 10 %', onLight?.blend === 'multiply' && onLight.opacity >= 0.04 && onLight.opacity <= 0.1, JSON.stringify(onLight));
+const onDark = planPattern({ regionLum: 0.01, tiles: [tile('#f2a93b', '#10182c')], textShare: 0.2, seed: 'a' });
+check('motif : zone sombre → screen', onDark?.blend === 'screen', JSON.stringify(onDark));
+check('motif : encre invisible sur la zone (sombre sur sombre) → aucun motif', planPattern({ regionLum: 0.01, tiles: [tile('#10182c', '#0b1020')], textShare: 0.2, seed: 'a' }) === null);
+check('motif : jamais sur une photo chargée ni un texte dense', !wantsPattern({ seed: 'k', calmShare: 0.1, textShare: 0.1 }) && !wantsPattern({ seed: 'k', calmShare: 1, textShare: 0.7 }));
+const n = (quiet: boolean) => Array.from({ length: 300 }, (_, i) => wantsPattern({ seed: `v${i}`, quiet, calmShare: 1, textShare: 0.2 })).filter(Boolean).length;
+check('motif : pas partout, et moins sur une direction sobre', n(false) > 150 && n(false) < 260 && n(true) < n(false) * 0.6, `${n(false)}/300 · sobre ${n(true)}/300`);
 console.log(failures ? `\n${failures} échec(s)` : '\nTout passe.');
 process.exit(failures ? 1 : 0);
