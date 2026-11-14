@@ -868,6 +868,9 @@ export class GraphicDocument {
    * Planifie, résout et pose les médias de la section (`asset-planner`). Une section sans intention, ou dont
    * les médias sont déjà là (contenu rejoué), passe telle quelle. Un média introuvable applique son repli.
    */
+  /** Les images déjà posées dans ce document : aucune n'est reprise par une autre section. */
+  private readonly usedAssetUrls = new Set<string>();
+
   private async prepareAssets(content: SectionContent, recorder: TraceRecorder): Promise<{ section: SectionContent; assets: string[] }> {
     const requirements = planAssets(content, this.tokens.format);
     if (!requirements.length) return { section: content, assets: [] };
@@ -877,7 +880,7 @@ export class GraphicDocument {
       requirements,
       host.assetProviders ?? {},
       { level: this.policy.level, documentType: this.options.documentType, locale: this.options.locale, userId: this.options.user?.userId, projectId: this.options.user?.projectId, brandName: this.options.brand.name, styleId: this.options.direction?.styleId, keywords: this.options.direction?.keywords, ...(this.options.direction?.imagery ? { imagery: this.options.direction.imagery } : {}), ...(this.options.direction?.imageryMedium ? { imageryMedium: this.options.direction.imageryMedium } : {}) },
-      { generationLeft: Math.max(0, GENERATION_CAP[this.policy.level] - this.generatedAssets), registry: host.assetRegistry }
+      { generationLeft: Math.max(0, GENERATION_CAP[this.policy.level] - this.generatedAssets), registry: host.assetRegistry, used: this.usedAssetUrls }
     );
     this.generatedAssets += resolution.generated;
     const applied = applyAssets(content, resolution, requirements);

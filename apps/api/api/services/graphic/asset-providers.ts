@@ -35,7 +35,7 @@ export function imageBrief(req: AssetRequirement, ctx: AssetContext): ImageBrief
   const style = [ctx.styleId ? `${ctx.styleId} art direction` : '', ...(ctx.keywords ?? []).slice(0, 4)].filter(Boolean).join(', ');
   return {
     searchQuery: req.subject.slice(0, 80),
-    generationPrompt: [`${kind}: ${req.subject}.`, ctx.imagery ? `The brand's image treatment, to follow strictly: ${ctx.imagery}.` : '', req.framing ? `Framing: ${req.framing}.` : '', req.mood ? `Mood: ${req.mood}.` : '', style ? `Style: ${style}.` : '', 'Professional, clean, no text in the image.', SAFE_AREA[req.safeArea]].filter(Boolean).join(' '),
+    generationPrompt: [`${kind}: ${req.subject}.`, req.purpose && req.purpose !== req.subject ? `It illustrates this specific section and must be consistent with its content: ${req.purpose}.` : '', ctx.imagery ? `The brand's image treatment, to follow strictly: ${ctx.imagery}.` : '', req.framing ? `Framing: ${req.framing}.` : '', req.mood ? `Mood: ${req.mood}.` : '', style ? `Style: ${style}.` : '', 'Professional, clean, no text in the image.', SAFE_AREA[req.safeArea]].filter(Boolean).join(' '),
     orientation: orientationOf(req.aspectRatio),
     preferGenerated: true,
   };
