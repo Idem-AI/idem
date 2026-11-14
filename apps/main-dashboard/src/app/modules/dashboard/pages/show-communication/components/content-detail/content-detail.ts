@@ -424,6 +424,7 @@ export class ContentDetail {
   protected regenerateVisual(): void {
     const current = this.visual();
     if (!current || this.isCreatingVisual()) return;
+    this.chosenFormat.set(current.format);
     this.isCreatingVisual.set(true);
     this.pendingChoice.set(null);
     this.communication.regenerateFlyer(this.projectId(), this.item().id, current.format, this.creativity()).subscribe({

@@ -224,6 +224,15 @@
               </button>
             }
           </div>
+        } @else if (isCreatingVisual()) {
+          <!--
+            Composer prend de vingt secondes à deux minutes. On montre la maquette
+            EN TRAIN de se construire plutôt qu'un disque qui tourne : c'est
+            pendant cette attente que l'utilisateur quittait la page.
+          -->
+          <div class="cd-composing">
+            <app-visual-composing [format]="chosenFormat()" />
+          </div>
         } @else if (visual(); as current) {
           <!--
             L'aperçu réagit au survol et au clic, comme celui de la charte :
@@ -293,15 +302,6 @@
               }}
             </p>
           }
-        } @else if (isCreatingVisual()) {
-          <!--
-            Composer prend de vingt secondes à deux minutes. On montre la maquette
-            EN TRAIN de se construire plutôt qu'un disque qui tourne : c'est
-            pendant cette attente que l'utilisateur quittait la page.
-          -->
-          <div class="cd-composing">
-            <app-visual-composing [format]="chosenFormat()" />
-          </div>
         } @else {
           <!-- Pas encore de visuel : un seul geste, et le prix est dit avant -->
           <div class="cd-empty-visual">
