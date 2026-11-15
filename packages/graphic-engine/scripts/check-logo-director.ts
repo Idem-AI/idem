@@ -33,12 +33,12 @@ const picked = choose(input, candidates, candidates.map((c) => (c.id.startsWith(
 check('la zone calme et sombre l\'emporte, en déclinaison claire', !!picked && picked.where.startsWith('t') && picked.variant.key === 'onDark', picked?.reason);
 const tile = (ink: string, ground: string, kind = 'dots') => ({ src: 'x.svg', tile: 48, ink, ground, kind });
 const onLight = planPattern({ regionLum: 0.95, tiles: [tile('#1a2a4f', '#f8f9fb')], textShare: 0.2, seed: 'a' });
-check('motif : zone claire → multiply, opacité entre 4 et 10 %', onLight?.blend === 'multiply' && onLight.opacity >= 0.04 && onLight.opacity <= 0.1, JSON.stringify(onLight));
+check('motif : zone claire → multiply, opacité entre 5 et 14 %', onLight?.blend === 'multiply' && onLight.opacity >= 0.05 && onLight.opacity <= 0.14, JSON.stringify(onLight));
 const onDark = planPattern({ regionLum: 0.01, tiles: [tile('#f2a93b', '#10182c')], textShare: 0.2, seed: 'a' });
 check('motif : zone sombre → screen', onDark?.blend === 'screen', JSON.stringify(onDark));
 check('motif : encre invisible sur la zone (sombre sur sombre) → aucun motif', planPattern({ regionLum: 0.01, tiles: [tile('#10182c', '#0b1020')], textShare: 0.2, seed: 'a' }) === null);
 check('motif : jamais sur une photo chargée ni un texte dense', !wantsPattern({ seed: 'k', calmShare: 0.1, textShare: 0.1 }) && !wantsPattern({ seed: 'k', calmShare: 1, textShare: 0.7 }));
 const n = (quiet: boolean) => Array.from({ length: 300 }, (_, i) => wantsPattern({ seed: `v${i}`, quiet, calmShare: 1, textShare: 0.2 })).filter(Boolean).length;
-check('motif : pas partout, et moins sur une direction sobre', n(false) > 150 && n(false) < 260 && n(true) < n(false) * 0.6, `${n(false)}/300 · sobre ${n(true)}/300`);
+check('motif : décidé par le contenu (zone libre), une page sur deux en direction sobre', n(false) === 300 && n(true) > 100 && n(true) < 200, `${n(false)}/300 · sobre ${n(true)}/300`);
 console.log(failures ? `\n${failures} échec(s)` : '\nTout passe.');
 process.exit(failures ? 1 : 0);
