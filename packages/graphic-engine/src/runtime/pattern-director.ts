@@ -75,7 +75,7 @@ export function wantsPattern(o: { seed: string; quiet?: boolean; calmShare: numb
   // Le CONTENU décide : une zone libre suffisante et un texte qui laisse respirer. Seule une direction sobre ajoute
   // un tirage (une page sur deux), pour que le motif y reste l'exception.
   if (o.calmShare < 0.12 || o.textShare > 0.6) return false;
-  return o.quiet ? unit(`${o.seed}|want`) < 0.5 : true;
+  return o.quiet ? unit(`${o.seed}|want`) < 0.8 : true;
 }
 
 /** Le meilleur motif pour une zone de luminance relative `regionLum` (0–1), ou `null` si aucun ne se verrait. */
@@ -249,7 +249,7 @@ export async function directPattern(o: { html: string; head: string; format: For
   if (o.format.kind !== 'fixed') return null;
   if (!o.tiles.length) return skip(o.seed, 'no-usable-pattern');
   // Une direction sobre : le tirage se fait AVANT d'ouvrir le navigateur (rien dans la page ne le renverserait).
-  if (o.quiet && unit(`${o.seed}|want`) >= 0.5) return skip(o.seed, 'quiet-direction');
+  if (o.quiet && unit(`${o.seed}|want`) >= 0.8) return skip(o.seed, 'quiet-direction');
   try {
     return await withPage(pageDocument(o.html, o.head, { lang: o.lang, background: '#ffffff' }), { width: o.format.width, height: o.format.height }, async (page: Page) => {
       if (await page.$('canvas[data-idem-chart]')) return null;
@@ -270,7 +270,8 @@ export async function directPattern(o: { html: string; head: string; format: For
       //   SOUS le contenu  sur un fond libre (aplat, panneau, marge) : le texte et les images passent par-dessus ;
       //   SUR une photo    seulement sur une partie calme et sans texte (ciel, mur, fond de studio), en bord ou en coin.
       const underImage = (c: Cell) => images.some((b) => overlaps(c, b));
-      const free = (c: Cell) => c.std < 0.07 && !underImage(c);
+      // Un texte sur fond libre ne gêne pas : le calque passe SOUS lui (un titre noir sur blanc n'est pas une zone agitée).
+      const free = (c: Cell) => !underImage(c) && (c.std < 0.07 || c.text);
       const photoCalm = (c: Cell) => c.std < 0.045 && underImage(c) && !c.text;
       const calmShare = cells.filter((c) => free(c) || photoCalm(c)).length / cells.length;
       const textShare = cells.filter((c) => c.text).length / cells.length;
@@ -296,7 +297,9 @@ export async function directPattern(o: { html: string; head: string; format: For
         const used = under ? freeCells : overCells;
         const score = area * (used.length / inside.length) * (under ? 1.15 : 1);
         if (best && best.score >= score) continue;
-        best = { name: r.name, mode: under ? 'under' : 'over', score, lum: used.reduce((s, c) => s + c.mean, 0) / used.length, box, fade: fadeOf(r.name, text, W, H) };
+        const bare = used.filter((c) => !c.text);
+        const lumCells = bare.length ? bare : used;
+        best = { name: r.name, mode: under ? 'under' : 'over', score, lum: lumCells.reduce((s, c) => s + c.mean, 0) / lumCells.length, box, fade: fadeOf(r.name, text, W, H) };
       }
       if (!best) return skip(o.seed, 'no-region', { calmShare: Math.round(calmShare * 100) / 100 });
       const plan = planPattern({ regionLum: best.lum, tiles: o.tiles, textShare, seed: o.seed });

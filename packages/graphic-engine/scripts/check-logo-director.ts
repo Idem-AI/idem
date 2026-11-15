@@ -39,6 +39,6 @@ check('motif : zone sombre → screen', onDark?.blend === 'screen', JSON.stringi
 check('motif : encre invisible sur la zone (sombre sur sombre) → aucun motif', planPattern({ regionLum: 0.01, tiles: [tile('#10182c', '#0b1020')], textShare: 0.2, seed: 'a' }) === null);
 check('motif : jamais sur une photo chargée ni un texte dense', !wantsPattern({ seed: 'k', calmShare: 0.1, textShare: 0.1 }) && !wantsPattern({ seed: 'k', calmShare: 1, textShare: 0.7 }));
 const n = (quiet: boolean) => Array.from({ length: 300 }, (_, i) => wantsPattern({ seed: `v${i}`, quiet, calmShare: 1, textShare: 0.2 })).filter(Boolean).length;
-check('motif : décidé par le contenu (zone libre), une page sur deux en direction sobre', n(false) === 300 && n(true) > 100 && n(true) < 200, `${n(false)}/300 · sobre ${n(true)}/300`);
+check('motif : décidé par le contenu (zone libre), quatre pages sur cinq en direction sobre', n(false) === 300 && n(true) > 200 && n(true) < 270, `${n(false)}/300 · sobre ${n(true)}/300`);
 console.log(failures ? `\n${failures} échec(s)` : '\nTout passe.');
 process.exit(failures ? 1 : 0);
