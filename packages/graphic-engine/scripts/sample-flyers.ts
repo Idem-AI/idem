@@ -99,6 +99,7 @@ const BRAND_ORDER = ['kora', 'Makam', 'baobab'] as const;
 
 let disabled: string[] = [];
 configureGraphicEngine({
+  ...(process.argv.includes('--log') ? { logger: { info: (e: string, m?: unknown) => /pattern/.test(e) && console.log('   ', e, JSON.stringify(m)), warn: () => undefined, error: () => undefined } } : {}),
   agentCall: () => async () => '{"pick":"A"}',
   catalogOverrides: async () => ({ disabled }),
 });

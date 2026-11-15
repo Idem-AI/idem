@@ -81,8 +81,8 @@ export { exportPptx } from './export/pptx';
 export type { PptxMode, PptxOptions, PptxReport, PptxSlideInput } from './export/pptx';
 
 // ── Navigateur ─────────────────────────────────────────────────────────────────────────────────
-export { lightnessOf, patternLayerHtml, planPattern, QUIET_STYLES, unit as patternUnit, patternTiles, usableTiles, wantsPattern } from './runtime/pattern-director';
-export type { Fade as PatternFade, PatternPlan, PatternTile } from './runtime/pattern-director';
+export { lightnessOf, patternLayerHtml, patternTiles, patternVerdict, planPattern, QUIET_STRENGTH, QUIET_STYLES, unit as patternUnit, usableTiles } from './runtime/pattern-director';
+export type { PatternAnchor, PatternPlan, PatternTile } from './runtime/pattern-director';
 export { closeBrowser, configureBrowser, pageDocument, screenshot } from './runtime/browser';
 export type { BrowserOptions } from './runtime/browser';
 

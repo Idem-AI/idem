@@ -507,7 +507,7 @@ export class GraphicDocument {
     const quiet = QUIET_STYLES.has(this.options.direction?.styleId ?? '');
     const run = async (p: Rendered, key: string): Promise<{ page: Rendered; detail?: string; pattern?: string }> => {
       // 1. Le motif de la charte (quand la page le gagne), puis 2. le logo, mesuré sur la page déjà motivée.
-      const motif = tiles.length ? await directPattern({ html: p.html, head: p.head, format, tiles, seed: `${this.options.seed}|${key}`, quiet, lang: this.options.locale, shoot: Boolean(p.png) }) : null;
+      const motif = tiles.length ? await directPattern({ html: p.html, head: p.head, format, tiles, seed: `${this.options.seed}|${key}`, quiet, inks: [this.options.brand.palette?.primary, this.options.brand.palette?.accent, this.options.brand.palette?.secondary].filter((c): c is string => !!c && /^#[0-9a-f]{6}$/i.test(c)), lang: this.options.locale, shoot: Boolean(p.png) }) : null;
       const base: Rendered = motif ? { ...p, html: motif.html, ...(motif.png ? { png: motif.png } : {}) } : p;
       const directed = await directLogo({ html: base.html, head: base.head, format, logos, name: this.options.brand.name, lang: this.options.locale, shoot: Boolean(base.png) });
       const pattern = motif ? motif.where : undefined;
