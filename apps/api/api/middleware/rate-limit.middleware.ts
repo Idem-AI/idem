@@ -255,7 +255,7 @@ export const rateLimitByUser = (config: Partial<RateLimitConfig> = {}) => {
       // Check if user is admin (unlimited)
       const user = req.user as any;
       if (isSuperUser(user.email)) {
-        logger.info(`Admin user ${userId} bypassing rate limit`);
+ logger.info(`Admin bypassing rate limit`);
         next();
         return;
       }
@@ -272,7 +272,7 @@ export const rateLimitByUser = (config: Partial<RateLimitConfig> = {}) => {
           res.setHeader('Retry-After', limitInfo.retryAfter);
         }
 
-        logger.warn(`Rate limit exceeded for user: ${userId}`);
+ logger.warn(`Rate limit exceeded`);
         res.status(429).json({
           error: 'Too Many Requests',
           message: 'User rate limit exceeded. Please try again later.',
@@ -324,7 +324,7 @@ export const rateLimitByEndpoint = (endpoint: string, config: Partial<RateLimitC
           res.setHeader('Retry-After', limitInfo.retryAfter);
         }
 
-        logger.warn(`Endpoint rate limit exceeded for ${endpoint} by ${userId}`);
+ logger.warn(`Endpoint rate limit exceeded for ${endpoint}`);
         res.status(429).json({
           error: 'Too Many Requests',
           message: `Rate limit exceeded for ${endpoint}. Please try again later.`,

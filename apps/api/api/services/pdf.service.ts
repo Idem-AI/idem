@@ -476,7 +476,7 @@ export class PdfService {
     // On pourrait améliorer en stockant des métadonnées
 
     if (invalidated > 0) {
-      logger.info(`Invalidated ${invalidated} cache entries for project: ${projectName}`);
+      logger.info(`Invalidated ${invalidated} cache entries for project`);
     }
 
     return invalidated;
@@ -550,10 +550,10 @@ export class PdfService {
     // Invalider aussi les entrées Redis pour cet utilisateur
     try {
       const deletedRedisKeys = await cacheService.invalidateUserCache(userId);
-      logger.info(`Invalidated ${deletedRedisKeys} Redis cache entries for user: ${userId}`);
+ logger.info(`Invalidated ${deletedRedisKeys} Redis cache entries`);
       invalidated += deletedRedisKeys;
     } catch (error) {
-      logger.warn(`Failed to invalidate Redis cache for user ${userId}:`, error);
+ logger.warn(`Failed to invalidate Redis cache:`, error);
     }
 
     invalidated += htmlEntries + pdfEntries;
@@ -738,11 +738,11 @@ export class PdfService {
     // Vérifier le cache PDF d'abord
     const cachedPdfPath = PdfService.getCachedPdf(cacheKey);
     if (cachedPdfPath) {
-      logger.info(`🚀 CACHE HIT - Returning cached PDF for project: ${projectName} (saved ~5-8s)`);
+      logger.info('CACHE HIT - Returning cached PDF (saved ~5-8s)');
       return cachedPdfPath;
     }
 
-    logger.info(`❌ CACHE MISS - Generating new PDF for project: ${projectName}`);
+    logger.info('CACHE MISS - Generating new PDF');
 
     let openPage: Page | null = null;
     try {
@@ -753,7 +753,7 @@ export class PdfService {
       let htmlContent = PdfService.getCachedHtml(cacheKey);
 
       if (!htmlContent) {
-        logger.info(`⚡ Generating new HTML content for project: ${projectName}`);
+        logger.info('Generating new HTML content for project');
         // Créer le contenu HTML à partir des sections (optimisé)
         htmlContent = this.generateOptimizedHtmlFromSections({
           title,
@@ -960,10 +960,10 @@ export class PdfService {
       // Mettre en cache le PDF généré
       PdfService.setCachedPdf(cacheKey, pdfPath);
 
-      logger.info(`Successfully generated PDF for project ${projectName} at ${pdfPath}`);
+      logger.info('Successfully generated PDF');
       return pdfPath;
     } catch (error) {
-      logger.error(`Error generating PDF for project ${projectName}:`, error);
+      logger.error('Error generating PDF:', error);
       throw error;
     } finally {
       // Une impression ratée fermait jamais sa page : chaque échec laissait un onglet Chromium ouvert, et le
@@ -1506,10 +1506,10 @@ async function applyQualityGate(
     );
 
     if (!report.measured) {
-      logger.warn(`PDF quality gate skipped for ${projectName}: ${report.skipped}`);
+      logger.warn(`PDF quality gate skipped: ${report.skipped}`);
     } else {
       logger.info(
-        `PDF quality gate for ${projectName}: ${report.pagesBefore} → ${report.pagesAfter} page(s)` +
+        `PDF quality gate: ${report.pagesBefore} → ${report.pagesAfter} page(s)` +
           (report.removedPages.length > 0
             ? `, page(s) blanche(s) retirée(s) : ${report.removedPages.join(', ')}`
             : '') +
@@ -1528,6 +1528,6 @@ async function applyQualityGate(
     }
     onReport?.(report);
   } catch (error) {
-    logger.warn(`PDF quality gate failed for ${projectName}, PDF kept as printed:`, error);
+    logger.warn('PDF quality gate failed, PDF kept as printed:', error);
   }
 }

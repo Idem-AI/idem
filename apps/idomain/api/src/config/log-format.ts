@@ -173,10 +173,53 @@ export function sanitize(value: unknown, depth = 0, seen = new WeakSet<object>()
  */
 const PHONE_KEY = /^(phone(number)?|phone_number|msisdn|mobile(number)?)$/i;
 
+/**
+ * Adresses e-mail : seul le domaine est conservé (`***@example.com`).
+ * L'adresse complète est une donnée personnelle au sens RGPD.
+ */
+const EMAIL_KEY = /^e[-_]?mail(address)?$/i;
+
+function redactEmail(value: string): string {
+  const at = value.indexOf('@');
+  return at > 0 ? `***@${value.slice(at + 1)}` : REDACTED;
+}
+
+/**
+ * Noms d'utilisateurs et noms de projets/entreprises : remplacés par leur
+ * longueur. Identifier l'individu ou son activité depuis les logs n'est ni
+ * nécessaire au diagnostic, ni souhaitable.
+ */
+const PII_NAME_KEY =
+  /^(first[-_]?name|last[-_]?name|display[-_]?name|full[-_]?name|company[-_]?name|business[-_]?name|project[-_]?name|owner[-_]?name|user[-_]?name|username|author)$/i;
+
+/**
+ * Contenus métier : descriptions de projets, prompts IA, messages de
+ * conversation, corps de requête. Tronqués à 80 caractères — suffisant pour
+ * reconnaître le contexte, trop peu pour reconstituer le document.
+ */
+const CONTENT_KEY =
+  /^(description|prompt|system[-_]?prompt|user[-_]?prompt|instruction|messages|body|text|content|story|narrative|brief|scenario|storyboard|synopsis|summary|abstract|note|comment|feedback|review|answer|question|subject|headline)$/i;
+
+const MAX_CONTENT_PREVIEW = 80;
+
+function redactContent(value: string): string {
+  if (value.length <= MAX_CONTENT_PREVIEW) return value;
+  return `${value.slice(0, MAX_CONTENT_PREVIEW)}…(${value.length} chars)`;
+}
+
 function redactField(key: string, value: unknown, depth: number, seen: WeakSet<object>): unknown {
   if (PHONE_KEY.test(key) && (typeof value === 'string' || typeof value === 'number')) {
     const raw = String(value);
     return raw.length > 2 ? `***${raw.slice(-2)}` : '***';
+  }
+  if (EMAIL_KEY.test(key) && typeof value === 'string') {
+    return redactEmail(value);
+  }
+  if (PII_NAME_KEY.test(key) && typeof value === 'string') {
+    return `[${value.length} chars]`;
+  }
+  if (CONTENT_KEY.test(key) && typeof value === 'string') {
+    return redactContent(value);
   }
   if (SENSITIVE_KEY.test(key) && value !== null && value !== undefined && typeof value !== 'number' && typeof value !== 'boolean') {
     return REDACTED;

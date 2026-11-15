@@ -86,7 +86,7 @@ export const getArchetypesController = async (req: CustomRequest, res: Response)
     });
     return;
   } catch (error) {
-    logger.error(`Error retrieving archetypes for user ${userId}:`, {
+ logger.error(`Error retrieving archetypes:`, {
       error: error instanceof Error ? error.message : error,
       stack: error instanceof Error ? error.stack : undefined,
     });

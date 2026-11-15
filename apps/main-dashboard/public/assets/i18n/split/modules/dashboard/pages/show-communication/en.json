@@ -1146,6 +1146,22 @@
           "notUnderstood": "I did not understand what to change. Say for instance “scene 2 more dynamic” or “no music”.",
           "newRequest": "This sounds like a new video: create it from “New video”."
         }
+      },
+      "placement": {
+        "title": "Post format",
+        "network": "Network",
+        "format": "Format",
+        "size": "Size",
+        "surfaces": {
+          "post": "Post",
+          "carousel": "Carousel",
+          "story": "Story",
+          "video": "Video / Reel",
+          "article": "Article or link"
+        },
+        "notes": {
+          "youtube": "A YouTube thumbnail is 16:9: this 1.91:1 visual will be slightly cropped."
+        }
       }
     }
   }

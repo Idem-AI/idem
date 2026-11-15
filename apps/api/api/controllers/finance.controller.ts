@@ -418,7 +418,7 @@ export const aiFillAllController = async (req: CustomRequest, res: Response): Pr
       res.status(400).json({ message: 'Project ID is required' });
       return;
     }
-    logger.info(`aiFillAllController userId=${userId} projectId=${projectId}`);
+ logger.info(`aiFillAllController projectId=${projectId}`);
     const result = await financeAIService.autoFillAll(userId, projectId);
     res.status(200).json(result);
   } catch (error: any) {
@@ -593,7 +593,7 @@ export const parseChatIntentController = async (
       res.status(400).json({ message: 'Project ID and message are required' });
       return;
     }
-    logger.info(`parseChatIntentController userId=${userId} projectId=${projectId}`);
+ logger.info(`parseChatIntentController projectId=${projectId}`);
     const intent = await financeAIService.parseChatIntent(userId, projectId, message);
     res.status(200).json(intent);
   } catch (error: any) {
@@ -660,7 +660,7 @@ export const generateFinancePdfController = async (
       res.status(400).json({ message: 'Project ID is required' });
       return;
     }
-    logger.info(`generateFinancePdfController userId=${userId} projectId=${projectId}`);
+ logger.info(`generateFinancePdfController projectId=${projectId}`);
     const pdfPath = await financePdfService.generateFinancePdf(userId, projectId);
     const fs = require('fs-extra');
     const buffer = await fs.readFile(pdfPath);
@@ -734,7 +734,7 @@ export const generateFinancePdfStreamController = async (
       summary: '',
       timestamp: new Date().toISOString(),
     });
-    logger.info(`generateFinancePdfStreamController userId=${userId} projectId=${projectId}`);
+ logger.info(`generateFinancePdfStreamController projectId=${projectId}`);
     const pdfPath = await financePdfService.generateFinancePdf(userId, projectId);
     purgeReadyPdfs();
     const fileId = randomUUID();

@@ -360,7 +360,7 @@ export class GenericService {
     logger.debug(`Project data fetched: ${project ? JSON.stringify(project.id) : 'null'}`);
 
     if (!project) {
-      logger.warn(`Project not found with ID: ${projectId} for user: ${userId}`);
+ logger.warn(`Project not found with ID: ${projectId}`);
       return null;
     }
     return project;
@@ -1364,7 +1364,7 @@ export class GenericService {
         `users/${userId}/projects`
       );
       if (!oldProject) {
-        logger.warn(`Original project not found with ID: ${projectId} for user: ${userId}`);
+ logger.warn(`Original project not found with ID: ${projectId}`);
         return null;
       }
 

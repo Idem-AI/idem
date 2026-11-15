@@ -3053,7 +3053,7 @@ export class CommunicationService extends GenericService {
   ): Promise<CommunicationModel | null> {
     const project = await this.projectRepository.findById(projectId, this.collection(userId), { bypassCache: true });
     if (!project) {
-      logger.error(`patchCommunication: Project ${projectId} not found for user ${userId}`);
+ logger.error(`patchCommunication: Project ${projectId} not found`);
       return null;
     }
 

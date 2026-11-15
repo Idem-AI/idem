@@ -30,7 +30,7 @@ export const ExecuteDeploymentController = async (
       return;
     }
 
-    logger.info(`Executing deployment for userId: ${userId}, deploymentId: ${deploymentId}`);
+ logger.info(`Executing deployment for deploymentId: ${deploymentId}`);
 
     await deploymentService.executeDeployment(userId, deploymentId as string);
 
@@ -70,7 +70,7 @@ export const CreateDeploymentController = async (
       return;
     }
 
-    logger.info(`Creating deployment for userId: ${userId}, projectId: ${payload.projectId}`);
+ logger.info(`Creating deployment for projectId: ${payload.projectId}`);
 
     // Validate the payload
     const validationErrors = DeploymentValidators.validateBasicInfo(payload);
@@ -119,7 +119,7 @@ export const GetDeploymentsByProjectController = async (
       return;
     }
 
-    logger.info(`Getting deployments for userId: ${userId}, projectId: ${projectId}`);
+ logger.info(`Getting deployments for projectId: ${projectId}`);
 
     const deployments = await deploymentService.getDeploymentsByProject(userId, projectId as string);
 
@@ -153,7 +153,7 @@ export const GetDeploymentByIdController = async (
       return;
     }
 
-    logger.info(`Getting deployment for userId: ${userId}, deploymentId: ${deploymentId}`);
+ logger.info(`Getting deployment for deploymentId: ${deploymentId}`);
 
     const deployment = await deploymentService.getDeploymentById(userId, deploymentId as string);
 
@@ -196,7 +196,7 @@ export const UpdateDeploymentController = async (
       return;
     }
 
-    logger.info(`Updating deployment for userId: ${userId}, deploymentId: ${deploymentId}`);
+ logger.info(`Updating deployment for deploymentId: ${deploymentId}`);
 
     const deployment = await deploymentService.updateDeployment(userId, deploymentId as string, updates);
 
@@ -242,7 +242,7 @@ export const DeleteDeploymentController = async (
       return;
     }
 
-    logger.info(`Deleting deployment for userId: ${userId}, deploymentId: ${deploymentId}`);
+ logger.info(`Deleting deployment for deploymentId: ${deploymentId}`);
 
     const success = await deploymentService.deleteDeployment(userId, deploymentId as string);
 
@@ -307,7 +307,7 @@ export const AddChatMessageController = async (
       return;
     }
 
-    logger.info(`Adding chat message for userId: ${userId}, projectId: ${projectId}`);
+ logger.info(`Adding chat message for projectId: ${projectId}`);
 
     // Create a chat message with timestamp and initialize structured response fields
     const chatMessage: ChatMessage = {
@@ -362,7 +362,7 @@ export const StartPipelineController = async (req: CustomRequest, res: Response)
       return;
     }
 
-    logger.info(`Starting pipeline for userId: ${userId}, deploymentId: ${deploymentId}`);
+ logger.info(`Starting pipeline for deploymentId: ${deploymentId}`);
 
     const deployment = await deploymentService.startDeploymentPipeline(userId, deploymentId as string);
 
@@ -408,7 +408,7 @@ export const GetPipelineStatusController = async (
       return;
     }
 
-    logger.info(`Getting pipeline status for userId: ${userId}, deploymentId: ${deploymentId}`);
+ logger.info(`Getting pipeline status for deploymentId: ${deploymentId}`);
 
     const deployment = await deploymentService.getDeploymentById(userId, deploymentId as string);
 

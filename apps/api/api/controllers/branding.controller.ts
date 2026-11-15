@@ -71,7 +71,7 @@ export const generateColorsAndTypographyController = async (
 ): Promise<void> => {
   const project = req.body.project;
   const userId = req.user?.uid;
-  logger.info(`generateColorsAndTypographyController called - UserId: ${userId}`, {
+ logger.info(`generateColorsAndTypographyController called `, {
     body: req.body,
   });
   try {
@@ -128,7 +128,7 @@ export const generateColorsAndTypographyFromLogoController = async (
 ): Promise<void> => {
   const { project, logoSvg, logoColors } = req.body;
   const userId = req.user?.uid;
-  logger.info(`generateColorsAndTypographyFromLogoController called - UserId: ${userId}`, {
+ logger.info(`generateColorsAndTypographyFromLogoController called `, {
     logoColorsCount: logoColors?.length,
   });
   try {
@@ -156,7 +156,7 @@ export const generateColorsAndTypographyFromLogoController = async (
     );
 
     if (!result) {
-      logger.warn(`Failed to generate colors and typography from logo - UserId: ${userId}`);
+ logger.warn(`Failed to generate colors and typography from logo`);
       res.status(500).json({ message: 'Failed to generate colors and typography from logo' });
       return;
     }
@@ -166,7 +166,7 @@ export const generateColorsAndTypographyFromLogoController = async (
     );
     res.status(200).json(result);
   } catch (error) {
-    logger.error(`Error in generateColorsAndTypographyFromLogoController - UserId: ${userId}`, {
+ logger.error(`Error in generateColorsAndTypographyFromLogoController `, {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
     });
@@ -212,7 +212,7 @@ export const generateLogoConceptsController = async (
     );
 
     if (!logos) {
-      logger.warn(`Failed to generate logo concepts - UserId: ${userId}, ProjectId: ${projectId}`);
+ logger.warn(`Failed to generate logo concepts ProjectId: ${projectId}`);
       res.status(500).json({ message: 'Failed to generate logo concepts' });
       return;
     }
@@ -596,12 +596,12 @@ export const getBrandingsByProjectController = async (
     const branding = await brandingService.getBrandingsByProjectId(userId, projectId as string);
 
     if (!branding) {
-      logger.info(`No branding found - UserId: ${userId}, ProjectId: ${projectId}`);
+ logger.info(`No branding found ProjectId: ${projectId}`);
       res.status(404).json({ message: 'No branding found for this project' });
       return;
     }
 
-    logger.info(`Retrieved branding successfully - UserId: ${userId}, ProjectId: ${projectId}`);
+ logger.info(`Retrieved branding successfully ProjectId: ${projectId}`);
     res.status(200).json(branding);
   } catch (error: any) {
     logger.error(
@@ -621,7 +621,7 @@ export const getBrandingByIdController = async (
 ): Promise<void> => {
   const { brandingId } = req.params;
   const userId = req.user?.uid;
-  logger.info(`getBrandingByIdController called - UserId: ${userId}, BrandingId: ${brandingId}`);
+ logger.info(`getBrandingByIdController called BrandingId: ${brandingId}`);
   try {
     if (!userId) {
       logger.warn('User not authenticated for getBrandingByIdController');
@@ -630,10 +630,10 @@ export const getBrandingByIdController = async (
     }
     const branding = await brandingService.getBrandingById(userId, brandingId as string);
     if (branding) {
-      logger.info(`Branding fetched successfully - UserId: ${userId}, BrandingId: ${brandingId}`);
+ logger.info(`Branding fetched successfully BrandingId: ${brandingId}`);
       res.status(200).json(branding);
     } else {
-      logger.warn(`Branding not found - UserId: ${userId}, BrandingId: ${brandingId}`);
+ logger.warn(`Branding not found BrandingId: ${brandingId}`);
       res.status(404).json({ message: 'Branding not found' });
     }
   } catch (error: any) {
@@ -651,7 +651,7 @@ export const updateBrandingController = async (
 ): Promise<void> => {
   const projectId = req.params.projectId as string;
   const userId = req.user?.uid;
-  logger.info(`updateBrandingController called - UserId: ${userId}, ProjectId: ${projectId}`, {
+ logger.info(`updateBrandingController called ProjectId: ${projectId}`, {
     body: req.body,
   });
   try {
@@ -677,7 +677,7 @@ export const updateBrandingController = async (
       res.status(404).json({ message: 'Project not found' });
       return;
     }
-    logger.info(`Branding updated successfully - UserId: ${userId}, ProjectId: ${projectId}`);
+ logger.info(`Branding updated successfully ProjectId: ${projectId}`);
     res.status(200).json(updatedProject.analysisResultModel?.branding || null);
   } catch (error: any) {
     logger.error(
@@ -697,7 +697,7 @@ export const deleteBrandingController = async (
 ): Promise<void> => {
   const projectId = req.params.projectId as string;
   const userId = req.user?.uid;
-  logger.info(`deleteBrandingController called - UserId: ${userId}, ProjectId: ${projectId}`);
+ logger.info(`deleteBrandingController called ProjectId: ${projectId}`);
   try {
     if (!userId) {
       logger.warn('User not authenticated for deleteBrandingController');
@@ -719,7 +719,7 @@ export const deleteBrandingController = async (
       return;
     }
 
-    logger.info(`Branding deleted successfully - UserId: ${userId}, ProjectId: ${projectId}`);
+ logger.info(`Branding deleted successfully ProjectId: ${projectId}`);
     res.status(204).send();
   } catch (error: any) {
     logger.error(
@@ -819,7 +819,7 @@ export const generateBrandingStreamingController = async (
     );
 
     if (!updatedProject) {
-      logger.warn(`Failed to generate branding - UserId: ${userId}, ProjectId: ${projectId}`);
+ logger.warn(`Failed to generate branding ProjectId: ${projectId}`);
       res.write(`data: ${JSON.stringify({ error: 'Failed to generate branding' })}\n\n`);
       res.end();
       return;
@@ -828,7 +828,7 @@ export const generateBrandingStreamingController = async (
     // Obtenir le branding du projet mis à jour
     const newBranding = updatedProject.analysisResultModel?.branding;
 
-    logger.info(`Branding generation completed - UserId: ${userId}, ProjectId: ${projectId}`);
+ logger.info(`Branding generation completed ProjectId: ${projectId}`);
 
     // Envoyer un événement de fin
     res.write(`data: ${JSON.stringify({ type: 'complete', branding: newBranding })}\n\n`);
@@ -856,7 +856,7 @@ export const generateBrandingPdfController = async (
 ): Promise<void> => {
   const projectId = req.params.projectId as string;
   const userId = req.user?.uid;
-  logger.info(`generateBrandingPdfController called - UserId: ${userId}, ProjectId: ${projectId}`);
+ logger.info(`generateBrandingPdfController called ProjectId: ${projectId}`);
 
   try {
     if (!userId) {
@@ -893,7 +893,7 @@ export const generateBrandingPdfController = async (
     // NE PAS supprimer le fichier - il est géré par le cache du PdfService
     // Le fichier sera automatiquement nettoyé par le système de cache après expiration
 
-    logger.info(`PDF generated and sent successfully - UserId: ${userId}, ProjectId: ${projectId}`);
+ logger.info(`PDF generated and sent successfully ProjectId: ${projectId}`);
   } catch (error: any) {
     logger.error(
       `Error in generateBrandingPdfController - UserId: ${userId}, ProjectId: ${projectId}: ${error.message}`,
@@ -1073,7 +1073,7 @@ export const generateBrandAssetsZipController = async (
 ): Promise<void> => {
   const projectId = req.params.projectId as string;
   const userId = req.user?.uid;
-  logger.info(`generateBrandAssetsZipController called - UserId: ${userId}, ProjectId: ${projectId}`);
+ logger.info(`generateBrandAssetsZipController called ProjectId: ${projectId}`);
 
   if (!userId) {
     res.status(401).json({ message: 'User not authenticated' });
@@ -1111,7 +1111,7 @@ export const editLogoController = async (req: CustomRequest, res: Response): Pro
   const { logosvg, modificationPrompt } = req.body;
   const userId = req.user?.uid;
 
-  logger.info(`editLogoController called - UserId: ${userId}, ProjectId: ${projectId}`, {
+ logger.info(`editLogoController called ProjectId: ${projectId}`, {
     modificationPrompt: modificationPrompt?.substring(0, 100),
   });
 
@@ -1148,7 +1148,7 @@ export const editLogoController = async (req: CustomRequest, res: Response): Pro
       modificationPrompt
     );
 
-    logger.info(`Successfully edited logo - UserId: ${userId}, ProjectId: ${projectId}`);
+ logger.info(`Successfully edited logo ProjectId: ${projectId}`);
 
     res.status(200).json(result);
   } catch (error: any) {

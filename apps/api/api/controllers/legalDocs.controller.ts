@@ -85,7 +85,7 @@ export const getLegalDocsController = async (req: CustomRequest, res: Response):
       res.status(401).json({ message: 'User not authenticated' });
       return;
     }
-    logger.info(`getLegalDocsController userId=${userId} projectId=${projectId}`);
+ logger.info(`getLegalDocsController projectId=${projectId}`);
     const legalDocs = await legalDocsService.getLegalDocs(userId, projectId as string);
     if (!legalDocs) {
       res.status(200).json({ documents: [] });
@@ -154,7 +154,7 @@ export const clearLegalDocsController = async (
       res.status(401).json({ message: 'User not authenticated' });
       return;
     }
-    logger.info(`clearLegalDocsController userId=${userId} projectId=${projectId}`);
+ logger.info(`clearLegalDocsController projectId=${projectId}`);
     await legalDocsService.clearLegalDocs(userId, projectId as string);
     res.status(204).send();
   } catch (error: any) {

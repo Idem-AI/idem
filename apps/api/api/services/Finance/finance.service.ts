@@ -83,7 +83,7 @@ export class FinanceService {
   ): Promise<{ project: ProjectModel; finance: FinanceModel } | null> {
     const project = await this.projectRepository.findById(projectId, this.collectionPath(userId));
     if (!project) {
-      logger.warn(`Finance: project not found ${projectId} for user ${userId}`);
+ logger.warn(`Finance: project not found ${projectId}`);
       return null;
     }
     const existing: FinanceModel | undefined = (project as any).analysisResultModel?.finance;

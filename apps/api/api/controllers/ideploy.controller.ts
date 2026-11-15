@@ -10,7 +10,7 @@ export const getApplicationsController = async (req: CustomRequest, res: Respons
     const summary = await getIDeploySummaryForUser(email);
     res.status(200).json({ success: true, data: summary.applications });
   } catch (error: any) {
-    logger.error('getApplicationsController error', { email, message: error.message });
+    logger.error('getApplicationsController error', { message: error.message });
     res.status(500).json({ success: false, message: 'Failed to fetch applications' });
   }
 };
@@ -22,7 +22,7 @@ export const getDatabasesController = async (req: CustomRequest, res: Response):
     const summary = await getIDeploySummaryForUser(email);
     res.status(200).json({ success: true, data: summary.databases });
   } catch (error: any) {
-    logger.error('getDatabasesController error', { email, message: error.message });
+    logger.error('getDatabasesController error', { message: error.message });
     res.status(500).json({ success: false, message: 'Failed to fetch databases' });
   }
 };
@@ -34,7 +34,7 @@ export const getServicesController = async (req: CustomRequest, res: Response): 
     const summary = await getIDeploySummaryForUser(email);
     res.status(200).json({ success: true, data: summary.services });
   } catch (error: any) {
-    logger.error('getServicesController error', { email, message: error.message });
+    logger.error('getServicesController error', { message: error.message });
     res.status(500).json({ success: false, message: 'Failed to fetch services' });
   }
 };
@@ -46,7 +46,7 @@ export const getServersController = async (req: CustomRequest, res: Response): P
     const summary = await getIDeploySummaryForUser(email);
     res.status(200).json({ success: true, data: summary.servers });
   } catch (error: any) {
-    logger.error('getServersController error', { email, message: error.message });
+    logger.error('getServersController error', { message: error.message });
     res.status(500).json({ success: false, message: 'Failed to fetch servers' });
   }
 };
@@ -58,7 +58,7 @@ export const getProjectsController = async (req: CustomRequest, res: Response): 
     const summary = await getIDeploySummaryForUser(email);
     res.status(200).json({ success: true, data: summary.projects });
   } catch (error: any) {
-    logger.error('getProjectsController error', { email, message: error.message });
+    logger.error('getProjectsController error', { message: error.message });
     res.status(500).json({ success: false, message: 'Failed to fetch projects' });
   }
 };
@@ -67,11 +67,11 @@ export const getSummaryController = async (req: CustomRequest, res: Response): P
   const email = req.user?.email;
   if (!email) { res.status(401).json({ success: false, message: 'Unauthorized' }); return; }
   try {
-    logger.info('Fetching iDeploy summary', { email });
+    logger.info('Fetching iDeploy summary');
     const summary = await getIDeploySummaryForUser(email);
     res.status(200).json({ success: true, data: summary });
   } catch (error: any) {
-    logger.error('getSummaryController error', { email, message: error.message });
+    logger.error('getSummaryController error', { message: error.message });
     res.status(500).json({ success: false, message: 'Failed to fetch iDeploy summary' });
   }
 };

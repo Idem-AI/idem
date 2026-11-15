@@ -178,7 +178,7 @@ export class LegalDocsService extends GenericService {
   }
 
   async getLegalDocs(userId: string, projectId: string): Promise<LegalDocsModel | null> {
-    logger.debug(`LegalDocsService.getLegalDocs userId=${userId} projectId=${projectId}`);
+ logger.debug(`LegalDocsService.getLegalDocs projectId=${projectId}`);
     const project = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
     if (!project) {
       logger.warn(`LegalDocsService.getLegalDocs: project not found ${projectId}`);
@@ -309,7 +309,7 @@ export class LegalDocsService extends GenericService {
   }
 
   async clearLegalDocs(userId: string, projectId: string): Promise<void> {
-    logger.info(`LegalDocsService.clearLegalDocs userId=${userId} projectId=${projectId}`);
+ logger.info(`LegalDocsService.clearLegalDocs projectId=${projectId}`);
     const project = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
     if (!project) {
       logger.warn(`LegalDocsService.clearLegalDocs: project not found ${projectId}`);

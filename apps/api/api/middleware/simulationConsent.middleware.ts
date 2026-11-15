@@ -57,7 +57,7 @@ export const requireSimulationConsent = async (
   const missing = requiredDocuments().filter((document) => !accepted[document]);
 
   if (missing.length > 0) {
-    logger.warn(`Simulation consent refused — user ${userId}, missing: ${missing.join(', ')}`);
+ logger.warn(`Simulation consent refused — , missing: ${missing.join(', ')}`);
     res.status(403).json({
       message: IS_BETA
         ? "Vous devez accepter la politique de confidentialité, les conditions d'utilisation de la simulation et la politique bêta avant de lancer une exécution."

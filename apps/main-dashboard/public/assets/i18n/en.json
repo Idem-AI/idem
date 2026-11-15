@@ -4681,6 +4681,22 @@
           "cancelled": "Cancelled",
           "expired": "Expired"
         }
+      },
+      "placement": {
+        "title": "Post format",
+        "network": "Network",
+        "format": "Format",
+        "size": "Size",
+        "surfaces": {
+          "post": "Post",
+          "carousel": "Carousel",
+          "story": "Story",
+          "video": "Video / Reel",
+          "article": "Article or link"
+        },
+        "notes": {
+          "youtube": "A YouTube thumbnail is 16:9: this 1.91:1 visual will be slightly cropped."
+        }
       }
     },
     "businessCards": {

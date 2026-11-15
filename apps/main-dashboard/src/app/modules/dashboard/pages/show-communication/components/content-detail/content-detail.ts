@@ -26,6 +26,7 @@ import {
   channelIcon,
   channelLabelKey,
   formatDay,
+  placementOf,
   statusPillClass,
   toChannel,
 } from '../../communication-ui';
@@ -132,6 +133,9 @@ export class ContentDetail {
     const ids = new Set(this.item().flyerIds ?? []);
     return this.visuals().filter((candidate) => ids.has(candidate.id));
   });
+
+  /** Le support exact du contenu (réseau, surface, cadrage, pixels). */
+  protected readonly placement = computed(() => placementOf(this.item()));
 
   /** Les défauts relevés par le contrôle de la période, dits en clair. */
   protected readonly issuesLabel = computed(() =>

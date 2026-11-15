@@ -129,7 +129,7 @@ export class DeploymentService extends GenericService {
     projectId: string,
     payload: CreateDeploymentPayload
   ): Promise<DeploymentModel> {
-    logger.info(`createDeployment called for userId: ${userId}, projectId: ${projectId}`);
+ logger.info(`createDeployment called for projectId: ${projectId}`);
 
     try {
       console.log('projectId', projectId);
@@ -273,7 +273,7 @@ export class DeploymentService extends GenericService {
   }
 
   async executeDeployment(userId: string, deploymentId: string): Promise<void> {
-    logger.info(`executeDeployment called for userId: ${userId}, deploymentId: ${deploymentId}`);
+ logger.info(`executeDeployment called for deploymentId: ${deploymentId}`);
 
     try {
       // Retrieve deployment
@@ -674,7 +674,7 @@ export class DeploymentService extends GenericService {
     project: ProjectModel,
     deployment: DeploymentModel
   ): Promise<DeploymentModel> {
-    logger.info(`generateDeployment called for userId: ${userId}, projectId: ${project.id}`);
+ logger.info(`generateDeployment called for projectId: ${project.id}`);
 
     try {
       const generatedFile = await this.generateTerraformTfvarsFile(deployment, project, userId);
@@ -905,7 +905,7 @@ Please provide only the terraform.tfvars file content as output.`;
   }
 
   async getDeploymentsByProject(userId: string, projectId: string): Promise<DeploymentModel[]> {
-    logger.info(`getDeploymentsByProject called for userId: ${userId}, projectId: ${projectId}`);
+ logger.info(`getDeploymentsByProject called for projectId: ${projectId}`);
     try {
       const project = await this.getProject(projectId, userId);
       if (!project) {
@@ -927,7 +927,7 @@ Please provide only the terraform.tfvars file content as output.`;
   }
 
   async getDeploymentById(userId: string, deploymentId: string): Promise<DeploymentModel | null> {
-    logger.info(`getDeploymentById called for userId: ${userId}, deploymentId: ${deploymentId}`);
+ logger.info(`getDeploymentById called for deploymentId: ${deploymentId}`);
     try {
       // First try to find the project directly by deploymentId (if deploymentId is actually a projectId)
       let project = await this.getProject(deploymentId, userId);
@@ -951,9 +951,9 @@ Please provide only the terraform.tfvars file content as output.`;
         (deployment) => deployment.id === deploymentId
       );
       if (deployment) {
-        logger.info(`Deployment found - UserId: ${userId}, DeploymentId: ${deploymentId}`);
+ logger.info(`Deployment found DeploymentId: ${deploymentId}`);
       } else {
-        logger.warn(`Deployment not found - UserId: ${userId}, DeploymentId: ${deploymentId}`);
+ logger.warn(`Deployment not found DeploymentId: ${deploymentId}`);
         throw new Error('Deployment not found');
       }
       return deployment;
@@ -971,7 +971,7 @@ Please provide only the terraform.tfvars file content as output.`;
     deploymentId: string,
     updateData: Partial<DeploymentModel>
   ): Promise<DeploymentModel> {
-    logger.info(`updateDeployment called for userId: ${userId}, deploymentId: ${deploymentId}`);
+ logger.info(`updateDeployment called for deploymentId: ${deploymentId}`);
     try {
       // First try to find the project directly by deploymentId (if deploymentId is actually a projectId)
       let project = await this.getProject(deploymentId, userId);
@@ -1056,7 +1056,7 @@ Please provide only the terraform.tfvars file content as output.`;
   }
 
   async deleteDeployment(userId: string, deploymentId: string): Promise<boolean> {
-    logger.info(`deleteDeployment called for userId: ${userId}, deploymentId: ${deploymentId}`);
+ logger.info(`deleteDeployment called for deploymentId: ${deploymentId}`);
     try {
       // First try to find the project directly by deploymentId (if deploymentId is actually a projectId)
       let project = await this.getProject(deploymentId, userId);
@@ -1086,7 +1086,7 @@ Please provide only the terraform.tfvars file content as output.`;
       if (projectId === deploymentId) {
         const success = await this.projectRepository.delete(projectId, userId);
         if (success) {
-          logger.info(`Project deleted successfully - UserId: ${userId}, ProjectId: ${projectId}`);
+ logger.info(`Project deleted successfully ProjectId: ${projectId}`);
         } else {
           logger.warn(
             `Project not found for deletion - UserId: ${userId}, ProjectId: ${projectId}`
@@ -1726,7 +1726,7 @@ Please provide only the terraform.tfvars file content as output.`;
     try {
       const project = await this.getProject(projectId, userId);
       if (!project) {
-        logger.warn(`Project not found: ${projectId} for user: ${userId}`);
+ logger.warn(`Project not found: ${projectId}`);
         return null;
       }
 

@@ -18,7 +18,7 @@ export class PolicyAcceptanceService {
     ipAddress?: string,
     userAgent?: string
   ): Promise<ProjectModel> {
-    logger.info(`Finalizing project - UserId: ${userId}, ProjectId: ${projectId}`);
+ logger.info(`Finalizing project ProjectId: ${projectId}`);
 
     // Validation des acceptations obligatoires
     if (!acceptanceData.privacyPolicyAccepted) {
@@ -39,7 +39,7 @@ export class PolicyAcceptanceService {
 
     // Vérifier si le projet a déjà été finalisé
     if (project.policyAcceptance) {
-      logger.warn(`Project already finalized - UserId: ${userId}, ProjectId: ${projectId}`);
+ logger.warn(`Project already finalized ProjectId: ${projectId}`);
       throw new Error('Project has already been finalized');
     }
 
@@ -130,7 +130,7 @@ export class PolicyAcceptanceService {
       throw new Error('Failed to retrieve updated project');
     }
 
-    logger.info(`Project finalized successfully - UserId: ${userId}, ProjectId: ${projectId}`);
+ logger.info(`Project finalized successfully ProjectId: ${projectId}`);
     return savedProject;
   }
 
@@ -174,14 +174,14 @@ export class PolicyAcceptanceService {
    */
   async getUserPolicyAcceptances(userId: string): Promise<ProjectPolicyAcceptance[]> {
     try {
-      logger.info(`Fetching all policy acceptances for userId: ${userId}`);
+ logger.info(`Fetching all policy acceptances for`);
       const projects = await projectService.getAllUserProjects(userId);
       const acceptances = projects
         .filter((project) => project.policyAcceptance)
         .map((project) => project.policyAcceptance!);
       return acceptances;
     } catch (error) {
-      logger.error(`Error fetching user policy acceptances - UserId: ${userId}`, error);
+ logger.error(`Error fetching user policy acceptances `, error);
       return [];
     }
   }

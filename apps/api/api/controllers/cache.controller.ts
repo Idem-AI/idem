@@ -87,11 +87,11 @@ export class CacheController {
         return;
       }
 
-      logger.info(`Invalidating cache for user: ${targetUserId}`, { userId, targetUserId });
+ logger.info(`Invalidating cache`, { userId, targetUserId });
 
       const deletedCount = await cacheService.invalidateUserCache(targetUserId);
 
-      logger.info(`Cache invalidated for user: ${targetUserId}`, {
+ logger.info(`Cache invalidated`, {
         deletedCount,
         userId,
         targetUserId,
@@ -467,13 +467,13 @@ export class CacheController {
         return;
       }
 
-      logger.info(`Invalidating PDF cache for user: ${targetUserId}`, { userId, targetUserId });
+ logger.info(`Invalidating PDF cache`, { userId, targetUserId });
 
       // Invalider dans Redis ET dans le cache local PDF
       const redisDeleted = await cacheService.invalidateUserCache(targetUserId);
       const pdfDeleted = await PdfService.invalidateCacheByUserId(targetUserId);
 
-      logger.info(`PDF cache invalidated for user: ${targetUserId}`, {
+ logger.info(`PDF cache invalidated`, {
         redisDeleted,
         pdfDeleted,
         userId,

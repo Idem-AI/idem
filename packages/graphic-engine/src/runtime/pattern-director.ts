@@ -16,7 +16,7 @@ import type { BrandPattern } from '../design-system/tokens';
 import type { FormatDef } from '../design-system/formats';
 import { stableHash } from '../foundation/hash';
 import { hexToRgb } from '../foundation/color';
-import { engineHost } from '../host';
+import { engineHost, log } from '../host';
 import { pageDocument, withPage } from './browser';
 import { ANALYZE, COLLECT } from './logo-director';
 import type { Box, Region } from './logo-director';
@@ -41,11 +41,11 @@ export interface PatternPlan {
   visible: number;
 }
 
-export const OPACITY = { min: 0.04, max: 0.1 } as const;
-/** Différence perçue visée : un motif qu'on découvre en regardant, qu'on ne voit pas en passant. */
-const TARGET_VISIBLE = 0.045;
-const MIN_VISIBLE = 0.022;
-const MAX_TINT = 0.03;
+export const OPACITY = { min: 0.05, max: 0.14 } as const;
+/** Différence perçue visée : un motif qu'on remarque sans qu'il prenne la place du message. */
+const TARGET_VISIBLE = 0.065;
+const MIN_VISIBLE = 0.03;
+const MAX_TINT = 0.04;
 
 /** Luminosité perçue (0–1) d'une couleur hex. */
 export function lightnessOf(hex: string): number {
@@ -72,9 +72,10 @@ export const unit = (seed: string): number => parseInt(stableHash(seed, 8), 16) 
  * texte. Un motif ne sert pas une photo, ni une page de texte dense ; une direction sobre l'accepte une fois sur trois.
  */
 export function wantsPattern(o: { seed: string; quiet?: boolean; calmShare: number; textShare: number }): boolean {
-  if (o.calmShare < 0.25 || o.textShare > 0.55) return false;
-  const odds = (o.quiet ? 0.33 : 0.72) * (o.calmShare >= 0.6 ? 1 : 0.7) * (o.textShare > 0.4 ? 0.6 : 1);
-  return unit(`${o.seed}|want`) < odds;
+  // Le CONTENU décide : une zone libre suffisante et un texte qui laisse respirer. Seule une direction sobre ajoute
+  // un tirage (une page sur deux), pour que le motif y reste l'exception.
+  if (o.calmShare < 0.12 || o.textShare > 0.6) return false;
+  return o.quiet ? unit(`${o.seed}|want`) < 0.5 : true;
 }
 
 /** Le meilleur motif pour une zone de luminance relative `regionLum` (0–1), ou `null` si aucun ne se verrait. */
@@ -200,15 +201,31 @@ interface Cell extends Region {
 
 const overlaps = (a: Box, b: Box) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 
-/** Les zones candidates : toute la page, deux bandes, deux côtés (en cases de la grille). */
-function regionsOf(): { name: 'full' | 'top' | 'bottom' | 'left' | 'right'; x0: number; y0: number; x1: number; y1: number }[] {
+type RegionName = 'full' | 'top' | 'bottom' | 'left' | 'right' | 'tl' | 'tr' | 'bl' | 'br';
+
+/** Les zones candidates : toute la page, deux bandes, deux côtés, quatre coins (en cases de la grille). */
+function regionsOf(): { name: RegionName; x0: number; y0: number; x1: number; y1: number }[] {
+  const b = Math.round(GRID * 0.4);
+  const s = Math.round(GRID * 0.45);
+  const c = Math.round(GRID * 0.42);
   return [
     { name: 'full', x0: 0, y0: 0, x1: GRID, y1: GRID },
-    { name: 'top', x0: 0, y0: 0, x1: GRID, y1: Math.round(GRID * 0.4) },
-    { name: 'bottom', x0: 0, y0: GRID - Math.round(GRID * 0.4), x1: GRID, y1: GRID },
-    { name: 'left', x0: 0, y0: 0, x1: Math.round(GRID * 0.45), y1: GRID },
-    { name: 'right', x0: GRID - Math.round(GRID * 0.45), y0: 0, x1: GRID, y1: GRID },
+    { name: 'top', x0: 0, y0: 0, x1: GRID, y1: b },
+    { name: 'bottom', x0: 0, y0: GRID - b, x1: GRID, y1: GRID },
+    { name: 'left', x0: 0, y0: 0, x1: s, y1: GRID },
+    { name: 'right', x0: GRID - s, y0: 0, x1: GRID, y1: GRID },
+    { name: 'tl', x0: 0, y0: 0, x1: c, y1: c },
+    { name: 'tr', x0: GRID - c, y0: 0, x1: GRID, y1: c },
+    { name: 'bl', x0: 0, y0: GRID - c, x1: c, y1: GRID },
+    { name: 'br', x0: GRID - c, y0: GRID - c, x1: GRID, y1: GRID },
   ];
+}
+
+/** Le fondu d'une zone : depuis son bord extérieur (ou son coin) vers l'intérieur de la page. */
+function fadeOf(name: RegionName, text: { x: number; y: number }, W: number, H: number): Fade {
+  if (name === 'full') return `full-${text.y < H / 2 ? 'b' : 't'}${text.x < W / 2 ? 'r' : 'l'}` as Fade;
+  if (name === 'tl' || name === 'tr' || name === 'bl' || name === 'br') return `full-${name}` as Fade;
+  return name === 'top' ? 'bottom' : name === 'bottom' ? 'top' : name === 'left' ? 'right' : 'left';
 }
 
 export interface DirectedPattern {
@@ -218,15 +235,21 @@ export interface DirectedPattern {
   where: string;
 }
 
+/** Pourquoi une page n'a pas de motif (journal) : le réglage se décide sur des faits, pas à l'aveugle. */
+function skip(seed: string, reason: string, extra: Record<string, unknown> = {}): null {
+  log().info('graphic.pattern', { event: 'graphic.pattern', placed: false, reason, seed: seed.slice(0, 60), ...extra });
+  return null;
+}
+
 /**
  * Pose (ou non) un motif de la charte sur une page de visuel affichée. `null` : pas de motif — la page est gardée
  * telle quelle. Une seule ouverture de page : mesure, pose et vérification se font dans la même session.
  */
 export async function directPattern(o: { html: string; head: string; format: FormatDef; tiles: PatternTile[]; seed: string; quiet?: boolean; lang?: string; shoot?: boolean }): Promise<DirectedPattern | null> {
-  if (o.format.kind !== 'fixed' || !o.tiles.length || unit(`${o.seed}|gate`) > 0.97) return null;
-  // Un tirage défavorable écarte la page AVANT d'ouvrir le navigateur quand rien ne peut le renverser (le texte et la
-  // photo, eux, se mesurent dans la page).
-  if (unit(`${o.seed}|want`) >= (o.quiet ? 0.33 : 0.72)) return null;
+  if (o.format.kind !== 'fixed') return null;
+  if (!o.tiles.length) return skip(o.seed, 'no-usable-pattern');
+  // Une direction sobre : le tirage se fait AVANT d'ouvrir le navigateur (rien dans la page ne le renverserait).
+  if (o.quiet && unit(`${o.seed}|want`) >= 0.5) return skip(o.seed, 'quiet-direction');
   try {
     return await withPage(pageDocument(o.html, o.head, { lang: o.lang, background: '#ffffff' }), { width: o.format.width, height: o.format.height }, async (page: Page) => {
       if (await page.$('canvas[data-idem-chart]')) return null;
@@ -243,52 +266,67 @@ export async function directPattern(o: { html: string; head: string; format: For
       for (let gy = 0; gy < GRID; gy++) for (let gx = 0; gx < GRID; gx++) rects.push({ x: (gx * W) / GRID, y: (gy * H) / GRID, w: W / GRID, h: H / GRID });
       const stats = (await page.evaluate(`${ANALYZE}(${JSON.stringify(`data:image/png;base64,${bare.toString('base64')}`)}, ${JSON.stringify(rects)})`)) as Region[];
       const cells: Cell[] = rects.map((r, i) => ({ ...r, ...stats[i], text: collected.obstacles.some((b) => overlaps(r, b)) }));
-      const calm = (c: Cell) => c.std < 0.07 && !images.some((b) => overlaps(c, b));
-      const calmShare = cells.filter(calm).length / cells.length;
+      // Deux façons de poser un motif :
+      //   SOUS le contenu  sur un fond libre (aplat, panneau, marge) : le texte et les images passent par-dessus ;
+      //   SUR une photo    seulement sur une partie calme et sans texte (ciel, mur, fond de studio), en bord ou en coin.
+      const underImage = (c: Cell) => images.some((b) => overlaps(c, b));
+      const free = (c: Cell) => c.std < 0.07 && !underImage(c);
+      const photoCalm = (c: Cell) => c.std < 0.045 && underImage(c) && !c.text;
+      const calmShare = cells.filter((c) => free(c) || photoCalm(c)).length / cells.length;
       const textShare = cells.filter((c) => c.text).length / cells.length;
-      if (!wantsPattern({ seed: o.seed, quiet: o.quiet, calmShare, textShare })) return null;
+      if (!wantsPattern({ seed: o.seed, quiet: o.quiet, calmShare, textShare })) return skip(o.seed, calmShare < 0.12 ? 'no-calm-area' : 'text-too-dense', { calmShare: Math.round(calmShare * 100) / 100, textShare: Math.round(textShare * 100) / 100 });
 
-      // La plus grande zone calme (≥ 80 % de cases calmes) ; toute la page si elle l'est.
-      let best: { name: string; score: number; lum: number; box: Box; fade: Fade } | null = null;
+      const textCells = cells.filter((c) => c.text);
+      const text = { x: textCells.length ? textCells.reduce((s, c) => s + c.x + c.w / 2, 0) / textCells.length : W / 2, y: textCells.length ? textCells.reduce((s, c) => s + c.y + c.h / 2, 0) / textCells.length : H / 2 };
+      let best: { name: RegionName; mode: 'under' | 'over'; score: number; lum: number; box: Box; fade: Fade } | null = null;
       for (const r of regionsOf()) {
         const inside = cells.filter((_, i) => {
           const gx = i % GRID;
           const gy = Math.floor(i / GRID);
           return gx >= r.x0 && gx < r.x1 && gy >= r.y0 && gy < r.y1;
         });
-        const calmCells = inside.filter(calm);
-        if (calmCells.length / inside.length < 0.8) continue;
         const area = ((r.x1 - r.x0) * (r.y1 - r.y0)) / (GRID * GRID);
         const box: Box = { x: (r.x0 * W) / GRID, y: (r.y0 * H) / GRID, w: ((r.x1 - r.x0) * W) / GRID, h: ((r.y1 - r.y0) * H) / GRID };
-        // Ancré dans le coin le plus éloigné du texte, fondu vers lui.
-        const textBoxes = cells.filter((c) => c.text);
-        const tx = textBoxes.length ? textBoxes.reduce((s, c) => s + c.x + c.w / 2, 0) / textBoxes.length : W / 2;
-        const ty = textBoxes.length ? textBoxes.reduce((s, c) => s + c.y + c.h / 2, 0) / textBoxes.length : H / 2;
-        const fade: Fade = r.name === 'full' ? (`full-${ty < H / 2 ? 'b' : 't'}${tx < W / 2 ? 'r' : 'l'}` as Fade) : r.name === 'top' ? 'bottom' : r.name === 'bottom' ? 'top' : r.name === 'left' ? 'right' : 'left';
-        const lum = calmCells.reduce((s, c) => s + c.mean, 0) / calmCells.length;
-        const score = area * (calmCells.length / inside.length);
-        if (!best || score > best.score) best = { name: r.name, score, lum, box, fade };
+        const freeCells = inside.filter(free);
+        const overCells = inside.filter((c) => free(c) || photoCalm(c));
+        // SOUS : ≥ 80 % de fond libre. SUR : aucune case de texte, ≥ 85 % de cases calmes, et pas toute la page.
+        const under = freeCells.length / inside.length >= 0.8;
+        const over = !under && r.name !== 'full' && !inside.some((c) => c.text) && overCells.length / inside.length >= 0.85;
+        if (!under && !over) continue;
+        const used = under ? freeCells : overCells;
+        const score = area * (used.length / inside.length) * (under ? 1.15 : 1);
+        if (best && best.score >= score) continue;
+        best = { name: r.name, mode: under ? 'under' : 'over', score, lum: used.reduce((s, c) => s + c.mean, 0) / used.length, box, fade: fadeOf(r.name, text, W, H) };
       }
-      if (!best) return null;
+      if (!best) return skip(o.seed, 'no-region', { calmShare: Math.round(calmShare * 100) / 100 });
       const plan = planPattern({ regionLum: best.lum, tiles: o.tiles, textShare, seed: o.seed });
-      if (!plan) return null;
+      if (!plan) return skip(o.seed, 'not-visible-on-region', { lum: Math.round(best.lum * 100) / 100 });
 
       const layer = patternLayerHtml(plan, best.box, best.fade, Math.min(W, H) / 1080);
-      // Posé en PREMIER enfant de la racine : le texte et les images viennent par-dessus, le motif reste au fond.
-      const rootTag = /<[a-z0-9]+\b[^>]*class="[^"]*\bge-page\b[^"]*"[^>]*>/i;
-      const match = rootTag.exec(o.html);
-      if (!match) return null;
-      const html = `${o.html.slice(0, match.index + match[0].length)}${layer}${o.html.slice(match.index + match[0].length)}`;
+      let html: string;
+      if (best.mode === 'under') {
+        // PREMIER enfant de la racine : le texte et les images viennent par-dessus, le motif reste au fond.
+        const match = /<[a-z0-9]+\b[^>]*class="[^"]*\bge-page\b[^"]*"[^>]*>/i.exec(o.html);
+        if (!match) return skip(o.seed, 'no-root');
+        html = `${o.html.slice(0, match.index + match[0].length)}${layer}${o.html.slice(match.index + match[0].length)}`;
+      } else {
+        // DERNIER enfant : par-dessus la photo (zone sans texte), sous le logo que le directeur pose ensuite.
+        const close = o.html.lastIndexOf('</div>');
+        if (close < 0) return skip(o.seed, 'no-root');
+        html = `${o.html.slice(0, close)}${layer}${o.html.slice(close)}`;
+      }
       // VÉRIFICATION dans la même page : le calque est où prévu et la page garde sa taille.
-      await page.evaluate(`(function(){var r=document.querySelector('.ge-page');r.querySelectorAll('img[data-ge-logo]').forEach(function(i){i.style.visibility='';});r.insertAdjacentHTML('afterbegin', ${JSON.stringify(layer)});})()`);
+      await page.evaluate(`(function(){var r=document.querySelector('.ge-page');r.querySelectorAll('img[data-ge-logo]').forEach(function(i){i.style.visibility='';});r.insertAdjacentHTML(${JSON.stringify(best.mode === 'under' ? 'afterbegin' : 'beforeend')}, ${JSON.stringify(layer)});})()`);
       const check = (await page.evaluate(`(function(){var r=document.querySelector('.ge-page'),l=r.querySelector('[data-ge-pattern-layer]');if(!l)return null;var rb=r.getBoundingClientRect(),b=l.getBoundingClientRect();return {x:b.left-rb.left,y:b.top-rb.top,w:b.width,h:b.height,cw:rb.width,ch:rb.height};})()`)) as { x: number; y: number; w: number; h: number; cw: number; ch: number } | null;
-      if (!check || Math.abs(check.x - best.box.x) > 3 || Math.abs(check.y - best.box.y) > 3 || Math.abs(check.w - best.box.w) > 3 || Math.abs(check.cw - W) > 2 || Math.abs(check.ch - H) > 2) return null;
+      if (!check || Math.abs(check.x - best.box.x) > 3 || Math.abs(check.y - best.box.y) > 3 || Math.abs(check.w - best.box.w) > 3 || Math.abs(check.cw - W) > 2 || Math.abs(check.ch - H) > 2) return skip(o.seed, 'layer-misplaced');
       await page.evaluate(WAIT_PATTERN_IMAGE).catch(() => undefined);
       const png = o.shoot ? Buffer.from(await (await page.$('.ge-page'))!.screenshot({ type: 'png' })) : undefined;
-      return { html, ...(png ? { png } : {}), plan, where: `${best.name} (${best.fade}), ${plan.tile.kind ?? 'motif'}, ${plan.blend} ${Math.round(plan.opacity * 100)} %` };
+      const where = `${best.mode === 'under' ? 'fond' : 'sur la photo'} ${best.name} (${best.fade}), ${plan.tile.kind ?? 'motif'}, ${plan.blend} ${Math.round(plan.opacity * 100)} %`;
+      log().info('graphic.pattern', { event: 'graphic.pattern', placed: true, where, seed: o.seed.slice(0, 60) });
+      return { html, ...(png ? { png } : {}), plan, where };
     });
-  } catch {
-    return null;
+  } catch (error) {
+    return skip(o.seed, 'error', { error: String((error as Error)?.message ?? error).slice(0, 160) });
   }
 }
 

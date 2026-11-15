@@ -192,7 +192,7 @@ export const getPitchDeckController = async (req: CustomRequest, res: Response):
       res.status(401).json({ message: 'User not authenticated' });
       return;
     }
-    logger.info(`getPitchDeckController userId=${userId} projectId=${projectId} documentId=${documentId ?? '(primary)'}`);
+ logger.info(`getPitchDeckController projectId=${projectId} documentId=${documentId ?? '(primary)'}`);
     const pitchDeck = await pitchDeckService.getPitchDeckByProjectId(userId, projectId as string, documentId);
     if (!pitchDeck) {
       logger.info(`getPitchDeckController: no pitch deck yet projectId=${projectId}`);
@@ -228,7 +228,7 @@ export const deletePitchDeckController = async (
       res.status(400).json({ message: 'A "documentId" query parameter is required' });
       return;
     }
-    logger.info(`deletePitchDeckController userId=${userId} projectId=${projectId} documentId=${documentId}`);
+ logger.info(`deletePitchDeckController projectId=${projectId} documentId=${documentId}`);
     const removed = await pitchDeckService.deleteDocument(userId, projectId as string, documentId);
     if (!removed) {
       res.status(404).json({ message: 'Pitch deck not found' });
@@ -256,7 +256,7 @@ export const generatePitchDeckStreamingController = async (
       return;
     }
     if (!projectId) {
-      logger.warn(`generatePitchDeckStreamingController: missing projectId userId=${userId}`);
+ logger.warn(`generatePitchDeckStreamingController: missing projectId`);
       res.status(400).json({ message: 'Project ID is required' });
       return;
     }
@@ -332,9 +332,9 @@ export const generatePitchDeckStreamingController = async (
     }
 
     if (!isRetry) {
-      logger.info(`Charged 5 credits for user ${userId} on Pitch Deck completion.`);
+      logger.info('Charged 5 credits on Pitch Deck completion.');
     } else {
-      logger.info(`Exempted user ${userId} from credit charge because this is a retry/resume.`);
+      logger.info('Exempted from credit charge because this is a retry/resume.');
     }
 
     logger.info(
@@ -379,7 +379,7 @@ export const generatePitchDeckPdfController = async (
       return;
     }
 
-    logger.info(`generatePitchDeckPdfController userId=${userId} projectId=${projectId} documentId=${documentId ?? '(primary)'}`);
+ logger.info(`generatePitchDeckPdfController projectId=${projectId} documentId=${documentId ?? '(primary)'}`);
     const pdfPath = await pitchDeckService.generatePitchDeckPdf(userId, projectId as string, documentId);
     if (pdfPath === '') {
       logger.warn(`generatePitchDeckPdfController: no pitch deck for projectId=${projectId}`);

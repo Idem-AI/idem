@@ -55,7 +55,7 @@ class ProjectService {
       // Generate the final project ID using UUID
       const projectId = uuidv4();
 
-      logger.info(`Creating project for user ${userId}`, {
+ logger.info(`Creating project`, {
         userId,
         projectId,
         hasLogoVariations: !!projectData.analysisResultModel?.branding?.logo?.variations,
@@ -179,7 +179,7 @@ class ProjectService {
       );
       return activeProjects;
     } catch (error: any) {
-      logger.error(`Error fetching projects for user ${userId} in service: ${error.message}`, {
+ logger.error(`Error fetching projects in service: ${error.message}`, {
         stack: error.stack,
         details: error,
       });
@@ -196,7 +196,7 @@ class ProjectService {
     try {
       const project = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
       if (!project) {
-        logger.info(`Project ${projectId} not found for user ${userId} via repository`);
+ logger.info(`Project ${projectId} not found via repository`);
         return null;
       }
       logger.info(`Project data fetched for ${projectId}:`, project);
@@ -225,7 +225,7 @@ class ProjectService {
       );
 
       if (updatedProject) {
-        logger.info(`Project ${projectId} archived successfully for user ${userId} via repository`);
+ logger.info(`Project ${projectId} archived successfully via repository`);
 
         // Invalider le cache du projet dans Redis
         const projectCacheKey = `project_${userId}_${projectId}`;
@@ -384,7 +384,7 @@ class ProjectService {
         `users/${userId}/projects`
       );
       if (updatedProject) {
-        logger.info(`Project ${projectId} updated successfully for user ${userId} via repository`);
+ logger.info(`Project ${projectId} updated successfully via repository`);
         
         // Invalider le cache du projet dans Redis
         const projectCacheKey = `project_${userId}_${projectId}`;
@@ -608,11 +608,11 @@ class ProjectService {
       );
 
       if (!generation) {
-        logger.info(`No generation found for project ${projectId} and user ${userId}`);
+ logger.info(`No generation found for project ${projectId} and`);
         return null;
       }
 
-      logger.info(`Generation fetched for project ${projectId} and user ${userId}`);
+ logger.info(`Generation fetched for project ${projectId} and`);
       return generation;
     } catch (error: any) {
       logger.error(
@@ -670,7 +670,7 @@ class ProjectService {
         `${projectId}_generation`
       );
 
-      logger.info(`Generation saved successfully for project ${projectId} and user ${userId}`);
+ logger.info(`Generation saved successfully for project ${projectId} and`);
     } catch (error: any) {
       logger.error(
         `Error saving generation for project ${projectId} and user ${userId}: ${error.message}`,
@@ -706,7 +706,7 @@ class ProjectService {
       );
 
       if (!deployment) {
-        logger.info(`No app deployment found for project ${projectId} and user ${userId}`);
+ logger.info(`No app deployment found for project ${projectId} and`);
         return null;
       }
 
@@ -750,7 +750,7 @@ class ProjectService {
         productDocId(projectId, 'deployment', product)
       );
 
-      logger.info(`App deployment saved for project ${projectId} and user ${userId}`, {
+ logger.info(`App deployment saved for project ${projectId} and `, {
         siteId: deploymentData.siteId,
         url: deploymentData.url,
       });
@@ -878,7 +878,7 @@ class ProjectService {
       const codeFiles = await storageService.downloadProjectCodeZip(projectId, userId);
 
       if (!codeFiles || Object.keys(codeFiles).length === 0) {
-        logger.info(`No code files found for project ${projectId} and user ${userId}`);
+ logger.info(`No code files found for project ${projectId} and`);
         return null;
       }
 
@@ -999,7 +999,7 @@ class ProjectService {
         productDocId(projectId, 'chat', product)
       );
 
-      logger.info(`Chat session saved for project ${projectId} and user ${userId}`, {
+ logger.info(`Chat session saved for project ${projectId} and `, {
         sessionId: session.sessionId,
         messageCount: record.messageCount,
       });
@@ -1057,7 +1057,7 @@ class ProjectService {
         ? await this.projectRepository.delete(`${projectId}_generation`, `users/${userId}/generations`)
         : false;
 
-    logger.info(`Generation deleted for project ${projectId} (${product}) and user ${userId}`, {
+ logger.info(`Generation deleted for project ${projectId} (${product}) and `, {
       codeFiles,
       chat,
       marker,

@@ -100,7 +100,7 @@ export const getBusinessPlanPdfQualityController = async (
   const userId = req.user?.uid;
   const { projectId } = req.params;
   const documentId = readDocumentId(req.query.documentId);
-  logger.info(`getBusinessPlanPdfQualityController called - UserId: ${userId}, ProjectId: ${projectId}`);
+ logger.info(`getBusinessPlanPdfQualityController called ProjectId: ${projectId}`);
 
   try {
     if (!userId) {
@@ -224,7 +224,7 @@ export const getBusinessPlanByIdController = async (
       );
       res.status(200).json(businessPlan);
     } else {
-      logger.warn(`Business plan not found - UserId: ${userId}, ProjectId: ${projectId}`);
+ logger.warn(`Business plan not found ProjectId: ${projectId}`);
       res.status(404).json({ message: 'Business plan not found' });
     }
   } catch (error: any) {
@@ -244,7 +244,7 @@ export const updateBusinessPlanController = async (
 ): Promise<void> => {
   const userId = req.user?.uid;
   const { itemId } = req.params;
-  logger.info(`updateBusinessPlanController called - UserId: ${userId}, ItemId: ${itemId}`, {
+ logger.info(`updateBusinessPlanController called ItemId: ${itemId}`, {
     body: req.body,
   });
   try {
@@ -255,10 +255,10 @@ export const updateBusinessPlanController = async (
     }
     const item = await businessPlanService.updateBusinessPlan(userId, itemId as string, req.body);
     if (item) {
-      logger.info(`Business plan updated successfully - UserId: ${userId}, ItemId: ${itemId}`);
+ logger.info(`Business plan updated successfully ItemId: ${itemId}`);
       res.status(200).json(item);
     } else {
-      logger.warn(`Business plan item not found for update - UserId: ${userId}, ItemId: ${itemId}`);
+ logger.warn(`Business plan item not found for update ItemId: ${itemId}`);
       res.status(404).json({ message: 'Business plan item not found' });
     }
   } catch (error: any) {
@@ -282,7 +282,7 @@ export const saveBusinessPlanSectionsController = async (
 ): Promise<void> => {
   const userId = req.user?.uid;
   const { projectId } = req.params;
-  logger.info(`saveBusinessPlanSectionsController called - UserId: ${userId}, ProjectId: ${projectId}`);
+ logger.info(`saveBusinessPlanSectionsController called ProjectId: ${projectId}`);
   try {
     if (!userId) {
       res.status(401).json({ message: 'User not authenticated' });
@@ -400,7 +400,7 @@ export const deleteBusinessPlanController = async (
       res.status(404).json({ message: 'Business plan not found' });
       return;
     }
-    logger.info(`Business plan deleted successfully - UserId: ${userId}, DocumentId: ${documentId}`);
+ logger.info(`Business plan deleted successfully DocumentId: ${documentId}`);
     res.status(204).send();
   } catch (error: any) {
     logger.error(
@@ -590,7 +590,7 @@ export const generateBusinessPlanStreamingController = async (
       readDocumentId(req.query.documentId)
     );
     if (!plan) {
-      logger.warn(`Business plan not found for generation - UserId: ${userId}, ProjectId: ${projectId}`);
+ logger.warn(`Business plan not found for generation ProjectId: ${projectId}`);
       res.status(404).json({ message: 'Business plan not found' });
       return;
     }
@@ -671,20 +671,18 @@ export const generateBusinessPlanStreamingController = async (
     }
 
     if (!updatedPlan) {
-      logger.warn(`Failed to generate business plan - UserId: ${userId}, ProjectId: ${projectId}`);
+ logger.warn(`Failed to generate business plan ProjectId: ${projectId}`);
       writeSSE({ error: 'Failed to generate business plan' });
       res.end();
       return;
     }
 
-    logger.info(
-      `Business plan generation completed - UserId: ${userId}, ProjectId: ${projectId}, DocumentId: ${plan.id}`
-    );
+    logger.info('Business plan generation completed', { projectId, documentId: plan.id });
 
     if (!isRetry) {
-      logger.info(`Charged 5 credits for user ${userId} on Business Plan completion.`);
+      logger.info('Charged 5 credits on Business Plan completion.');
     } else {
-      logger.info(`Exempted user ${userId} from credit charge because this is a retry/resume.`);
+      logger.info('Exempted from credit charge because this is a retry/resume.');
     }
 
     // Événement métier de fin (le business plan complet).
@@ -695,8 +693,8 @@ export const generateBusinessPlanStreamingController = async (
     res.end();
   } catch (error: any) {
     logger.error(
-      `Error in generateBusinessPlanStreamingController - UserId: ${userId}, ProjectId: ${projectId}: ${error.message}`,
-      { stack: error.stack, body: req.body }
+      `Error in generateBusinessPlanStreamingController: ${error.message}`,
+      { stack: error.stack, projectId }
     );
 
     if (!res.headersSent) {
@@ -721,7 +719,7 @@ export const setAdditionalInfoController = async (
     const userId = req.user?.uid;
     const { projectId } = req.params;
 
-    logger.info(`Set additional info request from userId: ${userId}, projectId: ${projectId}`);
+ logger.info(`Set additional info request from projectId: ${projectId}`);
 
     if (!userId) {
       logger.warn('Unauthorized set additional info request - no userId');

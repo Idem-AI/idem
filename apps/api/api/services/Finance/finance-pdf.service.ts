@@ -80,7 +80,7 @@ export class FinancePdfService {
 
   /** Génère un PDF du rapport financier. Renvoie le chemin du fichier généré. */
   async generateFinancePdf(userId: string, projectId: string): Promise<string> {
-    logger.info(`FinancePdfService.generateFinancePdf userId=${userId} projectId=${projectId}`);
+ logger.info(`FinancePdfService.generateFinancePdf projectId=${projectId}`);
 
     const project = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
     if (!project) throw new Error(`Project not found: ${projectId}`);
