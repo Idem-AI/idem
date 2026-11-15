@@ -47,6 +47,8 @@ export interface CopyBrief {
   valueProposition?: string;
   tone?: string;
   language: string;
+  /** La demande de l'utilisateur, telle quelle (avant reformulation) : seule source des mots exacts à imprimer. */
+  original?: string;
 }
 
 const fold = (t: string) => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
@@ -118,6 +120,29 @@ export function dedupeFacts(facts: CopyFact[], headline: string): CopyFact[] {
     .map((f) => ({ ...f, text: f.text.charAt(0).toUpperCase() + f.text.slice(1) }));
 }
 
+// ─── Texte exact et consignes ───────────────────────────────────────────────
+
+const NONE = /^(none|aucun|aucune|n\/a|-|rien|null|undefined|nil)$/i;
+
+/** Une CONSIGNE de designer (« le message à intégrer sur l'image doit être… ») : jamais un texte à imprimer. */
+const INSTRUCTION = /\b(doit|doivent|devra|devrait)\s+(?:être|etre|contenir|afficher|dire|montrer|intégrer)|\b(?:à|a)\s+(?:intégrer|integrer|inclure|afficher|écrire|ecrire)\b|\bsur l['’]image\b|\ble message (?:à|a|qui)\b|\bthe (?:message|text|image) (?:to|must|should|that)\b|\b(?:must|should)\s+(?:be|say|show|include|read|contain)\b|\bto (?:integrate|include|display|print)\b|\bexactement\b|\bexactly\b|\b(?:graphiste|designer|illustrateur)\b/i;
+export const looksLikeInstruction = (t: string) => INSTRUCTION.test(t);
+
+const CUE = /(?:exactement|exact|texte|message|slogan|phrase|[ée]crire|[ée]crit|afficher|mettre|imprimer|int[ée]grer|dire|text|say|write|print|display|headline|titre)/i;
+
+/**
+ * Le texte que l'utilisateur veut voir SUR le visuel, écrit entre guillemets (« Dream Less, Do More Today ») :
+ * imprimé tel quel, dans sa langue — jamais traduit, jamais « corrigé » par les règles de langue du titre.
+ */
+export function explicitMessage(...sources: (string | undefined)[]): string | undefined {
+  const text = sources.filter(Boolean).join(' ');
+  const quotes = [...text.matchAll(/[«“"]\s*([^«»“”"]{3,70}?)\s*[»”"]/g)].map((m) => ({ value: m[1].trim(), at: m.index ?? 0 }));
+  const usable = quotes.filter((q) => wordsOf(q.value).length >= 1 && wordsOf(q.value).length <= 10 && !INSTRUCTION.test(q.value));
+  if (!usable.length) return undefined;
+  const cued = usable.find((q) => CUE.test(text.slice(Math.max(0, q.at - 110), q.at)));
+  return (cued ?? (usable.length === 1 ? usable[0] : undefined))?.value;
+}
+
 // ─── Validation des textes ──────────────────────────────────────────────────
 
 /** Les mots de la CONSIGNE, jamais du message affiché. */
@@ -152,7 +177,12 @@ export function factLooksRight(kind: CopyFact['kind'], value: string): boolean {
 }
 
 export function validHeadline(headline: string, brief: CopyBrief): boolean {
-  if (!headline || wordsOf(headline).length > 9 || headline.length > 60) return false;
+  if (!headline || NONE.test(headline.trim())) return false;
+  // Le texte voulu par l'utilisateur est valide tel quel (langue, longueur normale) : c'est sa décision.
+  const wanted = explicitMessage(brief.original, brief.message, brief.details);
+  if (wanted && fold(wanted) === fold(headline) && wordsOf(headline).length <= 10) return true;
+  if (looksLikeInstruction(headline)) return false;
+  if (wordsOf(headline).length > 9 || headline.length > 60) return false;
   if (STOP_END.test(headline)) return false;
   if (inventsFormat(headline, `${brief.message} ${brief.details || ''}`)) return false;
   if (META.test(headline) && !META.test(brief.brandName)) return false;
@@ -200,9 +230,16 @@ const LEAD = /^\s*(?:(?:je\s+(?:veux|voudrais)|j['’]aimerais|fais(?:-moi)?|cr[
 
 /** Les mots du visuel sans modèle : le message raccourci, les faits du brief. */
 export function heuristicCopy(brief: CopyBrief, intent: CopyIntent): WrittenCopy {
-  const { facts, offer } = extractFacts(`${brief.message} ${brief.details || ''}`);
+  const { facts, offer } = extractFacts(`${brief.original || ''} ${brief.message} ${brief.details || ''}`);
+  const wanted = explicitMessage(brief.original, brief.message, brief.details);
+  // La demande de l'utilisateur d'abord : la reformulation est une consigne de designer, jamais un texte à imprimer.
+  // Les phrases de consigne (« le message à intégrer sur l'image doit être… ») sont écartées.
+  const speakable = (t: string) => t.split(/(?<=[.!?])\s+/).filter((sentence) => !looksLikeInstruction(sentence)).join(' ').trim();
+  const fromUser = speakable(brief.original || '');
+  const fromBrief = speakable(brief.message);
+  const pool = [fromUser, fromBrief].find((t) => wordsOf(t).length >= 2) || '';
   // Un titre trop court (« Promo ») : la description porte le message.
-  const base = wordsOf(brief.message).length < 4 && wordsOf(brief.details || '').length >= 4 ? brief.details! : brief.message;
+  const base = wordsOf(pool).length < 4 && wordsOf(speakable(brief.details || '')).length >= 4 ? speakable(brief.details || '') : pool;
   let message = base.replace(LEAD, '').replace(/^(?:de|du|d['’]|des|pour)\s+/i, '').trim();
   message = message.charAt(0).toUpperCase() + message.slice(1);
   let [first, ...others] = message.split(/(?<=[.!?:])\s/);
@@ -214,13 +251,13 @@ export function heuristicCopy(brief: CopyBrief, intent: CopyIntent): WrittenCopy
     restText = tail.join(', ');
   }
   first = first.replace(/\s*[:;,]$/, '');
-  let headline = clip(first, 44);
+  let headline = wanted ?? clip(first, 44);
   if (!validHeadline(headline, brief)) headline = intent === 'event' ? (brief.language.startsWith('fr') ? 'On se retrouve' : 'See you there') : brief.brandName || clip(brief.message, 44);
   const rest = clip(restText.replace(/^[\s,.;:!?]+/, ''), 110);
   const copy = {
     headline,
     // (faits dédoublonnés plus bas)
-    sub: rest && rest !== headline && languageMatches(rest, brief.language) ? rest : brief.valueProposition && languageMatches(brief.valueProposition, brief.language) ? clip(brief.valueProposition, 100) : undefined,
+    sub: rest && rest !== headline && !STOP_END.test(rest) && !looksLikeInstruction(rest) && languageMatches(rest, brief.language) ? rest : brief.valueProposition && languageMatches(brief.valueProposition, brief.language) ? clip(brief.valueProposition, 100) : undefined,
     facts: dedupeFacts(facts.filter((f) => !offer || f.kind !== 'price'), headline),
     ...(offer ? { offer } : {}),
   } as WrittenCopy;
@@ -299,7 +336,8 @@ export function copyTask(brief: CopyBrief, intent: CopyIntent, feedback?: string
       system: [
         `You write the words of ONE social-media visual (${INTENT_HINT[intent]}) for the brand ${brief.brandName}. Write ONLY in ${lang}.`,
         'Output ONLY these lines (write "none" when empty):',
-        'headline: the message, 3 to 7 words, strong and concrete — NOT the request ("A story to announce…"), never the words visual, poster, story, post, design',
+        'headline: the message, 3 to 7 words, strong and concrete — NOT the request ("A story to announce…"), never the words visual, poster, story, post, design. If the ORIGINAL REQUEST gives the exact text to print between quotes, the headline is EXACTLY that text, in its own language, unchanged.',
+        'Everything you write is PRINTED on the visual: never an instruction, never a description of the image or of the task ("the message to integrate…"), never the word none unless the line is empty.',
         'sub: one sentence of at most 14 words that adds information, or none',
         'date: the date copied from the request, or none',
         'time: the time copied from the request, or none',
@@ -319,6 +357,7 @@ export function copyTask(brief: CopyBrief, intent: CopyIntent, feedback?: string
       user: [
         `BRAND: ${brief.brandName}${brief.businessType ? ` — ${brief.businessType}` : ''}${brief.tone ? ` · tone: ${brief.tone}` : ''}`,
         brief.valueProposition ? `BRAND PROMISE: ${brief.valueProposition.slice(0, 240)}` : '',
+        brief.original && brief.original !== brief.message ? `ORIGINAL REQUEST (authoritative for exact wording): ${brief.original.slice(0, 500)}` : '',
         `REQUEST: ${source.slice(0, 900)}`,
         feedback ? `THE USER DISLIKED THE PREVIOUS VERSION: "${feedback.slice(0, 200)}" — write something more striking, still true.` : '',
       ]
@@ -328,13 +367,17 @@ export function copyTask(brief: CopyBrief, intent: CopyIntent, feedback?: string
     parse: (raw) => {
       const l = agentLines(raw);
       const none = (v?: string) => !v || /^(none|aucun|aucune|n\/a|-|rien|null)$/i.test(v.trim());
-      const headline = clip(l.headline || l.titre || l.title, 60);
+      const wanted = explicitMessage(brief.original, brief.message, brief.details);
+      const said = l.headline || l.titre || l.title;
+      // Le texte exact voulu par l'utilisateur prime ; « none » ou une consigne n'est jamais un titre.
+      const headline = wanted ?? clip(said, 60);
+      if (none(said) && !wanted) return undefined;
       if (!validHeadline(headline, brief)) return undefined;
       const copy: WrittenCopy = { headline, facts: [] };
       const idea = clip(l.photo || '', 200);
       const query = clip(l.photoquery || l.photo_query || '', 60);
       if (!none(idea) && wordsOf(idea).length >= 4) copy.photo = { idea, query: !none(query) && wordsOf(query).length <= 6 ? query : wordsOf(idea).slice(0, 4).join(' ') };
-      if (!none(l.sub) && wordsOf(l.sub).length <= 18 && !META.test(l.sub) && !inventsFormat(l.sub, source) && !STOP_END.test(l.sub) && languageMatches(l.sub, brief.language) && digits(l.sub).every((d) => digits(source).includes(d))) copy.sub = clip(l.sub, 120);
+      if (!none(l.sub) && wordsOf(l.sub).length <= 18 && !looksLikeInstruction(l.sub) && !META.test(l.sub) && !inventsFormat(l.sub, source) && !STOP_END.test(l.sub) && languageMatches(l.sub, brief.language) && digits(l.sub).every((d) => digits(source).includes(d))) copy.sub = clip(l.sub, 120);
       const facts: CopyFact[] = [];
       for (const kind of ['date', 'time', 'place', 'price'] as const) {
         const v = l[kind];
