@@ -62,7 +62,7 @@ class RefreshTokenService {
     binding?: SessionBinding
   ): Promise<RefreshTokenResult> {
     try {
-      logger.info(`Generating refresh token for user: ${userId}`);
+ logger.info(`Generating refresh token`);
 
       // Générer un token sécurisé
       const token = this.generateSecureToken();
@@ -102,7 +102,7 @@ class RefreshTokenService {
         // Supprimer le plus ancien token
         user.refreshTokens.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
         user.refreshTokens.shift();
-        logger.info(`Removed oldest refresh token for user ${userId} due to limit`);
+ logger.info(`Removed oldest refresh token due to limit`);
       }
 
       // Ajouter le nouveau token
@@ -111,10 +111,10 @@ class RefreshTokenService {
       // Mettre à jour l'utilisateur
       await this.userRepository.update(userId, { refreshTokens: user.refreshTokens }, 'users');
 
-      logger.info(`Refresh token generated successfully for user: ${userId}`);
+ logger.info(`Refresh token generated successfully`);
       return { refreshToken: token, expiresAt, sessionId };
     } catch (error) {
-      logger.error(`Error generating refresh token for user ${userId}:`, {
+ logger.error(`Error generating refresh token:`, {
         error: (error as Error).message,
         stack: (error as Error).stack,
       });
@@ -229,11 +229,11 @@ class RefreshTokenService {
    */
   async revokeRefreshToken(userId: string, token: string): Promise<boolean> {
     try {
-      logger.info(`Revoking refresh token for user: ${userId}`);
+ logger.info(`Revoking refresh token`);
 
       const user = await this.userRepository.findById(userId, 'users');
       if (!user || !user.refreshTokens) {
-        logger.warn(`User ${userId} not found or has no refresh tokens`);
+ logger.warn(`not found or has no refresh tokens`);
         return false;
       }
 
@@ -243,14 +243,14 @@ class RefreshTokenService {
 
       if (user.refreshTokens.length < initialLength) {
         await this.userRepository.update(userId, { refreshTokens: user.refreshTokens }, 'users');
-        logger.info(`Refresh token revoked successfully for user: ${userId}`);
+ logger.info(`Refresh token revoked successfully`);
         return true;
       }
 
-      logger.warn(`Refresh token not found for user: ${userId}`);
+ logger.warn(`Refresh token not found`);
       return false;
     } catch (error) {
-      logger.error(`Error revoking refresh token for user ${userId}:`, {
+ logger.error(`Error revoking refresh token:`, {
         error: (error as Error).message,
         stack: (error as Error).stack,
       });
@@ -263,14 +263,14 @@ class RefreshTokenService {
    */
   async revokeAllRefreshTokens(userId: string): Promise<boolean> {
     try {
-      logger.info(`Revoking all refresh tokens for user: ${userId}`);
+ logger.info(`Revoking all refresh tokens`);
 
       await this.userRepository.update(userId, { refreshTokens: [] }, 'users');
 
-      logger.info(`All refresh tokens revoked successfully for user: ${userId}`);
+ logger.info(`All refresh tokens revoked successfully`);
       return true;
     } catch (error) {
-      logger.error(`Error revoking all refresh tokens for user ${userId}:`, {
+ logger.error(`Error revoking all refresh tokens:`, {
         error: (error as Error).message,
         stack: (error as Error).stack,
       });
@@ -299,7 +299,7 @@ class RefreshTokenService {
         );
       }
     } catch (error) {
-      logger.error(`Error cleaning up expired tokens for user ${userId}:`, {
+ logger.error(`Error cleaning up expired tokens:`, {
         error: (error as Error).message,
         stack: (error as Error).stack,
       });
@@ -322,7 +322,7 @@ class RefreshTokenService {
       // Retourner les informations sans le token lui-même
       return user.refreshTokens.map(({ token, ...tokenInfo }) => tokenInfo);
     } catch (error) {
-      logger.error(`Error getting refresh tokens for user ${userId}:`, {
+ logger.error(`Error getting refresh tokens:`, {
         error: (error as Error).message,
         stack: (error as Error).stack,
       });

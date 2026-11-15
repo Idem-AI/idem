@@ -91,7 +91,7 @@ export class GitHubService {
       `state=${encodeURIComponent(state)}&` +
       `redirect_uri=${encodeURIComponent(process.env.GITHUB_REDIRECT_URI || '')}`;
 
-    logger.info(`Generated GitHub auth URL for userId: ${userId}`);
+ logger.info(`Generated GitHub auth URL for`);
     return authUrl;
   }
 
@@ -416,7 +416,7 @@ export class GitHubService {
       user.githubIntegration = undefined;
       await this.userRepository.update(userId, user, TargetModelType.USER);
 
-      logger.info(`GitHub account disconnected for userId: ${userId}`);
+ logger.info(`GitHub account disconnected for`);
       return true;
     } catch (error) {
       logger.error('Failed to disconnect GitHub account', {

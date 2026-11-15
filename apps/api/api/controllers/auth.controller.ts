@@ -85,11 +85,11 @@ export const sessionLoginController = async (req: Request, res: Response): Promi
     });
   } catch (error: any) {
     if (error instanceof IdentityError) {
-      logger.warn(`Session login refused for auth account ${claims.sub}: ${error.code}`);
+      logger.warn(`Session login refused: ${error.code}`);
       res.status(error.status).send({ success: false, code: error.code, message: error.message });
       return;
     }
-    logger.error(`Error creating session for auth account ${claims.sub}:`, {
+    logger.error('Error creating session:', {
       errorMessage: error.message,
       errorStack: error.stack,
     });
@@ -133,7 +133,7 @@ export const refreshTokenController = async (req: Request, res: Response): Promi
 
     res.cookie('session', restored.sessionCookie, sessionCookieOptions());
 
-    logger.info(`Access token refreshed successfully for user: ${restored.uid}`);
+    logger.info('Access token refreshed successfully');
 
     res.status(200).send({
       success: true,
@@ -186,14 +186,14 @@ export const logoutController = async (req: CustomRequest, res: Response): Promi
     res.clearCookie('session', clearCookieOptions());
     res.clearCookie('refreshToken', clearCookieOptions());
 
-    logger.info(`User ${userId} logged out successfully`);
+    logger.info('User logged out successfully');
 
     res.status(200).send({
       success: true,
       message: 'Logged out successfully.',
     });
   } catch (error: any) {
-    logger.error(`Error during logout for user ${userId}:`, {
+    logger.error('Error during logout:', {
       errorMessage: error.message,
       errorStack: error.stack,
     });
@@ -230,14 +230,14 @@ export const logoutAllController = async (req: CustomRequest, res: Response): Pr
     res.clearCookie('session', clearCookieOptions());
     res.clearCookie('refreshToken', clearCookieOptions());
 
-    logger.info(`User ${userId} logged out from all devices successfully`);
+    logger.info('User logged out from all devices successfully');
 
     res.status(200).send({
       success: true,
       message: 'Logged out from all devices successfully.',
     });
   } catch (error: any) {
-    logger.error(`Error during logout all for user ${userId}:`, {
+    logger.error('Error during logout all:', {
       errorMessage: error.message,
       errorStack: error.stack,
     });
@@ -276,7 +276,7 @@ export const verifySessionController = async (req: Request, res: Response): Prom
     const identity = await verifySessionForRequest(req, sessionCookie);
     const profile = await userService.getUserProfile(identity.uid);
 
-    logger.info(`Session verified successfully for user: ${profile.uid}`);
+    logger.info('Session verified successfully');
     res.status(200).json({
       success: true,
       user: toPublicProfile(profile),
@@ -317,14 +317,14 @@ export const getRefreshTokensController = async (
   try {
     const refreshTokens = await refreshTokenService.getUserRefreshTokens(userId);
 
-    logger.info(`Retrieved ${refreshTokens.length} refresh tokens for user: ${userId}`);
+    logger.info(`Retrieved ${refreshTokens.length} refresh tokens`);
 
     res.status(200).send({
       success: true,
       refreshTokens,
     });
   } catch (error: any) {
-    logger.error(`Error getting refresh tokens for user ${userId}:`, {
+    logger.error('Error getting refresh tokens:', {
       errorMessage: error.message,
       errorStack: error.stack,
     });

@@ -906,7 +906,7 @@ export class BusinessPlanService extends GenericService {
     itemId: string,
     data: Partial<Omit<ProjectModel, 'id' | 'projectId' | 'createdAt' | 'updatedAt'>>
   ): Promise<BusinessPlanModel | null> {
-    logger.info(`Attempting to update business plan for itemId: ${itemId}, userId: ${userId}`);
+ logger.info(`Attempting to update business plan for itemId: ${itemId}`);
     try {
       const project = await this.projectRepository.findById(itemId, `users/${userId}/projects`);
       if (!project) {
@@ -1068,7 +1068,7 @@ export class BusinessPlanService extends GenericService {
     project: ProjectModel | null;
     uploadedImages?: { [memberIndex: number]: any };
   }> {
-    logger.info(`Setting additional infos for userId: ${userId}, projectId: ${projectId}`, {
+ logger.info(`Setting additional infos for projectId: ${projectId}`, {
       additionalInfos: {
         email: additionalInfos.email,
         teamMembersCount: additionalInfos.teamMembers.length,
@@ -1103,7 +1103,7 @@ export class BusinessPlanService extends GenericService {
     // Get current project to update with additional infos
     const project = await this.getProject(projectId, userId);
     if (!project) {
-      logger.warn(`Project not found: ${projectId} for user: ${userId}`);
+ logger.warn(`Project not found: ${projectId}`);
       return { project: null };
     }
 

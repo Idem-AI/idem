@@ -17,7 +17,7 @@ export const finalizeProjectController = async (
   const ipAddress = req.ip || req.connection.remoteAddress;
   const userAgent = req.get('User-Agent');
 
-  logger.info(`finalizeProjectController called - UserId: ${userId}, ProjectId: ${projectId}`, {
+ logger.info(`finalizeProjectController called ProjectId: ${projectId}`, {
     body: req.body,
   });
 
@@ -69,7 +69,7 @@ export const finalizeProjectController = async (
       acceptedAt: project.policyAcceptance!.acceptedAt,
     };
 
-    logger.info(`Project finalized successfully - UserId: ${userId}, ProjectId: ${projectId}`);
+ logger.info(`Project finalized successfully ProjectId: ${projectId}`);
 
     res.status(200).json(response);
   } catch (error) {
@@ -111,7 +111,7 @@ export const checkPolicyStatusController = async (
   const { projectId } = req.params;
   const userId = req.user?.uid;
 
-  logger.info(`checkPolicyStatusController called - UserId: ${userId}, ProjectId: ${projectId}`);
+ logger.info(`checkPolicyStatusController called ProjectId: ${projectId}`);
 
   try {
     if (!userId) {
@@ -163,7 +163,7 @@ export const getUserPolicyAcceptancesController = async (
 ): Promise<void> => {
   const userId = req.user?.uid;
 
-  logger.info(`getUserPolicyAcceptancesController called - UserId: ${userId}`);
+ logger.info(`getUserPolicyAcceptancesController called`);
 
   try {
     if (!userId) {
@@ -184,7 +184,7 @@ export const getUserPolicyAcceptancesController = async (
       `User policy acceptances retrieved - UserId: ${userId}, Count: ${acceptances.length}`
     );
   } catch (error) {
-    logger.error(`Error in getUserPolicyAcceptancesController - UserId: ${userId}`, {
+ logger.error(`Error in getUserPolicyAcceptancesController `, {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
     });

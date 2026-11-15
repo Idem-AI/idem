@@ -106,7 +106,7 @@ export class FinanceAIService {
     projectId: string,
     section: FinanceSectionKey,
   ): Promise<FinanceAutoFillResult> {
-    logger.info(`FinanceAI.autoFillSection userId=${userId} projectId=${projectId} section=${section}`);
+ logger.info(`FinanceAI.autoFillSection projectId=${projectId} section=${section}`);
     const project = await this.loadProject(userId, projectId);
     const currentFinance =
       (await financeService.getFinance(userId, projectId)) || createEmptyFinanceModel(projectId);
@@ -266,7 +266,7 @@ export class FinanceAIService {
     projectId: string,
     userMessage: string,
   ): Promise<FinanceChatIntent> {
-    logger.info(`FinanceAI.parseChatIntent userId=${userId} projectId=${projectId}`);
+ logger.info(`FinanceAI.parseChatIntent projectId=${projectId}`);
     const project = await this.loadProject(userId, projectId);
     const currentFinance = await financeService.getFinance(userId, projectId);
 

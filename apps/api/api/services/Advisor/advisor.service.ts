@@ -79,7 +79,7 @@ export class AdvisorService {
   }
 
   async getConversation(userId: string, projectId: string): Promise<AdvisorConversationModel> {
-    logger.debug(`AdvisorService.getConversation userId=${userId} projectId=${projectId}`);
+ logger.debug(`AdvisorService.getConversation projectId=${projectId}`);
     const project = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
     if (!project) {
       logger.warn(`AdvisorService.getConversation: project not found ${projectId}`);
@@ -96,7 +96,7 @@ export class AdvisorService {
   }
 
   async clearConversation(userId: string, projectId: string): Promise<void> {
-    logger.info(`AdvisorService.clearConversation userId=${userId} projectId=${projectId}`);
+ logger.info(`AdvisorService.clearConversation projectId=${projectId}`);
     await this.persistConversationField(userId, projectId, { messages: [], updatedAt: new Date() });
     logger.info(`AdvisorService.clearConversation: cleared projectId=${projectId}`);
   }
@@ -130,7 +130,7 @@ export class AdvisorService {
     setTraceProjectId(projectId);
     const trimmed = (content || '').trim();
     if (!trimmed) {
-      logger.warn(`AdvisorService.sendMessage: empty message from userId=${userId}`);
+ logger.warn(`AdvisorService.sendMessage: empty message from`);
       throw new Error('Empty message');
     }
     logger.info(

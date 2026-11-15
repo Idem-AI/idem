@@ -38,7 +38,7 @@ export const clearAdvisorConversationController = async (
       res.status(401).json({ message: 'User not authenticated' });
       return;
     }
-    logger.info(`clearAdvisorConversationController userId=${userId} projectId=${projectId}`);
+ logger.info(`clearAdvisorConversationController projectId=${projectId}`);
     await advisorService.clearConversation(userId, projectId as string);
     res.status(204).send();
   } catch (error: any) {
@@ -95,21 +95,19 @@ export const sendAdvisorMessageController = async (
       return;
     }
     if (!projectId) {
-      logger.warn(`sendAdvisorMessageController: missing projectId userId=${userId}`);
+      logger.warn('sendAdvisorMessageController: missing projectId');
       res.status(400).json({ message: 'Project ID is required' });
       return;
     }
     if (!content || typeof content !== 'string' || !content.trim()) {
-      logger.warn(`sendAdvisorMessageController: empty content userId=${userId}`);
+      logger.warn('sendAdvisorMessageController: empty content');
       res.status(400).json({ message: 'Message content is required' });
       return;
     }
 
-    logger.info(
-      `sendAdvisorMessageController userId=${userId} projectId=${projectId} contentLen=${content.length}`
-    );
+    logger.info('sendAdvisorMessageController', { projectId, contentLen: content.length });
     const result = await advisorService.sendMessage(userId, projectId as string, content);
-    logger.info(`sendAdvisorMessageController success projectId=${projectId}`);
+    logger.info('sendAdvisorMessageController success', { projectId });
     res.status(200).json(result);
   } catch (error: any) {
     logger.error(`sendAdvisorMessageController error: ${error.message}`, { stack: error.stack });

@@ -66,10 +66,7 @@ export const profileController = async (req: Request, res: Response): Promise<vo
     const identity = await verifySessionForRequest(req, sessionCookie);
     const profile = await userService.getUserProfile(identity.uid);
     userIdForLogging = profile.uid;
-    logger.info(
-      `Successfully verified session cookie for user: ${userIdForLogging}. Retrieving profile.`,
-      { userId: userIdForLogging }
-    );
+    logger.info('Session verified, retrieving profile.');
     // Les applications satellites lisent le statut ici plutôt que de dupliquer
     // `ADMIN_EMAILS` dans leur propre configuration.
     // Le statut super user exige une adresse vérifiée par le serveur
@@ -241,7 +238,7 @@ export const requestAccountDeletionController = async (
 
   try {
     const request = await userService.requestAccountDeletion(userId, reason, details);
-    logger.info(`Account deletion requested by user ${userId}`);
+    logger.info('Account deletion requested');
     res.status(200).json({ deletionRequest: request });
   } catch (error: any) {
     logger.error('Error scheduling account deletion:', {

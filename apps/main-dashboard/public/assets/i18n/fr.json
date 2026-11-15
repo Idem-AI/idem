@@ -4684,6 +4684,22 @@
           "cancelled": "Annulé",
           "expired": "Expiré"
         }
+      },
+      "placement": {
+        "title": "Support de la publication",
+        "network": "Réseau",
+        "format": "Format",
+        "size": "Taille",
+        "surfaces": {
+          "post": "Publication",
+          "carousel": "Carrousel",
+          "story": "Story",
+          "video": "Vidéo / Reel",
+          "article": "Article ou lien"
+        },
+        "notes": {
+          "youtube": "Une miniature YouTube est en 16:9 : ce visuel 1,91:1 sera recadré légèrement."
+        }
       }
     },
     "businessCards": {

@@ -23,11 +23,11 @@ export class DevelopmentService extends GenericService {
     projectId: string,
     developmentConfigs: DevelopmentConfigsModel
   ): Promise<ProjectModel> {
-    logger.info(`Saving development configs for projectId: ${projectId}, userId: ${userId}`);
+ logger.info(`Saving development configs for projectId: ${projectId}`);
 
     const project = await this.getProject(projectId, userId);
     if (!project) {
-      logger.warn(`Project not found with ID: ${projectId} for user: ${userId}`);
+ logger.warn(`Project not found with ID: ${projectId}`);
       throw new Error('Project not found');
     }
 
@@ -83,11 +83,11 @@ export class DevelopmentService extends GenericService {
     userId: string,
     projectId: string
   ): Promise<DevelopmentConfigsModel | null> {
-    logger.info(`Fetching development configs for projectId: ${projectId}, userId: ${userId}`);
+ logger.info(`Fetching development configs for projectId: ${projectId}`);
 
     const project = await this.getProject(projectId, userId);
     if (!project) {
-      logger.warn(`Project not found with ID: ${projectId} for user: ${userId}`);
+ logger.warn(`Project not found with ID: ${projectId}`);
       return null;
     }
 
@@ -115,7 +115,7 @@ export class DevelopmentService extends GenericService {
       // Get the project
       const project = await this.getProject(projectId, userId);
       if (!project) {
-        logger.warn(`Project not found with ID: ${projectId} for user: ${userId}`);
+ logger.warn(`Project not found with ID: ${projectId}`);
         throw new Error('Project not found');
       }
 
@@ -267,7 +267,7 @@ ${new Date().toISOString()}
    * Get GitHub authorization URL for user
    */
   getGitHubAuthUrl(userId: string): string {
-    logger.info(`Generating GitHub auth URL for userId: ${userId}`);
+ logger.info(`Generating GitHub auth URL for`);
     return this.githubService.getAuthorizationUrl(userId);
   }
 
@@ -283,7 +283,7 @@ ${new Date().toISOString()}
    * Get user's GitHub repositories
    */
   async getUserGitHubRepositories(userId: string) {
-    logger.info(`Getting GitHub repositories for userId: ${userId}`);
+ logger.info(`Getting GitHub repositories for`);
     return await this.githubService.getUserRepositories(userId);
   }
 
@@ -291,7 +291,7 @@ ${new Date().toISOString()}
    * Get GitHub user info
    */
   async getGitHubUserInfo(userId: string) {
-    logger.info(`Getting GitHub user info for userId: ${userId}`);
+ logger.info(`Getting GitHub user info for`);
     return await this.githubService.getGitHubUserInfo(userId);
   }
 
@@ -299,7 +299,7 @@ ${new Date().toISOString()}
    * Disconnect GitHub account
    */
   async disconnectGitHub(userId: string): Promise<boolean> {
-    logger.info(`Disconnecting GitHub account for userId: ${userId}`);
+ logger.info(`Disconnecting GitHub account for`);
     return await this.githubService.disconnectGitHub(userId);
   }
 }

@@ -15,7 +15,7 @@ export const generateDiagramController = async (
 ): Promise<void> => {
   const userId = 'sA6ZeSlrP9Ri8tCNAncPNKi83Nz2';
   const { projectId } = req.params;
-  logger.info(`generateDiagramController called - UserId: ${userId}, ProjectId: ${projectId}`);
+ logger.info(`generateDiagramController called ProjectId: ${projectId}`);
   try {
     if (!userId) {
       logger.warn('User not authenticated for generateDiagramController');
@@ -29,7 +29,7 @@ export const generateDiagramController = async (
     }
     const updatedProject = await diagramService.generateDiagram(userId!, projectId as string);
     if (!updatedProject) {
-      logger.warn(`Failed to generate diagram - UserId: ${userId}, ProjectId: ${projectId}`);
+ logger.warn(`Failed to generate diagram ProjectId: ${projectId}`);
       res.status(500).json({ message: 'Failed to generate diagram' });
       return;
     }
@@ -59,7 +59,7 @@ export const getDiagramsByProjectController = async (
 ): Promise<void> => {
   const userId = req.user?.uid;
   const { projectId } = req.params;
-  logger.info(`getDiagramsByProjectController called - UserId: ${userId}, ProjectId: ${projectId}`);
+ logger.info(`getDiagramsByProjectController called ProjectId: ${projectId}`);
   try {
     if (!userId) {
       res.status(401).json({ message: 'User not authenticated' });
@@ -71,7 +71,7 @@ export const getDiagramsByProjectController = async (
     }
     const diagrams = await diagramService.getDiagramsByProjectId(userId!, projectId as string);
     if (!diagrams) {
-      logger.warn(`No diagrams found for project - UserId: ${userId}, ProjectId: ${projectId}`);
+ logger.warn(`No diagrams found for project ProjectId: ${projectId}`);
       res.status(404).json({ message: 'No diagrams found for project' });
       return;
     }
@@ -94,7 +94,7 @@ export const getDiagramByIdController = async (
 ): Promise<void> => {
   const userId = req.user?.uid;
   const { diagramId } = req.params;
-  logger.info(`getDiagramByIdController called - UserId: ${userId}, DiagramId: ${diagramId}`);
+ logger.info(`getDiagramByIdController called DiagramId: ${diagramId}`);
   try {
     if (!userId) {
       res.status(401).json({ message: 'User not authenticated' });
@@ -107,7 +107,7 @@ export const getDiagramByIdController = async (
       );
       res.status(200).json(diagram);
     } else {
-      logger.warn(`Diagram not found - UserId: ${userId}, DiagramId: ${diagramId}`);
+ logger.warn(`Diagram not found DiagramId: ${diagramId}`);
       res.status(404).json({ message: 'Diagram not found' });
     }
   } catch (error: any) {
@@ -122,7 +122,7 @@ export const getDiagramByIdController = async (
 export const updateDiagramController = async (req: CustomRequest, res: Response): Promise<void> => {
   const userId = req.user?.uid;
   const { diagramId } = req.params;
-  logger.info(`updateDiagramController called - UserId: ${userId}, DiagramId: ${diagramId}`);
+ logger.info(`updateDiagramController called DiagramId: ${diagramId}`);
   try {
     if (!userId) {
       res.status(401).json({ message: 'User not authenticated' });
@@ -130,12 +130,12 @@ export const updateDiagramController = async (req: CustomRequest, res: Response)
     }
     const updatedProject = await diagramService.updateDiagram(userId!, diagramId as string, req.body);
     if (updatedProject) {
-      logger.info(`Diagram updated successfully - UserId: ${userId}, DiagramId: ${diagramId}`);
+ logger.info(`Diagram updated successfully DiagramId: ${diagramId}`);
       // Find the updated diagram in the project to return it
       const updatedDiagram = updatedProject.analysisResultModel?.design;
       res.status(200).json(updatedDiagram || { message: 'Diagram updated but not returned' });
     } else {
-      logger.warn(`Diagram not found for update - UserId: ${userId}, DiagramId: ${diagramId}`);
+ logger.warn(`Diagram not found for update DiagramId: ${diagramId}`);
       res.status(404).json({ message: 'Diagram not found for update' });
     }
   } catch (error: any) {
@@ -219,7 +219,7 @@ export const generateDiagramStreamingController = async (
     );
 
     if (!updatedProject) {
-      logger.warn(`Failed to generate diagram - UserId: ${userId}, ProjectId: ${projectId}`);
+ logger.warn(`Failed to generate diagram ProjectId: ${projectId}`);
       res.write(`data: ${JSON.stringify({ error: 'Failed to generate diagram' })}\n\n`);
       res.end();
       return;
@@ -252,7 +252,7 @@ export const generateDiagramStreamingController = async (
 export const deleteDiagramController = async (req: CustomRequest, res: Response): Promise<void> => {
   const userId = req.user?.uid;
   const { diagramId } = req.params;
-  logger.info(`deleteDiagramController called - UserId: ${userId}, DiagramId: ${diagramId}`);
+ logger.info(`deleteDiagramController called DiagramId: ${diagramId}`);
   try {
     if (!userId) {
       res.status(401).json({ message: 'User not authenticated' });
@@ -260,10 +260,10 @@ export const deleteDiagramController = async (req: CustomRequest, res: Response)
     }
     const success = await diagramService.deleteDiagram(userId!, diagramId as string);
     if (success) {
-      logger.info(`Diagram deleted successfully - UserId: ${userId}, DiagramId: ${diagramId}`);
+ logger.info(`Diagram deleted successfully DiagramId: ${diagramId}`);
       res.status(204).send();
     } else {
-      logger.warn(`Diagram not found for deletion - UserId: ${userId}, DiagramId: ${diagramId}`);
+ logger.warn(`Diagram not found for deletion DiagramId: ${diagramId}`);
       res.status(404).json({ message: 'Diagram not found for deletion' });
     }
   } catch (error: any) {

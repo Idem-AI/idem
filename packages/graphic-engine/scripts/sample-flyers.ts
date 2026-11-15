@@ -99,6 +99,7 @@ const BRAND_ORDER = ['kora', 'Makam', 'baobab'] as const;
 
 let disabled: string[] = [];
 configureGraphicEngine({
+  ...(process.argv.includes('--log') ? { logger: { info: (e: string, m?: unknown) => /pattern/.test(e) && console.log('   ', e, JSON.stringify(m)), warn: () => undefined, error: () => undefined } } : {}),
   agentCall: () => async () => '{"pick":"A"}',
   catalogOverrides: async () => ({ disabled }),
 });
@@ -134,7 +135,7 @@ async function main(): Promise<void> {
           const picked = res.spec.catalog?.config.gabarit;
           const issues = res.result.issues.map((i) => `${i.severity}:${i.code}${i.severity === "blocking" ? ` (${String(i.message).slice(0, 140)})` : ""}`);
           if (picked === g.id && res.png) fs.writeFileSync(path.join(out, `${name}.png`), res.png);
-          index.push({ name, gabarit: g.id, picked, brand: brandKey, styleId, skin: res.spec.catalog?.config.skin, issues });
+          index.push({ name, gabarit: g.id, picked, brand: brandKey, styleId, skin: res.spec.catalog?.config.skin, issues, directed: res.result.repairs.filter((r) => /_directed$/.test(r.code)).map((r) => r.detail) });
           console.log(`${picked === g.id ? '✓' : '·'} ${name} [${styleId} · ${res.spec.catalog?.config.skin}]${picked === g.id ? '' : ` (servi : ${picked})`}${issues.length ? ` — ${issues.join(', ')}` : ''}`);
         } catch (error) {
           index.push({ name, gabarit: g.id, error: String((error as Error)?.message ?? error).slice(0, 200) });

@@ -468,3 +468,9 @@
 .cd-why { display: grid; gap: 0.4rem; margin-bottom: 1rem; }
 .cd-why .cd-chips { list-style: none; padding: 0; margin: 0; }
 .cd-why-warn { color: var(--color-accent-500); }
+
+/* Le support exact du contenu, en lecture. */
+.cd-spec { display: grid; gap: 0.35rem; margin: 0 0 1rem; padding: 0.75rem 0.9rem; border-radius: 0.75rem; border: 1px solid var(--glass-border-subtle); background: var(--glass-bg-light); }
+.cd-spec > div { display: flex; justify-content: space-between; gap: 1rem; font-size: 0.85rem; }
+.cd-spec dt { color: var(--color-text-secondary); }
+.cd-spec dd { margin: 0; text-align: right; font-weight: 600; color: var(--color-text-primary); font-variant-numeric: tabular-nums; }

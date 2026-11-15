@@ -26,7 +26,7 @@ export class DiagramService extends GenericService {
     projectId: string,
     streamCallback?: (sectionResult: ISectionResult) => Promise<void>
   ): Promise<ProjectModel | null> {
-    logger.info(`Generating diagrams for userId: ${userId}, projectId: ${projectId}`);
+ logger.info(`Generating diagrams for projectId: ${projectId}`);
 
     // Get project
     const project = await this.getProject(projectId, userId);
@@ -162,7 +162,7 @@ export class DiagramService extends GenericService {
   }
 
   async getDiagramsByProjectId(userId: string, projectId: string): Promise<DiagramModel | null> {
-    logger.info(`Fetching diagrams for projectId: ${projectId}, userId: ${userId}`);
+ logger.info(`Fetching diagrams for projectId: ${projectId}`);
     const project = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
     if (!project) {
       logger.warn(
@@ -175,7 +175,7 @@ export class DiagramService extends GenericService {
   }
 
   async getDiagramById(userId: string, diagramId: string): Promise<DiagramModel | null> {
-    logger.info(`Getting diagram by ID: ${diagramId} for userId: ${userId}`);
+ logger.info(`Getting diagram by ID: ${diagramId} for`);
 
     // Look through all projects for this user to find a diagram with matching ID
     const projects = await this.projectRepository.findAll(`users/${userId}/projects`);
@@ -184,13 +184,13 @@ export class DiagramService extends GenericService {
       if (project.analysisResultModel?.design) {
         const diagram = project.analysisResultModel.design;
         if (diagram) {
-          logger.info(`Found diagram with ID: ${diagramId} for userId: ${userId}`);
+ logger.info(`Found diagram with ID: ${diagramId} for`);
           return diagram;
         }
       }
     }
 
-    logger.warn(`Diagram with ID: ${diagramId} not found for userId: ${userId}`);
+ logger.warn(`Diagram with ID: ${diagramId} not found for`);
     return null;
   }
 
@@ -199,7 +199,7 @@ export class DiagramService extends GenericService {
     diagramId: string,
     data: Partial<DiagramModel>
   ): Promise<ProjectModel | null> {
-    logger.info(`Updating diagram for userId: ${userId}, diagramId: ${diagramId}`);
+ logger.info(`Updating diagram for diagramId: ${diagramId}`);
 
     // Find which project contains this diagram
     const projects = await this.projectRepository.findAll(`users/${userId}/projects`);
@@ -213,7 +213,7 @@ export class DiagramService extends GenericService {
     }
 
     if (!targetProject || diagramIndex === -1) {
-      logger.warn(`Diagram with ID: ${diagramId} not found for user: ${userId} when updating.`);
+ logger.warn(`Diagram with ID: ${diagramId} not found when updating.`);
       return null;
     }
 
@@ -240,12 +240,12 @@ export class DiagramService extends GenericService {
       updatedProject,
       `users/${userId}/projects`
     );
-    logger.info(`Successfully updated diagram with ID: ${diagramId} for userId: ${userId}`);
+ logger.info(`Successfully updated diagram with ID: ${diagramId} for`);
     return result;
   }
 
   async deleteDiagram(userId: string, diagramId: string): Promise<boolean> {
-    logger.info(`Removing diagram for userId: ${userId}, diagramId: ${diagramId}`);
+ logger.info(`Removing diagram for diagramId: ${diagramId}`);
 
     // Find which project contains this diagram
     const projects = await this.projectRepository.findAll(`users/${userId}/projects`);
@@ -259,7 +259,7 @@ export class DiagramService extends GenericService {
     }
 
     if (!targetProject) {
-      logger.warn(`Diagram with ID: ${diagramId} not found for user: ${userId} when deleting.`);
+ logger.warn(`Diagram with ID: ${diagramId} not found when deleting.`);
       return false;
     }
 
@@ -280,7 +280,7 @@ export class DiagramService extends GenericService {
       updatedProject,
       `users/${userId}/projects`
     );
-    logger.info(`Successfully deleted diagram: ${diagramId} for userId: ${userId}`);
+ logger.info(`Successfully deleted diagram: ${diagramId} for`);
     return true;
   }
 }

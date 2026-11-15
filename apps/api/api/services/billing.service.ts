@@ -235,7 +235,7 @@ export class BillingService {
         if (index === 0) head = line;
       }
 
-      logger.info(`User ${userId} subscribed to bundle ${productCode} (${priceXaf} XAF / ${interval})`);
+ logger.info(`subscribed to bundle ${productCode} (${priceXaf} XAF / ${interval})`);
       if (!head) throw new Error(`Bundle ${productCode} could not be opened`);
       return head;
     }
@@ -256,7 +256,7 @@ export class BillingService {
       subscriptionTier: product.subscriptionTier,
     });
 
-    logger.info(`User ${userId} subscribed to ${productCode} (${priceXaf} XAF / ${interval})`);
+ logger.info(`subscribed to ${productCode} (${priceXaf} XAF / ${interval})`);
     return subscription;
   }
 
@@ -630,7 +630,7 @@ export class BillingService {
       status: options.paymentTransactionId ? 'paid' : undefined,
     });
 
-    logger.info(`User ${userId} purchased ${productCode} (${priceXaf} XAF)`);
+ logger.info(`purchased ${productCode} (${priceXaf} XAF)`);
     return { ...purchase.toObject(), id: String(purchase._id) } as BillingPurchaseModel;
   }
 
@@ -723,7 +723,7 @@ export class BillingService {
         paymentTransactionId: params.paymentTransactionId,
       });
 
-      logger.info(`Invoice ${invoice.number} issued for ${params.userId}: ${params.amountXaf} XAF`);
+ logger.info(`Invoice ${invoice.number} issued: ${params.amountXaf} XAF`);
       return { ...invoice.toObject(), id: String(invoice._id) } as BillingInvoiceModel;
     } catch (error: any) {
       if (error?.code === 11000) {

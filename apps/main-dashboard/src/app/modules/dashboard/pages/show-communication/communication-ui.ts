@@ -296,3 +296,54 @@ export function groupByWeek(items: ContentIdea[]): { week: number; items: Conten
       items: [...list].sort((a, b) => (a.scheduledFor || '').localeCompare(b.scheduledFor || '')),
     }));
 }
+
+// ── Support exact d'un contenu : réseau, surface, cadrage, pixels ─────────────
+
+/** Pixels réels de chaque format de visuel (ceux du moteur graphique, `flyer-*`). */
+export const VISUAL_PIXELS: Record<FlyerFormat, { width: number; height: number; ratio: string }> = {
+  square: { width: 1080, height: 1080, ratio: '1:1' },
+  story: { width: 1080, height: 1920, ratio: '9:16' },
+  banner: { width: 1200, height: 630, ratio: '1.91:1' },
+  post: { width: 1200, height: 1500, ratio: '4:5' },
+  a4: { width: 1240, height: 1754, ratio: 'A4' },
+};
+
+/** Pixels réels de chaque cadrage vidéo (composition du moteur vidéo). */
+export const VIDEO_PIXELS: Record<'story' | 'square' | 'portrait' | 'landscape', { width: number; height: number; ratio: string }> = {
+  story: { width: 1080, height: 1920, ratio: '9:16' },
+  square: { width: 1080, height: 1080, ratio: '1:1' },
+  portrait: { width: 1080, height: 1350, ratio: '4:5' },
+  landscape: { width: 1920, height: 1080, ratio: '16:9' },
+};
+
+export interface Placement {
+  kind: 'visual' | 'video';
+  /** Clé de traduction du nom du format (« Portrait 4:5 »…). */
+  formatKey: string;
+  /** Clé de la surface du réseau (publication, story, reel, article). */
+  surfaceKey: string;
+  width: number;
+  height: number;
+  ratio: string;
+  /** Clé d'une remarque quand le format n'est pas le natif du réseau. */
+  noteKey?: string;
+}
+
+/** Le support d'un contenu, tel que le calendrier l'a posé (ou, à défaut, tel que la génération le fera). */
+export function placementOf(item: ContentIdea): Placement {
+  const isVideo = item.format === 'reel' || item.format === 'short-video' || !!item.videoType;
+  const surfaceKey = `dashboard.showCommunication.placement.surfaces.${isVideo ? 'video' : item.format === 'story' ? 'story' : item.format === 'article' || item.format === 'newsletter' ? 'article' : item.format === 'carousel' ? 'carousel' : 'post'}`;
+  if (isVideo) {
+    const format = item.videoFormat ?? 'story';
+    return { kind: 'video', formatKey: `dashboard.showCommunication.video.formats.${format}.label`, surfaceKey, ...VIDEO_PIXELS[format] };
+  }
+  const format: FlyerFormat = item.visualFormat ?? 'square';
+  return {
+    kind: 'visual',
+    formatKey: `dashboard.showCommunication.formats.${format}`,
+    surfaceKey,
+    ...VISUAL_PIXELS[format],
+    // Le visuel 1,91:1 est le format natif des liens (Facebook, LinkedIn, X) ; la miniature YouTube est en 16:9.
+    ...(item.channel === 'youtube' && format === 'banner' ? { noteKey: 'dashboard.showCommunication.placement.notes.youtube' } : {}),
+  };
+}

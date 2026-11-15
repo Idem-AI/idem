@@ -250,7 +250,7 @@ class AiUsageService {
         { upsert: true }
       );
     } catch (error: any) {
-      logger.warn(`Failed to bump daily token rollup for ${params.userId}: ${error.message}`);
+ logger.warn(`Failed to bump daily token rollup: ${error.message}`);
     }
   }
 

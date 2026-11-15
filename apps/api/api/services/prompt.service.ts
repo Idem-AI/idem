@@ -346,7 +346,7 @@ export class PromptService {
       (response.success === false || response.code !== undefined || response.msg)
     ) {
       const detail = response.msg || response.error || JSON.stringify(response).slice(0, 300);
-      logger.error(`${provider} API error envelope (HTTP 200): ${JSON.stringify(response).slice(0, 500)}`);
+      logger.error(`${provider} API error envelope (HTTP 200)`);
       throw new Error(`${provider} API error: ${detail}`);
     }
   }
@@ -471,9 +471,8 @@ export class PromptService {
       this.assertNoErrorEnvelope(provider, response);
 
       if (!response.choices || response.choices.length === 0) {
-        const raw = JSON.stringify(response).slice(0, 500);
-        logger.error(`${provider} API returned no choices. Raw response: ${raw}`);
-        throw new Error(`${provider} API returned no choices. Raw: ${raw}`);
+        logger.error(`${provider} API returned no choices.`);
+        throw new Error(`${provider} API returned no choices.`);
       }
 
       const textContent = response.choices[0].message.content;
@@ -788,7 +787,7 @@ export class PromptService {
     logger.info(
       `Running prompt for provider: ${request.provider}, model: ${
         request.modelName
-      }, file attached: ${!!request.file}, userId: ${request.userId}`
+      }, file attached: ${!!request.file}`
     );
     // Le modèle est résolu par RÔLE, avec le choix fait à chaud (`ai:models`) puis
     // les surcharges ciblées (`AI_OVERRIDES`).

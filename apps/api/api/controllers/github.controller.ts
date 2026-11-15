@@ -82,7 +82,7 @@ export class GitHubController {
       });
 
       if (result.success) {
-        logger.info('GitHub OAuth successful', { username: result.user?.username });
+        logger.info('GitHub OAuth successful');
         res.status(200).json(result);
       } else {
         logger.warn('GitHub OAuth failed', { message: result.message });

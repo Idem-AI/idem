@@ -480,7 +480,7 @@ export class BrandingService extends GenericService {
     );
     if (state) {
       state.cancelled = true;
-      logger.info(`Logo generation cancelled - UserId: ${userId}, ProjectId: ${projectId}`);
+ logger.info(`Logo generation cancelled ProjectId: ${projectId}`);
       return true;
     }
     return false;
@@ -1824,7 +1824,7 @@ export class BrandingService extends GenericService {
     typography: TypographyModel[];
     project: ProjectModel;
   }> {
-    logger.info(`Generating colors and typography in parallel for userId: ${userId}`);
+ logger.info(`Generating colors and typography in parallel for`);
 
     // Palettes et couples typographiques sont eux aussi proposés en plusieurs
     // exemplaires parmi lesquels l'utilisateur choisit : même traitement en lot
@@ -1886,9 +1886,9 @@ export class BrandingService extends GenericService {
         prefix: 'project',
         ttl: 3600, // 1 heure
       });
-      logger.info(`Project cached with ID: ${createdProject.id} for userId: ${userId}`);
+ logger.info(`Project cached with ID: ${createdProject.id} for`);
     } catch (error) {
-      logger.error(`Error caching project for userId: ${userId}`, error);
+ logger.error(`Error caching project for `, error);
       // Continue without failing - cache is not critical
     }
 
@@ -4147,7 +4147,7 @@ export class BrandingService extends GenericService {
     userId: string,
     projectId: string
   ): Promise<BrandIdentityModel | null> {
-    logger.info(`Fetching branding for projectId: ${projectId}, userId: ${userId}`);
+ logger.info(`Fetching branding for projectId: ${projectId}`);
     const project = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
     if (!project) {
       logger.warn(
@@ -4161,7 +4161,7 @@ export class BrandingService extends GenericService {
   }
 
   async getBrandingById(userId: string, brandingId: string): Promise<BrandIdentityModel | null> {
-    logger.info(`Getting branding by ID: ${brandingId} for userId: ${userId}`);
+ logger.info(`Getting branding by ID: ${brandingId} for`);
     // In current implementation, branding is nested in project, so we don't have direct access by brandingId
     // This method would need to be implemented differently if we had a separate branding repository
     logger.warn(`Direct access to branding by ID is not supported in the current implementation`);
@@ -4173,7 +4173,7 @@ export class BrandingService extends GenericService {
     projectId: string,
     data: Partial<BrandIdentityModel>
   ): Promise<ProjectModel | null> {
-    logger.info(`Updating branding for userId: ${userId}, projectId: ${projectId}`);
+ logger.info(`Updating branding for projectId: ${projectId}`);
 
     const project = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
     if (!project) {
@@ -4204,7 +4204,7 @@ export class BrandingService extends GenericService {
   }
 
   async deleteBranding(userId: string, projectId: string): Promise<boolean> {
-    logger.info(`Removing branding for userId: ${userId}, projectId: ${projectId}`);
+ logger.info(`Removing branding for projectId: ${projectId}`);
 
     const project = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
     if (!project) {
@@ -5855,7 +5855,7 @@ ${description.slice(0, 3000)}`,
         ttl: 3600,
       });
     } catch (error) {
-      logger.error(`Error caching project for userId: ${userId}`, error);
+ logger.error(`Error caching project for `, error);
     }
 
     // Contexte projet lu depuis la DB (createdProject), PAS depuis le payload :

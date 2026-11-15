@@ -946,14 +946,17 @@ export class MotionVideoService {
     const patterns = (
       await Promise.all(
         (brand.patterns ?? []).map(async (p, i) => {
-          let src: string | undefined = p.url;
-          if (mode === 'render') {
-            const served = await fetchMedia(p.url).catch(() => null);
-            if (!served || !/svg|image/.test(served.mimeType)) return null;
+          const served = await fetchMedia(p.url).catch(() => null);
+          if (!served && mode === 'render') return null;
+          let src: string = p.url;
+          if (served && mode === 'render') {
+            if (!/svg|image/.test(served.mimeType)) return null;
             src = `pattern-${i}${/svg/.test(served.mimeType) ? '.svg' : '.png'}`;
             files.push({ name: src, data: served.buffer, mimeType: served.mimeType });
           }
-          return { src, tile: p.tile, ink: p.ink, ground: p.ground, ...(p.kind ? { kind: p.kind } : {}) };
+          // Le code de la tuile : l'encre pourra être adaptée au fond de chaque scène (palette de la marque).
+          const svg = served && /svg/.test(served.mimeType) ? served.buffer.toString('utf8').slice(0, 200_000) : undefined;
+          return { src, tile: p.tile, ink: p.ink.toLowerCase(), ground: p.ground.toLowerCase(), ...(svg ? { svg } : {}), ...(p.kind ? { kind: p.kind } : {}) };
         })
       )
     ).filter((p): p is NonNullable<typeof p> => !!p);

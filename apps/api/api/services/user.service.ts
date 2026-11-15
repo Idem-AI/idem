@@ -63,7 +63,7 @@ class UserService {
       const { betaService } = await import('./billing/beta.service');
       await betaService.matchOnSignup(userId, email);
     } catch (error: any) {
-      logger.error(`Beta program check failed for ${userId}: ${error.message}`);
+ logger.error(`Beta program check failed: ${error.message}`);
     }
   }
 
@@ -74,7 +74,7 @@ class UserService {
       const until = new Date(Date.now() + WELCOME_PASS.days * 86_400_000);
       await passService.grant(userId, WELCOME_PASS.code, until, { provider: 'welcome', note: `${WELCOME_PASS.days} jours offerts à l'inscription` });
     } catch (error: any) {
-      logger.error(`Welcome pass failed for ${userId}: ${error.message}`);
+ logger.error(`Welcome pass failed: ${error.message}`);
     }
   }
 
@@ -126,7 +126,7 @@ class UserService {
     }
 
     await this.userRepository.update(userId, { onboardingProfile: profile }, 'users');
-    logger.info(`Onboarding survey stored for user ${userId}`, {
+ logger.info(`Onboarding survey stored`, {
       recommendedMode: profile.recommendedMode,
       selectedMode: profile.selectedMode,
     });
@@ -163,7 +163,7 @@ class UserService {
     }
     await this.userRepository.update(userId, { toursSeen }, 'users');
 
-    logger.info(`Tour ${tourId} marked as seen for user ${userId}`);
+ logger.info(`Tour ${tourId} marked as seen`);
     return toursSeen;
   }
 
@@ -186,7 +186,7 @@ class UserService {
     if (!user) throw new Error(`User ${userId} not found`);
 
     if (user.deletionRequest) {
-      logger.info(`Deletion already requested for user ${userId}`);
+ logger.info(`Deletion already requested`);
       return user.deletionRequest;
     }
 
@@ -201,7 +201,7 @@ class UserService {
     };
 
     await this.userRepository.update(userId, { deletionRequest }, 'users');
-    logger.info(`Account deletion scheduled for user ${userId}`, {
+ logger.info(`Account deletion scheduled`, {
       scheduledAt: scheduledAt.toISOString(),
       reason,
     });
@@ -219,7 +219,7 @@ class UserService {
     if (!user.deletionRequest) return;
 
     await this.userRepository.update(userId, { deletionRequest: null as any }, 'users');
-    logger.info(`Account deletion cancelled for user ${userId}`);
+ logger.info(`Account deletion cancelled`);
   }
 
 }

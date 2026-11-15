@@ -40,7 +40,7 @@ function withoutProtectedFields<T extends Record<string, unknown>>(data: T): T {
 class ProjectController {
   async createProject(req: CustomRequest, res: Response, next: NextFunction): Promise<void> {
     const userId = req.user?.uid;
-    logger.info(`Attempting to create project. UserID from token: ${userId}`);
+ logger.info(`Attempting to create project. UserID from token`);
     try {
       if (!userId) {
         // This case should ideally be caught by the authenticate middleware
@@ -75,12 +75,10 @@ class ProjectController {
         return;
       }
       const newProject = await projectService.createUserProject(userId, projectData);
-      logger.info(
-        `Project created successfully for userId ${userId} with projectId: ${newProject.id}`
-      );
+      logger.info('Project created successfully', { projectId: newProject.id });
       res.status(201).json({ message: 'Project created successfully', projectId: newProject.id });
     } catch (error: any) {
-      logger.error(`Error in createProject controller for userId ${userId}: ${error.message}`, {
+      logger.error(`Error in createProject controller: ${error.message}`, {
         stack: error.stack,
         details: error,
       });
@@ -90,7 +88,7 @@ class ProjectController {
 
   async getAllProjects(req: CustomRequest, res: Response, next: NextFunction): Promise<void> {
     const userId = req.user?.uid;
-    logger.info(`Attempting to get all projects for userId from token: ${userId}`);
+    logger.info('Attempting to get all projects');
     try {
       if (!userId) {
         logger.warn('Get all projects attempt failed: User ID not found in token.');
@@ -98,10 +96,10 @@ class ProjectController {
         return;
       }
       const projects = await projectService.getAllUserProjects(userId);
-      logger.info(`Successfully fetched ${projects.length} projects for userId ${userId}.`);
+      logger.info(`Successfully fetched ${projects.length} projects.`);
       res.status(200).json(projects);
     } catch (error: any) {
-      logger.error(`Error in getAllProjects controller for userId ${userId}: ${error.message}`, {
+      logger.error(`Error in getAllProjects controller: ${error.message}`, {
         stack: error.stack,
         details: error,
       });
@@ -130,11 +128,11 @@ class ProjectController {
       }
       const project = await projectService.getUserProjectById(userId, projectId as string);
       if (!project) {
-        logger.warn(`Get project by ID: Project ${projectId} not found for user ${userId}.`);
+ logger.warn(`Get project by ID: Project ${projectId} not found.`);
         res.status(404).json({ message: 'Project not found' });
         return;
       }
-      logger.info(`Successfully fetched project ${projectId} for user ${userId}.`);
+ logger.info(`Successfully fetched project ${projectId}.`);
       res.status(200).json(project);
     } catch (error: any) {
       logger.error(
@@ -190,7 +188,7 @@ class ProjectController {
         return;
       }
       await projectService.editUserProject(userId, projectId as string, updatedData);
-      logger.info(`Project ${projectId} updated successfully for userId ${userId}.`);
+ logger.info(`Project ${projectId} updated successfully.`);
       res.status(200).json({ message: 'Project updated successfully' });
     } catch (error: any) {
       logger.error(
@@ -220,7 +218,7 @@ class ProjectController {
         return;
       }
       await projectService.deleteUserProject(userId, projectId as string);
-      logger.info(`Project ${projectId} deleted successfully for userId ${userId}.`);
+ logger.info(`Project ${projectId} deleted successfully.`);
       res.status(200).json({ message: 'Project deleted successfully' });
     } catch (error: any) {
       logger.error(
@@ -253,12 +251,12 @@ class ProjectController {
 
       const generation = await projectService.getProjectGeneration(userId, projectId as string);
       if (!generation) {
-        logger.info(`No generation found for project ${projectId} and user ${userId}.`);
+ logger.info(`No generation found for project ${projectId} and .`);
         res.status(404).json({ message: 'Generation not found' });
         return;
       }
 
-      logger.info(`Successfully fetched generation for project ${projectId} and user ${userId}.`);
+ logger.info(`Successfully fetched generation for project ${projectId} and .`);
       res.status(200).json(generation);
     } catch (error: any) {
       logger.error(
@@ -302,7 +300,7 @@ class ProjectController {
       }
 
       await projectService.saveProjectGeneration(userId, projectId as string, generationData);
-      logger.info(`Generation saved successfully for project ${projectId} and user ${userId}.`);
+ logger.info(`Generation saved successfully for project ${projectId} and .`);
       res.status(200).json({ message: 'Generation saved successfully' });
     } catch (error: any) {
       logger.error(
@@ -704,12 +702,12 @@ class ProjectController {
         parseProjectProduct(req.query.product)
       );
       if (!codeFiles) {
-        logger.info(`No code found for project ${projectId} and user ${userId}.`);
+ logger.info(`No code found for project ${projectId} and .`);
         res.status(404).json({ message: 'No code found for this project' });
         return;
       }
 
-      logger.info(`Successfully retrieved code for project ${projectId} and user ${userId}.`);
+ logger.info(`Successfully retrieved code for project ${projectId} and .`);
       res.status(200).json({ files: codeFiles });
     } catch (error: any) {
       logger.error(
@@ -728,7 +726,7 @@ class ProjectController {
     const userId = req.user?.uid;
     const { projectId } = req.params;
 
-    logger.info(`Checking branding completion for projectId ${projectId}, userId ${userId}`);
+    logger.info('Checking branding completion', { projectId });
 
     try {
       if (!userId) {

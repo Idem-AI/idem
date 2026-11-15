@@ -205,6 +205,8 @@ export async function composeVisual(
     valueProposition: context.valueProposition,
     tone: context.tone,
     language: context.language || 'fr',
+    // Les mots exacts à imprimer viennent de la demande de l'utilisateur, jamais de la reformulation (une consigne).
+    original: [message, content.description].filter(Boolean).join(' ').trim(),
   };
 
   // 0 bis. L'IDÉE du visuel (plan qualité créative) : quatre pistes, la plus nouvelle retenue par le code ; les mots,

@@ -371,6 +371,25 @@
           {{ 'dashboard.showCommunication.detail.contentTitle' | translate }}
         </h3>
 
+        <!-- Le support exact : réseau, surface, cadrage et pixels, posés par le calendrier. -->
+        <dl class="cd-spec" [attr.aria-label]="'dashboard.showCommunication.placement.title' | translate">
+          <div>
+            <dt>{{ 'dashboard.showCommunication.placement.network' | translate }}</dt>
+            <dd><i class="pi" [class]="channelIcon(item().channel)" aria-hidden="true"></i> {{ channelLabelKey(item().channel) | translate }} · {{ placement().surfaceKey | translate }}</dd>
+          </div>
+          <div>
+            <dt>{{ 'dashboard.showCommunication.placement.format' | translate }}</dt>
+            <dd>{{ placement().formatKey | translate }} · {{ placement().ratio }}</dd>
+          </div>
+          <div>
+            <dt>{{ 'dashboard.showCommunication.placement.size' | translate }}</dt>
+            <dd>{{ placement().width }} × {{ placement().height }} px@if (placement().kind === 'video') { · {{ durationLabel(videoDuration()) }} }</dd>
+          </div>
+        </dl>
+        @if (placement().noteKey; as note) {
+          <p class="cd-note">{{ note | translate }}</p>
+        }
+
         <!-- Pourquoi ce contenu : ce que le calendrier a décidé (rendez-vous, mécanisme, ancrage, indicateur). -->
         @if (item().franchise || item().pillar || item().mechanism || item().kpi || item().qualityIssues?.length) {
           <div class="cd-why">

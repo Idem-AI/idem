@@ -15,7 +15,7 @@ export const checkPolicyAcceptance = async (
   const userId = req.user?.uid;
   const projectId = req.params.projectId || req.body.projectId;
 
-  logger.info(`Checking policy acceptance - UserId: ${userId}, ProjectId: ${projectId}`, {
+ logger.info(`Checking policy acceptance ProjectId: ${projectId}`, {
     route: req.route?.path,
     method: req.method,
   });
@@ -43,7 +43,7 @@ export const checkPolicyAcceptance = async (
     const isPolicyAccepted = await policyAcceptanceService.isPolicyAccepted(userId, projectId);
 
     if (!isPolicyAccepted) {
-      logger.warn(`Policy not accepted - UserId: ${userId}, ProjectId: ${projectId}`);
+ logger.warn(`Policy not accepted ProjectId: ${projectId}`);
       res.status(403).json({
         message:
           'Project must be finalized before performing this action. Please accept the privacy policy, terms of service, and beta policy first.',
@@ -55,12 +55,12 @@ export const checkPolicyAcceptance = async (
       return;
     }
 
-    logger.info(`Policy acceptance verified - UserId: ${userId}, ProjectId: ${projectId}`);
+ logger.info(`Policy acceptance verified ProjectId: ${projectId}`);
 
     // Politiques acceptées, continuer vers le contrôleur suivant
     next();
   } catch (error) {
-    logger.error(`Error checking policy acceptance - UserId: ${userId}, ProjectId: ${projectId}`, {
+ logger.error(`Error checking policy acceptance ProjectId: ${projectId}`, {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
       route: req.route?.path,
