@@ -24,6 +24,8 @@
 #   3. it stops the applications using the base, restores, and starts them again.
 #
 # Settings: backup.env next to this script (same file as backup.sh).
+# Encrypted dumps (*.gz.age) need the PRIVATE key, which is not kept on the
+# server: BACKUP_AGE_IDENTITY=/path/to/backup-key.txt restore.sh test mongodb
 set -uo pipefail
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -37,6 +39,17 @@ cleanup() { docker rm -f "$TEST_CONTAINER" >/dev/null 2>&1; rm -rf "$WORK"; }
 trap cleanup EXIT
 
 die() { echo "ERROR: $*" >&2; exit 1; }
+
+# age on the host, or in a throw-away container (the identity file mounted read-only).
+age_run() {
+  if command -v age >/dev/null 2>&1; then
+    age "$@"
+  else
+    local mount=()
+    [ -n "${BACKUP_AGE_IDENTITY:-}" ] && mount=(-v "$BACKUP_AGE_IDENTITY:$BACKUP_AGE_IDENTITY:ro")
+    docker run --rm -i "${mount[@]}" alpine:3.20 sh -c 'apk add -q --no-cache age >/dev/null && age "$@"' age "$@"
+  fi
+}
 say() { echo "── $*"; }
 
 s3() {
@@ -62,17 +75,29 @@ BASES="ideploy-postgres auth-postgres infisical-postgres wikijs-postgres mongodb
 # The dump of <base> for <date> (or the newest), downloaded to $WORK/dump.gz.
 fetch() {
   local base="$1" date="${2:-}" key
-  if [[ "$date" == *.gz ]]; then
+  local listing
+  if [[ "$date" == *.gz || "$date" == *.gz.age ]]; then
     key="$base/$date"
-  elif [ -n "$date" ]; then
-    key="$base/$base-$date.gz"
   else
-    key=$(s3 s3 ls "s3://$S3_BUCKET/$base/" | awk '{print $4}' | grep -E "^$base-[0-9]{4}-[0-9]{2}-[0-9]{2}\.gz$" | sort | tail -1)
-    [ -n "$key" ] || die "no backup of $base in s3://$S3_BUCKET/$base/"
+    # Encrypted (.gz.age) and older clear (.gz) dumps; for one date, the encrypted one wins.
+    listing=$(s3 s3 ls "s3://$S3_BUCKET/$base/" | awk '{print $4}')
+    if [ -n "$date" ]; then
+      key=$(grep -E "^$base-$date\.gz(\.age)?$" <<<"$listing" | sort | tail -1)
+    else
+      key=$(grep -E "^$base-[0-9]{4}-[0-9]{2}-[0-9]{2}\.gz(\.age)?$" <<<"$listing" | sort | tail -1)
+    fi
+    [ -n "$key" ] || die "no backup of $base${date:+ for $date} in s3://$S3_BUCKET/$base/"
     key="$base/$key"
   fi
   say "Downloading s3://$S3_BUCKET/$key"
-  s3 s3 cp "s3://$S3_BUCKET/$key" /work/dump.gz --only-show-errors || die "cannot download $key"
+  if [[ "$key" == *.age ]]; then
+    [ -n "${BACKUP_AGE_IDENTITY:-}" ] && [ -r "$BACKUP_AGE_IDENTITY" ] || die "$key is encrypted: set BACKUP_AGE_IDENTITY to the private key file"
+    s3 s3 cp "s3://$S3_BUCKET/$key" /work/dump.gz.age --only-show-errors || die "cannot download $key"
+    age_run -d -i "$BACKUP_AGE_IDENTITY" <"$WORK/dump.gz.age" >"$WORK/dump.gz" || die "cannot decrypt $key (wrong private key?)"
+    rm -f "$WORK/dump.gz.age"
+  else
+    s3 s3 cp "s3://$S3_BUCKET/$key" /work/dump.gz --only-show-errors || die "cannot download $key"
+  fi
   gzip -t "$WORK/dump.gz" || die "$key is not a valid gzip file"
   echo "$key" >"$WORK/key"
 }
@@ -196,6 +221,12 @@ cmd_prod() {
   if [ "$dumped" != 1 ] || [ "$(gunzip -c "$WORK/$safety" | head -c 1024 | wc -c)" -lt 100 ]; then
     sed 's/^/   /' "$WORK/safety.err" | grep -v 'Using a password' | head -3
     die "could not save the current state; nothing was changed"
+  fi
+  # Encrypted like the nightly dumps: the safety copy holds the same data.
+  if [ -n "${BACKUP_AGE_RECIPIENT:-}" ]; then
+    age_run -r "$BACKUP_AGE_RECIPIENT" <"$WORK/$safety" >"$WORK/$safety.age" || die "could not encrypt the current state; nothing was changed"
+    rm -f "$WORK/$safety"
+    safety="$safety.age"
   fi
   s3 s3 cp "/work/$safety" "s3://$S3_BUCKET/$base/$safety" --only-show-errors || die "could not upload the current state; nothing was changed"
 

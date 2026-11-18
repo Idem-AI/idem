@@ -10,6 +10,7 @@ import { deployMeterService } from './deploy-meter.service';
 import { ideploySyncService } from './ideploy-sync.service';
 import { pricingService } from './pricing.service';
 import { subscriptionRenewalService } from './subscription-renewal.service';
+import { runScheduledPurges } from '../privacy/data-lifecycle.service';
 
 /**
  * Tâches planifiées de la facturation.
@@ -103,6 +104,13 @@ async function runJob(job: ScheduledJob): Promise<void> {
 
 /** Tâches enregistrées. Les phases suivantes en ajoutent (renouvellements, bêta). */
 export const BILLING_JOBS: ScheduledJob[] = [
+  {
+    // Suppressions promises (compte à J+180, projet archivé à J+30) : `DATA_PURGE_MODE` dry-run par défaut.
+    name: 'data-lifecycle',
+    intervalMs: 3600_000,
+    lockTtlMs: 1_800_000,
+    run: () => runScheduledPurges(),
+  },
   {
     name: 'payment-reconciler',
     intervalMs: 60_000,

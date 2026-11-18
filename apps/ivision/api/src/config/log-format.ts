@@ -198,7 +198,20 @@ const PII_NAME_KEY =
  * reconnaître le contexte, trop peu pour reconstituer le document.
  */
 const CONTENT_KEY =
-  /^(description|prompt|system[-_]?prompt|user[-_]?prompt|instruction|messages|body|text|content|story|narrative|brief|scenario|storyboard|synopsis|summary|abstract|note|comment|feedback|review|answer|question|subject|headline)$/i;
+  /^([a-z]*[-_]?description|prompt|system[-_]?prompt|user[-_]?prompt|instruction|messages|body|text|content|story|narrative|brief|scenario|storyboard|synopsis|summary|abstract|note|comment|feedback|review|answer|question|subject|headline|result|output|response|completion|reply|transcript|caption|script|idea|html|markdown)$/i;
+
+/**
+ * Documents métier entiers (classés L2, cf. apps/api/api/config/data-governance.ts) :
+ * un projet, son analyse, un business plan… Jamais dans un journal — seule leur
+ * forme est gardée (`[contenu métier : 12 clés]`). Ajouté le 18/11/2026 : des
+ * lignes « Project data fetched » portaient la description et l'analyse complètes.
+ */
+const BUSINESS_DOC_KEY =
+  /^(analysis[-_]?result[-_]?model|business[-_]?plan|pitch[-_]?deck|branding|brand[-_]?identity|financials?|finance|legal[-_]?docs?|sections?|chat|conversation|history|revisions?|project[-_]?data|project)$/i;
+
+function shapeOf(value: object): string {
+  return Array.isArray(value) ? `[contenu métier : ${value.length} éléments]` : `[contenu métier : ${Object.keys(value).length} clés]`;
+}
 
 const MAX_CONTENT_PREVIEW = 80;
 
@@ -220,6 +233,9 @@ function redactField(key: string, value: unknown, depth: number, seen: WeakSet<o
   }
   if (CONTENT_KEY.test(key) && typeof value === 'string') {
     return redactContent(value);
+  }
+  if ((CONTENT_KEY.test(key) || BUSINESS_DOC_KEY.test(key)) && value !== null && typeof value === 'object' && !isErrorLike(value)) {
+    return shapeOf(value);
   }
   if (SENSITIVE_KEY.test(key) && value !== null && value !== undefined && typeof value !== 'number' && typeof value !== 'boolean') {
     return REDACTED;

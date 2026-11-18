@@ -10,6 +10,8 @@
 #   S3_BUCKET=idem-backups
 #   S3_ACCESS_KEY=…   S3_SECRET_KEY=…
 #   RETENTION_DAYS=14
+#   BACKUP_AGE_RECIPIENT=age1…   public key: every dump is encrypted before it
+#                                leaves the server (see README, "Encryption")
 #
 # Each dump runs inside its own database container (no client to install),
 # is compressed, uploaded, then removed locally. Every step prints one JSON
@@ -22,6 +24,7 @@ DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$DIR/backup.env"
 : "${S3_ENDPOINT:?}" "${S3_BUCKET:?}" "${S3_ACCESS_KEY:?}" "${S3_SECRET_KEY:?}"
 RETENTION_DAYS="${RETENTION_DAYS:-14}"
+RECIPIENT="${BACKUP_AGE_RECIPIENT:-}"
 
 DAY="$(date -u +%Y-%m-%d)"
 WORK="$(mktemp -d /tmp/idem-backup.XXXXXX)"
@@ -45,6 +48,21 @@ s3() {
     -e AWS_DEFAULT_REGION=us-east-1 amazon/aws-cli:2.17.0 --endpoint-url "$S3_ENDPOINT" "$@"
 }
 
+# Encrypts stdin to stdout for the public key in BACKUP_AGE_RECIPIENT (age, X25519).
+# Only the public key lives on this server: whoever takes the server or the
+# bucket cannot read the dumps. Uses the host's `age`, or a throw-away container.
+encrypt() {
+  if command -v age >/dev/null 2>&1; then
+    age -r "$RECIPIENT"
+  else
+    docker run --rm -i alpine:3.20 sh -c "apk add -q --no-cache age >/dev/null && age -r '$RECIPIENT'"
+  fi
+}
+
+if [ -z "$RECIPIENT" ]; then
+  log warn backup.unencrypted all ',"reason":"BACKUP_AGE_RECIPIENT not set: dumps leave the server in clear"'
+fi
+
 # name | container | dump command run inside the container (stdout = dump)
 TARGETS=(
   "ideploy-postgres|ideploy-db|pg_dumpall -U \"\$POSTGRES_USER\""
@@ -61,12 +79,21 @@ for entry in "${TARGETS[@]}"; do
     log warn backup.skipped "$name" ',"reason":"container not running"'
     continue
   fi
-  file="$WORK/$name-$DAY.gz"
   start=$(date +%s)
-  if docker exec "$container" sh -c "$cmd" 2>"$WORK/err" | gzip -c >"$file" && [ "${PIPESTATUS[0]}" -eq 0 ] && [ -s "$file" ]; then
+  if [ -n "$RECIPIENT" ]; then
+    file="$WORK/$name-$DAY.gz.age"
+    docker exec "$container" sh -c "$cmd" 2>"$WORK/err" | gzip -c | encrypt >"$file" 2>>"$WORK/err"
+    status=("${PIPESTATUS[@]}")
+  else
+    file="$WORK/$name-$DAY.gz"
+    docker exec "$container" sh -c "$cmd" 2>"$WORK/err" | gzip -c >"$file"
+    status=("${PIPESTATUS[@]}")
+  fi
+  # Every stage must succeed (dump, compression, encryption), and the file must not be empty.
+  if [ "$(IFS=+; echo $(( ${status[*]} )))" -eq 0 ] && [ -s "$file" ]; then
     size=$(stat -c %s "$file")
     if s3 s3 cp "/work/$(basename "$file")" "s3://$S3_BUCKET/$name/$(basename "$file")" --only-show-errors >"$WORK/err" 2>&1; then
-      log info backup.uploaded "$name" ",\"bytes\":$size,\"durationMs\":$(( ($(date +%s) - start) * 1000 ))"
+      log info backup.uploaded "$name" ",\"bytes\":$size,\"encrypted\":$([ -n "$RECIPIENT" ] && echo true || echo false),\"durationMs\":$(( ($(date +%s) - start) * 1000 ))"
     else
       FAILED=1
       log error backup.failed "$name" ",\"step\":\"upload\",\"error_message\":$(head -c 300 "$WORK/err" | python3 -c 'import json,sys;print(json.dumps(sys.stdin.read()))')"

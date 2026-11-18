@@ -10,6 +10,7 @@ IDEM turns a business idea into the assets a founder needs: brand identity, busi
 | [Getting started](GETTING_STARTED.md) | run the platform locally |
 | [Configuration and secrets](CONFIGURATION.md) | set environment variables and manage secrets with Infisical |
 | [Security](SECURITY.md) | know the security rules every change must respect |
+| [Privacy](PRIVACY.md) | know what happens to user data: classification, model calls, logs, retention |
 | [Deployment](DEPLOYMENT.md) | understand CI, Docker images and how production is deployed |
 | [Observability](OBSERVABILITY.md) | write logs, debug with Grafana, act on alert e-mails, run the log stack in production |
 | [Mobile applications in iCode](ICODE_MOBILE_APPS.md) | understand how iCode generates, previews and publishes a mobile application (React + Capacitor) |

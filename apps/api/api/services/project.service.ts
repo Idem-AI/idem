@@ -199,7 +199,7 @@ class ProjectService {
  logger.info(`Project ${projectId} not found via repository`);
         return null;
       }
-      logger.info(`Project data fetched for ${projectId}:`, project);
+      logger.info(`Project data fetched for ${projectId}`);
       return project;
     } catch (error: any) {
       logger.error(
