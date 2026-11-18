@@ -45,7 +45,7 @@ import { copyTask, CopyBrief, inferCopyIntent, reformulateBriefTask, WrittenCopy
 import { classifyImage, describePhoto, rankByRelevance, VisualPhoto } from './visual.images';
 import { FlyerFormat, VisualAuditReport, VisualBrandContext, VisualContent, VisualIntent, VisualMeta } from './visual.model';
 import { chooseVisualConcept, ConceptChoice, conceptText, VisualConcept } from './visual.concept';
-import { cutout, treatPhoto, vectorizeImage } from '../../../../../packages/design-tools/src';
+import { COLOUR_FILTER_NEGATIVE, cutout, naturalColourModifier } from '../../../../../packages/design-tools/src';
 import { safeFetch } from '../render/safe-fetch';
 
 export interface PromptMessage {
@@ -507,8 +507,8 @@ function imageBriefFor(copy: WrittenCopy, context: VisualBrandContext, format: F
   const theme = copy.photo?.idea || subject.replace(/[^\p{L}\p{N}\s]/gu, ' ').split(/\s+/).filter((w) => w.length > 3).slice(0, 8).join(' ') || context.businessType;
   return {
     searchQuery: copy.photo?.query || `${copy.headline} ${context.businessType}`.replace(/[^\p{L}\p{N}\s]/gu, ' ').split(/\s+/).filter((w) => w.length > 3).slice(0, 5).join(' ') || context.businessType,
-    generationPrompt: `Authentic editorial photograph for ${context.brandName} (${context.businessType}). Scene: ${theme}. Natural light, real people and places, African context when people appear, shallow depth of field, generous calm empty area on one side reserved for a graphic overlay added separately afterwards. ${context.artDirection?.imagePromptModifier || ''}`.slice(0, 900),
-    negativePrompt: 'distorted faces, extra fingers, oversaturated HDR, collage, frame, border',
+    generationPrompt: `Authentic editorial photograph for ${context.brandName} (${context.businessType}). Scene: ${theme}. Natural light, real people and places, African context when people appear, shallow depth of field, generous calm empty area on one side reserved for a graphic overlay added separately afterwards. ${naturalColourModifier(context.artDirection?.imagePromptModifier)}`.slice(0, 900),
+    negativePrompt: `distorted faces, extra fingers, oversaturated HDR, collage, frame, border, ${COLOUR_FILTER_NEGATIVE}`,
     orientation,
   };
 }
@@ -657,29 +657,18 @@ async function storeImage(content: Buffer, name: string, contentType: string, ta
 }
 
 /**
- * L'image façonnée par l'idée (plan qualité créative) : illustration vectorielle dans la palette de la marque,
- * sujet détouré (sur fond transparent), ou photo traitée (duotone, teinte, monochrome). Ce que l'auteur doit en savoir
- * est rendu dans `note` (anglais) ; une étape impossible garde l'image d'origine.
+ * L'image façonnée par l'idée : seul le DÉTOURAGE reste (le sujet garde ses pixels, le fond devient transparent).
+ * Les pixels d'une photo ne sont JAMAIS recolorés : duotone, teinte, monochrome et vectorisation d'une photo ont
+ * été retirés le 18/11/2026 (photos « filtrées », personnages posterisés) — voir design-tools/photo-integrity.
+ * Une illustration est demandée comme telle au modèle d'image, jamais fabriquée en posterisant une photo.
  */
-async function shapeImage(photo: VisualPhotoRef, concept: VisualConcept, context: VisualBrandContext, tag: string): Promise<{ photo: VisualPhotoRef; note?: string } | null> {
-  const b = context.branding;
-  const palette = [b.primary, b.secondary, b.accent, b.background || '#ffffff', b.text || '#111111'].filter((c): c is string => !!c && /^#[0-9a-f]{3,8}$/i.test(c));
+async function shapeImage(photo: VisualPhotoRef, concept: VisualConcept, _context: VisualBrandContext, tag: string): Promise<{ photo: VisualPhotoRef; note?: string } | null> {
   const stamp = Date.now().toString(36);
-  if (concept.image === 'illustration') {
-    const vec = await vectorizeImage({ image: await imageBytes(photo.url), palette, detail: 0.35 });
-    const url = await storeImage(Buffer.from(vec.svg), `illustration-${stamp}.svg`, 'image/svg+xml', tag);
-    return { photo: { ...photo, url }, note: 'The image is a flat vector illustration in the brand colours: show it whole and large, never cropped tight.' };
-  }
   if (concept.image === 'cutout') {
     const cut = await cutout(await imageBytes(photo.url));
     if (!cut || cut.coverage < 0.04 || cut.coverage > 0.92) return null;
     const url = await storeImage(cut.png, `cutout-${stamp}.png`, 'image/png', tag);
     return { photo: { ...photo, url, focal: { x: cut.box.x + cut.box.w / 2, y: cut.box.y + cut.box.h / 2 } }, note: 'The image is a subject CUT OUT of its background (transparent PNG): set it on a brand colour field, large, with object-contain — never in a frame or a card.' };
-  }
-  if (concept.treatment !== 'natural') {
-    const treated = await treatPhoto(await imageBytes(photo.url), concept.treatment, { dark: b.secondary || b.primary, light: b.accent || b.background || '#f5f1e8', tint: b.primary });
-    const url = await storeImage(treated, `photo-${concept.treatment}-${stamp}.jpg`, 'image/jpeg', tag);
-    return { photo: { ...photo, url }, note: `The photo has a ${concept.treatment} treatment in the brand colours.` };
   }
   return null;
 }

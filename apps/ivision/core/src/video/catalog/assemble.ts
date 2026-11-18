@@ -88,7 +88,7 @@ export interface AssembleInput {
   config: SceneConfig;
   slots: SceneSlots;
   texts: Record<string, string>;
-  scene: { key: string; duration: number; energy: number; beat?: { bpm: number; first: number } };
+  scene: { key: string; duration: number; energy: number; role?: string; beat?: { bpm: number; first: number } };
   brand: { name: string; hasLogo: boolean; hasDarkLogo?: boolean };
   /** La transition par laquelle la scène entre, et la scène d'avant. */
   transitionIn?: TransitionNode;
@@ -167,6 +167,9 @@ interface ResolvedStep {
   stagger?: number;
   at?: number;
   counter?: true;
+  fx?: string;
+  opts?: Record<string, number>;
+  pick?: 'first' | 'last' | 'rest';
 }
 
 export interface RuntimeRole {
@@ -209,8 +212,11 @@ function resolveSteps(steps: TweenStep[] | undefined, t: Tokens): ResolvedStep[]
     if (s.from) out.from = props(s.from);
     if (s.to) out.to = props(s.to);
     if (s.stagger !== undefined) out.stagger = Math.max(0, Number(resolveValue(s.stagger, t)) || 0);
-    if (s.at !== undefined) out.at = s.at;
+    if (s.at !== undefined) out.at = Number(resolveValue(s.at, t)) || 0;
     if (s.counter) out.counter = true;
+    if (s.fx) out.fx = s.fx;
+    if (s.opts) out.opts = { ...s.opts };
+    if (s.pick) out.pick = s.pick;
     return out;
   });
 }
@@ -221,7 +227,9 @@ function stepsSpan(steps: ResolvedStep[], n: number): number {
   let end = 0;
   for (const s of steps) {
     const at = s.at !== undefined ? prevStart + s.at : end;
-    end = Math.max(end, at + s.duration + (s.stagger ?? 0) * Math.max(0, n - 1));
+    // Un effet répartit lui-même ses unités dans sa durée ; une sélection n'en vise qu'une (ou toutes moins une).
+    const units = s.fx ? 1 : s.pick === 'rest' ? n - 1 : s.pick ? 1 : n;
+    end = Math.max(end, at + s.duration + (s.stagger ?? 0) * Math.max(0, units - 1));
     prevStart = at;
   }
   return end;
@@ -252,7 +260,7 @@ export function assembleScene(i: AssembleInput): { html: string; script: string;
   /** L'animation de chaque rôle ; un compteur ne compte qu'UN nombre (« 30–40 % » se pose sans compter). */
   const animOf = (role: AnimRole): AnimationNode => {
     const counts = (id: string) => (i.cat.nodes.get(id) as AnimationNode).steps.in.some((s) => s.counter);
-    let id = animationFor(i.cat, i.theme, i.config, role, textOf(role));
+    let id = animationFor(i.cat, i.theme, i.config, role, textOf(role), i.scene.role);
     if (counts(id) && !isFigure(textOf(role))) id = i.cat.nodes.get('anim.scale-in')?.kind === 'animation' ? 'anim.scale-in' : 'builtin.rise';
     return i.cat.nodes.get(id) as AnimationNode;
   };

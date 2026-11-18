@@ -239,18 +239,46 @@ export function rolesIn(html: string): AnimRole[] {
   return [...new Set([...html.matchAll(/data-v="([a-z]+)"/g)].map((m) => m[1] as AnimRole))];
 }
 
+/**
+ * Les animations de texte d'avant le 18/11/2026, remplacées par les vingt animations GSAP du catalogue : un film déjà
+ * fait qui les nomme retrouve, à sa prochaine retouche, son équivalent le plus proche (sinon le défaut du thème).
+ */
+export const LEGACY_TEXT_ANIMATIONS: Record<string, string> = {
+  'anim.mask-lines': 'anim.mask-rise',
+  'anim.slide-mask-x': 'anim.mask-rise',
+  'anim.blur-rise': 'anim.word-stagger',
+  'anim.word-rise-blur': 'anim.word-stagger',
+  'anim.char-cascade': 'anim.letter-flip',
+  'anim.letter-drop': 'anim.letter-settle',
+  'anim.focus-pull': 'anim.blur-in',
+  'anim.rise-fade': 'anim.blur-in',
+  'anim.clip-wipe': 'anim.mask-rise',
+};
+
+/** Une animation convient-elle à ce rôle, ce texte et cette scène (cible, longueur, scènes réservées) ? */
+export function animationFits(cat: LoadedVideoCatalog, id: string | undefined, role: AnimRole, text?: string, sceneRole?: string): id is string {
+  const a = id ? cat.nodes.get(id) : undefined;
+  if (a?.kind !== 'animation' || !a.targets.includes(ROLE_TARGET[role])) return false;
+  if (a.maxChars && text && text.length > a.maxChars) return false;
+  return !a.sceneRoles?.length || a.sceneRoles.includes(sceneRole as SceneRole);
+}
+
 /** L'animation d'un rôle : celle de la configuration si elle convient, sinon le défaut du thème pour sa cible. */
-export function animationFor(cat: LoadedVideoCatalog, theme: ThemeNode, config: SceneConfig, role: AnimRole, text?: string): string {
+export function animationFor(cat: LoadedVideoCatalog, theme: ThemeNode, config: SceneConfig, role: AnimRole, text?: string, sceneRole?: string): string {
   const target = ROLE_TARGET[role];
-  const ok = (id?: string): id is string => {
-    const a = id ? cat.nodes.get(id) : undefined;
-    return a?.kind === 'animation' && a.targets.includes(target) && (!a.maxChars || !text || text.length <= a.maxChars);
-  };
+  const ok = (id?: string): id is string => animationFits(cat, id, role, text, sceneRole);
+  const text_ = target === 'text';
+  const legacy = (id?: string) => (id && text_ && !ok(id) ? LEGACY_TEXT_ANIMATIONS[id] : undefined);
   const chosen = config.animations?.[role];
   if (ok(chosen)) return chosen;
-  const byTheme = role === 'body' || role === 'label' || role === 'attribution' ? theme.defaults.body ?? theme.defaults.text : theme.defaults[target];
+  if (ok(legacy(chosen))) return legacy(chosen)!;
+  const body = theme.defaults.body ?? theme.defaults.text;
+  const byTheme = role === 'body' || role === 'label' || role === 'attribution' ? body : theme.defaults[target];
   if (ok(byTheme)) return byTheme;
-  const any = [...cat.nodes.values()].find((n) => n.kind === 'animation' && n.targets.includes(target) && !n.id.startsWith('builtin.'));
+  if (ok(legacy(byTheme))) return legacy(byTheme)!;
+  // Un titre trop long pour l'animation du thème prend celle du texte courant (sans limite de longueur).
+  if (text_ && ok(body)) return body;
+  const any = [...cat.nodes.values()].find((n) => !n.id.startsWith('builtin.') && ok(n.id));
   return any?.id ?? 'builtin.rise';
 }
 

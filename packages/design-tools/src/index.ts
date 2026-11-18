@@ -19,6 +19,7 @@ export * from './score';
 export * from './seed';
 export * from './cutout';
 export * from './treat';
+export * from './photo-integrity';
 
 import { paletteTool, contrastTool } from './color';
 import { typePairsTool } from './typography';

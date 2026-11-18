@@ -6,6 +6,7 @@
  * dont il a besoin. Rien n'est inventé : une couleur absente reste absente (le moteur la dérive), un logo
  * absent n'est pas remplacé par un faux.
  */
+import { naturalColourModifier } from '@idem/design-tools';
 import type { BrandInput, BrandLogos, BrandPattern, DirectionInput } from '../design-system/tokens';
 
 export interface IdemPaletteLike {
@@ -108,7 +109,7 @@ export function imageryOf(ad: IdemBrandingLike['artDirection']): { imagery?: str
   if (!ad) return {};
   const t = (v: unknown, max = 160) => (typeof v === 'string' && v.trim() ? v.trim().replace(/\s+/g, ' ').slice(0, max) : '');
   const im = (ad.imagery ?? {}) as Record<string, unknown>;
-  const parts = [t(im.medium, 60) && `medium: ${t(im.medium, 60)}`, t(im.treatment) && `treatment: ${t(im.treatment)}`, t(im.lighting, 100) && `lighting: ${t(im.lighting, 100)}`, t(ad.imagePromptModifier, 300)].filter(Boolean);
+  const parts = [t(im.medium, 60) && `medium: ${t(im.medium, 60)}`, t(im.treatment) && `treatment: ${t(im.treatment)}`, t(im.lighting, 100) && `lighting: ${t(im.lighting, 100)}`, t(naturalColourModifier(typeof ad.imagePromptModifier === 'string' ? ad.imagePromptModifier : ''), 300)].filter(Boolean).map((p) => (p.startsWith('treatment: ') ? `treatment: ${naturalColourModifier(p.slice(11))}` : p)).filter((p) => p !== 'treatment: ');
   const medium = t(im.medium, 40).toLowerCase();
   return parts.length ? { imagery: parts.join('; ').slice(0, 600), ...(medium ? { imageryMedium: medium } : {}) } : {};
 }

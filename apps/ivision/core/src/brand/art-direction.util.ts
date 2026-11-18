@@ -9,6 +9,7 @@
 
 import { ArtDirectionModel } from './art-direction.model';
 import { resolveStyle } from '../design/artDirection.catalog';
+import { COLOUR_FILTER_NEGATIVE, naturalColourModifier } from '../../../../../packages/design-tools/src';
 
 /**
  * Fragment de rendu à concaténer à un prompt de génération d'IMAGE.
@@ -21,10 +22,9 @@ import { resolveStyle } from '../design/artDirection.catalog';
 export function buildImageStyleModifier(ad?: ArtDirectionModel | null): string {
   if (!ad || !ad.styleId) return '';
   const style = resolveStyle(ad.styleId);
-  const modifier = (ad.imagePromptModifier || style.imagePromptModifier || '').trim();
-  const lighting = ad.imagery?.lighting ? `, ${ad.imagery.lighting}` : '';
-  const treatment = ad.imagery?.treatment ? `, ${ad.imagery.treatment}` : '';
-  return `${modifier}${lighting}${treatment}`.trim();
+  // Une consigne de rendu n'altère jamais les couleurs d'une image (duotone, noir et blanc, posterisation…) :
+  // ces segments sont retirés, le reste (grain, lumière, cadrage) est gardé — design-tools/photo-integrity.
+  return naturalColourModifier([ad.imagePromptModifier || style.imagePromptModifier || '', ad.imagery?.lighting, ad.imagery?.treatment].filter(Boolean).join(', '));
 }
 
 /** Prompt négatif du style, pour les modèles d'image qui l'acceptent. */
@@ -33,6 +33,7 @@ export function buildImageNegativePrompt(ad?: ArtDirectionModel | null): string 
   return [
     style.imageNegativePrompt,
     'generic stock photo, watermark, distorted text, extra fingers, low resolution, oversaturated HDR, AI artifacts',
+    COLOUR_FILTER_NEGATIVE,
   ]
     .filter(Boolean)
     .join(', ');

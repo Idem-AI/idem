@@ -43,7 +43,8 @@ async function main() {
 
   // 1. L'idée
   const concepts = parseConcepts(`**${TRACKS('cutout', 'duotone', 'expressive')}**`);
-  check('idée : deux pistes lues avec leur rôle d’image et leur traitement', concepts.length === 2 && concepts[0].image === 'cutout' && concepts[0].treatment === 'duotone' && concepts[1].image === 'photo', JSON.stringify(concepts.map((c) => [c.image, c.treatment])));
+  // Une photo garde ses couleurs (18/11/2026) : un TREATMENT « duotone » encore écrit par le modèle est ignoré.
+  check('idée : deux pistes lues avec leur rôle d’image, traitement toujours naturel', concepts.length === 2 && concepts[0].image === 'cutout' && concepts.every((c) => c.treatment === 'natural') && concepts[1].image === 'photo', JSON.stringify(concepts.map((c) => [c.image, c.treatment])));
   // Le repli Pexels d'un visuel : plusieurs recherches, de la plus précise à la plus large.
   const queries = stockQueries({ headline: 'Le café qui réveille Abidjan', facts: [], photo: { idea: 'barista pouring coffee in a small Abidjan cafe', query: 'barista coffee cafe' } } as never, { brandName: 'Kafé', businessType: 'coffee shop' } as never, 'steaming cup on a wooden counter');
   check('banque : la requête du rédacteur, la scène, le métier (sans doublon, 3 au plus)', queries[0] === 'barista coffee cafe' && queries.length >= 2 && queries.length <= 3 && new Set(queries).size === queries.length, JSON.stringify(queries));
@@ -99,10 +100,10 @@ async function main() {
   fs.writeFileSync(path.join(OUT, 'declined-story.png'), story.png);
   check('déclinaison : aucune nouvelle idée, l’auteur adapte la même page à la story', !calls.some((c) => c.role === 'graphic.explore') && authorPrompts.some((u) => /Adapt this exact visual to the new story canvas/.test(u)) && story.parsed.photo?.url === cut.parsed.photo?.url);
 
-  // 5. Une illustration vectorielle
+  // 5. Une piste « illustration » sur une photo : la photo n'est JAMAIS vectorisée ni posterisée (18/11/2026)
   calls.length = 0;
   const illustrated = await composeVisual({ runPrompt: async () => '', agentCall: (async ({ role, user }: { role: string; user: string }) => (calls.push({ role, user }), role === 'graphic.explore' ? TRACKS('illustration', 'natural', 'brand') : '')) as never }, 'u', 'brand-1', { id: 'c3', title: 'Le café qui réveille Abidjan' }, context, 'square', 'check', 'check:illu', undefined, false, { creativity: 'medium', image: { url: photoUrl } });
-  check('illustration : l’image devient un SVG vectorisé aux couleurs de la marque', /^data:image\/svg\+xml;base64,/.test(illustrated.parsed.photo?.url ?? ''), (illustrated.parsed.photo?.url ?? '').slice(0, 30));
+  check('illustration : la photo garde ses pixels (ni SVG vectorisé, ni posterisation)', !/^data:image\/svg\+xml/.test(illustrated.parsed.photo?.url ?? '') && !!illustrated.parsed.photo?.url, (illustrated.parsed.photo?.url ?? '').slice(0, 30));
 
   console.log(`\n${passed} vérifications réussies, ${failures} en échec · fichiers : ${OUT}`);
   process.exit(failures ? 1 : 0);

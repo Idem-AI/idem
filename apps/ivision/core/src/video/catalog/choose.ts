@@ -9,6 +9,7 @@
  */
 import type { CreativityLevel } from '../../creativity/levels';
 import type { SceneCandidate } from './graph';
+import { inDirection } from './graph';
 import type { AnimationNode, AnimRole, LoadedVideoCatalog, SceneConfig, ThemeNode, TransitionNode } from './types';
 import { ROLE_TARGET } from './types';
 import { inTier } from '@idem/graphic-engine';
@@ -51,9 +52,10 @@ export function chooseSystem(): string {
   ].join('\n');
 }
 
-export function chooseUser(cat: LoadedVideoCatalog, o: { brandLine: string; film: { title: string; concept: string; style?: string }; themes: ThemeNode[]; scenes: ChooseScene[]; effort: VideoCatalogEffort; level?: string; revise?: { key: string; current: SceneConfig; instruction: string } }): string {
+export function chooseUser(cat: LoadedVideoCatalog, o: { brandLine: string; film: { title: string; concept: string; style?: string }; themes: ThemeNode[]; scenes: ChooseScene[]; effort: VideoCatalogEffort; level?: string; direction?: string; revise?: { key: string; current: SceneConfig; instruction: string } }): string {
   // Les animations et transitions proposées : celles de la gamme du cran (au moins 6 et 3, gammes voisines au besoin).
-  const anims = inTier([...cat.nodes.values()].filter((n): n is AnimationNode => n.kind === 'animation' && !n.id.startsWith('builtin.')), o.level, 6);
+  // … et de la DA de la marque (un glitch n'a rien à faire dans un film « luxe discret »).
+  const anims = inTier(inDirection(cat, [...cat.nodes.values()].filter((n): n is AnimationNode => n.kind === 'animation' && !n.id.startsWith('builtin.')), o.direction), o.level, 6);
   const trans = inTier([...cat.nodes.values()].filter((n): n is TransitionNode => n.kind === 'transition' && !n.id.startsWith('builtin.')), o.level, 3);
   const lines: string[] = [
     `BRAND: ${o.brandLine}`,
@@ -64,7 +66,8 @@ export function chooseUser(cat: LoadedVideoCatalog, o: { brandLine: string; film
     o.themes.forEach((t, i) => lines.push(`${String.fromCharCode(65 + i)}. ${docLine(t.doc)}`));
   }
   if (o.effort.motion) {
-    lines.push(`ANIMATIONS (id: what it does · for): ${anims.map((a) => `${a.id}: ${a.doc.title} · ${a.targets.join('/')}`).join(' | ')}`);
+    const limits = (a: AnimationNode) => `${a.maxChars ? ` · ≤${a.maxChars} chars` : ''}${a.sceneRoles?.length ? ` · only ${a.sceneRoles.join('/')} scenes` : ''}`;
+    lines.push(`ANIMATIONS (id: what it does · for): ${anims.map((a) => `${a.id}: ${a.doc.title} · ${a.targets.join('/')}${limits(a)}`).join(' | ')}`);
     lines.push(`TRANSITIONS (how a scene ENTERS): ${trans.map((t) => `${t.id}: ${t.doc.title}`).join(' | ')}`);
   }
   lines.push('SCENES:');
@@ -109,7 +112,8 @@ export function parseChoices(raw: string, cat: LoadedVideoCatalog, o: { themes: 
       const anims = (pick.animations && typeof pick.animations === 'object' ? pick.animations : {}) as Record<string, unknown>;
       for (const [role, id] of Object.entries(anims)) {
         const a = cat.nodes.get(String(id));
-        if (a?.kind === 'animation' && roles.includes(role as AnimRole) && a.targets.includes(ROLE_TARGET[role as AnimRole])) config.animations[role as AnimRole] = a.id;
+        const reserved = a?.kind === 'animation' && a.sceneRoles?.length && !a.sceneRoles.includes(scene.role as never);
+        if (a?.kind === 'animation' && !reserved && roles.includes(role as AnimRole) && a.targets.includes(ROLE_TARGET[role as AnimRole])) config.animations[role as AnimRole] = a.id;
       }
       const tr = cat.nodes.get(String(pick.transition ?? ''));
       if (tr?.kind === 'transition') config.transition = tr.id;
