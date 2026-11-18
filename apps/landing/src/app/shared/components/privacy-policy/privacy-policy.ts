@@ -123,7 +123,7 @@ export class PrivacyPolicy implements OnInit {
         id: 'about',
         title: $localize`:@@privacy.about.title:1. ABOUT`,
         titleI18n: '@@privacy.about.title',
-        content: $localize`:@@privacy.about.content:IDEM, Inc. and its affiliates (\"IDEM,\" \"we,\" \"us,\" and \"our\") goal is to make AI-powered project management accessible to all. This Privacy Policy will help you understand how we collect, use and disclose your personal information and assist you in exercising the privacy rights available to you.`,
+        content: $localize`:@@privacy.about.content:IDEM S.A.S. and its affiliates (\"IDEM,\" \"we,\" \"us,\" and \"our\") goal is to make AI-powered project management accessible to all. This Privacy Policy will help you understand how we collect, use and disclose your personal information and assist you in exercising the privacy rights available to you.`,
 
         contentI18n: '@@privacy.about.content',
       },

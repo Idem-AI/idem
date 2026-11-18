@@ -17,6 +17,7 @@ import { PROCESSORS, PURPOSES, DATA_CATEGORIES } from '../config/data-governance
 import { sanitizeInfo } from '../config/log-format';
 import { decryptValue, encryptValue, isSealed, needsReencryption, openSecret, sealSecret } from '../utils/crypto.util';
 import { githubTokenAad } from '../services/github.service';
+import { ANONYMIZED_COLLECTIONS, RETAINED_COLLECTIONS, UNTOUCHED_COLLECTIONS, purgeMode } from '../services/privacy/data-lifecycle.service';
 
 // 1. Politique de transmission, fusion en profondeur.
 const creative = openRouterCallOptions({ schema: { name: 'x', schema: {} } } as any);
@@ -114,4 +115,22 @@ assert.throws(() => encryptValue('x', 'y'), /manquante en production/, 'jamais l
 Object.assign(process.env, { SENSITIVE_VARS_ENCRYPTION_KEY: env.key, SENSITIVE_VARS_ENCRYPTION_KEY_PREVIOUS: env.prev, NODE_ENV: env.node });
 for (const [k, v] of Object.entries({ SENSITIVE_VARS_ENCRYPTION_KEY: env.key, SENSITIVE_VARS_ENCRYPTION_KEY_PREVIOUS: env.prev, NODE_ENV: env.node })) if (v === undefined) delete process.env[k];
 
-console.log(`✓ Confidentialité : garde sur ${files.length} fichiers sources, politique OpenRouter non relâchable, ${Object.keys(PROCESSORS).length} sous-traitants au registre, journaux sans contenu métier, secrets chiffrés avec rotation de clé.`);
+// 6. Purge : règles de conservation cohérentes (aucune base n'est nécessaire).
+for (const name of RETAINED_COLLECTIONS) {
+  assert.ok(!ANONYMIZED_COLLECTIONS.has(name) && !UNTOUCHED_COLLECTIONS.has(name), `${name} classée deux fois`);
+}
+for (const name of ANONYMIZED_COLLECTIONS) assert.ok(!UNTOUCHED_COLLECTIONS.has(name), `${name} classée deux fois`);
+for (const store of DATA_CATEGORIES.payments.stores) {
+  const name = store.replace(/^mongo:/, '');
+  assert.ok(RETAINED_COLLECTIONS.has(name), `${name} doit être gardée 10 ans (registre) : la purge l'effacerait`);
+}
+assert.ok(!UNTOUCHED_COLLECTIONS.has('users') && !UNTOUCHED_COLLECTIONS.has('projects'), 'la purge doit atteindre comptes et projets');
+const previousMode = process.env.DATA_PURGE_MODE;
+delete process.env.DATA_PURGE_MODE;
+assert.equal(purgeMode(), 'dry-run', 'par défaut, la purge ne fait que des rapports');
+process.env.DATA_PURGE_MODE = 'n’importe quoi';
+assert.equal(purgeMode(), 'dry-run', 'une valeur inconnue ne déclenche jamais l’effacement');
+if (previousMode === undefined) delete process.env.DATA_PURGE_MODE;
+else process.env.DATA_PURGE_MODE = previousMode;
+
+console.log(`✓ Confidentialité : purge en rapport par défaut, garde sur ${files.length} fichiers sources, politique OpenRouter non relâchable, ${Object.keys(PROCESSORS).length} sous-traitants au registre, journaux sans contenu métier, secrets chiffrés avec rotation de clé.`);

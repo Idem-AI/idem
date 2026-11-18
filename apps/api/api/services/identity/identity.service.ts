@@ -136,8 +136,17 @@ class IdentityService {
       }
       if (!linked.displayName && displayName) set.displayName = displayName;
       if (!linked.photoURL && photoURL) set.photoURL = photoURL;
-      await users().updateOne({ _id: linked._id }, { $set: set });
+      // Se reconnecter pendant le délai de grâce ANNULE la suppression demandée : c'est ce que promet la page
+      // publique (« Pour annuler, reconnectez-vous simplement avant l'échéance »), et la purge
+      // (services/privacy/data-lifecycle.service.ts) efface pour de bon à l'échéance.
+      const cancelDeletion = !!linked.deletionRequest;
+      await users().updateOne({ _id: linked._id }, { $set: set, ...(cancelDeletion ? { $unset: { deletionRequest: '' } } : {}) });
       await invalidateUserCache(String(linked._id));
+      if (cancelDeletion) {
+        logger.info('account.deletion_cancelled', { event: 'account.deletion_cancelled', userId: String(linked._id), via: 'sign_in' });
+        const { deletionRequest: _cancelled, ...rest } = linked as Record<string, unknown>;
+        return asUser({ ...rest, ...set });
+      }
       return asUser({ ...linked, ...set });
     }
 

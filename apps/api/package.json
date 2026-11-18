@@ -41,6 +41,7 @@
     "ai:matrix": "ts-node --transpile-only api/scripts/printAiModels.ts",
     "ai:models": "ts-node --transpile-only api/scripts/setAiModels.ts",
     "privacy:reencrypt": "ts-node --transpile-only api/scripts/reencryptSecrets.ts",
+    "privacy:purge": "ts-node --transpile-only api/scripts/purgeData.ts",
     "openrouter:matrix": "ts-node --transpile-only api/scripts/openrouterMatrix.ts",
     "check:indexes": "ts-node --transpile-only api/scripts/checkIndexes.ts",
     "check:video": "ts-node --transpile-only ../ivision/core/scripts/check-motion.ts",

@@ -115,20 +115,32 @@ The same script encrypts GitHub tokens stored in clear before 18 November 2026: 
 
 ## Retention
 
-| Data | Today | Target |
-|---|---|---|
-| Account | Until deletion. A deletion request is recorded but not yet executed. | 180-day grace period, then erasure |
-| Projects | "Delete" archives the project; files stay | Archived 30 days, then erased with files |
-| Usage metadata | Indefinite | 24 months, then aggregated |
-| Payments and ledger | Indefinite | 10 years (accounting obligation), kept after account deletion |
-| Consent records | Indefinite | Account lifetime + 5 years |
-| Logs | Size-based rotation; Loki per its config | 30 days, 90 for payments |
-| Admin audit | 1 year | 1 year |
+| Data | Rule |
+|---|---|
+| Account | Erased 180 days after the deletion request (signing in again during the grace period cancels it) |
+| Projects | "Delete" archives the project; 30 days later (`PROJECT_PURGE_AFTER_DAYS`) it is erased with its revisions, chats, generations and files |
+| Usage metadata | Kept, detached from the account and the project when they are erased |
+| Payments, invoices, ledger | 10 years (accounting obligation), kept after account deletion with e-mail and phone removed |
+| Consent records | Account lifetime + 5 years |
+| Logs | Size-based rotation; Loki per its config |
+| Backups | 14 days (`RETENTION_DAYS`), so an erased account leaves the backups within 14 days |
+| Admin audit | 1 year |
+
+## Erasure
+
+[`apps/api/api/services/privacy/data-lifecycle.service.ts`](../apps/api/api/services/privacy/data-lifecycle.service.ts) runs every hour (billing scheduler, one instance at a time) and executes what the retention table promises.
+
+- **Discovery, not a list.** Every collection of the database is swept with the subject's identifiers (`userId`, `uid`, `ownerId`, `projectId`, `brandId`, `_id`, and the e-mail address for lists kept by address). A collection added later is covered without changing this code. What must survive is declared: accounting proofs (`RETAINED_COLLECTIONS`, contact fields removed), usage metadata (`ANONYMIZED_COLLECTIONS`, detached) and platform data (`UNTOUCHED_COLLECTIONS`).
+- **Everything else**: MinIO prefixes `users/<uid>/` and `projects/<id>/`, Redis keys holding the identifier as a whole segment, the GoTrue account.
+- **Verified.** After erasing, the job counts again. The account or project document is erased last, only when nothing remains; otherwise the report is `incomplete` (logged as an error) and the next run resumes.
+- **Proof.** Each run writes a report to `data_purge_reports`: what was erased, kept and detached, per collection.
+- **Not automatic:** running iDeploy applications, databases and servers are counted in the report and removed by the team.
+
+`DATA_PURGE_MODE`: `dry-run` (default: reports only, nothing is touched), `enforce`, `off`. Manual runs: `npm run privacy:purge -- --due | --user <uid> | --project <uid>:<projectId> [--now] [--apply]`.
 
 ## Not implemented yet
 
-- Executing account deletion (purge of projects, files, iVision and iDeploy data) and the project purge after archiving.
 - Self-service data export.
-- Consent and preference centre (only needed once `AI_RESEARCH` or `MARKETING` is enabled), and a cookie choice before Google Analytics loads on the landing site.
+- Consent and preference centre (only needed once `AI_RESEARCH` or `MARKETING` is enabled).
 - Admin MFA, and a required reason before reading project content.
 - Updating the public privacy policy to match this page (processors, retention, no training).
