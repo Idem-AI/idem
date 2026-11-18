@@ -27,6 +27,7 @@
  */
 
 import type { ModelRole } from './ai.config';
+import { openRouterTransmissionPolicy } from '../services/privacy/privacy-guard';
 
 export const VERIFIED_ON = '2026-11-18';
 
@@ -492,11 +493,11 @@ export function getOpenRouterApiKey(): string | undefined {
  * `data_collection: 'deny'` : seuls les hébergeurs qui s'engagent à ne pas
  * conserver ni entraîner sur les requêtes sont éligibles. Les données projet
  * des utilisateurs transitent ici ; le défaut d'OpenRouter les autorise.
- * `OPENROUTER_DATA_COLLECTION=allow` le relâche (hébergeurs moins nombreux = moins de
- * résilience, c'est le compromis).
+ * Ce n'est plus réglable (`OPENROUTER_DATA_COLLECTION` est ignoré depuis le
+ * 18/11/2026) : la politique vient du garde (`services/privacy/privacy-guard.ts`),
+ * qui la repose de toute façon sur le corps final de chaque requête.
  */
 export function openRouterRouting(): Record<string, unknown> {
-  const collection = (process.env.OPENROUTER_DATA_COLLECTION ?? 'deny').toLowerCase();
   // Diagnostic T12 : sans tri, OpenRouter répartit les appels entre hébergeurs et le préfixe stable (charte, projet)
   // n'est jamais relu depuis le cache. Un tri DÉTERMINISTE envoie les appels successifs au même hébergeur (cache
   // relu), et `allow_fallbacks` garde la bascule vers le suivant en cas de panne. `price` (défaut) : le moins cher ;
@@ -504,9 +505,9 @@ export function openRouterRouting(): Record<string, unknown> {
   const sort = (process.env.OPENROUTER_PROVIDER_SORT ?? 'price').toLowerCase();
   return {
     provider: {
-      data_collection: collection === 'allow' ? 'allow' : 'deny',
       allow_fallbacks: true,
       ...(['price', 'throughput', 'latency'].includes(sort) ? { sort } : {}),
+      ...openRouterTransmissionPolicy(),
     },
   };
 }

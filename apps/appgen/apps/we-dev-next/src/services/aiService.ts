@@ -33,7 +33,9 @@ function findModelConfig(modelKey: string) {
  * prediction, reasoning_effort) et jette tout le reste en silence. On l'injecte
  * donc dans le corps via un `fetch` intermédiaire — avec le routage
  * `data_collection: 'deny'` : seuls des hébergeurs qui ne conservent pas le code
- * des utilisateurs sont éligibles (`OPENROUTER_DATA_COLLECTION=allow` le relâche).
+ * des utilisateurs sont éligibles. Non réglable (même règle que le garde de l'API,
+ * `apps/api/api/services/privacy/privacy-guard.ts`) ; `OPENROUTER_ZDR=on` exige en plus
+ * la conservation nulle.
  *
  * Le SDK `ai` fixe aussi le timeout réseau à 10 000 ms (connect timeout). Sur des
  * prompts lourds (system > 20 kB), l'hébergeur peut mettre plus de 10 s avant
@@ -44,7 +46,7 @@ function findModelConfig(modelKey: string) {
 const CONNECT_TIMEOUT_MS = 60_000;
 
 export function getOpenAIModel(baseURL: string, apiKey: string, model: string): LanguageModel {
-  const collection = (process.env.OPENROUTER_DATA_COLLECTION ?? 'deny').toLowerCase();
+  const zdr = (process.env.OPENROUTER_ZDR ?? 'off').toLowerCase() === 'on';
   const openrouter = createOpenAI({
     apiKey,
     baseURL,
@@ -58,10 +60,12 @@ export function getOpenAIModel(baseURL: string, apiKey: string, model: string): 
           const body = JSON.parse(init.body);
           body.reasoning = { enabled: false };
           body.provider = {
-            data_collection: collection === 'allow' ? 'allow' : 'deny',
             allow_fallbacks: true,
             // L'hébergeur au meilleur débit, sous un plafond de prix (`FASTEST_ROUTING`).
             ...FASTEST_ROUTING,
+            // La politique de transmission en dernier : rien ne la relâche.
+            data_collection: 'deny',
+            ...(zdr ? { zdr: true } : {}),
           };
           init = { ...init, body: JSON.stringify(body) };
         } catch {

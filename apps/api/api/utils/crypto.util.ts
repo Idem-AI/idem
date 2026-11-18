@@ -26,13 +26,15 @@ const ALGORITHM = 'aes-256-gcm';
  * tronquée par `Buffer.from(key, 'hex')` sans la moindre erreur, et tout ce
  * qui aurait été chiffré avec deviendrait illisible après correction.
  */
-function resolveKey(): Buffer {
-  const raw = process.env.SENSITIVE_VARS_ENCRYPTION_KEY;
-
+function resolveKey(raw: string | undefined = process.env.SENSITIVE_VARS_ENCRYPTION_KEY): Buffer {
   if (!raw) {
     // Cohérent avec le repli historique de DeploymentService : le
     // développement local fonctionne sans secret, la production l'exige
     // (SENSITIVE_VARS_ENCRYPTION_KEY est un secret requis de secrets.manifest.ts).
+    // Garde supplémentaire : en production, jamais la clé par défaut (elle est publique, le dépôt l'est).
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('SENSITIVE_VARS_ENCRYPTION_KEY manquante en production : chiffrement refusé');
+    }
     return crypto.scryptSync('idem-api-default-key', 'salt', 32);
   }
 
@@ -41,6 +43,17 @@ function resolveKey(): Buffer {
   }
 
   return crypto.scryptSync(raw, 'idem-crypto-salt', 32);
+}
+
+/**
+ * Clés acceptées au DÉCHIFFREMENT, la courante d'abord. Rotation : la nouvelle clé
+ * dans `SENSITIVE_VARS_ENCRYPTION_KEY`, l'ancienne dans
+ * `SENSITIVE_VARS_ENCRYPTION_KEY_PREVIOUS` le temps de rechiffrer
+ * (`npm run privacy:reencrypt`) ; tout nouveau chiffrement prend la courante.
+ */
+function decryptionKeys(): Buffer[] {
+  const previous = process.env.SENSITIVE_VARS_ENCRYPTION_KEY_PREVIOUS;
+  return [resolveKey(), ...(previous ? [resolveKey(previous)] : [])];
 }
 
 /** Chiffre une valeur. Format de sortie : `iv:authTag:données`, en hexadécimal. */
@@ -62,21 +75,56 @@ export function encryptValue(value: string, aad: string): string {
  * a tourné entre-temps.
  */
 export function decryptValue(payload: string, aad: string): string | null {
-  try {
-    const [ivHex, tagHex, dataHex] = payload.split(':');
-    if (!ivHex || !tagHex || !dataHex) return null;
+  const [ivHex, tagHex, dataHex] = payload.split(':');
+  if (!ivHex || !tagHex || !dataHex) return null;
+  for (const key of decryptionKeys()) {
+    try {
+      const decipher = crypto.createDecipheriv(ALGORITHM, key, Buffer.from(ivHex, 'hex'));
+      decipher.setAAD(Buffer.from(aad));
+      decipher.setAuthTag(Buffer.from(tagHex, 'hex'));
+      return Buffer.concat([decipher.update(Buffer.from(dataHex, 'hex')), decipher.final()]).toString('utf8');
+    } catch {
+      // Mauvaise clé (ou valeur altérée) : la suivante, puis `null`.
+    }
+  }
+  return null;
+}
 
+/** Lisible, mais seulement avec l'ANCIENNE clé : à rechiffrer (cf. `npm run privacy:reencrypt`). */
+export function needsReencryption(payload: string, aad: string): boolean {
+  const [ivHex, tagHex, dataHex] = payload.split(':');
+  if (!ivHex || !tagHex || !dataHex) return false;
+  try {
     const decipher = crypto.createDecipheriv(ALGORITHM, resolveKey(), Buffer.from(ivHex, 'hex'));
     decipher.setAAD(Buffer.from(aad));
     decipher.setAuthTag(Buffer.from(tagHex, 'hex'));
-
-    return Buffer.concat([
-      decipher.update(Buffer.from(dataHex, 'hex')),
-      decipher.final(),
-    ]).toString('utf8');
+    decipher.update(Buffer.from(dataHex, 'hex'));
+    decipher.final();
+    return false;
   } catch {
-    return null;
+    return decryptValue(payload, aad) !== null;
   }
+}
+
+/**
+ * Secrets d'utilisateurs rangés DANS un champ existant (jeton GitHub…) : la valeur
+ * chiffrée porte le préfixe `enc:v1:`, ce qui distingue une ancienne valeur restée
+ * en clair (relue telle quelle, puis rechiffrée par `npm run privacy:reencrypt`).
+ */
+const SEALED_PREFIX = 'enc:v1:';
+
+export function sealSecret(value: string, aad: string): string {
+  return `${SEALED_PREFIX}${encryptValue(value, aad)}`;
+}
+
+export function isSealed(value: unknown): value is string {
+  return typeof value === 'string' && value.startsWith(SEALED_PREFIX);
+}
+
+/** La valeur en clair ; `null` si elle est chiffrée mais illisible (clé perdue, valeur altérée). */
+export function openSecret(stored: string | undefined | null, aad: string): string | null {
+  if (!stored) return null;
+  return isSealed(stored) ? decryptValue(stored.slice(SEALED_PREFIX.length), aad) : stored;
 }
 
 /**
@@ -88,6 +136,7 @@ export function decryptValue(payload: string, aad: string): string | null {
  * et l'empreinte n'est jamais exposée hors de la base.
  */
 export function hashValue(value: string): string {
-  const salt = process.env.SENSITIVE_VARS_ENCRYPTION_KEY || 'idem-hash-salt';
+  // Après une rotation de clé, `SENSITIVE_VARS_HASH_SALT` = l'ANCIENNE clé garde les empreintes existantes valides.
+  const salt = process.env.SENSITIVE_VARS_HASH_SALT || process.env.SENSITIVE_VARS_ENCRYPTION_KEY || 'idem-hash-salt';
   return crypto.createHash('sha256').update(`${salt}:${value}`).digest('hex');
 }
