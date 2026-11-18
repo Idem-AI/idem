@@ -28,6 +28,7 @@
  * `<idem-pattern-tile data-block="[[id]]" data-index="[[i0]]">`, `<idem-icon name="{{$.icon}}">`, `<img src="{{$.url}}">`.
  */
 import type { DocumentType } from '../contracts/common';
+import { stripImageFilters } from '../runtime/photo-integrity';
 import type { Block, SectionContent } from '../contracts/content-model';
 import type { FormatDef } from '../design-system/formats';
 import type { DesignTokens } from '../design-system/tokens';
@@ -770,5 +771,6 @@ export function assemblePage(ctx: AssemblyContext, choice: AssemblyChoice, units
     // toujours par rapport à la page.
     html = `<div class="relative grid h-full w-full ${grid} grid-rows-[repeat(${rows},minmax(0,1fr))] gap-[${px(env.gap)}] ${padding} ${page}">${zones.map(zoneHtml).join('')}${chrome ? `<div data-ge-decor class="contents">${chrome}</div>` : ''}</div>`;
   }
-  return { html: dedupeClasses(html), zones: Object.fromEntries([...assigned.zones.entries()].map(([k, v]) => [k, v.map((u) => u.id)])), generic };
+  // Une photo garde ses couleurs, quel que soit le composant du catalogue (runtime/photo-integrity).
+  return { html: stripImageFilters(dedupeClasses(html)).html, zones: Object.fromEntries([...assigned.zones.entries()].map(([k, v]) => [k, v.map((u) => u.id)])), generic };
 }

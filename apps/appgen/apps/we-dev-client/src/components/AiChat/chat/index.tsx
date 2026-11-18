@@ -122,7 +122,7 @@ console.log(API_BASE, 'API_BASE');
 
 enum ModelTypes {
   /** Le modèle par défaut du serveur (OpenRouter, poids ouverts). */
-  QwenCoderNext = 'qwen/qwen3-coder-next',
+  QwenCoderNext = 'deepseek/deepseek-v4.1-flash-1017',
 }
 
 export interface IModelOption {
@@ -174,8 +174,8 @@ async function fetchModelConfig(): Promise<IModelOption[]> {
     return [
       {
         value: ModelTypes.QwenCoderNext,
-        label: 'Qwen3 Coder Next',
-        useImage: false,
+        label: 'DeepSeek V4.1 Flash',
+        useImage: true,
         from: 'default',
         quota: 2,
         provider: 'openrouter',
@@ -273,8 +273,8 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
   const [visible, setVisible] = useState(false);
   const [baseModal, setBaseModal] = useState<IModelOption>({
     value: ModelTypes.QwenCoderNext,
-    label: 'Qwen3 Coder Next',
-    useImage: false,
+    label: 'DeepSeek V4.1 Flash',
+    useImage: true,
     from: 'default',
     quota: 2,
     functionCall: true,

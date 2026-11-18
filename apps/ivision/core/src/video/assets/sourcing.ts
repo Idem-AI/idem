@@ -205,6 +205,17 @@ export async function sourceShots(opts: SourcingOptions): Promise<{ byNeed: Map<
   /** L'image d'un plan vidéo : animée par le modèle, et le repli de la scène si aucun clip n'aboutit. */
   const stills = new Map<ShotPlan, VideoMediaAsset>();
 
+  /**
+   * Une erreur de clip survenue APRÈS l'envoi de la génération (délai dépassé, coupure, panne 5xx) : la génération a pu
+   * être facturée. Une erreur de validation (4xx hors 429) ou un quota (429) arrive avant : elle se rejoue.
+   */
+  const clipMayBeBilled = (error: any): boolean => {
+    const status = Number(error?.status ?? error?.response?.status ?? error?.statusCode ?? 0);
+    if (status === 429 || (status >= 400 && status < 500)) return false;
+    if (status >= 500) return true;
+    return /time(d)?\s?out|timed out|ETIMEDOUT|ECONNRESET|socket hang up|aborted|terminated/i.test(String(error?.message ?? error));
+  };
+
   /** Un clip : l'image du plan animée (deux essais), puis le texte seul (troisième essai). */
   const clip = async (plan: ShotPlan): Promise<VideoMediaAsset | null> => {
     if (!canClip) return null;
@@ -225,6 +236,9 @@ export async function sourceShots(opts: SourcingOptions): Promise<{ byNeed: Map<
         report.failedAttempts++;
         if (trip('video', error)) break;
         logger.warn('video.media.clip_failed', { scene: plan.scene, attempt, error: String(error?.message || error) });
+        // Diagnostic V2 : seul un refus AVANT génération (validation, quota) se rejoue. Un délai dépassé ou une panne
+        // serveur arrive après une génération facturée (0,10 à 0,40 $ la seconde) : on garde l'image du plan.
+        if (clipMayBeBilled(error)) break;
       }
     }
     return null;

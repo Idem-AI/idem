@@ -68,72 +68,41 @@ const GENERATION = {
   ...OPENROUTER_ENDPOINT,
 } as const;
 
+/**
+ * UN SEUL MODÈLE (18/11/2026, décision produit) : le moins cher et le plus rapide entre Qwen, DeepSeek et GLM, aux
+ * poids ouverts — DeepSeek V4.1 Flash 1017 (MIT). Mesuré le 18/11/2026 sur le moteur de sites : 1,5 s pour une
+ * section, sans invention ; sortie à 0,07 $/M chez l'hébergeur le moins cher ; lit les images ; coupe son
+ * raisonnement à la demande (GLM-5.3-Flash l'impose). Le cran de créativité ne change PLUS le modèle : il choisit
+ * des gabarits plus premium dans le catalogue (idem-templates, champ `tier`).
+ *
+ * La résilience vient des hébergeurs : OpenRouter sert ce modèle chez plus de 40 fournisseurs et bascule de l'un à
+ * l'autre (`allow_fallbacks`). Changer de modèle : `APPGEN_TEXT_MODEL` (une clé de ce catalogue) ou
+ * `POST /api/model/default`.
+ */
+export const SINGLE_MODEL_KEY = 'deepseek/deepseek-v4.1-flash-1017';
+
 const defaultModelConfigs: ModelConfig[] = [
   {
     ...GENERATION,
-    modelName: 'Qwen3 Coder Next',
-    modelKey: 'qwen/qwen3-coder-next',
-    description: 'Qwen3 Coder Next — code et agents, poids ouverts (Apache-2.0)',
-  },
-  {
-    // ALTERNATIVE À TESTER face à Qwen3 Coder Next. Il n'existe plus de « DeepSeek
-    // Coder » sur OpenRouter : le code est servi par DeepSeek V4 (MIT, poids ouverts).
-    ...GENERATION,
-    modelName: 'DeepSeek V4 Flash',
-    modelKey: 'deepseek/deepseek-v4-flash',
-    description: 'DeepSeek V4 Flash — alternative open-weight (MIT) pour le code',
-  },
-  // Les modèles de l'échelle de créativité (Low, High, Ultra) : jamais proposés par leur nom, choisis par le
-  // niveau de créativité (`modelForCreativity`).
-  {
-    ...GENERATION,
-    modelName: 'Qwen3 Coder 30B',
-    modelKey: 'qwen/qwen3-coder-30b-a3b-instruct',
-    description: 'Créativité Low — code léger et rapide (Apache-2.0)',
-    selectable: false,
-  },
-  {
-    ...GENERATION,
-    modelName: 'Qwen3 Coder 480B',
-    modelKey: 'qwen/qwen3-coder',
-    description: 'Créativité High — le plus grand Qwen3 Coder (Apache-2.0)',
-    selectable: false,
-  },
-  {
-    ...GENERATION,
-    modelName: 'DeepSeek V4 Pro',
-    modelKey: 'deepseek/deepseek-v4-pro',
-    description: 'Créativité Ultra — le plus capable (MIT)',
-    selectable: false,
-  },
-  {
-    // REPLI. La saturation est PAR MODÈLE : sans second modèle, la chaîne de
-    // `resilientStream.ts` — détection du transitoire, bascule, message
-    // utilisateur — n'aurait nulle part où basculer, et toute panne du modèle
-    // principal deviendrait une panne du produit. Repli d'infrastructure, pas une
-    // option offerte à l'utilisateur.
-    ...GENERATION,
-    modelName: 'Qwen3.5 122B',
-    modelKey: 'qwen/qwen3.5-122b-a10b',
-    description: 'Qwen3.5 122B A10B — repli lorsque le modèle principal est saturé',
-    selectable: false,
+    useImage: true,
+    modelName: 'DeepSeek V4.1 Flash',
+    modelKey: SINGLE_MODEL_KEY,
+    description: 'DeepSeek V4.1 Flash 1017 — le modèle unique d’IDEM, poids ouverts (MIT)',
   },
 ];
 
-// ── Le NIVEAU DE CRÉATIVITÉ choisit le modèle ───────────────────────────────
+// ── Le NIVEAU DE CRÉATIVITÉ ne choisit plus le modèle ──────────────────────
 //
-// L'interface ne montre plus aucun modèle : l'utilisateur choisit un niveau de créativité (Low, Medium, High,
-// Ultra) et le modèle se décide ici, en arrière-plan — la même échelle « code » qu'IDEM
-// (`apps/api/api/config/ai-models.config.ts`, MODEL_LADDERS.code). Réglable sans déploiement :
-// APPGEN_CREATIVITY_MODELS='{"high":"qwen/qwen3-coder-next"}' (les crans absents gardent leur modèle).
+// Depuis le 18/11/2026, le cran choisit la gamme des gabarits (catalogue iCode, champ `tier`), jamais le modèle :
+// tous les crans partent sur le modèle unique. `APPGEN_CREATIVITY_MODELS` reste lu pour un essai ponctuel.
 export const CREATIVITY_LEVELS = ['low', 'medium', 'high', 'ultra'] as const;
 export type CreativityLevel = (typeof CREATIVITY_LEVELS)[number];
 
 const CREATIVITY_LADDER: Record<CreativityLevel, string> = {
-  low: 'qwen/qwen3-coder-30b-a3b-instruct',
-  medium: 'qwen/qwen3-coder-next',
-  high: 'qwen/qwen3-coder',
-  ultra: 'deepseek/deepseek-v4-pro',
+  low: SINGLE_MODEL_KEY,
+  medium: SINGLE_MODEL_KEY,
+  high: SINGLE_MODEL_KEY,
+  ultra: SINGLE_MODEL_KEY,
 };
 
 export function normalizeCreativity(value: unknown): CreativityLevel | undefined {
@@ -154,6 +123,17 @@ export function modelForCreativity(level: CreativityLevel): string {
   // Un modèle hors catalogue (faute de frappe) : le modèle par défaut, jamais une erreur pour l'utilisateur.
   return isKnown(wanted) ? wanted : getDefaultModelKey();
 }
+
+// ── Le fournisseur le plus RAPIDE, toujours ─────────────────────────────────
+//
+// Chaque appel part chez l'hébergeur au meilleur débit mesuré par OpenRouter (`provider.sort = throughput`), sous un
+// plafond de prix qui écarte les paliers « priorité » (`:nitro` les inclut, au double du prix pour le même débit).
+// Mesuré le 18/11/2026 sur des textes de section (~300 jetons) : 1,5 s et 0,0004 $, contre 4 à 7 s sans tri.
+export const FASTEST_ROUTING = {
+  sort: 'throughput',
+  /** Dollars par million de jetons. */
+  max_price: { prompt: 0.4, completion: 1.5 },
+} as const;
 
 // ── Modèle par défaut, modifiable À CHAUD ───────────────────────────────────
 //
@@ -188,7 +168,7 @@ export const allModelConfigs: ModelConfig[] = defaultModelConfigs;
 
 /** Le modèle voulu en tête : le choix à chaud, puis la variable d'environnement. */
 function preferredKey(): string | undefined {
-  const fromEnv = readEnv('APPGEN_DEFAULT_MODEL');
+  const fromEnv = readEnv('APPGEN_TEXT_MODEL') ?? readEnv('APPGEN_DEFAULT_MODEL');
   if (isKnown(chosenModelKey)) return chosenModelKey;
   return isKnown(fromEnv) ? fromEnv : undefined;
 }

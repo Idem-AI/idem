@@ -8,6 +8,8 @@ import { stripSentences } from '../factGuard.js';
 import type { ManifestPage, ManifestSection, SiteManifest } from '../manifest.js';
 import { layoutBrief } from '../manifest.js';
 import type { ModelCaller, Verdict } from '../modelCaller.js';
+import { SHAPE_REMINDER } from '../modelCaller.js';
+import { ChatLogger } from '../../utils/logger.js';
 import type { FieldDef, KindNode } from './types.js';
 
 export type SectionContent = Record<string, unknown>;
@@ -195,46 +197,127 @@ export function readCopy(raw: unknown, tasks: CopyTask[], targets: string[]): { 
   return { sections, problems };
 }
 
-/** Les textes d'une page, en un appel ; essais ciblés sur les défauts ; au dernier recours, phrases fautives retirées. */
-export async function writePageCopy(input: CopyInput): Promise<CopyResult> {
-  const { tasks, targets, check } = input;
-  if (!tasks.length) return { sections: {}, removed: [], providerDown: false };
-  const removed: string[] = [];
-  let best: Record<string, SectionContent> = {};
+/**
+ * Les textes d'une page, au fil de l'eau : chaque section part vers l'assemblage DÈS QU'ELLE EST JUSTE, sans attendre
+ * les autres.
+ *
+ * 1. Un appel pour toute la page. Seule une réponse illisible (aucune section) est redemandée telle quelle.
+ * 2. Ce que le code sait corriger, il le corrige : une phrase non vérifiée est retirée, une prose trop longue perd ses
+ *    dernières phrases (`fitProse`). Une section juste est livrée tout de suite.
+ * 3. Les sections encore fautives — et elles seules — repartent en UN appel, avec leur version précédente et la liste
+ *    de ce qui ne va pas. Avant : la page entière était réécrite jusqu'à trois fois pour un chiffre de 18 signes au
+ *    lieu de 14 (60 s mesurées le 12/11/2026 sur l'accueil), et aucune section de la page ne s'affichait entre-temps.
+ * 4. Dernier recours : un texte un peu trop long (≤ 1,6 × la limite) est gardé, la mise en page web le fait passer à
+ *    la ligne ; au-delà, ou pour une forme fausse, la section repart vers l'auteur de code.
+ */
+export interface PageCopy {
+  /** Le contenu d'une section dès qu'il est prêt ; `undefined` si elle n'a pas pu être rédigée. */
+  section(id: string): Promise<SectionContent | undefined>;
+  /** Toute la page, une fois chaque section livrée ou abandonnée. */
+  done: Promise<CopyResult>;
+}
 
-  const judge = (raw: unknown): Verdict<Record<string, SectionContent>> => {
-    const { sections, problems } = readCopy(raw, tasks, targets);
-    const invented: Record<string, string[]> = {};
-    for (const [id, content] of Object.entries(sections)) {
-      const found = check(content);
-      if (found.length) invented[id] = found;
-    }
-    const usable = Object.fromEntries(Object.entries(sections).filter(([id]) => !problems[id] && !invented[id]));
-    if (Object.keys(usable).length >= Object.keys(best).length) best = { ...best, ...usable };
-    const formLines = Object.values(problems).flat();
-    const factLines = Object.entries(invented).map(([id, items]) => `${id} : retire ${items.map((i) => `« ${i} »`).join(', ')} (absent des informations du projet), sans le remplacer par une autre affirmation`);
-    if (!formLines.length && !factLines.length) return { value: sections };
-    return {
-      problem: `Ta réponse précédente est à corriger, et seulement sur ces points :\n${[...formLines, ...factLines].map((l) => `- ${l}`).join('\n')}\nRenvoie l'objet JSON complet, toutes les sections.`,
-      // Essais épuisés : les sections justes sont gardées ; les phrases non vérifiées sont retirées par le code.
-      salvage: () => {
-        const out: Record<string, SectionContent> = { ...best };
-        for (const task of tasks) {
-          const id = task.section.id;
-          if (out[id] || problems[id] || !sections[id] || !invented[id]) continue;
-          const stripped = stripSentences(sections[id], invented[id]);
-          const again = readCopy({ [id]: stripped }, [task], targets);
-          if (!again.problems[id] && !check(again.sections[id]).length) {
-            out[id] = again.sections[id];
-            removed.push(...invented[id]);
-          }
-        }
-        return Object.keys(out).length ? out : null;
-      },
-    };
+/** Au dernier recours, le dépassement de longueur toléré (le texte passe à la ligne, il ne casse pas une page web). */
+const LAST_RESORT_OVERFLOW = 1.6;
+
+/** Une réponse dont aucune section n'est lisible : la seule redemandée telle quelle. */
+const SHAPE_PROBLEM = SHAPE_REMINDER;
+
+/** Un dépassement de longueur seulement (« 18 signes pour 14 au plus »), et dans la tolérance du dernier recours. */
+function onlyMildOverflow(problems: string[]): boolean {
+  return problems.every((line) => {
+    const m = line.match(/: (\d+) signes pour (\d+) au plus$/);
+    return !!m && Number(m[1]) <= Number(m[2]) * LAST_RESORT_OVERFLOW;
+  });
+}
+
+export function startPageCopy(input: CopyInput): PageCopy {
+  const { tasks, targets, check } = input;
+  const waiting = new Map<string, (value: SectionContent | undefined) => void>();
+  const ready = new Map<string, Promise<SectionContent | undefined>>();
+  for (const task of tasks) ready.set(task.section.id, new Promise((resolve) => waiting.set(task.section.id, resolve)));
+
+  const sections: Record<string, SectionContent> = {};
+  const removed: string[] = [];
+  const deliver = (id: string, content: SectionContent | undefined) => {
+    if (content) sections[id] = content;
+    waiting.get(id)?.(content);
+    waiting.delete(id);
   };
 
-  const maxTokens = Math.min(7000, 700 + tasks.length * 650);
-  const outcome = await input.caller.json(input.label, copySystemPrompt(input.language), copyPrompt(input), judge, maxTokens);
-  return { sections: outcome.value ?? best, removed, providerDown: outcome.providerDown };
+  /** Une réponse lisible est toujours acceptée : le tri section par section se fait ici, pas par un renvoi au modèle. */
+  const lenient = (subset: CopyTask[]) => (raw: unknown): Verdict<{ sections: Record<string, SectionContent>; problems: Record<string, string[]> }> => {
+    const read = readCopy(raw, subset, targets);
+    if (!Object.keys(read.sections).length) return { problem: SHAPE_PROBLEM };
+    return { value: read };
+  };
+
+  /** Une section lue : livrée si elle est juste (au besoin après retrait des phrases non vérifiées), sinon ce qui ne va pas. */
+  const settle = (task: CopyTask, content: SectionContent | undefined, problems: string[] | undefined): string[] => {
+    const id = task.section.id;
+    if (!content) return problems ?? [`${id} : absente`];
+    if (problems?.length) return problems;
+    const invented = check(content);
+    if (!invented.length) {
+      deliver(id, content);
+      return [];
+    }
+    const again = readCopy({ [id]: stripSentences(content, invented) }, [task], targets);
+    if (!again.problems[id] && again.sections[id] && !check(again.sections[id]).length) {
+      removed.push(...invented);
+      deliver(id, again.sections[id]);
+      return [];
+    }
+    return [`${id} : retire ${invented.map((i) => `« ${i} »`).join(', ')} (absent des informations du projet), sans le remplacer par une autre affirmation`];
+  };
+
+  const done = (async (): Promise<CopyResult> => {
+    let providerDown = false;
+    try {
+      if (!tasks.length) return { sections: {}, removed, providerDown };
+      const maxTokens = Math.min(7000, 700 + tasks.length * 650);
+      const first = await input.caller.json(input.label, copySystemPrompt(input.language), copyPrompt(input), lenient(tasks), maxTokens);
+      providerDown = first.providerDown;
+      const drafts = first.value?.sections ?? {};
+      const faults = new Map<CopyTask, string[]>();
+      for (const task of tasks) {
+        const lines = settle(task, drafts[task.section.id], first.value?.problems[task.section.id]);
+        if (lines.length) faults.set(task, lines);
+      }
+      if (!faults.size || !first.value) return { sections, removed, providerDown };
+
+      // Les seules sections fautives, en un appel, avec ce qu'elles disaient et ce qu'il faut corriger.
+      const subset = [...faults.keys()];
+      const previous = subset
+        .filter((task) => drafts[task.section.id])
+        .map((task) => `« ${task.section.id} » : ${JSON.stringify(drafts[task.section.id])}`)
+        .join('\n');
+      const corrections = [...faults.values()].flat().map((line) => `- ${line}`).join('\n');
+      const prompt = `${copyPrompt({ ...input, tasks: subset })}\n\n# Ta première version de ces sections${previous ? `\n${previous}` : ' : absente'}\n\n# À corriger, et seulement ces points\n${corrections}\nRenvoie l'objet JSON de ces sections seulement, complet.`;
+      const second = await input.caller.json(`${input.label} (reprise)`, copySystemPrompt(input.language), prompt, lenient(subset), Math.min(5000, 600 + subset.length * 650));
+      for (const task of subset) {
+        const id = task.section.id;
+        const content = second.value?.sections[id] ?? drafts[id];
+        const problems = second.value?.sections[id] ? second.value.problems[id] : first.value.problems[id];
+        const left = settle(task, content, problems);
+        if (!left.length) continue;
+        // Dernier recours : un texte un peu long, sans invention, est gardé tel quel.
+        if (content && problems?.length && onlyMildOverflow(problems) && !check(content).length) {
+          ChatLogger.info('SITE_CATALOG', `${input.label} : « ${id} » gardée un peu longue`, { problems });
+          deliver(id, content);
+        }
+      }
+      return { sections, removed, providerDown: providerDown && second.providerDown };
+    } finally {
+      // Une section jamais livrée repart vers l'auteur de code — jamais une attente sans fin.
+      for (const id of [...waiting.keys()]) deliver(id, undefined);
+    }
+  })();
+
+  return { section: (id) => ready.get(id) ?? Promise.resolve(undefined), done };
+}
+
+/** Les textes d'une page, en entier (la page n'est rendue qu'une fois chaque section livrée ou abandonnée). */
+export function writePageCopy(input: CopyInput): Promise<CopyResult> {
+  return startPageCopy(input).done;
 }

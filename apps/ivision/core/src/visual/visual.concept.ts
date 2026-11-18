@@ -33,19 +33,17 @@ export interface ConceptChoice {
 }
 
 const IMAGE_ROLES: ImageRole[] = ['photo', 'illustration', 'cutout', 'none'];
-const TREATMENTS: PhotoTreatment[] = ['natural', 'duotone', 'tint', 'mono'];
 
 export function conceptPrompt(o: { request: string; brand: string; business: string; tone?: string; format: string; language: string; previous: string[]; startingPoint?: string; hasUserPhoto: boolean }): { system: string; user: string } {
   const system = [
     'You are the art director of an African brand. Before any word is written, propose FOUR clearly different ideas for ONE social-media visual.',
     'They differ in kind: another metaphor, another framing (close-up, wide, object, people, type alone), another relation between words and image. One of them starts from the STARTING POINT. None repeats a visual already made.',
-    'For each idea choose the IMAGE ROLE: photo (a real-looking photo), illustration (a flat vector illustration in the brand colours), cutout (one subject cut out of its background, set on a brand colour field), or none (typography and colour only).',
-    'Choose the TREATMENT of a photo: natural, duotone (two brand colours), tint (a light brand tint) or mono. The words are always set in the BRAND FONTS and the visual uses the BRAND COLOURS of its charter: never another typeface, never colours outside the charter.',
+    'For each idea choose the IMAGE ROLE: photo (a real-looking photo), illustration (an illustration drawn as such by the image model), cutout (one subject cut out of its background, set on a brand colour field), or none (typography and colour only).',
+    'An image is ALWAYS shown with its own natural colours: never a duotone, a tint, black and white or any colour filter on it. The brand colours live in the page around the image. The words are always set in the BRAND FONTS and the visual uses the BRAND COLOURS of its charter: never another typeface, never colours outside the charter.',
     'Every idea serves the message: the viewer understands what is offered at a glance. Professional, never decoration for its own sake.',
-    'Answer in English with exactly four blocks of four lines:',
+    'Answer in English with exactly four blocks of two lines:',
     'TRACK n: <short title> — <the idea in two sentences: what we see and how words and image work together>',
     'IMAGE n: photo|illustration|cutout|none — <what the image shows, concrete>',
-    'TREATMENT n: natural|duotone|tint|mono',
     '',
   ].join('\n');
   const user = [
@@ -69,7 +67,9 @@ export function parseConcepts(raw: string): VisualConcept[] {
     const n = m[1];
     const imageLine = field('IMAGE', n);
     const role = IMAGE_ROLES.find((r) => new RegExp(`^${r}\\b`, 'i').test(imageLine)) ?? 'photo';
-    const treatment = TREATMENTS.find((t) => new RegExp(`\\b${t}\\b`, 'i').test(field('TREATMENT', n))) ?? 'natural';
+    // Une photo garde TOUJOURS ses couleurs (photo-integrity, 18/11/2026) : un TREATMENT encore écrit par le modèle
+    // est ignoré, le traitement est fixé par le code.
+    const treatment: PhotoTreatment = 'natural';
     const idea = m[3].trim();
     if (idea.length < 20) continue;
     out.push({ title: m[2].trim().slice(0, 80), idea: idea.slice(0, 400), image: role, ...(imageLine.split(/[—–-]\s+/)[1] ? { imageSubject: imageLine.split(/[—–-]\s+/).slice(1).join(' - ').trim().slice(0, 240) } : {}), treatment });

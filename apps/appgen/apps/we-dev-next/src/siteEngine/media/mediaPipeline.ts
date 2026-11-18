@@ -45,6 +45,8 @@ export interface PipelineContext {
   writeFile(path: string, content: string): void;
   /** Les générations payantes passent une à une ou deux à deux, pas toutes à la fois. */
   limit<T>(task: () => Promise<T>): Promise<T>;
+  /** Les générations payantes encore permises dans ce site (images et vidéos), partagées par tous les emplacements. */
+  generations: { left: number };
 }
 
 const orientationOf = (aspect: Aspect): 'landscape' | 'portrait' | 'square' =>
@@ -110,8 +112,25 @@ export async function produceMedia(slot: MediaSlot, decision: AssetDecision, ctx
     }
   };
 
+  /** Une génération payante de plus, si le plafond du site le permet. */
+  const takeGeneration = (): boolean => {
+    if (!ctx.client.available || ctx.client.generationBlocked?.() || ctx.generations.left <= 0) return false;
+    ctx.generations.left -= 1;
+    return true;
+  };
+
+  const stockVideo = async (): Promise<MediaAsset[]> => {
+    if (!decision.query) return [];
+    try {
+      return fromStock(await ctx.client.stock(decision.query, 'video', 'landscape', 1, locale), 'video');
+    } catch (error) {
+      fail('Pexels vidéo', error);
+      return [];
+    }
+  };
+
   const generateImage = async (kind: 'photo' | 'illustration' | 'illustration-3d'): Promise<MediaAsset[]> => {
-    if (!ctx.client.available || ctx.client.generationBlocked?.()) return [];
+    if (!takeGeneration()) return [];
     try {
       const prompt = await writeGenerationPrompt({ caller: ctx.caller, decision, slot, kind, facts: ctx.facts, style: ctx.style });
       const image = await ctx.limit(() => ctx.client.generateImage(prompt, slot.aspect, tag));
@@ -160,22 +179,19 @@ export async function produceMedia(slot: MediaSlot, decision: AssetDecision, ctx
 
   let assets: MediaAsset[] = [];
 
+  // PEXELS D'ABORD, partout : un visuel n'est généré que lorsque la banque n'a rien qui corresponde à la requête.
   switch (decision.kind) {
     case 'video': {
-      if (ctx.client.available && !ctx.client.generationBlocked?.()) {
-        ctx.note(fr ? `Je génère la vidéo de ${place} (une à deux minutes)` : `Generating the video for ${place} (one to two minutes)`);
+      ctx.note(fr ? `Je cherche une vidéo pour ${place}` : `Finding a video for ${place}`);
+      assets = await stockVideo();
+      if (!assets.length && takeGeneration()) {
+        ctx.note(fr ? `Aucune vidéo sur Pexels : je génère celle de ${place} (une à deux minutes)` : `No match on Pexels: generating the video for ${place} (one to two minutes)`);
         try {
           const prompt = await writeGenerationPrompt({ caller: ctx.caller, decision, slot, kind: 'video', facts: ctx.facts, style: ctx.style });
           const clip = await ctx.limit(() => ctx.client.generateVideo(prompt, tag));
           assets = [{ kind: 'video', src: clip.url, origin: 'veo', credit: clip.model }];
         } catch (error) {
           fail('génération vidéo', error);
-          ctx.note(fr ? 'La vidéo générée n’a pas abouti : je cherche un clip sur Pexels' : 'The generated video failed: looking for a clip on Pexels');
-          try {
-            assets = fromStock(await ctx.client.stock(decision.query, 'video', 'landscape', 1, locale), 'video');
-          } catch (stockError) {
-            fail('Pexels vidéo', stockError);
-          }
         }
       }
       if (!assets.length) assets = await stockPhotos(decision.query);
@@ -185,28 +201,27 @@ export async function produceMedia(slot: MediaSlot, decision: AssetDecision, ctx
     case 'photo': {
       if (slot.role === 'gallery') ctx.note(fr ? 'Je choisis les photos de la galerie' : 'Choosing the gallery photos');
       else ctx.note(fr ? `Je cherche une photo pour ${place}` : `Finding a photo for ${place}`);
-      const generateFirst = decision.source === 'generate' && slot.count === 1;
-      assets = generateFirst ? await generateImage('photo') : await stockPhotos(decision.query);
-      if (!assets.length && slot.count === 1) assets = generateFirst ? await stockPhotos(decision.query) : await generateImage('photo');
-      // Une galerie sans trois photos pour la requête précise : une requête plus large.
+      assets = await stockPhotos(decision.query);
+      if (!assets.length && slot.count === 1) assets = await generateImage('photo');
+      // Une galerie sans assez de photos pour la requête précise : une requête plus large.
       if (!assets.length && slot.count > 1) assets = await stockPhotos(decision.query.split(' ').slice(0, 2).join(' '));
       break;
     }
 
     case 'illustration': {
-      // L'illustration est dessinée par le modèle d'image (style vectoriel professionnel) ; à défaut une vraie
-      // photo ; le dessin composé par le code n'est qu'un dernier recours (jugé pauvre, 28/10/2026).
-      ctx.note(fr ? `Je génère une illustration pour ${place}` : `Generating an illustration for ${place}`);
-      assets = await generateImage('illustration');
-      if (!assets.length) assets = await stockPhotos(decision.query);
+      // Pexels d'abord ; sans correspondance, l'illustration vectorielle du modèle d'image ; le dessin composé par
+      // le code n'est qu'un dernier recours (jugé pauvre, 28/10/2026).
+      ctx.note(fr ? `Je cherche un visuel pour ${place}` : `Finding a visual for ${place}`);
+      assets = await stockPhotos(decision.query);
+      if (!assets.length) assets = await generateImage('illustration');
       if (!assets.length) assets = await drawSvg();
       break;
     }
 
     case 'illustration-3d': {
-      ctx.note(fr ? `Je génère une illustration 3D pour ${place}` : `Generating a 3D illustration for ${place}`);
-      assets = await generateImage('illustration-3d');
-      if (!assets.length) assets = await stockPhotos(/\b3d\b/i.test(decision.query) ? decision.query : `${decision.query} 3d`);
+      ctx.note(fr ? `Je cherche un visuel pour ${place}` : `Finding a visual for ${place}`);
+      assets = await stockPhotos(/\b3d\b/i.test(decision.query) ? decision.query : `${decision.query} 3d`);
+      if (!assets.length) assets = await generateImage('illustration-3d');
       if (!assets.length) assets = await drawSvg();
       break;
     }

@@ -2342,5 +2342,66 @@
       "denied": "Refused. Nothing was issued.",
       "back": "Back to the dashboard"
     }
+  },
+  "idemProject": {
+    "linked": {
+      "label": "IDEM project",
+      "direction": "Art direction: {{name}}",
+      "open": "Open in IDEM"
+    },
+    "offer": {
+      "title": "Give your site an IDEM project",
+      "body": "Your site is live at {{url}}. IDEM reads it to create your project: your business, your audience, the figures you show, your logo, colours, fonts and style. You can then manage your communication, create your brand guidelines and business plan without typing anything again.",
+      "choice": "Project to use",
+      "create": "Create a project from this site",
+      "recommended": "Recommended",
+      "attach": "Link to one of my projects",
+      "cta": "Create my IDEM project",
+      "ctaAttach": "Link this project",
+      "later": "Later"
+    },
+    "consent": {
+      "iAccept": "I accept the",
+      "privacy": "privacy policy",
+      "terms": "the terms of use",
+      "and": "and",
+      "beta": "the beta programme terms",
+      "ofIdem": "of IDEM.",
+      "needed": "Tick the box to create your project."
+    },
+    "running": {
+      "title": "Reading {{url}}…",
+      "hint": "One to two minutes. You can leave the page: the project is created anyway."
+    },
+    "step": {
+      "open": "Reading the site",
+      "project": "Project sheet",
+      "logo-variations": "Logo",
+      "typography": "Colours and fonts",
+      "art-direction": "Art direction"
+    },
+    "match": {
+      "close": "faithful to your site",
+      "partial": "close to your site",
+      "distant": "your site keeps its own style"
+    },
+    "done": {
+      "title": "{{name}} is ready on IDEM",
+      "body": "Everything was taken from your site. Your future brand guidelines will start from it, so they match your site.",
+      "direction": "Art direction",
+      "fonts": "Fonts",
+      "figures": "Figures taken from your site",
+      "open": "Open my project",
+      "charter": "Create my brand guidelines"
+    },
+    "error": {
+      "unreachable": "Your site does not respond. Check that it opens, then try again.",
+      "timeout": "Your site took too long to respond. Try again in a moment.",
+      "blocked_url": "This address cannot be read.",
+      "invalid_url": "This address cannot be read.",
+      "no_public_url": "This application has no public address yet.",
+      "app_not_found": "Application not found.",
+      "generic": "The project could not be created. Try again."
+    }
   }
 }

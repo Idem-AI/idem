@@ -20,6 +20,7 @@ import logger from '../../config/logger';
 import { AI_CONFIG, LLMProvider, ROLE_MODELS } from '../../config/ai.config';
 import { contentContract, sectionFromModel, SectionContent, systemSection, volumeDirective } from '@idem/graphic-engine';
 import { parseLlmJson } from '../../utils/llm-json.util';
+import { checkCitations, stripUncited } from './citation-check';
 import { cacheService } from '../cache.service';
 import {
   PromptService,
@@ -140,15 +141,7 @@ const WRITER_CONFIG: PromptConfig = {
   },
 };
 
-const VERIFIER_CONFIG: PromptConfig = {
-  provider: AI_CONFIG.businessPlan.provider,
-  // Vérifier qu'une affirmation chiffrée figure bien dans les sources est un
-  // contrôle, pas une rédaction : l'étage mécanique le fait aussi bien et plus
-  // vite, sur chaque section.
-  modelName: ROLE_MODELS.mechanical,
-  promptType: 'research-verifier',
-  llmOptions: { temperature: 0.1, maxOutputTokens: 1024 },
-};
+// Le vérificateur n'appelle plus de modèle (diagnostic RS2) : `citation-check.ts` applique la règle par le code.
 
 /**
  * Concurrence max de sections traitées en parallèle.
@@ -345,18 +338,9 @@ export class ResearchTeamService {
       const verdict = await this.verify(runId, section, ctx, draft, sources, emit);
 
       let finalData = draft;
-      // Une seule passe de correction si des problèmes critiques subsistent.
-      if (!verdict.passed && verdict.issues.some((iss) => iss.severity === 'critical')) {
-        finalData = await this.reviseAfterVerification(
-          runId,
-          section,
-          ctx,
-          draft,
-          sources,
-          verdict,
-          emit
-        );
-      }
+      // Des données chiffrées sans citation valide : le CODE retire ces phrases de la prose (diagnostic RS1). Plus de
+      // réécriture par le modèle — elle refaisait toute la section en HTML et perdait tableaux et séries.
+      if (!verdict.passed) finalData = this.removeUncited(section, ctx, draft, sources);
 
       const finalizedHtml = await this.finalizeResearchedSection(finalData, ctx, section, sectionIndex + 1);
       const result: ResearchedSection = {
@@ -692,8 +676,9 @@ export class ResearchTeamService {
           `\nSECTION À RÉDIGER : ${section.name}\n\n` +
           `INSTRUCTIONS DE CONTENU ET DE MISE EN PAGE (À SUIVRE STRICTEMENT) :\n${section.instructions}\n` +
           (section.needsResearch
-            ? `\n--- SYNTHÈSE DE RECHERCHE (faits réels collectés — SEULE source de chiffres autorisée) ---\n${researchDigest}\n` +
-              `\n--- SOURCES DISPONIBLES (utilise ces ids pour les citations [sN]) ---\n${sourceList}\n`
+            ? // La liste des sources figure déjà à la fin de la synthèse (`buildResearchDigest`) : une seule fois (RS4).
+              `\n--- SYNTHÈSE DE RECHERCHE (faits réels collectés — SEULE source de chiffres autorisée ; les ids [sN] des sources sont listés à la fin) ---\n${researchDigest}\n` +
+              (researchDigest.includes('[s') ? '' : `\n--- SOURCES DISPONIBLES (utilise ces ids pour les citations [sN]) ---\n${sourceList}\n`)
             : '') +
           `\n${volumeDirective('7 to 9')}\n\n${contentContract({ deliverable: 'business-plan' })}`,
       },
@@ -720,10 +705,9 @@ export class ResearchTeamService {
           ...WRITER_CONFIG,
           userId: ctx.userId,
           language: ctx.language,
-          // Une section LIBRE produit du HTML, pas un objet : lui imposer le
-          // mode JSON garantirait l'inverse de ce qu'on lui demande. Le budget
-          // reste large pour la même raison qu'ailleurs — une page composée qui
-          // se coupe en plein milieu ne se rattrape pas.
+          // La section est un OBJET JSON (contrat du catalogue, `jsonMode` de
+          // WRITER_CONFIG), même en flux. Le budget reste large : une section
+          // qui se coupe en plein milieu ne se rattrape pas.
           llmOptions: WRITER_CONFIG.llmOptions,
         },
         messages,
@@ -873,60 +857,8 @@ export class ResearchTeamService {
       return verdict;
     }
 
-    const allowedIds = sources.map((s) => s.id).join(', ') || '(aucune)';
-    const messages: AIChatMessage[] = [
-      {
-        role: 'system',
-        content:
-          'You are an anti-hallucination quality checker. You receive the QUANTIFIED sentences of a section and the list of allowed source identifiers. ' +
-          'Your mission: spot every quantified claim (statistic, market size or share, rate, amount, date) NOT accompanied by a valid [sN] citation (an id present in the allowed list). ' +
-          'Answer STRICTLY in JSON.',
-      },
-      {
-        role: 'user',
-        content:
-          `ALLOWED SOURCE IDS: [${allowedIds}]\n\n` +
-          `QUANTIFIED SENTENCES TO CHECK:\n"""\n${numeric}\n"""\n\n` +
-          'Answer with exactly this JSON schema:\n' +
-          '{\n' +
-          '  "citedClaims": <number of quantified claims correctly cited>,\n' +
-          '  "uncitedClaims": <number of quantified claims without a valid citation>,\n' +
-          '  "issues": [{ "claim": "<offending excerpt>", "reason": "<why>", "severity": "info|warning|critical" }]\n' +
-          '}\n' +
-          'A quantified claim without a valid [sN] is severity "critical". No offending claim → issues: [].',
-      },
-    ];
-
-    let verdict: VerificationVerdict = {
-      passed: true,
-      citedClaims: 0,
-      uncitedClaims: 0,
-      issues: [],
-    };
-    try {
-      const raw = await this.promptService.runPrompt(
-        { ...VERIFIER_CONFIG, userId: ctx.userId },
-        messages
-      );
-      const parsed = this.parseJSON(raw);
-      const uncited = Number(parsed.uncitedClaims) || 0;
-      verdict = {
-        passed: uncited === 0,
-        citedClaims: Number(parsed.citedClaims) || 0,
-        uncitedClaims: uncited,
-        issues: Array.isArray(parsed.issues)
-          ? parsed.issues.slice(0, 20).map((iss: any) => ({
-              claim: String(iss.claim || '').slice(0, 400),
-              reason: String(iss.reason || ''),
-              severity: ['info', 'warning', 'critical'].includes(iss.severity)
-                ? iss.severity
-                : 'warning',
-            }))
-          : [],
-      };
-    } catch (err: any) {
-      logger.warn(`Verifier failed for "${section.name}": ${err.message}`);
-    }
+    // La règle est lexicale : une expression régulière suffit (0 jeton, 0 ms — diagnostic RS2).
+    const verdict: VerificationVerdict = checkCitations(numeric, sources.map((src) => src.id));
 
     await this.emitAgent(emit, runId, 'verifier', agentId, section.name, {
       kind: 'verification',
@@ -936,54 +868,16 @@ export class ResearchTeamService {
     return verdict;
   }
 
-  private async reviseAfterVerification(
-    runId: string,
-    section: DeliverableSection,
-    ctx: ResearchTeamContext,
-    draft: string,
-    sources: ResearchSource[],
-    verdict: VerificationVerdict,
-    emit: ResearchEmit
-  ): Promise<string> {
-    const agentId = `writer:${section.name}`;
-    await this.emitAgent(emit, runId, 'writer', agentId, section.name, {
-      kind: 'agent_status',
-      status: 'writing',
-      message: 'Correction des données non sourcées signalées',
-    });
-
-    const issuesText = verdict.issues
-      .map((iss, i) => `${i + 1}. [${iss.severity}] ${iss.claim} — ${iss.reason}`)
-      .join('\n');
-    const allowedIds = sources.map((s) => s.id).join(', ') || '(aucune)';
-
-    const messages: AIChatMessage[] = [
-      {
-        role: 'system',
-        content:
-          'Tu corriges une section de business plan (HTML + Tailwind) pour supprimer toute donnée chiffrée non sourcée. ' +
-          'Pour chaque problème : soit tu ajoutes un marqueur de citation [sN] valide si un fait sourcé le justifie, ' +
-          'soit tu reformules pour retirer le chiffre non vérifiable (sans inventer). Ne rajoute jamais de nouveau chiffre non sourcé. ' +
-          'Conserve intégralement la mise en page HTML, les classes Tailwind et les graphiques Chart.js existants. ' +
-          "N'ajoute PAS de liste « Sources » (elle est ajoutée automatiquement).",
-      },
-      {
-        role: 'user',
-        content:
-          `IDS DE SOURCES AUTORISÉS: [${allowedIds}]\n\n` +
-          `PROBLÈMES À CORRIGER:\n${issuesText}\n\n` +
-          `SECTION ACTUELLE (HTML):\n"""\n${draft}\n"""\n\n` +
-          'Renvoie la version corrigée complète de la section en HTML (Tailwind), sans bloc de code markdown ni préfixe « html ».',
-      },
-    ];
-
-    const revised = this.promptService.getCleanAIText(
-      await this.promptService.runPrompt(
-        { ...WRITER_CONFIG, userId: ctx.userId, language: ctx.language },
-        messages
-      )
-    );
-    return revised || draft;
+  /**
+   * Retire par le code les phrases chiffrées sans citation valide (diagnostic RS1). Le contenu reste un objet JSON :
+   * tableaux, chiffres du plan et séries de graphiques sont gardés tels quels.
+   */
+  private removeUncited(section: DeliverableSection, ctx: ResearchTeamContext, draft: string, sources: ResearchSource[]): string {
+    const parsed = parseLlmJson(draft);
+    if (!parsed || typeof parsed !== 'object') return draft;
+    const { content, removed } = stripUncited(JSON.stringify(parsed), sources.map((src) => src.id), ctx.language);
+    if (removed.length) logger.info(`ResearchTeam « ${section.name} » : ${removed.length} phrase(s) chiffrée(s) non sourcée(s) retirée(s).`);
+    return removed.length ? content : draft;
   }
 
   // -------------------------------------------------------------------------

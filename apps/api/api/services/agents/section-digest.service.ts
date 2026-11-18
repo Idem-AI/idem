@@ -58,6 +58,62 @@ export interface SectionDigest {
   origin: 'deterministic' | 'model' | 'cache';
 }
 
+// ── Digest construit PAR LE CODE depuis le contenu structuré (diagnostic S1, 18/11/2026) ─────────────────────────
+//
+// Une section sous gabarit existe d'abord en OBJET (titres, blocs, chiffres) avant d'être rendue en HTML. Ses faits
+// s'en extraient sans modèle : titres, valeurs et libellés des blocs, phrases chiffrées ou nommées de la prose.
+
+/** Les sections rendues de ce processus, par leur HTML : l'objet dont elles viennent (borné, plus ancien retiré). */
+const STRUCTURED = new Map<string, unknown>();
+const STRUCTURED_MAX = 300;
+
+/** À appeler quand une section structurée vient d'être rendue : ses digests se feront sans modèle. */
+export function rememberStructured(renderedHtml: string, section: unknown): void {
+  if (!renderedHtml || !section) return;
+  STRUCTURED.set(hashContent(renderedHtml), section);
+  if (STRUCTURED.size > STRUCTURED_MAX) STRUCTURED.delete(STRUCTURED.keys().next().value as string);
+}
+
+/** Les faits d'une section structurée, en lignes courtes (0 jeton). */
+export function digestFromStructured(section: unknown, max = MAX_DIGEST_CHARS * 1.4): string {
+  const lines: string[] = [];
+  let size = 0;
+  const push = (line: string) => {
+    const t = line.replace(/\s+/g, ' ').trim();
+    if (!t || size >= max || lines.includes(t)) return;
+    lines.push(t);
+    size += t.length + 1;
+  };
+  const isFact = (sentence: string) => /\d/.test(sentence) || /\s[A-ZÀ-Ý][\p{L}'’-]{2,}/u.test(sentence);
+  const walk = (v: unknown, key = '', depth = 0): void => {
+    if (depth > 6 || size >= max) return;
+    if (typeof v === 'string') {
+      if (/^(type|id|kind|variant|layout|icon|tone|style|chart|accent)$/i.test(key)) return;
+      if (v.length <= 90) push(v);
+      else for (const sentence of v.split(/(?<=[.!?…])\s+/)) if (isFact(sentence)) push(sentence.slice(0, 220));
+      return;
+    }
+    if (typeof v === 'number') return push(`${key}: ${v}`);
+    if (Array.isArray(v)) {
+      // Une rangée de tableau ou un élément de liste : sur une ligne, lisible.
+      if (v.every((x) => typeof x === 'string' || typeof x === 'number')) return push(v.join(' · ').slice(0, 220));
+      for (const x of v.slice(0, 24)) walk(x, key, depth + 1);
+      return;
+    }
+    if (v && typeof v === 'object') {
+      const o = v as Record<string, unknown>;
+      // Une paire valeur / libellé (bloc de chiffres) : une ligne.
+      if ((typeof o.value === 'string' || typeof o.value === 'number') && typeof o.label === 'string') return push(`${o.label} : ${o.value}`);
+      for (const [k, x] of Object.entries(o)) walk(x, k, depth + 1);
+    }
+  };
+  walk(section);
+  return lines.join('\n');
+}
+
+/** Les digests en cours, par clé : deux étapes qui dépendent de la même section n'en paient qu'un (diagnostic S2). */
+const INFLIGHT = new Map<string, Promise<SectionDigest>>();
+
 function hashContent(content: string): string {
   return crypto.createHash('sha1').update(content).digest('hex').slice(0, 16);
 }
@@ -81,7 +137,26 @@ export async function digestSection(
     return { name, text: plain, origin: 'deterministic' };
   }
 
+  // La section est connue sous sa forme structurée : ses faits s'extraient par le code, sans modèle (S1).
+  const structured = STRUCTURED.get(hashContent(content ?? ''));
+  if (structured) {
+    const facts = digestFromStructured(structured);
+    if (facts) {
+      logAIEvent('agent.digest_built', { projectId: ctx.projectId, section: name, sourceChars: plain.length, digestChars: facts.length, ratio: Math.round(plain.length / Math.max(1, facts.length)), by: 'code' });
+      return { name, text: facts, origin: 'deterministic' };
+    }
+  }
+
   const cacheKey = `digest:${ctx.projectId ?? 'anon'}:${name}:${hashContent(plain)}`;
+  const pending = INFLIGHT.get(cacheKey);
+  if (pending) return pending;
+  const run = digestByModel(name, plain, cacheKey, ctx).finally(() => INFLIGHT.delete(cacheKey));
+  INFLIGHT.set(cacheKey, run);
+  return run;
+}
+
+/** Le résumé au modèle (section HTML libre, sans forme structurée connue), en cache par empreinte. */
+async function digestByModel(name: string, plain: string, cacheKey: string, ctx: DigestContext): Promise<SectionDigest> {
   try {
     const cached = await cacheService.get<string>(cacheKey, { prefix: 'ai' });
     if (cached) {

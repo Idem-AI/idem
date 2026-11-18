@@ -24,7 +24,9 @@
     "catalog:snapshot": "ts-node --transpile-only scripts/catalog-snapshot.ts",
     "schemas": "ts-node --transpile-only scripts/generate-schemas.ts",
     "sample:flyers": "ts-node --transpile-only scripts/sample-flyers.ts",
-    "check:logo-director": "ts-node --transpile-only scripts/check-logo-director.ts"
+    "check:logo-director": "ts-node --transpile-only scripts/check-logo-director.ts",
+    "check:tiers": "ts-node --transpile-only scripts/check-tiers.ts",
+    "check:photo": "ts-node --transpile-only scripts/check-photo-integrity.ts"
   },
   "keywords": [
     "idem",

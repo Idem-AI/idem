@@ -35,7 +35,7 @@ const base = {
   modelName: ROLE_MODELS.reasoning,
   role: 'reasoning' as const,
 };
-assert.equal(resolveGlobalOverride(base).modelName, 'qwen/qwen3.5-397b-a17b');
+assert.equal(resolveGlobalOverride(base).modelName, 'deepseek/deepseek-v4.1-flash-1017');
 process.env.IDEM_OPENROUTER_REASONING_MODEL = 'deepseek/deepseek-v4-pro';
 assert.equal(resolveGlobalOverride(base).modelName, 'deepseek/deepseek-v4-pro', 'rôle retraduit');
 assert.equal(
@@ -50,7 +50,7 @@ assert.ok(isAllowedOpenRouterModel('qwen/qwen3-coder-next'));
 assert.ok(!isAllowedOpenRouterModel('black-forest-labs/flux.2-pro'), 'API fermée');
 assert.ok(!isAllowedOpenRouterModel('qwen/qwen3.5-plus-20260420'), 'non listé');
 process.env.IDEM_OPENROUTER_WRITING_MODEL = 'qwen/qwen3.7-max';
-assert.equal(resolveOpenRouterModel('writing'), 'qwen/qwen3.5-122b-a10b', 'surcharge refusée');
+assert.equal(resolveOpenRouterModel('writing'), 'deepseek/deepseek-v4.1-flash-1017', 'surcharge refusée');
 process.env.IDEM_OPENROUTER_WRITING_MODEL = 'qwen/qwen3.5-27b';
 assert.equal(getProvider(LLMProvider.OPENROUTER).models?.writing, 'qwen/qwen3.5-27b');
 delete process.env.IDEM_OPENROUTER_WRITING_MODEL;
@@ -63,6 +63,8 @@ assert.deepEqual(translateReasoning({ model: 'm', thinking: { type: 'disabled' }
 assert.deepEqual(translateReasoning({ model: 'm' }), { model: 'm' });
 assert.ok(canSuppressThinking('qwen/qwen3.5-122b-a10b'));
 assert.ok(!canSuppressThinking('qwen/qwen3-235b-a22b-thinking-2507'));
+assert.ok(!canSuppressThinking('z-ai/glm-5.3-flash'), 'T1 : GLM-5.3-Flash impose son raisonnement');
+assert.ok(canSuppressThinking('deepseek/deepseek-v4.1-flash-1017'));
 
 // 5. Formats d'image → ratios supportés.
 assert.equal(aspectRatioFor('1344x768'), '16:9');

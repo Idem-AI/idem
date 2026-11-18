@@ -36,6 +36,8 @@ interface BaseNode {
   weight?: number;
   /** Les DA servies (catalogue `directions` du dépôt) : un film ne prend que les nœuds de la DA de sa marque. */
   directions?: string[];
+  /** La gamme (18/11/2026) : le cran qui sert ce nœud, du plus sobre au plus premium. Absent : tous les crans. */
+  tier?: 'low' | 'medium' | 'high' | 'ultra';
 }
 
 export interface SlotDef {
@@ -86,12 +88,40 @@ export interface TweenStep {
   duration: TweenValue;
   ease?: string;
   stagger?: TweenValue;
-  /** Décalage par rapport au DÉBUT du tween précédent (absent : à sa fin). */
-  at?: number;
+  /** Décalage par rapport au DÉBUT du tween précédent (absent : à sa fin) ; un jeton (`$dIn*0.6`) est permis. */
+  at?: TweenValue;
   /** Animation : `self` (défaut) ou `inner` (l'image dans son cadre) ; transition : `prev`, `next`, `overlay:N`. */
   target?: string;
   counter?: true;
+  /** Un EFFET de texte nommé, implémenté par le runtime (jamais du code publié) : voir `TEXT_FX`. */
+  fx?: TextFx;
+  /** Les réglages bornés de l'effet (`TEXT_FX[fx].opts`). */
+  opts?: Record<string, number>;
+  /** Les unités visées d'un texte découpé : la première, la dernière, ou toutes sauf la dernière. */
+  pick?: 'first' | 'last' | 'rest';
 }
+
+/**
+ * LES EFFETS DE TEXTE (18/11/2026) — ce que des tweens de propriétés ne savent pas faire (frappe, décodage, surligneur,
+ * contour, glitch, vague, soulignement, relief, rature, coupe en deux, balayage de lumière). Le catalogue les NOMME ;
+ * le runtime les pose en GSAP (plugin `geFx`, rendu image par image, même quand HyperFrames coupe les événements),
+ * de façon déterministe, avec les couleurs de la marque. `split` : le découpage qu'exige l'effet (`any` : tous).
+ */
+export type TextFx = 'type' | 'scramble' | 'sweep' | 'marker' | 'outline' | 'glitch' | 'wave' | 'underline' | 'extrude' | 'strike' | 'split';
+export const TEXT_FX: Record<TextFx, { split: 'none' | 'words' | 'chars' | 'lines' | 'any'; opts: Record<string, [number, number]> }> = {
+  type: { split: 'chars', opts: {} },
+  scramble: { split: 'chars', opts: { window: [1, 8] } },
+  sweep: { split: 'none', opts: {} },
+  marker: { split: 'lines', opts: { height: [0.2, 1] } },
+  outline: { split: 'none', opts: {} },
+  glitch: { split: 'none', opts: { amp: [1, 14] } },
+  wave: { split: 'chars', opts: { amp: [4, 40] } },
+  underline: { split: 'any', opts: {} },
+  extrude: { split: 'none', opts: { depth: [2, 10] } },
+  strike: { split: 'any', opts: {} },
+  split: { split: 'none', opts: { offset: [0.1, 1] } },
+};
+const PICKS = new Set(['first', 'last', 'rest']);
 
 export interface AnimationNode extends BaseNode {
   kind: 'animation';
@@ -99,6 +129,8 @@ export interface AnimationNode extends BaseNode {
   split: 'none' | 'words' | 'chars' | 'lines';
   mask?: boolean;
   maxChars?: number;
+  /** Les seules scènes où l'animation a un sens (une rature : la scène « problème »). Absent : toutes. */
+  sceneRoles?: SceneRole[];
   steps: { in: TweenStep[]; out?: TweenStep[]; hold?: TweenStep[] };
 }
 
@@ -168,8 +200,14 @@ export const PROPS: Record<string, [number, number]> = {
   scaleX: [0, 2],
   scaleY: [0, 2],
   rotation: [-8, 8],
+  /** La 3D (bascule d'une lettre, d'un mot) : le runtime pose la perspective. */
+  rotationX: [-100, 100],
+  rotationY: [-100, 100],
+  skewX: [-20, 20],
   opacity: [0, 1],
   blur: [0, 30],
+  /** L'approche, en em, AJOUTÉE à celle du texte (0 : celle de la mise en page). */
+  letterSpacing: [-0.2, 0.6],
 };
 
 function valueError(prop: string, value: unknown): string | null {
@@ -182,7 +220,7 @@ function valueError(prop: string, value: unknown): string | null {
   return null;
 }
 
-function stepsErrors(steps: unknown, target: (t: string) => boolean, counter: boolean): string[] {
+function stepsErrors(steps: unknown, target: (t: string) => boolean, counter: boolean, fx?: { split: string }): string[] {
   if (!Array.isArray(steps)) return ['liste de tweens attendue'];
   const errors: string[] = [];
   const timing = (v: unknown, lo: number, hi: number) => (typeof v === 'number' && v >= lo && v <= hi) || (typeof v === 'string' && TOKEN.test(v));
@@ -191,10 +229,22 @@ function stepsErrors(steps: unknown, target: (t: string) => boolean, counter: bo
       errors.push('tween invalide');
       continue;
     }
-    for (const k of Object.keys(step)) if (!['from', 'to', 'duration', 'ease', 'stagger', 'at', 'target', 'counter'].includes(k)) errors.push(`clé inconnue « ${k} »`);
+    for (const k of Object.keys(step)) if (!['from', 'to', 'duration', 'ease', 'stagger', 'at', 'target', 'counter', 'fx', 'opts', 'pick'].includes(k)) errors.push(`clé inconnue « ${k} »`);
     if (step.target !== undefined && !target(step.target)) errors.push(`cible invalide « ${step.target} »`);
     if (step.counter !== undefined && (step.counter !== true || !counter)) errors.push('compteur réservé aux chiffres');
-    if (!step.counter && (!step.to || typeof step.to !== 'object')) errors.push('« to » manquant');
+    if (step.pick !== undefined && (!PICKS.has(step.pick) || !fx)) errors.push(`sélection invalide « ${String(step.pick)} »`);
+    if (step.fx !== undefined) {
+      const def = TEXT_FX[step.fx as TextFx];
+      if (!def || !fx) errors.push(`effet inconnu ou réservé au texte « ${String(step.fx)} »`);
+      else {
+        if (def.split !== 'any' && def.split !== fx.split) errors.push(`l'effet ${step.fx} exige le découpage « ${def.split} »`);
+        for (const [k, v] of Object.entries(step.opts ?? {})) {
+          const r = def.opts[k];
+          if (!r || typeof v !== 'number' || v < r[0] || v > r[1]) errors.push(`réglage ${step.fx}.${k} invalide`);
+        }
+      }
+    } else if (step.opts !== undefined) errors.push('réglages sans effet');
+    if (!step.counter && !step.fx && (!step.to || typeof step.to !== 'object')) errors.push('« to » manquant');
     for (const part of [step.from, step.to]) for (const [p, v] of Object.entries(part ?? {})) {
       const e = valueError(p, v);
       if (e) errors.push(e);
@@ -202,7 +252,7 @@ function stepsErrors(steps: unknown, target: (t: string) => boolean, counter: bo
     if (!timing(step.duration, 0, 6)) errors.push('durée invalide');
     if (step.ease !== undefined && !(EASE.test(step.ease) || TOKEN.test(step.ease))) errors.push(`courbe non permise « ${step.ease} »`);
     if (step.stagger !== undefined && !timing(step.stagger, 0, 0.5)) errors.push('décalage invalide');
-    if (step.at !== undefined && !(typeof step.at === 'number' && step.at >= -2 && step.at <= 6)) errors.push('« at » invalide');
+    if (step.at !== undefined && !timing(step.at, -2, 6)) errors.push('« at » invalide');
   }
   return errors;
 }
@@ -243,7 +293,10 @@ export function nodeErrors(node: VideoNode): string[] {
       if (!node.targets?.length || node.targets.some((t) => !TARGETS.has(t))) errors.push('cibles invalides');
       if (!['none', 'words', 'chars', 'lines'].includes(node.split ?? 'none')) errors.push('découpage invalide');
       if (!node.steps?.in?.length) errors.push('aucun tween d’entrée');
-      for (const phase of ['in', 'out', 'hold'] as const) if (node.steps?.[phase]) errors.push(...stepsErrors(node.steps[phase], (t) => t === 'self' || t === 'inner', node.targets?.includes('figure')));
+      if (node.sceneRoles !== undefined && (!Array.isArray(node.sceneRoles) || node.sceneRoles.some((r) => !SCENE_ROLES.includes(r)))) errors.push('rôles de scène invalides');
+      // Les effets et la sélection d'unités ne valent que pour une animation de TEXTE seul.
+      const textOnly = node.targets?.length === 1 && node.targets[0] === 'text' ? { split: node.split ?? 'none' } : undefined;
+      for (const phase of ['in', 'out', 'hold'] as const) if (node.steps?.[phase]) errors.push(...stepsErrors(node.steps[phase], (t) => t === 'self' || t === 'inner', node.targets?.includes('figure'), textOnly));
       break;
     }
     case 'transition': {

@@ -28,7 +28,7 @@
 
 import type { ModelRole } from './ai.config';
 
-export const VERIFIED_ON = '2026-11-05';
+export const VERIFIED_ON = '2026-11-18';
 
 export type OpenRouterKind = 'text' | 'image' | 'video' | 'speech';
 
@@ -197,9 +197,9 @@ export const OPENROUTER_MODELS: readonly OpenRouterModel[] = [
   },
   {
     id: 'deepseek/deepseek-v4.1-flash-1017', kind: 'text', hfId: 'deepseek-ai/DeepSeek-V4.1-Flash-1017', license: 'mit',
-    openWeights: true, commercialOk: true, selfHost: 'lourd', roles: [],
-    pricing: { input: 0.006, output: 0.5, cachedInput: 0.005 },
-    note: 'Version 1017 de V4.1 Flash : DesignArena Website 1302, Agentic 1301 (6e). Cran Low des échelles design/code et échantillonneur vidéo.',
+    openWeights: true, commercialOk: true, selfHost: 'lourd', roles: ['mechanical', 'writing', 'reasoning', 'vision', 'ocr'],
+    pricing: { input: 0.04, output: 0.07, cachedInput: 0.007 },
+    note: 'LE MODÈLE UNIQUE d’IDEM depuis le 18/11/2026. Relevé ce jour sur /api/v1/models/…/endpoints : 0,04 $ / 0,07 $ le million (entrée / sortie) chez l’hébergeur le moins cher, plus de 40 hébergeurs, entrée texte + image, 1 M ctx, raisonnement coupable. Le plus rapide mesuré sur le moteur de sites (1,5 s par section). Licence MIT lue sur Hugging Face.',
   },
   {
     id: 'openai/gpt-6.1-sol', kind: 'text', license: 'propriétaire',
@@ -364,8 +364,27 @@ export const OPENROUTER_MODELS: readonly OpenRouterModel[] = [
   },
 ];
 
-/** Modèle de génération de code (iCode, agents) — hors table de rôles. */
-export const CODE_MODEL = process.env.IDEM_OPENROUTER_CODE_MODEL || 'qwen/qwen3-coder-next';
+/**
+ * LE MODÈLE UNIQUE (18/11/2026, décision produit) : un seul modèle texte pour TOUT IDEM — rédaction, raisonnement,
+ * tâches mécaniques, lecture d'image, code — et à TOUS les crans de créativité (le cran choisit la gamme des gabarits
+ * du catalogue, plus le modèle). Le moins cher et le plus rapide entre Qwen, DeepSeek et GLM, aux poids ouverts :
+ * DeepSeek V4.1 Flash 1017 (MIT).
+ *
+ *   - sortie à 0,07 $/M (GLM-5.3-Flash : 0,078 $/M mais raisonnement OBLIGATOIRE, donc facturé et plus lent) ;
+ *   - lit les images : aucun second modèle pour la vision ;
+ *   - le plus rapide mesuré sur le moteur de sites (1,5 s par section, 18/11/2026).
+ *
+ * La résilience vient des HÉBERGEURS (plus de 40 chez OpenRouter, `allow_fallbacks`), pas d'une chaîne de modèles.
+ * `IDEM_TEXT_MODEL` le change partout d'un coup (liste blanche obligatoire).
+ */
+const SINGLE_DEFAULT = 'deepseek/deepseek-v4.1-flash-1017';
+export const TEXT_MODEL: string = (() => {
+  const wanted = process.env.IDEM_TEXT_MODEL?.trim();
+  return wanted && isAllowedOpenRouterModel(wanted) ? wanted : SINGLE_DEFAULT;
+})();
+
+/** Modèle de génération de code (iCode, agents) : le modèle unique. */
+export const CODE_MODEL = process.env.IDEM_OPENROUTER_CODE_MODEL || TEXT_MODEL;
 
 /**
  * Affectation rôle → modèle, première piste Qwen. Chaque rôle reste surchargeable
@@ -373,11 +392,11 @@ export const CODE_MODEL = process.env.IDEM_OPENROUTER_CODE_MODEL || 'qwen/qwen3-
  * blanche (cf. `resolveOpenRouterModel`).
  */
 export const OPENROUTER_DEFAULT_ROLES: Record<ModelRole, string> = {
-  mechanical: 'qwen/qwen3.5-9b',
-  writing: 'qwen/qwen3.5-122b-a10b',
-  reasoning: 'qwen/qwen3.5-397b-a17b',
-  vision: 'qwen/qwen3.5-35b-a3b',
-  ocr: 'qwen/qwen3-vl-30b-a3b-instruct',
+  mechanical: TEXT_MODEL,
+  writing: TEXT_MODEL,
+  reasoning: TEXT_MODEL,
+  vision: TEXT_MODEL,
+  ocr: TEXT_MODEL,
   image: 'black-forest-labs/flux.2-klein-4b',
 };
 
@@ -410,12 +429,14 @@ export const KOKORO_VOICES: Record<string, string> = {
   pt: 'pf_dora', hi: 'hf_alpha', ja: 'jf_alpha', zh: 'zf_xiaobei',
 };
 
-export const OPENROUTER_FALLBACK_MODELS = [
-  'qwen/qwen3.5-122b-a10b',
-  'qwen/qwen3.5-35b-a3b',
-  'deepseek/deepseek-v4-flash',
-  'qwen/qwen3.5-9b',
-];
+/**
+ * Aucun repli de MODÈLE : un seul modèle (cf. `TEXT_MODEL`). La bascule se fait entre hébergeurs, chez OpenRouter.
+ * `IDEM_TEXT_FALLBACK_MODELS` (liste séparée par des virgules) en rétablit un pour une panne prolongée.
+ */
+export const OPENROUTER_FALLBACK_MODELS: string[] = (process.env.IDEM_TEXT_FALLBACK_MODELS ?? '')
+  .split(',')
+  .map((m) => m.trim())
+  .filter(Boolean);
 
 /** Seuls les modèles aux poids ouverts peuvent être affectés à un rôle ? Défaut : oui. */
 export function openOnly(): boolean {
@@ -476,10 +497,16 @@ export function getOpenRouterApiKey(): string | undefined {
  */
 export function openRouterRouting(): Record<string, unknown> {
   const collection = (process.env.OPENROUTER_DATA_COLLECTION ?? 'deny').toLowerCase();
+  // Diagnostic T12 : sans tri, OpenRouter répartit les appels entre hébergeurs et le préfixe stable (charte, projet)
+  // n'est jamais relu depuis le cache. Un tri DÉTERMINISTE envoie les appels successifs au même hébergeur (cache
+  // relu), et `allow_fallbacks` garde la bascule vers le suivant en cas de panne. `price` (défaut) : le moins cher ;
+  // `throughput` : le plus rapide ; `latency` : le premier jeton le plus tôt. `OPENROUTER_PROVIDER_SORT=off` le retire.
+  const sort = (process.env.OPENROUTER_PROVIDER_SORT ?? 'price').toLowerCase();
   return {
     provider: {
       data_collection: collection === 'allow' ? 'allow' : 'deny',
       allow_fallbacks: true,
+      ...(['price', 'throughput', 'latency'].includes(sort) ? { sort } : {}),
     },
   };
 }

@@ -29,11 +29,17 @@ export async function callModel(o: {
   let raw = '';
   let failure: string | undefined;
   let timer: NodeJS.Timeout | undefined;
+  // Diagnostic G1 : le délai dépassé ANNULE l'appel (signal propagé jusqu'au SDK de l'hôte). Avant, l'appel continuait
+  // en arrière-plan — réessais, replis, escalade compris — et sa réponse, payée, était jetée.
+  const abort = new AbortController();
   try {
     raw = await Promise.race([
-      o.call({ role: o.role, profile: o.profile, system: o.system, user: o.user, validate: o.validate, level: o.level }),
+      o.call({ role: o.role, profile: o.profile, system: o.system, user: o.user, validate: o.validate, level: o.level, signal: abort.signal }),
       new Promise<string>((_, reject) => {
-        timer = setTimeout(() => reject(new Error('timeout')), o.timeoutMs);
+        timer = setTimeout(() => {
+          abort.abort();
+          reject(new Error('timeout'));
+        }, o.timeoutMs);
       }),
     ]);
   } catch (error) {

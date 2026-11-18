@@ -170,11 +170,15 @@ export async function buildComposition(input: CompositionInput): Promise<string>
   const css = await compileTailwind(scenesHtml, tokens);
   const libs = animationLibraries();
   const needsAnime = input.scenes.some((s) => s.animation === 'anime');
-  const audio = input.mode === 'preview' && input.audio ? previewAudio(input.audio) : '';
+  const preview = input.mode === 'preview';
+  const scripts = `${input.scenes.map(sceneScript).join('\n')}
+master.set({}, {}, ${input.durationSec.toFixed(3)});
+window.__timelines = window.__timelines || {};
+window.__timelines.film = master;`;
   return `<!doctype html>
 <html><head><meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy" content="${csp(input.mode)}">
-<style>html,body{margin:0;padding:0;background:${input.brand.colors.background};}#stage{position:relative;overflow:hidden;width:${out.width}px;height:${out.height}px}#comp{position:absolute;left:0;top:0;width:${input.width}px;height:${input.height}px;transform:scale(${scale});transform-origin:0 0}</style>
+<style>html,body{margin:0;padding:0;background:${input.brand.colors.background};}#stage{position:relative;overflow:hidden;width:${out.width}px;height:${out.height}px}#comp{position:absolute;left:0;top:0;width:${input.width}px;height:${input.height}px;transform:scale(${scale});transform-origin:0 0}${preview ? 'html,body{width:100%;height:100%;overflow:hidden}#stage{position:absolute;left:0;top:0;transform-origin:0 0;opacity:0;cursor:pointer}' : ''}</style>
 ${input.fontCss}
 <style data-ge-tailwind>${css}</style>
 </head><body>
@@ -188,37 +192,195 @@ ${catalog ? '<div id="ge-fx" style="position:absolute;left:0;top:0;width:100%;he
 ${needsAnime ? `<script>${libs.anime}</script>` : ''}
 <script>
 window.__sceneErrors = [];
-var master = gsap.timeline({ paused: true });
+var master${preview ? '' : ' = gsap.timeline({ paused: true })'};
+${catalog ? `window.__gePalette = ${JSON.stringify({ primary: input.brand.colors.primary, secondary: input.brand.colors.secondary, accent: input.brand.colors.accent, ground: input.brand.colors.background, ink: input.brand.colors.text }).replace(/</g, '\\u003c')};` : ''}
 </script>
 ${catalog ? `<script>${CATALOG_RUNTIME}</script>` : ''}
 <script>
-${input.scenes.map(sceneScript).join('\n')}
-master.set({}, {}, ${input.durationSec.toFixed(3)});
-window.__timelines = window.__timelines || {};
-window.__timelines.film = master;
+${preview ? `function __buildFilm() {\nmaster = gsap.timeline({ paused: true });\n${scripts}\n}\n__buildFilm();` : scripts}
 </script>
-${audio}
+${preview ? previewPlayer(input) : ''}
 </body></html>`;
 }
 
-/** L'aperçu dans le navigateur : un bouton « Lire » lance la timeline et la bande son (les navigateurs exigent un geste). */
-function previewAudio(audio: NonNullable<CompositionInput['audio']>): string {
+/** Un JSON posé dans un `<script>` : rien ne peut y fermer la balise. */
+const scriptJson = (value: unknown) => JSON.stringify(value).replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
+
+/**
+ * L'aperçu dans le navigateur : le lecteur que les éditeurs pilotent (`@idem/shared-video-editor`, résultat iVision),
+ * sur le même protocole que le lecteur Motion Canvas (`motion/runtime/player.ts`) :
+ *
+ *   → parent  `ivision:ready` (durée, scènes, erreurs) · `ivision:loading` / `ivision:playable` (sons et médias en
+ *             mémoire) · `ivision:time` (instant, lecture) · `ivision:errors`
+ *   ← parent  `ivision:play` · `ivision:pause` · `ivision:seek {t}` · `ivision:focus {key}` · `ivision:edit {key, texts?, media?}`
+ *
+ * La scène (taille de sortie, 1080 px et plus) est mise à l'échelle pour TENIR dans l'iframe, centrée — sans cela
+ * l'aperçu n'en montrait que le coin haut-gauche. La mise à l'échelle n'est posée qu'APRÈS la mise à la taille des
+ * textes du catalogue (mesurée sans transformation, comme au rendu). Une retouche de texte ou de photo recompose
+ * les scènes depuis leurs modèles et rejoue les animations : la vidéo change sans être rechargée.
+ */
+function previewPlayer(input: CompositionInput): string {
+  const out = input.output ?? { width: input.width, height: input.height };
+  const audio = input.audio ?? { voice: [] };
   const tracks = [...(audio.music ? [{ url: audio.music.url, at: 0, offset: audio.music.startAt, gain: audio.music.gain }] : []), ...audio.voice.map((v) => ({ url: v.url, at: v.at, offset: 0, gain: 1 }))];
-  return `<button id="play" style="position:fixed;inset:auto 16px 16px auto;z-index:9;padding:10px 18px;border:0;border-radius:999px;background:#111;color:#fff;font:600 14px sans-serif;cursor:pointer">Lire</button>
-<script>
+  const scenes = input.scenes.map((s) => ({ key: s.key, start: s.start, duration: s.duration, html: s.html, texts: s.texts }));
+  const data = { width: out.width, height: out.height, duration: input.durationSec, tracks, scenes, media: Object.fromEntries(Object.entries(input.media).map(([k, m]) => [k, m.src])), logo: input.logo ?? '', logoDark: input.logoDark ?? '' };
+  return `<script>
 (function () {
-  // Sans le moteur HyperFrames, l'aperçu montre lui-même la scène du moment (au rendu, HyperFrames s'en charge).
-  var scenes = Array.prototype.slice.call(document.querySelectorAll('section.scene'));
-  function show(t) { scenes.forEach(function (s) { var a = parseFloat(s.dataset.start), d = parseFloat(s.dataset.duration); s.style.visibility = t >= a && t < a + d ? 'visible' : 'hidden'; }); }
-  window.__timelines.film.eventCallback('onUpdate', function () { show(this.time()); });
-  window.__timelines.film.seek(0.001); show(0.001);
-  var tracks = ${JSON.stringify(tracks)};
-  var els = tracks.map(function (t) { var a = new Audio(t.url); a.volume = Math.min(1, t.gain); return { a: a, t: t }; });
-  var timers = [];
-  document.getElementById('play').addEventListener('click', function () {
-    timers.forEach(clearTimeout); timers = [];
-    els.forEach(function (e) { e.a.pause(); e.a.currentTime = e.t.offset; timers.push(setTimeout(function () { e.a.play().catch(function () {}); }, e.t.at * 1000)); });
-    window.__timelines.film.restart();
+  var D = ${scriptJson(data)};
+  var stage = document.getElementById('stage'), fx = document.getElementById('ge-fx');
+  var post = function (m) { try { window.parent.postMessage(m, '*'); } catch (e) {} };
+  var END = Math.max(0, D.duration - 0.001);
+  var playing = false, lastPost = 0, timers = [], building = null;
+
+  // ── La scène tient dans l'iframe, centrée ──
+  function fit() {
+    var w = window.innerWidth || D.width, h = window.innerHeight || D.height;
+    var s = Math.min(w / D.width, h / D.height) || 1;
+    stage.style.transform = 'translate(' + ((w - D.width * s) / 2).toFixed(2) + 'px,' + ((h - D.height * s) / 2).toFixed(2) + 'px) scale(' + s.toFixed(5) + ')';
+  }
+  window.addEventListener('resize', fit);
+
+  // ── La scène du moment (au rendu, HyperFrames s'en charge) ──
+  var sections = Array.prototype.slice.call(document.querySelectorAll('section.scene'));
+  function show(t) { sections.forEach(function (s) { var a = parseFloat(s.dataset.start), d = parseFloat(s.dataset.duration); s.style.visibility = t >= a && t < a + d ? 'visible' : 'hidden'; }); }
+  function film() { return window.__timelines.film; }
+  function now() { return film().time(); }
+  function report(force) {
+    var stamp = Date.now();
+    if (!force && stamp - lastPost < 60) return;
+    lastPost = stamp;
+    post({ type: 'ivision:time', t: Math.round(now() * 1000) / 1000, playing: playing });
+  }
+  function errors() { return (window.__sceneErrors || []).map(function (e) { return { key: e.key, stage: 'runtime', message: e.message }; }); }
+  function wire() {
+    var tl = film();
+    tl.eventCallback('onUpdate', function () { show(this.time()); report(false); });
+    tl.eventCallback('onComplete', function () { playing = false; stopAudio(); report(true); });
+  }
+
+  // ── Le son, calé sur la timeline ──
+  var els = D.tracks.map(function (t) { var a = new Audio(t.url); a.preload = 'auto'; a.volume = Math.min(1, t.gain); return { a: a, t: t }; });
+  function stopAudio() { timers.forEach(clearTimeout); timers = []; els.forEach(function (e) { e.a.pause(); }); }
+  function startAudio(t) {
+    stopAudio();
+    els.forEach(function (e) {
+      var go = function (from) { try { e.a.currentTime = e.t.offset + from; } catch (x) {} e.a.play().catch(function () {}); };
+      if (e.t.at <= t) { var len = e.a.duration || Infinity; if (t - e.t.at < len) go(t - e.t.at); }
+      else timers.push(setTimeout(function () { go(0); }, (e.t.at - t) * 1000));
+    });
+  }
+
+  function play() {
+    if (playing || building) return;
+    if (now() >= END) seekTo(0);
+    playing = true;
+    startAudio(now());
+    film().play();
+    report(true);
+  }
+  function pause() {
+    playing = false;
+    film().pause();
+    stopAudio();
+    report(true);
+  }
+  function seekTo(t) {
+    var was = playing;
+    if (was) pause();
+    var at = Math.max(0, Math.min(END, Number(t) || 0));
+    film().pause(at === 0 ? 0.001 : at);
+    show(at === 0 ? 0.001 : at);
+    report(true);
+    if (was) play();
+  }
+  function focusAt(key) {
+    for (var i = 0; i < D.scenes.length; i++) if (D.scenes[i].key === key) return D.scenes[i].start + Math.min(D.scenes[i].duration * 0.6, 1.4);
+    return null;
+  }
+
+  // ── Une retouche : les scènes recomposées depuis leurs modèles, les animations rejouées ──
+  function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+  function fill(sc) {
+    return sc.html.replace(/\\{\\{\\s*(text|media)\\.([\\w-]+)\\s*\\}\\}|\\{\\{\\s*(logo|logoDark)\\s*\\}\\}/g, function (_m, kind, key, which) {
+      if (!kind) { var src = which === 'logoDark' ? D.logoDark || D.logo : D.logo; return src ? esc(src) : ''; }
+      if (kind === 'text') return esc(sc.texts[key] == null ? '' : sc.texts[key]);
+      return D.media[key] ? esc(D.media[key]) : '';
+    });
+  }
+  function settled(fn) { (document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(function () { setTimeout(fn, 0); }); }
+  function rebuild(at) {
+    var was = playing;
+    if (was) pause();
+    building = true;
+    film().kill();
+    stage.style.opacity = '0';
+    stage.style.transform = 'none';
+    D.scenes.forEach(function (sc) { var el = document.getElementById(sc.key); if (el) el.innerHTML = fill(sc); });
+    if (fx) fx.innerHTML = '';
+    window.__sceneErrors = [];
+    if (window.__ge) window.__ge.fitIssues.length = 0;
+    window.__buildFilm();
+    wire();
+    settled(function () {
+      fit();
+      stage.style.opacity = '1';
+      building = null;
+      seekTo(at);
+      post({ type: 'ivision:errors', errors: errors() });
+    });
+  }
+  function edit(msg) {
+    var sc = null;
+    for (var i = 0; i < D.scenes.length; i++) if (D.scenes[i].key === msg.key) sc = D.scenes[i];
+    if (!sc) return;
+    if (msg.texts && typeof msg.texts === 'object') for (var k in msg.texts) sc.texts[k] = String(msg.texts[k]);
+    if (Array.isArray(msg.media)) msg.media.forEach(function (m) { if (m && m.id && /^https:\\/\\//.test(String(m.url))) D.media[m.id] = String(m.url); });
+    var at = msg.focus === false ? now() : focusAt(sc.key);
+    rebuild(at == null ? now() : at);
+  }
+
+  window.addEventListener('message', function (event) {
+    if (event.source !== window.parent) return;
+    var m = event.data;
+    if (!m || typeof m !== 'object') return;
+    if (m.type === 'ivision:play') { if (building) return; play(); }
+    else if (m.type === 'ivision:pause') { if (!building) pause(); }
+    else if (m.type === 'ivision:seek') { if (!building) seekTo(m.t); }
+    else if (m.type === 'ivision:focus') { var t = focusAt(m.key); if (t != null && !building) seekTo(t); }
+    else if (m.type === 'ivision:edit') edit(m);
+  });
+  stage.addEventListener('click', function () { if (building) return; playing ? pause() : play(); });
+
+  // ── Sons et médias en mémoire avant de proposer la lecture (une coupure en pleine vidéo serait pire) ──
+  function preload() {
+    var waits = [];
+    els.forEach(function (e) { waits.push({ el: e.a, ok: function () { return e.a.readyState >= 4; }, ev: 'canplaythrough', ms: 15000 }); });
+    Array.prototype.forEach.call(document.querySelectorAll('#comp img'), function (img) { waits.push({ el: img, ok: function () { return img.complete; }, ev: 'load', ms: 20000 }); });
+    Array.prototype.forEach.call(document.querySelectorAll('#comp video'), function (v) { v.preload = 'auto'; waits.push({ el: v, ok: function () { return v.readyState >= 3; }, ev: 'canplaythrough', ms: 20000 }); });
+    var total = waits.length, loaded = 0;
+    post({ type: 'ivision:loading', loaded: 0, total: total });
+    if (!total) return post({ type: 'ivision:playable' });
+    waits.forEach(function (w) {
+      var done = false;
+      var finish = function () { if (done) return; done = true; loaded++; post({ type: 'ivision:loading', loaded: loaded, total: total }); if (loaded === total) post({ type: 'ivision:playable' }); };
+      if (w.ok()) return finish();
+      setTimeout(finish, w.ms);
+      w.el.addEventListener(w.ev, finish, { once: true });
+      w.el.addEventListener('error', finish, { once: true });
+    });
+  }
+
+  wire();
+  settled(function () {
+    fit();
+    stage.style.opacity = '1';
+    var first = D.scenes[0] ? Math.min(1.2, D.scenes[0].duration * 0.6) : 0.001;
+    film().pause(first);
+    show(first);
+    post({ type: 'ivision:ready', duration: D.duration, scenes: D.scenes.map(function (s) { return { key: s.key, start: s.start, end: s.start + s.duration }; }), errors: errors() });
+    report(true);
+    preload();
   });
 })();
 </script>`;

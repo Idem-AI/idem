@@ -20,7 +20,7 @@ import { resolveConcurrency } from '../../config/ai-providers.config';
 
 import logger from '../../config/logger';
 import { RunBudget, createRunBudget, runAgent, runAgentPrompt } from '../agents/agent-runtime';
-import { buildDependencyContext } from '../agents/section-digest.service';
+import { buildDependencyContext, rememberStructured } from '../agents/section-digest.service';
 import { QualityExpectation, qualityValidator } from '../agents/quality-gate';
 import { verifySection } from '../agents/section-verifier.service';
 import { DeliverableGraph, graphDepth, validateGraph } from '../agents/deliverable-graph';
@@ -242,10 +242,14 @@ export function withGraph(
  * réparations en chaîne) vient buter dessus et s'arrête au lieu de creuser.
  */
 export function estimateRunBudget(steps: IPromptStep[]): number {
-  const perStep = steps.reduce(
-    (total, step) => total + (step.aiConfig?.llmOptions?.maxOutputTokens ?? 8000),
-    0
-  );
+  // Diagnostic S4/T10 : le plafond se calcule sur ce que l'étape PEUT réellement produire. Une section sous gabarit
+  // voit son budget déclaré (jusqu'à 44 000 jetons) ramené par `templatedLlmOptions` (≈ 6 000) : sommer le déclaré
+  // donnait un coupe-circuit de ~4 M de jetons pour 30 sections, jamais atteint, donc inopérant.
+  const perStep = steps.reduce((total, step) => {
+    const declared = step.aiConfig?.llmOptions;
+    const effective = step.template ? { ...declared, ...templatedLlmOptions(declared) } : declared;
+    return total + (effective?.maxOutputTokens ?? 8000);
+  }, 0);
   return Math.max(50_000, perStep * 3);
 }
 
@@ -378,7 +382,11 @@ export class GenericService {
     const projectScope = project.scope || '';
     const projectTargets = project.targets || '';
 
-    return `Project Name: ${projectName}\nProject Description: ${projectDescription}\nProject Type: ${projectType}\nProject Scope: ${projectScope}\nProject Targets: ${projectTargets}`;
+    // Les chiffres que le site de l'entreprise affiche (projet né d'un site) : des faits publiés, à reprendre tels quels.
+    const figures = (project.keyFigures ?? []).filter((f) => f?.label && f?.value).slice(0, 8);
+    const figuresLine = figures.length ? `\nFigures published on the company's own website (facts, quote them as they are): ${figures.map((f) => `${f.label}: ${f.value}`).join(' ; ')}` : '';
+
+    return `Project Name: ${projectName}\nProject Description: ${projectDescription}\nProject Type: ${projectType}\nProject Scope: ${projectScope}\nProject Targets: ${projectTargets}${figuresLine}`;
   }
 
   /**
@@ -727,6 +735,8 @@ export class GenericService {
           logger.warn(`Section '${step.stepName}' : sortie en HTML au lieu du contenu structuré — texte RÉCUPÉRÉ, page recomposée par le moteur.`);
         }
         content = await step.template.render(read.section);
+        // Les sections qui en dépendent liront ses faits depuis l'objet, sans modèle (diagnostic S1).
+        rememberStructured(content, read.section);
         composedByEngine = true;
         logger.info(`Section '${step.stepName}' composée par le moteur graphique (${read.section.blocks.length} blocs, ${content.length} car.)`);
       } else {

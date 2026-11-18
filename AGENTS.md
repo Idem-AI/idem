@@ -221,7 +221,7 @@ de chaque module, commun au tableau de bord et au lanceur du chat). Dans iDeploy
 elles sont centralisées dans
 `apps/ideploy-web/src/app/shared/components/illustration/illustration.ts`
 (`box` `code` `server` `store` `market` `activity` `managed-cloud` `own-server`
-`search` `shield` `team` `beads` `net` `cowries` `facade`), l'état vide standard est `<app-empty-state>`,
+`search` `shield` `team` `beads` `net` `cowries` `facade` `mortar` `night-stall` `stamp`), l'état vide standard est `<app-empty-state>`,
 et l'en-tête de page de liste `<app-page-header>`.
 AppGen : `components/ui/Illustrations.tsx` et `tourIllustrations.ts`.
 Images de partage (Open Graph) : `apps/api/public/og/illustrations/<clé>.svg`,

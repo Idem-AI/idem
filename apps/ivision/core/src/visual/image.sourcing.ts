@@ -14,6 +14,7 @@
  */
 import axios from 'axios';
 import logger from '../runtime/logger';
+import { NATURAL_COLOUR_CLAUSE } from '../../../../../packages/design-tools/src';
 import { coreHost, requirePort } from '../runtime/host';
 import {
   FlyerImageAnalysis,
@@ -207,7 +208,9 @@ export class ImageSourcingService {
     // mots dans le prompt (le modèle n'applique pas de guidage négatif) — un geste en plus, pas
     // une garantie.
     const extra = (brief.negativePrompt || '').trim();
-    const prompt = `${NO_TEXT_PREFIX}${brief.generationPrompt}\n\n${NO_TEXT_SUFFIX}${extra ? ` Also: no ${extra}.` : ''}`;
+    // Les couleurs naturelles se disent elles aussi en POSITIF (photo-integrity) : aucune image générée ne sort
+    // teintée, en bichromie ou posterisée, quoi que demande la consigne de rendu de l'appelant.
+    const prompt = `${NO_TEXT_PREFIX}${brief.generationPrompt}\n\n${NO_TEXT_SUFFIX} ${NATURAL_COLOUR_CLAUSE}${extra ? ` Also: no ${extra}.` : ''}`;
 
     let buffer!: Buffer;
     let mimeType = 'image/png';

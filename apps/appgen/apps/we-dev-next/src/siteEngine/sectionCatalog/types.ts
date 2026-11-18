@@ -29,6 +29,8 @@ export interface KindNode {
   fields: Record<string, FieldDef>;
   /** Les DA servies (catalogue `directions` du dépôt). */
   directions?: string[];
+  /** La gamme (18/11/2026) : le cran qui sert ce nœud, du plus sobre au plus premium. Absent : tous les crans. */
+  tier?: 'low' | 'medium' | 'high' | 'ultra';
 }
 
 export interface SectionNode {
@@ -44,6 +46,8 @@ export interface SectionNode {
   template: string;
   /** Les DA servies : un site ne prend que les variantes de la DA de sa marque (ou de ses voisines). */
   directions?: string[];
+  /** La gamme (18/11/2026) : le cran qui sert ce nœud, du plus sobre au plus premium. Absent : tous les crans. */
+  tier?: 'low' | 'medium' | 'high' | 'ultra';
 }
 
 export interface ShellNode {
@@ -53,6 +57,8 @@ export interface ShellNode {
   doc: NodeDoc;
   template: string;
   directions?: string[];
+  /** La gamme (18/11/2026) : le cran qui sert ce nœud, du plus sobre au plus premium. Absent : tous les crans. */
+  tier?: 'low' | 'medium' | 'high' | 'ultra';
 }
 
 export interface LoadedSectionCatalog {

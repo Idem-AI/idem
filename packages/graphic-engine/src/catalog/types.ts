@@ -149,6 +149,11 @@ const common = {
    * et le moteur ne sert à une marque que les nœuds de sa DA (ou de ses voisines). Absent : vieux catalogue sans DA.
    */
   directions: z.array(z.string().regex(/^[a-z][a-z0-9-]{1,39}$/)).min(1).max(60).optional(),
+  /**
+   * La GAMME (2.9, 18/11/2026) : le cran de créativité qui sert ce nœud, du plus sobre (`low`) au plus premium
+   * (`ultra`). Le cran choisit la gamme, plus le modèle (cf. `tier.ts`). Absent : sert tous les crans.
+   */
+  tier: z.enum(['low', 'medium', 'high', 'ultra']).optional(),
 };
 
 // ── layout ──────────────────────────────────────────────────────────────────────────────────

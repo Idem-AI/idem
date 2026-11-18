@@ -14,6 +14,7 @@
 import type { DesignTokens } from '../design-system/tokens';
 import type { FormatDef } from '../design-system/formats';
 import type { ContentMap } from './content-map';
+import { stripImageFilters } from './photo-integrity';
 import { chartHtml, galleryHtml, iconHtml, logoHtml, patternHtml, patternTileHtml, proceduralPatternHtml, tableHtml } from './primitives';
 
 const esc = (v: string) => v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
@@ -69,7 +70,10 @@ export function sanitizeHtml(input: string): Sanitized {
     }
     return `<${name}${kept.length ? ` ${kept.join(' ')}` : ''}${self}>`;
   });
-  return { html: html.trim(), nativeCss, removed };
+  // Une photo garde ses couleurs : filtres et calques de mélange posés sur une image retirés (runtime/photo-integrity).
+  const photos = stripImageFilters(html);
+  if (photos.removed.length) removed.push(...photos.removed.map((r) => `photo-filter:${r}`));
+  return { html: photos.html.trim(), nativeCss, removed };
 }
 
 /**

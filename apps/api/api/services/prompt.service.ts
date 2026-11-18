@@ -45,6 +45,7 @@ import {
 import { aiUsageService } from './ai-usage.service';
 import { getAiUsageContext } from '../utils/ai-usage-context.util';
 import { getModelPricing } from '../config/ai-pricing.config';
+import { TEXT_MODEL } from '../config/openrouter.config';
 export { LLMProvider, LLMOptions };
 
 /**
@@ -79,8 +80,44 @@ const RATE_LIMIT_DELAY_MS = Number(process.env.LLM_RATE_LIMIT_DELAY_MS ?? 4000);
  * dont la sortie coûte plus de `DRAFT_MAX_OUTPUT_USD` par million de jetons. Les modèles de code
  * légers (auteur de pages au cran Low) restent ce qu'ils sont : ils coûtent déjà moins.
  */
-const DRAFT_TEXT_MODEL = process.env.IDEM_DRAFT_TEXT_MODEL?.trim() || 'deepseek/deepseek-v4-flash';
+const DRAFT_TEXT_MODEL = process.env.IDEM_DRAFT_TEXT_MODEL?.trim() || TEXT_MODEL;
 const DRAFT_MAX_OUTPUT_USD = 1;
+
+/** Le plafond global de sortie (`MAX_OUTPUT_TOKENS`, absent : aucun), sauf exemption de l'appel. */
+export function capOutputTokens<T extends { maxOutputTokens?: number }>(options: T, bypass?: boolean): T {
+  const cap = Number(process.env.MAX_OUTPUT_TOKENS);
+  if (bypass || !Number.isFinite(cap) || cap <= 0) return options;
+  return { ...options, maxOutputTokens: Math.min(options.maxOutputTokens ?? cap, cap) };
+}
+
+/** En dessous, un flux coupé se refait entièrement ; au-dessus, il reprend sur le texte reçu (diagnostic P4). */
+const STREAM_RESUME_MIN_CHARS = 2000;
+
+/**
+ * La directive de langue, à UNE place pour tous les chemins (diagnostic P5) : à la fin du PREMIER bloc système (le
+ * début du prompt reste identique d'un appel à l'autre, donc relu depuis le cache), sinon au dernier message. Jamais
+ * un message système de plus (deux tours de même rôle d'affilée sont refusés par certains modèles).
+ */
+export function withLanguageDirective<M extends { role: string; content: any }>(messages: M[], directive: string): M[] {
+  if (!directive || !messages.length) return messages;
+  const targetIdx = messages[0]?.role === 'system' ? 0 : messages.length - 1;
+  return messages.map((m, i) => (i === targetIdx && typeof m.content === 'string' ? { ...m, content: `${m.content}\n\n${directive}` } : m));
+}
+
+/** Taille maximale d'un fichier joint injecté comme contexte (diagnostic P6). */
+const FILE_CONTEXT_MAX_CHARS = Number(process.env.IDEM_FILE_CONTEXT_MAX_CHARS ?? 60_000);
+
+/**
+ * LE DÉLAI D'UN APPEL, proportionné à ce qu'il doit produire (diagnostic T3) : une tâche courte (choix de gabarit,
+ * classement, contrôle) n'attend pas 180 s ; une section longue garde le plafond global `LLM_TIMEOUT_MS`.
+ */
+export function timeoutFor(llmOptions: { maxOutputTokens?: number } | undefined): number {
+  const ceiling = Number(process.env.LLM_TIMEOUT_MS ?? 180_000);
+  const out = llmOptions?.maxOutputTokens ?? 8000;
+  if (out <= 1500) return Math.min(ceiling, 45_000);
+  if (out <= 8000) return Math.min(ceiling, 90_000);
+  return ceiling;
+}
 
 function isDraftGeneration(): boolean {
   return getAiUsageContext()?.generationMode === 'draft';
@@ -390,9 +427,12 @@ export class PromptService {
         logger.info(`Processing file input for ${provider}: ${fileInput.localPath}`);
         try {
           const fileContent = await fs.readFile(fileInput.localPath, 'utf-8');
-          openaiMessages.unshift({
+          // Diagnostic P6 : APRÈS les messages système stables (le préfixe reste identique d'un appel à l'autre, donc
+          // relu depuis le cache) et BORNÉ (un fichier entier pouvait faire des centaines de milliers de jetons).
+          const firstNonSystem = openaiMessages.findIndex((m) => m.role !== 'system');
+          openaiMessages.splice(firstNonSystem < 0 ? openaiMessages.length : firstNonSystem, 0, {
             role: 'system',
-            content: `File content for context: ${fileContent}`,
+            content: `File content for context: ${fileContent.length > FILE_CONTEXT_MAX_CHARS ? `${fileContent.slice(0, FILE_CONTEXT_MAX_CHARS)}\n…[truncated]` : fileContent}`,
           });
         } catch (fileError) {
           logger.error(`Error reading file for ${provider}: ${fileInput.localPath}`, fileError);
@@ -405,7 +445,10 @@ export class PromptService {
       const thinkingRequested =
         ((llmOptions.extraBody as any) ?? (def.extraBody as any))?.thinking?.type === 'enabled';
 
-      const doCreate = (model: string, forceNoThinking = false) =>
+      // Diagnostic T3 : un délai proportionné à la sortie demandée (une tâche courte n'attend pas 180 s), et le signal
+      // d'annulation de l'appelant (diagnostic G1 : un délai du moteur graphique coupe aussi l'appel ici).
+      const requestOptions = { timeout: timeoutFor(llmOptions), ...(llmOptions.signal ? { signal: llmOptions.signal } : {}) };
+      const doCreate = (model: string, forceNoThinking = false, forceThinking = false) =>
         client.chat.completions.create(
           // Les features disent `thinking` ; il est traduit ici en `reasoning`
           // (OpenRouter).
@@ -421,8 +464,9 @@ export class PromptService {
             // Un modèle qui raisonne TOUJOURS refuse la coupure par un HTTP 400.
             // Quelle qu'en soit la source — défaut du fournisseur, chemin par
             // gabarit, filet de budget — elle ne part donc jamais vers lui.
-            ...(canSuppressThinking(model) ? {} : { thinking: { type: 'enabled' } }),
-          }) as OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming
+            ...(canSuppressThinking(model) && !forceThinking ? {} : { thinking: { type: 'enabled' } }),
+          }) as OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming,
+          requestOptions
         );
 
       /** Réponse vide alors que le budget a été épuisé — signature du raisonnement qui déborde. */
@@ -432,7 +476,16 @@ export class PromptService {
 
       // Le repli entre modèles est celui de `runPrompt` (chaîne de repli du fournisseur).
       const usedModel = modelName;
-      let response = await doCreate(modelName);
+      let response: Awaited<ReturnType<typeof doCreate>>;
+      try {
+        response = await doCreate(modelName);
+      } catch (error) {
+        // Diagnostic P3 : « Reasoning is mandatory » n'est pas une panne — le même modèle répond avec raisonnement.
+        // Le basculer vers un repli (ou le rejouer à l'identique) ne servait à rien.
+        if (!/reasoning is mandatory/i.test(String((error as Error)?.message ?? error))) throw error;
+        logger.warn(`${provider}/${modelName} : raisonnement obligatoire — même modèle, raisonnement activé.`);
+        response = await doCreate(modelName, false, true);
+      }
 
       // Auto-réparation : le modèle a raisonné jusqu'à épuiser l'enveloppe et n'a
       // rien écrit. Changer de MODÈLE ne sert à rien — le repli hérite du même
@@ -492,7 +545,12 @@ export class PromptService {
     } catch (error) {
       const errorMessage = `Error with ${provider} API: ${(error as Error).message || error}`;
       logger.error(errorMessage);
-      throw new Error(errorMessage);
+      // Diagnostic P3 : l'erreur d'origine reste attachée (`cause`), avec son statut et son code : le classement
+      // 429 / 402 / 400 / délai ne repose plus sur le seul texte du message.
+      const wrapped = new Error(errorMessage, { cause: error }) as Error & { status?: number; code?: unknown };
+      if ((error as any)?.status !== undefined) wrapped.status = (error as any).status;
+      if ((error as any)?.code !== undefined) wrapped.code = (error as any).code;
+      throw wrapped;
     }
   }
 
@@ -793,12 +851,15 @@ export class PromptService {
     // les surcharges ciblées (`AI_OVERRIDES`).
     const { provider, modelName } = resolveRouting(request);
     const {
-      llmOptions = {},
+      llmOptions: declaredOptions = {},
       file,
       userId,
       promptType,
       language,
     } = request;
+    // Diagnostic P10 : le plafond global `MAX_OUTPUT_TOKENS` était déclaré (`bypassOutputTokenCap`) mais appliqué nulle
+    // part. Il borne désormais chaque appel, sauf exemption explicite.
+    const llmOptions = capOutputTokens(declaredOptions, request.bypassOutputTokenCap);
 
     if (!messages || messages.length === 0) {
       logger.error('Messages array cannot be empty.');
@@ -873,13 +934,7 @@ export class PromptService {
       //
       // Sans message système en tête, on retombe sur le comportement d'origine.
       const headIsSystem = modifiedMessages[0]?.role === 'system';
-      const targetIdx = headIsSystem ? 0 : modifiedMessages.length - 1;
-      const target = modifiedMessages[targetIdx];
-      modifiedMessages = modifiedMessages.map((message, index) =>
-        index === targetIdx
-          ? { ...target, content: `${target.content}\n\n${languageDirective}` }
-          : message
-      );
+      modifiedMessages = withLanguageDirective(modifiedMessages, languageDirective);
       logger.info(
         `Injected language directive (language=${effectiveLanguage}, position=${headIsSystem ? 'system-head' : 'last-message'}).`
       );
@@ -928,7 +983,9 @@ export class PromptService {
     // Doublons écartés : la chaîne de repli commence souvent par le modèle
     // primaire de la feature — on rejouerait alors celui qui vient d'échouer
     // avant d'en essayer un autre.
-    const modelsToTry = [...new Set([modelName, ...effectiveFallbacks])];
+    // Diagnostic T3 : la chaîne est plafonnée à DEUX modèles (le primaire et un repli). Avec le modèle unique, elle n'en
+    // compte qu'un : la bascule se fait entre hébergeurs, chez OpenRouter.
+    const modelsToTry = [...new Set([modelName, ...effectiveFallbacks])].slice(0, 2);
 
     let result: string | undefined;
     let lastError: any;
@@ -986,6 +1043,9 @@ export class PromptService {
         // réseau est rejoué — une saturation (429/503) bascule immédiatement.
         result = await withRetry(() => callModel(currentModel, sink), {
           label: `${provider}/${currentModel}`,
+          // Un délai d'attente n'est pas rejoué sur le même modèle quand un repli existe (l'appel coupé a pu être
+          // facturé) ; sans repli, une seule nouvelle tentative (diagnostic T3 : 3 × 180 s × 5 modèles auparavant).
+          timeoutAttempts: i < modelsToTry.length - 1 ? 1 : 2,
         });
 
         lastError = undefined;
@@ -1084,8 +1144,10 @@ export class PromptService {
     const languageDirective = this.buildLanguageDirective(effectiveLanguage);
     const maxToolTurns = options.maxToolTurns ?? 8;
 
+    // Diagnostic P5 : même règle que `runPrompt` (concaténée au premier bloc système) — un message système ajouté en
+    // FIN changeait la fin du prompt à chaque tour de la boucle d'outils et cassait le cache.
     const toolMessages: AIChatMessage[] = languageDirective
-      ? [...messages, { role: 'system', content: languageDirective }]
+      ? withLanguageDirective(messages, languageDirective)
       : messages;
     const loopStartedAt = Date.now();
     logAIEvent('ai.agentic_loop_start', {
@@ -1255,22 +1317,40 @@ export class PromptService {
     // Vrai flux via le SDK OpenAI si la capacité est déclarée, sinon repli
     // non-streamé par runPrompt.
     if (providerSupports(provider, 'streaming')) {
-      const streamMessages: AIChatMessage[] = languageDirective
-        ? [...messages, { role: 'system', content: languageDirective }]
-        : messages;
+      const streamMessages: AIChatMessage[] = languageDirective ? withLanguageDirective(messages, languageDirective) : messages;
+      // Le texte déjà reçu : une coupure en cours de rédaction reprend dessus au lieu de tout refaire (diagnostic P4).
+      let received = '';
       try {
         const full = await this._streamOpenAICompatible(
           provider,
           modelName,
           streamMessages,
-          llmOptions,
-          onDelta
+          // Même réconciliation raisonnement / budget que `runPrompt` (diagnostic T11).
+          reconcileThinkingBudget(llmOptions).options,
+          (text) => {
+            received = text;
+            onDelta(text);
+          }
         );
         return full;
       } catch (error: any) {
-        logger.warn(
-          `runPromptStream (${provider}) failed, falling back to non-streaming: ${error.message}`
-        );
+        if (received.length >= STREAM_RESUME_MIN_CHARS) {
+          logger.warn(`runPromptStream (${provider}) coupé après ${received.length} car. — reprise sur le texte reçu : ${error.message}`);
+          try {
+            const rest = await this.runPrompt(request, [
+              ...messages,
+              { role: 'assistant', content: received },
+              { role: 'user', content: 'Your previous answer was cut off. Continue EXACTLY where it stopped — do not repeat anything already written, do not restart.' },
+            ]);
+            const full = received + rest;
+            onDelta(full);
+            return full;
+          } catch (resumeError: any) {
+            logger.warn(`runPromptStream : reprise impossible (${resumeError.message}) — génération refaite sans flux.`);
+          }
+        } else {
+          logger.warn(`runPromptStream (${provider}) failed, falling back to non-streaming: ${error.message}`);
+        }
       }
     }
     const text = await this.runPrompt(request, messages);
@@ -1387,8 +1467,11 @@ const SEARCH_RESULTS_PER_QUERY = 4;
  */
 const MAX_SEARCH_QUERIES = 3;
 
-/** Résultats web injectés par appel fondé (le greffon les facture tous, utilisés ou non). */
-const WEB_RESULTS_PER_CALL = SEARCH_RESULTS_PER_QUERY * MAX_SEARCH_QUERIES;
+/**
+ * Résultats web injectés par appel fondé (le greffon les facture tous, utilisés ou non). Diagnostic RS3 : 12 → 8 par
+ * défaut (0,048 $ → 0,032 $ par section) — au-delà, les résultats se recoupent. `IDEM_WEB_RESULTS_PER_CALL` le règle.
+ */
+const WEB_RESULTS_PER_CALL = Math.max(3, Math.min(SEARCH_RESULTS_PER_QUERY * MAX_SEARCH_QUERIES, Number(process.env.IDEM_WEB_RESULTS_PER_CALL ?? 8) || 8));
 
 /** Greffon `web` d'OpenRouter (moteur Exa) : 4 $ pour 1 000 résultats. */
 const WEB_RESULT_USD = 0.004;

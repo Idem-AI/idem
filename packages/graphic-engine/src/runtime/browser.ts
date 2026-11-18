@@ -6,6 +6,7 @@
  * l'hôte, data-URI) : un document n'appelle jamais une adresse arbitraire pendant son rendu.
  */
 import type { Browser, HTTPRequest, Page } from 'puppeteer';
+import { PHOTO_GUARD } from './photo-integrity';
 
 let browserPromise: Promise<Browser> | null = null;
 
@@ -115,6 +116,8 @@ export async function withPage<T>(html: string, size: { width: number; height: n
       if (!/timeout/i.test(String(error?.message))) throw error;
     });
     await Promise.race([page.evaluate(WAIT_FOR_ASSETS), new Promise((resolve) => setTimeout(resolve, ASSET_WAIT_MS / 2))]).catch(() => undefined);
+    // Dernier rempart avant toute capture ou mesure : aucune photo de contenu n'est filtrée ni recolorée.
+    await page.evaluate(PHOTO_GUARD).catch(() => undefined);
     return await fn(page);
   } finally {
     await page.close().catch(() => undefined);

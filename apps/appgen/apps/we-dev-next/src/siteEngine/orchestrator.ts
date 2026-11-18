@@ -27,7 +27,6 @@
 import type { Response } from 'express';
 import { SiteStream } from './stream.js';
 import { ProjectModel } from '../types/project.js';
-import { getFallbackModelKeys } from '../config/modelConfig.js';
 import { isLightSurface, normalizeHex } from '../design/charter.js';
 import { fetchBrandAsset } from '../utils/brandAsset.js';
 import { ChatLogger } from '../utils/logger.js';
@@ -43,7 +42,7 @@ import { ModelCaller, accountLimitMessage } from './modelCaller.js';
 import { createApiMediaClient, MediaClient } from './media/mediaClient.js';
 import { AssetDecision, directMedia, MediaSlot } from './media/mediaDirector.js';
 import { createLimiter, MediaAsset, produceMedia } from './media/mediaPipeline.js';
-import { buildSiteScaffold, renderPage, renderPageShells, shellMessages } from './project.js';
+import { buildSiteScaffold, renderPage, renderPageShells, renderPendingSection, renderPendingShell, shellMessages } from './project.js';
 import { renderBrandModule, renderDataModule, renderMediaModule, renderSeo, siteDataOf } from './siteData.js';
 import { collectMessages, dataMessages, languageLabel, localizeCode, pseudoLocaleFiles, renderI18nFiles, translateCatalog, withHeaderLanguageSwitcher, withLanguageSwitcher } from './i18n.js';
 import { renderCheck } from './renderCheck.js';
@@ -58,13 +57,15 @@ import { DESIGN_SYSTEM_PATHS } from './template.js';
 import type { DesignOutcome } from './designConfig.js';
 import { inventoryFacts, inventoryOutline, inventoryText, InventorySection, linkMapper, sectionIndex, sourceContent } from './redesign/inventory.js';
 import { sectionCatalog } from './sectionCatalog/registry.js';
-import { CopyResult, CopyTask, writePageCopy } from './sectionCatalog/copy.js';
+import { CopyTask, PageCopy, startPageCopy } from './sectionCatalog/copy.js';
 import { composeSection, composeShell, inDirection, seedOf } from './sectionCatalog/compose.js';
 import type { ActionValue } from './sectionCatalog/assemble.js';
 import type { Authored } from './authoring.js';
 
-/** Composants écrits en même temps. */
-const CONCURRENCY = 4;
+/** Composants assemblés et vérifiés en même temps (le catalogue n'appelle plus de modèle : du code et un montage jsdom). */
+const CONCURRENCY = 6;
+/** Pages rédigées en même temps : un appel court chacune sur un modèle rapide. */
+const COPY_CONCURRENCY = 6;
 
 export interface SiteBuildInput {
   /** Le projet ; absent seulement pour une refonte qui le crée (`redesign`). */
@@ -73,6 +74,8 @@ export interface SiteBuildInput {
   /** La demande telle qu'écrite (brief de l'atelier ou message de l'utilisateur). */
   request: string;
   model: string;
+  /** Le cran de créativité choisi : filtre les sections et en-têtes du catalogue par leur `tier`. */
+  creativity?: string;
   userId: string | null;
   /** Le socle est-il déjà monté dans l'espace de travail ? Sinon, il part dans le flux. */
   scaffoldMounted: boolean;
@@ -314,8 +317,7 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
         : renderFacts(facts, language);
       // Tout le texte de l'ancien site : la référence du garde-fou (rien de ce qu'il dit n'est une invention).
       const sourceText = inventory ? `\n${inventoryText(inventory)}` : '';
-      const writer = process.env.SITE_WRITER_MODEL?.trim();
-      const caller = new ModelCaller(writer && getFallbackModelKeys(writer).includes(writer) ? writer : model, userId, abort.signal);
+      const caller = new ModelCaller(model, userId, abort.signal);
       const usage = () => ({ promptTokens: caller.promptTokens, completionTokens: caller.completionTokens });
 
       if (resuming) {
@@ -525,7 +527,7 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
       };
       if (!resuming) for (const [path, content] of Object.entries(renderPageShells(shellOptions))) stream.file(path, content);
 
-      // Les visuels : choisis par l'agent média, produits pendant que les composants s'écrivent.
+      // Les visuels : choisis par l'agent média, produits pendant que les textes et les composants s'écrivent.
       const mediaEnabled = (process.env.SITE_MEDIA ?? 'on').toLowerCase() !== 'off';
       const slots = mediaEnabled ? mediaSlotsOf(manifest) : [];
       const produced: Record<string, MediaAsset[]> = {};
@@ -561,53 +563,19 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
         }
       }
       const open = slots.filter((slot) => !mediaBySlot.has(slot.id));
+      const openSlots = new Set(open.map((slot) => slot.id));
 
-      if (open.length) {
-        stream.note(fr ? 'Je choisis les visuels de chaque section' : 'Choosing the visuals for each section');
-        const client =
-          input.mediaClient ?? createApiMediaClient({ credentials: input.credentials ?? {}, projectId: projectData.id, signal: abort.signal });
-        const decisions: AssetDecision[] = await directMedia({
-          slots: open,
-          facts,
-          style: design.mediaStyle,
-          caller,
-          language,
-          hasPattern: !!pattern,
-          maxGenerated: Number(process.env.SITE_MEDIA_MAX_GENERATED ?? 4),
-          allowVideo: (process.env.SITE_MEDIA_VIDEO ?? 'on').toLowerCase() !== 'off',
-        });
-        const limit = createLimiter(2);
-        const context = {
-          client,
-          caller,
-          facts,
-          style: design.mediaStyle,
-          language,
-          pattern: pattern ? { src: '/brand/pattern.svg', ground: pattern.ground, tile: pattern.tile } : null,
-          note: (text: string) => !abort.signal.aborted && stream.note(text),
-          writeFile: (path: string, content: string) => !abort.signal.aborted && stream.file(path, content),
-          limit,
-        };
-        for (const slot of open) {
-          const decision = decisions.find((item) => item.slot === slot.id);
-          if (!decision) continue;
-          mediaBySlot.set(
-            slot.id,
-            produceMedia(slot, decision, context)
-              .catch((error) => {
-                ChatLogger.warn('SITE_MEDIA', `${slot.id} : échec inattendu`, { message: (error as Error).message });
-                return [] as MediaAsset[];
-              })
-              .then((assets) => {
-                if (assets.length && !abort.signal.aborted) {
-                  produced[slot.id] = assets;
-                  emit('src/site/media.ts', renderMediaModule(produced));
-                }
-                return assets;
-              })
-          );
-        }
-      }
+      /**
+       * Les clés de visuels qu'une section affichera, connues AVANT les visuels eux-mêmes : la section se compose et
+       * s'affiche tout de suite, son image arrive ensuite dans `media.ts`. Les clés de `renderMediaModule` : la 1re garde
+       * la clé, les suivantes `clé-2`, `clé-3`…
+       */
+      const keysFor = (key: string, count: number) => Array.from({ length: count }, (_, i) => (i ? `${key}-${i + 1}` : key));
+      const plannedKeys = (page: ManifestPage, section: ManifestSection): string[] => {
+        const key = mediaKey(page, section);
+        const known = produced[key]?.length ?? 0;
+        return keysFor(key, known || (openSlots.has(key) ? 1 : 0));
+      };
 
       // Les auteurs : un composant par tâche, avec le contrat des composants retenus.
       const ctx: AuthoringContext = {
@@ -644,6 +612,7 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
       const direction = String((projectData.analysisResultModel?.branding as { artDirection?: { styleId?: string } } | undefined)?.artDirection?.styleId ?? '').trim() || undefined;
       const seed = seedOf(`${projectData.id ?? facts.name}:${manifest.pages.map((p) => p.key).join(',')}`);
       const usedVariants = new Map<string, number>();
+      const level = input.creativity ?? input.redesign?.creativity;
       const primaryHref = siteDataOf(facts, manifest, language).primaryAction?.href ?? null;
       const contactPage = manifest.pages.find((p) => /contact/.test(p.key) || p.sections.some((s) => s.layout === 'form'));
       const targetsOf = (page: ManifestPage) => [...manifest.pages.map((p) => p.path), ...page.sections.map((s) => `#${s.id}`), 'contact'];
@@ -656,9 +625,27 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
         if (contactPage && contactPage !== page) return contactPage.path;
         return primaryHref;
       };
-      const copies = new Map<string, Promise<CopyResult>>();
-      // Une file à part : une section attend ses textes AVANT de prendre une place d'écriture (jamais d'interblocage).
-      const copyLimit = createLimiter(3);
+
+      // L'APERÇU EN DIRECT : chaque page est posée tout de suite, avec toutes ses sections. Celles qui ne sont pas
+      // prêtes y tiennent leur place en squelette (`renderPendingSection`, sans import : rien ne peut y planter) ; le
+      // serveur de l'aperçu tourne déjà (démarrage à chaud de l'atelier), et chaque section terminée remplace la sienne
+      // par rechargement à chaud. Avant : rien qu'une page d'attente jusqu'à la toute dernière seconde.
+      const pendingPath = (path: string) => !(tracker.done(path) && resuming?.files[path]);
+      if (pendingPath('src/components/site/SiteHeader.tsx')) stream.file('src/components/site/SiteHeader.tsx', renderPendingShell('header'));
+      if (pendingPath('src/components/site/SiteFooter.tsx')) stream.file('src/components/site/SiteFooter.tsx', renderPendingShell('footer'));
+      for (const page of manifest.pages) {
+        page.sections.forEach((section, index) => {
+          const path = `src/sections/${page.key}/${section.component}.tsx`;
+          if (pendingPath(path)) stream.file(path, renderPendingSection(section.component, { opening: index === 0, media: plannedKeys(page, section).length > 0, fr }));
+        });
+        stream.file(`src/pages/${page.key}.tsx`, renderPage(page, page.sections.map((section) => ({ name: section.component, ok: true }))));
+      }
+
+      // Les textes de chaque page, lancés TOUT DE SUITE — en même temps que le choix des visuels, dont ils ne dépendent
+      // pas (avant : 8 s d'attente de l'agent média mesurées le 12/11/2026). Chaque section part vers l'assemblage dès
+      // que SES textes sont justes (`startPageCopy`).
+      const copies = new Map<string, PageCopy>();
+      const copyLimit = createLimiter(COPY_CONCURRENCY);
       if (useCatalog) {
         for (const page of manifest.pages) {
           const tasks: CopyTask[] = page.sections
@@ -668,30 +655,126 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
               return {
                 section: s,
                 kind: catalog!.kinds.get(s.layout!)!,
-                visuals: mediaBySlot.has(key) ? Math.max(1, (sourcesBySection.get(key) ?? []).flatMap((x) => x.images).length) : 0,
+                visuals: plannedKeys(page, s).length,
                 ...(sourcesBySection.has(key) ? { source: sourceContent(sourcesBySection.get(key)!, mapLink, fr) } : {}),
               };
             });
           if (!tasks.length) continue;
-          copies.set(
-            page.key,
-            copyLimit(() =>
-              writePageCopy({ caller, label: `${page.key}/textes`, language, manifest, page, tasks, factsText, request, check, targets: targetsOf(page) })
-            ).catch((error) => {
+          // La file ne retient que le lancement : les sections de la page lisent leurs textes à mesure qu'ils arrivent.
+          let release!: (copy: PageCopy) => void;
+          const started = new Promise<PageCopy>((resolve) => (release = resolve));
+          void copyLimit(async () => {
+            let copy: PageCopy;
+            try {
+              copy = startPageCopy({ caller, label: `${page.key}/textes`, language, manifest, page, tasks, factsText, request, check, targets: targetsOf(page) });
+            } catch (error) {
+              // Jamais une section suspendue à un lancement manqué : elles repartent vers l'auteur de code.
+              ChatLogger.warn('SITE_CATALOG', `${page.key} : rédaction impossible à lancer`, { message: (error as Error).message });
+              copy = { section: async () => undefined, done: Promise.resolve({ sections: {}, removed: [], providerDown: false }) };
+            }
+            release(copy);
+            const result = await copy.done.catch((error) => {
               ChatLogger.warn('SITE_CATALOG', `${page.key} : textes non rédigés`, { message: (error as Error).message });
-              return { sections: {}, removed: [], providerDown: false };
-            })
-          );
+              return null;
+            });
+            if (result?.removed.length) ChatLogger.info('SITE_CATALOG', `${page.key} : phrases non vérifiées retirées`, { removed: result.removed });
+          });
+          copies.set(page.key, {
+            section: async (id) => (await started).section(id),
+            done: started.then((copy) => copy.done),
+          });
         }
         ChatLogger.info('SITE_CATALOG', 'Sections composées depuis le catalogue', { version: catalog!.version, source: catalog!.source, pages: copies.size });
       }
+
+      // L'agent média, EN MÊME TEMPS que les textes. Une section n'attend pas ses visuels : ceux d'une banque arrivent en
+      // une seconde, ceux qui sont générés en trente, et chacun rejoint `media.ts` dès qu'il est prêt.
+      const mediaDirected: Promise<void> = open.length
+        ? (async () => {
+            stream.note(fr ? 'Je choisis les visuels de chaque section' : 'Choosing the visuals for each section');
+            const client =
+              input.mediaClient ?? createApiMediaClient({ credentials: input.credentials ?? {}, projectId: projectData.id, signal: abort.signal });
+            const decisions: AssetDecision[] = await directMedia({
+              slots: open,
+              facts,
+              style: design.mediaStyle,
+              caller,
+              language,
+              hasPattern: !!pattern,
+              allowVideo: (process.env.SITE_MEDIA_VIDEO ?? 'on').toLowerCase() !== 'off',
+            });
+            const mediaLimit = createLimiter(2);
+            const context = {
+              client,
+              caller,
+              facts,
+              style: design.mediaStyle,
+              language,
+              pattern: pattern ? { src: '/brand/pattern.svg', ground: pattern.ground, tile: pattern.tile } : null,
+              note: (text: string) => !abort.signal.aborted && stream.note(text),
+              writeFile: (path: string, content: string) => !abort.signal.aborted && stream.file(path, content),
+              limit: mediaLimit,
+              generations: { left: Number(process.env.SITE_MEDIA_MAX_GENERATED ?? 4) },
+            };
+            for (const slot of open) {
+              const decision = decisions.find((item) => item.slot === slot.id);
+              if (!decision) continue;
+              mediaBySlot.set(
+                slot.id,
+                produceMedia(slot, decision, context)
+                  .catch((error) => {
+                    ChatLogger.warn('SITE_MEDIA', `${slot.id} : échec inattendu`, { message: (error as Error).message });
+                    return [] as MediaAsset[];
+                  })
+                  .then((assets) => {
+                    if (assets.length && !abort.signal.aborted) {
+                      produced[slot.id] = assets;
+                      emit('src/site/media.ts', renderMediaModule(produced));
+                    }
+                    return assets;
+                  })
+              );
+            }
+          })().catch((error) => {
+            ChatLogger.warn('SITE_MEDIA', 'Visuels non choisis', { message: (error as Error).message });
+          })
+        : Promise.resolve();
+      /** Les visuels d'une section, une fois l'agent média passé et la production finie (vide en cas d'échec). */
+      const assetsOf = async (key: string): Promise<MediaAsset[]> => {
+        await mediaDirected;
+        return (await mediaBySlot.get(key)) ?? [];
+      };
+
+      // Les composants assemblés par le catalogue (et non écrits par l'auteur) : eux seuls se recomposent par le code.
+      const composedFromCatalog = new Set<string>();
+      // Un composant refusé est gardé dans le projet, mais écrit APRÈS l'assemblage final des pages (qui ne l'importe
+      // pas) : posé plus tôt, il casserait l'aperçu en direct de la page qui l'importe encore.
+      const deferredBroken: [string, string][] = [];
+
+      /** Le code accepté d'un composant, prêt à être traduit (textes dans `t()`, liens dans `localePath()`), dans l'aperçu. */
+      const publish = async (path: string, label: string, accepted: string, props?: Record<string, unknown>) => {
+        // Un site en plusieurs langues : la version enveloppée est d'abord montée en pseudo-langue ; si elle ne
+        // s'affiche plus une fois traduite, le composant garde ses textes en clair (langue principale partout).
+        const localized = localizeCode(accepted, path);
+        let code = localized.code;
+        if (localized.changed && siteLanguages.length > 1) {
+          const pseudo = await renderCheck({ path, code, props, files: { ...siteFiles, ...pseudoLocaleFiles(localized.texts, templateFiles()['src/i18n/index.ts'] ?? '') } });
+          if (pseudo.problems.length) {
+            ChatLogger.warn('SITE_I18N', `${label} : textes laissés en clair (le composant casse une fois traduit)`, { problems: pseudo.problems.slice(0, 2) });
+            code = accepted;
+          }
+        }
+        if (abort.signal.aborted) return;
+        stream.file(path, code);
+        written[path] = code;
+      };
 
       /** Un composant : celui du catalogue s'il passe, sinon écrit par l'auteur de code. */
       const write = async (
         path: string,
         label: string,
         display: string,
-        prompt: string,
+        prompt: string | (() => Promise<string>),
         props?: Record<string, unknown>,
         fromCatalog?: () => Promise<string | null>
       ): Promise<boolean> => {
@@ -705,36 +788,21 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
         }
         const assembled = fromCatalog ? await fromCatalog().catch((error) => (ChatLogger.warn('SITE_CATALOG', `${label} : assemblage impossible`, { message: (error as Error).message }), null)) : null;
         if (abort.signal.aborted) return false;
+        if (assembled) composedFromCatalog.add(path);
         const authored: Authored = assembled
           ? { code: assembled, valid: true, problems: [], unverified: [], removed: [], providerDown: false }
-          : await authorComponent({ caller, label, system, prompt, review, language, target: { path, props } });
+          : await authorComponent({ caller, label, system, prompt: typeof prompt === 'function' ? await prompt() : prompt, review, language, target: { path, props } });
         if (abort.signal.aborted) return false;
         if (authored.removed.length) ChatLogger.info('SITE_ENGINE', `${label} : phrases non vérifiées retirées`, { removed: authored.removed });
-        // Chaque site sort prêt à être traduit : textes dans `t()`, liens internes dans `localePath()` (par le code).
-        // Un site en plusieurs langues : la version enveloppée est d'abord montée en pseudo-langue ; si elle ne
-        // s'affiche plus une fois traduite, le composant garde ses textes en clair (langue principale partout).
-        let code = authored.code;
-        if (authored.valid && authored.code) {
-          const localized = localizeCode(authored.code, path);
-          code = localized.code;
-          if (localized.changed && siteLanguages.length > 1) {
-            const pseudo = await renderCheck({ path, code, props, files: { ...siteFiles, ...pseudoLocaleFiles(localized.texts, templateFiles()['src/i18n/index.ts'] ?? '') } });
-            if (pseudo.problems.length) {
-              ChatLogger.warn('SITE_I18N', `${label} : textes laissés en clair (le composant casse une fois traduit)`, { problems: pseudo.problems.slice(0, 2) });
-              code = authored.code;
-            }
-          }
-        }
-        if (code) {
-          stream.file(path, code);
-          written[path] = code;
-        }
-        if (!authored.valid) issues.push({ path, display, broken: true, unverified: [] });
         if (!authored.valid) {
+          if (authored.code) deferredBroken.push([path, authored.code]);
+          issues.push({ path, display, broken: true, unverified: [] });
           ChatLogger.warn('SITE_ENGINE', `${label} : conservé sans être affiché`, { problems: authored.problems });
           tracker.mark(path, 'failed');
           return false;
         }
+        // Chaque site sort prêt à être traduit : textes dans `t()`, liens internes dans `localePath()` (par le code).
+        await publish(path, label, authored.code, props);
         valid.add(path);
         tracker.mark(path, 'done');
         return true;
@@ -744,7 +812,7 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
       const headerProps = { current: manifest.pages[0]?.path ?? '/' };
       const shellFrom = (shells: 'headers' | 'footers', path: string, props?: Record<string, unknown>) =>
         useCatalog && catalog![shells].length
-          ? async () => (await composeShell(inDirection(catalog!, catalog![shells], direction), review, { path, props }, seed, shells))?.code ?? null
+          ? async () => (await composeShell(inDirection(catalog!, catalog![shells], direction), review, { path, props }, seed, shells, level))?.code ?? null
           : undefined;
       const header = limit(() =>
         write('src/components/site/SiteHeader.tsx', 'header', fr ? "l'en-tête" : 'the header', headerPrompt(ctx, request), headerProps, shellFrom('headers', 'src/components/site/SiteHeader.tsx', headerProps))
@@ -757,59 +825,64 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
         const results = await Promise.all(
           page.sections.map(async (section, index) => {
             const key = mediaKey(page, section);
-            const assets = (await mediaBySlot.get(key)) ?? [];
             const path = `src/sections/${page.key}/${section.component}.tsx`;
-            // Les textes de la page, attendus avant de prendre une place d'écriture.
-            const copy = copies.has(page.key) ? await copies.get(page.key)! : null;
-            const content = copy?.sections[section.id];
-            if (copy?.removed.length) ChatLogger.info('SITE_CATALOG', `${page.key} : phrases non vérifiées retirées`, { removed: copy.removed });
-            const fromCatalog =
-              content && section.layout
-                ? async () =>
-                    (
-                      await composeSection({
-                        catalog: catalog!,
-                        review,
-                        target: { path },
-                        component: section.component,
-                        id: section.id,
-                        layout: section.layout!,
-                        opening: index === 0,
-                        content,
-                        // Les clés de `renderMediaModule` : la 1re garde la clé, les suivantes `clé-2`, `clé-3`…
-                        mediaKeys: assets.map((_, i) => (i ? `${key}-${i + 1}` : key)),
-                        resolveHref: resolverOf(page),
-                        used: usedVariants,
-                        seed: seed + seedOf(section.id),
-                        label: `${page.key}/${section.id}`,
-                        direction,
-                      })
-                    )?.code ?? null
-                : undefined;
-            const ok = await limit(() =>
-              write(
-                `src/sections/${page.key}/${section.component}.tsx`,
-                `${page.key}/${section.id}`,
-                fr ? `la section « ${section.id} » (${page.label})` : `the "${section.id}" section (${page.label})`,
-                sectionPrompt(
-                  ctx,
-                  {
-                    page,
-                    section,
-                    opening: index === 0,
-                    ...(assets.length
-                      ? { mediaKey: key, mediaKind: KIND_LABEL[assets[0].kind], mediaAspect: index === 0 ? '16:9' : '4:3' }
-                      : {}),
-                    // Les clés de `renderMediaModule` : la 1re garde la clé, les suivantes `clé-2`, `clé-3`…
-                    ...(assets.length > 1 ? { mediaList: assets.map((asset, i) => ({ key: i ? `${key}-${i + 1}` : key, alt: asset.alt ?? '' })) } : {}),
-                    ...(sourcesBySection.has(key) ? { source: sourceContent(sourcesBySection.get(key)!, mapLink, fr) } : {}),
-                  },
-                  request
-                ),
-                undefined,
-                fromCatalog
-              )
-            );
+            const label = `${page.key}/${section.id}`;
+            // Les textes de CETTE section, dès qu'ils sont justes (pas ceux de toute la page).
+            const content = copies.has(page.key) ? await copies.get(page.key)!.section(section.id) : undefined;
+            const compose = (mediaKeys: string[]) => async () =>
+              (
+                await composeSection({
+                  catalog: catalog!,
+                  review,
+                  target: { path },
+                  component: section.component,
+                  id: section.id,
+                  layout: section.layout!,
+                  opening: index === 0,
+                  content: content!,
+                  mediaKeys,
+                  resolveHref: resolverOf(page),
+                  used: usedVariants,
+                  seed: seed + seedOf(section.id),
+                  label,
+                  direction,
+                  level,
+                })
+              )?.code ?? null;
+            // Le prompt de l'auteur de code, qui écrit avec les visuels réellement produits : attendus seulement par lui.
+            const authorPrompt = async () => {
+              const assets = await assetsOf(key);
+              return sectionPrompt(
+                ctx,
+                {
+                  page,
+                  section,
+                  opening: index === 0,
+                  ...(assets.length
+                    ? { mediaKey: key, mediaKind: KIND_LABEL[assets[0].kind], mediaAspect: index === 0 ? '16:9' : '4:3' }
+                    : {}),
+                  ...(assets.length > 1 ? { mediaList: assets.map((asset, i) => ({ key: i ? `${key}-${i + 1}` : key, alt: asset.alt ?? '' })) } : {}),
+                  ...(sourcesBySection.has(key) ? { source: sourceContent(sourcesBySection.get(key)!, mapLink, fr) } : {}),
+                },
+                request
+              );
+            };
+            const display = fr ? `la section « ${section.id} » (${page.label})` : `the "${section.id}" section (${page.label})`;
+            const planned = plannedKeys(page, section);
+            const fromCatalog = content && section.layout ? compose(planned) : undefined;
+            // Sans textes du catalogue, l'auteur écrira à coup sûr : ses visuels sont attendus AVANT de prendre une place.
+            const prompt = fromCatalog ? authorPrompt : await authorPrompt();
+            const ok = await limit(() => write(path, label, display, prompt, undefined, fromCatalog));
+            // Composée avant ses visuels : s'ils ne sont pas venus comme prévu (échec, aucun choisi), la section est
+            // recomposée par le code avec ceux qui existent — aucun appel de modèle, et jamais un cadre d'image vide.
+            if (ok && composedFromCatalog.has(path) && planned.length) {
+              const assets = await assetsOf(key);
+              if (assets.length !== planned.length && !abort.signal.aborted) {
+                const code = await limit(compose(keysFor(key, assets.length))).catch(() => null);
+                if (code) await publish(path, label, code);
+                else ChatLogger.warn('SITE_CATALOG', `${label} : visuel absent, section gardée telle quelle`, { planned: planned.length, produced: assets.length });
+              }
+            }
             return { name: section.component, ok };
           })
         );
@@ -830,6 +903,11 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
         );
       }
       tracker.mark('pages', 'done');
+      // Les composants refusés, gardés dans le projet pour « Corriger » : maintenant que plus aucune page ne les importe.
+      for (const [path, code] of deferredBroken) {
+        stream.file(path, code);
+        written[path] = code;
+      }
 
       // Les dépendances fonctionnelles font partie du socle (et de son instantané) : rien à installer en plus. Un
       // socle parti dans le flux demande seulement sa mise en place, que l'atelier fait depuis son cache ou

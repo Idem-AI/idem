@@ -87,9 +87,10 @@ export interface SampleResult {
 // compositions résolues, pré-jugées sans rendu, deux gardées) — la variété ne vient donc pas du nombre d'appels.
 // Budgets réduits, et la première vague d'un cran bas n'écrit qu'UNE intention : si elle passe le seuil, c'est tout.
 const BY_DIFFICULTY: Record<Difficulty, number> = { simple: 2, medium: 4, hard: 6 };
-const BY_LEVEL: Record<CreativityLevel, number> = { low: 3, medium: 4, high: 6, ultra: 8 };
-/** Taille de la première vague, puis des suivantes (parallèles) : un essai d'abord aux crans bas. */
-const WAVES: Record<CreativityLevel, [number, number]> = { low: [1, 2], medium: [1, 2], high: [2, 3], ultra: [3, 3] };
+// 18/11/2026 : le cran ne règle plus le budget d'essais (il choisit la gamme des gabarits) — même budget partout.
+const BY_LEVEL: Record<CreativityLevel, number> = { low: 4, medium: 4, high: 4, ultra: 4 };
+/** Taille de la première vague, puis des suivantes (parallèles) : un essai d'abord. */
+const WAVES: Record<CreativityLevel, [number, number]> = { low: [1, 2], medium: [1, 2], high: [1, 2], ultra: [1, 2] };
 
 /** La difficulté d'une scène : données, interface, texte long ou nombreux éléments = difficile. */
 export function difficultyOf(card: IntentAuthorInput['scene']): Difficulty {

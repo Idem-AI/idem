@@ -18,7 +18,8 @@ export type IllustrationName =
   | 'cowries'
   | 'facade'
   | 'mortar'
-  | 'night-stall';
+  | 'night-stall'
+  | 'stamp';
 
 /**
  * Les illustrations de l'interface, dessinées en ligne plutôt que livrées en
@@ -299,6 +300,26 @@ export type IllustrationName =
           <g style="color: var(--color-primary-500)">
             <path d="M60 41.5 C62.6 44 62.2 47 60 48.2 C57.8 47 57.4 44 60 41.5Z" stroke-width="1.6"/>
             <path d="M45 45 H50 M70 45 H75 M49 36 L52.5 39 M71 36 L67.5 39 M50 53 L53 50.5 M70 53 L67 50.5" stroke-width="1.3" opacity=".8"/>
+          </g>
+        }
+        @case ('stamp') {
+          <!-- L'identité de la marque, lue sur son site : le tampon adinkra en calebasse et le signe qu'il imprime
+               sur l'étoffe (même objet que l'import de site d'iVision). -->
+          <g transform="translate(-24 -22) scale(0.95)">
+            <g transform="translate(8 14) scale(1.25)">
+              <path d="M34 12 L26 44 M34 12 L42 44 M34 12 L20 40 M34 12 L48 40" stroke-width="1.6"/>
+              <path d="M30 10 H38" stroke-width="2.4"/>
+              <ellipse cx="34" cy="52" rx="22" ry="9" stroke-width="1.8"/>
+              <path d="M12 52 V56 C12 61 22 65 34 65 C46 65 56 61 56 56 V52" stroke-width="1.6"/>
+              <g transform="translate(34 52) scale(.9 .36)">
+                <path d="M0 -9 L9 0 L0 9 L-9 0Z M0 -4 L4 0 L0 4 L-4 0Z M-9 0 H-13 M9 0 H13 M0 -9 V-13 M0 9 V13" stroke-width="2.4"/>
+              </g>
+              <path d="M64 22 H112 V78 H64Z" stroke-width="1.6"/>
+              <path d="M64 30 H112 M64 70 H112" stroke-width="1" opacity=".55"/>
+              <g style="color: var(--color-primary-500)" transform="translate(88 50) scale(1.15)">
+                <path d="M0 -9 L9 0 L0 9 L-9 0Z M0 -4 L4 0 L0 4 L-4 0Z M-9 0 H-13 M9 0 H13 M0 -9 V-13 M0 9 V13" stroke-width="2.4"/>
+              </g>
+            </g>
           </g>
         }
         @case ('facade') {

@@ -28,6 +28,7 @@ import { ApplicationInsightsComponent } from '../application-insights/applicatio
 import { ApplicationPipelineComponent } from '../application-pipeline/application-pipeline';
 import { ApplicationSecurityComponent } from '../../security/application-security/application-security';
 import { JourneyNextComponent } from '../../../shared/components/journey-next/journey-next';
+import { IdemProjectComponent } from '../../../shared/components/idem-project/idem-project';
 
 export type Tab = 'overview' | 'domain' | 'deployments' | 'logs' | 'env' | 'security' | 'insights' | 'settings' | 'storage' | 'tasks' | 'pipeline';
 
@@ -91,6 +92,7 @@ const AUTOMATIC_HOST = /(\.idem\.africa|\.sslip\.io|\.nip\.io)$/i;
     ApplicationPipelineComponent,
     ApplicationSecurityComponent,
     JourneyNextComponent,
+    IdemProjectComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -245,7 +247,9 @@ const AUTOMATIC_HOST = /(\.idem\.africa|\.sslip\.io|\.nip\.io)$/i;
         @case ('pipeline') { <app-application-pipeline [embedded]="true" /> }
         @default {
           <!-- La boucle IDEM : l'étape suivante d'une application en ligne (la faire connaître, son nom…). -->
-          <app-journey-next class="mb-6 block" [appUuid]="uuid" (openDomain)="setTab('domain')" />
+          <!-- Sans projet IDEM : on propose d'en créer un depuis le site en ligne ; relié : le projet, puis la suite. -->
+          <app-idem-project class="mb-4 block" [appUuid]="uuid" (linked)="journeyRefresh.set(journeyRefresh() + 1)" />
+          <app-journey-next class="mb-6 block" [appUuid]="uuid" [refresh]="journeyRefresh()" (openDomain)="setTab('domain')" />
           <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
             <div class="space-y-6 lg:col-span-2">
               <!-- What is live right now. -->
@@ -460,6 +464,8 @@ export class ApplicationDetailComponent implements OnInit {
   protected statusOf = appStatusDisplay;
 
   protected readonly latestDeployment = computed<DeploymentHistoryItem | null>(() => this.deployments()[0] ?? null);
+  /** Incrémenté quand l'application vient d'être reliée à un projet IDEM : la carte « prochaine étape » se relit. */
+  protected readonly journeyRefresh = signal(0);
   protected readonly isRunning = computed(() => (this.app()?.status ?? '').startsWith('running'));
 
   /**

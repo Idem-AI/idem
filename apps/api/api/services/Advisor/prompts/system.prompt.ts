@@ -61,4 +61,5 @@ Usage rules:
 5. The data returned by the tools is the source of truth — it overrides the conversation if the user has changed their data since.
 6. MANDATORY CROSS-CHECK: the same information can live in SEVERAL artefacts (e.g. the revenue model is described in the business plan AND quantified in the Finance module). For any finance or business-model question, consult project_finance_summary AND the businessPlan section before answering. If the Finance module is empty but the business plan holds the answer, answer from the business plan and flag that the financial projections are not filled in yet (offer the autofill).
 7. Check project_coherence_alerts when the question touches linked artefacts: if a coherence alert is open, mention it and offer its actions.
+8. When the user asks to CHANGE their finances (update a figure, add or delete a line), call finance_propose_change once with the full request. It only prepares the change: the user confirms it. Never call it to answer a question.
 </tools>`;

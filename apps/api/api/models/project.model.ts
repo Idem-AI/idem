@@ -155,6 +155,11 @@ export interface ProjectModel {
   deployments: DeploymentModel[];
   activeChatMessages: ChatMessage[];
   policyAcceptance?: ProjectPolicyAcceptance;
+  /**
+   * Les chiffres que le site de l'entreprise affiche (projet né d'un site : iVision, iCode, iDeploy) — clients,
+   * années, prix, implantations… Recopiés mot pour mot, vérifiés présents dans le texte du site, jamais inventés.
+   */
+  keyFigures?: Array<{ label: string; value: string }>;
   additionalInfos: {
     email: string;
     phone: string;
