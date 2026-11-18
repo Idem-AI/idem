@@ -160,8 +160,9 @@ const scriptJson = (value: unknown) => JSON.stringify(value).replace(/</g, '\\u0
 
 /** La page demandée : par son adresse (`/a-propos/`, `/en/`), sinon l'accueil. */
 function pageFor(pages: PreviewPage[], path: string): PreviewPage {
-  const wanted = (path.split(/[?#]/)[0] || '/').replace(/index\.html$/, '').replace(/\/?$/, '/');
-  return pages.find((page) => page.path === wanted) ?? pages.find((page) => page.path === '/') ?? pages[0];
+  const wanted = (path.split(/[?#]/)[0] || '/').replace(/index\.html$/, '').replace(/\/{2,}/g, '/').replace(/\/?$/, '/');
+  const norm = (p: string) => p.replace(/\/{2,}/g, '/').replace(/\/?$/, '/');
+  return pages.find((page) => norm(page.path) === wanted) ?? pages.find((page) => page.path === '/') ?? pages[0];
 }
 
 /**
@@ -304,9 +305,9 @@ router.get('/s/:id{/*rest}', async (req: Request, res: Response) => {
   openToPreview(res);
   if (!session) return res.status(404).type('text/plain').send('Aperçu fermé : rouvrez le projet.');
   session.lastUsed = Date.now();
-  // Express 5 rend le reste du chemin découpé ; la barre finale (`/a-propos/`) compte pour reconnaître la page.
-  const tail = Array.isArray(params.rest) ? params.rest.join('/') : params.rest ?? '';
-  const rest = `/${tail}${tail && req.path.endsWith('/') ? '/' : ''}`;
+  // Le reste du chemin, lu tel quel (barre finale comprise) : recomposé depuis les morceaux d'Express 5, `/a-propos/`
+  // devenait `/a-propos//` et chaque lien du menu ramenait à l'accueil.
+  const rest = decodeURIComponent(req.path.slice(`/s/${params.id}`.length)) || '/';
 
   if (rest === '/events') {
     res.setHeader('Content-Type', 'text/event-stream');

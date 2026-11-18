@@ -12,6 +12,7 @@ import { MockLanguageModelV1 } from 'ai/test';
 import { simulateReadableStream } from 'ai';
 import type { LanguageModelV1StreamPart } from '@ai-sdk/provider';
 import { ModelCaller } from '../src/siteEngine/modelCaller.js';
+import { readBuildKind } from '../src/commands/buildKind.js';
 import { completedSections, startPageCopy, type CopyTask } from '../src/siteEngine/sectionCatalog/copy.js';
 import type { KindNode } from '../src/siteEngine/sectionCatalog/types.js';
 import type { ManifestPage, SiteManifest } from '../src/siteEngine/manifest.js';
@@ -188,6 +189,14 @@ console.log('Textes livrés au fil de l’eau');
   check('la première section part bien avant la fin de la réponse', at.hero > 0 && at.hero < end * 0.6, { at, end });
   check('dans l’ordre d’écriture', at.hero <= at.services && at.services <= at.contact, at);
 }
+
+/* -------------------------------------------------------------------------- */
+console.log('Site ou application (réponse de l’agent)');
+check('site lu, sans plateforme', JSON.stringify(readBuildKind({ product: 'site', platform: 'mobile', confidence: 0.9 })) === JSON.stringify({ product: 'site', platform: null, confidence: 0.9 }));
+check('application mobile lue', readBuildKind({ product: 'app', platform: 'mobile', confidence: 0.8 })?.platform === 'mobile');
+check('application sans plateforme = web', readBuildKind({ product: 'app', confidence: 0.8 })?.platform === 'web');
+check('réponse hors sujet refusée', readBuildKind({ product: 'blog' }) === null && readBuildKind(null) === null);
+check('confiance bornée entre 0 et 1', readBuildKind({ product: 'site', confidence: 7 })?.confidence === 1);
 
 console.log(failures ? `\n${failures} échec(s).` : '\nTout est vert.');
 process.exit(failures ? 1 : 0);

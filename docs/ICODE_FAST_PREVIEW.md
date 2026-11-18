@@ -30,6 +30,14 @@ Si le serveur ne sait pas faire (paquets absents), l'atelier reprend la WebConta
 - **Préchauffage au démarrage du serveur** (`warmUp`, ~1,1 s) : dépendances, Tailwind et configuration du template sont prêts avant la première session, qui s'ouvre en ~0,4 s.
 - **Début de génération.** Tant qu'aucune version n'a été construite, la page affiche « Le site se prépare… ». Une erreur n'est montrée que si elle dure plus de 4 s (6 s pour la bannière « Corriger » de l'atelier). Les noms des fichiers de chaque page sont stables.
 
+### Corrigé le 19/11, second essai réel
+
+- **Liens du menu ramenant à l'accueil.** `/a-propos/` devenait `/a-propos//` en recomposant le chemin découpé par Express 5. Le chemin est maintenant lu tel quel, et `check:preview` vérifie qu'un lien mène à la bonne page, pas seulement à une page.
+- **Sites demandés depuis la page d'accueil d'iCode.** Sans produit dans l'adresse, la cible par défaut était `web-app` (interface, serveur et base de données), même pour « un site pour mon restaurant ». Désormais :
+  - un agent rapide (`POST /api/commands/kind`, 4 s au plus, seuil 0,65) lit la demande et pose `?product=site|app` avant que l'atelier monte son socle ;
+  - sans projet IDEM, un projet minimal est tiré de la demande (`draftSiteProject`), pour que le moteur des sites, et donc l'aperçu instantané section par section, prenne la main. `ICODE_KIND_AGENT=off` coupe l'agent.
+- **Ateliers qui ne démarraient jamais (`npm install` de 3 à 7 min).** Un seul échec de lecture du plan des dépendances, pendant un redémarrage du serveur, envoyait l'atelier sur `npm install`, et cet échec était retenu pour toute la session. La lecture du plan réessaie maintenant 5 fois sur ~15 s, et un échec n'est plus retenu.
+
 ### À faire avant la mise en production
 
 Le moteur a besoin de Tailwind 3 dans `site-runtime`. Je n'ai pas pu l'installer sans réseau. Il faut lancer, puis commiter `package.json` et `package-lock.json` :

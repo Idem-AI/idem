@@ -196,11 +196,14 @@ if (hero) {
 // Navigation vers une autre page du site.
 const other = opened.session.pages().find((p) => p.path !== '/');
 if (other) {
+  const homeTitle = (await frame.evaluate(`document.querySelector('h1')?.textContent ?? ''`)) as string;
   await frame.evaluate(`(() => { const a = [...document.querySelectorAll('a[href]')].find((x) => x.getAttribute('href') === ${JSON.stringify(other.path)}); if (a) a.click(); else location.href = location.pathname.replace(/\\/$/, '') + ${JSON.stringify(other.path)}; })()`);
   await new Promise((d) => setTimeout(d, 500));
   frame = await frameOf();
   await frame.waitForFunction(`location.pathname.endsWith(${JSON.stringify(other.path)}) && !!document.querySelector('h1')`, { timeout: 15_000 });
-  check(`navigation vers ${other.path}`, true);
+  const otherTitle = (await frame.evaluate(`document.querySelector('h1')?.textContent ?? ''`)) as string;
+  // Un lien du menu ramenait à l'accueil (19/11) : la page affichée doit être la bonne, pas seulement une page.
+  check(`navigation vers ${other.path} : la bonne page, pas l’accueil`, otherTitle !== homeTitle && otherTitle.length > 0, { homeTitle, otherTitle });
 }
 
 check('aucune erreur dans la page', errors.length === 0, errors.slice(0, 5));

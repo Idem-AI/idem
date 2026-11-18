@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ArrowRight, ChevronDown } from 'lucide-react';
 import useAppGenContextStore from '@/stores/appgenContextSlice';
@@ -15,6 +15,7 @@ import ThemeToggle from '@/components/ui/ThemeToggle';
 import LanguageToggle from '@/components/ui/LanguageToggle';
 import PromptComposer, { type ComposerAttachment } from '@/components/ui/PromptComposer';
 import { SignInPrompt } from './SignInPrompt';
+import { decideProductFromPrompt } from '@/utils/buildKind';
 import {
   ProductMockIllustration,
   ArtDirectionIllustration,
@@ -55,6 +56,8 @@ export function AppGenLanding({ onStart }: AppGenLandingProps) {
   const [currentUser, setCurrentUser] = useState<UserModel | null>(null);
   const [signInOpen, setSignInOpen] = useState(false);
   const { initDraft } = useAppGenContextStore();
+  /** Une demande en cours de lancement (le choix site / application prend jusqu'à 4,5 s) : pas de second envoi. */
+  const starting = useRef(false);
 
   useEffect(() => {
     getCurrentUser().then(setCurrentUser);
@@ -122,6 +125,15 @@ export function AppGenLanding({ onStart }: AppGenLandingProps) {
       toast.error(t('composer.attachmentsFailed'));
     }
 
+    // Site vitrine ou application : l'adresse le dit avant que l'atelier monte son socle (sinon, une application
+    // complète était construite pour « un site pour mon restaurant »).
+    if (starting.current) return;
+    starting.current = true;
+    try {
+      await decideProductFromPrompt(finalPrompt);
+    } finally {
+      starting.current = false;
+    }
     initDraft();
     onStart(finalPrompt);
   };
