@@ -4,12 +4,14 @@
  * transition d'entrée et son rythme. Aucune ligne de code, aucun mot de contenu : une réponse JSON vérifiée par le code
  * (identifiants connus, cibles compatibles, bornes). Une réponse illisible laisse le choix du code.
  *
- * Le cran règle la profondeur (`VIDEO_CATALOG_EFFORT`) ; il choisit aussi le modèle (échelle `catalog` de l'hôte).
+ * 18/11/2026 : le cran ne règle plus ni la profondeur ni le modèle (modèle unique) — il choisit la GAMME des nœuds
+ * (gabarits, thèmes, animations, transitions : champ `tier`), de plus en plus premium.
  */
 import type { CreativityLevel } from '../../creativity/levels';
 import type { SceneCandidate } from './graph';
 import type { AnimationNode, AnimRole, LoadedVideoCatalog, SceneConfig, ThemeNode, TransitionNode } from './types';
 import { ROLE_TARGET } from './types';
+import { inTier } from '@idem/graphic-engine';
 
 export interface VideoCatalogEffort {
   /** `code` : le code choisit seul (0 jeton) ; `model` : le modèle choisit dans la liste courte. */
@@ -23,12 +25,8 @@ export interface VideoCatalogEffort {
   params: boolean;
 }
 
-export const VIDEO_CATALOG_EFFORT: Record<CreativityLevel, VideoCatalogEffort> = {
-  low: { chooser: 'code', shortlist: 4, themes: 1, motion: false, params: false },
-  medium: { chooser: 'model', shortlist: 4, themes: 1, motion: false, params: false },
-  high: { chooser: 'model', shortlist: 6, themes: 3, motion: true, params: false },
-  ultra: { chooser: 'model', shortlist: 8, themes: 4, motion: true, params: true },
-};
+const SAME_EFFORT: VideoCatalogEffort = { chooser: 'model', shortlist: 6, themes: 3, motion: true, params: false };
+export const VIDEO_CATALOG_EFFORT: Record<CreativityLevel, VideoCatalogEffort> = { low: SAME_EFFORT, medium: SAME_EFFORT, high: SAME_EFFORT, ultra: SAME_EFFORT };
 export const videoEffortFor = (level: CreativityLevel): VideoCatalogEffort => VIDEO_CATALOG_EFFORT[level] ?? VIDEO_CATALOG_EFFORT.medium;
 
 export interface ChooseScene {
@@ -53,9 +51,10 @@ export function chooseSystem(): string {
   ].join('\n');
 }
 
-export function chooseUser(cat: LoadedVideoCatalog, o: { brandLine: string; film: { title: string; concept: string; style?: string }; themes: ThemeNode[]; scenes: ChooseScene[]; effort: VideoCatalogEffort; revise?: { key: string; current: SceneConfig; instruction: string } }): string {
-  const anims = [...cat.nodes.values()].filter((n): n is AnimationNode => n.kind === 'animation' && !n.id.startsWith('builtin.'));
-  const trans = [...cat.nodes.values()].filter((n): n is TransitionNode => n.kind === 'transition' && !n.id.startsWith('builtin.'));
+export function chooseUser(cat: LoadedVideoCatalog, o: { brandLine: string; film: { title: string; concept: string; style?: string }; themes: ThemeNode[]; scenes: ChooseScene[]; effort: VideoCatalogEffort; level?: string; revise?: { key: string; current: SceneConfig; instruction: string } }): string {
+  // Les animations et transitions proposées : celles de la gamme du cran (au moins 6 et 3, gammes voisines au besoin).
+  const anims = inTier([...cat.nodes.values()].filter((n): n is AnimationNode => n.kind === 'animation' && !n.id.startsWith('builtin.')), o.level, 6);
+  const trans = inTier([...cat.nodes.values()].filter((n): n is TransitionNode => n.kind === 'transition' && !n.id.startsWith('builtin.')), o.level, 3);
   const lines: string[] = [
     `BRAND: ${o.brandLine}`,
     `FILM: ${o.film.title.slice(0, 120)} — ${o.film.concept.slice(0, 400)}${o.film.style && o.film.style !== 'auto' ? ` · requested style: ${o.film.style}` : ''}`,

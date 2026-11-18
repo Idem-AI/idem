@@ -36,6 +36,8 @@ interface BaseNode {
   weight?: number;
   /** Les DA servies (catalogue `directions` du dépôt) : un film ne prend que les nœuds de la DA de sa marque. */
   directions?: string[];
+  /** La gamme (18/11/2026) : le cran qui sert ce nœud, du plus sobre au plus premium. Absent : tous les crans. */
+  tier?: 'low' | 'medium' | 'high' | 'ultra';
 }
 
 export interface SlotDef {

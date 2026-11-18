@@ -11,7 +11,6 @@
 
 import type { Response } from 'express';
 import { ProjectModel } from '../types/project.js';
-import { getFallbackModelKeys } from '../config/modelConfig.js';
 import { ChatLogger } from '../utils/logger.js';
 import { ResilientStream } from '../utils/resilientStream.js';
 import { ThemeColors, themeColorsFromCss } from './autocorrect.js';
@@ -201,8 +200,7 @@ export function createSiteRepairStream(input: SiteRepairInput): ResilientStream 
           return () => site;
         })(),
       };
-      const writer = process.env.SITE_WRITER_MODEL?.trim();
-      const caller = new ModelCaller(writer && getFallbackModelKeys(writer).includes(writer) ? writer : model, userId, abort.signal);
+      const caller = new ModelCaller(model, userId, abort.signal);
       const system = authorSystemPrompt(ctx);
 
       const targets = input.paths.filter((path) => typeof files[path] === 'string' && /^src\/(sections|components\/site)\/.+\.tsx$/.test(path));

@@ -148,13 +148,13 @@ export async function composeFilmFromCatalog(input: ComposeInput): Promise<Compo
   const state: FilmState = { layouts: [], use: new Map(), seen: memory.templates };
   const lists: SceneCandidate[][] = [];
   for (const f of facts) {
-    const list = shortlist(cat, f, { style, direction: input.brand.direction, state, seed, size: effort.shortlist });
+    const list = shortlist(cat, f, { style, direction: input.brand.direction, state, seed, size: effort.shortlist, level: input.level });
     lists.push(list);
     state.layouts[f.index] = list[0].layout.id;
     state.use.set(list[0].layout.id, (state.use.get(list[0].layout.id) ?? 0) + 1);
   }
   const avgEnergy = facts.reduce((n, f) => n + f.energy, 0) / Math.max(1, facts.length);
-  const themes = rankThemes(cat, { style, direction: input.brand.direction, energy: avgEnergy, allowDark: input.allowDark === true, seed, used: memory.themes });
+  const themes = rankThemes(cat, { style, direction: input.brand.direction, energy: avgEnergy, allowDark: input.allowDark === true, seed, used: memory.themes, level: input.level });
   let theme = themes[0];
   let configs = lists.map((l) => l[0].config);
   let trace: ComposedFilm['trace'] = { source: 'code', tokens: { input: 0, output: 0 }, ms: 0, detail: '' };
@@ -170,7 +170,7 @@ export async function composeFilmFromCatalog(input: ComposeInput): Promise<Compo
       candidates: lists[i],
       roles: Object.fromEntries(lists[i].map((c) => [c.ref, rolesIn(sceneHtml(c.layout, theme, f.slots, input.brand)).filter((r) => r !== 'item')])),
     }));
-    const user = chooseUser(cat, { brandLine: input.brand.line, film: input.film, themes: offered, scenes, effort });
+    const user = chooseUser(cat, { brandLine: input.brand.line, film: input.film, themes: offered, scenes, effort, level: input.level });
     const run = await callFilmModel(input.call, 'video.template', chooseSystem(), user, (raw) => parseChoices(raw, cat, { themes: offered, scenes, effort }) !== null);
     const parsed = run.raw ? parseChoices(run.raw, cat, { themes: offered, scenes, effort }) : null;
     trace = { source: parsed ? 'llm' : 'code', tokens: run.tokens, ms: run.ms, ...(run.failure ? { failure: run.failure } : {}), detail: '' };
@@ -242,13 +242,13 @@ export async function reviseSceneConfig(input: ComposeInput, index: number, them
   const f = facts[index];
   const theme = (cat.nodes.get(themeId)?.kind === 'theme' ? cat.nodes.get(themeId) : cat.nodes.get('builtin.plain')) as ThemeNode;
   const style = STYLES.includes(input.film.style as VideoStyle) ? (input.film.style as VideoStyle) : undefined;
-  let list = shortlist(cat, f, { style, direction: input.brand.direction, state: { layouts: [], use: new Map(), seen: new Set() }, seed: `${input.brand.name}|${input.film.seed}|revise`, size: Math.max(6, effort.shortlist) });
+  let list = shortlist(cat, f, { style, direction: input.brand.direction, state: { layouts: [], use: new Map(), seen: new Set() }, seed: `${input.brand.name}|${input.film.seed}|revise`, size: Math.max(6, effort.shortlist), level: input.level });
   // La configuration actuelle en tête (« A ») : la consigne la modifie, elle ne repart pas de zéro.
   const layout = cat.nodes.get(current.layout);
   if (layout?.kind === 'layout') list = [{ ref: 'A', layout: layout as LayoutNode, config: current, score: 99 }, ...list.filter((c) => sceneFingerprint(c.config) !== sceneFingerprint(current))].map((c, i) => ({ ...c, ref: String.fromCharCode(65 + i) }));
   const key = input.scenes[index].key;
   const scenes: ChooseScene[] = [{ key, role: f.role, energy: f.energy, duration: f.duration, shape: shapeOf(f.slots, f.texts), candidates: list, roles: Object.fromEntries(list.map((c) => [c.ref, rolesIn(sceneHtml(c.layout, theme, f.slots, input.brand)).filter((r) => r !== 'item')])) }];
-  const user = chooseUser(cat, { brandLine: input.brand.line, film: input.film, themes: [theme], scenes, effort, revise: { key, current, instruction } });
+  const user = chooseUser(cat, { brandLine: input.brand.line, film: input.film, themes: [theme], scenes, effort, level: input.level, revise: { key, current, instruction } });
   const run = await callFilmModel(input.call, 'video.template', chooseSystem(), user, (raw) => (parseChoices(raw, cat, { themes: [theme], scenes, effort })?.scenes.size ?? 0) > 0);
   const parsed = run.raw ? parseChoices(run.raw, cat, { themes: [theme], scenes, effort }) : null;
   const config = parsed?.scenes.get(key)?.config ?? list.find((c) => sceneFingerprint(c.config) !== sceneFingerprint(current))?.config ?? current;

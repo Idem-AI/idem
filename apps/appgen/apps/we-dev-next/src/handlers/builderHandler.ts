@@ -128,7 +128,9 @@ export async function handleBuilderMode(
   /** L'état actuel d'un site vitrine, pour une retouche ciblée. */
   siteEdit?: { files: Record<string, string> },
   /** Ce que la personne a désigné dans l'aperçu (outil Dessin). */
-  pointed?: Pointed
+  pointed?: Pointed,
+  /** Le cran de créativité : la gamme des sections du catalogue (le modèle, lui, est unique). */
+  creativity?: string
 ) {
   const startTime = Date.now();
 
@@ -201,6 +203,7 @@ export async function handleBuilderMode(
       userId,
       scaffoldMounted: scaffoldVersion === SCAFFOLD_VERSION,
       credentials,
+      creativity,
     });
   }
 

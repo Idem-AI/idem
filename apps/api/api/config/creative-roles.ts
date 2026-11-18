@@ -51,36 +51,30 @@ export interface CreativeRole {
 export { MODEL_LADDERS, ladderModel };
 export type { ModelLadder };
 
-const UP_TO = (high: number, ultra: number, medium = 0, low = 0): Record<CreativityLevel, number> => ({ low, medium, high, ultra });
 const ALL = (n: number): Record<CreativityLevel, number> => ({ low: n, medium: n, high: n, ultra: n });
 
 /** Le registre : les rôles logiques du plan directeur, et les noms historiques qui y mènent. */
 export const CREATIVE_ROLES: Record<string, CreativeRole> = {
+  // 18/11/2026 : un seul modèle, et le cran ne règle plus ni le modèle, ni le raisonnement, ni les plafonds — il
+  // choisit la gamme des gabarits (champ `tier` du catalogue). Plafonds uniques, ramenés à ~2 × la sortie attendue
+  // (diagnostic R2/G2) ; aucun raisonnement : chaque rôle produit une sortie courte et structurée.
   'graphic.content': { profile: 'agents', needs: ['json'], maxOutputTokens: ALL(3500), mission: 'rédiger le contenu structuré des livrables' },
-  // Les livrables graphiques (flyers, business plan, charte, carte de visite, pitch deck) : mêmes étapes à tous les
-  // crans ; le cran choisit le MODÈLE. Le directeur écrit la bible du document, l'auteur écrit chaque page en Tailwind.
-  // Plan qualité créative (04/11/2026) : le directeur décide au modèle le plus fort de son échelle, en raisonnant
-  // (plafond porté à 9 000 : le raisonnement en est décompté, `MIN_TOKENS_FOR_THINKING` = 8 000).
-  'graphic.director': { profile: 'agents', needs: ['long-context'], maxOutputTokens: { low: 3500, medium: 4000, high: 9000, ultra: 9000 }, mission: 'concevoir la direction d’un document : la bible visuelle et l’idée de chaque page', boost: true, thinking: { high: 'low', ultra: 'medium' }, temperature: 0.5 },
-  // L'exploration : quatre pistes d'idée qui divergent sur des axes donnés, avant que le directeur n'en développe une.
-  'graphic.explore': { profile: 'agents', needs: ['long-context'], maxOutputTokens: ALL(9000), mission: 'proposer quatre pistes d’idée distinctes pour un document', boost: true, thinking: { high: 'low', ultra: 'medium' }, temperature: 0.65 },
+  // Le directeur écrit la bible du document (langage visuel tronqué à 1 400 caractères) et l'idée de chaque page.
+  'graphic.director': { profile: 'agents', needs: ['long-context'], maxOutputTokens: ALL(4000), mission: 'concevoir la direction d’un document : la bible visuelle et l’idée de chaque page', temperature: 0.5 },
+  // L'exploration : quatre pistes de deux phrases ; la divergence vient de la température, la sélection du code (G2).
+  'graphic.explore': { profile: 'agents', needs: ['long-context'], maxOutputTokens: ALL(800), mission: 'proposer quatre pistes d’idée distinctes pour un document', temperature: 0.65 },
   // Le juge visuel : cinq questions fermées sur la capture d'une page (départage des variantes, défauts dits à l'auteur).
   'graphic.judge': { profile: 'agents', needs: ['vision'], maxOutputTokens: ALL(120), mission: 'répondre par oui ou non à cinq questions sur la capture d’une page', temperature: 0 },
-  // Le catalogue de gabarits (10/11/2026) : choisir dans une liste courte documentée et mettre à jour une petite
-  // configuration JSON — aucune ligne de HTML. Sans raisonnement : la tâche est courte et fermée.
-  'graphic.template': { profile: 'agents', needs: ['json'], maxOutputTokens: { low: 300, medium: 300, high: 500, ultra: 700 }, mission: 'choisir un gabarit du catalogue et mettre à jour sa configuration', temperature: 0.4 },
-  // Le catalogue VIDÉO (11/11/2026) : choisir pour tout le film, en un appel, le thème, le gabarit de chaque scène et
-  // (crans hauts) ses animations, sa transition, son rythme — une configuration JSON, aucune ligne de code.
-  'video.template': { profile: 'agents', needs: ['json'], maxOutputTokens: { low: 600, medium: 900, high: 1600, ultra: 2200 }, mission: 'choisir dans le catalogue vidéo le thème, le gabarit de chaque scène, ses animations et transitions', temperature: 0.4 },
+  // Le catalogue de gabarits : choisir dans une liste courte documentée et mettre à jour une petite configuration JSON.
+  'graphic.template': { profile: 'agents', needs: ['json'], maxOutputTokens: ALL(700), mission: 'choisir un gabarit du catalogue et mettre à jour sa configuration', temperature: 0.4 },
+  // Le catalogue VIDÉO : pour tout le film, en un appel, le thème, le gabarit de chaque scène, ses animations.
+  'video.template': { profile: 'agents', needs: ['json'], maxOutputTokens: ALL(2200), mission: 'choisir dans le catalogue vidéo le thème, le gabarit de chaque scène, ses animations et transitions', temperature: 0.4 },
   'graphic.pattern-designer': { profile: 'coder', needs: ['code'], maxOutputTokens: ALL(3000), mission: 'dessiner la tuile de motif propre à la marque (SVG)' },
-  'graphic.asset-planner': { profile: 'agents', needs: ['json'], maxOutputTokens: UP_TO(800, 1000), mission: 'déterminer les ressources visuelles nécessaires' },
-  'video.intent-classifier': { profile: 'agents', needs: ['json'], maxOutputTokens: UP_TO(300, 300, 300), mission: 'comprendre le besoin vidéo et les médias disponibles' },
-  // Le film Motion Canvas : mêmes étapes à tous les crans ; le cran choisit le MODÈLE (échelles ci-dessus).
-  // Plan qualité créative (04/11/2026) : le concept au modèle le plus fort de son échelle, en raisonnant.
-  'video.concept': { profile: 'coder', needs: ['long-context'], maxOutputTokens: { low: 5000, medium: 6000, high: 12000, ultra: 12000 }, mission: 'inventer le film : concept, bible visuelle, idée de chaque scène', boost: true, thinking: { high: 'low', ultra: 'medium' }, temperature: 0.5 },
-  'video.concept-explore': { profile: 'agents', needs: ['long-context'], maxOutputTokens: ALL(9000), mission: 'proposer quatre pistes de film distinctes avant le concept', boost: true, thinking: { high: 'low', ultra: 'medium' }, temperature: 0.65 },
-  // GLM-5.3-Flash (High, Ultra) raisonne et son raisonnement est décompté du plafond : marge large.
-  'video.planner': { profile: 'agents', needs: ['long-context'], maxOutputTokens: ALL(16000), mission: 'écrire le storyboard : durées, rôles, énergie, intentions, idées, textes, médias, voix' },
+  'graphic.asset-planner': { profile: 'agents', needs: ['json'], maxOutputTokens: ALL(1000), mission: 'déterminer les ressources visuelles nécessaires' },
+  'video.intent-classifier': { profile: 'agents', needs: ['json'], maxOutputTokens: ALL(300), mission: 'comprendre le besoin vidéo et les médias disponibles' },
+  'video.concept': { profile: 'coder', needs: ['long-context'], maxOutputTokens: ALL(6000), mission: 'inventer le film : concept, bible visuelle, idée de chaque scène', temperature: 0.5 },
+  'video.concept-explore': { profile: 'agents', needs: ['long-context'], maxOutputTokens: ALL(800), mission: 'proposer quatre pistes de film distinctes avant le concept', temperature: 0.65 },
+  'video.planner': { profile: 'agents', needs: ['long-context'], maxOutputTokens: ALL(12000), mission: 'écrire le storyboard : durées, rôles, énergie, intentions, idées, textes, médias, voix' },
   'video.author': { profile: 'coder', needs: ['code', 'json', 'long-context'], maxOutputTokens: ALL(16000), mission: 'écrire (et réécrire) l’intention ou le programme d’une scène difficile — l’auteur de qualité' },
   'video.reviser': { profile: 'agents', needs: [], maxOutputTokens: ALL(6000), mission: 'lire une retouche écrite par le client' },
   'video.sampler': { profile: 'coder', needs: ['code', 'json'], maxOutputTokens: ALL(4000), mission: 'écrire beaucoup de variantes d’une scène (intention en sortie structurée) : l’échantillonnage' },

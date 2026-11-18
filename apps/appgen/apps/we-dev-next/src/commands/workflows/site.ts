@@ -148,9 +148,10 @@ export async function runSite(ctx: CommandContext, answer: ChoicesAnswer): Promi
       userId: ctx.userId,
       scaffoldMounted: false,
       credentials: ctx.credentials,
+      creativity: ctx.creativity,
     });
   }
   // Sans projet : le constructeur habituel, en mode site, avec la demande composée comme premier message.
   const messages = [{ ...ctx.messages[ctx.messages.length - 1], role: 'user' as const, content: request }];
-  return handleBuilderMode(messages, ctx.model, ctx.userId, undefined, undefined, undefined, ctx.fr ? 'fr' : 'en', undefined, 'site', undefined, ctx.credentials);
+  return handleBuilderMode(messages, ctx.model, ctx.userId, undefined, undefined, undefined, ctx.fr ? 'fr' : 'en', undefined, 'site', undefined, ctx.credentials, undefined, undefined, undefined, ctx.creativity);
 }

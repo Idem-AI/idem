@@ -237,7 +237,8 @@ router.post('/', async (req: Request, res: Response) => {
         forwardedCredentials(req),
         siteRepair,
         siteEdit,
-        pointed ?? undefined
+        pointed ?? undefined,
+        level ?? undefined
       );
     }
 

@@ -7,6 +7,7 @@
 import crypto from 'crypto';
 import type { AnimRole, FilmFormatId, GabaritNode, LayoutNode, LoadedVideoCatalog, SceneConfig, SceneRole, Slot, ThemeNode, TransitionNode, VideoNode, VideoStyle } from './types';
 import { ROLE_TARGET } from './types';
+import { inTier } from '@idem/graphic-engine';
 
 /** Une empreinte stable (graine, mémoire) : les mêmes entrées donnent toujours la même. */
 export const stableHash = (parts: unknown[], length = 10): string => crypto.createHash('sha1').update(JSON.stringify(parts)).digest('hex').slice(0, length);
@@ -182,7 +183,7 @@ export function videoIndex(cat: LoadedVideoCatalog): Map<string, VideoNode[]> {
   return map;
 }
 
-export function shortlist(cat: LoadedVideoCatalog, f: SceneFacts, o: { style?: VideoStyle; direction?: string; state: FilmState; seed: string; size: number }): SceneCandidate[] {
+export function shortlist(cat: LoadedVideoCatalog, f: SceneFacts, o: { style?: VideoStyle; direction?: string; state: FilmState; seed: string; size: number; level?: string }): SceneCandidate[] {
   const index = videoIndex(cat);
   const layouts = inDirection(cat, (index.get('layout') ?? []).filter((n): n is LayoutNode => layoutFits(n as LayoutNode, f)), o.direction);
   const fitting = new Set(layouts.map((l) => l.id));
@@ -198,7 +199,8 @@ export function shortlist(cat: LoadedVideoCatalog, f: SceneFacts, o: { style?: V
     return s + 0.06 * (node.weight ?? 1) + 0.08 * jitter(`${o.seed}|${f.index}|${node.id}`);
   };
   const out: SceneCandidate[] = [];
-  const gabarits = inDirection(cat, (index.get('gabarit') ?? []) as GabaritNode[], o.direction);
+  // LA GAMME DU CRAN (18/11/2026) : le cran choisit des gabarits de scène de plus en plus premium, et rien d'autre.
+  const gabarits = inTier(inDirection(cat, (index.get('gabarit') ?? []) as GabaritNode[], o.direction).filter((g) => fitting.has(g.config.layout) && roleMatch(g.roles, f.role) > 0), o.level, 2);
   for (const g of gabarits) {
     if (!fitting.has(g.config.layout) || roleMatch(g.roles, f.role) === 0) continue;
     const layout = cat.nodes.get(g.config.layout) as LayoutNode;
@@ -206,7 +208,7 @@ export function shortlist(cat: LoadedVideoCatalog, f: SceneFacts, o: { style?: V
     out.push({ ref: '', layout, gabarit: g, config, score: score(layout, g, config) + 0.1 });
   }
   // Les mises en page nues (animations du thème) complètent la liste : plus de combinaisons, jamais moins juste.
-  for (const layout of layouts) {
+  for (const layout of inTier(layouts, o.level, 3)) {
     if (out.some((c) => c.layout.id === layout.id && c.score > 0.5)) continue;
     const config: SceneConfig = { layout: layout.id, animations: {} };
     out.push({ ref: '', layout, config, score: score(layout, layout, config) });
@@ -223,8 +225,8 @@ export function shortlist(cat: LoadedVideoCatalog, f: SceneFacts, o: { style?: V
 }
 
 /** Les thèmes du film, classés : style demandé, énergie moyenne du film, fond sombre seulement s'il est permis. */
-export function rankThemes(cat: LoadedVideoCatalog, o: { style?: VideoStyle; direction?: string; energy: number; allowDark: boolean; seed: string; used: string[] }): ThemeNode[] {
-  const themes = inDirection(cat, (videoIndex(cat).get('theme') ?? []).filter((n): n is ThemeNode => o.allowDark || !(n as ThemeNode).requiresDark), o.direction);
+export function rankThemes(cat: LoadedVideoCatalog, o: { style?: VideoStyle; direction?: string; energy: number; allowDark: boolean; seed: string; used: string[]; level?: string }): ThemeNode[] {
+  const themes = inTier(inDirection(cat, (videoIndex(cat).get('theme') ?? []).filter((n): n is ThemeNode => o.allowDark || !(n as ThemeNode).requiresDark), o.direction), o.level, 2);
   if (!themes.length) return [cat.nodes.get('builtin.plain') as ThemeNode];
   return themes
     .map((t) => ({ t, s: (o.style && t.tags?.style?.includes(o.style) ? 0.5 : 0) + 0.3 * energyMatch(t.energy, Math.round(o.energy)) - (o.used.includes(t.id) ? 0.25 : 0) + 0.15 * jitter(`${o.seed}|${t.id}`) }))

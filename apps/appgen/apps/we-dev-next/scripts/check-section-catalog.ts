@@ -26,7 +26,7 @@ import type { SiteFacts } from '../src/siteEngine/siteFacts.js';
 import { templateFiles } from '../src/siteEngine/template.js';
 import { assembleSection, assembleShell, jsxText } from '../src/siteEngine/sectionCatalog/assemble.js';
 import { fitContent } from '../src/siteEngine/sectionCatalog/compose.js';
-import { fitProse, readCopy, type CopyTask } from '../src/siteEngine/sectionCatalog/copy.js';
+import { fitProse, readCopy, startPageCopy, type CopyTask } from '../src/siteEngine/sectionCatalog/copy.js';
 import { buildSectionCatalog, readIcodeTemplatesDir, sectionCatalog } from '../src/siteEngine/sectionCatalog/registry.js';
 import type { FieldDef, KindNode, SectionNode } from '../src/siteEngine/sectionCatalog/types.js';
 
@@ -199,6 +199,63 @@ async function main() {
     const long = readCopy({ sections: { q: { title: 'Vos questions', lede: `${prose} ${prose}`.slice(0, Math.round(lede.max * 1.6)), faqs: Array.from({ length: 3 }, () => ({ question: 'Une question ?', answer: 'Une réponse.' })) } } }, [task], ['/']);
     ok('rédacteur : chapeau trop long accepté une fois ramené', !long.problems.q && String(long.sections.q.lede).length <= Math.round(lede.max * 1.15), JSON.stringify(long.problems));
   }
+  // Rédaction AU FIL DE L'EAU (modèle simulé) : une section juste part tout de suite, seules les fautives repartent.
+  {
+    const titleMax = faq.fields.title.type === 'text' ? faq.fields.title.max : 60;
+    const faqs = Array.from({ length: 3 }, (_, i) => ({ question: `Question ${i + 1} ?`, answer: 'Une réponse claire.' }));
+    const good = { title: 'Vos questions', faqs };
+    const tasks: CopyTask[] = ['q', 'r'].map((id) => ({ section: { id, component: id.toUpperCase(), brief: '', visual: 'none', layout: 'faq' }, kind: faq, visuals: 0 }));
+    const page = { key: 'home', label: 'Accueil', path: '/', purpose: '', sections: tasks.map((t) => t.section) };
+    const base = { language: 'fr', manifest: { pages: [page] } as unknown as SiteManifest, page: page as never, factsText: 'Projet.', request: '', targets: ['/'] };
+    const fakeCaller = (answers: (prompt: string) => Promise<unknown>, prompts: string[]) =>
+      ({
+        json: async (_label: string, _system: string, prompt: string, judge: (raw: unknown) => { value?: unknown; problem?: string }) => {
+          prompts.push(prompt);
+          const verdict = judge(await answers(prompt));
+          return 'value' in verdict ? { value: verdict.value, attempts: 1, providerDown: false } : { value: null, attempts: 3, providerDown: false };
+        },
+      }) as never;
+    const within = <T,>(promise: Promise<T>, ms: number) => Promise.race([promise, new Promise<'late'>((resolve) => setTimeout(() => resolve('late'), ms))]);
+
+    // 1. q juste, r trop longue : q livrée PENDANT la reprise de r ; la reprise ne porte que sur r.
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    const prompts: string[] = [];
+    const copy = startPageCopy({
+      ...base,
+      tasks,
+      check: () => [],
+      label: 'home/textes',
+      caller: fakeCaller(async (prompt) => (prompt.includes('À corriger') ? (await gate, { sections: { r: good } }) : { sections: { q: good, r: { ...good, title: 'x'.repeat(titleMax * 3) } } }), prompts),
+    });
+    const early = await within(copy.section('q'), 500);
+    ok('rédacteur au fil de l’eau : section juste livrée sans attendre la reprise des autres', early !== 'late' && (early as { title?: string })?.title === 'Vos questions');
+    release();
+    const fixed = await within(copy.section('r'), 1000);
+    ok('rédacteur au fil de l’eau : section fautive livrée après sa reprise', fixed !== 'late' && (fixed as { title?: string })?.title === 'Vos questions');
+    ok('rédacteur au fil de l’eau : la reprise ne redemande que la section fautive', prompts.length === 2 && !prompts[1].includes('## Section « q »') && prompts[1].includes('## Section « r »'), String(prompts.length));
+
+    // 2. Phrase non vérifiée : retirée par le code, aucune reprise.
+    const invented: string[] = [];
+    const strip = await startPageCopy({
+      ...base,
+      tasks: [tasks[0]],
+      check: (content) => (JSON.stringify(content).includes('Douala') ? ['Douala'] : []),
+      label: 'home/textes',
+      caller: fakeCaller(async () => ({ sections: { q: { ...good, faqs: faqs.map((f) => ({ ...f, answer: 'Une réponse claire. Livrée à Douala.' })) } } }), invented),
+    }).done;
+    ok('rédacteur au fil de l’eau : phrase inventée retirée par le code, sans reprise', invented.length === 1 && !!strip.sections.q && !JSON.stringify(strip.sections.q).includes('Douala'), JSON.stringify(strip.sections.q));
+
+    // 3. Un peu trop long deux fois : gardé au dernier recours (le texte passe à la ligne).
+    const mild = await startPageCopy({ ...base, tasks: [tasks[0]], check: () => [], label: 'home/textes', caller: fakeCaller(async () => ({ sections: { q: { ...good, title: 'y'.repeat(Math.round(titleMax * 1.4)) } } }), []) }).done;
+    ok('rédacteur au fil de l’eau : léger dépassement gardé au dernier recours', !!mild.sections.q);
+
+    // 4. Réponse illisible : aucune section n'attend indéfiniment (elle repart vers l'auteur de code).
+    const broken = startPageCopy({ ...base, tasks, check: () => [], label: 'home/textes', caller: fakeCaller(async () => 'pas du JSON', []) });
+    const none = await within(Promise.all([broken.section('q'), broken.section('r')]), 1000);
+    ok('rédacteur au fil de l’eau : réponse illisible → sections rendues à l’auteur, jamais d’attente', none !== 'late' && none.every((x) => x === undefined));
+  }
+
   const statement = catalog.sections.filter((s: SectionNode) => s.layout === 'gallery' && s.visual === 'required')[0];
   ok('aiguilleur : galerie sans visuel écartée', !!statement && fitContent(statement, {}, 0) === null);
 

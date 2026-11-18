@@ -43,6 +43,7 @@ export function startResume(ctx: ResumeContext): Responder {
     userId: ctx.userId,
     scaffoldMounted: false,
     credentials: ctx.credentials,
+    creativity: ctx.creativity,
     resume: { plan, files },
     // Interrompue avant le manifeste : la refonte repart du relevé déjà stocké dans le projet, sans le repayer.
     ...(!saved && plan.redesign

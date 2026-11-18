@@ -102,4 +102,7 @@ export type { SectionFromModelOptions, SectionFromModelResult, VisualCopy } from
 export { catalog, refreshCatalog, resetCatalog } from './catalog/registry';
 // Les garanties communes aux deux catalogues (images ici, vidéos dans le moteur vidéo) : signature, contenu interdit, mots en dur.
 export { canonicalJson, hardcodedWords, unsafeReasons, verifyManifest } from './catalog/registry';
+// La gamme des nœuds : le cran choisit des gabarits de plus en plus premium (18/11/2026), partagée avec le moteur vidéo.
+export { TIERS, tierOf, inTier } from './catalog/tier';
+export type { Tier } from './catalog/tier';
 export type { CatalogOverrides, LoadedCatalog, PageConfig } from './catalog/types';

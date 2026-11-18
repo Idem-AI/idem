@@ -45,6 +45,7 @@ import {
 import { aiUsageService } from './ai-usage.service';
 import { getAiUsageContext } from '../utils/ai-usage-context.util';
 import { getModelPricing } from '../config/ai-pricing.config';
+import { TEXT_MODEL } from '../config/openrouter.config';
 export { LLMProvider, LLMOptions };
 
 /**
@@ -79,7 +80,7 @@ const RATE_LIMIT_DELAY_MS = Number(process.env.LLM_RATE_LIMIT_DELAY_MS ?? 4000);
  * dont la sortie coûte plus de `DRAFT_MAX_OUTPUT_USD` par million de jetons. Les modèles de code
  * légers (auteur de pages au cran Low) restent ce qu'ils sont : ils coûtent déjà moins.
  */
-const DRAFT_TEXT_MODEL = process.env.IDEM_DRAFT_TEXT_MODEL?.trim() || 'deepseek/deepseek-v4-flash';
+const DRAFT_TEXT_MODEL = process.env.IDEM_DRAFT_TEXT_MODEL?.trim() || TEXT_MODEL;
 const DRAFT_MAX_OUTPUT_USD = 1;
 
 function isDraftGeneration(): boolean {

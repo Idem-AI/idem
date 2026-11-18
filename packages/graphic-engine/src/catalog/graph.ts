@@ -18,6 +18,7 @@ import type { FormatDef } from '../design-system/formats';
 import type { DirectionInput } from '../design-system/tokens';
 import { stableHash } from '../foundation/hash';
 import { catalogEffortFor } from '../foundation/effort';
+import { inTier } from './tier';
 import { assignUnits, PageUnit } from './assemble';
 import { BUILTIN_LAYOUT, BUILTIN_SKIN } from './builtin';
 import { getDirection } from '../directions';
@@ -326,9 +327,10 @@ const weightOf = (o: CatalogOverrides, id: string) => Math.min(3, Math.max(0, o.
  * L'HABILLAGE du document, choisi par le code : l'accord avec la direction artistique, la cohérence avec les livrables
  * déjà faits pour la marque (bonus), la part de hasard de la graine. Rend les meilleurs, le premier en tête.
  */
-export function rankSkins(cat: LoadedCatalog, element: CatalogElement, traits: BrandTraits, state: CatalogState, seed: string, overrides: CatalogOverrides): SkinNode[] {
+export function rankSkins(cat: LoadedCatalog, element: CatalogElement, traits: BrandTraits, state: CatalogState, seed: string, overrides: CatalogOverrides, level?: CreativityLevel): SkinNode[] {
   const disabled = new Set(overrides.disabled ?? []);
-  const skins = compatibleSkins(cat, element, traits, disabled);
+  // La gamme du cran (18/11/2026) : l'habillage d'un document Ultra vient des habillages les plus premium.
+  const skins = inTier(compatibleSkins(cat, element, traits, disabled), level, 2);
   if (!skins.length) return [cat.nodes.get(BUILTIN_SKIN) as SkinNode];
   return skins
     .map((s) => ({ s, v: (1 + tagFit(s, traits, true) + (state.brandSkins.includes(s.id) ? 0.35 : 0) + 0.3 * jitter(seed, s.id)) * weightOf(overrides, s.id) }))
@@ -337,7 +339,7 @@ export function rankSkins(cat: LoadedCatalog, element: CatalogElement, traits: B
 }
 
 /** Le meilleur composant de chaque unité, pour un squelette (le gabarit propose, le graphe complète). */
-export function pickComponents(cat: LoadedCatalog, layout: LayoutNode, facts: PageFacts, prefer: Record<string, string>, seed: string, overrides: CatalogOverrides, traits: BrandTraits, rank = 0): Record<string, string> {
+export function pickComponents(cat: LoadedCatalog, layout: LayoutNode, facts: PageFacts, prefer: Record<string, string>, seed: string, overrides: CatalogOverrides, traits: BrandTraits, rank = 0, level?: CreativityLevel): Record<string, string> {
   const disabled = new Set(overrides.disabled ?? []);
   const assigned = assignUnits(layout, facts.units).zones;
   const zoneOf = new Map<string, { accepts: ZoneAccept[]; width: number }>();
@@ -345,7 +347,10 @@ export function pickComponents(cat: LoadedCatalog, layout: LayoutNode, facts: Pa
   const out: Record<string, string> = {};
   for (const u of facts.units) {
     const at = zoneOf.get(u.id) ?? { accepts: ['any'] as ZoneAccept[], width: 1 };
-    const comps = inDirection(cat, compatibleComponents(cat, u, at.accepts, disabled, at.width), traits.styleId);
+    const direct = inDirection(cat, compatibleComponents(cat, u, at.accepts, disabled, at.width), traits.styleId);
+    // La gamme du cran ; le composant que le gabarit recommande reste toujours permis (le gabarit est déjà de la gamme).
+    const tiered = inTier(direct, level, 2);
+    const comps = prefer[u.kind] && !tiered.some((c) => c.id === prefer[u.kind]) ? [...tiered, ...direct.filter((c) => c.id === prefer[u.kind])] : tiered;
     if (!comps.length) continue;
     const ranked = comps
       .map((c) => ({ c, v: ((prefer[u.kind] === c.id ? 1.5 : 0) + tagFit(c, traits, facts.units.some((x) => x.category === 'media')) + 0.35 * jitter(`${seed}|${u.id}|${rank}`, c.id)) * weightOf(overrides, c.id) }))
@@ -378,15 +383,19 @@ export function shortlist(cat: LoadedCatalog, facts: PageFacts, o: { level: Crea
   const seed = `${o.seed}|${facts.index}`;
   const skin = cat.nodes.get(o.skin) as SkinNode | undefined;
   // Les gabarits de la DA de la marque (ou de ses voisines).
-  const gabarits = inDirection(
+  const directGabarits = inDirection(
     cat,
     (catalogIndex(cat).gabaritsByElement.get(facts.element) ?? []).filter((n) => !disabled.has(n.id) && fitsRole(n.roles, facts.role) && layoutIds.has(n.config.layout)),
     o.traits.styleId
   );
+  // LA GAMME DU CRAN (18/11/2026) : le cran choisit des gabarits de plus en plus premium — c'est sa seule influence sur
+  // le choix. Au moins deux gabarits (variété d'une page à l'autre), complétés par les gammes voisines au besoin.
+  const gabarits = inTier(directGabarits, o.level, 2);
+  const tierLayouts = inTier(layouts, o.level, 3);
   const raw: Array<Omit<Candidate, 'ref'>> = [];
   const push = (layout: LayoutNode, gabarit: GabaritNode | undefined, rank: number) => {
     const prefer = gabarit?.config.components ?? {};
-    const components = pickComponents(cat, layout, facts, prefer, seed, o.overrides, o.traits, effort.assembly === 'gabarit' ? 0 : rank);
+    const components = pickComponents(cat, layout, facts, prefer, seed, o.overrides, o.traits, effort.assembly === 'gabarit' ? 0 : rank, o.level);
     const compNodes = Object.values(components).map((id) => cat.nodes.get(id) as ComponentNode);
     const vars = { ...drawVars([skin, ...compNodes], `${seed}|${layout.id}|${rank}`), ...(gabarit?.config.vars ?? {}) };
     const mirror = layout.mirrorable ? (gabarit?.config.mirror ?? false) !== jitter(seed, `mirror|${layout.id}|${rank}`) > 0.5 : false;
@@ -405,7 +414,7 @@ export function shortlist(cat: LoadedCatalog, facts: PageFacts, o: { level: Crea
   // Low et Medium partent des gabarits documentés ; High et Ultra assemblent aussi depuis les squelettes seuls.
   for (const g of gabarits) push(cat.nodes.get(g.config.layout) as LayoutNode, g, 0);
   if (effort.assembly === 'zones' || effort.assembly === 'mixed' || !gabarits.length) {
-    for (const l of layouts) {
+    for (const l of tierLayouts) {
       if (effort.assembly !== 'mixed' && gabarits.length && !gabarits.some((g) => g.config.layout === l.id)) continue;
       for (let rank = 1; rank <= (effort.assembly === 'mixed' ? 2 : 1); rank++) push(l, undefined, rank);
     }

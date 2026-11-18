@@ -37,20 +37,28 @@ export interface CatalogEffort {
   docSkin: 'code' | 'model';
 }
 
+/**
+ * 18/11/2026 — LE CRAN CHOISIT LA GAMME DES GABARITS, C'EST TOUT (décision produit). Même modèle, même profondeur de
+ * choix et même nombre de rendus à tous les crans : la différence entre Low et Ultra vient des gabarits servis (champ
+ * `tier` du catalogue, cf. `catalog/tier.ts`), plus premium à chaque cran.
+ */
+const SAME_EFFORT: CatalogEffort = { chooser: 'model', shortlist: 6, picks: 1, assembly: 'vars', novelty: 'user', docSkin: 'code' };
+
 export const CATALOG_EFFORT: Record<CreativityLevel, CatalogEffort> = {
-  low: { chooser: 'code', shortlist: 6, picks: 1, assembly: 'gabarit', novelty: 'brand', docSkin: 'code' },
-  medium: { chooser: 'model', shortlist: 4, picks: 1, assembly: 'vars', novelty: 'brand', docSkin: 'code' },
-  high: { chooser: 'model', shortlist: 8, picks: 2, assembly: 'zones', novelty: 'user', docSkin: 'model' },
-  ultra: { chooser: 'model', shortlist: 12, picks: 3, assembly: 'mixed', novelty: 'global', docSkin: 'model' },
+  low: SAME_EFFORT,
+  medium: SAME_EFFORT,
+  high: SAME_EFFORT,
+  ultra: SAME_EFFORT,
 };
 
 export const catalogEffortFor = (level: CreativityLevel): CatalogEffort => CATALOG_EFFORT[level] ?? CATALOG_EFFORT.medium;
 
+/** Ni exploration de pistes ni juge visuel, à aucun cran (même raison : le cran ne règle que la gamme). */
 export const EFFORT: Record<CreativityLevel, LevelEffort> = {
   low: { explore: false, judge: false },
   medium: { explore: false, judge: false },
-  high: { explore: false, judge: true },
-  ultra: { explore: true, judge: true },
+  high: { explore: false, judge: false },
+  ultra: { explore: false, judge: false },
 };
 
 export const effortFor = (level: CreativityLevel): LevelEffort => EFFORT[level] ?? EFFORT.medium;

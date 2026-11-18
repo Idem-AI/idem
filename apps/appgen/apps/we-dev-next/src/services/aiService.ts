@@ -3,6 +3,7 @@ import { streamText, generateObject, LanguageModel, convertToCoreMessages } from
 import { z } from 'zod';
 import {
   allModelConfigs,
+  FASTEST_ROUTING,
   getDefaultModelKey,
   resolveModelCredentials,
 } from '../config/modelConfig.js';
@@ -59,6 +60,8 @@ export function getOpenAIModel(baseURL: string, apiKey: string, model: string): 
           body.provider = {
             data_collection: collection === 'allow' ? 'allow' : 'deny',
             allow_fallbacks: true,
+            // L'hébergeur au meilleur débit, sous un plafond de prix (`FASTEST_ROUTING`).
+            ...FASTEST_ROUTING,
           };
           init = { ...init, body: JSON.stringify(body) };
         } catch {

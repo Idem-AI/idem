@@ -18,7 +18,7 @@
  * `IDEM_ROLE_<RÔLE>_MODEL[_<CRAN>]` (cf. `creative-roles.ts`).
  */
 import type { CreativityLevel } from '@idem/shared-models';
-import { isAllowedOpenRouterModel } from './openrouter.config';
+import { isAllowedOpenRouterModel, TEXT_MODEL } from './openrouter.config';
 import logger from './logger';
 
 /**
@@ -32,57 +32,28 @@ import logger from './logger';
 export type ModelLadder = 'design' | 'code' | 'catalog' | 'video-design' | 'video-code' | 'video-sample' | 'video-vision' | 'video-teacher';
 
 /**
- * Mise à jour 05/11/2026 (demande de l'utilisateur : « les modèles sont très anciens, pas très
- * performants, trop peu de paramètres, les rendus ne sont pas très originaux »). Chaque remplacement est
- * vérifié aux trois preuves de `openrouter.config.ts` (poids publiés, licence lue sur Hugging Face,
- * identifiant OpenRouter exact) avant d'entrer ici — jamais sur la seule ressemblance du nom.
+ * 18/11/2026 — UN SEUL MODÈLE, À TOUS LES CRANS (décision produit). La logique ne dépend plus d'un modèle puissant :
+ * les catalogues de gabarits font la mise en page, le code mesure et assemble. Le CRAN choisit désormais la GAMME
+ * des gabarits (idem-templates, champ `tier` : low → ultra, de plus en plus premium), jamais le modèle.
  *
- *   design.low     qwen3.5-9b (dense 9B)       → qwen3.6-35b-a3b (MoE plus récente, même coût d'inférence)
- *   design.medium  qwen3.5-27b (dense, 3.5)    → qwen3.8-27b (dense, 3.8, 1 M ctx — déjà l'auteur qualité vidéo)
- *   design.high    qwen3.5-397b-a17b (3.5)     → z-ai/glm-5.3-flash (320 B/18 B actifs, 3.5× moins cher,
- *                                                 déjà le storyboard vidéo aux crans High/Ultra en production)
- *   design.ultra, code.ultra   deepseek-v4-pro → deepseek-v4.1-flash : comparatif OFFICIEL DeepSeek, devant
- *                                                 V4 Pro sur la plupart des bancs de code/agents, 4× moins cher
- *
- * `high` est le plafond RÉEL de la plupart des générations (Ultra n'est forcé qu'en version Signature,
- * cf. [[idem-creativity-gauge]]) : c'est le cran qui change le plus visiblement le rendu perçu.
+ * Toutes les échelles pointent donc vers `TEXT_MODEL` (DeepSeek V4.1 Flash 1017, cf. `openrouter.config.ts`). La
+ * structure est gardée pour une surcharge d'exploitation ponctuelle (`IDEM_LADDER_<ÉCHELLE>_<CRAN>`).
  */
+const SAME = (): Record<CreativityLevel, string> => ({ low: TEXT_MODEL, medium: TEXT_MODEL, high: TEXT_MODEL, ultra: TEXT_MODEL });
+
 export const MODEL_LADDERS: Record<ModelLadder, Record<CreativityLevel, string>> = {
-  design: {
-    low: 'deepseek/deepseek-v4-flash',
-    medium: 'z-ai/glm-5.3-flash',
-    high: 'deepseek/deepseek-v4.1-flash-1017',
-    ultra: 'deepseek/deepseek-v4.1-flash',
-  },
-  code: {
-    low: 'qwen/qwen3-coder-30b-a3b-instruct',
-    medium: 'z-ai/glm-5.3-flash',
-    high: 'deepseek/deepseek-v4.1-flash-1017',
-    ultra: 'deepseek/deepseek-v4.1-flash',
-  },
-  /** Le catalogue de gabarits : choisir dans une liste courte et remplir un petit JSON — le plus léger suffit. */
-  catalog: { low: 'qwen/qwen3.5-9b', medium: 'deepseek/deepseek-v4-flash', high: 'z-ai/glm-5.3-flash', ultra: 'deepseek/deepseek-v4.1-flash-1017' },
-  /**
-   * LE MOTEUR VIDÉO : la qualité vient de l'outillage (solveurs, échantillonnage, juge), pas de la taille du modèle.
-   * Passe « moins cher et plus rapide » du 18/11/2026 : MoE à peu de paramètres actifs (V4 Flash, GLM-5.3-Flash)
-   * partout, sauf le départage visuel (il faut un modèle voyant) et le professeur hors ligne.
-   */
-  'video-design': { low: 'deepseek/deepseek-v4-flash', medium: 'z-ai/glm-5.3-flash', high: 'z-ai/glm-5.3-flash', ultra: 'z-ai/glm-5.3-flash' },
-  'video-code': { low: 'deepseek/deepseek-v4-flash', medium: 'z-ai/glm-5.3-flash', high: 'deepseek/deepseek-v4.1-flash-1017', ultra: 'deepseek/deepseek-v4.1-flash-1017' },
-  'video-sample': { low: 'deepseek/deepseek-v4-flash', medium: 'deepseek/deepseek-v4-flash', high: 'deepseek/deepseek-v4-flash', ultra: 'deepseek/deepseek-v4-flash' },
-  'video-vision': { low: 'qwen/qwen3.8-27b', medium: 'qwen/qwen3.8-27b', high: 'qwen/qwen3.8-27b', ultra: 'qwen/qwen3.8-27b' },
-  'video-teacher': { low: 'qwen/qwen3.8-2.4t-a95b', medium: 'qwen/qwen3.8-2.4t-a95b', high: 'qwen/qwen3.8-2.4t-a95b', ultra: 'qwen/qwen3.8-2.4t-a95b' },
+  design: SAME(),
+  code: SAME(),
+  catalog: SAME(),
+  'video-design': SAME(),
+  'video-code': SAME(),
+  'video-sample': SAME(),
+  'video-vision': SAME(),
+  'video-teacher': SAME(),
 };
 
-/** Les replis d'une échelle (même cran) : le modèle qui prend le relais si le premier est indisponible. */
-export const LADDER_FALLBACKS: Partial<Record<ModelLadder, Partial<Record<CreativityLevel, string[]>>>> = {
-  catalog: { low: ['deepseek/deepseek-v4-flash'], medium: ['z-ai/glm-5.3-flash'], high: ['deepseek/deepseek-v4-flash'], ultra: ['z-ai/glm-5.3-flash'] },
-  'video-design': { low: ['z-ai/glm-5.3-flash'], medium: ['deepseek/deepseek-v4-flash'], high: ['deepseek/deepseek-v4-flash'], ultra: ['deepseek/deepseek-v4-flash'] },
-  'video-code': { low: ['qwen/qwen3-coder-30b-a3b-instruct'], medium: ['deepseek/deepseek-v4-flash'], high: ['z-ai/glm-5.3-flash'], ultra: ['z-ai/glm-5.3-flash'] },
-  'video-sample': { low: ['qwen/qwen3-coder-30b-a3b-instruct'], medium: ['qwen/qwen3-coder-30b-a3b-instruct'], high: ['qwen/qwen3-coder-30b-a3b-instruct'], ultra: ['qwen/qwen3-coder-30b-a3b-instruct'] },
-  'video-vision': { low: ['qwen/qwen3-vl-8b-instruct'], medium: ['qwen/qwen3-vl-8b-instruct'], high: ['qwen/qwen3-vl-8b-instruct'], ultra: ['qwen/qwen3-vl-8b-instruct'] },
-  'video-teacher': { low: ['deepseek/deepseek-v4.1-flash', 'z-ai/glm-5.3'], medium: ['deepseek/deepseek-v4.1-flash', 'z-ai/glm-5.3'], high: ['deepseek/deepseek-v4.1-flash', 'z-ai/glm-5.3'], ultra: ['deepseek/deepseek-v4.1-flash', 'z-ai/glm-5.3'] },
-};
+/** Aucun repli de modèle : la bascule se fait entre hébergeurs du même modèle (OpenRouter). */
+export const LADDER_FALLBACKS: Partial<Record<ModelLadder, Partial<Record<CreativityLevel, string[]>>>> = {};
 
 /** Les replis autorisés (liste blanche) d'une échelle à un cran. */
 export function ladderFallbacks(ladder: ModelLadder, level: CreativityLevel): string[] {

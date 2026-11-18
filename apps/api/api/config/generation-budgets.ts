@@ -210,7 +210,7 @@ export const GENERATION_ENVELOPES: Record<string, GenerationEnvelope> = {
     creativity: true,
     entrypoints: ['GET /project/brandings/generate/:projectId', 'POST /project/brandings/generate/logo-concepts/:projectId'],
     calls: [
-      { step: 'Moteur de logos (toujours Ultra)', model: 'deepseek/deepseek-v4-pro', calls: r(8, 16), input: r(8000, 10000), output: r(3000, 6000) },
+      { step: 'Moteur de logos (toujours Ultra)', model: 'deepseek/deepseek-v4.1-flash-1017', calls: r(8, 16), input: r(8000, 10000), output: r(3000, 6000) },
       { step: 'Direction artistique, couleurs, typographie', model: 'cfg:branding.artDirection', calls: r(3, 4), input: r(8000, 12000), output: r(3000, 8000) },
       { step: 'Sections de la charte', model: 'cfg:branding.brandIdentity', calls: r(11, 12), input: r(10000, 14000), output: r(3000, 8000) },
       { step: 'Direction du document', model: 'ladder:design', calls: r(1, 1), input: r(10000, 14000), output: r(2000, 2500) },
@@ -430,7 +430,7 @@ export const GENERATION_ENVELOPES: Record<string, GenerationEnvelope> = {
     group: 'create',
     creativity: false,
     entrypoints: ['POST /project/brandings/edit-logo/:projectId', 'relance de session de logo'],
-    calls: [{ step: 'Moteur de logos (Ultra)', model: 'deepseek/deepseek-v4-pro', calls: r(4, 8), input: r(8000, 10000), output: r(3000, 6000) }],
+    calls: [{ step: 'Moteur de logos (Ultra)', model: 'deepseek/deepseek-v4.1-flash-1017', calls: r(4, 8), input: r(8000, 10000), output: r(3000, 6000) }],
     media: [{ step: 'Images de référence', unit: 'image', count: r(0, 2) }],
   },
   'business.logo_regenerate': {
@@ -440,7 +440,7 @@ export const GENERATION_ENVELOPES: Record<string, GenerationEnvelope> = {
     group: 'create',
     creativity: false,
     entrypoints: ['POST /project/brandings/:projectId/identity/jobs/logos'],
-    calls: [{ step: 'Moteur de logos (Ultra)', model: 'deepseek/deepseek-v4-pro', calls: r(4, 8), input: r(8000, 10000), output: r(3000, 6000) }],
+    calls: [{ step: 'Moteur de logos (Ultra)', model: 'deepseek/deepseek-v4.1-flash-1017', calls: r(4, 8), input: r(8000, 10000), output: r(3000, 6000) }],
   },
 
   // ── iCode ────────────────────────────────────────────────────────────────
@@ -480,7 +480,7 @@ export const GENERATION_ENVELOPES: Record<string, GenerationEnvelope> = {
     group: 'appgen_edit',
     creativity: false,
     entrypoints: ['AppGen · modèle premium (POST /billing/consume)'],
-    calls: [{ step: 'Agent de code (480B)', model: 'qwen/qwen3-coder', calls: r(1, 3), input: r(40000, 120000), output: r(6000, 16000) }],
+    calls: [{ step: 'Agent de code', model: 'deepseek/deepseek-v4.1-flash-1017', calls: r(1, 3), input: r(40000, 120000), output: r(6000, 16000) }],
   },
   'appgen.site_image': {
     label: 'iCode — image de site générée',

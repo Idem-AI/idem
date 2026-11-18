@@ -195,6 +195,74 @@ ${slot('SiteFooter', '<SiteFooter />', frame.footer, '      ')}
 `;
 }
 
+/**
+ * L'APERÇU EN DIRECT — la marque d'un composant pas encore écrit. Les pages sont posées dès que le manifeste existe,
+ * chacune avec toutes ses sections : celles qui ne sont pas prêtes y tiennent leur place sous cette forme, et chaque
+ * section terminée remplace la sienne par rechargement à chaud. L'utilisateur voit son site se remplir section par
+ * section au lieu d'une page d'attente jusqu'à la fin.
+ *
+ * Aucun import : un squelette ne peut ni manquer une dépendance ni planter. Seuls les jetons du design system
+ * (`bg-muted`, `rounded-card`, `max-w-content`…), donc aux couleurs du projet dès que la charte est compilée.
+ */
+export const PENDING_MARK = 'idem:pending';
+
+const bar = (classes: string) => `<div className="${classes} animate-pulse rounded bg-muted" />`;
+
+export function renderPendingSection(name: string, options: { opening: boolean; media: boolean; fr: boolean }): string {
+  const label = options.fr ? 'Section en cours d’écriture' : 'Section being written';
+  const text = options.opening
+    ? `${bar('h-10 w-4/5 max-w-2xl')}\n          ${bar('h-10 w-3/5 max-w-xl')}\n          ${bar('mt-2 h-4 w-full max-w-lg')}\n          ${bar('h-4 w-2/3 max-w-md')}\n          <div className="mt-4 h-control w-40 animate-pulse rounded-button bg-muted" />`
+    : `${bar('h-7 w-2/3 max-w-xl')}\n          ${bar('h-4 w-full max-w-2xl')}\n          ${bar('h-4 w-1/2 max-w-lg')}`;
+  const visual = options.media
+    ? `\n        <div className="${options.opening ? 'aspect-[16/9]' : 'aspect-[4/3]'} w-full animate-pulse rounded-card bg-muted" />`
+    : options.opening
+      ? ''
+      : `\n        <div className="grid gap-6 sm:grid-cols-3">\n          ${Array.from({ length: 3 }, () => '<div className="h-40 animate-pulse rounded-card bg-muted" />').join('\n          ')}\n        </div>`;
+  return `/* ${PENDING_MARK} — remplacé dès que cette section est écrite */
+export default function ${name}() {
+  return (
+    <section aria-busy="true" aria-label="${label}" className="py-section">
+      <div className="mx-auto grid max-w-content gap-8 px-gutter${options.opening && options.media ? ' md:grid-cols-2 md:items-center' : ''}">
+        <div className="flex flex-col gap-3">
+          ${text}
+        </div>${visual}
+      </div>
+    </section>
+  );
+}
+`;
+}
+
+/** L'en-tête ou le pied de page en attente : la même place, sans contenu. */
+export function renderPendingShell(kind: 'header' | 'footer'): string {
+  if (kind === 'header')
+    return `/* ${PENDING_MARK} — remplacé dès que l'en-tête est écrit */
+export default function SiteHeader(_props: { current?: string }) {
+  return (
+    <header aria-busy="true" className="border-b border-border bg-background">
+      <div className="mx-auto flex h-16 max-w-content items-center justify-between gap-6 px-gutter">
+        ${bar('h-6 w-32')}
+        <div className="hidden items-center gap-6 md:flex">
+          ${Array.from({ length: 4 }, () => bar('h-3 w-16')).join('\n          ')}
+        </div>
+      </div>
+    </header>
+  );
+}
+`;
+  return `/* ${PENDING_MARK} — remplacé dès que le pied de page est écrit */
+export default function SiteFooter() {
+  return (
+    <footer aria-busy="true" className="border-t border-border bg-background">
+      <div className="mx-auto grid max-w-content gap-6 px-gutter py-12 sm:grid-cols-3">
+        ${Array.from({ length: 3 }, () => `<div className="flex flex-col gap-3">${bar('h-4 w-24')}${bar('h-3 w-32')}${bar('h-3 w-20')}</div>`).join('\n        ')}
+      </div>
+    </footer>
+  );
+}
+`;
+}
+
 /** Remet dans une page les composants désormais corrigés. Rend la page inchangée s'il n'y en a pas. */
 export function restoreInPage(page: string, names: string[]): string {
   let out = page;

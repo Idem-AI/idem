@@ -541,7 +541,7 @@ export class GraphicDocument {
     if (!this.skinPromise) {
       this.skinPromise = (async () => {
         const traits = brandTraits(this.options.direction, this.options.allowDark === true);
-        const ranked = rankSkins(cat, element, traits, this.catalogState!, `${this.options.brand.name}|${this.options.seed}`, overrides);
+        const ranked = rankSkins(cat, element, traits, this.catalogState!, `${this.options.brand.name}|${this.options.seed}`, overrides, this.policy.level);
         const call = this.agent();
         const multi = (this.options.sections?.length ?? 0) >= 2;
         if (catalogEffortFor(this.policy.level).docSkin === 'model' && multi && ranked.length > 1 && call) {

@@ -10,6 +10,7 @@ import { ChatLogger } from '../../utils/logger.js';
 import { assembleSection, assembleShell, type ActionValue } from './assemble.js';
 import type { SectionContent } from './copy.js';
 import type { LoadedSectionCatalog, SectionNode, ShellNode } from './types.js';
+import { inTier } from './tier.js';
 
 /** Un nombre stable tiré d'un texte : la même construction choisit les mêmes variantes (reprise, régénération). */
 export function seedOf(text: string): number {
@@ -46,8 +47,10 @@ export function inDirection<T extends { directions?: string[] }>(catalog: Loaded
   return near.length ? near : list;
 }
 
-export function rankVariants(catalog: LoadedSectionCatalog, layout: string, visuals: number, used: Map<string, number>, seed: number, direction?: string): SectionNode[] {
-  const pool = inDirection(catalog, catalog.sections.filter((s) => s.layout === layout), direction);
+export function rankVariants(catalog: LoadedSectionCatalog, layout: string, visuals: number, used: Map<string, number>, seed: number, direction?: string, level?: string): SectionNode[] {
+  // LA GAMME DU CRAN (18/11/2026) : le cran de créativité choisit des sections de plus en plus premium — c'est sa
+  // seule influence sur le site (le modèle est unique). Au moins deux variantes, gammes voisines au besoin.
+  const pool = inTier(inDirection(catalog, catalog.sections.filter((s) => s.layout === layout), direction), level, 2);
   const score = (s: SectionNode, i: number) => {
     // Avec un visuel prêt, une variante qui le montre ; sans, une variante qui n'en attend pas.
     const visualFit = visuals ? (s.visual === 'none' ? 2 : 0) : s.visual === 'optional' ? 1 : 0;
@@ -73,6 +76,8 @@ export interface ComposeOptions {
   label: string;
   /** La DA de la marque : seules ses variantes (ou celles de ses voisines) sont essayées. */
   direction?: string;
+  /** Le cran de créativité : la gamme des variantes essayées (`tier`). Absent : toutes les gammes. */
+  level?: string;
 }
 
 export interface Composed {
@@ -82,7 +87,7 @@ export interface Composed {
 }
 
 export async function composeSection(o: ComposeOptions): Promise<Composed | null> {
-  const ranked = rankVariants(o.catalog, o.layout, o.mediaKeys.length, o.used, o.seed, o.direction);
+  const ranked = rankVariants(o.catalog, o.layout, o.mediaKeys.length, o.used, o.seed, o.direction, o.level);
   const tried: string[] = [];
   for (const node of ranked) {
     const content = fitContent(node, o.content, o.mediaKeys.length);
@@ -110,7 +115,9 @@ export async function composeSection(o: ComposeOptions): Promise<Composed | null
 }
 
 /** L'en-tête ou le pied de page : un gabarit du catalogue, vérifié comme le reste ; null si aucun ne passe. */
-export async function composeShell(shells: ShellNode[], review: ReviewContext, target: ReviewTarget, seed: number, label: string): Promise<Composed | null> {
+export async function composeShell(all: ShellNode[], review: ReviewContext, target: ReviewTarget, seed: number, label: string, level?: string): Promise<Composed | null> {
+  // La gamme du cran : l'en-tête et le pied de page d'un site Ultra viennent des gabarits les plus premium.
+  const shells = inTier(all, level, 2);
   if (!shells.length) return null;
   const start = seed % shells.length;
   const order = shells.map((_, i) => shells[(start + i) % shells.length]);

@@ -175,9 +175,14 @@ export class StreamingMessageParser {
           } else {
             // 只对 file 类型进行流式处理
             const remainingContent = input.slice(state.position);
+            // Le moteur de sites (artefacts `idem-site…`) envoie chaque fichier entier, déjà vérifié : un morceau reçu
+            // avant la fin de sa balise n'est qu'un découpage du réseau. Écrit tel quel, il casserait l'aperçu en direct
+            // (erreur de compilation Vite au milieu d'un composant) ; il attend sa fin, une fraction de seconde.
+            const engineSite = state.currentArtifact?.id?.startsWith('idem-site');
             if (
               'type' in state.currentAction &&
               state.currentAction.type === 'file' &&
+              !engineSite &&
               !allActionData[state.currentAction.filePath]
             ) {
               allActionData[state.currentAction.filePath] = {

@@ -2,18 +2,20 @@
  * L'agent média : pour chaque emplacement visuel du site, quoi montrer et sous
  * quelle forme.
  *
- *   photo            une scène réelle — Pexels d'abord, ou générée (Gemini)
- *                    quand la scène est trop précise pour une banque d'images ;
- *   illustration     un dessin à plat simple — dessiné en SVG par le modèle ;
- *   illustration-3d  un rendu 3D — généré par Gemini d'après un prompt écrit
- *                    par un second agent ;
- *   video            un clip court — généré par Veo, Pexels vidéo en repli ;
+ *   photo            une scène réelle ;
+ *   illustration     une illustration à plat ;
+ *   illustration-3d  un rendu 3D ;
+ *   video            un clip court ;
+ *
+ * Toujours PEXELS D'ABORD : un visuel n'est généré (image, vidéo) que si la
+ * banque n'a rien qui corresponde (`produceMedia`).
  *   pattern          le motif de la charte ;
  *   none             la section se lit mieux sans visuel.
  *
  * Le code borne ses choix : une vidéo au plus et seulement là où elle se
- * regarde (ouverture, vitrine), un nombre plafonné de générations payantes,
- * une galerie toujours en photos, un emplacement obligatoire jamais vide.
+ * regarde (ouverture, vitrine), une galerie toujours en photos, un emplacement
+ * obligatoire jamais vide. Le plafond des générations payantes se compte à la
+ * production, quand Pexels n'a rien trouvé.
  */
 
 import { ChatLogger } from '../../utils/logger.js';
@@ -60,8 +62,6 @@ export interface MediaSlot {
 export interface AssetDecision {
   slot: string;
   kind: AssetKind;
-  /** Pour une photo : banque d'images d'abord, ou génération d'abord. */
-  source: 'stock' | 'generate';
   /** Ce que montre le média, en anglais (les modèles d'image et Pexels lisent l'anglais). */
   subject: string;
   /** Requête Pexels, 2 à 5 mots. */
@@ -98,7 +98,7 @@ function ruleDecision(slot: MediaSlot, family: MediaStyle['family'], facts: Site
             ? 'illustration-3d'
             : 'illustration'
           : 'photo';
-  return { slot: slot.id, kind, source: 'stock', subject, query, queryLanguage: 'fr', alt };
+  return { slot: slot.id, kind, subject, query, queryLanguage: 'fr', alt };
 }
 
 function prompt(slots: MediaSlot[], facts: SiteFacts, style: MediaStyle, language: string): string {
@@ -124,7 +124,7 @@ ${rows.join('\n')}
 
 # Ta tâche
 Pour chaque emplacement, choisis le visuel qui sert le mieux la section :
-- "photo" : une scène réelle (des personnes au travail, un lieu, un produit, un plat). "source": "stock" si une banque d'images en a de bonnes, "generate" si la scène est trop précise.
+- "photo" : une scène réelle (des personnes au travail, un lieu, un produit, un plat).
 - "illustration" : une illustration composée de pictogrammes (un principal mis en scène, trois d'appui), pour un service, une démarche en étapes ou une idée qu'une photo montrerait mal. Donne ses 4 icônes lucide-react dans "icons" (ex. Truck, Shirt, Clock, CircleCheck).
 - "illustration-3d" : un rendu 3D, pour un produit ou un concept dans un style expressif.
 - "video" : un clip de quelques secondes, seulement là où c'est indiqué possible et où le mouvement raconte quelque chose (une machine qui tourne, un geste de métier). Une vidéo au plus.
@@ -141,7 +141,6 @@ La requête de banque d'images décrit une SCÈNE visible, pas un lieu ni une ma
     {
       "slot": "<id de l'emplacement>",
       "kind": "photo|illustration|illustration-3d|video|pattern|none",
-      "source": "stock|generate",
       "subject": "ce que montre le visuel, en anglais, une phrase précise",
       "query": "requête de banque d'images en anglais, 2 à 5 mots",
       "alt": "texte alternatif ${language === 'fr' ? 'en français' : 'in English'}, une phrase",
@@ -162,10 +161,9 @@ export async function directMedia(options: {
   caller: ModelCaller;
   language: string;
   hasPattern: boolean;
-  maxGenerated: number;
   allowVideo: boolean;
 }): Promise<AssetDecision[]> {
-  const { slots, facts, style, caller, language, hasPattern, maxGenerated, allowVideo } = options;
+  const { slots, facts, style, caller, language, hasPattern, allowVideo } = options;
   const family = style.family;
   if (!slots.length) return [];
 
@@ -186,7 +184,6 @@ export async function directMedia(options: {
           byslot[slot] = {
             slot,
             kind,
-            source: item.source === 'generate' ? 'generate' : 'stock',
             subject: cleanText(item.subject, 300),
             query: cleanText(item.query, 60),
             queryLanguage: 'en',
@@ -207,7 +204,6 @@ export async function directMedia(options: {
 
   // Les bornes : dans l'ordre des emplacements, l'ouverture d'abord.
   let videos = 0;
-  let generated = 0;
   const decisions: AssetDecision[] = [];
 
   for (const slot of slots) {
@@ -217,33 +213,18 @@ export async function directMedia(options: {
     if (!decision.query) decision.query = fallback.query;
     if (!decision.alt) decision.alt = fallback.alt;
 
-    if (slot.role === 'gallery') {
-      decision.kind = 'photo';
-      decision.source = 'stock';
-    }
-    if (decision.kind === 'video' && (!slot.videoAllowed || videos >= 1 || !allowVideo)) {
-      decision.kind = 'photo';
-      decision.source = 'stock';
-    }
+    if (slot.role === 'gallery') decision.kind = 'photo';
+    if (decision.kind === 'video' && (!slot.videoAllowed || videos >= 1 || !allowVideo)) decision.kind = 'photo';
     if (decision.kind === 'pattern' && !hasPattern) decision.kind = slot.required ? 'photo' : 'none';
     if (decision.kind === 'none' && slot.required) decision.kind = 'photo';
 
-    // Une illustration est GÉNÉRÉE (illustration vectorielle professionnelle par le modèle d'image) : elle compte
-    // dans le plafond comme une photo générée. Au-delà, une vraie photo de banque — jamais un dessin bricolé.
-    const paid = decision.kind === 'illustration-3d' || decision.kind === 'illustration' || (decision.kind === 'photo' && decision.source === 'generate');
-    if (paid && generated >= maxGenerated) {
-      decision.kind = 'photo';
-      decision.source = 'stock';
-    } else if (paid) {
-      generated += 1;
-    }
     if (decision.kind === 'video') videos += 1;
 
     decisions.push(decision);
   }
 
   ChatLogger.info('SITE_MEDIA', Object.keys(answered).length ? 'Visuels choisis par l’agent' : 'Visuels choisis par les règles', {
-    decisions: decisions.map((decision) => `${decision.slot}:${decision.kind}${decision.kind === 'photo' ? `/${decision.source}` : ''}`),
+    decisions: decisions.map((decision) => `${decision.slot}:${decision.kind}`),
   });
 
   return decisions;
