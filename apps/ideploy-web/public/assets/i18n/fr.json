@@ -2342,5 +2342,66 @@
       "denied": "Refusé. Aucun jeton n'a été émis.",
       "back": "Retour au tableau de bord"
     }
+  },
+  "idemProject": {
+    "linked": {
+      "label": "Projet IDEM",
+      "direction": "Direction artistique : {{name}}",
+      "open": "Ouvrir dans IDEM"
+    },
+    "offer": {
+      "title": "Donnez un projet IDEM à votre site",
+      "body": "Votre site est en ligne sur {{url}}. IDEM le lit pour créer votre projet : votre activité, votre cible, les chiffres que vous affichez, votre logo, vos couleurs, vos polices et votre style. Vous pourrez ensuite gérer votre communication, créer votre charte graphique et votre business plan, sans rien ressaisir.",
+      "choice": "Projet à utiliser",
+      "create": "Créer un projet à partir de ce site",
+      "recommended": "Recommandé",
+      "attach": "Relier à un de mes projets",
+      "cta": "Créer mon projet IDEM",
+      "ctaAttach": "Relier ce projet",
+      "later": "Plus tard"
+    },
+    "consent": {
+      "iAccept": "J’accepte la",
+      "privacy": "politique de confidentialité",
+      "terms": "les conditions d’utilisation",
+      "and": "et",
+      "beta": "les conditions du programme bêta",
+      "ofIdem": "d’IDEM.",
+      "needed": "Cochez la case pour créer votre projet."
+    },
+    "running": {
+      "title": "Lecture de {{url}}…",
+      "hint": "Une à deux minutes. Vous pouvez quitter la page : le projet se crée quand même."
+    },
+    "step": {
+      "open": "Lecture du site",
+      "project": "Fiche du projet",
+      "logo-variations": "Logo",
+      "typography": "Couleurs et polices",
+      "art-direction": "Direction artistique"
+    },
+    "match": {
+      "close": "fidèle à votre site",
+      "partial": "proche de votre site",
+      "distant": "votre site garde son style propre"
+    },
+    "done": {
+      "title": "{{name}} est prêt sur IDEM",
+      "body": "Tout a été tiré de votre site. Votre future charte graphique partira de ces éléments, pour rester conforme à votre site.",
+      "direction": "Direction artistique",
+      "fonts": "Polices",
+      "figures": "Chiffres repris de votre site",
+      "open": "Ouvrir mon projet",
+      "charter": "Créer ma charte graphique"
+    },
+    "error": {
+      "unreachable": "Votre site ne répond pas. Vérifiez qu’il s’ouvre bien, puis réessayez.",
+      "timeout": "Votre site a mis trop de temps à répondre. Réessayez dans un instant.",
+      "blocked_url": "Cette adresse ne peut pas être lue.",
+      "invalid_url": "Cette adresse ne peut pas être lue.",
+      "no_public_url": "Cette application n’a pas encore d’adresse publique.",
+      "app_not_found": "Application introuvable.",
+      "generic": "La création du projet n’a pas abouti. Réessayez."
+    }
   }
 }

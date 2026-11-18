@@ -151,6 +151,13 @@ export interface ArtDirectionModel {
   /** Les sources d'inspiration de la DA (catalogue), montrées dans la charte. */
   inspirations?: Array<{ title: string; author: string; year?: number; note: string; url?: string }>;
 
+  /**
+   * Marque née d'un site (iVision, iCode, iDeploy) : ce que le site montre de lui-même, et à quel point la DA retenue
+   * du catalogue lui correspond. « distant » = aucune DA du catalogue n'est vraiment la sienne : la charte reste
+   * tenue par les couleurs, les polices et le relevé du site (`branding.siteSource.evidence`).
+   */
+  siteMatch?: { level: 'close' | 'partial' | 'distant'; siteStyle: string };
+
   createdAt?: Date;
   updatedAt?: Date;
 }

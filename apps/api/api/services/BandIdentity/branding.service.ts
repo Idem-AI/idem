@@ -2325,6 +2325,12 @@ export class BrandingService extends GenericService {
     const second = await ask(buildArtDirectionVariantsPrompt({ ...input, direction: chosen, recentCombos: recent })).catch(() => null);
     const { direction: composed, requested, styleId } = directionFromReplies(first, second, { excluded: excludeStyleIds, catalogVersion: catalog.version });
     if (requested && requested !== styleId) logger.warn('[ArtDirection] DA hors catalogue ou écartée, repli', { requested, styleId });
+    // Marque née d'un site : à quel point la DA du catalogue correspond au site, et le style du site en une phrase.
+    if (input.siteEvidence && first && styleId === requested) {
+      const level = String(first.siteMatch ?? '').trim().toLowerCase();
+      const siteStyle = typeof first.siteStyle === 'string' ? first.siteStyle.trim().slice(0, 400) : '';
+      if (['close', 'partial', 'distant'].includes(level)) composed.siteMatch = { level: level as 'close' | 'partial' | 'distant', siteStyle };
+    }
     const combo = `${styleId}:${DIRECTION_FIELDS.map((f) => composed.variants?.[f]).join('.')}`;
     await cacheService.set(RECENT_GRAMMARS_KEY, [combo, ...recent.filter((c) => c !== combo)].slice(0, 60), { prefix: 'branding', ttl: 90 * 24 * 3600 }).catch(() => undefined);
     logger.info(`[ArtDirection] DA du catalogue retenue : ${styleId}`, { projectId: project.id, combo, catalogVersion: catalog.version });

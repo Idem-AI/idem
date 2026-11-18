@@ -56,6 +56,13 @@ export interface SiteImportResult {
   logo: boolean;
   /** Les polices : d'un catalogue public, ou recopiées depuis le site. */
   fonts: { display: string; body: string; copied: string[] };
+  /**
+   * La direction artistique du catalogue rapprochée du site, et à quel point elle lui correspond : la charte
+   * (générée plus tard, à la demande) en partira, avec les couleurs et les polices du site.
+   */
+  artDirection?: { styleId: string; styleName: string; siteMatch?: { level: 'close' | 'partial' | 'distant'; siteStyle: string } };
+  /** Les chiffres que le site affiche, retenus dans la fiche du projet. */
+  keyFigures?: Array<{ label: string; value: string }>;
   warnings: string[];
   /**
    * Ce que le site DIT et MONTRE, pour le refaire (iCode) : ses textes, son ton, son style relevé, et ses
@@ -122,8 +129,53 @@ async function projectForSite(userId: string, url: string): Promise<ProjectModel
   return projects.find((p) => originOf((p.analysisResultModel?.branding as { siteSource?: { url?: string } } | undefined)?.siteSource?.url || '') === origin) ?? null;
 }
 
+type ProjectSheet = Pick<ProjectModel, 'name' | 'description' | 'longDescription' | 'type' | 'targets' | 'scope' | 'keyFigures' | 'currency'> & {
+  city?: string;
+  country?: string;
+  email?: string;
+  phone?: string;
+};
+
+/** Pour comparer un extrait au texte du site : casse, accents, espaces (insécables compris) et ponctuation ignorés. */
+const looseText = (value: string): string =>
+  value
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}@+]+/gu, '');
+
+/**
+ * Ce que le modèle a « lu » n'est gardé que si le site le dit vraiment : un chiffre, un e-mail ou un téléphone
+ * absent du texte relevé est écarté (le code garde les faits exacts, le modèle ne fait que les repérer).
+ */
+export function keepStatedFacts(raw: unknown, source: string): { figures: Array<{ label: string; value: string }>; email?: string; phone?: string } {
+  const json = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
+  const haystack = looseText(source);
+  const stated = (value: string) => {
+    const needle = looseText(value);
+    return needle.length >= 2 && haystack.includes(needle);
+  };
+  const figures: Array<{ label: string; value: string }> = [];
+  for (const item of Array.isArray(json.keyFigures) ? json.keyFigures : []) {
+    const label = typeof item?.label === 'string' ? item.label.trim().slice(0, 80) : '';
+    const value = typeof item?.value === 'string' ? item.value.trim().slice(0, 60) : '';
+    // Un chiffre sans chiffre (« beaucoup de clients ») n'en est pas un.
+    if (!label || !value || !/\d/.test(value) || !stated(value)) continue;
+    if (figures.some((f) => looseText(f.value) === looseText(value) && looseText(f.label) === looseText(label))) continue;
+    figures.push({ label, value });
+    if (figures.length >= 8) break;
+  }
+  const email = typeof json.email === 'string' && /^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(json.email.trim()) && stated(json.email) ? json.email.trim().slice(0, 120) : undefined;
+  const phoneRaw = typeof json.phone === 'string' ? json.phone.trim() : '';
+  const phoneDigits = phoneRaw.replace(/\D/g, '');
+  const phone = phoneDigits.length >= 8 && phoneDigits.length <= 15 && source.replace(/\D/g, '').includes(phoneDigits) ? phoneRaw.slice(0, 40) : undefined;
+  return { figures, ...(email ? { email } : {}), ...(phone ? { phone } : {}) };
+}
+
+const CURRENCIES = ['XOF', 'XAF', 'NGN', 'GHS', 'KES', 'MAD', 'TND', 'DZD', 'EGP', 'ZAR', 'CDF', 'GNF', 'RWF', 'UGX', 'TZS', 'ETB', 'MGA', 'EUR', 'USD', 'GBP', 'CAD', 'CHF'];
+
 /** La fiche du projet, rédigée depuis les textes du site (langue du site, aucun fait inventé). */
-async function describeProject(scan: SiteScanResult, ports: SiteImportPorts): Promise<Pick<ProjectModel, 'name' | 'description' | 'longDescription' | 'type' | 'targets' | 'scope'> & { city?: string; country?: string }> {
+async function describeProject(scan: SiteScanResult, ports: SiteImportPorts): Promise<ProjectSheet> {
   const fallback = {
     name: scan.brandName.slice(0, 80) || 'Mon entreprise',
     description: (scan.voice.valueProposition || scan.description || scan.title).slice(0, 190),
@@ -134,7 +186,8 @@ async function describeProject(scan: SiteScanResult, ports: SiteImportPorts): Pr
   };
   const system = [
     'You turn a company website into the project sheet of a business-building platform. Answer ONLY a JSON object:',
-    '{"name": "the brand name", "description": "one sentence, at most 180 characters: what the company does and for whom", "longDescription": "120 to 250 words: the activity, the offer (products or services), the clients, where it operates, what makes it different — only what the site says", "type": "enterprise|ecommerce|web|mobile|ai|other", "targets": "business|general-public|students|government|healthcare", "scope": "local|regional|national|international", "city": "city if the site states it, else null", "country": "country if the site states it, else null"}',
+    '{"name": "the brand name", "description": "one sentence, at most 180 characters: what the company does and for whom", "longDescription": "120 to 250 words: the activity, the offer (products or services), the clients (who they are: the target), where it operates, what makes it different — only what the site says", "type": "enterprise|ecommerce|web|mobile|ai|other", "targets": "business|general-public|students|government|healthcare", "scope": "local|regional|national|international", "city": "city if the site states it, else null", "country": "country if the site states it, else null", "keyFigures": [{"label": "what the figure counts, in the language of the site", "value": "the figure EXACTLY as written on the site, unit included"}], "currency": "ISO 4217 code of the prices shown on the site, else null", "email": "contact e-mail exactly as written, else null", "phone": "main phone number exactly as written, else null"}',
+    'keyFigures: up to 8 figures the site itself states (clients served, years of activity, prices, team size, locations, ratings, volumes). Copy each value character for character; an empty list when the site states none.',
     `Write the texts in the language of the site (${scan.language}). Never invent a figure, a client, a date, an award or an address.`,
   ].join('\n');
   const user = [
@@ -150,6 +203,8 @@ async function describeProject(scan: SiteScanResult, ports: SiteImportPorts): Pr
     .filter(Boolean)
     .join('\n')
     .slice(0, 6000);
+  // Les chiffres et coordonnées sont vérifiés contre TOUT le texte relevé, pas seulement l'extrait envoyé.
+  const source = [scan.title, scan.description, scan.voice.valueProposition, ...scan.texts.headings, ...scan.texts.paragraphs].filter(Boolean).join('\n');
   try {
     const json = parseLlmJson<Record<string, unknown>>(await ports.text(system, user, 'writing'));
     if (!json) return fallback;
@@ -163,6 +218,16 @@ async function describeProject(scan: SiteScanResult, ports: SiteImportPorts): Pr
       scope: SCOPES.includes(String(json.scope)) ? String(json.scope) : fallback.scope,
       ...(str(json.city, 60) ? { city: str(json.city, 60) } : {}),
       ...(str(json.country, 60) ? { country: str(json.country, 60) } : {}),
+      ...(() => {
+        const facts = keepStatedFacts(json, source);
+        const currency = String(json.currency ?? '').trim().toUpperCase();
+        return {
+          ...(facts.figures.length ? { keyFigures: facts.figures } : {}),
+          ...(facts.email ? { email: facts.email } : {}),
+          ...(facts.phone ? { phone: facts.phone } : {}),
+          ...(CURRENCIES.includes(currency) ? { currency } : {}),
+        };
+      })(),
     };
   } catch (error: any) {
     logger.warn('site_import.describe_failed', { event: 'site_import.describe_failed', error: error?.message });
@@ -427,6 +492,12 @@ export async function chooseSitePalette(userId: string, projectId: string, sourc
   return true;
 }
 
+/** Ce que le résultat dit de la direction artistique (identifiant, nom, correspondance au site). */
+function artDirectionOf(direction: { styleId?: string; styleName?: string; siteMatch?: NonNullable<SiteImportResult['artDirection']>['siteMatch'] } | null | undefined): Pick<SiteImportResult, 'artDirection'> {
+  if (!direction?.styleId) return {};
+  return { artDirection: { styleId: direction.styleId, styleName: direction.styleName || direction.styleId, ...(direction.siteMatch ? { siteMatch: direction.siteMatch } : {}) } };
+}
+
 /** Crée (ou rouvre) le projet IDEM d'un site, identité visuelle comprise. */
 export async function createProjectFromSite(
   userId: string,
@@ -448,7 +519,7 @@ export async function createProjectFromSite(
     // Un projet déjà créé sans accord (iVision avant le 18/10/2026) le reçoit maintenant.
     await recordConsent(userId, existing.id, consent);
     const b = existing.analysisResultModel.branding;
-    const reused: SiteImportResult = { projectId: existing.id, reused: true, name: existing.name, siteUrl: (b as { siteSource?: { url: string } }).siteSource?.url || url, images: [], logo: !!b.logo?.svg, fonts: { display: b.typography?.primaryFont || '', body: b.typography?.secondaryFont || '', copied: [] }, warnings: [] };
+    const reused: SiteImportResult = { projectId: existing.id, reused: true, name: existing.name, siteUrl: (b as { siteSource?: { url: string } }).siteSource?.url || url, images: [], logo: !!b.logo?.svg, fonts: { display: b.typography?.primaryFont || '', body: b.typography?.secondaryFont || '', copied: [] }, ...artDirectionOf(b.artDirection), ...(existing.keyFigures?.length ? { keyFigures: existing.keyFigures } : {}), warnings: [] };
     if (!options.withContent) {
       onStep('done');
       return reused;
@@ -495,7 +566,9 @@ export async function createProjectFromSite(
     analysisResultModel: {} as ProjectModel['analysisResultModel'],
     deployments: [],
     activeChatMessages: [],
-    additionalInfos: { email: '', phone: '', address: '', city: sheet.city || '', country: sheet.country || '', zipCode: '', teamMembers: [] },
+    ...(sheet.keyFigures?.length ? { keyFigures: sheet.keyFigures } : {}),
+    ...(sheet.currency ? { currency: sheet.currency } : {}),
+    additionalInfos: { email: sheet.email || '', phone: sheet.phone || '', address: '', city: sheet.city || '', country: sheet.country || '', zipCode: '', teamMembers: [] },
     project: undefined,
   });
   const projectId = created.id as string;
@@ -570,7 +643,7 @@ export async function createProjectFromSite(
   // La direction artistique CODIFIE le site (relevés + capture), puis les motifs sont dessinés d'après le logo.
   onStep('art-direction');
   const project = await projectService.getUserProjectById(userId, projectId);
-  if (project) await brandingService.ensureArtDirection(userId, projectId, project, { siteEvidence: scan.styleEvidence });
+  const direction = project ? await brandingService.ensureArtDirection(userId, projectId, project, { siteEvidence: scan.styleEvidence }) : null;
   if (logo) {
     onStep('patterns');
     await brandingService.getBrandPatterns(userId, projectId).catch((error: any) => logger.warn('site_import.patterns_failed', { event: 'site_import.patterns_failed', projectId, error: error?.message }));
@@ -591,7 +664,7 @@ export async function createProjectFromSite(
   }
   onStep('done');
   logger.info('site_import.project_created', { event: 'site_import.project_created', projectId, into: !!existing?.id, host: new URL(scan.finalUrl).hostname, logo: !!logo, fontsCopied: copied, display: typography.chosen.primaryFont, body: typography.chosen.secondaryFont });
-  return { projectId, reused: !!existing?.id, name: sheet?.name ?? created.name, siteUrl: scan.finalUrl, images: content?.images ?? scan.images, logo: !!logo, fonts: { display: typography.chosen.primaryFont, body: typography.chosen.secondaryFont, copied }, warnings, ...(content ? { content } : {}) };
+  return { projectId, reused: !!existing?.id, name: sheet?.name ?? created.name, siteUrl: scan.finalUrl, images: content?.images ?? scan.images, logo: !!logo, fonts: { display: typography.chosen.primaryFont, body: typography.chosen.secondaryFont, copied }, ...artDirectionOf(direction), ...(sheet?.keyFigures?.length ? { keyFigures: sheet.keyFigures } : {}), warnings, ...(content ? { content } : {}) };
 }
 
 // ─── Le suivi (iVision interroge l'avancement) ─────────────────────────────────
@@ -609,8 +682,11 @@ const JOB_TTL = 3600;
 const save = (job: SiteImportJob) => cacheService.set(`site-import:${job.id}`, job, { prefix: 'jobs', ttl: JOB_TTL }).catch(() => false);
 
 export const siteImportJobs = {
-  /** Lance l'import en tâche de fond ; l'avancement est relu par `get`. */
-  async start(userId: string, url: string, ports: SiteImportPorts, consent?: SiteConsent, options: SiteImportOptions = {}): Promise<SiteImportJob> {
+  /**
+   * Lance l'import en tâche de fond ; l'avancement est relu par `get`. `onDone` (facultatif) suit un import réussi
+   * AVANT que le travail ne soit dit terminé : iDeploy y relie l'application au projet.
+   */
+  async start(userId: string, url: string, ports: SiteImportPorts, consent?: SiteConsent, options: SiteImportOptions = {}, onDone?: (result: SiteImportResult) => Promise<void>): Promise<SiteImportJob> {
     const job: SiteImportJob = { id: crypto.randomUUID(), userId, status: 'running', step: 'open' };
     await save(job);
     void createProjectFromSite(
@@ -625,6 +701,7 @@ export const siteImportJobs = {
       options
     )
       .then(async (result) => {
+        if (onDone) await onDone(result).catch((error: any) => logger.warn('site_import.on_done_failed', { event: 'site_import.on_done_failed', userId, error: error?.message }));
         await save({ ...job, status: 'done', step: 'done', result });
       })
       .catch(async (error: any) => {

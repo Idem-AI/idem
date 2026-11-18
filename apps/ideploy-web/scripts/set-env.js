@@ -73,6 +73,10 @@ export const environment = {
     icode: {
       url: '${process.env.SERVICES_WEBGEN_URL || process.env.WEBGEN_URL || (isProduction ? 'https://webgen.idem.africa' : 'http://localhost:5173')}',
     },
+    // La landing : textes juridiques (confidentialité, conditions) à accepter avant de créer un projet IDEM.
+    landing: {
+      url: '${process.env.SERVICES_LANDING_URL || process.env.LANDING_URL || 'https://idem.africa'}',
+    },
     // iDomain : acheter un nom et le brancher à une application (page et API).
     idomain: {
       url: '${process.env.SERVICES_IDOMAIN_URL || 'http://localhost:4205'}',

@@ -58,6 +58,7 @@ import { billingRoutes } from './routes/billing.routes';
 import { ideployRepairRoutes } from './routes/ideploy-repair.routes';
 import { appgenMediaRoutes } from './routes/appgenMedia.routes';
 import { journeyRoutes } from './routes/journey.routes';
+import { appProjectRoutes } from './routes/appProject.routes';
 import { authRoutes } from './routes/auth.routes';
 import { promptRoutes } from './routes/prompt.routes';
 import swaggerJsdoc from 'swagger-jsdoc';
@@ -234,6 +235,8 @@ app.use('/social', socialRoutes);
 // Médias des sites générés par iCode : images (Gemini), clips (Veo), photos et vidéos Pexels.
 app.use('/appgen/media', appgenMediaRoutes);
 // La boucle IDEM : chaque application dit ce que l'utilisateur vient de faire et reçoit l'étape suivante.
+// Avant `/journey` : « Créer mon projet IDEM » depuis une application iDeploy.
+app.use('/journey/app-project', appProjectRoutes);
 app.use('/journey', journeyRoutes);
 app.use('/archetypes', archetypeRoutes);
 app.use('/github', githubRoutes);

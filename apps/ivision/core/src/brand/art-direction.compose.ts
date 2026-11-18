@@ -52,7 +52,7 @@ export function composeArtDirection(d: DirectionNode, picks: Record<string, unkn
 export function recomposeArtDirection(saved: ArtDirectionModel): ArtDirectionModel {
   const d = getDirection(saved.styleId);
   if (!d) return saved;
-  return { ...composeArtDirection(d, saved.variants, { rationale: saved.rationale, subjects: saved.imagery?.subjects, catalogVersion: saved.catalogVersion }), ...(saved.id ? { id: saved.id } : {}), ...(saved.createdAt ? { createdAt: saved.createdAt } : {}) };
+  return { ...composeArtDirection(d, saved.variants, { rationale: saved.rationale, subjects: saved.imagery?.subjects, catalogVersion: saved.catalogVersion }), ...(saved.id ? { id: saved.id } : {}), ...(saved.createdAt ? { createdAt: saved.createdAt } : {}), ...(saved.siteMatch ? { siteMatch: saved.siteMatch } : {}) };
 }
 
 /**

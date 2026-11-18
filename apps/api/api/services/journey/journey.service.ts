@@ -55,9 +55,43 @@ interface DeploymentRecord {
   updatedAt?: Date;
 }
 
+/**
+ * Une application iDeploy reliée à un projet IDEM depuis iDeploy (`users/<uid>/appProjects/<appUuid>`) : iDeploy
+ * ne connaît pas les projets, et une application publiée sans iCode n'a pas de mise en ligne enregistrée.
+ */
+export interface AppProjectLink {
+  id?: string;
+  projectId: string;
+  product: 'site' | 'app';
+  /** L'adresse publique lue au moment du lien. */
+  url: string;
+  appName?: string;
+  linkedAt: string;
+}
+
 class JourneyService {
   private readonly repository: IRepository<JourneyState> = RepositoryFactory.getRepository<JourneyState>();
   private readonly deployments: IRepository<DeploymentRecord> = RepositoryFactory.getRepository<DeploymentRecord>();
+  private readonly links: IRepository<AppProjectLink> = RepositoryFactory.getRepository<AppProjectLink>();
+
+  private linksPath(userId: string): string {
+    return `users/${userId}/appProjects`;
+  }
+
+  /** Relie une application iDeploy à un projet (le dernier lien gagne : une application, un projet). */
+  async linkApp(userId: string, appUuid: string, link: Omit<AppProjectLink, 'id' | 'linkedAt'>): Promise<void> {
+    const data: AppProjectLink = { ...link, linkedAt: new Date().toISOString() };
+    const existing = await this.links.findById(appUuid, this.linksPath(userId), { bypassCache: true }).catch(() => null);
+    if (existing) await this.links.update(appUuid, data, this.linksPath(userId));
+    else await this.links.create(data, this.linksPath(userId), appUuid);
+    logger.info('journey.app_linked', { event: 'journey.app_linked', userId, appUuid, projectId: link.projectId });
+  }
+
+  /** Les applications iDeploy reliées à un projet. */
+  private async linksOf(userId: string, projectId: string): Promise<AppProjectLink[]> {
+    const all = await this.links.findAll(this.linksPath(userId)).catch(() => [] as AppProjectLink[]);
+    return all.filter((link) => link.projectId === projectId);
+  }
 
   private path(userId: string): string {
     return `users/${userId}/journey`;
@@ -98,18 +132,27 @@ class JourneyService {
     if (!projectId) return mergeFacts(factsFromEvents(events));
     // La fiche, le site enregistré, et les mises en ligne (site et application) quel que soit l'écran qui les a
     // faites : on ne propose jamais de mettre en ligne ce qui l'est déjà.
-    const [project, generation, siteDeployment, appDeployment] = await Promise.all([
+    const [project, generation, siteDeployment, appDeployment, links] = await Promise.all([
       projectService.getUserProjectById(userId, projectId).catch(() => null),
       projectService.getProjectGeneration(userId, projectId).catch(() => null),
       projectService.getAppDeployment(userId, projectId, 'site').catch(() => null),
       projectService.getAppDeployment(userId, projectId, 'app').catch(() => null),
+      this.linksOf(userId, projectId),
     ]);
+    // Une application iDeploy reliée au projet EST en ligne (elle a été publiée hors d'iCode) : on ne propose ni de
+    // créer ni de mettre en ligne ce qui tourne déjà.
+    const linkedSite = links.some((link) => link.product === 'site');
+    const linkedApp = links.some((link) => link.product === 'app');
     return mergeFacts(
       factsFromProject(project),
       factsFromEvents(events, projectId),
       generation ? { site: true } : {},
       siteDeployment?.url ? { site: true, sitePublished: true } : {},
-      appDeployment?.url ? { app: true, appPublished: true } : {}
+      appDeployment?.url ? { app: true, appPublished: true } : {},
+      linkedSite ? { site: true, sitePublished: true } : {},
+      linkedApp ? { app: true, appPublished: true } : {},
+      // Une adresse à soi branchée dans iDeploy (autre que *.idem.africa) vaut un domaine.
+      links.some((link) => !!link.url && !/\.idem\.africa(\/|$)|sslip\.io/i.test(link.url)) ? { domain: true } : {}
     );
   }
 
@@ -121,11 +164,18 @@ class JourneyService {
 
   /**
    * Le projet IDEM d'une application iDeploy : iDeploy ne connaît pas les projets d'IDEM, mais une mise en ligne
-   * faite depuis iCode garde les identifiants de ses applications (`users/<uid>/appDeployments`). Une
-   * application publiée autrement n'a pas de projet : pas de carte plutôt qu'une carte sur le mauvais projet.
+   * faite depuis iCode garde les identifiants de ses applications (`users/<uid>/appDeployments`), une application
+   * publiée autrement est reliée depuis iDeploy (`appProjects`). Sans l'un ni l'autre, iDeploy propose d'en créer
+   * un (`/journey/app-project`) — jamais une carte sur le mauvais projet.
    */
   async projectOfApp(userId: string, appUuid: string): Promise<{ projectId: string; product: 'site' | 'app' } | null> {
     if (!appUuid) return null;
+    // Relié depuis iDeploy (« Créer mon projet IDEM ») : le lien explicite passe devant tout.
+    const link = await this.links.findById(appUuid, this.linksPath(userId), { bypassCache: true }).catch(() => null);
+    if (link?.projectId) {
+      const project = await projectService.getUserProjectById(userId, link.projectId).catch(() => null);
+      if (project) return { projectId: link.projectId, product: link.product === 'app' ? 'app' : 'site' };
+    }
     const records = await this.deployments.findAll(`users/${userId}/appDeployments`).catch(() => [] as DeploymentRecord[]);
     for (const record of records) {
       const ideploy = record.ideploy ?? {};

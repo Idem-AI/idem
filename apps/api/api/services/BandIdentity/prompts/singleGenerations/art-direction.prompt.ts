@@ -52,6 +52,12 @@ ${input.siteEvidence.slice(0, 2400)}
 </existing_brand>`
     : '';
 
+/**
+ * Marque qui a déjà un site : l'agent dit aussi ce que le site montre de lui-même, et à quel point la DA choisie
+ * lui correspond. Le code ne s'en sert que pour informer (et garder la charte fidèle au site), jamais pour inventer.
+ */
+const SITE_MATCH_FIELDS = `, "siteStyle": "ONE sentence IN FRENCH describing the site's own visual style as it is (layout, type, colour use, imagery)", "siteMatch": "close|partial|distant — how faithfully the chosen catalogue direction describes what the site shows"`;
+
 /** Appel 1 : la DA du catalogue. */
 export function buildArtDirectionChoicePrompt(input: ArtDirectionPromptInput): string {
   const excluded = (input.excludeStyleIds || []).filter(Boolean);
@@ -75,7 +81,7 @@ ${excluded.length ? `<excluded>\nAlready proposed, ruled out: ${excluded.join(',
 
 <output_format>
 Strict JSON, no surrounding text, no code fences.
-{"styleId": "exact identifier from the catalogue", "rationale": "2 to 3 sentences IN FRENCH: why this direction for THIS brand, and what it rules out"}
+{"styleId": "exact identifier from the catalogue", "rationale": "2 to 3 sentences IN FRENCH: why this direction for THIS brand, and what it rules out"${input.siteEvidence ? SITE_MATCH_FIELDS : ''}}
 </output_format>
 `;
 }

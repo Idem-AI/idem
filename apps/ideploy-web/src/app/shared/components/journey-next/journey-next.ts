@@ -9,8 +9,8 @@ import { environment } from '../../../../environments/environment';
 /**
  * L'étape suivante d'une application en ligne (la faire connaître, lui donner son nom…), calculée par la boucle
  * IDEM. iDeploy ne connaît pas les projets d'IDEM : l'API retrouve le projet par l'application (une mise en ligne
- * faite depuis iCode garde ses identifiants). Une application sans projet IDEM n'affiche rien — jamais une carte
- * sur le mauvais projet.
+ * faite depuis iCode garde ses identifiants ; une application reliée depuis iDeploy, par `app-idem-project`). Sans
+ * projet IDEM, c'est `app-idem-project` qui propose d'en créer un — jamais une carte sur le mauvais projet.
  *
  * « Votre propre nom de domaine » s'ouvre ici même, dans l'onglet Nom de domaine (`openDomain`).
  */
@@ -31,6 +31,8 @@ export class JourneyNextComponent {
 
   /** L'application iDeploy affichée. */
   readonly appUuid = input.required<string>();
+  /** Change quand l'application vient d'être reliée à un projet IDEM : les recommandations sont relues. */
+  readonly refresh = input(0);
   readonly openDomain = output<void>();
 
   protected readonly recommendation = signal<Recommendation | null>(null);
@@ -58,6 +60,7 @@ export class JourneyNextComponent {
   constructor() {
     effect(() => {
       const uuid = this.appUuid();
+      this.refresh();
       this.recommendation.set(null);
       if (!uuid) return;
       // On EST sur la mise en ligne : ni « Mettre en ligne » ni son équivalent pour l'application.
