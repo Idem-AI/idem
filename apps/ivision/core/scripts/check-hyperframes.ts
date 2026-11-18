@@ -126,7 +126,9 @@ async function main() {
 
   // 5. Aperçu et retouches
   const preview = (await service.previewHtml('u1', 'p1', video.id)) || '';
-  check(/Content-Security-Policy/.test(preview) && /connect-src 'none'/.test(preview) && /id="play"/.test(preview) && /window\.__timelines\.film/.test(preview) && !/\{\{text\./.test(preview), 'aperçu : page autonome, sans réseau, bouton « Lire », textes posés');
+  // Les modèles des scènes (avec leurs clés) voyagent dans les données du lecteur, pour les retouches : seul le DOM compte.
+  const markup = preview.slice(0, preview.indexOf('<script>'));
+  check(/Content-Security-Policy/.test(preview) && /connect-src 'none'/.test(preview) && /ivision:playable/.test(preview) && /ivision:ready/.test(preview) && /window\.__timelines\.film/.test(preview) && !/\{\{text\./.test(markup), 'aperçu : page autonome, sans réseau, lecteur piloté par l’éditeur, textes posés');
   check(/Le café qui réveille Dakar/.test(preview) && /data-ge-tailwind/.test(preview) && /window\.__ge/.test(preview) && /id="ge-fx"/.test(preview), 'aperçu : textes exacts, feuille de la marque, runtime du catalogue, calque des transitions');
   fs.writeFileSync(path.join(OUT, 'preview.html'), preview);
   calls.length = 0;
