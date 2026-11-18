@@ -34,6 +34,13 @@ export const CATALOG_RUNTIME = String.raw`(function () {
   window.__fitIssues = GE.fitIssues;
   window.__sceneErrors = window.__sceneErrors || [];
   var comp = document.getElementById('comp');
+  // Tailwind n'émet que les variables de couleur qu'une classe emploie : les effets et les panneaux de transition ont
+  // besoin de TOUTE la palette de la marque. Une variable absente est posée depuis la palette transmise.
+  (function () {
+    var pal = window.__gePalette || {}, cs = getComputedStyle(comp);
+    var names = { 'brand-primary': pal.primary, 'brand-secondary': pal.secondary, 'brand-accent': pal.accent, ground: pal.ground, ink: pal.ink };
+    for (var n in names) if (names[n] && !cs.getPropertyValue('--color-' + n).trim()) comp.style.setProperty('--color-' + n, names[n]);
+  })();
   var ready = document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve();
   function each(list, fn) { Array.prototype.forEach.call(list || [], fn); }
   function minSide() { return Math.min(comp.offsetWidth || 1080, comp.offsetHeight || 1080); }
@@ -228,8 +235,10 @@ export const CATALOG_RUNTIME = String.raw`(function () {
   function brandOn(el, min, order) {
     var g = groundOf(el), names = order || ['brand-primary', 'brand-accent', 'brand-secondary'];
     for (var i = 0; i < names.length; i++) {
-      var c = 'var(--color-' + names[i] + ')', v = rgbOf(c);
-      if (v && contrast(v, g) >= min) return c;
+      var raw = getComputedStyle(comp).getPropertyValue('--color-' + names[i]).trim();
+      if (!raw) continue;
+      var v = rgbOf(raw);
+      if (v && contrast(v, g) >= min) return raw;
     }
     return getComputedStyle(el).color;
   }

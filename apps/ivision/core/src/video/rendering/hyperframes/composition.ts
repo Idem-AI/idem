@@ -193,6 +193,7 @@ ${needsAnime ? `<script>${libs.anime}</script>` : ''}
 <script>
 window.__sceneErrors = [];
 var master${preview ? '' : ' = gsap.timeline({ paused: true })'};
+${catalog ? `window.__gePalette = ${JSON.stringify({ primary: input.brand.colors.primary, secondary: input.brand.colors.secondary, accent: input.brand.colors.accent, ground: input.brand.colors.background, ink: input.brand.colors.text }).replace(/</g, '\\u003c')};` : ''}
 </script>
 ${catalog ? `<script>${CATALOG_RUNTIME}</script>` : ''}
 <script>

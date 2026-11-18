@@ -2,7 +2,9 @@
  * `npm run check:video-catalog` — le CATALOGUE VIDÉO, sans modèle, rendu dans Chrome :
  *
  *   1. le chargement : le dépôt `idem-templates` (catalog/videos) lu, chaque nœud vérifié, aucun écarté ; les règles
- *      refusent un rebond, une propriété non permise, un mot écrit en dur, un script ;
+ *      refusent un rebond, une propriété non permise, un mot écrit en dur, un script, un effet de texte inconnu, posé
+ *      hors texte ou sur un découpage qu'il n'accepte pas ; les animations de texte sont les vingt animations GSAP, la
+ *      rature n'entre que dans une scène « problème », un film d'avant retrouve l'équivalent de son animation ;
  *   2. les emplacements : chaque texte d'une scène a sa place (aucun perdu), un chiffre seul prend celle du chiffre ;
  *   3. le choix : au cran Low aucun appel ; au-dessus, UN appel pour tout le film ; une réponse illisible ou des
  *      identifiants inventés laissent le choix du code ; jamais deux fois la même mise en page de suite ;
@@ -22,7 +24,7 @@ import { buildComposition, formatCode } from '../src/video/rendering/hyperframes
 import { COMPOSITION } from '../src/video/rendering/formats';
 import { resetVideoCatalog, videoCatalog, buildVideoCatalog } from '../src/video/catalog/registry';
 import { assembleFilm, CatalogScene, composeFilmFromCatalog } from '../src/video/catalog/compose';
-import { sceneSlots } from '../src/video/catalog/graph';
+import { animationFor, sceneSlots } from '../src/video/catalog/graph';
 import type { FilmFormatId, GabaritNode, SceneConfig, ThemeNode } from '../src/video/catalog/types';
 import type { RuntimeScene } from '../src/video/catalog/assemble';
 
@@ -153,6 +155,28 @@ async function main() {
     'dir'
   );
   check(['anim.bounce', 'anim.left', 'vlayout.words', 'vlayout.script'].every((id) => bad.rejected.some((r) => r.id === id)), 'règles : rebond, propriété non permise, mot en dur et script écartés au chargement', bad.rejected.map((r) => `${r.id}: ${r.reason}`).join(' | '));
+  const anim = (id: string, extra: Record<string, unknown>) => ({ node: { id, version: 1, medium: 'video', kind: 'animation', doc: { title: 'x', summary: 'y' }, targets: ['text'], split: 'none', steps: { in: [{ fx: 'sweep', duration: 0.5 }] }, ...extra } });
+  const fxBad = buildVideoCatalog(
+    [
+      anim('anim.fx-unknown', { steps: { in: [{ fx: 'explode', duration: 0.5 }] } }),
+      anim('anim.fx-block', { targets: ['text', 'block'] }),
+      anim('anim.fx-split', { steps: { in: [{ fx: 'type', duration: 0.5 }] } }),
+      anim('anim.fx-opts', { steps: { in: [{ fx: 'sweep', opts: { amp: 3 }, duration: 0.5 }] } }),
+      anim('anim.fx-ok', {}),
+    ] as never,
+    'test',
+    'dir'
+  );
+  check(['anim.fx-unknown', 'anim.fx-block', 'anim.fx-split', 'anim.fx-opts'].every((id) => fxBad.rejected.some((r) => r.id === id)) && fxBad.nodes.has('anim.fx-ok'), 'effets de texte : inconnu, hors texte, mauvais découpage et réglage inconnu écartés ; un effet valide accepté', fxBad.rejected.map((r) => `${r.id}: ${r.reason}`).join(' | '));
+  const TWENTY = ['anim.mask-rise', 'anim.word-stagger', 'anim.blur-in', 'anim.typewriter', 'anim.count-up', 'anim.tracking-expand', 'anim.letter-settle', 'anim.letter-flip', 'anim.marker', 'anim.outline-fill', 'anim.rotate-word', 'anim.squiggle-underline', 'anim.wave', 'anim.strike', 'anim.zoom-punch', 'anim.scramble', 'anim.light-sweep', 'anim.glitch', 'anim.extrude', 'anim.split-halves'];
+  const textAnims = [...cat.nodes.values()].filter((n) => n.kind === 'animation' && !n.id.startsWith('builtin.') && n.targets.includes('text')).map((n) => n.id);
+  const tiers = new Map<string, number>();
+  for (const id of TWENTY) { const t = cat.nodes.get(id)?.tier ?? '?'; tiers.set(t, (tiers.get(t) ?? 0) + 1); }
+  check(TWENTY.every((id) => cat.nodes.get(id)?.kind === 'animation') && textAnims.every((id) => TWENTY.includes(id)) && ['low', 'medium', 'high', 'ultra'].every((t) => tiers.get(t) === 5), 'animations de texte : les vingt animations GSAP, seules, cinq par gamme', `texte : ${textAnims.join(', ')} · gammes ${[...tiers].map(([t, n]) => `${t}=${n}`).join(' ')}`);
+  const anyTheme = [...cat.nodes.values()].find((n) => n.kind === 'theme' && !n.id.startsWith('builtin.')) as ThemeNode;
+  const strikeIn = (role: string) => animationFor(cat, anyTheme, { layout: 'x', animations: { title: 'anim.strike' } }, 'title', 'Des carnets perdus', role);
+  const legacy = animationFor(cat, anyTheme, { layout: 'x', animations: { title: 'anim.mask-lines' as never } }, 'title', 'Un titre');
+  check(strikeIn('problem') === 'anim.strike' && strikeIn('hook') !== 'anim.strike' && legacy === 'anim.mask-rise', 'rature réservée à la scène « problème » ; un film d’avant (anim.mask-lines) retrouve anim.mask-rise', `problem=${strikeIn('problem')} hook=${strikeIn('hook')} legacy=${legacy}`);
 
   // L'instantané embarqué : sans dépôt ni CDN, le catalogue entier reste servi.
   const dirEnv = process.env.IDEM_TEMPLATES_DIR;
