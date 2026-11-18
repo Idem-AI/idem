@@ -76,7 +76,7 @@ export class IdemGatewayError extends Error {
   }
 }
 
-async function call<T>(method: 'get' | 'post', path: string, body?: unknown, timeoutMs = 120_000): Promise<T> {
+async function call<T>(method: 'get' | 'post', path: string, body?: unknown, timeoutMs = 120_000, signal?: AbortSignal): Promise<T> {
   // L'appel est rattaché à l'utilisateur de la requête en cours (suivi d'usage et quotas d'IDEM),
   // même quand le moteur partagé appelle un modèle sans savoir pour qui.
   const traced = getTraceContext()?.userId;
@@ -87,6 +87,7 @@ async function call<T>(method: 'get' | 'post', path: string, body?: unknown, tim
       url: `${env.idemApiUrl}/internal/ivision${path}`,
       data,
       timeout: timeoutMs,
+      ...(signal ? { signal } : {}),
       maxBodyLength: 40 * 1024 * 1024,
       maxContentLength: 40 * 1024 * 1024,
       headers: { 'x-ivision-key': env.serviceKey, ...traceHeaders() },
@@ -116,8 +117,8 @@ export const idem = {
     /** Copie et agents de la vidéo : l'étage que la jauge de créativité choisit. */
     text: (p: { userId: string; system: string; user: string; tier: ModelTier; kind?: 'copy' | 'agents' }) => call<{ text: string }>('post', '/ai/text', p).then((r) => r.text),
     /** Un agent créatif (codeur des plans Ultra, agents des visuels) : runtime d'agents d'IDEM. */
-    agent: (p: { userId?: string; projectId?: string; element?: string; role: string; profile: string; system: string; user: string; level?: string; options?: { temperature?: number; seed?: number; reasoning?: boolean; schema?: { name: string; schema: Record<string, unknown> } } }) =>
-      call<{ text: string }>('post', '/ai/agent', p, 180_000).then((r) => r.text),
+    agent: (p: { userId?: string; projectId?: string; element?: string; role: string; profile: string; system: string; user: string; level?: string; options?: { temperature?: number; seed?: number; reasoning?: boolean; schema?: { name: string; schema: Record<string, unknown> } } }, signal?: AbortSignal) =>
+      call<{ text: string }>('post', '/ai/agent', p, 180_000, signal).then((r) => r.text),
     /** Une composition de visuel (prompt système + charge utile), au modèle de la fonction IDEM. */
     prompt: (p: { userId: string; feature: 'flyer' | 'imageBrief'; messages: { role: string; content: string }[] }) => call<{ text: string }>('post', '/ai/prompt', p, 180_000).then((r) => r.text),
     vision: (p: { userId?: string; base64: string; mimeType: string; instruction: string; options?: { maxOutputTokens?: number; temperature?: number; purpose?: string } }) =>

@@ -29,6 +29,12 @@ export const DEFAULT_PROVIDER = LLMProvider.OPENROUTER;
 
 export interface LLMOptions {
   maxOutputTokens?: number;
+  /**
+   * Annulation par l'appelant (diagnostic G1) : un délai du moteur graphique ou une génération abandonnée coupe
+   * l'appel en cours chez le fournisseur, au lieu de le laisser tourner (et facturer) pour une réponse jetée.
+   * Jamais sérialisé : il ne part pas dans le corps de la requête.
+   */
+  signal?: AbortSignal;
   temperature?: number;
   topP?: number;
   topK?: number;

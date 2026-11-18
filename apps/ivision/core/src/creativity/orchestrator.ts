@@ -52,7 +52,8 @@ export interface AgentCallOptions {
 }
 
 /** Un appel de modèle. `validate` permet au runtime d'escalader d'un étage si la réponse est illisible. */
-export type AgentCall = (request: { role: string; profile: AgentProfile; system: string; user: string; validate?: (raw: string) => boolean; level?: CreativityLevel; options?: AgentCallOptions }) => Promise<string>;
+/** `signal` : l'annulation de l'appelant (délai dépassé) coupe l'appel chez le fournisseur (diagnostic G1). */
+export type AgentCall = (request: { role: string; profile: AgentProfile; system: string; user: string; validate?: (raw: string) => boolean; level?: CreativityLevel; options?: AgentCallOptions; signal?: AbortSignal }) => Promise<string>;
 
 export interface AgentTask<T> {
   /** Rôle lisible (« artDirector », « animator »…). */

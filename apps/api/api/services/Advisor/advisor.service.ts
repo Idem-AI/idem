@@ -14,6 +14,7 @@ import { ProjectModel } from '../../models/project.model';
 import { ADVISOR_SYSTEM_PROMPT, ADVISOR_TOOLS_GUIDE } from './prompts/system.prompt';
 import { financeAIService, FinanceChatIntent } from '../Finance/finance-ai.service';
 import { CONTEXT_TOOL_DECLARATIONS, createContextToolExecutor } from '../context-engine/context-tools';
+import { FunctionDeclaration, Type } from '../../types/ai-tools';
 import { runAgent } from '../agents/agent-runtime';
 import { setTraceProjectId } from '../../utils/trace.util';
 import { logAIEvent } from '../../utils/ai-trace.util';
@@ -59,16 +60,23 @@ export function compactHistory<T extends { content: string }>(messages: T[]): T[
 }
 
 /**
- * Filtre gratuit, en code, avant d'appeler `parseChatIntent` (2 lectures Mongo
- * + un appel LLM). Sans lui, cet appel se déclenchait sur 100% des messages,
- * y compris ceux qui ne parlent jamais de finance.
+ * La MODIFICATION des finances est un OUTIL de la boucle du Conseiller (diagnostic O1, 18/11/2026). Avant, une liste
+ * de mots-clés décidait d'un appel préalable (`parseChatIntent`) avant la boucle : deux appels séquentiels dès qu'un
+ * message citait un prix, et une intention devinée par des mots. Désormais le modèle de la boucle comprend la demande
+ * et n'appelle cet outil que lorsqu'une modification est réellement demandée ; rien n'est écrit sans confirmation.
  */
-const FINANCE_KEYWORDS_RE =
-  /\b(budget|revenus?|d[ée]penses?|prix|co[uû]ts?|marges?|b[ée]n[ée]fices?|chiffre d'affaires|tr[ée]sorerie|salaires?|financement|investisse(?:ment|ur)s?|rentabilit[ée]|fcfa|xof|xaf|€|\$|charges? (?:sociales|fixes|variables)|pr[ée]visionnel|cash[- ]?flow|revenue|expenses?|cost|pricing|funding|profit)\b/i;
-
-function mightConcernFinance(message: string): boolean {
-  return FINANCE_KEYWORDS_RE.test(message);
-}
+const FINANCE_CHANGE_TOOL: FunctionDeclaration = {
+  name: 'finance_propose_change',
+  description:
+    'Prepare a CHANGE to the project finances (update a figure, add or delete a line) that the user explicitly asked for. It does NOT apply the change: the user confirms it with a button. Call it only when the user asks to modify their finances, never to answer a question.',
+  parameters: {
+    type: Type.OBJECT,
+    properties: {
+      request: { type: Type.STRING, description: 'The requested change, restated completely in one sentence (what, which line, which value, which month or year).' },
+    },
+    required: ['request'],
+  },
+};
 
 export class AdvisorService {
   private readonly projectRepository: IRepository<ProjectModel>;
@@ -157,71 +165,11 @@ export class AdvisorService {
       createdAt: now,
     };
 
-    // ----------------------------------------------------------------
-    // Détection d'intention Finance — avant l'appel LLM générique.
-    // ----------------------------------------------------------------
+    // La modification des finances est un outil de la boucle (O1) : préparée par le modèle, confirmée par l'utilisateur.
     let financeIntent: FinanceChatIntent | null = null;
-    if (mightConcernFinance(trimmed)) {
-      try {
-        financeIntent = await financeAIService.parseChatIntent(userId, projectId, trimmed);
-        logger.debug(
-          `AdvisorService.sendMessage finance intent: kind=${financeIntent?.kind} isFin=${financeIntent?.isFinanceIntent}`
-        );
-        logAIEvent('advisor.finance_intent', {
-          projectId,
-          isFinanceIntent: financeIntent?.isFinanceIntent,
-          kind: financeIntent?.kind,
-        });
-      } catch (err: any) {
-        logger.warn(`AdvisorService.sendMessage parseChatIntent failed: ${err?.message}`);
-        financeIntent = null;
-      }
-    }
+    const contextTools = createContextToolExecutor(userId, projectId);
 
-    // a) Les intentions de LECTURE finance ne court-circuitent PLUS la boucle
-    // agentique: l'agent croise le module Finance (project_finance_summary) et
-    // le business plan (project_get_section) au lieu de répondre depuis le seul
-    // module Finance — c'est la garantie de cohérence entre artefacts.
-
-    // b) Intent mutation → on renvoie la phrase de confirmation + intent stockée
-    if (
-      financeIntent?.isFinanceIntent &&
-      (financeIntent.kind === 'update_field' ||
-        financeIntent.kind === 'add_line' ||
-        financeIntent.kind === 'delete_line') &&
-      financeIntent.section
-    ) {
-      const pending: AdvisorPendingFinanceIntent = {
-        isFinanceIntent: true,
-        kind: financeIntent.kind,
-        section: financeIntent.section,
-        target: financeIntent.target,
-        fieldPath: financeIntent.fieldPath,
-        value: financeIntent.value,
-        month: financeIntent.month,
-        year: financeIntent.year,
-      };
-      const replyText =
-        financeIntent.confirmationSentence ||
-        'Souhaitez-vous que j\u2019applique cette modification \u00e0 vos finances ?';
-      const assistantMessage: AdvisorMessage = {
-        id: uuidv4(),
-        role: 'assistant',
-        content: replyText,
-        createdAt: new Date(),
-        pendingFinanceIntent: pending,
-      };
-      const conversation = await this.persistConversation(
-        userId,
-        projectId,
-        existing,
-        userMessage,
-        assistantMessage
-      );
-      return { userMessage, assistantMessage, conversation };
-    }
-
-    // c) Pas d'intent finance → flow LLM agentique (Context Engine + Chronicle).
+    // Flow LLM agentique (Context Engine + Chronicle).
     // Stratégie hybride (context engineering): fiche synthétique toujours en
     // contexte + récupération just-in-time du reste via tools.
     const history = compactHistory(existing.messages);
@@ -258,8 +206,20 @@ export class AdvisorService {
             llmOptions: AI_CONFIG.advisor.llmOptions,
           },
           promptType: AI_CONFIG.advisor.promptType,
-          tools: CONTEXT_TOOL_DECLARATIONS,
-          toolExecutor: createContextToolExecutor(userId, projectId),
+          tools: [...CONTEXT_TOOL_DECLARATIONS, FINANCE_CHANGE_TOOL],
+          toolExecutor: async (name, args) => {
+            if (name !== FINANCE_CHANGE_TOOL.name) return contextTools(name, args);
+            const request = String((args as { request?: unknown })?.request ?? trimmed).slice(0, 1000);
+            const intent = await financeAIService.parseChatIntent(userId, projectId, request).catch(() => null);
+            logAIEvent('advisor.finance_intent', { projectId, isFinanceIntent: intent?.isFinanceIntent, kind: intent?.kind, by: 'tool' });
+            if (!intent?.isFinanceIntent || !['update_field', 'add_line', 'delete_line'].includes(String(intent.kind)) || !intent.section) {
+              return { prepared: false, note: 'This change could not be mapped to the finance module. Ask the user to state the line and the value.' };
+            }
+            financeIntent = intent;
+            return { prepared: true, note: 'The change is prepared. Tell the user, in one short sentence, what will change; they will confirm with a button.' };
+          },
+          // Diagnostic O1 : quatre tours suffisent (carte, section, recoupement, réponse).
+          maxToolTurns: 4,
         },
         { messages: aiMessages, userId, projectId, element: 'advisor-reply' }
       );
@@ -280,11 +240,18 @@ export class AdvisorService {
       durationMs: Date.now() - startedAt,
     });
 
+    // Une modification des finances préparée par l'outil : la réponse porte l'intention, appliquée sur confirmation.
+    const prepared = financeIntent as FinanceChatIntent | null;
+    const pending: AdvisorPendingFinanceIntent | undefined =
+      prepared?.isFinanceIntent && prepared.section
+        ? { isFinanceIntent: true, kind: prepared.kind as AdvisorPendingFinanceIntent['kind'], section: prepared.section, target: prepared.target, fieldPath: prepared.fieldPath, value: prepared.value, month: prepared.month, year: prepared.year }
+        : undefined;
     const assistantMessage: AdvisorMessage = {
       id: uuidv4(),
       role: 'assistant',
-      content: reply,
+      content: reply || prepared?.confirmationSentence || 'Souhaitez-vous que j\u2019applique cette modification \u00e0 vos finances ?',
       createdAt: new Date(),
+      ...(pending ? { pendingFinanceIntent: pending } : {}),
     };
 
     const updatedMessages = [...existing.messages, userMessage, assistantMessage];

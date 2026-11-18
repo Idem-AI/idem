@@ -11,6 +11,18 @@ import { createResilientStream } from './resilientStream.js';
 
 const MAX_RESPONSE_SEGMENTS = 2;
 
+/** Ce que la reprise renvoie de la partie déjà écrite : les fichiers complets (par leur chemin) et la fin du texte. */
+const CONTINUATION_TAIL_CHARS = 4000;
+export function continuationOf(content: string): string {
+  if (content.length <= CONTINUATION_TAIL_CHARS * 1.5) return content;
+  const done = [...content.matchAll(/<boltAction[^>]*filePath="([^"]+)"[^>]*>[\s\S]*?<\/boltAction>/g)].map((m) => m[1]);
+  return [
+    `[Already written above and complete: ${JSON.stringify(done)}. Do not write these files again.]`,
+    '[…]',
+    content.slice(-CONTINUATION_TAIL_CHARS),
+  ].join('\n');
+}
+
 export async function streamResponse(
   messages: Messages,
   model: string,
@@ -116,7 +128,9 @@ export async function streamResponse(
       }
 
       ChatLogger.info('CONTINUE', 'Adding continuation messages');
-      messages.push({ id: uuidv4(), role: 'assistant', content });
+      // Diagnostic C3 : la reprise ne renvoie plus EN ENTRÉE tout ce qui vient d'être écrit (jusqu'à 32 000 jetons,
+      // deux fois) — seulement la liste des fichiers déjà complets et la FIN du texte, pour reprendre au mot près.
+      messages.push({ id: uuidv4(), role: 'assistant', content: continuationOf(content) });
       messages.push({ id: uuidv4(), role: 'user', content: CONTINUE_PROMPT });
       ChatLogger.debug('CONTINUE', 'Continuation messages added', {
         newMessageCount: messages.length,

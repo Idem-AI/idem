@@ -135,15 +135,14 @@ const run = (n: number) => !only.length || only.includes(n);
     renderSingle({ documentType: 'flyer', format: 'flyer-square', brand: VERDA.brand, direction: VERDA.direction, creativity: level, seed: `${seed}:${level}`, content: FLYER });
 
   if (run(5)) {
-    section('5. Visuels — le cran règle qui choisit dans le catalogue (Chromium)');
+    section('5. Visuels — même choix à tous les crans (modèle unique) ; le cran règle la GAMME des gabarits (Chromium)');
     for (const level of CREATIVITY_LEVELS) {
       agentMode = 'ok';
       engineCalls.length = 0;
       const out = await flyerAt(level);
-      const low = level === 'low';
       check(
-        `${level} : ${low ? 'aucun appel de modèle, le code choisit' : 'le modèle du cran choisit dans le catalogue (aucun appel quand un seul gabarit convient)'} ; page assemblée, affichée, texte exact`,
-        (low ? engineCalls.length === 0 : engineCalls.every((c) => c.role === 'graphic.template' && c.level === level) && (level === 'medium' || engineCalls.length >= 1)) && out.spec.pattern.id === 'catalog' && Boolean(out.spec.catalog?.config.layout) && blockingOf(out).length === 0 && Boolean(out.result.measured) && out.result.html.includes('Le jus de bissap pressé chaque matin à Dakar'),
+        `${level} : le modèle choisit dans la gamme du cran (aucun appel quand un seul gabarit convient) ; page assemblée, affichée, texte exact`,
+        engineCalls.every((c) => c.role === 'graphic.template' && c.level === level) && out.spec.pattern.id === 'catalog' && Boolean(out.spec.catalog?.config.layout) && blockingOf(out).length === 0 && Boolean(out.result.measured) && out.result.html.includes('Le jus de bissap pressé chaque matin à Dakar'),
         `appels ${engineCalls.map((c) => `${c.role}@${c.level}`).join(',') || '—'} · ${out.spec.catalog?.config.gabarit ?? out.spec.catalog?.config.layout}`
       );
     }
@@ -223,7 +222,7 @@ const run = (n: number) => !only.length || only.includes(n);
   }
 
   if (run(8)) {
-    section('8. Documents (business plan, pitch deck) — le code au cran Low, langage + plan + un choix par page à l’Ultra, rejeu sans modèle');
+    section('8. Documents (business plan, pitch deck) — mêmes appels à tous les crans (directeur + un choix par page, habillage par le code), rejeu sans modèle');
     const PAGES: SectionContent[] = [
       { id: 'company-summary', title: 'Une jus de fruits locaux, pressés chaque matin', lede: 'Verda Jus livre les bureaux de Dakar.', blocks: [{ id: 'p', kind: 'prose', paragraphs: ['Verda Jus presse des fruits achetés aux maraîchers de Sangalkam.', 'Les bureaux du Plateau reçoivent leur commande avant 9 h.'] }, { id: 'm', kind: 'metrics', items: [{ value: '1 200', label: 'Bouteilles par jour' }, { value: '38', label: 'Bureaux clients' }] }] },
       { id: 'market', title: 'Un marché urbain qui consomme hors du foyer', blocks: [{ id: 'c', kind: 'chart', chartType: 'bar', labels: ['2024', '2025', '2026'], series: [{ name: 'Bouteilles (milliers)', data: [120, 210, 340] }], readingKey: 'Les volumes ont presque triplé en deux ans.' }, { id: 'p', kind: 'prose', paragraphs: ['La demande vient des bureaux et des salles de sport du Plateau.'] }] },
@@ -237,8 +236,8 @@ const run = (n: number) => !only.length || only.includes(n);
         const roles = engineCalls.map((c) => c.role);
         const choices = roles.filter((r) => r === 'graphic.template').length;
         check(
-          `${documentType}, ${level} : ${level === 'low' ? 'aucun appel de modèle' : 'le langage et le plan (directeur), l’habillage et un choix par page'}, au cran ${level} ; pages du catalogue sans constat bloquant`,
-          (level === 'low' ? engineCalls.length === 0 : roles.filter((r) => r === 'graphic.director').length === 2 && choices >= PAGES.length && engineCalls.every((c) => c.level === level)) && outs.every((o) => o.spec.catalog && blockingOf(o).length === 0),
+          `${documentType}, ${level} : le directeur et un choix par page, au cran ${level} (habillage choisi par le code) ; pages du catalogue sans constat bloquant`,
+          roles.filter((r) => r === 'graphic.director').length >= 1 && choices >= PAGES.length && engineCalls.every((c) => c.level === level) && outs.every((o) => o.spec.catalog && blockingOf(o).length === 0),
           `${roles.join(',') || '—'} · ${outs.flatMap((o) => blockingOf(o)).join(',')}`
         );
         const html = outs.map((o) => o.result.html).join('');

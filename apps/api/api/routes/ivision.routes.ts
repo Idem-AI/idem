@@ -134,7 +134,12 @@ router.post(
       ...(typeof o.reasoning === 'boolean' ? { reasoning: o.reasoning } : {}),
       ...(schemaJson && schemaJson.length <= 40_000 ? { schema: { name: text(o.schema.name, 64) || 'answer', schema: JSON.parse(schemaJson) } } : {}),
     };
-    const out = await asUser(req, 'communication', () => call({ role: text(role, 64) || 'agent', profile, system: text(system, 80_000), user: text(user, 80_000), ...(['low', 'medium', 'high', 'ultra'].includes(level) ? { level } : level === 'max' ? { level: 'high' } : {}), ...(Object.keys(callOptions).length ? { options: callOptions } : {}) }));
+    // Diagnostic G1 : iVision coupe la requête quand son délai est dépassé — l'appel au fournisseur s'arrête avec elle.
+    const abort = new AbortController();
+    res.on('close', () => {
+      if (!res.writableEnded) abort.abort();
+    });
+    const out = await asUser(req, 'communication', () => call({ role: text(role, 64) || 'agent', profile, system: text(system, 80_000), user: text(user, 80_000), ...(['low', 'medium', 'high', 'ultra'].includes(level) ? { level } : level === 'max' ? { level: 'high' } : {}), ...(Object.keys(callOptions).length ? { options: callOptions } : {}), signal: abort.signal }));
     res.json({ text: out });
   })
 );

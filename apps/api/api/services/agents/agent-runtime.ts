@@ -207,8 +207,12 @@ export async function runAgent(
   let estimated = 0;
   let text = '';
   let validation: AgentValidation | undefined;
+  // Diagnostic R1 : le nouvel essai reçoit le MOTIF du refus. Rejouer le même prompt (au même modèle depuis le
+  // modèle unique) reproduisait le même échec, trois fois, au prix fort.
+  let turnMessages = messages;
+  const signal = agent.llmOptions?.signal ?? agent.baseConfig?.llmOptions?.signal;
 
-  // Boucle d'escalade: 2 itérations au grand maximum (étage de départ + 1 cran).
+  // Boucle d'escalade : 2 essais au grand maximum (le premier + UN nouvel essai).
   for (;;) {
     attempts += 1;
     const config = buildPromptConfig(agent, tier, input, tier !== startTier);
@@ -228,11 +232,11 @@ export async function runAgent(
         if (samples === 1) {
           // Le flux n'est proposé qu'au PREMIER essai : après une escalade, le
           // client a déjà reçu un aperçu et le remplacement doit être net.
-          return callModel(agent, config, messages, attempts === 1 ? input.onDelta : undefined);
+          return callModel(agent, config, turnMessages, attempts === 1 ? input.onDelta : undefined);
         }
 
         const candidates = await Promise.all(
-          Array.from({ length: samples }, () => callModel(agent, config, messages))
+          Array.from({ length: samples }, () => callModel(agent, config, turnMessages))
         );
         const scored = candidates
           .map((candidate) => ({ candidate, score: agent.score!(candidate) }))
@@ -257,7 +261,8 @@ export async function runAgent(
     validation = agent.validate ? agent.validate(text) : undefined;
     if (!validation || validation.ok) break;
 
-    const upper = canEscalate ? nextTier(tier) : undefined;
+    // Un seul nouvel essai, jamais après une annulation de l'appelant (diagnostic R1 / G1).
+    const upper = canEscalate && attempts < 2 && !signal?.aborted ? nextTier(tier) : undefined;
     if (!upper || input.budget?.exhausted) {
       logAIEvent('agent.validation_failed', {
         role: agent.role,
@@ -281,6 +286,14 @@ export async function runAgent(
       element: input.element,
     });
     tier = upper;
+    turnMessages = [
+      ...messages,
+      { role: 'assistant', content: text.slice(0, 2000) },
+      {
+        role: 'user',
+        content: `Your previous answer was rejected: ${validation.reason ?? 'invalid format'}. Answer again, following the required format EXACTLY — nothing before or after it.`,
+      },
+    ];
   }
 
   const durationMs = Date.now() - startedAt;

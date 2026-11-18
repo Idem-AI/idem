@@ -180,7 +180,9 @@ async function main() {
   const calls: string[] = [];
   const base = { scenes: filmScenes, film: { title: 'AgriLink', concept: 'Les intrants à portée de main', style: 'corporate', seed: 'check' }, brand: { name: BRAND.name, hasLogo: true, line: 'AgriLink · agriculture' }, formats: ['story'] as FilmFormatId[] };
   const low = await composeFilmFromCatalog({ ...base, level: 'low', call: { level: 'low', call: async ({ role }) => (calls.push(role), '') } });
-  check(calls.length === 0 && low.trace.source === 'code' && low.scenes.length === filmScenes.length, 'choix : au cran Low, aucun appel de modèle (le code choisit)', `${calls.length} appel(s)`);
+  // 18/11/2026 : le cran ne règle plus la profondeur du choix (il choisit la gamme des gabarits) — Low fait le même
+  // appel que les autres ; une réponse vide laisse le choix du code, et le film est entier.
+  check(calls.length === 1 && calls[0] === 'video.template' && low.trace.source === 'code' && low.scenes.length === filmScenes.length, 'choix : au cran Low, le même appel unique ; réponse vide → choix du code, film entier', `${calls.length} appel(s)`);
   calls.length = 0;
   const med = await composeFilmFromCatalog({ ...base, level: 'medium', call: { level: 'medium', call: async ({ role, user }) => (calls.push(`${role}|${user.length}`), JSON.stringify({ scenes: filmScenes.map((s) => ({ scene: s.key, pick: 'B' })) })) } });
   check(calls.length === 1 && calls[0].startsWith('video.template') && med.trace.source === 'llm', 'choix : au cran Medium, UN appel pour tout le film (rôle video.template)', calls.join(', '));

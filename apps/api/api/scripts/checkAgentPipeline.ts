@@ -262,10 +262,12 @@ check("une tâche mécanique part au tier XS", tierForTask('digest') === 'XS');
 check('une rédaction part au tier M', tierForTask('draft') === 'M');
 check('une tâche de raisonnement part au tier S', tierForTask('strategy') === 'S');
 check("l'escalade s'arrête au sommet", nextTier('S') === undefined && nextTier('XS') === 'M');
+// 18/11/2026 : un seul modèle sert tous les étages (le nom d'étage reste un ALIAS de rôle : budget et réglages).
 check(
-  'un modèle « pro » est reconnu comme tier S',
-  tierOfModel(MODEL_TIERS.S.modelName) === 'S' && tierOfModel('deepseek/deepseek-v4-pro') === 'S'
+  'modèle unique : les trois étages servent le même modèle',
+  MODEL_TIERS.XS.modelName === MODEL_TIERS.M.modelName && MODEL_TIERS.M.modelName === MODEL_TIERS.S.modelName
 );
+check('un modèle « pro » hors table est reconnu comme tier S', tierOfModel('deepseek/deepseek-v4-pro') === 'S');
 
 // L'annexe est la dernière section encore routée au tier M : elle restructure
 // de la matière déjà produite. La couverture, elle, en est SORTIE — composer une

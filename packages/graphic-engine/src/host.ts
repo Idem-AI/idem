@@ -11,7 +11,8 @@ import { BrowserOptions, configureBrowser } from './runtime/browser';
 export type AgentProfile = 'agents' | 'critic' | 'coder';
 
 /** Un appel de modèle. `validate` permet au runtime d'escalader d'un étage si la réponse est illisible ; `level` règle les plafonds du rôle. */
-export type AgentCall = (request: { role: string; profile: AgentProfile; system: string; user: string; validate?: (raw: string) => boolean; level?: import('./contracts/common').CreativityLevel }) => Promise<string>;
+/** `signal` : le délai du moteur dépassé coupe l'appel chez l'hôte et chez le fournisseur (diagnostic G1). */
+export type AgentCall = (request: { role: string; profile: AgentProfile; system: string; user: string; validate?: (raw: string) => boolean; level?: import('./contracts/common').CreativityLevel; signal?: AbortSignal }) => Promise<string>;
 
 export interface EngineLogger {
   info: (message: string, meta?: Record<string, unknown>) => void;

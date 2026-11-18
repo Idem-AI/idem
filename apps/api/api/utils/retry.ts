@@ -39,6 +39,8 @@ export interface RetryOptions {
   label?: string;
   /** Prédicat de réessai. Par défaut: uniquement le transitoire réseau. */
   isRetryable?: (error: unknown) => boolean;
+  /** Tentatives TOTALES quand l'échec est un délai d'attente de requête dépassé (`isRequestTimeout`). Défaut : `attempts`. */
+  timeoutAttempts?: number;
 }
 
 export function sleep(ms: number): Promise<void> {
@@ -142,6 +144,23 @@ export function isTransientNetworkError(error: any): boolean {
 }
 
 /**
+ * Un DÉLAI D'ATTENTE de requête dépassé (le fournisseur a reçu l'appel et a pu commencer à générer, donc facturer) —
+ * par opposition à une connexion qui n'a jamais abouti. Diagnostic T3 : il ne se rejoue pas comme une panne réseau.
+ */
+export function isRequestTimeout(error: unknown): boolean {
+  let current: any = error;
+  for (let depth = 0; current && depth < 5; depth++) {
+    const name = String(current.name ?? current.constructor?.name ?? '');
+    const code = String(current.code ?? '').toUpperCase();
+    if (/timeout/i.test(name) && !/connect/i.test(name)) return true;
+    if (code === 'UND_ERR_HEADERS_TIMEOUT' || code === 'UND_ERR_BODY_TIMEOUT') return true;
+    if (/request timed out/i.test(String(current.message ?? ''))) return true;
+    current = current.cause;
+  }
+  return false;
+}
+
+/**
  * Exécute `fn`, en la rejouant tant que l'échec est un transitoire réseau.
  *
  * L'erreur finalement propagée est celle de la DERNIÈRE tentative: l'appelant
@@ -155,6 +174,7 @@ export async function withRetry<T>(fn: () => Promise<T>, options: RetryOptions =
     jitterRatio = DEFAULT_JITTER_RATIO,
     label = 'appel',
     isRetryable = isTransientNetworkError,
+    timeoutAttempts = attempts,
   } = options;
 
   let lastError: unknown;
@@ -165,7 +185,8 @@ export async function withRetry<T>(fn: () => Promise<T>, options: RetryOptions =
     } catch (error) {
       lastError = error;
 
-      const isLast = attempt >= attempts;
+      // Un DÉLAI D'ATTENTE dépassé (la réponse a pu commencer, donc être facturée) a son propre plafond, plus bas.
+      const isLast = attempt >= attempts || (isRequestTimeout(error) && attempt >= timeoutAttempts);
       if (isLast || !isRetryable(error)) {
         // Une erreur non rejouable au 1er coup n'est pas un incident de ce
         // module: on la laisse remonter sans bruit supplémentaire.

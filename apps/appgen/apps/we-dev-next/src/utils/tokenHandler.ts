@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import { buildCodeMap } from './codeMap.js';
 import { Messages } from '../types/project.js';
 import { selectRelevantFiles } from '../services/aiService.js';
@@ -16,6 +17,12 @@ import { ChatLogger } from './logger.js';
  * Décider quels fichiers sont concernés ne demande pas de relire la
  * conversation : l'arbre des chemins et la dernière demande suffisent.
  */
+/** La carte envoyée au tri : la même borne que celle montrée ensuite au rédacteur (diagnostic C2 : 60 000 → 20 000). */
+const SELECTION_MAP_CHARS = 20_000;
+/** Les sélections déjà faites (même carte, même demande) : un « Corriger » ou un renvoi ne repaie pas le tri. */
+const SELECTIONS = new Map<string, string[]>();
+const SELECTIONS_MAX = 200;
+
 export async function handleTokenLimit(
   messages: Messages,
   files: { [key: string]: string },
@@ -25,7 +32,15 @@ export async function handleTokenLimit(
     [...messages].reverse().find((message) => message.role === 'user')?.content ?? '';
 
   try {
-    const selected = (await selectRelevantFiles(filesPath, lastUserRequest, buildCodeMap(files))).filter((path) => path in files);
+    const map = buildCodeMap(files).slice(0, SELECTION_MAP_CHARS);
+    const key = crypto.createHash('sha1').update(map).update('\u0000').update(String(lastUserRequest).slice(0, 4000)).digest('hex');
+    let picked = SELECTIONS.get(key);
+    if (!picked) {
+      picked = await selectRelevantFiles(filesPath, lastUserRequest, map);
+      SELECTIONS.set(key, picked);
+      if (SELECTIONS.size > SELECTIONS_MAX) SELECTIONS.delete(SELECTIONS.keys().next().value as string);
+    }
+    const selected = picked.filter((path) => path in files);
     const kept: { [key: string]: string } = {};
 
     for (const path of filesPath) {

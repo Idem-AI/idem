@@ -296,6 +296,21 @@ export async function handleBuilderMode(
     ].join('\n');
   }
 
+  // Diagnostic C1 : en RETOUCHE, le modèle voit toujours le code. Les artefacts des tours passés sont retirés de
+  // l'historique (accusé compact) ; en dessous du seuil de tri, rien ne les remplaçait et le modèle réécrivait à
+  // l'aveugle (jusqu'à 32 000 jetons, puis des tours « Corriger »). Petit projet : les fichiers entiers.
+  if (!extraContext && !projectBrief && filesPath.length > 0 && (!isFirstTurn || qualityRepair?.trim())) {
+    if (estimateTokens(allContent) > FOLLOWUP_CONTEXT_TOKENS) {
+      const trimmedFiles = await handleTokenLimit(messages, files, filesPath);
+      extraContext = [
+        buildExistingProjectContext(filesPath, trimmedFiles, getHistoryDiff(historyMessages, filesPath, trimmedFiles)),
+        `\n## PROJECT MAP (the files not shown above exist as described; ask for nothing, change only the files shown)\n${buildCodeMap(files).slice(0, 20000)}`,
+      ].join('\n');
+    } else {
+      extraContext = buildExistingProjectContext(filesPath, files, getHistoryDiff(historyMessages, filesPath, files));
+    }
+  }
+
   const { system, user, diagnostics } = assembleBuilderPrompt({
     request,
     projectBrief,
