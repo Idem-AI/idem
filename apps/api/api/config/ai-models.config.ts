@@ -49,47 +49,37 @@ export type ModelLadder = 'design' | 'code' | 'catalog' | 'video-design' | 'vide
  */
 export const MODEL_LADDERS: Record<ModelLadder, Record<CreativityLevel, string>> = {
   design: {
-    low: 'qwen/qwen3.6-35b-a3b',
-    medium: 'qwen/qwen3.8-27b',
-    high: 'z-ai/glm-5.3-flash',
+    low: 'deepseek/deepseek-v4-flash',
+    medium: 'z-ai/glm-5.3-flash',
+    high: 'deepseek/deepseek-v4.1-flash-1017',
     ultra: 'deepseek/deepseek-v4.1-flash',
   },
   code: {
     low: 'qwen/qwen3-coder-30b-a3b-instruct',
-    medium: 'qwen/qwen3-coder-next',
-    high: 'qwen/qwen3-coder',
+    medium: 'z-ai/glm-5.3-flash',
+    high: 'deepseek/deepseek-v4.1-flash-1017',
     ultra: 'deepseek/deepseek-v4.1-flash',
   },
+  /** Le catalogue de gabarits : choisir dans une liste courte et remplir un petit JSON — le plus léger suffit. */
+  catalog: { low: 'qwen/qwen3.5-9b', medium: 'deepseek/deepseek-v4-flash', high: 'z-ai/glm-5.3-flash', ultra: 'deepseek/deepseek-v4.1-flash-1017' },
   /**
-   * LE CATALOGUE DE GABARITS (10/11/2026) : le modèle ne fait plus que CHOISIR dans une liste courte documentée et
-   * remplir une petite configuration JSON (≈ 100 jetons de sortie) — une tâche à la portée des modèles open-weight
-   * légers. Low ne l'appelle pas (le code choisit seul).
+   * LE MOTEUR VIDÉO : la qualité vient de l'outillage (solveurs, échantillonnage, juge), pas de la taille du modèle.
+   * Passe « moins cher et plus rapide » du 18/11/2026 : MoE à peu de paramètres actifs (V4 Flash, GLM-5.3-Flash)
+   * partout, sauf le départage visuel (il faut un modèle voyant) et le professeur hors ligne.
    */
-  catalog: { low: 'qwen/qwen3.5-35b-a3b', medium: 'qwen/qwen3.6-35b-a3b', high: 'qwen/qwen3.5-122b-a10b', ultra: 'deepseek/deepseek-v4.1-flash' },
-  /**
-   * LE MOTEUR VIDÉO (plan qualité avec petits modèles, 29/10/2026) : des modèles de 27 à 35 milliards de paramètres,
-   * auto-hébergeables sur un GPU ; la qualité vient de l'outillage (système de design, solveurs, échantillonnage, juge).
-   * Le cran choisit le BUDGET d'essais autant que le modèle (`apps/ivision/core/src/video/author/sampler.ts`).
-   *
-   *   video-design   concept, storyboard, retouche écrite (GLM-5.3-Flash au cran High et Ultra) ;
-   *   video-code     l'auteur de QUALITÉ : réécriture d'une scène difficile (Low n'en a pas : il échantillonne) ;
-   *   video-sample   l'échantillonneur : 6 à 10 variantes par scène, rapide et peu cher ;
-   *   video-vision   le départage visuel optionnel (Ultra) ;
-   *   video-teacher  le professeur HORS LIGNE (bibliothèque de scènes de référence), jamais en production.
-   */
-  'video-design': { low: 'qwen/qwen3.8-27b', medium: 'qwen/qwen3.8-27b', high: 'z-ai/glm-5.3-flash', ultra: 'z-ai/glm-5.3-flash' },
-  'video-code': { low: 'qwen/qwen3.6-35b-a3b', medium: 'qwen/qwen3.8-27b', high: 'qwen/qwen3.8-27b', ultra: 'qwen/qwen3.8-27b' },
-  'video-sample': { low: 'qwen/qwen3.6-35b-a3b', medium: 'qwen/qwen3.6-35b-a3b', high: 'qwen/qwen3.6-35b-a3b', ultra: 'qwen/qwen3.6-35b-a3b' },
+  'video-design': { low: 'deepseek/deepseek-v4-flash', medium: 'z-ai/glm-5.3-flash', high: 'z-ai/glm-5.3-flash', ultra: 'z-ai/glm-5.3-flash' },
+  'video-code': { low: 'deepseek/deepseek-v4-flash', medium: 'z-ai/glm-5.3-flash', high: 'deepseek/deepseek-v4.1-flash-1017', ultra: 'deepseek/deepseek-v4.1-flash-1017' },
+  'video-sample': { low: 'deepseek/deepseek-v4-flash', medium: 'deepseek/deepseek-v4-flash', high: 'deepseek/deepseek-v4-flash', ultra: 'deepseek/deepseek-v4-flash' },
   'video-vision': { low: 'qwen/qwen3.8-27b', medium: 'qwen/qwen3.8-27b', high: 'qwen/qwen3.8-27b', ultra: 'qwen/qwen3.8-27b' },
   'video-teacher': { low: 'qwen/qwen3.8-2.4t-a95b', medium: 'qwen/qwen3.8-2.4t-a95b', high: 'qwen/qwen3.8-2.4t-a95b', ultra: 'qwen/qwen3.8-2.4t-a95b' },
 };
 
 /** Les replis d'une échelle (même cran) : le modèle qui prend le relais si le premier est indisponible. */
 export const LADDER_FALLBACKS: Partial<Record<ModelLadder, Partial<Record<CreativityLevel, string[]>>>> = {
-  catalog: { low: ['qwen/qwen3.5-9b'], medium: ['qwen/qwen3.5-35b-a3b'], high: ['qwen/qwen3.5-397b-a17b'], ultra: ['qwen/qwen3.5-397b-a17b'] },
-  'video-design': { low: ['z-ai/glm-5.3-flash'], medium: ['z-ai/glm-5.3-flash'], high: ['qwen/qwen3.8-27b'], ultra: ['qwen/qwen3.8-27b'] },
-  'video-code': { low: ['qwen/qwen3-coder-next'], medium: ['qwen/qwen3.6-27b'], high: ['qwen/qwen3.6-27b'], ultra: ['qwen/qwen3.6-27b'] },
-  'video-sample': { low: ['qwen/qwen3-coder-next'], medium: ['qwen/qwen3-coder-next'], high: ['qwen/qwen3-coder-next'], ultra: ['qwen/qwen3-coder-next'] },
+  catalog: { low: ['deepseek/deepseek-v4-flash'], medium: ['z-ai/glm-5.3-flash'], high: ['deepseek/deepseek-v4-flash'], ultra: ['z-ai/glm-5.3-flash'] },
+  'video-design': { low: ['z-ai/glm-5.3-flash'], medium: ['deepseek/deepseek-v4-flash'], high: ['deepseek/deepseek-v4-flash'], ultra: ['deepseek/deepseek-v4-flash'] },
+  'video-code': { low: ['qwen/qwen3-coder-30b-a3b-instruct'], medium: ['deepseek/deepseek-v4-flash'], high: ['z-ai/glm-5.3-flash'], ultra: ['z-ai/glm-5.3-flash'] },
+  'video-sample': { low: ['qwen/qwen3-coder-30b-a3b-instruct'], medium: ['qwen/qwen3-coder-30b-a3b-instruct'], high: ['qwen/qwen3-coder-30b-a3b-instruct'], ultra: ['qwen/qwen3-coder-30b-a3b-instruct'] },
   'video-vision': { low: ['qwen/qwen3-vl-8b-instruct'], medium: ['qwen/qwen3-vl-8b-instruct'], high: ['qwen/qwen3-vl-8b-instruct'], ultra: ['qwen/qwen3-vl-8b-instruct'] },
   'video-teacher': { low: ['deepseek/deepseek-v4.1-flash', 'z-ai/glm-5.3'], medium: ['deepseek/deepseek-v4.1-flash', 'z-ai/glm-5.3'], high: ['deepseek/deepseek-v4.1-flash', 'z-ai/glm-5.3'], ultra: ['deepseek/deepseek-v4.1-flash', 'z-ai/glm-5.3'] },
 };

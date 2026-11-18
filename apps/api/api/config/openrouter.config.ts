@@ -365,7 +365,7 @@ export const OPENROUTER_MODELS: readonly OpenRouterModel[] = [
 ];
 
 /** Modèle de génération de code (iCode, agents) — hors table de rôles. */
-export const CODE_MODEL = process.env.IDEM_OPENROUTER_CODE_MODEL || 'qwen/qwen3-coder-next';
+export const CODE_MODEL = process.env.IDEM_OPENROUTER_CODE_MODEL || 'deepseek/deepseek-v4.1-flash-1017';
 
 /**
  * Affectation rôle → modèle, première piste Qwen. Chaque rôle reste surchargeable
@@ -374,8 +374,8 @@ export const CODE_MODEL = process.env.IDEM_OPENROUTER_CODE_MODEL || 'qwen/qwen3-
  */
 export const OPENROUTER_DEFAULT_ROLES: Record<ModelRole, string> = {
   mechanical: 'qwen/qwen3.5-9b',
-  writing: 'qwen/qwen3.5-122b-a10b',
-  reasoning: 'qwen/qwen3.5-397b-a17b',
+  writing: 'deepseek/deepseek-v4-flash',
+  reasoning: 'deepseek/deepseek-v4.1-flash',
   vision: 'qwen/qwen3.5-35b-a3b',
   ocr: 'qwen/qwen3-vl-30b-a3b-instruct',
   image: 'black-forest-labs/flux.2-klein-4b',
@@ -411,9 +411,9 @@ export const KOKORO_VOICES: Record<string, string> = {
 };
 
 export const OPENROUTER_FALLBACK_MODELS = [
-  'qwen/qwen3.5-122b-a10b',
-  'qwen/qwen3.5-35b-a3b',
   'deepseek/deepseek-v4-flash',
+  'z-ai/glm-5.3-flash',
+  'deepseek/deepseek-v4.1-flash-1017',
   'qwen/qwen3.5-9b',
 ];
 
