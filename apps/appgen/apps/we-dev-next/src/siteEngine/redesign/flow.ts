@@ -57,6 +57,11 @@ function failureText(error: unknown, host: string, fr: boolean): string {
   if (e?.status === 401) return fr ? 'Votre session a expiré : reconnectez-vous, puis renvoyez votre demande.' : 'Your session expired: sign in again, then resend your request.';
   if (e?.status === 403) return fr ? 'Pour créer votre projet IDEM, cochez l’accord aux politiques d’IDEM sous la question, puis choisissez à nouveau.' : 'To create your IDEM project, tick the IDEM policies box under the question, then choose again.';
   if (e?.status === 429) return message || (fr ? 'Vous avez atteint votre limite pour aujourd’hui. Réessayez plus tard.' : 'You reached your limit for today. Try again later.');
+  // Un mur anti-robot (Cloudflare « Just a moment », DataDome…) resté en place : le dire tel quel.
+  if (/bot_protection/.test(message))
+    return fr
+      ? `**${host}** est protégé contre les robots (vérification « Je ne suis pas un robot ») et n’a pas laissé IDEM le lire. Si c’est votre site, désactivez cette protection quelques minutes (ou autorisez IDEM), puis renvoyez votre demande. Rien n’a été modifié ni facturé.`
+      : `**${host}** is protected against bots (an "I am not a robot" check) and did not let IDEM read it. If it is your site, turn that protection off for a few minutes (or allow IDEM), then resend your request. Nothing was changed or charged.`;
   return fr
     ? `Je n’arrive pas à lire **${host}**${message ? ` (${message})` : ''}. Vérifiez l’adresse et que le site est en ligne, puis renvoyez votre demande. Rien n’a été modifié ni facturé.`
     : `I can't read **${host}**${message ? ` (${message})` : ''}. Check the address and that the site is online, then resend your request. Nothing was changed or charged.`;

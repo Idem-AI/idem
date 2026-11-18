@@ -178,27 +178,114 @@ export function completeCoverage(manifest: SiteManifest, coverage: Coverage, pag
  *
  * Variété garantie par le code (`diversifyLayouts`) : jamais deux fois la même composition de suite, les cartes au
  * plus une fois par page, aucune composition plus de deux fois par page.
+ *
+ * Rangées par catégorie (18/11/2026, catalogue iCode ×4) : la même liste que les schémas `ikind.*` du dépôt
+ * idem-templates (`catalog/icode/shared/kinds/<catégorie>/`). L'architecte les lit par catégorie.
  */
+export const LAYOUT_CATEGORIES = {
+  hero: ['Ouvertures de page', 'Page openers'],
+  content: ['Contenu et récit', 'Content and story'],
+  features: ['Atouts et services', 'Features and services'],
+  proof: ['Preuve et confiance', 'Proof and trust'],
+  pricing: ['Offres et tarifs', 'Offers and pricing'],
+  process: ['Méthode et étapes', 'Method and steps'],
+  people: ['Équipe et maison', 'Team and company'],
+  media: ['Visuels', 'Visuals'],
+  data: ['Chiffres et tableaux', 'Figures and tables'],
+  conversion: ['Action et contact', 'Action and contact'],
+  support: ['Informations pratiques', 'Practical information'],
+} as const;
+export type LayoutCategory = keyof typeof LAYOUT_CATEGORIES;
+
 export const LAYOUTS = {
-  'split-media': ['texte d’un côté, visuel de l’autre, colonnes inégales (7/5), le visuel déborde ou s’aligne sur le titre', 'copy on one side, visual on the other, unequal columns (7/5), the visual bleeds or aligns with the heading'],
-  'full-bleed-media': ['visuel pleine largeur, texte posé dessus (voile lisible) ou juste dessous', 'full-width visual, copy over it (readable scrim) or just below'],
-  editorial: ['mise en page de magazine : grand titre, texte en colonnes, une citation ou un chiffre réel en exergue', 'magazine layout: large heading, copy in columns, a pull quote or real figure set apart'],
-  statement: ['une seule grande phrase forte, beaucoup d’espace, une action', 'one large strong sentence, lots of space, one action'],
-  'list-rows': ['liste en rangées séparées par des filets fins, titre à gauche, détail à droite (pas de cartes)', 'list in rows separated by thin rules, title left, detail right (no cards)'],
-  timeline: ['étapes numérotées le long d’un fil vertical ou horizontal', 'numbered steps along a vertical or horizontal line'],
-  bento: ['grille de cases de tailles différentes (une grande, plusieurs petites), chacune avec son contenu propre', 'grid of different-sized tiles (one large, several small), each with its own content'],
-  gallery: ['mosaïque d’images de tailles variées, légendes sobres', 'mosaic of images in varied sizes, sober captions'],
-  'stats-band': ['bande de chiffres RÉELS (des faits uniquement), grands nombres, libellés courts', 'band of REAL figures (facts only), large numbers, short labels'],
-  quote: ['une citation ou un témoignage RÉEL en très grand, avec son auteur', 'one REAL quote or testimonial set very large, with its author'],
-  faq: ['questions et réponses en accordéon', 'questions and answers in an accordion'],
-  form: ['formulaire et coordonnées côte à côte', 'form and contact details side by side'],
-  table: ['tableau comparatif ou de tarifs lisible', 'readable comparison or pricing table'],
-  cards: ['cartes, chacune différente par son contenu (une seule fois par page)', 'cards, each different by its content (once per page)'],
-  'cta-band': ['bande d’appel à l’action pleine largeur, une phrase et un bouton', 'full-width call-to-action band, one sentence and one button'],
+  // Ouvertures (la première section d'une page)
+  hero: ['ouverture : grand titre, chapeau, une ou deux actions, quelques points forts, un visuel', 'opener: large heading, lede, one or two actions, a few highlights, a visual', 'hero'],
+  'hero-stats': ['ouverture appuyée sur 2 à 4 chiffres RÉELS sous le titre', 'opener backed by 2 to 4 REAL figures under the heading', 'hero'],
+  'hero-checklist': ['ouverture avec une courte liste de garanties ou de bénéfices cochés', 'opener with a short checked list of guarantees or benefits', 'hero'],
+  'hero-quote': ['ouverture avec un avis RÉEL de client mis en avant', 'opener with one REAL customer review set forward', 'hero'],
+  'hero-offer': ['ouverture centrée sur l’offre phare et son prix RÉEL', 'opener centred on the flagship offer and its REAL price', 'hero'],
+  // Contenu et récit
+  'split-media': ['texte d’un côté, visuel de l’autre, colonnes inégales (7/5), le visuel déborde ou s’aligne sur le titre', 'copy on one side, visual on the other, unequal columns (7/5), the visual bleeds or aligns with the heading', 'content'],
+  editorial: ['mise en page de magazine : grand titre, texte en colonnes, une citation ou un chiffre réel en exergue', 'magazine layout: large heading, copy in columns, a pull quote or real figure set apart', 'content'],
+  statement: ['une seule grande phrase forte, beaucoup d’espace, une action', 'one large strong sentence, lots of space, one action', 'content'],
+  intro: ['courte présentation centrée : titre, chapeau, un ou deux paragraphes', 'short centred introduction: heading, lede, one or two paragraphs', 'content'],
+  manifesto: ['3 à 8 affirmations courtes, posées comme un manifeste', '3 to 8 short statements set as a manifesto', 'content'],
+  events: ['agenda d’événements datés RÉELS : date, titre, lieu', 'agenda of REAL dated events: date, title, place', 'content'],
+  articles: ['actualités ou articles : date, titre, résumé', 'news or articles: date, title, summary', 'content'],
+  // Atouts et services
+  cards: ['cartes, chacune différente par son contenu (une seule fois par page)', 'cards, each different by its content (once per page)', 'features'],
+  bento: ['grille de cases de tailles différentes (une grande, plusieurs petites), chacune avec son contenu propre', 'grid of different-sized tiles (one large, several small), each with its own content', 'features'],
+  'list-rows': ['liste en rangées séparées par des filets fins, titre à gauche, détail à droite (pas de cartes)', 'list in rows separated by thin rules, title left, detail right (no cards)', 'features'],
+  features: ['grille d’atouts (3 à 9), titre et explication courte chacun', 'grid of features (3 to 9), each with a title and a short explanation', 'features'],
+  'feature-tabs': ['atouts présentés en onglets, un texte détaillé par onglet', 'features shown in tabs, one detailed text per tab', 'features'],
+  'feature-rows': ['rangées alternées texte / visuel, une par atout (2 à 4)', 'alternating copy / visual rows, one per feature (2 to 4)', 'features'],
+  services: ['catalogue de prestations : nom, description, précision (durée, format)', 'service catalogue: name, description, detail (duration, format)', 'features'],
+  checklist: ['liste cochée de ce qui est inclus ou garanti (4 à 12 lignes)', 'checked list of what is included or guaranteed (4 to 12 lines)', 'features'],
+  contrast: ['deux colonnes opposées : avant / après, sans / avec', 'two opposed columns: before / after, without / with', 'features'],
+  'use-cases': ['cas d’usage par public : à qui c’est destiné et ce que ça change', 'use cases by audience: who it is for and what it changes', 'features'],
+  // Preuve et confiance
+  quote: ['une citation ou un témoignage RÉEL en très grand, avec son auteur', 'one REAL quote or testimonial set very large, with its author', 'proof'],
+  testimonials: ['plusieurs témoignages RÉELS (2 à 6), avec auteur et fonction', 'several REAL testimonials (2 to 6), with author and role', 'proof'],
+  reviews: ['note moyenne RÉELLE et avis clients RÉELS', 'REAL average rating and REAL customer reviews', 'proof'],
+  'case-study': ['étude de cas RÉELLE : client, besoin, solution, résultats', 'REAL case study: client, need, solution, results', 'proof'],
+  credentials: ['agréments, certifications, partenaires ou distinctions RÉELS', 'REAL accreditations, certifications, partners or awards', 'proof'],
+  'trust-bar': ['bande de noms RÉELS de clients ou partenaires', 'band of REAL client or partner names', 'proof'],
+  // Offres et tarifs
+  pricing: ['formules côte à côte (1 à 4) : nom, prix RÉEL, inclus', 'plans side by side (1 to 4): name, REAL price, inclusions', 'pricing'],
+  'price-list': ['carte ou grille de prix RÉELS, façon menu', 'menu-style list of REAL prices', 'pricing'],
+  offer: ['une offre unique détaillée : prix RÉEL, ce qui est inclus, une action', 'one detailed offer: REAL price, what is included, one action', 'pricing'],
+  'plans-compare': ['tableau comparatif des formules, ligne par ligne', 'plan comparison table, row by row', 'pricing'],
+  table: ['tableau comparatif ou de tarifs lisible', 'readable comparison or pricing table', 'pricing'],
+  // Méthode et étapes
+  timeline: ['étapes numérotées le long d’un fil vertical ou horizontal', 'numbered steps along a vertical or horizontal line', 'process'],
+  process: ['déroulé en étapes avec la durée ou le moment de chacune', 'step-by-step flow with each step’s duration or timing', 'process'],
+  method: ['méthode en phases, avec ce que chaque phase livre', 'method in phases, with what each phase delivers', 'process'],
+  // Équipe et maison
+  team: ['membres RÉELS de l’équipe : nom, rôle, courte bio', 'REAL team members: name, role, short bio', 'people'],
+  about: ['histoire de la maison et ses valeurs', 'the company story and its values', 'people'],
+  values: ['3 à 6 valeurs ou engagements expliqués', '3 to 6 values or commitments explained', 'people'],
+  'founder-note': ['lettre signée du fondateur ou de la fondatrice', 'signed letter from the founder', 'people'],
+  'mission-vision': ['la mission et la vision, côte à côte', 'mission and vision side by side', 'people'],
+  milestones: ['dates RÉELLES de l’histoire de la maison', 'REAL dates in the company history', 'people'],
+  careers: ['postes ouverts RÉELS : intitulé, lieu, type', 'REAL open positions: title, place, type', 'people'],
+  // Visuels
+  'full-bleed-media': ['visuel pleine largeur, texte posé dessus (voile lisible) ou juste dessous', 'full-width visual, copy over it (readable scrim) or just below', 'media'],
+  gallery: ['mosaïque d’images de tailles variées, légendes sobres', 'mosaic of images in varied sizes, sober captions', 'media'],
+  showcase: ['réalisations ou projets, chacun avec son visuel et sa catégorie', 'work or projects, each with its visual and category', 'media'],
+  'before-after': ['deux visuels comparés : avant / après', 'two visuals compared: before / after', 'media'],
+  // Chiffres et tableaux
+  'stats-band': ['bande de chiffres RÉELS (des faits uniquement), grands nombres, libellés courts', 'band of REAL figures (facts only), large numbers, short labels', 'data'],
+  'stats-detail': ['chiffres RÉELS, chacun expliqué en une phrase', 'REAL figures, each explained in one sentence', 'data'],
+  specs: ['fiche technique : caractéristique et valeur', 'spec sheet: attribute and value', 'data'],
+  // Action et contact
+  'cta-band': ['bande d’appel à l’action pleine largeur, une phrase et un bouton', 'full-width call-to-action band, one sentence and one button', 'conversion'],
+  'cta-split': ['appel à l’action avec visuel, deux actions et quelques arguments', 'call to action with a visual, two actions and a few arguments', 'conversion'],
+  'contact-cta': ['invitation à écrire ou appeler, avec les coordonnées RÉELLES', 'invitation to write or call, with the REAL contact details', 'conversion'],
+  contact: ['coordonnées RÉELLES complètes : canaux, ville', 'full REAL contact details: channels, city', 'conversion'],
+  form: ['formulaire et coordonnées côte à côte', 'form and contact details side by side', 'conversion'],
+  announcement: ['annonce courte et une action (nouveauté, ouverture)', 'short announcement and one action (news, opening)', 'conversion'],
+  // Informations pratiques
+  faq: ['questions et réponses en accordéon', 'questions and answers in an accordion', 'support'],
+  'faq-categories': ['questions rangées par thème (2 à 4 thèmes)', 'questions grouped by topic (2 to 4 topics)', 'support'],
+  hours: ['horaires d’ouverture RÉELS, jour par jour', 'REAL opening hours, day by day', 'support'],
+  location: ['adresse RÉELLE et indications pour venir', 'REAL address and directions', 'support'],
+  guarantees: ['garanties et engagements RÉELS (2 à 6)', 'REAL guarantees and commitments (2 to 6)', 'support'],
 } as const;
 
 export type LayoutId = keyof typeof LAYOUTS;
 const LAYOUT_IDS = Object.keys(LAYOUTS) as LayoutId[];
+/** Les compositions qui ouvrent une page (jamais ailleurs). */
+export const OPENING_LAYOUTS = LAYOUT_IDS.filter((id) => LAYOUTS[id][2] === 'hero');
+
+/** Le vocabulaire des compositions pour l'architecte, rangé par catégorie (une ligne par catégorie). */
+export function layoutMenu(fr: boolean): string {
+  return (Object.keys(LAYOUT_CATEGORIES) as LayoutCategory[])
+    .map((cat) => {
+      const ids = LAYOUT_IDS.filter((id) => LAYOUTS[id][2] === cat);
+      return `    - ${LAYOUT_CATEGORIES[cat][fr ? 0 : 1]} : ${ids.map((id) => `"${id}" (${LAYOUTS[id][fr ? 0 : 1]})`).join(' ; ')}`;
+    })
+    .join('\n');
+}
 
 /** La description d'une composition, dans la langue du site. */
 export function layoutBrief(layout: LayoutId | undefined, fr: boolean): string {
@@ -219,10 +306,11 @@ export function diversifyLayouts(manifest: SiteManifest): number {
   for (const page of manifest.pages) {
     const used = new Map<LayoutId, number>();
     let previous: LayoutId | undefined;
-    for (const section of page.sections) {
+    page.sections.forEach((section, index) => {
       const count = (id: LayoutId) => used.get(id) ?? 0;
+      // Une ouverture (`hero*`) n'a de sens qu'en tête de page, et une seule fois.
       const fits = (id: LayoutId | undefined): id is LayoutId =>
-        !!id && id !== previous && !(id === 'cards' && count('cards') >= 1) && count(id) < 2;
+        !!id && id !== previous && !(id === 'cards' && count('cards') >= 1) && count(id) < 2 && !(index > 0 && OPENING_LAYOUTS.includes(id));
       if (!fits(section.layout)) {
         const pool = section.visual === 'none' ? WITHOUT_VISUAL : WITH_VISUAL;
         const next = [...pool, ...LAYOUT_IDS].find((id) => fits(id) && id !== 'cards') ?? section.layout ?? pool[0];
@@ -231,7 +319,7 @@ export function diversifyLayouts(manifest: SiteManifest): number {
       }
       used.set(section.layout!, count(section.layout!) + 1);
       previous = section.layout;
-    }
+    });
   }
   return changed;
 }
@@ -344,7 +432,9 @@ Tu es l'architecte du site de ce projet. À partir des informations ci-dessus (s
   * Un identifiant "id" (kebab-case).
   * Un "brief" précis de 2 à 4 phrases décrivant son contenu exact, ce qu'elle valorise, et sa disposition (grille de cartes, colonnes asymétriques, étapes pas à pas, citations fortes, liste de bénéfices...).
   * Un type visuel "visual" : "photo", "illustration", "video" (au plus une sur le site) ou "none".
-  * Une composition "layout" parmi : ${Object.entries(LAYOUTS).map(([id, [desc]]) => `"${id}" (${desc})`).join(' ; ')}. Varie-les : jamais la même deux fois de suite, "cards" au plus une fois par page. Choisis celle qui sert le contenu, pas la plus facile.
+  * Une composition "layout", rangée ici par catégorie :
+${layoutMenu(true)}
+    Varie-les : jamais la même deux fois de suite, "cards" au plus une fois par page. Les ouvertures ("hero…") servent UNIQUEMENT à la première section d'une page. Choisis celle qui sert le contenu, pas la plus facile : une composition qui annonce des faits (chiffres, avis, prix, dates, horaires, noms) n'est choisie que si ces faits figurent dans les informations du projet.
   * Si le site est sur une seule page, renseigne "navLabel" sur les sections principales pour le menu d'ancres.
 - La première section de l'accueil présente le projet avec force et oriente vers l'action principale.
 - Les données factuelles (coordonnées, canaux de contact, offres réelles, localisation) s'appuient sur les faits du projet.
@@ -362,7 +452,7 @@ Renvoie UNIQUEMENT un objet JSON valide avec la liste des pages que tu as choisi
       "seoTitle": "${fr ? 'titre SEO engageant (45 à 60 caractères)' : 'engaging SEO title (45 to 60 chars)'}",
       "seoDescription": "${fr ? 'description engageante (140 à 160 caractères)' : 'engaging meta description (140 to 160 chars)'}",
       "sections": [
-        { "id": "hero", "brief": "…", "visual": "photo", "layout": "split-media" },
+        { "id": "hero", "brief": "…", "visual": "photo", "layout": "hero" },
         { "id": "presentation", "brief": "…", "visual": "none", "layout": "editorial" },
         { "id": "points-cles", "brief": "…", "visual": "illustration", "layout": "bento" }
       ]

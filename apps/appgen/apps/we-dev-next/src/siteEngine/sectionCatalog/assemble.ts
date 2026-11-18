@@ -9,6 +9,8 @@
  *   [[ifi0]]…[[/ifi0]]  [[ifnoti0]]…[[/ifnoti0]]                       le premier élément, ou les autres
  *   [[if f]]…[[else]]…[[/if]]  [[ifnot f]]…[[/if]]  [[if .f]]          les conditions (`media`, `cta`, un champ, un sous-champ)
  *   [[media class="…"]]  [[href action]]                               le visuel de la section, la destination d'une action
+ *   [[each .sous]]…[[/each]]                                          une liste DANS un élément (les inclus d'une formule)
+ *   [[itemmedia class="…"]]  [[if itemmedia]]                          le visuel de même rang que l'élément (équipe, projets)
  *
  * Aucun texte n'est écrit par le gabarit : un champ vide fait tomber son bloc conditionnel, jamais une balise vide.
  */
@@ -124,6 +126,7 @@ export function assembleSection(tpl: string, input: AssembleInput): string {
   };
   const truthy = (arg: string, scope: Scope): boolean => {
     if (arg === 'media') return mediaKeys.length > 0;
+    if (arg === 'itemmedia') return scope.index !== undefined && scope.index < mediaKeys.length;
     if (arg.startsWith('.')) return present((scope.item as Record<string, unknown> | undefined)?.[arg.slice(1)]);
     const value = content[arg];
     if (value && typeof value === 'object' && !Array.isArray(value) && 'label' in (value as object)) return hrefOf(arg) !== null;
@@ -162,6 +165,12 @@ export function assembleSection(tpl: string, input: AssembleInput): string {
     if (tag === 'mkey') return String(scope.item ?? '');
     const href = tag.match(/^href ([a-zA-Z]+)$/);
     if (href) return JSON.stringify(hrefOf(href[1]) ?? '#');
+    const itemMedia = tag.match(/^itemmedia(?: class="([^"]*)")?$/);
+    if (itemMedia) {
+      const key = scope.index !== undefined ? mediaKeys[scope.index] : undefined;
+      if (!key) return '';
+      return `<Media asset={media[${JSON.stringify(key)}]}${itemMedia[1] ? ` className="${itemMedia[1]}"` : ''} />`;
+    }
     const media = tag.match(/^media(?: class="([^"]*)")?$/);
     if (media) {
       if (!mediaKeys.length) return '';
@@ -187,7 +196,8 @@ export function assembleSection(tpl: string, input: AssembleInput): string {
           const yes = truthy(n.arg, scope) === (n.kind === 'if');
           return render(yes ? n.body : n.alt, scope);
         }
-        const list = n.arg === 'gallery' ? mediaKeys : ((content[n.arg] as unknown[] | undefined) ?? []).filter(present);
+        const source = n.arg === 'gallery' ? mediaKeys : n.arg.startsWith('.') ? (scope.item as Record<string, unknown> | undefined)?.[n.arg.slice(1)] : content[n.arg];
+        const list = n.arg === 'gallery' ? mediaKeys : (Array.isArray(source) ? source : []).filter(present);
         return list.map((item, index) => render(n.body, { item, index, count: list.length })).join('\n');
       })
       .join('');

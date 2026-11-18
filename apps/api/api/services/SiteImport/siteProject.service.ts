@@ -528,7 +528,7 @@ export async function createProjectFromSite(
     // (choisie dans IDEM) reste la sienne.
     const [scan, crawled] = await Promise.all([
       scanWebsite({ url, maxPages: 2, timeoutMs: 25_000, textModel: (s, u) => ports.text(s, u, 'mechanical'), vision: ports.vision, onProgress: (step) => onStep(step) }),
-      crawlWebsite({ url, onProgress: () => onStep('pages') }),
+      crawlWebsite({ url, vision: ports.vision, onProgress: () => onStep('pages') }),
     ]);
     onStep('assets');
     const inventory = await hostInventory(userId, existing.id, crawled);
@@ -546,7 +546,7 @@ export async function createProjectFromSite(
   // Une refonte relève aussi le site en entier, pendant que la marque est lue.
   const [scan, crawled] = await Promise.all([
     scanWebsite({ url, maxPages: 2, timeoutMs: 25_000, textModel: (s, u) => ports.text(s, u, 'mechanical'), vision: ports.vision, onProgress: (step) => onStep(step) }),
-    options.withContent ? crawlWebsite({ url, onProgress: () => onStep('pages') }) : Promise.resolve(null),
+    options.withContent ? crawlWebsite({ url, vision: ports.vision, onProgress: () => onStep('pages') }) : Promise.resolve(null),
   ]);
   const warnings = [...scan.warnings];
 

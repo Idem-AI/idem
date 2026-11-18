@@ -110,10 +110,17 @@ async function flush(): Promise<void> {
     return;
   }
   if (available === null) {
+    // « Non » du serveur (paquets absents, coupé) : définitif pour la session. Pas de réponse (serveur qui redémarre) :
+    // on redemande un peu plus tard — avant, un seul échec désactivait l'aperçu instantané jusqu'au rechargement.
     available = await request('GET', '/status')
       .then((r) => r.json())
       .then((s: { available?: boolean }) => !!s.available)
-      .catch(() => false);
+      .catch(() => null);
+  }
+  if (available === null) {
+    useFastPreview.setState({ status: 'unavailable' });
+    retryLater();
+    return;
   }
   if (!available) {
     useFastPreview.setState({ status: 'unavailable' });
@@ -128,8 +135,13 @@ async function flush(): Promise<void> {
     const response = await request('POST', '/sessions', { files: current }).catch(() => null);
     if (!response?.ok) {
       // 503 : le serveur ne sait pas faire (paquets absents) ; autre : on réessaiera au prochain changement.
-      if (!response || response.status === 503) available = false;
+      if (response?.status === 503) available = false;
       useFastPreview.setState({ status: 'unavailable', url: null });
+      // Pas de réponse ou erreur passagère : nouvel essai dans quelques secondes (l'atelier garde la WebContainer d'ici là).
+      if (!response || response.status >= 500 && response.status !== 503) {
+        available = null;
+        retryLater();
+      }
       return;
     }
     const opened = (await response.json()) as { id: string; url: string; state: { ok: boolean; error?: string; ms?: number } };
@@ -153,10 +165,24 @@ async function flush(): Promise<void> {
     synced.clear();
     return flush();
   }
-  if (!response?.ok) return;
+  if (!response?.ok) {
+    // Réseau coupé ou serveur qui redémarre : les changements repartiront au prochain essai.
+    retryLater();
+    return;
+  }
   for (const [path, content] of Object.entries(changed)) synced.set(path, content);
   for (const path of removed) synced.delete(path);
   reportBuild(((await response.json()) as { state?: { ok: boolean; error?: string; ms?: number } }).state);
+}
+
+/** Un nouvel essai, 5 s plus tard (serveur qui redémarre). Un seul en attente à la fois. */
+let retryTimer: ReturnType<typeof setTimeout> | null = null;
+function retryLater() {
+  if (retryTimer) return;
+  retryTimer = setTimeout(() => {
+    retryTimer = null;
+    schedule();
+  }, 5000);
 }
 
 /** Un envoi à la fois ; ce qui change pendant un envoi part juste après. */
