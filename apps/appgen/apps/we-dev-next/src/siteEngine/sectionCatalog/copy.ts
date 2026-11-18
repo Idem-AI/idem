@@ -181,6 +181,85 @@ export interface CopyResult {
   providerDown: boolean;
 }
 
+/**
+ * Les sections déjà COMPLÈTES dans une réponse JSON encore en cours d'écriture : `{ "sections": { "a": {…}, "b": {…`
+ * rend `a` (son objet est fermé), pas `b`. Lecture à la main, chaînes et échappements compris : un `}` dans un texte
+ * ne ferme rien. Seuls les identifiants attendus sont cherchés, au premier niveau de `sections` (ou de la racine).
+ */
+export function completedSections(partial: string, ids: string[]): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  const start = partial.indexOf('{');
+  if (start < 0) return out;
+  const wanted = new Set(ids);
+  // Parcours d'un objet : clé → début de valeur ; une valeur objet est lue jusqu'à son `}` correspondant.
+  const scanObject = (from: number, depthTarget: (key: string, valueStart: number) => void): void => {
+    let i = from + 1;
+    while (i < partial.length) {
+      while (i < partial.length && /[\s,]/.test(partial[i])) i++;
+      if (partial[i] !== '"') return;
+      const keyEnd = stringEnd(partial, i);
+      if (keyEnd < 0) return;
+      const key = partial.slice(i + 1, keyEnd);
+      i = keyEnd + 1;
+      while (i < partial.length && /\s/.test(partial[i])) i++;
+      if (partial[i] !== ':') return;
+      i++;
+      while (i < partial.length && /\s/.test(partial[i])) i++;
+      const valueEnd = valueEndAt(partial, i);
+      depthTarget(key, i);
+      if (valueEnd < 0) return;
+      i = valueEnd + 1;
+    }
+  };
+  const take = (key: string, at: number) => {
+    if (!wanted.has(key) || partial[at] !== '{') return;
+    const end = valueEndAt(partial, at);
+    if (end < 0) return;
+    try {
+      out[key] = JSON.parse(partial.slice(at, end + 1));
+    } catch {
+      /* objet fermé mais illisible : la lecture complète en jugera */
+    }
+  };
+  scanObject(start, (key, at) => {
+    if (key === 'sections' && partial[at] === '{') scanObject(at, take);
+    else take(key, at);
+  });
+  return out;
+}
+
+/** La fin (guillemet fermant) de la chaîne qui commence en `at`, ou -1 si elle n'est pas encore écrite. */
+function stringEnd(text: string, at: number): number {
+  for (let i = at + 1; i < text.length; i++) {
+    if (text[i] === '\\') i++;
+    else if (text[i] === '"') return i;
+  }
+  return -1;
+}
+
+/** La fin de la valeur JSON qui commence en `at` (objet, liste, chaîne ou littéral), ou -1 si elle est incomplète. */
+function valueEndAt(text: string, at: number): number {
+  const open = text[at];
+  if (open === '"') return stringEnd(text, at);
+  if (open !== '{' && open !== '[') {
+    const match = /^[^,}\]\s]+/.exec(text.slice(at));
+    return match && at + match[0].length < text.length ? at + match[0].length - 1 : -1;
+  }
+  let depth = 0;
+  for (let i = at; i < text.length; i++) {
+    const c = text[i];
+    if (c === '"') {
+      i = stringEnd(text, i);
+      if (i < 0) return -1;
+    } else if (c === '{' || c === '[') depth++;
+    else if (c === '}' || c === ']') {
+      depth--;
+      if (depth === 0) return i;
+    }
+  }
+  return -1;
+}
+
 /** Lit et vérifie la réponse : forme, puis faits. Une section illisible est seulement écartée. */
 export function readCopy(raw: unknown, tasks: CopyTask[], targets: string[]): { sections: Record<string, SectionContent>; problems: Record<string, string[]> } {
   const allowed = new Set(targets);
@@ -276,11 +355,33 @@ export function startPageCopy(input: CopyInput): PageCopy {
     try {
       if (!tasks.length) return { sections: {}, removed, providerDown };
       const maxTokens = Math.min(7000, 700 + tasks.length * 650);
-      const first = await input.caller.json(input.label, copySystemPrompt(input.language), copyPrompt(input), lenient(tasks), maxTokens);
+      // AU FIL DE L'EAU : une section dont l'objet JSON est fermé dans la réponse en cours part vers l'assemblage tout
+      // de suite, si elle est juste — la première section d'une page s'affiche sans attendre la dernière. Une section
+      // fautive attend la fin de la réponse et suit le chemin ordinaire.
+      const tried = new Set<string>();
+      let scanned = 0;
+      const early = (text: string) => {
+        // Un objet ne se ferme que sur `}` : rien à relire tant qu'il n'en est pas arrivé.
+        if (text.indexOf('}', scanned) < 0) return;
+        scanned = text.length;
+        const open = tasks.filter((task) => waiting.has(task.section.id) && !tried.has(task.section.id));
+        if (!open.length) return;
+        const complete = completedSections(text, open.map((task) => task.section.id));
+        for (const task of open) {
+          const id = task.section.id;
+          if (!(id in complete)) continue;
+          tried.add(id);
+          const read = readCopy({ [id]: complete[id] }, [task], targets);
+          if (!read.problems[id]) settle(task, read.sections[id], undefined);
+        }
+      };
+      const first = await input.caller.json(input.label, copySystemPrompt(input.language), copyPrompt(input), lenient(tasks), maxTokens, early);
       providerDown = first.providerDown;
       const drafts = first.value?.sections ?? {};
       const faults = new Map<CopyTask, string[]>();
       for (const task of tasks) {
+        // Déjà livrée au fil de l'eau.
+        if (!waiting.has(task.section.id)) continue;
         const lines = settle(task, drafts[task.section.id], first.value?.problems[task.section.id]);
         if (lines.length) faults.set(task, lines);
       }

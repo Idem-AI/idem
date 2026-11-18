@@ -12,6 +12,8 @@
         "check:site-render": "tsx scripts/check-site-render.ts",
         "check:site-edit": "tsx scripts/check-site-edit.ts",
         "check:site-build": "tsx scripts/check-site-build.ts",
+        "check:site-speed": "tsx scripts/check-site-speed.ts",
+        "check:preview": "tsx scripts/check-preview.ts",
         "bench:site": "tsx scripts/bench-site.ts",
         "check:commands": "tsx scripts/check-commands.ts",
         "check:i18n": "tsx scripts/check-i18n.ts",

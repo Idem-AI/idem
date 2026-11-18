@@ -88,6 +88,7 @@ interface RunStatusState {
 
 const isInstall = (command: string) => /\bnpm\s+(i|install|ci)\b/.test(command);
 const isDev = (command: string) => /\bnpm\s+(run\s+)?(dev|start)\b/.test(command);
+const isBuild = (command: string) => /\bnpm\s+run\s+build\b|\bvite\s+build\b|\btsc\b/.test(command);
 
 const useRunStatus = create<RunStatusState>((set, get) => ({
   phase: 'idle',
@@ -148,6 +149,11 @@ const useRunStatus = create<RunStatusState>((set, get) => ({
       if (isInstall(command) && get().phase === 'installing') set({ phase: 'starting', current: null });
       return;
     }
+    // Seules l'installation, le lancement et la construction font tourner l'application. Une commande de
+    // l'atelier ou du modèle qui échoue (`ls` d'un dossier pas encore créé, `cat`, `mkdir`, `test`…) ne dit rien
+    // de l'application : la traiter comme une panne affichait « Corriger » à chaque génération, et le modèle,
+    // appelé à réparer une application qui marche, répondait « sans changer le site ».
+    if (!isInstall(command) && !isDev(command) && !isBuild(command)) return;
     // Une commande qui s'arrête en échec sans message reconnu reste une erreur.
     if (get().error) return;
     const lines = get().lines;

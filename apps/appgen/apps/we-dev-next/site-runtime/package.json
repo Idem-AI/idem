@@ -19,6 +19,7 @@
     "@radix-ui/react-switch": "^1.1.2",
     "@radix-ui/react-tabs": "^1.1.2",
     "@radix-ui/react-tooltip": "^1.1.6",
+    "autoprefixer": "^10.4.20",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
@@ -26,10 +27,13 @@
     "jsdom": "^25.0.1",
     "lucide-react": "0.441.0",
     "motion": "^11.18.2",
+    "postcss": "^8.4.49",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.54.2",
     "tailwind-merge": "^2.6.0",
+    "tailwindcss": "^3.4.17",
+    "tailwindcss-animate": "^1.0.7",
     "zod": "^3.24.1"
   }
 }
