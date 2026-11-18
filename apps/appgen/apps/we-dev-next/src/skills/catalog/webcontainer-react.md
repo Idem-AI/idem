@@ -16,7 +16,7 @@ Browser WebContainer running Node. **Vite, multi-page**, React 18, **TypeScript*
 2. **Appearance lives in one file: `src/design-system/design-system.json`.** Colours, fonts, type scale, radii, borders, elevation, density, component recipes (button / input / card / badge) and motion. A plugin compiles it into `theme.generated.css` and `component-config.generated.json` — never edit those two files. To change the look of the whole site ("rounder buttons", "another primary colour", "less shadow", "calmer animations"), edit `design-system.json` and nothing else.
 3. **Facts live in `src/site/data.ts`** (`site`: name, contact channels, primaryAction, navigation, pages, offers with real prices, team). Import them; never hard-code a price, a phone number or a link. Visuals live in `src/site/media.ts` (`media[key]`, shown with `<Media asset={…} />`). The logo is `<BrandMark />` from `@/site/brand`.
 4. **Each section is its own component**: `src/sections/<page>/<Name>.tsx`, `export default function Name()`, root element with the section's anchor `id`. The header is `src/components/site/SiteHeader.tsx` (`{ current }` prop), the footer `src/components/site/SiteFooter.tsx`.
-5. **Pages are assembled**: `src/pages/<page>.tsx` imports its sections in order (with the `.tsx` extension), between the header and footer, each wrapped in `<SectionBoundary name="…">`. To add, remove or reorder a section, edit that list.
+5. **Pages are assembled**: `src/pages/<page>.tsx` imports its sections in order (with the `.tsx` extension), between the header and footer, each wrapped in `<SectionBoundary name="…">`. Every section after the first one, and the footer, carries `defer` (`<SectionBoundary name="…" defer>`): it is hydrated when it nears the screen. Keep `defer` when you move a section, and never on the header or the first section. To add, remove or reorder a section, edit that list.
 
 ## Writing a component
 
@@ -24,7 +24,8 @@ Browser WebContainer running Node. **Vite, multi-page**, React 18, **TypeScript*
 - Use the design system components whenever their role fits, with their variants. Do not add colour, radius, shadow or font classes to them.
 - Colours: theme tokens only — `background`, `foreground`, `primary`, `primary-foreground`, `secondary`, `muted`, `muted-foreground`, `accent`, `card`, `border`, `ring`, with opacity (`bg-primary/10`). Tailwind's default palette (`blue-600`, `gray-100`) **does not exist** in this project. No hex values.
 - Type sizes: `text-display`, `text-h1` … `text-h4`, `text-lead`, `text-body`, `text-small` — or `Heading` / `Text`.
-- Motion: only `motion/react`, with the project's tokens (`import { motionTokens } from '@/design-system'`). Never hide the first section's headline behind an entrance animation.
+- Motion: only `motion/react`, with the project's tokens (`import { motionTokens } from '@/design-system'`). Never hide the first section's headline behind an entrance animation. Import `motion` by name (`import { motion } from 'motion/react'`), never `import * as`: the build swaps it for a lighter version.
+- Images: `<Media asset={…} />` inside a frame that has a size (`aspect-[4/3]`, `h-full`, `absolute inset-0`…). The first visual of the page gets `priority`. When the image is not full width, say so with `sizes` (`sizes="(min-width: 768px) 50vw, 100vw"`).
 - Icons: `lucide-react`, by exact name.
 - Forbidden: CSS files, `<style>`, colour in `style={{}}`, other component or animation libraries (MUI, Chakra, Mantine, GSAP…), invented facts, fake forms (the site has no backend: contact goes through `site.primaryAction` / `site.contact.channels`).
 

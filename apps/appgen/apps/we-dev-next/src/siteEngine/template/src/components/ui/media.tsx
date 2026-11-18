@@ -24,9 +24,52 @@ export interface MediaProps extends React.HTMLAttributes<HTMLDivElement> {
   priority?: boolean;
   /** Ajustement de l'image dans son cadre (par défaut : couvrir). */
   fit?: 'cover' | 'contain';
+  /**
+   * La largeur affichée, pour que le navigateur choisisse la bonne taille d'image (`sizes` HTML). Par défaut, toute
+   * la largeur de l'écran. Exemple pour une image en demi-colonne : `"(min-width: 768px) 50vw, 100vw"`.
+   */
+  sizes?: string;
 }
 
-function Media({ asset, priority = false, fit, className, ...props }: MediaProps) {
+/** Les largeurs proposées au navigateur, quand l'hébergeur de l'image sait la redimensionner. */
+const WIDTHS = [640, 960, 1280, 1920];
+
+/**
+ * Les tailles d'une image d'un hébergeur qui redimensionne à la demande (Pexels, Unsplash) ; rien pour les autres
+ * (le visuel est alors servi tel quel). Un téléphone télécharge ainsi ~1 280 px au lieu de ~1 900.
+ */
+function responsiveSrcSet(src: string): string | undefined {
+  let url: URL;
+  try {
+    url = new URL(src);
+  } catch {
+    return undefined;
+  }
+  const host = url.hostname;
+  if (host !== 'images.pexels.com' && host !== 'images.unsplash.com') return undefined;
+  return WIDTHS.map((width) => {
+    const sized = new URL(url.href);
+    sized.searchParams.delete('h');
+    sized.searchParams.set('w', String(width));
+    if (host === 'images.pexels.com') {
+      sized.searchParams.set('dpr', '1');
+      sized.searchParams.set('auto', 'compress');
+      sized.searchParams.set('cs', 'tinysrgb');
+    } else {
+      sized.searchParams.set('auto', 'format');
+      sized.searchParams.set('q', sized.searchParams.get('q') ?? '75');
+    }
+    return `${sized.href} ${width}w`;
+  }).join(', ');
+}
+
+/**
+ * Un cadre sans taille (ni ratio, ni hauteur, ni position absolue) prend la hauteur de l'image une fois chargée : la
+ * page saute (CLS). Un ratio par défaut lui réserve sa place dès le premier affichage.
+ */
+const SIZED = /(^|\s)([\w[\]&:-]+:)?(aspect-|h-|min-h-|size-|inset-|absolute|fixed|row-span-|self-stretch|flex-1|grow)/;
+
+function Media({ asset, priority = false, fit, sizes, className, ...props }: MediaProps) {
   // Une image qui ne se charge pas (adresse expirée, réseau) : le cadre
   // disparaît plutôt que d'afficher son texte de remplacement.
   const [failed, setFailed] = React.useState(false);
@@ -50,8 +93,12 @@ function Media({ asset, priority = false, fit, className, ...props }: MediaProps
     );
   }
 
+  const srcSet = asset.kind === 'image' ? responsiveSrcSet(asset.src) : undefined;
+  // `fetchpriority` en minuscules : React 18 le transmet tel quel (sa forme camelCase n'existe qu'à partir de 19).
+  const eager = priority ? ({ fetchpriority: 'high' } as Record<string, string>) : {};
+
   return (
-    <div className={cn('relative overflow-hidden bg-muted', className)} {...props}>
+    <div className={cn('relative overflow-hidden bg-muted', !SIZED.test(className ?? '') && 'aspect-[4/3]', className)} {...props}>
       {asset.kind === 'video' ? (
         <video
           className={cn('block size-full', objectFit)}
@@ -69,8 +116,11 @@ function Media({ asset, priority = false, fit, className, ...props }: MediaProps
           ref={image}
           className={cn('block size-full', objectFit)}
           src={asset.src}
+          srcSet={srcSet}
+          sizes={srcSet ? (sizes ?? '100vw') : undefined}
           alt={asset.alt ?? ''}
           loading={priority ? 'eager' : 'lazy'}
+          {...eager}
           onError={() => setFailed(true)}
           decoding="async"
         />

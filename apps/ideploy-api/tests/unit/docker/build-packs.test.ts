@@ -12,6 +12,7 @@ import {
   buildDirectory,
   detectBuildPack,
   planBuild,
+  STATIC_NGINX_CONF,
   toBuildPack,
 } from '../../../api/docker/build-packs';
 
@@ -262,5 +263,25 @@ describe('dockerfile plan — monorepo layout', () => {
   it('defaults to ./Dockerfile', () => {
     const plan = planBuild('dockerfile', { srcDir: '/w/src', workdir: '/w', imageTag: 't', port: 3000 });
     expect(plan.steps[0].command).toContain("docker build -f 'Dockerfile' -t 't' .");
+  });
+});
+
+describe('static nginx configuration', () => {
+  it('compresses text and keeps the SPA fallback', () => {
+    expect(STATIC_NGINX_CONF).toMatch(/gzip on;/);
+    expect(STATIC_NGINX_CONF).toMatch(/gzip_types[^;]*application\/javascript[^;]*text\/css|gzip_types[^;]*text\/css[^;]*application\/javascript/);
+    expect(STATIC_NGINX_CONF).toContain('try_files $uri $uri/ /index.html;');
+  });
+
+  it('caches only content-hashed files for a year, and always revalidates HTML', () => {
+    // A regex with `{n,}` must be quoted, or nginx reads the brace as the start of the block.
+    expect(STATIC_NGINX_CONF).toMatch(/location ~\* "\^\/assets\/[^"]*\{8,\}[^"]*" \{/);
+    expect(STATIC_NGINX_CONF).toMatch(/immutable/);
+    expect(STATIC_NGINX_CONF).toMatch(/location ~\* \\\.html\?\$ \{\s*add_header Cache-Control "no-cache"/);
+    const hashed = new RegExp(STATIC_NGINX_CONF.match(/location ~\* "([^"]+)"/)![1], 'i');
+    expect(hashed.test('/assets/index-B1x2y3z4.js')).toBe(true);
+    expect(hashed.test('/assets/fonts/font-0123456789ab.woff2')).toBe(true);
+    expect(hashed.test('/assets/logo.png')).toBe(false);
+    expect(hashed.test('/assets/app.js')).toBe(false);
   });
 });

@@ -129,6 +129,30 @@ export async function buildStaticSite(): Promise<PublishFiles> {
   return files;
 }
 
+/** Ce que le contrôle du site construit a relevé (`scripts/postbuild.mjs` des sites vitrines, template ≥ 1.4). */
+export interface BuildReport {
+  /** Ce qui prive une page de son référencement : pas de texte pré-rendu, pas de titre, pas de description, pas de h1. */
+  errors: string[];
+  warnings: string[];
+}
+
+/**
+ * Le bilan de la dernière construction, s'il existe (un site d'avant ou une application n'en écrivent pas).
+ * Lu après `buildStaticSite` ; ne fait jamais échouer une publication.
+ */
+export async function readBuildReport(): Promise<BuildReport | null> {
+  try {
+    const container = await getWebContainerInstance();
+    if (!container) return null;
+    const raw = JSON.parse(await container.fs.readFile('.idem/build-report.json', 'utf-8'));
+    const errors = Array.isArray(raw?.seo?.errors) ? raw.seo.errors.filter((line: unknown) => typeof line === 'string') : [];
+    const warnings = Array.isArray(raw?.seo?.warnings) ? raw.seo.warnings.filter((line: unknown) => typeof line === 'string') : [];
+    return { errors, warnings };
+  } catch {
+    return null;
+  }
+}
+
 /** Envoie à iDeploy (création, ou mise à jour des mêmes applications). */
 export async function publishToIdeploy(options: {
   name: string;

@@ -13,6 +13,7 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import idemDesignSystem from './scripts/design-system/vite-plugin.mjs';
 import idemPages, { virtualPages } from './scripts/pages/vite-plugin.mjs';
+import idemMotion from './scripts/motion/vite-plugin.mjs';
 
 const here = (path: string) => fileURLToPath(new URL(path, import.meta.url));
 
@@ -74,7 +75,7 @@ const PREBUNDLED = [
 ];
 
 export default defineConfig({
-  plugins: [idemPages(), idemDesignSystem(), react()],
+  plugins: [idemPages(), idemDesignSystem(), idemMotion(), react()],
   resolve: {
     alias: { '@': here('src') },
   },

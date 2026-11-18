@@ -42,7 +42,9 @@ export function renderPackageJson(projectData: ProjectModel | undefined): string
       type: 'module',
       scripts: {
         dev: 'vite',
-        build: 'vite build && node scripts/prerender.mjs',
+        // Construction, pré-rendu, puis polices servies par le site, CSS dans la page et contrôle du HTML final
+        // (bilan dans `.idem/build-report.json`, jamais publié).
+        build: 'vite build && node scripts/prerender.mjs && node scripts/postbuild.mjs',
         preview: 'vite preview',
       },
       dependencies: sortKeys({ ...SITE_DEPENDENCIES, ...extra }),
@@ -97,11 +99,19 @@ ${alternates}${options.icons?.favicon ? `    <link rel="icon" href="${escapeHtml
 `;
 }
 
-/** Point d'entrée d'une page : reprend le HTML pré-rendu s'il existe, sinon rend. */
+/**
+ * Point d'entrée d'une page : reprend le HTML pré-rendu s'il existe, sinon rend.
+ *
+ * `LazyMotion` fournit les fonctions d'animation à toute la page : à la construction, le plugin Motion du template
+ * (`scripts/motion/vite-plugin.mjs`) remplace `motion` par son jumeau léger `m` et, si le site n'anime ni glisser ni
+ * disposition, `domMax` par `domAnimation`. Sans ce plugin (un site resté sur un template d'avant), l'entrée marche
+ * telle quelle : toutes les fonctions, rien de réécrit. `__IDEM_HYDRATING__` dit aux sections différées
+ * (`SectionBoundary defer`) que la page est reprise d'un HTML pré-rendu.
+ */
 export function renderEntry(pageKey: string): string {
   return `import { StrictMode } from 'react';
 import { createRoot, hydrateRoot } from 'react-dom/client';
-import { MotionConfig } from 'motion/react';
+import { LazyMotion, MotionConfig, domMax } from 'motion/react';
 import { motionTokens } from '@/design-system';
 import Page from '../pages/${pageKey}.tsx';
 import '../styles/index.css';
@@ -109,14 +119,18 @@ import '../styles/index.css';
 const root = document.getElementById('root')!;
 const app = (
   <StrictMode>
-    <MotionConfig reducedMotion={motionTokens.respectReducedMotion ? 'user' : 'never'}>
-      <Page />
-    </MotionConfig>
+    <LazyMotion features={domMax}>
+      <MotionConfig reducedMotion={motionTokens.respectReducedMotion ? 'user' : 'never'}>
+        <Page />
+      </MotionConfig>
+    </LazyMotion>
   </StrictMode>
 );
 
-if (root.hasChildNodes()) hydrateRoot(root, app);
-else createRoot(root).render(app);
+if (root.hasChildNodes()) {
+  (window as Window & { __IDEM_HYDRATING__?: boolean }).__IDEM_HYDRATING__ = true;
+  hydrateRoot(root, app);
+} else createRoot(root).render(app);
 `;
 }
 
@@ -154,11 +168,14 @@ const SKIPPED = 'idem:skipped';
 const importLine = (name: string, path: string, ok: boolean) =>
   `${ok ? '' : `// ${SKIPPED} `}import ${name} from '${path}';`;
 
-/** Sa place dans la page ; un commentaire marqué s'il n'est pas affiché, pour qu'une correction l'y remette. */
-const slot = (name: string, element: string, ok: boolean, indent: string) =>
+/**
+ * Sa place dans la page ; un commentaire marqué s'il n'est pas affiché, pour qu'une correction l'y remette.
+ * `defer` : hydratée à l'approche de l'écran (tout sauf l'en-tête et la première section, voir `SectionBoundary`).
+ */
+const slot = (name: string, element: string, ok: boolean, indent: string, defer = false) =>
   ok
-    ? `${indent}<SectionBoundary name="${name}">\n${indent}  ${element}\n${indent}</SectionBoundary>`
-    : `${indent}{/* ${SKIPPED} ${element} */}`;
+    ? `${indent}<SectionBoundary name="${name}"${defer ? ' defer' : ''}>\n${indent}  ${element}\n${indent}</SectionBoundary>`
+    : `${indent}{/* ${SKIPPED}${defer ? ' defer' : ''} ${element} */}`;
 
 /**
  * Une page assemblée : en-tête, sections dans l'ordre du manifeste, pied de
@@ -186,9 +203,9 @@ export default function ${pageComponentName(page)}() {
     <>
 ${slot('SiteHeader', `<SiteHeader current="${page.path}" />`, frame.header, '      ')}
       <main id="contenu">
-${sections.map((entry) => slot(entry.name, `<${entry.name} />`, entry.ok, '        ')).join('\n')}
+${sections.map((entry, index) => slot(entry.name, `<${entry.name} />`, entry.ok, '        ', index > 0)).join('\n')}
       </main>
-${slot('SiteFooter', '<SiteFooter />', frame.footer, '      ')}
+${slot('SiteFooter', '<SiteFooter />', frame.footer, '      ', true)}
     </>
   );
 }
@@ -269,8 +286,9 @@ export function restoreInPage(page: string, names: string[]): string {
   for (const name of names) {
     out = out.replace(new RegExp(`^// ${SKIPPED} (import ${name} from [^\\n]+)$`, 'm'), '$1');
     out = out.replace(
-      new RegExp(`^(\\s*)\\{/\\* ${SKIPPED} (<${name}\\b[^*]*?/>) \\*/\\}$`, 'm'),
-      (_match, indent: string, element: string) => `${indent}<SectionBoundary name="${name}">\n${indent}  ${element}\n${indent}</SectionBoundary>`
+      new RegExp(`^(\\s*)\\{/\\* ${SKIPPED}( defer)? (<${name}\\b[^*]*?/>) \\*/\\}$`, 'm'),
+      (_match, indent: string, defer: string | undefined, element: string) =>
+        `${indent}<SectionBoundary name="${name}"${defer ? ' defer' : ''}>\n${indent}  ${element}\n${indent}</SectionBoundary>`
     );
   }
   return out;
