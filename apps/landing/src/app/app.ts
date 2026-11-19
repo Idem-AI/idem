@@ -1,7 +1,6 @@
-import { Component, inject, OnInit, signal, PLATFORM_ID, Inject } from '@angular/core';
-import { CommonModule, isPlatformBrowser } from '@angular/common';
+import { Component, inject, OnInit, PLATFORM_ID, Inject } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { RouterOutlet, Router, NavigationEnd } from '@angular/router';
-import { SplashScreenComponent } from './components/splash-screen/splash-screen';
 import { filter } from 'rxjs/operators';
 
 import { AnalyticsService } from './shared/services/analytics.service';
@@ -12,7 +11,7 @@ import { Footer } from './components/footer/footer';
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, CommonModule, SplashScreenComponent, Header, Footer],
+  imports: [RouterOutlet, Header, Footer],
   templateUrl: './app.html',
   styleUrl: './app.css',
 })
@@ -26,15 +25,9 @@ export class App implements OnInit {
   // sync across Idem apps (SSR-safe).
   private readonly themeService = inject(ThemeService);
 
-  // Signal pour contrôler l'affichage du splash screen
-  protected readonly isInitialLoading = signal(true);
-
   constructor(@Inject(PLATFORM_ID) private platformId: Object) {}
 
   ngOnInit(): void {
-    // Masquer le splash screen après le chargement initial
-    this.hideInitialSplashScreen();
-
     this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe(() => {
       if (isPlatformBrowser(this.platformId)) {
         setTimeout(() => {
@@ -42,35 +35,6 @@ export class App implements OnInit {
         }, 0);
       }
     });
-  }
-
-  private hideInitialSplashScreen(): void {
-    // Only run in browser (not during SSR)
-    if (!isPlatformBrowser(this.platformId)) {
-      this.isInitialLoading.set(false);
-      return;
-    }
-
-    const MIN_SPLASH_DURATION = 2000; // Durée minimale de 2 secondes
-    const startTime = Date.now();
-
-    const hideSplash = () => {
-      const elapsedTime = Date.now() - startTime;
-      const remainingTime = Math.max(0, MIN_SPLASH_DURATION - elapsedTime);
-
-      setTimeout(() => {
-        this.isInitialLoading.set(false);
-      }, remainingTime);
-    };
-
-    // Attendre que les composants soient initialisés
-    if (document.readyState === 'complete') {
-      // Page déjà chargée
-      hideSplash();
-    } else {
-      // Attendre le chargement complet
-      window.addEventListener('load', hideSplash, { once: true });
-    }
   }
 
   protected resetPosition() {

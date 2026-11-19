@@ -121,6 +121,100 @@
     />
   </head>
   <body>
+    <!-- Native splash: visible immediately before Angular loads, avoids SSR hydration race -->
+    <style>
+      #idem-native-splash {
+        position: fixed;
+        inset: 0;
+        z-index: 10000;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        gap: 1.5rem;
+        background-color: oklch(0.95 0.005 264);
+        transition: opacity 0.6s ease-out;
+      }
+      .dark #idem-native-splash {
+        background-color: oklch(0.1 0.01 264);
+      }
+      #idem-native-splash.fade-out {
+        opacity: 0;
+        pointer-events: none;
+      }
+      #idem-native-splash img {
+        width: 160px;
+        height: auto;
+      }
+      #idem-native-splash .ns-logo-light { display: block; }
+      #idem-native-splash .ns-logo-dark  { display: none; }
+      .dark #idem-native-splash .ns-logo-light { display: none; }
+      .dark #idem-native-splash .ns-logo-dark  { display: block; }
+      #idem-native-splash .ns-dots {
+        display: flex;
+        gap: 0.5rem;
+      }
+      #idem-native-splash .ns-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background-color: oklch(0.75 0.01 264);
+        transition: background-color 0.3s ease, transform 0.3s ease;
+      }
+      .dark #idem-native-splash .ns-dot {
+        background-color: oklch(0.3 0.01 264);
+      }
+      #idem-native-splash .ns-dot.active {
+        background-color: oklch(0.5 0.22 264);
+        transform: scale(1.2);
+      }
+    </style>
+    <div id="idem-native-splash" aria-hidden="true">
+      <img class="ns-logo-light" src="/assets/icons/logo_white.png" alt="">
+      <img class="ns-logo-dark"  src="/assets/icons/logo_dark.png"  alt="">
+      <div class="ns-dots">
+        <div class="ns-dot" id="ns-d0"></div>
+        <div class="ns-dot" id="ns-d1"></div>
+        <div class="ns-dot" id="ns-d2"></div>
+        <div class="ns-dot" id="ns-d3"></div>
+      </div>
+    </div>
+    <script>
+      (function () {
+        var el = document.getElementById('idem-native-splash');
+        if (!el) return;
+        var dots = [
+          document.getElementById('ns-d0'),
+          document.getElementById('ns-d1'),
+          document.getElementById('ns-d2'),
+          document.getElementById('ns-d3'),
+        ];
+        var progress = 0;
+        var interval = setInterval(function () {
+          progress += 5;
+          dots[0].className = 'ns-dot' + (progress > 0  ? ' active' : '');
+          dots[1].className = 'ns-dot' + (progress > 25 ? ' active' : '');
+          dots[2].className = 'ns-dot' + (progress > 50 ? ' active' : '');
+          dots[3].className = 'ns-dot' + (progress > 75 ? ' active' : '');
+          if (progress >= 100) clearInterval(interval);
+        }, 50);
+        var startTime = Date.now();
+        var MIN_DURATION = 2000;
+        function hide() {
+          var elapsed = Date.now() - startTime;
+          var wait = Math.max(0, MIN_DURATION - elapsed);
+          setTimeout(function () {
+            el.classList.add('fade-out');
+            setTimeout(function () { el.remove(); }, 650);
+          }, wait);
+        }
+        if (document.readyState === 'complete') {
+          hide();
+        } else {
+          window.addEventListener('load', hide, { once: true });
+        }
+      })();
+    </script>
     <app-root></app-root>
   </body>
 </html>
