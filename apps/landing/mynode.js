@@ -53,6 +53,14 @@ export const environment = {
     simulation: {
       url: '${process.env.SERVICES_SIMULATION_URL || (isProduction ? 'https://simulator.idem.africa' : 'http://localhost:4203')}',
     },
+    // iVision et iDomain : la landing présente les deux (/ivision, /idomain)
+    // et renvoie vers leur application.
+    ivision: {
+      url: '${process.env.SERVICES_IVISION_URL || (isProduction ? 'https://ivision.idem.africa' : 'http://localhost:4204')}',
+    },
+    idomain: {
+      url: '${process.env.SERVICES_IDOMAIN_URL || (isProduction ? 'https://idomain.idem.africa' : 'http://localhost:4205')}',
+    },
   },
 };`;
 // trigger ci/cd

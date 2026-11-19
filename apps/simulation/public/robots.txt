@@ -1,4 +1,4 @@
-# IDEM Simulator — https://simulator.idem.africa
+# iSimulator — https://simulator.idem.africa
 # Généré par packages/shared-seo (npm run seo:sync), ne pas éditer à la main.
 # Seule l’entrée publique est indexée : le reste est l’espace privé des utilisateurs.
 

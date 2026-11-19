@@ -1,7 +1,7 @@
 {
   "locale": "en",
   "translations": {
-    "footer.description": " Africa's first sovereign open source AI platform. Built in Cameroon for pan-African tech entrepreneurship. ",
+    "footer.description": "The African AI that builds profitable businesses. Built in Cameroon, for the whole of Africa.",
     "footer.aria.github": "Visit Idem Engine on GitHub",
     "footer.aria.linkedin": "Visit Idem Engine on LinkedIn",
     "footer.aria.x": "Visit Idem Engine on X",
@@ -10,7 +10,7 @@
     "footer.col.product": "Product",
     "footer.idev": "iCode",
     "footer.ideploy": "iDeploy",
-    "footer.simulator": "IDEM Simulator",
+    "footer.simulator": "iSimulator",
     "footer.pricing": "Pricing",
     "footer.col.resources": "Resources",
     "footer.openSource": "Open Source",
@@ -25,6 +25,7 @@
     "footer.termsOfService": "Terms of Service",
     "footer.apacheLicense": "Apache 2.0 License",
     "footer.aria.language": "Language",
-    "footer.blog": "Blog"
+    "footer.blog": "Blog",
+    "footer.aria.nav": "Footer navigation"
   }
 }

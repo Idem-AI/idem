@@ -78,13 +78,6 @@ import { LanguageService } from '../../core/language.service';
         <button type="button" class="inner-button button-lg" (click)="backToSearch()">{{ 'home.closing.cta' | translate }}</button>
       </div>
     </section>
-
-    <footer class="border-t border-[var(--glass-border-subtle)] py-8">
-      <div class="idm-wrap flex flex-wrap items-center justify-between gap-4 text-xs text-[var(--color-text-tertiary)]">
-        <span>{{ 'home.footer.by' | translate }}</span>
-        <span>{{ 'home.footer.currency' | translate }}</span>
-      </div>
-    </footer>
   `,
 })
 export class HomePage {

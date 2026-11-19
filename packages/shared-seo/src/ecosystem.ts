@@ -46,6 +46,20 @@ export const IDEM = {
 } as const;
 
 /**
+ * Ce qu'IDEM **est**, en une ligne. À ne pas confondre avec `PROMISE`, qui dit
+ * ce que l'utilisateur **fait**.
+ *
+ * C'est la définition officielle, et la seule : les pieds de page, les textes
+ * alternatifs des logos et les descriptions de partage la lisent ici. Avant,
+ * chacun portait sa copie (« la première plateforme d'IA souveraine et open
+ * source d'Afrique »), et elles ont vieilli séparément.
+ */
+export const DEFINITION: Localized = {
+  fr: 'L’IA africaine qui crée des business rentables',
+  en: 'The African AI that builds profitable businesses',
+};
+
+/**
  * La promesse. C'est le message principal d'IDEM, partout : on ne vend pas
  * un outil pour créer une entreprise, on aide à créer et lancer un business
  * qui rapporte.
@@ -58,7 +72,7 @@ export const PROMISE: Localized = {
 /** La promesse développée, pour les descriptions longues. */
 export const PROMISE_LONG: Localized = {
   fr:
-    "IDEM vous aide à créer et lancer un business rentable : business plan et prévisions financières, " +
+    'IDEM vous aide à créer et lancer un business rentable : business plan et prévisions financières, ' +
     'test de viabilité avant d’investir, marque, papiers, application, mise en ligne, puis visuels et vidéos pour vous faire connaître. ' +
     'Chaque service marche seul ; ensemble, ils mènent de l’idée aux premiers clients.',
   en:
@@ -67,7 +81,7 @@ export const PROMISE_LONG: Localized = {
     'Each service works on its own; together they take you from idea to first customers.',
 };
 
-export type ServiceId = 'business' | 'simulator' | 'icode' | 'ideploy' | 'ivision';
+export type ServiceId = 'business' | 'simulator' | 'icode' | 'ideploy' | 'idomain' | 'ivision';
 
 export interface EcosystemService {
   id: ServiceId;
@@ -137,15 +151,15 @@ export const SERVICES: Record<ServiceId, EcosystemService> = {
   },
   simulator: {
     id: 'simulator',
-    name: 'IDEM Simulator',
+    name: 'iSimulator',
     url: 'https://simulator.idem.africa',
     landingPath: '/simulator',
     step: 2,
     category: 'BusinessApplication',
     role: { fr: 'Tester la rentabilité', en: 'Test profitability' },
     title: {
-      fr: 'IDEM Simulator — Testez la rentabilité avant de lancer',
-      en: 'IDEM Simulator — Test profitability before you launch',
+      fr: 'iSimulator — Testez la rentabilité avant de lancer',
+      en: 'iSimulator — Test profitability before you launch',
     },
     description: {
       fr: 'Mettez votre business à l’épreuve avant d’investir : scénarios, stress tests, points de rupture et conditions de rentabilité, dans un rapport clair.',
@@ -236,12 +250,47 @@ export const SERVICES: Record<ServiceId, EcosystemService> = {
       ],
     },
   },
+  idomain: {
+    id: 'idomain',
+    name: 'iDomain',
+    url: 'https://idomain.idem.africa',
+    landingPath: '/idomain',
+    step: 5,
+    category: 'BusinessApplication',
+    role: { fr: 'Donner son nom au business', en: 'Give the business its name' },
+    title: {
+      fr: 'iDomain — Votre nom de domaine, payé en mobile money',
+      en: 'iDomain — Your domain name, paid by mobile money',
+    },
+    description: {
+      fr: 'Achetez votre nom de domaine depuis votre portefeuille IDEM : il est enregistré à votre nom, relié à votre site et sécurisé en HTTPS, sans aucun réglage technique.',
+      en: 'Buy your domain name from your IDEM wallet: registered in your name, connected to your site and secured with HTTPS, with no technical setup at all.',
+    },
+    features: {
+      fr: [
+        'Achat payé en mobile money, depuis le portefeuille IDEM',
+        'Nom enregistré à votre nom, en moins d’une minute',
+        'DNS écrits et tenus à jour pour vous',
+        'Certificat HTTPS obtenu et renouvelé tout seul',
+        'Relié en un geste à une application iDeploy ou iCode',
+        'Renouvellement annoncé à l’avance, avec son prix',
+      ],
+      en: [
+        'Paid by mobile money, from the IDEM wallet',
+        'Registered in your name, in under a minute',
+        'DNS records written and kept up to date for you',
+        'HTTPS certificate obtained and renewed automatically',
+        'Connected to an iDeploy or iCode app in one move',
+        'Renewal announced ahead of time, with its price',
+      ],
+    },
+  },
   ivision: {
     id: 'ivision',
     name: 'iVision',
     url: 'https://ivision.idem.africa',
-    landingPath: null,
-    step: 5,
+    landingPath: '/ivision',
+    step: 6,
     category: 'DesignApplication',
     role: { fr: 'Faire connaître le business', en: 'Get the business known' },
     title: {
@@ -275,7 +324,7 @@ export const SERVICES: Record<ServiceId, EcosystemService> = {
 
 /** Les services dans l'ordre du parcours. */
 export const WORKFLOW: readonly EcosystemService[] = Object.values(SERVICES).sort(
-  (a, b) => a.step - b.step,
+  (a, b) => a.step - b.step
 );
 
 /** Le titre complet d'une page : « Titre | IDEM », sauf s'il nomme déjà IDEM. */

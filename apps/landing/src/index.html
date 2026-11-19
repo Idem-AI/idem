@@ -67,7 +67,7 @@
         }
       })();
     </script>
-    <title i18n="@@seo.home.title">IDEM — The AI that builds profitable businesses</title>
+    <title i18n="@@seo.home.title">IDEM — The African AI that builds profitable businesses</title>
     <base href="/" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="light dark" />
@@ -96,7 +96,7 @@
     <meta
       property="og:title"
       i18n-content="@@seo.home.title"
-      content="IDEM — The AI that builds profitable businesses"
+      content="IDEM — The African AI that builds profitable businesses"
     />
     <meta
       property="og:description"
@@ -168,10 +168,22 @@
         background-color: oklch(0.5 0.22 264);
         transform: scale(1.2);
       }
+      #idem-native-splash .ns-tagline {
+        font-size: 0.8125rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        opacity: 0.6;
+        color: oklch(0.2 0.01 264);
+        font-family: system-ui, sans-serif;
+      }
+      .dark #idem-native-splash .ns-tagline {
+        color: oklch(0.85 0.005 264);
+      }
     </style>
     <div id="idem-native-splash" aria-hidden="true">
       <img class="ns-logo-light" src="/assets/icons/logo_white.png" alt="">
       <img class="ns-logo-dark"  src="/assets/icons/logo_dark.png"  alt="">
+      <div class="ns-tagline" id="ns-tagline"></div>
       <div class="ns-dots">
         <div class="ns-dot" id="ns-d0"></div>
         <div class="ns-dot" id="ns-d1"></div>
@@ -183,6 +195,13 @@
       (function () {
         var el = document.getElementById('idem-native-splash');
         if (!el) return;
+        var tagline = document.getElementById('ns-tagline');
+        if (tagline) {
+          var isFr = window.location.pathname.startsWith('/fr');
+          tagline.textContent = isFr
+            ? 'Africain, toi aussi tu peux créer'
+            : 'African, you too can build';
+        }
         var dots = [
           document.getElementById('ns-d0'),
           document.getElementById('ns-d1'),
@@ -199,7 +218,7 @@
           if (progress >= 100) clearInterval(interval);
         }, 50);
         var startTime = Date.now();
-        var MIN_DURATION = 2000;
+        var MIN_DURATION = 3000;
         function hide() {
           var elapsed = Date.now() - startTime;
           var wait = Math.max(0, MIN_DURATION - elapsed);

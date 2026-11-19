@@ -65,6 +65,12 @@ export const environment = {
     diagen: {
       url: '${isProduction ? 'http://chart.idem.africa' : 'http://localhost:3002'}',
     },
+    ivision: {
+      url: '${isProduction ? 'https://ivision.idem.africa' : 'http://localhost:4204'}',
+    },
+    idomain: {
+      url: '${isProduction ? 'https://idomain.idem.africa' : 'http://localhost:4205'}',
+    },
   },
 };
 `;

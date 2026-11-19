@@ -1,0 +1,170 @@
+<!-- iDomain. La façade ndebele peinte dit « l'adresse à son nom », reconnue de
+     loin — le même objet que la maison de l'accueil d'iDomain et que la section
+     « domaine » d'iDeploy ; la porte de grenier et sa serrure disent « c'est à
+     vous, et vous en avez la clé » (AGENTS.md § 4). -->
+<div class="ed-page">
+  <!-- ═══ La promesse ══════════════════════════════════════════════════ -->
+  <header class="ed-section ed-section-hero ed-wrap">
+    <h1 class="ed-display ed-rise">
+      <span i18n="@@idomain-page.hero.line1">Your name,</span><br />
+      <span class="i-underline" i18n="@@idomain-page.hero.line2">online.</span>
+    </h1>
+
+    <div class="grid gap-12 ed-mt-12 ed-mt-lg-16 lg:grid-cols-12 lg:gap-16 lg:items-center">
+      <div class="lg:col-span-6 ed-rise ed-rise-2">
+        <p class="ed-lede ed-lede-wide" i18n="@@idomain-page.hero.lede">
+          Buy your domain name from your IDEM wallet, in mobile money. It is registered in your
+          name, connected to your site and secured with HTTPS — and you set nothing up.
+        </p>
+        <div class="flex flex-col gap-3 sm:flex-row ed-mt-10">
+          <a [href]="idomainUrl" class="inner-button">
+            <ng-container i18n="@@idomain-page.hero.cta">Find my name</ng-container>
+          </a>
+          <a routerLink="/pricing" class="outer-button">
+            <ng-container i18n="@@idomain-page.hero.pricing">See the prices</ng-container>
+          </a>
+        </div>
+      </div>
+
+      <figure class="lg:col-span-6 ed-art ed-art-fill ed-rise ed-rise-3">
+        <app-page-art scene="facade" />
+      </figure>
+    </div>
+  </header>
+
+  <!-- ═══ Après le paiement ═══════════════════════════════════════════
+       Quatre étapes, avec leurs délais réels : c'est la seule chose qu'un
+       acheteur veut savoir, et elle est rarement écrite. -->
+  <section class="ed-rule">
+    <div class="ed-section ed-wrap">
+      <div class="grid gap-12 lg:grid-cols-12 lg:gap-16">
+        <div class="lg:col-span-5">
+          <h2 class="ed-h2" i18n="@@idomain-page.setup.title">You pay. IDEM does the rest.</h2>
+          <p class="ed-body ed-mt-6" i18n="@@idomain-page.setup.body">
+            You can close the page: the installation carries on without you, and you find its state
+            again under « My domains ».
+          </p>
+        </div>
+
+        <ol class="lg:col-span-7 ed-rows ed-rows-closed">
+          @for (step of setup; track step.title; let i = $index) {
+            <li class="ed-row grid gap-x-8 gap-y-3 sm:grid-cols-[5rem_1fr] sm:items-baseline">
+              <p class="idm-step">{{ i + 1 }}</p>
+              <div>
+                <h3 class="ed-h3">{{ step.title }}</h3>
+                <p class="ed-body ed-mt-2">{{ step.description }}</p>
+                <p class="idm-when ed-mt-3">{{ step.when }}</p>
+              </div>
+            </li>
+          }
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ Inclus avec chaque nom ══════════════════════════════════════ -->
+  <section class="ed-rule">
+    <div class="ed-section ed-wrap">
+      <h2 class="ed-h2 max-w-3xl" i18n="@@idomain-page.included.title">Included with every name</h2>
+      <p class="ed-lede ed-lede-wide ed-mt-8" i18n="@@idomain-page.included.lede">
+        Not an upsell list: everything below comes with the name, at the price shown.
+      </p>
+
+      <ul class="ed-rows ed-rows-2 ed-rows-closed ed-mt-12 ed-mt-lg-16">
+        @for (item of included; track item.title) {
+          <li class="ed-row">
+            <h3 class="ed-h3">{{ item.title }}</h3>
+            <p class="ed-body ed-mt-2">{{ item.description }}</p>
+          </li>
+        }
+      </ul>
+    </div>
+  </section>
+
+  <!-- ═══ Ce qui est garanti ══════════════════════════════════════════ -->
+  <section class="ed-rule">
+    <div class="ed-section ed-wrap">
+      <div class="grid gap-14 lg:grid-cols-12 lg:gap-16 lg:items-center">
+        <div class="lg:col-span-6">
+          <h2 class="ed-h2" i18n="@@idomain-page.guarantees.title">One price, and no surprises</h2>
+          <p class="ed-lede ed-mt-8" i18n="@@idomain-page.guarantees.lede">
+            The same price whenever you buy. What a registrar can promise is narrow, so here is
+            exactly what we do promise — and the registration rules say the rest, including what we
+            cannot change.
+          </p>
+
+          <ul class="ed-rows ed-rows-closed ed-mt-10">
+            @for (guarantee of guarantees; track guarantee.title) {
+              <li class="ed-row">
+                <h3 class="ed-h3">{{ guarantee.title }}</h3>
+                <p class="ed-body ed-mt-2">{{ guarantee.description }}</p>
+              </li>
+            }
+          </ul>
+
+          <div class="ed-mt-10 flex flex-col gap-3 sm:flex-row">
+            <a [href]="idomainUrl" class="inner-button">
+              <ng-container i18n="@@idomain-page.guarantees.cta">Find my name</ng-container>
+            </a>
+            <a routerLink="/terms/idomain" class="outer-button">
+              <ng-container i18n="@@idomain-page.guarantees.rules"
+                >Read the registration rules</ng-container
+              >
+            </a>
+          </div>
+        </div>
+
+        <div class="lg:col-span-6">
+          <figure class="ed-art ed-art-fill mx-auto lg:mx-0">
+            <app-page-art scene="granary-lock" />
+          </figure>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ Déjà en ligne avec IDEM ═════════════════════════════════════ -->
+  <section class="ed-rule">
+    <div class="ed-section ed-wrap">
+      <div class="grid gap-12 lg:grid-cols-12 lg:gap-16">
+        <div class="lg:col-span-5">
+          <h2 class="ed-h2" i18n="@@idomain-page.apps.title">Already online with IDEM?</h2>
+          <p class="ed-body ed-mt-6" i18n="@@idomain-page.apps.body">
+            In iDeploy as in iCode, you buy the name without leaving your application: it connects
+            itself to the site you have just put online. No redirection, no second account, the same
+            wallet.
+          </p>
+        </div>
+
+        <ul class="lg:col-span-7 ed-rows">
+          @for (link of ecosystem; track link.name) {
+            <li>
+              <a [href]="link.href" class="ed-link-row">
+                <span>
+                  <span class="ed-h3 block">{{ link.name }}</span>
+                  <span class="ed-body block ed-mt-1">{{ link.description }}</span>
+                </span>
+                <svg
+                  class="ed-link-arrow"
+                  width="28"
+                  height="28"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M4 12h15m0 0l-5.5-5.5M19 12l-5.5 5.5"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </a>
+            </li>
+          }
+        </ul>
+      </div>
+    </div>
+  </section>
+</div>

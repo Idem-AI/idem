@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="12 18 96 54" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-  <!-- IDEM Simulator — tester avant d'investir : le plateau d'awalé, où l'on
+  <!-- iSimulator — tester avant d'investir : le plateau d'awalé, où l'on
        calcule ses coups avant de semer. Le coup joué porte la couleur. -->
   <path d="M16 34 C16 28 20 26 26 26 H94 C100 26 104 28 104 34 V54 C104 60 100 62 94 62 H26 C20 62 16 60 16 54Z" stroke-width="1.6"/>
   <path d="M22 66 L26 62 M98 66 L94 62 M22 66 H98" stroke-width="1.1" opacity=".7"/>

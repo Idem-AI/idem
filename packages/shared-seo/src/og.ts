@@ -15,6 +15,7 @@ export const OG_KEYS = [
   'simulator',
   'icode',
   'ideploy',
+  'idomain',
   'ivision',
   'pricing',
   'about',

@@ -43,6 +43,22 @@
     <priority>0.9</priority>
   </url>
   <url>
+    <loc>https://idem.africa/fr/idomain</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://idem.africa/fr/idomain" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://idem.africa/en/idomain" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://idem.africa/en/idomain" />
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://idem.africa/fr/ivision</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://idem.africa/fr/ivision" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://idem.africa/en/ivision" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://idem.africa/en/ivision" />
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
     <loc>https://idem.africa/fr/about</loc>
     <xhtml:link rel="alternate" hreflang="fr" href="https://idem.africa/fr/about" />
     <xhtml:link rel="alternate" hreflang="en" href="https://idem.africa/en/about" />
@@ -143,6 +159,94 @@
     <xhtml:link rel="alternate" hreflang="fr" href="https://idem.africa/fr/simulation-terms" />
     <xhtml:link rel="alternate" hreflang="en" href="https://idem.africa/en/simulation-terms" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://idem.africa/en/simulation-terms" />
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://idem.africa/fr/cookie-policy</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://idem.africa/fr/cookie-policy" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://idem.africa/en/cookie-policy" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://idem.africa/en/cookie-policy" />
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://idem.africa/fr/subprocessors</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://idem.africa/fr/subprocessors" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://idem.africa/en/subprocessors" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://idem.africa/en/subprocessors" />
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://idem.africa/fr/privacy/icode</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://idem.africa/fr/privacy/icode" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://idem.africa/en/privacy/icode" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://idem.africa/en/privacy/icode" />
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://idem.africa/fr/terms/icode</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://idem.africa/fr/terms/icode" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://idem.africa/en/terms/icode" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://idem.africa/en/terms/icode" />
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://idem.africa/fr/privacy/ideploy</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://idem.africa/fr/privacy/ideploy" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://idem.africa/en/privacy/ideploy" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://idem.africa/en/privacy/ideploy" />
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://idem.africa/fr/terms/ideploy</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://idem.africa/fr/terms/ideploy" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://idem.africa/en/terms/ideploy" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://idem.africa/en/terms/ideploy" />
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://idem.africa/fr/privacy/ivision</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://idem.africa/fr/privacy/ivision" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://idem.africa/en/privacy/ivision" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://idem.africa/en/privacy/ivision" />
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://idem.africa/fr/terms/ivision</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://idem.africa/fr/terms/ivision" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://idem.africa/en/terms/ivision" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://idem.africa/en/terms/ivision" />
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://idem.africa/fr/privacy/idomain</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://idem.africa/fr/privacy/idomain" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://idem.africa/en/privacy/idomain" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://idem.africa/en/privacy/idomain" />
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://idem.africa/fr/terms/idomain</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://idem.africa/fr/terms/idomain" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://idem.africa/en/terms/idomain" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://idem.africa/en/terms/idomain" />
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://idem.africa/fr/privacy/simulator</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://idem.africa/fr/privacy/simulator" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://idem.africa/en/privacy/simulator" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://idem.africa/en/privacy/simulator" />
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>

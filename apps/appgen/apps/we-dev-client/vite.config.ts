@@ -115,6 +115,12 @@ export default defineConfig(async ({ mode, command }) => {
           __dirname,
           '../../../../packages/shared-trusted-by/src',
         ),
+        // Le pied de page d'IDEM, partagé par toutes les applications : mêmes
+        // colonnes, mêmes textes juridiques, un rendu par framework.
+        '@idem/shared-footer': path.resolve(__dirname, '../../../../packages/shared-footer/src'),
+        // La source unique de la marque : le pied de page y lit la définition
+        // d'IDEM au lieu d'en garder une copie.
+        '@idem/shared-seo': path.resolve(__dirname, '../../../../packages/shared-seo/src'),
         '@sketch-hq/sketch-file-format-ts': '@sketch-hq/sketch-file-format-ts',
         'ag-psd': 'ag-psd',
       },

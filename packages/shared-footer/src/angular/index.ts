@@ -1,0 +1,1 @@
+export { IdemFooterComponent } from './footer';

@@ -11,9 +11,11 @@ RUN npm install -g pnpm@8.15.4
 # Copy package files
 COPY package.json package-lock.json tsconfig.base.json ./
 
-# Copy shared packages
-COPY ./packages/shared-styles ./packages/shared-styles
-COPY ./packages/shared-promotions ./packages/shared-promotions
+# Copier les paquets partagés — tous, et non une liste par nom : le client en
+# aliase sept (styles, loader, tour, trusted-by, journey, promotions, idomain,
+# footer) et une liste tenue à la main était déjà incomplète. Les images de
+# développement de la landing, du tableau de bord et d'iDeploy web font pareil.
+COPY ./packages ./packages
 
 # Copy appgen monorepo
 COPY ./apps/appgen ./apps/appgen

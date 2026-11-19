@@ -19,7 +19,9 @@
       <!-- Sidebar Navigation -->
       <aside class="hidden lg:block w-64 shrink-0">
         <div class="sticky top-24 space-y-2">
-          <div class="bg-[var(--glass-bg-subtle)] rounded-lg p-4 backdrop-blur-sm border border-[var(--glass-border)]">
+          <div
+            class="bg-[var(--glass-bg-subtle)] rounded-lg p-4 backdrop-blur-sm border border-[var(--glass-border)]"
+          >
             @if (showVersionSelector && versions.length > 0) {
               <div class="mb-6">
                 <label
@@ -104,7 +106,10 @@
                 <h3 class="text-lg font-semibold text-text-primary" i18n="@@legal.navigation">
                   Navigation
                 </h3>
-                <button (click)="toggleMobileNav()" class="text-text-tertiary hover:text-text-primary">
+                <button
+                  (click)="toggleMobileNav()"
+                  class="text-text-tertiary hover:text-text-primary"
+                >
                   <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
                       stroke-linecap="round"
@@ -155,11 +160,19 @@
               <span class="font-medium text-text-primary" [attr.i18n]="effectiveDateI18n">{{
                 effectiveDate
               }}</span>
+              @if (version) {
+                <span aria-hidden="true" class="mx-2 opacity-50">·</span>
+                <span>{{ versionLabel }}</span
+                >:
+                <span class="font-medium text-text-primary">{{ version }}</span>
+              }
             </span>
           </div>
         </div>
 
-        <div class="bg-[var(--glass-bg-subtle)] rounded-xl border border-[var(--glass-border)] backdrop-blur-sm">
+        <div
+          class="bg-[var(--glass-bg-subtle)] rounded-xl border border-[var(--glass-border)] backdrop-blur-sm"
+        >
           <div class="p-8 md:p-12 space-y-12">
             @for (section of sections; track section.id) {
               <section [id]="section.id" class="scroll-mt-24">
@@ -176,6 +189,12 @@
                     [attr.i18n]="section.contentI18n"
                   >
                     {{ section.content }}
+                  </p>
+                }
+
+                @for (paragraph of section.paragraphs; track $index) {
+                  <p class="text-text-secondary leading-relaxed mb-6 text-base md:text-lg">
+                    {{ paragraph }}
                   </p>
                 }
 
@@ -224,15 +243,58 @@
                         </svg>
                         <span class="flex-1">
                           @if (item.strong) {
-                            <strong class="text-text-primary font-semibold" [attr.i18n]="item.strongI18n"
+                            <strong
+                              class="text-text-primary font-semibold"
+                              [attr.i18n]="item.strongI18n"
                               >{{ item.strong }}:</strong
                             >
                           }
                           <span [attr.i18n]="item.textI18n">{{ item.text }}</span>
+                          @if (item.link) {
+                            <a
+                              [href]="item.link.href"
+                              class="ml-1 text-primary underline underline-offset-4 hover:text-primary/80"
+                              >{{ item.link.label }}</a
+                            >
+                          }
                         </span>
                       </li>
                     }
                   </ul>
+                }
+
+                @if (section.table) {
+                  <div
+                    class="mb-6 overflow-x-auto rounded-lg border border-[var(--glass-border-medium)]"
+                  >
+                    <table class="w-full border-collapse text-left text-sm">
+                      @if (section.table.caption) {
+                        <caption class="px-4 py-3 text-left text-sm text-text-tertiary">
+                          {{
+                            section.table.caption
+                          }}
+                        </caption>
+                      }
+                      <thead class="bg-[var(--glass-bg-light)]">
+                        <tr>
+                          @for (header of section.table.headers; track $index) {
+                            <th scope="col" class="px-4 py-3 font-semibold text-text-primary">
+                              {{ header }}
+                            </th>
+                          }
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (row of section.table.rows; track $index) {
+                          <tr class="border-t border-[var(--glass-border-subtle)]">
+                            @for (cell of row; track $index) {
+                              <td class="px-4 py-3 align-top text-text-secondary">{{ cell }}</td>
+                            }
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
                 }
 
                 @if (section.subsections && section.subsections.length > 0) {
@@ -251,6 +313,9 @@
                         >
                           {{ subsection.content }}
                         </p>
+                        @for (paragraph of subsection.paragraphs; track $index) {
+                          <p class="text-text-secondary leading-relaxed mb-4">{{ paragraph }}</p>
+                        }
                         @if (subsection.list && subsection.list.length > 0) {
                           <ul class="space-y-2">
                             @for (item of subsection.list; track $index) {
@@ -280,6 +345,37 @@
                             }
                           </ul>
                         }
+                        @if (subsection.table) {
+                          <div
+                            class="mt-4 overflow-x-auto rounded-lg border border-[var(--glass-border-medium)]"
+                          >
+                            <table class="w-full border-collapse text-left text-sm">
+                              <thead class="bg-[var(--glass-bg-light)]">
+                                <tr>
+                                  @for (header of subsection.table.headers; track $index) {
+                                    <th
+                                      scope="col"
+                                      class="px-4 py-3 font-semibold text-text-primary"
+                                    >
+                                      {{ header }}
+                                    </th>
+                                  }
+                                </tr>
+                              </thead>
+                              <tbody>
+                                @for (row of subsection.table.rows; track $index) {
+                                  <tr class="border-t border-[var(--glass-border-subtle)]">
+                                    @for (cell of row; track $index) {
+                                      <td class="px-4 py-3 align-top text-text-secondary">
+                                        {{ cell }}
+                                      </td>
+                                    }
+                                  </tr>
+                                }
+                              </tbody>
+                            </table>
+                          </div>
+                        }
                       </div>
                     }
                   </div>
@@ -288,6 +384,30 @@
             }
           </div>
         </div>
+
+        <!-- Les textes voisins : un complément ne se lit pas seul, et le texte
+             global doit dire quels compléments existent. -->
+        @if (related.length > 0) {
+          <div
+            class="mt-12 rounded-xl border border-[var(--glass-border-medium)] bg-[var(--glass-bg-subtle)] p-8"
+          >
+            <h3 class="mb-4 text-xl font-semibold text-text-primary">{{ relatedTitle }}</h3>
+            <ul class="space-y-3">
+              @for (item of related; track item.href) {
+                <li class="text-text-secondary">
+                  <a
+                    [href]="item.href"
+                    class="font-medium text-primary underline underline-offset-4 hover:text-primary/80"
+                    >{{ item.label }}</a
+                  >
+                  @if (item.note) {
+                    <span> — {{ item.note }}</span>
+                  }
+                </li>
+              }
+            </ul>
+          </div>
+        }
 
         <!-- Contact Section -->
         <div

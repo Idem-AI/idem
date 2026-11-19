@@ -24,6 +24,10 @@
     "preserveSymlinks": true,
     "lib": ["ES2022", "dom"],
     "paths": {
+      "@idem/shared-seo": ["./src/app/shared/shared-seo/src"],
+      "@idem/shared-seo/*": ["./src/app/shared/shared-seo/src/*"],
+      "@idem/shared-footer": ["./src/app/shared/shared-footer/src"],
+      "@idem/shared-footer/*": ["./src/app/shared/shared-footer/src/*"],
       "@idem/shared-offline": ["./src/app/shared/shared-offline/src"],
       "@idem/shared-offline/*": ["./src/app/shared/shared-offline/src/*"],
       "@idem/shared-loader": ["./src/app/shared/shared-loader/src"],

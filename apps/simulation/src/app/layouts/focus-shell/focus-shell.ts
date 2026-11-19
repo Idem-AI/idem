@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 
 import { AuthService } from '../../core/auth';
+import { SimulationFooter } from '../footer/footer';
 import { Topbar } from '../topbar/topbar';
 
 /**
@@ -14,7 +15,7 @@ import { Topbar } from '../topbar/topbar';
  */
 @Component({
   selector: 'sim-focus-shell',
-  imports: [RouterOutlet, Topbar],
+  imports: [RouterOutlet, Topbar, SimulationFooter],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="min-h-dvh">
@@ -22,6 +23,10 @@ import { Topbar } from '../topbar/topbar';
       <main id="sim-main" class="pt-16">
         <router-outlet />
       </main>
+
+      <!-- L'écran public du produit : c'est là, surtout, que les conditions de
+           la simulation doivent être à un clic. -->
+      <sim-footer class="mx-auto max-w-6xl px-4 sm:px-6" />
     </div>
   `,
 })

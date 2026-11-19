@@ -13,13 +13,18 @@
       "@idem/shared-auth-client/*": ["packages/shared-auth-client/src/*"],
       "@idem/shared-loader": ["packages/shared-loader/src"],
       "@idem/shared-loader/*": ["packages/shared-loader/src/*"],
+      "@idem/shared-offline": ["packages/shared-offline/src"],
+      "@idem/shared-offline/*": ["packages/shared-offline/src/*"],
       "@idem/shared-seo": ["packages/shared-seo/src"],
+"@idem/shared-seo/*": ["packages/shared-seo/src/*"],
       "@idem/shared-promotions": ["packages/shared-promotions/src"],
       "@idem/shared-promotions/*": ["packages/shared-promotions/src/*"],
       "@idem/shared-styles": ["packages/shared-styles"],
       "@idem/shared-styles/*": ["packages/shared-styles/*"],
       "@idem/shared-trusted-by": ["packages/shared-trusted-by/src"],
-      "@idem/shared-trusted-by/*": ["packages/shared-trusted-by/src/*"]
+      "@idem/shared-trusted-by/*": ["packages/shared-trusted-by/src/*"],
+      "@idem/shared-footer": ["packages/shared-footer/src"],
+      "@idem/shared-footer/*": ["packages/shared-footer/src/*"]
     }
   },
   "include": ["src/**/*.ts"],

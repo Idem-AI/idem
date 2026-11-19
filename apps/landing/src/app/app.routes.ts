@@ -71,6 +71,16 @@ export const routes: Routes = [
     data: { layout: 'public', seo: 'ideploy' },
   },
   {
+    path: 'idomain',
+    loadComponent: () => import('./pages/idomain-page/idomain-page').then((m) => m.IdomainPage),
+    data: { layout: 'public', seo: 'idomain' },
+  },
+  {
+    path: 'ivision',
+    loadComponent: () => import('./pages/ivision-page/ivision-page').then((m) => m.IvisionPage),
+    data: { layout: 'public', seo: 'ivision' },
+  },
+  {
     // La fiche d'un projet admis : rendue dans le navigateur (voir app.routes.server.ts).
     path: 'builders/:slug',
     loadComponent: () =>
@@ -97,17 +107,78 @@ export const routes: Routes = [
       import('./shared/components/delete-account/delete-account').then((m) => m.DeleteAccount),
     data: { layout: 'public', seo: 'delete-account' },
   },
+  // Les textes juridiques passent tous par la même page : l'identifiant du
+  // document (`legalDoc`) désigne son contenu dans `shared/legal/docs`, et son
+  // chemin est celui que déclare `@idem/shared-footer` (LEGAL_DOCS), pour que
+  // les liens des pieds de page des cinq applications ne puissent pas dériver.
+  // `npm run check:legal` échoue si l'un des trois s'écarte des autres.
   {
     path: 'privacy-policy',
-    loadComponent: () =>
-      import('./shared/components/privacy-policy/privacy-policy').then((m) => m.PrivacyPolicy),
-    data: { layout: 'public', seo: 'privacy-policy' },
+    loadComponent: () => import('./shared/legal/legal-page').then((m) => m.LegalPage),
+    data: { layout: 'public', seo: 'privacy-policy', legalDoc: 'privacy-policy' },
   },
   {
     path: 'terms-of-service',
-    loadComponent: () =>
-      import('./shared/components/terms-of-service/terms-of-service').then((m) => m.TermsOfService),
-    data: { layout: 'public', seo: 'terms-of-service' },
+    loadComponent: () => import('./shared/legal/legal-page').then((m) => m.LegalPage),
+    data: { layout: 'public', seo: 'terms-of-service', legalDoc: 'terms-of-service' },
+  },
+  {
+    path: 'cookie-policy',
+    loadComponent: () => import('./shared/legal/legal-page').then((m) => m.LegalPage),
+    data: { layout: 'public', seo: 'cookie-policy', legalDoc: 'cookie-policy' },
+  },
+  {
+    path: 'subprocessors',
+    loadComponent: () => import('./shared/legal/legal-page').then((m) => m.LegalPage),
+    data: { layout: 'public', seo: 'subprocessors', legalDoc: 'subprocessors' },
+  },
+
+  // Les compléments par service. Un complément ne remplace pas le texte
+  // global : il le précise, et l'emporte sur lui pour son seul service.
+  {
+    path: 'privacy/icode',
+    loadComponent: () => import('./shared/legal/legal-page').then((m) => m.LegalPage),
+    data: { layout: 'public', seo: 'icode-privacy', legalDoc: 'icode-privacy' },
+  },
+  {
+    path: 'terms/icode',
+    loadComponent: () => import('./shared/legal/legal-page').then((m) => m.LegalPage),
+    data: { layout: 'public', seo: 'icode-terms', legalDoc: 'icode-terms' },
+  },
+  {
+    path: 'privacy/ideploy',
+    loadComponent: () => import('./shared/legal/legal-page').then((m) => m.LegalPage),
+    data: { layout: 'public', seo: 'ideploy-privacy', legalDoc: 'ideploy-privacy' },
+  },
+  {
+    path: 'terms/ideploy',
+    loadComponent: () => import('./shared/legal/legal-page').then((m) => m.LegalPage),
+    data: { layout: 'public', seo: 'ideploy-terms', legalDoc: 'ideploy-terms' },
+  },
+  {
+    path: 'privacy/ivision',
+    loadComponent: () => import('./shared/legal/legal-page').then((m) => m.LegalPage),
+    data: { layout: 'public', seo: 'ivision-privacy', legalDoc: 'ivision-privacy' },
+  },
+  {
+    path: 'terms/ivision',
+    loadComponent: () => import('./shared/legal/legal-page').then((m) => m.LegalPage),
+    data: { layout: 'public', seo: 'ivision-terms', legalDoc: 'ivision-terms' },
+  },
+  {
+    path: 'privacy/idomain',
+    loadComponent: () => import('./shared/legal/legal-page').then((m) => m.LegalPage),
+    data: { layout: 'public', seo: 'idomain-privacy', legalDoc: 'idomain-privacy' },
+  },
+  {
+    path: 'terms/idomain',
+    loadComponent: () => import('./shared/legal/legal-page').then((m) => m.LegalPage),
+    data: { layout: 'public', seo: 'idomain-terms', legalDoc: 'idomain-terms' },
+  },
+  {
+    path: 'privacy/simulator',
+    loadComponent: () => import('./shared/legal/legal-page').then((m) => m.LegalPage),
+    data: { layout: 'public', seo: 'isimulator-privacy', legalDoc: 'isimulator-privacy' },
   },
   {
     path: 'beta-policy',
@@ -126,7 +197,9 @@ export const routes: Routes = [
   {
     path: 'builders-privacy',
     loadComponent: () =>
-      import('./shared/components/builders-privacy/builders-privacy').then((m) => m.BuildersPrivacy),
+      import('./shared/components/builders-privacy/builders-privacy').then(
+        (m) => m.BuildersPrivacy,
+      ),
     data: { layout: 'public', seo: 'builders-privacy' },
   },
   {

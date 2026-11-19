@@ -3,7 +3,7 @@
   "pages": {
     "home": {
       "eyebrow": "",
-      "title": "The AI that builds profitable businesses",
+      "title": "The African AI that builds profitable businesses",
       "subtitle": "**More than 500 AI agents** to structure your project, manage your finances, create your brand, your communication strategy and your website, and deploy it in Africa."
     },
     "business": {
@@ -12,7 +12,7 @@
       "subtitle": "A bank-ready business plan, financial forecasts, brand identity and legal papers."
     },
     "simulator": {
-      "eyebrow": "IDEM Simulator",
+      "eyebrow": "iSimulator",
       "title": "Test profitability before you invest",
       "subtitle": "Scenarios, stress tests and breaking points: know what your business needs to hold."
     },
@@ -25,6 +25,11 @@
       "eyebrow": "iDeploy",
       "title": "Put your business online in one click",
       "subtitle": "Domain, security certificate and hosting on African servers, no DevOps required."
+    },
+    "idomain": {
+      "eyebrow": "iDomain",
+      "title": "Your name, online",
+      "subtitle": "**Paid by mobile money**, registered in your name, connected to your site and secured with HTTPS — with no technical setup at all."
     },
     "ivision": {
       "eyebrow": "iVision",

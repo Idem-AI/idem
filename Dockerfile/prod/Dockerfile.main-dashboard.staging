@@ -7,9 +7,22 @@ COPY package.json package-lock.json tsconfig.base.json ./
 
 
 COPY ./packages/shared-models ./packages/shared-models
+# L'image de pré-production copiait quatre paquets quand le tableau de bord en
+# importe onze : tout ce qui suit lui manquait, et `npm run check:docker` le
+# signale désormais. La liste doit rester alignée sur Dockerfile.main-dashboard.
+COPY ./packages/shared-tour ./packages/shared-tour
+COPY ./packages/shared-loader ./packages/shared-loader
+COPY ./packages/shared-video-editor ./packages/shared-video-editor
+COPY ./packages/shared-document-editor ./packages/shared-document-editor
+COPY ./packages/shared-journey ./packages/shared-journey
 COPY ./packages/shared-auth-client ./packages/shared-auth-client
 COPY ./packages/shared-styles ./packages/shared-styles
 COPY ./packages/shared-promotions ./packages/shared-promotions
+# Pied de page partagé (colonnes, textes, registre des textes juridiques).
+COPY ./packages/shared-footer ./packages/shared-footer
+# Source unique de la marque et du référencement : le pied de page y lit la
+# définition d'IDEM, il n'en garde pas de copie.
+COPY ./packages/shared-seo ./packages/shared-seo
 # Service worker partagé : recopié dans `public/` par le prebuild.
 COPY ./packages/shared-offline ./packages/shared-offline
 # Découpage des traductions (noyau + morceaux), lancé par le prebuild.

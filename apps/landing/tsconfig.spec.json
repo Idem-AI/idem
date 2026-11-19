@@ -9,10 +9,14 @@
     // un paquet partagé compile à la construction mais casse sous les tests.
     "baseUrl": "../../",
     "paths": {
+      "@idem/shared-seo": ["packages/shared-seo/src"],
+      "@idem/shared-seo/*": ["packages/shared-seo/src/*"],
       "@idem/shared-models": ["packages/shared-models/src"],
       "@idem/shared-models/*": ["packages/shared-models/src/*"],
       "@idem/shared-auth-client": ["packages/shared-auth-client/src"],
       "@idem/shared-auth-client/*": ["packages/shared-auth-client/src/*"],
+      "@idem/shared-offline": ["packages/shared-offline/src"],
+      "@idem/shared-offline/*": ["packages/shared-offline/src/*"],
       "@idem/shared-styles": ["packages/shared-styles"],
       "@idem/shared-styles/*": ["packages/shared-styles/*"],
       "@idem/shared-trusted-by": ["packages/shared-trusted-by/src"],

@@ -158,27 +158,32 @@ html.dark body::before {
 }
 
 .dark {
-  /* Original dark design values - moved verbatim so dark rendering is unchanged */
-  --idem-bg-darker: oklch(0.05 0.01 264);
-  --idem-bg-dark: oklch(0.1 0.01 264);
-  --idem-bg-light: oklch(0.15 0.01 264);
+  /* Gris sombre, pas noir. Le thème sombre d'origine descendait à oklch(0.05),
+     soit un quasi-noir : l'écran paraissait éteint et les cartes ne se
+     détachaient plus du fond. Toute l'échelle est remontée d'environ +0.11 de
+     clarté : le fond de page tombe sur #0b0d11 et les surfaces montent jusqu'à
+     #1d1f24. Les écarts entre niveaux sont conservés, donc la hiérarchie
+     (page creuse → carte → carte survolée) se lit exactement comme avant. */
+  --idem-bg-darker: oklch(0.158 0.01 264); /* #0b0d11 */
+  --idem-bg-dark: oklch(0.18 0.01 264); /* #0f1216 */
+  --idem-bg-light: oklch(0.227 0.01 264); /* #1a1c21 */
 
-  --idem-surface-1: oklch(0.12 0.01 264);
-  --idem-surface-2: oklch(0.15 0.01 264);
-  --idem-surface-3: oklch(0.18 0.01 264);
+  --idem-surface-1: oklch(0.171 0.01 264); /* #0d1014 */
+  --idem-surface-2: oklch(0.197 0.01 264); /* #13151a */
+  --idem-surface-3: oklch(0.239 0.01 264); /* #1d1f24 */
 
   --idem-text-primary: oklch(0.96 0 0);
   --idem-text-secondary: oklch(0.75 0 0);
   --idem-text-tertiary: oklch(0.55 0 0);
-  --idem-text-disabled: oklch(0.4 0 0);
+  --idem-text-disabled: oklch(0.48 0 0);
 
-  --glass-bg-subtle: rgba(15, 20, 27, 0.2);
-  --glass-bg-light: rgba(15, 20, 27, 0.631);
-  --glass-bg: rgba(15, 20, 27, 0.5);
-  --glass-bg-medium: rgba(15, 20, 27, 0.6);
-  --glass-bg-dark: rgba(20, 20, 30, 0.7);
-  --glass-bg-darker: rgba(20, 20, 30, 0.8);
-  --glass-bg-intense: rgba(10, 15, 22, 0.9);
+  --glass-bg-subtle: rgba(26, 30, 35, 0.2);
+  --glass-bg-light: rgba(26, 30, 35, 0.631);
+  --glass-bg: rgba(26, 30, 35, 0.5);
+  --glass-bg-medium: rgba(26, 30, 35, 0.6);
+  --glass-bg-dark: rgba(30, 31, 39, 0.7);
+  --glass-bg-darker: rgba(30, 31, 39, 0.8);
+  --glass-bg-intense: rgba(22, 26, 31, 0.9);
   --glass-border-subtle: rgba(255, 255, 255, 0.05);
   --glass-border: rgba(255, 255, 255, 0.1);
   --glass-border-medium: rgba(255, 255, 255, 0.15);
