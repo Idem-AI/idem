@@ -24,6 +24,8 @@
     "preserveSymlinks": true,
     "lib": ["ES2022", "dom"],
     "paths": {
+      "@idem/shared-offline": ["./src/app/shared/shared-offline/src"],
+      "@idem/shared-offline/*": ["./src/app/shared/shared-offline/src/*"],
       "@idem/shared-loader": ["./src/app/shared/shared-loader/src"],
       "@idem/shared-loader/*": ["./src/app/shared/shared-loader/src/*"],
       "@core/*": ["./src/app/core/*"],

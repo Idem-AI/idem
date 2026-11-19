@@ -64,7 +64,7 @@ import { ListSkeletonComponent } from '../../../shared/components/list-skeleton/
               <div class="mb-3 flex items-center gap-3">
                 <span class="flex h-11 w-11 flex-shrink-0 items-center justify-center overflow-hidden rounded-xl" style="background:var(--glass-bg-subtle);">
                   @if (serviceLogoUrl(t.logo); as logo) {
-                    <img [src]="logo" class="h-7 w-7 object-contain" alt="" (error)="onLogoError($event)" />
+                    <img loading="lazy" decoding="async" [src]="logo" class="h-7 w-7 object-contain" alt="" (error)="onLogoError($event)" />
                   } @else {
                     <i class="pi pi-box" style="color:var(--color-text-secondary);"></i>
                   }

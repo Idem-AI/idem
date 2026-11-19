@@ -7,6 +7,8 @@
     "types": ["node"],
     "baseUrl": "../../",
     "paths": {
+      "@idem/shared-offline": ["packages/shared-offline/src"],
+      "@idem/shared-offline/*": ["packages/shared-offline/src/*"],
       "@idem/shared-models": ["packages/shared-models/src"],
       "@idem/shared-models/*": ["packages/shared-models/src/*"],
       "@idem/shared-auth-client": ["packages/shared-auth-client/src"],

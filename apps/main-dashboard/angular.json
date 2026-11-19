@@ -22,13 +22,15 @@
               {
                 "glob": "**/*",
                 "input": "public"
+              },
+              {
+                "glob": "mermaid.min.js",
+                "input": "../../node_modules/mermaid/dist",
+                "output": "scripts"
               }
             ],
             "styles": [
               "src/styles.css"
-            ],
-            "scripts": [
-              "../../node_modules/mermaid/dist/mermaid.min.js"
             ]
           },
           "configurations": {
@@ -36,8 +38,8 @@
               "budgets": [
                 {
                   "type": "initial",
-                  "maximumWarning": "500kB",
-                  "maximumError": "5MB"
+                  "maximumWarning": "1400kB",
+                  "maximumError": "1700kB"
                 },
                 {
                   "type": "anyComponentStyle",
@@ -88,13 +90,15 @@
               {
                 "glob": "**/*",
                 "input": "public"
+              },
+              {
+                "glob": "mermaid.min.js",
+                "input": "../../node_modules/mermaid/dist",
+                "output": "scripts"
               }
             ],
             "styles": [
               "src/styles.css"
-            ],
-            "scripts": [
-              "../../node_modules/mermaid/dist/mermaid.min.js"
             ]
           }
         }

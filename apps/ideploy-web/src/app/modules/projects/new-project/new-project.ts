@@ -290,7 +290,7 @@ const POPULAR_APPS: { template: string; label: string; descKey: string }[] = [
                     <div class="flex items-center gap-3">
                       <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg" style="background:var(--glass-bg-subtle);">
                         @if (templateLogo(app.template); as logo) {
-                          <img [src]="logo" class="h-6 w-6 object-contain" alt="" (error)="onLogoError($event)" />
+                          <img loading="lazy" decoding="async" [src]="logo" class="h-6 w-6 object-contain" alt="" (error)="onLogoError($event)" />
                         } @else {
                           <i class="pi pi-box text-text-secondary" aria-hidden="true"></i>
                         }

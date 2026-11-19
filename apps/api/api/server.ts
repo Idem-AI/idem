@@ -116,6 +116,7 @@ import { financeRoutes } from './routes/finance.routes';
 import { simulationRoutes } from './routes/simulation.routes';
 import { blogRoutes, blogInternalRoutes } from './routes/blog.routes';
 import { buildersRoutes, buildersInternalRoutes } from './routes/builders.routes';
+import { compressionMiddleware } from './middleware/compression.middleware';
 
 // Tout ce qui s'écrit désormais — y compris les `console.*` restants et les
 // crashes — part en JSON corrélé vers les fichiers collectés par Grafana.
@@ -129,6 +130,13 @@ const port = process.env.PORT || 3001;
 // dans la chaîne (sécurité, morgan, routes, services IA) hérite de la
 // corrélation automatiquement via le logger (voir config/logger.ts).
 app.use(requestTraceMiddleware);
+
+// Compression des réponses. Juste après le traçage, donc avant toute route :
+// elle doit envelopper tout ce qui écrit un corps. Les flux SSE en sont exclus
+// par le filtre (voir le fichier) — sans quoi les générations suivies en
+// direct se figeraient.
+app.use(compressionMiddleware);
+
 
 // Hardening (helmet, hpp, trust proxy, hide X-Powered-By).
 applySecurity(app);

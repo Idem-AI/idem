@@ -8,7 +8,7 @@
     "prestart": "npm run env:dev",
     "start": "ng serve --host 0.0.0.0 --port 4201",
     "dev": "ng serve --host 0.0.0.0 --port 4201",
-    "prebuild": "npm run env:prod",
+    "prebuild": "npm run env:prod && npm run sw:sync",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
@@ -22,9 +22,10 @@
     "i18n:workflow": "npm run i18n:extract:json && npm run i18n:organize",
     "start:fr": "ng serve --configuration=fr --host 0.0.0.0 --port 4201",
     "start:en": "ng serve --configuration=en --host 0.0.0.0 --port 4201",
-    "build:fr": "ng build --configuration=production-fr",
-    "build:en": "ng build --configuration=production-en",
-    "build:all-locales": "npm run i18n:merge && npm run build:en && npm run build:fr"
+    "build:fr": "npm run sw:sync && ng build --configuration=production-fr",
+    "build:en": "npm run sw:sync && ng build --configuration=production-en",
+    "build:all-locales": "npm run i18n:merge && npm run build:en && npm run build:fr",
+    "sw:sync": "node ../../packages/shared-offline/scripts/sync.mjs public"
   },
   "prettier": {
     "printWidth": 100,

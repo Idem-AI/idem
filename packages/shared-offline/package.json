@@ -1,0 +1,34 @@
+{
+  "name": "@idem/shared-offline",
+  "version": "1.0.0",
+  "description": "Le service worker partag\u00e9 d'Idem : deuxi\u00e8me visite imm\u00e9diate m\u00eame \u00e0 bas d\u00e9bit, et fin des versions p\u00e9rim\u00e9es gard\u00e9es par le cache des navigateurs",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./sw.js": "./src/sw.js",
+    "./angular": "./src/angular/index.ts"
+  },
+  "files": [
+    "src",
+    "README.md"
+  ],
+  "keywords": [
+    "idem",
+    "service-worker",
+    "offline",
+    "performance",
+    "shared"
+  ],
+  "author": "Idem Team",
+  "license": "MIT",
+  "peerDependencies": {
+    "@angular/core": ">=20"
+  },
+  "peerDependenciesMeta": {
+    "@angular/core": {
+      "optional": true
+    }
+  }
+}

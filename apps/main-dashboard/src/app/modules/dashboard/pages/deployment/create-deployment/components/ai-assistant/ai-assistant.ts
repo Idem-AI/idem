@@ -38,6 +38,7 @@ import { AuthService } from '../../../../../../auth/services/auth.service';
 import { MarkdownModule } from 'ngx-markdown';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
+import { MermaidLoaderService } from '../../../../../../../shared/services/mermaid-loader.service';
 
 // Import Prism core only - specific languages are already imported in app.config.ts
 import 'prismjs';
@@ -91,6 +92,13 @@ export class AiAssistant implements OnInit, AfterViewInit {
   protected readonly storingSensitiveVariables = signal<boolean>(false);
   protected readonly currentDeploymentId = signal<string | null>(null);
   protected readonly sensitiveVariablesReady = signal<boolean>(false);
+
+  /**
+   * Mermaid (2,6 Mo) n'est téléchargé que si une réponse propose vraiment un
+   * schéma d'architecture : ouvrir l'assistant ne coûte rien.
+   */
+  private readonly mermaid = inject(MermaidLoaderService);
+  protected readonly mermaidReady = this.mermaid.ready;
 
   // Computed values
   protected readonly hasUnacceptedArchitecture = computed(() => {
@@ -150,6 +158,12 @@ export class AiAssistant implements OnInit, AfterViewInit {
       this.currentDeploymentId.set(savedDeploymentId);
       console.log('Restored deployment ID from cookie:', savedDeploymentId);
     }
+
+    // Dès qu'un message porte un schéma, charger Mermaid — et pas avant.
+    effect(() => {
+      const hasDiagram = this.chatMessages().some((msg) => !!msg.asciiArchitecture);
+      if (hasDiagram) void this.mermaid.load().catch(() => undefined);
+    });
 
     // Auto-scroll effect when messages change
     effect(() => {

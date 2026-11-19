@@ -416,5 +416,10 @@
       "ipv6_conflict": "An IPv6 address blocks the certificate",
       "taken": "Used by another application"
     }
+  },
+  "appUpdate": {
+    "message": "A new version is available.",
+    "reload": "Refresh",
+    "later": "Later"
   }
 }

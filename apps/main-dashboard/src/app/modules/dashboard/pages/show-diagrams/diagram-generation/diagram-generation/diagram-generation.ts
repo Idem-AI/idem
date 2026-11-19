@@ -24,6 +24,7 @@ import { environment } from '../../../../../../../environments/environment';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 import { ErrorStateComponent } from '../../../../../../shared/components/error-state/error-state';
+import { MermaidLoaderService } from '../../../../../../shared/services/mermaid-loader.service';
 
 @Component({
   selector: 'app-diagram-generation',
@@ -39,9 +40,13 @@ import { ErrorStateComponent } from '../../../../../../shared/components/error-s
 })
 export class DiagramGeneration implements OnInit, OnDestroy {
   private readonly diagramsService = inject(DiagramsService);
+  private readonly mermaid = inject(MermaidLoaderService);
   private readonly generationService = inject(GenerationService);
   private readonly destroy$ = new Subject<void>();
   private readonly translate = inject(TranslateService);
+  /** Mermaid n'est téléchargé que par les écrans de schémas (voir le service). */
+  protected readonly mermaidReady = this.mermaid.ready;
+
   // ViewChild for scroll container
   @ViewChild('scrollContainer', { static: false }) scrollContainer!: ElementRef;
 
@@ -89,7 +94,9 @@ export class DiagramGeneration implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     // Component is ready, but wait for user to start generation
-    console.log('Diagram generation component loaded, waiting for user action');
+    // En parallèle de la génération : le script arrive pendant que les
+    // premières étapes se calculent, donc sans attente visible.
+    void this.mermaid.load().catch(() => undefined);
     this.generateDiagrams();
   }
 

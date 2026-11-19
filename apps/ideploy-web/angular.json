@@ -16,14 +16,27 @@
             "index": "src/index.html",
             "browser": "src/main.ts",
             "tsConfig": "tsconfig.app.json",
-            "assets": [{ "glob": "**/*", "input": "public" }],
-            "styles": ["src/styles.css"],
-            "polyfills": ["zone.js"]
+            "assets": [
+              {
+                "glob": "**/*",
+                "input": "public"
+              }
+            ],
+            "styles": [
+              "src/styles.css"
+            ],
+            "polyfills": [
+              "zone.js"
+            ]
           },
           "configurations": {
             "production": {
               "budgets": [
-                { "type": "initial", "maximumWarning": "1mb", "maximumError": "2mb" }
+                {
+                  "type": "initial",
+                  "maximumWarning": "770kB",
+                  "maximumError": "900kB"
+                }
               ],
               "outputHashing": "all",
               "fileReplacements": [
@@ -44,8 +57,12 @@
         "serve": {
           "builder": "@angular/build:dev-server",
           "configurations": {
-            "production": { "buildTarget": "ideploy-web:build:production" },
-            "development": { "buildTarget": "ideploy-web:build:development" }
+            "production": {
+              "buildTarget": "ideploy-web:build:production"
+            },
+            "development": {
+              "buildTarget": "ideploy-web:build:development"
+            }
           },
           "defaultConfiguration": "development"
         }

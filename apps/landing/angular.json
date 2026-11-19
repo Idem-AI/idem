@@ -29,21 +29,25 @@
                 "input": "public"
               }
             ],
-            "styles": ["src/styles.css"],
+            "styles": [
+              "src/styles.css"
+            ],
             "server": "src/main.server.ts",
             "outputMode": "server",
             "ssr": {
               "entry": "src/server.ts"
             },
-            "polyfills": ["@angular/localize/init"]
+            "polyfills": [
+              "@angular/localize/init"
+            ]
           },
           "configurations": {
             "production": {
               "budgets": [
                 {
                   "type": "initial",
-                  "maximumWarning": "500kB",
-                  "maximumError": "1MB"
+                  "maximumWarning": "1010kB",
+                  "maximumError": "1200kB"
                 },
                 {
                   "type": "anyComponentStyle",
@@ -65,13 +69,19 @@
               ]
             },
             "fr": {
-              "localize": ["fr"]
+              "localize": [
+                "fr"
+              ]
             },
             "en": {
-              "localize": ["en"]
+              "localize": [
+                "en"
+              ]
             },
             "production-fr": {
-              "localize": ["fr"],
+              "localize": [
+                "fr"
+              ],
               "budgets": [
                 {
                   "type": "initial",
@@ -87,7 +97,9 @@
               "outputHashing": "all"
             },
             "production-en": {
-              "localize": ["en"],
+              "localize": [
+                "en"
+              ],
               "budgets": [
                 {
                   "type": "initial",
@@ -108,7 +120,11 @@
         "serve": {
           "builder": "@angular/build:dev-server",
           "options": {
-            "allowedHosts": ["localhost", "localhost:4201", "0.0.0.0"]
+            "allowedHosts": [
+              "localhost",
+              "localhost:4201",
+              "0.0.0.0"
+            ]
           },
           "configurations": {
             "production": {
@@ -143,20 +159,29 @@
                 "input": "public"
               }
             ],
-            "styles": ["src/styles.css"],
-            "polyfills": ["@angular/localize/init"]
+            "styles": [
+              "src/styles.css"
+            ],
+            "polyfills": [
+              "@angular/localize/init"
+            ]
           }
         },
         "lint": {
           "builder": "@angular-eslint/builder:lint",
           "options": {
-            "lintFilePatterns": ["src/**/*.ts", "src/**/*.html"]
+            "lintFilePatterns": [
+              "src/**/*.ts",
+              "src/**/*.html"
+            ]
           }
         }
       }
     }
   },
   "cli": {
-    "schematicCollections": ["angular-eslint"]
+    "schematicCollections": [
+      "angular-eslint"
+    ]
   }
 }

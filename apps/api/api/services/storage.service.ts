@@ -796,6 +796,22 @@ export class StorageService {
     return cleaned;
   }
 
+  /** Relit un fichier que ce stockage a écrit, par le client interne : indépendant du domaine public (certificat, DNS). */
+  async readByPublicUrl(downloadURL: string): Promise<string | null> {
+    let pathname: string;
+    try {
+      pathname = decodeURIComponent(new URL(downloadURL).pathname);
+    } catch {
+      return null;
+    }
+    const marker = `/${this.bucketName}/`;
+    const at = pathname.indexOf(marker);
+    if (at < 0) return null;
+    const objectPath = pathname.slice(at + marker.length);
+    if (!objectPath || objectPath.split('/').some((segment) => segment === '..' || segment === '.')) return null;
+    return this.getObjectAsString(objectPath);
+  }
+
   private async getObjectAsString(objectPath: string): Promise<string | null> {
     try {
       const stream = await this.client.getObject(this.bucketName, objectPath);

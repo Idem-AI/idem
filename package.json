@@ -17,6 +17,7 @@
     "packages/shared-auth-client",
     "packages/shared-styles",
     "packages/shared-loader",
+    "packages/shared-offline",
     "packages/graphic-engine",
     "packages/design-tools",
     "packages/shared-seo",
@@ -98,7 +99,8 @@
     "secrets": "node --no-warnings scripts/secrets/idem-secrets.mjs",
     "check:secrets": "node scripts/git-hooks/check-secrets.mjs",
     "check:builds": "node scripts/git-hooks/check-builds.mjs",
-    "test:git-hooks": "node --test scripts/git-hooks/*.test.mjs"
+    "test:git-hooks": "node --test scripts/git-hooks/*.test.mjs",
+    "check:cache": "node scripts/check-cache-policy.mjs"
   },
   "dependencies": {
     "@infisical/sdk": "^5.0.2",

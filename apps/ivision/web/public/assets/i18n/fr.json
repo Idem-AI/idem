@@ -1115,5 +1115,10 @@
       "title": "Créez ce soir, payez seulement ce que vous publiez.",
       "cta": "Commencer gratuitement"
     }
+  },
+  "appUpdate": {
+    "message": "Une nouvelle version est disponible.",
+    "reload": "Actualiser",
+    "later": "Plus tard"
   }
 }

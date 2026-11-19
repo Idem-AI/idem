@@ -9,6 +9,7 @@ import { CookieService } from '../../../../shared/services/cookie.service';
 import { ErrorStateComponent } from '../../../../shared/components/error-state/error-state';
 import { generatePdf } from '../../../../utils/pdf-generator';
 import { DiagramsService } from '../../services/ai-agents/diagrams.service';
+import { MermaidLoaderService } from '../../../../shared/services/mermaid-loader.service';
 import { SectionModel } from '../../models/section.model';
 import { SiteAppIllustrationComponent } from '../development/site-app-illustration';
 
@@ -36,6 +37,7 @@ import { SiteAppIllustrationComponent } from '../development/site-app-illustrati
 })
 export class ShowDiagramsComponent implements OnInit {
   private readonly diagramsService = inject(DiagramsService);
+  private readonly mermaid = inject(MermaidLoaderService);
   private readonly cookies = inject(CookieService);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
@@ -47,6 +49,8 @@ export class ShowDiagramsComponent implements OnInit {
   protected readonly loading = signal(true);
   protected readonly failed = signal(false);
   protected readonly sections = signal<SectionModel[]>([]);
+  /** Mermaid n'est téléchargé que par cet écran, et seulement ici. */
+  protected readonly mermaidReady = this.mermaid.ready;
 
   ngOnInit(): void {
     const projectId = this.cookies.get('projectId');
@@ -55,6 +59,8 @@ export class ShowDiagramsComponent implements OnInit {
       void this.router.navigate(['/projects']);
       return;
     }
+    // En parallèle de la requête : le script et les données arrivent ensemble.
+    void this.mermaid.load().catch(() => undefined);
     this.load(projectId);
   }
 

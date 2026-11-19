@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 import { authGuard, publicGuard } from './guards/auth.guard';
 import { surveyGuard } from './guards/survey.guard';
 import { guidedAccessGuard } from './guards/guided-access.guard';
+import { translationChunkGuard } from './shared/i18n/translation-chunks';
 
 export const routes: Routes = [
   // Redirect root to console
@@ -370,7 +371,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/document-editor/document-editor').then(
         (m) => m.DocumentEditorComponent,
       ),
-    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
+    canActivate: [translationChunkGuard('communication'), authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'empty', documentType: 'flyer' },
   },
   {
@@ -380,7 +381,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/show-communication/show-communication').then(
         (m) => m.ShowCommunication,
       ),
-    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
+    canActivate: [translationChunkGuard('communication'), authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard' },
   },
   {
@@ -538,7 +539,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/finance/finance-overview/finance-overview').then(
         (m) => m.FinanceOverviewComponent,
       ),
-    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
+    canActivate: [translationChunkGuard('finance'), authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard' },
   },
   {
@@ -548,7 +549,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/finance/finance-sheet/finance-sheet').then(
         (m) => m.FinanceSheetComponent,
       ),
-    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
+    canActivate: [translationChunkGuard('finance'), authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard' },
   },
   {
@@ -558,7 +559,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
         (m) => m.FinanceSectionStubComponent,
       ),
-    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
+    canActivate: [translationChunkGuard('finance'), authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard', sectionKey: 'products' },
   },
   {
@@ -568,7 +569,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
         (m) => m.FinanceSectionStubComponent,
       ),
-    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
+    canActivate: [translationChunkGuard('finance'), authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard', sectionKey: 'salesObjectives' },
   },
   {
@@ -578,7 +579,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
         (m) => m.FinanceSectionStubComponent,
       ),
-    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
+    canActivate: [translationChunkGuard('finance'), authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard', sectionKey: 'variableCharges' },
   },
   {
@@ -588,7 +589,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
         (m) => m.FinanceSectionStubComponent,
       ),
-    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
+    canActivate: [translationChunkGuard('finance'), authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard', sectionKey: 'fixedCharges' },
   },
   {
@@ -598,7 +599,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
         (m) => m.FinanceSectionStubComponent,
       ),
-    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
+    canActivate: [translationChunkGuard('finance'), authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard', sectionKey: 'taxesParams' },
   },
   {
@@ -608,7 +609,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
         (m) => m.FinanceSectionStubComponent,
       ),
-    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
+    canActivate: [translationChunkGuard('finance'), authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard', sectionKey: 'revenueParams' },
   },
   {
@@ -618,7 +619,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
         (m) => m.FinanceSectionStubComponent,
       ),
-    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
+    canActivate: [translationChunkGuard('finance'), authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard', sectionKey: 'investments' },
   },
   {
@@ -628,7 +629,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
         (m) => m.FinanceSectionStubComponent,
       ),
-    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
+    canActivate: [translationChunkGuard('finance'), authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard', sectionKey: 'amortization' },
   },
   {
@@ -638,7 +639,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
         (m) => m.FinanceSectionStubComponent,
       ),
-    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
+    canActivate: [translationChunkGuard('finance'), authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard', sectionKey: 'financing' },
   },
   {
@@ -648,7 +649,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
         (m) => m.FinanceSectionStubComponent,
       ),
-    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
+    canActivate: [translationChunkGuard('finance'), authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard', sectionKey: 'fiscalCalendar' },
   },
   {
@@ -658,7 +659,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
         (m) => m.FinanceSectionStubComponent,
       ),
-    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
+    canActivate: [translationChunkGuard('finance'), authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard', sectionKey: 'ratiosParams' },
   },
   {
@@ -668,7 +669,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
         (m) => m.FinanceSectionStubComponent,
       ),
-    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
+    canActivate: [translationChunkGuard('finance'), authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard', sectionKey: 'compteExploitation' },
   },
   {
@@ -678,7 +679,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
         (m) => m.FinanceSectionStubComponent,
       ),
-    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
+    canActivate: [translationChunkGuard('finance'), authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard', sectionKey: 'bilan' },
   },
   {
@@ -688,7 +689,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
         (m) => m.FinanceSectionStubComponent,
       ),
-    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
+    canActivate: [translationChunkGuard('finance'), authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard', sectionKey: 'fluxTresorerie' },
   },
   {
@@ -698,7 +699,7 @@ export const routes: Routes = [
       import('./modules/dashboard/pages/finance/finance-section-stub/finance-section-stub').then(
         (m) => m.FinanceSectionStubComponent,
       ),
-    canActivate: [authGuard, surveyGuard, guidedAccessGuard],
+    canActivate: [translationChunkGuard('finance'), authGuard, surveyGuard, guidedAccessGuard],
     data: { layout: 'dashboard', sectionKey: 'ratios' },
   },
 

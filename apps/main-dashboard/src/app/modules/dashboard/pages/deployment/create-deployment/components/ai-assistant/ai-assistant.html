@@ -143,11 +143,16 @@
                           </h5>
                         </div>
                         <div class="bg-white rounded-lg p-4 overflow-x-auto">
-                          <markdown
-                            mermaid
-                            [data]="'```mermaid\n' + message.asciiArchitecture + '\n```'"
-                            class="mermaid-diagram"
-                          ></markdown>
+                          <!-- `ngx-markdown` lève une erreur si la variable
+                               globale `mermaid` n'est pas là : on attend que le
+                               script, chargé dès qu'un schéma apparaît, soit prêt. -->
+                          @if (mermaidReady()) {
+                            <markdown
+                              mermaid
+                              [data]="'```mermaid\n' + message.asciiArchitecture + '\n```'"
+                              class="mermaid-diagram"
+                            ></markdown>
+                          }
                         </div>
                       </div>
                     }

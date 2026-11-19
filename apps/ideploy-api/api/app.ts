@@ -49,6 +49,7 @@ import adminRoutes from './routes/admin.routes';
 import cliAuthRoutes from './routes/cli-auth.routes';
 import webhookRoutes, { managementRouter as webhookManagementRoutes } from './routes/webhook.routes';
 import registryRoutes from './routes/registry.routes';
+import { compressionMiddleware } from './middleware/compression.middleware';
 
 const swaggerSpec = swaggerJsdoc({
   definition: {
@@ -70,6 +71,13 @@ export function createApp(): Express {
   // Contexte de traçage en tout premier : chaque ligne de log qui suit
   // (auth, routes, services, tâches créées) porte le requestId de la requête.
   app.use(requestTraceMiddleware);
+
+  // Compression des réponses. Juste après le traçage, donc avant toute route :
+  // elle doit envelopper tout ce qui écrit un corps. Les flux SSE en sont exclus
+  // par le filtre (voir le fichier) — sans quoi les générations suivies en
+  // direct se figeraient.
+  app.use(compressionMiddleware);
+
 
   // ── Hardening ────────────────────────────────────────
   app.disable('x-powered-by');

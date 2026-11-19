@@ -1,10 +1,18 @@
 <!-- Motif background for all pages -->
 <div class="fixed inset-0 z-[-1] pointer-events-none opacity-[calc(0.1*var(--idem-motif-strength))] dark:invert dark:opacity-[calc(0.15*var(--idem-motif-strength))]" style="background-image: url('/assets/images/motif.png'); background-repeat: repeat; background-position: top left;"></div>
 
-@if (isInitialLoading()) {
-  <app-splash-screen></app-splash-screen>
-}
-
 <app-header />
 <router-outlet (activate)="resetPosition()"></router-outlet>
 <app-footer />
+
+<!--
+  « Une nouvelle version est disponible. » Le service worker sert la page
+  depuis le cache pour qu'elle s'affiche tout de suite, même à bas débit.
+  Les textes sont traduits par `$localize` : la landing est compilée une fois
+  par locale (/fr et /en), elle n'a pas de chargeur de traductions.
+-->
+<idem-update-banner
+  [label]="updateLabel"
+  [actionLabel]="updateAction"
+  [dismissLabel]="updateDismiss"
+/>

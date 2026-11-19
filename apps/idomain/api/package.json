@@ -2,7 +2,7 @@
   "name": "idomain-api",
   "version": "1.0.0",
   "private": true,
-  "description": "iDomain — vente et gestion de noms de domaine (Express + TypeScript + PostgreSQL + BullMQ). Prix public en francs, fournisseur le moins cher choisi en arrière-plan ; identité et portefeuille via l'API IDEM, rattachement aux applications via iDeploy.",
+  "description": "iDomain \u2014 vente et gestion de noms de domaine (Express + TypeScript + PostgreSQL + BullMQ). Prix public en francs, fournisseur le moins cher choisi en arri\u00e8re-plan ; identit\u00e9 et portefeuille via l'API IDEM, rattachement aux applications via iDeploy.",
   "main": "dist/src/index.js",
   "scripts": {
     "dev": "nodemon",
@@ -26,6 +26,7 @@
     "@infisical/sdk": "^5.0.2",
     "axios": "^1.7.9",
     "bullmq": "^5.34.0",
+    "compression": "^1.8.1",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
@@ -39,6 +40,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@types/compression": "^1.8.1",
     "@types/cookie-parser": "^1.4.8",
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
