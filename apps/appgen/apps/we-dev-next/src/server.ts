@@ -4,7 +4,7 @@
 // instruction du corps. Un `dotenv.config()` placé plus bas arriverait donc
 // trop tard et laisserait ces lectures à `undefined`.
 import 'dotenv/config';
-import express, { Express, Request, Response } from 'express';
+import express, { Express, NextFunction, Request, Response } from 'express';
 import helmet from 'helmet';
 import logger, { captureConsole, installProcessHandlers } from './config/logger.js';
 import { requestTraceMiddleware } from './middleware/requestTrace.js';
@@ -91,7 +91,15 @@ app.get('/health', (req: Request, res: Response) => {
 
 // Routes qui consomment des ressources payantes (modèles, compte Netlify) :
 // réservées aux utilisateurs IDEM authentifiés.
-app.use('/api/chat', requireIdemUser, chatRouter);
+// Flux de génération : sans ces en-têtes, nginx garde la réponse en tampon jusqu'à sa fin et l'atelier n'affiche
+// les étapes (lecture du site, plan, sections…) qu'à la fin, derrière un simple loader.
+const unbuffered = (_req: Request, res: Response, next: NextFunction) => {
+  res.setHeader('X-Accel-Buffering', 'no');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
+  next();
+};
+app.use('/api/chat', unbuffered, requireIdemUser, chatRouter);
+app.use('/api/commands', unbuffered);
 app.use('/api/deploy', requireIdemUser, deployRouter);
 // Mise en ligne par iDeploy, sans quitter iCode (site, PWA ou application complète).
 app.use('/api/ideploy', requireIdemUser, ideployRouter);

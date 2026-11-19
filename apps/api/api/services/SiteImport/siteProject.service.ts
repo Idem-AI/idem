@@ -472,6 +472,11 @@ export async function siteContentOf(userId: string, projectId: string): Promise<
   const url = (project?.analysisResultModel?.branding as { siteSource?: { contentUrl?: string } } | undefined)?.siteSource?.contentUrl;
   if (!url) return null;
   try {
+    const stored = await storageService.readByPublicUrl(url).catch((error: any) => {
+      logger.warn('site_import.content_direct_read_failed', { event: 'site_import.content_direct_read_failed', projectId, error: error?.message });
+      return null;
+    });
+    if (stored) return JSON.parse(stored) as SiteContent;
     const file = await safeFetch(url, { maxBytes: 20 * 1024 * 1024, timeoutMs: 20_000 });
     return JSON.parse(file.buffer.toString('utf8')) as SiteContent;
   } catch (error: any) {
