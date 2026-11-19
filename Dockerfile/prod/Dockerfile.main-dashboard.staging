@@ -10,6 +10,10 @@ COPY ./packages/shared-models ./packages/shared-models
 COPY ./packages/shared-auth-client ./packages/shared-auth-client
 COPY ./packages/shared-styles ./packages/shared-styles
 COPY ./packages/shared-promotions ./packages/shared-promotions
+# Service worker partagé : recopié dans `public/` par le prebuild.
+COPY ./packages/shared-offline ./packages/shared-offline
+# Découpage des traductions (noyau + morceaux), lancé par le prebuild.
+COPY ./scripts/split-i18n.mjs ./scripts/split-i18n.mjs
 COPY .env.staging ./apps/main-dashboard/.env
 
 COPY ./apps/main-dashboard ./apps/main-dashboard
