@@ -1,42 +1,35 @@
-# Build arguments for environment-specific builds
-ARG BUILD_ENV=production
-
-# Dockerfile.landing
-FROM node:20-alpine AS builder
+FROM node:24-alpine AS builder
 WORKDIR /app
 
-# Copier les fichiers de configuration racine
+# 1. Copier les manifestes à la racine
 COPY package.json package-lock.json tsconfig.base.json ./
 
-# Copier les packages partagés (dépendances)
-COPY ./packages/shared-models ./packages/shared-models
-COPY ./packages/shared-auth-client ./packages/shared-auth-client
+# 2. Copier les packages partagés (simulation ne consomme que shared-styles,
+#    qui est du CSS pur — pas de build TS nécessaire)
 COPY ./packages/shared-styles ./packages/shared-styles
-COPY ./packages/shared-loader ./packages/shared-loader
-COPY ./packages/shared-trusted-by ./packages/shared-trusted-by
-COPY ./packages/shared-seo ./packages/shared-seo
-# Promotions (prix barrés, bandeau de campagne).
-COPY ./packages/shared-promotions ./packages/shared-promotions
-# Service worker partagé : recopié dans `public/` par le prebuild.
-COPY ./packages/shared-offline ./packages/shared-offline
 
-# Copier l'application landing
-COPY ./apps/landing ./apps/landing
-RUN touch ./apps/landing/.env
-# Installer les dépendances globales sans scripts
-RUN npm install dotenv 
+COPY ./packages/shared-tour ./packages/shared-tour
+COPY ./packages/shared-promotions ./packages/shared-promotions
+COPY ./packages/shared-trusted-by  ./packages/shared-trusted-by 
+COPY ./packages/shared-loader  ./packages/shared-loader 
+# Service worker partagé. Simulation le consomme AUSSI par le lien
+# `apps/simulation/src/app/shared/shared-offline` (Angular 22, voir
+# preserveSymlinks) : ce lien pointe ici, le dossier doit donc exister.
+COPY ./packages/shared-offline ./packages/shared-offline
+# 3. Copier l'application
+COPY ./apps/simulation ./apps/simulation
+
+# 4. Copier le .env
+RUN touch ./apps/simulation/.env
+# 5. Installer toutes les dépendances depuis la racine
 RUN npm install --legacy-peer-deps --ignore-scripts
 
-# Installer les dépendances de l'application landing
-WORKDIR /app/apps/landing
+# 6. Aller dans l'app
+WORKDIR /app/apps/simulation
 
-# --- Génération de l'environnement (src/environments/environment.ts) ---
+# 7. Générer environment.ts
+RUN NODE_ENV=production node mynode.js
 
-# RUN test -f .env || (echo " .env introuvable dans /app/apps/landing — vérifie .dockerignore" && exit 1)
-RUN npm run env:prod
-
-# --- Builds ---
-
-# Builder l'application landing (version anglaise d'abord)
+# 8. Builder Angular
 
 RUN ls -l /app/packages/shared-offline/scripts/sync.mjs && echo PRESENT
