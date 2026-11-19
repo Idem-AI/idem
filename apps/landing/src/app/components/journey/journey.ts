@@ -170,14 +170,14 @@ export class JourneyComponent implements AfterViewInit, OnDestroy {
       step: $localize`:@@journey.step.test:The test`,
       title: $localize`:@@journey.test.title:She tests it before spending a franc`,
       caption: $localize`:@@journey.test.caption:What if the price of plastic drops? What if a competitor opens next door? The simulator plays out the scenarios and shows which ones she survives.`,
-      price: $localize`:@@journey.test.price:IDEM Simulator · 1,500 F`, item: 'isimulate.run', xaf: 1500,
+      price: $localize`:@@journey.test.price:iSimulator · 1,500 F`, item: 'isimulate.run', xaf: 1500,
       ctaLabel: $localize`:@@journey.test.cta:Try the simulator`,
       link: '/simulator',
       images: [
         'assets/images/journey/04-simulateur-accueil.webp',
         'assets/images/journey/04-simulateur-analyse.webp',
       ],
-      imageAlt: $localize`:@@journey.test.alt:IDEM Simulator: business scenarios played out over three years`,
+      imageAlt: $localize`:@@journey.test.alt:iSimulator: business scenarios played out over three years`,
     },
     {
       path: 'juridique',

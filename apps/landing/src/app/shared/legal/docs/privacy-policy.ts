@@ -106,7 +106,7 @@ export const GLOBAL_PRIVACY: LegalDocContent = {
           },
         },
         {
-          strong: { fr: 'Simulateur IDEM', en: 'IDEM Simulator' },
+          strong: { fr: 'iSimulator', en: 'iSimulator' },
           text: {
             fr: 'L’épreuve d’un business plan contre un marché simulé, avant que le vrai marché s’en charge.',
             en: 'Stress-testing a business plan against a simulated market, before the real one does it.',

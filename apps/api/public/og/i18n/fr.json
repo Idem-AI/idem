@@ -12,7 +12,7 @@
       "subtitle": "Business plan SYSCOHADA, prévisions financières, marque et papiers OHADA, prêts pour la banque."
     },
     "simulator": {
-      "eyebrow": "IDEM Simulator",
+      "eyebrow": "iSimulator",
       "title": "Testez la rentabilité avant d’investir",
       "subtitle": "Scénarios, stress tests et points de rupture : sachez à quelles conditions votre business tient."
     },
@@ -25,6 +25,11 @@
       "eyebrow": "iDeploy",
       "title": "Votre business en ligne en un clic",
       "subtitle": "Domaine, certificat de sécurité et hébergement sur des serveurs africains, sans DevOps."
+    },
+    "idomain": {
+      "eyebrow": "iDomain",
+      "title": "Votre nom, en ligne",
+      "subtitle": "**Payé en mobile money**, enregistré à votre nom, relié à votre site et sécurisé en HTTPS — sans un seul réglage technique."
     },
     "ivision": {
       "eyebrow": "iVision",

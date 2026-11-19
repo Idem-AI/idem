@@ -20,7 +20,8 @@ import { buildPageGraph, jsonLdString } from './schema';
  * en dur dans `index.html`, entre deux marqueurs, par `scripts/sync.mjs`.
  */
 
-export const HEAD_START = '<!-- idem-seo:start — généré par packages/shared-seo (npm run seo:sync), ne pas éditer à la main -->';
+export const HEAD_START =
+  '<!-- idem-seo:start — généré par packages/shared-seo (npm run seo:sync), ne pas éditer à la main -->';
 export const HEAD_END = '<!-- idem-seo:end -->';
 
 const escapeAttr = (value: string): string =>
@@ -35,7 +36,11 @@ export function ogImageAlt(serviceId: ServiceId, locale: SeoLocale): string {
 }
 
 /** Le bloc à placer dans le `<head>` de l'application d'un service. */
-export function renderServiceHead(serviceId: ServiceId, locale: SeoLocale, indent = '    '): string {
+export function renderServiceHead(
+  serviceId: ServiceId,
+  locale: SeoLocale,
+  indent = '    '
+): string {
   const s = SERVICES[serviceId];
   const url = `${s.url}/`;
   const title = brandedTitle(s.title[locale]);

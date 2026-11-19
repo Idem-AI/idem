@@ -3,7 +3,7 @@ import { Title } from '@angular/platform-browser';
 import { RouterStateSnapshot, TitleStrategy } from '@angular/router';
 import { TranslateService } from '@ngx-translate/core';
 
-const APP_NAME = 'IDEM Simulator';
+const APP_NAME = 'iSimulator';
 
 /**
  * Sets the document title from the route's `title`, treated as a translation

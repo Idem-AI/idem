@@ -89,7 +89,7 @@ export const GLOBAL_TERMS: LegalDocContent = {
           link: { label: { fr: 'Règles iDomain', en: 'iDomain rules' }, href: '/terms/idomain' },
         },
         {
-          strong: { fr: 'Simulateur IDEM', en: 'IDEM Simulator' },
+          strong: { fr: 'iSimulator', en: 'iSimulator' },
           text: {
             fr: 'Épreuve d’un business plan contre un marché simulé.',
             en: 'Stress-testing a business plan against a simulated market.',

@@ -39,13 +39,13 @@ export function pageSeoText(id: LandingPageId, locale: 'fr' | 'en'): PageSeoText
       };
     case 'simulator':
       return {
-        title: $localize`:@@seo.simulator.title:IDEM Simulator — Is your business profitable? Test it first`,
+        title: $localize`:@@seo.simulator.title:iSimulator — Is your business profitable? Test it first`,
         description: SERVICES.simulator.description[locale],
-        crumb: 'IDEM Simulator',
-        imageAlt: $localize`:@@seo.simulator.imageAlt:IDEM Simulator — Test profitability before you invest. An awalé board.`,
+        crumb: 'iSimulator',
+        imageAlt: $localize`:@@seo.simulator.imageAlt:iSimulator — Test profitability before you invest. An awalé board.`,
         faq: [
           {
-            question: $localize`:@@simulation.faq.q1.question:Does IDEM Simulator predict whether my business will succeed?`,
+            question: $localize`:@@simulation.faq.q1.question:Does iSimulator predict whether my business will succeed?`,
             answer: $localize`:@@simulation.faq.q1.answer:No. The results are estimates based on the data, assumptions and scenarios available at the time of analysis. A high index guarantees neither viability nor profitability, and a low index does not mean the project is impossible.`,
           },
           {
@@ -75,6 +75,20 @@ export function pageSeoText(id: LandingPageId, locale: 'fr' | 'en'): PageSeoText
         description: SERVICES.ideploy.description[locale],
         crumb: 'iDeploy',
         imageAlt: $localize`:@@seo.ideploy.imageAlt:iDeploy — Put your business online in one click. A dugout canoe ready to sail.`,
+      };
+    case 'idomain':
+      return {
+        title: $localize`:@@seo.idomain.title:iDomain — Your name, online, in mobile money`,
+        description: SERVICES.idomain.description[locale],
+        crumb: 'iDomain',
+        imageAlt: $localize`:@@seo.idomain.imageAlt:iDomain — Your name, online. A painted Ndebele facade, its plaque carrying the name.`,
+      };
+    case 'ivision':
+      return {
+        title: $localize`:@@seo.ivision.title:iVision — Say it, see it: videos and visuals`,
+        description: SERVICES.ivision.description[locale],
+        crumb: 'iVision',
+        imageAlt: $localize`:@@seo.ivision.imageAlt:iVision — Say it, see it. The griot's kora, which tells its story in music.`,
       };
     case 'about':
       return {
@@ -149,7 +163,7 @@ export function pageSeoText(id: LandingPageId, locale: 'fr' | 'en'): PageSeoText
     case 'terms-of-service':
       return {
         title: $localize`:@@seo.terms.title:Terms of service`,
-        description: $localize`:@@seo.terms.description:The terms that govern your use of IDEM and its services: IDEM Business, IDEM Simulator, iCode and iDeploy.`,
+        description: $localize`:@@seo.terms.description:The terms that govern your use of IDEM and its services: IDEM Business, iSimulator, iCode and iDeploy.`,
         crumb: $localize`:@@seo.terms.crumb:Terms of service`,
         imageAlt: $localize`:@@seo.legal.imageAlt:IDEM legal information — An Akan gold-weighing scale.`,
       };
@@ -162,7 +176,7 @@ export function pageSeoText(id: LandingPageId, locale: 'fr' | 'en'): PageSeoText
       };
     case 'simulation-terms':
       return {
-        title: $localize`:@@seo.simulationTerms.title:IDEM Simulator terms`,
+        title: $localize`:@@seo.simulationTerms.title:iSimulator terms`,
         description: $localize`:@@seo.simulationTerms.description:What a simulated viability index is worth, how an imported business plan is processed, and what you accept before each simulation.`,
         crumb: $localize`:@@seo.simulationTerms.crumb:Simulator terms`,
         imageAlt: $localize`:@@seo.legal.imageAlt:IDEM legal information — An Akan gold-weighing scale.`,
@@ -239,9 +253,9 @@ export function pageSeoText(id: LandingPageId, locale: 'fr' | 'en'): PageSeoText
       };
     case 'isimulator-privacy':
       return {
-        title: $localize`:@@seo.isimulatorPrivacy.title:IDEM Simulator privacy`,
+        title: $localize`:@@seo.isimulatorPrivacy.title:iSimulator privacy`,
         description: $localize`:@@seo.isimulatorPrivacy.description:What happens to the business plan you import, what a market search sends out, and what remains after a run. Your figures never leave in a search query.`,
-        crumb: $localize`:@@seo.isimulatorPrivacy.crumb:Simulator privacy`,
+        crumb: $localize`:@@seo.isimulatorPrivacy.crumb:iSimulator privacy`,
         imageAlt: $localize`:@@seo.legal.imageAlt:IDEM legal information — An Akan gold-weighing scale.`,
       };
     case 'not-found':

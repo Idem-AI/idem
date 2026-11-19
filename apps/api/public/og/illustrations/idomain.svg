@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="8 16 104 70" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+  <!-- iDomain — l'adresse à son nom : la façade ndebele peinte, reconnue de
+       loin (le même objet que la maison de l'accueil d'iDomain et que la
+       section « domaine » d'iDeploy). La plaque au-dessus de la porte est le
+       seul détail en couleur : c'est elle qui porte le nom. -->
+  <path d="M8 80 H112" opacity=".7"/>
+  <path d="M22 80 V36 H34 V30 H46 V24 H74 V30 H86 V36 H98 V80" stroke-width="2"/>
+  <path d="M52 80 V58 C52 50 68 50 68 58 V80" stroke-width="2"/>
+  <path d="M28 44 H46 V72 H28Z M74 44 H92 V72 H74Z" opacity=".75"/>
+  <path d="M28 52 L32.5 47 L37 52 L41.5 47 L46 52 M74 52 L78.5 47 L83 52 L87.5 47 L92 52" stroke-width="1.1" opacity=".7"/>
+  <path d="M31 58 H43 V66 H31Z M77 58 H89 V66 H77Z" stroke-width="1" opacity=".6"/>
+  <path d="M28 76 H46 M74 76 H92 M26 40 H94" stroke-width="1" opacity=".5"/>
+  <g style="color: var(--color-primary-500)">
+    <rect x="48" y="31" width="24" height="12" rx="1.2" stroke-width="1.8" style="fill: var(--idem-bg-darker)"/>
+    <path d="M52 37 H56 M59 37 H61 M64 37 H68" stroke-width="1.3"/>
+  </g>
+</svg>

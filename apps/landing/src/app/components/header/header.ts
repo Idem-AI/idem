@@ -99,10 +99,15 @@ export class Header implements OnInit {
       id: 'product',
       label: $localize`:@@header.menu.product:Product`,
       type: 'dropdown',
+      // Les cinq services, dans l'ordre du parcours IDEM (`WORKFLOW` de
+      // `@idem/shared-seo`) : on éprouve l'idée, on écrit l'application, on la
+      // met en ligne, on lui donne son nom, puis on la fait connaître.
       items: [
+        { label: 'iSimulator', route: '/simulator' },
         { label: 'iCode', route: '/idev' },
         { label: 'iDeploy', route: '/ideploy' },
-        { label: 'IDEM Simulator', route: '/simulator' },
+        { label: 'iDomain', route: '/idomain' },
+        { label: 'iVision', route: '/ivision' },
       ],
     },
     {

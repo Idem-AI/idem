@@ -121,7 +121,7 @@ const LABELS: Record<string, Bilingual> = {
   ideploy: { fr: 'iDeploy', en: 'iDeploy' },
   ivision: { fr: 'iVision', en: 'iVision' },
   idomain: { fr: 'iDomain', en: 'iDomain' },
-  simulator: { fr: 'Simulateur IDEM', en: 'IDEM Simulator' },
+  simulator: { fr: 'iSimulator', en: 'iSimulator' },
   pricing: { fr: 'Tarifs', en: 'Pricing' },
   console: { fr: 'Tableau de bord', en: 'Dashboard' },
   signup: { fr: 'Créer un compte', en: 'Create an account' },
@@ -160,8 +160,8 @@ const SERVICE_LINE: Record<Exclude<FooterApp, 'idem'>, Bilingual> = {
     en: 'iDomain buys and renews your domain names, payable by mobile money.',
   },
   isimulator: {
-    fr: 'Le simulateur IDEM éprouve un business plan avant que le marché ne s’en charge.',
-    en: 'The IDEM simulator stress-tests a business plan before the market does.',
+    fr: 'iSimulator éprouve un business plan avant que le marché ne s’en charge.',
+    en: 'iSimulator stress-tests a business plan before the market does.',
   },
 };
 
@@ -223,11 +223,13 @@ const IDEM_COLUMNS: readonly ColumnSpec[] = [
   {
     id: 'product',
     links: [
+      // Les cinq services ont tous leur page de présentation sur la landing :
+      // depuis elle, les liens y mènent plutôt que de sortir vers l'application.
+      { label: 'simulator', service: 'landing', path: '/simulator', self: true },
       { label: 'icode', service: 'landing', path: '/idev', self: true },
       { label: 'ideploy', service: 'landing', path: '/ideploy', self: true },
-      { label: 'ivision', service: 'ivision' },
-      { label: 'idomain', service: 'idomain' },
-      { label: 'simulator', service: 'landing', path: '/simulator', self: true },
+      { label: 'idomain', service: 'landing', path: '/idomain', self: true },
+      { label: 'ivision', service: 'landing', path: '/ivision', self: true },
       { label: 'pricing', service: 'landing', path: '/pricing', self: true },
     ],
   },

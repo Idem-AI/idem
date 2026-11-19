@@ -1,5 +1,5 @@
 /**
- * Complément de confidentialité propre au simulateur IDEM.
+ * Complément de confidentialité propre à iSimulator.
  *
  * Les conditions de la simulation (`/simulation-terms`) disent déjà ce qu’un
  * indice de viabilité vaut et ce qu’il ne vaut pas. Ce texte-ci traite la
@@ -14,7 +14,7 @@ export const ISIMULATOR_PRIVACY: LegalDocContent = {
   id: 'isimulator-privacy',
   version: '2026.11',
   effectiveDate: { fr: '19 novembre 2026', en: '19 November 2026' },
-  title: { fr: 'Confidentialité — Simulateur IDEM', en: 'Privacy — IDEM Simulator' },
+  title: { fr: 'Confidentialité — iSimulator', en: 'Privacy — iSimulator' },
   subtitle: {
     fr: 'Ce que la simulation ajoute à la politique globale : le business plan que vous importez, les chiffres que nous allons chercher dehors, et ce qui reste après une exécution.',
     en: 'What the simulation adds to the global policy: the business plan you import, the figures we fetch from outside, and what remains after a run.',

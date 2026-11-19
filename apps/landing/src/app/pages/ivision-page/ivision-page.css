@@ -1,0 +1,41 @@
+/* iVision — ce qui n'appartient qu'à cette page. */
+
+/* Le numéro d'une étape. La séquence est réelle — on dit, il lit la marque, ça
+   se fabrique, on retouche, on publie — donc le numéro porte une information
+   et mérite d'être lu. */
+.ivs-step {
+  margin: 0;
+  font-weight: var(--font-weight-black);
+  font-size: clamp(2rem, 3.5vw, 3rem);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: color-mix(in oklch, var(--color-primary-500) 60%, transparent);
+}
+
+/* Ce qui distingue les deux ateliers : la durée et les formats, en clair. */
+.ivs-detail {
+  margin-bottom: 0;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-primary-500);
+}
+
+/* Les deux ateliers côte à côte. Pas de carte : ce qui les sépare est
+   l'espace entre les colonnes, et sur téléphone ils se suivent. */
+.ivs-workshops {
+  display: grid;
+  gap: clamp(3rem, 5vw, 4.5rem);
+}
+
+@media (min-width: 768px) {
+  .ivs-workshops {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.ivs-workshop-title {
+  margin-bottom: 0;
+  font-weight: var(--font-weight-black);
+  font-size: clamp(1.5rem, 2.8vw, 2.25rem);
+  line-height: 1.05;
+}

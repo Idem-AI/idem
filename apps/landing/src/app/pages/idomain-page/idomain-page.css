@@ -1,0 +1,23 @@
+/* iDomain — ce qui n'appartient qu'à cette page. */
+
+/* Le numéro d'une étape de l'installation : la séquence est réelle et ne se
+   fait qu'une fois, donc le numéro porte une information. */
+.idm-step {
+  margin: 0;
+  font-weight: var(--font-weight-black);
+  font-size: clamp(2rem, 3.5vw, 3rem);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: color-mix(in oklch, var(--color-primary-500) 60%, transparent);
+}
+
+/* Le délai annoncé pour une étape. C'est l'information que l'acheteur cherche
+   — « quand est-ce que mon site répond ? » — donc elle est lisible et nommée
+   en chiffres, pas cachée dans la phrase. */
+.idm-when {
+  margin-bottom: 0;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-primary-500);
+}

@@ -71,6 +71,16 @@ export const routes: Routes = [
     data: { layout: 'public', seo: 'ideploy' },
   },
   {
+    path: 'idomain',
+    loadComponent: () => import('./pages/idomain-page/idomain-page').then((m) => m.IdomainPage),
+    data: { layout: 'public', seo: 'idomain' },
+  },
+  {
+    path: 'ivision',
+    loadComponent: () => import('./pages/ivision-page/ivision-page').then((m) => m.IvisionPage),
+    data: { layout: 'public', seo: 'ivision' },
+  },
+  {
     // La fiche d'un projet admis : rendue dans le navigateur (voir app.routes.server.ts).
     path: 'builders/:slug',
     loadComponent: () =>
@@ -187,7 +197,9 @@ export const routes: Routes = [
   {
     path: 'builders-privacy',
     loadComponent: () =>
-      import('./shared/components/builders-privacy/builders-privacy').then((m) => m.BuildersPrivacy),
+      import('./shared/components/builders-privacy/builders-privacy').then(
+        (m) => m.BuildersPrivacy,
+      ),
     data: { layout: 'public', seo: 'builders-privacy' },
   },
   {
