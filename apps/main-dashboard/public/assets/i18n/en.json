@@ -2073,8 +2073,8 @@
       "emptyDescription": "Create your first project: brand identity, business plan, application and deployment all follow from it.",
       "delete": {
         "title": "Delete this project?",
-        "subtitle": "The project will be removed from your dashboard.",
-        "body": "Remove “{{name}}” from your dashboard? The project stays archived in the database but will no longer appear in your workspace.",
+        "subtitle": "It leaves your workspace now and is erased after 30 days.",
+        "body": "Delete “{{name}}”? The project leaves your workspace right away. After 30 days it is permanently erased, with its documents, files and history.",
         "cancel": "Cancel",
         "confirm": "Delete",
         "pending": "Deleting…"

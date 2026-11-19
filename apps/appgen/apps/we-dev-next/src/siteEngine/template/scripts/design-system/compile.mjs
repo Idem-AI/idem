@@ -20,7 +20,7 @@
  */
 
 export const SCHEMA_VERSION = 1;
-export const COMPILER_VERSION = '1.0.0';
+export const COMPILER_VERSION = '1.1.0';
 
 /* -------------------------------------------------------------------------- */
 /*  Configuration par défaut                                                   */
@@ -49,15 +49,16 @@ export const DEFAULT_CONFIG = {
       eyebrowCase: 'uppercase',
     },
     radius: { base: '0.5rem' },
-    borders: { width: '1px' },
+    borders: { width: '1px', tone: 'normal', style: 'solid' },
     elevation: { style: 'soft' },
     spacing: {},
   },
   components: {
-    button: { variant: 'primary', size: 'md', case: 'none', shadow: 'none' },
+    button: { variant: 'primary', size: 'md', case: 'none', shadow: 'none', shape: 'uniform', hover: 'darken', press: 'none' },
     input: { style: 'outline' },
-    card: { variant: 'outline', elevation: 'none' },
-    badge: { variant: 'soft', case: 'none' },
+    card: { variant: 'outline', elevation: 'none', shape: 'uniform', hover: 'none', accent: 'none' },
+    badge: { variant: 'soft', case: 'none', shape: 'uniform' },
+    link: { hover: 'none' },
   },
   motion: {
     durationMs: 300,
@@ -79,6 +80,19 @@ const ENUMS = {
   inputStyle: ['outline', 'filled', 'underline'],
   cardVariant: ['outline', 'flat', 'elevated', 'filled'],
   badgeVariant: ['soft', 'solid', 'outline'],
+  // Formes : le rayon donne la courbure, la forme dit OÙ elle s'applique (coins égaux, un coin sur deux, haut seul…).
+  buttonShape: ['uniform', 'square', 'pill', 'leaf', 'leaf-reverse', 'tab'],
+  cardShape: ['uniform', 'square', 'leaf', 'leaf-reverse', 'tab', 'arch', 'blob'],
+  badgeShape: ['uniform', 'square', 'pill'],
+  // Survols et appui : ce que fait un bouton ou une carte quand on le survole.
+  buttonHover: ['darken', 'lift', 'invert', 'slide', 'glow', 'grow', 'shift', 'underline', 'arrow', 'ring', 'tilt'],
+  buttonPress: ['none', 'sink', 'shrink'],
+  cardHover: ['none', 'lift', 'border', 'tint', 'zoom', 'shadow', 'shift', 'bar', 'glow', 'rise', 'tilt'],
+  cardAccent: ['none', 'top', 'left', 'bottom'],
+  linkHover: ['none', 'underline', 'bar'],
+  // Bordures : leur teinte (de presque invisible à l'encre pleine), leur trait.
+  borderTone: ['hairline', 'soft', 'normal', 'strong', 'ink', 'brand'],
+  borderStyle: ['solid', 'dashed', 'dotted', 'double'],
   intensity: ['none', 'subtle', 'moderate', 'expressive'],
   easing: ['standard', 'emphasized', 'gentle', 'snappy', 'linear'],
 };
@@ -405,7 +419,11 @@ function normalize(input, defaults, errors) {
         ['card', r.length('tokens.radius.card')],
         ['badge', r.length('tokens.radius.badge')],
       ]),
-      borders: pick([['width', r.length('tokens.borders.width')]]),
+      borders: pick([
+        ['width', r.length('tokens.borders.width')],
+        ['tone', r.enumOf('tokens.borders.tone', ENUMS.borderTone)],
+        ['style', r.enumOf('tokens.borders.style', ENUMS.borderStyle)],
+      ]),
       elevation: pick([
         ['style', r.enumOf('tokens.elevation.style', ENUMS.elevationStyle)],
         ['tint', r.color('tokens.elevation.tint')],
@@ -427,6 +445,9 @@ function normalize(input, defaults, errors) {
         ['letterSpacing', r.length('components.button.letterSpacing')],
         ['case', r.enumOf('components.button.case', ENUMS.textCase)],
         ['shadow', r.enumOf('components.button.shadow', ENUMS.shadowLevel)],
+        ['shape', r.enumOf('components.button.shape', ENUMS.buttonShape)],
+        ['hover', r.enumOf('components.button.hover', ENUMS.buttonHover)],
+        ['press', r.enumOf('components.button.press', ENUMS.buttonPress)],
       ]),
       input: pick([
         ['style', r.enumOf('components.input.style', ENUMS.inputStyle)],
@@ -438,11 +459,16 @@ function normalize(input, defaults, errors) {
         ['borderWidth', r.length('components.card.borderWidth')],
         ['elevation', r.enumOf('components.card.elevation', ENUMS.shadowLevel)],
         ['padding', r.length('components.card.padding')],
+        ['shape', r.enumOf('components.card.shape', ENUMS.cardShape)],
+        ['hover', r.enumOf('components.card.hover', ENUMS.cardHover)],
+        ['accent', r.enumOf('components.card.accent', ENUMS.cardAccent)],
       ]),
       badge: pick([
         ['variant', r.enumOf('components.badge.variant', ENUMS.badgeVariant)],
         ['case', r.enumOf('components.badge.case', ENUMS.textCase)],
+        ['shape', r.enumOf('components.badge.shape', ENUMS.badgeShape)],
       ]),
+      link: pick([['hover', r.enumOf('components.link.hover', ENUMS.linkHover)]]),
     },
     motion: pick([
       ['durationMs', r.number('motion.durationMs', 0, 2000)],
@@ -498,7 +524,13 @@ function resolveColors(config, report) {
     ['secondary', () => mix(background, primary, 0.1)],
     ['muted', () => mix(background, foreground, 0.05)],
     ['destructive', () => ({ r: 220, g: 38, b: 38 })],
-    ['border', () => mix(background, foreground, 0.13)],
+    // La teinte vient du projet : de presque invisible (filet) à l'encre pleine (éditorial, brutaliste), ou aux couleurs de
+    // la marque. Avant : toujours 13 % du texte sur le fond, donc des bordures identiques d'un site à l'autre.
+    ['border', () => {
+      const tone = config.tokens.borders?.tone ?? 'normal';
+      if (tone === 'brand') return mix(background, primary, 0.5);
+      return mix(background, foreground, { hairline: 0.07, soft: 0.1, normal: 0.13, strong: 0.38, ink: 0.88 }[tone] ?? 0.13);
+    }],
   ]) {
     const color = read(key);
     if (color) out[key] = color;
@@ -627,6 +659,142 @@ function shadows(style, tint) {
 }
 
 /* -------------------------------------------------------------------------- */
+/*  Formes, survols, bordures : le CSS des composants                          */
+/*                                                                            */
+/*  Les variables (`:root`) donnent les valeurs ; ce bloc donne les GESTES —    */
+/*  ce qui se passe quand on survole ou appuie, et la forme des coins. Il      */
+/*  n'émet que le geste CHOISI par le projet : un site n'embarque pas les      */
+/*  onze survols de bouton, seulement le sien.                                 */
+/*                                                                            */
+/*  Spécificité : un geste est `.ds-button:hover` (0,2,0). Il l'emporte sur    */
+/*  l'état de repos d'une classe utilitaire (0,1,0) mais cède, à égalité et    */
+/*  par l'ordre, à un `hover:…` écrit par l'appelant : une section qui veut son */
+/*  propre survol l'obtient.                                                   */
+/* -------------------------------------------------------------------------- */
+
+/** Où s'applique la courbure : un rayon `r` devient une liste de quatre coins. */
+const SHAPES = {
+  uniform: (r) => r,
+  square: () => '0px',
+  pill: () => '9999px',
+  leaf: (r) => `${r} 0px ${r} 0px`,
+  'leaf-reverse': (r) => `0px ${r} 0px ${r}`,
+  tab: (r) => `${r} ${r} 0px 0px`,
+  arch: (r) => `calc(${r} * 3) calc(${r} * 3) ${r} ${r}`,
+  blob: (r) => `calc(${r} * 2) calc(${r} * 0.4) calc(${r} * 2) calc(${r} * 0.4)`,
+};
+const shapeOf = (shape, r) => (SHAPES[shape] ?? SHAPES.uniform)(r);
+
+/** Chaque variante de bouton nomme ses couleurs ; les gestes les lisent, sans connaître la variante. */
+const BUTTON_VARIANTS = {
+  primary: { bg: 'rgb(var(--primary))', fg: 'rgb(var(--primary-foreground))', bd: 'transparent', ink: 'var(--primary)', hoverBg: 'rgb(var(--primary) / 0.9)', hoverBd: 'transparent', invBg: 'rgb(var(--foreground))', invFg: 'rgb(var(--background))' },
+  secondary: { bg: 'rgb(var(--secondary))', fg: 'rgb(var(--secondary-foreground))', bd: 'transparent', ink: 'var(--foreground)', hoverBg: 'rgb(var(--secondary) / 0.75)', hoverBd: 'transparent', invBg: 'rgb(var(--foreground))', invFg: 'rgb(var(--background))' },
+  accent: { bg: 'rgb(var(--accent))', fg: 'rgb(var(--accent-foreground))', bd: 'transparent', ink: 'var(--accent)', hoverBg: 'rgb(var(--accent) / 0.8)', hoverBd: 'transparent', invBg: 'rgb(var(--foreground))', invFg: 'rgb(var(--background))' },
+  outline: { bg: 'transparent', fg: 'rgb(var(--foreground))', bd: 'rgb(var(--input))', ink: 'var(--foreground)', hoverBg: 'rgb(var(--muted))', hoverBd: 'rgb(var(--foreground) / 0.4)', invBg: 'rgb(var(--foreground))', invFg: 'rgb(var(--background))' },
+  ghost: { bg: 'transparent', fg: 'rgb(var(--foreground))', bd: 'transparent', ink: 'var(--foreground)', hoverBg: 'rgb(var(--muted))', hoverBd: 'transparent', invBg: 'rgb(var(--foreground))', invFg: 'rgb(var(--background))' },
+  destructive: { bg: 'rgb(var(--destructive))', fg: 'rgb(var(--destructive-foreground))', bd: 'transparent', ink: 'var(--destructive)', hoverBg: 'rgb(var(--destructive) / 0.9)', hoverBd: 'transparent', invBg: 'rgb(var(--foreground))', invFg: 'rgb(var(--background))' },
+};
+
+/** Un geste : ce qui change à la couleur (`color`, partout) et ce qui BOUGE (`motion`, sauf si l'utilisateur le refuse). */
+const BUTTON_HOVER = {
+  darken: { color: 'background-color: var(--btn-hover-bg); border-color: var(--btn-hover-bd);' },
+  lift: { color: 'box-shadow: 0 12px 24px -12px rgb(var(--btn-ink) / 0.6);', motion: 'transform: translateY(-2px);' },
+  invert: { color: 'background-color: var(--btn-inv-bg); color: var(--btn-inv-fg); border-color: var(--btn-inv-bg);' },
+  slide: { rest: 'background-image: linear-gradient(var(--btn-inv-bg), var(--btn-inv-bg)); background-repeat: no-repeat; background-position: left center; background-size: 0% 100%;', color: 'background-size: 100% 100%; color: var(--btn-inv-fg); border-color: var(--btn-inv-bg);' },
+  glow: { color: 'box-shadow: 0 0 0 4px rgb(var(--btn-ink) / 0.16), 0 10px 28px -6px rgb(var(--btn-ink) / 0.55);' },
+  grow: { color: 'background-color: var(--btn-hover-bg);', motion: 'transform: scale(1.05);' },
+  shift: { rest: 'box-shadow: 4px 4px 0 0 rgb(var(--foreground));', color: 'box-shadow: 2px 2px 0 0 rgb(var(--foreground));', motion: 'transform: translate(2px, 2px);' },
+  underline: { color: 'background-color: var(--btn-hover-bg); border-color: var(--btn-hover-bd); text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 5px;' },
+  arrow: { color: 'background-color: var(--btn-hover-bg); border-color: var(--btn-hover-bd);', svg: 'transform: translateX(4px);' },
+  ring: { color: 'background-color: var(--btn-hover-bg); box-shadow: 0 0 0 3px rgb(var(--btn-ink) / 0.28);' },
+  tilt: { color: 'background-color: var(--btn-hover-bg);', motion: 'transform: translateY(-1px) rotate(-1.5deg);' },
+};
+const BUTTON_PRESS = { none: '', sink: 'transform: translateY(1px);', shrink: 'transform: scale(0.96);' };
+
+const CARD_HOVER = {
+  none: {},
+  lift: { color: 'box-shadow: var(--shadow-lg);', motion: 'transform: translateY(-4px);' },
+  border: { color: 'border-color: rgb(var(--primary));' },
+  tint: { color: 'background-color: rgb(var(--muted));', tile: true },
+  zoom: { tile: true, zoom: true },
+  shadow: { color: 'box-shadow: var(--shadow-xl);' },
+  shift: { rest: 'box-shadow: 4px 4px 0 0 rgb(var(--foreground));', color: 'box-shadow: 2px 2px 0 0 rgb(var(--foreground));', motion: 'transform: translate(2px, 2px);' },
+  bar: { rest: 'background-image: linear-gradient(rgb(var(--primary)), rgb(var(--primary))); background-repeat: no-repeat; background-position: left bottom; background-size: 0% 3px;', color: 'background-size: 100% 3px;' },
+  glow: { color: 'box-shadow: 0 0 0 1px rgb(var(--primary) / 0.4), 0 18px 40px -16px rgb(var(--primary) / 0.5);', tile: true },
+  rise: { color: 'border-color: rgb(var(--primary)); box-shadow: var(--shadow-lg);', motion: 'transform: translateY(-4px);', tile: true },
+  tilt: { color: 'box-shadow: var(--shadow-md);', motion: 'transform: translateY(-3px) rotate(-0.8deg);' },
+};
+
+const ACCENT_STRIP = {
+  top: 'background-position: left top; background-size: 100% 3px;',
+  left: 'background-position: left top; background-size: 3px 100%;',
+  bottom: 'background-position: left bottom; background-size: 100% 3px;',
+};
+
+const TRANSITION = 'transition-property: color, background-color, border-color, box-shadow, opacity, transform, background-size; transition-duration: var(--motion-duration); transition-timing-function: var(--motion-ease);';
+
+/**
+ * Le CSS des gestes du projet. Les valeurs (rayons, bordures, ombres) restent des variables de `:root` ; ici, ce qui se
+ * passe au survol et à l'appui, le trait d'accent des cartes, le soulignement des liens.
+ */
+function componentsCss(c) {
+  const out = [];
+  const buttonHover = BUTTON_HOVER[c.button.hover] ?? BUTTON_HOVER.darken;
+  const press = BUTTON_PRESS[c.button.press] ?? '';
+
+  // Boutons : les couleurs de chaque variante sous des noms communs, lues par le repos et par les gestes.
+  for (const [name, v] of Object.entries(BUTTON_VARIANTS)) {
+    out.push(`:where(.ds-btn-${name}) { --btn-bg: ${v.bg}; --btn-fg: ${v.fg}; --btn-bd: ${v.bd}; --btn-ink: ${v.ink}; --btn-hover-bg: ${v.hoverBg}; --btn-hover-bd: ${v.hoverBd}; --btn-inv-bg: ${v.invBg}; --btn-inv-fg: ${v.invFg}; }`);
+  }
+  // L'ombre réglée du bouton (`components.button.shadow`) est celle du bouton principal, comme avant.
+  out.push('.ds-btn-primary { box-shadow: var(--shadow-button); }');
+  out.push(`.ds-button { background-color: var(--btn-bg); color: var(--btn-fg); border-color: var(--btn-bd); ${TRANSITION}${buttonHover.rest ? ` ${buttonHover.rest}` : ''} }`);
+  out.push('.ds-button svg { transition: transform var(--motion-duration) var(--motion-ease); }');
+  const hovered = [buttonHover.color, buttonHover.svg ? '' : ''].filter(Boolean).join(' ');
+  out.push('@media (hover: hover) {');
+  if (hovered) out.push(`  .ds-button:hover { ${hovered} }`);
+  if (buttonHover.svg) out.push(`  .ds-button:hover svg { ${buttonHover.svg} }`);
+  out.push('}');
+  if (buttonHover.motion || press) {
+    out.push('@media (prefers-reduced-motion: no-preference) {');
+    if (buttonHover.motion) out.push(`  @media (hover: hover) { .ds-button:hover { ${buttonHover.motion} } }`);
+    if (press) out.push(`  .ds-button:active { ${press} }`);
+    out.push('}');
+  }
+  // Un bouton « ombre dure » s'enfonce quand on le presse, quel que soit l'appui choisi.
+  if (c.button.hover === 'shift') out.push('@media (prefers-reduced-motion: no-preference) { .ds-button:active { transform: translate(4px, 4px); box-shadow: 0 0 0 0 transparent; } }');
+
+  // Cartes.
+  const cardHover = CARD_HOVER[c.card.hover] ?? CARD_HOVER.none;
+  const accent = ACCENT_STRIP[c.card.accent];
+  const cardRest = [
+    TRANSITION,
+    accent ? `background-image: linear-gradient(rgb(var(--primary)), rgb(var(--primary))); background-repeat: no-repeat; ${accent}` : '',
+    cardHover.rest ?? '',
+  ].filter(Boolean).join(' ');
+  out.push(`.ds-card { ${cardRest} }`);
+  if (cardHover.color || cardHover.motion || cardHover.zoom || cardHover.tile) {
+    out.push('@media (hover: hover) {');
+    if (cardHover.color) out.push(`  .ds-card:hover { ${cardHover.color} }`);
+    if (cardHover.zoom || cardHover.tile) {
+      out.push('  .ds-card img, .ds-tile img { transition: transform 700ms var(--motion-ease); }');
+      out.push('  @media (prefers-reduced-motion: no-preference) { .ds-card:hover :where(.overflow-hidden) img, .ds-tile:hover img { transform: scale(1.06); } }');
+    }
+    out.push('}');
+    if (cardHover.motion) out.push(`@media (prefers-reduced-motion: no-preference) and (hover: hover) { .ds-card:hover { ${cardHover.motion} } }`);
+  }
+
+  // Liens de navigation et de pied de page.
+  if (c.link.hover === 'underline') {
+    out.push('@media (hover: hover) { :where(header nav a, footer a):not(.ds-button):hover { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 6px; text-decoration-color: rgb(var(--primary)); } }');
+  } else if (c.link.hover === 'bar') {
+    out.push(':where(header nav a, footer a):not(.ds-button) { background-image: linear-gradient(rgb(var(--primary)), rgb(var(--primary))); background-repeat: no-repeat; background-position: left bottom; background-size: 0% 2px; padding-bottom: 2px; transition: background-size var(--motion-duration) var(--motion-ease), color var(--motion-duration) var(--motion-ease); }');
+    out.push('@media (hover: hover) { :where(header nav a, footer a):not(.ds-button):hover { background-size: 100% 2px; } }');
+  }
+  return out.join('\n');
+}
+
+/* -------------------------------------------------------------------------- */
 /*  Compilation                                                                */
 /* -------------------------------------------------------------------------- */
 
@@ -687,7 +855,9 @@ export function compileDesignSystem(input, options = {}) {
 
   const tint = t.elevation.tint ? parseColor(t.elevation.tint) : colors.foreground;
   const shadow = shadows(t.elevation.style ?? 'soft', tint ?? colors.foreground);
-  const borderWidth = t.borders.width ?? '1px';
+  const borderStyle = t.borders.style ?? 'solid';
+  // Un trait double a besoin de trois pixels pour se voir comme double (en dessous, le navigateur le trace plein).
+  const borderWidth = borderStyle === 'double' && parseFloat(t.borders.width ?? '1') < 3 ? '3px' : t.borders.width ?? '1px';
 
   const fonts = [];
   const headingFont = t.typography.headingFont ?? 'Inter';
@@ -725,7 +895,13 @@ export function compileDesignSystem(input, options = {}) {
     'radius-input': radius.input,
     'radius-card': radius.card,
     'radius-badge': radius.badge,
+    // Les trois coins ensemble : `rounded-button`, `rounded-card` et `rounded-badge` lisent ces variables, si bien que la
+    // forme (un coin sur deux, haut seul, arche…) suit partout, dans chaque section, sans qu'aucune ne la connaisse.
+    'radius-button-shape': shapeOf(c.button.shape, radius.button),
+    'radius-card-shape': shapeOf(c.card.shape, radius.card),
+    'radius-badge-shape': shapeOf(c.badge.shape, radius.badge),
     'border-width': borderWidth,
+    'border-style': borderStyle,
     'shadow-sm': shadow.sm,
     'shadow-md': shadow.md,
     'shadow-lg': shadow.lg,
@@ -763,13 +939,18 @@ ${Object.entries(variables)
   .map(([name, value]) => `  --${name}: ${value};`)
   .join('\n')}
 }
+
+/* Formes, survols, appui, traits d'accent : les gestes de ce projet. */
+${componentsCss(c)}
 `;
 
   const componentConfig = {
-    button: { variant: c.button.variant ?? 'primary', size: c.button.size ?? 'md' },
+    button: { variant: c.button.variant ?? 'primary', size: c.button.size ?? 'md', shape: c.button.shape ?? 'uniform', hover: c.button.hover ?? 'darken', press: c.button.press ?? 'none' },
     input: { style: c.input.style ?? 'outline' },
-    card: { variant: c.card.variant ?? 'outline' },
-    badge: { variant: c.badge.variant ?? 'soft' },
+    card: { variant: c.card.variant ?? 'outline', shape: c.card.shape ?? 'uniform', hover: c.card.hover ?? 'none', accent: c.card.accent ?? 'none' },
+    badge: { variant: c.badge.variant ?? 'soft', shape: c.badge.shape ?? 'uniform' },
+    link: { hover: c.link.hover ?? 'none' },
+    borders: { tone: t.borders.tone ?? 'normal', style: borderStyle, width: borderWidth },
     motion: {
       durationMs,
       staggerMs: motionIntensity === 'none' ? 0 : config.motion.staggerMs ?? 70,

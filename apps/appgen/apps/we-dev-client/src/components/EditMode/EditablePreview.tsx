@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { startupPageLoaded } from '@/utils/startupTimer';
+import { startFastPreview, useFastPreview } from '@/utils/fastPreview';
 import { getContainerInstance, onServersChange } from '../WeIde/services';
 import useRunStatus, { API_PORT } from '@/stores/runStatusSlice';
 import { eventEmitter } from '../AiChat/utils/EventEmitter';
@@ -147,7 +148,8 @@ const cval = (info: SelectedElementInfo | null, key: string) => info?.computed?.
 const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }) => {
   const { t } = useTranslation();
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const [url, setUrl] = useState('');
+  /** L'adresse du serveur de la WebContainer (aperçu classique, mode Édition, applications). */
+  const [containerUrl, setUrl] = useState('');
   const [selected, setSelected] = useState<SelectedElementInfo[]>([]);
   const [tree, setTree] = useState<TreeNode[]>([]);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -219,6 +221,15 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
    * sélection, texte et dessin ne coûte qu'un message à l'agent.
    */
   const editing = toolMode !== 'off';
+
+  /**
+   * L'aperçu instantané d'un site vitrine (`utils/fastPreview.ts`) : affiché dès qu'il existe, en moins d'une seconde,
+   * au lieu d'attendre le serveur de la WebContainer. Le mode Édition garde la WebContainer (son instrumentation est
+   * un plugin Vite) ; si l'aperçu instantané est indisponible, rien ne change.
+   */
+  useEffect(() => startFastPreview(), []);
+  const fastUrl = useFastPreview((state) => state.url);
+  const url = !editing && fastUrl ? fastUrl : containerUrl;
 
   const { updateContent, addFile, deleteFile, getContent } = useFileStore();
 

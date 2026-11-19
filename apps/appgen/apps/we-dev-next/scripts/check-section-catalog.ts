@@ -18,7 +18,7 @@ import { seedDesignSystemFiles } from '../src/siteEngine/designConfig.js';
 import { cleanSlop } from '../src/siteEngine/slopGuard.js';
 import { createFactGuard } from '../src/siteEngine/factGuard.js';
 import { localizeCode, pseudoLocaleFiles } from '../src/siteEngine/i18n.js';
-import type { SiteManifest } from '../src/siteEngine/manifest.js';
+import { LAYOUTS, type SiteManifest } from '../src/siteEngine/manifest.js';
 import { renderCheck, renderCheckAvailable } from '../src/siteEngine/renderCheck.js';
 import { importPolicy } from '../src/siteEngine/repair.js';
 import { renderBrandModule, renderDataModule, renderMediaModule } from '../src/siteEngine/siteData.js';
@@ -98,7 +98,9 @@ async function main() {
   const dir = process.env.IDEM_TEMPLATES_DIR?.trim();
   const catalog = dir ? buildSectionCatalog(readIcodeTemplatesDir(path.resolve(dir)), 'dir', 'dir') : await sectionCatalog();
   console.log(`Catalogue ${catalog.version} (${catalog.source}) : ${catalog.kinds.size} schémas, ${catalog.sections.length} sections, ${catalog.headers.length} en-têtes, ${catalog.footers.length} pieds de page`);
-  ok('catalogue chargé', catalog.sections.length >= 45 && catalog.kinds.size === 15 && catalog.headers.length >= 3 && catalog.footers.length >= 3, `${catalog.sections.length} sections`);
+  ok('catalogue chargé', catalog.sections.length >= 45 && catalog.kinds.size === Object.keys(LAYOUTS).length && catalog.headers.length >= 3 && catalog.footers.length >= 3, `${catalog.sections.length} sections, ${catalog.kinds.size}/${Object.keys(LAYOUTS).length} schémas`);
+  // Chaque composition du manifeste a au moins deux variantes (la gamme d'un cran en sert au moins deux).
+  for (const layout of Object.keys(LAYOUTS)) ok(`composition « ${layout} » : au moins deux variantes`, catalog.sections.filter((s) => s.layout === layout).length >= 2);
   ok('aucun nœud écarté', catalog.rejected.length === 0, JSON.stringify(catalog.rejected.slice(0, 3)));
   if (!renderCheckAvailable()) {
     console.log('✗ site-runtime absent : npm run site:runtime');
@@ -107,7 +109,10 @@ async function main() {
 
   // ── Chaque variante, dans chaque situation qu'elle accepte ──
   const jobs: Array<() => Promise<void>> = [];
-  for (const node of catalog.sections) {
+  // ONLY=isec.hero,ihead : ne monte que les nœuds dont l'identifiant commence ainsi (itération sur une catégorie).
+  const only = process.env.ONLY?.split(',').map((x) => x.trim()).filter(Boolean);
+  const picked = (id: string) => !only?.length || only.some((p) => id.startsWith(p));
+  for (const node of catalog.sections.filter((n) => picked(n.id))) {
     const kind = catalog.kinds.get(node.layout)!;
     const visualsCases = node.visual === 'none' ? [0] : node.visual === 'required' ? [node.fits?.gallery?.[1] ? Math.min(node.fits.gallery[1], 6) : 1] : [0, 1];
     if (node.fits?.gallery) visualsCases.push(node.fits.gallery[0]);
@@ -152,7 +157,7 @@ async function main() {
         });
       }
   }
-  for (const shell of [...catalog.headers, ...catalog.footers]) {
+  for (const shell of [...catalog.headers, ...catalog.footers].filter((n) => picked(n.id))) {
     jobs.push(async () => {
       const filePath = shell.kind === 'header' ? 'src/components/site/SiteHeader.tsx' : 'src/components/site/SiteFooter.tsx';
       const review: ReviewContext = { policy: importPolicy([]), check: createFactGuard(facts.description, 'fr'), reference: facts.description, theme: themeColorsFromCss(css), siteFiles: () => filesWith(0) };

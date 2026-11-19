@@ -660,6 +660,12 @@
       "what_fullstack": "une base PostgreSQL, le serveur (dossier backend/, Node.js) et l'interface (dossier frontend/). DATABASE_URL et VITE_API_URL sont renseignées automatiquement.",
       "api": "Adresse de l'API :",
       "manage": "Gérer dans iDeploy"
+    },
+    "seo": {
+      "title_one": "{{count}} défaut empêche une page d’être bien référencée",
+      "title_other": "{{count}} défauts empêchent des pages d’être bien référencées",
+      "body": "Le site est en ligne. Google et les assistants IA lisent mal ces pages tant qu’elles ne sont pas corrigées.",
+      "summary": "Défauts de référencement du site construit"
     }
   },
   "editMode": {

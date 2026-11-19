@@ -58,6 +58,8 @@ export interface SiteInventory {
   footer: { texts: string[]; links: { label: string; href: string }[] };
   contact: { phones: string[]; emails: string[]; whatsapp: string[]; addresses: string[]; socials: { network: string; url: string }[] };
   assets: { favicon?: string; appleIcon?: string; ogImage?: string; images: (InventoryImage & { page: string; section: string })[] };
+  /** La technologie de l'ancien site et ce que le relevé a fait pour elle (relevés depuis le 19/11/2026). */
+  technology?: { family: string; names: string[]; adaptations: string[] };
 }
 
 const clip = (text: string, max: number) => (text.length > max ? `${text.slice(0, max - 1)}…` : text);

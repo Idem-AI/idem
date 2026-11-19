@@ -64,8 +64,10 @@ export const METRICS_SERVICE = 'idem-appgen';
 /**
  * Normalize route paths to prevent cardinality explosion.
  */
-function normalizeRoute(path: string): string {
-  return path
+function normalizeRoute(path: unknown): string {
+  // Une route peut être une expression régulière (ou une liste) : sa forme écrite fait l'affaire. Une exception ici,
+  // dans l'écouteur `finish`, tuait le processus entier (vu le 19/11 sur l'aperçu instantané).
+  return String(path)
     .replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, ':id')
     .replace(/[0-9a-f]{24}/gi, ':id')
     .replace(/\/\d+/g, '/:id')
@@ -82,14 +84,18 @@ export function metricsMiddleware(req: Request, res: Response, next: NextFunctio
   activeConnections.inc({ service });
 
   res.on('finish', () => {
-    const duration = (Date.now() - startTime) / 1000;
-    const route = normalizeRoute(req.route?.path || req.path || 'unknown');
-    const method = req.method;
-    const statusCode = res.statusCode.toString();
-
-    httpRequestsTotal.inc({ method, route, status_code: statusCode, service });
-    httpRequestDuration.observe({ method, route, status_code: statusCode, service }, duration);
     activeConnections.dec({ service });
+    // Une mesure ratée ne doit jamais faire tomber le serveur.
+    try {
+      const duration = (Date.now() - startTime) / 1000;
+      const route = normalizeRoute(req.route?.path || req.path || 'unknown');
+      const method = req.method;
+      const statusCode = res.statusCode.toString();
+      httpRequestsTotal.inc({ method, route, status_code: statusCode, service });
+      httpRequestDuration.observe({ method, route, status_code: statusCode, service }, duration);
+    } catch {
+      /* métrique perdue */
+    }
   });
 
   next();

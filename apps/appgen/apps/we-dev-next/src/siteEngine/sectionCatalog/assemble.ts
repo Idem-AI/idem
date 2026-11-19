@@ -9,6 +9,8 @@
  *   [[ifi0]]…[[/ifi0]]  [[ifnoti0]]…[[/ifnoti0]]                       le premier élément, ou les autres
  *   [[if f]]…[[else]]…[[/if]]  [[ifnot f]]…[[/if]]  [[if .f]]          les conditions (`media`, `cta`, un champ, un sous-champ)
  *   [[media class="…"]]  [[href action]]                               le visuel de la section, la destination d'une action
+ *   [[each .sous]]…[[/each]]                                          une liste DANS un élément (les inclus d'une formule)
+ *   [[itemmedia class="…"]]  [[if itemmedia]]                          le visuel de même rang que l'élément (équipe, projets)
  *
  * Aucun texte n'est écrit par le gabarit : un champ vide fait tomber son bloc conditionnel, jamais une balise vide.
  */
@@ -124,6 +126,7 @@ export function assembleSection(tpl: string, input: AssembleInput): string {
   };
   const truthy = (arg: string, scope: Scope): boolean => {
     if (arg === 'media') return mediaKeys.length > 0;
+    if (arg === 'itemmedia') return scope.index !== undefined && scope.index < mediaKeys.length;
     if (arg.startsWith('.')) return present((scope.item as Record<string, unknown> | undefined)?.[arg.slice(1)]);
     const value = content[arg];
     if (value && typeof value === 'object' && !Array.isArray(value) && 'label' in (value as object)) return hrefOf(arg) !== null;
@@ -162,6 +165,12 @@ export function assembleSection(tpl: string, input: AssembleInput): string {
     if (tag === 'mkey') return String(scope.item ?? '');
     const href = tag.match(/^href ([a-zA-Z]+)$/);
     if (href) return JSON.stringify(hrefOf(href[1]) ?? '#');
+    const itemMedia = tag.match(/^itemmedia(?: class="([^"]*)")?$/);
+    if (itemMedia) {
+      const key = scope.index !== undefined ? mediaKeys[scope.index] : undefined;
+      if (!key) return '';
+      return `<Media asset={media[${JSON.stringify(key)}]}${itemMedia[1] ? ` className="${itemMedia[1]}"` : ''} />`;
+    }
     const media = tag.match(/^media(?: class="([^"]*)")?$/);
     if (media) {
       if (!mediaKeys.length) return '';
@@ -187,7 +196,8 @@ export function assembleSection(tpl: string, input: AssembleInput): string {
           const yes = truthy(n.arg, scope) === (n.kind === 'if');
           return render(yes ? n.body : n.alt, scope);
         }
-        const list = n.arg === 'gallery' ? mediaKeys : ((content[n.arg] as unknown[] | undefined) ?? []).filter(present);
+        const source = n.arg === 'gallery' ? mediaKeys : n.arg.startsWith('.') ? (scope.item as Record<string, unknown> | undefined)?.[n.arg.slice(1)] : content[n.arg];
+        const list = n.arg === 'gallery' ? mediaKeys : (Array.isArray(source) ? source : []).filter(present);
         return list.map((item, index) => render(n.body, { item, index, count: list.length })).join('\n');
       })
       .join('');
@@ -195,10 +205,38 @@ export function assembleSection(tpl: string, input: AssembleInput): string {
   return tidy(render(tree, {}));
 }
 
-/** Les restes d'assemblage : lignes vides en série, classes doublement espacées. */
+/**
+ * LES CARTES ÉCRITES À LA MAIN. Les gabarits du catalogue composent leurs cartes en classes (`rounded-card border
+ * border-border bg-card p-6`) plutôt qu'avec le composant `Card` (2 fichiers sur 805) : le survol, le trait d'accent et
+ * la forme choisis par le projet ne les atteignaient pas. Une boîte qui a les coins d'une carte, du rembourrage et une
+ * bordure ou un fond reçoit `ds-card` (le geste du projet : soulèvement, bordure de marque, ombre dure…) ; une tuile
+ * d'image (`relative overflow-hidden rounded-card`) reçoit `ds-tile` (zoom de la photo). Jamais un cadre de média, un
+ * calque posé sur une image, un bandeau plein (`bg-primary`) ni une mosaïque : ils ne se soulèvent pas.
+ */
+export function markSurface(cls: string): string {
+  const tokens = cls.split(/\s+/).filter(Boolean);
+  if (!tokens.includes('rounded-card') || tokens.includes('ds-card') || tokens.includes('ds-tile')) return cls;
+  // Les préfixes de variante (`md:`, `lg:`) ne changent pas ce qu'est la boîte.
+  const bare = tokens.map((t) => t.replace(/^(?:[a-z0-9-]+:)+/, ''));
+  const has = (test: string | RegExp) => bare.some((t) => (typeof test === 'string' ? t === test : test.test(t)));
+  if (has('absolute') || has('sticky') || has('fixed') || has(/^aspect-/) || has(/^bg-(primary|foreground|background|border)(\/\d+)?$/) || has('shadow-xl')) return cls;
+  const padded = has(/^p[xy]?-\d/);
+  const overflow = has('overflow-hidden');
+  if (padded && !overflow && (has('border') || has('bg-card') || has(/^bg-(muted|secondary|accent)(\/\d+)?$/))) return `${cls} ds-card`;
+  // Une tuile d'image : coins de carte, rognée, sans rembourrage, et qui n'est pas la grille d'une mosaïque.
+  if (overflow && !padded && has('relative') && !has('grid') && !has('flex')) return `${cls} ds-tile`;
+  return cls;
+}
+
+/** Les cartes d'un code déjà écrit (par le catalogue ou par l'auteur de code) : chaque `className="…"` est examiné. */
+export function markSurfaces(code: string): string {
+  return code.replace(/className="([^"]*)"/g, (_m, cls: string) => `className="${markSurface(cls.replace(/\s+/g, ' ').trim())}"`);
+}
+
+/** Les restes d'assemblage : lignes vides en série, classes doublement espacées, cartes marquées. */
 function tidy(code: string): string {
   return code
-    .replace(/className="([^"]*)"/g, (_m, cls: string) => `className="${cls.replace(/\s+/g, ' ').trim()}"`)
+    .replace(/className="([^"]*)"/g, (_m, cls: string) => `className="${markSurface(cls.replace(/\s+/g, ' ').trim())}"`)
     .replace(/[ \t]+\n/g, '\n')
     .replace(/\n{3,}/g, '\n\n')
     .trim()

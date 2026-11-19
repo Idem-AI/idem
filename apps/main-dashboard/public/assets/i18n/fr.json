@@ -2076,8 +2076,8 @@
       "emptyDescription": "Créez votre premier projet : identité de marque, business plan, application et mise en ligne suivront.",
       "delete": {
         "title": "Supprimer le projet ?",
-        "subtitle": "Le projet sera retiré de votre tableau de bord.",
-        "body": "Voulez-vous retirer « {{name}} » de votre tableau de bord ? Le projet est archivé en base, mais n’apparaîtra plus dans votre espace.",
+        "subtitle": "Il disparaît de votre espace, puis est effacé au bout de 30 jours.",
+        "body": "Supprimer « {{name}} » ? Le projet disparaît tout de suite de votre espace. Au bout de 30 jours, il est effacé définitivement avec ses documents, ses fichiers et son historique.",
         "cancel": "Annuler",
         "confirm": "Supprimer",
         "pending": "Suppression…"

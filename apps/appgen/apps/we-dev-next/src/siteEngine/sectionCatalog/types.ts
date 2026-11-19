@@ -6,7 +6,7 @@
  *   section  une variante de cette composition : un composant React (TSX) à jetons qui lit ces champs ;
  *   header / footer  l'en-tête et le pied de page, qui ne lisent que les données du site (`@/site/data`).
  */
-import type { LayoutId } from '../manifest.js';
+import { LAYOUTS, type LayoutId } from '../manifest.js';
 
 export type FieldDef =
   | { type: 'text'; max: number; required?: boolean }
@@ -84,9 +84,10 @@ export interface CatalogDirection {
 
 // ── Les règles ───────────────────────────────────────────────────────────────────────────────
 
-const LAYOUT_IDS = new Set<string>(['split-media', 'full-bleed-media', 'editorial', 'statement', 'list-rows', 'timeline', 'bento', 'gallery', 'stats-band', 'quote', 'faq', 'form', 'table', 'cards', 'cta-band']);
+/** Les compositions du manifeste (une seule liste : `LAYOUTS`, rangée par catégorie). */
+const LAYOUT_IDS = new Set<string>(Object.keys(LAYOUTS));
 export const ALLOWED_IMPORTS = new Set(['react', 'motion/react', 'lucide-react', '@/components/ui', '@/design-system', '@/site/data', '@/site/media', '@/site/brand', '@/lib/contact', '@/lib/utils', '@/components/site/language-switcher']);
-const TOKEN_FORMS = [/^Component$/, /^id$/, /^h2?$/, /^reveal(Item)?$/, /^i1?$/, /^n$/, /^span$/, /^mkey$/, /^else$/, /^\/(if|each|ifi0|ifnoti0)$/, /^(ifi0|ifnoti0)$/, /^if(not)? \.?[a-zA-Z]+$/, /^each [a-zA-Z]+$/, /^href [a-zA-Z]+$/, /^media( class="[^"]*")?$/];
+const TOKEN_FORMS = [/^Component$/, /^id$/, /^h2?$/, /^reveal(Item)?$/, /^i1?$/, /^n$/, /^span$/, /^mkey$/, /^else$/, /^\/(if|each|ifi0|ifnoti0)$/, /^(ifi0|ifnoti0)$/, /^if(not)? \.?[a-zA-Z]+$/, /^each \.?[a-zA-Z]+$/, /^href [a-zA-Z]+$/, /^(item)?media( class="[^"]*")?$/];
 const FORBIDDEN: Array<[RegExp, string]> = [
   [/dangerouslySetInnerHTML|innerHTML|outerHTML|document\.write/, 'HTML injecté'],
   [/\beval\s*\(|new Function\s*\(/, 'code évalué'],
@@ -151,7 +152,10 @@ export function nodeErrors(node: KindNode | SectionNode | ShellNode, kinds: Map<
     if (!kind) errors.push(`schéma absent pour « ${node.layout} »`);
     else {
       const top = new Set(Object.keys(kind.fields));
-      const sub = new Set(Object.values(kind.fields).flatMap((f) => (f.type === 'list' && f.of !== 'text' ? Object.keys(f.of) : f.type === 'action' ? ['label'] : [])));
+      const subOf = (fields: Record<string, FieldDef>): string[] => Object.values(fields).flatMap((f) => (f.type === 'list' && f.of !== 'text' ? [...Object.keys(f.of), ...subOf(f.of)] : f.type === 'action' ? ['label'] : []));
+      const sub = new Set(subOf(kind.fields));
+      const subLists = new Set(Object.values(kind.fields).flatMap((f) => (f.type === 'list' && f.of !== 'text' ? Object.entries(f.of).filter(([, d]) => d.type === 'list').map(([k]) => k) : [])));
+      for (const [, name] of tpl.matchAll(/\[\[each \.([a-zA-Z]+)\]\]/g)) if (!subLists.has(name)) errors.push(`[[each .${name}]] hors schéma`);
       for (const [, name] of tpl.matchAll(/\{\{\s*([a-zA-Z]+)(?:\.[a-zA-Z]+)?\s*\}\}/g)) if (!top.has(name)) errors.push(`{{${name}}} hors schéma`);
       for (const [, name] of tpl.matchAll(/\{\{\s*\.([a-zA-Z]+)\s*\}\}/g)) if (!sub.has(name)) errors.push(`{{.${name}}} hors schéma`);
       for (const [, name] of tpl.matchAll(/\[\[each ([a-zA-Z]+)\]\]/g)) if (name !== 'gallery' && kind.fields[name]?.type !== 'list') errors.push(`[[each ${name}]] hors schéma`);

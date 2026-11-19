@@ -36,6 +36,7 @@ import {
 } from '../utils/retry';
 import { getRequestLanguage } from '../utils/request-language';
 import { logAIEvent, previewValue } from '../utils/ai-trace.util';
+import { guardModelRequest, type ModelProcessor } from './privacy/privacy-guard';
 import {
   UsageSink,
   estimateUsage,
@@ -47,6 +48,11 @@ import { getAiUsageContext } from '../utils/ai-usage-context.util';
 import { getModelPricing } from '../config/ai-pricing.config';
 import { TEXT_MODEL } from '../config/openrouter.config';
 export { LLMProvider, LLMOptions };
+
+/** Le sous-traitant du registre de gouvernance derrière un fournisseur (cf. privacy-guard). */
+function modelProcessorOf(provider: LLMProvider): ModelProcessor {
+  return provider === LLMProvider.SELFHOSTED ? 'idem_selfhosted' : 'openrouter';
+}
 
 /**
  * Pause entre deux modèles de la chaîne de repli, quand l'échec précédent était
@@ -452,7 +458,7 @@ export class PromptService {
         client.chat.completions.create(
           // Les features disent `thinking` ; il est traduit ici en `reasoning`
           // (OpenRouter).
-          translateReasoning({
+          guardModelRequest(modelProcessorOf(provider), translateReasoning({
             model,
             messages: openaiMessages,
             ...generationParams,
@@ -465,7 +471,7 @@ export class PromptService {
             // Quelle qu'en soit la source — défaut du fournisseur, chemin par
             // gabarit, filet de budget — elle ne part donc jamais vers lui.
             ...(canSuppressThinking(model) && !forceThinking ? {} : { thinking: { type: 'enabled' } }),
-          }) as OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming,
+          })) as OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming,
           requestOptions
         );
 
@@ -609,7 +615,7 @@ export class PromptService {
       assertGenerationBudget();
       const turnStartedAt = Date.now();
       const response = await client.chat.completions.create(
-        translateReasoning({
+        guardModelRequest(modelProcessorOf(provider), translateReasoning({
           model: modelName,
           messages: conversation,
           ...generationParams,
@@ -620,7 +626,7 @@ export class PromptService {
           ...(canSuppressThinking(modelName) ? {} : { thinking: { type: 'enabled' } }),
           tools: openaiTools,
           tool_choice: forceFinal ? 'none' : 'auto',
-        }) as OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming
+        })) as OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming
       );
 
       this.assertNoErrorEnvelope(provider, response);
@@ -721,7 +727,7 @@ export class PromptService {
     };
 
     const stream = await client.chat.completions.create(
-      translateReasoning({
+      guardModelRequest(modelProcessorOf(provider), translateReasoning({
         model: modelName,
         messages: openaiMessages,
         ...generationParams,
@@ -734,7 +740,7 @@ export class PromptService {
         // Le dernier fragment porte l'usage : sans lui, un flux ne laissait
         // aucune trace au journal de consommation.
         stream_options: { include_usage: true },
-      }) as OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming
+      })) as OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming
     );
 
     const startedAt = Date.now();
@@ -1242,7 +1248,7 @@ export class PromptService {
     const response: any = await withRetry(
       () =>
         client.chat.completions.create(
-          translateReasoning({
+          guardModelRequest(modelProcessorOf(provider), translateReasoning({
             model: modelName,
             messages: grounded.map((m) => ({ role: m.role, content: m.content })),
             ...(llmOptions.maxOutputTokens && { max_tokens: llmOptions.maxOutputTokens }),
@@ -1251,7 +1257,7 @@ export class PromptService {
             ...(def.extraBody ?? {}),
             ...(llmOptions.extraBody ?? {}),
             plugins: [{ id: 'web', max_results: WEB_RESULTS_PER_CALL }],
-          }) as OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming
+          })) as OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming
         ),
       { label: `${provider}/${modelName}` }
     );

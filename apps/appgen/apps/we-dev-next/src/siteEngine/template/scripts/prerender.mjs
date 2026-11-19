@@ -8,7 +8,7 @@
  * d'un composant se traduit aussi). Le plan du site, le fichier
  * robots et la fiche d'établissement (données structurées) sont écrits ici.
  */
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createServer } from 'vite';
 import { createElement } from 'react';
@@ -52,11 +52,18 @@ const jsonLd = structuredData();
 
 const absolute = (html) => (base ? html.replace(/(<link rel="alternate" hreflang="[^"]+" href=")\//g, '$1' + base + '/') : html);
 
+// Le bilan, relu par `scripts/postbuild.mjs` : une page non pré-rendue n'a pas de texte pour les moteurs de
+// recherche, ce n'est pas un détail à laisser dans le terminal.
+const outcome = { rendered: [], failed: [] };
+
 try {
   let language = null;
   for (const page of [...pages].sort((a, b) => String(a.lang || '').localeCompare(String(b.lang || '')))) {
     const file = join(DIST, page.html);
-    if (!existsSync(file) || !existsSync(page.module)) continue;
+    if (!existsSync(file) || !existsSync(page.module)) {
+      outcome.failed.push({ path: page.path, error: !existsSync(file) ? 'document absent de dist/' : 'module de page absent' });
+      continue;
+    }
 
     if ((page.lang || null) !== language) {
       language = page.lang || null;
@@ -69,9 +76,12 @@ try {
       const mod = await vite.ssrLoadModule('/' + page.module);
       if (typeof mod.default === 'function') markup = renderToString(createElement(mod.default));
     } catch (error) {
-      // Une page qui ne se rend pas hors navigateur s'affichera côté client.
+      // Une page qui ne se rend pas hors navigateur s'affichera côté client — sans texte pour les moteurs.
       console.warn('[prerender] ' + page.path + ' non pré-rendue : ' + error.message);
     }
+    if (markup) outcome.rendered.push(page.path);
+    else if (!outcome.failed.some((failure) => failure.path === page.path))
+      outcome.failed.push({ path: page.path, error: 'rendu vide ou en erreur hors navigateur' });
 
     let html = absolute(readFileSync(file, 'utf8'));
     if (markup) html = html.replace('<div id="root"></div>', '<div id="root">' + markup + '</div>');
@@ -90,4 +100,10 @@ writeFileSync(
 );
 writeFileSync(join(DIST, 'robots.txt'), 'User-agent: *\nAllow: /\n' + (base ? 'Sitemap: ' + base + '/sitemap.xml\n' : ''));
 
-console.log('Référencement : ' + pages.length + ' page(s) pré-rendue(s), plan du site et robots écrits.');
+mkdirSync('.idem', { recursive: true });
+writeFileSync('.idem/prerender.json', JSON.stringify(outcome, null, 2) + '\n');
+
+console.log(
+  'Référencement : ' + outcome.rendered.length + '/' + pages.length + ' page(s) pré-rendue(s), plan du site et robots écrits.' +
+    (outcome.failed.length ? ' NON pré-rendue(s) : ' + outcome.failed.map((failure) => failure.path).join(', ') : '')
+);

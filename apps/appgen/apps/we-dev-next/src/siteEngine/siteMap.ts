@@ -147,7 +147,7 @@ export function buildSiteMap(files: Record<string, string>): SiteMap {
   const pages: MapPage[] = keys.map(({ key, path, title }) => {
     const pageCode = files[`src/pages/${key}.tsx`] ?? '';
     // Les sections dans l'ordre où la page les affiche (sinon, celles de son dossier).
-    const ordered = Array.from(pageCode.matchAll(/<SectionBoundary name="(\w+)">/g)).map((m) => m[1]);
+    const ordered = Array.from(pageCode.matchAll(/<SectionBoundary name="(\w+)"(?: defer)?>/g)).map((m) => m[1]);
     const inFolder = Object.keys(files)
       .filter((p) => p.startsWith(`src/sections/${key}/`) && p.endsWith('.tsx'))
       .map((p) => p.match(/(\w+)\.tsx$/)![1]);

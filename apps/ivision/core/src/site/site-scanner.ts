@@ -30,7 +30,8 @@ import type { BrandKit, BrandPalette, BrandVoice } from '../brand/brand-kit';
 import { clusterColors, ColorCluster, PaletteProposal, paletteFromClusters, paletteProposals, SeenColor } from './palette';
 import { cleanFamilyName, firstFamily, SeenFont, typographyProposals, TypographyProposal } from './typography';
 import { evaluateSettled } from './settled';
-import { MACHINE_TRANSLATION } from './site-crawler';
+import { MACHINE_TRANSLATION, NOISE, waitBotWall } from './site-crawler';
+import { REMOVE_CONSENT_SCRIPT } from './site-tech';
 
 export type SiteScanStep = 'open' | 'colors' | 'fonts' | 'logo' | 'content' | 'voice' | 'art' | 'done';
 
@@ -368,11 +369,17 @@ async function openPage(browser: Browser, url: string, timeoutMs: number, sheets
   await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36 iVision/1.0');
   // Garde réseau : jamais d'adresse privée ; ni vidéo ni sons (inutiles au scan).
   // Sans traducteur automatique : la voix, les textes et la langue relevés sont ceux du site, pas une traduction machine.
-  await installRenderNetworkGuard(page, (req) => !['media', 'websocket', 'eventsource'].includes(req.resourceType()) && !MACHINE_TRANSLATION.test(req.url()));
+  // Ni mesure d'audience, ni publicité, ni discussion en direct : leurs fenêtres se posaient sur la capture du haut de
+  // page, celle qui sert à lire la direction artistique.
+  await installRenderNetworkGuard(page, (req) => !['media', 'websocket', 'eventsource'].includes(req.resourceType()) && !MACHINE_TRANSLATION.test(req.url()) && !NOISE.test(req.url()));
   await page.goto(url, { waitUntil: 'networkidle2', timeout: timeoutMs }).catch(async (error: Error) => {
     if (/timeout/i.test(error.message)) return; // une page qui charge sans fin a quand même son premier écran
     throw error;
   });
+  // Un mur anti-robot qui passe de lui-même (Cloudflare…) : on attend la vraie page.
+  if (await waitBotWall(page)) await page.waitForNetworkIdle({ idleTime: 300, timeout: 8000 }).catch(() => undefined);
+  // Les bandeaux de cookies retirés : ils couvraient la capture et leurs couleurs passaient dans la palette.
+  await page.evaluate(REMOVE_CONSENT_SCRIPT).catch(() => 0);
   // Les sites qui révèlent leur contenu au défilement : on descend, puis on remonte.
   // Code passé en texte : une fonction transpilée emporterait des aides TypeScript absentes de la page.
   // Une redirection côté client pendant le défilement détruit le contexte : on attend la nouvelle page.

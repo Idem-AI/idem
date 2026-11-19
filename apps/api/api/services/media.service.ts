@@ -40,6 +40,7 @@ import { describeError } from '../utils/retry';
 import { assertGenerationBudget } from '../utils/generation-budget.util';
 import { getAiUsageContext } from '../utils/ai-usage-context.util';
 import { aiUsageService } from './ai-usage.service';
+import { guardModelRequest } from './privacy/privacy-guard';
 
 const IMAGE_TIMEOUT_MS = 120_000;
 const VISION_TIMEOUT_MS = 60_000;
@@ -190,7 +191,7 @@ export async function generateImage(
     try {
       response = await axios.post<{ data?: { b64_json?: string; media_type?: string }[] }>(
         `${OPENROUTER_BASE_URL()}/images`,
-        {
+        guardModelRequest('openrouter', {
           model: candidate,
           prompt,
           n: 1,
@@ -198,7 +199,7 @@ export async function generateImage(
           output_format: 'png',
           ...(options.references?.length ? { input_references: options.references.slice(0, 4).map((url) => ({ type: 'image_url', image_url: { url } })) } : {}),
           ...openRouterRouting(),
-        },
+        }),
         { headers: headers(), timeout: IMAGE_TIMEOUT_MS }
       );
     } catch (err: any) {
@@ -255,7 +256,7 @@ export async function analyzeImage(
         usage?: { prompt_tokens?: number; completion_tokens?: number };
       }>(
         `${OPENROUTER_BASE_URL()}/chat/completions`,
-        {
+        guardModelRequest('openrouter', {
           model: candidate,
           messages: [
             {
@@ -270,7 +271,7 @@ export async function analyzeImage(
           temperature: options.temperature ?? 0.1,
           reasoning: { enabled: false },
           ...openRouterRouting(),
-        },
+        }),
         { headers: headers(), timeout: VISION_TIMEOUT_MS }
       );
     } catch (err: any) {
@@ -375,7 +376,7 @@ export async function generateVideo(
 
   const submit = await axios.post<{ id?: string; polling_url?: string }>(
     `${OPENROUTER_BASE_URL()}/videos`,
-    {
+    guardModelRequest('openrouter', {
       model,
       prompt: options.prompt.slice(0, 1500),
       resolution,
@@ -394,7 +395,7 @@ export async function generateVideo(
           }
         : {}),
       ...openRouterRouting(),
-    },
+    }),
     { headers: auth, timeout: 60_000 }
   ).catch((error) => {
     // Le message du fournisseur (format, durée, contenu refusé) : sans lui, un 400 ne dit rien.
@@ -559,7 +560,9 @@ async function speak(base: string, model: string, voice: string | undefined, aut
   try {
     const response = await axios.post<ArrayBuffer>(
       `${base}/audio/speech`,
-      { model, input, voice, response_format: 'mp3' },
+      // Le texte lu est le scénario de l'utilisateur : même politique de transmission que le reste (`provider` est
+      // accepté par /audio/speech, documentation OpenRouter vérifiée le 18/11/2026).
+      guardModelRequest(selfHosted ? 'idem_selfhosted' : 'openrouter', { model, input, voice, response_format: 'mp3' }),
       { headers: authHeaders, responseType: 'arraybuffer', timeout: SPEECH_TIMEOUT_MS }
     );
     const buffer = Buffer.from(response.data);

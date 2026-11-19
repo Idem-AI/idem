@@ -53,10 +53,10 @@ export default {
       '2xl': radius(3),
       '3xl': radius(4),
       full: '9999px',
-      button: 'var(--radius-button)',
+      button: 'var(--radius-button-shape, var(--radius-button))',
       input: 'var(--radius-input)',
-      card: 'var(--radius-card)',
-      badge: 'var(--radius-badge)',
+      card: 'var(--radius-card-shape, var(--radius-card))',
+      badge: 'var(--radius-badge-shape, var(--radius-badge))',
     },
     boxShadow: {
       none: 'none',

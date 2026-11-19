@@ -44,20 +44,32 @@ export interface DepsPlanInfo {
   trees: DepsTreeInfo[];
 }
 
-/** Le plan de dépendances d'une cible. Erreur réseau → `null`, et npm reprend. */
+/**
+ * Le plan de dépendances d'une cible, `null` si le serveur ne le donne pas.
+ *
+ * Sans plan, l'atelier se rabat sur un `npm install` complet : trois à sept minutes (19/11/2026, « le projet ne
+ * démarre jamais »). Une seule requête ratée pendant un redémarrage du serveur suffisait. On réessaie donc les
+ * pannes passagères (réseau coupé, 5xx) cinq fois sur ~15 s avant d'abandonner ; une réponse 4xx est définitive.
+ */
+const PLAN_RETRY_DELAYS_MS = [1000, 2000, 3000, 4000, 5000];
+
 export async function fetchDepsPlan(
   target: DepsTargetName,
   signal?: AbortSignal
 ): Promise<DepsPlanInfo | null> {
-  try {
-    const response = await fetch(`${apiBase()}/api/scaffold/deps/${target}`, {
-      credentials: 'include',
-      signal,
-    });
-    if (!response.ok) return null;
-    return (await response.json()) as DepsPlanInfo;
-  } catch {
-    return null;
+  for (let attempt = 0; ; attempt++) {
+    try {
+      const response = await fetch(`${apiBase()}/api/scaffold/deps/${target}`, {
+        credentials: 'include',
+        signal,
+      });
+      if (response.ok) return (await response.json()) as DepsPlanInfo;
+      if (response.status < 500) return null;
+    } catch {
+      if (signal?.aborted) return null;
+    }
+    if (attempt >= PLAN_RETRY_DELAYS_MS.length) return null;
+    await new Promise((done) => setTimeout(done, PLAN_RETRY_DELAYS_MS[attempt]));
   }
 }
 

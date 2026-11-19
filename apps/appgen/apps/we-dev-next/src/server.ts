@@ -24,6 +24,9 @@ import depsRouter, { reportBakedSnapshots } from './routes/deps.js';
 import designRouter from './routes/design.js';
 import assetsRouter from './routes/assets.js';
 import commandsRouter from './routes/commands.js';
+import previewRouter from './routes/preview.js';
+import { availability as previewAvailability, warmUp as warmUpPreview } from './preview/engine.js';
+import { templateFiles } from './siteEngine/template.js';
 import mcpRouter from './mcp/server.js';
 import { loadSkills } from './skills/registry.js';
 
@@ -113,6 +116,10 @@ app.use('/api/scaffold', scaffoldRouter);
 // the HTTPS WebContainer preview can display it. See routes/assets.ts.
 app.use('/api/assets', assetsRouter);
 
+// L'aperçu instantané des sites vitrines : regroupé ici (esbuild, Tailwind), affiché dans l'atelier sans WebContainer.
+// Les écritures exigent l'utilisateur IDEM (dans le routeur) ; le site est servi sous un identifiant secret.
+app.use('/api/preview', previewRouter);
+
 // MCP endpoint: the skill catalog, the token forge and the linter, reusable by
 // any MCP client. appgen's own generation path imports them directly instead.
 app.use('/mcp', mcpRouter);
@@ -141,6 +148,15 @@ app.use((req: Request, res: Response) => {
 app.listen(PORT, () => {
   // Ce qui manque pour démarrer un atelier en quelques secondes (instantanés de dépendances).
   reportBakedSnapshots();
+  // L'aperçu instantané préparé tout de suite : la première page d'un atelier n'attend ni les dépendances ni Tailwind.
+  const preview = previewAvailability();
+  if (preview.available) {
+    warmUpPreview(templateFiles()['tailwind.config.js'])
+      .then(({ ms }) => logger.info('Aperçu instantané prêt', { event: 'preview.warm', ms }))
+      .catch((error) => logger.warn('Aperçu instantané non préparé', { event: 'preview.warm', message: (error as Error).message }));
+  } else {
+    logger.info(`Aperçu instantané indisponible : ${preview.reason}`, { event: 'preview.warm' });
+  }
   logger.info(`AppGen server running on http://localhost:${PORT}`, {
     event: 'process.start',
     port: Number(PORT),

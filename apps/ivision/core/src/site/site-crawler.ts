@@ -21,6 +21,7 @@ import logger from '../runtime/logger';
 import { installRenderNetworkGuard, isRenderUrlAllowed, RENDER_BROWSER_ARGS } from '../render/network-guard';
 import { safeFetch } from '../render/safe-fetch';
 import { evaluateSettled } from './settled';
+import { detectFromHeaders, detectInPage, FLATTEN_SHADOW_SCRIPT, originalImageUrl, profileOf, REMOVE_CONSENT_SCRIPT, TECHNOLOGIES, type RenderFamily, type TechProfile } from './site-tech';
 
 export interface InventoryImage {
   url: string;
@@ -83,6 +84,8 @@ export interface SiteInventory {
   footer: { texts: string[]; links: { label: string; href: string }[] };
   contact: { phones: string[]; emails: string[]; whatsapp: string[]; addresses: string[]; socials: { network: string; url: string }[] };
   assets: { favicon?: string; appleIcon?: string; ogImage?: string; images: (InventoryImage & { page: string; section: string })[] };
+  /** La technologie du site et ce que le relevé a fait pour elle (`site-tech.ts`). */
+  technology?: { family: RenderFamily; names: string[]; adaptations: string[] };
 }
 
 export interface CrawlOptions {
@@ -90,6 +93,10 @@ export interface CrawlOptions {
   maxPages?: number;
   timeoutMs?: number;
   onProgress?: (done: number, total: number, url: string) => void;
+  /** Modèle de vision de l'hôte : lit une page dessinée dans un canvas (Flutter web, Unity). Facultatif. */
+  vision?: (base64: string, mimeType: string, instruction: string) => Promise<string>;
+  /** Interne : site contenu dans un iframe, déjà suivi une fois. */
+  followedFrom?: string;
 }
 
 /** Ce que la page dit d'elle-même, relevé dans le navigateur. */
@@ -169,7 +176,14 @@ function readStructure(): PageRead {
   var root = document.querySelector('main') || document.querySelector('[role="main"]') || document.body;
   var blocks: any[] = Array.prototype.slice.call(root.children);
   var guard = 0;
-  while (blocks.length === 1 && blocks[0].children.length > 0 && guard++ < 8) blocks = Array.prototype.slice.call(blocks[0].children);
+  // On descend une enveloppe à un seul enfant… sauf quand ses enfants SONT le contenu (titres, paragraphes, listes,
+  // images) : une page d'une seule section était découpée en un <h1> et un <p> lus de l'intérieur — sans rien dedans.
+  var contentLeaf = function (el: any) {
+    return Array.prototype.some.call(el.children, function (c: any) {
+      return /^(H[1-6]|P|UL|OL|IMG|PICTURE|FIGURE|BLOCKQUOTE|TABLE|FORM|ADDRESS)$/.test(c.tagName);
+    });
+  };
+  while (blocks.length === 1 && blocks[0].children.length > 0 && !contentLeaf(blocks[0]) && guard++ < 8) blocks = Array.prototype.slice.call(blocks[0].children);
   blocks = blocks.filter(function (el: any) {
     var tag = el.tagName.toLowerCase();
     if (tag === 'script' || tag === 'style' || tag === 'noscript' || tag === 'template') return false;
@@ -215,9 +229,15 @@ function readStructure(): PageRead {
     return !noise.test(marker) && !/^(laisser un commentaire|leave a reply|related posts|articles similaires|vous aimerez aussi)/i.test(first);
   });
 
+  // L'élément LUI-MÊME et ses descendants : un bloc qui est un <h1>, un <p> ou une <ul> posé directement sous <main>
+  // (pages simples, articles, mentions légales) n'avait rien à lire « à l'intérieur » et ressortait vide.
+  var within = function (el: any, selector: string): any[] {
+    var out: any[] = el.matches && el.matches(selector) ? [el] : [];
+    return out.concat(Array.prototype.slice.call(el.querySelectorAll(selector)));
+  };
   var readBlock = function (el: any) {
     var headings = uniq(
-      Array.prototype.slice.call(el.querySelectorAll('h1, h2, h3, h4')).filter(shown).map(function (h: any) {
+      within(el, 'h1, h2, h3, h4').filter(shown).map(function (h: any) {
         return clean(h.textContent);
       }),
       30
@@ -226,7 +246,7 @@ function readStructure(): PageRead {
     // <div> ou un <span> sans paragraphe) — jamais deux fois le même, jamais un titre, un bouton ou un élément de liste.
     var textual = 'p, blockquote, figcaption, dd, address, td';
     var texts = uniq(
-      Array.prototype.slice.call(el.querySelectorAll(textual + ', div, span')).filter(function (n: any) {
+      within(el, textual + ', div, span').filter(function (n: any) {
         if (!shown(n) || n.closest('h1, h2, h3, h4, h5, h6, a, button, li, label, option, nav, script, style')) return false;
         var tag = n.tagName.toLowerCase();
         if (tag === 'div' || tag === 'span') {
@@ -243,7 +263,7 @@ function readStructure(): PageRead {
       60
     );
     var items = uniq(
-      Array.prototype.slice.call(el.querySelectorAll('li')).filter(function (li: any) {
+      within(el, 'li').filter(function (li: any) {
         return shown(li) && !li.closest('nav') && li.querySelectorAll('li').length === 0;
       }).map(function (li: any) {
         return clean(li.textContent).slice(0, 300);
@@ -253,7 +273,7 @@ function readStructure(): PageRead {
       60
     );
     var ctas: any[] = [];
-    Array.prototype.slice.call(el.querySelectorAll('a[href], button')).filter(shown).forEach(function (a: any) {
+    within(el, 'a[href], button').filter(shown).forEach(function (a: any) {
       var label = clean(a.textContent || a.getAttribute('aria-label') || a.getAttribute('title'));
       var href = a.tagName.toLowerCase() === 'a' ? abs(a.getAttribute('href')) : '';
       if (!label || label.length > 80 || ctas.length >= 30) return;
@@ -263,7 +283,7 @@ function readStructure(): PageRead {
     var images: any[] = [];
     var own = bg(el);
     if (own) images.push({ url: own, alt: '', width: Math.round(el.getBoundingClientRect().width), height: Math.round(el.getBoundingClientRect().height), kind: 'background' });
-    Array.prototype.slice.call(el.querySelectorAll('img, picture source, *')).slice(0, 1500).forEach(function (node: any) {
+    within(el, 'img, picture source, *').slice(0, 1500).forEach(function (node: any) {
       if (images.length >= 40) return;
       var tag = node.tagName.toLowerCase();
       if (tag === 'img') {
@@ -290,7 +310,7 @@ function readStructure(): PageRead {
       images.push({ url: b, alt: '', width: Math.round(r.width), height: Math.round(r.height), kind: 'background' });
     });
     var form = uniq(
-      Array.prototype.slice.call(el.querySelectorAll('input, textarea, select')).filter(function (f: any) {
+      within(el, 'input, textarea, select').filter(function (f: any) {
         return f.type !== 'hidden' && f.type !== 'submit';
       }).map(function (f: any) {
         var label = f.id ? document.querySelector('label[for="' + f.id + '"]') : null;
@@ -299,7 +319,7 @@ function readStructure(): PageRead {
       20
     );
     var videos = uniq(
-      Array.prototype.slice.call(el.querySelectorAll('iframe[src], video')).map(function (v: any) {
+      within(el, 'iframe[src], video').map(function (v: any) {
         return abs(v.getAttribute('src') || (v.querySelector('source') && v.querySelector('source').getAttribute('src')));
       }).filter(function (s: string) {
         return /youtube|vimeo|\.mp4|\.webm/i.test(s);
@@ -312,7 +332,41 @@ function readStructure(): PageRead {
     return block;
   };
 
-  var read = blocks.map(readBlock).filter(function (b: any) {
+  // Les éléments « feuilles » consécutifs (titre, paragraphes, listes, images posés à plat sous <main>) forment UNE
+  // section, découpée à chaque nouveau h1 ou h2 : une page de texte simple ressort en sections, pas en cent lignes.
+  var LEAF = /^(H[1-6]|P|UL|OL|DL|IMG|PICTURE|FIGURE|BLOCKQUOTE|TABLE|PRE|HR|ADDRESS)$/;
+  var leafBlocks = blocks.filter(function (b: any) { return LEAF.test(b.tagName); });
+  var flat = blocks.length >= 3 && leafBlocks.length >= blocks.length * 0.6;
+  var emptyBlock = function (): any { return { headings: [], texts: [], items: [], ctas: [], images: [] }; };
+  var mergeInto = function (target: any, part: any) {
+    ['headings', 'texts', 'items', 'ctas', 'images'].forEach(function (key) {
+      part[key].forEach(function (value: any) {
+        var dupe = target[key].some(function (x: any) { return JSON.stringify(x) === JSON.stringify(value); });
+        if (!dupe) target[key].push(value);
+      });
+    });
+    if (part.form) target.form = (target.form || []).concat(part.form);
+    if (part.videos) target.videos = (target.videos || []).concat(part.videos);
+  };
+  var read: any[];
+  if (flat) {
+    read = [];
+    var current: any = null;
+    blocks.forEach(function (b: any) {
+      var part = readBlock(b);
+      var startsSection = /^H[12]$/.test(b.tagName) || (!LEAF.test(b.tagName));
+      if (!current || (startsSection && (current.headings.length || current.texts.length || current.items.length))) {
+        if (current) read.push(current);
+        current = emptyBlock();
+      }
+      mergeInto(current, part);
+      if (!LEAF.test(b.tagName)) { read.push(current); current = null; }
+    });
+    if (current) read.push(current);
+  } else {
+    read = blocks.map(readBlock);
+  }
+  read = read.filter(function (b: any) {
     return b.headings.length || b.texts.length || b.items.length || b.images.length || (b.form && b.form.length) || (b.videos && b.videos.length);
   });
 
@@ -409,36 +463,227 @@ const readSafely = (page: Page): Promise<PageRead> => evaluateSettled(page, read
 /** Ouvre une page et la fait défiler jusqu'en bas : les images chargées au défilement apparaissent. */
 export const MACHINE_TRANSLATION = /\/\/(?:translate\.google(?:apis)?\.com|translate-pa\.googleapis\.com|cdn\.gtranslate\.net|(?:www\.)?gtranslate\.(?:net|io)\/|cdn\.weglot\.com)/i;
 
-async function openForCrawl(browser: Browser, url: string, timeoutMs: number, language = 'fr'): Promise<Page> {
+/**
+ * Ce qui ralentit le relevé sans rien lui apprendre : mesure d'audience, publicité, discussions en direct (leurs
+ * fenêtres étaient en plus relevées comme des sections du site).
+ */
+export const NOISE = /google-analytics\.com|googletagmanager\.com|gtag\/js|doubleclick\.net|googlesyndication|connect\.facebook\.net|facebook\.com\/tr|hotjar\.com|clarity\.ms|segment\.(io|com)|mixpanel\.com|amplitude\.com|intercom(cdn)?\.(io|com)|crisp\.chat|tawk\.to|zopim\.com|zdassets\.com|livechatinc\.com|drift\.com|tidio|smartsupp|js\.hs-analytics\.net|js\.hs-banner\.com|snap\.licdn\.com|analytics\.tiktok\.com|criteo\.(com|net)|taboola\.com|outbrain\.com|adservice\.google|matomo\.js|piwik\.js|plausible\.io|cdn\.mouseflow|fullstory\.com|newrelic\.com|nr-data\.net|sentry-cdn|browser\.sentry/i;
+
+/** Une page ouverte, avec ce que sa réponse a dit (statut, en-têtes : la technologie se lit aussi là). */
+interface Opened {
+  page: Page;
+  status: number;
+  headers: Record<string, string>;
+  /** Longueur du texte du HTML REÇU (avant exécution du JavaScript) : mesure si la page est remplie dans le navigateur. */
+  initialText: number | null;
+}
+
+/**
+ * Attend que la page ne bouge plus : aucune modification du DOM pendant `quietMs` (au plus 6 × `quietMs` + 2 s).
+ * Plus juste que « réseau au repos » : une application qui a fini de s'afficher mais garde une connexion ouverte (suivi,
+ * discussion) n'est pas attendue pour rien, et une application qui affiche encore est attendue.
+ */
+export async function settle(page: Page, quietMs: number): Promise<void> {
+  const max = quietMs * 6 + 2000;
+  await page
+    .evaluate(
+      `new Promise((done) => { let timer = null; const finish = () => { clearTimeout(cap); observer.disconnect(); done(true); }; const cap = setTimeout(finish, ${max}); const observer = new MutationObserver(() => { clearTimeout(timer); timer = setTimeout(finish, ${quietMs}); }); observer.observe(document.documentElement, { subtree: true, childList: true, characterData: true }); timer = setTimeout(finish, ${quietMs}); })`
+    )
+    .catch(() => undefined);
+}
+
+/** Un mur anti-robot (Cloudflare, DDoS-Guard, Sucuri…) : on attend qu'il passe de lui-même, 15 s au plus. */
+const WALL_TITLE = /just a moment|attention required|checking your browser|un instant|ddos-guard|pardon our interruption|verify you are human|vérification de sécurité|client challenge|making sure you.?re not a bot|anubis/i;
+
+/** Une page de défi : titre connu, ou une page presque sans texte dont le titre parle de défi, de vérification ou de robot. */
+export async function isWallPage(page: Page): Promise<boolean> {
+  const title = await page.title().catch(() => '');
+  if (WALL_TITLE.test(title)) return true;
+  const text = Number(await page.evaluate(`(document.body && document.body.innerText || '').trim().length`).catch(() => 999));
+  return text < 80 && /challenge|captcha|verif|robot|human|blocked|denied|security/i.test(title);
+}
+
+export async function waitBotWall(page: Page): Promise<boolean> {
+  for (let i = 0; i < 30; i++) {
+    if (!(await isWallPage(page))) return i > 0;
+    await new Promise((r) => setTimeout(r, 500));
+  }
+  return false;
+}
+
+async function openForCrawl(browser: Browser, url: string, timeoutMs: number, language = 'fr', settleMs = 600): Promise<Opened> {
+  const clock = Date.now();
+  const marks: Record<string, number> = {};
+  const mark = (name: string) => {
+    marks[name] = Date.now() - clock;
+  };
   const page = await browser.newPage();
   // Les sites qui traduisent selon le navigateur : toujours la langue du site (celle de l'accueil).
   await page.setExtraHTTPHeaders({ 'Accept-Language': language === 'en' ? 'en-US,en;q=0.9' : `${language}-${language.toUpperCase()},${language};q=0.9` });
   await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 1 });
   await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36 IDEM/1.0');
-  // Les traducteurs automatiques sont coupés : ils traduisent la page selon la langue du navigateur, et le relevé
-  // lirait une traduction machine au lieu du texte du site.
-  await installRenderNetworkGuard(page, (req) => !['media', 'websocket', 'eventsource'].includes(req.resourceType()) && !MACHINE_TRANSLATION.test(req.url()));
-  await page.goto(url, { waitUntil: 'networkidle2', timeout: timeoutMs }).catch((error: Error) => {
-    if (!/timeout/i.test(error.message)) throw error;
-  });
+  // Les traducteurs automatiques sont coupés (le relevé lirait une traduction machine), comme les polices, les médias
+  // et le bruit (`NOISE`) : rien de cela ne change le contenu relevé. Les images restent : une section faite d'une
+  // seule image sans dimensions déclarées n'aurait plus de hauteur, et disparaîtrait du relevé.
+  await installRenderNetworkGuard(
+    page,
+    (req) => !['media', 'font', 'websocket', 'eventsource'].includes(req.resourceType()) && !MACHINE_TRANSLATION.test(req.url()) && !NOISE.test(req.url())
+  );
+  let response: Awaited<ReturnType<Page['goto']>> = null;
+  try {
+    // Le document chargé, sans attendre le réseau au repos : `settle` attend que la page ait fini de s'afficher.
+    response = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: timeoutMs });
+  } catch (error) {
+    if (!/timeout/i.test((error as Error).message)) throw error;
+    // Un délai dépassé SANS document (hôte qui ne répond pas) n'est pas une page lente : le dire, au lieu de relever une
+    // page blanche comme si c'était le site.
+    const hasDocument = await page.evaluate(`!!document.body && document.body.children.length > 0`).catch(() => false);
+    if (!hasDocument) {
+      await page.close().catch(() => undefined);
+      throw new Error(`unreachable: ${url} ne répond pas`);
+    }
+  }
+  mark('goto');
+  // Le texte du HTML reçu : mesure (et non supposition) du rendu dans le navigateur.
+  let initialText: number | null = null;
+  try {
+    const raw = response ? await response.text() : '';
+    initialText = raw ? raw.replace(/<(script|style|noscript|template)[\s\S]*?<\/\1>/gi, ' ').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().length : null;
+  } catch {
+    initialText = null;
+  }
+  if (await waitBotWall(page)) await page.waitForNetworkIdle({ idleTime: 300, timeout: 8000 }).catch(() => undefined);
+  mark('wall');
+  await settle(page, settleMs);
+  mark('settle');
+  await page.evaluate(REMOVE_CONSENT_SCRIPT).catch(() => 0);
   // Code passé en texte : une fonction transpilée emporterait des aides absentes de la page.
   await page
     .evaluate(
-      `new Promise((done) => { let y = 0; const step = () => { if (y++ >= 24 || window.scrollY + window.innerHeight >= document.body.scrollHeight - 4) { window.scrollTo(0, 0); return done(true); } window.scrollBy(0, window.innerHeight); setTimeout(step, 200); }; step(); })`
+      `new Promise((done) => { let y = 0; const step = () => { if (y++ >= 16 || window.scrollY + window.innerHeight >= document.body.scrollHeight - 4) { window.scrollTo(0, 0); return done(true); } window.scrollBy(0, window.innerHeight); setTimeout(step, 120); }; step(); })`
     )
     .catch(() => undefined);
-  await new Promise((r) => setTimeout(r, 400));
-  return page;
+  mark('scroll');
+  await settle(page, 250);
+  mark('settle2');
+  // Les durées par étape : de quoi dire, dans les journaux, où part le temps d'une page lente.
+  if (process.env.SITE_CRAWL_TIMING === '1' || marks.settle2 > 12_000) logger.info('site.crawl_page', { event: 'site.crawl_page', url, ms: marks });
+  return { page, status: response?.status() ?? 0, headers: response?.headers() ?? {}, initialText };
+}
+
+/**
+ * Ouvre une page PAR L'APPLICATION : l'accueil d'abord, puis le routeur du framework (Next.js, Vue, Nuxt), un `#/`,
+ * ou `pushState` + `popstate` (React Router, Angular, Svelte, Ember les écoutent). Pour une application sans renvoi
+ * de ses adresses profondes (hébergement statique) : `/services` répond 404, mais la page existe dans l'application.
+ */
+async function openInApp(browser: Browser, homeUrl: string, target: string, timeoutMs: number, language: string, settleMs: number): Promise<Opened> {
+  const opened = await openForCrawl(browser, homeUrl, timeoutMs, language, settleMs);
+  const u = new URL(target);
+  const path = `${u.pathname}${u.search}${u.hash}`;
+  await opened.page
+    .evaluate(
+      `(() => {
+  const path = ${JSON.stringify(path)};
+  try { if (window.next && window.next.router && window.next.router.push) { window.next.router.push(path); return 'next'; } } catch (e) {}
+  try {
+    const host = document.querySelector('#__nuxt') || document.querySelector('[data-v-app]') || document.querySelector('#app');
+    const app = host && host.__vue_app__;
+    const router = app && app.config && app.config.globalProperties && app.config.globalProperties.$router;
+    if (router) { router.push(path); return 'vue'; }
+    const vue2 = host && host.__vue__;
+    if (vue2 && vue2.$router) { vue2.$router.push(path); return 'vue2'; }
+  } catch (e) {}
+  const hash = path.indexOf('#');
+  if (hash >= 0 && /^#!?\\//.test(path.slice(hash))) { location.hash = path.slice(hash); return 'hash'; }
+  history.pushState({}, '', path);
+  window.dispatchEvent(new PopStateEvent('popstate', { state: {} }));
+  return 'history';
+})()`
+    )
+    .catch(() => undefined);
+  await settle(opened.page, settleMs);
+  await opened.page.evaluate(REMOVE_CONSENT_SCRIPT).catch(() => 0);
+  return { ...opened, status: 200 };
+}
+
+/**
+ * Les pages qu'un menu ouvre par CLIC (boutons, `routerLink` sans adresse, éléments `role=link`) : chacun est cliqué
+ * dans l'accueil, l'adresse obtenue est notée, puis on revient. Douze au plus.
+ */
+const NAV_CANDIDATES = `(() => {
+  const nav = document.querySelector('header') || document.querySelector('nav') || document.querySelector('[role="navigation"]');
+  if (!nav) return 0;
+  const list = Array.from(nav.querySelectorAll('button, [role="link"], [role="menuitem"], [routerlink], li, span, div')).filter((el) => {
+    if (el.closest('a[href]') || el.querySelector('a[href]')) return false;
+    const label = (el.textContent || '').replace(/\\s+/g, ' ').trim();
+    if (label.length < 2 || label.length > 40) return false;
+    // Le plus petit élément porteur du libellé (pas son enveloppe).
+    if (Array.from(el.children).some((child) => (child.textContent || '').trim() === label)) return false;
+    return getComputedStyle(el).cursor === 'pointer' || el.tagName === 'BUTTON' || el.getAttribute('role') === 'link' || el.hasAttribute('routerlink');
+  });
+  window.__idemNav = list.slice(0, 12);
+  return window.__idemNav.length;
+})()`;
+
+/**
+ * Chaque page ouverte par un clic est LUE sur le moment (`read`) : elle est déjà affichée, la rouvrir ensuite (accueil +
+ * navigation de l'application) coûtait deux à trois secondes par page.
+ */
+export async function discoverByClick(browser: Browser, homeUrl: string, timeoutMs: number, language: string, settleMs: number, flattenShadow = false): Promise<{ href: string; label: string; read?: PageRead }[]> {
+  const found: { href: string; label: string; read?: PageRead }[] = [];
+  const { page } = await openForCrawl(browser, homeUrl, timeoutMs, language, settleMs);
+  try {
+    const count = Number(await page.evaluate(NAV_CANDIDATES).catch(() => 0));
+    for (let i = 0; i < count; i++) {
+      // La liste relue avant chaque clic : un clic (même sur « Accueil ») peut faire redessiner le menu, et les
+      // éléments gardés ne seraient plus dans la page.
+      await page.evaluate(NAV_CANDIDATES).catch(() => 0);
+      const before = page.url();
+      const label = (await page
+        .evaluate(`(() => { const el = (window.__idemNav || [])[${i}]; if (!el || !el.isConnected) return null; const label = (el.textContent || '').replace(/\\s+/g, ' ').trim(); el.click(); return label; })()`)
+        .catch(() => null)) as string | null;
+      await new Promise((r) => setTimeout(r, 150));
+      await settle(page, 300);
+      const after = page.url();
+      if (after !== before) {
+        if (label && !found.some((f) => f.href === after)) {
+          await settle(page, Math.min(settleMs, 800));
+          await page.evaluate(REMOVE_CONSENT_SCRIPT).catch(() => 0);
+          if (flattenShadow) await page.evaluate(FLATTEN_SHADOW_SCRIPT).catch(() => 0);
+          const read = await readSafely(page).catch(() => undefined);
+          found.push({ href: after, label, ...(read ? { read } : {}) });
+        }
+        // Retour à l'accueil par l'historique (l'application le gère sans recharger), sinon en rouvrant l'accueil.
+        await page.goBack({ waitUntil: 'domcontentloaded', timeout: 5000 }).catch(() => undefined);
+        await settle(page, 300);
+        if (page.url() !== before) {
+          await page.goto(homeUrl, { waitUntil: 'domcontentloaded', timeout: timeoutMs }).catch(() => undefined);
+          await settle(page, settleMs);
+        }
+      }
+    }
+  } finally {
+    await page.close().catch(() => undefined);
+  }
+  return found;
 }
 
 const SKIP_PATH = /\/(author|writer|category|categorie|tag|etiquette|search|recherche)\/|\.(pdf|jpe?g|png|gif|webp|svg|zip|docx?|xlsx?|pptx?|mp4|mp3)$|\/(wp-admin|wp-login|login|signin|connexion|register|inscription|cart|panier|checkout|commande|account|compte|mon-compte|feed|wp-json|xmlrpc)(\/|$)|\/(tag|author|page)\/\d*|[?&](replytocom|share|print)=/i;
 
-/** Une adresse de la même origine, sans ancre ni paramètres de suivi, que l'on peut relever. */
-function pageUrl(raw: string, origin: string): string | null {
+/**
+ * Une adresse de la même origine, sans ancre ni paramètres de suivi, que l'on peut relever. `keepHashRoutes` : une
+ * application à routes en `#/` (Angular `useHash`, anciens Vue et React) garde son `#/route` — sans lui, chaque page
+ * était l'accueil.
+ */
+function pageUrl(raw: string, origin: string, keepHashRoutes = false): string | null {
   try {
     const u = new URL(raw);
     if (u.origin.replace('://www.', '://') !== origin.replace('://www.', '://')) return null;
     if (SKIP_PATH.test(u.pathname + u.search)) return null;
+    if (keepHashRoutes && /^#!?\/[^/]/.test(u.hash)) {
+      if (SKIP_PATH.test(u.hash.replace(/^#!?/, ''))) return null;
+      return u.toString();
+    }
     u.hash = '';
     for (const key of [...u.searchParams.keys()]) if (/^(utm_|fbclid|gclid|ref$)/i.test(key)) u.searchParams.delete(key);
     if (u.pathname !== '/' && !u.pathname.endsWith('/') && !/\.[a-z0-9]{2,5}$/i.test(u.pathname)) u.pathname += '/';
@@ -448,25 +693,108 @@ function pageUrl(raw: string, origin: string): string | null {
   }
 }
 
-/** Le plan du site, s'il existe (et ses sous-plans, une fois). */
-async function sitemapUrls(origin: string): Promise<string[]> {
-  const read = async (url: string) => {
-    try {
-      const file = await safeFetch(url, { maxBytes: 3 * 1024 * 1024, timeoutMs: 10_000 });
-      return file.buffer.toString('utf8');
-    } catch {
-      return '';
-    }
-  };
-  const locs = (xml: string) => [...xml.matchAll(/<loc>\s*([^<\s]+)\s*<\/loc>/gi)].map((m) => m[1].replace(/&amp;/g, '&'));
-  const root = await read(`${origin}/sitemap.xml`);
-  if (!root) return [];
-  if (/<sitemapindex/i.test(root)) {
-    const children = locs(root).filter((u) => !/(tag|author|category|attachment)/i.test(u)).slice(0, 4);
-    const nested = await Promise.all(children.map(read));
-    return nested.flatMap(locs);
+const readText = async (url: string, maxBytes = 3 * 1024 * 1024): Promise<string> => {
+  try {
+    const file = await safeFetch(url, { maxBytes, timeoutMs: 6_000 });
+    return file.buffer.toString('utf8');
+  } catch {
+    return '';
   }
-  return locs(root);
+};
+
+/**
+ * Le plan du site, où qu'il soit : ceux que `robots.txt` déclare, puis les adresses usuelles — `sitemap.xml`,
+ * `sitemap_index.xml` (Yoast, Rank Math), `wp-sitemap.xml` (WordPress), `sitemap-index.xml` et `sitemap-0.xml`
+ * (Astro, Next.js `next-sitemap`), `sitemap/sitemap-index.xml` (Gatsby), `page-sitemap.xml`. Les sous-plans d'un
+ * index sont lus une fois (les pages d'abord ; étiquettes, auteurs, catégories écartés).
+ */
+async function sitemapUrls(origin: string): Promise<string[]> {
+  const locs = (xml: string) => [...xml.matchAll(/<loc>\s*(?:<!\[CDATA\[)?\s*([^<\s\]]+)\s*(?:\]\]>)?\s*<\/loc>/gi)].map((m) => m[1].replace(/&amp;/g, '&'));
+  const usual = ['/sitemap.xml', '/sitemap_index.xml', '/wp-sitemap.xml', '/sitemap-index.xml', '/sitemap-0.xml', '/sitemap/sitemap-index.xml', '/page-sitemap.xml'].map((p) => `${origin}${p}`);
+  // Le fichier robots.txt ET les adresses usuelles, EN MÊME TEMPS (sept requêtes sans réponse attendues l'une après
+  // l'autre coûtaient jusqu'à une minute sur un site lent) ; celles que robots.txt déclare sont lues ensuite.
+  const [robots, ...found] = await Promise.all([readText(`${origin}/robots.txt`, 200_000), ...usual.map((url) => readText(url))]);
+  const declared = [...robots.matchAll(/^\s*sitemap:\s*(\S+)/gim)].map((m) => m[1]).filter((url) => !usual.includes(url)).slice(0, 4);
+  const extra = await Promise.all(declared.map((url) => readText(url)));
+  const documents = [...extra, ...found].filter((xml) => /<(urlset|sitemapindex)/i.test(xml));
+  const out: string[] = [];
+  for (const root of documents) {
+    if (/<sitemapindex/i.test(root)) {
+      const children = locs(root)
+        .filter((u) => !/(tag|author|category|attachment|post_tag|product_tag|format)/i.test(u))
+        .sort((a, b) => Number(/page/i.test(b)) - Number(/page/i.test(a)))
+        .slice(0, 5);
+      const nested = await Promise.all(children.map((child) => readText(child)));
+      out.push(...nested.flatMap(locs));
+    } else {
+      out.push(...locs(root));
+    }
+    // Un plan trouvé suffit : les autres adresses ne sont que des emplacements possibles du même plan.
+    if (out.length) break;
+  }
+  return [...new Set(out)].slice(0, 400);
+}
+
+/** WordPress : la liste des pages publiées par son API REST (même celles qu'aucun menu ne cite). */
+async function wordpressPages(origin: string): Promise<{ href: string; label: string }[]> {
+  const raw = await readText(`${origin}/wp-json/wp/v2/pages?per_page=100&_fields=link,title,menu_order`, 2 * 1024 * 1024);
+  try {
+    const pages = JSON.parse(raw) as { link?: string; title?: { rendered?: string } }[];
+    return Array.isArray(pages) ? pages.filter((p) => typeof p.link === 'string').map((p) => ({ href: p.link!, label: String(p.title?.rendered ?? '').replace(/<[^>]+>/g, '').trim() })) : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Une page dessinée dans un canvas (Flutter web, Unity) : rien à lire dans le DOM. Flutter sait exposer son arbre
+ * d'accessibilité (un clic sur son bouton « Enable accessibility ») : on l'essaie d'abord ; sinon, des captures
+ * successives lues par le modèle de vision de l'hôte, en sections.
+ */
+async function readCanvasPage(page: Page, vision?: CrawlOptions['vision']): Promise<{ read: PageRead; via: 'accessibility' | 'vision' } | null> {
+  const semantic = await page
+    .evaluate(`(() => { const el = document.querySelector('flt-semantics-placeholder, [aria-label="Enable accessibility"]'); if (!el) return false; el.click(); return true; })()`)
+    .catch(() => false);
+  if (semantic) {
+    await settle(page, 600);
+    const read = await readSafely(page).catch(() => null);
+    if (read && read.blocks.some((b) => b.headings.length || b.texts.length)) return { read, via: 'accessibility' };
+  }
+  if (!vision) return null;
+  const shots: string[] = [];
+  for (let i = 0; i < 4; i++) {
+    shots.push(Buffer.from(await page.screenshot({ type: 'jpeg', quality: 70 })).toString('base64'));
+    await page.keyboard.press('PageDown').catch(() => undefined);
+    await page.mouse.wheel({ deltaY: 900 }).catch(() => undefined);
+    await new Promise((r) => setTimeout(r, 500));
+  }
+  const blocks: PageRead['blocks'] = [];
+  for (const shot of shots) {
+    const answer = await vision(
+      shot,
+      'image/jpeg',
+      'This is a screenshot of a website drawn in a canvas. Transcribe its content EXACTLY as written, section by section. Answer ONLY JSON: {"sections":[{"headings":[],"texts":[],"items":[],"buttons":[]}]}. No invention, no summary.'
+    ).catch(() => '');
+    try {
+      const json = JSON.parse(answer.replace(/```[a-z]*\n?/gi, '').match(/\{[\s\S]*\}/)?.[0] ?? '{}') as { sections?: { headings?: string[]; texts?: string[]; items?: string[]; buttons?: string[] }[] };
+      for (const s of json.sections ?? []) {
+        const block = {
+          headings: (s.headings ?? []).map(String).slice(0, 10),
+          texts: (s.texts ?? []).map(String).slice(0, 30),
+          items: (s.items ?? []).map(String).slice(0, 30),
+          ctas: (s.buttons ?? []).map((label) => ({ label: String(label).slice(0, 80), href: '', kind: 'anchor' as const })),
+          images: [],
+        };
+        const key = [...block.headings, ...block.texts].join('|');
+        if (key && !blocks.some((b) => [...b.headings, ...b.texts].join('|') === key)) blocks.push(block);
+      }
+    } catch {
+      /* capture illisible */
+    }
+  }
+  if (!blocks.length) return null;
+  const title = await page.title().catch(() => '');
+  return { via: 'vision', read: { post: false, archive: false, title, description: '', language: '', alternates: [], blocks, navigation: [], footerTexts: [], footerLinks: [], links: [], favicon: '', appleIcon: '', ogImage: '', addresses: [] } };
 }
 
 const SOCIAL = /(facebook|instagram|linkedin|tiktok|twitter|x\.com|youtube|pinterest)\./i;
@@ -477,6 +805,13 @@ export async function crawlWebsite(options: CrawlOptions): Promise<SiteInventory
   start.hash = '';
   if (!(await isRenderUrlAllowed(start.toString()))) throw new Error('blocked_url');
   const maxPages = Math.max(1, Math.min(40, options.maxPages ?? Number(process.env.SITE_CRAWL_MAX_PAGES ?? 20)));
+  // Les durées par phase, écrites à la fin du relevé : où part le temps, site par site.
+  const phases: Record<string, number> = {};
+  let phaseAt = Date.now();
+  const phase = (name: string) => {
+    phases[name] = (phases[name] ?? 0) + Date.now() - phaseAt;
+    phaseAt = Date.now();
+  };
   const timeout = options.timeoutMs ?? 25_000;
   const browser = await puppeteer.launch({ headless: true, args: [...RENDER_BROWSER_ARGS, '--disable-features=HttpsUpgrades,HttpsFirstBalancedModeAutoEnable'] });
 
@@ -494,13 +829,58 @@ export async function crawlWebsite(options: CrawlOptions): Promise<SiteInventory
   const labels = new Map<string, string>();
   const push = (list: string[], value: string) => value && !list.includes(value) && list.push(value);
 
+  // Le plan du site cherché PENDANT que l'accueil s'ouvre (l'origine de départ ; relu si une redirection la change).
+  const earlySitemap = sitemapUrls(start.origin).catch(() => [] as string[]);
   try {
-    // L'accueil d'abord : son menu et son pied de page disent quelles pages comptent.
-    const homePage = await openForCrawl(browser, start.toString(), timeout);
+    // L'accueil d'abord : son menu et son pied de page disent quelles pages comptent, et la page dit sa technologie.
+    const opened = await openForCrawl(browser, start.toString(), timeout);
+    const homePage = opened.page;
+    phase('ouverture');
+    const signals = await homePage.evaluate(detectInPage, TECHNOLOGIES).catch(() => null);
+    phase('détection');
+    const profile: TechProfile = profileOf(
+      signals ?? { matched: [], strong: [], hashRouting: false, shadowHosts: 0, iframeSrc: '', canvasOnly: false, botWall: false, textLength: 0, clickOnlyNav: 0, routes: [] },
+      detectFromHeaders(opened.headers),
+      opened.initialText
+    );
+    const { strategy } = profile;
+    const adaptations: string[] = [];
+    logger.info('site.crawl_technology', { event: 'site.crawl_technology', url: start.toString(), family: profile.family, technologies: profile.technologies.map((t) => t.name).slice(0, 8), strategy });
+
+    // Un mur anti-robot resté en place : le dire, plutôt que de relever l'écran d'attente comme une page du site.
+    if ((signals?.botWall || (await isWallPage(homePage))) && (await isWallPage(homePage))) {
+      await homePage.close();
+      throw new Error('bot_protection');
+    }
+
+    // Le site est dans un iframe (constructeurs, cadres hérités) : c'est lui qu'on relève, une fois.
+    if (strategy.followIframe && !options.followedFrom && (await isRenderUrlAllowed(strategy.followIframe))) {
+      await homePage.close();
+      await browser.close().catch(() => undefined);
+      const inner = await crawlWebsite({ ...options, url: strategy.followIframe, followedFrom: start.toString() });
+      inner.technology = { ...(inner.technology ?? { family: profile.family, names: [], adaptations: [] }), adaptations: [...(inner.technology?.adaptations ?? []), 'site lu dans son iframe'] };
+      return inner;
+    }
+
+    if (strategy.flattenShadowDom) {
+      await homePage.evaluate(FLATTEN_SHADOW_SCRIPT).catch(() => 0);
+      adaptations.push('Shadow DOM recopié');
+    }
     const origin = new URL(homePage.url()).origin;
     inventory.origin = origin;
-    const home: PageRead = await readSafely(homePage);
-    const homeUrl = pageUrl(homePage.url(), origin) ?? start.toString();
+    const keepHash = strategy.keepHashRoutes;
+    if (keepHash) adaptations.push('routes en #/');
+    let home: PageRead = await readSafely(homePage);
+    phase('lecture accueil');
+    // Dessinée dans un canvas : arbre d'accessibilité de Flutter, sinon captures lues par le modèle de vision.
+    if (strategy.visionFallback) {
+      const drawn = await readCanvasPage(homePage, options.vision);
+      if (drawn) {
+        home = drawn.read;
+        adaptations.push(drawn.via === 'accessibility' ? 'arbre d’accessibilité de Flutter lu' : 'page lue par vision (canvas)');
+      }
+    }
+    const homeUrl = pageUrl(homePage.url(), origin, keepHash) ?? start.toString();
     await homePage.close();
 
     // Les autres langues : relevées comme langues, jamais comme pages (la version anglaise d'« À propos » n'est
@@ -521,7 +901,7 @@ export async function crawlWebsite(options: CrawlOptions): Promise<SiteInventory
       }
     }
     prefixed.forEach((count, prefix) => count >= 2 && others.add(prefix));
-    const otherLanguageUrls = new Set(home.alternates.filter((a) => a.href && others.has(a.lang)).map((a) => pageUrl(a.href, origin)).filter(Boolean) as string[]);
+    const otherLanguageUrls = new Set(home.alternates.filter((a) => a.href && others.has(a.lang)).map((a) => pageUrl(a.href, origin, keepHash)).filter(Boolean) as string[]);
     const inOtherLanguage = (u: string) => {
       if (otherLanguageUrls.has(u)) return true;
       const url = new URL(u);
@@ -531,16 +911,42 @@ export async function crawlWebsite(options: CrawlOptions): Promise<SiteInventory
     };
 
     const ordered: string[] = [homeUrl];
+    phase('langues');
+    // L'adresse telle que le site l'écrit (`/projets`, sans la barre finale ajoutée ici) : c'est elle que le routeur
+    // d'une application reconnaît.
+    const rawOf = new Map<string, string>();
     const add = (raw: string, label = '') => {
-      const u = pageUrl(raw, origin);
+      const u = pageUrl(raw, origin, keepHash);
       if (!u || inOtherLanguage(u)) return;
+      if (!rawOf.has(u)) rawOf.set(u, raw);
       if (label && !labels.has(u)) labels.set(u, label);
       if (!ordered.includes(u)) ordered.push(u);
     };
     home.navigation.forEach((l) => add(l.href, l.label));
     home.footerLinks.forEach((l) => add(l.href, l.label));
-    (await sitemapUrls(origin)).forEach((u) => add(u));
+    // Les sources de pages qui ne dépendent pas des liens, en parallèle : plan du site, API de WordPress, menu par clic.
+    const [sitemap, wpPages, clicked] = await Promise.all([
+      origin === start.origin ? earlySitemap : sitemapUrls(origin),
+      strategy.wordpressApi ? wordpressPages(origin) : Promise.resolve([]),
+      strategy.clickDiscovery ? discoverByClick(browser, homeUrl, Math.min(timeout, 20_000), home.language || 'fr', strategy.settleMs, strategy.flattenShadowDom).catch(() => []) : Promise.resolve([]),
+    ]);
+    phase('découverte (plan, API, clics)');
+    // Le menu ouvert par clic passe en tête, comme un menu ordinaire ; ses pages sont déjà lues.
+    const preRead = new Map<string, PageRead>();
+    clicked.forEach((l) => {
+      add(l.href, l.label);
+      const u = pageUrl(l.href, origin, keepHash);
+      if (u && l.read) preRead.set(u, l.read);
+    });
+    if (clicked.length) adaptations.push(`${clicked.length} page(s) trouvée(s) en cliquant le menu`);
+    wpPages.forEach((l) => add(l.href, l.label));
+    if (wpPages.length) adaptations.push('pages listées par l’API de WordPress');
+    sitemap.forEach((u) => add(u));
+    // Les routes déclarées par le framework (Next.js, Vue, Nuxt) : des pages qu'aucun lien ne montre forcément.
+    strategy.declaredRoutes.forEach((path) => add(new URL(path, origin).href));
+    if (strategy.declaredRoutes.length) adaptations.push('routes déclarées par le framework');
     home.links.forEach((l) => add(l.href, l.label));
+    const homeSignature = `${home.title}|${home.blocks.map((b) => b.headings[0] ?? '').join('|')}`;
 
     const reads = new Map<string, PageRead>([[homeUrl, home]]);
     // Les pages du site avant les articles : un blog de cent billets ne doit pas manger la limite. Au-delà de
@@ -562,9 +968,42 @@ export async function crawlWebsite(options: CrawlOptions): Promise<SiteInventory
         if (looksLikePost(url) && posts >= maxPosts) continue;
         reads.set(url, null as unknown as PageRead);
         try {
-          const page = await openForCrawl(browser, url, Math.min(timeout, 20_000), home.language || 'fr');
-          const read: PageRead = await readSafely(page);
-          await page.close();
+          const pageTimeout = Math.min(timeout, 20_000);
+          const signatureOf = (r: PageRead) => `${r.title}|${r.blocks.map((b) => b.headings[0] ?? '').join('|')}`;
+          // Presque rien à lire : moins de 60 signes ET aucune image (une galerie n'a parfois que des images).
+          const thin = (r: PageRead) => r.blocks.reduce((n, b) => n + [...b.headings, ...b.texts, ...b.items].join(' ').length, 0) < 60 && !r.blocks.some((b) => b.images.length);
+          // Adresse profonde refusée (404 d'un hébergement statique), page vide, ou l'accueil servi à la place : dans
+          // une application, la page existe par sa navigation. Sinon, ce n'est pas une page du site.
+          // Déjà lue pendant la découverte par clic : rien à rouvrir.
+          let read: PageRead;
+          let status = 200;
+          const known = preRead.get(url);
+          if (known && !thin(known) && signatureOf(known) !== homeSignature) {
+            read = known;
+          } else {
+            const first = await openForCrawl(browser, url, pageTimeout, home.language || 'fr', strategy.settleMs);
+            if (strategy.flattenShadowDom) await first.page.evaluate(FLATTEN_SHADOW_SCRIPT).catch(() => 0);
+            read = await readSafely(first.page);
+            status = first.status;
+            await first.page.close();
+          }
+          if (status >= 400 || thin(read) || signatureOf(read) === homeSignature) {
+            if (!strategy.inAppNavigation) {
+              reads.delete(url);
+              done += 1;
+              continue;
+            }
+            const opened = await openInApp(browser, homeUrl, rawOf.get(url) ?? url, pageTimeout, home.language || 'fr', strategy.settleMs);
+            if (strategy.flattenShadowDom) await opened.page.evaluate(FLATTEN_SHADOW_SCRIPT).catch(() => 0);
+            read = await readSafely(opened.page);
+            await opened.page.close();
+            if (thin(read) || signatureOf(read) === homeSignature) {
+              reads.delete(url);
+              done += 1;
+              continue;
+            }
+            if (!adaptations.includes('pages ouvertes par la navigation de l’application')) adaptations.push('pages ouvertes par la navigation de l’application');
+          }
           // Une archive générée, ou une page déjà vue sous une autre adresse : pas une page du site.
           const signature = `${read.title}|${read.blocks.map((b) => b.headings[0] ?? '').join('|')}`;
           const duplicate = [...reads.values()].some((other) => other && `${other.title}|${other.blocks.map((b) => b.headings[0] ?? '').join('|')}` === signature);
@@ -594,8 +1033,10 @@ export async function crawlWebsite(options: CrawlOptions): Promise<SiteInventory
         options.onProgress?.(done, Math.min(maxPages, ordered.length), url);
       }
     };
-    await Promise.all([worker(), worker(), worker(), worker()]);
+    // Six onglets à la fois (polices, médias et suivi coupés : une page s'ouvre vite, le relevé tient la charge).
+    await Promise.all([worker(), worker(), worker(), worker(), worker(), worker()]);
 
+    phase('autres pages');
     inventory.language = mainLanguage;
     inventory.languages = [
       { code: mainLanguage, url: homeUrl, via: home.language ? 'html' : 'path' },
@@ -613,7 +1054,7 @@ export async function crawlWebsite(options: CrawlOptions): Promise<SiteInventory
 
     // L'ordre des pages : celui du menu (l'accueil en tête), puis le reste. Une page technique presque vide
     // (reçu, lien expiré, confirmation) que ni le menu ni le pied de page ne citent n'est pas une page du site.
-    const linked = new Set([...home.navigation, ...home.footerLinks].map((l) => pageUrl(l.href, origin)).filter(Boolean));
+    const linked = new Set([...home.navigation, ...home.footerLinks, ...clicked].map((l) => pageUrl(l.href, origin, keepHash)).filter(Boolean));
     const weight = (read: PageRead) => read.blocks.reduce((n, b) => n + [...b.headings, ...b.texts, ...b.items].join(' ').length + b.images.length * 80, 0);
     const relevant = ordered.filter((u) => {
       const read = reads.get(u);
@@ -627,9 +1068,13 @@ export async function crawlWebsite(options: CrawlOptions): Promise<SiteInventory
     relevant.forEach((url, pageIndex) => {
       const read = reads.get(url)!;
       const u = new URL(url);
+      // Une route en `#/services` : son chemin est `/services/` dans le nouveau site.
+      const routePath = keepHash && /^#!?\//.test(u.hash) ? `${u.hash.replace(/^#!?/, '').split('?')[0].replace(/\/?$/, '/')}` : u.pathname;
+      // Les images en pleine taille (vignettes de Wix, Squarespace, Shopify, WordPress, `/_next/image`…).
+      for (const block of read.blocks) for (const image of block.images) image.url = originalImageUrl(image.url);
       const page: InventoryPage = {
         url,
-        path: pageIndex === 0 ? '/' : u.pathname,
+        path: pageIndex === 0 ? '/' : routePath,
         title: read.title,
         ...(read.description ? { description: read.description } : {}),
         sections: read.blocks.map((block, sectionIndex) => ({ id: `p${pageIndex}.s${sectionIndex}`, ...block })),
@@ -660,6 +1105,10 @@ export async function crawlWebsite(options: CrawlOptions): Promise<SiteInventory
       if (digits.length >= 8 && digits.length <= 15 && !/^(19|20)\d{2}$/.test(digits)) push(inventory.contact.phones, m[0].trim());
     }
     inventory.skipped = ordered.filter((u) => !reads.get(u)).slice(0, 60).map((u) => ({ url: u, label: labels.get(u) || new URL(u).pathname }));
+    if (inventory.assets.ogImage) inventory.assets.ogImage = originalImageUrl(inventory.assets.ogImage);
+    inventory.technology = { family: profile.family, names: profile.technologies.map((t) => t.name).slice(0, 12), adaptations };
+    phase('assemblage');
+    logger.info('site.crawl_done', { event: 'site.crawl_done', url: start.toString(), pages: inventory.pages.length, family: profile.family, adaptations, phases });
     return inventory;
   } finally {
     await browser.close().catch(() => undefined);

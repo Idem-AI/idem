@@ -1,3 +1,4 @@
+import { draftSiteProject } from '../commands/buildKind.js';
 import { v4 as uuidv4 } from 'uuid';
 import { Messages, ToolInfo, ProjectModel } from '../types/project.js';
 import { estimateTokens } from '../utils/tokens.js';
@@ -168,6 +169,13 @@ export async function handleBuilderMode(
   // instruction from the user, and overwriting it with the initial framing
   // throws that instruction away.
   const isFirstTurn = !messages.some((message) => message.role === 'assistant');
+
+  // Un site vitrine demandé depuis la page d'accueil, sans projet IDEM : un projet minimal est tiré de la demande, et
+  // le moteur des sites prend la main (sinon : le modèle générique, sans architecture ni aperçu section par section).
+  if (target === 'site' && isFirstTurn && !projectData && !qualityRepair?.trim()) {
+    const request = typeof rawRequest === 'string' ? rawRequest : JSON.stringify(rawRequest);
+    projectData = (await draftSiteProject({ text: request, userId, language: language === 'en' ? 'en' : 'fr' })) ?? undefined;
+  }
 
   // Correction demandée depuis le chat : les fichiers signalés repassent par
   // le correcteur et les essais ciblés du moteur de sites, sans réécrire le reste.

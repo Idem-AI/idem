@@ -4,3 +4,6 @@ dist
 .env.local
 *.log
 .DS_Store
+
+# Banc d’essai des sites (npm run bench:site) : ancien moteur extrait de git
+.bench-old

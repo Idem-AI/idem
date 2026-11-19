@@ -82,8 +82,13 @@ let planTarget: DepsTargetName | null = null;
 export function prefetchDepsPlan(target: DepsTargetName): Promise<DepsPlanInfo | null> {
   if (planPromise && planTarget === target) return planPromise;
   planTarget = target;
-  planPromise = fetchDepsPlan(target);
-  return planPromise;
+  const pending = fetchDepsPlan(target);
+  planPromise = pending;
+  // Un plan manqué n'est pas retenu : la demande suivante réessaie (avant, un échec valait pour toute la session).
+  void pending.then((plan) => {
+    if (!plan && planPromise === pending) planPromise = null;
+  });
+  return pending;
 }
 
 /** Oublie le plan : la cible a changé (lien sans `product`, choix web/mobile). */

@@ -43,14 +43,39 @@ const STATIC_IMAGE = 'nginx:alpine';
  * nginx for a single-page application: a path that is not a file falls back to
  * `index.html`, so reloading `/orders/12` shows the app instead of a 404. A
  * plain multi-page site loses nothing — its real files are still served first.
+ *
+ * Text is gzipped (stock `nginx:alpine` has no brotli module). HTML is always
+ * revalidated so a new deployment shows at once. Files whose name carries a
+ * content hash — Vite's `assets/name-<hash>.js|css`, the self-hosted fonts of
+ * iCode sites (`assets/fonts/font-<hash>.woff2`) — never change and are cached
+ * for a year; nothing else is marked immutable, since a hand-made static site
+ * may replace `assets/logo.png` under the same name.
  */
 export const STATIC_NGINX_CONF = [
   'server {',
   '  listen 80;',
   '  root /usr/share/nginx/html;',
   '  index index.html;',
+  '  gzip on;',
+  '  gzip_vary on;',
+  '  gzip_comp_level 6;',
+  '  gzip_min_length 1024;',
+  '  gzip_proxied any;',
+  '  gzip_types text/css text/plain text/xml application/javascript application/json application/xml application/manifest+json image/svg+xml font/ttf font/otf;',
+  '  add_header X-Content-Type-Options "nosniff" always;',
+  // Quoted: nginx would read the `{` of a regex quantifier as the start of the block.
+  '  location ~* "^/assets/(.+-[A-Za-z0-9_-]{8,}\\.(js|mjs|css|woff2?)|fonts/font-[0-9a-f]{12}\\.woff2?)$" {',
+  '    add_header Cache-Control "public, max-age=31536000, immutable" always;',
+  '    add_header X-Content-Type-Options "nosniff" always;',
+  '    try_files $uri =404;',
+  '  }',
   '  location / {',
   '    try_files $uri $uri/ /index.html;',
+  '  }',
+  '  location ~* \\.html?$ {',
+  '    add_header Cache-Control "no-cache" always;',
+  '    add_header X-Content-Type-Options "nosniff" always;',
+  '    try_files $uri /index.html;',
   '  }',
   '}',
   '',

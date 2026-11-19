@@ -20,7 +20,7 @@ export class Team {
     {
       name: 'Arolle Aguekeng',
       role: $localize`:@@team.arolle.role:CEO, co-founder`,
-      bio: $localize`:@@team.arolle.bio:Senior software engineer. She decides what IDEM builds and what it refuses to build, and she knows the African entrepreneurial ecosystem from the inside.`,
+      bio: $localize`:@@team.arolle.bio:Senior software engineer. He decides what IDEM builds and what it refuses to build, and she knows the African entrepreneurial ecosystem from the inside.`,
       photo: 'assets/images/team/arolle.webp',
     },
     {

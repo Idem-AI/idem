@@ -5,6 +5,7 @@ import { UserModel, GitHubIntegration } from '../models/userModel';
 import { RepositoryFactory } from '../repository/RepositoryFactory';
 import { IRepository } from '../repository/IRepository';
 import { TargetModelType } from '../enums/targetModelType.enum';
+import { openSecret, sealSecret } from '../utils/crypto.util';
 import {
   GitHubOAuthRequest,
   GitHubOAuthResponse,
@@ -58,6 +59,17 @@ export function verifyOAuthState(state: string | undefined): string | null {
   } catch {
     return null;
   }
+}
+
+
+/** AAD du jeton GitHub : un jeton chiffré pour un compte ne se déchiffre pas pour un autre. */
+export const githubTokenAad = (userId: string) => `github-token:${userId}`;
+
+/** Le jeton en clair (ancienne valeur non chiffrée relue telle quelle) ; refus net s'il est illisible. */
+function githubToken(userId: string, stored: string | undefined): string {
+  const token = openSecret(stored, githubTokenAad(userId));
+  if (!token) throw new Error('GitHub token unreadable: reconnect the GitHub account');
+  return token;
 }
 
 export class GitHubService {
@@ -152,8 +164,9 @@ export class GitHubService {
       }
 
       const githubIntegration: GitHubIntegration = {
-        accessToken: tokenData.access_token,
-        refreshToken: tokenData.refresh_token,
+        // Chiffrés en base (droit `repo` : écriture dans les dépôts de l'utilisateur).
+        accessToken: sealSecret(tokenData.access_token, githubTokenAad(userId)),
+        ...(tokenData.refresh_token ? { refreshToken: sealSecret(tokenData.refresh_token, githubTokenAad(userId)) } : {}),
         username: githubUser.login,
         avatarUrl: githubUser.avatar_url,
         connectedAt: new Date(),
@@ -206,7 +219,7 @@ export class GitHubService {
         throw new Error('GitHub account not connected. Please connect your GitHub account first.');
       }
 
-      const octokit = new Octokit({ auth: user.githubIntegration.accessToken });
+      const octokit = new Octokit({ auth: githubToken(userId, user.githubIntegration.accessToken) });
       const filesToPush = request.files || files;
 
       // Check if repository exists, create if it doesn't
@@ -344,7 +357,7 @@ export class GitHubService {
         throw new Error('GitHub account not connected');
       }
 
-      const octokit = new Octokit({ auth: user.githubIntegration.accessToken });
+      const octokit = new Octokit({ auth: githubToken(userId, user.githubIntegration.accessToken) });
       const { data: repos } = await octokit.rest.repos.listForAuthenticatedUser({
         sort: 'updated',
         per_page: 50,
@@ -379,7 +392,7 @@ export class GitHubService {
         return null;
       }
 
-      const octokit = new Octokit({ auth: user.githubIntegration.accessToken });
+      const octokit = new Octokit({ auth: githubToken(userId, user.githubIntegration.accessToken) });
       const { data: githubUser } = await octokit.rest.users.getAuthenticated();
       const { data: emails } = await octokit.rest.users.listEmailsForAuthenticatedUser();
 

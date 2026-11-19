@@ -11,6 +11,8 @@ import type { AppDeployment } from '@/api/persistence/db';
 import {
   PublishError,
   buildStaticSite,
+  readBuildReport,
+  type BuildReport,
   collectSourceFiles,
   detectPublishMode,
   publishToIdeploy,
@@ -74,6 +76,8 @@ export function DeployModal({ open, onClose, deployment, defaultName, onPublishe
     if (!nameEdited.current) setName(defaultName);
   }, [defaultName]);
   const [copied, setCopied] = useState(false);
+  // Ce que le contrôle du site construit a relevé (référencement) : montré sans bloquer la mise en ligne.
+  const [buildReport, setBuildReport] = useState<BuildReport | null>(null);
 
   const existing = deployment?.provider === 'ideploy' ? deployment.ideploy ?? null : null;
   const liveUrl = deployment?.url || null;
@@ -95,12 +99,14 @@ export function DeployModal({ open, onClose, deployment, defaultName, onPublishe
     setPhase('working');
     setError(null);
     setShowDetails(false);
+    setBuildReport(null);
     setSteps(Object.fromEntries(STEPS[mode].map((id) => [id, 'pending'])) as Record<StepId, StepState>);
     let current: StepId = 'prepare';
 
     try {
       mark('prepare', 'active');
       const payload = mode === 'fullstack' ? collectSourceFiles() : await buildStaticSite();
+      if (mode === 'static') setBuildReport(await readBuildReport());
       mark('prepare', 'done');
 
       current = mode === 'fullstack' ? 'database' : 'send';
@@ -155,6 +161,16 @@ export function DeployModal({ open, onClose, deployment, defaultName, onPublishe
     } catch {
       /* presse-papiers refusé : l'adresse reste affichée */
     }
+  };
+
+  /** Les défauts de référencement du site en ligne, envoyés au chat pour correction. */
+  const fixSeo = () => {
+    if (!buildReport?.errors.length) return;
+    eventEmitter.emit(
+      'chat:fixError',
+      [t('preview.fix.prompt', { summary: t('deployModal.seo.summary') }), '', ...buildReport.errors.map((line) => `- ${line}`)].join('\n')
+    );
+    onClose();
   };
 
   const fixBuild = () => {
@@ -317,6 +333,23 @@ export function DeployModal({ open, onClose, deployment, defaultName, onPublishe
               {t(liveUrl ? 'deployModal.update.cta' : 'deployModal.publish.cta')}
             </Button>
           </div>
+        )}
+
+        {phase === 'done' && buildReport && buildReport.errors.length > 0 && (
+          <section role="status" className="mt-5 rounded-xl border border-amber-500/30 bg-amber-500/[0.07] p-4">
+            <p className="text-sm font-medium text-text-primary">{t('deployModal.seo.title', { count: buildReport.errors.length })}</p>
+            <p className="mt-1 text-xs text-text-secondary">{t('deployModal.seo.body')}</p>
+            <ul className="mt-2 space-y-0.5 text-xs text-text-secondary">
+              {buildReport.errors.slice(0, 4).map((line) => (
+                <li key={line}>{line}</li>
+              ))}
+            </ul>
+            <div className="mt-3">
+              <Button variant="secondary" size="sm" onClick={fixSeo} icon={<Wand2 className="w-4 h-4" />}>
+                {t('preview.fix.cta')}
+              </Button>
+            </div>
+          </section>
         )}
 
         {phase === 'done' && (

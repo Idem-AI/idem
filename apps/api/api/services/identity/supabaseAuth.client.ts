@@ -136,6 +136,17 @@ class SupabaseAdminClient {
     return data;
   }
 
+  /** Efface le compte d'authentification (purge des données). Absent = déjà effacé : `false`. */
+  async deleteUser(id: string): Promise<boolean> {
+    try {
+      await this.http().delete(`/admin/users/${encodeURIComponent(id)}`);
+      return true;
+    } catch (error: any) {
+      if (error.response?.status === 404) return false;
+      throw error;
+    }
+  }
+
   /** Une page d'utilisateurs (pagination de GoTrue, `page` à partir de 1). */
   async listUsers(page: number, perPage = 500): Promise<SupabaseUser[]> {
     const { data } = await this.http().get<{ users: SupabaseUser[] }>('/admin/users', {

@@ -566,9 +566,11 @@ export function insertSection(page: string, name: string, importPath: string, af
   const lastImport = lines.reduce((at, line, i) => (/^(\/\/ idem:skipped )?import /.test(line) ? i : at), -1);
   lines.splice(lastImport + 1, 0, importLine);
   let out = lines.join('\n');
-  const block = (indent: string) => `${indent}<SectionBoundary name="${name}">\n${indent}  <${name} />\n${indent}</SectionBoundary>`;
+  // Une section ajoutée n'est jamais la première : différée comme ses voisines, si la page l'est (template ≥ 1.4).
+  const defer = /<SectionBoundary name="\w+" defer>/.test(page) ? ' defer' : '';
+  const block = (indent: string) => `${indent}<SectionBoundary name="${name}"${defer}>\n${indent}  <${name} />\n${indent}</SectionBoundary>`;
   if (after) {
-    const re = new RegExp(`(^([ \\t]*)<SectionBoundary name="${after}">[\\s\\S]*?^[ \\t]*</SectionBoundary>)`, 'm');
+    const re = new RegExp(`(^([ \\t]*)<SectionBoundary name="${after}"(?: defer)?>[\\s\\S]*?^[ \\t]*</SectionBoundary>)`, 'm');
     if (re.test(out)) return out.replace(re, (whole: string, _all: string, indent: string) => `${whole}\n${block(indent)}`);
   }
   return out.replace(/^([ \t]*)<\/main>/m, (_m, indent: string) => `${block(`${indent}  `)}\n${indent}</main>`);

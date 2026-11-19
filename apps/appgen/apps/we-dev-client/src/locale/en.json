@@ -660,6 +660,12 @@
       "what_fullstack": "a PostgreSQL database, the server (backend/ folder, Node.js) and the interface (frontend/ folder). DATABASE_URL and VITE_API_URL are filled in automatically.",
       "api": "API address:",
       "manage": "Manage in iDeploy"
+    },
+    "seo": {
+      "title_one": "{{count}} issue keeps a page from being indexed properly",
+      "title_other": "{{count}} issues keep pages from being indexed properly",
+      "body": "The site is online. Google and AI assistants read these pages poorly until they are fixed.",
+      "summary": "SEO issues in the built site"
     }
   },
   "editMode": {

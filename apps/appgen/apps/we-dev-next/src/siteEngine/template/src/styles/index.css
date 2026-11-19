@@ -9,6 +9,8 @@
 @layer base {
   * {
     @apply border-border;
+    /* Le trait (plein, tireté, pointillé, double) est celui du projet : toutes les bordures le suivent. */
+    border-style: var(--border-style, solid);
   }
 
   html {
