@@ -7,9 +7,26 @@ export interface LegalSection {
   titleI18n: string;
   content?: string;
   contentI18n?: string;
+  /**
+   * Les paragraphes qui suivent `content`.
+   *
+   * Un texte juridique sérieux ne tient pas en une phrase : sans cela, chaque
+   * section devait soit mentir par omission, soit entasser quatre idées dans
+   * un seul paragraphe illisible.
+   */
+  paragraphs?: string[];
   subsections?: LegalSubsection[];
   list?: LegalListItem[];
+  table?: LegalTable;
   warning?: LegalWarning;
+}
+
+/** Un tableau : durées de conservation, sous-traitants, pays. */
+export interface LegalTable {
+  /** Intitulé lu par les lecteurs d'écran et affiché au-dessus du tableau. */
+  caption?: string;
+  headers: string[];
+  rows: string[][];
 }
 
 export interface LegalSubsection {
@@ -17,7 +34,9 @@ export interface LegalSubsection {
   titleI18n: string;
   content: string;
   contentI18n: string;
+  paragraphs?: string[];
   list?: LegalListItem[];
+  table?: LegalTable;
 }
 
 export interface LegalListItem {
@@ -25,6 +44,8 @@ export interface LegalListItem {
   textI18n: string;
   strong?: string;
   strongI18n?: string;
+  /** Un lien en fin de puce, quand la puce renvoie à un autre texte. */
+  link?: { label: string; href: string };
 }
 
 export interface LegalWarning {
@@ -62,6 +83,14 @@ export class LegalDocumentTemplate {
   @Input() showVersionSelector: boolean = false;
   @Input() versions: string[] = [];
   @Input() currentVersion: string = '';
+  /** Le numéro de version du texte, affiché à côté de sa date d'effet. */
+  @Input() version: string = '';
+  /** Les textes voisins : le global pour un complément, les compléments pour le global. */
+  @Input() related: { label: string; href: string; note?: string }[] = [];
+  /** Intitulé du bloc des textes voisins. */
+  @Input() relatedTitle: string = '';
+  /** Intitulé devant le numéro de version. */
+  @Input() versionLabel: string = '';
 
   protected activeSection: string = '';
   protected showMobileNav: boolean = false;

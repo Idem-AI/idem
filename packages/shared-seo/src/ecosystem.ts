@@ -46,6 +46,20 @@ export const IDEM = {
 } as const;
 
 /**
+ * Ce qu'IDEM **est**, en une ligne. À ne pas confondre avec `PROMISE`, qui dit
+ * ce que l'utilisateur **fait**.
+ *
+ * C'est la définition officielle, et la seule : les pieds de page, les textes
+ * alternatifs des logos et les descriptions de partage la lisent ici. Avant,
+ * chacun portait sa copie (« la première plateforme d'IA souveraine et open
+ * source d'Afrique »), et elles ont vieilli séparément.
+ */
+export const DEFINITION: Localized = {
+  fr: 'L’IA africaine qui crée des business rentables',
+  en: 'The African AI that builds profitable businesses',
+};
+
+/**
  * La promesse. C'est le message principal d'IDEM, partout : on ne vend pas
  * un outil pour créer une entreprise, on aide à créer et lancer un business
  * qui rapporte.
@@ -58,7 +72,7 @@ export const PROMISE: Localized = {
 /** La promesse développée, pour les descriptions longues. */
 export const PROMISE_LONG: Localized = {
   fr:
-    "IDEM vous aide à créer et lancer un business rentable : business plan et prévisions financières, " +
+    'IDEM vous aide à créer et lancer un business rentable : business plan et prévisions financières, ' +
     'test de viabilité avant d’investir, marque, papiers, application, mise en ligne, puis visuels et vidéos pour vous faire connaître. ' +
     'Chaque service marche seul ; ensemble, ils mènent de l’idée aux premiers clients.',
   en:
@@ -275,7 +289,7 @@ export const SERVICES: Record<ServiceId, EcosystemService> = {
 
 /** Les services dans l'ordre du parcours. */
 export const WORKFLOW: readonly EcosystemService[] = Object.values(SERVICES).sort(
-  (a, b) => a.step - b.step,
+  (a, b) => a.step - b.step
 );
 
 /** Le titre complet d'une page : « Titre | IDEM », sauf s'il nomme déjà IDEM. */

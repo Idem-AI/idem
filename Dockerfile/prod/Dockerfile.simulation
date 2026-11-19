@@ -16,6 +16,14 @@ COPY ./packages/shared-loader  ./packages/shared-loader
 # `apps/simulation/src/app/shared/shared-offline` (Angular 22, voir
 # preserveSymlinks) : ce lien pointe ici, le dossier doit donc exister.
 COPY ./packages/shared-offline ./packages/shared-offline
+# Pied de page partagé (colonnes, textes, registre des textes juridiques).
+# Consommé par le lien `apps/simulation/src/app/shared/shared-footer`, pour la
+# même raison : le lien pointe ici, le dossier doit exister avant le build.
+COPY ./packages/shared-footer ./packages/shared-footer
+# Source unique de la marque et du référencement : le pied de page y lit la
+# définition d'IDEM, il n'en garde pas de copie.
+# Consommé aussi par le lien `apps/simulation/src/app/shared/shared-seo`.
+COPY ./packages/shared-seo ./packages/shared-seo
 # 3. Copier l'application
 COPY ./apps/simulation ./apps/simulation
 

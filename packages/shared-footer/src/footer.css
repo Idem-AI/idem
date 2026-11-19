@@ -1,0 +1,286 @@
+/* ============================================================================
+   Le pied de page IDEM — un bloc de signature, pas un dépotoir de liens.
+   ---------------------------------------------------------------------------
+   Deux bandes : un corps où la marque fait face à ses colonnes, puis une ligne
+   de signature qui porte les textes juridiques. Toutes les couleurs viennent
+   des jetons partagés (`@idem/shared-styles`), donc les deux thèmes suivent
+   sans une seule valeur écrite ici.
+
+   Reprise de `apps/landing/src/app/components/footer/footer.css`, préfixée
+   `idem-ft` : le même pied de page sert désormais toutes les applications, et
+   un préfixe propre évite de marcher sur les classes d'une application hôte.
+   ========================================================================== */
+
+.idem-ft {
+  position: relative;
+  color: var(--color-text-primary);
+  background: var(--glass-bg-subtle);
+}
+
+/* Un seul filet de marque ferme la page au-dessus du pied. */
+.idem-ft::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--color-primary),
+    var(--color-accent-500),
+    transparent
+  );
+  opacity: 0.7;
+}
+
+/* Une seule mesure, pour que les bandes partagent leur bord gauche. */
+.idem-ft__shell {
+  width: 100%;
+  max-width: 80rem;
+  margin-inline: auto;
+  padding-inline: clamp(1.25rem, 5vw, 2.5rem);
+}
+
+/* ── Corps ───────────────────────────────────────────────────────────────── */
+
+.idem-ft__body {
+  display: grid;
+  gap: clamp(2.5rem, 6vw, 5rem);
+  padding-block: clamp(2.75rem, 6vw, 4.5rem);
+}
+
+@media (min-width: 900px) {
+  .idem-ft__body {
+    /* La navigation prend une vraie part de la ligne au lieu de se serrer
+       autour de son contenu : les colonnes s'étalent, pas de trou au milieu. */
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    align-items: start;
+    gap: clamp(2rem, 5vw, 4rem);
+  }
+}
+
+.idem-ft__brand {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1.25rem;
+  max-width: 30rem;
+}
+
+.idem-ft__logo {
+  display: inline-flex;
+  width: 7.5rem;
+}
+
+.idem-ft__logo img {
+  width: 100%;
+  height: auto;
+}
+
+.idem-ft__tagline {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  line-height: 1.7;
+  color: var(--color-text-secondary);
+  text-wrap: pretty;
+}
+
+.idem-ft__social {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.idem-ft__social-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--glass-border-subtle);
+  color: var(--color-text-tertiary);
+  font-size: 1rem;
+  transition-property: color, border-color, background-color, transform;
+  transition-duration: var(--duration-200);
+  transition-timing-function: var(--ease-out);
+}
+
+.idem-ft__social-link:hover {
+  color: var(--color-text-primary);
+  border-color: var(--glass-border-medium);
+  background: var(--glass-bg-light);
+  transform: translateY(-2px);
+}
+
+.idem-ft__social-link:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ── Colonnes ────────────────────────────────────────────────────────────── */
+
+.idem-ft__nav {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+  gap: 2rem clamp(2rem, 4vw, 4rem);
+}
+
+@media (min-width: 900px) {
+  .idem-ft__nav {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.idem-ft__col-title {
+  margin: 0 0 1rem;
+  font-size: 0.7rem;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+}
+
+.idem-ft__list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* ── Liens ───────────────────────────────────────────────────────────────── */
+
+.idem-ft__link {
+  position: relative;
+  display: inline-block;
+  width: fit-content;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  transition: color var(--duration-300) var(--ease-out);
+}
+
+.idem-ft__link::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -0.15em;
+  height: 1px;
+  width: 100%;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform var(--duration-300) var(--ease-out);
+}
+
+.idem-ft__link:hover,
+.idem-ft__link:focus-visible {
+  color: var(--color-text-primary);
+}
+
+.idem-ft__link:hover::after,
+.idem-ft__link:focus-visible::after {
+  transform: scaleX(1);
+}
+
+.idem-ft__link:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+/* Un lien qui sort le dit, discrètement. */
+.idem-ft__link--out::before {
+  content: '↗';
+  margin-right: 0.3rem;
+  font-size: 0.8em;
+  color: var(--color-text-tertiary);
+}
+
+/* ── Ligne de signature ──────────────────────────────────────────────────── */
+
+.idem-ft__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem 2rem;
+  padding-block: 1.5rem;
+  border-top: 1px solid var(--glass-border-subtle);
+}
+
+.idem-ft__copy {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+}
+
+.idem-ft__sep {
+  opacity: 0.5;
+}
+
+/* La seule ligne de voix que le pied de page garde. */
+.idem-ft__claim {
+  color: var(--color-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* Les textes juridiques : une liste, pas une note de bas de page illisible. */
+.idem-ft__legal {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.idem-ft__legal .idem-ft__link {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+}
+
+.idem-ft__prefs {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* ── Variante compacte : les applications sans page d'accueil ────────────── */
+
+/* Un atelier (iCode, la console, iDomain) n'a pas de place pour trois
+   colonnes, mais doit porter les mêmes textes juridiques. Une seule ligne. */
+.idem-ft--compact {
+  background: transparent;
+}
+
+.idem-ft--compact::before {
+  display: none;
+}
+
+.idem-ft--compact .idem-ft__foot {
+  padding-block: 1rem;
+}
+
+/* ── Le mouvement est un supplément, jamais une condition ────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .idem-ft__link,
+  .idem-ft__link::after,
+  .idem-ft__social-link {
+    transition: none;
+  }
+
+  .idem-ft__social-link:hover {
+    transform: none;
+  }
+}

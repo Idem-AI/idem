@@ -6,6 +6,7 @@ import { filter, map } from 'rxjs';
 
 import { AuthService } from '../../core/auth';
 import { SimulationStore } from '../../features/simulations/data-access';
+import { SimulationFooter } from '../footer/footer';
 import { Sidebar } from '../sidebar/sidebar';
 import { Topbar } from '../topbar/topbar';
 
@@ -23,7 +24,7 @@ const SIDEBAR_BREAKPOINT = '(min-width: 768px)';
  */
 @Component({
   selector: 'sim-app-shell',
-  imports: [RouterOutlet, TranslatePipe, Sidebar, Topbar],
+  imports: [RouterOutlet, TranslatePipe, Sidebar, Topbar, SimulationFooter],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './app-shell.html',
 })

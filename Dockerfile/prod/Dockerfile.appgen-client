@@ -21,6 +21,11 @@ COPY ./packages/shared-styles /packages/shared-styles
 COPY ./packages/shared-loader /packages/shared-loader
 COPY ./packages/shared-tour  ./packages/shared-tour
 COPY ./packages/shared-trusted-by ./packages/shared-trusted-by
+# Pied de page partagé : son alias `../../../../packages/shared-footer` vise /app/packages.
+COPY ./packages/shared-footer ./packages/shared-footer
+# Source unique de la marque et du référencement : le pied de page y lit la
+# définition d'IDEM, il n'en garde pas de copie.
+COPY ./packages/shared-seo ./packages/shared-seo
 # La boucle IDEM (carte « prochaine étape ») : l'alias `../../../../packages/shared-journey` vise /packages.
 COPY ./packages/shared-journey /packages/shared-journey
 # Promotions (prix barrés de la page Tarifs) : même alias, vise /packages.

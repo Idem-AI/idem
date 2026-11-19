@@ -26,9 +26,21 @@ import {
 } from '@/components/ui/Illustrations';
 import { AppGenPricing } from './AppGenPricing';
 import { TrustedBy } from '@idem/shared-trusted-by/react';
+import { IdemFooter } from '@idem/shared-footer/react';
 
 const PENDING_PROMPT_KEY = 'appgen_pending_prompt';
 const DASHBOARD_URL = process.env.REACT_APP_IDEM_MAIN_APP_URL || 'http://localhost:4200';
+
+/**
+ * Les adresses que le pied de page partagé résout pour ses colonnes. Ce qui
+ * manque ici retombe sur l'adresse de production : un lien absent serait pire
+ * qu'un lien qui sort du développement.
+ */
+const FOOTER_SERVICES = {
+  landing: process.env.REACT_APP_IDEM_LANDING_URL || 'https://idem.africa',
+  dashboard: DASHBOARD_URL,
+  ideploy: process.env.REACT_APP_IDEPLOY_URL || undefined,
+};
 
 interface AppGenLandingProps {
   onStart: (prompt?: string) => void;
@@ -50,7 +62,7 @@ interface AppGenLandingProps {
  *    de bureaux, et chaque argument porte une illustration de son mécanisme.
  */
 export function AppGenLanding({ onStart }: AppGenLandingProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [inputValue, setInputValue] = useState('');
   const [attachments, setAttachments] = useState<ComposerAttachment[]>([]);
   const [currentUser, setCurrentUser] = useState<UserModel | null>(null);
@@ -351,20 +363,22 @@ export function AppGenLanding({ onStart }: AppGenLandingProps) {
         onSignIn={() => redirectToLogin('generate')}
       />
 
-      <footer className="px-6 py-12 border-t border-[var(--glass-border-subtle)]">
-        <div className="max-w-[68rem] mx-auto flex flex-wrap items-center justify-between gap-4">
-          <Brand size="sm" />
-          <p className="text-sm text-text-tertiary">
-            {t('landing.footer.tagline')}{' '}
-            <a
-              href="https://idem.africa"
-              className="text-text-secondary hover:text-text-primary underline underline-offset-4"
-            >
-              Idem
-            </a>
-          </p>
-        </div>
-      </footer>
+      {/* Le pied de page d'IDEM, avec les colonnes d'iCode. Il remplace la
+          ligne unique qui ne portait aucun lien juridique : les règles
+          d'utilisation d'iCode et son complément de confidentialité en
+          partent, comme sur la landing principale. */}
+      <IdemFooter
+        app="icode"
+        locale={i18n.language?.toLowerCase().startsWith('en') ? 'en' : 'fr'}
+        services={FOOTER_SERVICES}
+        brand={<Brand size="sm" />}
+        prefs={
+          <>
+            <LanguageToggle />
+            <ThemeToggle />
+          </>
+        }
+      />
     </div>
   );
 }

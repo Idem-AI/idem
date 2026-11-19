@@ -14,6 +14,11 @@ COPY ./packages/shared-video-editor ./packages/shared-video-editor
 COPY ./packages/shared-document-editor ./packages/shared-document-editor
 COPY ./packages/shared-journey ./packages/shared-journey
 COPY ./packages/shared-promotions ./packages/shared-promotions
+# Pied de page partagé (colonnes, textes, registre des textes juridiques).
+COPY ./packages/shared-footer ./packages/shared-footer
+# Source unique de la marque et du référencement : le pied de page y lit la
+# définition d'IDEM, il n'en garde pas de copie.
+COPY ./packages/shared-seo ./packages/shared-seo
 # Service worker partagé : recopié dans `public/` par le prebuild.
 COPY ./packages/shared-offline ./packages/shared-offline
 # Découpage des traductions (noyau + morceaux), lancé par le prebuild.

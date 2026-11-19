@@ -9,8 +9,13 @@
       "@idem/shared-loader": ["../../packages/shared-loader/src"],
       "@idem/shared-loader/*": ["../../packages/shared-loader/src/*"],
       "@idem/shared-seo": ["../../packages/shared-seo/src"],
+"@idem/shared-seo/*": ["../../packages/shared-seo/src/*"],
       "@idem/shared-promotions": ["../../packages/shared-promotions/src"],
-      "@idem/shared-promotions/*": ["../../packages/shared-promotions/src/*"]
+      "@idem/shared-promotions/*": ["../../packages/shared-promotions/src/*"],
+      "@idem/shared-footer": ["../../packages/shared-footer/src"],
+      "@idem/shared-footer/*": ["../../packages/shared-footer/src/*"],
+      "@idem/shared-trusted-by": ["../../packages/shared-trusted-by/src"],
+      "@idem/shared-trusted-by/*": ["../../packages/shared-trusted-by/src/*"]
     },
     "strict": true,
     "noImplicitOverride": true,

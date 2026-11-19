@@ -40,6 +40,10 @@ apps/ideploy/public/js/monaco-editor-*
 # Docs
 docs
 **/*.md
+# Les guides de génération d'iCode sont du Markdown LU À L'EXÉCUTION par le serveur AppGen (src/skills/registry.ts).
+# Exclus par `**/*.md`, l'image de production chargeait « 0 skills » : les sites partaient avec des consignes
+# appauvries, sans aucune erreur.
+!apps/appgen/apps/we-dev-next/src/skills/catalog/**
 
 # Fichiers d'environnement des applications : jamais dans un contexte de build.
 # (Le `.env` RACINE reste disponible pour les étapes `builder` qui le copient

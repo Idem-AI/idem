@@ -5,13 +5,14 @@ import { SidebarDashboard } from '../../modules/dashboard/components/sidebar-das
 import { GuidedStepBarComponent } from '../../modules/guided/components/guided-step-bar/guided-step-bar';
 import { NextStepBarComponent } from '../../modules/guided/components/next-step-bar/next-step-bar';
 import { TopbarComponent } from '../../shared/components/topbar/topbar';
+import { AppFooterComponent } from '../../shared/components/app-footer/app-footer';
 
 import { PromoBannerComponent } from '@idem/shared-promotions/angular';
 
 @Component({
   selector: 'app-dashboard-layout',
   standalone: true,
-  imports: [RouterOutlet, SidebarDashboard, CommonModule, GuidedStepBarComponent, NextStepBarComponent, TopbarComponent, PromoBannerComponent],
+  imports: [RouterOutlet, SidebarDashboard, CommonModule, GuidedStepBarComponent, NextStepBarComponent, TopbarComponent, PromoBannerComponent, AppFooterComponent],
   templateUrl: './dashboard-layout.html',
   styleUrl: './dashboard-layout.css',
 })

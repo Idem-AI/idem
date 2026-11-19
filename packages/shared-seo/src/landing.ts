@@ -26,6 +26,17 @@ export type LandingPageId =
   | 'builders-terms'
   | 'builders-privacy'
   | 'simulation-terms'
+  | 'cookie-policy'
+  | 'subprocessors'
+  | 'icode-privacy'
+  | 'icode-terms'
+  | 'ideploy-privacy'
+  | 'ideploy-terms'
+  | 'ivision-privacy'
+  | 'ivision-terms'
+  | 'idomain-privacy'
+  | 'idomain-terms'
+  | 'isimulator-privacy'
   | 'not-found';
 
 export interface LandingPage {
@@ -59,6 +70,20 @@ export const LANDING_PAGES: Record<LandingPageId, LandingPage> = {
   'builders-terms': { id: 'builders-terms', path: '/builders-terms', og: 'legal', about: 'platform', pageType: 'WebPage', sitemap: { priority: 0.3, changefreq: 'yearly' } },
   'builders-privacy': { id: 'builders-privacy', path: '/builders-privacy', og: 'legal', about: 'platform', pageType: 'WebPage', sitemap: { priority: 0.3, changefreq: 'yearly' } },
   'simulation-terms': { id: 'simulation-terms', path: '/simulation-terms', og: 'legal', about: 'simulator', pageType: 'WebPage', sitemap: { priority: 0.3, changefreq: 'yearly' } },
+  // Les textes juridiques transverses, et le complément de chaque service.
+  // Les chemins viennent du registre `@idem/shared-footer` (LEGAL_DOCS) :
+  // `npm run check:legal` échoue s'ils divergent.
+  'cookie-policy': { id: 'cookie-policy', path: '/cookie-policy', og: 'legal', about: 'platform', pageType: 'WebPage', sitemap: { priority: 0.3, changefreq: 'yearly' } },
+  subprocessors: { id: 'subprocessors', path: '/subprocessors', og: 'legal', about: 'platform', pageType: 'WebPage', sitemap: { priority: 0.3, changefreq: 'yearly' } },
+  'icode-privacy': { id: 'icode-privacy', path: '/privacy/icode', og: 'legal', about: 'icode', pageType: 'WebPage', sitemap: { priority: 0.3, changefreq: 'yearly' } },
+  'icode-terms': { id: 'icode-terms', path: '/terms/icode', og: 'legal', about: 'icode', pageType: 'WebPage', sitemap: { priority: 0.3, changefreq: 'yearly' } },
+  'ideploy-privacy': { id: 'ideploy-privacy', path: '/privacy/ideploy', og: 'legal', about: 'ideploy', pageType: 'WebPage', sitemap: { priority: 0.3, changefreq: 'yearly' } },
+  'ideploy-terms': { id: 'ideploy-terms', path: '/terms/ideploy', og: 'legal', about: 'ideploy', pageType: 'WebPage', sitemap: { priority: 0.3, changefreq: 'yearly' } },
+  'ivision-privacy': { id: 'ivision-privacy', path: '/privacy/ivision', og: 'legal', about: 'ivision', pageType: 'WebPage', sitemap: { priority: 0.3, changefreq: 'yearly' } },
+  'ivision-terms': { id: 'ivision-terms', path: '/terms/ivision', og: 'legal', about: 'ivision', pageType: 'WebPage', sitemap: { priority: 0.3, changefreq: 'yearly' } },
+  'idomain-privacy': { id: 'idomain-privacy', path: '/privacy/idomain', og: 'legal', about: 'platform', pageType: 'WebPage', sitemap: { priority: 0.3, changefreq: 'yearly' } },
+  'idomain-terms': { id: 'idomain-terms', path: '/terms/idomain', og: 'legal', about: 'platform', pageType: 'WebPage', sitemap: { priority: 0.3, changefreq: 'yearly' } },
+  'isimulator-privacy': { id: 'isimulator-privacy', path: '/privacy/simulator', og: 'legal', about: 'simulator', pageType: 'WebPage', sitemap: { priority: 0.3, changefreq: 'yearly' } },
   'not-found': { id: 'not-found', path: '/not-found', og: 'not-found', about: 'platform', pageType: 'WebPage', sitemap: null },
 };
 

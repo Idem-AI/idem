@@ -1,80 +1,58 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  inject,
-  LOCALE_ID,
-  NgZone,
-  OnDestroy,
-  OnInit,
-  PLATFORM_ID,
-  signal,
-} from '@angular/core';
-import { DOCUMENT, isPlatformBrowser } from '@angular/common';
+import { ChangeDetectionStrategy, Component, computed, inject, LOCALE_ID } from '@angular/core';
+import { DOCUMENT } from '@angular/common';
+import { IdemFooterComponent } from '@idem/shared-footer/angular';
+import type { FooterLocale } from '@idem/shared-footer';
+
+import { environment } from '../../../environments/environment';
 import { isSupportedLocale, writeLocaleCookie } from '../../shared/utils/locale-cookie';
 import { ThemeToggleComponent } from '../../shared/components/theme-toggle/theme-toggle';
 
-/** Where the company keeps its clock. Cameroon is WAT, UTC+1, no DST. */
-const HQ_TIME_ZONE = 'Africa/Douala';
-/** A minute-resolution clock only has to be right to the minute. */
-const CLOCK_INTERVAL_MS = 30_000;
-
+/**
+ * Le pied de page de la landing.
+ *
+ * La structure, les colonnes, la promesse et les liens juridiques viennent de
+ * `@idem/shared-footer` : c'est le même pied de page que celui d'iCode,
+ * d'iDeploy, d'iVision, d'iDomain et du simulateur. Ce composant n'ajoute que
+ * ce qui ne peut pas être partagé — la bascule de langue, qui recharge *cette*
+ * application sous un autre préfixe, et la bascule de thème.
+ *
+ * `selfHosted` dit au pied de page que la landing sert elle-même les pages
+ * produit et les textes juridiques : ses liens restent donc relatifs, et le
+ * routeur les prend en charge sans quitter le site.
+ *
+ * L'horloge de Douala et la bande de faits qui vivaient ici ont disparu avec
+ * la mise en commun : elles n'avaient de sens que sur la landing, et un pied
+ * de page partagé qui porte une bande propre à une seule application n'est
+ * plus partagé.
+ */
 @Component({
   selector: 'app-footer',
-  imports: [ThemeToggleComponent],
+  imports: [IdemFooterComponent, ThemeToggleComponent],
   templateUrl: './footer.html',
   styleUrl: './footer.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class Footer implements OnInit, OnDestroy {
+export class Footer {
   protected readonly locale = inject(LOCALE_ID);
   private readonly document = inject(DOCUMENT);
-  private readonly platformId = inject(PLATFORM_ID);
-  private readonly zone = inject(NgZone);
 
-  /** Rendered in the signature line, so the page never dates itself. */
-  protected readonly year = new Date().getFullYear();
+  /** La langue servie, dans la forme que le pied de page partagé attend. */
+  protected readonly footerLocale = computed<FooterLocale>(() =>
+    this.locale.toLowerCase().startsWith('en') ? 'en' : 'fr',
+  );
 
   /**
-   * Local time at the company, filled in the browser only.
+   * Les adresses que la landing connaît.
    *
-   * Empty on the server: a clock rendered at build time would be wrong by the
-   * time anyone read it, and a server/client mismatch is exactly what breaks
-   * hydration. The template renders the line only once this has a value.
+   * Le reste retombe sur les adresses de production du paquet. Volontaire :
+   * les colonnes de la landing pointent surtout ses propres pages (`/idev`,
+   * `/ideploy`, `/simulator`), et son `environment` ne porte ni iVision ni
+   * iDomain. Lui faire deviner une adresse absente produirait un lien mort.
    */
-  protected readonly localTime = signal('');
-
-  private clockId: ReturnType<typeof setInterval> | null = null;
-
-  ngOnInit(): void {
-    if (!isPlatformBrowser(this.platformId)) return;
-
-    this.readClock();
-    // Outside Angular: a ticking clock should not schedule change detection
-    // for the whole page twice a minute.
-    this.zone.runOutsideAngular(() => {
-      this.clockId = setInterval(() => this.zone.run(() => this.readClock()), CLOCK_INTERVAL_MS);
-    });
-  }
-
-  ngOnDestroy(): void {
-    if (this.clockId !== null) clearInterval(this.clockId);
-  }
-
-  private readClock(): void {
-    try {
-      this.localTime.set(
-        new Intl.DateTimeFormat(this.locale, {
-          hour: '2-digit',
-          minute: '2-digit',
-          timeZone: HQ_TIME_ZONE,
-        }).format(new Date()),
-      );
-    } catch {
-      // A runtime without that time zone simply gets no clock rather than a
-      // wrong one; the rest of the strip stands on its own.
-      this.localTime.set('');
-    }
-  }
+  protected readonly services = {
+    landing: '',
+    dashboard: environment.services.dashboard.url,
+  };
 
   protected switchLanguage(targetLang: string): void {
     if (this.locale === targetLang) {

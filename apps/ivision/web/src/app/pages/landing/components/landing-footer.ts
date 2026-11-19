@@ -1,28 +1,51 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
-import { RouterLink } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
-import { Wrap } from './wrap';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { TranslateService } from '@ngx-translate/core';
+import { IdemFooterComponent } from '@idem/shared-footer/angular';
+import type { FooterLocale } from '@idem/shared-footer';
+
+import { BrandMark } from '../../../shared/components/brand-mark';
 import { environment } from '../../../../environments/environment';
 
-/** Le pied de page : IDEM, sa promesse, et les deux portes vers le reste d'IDEM. */
+/**
+ * Le pied de page d'iVision.
+ *
+ * C'était une seule ligne — copyright, tarifs, idem.africa, tableau de bord —
+ * sans aucun lien vers un texte juridique. C'est maintenant le pied de page
+ * d'IDEM, celui de la landing principale, avec les colonnes d'iVision et ses
+ * deux textes propres : confidentialité (voix, images, publication) et règles
+ * d'utilisation (visages, marques, ce que nous refusons de produire).
+ */
 @Component({
   selector: 'iv-landing-footer',
-  imports: [RouterLink, TranslateModule, Wrap],
+  imports: [IdemFooterComponent, BrandMark],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'block' },
   template: `
-    <footer ivWrap class="flex flex-wrap items-center justify-between gap-4 border-t border-[var(--glass-border-subtle)] py-8 text-sm text-text-tertiary">
-      <span>© {{ year }} IDEM · {{ 'landing.footer' | translate }}</span>
-      <span class="flex gap-4">
-        <a routerLink="/pricing" class="hover:text-text-primary">{{ 'landing.header.links.pricing' | translate }}</a>
-        <a [href]="landingUrl" class="hover:text-text-primary">idem.africa</a>
-        <a [href]="dashboardUrl" class="hover:text-text-primary">{{ 'landing.dashboard' | translate }}</a>
-      </span>
-    </footer>
+    <idem-footer app="ivision" [locale]="locale()" [services]="services" [brandSlot]="true">
+      <!-- iVision trace sa marque : pas de fichier a servir au pied de page. -->
+      <a idemFooterBrand href="/" class="inline-flex" aria-label="iVision">
+        <iv-brand-mark [size]="30" />
+      </a>
+    </idem-footer>
   `,
 })
 export class LandingFooter {
-  protected readonly dashboardUrl = environment.services.dashboard.url;
-  protected readonly landingUrl = environment.services.landing.url;
-  protected readonly year = new Date().getFullYear();
+  private readonly translate = inject(TranslateService);
+
+  private readonly lang = signal(this.translate.currentLang || 'fr');
+
+  protected readonly locale = computed<FooterLocale>(() =>
+    this.lang().toLowerCase().startsWith('en') ? 'en' : 'fr'
+  );
+
+  /** Les adresses connues d'iVision ; le reste retombe sur la production. */
+  protected readonly services = {
+    landing: environment.services.landing.url,
+    dashboard: environment.services.dashboard.url,
+    icode: environment.services.icode.url,
+  };
+
+  constructor() {
+    this.translate.onLangChange.subscribe((event) => this.lang.set(event.lang));
+  }
 }

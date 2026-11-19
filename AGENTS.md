@@ -234,7 +234,88 @@ d'IDEM.
 
 ---
 
-## 5. Avant de dire que c'est fini
+## 5. Un paquet partagé n'existe pas tant que les images ne le copient pas
+
+Une application est construite deux fois : sur la machine du développeur, où
+tout `packages/` est là, et dans son image Docker, où **seul ce que son
+Dockerfile copie existe**. Les deux ne disent pas la même chose, et c'est
+toujours la seconde qui décide en production.
+
+### La règle
+
+**Si vous créez un paquet dans `packages/`, ou si vous branchez un paquet
+existant dans une application qui ne l'utilisait pas, vous mettez à jour le
+Dockerfile de cette application dans le même lot.** Toutes ses images :
+production, pré-production, développement.
+
+```dockerfile
+COPY ./packages/<nom> ./packages/<nom>
+```
+
+Les images sont dans `Dockerfile/prod/` et `Dockerfile/dev/`. Certaines
+copient déjà tout (`COPY ./packages ./packages`) : rien à faire pour
+celles-là. Les autres nomment chaque paquet, et c'est là que l'oubli arrive.
+
+### Trois branchements à ne pas oublier en même temps
+
+Un paquet consommé comme source demande, pour chaque application :
+
+1. **Le Dockerfile** — `COPY ./packages/<nom> ./packages/<nom>`.
+2. **Les `paths` du TypeScript** — dans `tsconfig.json` *et* `tsconfig.app.json`
+   quand les deux ont un bloc `paths` (ils ne s'héritent pas : le bloc de
+   l'application remplace celui de la racine, il ne s'y ajoute pas). Côté
+   React, l'alias de `vite.config.ts`.
+3. **Le lien symbolique**, pour `simulation` seulement : son Angular diffère de
+   celui de la racine, elle consomme donc les paquets par
+   `src/app/shared/<nom>` avec `preserveSymlinks`. Le lien pointe vers
+   `packages/` : le dossier doit exister dans l'image, sinon le lien est mort.
+
+### Ce que ça casse quand c'est oublié
+
+Rien, chez vous. Puis, au déploiement : l'installation échoue si le paquet est
+une dépendance `file:`, la compilation échoue s'il est consommé comme source,
+et l'application démarre sur un lien mort s'il passe par un lien symbolique.
+Dans les trois cas, le diagnostic coûte une heure pour une ligne manquante.
+
+### Le contrôle
+
+```
+npm run check:docker
+```
+
+Il compare, pour chaque image, les paquets `@idem/*` que les sources de
+l'application importent et ceux que son Dockerfile copie. Il échoue sur un
+manque, signale les applications sans image, et affiche les manques connus avec
+la raison pour laquelle ils ne sont pas comblés
+(`scripts/check-docker-packages.mjs`).
+
+**À lancer dès qu'on touche à `packages/` ou à un Dockerfile.** Un paquet
+nouveau fait échouer le contrôle jusqu'à ce que les images suivent : c'est le
+but.
+
+---
+
+## 6. La marque ne se recopie pas
+
+Ce qu'IDEM **est** s'écrit à un seul endroit : `DEFINITION` dans
+`packages/shared-seo/src/ecosystem.ts`.
+
+> **L'IA africaine qui crée des business rentables**
+> *The African AI that builds profitable businesses*
+
+À côté, `PROMISE` dit ce que l'utilisateur **fait** (« Créer et lancer un
+business rentable »). Les deux viennent de là, jamais d'une copie locale : les
+pieds de page, les textes alternatifs des logos, les titres de référencement et
+les images de partage les lisent.
+
+Une définition recopiée vieillit toute seule. C'est arrivé : « la première
+plateforme d'IA souveraine et open source d'Afrique » traînait dans six
+fichiers, dont le pied de page, l'en-tête et l'écran de démarrage, longtemps
+après que la marque ait changé de discours.
+
+---
+
+## 7. Avant de dire que c'est fini
 
 - [ ] `npx ng build` passe, et `npm run typecheck` aussi.
 - [ ] L'écran a été **regardé** dans les deux thèmes — pas supposé correct.
@@ -246,6 +327,8 @@ d'IDEM.
 - [ ] Chaque illustration représente un élément africain qui dit ce que dit l'écran (§ 4).
 - [ ] Aucun objet recyclé pour un sens qu'il ne porte pas ; tout nouvel objet est sourcé et ajouté à `docs/ILLUSTRATIONS.md`.
 - [ ] Aucune page vide, aucun grand blanc, aucun texte de remplissage.
+- [ ] Tout paquet partagé ajouté ou nouvellement utilisé est copié dans les Dockerfiles de son application, et `npm run check:docker` passe (§ 5).
+- [ ] Aucune définition de la marque recopiée à la main : elle vient de `DEFINITION` (§ 6).
 
 Dire ce qui n'a pas été fait. Un périmètre réduit en silence est pire qu'un
 périmètre annoncé.

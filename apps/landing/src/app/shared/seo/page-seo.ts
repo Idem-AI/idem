@@ -25,10 +25,10 @@ export function pageSeoText(id: LandingPageId, locale: 'fr' | 'en'): PageSeoText
   switch (id) {
     case 'home':
       return {
-        title: $localize`:@@seo.home.title:IDEM — The AI that builds profitable businesses`,
+        title: $localize`:@@seo.home.title:IDEM — The African AI that builds profitable businesses`,
         description: $localize`:@@seo.home.description:More than 500 AI agents to structure your project, manage your finances, create your brand, communication strategy and website, and deploy it in Africa.`,
         crumb: 'IDEM',
-        imageAlt: $localize`:@@seo.home.imageAlt:IDEM — The AI that builds profitable businesses. A baobab bearing fruit.`,
+        imageAlt: $localize`:@@seo.home.imageAlt:IDEM — The African AI that builds profitable businesses. A baobab bearing fruit.`,
       };
     case 'pricing':
       return {
@@ -165,6 +165,83 @@ export function pageSeoText(id: LandingPageId, locale: 'fr' | 'en'): PageSeoText
         title: $localize`:@@seo.simulationTerms.title:IDEM Simulator terms`,
         description: $localize`:@@seo.simulationTerms.description:What a simulated viability index is worth, how an imported business plan is processed, and what you accept before each simulation.`,
         crumb: $localize`:@@seo.simulationTerms.crumb:Simulator terms`,
+        imageAlt: $localize`:@@seo.legal.imageAlt:IDEM legal information — An Akan gold-weighing scale.`,
+      };
+    case 'cookie-policy':
+      return {
+        title: $localize`:@@seo.cookiePolicy.title:Cookies and trackers`,
+        description: $localize`:@@seo.cookiePolicy.description:Every cookie IDEM stores on your device, what it is for, how long it stays, and how to refuse the audience measurement on the public site.`,
+        crumb: $localize`:@@seo.cookiePolicy.crumb:Cookies`,
+        imageAlt: $localize`:@@seo.legal.imageAlt:IDEM legal information — An Akan gold-weighing scale.`,
+      };
+    case 'subprocessors':
+      return {
+        title: $localize`:@@seo.subprocessors.title:IDEM sub-processors`,
+        description: $localize`:@@seo.subprocessors.description:Every third party that touches your data, what it receives, where it processes it, and whether it may train a model on it. The list is enforced by code.`,
+        crumb: $localize`:@@seo.subprocessors.crumb:Sub-processors`,
+        imageAlt: $localize`:@@seo.legal.imageAlt:IDEM legal information — An Akan gold-weighing scale.`,
+      };
+    case 'icode-privacy':
+      return {
+        title: $localize`:@@seo.icodePrivacy.title:iCode privacy`,
+        description: $localize`:@@seo.icodePrivacy.description:What the iCode workshop adds on data: your GitHub repository, the container that runs your project, and the survey of a site you ask us to redesign.`,
+        crumb: $localize`:@@seo.icodePrivacy.crumb:iCode privacy`,
+        imageAlt: $localize`:@@seo.legal.imageAlt:IDEM legal information — An Akan gold-weighing scale.`,
+      };
+    case 'icode-terms':
+      return {
+        title: $localize`:@@seo.icodeTerms.title:iCode usage rules`,
+        description: $localize`:@@seo.icodeTerms.description:What you may do with the iCode workshop, who owns the generated code, what the preview container may not be used for, and what is billed.`,
+        crumb: $localize`:@@seo.icodeTerms.crumb:iCode rules`,
+        imageAlt: $localize`:@@seo.legal.imageAlt:IDEM legal information — An Akan gold-weighing scale.`,
+      };
+    case 'ideploy-privacy':
+      return {
+        title: $localize`:@@seo.ideployPrivacy.title:iDeploy privacy`,
+        description: $localize`:@@seo.ideployPrivacy.description:Your deployment secrets, your application logs, and your visitors' data: who is the controller, who the processor, and what the firewall sees.`,
+        crumb: $localize`:@@seo.ideployPrivacy.crumb:iDeploy privacy`,
+        imageAlt: $localize`:@@seo.legal.imageAlt:IDEM legal information — An Akan gold-weighing scale.`,
+      };
+    case 'ideploy-terms':
+      return {
+        title: $localize`:@@seo.ideployTerms.title:iDeploy hosting rules`,
+        description: $localize`:@@seo.ideployTerms.description:What may run on IDEM machines, what triggers a suspension and in what order, what happens on non-payment, and how a complaint is handled.`,
+        crumb: $localize`:@@seo.ideployTerms.crumb:iDeploy rules`,
+        imageAlt: $localize`:@@seo.legal.imageAlt:IDEM legal information — An Akan gold-weighing scale.`,
+      };
+    case 'ivision-privacy':
+      return {
+        title: $localize`:@@seo.ivisionPrivacy.title:iVision privacy`,
+        description: $localize`:@@seo.ivisionPrivacy.description:Your voice, the images you upload, the media we generate, and what publishing to a social network entails. Transcription runs on our own machines.`,
+        crumb: $localize`:@@seo.ivisionPrivacy.crumb:iVision privacy`,
+        imageAlt: $localize`:@@seo.legal.imageAlt:IDEM legal information — An Akan gold-weighing scale.`,
+      };
+    case 'ivision-terms':
+      return {
+        title: $localize`:@@seo.ivisionTerms.title:iVision usage rules`,
+        description: $localize`:@@seo.ivisionTerms.description:Who owns the videos and visuals, why no real person's face or voice may be generated, and what iVision refuses to produce.`,
+        crumb: $localize`:@@seo.ivisionTerms.crumb:iVision rules`,
+        imageAlt: $localize`:@@seo.legal.imageAlt:IDEM legal information — An Akan gold-weighing scale.`,
+      };
+    case 'idomain-privacy':
+      return {
+        title: $localize`:@@seo.idomainPrivacy.title:iDomain privacy`,
+        description: $localize`:@@seo.idomainPrivacy.description:Buying a domain means declaring a holder. Exactly which details leave IDEM, to whom, what becomes public, and what masking can and cannot hide.`,
+        crumb: $localize`:@@seo.idomainPrivacy.crumb:iDomain privacy`,
+        imageAlt: $localize`:@@seo.legal.imageAlt:IDEM legal information — An Akan gold-weighing scale.`,
+      };
+    case 'idomain-terms':
+      return {
+        title: $localize`:@@seo.idomainTerms.title:iDomain registration rules`,
+        description: $localize`:@@seo.idomainTerms.description:What you are really buying, which registry rules bind us, why a registered name is not refundable, and what happens at expiry or on transfer.`,
+        crumb: $localize`:@@seo.idomainTerms.crumb:iDomain rules`,
+        imageAlt: $localize`:@@seo.legal.imageAlt:IDEM legal information — An Akan gold-weighing scale.`,
+      };
+    case 'isimulator-privacy':
+      return {
+        title: $localize`:@@seo.isimulatorPrivacy.title:IDEM Simulator privacy`,
+        description: $localize`:@@seo.isimulatorPrivacy.description:What happens to the business plan you import, what a market search sends out, and what remains after a run. Your figures never leave in a search query.`,
+        crumb: $localize`:@@seo.isimulatorPrivacy.crumb:Simulator privacy`,
         imageAlt: $localize`:@@seo.legal.imageAlt:IDEM legal information — An Akan gold-weighing scale.`,
       };
     case 'not-found':

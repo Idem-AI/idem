@@ -14,6 +14,7 @@ import { AuthService } from '../../modules/auth/services/auth.service';
 import { BetaBadgeComponent } from '../../shared/components/beta-badge/beta-badge';
 import { LanguageSelectorComponent } from '../../shared/components/language-selector/language-selector';
 import { ThemeToggleComponent } from '../../shared/components/theme-toggle/theme-toggle';
+import { AppFooterComponent } from '../../shared/components/app-footer/app-footer';
 
 /**
  * Layout du mode Assisté : volontairement dépouillé.
@@ -32,6 +33,7 @@ import { ThemeToggleComponent } from '../../shared/components/theme-toggle/theme
     BetaBadgeComponent,
     LanguageSelectorComponent,
     ThemeToggleComponent,
+    AppFooterComponent,
   ],
   templateUrl: './guided-layout.html',
   styleUrl: './guided-layout.css',

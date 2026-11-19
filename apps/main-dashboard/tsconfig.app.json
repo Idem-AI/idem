@@ -7,6 +7,10 @@
     "types": ["node"],
     "baseUrl": "../../",
     "paths": {
+      "@idem/shared-seo": ["packages/shared-seo/src"],
+      "@idem/shared-seo/*": ["packages/shared-seo/src/*"],
+      "@idem/shared-footer": ["packages/shared-footer/src"],
+      "@idem/shared-footer/*": ["packages/shared-footer/src/*"],
       "@idem/shared-offline": ["packages/shared-offline/src"],
       "@idem/shared-offline/*": ["packages/shared-offline/src/*"],
       "@idem/shared-models": ["packages/shared-models/src"],

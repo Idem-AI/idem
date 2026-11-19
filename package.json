@@ -39,6 +39,7 @@
     "typecheck:ivision": "npm run typecheck --prefix apps/ivision/core && tsc --noEmit -p apps/ivision/api/tsconfig.json && npm run typecheck --prefix apps/ivision/web",
     "check:journey": "apps/appgen/apps/we-dev-next/node_modules/.bin/tsx packages/shared-journey/src/check.ts",
     "check:promotions": "apps/appgen/apps/we-dev-next/node_modules/.bin/tsx packages/shared-promotions/src/check.ts",
+    "check:legal": "apps/appgen/apps/we-dev-next/node_modules/.bin/tsx packages/shared-footer/src/check.ts",
     "check:ivision": "npm run check --prefix apps/ivision/core && npm run check --prefix apps/ivision/api",
     "dev:idomain-api": "npm run dev --prefix apps/idomain/api",
     "dev:idomain-worker": "npm run dev:worker --prefix apps/idomain/api",
@@ -100,7 +101,8 @@
     "check:secrets": "node scripts/git-hooks/check-secrets.mjs",
     "check:builds": "node scripts/git-hooks/check-builds.mjs",
     "test:git-hooks": "node --test scripts/git-hooks/*.test.mjs",
-    "check:cache": "node scripts/check-cache-policy.mjs"
+    "check:cache": "node scripts/check-cache-policy.mjs",
+    "check:docker": "node scripts/check-docker-packages.mjs"
   },
   "dependencies": {
     "@infisical/sdk": "^5.0.2",

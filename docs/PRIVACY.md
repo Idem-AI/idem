@@ -138,9 +138,32 @@ The same script encrypts GitHub tokens stored in clear before 18 November 2026: 
 
 `DATA_PURGE_MODE`: `dry-run` (default: reports only, nothing is touched), `enforce`, `off`. Manual runs: `npm run privacy:purge -- --due | --user <uid> | --project <uid>:<projectId> [--now] [--apply]`.
 
+## The published texts
+
+The public texts match this page, and the code checks that they do.
+
+| Text | Address | What it adds |
+|---|---|---|
+| Privacy policy | `/privacy-policy` | The whole of this page, written for a reader: controller, purposes and legal bases, the four levels, what we never do, the AI detail, recipients, transfers, retention, rights, erasure, the 13 countries served and their authority |
+| Terms of service | `/terms-of-service` | The contract. Replaces the version that still carried `[Jurisdiction]` and `[Arbitration Organization]` in production |
+| Cookies and trackers | `/cookie-policy` | Every cookie by name, and how to refuse the landing's audience measurement — which is not preceded by a consent screen, as stated |
+| Sub-processors | `/subprocessors` | The `PROCESSORS` registry, published |
+| Per-service addenda | `/privacy/{icode,ideploy,ivision,idomain,simulator}`, `/terms/{icode,ideploy,ivision,idomain}` | What one service does that the others do not: a GitHub token, a surveyed site, a visitor's IP seen by the firewall, a voice, WHOIS data, an imported business plan |
+
+They are written once, in both languages, in `apps/landing/src/app/shared/legal/`
+and rendered by one page. The registry of what exists and where
+(`packages/shared-footer/src/legal.ts`) is read by the six applications' footers,
+so a text cannot be reachable from one application and not another.
+
+`npm run check:legal` fails if a declared document has no content, if a content
+is not declared, if a path has no route, if it is missing from the sitemap, or —
+the one that matters most — if a processor in `data-governance.ts` is not
+published on the sub-processors page.
+
 ## Not implemented yet
 
-- Self-service data export.
+- Self-service data export (requests go to `legal@idem.africa` and are answered by hand).
 - Consent and preference centre (only needed once `AI_RESEARCH` or `MARKETING` is enabled).
 - Admin MFA, and a required reason before reading project content.
-- Updating the public privacy policy to match this page (processors, retention, no training).
+- A dedicated `privacy@` alias: privacy requests currently go to `legal@idem.africa`.
+- The company's RCCM number and postal address, which the policy names only as "IDEM S.A.S., Douala, Cameroon".
