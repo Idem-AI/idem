@@ -109,7 +109,7 @@ export const TECHNOLOGIES: TechRule[] = [
   { id: 'plone', name: 'Plone', category: 'cms', family: 'server', meta: 'Plone' },
   { id: 'pimcore', name: 'Pimcore', category: 'cms', family: 'server', headers: { 'x-powered-by': 'pimcore' } },
   { id: 'spip', name: 'SPIP', category: 'cms', family: 'server', meta: '^SPIP', src: 'spip\\.php|/squelettes' },
-  { id: 'hubspot-cms', name: 'HubSpot CMS', category: 'cms', family: 'server', src: 'hs-scripts\\.com|hubspotusercontent|hs-sites\\.com', headers: { 'x-hs-hub-id': '.' } },
+  { id: 'hubspot-cms', name: 'HubSpot CMS', category: 'cms', family: 'server', src: 'hubspotusercontent|hs-sites\\.com', headers: { 'x-hs-hub-id': '.' } },
   { id: 'blogger', name: 'Blogger', category: 'cms', family: 'server', meta: '^blogger', src: 'blogger\\.com|blogspot\\.com' },
   { id: 'medium', name: 'Medium', category: 'cms', family: 'hybrid', src: 'cdn-client\\.medium\\.com' },
   { id: 'substack', name: 'Substack', category: 'cms', family: 'hybrid', src: 'substackcdn\\.com' },
@@ -190,8 +190,8 @@ export const TECHNOLOGIES: TechRule[] = [
   { id: 'shopify', name: 'Shopify', category: 'ecommerce', family: 'server', globals: ['Shopify'], src: 'cdn\\.shopify\\.com|myshopify\\.com', headers: { 'x-shopid': '.', 'x-shopify-stage': '.' } },
   { id: 'shopify-hydrogen', name: 'Shopify Hydrogen', category: 'ecommerce', family: 'hybrid', globals: ['__remixContext', '__hydrogen'], src: 'cdn\\.shopify\\.com/oxygen' },
   { id: 'woocommerce', name: 'WooCommerce', category: 'ecommerce', family: 'server', src: '/woocommerce/', dom: '.woocommerce, body.woocommerce-page', globals: ['wc_add_to_cart_params'] },
-  { id: 'magento', name: 'Magento / Adobe Commerce', category: 'ecommerce', family: 'server', src: '/static/(version\\d+/)?frontend/|mage/', globals: ['Mage'], cookie: '^(mage-|form_key)' },
-  { id: 'prestashop', name: 'PrestaShop', category: 'ecommerce', family: 'server', meta: 'PrestaShop', globals: ['prestashop'], src: '/themes/.*/assets/|/modules/ps_' },
+  { id: 'magento', name: 'Magento / Adobe Commerce', category: 'ecommerce', family: 'server', src: '/static/(version\\d+/)?frontend/|/mage/(cookies|requirejs)', globals: ['Mage'], cookie: '^(mage-|form_key)' },
+  { id: 'prestashop', name: 'PrestaShop', category: 'ecommerce', family: 'server', meta: 'PrestaShop', globals: ['prestashop'], src: '/modules/ps_[a-z]+/|prestashop\\.(min\\.)?js' },
   { id: 'bigcommerce', name: 'BigCommerce', category: 'ecommerce', family: 'server', src: 'bigcommerce\\.com|cdn\\d+\\.bigcommerce', globals: ['BCData'] },
   { id: 'opencart', name: 'OpenCart', category: 'ecommerce', family: 'server', src: 'catalog/view/(theme|javascript)', cookie: '^OCSESSID' },
   { id: 'sfcc', name: 'Salesforce Commerce Cloud', category: 'ecommerce', family: 'server', src: 'demandware\\.(net|static)|/on/demandware' },
@@ -270,7 +270,7 @@ export const TECHNOLOGIES: TechRule[] = [
   { id: 'docusaurus', name: 'Docusaurus', category: 'docs', family: 'hybrid', meta: '^Docusaurus', globals: ['__DOCUSAURUS_INSERT_BASEURL_BANNER'] },
   { id: 'nextra', name: 'Nextra', category: 'docs', family: 'hybrid', dom: '.nextra-content, .nextra-nav-container' },
   { id: 'mkdocs', name: 'MkDocs', category: 'docs', family: 'static', meta: '^mkdocs' },
-  { id: 'sphinx', name: 'Sphinx', category: 'docs', family: 'static', html: 'sphinx' , src: '_static/' },
+  { id: 'sphinx', name: 'Sphinx', category: 'docs', family: 'static', meta: '^Sphinx', src: '_static/(documentation_options|basic|pygments)' },
   { id: 'gitbook', name: 'GitBook', category: 'docs', family: 'hybrid', src: 'gitbook' },
   { id: 'mintlify', name: 'Mintlify', category: 'docs', family: 'hybrid', src: 'mintlify' },
   { id: 'readme', name: 'ReadMe', category: 'docs', family: 'hybrid', src: 'readme\\.(io|com)' },
@@ -278,7 +278,7 @@ export const TECHNOLOGIES: TechRule[] = [
 
   // ── Frameworks serveur et langages (HTML servi : relevé direct) ─────────────
   { id: 'php', name: 'PHP', category: 'language', family: 'server', headers: { 'x-powered-by': 'PHP' }, cookie: '^PHPSESSID$' },
-  { id: 'laravel', name: 'Laravel', category: 'server-framework', family: 'server', cookie: '^(laravel_session|XSRF-TOKEN)$' },
+  { id: 'laravel', name: 'Laravel', category: 'server-framework', family: 'server', cookie: '^laravel_session$' },
   { id: 'symfony', name: 'Symfony', category: 'server-framework', family: 'server', headers: { 'x-debug-token': '.' }, cookie: '^sf_redirect' },
   { id: 'codeigniter', name: 'CodeIgniter', category: 'server-framework', family: 'server', cookie: '^ci_session' },
   { id: 'cakephp', name: 'CakePHP', category: 'server-framework', family: 'server', cookie: '^CAKEPHP' },
@@ -383,6 +383,8 @@ export const TECHNOLOGIES: TechRule[] = [
 export interface PageSignals {
   /** Ids du catalogue trouvés dans la page. */
   matched: string[];
+  /** Parmi eux, ceux dont la signature est FORTE (balise generator, variable globale, cookie, ou deux types de signature). */
+  strong: string[];
   /** Routes en `#/` (ou `#!/`) : l'adresse sans `#` est la même page pour le serveur. */
   hashRouting: boolean;
   /** Éléments à Shadow DOM ouvert qui portent du texte. */
@@ -412,9 +414,10 @@ export function detectInPage(rules: TechRule[]): PageSignals {
   } catch (e) {
     html = '';
   }
-  var generator = '';
+  // Chaque balise generator testée SEULE : concaténées, une espace de tête faisait échouer les motifs en `^Hugo`.
+  var generators: string[] = [];
   var gens = document.querySelectorAll('meta[name="generator" i], meta[name="Generator"]');
-  for (var g = 0; g < gens.length; g++) generator += ' ' + (gens[g].getAttribute('content') || '');
+  for (var g = 0; g < gens.length; g++) generators.push(String(gens[g].getAttribute('content') || '').trim());
   var srcs: string[] = [];
   var nodes = document.querySelectorAll('script[src], link[href]');
   for (var s = 0; s < nodes.length; s++) srcs.push(nodes[s].getAttribute('src') || nodes[s].getAttribute('href') || '');
@@ -444,23 +447,31 @@ export function detectInPage(rules: TechRule[]): PageSignals {
     }
   };
   var matched: string[] = [];
+  var strong: string[] = [];
   for (var k = 0; k < rules.length; k++) {
     var rule = rules[k];
-    var hit = false;
+    // Chaque type de signature évalué SEUL : un mot dans le HTML ou une adresse de script ne suffit pas à nommer une
+    // technologie (un site WordPress qui parle de « Sphinx » n'est pas un site Sphinx).
+    var kinds = { meta: false, globals: false, cookie: false, src: false, dom: false, html: false };
     try {
-      if (!hit && rule.meta && new RegExp(rule.meta, 'i').test(generator)) hit = true;
-      if (!hit && rule.src && new RegExp(rule.src, 'i').test(srcText)) hit = true;
-      if (!hit && rule.globals) for (var gi = 0; gi < rule.globals.length && !hit; gi++) if (hasGlobal(rule.globals[gi])) hit = true;
-      if (!hit && rule.dom && document.querySelector(rule.dom)) hit = true;
-      if (!hit && rule.html && new RegExp(rule.html, 'i').test(html)) hit = true;
-      if (!hit && rule.cookie) {
+      if (rule.meta) {
+        var metaRe = new RegExp(rule.meta, 'i');
+        for (var mi = 0; mi < generators.length && !kinds.meta; mi++) if (metaRe.test(generators[mi])) kinds.meta = true;
+      }
+      if (rule.src && new RegExp(rule.src, 'i').test(srcText)) kinds.src = true;
+      if (rule.globals) for (var gi = 0; gi < rule.globals.length && !kinds.globals; gi++) if (hasGlobal(rule.globals[gi])) kinds.globals = true;
+      if (rule.dom && document.querySelector(rule.dom)) kinds.dom = true;
+      if (rule.html && new RegExp(rule.html, 'i').test(html)) kinds.html = true;
+      if (rule.cookie) {
         var re = new RegExp(rule.cookie, 'i');
-        for (var ci = 0; ci < cookies.length && !hit; ci++) if (re.test(cookies[ci])) hit = true;
+        for (var ci = 0; ci < cookies.length && !kinds.cookie; ci++) if (re.test(cookies[ci])) kinds.cookie = true;
       }
     } catch (e) {
       /* motif invalide : la règle est ignorée */
     }
-    if (hit) matched.push(rule.id);
+    var count = (kinds.meta ? 1 : 0) + (kinds.globals ? 1 : 0) + (kinds.cookie ? 1 : 0) + (kinds.src ? 1 : 0) + (kinds.dom ? 1 : 0) + (kinds.html ? 1 : 0);
+    if (count > 0) matched.push(rule.id);
+    if (kinds.meta || kinds.globals || kinds.cookie || count >= 2) strong.push(rule.id);
   }
 
   var text = String((document.body && document.body.innerText) || '').replace(/\s+/g, ' ').trim();
@@ -498,7 +509,7 @@ export function detectInPage(rules: TechRule[]): PageSignals {
   // Mur anti-robot.
   var title = String(document.title || '');
   var botWall =
-    /just a moment|attention required|checking your browser|vérification|un instant|ddos-guard|access denied|pardon our interruption|are you a robot|verify you are human/i.test(title) ||
+    /just a moment|attention required|checking your browser|vérification|un instant|ddos-guard|access denied|pardon our interruption|are you a robot|verify you are human|client challenge|making sure you.?re not a bot|anubis/i.test(title) ||
     !!document.querySelector('#challenge-form, #cf-challenge-running, .cf-turnstile, #challenge-stage, iframe[src*="challenges.cloudflare.com"], #px-captcha, .g-recaptcha[data-sitekey][data-size="invisible"] ~ form#challenge');
 
   // Routes en `#/`.
@@ -545,7 +556,7 @@ export function detectInPage(rules: TechRule[]): PageSignals {
     /* rien */
   }
 
-  return { matched: matched, hashRouting: hashRouting, shadowHosts: shadowHosts, iframeSrc: iframeSrc, canvasOnly: canvasOnly, botWall: botWall, textLength: text.length, clickOnlyNav: clickOnlyNav, routes: routes.slice(0, 80) };
+  return { matched: matched, strong: strong, hashRouting: hashRouting, shadowHosts: shadowHosts, iframeSrc: iframeSrc, canvasOnly: canvasOnly, botWall: botWall, textLength: text.length, clickOnlyNav: clickOnlyNav, routes: routes.slice(0, 80) };
 }
 
 /** Les signatures d'en-têtes et de cookies HTTP de la réponse du document. */
@@ -628,18 +639,31 @@ const CATEGORY_WEIGHT: Record<TechCategory, number> = {
 };
 
 /** La famille qui l'emporte : la technologie la plus « parlante » qui en déclare une, sinon une mesure. */
-export function profileOf(signals: PageSignals, headerMatches: string[] = []): TechProfile {
+export function profileOf(signals: PageSignals, headerMatches: string[] = [], initialTextLength: number | null = null): TechProfile {
   const ids = [...new Set([...signals.matched, ...headerMatches])];
+  // Les détections qui décident de la FAMILLE : fortes (celles des en-têtes le sont). Sans aucune forte, toutes.
+  const strongIds = new Set([...(signals.strong ?? signals.matched), ...headerMatches]);
   const byId = new Map(TECHNOLOGIES.map((rule) => [rule.id, rule]));
   const technologies = ids
     .map((id) => byId.get(id))
     .filter((rule): rule is TechRule => !!rule)
     .sort((a, b) => CATEGORY_WEIGHT[a.category] - CATEGORY_WEIGHT[b.category]);
 
-  let family: RenderFamily =
-    signals.canvasOnly ? 'canvas' : technologies.find((rule) => rule.family)?.family ?? (signals.textLength < 200 ? 'spa' : 'server');
-  // Un framework de navigateur sur une page déjà pleine de texte : rendu serveur repris (hybride).
-  if (family === 'spa' && signals.textLength > 1500 && technologies.some((rule) => rule.category === 'meta-framework')) family = 'hybrid';
+  // La famille : la technologie la plus parlante parmi celles qui en déclarent une (constructeur, méta-framework,
+  // générateur statique d'abord ; un framework de navigateur en dernier, il est partout).
+  const FAMILY_ORDER: TechCategory[] = ['builder', 'meta-framework', 'static-generator', 'docs', 'canvas', 'cms', 'ecommerce', 'server-framework', 'page-builder', 'js-framework', 'language'];
+  const deciding = technologies.some((rule) => rule.family && strongIds.has(rule.id)) ? technologies.filter((rule) => strongIds.has(rule.id)) : technologies;
+  const declared = deciding
+    .filter((rule) => rule.family)
+    .sort((a, b) => FAMILY_ORDER.indexOf(a.category) - FAMILY_ORDER.indexOf(b.category))[0]?.family;
+  let family: RenderFamily = signals.canvasOnly ? 'canvas' : declared ?? (signals.textLength < 200 ? 'spa' : 'server');
+  // MESURÉ : une page dont le HTML initial est presque vide et qui se remplit dans le navigateur est une application
+  // (SPA), quelle que soit l'étiquette ; une page dont le HTML initial est déjà plein n'en est pas une.
+  if (initialTextLength !== null && family !== 'canvas' && family !== 'builder') {
+    const filledInBrowser = initialTextLength < 300 && signals.textLength > 600;
+    if (filledInBrowser) family = 'spa';
+    else if (family === 'spa' && initialTextLength >= 300) family = technologies.some((rule) => rule.category === 'meta-framework') ? 'hybrid' : 'server';
+  }
 
   const has = (id: string) => ids.includes(id);
   const app = family === 'spa' || family === 'hybrid' || family === 'builder';

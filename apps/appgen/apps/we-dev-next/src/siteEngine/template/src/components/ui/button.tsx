@@ -11,17 +11,20 @@ import { componentConfig } from '@/design-system/config';
  * Bouton icône : `<Button size="icon" aria-label="…"><Menu /></Button>`.
  */
 const buttonVariants = cva(
-  'inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-button border-solid font-body [border-width:var(--button-border-width)] [font-weight:var(--button-weight)] [letter-spacing:var(--button-tracking)] [text-transform:var(--button-transform)] transition-[color,background-color,border-color,box-shadow,opacity] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-[1.1em] [&_svg]:shrink-0',
+  'inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-button border-solid font-body [border-width:var(--button-border-width)] [font-weight:var(--button-weight)] [letter-spacing:var(--button-tracking)] [text-transform:var(--button-transform)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-[1.1em] [&_svg]:shrink-0',
   {
     variants: {
+      // Les couleurs et les gestes (survol, appui) de chaque variante viennent du CSS du design system
+      // (`theme.generated.css`, classes `ds-button` et `ds-btn-*`) : ils changent d'un projet à l'autre sans qu'aucun
+      // composant ne soit réécrit.
       variant: {
-        primary: 'border-transparent bg-primary text-primary-foreground shadow-button hover:bg-primary/90',
-        secondary: 'border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/75',
-        accent: 'border-transparent bg-accent text-accent-foreground hover:bg-accent/80',
-        outline: 'border-input bg-transparent text-foreground hover:border-foreground/40 hover:bg-muted',
-        ghost: 'border-transparent bg-transparent text-foreground hover:bg-muted',
-        link: 'h-auto border-transparent bg-transparent px-0 text-primary underline-offset-4 hover:underline',
-        destructive: 'border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/90',
+        primary: 'ds-button ds-btn-primary',
+        secondary: 'ds-button ds-btn-secondary',
+        accent: 'ds-button ds-btn-accent',
+        outline: 'ds-button ds-btn-outline',
+        ghost: 'ds-button ds-btn-ghost',
+        link: 'h-auto border-transparent bg-transparent px-0 text-primary transition-colors underline-offset-4 hover:underline',
+        destructive: 'ds-button ds-btn-destructive',
       },
       size: {
         sm: 'h-control-sm px-3 text-small',

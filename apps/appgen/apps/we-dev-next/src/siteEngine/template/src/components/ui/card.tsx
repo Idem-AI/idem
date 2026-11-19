@@ -7,7 +7,8 @@ import { componentConfig } from '@/design-system/config';
  * Carte du design system. Variante par défaut, bordure, rayon, ombre et marge
  * intérieure viennent de design-system.json.
  */
-const cardVariants = cva('rounded-card border-solid text-card-foreground', {
+// `ds-card` : le survol, le trait d'accent et la forme de la carte viennent du design system (`theme.generated.css`).
+const cardVariants = cva('ds-card rounded-card border-solid text-card-foreground', {
   variants: {
     variant: {
       outline: 'border-border bg-card shadow-card [border-width:var(--card-border-width)]',

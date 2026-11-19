@@ -156,6 +156,18 @@ customElements.define('x-feature', class extends HTMLElement { connectedCallback
     if (!pages[path]) return send(res, 404, doc('Introuvable', '<h1>Introuvable</h1>'));
     send(res, 200, doc(pages[path], `<header><nav><a href="/">Accueil</a><a href="/nos-actions/">Nos actions</a></nav></header><main><section><h1>${pages[path]}</h1>${para(3)}</section></main>`, '<meta name="generator" content="WordPress 6.6"><link rel="https://api.w.org/" href="/wp-json/">'));
   },
+  // 10. Page « à plat » : titre et paragraphes directement sous <main>, sans enveloppe (docs, articles, mentions légales),
+  //     et une balise generator Hugo (testée seule, sans espace de tête).
+  flat: (req, res) => {
+    const path = (req.url || '/').split('?')[0];
+    const page = (title: string, h1: string) =>
+      doc(title, `<header><nav><a href="/">Accueil</a><a href="/guide/">Guide</a></nav></header><main><h1>${h1}</h1>${para(2)}<h2>Premiers pas</h2>${para(2)}<ul><li>Installer l’outil</li><li>Créer un projet</li></ul><h2>Aller plus loin</h2>${para(2)}</main>`, '<meta name="generator" content="Hugo 0.121.0">');
+    if (path === '/') return send(res, 200, page('Documentation Orme', 'Documentation du projet Orme'));
+    if (path === '/guide/') return send(res, 200, page('Guide Orme', 'Le guide complet d’Orme'));
+    send(res, 404, doc('404', '<h1>404</h1>'));
+  },
+  // 11. Mur « Client Challenge » (Anubis…) qui ne passe jamais : l'échec doit être dit, pas un relevé vide.
+  challenge: (_req, res) => send(res, 200, doc('Client Challenge', '<noscript>Vérification du navigateur…</noscript><div id="c"></div>')),
   // 9. Dessiné dans un canvas : aucun texte dans le DOM.
   canvas: (_req, res) => send(res, 200, doc('Kivu Games', `<canvas id="unity-canvas" width="1440" height="900" style="width:100vw;height:100vh;display:block"></canvas><script>window.createUnityInstance = function(){};</script>`)),
 };
@@ -235,6 +247,12 @@ async function run(name: string, crawl: typeof crawlWebsite, url: string, extra:
       check('mur anti-robot : la vraie page relevée après l’attente', texts(inv).some((t) => /Hôtel Mboa/.test(t)) && !texts(inv).some((t) => /Checking your browser/.test(t)), texts(inv));
       check('Cloudflare détecté (en-têtes)', !!inv.technology?.names.includes('Cloudflare'), inv.technology);
     }],
+    ['flat', (inv) => {
+      check('page à plat : sections relevées (titres et paragraphes sous <main>)', inv.pages.length === 2 && inv.pages.every((p) => p.sections.length >= 3), summary(inv));
+      check('page à plat : découpée à chaque titre (h1, puis chaque h2)', inv.pages[0]?.sections.some((x) => x.headings.includes('Premiers pas')) && inv.pages[0]?.sections.some((x) => x.headings.includes('Aller plus loin')), inv.pages[0]?.sections.map((x) => x.headings));
+      check('page à plat : la liste est relevée', texts(inv).concat(inv.pages.flatMap((p) => p.sections.flatMap((x) => x.items))).includes('Installer l’outil'));
+      check('balise generator « Hugo » reconnue (famille statique)', !!inv.technology?.names.includes('Hugo') && inv.technology?.family === 'static', inv.technology);
+    }],
     ['wordpress', (inv) => {
       check('WordPress : les 4 pages, dont celles que seule l’API REST liste', inv.pages.length === 4, summary(inv));
     }],
@@ -247,6 +265,12 @@ async function run(name: string, crawl: typeof crawlWebsite, url: string, extra:
     if (!result.inventory) check(`${name} : relevé`, false, result.error);
     else verify(result.inventory);
   }
+  const challenge = await run('challenge', crawlWebsite, servers.challenge.url);
+  check('mur « Client Challenge » persistant : erreur claire (bot_protection), pas un relevé vide', challenge.error === 'bot_protection', challenge.error ?? summary(challenge.inventory));
+  const dead = await serve((_req, res) => res.destroy());
+  const gone = await run('unreachable', crawlWebsite, dead.url, { timeoutMs: 4000 });
+  check('hôte qui ne répond pas : erreur « unreachable », pas un relevé vide', !gone.inventory && /unreachable|ECONNRESET|ERR_/.test(gone.error ?? ''), gone.error);
+  dead.close();
   const canvasRun = await run('canvas', crawlWebsite, servers.canvas.url, { vision: fakeVision });
   report.canvas = { ms: canvasRun.ms, error: canvasRun.error, ...summary(canvasRun.inventory), technology: canvasRun.inventory?.technology };
   check('canvas (Unity) : page lue par le modèle de vision', !!canvasRun.inventory && texts(canvasRun.inventory).includes('Kivu Games'), canvasRun.error ?? summary(canvasRun.inventory));

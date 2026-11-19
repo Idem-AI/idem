@@ -42,6 +42,7 @@ import { ModelCaller, accountLimitMessage } from './modelCaller.js';
 import { createApiMediaClient, MediaClient } from './media/mediaClient.js';
 import { AssetDecision, directMedia, MediaSlot } from './media/mediaDirector.js';
 import { createLimiter, MediaAsset, produceMedia } from './media/mediaPipeline.js';
+import { markSurfaces } from './sectionCatalog/assemble.js';
 import { buildSiteScaffold, renderPage, renderPageShells, renderPendingSection, renderPendingShell, shellMessages } from './project.js';
 import { renderBrandModule, renderDataModule, renderMediaModule, renderSeo, siteDataOf } from './siteData.js';
 import { collectMessages, dataMessages, languageLabel, localizeCode, pseudoLocaleFiles, renderI18nFiles, translateCatalog, withHeaderLanguageSwitcher, withLanguageSwitcher } from './i18n.js';
@@ -755,6 +756,9 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
       const publish = async (path: string, label: string, accepted: string, props?: Record<string, unknown>) => {
         // Un site en plusieurs langues : la version enveloppée est d'abord montée en pseudo-langue ; si elle ne
         // s'affiche plus une fois traduite, le composant garde ses textes en clair (langue principale partout).
+        // Les cartes écrites à la main reçoivent le geste du projet (survol, trait d'accent) : `markSurfaces` est sans effet sur
+        // celles que le catalogue a déjà marquées, et couvre le code de l'auteur de secours.
+        accepted = markSurfaces(accepted);
         const localized = localizeCode(accepted, path);
         let code = localized.code;
         if (localized.changed && siteLanguages.length > 1) {

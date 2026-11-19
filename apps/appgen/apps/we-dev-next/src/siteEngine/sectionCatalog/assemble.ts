@@ -205,10 +205,38 @@ export function assembleSection(tpl: string, input: AssembleInput): string {
   return tidy(render(tree, {}));
 }
 
-/** Les restes d'assemblage : lignes vides en série, classes doublement espacées. */
+/**
+ * LES CARTES ÉCRITES À LA MAIN. Les gabarits du catalogue composent leurs cartes en classes (`rounded-card border
+ * border-border bg-card p-6`) plutôt qu'avec le composant `Card` (2 fichiers sur 805) : le survol, le trait d'accent et
+ * la forme choisis par le projet ne les atteignaient pas. Une boîte qui a les coins d'une carte, du rembourrage et une
+ * bordure ou un fond reçoit `ds-card` (le geste du projet : soulèvement, bordure de marque, ombre dure…) ; une tuile
+ * d'image (`relative overflow-hidden rounded-card`) reçoit `ds-tile` (zoom de la photo). Jamais un cadre de média, un
+ * calque posé sur une image, un bandeau plein (`bg-primary`) ni une mosaïque : ils ne se soulèvent pas.
+ */
+export function markSurface(cls: string): string {
+  const tokens = cls.split(/\s+/).filter(Boolean);
+  if (!tokens.includes('rounded-card') || tokens.includes('ds-card') || tokens.includes('ds-tile')) return cls;
+  // Les préfixes de variante (`md:`, `lg:`) ne changent pas ce qu'est la boîte.
+  const bare = tokens.map((t) => t.replace(/^(?:[a-z0-9-]+:)+/, ''));
+  const has = (test: string | RegExp) => bare.some((t) => (typeof test === 'string' ? t === test : test.test(t)));
+  if (has('absolute') || has('sticky') || has('fixed') || has(/^aspect-/) || has(/^bg-(primary|foreground|background|border)(\/\d+)?$/) || has('shadow-xl')) return cls;
+  const padded = has(/^p[xy]?-\d/);
+  const overflow = has('overflow-hidden');
+  if (padded && !overflow && (has('border') || has('bg-card') || has(/^bg-(muted|secondary|accent)(\/\d+)?$/))) return `${cls} ds-card`;
+  // Une tuile d'image : coins de carte, rognée, sans rembourrage, et qui n'est pas la grille d'une mosaïque.
+  if (overflow && !padded && has('relative') && !has('grid') && !has('flex')) return `${cls} ds-tile`;
+  return cls;
+}
+
+/** Les cartes d'un code déjà écrit (par le catalogue ou par l'auteur de code) : chaque `className="…"` est examiné. */
+export function markSurfaces(code: string): string {
+  return code.replace(/className="([^"]*)"/g, (_m, cls: string) => `className="${markSurface(cls.replace(/\s+/g, ' ').trim())}"`);
+}
+
+/** Les restes d'assemblage : lignes vides en série, classes doublement espacées, cartes marquées. */
 function tidy(code: string): string {
   return code
-    .replace(/className="([^"]*)"/g, (_m, cls: string) => `className="${cls.replace(/\s+/g, ' ').trim()}"`)
+    .replace(/className="([^"]*)"/g, (_m, cls: string) => `className="${markSurface(cls.replace(/\s+/g, ' ').trim())}"`)
     .replace(/[ \t]+\n/g, '\n')
     .replace(/\n{3,}/g, '\n\n')
     .trim()
