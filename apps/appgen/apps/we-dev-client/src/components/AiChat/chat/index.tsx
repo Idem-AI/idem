@@ -540,10 +540,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
   const baseChatUrl = `${API_BASE}`;
 
   // Get projectId from URL - must be declared before useChat hook
-  const projectId = useMemo(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    return urlParams.get('projectId');
-  }, []);
+  const [projectId, setProjectId] = useState<string | null>(() => new URLSearchParams(window.location.search).get('projectId'));
 
   // Project data state - must be declared before useChat hook
   const [projectData, setProjectData] = useState<ProjectModel | null>(null);
@@ -632,7 +629,14 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       url.searchParams.set('product', 'site');
       url.searchParams.delete('platform');
       url.searchParams.delete('prompt');
-      window.location.replace(url.toString());
+      window.history.replaceState({}, '', url.toString());
+      // Aucune actualisation : le projet est déjà chargé ici, l'aperçu reste tel quel.
+      if (project) setProjectData(project);
+      setIsProjectLoaded(true);
+      setHasGeneration(true);
+      setIsGenerationComplete(true);
+      setProjectId(newProjectId);
+      toast.dismiss(pending);
     } catch (error) {
       console.error('[refonte] rattachement au projet impossible', error);
       toast.dismiss(pending);
