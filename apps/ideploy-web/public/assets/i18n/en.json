@@ -2327,7 +2327,8 @@
   },
   "appUpdate": {
     "message": "A new version of iDeploy is available. Your progress in a guide is kept.",
-    "reload": "Reload"
+    "reload": "Reload",
+    "later": "Later"
   },
   "cli": {
     "authorize": {

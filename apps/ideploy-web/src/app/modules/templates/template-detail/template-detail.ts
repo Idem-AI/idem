@@ -44,7 +44,7 @@ import {
         <div class="flex items-center gap-3">
           <div class="flex h-12 w-12 flex-shrink-0 items-center justify-center overflow-hidden rounded-xl" style="background:var(--color-surface-2);">
             @if (logo(); as l) {
-              <img [src]="l" class="h-8 w-8 object-contain" alt="" (error)="onLogoError($event)" />
+              <img loading="lazy" decoding="async" [src]="l" class="h-8 w-8 object-contain" alt="" (error)="onLogoError($event)" />
             } @else {
               <i class="pi pi-box text-xl" style="color:var(--color-primary-400);"></i>
             }
@@ -79,7 +79,7 @@ import {
                 [style.opacity]="i === activeIndex() ? '1' : '0.7'"
                 (click)="activeIndex.set(i)"
               >
-                <img [src]="shot" class="h-full w-full object-cover" alt="" (error)="onScreenshotError($event)" />
+                <img loading="lazy" decoding="async" [src]="shot" class="h-full w-full object-cover" alt="" (error)="onScreenshotError($event)" />
               </button>
             }
           </div>
@@ -92,7 +92,7 @@ import {
         >
           <div class="mb-4 flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl" style="background: var(--color-surface-1);">
             @if (logo(); as l) {
-              <img [src]="l" class="h-10 w-10 object-contain" alt="" (error)="onLogoError($event)" />
+              <img loading="lazy" decoding="async" [src]="l" class="h-10 w-10 object-contain" alt="" (error)="onLogoError($event)" />
             } @else {
               <i class="pi pi-box text-2xl" style="color:var(--color-primary-400);"></i>
             }

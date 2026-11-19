@@ -131,3 +131,14 @@ packages/*/dist/
 
 # Rendus du corpus d'exemples (html + png + json, ~11 Mo) : régénérables par `npm run corpus:render`, jamais versionnés.
 packages/graphic-engine/corpus/rendered/
+
+# Service worker partagé : recopié dans chaque application par le prebuild.
+# La source est packages/shared-offline/src/sw.js.
+apps/*/public/sw.js
+apps/*/*/public/sw.js
+
+# Traductions découpées : produites par scripts/split-i18n.mjs au prebuild.
+# La source reste <lang>.json, versionnée.
+apps/*/public/assets/i18n/*.core.json
+apps/*/public/assets/i18n/*.communication.json
+apps/*/public/assets/i18n/*.finance.json

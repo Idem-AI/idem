@@ -15,6 +15,8 @@ import { PaywallHostComponent } from './modules/billing/components/paywall-host/
 import { PolicyConsentHostComponent } from './shared/components/policy-consent-host/policy-consent-host';
 import { BetaInviteComponent } from './shared/components/beta-invite/beta-invite';
 import { ModeDockComponent } from './shared/components/mode-dock/mode-dock';
+import { TranslateService } from '@ngx-translate/core';
+import { IdemUpdateBannerComponent } from '@idem/shared-offline/angular';
 
 @Component({
   selector: 'app-root',
@@ -29,6 +31,7 @@ import { ModeDockComponent } from './shared/components/mode-dock/mode-dock';
     PolicyConsentHostComponent,
     BetaInviteComponent,
     ModeDockComponent,
+    IdemUpdateBannerComponent,
     AsyncPipe,
   ],
   templateUrl: './app.html',
@@ -43,6 +46,7 @@ export class App implements OnInit {
 
   protected readonly router = inject(Router);
   protected readonly activatedRoute = inject(ActivatedRoute);
+  protected readonly t = inject(TranslateService);
   private readonly destroy$ = new Subject<void>();
 
   // Force Analytics service initialization

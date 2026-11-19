@@ -18,6 +18,8 @@
     "target": "ES2022",
     "module": "ES2022",
     "paths": {
+      "@idem/shared-offline": ["../../../packages/shared-offline/src"],
+      "@idem/shared-offline/*": ["../../../packages/shared-offline/src/*"],
       "@idem/shared-loader": ["../../../packages/shared-loader/src"],
       "@idem/shared-loader/*": ["../../../packages/shared-loader/src/*"],
       "@idem/shared-tour": ["../../../packages/shared-tour/src"],

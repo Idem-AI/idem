@@ -8,11 +8,12 @@
     "env:prod": "NODE_ENV=production node scripts/set-env.js",
     "prestart": "npm run env:dev",
     "start": "ng serve --port 4202",
-    "prebuild": "npm run env:prod",
+    "prebuild": "npm run env:prod && npm run sw:sync",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "lint": "ng lint",
-    "typecheck": "tsc --noEmit -p tsconfig.app.json"
+    "typecheck": "tsc --noEmit -p tsconfig.app.json",
+    "sw:sync": "node ../../packages/shared-offline/scripts/sync.mjs public"
   },
   "private": true,
   "dependencies": {

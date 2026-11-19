@@ -62,3 +62,15 @@
 
 <!-- Invitation à la bêta premium : une seule fois par compte, après la première connexion -->
 <app-beta-invite />
+
+<!--
+  « Une nouvelle version est disponible. » Le service worker sert la page
+  depuis le cache pour qu'elle s'affiche tout de suite, même à bas débit :
+  une version plus récente peut donc arriver pendant la lecture. C'est
+  l'utilisateur qui choisit le moment de recharger.
+-->
+<idem-update-banner
+  [label]="t.instant('appUpdate.message')"
+  [actionLabel]="t.instant('appUpdate.reload')"
+  [dismissLabel]="t.instant('appUpdate.later')"
+/>

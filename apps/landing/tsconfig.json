@@ -4,6 +4,8 @@
   "compileOnSave": false,
   "compilerOptions": {
     "paths": {
+      "@idem/shared-offline": ["../../packages/shared-offline/src"],
+      "@idem/shared-offline/*": ["../../packages/shared-offline/src/*"],
       "@idem/shared-loader": ["../../packages/shared-loader/src"],
       "@idem/shared-loader/*": ["../../packages/shared-loader/src/*"],
       "@idem/shared-seo": ["../../packages/shared-seo/src"],

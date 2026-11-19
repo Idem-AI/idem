@@ -15,12 +15,20 @@ import { requestTraceMiddleware } from './middleware/request-trace.middleware';
 import { admin } from './routes/admin';
 import { internal } from './routes/internal';
 import { v1 } from './routes/v1';
+import { compressionMiddleware } from './middleware/compression.middleware';
 
 export function createApp(): Express {
   const app = express();
   app.set('trust proxy', 1);
   app.disable('x-powered-by');
   app.use(requestTraceMiddleware);
+
+  // Compression des réponses. Juste après le traçage, donc avant toute route :
+  // elle doit envelopper tout ce qui écrit un corps. Les flux SSE en sont exclus
+  // par le filtre (voir le fichier) — sans quoi les générations suivies en
+  // direct se figeraient.
+  app.use(compressionMiddleware);
+
   // Une API JSON : pas de page, donc pas de politique de contenu à négocier ici.
   app.use(helmet({ contentSecurityPolicy: false }));
 

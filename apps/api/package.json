@@ -90,6 +90,7 @@
     "ag-psd": "^28.3.1",
     "animejs": "^4.5.0",
     "axios": "^1.7.9",
+    "compression": "^1.8.1",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
@@ -135,6 +136,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@types/compression": "^1.8.1",
     "@types/cookie-parser": "^1.4.8",
     "@types/cors": "^2.8.17",
     "@types/dotenv": "^6.1.1",

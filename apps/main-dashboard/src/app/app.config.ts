@@ -6,11 +6,11 @@ import {
   importProvidersFrom,
   SecurityContext,
 } from '@angular/core';
-import { provideRouter, TitleStrategy } from '@angular/router';
+import { provideRouter, TitleStrategy, withPreloading } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideAnimations } from '@angular/platform-browser/animations';
 import { provideTranslateService, provideTranslateLoader } from '@ngx-translate/core';
-import { provideTranslateHttpLoader } from '@ngx-translate/http-loader';
+import { CoreTranslationLoader } from './shared/i18n/translation-chunks';
 import { providePrimeNG } from 'primeng/config';
 import { routes } from './app.routes';
 import { authInterceptor } from './shared/interceptors/auth.interceptor';
@@ -22,9 +22,17 @@ import { CustomTitleStrategy } from './shared/services/custom-title-strategy';
 import { adoptIncomingProject } from './shared/services/incoming-project';
 import { provideIdemPromotions } from '@idem/shared-promotions/angular';
 import { environment } from '../environments/environment';
+import {
+  IdemNetworkAwarePreloading,
+  provideIdemServiceWorker,
+} from '@idem/shared-offline/angular';
 
 export const appConfig: ApplicationConfig = {
   providers: [
+    // Service worker partagé : la deuxième visite part du cache et se met à
+    // jour en arrière-plan — l'application s'affiche tout de suite, même à
+    // 30 Ko/s. C'est aussi la garantie contre les versions périmées.
+    provideIdemServiceWorker(),
     provideBrowserGlobalErrorListeners(),
     provideZoneChangeDetection({ eventCoalescing: true }),
     // Avant le routage : un lien entrant d'une autre application IDEM peut
@@ -33,11 +41,22 @@ export const appConfig: ApplicationConfig = {
     provideAppInitializer(adoptIncomingProject),
     // Promotions en cours (bêta gratuite, soldes, codes promo) : prix barrés et bandeau.
     provideIdemPromotions({ apiUrl: environment.services.api.url }),
-    provideRouter(routes),
+    provideRouter(
+      routes,
+      // Les morceaux des pages suivantes arrivent pendant que
+      // l'utilisateur lit — mais jamais en 2G ni en mode économie
+      // de données, où ils voleraient la bande passante.
+      withPreloading(IdemNetworkAwarePreloading),
+    ),
     { provide: TitleStrategy, useClass: CustomTitleStrategy },
     // `paymentRequiredInterceptor` après l'authentification : un 402 n'a de
     // sens que sur une requête authentifiée, et l'ordre garantit que le jeton
     // a été posé avant que le refus soit interprété.
+    // PAS de `withFetch()` ici, contrairement aux autres applications :
+    // `ngx-sse-client` fait passer les flux de génération par HttpClient et
+    // lit `partialText` des événements de progression. Le transport `fetch`
+    // les livre autrement, et ces flux lancent de vraies générations
+    // facturées — on ne change pas leur transport sans les avoir rejouées.
     provideHttpClient(withInterceptors([authInterceptor, paymentRequiredInterceptor, policyRequiredInterceptor])),
     provideAnimations(),
     providePrimeNG({
@@ -50,10 +69,10 @@ export const appConfig: ApplicationConfig = {
       },
     }),
     provideTranslateService({
-      loader: provideTranslateHttpLoader({
-        prefix: '/assets/i18n/',
-        suffix: '.json',
-      }),
+      // Le NOYAU des traductions (`<lang>.core.json`, 43 Ko compressés au lieu
+      // de 73) : la Communication et la Finance arrivent avec leur page.
+      // Voir shared/i18n/translation-chunks.ts.
+      loader: provideTranslateLoader(CoreTranslationLoader),
       fallbackLang: 'en',
       lang: 'en',
     }),

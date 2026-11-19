@@ -416,5 +416,10 @@
       "ipv6_conflict": "Une adresse IPv6 gêne le certificat",
       "taken": "Utilisé par une autre application"
     }
+  },
+  "appUpdate": {
+    "message": "Une nouvelle version est disponible.",
+    "reload": "Actualiser",
+    "later": "Plus tard"
   }
 }

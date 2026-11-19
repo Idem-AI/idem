@@ -1,7 +1,7 @@
 {
   "name": "idomain-web",
   "version": "1.0.0",
-  "description": "iDomain — votre nom de domaine, acheté et branché à votre application en quelques minutes (Angular 20).",
+  "description": "iDomain \u2014 votre nom de domaine, achet\u00e9 et branch\u00e9 \u00e0 votre application en quelques minutes (Angular 20).",
   "private": true,
   "scripts": {
     "ng": "ng",
@@ -9,9 +9,10 @@
     "env:prod": "NODE_ENV=production node scripts/set-env.js",
     "prestart": "npm run env:dev",
     "start": "ng serve --port 4205",
-    "prebuild": "npm run env:prod",
+    "prebuild": "npm run env:prod && npm run sw:sync",
     "build": "ng build",
-    "typecheck": "npm run env:dev && tsc --noEmit -p tsconfig.app.json"
+    "typecheck": "npm run env:dev && tsc --noEmit -p tsconfig.app.json",
+    "sw:sync": "node ../../../packages/shared-offline/scripts/sync.mjs public"
   },
   "dependencies": {
     "@angular/common": "^20.0.0",

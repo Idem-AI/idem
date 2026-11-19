@@ -7,16 +7,21 @@ import { AnalyticsService } from './shared/services/analytics.service';
 import { ThemeService } from './shared/services/theme.service';
 import { Header } from './components/header/header';
 import { Footer } from './components/footer/footer';
+import { IdemUpdateBannerComponent } from '@idem/shared-offline/angular';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, Header, Footer],
+  imports: [RouterOutlet, Header, Footer, IdemUpdateBannerComponent],
   templateUrl: './app.html',
   styleUrl: './app.css',
 })
 export class App implements OnInit {
   protected readonly router = inject(Router);
+
+  protected readonly updateLabel = $localize`:@@appUpdateMessage:Une nouvelle version est disponible.`;
+  protected readonly updateAction = $localize`:@@appUpdateReload:Actualiser`;
+  protected readonly updateDismiss = $localize`:@@appUpdateLater:Plus tard`;
 
   // Force Analytics service initialization
   private readonly analytics = inject(AnalyticsService);

@@ -1,17 +1,23 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { TranslatePipe } from '@ngx-translate/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
+import { IdemUpdateBannerComponent } from '@idem/shared-offline/angular';
 
 import { ToastStack } from './shared/components/toast-stack/toast-stack';
 
 @Component({
   selector: 'sim-root',
-  imports: [RouterOutlet, ToastStack, TranslatePipe],
+  imports: [RouterOutlet, ToastStack, TranslatePipe, IdemUpdateBannerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <a class="sim-skip-link" href="#sim-main">{{ 'a11y.skipToContent' | translate }}</a>
     <router-outlet />
     <sim-toast-stack />
+    <idem-update-banner
+      [label]="t.instant('appUpdate.message')"
+      [actionLabel]="t.instant('appUpdate.reload')"
+      [dismissLabel]="t.instant('appUpdate.later')"
+    />
   `,
   styles: `
     .sim-skip-link {
@@ -34,4 +40,6 @@ import { ToastStack } from './shared/components/toast-stack/toast-stack';
     }
   `,
 })
-export class App {}
+export class App {
+  protected readonly t = inject(TranslateService);
+}

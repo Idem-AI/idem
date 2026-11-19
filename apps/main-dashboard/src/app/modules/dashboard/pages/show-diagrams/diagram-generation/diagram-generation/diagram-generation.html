@@ -51,7 +51,11 @@
         </header>
         @if (step.content && step.content !== 'step_started') {
           <div class="dg-sheet">
-            <markdown mermaid [data]="step.content"></markdown>
+            <!-- `ngx-markdown` lève une erreur si la variable globale `mermaid`
+                 n'est pas là : on attend que le script soit prêt. -->
+            @if (mermaidReady()) {
+              <markdown mermaid [data]="step.content"></markdown>
+            }
           </div>
         }
       </section>

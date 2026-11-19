@@ -1,7 +1,7 @@
 {
   "name": "ivision-web",
   "version": "1.0.0",
-  "description": "iVision — la conversation qui crée vos visuels et vos vidéos motion design, à votre marque (Angular 20).",
+  "description": "iVision \u2014 la conversation qui cr\u00e9e vos visuels et vos vid\u00e9os motion design, \u00e0 votre marque (Angular 20).",
   "private": true,
   "scripts": {
     "ng": "ng",
@@ -9,9 +9,10 @@
     "env:prod": "NODE_ENV=production node scripts/set-env.js",
     "prestart": "npm run env:dev",
     "start": "ng serve --port 4204",
-    "prebuild": "npm run env:prod",
+    "prebuild": "npm run env:prod && npm run sw:sync",
     "build": "ng build",
-    "typecheck": "npm run env:dev && tsc --noEmit -p tsconfig.app.json"
+    "typecheck": "npm run env:dev && tsc --noEmit -p tsconfig.app.json",
+    "sw:sync": "node ../../../packages/shared-offline/scripts/sync.mjs public"
   },
   "dependencies": {
     "@angular/common": "^20.0.0",

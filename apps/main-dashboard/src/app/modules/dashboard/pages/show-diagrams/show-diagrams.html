@@ -74,7 +74,14 @@
         </header>
         @if (section.data) {
           <div class="sd-sheet">
-            <markdown mermaid [data]="section.data"></markdown>
+            <!-- `ngx-markdown` lève une erreur si la variable globale `mermaid`
+                 n'est pas là : on attend que le script, chargé à l'ouverture de
+                 l'écran, soit prêt. -->
+            @if (mermaidReady()) {
+              <markdown mermaid [data]="section.data"></markdown>
+            } @else {
+              <idem-loader />
+            }
           </div>
         } @else {
           <p class="px-5 py-4 text-sm text-text-tertiary">{{ 'common.noContent' | translate }}</p>
