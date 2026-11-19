@@ -17,6 +17,8 @@ COPY ./packages/shared-trusted-by ./packages/shared-trusted-by
 COPY ./packages/shared-seo ./packages/shared-seo
 # Promotions (prix barrés, bandeau de campagne).
 COPY ./packages/shared-promotions ./packages/shared-promotions
+# Service worker partagé : recopié dans `public/` par le prebuild.
+COPY ./packages/shared-offline ./packages/shared-offline
 
 # Copier l'application landing
 COPY ./apps/landing ./apps/landing

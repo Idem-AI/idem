@@ -12,6 +12,10 @@ COPY ./packages/shared-tour ./packages/shared-tour
 COPY ./packages/shared-promotions ./packages/shared-promotions
 COPY ./packages/shared-trusted-by  ./packages/shared-trusted-by 
 COPY ./packages/shared-loader  ./packages/shared-loader 
+# Service worker partagé. Simulation le consomme AUSSI par le lien
+# `apps/simulation/src/app/shared/shared-offline` (Angular 22, voir
+# preserveSymlinks) : ce lien pointe ici, le dossier doit donc exister.
+COPY ./packages/shared-offline ./packages/shared-offline
 # 3. Copier l'application
 COPY ./apps/simulation ./apps/simulation
 
