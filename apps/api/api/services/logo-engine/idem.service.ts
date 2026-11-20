@@ -20,6 +20,7 @@ import { CreativeOrchestrator, runtimeCall } from '../creativity/orchestrator';
 import type { CreativityLevel } from '../../models/creativity.model';
 import { idemAnalyzeImage } from '../ivision/host';
 import { designLogos } from './agent/agent';
+import { generatorsOf } from './planner/originality';
 import type { AgentResult } from './agent/agent';
 import { editTask } from './agent/tasks';
 import { LOGO_IR_VERSION, parseLogoDocument } from './ir/logo.schema';
@@ -28,6 +29,7 @@ import { applyPatch } from './ir/patch';
 import { idemFontProvider } from './kernel/fontProviders';
 import { produceLogo } from './pipeline';
 import { improveLogo } from './improve/improve';
+import { wishWithoutAnalysis } from './improve/reading';
 import type { PlannedLogo } from './planner/planner';
 import type { CharterPalette, LogoKind, PlanBrief } from './planner/brief';
 import { inkPalette } from './planner/brief';
@@ -108,8 +110,8 @@ export interface EngineConceptsRequest extends EngineProjectInput {
   /** Une relance propose d'autres formes ; une reprise garde celles du projet. */
   fresh: boolean;
   onStage?: (stage: string, detail?: string) => void;
-  /** Voie « améliorer mon logo » : le SVG envoyé par l'utilisateur (contenu, pas l'URL). */
-  reference?: { svg: string };
+  /** Voie « améliorer mon logo » : le SVG envoyé par l'utilisateur (contenu, pas l'URL) et son souhait. */
+  reference?: { svg: string; wish?: string };
 }
 
 export interface EngineConcepts {
@@ -175,6 +177,51 @@ export async function recallIr(svg: string): Promise<unknown | null> {
   return cacheService.get(irKey(svg), { prefix: 'logoir' }).catch(() => null);
 }
 
+// ─── Mémoire d'originalité à l'échelle d'IDEM ───────────────────────────────
+
+/**
+ * Ce que le moteur retient de TOUS les projets pour rester original (`planner/originality.ts`) :
+ *   · `usage`  combien de fois chaque générateur a été proposé récemment (rareté) ;
+ *   · `crowd`  les empreintes des derniers logos proposés (un candidat trop proche est écarté).
+ * Une seule clé Redis, lue une fois par génération ; écrite à la fin, au mieux (une course entre
+ * deux générations perd au pire un incrément). Les compteurs décroissent pour suivre l'actualité.
+ */
+interface GlobalLogoMemory {
+  usage: Record<string, number>;
+  crowd: (LogoFingerprint & { projectId?: string })[];
+}
+
+const GLOBAL_MEMORY = { key: 'global-v1', prefix: 'logooriginality', ttl: 30 * 24 * 3600, crowd: 40, decay: 0.97 } as const;
+
+async function readGlobalMemory(): Promise<GlobalLogoMemory> {
+  const raw = (await cacheService.get<GlobalLogoMemory>(GLOBAL_MEMORY.key, { prefix: GLOBAL_MEMORY.prefix }).catch(() => null)) ?? null;
+  return { usage: raw?.usage && typeof raw.usage === 'object' ? raw.usage : {}, crowd: Array.isArray(raw?.crowd) ? raw!.crowd.filter((f) => Array.isArray(f?.grid) && f.grid.length === 256) : [] };
+}
+
+async function recordGlobalMemory(projectId: string, logos: LogoModel[]): Promise<void> {
+  try {
+    const memory = await readGlobalMemory();
+    const usage: Record<string, number> = {};
+    for (const [id, n] of Object.entries(memory.usage)) if (n * GLOBAL_MEMORY.decay >= 0.5) usage[id] = Math.round(n * GLOBAL_MEMORY.decay * 100) / 100;
+    for (const logo of logos) {
+      const parsed = parseLogoDocument(logo.ir);
+      if (parsed.ok && parsed.doc) for (const id of generatorsOf(parsed.doc.layers)) usage[id] = (usage[id] ?? 0) + 1;
+    }
+    const fresh = logos.map((l) => l.engine?.fingerprint).filter((f): f is NonNullable<typeof f> => !!f && Array.isArray(f.grid) && f.grid.length === 256).map((f) => ({ ...(f as LogoFingerprint), projectId }));
+    const crowd = [...fresh, ...memory.crowd.filter((f) => f.projectId !== projectId)].slice(0, GLOBAL_MEMORY.crowd);
+    await cacheService.set(GLOBAL_MEMORY.key, { usage, crowd }, { prefix: GLOBAL_MEMORY.prefix, ttl: GLOBAL_MEMORY.ttl });
+  } catch (error) {
+    logger.warn(`[LogoEngine] mémoire d'originalité non écrite : ${(error as Error).message}`);
+  }
+}
+
+/** Les clichés retenus pour un projet (nommés par le directeur) : une relance les bannit aussi, même sans modèle. */
+const clicheKey = (projectId: string) => `cliches:${projectId}`;
+async function readProjectCliches(projectId: string): Promise<string[] | undefined> {
+  const value = await cacheService.get<string[]>(clicheKey(projectId), { prefix: GLOBAL_MEMORY.prefix }).catch(() => null);
+  return Array.isArray(value) && value.length ? value.filter((v) => typeof v === 'string').slice(0, 12) : undefined;
+}
+
 /**
  * Les propositions de logo : le moteur (planificateur + agents selon le cran) sur la charte du
  * projet. Lève si le moteur ne produit rien d'exploitable : l'appelant reprend alors l'ancien
@@ -210,7 +257,7 @@ export async function engineLogoConcepts(req: EngineConceptsRequest): Promise<En
         call,
         vision: async (png, instruction) => idemAnalyzeImage(png.toString('base64'), 'image/png', instruction, { maxOutputTokens: 1800, temperature: 0 }),
         cache: { get: (k) => cacheService.get(k, { prefix: 'logoreading' }), set: (k, v) => cacheService.set(k, v, { prefix: 'logoreading', ttl: 24 * 3600 }).then(() => undefined) },
-        wish: req.preferences?.customDescription,
+        wish: req.reference.wish ?? wishWithoutAnalysis(req.preferences?.customDescription),
         seed: `${req.projectId}:improve${req.fresh ? `:${Date.now()}` : ''}`,
         onStage: (s) => req.onStage?.(s),
       });
@@ -227,13 +274,18 @@ export async function engineLogoConcepts(req: EngineConceptsRequest): Promise<En
     if (improved.length >= req.count) {
       const logos = improved.slice(0, req.count).map((l, i) => ({ ...l, id: `concept${String(req.existing.length + i + 1).padStart(2, '0')}` }));
       await Promise.all(logos.map((l) => rememberIr(l.svg, l.ir)));
+      void recordGlobalMemory(req.projectId, logos);
       return { logos, result: { logos: [], decisions: improvedDecisions, traces: [], tokens: { input: 0, output: 0 }, stats: { pool: 0, ms: 0, level: req.level } } };
     }
   }
 
+  const [globalMemory, projectCliches] = await Promise.all([readGlobalMemory(), readProjectCliches(req.projectId)]);
   const result = await designLogos(
     {
       brief,
+      usage: globalMemory.usage,
+      crowd: globalMemory.crowd.filter((f) => f.projectId !== req.projectId),
+      ...(projectCliches ? { cliches: projectCliches } : {}),
       palette,
       fonts,
       kind,
@@ -262,8 +314,10 @@ export async function engineLogoConcepts(req: EngineConceptsRequest): Promise<En
     .slice(0, req.count)
     .map((logo, i) => ({ ...logo, id: `concept${String(offset + i + 1).padStart(2, '0')}` }));
   if (!logos.length) throw new Error('logo_engine_empty');
-  logger.info(`[LogoEngine] ${logos.length} proposition(s) (${req.level}) en ${result.stats.ms} ms — ${result.tokens.input + result.tokens.output} tokens estimés — ${logos.map((l) => `${l.engine?.category}:${l.engine?.score}`).join(' ')}`);
+  logger.info(`[LogoEngine] ${logos.length} proposition(s) (${req.level}) en ${result.stats.ms} ms — ${result.tokens.input + result.tokens.output} tokens estimés — ${logos.map((l) => `${l.engine?.category}:${l.engine?.score}`).join(' ')} — clichés écartés : ${result.originality?.avoid.join(', ') || 'aucun'}`);
   await Promise.all(logos.map((l) => rememberIr(l.svg, l.ir)));
+  void recordGlobalMemory(req.projectId, logos);
+  if (result.originality?.cliches.length) void cacheService.set(clicheKey(req.projectId), result.originality.cliches, { prefix: GLOBAL_MEMORY.prefix, ttl: GLOBAL_MEMORY.ttl }).catch(() => undefined);
   return { logos, result: { ...result, decisions: [...improvedDecisions, ...result.decisions] } };
 }
 

@@ -302,7 +302,7 @@ export const uploadVideoPhotosController = async (req: CustomRequest, res: Respo
 
 /**
  * POST /project/communication/:projectId/videos/media (multipart, champ `files`)
- * Photos et clips vidéo (le moteur Motion Canvas ne lit ni 3D, ni Lottie, ni Rive).
+ * Photos et clips vidéo (le moteur ne lit ni 3D, ni Rive).
  */
 export const uploadVideoMediaController = async (req: CustomRequest, res: Response): Promise<void> => {
   const id = ids(req, res);

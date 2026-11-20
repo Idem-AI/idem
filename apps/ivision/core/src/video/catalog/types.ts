@@ -14,8 +14,8 @@ export type VideoNodeKind = 'layout' | 'theme' | 'animation' | 'transition' | 'g
 export type SceneRole = 'hook' | 'problem' | 'reveal' | 'feature' | 'benefits' | 'proof' | 'cta' | 'signature' | 'statement' | 'data';
 export type VideoStyle = 'energetic' | 'premium' | 'playful' | 'corporate';
 export type Slot = 'title' | 'body' | 'cta' | 'figure' | 'label' | 'attribution' | 'items' | 'media' | 'logo';
-export type AnimRole = 'title' | 'body' | 'cta' | 'figure' | 'label' | 'attribution' | 'items' | 'item' | 'media' | 'logo' | 'rule' | 'mark';
-export type AnimTarget = 'text' | 'block' | 'items' | 'figure' | 'logo' | 'cta' | 'media' | 'rule';
+export type AnimRole = 'title' | 'body' | 'cta' | 'figure' | 'label' | 'attribution' | 'items' | 'item' | 'media' | 'logo' | 'rule' | 'mark' | 'bg';
+export type AnimTarget = 'text' | 'block' | 'items' | 'figure' | 'logo' | 'cta' | 'media' | 'rule' | 'bg';
 export type FilmFormatId = 'story' | 'square' | 'portrait' | 'landscape';
 
 export interface NodeDoc {
@@ -182,10 +182,10 @@ export interface FilmCatalogInfo {
 export const FORMAT_IDS: FilmFormatId[] = ['story', 'square', 'portrait', 'landscape'];
 export const SCENE_ROLES: SceneRole[] = ['hook', 'problem', 'reveal', 'feature', 'benefits', 'proof', 'cta', 'signature', 'statement', 'data'];
 const SLOTS = new Set<string>(['title', 'body', 'cta', 'figure', 'label', 'attribution', 'items', 'media', 'logo']);
-export const ANIM_ROLES = new Set<string>(['title', 'body', 'cta', 'figure', 'label', 'attribution', 'items', 'item', 'media', 'logo', 'rule', 'mark']);
-const TARGETS = new Set<string>(['text', 'block', 'items', 'figure', 'logo', 'cta', 'media', 'rule']);
+export const ANIM_ROLES = new Set<string>(['title', 'body', 'cta', 'figure', 'label', 'attribution', 'items', 'item', 'media', 'logo', 'rule', 'mark', 'bg']);
+const TARGETS = new Set<string>(['text', 'block', 'items', 'figure', 'logo', 'cta', 'media', 'rule', 'bg']);
 /** La cible que porte chaque rôle : une animation ne s'applique qu'aux rôles de ses cibles. */
-export const ROLE_TARGET: Record<AnimRole, AnimTarget> = { title: 'text', body: 'text', label: 'text', attribution: 'text', items: 'items', item: 'items', figure: 'figure', media: 'media', logo: 'logo', rule: 'rule', cta: 'cta', mark: 'block' };
+export const ROLE_TARGET: Record<AnimRole, AnimTarget> = { title: 'text', body: 'text', label: 'text', attribution: 'text', items: 'items', item: 'items', figure: 'figure', media: 'media', logo: 'logo', rule: 'rule', cta: 'cta', mark: 'block', bg: 'bg' };
 /** Courbes permises : des décélérations franches. Ni rebond, ni élastique, ni « back ». */
 export const EASE = /^(none|(power[1-4]|sine|expo|circ)\.(in|out|inOut))$/;
 export const TOKEN = /^-?\$(dIn|dOut|stagger|dist|easeOut|easeIn|easeMove|half|d|hold)(\*\d+(\.\d+)?)?$/;

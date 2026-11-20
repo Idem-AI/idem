@@ -43,7 +43,7 @@ export function recordsFromBrand(brand: Pick<VideoBrandContext, 'visuals' | 'vid
   for (const video of brand.videos || []) {
     for (const m of video.media || []) {
       if ((m.kind !== 'image' && m.kind !== 'video') || !m.name) continue;
-      const source = m.origin === 'upload' ? 'user' : m.origin === 'pexels' ? 'stock' : m.origin === 'generated' ? 'generated' : null;
+      const source = m.origin === 'upload' ? 'user' : m.origin === 'pexels' || m.origin === 'pixabay' || m.origin === 'unsplash' ? 'stock' : m.origin === 'generated' ? 'generated' : null;
       if (!source) continue;
       out.push({ id: `video:${m.id}`.slice(0, 120), url: m.url, kind: m.kind, role: m.kind === 'video' ? 'clip' : 'photo', source, subject: clip(m.name, 240), ...(m.width ? { width: m.width } : {}), ...(m.height ? { height: m.height } : {}), origin: 'video', provenance: { provider: m.origin, ...(m.credit ? { attribution: clip(m.credit, 160) } : {}), ...(m.sourceUrl ? { sourceUrl: m.sourceUrl } : {}) } });
     }

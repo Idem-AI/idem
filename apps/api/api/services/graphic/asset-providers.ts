@@ -6,7 +6,8 @@
  *  · `generated` — le service de sourcing des visuels : image sans texte (consigne positive, relue par la
  *    vision, second essai si elle en voit), stockée dans le dossier du projet. Le moteur ne l'appelle
  *    qu'aux crans High et au-delà, dans un plafond par document ;
- *  · `stock`     — la banque Pexels du même service : le REPLI d'une génération qui échoue (le moteur ordonne).
+ *  · `stock`     — les bibliothèques libres de droit du même service (Pexels, Pixabay, Unsplash — `media/stock`) :
+ *    le REPLI d'une génération qui échoue (le moteur ordonne).
  *
  * Les sources `user`, `project` et `capture` sont servies par le REGISTRE des ressources du projet
  * (`asset-registry.ts`, commun aux documents et aux vidéos) : imports, captures du site, médias des visuels et
@@ -16,6 +17,7 @@
 import type { AssetContext, AssetProvider, AssetProviders, AssetRequirement } from '@idem/graphic-engine';
 import logger from '../../config/logger';
 import { imageSourcingService, ImageBrief } from '../Communication/imageSourcing.service';
+import { licenseLabelOf } from '../../../../ivision/core/src/media/stock';
 
 const orientationOf = (ratio: number): ImageBrief['orientation'] => (ratio > 1.15 ? 'landscape' : ratio < 0.87 ? 'portrait' : 'square');
 
@@ -74,7 +76,7 @@ const stock: AssetProvider = {
     return {
       url: image.url,
       alt: req.subject.slice(0, 200),
-      provenance: { provider: image.attribution.provider, license: 'Pexels License', ...(image.attribution.author ? { attribution: `Photo : ${image.attribution.author}`.slice(0, 160) } : {}), ...(image.attribution.sourceUrl ? { sourceUrl: image.attribution.sourceUrl } : {}) },
+      provenance: { provider: image.attribution.provider, license: licenseLabelOf(image.attribution.provider), ...(image.attribution.author ? { attribution: `Photo : ${image.attribution.author}`.slice(0, 160) } : {}), ...(image.attribution.sourceUrl ? { sourceUrl: image.attribution.sourceUrl } : {}) },
     };
   },
 };

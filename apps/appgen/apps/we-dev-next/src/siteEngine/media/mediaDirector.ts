@@ -7,15 +7,16 @@
  *   illustration-3d  un rendu 3D ;
  *   video            un clip court ;
  *
- * Toujours PEXELS D'ABORD : un visuel n'est généré (image, vidéo) que si la
- * banque n'a rien qui corresponde (`produceMedia`).
+ * Toujours LA BANQUE D'ABORD : un visuel n'est généré (image, vidéo) que si
+ * aucune bibliothèque libre de droit (Pexels, Pixabay, Unsplash — `media/stock`) n'a rien
+ * qui corresponde (`produceMedia`).
  *   pattern          le motif de la charte ;
  *   none             la section se lit mieux sans visuel.
  *
  * Le code borne ses choix : une vidéo au plus et seulement là où elle se
  * regarde (ouverture, vitrine), une galerie toujours en photos, un emplacement
  * obligatoire jamais vide. Le plafond des générations payantes se compte à la
- * production, quand Pexels n'a rien trouvé.
+ * production, quand aucune bibliothèque n'a rien trouvé.
  */
 
 import { ChatLogger } from '../../utils/logger.js';
@@ -62,9 +63,9 @@ export interface MediaSlot {
 export interface AssetDecision {
   slot: string;
   kind: AssetKind;
-  /** Ce que montre le média, en anglais (les modèles d'image et Pexels lisent l'anglais). */
+  /** Ce que montre le média, en anglais (les modèles d'image et les bibliothèques lisent l'anglais). */
   subject: string;
-  /** Requête Pexels, 2 à 5 mots. */
+  /** Requête de banque d'images, 2 à 5 mots. */
   query: string;
   /** Langue de la requête : l'anglais de l'agent, ou la langue du site pour les règles de repli. */
   queryLanguage: 'en' | 'fr';
@@ -80,8 +81,8 @@ const KINDS: AssetKind[] = ['photo', 'illustration', 'illustration-3d', 'video',
 function ruleDecision(slot: MediaSlot, family: MediaStyle['family'], facts: SiteFacts, language: string): AssetDecision {
   const place = [facts.city, facts.country].filter(Boolean).join(', ');
   const subject = `${facts.description.slice(0, 160)}${place ? ` — in ${place}` : ''}`;
-  // Sans agent, pas de traduction : la requête part dans la langue du site (Pexels
-  // cherche aussi en français), à partir des mots qui disent le métier.
+  // Sans agent, pas de traduction : la requête part dans la langue du site (les
+  // bibliothèques cherchent aussi en français), à partir des mots qui disent le métier.
   const query = facts.description
     .split(/[\s,.:;]+/)
     .filter((word) => word.length > 3)

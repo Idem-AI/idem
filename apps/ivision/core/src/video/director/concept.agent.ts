@@ -32,7 +32,7 @@ export function buildConceptPrompt(brief: FilmBrief, chosen?: string): { system:
   const system = [
     'You are the creative director of short motion-design films for social media, made for African businesses and brands.',
     'Invent ONE original film for this request. You are free: composition, shapes, metaphors, typography, camera, rhythm, transitions — nothing is imposed, no template exists.',
-    'The film will be coded in Motion Canvas (2D vector animation: shapes, lines, text, photos and video clips, masks, gradients, filters). Design for that medium: precise, physical, rhythmic motion design — not a slideshow.',
+    'The film will be assembled from a catalogue of HTML/Tailwind scene layouts animated with GSAP (text reveals, media reveals, brand-colour transitions, continuous drift). Design for that medium: precise, rhythmic motion design — not a slideshow.',
     'Serve the message first: the viewer must understand what is offered and what to do. Avoid clichés (floating icons, generic gradients, "Welcome to…" intros).',
     'Make it a FILM, not slides: scenes flow into each other — the same subject stays while the text changes, the camera keeps moving through a cut, a shape or colour carries over, an image answers the previous line. Never a sequence of text cards that appear and disappear.',
     'SHOW the business: most scenes are built around a concrete subject (its product, place, customers, team, craft, the problem it solves) as a photo, a filmed shot or an illustration — available media first, otherwise a new photo or clip. Pure typography only for a short statement or the call to action.',

@@ -22,6 +22,9 @@ import { describeGenerator, getGenerator, listGenerators } from '../render/gener
 import type { GeneratorFamily, GeneratorSpec } from '../render/generators';
 import { affinity } from '../planner/brief';
 import type { PlanBrief, Traits } from '../planner/brief';
+import { catalogIdsIn, originalCatalog } from '../planner/originality';
+import type { OriginalityContext } from '../planner/originality';
+import { practiceBrief } from '../validate/practices';
 import type { PlannedLogo } from '../planner/planner';
 
 // ─── Menus ──────────────────────────────────────────────────────────────────
@@ -32,6 +35,22 @@ export interface Direction {
   generator?: string;
   variant?: string;
   idea: string;
+  /** D'où vient l'idée : le nom, une valeur, l'histoire, le lieu, la culture, le public (jamais le produit). */
+  source?: IdeaSource;
+}
+
+export const IDEA_SOURCES = ['name', 'value', 'story', 'place', 'culture', 'audience'] as const;
+export type IdeaSource = (typeof IDEA_SOURCES)[number];
+
+/** Les clichés nommés par le directeur : identifiants du catalogue (bannis par le code) et images libres (consignes). */
+export interface Cliches {
+  ids: string[];
+  words: string[];
+}
+
+export interface DirectionsVerdict {
+  directions: Direction[];
+  cliches: Cliches;
 }
 
 const SYMBOL_TYPES: ConceptType[] = ['combination', 'pictorial', 'abstract', 'mascot', 'emblem', 'negative-space', 'minimal', 'dynamic'];
@@ -73,21 +92,39 @@ const TYPE_HINT: Record<ConceptType, string> = {
 
 export interface DirectionMenu {
   types: ConceptType[];
-  /** Générateurs proposés, par type. */
+  /** Familles de générateurs admises, par type. */
+  families: Partial<Record<ConceptType, GeneratorFamily[]>>;
+  /** Le catalogue par famille, du plus original au plus littéral pour cette marque, clichés estimés retirés. */
+  catalog: Partial<Record<GeneratorFamily, string[]>>;
+  /** Générateurs proposés, par type (dérivé du catalogue : sert au contrôle de la réponse). */
   generators: Partial<Record<ConceptType, string[]>>;
   /** Variantes typographiques proposées (wordmark : effets ; lettermark : conteneurs). */
   variants: Partial<Record<ConceptType, string[]>>;
 }
 
-export function directionMenu(kind: 'icon' | 'name' | 'initial', weights: Map<string, number>): DirectionMenu {
+/**
+ * Le menu du directeur. Avec un contexte d'originalité, le catalogue ENTIER de chaque famille est
+ * proposé, trié du plus original au plus littéral et privé des clichés estimés par le code (le
+ * secteur ne choisit plus le symbole). Sans contexte (ancien appel), la liste courte par affinité.
+ */
+export function directionMenu(kind: 'icon' | 'name' | 'initial', weights: Map<string, number>, originality?: OriginalityContext): DirectionMenu {
   const types: ConceptType[] = kind === 'name' ? ['wordmark'] : kind === 'initial' ? ['lettermark', 'letterform', 'negative-space', 'emblem'] : SYMBOL_TYPES;
+  const families: DirectionMenu['families'] = {};
+  const catalog: DirectionMenu['catalog'] = {};
   const generators: DirectionMenu['generators'] = {};
   for (const t of types) {
     const f = familiesFor(t);
-    if (f.length) generators[t] = generatorShortlist(weights, f, t === 'mascot' ? 6 : 8).map((g) => g.id);
+    if (!f.length) continue;
+    families[t] = f;
+    for (const family of f) {
+      if (!catalog[family]) catalog[family] = originality ? originalCatalog(originality, family).map((g) => g.id) : generatorShortlist(weights, [family], family === 'mascot' ? 6 : 8).map((g) => g.id);
+    }
+    generators[t] = f.flatMap((family) => catalog[family] ?? []);
   }
   return {
     types,
+    families,
+    catalog,
     generators,
     variants: {
       wordmark: ['plain', 'dot', 'underline', 'bar', 'slice', 'ligature', 'dotReplace', 'swapRound', 'accentChar', 'cutCorner', 'italic'],
@@ -103,7 +140,10 @@ function parseDirection(line: string, menu: DirectionMenu): Direction | null {
   const type = pickOption(parts[0].toLowerCase().replace(/\s+/g, '-'), CONCEPT_TYPES as readonly string[]) as ConceptType | undefined;
   if (!type || !menu.types.includes(type)) return null;
   const second = parts[1].toLowerCase().replace(/[^a-z-]/g, '');
-  const direction: Direction = { type, idea: (parts[2] ?? parts[1]).replace(/\*+/g, '').slice(0, 200) };
+  // « catégorie | générateur | source | idée » (nouveau) ou « catégorie | générateur | idée » (ancien).
+  const source = IDEA_SOURCES.find((x) => x === (parts[2] ?? '').toLowerCase().replace(/[^a-z]/g, ''));
+  const idea = (source ? parts.slice(3).join(' | ') : parts.slice(2).join(' | ')) || parts[1];
+  const direction: Direction = { type, idea: idea.replace(/\*+/g, '').slice(0, 200), ...(source ? { source } : {}) };
   const gens = menu.generators[type];
   if (gens) {
     // Un générateur hors menu (inventé) est écarté : la direction garde sa catégorie, le planificateur choisit.
@@ -118,27 +158,67 @@ function parseDirection(line: string, menu: DirectionMenu): Direction | null {
   return direction;
 }
 
-/** High+ : N directions distinctes, une ligne chacune. */
-export function directionsTask(sheet: string, menu: DirectionMenu, count: number, wish: string | undefined, fallback: () => Direction[] | null): AgentTask<Direction[] | null> {
+/** Lit la ligne `cliches:` du directeur : identifiants du catalogue + images libres (courtes). */
+export function parseCliches(raw: string): Cliches {
+  const line = (raw || '').match(/^\s*[*-]?\s*clich[eé]s?\s*[:=]\s*(.+)$/im)?.[1] ?? '';
+  const ids = catalogIdsIn(line);
+  const idSet = new Set(ids.map((i) => i.toLowerCase()));
+  const words = line
+    .split(/[,;/]|\bor\b|\bet\b|\band\b/i)
+    .map((w) => w.replace(/[*"'`()[\]]/g, '').trim())
+    .filter((w) => w.length > 2 && w.length <= 40 && !idSet.has(w.toLowerCase()))
+    .slice(0, 6);
+  return { ids, words };
+}
+
+/**
+ * High+ : N directions distinctes, une ligne chacune, PRÉCÉDÉES des clichés de ce métier.
+ *
+ * Le directeur nomme lui-même les images que tout designer dessinerait d'abord pour cette marque
+ * (`cliches:`) — c'est l'agent qui comprend le métier, pas une liste de mots — puis propose des
+ * directions qui n'en utilisent aucune. Le code refuse une direction qui reprend un cliché (nommé
+ * par le directeur ou estimé par le code : `banned`) ; chaque idée déclare sa source (nom, valeur,
+ * histoire, lieu, culture, public) — jamais le produit vendu.
+ */
+export function directionsTask(
+  sheet: string,
+  menu: DirectionMenu,
+  count: number,
+  wish: string | undefined,
+  fallback: () => DirectionsVerdict | null,
+  banned: Set<string> = new Set()
+): AgentTask<DirectionsVerdict | null> {
+  const catalogLines = Object.entries(menu.catalog).map(([family, ids]) => ` ${family}: ${(ids ?? []).join(', ')}`);
   const lines = menu.types.map((t) => {
-    const gens = menu.generators[t];
+    const fams = menu.families[t];
     const vars = menu.variants[t];
-    return `- ${t} (${TYPE_HINT[t]})${gens ? ` generators: ${gens.join(', ')}` : ''}${vars ? ` variants: ${vars.join(', ')}` : ''}`;
+    return `- ${t} (${TYPE_HINT[t]})${fams ? ` uses: ${fams.join(' + ')}` : ''}${vars ? ` variants: ${vars.join(', ')}` : ''}`;
   });
+  const symbolic = menu.types.some((t) => menu.families[t]);
   return {
     role: 'logoDirector',
     minLevel: 'high',
     prompt: () => ({
       system: [
         `You are the creative director of a brand identity. Propose ${count} clearly DIFFERENT logo directions, true to the brand charter. The directions must differ in category AND in the form they take (not three variations of one idea).`,
-        'Pick ONLY from this menu (a generator is a ready-made geometric construction; a variant is a typographic treatment):',
+        'ORIGINALITY FIRST: a cliché logo shows what the business SELLS (a cup for a café, a roof for real estate, a cross for a clinic, a fork and spoon for a restaurant). An original logo shows what the brand STANDS FOR: its name, a value, its story, its place, its culture, its audience. First name the clichés of THIS business, then never use them.',
+        ...(symbolic ? ['GENERATORS (ready-made geometric constructions, listed from most original to most literal for this brand):', ...catalogLines] : []),
+        'CATEGORIES (pick ONLY from this menu; a variant is a typographic treatment):',
         ...lines,
-        `Output ONLY ${count} lines, in this exact form: N: category | generator-or-variant | the idea in one short sentence (a metaphor or form tied to the brand, no pun that needs explaining)`,
+        'Output ONLY these lines:',
+        'cliches: the 3–6 images any designer would draw first for this business (generator ids from the list and/or short words)',
+        `then ${count} lines: N: category | generator-or-variant | source (${IDEA_SOURCES.join('|')}) | the idea in one short sentence (a metaphor tied to that source, no pun that needs explaining)`,
       ].join('\n'),
       user: [sheet, wish ? `CLIENT WISH: ${wish.slice(0, 300)}` : ''].filter(Boolean).join('\n'),
     }),
     parse: (raw) => {
-      const found = [...(raw || '').matchAll(/^\s*[*-]?\s*(?:direction\s*)?\d\s*[.):\-–]\s*(.+)$/gim)].map((m) => parseDirection(m[1], menu)).filter((d): d is Direction => !!d);
+      const named = parseCliches(raw);
+      const forbidden = new Set([...banned, ...named.ids]);
+      const found = [...(raw || '').matchAll(/^\s*[*-]?\s*(?:direction\s*)?\d\s*[.):\-–]\s*(.+)$/gim)]
+        .map((m) => parseDirection(m[1], menu))
+        .filter((d): d is Direction => !!d)
+        // Une direction bâtie sur un cliché est refusée, même si le directeur ne l'a pas vu.
+        .filter((d) => !d.generator || !forbidden.has(d.generator));
       if (found.length < count) return undefined;
       // Deux directions de même catégorie ET même générateur ne sont pas deux directions.
       const seen = new Set<string>();
@@ -148,7 +228,7 @@ export function directionsTask(sheet: string, menu: DirectionMenu, count: number
         seen.add(key);
         return true;
       });
-      return distinct.length >= count ? distinct.slice(0, count) : undefined;
+      return distinct.length >= count ? { directions: distinct.slice(0, count), cliches: { ids: [...new Set([...banned, ...named.ids])], words: named.words } } : undefined;
     },
     fallback,
   };
@@ -211,7 +291,12 @@ export interface AuthorContext {
   direction: Direction;
   withName: boolean;
   allowFreePaths: boolean;
+  /** Images à ne jamais dessiner (clichés du métier, nommés par le directeur). */
+  avoid?: string[];
 }
+
+/** La règle d'originalité, identique pour tous les auteurs (partie fixe du prompt). */
+export const ORIGINALITY_RULE = 'ORIGINALITY: show what the brand stands for (its name, a value, its story, its place), never the literal product of its sector. Never draw anything listed in AVOID, not even with a custom path.';
 
 /** Les chaînes de texte qu'un logo a le droit de porter. */
 export function allowedTexts(brief: PlanBrief): Set<string> {
@@ -275,17 +360,28 @@ export function authorTask(ctx: AuthorContext, palette: LogoPalette, seed: numbe
     minLevel: 'ultra',
     // Un JSON de plusieurs centaines de tokens : le profil « agents » plafonne la sortie à 400 et le tronquerait.
     profile: 'coder',
+    // Partie FIXE d'abord (rôle, mémento, règles) : le préfixe est identique d'un appel à l'autre, le
+    // cache de prompt du fournisseur le relit à prix réduit ; la direction, la marque et les règles du
+    // type vont dans le message utilisateur.
     prompt: () => ({
       system: [
-        `You design a ${ctx.direction.type} logo (${TYPE_HINT[ctx.direction.type]}) as a Logo IR. The engine builds exact vector geometry from it.`,
+        'You design a logo as a Logo IR. The engine builds exact vector geometry from it.',
         IR_CHEATSHEET,
-        generatorSignature(ctx.direction.generator),
         ctx.allowFreePaths ? 'You MAY add one custom {"kind":"shape","geometry":{"type":"path","d":"M… Z"}} (absolute commands, box 0–100) when no generator fits.' : 'Do NOT use geometry type "path": only generators and basic shapes.',
+        ORIGINALITY_RULE,
+      ].join('\n'),
+      user: [
+        `TYPE: ${ctx.direction.type} logo (${TYPE_HINT[ctx.direction.type]})`,
+        practiceBrief(ctx.direction.type),
+        generatorSignature(ctx.direction.generator),
         ctx.withName ? 'The brand name is added next to the symbol: include a text layer role "wordmark" with the brand name.' : 'Symbol only: no wordmark layer.',
+        ctx.sheet,
+        `DIRECTION: ${ctx.direction.type}${ctx.direction.generator ? ` / ${ctx.direction.generator}` : ''}${ctx.direction.variant ? ` / ${ctx.direction.variant}` : ''} — ${ctx.direction.idea}${ctx.direction.source ? ` (idea drawn from the brand's ${ctx.direction.source})` : ''}`,
+        ctx.avoid?.length ? `AVOID (clichés of this business): ${ctx.avoid.join(', ')}` : '',
+        `BRAND NAME: ${ctx.brief.brandName}${ctx.brief.tagline ? ` · TAGLINE: ${ctx.brief.tagline}` : ''}`,
       ]
         .filter(Boolean)
         .join('\n'),
-      user: [ctx.sheet, `DIRECTION: ${ctx.direction.type}${ctx.direction.generator ? ` / ${ctx.direction.generator}` : ''}${ctx.direction.variant ? ` / ${ctx.direction.variant}` : ''} — ${ctx.direction.idea}`, `BRAND NAME: ${ctx.brief.brandName}${ctx.brief.tagline ? ` · TAGLINE: ${ctx.brief.tagline}` : ''}`].join('\n'),
     }),
     parse: (raw) => {
       const json = parseLlmJson<Record<string, unknown>>(raw);

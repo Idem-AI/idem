@@ -6,9 +6,15 @@
  * un RÔLE (« title », « medium », « enter ») ; le code en tient les valeurs.
  */
 import type { SafeFormat } from './safezones';
-import type { DurToken, EaseToken as DslEaseToken, StaggerToken, TypeLevel } from '../dsl/types';
-export { DUR_TOKENS, STAGGER_TOKENS, TYPE_LEVELS } from '../dsl/types';
-export type { DurToken, StaggerToken, TypeLevel };
+
+/** Le vocabulaire des jetons de durée, courbe et décalage (jadis partagé avec le langage de mouvement). */
+export type TypeLevel = 'display' | 'title' | 'subtitle' | 'body' | 'caption' | 'label';
+export type DurToken = 'instant' | 'quick' | 'short' | 'medium' | 'long' | 'xlong';
+type DslEaseToken = 'enter' | 'exit' | 'standard' | 'move' | 'arrive' | 'cut-in' | 'cut-out' | 'spring';
+export type StaggerToken = 'letters' | 'words' | 'items' | 'cards';
+export const TYPE_LEVELS: TypeLevel[] = ['display', 'title', 'subtitle', 'body', 'caption', 'label'];
+export const DUR_TOKENS: DurToken[] = ['instant', 'quick', 'short', 'medium', 'long', 'xlong'];
+export const STAGGER_TOKENS: StaggerToken[] = ['letters', 'words', 'items', 'cards'];
 
 /** Les directions visuelles nommées (le directeur en choisit une ; l'historique empêche de répéter la précédente). */
 export type DirectionId = 'editorial' | 'tech' | 'minimal' | 'organic' | 'playful' | 'bold';

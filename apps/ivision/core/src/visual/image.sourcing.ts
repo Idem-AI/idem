@@ -16,6 +16,7 @@ import axios from 'axios';
 import logger from '../runtime/logger';
 import { NATURAL_COLOUR_CLAUSE } from '../../../../../packages/design-tools/src';
 import { coreHost, requirePort } from '../runtime/host';
+import { searchStockPhotos } from '../media/stock';
 import {
   FlyerImageAnalysis,
   FlyerImageAttribution,
@@ -59,8 +60,6 @@ export interface ImageSourcingPreferences {
 // (`visual-background`, `visual-analysis`). Dans IDEM : `AI_CONFIG.communication.imageSourcing`.
 
 
-const PEXELS_ENDPOINT = 'https://api.pexels.com/v1/search';
-
 /**
  * Une image GÉNÉRÉE pour un visuel ne porte jamais de texte : le texte du visuel est posé par le
  * compositeur (ajusté au millimètre, contrôlé) — un mot écrit par le modèle d'image est illisible,
@@ -99,10 +98,10 @@ export class ImageSourcingService {
     opts: { userId: string; projectId: string; tag: string } & ImageSourcingPreferences
   ): Promise<SourcedImage> {
     logger.info(`[ImageSourcing] Sourcing image`, { tag: opts.tag, searchQuery: brief.searchQuery });
-    // ── Path A: stock image ──────────────────────────────────────────────
-    if ((opts.preferStock || !brief.preferGenerated) && process.env.PEXELS_API_KEY) {
+    // ── Path A: stock image (plusieurs bibliothèques, selon le rôle) ──────
+    if (opts.preferStock || !brief.preferGenerated) {
       try {
-        const stockHit = await this.searchPexels(brief);
+        const stockHit = await this.searchStock(brief);
         if (stockHit) {
           // Analyze using the smaller "medium" URL — no large2x needed here.
           const analysis = await this.analyzeImageFromUrl(
@@ -110,7 +109,7 @@ export class ImageSourcingService {
             brief.searchQuery
           ).catch(() => this.fallbackAnalysis());
 
-          logger.info(`[ImageSourcing] Stock image found and analyzed`, { tag: opts.tag, url: stockHit.url });
+          logger.info(`[ImageSourcing] Stock image found and analyzed`, { tag: opts.tag, provider: stockHit.attribution.provider, url: stockHit.url });
           return {
             url: stockHit.url,           // full-res for the flyer
             source: 'stock',
@@ -119,7 +118,7 @@ export class ImageSourcingService {
           };
         }
       } catch (err: any) {
-        logger.warn('Pexels search failed, falling back to generation', { error: err.message });
+        logger.warn('Stock search failed, falling back to generation', { error: err.message });
       }
     }
 
@@ -129,12 +128,12 @@ export class ImageSourcingService {
 
   /**
    * Une photo de BANQUE seulement — sans génération en repli : le planificateur de médias du moteur
-   * graphique ordonne lui-même ses sources. `null` sans clé, sans résultat ou en cas d'erreur.
+   * graphique ordonne lui-même ses sources. `null` sans résultat pertinent dans aucune bibliothèque,
+   * ou en cas d'erreur.
    */
   async stockImage(brief: ImageBrief): Promise<Omit<SourcedImage, 'analysis'> | null> {
-    if (!process.env.PEXELS_API_KEY) return null;
-    const hit = await this.searchPexels(brief).catch((err: any) => {
-      logger.warn('Pexels search failed', { error: err?.message });
+    const hit = await this.searchStock(brief).catch((err: any) => {
+      logger.warn('Stock search failed', { error: err?.message });
       return null;
     });
     return hit ? { url: hit.url, source: 'stock', attribution: hit.attribution } : null;
@@ -149,43 +148,34 @@ export class ImageSourcingService {
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-  // 1. PEXELS STOCK SEARCH
+  // 1. STOCK SEARCH — plusieurs bibliothèques libres de droit (`media/stock`),
   //    Returns both a full-res URL (flyer) and a medium URL (analysis).
   // ─────────────────────────────────────────────────────────────────────────
 
-  private async searchPexels(brief: ImageBrief): Promise<{
+  private async searchStock(brief: ImageBrief): Promise<{
     url: string;
     mediumUrl: string;
     attribution: FlyerImageAttribution;
   } | null> {
-    const [best] = await this.pexelsPhotos(brief.searchQuery, brief.orientation, 1);
-    if (best) logger.info(`[ImageSourcing] Pexels hit`, { author: best.attribution.author, url: best.url });
+    const [best] = await this.stockPhotos(brief.searchQuery, brief.orientation, 1);
+    if (best) logger.info(`[ImageSourcing] Stock hit`, { provider: best.attribution.provider, author: best.attribution.author, url: best.url });
     return best ?? null;
   }
 
   /**
-   * Plusieurs photos de la banque pour une recherche (les premières de Pexels, dans leur ordre). Le repli des
-   * visuels quand la génération échoue : l'appelant en classe plusieurs par pertinence au lieu de juger la seule
-   * première — c'est elle qui était rejetée (« sujet sans rapport ») et laissait le visuel sans image.
+   * Plusieurs photos de banque pour une recherche (le routeur choisit la bibliothèque, dans leur
+   * ordre). Le repli des visuels quand la génération échoue : l'appelant en classe plusieurs par
+   * pertinence au lieu de juger la seule première — c'est elle qui était rejetée (« sujet sans
+   * rapport ») et laissait le visuel sans image.
    */
-  async pexelsPhotos(query: string, orientation: ImageBrief['orientation'] | undefined, count: number): Promise<Array<{ url: string; mediumUrl: string; attribution: FlyerImageAttribution }>> {
-    const apiKey = process.env.PEXELS_API_KEY;
-    if (!apiKey || !query.trim()) return [];
-    const response = await axios.get(PEXELS_ENDPOINT, {
-      headers: { Authorization: apiKey },
-      params: { query: query.trim().slice(0, 80), per_page: Math.max(1, Math.min(15, count)), orientation: orientation === 'portrait' ? 'portrait' : orientation === 'landscape' ? 'landscape' : 'square' },
-      timeout: 8000,
-    });
-    const photos: any[] = response.data?.photos || [];
-    if (!photos.length) logger.info(`[ImageSourcing] No stock photos found for query`, { query });
-    return photos
-      .map((p) => {
-        const url: string = p.src?.large2x || p.src?.large || p.src?.original;
-        // "medium" is ~1200px wide — plenty for color/composition analysis, ~85% smaller payload.
-        return url ? { url, mediumUrl: p.src?.medium || url, attribution: { provider: 'pexels' as const, author: p.photographer, sourceUrl: p.url } } : null;
-      })
-      .filter((p): p is NonNullable<typeof p> => !!p)
-      .slice(0, count);
+  async stockPhotos(query: string, orientation: ImageBrief['orientation'] | undefined, count: number): Promise<Array<{ url: string; mediumUrl: string; attribution: FlyerImageAttribution }>> {
+    const hits = await searchStockPhotos(query, 'photo', { orientation, count });
+    if (!hits.length) logger.info(`[ImageSourcing] No stock photos found for query`, { query });
+    return hits.map((hit) => ({
+      url: hit.url,
+      mediumUrl: hit.mediumUrl,
+      attribution: { provider: hit.provider, author: hit.author, sourceUrl: hit.sourceUrl },
+    }));
   }
 
   // ─────────────────────────────────────────────────────────────────────────

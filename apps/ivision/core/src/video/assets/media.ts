@@ -1,11 +1,12 @@
 /**
- * MÉDIAS DES VIDÉOS — importés, générés, ou trouvés sur Pexels.
+ * MÉDIAS DES VIDÉOS — importés, générés, ou trouvés sur une bibliothèque libre de droit.
  *
  * Ordre de priorité, pour chaque besoin de la vidéo (cf. `assets/sourcing.ts`) :
  *   1. ce que l'utilisateur a importé (photos, clips, modèles 3D, Lottie) ;
  *   2. génération par les modèles de l'hôte (OpenRouter chez IDEM) : image (FLUX.2),
  *      clip (Seedance, image → vidéo) — trois essais par média ;
- *   3. Pexels — photos ET vidéos (`PEXELS_API_KEY`), après trois échecs de génération ;
+ *   3. les bibliothèques libres de droit — photos ET vidéos (Pexels, Pixabay, Unsplash — `media/stock`,
+ *      qui choisit et ordonne), après trois échecs de génération ;
  *   4. les photos déjà utilisées dans ses visuels (dernier recours, images seulement).
  *
  * Tout clip, d'où qu'il vienne, est réencodé en WebM VP9 (720p, 15 s max, sans
@@ -22,6 +23,7 @@ import sharp from 'sharp';
 import logger from '../../runtime/logger';
 import { VideoMediaAsset, VideoMediaKind } from '../contracts/model';
 import { requirePort, VideoClipRequest } from '../../runtime/host';
+import { searchStockPhotos, searchStockVideos } from '../../media/stock';
 
 const FFMPEG = process.env.FFMPEG_PATH || 'ffmpeg';
 const FFPROBE = process.env.FFPROBE_PATH || 'ffprobe';
@@ -241,32 +243,23 @@ export async function processUpload(
   };
 }
 
-// ─── Pexels ─────────────────────────────────────────────────────────────────
+// ─── Bibliothèques libres de droit (Pexels, Pixabay, Unsplash — `media/stock` choisit et ordonne) ───────
+
+const labelOf = (provider: string): string => (provider === 'pixabay' ? 'Pixabay' : provider === 'unsplash' ? 'Unsplash' : 'Pexels');
 
 export async function searchPexelsPhotos(query: string, orientation: Orientation, count: number, locale = 'fr-FR'): Promise<VideoMediaAsset[]> {
-  if (!process.env.PEXELS_API_KEY || !query.trim()) return [];
-  const res = await axios.get('https://api.pexels.com/v1/search', {
-    headers: { Authorization: process.env.PEXELS_API_KEY },
-    params: { query, per_page: Math.max(count, 3), orientation, locale },
-    timeout: 8000,
-  });
-  return (res.data?.photos || []).slice(0, count).map((p: any) => ({
-    id: `pexels-photo-${p.id}`,
+  if (!query.trim()) return [];
+  const hits = await searchStockPhotos(query, 'photo', { orientation, count, locale });
+  return hits.map((hit, index) => ({
+    id: `${hit.provider}-photo-${index}-${Date.now()}`,
     kind: 'image' as const,
-    url: p.src?.large2x || p.src?.large,
-    origin: 'pexels' as const,
-    credit: p.photographer ? `Photo : ${p.photographer} (Pexels)` : 'Pexels',
-    sourceUrl: p.url,
-    width: p.width,
-    height: p.height,
+    url: hit.url,
+    origin: hit.provider,
+    credit: hit.author ? `Photo : ${hit.author} (${labelOf(hit.provider)})` : labelOf(hit.provider),
+    sourceUrl: hit.sourceUrl,
+    width: hit.width,
+    height: hit.height,
   }));
-}
-
-/** Fichier Pexels le plus adapté : au moins 720p, au plus proche de 1280 px de grand côté. */
-function bestPexelsFile(files: any[]): any | null {
-  const usable = (files || []).filter((f) => /mp4/.test(f.file_type || f.link || '') && Math.max(f.width, f.height) >= 720);
-  usable.sort((a, b) => Math.abs(Math.max(a.width, a.height) - 1280) - Math.abs(Math.max(b.width, b.height) - 1280));
-  return usable[0] || null;
 }
 
 export async function searchPexelsVideos(
@@ -277,34 +270,25 @@ export async function searchPexelsVideos(
   folder: string,
   opts: { minDuration?: number; locale?: string } = {}
 ): Promise<VideoMediaAsset[]> {
-  if (!process.env.PEXELS_API_KEY || !query.trim() || count <= 0) return [];
-  const res = await axios.get('https://api.pexels.com/videos/search', {
-    headers: { Authorization: process.env.PEXELS_API_KEY },
-    params: { query, per_page: 10, orientation, locale: opts.locale || 'en-US', size: 'medium' },
-    timeout: 8000,
-  });
-  const picked = (res.data?.videos || [])
-    .filter((v: any) => v.duration >= (opts.minDuration ?? 3) && v.duration <= 60)
-    .slice(0, count);
+  if (!query.trim() || count <= 0) return [];
+  const hits = await searchStockVideos(query, { orientation, count, locale: opts.locale || 'en-US', minDurationSec: opts.minDuration ?? 3, maxDurationSec: 60 });
   const out: VideoMediaAsset[] = [];
-  for (const v of picked) {
-    const file = bestPexelsFile(v.video_files);
-    if (!file) continue;
+  for (const hit of hits) {
     const dir = tmpDir();
     try {
-      const input = path.join(dir, 'pexels.mp4');
-      const dl = await axios.get(file.link, { responseType: 'arraybuffer', timeout: 60000, maxContentLength: MEDIA_LIMITS.video });
+      const input = path.join(dir, 'stock.mp4');
+      const dl = await axios.get(hit.url, { responseType: 'arraybuffer', timeout: 60000, maxContentLength: MEDIA_LIMITS.video });
       fs.writeFileSync(input, Buffer.from(dl.data));
       out.push(
         await storeClip(input, storage, folder, {
-          origin: 'pexels',
+          origin: hit.provider,
           name: query,
-          credit: v.user?.name ? `Vidéo : ${v.user.name} (Pexels)` : 'Pexels',
-          sourceUrl: v.url,
+          credit: hit.author ? `Vidéo : ${hit.author} (${labelOf(hit.provider)})` : labelOf(hit.provider),
+          sourceUrl: hit.sourceUrl,
         })
       );
     } catch (error: any) {
-      logger.warn('video.pexels_video_failed', { id: v.id, error: error.message });
+      logger.warn('video.stock_video_failed', { provider: hit.provider, error: error.message });
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }

@@ -2,6 +2,8 @@
 
 `apps/api/api/services/logo-engine/` — un moteur TypeScript autonome (Node seul, ni React ni navigateur) qui génère les 11 catégories de logos et livre un vrai SVG vectoriel, vérifié.
 
+> **Depuis le 20/11/2026** : bonnes pratiques par type, anti-cliché, rareté à l'échelle d'IDEM, chaîne Ultra parallèle, « Améliorer mon logo » rebranché (carte d'encre, référence explicite). Tout est décrit dans [LOGO_ENGINE_ORIGINALITE.md](LOGO_ENGINE_ORIGINALITE.md).
+
 Il repose sur ces principes : **une représentation intermédiaire structurée, des outils spécialisés, un rendu déterministe, une boucle de contrôle qualité, un modèle qui décide mais ne construit pas**.
 
 Avant : le modèle dessinait le SVG (≈ 3 400 tokens de consigne + 3 500 de SVG par brouillon, trois brouillons au cran Ultra, plus critique et révision). Maintenant : le modèle choisit et décrit (quelques centaines de tokens) ; le code construit le SVG, le mesure et le corrige.
@@ -123,7 +125,7 @@ Score 0–100 (bloquant −40, avertissement −7) ; **accepté** = aucun bloqua
 
 Il explore **catégorie × recette × générateur × paramètres × graine** :
 
-1. *Brief* : mots-clés du secteur (poids ×2), de la marque, des valeurs et de la description, comparés aux étiquettes des générateurs (racines de 6 lettres : « logistique »/« logistics » se rejoignent) ; traits (luxe, ludique, tech, naturel, audace, calme, classique) qui règlent la typographie (casse, interlettrage, graisse) et les poids des catégories.
+1. *Brief* : les mots du brief sont comparés aux étiquettes des générateurs (racines de 6 lettres : « logistique »/« logistics » se rejoignent). Depuis le 20/11/2026, **le sens rapporte et le secteur coûte** : nom, valeurs et personnalité donnent des points, les mots du secteur en retirent, et les clichés du métier sont bannis ([LOGO_ENGINE_ORIGINALITE.md §4](LOGO_ENGINE_ORIGINALITE.md)) ; traits (luxe, ludique, tech, naturel, audace, calme, classique) qui règlent la typographie (casse, interlettrage, graisse) et les poids des catégories.
 2. *Recettes* (`recipes.ts`) : plusieurs façons de construire chacune des 11 catégories ; un générateur est tiré par affinité + bruit proportionnel à l'exploration, ses paramètres sont tirés dans leurs bornes.
 3. *Palette* : les encres de la charte, lisibles sur blanc, distinctes entre elles.
 4. *Lot de candidats* → pipeline qualité → sélection : la meilleure, puis les plus éloignées des précédentes **et de la mémoire du projet** (empreintes des logos déjà montrés, conservées dans `LogoModel.engine.fingerprint`).
@@ -139,12 +141,12 @@ La méthode change avec le cran de la jauge ; la qualité reste dans le code (vo
 | Low | rien : le planificateur | 15 % | 0 |
 | Medium | **sélecteur** : choisit 3 propositions parmi 9 candidats déjà construits et mesurés | 35 % | ≈ 400 |
 | High | + **directeur** : trois directions (catégorie, générateur, idée) tirées d'un menu filtré par le brief ; le code les construit | 50 % | ≈ 400 |
-| Ultra | + **auteur** : écrit le Logo IR de chaque direction (3 brouillons, dessin libre autorisé), le **jury** départage (mesures à l'appui), **critique visuelle** (le modèle regarde le rendu et répond par un **patch**, 2 tours) | 80 % | ≈ 14 500 |
+| Ultra | + **auteur** : écrit le Logo IR de chaque direction (2 brouillons, +1 si aucun ne passe, directions en parallèle, dessin libre autorisé), le **jury** départage (mesures à l'appui), **critique visuelle** (le modèle regarde le rendu et répond par un **patch**, 2 tours) | 80 % | ≈ 14 500 |
 
 Le cran Max a été retiré le 14 octobre 2026 : l'auteur et le jury, qu'il ouvrait, sont réservés à Ultra — le cran auquel le logo est toujours généré. Le moteur de logos garde ses méthodes (il n'est pas passé au moteur graphique Tailwind).
 
 Garde-fous en code, à tous les crans :
-- le modèle ne reçoit qu'un menu filtré, la signature d'UN générateur et un mémento de ~400 tokens ; jamais le catalogue ;
+- le modèle ne reçoit que des identifiants (le directeur voit le catalogue trié du plus original au plus littéral, sans les clichés estimés), la signature d'UN générateur et un mémento de ~400 tokens ; jamais le code des générateurs ;
 - ce qu'il écrit est validé par le schéma ; **la palette et le brief sont toujours ceux du code** ; un texte étranger à la marque (nom, initiales, accroche) est remplacé par son nom ; le dessin libre est refusé hors Ultra ;
 - chaque brouillon, d'où qu'il vienne, repasse par le même pipeline qualité : aucun brouillon refusé par les mesures n'est montré ;
 - une direction, un JSON ou un patch invalide est remplacé par la décision du planificateur ; un modèle muet, lent ou en erreur donne le même résultat que le cran Low ; l'agent ne lève jamais ;

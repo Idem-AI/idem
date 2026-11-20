@@ -6,7 +6,7 @@
 import { MUSIC_MOODS, VIDEO_OBJECTIVES, VIDEO_TYPES } from './contracts/model';
 import { pricingTable } from './pricing';
 import { VOICE_PERSONAS } from './audio/voice';
-import { MOTION_CANVAS_VERSION } from './rendering/compiler';
+import { HYPERFRAMES_VERSION } from './rendering/hyperframes/composition';
 
 /** L'icône de chaque famille (PrimeIcons), pour les cartes de l'interface. */
 const TYPE_ICONS: Record<(typeof VIDEO_TYPES)[number], string> = {
@@ -23,7 +23,7 @@ const TYPE_ICONS: Record<(typeof VIDEO_TYPES)[number], string> = {
 
 export function videoOptions() {
   return {
-    engine: { name: 'motion-canvas', version: MOTION_CANVAS_VERSION },
+    engine: { name: 'hyperframes', version: HYPERFRAMES_VERSION },
     pricing: pricingTable(),
     objectives: VIDEO_OBJECTIVES,
     moods: MUSIC_MOODS,

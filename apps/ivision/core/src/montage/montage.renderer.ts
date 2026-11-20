@@ -2,7 +2,7 @@
  * LE RENDU DU MONTAGE — sa page HTML d'habillage, capturée image par image (Puppeteer) + ffmpeg.
  *
  * Réservé au montage d'une prise de parole (sous-titres, mots-clés, pictos sur la vidéo filmée).
- * Les vidéos motion design passent par Motion Canvas (`video/rendering/runner.ts`).
+ * Les vidéos motion design passent par HyperFrames (`video/rendering/hyperframes/`).
  *
  * Image par image : `seek(t)` puis capture JPEG envoyée directement dans
  * l'entrée standard d'ffmpeg (aucune image écrite sur disque). La vidéo est

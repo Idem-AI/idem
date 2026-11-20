@@ -4,7 +4,9 @@
  *   1. OBSERVATEUR (vision)   décrit le logo envoyé : éléments, géométrie, couleurs, ce qu'il faut garder,
  *                             ce qu'il faut corriger (`reading.ts`). Palette et texte sont mesurés par le code.
  *   2. DESSINATEUR (texte)    ne voit PAS l'image : il écrit le Logo IR d'une amélioration à partir de la
- *                             seule description. Trois degrés : fidèle · affiné · évolué.
+ *                             description (éléments + boîtes 0–100) et de la CARTE D'ENCRE mesurée par le
+ *                             code (silhouette 20 × 20). Trois degrés : fidèle · affiné · évolué. Il reçoit
+ *                             aussi les bonnes pratiques du type de logo (`validate/practices.ts`).
  *   3. CONTRÔLE (code)        chaque brouillon passe le pipeline qualité, puis est comparé à l'original :
  *                             ressemblance de silhouette (empreinte d'encre) et écart de teinte. Ni
  *                             méconnaissable, ni identique.
@@ -34,7 +36,8 @@ import { defaultRasterizer, renderPng } from '../raster/rasterizer';
 import type { RasterImage } from '../raster/rasterizer';
 import { gridSimilarity, inkBox, inkGrid } from '../raster/measure';
 import type { BuildOptions } from '../render/build';
-import { hueGap, measurePalette, mergePalette, OBSERVER_INSTRUCTION, parseReading, readingKey, readingSheet, svgTexts } from './reading';
+import { hueGap, inkMap, measurePalette, mergePalette, OBSERVER_INSTRUCTION, parseReading, readingKey, readingSheet, svgTexts } from './reading';
+import { practiceBrief } from '../validate/practices';
 import type { LogoReading } from './reading';
 
 export type Vision = (png: Buffer, instruction: string) => Promise<string>;
@@ -163,7 +166,12 @@ interface RedrawContext {
   degree: Degree;
   wish?: string;
   withName: boolean;
+  /** La silhouette de l'original mesurée par le code (`inkMap`), dans le carré 0–100. */
+  inkMap?: string;
 }
+
+/** Côté de la carte d'encre donnée au dessinateur (1 case = 5 unités de la boîte 0–100). */
+export const INK_MAP_SIZE = 20;
 
 export function redrawTask(ctx: RedrawContext, palette: ReturnType<typeof inkPalette>, seed: number, key: string): AgentTask<AuthoredLogo | null> {
   const direction = { type: ctx.reading.conceptType, idea: `${ctx.degree} improvement of the imported logo` };
@@ -173,16 +181,24 @@ export function redrawTask(ctx: RedrawContext, palette: ReturnType<typeof inkPal
     key,
     minLevel: 'low',
     profile: 'coder',
+    // Partie fixe d'abord (rôle, mémento, règles) : préfixe identique pour les 3 degrés, relu par le cache du fournisseur.
     prompt: () => ({
       system: [
-        'You are the REDRAWER. You never see the original image: the OBSERVER described it. Redraw it as an IMPROVED logo, written as a Logo IR. The engine builds exact vector geometry from it.',
-        `DEGREE — ${DEGREE_BRIEF[ctx.degree]}`,
-        'Non-negotiable: reproduce every KEEP feature; fix every FIX item; keep the element layout (what sits where) and the proportions between elements; keep the hue family of the palette.',
+        'You are the REDRAWER. You never see the original image: the OBSERVER described it and the code measured its INK MAP. Redraw it as an IMPROVED logo, written as a Logo IR. The engine builds exact vector geometry from it.',
+        'Non-negotiable: reproduce every KEEP feature; fix every FIX item; keep the element layout (what sits where, use the element boxes as coordinates in the 0–100 box) and the proportions between elements; follow the INK MAP silhouette; keep the hue family of the palette.',
         IR_CHEATSHEET,
         'You MAY add custom {"kind":"shape","geometry":{"type":"path","d":"M… Z"}} (absolute commands, box 0–100) to reproduce a silhouette that no generator or basic shape can draw.',
-        ctx.withName ? `The text "${ctx.brief.brandName}" is part of the logo: include a text layer role "wordmark" with exactly that text, matching the described typography.` : 'Symbol only: no wordmark layer.',
       ].join('\n'),
-      user: [readingSheet(ctx.reading), ctx.wish ? `CLIENT WISH: ${ctx.wish.slice(0, 300)}` : ''].filter(Boolean).join('\n'),
+      user: [
+        `DEGREE — ${DEGREE_BRIEF[ctx.degree]}`,
+        practiceBrief(ctx.reading.conceptType),
+        ctx.withName ? `The text "${ctx.brief.brandName}" is part of the logo: include a text layer role "wordmark" with exactly that text, matching the described typography.` : 'Symbol only: no wordmark layer.',
+        readingSheet(ctx.reading),
+        ctx.inkMap ? `INK MAP of the original symbol (measured, ${INK_MAP_SIZE}×${INK_MAP_SIZE}, one cell = 5 units of the 0–100 box; # ink, + partial, . empty):\n${ctx.inkMap}` : '',
+        ctx.wish ? `CLIENT WISH: ${ctx.wish.slice(0, 300)}` : '',
+      ]
+        .filter(Boolean)
+        .join('\n'),
     }),
     parse: (raw) => {
       const json = parseLlmJson<Record<string, unknown>>(raw);
@@ -285,6 +301,8 @@ export async function improveLogo(req: ImproveRequest): Promise<ImproveResult> {
   const grid = originalImage ? normalizedGrid(inkAlpha(originalImage)) : null;
   if (!grid) return { ...empty, reading, decisions };
   const original = { grid, primary: reading.palette[0]?.hex };
+  const silhouette = originalImage ? normalizedGrid(inkAlpha(originalImage), INK_MAP_SIZE) : null;
+  const map = silhouette ? inkMap(silhouette, INK_MAP_SIZE) : undefined;
 
   // ── 2. Dessiner : un degré par proposition, plusieurs brouillons à Ultra ──
   req.onStage?.('redrawing');
@@ -297,7 +315,7 @@ export async function improveLogo(req: ImproveRequest): Promise<ImproveResult> {
   const tasks: { degree: Degree; task: AgentTask<AuthoredLogo | null> }[] = [];
   for (let i = 0; i < wanted; i++) {
     const degree = DEGREES[i % DEGREES.length];
-    for (let d = 0; d < perDegree; d++) tasks.push({ degree, task: redrawTask({ reading, brief, degree, wish: req.wish, withName }, palette, hashSeed(`${req.seed}#improve#${i}#${d}`), `logoRedraw:${i + 1}.${d + 1}`) });
+    for (let d = 0; d < perDegree; d++) tasks.push({ degree, task: redrawTask({ reading, brief, degree, wish: req.wish, withName, inkMap: map }, palette, hashSeed(`${req.seed}#improve#${i}#${d}`), `logoRedraw:${i + 1}.${d + 1}`) });
   }
   const written = await orchestrator.all(tasks.map((t) => t.task));
 
@@ -321,13 +339,14 @@ export async function improveLogo(req: ImproveRequest): Promise<ImproveResult> {
   if (atLeast(req.level, 'high')) {
     req.onStage?.('comparing');
     const originalPng = await convertSvgToPng(req.svg, 420, 420).catch(() => null);
-    for (const entry of judged) {
-      if (!originalPng || entry.recognisable && entry.similarity >= 0.6) continue;
+    // Chaque brouillon est comparé à l'original EN PARALLÈLE (au plus 2 tours chacun).
+    const compareOne = async (entry: Judged) => {
+      if (!originalPng || (entry.recognisable && entry.similarity >= 0.6)) return;
       for (let round = 0; round < 2; round++) {
         const draftPng = await renderPng(entry.logo.rendered.svg, 420, '#ffffff').catch(() => null);
         if (!draftPng) break;
         const text = `${COMPARATOR_INSTRUCTION}\n${layerDigest(entry.logo.doc as LogoDocument)}\nKEEP: ${reading.keep.join(' | ').slice(0, 400)}`;
-        const raw = await req.vision(await sideBySide(originalPng, draftPng), text).catch(() => '');
+        const raw = await req.vision!(await sideBySide(originalPng, draftPng), text).catch(() => '');
         const cmp = parseComparison(raw, entry.logo.doc as LogoDocument);
         if (!cmp || !cmp.patch.length || (cmp.recognizable >= 4 && cmp.improved >= 4)) break;
         const patched = applyPatch(entry.logo.doc as LogoDocument, cmp.patch);
@@ -339,7 +358,8 @@ export async function improveLogo(req: ImproveRequest): Promise<ImproveResult> {
         Object.assign(entry, next);
         decisions.push({ stage: 'comparator', source: 'llm', detail: `${entry.degree} : reconnaissable ${cmp.recognizable}/5, amélioré ${cmp.improved}/5 → patch gardé (${entry.score})` });
       }
-    }
+    };
+    await Promise.all(judged.map(compareOne));
   }
 
   // Un seul brouillon par degré (le mieux noté) ; les reconnaissables d'abord.

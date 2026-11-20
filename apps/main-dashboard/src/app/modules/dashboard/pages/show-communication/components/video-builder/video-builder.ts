@@ -68,8 +68,8 @@ const EXAMPLES = ['ex1', 'ex2', 'ex3'];
  *    Le reste (effets, voix, banques d'images) est replié : les bons réglages sont
  *    déjà posés. Le prix se met à jour en direct.
  *
- * La vidéo est ensuite conçue par l'IA (concept, storyboard) et chaque scène est écrite en
- * code Motion Canvas : aucune mise en page n'est choisie à l'avance.
+ * La vidéo est ensuite conçue par l'IA (concept, storyboard) et chaque scène est assemblée par
+ * le code depuis le catalogue (HTML + GSAP) : aucune mise en page n'est choisie à l'avance.
  */
 @Component({
   selector: 'app-video-builder',

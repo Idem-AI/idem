@@ -14,6 +14,8 @@ import type { ConceptType, LogoPalette } from '../ir/logo.schema';
 import { getGenerator, listGenerators, randomParams } from '../render/generators';
 import type { GeneratorFamily, GeneratorSpec, Params } from '../render/generators';
 import { affinity, initialsOf, PlanBrief, Traits } from './brief';
+import { generatorScore } from './originality';
+import type { OriginalityContext } from './originality';
 
 export type Doc = Record<string, unknown>;
 
@@ -31,6 +33,8 @@ export interface RecipeCtx {
   used: Set<string>;
   /** Direction imposée (par l'agent) : générateur et/ou variante (conteneur, effet…). */
   force?: { generator?: string; variant?: string };
+  /** Le sens avant le secteur, les clichés bannis, la rareté dans IDEM (`originality.ts`). */
+  originality?: OriginalityContext;
 }
 
 export interface Recipe {
@@ -56,7 +60,16 @@ export function chooseGenerator(ctx: RecipeCtx, families: GeneratorFamily[], opt
   const temperature = 0.4 + ctx.explore * 1.8;
   const forced = ctx.force?.generator ? pool.find((g) => g.id === ctx.force!.generator) : undefined;
   if (forced) return forced;
-  const scored = pool.map((g) => ({ g, s: affinity(g.tags, ctx.weights) * 2.2 + gumbel(ctx.rng) * temperature - (ctx.used.has(g.id) ? 3 : 0) }));
+  // Le sens de la marque rapporte, son secteur coûte, un cliché nommé est banni (`originality.ts`).
+  // Si tout est banni (catalogue étroit pour cette famille), on garde la règle sans bannissement.
+  const o = ctx.originality;
+  const base = (g: GeneratorSpec) => (o ? generatorScore(g, o) : affinity(g.tags, ctx.weights) * 2.2);
+  const open = o ? pool.filter((g) => !o.cliches.has(g.id)) : pool;
+  const field = open.length ? open : pool;
+  const scored = field.map((g) => {
+    const b = base(g);
+    return { g, s: (Number.isFinite(b) ? b : 0) + gumbel(ctx.rng) * temperature - (ctx.used.has(g.id) ? 3 : 0) };
+  });
   scored.sort((a, b) => b.s - a.s);
   return scored[0].g;
 }

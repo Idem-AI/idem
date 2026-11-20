@@ -89,7 +89,7 @@ S'y ajoute la **fiche de marque** (`brandSheet`) : couleurs, polices, DA, à fai
 
 ## Vidéo motion
 
-Moteur Motion Canvas ([VIDEO_ENGINE.md](VIDEO_ENGINE.md)) : directeur, planificateur, auteur de chaque scène et autocorrection, identiques à tous les crans ; le cran choisit les modèles (tableau ci-dessus). L'autocorrection des scènes monte d'un cran pour changer d'approche ([MOTION_VIDEO.md](MOTION_VIDEO.md#lautocorrection-des-scènes)).
+Moteur HyperFrames ([VIDEO_ENGINE.md](VIDEO_ENGINE.md)) : directeur, planificateur, assemblage depuis le catalogue et autocorrection, identiques à tous les crans ; le cran choisit les modèles (tableau ci-dessus). L'autocorrection des scènes reprend le candidat suivant du catalogue, sans modèle ([MOTION_VIDEO.md](MOTION_VIDEO.md#lautocorrection-des-scènes)).
 
 ## Visuels, cartes de visite et documents : le moteur graphique (`packages/graphic-engine`)
 
@@ -200,7 +200,7 @@ Pas de sélecteur pour le logo (toujours Ultra).
 ## Contrôles
 
 - `npm run check:roles` : quatre crans, échelles autorisées, chaque rôle sur son échelle, un ancien « max » lu comme High.
-- `npm run check:video` : le moteur Motion Canvas de bout en bout ; voir [VIDEO_ENGINE.md §11](VIDEO_ENGINE.md#11-contrôles).
+- `npm run check:hyperframes` (apps/ivision/core) : le moteur vidéo de bout en bout ; voir [VIDEO_ENGINE.md](VIDEO_ENGINE.md#contrôles-gratuits-sauf-mention).
 - `npm run check:creativity` : les prix et la normalisation, l'orchestrateur ; le moteur graphique au service de la jauge (même travail à tous les crans, cran transmis au modèle, correction bornée puis erreur dite, rejeu sans modèle, Tailwind seul) ; la carte de visite (marqueurs, valeurs longues) ; les logos du code et les agents du logo.
 - `npm run check:logo` : le moteur de logos (150 vérifications, sans réseau ni modèle).
 - `npm run check:graphic` : le moteur graphique lui-même (contrats, matière à plat, assainissement, Tailwind compilé, les neuf graphiques, flux complet avec un auteur simulé dans Chromium).

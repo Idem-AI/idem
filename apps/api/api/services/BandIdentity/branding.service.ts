@@ -2054,13 +2054,15 @@ export class BrandingService extends GenericService {
     existing: LogoModel[],
     count: number,
     fresh: boolean,
+    explicitReference?: { svg: string; wish?: string },
     onStage?: (stage: string) => void
   ): Promise<LogoModel[]> {
     const description = this.extractProjectDescription(project);
-    // Voie « améliorer mon logo » : le logo importé du projet est la référence que le moteur redessine.
-    let reference: { svg: string } | undefined;
+    // Voie « améliorer mon logo » : le logo transmis par l'appelant (éditeur d'identité : logo actuel ou
+    // importé), sinon le logo importé du projet à la création. Le moteur le fait DÉCRIRE puis REDESSINER.
+    let reference: { svg: string; wish?: string } | undefined = explicitReference?.svg ? explicitReference : undefined;
     const imported = project.analysisResultModel?.branding?.logo;
-    if (imported?.svg && imported.concept === 'User-imported logo' && (preferences?.improveImported || /Original logo reference/i.test(preferences?.customDescription ?? ''))) {
+    if (!reference && imported?.svg && imported.concept === 'User-imported logo' && (preferences?.improveImported || /Original logo reference/i.test(preferences?.customDescription ?? ''))) {
       try {
         const { resolveSvgContent } = await import('../logo-import.service');
         reference = { svg: await resolveSvgContent(imported.svg) };
@@ -2740,7 +2742,7 @@ export class BrandingService extends GenericService {
     // Le moteur de logos : planificateur + agents selon le cran, SVG construit et mesuré par le code.
     if (logoEngineEnabled()) {
       try {
-        const engineLogos = await this.engineLogos(userId, projectId, project, level, preferences, existingLogos, logosToGenerateCount, forceRegenerate);
+        const engineLogos = await this.engineLogos(userId, projectId, project, level, preferences, existingLogos, logosToGenerateCount, forceRegenerate, undefined);
         const logos = [...existingLogos, ...engineLogos];
         await this.updateProjectWithLogosAsync(userId, projectId, logos);
         logger.info(`Logo engine generated ${engineLogos.length} concept(s) (creativity ${level}) in ${Date.now() - totalStartTime}ms - ProjectId: ${projectId}`);
@@ -3068,7 +3070,9 @@ export class BrandingService extends GenericService {
     forceRegenerate = false,
     preferencesOverride?: LogoPreferences,
     /** Cran de la jauge de créativité (logoCreative.ts) ; absent, Medium. */
-    creativity?: CreativityLevel
+    creativity?: CreativityLevel,
+    /** Voie « améliorer mon logo » : le logo à redessiner, transmis tel quel (et le souhait du client). */
+    reference?: { svg: string; wish?: string }
   ): Promise<LogoModel[]> {
     openAiUsageBatch({
       userId,
@@ -3086,8 +3090,12 @@ export class BrandingService extends GenericService {
     const branding = project.analysisResultModel?.branding;
     const selectedColors = branding?.colors;
     const selectedTypography = branding?.typography;
-    // Priorité aux préférences passées par le client (formulaire non encore persisté)
-    const preferences = preferencesOverride ?? branding?.logoPreferences;
+    // Priorité aux préférences passées par le client (formulaire non encore persisté). Le drapeau
+    // « améliorer le logo importé » vient du projet : la requête SSE ne le transporte pas, et le
+    // souhait y est coupé à 800 caractères (le marqueur « Original logo reference » pouvait tomber).
+    const preferences = preferencesOverride
+      ? { ...preferencesOverride, improveImported: preferencesOverride.improveImported ?? branding?.logoPreferences?.improveImported }
+      : branding?.logoPreferences;
 
     if (!selectedColors || !selectedTypography) {
       throw new Error(`Project is missing colors or typography. Cannot generate logos.`);
@@ -3149,7 +3157,7 @@ export class BrandingService extends GenericService {
         for (let offset = 0; offset < logosToGenerateCount; offset++) {
           await streamCallback({ type: 'concept_started', conceptIndex: existingLogos.length + offset });
         }
-        const engineLogos = await this.engineLogos(userId, projectId, project, level, preferences, existingLogos, logosToGenerateCount, forceRegenerate, (stage) => {
+        const engineLogos = await this.engineLogos(userId, projectId, project, level, preferences, existingLogos, logosToGenerateCount, forceRegenerate, reference, (stage) => {
           if (stage === 'critique') {
             for (let offset = 0; offset < logosToGenerateCount; offset++) void streamCallback({ type: 'critique_started', conceptIndex: existingLogos.length + offset }).catch(() => undefined);
           }

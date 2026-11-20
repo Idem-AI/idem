@@ -22,6 +22,8 @@ import { fingerprintDistance, LOGO_SIMILARITY, nearest } from '../validate/finge
 import type { LogoFingerprint } from '../validate/fingerprint';
 import { briefWeights, CharterPalette, conceptMenu, inkPalette, LogoKind, PlanBrief, traitsOf } from './brief';
 import { recipesFor, RecipeCtx } from './recipes';
+import { literalGenerators, originalityOf } from './originality';
+import type { OriginalityContext } from './originality';
 import type { Doc } from './recipes';
 
 export interface PlanInput {
@@ -41,6 +43,12 @@ export interface PlanInput {
   avoid?: LogoFingerprint[];
   /** Types de concept à écarter (déjà proposés). */
   exclude?: ConceptType[];
+  /** Générateurs bannis pour cette marque (clichés nommés par le directeur) ; absent : estimés par le code. */
+  cliches?: string[];
+  /** Fréquence récente des générateurs dans tout IDEM (rareté). */
+  usage?: Record<string, number>;
+  /** Empreintes des logos récemment proposés aux AUTRES projets : un candidat trop proche est écarté. */
+  crowd?: LogoFingerprint[];
 }
 
 export interface PlannedLogo extends ProducedLogo {
@@ -63,6 +71,11 @@ export function hashSeed(text: string): number {
 }
 
 const isCharter = (p: CharterPalette | LogoPalette): p is CharterPalette => !('ink' in p);
+
+/** Le contexte d'originalité d'un plan : clichés du directeur, sinon ceux que le secteur désigne. */
+export function originalityFor(input: PlanInput): OriginalityContext {
+  return originalityOf(input.brief, { cliches: input.cliches ?? literalGenerators(input.brief), usage: input.usage });
+}
 
 function weightedType(menu: Partial<Record<ConceptType, number>>, picked: ConceptType[], rng: () => number): ConceptType | null {
   const entries = Object.entries(menu).map(([type, w]) => [type as ConceptType, (w ?? 0) / (1 + 1.8 * picked.filter((t) => t === type).length)] as const).filter(([, w]) => w > 0);
@@ -88,6 +101,7 @@ export function candidateDocs(input: PlanInput, attempts: number): { doc: Doc; t
   if (!Object.keys(menu).length) menu = conceptMenu(kind, traits, input.brief.brandName.length);
   const used = new Set<string>();
   const picked: ConceptType[] = [];
+  const originality = originalityFor(input);
   const out: { doc: Doc; type: ConceptType; recipe: string }[] = [];
   for (let attempt = 0; attempt < attempts; attempt++) {
     const rng = seeded(hashSeed(`${input.seed}#${attempt}`));
@@ -96,7 +110,7 @@ export function candidateDocs(input: PlanInput, attempts: number): { doc: Doc; t
     const recipes = recipesFor(type);
     const recipe = recipes[Math.floor(rng() * recipes.length)];
     if (!recipe) continue;
-    const ctx: RecipeCtx = { brief: input.brief, palette, rng, weights, traits, withName, explore: input.explore ?? 0.4, used };
+    const ctx: RecipeCtx = { brief: input.brief, palette, rng, weights, traits, withName, explore: input.explore ?? 0.4, used, originality };
     if (recipe.weight(ctx) <= 0) continue;
     const doc = recipe.build(ctx);
     if (!doc) continue;
@@ -123,7 +137,7 @@ export async function buildPool(input: PlanInput, build: BuildOptions, attempts?
 }
 
 /** Retient `count` propositions : la meilleure, puis les plus éloignées des précédentes et de la mémoire. */
-export function selectDistinct(pool: PlannedLogo[], count: number, avoid: LogoFingerprint[] = []): PlannedLogo[] {
+export function selectDistinct(pool: PlannedLogo[], count: number, avoid: LogoFingerprint[] = [], crowd: LogoFingerprint[] = []): PlannedLogo[] {
   const chosen: PlannedLogo[] = [];
   const remaining = [...pool].sort((a, b) => b.report.score - a.report.score);
   while (chosen.length < count && remaining.length) {
@@ -134,7 +148,9 @@ export function selectDistinct(pool: PlannedLogo[], count: number, avoid: LogoFi
       const dist = nearest(cand.fingerprint!, against);
       const sameType = chosen.some((c) => c.type === cand.type) ? 8 : 0;
       const tooClose = dist < LOGO_SIMILARITY.tooClose ? 40 : 0;
-      const value = Math.min(dist, LOGO_SIMILARITY.distinct) * 120 + cand.report.score * 0.5 - sameType - tooClose;
+      // Déjà proposé à un autre projet d'IDEM (même silhouette, mêmes motifs) : un logo n'est pas original s'il est celui d'un autre.
+      const crowded = crowd.length && nearest(cand.fingerprint!, crowd) < LOGO_SIMILARITY.tooClose ? 30 : 0;
+      const value = Math.min(dist, LOGO_SIMILARITY.distinct) * 120 + cand.report.score * 0.5 - sameType - tooClose - crowded;
       if (value > bestValue) {
         bestValue = value;
         bestIndex = i;
@@ -150,7 +166,7 @@ export function selectDistinct(pool: PlannedLogo[], count: number, avoid: LogoFi
 export async function planLogos(input: PlanInput, build: BuildOptions): Promise<PlanResult> {
   const started = Date.now();
   const { pool, attempted, built, accepted } = await buildPool(input, build);
-  const logos = selectDistinct(pool, input.count ?? 3, input.avoid);
+  const logos = selectDistinct(pool, input.count ?? 3, input.avoid, input.crowd);
   return { logos, stats: { attempted, built, accepted, ms: Date.now() - started } };
 }
 
@@ -162,7 +178,7 @@ export function docForDirection(input: PlanInput, direction: { type: ConceptType
   const rng = seeded(hashSeed(`${input.seed}#dir#${salt}`));
   const recipe = recipes[Math.floor(rng() * recipes.length)];
   if (!recipe) return null;
-  const ctx: RecipeCtx = { brief: input.brief, palette, rng, weights: briefWeights(input.brief), traits, withName: input.withName ?? input.kind !== 'initial', explore: input.explore ?? 0.4, used: new Set(), force: { generator: direction.generator, variant: direction.variant } };
+  const ctx: RecipeCtx = { brief: input.brief, palette, rng, weights: briefWeights(input.brief), traits, withName: input.withName ?? input.kind !== 'initial', explore: input.explore ?? 0.4, used: new Set(), force: { generator: direction.generator, variant: direction.variant }, originality: originalityFor(input) };
   const doc = recipe.build(ctx);
   return doc ? { doc, recipe: String((doc.concept as Doc).recipe ?? recipe.id) } : null;
 }

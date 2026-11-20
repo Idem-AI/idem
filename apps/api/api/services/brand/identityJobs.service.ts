@@ -204,10 +204,13 @@ export class IdentityJobsService {
             }
           : undefined;
 
+        let improveReference: { svg: string; wish?: string } | undefined;
+        let improveSvgContent: string | undefined;
         if (options.improveSvg) {
           let analysis;
           try {
-            analysis = await logoAnalysisService.analyzeLogo(await resolveSvgContent(options.improveSvg));
+            improveSvgContent = await resolveSvgContent(options.improveSvg);
+            analysis = await logoAnalysisService.analyzeLogo(improveSvgContent);
           } catch (error: any) {
             logger.warn(`Analyse du logo à améliorer impossible (${projectId}) : ${error.message}`);
             entry.job.error = 'analysis_failed';
@@ -218,17 +221,18 @@ export class IdentityJobsService {
             await this.finish(entry, 'cancelled', false);
             return;
           }
-          const reference =
-            `Original logo reference — shapes: ${analysis.shapes}; ` +
-            `colors: ${analysis.colors.join(', ')}; symbolism: ${analysis.symbolism}; ` +
-            `weaknesses to fix: ${analysis.weaknesses}`;
           const userWish = options.preferences?.customDescription?.trim();
           entry.job.improvementBrief = analysis.improvementBrief;
+          // Le moteur redessine CE logo : l'observateur l'a décrit (lecture en cache), le dessinateur
+          // part de cette description. Le souhait du client reste seul dans `customDescription` : la
+          // description n'y est plus recopiée (elle arrive déjà entière au dessinateur).
+          improveReference = { svg: improveSvgContent!, wish: userWish || undefined };
           preferences = {
             // Le type choisi par l'utilisateur l'emporte sur celui détecté.
             type: options.preferences?.type ?? analysis.logoType,
             useAIGeneration: true,
-            customDescription: [userWish, analysis.improvementBrief, reference].filter(Boolean).join('\n\n'),
+            customDescription: [userWish, analysis.improvementBrief].filter(Boolean).join('\n\n'),
+            improveImported: true,
           };
         }
 
@@ -241,7 +245,10 @@ export class IdentityJobsService {
             }
           },
           true,
-          preferences
+          preferences,
+          // Le logo est toujours dessiné au cran Ultra (même règle que la création du projet).
+          'ultra',
+          improveReference
         );
 
         const produced = logos.length > 0;

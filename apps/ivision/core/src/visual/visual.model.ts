@@ -39,7 +39,7 @@ export interface FlyerImageAttribution {
   /** Photographer or AI model. */
   author?: string;
   sourceUrl?: string;
-  provider: 'pexels' | 'unsplash' | 'openrouter' | 'other';
+  provider: 'pexels' | 'pixabay' | 'unsplash' | 'openrouter' | 'other';
 }
 
 /**

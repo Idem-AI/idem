@@ -2,7 +2,7 @@
  * `npm run check:request --prefix apps/ivision/core` — LA DEMANDE SUIVIE À LA LETTRE, sans IDEM.
  *
  * Le point de départ est un vrai script d'utilisateur (`fixtures/launch-script.fr.md`, 60 s, six
- * scènes, textes à l'écran, interdits). Ce contrôle prouve, avec le moteur Motion Canvas :
+ * scènes, textes à l'écran, interdits). Ce contrôle prouve :
  *
  *   1. la lecture : langue, scènes, minutage, textes mot pour mot, textes d'interface, supports,
  *      périmètre (4K, 24 i/s signalés), consignes ;
@@ -169,7 +169,7 @@ async function variance(png: Buffer): Promise<number> {
 }
 
 (async () => {
-  console.log('La demande suivie à la lettre — moteur Motion Canvas, modèles simulés\n');
+  console.log('La demande suivie à la lettre — moteur HyperFrames, modèles simulés\n');
 
   // ── 1 ──
   section('1. La demande lue en entier');
@@ -268,7 +268,7 @@ async function variance(png: Buffer): Promise<number> {
   check('l’auteur reçoit les textes exacts de sa scène, par clé', /\$headline = "Tout commence par une idée\."/.test(prompts['video.author'] || '') || film.scenes.every((s) => s.status === 'ready'));
   const thumbs = film.scenes.filter((s) => s.thumbnail);
   const v = await Promise.all(thumbs.map(async (s) => variance(fs.readFileSync(s.thumbnail!.replace('file://', '')))));
-  check(`chaque scène exécutée par Motion Canvas : ${thumbs.length} vignettes, aucun aplat vide`, thumbs.length === 6 && film.scenes.every((s) => s.status === 'ready') && v.every((x) => x > 4), v.map((x) => x.toFixed(1)).join(', '));
+  check(`chaque scène exécutée par HyperFrames : ${thumbs.length} vignettes, aucun aplat vide`, thumbs.length === 6 && film.scenes.every((s) => s.status === 'ready') && v.every((x) => x > 4), v.map((x) => x.toFixed(1)).join(', '));
   check('demande sans scénario : « un jeune entrepreneur qui travaille » appelle un plan filmé, « nos clients adorent » non', describesFilmedAction('Une vidéo avec un jeune entrepreneur africain qui travaille sur son ordinateur') && !describesFilmedAction('Soldes : -30 % sur tous nos pagnes, nos clients adorent'));
 
   // ── 6 ──

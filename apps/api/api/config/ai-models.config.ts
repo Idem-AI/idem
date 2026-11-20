@@ -27,7 +27,7 @@ import logger from './logger';
  * fermés compris » du 10/11/2026 a été RETIRÉE le même jour à la demande de l'utilisateur (retour aux échelles du 05/11).
  *
  *   design  concevoir : concept et storyboard vidéo, retouche écrite, direction d'un document
- *   code    écrire du code : scènes Motion Canvas, pages HTML/Tailwind (et les corriger)
+ *   code    écrire du code : pages HTML/Tailwind (sites, scènes vidéo) (et les corriger)
  */
 export type ModelLadder = 'design' | 'code' | 'catalog' | 'video-design' | 'video-code' | 'video-sample' | 'video-vision' | 'video-teacher';
 
