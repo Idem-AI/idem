@@ -83,6 +83,8 @@ export type { PptxMode, PptxOptions, PptxReport, PptxSlideInput } from './export
 // ── Navigateur ─────────────────────────────────────────────────────────────────────────────────
 export { lightnessOf, patternLayerHtml, patternTiles, patternVerdict, planPattern, QUIET_STRENGTH, QUIET_STYLES, unit as patternUnit, usableTiles } from './runtime/pattern-director';
 export type { PatternAnchor, PatternPlan, PatternTile } from './runtime/pattern-director';
+export { composeRollup, ROLLUP_SIZE } from './runtime/rollup';
+export type { RollupInput, RollupResult } from './runtime/rollup';
 export { closeBrowser, configureBrowser, pageDocument, screenshot } from './runtime/browser';
 export type { BrowserOptions } from './runtime/browser';
 

@@ -11,6 +11,7 @@
  * Le gabarit assaini (clés et primitives encore en place) est ce qui est gardé : le rejouer avec un contenu
  * retouché refait la page sans modèle.
  */
+import { withSize } from '../design-system/formats';
 import type { DesignTokens } from '../design-system/tokens';
 import type { FormatDef } from '../design-system/formats';
 import type { ContentMap } from './content-map';
@@ -134,9 +135,7 @@ export function rootClasses(format: FormatDef): string {
 }
 
 /** Les cotes CSS d'un format qui n'en a pas (toile imposée par l'hôte). */
-export function withSize(format: FormatDef, size?: { width: number; height: number }): FormatDef {
-  return size ? { ...format, width: size.width, height: size.height, mm: undefined } : format;
-}
+export { withSize };
 
 export function expandPage(template: string, map: ContentMap, tokens: DesignTokens, format: FormatDef, frame: PageFrame): Expanded {
   const used = new Set<string>();

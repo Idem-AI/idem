@@ -23,6 +23,7 @@
     "check:catalog": "ts-node --transpile-only scripts/check-catalog.ts",
     "catalog:snapshot": "ts-node --transpile-only scripts/catalog-snapshot.ts",
     "schemas": "ts-node --transpile-only scripts/generate-schemas.ts",
+    "sample:rollup": "ts-node --transpile-only scripts/sample-rollup.ts",
     "sample:flyers": "ts-node --transpile-only scripts/sample-flyers.ts",
     "check:logo-director": "ts-node --transpile-only scripts/check-logo-director.ts",
     "check:tiers": "ts-node --transpile-only scripts/check-tiers.ts",
