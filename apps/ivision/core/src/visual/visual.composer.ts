@@ -625,13 +625,14 @@ export function stockQueries(copy: WrittenCopy, context: VisualBrandContext, sce
 const STOP = new Set(['the', 'and', 'with', 'for', 'from', 'into', 'onto', 'over', 'near', 'while', 'their', 'his', 'her', 'its', 'des', 'les', 'une', 'pour', 'avec', 'dans', 'sur']);
 
 /**
- * La photo de la banque (Pexels) la plus pertinente : jusqu'à 4 photos par recherche, classées par la vision ; la
+ * La photo de banque la plus pertinente (Pexels, Pixabay, Unsplash — le routeur choisit) : jusqu'à 4 photos
+ * par recherche, classées par la vision ; la
  * première recherche qui donne une photo à 5/10 ou plus l'emporte, sinon la meilleure de toutes si elle atteint 4/10.
  */
 export async function stockPhoto(o: { queries: string[]; orientation?: 'portrait' | 'landscape' | 'square'; subject: string; brand: { name: string; business?: string } }): Promise<{ url: string; attribution: SourcedImage['attribution']; query: string } | null> {
   let best: { url: string; attribution: SourcedImage['attribution']; query: string; score: number } | null = null;
   for (const query of o.queries) {
-    const photos = await imageSourcingService.pexelsPhotos(query, o.orientation, 4);
+    const photos = await imageSourcingService.stockPhotos(query, o.orientation, 4);
     if (!photos.length) continue;
     const ranked = await rankByRelevance(photos.map((p) => p.mediumUrl), o.subject, o.brand);
     const top = ranked[0];

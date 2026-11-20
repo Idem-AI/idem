@@ -44,10 +44,6 @@ TypeScript (https://www.typescriptlang.org)
 - License: Apache 2.0
 - Copyright: Microsoft Corporation
 
-Motion Canvas (https://motioncanvas.io) — video engine
-- License: MIT
-- Copyright: Motion Canvas contributors
-
 HyperFrames (https://github.com/heygen-com/hyperframes) — video engine
 - License: Apache 2.0
 - Copyright: HeyGen, Inc.
@@ -55,8 +51,7 @@ HyperFrames (https://github.com/heygen-com/hyperframes) — video engine
   (packages/motion-compiler/src/design/grade.ts, from cube-build.mjs); motion
   measurements, transition ("seam") vocabulary and vector law from the motion,
   motion-doctrine and cut-the-curve skills (packages/motion-compiler/src/design/
-  motion.ts, film.ts, directions.ts, src/intent/recipes.ts,
-  apps/ivision/core/motion/kit/seams.ts, apps/ivision/core/src/video/audio/sfx.ts).
+  motion.ts, film.ts, directions.ts, apps/ivision/core/src/video/audio/sfx.ts).
 
 Lucide icons (https://lucide.dev) — icons drawn in videos
 - License: ISC

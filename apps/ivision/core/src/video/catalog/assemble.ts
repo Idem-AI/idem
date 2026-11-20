@@ -21,7 +21,7 @@ import { ROLE_TARGET } from './types';
 import { animationFor, isFigure, rolesIn, SceneSlots } from './graph';
 
 /** L'ordre d'entrée des rôles. */
-const ENTRANCE: AnimRole[] = ['media', 'mark', 'figure', 'title', 'rule', 'label', 'body', 'attribution', 'items', 'cta', 'logo'];
+const ENTRANCE: AnimRole[] = ['bg', 'media', 'mark', 'figure', 'title', 'rule', 'label', 'body', 'attribution', 'items', 'cta', 'logo'];
 /** Signes lus par seconde à l'écran (sous-titrage professionnel : 12 à 17) et temps minimal d'un texte posé. */
 const READ_CPS = 15;
 const READ_MIN = 0.9;
@@ -153,7 +153,9 @@ export function sceneHtml(layout: LayoutNode, theme: ThemeNode, slots: SceneSlot
   // 7. L'échelle typographique du thème (titres et chiffres seulement).
   const scale = theme.type?.scale ?? 1;
   if (scale !== 1) html = html.replace(/data-fit="(title|figure)" data-fk="([\d.]+)"/g, (_m, r: string, k: string) => `data-fit="${r}" data-fk="${(Number(k) * scale).toFixed(4)}"`);
-  return `<div class="relative h-full w-full overflow-hidden ${classes.ground ?? 'bg-ground'}">${html.replace(/\s{2,}/g, ' ').trim()}</div>`;
+  // Le fond animé (si le thème en porte un) : un calque décoratif, derrière tout, jamais lu par les textes.
+  const bg = classes.bgLayer ? `<div data-v="bg" aria-hidden="true" class="pointer-events-none absolute inset-0 -z-10 ${classes.bgLayer}"></div>` : '';
+  return `<div class="relative h-full w-full overflow-hidden ${classes.ground ?? 'bg-ground'}">${bg}${html.replace(/\s{2,}/g, ' ').trim()}</div>`;
 }
 
 // ── La chorégraphie ──────────────────────────────────────────────────────────────────────────
@@ -276,13 +278,14 @@ export function assembleScene(i: AssembleInput): { html: string; script: string;
       const split = ROLE_TARGET[role] === 'text' ? anim.split ?? 'none' : 'none';
       const steps = resolveSteps(anim.steps.in, tokens);
       const units = unitsOf(role, split, textOf(role), i.slots.items.length);
-      const at = role === 'media' ? Math.max(0, t - 0.12) : t;
+      // Le fond entre tout de suite, sous le panneau de transition s'il y en a un : il ne retarde aucun autre rôle.
+      const at = role === 'bg' ? 0 : role === 'media' ? Math.max(0, t - 0.12) : t;
       const entry: RuntimeRole = { role, sel: role === 'items' ? '[data-v="item"]' : `[data-v="${role}"]`, split, mask: Boolean(anim.mask) && split !== 'none', at, in: steps };
       if (anim.steps.out?.length) entry.out = resolveSteps(anim.steps.out, tokens);
       roles.push(entry);
       const span = stepsSpan(steps, units);
       // Le suivant entre quand celui-ci est aux deux tiers de son mouvement principal (chevauchement léger).
-      t = role === 'media' ? t + 0.12 : role === 'rule' || role === 'mark' ? t + Math.min(span, tokens.dIn as number) * 0.3 : t + Math.max(0.12, Math.min(span * 0.62, (tokens.dIn as number) * 0.7));
+      if (role !== 'bg') t = role === 'media' ? t + 0.12 : role === 'rule' || role === 'mark' ? t + Math.min(span, tokens.dIn as number) * 0.3 : t + Math.max(0.12, Math.min(span * 0.62, (tokens.dIn as number) * 0.7));
     }
     const ends = roles.map((r) => r.at + stepsSpan(r.in, unitsOf(r.role, r.split, textOf(r.role), i.slots.items.length)));
     return { roles, end: Math.max(0, ...ends), tokens };

@@ -54,7 +54,7 @@ let nextId = 0;
 /**
  * L'ÉDITEUR DE VIDÉO partagé par iVision et IDEM.
  *
- * À gauche, l'aperçu : la page autonome du moteur Motion Canvas (le même paquet que le MP4), jouée
+ * À gauche, l'aperçu : la page autonome du moteur HyperFrames (la même composition que le MP4), jouée
  * dans un iframe isolé (`sandbox="allow-scripts"`), et la frise des scènes. À droite, chaque scène :
  * ses textes (des DONNÉES lues par le code de la scène : chaque frappe se voit aussitôt, le code ne
  * change pas), sa photo, et ce que l'utilisateur peut demander à l'IA — réécrire la scène selon une

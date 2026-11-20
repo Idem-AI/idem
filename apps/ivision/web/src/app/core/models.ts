@@ -213,7 +213,7 @@ export interface MotionVideo {
   title: string;
   status: 'draft' | 'rendering' | 'ready' | 'failed';
   scope: { durationSec: number; formats: string[]; quality: string };
-  /** Le film (moteur Motion Canvas) ; absent pour une vidéo de l'ancien moteur (`legacy`). */
+  /** Le film (moteur HyperFrames) ; absent pour une vidéo de l'ancien moteur (`legacy`). */
   film?: {
     title: string;
     concept: string;

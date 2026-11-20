@@ -1,15 +1,14 @@
 # Vidéos de promotion en motion design
 
 Module Communication (écran « Mes vidéos ») et iVision (atelier Vidéo). Code : moteur partagé
-`apps/ivision/core/src/video/` (navigateur : `apps/ivision/core/motion/`) ; IDEM le branche par
-`api/services/ivision/host.ts` et `Communication/video/idemVideoStore.ts`.
+`apps/ivision/core/src/video/` ; IDEM le branche par `api/services/ivision/host.ts` et
+`Communication/video/idemVideoStore.ts`.
 
-Chaque vidéo est **conçue par l'IA et animée par Motion Canvas**, scène par scène, sans mise en page imposée.
-Depuis le 29 octobre 2026 (compilateur 0.3), l'IA écrit pour chaque scène une **intention** (rôle, énergie, type de
-composition, hiérarchie, verbes de mouvement) ; le code calcule la géométrie et le temps de chaque format, écrit
-plusieurs variantes, les **mesure** et garde la meilleure. Un texte n'est jamais coupé, reste le temps d'être lu, et la
-même vidéo s'affiche bien dans chaque format, zones d'interface des plateformes comprises. Le fonctionnement du
-moteur : [VIDEO_ENGINE.md](VIDEO_ENGINE.md).
+Chaque vidéo est **assemblée par le code depuis le catalogue** (`idem-templates`) et rendue par **HyperFrames** : chaque
+scène est une page HTML Tailwind animée par GSAP, sans mise en page imposée (le catalogue propose, le code assemble,
+jamais un modèle n'écrit le HTML). Un texte n'est jamais coupé, reste le temps d'être lu, et la même vidéo s'affiche
+bien dans chaque format, zones d'interface des plateformes comprises. Le fonctionnement du moteur :
+[VIDEO_ENGINE.md](VIDEO_ENGINE.md).
 
 ## Ce que voit l'utilisateur
 
@@ -125,19 +124,10 @@ jamais du goût d'un modèle.
 
 ## L'autocorrection des scènes
 
-Avant que la vidéo soit montrée, chaque scène qui plante, dont un texte est coupé, recouvert ou illisible (dans un des
-formats) est **corrigée automatiquement**, dans des bornes strictes (`src/video/author/repair.ts`) :
-
-1. **sans modèle** d'abord : la seconde variante gardée par le juge, puis les variantes que le rapport mesuré propose
-   (un cran d'échelle, une autre zone pour le texte) ;
-2. **depuis le rapport** : le modèle de qualité réécrit l'intention en sachant exactement quel élément, dans quel
-   format, est en défaut et pourquoi ;
-3. le **dernier recours du code** : encre lisible d'après le fond réel, ou aplat sous le texte.
-
-Une scène qui marchait n'est jamais remplacée par une version moins bonne ; après chaque tour, Motion Canvas réexécute
-le film. Budget du film : `VIDEO_REPAIR_TOKEN_BUDGET` (400 000 jetons), `VIDEO_REPAIR_MAX_MS` (10 min),
-`VIDEO_REPAIR_ATTEMPTS` (3), `VIDEO_REPAIR_CONCURRENCY` (3). Ce qui résiste reste signalé sur sa scène (« Corriger »
-relance la même boucle) ; le journal est dans `film.repair` et `scene.author.repairs`.
+Avant que la vidéo soit montrée, une scène qui plante prend, **sans modèle**, le candidat suivant de sa liste dans le
+catalogue (`motionVideo.service.ts#repairHtmlScenes`) ; le film est réassemblé puis recontrôlé réellement dans Chrome.
+Une scène qui marchait n'est jamais remplacée par une version qui plante. Ce qui résiste reste signalé sur sa scène
+(« Corriger » relance la même boucle).
 
 ## Prix (crédits iBusiness)
 
@@ -237,6 +227,5 @@ prévisualisent ni ne se retouchent plus (le détail le dit et propose de créer
 
 ## Contrôle
 
-`npm run check:video` (apps/api), `npm run check:request`, `check:intent`, `check:lottie`, `check:demo`
-(apps/ivision/core) — voir
-[VIDEO_ENGINE.md §14](VIDEO_ENGINE.md#14-contrôles-gratuits-sauf-mention).
+`npm run check:hyperframes`, `check:request`, `check:lottie`, `check:demo` (apps/ivision/core) — voir
+[VIDEO_ENGINE.md](VIDEO_ENGINE.md#contrôles-gratuits-sauf-mention).

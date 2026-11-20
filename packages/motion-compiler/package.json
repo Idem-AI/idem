@@ -2,28 +2,17 @@
   "name": "@idem/motion-compiler",
   "version": "0.3.0",
   "private": true,
-  "description": "iVision Motion Compiler : l'IA écrit un PROGRAMME D'ANIMATION compact (langage de mouvement JSON : nœuds, pistes, courbes) ; un compilateur déterministe le traduit en scène Motion Canvas. Se branche sur le moteur vidéo du cœur iVision à la place de l'auteur TSX ; benchmark des deux logiques sur les mêmes demandes.",
+  "description": "Système de design du film partagé par le moteur vidéo HyperFrames : direction artistique, rôles de couleur et contraste, dégradé des médias, typographie, zones sûres par plateforme, énergie et coutures des scènes.",
   "main": "src/index.ts",
   "types": "src/index.ts",
   "scripts": {
-    "typecheck": "tsc --noEmit -p tsconfig.json",
-    "check": "ts-node --transpile-only scripts/check.ts",
-    "bench": "ts-node --transpile-only bench/run.ts",
-    "bench:report": "ts-node --transpile-only bench/report.ts",
-    "check:intent": "ts-node --transpile-only scripts/check-intent.ts",
-    "bench:quality": "ts-node --transpile-only bench/quality/run.ts",
-    "bench:quality:rate": "ts-node --transpile-only bench/quality/rate.ts",
-    "bench:quality:fit": "ts-node --transpile-only bench/quality/fit.ts",
-    "bench:quality:offline": "ts-node --transpile-only bench/quality/offline.ts",
-    "references:teach": "ts-node --transpile-only bench/references/teach.ts",
-    "references:promote": "ts-node --transpile-only bench/references/promote.ts"
+    "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "license": "MIT",
   "devDependencies": {
     "typescript": "^5.8.2"
   },
   "dependencies": {
-    "@lume/kiwi": "0.4.4",
     "@capsizecss/metrics": "4.4.0",
     "@material/material-color-utilities": "0.3.0",
     "@adobe/leonardo-contrast-colors": "1.1.0"

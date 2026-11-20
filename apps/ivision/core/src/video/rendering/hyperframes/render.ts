@@ -1,7 +1,7 @@
 /**
  * LE RENDU HYPERFRAMES — la composition (`composition.ts`) devient un MP4 muet par le producteur HyperFrames
  * (`@hyperframes/producer`, Chrome sans interface + FFmpeg), puis le code d'IDEM mixe la bande son (musique, voix,
- * effets planifiés) et tire l'affiche — exactement comme pour Motion Canvas (`rendering/ffmpeg.ts`).
+ * effets planifiés) et tire l'affiche (`rendering/ffmpeg.ts`).
  *
  * Mesuré sur la machine de test (MacBook Pro 2019, Intel, sans GPU) : 4 s en 1080 × 1080 rendues en 28 s, dont ~22 s de
  * démarrage de Chrome. Le producteur est un module ESM : il est chargé par un vrai `import()` (le code est compilé en

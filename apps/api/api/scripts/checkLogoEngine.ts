@@ -49,8 +49,12 @@ import { LogoDocumentSchema, LOGO_IR_VERSION } from '../services/logo-engine/ir/
 import { fixOnce } from '../services/logo-engine/validate/autofix';
 import { randomParams, resolveParams, seeded } from '../services/logo-engine/render/generators';
 import { candidateDocs, docForDirection } from '../services/logo-engine/planner/planner';
+import { generatorsOf, literalGenerators } from '../services/logo-engine/planner/originality';
 import { improveLogo, observeLogo, normalizedGrid } from '../services/logo-engine/improve/improve';
-import { parseReading } from '../services/logo-engine/improve/reading';
+import { parseBox, parseReading, wishWithoutAnalysis } from '../services/logo-engine/improve/reading';
+import { enclosedVoidRatio, PRACTICES, practiceBrief } from '../services/logo-engine/validate/practices';
+import { generatorScore, originalityOf, rarityPenalty } from '../services/logo-engine/planner/originality';
+import { buildPool, selectDistinct } from '../services/logo-engine/planner/planner';
 import { PaperGeometryKernel } from '../services/logo-engine/kernel/paper.kernel';
 import { circlePath, rectPath } from '../services/logo-engine/kernel/primitives';
 import { extractFontFileUrl } from '../services/BandIdentity/lockup/fontLoader.service';
@@ -394,7 +398,9 @@ async function main(): Promise<void> {
   check('les propositions couvrent plusieurs catégories', types.size >= 5, [...types].join(', '));
   const sectorFirst = await planLogos({ brief: BRANDS[0].brief, palette: BRANDS[0].pal, fonts: BUILD.fonts, kind: 'icon', seed: 'sector', count: 3, explore: 0.2 }, BUILD);
   const sectorDocs = sectorFirst.logos.flatMap((l) => l.doc.layers.filter((x) => x.kind === 'generator').map((x) => (x as { generator: string }).generator));
-  check('le secteur oriente le choix (agriculture → motifs naturels)', sectorDocs.some((g) => ['leaf', 'sprout', 'drop', 'sunrise', 'wave', 'baobab', 'house', 'bean', 'rosette'].includes(g)), sectorDocs.join(', '));
+  // Le secteur ne choisit plus le symbole : ses représentations littérales (clichés) sont écartées.
+  const literal = literalGenerators(BRANDS[0].brief);
+  check('le secteur ne dicte plus le symbole : aucun cliché littéral proposé', literal.length > 0 && !sectorDocs.some((g) => literal.includes(g)), `clichés écartés [${literal.join(', ')}] · proposés ${sectorDocs.join(', ')}`);
   const memory = plans[1].fps;
   const withMemory = await planLogos({ brief: BRANDS[1].brief, palette: BRANDS[1].pal, fonts: BUILD.fonts, kind: 'icon', seed: 'plan:Kora Bank', count: 3, explore: 0.5, avoid: memory }, BUILD);
   const dm = withMemory.logos.map((l) => Math.min(...memory.map((m) => fingerprintDistance(l.fingerprint!, m))));
@@ -414,10 +420,9 @@ async function main(): Promise<void> {
     if (req.role === 'logoSelector') return 'picks: a, c, e';
     if (req.role === 'logoJury') return 'best: b';
     if (req.role === 'logoDirector') {
-      const lines = req.system.split('\n').filter((l) => l.startsWith('- '));
-      const pick = (type: string) => lines.find((l) => l.startsWith(`- ${type} `));
-      const gen = (type: string, n = 0) => (pick(type)?.match(/generators: ([^\n]+?)(?: variants:|$)/)?.[1] ?? '').split(', ')[n];
-      return [`1: pictorial | ${gen('pictorial')} | une image simple`, `2: abstract | ${gen('abstract', 1)} | une construction qui bouge`, `3: mascot | ${gen('mascot')} | un personnage chaleureux`].join('\n');
+      // Le catalogue est listé par famille (« pictorial: a, b, c »), du plus original au plus littéral.
+      const family = (name: string) => (req.system.match(new RegExp(`^ ${name}: (.+)$`, 'm'))?.[1] ?? '').split(', ');
+      return ['cliches: a vault door, a dollar sign', `1: pictorial | ${family('pictorial')[0]} | value | une image simple`, `2: abstract | ${family('abstract')[1]} | story | une construction qui bouge`, `3: mascot | ${family('mascot')[0]} | name | un personnage chaleureux`].join('\n');
     }
     if (req.role === 'logoAuthor') {
       const gen = req.user.match(/DIRECTION: [\w-]+ \/ ([\w-]+)/)?.[1] ?? 'orbit';
@@ -441,7 +446,9 @@ async function main(): Promise<void> {
   check('high : trois catégories différentes', types3.size === 3, [...types3].join(', '));
   check('high : le générateur choisi par le directeur est respecté', high.logos.some((l) => l.doc.layers.some((x) => x.kind === 'generator')), '');
   const max = await run('ultra', simulated());
-  check('ultra : l\'IA écrit le Logo IR (3 brouillons par direction) et le jury départage', log.filter((l) => l.role === 'logoAuthor').length === 9 && log.some((l) => l.role === 'logoJury') && max.logos.length === 3);
+  const authorCalls = log.filter((l) => l.role === 'logoAuthor').length;
+  check('ultra : l\'IA écrit le Logo IR (2 brouillons par direction, un 3e seulement si aucun ne passe)', authorCalls >= 6 && authorCalls <= 9 && max.logos.length === 3, `${authorCalls} appels d'auteur`);
+  check('ultra : le jury départage, ou le code quand un brouillon domine', max.decisions.filter((d) => d.stage === 'jury').length >= 1);
   check('ultra : l\'auteur utilise le profil « coder » (sortie longue), les choix le profil léger', profiles.logoAuthor === 'coder' && profiles.logoDirector === 'agents' && profiles.logoJury === 'critic', JSON.stringify(profiles));
   check('ultra : les brouillons de l\'IA passent par le pipeline qualité', max.logos.every((l) => l.report.ok), max.logos.map((l) => `${l.recipe}:${l.report.score}`).join(' '));
 
@@ -595,6 +602,91 @@ async function main(): Promise<void> {
   const noModelImprove = await improveLogo({ svg: original, brief: { brandName: 'Verda' }, build: BUILD, level: 'high', count: 3, seed: 'x' });
   check('sans modèle : liste vide, aucune erreur', noModelImprove.logos.length === 0);
   check('grille normalisée : deux marges différentes se comparent', !!normalizedGrid({ width: 4, height: 4, rgba: new Uint8Array(64).map((_, i) => (i % 4 === 3 ? 255 : 0)) }));
+
+  check('dessinateur : il reçoit la CARTE D\'ENCRE mesurée de l\'original (silhouette 20 × 20)', logoCalls.every((u) => /INK MAP/.test(u) && (u.match(/^[#+.]{20}$/gm) ?? []).length === 20));
+  const redrawSystems: string[] = [];
+  await improveLogo({ svg: original, brief: { brandName: 'Verda' }, build: BUILD, level: 'medium', count: 3, call: async (req) => (redrawSystems.push(req.system), redraw(req)), vision: async () => reading, seed: 'improve-cache' });
+  check('dessinateur : partie fixe du prompt identique aux 3 degrés (cache du fournisseur)', redrawSystems.length === 3 && new Set(redrawSystems).size === 1);
+  check('observateur : boîtes d\'éléments 0–100 lues et bornées', JSON.stringify(parseBox([10, 20, 130, 50])) === JSON.stringify({ x: 10, y: 20, w: 90, h: 50 }) && parseBox('x') === null && parseBox({ x: 5, y: 5, w: 40, h: 40 })?.w === 40);
+  check('souhait : l\'analyse recopiée par la création de projet est retirée (pas payée deux fois)', wishWithoutAnalysis('Plus moderne svp\n\nKEEP: disc. FIX: bar.\n\nOriginal logo reference — shapes: x') === 'Plus moderne svp' && wishWithoutAnalysis('KEEP: a') === undefined);
+
+  // ── 17. Bonnes pratiques par type, anti-cliché, rareté, vitesse ─────────
+  section('17. Bonnes pratiques par type · anti-cliché · originalité · vitesse et jetons');
+  check('référentiel : une consigne et des règles pour les 11 types', CONCEPT_TYPES.every((t) => PRACTICES[t].length > 0 && practiceBrief(t).length > 40));
+  const bp = async (doc: Record<string, unknown>) => (await produceLogo(doc, BUILD, { fix: false, skipVariants: true })).logo!.report.defects.map((d) => d.code);
+  const docOf = (type: string, layers: unknown[], extra: Record<string, unknown> = {}) => ({ brief: { brandName: 'Kora Bank' }, concept: { type, rationale: 'x' }, palette: { ink: '#0f3d5e', accent: '#e76f51' }, layers, composition: { layout: 'auto' }, ...extra });
+  const wordmarkWithSymbol = await bp(docOf('wordmark', [{ kind: 'shape', id: 's', geometry: { type: 'circle', cx: 50, cy: 50, r: 30 } }, { kind: 'text', id: 'n', role: 'wordmark', content: 'Kora Bank' }]));
+  check('logotype : un symbole ajouté au nom est signalé', wordmarkWithSymbol.includes('practice_wordmark_symbol'), wordmarkWithSymbol.filter((c) => c.startsWith('practice')).join(','));
+  const foreignMonogram = await bp(docOf('lettermark', [{ kind: 'shape', id: 'c', geometry: { type: 'circle', cx: 50, cy: 50, r: 45 } }, { kind: 'text', id: 'l', role: 'symbol', content: 'XZ', at: { x: 50, y: 50 }, size: 40, fill: 'paper' }]));
+  const goodMonogram = await bp(docOf('lettermark', [{ kind: 'shape', id: 'c', geometry: { type: 'circle', cx: 50, cy: 50, r: 45 } }, { kind: 'text', id: 'l', role: 'symbol', content: 'KB', at: { x: 50, y: 50 }, size: 40, fill: 'paper' }]));
+  check('monogramme : des lettres absentes du nom sont signalées, les initiales passent', foreignMonogram.includes('practice_lettermark_letters') && !goodMonogram.includes('practice_lettermark_letters'));
+  const solidDisc = await bp(docOf('negative-space', [{ kind: 'shape', id: 'c', geometry: { type: 'circle', cx: 50, cy: 50, r: 40 } }]));
+  const cutDisc = await bp(docOf('negative-space', [{ kind: 'group', id: 'g', children: [{ kind: 'shape', id: 'c', geometry: { type: 'circle', cx: 50, cy: 50, r: 40 } }, { kind: 'shape', id: 'k', geometry: { type: 'polygon', cx: 50, cy: 52, r: 18, sides: 3 }, fill: 'paper' }] }]));
+  check('espace négatif : mesuré sur les pixels (vide ENFERMÉ dans l\'encre)', solidDisc.includes('practice_negative_space') && !cutDisc.includes('practice_negative_space'));
+  const voidRing = { width: 5, height: 5, rgba: new Uint8Array(100).map((_, i) => { const p = i >> 2; const x = p % 5; const y = (p / 5) | 0; return i % 4 === 3 && (x >= 1 && x <= 3 && y >= 1 && y <= 3) && !(x === 2 && y === 2) ? 255 : 0; }) };
+  check('espace négatif : le vide relié au bord ne compte pas, le vide enfermé compte', Math.abs(enclosedVoidRatio(voidRing) - 1 / 8) < 1e-6);
+
+  // Anti-cliché
+  const SECTORS: PlanBrief[] = [
+    { brandName: 'Chez Mama Ngozi', industry: 'restaurant', description: 'Restaurant familial de cuisine nigériane à Douala', personality: ['chaleureux', 'authentique'] },
+    { brandName: 'Kora Finance', industry: 'banque finance', personality: ['confiance', 'moderne'] },
+    { brandName: 'Clinique Espoir', industry: 'santé clinique', personality: ['soin', 'proximité'] },
+    { brandName: 'Akili School', industry: 'éducation école', personality: ['curiosité', 'excellence'] },
+    { brandName: 'Kafé Lomé', industry: 'café coffee', personality: ['convivial', 'urbain'] },
+  ];
+  let literalHits = 0;
+  let literalTotal = 0;
+  for (const b of SECTORS) {
+    const lit = new Set(literalGenerators(b));
+    for (let k = 0; k < 4; k++) for (const c of candidateDocs({ brief: b, palette: { primary: '#1d4ed8' }, fonts: BUILD.fonts, kind: 'icon', seed: `cliche${k}`, explore: 0.8 }, 6)) for (const g of generatorsOf((c.doc as { layers: unknown }).layers)) {
+      literalTotal++;
+      if (lit.has(g)) literalHits++;
+    }
+  }
+  check('planificateur : 5 secteurs, aucun cliché littéral (tasse, croix, toque, barres…)', literalHits === 0 && literalTotal > 60, `${literalHits}/${literalTotal}`);
+  check('clichés estimés par le secteur (repli sans modèle)', literalGenerators(SECTORS[0]).some((g) => ['cup', 'fish', 'flame'].includes(g)) && literalGenerators(SECTORS[2]).includes('cross'), `${literalGenerators(SECTORS[0]).join(',')} · ${literalGenerators(SECTORS[2]).join(',')}`);
+  const pictorialPick = (raw: string) => raw.match(/^ pictorial: ([\w-]+)/m)?.[1] ?? 'leaf';
+  const selfCliche = await run('high', simulated({ logoDirector: (r) => [`cliches: ${pictorialPick(r.system)}, a fork and spoon`, `1: pictorial | ${pictorialPick(r.system)} | value | x`, '2: abstract | orbit | story | y', '3: mascot | fox | name | z'].join('\n') }));
+  check('directeur : une direction qui reprend un cliché qu\'il a nommé est refusée', selfCliche.decisions.find((d) => d.stage === 'directions')?.source === 'code' && selfCliche.logos.length === 3);
+  const named = await run('ultra', simulated({ logoDirector: (r) => ['cliches: shield, a vault door', `1: pictorial | ${pictorialPick(r.system)} | value | x`, '2: abstract | orbit | story | y', '3: mascot | fox | name | z'].join('\n') }));
+  const authorUsers = log.filter((l) => l.role === 'logoAuthor').map((l) => l.user);
+  check('directeur : les clichés nommés sont bannis et interdits aux auteurs (AVOID)', named.originality!.cliches.includes('shield') && authorUsers.length > 0 && authorUsers.every((u) => /AVOID \(clichés of this business\): .*vault door/.test(u)), named.originality!.avoid.join(', '));
+  const koraLiteral = literalGenerators(kora.brief);
+  const directorMenu = log.find((l) => l.role === 'logoDirector')!.system;
+  check('directeur : le menu ne propose pas les clichés estimés par le code', koraLiteral.length > 0 && koraLiteral.every((id) => !new RegExp(`^ \\w+: .*\\b${id}\\b`, 'm').test(directorMenu)), koraLiteral.join(', '));
+  const clicheDraft = await run('ultra', simulated({ logoDirector: () => ['cliches: shield', '1: pictorial | leaf | value | x', '2: abstract | orbit | story | y', '3: mascot | fox | name | z'].join('\n'), logoAuthor: () => JSON.stringify({ rationale: 'x', layers: [{ kind: 'generator', id: 'sym', generator: 'shield' }, { kind: 'text', id: 'name', role: 'wordmark', content: 'Kora Bank' }] }) }));
+  check('auteur : un brouillon qui dessine un cliché est refusé', clicheDraft.decisions.some((d) => d.stage === 'author' && /cliché/.test(d.detail ?? '')) && clicheDraft.logos.every((l) => !generatorsOf(l.doc.layers).includes('shield')));
+  const clicheCritic = async () => `scores: distinctiveness=2, simplicity=4, balance=4, concept=4, craft=4, legibility=4\nverdict: fix\npatch: [{"op":"generator","id":"sym","generator":"${literalGenerators(kora.brief)[0]}"}]\nnote: x`;
+  const criticSwap = await run('ultra', simulated(), clicheCritic);
+  check('critique : un patch qui remplace le symbole par un cliché est écarté', criticSwap.logos.every((l) => !generatorsOf(l.doc.layers).includes(literalGenerators(kora.brief)[0])) && criticSwap.decisions.some((d) => d.stage === 'critic'));
+
+  // Rareté et foule (mémoire IDEM)
+  const o = originalityOf(SECTORS[1], { usage: { orbit: 60, wave: 1, spiral: 1 } });
+  check('rareté : le générateur le plus montré dans IDEM perd des points', generatorScore(getGenerator('orbit')!, o) < generatorScore(getGenerator('orbit')!, originalityOf(SECTORS[1])) && rarityPenalty('wave', o.usage) === 0);
+  const crowdPool = (await buildPool({ brief: kora.brief, palette: kora.pal, fonts: BUILD.fonts, kind: 'icon', seed: 'crowd', count: 3, explore: 0.5 }, BUILD, 10)).pool;
+  const plainFirst = selectDistinct(crowdPool, 1)[0];
+  const crowdedFirst = selectDistinct(crowdPool, 1, [], [plainFirst.fingerprint!])[0];
+  check('foule : un logo déjà proposé à un autre projet est écarté de la sélection', crowdPool.length > 2 && crowdedFirst !== plainFirst, `${plainFirst.recipe} → ${crowdedFirst.recipe}`);
+
+  // Vitesse et jetons
+  let inFlight = 0;
+  let peak = 0;
+  const slow: AgentCall = async (req) => {
+    inFlight++;
+    peak = Math.max(peak, inFlight);
+    await new Promise((r) => setTimeout(r, 60));
+    inFlight--;
+    return simulated()(req);
+  };
+  const tFast = Date.now();
+  const fast = await run('ultra', slow);
+  const msFast = Date.now() - tFast;
+  check('vitesse : les directions sont dessinées EN PARALLÈLE (≥ 3 auteurs simultanés)', peak >= 3 && fast.logos.length === 3, `pic ${peak} appels simultanés, ${msFast} ms`);
+  const authorSystems = log.filter((l) => l.role === 'logoAuthor').map((l) => l.system);
+  check('jetons : partie fixe du prompt d\'auteur identique à tous les appels (cache du fournisseur)', authorSystems.length > 1 && new Set(authorSystems).size === 1);
+  check('jetons : bonnes pratiques du type données à l\'auteur', log.filter((l) => l.role === 'logoAuthor').every((l) => /BEST PRACTICES \(/.test(l.user)));
+  const goodFirst = log.filter((l) => l.role === 'logoAuthor').length;
+  check('jetons : une 1re vague réussie ne paie pas de 3e brouillon (6 appels au lieu de 9)', goodFirst === 6, `${goodFirst} appels d'auteur`);
 
   console.log(`\n${passes} vérifications réussies, ${failures} échec(s) — ${((Date.now() - started) / 1000).toFixed(1)} s`);
   if (failures) process.exit(1);

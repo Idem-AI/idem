@@ -38,7 +38,7 @@ export function buildPlannerPrompt(brief: FilmBrief, concept: FilmConcept | null
   const script = scripted(brief);
   const count = script ? `exactly ${brief.spec!.scenes.length} scenes (one per scene of the client's script, same order)` : brief.referenceShots?.length ? `exactly ${brief.referenceShots.length} scenes (one per shot of the client's model, same order)` : concept?.outline.length ? `${Math.min(max, Math.max(min, concept.outline.length))} scenes` : `${min} to ${max} scenes`;
   const system = [
-    'You write the storyboard of a short motion-design film. An animator will code each scene separately in Motion Canvas, reading ONLY its scene card — so each card must be concrete and complete.',
+    'You write the storyboard of a short motion-design film. Each scene is built separately from its scene card alone (a layout, theme and animation picked to fit it) — so each card must be concrete and complete.',
     !concept ? 'First invent the film: TITLE, CONCEPT (one or two sentences), BIBLE (3 to 6 lines: colour use, typography, graphic language, motion personality). Be original — no template exists, nothing is imposed.' : 'The concept is given: develop it faithfully.',
     '',
     'Output format (plain lines, no JSON, no markdown):',

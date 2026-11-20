@@ -46,8 +46,8 @@ const shape = (v: MotionVideo | null) => (v?.film?.scenes ?? []).map((s) => `${s
 type SavingKind = 'texts' | 'photo' | 'music' | 'sfx' | 'voice' | 'captions' | 'revise';
 
 /**
- * Une vidéo : l'éditeur partagé avec iVision (`@idem/shared-video-editor` : l'aperçu Motion Canvas
- * — le même paquet que le MP4 —, les textes de chaque scène vus en direct, et les demandes de
+ * Une vidéo : l'éditeur partagé avec iVision (`@idem/shared-video-editor` : l'aperçu HyperFrames
+ * — la même composition que le MP4 —, les textes de chaque scène vus en direct, et les demandes de
  * réécriture d'une scène par l'IA), la retouche écrite pour tout le film, la musique, les effets,
  * la voix et l'export. Une vidéo de l'ancien moteur reste téléchargeable, en lecture seule.
  */

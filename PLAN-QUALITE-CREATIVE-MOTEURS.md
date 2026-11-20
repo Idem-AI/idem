@@ -6,6 +6,10 @@
 > source** (fichiers LICENSE via l'API GitHub, fiches Hugging Face, registres npm et PyPI), et **seulement des outils
 > qui tournent sur la machine actuelle** (§1, relevé détaillé).
 > Les durées sont des **estimations** de travail, pas des mesures.
+>
+> **Note du 20/11/2026** : Motion Canvas a été retiré du moteur vidéo (décision définitive). HyperFrames est
+> depuis le seul moteur ; `IDEM_VIDEO_RENDERER` et le choix de moteur mentionnés plus bas (§ ci-dessous) n'existent
+> plus dans le code — gardés ici tels quels pour l'historique de la décision.
 
 ## Décisions déjà prises (04/11/2026)
 

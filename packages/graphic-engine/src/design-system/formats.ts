@@ -284,3 +284,27 @@ export function contentBox(format: FormatDef): { width: number; height: number }
 
 /** Un format est-il imprimé en cotes physiques ? */
 export const isPrint = (format: FormatDef): boolean => Boolean(format.mm);
+
+export function withSize(format: FormatDef, size?: { width: number; height: number }): FormatDef {
+  if (!size) return format;
+  const resized = { ...format, width: size.width, height: size.height, mm: undefined };
+  // Une toile d'IMPRESSION (cotes en mm) rendue à une taille d'écran : marges, corps du texte, filets, fond perdu
+  // et cotes CSS étaient calculés pour 96 dpi réels (un roll-up = 3 213 px de large) — posés tels quels sur 850 px,
+  // la composition débordait de partout. Tout suit le rapport entre la toile réelle et la toile demandée.
+  if (!format.mm) return { ...resized, css: { ...format.css, width: `${size.width}px`, height: `${size.height}px` } };
+  const k = size.width / format.width;
+  const px = (v: number): number => Math.max(1, Math.round(v * k));
+  return {
+    ...resized,
+    pad: px(format.pad),
+    safe: { top: px(format.safe.top), right: px(format.safe.right), bottom: px(format.safe.bottom), left: px(format.safe.left) },
+    base: px(format.base),
+    minSize: Math.max(8, px(format.minSize)),
+    maxSize: px(format.maxSize),
+    unit: Math.max(2, px(format.unit)),
+    scale: Math.max(0.6, format.scale * k),
+    exportScale: 1,
+    bleed: format.bleed ? { mm: format.bleed.mm, px: px(format.bleed.px) } : undefined,
+    css: { width: `${size.width}px`, height: `${size.height}px`, padding: `${px(format.pad)}px` },
+  };
+}

@@ -21,7 +21,7 @@ const MOODS = ['auto', 'upbeat', 'afro', 'calm', 'epic', 'corporate', 'none'];
 const timing = (v: MotionVideo | null) => (v?.film?.scenes ?? []).map((s) => `${s.key}:${s.start}:${s.duration}:${s.code?.length ?? 0}:${s.html?.length ?? 0}:${s.author?.at ?? ''}`).join('|');
 
 /**
- * Retoucher une vidéo : l'éditeur partagé avec IDEM (aperçu Motion Canvas, textes en direct, et
+ * Retoucher une vidéo : l'éditeur partagé avec IDEM (aperçu HyperFrames, textes en direct, et
  * demandes de réécriture d'une scène par l'IA), la musique, les effets sonores, la voix, et l'export
  * MP4 (le premier inclus dans le prix de la vidéo). Une scène en erreur se corrige avant l'export.
  */

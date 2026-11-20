@@ -20,16 +20,14 @@ import fs from 'fs';
 import path from 'path';
 import { buildTokens, compileTailwind, lightnessOf, patternLayerHtml, patternVerdict, planPattern, QUIET_STRENGTH, QUIET_STYLES } from '@idem/graphic-engine';
 import type { PatternTile } from '@idem/graphic-engine';
-import type { BrandTokens } from '../../../../motion/kit/context';
+import type { BrandTokens } from '../../contracts/brand-tokens';
 import { CATALOG_RUNTIME } from '../../catalog/runtime';
 import { isCatalogScript } from '../../catalog/assemble';
 
 export type AnimationLib = 'gsap' | 'anime';
 
-/** Le moteur de rendu des nouveaux films : HyperFrames par défaut, Motion Canvas au choix (et en repli). */
-export function videoRenderer(): 'hyperframes' | 'motion-canvas' {
-  return (process.env.IDEM_VIDEO_RENDERER || 'hyperframes').trim().toLowerCase() === 'motion-canvas' ? 'motion-canvas' : 'hyperframes';
-}
+/** La version du moteur de rendu (servie par `GET …/videos/options`) : celle d'`@hyperframes/producer`. */
+export const HYPERFRAMES_VERSION = '0.9.13';
 
 export interface HtmlScene {
   key: string;
@@ -207,8 +205,7 @@ ${preview ? previewPlayer(input) : ''}
 const scriptJson = (value: unknown) => JSON.stringify(value).replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
 
 /**
- * L'aperçu dans le navigateur : le lecteur que les éditeurs pilotent (`@idem/shared-video-editor`, résultat iVision),
- * sur le même protocole que le lecteur Motion Canvas (`motion/runtime/player.ts`) :
+ * L'aperçu dans le navigateur : le lecteur que les éditeurs pilotent (`@idem/shared-video-editor`, résultat iVision) :
  *
  *   → parent  `ivision:ready` (durée, scènes, erreurs) · `ivision:loading` / `ivision:playable` (sons et médias en
  *             mémoire) · `ivision:time` (instant, lecture) · `ivision:errors`

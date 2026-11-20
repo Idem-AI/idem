@@ -1,11 +1,14 @@
 /**
  * L'exécution des décisions de l'agent média, avec leurs replis.
  *
- *   video            Veo → clip Pexels → photo
- *   photo            Pexels → Gemini (ou l'inverse si l'agent veut une scène précise)
- *   illustration     dessin SVG du modèle → Gemini → photo Pexels
- *   illustration-3d  Gemini → photo Pexels → dessin SVG
+ *   video            Veo → clip de banque (vidéo) → photo
+ *   photo            banque (photo) → Gemini (ou l'inverse si l'agent veut une scène précise)
+ *   illustration     dessin SVG du modèle → Gemini → banque (illustration)
+ *   illustration-3d  Gemini → banque (illustration) → dessin SVG
  *   pattern          motif de la charte
+ *
+ * « Banque » : une bibliothèque libre de droit (Pexels, Pixabay, Unsplash — le serveur
+ * choisit et ordonne selon le rôle, `/appgen/media/stock`).
  *
  * Un emplacement obligatoire qui reste vide prend le motif de la charte. Un
  * refus de crédits (402), une panne, un délai dépassé : c'est le même repli,
@@ -28,7 +31,7 @@ export interface MediaAsset {
   ground?: string;
   tile?: number;
   /** D'où il vient : utile à qui reprendra le site, jamais affiché. */
-  origin: 'pexels' | 'gemini' | 'veo' | 'svg' | 'pattern' | 'site';
+  origin: 'pexels' | 'pixabay' | 'unsplash' | 'gemini' | 'veo' | 'svg' | 'pattern' | 'site';
   credit?: string;
 }
 
@@ -92,22 +95,26 @@ export async function produceMedia(slot: MediaSlot, decision: AssetDecision, ctx
   };
 
   const fromStock = (items: StockItem[], kind: 'image' | 'video'): MediaAsset[] =>
-    items.map((item) => ({
-      kind,
-      src: item.url,
-      alt: kind === 'image' ? alt : undefined,
-      ...(item.poster ? { poster: item.poster } : {}),
-      origin: 'pexels' as const,
-      ...(item.author ? { credit: `${item.author} (Pexels)` } : {}),
-    }));
+    items.map((item) => {
+      const provider: 'pexels' | 'pixabay' | 'unsplash' = item.provider === 'pixabay' ? 'pixabay' : item.provider === 'unsplash' ? 'unsplash' : 'pexels';
+      const label = provider === 'pixabay' ? 'Pixabay' : provider === 'unsplash' ? 'Unsplash' : 'Pexels';
+      return {
+        kind,
+        src: item.url,
+        alt: kind === 'image' ? alt : undefined,
+        ...(item.poster ? { poster: item.poster } : {}),
+        origin: provider,
+        ...(item.author ? { credit: `${item.author} (${label})` } : {}),
+      };
+    });
 
-  const stockPhotos = async (query: string): Promise<MediaAsset[]> => {
+  const stockPhotos = async (query: string, kind: 'photo' | 'illustration' = 'photo'): Promise<MediaAsset[]> => {
     if (!query) return [];
     try {
-      const items = await ctx.client.stock(query, 'photo', orientationOf(slot.aspect), slot.count, locale);
+      const items = await ctx.client.stock(query, kind, orientationOf(slot.aspect), slot.count, locale);
       return items.length >= slot.count ? fromStock(items, 'image') : [];
     } catch (error) {
-      fail('Pexels', error);
+      fail('banque', error);
       return [];
     }
   };
@@ -124,7 +131,7 @@ export async function produceMedia(slot: MediaSlot, decision: AssetDecision, ctx
     try {
       return fromStock(await ctx.client.stock(decision.query, 'video', 'landscape', 1, locale), 'video');
     } catch (error) {
-      fail('Pexels vidéo', error);
+      fail('banque vidéo', error);
       return [];
     }
   };
@@ -179,7 +186,8 @@ export async function produceMedia(slot: MediaSlot, decision: AssetDecision, ctx
 
   let assets: MediaAsset[] = [];
 
-  // PEXELS D'ABORD, partout : un visuel n'est généré que lorsque la banque n'a rien qui corresponde à la requête.
+  // LA BANQUE D'ABORD, partout : un visuel n'est généré que lorsqu'aucune bibliothèque libre de
+  // droit n'a rien qui corresponde à la requête.
   switch (decision.kind) {
     case 'video': {
       ctx.note(fr ? `Je cherche une vidéo pour ${place}` : `Finding a video for ${place}`);
@@ -209,10 +217,11 @@ export async function produceMedia(slot: MediaSlot, decision: AssetDecision, ctx
     }
 
     case 'illustration': {
-      // Pexels d'abord ; sans correspondance, l'illustration vectorielle du modèle d'image ; le dessin composé par
-      // le code n'est qu'un dernier recours (jugé pauvre, 28/10/2026).
+      // La bibliothèque la mieux outillée pour une illustration d'abord (filtre dédié, cf.
+      // `media/stock`) ; sans correspondance, l'illustration vectorielle du modèle d'image ; le
+      // dessin composé par le code n'est qu'un dernier recours (jugé pauvre, 28/10/2026).
       ctx.note(fr ? `Je cherche un visuel pour ${place}` : `Finding a visual for ${place}`);
-      assets = await stockPhotos(decision.query);
+      assets = await stockPhotos(decision.query, 'illustration');
       if (!assets.length) assets = await generateImage('illustration');
       if (!assets.length) assets = await drawSvg();
       break;
@@ -220,7 +229,7 @@ export async function produceMedia(slot: MediaSlot, decision: AssetDecision, ctx
 
     case 'illustration-3d': {
       ctx.note(fr ? `Je cherche un visuel pour ${place}` : `Finding a visual for ${place}`);
-      assets = await stockPhotos(/\b3d\b/i.test(decision.query) ? decision.query : `${decision.query} 3d`);
+      assets = await stockPhotos(/\b3d\b/i.test(decision.query) ? decision.query : `${decision.query} 3d`, 'illustration');
       if (!assets.length) assets = await generateImage('illustration-3d');
       if (!assets.length) assets = await drawSvg();
       break;

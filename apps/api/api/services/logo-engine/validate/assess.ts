@@ -13,6 +13,7 @@ import { defaultRasterizer } from '../raster/rasterizer';
 import type { Defect } from './technical';
 import { validateSvgTechnical } from './technical';
 import { assessVisual } from './visual';
+import { checkPractices } from './practices';
 
 export interface QualityReport {
   /** Aucun défaut bloquant. */
@@ -59,6 +60,11 @@ export async function assessLogo(session: LogoSession, rendered: RenderedLogo, o
 
   const visual = await assessVisual(session, rendered, { rasterizer });
   defects.push(...visual.defects);
+
+  // Les bonnes pratiques du TYPE de logo (référentiel partagé avec les consignes des agents).
+  const practices = await checkPractices(session, rendered, rasterizer);
+  defects.push(...practices.defects);
+  Object.assign(visual.metrics, practices.metrics, { practiceIssues: practices.defects.length });
 
   const variants: QualityReport['variants'] = [];
   if (!options.skipVariants) {

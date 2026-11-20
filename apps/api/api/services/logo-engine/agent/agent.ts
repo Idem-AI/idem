@@ -4,9 +4,13 @@
  *   low     le planificateur seul (aucun token) : exploration + propositions les plus distinctes
  *   medium  + le sélecteur : l'IA choisit parmi 9 candidats déjà construits et mesurés
  *   high    + le directeur : trois directions (catégorie, générateur, idée) ; le code les construit
- *   max     + l'auteur : l'IA écrit le Logo IR de chaque direction (2 brouillons), le jury départage
- *   ultra   + le critique : il REGARDE le rendu et répond par un patch ciblé (jamais un nouveau
- *             dessin), 3 brouillons, dessin libre autorisé
+ *   ultra   + l'auteur : l'IA écrit le Logo IR de chaque direction (2 brouillons, +1 si aucun ne passe),
+ *             le jury départage (sauf brouillon dominant), le critique REGARDE le rendu et répond par
+ *             un patch ciblé (jamais un nouveau dessin), dessin libre autorisé
+ *
+ * Originalité (`planner/originality.ts`) : le directeur nomme les clichés du métier, le code les
+ * bannit à tous les étages. Vitesse : toutes les directions sont dessinées EN PARALLÈLE, les
+ * critiques aussi — la chaîne d'appels successifs passe de ~13 latences de modèle à ~5.
  *
  * À chaque étage, si le modèle est absent, muet, lent ou inventif, la décision du planificateur
  * prend sa place : l'agent ne fait jamais moins bien que le code seul. Chaque logo, quelle que
@@ -32,13 +36,28 @@ import { buildPool, docForDirection, hashSeed, selectDistinct } from '../planner
 import type { PlanInput, PlannedLogo } from '../planner/planner';
 import type { BuildOptions } from '../render/build';
 import { assembleAuthored, authorTask, CRITIC_INSTRUCTION, critiqueScore, directionMenu, directionsTask, juryTask, parseCritique, selectorTask } from './tasks';
-import type { AuthoredLogo, Direction } from './tasks';
+import type { AuthoredLogo, Direction, DirectionsVerdict } from './tasks';
+import { generatorsOf, literalGenerators, originalityOf } from '../planner/originality';
+import { getGenerator } from '../render/generators';
 
 /** Largeur du tirage du planificateur par cran. */
 export const EXPLORATION: Record<CreativityLevel, number> = { low: 0.15, medium: 0.35, high: 0.5, ultra: 0.8 };
 
-/** Brouillons écrits par l'IA par direction. */
+/** Brouillons écrits par l'IA par direction, au plus (somme des vagues). */
 export const DRAFTS: Record<CreativityLevel, number> = { low: 0, medium: 0, high: 0, ultra: 3 };
+
+/**
+ * Les vagues de brouillons : la 1re part toujours, la 2de seulement si aucun brouillon de la 1re ne
+ * passe les mesures (qualité + bonnes pratiques + pas de cliché). Un bon premier jet n'en paie pas
+ * un troisième : −1/3 de jetons d'auteur dans le cas courant, la même qualité retenue.
+ */
+export const DRAFT_WAVES: Record<CreativityLevel, number[]> = { low: [], medium: [], high: [], ultra: [2, 1] };
+
+/** Écart de note mesurée au-delà duquel le jury n'est pas consulté : le meilleur brouillon domine. */
+export const JURY_DOMINANCE = 12;
+
+/** Appels d'auteur simultanés (toutes directions confondues). */
+export const AUTHOR_CONCURRENCY = 6;
 
 export interface AgentDeps {
   /** L'appel de modèle de l'hôte (runtime d'agents d'IDEM). Absent : le planificateur décide de tout. */
@@ -68,6 +87,8 @@ export interface AgentResult {
   /** Tokens estimés (entrée + sortie) de tous les agents, vision comprise. */
   tokens: { input: number; output: number };
   stats: { pool: number; ms: number; level: CreativityLevel };
+  /** Les clichés écartés pour cette marque (générateurs bannis, images interdites aux auteurs). */
+  originality?: { cliches: string[]; avoid: string[] };
 }
 
 const toPlanned = (logo: ProducedLogo, type: ConceptType, recipe: string): PlannedLogo => ({ ...logo, type, recipe, novelty: 1 });
@@ -77,6 +98,8 @@ const directionOf = (c: PlannedLogo): Direction => {
   const first = c.doc.layers.find((l) => l.kind === 'generator');
   return { type: c.type, generator: first && first.kind === 'generator' ? first.generator : undefined, idea: c.doc.concept.rationale };
 };
+
+const usesCliche = (doc: { layers: unknown }, banned: Set<string>) => banned.size > 0 && generatorsOf(doc.layers).some((g) => banned.has(g));
 
 export async function designLogos(input: AgentInput, build: BuildOptions, deps: AgentDeps = {}): Promise<AgentResult> {
   const started = Date.now();
@@ -93,17 +116,21 @@ export async function designLogos(input: AgentInput, build: BuildOptions, deps: 
   const palette = 'ink' in input.palette ? input.palette : inkPalette(input.palette as CharterPalette);
   const weights = briefWeights(input.brief);
   const avoid: LogoFingerprint[] = input.avoid ?? [];
+  const crowd: LogoFingerprint[] = input.crowd ?? [];
+  // Les clichés : ceux que l'hôte connaît déjà, sinon l'estimation par le secteur ; le directeur complète.
+  let banned = new Set<string>(input.cliches ?? literalGenerators(input.brief));
+  let avoidWords: string[] = [];
 
   // ── 1. Le planificateur : toujours, sans token ──
   stage('pool');
   const { pool } = await buildPool(planInput, build, level === 'low' || level === 'medium' ? 18 : 12);
-  let chosen = selectDistinct(pool, count, avoid);
+  let chosen = selectDistinct(pool, count, avoid, crowd);
   decide('planner', 'graph', `${pool.length} candidats construits et mesurés`);
 
   // ── 2. Medium : le sélecteur choisit parmi 9 candidats ──
   if (level === 'medium' && pool.length > count) {
     stage('selector');
-    const shortlist = selectDistinct(pool, Math.min(9, pool.length), avoid);
+    const shortlist = selectDistinct(pool, Math.min(9, pool.length), avoid, crowd);
     const fallbackPicks = chosen.map((c) => Math.max(0, shortlist.indexOf(c)));
     const verdict = await orchestrator.run(selectorTask(input.sheet, shortlist, count, () => fallbackPicks));
     if (verdict.source === 'llm') {
@@ -112,89 +139,114 @@ export async function designLogos(input: AgentInput, build: BuildOptions, deps: 
     } else decide('selector', 'graph');
   }
 
-  // ── 3. High+ : le directeur, puis la construction de chaque direction ──
+  // ── 3. High+ : le directeur (clichés + directions), puis toutes les directions EN PARALLÈLE ──
   if (atLeast(level, 'high')) {
     stage('directions');
-    const menu = directionMenu(kind, weights);
-    const fallbackDirections = () => chosen.map(directionOf);
-    const verdict = await orchestrator.run(directionsTask(input.sheet, menu, count, input.wish, () => fallbackDirections()));
-    const directions = verdict.value ?? fallbackDirections();
-    decide('directions', verdict.source, directions.map((d) => `${d.type}${d.generator ? `/${d.generator}` : d.variant ? `/${d.variant}` : ''}`).join(' · '));
+    const originality = originalityOf(input.brief, { cliches: banned, usage: input.usage });
+    const menu = directionMenu(kind, weights, originality);
+    const fallbackVerdict = (): DirectionsVerdict => ({ directions: chosen.map(directionOf), cliches: { ids: [...banned], words: [] } });
+    const verdict = await orchestrator.run(directionsTask(input.sheet, menu, count, input.wish, fallbackVerdict, banned));
+    const { directions, cliches } = verdict.value ?? fallbackVerdict();
+    banned = new Set([...banned, ...cliches.ids]);
+    avoidWords = [...new Set([...cliches.words, ...[...banned].map((id) => getGenerator(id)?.label ?? id)])].slice(0, 10);
+    decide('directions', verdict.source, directions.map((d) => `${d.type}${d.generator ? `/${d.generator}` : d.variant ? `/${d.variant}` : ''}${d.source ? ` ←${d.source}` : ''}`).join(' · '));
+    decide('cliches', verdict.source === 'llm' && cliches.words.length + cliches.ids.length ? 'llm' : 'graph', `écartés : ${avoidWords.join(', ') || 'aucun'}`);
 
     stage('drafting');
-    const results: PlannedLogo[] = [];
-    const draftCount = DRAFTS[level];
-    for (let i = 0; i < directions.length; i++) {
-      const direction = directions[i];
+    const directedInput: PlanInput = { ...planInput, cliches: [...banned] };
+    const waves = DRAFT_WAVES[level];
+    const allowFreePaths = level === 'ultra';
+
+    const draftDirection = async (direction: Direction, i: number): Promise<PlannedLogo | null> => {
       const drafts: PlannedLogo[] = [];
       // Le brouillon du planificateur pour cette direction : toujours là, c'est le repli.
-      const planned = docForDirection(planInput, direction, String(i));
+      const planned = docForDirection(directedInput, direction, String(i));
       if (planned) {
         const made = await produceLogo(planned.doc, build, { skipVariants: true });
         if (made.ok && made.logo) drafts.push(toPlanned(made.logo, direction.type, planned.recipe));
       }
-      // Max+ : l'IA écrit le Logo IR (plusieurs brouillons en parallèle).
-      if (draftCount > 0 && deps.call) {
-        const ctx = { sheet: input.sheet, brief: input.brief, direction, withName: input.withName ?? kind !== 'initial', allowFreePaths: level === 'ultra' };
-        const tasks = Array.from({ length: draftCount }, (_, d) =>
-          authorTask(
-            ctx,
-            palette,
-            hashSeed(`${input.seed}#author#${i}#${d}`),
-            `logoAuthor:${i + 1}.${d + 1}`,
-            (assembled) => parseLogoDocument(assembled.doc).ok,
-            () => null
-          )
-        );
-        const authored = await orchestrator.all<AuthoredLogo | null>(tasks);
+      // Ultra : l'IA écrit le Logo IR, par vagues (la 2de seulement si la 1re n'a rien donné de bon).
+      if (waves.length && deps.call) {
+        const ctx = { sheet: input.sheet, brief: input.brief, direction, withName: input.withName ?? kind !== 'initial', allowFreePaths, avoid: avoidWords };
+        let written = 0;
         let llmDrafts = 0;
-        for (const result of authored) {
-          if (!result.value) continue;
-          const made = await produceLogo(result.value.doc, { ...build, allowFreePaths: level === 'ultra' }, { skipVariants: true });
-          if (made.ok && made.logo) {
-            drafts.push(toPlanned(made.logo, direction.type, `author:${direction.generator ?? direction.variant ?? direction.type}`));
-            llmDrafts++;
+        let refusedCliche = 0;
+        for (const size of waves) {
+          const tasks = Array.from({ length: size }, (_, k) => {
+            const d = written + k;
+            return authorTask(
+              ctx,
+              palette,
+              hashSeed(`${input.seed}#author#${i}#${d}`),
+              `logoAuthor:${i + 1}.${d + 1}`,
+              (assembled) => parseLogoDocument(assembled.doc).ok,
+              () => null
+            );
+          });
+          written += size;
+          const authored = await orchestrator.all<AuthoredLogo | null>(tasks, AUTHOR_CONCURRENCY);
+          let good = 0;
+          for (const result of authored) {
+            if (!result.value) continue;
+            if (usesCliche(result.value.doc as { layers: unknown }, banned)) {
+              refusedCliche++;
+              continue;
+            }
+            const made = await produceLogo(result.value.doc, { ...build, allowFreePaths }, { skipVariants: true });
+            if (made.ok && made.logo) {
+              drafts.push(toPlanned(made.logo, direction.type, `author:${direction.generator ?? direction.variant ?? direction.type}`));
+              llmDrafts++;
+              if (made.logo.report.accepted) good++;
+            }
           }
+          if (good) break;
         }
-        if (llmDrafts) decide('author', 'llm', `direction ${i + 1} : ${llmDrafts} brouillon(s) écrit(s) par l'IA`);
-        else decide('author', 'graph', `direction ${i + 1} : brouillon du planificateur`);
+        if (llmDrafts) decide('author', 'llm', `direction ${i + 1} : ${llmDrafts} brouillon(s) écrit(s) par l'IA sur ${written}${refusedCliche ? `, ${refusedCliche} cliché(s) refusé(s)` : ''}`);
+        else decide('author', 'graph', `direction ${i + 1} : brouillon du planificateur${refusedCliche ? ` (${refusedCliche} cliché(s) refusé(s))` : ''}`);
       }
-      if (!drafts.length) continue;
+      if (!drafts.length) return null;
       // Les brouillons qui passent les mesures d'abord ; le jury départage, le code garde la main.
       const sound = drafts.filter((d) => d.report.accepted);
-      const field = sound.length ? sound : drafts;
-      if (field.length > 1) {
-        stage('jury');
-        const vote = await orchestrator.run(juryTask(input.sheet, field, i));
-        decide('jury', vote.source, `direction ${i + 1} : ${field[vote.value]?.recipe}`);
-        results.push(field[vote.value] ?? field[0]);
-      } else results.push(field[0]);
-    }
+      const field = (sound.length ? sound : drafts).sort((a, b) => b.report.score - a.report.score);
+      if (field.length === 1) return field[0];
+      if (field[0].report.score - field[1].report.score >= JURY_DOMINANCE) {
+        decide('jury', 'graph', `direction ${i + 1} : ${field[0].recipe} domine (${field[0].report.score} contre ${field[1].report.score})`);
+        return field[0];
+      }
+      stage('jury');
+      const vote = await orchestrator.run(juryTask(input.sheet, field, i));
+      decide('jury', vote.source, `direction ${i + 1} : ${field[vote.value]?.recipe}`);
+      return field[vote.value] ?? field[0];
+    };
+
+    const results = (await Promise.all(directions.map((d, i) => draftDirection(d, i)))).filter((r): r is PlannedLogo => !!r);
     if (results.length) {
-      // Une direction qui n'a rien donné est remplacée par le meilleur candidat restant du planificateur.
+      // Une direction qui n'a rien donné est remplacée par le meilleur candidat restant du planificateur (hors clichés).
       const rest = selectDistinct(
-        pool.filter((p) => !results.some((r) => nearest(p.fingerprint!, [r.fingerprint!]) < LOGO_SIMILARITY.tooClose)),
+        pool.filter((p) => !usesCliche(p.doc, banned) && !results.some((r) => nearest(p.fingerprint!, [r.fingerprint!]) < LOGO_SIMILARITY.tooClose)),
         count - results.length,
-        [...avoid, ...results.map((r) => r.fingerprint!)]
+        [...avoid, ...results.map((r) => r.fingerprint!)],
+        crowd
       );
       chosen = [...results, ...rest].slice(0, count);
     }
   }
 
-  // ── 4. Ultra : le critique regarde le rendu et répond par un patch ──
+  // ── 4. Ultra : le critique regarde chaque rendu (en parallèle) et répond par un patch ──
   if (level === 'ultra' && deps.vision) {
     stage('critique');
-    for (let i = 0; i < chosen.length; i++) {
-      let current = chosen[i];
+    const clicheLine = avoidWords.length ? `\nCLICHÉS OF THIS BUSINESS: ${avoidWords.join(', ')} — if the symbol reads as one of them, distinctiveness=1.` : '';
+    const critiqueOne = async (start: PlannedLogo): Promise<PlannedLogo> => {
+      let current = start;
       for (let round = 0; round < 2; round++) {
         const png = await renderPng(current.rendered.svg, 560, '#ffffff').catch(() => null);
         if (!png) break;
         const small = await renderPng(current.rendered.svg, Math.round(48 * Math.min(4, current.rendered.width / current.rendered.height)), '#ffffff').catch(() => null);
         const layerSummary = JSON.stringify(current.doc.layers.map((l) => ({ id: l.id, kind: l.kind, ...(l.kind === 'generator' ? { generator: l.generator, params: l.params } : {}) }))).slice(0, 900);
-        const text = `${CRITIC_INSTRUCTION}\nLAYERS: ${layerSummary}\nPALETTE ROLES: ink ${current.doc.palette.ink}${current.doc.palette.accent ? `, accent ${current.doc.palette.accent}` : ''}`;
+        const text = `${CRITIC_INSTRUCTION}${clicheLine}\nLAYERS: ${layerSummary}\nPALETTE ROLES: ink ${current.doc.palette.ink}${current.doc.palette.accent ? `, accent ${current.doc.palette.accent}` : ''}`;
         let raw = '';
         try {
-          raw = await deps.vision(small ? await sideBySide(png, small) : png, text);
+          raw = await deps.vision!(small ? await sideBySide(png, small) : png, text);
         } catch {
           break;
         }
@@ -202,16 +254,19 @@ export async function designLogos(input: AgentInput, build: BuildOptions, deps: 
         const critique = parseCritique(raw, current.doc);
         if (!critique) break;
         decide('critic', 'llm', `${critiqueScore(critique.scores).toFixed(1)}/5 ${critique.verdict}${critique.note ? ` — ${critique.note}` : ''}`);
-        if (critique.verdict === 'pass' || !critique.patch.length) break;
-        const patched = applyPatch(current.doc as LogoDocument, critique.patch);
+        // Un patch ne remplace jamais le symbole par un cliché.
+        const patch = critique.patch.filter((op) => !(op.op === 'generator' && banned.has((op as { generator?: string }).generator ?? '')));
+        if (critique.verdict === 'pass' || !patch.length) break;
+        const patched = applyPatch(current.doc as LogoDocument, patch);
         if (!patched.ok || !patched.doc) break;
         const made = await produceLogo(patched.doc, { ...build, allowFreePaths: true }, { skipVariants: true });
         // Un patch ne doit jamais aggraver ce que les mesures constatent.
         if (!made.ok || !made.logo || made.logo.report.score < current.report.score - 2) break;
         current = { ...toPlanned(made.logo, current.type, current.recipe), novelty: current.novelty };
       }
-      chosen[i] = current;
-    }
+      return current;
+    };
+    chosen = await Promise.all(chosen.map(critiqueOne));
   }
 
   // ── 5. Finition : variantes validées, empreintes, nouveauté ──
@@ -230,6 +285,7 @@ export async function designLogos(input: AgentInput, build: BuildOptions, deps: 
     traces: orchestrator.traces,
     tokens: { input: tokens.input + visionTokens.input, output: tokens.output + visionTokens.output },
     stats: { pool: pool.length, ms: Date.now() - started, level },
+    originality: { cliches: [...banned], avoid: avoidWords },
   };
 }
 

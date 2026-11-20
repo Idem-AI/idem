@@ -1,6 +1,6 @@
 /**
  * Vidéos de promotion en motion design — miroir des types de l'API
- * (`apps/ivision/core/src/video/contracts/model.ts`, moteur Motion Canvas).
+ * (`apps/ivision/core/src/video/contracts/model.ts`, moteur HyperFrames).
  */
 
 export type VideoFormat = 'story' | 'square' | 'portrait' | 'landscape';
@@ -100,7 +100,7 @@ export interface FilmScene {
 
 export interface VideoFilm {
   version: 2;
-  engine: 'motion-canvas' | 'hyperframes';
+  engine: 'hyperframes';
   title: string;
   concept: string;
   bible: string;
@@ -157,7 +157,7 @@ export interface MotionVideo {
   voice?: VideoVoice;
   brief: VideoBrief;
   scope: VideoScope;
-  /** Le film (moteur Motion Canvas). Absent : vidéo de l'ancien moteur (`legacy`). */
+  /** Le film (moteur HyperFrames). Absent : vidéo de l'ancien moteur (`legacy`). */
   film?: VideoFilm;
   /** Vidéo de l'ancien moteur : ses MP4 se téléchargent, elle ne se retouche plus. */
   legacy?: boolean;

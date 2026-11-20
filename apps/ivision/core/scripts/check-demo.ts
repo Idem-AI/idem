@@ -14,15 +14,9 @@ import fs from 'fs';
 import http from 'http';
 import os from 'os';
 import path from 'path';
-import sharp from 'sharp';
 import { DemoStep, locate, planDemo, recordDemo } from '../src/video/assets/demo';
 import type { AgentCallOptions } from '../src/creativity/orchestrator';
-import { buildFilmBundle } from '../src/video/rendering/compiler';
-import { closeFilmBrowser, localizeFilm, probeFilm } from '../src/video/rendering/runner';
-import { COMPOSITION, frameSpec } from '../src/video/rendering/formats';
-import type { FilmData } from '../motion/runtime/film-data';
-import { buildFilmDesign, compileProgram, lowerIntent, resolveSceneDesign, validateIntent, validateProgram } from '../../../../packages/motion-compiler/src';
-import { variantChoices } from '../../../../packages/motion-compiler/src/solver/geometry';
+import { closeFilmBrowser } from '../src/video/rendering/runner';
 
 let failed = 0;
 const ok = (label: string, cond: boolean, detail = '') => {
@@ -77,35 +71,6 @@ const NEW = PAGE(`<header><a href="/">Accueil</a></header><main><h1>Nouvelle fac
     ok('le clic mène à la page suivante (le champ y est visé)', !!shots[2]?.prep?.point && /Nom du client/.test(shots[2].name || ''), shots[2]?.name);
     const homeMap = shots[0]?.name || '';
     ok('jamais de champ mot de passe sur la carte', !/Mot de passe/.test(JSON.stringify(shots)) && !!homeMap);
-
-    // ── Le zoom vers le point : un appareil, le verbe `focus`, rendu réel.
-    const design = buildFilmDesign({ brand: { primary: '#1f6f4a', secondary: '#14324a', accent: '#f2a93b', background: '#fbfaf7', text: '#16181d' }, direction: 'minimal', energy: [3] });
-    const shot = shots[1]!;
-    const red = async (withFocus: boolean) => {
-      const intent = { role: 'feature', layout: 'device', elements: [{ id: 'app', kind: 'device', device: 'laptop', media: 0, rank: 1 }], beats: [{ verb: 'rise', target: 'app' }, ...(withFocus ? [{ verb: 'focus', target: 'app', after: 'app' }] : [])] };
-      const v = validateIntent(intent, { texts: {}, media: ['image'], hasLogo: false });
-      if (!v.ok) throw new Error(v.errors.join(' ; '));
-      const fmt = 'landscape' as const;
-      const lowered = lowerIntent({ intent: v.intent!, texts: {}, media: [{ kind: 'image', width: 1440, height: 900 }], formats: [fmt], designs: { [fmt]: resolveSceneDesign(design, fmt, 0) }, fonts: { display: 'Inter', body: 'Inter' }, logoAspect: 3, duration: 4, choice: variantChoices(v.intent!)[0], seamOut: 0 });
-      const p = validateProgram(lowered.program, { texts: [], values: {}, media: ['image'], duration: 4, hasLogo: false });
-      if (!p.ok) throw new Error(p.errors.join(' ; '));
-      const code = compileProgram(p.program!).code;
-      const spec = frameSpec(fmt, 'standard');
-      const data: FilmData = { format: fmt, ...COMPOSITION[fmt], resolutionScale: 0.5, fps: spec.fps, background: '#fbfaf7', lang: 'fr', fontFamilies: ['Inter'], brand: { name: 'Test', colors: { primary: '#1f6f4a', secondary: '#14324a', accent: '#f2a93b', background: '#fbfaf7', text: '#16181d' }, fonts: { display: 'Inter', body: 'Inter' } }, cues: [], scenes: [{ key: 's1', start: 0, duration: 4, texts: {}, design: resolveSceneDesign(design, fmt, 0) as never, media: [{ id: 'm0', kind: 'image', url: shot.url, width: 1440, height: 900, point: shot.prep!.point }] }] } as FilmData;
-      const local = await localizeFilm(data);
-      const probe = await probeFilm({ data: local.data, bundle: await buildFilmBundle([{ key: 's1', code }], 'render'), fontCss: '', files: local.files }, { thumbnails: true });
-      const thumb = probe.thumbnails.s1;
-      if (!thumb) throw new Error(`pas de vignette (${probe.errors.join(' ; ')})`);
-      const { data: px, info } = await sharp(thumb).raw().toBuffer({ resolveWithObject: true });
-      let n = 0;
-      for (let i = 0; i < px.length; i += info.channels) if (px[i] > 190 && px[i + 1] < 70 && px[i + 2] < 80) n++;
-      return { share: n / (px.length / info.channels), code, errors: probe.errors.length };
-    };
-    const still = await red(false);
-    const zoomed = await red(true);
-    ok('le programme zoome par l’effet « point »', /PZ_app_screen\(/.test(zoomed.code));
-    ok('rendu sans erreur', !still.errors && !zoomed.errors);
-    ok('le bouton cliqué grandit à l’image (zoom vers le clic)', zoomed.share > still.share * 1.8, `${(still.share * 100).toFixed(2)} % → ${(zoomed.share * 100).toFixed(2)} % de pixels du bouton`);
   } finally {
     server.close();
     await closeFilmBrowser();

@@ -3,7 +3,8 @@
  *
  * Ce serveur n'a ni clé de modèle d'image, ni stockage, ni portefeuille : l'API
  * génère (Gemini, Veo), dépose le fichier à une adresse publique durable,
- * facture au barème iCode et rembourse un échec ; elle interroge aussi Pexels.
+ * facture au barème iCode et rembourse un échec ; elle interroge aussi des
+ * bibliothèques libres de droit (Pexels, Pixabay, Unsplash — le serveur choisit).
  * La session de l'utilisateur est relayée telle quelle, comme pour la
  * facturation de la génération elle-même.
  */
@@ -18,6 +19,9 @@ export interface StockItem {
   alt?: string;
   author?: string;
   sourceUrl?: string;
+  /** La bibliothèque qui a fourni le média (Pexels, Pixabay, Unsplash…) — pour un crédit exact. */
+  provider?: string;
+  license?: string;
 }
 
 export interface MediaClient {
@@ -29,7 +33,7 @@ export interface MediaClient {
   generateVideo(prompt: string, tag: string): Promise<{ url: string; model?: string }>;
   stock(
     query: string,
-    kind: 'photo' | 'video',
+    kind: 'photo' | 'illustration' | 'video',
     orientation: 'landscape' | 'portrait' | 'square',
     count?: number,
     locale?: string
@@ -81,7 +85,7 @@ export function createApiMediaClient(options: {
         // L'API IDEM rend 502 en relayant le 402 du fournisseur : c'est le texte qui le dit.
         if (paid(path) && (response.status === 402 || /\b402\b|insufficient credits/i.test(detail))) {
           if (!creditsOut) {
-            ChatLogger.warn('SITE_MEDIA', 'Crédits de génération épuisés : les visuels de ce site viennent de Pexels', {
+            ChatLogger.warn('SITE_MEDIA', 'Crédits de génération épuisés : les visuels de ce site viennent des bibliothèques libres de droit', {
               component: 'MediaClient',
               detail: detail.slice(0, 160),
             });

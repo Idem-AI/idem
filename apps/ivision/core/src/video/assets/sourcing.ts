@@ -7,7 +7,8 @@
  *   registre    un média du projet déjà obtenu qui convient au plan est repris tel quel ;
  *   génération  l'image d'abord (FLUX.2), contrôlée par la vision (pas de texte, le bon sujet) ; le
  *               clip anime cette image (image → vidéo). TROIS essais par média, consigne resserrée ;
- *   Pexels      seulement après trois échecs, avec la requête du plan ;
+ *   banque      seulement après trois échecs, avec la requête du plan — une bibliothèque libre de
+ *               droit (Pexels, Pixabay, Unsplash — `media/stock`, qui choisit et ordonne) ;
  *   visuels     dernier recours (photos) : celles déjà utilisées dans les visuels de la marque.
  */
 import axios from 'axios';
@@ -18,7 +19,7 @@ import { VideoMediaAsset } from '../contracts/model';
 import { generateClip, generateStill, MediaStorage, Orientation, searchPexelsPhotos, searchPexelsVideos } from './media';
 import { matchAsset, type AssetRecord, type AssetRequirement } from '@idem/graphic-engine';
 
-/** Trois essais de génération par média avant de chercher sur Pexels (demande produit). */
+/** Trois essais de génération par média avant de chercher en banque (demande produit). */
 export const GENERATION_ATTEMPTS = 3;
 
 export interface MediaNeed {
@@ -49,7 +50,7 @@ export interface MediaDirection {
   source: 'llm' | 'heuristic';
 }
 
-// ─── Génération (trois essais), puis Pexels ─────────────────────────────────
+// ─── Génération (trois essais), puis la banque ──────────────────────────────
 
 export interface SourcingReport {
   generatedImages: number;
@@ -158,7 +159,7 @@ async function imageAccepted(jpeg: Buffer, plan: ShotPlan, opts: { textAllowed?:
 }
 
 /**
- * Produit chaque plan : génération (trois essais), puis Pexels, puis les photos des visuels.
+ * Produit chaque plan : génération (trois essais), puis la banque, puis les photos des visuels.
  * Trois plans à la fois (la file du fournisseur au-delà coûte plus qu'elle ne rapporte).
  */
 export async function sourceShots(opts: SourcingOptions): Promise<{ byNeed: Map<ShotPlan, VideoMediaAsset>; assets: VideoMediaAsset[]; report: SourcingReport }> {
@@ -264,7 +265,9 @@ export async function sourceShots(opts: SourcingOptions): Promise<{ byNeed: Map<
     const hit = fitting.length ? matchAsset(requirementOf(plan), fitting, registryUsed) : null;
     if (!hit) continue;
     registryUsed.add(hit.url);
-    const asset: VideoMediaAsset = { id: `registry-${plan.scene}-${plan.slot}`, kind: hit.kind, url: hit.url, origin: hit.source === 'user' ? 'upload' : hit.source === 'stock' ? 'pexels' : hit.source === 'generated' ? 'generated' : 'library', name: hit.subject.slice(0, 80), ...(hit.width ? { width: hit.width } : {}), ...(hit.height ? { height: hit.height } : {}), ...(hit.provenance.attribution ? { credit: hit.provenance.attribution } : {}) };
+    // La provenance réelle de la banque (pexels, pixabay, unsplash…) est celle du registre, pas devinée.
+    const stockOrigin = hit.provenance.provider === 'pixabay' ? 'pixabay' : hit.provenance.provider === 'unsplash' ? 'unsplash' : 'pexels';
+    const asset: VideoMediaAsset = { id: `registry-${plan.scene}-${plan.slot}`, kind: hit.kind, url: hit.url, origin: hit.source === 'user' ? 'upload' : hit.source === 'stock' ? stockOrigin : hit.source === 'generated' ? 'generated' : 'library', name: hit.subject.slice(0, 80), ...(hit.width ? { width: hit.width } : {}), ...(hit.height ? { height: hit.height } : {}), ...(hit.provenance.attribution ? { credit: hit.provenance.attribution } : {}) };
     byNeed.set(plan, asset);
     assets.push(asset);
     report.fromRegistry = (report.fromRegistry ?? 0) + 1;
@@ -287,7 +290,7 @@ export async function sourceShots(opts: SourcingOptions): Promise<{ byNeed: Map<
   };
   await Promise.all(Array.from({ length: Math.min(3, Math.max(1, shots.length)) }, worker));
 
-  // Pexels, seulement pour ce que trois essais n'ont pas produit — avec la requête de chaque plan,
+  // La banque, seulement pour ce que trois essais n'ont pas produit — avec la requête de chaque plan,
   // ancrée sur le personnage voulu. Un plan filmé sans vidéo libre prend une photo libre (animée
   // par le moteur) plutôt que de rester vide.
   const used = new Set<string>();
@@ -352,16 +355,17 @@ export async function sourceShots(opts: SourcingOptions): Promise<{ byNeed: Map<
     const a = byNeed.get(plan);
     const id = `scene-${plan.scene}.${plan.slot}:${plan.kind === 'video' ? 'clip' : 'photo'}`;
     if (!a) return `${id} ✗`;
-    const source = a.id.startsWith('registry-') ? 'registre' : a.origin === 'pexels' ? 'stock' : a.origin === 'visual' ? 'project' : a.origin;
+    const source = a.id.startsWith('registry-') ? 'registre' : a.origin === 'pexels' || a.origin === 'pixabay' || a.origin === 'unsplash' ? 'stock' : a.origin === 'visual' ? 'project' : a.origin;
     return `${id} ← ${source} (${a.credit || a.origin})`.slice(0, 160);
   });
   // Ce qui vient d'être généré ou trouvé rejoint le registre du projet (le deck ou la vidéo suivante le reprendra).
   if (opts.registry) {
     const fresh: AssetRecord[] = [];
     for (const [plan, asset] of byNeed) {
-      if (asset.origin !== 'generated' && asset.origin !== 'pexels') continue;
+      const isStock = asset.origin === 'pexels' || asset.origin === 'pixabay' || asset.origin === 'unsplash';
+      if (asset.origin !== 'generated' && !isStock) continue;
       if (asset.id.startsWith('registry-')) continue;
-      fresh.push({ id: `video:${asset.id}`.slice(0, 120), url: asset.url, kind: asset.kind === 'video' ? 'video' : 'image', role: asset.kind === 'video' ? 'clip' : 'photo', source: asset.origin === 'pexels' ? 'stock' : 'generated', subject: `${plan.query}. ${plan.shot}`.slice(0, 240), ...(asset.width ? { width: asset.width } : {}), ...(asset.height ? { height: asset.height } : {}), origin: 'video', provenance: { provider: asset.origin === 'pexels' ? 'pexels' : 'openrouter', ...(asset.credit ? { attribution: asset.credit.slice(0, 160) } : {}), ...(asset.sourceUrl ? { sourceUrl: asset.sourceUrl } : {}) }, createdAt: new Date().toISOString() });
+      fresh.push({ id: `video:${asset.id}`.slice(0, 120), url: asset.url, kind: asset.kind === 'video' ? 'video' : 'image', role: asset.kind === 'video' ? 'clip' : 'photo', source: isStock ? 'stock' : 'generated', subject: `${plan.query}. ${plan.shot}`.slice(0, 240), ...(asset.width ? { width: asset.width } : {}), ...(asset.height ? { height: asset.height } : {}), origin: 'video', provenance: { provider: isStock ? asset.origin : 'openrouter', ...(asset.credit ? { attribution: asset.credit.slice(0, 160) } : {}), ...(asset.sourceUrl ? { sourceUrl: asset.sourceUrl } : {}) }, createdAt: new Date().toISOString() });
     }
     if (fresh.length) await opts.registry.remember(fresh).catch((error: any) => logger.warn('video.media.registry_failed', { error: error?.message }));
   }

@@ -4,7 +4,7 @@
  *  1. Prix : Low = Medium = barème, High ×1,25, Ultra ×2 ; un cran inconnu vaut Medium, un ancien « max » vaut High.
  *  2. Orchestrateur : réponses parfaites, lettres, JSON, inventées, vides, en panne, budget
  *     épuisé, tâches au-dessus du cran, meilleur de N départagé par le code.
- *  (La vidéo a son propre contrôle : `npm run check:video`, moteur Motion Canvas.)
+ *  (La vidéo a son propre contrôle : `npm run check:video`, moteur HyperFrames.)
  *  5. Visuels — le moteur graphique (@idem/graphic-engine, catalogue seul) : au cran Low le code choisit dans le
  *     catalogue (aucun modèle) ; au-dessus, le modèle du cran choisit et règle la configuration ; textes exacts.
  *  6. Visuels — une réponse du modèle inutilisable ou un modèle en panne : le choix du code est gardé, la page sort.

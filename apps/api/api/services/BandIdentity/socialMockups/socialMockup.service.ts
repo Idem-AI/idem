@@ -27,6 +27,7 @@ import {
   screenshot,
   styleMotifs,
   visualContent,
+  composeRollup,
 } from '@idem/graphic-engine';
 import '../../graphic/engine.host';
 import logger from '../../../config/logger';
@@ -363,6 +364,20 @@ export class SocialMockupService {
    * à leur taille canonique (le gabarit les met à l'échelle), les autres à la taille demandée.
    */
   private async banner(kit: SocialBrandKit, format: BannerFormat, width: number, height: number, headline: string): Promise<Buffer> {
+    // Le roll-up n'est pas un flyer : composition dédiée (logo, titre ajusté, points forts, zone sûre du pied d'enrouleur).
+    if (format === 'rollup') {
+      const out = await composeRollup({
+        brand: kit.brand,
+        direction: kit.direction,
+        headline: (headline || kit.promise || kit.brandName).trim(),
+        tagline: kit.bio && kit.bio.trim() !== headline.trim() ? kit.bio : undefined,
+        points: kit.posts.map((post) => post.title).filter(Boolean).slice(0, 3),
+        handle: kit.handle,
+        seed: `banner:${kit.projectKey}:rollup`,
+      });
+      if (out.overflow.length) logger.warn(`[social-mockups] roll-up : ${out.overflow.join(', ')} dépasse après ajustement`);
+      return out.png;
+    }
     const target = ENGINE_FORMAT[format];
     const content = visualContent({ id: 'banner', copy: { headline: (headline || kit.brandName).trim().slice(0, 180) || kit.brandName } });
     if (!content) throw new Error(`bannière ${format} : rien à composer`);

@@ -230,7 +230,7 @@ client, recherche gardée du business plan). La version 3 (grammaire d'archétyp
 
 ## 2.0 — l'IA écrit les pages en Tailwind (14 octobre 2026)
 
-Même philosophie que le moteur vidéo Motion Canvas : **l'IA conçoit librement, le code garantit
+Même philosophie que le moteur vidéo (catalogue HyperFrames) : **l'IA conçoit librement, le code garantit
 l'exactitude et l'affichage, la jauge choisit le modèle**.
 
 | | 1.x | 2.0 |

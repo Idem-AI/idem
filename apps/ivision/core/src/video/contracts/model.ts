@@ -1,13 +1,13 @@
 /**
  * Vidéos motion design — le modèle persistant.
  *
- * Une vidéo est un FILM : un concept, une bible visuelle et des scènes. Chaque scène porte son
- * intention, ses textes exacts, ses médias et le CODE Motion Canvas écrit par l'IA, gardé tel
- * quel. Les textes et les médias sont des données lues par ce code : les retoucher ne touche pas
- * au code. Le MP4 est rendu sur nos serveurs (Motion Canvas dans Chromium, puis ffmpeg).
+ * Une vidéo est un FILM : un concept, une bible visuelle et des scènes. Chaque scène porte ses
+ * textes exacts, ses médias et son fragment HTML + chorégraphie GSAP, ASSEMBLÉS par le code
+ * depuis le catalogue vidéo. Les textes et les médias sont des données : les retoucher ne
+ * demande pas de réassembler. Le MP4 est rendu sur nos serveurs (HyperFrames dans Chromium, puis ffmpeg).
  */
 import type { RequestSpec } from '../request/request';
-import type { FilmDesign, SceneIntent, SeamSpec, TransitionCue, VariantChoice } from '../../../../../../packages/motion-compiler/src';
+import type { FilmDesign, SeamSpec, TransitionCue } from '../../../../../../packages/motion-compiler/src';
 
 /** Où la vidéo sera vue. */
 export type VideoFormat = 'story' | 'square' | 'portrait' | 'landscape';
@@ -88,7 +88,7 @@ export const VIDEO_TYPES: VideoType[] = [
   'mix',
 ];
 
-/** Un média de la vidéo : importé par l'utilisateur, trouvé sur Pexels ou généré. */
+/** Un média de la vidéo : importé par l'utilisateur, trouvé sur une banque libre de droit ou généré. */
 export type VideoMediaKind = 'image' | 'video' | 'model3d' | 'lottie' | 'rive';
 
 export interface VideoMediaAsset {
@@ -96,7 +96,7 @@ export interface VideoMediaAsset {
   kind: VideoMediaKind;
   /** URL publique (stockage IDEM ou source externe pour une image). */
   url: string;
-  origin: 'upload' | 'pexels' | 'generated' | 'library' | 'visual';
+  origin: 'upload' | 'pexels' | 'pixabay' | 'unsplash' | 'generated' | 'library' | 'visual';
   name?: string;
   /** Vidéo : durée (s) et dimensions ; image : dimensions. */
   durationSec?: number;
@@ -322,7 +322,7 @@ export interface MotionVideo {
   voice?: VideoVoice;
   brief: VideoBrief;
   scope: VideoScope;
-  /** Le film (moteur Motion Canvas). Absent : vidéo de l'ancien moteur, gardée en lecture seule. */
+  /** Le film. Absent : vidéo de l'ancien moteur (avant octobre 2026), gardée en lecture seule. */
   film?: VideoFilm;
   /** Ancien moteur (avant octobre 2026) : son storyboard, conservé tel quel, jamais rejoué. */
   storyboard?: unknown;
@@ -379,7 +379,7 @@ export interface FilmScene {
   needs?: FilmMediaNeed[];
   /** La ligne de voix off de la scène (écrite même sans voix : l'activer plus tard ne coûte pas d'agent). */
   voiceText?: string;
-  /** Le code Motion Canvas (TSX) écrit par l'IA. Jamais réécrit par le code d'IDEM. */
+  /** Historique (moteur retiré) : le code Motion Canvas (TSX) d'une scène d'avant le catalogue. */
   code?: string;
   /** Rendu HyperFrames : le fragment HTML Tailwind de la scène, son script d'animation et sa bibliothèque. */
   html?: string;
@@ -410,13 +410,13 @@ export interface FilmScene {
   /** Le rôle de la scène dans le récit (les huit temps d'une vidéo produit) et son énergie (1 → 5). */
   role?: string;
   energy?: number;
-  /** L'intention écrite par l'auteur (compilateur 0.3) et la variante gardée par le juge : le code se recalcule d'elles. */
-  intent?: SceneIntent;
-  variant?: VariantChoice;
+  /** Historique (moteur retiré) : l'intention et la variante d'une scène d'avant le catalogue, jamais plus lues. */
+  intent?: unknown;
+  variant?: unknown;
   /** Le jugement de la variante gardée : score, mesures sous leur seuil, variantes essayées. */
   judge?: { score: number; features?: Record<string, number>; candidates: number; authored: number; report?: string[]; failed?: string[]; tieBreak?: boolean; rescued?: string };
-  /** La seconde meilleure variante (bascule sans appel de modèle si la première échoue au contrôle réel). */
-  runnerUp?: { intent: SceneIntent; variant: VariantChoice; score: number };
+  /** Historique (moteur retiré) : la seconde meilleure variante d'une scène d'avant le catalogue. */
+  runnerUp?: { intent: unknown; variant: unknown; score: number };
   /** Rendu par le CATALOGUE vidéo : la configuration de la scène (mise en page, animations, transition) — le HTML et
    *  le script s'en recalculent sans modèle ; les configurations déjà essayées (correction sans modèle). */
   catalog?: import('../catalog/types').SceneConfig & { tried?: string[] };
@@ -433,8 +433,8 @@ export interface FilmAgentTrace {
 
 export interface VideoFilm {
   version: 2;
-  /** Le moteur de rendu : HyperFrames (HTML animé, défaut depuis le 04/11/2026) ou Motion Canvas (repli). */
-  engine: 'motion-canvas' | 'hyperframes';
+  /** Le moteur de rendu : HyperFrames (HTML Tailwind animé par GSAP), seul moteur depuis le 20/11/2026. */
+  engine: 'hyperframes';
   /** Film assemblé depuis le catalogue vidéo : la version du catalogue et le thème du film. */
   catalog?: import('../catalog/types').FilmCatalogInfo;
   title: string;

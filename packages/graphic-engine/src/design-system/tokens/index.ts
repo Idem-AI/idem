@@ -28,7 +28,7 @@ import {
 import { BrandFonts, fontHeadHtml, fontStack, normalizeFamily } from '../../foundation/fonts';
 import { stableHash } from '../../foundation/hash';
 import { classifyFont, FontClass } from '../../foundation/typeset';
-import { FORMATS, FormatDef } from '../formats';
+import { FORMATS, FormatDef, withSize } from '../formats';
 import { STYLE_DATA, StyleData } from './styles.data';
 import { directionsSync } from '../../directions';
 
@@ -180,9 +180,7 @@ const DENSITY_FACTOR: Record<Density, number> = { airy: 1.22, balanced: 1, dense
 
 export function buildTokens(input: TokenInput): DesignTokens {
   const base = FORMATS[input.format];
-  const format: FormatDef = input.size
-    ? { ...base, width: input.size.width, height: input.size.height, css: { width: `${input.size.width}px`, height: `${input.size.height}px`, padding: base.css.padding } }
-    : base;
+  const format: FormatDef = withSize(base, input.size);
   const style = resolveStyle(input.direction?.styleId);
   const density: Density = input.direction?.density ?? style.densities[0] ?? 'balanced';
   const palette = input.brand.palette ?? {};

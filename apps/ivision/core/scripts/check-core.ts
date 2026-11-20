@@ -8,8 +8,8 @@
  *     → palette, trois propositions, typographie, logo, ton (modèle simulé).
  *  2. Vidéo modèle : une vidéo synthétique (ffmpeg) à trois plans coupés net → trois plans aux
  *     bonnes durées ; la vision simulée les décrit ; le résumé donné au directeur en tire les plans.
- *  3. Reproduction : une vidéo créée par le service du core (moteur Motion Canvas, planificateur et
- *     auteur simulés) avec ce modèle garde son nombre de plans et leurs proportions.
+ *  3. Reproduction : une vidéo créée par le service du core (moteur HyperFrames, planificateur
+ *     simulé) avec ce modèle garde son nombre de plans et leurs proportions.
  *  4. Visuel : un flyer écrit par l'auteur du moteur graphique (simulé, cran Low), affiché, photographié ;
  *     les mots (rédaction et retouche contrôlées) et la photo (point d'intérêt transmis à l'auteur).
  */
@@ -327,7 +327,7 @@ class MemoryStore implements VideoStore {
   );
   check('rapport : la vidéo modèle est notée', !!video.film?.reference?.summary);
   check(
-    'chaque scène s’exécute (Motion Canvas)',
+    'chaque scène s’exécute (HyperFrames)',
     scenes.every((s) => s.status === 'ready'),
     JSON.stringify(scenes.map((s) => s.error))
   );

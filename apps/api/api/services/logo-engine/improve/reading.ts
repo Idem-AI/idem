@@ -35,6 +35,8 @@ export interface ReadingElement {
   size: string;
   /** Sa couleur (hex estimé). */
   color: string;
+  /** Sa boîte dans le carré du logo, 0–100 (x, y = coin haut-gauche) : ce que le dessinateur recopie en coordonnées. */
+  box?: { x: number; y: number; w: number; h: number };
 }
 
 export interface LogoReading {
@@ -68,7 +70,7 @@ export const OBSERVER_INSTRUCTION = `<role>You are the OBSERVER: a meticulous vi
 <context>The image shows a brand logo on white: the logo large, then (when present) the same logo at tiny size on the right. Another designer will redraw this logo WITHOUT ever seeing the image, from your description alone.</context>
 <method>
 1. Read any text exactly as written (letters, case, accents). If there is none, brandText is "".
-2. List EVERY distinct visual element (symbol, container, wordmark, tagline, accent) with: what it is, its exact geometry (shape, sides, angles, curvature, stroke or fill, thickness), its position, its relative size, its color (hex estimate).
+2. List EVERY distinct visual element (symbol, container, wordmark, tagline, accent) with: what it is, its exact geometry (shape, sides, angles, curvature, stroke or fill, thickness), its position, its relative size, its color (hex estimate), and its BOX: [x, y, w, h] in a 0–100 square that tightly frames the whole logo (x, y = top-left corner).
 3. Say how the whole is constructed: symmetry, alignment, repeated angles, proportions between elements.
 4. Describe the typography (serif/sans/script/slab, weight, case, letter-spacing, any custom letter detail).
 5. State the symbolism: what the mark evokes.
@@ -88,7 +90,7 @@ ONLY valid JSON, no fences, no prose:
  "layout": "horizontal" | "stacked" | "symbol-only" | "wordmark-only",
  "conceptType": "${CONCEPT_TYPES.join('" | "')}",
  "summary": "<2-4 sentences describing the whole logo>",
- "elements": [{"id":"e1","role":"symbol|wordmark|tagline|container|accent","description":"","geometry":"","position":"","size":"","color":"#RRGGBB"}],
+ "elements": [{"id":"e1","role":"symbol|wordmark|tagline|container|accent","description":"","geometry":"","position":"","size":"","color":"#RRGGBB","box":[x,y,w,h]}],
  "symmetry": "none" | "vertical" | "horizontal" | "both" | "radial",
  "construction": "",
  "typography": "<description or 'none'>",
@@ -107,6 +109,16 @@ const list = (v: unknown, max: number, each = 220) => (Array.isArray(v) ? v.map(
 const oneOf = <T extends string>(v: unknown, values: readonly T[], fallback: T): T => (typeof v === 'string' && (values as readonly string[]).includes(v) ? (v as T) : fallback);
 
 const ROLES = ['symbol', 'wordmark', 'tagline', 'container', 'accent'] as const;
+
+/** Une boîte [x, y, w, h] (ou {x,y,w,h}) ramenée dans le carré 0–100 ; `null` si illisible ou vide. */
+export function parseBox(v: unknown): { x: number; y: number; w: number; h: number } | null {
+  const arr = Array.isArray(v) ? v : v && typeof v === 'object' ? [(v as Record<string, unknown>).x, (v as Record<string, unknown>).y, (v as Record<string, unknown>).w, (v as Record<string, unknown>).h] : null;
+  if (!arr || arr.length < 4) return null;
+  const [x, y, w, h] = arr.slice(0, 4).map((n) => Number(n));
+  if (![x, y, w, h].every(Number.isFinite) || w <= 0 || h <= 0) return null;
+  const c = (n: number) => Math.round(Math.min(100, Math.max(0, n)));
+  return { x: c(x), y: c(y), w: Math.max(1, c(Math.min(w, 100 - c(x)))), h: Math.max(1, c(Math.min(h, 100 - c(y)))) };
+}
 
 export interface ParsedReading {
   reading?: Omit<LogoReading, 'palette'> & { paletteUsage: { hex: string; usage: string }[] };
@@ -129,6 +141,7 @@ export function parseReading(raw: string): ParsedReading {
         position: str(o.position, 160),
         size: str(o.size, 120),
         color: isHex(color) ? color.toLowerCase() : '',
+        ...(parseBox(o.box) ? { box: parseBox(o.box)! } : {}),
       };
     })
     .filter((e) => e.description.length > 5)
@@ -266,7 +279,7 @@ export function readingSheet(r: LogoReading): string {
     r.brandText ? `TEXT IN THE LOGO: "${r.brandText}"` : 'TEXT IN THE LOGO: none',
     `SUMMARY: ${r.summary}`,
     'ELEMENTS:',
-    ...r.elements.map((e) => ` - [${e.role}] ${e.description}. Geometry: ${e.geometry}. Position: ${e.position}. Size: ${e.size}. Color: ${e.color || 'n/a'}.`),
+    ...r.elements.map((e) => ` - [${e.role}] ${e.description}. Geometry: ${e.geometry}. Position: ${e.position}${e.box ? ` (box x${e.box.x} y${e.box.y} w${e.box.w} h${e.box.h})` : ''}. Size: ${e.size}. Color: ${e.color || 'n/a'}.`),
     `SYMMETRY: ${r.symmetry}. CONSTRUCTION: ${r.construction || 'n/a'}`,
     `TYPOGRAPHY: ${r.typography}`,
     `PALETTE (measured): ${r.palette.map((p) => `${p.hex} (${Math.round(p.share * 100)}%, ${p.usage})`).join('; ') || 'n/a'}`,
@@ -275,4 +288,33 @@ export function readingSheet(r: LogoReading): string {
     `KEEP (recognition — do not change): ${r.keep.join(' | ')}`,
     `FIX: ${r.fix.join(' | ') || 'none'}`,
   ].join('\n');
+}
+
+/**
+ * La CARTE D'ENCRE de l'original, mesurée par le code : la silhouette recadrée sur un carré n × n,
+ * « # » = encre pleine, « + » = encre partielle, « . » = vide. Le dessinateur ne voit pas l'image ;
+ * cette carte lui donne la vraie silhouette (≈ 110 tokens pour 20 × 20) au lieu de seuls mots.
+ */
+export function inkMap(grid: Float32Array, n: number): string {
+  const rows: string[] = [];
+  for (let y = 0; y < n; y++) {
+    let row = '';
+    for (let x = 0; x < n; x++) {
+      const v = grid[y * n + x];
+      row += v >= 0.55 ? '#' : v >= 0.18 ? '+' : '.';
+    }
+    rows.push(row);
+  }
+  return rows.join('\n');
+}
+
+/** Le texte d'analyse que la création de projet recopie dans `customDescription` : inutile au dessinateur, qui reçoit la lecture entière. */
+export function wishWithoutAnalysis(text?: string): string | undefined {
+  if (!text) return undefined;
+  const kept = text
+    .split(/\n\s*\n/)
+    .filter((p) => !/^\s*(KEEP:|Original logo reference)/i.test(p))
+    .join('\n\n')
+    .trim();
+  return kept || undefined;
 }

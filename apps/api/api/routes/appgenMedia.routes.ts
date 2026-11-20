@@ -8,13 +8,13 @@
  *
  *   image   Gemini 3.1 Flash Image (OpenRouter), déposée dans le stockage d'IDEM ;
  *   video   Veo 3.1 Fast (OpenRouter), un clip court déposé de même ;
- *   stock   une photo ou une vidéo Pexels, sans frais.
+ *   stock   une photo, une illustration ou une vidéo d'une bibliothèque libre de droit
+ *           (Pexels, Pixabay, Unsplash — `media/stock`, qui choisit et ordonne), sans frais.
  *
  * Une génération est facturée au barème iCode (`site_image`, `site_video`) AVANT l'appel, et
- * restituée si le modèle échoue : le générateur se replie alors sur Pexels. Un refus de
+ * restituée si le modèle échoue : le générateur se replie alors sur la banque. Un refus de
  * crédits (402) n'est pas une erreur pour lui — c'est le même repli.
  */
-import axios from 'axios';
 import { Response, Router } from 'express';
 import logger from '../config/logger';
 import { CustomRequest } from '../interfaces/express.interface';
@@ -28,6 +28,7 @@ import { entitlementsService } from '../services/billing/entitlements.service';
 import { generateImage, generateVideo } from '../services/media.service';
 import { StorageService } from '../services/storage.service';
 import { runWithAiUsageContext } from '../utils/ai-usage-context.util';
+import { searchStockPhotos, searchStockVideos } from '../../../ivision/core/src/media/stock';
 
 const router = Router();
 const storage = new StorageService();
@@ -92,30 +93,6 @@ async function refund(userId: string, charged: Charge, action: string): Promise<
   } catch (error) {
     logger.error('appgen_media.refund_failed', { event: 'appgen_media.refund_failed', userId, action, error });
   }
-}
-
-/**
- * Les résultats qui parlent vraiment de la requête, les plus proches d'abord.
- *
- * Le premier résultat de Pexels n'est pas toujours le bon, et pour une scène
- * rare (un plat ivoirien, un atelier de Douala) il peut être sans rapport : une
- * cuisse de poulet « asiatique » pour un restaurant d'Abidjan. Un résultat dont
- * la description ne reprend aucun mot de la requête est écarté ; sans résultat,
- * le générateur passe à son repli suivant plutôt que de montrer un hors-sujet.
- */
-function relevant<T>(items: T[], describe: (item: T) => string, query: string): T[] {
-  const words = query
-    .toLowerCase()
-    .split(/\s+/)
-    .filter((word) => word.length > 2);
-  return items
-    .map((item, rank) => {
-      const text = describe(item).toLowerCase();
-      return { item, rank, score: words.filter((word) => text.includes(word)).length };
-    })
-    .filter((entry) => entry.score > 0)
-    .sort((a, b) => b.score - a.score || a.rank - b.rank)
-    .map((entry) => entry.item);
 }
 
 /** Une image générée pour une section de site. */
@@ -202,74 +179,63 @@ router.post('/video', authenticate, async (req: CustomRequest, res: Response) =>
 });
 
 /**
- * Une photo ou une vidéo Pexels. Gratuit : c'est le repli de toutes les générations, et le
- * premier choix pour une scène de la vie réelle (un marché, une cuisine, une rue).
+ * Une photo, une illustration ou une vidéo d'une bibliothèque libre de droit (le routeur
+ * `media/stock` choisit et ordonne Pexels/Pixabay selon `kind`). Gratuit : c'est le repli de
+ * toutes les générations, et le premier choix pour une scène de la vie réelle (un marché, une
+ * cuisine, une rue).
  */
 router.post('/stock', authenticate, async (req: CustomRequest, res: Response) => {
-  const apiKey = process.env.PEXELS_API_KEY;
   const query = text(req.body?.query, 120);
-  if (!apiKey) {
-    res.status(503).json({ error: 'stock_unconfigured' });
-    return;
-  }
   if (!query) {
     res.status(400).json({ error: 'query_required' });
     return;
   }
-  const kind = req.body?.kind === 'video' ? 'video' : 'photo';
+  const kind = req.body?.kind === 'video' ? 'video' : req.body?.kind === 'illustration' ? 'illustration' : 'photo';
   const orientation = ['landscape', 'portrait', 'square'].includes(req.body?.orientation) ? req.body.orientation : 'landscape';
   const count = Math.min(5, Math.max(1, Number(req.body?.count) || 1));
-  // Pexels cherche aussi dans d'autres langues : une requête en français trouve des photos.
+  // Les bibliothèques cherchent aussi dans d'autres langues : une requête en français trouve des photos.
   const locale = /^[a-z]{2}-[A-Z]{2}$/.test(String(req.body?.locale ?? '')) ? req.body.locale : undefined;
 
   try {
-    if (kind === 'photo') {
-      const { data } = await axios.get('https://api.pexels.com/v1/search', {
-        headers: { Authorization: apiKey },
-        params: { query, per_page: Math.max(count * 3, 10), orientation, ...(locale ? { locale } : {}) },
-        timeout: 8000,
-      });
-      const ranked = relevant(data?.photos ?? [], (photo: any) => String(photo.alt ?? ''), query);
-      const items = ranked.slice(0, count).map((photo: any) => ({
-        url: photo.src?.large2x || photo.src?.large || photo.src?.original,
-        width: photo.width,
-        height: photo.height,
-        alt: text(photo.alt, 200),
-        author: photo.photographer,
-        sourceUrl: photo.url,
-      }));
-      if (!items.length || !items[0].url) {
+    if (kind === 'video') {
+      const hits = await searchStockVideos(query, { orientation, count, locale });
+      if (!hits.length) {
         res.status(404).json({ error: 'not_found' });
         return;
       }
-      res.json({ items });
+      res.json({
+        items: hits.map((hit) => ({
+          url: hit.url,
+          poster: hit.posterUrl,
+          width: hit.width,
+          height: hit.height,
+          duration: hit.durationSec,
+          author: hit.author,
+          sourceUrl: hit.sourceUrl,
+          provider: hit.provider,
+          license: hit.licenseLabel,
+        })),
+      });
       return;
     }
 
-    const { data } = await axios.get('https://api.pexels.com/videos/search', {
-      headers: { Authorization: apiKey },
-      params: { query, per_page: 5, orientation, size: 'medium', ...(locale ? { locale } : {}) },
-      timeout: 8000,
-    });
-    // Une vidéo n'a pas de description : son adresse (« …/video/femme-qui-cuisine-… ») en tient lieu.
-    const items = relevant(data?.videos ?? [], (video: any) => String(video.url ?? '').replace(/[-/]/g, ' '), query)
-      .map((video: any) => {
-        // Le fichier HD le plus léger qui couvre 1280 px : assez net en fond, pas 40 Mo.
-        const files = (video.video_files ?? [])
-          .filter((file: any) => file.file_type === 'video/mp4' && file.width >= 1000)
-          .sort((a: any, b: any) => a.width - b.width);
-        const file = files.find((candidate: any) => candidate.width >= 1280) ?? files[files.length - 1];
-        return file
-          ? { url: file.link, poster: video.image, width: file.width, height: file.height, author: video.user?.name, sourceUrl: video.url, duration: video.duration }
-          : null;
-      })
-      .filter(Boolean)
-      .slice(0, count);
-    if (!items.length) {
+    const hits = await searchStockPhotos(query, kind, { orientation, count, locale });
+    if (!hits.length) {
       res.status(404).json({ error: 'not_found' });
       return;
     }
-    res.json({ items });
+    res.json({
+      items: hits.map((hit) => ({
+        url: hit.url,
+        width: hit.width,
+        height: hit.height,
+        alt: text(hit.description, 200),
+        author: hit.author,
+        sourceUrl: hit.sourceUrl,
+        provider: hit.provider,
+        license: hit.licenseLabel,
+      })),
+    });
   } catch (error) {
     logger.warn('appgen_media.stock_failed', { event: 'appgen_media.stock_failed', error: (error as Error).message });
     res.status(502).json({ error: 'stock_failed' });

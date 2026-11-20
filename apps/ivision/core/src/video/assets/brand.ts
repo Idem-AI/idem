@@ -9,7 +9,7 @@ import { BrandKit, readFonts, readPalette, resolveLogoSlot } from '../../brand/b
 import { buildGoogleFontLinks } from '../../design/google-fonts';
 import { BRAND_FONT_FAMILY, brandFontFaceStyle, isSelfHostedFamily } from '../../design/brand-font';
 import { enforceLightSurface } from '../../design/lightSurface';
-import type { BrandTokens } from '../../../motion/kit/context';
+import type { BrandTokens } from '../contracts/brand-tokens';
 import { inlineFontLinks } from './fonts';
 
 const DEFAULTS = { primary: '#1f6f4a', secondary: '#14324a', accent: '#f2a93b', background: '#fbfaf7', text: '#16181d' };

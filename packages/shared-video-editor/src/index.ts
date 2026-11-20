@@ -1,5 +1,5 @@
 /**
- * Le pont d'édition entre un éditeur et l'aperçu d'une vidéo (moteur Motion Canvas, `apps/ivision/core/motion`).
+ * Le pont d'édition entre un éditeur et l'aperçu d'une vidéo (moteur HyperFrames).
  *
  * L'aperçu est une page autonome jouée dans un iframe isolé ; il accepte des messages de son parent
  * direct (lecture, pause, position, scène, retouche d'un texte ou d'une image) et en envoie trois :
