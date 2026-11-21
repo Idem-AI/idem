@@ -606,10 +606,25 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
    * conversation), la boucle IDEM est prévenue, puis l'atelier se rouvre SUR ce projet — l'enregistrement
    * automatique, la mise en ligne et la carte « prochaine étape » suivent alors leur chemin habituel.
    */
+  /**
+   * Une refonte lancée depuis un projet qui en porte déjà une : le serveur crée un NOUVEAU projet (nouvelle session).
+   * Sa conversation commence à la réponse aux questions de la refonte (`fromMessageId`), sous un nouvel identifiant ;
+   * rien n'est plus enregistré dans le projet ouvert avant elle.
+   */
+  const redesignSessionRef = useRef<{ fromMessageId: string; sessionId: string } | null>(null);
+
+  /** Les messages de la refonte seulement (à partir de sa demande), ou tous s'il n'y a pas de nouvelle session. */
+  const redesignMessages = <T extends { id?: string }>(all: T[]): T[] => {
+    const session = redesignSessionRef.current;
+    const from = session ? all.findIndex((m) => m.id === session.fromMessageId) : -1;
+    return from >= 0 ? all.slice(from) : all;
+  };
+
   const attachToProject = async (
     newProjectId: string,
     finalMessages: Message[],
-    gestures: ReturnType<typeof readJourney>
+    gestures: ReturnType<typeof readJourney>,
+    sessionId: string = chatUuid
   ) => {
     const pending = toast.info(t('chat.redesign.attaching'), { autoClose: false });
     try {
@@ -618,7 +633,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       const project = await getProjectById(newProjectId);
       if (project) await saveProjectGeneration(newProjectId, createProjectMetadata(project, finalMessages));
       await saveProjectChatSession(newProjectId, {
-        sessionId: chatUuid,
+        sessionId,
         title: deriveSessionTitle(finalMessages, project?.name || 'Nouvelle conversation'),
         messages: compactMessagesForStorage(finalMessages),
       });
@@ -636,6 +651,15 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       setHasGeneration(true);
       setIsGenerationComplete(true);
       setProjectId(newProjectId);
+      // Nouvelle session : la conversation affichée devient celle du nouveau projet (sa demande et sa réponse) ; celle
+      // du projet d'avant reste dans son projet, intacte.
+      if (sessionId !== chatUuid) {
+        pendingSessionRef.current = { sessionId, messages: finalMessages as Array<{ id: string; role: string; content: string }> };
+        setChatUuid(sessionId);
+      }
+      redesignSessionRef.current = null;
+      // Adopté pour de bon : une prochaine refonte qui créera encore un projet doit pouvoir être adoptée à son tour.
+      liveProjectRef.current = null;
       toast.dismiss(pending);
     } catch (error) {
       console.error('[refonte] rattachement au projet impossible', error);
@@ -869,7 +893,11 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       }
 
       // the files that changed), the conversation goes to the database.
-      if (projectId && projectData) {
+      // Une refonte qui a créé SON projet (nouvelle session) n'écrit rien dans le projet ouvert avant elle : son code et
+      // sa conversation partent vers le nouveau projet (`attachToProject`, plus bas).
+      const announced = readProject(message.content);
+      const movedToOtherProject = !!announced && !!projectId && announced.id !== projectId;
+      if (projectId && projectData && !movedToOtherProject) {
         const finalMessages = [...messages, message];
 
         try {
@@ -912,8 +940,10 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       // les gestes à signaler à la boucle IDEM, qui proposera la suite.
       const createdProject = readProject(message.content);
       const gestures = readJourney(message.content);
-      if (createdProject && !projectId) {
-        await attachToProject(createdProject.id, [...messages, message], gestures);
+      if (createdProject && (!projectId || createdProject.id !== projectId)) {
+        const all = [...messages, message];
+        const session = redesignSessionRef.current;
+        await attachToProject(createdProject.id, projectId && session ? redesignMessages(all) : all, gestures, projectId && session ? session.sessionId : chatUuid);
         return;
       }
       for (const gesture of gestures) eventEmitter.emit('journey:event', gesture.event);
@@ -1163,12 +1193,18 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
         if (original) append({ id: uuidv4(), role: 'user', content: original }, { body: { answers: { purpose: 'passthrough', values: {} } } });
         return;
       }
+      const answerId = uuidv4();
+      let workspace: 'blank' | 'used' | undefined;
       if (choices.prepare === 'site-reset') {
         // Ce qui était là (une application, un autre site) : un point de restauration, et plus aucun envoi en vol
         // — l'adresse passe au site juste après, et un envoi parti avant écrirait l'ancien code chez le site.
         const before = useFileStore.getState().files;
         const previous = depsTarget();
         const blank = previous === 'site' && isStarterOnly(before);
+        // Dit au serveur : un atelier qui porte déjà un site (une refonte d'avant) fait naître un NOUVEAU projet, dont
+        // la conversation commencera à cette réponse.
+        workspace = blank || !Object.keys(before).length ? 'blank' : 'used';
+        redesignSessionRef.current = projectId ? { fromMessageId: answerId, sessionId: uuidv4() } : null;
         if (!blank && Object.keys(before).length) {
           await useVersionHistory
             .getState()
@@ -1218,11 +1254,11 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
         }
       }
       append(
-        { id: uuidv4(), role: 'user', content: answer.summary },
-        { body: { answers: { purpose: choices.purpose, values: answer.values, consent: answer.consent, context: choices.context } } }
+        { id: answerId, role: 'user', content: answer.summary },
+        { body: { answers: { purpose: choices.purpose, values: answer.values, consent: answer.consent, context: workspace ? { ...(choices.context ?? {}), workspace } : choices.context } } }
       );
     });
-  }, [isLoading, append, t, journey, runClientCommand, projectData, i18n.language]);
+  }, [isLoading, append, t, journey, runClientCommand, projectData, i18n.language, projectId]);
 
   // Une demande dessinée sur l'aperçu : envoyée tout de suite, avec ce que les tracés désignent (le serveur ne
   // modifie que cela). La note est déjà écrite dans le calque : rien à compléter, rien à renvoyer.
@@ -1651,10 +1687,11 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
   const realMessagesRef = useRef(realMessages);
   realMessagesRef.current = realMessages;
   useEffect(() => {
-    if (!isLoading || projectId || liveProjectRef.current) return;
+    if (!isLoading || liveProjectRef.current) return;
     const last = realMessages[realMessages.length - 1];
     const created = last?.role === 'assistant' ? readProject(last.content) : null;
-    if (!created) return;
+    // Le projet ouvert lui-même (refonte qui le complète) : rien à adopter.
+    if (!created || created.id === projectId) return;
     liveProjectRef.current = created.id;
     useAppGenContextStore.getState().setConnectedProject(created.id);
     const url = new URL(window.location.href);
@@ -1675,7 +1712,8 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
   useEffect(() => {
     if (!isLoading) return;
     const save = () => {
-      const target = projectId ?? liveProjectRef.current;
+      // Le projet annoncé par la réponse d'abord : une refonte qui a créé SON projet n'écrit plus dans celui d'avant.
+      const target = liveProjectRef.current ?? projectId;
       if (!target) return;
       const all = realMessagesRef.current;
       const last = all[all.length - 1];
@@ -1684,10 +1722,12 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       if (Object.keys(workspace).length) {
         pushProjectCode(target, workspace).catch((error) => console.warn('[enregistrement] code non envoyé', error));
       }
+      const moved = !!projectId && target !== projectId && !!redesignSessionRef.current;
+      const messages = moved ? redesignMessages(all as Message[]) : (all as Message[]);
       saveProjectChatSession(target, {
-        sessionId: chatUuid,
-        title: deriveSessionTitle(all as Message[], projectData?.name || 'Nouvelle conversation'),
-        messages: compactMessagesForStorage(all as Message[]),
+        sessionId: moved ? redesignSessionRef.current!.sessionId : chatUuid,
+        title: deriveSessionTitle(messages, projectData?.name || 'Nouvelle conversation'),
+        messages: compactMessagesForStorage(messages),
       }).catch((error) => console.warn('[enregistrement] conversation non envoyée', error));
     };
     const timer = setInterval(save, 20_000);

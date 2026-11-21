@@ -44,7 +44,7 @@ import { AssetDecision, directMedia, MediaSlot } from './media/mediaDirector.js'
 import { createLimiter, MediaAsset, produceMedia } from './media/mediaPipeline.js';
 import { markSurfaces } from './sectionCatalog/assemble.js';
 import { buildSiteScaffold, renderPage, renderPageShells, renderPendingSection, renderPendingShell, shellMessages } from './project.js';
-import { renderBrandModule, renderDataModule, renderMediaModule, renderSeo, siteDataOf } from './siteData.js';
+import { headerBrandMarkOf, renderBrandModule, renderDataModule, renderMediaModule, renderSeo, siteDataOf } from './siteData.js';
 import { collectMessages, dataMessages, languageLabel, localizeCode, pseudoLocaleFiles, renderI18nFiles, translateCatalog, withHeaderLanguageSwitcher, withLanguageSwitcher } from './i18n.js';
 import { renderCheck } from './renderCheck.js';
 import { detectSiteLanguage, readSiteFacts, renderFacts, writtenInOtherLanguage } from './siteFacts.js';
@@ -52,11 +52,12 @@ import { SITE_ENGINE_ID, templateFiles } from './template.js';
 import { marker } from '../commands/choices.js';
 import { redesignArchitect, redesignDesign, redesignFacts, RedesignFocus } from './redesign/brief.js';
 import { prepareRedesign, RedesignContext } from './redesign/flow.js';
-import { fetchSiteContent } from './redesign/idemClient.js';
+import { fetchBrandMark, fetchSiteContent, withBrandMark } from './redesign/idemClient.js';
 import { MANIFEST_PATH, PlanTracker, readSavedDesign, remaining, SavedDesign, SitePlan } from './plan.js';
 import { DESIGN_SYSTEM_PATHS } from './template.js';
 import type { DesignOutcome } from './designConfig.js';
-import { bestFirst, inventoryFacts, inventoryOutline, inventoryText, InventorySection, linkMapper, sectionIndex, sourceContent } from './redesign/inventory.js';
+import { bestFirst, inventoryFacts, inventoryOutline, inventoryText, InventorySection, linkMapper, oldShapes, sectionIndex, sourceContent } from './redesign/inventory.js';
+import { tierOf, TIERS } from './sectionCatalog/tier.js';
 import { sectionCatalog } from './sectionCatalog/registry.js';
 import { CopyTask, PageCopy, startPageCopy } from './sectionCatalog/copy.js';
 import { composeSection, composeShell, inDirection, seedOf } from './sectionCatalog/compose.js';
@@ -264,6 +265,11 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
           return;
         }
         projectData = prepared.projectData;
+        // La marque d'en-tête (logo rogné ; logotype seul ou icône + nom) est préparée par l'import ; un import
+        // antérieur ne l'a pas encore : elle est calculée maintenant, avant que le socle ne l'écrive.
+        if (projectData.id && !headerBrandMarkOf(projectData)) {
+          projectData = withBrandMark(projectData, await fetchBrandMark(projectData.id, input.credentials ?? {}, { signal: abort.signal }));
+        }
         redesign = prepared.redesign;
         // Le projet né de cette refonte, annoncé dès maintenant : l'atelier s'y rattache et y enregistre le site
         // pendant qu'il s'écrit (annoncé à la fin seulement, une actualisation en cours de route perdait tout).
@@ -391,6 +397,8 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
                 coverage: { pageCount: inventory?.pages.length ?? 0, sectionIds: inventory?.pages.flatMap((p) => p.sections.map((s) => s.id)) ?? [] },
                 pageTitles: inventory?.pages.map((p) => p.title) ?? [],
                 pagePaths: inventory?.pages.map((p) => p.path) ?? [],
+                shapes: inventory ? oldShapes(inventory) : {},
+                keepStructure: redesign.focus === 'design',
               }
             : undefined,
         }),
@@ -471,8 +479,10 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
           }
         }
         mapLink = linkMapper(inventory, (pageIndex) => (manifest.pages.find((p) => p.source === pageIndex) ?? manifest.pages.find((p) => originPagesOf(p).includes(pageIndex)))?.path);
-        // Le menu de l'ancien site, repris tel quel : ses entrées, son ordre, ses libellés, vers les nouvelles pages.
-        if (!manifest.menu?.length) {
+        // « Surtout le design » : le menu de l'ancien site, repris tel quel (ses entrées, son ordre, ses libellés), vers
+        // les nouvelles pages. Une refonte complète a SA navigation : celle de sa nouvelle architecture — recopier
+        // l'ancien menu ramenait l'ancien parcours dans un site qui n'a plus les mêmes pages.
+        if (!manifest.menu?.length && redesign?.focus === 'design') {
           const menu: { label: string; href: string }[] = [];
           for (const item of inventory.navigation) {
             const href = mapLink(item.href);
@@ -614,7 +624,10 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
       const direction = String((projectData.analysisResultModel?.branding as { artDirection?: { styleId?: string } } | undefined)?.artDirection?.styleId ?? '').trim() || undefined;
       const seed = seedOf(`${projectData.id ?? facts.name}:${manifest.pages.map((p) => p.key).join(',')}`);
       const usedVariants = new Map<string, number>();
-      const level = input.creativity ?? input.redesign?.creativity;
+      // Une refonte doit faire nettement mieux que l'ancien site : ses gabarits viennent au moins de la gamme « high »
+      // (même prix à tous les crans ; un cran plus haut demandé reste le sien).
+      const asked = input.creativity ?? input.redesign?.creativity;
+      const level = redesign && TIERS.indexOf(tierOf(asked)) < TIERS.indexOf('high') ? 'high' : asked;
       const primaryHref = siteDataOf(facts, manifest, language).primaryAction?.href ?? null;
       const contactPage = manifest.pages.find((p) => /contact/.test(p.key) || p.sections.some((s) => s.layout === 'form'));
       const targetsOf = (page: ManifestPage) => [...manifest.pages.map((p) => p.path), ...page.sections.map((s) => `#${s.id}`), 'contact'];
@@ -817,7 +830,7 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
       const headerProps = { current: manifest.pages[0]?.path ?? '/' };
       const shellFrom = (shells: 'headers' | 'footers', path: string, props?: Record<string, unknown>) =>
         useCatalog && catalog![shells].length
-          ? async () => (await composeShell(inDirection(catalog!, catalog![shells], direction), review, { path, props }, seed, shells, level))?.code ?? null
+          ? async () => (await composeShell(inDirection(catalog!, catalog![shells], direction), review, { path, props }, seed, shells, level, inDirection(catalog!, catalog!.styles ?? [], direction)))?.code ?? null
           : undefined;
       const header = limit(() =>
         write('src/components/site/SiteHeader.tsx', 'header', fr ? "l'en-tête" : 'the header', headerPrompt(ctx, request), headerProps, shellFrom('headers', 'src/components/site/SiteHeader.tsx', headerProps))

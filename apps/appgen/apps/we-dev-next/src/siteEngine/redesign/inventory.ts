@@ -94,6 +94,47 @@ export function sectionIndex(inventory: SiteInventory): Map<string, { page: Inve
   return map;
 }
 
+/**
+ * LA FORME QU'AVAIT UNE SECTION SUR L'ANCIEN SITE, devinée par le code d'après ce qu'elle contient (aucun modèle) :
+ * une liste illustrée était une grille de cartes, une image et du texte un bloc « texte + image »… Dite à
+ * l'architecte, et vérifiée après lui (`departFromOld`, manifest.ts) : une refonte ne remet pas le même contenu dans
+ * la même forme. Les identifiants sont ceux des compositions du manifeste (`LAYOUTS`).
+ */
+export type OldShape = 'cards' | 'features' | 'gallery' | 'split-media' | 'intro' | 'cta-band' | 'form';
+
+const SHAPE_LABEL: Record<OldShape, [string, string]> = {
+  cards: ['grille de cartes', 'grid of cards'],
+  features: ['liste ou grille d’éléments', 'list or grid of items'],
+  gallery: ['galerie d’images', 'image gallery'],
+  'split-media': ['texte à côté d’une image', 'copy beside an image'],
+  intro: ['bloc de texte', 'block of copy'],
+  'cta-band': ['bandeau avec un bouton', 'band with a button'],
+  form: ['formulaire', 'form'],
+};
+
+export function oldShapeOf(s: InventorySection): OldShape | null {
+  const images = s.images.length;
+  const items = s.items.length;
+  if (s.form?.length) return 'form';
+  if (images >= 4 && items <= images) return 'gallery';
+  if (items >= 3 && images >= 2) return 'cards';
+  if (items >= 3) return 'features';
+  if (images >= 1 && s.texts.length >= 1) return 'split-media';
+  if (!images && !items && s.ctas.length && s.texts.length <= 1) return 'cta-band';
+  if (!images && s.texts.length >= 1) return 'intro';
+  return null;
+}
+
+/** La forme de chaque section d'origine, par identifiant (`p0.s3` → `cards`). */
+export function oldShapes(inventory: SiteInventory): Record<string, OldShape> {
+  const out: Record<string, OldShape> = {};
+  for (const page of inventory.pages) for (const s of page.sections) {
+    const shape = oldShapeOf(s);
+    if (shape) out[s.id] = shape;
+  }
+  return out;
+}
+
 /** Le plan donné à l'architecte : une ligne par section, assez pour la placer, pas tout son texte. */
 export function inventoryOutline(inventory: SiteInventory, fr: boolean): string {
   const lines: string[] = [];
@@ -109,7 +150,8 @@ export function inventoryOutline(inventory: SiteInventory, fr: boolean): string 
         s.form?.length ? `${fr ? 'formulaire' : 'form'} (${s.form.slice(0, 6).join(', ')})` : '',
         s.videos?.length ? `${s.videos.length} ${fr ? 'vidéo(s)' : 'video(s)'}` : '',
       ].filter(Boolean);
-      lines.push(`- ${s.id} : ${what.join(' ; ')}`);
+      const shape = oldShapeOf(s);
+      lines.push(`- ${s.id} : ${what.join(' ; ')}${shape ? ` — ${fr ? 'forme actuelle' : 'current shape'} : ${SHAPE_LABEL[shape][fr ? 0 : 1]}` : ''}`);
     }
   });
   if (inventory.skipped.length) {

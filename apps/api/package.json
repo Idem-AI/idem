@@ -11,6 +11,7 @@
     "check:design": "ts-node --transpile-only api/scripts/checkDesignSystem.ts",
     "check:graphic": "npm --prefix ../../packages/graphic-engine run check",
     "check:fonts": "ts-node --transpile-only api/scripts/checkFonts.ts",
+    "check:brand-mark": "ts-node --transpile-only api/scripts/checkBrandMark.ts",
     "check:retry": "ts-node --transpile-only api/scripts/verifyRetry.ts",
     "dev": "nodemon api/index.ts",
     "build": "tsc",

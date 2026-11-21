@@ -10,6 +10,7 @@ import { CommunicationService } from '../services/Communication/communication.se
 import { idemAnalyzeImage } from '../services/ivision/host';
 import { PromptService } from '../services/prompt.service';
 import { chooseSitePalette, SiteConsent, siteContentOf, siteImportJobs } from '../services/SiteImport/siteProject.service';
+import { ensureBrandMark } from '../services/SiteImport/brandMark.service';
 import { runWithAiUsageContext } from '../utils/ai-usage-context.util';
 import { startSseHeartbeat } from '../utils/sse-heartbeat.util';
 import { assessSiteImages, enhanceOneImage, enhanceSiteImages, isEnhancing, MAX_ASSESS, MAX_ENHANCE, ownSlots, type EnhanceEvent } from '../services/SiteImport/siteImages.service';
@@ -178,6 +179,30 @@ router.get('/site-import/project/:projectId/content', authenticate, async (req: 
     return;
   }
   res.json(content);
+});
+
+/**
+ * La marque d'en-tête d'un site iCode (`brandMark.service.ts`) : le logo rogné au plus juste, et s'il porte déjà le
+ * nom (affiché seul) ou non (icône + nom). Calculée par le code, rangée dans le projet ; gratuite.
+ */
+router.get('/brand-mark/:projectId', authenticate, async (req: CustomRequest, res) => {
+  const userId = req.user?.uid;
+  const projectId = String(req.params.projectId);
+  if (!userId || !/^[\w.-]{1,128}$/.test(projectId)) {
+    res.status(400).json({ error: 'invalid_input' });
+    return;
+  }
+  try {
+    const mark = await ensureBrandMark(userId, projectId);
+    if (!mark) {
+      res.status(404).json({ error: 'no_logo' });
+      return;
+    }
+    res.json(mark);
+  } catch (error: any) {
+    logger.warn('appgen.brand_mark_failed', { event: 'appgen.brand_mark_failed', projectId, error: error?.message });
+    res.status(502).json({ error: 'brand_mark_failed' });
+  }
 });
 
 /** La palette du projet après la question « couleurs du site ou fidèles au logo ? ». */

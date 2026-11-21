@@ -16,10 +16,11 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ChatLogger } from '../../utils/logger.js';
-import { CatalogDirection, KindNode, LoadedSectionCatalog, nodeErrors, SectionNode, ShellNode } from './types.js';
+import { CatalogDirection, KindNode, LoadedSectionCatalog, nodeErrors, SectionNode, ShellNode, ShellStyleNode } from './types.js';
 
 // 2.0 : chaque nœud déclare ses directions artistiques (catalogue `directions` du dépôt).
-export const ICODE_CATALOG_ENGINE = '2.0.0';
+// 3.0 (21/11/2026) : en-têtes et pieds à emplacements de style (`shell-style`) et libellés du site (`site.labels`).
+export const ICODE_CATALOG_ENGINE = '3.0.0';
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const snapshotFile = (): string => process.env.IDEM_ICODE_TEMPLATES_SNAPSHOT?.trim() || path.join(HERE, 'snapshot.json');
 const cacheFile = (): string => path.join(process.env.IDEM_TEMPLATES_CACHE || path.join(os.tmpdir(), 'idem-templates-cache'), 'icode-manifest.json');
@@ -103,8 +104,9 @@ export function buildSectionCatalog(entries: RawEntry[], version: string, source
   const sections: SectionNode[] = [];
   const headers: ShellNode[] = [];
   const footers: ShellNode[] = [];
+  const styles: ShellStyleNode[] = [];
   for (const e of entries) {
-    const n = { ...e.node, ...(e.template ? { template: e.template } : {}) } as unknown as SectionNode | ShellNode;
+    const n = { ...e.node, ...(e.template ? { template: e.template } : {}) } as unknown as SectionNode | ShellNode | ShellStyleNode;
     if ((n as { kind: string }).kind === 'kind') continue;
     const errors = [...nodeErrors(n, kinds), ...directionErrors(n)];
     if (errors.length) {
@@ -114,8 +116,9 @@ export function buildSectionCatalog(entries: RawEntry[], version: string, source
     if (n.kind === 'section') sections.push(n);
     else if (n.kind === 'header') headers.push(n);
     else if (n.kind === 'footer') footers.push(n);
+    else if (n.kind === 'shell-style') styles.push(n);
   }
-  return { version, source, kinds, sections, headers, footers, rejected, directions };
+  return { version, source, kinds, sections, headers, footers, styles, rejected, directions };
 }
 
 /** Les DA du dépôt sur le disque (`catalog/directions/<id>/node.json`), en version légère. */
@@ -223,7 +226,7 @@ async function load(): Promise<LoadedSectionCatalog> {
   if (!next) next = fromFile(cacheFile(), 'cache') ?? fromFile(snapshotFile(), 'snapshot');
   if (!next) next = buildSectionCatalog([], 'none', 'none');
   if (next !== current) {
-    ChatLogger.info('SITE_CATALOG', 'Catalogue iCode chargé', { version: next.version, source: next.source, kinds: next.kinds.size, sections: next.sections.length, headers: next.headers.length, footers: next.footers.length, rejected: next.rejected.length });
+    ChatLogger.info('SITE_CATALOG', 'Catalogue iCode chargé', { version: next.version, source: next.source, kinds: next.kinds.size, sections: next.sections.length, headers: next.headers.length, footers: next.footers.length, styles: next.styles.length, rejected: next.rejected.length });
     for (const r of next.rejected.slice(0, 20)) ChatLogger.warn('SITE_CATALOG', `Nœud écarté : ${r.id}`, { reason: r.reason });
   }
   return next;

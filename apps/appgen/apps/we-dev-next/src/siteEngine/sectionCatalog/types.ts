@@ -6,6 +6,7 @@
  *   section  une variante de cette composition : un composant React (TSX) à jetons qui lit ces champs ;
  *   header / footer  l'en-tête et le pied de page, qui ne lisent que les données du site (`@/site/data`).
  */
+import { SHELL_SLOTS, SLOT_EXPORTS, type ShellSlot } from './shellStyles.js';
 import { LAYOUTS, type LayoutId } from '../manifest.js';
 
 export type FieldDef =
@@ -56,8 +57,25 @@ export interface ShellNode {
   medium: 'icode';
   doc: NodeDoc;
   template: string;
+  /** Facultatif : les styles permis par emplacement (identifiants). Absent : tous ceux de l'emplacement. */
+  styles?: Partial<Record<ShellSlot, string[]>>;
   directions?: string[];
   /** La gamme (18/11/2026) : le cran qui sert ce nœud, du plus sobre au plus premium. Absent : tous les crans. */
+  tier?: 'low' | 'medium' | 'high' | 'ultra';
+}
+
+/**
+ * Un STYLE d'en-tête ou de pied de page (21/11/2026) : le code d'un emplacement (`nav`, `menu`, `flink`, `fnav`)
+ * qu'un gabarit délimite par `/* @slot … *\/ … /* @end *\/`. Voir `shellStyles.ts`.
+ */
+export interface ShellStyleNode {
+  id: string;
+  kind: 'shell-style';
+  medium: 'icode';
+  slot: ShellSlot;
+  doc: NodeDoc;
+  template: string;
+  directions?: string[];
   tier?: 'low' | 'medium' | 'high' | 'ultra';
 }
 
@@ -68,6 +86,8 @@ export interface LoadedSectionCatalog {
   sections: SectionNode[];
   headers: ShellNode[];
   footers: ShellNode[];
+  /** Les styles des emplacements d'en-tête et de pied de page (survol, page active, menu mobile, liens du pied). */
+  styles: ShellStyleNode[];
   rejected: Array<{ id: string; reason: string }>;
   /** Les DA du dépôt (version légère : voisines, rayon, échelle, densité). Vide : catalogue sans DA. */
   directions: Map<string, CatalogDirection>;
@@ -131,7 +151,7 @@ function fieldErrors(fields: Record<string, FieldDef> | undefined, where: string
 }
 
 /** Les défauts d'un nœud, avec les schémas déjà lus (une section ne lit que les champs de sa composition). */
-export function nodeErrors(node: KindNode | SectionNode | ShellNode, kinds: Map<string, KindNode>): string[] {
+export function nodeErrors(node: KindNode | SectionNode | ShellNode | ShellStyleNode, kinds: Map<string, KindNode>): string[] {
   if (node.medium !== 'icode') return ['medium « icode » attendu'];
   if (!node.doc?.title || !node.doc?.summary) return ['doc.title et doc.summary obligatoires'];
   if (node.kind === 'kind') return [...(LAYOUT_IDS.has(node.layout) ? [] : [`composition inconnue « ${node.layout} »`]), ...fieldErrors(node.fields, 'fields')];
@@ -161,6 +181,15 @@ export function nodeErrors(node: KindNode | SectionNode | ShellNode, kinds: Map<
       for (const [, name] of tpl.matchAll(/\[\[each ([a-zA-Z]+)\]\]/g)) if (name !== 'gallery' && kind.fields[name]?.type !== 'list') errors.push(`[[each ${name}]] hors schéma`);
       for (const list of Object.keys(node.fits ?? {})) if (list !== 'gallery' && kind.fields[list]?.type !== 'list') errors.push(`fits.${list} hors schéma`);
     }
+  }
+  if (node.kind === 'shell-style') {
+    if (!(SHELL_SLOTS as readonly string[]).includes(node.slot)) errors.push(`emplacement inconnu « ${node.slot} »`);
+    else if (!SLOT_EXPORTS[node.slot].test(tpl)) errors.push(`le style de « ${node.slot} » définit ${SLOT_EXPORTS[node.slot].source.replace(/\\/g, '')}`);
+    if (/export default/.test(tpl)) errors.push('un style n’exporte rien');
+  }
+  if ((node.kind === 'header' || node.kind === 'footer') && /@slot/.test(tpl)) {
+    for (const m of tpl.matchAll(/\/\*\s*@slot\s+([a-z]+)/g)) if (!(SHELL_SLOTS as readonly string[]).includes(m[1])) errors.push(`emplacement inconnu « ${m[1]} »`);
+    if ((tpl.match(/@slot/g) ?? []).length !== (tpl.match(/@end/g) ?? []).length) errors.push('emplacement non refermé (/* @end */)');
   }
   if (node.kind === 'header' && !/export default function SiteHeader\(\{ current \}: \{ current: string \}\)/.test(tpl)) errors.push('signature de SiteHeader');
   if (node.kind === 'footer' && !/export default function SiteFooter\(\)/.test(tpl)) errors.push('signature de SiteFooter');

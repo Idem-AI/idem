@@ -53,6 +53,11 @@ export interface SiteLogo {
   url?: string;
   iconUrl?: string;
   source: 'inline-svg' | 'img' | 'icon' | 'og-image' | 'none';
+  /**
+   * L'en-tête du site écrit le nom en texte à côté du logo (même lien) : le logo est une icône, pas un logotype.
+   * Lu par la marque d'en-tête des refontes iCode (`brandMark.service.ts`).
+   */
+  nameBeside?: boolean;
 }
 
 /** Un fichier de police du site (règle `@font-face`, sous-ensemble latin) : de quoi l'héberger chez nous. */
@@ -277,17 +282,27 @@ function readPage(): PageFacts {
   const logoish = (el: any) => /logo|brand|marque/i.test(`${el.id} ${typeof el.className === 'string' ? el.className : el.className?.baseVal || ''} ${el.getAttribute('alt') || ''} ${el.getAttribute('aria-label') || ''} ${el.getAttribute('src') || ''}`);
   let logo: SiteLogo = { source: 'none' };
   const svg = (Array.from(header.querySelectorAll('svg')) as any[]).find((s) => logoish(s) || logoish(s.parentElement || s) || (s.closest('a') && s.closest('a').getAttribute('href') === '/'));
-  if (svg && svg.outerHTML.length < 80000 && svg.getBoundingClientRect().width > 24) logo = { svg: svg.outerHTML, source: 'inline-svg' };
+  // Le texte visible du lien du logo, hors logo : « Acme » écrit à côté d'une icône.
+  const textBeside = (el: any): boolean => {
+    const link = el && el.closest ? el.closest('a') : null;
+    if (!link) return false;
+    const own = String(link.innerText || '').replace(/\s+/g, ' ').trim();
+    const inLogo = String(el.textContent || '').replace(/\s+/g, ' ').trim();
+    const rest = inLogo ? own.replace(inLogo, '').trim() : own;
+    return rest.length >= 2 && rest.length <= 60;
+  };
+  if (svg && svg.outerHTML.length < 80000 && svg.getBoundingClientRect().width > 24) logo = { svg: svg.outerHTML, source: 'inline-svg', nameBeside: textBeside(svg) };
   if (logo.source === 'none') {
     const img = (Array.from(header.querySelectorAll('img')) as any[]).find((i) => logoish(i) || logoish(i.parentElement || i)) || (Array.from(header.querySelectorAll('a[href="/"] img')) as any[])[0];
     const src = img ? realSrc(img) : '';
-    if (src) logo = { url: abs(src), source: 'img' };
+    if (src) logo = { url: abs(src), source: 'img', nameBeside: textBeside(img) };
   }
   const icon = (Array.from(document.querySelectorAll('link[rel~="icon"], link[rel="apple-touch-icon"]')) as any[]).sort((a, b) => parseInt(b.getAttribute('sizes') || '0', 10) - parseInt(a.getAttribute('sizes') || '0', 10))[0];
   if (icon) logo.iconUrl = abs(icon.getAttribute('href'));
   const ogImage = abs(document.querySelector('meta[property="og:image"]')?.getAttribute('content'));
   // Pas d'étalement d'objet ici : la fonction tourne dans la page, sans les aides de TypeScript.
-  if (logo.source === 'none' && logo.iconUrl) logo = { url: logo.iconUrl, iconUrl: logo.iconUrl, source: 'icon' };
+  // Faute de logo, l'icône du site : une icône, donc le nom l'accompagnera dans l'en-tête.
+  if (logo.source === 'none' && logo.iconUrl) logo = { url: logo.iconUrl, iconUrl: logo.iconUrl, source: 'icon', nameBeside: true };
 
   // Grandes images : celles qu'un visiteur voit en grand (héros, sections), et l'image de partage.
   const images = [
