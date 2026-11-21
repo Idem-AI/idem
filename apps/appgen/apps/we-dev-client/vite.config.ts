@@ -24,7 +24,11 @@ export default defineConfig(async ({ mode, command }) => {
 
   return {
     plugins: [
-      viteCommonjs(),
+      // Développement seulement. À la construction, Rollup convertit déjà le CommonJS ; ce
+      // plugin passait en plus sur les modules de Babel (mode Édition) et produisait un
+      // `(function(exports){ Object.defineProperty(exports, "__esModule", …) })(undefined)` :
+      // « Object.defineProperty called on non-object » au chargement d'iCode en production.
+      { ...viteCommonjs(), apply: 'serve' as const },
       {
         name: 'handle-dynamic-imports',
         transform(code, id) {
