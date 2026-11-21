@@ -724,7 +724,7 @@
       "idomainLive": "C'est en ligne : {{domain}} affiche votre site.",
       "idomainFailed": "Le branchement de {{domain}} n'a pas abouti. Réessayez depuis iDomain.",
       "recordsTitle": "Un réglage à ajouter chez votre fournisseur",
-      "recordsLead": "Choisissez votre fournisseur : nous vous disons où cliquer. Ensuite, recopiez le Nom et la Valeur ci-dessous.",
+      "recordsLead": "Deux étapes chez le fournisseur de {{domain}}, puis nous faisons le reste : le site s'ouvre à votre nom, en HTTPS.",
       "whereQuestion": "Chez qui avez-vous acheté votre nom ?",
       "pickProvider": "Choisir…",
       "otherProvider": "Un autre",
@@ -738,8 +738,8 @@
         "proxied": "Passez le nuage Cloudflare en gris",
         "live": "En ligne"
       },
-      "wait": "Nous vérifions toutes les 10 secondes. Un fournisseur met de quelques minutes à quelques heures pour publier le réglage : vous pouvez fermer, cela continue.",
-      "later": "Je le ferai plus tard",
+      "wait": "Nous vérifions toutes les 10 secondes. La publication prend de quelques minutes à quelques heures : vous pouvez fermer, cela continue.",
+      "later": "Terminer plus tard",
       "done": "Terminé",
       "providers": {
         "godaddy": {
@@ -790,7 +790,12 @@
           "step3": "Ajoutez un enregistrement de type A avec le Nom et la Valeur ci-contre, puis enregistrez.",
           "tip": "S'il existe déjà un enregistrement A ou AAAA pour ce nom, supprimez-le ou modifiez-le."
         }
-      }
+      },
+      "title": "Votre nom de domaine",
+      "stepProvider": "Ouvrez la zone DNS",
+      "stepRecords": "Ajoutez ces réglages",
+      "pickHint": "Choisissez votre fournisseur : nous vous disons où cliquer.",
+      "copied": "Copié"
     }
   },
   "editMode": {

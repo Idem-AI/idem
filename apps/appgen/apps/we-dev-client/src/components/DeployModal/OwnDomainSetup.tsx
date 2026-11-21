@@ -253,19 +253,19 @@ export function OwnDomainSetup({
       )}
 
       {step === 'records' && (
-        <div className="grid gap-4">
-          <div>
-            <p className="text-sm font-semibold text-text-primary">{t('deployModal.ownDomain.recordsTitle')}</p>
-            <p className="mt-0.5 text-xs text-text-secondary">{t('deployModal.ownDomain.recordsLead')}</p>
-          </div>
+        <div className="grid gap-5">
+          <p className="text-sm text-text-secondary">{t('deployModal.ownDomain.recordsLead', { domain: hosts[0] ?? '' })}</p>
 
-          {/* 1. Le fournisseur : ses trois étapes, ses boutons nommés comme chez lui. */}
-          {!allLive && (
-            <div className="grid gap-2">
-              <label htmlFor="own-domain-provider" className="text-xs font-semibold text-text-primary">
-                {t('deployModal.ownDomain.whereQuestion')}
-              </label>
-              <select id="own-domain-provider" value={provider ?? ''} onChange={(e) => setProvider(e.target.value || null)}>
+          <div className="grid gap-6 md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+            {/* 1. Chez le fournisseur : où cliquer, nommé comme chez lui. */}
+            <div className="grid content-start gap-3">
+              <StepTitle n={1} label={t('deployModal.ownDomain.stepProvider')} />
+              <select
+                id="own-domain-provider"
+                aria-label={t('deployModal.ownDomain.whereQuestion')}
+                value={provider ?? ''}
+                onChange={(e) => setProvider(e.target.value || null)}
+              >
                 <option value="">{t('deployModal.ownDomain.pickProvider')}</option>
                 {PROVIDERS.map((p) => (
                   <option key={p.id} value={p.id}>
@@ -273,90 +273,137 @@ export function OwnDomainSetup({
                   </option>
                 ))}
               </select>
-              {chosen && (
-                <ol className="grid gap-1.5">
-                  {(['step1', 'step2', 'step3'] as const).map((s, index) => (
-                    <li key={s} className="flex gap-2 text-xs text-text-secondary">
-                      <span className="grid h-5 w-5 flex-none place-items-center rounded border border-[var(--glass-border)] text-[11px] tabular-nums text-text-tertiary" aria-hidden="true">
-                        {index + 1}
-                      </span>
-                      <span className="pt-0.5">{t(`deployModal.ownDomain.providers.${chosen.id}.${s}`)}</span>
-                    </li>
-                  ))}
-                  <li className="text-xs text-text-tertiary">{t(`deployModal.ownDomain.providers.${chosen.id}.tip`)}</li>
+              {chosen ? (
+                <>
+                  <ol className="grid gap-1.5 text-xs leading-relaxed text-text-secondary">
+                    {(['step1', 'step2', 'step3'] as const).map((key, index) => (
+                      <li key={key} className="flex gap-2">
+                        <span className="tabular-nums text-text-tertiary">{index + 1}.</span>
+                        <span>{t(`deployModal.ownDomain.providers.${chosen.id}.${key}`)}</span>
+                      </li>
+                    ))}
+                  </ol>
+                  <p className="text-xs leading-relaxed text-text-tertiary">{t(`deployModal.ownDomain.providers.${chosen.id}.tip`)}</p>
                   {chosen.url && (
-                    <li>
-                      <a href={chosen.url} target="_blank" rel="noreferrer" className="button-ghost button-sm inline-flex items-center gap-1 !px-2">
-                        <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
-                        {t('deployModal.ownDomain.openProvider', { name: chosen.name })}
-                      </a>
-                    </li>
+                    <a href={chosen.url} target="_blank" rel="noreferrer" className="outer-button button-sm inline-flex items-center gap-1.5 justify-self-start">
+                      <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+                      {t('deployModal.ownDomain.openProvider', { name: chosen.name })}
+                    </a>
                   )}
-                </ol>
+                </>
+              ) : (
+                <p className="text-xs text-text-tertiary">{t('deployModal.ownDomain.pickHint')}</p>
               )}
             </div>
-          )}
 
-          {/* 2. Le réglage à recopier, et où il en est (relu toutes les 10 s). */}
-          {checks.length === 0 ? (
-            <div className="skeleton h-16 rounded-lg" aria-hidden="true" />
-          ) : (
-            <ul className="grid gap-2">
-              {checks.map((check) => {
-                const state = statusOf(check);
-                return (
-                  <li key={check.host} className="rounded-lg border border-[var(--glass-border)] p-3">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <span className="text-sm font-medium text-text-primary">{check.host}</span>
-                      <span className="flex items-center gap-1.5 text-xs text-text-tertiary">
-                        {state !== 'live' && <IdemLoader size="xs" />}
-                        <span className={state === 'live' ? 'text-success' : ''}>{t(`deployModal.ownDomain.status.${state}`)}</span>
-                      </span>
-                    </div>
-                    {check.record && state !== 'live' && (
-                      <div className="mt-2 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 text-xs">
-                        <span className="text-text-tertiary">{t('deployModal.ownDomain.type')}</span>
-                        <span className="font-mono text-text-primary">{check.record.type}</span>
-                        <span />
-                        {(['name', 'value'] as const).map((field) => (
-                          <FieldRow
-                            key={field}
-                            label={t(`deployModal.ownDomain.${field}`)}
-                            value={check.record![field]}
-                            copied={copied === `${check.host}-${field}`}
-                            onCopy={() => copy(check.record![field], `${check.host}-${field}`)}
-                            copyLabel={t('header.copy')}
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
-          )}
+            {/* 2. Les réglages à recopier : une ligne chacun, et où il en est (relu toutes les 10 s). */}
+            <div className="grid content-start gap-3">
+              <StepTitle n={2} label={t('deployModal.ownDomain.stepRecords')} />
+              {checks.length === 0 ? (
+                <div className="skeleton h-24 rounded-lg" aria-hidden="true" />
+              ) : (
+                <ul className="grid gap-3">
+                  {checks.map((check) => {
+                    const state = statusOf(check);
+                    return (
+                      <li key={check.host} className="rounded-lg border border-[var(--glass-border)] p-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <span className="flex items-center gap-2 text-sm font-medium text-text-primary">
+                            {check.record && <span className="tag !py-0 font-mono !text-[11px]">{check.record.type}</span>}
+                            {check.host}
+                          </span>
+                          <span className="flex items-center gap-1.5 text-xs text-text-secondary">
+                            {state === 'live' ? <span className="status-dot bg-success" aria-hidden /> : <IdemLoader size="xs" />}
+                            <span className={state === 'live' ? 'text-success' : ''}>{t(`deployModal.ownDomain.status.${state}`)}</span>
+                          </span>
+                        </div>
+                        {check.record && state !== 'live' && (
+                          <div className="mt-3 grid gap-2 sm:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+                            <CopyField
+                              label={t('deployModal.ownDomain.name')}
+                              value={check.record.name}
+                              copied={copied === `${check.host}-name`}
+                              onCopy={() => copy(check.record!.name, `${check.host}-name`)}
+                              copyLabel={t('header.copy')}
+                              copiedLabel={t('deployModal.ownDomain.copied')}
+                            />
+                            <CopyField
+                              label={t('deployModal.ownDomain.value')}
+                              value={check.record.value}
+                              copied={copied === `${check.host}-value`}
+                              onCopy={() => copy(check.record!.value, `${check.host}-value`)}
+                              copyLabel={t('header.copy')}
+                              copiedLabel={t('deployModal.ownDomain.copied')}
+                            />
+                          </div>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+              <p className="text-xs leading-relaxed text-text-tertiary">{t('deployModal.ownDomain.wait')}</p>
+            </div>
+          </div>
 
-          {!allLive && <p className="text-xs text-text-tertiary">{t('deployModal.ownDomain.wait')}</p>}
-
-          <Button variant="primary" size="sm" onClick={onDone} className="justify-self-end">
-            {t(allLive ? 'deployModal.ownDomain.done' : 'deployModal.ownDomain.later')}
-          </Button>
+          <div className="flex items-center justify-between gap-3 border-t border-[var(--glass-border-subtle)] pt-4">
+            <button type="button" onClick={onCancel} className="button-ghost button-sm !px-2">
+              {t('deployModal.ownDomain.back')}
+            </button>
+            <Button variant="primary" size="sm" onClick={onDone}>
+              {t(allLive ? 'deployModal.ownDomain.done' : 'deployModal.ownDomain.later')}
+            </Button>
+          </div>
         </div>
       )}
     </div>
   );
 }
 
-function FieldRow({ label, value, copied, onCopy, copyLabel }: { label: string; value: string; copied: boolean; onCopy: () => void; copyLabel: string }) {
+function StepTitle({ n, label }: { n: number; label: string }) {
   return (
-    <>
-      <span className="text-text-tertiary">{label}</span>
-      <span className="truncate font-mono text-text-primary" title={value}>
-        {value}
+    <p className="flex items-center gap-2 text-sm font-semibold text-text-primary">
+      <span className="grid h-5 w-5 flex-none place-items-center rounded border border-[var(--glass-border)] text-[11px] tabular-nums text-text-tertiary" aria-hidden="true">
+        {n}
       </span>
-      <button type="button" onClick={onCopy} aria-label={`${copyLabel} ${label}`} className="button-icon !p-1">
-        {copied ? <Check className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5" />}
-      </button>
-    </>
+      {label}
+    </p>
+  );
+}
+
+/** Une valeur à recopier : son nom, la valeur bien lisible, et un vrai bouton « Copier ». */
+function CopyField({
+  label,
+  value,
+  copied,
+  onCopy,
+  copyLabel,
+  copiedLabel,
+}: {
+  label: string;
+  value: string;
+  copied: boolean;
+  onCopy: () => void;
+  copyLabel: string;
+  copiedLabel: string;
+}) {
+  return (
+    <div className="grid gap-1">
+      <span className="text-xs font-medium text-text-secondary">{label}</span>
+      <div className="flex min-w-0 items-center gap-2 rounded-md border border-[var(--glass-border)] bg-[var(--glass-bg-light)] py-1 pl-3 pr-1">
+        <span className="min-w-0 flex-1 truncate font-mono text-sm text-text-primary" title={value}>
+          {value}
+        </span>
+        <button
+          type="button"
+          onClick={onCopy}
+          aria-label={`${copyLabel} ${label} : ${value}`}
+          className="outer-button button-sm inline-flex flex-none items-center gap-1.5 !px-2.5"
+        >
+          {copied ? <Check className="h-3.5 w-3.5 text-success" aria-hidden="true" /> : <Copy className="h-3.5 w-3.5" aria-hidden="true" />}
+          {copied ? copiedLabel : copyLabel}
+        </button>
+      </div>
+    </div>
   );
 }

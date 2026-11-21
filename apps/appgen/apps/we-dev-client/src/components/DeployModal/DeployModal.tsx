@@ -272,6 +272,9 @@ export function DeployModal({ open, onClose, deployment, defaultName, onPublishe
   /** Les noms à l'utilisateur (pas les adresses gratuites d'iDeploy), un par domaine (www regroupé). */
   const customDomains = (address?.domains ?? []).filter((d) => d.status !== 'automatic' && !d.host.startsWith('www.'));
 
+  /** Le réglage d'un nom de domaine occupe toute la fenêtre : une seule tâche à l'écran. */
+  const settingDomain = domainChoice === 'connect' && Boolean(publicAppUuid) && (phase === 'ready' || phase === 'done');
+
   const manageUrl = existing
     ? `${IDEPLOY_URL}/applications/${existing.applicationUuid ?? existing.frontendUuid}`
     : null;
@@ -281,7 +284,7 @@ export function DeployModal({ open, onClose, deployment, defaultName, onPublishe
       open={open}
       onCancel={onClose}
       footer={null}
-      width={520}
+      width={settingDomain ? 880 : 560}
       centered
       styles={{
         content: {
@@ -295,20 +298,26 @@ export function DeployModal({ open, onClose, deployment, defaultName, onPublishe
       }}
     >
       <div className="p-6">
-        <header className="flex items-start gap-4">
-          <PublishQuickIllustration size={72} />
-          <div className="min-w-0">
-            <h3 className="text-lg font-semibold text-text-primary">
-              {t(phase === 'done' ? 'deployModal.done.title' : liveUrl ? 'deployModal.update.title' : 'deployModal.publish.title')}
-            </h3>
-            <p className="mt-1 text-sm text-text-secondary">
-              {t(phase === 'done' ? 'deployModal.done.body' : `deployModal.lead.${mode}`)}
-            </p>
-          </div>
-        </header>
+        {settingDomain ? (
+          <header className="pr-8">
+            <h3 className="text-lg font-semibold text-text-primary">{t('deployModal.ownDomain.title')}</h3>
+          </header>
+        ) : (
+          <header className="flex items-start gap-4">
+            <PublishQuickIllustration size={72} />
+            <div className="min-w-0">
+              <h3 className="text-lg font-semibold text-text-primary">
+                {t(phase === 'done' ? 'deployModal.done.title' : liveUrl ? 'deployModal.update.title' : 'deployModal.publish.title')}
+              </h3>
+              <p className="mt-1 text-sm text-text-secondary">
+                {t(phase === 'done' ? 'deployModal.done.body' : `deployModal.lead.${mode}`)}
+              </p>
+            </div>
+          </header>
+        )}
 
         {/* L'adresse : celle d'avant pendant qu'on prépare, la nouvelle à la fin. */}
-        {(phase === 'done' || (phase === 'ready' && liveUrl)) && shownUrl && (
+        {!settingDomain && (phase === 'done' || (phase === 'ready' && liveUrl)) && shownUrl && (
           <UrlField
             url={shownUrl}
             copied={copied}
@@ -318,7 +327,7 @@ export function DeployModal({ open, onClose, deployment, defaultName, onPublishe
             copyLabel={copied ? t('header.copied_link') : t('header.copy')}
           />
         )}
-        {addressPending && address?.url && (
+        {!settingDomain && addressPending && address?.url && (
           <p className="mt-2 flex items-start gap-2 text-xs text-text-secondary" role="status">
             <IdemLoader size="xs" className="mt-0.5 shrink-0" />
             <span>{t('deployModal.address.pending', { url: address.url.replace(/^https?:\/\//, '') })}</span>
@@ -327,7 +336,7 @@ export function DeployModal({ open, onClose, deployment, defaultName, onPublishe
 
         {/* Un nom à soi. Après la 1re mise en ligne : la question. Ensuite : ses noms, ou un lien discret. */}
         {(phase === 'done' || (phase === 'ready' && liveUrl)) && publicAppUuid && (
-          <section className="mt-4 border-t border-[var(--glass-border-subtle)] pt-4">
+          <section className={settingDomain ? 'mt-4' : 'mt-4 border-t border-[var(--glass-border-subtle)] pt-4'}>
             {domainChoice !== 'connect' && (customDomains.length > 0 || ownDomains.length > 0) ? (
               // Ses noms à lui, et où ils en sont ; un nom pas encore en ligne rouvre ses réglages.
               <div className="grid gap-2">
@@ -472,7 +481,7 @@ export function DeployModal({ open, onClose, deployment, defaultName, onPublishe
           </section>
         )}
 
-        {phase === 'ready' && (
+        {phase === 'ready' && !settingDomain && (
           <div className="mt-6 flex items-center justify-end gap-2">
             <Button variant="ghost" size="sm" onClick={onClose}>
               {t('deployModal.cancel')}
@@ -483,7 +492,7 @@ export function DeployModal({ open, onClose, deployment, defaultName, onPublishe
           </div>
         )}
 
-        {phase === 'done' && buildReport && buildReport.errors.length > 0 && (
+        {phase === 'done' && !settingDomain && buildReport && buildReport.errors.length > 0 && (
           <section role="status" className="mt-5 rounded-xl border border-amber-500/30 bg-amber-500/[0.07] p-4">
             <p className="text-sm font-medium text-text-primary">{t('deployModal.seo.title', { count: buildReport.errors.length })}</p>
             <p className="mt-1 text-xs text-text-secondary">{t('deployModal.seo.body')}</p>
@@ -500,7 +509,7 @@ export function DeployModal({ open, onClose, deployment, defaultName, onPublishe
           </section>
         )}
 
-        {phase === 'done' && (
+        {phase === 'done' && !settingDomain && (
           <div className="mt-6 flex justify-end">
             <Button variant="primary" size="sm" onClick={() => { setPhase('ready'); onClose(); }}>
               {t('deployModal.close')}
@@ -509,7 +518,7 @@ export function DeployModal({ open, onClose, deployment, defaultName, onPublishe
         )}
 
         {/* Ce qui est technique, replié : l'utilisateur veut mettre en ligne, pas configurer. */}
-        {(phase === 'ready' || phase === 'done') && (
+        {(phase === 'ready' || phase === 'done') && !settingDomain && (
           <section className="mt-5 border-t border-[var(--glass-border)] pt-3">
             <button
               type="button"

@@ -121,5 +121,52 @@ async function pushProjectCodeNow(
     return null;
   }
 
-  return syncProjectCode(projectId, diff);
+  return syncInBatches(projectId, diff, storedManifest, epoch);
+}
+
+/**
+ * Au plus ~4 Mo de fichiers par requête : l'API refuse un corps de plus de 10 Mo (413),
+ * et un projet refait (images, polices, gros fichiers de données) les dépassait d'un coup —
+ * plus rien n'était enregistré. Chaque lot réécrit un manifeste exact (ce qui est stocké à
+ * cet instant) ; les suppressions et le manifeste complet partent avec le dernier lot.
+ */
+const BATCH_BYTES = 4 * 1024 * 1024;
+
+async function syncInBatches(
+  projectId: string,
+  diff: CodeDiff,
+  storedManifest: Record<string, string>,
+  epoch: number
+): Promise<{ written: number; deleted: number; total: number } | null> {
+  const batches: Record<string, string>[] = [];
+  let current: Record<string, string> = {};
+  let size = 0;
+  for (const [path, content] of Object.entries(diff.upserts)) {
+    const bytes = path.length + content.length;
+    if (size > 0 && size + bytes > BATCH_BYTES) {
+      batches.push(current);
+      current = {};
+      size = 0;
+    }
+    current[path] = content;
+    size += bytes;
+  }
+  if (Object.keys(current).length > 0 || batches.length === 0) batches.push(current);
+
+  const written: Record<string, string> = { ...storedManifest };
+  let total = { written: 0, deleted: 0, total: 0 };
+  for (let index = 0; index < batches.length; index++) {
+    if (epoch !== syncEpoch) return null;
+    const upserts = batches[index];
+    const last = index === batches.length - 1;
+    for (const path of Object.keys(upserts)) written[path] = diff.manifest[path];
+    const result = await syncProjectCode(projectId, {
+      upserts,
+      deletions: last ? diff.deletions : [],
+      manifest: last ? diff.manifest : { ...written },
+    });
+    if (!result) return null;
+    total = { written: total.written + result.written, deleted: total.deleted + result.deleted, total: result.total };
+  }
+  return total;
 }

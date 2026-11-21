@@ -36,7 +36,7 @@ export function corsMiddleware(req: Request, res: Response, next: NextFunction) 
       'Access-Control-Allow-Headers',
       // Les en-têtes du four (dépôt d'un instantané de dépendances) : absents, le navigateur refusait le dépôt
       // avant même de l'envoyer, et aucun instantané n'a jamais pu être cuit depuis la page.
-      'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization, userId, X-Appgen-Project-Id, X-Idem-Bake-Token, X-Idem-Unpacked-Bytes, X-Idem-Verified'
+      'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Content-Encoding, Date, X-Api-Version, Authorization, userId, X-Appgen-Project-Id, X-Idem-Bake-Token, X-Idem-Unpacked-Bytes, X-Idem-Verified'
     );
   }
 
