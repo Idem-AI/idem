@@ -812,6 +812,48 @@ export class StorageService {
     return this.getObjectAsString(objectPath);
   }
 
+  /** Le chemin d'objet d'une adresse publique de ce stockage ; `null` si elle n'en vient pas ou sort de son dossier. */
+  objectPathOf(downloadURL: string): string | null {
+    let pathname: string;
+    try {
+      pathname = decodeURIComponent(new URL(downloadURL).pathname);
+    } catch {
+      return null;
+    }
+    const marker = `/${this.bucketName}/`;
+    const at = pathname.indexOf(marker);
+    if (at < 0) return null;
+    const objectPath = pathname.slice(at + marker.length);
+    if (!objectPath || objectPath.split('/').some((segment) => segment === '..' || segment === '.' || segment === '')) return null;
+    return objectPath;
+  }
+
+  /** Relit un fichier binaire (une image) que ce stockage a écrit, borné en taille ; `null` s'il n'existe pas. */
+  async readObjectBuffer(objectPath: string, maxBytes = 16 * 1024 * 1024): Promise<Buffer | null> {
+    try {
+      const stream = await this.client.getObject(this.bucketName, objectPath);
+      const chunks: Buffer[] = [];
+      let size = 0;
+      await new Promise((resolve, reject) => {
+        stream.on('data', (chunk: Buffer) => {
+          size += chunk.length;
+          if (size > maxBytes) {
+            stream.destroy();
+            reject(new Error('object_too_large'));
+            return;
+          }
+          chunks.push(chunk);
+        });
+        stream.on('error', reject);
+        stream.on('end', resolve);
+      });
+      return Buffer.concat(chunks);
+    } catch (error: any) {
+      if (error?.code === 'NoSuchKey' || error?.code === 'NotFound') return null;
+      throw error;
+    }
+  }
+
   private async getObjectAsString(objectPath: string): Promise<string | null> {
     try {
       const stream = await this.client.getObject(this.bucketName, objectPath);

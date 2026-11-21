@@ -8,12 +8,14 @@
   "license": "MIT",
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "check": "ts-node --transpile-only scripts/check.ts"
+    "check": "ts-node --transpile-only scripts/check.ts",
+    "check:image-quality": "ts-node --transpile-only scripts/check-image-quality.ts"
   },
   "dependencies": {
     "@neplex/vectorizer": "0.1.0",
     "culori": "4.0.2",
     "imagetracerjs": "1.2.6",
+    "jszip": "^3.10.1",
     "onnxruntime-web": "1.31.1",
     "poisson-disk-sampling": "2.3.1",
     "roughjs": "4.6.6",

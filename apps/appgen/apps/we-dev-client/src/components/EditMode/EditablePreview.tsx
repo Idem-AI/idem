@@ -5,6 +5,7 @@ import { getContainerInstance, onServersChange } from '../WeIde/services';
 import useRunStatus, { API_PORT } from '@/stores/runStatusSlice';
 import { eventEmitter } from '../AiChat/utils/EventEmitter';
 import { RunErrorBanner } from './RunErrorBanner';
+import { SiteImageQualityBanner } from './SiteImageQualityBanner';
 import { useFileStore } from '../WeIde/stores/fileStore';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
@@ -938,6 +939,9 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
 
         {/* L'erreur qui empêche l'application de tourner, et sa correction en un clic. */}
         <RunErrorBanner onFix={(prompt) => eventEmitter.emit('chat:fixError', prompt)} />
+
+        {/* Refonte : les images qui paraîtront floues à leur place, proposées à l'amélioration (jamais imposée). */}
+        {!mobileApp && <SiteImageQualityBanner iframeRef={iframeRef} active={!!url && !generating} reloadKey={url ?? ''} />}
 
         {/* Surface d'aperçu */}
         <div

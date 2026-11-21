@@ -305,6 +305,25 @@
     "errorLoadingProject": "Échec du chargement du projet"
   },
   "preview": {
+    "imageQuality": {
+      "offerTitle_one": "{{count}} image de votre site manque de netteté",
+      "offerTitle_other": "{{count}} images de votre site manquent de netteté",
+      "offerBody": "Nous pouvons les rendre plus nettes. Les autres images ne seront pas touchées, et vous pourrez revenir aux originales.",
+      "enhance": "Améliorer les images",
+      "show": "Voir lesquelles",
+      "later": "Plus tard",
+      "runningTitle": "Amélioration des images…",
+      "runningBody": "{{done}} sur {{total}} — chaque image se remplace dans l'aperçu dès qu'elle est prête.",
+      "doneTitle_one": "{{count}} image améliorée",
+      "doneTitle_other": "{{count}} images améliorées",
+      "doneNone": "Ces images étaient déjà au mieux de ce qu'on peut en tirer",
+      "doneBody": "Les originales sont gardées.",
+      "revert": "Revenir aux originales",
+      "reverted": "Images d'origine rétablies",
+      "error": "L'amélioration s'est interrompue. Les images déjà améliorées restent en place.",
+      "retry": "Réessayer",
+      "close": "Fermer"
+    },
     "noserver": "Aucun serveur en cours d'exécution",
     "wxminiPreview": "Ouvrir les outils de développement WeChat Mini Program pour l'aperçu",
     "noserverHint": "Le serveur de développement démarre dès la première génération. Décrivez ce que vous voulez construire dans la conversation.",

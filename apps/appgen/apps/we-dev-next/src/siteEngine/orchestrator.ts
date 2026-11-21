@@ -56,7 +56,7 @@ import { fetchSiteContent } from './redesign/idemClient.js';
 import { MANIFEST_PATH, PlanTracker, readSavedDesign, remaining, SavedDesign, SitePlan } from './plan.js';
 import { DESIGN_SYSTEM_PATHS } from './template.js';
 import type { DesignOutcome } from './designConfig.js';
-import { inventoryFacts, inventoryOutline, inventoryText, InventorySection, linkMapper, sectionIndex, sourceContent } from './redesign/inventory.js';
+import { bestFirst, inventoryFacts, inventoryOutline, inventoryText, InventorySection, linkMapper, sectionIndex, sourceContent } from './redesign/inventory.js';
 import { sectionCatalog } from './sectionCatalog/registry.js';
 import { CopyTask, PageCopy, startPageCopy } from './sectionCatalog/copy.js';
 import { composeSection, composeShell, inDirection, seedOf } from './sectionCatalog/compose.js';
@@ -550,7 +550,8 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
         let reused = 0;
         for (const page of manifest.pages) {
           for (const section of page.sections) {
-            const images = (sourcesBySection.get(mediaKey(page, section)) ?? []).flatMap((s) => s.images).slice(0, 12);
+            // La meilleure image d'abord : c'est la première qui s'affiche en grand (relevé mesuré à la recopie).
+            const images = bestFirst((sourcesBySection.get(mediaKey(page, section)) ?? []).flatMap((s) => s.images)).slice(0, 12);
             if (!images.length) continue;
             const assets: MediaAsset[] = images.map((image) => ({ kind: 'image', src: image.url, alt: image.alt || facts.name, origin: 'site' }));
             produced[mediaKey(page, section)] = assets;

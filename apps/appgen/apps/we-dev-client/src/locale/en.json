@@ -305,6 +305,25 @@
     "errorLoadingProject": "Failed to load project"
   },
   "preview": {
+    "imageQuality": {
+      "offerTitle_one": "{{count}} image on your site isn't sharp enough",
+      "offerTitle_other": "{{count}} images on your site aren't sharp enough",
+      "offerBody": "We can make them sharper. Your other images stay as they are, and you can go back to the originals.",
+      "enhance": "Enhance images",
+      "show": "Show which",
+      "later": "Later",
+      "runningTitle": "Enhancing images…",
+      "runningBody": "{{done}} of {{total}} — each image is swapped in the preview as soon as it's ready.",
+      "doneTitle_one": "{{count}} image enhanced",
+      "doneTitle_other": "{{count}} images enhanced",
+      "doneNone": "These images were already as sharp as they can get",
+      "doneBody": "The originals are kept.",
+      "revert": "Back to originals",
+      "reverted": "Original images restored",
+      "error": "Enhancement stopped. Images already enhanced stay in place.",
+      "retry": "Try again",
+      "close": "Close"
+    },
     "noserver": "No server running",
     "wxminiPreview": "Open WeChat Mini Program Developer Tools for preview",
     "noserverHint": "The dev server starts with your first generation. Describe what you want to build in the chat.",

@@ -45,40 +45,6 @@ async function processDomainSweep(): Promise<void> {
   if (checked > 0) logger.info('domains.swept', { event: 'domains.swept', applications: checked });
 }
 
-/** Le certificat `*.idem.africa` : renouvelé avant échéance, présent sur chaque serveur d'IDEM qui sert une adresse de plateforme. */
-const CERT_JOB = 'platform-certificate';
-const CERT_PATTERN = process.env.PLATFORM_CERT_CRON || '17 */6 * * *';
-
-async function processPlatformCertificate(): Promise<void> {
-  const { ensurePlatformCertificate, ensurePlatformCertificateOn, platformDomain } = await import('../services/platform-certificate.service');
-  const domain = platformDomain();
-  if (!domain) return;
-  const { cert, renewed } = await ensurePlatformCertificate();
-  if (!cert) return;
-  const { executionTarget } = await import('../services/domain-options.service');
-  const appService = await import('../services/application.service');
-  const pool = (await import('../config/db.config')).default;
-  // Une application par serveur suffit à l'atteindre.
-  const { rows } = await pool.query(
-    `SELECT DISTINCT ON (sd.server_id) a.uuid, p.team_id
-       FROM applications a
-       JOIN environments e ON e.id = a.environment_id
-       JOIN projects p ON p.id = e.project_id
-       JOIN standalone_dockers sd ON sd.id = a.destination_id AND a.destination_type LIKE '%StandaloneDocker'
-       JOIN servers s ON s.id = sd.server_id
-      WHERE COALESCE(s.idem_managed, false) = true AND a.fqdn ILIKE $1
-      ORDER BY sd.server_id`,
-    [`%.${domain}%`]
-  );
-  let installedOn = 0;
-  for (const row of rows) {
-    const app = await appService.getApplication(Number(row.team_id), String(row.uuid));
-    const target = app ? await executionTarget(Number(row.team_id), app) : null;
-    if (target && (await ensurePlatformCertificateOn(target.server, target.key))) installedOn++;
-  }
-  logger.info('platform_certificate.swept', { event: 'platform_certificate.swept', renewed, servers: rows.length, installedOn });
-}
-
 async function processMeterSweep(): Promise<void> {
   const { applyPendingMeters } = await import('../services/meter-enforcement.service');
   const applied = await applyPendingMeters();
@@ -88,13 +54,6 @@ async function processMeterSweep(): Promise<void> {
 async function processSweep(job: Job): Promise<void> {
   if (job.name === DOMAINS_JOB) return processDomainSweep();
   if (job.name === METERS_JOB) return processMeterSweep();
-  // En arrière-plan : une émission attend la propagation DNS (minutes) et bloquerait la file des serveurs.
-  if (job.name === CERT_JOB) {
-    void processPlatformCertificate().catch((err) =>
-      logger.error('platform_certificate.sweep_failed', { event: 'platform_certificate.sweep_failed', message: (err as Error).message })
-    );
-    return;
-  }
   const outcomes = await checkAllServers();
   // Orders the managed servers whose measurements are missing or stale (placement).
   await refreshAllLoadScores().catch((err) =>
@@ -130,9 +89,6 @@ export async function registerServerHealthScheduler(): Promise<void> {
     logger.info(`Server health sweep scheduled (${SWEEP_PATTERN})`);
     await getQueue(QUEUE_NAMES.servers).add(DOMAINS_JOB, {}, { repeat: { pattern: DOMAINS_PATTERN }, jobId: DOMAINS_JOB });
     await getQueue(QUEUE_NAMES.servers).add(METERS_JOB, {}, { repeat: { pattern: METERS_PATTERN }, jobId: METERS_JOB });
-    await getQueue(QUEUE_NAMES.servers).add(CERT_JOB, {}, { repeat: { pattern: CERT_PATTERN }, jobId: CERT_JOB });
-    // Une fois au démarrage : le premier certificat n'attend pas six heures.
-    await getQueue(QUEUE_NAMES.servers).add(CERT_JOB, {}, { jobId: `${CERT_JOB}-boot`, removeOnComplete: true, removeOnFail: true });
   } catch (err) {
     logger.warn('Could not schedule the server health sweep', {
       message: (err as Error).message,

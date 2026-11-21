@@ -21,6 +21,7 @@ import logger from '../runtime/logger';
 import { installRenderNetworkGuard, isRenderUrlAllowed, RENDER_BROWSER_ARGS } from '../render/network-guard';
 import { safeFetch } from '../render/safe-fetch';
 import { evaluateSettled } from './settled';
+import type { ImageQuality } from '../../../../../packages/design-tools/src/image-quality';
 import { detectFromHeaders, detectInPage, FLATTEN_SHADOW_SCRIPT, originalImageUrl, profileOf, REMOVE_CONSENT_SCRIPT, TECHNOLOGIES, type RenderFamily, type TechProfile } from './site-tech';
 
 export interface InventoryImage {
@@ -30,7 +31,13 @@ export interface InventoryImage {
   height: number;
   /** `img` : une image du contenu ; `background` : une image de fond (héros, bandeaux). */
   kind: 'img' | 'background';
+  /** L'adresse vraiment chargée par la page, quand `url` vise une plus grande variante (secours de la recopie). */
+  fallback?: string;
+  /** Mesurée à la recopie par le code (`packages/design-tools/src/image-quality.ts`) ; absente des relevés antérieurs au 21/11/2026. */
+  quality?: ImageQuality;
 }
+
+export type { ImageQuality };
 
 export interface InventoryCta {
   label: string;
@@ -288,18 +295,41 @@ function readStructure(): PageRead {
       var tag = node.tagName.toLowerCase();
       if (tag === 'img') {
         // La vraie source d'une image chargée en différé (`src` n'y porte qu'une image d'attente data:…).
-        var set = node.getAttribute('data-srcset') || node.getAttribute('data-lazy-srcset') || node.getAttribute('srcset') || '';
-        var fromSet = set ? set.split(',').map(function (part: string) { return part.trim().split(/\s+/)[0]; }).filter(Boolean).pop() : '';
+        // La plus grande variante annoncée (descripteur `w` ou `x`), pas la dernière écrite : le navigateur du robot
+        // charge celle de SON écran, souvent une vignette. Les `<source>` d'un `<picture>` comptent aussi.
+        var sets = [node.getAttribute('data-srcset'), node.getAttribute('data-lazy-srcset'), node.getAttribute('srcset')];
+        var picture = node.parentElement && node.parentElement.tagName.toLowerCase() === 'picture' ? node.parentElement : null;
+        if (picture) picture.querySelectorAll('source').forEach(function (s: any) {
+          var type = (s.getAttribute('type') || '').toLowerCase();
+          if (!type || /image\/(jpe?g|png|webp|avif)/.test(type)) sets.push(s.getAttribute('data-srcset') || s.getAttribute('srcset'));
+        });
+        var best = '', bestSize = -1;
+        sets.forEach(function (set: any) {
+          if (!set) return;
+          // Une virgule sépare deux entrées après un descripteur ou devant une espace ; celles d'une adresse
+          // Cloudinary (`w_300,h_200`) restent dans l'adresse.
+          String(set).split(/(?<=\s\d+(?:\.\d+)?[wx])\s*,|,\s+/).forEach(function (part: string) {
+            var bits = part.trim().split(/\s+/);
+            if (!bits[0] || bits[0].indexOf('data:') === 0) return;
+            var d = bits[1] || '1x';
+            var size = /w$/.test(d) ? parseFloat(d) : parseFloat(d) * 1000;
+            if (size > bestSize) { best = bits[0]; bestSize = size; }
+          });
+        });
         var lazy = node.getAttribute('data-src') || node.getAttribute('data-lazy-src') || node.getAttribute('data-original') || node.getAttribute('data-lazy') || '';
         var raw = node.currentSrc || node.getAttribute('src') || '';
         var placeholder = !raw || raw.indexOf('data:') === 0;
-        var src = abs(placeholder ? lazy || fromSet : raw);
+        var shownSrc = abs(placeholder ? lazy || best : raw);
+        var src = best ? abs(best) : shownSrc;
         var box = node.getBoundingClientRect();
         var w = (!placeholder && node.naturalWidth) || Number(node.getAttribute('width')) || Math.round(box.width) || 0;
         var h = (!placeholder && node.naturalHeight) || Number(node.getAttribute('height')) || Math.round(box.height) || 0;
         if (!src || src.indexOf('data:') === 0 || (w && w < 48 && h < 48)) return;
         if (images.some(function (i: any) { return i.url === src; })) return;
-        images.push({ url: src, alt: clean(node.getAttribute('alt')), width: w, height: h, kind: 'img' });
+        var entry: any = { url: src, alt: clean(node.getAttribute('alt')), width: w, height: h, kind: 'img' };
+        // L'image vraiment affichée : le secours si la grande variante ne se télécharge pas.
+        if (shownSrc && shownSrc !== src && shownSrc.indexOf('data:') !== 0) entry.fallback = shownSrc;
+        images.push(entry);
         return;
       }
       if (tag === 'source' || tag === 'picture') return;
@@ -1071,7 +1101,13 @@ export async function crawlWebsite(options: CrawlOptions): Promise<SiteInventory
       // Une route en `#/services` : son chemin est `/services/` dans le nouveau site.
       const routePath = keepHash && /^#!?\//.test(u.hash) ? `${u.hash.replace(/^#!?/, '').split('?')[0].replace(/\/?$/, '/')}` : u.pathname;
       // Les images en pleine taille (vignettes de Wix, Squarespace, Shopify, WordPress, `/_next/image`…).
-      for (const block of read.blocks) for (const image of block.images) image.url = originalImageUrl(image.url);
+      // L'adresse devinée peut ne pas exister (miniature WordPress sans original) : l'adresse lue reste en secours.
+      for (const block of read.blocks)
+        for (const image of block.images) {
+          const original = originalImageUrl(image.url);
+          if (original !== image.url && !image.fallback) image.fallback = image.url;
+          image.url = original;
+        }
       const page: InventoryPage = {
         url,
         path: pageIndex === 0 ? '/' : routePath,

@@ -32,7 +32,7 @@ import { choosePort, parseExposedPorts, parseListeningPorts, parseLoopbackOnlyPo
 import { planBuild, recipePlan, toBuildPack, buildDirectory } from '../docker/build-packs';
 import { loadLabelContext, buildApplicationLabels } from '../services/application-labels.service';
 import { writeFirewallFile } from '../services/firewall-file.service';
-import { applyRoutes } from '../services/routes-file.service';
+import { applyRoutes, retryPlatformCertificates } from '../services/routes-file.service';
 import { deployPrebuiltStatic, isPrebuiltStatic } from './static-fast-path';
 import { monorepoHint, monorepoProbeCommand, parseMonorepoProbe } from '../docker/monorepo-hint';
 import { analyzeRepository, describePlan, parseSnapshot, snapshotCommand, BuildPlanResult } from '../build-plan';
@@ -64,6 +64,8 @@ import { ApplicationRow } from '../models/ideploy.types';
  * single deployment.
  */
 const SETTLE_MS = 12000;
+/** How long a deployment waits for a platform address just written at Namecheap to be served. */
+export const PLATFORM_DNS_WAIT_MS = 90_000;
 
 /**
  * How long to wait, after the container first looked healthy, before
@@ -1049,7 +1051,7 @@ async function deploy(
     // container starts: a router naming a missing middleware serves nothing.
     if (compose !== null && labelContext) await writeFirewallFile(server, key, app);
     if (compose !== null && useRoutesFile) {
-      const { routed, waiting } = await applyRoutes(server, key, app, { port });
+      const { routed, waiting } = await applyRoutes(server, key, app, { port, waitForPlatformDnsMs: PLATFORM_DNS_WAIT_MS });
       if (routed.length) await log(`Routes: ${routed.join(', ')}`);
       if (waiting.length) await log(`Waiting for DNS (not routed yet): ${waiting.join(', ')} — see Settings › domain.`);
     }
@@ -1228,6 +1230,7 @@ async function deploy(
 
   // What is running now is what a plain redeploy runs again.
   if (imageVersion) await appService.setImageTag(app.id, imageVersion);
+  if (useRoutesFile) void retryPlatformCertificates(server, key, app, port);
 
   // Older releases and images go; the live one and the previous one stay.
   // Every deployment used to leave its image behind until the disk filled. The

@@ -118,6 +118,33 @@ export async function lookup(host: string, resolver = publicResolver()): Promise
   return { a, aaaa, cname };
 }
 
+/** An address of the platform domain (`monapp.idem.africa`), which iDeploy writes in DNS itself. */
+export function isPlatformHost(host: string, platformDomain = process.env.IDEPLOY_PLATFORM_DOMAIN || ''): boolean {
+  return Boolean(platformDomain) && host.toLowerCase().endsWith(`.${platformDomain.toLowerCase()}`);
+}
+
+/**
+ * What the domain's own name servers answer for `host` — not a cache.
+ *
+ * A platform address is written at Namecheap a moment before it is used, and
+ * the zone has a `*` record pointing at IDEM's main server: a public resolver
+ * asked too early keeps the `*` answer for its TTL. Let's Encrypt asks the
+ * zone itself, so this is what decides whether a certificate can be issued.
+ */
+export async function lookupAuthoritative(host: string): Promise<DomainCheck['found']> {
+  try {
+    const resolver = publicResolver();
+    const names = await resolver.resolveNs(zoneOf(host));
+    const addresses = (await Promise.all(names.map((n) => resolver.resolve4(n).catch(() => [] as string[])))).flat();
+    if (addresses.length === 0) return lookup(host);
+    const authoritative = new Resolver({ timeout: 3000, tries: 2 });
+    authoritative.setServers(addresses.slice(0, 4));
+    return await lookup(host, authoritative);
+  } catch {
+    return lookup(host);
+  }
+}
+
 /** Does `host` answer HTTPS with a certificate valid for it? */
 export function checkHttps(host: string, timeoutMs = 5000): Promise<DomainCheck['https']> {
   return new Promise((resolve) => {

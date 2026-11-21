@@ -131,8 +131,78 @@ if (root.hasChildNodes()) {
   (window as Window & { __IDEM_HYDRATING__?: boolean }).__IDEM_HYDRATING__ = true;
   hydrateRoot(root, app);
 } else createRoot(root).render(app);
-`;
+${PREVIEW_BRIDGE}`;
 }
+
+/**
+ * Le pont de l'aperçu d'iCode : la place de chaque image affichée (pour ne proposer d'améliorer que celles qui
+ * paraîtront floues À LEUR PLACE) et leur mise en évidence (« Voir lesquelles »). Seulement en développement, dans
+ * l'aperçu : `import.meta.env.DEV` vaut `false` à la construction, le bloc disparaît du site publié.
+ */
+const PREVIEW_BRIDGE = `
+if (import.meta.env.DEV && window.parent !== window) {
+  const SOURCE = 'idem-preview';
+  let marks: HTMLElement[] = [];
+  const absolute = (value: string) => {
+    try {
+      return new URL(value, location.href).href;
+    } catch {
+      return value;
+    }
+  };
+  const imagesOnPage = () => {
+    const found = new Map<string, { url: string; displayWidth: number; displayHeight: number; elements: Element[] }>();
+    const add = (raw: string, element: Element) => {
+      if (!raw || raw.startsWith('data:')) return;
+      const url = absolute(raw);
+      const box = element.getBoundingClientRect();
+      const entry = found.get(url) ?? { url, displayWidth: 0, displayHeight: 0, elements: [] };
+      if (box.width * box.height > entry.displayWidth * entry.displayHeight) {
+        entry.displayWidth = Math.round(box.width);
+        entry.displayHeight = Math.round(box.height);
+      }
+      entry.elements.push(element);
+      found.set(url, entry);
+    };
+    document.querySelectorAll('img').forEach((img) => add(img.currentSrc || img.src, img));
+    document.querySelectorAll('body *').forEach((element) => {
+      const match = getComputedStyle(element).backgroundImage.match(/url\\(["']?([^"')]+)["']?\\)/);
+      if (match) add(match[1], element);
+    });
+    return found;
+  };
+  const clearMarks = () => {
+    marks.forEach((mark) => mark.remove());
+    marks = [];
+  };
+  window.addEventListener('message', (event) => {
+    const data = event.data as { source?: string; type?: string; id?: string; urls?: string[] } | null;
+    if (!data || data.source !== SOURCE) return;
+    if (data.type === 'MEASURE_IMAGES') {
+      const images = [...imagesOnPage().values()].map(({ url, displayWidth, displayHeight }) => ({ url, displayWidth, displayHeight }));
+      (event.source as Window | null)?.postMessage({ source: SOURCE, type: 'IMAGES', id: data.id, viewportWidth: window.innerWidth, images }, '*');
+    }
+    if (data.type === 'HIGHLIGHT_IMAGES') {
+      clearMarks();
+      const wanted = new Set((data.urls ?? []).map(absolute));
+      const elements = [...imagesOnPage().values()].filter((image) => wanted.has(image.url)).flatMap((image) => image.elements);
+      elements.forEach((element) => {
+        const box = element.getBoundingClientRect();
+        const mark = document.createElement('div');
+        mark.style.cssText = 'position:absolute;pointer-events:none;z-index:2147483600;outline:3px dashed #f59e0b;outline-offset:-3px;border-radius:6px;background:rgba(245,158,11,.12)';
+        mark.style.top = box.top + window.scrollY + 'px';
+        mark.style.left = box.left + window.scrollX + 'px';
+        mark.style.width = box.width + 'px';
+        mark.style.height = box.height + 'px';
+        document.body.appendChild(mark);
+        marks.push(mark);
+      });
+      elements[0]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      if (marks.length) setTimeout(clearMarks, 6000);
+    }
+  });
+}
+`;
 
 /**
  * La page d'attente du site.

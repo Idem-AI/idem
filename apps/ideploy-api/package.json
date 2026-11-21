@@ -27,7 +27,6 @@
   "dependencies": {
     "@infisical/sdk": "^5.0.2",
     "@prisma/client": "^6.2.1",
-    "acme-client": "^5.4.0",
     "axios": "^1.7.9",
     "bcryptjs": "^3.0.3",
     "bullmq": "^5.34.0",

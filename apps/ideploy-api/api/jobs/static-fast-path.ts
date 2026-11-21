@@ -29,7 +29,7 @@ import { executeRemoteCommand, shellQuote, uploadRemoteFile } from '../ssh/ssh';
 import { STATIC_NGINX_CONF, toBuildPack } from '../docker/build-packs';
 import { composeDirFile, composeProject, composeServiceName, generateComposeFile } from '../docker/compose';
 import { writeFirewallFile } from '../services/firewall-file.service';
-import { applyRoutes } from '../services/routes-file.service';
+import { applyRoutes, retryPlatformCertificates } from '../services/routes-file.service';
 import { ApplicationRow, PrivateKeyRow, ServerRow } from '../models/ideploy.types';
 
 /** Versions gardées sur le serveur : la servie et deux d'avant. */
@@ -144,7 +144,7 @@ export async function deployPrebuiltStatic(ctx: FastStaticContext): Promise<void
   ctx.markSwitched();
   await ctx.step('Switching to the new version', async () => {
     await writeFirewallFile(server, key, app);
-    const { routed, waiting } = await applyRoutes(server, key, app, { port: 80 });
+    const { routed, waiting } = await applyRoutes(server, key, app, { port: 80, waitForPlatformDnsMs: 90_000 });
     if (routed.length) await log(`Routes: ${routed.join(', ')}`);
     if (waiting.length) await log(`Waiting for DNS (not routed yet): ${waiting.join(', ')} — see Settings › domain.`);
 
@@ -193,6 +193,9 @@ export async function deployPrebuiltStatic(ctx: FastStaticContext): Promise<void
     }
     await log('✓ The site answers.');
   });
+
+  // Une adresse dont le certificat avait échoué avant ce correctif : redemandé une fois.
+  void retryPlatformCertificates(server, key, app, 80);
 
   // 4. Le ménage, sans attendre : les vieilles versions, et les images du chemin général d'avant.
   void executeRemoteCommand(
