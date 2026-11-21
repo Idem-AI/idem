@@ -49,7 +49,10 @@ export function OwnDomainSetup({
   lang,
   onDone,
   onCancel,
+  resumeHosts,
 }: {
+  /** Des noms déjà ajoutés à l'application : la fenêtre rouvre directement leurs réglages. */
+  resumeHosts?: string[];
   appUuid: string;
   idomainApiUrl: string;
   lang: string;
@@ -57,12 +60,12 @@ export function OwnDomainSetup({
   onCancel: () => void;
 }) {
   const { t } = useTranslation();
-  const [step, setStep] = useState<Step>('host');
+  const [step, setStep] = useState<Step>(resumeHosts?.length ? 'records' : 'host');
   const [host, setHost] = useState('');
   const [busy, setBusy] = useState(false);
   const [busyChoice, setBusyChoice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [hosts, setHosts] = useState<string[]>([]);
+  const [hosts, setHosts] = useState<string[]>(resumeHosts ?? []);
   const [checks, setChecks] = useState<DomainCheck[]>([]);
   const [provider, setProvider] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);

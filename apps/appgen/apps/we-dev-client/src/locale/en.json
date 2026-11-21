@@ -704,7 +704,9 @@
       "later": "Not now, keep the free address",
       "add": "Add a domain name",
       "soonTitle": "Coming soon",
-      "soonBody": "Buying a domain name from iCode is coming very soon. Meanwhile, your site stays online at its free address."
+      "soonBody": "Buying a domain name from iCode is coming very soon. Meanwhile, your site stays online at its free address.",
+      "yours": "Your domain names",
+      "showSettings": "See the settings"
     },
     "ownDomain": {
       "label": "What is your domain name?",

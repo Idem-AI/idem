@@ -216,6 +216,8 @@ router.get('/applications/:uuid/address', async (req: Request, res: Response) =>
       ready: primary?.https?.status === 'valid',
       // L'adresse qui marche déjà, quand ce n'est pas encore la principale.
       fallbackUrl: working && working !== primary ? `https://${working.host}` : null,
+      // Chaque nom de l'application : `automatic` = une adresse gratuite d'iDeploy, les autres sont à l'utilisateur.
+      domains: domains.map((d) => ({ host: d.host, status: d.status, https: d.https?.status ?? 'not_checked' })),
     });
   } catch (error) {
     const err = error as Error & { status?: number };
