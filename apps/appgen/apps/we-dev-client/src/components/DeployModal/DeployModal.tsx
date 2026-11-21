@@ -94,7 +94,9 @@ export function DeployModal({ open, onClose, deployment, defaultName, onPublishe
   // L'application iDeploy qui répond au public : le site, ou l'interface d'une application complète.
   const publicAppUuid = existing?.applicationUuid ?? existing?.frontendUuid ?? null;
   const lang = (i18n.language || 'fr').slice(0, 2);
-  const [domainChoice, setDomainChoice] = useState<DomainChoice>('ask');
+  // Déjà en ligne : la mise à jour est la seule action ; le nom de domaine reste à un clic, sans question.
+  const [domainChoice, setDomainChoice] = useState<DomainChoice>(liveUrl ? 'later' : 'ask');
+  const [resumeHosts, setResumeHosts] = useState<string[] | undefined>(undefined);
   const [domainsVersion, setDomainsVersion] = useState(0);
   // « /domaine » ou la carte « Votre propre nom » : la question s'ouvre aussitôt, si l'application est déjà en ligne
   // (sinon la fenêtre propose d'abord la mise en ligne, sans laquelle un nom ne mène nulle part).
@@ -119,6 +121,25 @@ export function DeployModal({ open, onClose, deployment, defaultName, onPublishe
     return () => clearInterval(timer);
   }, [open, phase, address?.ready, publicAppUuid]);
 
+  // À chaque ouverture : déjà en ligne → pas de question, la mise à jour d'abord.
+  useEffect(() => {
+    if (!open || phase !== 'ready') return;
+    setResumeHosts(undefined);
+    // « /domaine » ouvre la question même sur une application en ligne.
+    setDomainChoice(liveUrl && !openDomain ? 'later' : 'ask');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  // Ouverte sur une application déjà en ligne : ses noms (gratuit, et ceux de l'utilisateur) et leur état.
+  useEffect(() => {
+    if (!open || !publicAppUuid || phase !== 'ready') return;
+    let alive = true;
+    void getAddressState(publicAppUuid).then((state) => alive && state && setAddress(state));
+    return () => {
+      alive = false;
+    };
+  }, [open, publicAppUuid, phase, domainsVersion]);
+
   // Le site se construit dès l'ouverture de la fenêtre : le temps de lire et de cliquer, il est souvent prêt.
   // La même construction est reprise par la publication (rien n'est construit deux fois).
   useEffect(() => {
@@ -128,6 +149,7 @@ export function DeployModal({ open, onClose, deployment, defaultName, onPublishe
   const mark = (id: StepId, state: StepState) => setSteps((current) => ({ ...current, [id]: state }));
 
   const publish = useCallback(async () => {
+    const wasLive = Boolean(liveUrl);
     setPhase('working');
     setError(null);
     setShowDetails(false);
@@ -186,10 +208,11 @@ export function DeployModal({ open, onClose, deployment, defaultName, onPublishe
         const watch = { cancelled: false };
         addressWatch.current = watch;
         const state = await waitForAddress(publicUuid, ADDRESS_WAIT_MS, watch);
-        setAddress(state ?? { url: result.url, ready: false, fallbackUrl: null });
+        setAddress(state ?? { url: result.url, ready: false, fallbackUrl: null, domains: [] });
       }
       mark('secure', 'done');
-      setDomainChoice('ask');
+      // La question n'est posée qu'après la première mise en ligne.
+      setDomainChoice(wasLive ? 'later' : 'ask');
       setPhase('done');
     } catch (raw) {
       const failure = raw instanceof PublishError ? raw : new PublishError((raw as Error)?.message || 'publish_failed');
@@ -197,7 +220,7 @@ export function DeployModal({ open, onClose, deployment, defaultName, onPublishe
       setError(failure);
       setPhase('error');
     }
-  }, [mode, name, defaultName, existing, onPublished]);
+  }, [mode, name, defaultName, existing, onPublished, liveUrl]);
 
   const copy = async (url: string) => {
     try {
@@ -245,6 +268,9 @@ export function DeployModal({ open, onClose, deployment, defaultName, onPublishe
         ? address?.fallbackUrl ?? null
         : address?.url ?? deployment?.url ?? null
       : liveUrl;
+
+  /** Les noms à l'utilisateur (pas les adresses gratuites d'iDeploy), un par domaine (www regroupé). */
+  const customDomains = (address?.domains ?? []).filter((d) => d.status !== 'automatic' && !d.host.startsWith('www.'));
 
   const manageUrl = existing
     ? `${IDEPLOY_URL}/applications/${existing.applicationUuid ?? existing.frontendUuid}`
@@ -299,35 +325,68 @@ export function DeployModal({ open, onClose, deployment, defaultName, onPublishe
           </p>
         )}
 
-        {/* Un nom à soi. La question d'abord, simple : en a-t-il déjà un ? Brancher ou acheter, ici même. */}
+        {/* Un nom à soi. Après la 1re mise en ligne : la question. Ensuite : ses noms, ou un lien discret. */}
         {(phase === 'done' || (phase === 'ready' && liveUrl)) && publicAppUuid && (
           <section className="mt-4 border-t border-[var(--glass-border-subtle)] pt-4">
-            {ownDomains.length > 0 ? (
-              <>
-                <ul className="space-y-1 text-sm">
-                  {ownDomains.map((c) => (
-                    <li key={c.id} className="flex flex-wrap items-center gap-2">
-                      <span className={`h-2 w-2 rounded-full ${c.status === 'active' ? 'bg-success' : 'bg-[var(--color-text-tertiary)]'}`} aria-hidden />
-                      <a href={`https://${c.host}`} target="_blank" rel="noreferrer" className="font-medium text-text-primary hover:underline">{c.host}</a>
-                      <span className="text-xs text-text-tertiary">
-                        {idomainText(lang, `manage.status.${c.status === 'active' ? 'active' : c.status === 'failed' ? 'failed' : 'pending'}`)}
-                      </span>
-                    </li>
-                  ))}
+            {domainChoice !== 'connect' && (customDomains.length > 0 || ownDomains.length > 0) ? (
+              // Ses noms à lui, et où ils en sont ; un nom pas encore en ligne rouvre ses réglages.
+              <div className="grid gap-2">
+                <p className="text-xs font-semibold text-text-primary">{t('deployModal.domain.yours')}</p>
+                <ul className="grid gap-1.5 text-sm">
+                  {customDomains.map((d) => {
+                    const live = d.https === 'valid';
+                    return (
+                      <li key={d.host} className="flex flex-wrap items-center gap-2">
+                        <span className={`status-dot ${live ? 'bg-success' : 'bg-[var(--color-text-tertiary)]'}`} aria-hidden />
+                        <a href={`https://${d.host}`} target="_blank" rel="noreferrer" className="font-medium text-text-primary hover:underline">{d.host}</a>
+                        <span className="text-xs text-text-tertiary">{t(live ? 'deployModal.ownDomain.status.live' : 'deployModal.ownDomain.status.waiting')}</span>
+                        {!live && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const www = `www.${d.host}`;
+                              setResumeHosts([d.host, ...((address?.domains ?? []).some((x) => x.host === www) ? [www] : [])]);
+                              setDomainChoice('connect');
+                            }}
+                            className="button-ghost button-sm !px-2"
+                          >
+                            {t('deployModal.domain.showSettings')}
+                          </button>
+                        )}
+                      </li>
+                    );
+                  })}
+                  {ownDomains
+                    .filter((c) => !customDomains.some((d) => d.host === c.host))
+                    .map((c) => (
+                      <li key={c.id} className="flex flex-wrap items-center gap-2">
+                        <span className={`status-dot ${c.status === 'active' ? 'bg-success' : 'bg-[var(--color-text-tertiary)]'}`} aria-hidden />
+                        <a href={`https://${c.host}`} target="_blank" rel="noreferrer" className="font-medium text-text-primary hover:underline">{c.host}</a>
+                        <span className="text-xs text-text-tertiary">
+                          {idomainText(lang, `manage.status.${c.status === 'active' ? 'active' : c.status === 'failed' ? 'failed' : 'pending'}`)}
+                        </span>
+                      </li>
+                    ))}
                 </ul>
-              </>
+              </div>
             ) : domainChoice === 'later' ? (
               <button type="button" onClick={() => setDomainChoice('ask')} className="button-ghost button-sm !px-2">
                 {t('deployModal.domain.add')}
               </button>
             ) : domainChoice === 'connect' ? (
               <OwnDomainSetup
+                key={(resumeHosts ?? []).join(',') || 'new'}
+                resumeHosts={resumeHosts}
                 appUuid={publicAppUuid}
                 idomainApiUrl={IDOMAIN_API_URL}
                 lang={lang}
-                onCancel={() => setDomainChoice('ask')}
+                onCancel={() => {
+                  setResumeHosts(undefined);
+                  setDomainChoice(resumeHosts ? 'later' : 'ask');
+                }}
                 onDone={() => {
-                  setDomainChoice('ask');
+                  setResumeHosts(undefined);
+                  setDomainChoice('later');
                   setDomainsVersion((v) => v + 1);
                 }}
               />

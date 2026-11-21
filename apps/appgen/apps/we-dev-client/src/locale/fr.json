@@ -704,7 +704,9 @@
       "later": "Pas maintenant, garder l'adresse gratuite",
       "add": "Ajouter un nom de domaine",
       "soonTitle": "Bientôt disponible",
-      "soonBody": "L'achat d'un nom de domaine depuis iCode arrive très bientôt. En attendant, votre site reste en ligne à son adresse gratuite."
+      "soonBody": "L'achat d'un nom de domaine depuis iCode arrive très bientôt. En attendant, votre site reste en ligne à son adresse gratuite.",
+      "yours": "Vos noms de domaine",
+      "showSettings": "Voir les réglages"
     },
     "ownDomain": {
       "label": "Quel est votre nom de domaine ?",

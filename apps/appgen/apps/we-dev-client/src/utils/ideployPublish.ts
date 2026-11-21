@@ -288,6 +288,8 @@ export interface AddressState {
   ready: boolean;
   /** Une autre adresse de l'application qui marche déjà (l'automatique), le temps que la principale arrive. */
   fallbackUrl: string | null;
+  /** Tous les noms de l'application ; `status: 'automatic'` = adresse gratuite d'iDeploy. */
+  domains: { host: string; status: string; https: string }[];
 }
 
 /** L'adresse publique répond-elle déjà en HTTPS ? */
@@ -298,7 +300,12 @@ export async function getAddressState(applicationUuid: string): Promise<AddressS
     });
     const data = await response.json().catch(() => null);
     if (!response.ok || !data?.success) return null;
-    return { url: data.url ?? null, ready: Boolean(data.ready), fallbackUrl: data.fallbackUrl ?? null };
+    return {
+      url: data.url ?? null,
+      ready: Boolean(data.ready),
+      fallbackUrl: data.fallbackUrl ?? null,
+      domains: Array.isArray(data.domains) ? data.domains : [],
+    };
   } catch {
     return null;
   }
