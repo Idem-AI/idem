@@ -825,6 +825,19 @@
     "apply": "Appliquer",
     "upload": "Téléverser une image",
     "uploading": "Envoi de l'image…",
+    "enhance": "Améliorer la qualité",
+    "enhancing": "Amélioration de l'image…",
+    "enhanceHint": "Rend l'image nette à la taille où elle s'affiche, sans changer ses couleurs.",
+    "enhanceResults": {
+      "done": "Image améliorée : {{width}} × {{height}} px.",
+      "already_sharp": "Cette image est déjà nette à la taille où elle s'affiche.",
+      "no_gain": "Impossible de faire mieux sans abîmer cette image.",
+      "unreadable": "Cette image n'a pas pu être lue.",
+      "forbidden": "Cette image n'appartient pas à votre projet.",
+      "busy": "Une amélioration est déjà en cours. Patientez un instant.",
+      "inline": "Cette image est intégrée au code : envoyez-la d'abord avec « Téléverser une image ».",
+      "failed": "L'amélioration a échoué. Réessayez."
+    },
     "uploadErrors": {
       "too_large": "Cette image est trop lourde ({{max}} Mo au plus).",
       "unsupported": "Ce format n'est pas accepté : choisissez une image PNG, JPEG, WebP, GIF ou AVIF.",

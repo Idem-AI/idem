@@ -10,6 +10,9 @@ import { useFileStore } from '../WeIde/stores/fileStore';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import { SiteImageUploadError, uploadSiteImage } from '@/api/siteImages';
+import { enhanceOneImage } from '@/api/siteImageQuality';
+import useAppGenContextStore from '@/stores/appgenContextSlice';
+import { storedAssetUrl } from '../WeIde/services/webcontainer/insecureAssets';
 import {
   AlignLeft,
   AlignCenter,
@@ -20,6 +23,7 @@ import {
   Trash2,
   RefreshCw,
   Upload,
+  Sparkles,
   Palette,
   LayoutGrid,
   Move,
@@ -693,6 +697,48 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
     [selected, primary, applyResult, applyBatch, getContent, t]
   );
 
+  /**
+   * « Améliorer la qualité » (panneau de droite, image sélectionnée) : l'image est rendue nette à la taille où elle
+   * s'affiche, par le code ou le modèle local — gratuit, aucun jeton. Une image déjà nette n'est pas retouchée.
+   * La nouvelle adresse remplace l'ancienne partout où le code la cite (`src/site/media.ts` d'une refonte : la
+   * structure reste), sinon dans la balise elle-même. Le changement passe par l'historique : « Annuler » rétablit
+   * l'originale, qui n'est jamais supprimée.
+   */
+  const [enhancingId, setEnhancingId] = useState<string | null>(null);
+  const enhanceImageQuality = useCallback(async () => {
+    const target = primary;
+    if (!target?.src || enhancingId) return;
+    if (target.src.startsWith('data:') || target.src.startsWith('blob:')) {
+      toast.info(t('editMode.enhanceResults.inline'));
+      return;
+    }
+    const stored = storedAssetUrl(target.src);
+    setEnhancingId(target.id);
+    const pending = toast.loading(t('editMode.enhancing'));
+    const result = await enhanceOneImage(useAppGenContextStore.getState().projectId || 'icode-drafts', {
+      url: stored,
+      displayWidth: Math.round(target.rect.width),
+      displayHeight: Math.round(target.rect.height),
+    });
+    setEnhancingId(null);
+    if (result.status !== 'done') {
+      toast.update(pending, {
+        render: t(`editMode.enhanceResults.${result.reason}`),
+        type: result.status === 'skipped' && result.reason === 'already_sharp' ? 'info' : result.status === 'skipped' && result.reason === 'no_gain' ? 'warning' : 'error',
+        isLoading: false,
+        autoClose: 5000,
+      });
+      return;
+    }
+    const files = useFileStore.getState().files;
+    const changes: FileChange[] = Object.entries(files)
+      .filter((entry): entry is [string, string] => typeof entry[1] === 'string' && entry[1].includes(stored))
+      .map(([filePath, before]) => ({ filePath, before, after: before.split(stored).join(result.enhancedUrl) }));
+    if (changes.length) await commit(changes);
+    else applyImageUrl(result.enhancedUrl);
+    toast.update(pending, { render: t('editMode.enhanceResults.done', { width: result.width, height: result.height }), type: 'success', isLoading: false, autoClose: 4000 });
+  }, [primary, enhancingId, commit, applyImageUrl, t]);
+
   const deselect = useCallback(() => {
     setSelected([]);
     sendToAgent({ source: IDEM_SOURCE, type: 'SET_SELECTION', ids: [] });
@@ -741,6 +787,8 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
     onText: applyText,
     onImageUrl: applyImageUrl,
     onUpload: uploadImage,
+    onEnhance: enhanceImageQuality,
+    enhancing: !!enhancingId && enhancingId === primary?.id,
   };
 
 
@@ -1202,6 +1250,9 @@ interface Handlers {
   onText: (text: string) => void;
   onImageUrl: (src: string) => void;
   onUpload: (file: File, asBackground: boolean) => void;
+  /** Rend l'image sélectionnée nette à sa taille affichée (sans IA payante). */
+  onEnhance: () => void;
+  enhancing: boolean;
 }
 
 const CONTAINERS = ['container', 'list', 'generic'];
@@ -1210,7 +1261,7 @@ const SingleControls: React.FC<{ info: SelectedElementInfo; handlers: Handlers }
   info,
   handlers,
 }) => {
-  const { onStyle, onAttr, onText, onImageUrl, onUpload } = handlers;
+  const { onStyle, onAttr, onText, onImageUrl, onUpload, onEnhance, enhancing } = handlers;
   const kind = info.kind;
   const allowBgImage = CONTAINERS.includes(kind) || info.hasBackgroundImage;
 
@@ -1223,7 +1274,7 @@ const SingleControls: React.FC<{ info: SelectedElementInfo; handlers: Handlers }
 
       {/* Image */}
       {kind === 'image' && (
-        <ImageSection info={info} onImageUrl={onImageUrl} onUpload={onUpload} onStyle={onStyle} onAttr={onAttr} />
+        <ImageSection info={info} onImageUrl={onImageUrl} onUpload={onUpload} onStyle={onStyle} onAttr={onAttr} onEnhance={onEnhance} enhancing={enhancing} />
       )}
 
       {/* Lien */}
@@ -1373,7 +1424,9 @@ const ImageSection: React.FC<{
   onUpload: (f: File, bg: boolean) => void;
   onStyle: (p: string, v: string) => void;
   onAttr: (n: string, v: string | null) => void;
-}> = ({ info, onImageUrl, onUpload, onStyle, onAttr }) => {
+  onEnhance: () => void;
+  enhancing: boolean;
+}> = ({ info, onImageUrl, onUpload, onStyle, onAttr, onEnhance, enhancing }) => {
   const { t } = useTranslation();
   const inputId = `idem-img-${info.id}`;
   return (
@@ -1420,6 +1473,22 @@ const ImageSection: React.FC<{
           }}
         />
       </label>
+      {info.src && (
+        <>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={onEnhance}
+            loading={enhancing}
+            disabled={enhancing}
+            icon={<Sparkles size={14} />}
+            className="mt-2 w-full justify-center"
+          >
+            {t(enhancing ? 'editMode.enhancing' : 'editMode.enhance')}
+          </Button>
+          <p className="mt-1 text-[11px] text-text-tertiary">{t('editMode.enhanceHint')}</p>
+        </>
+      )}
       <div className="mt-3 space-y-3">
         <AttrRow labelKey="editMode.alt" info={info} name="alt" onAttr={onAttr} />
         <SelectRow

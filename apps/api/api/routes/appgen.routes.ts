@@ -12,7 +12,7 @@ import { PromptService } from '../services/prompt.service';
 import { chooseSitePalette, SiteConsent, siteContentOf, siteImportJobs } from '../services/SiteImport/siteProject.service';
 import { runWithAiUsageContext } from '../utils/ai-usage-context.util';
 import { startSseHeartbeat } from '../utils/sse-heartbeat.util';
-import { assessSiteImages, enhanceSiteImages, isEnhancing, MAX_ASSESS, MAX_ENHANCE, ownSlots, type EnhanceEvent } from '../services/SiteImport/siteImages.service';
+import { assessSiteImages, enhanceOneImage, enhanceSiteImages, isEnhancing, MAX_ASSESS, MAX_ENHANCE, ownSlots, type EnhanceEvent } from '../services/SiteImport/siteImages.service';
 
 const router = Router();
 const communicationService = new CommunicationService(new PromptService());
@@ -256,6 +256,33 @@ router.post('/site-images/enhance', authenticate, async (req: CustomRequest, res
   } finally {
     stopHeartbeat();
     if (!res.writableEnded) res.end();
+  }
+});
+
+/**
+ * Améliore UNE image choisie dans l'éditeur (bouton « Améliorer la qualité »). Réponse JSON en fin de calcul
+ * (≤ 30 s : budget du modèle local). Corps : `{ projectId, url, displayWidth, displayHeight }`.
+ */
+router.post('/site-images/enhance-one', authenticate, async (req: CustomRequest, res) => {
+  const userId = req.user?.uid;
+  const body = (req.body ?? {}) as Record<string, unknown>;
+  const projectId = typeof body.projectId === 'string' && /^[\w.-]{1,128}$/.test(body.projectId) ? body.projectId : '';
+  const url = typeof body.url === 'string' && /^https?:\/\//i.test(body.url) && body.url.length <= 2000 ? body.url : '';
+  if (!userId || !projectId || !url) {
+    res.status(userId ? 400 : 401).json({ error: userId ? 'invalid_input' : 'authentication_required' });
+    return;
+  }
+  if (isEnhancing(userId)) {
+    res.status(409).json({ error: 'already_running' });
+    return;
+  }
+  const clamp = (value: unknown) => Math.max(0, Math.min(4000, Number(value) || 0));
+  try {
+    const result = await enhanceOneImage(userId, projectId, url, { displayWidth: clamp(body.displayWidth), displayHeight: clamp(body.displayHeight) });
+    res.status(result.status === 'skipped' && result.reason === 'forbidden' ? 403 : 200).json(result);
+  } catch (error: any) {
+    logger.error('appgen.site_image_enhance_one_failed', { event: 'appgen.site_image_enhance_one_failed', userId, error: error?.message });
+    res.status(500).json({ error: 'enhance_failed' });
   }
 });
 

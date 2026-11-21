@@ -825,6 +825,19 @@
     "apply": "Apply",
     "upload": "Upload an image",
     "uploading": "Uploading the image…",
+    "enhance": "Enhance quality",
+    "enhancing": "Enhancing image…",
+    "enhanceHint": "Makes the image sharp at the size it is shown, without changing its colours.",
+    "enhanceResults": {
+      "done": "Image enhanced: {{width}} × {{height}} px.",
+      "already_sharp": "This image is already sharp at the size it is shown.",
+      "no_gain": "This image can't be improved without damaging it.",
+      "unreadable": "This image couldn't be read.",
+      "forbidden": "This image doesn't belong to your project.",
+      "busy": "An enhancement is already running. Please wait a moment.",
+      "inline": "This image is embedded in the code: upload it first with \"Upload an image\".",
+      "failed": "Enhancement failed. Please try again."
+    },
     "uploadErrors": {
       "too_large": "This image is too large ({{max}} MB at most).",
       "unsupported": "This format is not accepted: pick a PNG, JPEG, WebP, GIF or AVIF image.",

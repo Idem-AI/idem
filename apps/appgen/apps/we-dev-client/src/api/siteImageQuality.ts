@@ -89,3 +89,26 @@ export async function enhanceSiteImages(projectId: string, images: ImageSlot[], 
   }
   if (!finished) throw new Error('enhance_interrupted');
 }
+
+export type EnhanceOneResult =
+  | { status: 'done'; enhancedUrl: string; method: 'model' | 'sharp'; width: number; height: number; ms: number }
+  | { status: 'skipped'; reason: 'already_sharp' | 'no_gain' | 'unreadable' | 'forbidden' }
+  | { status: 'error'; reason: 'busy' | 'failed' };
+
+/** UNE image choisie dans l'éditeur (bouton « Améliorer la qualité »), à sa taille affichée. */
+export async function enhanceOneImage(projectId: string, image: ImageSlot): Promise<EnhanceOneResult> {
+  try {
+    const response = await fetch(`${IDEM_API}/appgen/site-images/enhance-one`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: headers(),
+      body: JSON.stringify({ projectId, ...image }),
+    });
+    if (response.status === 409) return { status: 'error', reason: 'busy' };
+    const data = (await response.json().catch(() => null)) as EnhanceOneResult | null;
+    if (data && (data.status === 'done' || data.status === 'skipped')) return data;
+    return { status: 'error', reason: 'failed' };
+  } catch {
+    return { status: 'error', reason: 'failed' };
+  }
+}
