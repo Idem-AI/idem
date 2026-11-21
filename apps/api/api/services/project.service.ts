@@ -720,6 +720,20 @@ class ProjectService {
     }
   }
 
+  /**
+   * Oublie la mise en ligne d'un produit (site ou application) : appelé par « Supprimer le site » d'iCode, APRÈS que
+   * les applications iDeploy, leur adresse `*.idem.africa` et ses enregistrements DNS ont été supprimés. Rend `false`
+   * s'il n'y avait rien à oublier.
+   */
+  async deleteAppDeployment(userId: string, projectId: string, product: ProjectProduct = 'site'): Promise<boolean> {
+    if (!userId || !projectId) throw new Error('User ID and Project ID are required.');
+    const project = await this.projectRepository.findById(projectId, `users/${userId}/projects`);
+    if (!project) throw Object.assign(new Error('Project not found'), { status: 404 });
+    const deleted = await this.projectRepository.delete(productDocId(projectId, 'deployment', product), `users/${userId}/appDeployments`);
+    logger.info(`App deployment forgotten for project ${projectId} (${product})`, { deleted });
+    return !!deleted;
+  }
+
   async saveAppDeployment(
     userId: string,
     projectId: string,

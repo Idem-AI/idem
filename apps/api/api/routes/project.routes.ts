@@ -601,6 +601,28 @@ projectRoutes.get('/:projectId/app-deployment', authenticate, projectController.
  */
 projectRoutes.post('/:projectId/app-deployment', authenticate, projectController.saveAppDeployment);
 
+/**
+ * @openapi
+ * /projects/{projectId}/app-deployment:
+ *   delete:
+ *     tags: [Projects]
+ *     summary: Oublie la mise en ligne du site ou de l'application (« Supprimer le site » d'iCode, après iDeploy)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema: { type: string }
+ *       - in: query
+ *         name: product
+ *         schema: { type: string, enum: [site, app] }
+ *     responses:
+ *       200: { description: "{ deleted: boolean }" }
+ *       404: { description: Project not found }
+ */
+projectRoutes.delete('/:projectId/app-deployment', authenticate, projectController.deleteAppDeployment);
+
 // Save project ZIP file
 /**
  * @openapi

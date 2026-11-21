@@ -420,6 +420,70 @@
       "site": "Showcase website",
       "web-app": "Web application",
       "mobile-app": "Mobile application"
+    },
+    "deleteSite": {
+      "menu": {
+        "site": "Delete the site",
+        "app": "Delete the app"
+      },
+      "fallbackWord": "delete",
+      "confirm": {
+        "title": {
+          "site": "Delete this site?",
+          "app": "Delete this app?"
+        },
+        "body": {
+          "site": "Its code and conversation will be erased for good. This cannot be undone.",
+          "app": "Its code and conversation will be erased for good. This cannot be undone."
+        },
+        "kept": "Your IDEM project stays: its brand, guidelines and documents are not touched.",
+        "cta": "Yes, continue"
+      },
+      "name": {
+        "title": "Confirm with the project name",
+        "label": "Type",
+        "cta": "Confirm"
+      },
+      "deployment": {
+        "title": "Its live version will be deleted too",
+        "body": {
+          "site": "Your site is live. Deleting it takes it off the internet:",
+          "app": "Your app is live. Deleting it takes it off the internet:"
+        },
+        "address": "this address will stop answering:",
+        "dns": "its DNS settings are removed: the address is released",
+        "ideploy": {
+          "static": "its iDeploy hosting is deleted",
+          "fullstack": "its iDeploy hosting is deleted: interface, server and database (data included)"
+        },
+        "domain": "a domain name you bought stays yours; it simply won’t lead to this site any more",
+        "none": {
+          "title": {
+            "site": "This site isn’t live",
+            "app": "This app isn’t live"
+          },
+          "body": {
+            "site": "Only its code and conversation will be deleted.",
+            "app": "Only its code and conversation will be deleted."
+          }
+        }
+      },
+      "final": "Delete for good",
+      "retry": "Try again",
+      "deleting": {
+        "withDeployment": "Deleting the live version, then the code…",
+        "code": "Deleting the code…"
+      },
+      "done": {
+        "site": "The site is deleted.",
+        "app": "The app is deleted."
+      },
+      "error": {
+        "busy": "A generation is running: wait for it to finish, then try again.",
+        "inProgress": "A deployment is running: wait for it to finish, then try again. Nothing was deleted.",
+        "deployment": "The live version could not be deleted ({{detail}}). Nothing was deleted.",
+        "code": "The live version is deleted, but not the code yet ({{detail}}). Try again."
+      }
     }
   },
   "explorer": {

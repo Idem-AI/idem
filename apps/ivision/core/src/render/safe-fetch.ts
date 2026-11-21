@@ -15,7 +15,7 @@ import dns from 'dns';
 import http from 'http';
 import https from 'https';
 import net from 'net';
-import { allowedHosts, isPrivateAddress } from './network-guard';
+import { allowedHosts, isPrivateAddress, resolveHost } from './network-guard';
 
 export class SafeFetchError extends Error {
   constructor(
@@ -29,14 +29,22 @@ export class SafeFetchError extends Error {
 type LookupCallback = (err: NodeJS.ErrnoException | null, address: string | dns.LookupAddress[], family?: number) => void;
 
 function guardedLookup(hostname: string, options: dns.LookupOptions, callback: LookupCallback): void {
-  dns.lookup(hostname, { ...options, all: true }, (err, addresses) => {
-    if (err) return callback(err, '');
-    const list = addresses as dns.LookupAddress[];
+  const decide = (list: dns.LookupAddress[]) => {
     if (!allowedHosts().has(hostname.toLowerCase()) && (!list.length || list.some((a) => isPrivateAddress(a.address)))) {
       return callback(Object.assign(new Error(`blocked address for ${hostname}`), { code: 'EBLOCKED' }), '');
     }
     if (options.all) return callback(null, list);
     callback(null, list[0].address, list[0].family);
+  };
+  dns.lookup(hostname, { ...options, all: true }, (err, addresses) => {
+    const list = (addresses as dns.LookupAddress[] | undefined) ?? [];
+    if (!err && list.length) return decide(list);
+    // Le résolveur du système ne connaît pas ce nom (box, cache négatif) : requête DNS directe, puis résolveurs
+    // publics (`resolveHost`). L'adresse trouvée passe par la même garde (jamais d'adresse privée).
+    const notFound = err ?? Object.assign(new Error(`ENOTFOUND ${hostname}`), { code: 'ENOTFOUND' });
+    resolveHost(hostname)
+      .then(({ addresses: found }) => (found.length ? decide(found.map((address) => ({ address, family: net.isIPv6(address) ? 6 : 4 }))) : callback(notFound, '')))
+      .catch(() => callback(notFound, ''));
   });
 }
 

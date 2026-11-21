@@ -176,6 +176,53 @@ router.post('/publish', async (req: Request, res: Response) => {
   }
 });
 
+/**
+ * « Supprimer le site » d'iCode : tout ce qu'une mise en ligne a créé dans iDeploy disparaît, par l'API d'iDeploy
+ * elle-même (aucune logique serveur ici). Supprimer une application, côté iDeploy, c'est arrêter ses conteneurs,
+ * effacer ses fichiers et ses images, retirer ses routes, ET rendre son adresse `monapp.idem.africa` : son
+ * enregistrement DNS est retiré de la zone.
+ *
+ *   ordre   interface, serveur, site, puis base de données, puis espace de travail (vide seulement)
+ *   absent  une ressource déjà supprimée (404) compte comme supprimée : la suppression peut être relancée
+ *   arrêt   tout autre refus (déploiement en cours, droits) arrête tout et est rendu tel quel : rien d'autre ne
+ *           part, l'atelier garde le site
+ */
+router.post('/site/delete', async (req: Request, res: Response) => {
+  const record = (req.body?.ideploy ?? {}) as Record<string, unknown>;
+  const id = (key: string) => (typeof record[key] === 'string' && /^[\w-]{1,64}$/.test(record[key] as string) ? (record[key] as string) : null);
+  const results: Array<{ resource: string; outcome: 'deleted' | 'absent' | 'kept' }> = [];
+  const remove = async (resource: string, path: string, keepOnConflict = false) => {
+    try {
+      await ideploy(req, 'DELETE', path);
+      results.push({ resource, outcome: 'deleted' });
+    } catch (error) {
+      const err = error as Error & { status?: number };
+      if (err.status === 404) return results.push({ resource, outcome: 'absent' });
+      // Un espace de travail qui contient encore autre chose est gardé : il ne coûte rien et n'est pas qu'à ce site.
+      if (keepOnConflict && err.status === 409) return results.push({ resource, outcome: 'kept' });
+      throw Object.assign(err, { resource });
+    }
+  };
+  try {
+    for (const [key, resource] of [
+      ['frontendUuid', 'frontend'],
+      ['backendUuid', 'backend'],
+      ['applicationUuid', 'site'],
+    ] as const) {
+      const uuid = id(key);
+      if (uuid) await remove(resource, `/applications/${encodeURIComponent(uuid)}`);
+    }
+    const database = id('databaseUuid');
+    if (database) await remove('database', `/databases/postgresql/${encodeURIComponent(database)}`);
+    const workspace = id('workspaceUuid');
+    if (workspace) await remove('workspace', `/workspaces/${encodeURIComponent(workspace)}`, true);
+    return res.json({ success: true, results });
+  } catch (error) {
+    const err = error as Error & { status?: number; code?: string; resource?: string };
+    return res.status(err.status ?? 502).json({ success: false, message: err.message, code: err.code ?? null, resource: err.resource ?? null, results });
+  }
+});
+
 /** Where a deployment is: queued, in progress, finished, failed — and its last log lines. */
 router.get('/deployments/:uuid', async (req: Request, res: Response) => {
   try {

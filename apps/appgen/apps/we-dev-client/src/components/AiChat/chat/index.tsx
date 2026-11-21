@@ -2039,8 +2039,13 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
    * échoue, rien ne change à l'écran. Vider l'atelier d'abord ferait revenir
    * l'ancien code à la prochaine ouverture, sans que l'on comprenne pourquoi.
    */
-  const handleDeleteGeneration = async () => {
-    if (!projectId || regenerating || isLoading) return;
+  /**
+   * Vide le site du projet (« Régénérer »), ou l'efface pour de bon (« Supprimer le site », menu ···) : `serverStep`
+   * remplace alors la suppression serveur (mise en ligne d'abord, puis code et conversation) et son échec remonte à
+   * l'appelant au lieu d'un message. Rend `true` quand l'atelier a été vidé.
+   */
+  const handleDeleteGeneration = async (serverStep?: () => Promise<void>): Promise<boolean> => {
+    if (!projectId || regenerating || isLoading) return false;
 
     setRegenerating(true);
 
@@ -2062,7 +2067,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       await waitForCodeSync();
 
       // 3. Le serveur d'abord. S'il échoue, on s'arrête ici, atelier intact.
-      await deleteProjectGeneration(projectId);
+      await (serverStep ? serverStep() : deleteProjectGeneration(projectId));
 
       // 4. Conteneur neuf : processus arrêtés, disque vidé, serveurs oubliés.
       //    Sans cela `npm run dev` survit, le montage n'efface rien, et la
@@ -2103,9 +2108,12 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       setIsGenerationComplete(false);
       setShowStartButton(true);
       setWasReset(true);
+      return true;
     } catch (error) {
       console.error('[regenerate] suppression impossible', error);
+      if (serverStep) throw error;
       toast.error(t('chatWorkspace.regenerateFailed'));
+      return false;
     } finally {
       setRegenerating(false);
       setConfirmingRegenerate(false);
@@ -2114,7 +2122,20 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
 
   const handleDeleteGenerationRef = useRef(handleDeleteGeneration);
   handleDeleteGenerationRef.current = handleDeleteGeneration;
-  const stableDeleteGeneration = useCallback(() => handleDeleteGenerationRef.current(), []);
+  const stableDeleteGeneration = useCallback(() => void handleDeleteGenerationRef.current(), []);
+
+  // « Supprimer le site » (menu ··· de l'en-tête, `utils/siteDeletion.ts`) : même nettoyage que « Régénérer », avec
+  // la suppression de la mise en ligne en tête. Une génération en cours la refuse.
+  useEffect(
+    () =>
+      eventEmitter.on('site:delete', (request: { serverStep: () => Promise<void>; resolve: () => void; reject: (error: Error) => void }) => {
+        handleDeleteGenerationRef
+          .current(request.serverStep)
+          .then((done) => (done ? request.resolve() : request.reject(Object.assign(new Error('busy'), { step: 'busy' }))))
+          .catch(request.reject);
+      }),
+    []
+  );
 
   const handleStartGenerationRef = useRef(handleStartGeneration);
   handleStartGenerationRef.current = handleStartGeneration;

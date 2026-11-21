@@ -21,7 +21,8 @@
  */
 import puppeteer, { Browser, Page } from 'puppeteer';
 import logger from '../runtime/logger';
-import { installRenderNetworkGuard, isRenderUrlAllowed, RENDER_BROWSER_ARGS } from '../render/network-guard';
+import { installRenderNetworkGuard, RENDER_BROWSER_ARGS } from '../render/network-guard';
+import { reachSite, unreachableMessage } from './site-reach';
 import type { ArtDirectionModel, ArtDirectionStyleId } from '../brand/art-direction.model';
 import { artDirectionStyleIds } from '../design/artDirection.catalog';
 import { getDirection } from '@idem/graphic-engine';
@@ -613,16 +614,20 @@ function styleEvidenceOf(facts: PageFacts, palette: BrandPalette, typo: { displa
 
 /** Le scan complet. */
 export async function scanWebsite(options: SiteScanOptions): Promise<SiteScanResult> {
-  const url = normalizeSiteUrl(options.url);
-  if (!(await isRenderUrlAllowed(url))) throw new SiteScanError('blocked_url', 'Ce site n’est pas joignable depuis iVision (adresse privée ou inconnue).');
+  // Le site est joint même quand le résolveur du système ne le connaît pas (`site-reach.ts`) : nom épinglé dans Chrome,
+  // variante avec ou sans « www » si l'autre manque. Seul un nom que AUCUN serveur DNS ne connaît, ou une adresse
+  // privée, arrête le scan — avec la vraie raison.
+  const reach = await reachSite(normalizeSiteUrl(options.url));
+  if (!reach.ok) throw new SiteScanError(reach.reason === 'private' ? 'blocked_url' : reach.reason === 'invalid' ? 'invalid_url' : 'unreachable', unreachableMessage(reach));
+  const url = reach.url;
   const timeout = options.timeoutMs ?? 25_000;
   const progress = options.onProgress || (() => undefined);
   const warnings: string[] = [];
   // Sans cela, Chrome « monte » en https les redirections vers http (idem.africa → http://…/en/) et,
   // sous interception, abandonne la navigation au bout de 3 s : net::ERR_BLOCKED_BY_CLIENT.
-  const browser = await puppeteer.launch({ headless: true, args: [...RENDER_BROWSER_ARGS, '--disable-features=HttpsUpgrades,HttpsFirstBalancedModeAutoEnable'] });
+  const browser = await puppeteer.launch({ headless: true, args: [...RENDER_BROWSER_ARGS, '--disable-features=HttpsUpgrades,HttpsFirstBalancedModeAutoEnable', ...reach.chromeArgs] });
   try {
-    progress('open', { url });
+    progress('open', { url, ...(reach.pinned.length ? { pinned: reach.pinned } : {}) });
     let home: Page;
     const sheets: Sheets = [];
     try {

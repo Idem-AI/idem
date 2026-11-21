@@ -420,6 +420,70 @@
       "site": "Site vitrine",
       "web-app": "Application web",
       "mobile-app": "Application mobile"
+    },
+    "deleteSite": {
+      "menu": {
+        "site": "Supprimer le site",
+        "app": "Supprimer l’application"
+      },
+      "fallbackWord": "supprimer",
+      "confirm": {
+        "title": {
+          "site": "Supprimer ce site ?",
+          "app": "Supprimer cette application ?"
+        },
+        "body": {
+          "site": "Son code et sa conversation seront effacés définitivement. Cette action ne peut pas être annulée.",
+          "app": "Son code et sa conversation seront effacés définitivement. Cette action ne peut pas être annulée."
+        },
+        "kept": "Votre projet IDEM reste : sa marque, sa charte et ses documents ne sont pas touchés.",
+        "cta": "Oui, continuer"
+      },
+      "name": {
+        "title": "Confirmez avec le nom du projet",
+        "label": "Saisissez",
+        "cta": "Valider"
+      },
+      "deployment": {
+        "title": "Sa mise en ligne sera aussi supprimée",
+        "body": {
+          "site": "Votre site est en ligne. En le supprimant, il disparaît d’internet :",
+          "app": "Votre application est en ligne. En la supprimant, elle disparaît d’internet :"
+        },
+        "address": "l’adresse ne répondra plus :",
+        "dns": "ses réglages DNS sont retirés : l’adresse est libérée",
+        "ideploy": {
+          "static": "son hébergement dans iDeploy est supprimé",
+          "fullstack": "son hébergement dans iDeploy est supprimé : interface, serveur et base de données (ses données comprises)"
+        },
+        "domain": "un nom de domaine que vous avez acheté reste à vous ; il ne mènera simplement plus à ce site",
+        "none": {
+          "title": {
+            "site": "Ce site n’est pas en ligne",
+            "app": "Cette application n’est pas en ligne"
+          },
+          "body": {
+            "site": "Seuls son code et sa conversation seront supprimés.",
+            "app": "Seuls son code et sa conversation seront supprimés."
+          }
+        }
+      },
+      "final": "Supprimer définitivement",
+      "retry": "Réessayer",
+      "deleting": {
+        "withDeployment": "Suppression de la mise en ligne, puis du code…",
+        "code": "Suppression du code…"
+      },
+      "done": {
+        "site": "Le site est supprimé.",
+        "app": "L’application est supprimée."
+      },
+      "error": {
+        "busy": "Une génération est en cours : attendez qu’elle se termine, puis recommencez.",
+        "inProgress": "Une mise en ligne est en cours : attendez qu’elle se termine, puis recommencez. Rien n’a été supprimé.",
+        "deployment": "La mise en ligne n’a pas pu être supprimée ({{detail}}). Rien n’a été supprimé.",
+        "code": "La mise en ligne est supprimée, mais pas encore le code ({{detail}}). Réessayez."
+      }
     }
   },
   "explorer": {
