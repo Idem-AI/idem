@@ -11,6 +11,10 @@ import type { AppDeployment } from '@/api/persistence/db';
 import {
   PublishError,
   buildStaticSite,
+  prepareStaticSite,
+  getAddressState,
+  waitForAddress,
+  type AddressState,
   readBuildReport,
   type BuildReport,
   collectSourceFiles,
@@ -21,7 +25,7 @@ import {
   type PublishMode,
 } from '@/utils/ideployPublish';
 import { IdemLoader } from '@idem/shared-loader/react';
-import { DomainPurchase, idomainText, useDomainConnections } from '@idem/shared-idomain/react';
+import { DomainConnect, DomainPurchase, idomainText, useDomainConnections } from '@idem/shared-idomain/react';
 import { domainLabel } from '@/utils/appName';
 
 interface DeployModalProps {
@@ -41,14 +45,20 @@ const IDEPLOY_URL = process.env.REACT_APP_IDEPLOY_URL || 'http://localhost:4202'
 const IDOMAIN_API_URL = process.env.REACT_APP_IDOMAIN_API_URL || 'http://localhost:3007';
 const WALLET_URL = `${process.env.REACT_APP_IDEM_MAIN_APP_URL || 'http://localhost:4200'}/account/plans`;
 
-type StepId = 'prepare' | 'send' | 'live' | 'database' | 'server' | 'interface';
+type StepId = 'prepare' | 'send' | 'live' | 'database' | 'server' | 'interface' | 'secure';
 type StepState = 'pending' | 'active' | 'done' | 'failed';
 type Phase = 'ready' | 'working' | 'done' | 'error';
 
 const STEPS: Record<PublishMode, StepId[]> = {
-  static: ['prepare', 'send', 'live'],
-  fullstack: ['prepare', 'database', 'server', 'interface'],
+  static: ['prepare', 'send', 'live', 'secure'],
+  fullstack: ['prepare', 'database', 'server', 'interface', 'secure'],
 };
+
+/** Ce qu'on attend au plus de l'adresse sécurisée avant de rendre la main (elle continue d'être suivie). */
+const ADDRESS_WAIT_MS = 45_000;
+
+/** Après la mise en ligne : l'utilisateur a-t-il un nom à lui ? */
+type DomainChoice = 'ask' | 'connect' | 'buy' | 'later';
 
 /**
  * Mettre en ligne depuis iCode, par iDeploy, sans le quitter.
@@ -84,14 +94,36 @@ export function DeployModal({ open, onClose, deployment, defaultName, onPublishe
   // L'application iDeploy qui répond au public : le site, ou l'interface d'une application complète.
   const publicAppUuid = existing?.applicationUuid ?? existing?.frontendUuid ?? null;
   const lang = (i18n.language || 'fr').slice(0, 2);
-  const [buyingDomain, setBuyingDomain] = useState(false);
+  const [domainChoice, setDomainChoice] = useState<DomainChoice>('ask');
   const [domainsVersion, setDomainsVersion] = useState(0);
-  // « /domaine » ou la carte « Votre propre nom » : l'achat s'ouvre aussitôt, si l'application est déjà en ligne
+  // « /domaine » ou la carte « Votre propre nom » : la question s'ouvre aussitôt, si l'application est déjà en ligne
   // (sinon la fenêtre propose d'abord la mise en ligne, sans laquelle un nom ne mène nulle part).
   useEffect(() => {
-    if (open && openDomain && publicAppUuid) setBuyingDomain(true);
+    if (open && openDomain && publicAppUuid) setDomainChoice('buy');
   }, [open, openDomain, publicAppUuid]);
-  const ownDomains = useDomainConnections(IDOMAIN_API_URL, publicAppUuid, domainsVersion);
+  const ownDomains = useDomainConnections(IDOMAIN_API_URL, publicAppUuid, domainsVersion, { includeExternal: true });
+
+  // L'adresse publique : elle peut répondre en HTTPS quelques instants après la fin du déploiement
+  // (le nom vient d'être publié dans le DNS). Tant qu'elle ne répond pas, l'adresse automatique,
+  // qui marche déjà, est proposée — jamais un lien qui ouvrirait une erreur du navigateur.
+  const [address, setAddress] = useState<AddressState | null>(null);
+  const addressWatch = useRef<{ cancelled: boolean } | null>(null);
+  useEffect(() => () => {
+    if (addressWatch.current) addressWatch.current.cancelled = true;
+  }, []);
+  useEffect(() => {
+    if (!open || phase !== 'done' || address?.ready !== false || !publicAppUuid) return;
+    const timer = setInterval(() => {
+      void getAddressState(publicAppUuid).then((next) => next && setAddress(next));
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [open, phase, address?.ready, publicAppUuid]);
+
+  // Le site se construit dès l'ouverture de la fenêtre : le temps de lire et de cliquer, il est souvent prêt.
+  // La même construction est reprise par la publication (rien n'est construit deux fois).
+  useEffect(() => {
+    if (open && phase === 'ready' && mode === 'static') prepareStaticSite().catch(() => undefined);
+  }, [open, phase, mode]);
 
   const mark = (id: StepId, state: StepState) => setSteps((current) => ({ ...current, [id]: state }));
 
@@ -144,6 +176,20 @@ export function DeployModal({ open, onClose, deployment, defaultName, onPublishe
 
       const record = toDeploymentRecord(result, name.trim() || defaultName);
       await onPublished(record);
+
+      // L'adresse sécurisée : attendue un moment, puis suivie en arrière-plan si elle tarde.
+      const publicUuid = result.ids.applicationUuid ?? result.ids.frontendUuid ?? null;
+      current = 'secure';
+      mark('secure', 'active');
+      if (publicUuid) {
+        if (addressWatch.current) addressWatch.current.cancelled = true;
+        const watch = { cancelled: false };
+        addressWatch.current = watch;
+        const state = await waitForAddress(publicUuid, ADDRESS_WAIT_MS, watch);
+        setAddress(state ?? { url: result.url, ready: false, fallbackUrl: null });
+      }
+      mark('secure', 'done');
+      setDomainChoice('ask');
       setPhase('done');
     } catch (raw) {
       const failure = raw instanceof PublishError ? raw : new PublishError((raw as Error)?.message || 'publish_failed');
@@ -191,6 +237,16 @@ export function DeployModal({ open, onClose, deployment, defaultName, onPublishe
     return t('deployModal.errors.generic');
   };
 
+  const [resumeConnection, setResumeConnection] = useState<string | null>(null);
+  // Fini, mais l'adresse principale ne répond pas encore en HTTPS : on montre celle qui marche.
+  const addressPending = phase === 'done' && address !== null && !address.ready;
+  const shownUrl =
+    phase === 'done'
+      ? addressPending
+        ? address?.fallbackUrl ?? null
+        : address?.url ?? deployment?.url ?? null
+      : liveUrl;
+
   const manageUrl = existing
     ? `${IDEPLOY_URL}/applications/${existing.applicationUuid ?? existing.frontendUuid}`
     : null;
@@ -227,41 +283,74 @@ export function DeployModal({ open, onClose, deployment, defaultName, onPublishe
         </header>
 
         {/* L'adresse : celle d'avant pendant qu'on prépare, la nouvelle à la fin. */}
-        {(phase === 'done' || (phase === 'ready' && liveUrl)) && (phase === 'done' ? deployment?.url : liveUrl) && (
+        {(phase === 'done' || (phase === 'ready' && liveUrl)) && shownUrl && (
           <UrlField
-            url={(phase === 'done' ? deployment?.url : liveUrl) as string}
+            url={shownUrl}
             copied={copied}
             onCopy={copy}
-            label={t('deployModal.live')}
+            label={addressPending ? t('deployModal.address.temporary') : t('deployModal.live')}
             openLabel={t('deployModal.open')}
             copyLabel={copied ? t('header.copied_link') : t('header.copy')}
           />
         )}
+        {addressPending && address?.url && (
+          <p className="mt-2 flex items-start gap-2 text-xs text-text-secondary" role="status">
+            <IdemLoader size="xs" className="mt-0.5 shrink-0" />
+            <span>{t('deployModal.address.pending', { url: address.url.replace(/^https?:\/\//, '') })}</span>
+          </p>
+        )}
 
-        {/* Un nom à soi : acheté, réglé et relié au site ici même, sans rien configurer. */}
+        {/* Un nom à soi. La question d'abord, simple : en a-t-il déjà un ? Brancher ou acheter, ici même. */}
         {(phase === 'done' || (phase === 'ready' && liveUrl)) && publicAppUuid && (
           <section className="mt-4 rounded-xl border border-[var(--glass-border)] p-4">
             {ownDomains.length > 0 ? (
-              <ul className="space-y-1 text-sm">
-                {ownDomains.map((c) => (
-                  <li key={c.id} className="flex flex-wrap items-center gap-2">
-                    <span className={`h-2 w-2 rounded-full ${c.status === 'active' ? 'bg-success' : 'bg-[var(--color-text-tertiary)]'}`} aria-hidden />
-                    <a href={`https://${c.host}`} target="_blank" rel="noreferrer" className="font-medium text-text-primary hover:underline">{c.host}</a>
-                    <span className="text-xs text-text-tertiary">
-                      {idomainText(lang, `manage.status.${c.status === 'active' ? 'active' : c.status === 'failed' ? 'failed' : 'pending'}`)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
+              <>
+                <ul className="space-y-1 text-sm">
+                  {ownDomains.map((c) => (
+                    <li key={c.id} className="flex flex-wrap items-center gap-2">
+                      <span className={`h-2 w-2 rounded-full ${c.status === 'active' ? 'bg-success' : 'bg-[var(--color-text-tertiary)]'}`} aria-hidden />
+                      <a href={`https://${c.host}`} target="_blank" rel="noreferrer" className="font-medium text-text-primary hover:underline">{c.host}</a>
+                      <span className="text-xs text-text-tertiary">
+                        {idomainText(lang, `manage.status.${c.status === 'active' ? 'active' : c.status === 'failed' ? 'failed' : 'pending'}`)}
+                      </span>
+                      {c.method === 'manual' && c.status !== 'active' && (
+                        <button type="button" onClick={() => { setResumeConnection(c.id); setDomainChoice('connect'); }} className="text-xs font-medium text-primary hover:underline">
+                          {t('deployModal.domain.showSettings')}
+                        </button>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </>
+            ) : domainChoice === 'later' ? (
+              <button type="button" onClick={() => setDomainChoice('ask')} className="text-sm font-medium text-text-secondary hover:text-text-primary">
+                {t('deployModal.domain.add')}
+              </button>
             ) : (
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-text-primary">{idomainText(lang, 'title')}</p>
-                  <p className="text-xs text-text-secondary">{idomainText(lang, 'lead')}</p>
+              <div role="group" aria-labelledby="deploy-domain-question">
+                <p id="deploy-domain-question" className="text-sm font-medium text-text-primary">{t('deployModal.domain.question')}</p>
+                <p className="mt-0.5 text-xs text-text-secondary">{t('deployModal.domain.lead')}</p>
+                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={() => { setResumeConnection(null); setDomainChoice('connect'); }}
+                    className="rounded-lg border border-[var(--glass-border)] p-3 text-left hover:border-primary focus-visible:border-primary"
+                  >
+                    <span className="block text-sm font-medium text-text-primary">{t('deployModal.domain.yes')}</span>
+                    <span className="mt-0.5 block text-xs text-text-secondary">{t('deployModal.domain.yesHint')}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDomainChoice('buy')}
+                    className="rounded-lg border border-[var(--glass-border)] p-3 text-left hover:border-primary focus-visible:border-primary"
+                  >
+                    <span className="block text-sm font-medium text-text-primary">{t('deployModal.domain.buy')}</span>
+                    <span className="mt-0.5 block text-xs text-text-secondary">{t('deployModal.domain.buyHint')}</span>
+                  </button>
                 </div>
-                <Button variant="secondary" size="sm" onClick={() => setBuyingDomain(true)}>
-                  {idomainText(lang, 'cta')}
-                </Button>
+                <button type="button" onClick={() => setDomainChoice('later')} className="mt-2 text-xs font-medium text-text-tertiary hover:text-text-primary">
+                  {t('deployModal.domain.later')}
+                </button>
               </div>
             )}
           </section>
@@ -413,7 +502,21 @@ export function DeployModal({ open, onClose, deployment, defaultName, onPublishe
           </section>
         )}
       </div>
-      {buyingDomain && publicAppUuid && (
+      {domainChoice === 'connect' && publicAppUuid && (
+        <DomainConnect
+          apiUrl={IDOMAIN_API_URL}
+          appUuid={publicAppUuid}
+          lang={lang}
+          connectionId={resumeConnection}
+          onClose={() => {
+            setDomainChoice('ask');
+            setDomainsVersion((v) => v + 1);
+          }}
+          onChanged={() => setDomainsVersion((v) => v + 1)}
+          onFinished={() => setDomainsVersion((v) => v + 1)}
+        />
+      )}
+      {domainChoice === 'buy' && publicAppUuid && (
         <DomainPurchase
           apiUrl={IDOMAIN_API_URL}
           appUuid={publicAppUuid}
@@ -422,7 +525,7 @@ export function DeployModal({ open, onClose, deployment, defaultName, onPublishe
           topupUrl={WALLET_URL}
           initial={domainLabel(defaultName !== 'mon-app' ? defaultName : deployment?.siteName || name || defaultName)}
           onClose={() => {
-            setBuyingDomain(false);
+            setDomainChoice('ask');
             setDomainsVersion((v) => v + 1);
           }}
           onFinished={() => setDomainsVersion((v) => v + 1)}

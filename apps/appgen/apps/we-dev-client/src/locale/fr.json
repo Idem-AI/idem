@@ -635,6 +635,10 @@
       "interface": {
         "title": "Interface",
         "hint": "Construction des écrans de votre application."
+      },
+      "secure": {
+        "title": "Adresse sécurisée",
+        "hint": "Nous vérifions que votre adresse s'ouvre en HTTPS."
       }
     },
     "working_note": "Vous pouvez fermer cette fenêtre : la mise en ligne continue.",
@@ -666,6 +670,21 @@
       "title_other": "{{count}} défauts empêchent des pages d’être bien référencées",
       "body": "Le site est en ligne. Google et les assistants IA lisent mal ces pages tant qu’elles ne sont pas corrigées.",
       "summary": "Défauts de référencement du site construit"
+    },
+    "address": {
+      "temporary": "En ligne (adresse provisoire)",
+      "pending": "Votre adresse {{url}} s'active : encore quelques minutes. Vous pouvez déjà partager le lien ci-dessus ; nous vérifions toutes les 5 secondes."
+    },
+    "domain": {
+      "question": "Avez-vous déjà un nom de domaine ?",
+      "lead": "Par exemple maboutique.com, pour que vos clients vous trouvent à votre nom.",
+      "yes": "Oui, j'en ai un",
+      "yesHint": "Acheté ailleurs : nous vous guidons pour le brancher.",
+      "buy": "Non, en acheter un",
+      "buyHint": "Choisi, payé et branché ici, sans quitter iCode.",
+      "later": "Pas maintenant, garder l'adresse gratuite",
+      "add": "Ajouter un nom de domaine",
+      "showSettings": "Voir les réglages"
     }
   },
   "editMode": {
@@ -694,6 +713,13 @@
     "multiHint": "Maj/Ctrl+clic pour sélectionner plusieurs éléments à la fois.",
     "apply": "Appliquer",
     "upload": "Téléverser une image",
+    "uploading": "Envoi de l'image…",
+    "uploadErrors": {
+      "too_large": "Cette image est trop lourde ({{max}} Mo au plus).",
+      "unsupported": "Ce format n'est pas accepté : choisissez une image PNG, JPEG, WebP, GIF ou AVIF.",
+      "login": "Reconnectez-vous pour envoyer une image.",
+      "failed": "L'image n'a pas pu être envoyée. Réessayez."
+    },
     "deleteSelection": "Supprimer la sélection ({{count}})",
     "typography": "Typographie",
     "layout": "Disposition",

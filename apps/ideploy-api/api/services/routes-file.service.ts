@@ -22,6 +22,7 @@ import { proxyPath } from '../utils/paths';
 import { extractMiddlewareNames, firewallMiddlewareName, hashBasicAuthPassword, parseDomain } from '../docker/labels';
 import { LabelContext, loadLabelContext } from './application-labels.service';
 import { classify, DnsStatus, isAutomatic, lookup } from './domain-dns.service';
+import { coveredByWildcard, ensurePlatformCertificateOn } from './platform-certificate.service';
 
 const CERT_RESOLVER = 'letsencrypt';
 
@@ -56,6 +57,11 @@ export interface RoutesInput {
   /** Hosts allowed to be routed (verified or automatic). */
   routable: ReadonlySet<string>;
   context: Pick<LabelContext, 'forceHttps' | 'gzip' | 'stripPrefix' | 'redirect' | 'hsts' | 'redirectToPrimary' | 'basicAuth' | 'customLabels'>;
+  /**
+   * Hosts already covered by a certificate the proxy holds (the platform's
+   * `*.idem.africa`): their router asks Let's Encrypt for nothing.
+   */
+  preCertified?: (host: string) => boolean;
 }
 
 /** The file's content: routers, their middlewares, one service. */
@@ -128,7 +134,7 @@ export function routesFileContent(input: RoutesInput): string {
         rule,
         service,
         middlewares: context.hsts ? [hsts, ...chain] : chain,
-        tls: { certResolver: CERT_RESOLVER },
+        tls: input.preCertified?.(domain.host) ? {} : { certResolver: CERT_RESOLVER },
       };
       routers[`${name}-http`] = context.forceHttps
         ? { entryPoints: ['http'], rule, service, middlewares: [toHttps] }
@@ -221,12 +227,17 @@ export async function applyRoutes(
   const statuses = await verifyDomains(app, server.ip, opts.look);
   const routable = new Set([...statuses].filter(([, s]) => ROUTABLE.has(s)).map(([h]) => h));
   const port = context.isStatic ? 80 : opts.port ?? (Number((app.ports_exposes ?? '').split(',')[0]) || 3000);
+  // The platform's wildcard certificate, on IDEM's servers: `monapp.idem.africa` is
+  // secure the moment it is routed, without a Let's Encrypt request per site.
+  const platformHosts = [...routable].filter((h) => coveredByWildcard(h));
+  const wildcardReady = platformHosts.length > 0 && (await ensurePlatformCertificateOn(server, key));
   const content = routesFileContent({
     uuid: app.uuid,
     target: `${containerHost(app)}:${port}`,
     domains: context.domains,
     routable,
     context,
+    preCertified: wildcardReady ? (host) => coveredByWildcard(host) : undefined,
   });
   const file = routesFilePath(app.uuid);
   const b64 = Buffer.from(content, 'utf8').toString('base64');

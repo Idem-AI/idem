@@ -55,7 +55,7 @@ function shortId(): string {
   return randomBytes(6).toString('base64').replace(/[^a-z0-9]/gi, '').toLowerCase().slice(0, 5).padEnd(5, '0');
 }
 
-async function withZoneLock<T>(work: () => Promise<T>): Promise<T> {
+export async function withZoneLock<T>(work: () => Promise<T>): Promise<T> {
   const token = randomBytes(12).toString('hex');
   const started = Date.now();
   while (!(await redis.set(LOCK_KEY, token, 'PX', LOCK_TTL_MS, 'NX'))) {

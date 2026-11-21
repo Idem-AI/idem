@@ -16,6 +16,8 @@
  * crédits (402) n'est pas une erreur pour lui — c'est le même repli.
  */
 import { Response, Router } from 'express';
+import { createHash } from 'crypto';
+import multer from 'multer';
 import logger from '../config/logger';
 import { CustomRequest } from '../interfaces/express.interface';
 import { authenticate } from '../services/auth.service';
@@ -240,6 +242,99 @@ router.post('/stock', authenticate, async (req: CustomRequest, res: Response) =>
     logger.warn('appgen_media.stock_failed', { event: 'appgen_media.stock_failed', error: (error as Error).message });
     res.status(502).json({ error: 'stock_failed' });
   }
+});
+
+// ── Image envoyée depuis l'éditeur d'iCode ─────────────────────────────────────────────────
+//
+// Remplacer une image dans le mode Édition écrivait le fichier dans le code en `data:…;base64` :
+// une photo de 3 Mo devenait 4 Mo de texte dans un composant, relue par le modèle à chaque tour,
+// renvoyée à chaque sauvegarde et à chaque mise en ligne. Elle part maintenant dans le stockage
+// d'IDEM et le code ne garde que son adresse.
+//
+// Le nom est l'empreinte du contenu : renvoyer la même image ne crée pas de doublon. Rien n'est
+// jamais écrasé ni supprimé au remplacement : l'image d'avant reste à son adresse, l'annulation de
+// l'éditeur (ou une version antérieure du projet) la retrouve. Elle part avec le projet, quand il est
+// effacé (`minio:users/<uid>/projects/`, registre de gouvernance des données).
+
+const UPLOAD_MAX_BYTES = 10 * 1024 * 1024;
+const imageUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: UPLOAD_MAX_BYTES, files: 1 } });
+
+/**
+ * Le type réel, lu dans les premiers octets — jamais celui que le navigateur annonce. Le SVG est
+ * refusé : servi depuis le stockage public, un script qu'il contiendrait s'exécuterait.
+ */
+function sniffImage(buffer: Buffer): { mime: string; ext: string } | null {
+  const at = (offset: number, bytes: number[]) => bytes.every((b, i) => buffer[offset + i] === b);
+  if (at(0, [0x89, 0x50, 0x4e, 0x47])) return { mime: 'image/png', ext: 'png' };
+  if (at(0, [0xff, 0xd8, 0xff])) return { mime: 'image/jpeg', ext: 'jpg' };
+  if (at(0, [0x47, 0x49, 0x46, 0x38])) return { mime: 'image/gif', ext: 'gif' };
+  if (at(0, [0x52, 0x49, 0x46, 0x46]) && at(8, [0x57, 0x45, 0x42, 0x50])) return { mime: 'image/webp', ext: 'webp' };
+  if (at(4, [0x66, 0x74, 0x79, 0x70]) && /^(avif|avis)$/.test(buffer.subarray(8, 12).toString('ascii'))) {
+    return { mime: 'image/avif', ext: 'avif' };
+  }
+  return null;
+}
+
+/** Côté le plus long d'une image de site : au-delà, aucun écran ne voit la différence, tous les visiteurs la paient. */
+const MAX_IMAGE_SIDE = 2400;
+
+/**
+ * Prête pour le web : orientation de l'appareil photo appliquée, taille bornée, WebP. Aucun filtre,
+ * aucune retouche des couleurs (les photos ne sont jamais filtrées). Un GIF garde son animation ; une
+ * version qui ne serait pas plus légère laisse l'original.
+ */
+async function optimiseForWeb(buffer: Buffer, kind: { mime: string; ext: string }): Promise<{ buffer: Buffer; mime: string; ext: string }> {
+  if (kind.mime === 'image/gif') return { buffer, ...kind };
+  try {
+    const sharp = (await import('sharp')).default;
+    const output = await sharp(buffer, { failOn: 'error' })
+      .rotate()
+      .resize({ width: MAX_IMAGE_SIDE, height: MAX_IMAGE_SIDE, fit: 'inside', withoutEnlargement: true })
+      .webp({ quality: 82 })
+      .toBuffer();
+    return output.length < buffer.length ? { buffer: output, mime: 'image/webp', ext: 'webp' } : { buffer, ...kind };
+  } catch {
+    return { buffer, ...kind };
+  }
+}
+
+router.post('/upload', authenticate, (req: CustomRequest, res: Response) => {
+  imageUpload.single('file')(req, res, async (uploadError: unknown) => {
+    if (uploadError) {
+      const tooLarge = (uploadError as { code?: string }).code === 'LIMIT_FILE_SIZE';
+      res.status(tooLarge ? 413 : 400).json({ error: tooLarge ? 'file_too_large' : 'invalid_upload', maxBytes: UPLOAD_MAX_BYTES });
+      return;
+    }
+    const file = (req as CustomRequest & { file?: { buffer: Buffer } }).file;
+    if (!file?.buffer?.length) {
+      res.status(400).json({ error: 'file_required' });
+      return;
+    }
+    const kind = sniffImage(file.buffer);
+    if (!kind) {
+      res.status(415).json({ error: 'unsupported_image', accepted: ['png', 'jpeg', 'webp', 'gif', 'avif'] });
+      return;
+    }
+
+    const userId = req.user!.uid;
+    try {
+      const ready = await optimiseForWeb(file.buffer, kind);
+      const digest = createHash('sha256').update(ready.buffer).digest('hex').slice(0, 24);
+      const folder = `users/${userId}/projects/${safeSegment(req.body?.projectId)}/site-images`;
+      const upload = await storage.uploadFile(ready.buffer, `${digest}.${ready.ext}`, folder, ready.mime);
+      logger.info('appgen_media.image_uploaded', {
+        event: 'appgen_media.image_uploaded',
+        userId,
+        bytesIn: file.buffer.length,
+        bytesOut: ready.buffer.length,
+        mime: ready.mime,
+      });
+      res.json({ url: upload.downloadURL, mimeType: ready.mime, bytes: ready.buffer.length });
+    } catch (error) {
+      logger.warn('appgen_media.upload_failed', { event: 'appgen_media.upload_failed', error: (error as Error).message });
+      res.status(502).json({ error: 'upload_failed' });
+    }
+  });
 });
 
 export const appgenMediaRoutes = router;

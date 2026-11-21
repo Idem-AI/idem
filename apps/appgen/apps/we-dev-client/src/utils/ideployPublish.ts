@@ -88,11 +88,62 @@ async function run(command: string, args: string[]): Promise<{ exitCode: number;
   return { exitCode, output };
 }
 
+/** Empreinte des sources : deux constructions des mêmes sources donnent le même site. */
+function sourceFingerprint(): string {
+  const files = useFileStore.getState().files;
+  let hash = 2166136261;
+  const mix = (text: string) => {
+    for (let i = 0; i < text.length; i++) {
+      hash ^= text.charCodeAt(i);
+      hash = Math.imul(hash, 16777619);
+    }
+  };
+  for (const path of Object.keys(files).sort()) {
+    const content = files[path];
+    if (typeof content !== 'string' || EXCLUDED.test(path)) continue;
+    mix(path);
+    mix('\u0000');
+    mix(content);
+    mix('\u0001');
+  }
+  return `${(hash >>> 0).toString(36)}-${Object.keys(files).length}`;
+}
+
+/**
+ * La construction en cours ou la dernière réussie, par empreinte des sources.
+ *
+ * La fenêtre de mise en ligne lance la construction dès son ouverture
+ * (`prepareStaticSite`) : le temps que l'utilisateur lise et clique, le site est
+ * souvent déjà prêt. Une deuxième publication sans modification ne reconstruit rien.
+ */
+let lastBuild: { fingerprint: string; promise: Promise<PublishFiles> } | null = null;
+/** Une construction à la fois : deux `npm run build` écriraient `dist/` en même temps. */
+let buildChain: Promise<unknown> = Promise.resolve();
+
+export function prepareStaticSite(): Promise<PublishFiles> {
+  const fingerprint = sourceFingerprint();
+  if (lastBuild && lastBuild.fingerprint === fingerprint) return lastBuild.promise;
+  const promise = buildChain.catch(() => undefined).then(() => buildStaticSiteNow());
+  buildChain = promise;
+  const entry = { fingerprint, promise };
+  lastBuild = entry;
+  // Un échec n'est pas gardé : la prochaine tentative reconstruit.
+  promise.catch(() => {
+    if (lastBuild === entry) lastBuild = null;
+  });
+  return promise;
+}
+
+/** Le site construit (réutilisé quand les sources n'ont pas changé). */
+export function buildStaticSite(): Promise<PublishFiles> {
+  return prepareStaticSite();
+}
+
 /**
  * Construit le site dans la WebContainer et lit `dist/`. Les dépendances sont
  * installées d'abord si l'aperçu n'a jamais tourné.
  */
-export async function buildStaticSite(): Promise<PublishFiles> {
+async function buildStaticSiteNow(): Promise<PublishFiles> {
   const container = await getWebContainerInstance();
   if (!container) throw new PublishError('preview_unavailable');
 
@@ -109,18 +160,21 @@ export async function buildStaticSite(): Promise<PublishFiles> {
   if (build.exitCode !== 0) throw new PublishError('build_failed', undefined, 'build', build.output);
 
   const files: PublishFiles = {};
+  // Les dossiers et les fichiers sont lus en parallèle : un site a des centaines de fichiers.
   const walk = async (dir: string): Promise<void> => {
     const entries = await container.fs.readdir(dir, { withFileTypes: true });
-    for (const entry of entries) {
-      const path = `${dir}/${entry.name}`;
-      if (entry.isDirectory()) {
-        await walk(path);
-      } else if (TEXT_EXTENSIONS.test(entry.name)) {
-        files[path] = await container.fs.readFile(path, 'utf-8');
-      } else {
-        files[path] = { base64: toBase64(await container.fs.readFile(path)) };
-      }
-    }
+    await Promise.all(
+      entries.map(async (entry) => {
+        const path = `${dir}/${entry.name}`;
+        if (entry.isDirectory()) {
+          await walk(path);
+        } else if (TEXT_EXTENSIONS.test(entry.name)) {
+          files[path] = await container.fs.readFile(path, 'utf-8');
+        } else {
+          files[path] = { base64: toBase64(await container.fs.readFile(path)) };
+        }
+      })
+    );
   };
   await walk('dist').catch(() => {
     throw new PublishError('build_failed', undefined, 'no_dist', build.output);
@@ -153,6 +207,22 @@ export async function readBuildReport(): Promise<BuildReport | null> {
   }
 }
 
+/**
+ * Le corps compressé (gzip) : un site construit pèse souvent quelques Mo de
+ * JSON, divisés par 3 à 5 — c'est l'envoi qui coûte, sur une connexion mobile.
+ * Le serveur iCode (express.json) le décompresse. Sans `CompressionStream`
+ * (navigateur ancien), le corps part tel quel.
+ */
+async function gzip(text: string): Promise<Blob | null> {
+  if (typeof CompressionStream === 'undefined' || text.length < 32 * 1024) return null;
+  try {
+    const stream = new Blob([text]).stream().pipeThrough(new CompressionStream('gzip'));
+    return await new Response(stream).blob();
+  } catch {
+    return null;
+  }
+}
+
 /** Envoie à iDeploy (création, ou mise à jour des mêmes applications). */
 export async function publishToIdeploy(options: {
   name: string;
@@ -160,16 +230,18 @@ export async function publishToIdeploy(options: {
   files: PublishFiles;
   existing?: IdeployRecord | null;
 }): Promise<PublishResult> {
+  const json = JSON.stringify({
+    name: options.name,
+    mode: options.mode,
+    files: options.files,
+    existing: options.existing && options.existing.mode === options.mode ? options.existing : null,
+  });
+  const compressed = await gzip(json);
   const response = await fetch(`${API_BASE}/api/ideploy/publish`, {
     method: 'POST',
     credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      name: options.name,
-      mode: options.mode,
-      files: options.files,
-      existing: options.existing && options.existing.mode === options.mode ? options.existing : null,
-    }),
+    headers: { 'Content-Type': 'application/json', ...(compressed ? { 'Content-Encoding': 'gzip' } : {}) },
+    body: compressed ?? json,
   });
   const data = await response.json().catch(() => null);
   if (!response.ok || !data?.success) {
@@ -204,9 +276,51 @@ export async function waitForDeployment(
     const { status, log } = await getDeploymentState(deploymentUuid);
     onStatus?.(status);
     if (status === 'finished' || status === 'failed') return { status, log };
-    await new Promise((resolve) => setTimeout(resolve, 3000));
+    // Une mise en ligne de site se compte en secondes : relue chaque seconde au début, puis plus calmement.
+    await new Promise((resolve) => setTimeout(resolve, Date.now() - started < 60_000 ? 1000 : 3000));
   }
   return { status: 'failed', log: 'timeout' };
+}
+
+export interface AddressState {
+  url: string | null;
+  /** L'adresse répond en HTTPS avec un certificat valide. */
+  ready: boolean;
+  /** Une autre adresse de l'application qui marche déjà (l'automatique), le temps que la principale arrive. */
+  fallbackUrl: string | null;
+}
+
+/** L'adresse publique répond-elle déjà en HTTPS ? */
+export async function getAddressState(applicationUuid: string): Promise<AddressState | null> {
+  try {
+    const response = await fetch(`${API_BASE}/api/ideploy/applications/${encodeURIComponent(applicationUuid)}/address`, {
+      credentials: 'include',
+    });
+    const data = await response.json().catch(() => null);
+    if (!response.ok || !data?.success) return null;
+    return { url: data.url ?? null, ready: Boolean(data.ready), fallbackUrl: data.fallbackUrl ?? null };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Attend que l'adresse réponde en HTTPS, au plus `timeoutMs`. Le nom vient d'être
+ * créé dans le DNS : le montrer avant qu'il soit publié menait à une erreur du navigateur.
+ */
+export async function waitForAddress(
+  applicationUuid: string,
+  timeoutMs = 60_000,
+  signal?: { cancelled: boolean }
+): Promise<AddressState | null> {
+  const started = Date.now();
+  let last: AddressState | null = null;
+  while (Date.now() - started < timeoutMs && !signal?.cancelled) {
+    last = (await getAddressState(applicationUuid)) ?? last;
+    if (last?.ready) return last;
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+  }
+  return last;
 }
 
 /** L'enregistrement gardé pour la prochaine mise à jour (et affiché par le tableau de bord). */

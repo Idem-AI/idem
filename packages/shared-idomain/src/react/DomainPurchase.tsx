@@ -361,7 +361,14 @@ export function DomainPurchase({ apiUrl, appUuid = null, appName = null, lang = 
  * Les noms achetés chez IDEM et reliés à une application : pour afficher, à côté de l'adresse
  * gratuite, le nom à soi et son état (en ligne, en cours, à relancer).
  */
-export function useDomainConnections(apiUrl: string, appUuid: string | null | undefined, refreshKey = 0): Connection[] {
+export function useDomainConnections(
+  apiUrl: string,
+  appUuid: string | null | undefined,
+  refreshKey = 0,
+  /** Aussi les noms achetés ailleurs et branchés par leurs réglages DNS (`method: 'manual'`). */
+  options: { includeExternal?: boolean } = {}
+): Connection[] {
+  const includeExternal = options.includeExternal === true;
   const [list, setList] = useState<Connection[]>([]);
   useEffect(() => {
     if (!appUuid) {
@@ -371,11 +378,11 @@ export function useDomainConnections(apiUrl: string, appUuid: string | null | un
     let alive = true;
     createIdomainClient(apiUrl)
       .connections({ appUuid })
-      .then((r) => alive && setList(r.connections.filter((c) => c.domain)))
+      .then((r) => alive && setList(r.connections.filter((c) => c.domain || (includeExternal && c.method === 'manual'))))
       .catch(() => alive && setList([]));
     return () => {
       alive = false;
     };
-  }, [apiUrl, appUuid, refreshKey]);
+  }, [apiUrl, appUuid, refreshKey, includeExternal]);
   return list;
 }

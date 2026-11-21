@@ -75,6 +75,8 @@ export interface Connection {
   error: string | null;
   domain: { id: string; name: string; expiresAt: string | null; renewalXaf: number | null; dnsManaged: boolean } | null;
   activatedAt: string | null;
+  /** Un domaine acheté ailleurs (`manual`) : les réglages à copier chez son fournisseur, tant qu'il en reste. */
+  instructions?: { type: string; name: string; value: string; zone: string; purpose: 'ownership' | 'address' }[];
 }
 
 export interface Application {
@@ -114,7 +116,7 @@ export interface IdomainClient {
   applications(): Promise<{ applications: Application[] }>;
   connections(filter: { appUuid?: string }): Promise<{ connections: Connection[] }>;
   connection(id: string): Promise<Connection>;
-  connect(body: { host: string; appUuid: string }): Promise<Connection>;
+  connect(body: { host: string; appUuid: string; includeWww?: boolean }): Promise<Connection>;
   retryConnection(id: string): Promise<Connection>;
   detach(id: string): Promise<Connection>;
   records(domainId: string): Promise<{ records: RecordSet[] }>;

@@ -1,7 +1,7 @@
 {
   "name": "ideploy-api",
   "version": "1.0.0",
-  "description": "Node.js (Express + TypeScript) backend for iDeploy \u2014 rewrite of the Laravel/Livewire PaaS, sharing the same PostgreSQL schema.",
+  "description": "Node.js (Express + TypeScript) backend for iDeploy — rewrite of the Laravel/Livewire PaaS, sharing the same PostgreSQL schema.",
   "main": "api/index.ts",
   "scripts": {
     "dev": "nodemon api/index.ts",
@@ -27,6 +27,7 @@
   "dependencies": {
     "@infisical/sdk": "^5.0.2",
     "@prisma/client": "^6.2.1",
+    "acme-client": "^5.4.0",
     "axios": "^1.7.9",
     "bcryptjs": "^3.0.3",
     "bullmq": "^5.34.0",

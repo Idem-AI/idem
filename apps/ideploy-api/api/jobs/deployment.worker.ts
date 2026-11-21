@@ -33,6 +33,7 @@ import { planBuild, recipePlan, toBuildPack, buildDirectory } from '../docker/bu
 import { loadLabelContext, buildApplicationLabels } from '../services/application-labels.service';
 import { writeFirewallFile } from '../services/firewall-file.service';
 import { applyRoutes } from '../services/routes-file.service';
+import { deployPrebuiltStatic, isPrebuiltStatic } from './static-fast-path';
 import { monorepoHint, monorepoProbeCommand, parseMonorepoProbe } from '../docker/monorepo-hint';
 import { analyzeRepository, describePlan, parseSnapshot, snapshotCommand, BuildPlanResult } from '../build-plan';
 import { joinPath, relativeTo } from '../build-plan/repo-files';
@@ -652,6 +653,28 @@ async function deploy(
   let composeImage: string | null = null;
   // The release command the build plan read in the code (migrations), run before the switch.
   let planRelease: string | undefined;
+
+  // A site iCode built: files, nothing to build or start. Published in seconds
+  // by swapping a link under a long-lived nginx (static-fast-path.ts).
+  if (useRoutesFile && !trace.overrides && !app.git_repository && toBuildPack(app.build_pack) === 'static') {
+    const archive = await getSourceArchive(app.id);
+    if (archive && isPrebuiltStatic(app, true)) {
+      await deployPrebuiltStatic({
+        deploymentUuid,
+        app,
+        server,
+        key,
+        workdir,
+        archive,
+        labels,
+        network: network ?? undefined,
+        log,
+        step: (label, fn) => streamStep(deploymentUuid, label, fn),
+        markSwitched,
+      });
+      return;
+    }
+  }
 
   await streamStep(deploymentUuid, 'Preparing the release', async () => {
     const r = await executeRemoteCommand(
