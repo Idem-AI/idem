@@ -237,12 +237,27 @@ export async function publishToIdeploy(options: {
     existing: options.existing && options.existing.mode === options.mode ? options.existing : null,
   });
   const compressed = await gzip(json);
-  const response = await fetch(`${API_BASE}/api/ideploy/publish`, {
-    method: 'POST',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json', ...(compressed ? { 'Content-Encoding': 'gzip' } : {}) },
-    body: compressed ?? json,
-  });
+  const send = (body: Blob | string, gzipped: boolean) =>
+    fetch(`${API_BASE}/api/ideploy/publish`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json', ...(gzipped ? { 'Content-Encoding': 'gzip' } : {}) },
+      body,
+    });
+  let response: Response;
+  try {
+    response = await send(compressed ?? json, Boolean(compressed));
+  } catch (error) {
+    // Envoi compressé refusé avant même de partir (CORS d'un serveur pas encore à jour) : sans compression.
+    if (!compressed) throw new PublishError('network_failed');
+    try {
+      response = await send(json, false);
+    } catch {
+      throw new PublishError('network_failed');
+    }
+  }
+  // Un serveur qui ne sait pas décompresser répond 400/415 : même repli.
+  if (compressed && (response.status === 415 || response.status === 400)) response = await send(json, false);
   const data = await response.json().catch(() => null);
   if (!response.ok || !data?.success) {
     throw new PublishError(data?.message || 'publish_failed', response.status, data?.code);

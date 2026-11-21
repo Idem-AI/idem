@@ -724,7 +724,7 @@
       "idomainLive": "It's live: {{domain}} shows your site.",
       "idomainFailed": "Connecting {{domain}} did not go through. Retry from iDomain.",
       "recordsTitle": "One setting to add at your provider",
-      "recordsLead": "Pick your provider: we tell you where to click. Then copy the Name and Value below.",
+      "recordsLead": "Two steps at the provider of {{domain}}, then we do the rest: the site opens at your name, over HTTPS.",
       "whereQuestion": "Where did you buy your name?",
       "pickProvider": "Choose…",
       "otherProvider": "Another one",
@@ -738,8 +738,8 @@
         "proxied": "Turn the Cloudflare cloud grey",
         "live": "Online"
       },
-      "wait": "We check every 10 seconds. A provider takes from a few minutes to a few hours to publish the setting: you can close, it keeps going.",
-      "later": "I'll do it later",
+      "wait": "We check every 10 seconds. Publishing takes from a few minutes to a few hours: you can close, it keeps going.",
+      "later": "Finish later",
       "done": "Done",
       "providers": {
         "godaddy": {
@@ -790,7 +790,12 @@
           "step3": "Add an A record with the Name and Value shown here, then save.",
           "tip": "If an A or AAAA record already exists for this name, delete or edit it."
         }
-      }
+      },
+      "title": "Your domain name",
+      "stepProvider": "Open the DNS zone",
+      "stepRecords": "Add these settings",
+      "pickHint": "Pick your provider: we tell you where to click.",
+      "copied": "Copied"
     }
   },
   "editMode": {
