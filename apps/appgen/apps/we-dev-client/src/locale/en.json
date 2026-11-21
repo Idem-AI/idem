@@ -703,7 +703,92 @@
       "buyHint": "Chosen, paid and connected here, without leaving iCode.",
       "later": "Not now, keep the free address",
       "add": "Add a domain name",
-      "showSettings": "See the settings"
+      "soonTitle": "Coming soon",
+      "soonBody": "Buying a domain name from iCode is coming very soon. Meanwhile, your site stays online at its free address."
+    },
+    "ownDomain": {
+      "label": "What is your domain name?",
+      "next": "Continue",
+      "back": "Back",
+      "invalid": "This name is not valid. Example: myshop.com",
+      "sourceQuestion": "Where did you buy {{domain}}?",
+      "other": "At another provider",
+      "otherHint": "GoDaddy, Namecheap, OVHcloud, Hostinger… You will add one setting there, we guide you.",
+      "idomain": "On iDomain",
+      "idomainHint": "Bought with IDEM: we connect it ourselves, nothing to set up.",
+      "notInIdomain": "{{domain}} is not in your iDomain account. Choose “At another provider”.",
+      "saveError": "The name could not be added. Try again in a moment.",
+      "idomainPending": "Connecting {{domain}} and turning on HTTPS…",
+      "idomainLive": "It's live: {{domain}} shows your site.",
+      "idomainFailed": "Connecting {{domain}} did not go through. Retry from iDomain.",
+      "recordsTitle": "One setting to add at your provider",
+      "recordsLead": "Pick your provider: we tell you where to click. Then copy the Name and Value below.",
+      "whereQuestion": "Where did you buy your name?",
+      "pickProvider": "Choose…",
+      "otherProvider": "Another one",
+      "openProvider": "Open {{name}}",
+      "type": "Type",
+      "name": "Name",
+      "value": "Value",
+      "status": {
+        "waiting": "Waiting for the setting",
+        "certificate": "Setting found, HTTPS on its way",
+        "proxied": "Turn the Cloudflare cloud grey",
+        "live": "Online"
+      },
+      "wait": "We check every 10 seconds. A provider takes from a few minutes to a few hours to publish the setting: you can close, it keeps going.",
+      "later": "I'll do it later",
+      "done": "Done",
+      "providers": {
+        "godaddy": {
+          "step1": "Sign in to GoDaddy, open “My Domain Portfolio” and click your domain.",
+          "step2": "Open the “DNS” tab, then “DNS Records”.",
+          "step3": "Click “Add New Record”, choose type A, then copy the Name and Value shown here. Save.",
+          "tip": "GoDaddy often creates an A record “@” pointing to “Parked”: edit it with the pencil instead of adding a second one."
+        },
+        "namecheap": {
+          "step1": "In “Domain List”, click “Manage” next to your domain.",
+          "step2": "Open the “Advanced DNS” tab.",
+          "step3": "Click “Add New Record”, choose “A Record”, copy the Name into “Host” and the Value into “Value”, then click the green tick.",
+          "tip": "Delete the “URL Redirect Record” or parking “CNAME” Namecheap created for the same name."
+        },
+        "ovh": {
+          "step1": "In your OVHcloud Control Panel, open “Web Cloud”, then “Domain names”, and choose your domain.",
+          "step2": "Open the “DNS zone” tab.",
+          "step3": "Click “Add an entry”, choose A, copy the Name into “Sub-domain” (leave it empty if the name is @) and the Value into “Target”.",
+          "tip": "OVHcloud creates A and AAAA entries pointing to its own servers by default: delete them for this name, or the HTTPS certificate cannot be issued."
+        },
+        "hostinger": {
+          "step1": "In hPanel, open “Domains” and click “Manage” next to your domain.",
+          "step2": "Open “DNS / Nameservers”.",
+          "step3": "Choose type A, copy the Name and the Value (“Points to”), then click “Add Record”.",
+          "tip": "First delete the existing A record for the same name: Hostinger creates one pointing to its servers."
+        },
+        "cloudflare": {
+          "step1": "Sign in to Cloudflare and choose your domain.",
+          "step2": "Open “DNS”, then “Records”.",
+          "step3": "Click “Add record”, choose A, copy the Name into “Name” and the Value into “IPv4 address”.",
+          "tip": "Important: click the orange cloud to turn it grey (“DNS only”). Otherwise the HTTPS certificate cannot be issued."
+        },
+        "lws": {
+          "step1": "In your LWS customer area, click “Manage” next to your domain.",
+          "step2": "Open “DNS zone”.",
+          "step3": "Add an A record with the Name and Value shown here.",
+          "tip": "If an A record already exists for this name, edit it instead of adding a second one."
+        },
+        "squarespace": {
+          "step1": "Open your Squarespace domains (formerly Google Domains) and click your domain.",
+          "step2": "Open “DNS”, then “DNS Settings”.",
+          "step3": "Under “Custom records”, add an A record: the Name goes into “Host”, the Value into “Data”.",
+          "tip": "Remove the “Squarespace Defaults” if they send the same name elsewhere."
+        },
+        "other": {
+          "step1": "Sign in to the site where you bought your domain name.",
+          "step2": "Look for the “DNS”, “DNS zone” or “Manage records” page.",
+          "step3": "Add an A record with the Name and Value shown here, then save.",
+          "tip": "If an A or AAAA record already exists for this name, delete or edit it."
+        }
+      }
     }
   },
   "editMode": {

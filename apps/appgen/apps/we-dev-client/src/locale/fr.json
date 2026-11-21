@@ -703,7 +703,92 @@
       "buyHint": "Choisi, payé et branché ici, sans quitter iCode.",
       "later": "Pas maintenant, garder l'adresse gratuite",
       "add": "Ajouter un nom de domaine",
-      "showSettings": "Voir les réglages"
+      "soonTitle": "Bientôt disponible",
+      "soonBody": "L'achat d'un nom de domaine depuis iCode arrive très bientôt. En attendant, votre site reste en ligne à son adresse gratuite."
+    },
+    "ownDomain": {
+      "label": "Quel est votre nom de domaine ?",
+      "next": "Continuer",
+      "back": "Retour",
+      "invalid": "Ce nom n'est pas valide. Exemple : maboutique.com",
+      "sourceQuestion": "Où avez-vous acheté {{domain}} ?",
+      "other": "Chez un autre fournisseur",
+      "otherHint": "GoDaddy, Namecheap, OVHcloud, Hostinger… Vous ajouterez un réglage chez lui, nous vous guidons.",
+      "idomain": "Sur iDomain",
+      "idomainHint": "Acheté avec IDEM : nous le branchons tout seuls, rien à régler.",
+      "notInIdomain": "{{domain}} n'est pas dans votre compte iDomain. Choisissez « Chez un autre fournisseur ».",
+      "saveError": "Le nom n'a pas pu être ajouté. Réessayez dans un instant.",
+      "idomainPending": "Nous branchons {{domain}} et activons le HTTPS…",
+      "idomainLive": "C'est en ligne : {{domain}} affiche votre site.",
+      "idomainFailed": "Le branchement de {{domain}} n'a pas abouti. Réessayez depuis iDomain.",
+      "recordsTitle": "Un réglage à ajouter chez votre fournisseur",
+      "recordsLead": "Choisissez votre fournisseur : nous vous disons où cliquer. Ensuite, recopiez le Nom et la Valeur ci-dessous.",
+      "whereQuestion": "Chez qui avez-vous acheté votre nom ?",
+      "pickProvider": "Choisir…",
+      "otherProvider": "Un autre",
+      "openProvider": "Ouvrir {{name}}",
+      "type": "Type",
+      "name": "Nom",
+      "value": "Valeur",
+      "status": {
+        "waiting": "En attente du réglage",
+        "certificate": "Réglage trouvé, HTTPS en cours",
+        "proxied": "Passez le nuage Cloudflare en gris",
+        "live": "En ligne"
+      },
+      "wait": "Nous vérifions toutes les 10 secondes. Un fournisseur met de quelques minutes à quelques heures pour publier le réglage : vous pouvez fermer, cela continue.",
+      "later": "Je le ferai plus tard",
+      "done": "Terminé",
+      "providers": {
+        "godaddy": {
+          "step1": "Connectez-vous à GoDaddy, ouvrez « Mon portefeuille de domaines » et cliquez sur votre domaine.",
+          "step2": "Ouvrez l'onglet « DNS », puis « Enregistrements DNS ».",
+          "step3": "Cliquez sur « Ajouter un nouvel enregistrement », choisissez le type A, puis recopiez le Nom et la Valeur ci-contre. Enregistrez.",
+          "tip": "GoDaddy crée souvent un enregistrement A « @ » vers « Parked » : modifiez-le avec le crayon au lieu d'en ajouter un second."
+        },
+        "namecheap": {
+          "step1": "Dans « Domain List », cliquez sur « Manage » à côté de votre domaine.",
+          "step2": "Ouvrez l'onglet « Advanced DNS ».",
+          "step3": "Cliquez sur « Add new record », choisissez « A Record », recopiez le Nom dans « Host » et la Valeur dans « Value », puis cliquez sur la coche verte.",
+          "tip": "Supprimez l'enregistrement « URL Redirect Record » ou le « CNAME » de parking que Namecheap a créé pour le même nom."
+        },
+        "ovh": {
+          "step1": "Dans votre espace client OVHcloud, ouvrez « Web Cloud », puis « Noms de domaine », et choisissez votre domaine.",
+          "step2": "Ouvrez l'onglet « Zone DNS ».",
+          "step3": "Cliquez sur « Ajouter une entrée », choisissez A, recopiez le Nom dans « Sous-domaine » (laissez-le vide si le nom est @) et la Valeur dans « Cible ».",
+          "tip": "OVHcloud crée par défaut des entrées A et AAAA vers ses propres serveurs : supprimez-les pour ce nom, sinon le certificat HTTPS ne peut pas être émis."
+        },
+        "hostinger": {
+          "step1": "Dans hPanel, ouvrez « Domaines » et cliquez sur « Gérer » à côté de votre domaine.",
+          "step2": "Ouvrez « DNS / Serveurs de noms ».",
+          "step3": "Choisissez le type A, recopiez le Nom et la Valeur (champ « Pointe vers »), puis cliquez sur « Ajouter un enregistrement ».",
+          "tip": "Supprimez d'abord l'enregistrement A existant pour le même nom : Hostinger en crée un vers ses serveurs."
+        },
+        "cloudflare": {
+          "step1": "Connectez-vous à Cloudflare et choisissez votre domaine.",
+          "step2": "Ouvrez « DNS », puis « Records ».",
+          "step3": "Cliquez sur « Add record », choisissez A, recopiez le Nom dans « Name » et la Valeur dans « IPv4 address ».",
+          "tip": "Important : cliquez sur le nuage orange pour le passer en gris (« DNS only »). Sinon, le certificat HTTPS ne peut pas être émis."
+        },
+        "lws": {
+          "step1": "Dans votre espace client LWS, cliquez sur « Gérer » à côté de votre domaine.",
+          "step2": "Ouvrez « Zone DNS ».",
+          "step3": "Ajoutez un enregistrement de type A avec le Nom et la Valeur ci-contre.",
+          "tip": "S'il existe déjà un enregistrement A pour ce nom, modifiez-le au lieu d'en ajouter un second."
+        },
+        "squarespace": {
+          "step1": "Ouvrez vos domaines Squarespace (anciens Google Domains) et cliquez sur votre domaine.",
+          "step2": "Ouvrez « DNS », puis « Paramètres DNS ».",
+          "step3": "Dans « Enregistrements personnalisés », ajoutez un enregistrement A : le Nom va dans « Hôte », la Valeur dans « Données ».",
+          "tip": "Retirez les « Squarespace Defaults » s'ils envoient le même nom ailleurs."
+        },
+        "other": {
+          "step1": "Connectez-vous au site où vous avez acheté votre nom de domaine.",
+          "step2": "Cherchez la page « DNS », « Zone DNS » ou « Gérer les enregistrements ».",
+          "step3": "Ajoutez un enregistrement de type A avec le Nom et la Valeur ci-contre, puis enregistrez.",
+          "tip": "S'il existe déjà un enregistrement A ou AAAA pour ce nom, supprimez-le ou modifiez-le."
+        }
+      }
     }
   },
   "editMode": {

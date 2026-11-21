@@ -223,6 +223,55 @@ router.get('/applications/:uuid/address', async (req: Request, res: Response) =>
   }
 });
 
+/**
+ * A domain bought elsewhere, added to the application exactly as iDeploy's own
+ * « Nom de domaine » tab does (PATCH fqdn, then redeploy when iDeploy says so).
+ * The DNS rules, the routing and the certificate stay iDeploy's.
+ */
+router.post('/applications/:uuid/domains', async (req: Request, res: Response) => {
+  const uuid = encodeURIComponent(String(req.params.uuid));
+  const host = String(req.body?.host ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/^https?:\/\//, '')
+    .replace(/[/?#].*$/, '')
+    .replace(/:\d+$/, '')
+    .replace(/\.$/, '');
+  if (!/^(?=.{4,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/.test(host)) {
+    return res.status(422).json({ success: false, message: 'invalid_domain' });
+  }
+  try {
+    const app = await ideploy<{ fqdn?: string | null }>(req, 'GET', `/applications/${uuid}`);
+    const current = (app?.fqdn ?? '').split(',').map((d) => d.trim()).filter(Boolean);
+    const known = new Set(current.map((d) => d.replace(/^https?:\/\//, '').toLowerCase()));
+    const labels = host.split('.');
+    const apex = labels.length === 2 || (labels.length === 3 && /^(co|com|org|net|gov|ac|edu)$/.test(labels[1]));
+    const wanted = [host, ...(apex && req.body?.includeWww !== false ? [`www.${host}`] : [])].filter((h) => !known.has(h));
+    // The new name first: it becomes the address shown (the free one stays and keeps working).
+    const fqdn = [...wanted.map((h) => `https://${h}`), ...current].join(',');
+    const updated = wanted.length
+      ? await ideploy<{ redeployRequired?: boolean }>(req, 'PATCH', `/applications/${uuid}`, { fqdn })
+      : {};
+    if (updated?.redeployRequired) await ideploy(req, 'POST', '/deploy', { uuid: String(req.params.uuid) });
+    return res.json({ success: true, hosts: [host, ...(apex && req.body?.includeWww !== false ? [`www.${host}`] : [])] });
+  } catch (error) {
+    const err = error as Error & { status?: number; code?: string };
+    return res.status(err.status ?? 502).json({ success: false, code: err.code, message: err.message });
+  }
+});
+
+/** iDeploy's DNS guide for the application: the record to create per domain, what DNS answers, HTTPS. */
+router.get('/applications/:uuid/domains/dns', async (req: Request, res: Response) => {
+  try {
+    const query = typeof req.query.domains === 'string' ? `?domains=${encodeURIComponent(req.query.domains.slice(0, 2000))}` : '';
+    const guide = await ideploy<unknown>(req, 'GET', `/applications/${encodeURIComponent(String(req.params.uuid))}/domains/dns${query}`);
+    return res.json({ success: true, guide });
+  } catch (error) {
+    const err = error as Error & { status?: number };
+    return res.status(err.status ?? 502).json({ success: false, message: err.message });
+  }
+});
+
 /** iDeploy's address for an application, as a link. */
 function toUrl(fqdn?: string | null): string | null {
   if (!fqdn) return null;
