@@ -9,7 +9,8 @@ import { reviewComponent, withoutClaims, type Review, type ReviewContext, type R
 import { ChatLogger } from '../../utils/logger.js';
 import { assembleSection, assembleShell, type ActionValue } from './assemble.js';
 import type { SectionContent } from './copy.js';
-import type { LoadedSectionCatalog, SectionNode, ShellNode } from './types.js';
+import type { LoadedSectionCatalog, SectionNode, ShellNode, ShellStyleNode } from './types.js';
+import { slotsOf, type ShellSlot } from './shellStyles.js';
 import { inTier } from './tier.js';
 
 /** Un nombre stable tiré d'un texte : la même construction choisit les mêmes variantes (reprise, régénération). */
@@ -114,8 +115,33 @@ export async function composeSection(o: ComposeOptions): Promise<Composed | null
   return null;
 }
 
-/** L'en-tête ou le pied de page : un gabarit du catalogue, vérifié comme le reste ; null si aucun ne passe. */
-export async function composeShell(all: ShellNode[], review: ReviewContext, target: ReviewTarget, seed: number, label: string, level?: string): Promise<Composed | null> {
+/**
+ * Les styles d'un gabarit d'en-tête ou de pied de page : un par emplacement qu'il délimite, tiré de la graine du
+ * projet parmi ceux de la gamme et de la DA (`allowed` : la liste blanche du gabarit, s'il en déclare une). `turn`
+ * décale le tirage : un second essai prend d'autres styles.
+ */
+export function pickShellStyles(node: ShellNode, styles: ShellStyleNode[], seed: number, level?: string, turn = 0): { picks: Partial<Record<ShellSlot, string>>; ids: string[] } {
+  const picks: Partial<Record<ShellSlot, string>> = {};
+  const ids: string[] = [];
+  slotsOf(node.template).forEach(({ slot }, k) => {
+    const allowed = node.styles?.[slot];
+    const own = styles.filter((s) => s.slot === slot && (!allowed?.length || allowed.includes(s.id)));
+    // Toutes les gammes voisines tant qu'il y a moins de 4 styles : la variété compte plus que la gamme exacte.
+    const pool = inTier(own, level, 4);
+    if (!pool.length) return;
+    const chosen = pool[(seedOf(`${seed}:${node.id}:${slot}:${k}`) + turn) % pool.length];
+    picks[slot] = chosen.template;
+    ids.push(chosen.id);
+  });
+  return { picks, ids };
+}
+
+/**
+ * L'en-tête ou le pied de page : un gabarit du catalogue, habillé de styles tirés pour ce projet (survol, page
+ * active, menu mobile, liens du pied), vérifié comme le reste ; null si aucun ne passe. Une combinaison refusée
+ * cède sa place à une autre, puis au style par défaut du gabarit, puis au gabarit suivant.
+ */
+export async function composeShell(all: ShellNode[], review: ReviewContext, target: ReviewTarget, seed: number, label: string, level?: string, styles: ShellStyleNode[] = []): Promise<Composed | null> {
   // La gamme du cran : l'en-tête et le pied de page d'un site Ultra viennent des gabarits les plus premium.
   const shells = inTier(all, level, 2);
   if (!shells.length) return null;
@@ -123,19 +149,26 @@ export async function composeShell(all: ShellNode[], review: ReviewContext, targ
   const order = shells.map((_, i) => shells[(start + i) % shells.length]);
   const tried: string[] = [];
   for (const node of order) {
-    let code: string;
-    try {
-      code = assembleShell(node.template);
-    } catch (error) {
-      tried.push(`${node.id} : ${(error as Error).message}`);
-      continue;
+    const attempts = [pickShellStyles(node, styles, seed, level, 0), pickShellStyles(node, styles, seed, level, 1), { picks: {}, ids: [] as string[] }];
+    const seen = new Set<string>();
+    for (const { picks, ids } of attempts) {
+      const name = [node.id, ...ids].join('+');
+      if (seen.has(name)) continue;
+      seen.add(name);
+      let code: string;
+      try {
+        code = assembleShell(node.template, picks);
+      } catch (error) {
+        tried.push(`${name} : ${(error as Error).message}`);
+        continue;
+      }
+      const checked = await reviewComponent(code, review, target);
+      if (checked.problems.length || checked.empty) {
+        tried.push(`${name} : ${checked.problems.slice(0, 2).join(' · ') || "n'affiche rien"}`);
+        continue;
+      }
+      return { code: checked.code, variant: name, fixes: checked.fixes };
     }
-    const checked = await reviewComponent(code, review, target);
-    if (checked.problems.length || checked.empty) {
-      tried.push(`${node.id} : ${checked.problems.slice(0, 2).join(' · ') || "n'affiche rien"}`);
-      continue;
-    }
-    return { code: checked.code, variant: node.id, fixes: checked.fixes };
   }
   ChatLogger.warn('SITE_CATALOG', `${label} : aucun gabarit du catalogue ne passe`, { tried });
   return null;

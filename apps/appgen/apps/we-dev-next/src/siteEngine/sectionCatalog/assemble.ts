@@ -14,6 +14,7 @@
  *
  * Aucun texte n'est écrit par le gabarit : un champ vide fait tomber son bloc conditionnel, jamais une balise vide.
  */
+import { applyShellStyles, type ShellSlot } from './shellStyles.js';
 
 export interface ActionValue {
   label: string;
@@ -244,7 +245,11 @@ function tidy(code: string): string {
 }
 
 /** Les en-têtes et pieds de page ne lisent que `site` : rien à remplir. */
-export function assembleShell(tpl: string): string {
+/**
+ * L'en-tête ou le pied de page, avec les styles choisis pour ses emplacements (`picks` : emplacement → code du style ;
+ * absent : le style par défaut du gabarit). Voir `shellStyles.ts`.
+ */
+export function assembleShell(tpl: string, picks: Partial<Record<ShellSlot, string>> = {}): string {
   if (/\[\[|\{\{/.test(tpl)) throw new Error('un en-tête ou un pied de page ne porte aucun jeton');
-  return tpl.trim().concat('\n');
+  return applyShellStyles(tpl, picks);
 }

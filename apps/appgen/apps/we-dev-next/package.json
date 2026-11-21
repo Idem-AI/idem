@@ -13,6 +13,8 @@
         "check:site-edit": "tsx scripts/check-site-edit.ts",
         "check:site-build": "tsx scripts/check-site-build.ts",
         "check:site-style": "tsx scripts/check-site-style.ts",
+        "check:redesign": "tsx scripts/check-redesign.ts",
+        "check:site-delete": "tsx scripts/check-site-delete.ts",
         "gallery:site-style": "tsx scripts/gallery-site-style.ts",
         "check:site-speed": "tsx scripts/check-site-speed.ts",
         "check:preview": "tsx scripts/check-preview.ts",

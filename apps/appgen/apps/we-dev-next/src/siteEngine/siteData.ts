@@ -50,6 +50,23 @@ export function primaryActionOf(facts: SiteFacts, language: string): NavLink | n
   return channels[0] ? { label: channels[0].label, href: channels[0].href! } : null;
 }
 
+/**
+ * Les libellés d'interface de l'en-tête et du pied de page (21/11/2026) : titres de colonnes, menu, mentions. Les
+ * gabarits n'écrivent aucun mot : ils lisent `site.labels`, dans la langue du site (les autres langues passent par
+ * la traduction du site, comme tous les textes de `site`).
+ */
+const SITE_LABELS: Record<string, Record<string, string>> = {
+  fr: { offers: 'Nos offres', menu: 'Menu', close: 'Fermer', pages: 'Navigation', contact: 'Contact', address: 'Adresse', rights: 'Tous droits réservés', backToTop: 'Haut de page', language: 'Langue' },
+  en: { offers: 'Offers', menu: 'Menu', close: 'Close', pages: 'Navigation', contact: 'Contact', address: 'Address', rights: 'All rights reserved', backToTop: 'Back to top', language: 'Language' },
+  pt: { offers: 'Ofertas', menu: 'Menu', close: 'Fechar', pages: 'Navegação', contact: 'Contacto', address: 'Endereço', rights: 'Todos os direitos reservados', backToTop: 'Voltar ao topo', language: 'Idioma' },
+  es: { offers: 'Ofertas', menu: 'Menú', close: 'Cerrar', pages: 'Navegación', contact: 'Contacto', address: 'Dirección', rights: 'Todos los derechos reservados', backToTop: 'Volver arriba', language: 'Idioma' },
+};
+
+export function siteLabelsOf(language: string): { offers: string; menu: string; close: string; pages: string; contact: string; address: string; rights: string; backToTop: string; language: string } {
+  const base = String(language || 'fr').toLowerCase().split('-')[0];
+  return (SITE_LABELS[base] ?? SITE_LABELS.en) as ReturnType<typeof siteLabelsOf>;
+}
+
 /** `src/site/data.ts` */
 /** Les valeurs de `@/site/data` (leurs textes forment aussi une part du catalogue des langues). */
 export function siteDataOf(facts: SiteFacts, manifest: SiteManifest | null, language: string) {
@@ -69,6 +86,7 @@ export function siteDataOf(facts: SiteFacts, manifest: SiteManifest | null, lang
     offers: facts.offers.map((offer) => ({ name: offer.name, price: offer.price, notes: offer.notes })),
     team: facts.team.map((member) => ({ name: member.name, role: member.role, bio: member.bio, photo: member.photo ?? '' })),
     year: new Date().getFullYear(),
+    labels: siteLabelsOf(language),
   };
 }
 
@@ -99,6 +117,7 @@ export function describeDataModule(facts: SiteFacts, manifest: SiteManifest): st
     `site.offers : { name, price, notes }[] (${facts.offers.length} offres, prix réels)`,
     `site.team : { name, role, bio, photo }[] (${facts.team.length} personnes)`,
     'site.year : année en cours (mentions du pied de page)',
+    'site.labels : { offers, menu, close, pages, contact, address, rights, backToTop, language } (libellés d’interface, dans la langue du site)',
   ];
   return lines.join('\n');
 }
@@ -151,31 +170,79 @@ export function renderSeo(facts: SiteFacts, manifest: SiteManifest | null, langu
   )}\n`;
 }
 
-/** `src/site/brand.tsx` : le logo de la charte, posé par le code. */
+/**
+ * La marque d'en-tête calculée par l'API IDEM (`apps/api/.../SiteImport/brandMark.service.ts`), rangée dans
+ * `branding.logo.header` : le logo rogné au plus juste, et ce qu'il est.
+ *
+ *   wordmark   le logo porte déjà le nom : affiché seul
+ *   icon       une icône ou un symbole : affiché AVEC le nom du site
+ *   light      clair sur transparent : posé sur une pastille sombre, sinon invisible sur un en-tête clair
+ */
+export interface HeaderBrandMark {
+  src: string;
+  kind: 'wordmark' | 'icon';
+  aspect?: number;
+  light?: boolean;
+}
+
+export function headerBrandMarkOf(projectData: ProjectModel | undefined): HeaderBrandMark | null {
+  const header = (projectData?.analysisResultModel?.branding?.logo as { header?: Partial<HeaderBrandMark> } | undefined)?.header;
+  if (!header || typeof header.src !== 'string' || !/^https?:\/\//.test(header.src)) return null;
+  return { src: header.src, kind: header.kind === 'icon' ? 'icon' : 'wordmark', ...(header.aspect ? { aspect: header.aspect } : {}), ...(header.light ? { light: true } : {}) };
+}
+
+/**
+ * `src/site/brand.tsx` : la marque, posée par le code. Il y a TOUJOURS une marque dans l'en-tête : le logo seul
+ * quand il porte le nom, l'icône et le nom quand c'est une icône, le nom seul sans logo.
+ */
 export function renderBrandModule(projectData: ProjectModel | undefined, name: string, source?: BrandSource): string {
-  const declared = resolveHeaderLogo(projectData?.analysisResultModel?.branding?.logo as unknown);
+  const header = headerBrandMarkOf(projectData);
+  const declared = header?.src || resolveHeaderLogo(projectData?.analysisResultModel?.branding?.logo as unknown);
   const src = source ?? (declared ? (declared.startsWith('<') ? { inlineSvg: declared } : { remote: declared }) : {});
   const url = src.path ?? src.dataUri ?? src.remote;
+  const kind = header?.kind ?? 'wordmark';
+  const chip = header?.light ? ' rounded-md bg-foreground px-2 py-1' : '';
 
-  let body: string;
   let constant = '';
+  let logo = '';
   if (url) {
     constant = `const LOGO_SRC = ${JSON.stringify(url)};\n\n`;
-    body = `<img src={LOGO_SRC} alt={BRAND_NAME} className={cn('h-9 w-auto', className)} />`;
+    logo =
+      kind === 'icon'
+        ? `<img src={LOGO_SRC} alt="" aria-hidden="true" className="h-full w-auto max-w-[3rem] shrink-0 object-contain" />`
+        : `<img src={LOGO_SRC} alt={BRAND_NAME} className="h-full w-auto max-w-[13.5rem] object-contain" />`;
   } else if (src.inlineSvg && src.inlineSvg.length <= 20000) {
     constant = `const LOGO_SVG = ${JSON.stringify(src.inlineSvg)};\n\n`;
-    body = `<span role="img" aria-label={BRAND_NAME} className={cn('inline-block h-9 [&>svg]:h-full [&>svg]:w-auto', className)} dangerouslySetInnerHTML={{ __html: LOGO_SVG }} />`;
-  } else {
-    body = `<span className={cn('font-heading text-h4 text-foreground', className)}>{BRAND_NAME}</span>`;
+    logo = `<span ${kind === 'icon' ? 'aria-hidden="true"' : 'role="img" aria-label={BRAND_NAME}'} className="inline-block h-full shrink-0 [&>svg]:h-full [&>svg]:w-auto" dangerouslySetInnerHTML={{ __html: LOGO_SVG }} />`;
   }
 
+  const nameText = `<span className="font-heading text-lg font-semibold leading-none tracking-tight">{BRAND_NAME}</span>`;
+  const body = !logo
+    ? `<span className={cn('font-heading text-h4 text-foreground', className)}>{BRAND_NAME}</span>`
+    : kind === 'icon'
+      ? `(
+    <span className={cn('inline-flex h-9 items-center gap-2.5', className)}>
+      ${chip ? `<span className="inline-flex h-full items-center${chip}">${logo}</span>` : logo}
+      ${nameText}
+    </span>
+  )`
+      : `(
+    <span className={cn('inline-flex h-9 items-center${chip}', className)}>
+      ${logo}
+    </span>
+  )`;
+
   return `/**
- * La marque du projet, posée par IDEM depuis la charte. <BrandMark /> affiche
- * le logo (ou le nom, sans logo). Hauteur réglable : <BrandMark className="h-12" />.
+ * La marque du projet, posée par IDEM. <BrandMark /> affiche ${
+   !logo ? 'le nom du projet (pas de logo)' : kind === 'icon' ? "l'icône du logo ET le nom (le logo ne porte pas le nom)" : 'le logo, qui porte déjà le nom'
+ }. Hauteur réglable : <BrandMark className="h-12" />.
  */
 import { cn } from '@/lib/utils';
 
 ${constant}export const BRAND_NAME = ${JSON.stringify(name)};
+
+/** \`wordmark\` : le logo porte le nom ; \`icon\` : le nom accompagne l'icône ; \`name\` : pas de logo. */
+export const BRAND_KIND = ${JSON.stringify(logo ? kind : 'name')};
 
 export default function BrandMark({ className }: { className?: string }) {
   return ${body};

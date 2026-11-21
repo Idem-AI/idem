@@ -6,6 +6,7 @@
 import { ProjectModel } from '../../types/project.js';
 import { traceHeaders } from '../../utils/trace.js';
 import type { SiteInventory } from './inventory.js';
+import type { HeaderBrandMark } from '../siteData.js';
 
 const base = () => (process.env.IDEM_API_URL || 'http://localhost:3001').replace(/\/+$/, '');
 
@@ -45,7 +46,8 @@ export interface SiteImportResult {
   name: string;
   siteUrl: string;
   logo: boolean;
-  fonts: { display: string; body: string; copied: string[] };
+  /** `upgradedFrom` : polices par défaut de l'ancien site, remplacées pour la refonte. */
+  fonts: { display: string; body: string; copied: string[]; upgradedFrom?: { display: string; body: string } };
   warnings: string[];
   content?: SiteContent;
 }
@@ -185,4 +187,24 @@ export async function generateCharter(options: {
     }
   }
   if (failed) throw new IdemApiError(failed, 502);
+}
+
+/**
+ * La marque d'en-tête du projet (logo rogné, logotype ou icône + nom), calculée par l'API IDEM et gardée dans le
+ * projet. `null` sans logo, ou si l'API ne répond pas à temps : l'en-tête garde alors le logo tel qu'enregistré.
+ */
+export async function fetchBrandMark(projectId: string, credentials: Record<string, string>, options: { signal?: AbortSignal; timeoutMs?: number } = {}): Promise<HeaderBrandMark | null> {
+  try {
+    return await request<HeaderBrandMark>(`/appgen/brand-mark/${encodeURIComponent(projectId)}`, credentials, { signal: options.signal, timeoutMs: options.timeoutMs ?? 12_000 });
+  } catch {
+    return null;
+  }
+}
+
+/** Le projet avec sa marque d'en-tête (copie : l'objet reçu n'est pas modifié). */
+export function withBrandMark<T extends ProjectModel | undefined>(projectData: T, mark: HeaderBrandMark | null): T {
+  if (!projectData || !mark) return projectData;
+  const branding = projectData.analysisResultModel?.branding;
+  if (!branding?.logo) return projectData;
+  return { ...projectData, analysisResultModel: { ...projectData.analysisResultModel, branding: { ...branding, logo: { ...branding.logo, header: mark } } } } as T;
 }

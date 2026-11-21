@@ -47,33 +47,38 @@ function focusLine(focus: RedesignFocus, fr: boolean): string {
 }
 
 export function redesignArchitect(content: SiteContent, fr: boolean, focus: RedesignFocus = 'all'): string {
+  const n = content.pages.length;
   return (fr
-    ? `# C'est une REFONTE
-Ce projet a déjà un site (${content.url}, ${content.pages.length} page${content.pages.length > 1 ? 's' : ''} lue${content.pages.length > 1 ? 's' : ''}). Ses textes sont dans les faits ci-dessus. Tu ne le recopies pas : tu le refais mieux.
-1. Comprends-le d'abord : ce que l'entreprise vend, à qui, où, et ce qui la distingue — d'après ce que le site dit.
-2. Juge-le pour SA cible : la promesse est-elle claire dès le premier écran ? L'action principale (appeler, réserver, commander, écrire) est-elle évidente et répétée ? Les offres sont-elles faciles à comparer ? Y a-t-il des preuves (réalisations, chiffres réels, avis réels) mises en valeur ? Des textes trop longs, flous ou centrés sur l'entreprise plutôt que sur le client ?
-3. Conçois l'architecture qui corrige ces manques : un ordre plus clair, des pages qui ont chacune un but, une promesse réécrite pour la cible, un appel à l'action à chaque étape.
-4. Garde TOUS les faits du site (offres, coordonnées, lieux, noms, chiffres) : rien ne disparaît, rien ne s'invente. Ce qui change, c'est la façon de le dire et de le montrer.
-Dans chaque brief, dis ce que la section améliore par rapport à l'ancien site.`
-    : `# This is a REDESIGN
-This project already has a website (${content.url}, ${content.pages.length} page${content.pages.length > 1 ? 's' : ''} read). Its copy is in the facts above. Do not copy it: rebuild it better.
-1. Understand it first: what the business sells, to whom, where, and what sets it apart — from what the site says.
-2. Judge it for ITS audience: is the promise clear on the first screen? Is the main action (call, book, order, write) obvious and repeated? Are the offers easy to compare? Is there proof (work, real figures, real reviews) put forward? Is the copy too long, vague, or about the company rather than the customer?
-3. Design the structure that fixes these gaps: a clearer order, pages that each have one goal, a promise rewritten for the audience, a call to action at every step.
-4. Keep ALL the site's facts (offers, contact details, places, names, figures): nothing disappears, nothing is invented. What changes is how it is said and shown.
-In each brief, say what the section improves over the old site.`) + focusLine(focus, fr);
+    ? `# C'est une REFONTE — le nouveau site doit être nettement meilleur que l'ancien, pas une copie rafraîchie
+Ce projet a déjà un site (${content.url}, ${n} page${n > 1 ? 's' : ''} lue${n > 1 ? 's' : ''}). Ses textes sont dans les faits ci-dessus. Ce que tu GARDES : le contenu (offres, faits, coordonnées, noms, chiffres, photos) et la marque. Ce que tu REFAIS : tout le reste — le découpage, l'ordre, les mises en page, la promesse, les titres.
+1. Comprends-le : ce que l'entreprise vend, à qui, où, ce qui la distingue — d'après ce que le site dit.
+2. Juge-le pour SA cible : la promesse est-elle claire dès le premier écran ? L'action principale (appeler, réserver, commander, écrire) est-elle évidente et répétée ? Les offres se comparent-elles facilement ? Les preuves (réalisations, chiffres réels, avis réels, partenaires) sont-elles mises en avant ? Les textes sont-ils trop longs, flous, centrés sur l'entreprise plutôt que sur le client ?
+3. Conçois l'architecture d'un site professionnel d'aujourd'hui : un parcours (promesse → preuve → offre → action), des pages qui ont chacune un but, une ouverture forte, des preuves tôt, un appel à l'action à chaque étape. Les compositions sont choisies pour le contenu, jamais d'après la forme qu'il avait.
+4. Rien ne disparaît, rien ne s'invente : chaque fait du site est repris ; aucun fait absent n'est ajouté.
+Dans chaque brief, dis ce que la section fait mieux que l'ancien site.`
+    : `# This is a REDESIGN — the new site must be clearly better than the old one, not a refreshed copy
+This project already has a website (${content.url}, ${n} page${n > 1 ? 's' : ''} read). Its copy is in the facts above. What you KEEP: the content (offers, facts, contact details, names, figures, photos) and the brand. What you REDO: everything else — the breakdown, the order, the layouts, the promise, the headings.
+1. Understand it: what the business sells, to whom, where, what sets it apart — from what the site says.
+2. Judge it for ITS audience: is the promise clear on the first screen? Is the main action (call, book, order, write) obvious and repeated? Are the offers easy to compare? Is proof (work, real figures, real reviews, partners) put forward? Is the copy too long, vague, or about the company rather than the customer?
+3. Design the structure of a professional website of today: a journey (promise → proof → offer → action), pages that each have one goal, a strong opener, proof early, a call to action at every step. Compositions are chosen for the content, never after the shape it had.
+4. Nothing disappears, nothing is invented: every fact of the site is carried; no absent fact is added.
+In each brief, say what the section does better than the old site.`) + focusLine(focus, fr);
 }
 
-/** Le style relevé sur le site : l'ADN à garder, l'exécution à refaire. */
+/**
+ * Le style relevé sur le site, pour le directeur artistique. Ce qui reste : le logo, les couleurs, le caractère de la
+ * marque. Ce qui ne revient PAS : l'exécution de l'ancien site (formes, ombres, boutons, cartes, effets), qui est
+ * justement ce que la refonte remplace — le relevé ne sert qu'à savoir de quoi s'éloigner.
+ */
 export function redesignDesign(content: SiteContent, fr: boolean): string {
   const evidence = clip(content.styleEvidence || '', 1600);
   return fr
     ? `# Refonte d'un site existant
 Ce que le site actuel montre de son style (relevé sur ses pages) :
 ${evidence || '(rien de lisible)'}
-Garde l'ADN reconnaissable de la marque (couleurs et polices imposées par la charte, caractère général) et refais l'exécution avec un niveau actuel : hiérarchie typographique nette, espace généreux, composants cohérents, contraste lisible, mouvement discret. Le visiteur doit reconnaître la marque et voir que tout a été repensé.`
+Le nouveau site doit être reconnu comme la même marque ET vu comme nettement plus professionnel. Garde : le logo, les couleurs de la marque, son caractère général (sérieux, chaleureux, technique…). Ne reproduis PAS l'exécution relevée ci-dessus : ses rayons, ses ombres, ses boutons, ses cartes, ses bordures et ses effets sont ceux d'avant — choisis-en d'autres, plus actuels, qui suivent la personnalité donnée plus bas. Vise un niveau de studio : hiérarchie typographique nette et contrastée (titres plus grands, plus serrés), rythme vertical généreux, composants cohérents, contraste lisible, mouvement discret.`
     : `# Redesign of an existing website
 What the current site shows of its style (read on its pages):
 ${evidence || '(nothing readable)'}
-Keep the brand's recognisable DNA (colours and fonts imposed by the brand, general character) and redo the execution to a current standard: crisp type hierarchy, generous space, consistent components, readable contrast, discreet motion. Visitors must recognise the brand and see that everything was rethought.`;
+The new site must be recognised as the same brand AND seen as clearly more professional. Keep: the logo, the brand colours, its general character (serious, warm, technical…). Do NOT reproduce the execution read above: its radii, shadows, buttons, cards, borders and effects are the old ones — choose others, more current, following the personality given below. Aim for studio quality: a crisp, contrasted type hierarchy (larger, tighter headings), generous vertical rhythm, consistent components, readable contrast, discreet motion.`;
 }

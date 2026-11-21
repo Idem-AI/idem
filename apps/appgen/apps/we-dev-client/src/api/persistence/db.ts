@@ -371,6 +371,17 @@ export async function getAppDeployment(projectId: string): Promise<AppDeployment
   }
 }
 
+/** Oublie la mise en ligne enregistrée (« Supprimer le site », après la suppression dans iDeploy). */
+export async function deleteAppDeployment(projectId: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/projects/${projectId}/app-deployment${productQuery()}`, {
+    method: 'DELETE',
+    credentials: 'include',
+  });
+  if (!response.ok && response.status !== 404) {
+    throw new Error(`API Error: ${response.status} ${response.statusText}`);
+  }
+}
+
 export async function saveAppDeployment(
   projectId: string,
   deployment: AppDeployment

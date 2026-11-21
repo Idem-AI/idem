@@ -12,6 +12,26 @@ import type { RedesignFocus } from '../../siteEngine/redesign/brief.js';
 import { findSiteUrl } from '../../siteEngine/redesign/intent.js';
 import { ChatChoices, ChoicesAnswer, ChoiceQuestion, createTextStream } from '../choices.js';
 import { CommandContext, hasCharter, Responder } from '../types.js';
+import type { ProjectModel } from '../../types/project.js';
+
+/** Le projet ouvert porte-t-il déjà une refonte (projet né d'un site) ? */
+function bornFromSite(projectData?: ProjectModel): boolean {
+  return !!(projectData?.analysisResultModel?.branding as { siteSource?: { url?: string } } | undefined)?.siteSource?.url;
+}
+
+/**
+ * Le projet qui reçoit la refonte. Chaque refonte est une NOUVELLE SESSION : un projet qui porte déjà une refonte
+ * (né d'un site, avec son code) n'est jamais réécrit — refaire le même site un autre jour crée un nouveau projet, avec
+ * sa conversation, son code et son style à lui. Le projet ouvert la reçoit quand il n'en porte pas encore (un projet
+ * IDEM avec sa charte, ou un projet né d'un site dans iVision et jamais ouvert dans iCode : atelier vierge).
+ *
+ * `workspace` : ce que l'atelier contenait au clic (`blank` : seulement le socle du site), dit par le client.
+ */
+export function redesignTarget(projectData: ProjectModel | undefined, workspace?: unknown): ProjectModel | undefined {
+  if (!projectData?.id) return undefined;
+  if (bornFromSite(projectData) && workspace !== 'blank') return undefined;
+  return projectData;
+}
 
 function questions(ctx: CommandContext, url: string | null): ChoiceQuestion[] {
   const { fr } = ctx;
@@ -86,7 +106,8 @@ export function startRedesign(ctx: CommandContext, options: { url?: string | nul
   const choices: ChatChoices = {
     purpose: 'redesign',
     questions: questions(ctx, site?.url ?? null),
-    consent: !ctx.projectData?.id,
+    // Un nouveau projet peut naître (aucun projet ouvert, ou un projet qui porte déjà une refonte) : son accord.
+    consent: !ctx.projectData?.id || bornFromSite(ctx.projectData),
     prepare: 'site-reset',
     context: { url: site?.url, original: options.original },
     submitLabel: fr ? 'Refaire mon site' : 'Redesign my site',
@@ -139,13 +160,14 @@ export function runRedesign(ctx: CommandContext, answer: ChoicesAnswer): Respond
     // Une adresse illisible : la question revient, rien n'est lancé ni facturé.
     return startRedesign(ctx, { original: typeof answer.context?.original === 'string' ? answer.context.original : undefined });
   }
-  // Sans projet ni accord, aucun projet ne peut naître : la question revient (l'atelier l'exige déjà).
-  if (!ctx.projectData?.id && answer.consent !== true) {
+  const target = redesignTarget(ctx.projectData, answer.context?.workspace);
+  // Sans projet à compléter ni accord, aucun projet ne peut naître : la question revient (l'atelier l'exige déjà).
+  if (!target && answer.consent !== true) {
     return startRedesign(ctx, { url: site.url, original: typeof answer.context?.original === 'string' ? answer.context.original : undefined });
   }
   const focus: RedesignFocus = answer.values.focus === 'design' || answer.values.focus === 'copy' ? answer.values.focus : 'all';
   return createSiteEngineStream({
-    projectData: ctx.projectData,
+    projectData: target,
     language: ctx.fr ? 'fr' : 'en',
     // La demande d'origine (« … en plus moderne, en vert ») porte des précisions que les questions n'ont pas.
     request: typeof answer.context?.original === 'string' ? answer.context.original : '',

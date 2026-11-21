@@ -231,7 +231,7 @@ export async function prepareRedesign(options: {
 /** La suite commune (import neuf ou reprise) : facturation, projet, charte, contenu prêt pour le moteur. */
 async function finish(
   options: Parameters<typeof prepareRedesign>[0],
-  imported: { projectId: string; content: SiteContent; logo: boolean; fonts: { display: string; body: string } | null }
+  imported: { projectId: string; content: SiteContent; logo: boolean; fonts: { display: string; body: string; upgradedFrom?: { display: string; body: string } } | null }
 ): Promise<Prepared | { stop: string }> {
   const { stream, fr, signal } = options;
   const host = (() => {
@@ -272,6 +272,13 @@ async function finish(
       : '',
   ].filter(Boolean);
   if (found.length) stream.note(fr ? `Trouvé sur votre site : ${found.join(', ')}` : `Found on your site: ${found.join(', ')}`);
+  const upgraded = imported.fonts?.upgradedFrom;
+  if (upgraded && imported.fonts)
+    stream.note(
+      fr
+        ? `Typographie améliorée : ${[upgraded.display, upgraded.body].filter((f, i, all) => f && all.indexOf(f) === i).join(' / ')} → ${[imported.fonts.display, imported.fonts.body].filter((f, i, all) => f && all.indexOf(f) === i).join(' / ')}`
+        : `Typography upgraded: ${[upgraded.display, upgraded.body].filter((f, i, all) => f && all.indexOf(f) === i).join(' / ')} → ${[imported.fonts.display, imported.fonts.body].filter((f, i, all) => f && all.indexOf(f) === i).join(' / ')}`
+    );
 
   // L'identité visuelle pro : la charte se génère dans IDEM pendant que le site s'écrit (elle ne change ni
   // le logo, ni les couleurs, ni les polices que le site emploie : elle les met en règles).
@@ -313,6 +320,8 @@ async function finish(
 
   return {
     projectData,
-    redesign: { content: imported.content, choice: options.choice, focus: options.focus, charter, created: !options.projectId },
+    // Un projet autre que celui ouvert dans l'atelier (nouvelle refonte d'un site déjà refait, reprise après une
+    // question) : l'atelier doit s'y rattacher, comme à un projet créé.
+    redesign: { content: imported.content, choice: options.choice, focus: options.focus, charter, created: imported.projectId !== options.projectId },
   };
 }

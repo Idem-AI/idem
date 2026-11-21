@@ -25,7 +25,8 @@ import { renderBrandModule, renderDataModule, renderMediaModule } from '../src/s
 import type { SiteFacts } from '../src/siteEngine/siteFacts.js';
 import { templateFiles } from '../src/siteEngine/template.js';
 import { assembleSection, assembleShell, jsxText } from '../src/siteEngine/sectionCatalog/assemble.js';
-import { fitContent } from '../src/siteEngine/sectionCatalog/compose.js';
+import { fitContent, pickShellStyles } from '../src/siteEngine/sectionCatalog/compose.js';
+import { slotsOf } from '../src/siteEngine/sectionCatalog/shellStyles.js';
 import { fitProse, readCopy, startPageCopy, type CopyTask } from '../src/siteEngine/sectionCatalog/copy.js';
 import { buildSectionCatalog, readIcodeTemplatesDir, sectionCatalog } from '../src/siteEngine/sectionCatalog/registry.js';
 import type { FieldDef, KindNode, SectionNode } from '../src/siteEngine/sectionCatalog/types.js';
@@ -161,9 +162,32 @@ async function main() {
     jobs.push(async () => {
       const filePath = shell.kind === 'header' ? 'src/components/site/SiteHeader.tsx' : 'src/components/site/SiteFooter.tsx';
       const review: ReviewContext = { policy: importPolicy([]), check: createFactGuard(facts.description, 'fr'), reference: facts.description, theme: themeColorsFromCss(css), siteFiles: () => filesWith(0) };
-      const r = await reviewComponent(assembleShell(shell.template), review, { path: filePath, props: shell.kind === 'header' ? { current: '/' } : undefined });
-      ok(`${shell.id} : passe la vérification`, !r.problems.length && !r.empty, r.problems.slice(0, 2).join(' · '));
+      const props = shell.kind === 'header' ? { current: '/' } : undefined;
+      // Le style par défaut du gabarit, puis une composition tirée comme pour un vrai projet (21/11/2026).
+      const combos = [{ name: 'défaut', picks: {} }, (({ picks, ids }) => ({ name: ids.join('+'), picks }))(pickShellStyles(shell, catalog.styles, 7))];
+      for (const combo of combos) {
+        const code = assembleShell(shell.template, combo.picks);
+        ok(`${shell.id} (${combo.name}) : aucun point de bascule laissé`, !/\bBP:/.test(code));
+        const r = await reviewComponent(code, review, { path: filePath, props });
+        ok(`${shell.id} (${combo.name}) : passe la vérification`, !r.problems.length && !r.empty, r.problems.slice(0, 2).join(' · '));
+      }
     });
+  }
+  // Chaque style monté au moins une fois, dans un gabarit qui l'accepte (et au point de bascule `all` pour un menu).
+  for (const style of catalog.styles.filter((n) => picked(n.id) || picked('ihead') || picked('ifoot'))) {
+    const hosts = [...catalog.headers, ...catalog.footers].filter((n) => slotsOf(n.template).some((x) => x.slot === style.slot) && (!n.styles?.[style.slot]?.length || n.styles[style.slot]!.includes(style.id)));
+    const always = (n: (typeof hosts)[number]) => slotsOf(n.template).some((x) => x.bp === 'all');
+    const host = style.slot === 'menu' ? [hosts.find((n) => !always(n)), hosts.find(always)] : [hosts[0]];
+    ok(`${style.id} : au moins un gabarit l'accepte`, hosts.length > 0);
+    for (const h of host.filter((n): n is (typeof hosts)[number] => Boolean(n))) {
+      jobs.push(async () => {
+        const filePath = h.kind === 'header' ? 'src/components/site/SiteHeader.tsx' : 'src/components/site/SiteFooter.tsx';
+        const review: ReviewContext = { policy: importPolicy([]), check: createFactGuard(facts.description, 'fr'), reference: facts.description, theme: themeColorsFromCss(css), siteFiles: () => filesWith(0) };
+        const code = assembleShell(h.template, { [style.slot]: style.template });
+        const r = await reviewComponent(code, review, { path: filePath, props: h.kind === 'header' ? { current: '/' } : undefined });
+        ok(`${style.id} dans ${h.id} : passe la vérification`, !/\bBP:/.test(code) && !r.problems.length && !r.empty, r.problems.slice(0, 2).join(' · '));
+      });
+    }
   }
   const started = Date.now();
   let next = 0;

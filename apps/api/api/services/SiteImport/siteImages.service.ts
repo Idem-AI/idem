@@ -16,6 +16,7 @@
  */
 import logger from '../../config/logger';
 import { storageService } from '../storage.service';
+import { safeFetch } from '../../../../ivision/core/src/render/safe-fetch';
 import { measureImageQuality, needsEnhancement, targetWidthFor, type ImageIssue, type ImageQuality } from '../../../../../packages/design-tools/src/image-quality';
 import { enhanceImage, type EnhanceMethod } from '../../../../../packages/design-tools/src/upscale';
 
@@ -102,6 +103,47 @@ export async function assessSiteImages(userId: string, projectId: string, slots:
 
 /** Une amélioration à la fois par utilisateur : un second clic ne double pas le travail. */
 const running = new Set<string>();
+
+export type EnhanceOneResult =
+  | { status: 'done'; enhancedUrl: string; method: EnhanceMethod; width: number; height: number; ms: number }
+  | { status: 'skipped'; reason: 'already_sharp' | 'no_gain' | 'unreadable' | 'forbidden' };
+
+/**
+ * UNE image choisie dans l'éditeur (bouton « Améliorer la qualité » du panneau de droite). Elle peut venir :
+ * - du dossier de l'utilisateur (refonte, envoi depuis l'éditeur, visuel généré) : lue dans le stockage ;
+ * - d'ailleurs (banque d'images, site externe) : téléchargée par `safeFetch`, qui refuse les adresses internes.
+ * Le dossier d'un autre utilisateur est refusé. Même règle que pour le bandeau : une image déjà nette à sa place
+ * n'est pas retouchée (`already_sharp`). La nouvelle image va dans `site-assets/` du projet ; l'ancienne reste.
+ */
+export async function enhanceOneImage(userId: string, projectId: string, url: string, place: { displayWidth: number; displayHeight: number }): Promise<EnhanceOneResult> {
+  const objectPath = storageService.objectPathOf(url);
+  let buffer: Buffer | null = null;
+  let name = 'image';
+  if (objectPath) {
+    if (!objectPath.startsWith(`users/${userId}/`)) return { status: 'skipped', reason: 'forbidden' };
+    buffer = await storageService.readObjectBuffer(objectPath).catch(() => null);
+    name = objectPath.slice(objectPath.lastIndexOf('/') + 1).replace(/\.[a-z0-9]+$/i, '');
+  } else {
+    const file = await safeFetch(url, { accept: ['image/'], maxBytes: 16 * 1024 * 1024, timeoutMs: 20_000 }).catch(() => null);
+    buffer = file?.buffer ?? null;
+    name = 'externe';
+  }
+  const quality = buffer ? await measureImageQuality(buffer) : null;
+  if (!buffer || !quality) return { status: 'skipped', reason: 'unreadable' };
+  if (!needsEnhancement(quality, place.displayWidth > 0 ? place : undefined).length) return { status: 'skipped', reason: 'already_sharp' };
+  running.add(userId);
+  try {
+    const result = await enhanceImage(buffer, { targetWidth: Math.max(quality.width, targetWidthFor(quality, place)) });
+    if (!result) return { status: 'skipped', reason: 'no_gain' };
+    const safeName = name.replace(/[^\w.-]+/g, '-').slice(0, 60) || 'image';
+    const upload = await storageService.uploadFile(result.buffer, `${safeName}-hd-${Date.now().toString(36)}.webp`, assetFolder(userId, projectId).replace(/\/$/, ''), result.mimeType);
+    logger.info('site_images.enhanced', { event: 'site_images.enhanced', userId, projectId, source: objectPath ? 'storage' : 'external', method: result.method, from: `${quality.width}x${quality.height}`, to: `${result.width}x${result.height}`, ms: result.ms });
+    return { status: 'done', enhancedUrl: upload.downloadURL, method: result.method, width: result.width, height: result.height, ms: result.ms };
+  } finally {
+    running.delete(userId);
+  }
+}
+
 
 export function isEnhancing(userId: string): boolean {
   return running.has(userId);

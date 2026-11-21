@@ -83,6 +83,55 @@ export function isPrivateAddress(address: string): boolean {
   return true;
 }
 
+/**
+ * LA RÉSOLUTION TOLÉRANTE D'UN NOM (21/11/2026). Le résolveur du système (`dns.lookup`, celui de Chrome et de curl)
+ * n'est pas toujours fiable : la box d'un poste local, le DNS d'un hébergeur ou un cache négatif répond « inconnu »
+ * pour un site bien en ligne (eknumerik.org : `ENOTFOUND` par la box, `159.69.185.176` par une requête DNS directe).
+ * Ce refus devenait « adresse privée ou inconnue », et la refonte s'arrêtait. On demande donc, dans l'ordre :
+ *
+ *   system   `dns.lookup` (fichier hosts, résolveur du système) ;
+ *   dns      requête DNS directe aux serveurs configurés (A puis AAAA) ;
+ *   public   Cloudflare, Google, Quad9.
+ *
+ * La garde reste entière : une adresse privée est refusée quelle que soit la voie qui l'a donnée.
+ */
+export interface ResolvedHost {
+  addresses: string[];
+  via: 'system' | 'dns' | 'public' | 'none';
+}
+
+const PUBLIC_RESOLVERS = ['1.1.1.1', '8.8.8.8', '9.9.9.9', '1.0.0.1', '8.8.4.4'];
+const resolvedCache = new Map<string, { value: ResolvedHost; at: number }>();
+const RESOLVED_TTL_MS = 60_000;
+
+async function directQuery(host: string, servers?: string[]): Promise<string[]> {
+  const resolver = new dns.Resolver({ timeout: 4000, tries: 2 });
+  if (servers) resolver.setServers(servers);
+  const [v4, v6] = await Promise.all([resolver.resolve4(host).catch(() => [] as string[]), resolver.resolve6(host).catch(() => [] as string[])]);
+  return [...v4, ...v6];
+}
+
+export async function resolveHost(rawHost: string): Promise<ResolvedHost> {
+  const host = rawHost.toLowerCase().replace(/^\[|\]$/g, '');
+  if (net.isIP(host)) return { addresses: [host], via: 'system' };
+  const cached = resolvedCache.get(host);
+  if (cached && Date.now() - cached.at < RESOLVED_TTL_MS) return cached.value;
+  let value: ResolvedHost = { addresses: [], via: 'none' };
+  const system = await dns.lookup(host, { all: true }).catch(() => []);
+  if (system.length) value = { addresses: system.map((a) => a.address), via: 'system' };
+  else {
+    const direct = await directQuery(host).catch(() => []);
+    if (direct.length) value = { addresses: direct, via: 'dns' };
+    else {
+      const pub = await directQuery(host, PUBLIC_RESOLVERS).catch(() => []);
+      if (pub.length) value = { addresses: pub, via: 'public' };
+    }
+  }
+  if (value.via !== 'system' && value.addresses.length) logger.info('render.dns_fallback', { host, via: value.via });
+  resolvedCache.set(host, { value, at: Date.now() });
+  return value;
+}
+
 const verdictCache = new Map<string, { allowed: boolean; at: number }>();
 const VERDICT_TTL_MS = 60_000;
 
@@ -108,12 +157,8 @@ export async function isRenderUrlAllowed(rawUrl: string): Promise<boolean> {
   if (net.isIP(host)) {
     allowed = !isPrivateAddress(host);
   } else {
-    try {
-      const addresses = await dns.lookup(host, { all: true });
-      allowed = addresses.length > 0 && addresses.every((a) => !isPrivateAddress(a.address));
-    } catch {
-      allowed = false;
-    }
+    const { addresses } = await resolveHost(host);
+    allowed = addresses.length > 0 && addresses.every((a) => !isPrivateAddress(a));
   }
 
   verdictCache.set(host, { allowed, at: Date.now() });

@@ -22,10 +22,12 @@ import {
   History,
   ChevronRight,
   ChevronLeft,
+  Trash2,
 } from 'lucide-react';
 import Popover from '@/components/ui/Popover';
 import Button from '@/components/ui/Button';
 import { VersionList } from './VersionHistory';
+import { DeleteSiteDialog } from './DeleteSiteDialog';
 import { eventEmitter } from '../AiChat/utils/EventEmitter';
 import { currentProduct } from '@/utils/product';
 import {
@@ -42,6 +44,7 @@ export function HeaderActions() {
   const [showDeployChoiceModal, setShowDeployChoiceModal] = useState(false);
   const [isSendingToGitHub, setIsSendingToGitHub] = useState(false);
   const [deployment, setDeployment] = useState<AppDeployment | null>(null);
+  const [showDeleteSite, setShowDeleteSite] = useState(false);
 
   const handleDownload = async () => {
     // Télécharger le code est un acte de possession : il suppose un Project
@@ -236,7 +239,15 @@ export function HeaderActions() {
               />
             )}
           >
-            {(close) => <ActionsMenu close={close} onDownload={handleDownload} onGitHub={handleSendToGitHub} sendingToGitHub={isSendingToGitHub} />}
+            {(close) => (
+              <ActionsMenu
+                close={close}
+                onDownload={handleDownload}
+                onGitHub={handleSendToGitHub}
+                sendingToGitHub={isSendingToGitHub}
+                onDeleteSite={projectId ? () => setShowDeleteSite(true) : undefined}
+              />
+            )}
           </Popover>
         </>
       )}
@@ -256,6 +267,21 @@ export function HeaderActions() {
         onPublished={handlePublished}
       />
 
+      {projectId && (
+        <DeleteSiteDialog
+          open={showDeleteSite}
+          onClose={() => setShowDeleteSite(false)}
+          onDeleted={() => {
+            setDeployment(null);
+            updateDraftMetadata({ deployUrl: undefined });
+          }}
+          projectId={projectId}
+          projectName={projectName}
+          deployment={deployment}
+          draftId={draftId}
+        />
+      )}
+
     </div>
   );
 }
@@ -266,19 +292,22 @@ function MenuItem({
   onClick,
   disabled,
   trailing,
+  tone,
 }: {
   icon: React.ReactNode;
   label: string;
   onClick: () => void;
   disabled?: boolean;
   trailing?: React.ReactNode;
+  /** `danger` : une action qui détruit (« Supprimer le site »). */
+  tone?: 'danger';
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="w-full h-9 px-3 flex items-center gap-2.5 text-[13px] text-text-secondary hover:text-text-primary hover:bg-surface-2 disabled:opacity-40 disabled:hover:bg-transparent transition-colors text-left"
+      className={`w-full h-9 px-3 flex items-center gap-2.5 text-[13px] ${tone === 'danger' ? 'text-danger hover:bg-danger/12' : 'text-text-secondary hover:text-text-primary hover:bg-surface-2'} disabled:opacity-40 disabled:hover:bg-transparent transition-colors text-left`}
     >
       {icon}
       <span className="flex-1">{label}</span>
@@ -292,11 +321,14 @@ function ActionsMenu({
   onDownload,
   onGitHub,
   sendingToGitHub,
+  onDeleteSite,
 }: {
   close: () => void;
   onDownload: () => void;
   onGitHub: () => void;
   sendingToGitHub: boolean;
+  /** Absent sans projet rattaché : rien à supprimer côté serveur. */
+  onDeleteSite?: () => void;
 }) {
   const { t } = useTranslation();
   const [page, setPage] = useState<'menu' | 'versions'>('menu');
@@ -349,6 +381,20 @@ function ActionsMenu({
           close();
         }}
       />
+      {onDeleteSite && (
+        <>
+          <div className="my-1 h-px bg-[var(--glass-border)]" />
+          <MenuItem
+            icon={<Trash2 className="w-4 h-4" />}
+            label={t(`header.deleteSite.menu.${currentProduct() === 'app' ? 'app' : 'site'}`)}
+            tone="danger"
+            onClick={() => {
+              onDeleteSite();
+              close();
+            }}
+          />
+        </>
+      )}
     </div>
   );
 }

@@ -6,6 +6,9 @@ import { embeddableLogoUrls } from '../design/charter.js';
 import { fetchBrandAsset } from '../utils/brandAsset.js';
 import { ProjectModel } from '../types/project.js';
 import { ChatLogger } from '../utils/logger.js';
+import { forwardedCredentials } from '../middleware/auth.js';
+import { fetchBrandMark, withBrandMark } from '../siteEngine/redesign/idemClient.js';
+import { headerBrandMarkOf } from '../siteEngine/siteData.js';
 
 const router = Router();
 
@@ -32,7 +35,10 @@ async function resolveBrandLogo(
   const logo = projectData?.analysisResultModel?.branding?.logo;
   if (!logo) return undefined;
 
-  for (const url of embeddableLogoUrls(logo)) {
+  // La marque d'en-tête (logo rogné au plus juste) d'abord : le logo enregistré garde souvent la toile vide de
+  // l'image d'origine, et tient alors en quelques pixels dans un en-tête de 36 px.
+  const header = headerBrandMarkOf(projectData)?.src;
+  for (const url of [...(header ? [header] : []), ...embeddableLogoUrls(logo).filter((u) => u !== header)]) {
     const asset = await fetchBrandAsset(url);
     if (!asset) continue;
 
@@ -61,8 +67,12 @@ router.post('/', async (req: Request, res: Response) => {
 
   try {
     const target = resolveBuildTarget(product, platform, projectData);
-    const brand = target === 'site' ? await resolveBrandLogo(projectData) : undefined;
-    const scaffold = buildScaffold({ target, projectData, language, brand });
+    // Site vitrine : la marque d'en-tête du projet (logotype seul, ou icône + nom), calculée une fois par l'API puis
+    // gardée. Bornée : le socle doit arriver avant que l'atelier ne lance la génération sans lui.
+    const mark = target === 'site' && projectData?.id && !headerBrandMarkOf(projectData) ? await fetchBrandMark(projectData.id, forwardedCredentials(req), { timeoutMs: 4000 }) : null;
+    const project = withBrandMark(projectData, mark);
+    const brand = target === 'site' ? await resolveBrandLogo(project) : undefined;
+    const scaffold = buildScaffold({ target, projectData: project, language, brand });
 
     ChatLogger.setContext('ScaffoldRoute');
     ChatLogger.info('SCAFFOLD', 'Starter served', {

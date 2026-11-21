@@ -41,6 +41,24 @@ une image **que si la mesure le demande et que l'utilisateur l'accepte**.
 Les images concernées sont seulement celles recopiées d'un ancien site (`users/<uid>/projects/<id>/site-assets/`).
 L'API refuse toute autre adresse. Un site généré avant le 21/11/2026 n'a pas de pont, donc pas de bandeau.
 
+## Depuis l'éditeur : « Améliorer la qualité »
+
+En mode Édition, une image sélectionnée affiche le bouton **Améliorer la qualité** dans le panneau de droite
+(section Image, `EditablePreview.tsx`). Ce bouton marche pour **n'importe quelle image** du site, refonte ou non :
+
+- **source** : une image du dossier de l'utilisateur est lue dans le stockage ; une image extérieure (banque
+  d'images, autre site) est téléchargée par `safeFetch`, qui refuse les adresses internes ; le dossier d'un autre
+  utilisateur est refusé ;
+- **appel** : `POST /appgen/site-images/enhance-one` avec `{ projectId, url, displayWidth, displayHeight }` ; la
+  taille vient du cadre de l'image dans l'aperçu, et la réponse est en JSON en fin de calcul ;
+- **même règle que le bandeau** : une image déjà nette à sa taille n'est pas retouchée (« déjà nette »), et un
+  résultat qui n'apporte rien est refusé (« impossible de faire mieux ») ;
+- **remplacement** : la nouvelle adresse remplace l'ancienne partout où le code la cite (`src/site/media.ts`, ce qui
+  garde la structure), sinon dans la balise elle-même ;
+- **historique** : le remplacement passe par l'historique de l'éditeur, donc « Annuler » rétablit l'originale ;
+- **cas non pris en charge** : une image intégrée au code (`data:`) n'est pas traitée ; il faut d'abord la
+  téléverser.
+
 ## La mesure (`packages/design-tools/src/image-quality.ts`)
 
 | Mesure | Calcul | Seuil |

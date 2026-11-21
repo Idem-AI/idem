@@ -72,3 +72,13 @@ export async function persistDeployment(
 }
 
 export type { AppDeployment };
+
+/** La mise en ligne oubliée aussi dans le cache du navigateur (« Supprimer le site »). */
+export function forgetLocalDeployment(projectId: string | null, draftId?: string | null): void {
+  try {
+    if (projectId) localStorage.removeItem(storageKey(productScope(projectId)));
+    if (draftId) localStorage.removeItem(storageKey(draftId));
+  } catch {
+    /* cache indisponible : rien à oublier */
+  }
+}

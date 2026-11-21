@@ -19,6 +19,7 @@
 import puppeteer, { Browser, Page } from 'puppeteer';
 import logger from '../runtime/logger';
 import { installRenderNetworkGuard, isRenderUrlAllowed, RENDER_BROWSER_ARGS } from '../render/network-guard';
+import { reachSite, unreachableMessage } from './site-reach';
 import { safeFetch } from '../render/safe-fetch';
 import { evaluateSettled } from './settled';
 import type { ImageQuality } from '../../../../../packages/design-tools/src/image-quality';
@@ -831,9 +832,12 @@ const SOCIAL = /(facebook|instagram|linkedin|tiktok|twitter|x\.com|youtube|pinte
 
 /** Le relevé complet. */
 export async function crawlWebsite(options: CrawlOptions): Promise<SiteInventory> {
-  const start = new URL(options.url);
+  // Le site est joint même quand le résolveur du système ne le connaît pas (`site-reach.ts`) : nom épinglé dans Chrome,
+  // variante avec ou sans « www » si l'autre manque.
+  const reach = await reachSite(options.url);
+  if (!reach.ok) throw new Error(reach.reason === 'private' ? 'blocked_url' : `unreachable: ${unreachableMessage(reach)}`);
+  const start = new URL(reach.url);
   start.hash = '';
-  if (!(await isRenderUrlAllowed(start.toString()))) throw new Error('blocked_url');
   const maxPages = Math.max(1, Math.min(40, options.maxPages ?? Number(process.env.SITE_CRAWL_MAX_PAGES ?? 20)));
   // Les durées par phase, écrites à la fin du relevé : où part le temps, site par site.
   const phases: Record<string, number> = {};
@@ -843,7 +847,7 @@ export async function crawlWebsite(options: CrawlOptions): Promise<SiteInventory
     phaseAt = Date.now();
   };
   const timeout = options.timeoutMs ?? 25_000;
-  const browser = await puppeteer.launch({ headless: true, args: [...RENDER_BROWSER_ARGS, '--disable-features=HttpsUpgrades,HttpsFirstBalancedModeAutoEnable'] });
+  const browser = await puppeteer.launch({ headless: true, args: [...RENDER_BROWSER_ARGS, '--disable-features=HttpsUpgrades,HttpsFirstBalancedModeAutoEnable', ...reach.chromeArgs] });
 
   const inventory: SiteInventory = {
     origin: start.origin,

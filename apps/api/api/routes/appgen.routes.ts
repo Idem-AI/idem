@@ -10,9 +10,10 @@ import { CommunicationService } from '../services/Communication/communication.se
 import { idemAnalyzeImage } from '../services/ivision/host';
 import { PromptService } from '../services/prompt.service';
 import { chooseSitePalette, SiteConsent, siteContentOf, siteImportJobs } from '../services/SiteImport/siteProject.service';
+import { ensureBrandMark } from '../services/SiteImport/brandMark.service';
 import { runWithAiUsageContext } from '../utils/ai-usage-context.util';
 import { startSseHeartbeat } from '../utils/sse-heartbeat.util';
-import { assessSiteImages, enhanceSiteImages, isEnhancing, MAX_ASSESS, MAX_ENHANCE, ownSlots, type EnhanceEvent } from '../services/SiteImport/siteImages.service';
+import { assessSiteImages, enhanceOneImage, enhanceSiteImages, isEnhancing, MAX_ASSESS, MAX_ENHANCE, ownSlots, type EnhanceEvent } from '../services/SiteImport/siteImages.service';
 
 const router = Router();
 const communicationService = new CommunicationService(new PromptService());
@@ -180,6 +181,30 @@ router.get('/site-import/project/:projectId/content', authenticate, async (req: 
   res.json(content);
 });
 
+/**
+ * La marque d'en-tête d'un site iCode (`brandMark.service.ts`) : le logo rogné au plus juste, et s'il porte déjà le
+ * nom (affiché seul) ou non (icône + nom). Calculée par le code, rangée dans le projet ; gratuite.
+ */
+router.get('/brand-mark/:projectId', authenticate, async (req: CustomRequest, res) => {
+  const userId = req.user?.uid;
+  const projectId = String(req.params.projectId);
+  if (!userId || !/^[\w.-]{1,128}$/.test(projectId)) {
+    res.status(400).json({ error: 'invalid_input' });
+    return;
+  }
+  try {
+    const mark = await ensureBrandMark(userId, projectId);
+    if (!mark) {
+      res.status(404).json({ error: 'no_logo' });
+      return;
+    }
+    res.json(mark);
+  } catch (error: any) {
+    logger.warn('appgen.brand_mark_failed', { event: 'appgen.brand_mark_failed', projectId, error: error?.message });
+    res.status(502).json({ error: 'brand_mark_failed' });
+  }
+});
+
 /** La palette du projet après la question « couleurs du site ou fidèles au logo ? ». */
 router.post('/site-import/project/:projectId/palette', authenticate, async (req: CustomRequest, res) => {
   const userId = req.user?.uid;
@@ -256,6 +281,33 @@ router.post('/site-images/enhance', authenticate, async (req: CustomRequest, res
   } finally {
     stopHeartbeat();
     if (!res.writableEnded) res.end();
+  }
+});
+
+/**
+ * Améliore UNE image choisie dans l'éditeur (bouton « Améliorer la qualité »). Réponse JSON en fin de calcul
+ * (≤ 30 s : budget du modèle local). Corps : `{ projectId, url, displayWidth, displayHeight }`.
+ */
+router.post('/site-images/enhance-one', authenticate, async (req: CustomRequest, res) => {
+  const userId = req.user?.uid;
+  const body = (req.body ?? {}) as Record<string, unknown>;
+  const projectId = typeof body.projectId === 'string' && /^[\w.-]{1,128}$/.test(body.projectId) ? body.projectId : '';
+  const url = typeof body.url === 'string' && /^https?:\/\//i.test(body.url) && body.url.length <= 2000 ? body.url : '';
+  if (!userId || !projectId || !url) {
+    res.status(userId ? 400 : 401).json({ error: userId ? 'invalid_input' : 'authentication_required' });
+    return;
+  }
+  if (isEnhancing(userId)) {
+    res.status(409).json({ error: 'already_running' });
+    return;
+  }
+  const clamp = (value: unknown) => Math.max(0, Math.min(4000, Number(value) || 0));
+  try {
+    const result = await enhanceOneImage(userId, projectId, url, { displayWidth: clamp(body.displayWidth), displayHeight: clamp(body.displayHeight) });
+    res.status(result.status === 'skipped' && result.reason === 'forbidden' ? 403 : 200).json(result);
+  } catch (error: any) {
+    logger.error('appgen.site_image_enhance_one_failed', { event: 'appgen.site_image_enhance_one_failed', userId, error: error?.message });
+    res.status(500).json({ error: 'enhance_failed' });
   }
 });
 

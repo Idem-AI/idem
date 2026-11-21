@@ -42,6 +42,8 @@ export interface ProjectModel {
             monochrome?: string;
           };
         };
+        // La marque d'en-tête d'un site (logo rogné ; logotype seul ou icône + nom), calculée par l'API IDEM.
+        header?: { src: string; kind: 'wordmark' | 'icon'; aspect?: number; light?: boolean };
       };
       colors?: {
         name: string;

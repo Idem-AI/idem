@@ -21,7 +21,8 @@
  */
 import puppeteer, { Browser, Page } from 'puppeteer';
 import logger from '../runtime/logger';
-import { installRenderNetworkGuard, isRenderUrlAllowed, RENDER_BROWSER_ARGS } from '../render/network-guard';
+import { installRenderNetworkGuard, RENDER_BROWSER_ARGS } from '../render/network-guard';
+import { reachSite, unreachableMessage } from './site-reach';
 import type { ArtDirectionModel, ArtDirectionStyleId } from '../brand/art-direction.model';
 import { artDirectionStyleIds } from '../design/artDirection.catalog';
 import { getDirection } from '@idem/graphic-engine';
@@ -53,6 +54,11 @@ export interface SiteLogo {
   url?: string;
   iconUrl?: string;
   source: 'inline-svg' | 'img' | 'icon' | 'og-image' | 'none';
+  /**
+   * L'en-tête du site écrit le nom en texte à côté du logo (même lien) : le logo est une icône, pas un logotype.
+   * Lu par la marque d'en-tête des refontes iCode (`brandMark.service.ts`).
+   */
+  nameBeside?: boolean;
 }
 
 /** Un fichier de police du site (règle `@font-face`, sous-ensemble latin) : de quoi l'héberger chez nous. */
@@ -277,17 +283,27 @@ function readPage(): PageFacts {
   const logoish = (el: any) => /logo|brand|marque/i.test(`${el.id} ${typeof el.className === 'string' ? el.className : el.className?.baseVal || ''} ${el.getAttribute('alt') || ''} ${el.getAttribute('aria-label') || ''} ${el.getAttribute('src') || ''}`);
   let logo: SiteLogo = { source: 'none' };
   const svg = (Array.from(header.querySelectorAll('svg')) as any[]).find((s) => logoish(s) || logoish(s.parentElement || s) || (s.closest('a') && s.closest('a').getAttribute('href') === '/'));
-  if (svg && svg.outerHTML.length < 80000 && svg.getBoundingClientRect().width > 24) logo = { svg: svg.outerHTML, source: 'inline-svg' };
+  // Le texte visible du lien du logo, hors logo : « Acme » écrit à côté d'une icône.
+  const textBeside = (el: any): boolean => {
+    const link = el && el.closest ? el.closest('a') : null;
+    if (!link) return false;
+    const own = String(link.innerText || '').replace(/\s+/g, ' ').trim();
+    const inLogo = String(el.textContent || '').replace(/\s+/g, ' ').trim();
+    const rest = inLogo ? own.replace(inLogo, '').trim() : own;
+    return rest.length >= 2 && rest.length <= 60;
+  };
+  if (svg && svg.outerHTML.length < 80000 && svg.getBoundingClientRect().width > 24) logo = { svg: svg.outerHTML, source: 'inline-svg', nameBeside: textBeside(svg) };
   if (logo.source === 'none') {
     const img = (Array.from(header.querySelectorAll('img')) as any[]).find((i) => logoish(i) || logoish(i.parentElement || i)) || (Array.from(header.querySelectorAll('a[href="/"] img')) as any[])[0];
     const src = img ? realSrc(img) : '';
-    if (src) logo = { url: abs(src), source: 'img' };
+    if (src) logo = { url: abs(src), source: 'img', nameBeside: textBeside(img) };
   }
   const icon = (Array.from(document.querySelectorAll('link[rel~="icon"], link[rel="apple-touch-icon"]')) as any[]).sort((a, b) => parseInt(b.getAttribute('sizes') || '0', 10) - parseInt(a.getAttribute('sizes') || '0', 10))[0];
   if (icon) logo.iconUrl = abs(icon.getAttribute('href'));
   const ogImage = abs(document.querySelector('meta[property="og:image"]')?.getAttribute('content'));
   // Pas d'étalement d'objet ici : la fonction tourne dans la page, sans les aides de TypeScript.
-  if (logo.source === 'none' && logo.iconUrl) logo = { url: logo.iconUrl, iconUrl: logo.iconUrl, source: 'icon' };
+  // Faute de logo, l'icône du site : une icône, donc le nom l'accompagnera dans l'en-tête.
+  if (logo.source === 'none' && logo.iconUrl) logo = { url: logo.iconUrl, iconUrl: logo.iconUrl, source: 'icon', nameBeside: true };
 
   // Grandes images : celles qu'un visiteur voit en grand (héros, sections), et l'image de partage.
   const images = [
@@ -598,16 +614,20 @@ function styleEvidenceOf(facts: PageFacts, palette: BrandPalette, typo: { displa
 
 /** Le scan complet. */
 export async function scanWebsite(options: SiteScanOptions): Promise<SiteScanResult> {
-  const url = normalizeSiteUrl(options.url);
-  if (!(await isRenderUrlAllowed(url))) throw new SiteScanError('blocked_url', 'Ce site n’est pas joignable depuis iVision (adresse privée ou inconnue).');
+  // Le site est joint même quand le résolveur du système ne le connaît pas (`site-reach.ts`) : nom épinglé dans Chrome,
+  // variante avec ou sans « www » si l'autre manque. Seul un nom que AUCUN serveur DNS ne connaît, ou une adresse
+  // privée, arrête le scan — avec la vraie raison.
+  const reach = await reachSite(normalizeSiteUrl(options.url));
+  if (!reach.ok) throw new SiteScanError(reach.reason === 'private' ? 'blocked_url' : reach.reason === 'invalid' ? 'invalid_url' : 'unreachable', unreachableMessage(reach));
+  const url = reach.url;
   const timeout = options.timeoutMs ?? 25_000;
   const progress = options.onProgress || (() => undefined);
   const warnings: string[] = [];
   // Sans cela, Chrome « monte » en https les redirections vers http (idem.africa → http://…/en/) et,
   // sous interception, abandonne la navigation au bout de 3 s : net::ERR_BLOCKED_BY_CLIENT.
-  const browser = await puppeteer.launch({ headless: true, args: [...RENDER_BROWSER_ARGS, '--disable-features=HttpsUpgrades,HttpsFirstBalancedModeAutoEnable'] });
+  const browser = await puppeteer.launch({ headless: true, args: [...RENDER_BROWSER_ARGS, '--disable-features=HttpsUpgrades,HttpsFirstBalancedModeAutoEnable', ...reach.chromeArgs] });
   try {
-    progress('open', { url });
+    progress('open', { url, ...(reach.pinned.length ? { pinned: reach.pinned } : {}) });
     let home: Page;
     const sheets: Sheets = [];
     try {

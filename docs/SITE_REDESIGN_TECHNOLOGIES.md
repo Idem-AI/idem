@@ -70,3 +70,21 @@ Le contrôle compte 25 vérifications, toutes au vert. Il n'appelle ni le résea
 - **Sites derrière une connexion** (espace client) : le relevé reste anonyme.
 - **Mur anti-robot qui exige une action humaine** (captcha) : la refonte s'arrête avec un message qui l'explique.
 - **Contenu chargé seulement après une recherche ou un filtre** : seul ce qui s'affiche est relevé.
+
+## Joindre le site, quel que soit le résolveur (21/11/2026)
+
+Le symptôme : « Ce site n'est pas joignable depuis iVision (adresse privée ou inconnue) » pour eknumerik.org, qui était pourtant en ligne. La cause : le résolveur du système (`dns.lookup`, celui de Chrome et de curl, ici la box `192.168.1.1`) répondait `ENOTFOUND`, alors qu'une requête DNS directe donnait `159.69.185.176`. Un nom inconnu du système était traité comme une adresse privée.
+
+Ce qui a changé :
+
+- **`resolveHost`** (`render/network-guard.ts`) interroge dans l'ordre le système, puis une requête DNS directe, puis les résolveurs publics (Cloudflare, Google, Quad9). La garde ne change pas : une adresse privée reste refusée, quelle que soit la voie qui l'a donnée.
+  - Utilisée par `isRenderUrlAllowed`, la garde de chaque requête du navigateur.
+  - Utilisée par `safeFetch` (logo, photos, polices).
+- **`reachSite`** (`site/site-reach.ts`) :
+  - résout aussi la variante avec ou sans `www` ;
+  - épingle dans Chrome (`--host-resolver-rules`) les noms que le système ne connaît pas ;
+  - part de la variante qui existe si l'adresse donnée n'existe pas.
+  - Utilisée par `scanWebsite` et `crawlWebsite`.
+- **Message.** Un nom qu'aucun serveur DNS ne connaît donne « le nom de domaine … n'existe pas (avec ou sans « www ») : vérifiez son orthographe ». Une adresse privée est dite comme telle.
+
+Contrôle : `npm run check:site-reach -- [url…]` (réseau réel, aucun modèle). Il ouvre la page dans Chrome derrière la garde et recopie une image.

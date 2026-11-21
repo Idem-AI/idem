@@ -37,6 +37,7 @@ import { safeFetch } from '../../../../ivision/core/src/render/safe-fetch';
 import { crawlWebsite, SiteInventory } from '../../../../ivision/core/src/site/site-crawler';
 import { measureImageQuality, type ImageQuality } from '../../../../../packages/design-tools/src/image-quality';
 import { BrandCheck, checkBrandColors } from './brandCheck';
+import { ensureBrandMark } from './brandMark.service';
 
 /** Les modèles de l'hôte (passerelle iVision : mêmes étages, même suivi d'usage). */
 export interface SiteImportPorts {
@@ -56,7 +57,8 @@ export interface SiteImportResult {
   images: string[];
   logo: boolean;
   /** Les polices : d'un catalogue public, ou recopiées depuis le site. */
-  fonts: { display: string; body: string; copied: string[] };
+  /** `upgradedFrom` : refonte d'un site aux polices par défaut, la typographie a été améliorée (polices d'avant). */
+  fonts: { display: string; body: string; copied: string[]; upgradedFrom?: { display: string; body: string } };
   /**
    * La direction artistique du catalogue rapprochée du site, et à quel point elle lui correspond : la charte
    * (générée plus tard, à la demande) en partira, avec les couleurs et les polices du site.
@@ -327,6 +329,49 @@ async function typographyOf(userId: string, scan: SiteScanResult, copied: string
 }
 
 /**
+ * Les polices « par défaut » du web : celles d'un thème, d'un constructeur de sites ou du système. Un site qui n'a
+ * qu'elles n'a pas de voix typographique — une refonte qui les garde paraît identique à l'ancien site.
+ */
+const DEFAULT_FONTS = new Set(
+  ['inter', 'roboto', 'open sans', 'lato', 'noto sans', 'arial', 'helvetica', 'helvetica neue', 'segoe ui', 'system-ui', '-apple-system', 'sans-serif', 'serif', 'verdana', 'tahoma', 'trebuchet ms', 'times', 'times new roman', 'georgia', 'source sans pro', 'source sans 3', 'ubuntu', 'pt sans', 'poppins', 'montserrat', 'raleway', 'nunito', 'nunito sans', 'oswald', 'roboto condensed', 'roboto slab', 'mulish', 'muli', 'karla', 'rubik', 'work sans', 'dm sans'].map((f) => f.toLowerCase())
+);
+export const isDefaultFont = (family: string) => DEFAULT_FONTS.has(String(family || '').trim().toLowerCase());
+
+/**
+ * La typographie d'une REFONTE. La marque reste reconnaissable, mais ses polices montent d'un cran :
+ *
+ *   - police de titre propre à la marque (ni par défaut, ni générique) : gardée, avec SES fichiers ; seul le texte
+ *     courant change s'il est par défaut ou identique au titre (l'accord éprouvé pensé pour elle) ;
+ *   - police de titre par défaut : la typographie tirée du logo (même moteur que la charte), sinon la variante de
+ *     même famille proposée par la lecture du site — jamais une autre police par défaut.
+ *
+ * Les accords viennent du catalogue écrit à la main (`typography.ts`) ou de la charte, jamais inventés ici.
+ */
+async function redesignTypography(
+  userId: string,
+  site: { chosen: TypographyModel; proposals: TypographyModel[] },
+  fromLogo: TypographyModel[]
+): Promise<{ chosen: TypographyModel; upgraded: boolean }> {
+  const display = site.chosen.primaryFont;
+  const body = site.chosen.secondaryFont;
+  const plain = (t?: TypographyModel) => !!t && !isDefaultFont(t.primaryFont);
+  if (!isDefaultFont(display)) {
+    if (!isDefaultFont(body) && body.toLowerCase() !== display.toLowerCase()) return { chosen: site.chosen, upgraded: false };
+    const pairing = site.proposals.find((t) => t.id === 'pairing');
+    const pairedBody = pairing?.secondaryFont && pairing.secondaryFont.toLowerCase() !== display.toLowerCase() ? pairing.secondaryFont : '';
+    if (!pairedBody) return { chosen: site.chosen, upgraded: false };
+    const secondary = pairing?.secondary ?? (await fontCatalogService.toBrandFont(pairedBody, undefined, userId));
+    return {
+      chosen: { ...site.chosen, id: 'redesign', name: 'Typographie de la refonte', secondaryFont: secondary.family, secondary, description: `Votre police de titre, avec un texte courant pensé pour elle (${secondary.family}).` },
+      upgraded: true,
+    };
+  }
+  const better = fromLogo.find(plain) ?? site.proposals.find((t) => t.id === 'alternative' && plain(t)) ?? site.proposals.find((t) => t.id === 'pairing' && plain(t));
+  if (!better) return { chosen: site.chosen, upgraded: false };
+  return { chosen: { ...better, id: 'redesign', name: 'Typographie de la refonte', description: `${better.description || ''} Remplace ${display}${body !== display ? ` / ${body}` : ''}, polices par défaut de l’ancien site.`.trim() }, upgraded: true };
+}
+
+/**
  * L'accord de l'utilisateur, donné dans iVision AVANT l'import de son site : politique de confidentialité,
  * conditions d'utilisation, conditions du programme bêta. Sans lui, le projet n'est pas « finalisé » et les
  * générations d'IDEM le refusent (`checkPolicyAcceptance`).
@@ -548,7 +593,10 @@ export async function createProjectFromSite(
   const url = normalizeSiteUrl(rawUrl);
   // Rattaché à un projet de l'utilisateur (iCode ouvert sur un projet), sinon au projet déjà né de ce site.
   const target = options.into ? await projectService.getUserProjectById(userId, options.into).catch(() => null) : null;
-  const existing = target ?? (await projectForSite(userId, url));
+  // Une REFONTE (`withContent`) est une nouvelle session : elle ne rouvre jamais le projet déjà né de ce site. Refaire
+  // le même site un autre jour fusionnait avec la refonte précédente (même projet, même code, même conversation, même
+  // style tiré du même identifiant). iVision, qui ne fait que lire la marque, rouvre toujours le même projet.
+  const existing = target ?? (options.withContent ? null : await projectForSite(userId, url));
   const branded = (p: ProjectModel | null) => {
     const b = p?.analysisResultModel?.branding;
     return !!(b?.colors?.colors?.primary && b?.typography?.primaryFont);
@@ -577,6 +625,8 @@ export async function createProjectFromSite(
         analysisResultModel: { ...existing.analysisResultModel, branding: { ...b, siteSource: { ...((b as { siteSource?: object }).siteSource ?? {}), url: scan.finalUrl, evidence: scan.styleEvidence, contentUrl, importedAt: new Date() } } } as unknown as ProjectModel['analysisResultModel'],
       });
     }
+    // Le logo de l'en-tête, prêt avant que le site ne s'écrive (rogné, logotype ou icône + nom).
+    await ensureBrandMark(userId, existing.id).catch((error: any) => logger.warn('site_import.brand_mark_failed', { event: 'site_import.brand_mark_failed', projectId: existing.id, error: error?.message }));
     onStep('done');
     return { ...reused, images: content.images, warnings: scan.warnings, content };
   }
@@ -627,6 +677,8 @@ export async function createProjectFromSite(
   if (logo && !ownLogo && options.withContent) {
     const original = await originalLogo(userId, projectId, scan);
     if (original) (logo as LogoModel & { originalUrl?: string }).originalUrl = original;
+    // Le nom écrit à côté du logo dans l'en-tête de l'ancien site : le logo est une icône, le nom l'accompagne.
+    if (scan.logo.nameBeside) (logo as LogoModel & { nameBeside?: boolean }).nameBeside = true;
   }
 
   onStep('typography');
@@ -660,9 +712,14 @@ export async function createProjectFromSite(
   // recopiés si aucun catalogue ne les sert). La palette tirée du logo n'est que proposée (`brandCheck`).
   const sitePalette = siteColors.find((c) => c.id === 'site') ?? siteColors[0];
   const palettes = options.withContent ? { site: sitePalette?.id, logo: curated?.colors[0]?.id } : undefined;
+  let typographyUpgrade: { display: string; body: string } | undefined;
   if (options.withContent) {
     if (sitePalette) chosenColors = sitePalette;
-    chosenTypography = typography.chosen;
+    // Les couleurs restent celles du site ; la TYPOGRAPHIE monte d'un cran quand le site n'a que des polices par
+    // défaut (Inter, Roboto, Open Sans… : aucune voix) ou une seule police pour tout (aucune hiérarchie).
+    const upgraded = await redesignTypography(userId, typography, curated?.typography ?? []);
+    chosenTypography = upgraded.chosen;
+    if (upgraded.upgraded) typographyUpgrade = { display: typography.chosen.primaryFont, body: typography.chosen.secondaryFont };
   }
   const brandCheck = options.withContent && logo && sitePalette ? checkBrandColors(String(sitePalette.colors.primary || ''), logo.colors || []) : undefined;
 
@@ -700,9 +757,11 @@ export async function createProjectFromSite(
       });
     }
   }
+  // Le logo de l'en-tête, prêt avant que le site ne s'écrive (rogné, logotype ou icône + nom).
+  if (logo && options.withContent) await ensureBrandMark(userId, projectId).catch((error: any) => logger.warn('site_import.brand_mark_failed', { event: 'site_import.brand_mark_failed', projectId, error: error?.message }));
   onStep('done');
-  logger.info('site_import.project_created', { event: 'site_import.project_created', projectId, into: !!existing?.id, host: new URL(scan.finalUrl).hostname, logo: !!logo, fontsCopied: copied, display: typography.chosen.primaryFont, body: typography.chosen.secondaryFont });
-  return { projectId, reused: !!existing?.id, name: sheet?.name ?? created.name, siteUrl: scan.finalUrl, images: content?.images ?? scan.images, logo: !!logo, fonts: { display: typography.chosen.primaryFont, body: typography.chosen.secondaryFont, copied }, ...artDirectionOf(direction), ...(sheet?.keyFigures?.length ? { keyFigures: sheet.keyFigures } : {}), warnings, ...(content ? { content } : {}) };
+  logger.info('site_import.project_created', { event: 'site_import.project_created', projectId, into: !!existing?.id, host: new URL(scan.finalUrl).hostname, logo: !!logo, fontsCopied: copied, display: chosenTypography.primaryFont, body: chosenTypography.secondaryFont, typographyUpgradedFrom: typographyUpgrade });
+  return { projectId, reused: !!existing?.id, name: sheet?.name ?? created.name, siteUrl: scan.finalUrl, images: content?.images ?? scan.images, logo: !!logo, fonts: { display: chosenTypography.primaryFont, body: chosenTypography.secondaryFont, copied, ...(typographyUpgrade ? { upgradedFrom: typographyUpgrade } : {}) }, ...artDirectionOf(direction), ...(sheet?.keyFigures?.length ? { keyFigures: sheet.keyFigures } : {}), warnings, ...(content ? { content } : {}) };
 }
 
 // ─── Le suivi (iVision interroge l'avancement) ─────────────────────────────────

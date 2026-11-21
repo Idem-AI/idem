@@ -414,7 +414,7 @@ function prompt(facts: SiteFacts, factsText: string, request: string, language: 
   const fr = language === 'fr';
   return `# Le projet
 ${factsText}
-${brief && brief !== facts.description ? `\n# La demande\n${brief.slice(0, 1500)}\n` : ''}${redesign ? `\n${redesign.brief}\n\n# Le plan de l'ancien site (chaque identifiant doit être placé)\n${redesign.outline}\n\n${coverageRule(fr)}\n` : ''}
+${brief && brief !== facts.description ? `\n# La demande\n${brief.slice(0, 1500)}\n` : ''}${redesign ? `\n${redesign.brief}\n\n# Le plan de l'ancien site (chaque identifiant doit être placé)\n${redesign.outline}\n\n${coverageRule(fr, redesign.keepStructure)}\n` : ''}
 # Ta tâche
 Tu es l'architecte du site de ce projet. À partir des informations ci-dessus (secteur, offres, équipe, cible, localisation, description) et de la demande, analyse les besoins réels du projet pour concevoir son architecture sur mesure : la liste des pages à créer et, pour chacune, ses sections dans l'ordre.
 
@@ -488,22 +488,81 @@ export interface RedesignPlan {
   coverage: Coverage;
   pageTitles: string[];
   pagePaths: string[];
+  /** La forme de chaque section d'origine (`oldShapes`) : la composition retenue doit en changer. */
+  shapes?: Record<string, string>;
+  /** « Surtout le design » : les pages de l'ancien site restent des pages ; sinon l'architecture est libre. */
+  keepStructure?: boolean;
 }
 
-function coverageRule(fr: boolean): string {
-  return fr
-    ? `# Règle de la refonte : RIEN ne disparaît
+function coverageRule(fr: boolean, keepStructure = false): string {
+  if (keepStructure)
+    return fr
+      ? `# Règle de la refonte : RIEN ne disparaît, la structure reste
 - Chaque page de l'ancien site (p0, p1, …) a sa page dans le nouveau site, avec "source": "p<n>" (p0 = l'accueil, en premier). Garde son adresse quand elle est lisible.
-- Chaque section de l'ancien site (p<n>.s<m>) est reprise par une section du nouveau site : indique-la dans "sources" (une section peut en reprendre plusieurs, de la même page, quand elles vont ensemble ; tu peux réordonner).
-- Tu améliores la présentation, l'ordre, les titres et les textes pour la cible ; tu n'enlèves aucun contenu.
+- Chaque section de l'ancien site (p<n>.s<m>) est reprise par une section du nouveau site : indique-la dans "sources" (une section peut en reprendre plusieurs, de la même page, quand elles vont ensemble).
+- La « forme actuelle » d'une section est sa mise en page sur l'ancien site : choisis TOUJOURS une autre composition ("layout") — même contenu, mise en page neuve.
 - Les articles cités mais non relevés sont listés sur la page qui regroupe les articles.
-Forme : { "slug": "", "source": "p0", …, "sections": [ { "id": "hero", "sources": ["p0.s0"], "brief": "…", "visual": "photo" }, … ] }`
-    : `# Redesign rule: NOTHING disappears
+Forme : { "slug": "", "source": "p0", …, "sections": [ { "id": "hero", "sources": ["p0.s0"], "brief": "…", "visual": "photo", "layout": "…" }, … ] }`
+      : `# Redesign rule: NOTHING disappears, the structure stays
 - Every page of the old site (p0, p1, …) has its page in the new site, with "source": "p<n>" (p0 = home, first). Keep its address when it is readable.
-- Every section of the old site (p<n>.s<m>) is carried by a section of the new site: list it in "sources" (one section may carry several from the same page when they belong together; you may reorder).
-- You improve presentation, order, headings and copy for the audience; you remove no content.
+- Every section of the old site (p<n>.s<m>) is carried by a section of the new site: list it in "sources" (one section may carry several from the same page when they belong together).
+- A section's "current shape" is its layout on the old site: ALWAYS pick another composition ("layout") — same content, new layout.
 - Articles mentioned but not read are listed on the page that groups articles.
-Shape: { "slug": "", "source": "p0", …, "sections": [ { "id": "hero", "sources": ["p0.s0"], "brief": "…", "visual": "photo" }, … ] }`;
+Shape: { "slug": "", "source": "p0", …, "sections": [ { "id": "hero", "sources": ["p0.s0"], "brief": "…", "visual": "photo", "layout": "…" }, … ] }`;
+  return fr
+    ? `# Règle de la refonte : le CONTENU reste, la FORME est neuve
+- Aucun contenu ne disparaît : chaque section de l'ancien site (p<n>.s<m>) est reprise par une section du nouveau site, indiquée dans "sources". Une section neuve peut en reprendre plusieurs (de pages différentes si elles parlent de la même chose), et une section d'origine trop chargée peut être répartie : liste-la alors dans chaque section qui en reprend une partie.
+- Le découpage de l'ancien site n'est PAS un modèle : regroupe, sépare, réordonne, fusionne des pages trop minces ou crée la page qui manquait. "source": "p<n>" indique la page d'origine principale d'une page (p0 = l'accueil, toujours en premier, slug ""). Garde l'adresse d'une page quand elle existe encore.
+- La « forme actuelle » d'une section est sa mise en page sur l'ancien site : choisis TOUJOURS une autre composition ("layout") pour ce contenu. Une grille de cartes devient une mosaïque, des rangées, des onglets ; un texte à côté d'une image devient une mise en page éditoriale ou un visuel pleine largeur.
+- N'imite ni l'ordre des sections, ni le menu, ni les tournures de l'ancien site : c'est le parcours du visiteur qui décide (promesse → preuve → offre → action).
+- Les articles cités mais non relevés sont listés sur la page qui regroupe les articles.
+Forme : { "slug": "", "source": "p0", …, "sections": [ { "id": "hero", "sources": ["p0.s0", "p2.s1"], "brief": "…", "visual": "photo", "layout": "…" }, … ] }`
+    : `# Redesign rule: the CONTENT stays, the FORM is new
+- No content disappears: every section of the old site (p<n>.s<m>) is carried by a section of the new site, listed in "sources". A new section may carry several (from different pages when they are about the same thing), and an overloaded old section may be split: list it in every section that carries part of it.
+- The old site's breakdown is NOT a model: group, split, reorder, merge pages that are too thin, or create the page that was missing. "source": "p<n>" names a page's main original page (p0 = home, always first, slug ""). Keep a page's address when it still exists.
+- A section's "current shape" is its layout on the old site: ALWAYS pick another composition ("layout") for that content. A grid of cards becomes a bento, rows or tabs; copy beside an image becomes an editorial layout or a full-width visual.
+- Do not imitate the old site's section order, menu or wording: the visitor's journey decides (promise → proof → offer → action).
+- Articles mentioned but not read are listed on the page that groups articles.
+Shape: { "slug": "", "source": "p0", …, "sections": [ { "id": "hero", "sources": ["p0.s0", "p2.s1"], "brief": "…", "visual": "photo", "layout": "…" }, … ] }`;
+}
+
+/**
+ * Les compositions qui remplacent la forme qu'avait un contenu sur l'ancien site (`oldShapeOf`, inventory.ts). Rien
+ * qui exige des faits que le contenu n'a pas (chiffres, avis, prix) : seulement d'autres façons de montrer la même
+ * chose. Une galerie et un formulaire restent ce qu'ils sont (la mosaïque du catalogue n'est déjà pas une grille).
+ */
+const DEPARTURES: Partial<Record<string, LayoutId[]>> = {
+  cards: ['bento', 'feature-rows', 'list-rows', 'feature-tabs'],
+  features: ['bento', 'list-rows', 'feature-tabs', 'feature-rows'],
+  'split-media': ['editorial', 'full-bleed-media', 'feature-rows'],
+  intro: ['editorial', 'statement'],
+  'cta-band': ['cta-split', 'statement'],
+};
+const NEEDS_VISUAL = new Set<LayoutId>(['full-bleed-media', 'feature-rows']);
+
+/**
+ * Une refonte ne remet pas un contenu dans la forme qu'il avait : une section dont la composition reproduit la forme
+ * de ses sections d'origine en reçoit une autre (même famille, sans répétition sur la page). Les ouvertures de page
+ * gardent la leur. Rend le nombre de compositions changées.
+ */
+export function departFromOld(manifest: SiteManifest, shapes: Record<string, string>): number {
+  let changed = 0;
+  for (const page of manifest.pages) {
+    page.sections.forEach((section, index) => {
+      if (!section.layout || OPENING_LAYOUTS.includes(section.layout) || !section.sources?.length) return;
+      const old = section.sources.map((id) => shapes[id]).filter(Boolean);
+      if (!old.includes(section.layout)) return;
+      const used = new Set(page.sections.map((s) => s.layout));
+      const previous = page.sections[index - 1]?.layout;
+      const next = page.sections[index + 1]?.layout;
+      const pool = (DEPARTURES[section.layout] ?? []).filter((id) => !(section.visual === 'none' && NEEDS_VISUAL.has(id)));
+      const pick = pool.find((id) => !used.has(id) && id !== previous && id !== next && !old.includes(id)) ?? pool.find((id) => id !== previous && id !== next && !old.includes(id));
+      if (!pick) return;
+      section.layout = pick;
+      changed += 1;
+    });
+  }
+  return changed;
 }
 
 /** Le manifeste du site, ou `null` si aucun modèle n'a donné de réponse bien formée. */
@@ -545,11 +604,14 @@ export async function designManifest(options: {
     redesign ? 14000 : 7000
   );
 
-  // La variété des compositions est garantie par le code, sans rappeler le modèle.
+  // Une refonte change la forme de chaque contenu repris ; puis la variété des compositions, garantie par le code,
+  // sans rappeler le modèle.
+  const departed = outcome.value && redesign?.shapes ? departFromOld(outcome.value, redesign.shapes) : 0;
   const diversified = outcome.value ? diversifyLayouts(outcome.value) : 0;
   if (outcome.value) {
     ChatLogger.info('SITE_MANIFEST', 'Architecture du site', {
       layoutsAdjusted: diversified,
+      ...(redesign ? { layoutsChangedFromOldSite: departed } : {}),
       pages: outcome.value.pages.map((page) => `${page.path} (${page.sections.length})`),
       components: outcome.value.components,
     });
