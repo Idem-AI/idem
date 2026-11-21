@@ -21,7 +21,7 @@ import { executeRemoteCommand, shellQuote } from '../ssh/ssh';
 import { proxyPath } from '../utils/paths';
 import { extractMiddlewareNames, firewallMiddlewareName, hashBasicAuthPassword, parseDomain } from '../docker/labels';
 import { LabelContext, loadLabelContext } from './application-labels.service';
-import { classify, DnsStatus, isAutomatic, lookup } from './domain-dns.service';
+import { checkHttps, classify, DnsStatus, isAutomatic, isPlatformHost, lookup, lookupAuthoritative } from './domain-dns.service';
 
 const CERT_RESOLVER = 'letsencrypt';
 
@@ -172,7 +172,16 @@ export async function verifyDomains(
   ];
   const result = new Map<string, DnsStatus>();
   for (const host of hosts) {
-    let status: DnsStatus = isAutomatic(host) ? 'automatic' : classify(await look(host), serverIp);
+    let status: DnsStatus;
+    if (isPlatformHost(host)) {
+      // `monapp.idem.africa`: iDeploy writes it, but it is routed (and its certificate asked
+      // for) only once the zone itself serves it. Before, Let's Encrypt followed the zone's `*`
+      // to IDEM's main server, the challenge failed, Traefik never retried: "not secure".
+      const found = classify(await (look === lookup ? lookupAuthoritative : look)(host), serverIp);
+      status = found === 'ok' || found === 'ipv6_conflict' ? 'automatic' : found;
+    } else {
+      status = isAutomatic(host) ? 'automatic' : classify(await look(host), serverIp);
+    }
     // On a shared server DNS answers for every application on it: the first
     // to have verified the domain keeps it.
     if (VERIFIED.has(status) && status !== 'automatic') {
@@ -214,10 +223,20 @@ export async function applyRoutes(
   server: ServerRow,
   key: PrivateKeyRow,
   app: ApplicationRow,
-  opts: { port?: number; look?: typeof lookup } = {}
+  opts: {
+    port?: number;
+    look?: typeof lookup;
+    /**
+     * A deployment: wait up to this long for a platform address just written at
+     * Namecheap to be served by the zone, so the site is routed on this deployment
+     * rather than at the next sweep (5 min). Usually under a minute.
+     */
+    waitForPlatformDnsMs?: number;
+  } = {}
 ): Promise<{ routed: string[]; waiting: string[] }> {
   const context = await loadLabelContext(app);
   if (!context) throw new Error('No proxy context for this application');
+  if (opts.waitForPlatformDnsMs && !opts.look) await waitForPlatformDns(app, server.ip, opts.waitForPlatformDnsMs);
   const statuses = await verifyDomains(app, server.ip, opts.look);
   const routable = new Set([...statuses].filter(([, s]) => ROUTABLE.has(s)).map(([h]) => h));
   const port = context.isStatic ? 80 : opts.port ?? (Number((app.ports_exposes ?? '').split(',')[0]) || 3000);
@@ -240,6 +259,62 @@ export async function applyRoutes(
   if (r.exitCode !== 0) throw new Error(`Could not write the routes: ${r.stderr.slice(0, 200)}`);
   await pool.query('UPDATE applications SET routes_file_at = COALESCE(routes_file_at, now()) WHERE id = $1', [app.id]);
   return { routed: [...routable], waiting: [...statuses.keys()].filter((h) => !routable.has(h)) };
+}
+
+/** Hosts of the application on the platform domain. */
+function platformHostsOf(app: Pick<ApplicationRow, 'fqdn'>): string[] {
+  return (app.fqdn ?? '')
+    .split(',')
+    .map((d) => parseDomain(d)?.host?.toLowerCase())
+    .filter((h): h is string => Boolean(h) && isPlatformHost(h as string));
+}
+
+async function waitForPlatformDns(app: Pick<ApplicationRow, 'fqdn'>, serverIp: string, timeoutMs: number): Promise<void> {
+  const hosts = platformHostsOf(app);
+  if (hosts.length === 0) return;
+  const started = Date.now();
+  while (Date.now() - started < timeoutMs) {
+    const answers = await Promise.all(hosts.map(async (h) => classify(await lookupAuthoritative(h), serverIp)));
+    if (answers.every((a) => a === 'ok' || a === 'ipv6_conflict')) return;
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+  }
+}
+
+/**
+ * A platform address routed while its certificate had already failed (an
+ * application published before this fix): Traefik does not try again by
+ * itself, only when the router appears anew. Taken out of the routes for a
+ * moment, then put back — once, after a deployment, if HTTPS is still invalid.
+ * Never throws.
+ */
+export async function retryPlatformCertificates(server: ServerRow, key: PrivateKeyRow, app: ApplicationRow, port?: number): Promise<void> {
+  try {
+    const hosts = platformHostsOf(app);
+    if (hosts.length === 0) return;
+    // Let's Encrypt usually answers within seconds of the route appearing.
+    await new Promise((resolve) => setTimeout(resolve, 20_000));
+    const invalid: string[] = [];
+    for (const host of hosts) {
+      if ((await checkHttps(host)).status === 'invalid') invalid.push(host);
+    }
+    if (invalid.length === 0) return;
+    const routable = await routableHosts(app.id);
+    if (!invalid.some((h) => routable.has(h))) return;
+    const context = await loadLabelContext(app);
+    if (!context) return;
+    const target = `${containerHost(app)}:${context.isStatic ? 80 : port ?? (Number((app.ports_exposes ?? '').split(',')[0]) || 3000)}`;
+    const write = async (hostsRouted: Set<string>) => {
+      const b64 = Buffer.from(routesFileContent({ uuid: app.uuid, target, domains: context.domains, routable: hostsRouted, context }), 'utf8').toString('base64');
+      const file = routesFilePath(app.uuid);
+      await executeRemoteCommand(server, key, `echo '${b64}' | base64 -d > ${shellQuote(`${file}.tmp`)} && mv ${shellQuote(`${file}.tmp`)} ${shellQuote(file)}`, { noRetry: true });
+    };
+    await write(new Set([...routable].filter((h) => !invalid.includes(h))));
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+    await write(routable);
+    logger.info('routes.certificate_retried', { event: 'routes.certificate_retried', uuid: app.uuid, hosts: invalid });
+  } catch (err) {
+    logger.warn('routes.certificate_retry_failed', { uuid: app.uuid, message: (err as Error).message });
+  }
 }
 
 export async function removeRoutesFile(server: ServerRow, key: PrivateKeyRow, uuid: string): Promise<void> {

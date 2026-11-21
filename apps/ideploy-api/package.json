@@ -1,7 +1,7 @@
 {
   "name": "ideploy-api",
   "version": "1.0.0",
-  "description": "Node.js (Express + TypeScript) backend for iDeploy \u2014 rewrite of the Laravel/Livewire PaaS, sharing the same PostgreSQL schema.",
+  "description": "Node.js (Express + TypeScript) backend for iDeploy — rewrite of the Laravel/Livewire PaaS, sharing the same PostgreSQL schema.",
   "main": "api/index.ts",
   "scripts": {
     "dev": "nodemon api/index.ts",

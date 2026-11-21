@@ -171,6 +171,25 @@ export async function resolveInsecureAssets(
   return replacements;
 }
 
+/**
+ * The stored URL behind an image the preview shows. In development the preview serves `/_idem-assets/<name>`
+ * copies; anything else is already the stored URL.
+ */
+export function storedAssetUrl(src: string): string {
+  let path: string;
+  try {
+    path = new URL(src, 'http://preview.local').pathname;
+  } catch {
+    return src;
+  }
+  if (!path.startsWith(`/${LOCAL_ASSETS_DIR}/`)) return src;
+  let found = src;
+  cache.forEach((entry, url) => {
+    if (entry.local === path) found = url;
+  });
+  return found;
+}
+
 const escapeForRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 export function rewriteInsecureAssetUrls(

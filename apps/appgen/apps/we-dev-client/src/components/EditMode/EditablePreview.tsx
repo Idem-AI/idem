@@ -5,9 +5,11 @@ import { getContainerInstance, onServersChange } from '../WeIde/services';
 import useRunStatus, { API_PORT } from '@/stores/runStatusSlice';
 import { eventEmitter } from '../AiChat/utils/EventEmitter';
 import { RunErrorBanner } from './RunErrorBanner';
+import { SiteImageQualityBanner } from './SiteImageQualityBanner';
 import { useFileStore } from '../WeIde/stores/fileStore';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
+import { SiteImageUploadError, uploadSiteImage } from '@/api/siteImages';
 import {
   AlignLeft,
   AlignCenter,
@@ -650,17 +652,45 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
     [primary, applyResult, getContent]
   );
 
+  /**
+   * L'image part dans le stockage d'IDEM ; le code reçoit son adresse, jamais ses octets en base64.
+   * La cible est retenue AVANT l'envoi : la sélection peut changer pendant qu'il se fait.
+   */
   const uploadImage = useCallback(
-    (file: File, asBackground: boolean) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        if (typeof reader.result !== 'string') return;
-        if (asBackground) applyStyle('backgroundImage', `url("${reader.result}")`);
-        else applyImageUrl(reader.result);
-      };
-      reader.readAsDataURL(file);
+    async (file: File, asBackground: boolean) => {
+      const targetIds = asBackground ? selected.map((e) => e.id) : primary ? [primary.id] : [];
+      if (!targetIds.length) return;
+      const pending = toast.loading(t('editMode.uploading'));
+      let url: string;
+      try {
+        url = await uploadSiteImage(file);
+      } catch (error) {
+        const code = error instanceof SiteImageUploadError ? error.code : 'failed';
+        toast.update(pending, {
+          render: t(`editMode.uploadErrors.${code}`, {
+            max: error instanceof SiteImageUploadError && error.maxBytes ? Math.round(error.maxBytes / 1024 / 1024) : 10,
+          }),
+          type: 'error',
+          isLoading: false,
+          autoClose: 5000,
+        });
+        return;
+      }
+      toast.dismiss(pending);
+      if (!asBackground) {
+        const ref = decodeIdemId(targetIds[0]);
+        if (ref) applyResult(ref.filePath, editImageSrc(getContent(ref.filePath), ref.start, url), { keepSelection: true });
+        return;
+      }
+      const value = `url("${url}")`;
+      if (targetIds.length === 1) {
+        const ref = decodeIdemId(targetIds[0]);
+        if (ref) applyResult(ref.filePath, editStyle(getContent(ref.filePath), ref.start, 'backgroundImage', value), { keepSelection: true });
+      } else {
+        applyBatch(targetIds, (c, s) => editStyle(c, s, 'backgroundImage', value));
+      }
     },
-    [applyStyle, applyImageUrl]
+    [selected, primary, applyResult, applyBatch, getContent, t]
   );
 
   const deselect = useCallback(() => {
@@ -909,6 +939,9 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
 
         {/* L'erreur qui empêche l'application de tourner, et sa correction en un clic. */}
         <RunErrorBanner onFix={(prompt) => eventEmitter.emit('chat:fixError', prompt)} />
+
+        {/* Refonte : les images qui paraîtront floues à leur place, proposées à l'amélioration (jamais imposée). */}
+        {!mobileApp && <SiteImageQualityBanner iframeRef={iframeRef} active={!!url && !generating} reloadKey={url ?? ''} />}
 
         {/* Surface d'aperçu */}
         <div

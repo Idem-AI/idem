@@ -35,6 +35,7 @@ import { parseLlmJson } from '../../utils/llm-json.util';
 import { normalizeSiteUrl, scanWebsite, SiteFontFace, SiteScanResult } from '../../../../ivision/core/src/site/site-scanner';
 import { safeFetch } from '../../../../ivision/core/src/render/safe-fetch';
 import { crawlWebsite, SiteInventory } from '../../../../ivision/core/src/site/site-crawler';
+import { measureImageQuality, type ImageQuality } from '../../../../../packages/design-tools/src/image-quality';
 import { BrandCheck, checkBrandColors } from './brandCheck';
 
 /** Les modèles de l'hôte (passerelle iVision : mêmes étages, même suivi d'usage). */
@@ -371,17 +372,37 @@ async function hostInventory(userId: string, projectId: string, inventory: SiteI
     ...new Set([inventory.assets.favicon, inventory.assets.appleIcon, inventory.assets.ogImage, ...inventory.assets.images.map((i) => i.url)].filter((u): u is string => !!u)),
   ].slice(0, Number(process.env.SITE_IMPORT_MAX_ASSETS ?? 120));
   const hosted = new Map<string, string>();
+  // La mesure de chaque image recopiée (par le code, quelques dizaines de ms) : le moteur range les images d'une
+  // section de la meilleure à la moins bonne, l'atelier sait lesquelles proposer d'améliorer.
+  const measured = new Map<string, ImageQuality>();
+  // La grande variante devinée (`originalImageUrl`, plus grand `srcset`) n'existe pas toujours : l'adresse vraiment
+  // affichée par l'ancien site sert alors de secours.
+  const fallbackOf = new Map(inventory.assets.images.filter((i) => i.fallback).map((i) => [i.url, i.fallback!]));
   let next = 0;
+  let upgraded = 0;
   const worker = async () => {
     while (next < urls.length) {
       const index = next++;
       const url = urls[index];
       try {
-        const file = await safeFetch(url, { accept: ['image/'], maxBytes: 12 * 1024 * 1024, timeoutMs: 20_000 });
+        const fallback = fallbackOf.get(url);
+        let usedFallback = false;
+        const file = await safeFetch(url, { accept: ['image/'], maxBytes: 12 * 1024 * 1024, timeoutMs: 20_000 }).catch((error) => {
+          if (!fallback) throw error;
+          usedFallback = true;
+          return safeFetch(fallback, { accept: ['image/'], maxBytes: 12 * 1024 * 1024, timeoutMs: 20_000 });
+        });
+        if (fallback && !usedFallback) upgraded++;
         // Prête pour le web : une photo de 1,6 Mo (PNG d'origine) ralentissait le site et dépassait ce que l'aperçu
         // de développement sait afficher. Redimensionnée (2 000 px au plus) et recompressée en WebP ; les SVG, les
         // icônes et les GIF animés restent tels quels.
         const web = await webImage(file.buffer, file.mimeType);
+        // Mesurée sur le fichier d'origine (les blocs JPEG ne se lisent que là), aux dimensions du fichier recopié.
+        const quality = /^image\/(png|jpe?g|webp|avif|tiff)$/i.test(file.mimeType) ? await measureImageQuality(file.buffer) : null;
+        if (quality) {
+          const scale = Math.min(1, WEB_IMAGE_SIDE / Math.max(quality.width, quality.height));
+          measured.set(url, { ...quality, width: Math.round(quality.width * scale), height: Math.round(quality.height * scale) });
+        }
         const ext = web.ext ?? (file.mimeType.split('/')[1] || 'jpg').replace('jpeg', 'jpg').replace('svg+xml', 'svg').replace('x-icon', 'ico').replace('vnd.microsoft.icon', 'ico').replace(/[^a-z0-9]/g, '');
         const upload = await storageService.uploadFile(web.buffer, `site-${stamp}-${index + 1}.${ext}`, folder, web.mimeType ?? file.mimeType);
         hosted.set(url, upload.downloadURL);
@@ -391,7 +412,16 @@ async function hostInventory(userId: string, projectId: string, inventory: SiteI
     }
   };
   await Promise.all(Array.from({ length: 6 }, worker));
-  const keep = <T extends { url: string }>(list: T[]) => list.filter((i) => hosted.has(i.url)).map((i) => ({ ...i, url: hosted.get(i.url)! }));
+  const flagged = [...measured.values()].filter((q) => q.issues.length).length;
+  logger.info('site_import.image_quality', { event: 'site_import.image_quality', projectId, images: measured.size, flagged, largerSources: upgraded });
+  // Les dimensions mesurées remplacent celles annoncées par la page (souvent celles de la vignette affichée).
+  const keep = <T extends { url: string; width: number; height: number; fallback?: string }>(list: T[]) =>
+    list
+      .filter((i) => hosted.has(i.url))
+      .map(({ fallback: _fallback, ...i }) => {
+        const quality = measured.get(i.url);
+        return { ...i, url: hosted.get(i.url)!, ...(quality ? { width: quality.width, height: quality.height, quality } : {}) };
+      });
   return {
     ...inventory,
     pages: inventory.pages.map((page) => ({ ...page, sections: page.sections.map((section) => ({ ...section, images: keep(section.images) })) })),
@@ -404,11 +434,14 @@ async function hostInventory(userId: string, projectId: string, inventory: SiteI
   };
 }
 
+/** Le plus grand côté d'une image recopiée. */
+const WEB_IMAGE_SIDE = 2000;
+
 /** Une image de contenu, prête pour le web (au plus 2 000 px, WebP qualité 82) ; le reste est rendu tel quel. */
 async function webImage(buffer: Buffer, mimeType: string): Promise<{ buffer: Buffer; mimeType?: string; ext?: string }> {
   if (!/^image\/(png|jpe?g|webp|avif|tiff)$/i.test(mimeType)) return { buffer };
   try {
-    const out = await sharp(buffer, { failOn: 'none' }).rotate().resize({ width: 2000, height: 2000, fit: 'inside', withoutEnlargement: true }).webp({ quality: 82 }).toBuffer();
+    const out = await sharp(buffer, { failOn: 'none' }).rotate().resize({ width: WEB_IMAGE_SIDE, height: WEB_IMAGE_SIDE, fit: 'inside', withoutEnlargement: true }).webp({ quality: 82 }).toBuffer();
     return out.byteLength < buffer.byteLength ? { buffer: out, mimeType: 'image/webp', ext: 'webp' } : { buffer };
   } catch {
     return { buffer };

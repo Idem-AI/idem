@@ -11,6 +11,8 @@ import { idemAnalyzeImage } from '../services/ivision/host';
 import { PromptService } from '../services/prompt.service';
 import { chooseSitePalette, SiteConsent, siteContentOf, siteImportJobs } from '../services/SiteImport/siteProject.service';
 import { runWithAiUsageContext } from '../utils/ai-usage-context.util';
+import { startSseHeartbeat } from '../utils/sse-heartbeat.util';
+import { assessSiteImages, enhanceSiteImages, isEnhancing, MAX_ASSESS, MAX_ENHANCE, ownSlots, type EnhanceEvent } from '../services/SiteImport/siteImages.service';
 
 const router = Router();
 const communicationService = new CommunicationService(new PromptService());
@@ -188,6 +190,73 @@ router.post('/site-import/project/:projectId/palette', authenticate, async (req:
   }
   const done = await chooseSitePalette(userId, String(req.params.projectId), source).catch(() => false);
   res.status(done ? 200 : 404).json({ chosen: done ? source : null });
+});
+
+/**
+ * Les images d'une refonte qui paraîtront floues à leur place dans le nouveau site (mesure par le code, gratuite).
+ * Corps : `{ projectId, images: [{ url, displayWidth, displayHeight }] }` — relevé par l'aperçu d'iCode.
+ */
+router.post('/site-images/assess', authenticate, async (req: CustomRequest, res) => {
+  const userId = req.user?.uid;
+  const body = (req.body ?? {}) as Record<string, unknown>;
+  const projectId = typeof body.projectId === 'string' && /^[\w.-]{1,128}$/.test(body.projectId) ? body.projectId : '';
+  if (!userId || !projectId) {
+    res.status(userId ? 400 : 401).json({ error: userId ? 'invalid_input' : 'authentication_required' });
+    return;
+  }
+  try {
+    const slots = ownSlots(userId, projectId, body.images, MAX_ASSESS);
+    res.json({ images: slots.length ? await assessSiteImages(userId, projectId, slots) : [] });
+  } catch (error: any) {
+    logger.error('appgen.site_images_assess_failed', { event: 'appgen.site_images_assess_failed', userId, error: error?.message });
+    res.status(500).json({ error: 'assess_failed' });
+  }
+});
+
+/**
+ * Améliore les images signalées, sur accord de l'utilisateur. Flux SSE (`start`, `image` à chaque image prête,
+ * `done`), battement toutes les 15 s, jamais de reconnexion côté client : une coupure est une erreur affichée.
+ */
+router.post('/site-images/enhance', authenticate, async (req: CustomRequest, res) => {
+  const userId = req.user?.uid;
+  const body = (req.body ?? {}) as Record<string, unknown>;
+  const projectId = typeof body.projectId === 'string' && /^[\w.-]{1,128}$/.test(body.projectId) ? body.projectId : '';
+  if (!userId || !projectId) {
+    res.status(userId ? 400 : 401).json({ error: userId ? 'invalid_input' : 'authentication_required' });
+    return;
+  }
+  const slots = ownSlots(userId, projectId, body.images, MAX_ENHANCE);
+  if (!slots.length) {
+    res.status(400).json({ error: 'no_images' });
+    return;
+  }
+  if (isEnhancing(userId)) {
+    res.status(409).json({ error: 'already_running' });
+    return;
+  }
+  res.status(200);
+  res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+  res.flushHeaders?.();
+  const stopHeartbeat = startSseHeartbeat(res);
+  let closed = false;
+  res.on('close', () => (closed = true));
+  const send = (event: EnhanceEvent) => {
+    if (closed || res.writableEnded) return;
+    res.write(`event: ${event.type}\ndata: ${JSON.stringify(event)}\n\n`);
+    (res as any).flush?.();
+  };
+  try {
+    await enhanceSiteImages(userId, projectId, slots, send, () => closed);
+  } catch (error: any) {
+    logger.error('appgen.site_images_enhance_failed', { event: 'appgen.site_images_enhance_failed', userId, error: error?.message });
+    if (!closed) res.write(`event: error\ndata: ${JSON.stringify({ type: 'error', error: 'enhance_failed' })}\n\n`);
+  } finally {
+    stopHeartbeat();
+    if (!res.writableEnded) res.end();
+  }
 });
 
 export default router;

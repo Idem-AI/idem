@@ -196,6 +196,33 @@ router.get('/deployments/:uuid', async (req: Request, res: Response) => {
   }
 });
 
+/**
+ * Does the public address answer over HTTPS yet? A deployment can be finished
+ * while `monapp.idem.africa` is still propagating: showing it then gives a
+ * browser error ("not secure", or another server). The client waits on this,
+ * and meanwhile offers the automatic address when that one already works.
+ */
+router.get('/applications/:uuid/address', async (req: Request, res: Response) => {
+  try {
+    const guide = await ideploy<{
+      domains: Array<{ host: string; status: string; https?: { status?: string } }>;
+    }>(req, 'GET', `/applications/${encodeURIComponent(String(req.params.uuid))}/domains/dns`);
+    const domains = guide?.domains ?? [];
+    const primary = domains[0] ?? null;
+    const working = domains.find((d) => d.https?.status === 'valid') ?? null;
+    return res.json({
+      success: true,
+      url: primary ? `https://${primary.host}` : null,
+      ready: primary?.https?.status === 'valid',
+      // L'adresse qui marche déjà, quand ce n'est pas encore la principale.
+      fallbackUrl: working && working !== primary ? `https://${working.host}` : null,
+    });
+  } catch (error) {
+    const err = error as Error & { status?: number };
+    return res.status(err.status ?? 502).json({ success: false, message: err.message });
+  }
+});
+
 /** iDeploy's address for an application, as a link. */
 function toUrl(fqdn?: string | null): string | null {
   if (!fqdn) return null;

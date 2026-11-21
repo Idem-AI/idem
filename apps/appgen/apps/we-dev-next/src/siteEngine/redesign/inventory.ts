@@ -13,6 +13,29 @@ export interface InventoryImage {
   width: number;
   height: number;
   kind: 'img' | 'background';
+  /**
+   * Mesurée par le code à la recopie (`packages/design-tools/src/image-quality.ts`) : `width`/`height` sont alors
+   * ceux du fichier recopié. Absente des relevés antérieurs au 21/11/2026.
+   */
+  quality?: { softness: number; blockiness: number; photo: boolean; issues: ('blurry' | 'blocky')[] };
+}
+
+/**
+ * Le rang d'une image dans sa section : la plus grande et la plus nette en tête. La première image d'une section
+ * est celle que le design montre en grand (héros, visuel principal) : une vignette floue n'y a pas sa place quand
+ * une meilleure image de la même section existe. L'ordre du site d'origine départage les égalités.
+ */
+export function imageRank(image: InventoryImage): number {
+  const pixels = Math.min(image.width * image.height, 2400 * 1600) / (2400 * 1600);
+  return pixels - (image.quality?.issues.length ?? 0) * 0.25;
+}
+
+/** Les images d'une section, de la meilleure à la moins bonne (tri stable). */
+export function bestFirst<T extends InventoryImage>(images: T[]): T[] {
+  return images
+    .map((image, index) => ({ image, index, rank: imageRank(image) }))
+    .sort((a, b) => b.rank - a.rank || a.index - b.index)
+    .map((entry) => entry.image);
 }
 
 export interface InventoryCta {

@@ -305,6 +305,25 @@
     "errorLoadingProject": "Failed to load project"
   },
   "preview": {
+    "imageQuality": {
+      "offerTitle_one": "{{count}} image on your site isn't sharp enough",
+      "offerTitle_other": "{{count}} images on your site aren't sharp enough",
+      "offerBody": "We can make them sharper. Your other images stay as they are, and you can go back to the originals.",
+      "enhance": "Enhance images",
+      "show": "Show which",
+      "later": "Later",
+      "runningTitle": "Enhancing images…",
+      "runningBody": "{{done}} of {{total}} — each image is swapped in the preview as soon as it's ready.",
+      "doneTitle_one": "{{count}} image enhanced",
+      "doneTitle_other": "{{count}} images enhanced",
+      "doneNone": "These images were already as sharp as they can get",
+      "doneBody": "The originals are kept.",
+      "revert": "Back to originals",
+      "reverted": "Original images restored",
+      "error": "Enhancement stopped. Images already enhanced stay in place.",
+      "retry": "Try again",
+      "close": "Close"
+    },
     "noserver": "No server running",
     "wxminiPreview": "Open WeChat Mini Program Developer Tools for preview",
     "noserverHint": "The dev server starts with your first generation. Describe what you want to build in the chat.",
@@ -635,6 +654,10 @@
       "interface": {
         "title": "Interface",
         "hint": "Building the screens of your application."
+      },
+      "secure": {
+        "title": "Secure address",
+        "hint": "Checking that your address opens over HTTPS."
       }
     },
     "working_note": "You can close this window: putting online carries on.",
@@ -666,6 +689,21 @@
       "title_other": "{{count}} issues keep pages from being indexed properly",
       "body": "The site is online. Google and AI assistants read these pages poorly until they are fixed.",
       "summary": "SEO issues in the built site"
+    },
+    "address": {
+      "temporary": "Online (temporary address)",
+      "pending": "Your address {{url}} is being activated: a few more minutes. You can already share the link above; we check every 5 seconds."
+    },
+    "domain": {
+      "question": "Do you already have a domain name?",
+      "lead": "For example myshop.com, so your customers find you by your name.",
+      "yes": "Yes, I have one",
+      "yesHint": "Bought elsewhere: we guide you to connect it.",
+      "buy": "No, buy one",
+      "buyHint": "Chosen, paid and connected here, without leaving iCode.",
+      "later": "Not now, keep the free address",
+      "add": "Add a domain name",
+      "showSettings": "See the settings"
     }
   },
   "editMode": {
@@ -694,6 +732,13 @@
     "multiHint": "Shift/Ctrl-click to select several elements at once.",
     "apply": "Apply",
     "upload": "Upload an image",
+    "uploading": "Uploading the image…",
+    "uploadErrors": {
+      "too_large": "This image is too large ({{max}} MB at most).",
+      "unsupported": "This format is not accepted: pick a PNG, JPEG, WebP, GIF or AVIF image.",
+      "login": "Sign in again to upload an image.",
+      "failed": "The image could not be uploaded. Try again."
+    },
     "deleteSelection": "Delete selection ({{count}})",
     "typography": "Typography",
     "layout": "Layout",
