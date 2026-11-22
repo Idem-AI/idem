@@ -16,7 +16,7 @@ import type { SiteStream } from '../stream.js';
 import type { ChatChoices } from '../../commands/choices.js';
 import type { RedesignFocus } from './brief.js';
 import { languageLabel } from '../i18n.js';
-import { chooseSitePalette, fetchProject, fetchSiteContent, generateCharter, IdemApiError, importSite, SiteContent, SiteImportStep } from './idemClient.js';
+import { chooseRedesignTypography, chooseSitePalette, fetchProject, fetchSiteContent, generateCharter, IdemApiError, importSite, SiteContent, SiteImportStep } from './idemClient.js';
 
 export interface RedesignContext {
   content: SiteContent;
@@ -87,7 +87,7 @@ export async function prepareRedesign(options: {
    * Reprise après la question des couleurs : le site est déjà relevé et le projet existe ; seule la palette
    * choisie est appliquée.
    */
-  resume?: { projectId: string; colors: 'site' | 'logo'; languages?: string[]; billed?: boolean };
+  resume?: { projectId: string; colors: 'site' | 'logo'; languages?: string[]; billed?: boolean; fonts?: 'change' | 'keep' };
 }): Promise<Prepared | { stop: string } | { ask: { text: string; choices: ChatChoices } }> {
   const { stream, fr, signal } = options;
   const host = (() => {
@@ -105,6 +105,21 @@ export async function prepareRedesign(options: {
       if (options.resume.colors === 'logo') {
         stream.note(fr ? 'J’applique des couleurs fidèles à votre logo' : 'Applying colours true to your logo');
         await chooseSitePalette(options.resume.projectId, 'logo', options.credentials, signal);
+      }
+      // « Changer de police ? » → oui : l'IA choisit la typographie qui correspond le mieux au projet.
+      if (options.resume.fonts === 'change') {
+        stream.note(fr ? 'Je choisis une typographie pour votre projet' : 'Choosing a typeface for your project');
+        const changed = await chooseRedesignTypography(options.resume.projectId, options.credentials, signal);
+        const pair = (f: { display: string; body: string }) => [f.display, f.body].filter((x, i, all) => x && all.indexOf(x) === i).join(' / ');
+        stream.note(
+          changed
+            ? fr
+              ? `Nouvelle typographie : ${pair(changed.to)} (au lieu de ${pair(changed.from)})`
+              : `New typography: ${pair(changed.to)} (instead of ${pair(changed.from)})`
+            : fr
+              ? 'Aucune police ne convenait mieux : je garde celles de votre site'
+              : 'No typeface fitted better: keeping your site’s fonts'
+        );
       }
       return await finish(options, { projectId: options.resume.projectId, content, logo: content.logo, fonts: null });
     } catch (error) {
@@ -170,6 +185,33 @@ export async function prepareRedesign(options: {
       ],
     });
   }
+  // Des polices par défaut (Inter, Roboto, Poppins…) : la refonte ne les change pas d'elle-même, elle le propose.
+  const fontsCheck = imported.content.typographyCheck;
+  if (fontsCheck?.isDefault) {
+    const pair = [fontsCheck.display, fontsCheck.body].filter((f, i, all) => f && all.indexOf(f) === i).join(fr ? ' et ' : ' and ');
+    said.push(
+      fr
+        ? `Votre site utilise ${pair.includes(' et ') ? 'des polices' : 'une police'} par défaut (${pair}), celle${pair.includes(' et ') ? 's' : ''} de milliers d’autres sites.`
+        : `Your site uses default font${pair.includes(' and ') ? 's' : ''} (${pair}), the same as thousands of other sites.`
+    );
+    questions.push({
+      id: 'fonts',
+      question: fr ? 'Changer la police du site ?' : 'Change the site’s font?',
+      options: [
+        {
+          value: 'change',
+          recommended: true,
+          label: fr ? 'Oui, une police pour mon projet' : 'Yes, a font for my project',
+          description: fr ? 'L’IA choisit la typographie qui correspond le mieux à votre activité, à votre cible et à votre marque.' : 'The AI picks the typography that best fits your business, audience and brand.',
+        },
+        {
+          value: 'keep',
+          label: fr ? `Non, garder ${pair}` : `No, keep ${pair}`,
+          description: fr ? 'Vos visiteurs retrouvent la même écriture.' : 'Your visitors find the same lettering.',
+        },
+      ],
+    });
+  }
   if (widget.length) {
     // La langue la plus utile en plus : l'anglais, ou le français pour un site anglophone.
     const second = widget.includes(main === 'en' ? 'fr' : 'en') ? (main === 'en' ? 'fr' : 'en') : widget[0];
@@ -231,7 +273,7 @@ export async function prepareRedesign(options: {
 /** La suite commune (import neuf ou reprise) : facturation, projet, charte, contenu prêt pour le moteur. */
 async function finish(
   options: Parameters<typeof prepareRedesign>[0],
-  imported: { projectId: string; content: SiteContent; logo: boolean; fonts: { display: string; body: string; upgradedFrom?: { display: string; body: string } } | null }
+  imported: { projectId: string; content: SiteContent; logo: boolean; fonts: { display: string; body: string } | null }
 ): Promise<Prepared | { stop: string }> {
   const { stream, fr, signal } = options;
   const host = (() => {
@@ -272,13 +314,6 @@ async function finish(
       : '',
   ].filter(Boolean);
   if (found.length) stream.note(fr ? `Trouvé sur votre site : ${found.join(', ')}` : `Found on your site: ${found.join(', ')}`);
-  const upgraded = imported.fonts?.upgradedFrom;
-  if (upgraded && imported.fonts)
-    stream.note(
-      fr
-        ? `Typographie améliorée : ${[upgraded.display, upgraded.body].filter((f, i, all) => f && all.indexOf(f) === i).join(' / ')} → ${[imported.fonts.display, imported.fonts.body].filter((f, i, all) => f && all.indexOf(f) === i).join(' / ')}`
-        : `Typography upgraded: ${[upgraded.display, upgraded.body].filter((f, i, all) => f && all.indexOf(f) === i).join(' / ')} → ${[imported.fonts.display, imported.fonts.body].filter((f, i, all) => f && all.indexOf(f) === i).join(' / ')}`
-    );
 
   // L'identité visuelle pro : la charte se génère dans IDEM pendant que le site s'écrit (elle ne change ni
   // le logo, ni les couleurs, ni les polices que le site emploie : elle les met en règles).

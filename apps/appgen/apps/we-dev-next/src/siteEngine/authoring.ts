@@ -131,7 +131,7 @@ function undeclaredNames(code: string): string[] {
 }
 
 /** Ce que la réponse a de mal formé (vide si elle est bonne). */
-export async function checkComponent(code: string, policy: ImportPolicy): Promise<string[]> {
+export async function checkComponent(code: string, policy: ImportPolicy, options: { keepColors?: boolean } = {}): Promise<string[]> {
   const problems: string[] = [];
 
   if (!/export\s+default\s+function\s+[A-Z]\w*\s*\(/.test(code)) {
@@ -208,7 +208,8 @@ export async function checkComponent(code: string, policy: ImportPolicy): Promis
 
   const palette = Array.from(new Set((code.match(PALETTE_CLASS) ?? []).map((item) => item.trim().replace(/^[:"'`]/, ''))));
   const arbitrary = Array.from(new Set(code.match(ARBITRARY_COLOR) ?? []));
-  if (palette.length || arbitrary.length) {
+  // Une retouche où la personne a demandé une couleur précise (« le bouton en vert ») : elle est permise.
+  if (!options.keepColors && (palette.length || arbitrary.length)) {
     problems.push(
       `couleurs hors thème : ${[...palette, ...arbitrary].slice(0, 6).join(', ')}. Utilise seulement les couleurs du thème (bg-primary, text-muted-foreground, bg-primary/10, border-border…)`
     );
@@ -481,6 +482,8 @@ export interface ReviewContext {
    * Absent : pas de vérification d'exécution.
    */
   siteFiles?: () => Record<string, string>;
+  /** Une retouche qui a le droit de changer les couleurs : une couleur écrite en dur n'est pas ramenée au thème. */
+  keepColors?: boolean;
 }
 
 /** Le composant vérifié : son chemin dans le projet et les props que la page lui passe. */
@@ -509,12 +512,12 @@ export interface Review {
  * forme comme un autre.
  */
 export async function reviewComponent(raw: string, ctx: ReviewContext, target?: ReviewTarget): Promise<Review> {
-  const corrected = autocorrect(extractCode(raw), ctx.theme);
+  const corrected = autocorrect(extractCode(raw), ctx.theme, { keepColors: ctx.keepColors });
   // Les marques d'un site « généré » (émojis, dégradés, effet verre…) : retirées par le code, comme partout.
   const slop = cleanSlop(corrected.code);
   if (slop.fixes.length) corrected.fixes = [...corrected.fixes, ...slop.fixes];
   corrected.code = slop.code;
-  const problems = await checkComponent(corrected.code, ctx.policy);
+  const problems = await checkComponent(corrected.code, ctx.policy, { keepColors: ctx.keepColors });
   if (problems.length) return { code: corrected.code, problems, invented: [], empty: false, fixes: corrected.fixes };
   const runtime =
     target && ctx.siteFiles

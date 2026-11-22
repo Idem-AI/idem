@@ -12,6 +12,7 @@
  * départ telle quelle donne donc déjà un site à la charte.
  */
 
+import { withoutBannedFonts } from '../design/bannedFonts.js';
 import { ProjectModel } from '../types/project.js';
 import { forgeDesignSystem, DesignSystem } from '../design/tokenForge.js';
 import { isLightSurface, readFonts, readPalette } from '../design/charter.js';
@@ -523,6 +524,16 @@ export async function configureDesignSystem(options: {
     if (current !== value) {
       setPath(config, path, value);
       if (current !== undefined) enforced.push(`${path.slice(1).join('.')} (charte)`);
+    }
+  }
+
+  // Une police interdite (`design/bannedFonts.ts`) choisie par le modèle est remplacée, nom et feuille.
+  const typo = config.tokens?.typography;
+  if (typo) {
+    const clean = withoutBannedFonts(typo);
+    if (clean !== typo) {
+      config.tokens.typography = clean;
+      enforced.push('police interdite remplacée');
     }
   }
 

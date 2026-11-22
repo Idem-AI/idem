@@ -80,7 +80,7 @@ export function siteDataOf(facts: SiteFacts, manifest: SiteManifest | null, lang
       email: facts.email,
       channels: facts.channels.map((channel) => ({ label: channel.label, value: channel.value, href: channel.href ?? '' })),
     },
-    primaryAction: primaryActionOf(facts, language),
+    primaryAction: manifest?.action ?? primaryActionOf(facts, language),
     navigation: manifest ? navigationOf(manifest) : [],
     pages: manifest ? manifest.pages.map((page) => ({ label: page.label, href: page.path })) : [{ label: facts.name, href: '/' }],
     offers: facts.offers.map((offer) => ({ name: offer.name, price: offer.price, notes: offer.notes })),

@@ -216,7 +216,7 @@ Per-feature costs, per-creativity-level prices and margins, and the quota matrix
 
 1. **Switching to `enforce`** — billing and usage quotas run in `log` mode until the figures are read (`billing.enforcement_shadow`, `usage_quota_refusals_total`, `generation_over_budget_total`), after the 6-week pilot.
 2. **Boutique** — the meter tier exists, but merchant checkout and the 4 % commission collection are not built.
-3. **Domains** — registrar connectors (Domain Name API, Openprovider) and automatic renewal; orders are settled by hand meanwhile. The domain included in the yearly Entreprise pass is not applied automatically.
+3. **Domains** — registrar connector (Domain Name API) and automatic renewal; orders are settled by hand meanwhile. The domain included in the yearly Entreprise pass is not applied automatically.
 4. **iDeploy** — wake-on-visit for Veille, per-application traffic metering (day upgraded to the next meter), SMS/WhatsApp alerts.
 5. **Third-party payers** — bank-paid financing files (10,000 F) and cohort invoicing are not in the code.
 6. **Signed free video download in iVision** — free visuals download with the mark; free videos are watched online only.

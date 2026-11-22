@@ -10,7 +10,7 @@
         "start": "node dist/main.js",
         "site:runtime": "npm ci --prefix site-runtime --no-audit --no-fund",
         "check:site-render": "tsx scripts/check-site-render.ts",
-        "check:site-edit": "tsx scripts/check-site-edit.ts",
+        "check:site-edit": "tsx scripts/check-site-edit.ts && tsx scripts/check-site-edit-flow.ts",
         "check:site-build": "tsx scripts/check-site-build.ts",
         "check:site-style": "tsx scripts/check-site-style.ts",
         "check:redesign": "tsx scripts/check-redesign.ts",

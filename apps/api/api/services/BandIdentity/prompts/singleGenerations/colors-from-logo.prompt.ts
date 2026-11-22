@@ -134,7 +134,7 @@ STYLE SUGGESTION: {{STYLE_HINT}}
 - Read the logo first: its letterforms, its weight, its geometry. The text family must extend that language, not fight it.
 - Vivid, geometric logo -> a geometric or grotesque display (Archivo, Chivo, Syne, Sora).
 - Deep, institutional logo -> a refined serif display plus a humanist sans for text (Fraunces or Playfair Display + IBM Plex Sans).
-- Organic, soft logo -> a humanist display with open curves (Bricolage Grotesque, Epilogue, Young Serif).
+- Organic, soft logo -> a humanist display with open curves (Epilogue, Young Serif, Outfit).
 - Condensed or stencil logo -> a condensed display (Bebas Neue, Big Shoulders Display, Anton).
 - The display weight matches the visual weight of the logo.
 - primaryFont carries the personality; secondaryFont must stay readable at 14-16px.
@@ -154,7 +154,8 @@ Also banned as dated: Lobster, Pacifico, Comfortaa, Bangers, Righteous.
 - Bold / expressive / cultural: Anton, Bebas Neue, Archivo Black, Syne, Big Shoulders Display + text: Work Sans, Figtree, Karla.
 - Technical / precise: Chivo, Sora, Unbounded, Geist + text: IBM Plex Sans, Instrument Sans, Public Sans.
 - Warm / craft / hospitality: Fraunces, Young Serif, Bitter, Zilla Slab, DM Serif Display + text: Karla, Asap, Figtree.
-- Human / accessible: Bricolage Grotesque, Epilogue, Lexend, Onest + text: Atkinson Hyperlegible, Figtree, Hanken Grotesk.
+- Human / accessible: Epilogue, Lexend, Onest, Outfit + text: Atkinson Hyperlegible, Figtree, Hanken Grotesk.
+- Never propose Bricolage Grotesque (banned by IDEM).
 </curated_register>
 
 <font_sources>

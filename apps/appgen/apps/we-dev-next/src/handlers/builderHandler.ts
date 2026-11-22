@@ -218,8 +218,12 @@ export async function handleBuilderMode(
   // Une RETOUCHE d'un site vitrine déjà généré : le moteur de modification ciblée — seule la partie visée
   // change (un réglage du design system, des passages d'une section, ou une section ajoutée), au lieu de
   // renvoyer tout le site au modèle et de le laisser réécrire ce qu'il veut.
-  if (target === 'site' && !isFirstTurn && !qualityRepair?.trim() && projectData && isEditableSite(siteEdit?.files)) {
-    ChatLogger.info('SITE_EDIT', 'Retouche ciblée', { files: Object.keys(siteEdit!.files).length });
+  // Ce sont les fichiers qui disent qu'il s'agit d'un site du moteur, pas l'adresse ni le projet : un site créé depuis
+  // l'accueil (projet tiré de la demande, jamais enregistré) ou refait depuis une adresse n'a pas de `projectData` aux
+  // tours suivants, et une session rouverte sans `?product=site` se croyait une application. Ces retouches partaient
+  // chez le builder général, qui ne modifiait rien de concret.
+  if (!isFirstTurn && !qualityRepair?.trim() && isEditableSite(siteEdit?.files)) {
+    ChatLogger.info('SITE_EDIT', 'Retouche ciblée', { files: Object.keys(siteEdit!.files).length, target, hasProject: !!projectData });
     ChatLogger.stepEnd('handleBuilderMode', Date.now() - startTime);
     return createSiteEditStream({
       projectData,
@@ -230,6 +234,7 @@ export async function handleBuilderMode(
       files: siteEdit!.files,
       model,
       userId,
+      credentials,
     });
   }
 

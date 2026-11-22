@@ -1,7 +1,8 @@
 /**
  * Le registre des connecteurs. Un fournisseur n'est interrogé que s'il est À LA FOIS activé en
  * base (`registrar_providers.enabled`, réglé depuis la console) et configuré (ses identifiants
- * sont dans Infisical). Openprovider et Clouder s'ajoutent ici, derrière la même interface.
+ * sont dans Infisical). Domain Name API est le seul fournisseur réel ; un autre s'ajouterait ici,
+ * derrière la même interface.
  */
 import { env } from '../../config/env';
 import { DomainNameApiAdapter } from './domainnameapi';

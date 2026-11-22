@@ -31,6 +31,13 @@ export interface PricingRules {
   maxYears: number;
   /** Une vente financée (promotion, pack, forfait Entreprise) peut être à perte : un autre poste la paie. */
   allowLossOnFundedPromotions: boolean;
+  /**
+   * Réserve sur le coût de la GRILLE quand le code fixe lui-même le prix d'une extension (mise en
+   * vente du catalogue d'un fournisseur) : le coût annoncé en direct à la recherche dépasse souvent
+   * la grille publiée (.com : 11,99 $ en direct pour 11,31 $ en grille), et un prix posé au plancher
+   * exact serait refusé dès la première recherche.
+   */
+  autoPriceCostCushionRate: number;
 }
 
 export type Operation = 'register' | 'renew' | 'transfer';
@@ -175,4 +182,5 @@ export const DEFAULT_RULES: PricingRules = {
   degradedPenaltyXaf: 300,
   maxYears: 5,
   allowLossOnFundedPromotions: true,
+  autoPriceCostCushionRate: 0.1,
 };

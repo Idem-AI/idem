@@ -22,6 +22,7 @@
  *   primaire de la marque n'apparaissait nulle part sur le site.
  */
 
+import { withoutBannedFonts } from './bannedFonts.js';
 import { contrastRatio, hexToOklch, oklchToHex } from './color.js';
 import { catalogDirection } from '../siteEngine/sectionCatalog/registry.js';
 
@@ -62,7 +63,9 @@ export interface CharterFonts {
  * avant le nom historique `primaryFont`/`secondaryFont`.)
  */
 export function readFonts(branding: any): CharterFonts {
-  const typography = branding?.typography;
+  // Une police interdite (`bannedFonts.ts` : Bricolage Grotesque), même enregistrée dans un projet ancien, n'est
+  // jamais écrite dans un site : noms et feuilles réécrits vers sa remplaçante.
+  const typography = withoutBannedFonts(branding?.typography);
   const display = String(typography?.primary?.family || typography?.primaryFont || '').trim();
   const body = String(typography?.secondary?.family || typography?.secondaryFont || '').trim();
   const sheet = String(typography?.url || '').trim();

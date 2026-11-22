@@ -5,12 +5,14 @@
  *     échoueraient chez ce fournisseur.)
  *   - COÛTS et CAPACITÉS : la grille de chaque fournisseur, relevée par son API, remplace les
  *     coûts de la veille ; un coût saisi à la main dans la console (grille négociée) n'est pas écrasé.
+ *     Un fournisseur activé met ensuite son catalogue en vente (`priceProviderCatalog`).
  */
 import { z } from 'zod';
 import { query, withTransaction } from '../../config/db';
 import logger, { logCritical } from '../../config/logger';
 import { configuredRegistrars, RegistrarError, registrar } from '../../integrations/registrars';
 import { audit } from '../audit/audit.service';
+import { priceProviderCatalog } from '../pricing/catalog.service';
 
 export async function checkProviderHealth(): Promise<void> {
   const providers = await query<{ code: string; enabled: boolean; balance_alert_below: string }>(`SELECT code, enabled, balance_alert_below FROM registrar_providers`);
@@ -40,8 +42,9 @@ export async function checkProviderHealth(): Promise<void> {
 }
 
 /** Relève la grille de chaque fournisseur configuré (coûts d'une année, durées, extensions). */
-export async function syncProviderCosts(): Promise<{ provider: string; tlds: number }[]> {
-  const out: { provider: string; tlds: number }[] = [];
+export async function syncProviderCosts(): Promise<{ provider: string; tlds: number; catalog?: Awaited<ReturnType<typeof priceProviderCatalog>> }[]> {
+  const out: { provider: string; tlds: number; catalog?: Awaited<ReturnType<typeof priceProviderCatalog>> }[] = [];
+  const enabled = new Set((await query<{ code: string }>(`SELECT code FROM registrar_providers WHERE enabled`)).map((p) => p.code));
   for (const adapter of configuredRegistrars()) {
     try {
       const pricing = await adapter.listTldPricing();
@@ -65,8 +68,10 @@ export async function syncProviderCosts(): Promise<{ provider: string; tlds: num
           }
         }
       });
-      out.push({ provider: adapter.code, tlds: pricing.length });
-      logger.info('provider.costs_synced', { event: 'provider.costs_synced', provider: adapter.code, tlds: pricing.length });
+      // Un fournisseur activé met son catalogue en vente : chaque extension qu'il vend reçoit son prix.
+      const catalog = enabled.has(adapter.code) ? await priceProviderCatalog(adapter.code) : undefined;
+      out.push({ provider: adapter.code, tlds: pricing.length, ...(catalog ? { catalog } : {}) });
+      logger.info('provider.costs_synced', { event: 'provider.costs_synced', provider: adapter.code, tlds: pricing.length, ...(catalog ?? {}) });
     } catch (error) {
       logger.error('provider.costs_sync_failed', { event: 'provider.costs_sync_failed', provider: adapter.code, error });
     }

@@ -8,7 +8,7 @@
  */
 import { activeCatalog, activePromotion, CatalogRow, PromotionRow } from './catalog.service';
 import { CostedOffer, Operation, ProviderOffer, publicPriceXaf, selectProvider } from './engine';
-import { liveOffers, recordQuotes } from './provider-pricing.service';
+import { liveOffers, liveOffersMany, recordQuotes } from './provider-pricing.service';
 import { activeRules } from './rules.service';
 import { normalizeDomain } from '../../utils/domain-name';
 
@@ -69,22 +69,25 @@ export async function quoteDomains(rawDomains: string[], options: QuoteOptions =
   for (const p of parsed) byTld.set(p.tld, [...(byTld.get(p.tld) ?? []), p.name]);
 
   const out: InternalQuote[] = [];
-  await Promise.all(
+  // Le catalogue et la promotion de chaque extension, puis UNE interrogation des fournisseurs pour
+  // tous les noms vendables, quelle que soit leur extension.
+  const priced = await Promise.all(
     [...byTld.entries()].map(async ([tld, names]) => {
       const catalog = await activeCatalog(tld);
       const promotion = catalog?.on_sale ? await activePromotion(tld, operation) : null;
-      if (!catalog || !catalog.on_sale) {
-        for (const domain of names) out.push(empty(domain, tld, operation, years, rulesId, 'not_sold'));
-        return;
-      }
-      const offersByDomain = await liveOffers(names, tld, operation, years, context, promotion);
-      for (const domain of names) {
-        const quote = decide(domain, tld, operation, years, catalog, promotion, offersByDomain.get(domain) ?? [], rules, rulesId, Boolean(options.atCost));
-        out.push(quote);
-        if (options.record?.(domain)) await recordQuotes(domain, operation, years, context, quote.offers, offersByDomain.get(domain) ?? []);
-      }
+      return { tld, names, catalog, promotion };
     })
   );
+  const sellable = priced.filter((p) => p.catalog?.on_sale);
+  for (const p of priced) if (!p.catalog?.on_sale) for (const domain of p.names) out.push(empty(domain, p.tld, operation, years, rulesId, 'not_sold'));
+  const offersByDomain = sellable.length ? await liveOffersMany(sellable.map((p) => ({ tld: p.tld, domains: p.names, promotion: p.promotion })), operation, years, context) : new Map();
+  for (const p of sellable) {
+    for (const domain of p.names) {
+      const quote = decide(domain, p.tld, operation, years, p.catalog!, p.promotion, offersByDomain.get(domain) ?? [], rules, rulesId, Boolean(options.atCost));
+      out.push(quote);
+      if (options.record?.(domain)) await recordQuotes(domain, operation, years, context, quote.offers, offersByDomain.get(domain) ?? []);
+    }
+  }
   // L'ordre demandé (le nom tapé d'abord).
   const order = parsed.map((p) => p.name);
   return out.sort((a, b) => order.indexOf(a.domain) - order.indexOf(b.domain));

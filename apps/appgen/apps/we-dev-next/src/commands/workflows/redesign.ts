@@ -126,8 +126,8 @@ function chosenLanguages(answer: ChoicesAnswer): string[] {
 
 /**
  * Les réponses posées après le relevé — « Quelles couleurs pour le nouveau site ? » (le logo et le site ne
- * s'accordent pas), « Dans quelles langues ? » (un traducteur automatique) : la refonte reprend là où elle
- * s'était arrêtée, sans relire le site.
+ * s'accordent pas), « Dans quelles langues ? » (un traducteur automatique), « Changer la police du site ? » (polices
+ * par défaut) : la refonte reprend là où elle s'était arrêtée, sans relire le site.
  */
 export function runRedesignColors(ctx: CommandContext, answer: ChoicesAnswer): Responder {
   const context = answer.context ?? {};
@@ -149,7 +149,13 @@ export function runRedesignColors(ctx: CommandContext, answer: ChoicesAnswer): R
       focus,
       consent: true,
       creativity: ctx.creativity,
-      resume: { projectId, colors: answer.values.colors === 'logo' ? 'logo' : 'site', languages: chosenLanguages(answer) },
+      resume: {
+        projectId,
+        colors: answer.values.colors === 'logo' ? 'logo' : 'site',
+        languages: chosenLanguages(answer),
+        // « Changer la police du site ? » (polices par défaut) : posée avec les couleurs et les langues.
+        ...(answer.values.fonts === 'change' || answer.values.fonts === 'keep' ? { fonts: answer.values.fonts } : {}),
+      },
     },
   });
 }

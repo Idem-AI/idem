@@ -22,6 +22,8 @@ export interface SearchResult {
   exact: Quote | null;
   extensions: Quote[];
   suggestions: Quote[];
+  /** Le lot d'extensions suivant à essayer, ou null quand tout le catalogue l'a été. */
+  more?: { nextOffset: number | null; total: number };
 }
 
 export interface PriceSession extends Quote {
@@ -106,7 +108,8 @@ export class IdomainError extends Error {
 }
 
 export interface IdomainClient {
-  search(q: string, years?: number): Promise<SearchResult>;
+  /** `offset` : le lot d'extensions suivant (`more.nextOffset` de la réponse précédente). */
+  search(q: string, years?: number, offset?: number): Promise<SearchResult>;
   me(): Promise<{ user: { uid: string; email: string; displayName?: string }; contact: Contact | null; atCost: boolean }>;
   saveContact(contact: Contact): Promise<{ contact: Contact }>;
   priceSession(domain: string, years: number): Promise<PriceSession>;
@@ -148,7 +151,7 @@ export function createIdomainClient(apiUrl: string, language: () => string = () 
     return s ? `?${s}` : '';
   };
   return {
-    search: (text, years = 1) => call('GET', `/domains/search${q({ q: text, years })}`),
+    search: (text, years = 1, offset) => call('GET', `/domains/search${q({ q: text, years, offset: offset || undefined })}`),
     me: () => call('GET', '/me'),
     saveContact: (contact) => call('PUT', '/contact', contact),
     priceSession: (domain, years) => call('POST', '/price-sessions', { domain, years }),

@@ -78,6 +78,8 @@ export interface SiteInventory {
   pages: InventoryPage[];
   skipped: { url: string; label: string }[];
   navigation: { label: string; href: string }[];
+  /** Les boutons d'action de l'en-tête, hors du menu (relevés depuis le 22/11/2026). */
+  headerActions?: { label: string; href: string }[];
   footer: { texts: string[]; links: { label: string; href: string }[] };
   contact: { phones: string[]; emails: string[]; whatsapp: string[]; addresses: string[]; socials: { network: string; url: string }[] };
   assets: { favicon?: string; appleIcon?: string; ogImage?: string; images: (InventoryImage & { page: string; section: string })[] };
@@ -193,7 +195,9 @@ export function linkMapper(inventory: SiteInventory, pathOf: (pageIndex: number)
   });
   return (href: string) => {
     try {
-      const u = new URL(href);
+      // Un lien relatif de l'ancien site (« /contact/ ») se lit depuis son adresse : sinon il restait l'ancien chemin.
+      const u = new URL(href, `${inventory.origin.replace(/\/$/, '')}/`);
+      if (u.origin !== new URL(inventory.origin).origin) return href;
       const key = `${u.origin}${u.pathname}`.replace(/\/$/, '');
       const mapped = byUrl.get(key);
       return mapped ? `${mapped}${u.hash}` : href;

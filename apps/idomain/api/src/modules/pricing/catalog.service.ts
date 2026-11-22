@@ -6,7 +6,31 @@
 import { z } from 'zod';
 import { Db, one, query, withTransaction } from '../../config/db';
 import { audit } from '../audit/audit.service';
-import { Operation } from './engine';
+import { isSellableSuffix } from '../../utils/domain-name';
+import { minimumPriceXaf, Operation } from './engine';
+import { activeRules } from './rules.service';
+
+/**
+ * Les extensions mises en avant, dans cet ordre : la recherche essaie le nom tapé sur celles-ci
+ * (jamais sur tout le catalogue, qui compte des centaines d'extensions), et la page d'accueil n'en
+ * affiche pas d'autres. La première en vente est celle qu'on ajoute à un nom tapé sans extension.
+ * Toute autre extension du catalogue se vend quand même : il suffit de la taper.
+ */
+export const FEATURED_TLDS = ['com', 'net', 'org', 'co', 'shop', 'store', 'online', 'site', 'pro', 'biz', 'info', 'app', 'io', 'tech', 'me'];
+/** Au plus, combien d'extensions mises en avant sont montrées et interrogées à la fois. */
+export const FEATURED_LIMIT = 8;
+
+/** Les extensions mises en avant parmi celles en vente, dans l'ordre de `FEATURED_TLDS`. */
+export function featuredTlds(onSale: string[]): string[] {
+  const set = new Set(onSale);
+  const featured = FEATURED_TLDS.filter((t) => set.has(t));
+  // Catalogue sans aucune extension mise en avant : les premières par ordre alphabétique.
+  return (featured.length ? featured : [...onSale].sort()).slice(0, FEATURED_LIMIT);
+}
+
+/** Auteur des lignes de catalogue posées par le code (le seul qu'il a le droit de réviser). */
+const SYNC_AUTHOR = (providerCode: string) => `sync:${providerCode}`;
+const MAX_PRICE_XAF = 5_000_000;
 
 export interface CatalogRow {
   id: number;
@@ -127,4 +151,92 @@ export async function endPromotion(id: number, actor: string): Promise<void> {
 export async function listPromotions(): Promise<PromotionRow[]> {
   const rows = await query<PromotionRow & { id: string }>(`SELECT * FROM promotions WHERE ends_at > now() - interval '90 days' ORDER BY starts_at DESC LIMIT 200`);
   return rows.map((r) => ({ ...r, id: Number(r.id) }));
+}
+
+/**
+ * Met en vente le catalogue d'un fournisseur : chaque extension qu'il sait enregistrer ET renouveler
+ * reçoit un prix public calculé par le code — le plancher de marge (`minimumPriceXaf`) sur son coût
+ * de grille majoré de la réserve `autoPriceCostCushionRate`.
+ *
+ * Le code ne révise que ses propres lignes (`created_by = sync:<fournisseur>`) : un prix fixé en
+ * console, ou une extension retirée de la vente à la main (`.africa`), n'est jamais touché. Une
+ * extension que le fournisseur ne vend plus sort de la vente. Chaque changement ferme la ligne
+ * active et en ouvre une nouvelle, comme `setCatalogPrice`.
+ */
+export async function priceProviderCatalog(providerCode: string): Promise<{ opened: number; repriced: number; withdrawn: number }> {
+  const { rules } = await activeRules();
+  const author = SYNC_AUTHOR(providerCode);
+  const rows = await query<{
+    tld: string;
+    can_register: boolean;
+    can_renew: boolean;
+    can_transfer: boolean;
+    currency: string;
+    xaf_per_unit: string | null;
+    membership_fee_year: string;
+    expected_operations_year: number;
+    fee_per_operation: string;
+    costs: Record<string, string> | null;
+  }>(
+    `SELECT c.tld, c.can_register, c.can_renew, c.can_transfer, p.currency, fx.xaf_per_unit, p.membership_fee_year, p.expected_operations_year, p.fee_per_operation,
+            (SELECT json_object_agg(pc.operation, pc.cost) FROM provider_costs pc
+              WHERE pc.provider_code = c.provider_code AND pc.tld = c.tld AND pc.years = 1 AND pc.currency = p.currency) AS costs
+       FROM provider_capabilities c
+       JOIN registrar_providers p ON p.code = c.provider_code
+       LEFT JOIN fx_rates fx ON fx.currency = p.currency
+      WHERE c.provider_code = $1`,
+    [providerCode]
+  );
+
+  const priceOf = (cost: string | undefined, row: (typeof rows)[number]): number | null => {
+    if (cost === undefined || !row.xaf_per_unit) return null;
+    const perOperation = Number(row.membership_fee_year) / Math.max(1, row.expected_operations_year) + Number(row.fee_per_operation);
+    const totalCostXaf = Math.round((Number(cost) * (1 + rules.autoPriceCostCushionRate) + perOperation) * Number(row.xaf_per_unit));
+    const price = minimumPriceXaf(totalCostXaf, rules);
+    return Number.isFinite(price) && price > 0 && price <= MAX_PRICE_XAF ? price : null;
+  };
+
+  const wanted = new Map<string, { register: number; renew: number; transfer: number | null }>();
+  for (const r of rows) {
+    if (!r.can_register || !r.can_renew || !isSellableSuffix(r.tld)) continue;
+    const register = priceOf(r.costs?.register, r);
+    const renew = priceOf(r.costs?.renew, r);
+    if (register === null || renew === null) continue;
+    wanted.set(r.tld, { register, renew, transfer: r.can_transfer ? priceOf(r.costs?.transfer, r) : null });
+  }
+
+  const counts = { opened: 0, repriced: 0, withdrawn: 0 };
+  await withTransaction(async (client) => {
+    const active = await query<CatalogRow & { id: string; created_by: string }>(`SELECT * FROM public_price_catalog WHERE valid_to IS NULL`, [], client);
+    const byTld = new Map(active.map((a) => [a.tld, a]));
+    const open = (tld: string, p: { register: number | null; renew: number | null; transfer: number | null }, onSale: boolean, note: string) =>
+      client.query(
+        `INSERT INTO public_price_catalog (tld, register_xaf, renew_xaf, transfer_xaf, pack_xaf, on_sale, created_by, note) VALUES ($1, $2, $3, $4, NULL, $5, $6, $7)`,
+        [tld, p.register, p.renew, p.transfer, onSale, author, note]
+      );
+    const close = (id: string) => client.query(`UPDATE public_price_catalog SET valid_to = now() WHERE id = $1`, [id]);
+
+    for (const [tld, p] of wanted) {
+      const current = byTld.get(tld);
+      if (!current) {
+        await open(tld, p, true, 'Catalogue du fournisseur, au plancher de marge');
+        counts.opened++;
+      } else if (current.created_by === author && (current.register_xaf !== p.register || current.renew_xaf !== p.renew || current.transfer_xaf !== p.transfer || !current.on_sale)) {
+        await close(current.id);
+        await open(tld, p, true, 'Catalogue du fournisseur, au plancher de marge');
+        counts.repriced++;
+      }
+    }
+    // Ce que le fournisseur ne vend plus (ou plus à un prix calculable) sort de la vente.
+    for (const current of active) {
+      if (current.created_by !== author || !current.on_sale || wanted.has(current.tld)) continue;
+      await close(current.id);
+      await open(current.tld, { register: current.register_xaf, renew: current.renew_xaf, transfer: current.transfer_xaf }, false, 'Plus proposé par le fournisseur');
+      counts.withdrawn++;
+    }
+    if (counts.opened || counts.repriced || counts.withdrawn) {
+      await audit({ actorKind: 'system', actorId: author, action: 'catalog.provider_priced', targetType: 'provider', targetId: providerCode, data: counts }, client);
+    }
+  });
+  return counts;
 }

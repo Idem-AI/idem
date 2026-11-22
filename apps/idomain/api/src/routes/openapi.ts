@@ -28,7 +28,7 @@ export const openApiDocument = {
       Quote: {
         type: 'object',
         properties: {
-          domain: { type: 'string', example: 'ma-boutique.africa' },
+          domain: { type: 'string', example: 'ma-boutique.com' },
           tld: { type: 'string' },
           operation: { enum: ['register', 'renew', 'transfer'] },
           years: { type: 'integer' },
@@ -86,10 +86,24 @@ export const openApiDocument = {
     '/catalog': { get: { summary: 'Prix publics par extension', security: [], responses: { 200: ok({ type: 'object' }) } } },
     '/domains/search': {
       get: {
-        summary: 'Rechercher un nom et obtenir son prix public',
+        summary: 'Rechercher un nom sur tout le catalogue, lot par lot (exact seulement si une extension est tapée)',
         security: [],
-        parameters: [{ name: 'q', in: 'query', required: true, schema: { type: 'string' } }, { name: 'years', in: 'query', schema: { type: 'integer', minimum: 1, maximum: 10 } }],
-        responses: { 200: ok({ type: 'object', properties: { exact: ref('Quote'), extensions: { type: 'array', items: ref('Quote') }, suggestions: { type: 'array', items: ref('Quote') } } }) },
+        parameters: [
+          { name: 'q', in: 'query', required: true, schema: { type: 'string' } },
+          { name: 'years', in: 'query', schema: { type: 'integer', minimum: 1, maximum: 10 } },
+          { name: 'offset', in: 'query', schema: { type: 'integer', minimum: 0 }, description: 'Lot suivant : la valeur `more.nextOffset` de la réponse précédente' },
+        ],
+        responses: {
+          200: ok({
+            type: 'object',
+            properties: {
+              exact: ref('Quote'),
+              extensions: { type: 'array', items: ref('Quote') },
+              suggestions: { type: 'array', items: ref('Quote') },
+              more: { type: 'object', properties: { nextOffset: { type: ['integer', 'null'] }, total: { type: 'integer' } } },
+            },
+          }),
+        },
       },
     },
     '/contact': { get: { summary: 'Titulaire par défaut', responses: { 200: ok({ type: 'object' }), ...errors } }, put: { summary: 'Enregistrer le titulaire', responses: { 200: ok({ type: 'object' }), ...errors } } },

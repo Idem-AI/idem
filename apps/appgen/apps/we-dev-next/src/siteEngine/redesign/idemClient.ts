@@ -38,6 +38,8 @@ export interface SiteContent {
   /** Les couleurs du site vont-elles avec son logo ? */
   brandCheck?: { coherent: boolean; sitePrimary: string; logoColors: string[]; distance: number };
   palettes?: { site?: string; logo?: string };
+  /** Les polices du site sont-elles des polices par défaut ? La refonte demande alors s'il faut en changer. */
+  typographyCheck?: { display: string; body: string; isDefault: boolean };
 }
 
 export interface SiteImportResult {
@@ -46,8 +48,7 @@ export interface SiteImportResult {
   name: string;
   siteUrl: string;
   logo: boolean;
-  /** `upgradedFrom` : polices par défaut de l'ancien site, remplacées pour la refonte. */
-  fonts: { display: string; body: string; copied: string[]; upgradedFrom?: { display: string; body: string } };
+  fonts: { display: string; body: string; copied: string[] };
   warnings: string[];
   content?: SiteContent;
 }
@@ -127,6 +128,32 @@ export async function importSite(options: {
 /** Le contenu d'une refonte déjà relevée (reprise après une question). */
 export function fetchSiteContent(projectId: string, credentials: Record<string, string>, signal: AbortSignal): Promise<SiteContent> {
   return request<SiteContent>(`/appgen/site-import/project/${encodeURIComponent(projectId)}/content`, credentials, { signal, timeoutMs: 30_000 });
+}
+
+/**
+ * « Changer de police ? » → oui : l'IA choisit la typographie du projet, et le projet la prend. `null` si rien n'a
+ * convenu (les polices du site restent).
+ */
+export async function chooseRedesignTypography(projectId: string, credentials: Record<string, string>, signal: AbortSignal): Promise<{ from: { display: string; body: string }; to: { display: string; body: string } } | null> {
+  try {
+    return await request(`/appgen/site-import/project/${encodeURIComponent(projectId)}/typography`, credentials, { method: 'POST', body: '{}', signal, timeoutMs: 120_000 });
+  } catch (error) {
+    if (error instanceof IdemApiError && (error.status === 401 || error.status === 429)) throw error;
+    return null;
+  }
+}
+
+/**
+ * Une police demandée à la retouche d'un site : retrouvée dans les catalogues, son adresse renvoyée telle quelle (rien
+ * n'est téléchargé). `null` : aucune police de ce nom. Lève si l'API est injoignable.
+ */
+export async function resolveSiteFont(family: string, credentials: Record<string, string>, signal: AbortSignal): Promise<{ family: string; cssUrl: string } | null> {
+  try {
+    return await request(`/appgen/site-fonts/resolve`, credentials, { method: 'POST', body: JSON.stringify({ family }), signal, timeoutMs: 20_000 });
+  } catch (error) {
+    if (error instanceof IdemApiError && error.status === 404) return null;
+    throw error;
+  }
 }
 
 /** La palette retenue : celle du site (par défaut) ou celle tirée du logo. */

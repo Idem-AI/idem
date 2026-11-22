@@ -1,7 +1,7 @@
 import { FormEvent, ReactNode, useEffect, useRef, useState } from 'react';
 import { IdemLoader } from '@idem/shared-loader/react';
 import { Connection, Contact, Quote, createIdomainClient } from '../client';
-import { DomainPurchaseFlow, PURCHASE_STAGES, PurchaseState, formatXaf, stageIndex } from '../flow';
+import { DomainPurchaseFlow, PURCHASE_STAGES, PurchaseState, emptySearchKey, formatXaf, freeNames, stageIndex } from '../flow';
 import { CONTACT_FIELDS, FACADE_PATHS, idomainText } from '../texts';
 
 export interface DomainPurchaseProps {
@@ -141,23 +141,26 @@ export function DomainPurchase({ apiUrl, appUuid = null, appName = null, lang = 
         {s.searching && !r && <div className="mt-4 space-y-2"><div className="skeleton h-14 rounded-xl" /><div className="skeleton h-12 rounded-xl" /></div>}
         {r && (
           <>
-            {r.exact ? (
-              <ul className="mt-4 overflow-hidden rounded-xl border border-[var(--glass-border)]">{row(r.exact, true)}</ul>
+            {r.exact && <ul className="mt-4 overflow-hidden rounded-xl border border-[var(--glass-border)]">{row(r.exact, true)}</ul>}
+            {freeNames(r).length > 0 ? (
+              <>
+                <p className="mt-5 text-xs font-medium text-[var(--color-text-secondary)]">{t(r.exact ? 'search.otherExtensions' : 'search.freeOn')}</p>
+                <ul className="mt-2 divide-y divide-[var(--glass-border-subtle)] overflow-hidden rounded-xl border border-[var(--glass-border-subtle)]">{freeNames(r).map((q) => row(q))}</ul>
+              </>
             ) : (
-              <p className="mt-4 text-sm text-[var(--color-text-secondary)]">{t('search.invalid')}</p>
+              !r.exact && !s.searching && !s.checkingMore && <p className="mt-4 text-sm text-[var(--color-text-secondary)]">{t(emptySearchKey(r))}</p>
             )}
-            {r.suggestions.length > 0 && (
-              <>
-                <p className="mt-5 text-xs font-medium text-[var(--color-text-secondary)]">{t('search.suggestions')}</p>
-                <ul className="mt-2 divide-y divide-[var(--glass-border-subtle)] overflow-hidden rounded-xl border border-[var(--glass-border-subtle)]">{r.suggestions.map((q) => row(q))}</ul>
-              </>
-            )}
-            {r.extensions.length > 0 && (
-              <>
-                <p className="mt-5 text-xs font-medium text-[var(--color-text-secondary)]">{t('search.otherExtensions')}</p>
-                <ul className="mt-2 divide-y divide-[var(--glass-border-subtle)] overflow-hidden rounded-xl border border-[var(--glass-border-subtle)]">{r.extensions.map((q) => row(q))}</ul>
-              </>
-            )}
+            {s.checkingMore ? (
+              <p className="mt-3 flex items-center gap-2 text-xs text-[var(--color-text-secondary)]">
+                <IdemLoader size="xs" />
+                {t('search.checkingMore', { checked: s.checkingMore.checked, total: s.checkingMore.total })}
+              </p>
+            ) : s.remaining > 0 ? (
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                <button type="button" className="outer-button button-sm" onClick={() => void flow.loadMore()}>{t('search.loadMore')}</button>
+                <span className="text-xs text-[var(--color-text-secondary)]">{t('search.remaining', { count: s.remaining })}</span>
+              </div>
+            ) : null}
           </>
         )}
       </>

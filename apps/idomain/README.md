@@ -33,7 +33,7 @@ flowchart LR
     API --> PG[("PostgreSQL<br/>database idomain")]
     API --> Redis[("Redis<br/>BullMQ, prefix idomain")]
     Worker["worker<br/>src/worker.ts"] --> PG & Redis
-    Worker --> Reg["Registrars<br/>Domain Name API (+ Openprovider, Clouder later)"]
+    Worker --> Reg["Registrars<br/>Domain Name API"]
     API -- "signed webhooks" --> Products["iDeploy, iCode"]
 ```
 
@@ -193,7 +193,7 @@ Optional: `IDOMAIN_ADMIN_KEY`, `IDOMAIN_WEBHOOK_SECRET`, `DNA_RESELLER_ID`, `DNA
 
 ## Not built yet
 
-Automatic renewals and reminders (J-30, J-15, J-7, J-1), transfers in the UI, the Openprovider and
-Clouder connectors, DNS providers driven by API (Cloudflare…), the dedicated domain invoice in
+Automatic renewals and reminders (J-30, J-15, J-7, J-1), transfers in the UI, a second registrar
+(only Domain Name API is connected; its whole catalogue is put on sale by the code), DNS providers driven by API (Cloudflare…), the dedicated domain invoice in
 `billing_invoices`, the proposal right after an iCode deployment, premium offers (DNS Premium,
 monitoring, email). The data model and the registrar interface already carry renew/transfer.

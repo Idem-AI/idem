@@ -88,7 +88,10 @@ export interface SiteInventory {
   pages: InventoryPage[];
   /** Les pages vues dans les liens mais pas relevées (au-delà de la limite) : leurs titres, pour mémoire. */
   skipped: { url: string; label: string }[];
+  /** Les entrées PRINCIPALES du menu de l'en-tête, dans l'ordre (sans les sous-menus ni le logo). */
   navigation: { label: string; href: string }[];
+  /** Les boutons d'action de l'en-tête, hors du menu (« Rejoignez-nous », « Prendre rendez-vous »). */
+  headerActions?: { label: string; href: string }[];
   footer: { texts: string[]; links: { label: string; href: string }[] };
   contact: { phones: string[]; emails: string[]; whatsapp: string[]; addresses: string[]; socials: { network: string; url: string }[] };
   assets: { favicon?: string; appleIcon?: string; ogImage?: string; images: (InventoryImage & { page: string; section: string })[] };
@@ -120,6 +123,7 @@ interface PageRead {
   alternates: { lang: string; href: string; via: 'hreflang' | 'switcher' | 'widget' }[];
   blocks: Omit<InventorySection, 'id'>[];
   navigation: { label: string; href: string }[];
+  headerActions?: { label: string; href: string }[];
   footerTexts: string[];
   footerLinks: { label: string; href: string }[];
   links: { label: string; href: string }[];
@@ -410,6 +414,74 @@ function readStructure(): PageRead {
         })
       : [];
   };
+  // LE MENU DE L'EN-TÊTE tel qu'il s'affiche : ses entrées principales seulement. Avant, chaque lien de l'en-tête
+  // (sous-menus dépliants, logo, bouton d'action, réseaux, menu mobile en double) devenait une entrée du menu, et la
+  // refonte saturait sa barre de navigation. Les liens hors du menu qui ont un libellé sont les boutons d'action.
+  var headerMenu = (function () {
+    var empty = { items: [] as any[], actions: [] as any[] };
+    if (!header) return empty;
+    var SUB = /sub-?menu|dropdown|children|mega|submenu/i;
+    var isSub = function (a: any) {
+      // Un lien rangé dans une liste elle-même dans un élément de liste : un sous-menu.
+      for (var n = a.parentElement; n && n !== header; n = n.parentElement) {
+        if (n.tagName === 'UL' || n.tagName === 'OL') {
+          var li = n.parentElement && n.parentElement.closest ? n.parentElement.closest('li') : null;
+          if (li && header.contains(li)) return true;
+        }
+        if (SUB.test(String(n.className || '')) && n.tagName !== 'NAV') return true;
+      }
+      return false;
+    };
+    var lists = Array.prototype.slice.call(header.querySelectorAll('nav ul, nav ol, ul, ol')).filter(function (l: any) {
+      var li = l.parentElement && l.parentElement.closest ? l.parentElement.closest('li') : null;
+      return !(li && header.contains(li));
+    });
+    // La liste qui porte le plus d'entrées est le menu (une autre, plus courte, est souvent celle des réseaux).
+    var main: any = null;
+    var best = 0;
+    lists.forEach(function (l: any) {
+      var count = Array.prototype.slice.call(l.children).filter(function (c: any) { return c.tagName === 'LI' && c.querySelector('a[href]'); }).length;
+      if (count > best) {
+        best = count;
+        main = l;
+      }
+    });
+    var seen: any = {};
+    var items: any[] = [];
+    var push = function (list: any[], a: any) {
+      var label = clean(a.textContent || a.getAttribute('aria-label')).slice(0, 60);
+      var href = abs(a.getAttribute('href'));
+      if (!label || !href || seen[label + '|' + href]) return;
+      seen[label + '|' + href] = true;
+      list.push({ label: label, href: href });
+    };
+    if (main && best >= 2) {
+      Array.prototype.slice.call(main.children).forEach(function (li: any) {
+        if (li.tagName !== 'LI') return;
+        var a = li.querySelector('a[href]');
+        if (a) push(items, a);
+      });
+    } else {
+      Array.prototype.slice.call(header.querySelectorAll('a[href]')).forEach(function (a: any) {
+        if (!isSub(a)) push(items, a);
+      });
+    }
+    var menuHrefs: any = {};
+    items.forEach(function (i: any) { menuHrefs[i.label + '|' + i.href] = true; });
+    var actions: any[] = [];
+    if (main && best >= 2) {
+      Array.prototype.slice.call(header.querySelectorAll('a[href]')).forEach(function (a: any) {
+        if (main.contains(a) || isSub(a)) return;
+        // Un lien d'image seule (le logo) ou d'icône (réseaux) n'a pas de libellé : il n'est pas un bouton d'action.
+        var label = clean(a.textContent).slice(0, 60);
+        if (!label || label.length < 3) return;
+        // Le même menu, recopié pour les téléphones : déjà relevé.
+        if (menuHrefs[label + '|' + abs(a.getAttribute('href'))]) return;
+        push(actions, a);
+      });
+    }
+    return { items: items.slice(0, 12), actions: actions.slice(0, 2) };
+  })();
   var icon = Array.prototype.slice.call(document.querySelectorAll('link[rel~="icon"]')).sort(function (a: any, b: any) {
     return parseInt(b.getAttribute('sizes') || '0', 10) - parseInt(a.getAttribute('sizes') || '0', 10);
   })[0];
@@ -477,7 +549,8 @@ function readStructure(): PageRead {
     language: String(document.documentElement.getAttribute('lang') || '').slice(0, 2).toLowerCase(),
     alternates: alternates.slice(0, 12),
     blocks: read,
-    navigation: header ? linksOf(header).filter(function (l: any) { return l.label; }).slice(0, 40) : [],
+    navigation: headerMenu.items,
+    headerActions: headerMenu.actions,
     footerTexts: footer ? uniq(Array.prototype.slice.call(footer.querySelectorAll('p, address, li, span')).map(function (n: any) { return clean(n.textContent).slice(0, 300); }).filter(function (t: string) { return t.length > 3; }), 30) : [],
     footerLinks: linksOf(footer).slice(0, 60),
     links: linksOf(document.body).slice(0, 400),
@@ -825,7 +898,7 @@ async function readCanvasPage(page: Page, vision?: CrawlOptions['vision']): Prom
   }
   if (!blocks.length) return null;
   const title = await page.title().catch(() => '');
-  return { via: 'vision', read: { post: false, archive: false, title, description: '', language: '', alternates: [], blocks, navigation: [], footerTexts: [], footerLinks: [], links: [], favicon: '', appleIcon: '', ogImage: '', addresses: [] } };
+  return { via: 'vision', read: { post: false, archive: false, title, description: '', language: '', alternates: [], blocks, navigation: [], headerActions: [], footerTexts: [], footerLinks: [], links: [], favicon: '', appleIcon: '', ogImage: '', addresses: [] } };
 }
 
 const SOCIAL = /(facebook|instagram|linkedin|tiktok|twitter|x\.com|youtube|pinterest)\./i;
@@ -1080,6 +1153,7 @@ export async function crawlWebsite(options: CrawlOptions): Promise<SiteInventory
       }),
     ];
     inventory.navigation = home.navigation.filter((l, i, all) => all.findIndex((x) => x.href === l.href) === i);
+    inventory.headerActions = (home.headerActions ?? []).filter((l) => !inventory.navigation.some((n) => n.label === l.label && n.href === l.href));
     inventory.footer = { texts: home.footerTexts, links: home.footerLinks.filter((l) => l.label).slice(0, 40) };
     inventory.assets.favicon = home.favicon || undefined;
     inventory.assets.appleIcon = home.appleIcon || undefined;

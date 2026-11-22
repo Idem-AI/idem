@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, ElementRef, OnDestroy, OnInit, afte
 import { NgTemplateOutlet } from '@angular/common';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 import { Connection, Contact, Quote, createIdomainClient } from '../client';
-import { DomainPurchaseFlow, PURCHASE_STAGES, PurchaseState, formatXaf, stageIndex } from '../flow';
+import { DomainPurchaseFlow, PURCHASE_STAGES, PurchaseState, emptySearchKey, formatXaf, freeNames, stageIndex } from '../flow';
 import { CONTACT_FIELDS, FACADE_PATHS, idomainText } from '../texts';
 
 /**
@@ -66,24 +66,29 @@ import { CONTACT_FIELDS, FACADE_PATHS, idomainText } from '../texts';
               <div class="mt-4 space-y-2"><div class="skeleton h-14 rounded-xl"></div><div class="skeleton h-12 rounded-xl"></div></div>
             }
             @if (s.result; as r) {
+              @let free = freeNames(r);
               @if (r.exact) {
                 <ul class="mt-4 overflow-hidden rounded-xl border border-[var(--glass-border)]">
                   <ng-container [ngTemplateOutlet]="row" [ngTemplateOutletContext]="{ $implicit: r.exact, featured: true }" />
                 </ul>
-              } @else {
-                <p class="mt-4 text-sm text-[var(--color-text-secondary)]">{{ t('search.invalid') }}</p>
               }
-              @if (r.suggestions.length) {
-                <p class="mt-5 text-xs font-medium text-[var(--color-text-secondary)]">{{ t('search.suggestions') }}</p>
+              @if (free.length) {
+                <p class="mt-5 text-xs font-medium text-[var(--color-text-secondary)]">{{ t(r.exact ? 'search.otherExtensions' : 'search.freeOn') }}</p>
                 <ul class="mt-2 divide-y divide-[var(--glass-border-subtle)] overflow-hidden rounded-xl border border-[var(--glass-border-subtle)]">
-                  @for (q of r.suggestions; track q.domain) { <ng-container [ngTemplateOutlet]="row" [ngTemplateOutletContext]="{ $implicit: q }" /> }
+                  @for (q of free; track q.domain) { <ng-container [ngTemplateOutlet]="row" [ngTemplateOutletContext]="{ $implicit: q }" /> }
                 </ul>
+              } @else if (!r.exact && !s.searching && !s.checkingMore) {
+                <p class="mt-4 text-sm text-[var(--color-text-secondary)]">{{ t(emptySearchKey(r)) }}</p>
               }
-              @if (r.extensions.length) {
-                <p class="mt-5 text-xs font-medium text-[var(--color-text-secondary)]">{{ t('search.otherExtensions') }}</p>
-                <ul class="mt-2 divide-y divide-[var(--glass-border-subtle)] overflow-hidden rounded-xl border border-[var(--glass-border-subtle)]">
-                  @for (q of r.extensions; track q.domain) { <ng-container [ngTemplateOutlet]="row" [ngTemplateOutletContext]="{ $implicit: q }" /> }
-                </ul>
+              @if (s.checkingMore; as c) {
+                <p class="mt-3 flex items-center gap-2 text-xs text-[var(--color-text-secondary)]">
+                  <idem-loader size="xs" />{{ t('search.checkingMore', { checked: c.checked, total: c.total }) }}
+                </p>
+              } @else if (s.remaining) {
+                <div class="mt-4 flex flex-wrap items-center gap-3">
+                  <button type="button" class="outer-button button-sm" (click)="loadMore()">{{ t('search.loadMore') }}</button>
+                  <span class="text-xs text-[var(--color-text-secondary)]">{{ t('search.remaining', { count: s.remaining }) }}</span>
+                </div>
               }
             }
           }
@@ -262,6 +267,8 @@ export class DomainPurchaseComponent implements OnInit, OnDestroy {
   protected flow!: DomainPurchaseFlow;
   protected readonly state = signal<PurchaseState>({} as PurchaseState);
   protected readonly facade = FACADE_PATHS;
+  protected readonly freeNames = freeNames;
+  protected readonly emptySearchKey = emptySearchKey;
   protected readonly fields = CONTACT_FIELDS;
   protected readonly years = [1, 2, 3, 4, 5];
   protected readonly stages = PURCHASE_STAGES;
@@ -296,6 +303,11 @@ export class DomainPurchaseComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.unsubscribe?.();
     this.flow.dispose();
+  }
+
+  /** « Voir plus d'extensions » : les lots suivants du catalogue. */
+  protected loadMore(): void {
+    void this.flow.loadMore();
   }
 
   protected t(key: string, params: Record<string, string | number> = {}): string {

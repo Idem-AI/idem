@@ -37,6 +37,7 @@ import { safeFetch } from '../../../../ivision/core/src/render/safe-fetch';
 import { crawlWebsite, SiteInventory } from '../../../../ivision/core/src/site/site-crawler';
 import { measureImageQuality, type ImageQuality } from '../../../../../packages/design-tools/src/image-quality';
 import { BrandCheck, checkBrandColors } from './brandCheck';
+import { isDefaultFont, replaceBannedFont } from '../../../../ivision/core/src/site/typography';
 import { ensureBrandMark } from './brandMark.service';
 
 /** Les modèles de l'hôte (passerelle iVision : mêmes étages, même suivi d'usage). */
@@ -57,8 +58,7 @@ export interface SiteImportResult {
   images: string[];
   logo: boolean;
   /** Les polices : d'un catalogue public, ou recopiées depuis le site. */
-  /** `upgradedFrom` : refonte d'un site aux polices par défaut, la typographie a été améliorée (polices d'avant). */
-  fonts: { display: string; body: string; copied: string[]; upgradedFrom?: { display: string; body: string } };
+  fonts: { display: string; body: string; copied: string[] };
   /**
    * La direction artistique du catalogue rapprochée du site, et à quel point elle lui correspond : la charte
    * (générée plus tard, à la demande) en partira, avec les couleurs et les polices du site.
@@ -98,6 +98,12 @@ export interface SiteContent {
   brandCheck?: BrandCheck;
   /** Les palettes enregistrées dans le projet : celle du site (par défaut) et celle tirée du logo. */
   palettes?: { site?: string; logo?: string };
+  /**
+   * Les polices du site sont-elles des polices par défaut (Inter, Roboto, Poppins…) ? La refonte demande alors à
+   * l'utilisateur s'il veut en changer (`chooseRedesignTypography` sur « oui »). Absent quand la marque du projet
+   * est déjà choisie.
+   */
+  typographyCheck?: { display: string; body: string; isDefault: boolean };
 }
 
 /** Les options d'un import : rattacher le site à un projet existant, rendre de quoi refaire le site. */
@@ -312,8 +318,9 @@ async function brandFont(userId: string, family: string, faces: SiteFontFace[], 
 }
 
 async function typographyOf(userId: string, scan: SiteScanResult, copied: string[]): Promise<{ chosen: TypographyModel; proposals: TypographyModel[] }> {
-  const display = scan.typography.original.display || scan.typography.display;
-  const body = scan.typography.original.body || scan.typography.body;
+  // Une police interdite (`BANNED_FONTS`), même celle du site, n'est jamais reprise : sa remplaçante prend sa place.
+  const display = replaceBannedFont(scan.typography.original.display || scan.typography.display);
+  const body = replaceBannedFont(scan.typography.original.body || scan.typography.body);
   const [primary, secondary] = await Promise.all([brandFont(userId, display, scan.fontFaces, scan.typography.display, copied), brandFont(userId, body, scan.fontFaces, scan.typography.body, copied)]);
   const model = (id: string, name: string, p: BrandFontModel, s: BrandFontModel, description: string): TypographyModel => ({ id, name, url: p.cssUrl || '', primaryFont: p.family, secondaryFont: s.family, primary: p, secondary: s, description });
   const chosen = model('site', 'Typographie du site', primary, secondary, 'Les polices de votre site.');
@@ -328,48 +335,6 @@ async function typographyOf(userId: string, scan: SiteScanResult, copied: string
   return { chosen, proposals: [chosen, ...others] };
 }
 
-/**
- * Les polices « par défaut » du web : celles d'un thème, d'un constructeur de sites ou du système. Un site qui n'a
- * qu'elles n'a pas de voix typographique — une refonte qui les garde paraît identique à l'ancien site.
- */
-const DEFAULT_FONTS = new Set(
-  ['inter', 'roboto', 'open sans', 'lato', 'noto sans', 'arial', 'helvetica', 'helvetica neue', 'segoe ui', 'system-ui', '-apple-system', 'sans-serif', 'serif', 'verdana', 'tahoma', 'trebuchet ms', 'times', 'times new roman', 'georgia', 'source sans pro', 'source sans 3', 'ubuntu', 'pt sans', 'poppins', 'montserrat', 'raleway', 'nunito', 'nunito sans', 'oswald', 'roboto condensed', 'roboto slab', 'mulish', 'muli', 'karla', 'rubik', 'work sans', 'dm sans'].map((f) => f.toLowerCase())
-);
-export const isDefaultFont = (family: string) => DEFAULT_FONTS.has(String(family || '').trim().toLowerCase());
-
-/**
- * La typographie d'une REFONTE. La marque reste reconnaissable, mais ses polices montent d'un cran :
- *
- *   - police de titre propre à la marque (ni par défaut, ni générique) : gardée, avec SES fichiers ; seul le texte
- *     courant change s'il est par défaut ou identique au titre (l'accord éprouvé pensé pour elle) ;
- *   - police de titre par défaut : la typographie tirée du logo (même moteur que la charte), sinon la variante de
- *     même famille proposée par la lecture du site — jamais une autre police par défaut.
- *
- * Les accords viennent du catalogue écrit à la main (`typography.ts`) ou de la charte, jamais inventés ici.
- */
-async function redesignTypography(
-  userId: string,
-  site: { chosen: TypographyModel; proposals: TypographyModel[] },
-  fromLogo: TypographyModel[]
-): Promise<{ chosen: TypographyModel; upgraded: boolean }> {
-  const display = site.chosen.primaryFont;
-  const body = site.chosen.secondaryFont;
-  const plain = (t?: TypographyModel) => !!t && !isDefaultFont(t.primaryFont);
-  if (!isDefaultFont(display)) {
-    if (!isDefaultFont(body) && body.toLowerCase() !== display.toLowerCase()) return { chosen: site.chosen, upgraded: false };
-    const pairing = site.proposals.find((t) => t.id === 'pairing');
-    const pairedBody = pairing?.secondaryFont && pairing.secondaryFont.toLowerCase() !== display.toLowerCase() ? pairing.secondaryFont : '';
-    if (!pairedBody) return { chosen: site.chosen, upgraded: false };
-    const secondary = pairing?.secondary ?? (await fontCatalogService.toBrandFont(pairedBody, undefined, userId));
-    return {
-      chosen: { ...site.chosen, id: 'redesign', name: 'Typographie de la refonte', secondaryFont: secondary.family, secondary, description: `Votre police de titre, avec un texte courant pensé pour elle (${secondary.family}).` },
-      upgraded: true,
-    };
-  }
-  const better = fromLogo.find(plain) ?? site.proposals.find((t) => t.id === 'alternative' && plain(t)) ?? site.proposals.find((t) => t.id === 'pairing' && plain(t));
-  if (!better) return { chosen: site.chosen, upgraded: false };
-  return { chosen: { ...better, id: 'redesign', name: 'Typographie de la refonte', description: `${better.description || ''} Remplace ${display}${body !== display ? ` / ${body}` : ''}, polices par défaut de l’ancien site.`.trim() }, upgraded: true };
-}
 
 /**
  * L'accord de l'utilisateur, donné dans iVision AVANT l'import de son site : politique de confidentialité,
@@ -526,7 +491,7 @@ async function saveContent(userId: string, projectId: string, content: SiteConte
   }
 }
 
-function contentOf(scan: SiteScanResult, inventory: SiteInventory, logo: boolean, extra: Pick<SiteContent, 'brandCheck' | 'palettes'> = {}): SiteContent {
+function contentOf(scan: SiteScanResult, inventory: SiteInventory, logo: boolean, extra: Pick<SiteContent, 'brandCheck' | 'palettes' | 'typographyCheck'> = {}): SiteContent {
   return {
     url: scan.finalUrl,
     title: scan.title,
@@ -573,6 +538,32 @@ export async function chooseSitePalette(userId: string, projectId: string, sourc
   await projectService.editUserProject(userId, projectId, { analysisResultModel: { ...project.analysisResultModel, branding: { ...branding, colors: palette } } as unknown as ProjectModel['analysisResultModel'] });
   logger.info('site_import.palette_chosen', { event: 'site_import.palette_chosen', projectId, source });
   return true;
+}
+
+/**
+ * « Changer de police ? » → oui : l'IA choisit la typographie du projet (`chooseRedesignTypography`), qui devient
+ * celle du projet (en tête des propositions). Rend l'ancienne et la nouvelle, ou `null` si rien n'a convenu (les
+ * polices du site restent).
+ */
+export async function applyRedesignTypography(userId: string, projectId: string): Promise<{ from: { display: string; body: string }; to: { display: string; body: string } } | null> {
+  const project = await projectService.getUserProjectById(userId, projectId);
+  const branding = project?.analysisResultModel?.branding as (Record<string, any> & { siteSource?: { evidence?: string } }) | undefined;
+  if (!project || !branding) return null;
+  const from = { display: String(branding.typography?.primaryFont || ''), body: String(branding.typography?.secondaryFont || '') };
+  const chosen = await new BrandingService(new PromptService()).chooseRedesignTypography({ ...project, userId } as ProjectModel, { siteFonts: from, siteEvidence: branding.siteSource?.evidence });
+  if (!chosen) return null;
+  const typography: TypographyModel = { ...chosen, id: 'redesign', name: 'Typographie du projet', description: chosen.description || `Choisie pour le projet, à la place de ${from.display}.` };
+  // Relu juste avant d'écrire : seule la typographie change.
+  const fresh = await projectService.getUserProjectById(userId, projectId);
+  const latest = (fresh?.analysisResultModel?.branding ?? branding) as Record<string, any>;
+  await projectService.editUserProject(userId, projectId, {
+    analysisResultModel: {
+      ...(fresh?.analysisResultModel ?? project.analysisResultModel),
+      branding: { ...latest, typography, generatedTypography: [typography, ...((latest.generatedTypography as TypographyModel[] | undefined) ?? []).filter((t) => t.id !== 'redesign')] },
+    } as unknown as ProjectModel['analysisResultModel'],
+  });
+  logger.info('site_import.typography_changed', { event: 'site_import.typography_changed', projectId, from, to: { display: typography.primaryFont, body: typography.secondaryFont } });
+  return { from, to: { display: typography.primaryFont, body: typography.secondaryFont } };
 }
 
 /** Ce que le résultat dit de la direction artistique (identifiant, nom, correspondance au site). */
@@ -712,14 +703,15 @@ export async function createProjectFromSite(
   // recopiés si aucun catalogue ne les sert). La palette tirée du logo n'est que proposée (`brandCheck`).
   const sitePalette = siteColors.find((c) => c.id === 'site') ?? siteColors[0];
   const palettes = options.withContent ? { site: sitePalette?.id, logo: curated?.colors[0]?.id } : undefined;
-  let typographyUpgrade: { display: string; body: string } | undefined;
+  let typographyCheck: SiteContent['typographyCheck'];
   if (options.withContent) {
     if (sitePalette) chosenColors = sitePalette;
-    // Les couleurs restent celles du site ; la TYPOGRAPHIE monte d'un cran quand le site n'a que des polices par
-    // défaut (Inter, Roboto, Open Sans… : aucune voix) ou une seule police pour tout (aucune hiérarchie).
-    const upgraded = await redesignTypography(userId, typography, curated?.typography ?? []);
-    chosenTypography = upgraded.chosen;
-    if (upgraded.upgraded) typographyUpgrade = { display: typography.chosen.primaryFont, body: typography.chosen.secondaryFont };
+    // Une REFONTE garde les polices du site. Des polices par défaut (aucune voix) : la question revient à
+    // l'utilisateur, posée avant toute génération ; sur « oui », l'IA choisit celles du projet.
+    chosenTypography = typography.chosen;
+    const display = typography.chosen.primaryFont;
+    const body = typography.chosen.secondaryFont;
+    typographyCheck = { display, body, isDefault: isDefaultFont(display) || isDefaultFont(body) };
   }
   const brandCheck = options.withContent && logo && sitePalette ? checkBrandColors(String(sitePalette.colors.primary || ''), logo.colors || []) : undefined;
 
@@ -747,7 +739,7 @@ export async function createProjectFromSite(
   if (options.withContent && crawled) {
     onStep('assets');
     const inventory = await hostInventory(userId, projectId, crawled);
-    content = contentOf(scan, inventory, !!scan.logo.svg || !!scan.logo.url, { brandCheck, palettes });
+    content = contentOf(scan, inventory, !!scan.logo.svg || !!scan.logo.url, { brandCheck, palettes, typographyCheck });
     const contentUrl = await saveContent(userId, projectId, content);
     if (contentUrl) {
       const saved = await projectService.getUserProjectById(userId, projectId);
@@ -760,8 +752,8 @@ export async function createProjectFromSite(
   // Le logo de l'en-tête, prêt avant que le site ne s'écrive (rogné, logotype ou icône + nom).
   if (logo && options.withContent) await ensureBrandMark(userId, projectId).catch((error: any) => logger.warn('site_import.brand_mark_failed', { event: 'site_import.brand_mark_failed', projectId, error: error?.message }));
   onStep('done');
-  logger.info('site_import.project_created', { event: 'site_import.project_created', projectId, into: !!existing?.id, host: new URL(scan.finalUrl).hostname, logo: !!logo, fontsCopied: copied, display: chosenTypography.primaryFont, body: chosenTypography.secondaryFont, typographyUpgradedFrom: typographyUpgrade });
-  return { projectId, reused: !!existing?.id, name: sheet?.name ?? created.name, siteUrl: scan.finalUrl, images: content?.images ?? scan.images, logo: !!logo, fonts: { display: chosenTypography.primaryFont, body: chosenTypography.secondaryFont, copied, ...(typographyUpgrade ? { upgradedFrom: typographyUpgrade } : {}) }, ...artDirectionOf(direction), ...(sheet?.keyFigures?.length ? { keyFigures: sheet.keyFigures } : {}), warnings, ...(content ? { content } : {}) };
+  logger.info('site_import.project_created', { event: 'site_import.project_created', projectId, into: !!existing?.id, host: new URL(scan.finalUrl).hostname, logo: !!logo, fontsCopied: copied, display: chosenTypography.primaryFont, body: chosenTypography.secondaryFont });
+  return { projectId, reused: !!existing?.id, name: sheet?.name ?? created.name, siteUrl: scan.finalUrl, images: content?.images ?? scan.images, logo: !!logo, fonts: { display: chosenTypography.primaryFont, body: chosenTypography.secondaryFont, copied }, ...artDirectionOf(direction), ...(sheet?.keyFigures?.length ? { keyFigures: sheet.keyFigures } : {}), warnings, ...(content ? { content } : {}) };
 }
 
 // ─── Le suivi (iVision interroge l'avancement) ─────────────────────────────────

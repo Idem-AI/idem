@@ -10,7 +10,7 @@ import {
 } from '@angular/core';
 
 /** Des noms d'exemple, inscrits tour à tour sur la plaque tant que le visiteur n'écrit rien. */
-const EXAMPLES = ['salon-kenfack.africa', 'atelier-Makam.com', 'chez-mariam.africa'];
+const EXAMPLES = ['salon-kenfack.com', 'atelier-makam.shop', 'chez-mariam.store'];
 
 /**
  * La grande illustration du hero : une maison à façade ndebele peinte — la maison qu'on reconnaît
@@ -243,7 +243,7 @@ export class FacadeScene {
   /** Ce que le visiteur tape (vide : les exemples s'inscrivent tour à tour). */
   readonly query = input('');
   /** L'extension ajoutée quand le visiteur n'a tapé que le nom (la première en vente). */
-  readonly suffix = input('africa');
+  readonly suffix = input('com');
   private readonly typed = signal(EXAMPLES[0]);
   /** Le dessin ne s'anime qu'une fois le composant affiché (et jamais en mouvement réduit). */
   protected readonly ready = signal(false);

@@ -37,6 +37,16 @@ export function normalizeDomain(input: string): ParsedDomain | null {
   return { name: ascii, label: labels[0], tld };
 }
 
+/**
+ * Une extension que la recherche sait reconnaître dans une saisie : une étiquette simple (`com`,
+ * `shop`), ou un suffixe de second niveau connu (`co.cm`). Une extension d'un fournisseur hors de
+ * ces formes ne peut pas être mise en vente : personne ne pourrait la taper.
+ */
+export function isSellableSuffix(tld: string): boolean {
+  if (tld.includes('.')) return TWO_LEVEL_SUFFIXES.has(tld);
+  return /^[a-z]{2,24}$/.test(tld);
+}
+
 /** Un nom d'hôte quelconque (sous-domaine compris), pour connecter un domaine externe. */
 export function normalizeHost(input: string): string | null {
   let raw = String(input || '').trim().toLowerCase();

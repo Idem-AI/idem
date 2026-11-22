@@ -294,7 +294,7 @@ export interface Correction {
 }
 
 /** Applique toutes les corrections mécaniques ; ne lève jamais. */
-export function autocorrect(source: string, theme: ThemeColors): Correction {
+export function autocorrect(source: string, theme: ThemeColors, options: { keepColors?: boolean } = {}): Correction {
   const fixes: string[] = [];
   let code = source;
 
@@ -423,7 +423,8 @@ export function autocorrect(source: string, theme: ThemeColors): Correction {
   }
 
   // 3. Les couleurs écrites en dur → jetons du thème.
-  const colored = themeColors(code, theme);
+  // Sauf à la retouche, quand la personne a demandé cette couleur (« le bouton en vert ») : elle reste telle quelle.
+  const colored = options.keepColors ? { code, replaced: 0 } : themeColors(code, theme);
   if (colored.replaced) {
     code = colored.code;
     fixes.push(`${colored.replaced} couleur(s) → jetons du thème`);

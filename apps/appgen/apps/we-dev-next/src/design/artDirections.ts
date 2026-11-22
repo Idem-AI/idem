@@ -203,7 +203,7 @@ export const FONT_PAIRINGS: FontPairing[] = [
   { display: 'Fraunces', body: 'Public Sans', displayWeights: '400;700', bodyWeights: '400;500;700' },
   { display: 'Instrument Serif', body: 'Geist', displayWeights: '400', bodyWeights: '400;500;600' },
   { display: 'Space Grotesk', body: 'IBM Plex Sans', displayWeights: '500;700', bodyWeights: '400;500;600' },
-  { display: 'Bricolage Grotesque', body: 'Work Sans', displayWeights: '600;800', bodyWeights: '400;500;600' },
+  { display: 'Epilogue', body: 'Work Sans', displayWeights: '600;800', bodyWeights: '400;500;600' },
   { display: 'DM Serif Display', body: 'DM Sans', displayWeights: '400', bodyWeights: '400;500;700' },
   { display: 'Archivo Black', body: 'Karla', displayWeights: '400', bodyWeights: '400;500;700' },
   { display: 'Playfair Display', body: 'Source Sans 3', displayWeights: '500;700', bodyWeights: '400;600' },

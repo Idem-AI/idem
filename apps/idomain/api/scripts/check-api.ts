@@ -300,16 +300,28 @@ async function main(): Promise<void> {
   console.log('API iDomain — de bout en bout');
 
   await check(
-    'recherche publique : prix public unique, renouvellement annoncé, autres extensions',
+    'recherche publique : nom essayé sur tout le catalogue par lots, aucune extension imposée',
     async () => {
       const r = await call('GET', '/v1/domains/search?q=Ma Boutique');
       assert.equal(r.status, 200);
-      assert.equal(r.body.exact.domain, 'ma-boutique.africa');
-      assert.equal(r.body.exact.state, 'available');
-      assert.equal(r.body.exact.priceXaf, 6500);
-      assert.equal(r.body.exact.renewalXaf, 8000);
-      assert.equal(r.body.extensions[0].domain, 'ma-boutique.com');
+      // Sans extension tapée, aucune n'est imposée : le nom est essayé sur tout le catalogue,
+      // les mises en avant d'abord (.com), puis le reste du moins cher au plus cher (.africa).
+      assert.equal(r.body.exact, null);
+      assert.deepEqual(r.body.extensions.map((q: { domain: string }) => q.domain), ['ma-boutique.com', 'ma-boutique.africa']);
+      assert.ok(r.body.extensions.every((q: { state: string }) => q.state === 'available'));
       assert.equal(r.body.extensions[0].priceXaf, 8900);
+      assert.equal(r.body.extensions[1].priceXaf, 6500);
+      assert.equal(r.body.extensions[1].renewalXaf, 8000);
+      assert.deepEqual(r.body.more, { nextOffset: null, total: 2 });
+      // Le lot suivant reprend où le précédent s'arrête.
+      const next = await call('GET', '/v1/domains/search?q=Ma Boutique&offset=1');
+      assert.deepEqual(next.body.extensions.map((q: { domain: string }) => q.domain), ['ma-boutique.africa']);
+      // Avec son extension, le nom tapé passe en tête ; les autres extensions suivent.
+      const typed = await call('GET', '/v1/domains/search?q=ma-boutique.africa');
+      assert.equal(typed.body.exact.domain, 'ma-boutique.africa');
+      assert.equal(typed.body.exact.state, 'available');
+      assert.equal(typed.body.exact.priceXaf, 6500);
+      assert.deepEqual(typed.body.extensions.map((q: { domain: string }) => q.domain), ['ma-boutique.com']);
       // Jamais de fournisseur, de coût ni de marge dans une réponse publique.
       assert.ok(!/simulated|provider|margin|"cost"|costXaf/i.test(JSON.stringify(r.body)));
     }
@@ -714,6 +726,43 @@ async function main(): Promise<void> {
     const r = await call('GET', '/v1/openapi.json');
     assert.equal(r.body.openapi, '3.1.0');
     assert.ok(r.body.paths['/domain-connections']);
+  });
+
+  await check('catalogue du fournisseur mis en vente : prix au plancher, choix manuels gardés, retrait', async () => {
+    const { priceProviderCatalog } = await import('../src/modules/pricing/catalog.service');
+    const { minimumPriceXaf, DEFAULT_RULES } = await import('../src/modules/pricing/engine');
+    await query(
+      `INSERT INTO provider_capabilities (provider_code, tld, can_register, can_renew, can_transfer) VALUES ('simulated', 'shop', true, true, false), ('simulated', 'xn--p1ai', true, true, false)`
+    );
+    await query(
+      `INSERT INTO provider_costs (provider_code, tld, operation, years, cost, currency, source) VALUES
+         ('simulated', 'shop', 'register', 1, 20, 'USD', 'api'), ('simulated', 'shop', 'renew', 1, 25, 'USD', 'api'),
+         ('simulated', 'xn--p1ai', 'register', 1, 5, 'USD', 'api'), ('simulated', 'xn--p1ai', 'renew', 1, 5, 'USD', 'api')`
+    );
+    const before = await query<{ tld: string; register_xaf: number }>(`SELECT tld, register_xaf FROM public_price_catalog WHERE valid_to IS NULL AND tld IN ('com', 'africa') ORDER BY tld`);
+    const counts = await priceProviderCatalog('simulated');
+    assert.equal(counts.opened, 1, 'seule .shop est nouvelle (.xn--p1ai ne se tape pas)');
+
+    const shop = await one<{ register_xaf: number; renew_xaf: number; on_sale: boolean; created_by: string }>(`SELECT * FROM public_price_catalog WHERE tld = 'shop' AND valid_to IS NULL`);
+    const floor = (usd: number) => minimumPriceXaf(Math.round(usd * (1 + DEFAULT_RULES.autoPriceCostCushionRate) * 577), DEFAULT_RULES);
+    assert.equal(shop?.register_xaf, floor(20));
+    assert.equal(shop?.renew_xaf, floor(25));
+    assert.equal(shop?.on_sale, true);
+    assert.equal(shop?.created_by, 'sync:simulated');
+    // .com et .africa ont été posés à la main : jamais révisés par le code.
+    assert.deepEqual(await query(`SELECT tld, register_xaf FROM public_price_catalog WHERE valid_to IS NULL AND tld IN ('com', 'africa') ORDER BY tld`), before);
+
+    const search = await call('GET', '/v1/domains/search?q=ma-boutique.shop');
+    assert.equal(search.body.exact.priceXaf, floor(20));
+
+    // Le fournisseur ne vend plus .shop : elle sort de la vente, l'historique reste.
+    await query(`DELETE FROM provider_capabilities WHERE provider_code = 'simulated' AND tld IN ('shop', 'xn--p1ai')`);
+    assert.equal((await priceProviderCatalog('simulated')).withdrawn, 1);
+    const withdrawn = await one<{ on_sale: boolean }>(`SELECT on_sale FROM public_price_catalog WHERE tld = 'shop' AND valid_to IS NULL`);
+    assert.equal(withdrawn?.on_sale, false);
+    assert.equal((await query(`SELECT 1 FROM public_price_catalog WHERE tld = 'shop'`)).length, 2);
+    assert.equal((await priceProviderCatalog('simulated')).withdrawn, 0, 'idempotent');
+    await query(`DELETE FROM provider_costs WHERE provider_code = 'simulated' AND tld IN ('shop', 'xn--p1ai')`);
   });
 
   console.log(`\n${passed} vérifications passées. Débits demandés à IDEM : ${chargeCalls}.`);

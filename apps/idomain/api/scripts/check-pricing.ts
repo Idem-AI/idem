@@ -57,8 +57,8 @@ check('le moins cher des admissibles est retenu, le deuxième est noté', () => 
   assert.equal(s.second?.providerCode, 'moyen');
 });
 
-check("l'abonnement revendeur réparti compte dans le coût total (Openprovider, 49,92 $/an sur 100 opérations)", () => {
-  const s = selectProvider([base({ providerCode: 'openprovider', costs: { register: 7.7 }, membershipFeeYear: 49.92 })], 'register', 1, 6500, rules);
+check("l'abonnement revendeur réparti compte dans le coût total (49,92 $/an sur 100 opérations)", () => {
+  const s = selectProvider([base({ providerCode: 'abonne', costs: { register: 7.7 }, membershipFeeYear: 49.92 })], 'register', 1, 6500, rules);
   assert.equal(s.selected?.totalCostXaf, Math.round((7.7 + 0.4992) * 577));
 });
 
@@ -105,10 +105,10 @@ check('jamais sous la marge minimale : un coût devenu trop haut bloque la vente
 });
 
 check('une vente financée (pack au coût, 4 900 F le .africa) passe malgré une marge négative', () => {
-  const offer = base({ providerCode: 'openprovider', costs: { register: 7.7 }, membershipFeeYear: 49.92 });
+  const offer = base({ providerCode: 'abonne', costs: { register: 7.7 }, membershipFeeYear: 49.92 });
   assert.equal(selectProvider([offer], 'register', 1, 4900, rules).selected, null);
   const funded = selectProvider([offer], 'register', 1, 4900, rules, true);
-  assert.equal(funded.selected?.providerCode, 'openprovider');
+  assert.equal(funded.selected?.providerCode, 'abonne');
   assert.ok((funded.selected?.marginXaf ?? 0) < 0);
   assert.equal(selectProvider([offer], 'register', 1, 4900, { ...rules, allowLossOnFundedPromotions: false }, true).selected, null);
 });
