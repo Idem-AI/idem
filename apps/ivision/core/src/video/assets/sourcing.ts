@@ -217,7 +217,11 @@ export async function sourceShots(opts: SourcingOptions): Promise<{ byNeed: Map<
     return /time(d)?\s?out|timed out|ETIMEDOUT|ECONNRESET|socket hang up|aborted|terminated/i.test(String(error?.message ?? error));
   };
 
-  /** Un clip : l'image du plan animée (deux essais), puis le texte seul (troisième essai). */
+  /**
+   * Un clip : l'image du plan animée (image → vidéo), à chaque essai. Le texte seul (T2V) ne sert que sans image de
+   * référence : un produit, une personne ou un lieu doivent rester reconnaissables d'un plan à l'autre (22/11/2026 ;
+   * avant, le troisième essai repartait du texte et perdait le sujet).
+   */
   const clip = async (plan: ShotPlan): Promise<VideoMediaAsset | null> => {
     if (!canClip) return null;
     const first = await still(plan);
@@ -230,7 +234,7 @@ export async function sourceShots(opts: SourcingOptions): Promise<{ byNeed: Map<
     const wanted = plan.durationSec || 0;
     const durationSec: 4 | 6 | 8 = wanted <= 4.5 ? 4 : wanted <= 6.5 ? 6 : 8;
     for (let attempt = 0; attempt < GENERATION_ATTEMPTS && !blocked.video; attempt++) {
-      const image = first && attempt < 2 ? { base64: first.jpeg.toString('base64'), mimeType: 'image/jpeg' } : undefined;
+      const image = first ? { base64: first.jpeg.toString('base64'), mimeType: 'image/jpeg' } : undefined;
       try {
         return await generateClip({ prompt: prompts[attempt], image, orientation: opts.orientation, quality: image ? opts.clipQuality : 'speed', durationSec, model: image && opts.clipQuality === 'quality' ? 'google/veo-3.1' : 'google/veo-3.1-fast' }, opts.storage, opts.folder, plan.query);
       } catch (error: any) {

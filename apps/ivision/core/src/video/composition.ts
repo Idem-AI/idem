@@ -50,14 +50,39 @@ export function planFilm(input: { brand: FilmBrand; scenes: { role?: string; ene
   return { design, seams, cues: planTransitionCues(seams, energy), roles, direction: { id, ...(input.alternative ? { alternative: input.alternative } : {}), ...(repeatedAvoided ? { repeatedAvoided } : {}) } };
 }
 
-/** Les sons des transitions planifiés, en instants absolus (le pic du son tombe sur la coupe). */
+/**
+ * Les sons planifiés, en instants absolus : ceux des transitions (le pic du son tombe sur la coupe) et, depuis le
+ * 22/11/2026, ceux des TEMPS FORTS VISUELS des scènes du catalogue (`accents`) — un léger « pop » quand le chiffre ou
+ * le titre d'une scène énergique se pose, un « tick » quand un trait se dessine. Le son suit la perception du mouvement
+ * (là où il se pose), pas son départ ; `refineCues` borne ensuite la densité.
+ */
 export function plannedCues(film: VideoFilm): PlannedCue[] {
-  return (film.transitionCues || [])
+  const transitions = (film.transitionCues || [])
     .map((c) => {
       const sc = film.scenes[c.scene];
       if (!sc) return null;
       return { kind: c.kind, t: Math.max(0, Math.round((sc.start - c.lead) * 1000) / 1000), scene: sc.key, gain: c.gain, take: c.take };
     })
     .filter((x): x is NonNullable<typeof x> => !!x);
+  const accents: PlannedCue[] = [];
+  for (const sc of film.scenes) {
+    const data = /^__ge\.scene\(tl, root, D, (\{[\s\S]*\})\);$/.exec((sc.script || '').trim())?.[1];
+    if (!data) continue;
+    let list: Array<{ t: number; kind: string }> = [];
+    try {
+      list = (JSON.parse(data).accents ?? []) as Array<{ t: number; kind: string }>;
+    } catch {
+      continue;
+    }
+    for (const a of list) {
+      if (!(a.t > 0 && a.t < sc.duration)) continue;
+      const t = Math.round((sc.start + a.t) * 1000) / 1000;
+      // Une coupe sonore tout près : le son de la transition suffit.
+      if (transitions.some((c) => Math.abs(c.t - t) < 0.35)) continue;
+      if (a.kind === 'settle' && (sc.energy ?? 3) >= 4) accents.push({ kind: 'pop', t, scene: sc.key, gain: 0.55 });
+      else if (a.kind === 'mark') accents.push({ kind: 'tick', t, scene: sc.key, gain: 0.45 });
+    }
+  }
+  return [...transitions, ...accents].sort((a, b) => a.t - b.t);
 }
 

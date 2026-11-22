@@ -128,8 +128,10 @@ export const CATALOG_RUNTIME = String.raw`(function () {
     function content() {
       var top = Infinity, bottom = -Infinity;
       each(safe.children, function (c) { var r = c.getBoundingClientRect(); if (r.height > 0) { top = Math.min(top, r.top); bottom = Math.max(bottom, r.bottom); } });
-      // Les glyphes eux-mêmes : avec un interligne serré, une capitale accentuée (É, Ç) dépasse de sa ligne.
+      // Les glyphes eux-mêmes : avec un interligne serré, une capitale accentuée (É, Ç) dépasse de sa ligne. Seuls les
+      // textes de la zone sûre comptent (un texte posé hors d'elle, en tête de page, a sa propre place).
       each(els, function (el) {
+        if (!safe.contains(el)) return;
         var rg = document.createRange();
         rg.selectNodeContents(el);
         each(rg.getClientRects(), function (q) { if (q.height > 0.5) { top = Math.min(top, q.top); bottom = Math.max(bottom, q.bottom); } });
@@ -480,7 +482,7 @@ export const CATALOG_RUNTIME = String.raw`(function () {
   /** Les effets d'un rôle, préparés sur la scène montée et mesurée (avant tout tween). */
   function prepare(root, r) {
     var resolve = roleTargets(root, r), k = unit();
-    ['in', 'hold', 'out'].forEach(function (phase) {
+    ['in', 'hold', 'develop', 'out'].forEach(function (phase) {
       (r[phase] || []).forEach(function (st) {
         if (!st.fx || !FX[st.fx]) return;
         st.__r = FX[st.fx]({ base: resolve('base'), units: resolve(), opts: st.opts || {}, dur: st.duration, k: k });
@@ -510,14 +512,61 @@ export const CATALOG_RUNTIME = String.raw`(function () {
         var vars = conv(st.to || {}, k);
         vars.duration = st.duration;
         vars.ease = st.ease || 'none';
-        if (st.stagger) vars.stagger = st.stagger;
+        // Une répétition resserrée : les départs suivent une courbe (grands écarts d'abord, puis de plus en plus serrés).
+        if (st.stagger) vars.stagger = st.compress && els.length > 2 ? { amount: st.stagger * (els.length - 1) * 0.85, ease: 'power1.out' } : st.stagger;
         if (st.from) tl.fromTo(els, conv(st.from, k), vars, at);
         else tl.to(els, vars, at);
       }
       prevStart = at;
-      end = Math.max(end, at + st.duration + (st.stagger || 0) * (els.length - 1));
+      end = Math.max(end, at + st.duration + (st.stagger || 0) * (els.length - 1) * (st.compress ? 0.85 : 1));
     });
     return end;
+  }
+
+  // ── La traversée d'une coupe (séquence) ────────────────────────────────────────────────────
+  /** La boîte d'un élément dans sa section, en px de la toile, SANS ses transformations (offsets). */
+  function layoutBox(el, sec) {
+    var x = 0, y = 0;
+    for (var e = el; e && e !== sec; e = e.offsetParent) { x += e.offsetLeft; y += e.offsetTop; }
+    return { x: x, y: y, w: el.offsetWidth, h: el.offsetHeight };
+  }
+  /**
+   * L'élément porté part de sa place dans la scène d'avant et glisse vers la sienne (FLIP). Ses transformations passent
+   * par GSAP (quickSetter : x, y, scaleX, scaleY) — des propriétés CSS à part seraient absorbées par GSAP au premier
+   * tween du même élément et comptées deux fois. Pendant la traversée l'élément n'appartient qu'à elle : sa tenue et son
+   * développement commencent après (l'assemblage les y place). Un cadre d'image change de proportions ; son image est
+   * contre-mise à l'échelle et garde les siennes (elle repart du cadrage de la scène d'avant : innerFrom).
+   */
+  function carryIn(item, c) {
+    var prevSec = document.getElementById(c.prevKey), el = item.root.querySelector(c.sel);
+    var before = prevSec && prevSec.querySelector(c.sel);
+    if (!el || !before) return;
+    var a = shown(prevSec, function () { return layoutBox(before, prevSec); });
+    var b = shown(item.root, function () { return layoutBox(el, item.root); });
+    if (!a.w || !a.h || !b.w || !b.h) return;
+    var sx = a.w / b.w, sy = a.h / b.h;
+    if (c.mode !== 'frame') sx = sy = a.h / b.h;
+    // Un texte (chiffre) ou un logo s'ancre là où il est aligné : sa boîte peut occuper toute la largeur alors que le
+    // texte est ferré à gauche. Le point d'ancrage (gauche, centre, droite) de chaque côté, et l'origine au même point.
+    function anchorOf(node) {
+      if (c.mode === 'frame') return 0.5;
+      var al = getComputedStyle(node).textAlign;
+      return al === 'center' ? 0.5 : al === 'right' || al === 'end' ? 1 : 0;
+    }
+    var fa = shown(prevSec, function () { return anchorOf(before); }), fb = shown(item.root, function () { return anchorOf(el); });
+    var dx = (a.x + a.w * fa) - (b.x + b.w * fb), dy = (a.y + a.h / 2) - (b.y + b.h / 2);
+    var inner = c.mode === 'frame' ? el.querySelector('[data-ge-inner]') : null, from = c.innerFrom || 1;
+    gsap.set(el, { transformOrigin: (fb * 100) + '% 50%' });
+    if (inner) gsap.set(inner, { transformOrigin: '50% 50%' });
+    var set = { x: gsap.quickSetter(el, 'x', 'px'), y: gsap.quickSetter(el, 'y', 'px'), sx: gsap.quickSetter(el, 'scaleX'), sy: gsap.quickSetter(el, 'scaleY') };
+    var iset = inner ? { sx: gsap.quickSetter(inner, 'scaleX'), sy: gsap.quickSetter(inner, 'scaleY') } : null;
+    function render(p) {
+      var q = 1 - p, X = 1 + (sx - 1) * q, Y = 1 + (sy - 1) * q;
+      set.x(dx * q); set.y(dy * q); set.sx(X); set.sy(Y);
+      if (iset) { var z = 1 + (from - 1) * q; iset.sx(z / X); iset.sy(z / Y); }
+    }
+    render(0);
+    item.tl.to({}, { geFx: reg(render), duration: c.duration, ease: c.ease || 'power2.inOut' }, 0);
   }
   function roleTargets(root, r) {
     var base = Array.prototype.slice.call(root.querySelectorAll(r.sel));
@@ -595,9 +644,11 @@ export const CATALOG_RUNTIME = String.raw`(function () {
         var resolve = roleTargets(root, r);
         steps(tl, resolve, r['in'], r.at, true);
         if (r.hold) steps(tl, resolve, r.hold, r.holdAt);
+        if (r.develop) steps(tl, resolve, r.develop, r.developAt);
         if (r.out) steps(tl, resolve, r.out, r.outAt);
       });
-      if (sp.transition) transition(item, sp.transition);
+      if (sp.carry) carryIn(item, sp.carry);
+      else if (sp.transition) transition(item, sp.transition);
     } catch (e) {
       window.__sceneErrors.push({ key: sp.key, message: String((e && e.message) || e).slice(0, 300) });
     }

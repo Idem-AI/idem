@@ -15,8 +15,19 @@
  *   · temps fort : le titre d'une scène énergique se cale sur le battement suivant de la musique ;
  *   · mouvement continu : l'image avance lentement, le titre dérive à peine (le plan ne se fige jamais) ;
  *   · sorties plus courtes que les entrées (≈ 75 %), jouées seulement avant une coupe dans un film posé.
+ *
+ * Depuis le 22/11/2026 (leçons de la revue d'OpenMotion : « une mise en page complète, une entrée, une pause, on
+ * vide l'écran » est ce qui donne l'effet diaporama) :
+ *   · DÉVELOPPEMENT : une scène qui a du temps libre après sa lecture ne fait plus qu'attendre — un nœud `develop`
+ *     prend le relais de la tenue (l'image se découvre, la liste s'accomplit, le problème se barre) ;
+ *   · TRAVERSÉE : dans une séquence, l'élément porté (`carry`) ne sort pas puis ne rentre pas : il glisse de sa
+ *     place dans la scène d'avant à sa place dans celle-ci, mesurées dans la page (FLIP) ;
+ *   · RÉPÉTITION RESSERRÉE : les éléments d'une liste arrivent de plus en plus vite (le premier installe la
+ *     grammaire, les suivants s'y appuient) ;
+ *   · MESURE : chaque scène dit son temps mort (le temps qui reste après les entrées, le développement et la
+ *     lecture) — le code s'en sert pour choisir les développements, les contrôles pour le borner.
  */
-import type { AnimationNode, AnimRole, LayoutNode, LoadedVideoCatalog, SceneConfig, ThemeNode, TransitionNode, TweenStep } from './types';
+import type { AnimationNode, AnimRole, CarryRole, DevelopNode, LayoutNode, LoadedVideoCatalog, SceneConfig, ThemeNode, TransitionNode, TweenStep } from './types';
 import { ROLE_TARGET } from './types';
 import { animationFor, isFigure, rolesIn, SceneSlots } from './graph';
 
@@ -96,7 +107,29 @@ export interface AssembleInput {
   /** Les éléments sortent avant la fin (une coupe suit, dans un film posé). */
   exitAtEnd?: boolean;
   vars?: Record<string, string>;
+  /** Les développements de la scène (résolus par le film : séquence, puis temps libre) — deux au plus, sur deux rôles. */
+  develop?: DevelopNode | DevelopNode[];
+  /** L'élément qui arrive de la scène d'avant en glissant (séquence), et l'échelle finale de son image là-bas. */
+  carryIn?: { role: CarryRole; prevKey: string; innerFrom?: number };
+  /** L'élément que la scène suivante reprend : il ne sort pas avant la coupe. */
+  carryOut?: CarryRole;
 }
+
+/** Ce que l'assemblage mesure d'une scène (contrôles, choix des développements). */
+export interface SceneQuality {
+  /** Le temps libre (s) une fois tout entré et lu, avant tout développement. */
+  free: number;
+  /** Le temps mort (s) qui reste après le dernier mouvement utile (entrées, développement) et la lecture. */
+  idle: number;
+  develop?: string;
+  /** Tous les développements posés (le premier est `develop`). */
+  develops?: string[];
+  carry?: CarryRole;
+}
+
+/** Le temps libre au-delà duquel une scène reçoit un développement, et le temps mort toléré au plus (contrôles). */
+export const DEVELOP_FREE_MIN = 1.1;
+export const IDLE_MAX = 2.2;
 
 /** Le HTML de la scène : la mise en page dépliée (conditions, liste, emplacements, classes, zone sûre, formats). */
 export function sceneHtml(layout: LayoutNode, theme: ThemeNode, slots: SceneSlots, brand: { name: string; hasLogo: boolean; hasDarkLogo?: boolean }, vars: Record<string, string> = {}): string {
@@ -172,6 +205,8 @@ interface ResolvedStep {
   fx?: string;
   opts?: Record<string, number>;
   pick?: 'first' | 'last' | 'rest';
+  /** Les décalages se resserrent d'une unité à l'autre (répétition : le premier installe, les suivants enchaînent). */
+  compress?: true;
 }
 
 export interface RuntimeRole {
@@ -183,14 +218,34 @@ export interface RuntimeRole {
   in: ResolvedStep[];
   hold?: ResolvedStep[];
   holdAt?: number;
+  develop?: ResolvedStep[];
+  developAt?: number;
   out?: ResolvedStep[];
   outAt?: number;
+}
+
+export interface RuntimeCarry {
+  role: CarryRole;
+  sel: string;
+  prevKey: string;
+  /** `frame` : un cadre d'image (ses côtés changent, l'image garde ses proportions) ; `uniform` : un chiffre, un logo. */
+  mode: 'frame' | 'uniform';
+  duration: number;
+  ease: string;
+  innerFrom?: number;
 }
 
 export interface RuntimeScene {
   key: string;
   roles: RuntimeRole[];
   transition?: { prevKey: string; half: number; overlays: TransitionNode['overlays']; out: ResolvedStep[]; in: ResolvedStep[] };
+  carry?: RuntimeCarry;
+  /**
+   * Les temps forts VISUELS de la scène (s, depuis son début) : là où l'action principale se pose (`settle` : le chiffre
+   * ou le titre arrivé) et où un trait se dessine (`mark` : soulignement, rature). Le son s'y cale — sur la perception
+   * du mouvement, pas sur son départ. Ignoré par le runtime.
+   */
+  accents?: Array<{ t: number; kind: 'settle' | 'mark' }>;
 }
 
 type Tokens = Record<string, number | string>;
@@ -223,6 +278,13 @@ function resolveSteps(steps: TweenStep[] | undefined, t: Tokens): ResolvedStep[]
   });
 }
 
+/** L'échelle finale de l'image intérieure après une suite de tweens (le dernier `scale` visé sur `inner`). */
+function innerScaleAfter(steps: ResolvedStep[] | undefined): number | undefined {
+  let last: number | undefined;
+  for (const s of steps ?? []) if (s.target === 'inner' && typeof s.to?.scale === 'number') last = s.to.scale;
+  return last;
+}
+
 /** La durée d'une suite de tweens sur `n` cibles (décalages compris). */
 function stepsSpan(steps: ResolvedStep[], n: number): number {
   let prevStart = 0;
@@ -246,8 +308,8 @@ function unitsOf(role: AnimRole, split: string, text: string, items: number): nu
   return 1;
 }
 
-/** La scène entière : HTML et script (données de la chorégraphie pour le runtime `__ge`). */
-export function assembleScene(i: AssembleInput): { html: string; script: string; spec: RuntimeScene } {
+/** La scène entière : HTML et script (données de la chorégraphie pour le runtime `__ge`), et ce qu'elle mesure. */
+export function assembleScene(i: AssembleInput): { html: string; script: string; spec: RuntimeScene; quality: SceneQuality } {
   const layout = (i.cat.nodes.get(i.config.layout) ?? i.cat.nodes.get('builtin.stack')) as LayoutNode;
   const html = sceneHtml(layout, i.theme, i.slots, i.brand, { ...(i.vars ?? {}), ...(i.config.vars ?? {}) });
   const m = i.theme.motion;
@@ -258,7 +320,12 @@ export function assembleScene(i: AssembleInput): { html: string; script: string;
     return key ? i.texts[key] ?? '' : role === 'items' ? i.slots.items.map((k) => i.texts[k] ?? '').join(' ') : '';
   };
   const present: AnimRole[] = rolesIn(html).filter((r) => r !== 'item');
-  const ordered = ENTRANCE.filter((r) => present.includes(r));
+  // L'élément porté depuis la scène d'avant n'entre pas : il est déjà là (il glisse vers sa place).
+  const carried = i.carryIn && present.includes(i.carryIn.role) ? i.carryIn.role : undefined;
+  const ordered = ENTRANCE.filter((r) => present.includes(r) && r !== carried);
+  // Les éléments d'une liste : ceux marqués un à un (`data-v="item"`), sinon les enfants du bloc de la liste — sans
+  // cela, une liste sans marque restait immobile.
+  const itemSel = /data-v="item"/.test(html) ? '[data-v="item"]' : '[data-v="items"] > *';
   /** L'animation de chaque rôle ; un compteur ne compte qu'UN nombre (« 30–40 % » se pose sans compter). */
   const animOf = (role: AnimRole): AnimationNode => {
     const counts = (id: string) => (i.cat.nodes.get(id) as AnimationNode).steps.in.some((s) => s.counter);
@@ -270,22 +337,30 @@ export function assembleScene(i: AssembleInput): { html: string; script: string;
   const build = (factor: number) => {
     const tokens: Tokens = { dIn: (m.dIn / pace) * factor, dOut: m.dOut / pace, stagger: (m.stagger / pace) * factor, dist: m.dist, easeOut: m.easeOut, easeIn: m.easeIn, easeMove: m.easeMove, hold: 0 };
     const half = i.transitionIn && i.transitionIn.duration > 0 ? i.transitionIn.duration / 2 : 0;
-    // Sous un panneau de transition, les entrées attendent qu'il s'ouvre ; sinon elles accompagnent l'entrée.
-    let t = half ? half * (i.transitionIn!.overlays.length ? 0.85 : 0.5) : 0.12;
+    // Sous un panneau de transition, les entrées attendent qu'il s'ouvre ; sinon elles accompagnent l'entrée. Quand un
+    // élément glisse depuis la scène d'avant, les autres arrivent pendant son mouvement, un peu après son départ.
+    let t = half ? half * (i.transitionIn!.overlays.length ? 0.85 : 0.5) : carried ? 0.22 : 0.12;
     const roles: RuntimeRole[] = [];
     for (const role of ordered) {
       const anim = animOf(role);
       const split = ROLE_TARGET[role] === 'text' ? anim.split ?? 'none' : 'none';
       const steps = resolveSteps(anim.steps.in, tokens);
       const units = unitsOf(role, split, textOf(role), i.slots.items.length);
+      // Une liste de trois éléments ou plus : les décalages se resserrent d'un élément à l'autre.
+      if (role === 'items' && units >= 3) for (const s of steps) if (s.stagger) s.compress = true;
       // Le fond entre tout de suite, sous le panneau de transition s'il y en a un : il ne retarde aucun autre rôle.
       const at = role === 'bg' ? 0 : role === 'media' ? Math.max(0, t - 0.12) : t;
-      const entry: RuntimeRole = { role, sel: role === 'items' ? '[data-v="item"]' : `[data-v="${role}"]`, split, mask: Boolean(anim.mask) && split !== 'none', at, in: steps };
+      const entry: RuntimeRole = { role, sel: role === 'items' ? itemSel : `[data-v="${role}"]`, split, mask: Boolean(anim.mask) && split !== 'none', at, in: steps };
       if (anim.steps.out?.length) entry.out = resolveSteps(anim.steps.out, tokens);
       roles.push(entry);
       const span = stepsSpan(steps, units);
       // Le suivant entre quand celui-ci est aux deux tiers de son mouvement principal (chevauchement léger).
       if (role !== 'bg') t = role === 'media' ? t + 0.12 : role === 'rule' || role === 'mark' ? t + Math.min(span, tokens.dIn as number) * 0.3 : t + Math.max(0.12, Math.min(span * 0.62, (tokens.dIn as number) * 0.7));
+    }
+    // L'élément porté : aucune entrée (il est déjà à l'écran), mais sa tenue et son développement comme les autres.
+    if (carried) {
+      const anim = animOf(carried);
+      roles.unshift({ role: carried, sel: `[data-v="${carried}"]`, split: 'none', mask: false, at: 0, in: [], ...(anim.steps.out?.length ? { out: resolveSteps(anim.steps.out, tokens) } : {}) });
     }
     const ends = roles.map((r) => r.at + stepsSpan(r.in, unitsOf(r.role, r.split, textOf(r.role), i.slots.items.length)));
     return { roles, end: Math.max(0, ...ends), tokens };
@@ -313,9 +388,56 @@ export function assembleScene(i: AssembleInput): { html: string; script: string;
 
   // Le mouvement continu : la tenue du média (zoom lent) et une dérive à peine visible du titre.
   const drift = m.drift ?? 0;
+  // La traversée : l'élément porté n'appartient qu'à elle tant qu'elle dure (sa tenue, son développement attendent).
+  const carryDur = carried ? Math.round(Math.min(0.95, Math.max(0.5, D * 0.2)) * 1000) / 1000 : 0;
+  const enteredOf = (r: RuntimeRole) => (r.role === carried ? carryDur : r.at + stepsSpan(r.in, unitsOf(r.role, r.split, textOf(r.role), i.slots.items.length)));
+  // Le DÉVELOPPEMENT : sur son rôle, une fois posé (`entered`) ou une fois la scène posée et en partie lue (`read`) ;
+  // il remplace la tenue de ce rôle. Trop peu de temps : la scène n'en reçoit pas (jamais de mouvement écrasé).
+  const allIn = Math.max(0, ...roles.filter((r) => r.role !== 'bg').map(enteredOf));
+  const freeTime = D - allIn - read - exitSpan;
+  const wanted = (Array.isArray(i.develop) ? i.develop : i.develop ? [i.develop] : []).filter((d) => d?.kind === 'develop' && (!d.sceneRoles?.length || d.sceneRoles.includes(i.scene.role as never)));
+  let developEnd = 0;
+  // Un effet court (soulignement, rature, liste qui s'accomplit) tombe quand la lecture s'achève : il relance la scène
+  // au moment où elle se serait figée. Un second effet court vient après le premier.
+  let cursor = allIn + read * 0.95;
+  const placed: string[] = [];
+  const unitsFor = (r: RuntimeRole) => unitsOf(r.role, r.split, textOf(r.role), i.slots.items.length);
+  for (const dev of wanted.slice(0, 2)) {
+    const devRole = roles.find((r) => r.role === dev.role);
+    if (!devRole || devRole.develop) continue;
+    let start = dev.start === 'entered' ? enteredOf(devRole) : Math.max(cursor, allIn + 0.3);
+    let span = D - start - exitSpan - 0.08;
+    // Le même effet déjà joué à l'entrée (un titre souligné qui se soulignerait encore) : pas de développement.
+    const repeats = dev.steps.some((s) => s.fx && devRole.in.some((x) => x.fx === s.fx));
+    if (span < Math.max(0.6, dev.minHold * 0.6) || repeats) continue;
+    let steps = resolveSteps(dev.steps, { ...pass.tokens, hold: Math.round(span * 1000) / 1000 });
+    // Un effet court dans une longue tenue : placé au milieu du temps qui reste après la lecture, il coupe l'attente
+    // en deux (au lieu de tomber pendant la lecture et de laisser la fin figée).
+    if (dev.start !== 'entered') {
+      const from = Math.max(start, allIn + read);
+      const slack = D - exitSpan - from - stepsSpan(steps, unitsFor(devRole));
+      if (slack > 1) {
+        start = from + (slack - 1) * 0.5;
+        span = D - start - exitSpan - 0.08;
+        steps = resolveSteps(dev.steps, { ...pass.tokens, hold: Math.round(span * 1000) / 1000 });
+      }
+    }
+    devRole.develop = steps;
+    devRole.developAt = Math.round(start * 1000) / 1000;
+    const end = start + stepsSpan(devRole.develop, unitsFor(devRole));
+    developEnd = Math.max(developEnd, end);
+    if (dev.start !== 'entered') cursor = end + 0.25;
+    placed.push(dev.id);
+  }
   for (const r of roles) {
-    const enteredAt = r.at + stepsSpan(r.in, unitsOf(r.role, r.split, textOf(r.role), i.slots.items.length));
+    const enteredAt = enteredOf(r);
     const remaining = Math.max(0.5, D - enteredAt - (i.exitAtEnd ? m.dOut : 0));
+    // Le développement tient lieu de tenue pour son rôle.
+    if (r.develop) {
+      if (i.exitAtEnd && r.out?.length && i.carryOut !== r.role) r.outAt = Math.max(enteredAt, Math.round((D - m.dOut - 0.06) * 1000) / 1000);
+      else delete r.out;
+      continue;
+    }
     const holdSteps = animOf(r.role).steps.hold;
     if (holdSteps?.length) {
       r.hold = resolveSteps(holdSteps, { ...pass.tokens, hold: Math.round(remaining * 1000) / 1000 });
@@ -329,20 +451,53 @@ export function assembleScene(i: AssembleInput): { html: string; script: string;
           : [{ from: { y: 0 }, to: { y: -Math.round(m.dist * 0.12) }, duration: Math.round(remaining * 1000) / 1000, ease: 'none' }];
       r.holdAt = Math.round(enteredAt * 1000) / 1000;
     }
-    if (i.exitAtEnd && r.out?.length) {
+    // L'élément que la scène suivante reprend ne sort jamais : il glisse vers elle à la coupe.
+    if (i.exitAtEnd && r.out?.length && i.carryOut !== r.role) {
       const idx = roles.length - 1 - roles.indexOf(r);
       r.outAt = Math.max(enteredAt, Math.round((D - m.dOut - 0.06 - idx * 0.04) * 1000) / 1000);
     } else delete r.out;
   }
 
   const spec: RuntimeScene = { key: i.scene.key, roles };
-  if (i.transitionIn && i.transitionIn.duration > 0 && i.prevKey) {
+  // La traversée remplace la transition : le cut, sans panneau, et l'élément qui glisse (mesuré dans la page).
+  if (carried && i.carryIn) {
+    spec.carry = {
+      role: carried,
+      sel: `[data-v="${carried}"]`,
+      prevKey: i.carryIn.prevKey,
+      mode: carried === 'media' ? 'frame' : 'uniform',
+      duration: carryDur,
+      ease: m.easeMove,
+      ...(i.carryIn.innerFrom && i.carryIn.innerFrom !== 1 ? { innerFrom: i.carryIn.innerFrom } : {}),
+    };
+  } else if (i.transitionIn && i.transitionIn.duration > 0 && i.prevKey) {
     const half = i.transitionIn.duration / 2;
     const t: Tokens = { half, d: i.transitionIn.duration };
     spec.transition = { prevKey: i.prevKey, half, overlays: i.transitionIn.overlays, out: resolveSteps(i.transitionIn.steps.out, t), in: resolveSteps(i.transitionIn.steps.in, t) };
   }
+  // Les temps forts visuels : le rôle principal posé (chiffre, sinon titre), les traits qui se dessinent.
+  const lead = roles.find((r) => r.role === 'figure' && r.in.length) ?? roles.find((r) => r.role === 'title' && r.in.length);
+  const accents: NonNullable<RuntimeScene['accents']> = [];
+  if (lead) accents.push({ t: Math.round(enteredOf(lead) * 1000) / 1000, kind: 'settle' });
+  for (const r of roles) if (r.develop?.some((s) => s.fx === 'underline' || s.fx === 'strike') && r.developAt !== undefined) accents.push({ t: r.developAt, kind: 'mark' });
+  if (accents.length) spec.accents = accents.filter((a) => a.t > 0.05 && a.t < D - 0.1);
+  // Le temps mort : ce qui reste une fois tout entré, développé et lu. Les tenues (zoom lent, dérive) n'en
+  // retranchent rien — ce sont elles, justement, qui donnaient l'effet d'attente.
+  const lastMotion = Math.max(allIn + read, developEnd);
+  const quality: SceneQuality = {
+    free: Math.round(freeTime * 100) / 100,
+    idle: Math.round(Math.max(0, D - lastMotion - exitSpan) * 100) / 100,
+    ...(placed.length ? { develop: placed[0], develops: placed } : {}),
+    ...(spec.carry ? { carry: spec.carry.role } : {}),
+  };
   const json = JSON.stringify(spec).replace(/</g, '\\u003c');
-  return { html, script: `__ge.scene(tl, root, D, ${json});`, spec };
+  return { html, script: `__ge.scene(tl, root, D, ${json});`, spec, quality };
+}
+
+/** L'échelle finale de l'image d'une scène assemblée (ce que la scène suivante reprend en glissant). */
+export function finalInnerScale(spec: RuntimeScene, role: CarryRole): number | undefined {
+  const r = spec.roles.find((x) => x.role === role);
+  return innerScaleAfter(r?.develop) ?? innerScaleAfter(r?.hold);
 }
 
 /** Une scène est-elle faite par le catalogue (son script n'est que des données pour le runtime) ? */

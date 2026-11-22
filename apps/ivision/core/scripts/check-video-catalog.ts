@@ -25,8 +25,8 @@ import { COMPOSITION } from '../src/video/rendering/formats';
 import { resetVideoCatalog, videoCatalog, buildVideoCatalog } from '../src/video/catalog/registry';
 import { assembleFilm, CatalogScene, composeFilmFromCatalog } from '../src/video/catalog/compose';
 import { animationFor, sceneSlots } from '../src/video/catalog/graph';
-import type { FilmFormatId, GabaritNode, SceneConfig, ThemeNode } from '../src/video/catalog/types';
-import type { RuntimeScene } from '../src/video/catalog/assemble';
+import type { DevelopNode, FilmFormatId, GabaritNode, SceneConfig, SequenceNode, ThemeNode } from '../src/video/catalog/types';
+import { DEVELOP_FREE_MIN, IDLE_MAX, RuntimeScene } from '../src/video/catalog/assemble';
 
 process.env.IDEM_TEMPLATES_DIR = process.env.IDEM_TEMPLATES_DIR || path.resolve(__dirname, '../../../../../idem-templates');
 process.env.IDEM_QUALITY_MEMORY = '0';
@@ -65,9 +65,13 @@ function sceneFor(g: GabaritNode, key: string, duration: number): CatalogScene {
     'vlayout.cta-split': { headline: 'Équipez votre coopérative cette saison', sub: 'Les dix premières installations sont offertes.', cta: 'Écrire sur WhatsApp' },
     'vlayout.signature-lockup': { headline: 'Les intrants à portée de main', cta: 'idem.africa' },
     'vlayout.problem-list': { headline: 'Trois obstacles à chaque saison', text2: 'Le dépôt le plus proche est à douze kilomètres', text3: 'Les prix changent sans prévenir', text4: 'Aucun reçu, aucun recours' },
+    'vlayout.editorial-split': { headline: 'Le marché vient à vous', sub: 'Une borne tactile au cœur de chaque village du Moungo.' },
+    'vlayout.poster-word': { headline: 'Fini la marche', sub: 'Les intrants arrivent au village le lendemain.' },
+    'vlayout.media-band': { headline: 'Les tisserandes de Bafoussam', sub: 'Chaque pagne est teint à la main, motif après motif.' },
+    'vlayout.media-round': { headline: 'Marie, productrice de manioc', sub: 'Elle vend sa récolte depuis la place du village.' },
   };
   const texts = base[layout] ?? { headline: 'Une scène' };
-  const needsMedia = ['vlayout.media-full-caption', 'vlayout.split-media-text', 'vlayout.media-framed', 'vlayout.figure-media'].includes(layout);
+  const needsMedia = ['vlayout.media-full-caption', 'vlayout.split-media-text', 'vlayout.media-framed', 'vlayout.figure-media', 'vlayout.poster-word', 'vlayout.media-band', 'vlayout.media-round'].includes(layout);
   return { key, duration, texts, media: needsMedia ? media : [], role, energy: 3 };
 }
 
@@ -203,10 +207,14 @@ async function main() {
   const filmScenes = gabarits.map((g, i) => sceneFor(g, `s${i + 1}`, 3.4));
   const calls: string[] = [];
   const base = { scenes: filmScenes, film: { title: 'AgriLink', concept: 'Les intrants à portée de main', style: 'corporate', seed: 'check' }, brand: { name: BRAND.name, hasLogo: true, line: 'AgriLink · agriculture' }, formats: ['story'] as FilmFormatId[] };
+  // 22/11/2026 : par défaut, le CODE choisit (0 jeton) à tous les crans ; `VIDEO_CATALOG_CHOOSER=model` rétablit l'appel.
+  const byCode = await composeFilmFromCatalog({ ...base, level: 'medium', call: { level: 'medium', call: async ({ role }) => (calls.push(role), '') } });
+  check(calls.length === 0 && byCode.trace.source === 'code' && byCode.scenes.length === filmScenes.length, 'choix : par défaut le code choisit tout le film, AUCUN appel de modèle', `${calls.length} appel(s)`);
+  process.env.VIDEO_CATALOG_CHOOSER = 'model';
   const low = await composeFilmFromCatalog({ ...base, level: 'low', call: { level: 'low', call: async ({ role }) => (calls.push(role), '') } });
   // 18/11/2026 : le cran ne règle plus la profondeur du choix (il choisit la gamme des gabarits) — Low fait le même
   // appel que les autres ; une réponse vide laisse le choix du code, et le film est entier.
-  check(calls.length === 1 && calls[0] === 'video.template' && low.trace.source === 'code' && low.scenes.length === filmScenes.length, 'choix : au cran Low, le même appel unique ; réponse vide → choix du code, film entier', `${calls.length} appel(s)`);
+  check(calls.length === 1 && calls[0] === 'video.template' && low.trace.source === 'code' && low.scenes.length === filmScenes.length, 'choix (modèle rétabli) : au cran Low, le même appel unique ; réponse vide → choix du code, film entier', `${calls.length} appel(s)`);
   calls.length = 0;
   const med = await composeFilmFromCatalog({ ...base, level: 'medium', call: { level: 'medium', call: async ({ role, user }) => (calls.push(`${role}|${user.length}`), JSON.stringify({ scenes: filmScenes.map((s) => ({ scene: s.key, pick: 'B' })) })) } });
   check(calls.length === 1 && calls[0].startsWith('video.template') && med.trace.source === 'llm', 'choix : au cran Medium, UN appel pour tout le film (rôle video.template)', calls.join(', '));
@@ -217,6 +225,7 @@ async function main() {
   const garbage = await composeFilmFromCatalog({ ...base, level: 'high', call: { level: 'high', call: async () => 'je ne sais pas' } });
   check(garbage.trace.source === 'code' && garbage.scenes.length === filmScenes.length, 'choix : une réponse illisible laisse le choix du code (le film se fait)');
   check(!calls.some((u) => /Le marché vient à vous|Douze kilomètres/.test(u)), 'choix : les mots des scènes ne sont jamais envoyés au modèle (seulement leur forme)');
+  delete process.env.VIDEO_CATALOG_CHOOSER;
 
   // 4. Le rendu : 10 gabarits × thèmes × formats
   const themes = [...cat.nodes.values()].filter((n): n is ThemeNode => n.kind === 'theme' && !n.id.startsWith('builtin.'));
@@ -272,6 +281,124 @@ async function main() {
         .jpeg({ quality: 80 })
         .toFile(path.join(OUT, `${theme.id}-${format}.jpg`));
     }
+  }
+  // 4b. Les SÉQUENCES, la TRAVERSÉE et les DÉVELOPPEMENTS (22/11/2026), rendus et mesurés dans Chrome.
+  const sequences = [...cat.nodes.values()].filter((n): n is SequenceNode => n.kind === 'sequence');
+  const develops = [...cat.nodes.values()].filter((n): n is DevelopNode => n.kind === 'develop');
+  check(sequences.length >= 6 && develops.length >= 6, 'séquences et développements : le dépôt en sert au moins six de chaque', `${sequences.length} séquences, ${develops.length} développements`);
+  const seqProblems: string[] = [];
+  const theme0 = themes[0];
+  for (const seq of sequences) {
+    for (const format of formats) {
+      const scenes: CatalogScene[] = seq.scenes.map((st, k) => {
+        const s = sceneFor({ roles: [st.roles[0]], config: { layout: st.layout } } as unknown as GabaritNode, `q${k + 1}`, 3.6);
+        // Le même média des deux côtés d'une coupe portée : la continuité qu'on veut vérifier.
+        return { ...s, media: /media|figure-media/.test(st.layout) ? [{ id: 'photo', kind: 'image' as const }] : [] };
+      });
+      const configs = seq.scenes.map((st, k): SceneConfig => ({ layout: st.layout, animations: { ...(st.animations ?? {}) }, sequence: seq.id, step: k, ...(st.carry ? { carry: st.carry } : {}), ...(st.develop ? { develop: st.develop } : {}) }));
+      const assembled = assembleFilm(cat, { ...base, scenes, formats: [format] }, theme0, configs);
+      const carried = assembled.map((a) => a.quality?.carry);
+      if (!carried.some(Boolean)) seqProblems.push(`${seq.id}/${format} : aucune traversée posée`);
+      let start = 0;
+      const film = assembled.map((a, i) => {
+        const s = { key: a.key, start, duration: scenes[i].duration, html: a.html, script: a.script, animation: 'gsap' as const, texts: scenes[i].texts };
+        start += scenes[i].duration;
+        return s;
+      });
+      const size = COMPOSITION[format];
+      const html = await buildComposition({ scenes: film, width: size.width, height: size.height, output: { width: Math.round(size.width / 2), height: Math.round(size.height / 2) }, durationSec: start, brand: { ...BRAND, logo: { light: 'logo.png', width: 480, height: 120 } } as never, media: { photo: { src: 'photo.jpg', kind: 'image' } }, logo: 'logo.png', fontCss: '', mode: 'render' });
+      const errs = await openComposition(page, html, files, { width: Math.round(size.width / 2), height: Math.round(size.height / 2) });
+      const sceneErrors = (await page.evaluate('window.__sceneErrors || []')) as unknown[];
+      if (errs.length || sceneErrors.length) seqProblems.push(`${seq.id}/${format} : erreurs ${JSON.stringify([...errs, ...sceneErrors]).slice(0, 200)}`);
+      for (const [i, a] of assembled.entries()) {
+        const role = a.quality?.carry;
+        if (!role) continue;
+        const spec = JSON.parse(a.script.replace(/^__ge\.scene\(tl, root, D, /, '').replace(/\);$/, '')) as RuntimeScene;
+        // Juste avant la coupe (scène d'avant) et juste après (celle-ci) : l'élément porté est au même endroit, à la
+        // même taille ; une fois glissé, il est à sa place, sans reste de déplacement.
+        const at = (t: number, key: string) => page.evaluate(`(function () {
+          window.__timelines.film.seek(${t}, false);
+          document.querySelectorAll('section.scene').forEach(function (el) { el.style.visibility = el.id === ${JSON.stringify(key)} ? 'visible' : 'hidden'; });
+          var sec = document.getElementById(${JSON.stringify(key)}), el = sec.querySelector('[data-v="${role}"]'), r = el.getBoundingClientRect(), k = r.width / Math.max(1, el.offsetWidth * (r.width / Math.max(1, el.getBoundingClientRect().width)));
+          // La place de l'élément dans la mise en page (sans transformation), en px de l'écran.
+          var x = 0, y = 0; for (var e = el; e && e !== sec; e = e.offsetParent) { x += e.offsetLeft; y += e.offsetTop; }
+          var s = document.getElementById('comp').getBoundingClientRect().width / document.getElementById('comp').offsetWidth, c = document.getElementById('comp').getBoundingClientRect();
+          // Le point d'ancrage d'un texte ou d'un logo : là où il est aligné (sa boîte peut couvrir toute la largeur).
+          var al = getComputedStyle(el).textAlign, f = '${role}' === 'media' ? 0.5 : al === 'center' ? 0.5 : al === 'right' || al === 'end' ? 1 : 0;
+          return { x: r.left + r.width * f, y: r.top + r.height / 2, w: r.width, h: r.height, homeX: c.left + (x + el.offsetWidth * f) * s, homeY: c.top + (y + el.offsetHeight / 2) * s };
+        })()`) as Promise<{ x: number; y: number; w: number; h: number; homeX: number; homeY: number }>;
+        const cut = film[i].start;
+        const before = await at(cut - 0.02, film[i - 1].key);
+        const after = await at(cut + 0.001, film[i].key);
+        const settled = await at(cut + (spec.carry?.duration ?? 0.6) + 0.1, film[i].key);
+        const side = Math.min(size.width, size.height) / 2;
+        const gap = Math.max(Math.abs(before.x - after.x), Math.abs(before.y - after.y), Math.abs(before.w - after.w) * (role === 'media' ? 1 : 0), Math.abs(before.h - after.h)) / side;
+        if (gap > 0.03) seqProblems.push(`${seq.id}/${format} : ${role} saute à la coupe (${(gap * 100).toFixed(1)} % du côté) ${JSON.stringify({ before, after })}`);
+        const home = Math.max(Math.abs(settled.x - settled.homeX), Math.abs(settled.y - settled.homeY)) / side;
+        if (home > 0.01) seqProblems.push(`${seq.id}/${format} : ${role} pas revenu à sa place (${(home * 100).toFixed(1)} %)`);
+      }
+      // Les mesures habituelles, scène par scène, une fois tout posé.
+      for (const [i, s] of film.entries()) {
+        const t = s.start + s.duration - 0.35;
+        const found = (await page.evaluate(`${MEASURE}(${JSON.stringify(s.key)}, ${t}, ${JSON.stringify(Object.values(scenes[i].texts))})`)) as string[];
+        for (const f of found) seqProblems.push(`${seq.id}/${format}/${s.key} : ${f}`);
+      }
+      await page.screenshot({ type: 'jpeg', quality: 70 }).then((b) => fs.writeFileSync(path.join(OUT, `${seq.id}-${format}.jpg`), b));
+    }
+  }
+  check(seqProblems.length === 0, `séquences : ${sequences.length} séquences × ${formats.length} formats rendues — l'élément porté part de sa place d'avant (≤ 3 %), revient à la sienne, textes tenus et visibles`, seqProblems.slice(0, 20).join('\n    '));
+
+  // La liste qui se RESSERRE : les éléments arrivent de plus en plus vite (écarts décroissants), mesuré dans la page.
+  {
+    const g = gabarits.find((x) => x.config.layout === 'vlayout.problem-list' || x.config.layout === 'vlayout.list-steps')!;
+    const scene = sceneFor(g, 'l1', 4.5);
+    const [a] = assembleFilm(cat, { ...base, scenes: [scene], formats: ['story'] }, theme0, [{ layout: g.config.layout, animations: { ...g.config.animations } }]);
+    const size = COMPOSITION.story;
+    const html = await buildComposition({ scenes: [{ key: 'l1', start: 0, duration: 4.5, html: a.html, script: a.script, animation: 'gsap', texts: scene.texts }], width: size.width, height: size.height, output: { width: 540, height: 960 }, durationSec: 4.5, brand: { ...BRAND, logo: { light: 'logo.png', width: 480, height: 120 } } as never, media: {}, logo: 'logo.png', fontCss: '', mode: 'render' });
+    await openComposition(page, html, files, { width: 540, height: 960 });
+    const firsts = (await page.evaluate(`(function () {
+      var spec = ${a.script.replace(/^__ge\.scene\(tl, root, D, /, '').replace(/\);$/, '')};
+      var r = spec.roles.find(function (x) { return x.role === 'items'; });
+      var items = Array.prototype.slice.call(document.querySelectorAll(r.sel)), seen = items.map(function () { return null; });
+      for (var t = 0; t <= 4.5; t += 0.02) {
+        window.__timelines.film.seek(t, false);
+        items.forEach(function (el, i) { if (seen[i] === null && parseFloat(getComputedStyle(el).opacity) > 0.5) seen[i] = t; });
+      }
+      return seen;
+    })()`)) as Array<number | null>;
+    const gaps = firsts.slice(1).map((t, i) => (t ?? 0) - (firsts[i] ?? 0));
+    check(firsts.every((t) => t !== null) && gaps.length >= 2 && gaps[gaps.length - 1] < gaps[0] - 0.01, 'répétition resserrée : les éléments de la liste arrivent de plus en plus vite (écarts décroissants)', `instants ${JSON.stringify(firsts.map((t) => t?.toFixed(2)))}`);
+  }
+
+  // Le TEMPS MORT, borné par le code : sur le film des gabarits, toute scène qui avait du temps libre a reçu un
+  // développement, et aucune ne reste plus de IDLE_MAX secondes sans mouvement utile après sa lecture.
+  {
+    const longScenes = filmScenes.map((s) => ({ ...s, duration: 5.5 }));
+    process.env.VIDEO_DEVELOP = 'off';
+    const flat = assembleFilm(cat, { ...base, scenes: longScenes, formats: ['story'] }, theme0, configs);
+    delete process.env.VIDEO_DEVELOP;
+    const film = assembleFilm(cat, { ...base, scenes: longScenes, formats: ['story'] }, theme0, configs);
+    const idle = film.map((s) => s.quality?.idle ?? 0);
+    const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
+    const before = sum(flat.map((s) => s.quality?.idle ?? 0));
+    const developed = film.filter((s) => s.quality?.develop).length;
+    const free = film.filter((s) => (s.quality?.free ?? 0) >= DEVELOP_FREE_MIN).length;
+    check(developed >= Math.ceil(free * 0.7) && sum(idle) <= before * 0.7 && idle.every((x) => x <= IDLE_MAX + 0.3), `temps mort : ${developed}/${free} scènes à temps libre développées ; temps mort total ${before.toFixed(1)} s → ${sum(idle).toFixed(1)} s (−30 % au moins), ≤ ${IDLE_MAX + 0.3} s par scène`, `temps morts ${JSON.stringify(idle)} · ${film.map((s) => (s.quality?.develops ?? ['-']).join('+')).join(', ')}`);
+    check(film.every((s, i) => !i || !s.quality?.develop || s.quality.develop !== film[i - 1].quality?.develop), 'développements : jamais le même deux scènes de suite');
+  }
+
+  // Le film entier par le CODE : un film réaliste reçoit au moins une séquence, aucun appel.
+  {
+    const realistic: CatalogScene[] = [
+      { key: 'r1', duration: 3.4, role: 'hook', energy: 4, texts: { headline: 'Marie vend sa récolte depuis la place du village', sub: 'Payée en 24 heures, sans intermédiaire.' }, media: [{ id: 'photo', kind: 'image' }] },
+      { key: 'r2', duration: 3.6, role: 'feature', energy: 3, texts: { headline: 'Trois touches pour commander ses intrants', sub: 'La borne parle la langue de l’exploitant.' }, media: [{ id: 'photo', kind: 'image' }] },
+      { key: 'r3', duration: 3.2, role: 'proof', energy: 4, texts: { figure: '1 200', label: 'Exploitants servis en 2026' }, media: [] },
+      { key: 'r4', duration: 3.4, role: 'cta', energy: 4, texts: { headline: 'Installez une borne dans votre village', cta: 'Écrire sur WhatsApp' }, media: [] },
+      { key: 'r5', duration: 2.6, role: 'signature', energy: 2, texts: { headline: 'Les intrants à portée de main' }, media: [] },
+    ];
+    const n0 = calls.length;
+    const real = await composeFilmFromCatalog({ ...base, scenes: realistic, level: 'medium', call: { level: 'medium', call: async ({ role }) => (calls.push(role), '') } });
+    check(calls.length === n0 && real.scenes.some((s) => s.config.sequence) && real.scenes.some((s) => s.quality?.carry), 'film réaliste : séquences posées par le code (au moins une traversée), aucun appel', real.trace.detail);
   }
   await browser.close();
   check(identical, 'déterminisme : le même film assemblé deux fois est identique');

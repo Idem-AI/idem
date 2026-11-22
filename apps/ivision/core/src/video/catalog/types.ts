@@ -7,10 +7,14 @@
  *   theme       la personnalité du FILM : durées, courbes, décalages, distances, traitement typographique et couleurs ;
  *   animation   l'entrée / la sortie / la tenue d'un rôle : des tweens DÉCLARATIFS (aucun JavaScript publié) ;
  *   transition  le passage d'une scène à la suivante : tweens de sortie, d'entrée, et panneaux de marque ;
- *   gabarit     une recette de scène : mise en page + animation par rôle + transition d'entrée.
+ *   gabarit     une recette de scène : mise en page + animation par rôle + transition d'entrée ;
+ *   develop     (22/11/2026) le DÉVELOPPEMENT d'une scène : ce qui se passe une fois tout posé (l'image se découvre,
+ *               la liste s'accomplit, le problème se barre) — la scène évolue au lieu d'attendre la coupe ;
+ *   sequence    (22/11/2026) 2 ou 3 scènes ENCHAÎNÉES : chacune a sa mise en page, et un élément (média, chiffre,
+ *               logo) traverse la coupe — il glisse de sa place d'avant à sa place d'après (pas de diapositives).
  */
 
-export type VideoNodeKind = 'layout' | 'theme' | 'animation' | 'transition' | 'gabarit';
+export type VideoNodeKind = 'layout' | 'theme' | 'animation' | 'transition' | 'gabarit' | 'develop' | 'sequence';
 export type SceneRole = 'hook' | 'problem' | 'reveal' | 'feature' | 'benefits' | 'proof' | 'cta' | 'signature' | 'statement' | 'data';
 export type VideoStyle = 'energetic' | 'premium' | 'playful' | 'corporate';
 export type Slot = 'title' | 'body' | 'cta' | 'figure' | 'label' | 'attribution' | 'items' | 'media' | 'logo';
@@ -141,6 +145,10 @@ export interface TransitionNode extends BaseNode {
   steps: { out: TweenStep[]; in: TweenStep[] };
 }
 
+/** Les éléments qui peuvent traverser une coupe (séquence). */
+export type CarryRole = 'media' | 'figure' | 'logo';
+export const CARRY_ROLES: CarryRole[] = ['media', 'figure', 'logo'];
+
 export interface SceneConfig {
   gabarit?: string;
   layout: string;
@@ -151,6 +159,13 @@ export interface SceneConfig {
   vars?: Record<string, string>;
   /** Réglages continus (Ultra) : rythme (0,8–1,25 : plus lent ↔ plus vif). */
   params?: { pace?: number };
+  /** La séquence dont la scène fait partie, et son rang dans la séquence. */
+  sequence?: string;
+  step?: number;
+  /** L'élément qui arrive de la scène d'avant SANS sortir ni rentrer : il glisse de sa place à la sienne. */
+  carry?: CarryRole;
+  /** Le développement choisi par une séquence (sinon, le code en pose un quand la scène a du temps libre). */
+  develop?: string;
 }
 
 export interface GabaritNode extends BaseNode {
@@ -159,7 +174,33 @@ export interface GabaritNode extends BaseNode {
   config: SceneConfig & { gabarit: string };
 }
 
-export type VideoNode = LayoutNode | ThemeNode | AnimationNode | TransitionNode | GabaritNode;
+export interface DevelopNode extends BaseNode {
+  kind: 'develop';
+  /** Le rôle animable visé (titre, liste, média, chiffre, logo…). */
+  role: AnimRole;
+  /** `entered` : dès que son rôle est posé ; `read` : toute la scène posée et en partie lue. */
+  start?: 'entered' | 'read';
+  /** Le temps libre minimal (s) pour que le développement se voie : en dessous, la scène n'en reçoit pas. */
+  minHold: number;
+  split?: 'none' | 'words' | 'chars' | 'lines';
+  sceneRoles?: SceneRole[];
+  steps: TweenStep[];
+}
+
+export interface SequenceStep {
+  roles: SceneRole[];
+  layout: string;
+  animations?: Partial<Record<AnimRole, string>>;
+  carry?: CarryRole;
+  develop?: string;
+}
+
+export interface SequenceNode extends BaseNode {
+  kind: 'sequence';
+  scenes: SequenceStep[];
+}
+
+export type VideoNode = LayoutNode | ThemeNode | AnimationNode | TransitionNode | GabaritNode | DevelopNode | SequenceNode;
 
 export interface LoadedVideoCatalog {
   version: string;
@@ -312,6 +353,29 @@ export function nodeErrors(node: VideoNode): string[] {
       for (const role of Object.keys(node.config?.animations ?? {})) if (!ANIM_ROLES.has(role)) errors.push(`rôle inconnu « ${role} »`);
       break;
     }
+    case 'develop': {
+      if (!ANIM_ROLES.has(node.role) || node.role === 'item' || node.role === 'bg') errors.push('rôle visé invalide');
+      if (node.start !== undefined && node.start !== 'entered' && node.start !== 'read') errors.push('début invalide');
+      if (!(typeof node.minHold === 'number' && node.minHold >= 0.6 && node.minHold <= 6)) errors.push('temps libre minimal invalide');
+      if (!['none', 'words', 'chars', 'lines'].includes(node.split ?? 'none')) errors.push('découpage invalide');
+      if (node.sceneRoles !== undefined && (!Array.isArray(node.sceneRoles) || node.sceneRoles.some((r) => !SCENE_ROLES.includes(r)))) errors.push('rôles de scène invalides');
+      if (!node.steps?.length) errors.push('aucun tween');
+      const text = ROLE_TARGET[node.role] === 'text' ? { split: node.split ?? 'none' } : undefined;
+      errors.push(...stepsErrors(node.steps ?? [], (t) => t === 'self' || t === 'inner', false, text));
+      break;
+    }
+    case 'sequence': {
+      const scenes = node.scenes;
+      if (!Array.isArray(scenes) || scenes.length < 2 || scenes.length > 3) errors.push('2 ou 3 scènes attendues');
+      (scenes ?? []).forEach((s, i) => {
+        if (!Array.isArray(s?.roles) || !s.roles.length || s.roles.some((r) => !SCENE_ROLES.includes(r))) errors.push(`scène ${i + 1} : rôles invalides`);
+        if (typeof s?.layout !== 'string') errors.push(`scène ${i + 1} : mise en page manquante`);
+        for (const role of Object.keys(s?.animations ?? {})) if (!ANIM_ROLES.has(role)) errors.push(`scène ${i + 1} : rôle inconnu « ${role} »`);
+        if (s?.carry !== undefined && (!i || !CARRY_ROLES.includes(s.carry))) errors.push(`scène ${i + 1} : élément traversant invalide`);
+      });
+      if ((scenes ?? []).slice(1).every((s) => !s?.carry)) errors.push('aucun élément ne traverse la coupe');
+      break;
+    }
     default:
       errors.push('sorte inconnue');
   }
@@ -335,6 +399,25 @@ export function refErrors(node: VideoNode, nodes: Map<string, VideoNode>): strin
       if (a?.kind !== 'animation') errors.push(`animation inconnue : ${id}`);
       else if (!a.targets.includes(ROLE_TARGET[role as AnimRole])) errors.push(`${id} ne s’applique pas au rôle ${role}`);
     }
+  }
+  if (node.kind === 'sequence') {
+    node.scenes.forEach((s, i) => {
+      const layout = nodes.get(s.layout);
+      if (layout?.kind !== 'layout') return errors.push(`scène ${i + 1} : mise en page inconnue ${s.layout}`);
+      const has = (html: string | undefined, role: string) => new RegExp(`data-v="${role}"`).test(html ?? '');
+      if (s.carry) {
+        const prev = nodes.get(node.scenes[i - 1]?.layout);
+        if (!has(layout.html, s.carry) || prev?.kind !== 'layout' || !has(prev.html, s.carry)) errors.push(`scène ${i + 1} : ${s.carry} absent d’un côté de la coupe`);
+      }
+      for (const [role, id] of Object.entries(s.animations ?? {})) {
+        const a = nodes.get(id as string);
+        if (a?.kind !== 'animation' || !a.targets.includes(ROLE_TARGET[role as AnimRole])) errors.push(`scène ${i + 1} : animation ${id} invalide pour ${role}`);
+      }
+      if (s.develop) {
+        const d = nodes.get(s.develop);
+        if (d?.kind !== 'develop' || !has(layout.html, d.role)) errors.push(`scène ${i + 1} : développement ${s.develop} invalide`);
+      }
+    });
   }
   return errors;
 }

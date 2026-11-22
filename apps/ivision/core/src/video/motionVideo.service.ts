@@ -897,17 +897,19 @@ export class MotionVideoService {
     const rawRequest = brief.request || [brief.message, brief.details].filter(Boolean).join('\n');
     // Les images de la marque, décrites (gardées par l'hôte) : le directeur de création sait ce qu'elles montrent.
     const brandMedia = await this.describedBrandMedia(userId, projectId, ctx.brandMedia, brief.media || []);
-    // Le DIRECTEUR DE CRÉATION (même chargement, même étape « plan ») : la demande, souvent brève et orale, devient un
-    // brief de production complet — déroulé, ce qu'on montre, textes qui disent quelque chose, un ton de voix, le rythme
-    // d'un film — avant le reste de la génération. Jamais pour un scénario mot pour mot (rendu tel quel).
-    const enhanced = await this.enhanceVideoRequest(userId, rawRequest, brief.media || [], ctx, {
-      durationSec: scope.durationSec,
-      // Le choix de l'utilisateur (case « voix off », ou plan du calendrier) fait autorité : le brief ne le contredit jamais.
-      voice: brief.voice === true,
-      objective: brief.objective,
-      language: brief.language,
-      mediaNotes: [...(brief.media || []).filter((m) => m.kind === 'image' || m.kind === 'video').map((m) => `${m.kind === 'video' ? 'clip' : 'photo'} provided by the client${m.name ? `: ${m.name}` : ''}`), ...brandMedia.map((b) => `${b.kind === 'screen' ? 'screenshot of the brand' : 'brand photo'}: ${b.note}`)].filter((n) => n.length > 12),
-    });
+    // Le DIRECTEUR DE CRÉATION automatique (`video.brief`) : depuis le 22/11/2026 il ne part plus à chaque film — le
+    // storyboard, en un seul appel, lit la demande entière, en tire l'idée, les temps forts, la musique et la voix.
+    // `IDEM_VIDEO_AUTO_BRIEF=1` le rétablit ; « Améliorer ma demande » (bouton, gratuit) le garde toujours.
+    const enhanced = process.env.IDEM_VIDEO_AUTO_BRIEF === '1'
+      ? await this.enhanceVideoRequest(userId, rawRequest, brief.media || [], ctx, {
+          durationSec: scope.durationSec,
+          // Le choix de l'utilisateur (case « voix off », ou plan du calendrier) fait autorité : le brief ne le contredit jamais.
+          voice: brief.voice === true,
+          objective: brief.objective,
+          language: brief.language,
+          mediaNotes: [...(brief.media || []).filter((m) => m.kind === 'image' || m.kind === 'video').map((m) => `${m.kind === 'video' ? 'clip' : 'photo'} provided by the client${m.name ? `: ${m.name}` : ''}`), ...brandMedia.map((b) => `${b.kind === 'screen' ? 'screenshot of the brand' : 'brand photo'}: ${b.note}`)].filter((n) => n.length > 12),
+        })
+      : { prompt: rawRequest, source: 'template' as const };
     const request = enhanced.prompt || rawRequest;
     // Le reste de la création (intention, storyboard…) lit la même demande reformulée ; le brief structuré est gardé.
     brief.request = request;
@@ -953,7 +955,7 @@ export class MotionVideoService {
       durationSec: scope.durationSec,
       media: assets.map((m) => ({ id: m.id, kind: m.kind as 'image' | 'video', ...(m.name ? { note: m.name } : {}), ...(m.durationSec ? { durationSec: m.durationSec } : {}), origin: m.origin === 'upload' ? 'provided by the client' : 'brand' })),
       voice: brief.voice === true,
-      newMedia: { images: brief.allowGenerate || brief.allowStock ? imageCap(scope.durationSec) : 0, clips: brief.allowGenerate || brief.allowStock ? Math.max(0, Number(process.env.VIDEO_GEN_MAX_CLIPS ?? 4)) : 0 },
+      newMedia: { images: brief.allowGenerate || brief.allowStock ? imageCap(scope.durationSec) : 0, clips: brief.allowGenerate || brief.allowStock ? Math.max(0, Number(process.env.VIDEO_GEN_MAX_CLIPS ?? 2)) : 0 },
       ...(reference ? { reference } : {}),
       ...(input.reference && !(spec.mode === 'script' && spec.scenes.length) ? { referenceShots: referenceShotCards(input.reference, sceneRange(scope.durationSec)[1]) } : {}),
       previous: ctx.others.filter((v) => v.film).slice(-6).map((v) => `${v.film!.title} — ${v.film!.concept}`.slice(0, 200)),
@@ -970,13 +972,15 @@ export class MotionVideoService {
       })(),
     };
     const call = this.callContext(userId, projectId, creativity);
-    // Les mêmes étapes à tous les crans : la jauge choisit le modèle de chaque rôle (échelles de l'hôte).
+    // UN appel pour le film (22/11/2026) : le storyboard écrit aussi l'idée (titre, concept, direction, musique,
+    // narrateur). L'ancien directeur (`video.concept`, et l'exploration en quatre pistes à l'Ultra) précédait le
+    // storyboard et relisait toute la demande : `IDEM_VIDEO_CONCEPT=1` le rétablit.
     emit('concept', 'running');
-    const conceived = await runConcept(call, filmBrief);
-    if (conceived.explore) trace('video.concept-explore', conceived.explore.run, !!conceived.explore.chosen);
-    trace('video.concept', conceived.run, !!conceived.concept);
-    const concept = conceived.concept;
-    emit('concept', 'done', concept ? { title: concept.title, concept: concept.concept } : { failed: conceived.run.failure || 'unreadable' });
+    const conceived = process.env.IDEM_VIDEO_CONCEPT === '1' ? await runConcept(call, filmBrief) : null;
+    if (conceived?.explore) trace('video.concept-explore', conceived.explore.run, !!conceived.explore.chosen);
+    if (conceived) trace('video.concept', conceived.run, !!conceived.concept);
+    const concept = conceived?.concept ?? null;
+    emit('concept', 'done', concept ? { title: concept.title, concept: concept.concept } : conceived ? { failed: conceived.run.failure || 'unreadable' } : { inStoryboard: true });
     emit('storyboard', 'running');
     const timeline = spec.mode === 'script' && spec.scenes.length ? sceneTimeline(spec, scope.durationSec) : input.reference ? referenceTimeline(input.reference, scope.durationSec) : undefined;
     const planned = await runPlanner(call, filmBrief, concept, timeline);
@@ -986,6 +990,12 @@ export class MotionVideoService {
       throw new VideoInputError(failure === 'no_model' ? 'model_unavailable' : 'storyboard_failed');
     }
     const sb: Storyboard = planned.storyboard;
+    // L'idée écrite par le storyboard lui-même : la voix et la musique qu'il propose quand l'utilisateur a laissé le choix.
+    if (!concept) {
+      const persona = input.voicePersona && VOICE_PERSONAS.some((p) => p.id === input.voicePersona) ? (input.voicePersona as CreativeBrief['persona']) : sb.persona;
+      if (!brief.creative && (persona || sb.music)) brief.creative = { voiceover: brief.voice === true, show: [], beats: [], ...(persona ? { persona } : {}), ...(sb.music ? { music: sb.music } : {}) };
+      if (brief.musicMood === 'auto' && sb.music) brief.musicMood = sb.music;
+    }
     // Ce que la demande exige et que la vidéo ne peut pas tenir (4K, 24 i/s…) : dit, jamais ignoré.
     for (const u of spec.unsupported || []) sb.fidelity.push(language.startsWith('en') ? `${u} requested: the video is delivered in ${scope.quality === 'standard' ? '720p' : '1080p'}, ${scope.quality === 'premium' ? 60 : 30} fps.` : `${u} demandé : la vidéo est livrée en ${scope.quality === 'standard' ? '720p' : '1080p'}, ${scope.quality === 'premium' ? 60 : 30} i/s.`);
     emit('storyboard', 'done', { title: sb.title, scenes: sb.scenes.map((s) => ({ duration: s.duration, purpose: s.purpose })) });
@@ -1004,7 +1014,7 @@ export class MotionVideoService {
       ...(sb.fidelity.length ? { fidelity: { notes: sb.fidelity } } : {}),
       ...(input.reference ? { reference: { ...(input.reference.id ? { id: input.reference.id } : {}), summary: input.reference.summary.slice(0, 300) } } : {}),
       ...(filmBrief.axis ? { axis: filmBrief.axis.id } : {}),
-      ...(conceived.explore?.chosen ? { explored: { tracks: conceived.explore.tracks, chosen: conceived.explore.chosen.title, novelty: conceived.explore.novelty ?? 1 } } : {}),
+      ...(conceived?.explore?.chosen ? { explored: { tracks: conceived.explore.tracks, chosen: conceived.explore.chosen.title, novelty: conceived.explore.novelty ?? 1 } } : {}),
       scenes: sb.scenes.map((s, i) => ({
         key: `s${i + 1}`,
         start: s.start,
@@ -1023,7 +1033,7 @@ export class MotionVideoService {
 
     // Le plan du film, calculé par le code (compilateur 0.3) : la direction visuelle (jamais celle du film précédent),
     // l'énergie de chaque scène, le système de design, les coutures entre scènes et les sons des transitions.
-    const plan = planFilm({ brand: ctx.film, scenes: sb.scenes.map((s) => ({ role: s.role, energy: s.energy })), direction: concept?.direction, alternative: concept?.alternative, energy: concept?.energy, previousDirection: filmBrief.previousDirections?.[0], seed });
+    const plan = planFilm({ brand: ctx.film, scenes: sb.scenes.map((s) => ({ role: s.role, energy: s.energy })), direction: concept?.direction ?? sb.direction, alternative: concept?.alternative ?? sb.alternative, energy: concept?.energy, previousDirection: filmBrief.previousDirections?.[0], seed });
     film = {
       ...film,
       design: plan.design,

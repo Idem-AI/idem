@@ -24,7 +24,8 @@ import { LoadedVideoCatalog, nodeErrors, refErrors, VideoNode } from './types';
 
 /** La version du moteur vidéo par catalogue : un manifeste d'une autre version MAJEURE est refusé. */
 // 2.0 : chaque nœud déclare ses directions artistiques (catalogue `directions` du dépôt).
-export const VIDEO_CATALOG_ENGINE = '2.0.0';
+// 2.1 (22/11/2026) : sortes « develop » et « sequence » (un moteur 2.0 les ignore, les écarte et le dit).
+export const VIDEO_CATALOG_ENGINE = '2.1.0';
 
 interface VideoManifest {
   schema: number;

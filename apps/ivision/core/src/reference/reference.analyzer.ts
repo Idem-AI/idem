@@ -325,6 +325,117 @@ function shotInstruction(index: number, count: number, duration: number): string
 
 const DIRECTION_HINT: Record<string, DirectionId> = { calm: 'cinematic', medium: 'editorial', high: 'kinetic' };
 
+// ─── Mesuré par le code (22/11/2026) ────────────────────────────────────────────
+
+const SIDE = 48;
+async function grey(img: Buffer, crop?: { left: number; top: number; width: number; height: number }): Promise<Buffer> {
+  const base = sharp(img);
+  const meta = await base.metadata();
+  const w = meta.width || 1;
+  const h = meta.height || 1;
+  const area = crop ? { left: Math.round(crop.left * w), top: Math.round(crop.top * h), width: Math.max(2, Math.round(crop.width * w)), height: Math.max(2, Math.round(crop.height * h)) } : undefined;
+  return (area ? base.extract(area) : base).resize(SIDE, SIDE, { fit: 'fill' }).greyscale().raw().toBuffer();
+}
+const meanDiff = (a: Buffer, b: Buffer) => {
+  let s = 0;
+  for (let i = 0; i < a.length; i++) s += Math.abs(a[i] - b[i]);
+  return s / a.length / 255;
+};
+
+/**
+ * La CAMÉRA d'un plan, mesurée entre son début et sa fin, sans modèle : l'hypothèse qui rapproche le mieux les deux
+ * images parmi un zoom avant (la fin = le centre du début agrandi), un zoom arrière (l'inverse), une montée, une
+ * dérive latérale, ou rien. Un plan où tout change (éléments qui entrent, coupe) reste « still » : la vision, quand
+ * elle est là, a le dernier mot.
+ */
+export async function measureCamera(start: Buffer, end: Buffer): Promise<(typeof REFERENCE_CAMERAS)[number]> {
+  try {
+    const whole = await grey(start);
+    const last = await grey(end);
+    const still = meanDiff(whole, last);
+    if (still < 0.02) return 'still';
+    const k = 0.84;
+    const m = (1 - k) / 2;
+    const tries: Array<[(typeof REFERENCE_CAMERAS)[number], number]> = [
+      ['push', meanDiff(await grey(start, { left: m, top: m, width: k, height: k }), last)],
+      ['pull', meanDiff(whole, await grey(end, { left: m, top: m, width: k, height: k }))],
+      ['rise', meanDiff(await grey(start, { left: 0, top: 0.08, width: 1, height: 0.92 }), await grey(end, { left: 0, top: 0, width: 1, height: 0.92 }))],
+      ['drift', Math.min(meanDiff(await grey(start, { left: 0.08, top: 0, width: 0.92, height: 1 }), await grey(end, { left: 0, top: 0, width: 0.92, height: 1 })), meanDiff(await grey(start, { left: 0, top: 0, width: 0.92, height: 1 }), await grey(end, { left: 0.08, top: 0, width: 0.92, height: 1 })))],
+    ];
+    const best = tries.sort((a, b) => a[1] - b[1])[0];
+    // La caméra n'est retenue que si elle explique nettement mieux le plan que l'immobilité.
+    return best[1] < still * 0.72 ? best[0] : 'still';
+  } catch {
+    return 'still';
+  }
+}
+
+/** Les planches de plusieurs plans, l'une sous l'autre, chacune titrée « SHOT n » : UNE image pour la vision. */
+async function stackedSheets(sheets: { index: number; sheet: Buffer }[], rowHeight = 220): Promise<Buffer> {
+  const rows = await Promise.all(sheets.map((s) => sharp(s.sheet).resize({ height: rowHeight }).jpeg().toBuffer({ resolveWithObject: true })));
+  const label = 34;
+  const width = Math.max(...rows.map((r) => r.info.width)) + 8;
+  const height = rows.length * (rowHeight + label + 8);
+  const composite: Array<{ input: Buffer; left: number; top: number }> = [];
+  rows.forEach((r, i) => {
+    const top = i * (rowHeight + label + 8);
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${label}"><rect width="100%" height="100%" fill="#111"/><text x="10" y="25" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="#fff">SHOT ${sheets[i].index + 1}</text></svg>`;
+    composite.push({ input: Buffer.from(svg), left: 0, top });
+    composite.push({ input: r.data, left: 4, top: top + label });
+  });
+  return sharp({ create: { width, height, channels: 3, background: '#7f7f7f' } }).composite(composite).jpeg({ quality: 76 }).toBuffer();
+}
+
+function batchInstruction(shots: ReferenceShot[], count: number): string {
+  return [
+    `Rows of frames from ${shots.length} shots of a motion-design video of ${count} shots. Each row is titled "SHOT n" and shows, left to right: the END of the previous shot (except shot 1), then the start, middle and end of THIS shot.`,
+    'Describe each shot for a motion designer who must REPRODUCE the animation (not the content). Answer ONLY a JSON array, one object per row, in the same order:',
+    `[{"shot": n, "role": ${ROLES.join('|')},`,
+    ` "media": "none|photo|video", "layout": ${Object.keys(REFERENCE_LAYOUTS).join('|')},`,
+    ` "textMotion": ${Object.keys(REFERENCE_TEXT_MOTIONS).join('|')},`,
+    ` "transitionIn": ${Object.keys(REFERENCE_TRANSITIONS).join('|')} (how the previous shot hands over; omit for shot 1),`,
+    ` "camera": ${REFERENCE_CAMERAS.join('|')},`,
+    ' "background": "light|brand|dark|photo|video|pattern",',
+    ' "texts": [{"role": "headline|support|label|number|button", "words": n, "position": "top|center|bottom|left|right"}],',
+    ' "energy": "calm|medium|high",',
+    ' "description": "what we see and exactly how it moves, 60 words max; no brand names, no quoted text"}, …]',
+  ].join('\n');
+}
+
+function parseJsonArray(raw: string): Array<Record<string, any>> | null {
+  const m = String(raw || '').replace(/```[a-z]*\n?/gi, '').match(/\[[\s\S]*\]/);
+  if (!m) return null;
+  try {
+    const v = JSON.parse(m[0]);
+    return Array.isArray(v) ? v.filter((x) => x && typeof x === 'object') : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Une lecture de la vision appliquée à un plan (valeurs ramenées aux seules admises). */
+function applyVision(shot: ReferenceShot, json: Record<string, any>): void {
+  shot.role = pick(json.role, ROLES, shot.role);
+  shot.media = pick(json.media, ['none', 'photo', 'video'] as const, shot.media);
+  shot.layout = pick(json.layout, Object.keys(REFERENCE_LAYOUTS) as ReferenceLayout[], shot.layout);
+  if (REFERENCE_TEXT_MOTIONS[json.textMotion]) shot.textMotion = REFERENCE_TEXT_MOTIONS[json.textMotion];
+  if (shot.index && REFERENCE_TRANSITIONS[json.transitionIn]) shot.transitionIn = REFERENCE_TRANSITIONS[json.transitionIn];
+  shot.camera = pick(json.camera, REFERENCE_CAMERAS, shot.camera);
+  shot.background = pick(json.background, ['light', 'brand', 'dark', 'photo', 'video', 'pattern'] as const, shot.background);
+  shot.energy = pick(json.energy, ['calm', 'medium', 'high'] as const, shot.energy);
+  if (Array.isArray(json.texts)) {
+    shot.texts = json.texts.slice(0, 4).map((x: any) => ({
+      role: pick(x?.role, ['headline', 'support', 'label', 'number', 'button'] as const, 'headline'),
+      words: Math.max(1, Math.min(20, Math.round(Number(x?.words) || 3))),
+      position: pick(x?.position, ['top', 'center', 'bottom', 'left', 'right'] as const, 'center'),
+    }));
+  }
+  if (typeof json.description === 'string') shot.description = json.description.replace(/["«»“”]/g, '').slice(0, 520);
+}
+
+/** Les plans lus par la vision QUATRE À LA FOIS (une planche empilée, un tableau JSON) : 3 appels au plus pour 12 plans. */
+export const VISION_BATCH = 4;
+
 /** L'analyse complète d'une vidéo modèle (fichier local). */
 export async function analyzeReferenceVideo(file: string, options: AnalyzeVideoOptions = {}): Promise<ReferenceBlueprint> {
   const progress = options.onProgress || (() => undefined);
@@ -350,6 +461,8 @@ export async function analyzeReferenceVideo(file: string, options: AnalyzeVideoO
       const sheet = await contactSheet(previousEnd ? [previousEnd, start, middle, end] : [start, middle, end]);
       previousEnd = end;
       const energy: ReferenceShot['energy'] = motion > 0.16 ? 'high' : motion > 0.06 ? 'medium' : 'calm';
+      // La caméra, mesurée par le code (la vision la corrige quand elle est là).
+      const camera = await measureCamera(start, end);
       shots.push({
         index: i,
         start: span.start,
@@ -357,7 +470,7 @@ export async function analyzeReferenceVideo(file: string, options: AnalyzeVideoO
         role: i === 0 ? 'hook' : i === spans.length - 1 ? 'signature' : 'claim',
         media: 'none',
         layout: i === spans.length - 1 ? 'logo' : 'centered-title',
-        camera: 'still',
+        camera,
         background: 'brand',
         texts: [{ role: 'headline', words: 4, position: 'center' }],
         energy,
@@ -370,37 +483,42 @@ export async function analyzeReferenceVideo(file: string, options: AnalyzeVideoO
     let source: ReferenceBlueprint['source'] = 'measured';
     if (options.vision) {
       progress('vision', { shots: shots.length });
-      // Trois plans lus en même temps au plus : le fournisseur ralentit au-delà.
-      let next = 0;
-      const worker = async () => {
-        while (next < shots.length) {
-          const shot = shots[next++];
+      // 22/11/2026 : les plans lus QUATRE à la fois (une planche empilée, une réponse en tableau) au lieu d'un appel par
+      // plan — 3 appels au plus pour 12 plans. Une réponse illisible ou un plan oublié retombe sur la lecture
+      // individuelle de ce plan seulement.
+      const batches: ReferenceShot[][] = [];
+      for (let k = 0; k < shots.length; k += VISION_BATCH) batches.push(shots.slice(k, k + VISION_BATCH));
+      const missed: ReferenceShot[] = [];
+      await Promise.all(
+        batches.map(async (batch) => {
           try {
-            const json = parseJson(await options.vision!(shot.sheet!.toString('base64'), 'image/jpeg', shotInstruction(shot.index, shots.length, shot.duration)));
-            if (!json) continue;
-            source = 'vision';
-            shot.role = pick(json.role, ROLES, shot.role);
-            shot.media = pick(json.media, ['none', 'photo', 'video'] as const, shot.media);
-            shot.layout = pick(json.layout, Object.keys(REFERENCE_LAYOUTS) as ReferenceLayout[], shot.layout);
-            if (REFERENCE_TEXT_MOTIONS[json.textMotion]) shot.textMotion = REFERENCE_TEXT_MOTIONS[json.textMotion];
-            if (shot.index && REFERENCE_TRANSITIONS[json.transitionIn]) shot.transitionIn = REFERENCE_TRANSITIONS[json.transitionIn];
-            shot.camera = pick(json.camera, REFERENCE_CAMERAS, shot.camera);
-            shot.background = pick(json.background, ['light', 'brand', 'dark', 'photo', 'video', 'pattern'] as const, shot.background);
-            shot.energy = pick(json.energy, ['calm', 'medium', 'high'] as const, shot.energy);
-            if (Array.isArray(json.texts)) {
-              shot.texts = json.texts.slice(0, 4).map((x: any) => ({
-                role: pick(x?.role, ['headline', 'support', 'label', 'number', 'button'] as const, 'headline'),
-                words: Math.max(1, Math.min(20, Math.round(Number(x?.words) || 3))),
-                position: pick(x?.position, ['top', 'center', 'bottom', 'left', 'right'] as const, 'center'),
-              }));
+            const sheet = batch.length === 1 ? batch[0].sheet! : await stackedSheets(batch.map((b) => ({ index: b.index, sheet: b.sheet! })));
+            const raw = await options.vision!(sheet.toString('base64'), 'image/jpeg', batch.length === 1 ? shotInstruction(batch[0].index, shots.length, batch[0].duration) : batchInstruction(batch, shots.length));
+            const list = batch.length === 1 ? [parseJson(raw)].filter((x): x is Record<string, any> => !!x) : parseJsonArray(raw) ?? [];
+            for (const [i, shot] of batch.entries()) {
+              const json = list.find((x) => Number(x.shot) === shot.index + 1) ?? (list.length === batch.length ? list[i] : undefined);
+              if (json) {
+                applyVision(shot, json);
+                source = 'vision';
+              } else missed.push(shot);
             }
-            if (typeof json.description === 'string') shot.description = json.description.replace(/["«»“”]/g, '').slice(0, 520);
           } catch (error) {
-            logger.warn('reference.vision_failed', { event: 'reference.vision_failed', shot: shot.index, error });
+            logger.warn('reference.vision_failed', { event: 'reference.vision_failed', shots: batch.map((b) => b.index), error });
+            missed.push(...batch);
           }
+        })
+      );
+      for (const shot of missed.slice(0, 4)) {
+        try {
+          const json = parseJson(await options.vision!(shot.sheet!.toString('base64'), 'image/jpeg', shotInstruction(shot.index, shots.length, shot.duration)));
+          if (json) {
+            applyVision(shot, json);
+            source = 'vision';
+          }
+        } catch (error) {
+          logger.warn('reference.vision_failed', { event: 'reference.vision_failed', shot: shot.index, error });
         }
-      };
-      await Promise.all(Array.from({ length: Math.min(3, shots.length) }, worker));
+      }
     }
 
     // La signature : le dernier plan, s'il montre un logo ; sinon le moteur en ajoute une.

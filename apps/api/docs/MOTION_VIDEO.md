@@ -91,7 +91,7 @@ l'utilisateur.
    **Google Veo 3.1** par OpenRouter (Veo 3.1 aux crans High et Ultra, Veo 3.1 Fast sinon ; 16:9 ou 9:16, 4, 6 ou
    8 s — un autre format ou une autre durée était refusé et faisait retomber sur Pexels). Trois essais par média,
    puis **Pexels**, puis les
-   photos des visuels de la marque. Plafonds : `VIDEO_GEN_MAX_IMAGES` (6), `VIDEO_GEN_MAX_CLIPS` (4).
+   photos des visuels de la marque. Plafonds : `VIDEO_GEN_MAX_IMAGES` (6), `VIDEO_GEN_MAX_CLIPS` (2 depuis le 22/11/2026 : une image animée par la caméra du code avant un clip généré).
    Un fournisseur sans crédit (402) coupe la génération pour toute la vidéo dès le premier refus.
 4. **Une petite sélection d'animations** (coche, éclat, flèche, soulignement), dessinée pour IDEM et recolorée à la
    couleur de la marque, proposée au storyboard comme n'importe quel média (`VIDEO_LOTTIE_LIBRARY=off` la retire).

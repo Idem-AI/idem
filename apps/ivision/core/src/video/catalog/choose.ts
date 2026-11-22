@@ -26,9 +26,20 @@ export interface VideoCatalogEffort {
   params: boolean;
 }
 
-const SAME_EFFORT: VideoCatalogEffort = { chooser: 'model', shortlist: 6, themes: 3, motion: true, params: false };
-export const VIDEO_CATALOG_EFFORT: Record<CreativityLevel, VideoCatalogEffort> = { low: SAME_EFFORT, medium: SAME_EFFORT, high: SAME_EFFORT, ultra: SAME_EFFORT };
-export const videoEffortFor = (level: CreativityLevel): VideoCatalogEffort => VIDEO_CATALOG_EFFORT[level] ?? VIDEO_CATALOG_EFFORT.medium;
+/**
+ * 22/11/2026 : le CODE choisit par défaut (0 jeton). La liste courte est déjà classée par le graphe (rôle, énergie,
+ * DA, variété, mémoire) et les séquences sont posées par le code : l'appel `video.template` n'ajoutait qu'un tirage
+ * parmi des candidats déjà justes, au prix d'un appel par film. `VIDEO_CATALOG_CHOOSER=model` le rétablit. La
+ * RETOUCHE écrite (« plus lent », « plus sobre ») garde son petit appel : elle traduit une consigne du client.
+ */
+const chooser = (): VideoCatalogEffort['chooser'] => (process.env.VIDEO_CATALOG_CHOOSER === 'model' ? 'model' : 'code');
+export const VIDEO_CATALOG_EFFORT: Record<CreativityLevel, VideoCatalogEffort> = {
+  low: { chooser: 'code', shortlist: 6, themes: 3, motion: true, params: false },
+  medium: { chooser: 'code', shortlist: 6, themes: 3, motion: true, params: false },
+  high: { chooser: 'code', shortlist: 6, themes: 3, motion: true, params: false },
+  ultra: { chooser: 'code', shortlist: 6, themes: 3, motion: true, params: false },
+};
+export const videoEffortFor = (level: CreativityLevel): VideoCatalogEffort => ({ ...(VIDEO_CATALOG_EFFORT[level] ?? VIDEO_CATALOG_EFFORT.medium), chooser: chooser() });
 
 export interface ChooseScene {
   key: string;
