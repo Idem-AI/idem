@@ -271,6 +271,20 @@ async function run(name: string, crawl: typeof crawlWebsite, url: string, extra:
   const gone = await run('unreachable', crawlWebsite, dead.url, { timeoutMs: 4000 });
   check('hôte qui ne répond pas : erreur « unreachable », pas un relevé vide', !gone.inventory && /unreachable|ECONNRESET|ERR_/.test(gone.error ?? ''), gone.error);
   dead.close();
+  // Hébergement mutualisé lent (WordPress sur Hostinger) : le serveur répond, mais un script bloquant de l'en-tête
+  // retarde la lecture du document au-delà du délai. Avant : « ne répond pas ». Le site doit être relevé.
+  const slow = await serve((req, res) => {
+    if (req.url === '/slow.js') return void setTimeout(() => send(res, 200, 'window.slowLoaded = true;', 'application/javascript'), 7000);
+    send(res, 200, `<!doctype html><html lang="fr"><head><title>Lent</title><script src="/slow.js"></script></head><body><header><nav><a href="/">Accueil</a></nav></header><main><section><h1>Association Lente</h1><p>Un site sur un hébergement mutualisé qui met longtemps à charger ses scripts.</p></section></main></body></html>`);
+  });
+  const slowRun = await run('slow', crawlWebsite, slow.url, { timeoutMs: 4000, maxPages: 1 });
+  check('site lent qui a répondu (script bloquant > délai) : relevé, jamais « ne répond pas »', !!slowRun.inventory && texts(slowRun.inventory).includes('Association Lente'), slowRun.error ?? summary(slowRun.inventory));
+  slow.close();
+  // Un serveur qui accepte la connexion mais ne répond jamais : injoignable, dans le délai (pas au bout du délai long).
+  const mute = await serve(() => undefined);
+  const muteRun = await run('mute', crawlWebsite, mute.url, { timeoutMs: 4000 });
+  check('serveur muet : « unreachable » dans le délai court', !muteRun.inventory && /unreachable/.test(muteRun.error ?? '') && muteRun.ms < 15_000, { error: muteRun.error, ms: muteRun.ms });
+  mute.close();
   const canvasRun = await run('canvas', crawlWebsite, servers.canvas.url, { vision: fakeVision });
   report.canvas = { ms: canvasRun.ms, error: canvasRun.error, ...summary(canvasRun.inventory), technology: canvasRun.inventory?.technology };
   check('canvas (Unity) : page lue par le modèle de vision', !!canvasRun.inventory && texts(canvasRun.inventory).includes('Kivu Games'), canvasRun.error ?? summary(canvasRun.inventory));

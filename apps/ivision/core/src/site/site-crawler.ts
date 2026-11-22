@@ -19,7 +19,7 @@
 import puppeteer, { Browser, Page } from 'puppeteer';
 import logger from '../runtime/logger';
 import { installRenderNetworkGuard, isRenderUrlAllowed, RENDER_BROWSER_ARGS } from '../render/network-guard';
-import { reachSite, unreachableMessage } from './site-reach';
+import { deadRedirectMessage, reachSite, unreachableMessage, type Redirect } from './site-reach';
 import { safeFetch } from '../render/safe-fetch';
 import { evaluateSettled } from './settled';
 import type { ImageQuality } from '../../../../../packages/design-tools/src/image-quality';
@@ -615,6 +615,75 @@ export async function waitBotWall(page: Page): Promise<boolean> {
   return false;
 }
 
+/**
+ * Ouvre le document d'une page. Un site qui ne renvoie AUCUNE réponse dans `timeoutMs` est injoignable. Un site qui a
+ * répondu n'est jamais déclaré injoignable : un hébergement mutualisé lent (WordPress sur Hostinger : 4 à 7 s pour le
+ * document, puis une vingtaine de feuilles de style bloquantes) finissait la lecture du HTML après le délai, avant que le
+ * `<body>` existe, et la refonte disait « ne répond pas ». On attend donc la lecture du document plus longtemps
+ * (`SLOW_DOCUMENT_MS`), puis on arrête les chargements en cours (`window.stop()`) : le HTML reçu est lu tel quel.
+ */
+export const SLOW_DOCUMENT_MS = 60_000;
+/**
+ * Arrête les chargements en cours par le protocole du navigateur : `page.evaluate('window.stop()')` attendait, sans fin,
+ * une page dont le document n'était pas encore arrivé. Borné à 2 s.
+ */
+async function stopLoading(page: Page): Promise<void> {
+  const stop = page
+    .createCDPSession()
+    .then(async (cdp) => {
+      await cdp.send('Page.stopLoading');
+      await cdp.detach().catch(() => undefined);
+    })
+    .catch(() => undefined);
+  await Promise.race([stop, new Promise((done) => setTimeout(done, 2_000))]);
+}
+export async function openDocument(page: Page, url: string, timeoutMs: number): Promise<Awaited<ReturnType<Page['goto']>>> {
+  type Response = Awaited<ReturnType<Page['goto']>>;
+  // La navigation attend la lecture du document avec un délai long ; la première réponse du serveur (redirection
+  // comprise), elle, doit arriver dans `timeoutMs` : c'est la seule preuve que le site répond.
+  let last: Response = null;
+  let answered = false;
+  const redirects: Redirect[] = [];
+  const onResponse = (res: NonNullable<Response>) => {
+    const req = res.request();
+    if (!req.isNavigationRequest() || req.frame() !== page.mainFrame()) return;
+    answered = true;
+    const location = res.headers()['location'];
+    if (res.status() >= 300 && res.status() < 400 && location) redirects.push({ from: res.url(), to: location });
+    if (res.status() < 300 || res.status() >= 400) last = res;
+  };
+  page.on('response', onResponse);
+  const navigation = page
+    .goto(url, { waitUntil: 'domcontentloaded', timeout: Math.max(timeoutMs, SLOW_DOCUMENT_MS) })
+    .then((res) => ({ ok: true as const, res }))
+    .catch((error: Error) => ({ ok: false as const, error }));
+  try {
+    const silent = await Promise.race([
+      navigation.then(() => false),
+      new Promise<boolean>((done) => setTimeout(() => done(!answered), timeoutMs)),
+    ]);
+    if (silent) {
+      await stopLoading(page);
+      throw new Error(`unreachable: ${url} ne répond pas`);
+    }
+    const result = await navigation;
+    if (result.ok) return result.res ?? last;
+    if (!/timeout/i.test(result.error.message)) {
+      const dead = await deadRedirectMessage(redirects);
+      throw dead ? new Error(`unreachable: ${dead}`) : result.error;
+    }
+    // Toujours en lecture après le délai long : on coupe ce qui charge encore, le navigateur termine le document avec
+    // le HTML reçu.
+    await stopLoading(page);
+    await page.waitForFunction(`document.readyState !== 'loading' && !!document.body`, { timeout: 5_000, polling: 200 }).catch(() => undefined);
+    const hasDocument = await page.evaluate(`!!document.body && document.body.children.length > 0`).catch(() => false);
+    if (!hasDocument) throw new Error(`unreachable: ${url} a répondu sans page lisible`);
+    return last;
+  } finally {
+    page.off('response', onResponse);
+  }
+}
+
 async function openForCrawl(browser: Browser, url: string, timeoutMs: number, language = 'fr', settleMs = 600): Promise<Opened> {
   const clock = Date.now();
   const marks: Record<string, number> = {};
@@ -635,17 +704,10 @@ async function openForCrawl(browser: Browser, url: string, timeoutMs: number, la
   );
   let response: Awaited<ReturnType<Page['goto']>> = null;
   try {
-    // Le document chargé, sans attendre le réseau au repos : `settle` attend que la page ait fini de s'afficher.
-    response = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: timeoutMs });
+    response = await openDocument(page, url, timeoutMs);
   } catch (error) {
-    if (!/timeout/i.test((error as Error).message)) throw error;
-    // Un délai dépassé SANS document (hôte qui ne répond pas) n'est pas une page lente : le dire, au lieu de relever une
-    // page blanche comme si c'était le site.
-    const hasDocument = await page.evaluate(`!!document.body && document.body.children.length > 0`).catch(() => false);
-    if (!hasDocument) {
-      await page.close().catch(() => undefined);
-      throw new Error(`unreachable: ${url} ne répond pas`);
-    }
+    await page.close().catch(() => undefined);
+    throw error;
   }
   mark('goto');
   // Le texte du HTML reçu : mesure (et non supposition) du rendu dans le navigateur.

@@ -68,3 +68,32 @@ export function unreachableMessage(reach: Extract<SiteReach, { ok: false }>): st
   if (reach.reason === 'invalid') return `Adresse illisible : ${reach.host}.`;
   return `Le nom de domaine ${reach.host} n’existe pas (aucun serveur DNS ne le connaît, avec ou sans « www ») : vérifiez son orthographe.`;
 }
+
+/** Une redirection du document suivie par le navigateur. */
+export interface Redirect {
+  from: string;
+  to: string;
+}
+
+/**
+ * Le site répond, mais redirige vers un nom qui n'a AUCUNE adresse (eknumerik.org, 22/11/2026 : `www` → nom nu, dont
+ * l'enregistrement A manquait après un changement d'hébergeur). Le navigateur s'arrêtait sur un `ERR_BLOCKED_BY_CLIENT`
+ * illisible ; on dit la vraie cause, que seul le propriétaire du domaine peut corriger. `null` : ce n'est pas ce cas.
+ */
+export async function deadRedirectMessage(redirects: Redirect[]): Promise<string | null> {
+  for (const hop of redirects) {
+    let target: URL;
+    try {
+      target = new URL(hop.to, hop.from);
+    } catch {
+      continue;
+    }
+    const host = target.hostname.toLowerCase();
+    if (allowedHosts().has(host) || net.isIP(host)) continue;
+    const resolved = await resolveHost(host);
+    if (resolved.addresses.length) continue;
+    const from = new URL(hop.from).hostname;
+    return `${from} redirige vers ${host}, mais ce nom n’a aucune adresse dans le DNS : le site est hors ligne pour tous ses visiteurs. Ajoutez l’enregistrement A (ou CNAME) de ${host} chez votre hébergeur, ou donnez l’adresse qui fonctionne (par exemple l’adresse provisoire de l’hébergeur).`;
+  }
+  return null;
+}

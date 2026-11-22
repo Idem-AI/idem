@@ -53,7 +53,10 @@ const STEP_LABEL: Record<SiteImportStep, [string, string] | null> = {
 
 function failureText(error: unknown, host: string, fr: boolean): string {
   const e = error instanceof IdemApiError ? error : null;
-  const message = String(e?.body?.message || e?.message || '').slice(0, 240);
+  const full = String(e?.body?.message || e?.message || '').replace(/^unreachable:\s*/i, '');
+  // Le site redirige vers un nom sans adresse (`deadRedirectMessage`, cœur iVision) : la cause et le remède, en entier.
+  if (/redirige vers .+ aucune adresse/.test(full)) return `${full.slice(0, 600)} ${fr ? 'Rien n’a été modifié ni facturé.' : 'Nothing was changed or charged.'}`;
+  const message = full.slice(0, 240);
   if (e?.status === 401) return fr ? 'Votre session a expiré : reconnectez-vous, puis renvoyez votre demande.' : 'Your session expired: sign in again, then resend your request.';
   if (e?.status === 403) return fr ? 'Pour créer votre projet IDEM, cochez l’accord aux politiques d’IDEM sous la question, puis choisissez à nouveau.' : 'To create your IDEM project, tick the IDEM policies box under the question, then choose again.';
   if (e?.status === 429) return message || (fr ? 'Vous avez atteint votre limite pour aujourd’hui. Réessayez plus tard.' : 'You reached your limit for today. Try again later.');
