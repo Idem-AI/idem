@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
 import { TranslateModule } from '@ngx-translate/core';
 import { CatalogEntry } from '../../core/models';
 import { Illustration } from '../../shared/components/illustration';
@@ -9,6 +9,9 @@ import { XafPipe } from '../../shared/xaf.pipe';
  * lisible que la première année (c'est lui que l'on paie ensuite chaque année), puis trois
  * garanties tenues par le code, sous le bouclier : protéger, c'est ce que dit l'objet.
  */
+/** Extensions du catalogue affichées d'abord, puis à chaque « Afficher plus » (×2). */
+const PAGE = 24;
+
 @Component({
   selector: 'idm-prices-section',
   imports: [TranslateModule, Illustration, XafPipe],
@@ -21,7 +24,7 @@ import { XafPipe } from '../../shared/xaf.pipe';
     </h2>
     <p class="mt-6 max-w-2xl text-lg leading-relaxed text-[var(--color-text-secondary)]">{{ 'home.prices.lead' | translate }}</p>
 
-    @if (catalog(); as rows) {
+    @if (featured(); as rows) {
       @if (rows.length) {
         <div class="mt-10 overflow-hidden rounded-3xl border border-[var(--glass-border)] bg-[var(--color-surface-1)]">
           <table class="w-full text-left">
@@ -48,6 +51,49 @@ import { XafPipe } from '../../shared/xaf.pipe';
             </tbody>
           </table>
         </div>
+        @if (others().length) {
+          <div class="mt-14">
+            <div class="flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <h3 class="text-xl font-bold text-[var(--color-heading)]">{{ 'home.prices.allTitle' | translate }}</h3>
+                <p class="mt-1 text-sm text-[var(--color-text-secondary)]">{{ 'home.prices.allCount' | translate: { count: others().length } }}</p>
+              </div>
+              <div class="w-full sm:w-72">
+                <label for="tld-filter" class="sr-only">{{ 'home.prices.filterLabel' | translate }}</label>
+                <input #filterField id="tld-filter" type="search" autocomplete="off" autocapitalize="none" spellcheck="false"
+                  [placeholder]="'home.prices.filterPlaceholder' | translate" [value]="filter()" (input)="setFilter(filterField.value)" />
+              </div>
+            </div>
+            @if (shown().length) {
+              <ul class="idm-tld-grid mt-6">
+                @for (row of shown(); track row.tld) {
+                  <li>
+                    <button type="button" class="idm-tld" (click)="pick.emit(row.tld)" [attr.aria-label]="'home.prices.search' | translate: { tld: row.tld }">
+                      <span class="min-w-0 truncate text-lg font-bold">.{{ row.tld }}</span>
+                      <span class="shrink-0 text-right">
+                        <span class="block font-semibold">{{ row.registerXaf | xaf }}</span>
+                        @if (row.renewXaf && row.renewXaf !== row.registerXaf) {
+                          <span class="block text-xs text-[var(--color-text-tertiary)]">{{ 'home.prices.thenPerYear' | translate: { price: (row.renewXaf | xaf) } }}</span>
+                        } @else {
+                          <span class="block text-xs text-[var(--color-text-tertiary)]">{{ 'home.perYear' | translate }}</span>
+                        }
+                      </span>
+                    </button>
+                  </li>
+                }
+              </ul>
+              @if (matches().length > shown().length) {
+                <div class="mt-6 flex justify-center">
+                  <button type="button" class="outer-button button-sm" (click)="showMore()">
+                    {{ 'home.prices.showMore' | translate: { count: matches().length - shown().length } }}
+                  </button>
+                </div>
+              }
+            } @else {
+              <p class="mt-6 text-sm text-[var(--color-text-secondary)]">{{ 'home.prices.noMatch' | translate }}</p>
+            }
+          </div>
+        }
       } @else {
         <p class="mt-8 text-sm text-[var(--color-text-secondary)]">{{ 'home.pricesUnavailable' | translate }}</p>
       }
@@ -67,10 +113,52 @@ import { XafPipe } from '../../shared/xaf.pipe';
       </dl>
     </div>
   `,
+  styles: `
+    .idm-tld-grid {
+      display: grid;
+      gap: 0.5rem;
+      grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr));
+    }
+    .idm-tld {
+      display: flex;
+      width: 100%;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      border: 1px solid var(--glass-border-subtle);
+      border-radius: 1rem;
+      background: var(--color-surface-1);
+      padding: 0.875rem 1.125rem;
+      text-align: left;
+      transition: border-color 160ms ease-out;
+    }
+    .idm-tld:hover,
+    .idm-tld:focus-visible { border-color: var(--color-primary-500); }
+  `,
 })
 export class PricesSection {
   readonly catalog = input<CatalogEntry[] | null>(null);
-  /** « Chercher en .africa » : l'extension est appliquée au champ du haut. */
+  /** La grille : les extensions mises en avant ; les autres sont comptées sous elle. */
+  protected readonly featured = computed(() => this.catalog()?.filter((c) => c.featured) ?? null);
+  /** Tout le reste du catalogue, par ordre alphabétique : prix lus en base, aucune vérification en direct. */
+  protected readonly others = computed(() => (this.catalog() ?? []).filter((c) => !c.featured).sort((a, b) => a.tld.localeCompare(b.tld)));
+  protected readonly filter = signal('');
+  private readonly limit = signal(PAGE);
+  protected readonly matches = computed(() => {
+    const f = this.filter().trim().toLowerCase().replace(/^\.+/, '');
+    return f ? this.others().filter((c) => c.tld.includes(f)) : this.others();
+  });
+  protected readonly shown = computed(() => this.matches().slice(0, this.limit()));
+
+  protected setFilter(value: string): void {
+    this.filter.set(value);
+    this.limit.set(PAGE);
+  }
+
+  protected showMore(): void {
+    this.limit.update((n) => n + PAGE * 2);
+  }
+  /** « Chercher en .com » : l'extension est appliquée au champ du haut. */
   readonly pick = output<string>();
   protected readonly guarantees = ['price', 'refund', 'mail'];
 }

@@ -9,7 +9,7 @@
  */
 import { Db, query } from '../../config/db';
 import logger from '../../config/logger';
-import { registrar } from '../../integrations/registrars';
+import { AvailabilityResult, RegistrarError, registrar } from '../../integrations/registrars';
 import { Operation, ProviderOffer } from './engine';
 import { PromotionRow } from './catalog.service';
 
@@ -102,36 +102,108 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 }
 
 /**
+ * Au plus, combien de noms partent dans une même question à un fournisseur. Domain Name API
+ * vérifie chaque registre l'un après l'autre : 30 noms d'extensions différentes dépassent le délai,
+ * 5 répondent en 1 à 2 s.
+ */
+const LIVE_BATCH = parseInt(process.env.IDOMAIN_LIVE_QUOTE_BATCH || '5', 10);
+/**
+ * Au plus, combien de questions en vol à la fois chez un même fournisseur, toutes recherches
+ * confondues : au-delà, Domain Name API répond 429 (trop de requêtes). Les autres attendent leur tour.
+ */
+const LIVE_CONCURRENCY = parseInt(process.env.IDOMAIN_LIVE_QUOTE_CONCURRENCY || '3', 10);
+/** Une réponse 429 : une seule nouvelle tentative, après cette pause. */
+const RATE_LIMIT_RETRY_MS = 1200;
+
+/** Une file par fournisseur, partagée par toutes les recherches du processus. */
+const lanes = new Map<string, { active: number; waiting: (() => void)[] }>();
+
+async function inLane<T>(providerCode: string, task: () => Promise<T>): Promise<T> {
+  let lane = lanes.get(providerCode);
+  if (!lane) lanes.set(providerCode, (lane = { active: 0, waiting: [] }));
+  if (lane.active >= LIVE_CONCURRENCY) await new Promise<void>((resolve) => lane!.waiting.push(resolve));
+  lane.active++;
+  try {
+    return await task();
+  } finally {
+    lane.active--;
+    lane.waiting.shift()?.();
+  }
+}
+
+/** Une question au fournisseur, dans sa file, rejouée une fois s'il répond 429. */
+async function askProvider(code: string, batch: string[], operation: Operation, years: number): Promise<AvailabilityResult[]> {
+  const adapter = registrar(code)!;
+  const once = () => inLane(code, () => withTimeout(adapter.checkAvailability(batch, operation, years), LIVE_TIMEOUT_MS));
+  try {
+    return await once();
+  } catch (error) {
+    if (!(error instanceof RegistrarError) || error.status !== 429) throw error;
+    await new Promise((resolve) => setTimeout(resolve, RATE_LIMIT_RETRY_MS));
+    return once();
+  }
+}
+
+/**
  * Interroge en parallèle les fournisseurs compatibles pour un lot de noms d'UNE même extension.
  * Renvoie, par nom, les offres complétées de la réponse en direct.
  */
 export async function liveOffers(domains: string[], tld: string, operation: Operation, years: number, context: 'search' | 'session' | 'purchase', promotion?: PromotionRow | null): Promise<Map<string, ProviderOffer[]>> {
-  const offers = await storedOffers(tld, operation, promotion);
-  const answers = await Promise.all(
-    offers.map(async (offer) => {
-      if (!askable(offer)) return { offer, results: null as Awaited<ReturnType<NonNullable<ReturnType<typeof registrar>>['checkAvailability']>> | null };
-      try {
-        const results = await withTimeout(registrar(offer.providerCode)!.checkAvailability(domains, operation, years), LIVE_TIMEOUT_MS);
-        return { offer, results };
-      } catch (error) {
-        logger.warn('pricing.live_quote_failed', { event: 'pricing.live_quote_failed', provider: offer.providerCode, tld, context, error });
-        return { offer, results: null };
-      }
+  return liveOffersMany([{ tld, domains, promotion }], operation, years, context);
+}
+
+/**
+ * La même chose pour des noms de PLUSIEURS extensions : chaque fournisseur reçoit UNE question pour
+ * tous les noms qu'il sait vendre (découpée par lots de `LIVE_BATCH`), au lieu d'une par extension —
+ * c'est ce qui permet de vérifier un nom sur tout le catalogue sans multiplier les appels.
+ */
+export async function liveOffersMany(
+  groups: { tld: string; domains: string[]; promotion?: PromotionRow | null }[],
+  operation: Operation,
+  years: number,
+  context: 'search' | 'session' | 'purchase'
+): Promise<Map<string, ProviderOffer[]>> {
+  const stored = await Promise.all(groups.map(async (g) => ({ ...g, offers: await storedOffers(g.tld, operation, g.promotion) })));
+
+  const toAsk = new Map<string, string[]>();
+  for (const g of stored) for (const o of g.offers) if (askable(o)) toAsk.set(o.providerCode, [...(toAsk.get(o.providerCode) ?? []), ...g.domains]);
+
+  // Par fournisseur, ce qu'il a répondu pour chaque nom (absent : pas de réponse, donc inconnu).
+  const answers = new Map<string, Map<string, AvailabilityResult>>();
+  await Promise.all(
+    [...toAsk.entries()].map(async ([code, domains]) => {
+      const byName = new Map<string, AvailabilityResult>();
+      const batches: string[][] = [];
+      for (let i = 0; i < domains.length; i += LIVE_BATCH) batches.push(domains.slice(i, i + LIVE_BATCH));
+      await Promise.all(
+        batches.map(async (batch) => {
+          try {
+            for (const r of await askProvider(code, batch, operation, years)) byName.set(r.domain, r);
+          } catch (error) {
+            logger.warn('pricing.live_quote_failed', { event: 'pricing.live_quote_failed', provider: code, names: batch.length, context, error });
+          }
+        })
+      );
+      answers.set(code, byName);
     })
   );
 
   const byDomain = new Map<string, ProviderOffer[]>();
-  for (const domain of domains) byDomain.set(domain, []);
-  for (const { offer, results } of answers) {
-    for (const domain of domains) {
-      const live = results?.find((r) => r.domain === domain);
-      byDomain.get(domain)!.push({
-        ...offer,
-        // Pas de réponse : la disponibilité est inconnue (null), jamais supposée.
-        available: live ? live.available : null,
-        premium: live?.premium ?? false,
-        liveCost: live?.cost !== undefined && live.currency === offer.currency ? live.cost : null,
-      });
+  for (const g of stored) {
+    for (const domain of g.domains) {
+      byDomain.set(
+        domain,
+        g.offers.map((offer) => {
+          const live = answers.get(offer.providerCode)?.get(domain);
+          return {
+            ...offer,
+            // Pas de réponse : la disponibilité est inconnue (null), jamais supposée.
+            available: live ? live.available : null,
+            premium: live?.premium ?? false,
+            liveCost: live?.cost !== undefined && live.currency === offer.currency ? live.cost : null,
+          };
+        })
+      );
     }
   }
   return byDomain;

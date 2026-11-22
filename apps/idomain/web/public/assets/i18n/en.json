@@ -67,7 +67,14 @@
       "firstYear": "First year",
       "renewal": "Renewal",
       "action": "Search",
-      "search": "Search .{{tld}}"
+      "search": "Search .{{tld}}",
+      "allTitle": "All extensions",
+      "allCount": "And {{count}} more extensions on sale, each at its own price.",
+      "filterLabel": "Find an extension",
+      "filterPlaceholder": "Find an extension: tech, shop…",
+      "thenPerYear": "then {{price}}/year",
+      "showMore": "Show more ({{count}} left)",
+      "noMatch": "No extension matches."
     },
     "guarantees": {
       "price": {
@@ -141,7 +148,7 @@
         },
         "email": {
           "title": "Professional email",
-          "body": "contact@your-name.africa, with a partner."
+          "body": "contact@your-name.com, with a partner."
         },
         "monitoring": {
           "title": "Monitoring",
@@ -167,6 +174,10 @@
     "submit": "Search",
     "error": "The search didn’t go through. Try again in a moment.",
     "invalid": "This name isn’t valid. Use letters, numbers and hyphens.",
+    "noneFree": "This name isn’t free on any extension. Try a variation.",
+    "checkingMore": "Checking the other extensions… {{checked}} of {{total}}",
+    "loadMore": "Show more extensions",
+    "remaining": "{{count}} more extensions to check",
     "suggestions": "These close names are free",
     "otherExtensions": "The same name, on other extensions",
     "firstYear": "first year",

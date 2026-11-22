@@ -5925,7 +5925,7 @@
       "activate": "Activer",
       "packsTitle": "Packs",
       "packsHint": "Appliqués au projet en cours : {{project}}.",
-      "domain": "Nom de domaine (.africa ou .com)",
+      "domain": "Nom de domaine (.com)",
       "codeTitle": "Code IDEM",
       "codeHint": "Un code d’agent, un cadeau, un Pack Lancement offert ou un code promo : il crédite votre portefeuille, s’applique au projet en cours ou réduit vos prochains achats.",
       "redeem": "Utiliser",

@@ -5959,7 +5959,7 @@
       "activate": "Activate",
       "packsTitle": "Packs",
       "packsHint": "Applied to the current project: {{project}}.",
-      "domain": "Domain name (.africa or .com)",
+      "domain": "Domain name (.com)",
       "codeTitle": "IDEM code",
       "codeHint": "An agent code, a gift, a Launch Pack or a promo code: it tops up your wallet, applies to the current project or lowers your next purchases.",
       "redeem": "Redeem",

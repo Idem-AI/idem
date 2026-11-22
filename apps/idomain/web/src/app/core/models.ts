@@ -19,6 +19,8 @@ export interface SearchResult {
   exact: Quote | null;
   extensions: Quote[];
   suggestions: Quote[];
+  /** Le lot d'extensions suivant à essayer, ou null quand tout le catalogue l'a été. */
+  more: { nextOffset: number | null; total: number };
 }
 
 export interface CatalogEntry {
@@ -26,6 +28,8 @@ export interface CatalogEntry {
   registerXaf: number | null;
   renewXaf: number | null;
   transferXaf: number | null;
+  /** Mise en avant : montrée sur l'accueil et essayée par la recherche (les autres se tapent). */
+  featured: boolean;
 }
 
 export interface PriceSession extends Quote {

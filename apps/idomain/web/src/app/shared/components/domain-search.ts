@@ -9,12 +9,22 @@ import { XafPipe } from '../xaf.pipe';
 
 /** Pause de frappe avant de vérifier (assez courte pour paraître instantané, assez longue pour ne pas interroger à chaque lettre). */
 const TYPING_PAUSE_MS = 450;
+/**
+ * Lots enchaînés tout seuls après le premier, puis à chaque « Voir plus d'extensions ». Le
+ * fournisseur limite ses requêtes : vérifier des centaines d'extensions à chaque frappe est impossible.
+ */
+const AUTO_PAGES = 1;
+const PAGES_PER_CLICK = 2;
+/** Noms montrés d'abord, puis à chaque « Voir plus d'extensions ». */
+const VISIBLE_FIRST = 8;
+const VISIBLE_STEP = 10;
 
 /**
- * Chercher un nom, en direct. Pendant que le visiteur tape, les noms possibles apparaissent
- * déjà : celui qu'il écrit d'abord, puis les variantes et autres extensions libres, puis celles qui
- * sont prises — chacune avec un état franc (disponible / pris), son prix et une action. Entrée ou
- * le bouton relancent tout de suite. Les extensions en vente et leur prix sont sous le champ.
+ * Chercher un nom, en direct. Pendant que le visiteur tape, le nom est essayé sur TOUT le
+ * catalogue, lot par lot : chaque extension libre apparaît dès qu'elle est confirmée, sans qu'aucune
+ * soit imposée. Une extension tapée passe en tête (avec des variantes si elle est prise) ; les
+ * extensions mises en avant qui sont prises restent visibles, les autres prises sont tues. Entrée ou
+ * le bouton relancent tout de suite. Les extensions mises en avant et leur prix sont sous le champ.
  */
 @Component({
   selector: 'idm-domain-search',
@@ -35,9 +45,9 @@ const TYPING_PAUSE_MS = 450;
       </button>
     </form>
 
-    @if (catalog().length) {
+    @if (featured().length) {
       <ul class="mt-4 flex flex-wrap gap-2" [attr.aria-label]="'search.extensionsLabel' | translate">
-        @for (c of catalog(); track c.tld) {
+        @for (c of featured(); track c.tld) {
           <li>
             <button type="button" class="idm-chip" (click)="pickTld(c.tld)">
               <span class="font-semibold">.{{ c.tld }}</span>
@@ -59,12 +69,14 @@ const TYPING_PAUSE_MS = 450;
           <div class="skeleton h-14 rounded-xl"></div>
         </div>
       }
-      @if (result() && !rows().length && !loading()) {
-        <p class="mt-6 text-sm text-[var(--color-text-secondary)]">{{ 'search.invalid' | translate }}</p>
+      @if (result(); as r) {
+        @if (!rows().length && !loading() && !progress()) {
+          <p class="mt-6 text-sm text-[var(--color-text-secondary)]">{{ (r.exact || r.extensions.length ? 'search.noneFree' : 'search.invalid') | translate }}</p>
+        }
       }
       @if (rows().length) {
-        <ul id="domain-results" class="idm-results mt-6" [class.is-stale]="loading()" [attr.aria-label]="'search.resultsLabel' | translate">
-          @for (q of rows(); track q.domain; let first = $first) {
+        <ul id="domain-results" class="idm-results mt-6" [class.is-stale]="loading()" [attr.aria-label]="'search.resultsLabel' | translate" tabindex="0">
+          @for (q of visibleRows(); track q.domain; let first = $first) {
             <li class="idm-row" [class.is-exact]="first && isExact(q)" [class.is-free]="q.state === 'available'">
               <div class="min-w-0" [class]="first && isExact(q) ? 'min-w-0 basis-full' : 'min-w-0 flex-1'">
                 <p class="break-all" [class]="first && isExact(q) ? 'text-2xl font-black sm:text-3xl' : 'font-semibold'">
@@ -87,6 +99,20 @@ const TYPING_PAUSE_MS = 450;
             </li>
           }
         </ul>
+      }
+      @if (rows().length && (hiddenRows() || paused() || progress())) {
+        <div class="mt-4 flex flex-wrap items-center gap-3">
+          @if (hiddenRows() || paused()) {
+            <button type="button" class="outer-button button-sm" [disabled]="!hiddenRows() && !!progress()" (click)="showMore()">{{ 'search.loadMore' | translate }}</button>
+          }
+          @if (progress(); as p) {
+            <span class="flex items-center gap-2 text-xs text-[var(--color-text-secondary)]">
+              <idem-loader size="xs" />{{ 'search.checkingMore' | translate: { checked: p.checked, total: p.total } }}
+            </span>
+          } @else if (paused(); as p) {
+            <span class="text-xs text-[var(--color-text-secondary)]">{{ 'search.remaining' | translate: { count: p.page.more.total - (p.page.more.nextOffset ?? 0) } }}</span>
+          }
+        </div>
       }
     </div>
   `,
@@ -132,8 +158,13 @@ const TYPING_PAUSE_MS = 450;
     }
     .idm-chip:hover,
     .idm-chip:focus-visible { border-color: var(--color-primary-500); }
+    /* Hauteur bornée par l'écran, défilement interne : la page ne grandit pas avec la liste. */
     .idm-results {
-      overflow: hidden;
+      max-height: clamp(14rem, calc(100svh - 32rem), 30rem);
+      overflow-x: hidden;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      scrollbar-gutter: stable;
       border: 1px solid var(--glass-border);
       border-radius: 1.25rem;
       background: var(--color-surface-1);
@@ -182,6 +213,8 @@ export class DomainSearch {
   readonly initial = input<string>('');
   /** Les extensions en vente (prix affichés sous le champ, sans appel réseau). */
   readonly catalog = input<CatalogEntry[]>([]);
+  /** Les puces sous le champ : les extensions mises en avant seulement (le catalogue en compte des centaines). */
+  protected readonly featured = computed(() => this.catalog().filter((c) => c.featured));
   readonly chosen = output<Quote>();
   readonly connectOwned = output<string>();
   /** Ce qui est tapé, à chaque frappe (l'illustration du hero l'inscrit sur sa plaque). */
@@ -191,16 +224,35 @@ export class DomainSearch {
   protected readonly loading = signal(false);
   protected readonly error = signal<string | null>(null);
   protected readonly result = signal<SearchResult | null>(null);
+  /** Les lots suivants du catalogue, ajoutés au fil de leur vérification. */
+  private readonly more = signal<Quote[]>([]);
+  /** Où en est la vérification du reste du catalogue (null : terminée ou pas commencée). */
+  protected readonly progress = signal<{ checked: number; total: number } | null>(null);
+  /** La suite du catalogue, en attente d'un « Voir plus d'extensions ». */
+  protected readonly paused = signal<{ q: string; page: SearchResult } | null>(null);
+  /** Numéro de la recherche en cours : un lot d'une recherche abandonnée est ignoré. */
+  private generation = 0;
+  /** Lots que la recherche peut encore enchaîner sans demander. */
+  private budget = AUTO_PAGES;
+  /** Combien de noms sont montrés (les autres attendent « Voir plus d'extensions »). */
+  private readonly visible = signal(VISIBLE_FIRST);
+  protected readonly visibleRows = computed(() => this.rows().slice(0, this.visible()));
+  protected readonly hiddenRows = computed(() => Math.max(0, this.rows().length - this.visible()));
   private running?: Subscription;
   private pause?: ReturnType<typeof setTimeout>;
 
-  /** Une seule liste : le nom demandé, puis les noms libres, puis ceux qui sont pris. */
+  /**
+   * Une seule liste : le nom tapé avec son extension (s'il y en a une), puis tous les noms libres
+   * dans l'ordre du catalogue, puis les extensions mises en avant qui sont prises. Les autres
+   * extensions prises (des centaines) ne sont pas listées.
+   */
   protected readonly rows = computed<Quote[]>(() => {
     const r = this.result();
     if (!r) return [];
-    const others = [...r.suggestions, ...r.extensions].filter((q) => q.domain !== r.exact?.domain);
+    const featured = new Set(this.featured().map((c) => c.tld));
+    const others = [...r.suggestions, ...r.extensions, ...this.more()].filter((q) => q.domain !== r.exact?.domain);
     const free = others.filter((q) => q.state === 'available');
-    const rest = others.filter((q) => q.state !== 'available' && q.state !== 'not_sold');
+    const rest = others.filter((q) => q.state !== 'available' && q.state !== 'not_sold' && featured.has(q.tld));
     return [...(r.exact ? [r.exact] : []), ...free, ...rest];
   });
 
@@ -228,8 +280,7 @@ export class DomainSearch {
     clearTimeout(this.pause);
     const label = value.trim().replace(/^[a-z]+:\/\//i, '').replace(/^www\./i, '').split('.')[0];
     if (label.length < 2) {
-      this.running?.unsubscribe();
-      this.loading.set(false);
+      this.stop();
       if (!value.trim()) this.result.set(null);
       return;
     }
@@ -264,19 +315,75 @@ export class DomainSearch {
       this.focus();
       return;
     }
-    clearTimeout(this.pause);
-    this.running?.unsubscribe();
+    this.stop();
+    const generation = ++this.generation;
+    this.budget = AUTO_PAGES;
+    this.visible.set(VISIBLE_FIRST);
     this.loading.set(true);
     this.error.set(null);
     this.running = this.api.search(q).subscribe({
       next: (r) => {
         this.result.set(r);
+        this.more.set([]);
         this.loading.set(false);
+        this.continueFrom(q, r, generation);
       },
       error: () => {
         this.loading.set(false);
         this.error.set('search.error');
       },
     });
+  }
+
+  /** Le lot suivant du catalogue, puis le suivant, jusqu'au bout (ou jusqu'à une nouvelle saisie). */
+  private continueFrom(q: string, r: SearchResult, generation: number): void {
+    const offset = r.more?.nextOffset ?? null;
+    if (offset === null || generation !== this.generation) {
+      this.progress.set(null);
+      return;
+    }
+    if (this.budget <= 0) {
+      this.progress.set(null);
+      this.paused.set({ q, page: r });
+      return;
+    }
+    this.budget--;
+    this.progress.set({ checked: offset, total: r.more.total });
+    this.running = this.api.search(q, 1, offset).subscribe({
+      next: (page) => {
+        if (generation !== this.generation) return;
+        this.more.update((list) => [...list, ...page.extensions]);
+        this.continueFrom(q, page, generation);
+      },
+      // Un lot qui échoue arrête la suite sans effacer ce qui est déjà montré.
+      error: () => this.progress.set(null),
+    });
+  }
+
+  /**
+   * « Voir plus d'extensions » : dix noms de plus. Quand les noms déjà vérifiés ne suffisent plus,
+   * les lots suivants du catalogue partent (jamais avant : le fournisseur limite ses requêtes).
+   */
+  protected showMore(): void {
+    this.visible.update((n) => n + VISIBLE_STEP);
+    if (this.rows().length < this.visible() + VISIBLE_STEP) this.loadMore();
+  }
+
+  private loadMore(): void {
+    const p = this.paused();
+    if (!p) return;
+    this.paused.set(null);
+    this.budget = PAGES_PER_CLICK;
+    this.continueFrom(p.q, p.page, this.generation);
+  }
+
+  /** Abandonne la recherche en cours (premier lot comme lots suivants). */
+  private stop(): void {
+    clearTimeout(this.pause);
+    this.generation++;
+    this.running?.unsubscribe();
+    this.loading.set(false);
+    this.progress.set(null);
+    this.paused.set(null);
   }
 }

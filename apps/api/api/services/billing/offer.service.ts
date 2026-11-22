@@ -168,7 +168,7 @@ export class OfferService {
       const ext = request.domain ? domainExtension(request.domain) : null;
       const catalog = await idomainClient.catalog();
       if (!ext || !catalog[ext]?.packXaf) {
-        const offered = Object.keys(catalog).filter((t) => catalog[t].packXaf).map((t) => `.${t}`).join(' ou ') || '.africa ou .com';
+        const offered = Object.keys(catalog).filter((t) => catalog[t].packXaf).map((t) => `.${t}`).join(' ou ') || '.com';
         return { ok: false, error: 'invalid_domain', message: `Indiquez un nom de domaine en ${offered}.` };
       }
     }

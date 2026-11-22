@@ -26,7 +26,12 @@ export interface FlowMessage {
 export interface PurchaseState {
   step: PurchaseStep;
   searching: boolean;
+  /** Le nom essayé sur tout le catalogue, lot par lot : les lots suivants s'ajoutent à `result.extensions`. */
   result: SearchResult | null;
+  /** Où en est la vérification du reste du catalogue (null : terminée ou pas commencée). */
+  checkingMore: { checked: number; total: number } | null;
+  /** Extensions encore à vérifier, en attente d'un « Voir plus » (0 : tout le catalogue l'a été). */
+  remaining: number;
   chosen: Quote | null;
   session: PriceSession | null;
   years: number;
@@ -51,6 +56,12 @@ export interface PurchaseOptions {
 }
 
 const POLL_MS = 4000;
+/**
+ * Lots enchaînés tout seuls après le premier, puis à chaque `loadMore()`. Le fournisseur limite
+ * ses requêtes : vérifier des centaines d'extensions à chaque frappe est impossible.
+ */
+const AUTO_PAGES = 2;
+const PAGES_PER_CLICK = 3;
 
 export class DomainPurchaseFlow {
   private listeners = new Set<(s: PurchaseState) => void>();
@@ -58,6 +69,8 @@ export class DomainPurchaseFlow {
   private typing: ReturnType<typeof setTimeout> | null = null;
   /** Numéro de la dernière recherche : une réponse plus ancienne, arrivée après, est ignorée. */
   private searchSeq = 0;
+  /** La suite du catalogue, en attente d'un « Voir plus ». */
+  private paused: { q: string; page: SearchResult; seq: number } | null = null;
   private disposed = false;
   /** Une clé par achat : un double clic, une coupure réseau rejoués ne créent qu'une commande. */
   private idempotencyKey = newKey();
@@ -71,6 +84,8 @@ export class DomainPurchaseFlow {
       step: 'search',
       searching: false,
       result: null,
+      checkingMore: null,
+      remaining: 0,
       chosen: null,
       session: null,
       years: 1,
@@ -139,13 +154,51 @@ export class DomainPurchaseFlow {
     const q = query.trim();
     if (!q) return;
     const seq = ++this.searchSeq;
-    this.set({ searching: true, error: null });
+    this.paused = null;
+    this.set({ searching: true, checkingMore: null, remaining: 0, error: null });
+    let page: SearchResult;
     try {
-      const result = await this.client.search(q);
-      if (seq === this.searchSeq) this.set({ result, searching: false });
+      page = await this.client.search(q);
+      if (seq !== this.searchSeq) return;
+      this.set({ result: page, searching: false });
     } catch (error) {
       if (seq === this.searchSeq) this.fail(error, 'errors.search', { searching: false });
+      return;
     }
+    await this.continueFrom(q, page, seq, AUTO_PAGES);
+  }
+
+  /** « Voir plus d'extensions » : les lots suivants du catalogue. */
+  async loadMore(): Promise<void> {
+    const p = this.paused;
+    if (!p || p.seq !== this.searchSeq) return;
+    this.paused = null;
+    await this.continueFrom(p.q, p.page, p.seq, PAGES_PER_CLICK);
+  }
+
+  /**
+   * Aucune extension n'est imposée : le nom est essayé sur tout le catalogue, lot après lot, et
+   * chaque extension libre s'affiche dès son lot vérifié. Une nouvelle saisie arrête la suite.
+   */
+  private async continueFrom(q: string, page: SearchResult, seq: number, pages: number): Promise<void> {
+    this.set({ remaining: 0 });
+    while (page.more?.nextOffset != null && seq === this.searchSeq && !this.disposed) {
+      if (pages-- <= 0) {
+        this.paused = { q, page, seq };
+        this.set({ checkingMore: null, remaining: page.more.total - page.more.nextOffset });
+        return;
+      }
+      const offset = page.more.nextOffset;
+      this.set({ checkingMore: { checked: offset, total: page.more.total } });
+      try {
+        page = await this.client.search(q, 1, offset);
+      } catch {
+        break; // un lot qui échoue arrête la suite sans effacer ce qui est déjà montré
+      }
+      if (seq !== this.searchSeq || !this.state.result) return;
+      this.set({ result: { ...this.state.result, extensions: [...this.state.result.extensions, ...page.extensions] } });
+    }
+    if (seq === this.searchSeq) this.set({ checkingMore: null });
   }
 
   /**
@@ -310,4 +363,17 @@ export function formatXaf(value: number | null | undefined): string {
 function newKey(): string {
   const c = (globalThis as { crypto?: { randomUUID?: () => string } }).crypto;
   return c?.randomUUID ? c.randomUUID() : `k-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+/**
+ * Les noms libres à proposer sous le nom tapé : variantes puis toutes les extensions libres, dans
+ * l'ordre du catalogue (les extensions prises ne sont pas listées : il y en a des centaines).
+ */
+export function freeNames(result: SearchResult): Quote[] {
+  return [...result.suggestions, ...result.extensions].filter((q) => q.state === 'available' && q.domain !== result.exact?.domain);
+}
+
+/** Ce qu'il faut dire quand aucun nom n'est à proposer : nom invalide, ou libre nulle part. */
+export function emptySearchKey(result: SearchResult): 'search.invalid' | 'search.noneFree' {
+  return result.exact || result.extensions.length ? 'search.noneFree' : 'search.invalid';
 }

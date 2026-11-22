@@ -8,7 +8,7 @@
  */
 import assert from 'node:assert/strict';
 import { createIdomainClient } from '../../../../packages/shared-idomain/src/client';
-import { DomainPurchaseFlow, PurchaseState } from '../../../../packages/shared-idomain/src/flow';
+import { DomainPurchaseFlow, PurchaseState, freeNames } from '../../../../packages/shared-idomain/src/flow';
 
 const API = process.env.IDOMAIN_CHECK_API || 'http://localhost:3007';
 // Hors navigateur, le cookie de session IDEM (simulé : `good`) est ajouté à la main.
@@ -32,7 +32,16 @@ async function main(): Promise<void> {
   const flow = new DomainPurchaseFlow(createIdomainClient(API, () => 'fr', withSession), { appUuid: 'app-demo' });
   console.log('Parcours intégré (iDeploy, iCode)');
 
+  // Sans extension tapée, aucune n'est imposée : le nom est essayé sur tout le catalogue.
   await flow.search(name);
+  assert.equal(flow.state.result?.exact, null);
+  assert.equal(flow.state.checkingMore, null, 'tout le catalogue a été vérifié');
+  const free = freeNames(flow.state.result!);
+  assert.ok(free.length > 0, 'au moins une extension libre');
+  console.log(`  ✓ recherche sans extension : libre sur ${free.map((q) => '.' + q.tld).join(', ')}`);
+
+  // Avec son extension, le nom tapé passe en tête.
+  await flow.search(free[0].domain);
   const exact = flow.state.result?.exact;
   assert.equal(exact?.state, 'available');
   assert.ok((exact?.priceXaf ?? 0) > 0 && exact?.renewalXaf);

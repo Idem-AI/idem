@@ -17,6 +17,7 @@ export const rulesSchema = z.object({
   degradedPenaltyXaf: z.number().int().min(0).max(20_000),
   maxYears: z.number().int().min(1).max(10),
   allowLossOnFundedPromotions: z.boolean(),
+  autoPriceCostCushionRate: z.number().min(0).max(1),
 });
 
 export interface ActiveRules {

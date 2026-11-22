@@ -28,9 +28,11 @@ import { LanguageService } from '../../core/language.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'block overflow-x-clip' },
   template: `
-    <!-- 1. Le nom : le champ à gauche, la maison à son nom à droite. -->
-    <section id="chercher" class="idm-wrap grid gap-10 pb-20 pt-10 sm:pt-14 lg:min-h-[calc(100svh_-_4rem)] lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:items-center lg:gap-12 lg:pb-24">
-      <div class="min-w-0">
+    <!-- 1. Le nom : le champ à gauche, la maison à son nom à droite. Les deux colonnes sont
+         indépendantes : la liste des résultats (hauteur bornée, défilement interne) ne recentre
+         jamais la maison, qui reste au milieu de l'écran. -->
+    <section id="chercher" class="idm-wrap grid gap-10 pb-20 pt-10 sm:pt-14 lg:min-h-[calc(100svh_-_4rem)] lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:items-start lg:gap-12 lg:pb-24">
+      <div class="min-w-0 lg:pt-[max(1rem,calc((100svh_-_4rem_-_42rem)/2))]">
         <h1 class="idm-hero-title text-[var(--color-heading)]">
           <span class="block">{{ 'home.hero.title1' | translate }}</span>
           <span class="block"><span class="i-underline">{{ 'home.hero.title2' | translate }}</span></span>
@@ -40,7 +42,9 @@ import { LanguageService } from '../../core/language.service';
         <!-- Payé en mobile money : dit dès le premier écran. -->
         <idem-pay-strip class="mt-8" [lang]="language.current()" />
       </div>
-      <idm-facade-scene class="mx-auto w-full max-w-[38rem] lg:sticky lg:top-24 lg:-mr-12 lg:w-[calc(100%_+_3rem)] lg:max-w-none xl:-mr-20 xl:w-[calc(100%_+_5rem)]" [query]="typed()" [suffix]="catalog()?.[0]?.tld ?? 'africa'" />
+      <div class="lg:sticky lg:top-16 lg:flex lg:h-[calc(100svh_-_7.5rem)] lg:items-center">
+        <idm-facade-scene class="mx-auto w-full max-w-[38rem] lg:-mr-12 lg:w-[calc(100%_+_3rem)] lg:max-w-none xl:-mr-20 xl:w-[calc(100%_+_5rem)]" [query]="typed()" [suffix]="catalog()?.[0]?.tld ?? 'com'" />
+      </div>
     </section>
 
     <!-- 2. Après le paiement. -->
@@ -105,7 +109,7 @@ export class HomePage {
     this.search().focus();
   }
 
-  /** « Chercher en .africa » depuis la grille des prix : le champ du haut, avec cette extension. */
+  /** « Chercher en .com » depuis la grille des prix : le champ du haut, avec cette extension. */
   protected searchTld(tld: string): void {
     this.backToSearch();
     const label = this.typed().trim().split('.')[0];

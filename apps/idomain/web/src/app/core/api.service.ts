@@ -12,8 +12,9 @@ export class ApiService {
   catalog() {
     return this.http.get<{ currency: 'XAF'; extensions: CatalogEntry[] }>(`${this.base}/catalog`);
   }
-  search(q: string, years = 1) {
-    return this.http.get<SearchResult>(`${this.base}/domains/search`, { params: { q, years } });
+  /** `offset` : le lot d'extensions suivant (`more.nextOffset` de la réponse précédente). */
+  search(q: string, years = 1, offset = 0) {
+    return this.http.get<SearchResult>(`${this.base}/domains/search`, { params: { q, years, ...(offset ? { offset } : {}) } });
   }
 
   me() {

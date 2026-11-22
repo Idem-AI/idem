@@ -14,7 +14,7 @@ import { listRecordSets, recordSetInput, saveRecordSet } from '../modules/dns/dn
 import { getDomain, listDomains, registrarInfo } from '../modules/domains/domains.service';
 import { cancelOrder, createOrder, createPriceSession, getOrder, listOrders, orderInput, payOrder, priceSessionInput, publicOrder, resumeAwaitingContact } from '../modules/orders/orders.service';
 import { hasAtCostPricing } from '../modules/payments/wallet.service';
-import { listCatalog } from '../modules/pricing/catalog.service';
+import { featuredTlds, listCatalog } from '../modules/pricing/catalog.service';
 import { searchDomains } from '../modules/search/search.service';
 import { createDomainSession, domainSessionInput, getDomainSession } from '../modules/sessions/sessions.service';
 import { openApiDocument } from './openapi';
@@ -32,18 +32,27 @@ v1.get(
   '/catalog',
   asyncRoute(async (_req, res) => {
     const rows = await listCatalog();
-    res.json({ currency: 'XAF', extensions: rows.map((r) => ({ tld: r.tld, registerXaf: r.register_xaf, renewXaf: r.renew_xaf, transferXaf: r.transfer_xaf })) });
+    // Les extensions mises en avant d'abord, dans leur ordre ; puis tout le reste du catalogue.
+    const featured = featuredTlds(rows.map((r) => r.tld));
+    const rank = (tld: string) => (featured.includes(tld) ? featured.indexOf(tld) : featured.length);
+    const sorted = [...rows].sort((a, b) => rank(a.tld) - rank(b.tld) || a.tld.localeCompare(b.tld));
+    res.json({
+      currency: 'XAF',
+      extensions: sorted.map((r) => ({ tld: r.tld, registerXaf: r.register_xaf, renewXaf: r.renew_xaf, transferXaf: r.transfer_xaf, featured: featured.includes(r.tld) })),
+    });
   })
 );
 
 /** La recherche marche sans connexion (prix au catalogue) ; connecté, le prix au coût s'applique s'il y a droit. */
 v1.get(
   '/domains/search',
-  validate({ query: z.object({ q: z.string().trim().min(1).max(253), years: z.coerce.number().int().min(1).max(10).optional() }) }),
+  validate({
+    query: z.object({ q: z.string().trim().min(1).max(253), years: z.coerce.number().int().min(1).max(10).optional(), offset: z.coerce.number().int().min(0).max(5000).optional() }),
+  }),
   asyncRoute(async (req, res) => {
     const uid = await optionalUid(req);
     const atCost = uid ? await hasAtCostPricing(uid) : false;
-    res.json(await searchDomains(String(req.query.q), { years: req.query.years ? Number(req.query.years) : 1, atCost }));
+    res.json(await searchDomains(String(req.query.q), { years: req.query.years ? Number(req.query.years) : 1, atCost, offset: req.query.offset ? Number(req.query.offset) : 0 }));
   })
 );
 
