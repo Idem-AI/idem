@@ -70,6 +70,28 @@ Une ligne par fichier : ce qu'il déclare, les écrans qu'il route, les routes d
 - **Tri des fichiers :** `selectRelevantFiles` lit cette carte au lieu d'une simple liste de chemins.
 - **Retouche d'un projet de plus de 24 000 jetons (`FOLLOWUP_CONTEXT_TOKENS`) :** seuls les fichiers choisis partent au modèle, avec la carte pour qu'il sache ce qui existe ailleurs. La première génération garde le seuil de 128 000 jetons.
 
+## Retouche robuste (22/11/2026)
+
+Constat : dans la pratique, aucune retouche demandée dans le chat ne modifiait le site. Trois causes, toutes corrigées :
+
+1. **La retouche n'arrivait pas au moteur.** Un site créé depuis l'accueil (projet tiré de la demande, jamais enregistré) ou par refonte n'a pas de `projectData` aux tours suivants. Une session rouverte sans `?product=site` se croyait aussi une application. Désormais, ce sont les fichiers (`isEditableSite`) qui décident. Le projet manquant est relu dans `src/site/data.ts` (`projectFromSite`).
+2. **Toute retouche de section était refusée.** Le code pose `t()` / `localePath()` (import `@/i18n`) dans chaque section après la génération, mais `importPolicy` n'autorisait pas `@/i18n`. Les trois essais échouaient, et la réponse disait « je l'ai laissé tel quel ». `@/i18n` est maintenant permis, et `src/i18n/` est fourni au montage de contrôle.
+3. **Les garde-fous bloquaient la demande elle-même.** « Le bouton en vert » était refusé si l'aiguillage n'avait pas coché `colors`. Quand il était admis, le vert était ramené à la couleur du thème la plus proche. Désormais, un garde-fou qui se déclenche passe par un **juge** (`createAllowJudge`, un appel court par sorte de changement) qui relit la demande. Une couleur demandée reste telle quelle (`keepColors` dans `ReviewContext`, `autocorrect`, `checkComponent`).
+
+Ce que l'aiguillage (`planEdit`) sait maintenant faire :
+
+| Clé | Quoi | Par qui |
+|---|---|---|
+| `targets` | texte, taille, couleur, élément ajouté ou retiré DANS une section | modèle : blocs RECHERCHER / REMPLACER, sinon **fichier réécrit en entier** (mêmes vérifications) |
+| `restyle` | une autre mise en page pour une section | **catalogue idem-templates** (`editRestyle.ts`) : variante choisie et textes repris dans son schéma ; si aucune ne passe, le code de la section est modifié directement |
+| `remove` / `order` | retirer ou réordonner des sections | code seul (`removeSectionFromPage`, `reorderSections`) |
+| `code` | tout autre fichier du site (pages, `src/site/*`, traductions) | modèle, vérification de syntaxe |
+| `theme`, `data.*`, `newSection` | inchangés | |
+
+Une réponse qui ne change rien n'est jamais acceptée. Quand rien n'a pu être fait, la personne le lit, et l'invitation à reformuler décrit ce qu'elle veut voir à l'écran.
+
+`npm run check:site-edit` enchaîne `check-site-edit.ts` (46 contrôles) et `check-site-edit-flow.ts` (18). Le second rejoue une retouche de bout en bout avec un modèle scripté : blocs faux puis réécriture, juge des couleurs, réponse sans effet, retrait, ordre, catalogue, repli hors catalogue, fichier hors carte, aiguillage sans projet.
+
 ## Contrôles
 
 `npm run check:site-edit` (42) couvre :

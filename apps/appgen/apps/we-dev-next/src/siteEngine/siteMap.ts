@@ -151,7 +151,8 @@ export function buildSiteMap(files: Record<string, string>): SiteMap {
     const inFolder = Object.keys(files)
       .filter((p) => p.startsWith(`src/sections/${key}/`) && p.endsWith('.tsx'))
       .map((p) => p.match(/(\w+)\.tsx$/)![1]);
-    const names = [...ordered, ...inFolder.filter((name) => !ordered.includes(name))];
+    // Une page qui déclare ses sections n'affiche qu'elles : une section retirée (son fichier reste) n'est plus sur la carte.
+    const names = ordered.length ? ordered : inFolder;
     return {
       key,
       path,

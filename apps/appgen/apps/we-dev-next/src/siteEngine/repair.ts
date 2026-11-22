@@ -32,7 +32,7 @@ import { restoreInPage, pagesFileOf } from './project.js';
 import { renderBrandModule, renderDataModule, renderMediaModule } from './siteData.js';
 import { detectSiteLanguage, readSiteFacts, renderFacts } from './siteFacts.js';
 import { SiteStream } from './stream.js';
-import { compiler, DESIGN_SYSTEM_PATHS, FUNCTIONAL_DEPENDENCIES } from './template.js';
+import { compiler, DESIGN_SYSTEM_PATHS, FUNCTIONAL_DEPENDENCIES, templateFiles } from './template.js';
 
 /** Les modules du projet qu'un composant peut importer, et leurs exports. */
 export function importPolicy(dependencies: string[] = []): ImportPolicy {
@@ -46,6 +46,10 @@ export function importPolicy(dependencies: string[] = []): ImportPolicy {
       '@/lib/contact': { names: ['messageLink', 'contactChannel'] },
       // Le choix de la langue, que la consigne de l'en-tête demande de poser (il ne s'affiche qu'en site multilingue).
       '@/components/site/language-switcher': { default: true, names: [] },
+      // Les textes traduisibles : le code pose `t()` et `localePath()` dans chaque section après sa génération. Sans
+      // cette entrée, TOUTE retouche d'une section déjà générée était refusée (« import interdit : @/i18n ») et le
+      // site restait inchangé.
+      '@/i18n': { names: ['t', 'localePath', 'currentLanguage', 'languages', 'languageNames', 'defaultLanguage', 'stripLanguage', 'localize'] },
     },
     packages: dependencies.filter((name) => name in FUNCTIONAL_DEPENDENCIES),
   };
@@ -132,9 +136,11 @@ export function siteFilesOf(
   language: string
 ): Record<string, string> {
   const own = Object.fromEntries(
-    Object.entries(files).filter(([path]) => path.startsWith('src/site/') || path.startsWith('src/design-system/'))
+    Object.entries(files).filter(([path]) => path.startsWith('src/site/') || path.startsWith('src/design-system/') || path.startsWith('src/i18n/'))
   );
+  const i18n = Object.fromEntries(Object.entries(templateFiles()).filter(([path]) => path.startsWith('src/i18n/')));
   return {
+    ...i18n,
     'src/site/data.ts': renderDataModule(facts, null, language),
     'src/site/media.ts': renderMediaModule({}),
     'src/site/brand.tsx': renderBrandModule(projectData, facts.name),
