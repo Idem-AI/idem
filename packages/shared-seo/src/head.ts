@@ -114,6 +114,7 @@ export function renderServiceRobots(serviceId: ServiceId, publicPaths: readonly 
     'Allow: /assets/',
     'Allow: /*.css$',
     'Allow: /*.js$',
+    'Allow: /sitemap.xml$',
     'Allow: /favicon.ico$',
     'Disallow: /',
     '',
