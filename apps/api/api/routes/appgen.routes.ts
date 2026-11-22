@@ -11,6 +11,7 @@ import { idemAnalyzeImage } from '../services/ivision/host';
 import { PromptService } from '../services/prompt.service';
 import { applyRedesignTypography, chooseSitePalette, SiteConsent, siteContentOf, siteImportJobs } from '../services/SiteImport/siteProject.service';
 import { ensureBrandMark } from '../services/SiteImport/brandMark.service';
+import { resolveSiteFont } from '../services/SiteImport/siteFont.service';
 import { runWithAiUsageContext } from '../utils/ai-usage-context.util';
 import { startSseHeartbeat } from '../utils/sse-heartbeat.util';
 import { assessSiteImages, enhanceOneImage, enhanceSiteImages, isEnhancing, MAX_ASSESS, MAX_ENHANCE, ownSlots, type EnhanceEvent } from '../services/SiteImport/siteImages.service';
@@ -227,6 +228,26 @@ router.post('/site-import/project/:projectId/typography', authenticate, async (r
   } catch (error: any) {
     logger.warn('appgen.redesign_typography_failed', { event: 'appgen.redesign_typography_failed', projectId, error: error?.message });
     res.status(502).json({ error: 'typography_failed' });
+  }
+});
+
+/**
+ * Une police demandée à la retouche d'un site iCode : retrouvée dans les catalogues (ou les polices importées), son
+ * adresse renvoyée telle quelle — rien n'est téléchargé. Corps : `{ family }`. 404 : aucune police de ce nom.
+ */
+router.post('/site-fonts/resolve', authenticate, async (req: CustomRequest, res) => {
+  const userId = req.user?.uid;
+  const family = String((req.body ?? {}).family ?? '').trim();
+  if (!userId || !family || family.length > 80 || !/^[\p{L}\p{N} .'&-]+$/u.test(family)) {
+    res.status(400).json({ error: 'invalid_input' });
+    return;
+  }
+  try {
+    const font = await resolveSiteFont(userId, family);
+    res.status(font ? 200 : 404).json(font ?? { error: 'font_not_found' });
+  } catch (error: any) {
+    logger.warn('appgen.site_font_failed', { event: 'appgen.site_font_failed', family, error: error?.message });
+    res.status(502).json({ error: 'font_failed' });
   }
 });
 

@@ -143,6 +143,19 @@ export async function chooseRedesignTypography(projectId: string, credentials: R
   }
 }
 
+/**
+ * Une police demandée à la retouche d'un site : retrouvée dans les catalogues, son adresse renvoyée telle quelle (rien
+ * n'est téléchargé). `null` : aucune police de ce nom. Lève si l'API est injoignable.
+ */
+export async function resolveSiteFont(family: string, credentials: Record<string, string>, signal: AbortSignal): Promise<{ family: string; cssUrl: string } | null> {
+  try {
+    return await request(`/appgen/site-fonts/resolve`, credentials, { method: 'POST', body: JSON.stringify({ family }), signal, timeoutMs: 20_000 });
+  } catch (error) {
+    if (error instanceof IdemApiError && error.status === 404) return null;
+    throw error;
+  }
+}
+
 /** La palette retenue : celle du site (par défaut) ou celle tirée du logo. */
 export function chooseSitePalette(projectId: string, source: 'site' | 'logo', credentials: Record<string, string>, signal: AbortSignal): Promise<{ chosen: string | null }> {
   return request(`/appgen/site-import/project/${encodeURIComponent(projectId)}/palette`, credentials, { method: 'POST', body: JSON.stringify({ source }), signal });

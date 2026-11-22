@@ -234,6 +234,7 @@ export async function handleBuilderMode(
       files: siteEdit!.files,
       model,
       userId,
+      credentials,
     });
   }
 

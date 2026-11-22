@@ -7,7 +7,8 @@
  * scénario ci-dessous rejoue une des causes, et vérifie que le site change VRAIMENT comme demandé.
  */
 import type { Response } from 'express';
-import { createSiteEditStream, editableFile, isEditableSite, projectFromSite, removeSectionFromPage, reorderSections } from '../src/siteEngine/edit.js';
+import { createSiteEditStream, editableFile, foreignImports, isEditableSite, projectFromSite, removeSectionFromPage, reorderSections, restoreDesignSystemModules } from '../src/siteEngine/edit.js';
+import { templateFiles, DESIGN_SYSTEM_PATHS } from '../src/siteEngine/template.js';
 import { handleBuilderMode } from '../src/handlers/builderHandler.js';
 import { ModelCaller } from '../src/siteEngine/modelCaller.js';
 import { seedDesignSystemFiles } from '../src/siteEngine/designConfig.js';
@@ -276,6 +277,45 @@ export default function HomePage() {
     const stream = await handleBuilderMode(messages as never, 'test', null, undefined, undefined, undefined, 'fr', undefined, 'web-app', undefined, undefined, undefined, { files });
     await stream.pipeDataStreamToResponse(res);
     check('sans projet ni ?product=site : la retouche passe par le moteur ciblé', !!written(text())['src/pages/home.tsx'], text().slice(-200));
+  }
+
+  // 10. « Change la police » : la famille change dans le design system, recompilé ; l'ancienne adresse de police est
+  //     retirée ; aucun paquet n'est importé (avant : `@fontsource/sora/400.css` dans config.ts, aperçu en erreur).
+  {
+    const source = JSON.parse(files[DESIGN_SYSTEM_PATHS.source]);
+    source.tokens.typography.headingFontUrl = 'https://fonts.googleapis.com/css2?family=Ancienne&display=swap';
+    const withUrl = { ...files, [DESIGN_SYSTEM_PATHS.source]: JSON.stringify(source) };
+    script = (label) => {
+      if (label === 'edit:plan') return [json({ targets: [], theme: 'titres en Sora', allows: { fonts: true } })];
+      if (label === 'edit:theme') return [json({ set: { 'tokens.typography.headingFont': 'Sora', 'tokens.typography.headingFontUrl': 'https://cdn.example/sora.css' }, reply: 'Les titres sont en Sora.' })];
+      return [];
+    };
+    const { res, text } = fakeResponse();
+    await createSiteEditStream({ language: 'fr', request: 'Mets les titres en Sora', files: withUrl, model: 'test', userId: null }).pipeDataStreamToResponse(res);
+    const out = written(text());
+    const config = JSON.parse(out[DESIGN_SYSTEM_PATHS.source] ?? '{}');
+    check('police : la famille change dans le design system', config.tokens?.typography?.headingFont === 'Sora', JSON.stringify(config.tokens?.typography ?? {}).slice(0, 200));
+    check('… l’adresse de l’ancienne police est retirée, celle inventée par le modèle jamais reprise', !config.tokens?.typography?.headingFontUrl, String(config.tokens?.typography?.headingFontUrl));
+    check('… aucun fichier du site n’importe un paquet de police', !Object.values(out).some((code) => /@fontsource/.test(code)));
+  }
+
+  // 11. Les imports : un paquet que le site n'a pas est refusé ; le design system ne se retouche pas à la main ;
+  //     un config.ts abîmé par une retouche passée est remis d'origine.
+  {
+    check('import de paquet absent repéré', foreignImports("import '@fontsource/sora/400.css';\nimport { motion } from 'motion/react';\nimport x from '@/site/data';").join() === '@fontsource/sora/400.css');
+    check('design system jamais retouché à la main', !editableFile({ 'src/design-system/config.ts': 'x' }, 'src/design-system/config.ts'));
+    const original = templateFiles()['src/design-system/config.ts'];
+    const broken = `import '@fontsource/sora/400.css';\n${original}`;
+    const restored = restoreDesignSystemModules({ 'src/design-system/config.ts': broken });
+    check('config.ts abîmé remis d’origine', restored['src/design-system/config.ts'] === original);
+    check('config.ts intact laissé tel quel', !Object.keys(restoreDesignSystemModules({ 'src/design-system/config.ts': original })).length);
+    const r = await run('Le titre de la page contact doit être « Nous trouver »', (label) => {
+      if (label === 'edit:plan') return [json({ targets: [], code: [{ path: 'src/pages/contact.tsx', change: 'titre' }] })];
+      if (label === 'edit:src/pages/contact.tsx') return [`<<<<<<< SEARCH\nexport default function\n=======\nimport '@fontsource/sora/400.css';\nexport default function\n>>>>>>> REPLACE\nREPLY: x`, 'rien'];
+      if (label === 'rewrite:src/pages/contact.tsx') return [`\`\`\`tsx\nimport '@fontsource/sora/400.css';\nexport default function ContactPage() { return <main />; }\n\`\`\`\nREPLY: x`];
+      return [];
+    });
+    check('retouche « code » qui importe un paquet absent : refusée', !r.files['src/pages/contact.tsx']);
   }
 
   console.log(`\n${passes} vérifications réussies, ${failures} en échec`);

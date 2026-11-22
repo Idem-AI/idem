@@ -38,7 +38,7 @@ import { accountLimitMessage, ModelCaller, Verdict } from './modelCaller.js';
 import { contextFrom, displayOf, importPolicy, siteFilesOf, targetOf, themeOf } from './repair.js';
 import { detectSiteLanguage, readSiteFacts, renderFacts } from './siteFacts.js';
 import { SiteStream } from './stream.js';
-import { DESIGN_SYSTEM_PATHS, designSystemFiles } from './template.js';
+import { DESIGN_SYSTEM_PATHS, designSystemFiles, templateFiles } from './template.js';
 import {
   applyPatches,
   applyTheme,
@@ -59,6 +59,7 @@ import { elementSnippet, locateElement, Pointed, PointedElement, touchesElement 
 import { layoutMenuOf, loadCatalog, restyleSection, sectionPlanOf } from './editRestyle.js';
 import type { LoadedSectionCatalog } from './sectionCatalog/types.js';
 import { estimateTokens } from '../utils/tokens.js';
+import { resolveSiteFont } from './redesign/idemClient.js';
 
 export interface SiteEditInput {
   /** Le projet IDEM ; absent pour un site créé depuis l'accueil ou par refonte : il est alors relu dans le site. */
@@ -74,6 +75,8 @@ export interface SiteEditInput {
   files: Record<string, string>;
   model: string;
   userId: string | null;
+  /** La session de la personne, relayée à l'API IDEM (polices hébergées). */
+  credentials?: Record<string, string>;
 }
 
 /** Un site du moteur de sites (pages assemblées et design system compilé) : il se retouche ici. */
@@ -182,7 +185,7 @@ export function createSiteEditStream(input: SiteEditInput): ResilientStream {
         if (plan.theme && !scope) {
           stream.note(fr ? 'Je règle l’apparence du site' : 'Adjusting the site’s look');
           jobs.push(
-            editTheme(caller, `${request}\n${plan.theme}`, files, plan.allows, fr).then((outcome) => {
+            editTheme(caller, `${request}\n${plan.theme}`, files, plan.allows, fr, (family) => findFont(family, input.credentials, abort.signal)).then((outcome) => {
               if (outcome.files) Object.assign(writes, outcome.files);
               if (outcome.reply) said.push(outcome.reply);
               else failure = outcome.failure || failure;
@@ -275,6 +278,13 @@ export function createSiteEditStream(input: SiteEditInput): ResilientStream {
       // Le compte bloqué en cours de route (une section, les données) : c'est la seule chose à dire.
       if (caller.accountLimit && !Object.keys(writes).length) failure = accountLimitMessage(fr);
 
+      // Un module du design system abîmé par une retouche passée (un paquet importé que le site n'a pas) : réparé.
+      const restored = restoreDesignSystemModules(files);
+      if (Object.keys(restored).length) {
+        ChatLogger.info('SITE_EDIT', 'Modules du design system remis d’origine', { paths: Object.keys(restored) });
+        for (const [path, code] of Object.entries(restored)) if (!(path in writes)) writes[path] = code;
+        if (!Object.keys(writes).some((path) => !(path in restored))) failure = '';
+      }
       if (abort.signal.aborted) return;
       // Le texte retouché reste traduisible (`t()`, `localePath()`), et un site en plusieurs langues reçoit la
       // traduction des phrases nouvelles dans chacune.
@@ -368,7 +378,8 @@ export interface EditPlan {
 export function editableFile(files: Record<string, string>, path: string): boolean {
   if (typeof files[path] !== 'string') return false;
   if (path.startsWith('.idem/') || /^idem\.(plan|manifest)\.json$/.test(path)) return false;
-  if (path === DESIGN_SYSTEM_PATHS.source || (Object.values(DESIGN_SYSTEM_PATHS) as string[]).includes(path)) return false;
+  // Le design system (polices, couleurs, réglages) ne se retouche que par ses réglages, recompilés : jamais à la main.
+  if (path.startsWith('src/design-system/') || (Object.values(DESIGN_SYSTEM_PATHS) as string[]).includes(path)) return false;
   return /^src\/.+\.(tsx|ts|json|css)$/.test(path) || /^(?:[\w-]+\/){0,2}index\.html$/.test(path);
 }
 
@@ -438,6 +449,7 @@ Rules:
 - A change of texts, sizes, colours, spacing, an added or removed element (button, image, list item, icon, badge) INSIDE a section goes to "targets": its code is edited directly, whatever the change.
 - A different arrangement of a whole section ("in cards", "in two columns", "as a carousel", "another style for this section", "make the top of the page look different") goes to "restyle", with the catalog composition that matches; if no composition matches, put the section in "targets" with a precise instruction and its code is rewritten.
 - Deleting a whole section goes to "remove"; moving sections goes to "order"; a new section goes to "newSection".
+- A change of typeface (font), for headings, text or the whole site, ALWAYS goes to "theme" (IDEM then loads it from its font catalog), never to "code" or a section.
 - Anything else (page titles, translations, a file not in the map) goes to "code" with a file from the list.
 - Choose the FEWEST parts that satisfy the request (at most ${MAX_FILES} per kind). A request about one element touches one part.
 - Never answer with nothing: pick the most likely part. The person expects a visible change.`,
@@ -665,7 +677,46 @@ async function editData(
 
 // ── L'apparence : un réglage du design system ───────────────────────────────
 
-async function editTheme(caller: ModelCaller, request: string, files: Record<string, string>, allows: EditAllows, fr: boolean): Promise<{ files?: Record<string, string>; reply?: string; failure?: string }> {
+type FontLookup = (family: string) => Promise<{ family: string; cssUrl?: string } | null>;
+
+/** La police retrouvée par l'API IDEM dans les catalogues, avec l'adresse de sa feuille (rien n'est téléchargé) ; sans
+ * session, la famille seule (le compilateur la charge depuis Google Fonts). `null` : aucune police de ce nom. */
+async function findFont(family: string, credentials: Record<string, string> | undefined, signal: AbortSignal): Promise<{ family: string; cssUrl?: string } | null> {
+  if (!credentials || !Object.keys(credentials).length) return { family };
+  try {
+    const font = await resolveSiteFont(family, credentials, signal);
+    return font ? { family: font.family, cssUrl: font.cssUrl } : null;
+  } catch (error) {
+    ChatLogger.warn('SITE_EDIT', 'Police non vérifiée (API injoignable) : famille seule', { family, message: (error as Error).message });
+    return { family };
+  }
+}
+
+/**
+ * Une police changée : la famille retrouvée dans un catalogue, l'adresse de sa feuille écrite telle quelle dans le
+ * design system (aucun fichier téléchargé, le bucket n'est pas chargé). L'adresse de l'ancienne police est retirée :
+ * sans cela, le compilateur chargeait toujours l'ancienne. Les adresses proposées par le modèle ne sont jamais reprises.
+ */
+async function applyFonts(set: Record<string, unknown>, config: Record<string, any>, find: FontLookup): Promise<{ set: Record<string, unknown>; missing: string[] }> {
+  const out: Record<string, unknown> = Object.fromEntries(Object.entries(set).filter(([path]) => !/FontUrl$/.test(path)));
+  const missing: string[] = [];
+  for (const role of ['heading', 'body'] as const) {
+    const path = `tokens.typography.${role}Font`;
+    const wanted = typeof out[path] === 'string' ? String(out[path]).trim() : '';
+    if (!wanted || wanted === config.tokens?.typography?.[`${role}Font`]) continue;
+    const font = await find(wanted);
+    if (!font) {
+      delete out[path];
+      missing.push(wanted);
+      continue;
+    }
+    out[path] = font.family;
+    out[`tokens.typography.${role}FontUrl`] = font.cssUrl ?? null;
+  }
+  return { set: out, missing };
+}
+
+async function editTheme(caller: ModelCaller, request: string, files: Record<string, string>, allows: EditAllows, fr: boolean, find: FontLookup): Promise<{ files?: Record<string, string>; reply?: string; failure?: string }> {
   let config: Record<string, any>;
   try {
     config = JSON.parse(files[DESIGN_SYSTEM_PATHS.source]);
@@ -693,11 +744,24 @@ async function editTheme(caller: ModelCaller, request: string, files: Record<str
   const set = outcome.value.set;
   const reply = outcome.value.reply;
 
-  const { allowed } = guardTheme(allows, set);
+  const guarded = guardTheme(allows, set).allowed;
+  const { set: allowed, missing } = await applyFonts(guarded, config, find);
   const changed = themeChanges(config, allowed);
-  if (!changed.length) return { failure: fr ? 'Ce réglage est déjà à sa limite : rien n’a changé.' : 'That setting is already at its limit: nothing changed.' };
+  if (!changed.length)
+    return {
+      failure: missing.length
+        ? fr
+          ? `Je ne trouve pas la police « ${missing[0]} » dans les catalogues de polices : rien n’a changé. Donnez-moi le nom d’une police de Google Fonts, Fontshare ou Fontsource, ou importez la vôtre dans IDEM.`
+          : `I cannot find the “${missing[0]}” typeface in the font catalogs: nothing changed. Give me the name of a Google Fonts, Fontshare or Fontsource typeface, or import yours in IDEM.`
+        : fr
+          ? 'Ce réglage est déjà à sa limite : rien n’a changé.'
+          : 'That setting is already at its limit: nothing changed.',
+    };
 
-  const compiled = designSystemFiles(applyTheme(config, allowed));
+  // Une adresse de police à `null` : retirée de la configuration (le compilateur charge alors la famille du catalogue).
+  const next = applyTheme(config, allowed);
+  for (const role of ['heading', 'body']) if (next.tokens?.typography?.[`${role}FontUrl`] === null) delete next.tokens.typography[`${role}FontUrl`];
+  const compiled = designSystemFiles(next);
   const out: Record<string, string> = {};
   for (const [path, content] of Object.entries(compiled.files)) if (files[path] !== content && path !== DESIGN_SYSTEM_PATHS.version) out[path] = content;
   ChatLogger.info('SITE_EDIT', 'Design system retouché', { changed });
@@ -711,7 +775,7 @@ const EDIT_RULES = (fr: boolean) => [
   'Change ONLY what the request is about. Keep everything else as it is: fonts, colours, layout, imports, other texts, the component name — unless the request asks to change them.',
   'Sizes and radii follow the design system classes (text-display, text-h1, text-h2, text-h3, text-h4, text-lead, text-body, text-small, rounded-card, rounded-button); colours use the theme classes (bg-primary, text-primary-foreground, bg-secondary, bg-accent, bg-muted, text-muted-foreground, border-border) or, when the person names a precise colour, an arbitrary value like bg-[#1f7a4d].',
   'Displayed texts are written t("…") (the site translates them) and internal links localePath("…"): to change a text, change the words inside t("…"); new texts may be written plainly, in the site\'s main language. Never translate a text yourself.',
-  'Imports allowed: react, motion/react, lucide-react, @/components/ui, @/design-system, @/site/*, @/i18n, and the files already imported.',
+  'Imports allowed: react, motion/react, lucide-react, @/components/ui, @/design-system, @/site/*, @/i18n, and the files already imported. NEVER import another package (no @fontsource/…, no npm package): it is not installed and the site breaks. Typefaces are changed in the design system, never in code.',
   `REPLY: one short sentence for the user, in ${fr ? 'French' : 'English'}, saying what changed, no file names.`,
 ];
 
@@ -753,7 +817,9 @@ async function checkPlainFile(code: string, lang: string): Promise<string[]> {
       return [`invalid JSON: ${(error as Error).message}`];
     }
   }
-  if (lang === 'css' || lang === 'html') return code.trim() ? [] : ['the file is empty'];
+  if (lang === 'css' || lang === 'html') return code.trim() ? (foreignImports(code).length ? [`imports of packages the site does not have: ${foreignImports(code).join(', ')}`] : []) : ['the file is empty'];
+  const foreign = foreignImports(code);
+  if (foreign.length) return [`imports of packages the site does not have: ${foreign.join(', ')}. Use only react, motion/react, lucide-react, clsx, tailwind-merge and the project's own files (@/…).`];
   try {
     await transform(code, { loader: lang === 'tsx' ? 'tsx' : 'ts', jsx: 'automatic', format: 'esm', logLevel: 'silent' });
     return [];
@@ -761,6 +827,34 @@ async function checkPlainFile(code: string, lang: string): Promise<string[]> {
     const first = (error as { errors?: Array<{ text: string; location?: { line: number } }> }).errors?.[0];
     return [first ? `syntax error line ${first.location?.line ?? '?'}: ${first.text}` : 'the file does not compile'];
   }
+}
+
+
+/** Les paquets installés dans un site du moteur ; tout autre import (`@fontsource/…`) casse l'aperçu. */
+const SITE_PACKAGES = /^(react|react-dom|react\/jsx-runtime|react-dom\/client|motion|motion\/react|lucide-react|clsx|tailwind-merge)(\/|$)/;
+
+/** Les imports d'un fichier qui ne sont ni du projet (`@/`, chemins relatifs) ni un paquet installé. */
+export function foreignImports(code: string): string[] {
+  const sources = [
+    ...Array.from(String(code).matchAll(/^\s*import\s+(?:[^'";]+?\s+from\s+)?['"]([^'"]+)['"]/gm)).map((m) => m[1]),
+    ...Array.from(String(code).matchAll(/@import\s+(?:url\()?['"]([^'"]+)['"]/g)).map((m) => m[1]),
+  ];
+  return [...new Set(sources.filter((src) => !src.startsWith('@/') && !src.startsWith('.') && !src.startsWith('/') && !/^https?:/.test(src) && !SITE_PACKAGES.test(src)))];
+}
+
+/**
+ * Les fichiers du design system posés par IDEM (`config.ts`, `index.ts`, `motion.ts`) qui importent un paquet que le
+ * site n'a pas — une retouche d'avant le 22/11/2026 y avait mis `@fontsource/…`, et l'aperçu ne s'affichait plus :
+ * remis dans leur version du template.
+ */
+export function restoreDesignSystemModules(files: Record<string, string>): Record<string, string> {
+  const template = templateFiles();
+  const out: Record<string, string> = {};
+  for (const [path, code] of Object.entries(files)) {
+    if (!path.startsWith('src/design-system/') || !/\.tsx?$/.test(path) || typeof template[path] !== 'string') continue;
+    if (code !== template[path] && foreignImports(code).length) out[path] = template[path];
+  }
+  return out;
 }
 
 /**
