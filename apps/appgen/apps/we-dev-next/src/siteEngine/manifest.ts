@@ -55,6 +55,8 @@ export interface SiteManifest {
    * la sienne. Sans lui, le menu listait chaque page (articles, conditions générales…).
    */
   menu?: { label: string; href: string }[];
+  /** Refonte : le bouton d'action de l'en-tête de l'ancien site (« Rejoignez-nous »), vers sa nouvelle page. */
+  action?: { label: string; href: string };
   header: string;
   footer: string;
   /** Composants optionnels du catalogue utilisés par le site. */

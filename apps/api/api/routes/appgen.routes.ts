@@ -9,7 +9,7 @@ import { usageQuotaService } from '../services/billing/usage-quota.service';
 import { CommunicationService } from '../services/Communication/communication.service';
 import { idemAnalyzeImage } from '../services/ivision/host';
 import { PromptService } from '../services/prompt.service';
-import { chooseSitePalette, SiteConsent, siteContentOf, siteImportJobs } from '../services/SiteImport/siteProject.service';
+import { applyRedesignTypography, chooseSitePalette, SiteConsent, siteContentOf, siteImportJobs } from '../services/SiteImport/siteProject.service';
 import { ensureBrandMark } from '../services/SiteImport/brandMark.service';
 import { runWithAiUsageContext } from '../utils/ai-usage-context.util';
 import { startSseHeartbeat } from '../utils/sse-heartbeat.util';
@@ -202,6 +202,31 @@ router.get('/brand-mark/:projectId', authenticate, async (req: CustomRequest, re
   } catch (error: any) {
     logger.warn('appgen.brand_mark_failed', { event: 'appgen.brand_mark_failed', projectId, error: error?.message });
     res.status(502).json({ error: 'brand_mark_failed' });
+  }
+});
+
+/**
+ * « Changer de police ? » → oui (refonte d'un site aux polices par défaut) : l'IA choisit la typographie qui
+ * correspond le mieux au projet, et le projet la prend. Borné par le quota « Aides IA ».
+ */
+router.post('/site-import/project/:projectId/typography', authenticate, async (req: CustomRequest, res) => {
+  const userId = req.user?.uid;
+  const projectId = String(req.params.projectId);
+  if (!userId || !/^[\w.-]{1,128}$/.test(projectId)) {
+    res.status(400).json({ error: 'invalid_input' });
+    return;
+  }
+  try {
+    const quota = await usageQuotaService.reserve(userId, 'assist');
+    if (!quota.allowed) {
+      sendQuotaRefusal(res, quota.refusal);
+      return;
+    }
+    const changed = await runWithAiUsageContext({ userId, feature: 'branding', operation: 'generate', source: 'appgen POST /appgen/site-import/project/:id/typography' }, () => applyRedesignTypography(userId, projectId));
+    res.status(changed ? 200 : 422).json(changed ?? { error: 'no_fitting_typography' });
+  } catch (error: any) {
+    logger.warn('appgen.redesign_typography_failed', { event: 'appgen.redesign_typography_failed', projectId, error: error?.message });
+    res.status(502).json({ error: 'typography_failed' });
   }
 });
 

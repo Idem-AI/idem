@@ -13,12 +13,25 @@ export type FontCategory = 'serif' | 'sans' | 'geometric' | 'display' | 'mono' |
 /** Familles Google Fonts connues, par catégorie (les plus utilisées, toutes à graisses variables). */
 export const GOOGLE_FONTS: Record<FontCategory, string[]> = {
   serif: ['Fraunces', 'Playfair Display', 'DM Serif Display', 'Lora', 'Libre Baskerville', 'Merriweather', 'Cormorant Garamond', 'EB Garamond', 'Source Serif 4', 'Crimson Pro'],
-  sans: ['Inter', 'Manrope', 'IBM Plex Sans', 'Source Sans 3', 'Work Sans', 'Nunito Sans', 'Open Sans', 'Roboto', 'Lato', 'Noto Sans', 'Public Sans', 'Karla', 'Mulish', 'Figtree', 'Instrument Sans'],
+  sans: ['Inter', 'Manrope', 'Epilogue', 'IBM Plex Sans', 'Source Sans 3', 'Work Sans', 'Nunito Sans', 'Open Sans', 'Roboto', 'Lato', 'Noto Sans', 'Public Sans', 'Karla', 'Mulish', 'Figtree', 'Instrument Sans'],
   geometric: ['Poppins', 'Montserrat', 'Outfit', 'Plus Jakarta Sans', 'Urbanist', 'Space Grotesk', 'Sora', 'Lexend', 'Raleway', 'Archivo', 'DM Sans', 'Red Hat Display', 'Syne'],
-  display: ['Bebas Neue', 'Anton', 'Archivo Black', 'Oswald', 'Unbounded', 'Righteous', 'Abril Fatface', 'Bricolage Grotesque'],
+  display: ['Bebas Neue', 'Anton', 'Archivo Black', 'Oswald', 'Unbounded', 'Righteous', 'Abril Fatface', 'Young Serif'],
   mono: ['JetBrains Mono', 'IBM Plex Mono', 'Space Mono', 'DM Mono'],
   handwriting: ['Caveat', 'Kalam', 'Dancing Script', 'Pacifico', 'Shadows Into Light'],
 };
+
+export { BANNED_FONTS, isBannedFont, replaceBannedFont, withoutBannedFonts } from './banned-fonts';
+import { replaceBannedFont } from './banned-fonts';
+
+/**
+ * Les polices « par défaut » du web : celles d'un thème, d'un constructeur de sites ou du système. Un site qui n'a
+ * qu'elles n'a pas de voix typographique : la refonte DEMANDE à l'utilisateur s'il veut en changer.
+ */
+const DEFAULT_FONTS = new Set(
+  ['inter', 'roboto', 'open sans', 'lato', 'noto sans', 'arial', 'helvetica', 'helvetica neue', 'segoe ui', 'system-ui', '-apple-system', 'sans-serif', 'serif', 'verdana', 'tahoma', 'trebuchet ms', 'times', 'times new roman', 'georgia', 'source sans pro', 'source sans 3', 'ubuntu', 'pt sans', 'poppins', 'montserrat', 'raleway', 'nunito', 'nunito sans', 'oswald', 'roboto condensed', 'roboto slab', 'mulish', 'muli', 'karla', 'rubik', 'work sans', 'dm sans']
+);
+export const isDefaultFont = (family: string): boolean => DEFAULT_FONTS.has(String(family || '').trim().toLowerCase());
+export const DEFAULT_FONT_NAMES = [...DEFAULT_FONTS];
 
 const ALL_GOOGLE = new Map(Object.values(GOOGLE_FONTS).flat().map((f) => [f.toLowerCase(), f]));
 
@@ -101,14 +114,18 @@ export function typographyProposals(seen: SeenFont[], stacks: Record<string, str
   };
   const headingRaw = score('heading') || score('button') || score('body') || 'Inter';
   const bodyRaw = score('body') || headingRaw;
-  const display = googleEquivalent(headingRaw, stacks[headingRaw]);
-  const body = googleEquivalent(bodyRaw, stacks[bodyRaw]);
+  // Une police interdite, même lue sur le site, n'est jamais reprise : sa remplaçante prend sa place.
+  const display = googleEquivalent(replaceBannedFont(headingRaw), stacks[headingRaw]);
+  const body = googleEquivalent(replaceBannedFont(bodyRaw), stacks[bodyRaw]);
   const cat = categoryOf(display.family, stacks[headingRaw]);
   const pairs = PAIRINGS[cat].filter(([d, b]) => !(d === display.family && b === body.family));
   const pairing = pairs.find(([d]) => d === display.family) || [display.family, pairs[0]?.[1] || 'Inter'];
   const alternative = pairs.find(([d]) => d !== display.family) || PAIRINGS.sans[0];
   const siteNote = display.exact && body.exact ? 'Les polices de votre site, disponibles telles quelles.' : `Les polices de votre site${display.exact ? '' : ` (« ${headingRaw} » n’est pas libre : remplacée par ${display.family}, de la même famille)`}${body.exact ? '' : `${display.exact ? ' (' : ', '}« ${bodyRaw} » remplacée par ${body.family}${display.exact ? ')' : ''}`}.`;
-  const proposal = (id: TypographyProposal['id'], label: string, rationale: string, d: string, b: string): TypographyProposal => ({ id, label, rationale, display: d, body: b, displayCss: css(d), bodyCss: css(b) });
+  const proposal = (id: TypographyProposal['id'], label: string, rationale: string, d: string, b: string): TypographyProposal => {
+    const [dd, bb] = [replaceBannedFont(d), replaceBannedFont(b)];
+    return { id, label, rationale, display: dd, body: bb, displayCss: css(dd), bodyCss: css(bb) };
+  };
   return {
     site: { display: display.family, body: body.family, exactDisplay: display.exact, exactBody: body.exact, original: { display: headingRaw, body: bodyRaw } },
     proposals: [

@@ -11,12 +11,16 @@
  */
 import { transformSync } from 'esbuild';
 import { departFromOld, SiteManifest } from '../src/siteEngine/manifest.js';
-import { InventorySection, oldShapeOf, oldShapes, inventoryOutline, SiteInventory } from '../src/siteEngine/redesign/inventory.js';
+import { InventorySection, oldShapeOf, oldShapes, inventoryOutline, SiteInventory, linkMapper } from '../src/siteEngine/redesign/inventory.js';
+import { oldMenuOf } from '../src/siteEngine/orchestrator.js';
+import { siteDataOf } from '../src/siteEngine/siteData.js';
 import { redesignArchitect, redesignDesign } from '../src/siteEngine/redesign/brief.js';
 import { redesignTarget } from '../src/commands/workflows/redesign.js';
 import { renderBrandModule } from '../src/siteEngine/siteData.js';
 import type { ProjectModel } from '../src/types/project.js';
 import type { SiteContent } from '../src/siteEngine/redesign/idemClient.js';
+import { readFonts } from '../src/design/charter.js';
+import { FONT_PAIRINGS } from '../src/design/artDirections.js';
 
 let failed = 0;
 const check = (label: string, ok: boolean, detail = '') => {
@@ -129,6 +133,41 @@ for (const [label, project, expect] of cases) {
   }
   check(`marque — ${label}`, valid && expect.test(code));
 }
+
+// ── Le menu de l'ancien site, repris à l'identique (22/11/2026 : une refonte complète listait ses 17 pages) ──
+{
+  const origin = 'https://ancien.example';
+  const inv = {
+    origin,
+    pages: [{ url: `${origin}/`, path: '/' }, { url: `${origin}/about/`, path: '/about/' }, { url: `${origin}/services/`, path: '/services/' }, { url: `${origin}/contact/`, path: '/contact/' }],
+    navigation: [
+      { label: 'Accueil', href: `${origin}/` },
+      { label: 'À propos', href: `${origin}/about/` },
+      { label: 'Services', href: '/services/' },
+      { label: 'Blog', href: `${origin}/blog/` },
+      { label: 'Contact', href: `${origin}/contact/` },
+    ],
+    headerActions: [{ label: 'Rejoignez-nous', href: '/contact/' }],
+  } as unknown as SiteInventory;
+  const newPaths = ['/', '/a-propos/', '/services/', '/contact/'];
+  const mapLink = linkMapper(inv, (i) => newPaths[i]);
+  check('lien relatif de l’ancien site → la nouvelle page', mapLink('/contact/') === '/contact/' && mapLink(`${origin}/about/`) === '/a-propos/');
+  check('lien externe inchangé', mapLink('https://facebook.com/x') === 'https://facebook.com/x');
+  const { menu, action } = oldMenuOf(inv, mapLink);
+  check('menu : les entrées de l’ancien menu, dans l’ordre, avec leurs libellés', menu.map((m) => m.label).join('|') === 'Accueil|À propos|Services|Contact', JSON.stringify(menu));
+  check('menu : une page sans équivalent (Blog) n’y met pas de lien mort', !menu.some((m) => m.label === 'Blog'));
+  check('bouton d’action de l’en-tête repris', action?.label === 'Rejoignez-nous' && action.href === '/contact/', JSON.stringify(action));
+  const manifest = { pages: Array.from({ length: 17 }, (_, i) => ({ key: `p${i}`, path: `/p${i}/`, label: `Page ${i}`, sections: [] })), menu, action } as unknown as SiteManifest;
+  const data = siteDataOf({ name: 'X', description: '', city: '', country: '', phone: '', email: '', channels: [], offers: [], team: [] } as never, manifest, 'fr');
+  check('17 pages, et pourtant le menu reste celui de l’ancien site', data.navigation.length === 4 && data.pages.length === 17);
+  check('l’action principale est celle de l’ancien en-tête', data.primaryAction?.label === 'Rejoignez-nous');
+}
+
+// 6. Police interdite : Bricolage Grotesque n'est jamais écrite dans un site
+const oldProject = readFonts({ typography: { primaryFont: 'Bricolage Grotesque', secondaryFont: 'Figtree', primary: { family: 'Bricolage Grotesque', cssUrl: 'https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;800&display=swap' } } });
+check('police interdite d’un projet ancien remplacée (nom)', oldProject.display === 'Epilogue', oldProject.display);
+check('police interdite d’un projet ancien remplacée (feuille)', !/bricolage/i.test(String(oldProject.displayCss)), String(oldProject.displayCss));
+check('aucun accord du catalogue iCode ne la propose', !FONT_PAIRINGS.some((p) => /bricolage/i.test(`${p.display} ${p.body}`)));
 
 console.log(failed ? `\n${failed} contrôle(s) en échec` : '\nTout est bon');
 process.exit(failed ? 1 : 0);

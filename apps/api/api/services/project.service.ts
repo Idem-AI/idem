@@ -1,3 +1,4 @@
+import { withoutBannedFonts } from '../../../ivision/core/src/site/banned-fonts';
 import { ProjectModel } from '../models/project.model';
 import { IRepository } from '../repository/IRepository';
 import { RepositoryFactory } from '../repository/RepositoryFactory';
@@ -32,6 +33,20 @@ function productDocId(
 /** Dossier de code : `projects/<id>/code` pour le site, `projects/<id>/app/code` pour l'application. */
 function productStorageId(projectId: string, product: ProjectProduct): string {
   return product === 'app' ? `${projectId}/app` : projectId;
+}
+
+/**
+ * Un projet sans police interdite (`BANNED_FONTS` : Bricolage Grotesque). Les projets enregistrés avant l'interdiction
+ * (22/11/2026) la portent encore : à la lecture, sa typographie retenue et ses propositions la remplacent (noms et
+ * adresses des feuilles). La prochaine écriture du projet l'enregistre ainsi.
+ */
+function withoutBannedProjectFonts<T extends ProjectModel>(project: T): T {
+  const branding = project?.analysisResultModel?.branding as unknown as (Record<string, unknown> & { typography?: unknown; generatedTypography?: unknown }) | undefined;
+  if (!branding || (!branding.typography && !branding.generatedTypography)) return project;
+  const typography = withoutBannedFonts(branding.typography);
+  const generatedTypography = withoutBannedFonts(branding.generatedTypography);
+  if (typography === branding.typography && generatedTypography === branding.generatedTypography) return project;
+  return { ...project, analysisResultModel: { ...project.analysisResultModel, branding: { ...branding, typography, generatedTypography } } } as T;
 }
 
 class ProjectService {
@@ -177,7 +192,7 @@ class ProjectService {
       logger.info(
         `Projects fetched for user ${userId}: ${activeProjects.length} active (${projects.length} total)`
       );
-      return activeProjects;
+      return activeProjects.map(withoutBannedProjectFonts);
     } catch (error: any) {
  logger.error(`Error fetching projects in service: ${error.message}`, {
         stack: error.stack,
@@ -200,7 +215,7 @@ class ProjectService {
         return null;
       }
       logger.info(`Project data fetched for ${projectId}`);
-      return project;
+      return withoutBannedProjectFonts(project);
     } catch (error: any) {
       logger.error(
         `Error fetching project ${projectId} for user ${userId} in service: ${error.message}`,

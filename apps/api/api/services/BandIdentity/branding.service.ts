@@ -110,6 +110,7 @@ import { COLORS_GENERATION_PROMPT } from './prompts/singleGenerations/colors-gen
 import { enforceLightSurfaceOnPalettes } from '../brand/lightSurface';
 import { ensureDistinctRolesOnPalettes } from '../brand/paletteRoles';
 import { TYPOGRAPHY_GENERATION_PROMPT } from './prompts/singleGenerations/typography-generation.prompt';
+import { BANNED_FONTS, DEFAULT_FONT_NAMES, isBannedFont, isDefaultFont, replaceBannedFont } from '../../../../ivision/core/src/site/typography';
 import { fontCatalogService } from '../font-catalog.service';
 import {
   buildColorsFromLogoPrompt,
@@ -1718,6 +1719,31 @@ export class BrandingService extends GenericService {
   }
 
   /**
+   * REFONTE d'un site aux polices par défaut (Inter, Roboto, Poppins…), quand l'utilisateur a répondu « oui » à
+   * « Changer de police ? » : l'IA choisit la typographie qui correspond le mieux AU PROJET (activité, cible, ton,
+   * direction artistique), avec le même rédacteur et le même catalogue que la charte. Rend la première proposition
+   * qui n'est ni une police par défaut ni une police interdite ; `null` si aucune ne convient.
+   */
+  async chooseRedesignTypography(
+    project: ProjectModel,
+    context: { siteFonts: { display: string; body: string }; siteEvidence?: string }
+  ): Promise<TypographyModel | null> {
+    const description = this.extractProjectDescription(project);
+    const { display, body } = context.siteFonts;
+    const brief = `
+
+<redesign_context>
+This project already has a website. It uses default fonts with no typographic voice: ${display}${body && body !== display ? ` (headings) and ${body} (text)` : ''}. The owner asked to change them. Choose the typography that fits THIS project best — its activity, audience, tone and art direction — so the new site reads as a real brand, clearly better than the old one.
+${context.siteEvidence ? `What the current site looks like: ${context.siteEvidence.slice(0, 900)}\n` : ''}Never propose any of these fonts: ${[...DEFAULT_FONT_NAMES.filter((f) => /^[a-z]/.test(f)), ...Object.keys(BANNED_FONTS)].join(', ')}.
+</redesign_context>`;
+    const sets = await this.generateSingleTypography(description + brief, project);
+    const fits = (t: TypographyModel) => !!t.primaryFont && !isDefaultFont(t.primaryFont) && !isBannedFont(t.primaryFont) && !isBannedFont(t.secondaryFont);
+    const chosen = sets.find(fits) ?? null;
+    logger.info('Redesign typography chosen', { projectId: project.id, from: `${display}/${body}`, to: chosen ? `${chosen.primaryFont}/${chosen.secondaryFont}` : null, proposals: sets.length });
+    return chosen;
+  }
+
+  /**
    * Génère un seul ensemble de typographies - Méthode privée pour génération parallèle
    */
   private async generateSingleTypography(
@@ -1780,11 +1806,15 @@ export class BrandingService extends GenericService {
   ): Promise<TypographyModel[]> {
     return Promise.all(
       (sets ?? []).map(async (set) => {
+        // Une police interdite (`BANNED_FONTS` : Bricolage Grotesque…) proposée par le modèle est remplacée ici, par
+        // le code : aucune consigne ne suffit à l'écarter à coup sûr.
+        const primaryName = replaceBannedFont(set.primaryFont);
+        const secondaryName = replaceBannedFont(set.secondaryFont);
         const [primary, secondary] = await Promise.all([
-          fontCatalogService.toBrandFont(set.primaryFont, normalizeSource(set.primarySource), userId),
+          fontCatalogService.toBrandFont(primaryName, primaryName === set.primaryFont ? normalizeSource(set.primarySource) : undefined, userId),
           fontCatalogService.toBrandFont(
-            set.secondaryFont,
-            normalizeSource(set.secondarySource),
+            secondaryName,
+            secondaryName === set.secondaryFont ? normalizeSource(set.secondarySource) : undefined,
             userId
           ),
         ]);

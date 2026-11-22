@@ -10,6 +10,7 @@
     "check:montage": "ts-node --transpile-only scripts/check-montage.ts",
     "check:site-crawl": "ts-node --transpile-only scripts/check-site-crawl.ts",
     "check:site-reach": "ts-node --transpile-only scripts/check-site-reach.ts",
+    "check:fonts-ban": "ts-node --transpile-only scripts/check-fonts-ban.ts",
     "check:real-sites": "ts-node --transpile-only scripts/check-real-sites.ts",
     "check:choices": "ts-node --transpile-only scripts/check-choices.ts",
     "check:request": "ts-node --transpile-only scripts/check-request.ts",

@@ -53,7 +53,8 @@ Pick within these registers, matching the project's promise. These families are 
 - Bold / expressive / cultural: Anton, Bebas Neue, Archivo Black, Syne, Big Shoulders Display + text: Work Sans, Figtree, Karla, Hanken Grotesk.
 - Technical / precise: Chivo, Sora, Unbounded, Geist, Space Mono (accents only) + text: IBM Plex Sans, Instrument Sans, Public Sans.
 - Warm / craft / hospitality: Fraunces, Young Serif, Bitter, Zilla Slab, DM Serif Display + text: Karla, Asap, Figtree, Work Sans.
-- Human / accessible: Bricolage Grotesque, Epilogue, Lexend, Onest + text: Atkinson Hyperlegible, Figtree, Hanken Grotesk.
+- Human / accessible: Epilogue, Lexend, Onest, Outfit + text: Atkinson Hyperlegible, Figtree, Hanken Grotesk.
+- Never propose Bricolage Grotesque (banned by IDEM).
 Another family from any catalogue in <font_sources> is acceptable if it is genuinely better for this brand — but never one from <banned_fonts>.
 </curated_register>
 

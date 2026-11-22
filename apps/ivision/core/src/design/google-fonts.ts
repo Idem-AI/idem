@@ -15,6 +15,7 @@
  * calcule l'URL au moment du rendu, à partir des familles réellement choisies.
  */
 
+import { replaceBannedFont, withoutBannedFonts } from '../site/banned-fonts';
 import { brandFontFaceStyle, isSelfHostedFamily } from './brand-font';
 
 /** Familles à ne jamais demander à Google : ce sont des piles système. */
@@ -41,7 +42,8 @@ export function normalizeFontFamily(raw?: string | null): string {
     .split(',')[0]
     .replace(/["']/g, '')
     .trim();
-  return first;
+  // Une police interdite (`site/banned-fonts.ts`) n'est jamais chargée : sa remplaçante l'est à sa place.
+  return replaceBannedFont(first);
 }
 
 /**
@@ -159,6 +161,7 @@ export interface BrandTypographyLike {
  *     le comportement historique, qui reste juste pour les projets existants.
  */
 export function brandFontLinks(typography?: BrandTypographyLike | null): string {
+  typography = withoutBannedFonts(typography);
   const descriptors = [typography?.primary, typography?.secondary].filter(Boolean) as BrandFontLike[];
 
   const hosted = descriptors.filter((font) => isStylesheetHref(font.cssUrl));
@@ -192,6 +195,7 @@ export function brandFontLinks(typography?: BrandTypographyLike | null): string 
  * l'identité de la marque.
  */
 export function brandFontsHref(typography?: BrandTypographyLike | null, fallback?: string): string {
+  typography = withoutBannedFonts(typography);
   if (isStylesheetHref(typography?.url)) return typography!.url!;
   if (isStylesheetHref(typography?.primary?.cssUrl)) return typography!.primary!.cssUrl!;
   if (isStylesheetHref(typography?.secondary?.cssUrl)) return typography!.secondary!.cssUrl!;

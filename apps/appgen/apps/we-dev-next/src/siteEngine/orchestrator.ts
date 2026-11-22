@@ -56,7 +56,7 @@ import { fetchBrandMark, fetchSiteContent, withBrandMark } from './redesign/idem
 import { MANIFEST_PATH, PlanTracker, readSavedDesign, remaining, SavedDesign, SitePlan } from './plan.js';
 import { DESIGN_SYSTEM_PATHS } from './template.js';
 import type { DesignOutcome } from './designConfig.js';
-import { bestFirst, inventoryFacts, inventoryOutline, inventoryText, InventorySection, linkMapper, oldShapes, sectionIndex, sourceContent } from './redesign/inventory.js';
+import { bestFirst, inventoryFacts, inventoryOutline, inventoryText, InventorySection, linkMapper, type SiteInventory, oldShapes, sectionIndex, sourceContent } from './redesign/inventory.js';
 import { tierOf, TIERS } from './sectionCatalog/tier.js';
 import { sectionCatalog } from './sectionCatalog/registry.js';
 import { CopyTask, PageCopy, startPageCopy } from './sectionCatalog/copy.js';
@@ -479,16 +479,14 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
           }
         }
         mapLink = linkMapper(inventory, (pageIndex) => (manifest.pages.find((p) => p.source === pageIndex) ?? manifest.pages.find((p) => originPagesOf(p).includes(pageIndex)))?.path);
-        // « Surtout le design » : le menu de l'ancien site, repris tel quel (ses entrées, son ordre, ses libellés), vers
-        // les nouvelles pages. Une refonte complète a SA navigation : celle de sa nouvelle architecture — recopier
-        // l'ancien menu ramenait l'ancien parcours dans un site qui n'a plus les mêmes pages.
-        if (!manifest.menu?.length && redesign?.focus === 'design') {
-          const menu: { label: string; href: string }[] = [];
-          for (const item of inventory.navigation) {
-            const href = mapLink(item.href);
-            if (href.startsWith('/') && item.label.trim() && !menu.some((entry) => entry.href === href)) menu.push({ label: item.label.trim(), href });
-          }
+        // Le menu de l'ancien site, repris À L'IDENTIQUE dans toute refonte (ses entrées principales, son ordre, ses
+        // libellés), chaque lien mené à la page qui reprend la sienne. Avant (22/11/2026), une refonte complète
+        // listait chacune de ses nouvelles pages (jusqu'à 17) : la barre de navigation saturait. Les autres pages
+        // restent accessibles par les sections et le pied de page.
+        if (!manifest.menu?.length) {
+          const { menu, action } = oldMenuOf(inventory, mapLink);
           if (menu.length >= 2) manifest.menu = menu;
+          if (action) manifest.action = action;
         }
       }
 
@@ -1045,4 +1043,29 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
       stream.close(usage());
     },
   };
+}
+
+/**
+ * Le menu et le bouton d'action de l'en-tête d'un ancien site, menés vers les nouvelles pages. Une entrée dont la page
+ * n'a pas d'équivalent dans le nouveau site est laissée de côté (un lien mort ne vaut pas un libellé gardé). Un
+ * lien du menu qui mène là où mène déjà une autre entrée, sous un autre libellé, est le bouton d'action de l'en-tête.
+ */
+export function oldMenuOf(
+  inventory: { navigation: SiteInventory['navigation']; headerActions?: SiteInventory['headerActions'] },
+  mapLink: (href: string) => string
+): { menu: { label: string; href: string }[]; action?: { label: string; href: string } } {
+  const menu: { label: string; href: string }[] = [];
+  const extra: { label: string; href: string }[] = [];
+  for (const item of inventory.navigation) {
+    const href = mapLink(item.href);
+    const label = item.label.trim();
+    if (!href.startsWith('/') || !label) continue;
+    const same = menu.find((entry) => entry.href === href);
+    if (!same) menu.push({ label, href });
+    else if (same.label !== label) extra.push({ label, href });
+  }
+  const actions = [...(inventory.headerActions ?? []), ...extra]
+    .map((item) => ({ label: item.label.trim(), href: mapLink(item.href) }))
+    .filter((item) => item.label && item.label.length <= 40 && (item.href.startsWith('/') || /^(https?:|mailto:|tel:)/.test(item.href)));
+  return { menu: menu.slice(0, 9), ...(actions[0] ? { action: actions[0] } : {}) };
 }
