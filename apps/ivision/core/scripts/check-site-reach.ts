@@ -5,14 +5,17 @@
  *
  * Pour chaque adresse : la résolution (système, DNS direct, résolveurs publics), l'adresse retenue, les noms épinglés
  * dans Chrome, puis l'ouverture réelle de la page derrière la garde réseau du scan (titre, statut, adresse finale).
- * Sans argument : eknumerik.org (inconnu de certaines box, en ligne), un site courant, et un nom inexistant.
+ * Sans argument : eknumerik.org (inconnu de certaines box ; depuis le 21/11/2026 son `www` redirige vers un nom nu sans
+ * adresse : le message doit le DIRE), son adresse provisoire Hostinger (lente : ne doit jamais être « ne répond pas »),
+ * un site courant, et un nom inexistant. L'ouverture est celle du relevé (`openDocument`).
  */
 import puppeteer from 'puppeteer';
 import { installRenderNetworkGuard, RENDER_BROWSER_ARGS, resolveHost } from '../src/render/network-guard';
 import { safeFetch } from '../src/render/safe-fetch';
 import { reachSite, unreachableMessage } from '../src/site/site-reach';
+import { openDocument } from '../src/site/site-crawler';
 
-const urls = process.argv.slice(2).length ? process.argv.slice(2) : ['https://eknumerik.org/', 'https://www.wikipedia.org/', 'https://ce-domaine-n-existe-pas-idem-9431.cm/'];
+const urls = process.argv.slice(2).length ? process.argv.slice(2) : ['https://eknumerik.org/', 'https://lightpink-wombat-204826.hostingersite.com/', 'https://www.wikipedia.org/', 'https://ce-domaine-n-existe-pas-idem-9431.cm/'];
 
 (async () => {
   let failed = 0;
@@ -31,7 +34,7 @@ const urls = process.argv.slice(2).length ? process.argv.slice(2) : ['https://ek
     try {
       const page = await browser.newPage();
       await installRenderNetworkGuard(page);
-      const response = await page.goto(reach.url, { waitUntil: 'domcontentloaded', timeout: 30_000 });
+      const response = await openDocument(page, reach.url, 25_000);
       const title = await page.title();
       console.log(`  ✓ ouvert : HTTP ${response?.status()} — « ${title.slice(0, 70)} » — ${page.url()}`);
       const image = await page.evaluate(() => (Array.from(document.images).find((i) => i.currentSrc && i.currentSrc.startsWith('http')) as HTMLImageElement | undefined)?.currentSrc ?? '');
@@ -41,8 +44,13 @@ const urls = process.argv.slice(2).length ? process.argv.slice(2) : ['https://ek
         if (file instanceof Error) failed += 1;
       }
     } catch (error) {
-      failed += 1;
-      console.log(`  ✗ ${(error as Error).message.slice(0, 160)}`);
+      const message = (error as Error).message;
+      // Une redirection vers un nom sans adresse est une panne du site : bien expliquée, ce n'est pas un échec.
+      if (/redirige vers .+ aucune adresse/.test(message)) console.log(`  ✓ panne du site expliquée : ${message.replace(/^unreachable: /, '')}`);
+      else {
+        failed += 1;
+        console.log(`  ✗ ${message.slice(0, 160)}`);
+      }
     } finally {
       await browser.close();
     }

@@ -22,7 +22,7 @@
 import puppeteer, { Browser, Page } from 'puppeteer';
 import logger from '../runtime/logger';
 import { installRenderNetworkGuard, RENDER_BROWSER_ARGS } from '../render/network-guard';
-import { reachSite, unreachableMessage } from './site-reach';
+import { deadRedirectMessage, reachSite, unreachableMessage, type Redirect } from './site-reach';
 import type { ArtDirectionModel, ArtDirectionStyleId } from '../brand/art-direction.model';
 import { artDirectionStyleIds } from '../design/artDirection.catalog';
 import { getDirection } from '@idem/graphic-engine';
@@ -388,9 +388,16 @@ async function openPage(browser: Browser, url: string, timeoutMs: number, sheets
   // Ni mesure d'audience, ni publicité, ni discussion en direct : leurs fenêtres se posaient sur la capture du haut de
   // page, celle qui sert à lire la direction artistique.
   await installRenderNetworkGuard(page, (req) => !['media', 'websocket', 'eventsource'].includes(req.resourceType()) && !MACHINE_TRANSLATION.test(req.url()) && !NOISE.test(req.url()));
+  const redirects: Redirect[] = [];
+  page.on('response', (res) => {
+    const location = res.headers()['location'];
+    if (res.request().isNavigationRequest() && res.request().frame() === page.mainFrame() && res.status() >= 300 && res.status() < 400 && location) redirects.push({ from: res.url(), to: location });
+  });
   await page.goto(url, { waitUntil: 'networkidle2', timeout: timeoutMs }).catch(async (error: Error) => {
     if (/timeout/i.test(error.message)) return; // une page qui charge sans fin a quand même son premier écran
-    throw error;
+    // Une redirection vers un nom sans adresse : la vraie cause, au lieu de « net::ERR_BLOCKED_BY_CLIENT ».
+    const dead = await deadRedirectMessage(redirects);
+    throw dead ? new SiteScanError('unreachable', dead) : error;
   });
   // Un mur anti-robot qui passe de lui-même (Cloudflare…) : on attend la vraie page.
   if (await waitBotWall(page)) await page.waitForNetworkIdle({ idleTime: 300, timeout: 8000 }).catch(() => undefined);
@@ -633,6 +640,7 @@ export async function scanWebsite(options: SiteScanOptions): Promise<SiteScanRes
     try {
       home = await openPage(browser, url, timeout, sheets);
     } catch (error) {
+      if (error instanceof SiteScanError) throw error;
       throw new SiteScanError('unreachable', `Le site ne répond pas (${(error as Error).message.slice(0, 80)}).`);
     }
     const finalUrl = home.url();

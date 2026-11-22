@@ -88,3 +88,15 @@ Ce qui a changé :
 - **Message.** Un nom qu'aucun serveur DNS ne connaît donne « le nom de domaine … n'existe pas (avec ou sans « www ») : vérifiez son orthographe ». Une adresse privée est dite comme telle.
 
 Contrôle : `npm run check:site-reach -- [url…]` (réseau réel, aucun modèle). Il ouvre la page dans Chrome derrière la garde et recopie une image.
+
+### Sites lents et redirections mortes (22/11/2026)
+
+- **Site lent qui a répondu** (WordPress sur hébergement mutualisé : 4 à 7 s pour le document, puis des scripts et
+  feuilles bloquants) : `openDocument` (site-crawler.ts) ne déclare un site injoignable que si AUCUNE réponse n'arrive
+  dans le délai (25 s). Une réponse reçue → la lecture du document est attendue jusqu'à 60 s (`SLOW_DOCUMENT_MS`), puis
+  les chargements sont arrêtés (`Page.stopLoading`, protocole du navigateur) et le HTML reçu est lu. Avant : « ne répond
+  pas » pour lightpink-wombat-204826.hostingersite.com, en ligne.
+- **Redirection vers un nom sans adresse** (`www.x` → `x` dont l'enregistrement A manque) : `deadRedirectMessage`
+  (site-reach.ts) le dit au propriétaire avec le remède, dans le relevé comme dans le scan, au lieu de
+  `net::ERR_BLOCKED_BY_CLIENT`. iCode affiche ce message en entier (flow.ts).
+- Contrôles : `check:site-crawl` (site lent, serveur muet en < 15 s), `check:site-reach` (réseau réel).
