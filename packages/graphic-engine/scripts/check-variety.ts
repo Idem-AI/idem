@@ -1,0 +1,76 @@
+/**
+ * LA DIVERSITÉ DU CATALOGUE — `npm run check:variety` (IDEM_TEMPLATES_DIR=../idem-templates).
+ *
+ * Sans un jeton ni un rendu : pour chaque DA sélectionnable et plusieurs marques, ce que le code met en tête pour trois
+ * pages qui se ressemblaient d'une charte à l'autre (la page palette, la couverture, une diapositive de chiffres), d'abord
+ * pour des marques sans passé, puis pour une même marque qui enchaîne les documents (mémoire des nœuds).
+ *
+ * Mesures : nombre de gabarits distincts servis en tête, part du plus servi, et renouvellement sur 4 documents successifs.
+ */
+import { catalog } from '../src/catalog/registry';
+import { brandTraits, newCatalogState, nodeMark, rankSkins, readNodeMarks, shortlist } from '../src/catalog/graph';
+import { pageUnits } from '../src/catalog/assemble';
+import { FORMATS } from '../src/design-system/formats';
+import type { CatalogElement } from '../src/catalog/types';
+import type { SectionContent } from '../src/contracts/content-model';
+
+const PALETTE: SectionContent = { id: 'palette', role: 'specimen', title: 'Palette de couleurs', blocks: [{ id: 's', kind: 'swatches', origin: 'system', items: [{ hex: '#1A2A4F', name: 'Primaire', role: 'Titres' }, { hex: '#7F9CE5', name: 'Secondaire', role: 'Aplats' }, { hex: '#C9A227', name: 'Accent', role: 'Chiffres' }, { hex: '#F8F9FB', name: 'Fond', role: 'Page' }, { hex: '#0F172A', name: 'Encre', role: 'Texte' }] }] } as SectionContent;
+const COVER: SectionContent = { id: 'cover', role: 'cover', title: 'Kora', blocks: [{ id: 'c', kind: 'cover', brandName: 'Kora', promise: 'Le crédit simple', documentLabel: 'Pitch deck', dateLabel: 'Novembre 2026' }] } as SectionContent;
+const METRICS: SectionContent = { id: 'market', role: 'data', title: 'Un marché de 40 000 commerçants', blocks: [{ id: 'm', kind: 'metrics', items: [{ value: '40 000', label: 'commerçants' }, { value: '72 %', label: 'paient en mobile money' }, { value: '0', label: 'crédit bancaire' }] }] } as SectionContent;
+
+const PAGES: Array<{ name: string; element: CatalogElement; format: keyof typeof FORMATS; section: SectionContent }> = [
+  { name: 'palette (charte A4)', element: 'brand-charter', format: 'page-a4', section: PALETTE },
+  { name: 'palette (charte paysage)', element: 'brand-charter', format: 'page-a4-landscape', section: PALETTE },
+  { name: 'couverture (deck)', element: 'pitch-deck', format: 'slide-16x9', section: COVER },
+  { name: 'couverture (charte A4)', element: 'brand-charter', format: 'page-a4', section: COVER },
+  { name: 'chiffres (deck)', element: 'pitch-deck', format: 'slide-16x9', section: METRICS },
+];
+
+async function main(): Promise<void> {
+  const cat = await catalog();
+  const das = [...cat.directions.keys()].filter((d) => d !== 'cyberpunk');
+  let failed = 0;
+  for (const page of PAGES) {
+    const units = pageUnits(page.section);
+    const facts = { element: page.element, format: FORMATS[page.format], role: page.section.role, units, index: 1, total: 12 };
+    for (const level of ['low', 'medium', 'high', 'ultra'] as const) {
+      const firsts: string[] = [];
+      let renewed = 0;
+      let chains = 0;
+      for (const da of das) {
+        const traits = brandTraits({ styleId: da }, false);
+        for (let b = 0; b < 3; b++) {
+          const seed = `${da}|brand${b}`;
+          const skin = rankSkins(cat, page.element, traits, newCatalogState(), seed, {}, level)[0].id;
+          const top = shortlist(cat, facts, { level, skin, traits, state: newCatalogState(), seed, overrides: {} })[0];
+          firsts.push(top.config.gabarit ?? top.layout.id);
+        }
+        // Une même marque, 4 documents de suite : la mémoire des nœuds écarte ce qui vient de servir.
+        let memory: string[] = [];
+        const seen: string[] = [];
+        for (let d = 0; d < 4; d++) {
+          const state = newCatalogState([], [], readNodeMarks(memory));
+          const skin = rankSkins(cat, page.element, traits, state, `${da}|doc${d}`, {}, level)[0].id;
+          const top = shortlist(cat, facts, { level, skin, traits, state, seed: `${da}|doc${d}`, overrides: {} })[0];
+          const id = top.config.gabarit ?? top.layout.id;
+          if (!seen.includes(id)) renewed++;
+          seen.push(id);
+          chains++;
+          memory = [...memory, nodeMark([top.layout.id, ...(top.config.gabarit ? [top.config.gabarit] : []), ...Object.values(top.config.components)]) as string];
+        }
+      }
+      const counts = new Map<string, number>();
+      for (const f of firsts) counts.set(f, (counts.get(f) ?? 0) + 1);
+      const max = Math.max(...counts.values());
+      const leader = [...counts.entries()].sort((a, b) => b[1] - a[1])[0][0];
+      const share = max / firsts.length;
+      const renewal = renewed / chains;
+      const ok = counts.size >= 6 && share <= 0.3 && renewal >= 0.6;
+      if (!ok) failed++;
+      console.log(`${ok ? '✓' : '✗'} ${page.name.padEnd(26)} ${level.padEnd(6)} ${String(counts.size).padStart(3)} gabarits en tête · le plus servi ${(share * 100).toFixed(0).padStart(3)} % · renouvellement sur 4 documents ${(renewal * 100).toFixed(0)} % · en tête : ${leader}`);
+    }
+  }
+  console.log(failed ? `\n${failed} mesure(s) sous le seuil (≥ 6 gabarits en tête, ≤ 30 % pour le plus servi, ≥ 60 % de renouvellement)` : '\nDiversité suffisante partout.');
+  process.exit(failed ? 1 : 0);
+}
+main();

@@ -64,14 +64,20 @@ export function brandTraits(direction: DirectionInput | undefined, allowDark: bo
  * non plus : la liste entière — une génération ne s'arrête jamais faute de couverture (le dépôt la contrôle à la
  * construction). Sans DA connue (marque sans direction, catalogue sans DA), aucun filtre.
  */
-export function inDirection<T extends { directions?: string[] }>(cat: LoadedCatalog, list: T[], styleId?: string): T[] {
+export function inDirection<T extends { directions?: string[] }>(cat: LoadedCatalog, list: T[], styleId?: string, min = 1): T[] {
   if (!styleId || !cat.directions?.size || !cat.directions.has(styleId)) return list;
   const own = list.filter((n) => n.directions?.includes(styleId));
-  if (own.length) return own;
+  if (own.length >= min) return own;
+  // LA DIVERSITÉ (23/11/2026) : une DA qui n'a qu'un ou deux nœuds pour cette liste ne sert plus toujours les mêmes ;
+  // ceux de ses DA voisines s'ajoutent (après les siens) jusqu'à `min`.
   const neighbors = cat.directions.get(styleId)?.neighbors ?? [];
-  const near = list.filter((n) => n.directions?.some((d) => neighbors.includes(d)));
-  return near.length ? near : list;
+  const near = list.filter((n) => !own.includes(n) && n.directions?.some((d) => neighbors.includes(d)));
+  const out = [...own, ...near];
+  return out.length ? out : list;
 }
+
+/** Au moins autant de gabarits (et de squelettes) par page avant de s'arrêter à la DA ou à la gamme exactes. */
+export const VARIETY_MIN = { gabarits: 5, layouts: 4, components: 3 } as const;
 
 // ── L'INDEX DU CATALOGUE ─────────────────────────────────────────────────────────────────────
 
@@ -258,6 +264,17 @@ function contentFit(node: CatalogNode, profile: ContentProfile): number {
   return s;
 }
 
+/**
+ * LE SQUELETTE SPÉCIALISTE : un squelette fait pour des blocs précis (`capacity.kinds` — la palette plein cadre, le
+ * chiffre en vedette) passe devant les squelettes génériques quand la page n'a QUE ces blocs. Sans ce bonus, la page
+ * palette prenait le premier gabarit générique venu et la couleur restait une rangée de pavés.
+ */
+function specialistFit(node: LayoutNode, units: PageUnit[]): number {
+  const kinds = node.capacity?.kinds;
+  const blocks = units.filter((u) => u.category !== 'header');
+  return kinds?.length && blocks.length && blocks.every((u) => kinds.includes(u.kind)) ? 0.45 : 0;
+}
+
 function tagFit(node: CatalogNode, traits: BrandTraits, hasMedia: boolean): number {
   const t = node.tags;
   if (!t) return 0;
@@ -281,9 +298,31 @@ export interface CatalogState {
   seen: Set<string>;
   /** Les habillages déjà donnés à cette marque (cohérence entre ses livrables). */
   brandSkins: string[];
+  /**
+   * L'USURE DES NŒUDS hors de ce document (23/11/2026) : combien de fois chaque squelette, gabarit ou composant a
+   * servi dans les derniers documents (de la marque, du compte, et — moins fort — de tous les clients). Une empreinte
+   * de combinaison ne suffisait pas : changer un réglage suffisait à resservir la même couverture à tout le monde.
+   */
+  recent: Map<string, number>;
 }
 
-export const newCatalogState = (seen: string[] = [], brandSkins: string[] = []): CatalogState => ({ byIndex: new Map(), use: new Map(), seen: new Set(seen), brandSkins });
+export const newCatalogState = (seen: string[] = [], brandSkins: string[] = [], recent: Map<string, number> = new Map()): CatalogState => ({ byIndex: new Map(), use: new Map(), seen: new Set(seen), brandSkins, recent });
+
+/** La pénalité d'usure d'un nœud : dans le document, puis dans les documents récents (plafonnée). */
+export function wear(state: CatalogState | undefined, id: string): number {
+  if (!state) return 0;
+  return 0.22 * (state.use.get(id) ?? 0) + Math.min(0.75, 0.25 * (state.recent.get(id) ?? 0));
+}
+
+/** La mémoire des nœuds écrite par document : `nodes:<id>,<id>…` ; relue en comptes (une marque par document). */
+export function nodeMark(ids: Iterable<string>): string | undefined {
+  const list = [...new Set(ids)].filter((id) => !id.startsWith('builtin.')).sort();
+  return list.length ? `nodes:${list.join(',')}`.slice(0, 1800) : undefined;
+}
+export function readNodeMarks(marks: string[], weight = 1, into: Map<string, number> = new Map()): Map<string, number> {
+  for (const m of marks) if (m.startsWith('nodes:')) for (const id of m.slice(6).split(',')) if (id) into.set(id, (into.get(id) ?? 0) + weight);
+  return into;
+}
 
 /** L'empreinte d'une combinaison (squelette, habillage, composants, réglages, miroir). */
 export function comboFingerprint(c: Pick<PageConfig, 'layout' | 'skin' | 'components' | 'vars' | 'mirror'>): string {
@@ -305,7 +344,7 @@ function sequenceScore(ids: string[], node: CatalogNode, facts: PageFacts, state
   }
   if (prev && (e.follows?.includes(prev.layout) || (prev.gabarit && e.follows?.includes(prev.gabarit)))) s += 0.2;
   if (prev && (e.contrasts?.includes(prev.layout) || (prev.gabarit && e.contrasts?.includes(prev.gabarit)))) s += 0.12;
-  for (const id of ids) s -= 0.18 * (state.use.get(id) ?? 0);
+  for (const id of ids) s -= wear(state, id);
   return s;
 }
 
@@ -339,7 +378,7 @@ export function rankSkins(cat: LoadedCatalog, element: CatalogElement, traits: B
 }
 
 /** Le meilleur composant de chaque unité, pour un squelette (le gabarit propose, le graphe complète). */
-export function pickComponents(cat: LoadedCatalog, layout: LayoutNode, facts: PageFacts, prefer: Record<string, string>, seed: string, overrides: CatalogOverrides, traits: BrandTraits, rank = 0, level?: CreativityLevel): Record<string, string> {
+export function pickComponents(cat: LoadedCatalog, layout: LayoutNode, facts: PageFacts, prefer: Record<string, string>, seed: string, overrides: CatalogOverrides, traits: BrandTraits, rank = 0, level?: CreativityLevel, state?: CatalogState): Record<string, string> {
   const disabled = new Set(overrides.disabled ?? []);
   const assigned = assignUnits(layout, facts.units).zones;
   const zoneOf = new Map<string, { accepts: ZoneAccept[]; width: number }>();
@@ -347,18 +386,23 @@ export function pickComponents(cat: LoadedCatalog, layout: LayoutNode, facts: Pa
   const out: Record<string, string> = {};
   for (const u of facts.units) {
     const at = zoneOf.get(u.id) ?? { accepts: ['any'] as ZoneAccept[], width: 1 };
-    const direct = inDirection(cat, compatibleComponents(cat, u, at.accepts, disabled, at.width), traits.styleId);
+    const direct = inDirection(cat, compatibleComponents(cat, u, at.accepts, disabled, at.width), traits.styleId, VARIETY_MIN.components);
     // La gamme du cran ; le composant que le gabarit recommande reste toujours permis (le gabarit est déjà de la gamme).
-    const tiered = inTier(direct, level, 2);
+    const tiered = inTier(direct, level, VARIETY_MIN.components);
     const comps = prefer[u.kind] && !tiered.some((c) => c.id === prefer[u.kind]) ? [...tiered, ...direct.filter((c) => c.id === prefer[u.kind])] : tiered;
     if (!comps.length) continue;
     const ranked = comps
-      .map((c) => ({ c, v: ((prefer[u.kind] === c.id ? 1.5 : 0) + tagFit(c, traits, facts.units.some((x) => x.category === 'media')) + 0.35 * jitter(`${seed}|${u.id}|${rank}`, c.id)) * weightOf(overrides, c.id) }))
+      // Le composant du gabarit reste favori ; pour un SPÉCIMEN (nuancier, logo, typographie) il l'est moins : la même
+      // page de palette ne doit pas revenir à chaque charte d'une même DA.
+      .map((c) => ({ c, v: ((prefer[u.kind] === c.id ? (SPECIMEN_UNITS.has(u.kind) ? 0.7 : 1.5) : 0) + tagFit(c, traits, facts.units.some((x) => x.category === 'media')) - wear(state, c.id) + 0.5 * jitter(`${seed}|${u.id}|${rank}`, c.id)) * weightOf(overrides, c.id) }))
       .sort((a, b) => b.v - a.v);
     out[u.id] = ranked[Math.min(rank, ranked.length - 1)].c.id;
   }
   return out;
 }
+
+/** Les unités spécimens : leur composant varie plus librement que celui des blocs rédigés. */
+const SPECIMEN_UNITS = new Set(['swatches', 'logoDisplay', 'typeSpecimen', 'typeScale', 'patternGrid', 'cover']);
 
 /** Les réglages discrets tirés par le code (cran Low) : une option par réglage, par la graine. */
 export function drawVars(nodes: Array<{ vars?: Array<{ name: string; options: Array<{ id: string }> }> } | undefined>, seed: string): Record<string, string> {
@@ -375,8 +419,8 @@ export function shortlist(cat: LoadedCatalog, facts: PageFacts, o: { level: Crea
   const effort = catalogEffortFor(o.level);
   const disabled = new Set(o.overrides.disabled ?? []);
   // Le pré-classement qui borne le travail : il ne coûte que des comparaisons de traits, jamais un placement.
-  const preRank = (n: LayoutNode): number => tagFit(n, o.traits, facts.units.some((u) => u.category === 'media')) + contentFit(n, contentProfile(facts.units, facts.format)) - 0.18 * (o.state.use.get(n.id) ?? 0);
-  const layouts = inDirection(cat, compatibleLayouts(cat, facts, disabled, o.traits.allowDark, preRank), o.traits.styleId);
+  const preRank = (n: LayoutNode): number => tagFit(n, o.traits, facts.units.some((u) => u.category === 'media')) + contentFit(n, contentProfile(facts.units, facts.format)) + specialistFit(n, facts.units) - wear(o.state, n.id);
+  const layouts = inDirection(cat, compatibleLayouts(cat, facts, disabled, o.traits.allowDark, preRank), o.traits.styleId, VARIETY_MIN.layouts);
   const layoutIds = new Set(layouts.map((l) => l.id));
   const hasMedia = facts.units.some((u) => u.category === 'media');
   const profile = contentProfile(facts.units, facts.format);
@@ -386,16 +430,17 @@ export function shortlist(cat: LoadedCatalog, facts: PageFacts, o: { level: Crea
   const directGabarits = inDirection(
     cat,
     (catalogIndex(cat).gabaritsByElement.get(facts.element) ?? []).filter((n) => !disabled.has(n.id) && fitsRole(n.roles, facts.role) && layoutIds.has(n.config.layout)),
-    o.traits.styleId
+    o.traits.styleId,
+    VARIETY_MIN.gabarits
   );
   // LA GAMME DU CRAN (18/11/2026) : le cran choisit des gabarits de plus en plus premium — c'est sa seule influence sur
   // le choix. Au moins deux gabarits (variété d'une page à l'autre), complétés par les gammes voisines au besoin.
-  const gabarits = inTier(directGabarits, o.level, 2);
-  const tierLayouts = inTier(layouts, o.level, 3);
+  const gabarits = inTier(directGabarits, o.level, VARIETY_MIN.gabarits);
+  const tierLayouts = inTier(layouts, o.level, VARIETY_MIN.layouts);
   const raw: Array<Omit<Candidate, 'ref'>> = [];
   const push = (layout: LayoutNode, gabarit: GabaritNode | undefined, rank: number) => {
     const prefer = gabarit?.config.components ?? {};
-    const components = pickComponents(cat, layout, facts, prefer, seed, o.overrides, o.traits, effort.assembly === 'gabarit' ? 0 : rank, o.level);
+    const components = pickComponents(cat, layout, facts, prefer, seed, o.overrides, o.traits, effort.assembly === 'gabarit' ? 0 : rank, o.level, o.state);
     const compNodes = Object.values(components).map((id) => cat.nodes.get(id) as ComponentNode);
     const vars = { ...drawVars([skin, ...compNodes], `${seed}|${layout.id}|${rank}`), ...(gabarit?.config.vars ?? {}) };
     const mirror = layout.mirrorable ? (gabarit?.config.mirror ?? false) !== jitter(seed, `mirror|${layout.id}|${rank}`) > 0.5 : false;
@@ -405,7 +450,7 @@ export function shortlist(cat: LoadedCatalog, facts: PageFacts, o: { level: Crea
     const ids = [layout.id, ...(gabarit ? [gabarit.id] : [])];
     const fit = tagFit(layout, o.traits, hasMedia) + (gabarit ? tagFit(gabarit, o.traits, hasMedia) : 0);
     const content = contentFit(layout, profile) + (gabarit ? contentFit(gabarit, profile) : 0);
-    let score = 1 + fit + content + sequenceScore(ids, gabarit ?? layout, facts, o.state) + 0.3 * jitter(seed, `${ids.join('|')}|${rank}`);
+    let score = 1 + fit + content + specialistFit(layout, facts.units) + sequenceScore(ids, gabarit ?? layout, facts, o.state) + 0.6 * jitter(seed, `${ids.join('|')}|${rank}`);
     if (o.state.seen.has(fingerprint)) score -= 0.6;
     if (o.exclude?.includes(fingerprint) || o.exclude?.includes(layout.id)) score -= 2;
     score *= weightOf(o.overrides, layout.id) * (gabarit ? weightOf(o.overrides, gabarit.id) : 1);

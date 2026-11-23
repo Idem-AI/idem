@@ -33,7 +33,7 @@ import { directLogo } from './runtime/logo-director';
 import { directPattern, patternTiles, QUIET_STYLES } from './runtime/pattern-director';
 import { catalog as loadCatalog, catalogOverrides, ensureHtml } from './catalog/registry';
 import { assemblePage, capPlainText, pageUnits } from './catalog/assemble';
-import { brandTraits, Candidate, CatalogState, comboFingerprint, compatibleComponents, newCatalogState, rankSkins, shortlist } from './catalog/graph';
+import { brandTraits, Candidate, CatalogState, comboFingerprint, compatibleComponents, newCatalogState, nodeMark, rankSkins, readNodeMarks, shortlist } from './catalog/graph';
 import { chooseSystem, chooseUser, parseChoices, parseSkin, skinUser } from './catalog/choose';
 import { CatalogElement, ComponentNode, elementOf, LayoutNode, PageConfig, SkinNode } from './catalog/types';
 import { chunkHtml, fitFigures, flowPieces, measureFlow, packPages, pageTemplate, PieceMetrics } from './catalog/paginate';
@@ -95,6 +95,8 @@ interface DocumentMemory {
   /** Les combinaisons du catalogue déjà livrées (portée exigée par le cran) et les habillages de la marque. */
   templates: string[];
   skins: string[];
+  /** L'usure des nœuds du catalogue dans les documents récents (marque et compte pleine force, tous les clients moins). */
+  nodes?: Map<string, number>;
 }
 
 /** La portée mondiale de la mémoire du catalogue (Ultra : jamais une combinaison déjà livrée à un autre client). */
@@ -285,9 +287,13 @@ export class GraphicDocument {
     const global = novelty === 'global' && memoryEnabled() && host.recentFingerprints ? await host.recentFingerprints(GLOBAL_CATALOG_SCOPE).catch(() => [] as string[]) : [];
     const templates = [...new Set([...scoped, ...global].filter((r) => r.startsWith('tpl:')).map((r) => r.slice(4)))];
     const skins = [...new Set((lists[0] ?? []).filter((r) => r.startsWith('skin:')).map((r) => r.slice(5)))];
+    // L'usure des nœuds (23/11/2026) : la marque et le compte à pleine force ; tous les clients, à tous les crans, à un
+    // tiers — deux clients d'une même DA ne reçoivent plus la même couverture ni la même page de palette.
+    const everyone = memoryEnabled() && host.recentFingerprints ? (global.length ? global : await host.recentFingerprints(GLOBAL_CATALOG_SCOPE).catch(() => [] as string[])) : [];
+    const nodes = readNodeMarks(everyone, 1 / 3, readNodeMarks(lists.flat()));
     // Ce que la mémoire écarte est dit, pas caché : un résultat contraint s'explique.
     if (ideas.length || axes.length) log().info('graphic.memory', { documentType: options.documentType, ideas: ideas.length, axes: axes.length, renders: renders.length, scopes: GraphicDocument.scopes(options).map((s) => s.key.slice(0, 60)) });
-    return new GraphicDocument(options, { ideas, axes, renders, templates, skins });
+    return new GraphicDocument(options, { ideas, axes, renders, templates, skins, nodes });
   }
 
   /** Les polices de la marque (le `<style>` Tailwind de chaque page est dans son `result.head`). */
@@ -578,7 +584,7 @@ export class GraphicDocument {
     const [cat, overrides] = await Promise.all([loadCatalog(), catalogOverrides()]);
     const element = this.catalogElement(o.format);
     const traits = brandTraits(this.options.direction, this.options.allowDark === true);
-    if (!this.catalogState) this.catalogState = newCatalogState(this.memory.templates, this.memory.skins);
+    if (!this.catalogState) this.catalogState = newCatalogState(this.memory.templates, this.memory.skins, this.memory.nodes);
     const state = this.catalogState;
     const skinId = await this.ensureSkin(element, recorder, cat, overrides);
     // Un habillage retiré du catalogue en cours de document : le minimum intégré prend le relais.
@@ -963,6 +969,12 @@ export class GraphicDocument {
     if (!marks.length) return;
     // Ultra : les combinaisons livrées vont aussi dans la mémoire de TOUS les clients.
     if (this.templateMarks.length && catalogEffortFor(this.policy.level).novelty === 'global') await host.rememberFingerprints(GLOBAL_CATALOG_SCOPE, this.templateMarks).catch(() => undefined);
+    // Les nœuds servis par ce document : une seule marque, écrite partout (tous les clients compris, à tous les crans).
+    const used = nodeMark(this.catalogState?.use.keys() ?? []);
+    if (used) {
+      marks.push(used);
+      await host.rememberFingerprints(GLOBAL_CATALOG_SCOPE, [used]).catch(() => undefined);
+    }
     // L'idée et l'axe vont dans toutes les portées (marque, utilisateur, secteur) ; les empreintes de rendu, dans la
     // portée principale seulement (elles sont lourdes).
     const scopes = GraphicDocument.scopes(this.options);
