@@ -249,7 +249,8 @@ export interface VideoBeatGrid {
   phrases?: number[];
 }
 
-export type MusicLicense = 'cc0' | 'pdm' | 'cc-by' | 'cc-by-sa' | 'platform';
+/** `generated` : une musique originale générée par le serveur GPU d'IDEM (`audio/generated.ts`). */
+export type MusicLicense = 'cc0' | 'pdm' | 'cc-by' | 'cc-by-sa' | 'platform' | 'generated';
 
 /** Une piste libre de droits, d'où qu'elle vienne. */
 export interface MusicTrack {

@@ -122,6 +122,7 @@ const LICENSE_LABEL: Record<MusicLicense, string> = {
   'cc-by': 'CC BY',
   'cc-by-sa': 'CC BY-SA',
   platform: 'Licence de la plateforme',
+  generated: 'Musique originale',
 };
 
 export function attributionLine(t: Pick<MusicTrack, 'title' | 'artist' | 'license' | 'licenseUrl' | 'provider'>): string {

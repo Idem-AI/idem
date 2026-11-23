@@ -81,6 +81,10 @@ import { seekableClip } from './rendering/ffmpeg';
 import { buildComposition, CompositionInput, CompositionMedia } from './rendering/hyperframes/composition';
 import { probeComposition, ProbeFile } from './rendering/hyperframes/probe';
 import { renderHyperFrames } from './rendering/hyperframes/render';
+import { shapeCadence } from './catalog/metrics';
+import { sanitizeLogoSvg } from './rendering/logo-svg';
+import { naturalColourModifier } from '../../../../../packages/design-tools/src';
+import { foleyGenUrl, generatedFoley, generatedMusic, musicGenUrl } from './audio/generated';
 import { ComposeInput, composeFilmFromCatalog, ComposedScene, nextSceneConfig, reassembleFilm, reviseSceneConfig } from './catalog/compose';
 import type { FilmFormatId, SceneConfig } from './catalog/types';
 import { refineCues } from './audio/sfx';
@@ -151,6 +155,14 @@ export interface RenderCharge {
 }
 
 /** Une retouche (gratuite) : données, réglages, ou nouvelles versions du code de certaines scènes. */
+/** L'endroit pointé dans l'aperçu : instant dans la scène (s), zone (fractions du cadre), éléments et textes dessous. */
+export interface ScenePoint {
+  at: number;
+  zone: { x: number; y: number; w: number; h: number };
+  roles: string[];
+  texts?: string[];
+}
+
 export interface VideoPatch {
   /** Textes par scène (clé de scène → clé de texte → texte). `slots` : ancien nom, même sens. */
   texts?: Record<string, Record<string, string>>;
@@ -166,6 +178,11 @@ export interface VideoPatch {
   voiceLines?: Record<string, string>;
   /** Retouche VISUELLE d'une scène (clé → la demande, en clair) : son code est réécrit par l'auteur. `all` : toutes. */
   visual?: Record<string, string>;
+  /**
+   * L'endroit POINTÉ par l'utilisateur pour une retouche visuelle (clé → instant, zone et éléments sous la zone,
+   * relevés par l'aperçu) : la consigne de `visual` porte d'abord sur ces éléments (idée de motlab, 22/11/2026).
+   */
+  points?: Record<string, ScenePoint>;
   /** Correction VOLONTAIRE d'une scène en erreur : l'auteur reçoit son code et l'erreur. */
   fix?: string[];
   /** Nouvelle version d'une scène, écrite de zéro depuis sa fiche. */
@@ -187,6 +204,26 @@ export function sanitizeVideoPatch(raw: unknown): VideoPatch {
     const out = Object.fromEntries(Object.entries(v as Record<string, unknown>).filter(([k]) => key(k)).map(([k, x]) => [k, strings(x, 220)] as const).filter((e): e is [string, Record<string, string>] => !!e[1]));
     return Object.keys(out).length ? out : undefined;
   };
+  const num = (v: unknown, lo: number, hi: number) => (typeof v === 'number' && Number.isFinite(v) ? Math.min(hi, Math.max(lo, v)) : undefined);
+  const points = (v: unknown): Record<string, ScenePoint> | undefined => {
+    if (!v || typeof v !== 'object') return undefined;
+    const out: Record<string, ScenePoint> = {};
+    for (const [k, x] of Object.entries(v as Record<string, unknown>)) {
+      const p = x && typeof x === 'object' ? (x as Record<string, any>) : null;
+      const z = p?.zone && typeof p.zone === 'object' ? p.zone : null;
+      if (!key(k) || !p || !z) continue;
+      const zone = { x: num(z.x, 0, 1), y: num(z.y, 0, 1), w: num(z.w, 0, 1), h: num(z.h, 0, 1) };
+      if (Object.values(zone).some((n) => n === undefined)) continue;
+      out[k] = {
+        at: num(p.at, 0, 600) ?? 0,
+        zone: zone as ScenePoint['zone'],
+        roles: (Array.isArray(p.roles) ? p.roles : []).filter((r: unknown): r is string => typeof r === 'string' && /^[a-z]{2,16}$/.test(r)).slice(0, 6),
+        texts: (Array.isArray(p.texts) ? p.texts : []).filter((t: unknown): t is string => typeof t === 'string').map((t: string) => t.replace(/\s+/g, ' ').trim().slice(0, 80)).filter(Boolean).slice(0, 4),
+      };
+      if (Object.keys(out).length >= 30) break;
+    }
+    return Object.keys(out).length ? out : undefined;
+  };
   const keys = (v: unknown) => (Array.isArray(v) ? v.filter((k): k is string => typeof k === 'string' && key(k)).slice(0, 30) : undefined);
   const bool = (v: unknown) => (typeof v === 'boolean' ? v : undefined);
   const patch: VideoPatch = {
@@ -199,6 +236,7 @@ export function sanitizeVideoPatch(raw: unknown): VideoPatch {
     captions: bool(b.captions),
     voiceLines: strings(b.voiceLines, 400),
     visual: strings(b.visual, 800),
+    points: points(b.points),
     fix: keys(b.fix),
     regenerate: keys(b.regenerate),
     scope: b.scope && typeof b.scope === 'object' ? (b.scope as Partial<VideoScope>) : undefined,
@@ -527,6 +565,13 @@ export class MotionVideoService {
   async chooseMusic(opts: { mood: MusicMood; style: MotionStyle; objective: VideoObjective; durationSec: number; seed: number; avoidIds?: string[]; trackId?: string; brandText?: string }): Promise<VideoMusic | undefined> {
     const mood = resolveMood(opts.mood, opts.style, opts.objective, opts.brandText);
     if (!mood) return undefined;
+    // Le serveur de musique d'IDEM (ACE-Step), s'il est configuré : une musique originale passe avant les banques ;
+    // son échec leur rend la main (`audio/generated.ts`).
+    if (!opts.trackId && musicGenUrl()) {
+      const original = await generatedMusic({ mood, durationSec: opts.durationSec, seed: opts.seed });
+      const prepared = original ? await this.prepareTrack(original, opts.durationSec) : null;
+      if (prepared) return prepared;
+    }
     try {
       const candidates = await searchMusic({ mood, minDuration: opts.durationSec + 3 }, MUSIC_PROVIDERS);
       const first = opts.trackId ? candidates.find((t) => t.id === opts.trackId) || null : pickTrack(candidates, opts.seed, opts.avoidIds);
@@ -654,6 +699,12 @@ export class MotionVideoService {
     const byId = new Map((video.media || []).map((m) => [m.id, m]));
     const beat = video.music?.beat?.bpm ? video.music.beat : undefined;
     const period = beat ? 60 / beat.bpm : 0;
+    // Les mots de la voix off, datés depuis le début de leur scène : le catalogue y cale les entrées (titre, chiffre,
+    // éléments d'une liste entrent quand la voix les dit).
+    const spokenOf = (key: string) => {
+      const line = video.voice?.enabled ? video.voice.lines.find((l) => l.sceneKey === key) : undefined;
+      return line?.words?.length ? line.words.map((w) => ({ text: w.text, t: round3(line.offset + w.start) })) : undefined;
+    };
     return {
       scenes: film.scenes.map((sc) => ({
         key: sc.key,
@@ -663,6 +714,7 @@ export class MotionVideoService {
         ...(sc.role ? { role: sc.role } : {}),
         ...(sc.energy ? { energy: sc.energy } : {}),
         ...(beat ? { beat: { bpm: beat.bpm, first: round3(((((beat.offset || 0) - sc.start) % period) + period) % period) } } : {}),
+        ...(spokenOf(sc.key) ? { spoken: spokenOf(sc.key) } : {}),
       })),
       film: { title: film.title, concept: film.concept, style: video.brief.style, seed: film.seed },
       brand: { name: brand.tokens.name, hasLogo: Boolean(brand.tokens.logo?.light), hasDarkLogo: Boolean(brand.tokens.logo?.dark), line: [brand.tokens.name, (brand.art || '').split('\n')[0]].filter(Boolean).join(' · ').slice(0, 220), ...(brand.styleId ? { direction: brand.styleId } : {}) },
@@ -745,13 +797,18 @@ export class MotionVideoService {
       })
     );
     let logo = brand.tokens.logo?.light;
-    if (logo && /^https?:/.test(logo) && mode === 'render') {
+    // Le logo SVG (assaini) est aussi posé dans la page : la signature le dessine trait par trait (aperçu et rendu).
+    let logoSvg: string | undefined;
+    if (logo && /^https?:/.test(logo)) {
       const served = await fetchMedia(logo).catch(() => null);
-      if (served) {
-        const name = `logo${extOf(served.mimeType, 'image')}`;
-        files.push({ name, data: served.buffer, mimeType: served.mimeType });
-        logo = name;
-      } else logo = undefined;
+      if (served && /svg/.test(served.mimeType)) logoSvg = sanitizeLogoSvg(served.buffer.toString('utf8')) ?? undefined;
+      if (mode === 'render') {
+        if (served) {
+          const name = `logo${extOf(served.mimeType, 'image')}`;
+          files.push({ name, data: served.buffer, mimeType: served.mimeType });
+          logo = name;
+        } else logo = undefined;
+      }
     }
       // Les motifs de la charte : en rendu, la tuile devient un fichier du dossier (la page n'a pas de réseau) ; en aperçu, son adresse.
     const patterns = (
@@ -773,7 +830,7 @@ export class MotionVideoService {
     ).filter((p): p is NonNullable<typeof p> => !!p);
     const fontCss = await embeddedFontCss(brand, film.scenes.flatMap((s) => Object.values(s.texts)).join(' '));
     const scenes = film.scenes.filter((s) => s.html && s.script).map((s) => ({ key: s.key, start: s.start, duration: s.duration, html: s.html!, script: s.script!, animation: s.animation ?? 'gsap', texts: s.texts }));
-    const html = await buildComposition({ scenes, width: comp.width, height: comp.height, output: { width: spec.width, height: spec.height }, durationSec: film.durationSec, brand: brand.tokens, media, ...(logo ? { logo } : {}), fontCss, mode, ...(patterns.length ? { patterns } : {}), ...(brand.styleId ? { styleId: brand.styleId } : {}), ...(audio ? { audio } : {}) });
+    const html = await buildComposition({ scenes, width: comp.width, height: comp.height, output: { width: spec.width, height: spec.height }, durationSec: film.durationSec, brand: brand.tokens, media, ...(logo ? { logo } : {}), ...(logoSvg ? { logoSvg } : {}), fontCss, mode, ...(patterns.length ? { patterns } : {}), ...(brand.styleId ? { styleId: brand.styleId } : {}), ...(audio ? { audio } : {}) });
     return { html, files, size: comp, out: { width: spec.width, height: spec.height }, fps: spec.fps };
   }
 
@@ -848,7 +905,9 @@ export class MotionVideoService {
     const project = await this.hyperframesProject(video, brand, format, 'render', video.scope.quality);
     const style = (video.brief.style && video.brief.style !== 'auto' ? video.brief.style : 'energetic') as MotionStyle;
     const cues = Object.keys(o.sfxFiles).length ? refineCues(plannedCues(film).map((c) => ({ t: c.t, kind: c.kind as SfxKind, ...(c.gain !== undefined ? { gain: c.gain } : {}), ...(c.take !== undefined ? { take: c.take } : {}) })), style, film.durationSec, video.sfx?.intensity).filter((c) => o.sfxFiles[c.kind]) : [];
+    const ambience = await this.foleyBeds(video);
     const out = await renderHyperFrames({
+      ...(ambience.length ? { ambience } : {}),
       html: project.html,
       files: project.files,
       durationSec: film.durationSec,
@@ -861,6 +920,23 @@ export class MotionVideoService {
       onProgress: o.onProgress,
     });
     return { ...out, width: project.out.width, height: project.out.height, fps: project.fps, errors: [] };
+  }
+
+  /**
+   * Le BRUITAGE des clips générés (muets), par le serveur MMAudio d'IDEM s'il est configuré : un fichier par scène qui
+   * montre un clip, posé à son début, sur la durée de la scène. Rien sans serveur.
+   */
+  private async foleyBeds(video: MotionVideo): Promise<{ file: string; at: number; duration: number }[]> {
+    if (!foleyGenUrl() || !video.film) return [];
+    const byId = new Map((video.media || []).map((m) => [m.id, m]));
+    const beds: { file: string; at: number; duration: number }[] = [];
+    for (const sc of video.film.scenes) {
+      const clip = sc.media.map((id) => byId.get(id)).find((m) => m?.kind === 'video' && m.origin === 'generated');
+      if (!clip) continue;
+      const file = await generatedFoley({ videoUrl: clip.url, prompt: sc.purpose, durationSec: sc.duration, seed: video.film.seed ?? 0 });
+      if (file) beds.push({ file, at: sc.start, duration: sc.duration });
+    }
+    return beds;
   }
 
   private snapToBeats(film: VideoFilm, voice: VideoVoice | undefined, beats: number[]): { film: VideoFilm; voice?: VideoVoice } | null {
@@ -897,17 +973,19 @@ export class MotionVideoService {
     const rawRequest = brief.request || [brief.message, brief.details].filter(Boolean).join('\n');
     // Les images de la marque, décrites (gardées par l'hôte) : le directeur de création sait ce qu'elles montrent.
     const brandMedia = await this.describedBrandMedia(userId, projectId, ctx.brandMedia, brief.media || []);
-    // Le DIRECTEUR DE CRÉATION (même chargement, même étape « plan ») : la demande, souvent brève et orale, devient un
-    // brief de production complet — déroulé, ce qu'on montre, textes qui disent quelque chose, un ton de voix, le rythme
-    // d'un film — avant le reste de la génération. Jamais pour un scénario mot pour mot (rendu tel quel).
-    const enhanced = await this.enhanceVideoRequest(userId, rawRequest, brief.media || [], ctx, {
-      durationSec: scope.durationSec,
-      // Le choix de l'utilisateur (case « voix off », ou plan du calendrier) fait autorité : le brief ne le contredit jamais.
-      voice: brief.voice === true,
-      objective: brief.objective,
-      language: brief.language,
-      mediaNotes: [...(brief.media || []).filter((m) => m.kind === 'image' || m.kind === 'video').map((m) => `${m.kind === 'video' ? 'clip' : 'photo'} provided by the client${m.name ? `: ${m.name}` : ''}`), ...brandMedia.map((b) => `${b.kind === 'screen' ? 'screenshot of the brand' : 'brand photo'}: ${b.note}`)].filter((n) => n.length > 12),
-    });
+    // Le DIRECTEUR DE CRÉATION automatique (`video.brief`) : depuis le 22/11/2026 il ne part plus à chaque film — le
+    // storyboard, en un seul appel, lit la demande entière, en tire l'idée, les temps forts, la musique et la voix.
+    // `IDEM_VIDEO_AUTO_BRIEF=1` le rétablit ; « Améliorer ma demande » (bouton, gratuit) le garde toujours.
+    const enhanced = process.env.IDEM_VIDEO_AUTO_BRIEF === '1'
+      ? await this.enhanceVideoRequest(userId, rawRequest, brief.media || [], ctx, {
+          durationSec: scope.durationSec,
+          // Le choix de l'utilisateur (case « voix off », ou plan du calendrier) fait autorité : le brief ne le contredit jamais.
+          voice: brief.voice === true,
+          objective: brief.objective,
+          language: brief.language,
+          mediaNotes: [...(brief.media || []).filter((m) => m.kind === 'image' || m.kind === 'video').map((m) => `${m.kind === 'video' ? 'clip' : 'photo'} provided by the client${m.name ? `: ${m.name}` : ''}`), ...brandMedia.map((b) => `${b.kind === 'screen' ? 'screenshot of the brand' : 'brand photo'}: ${b.note}`)].filter((n) => n.length > 12),
+        })
+      : { prompt: rawRequest, source: 'template' as const };
     const request = enhanced.prompt || rawRequest;
     // Le reste de la création (intention, storyboard…) lit la même demande reformulée ; le brief structuré est gardé.
     brief.request = request;
@@ -953,7 +1031,7 @@ export class MotionVideoService {
       durationSec: scope.durationSec,
       media: assets.map((m) => ({ id: m.id, kind: m.kind as 'image' | 'video', ...(m.name ? { note: m.name } : {}), ...(m.durationSec ? { durationSec: m.durationSec } : {}), origin: m.origin === 'upload' ? 'provided by the client' : 'brand' })),
       voice: brief.voice === true,
-      newMedia: { images: brief.allowGenerate || brief.allowStock ? imageCap(scope.durationSec) : 0, clips: brief.allowGenerate || brief.allowStock ? Math.max(0, Number(process.env.VIDEO_GEN_MAX_CLIPS ?? 4)) : 0 },
+      newMedia: { images: brief.allowGenerate || brief.allowStock ? imageCap(scope.durationSec) : 0, clips: brief.allowGenerate || brief.allowStock ? Math.max(0, Number(process.env.VIDEO_GEN_MAX_CLIPS ?? 2)) : 0 },
       ...(reference ? { reference } : {}),
       ...(input.reference && !(spec.mode === 'script' && spec.scenes.length) ? { referenceShots: referenceShotCards(input.reference, sceneRange(scope.durationSec)[1]) } : {}),
       previous: ctx.others.filter((v) => v.film).slice(-6).map((v) => `${v.film!.title} — ${v.film!.concept}`.slice(0, 200)),
@@ -970,13 +1048,15 @@ export class MotionVideoService {
       })(),
     };
     const call = this.callContext(userId, projectId, creativity);
-    // Les mêmes étapes à tous les crans : la jauge choisit le modèle de chaque rôle (échelles de l'hôte).
+    // UN appel pour le film (22/11/2026) : le storyboard écrit aussi l'idée (titre, concept, direction, musique,
+    // narrateur). L'ancien directeur (`video.concept`, et l'exploration en quatre pistes à l'Ultra) précédait le
+    // storyboard et relisait toute la demande : `IDEM_VIDEO_CONCEPT=1` le rétablit.
     emit('concept', 'running');
-    const conceived = await runConcept(call, filmBrief);
-    if (conceived.explore) trace('video.concept-explore', conceived.explore.run, !!conceived.explore.chosen);
-    trace('video.concept', conceived.run, !!conceived.concept);
-    const concept = conceived.concept;
-    emit('concept', 'done', concept ? { title: concept.title, concept: concept.concept } : { failed: conceived.run.failure || 'unreadable' });
+    const conceived = process.env.IDEM_VIDEO_CONCEPT === '1' ? await runConcept(call, filmBrief) : null;
+    if (conceived?.explore) trace('video.concept-explore', conceived.explore.run, !!conceived.explore.chosen);
+    if (conceived) trace('video.concept', conceived.run, !!conceived.concept);
+    const concept = conceived?.concept ?? null;
+    emit('concept', 'done', concept ? { title: concept.title, concept: concept.concept } : conceived ? { failed: conceived.run.failure || 'unreadable' } : { inStoryboard: true });
     emit('storyboard', 'running');
     const timeline = spec.mode === 'script' && spec.scenes.length ? sceneTimeline(spec, scope.durationSec) : input.reference ? referenceTimeline(input.reference, scope.durationSec) : undefined;
     const planned = await runPlanner(call, filmBrief, concept, timeline);
@@ -986,6 +1066,23 @@ export class MotionVideoService {
       throw new VideoInputError(failure === 'no_model' ? 'model_unavailable' : 'storyboard_failed');
     }
     const sb: Storyboard = planned.storyboard;
+    // La cadence (22/11/2026) : un film sans voix ni scénario ni modèle aux durées presque égales est un diaporama ; le
+    // code module ses durées selon le rôle de chaque scène, à durée totale égale.
+    if (!brief.voice && spec.mode !== 'script' && !input.reference) {
+      const shaped = shapeCadence(sb.scenes, scope.durationSec);
+      let at = 0;
+      sb.scenes = shaped.map((s) => {
+        const placed = { ...s, start: Math.round(at * 1000) / 1000 };
+        at += s.duration;
+        return placed;
+      });
+    }
+    // L'idée écrite par le storyboard lui-même : la voix et la musique qu'il propose quand l'utilisateur a laissé le choix.
+    if (!concept) {
+      const persona = input.voicePersona && VOICE_PERSONAS.some((p) => p.id === input.voicePersona) ? (input.voicePersona as CreativeBrief['persona']) : sb.persona;
+      if (!brief.creative && (persona || sb.music)) brief.creative = { voiceover: brief.voice === true, show: [], beats: [], ...(persona ? { persona } : {}), ...(sb.music ? { music: sb.music } : {}) };
+      if (brief.musicMood === 'auto' && sb.music) brief.musicMood = sb.music;
+    }
     // Ce que la demande exige et que la vidéo ne peut pas tenir (4K, 24 i/s…) : dit, jamais ignoré.
     for (const u of spec.unsupported || []) sb.fidelity.push(language.startsWith('en') ? `${u} requested: the video is delivered in ${scope.quality === 'standard' ? '720p' : '1080p'}, ${scope.quality === 'premium' ? 60 : 30} fps.` : `${u} demandé : la vidéo est livrée en ${scope.quality === 'standard' ? '720p' : '1080p'}, ${scope.quality === 'premium' ? 60 : 30} i/s.`);
     emit('storyboard', 'done', { title: sb.title, scenes: sb.scenes.map((s) => ({ duration: s.duration, purpose: s.purpose })) });
@@ -1004,7 +1101,7 @@ export class MotionVideoService {
       ...(sb.fidelity.length ? { fidelity: { notes: sb.fidelity } } : {}),
       ...(input.reference ? { reference: { ...(input.reference.id ? { id: input.reference.id } : {}), summary: input.reference.summary.slice(0, 300) } } : {}),
       ...(filmBrief.axis ? { axis: filmBrief.axis.id } : {}),
-      ...(conceived.explore?.chosen ? { explored: { tracks: conceived.explore.tracks, chosen: conceived.explore.chosen.title, novelty: conceived.explore.novelty ?? 1 } } : {}),
+      ...(conceived?.explore?.chosen ? { explored: { tracks: conceived.explore.tracks, chosen: conceived.explore.chosen.title, novelty: conceived.explore.novelty ?? 1 } } : {}),
       scenes: sb.scenes.map((s, i) => ({
         key: `s${i + 1}`,
         start: s.start,
@@ -1023,7 +1120,7 @@ export class MotionVideoService {
 
     // Le plan du film, calculé par le code (compilateur 0.3) : la direction visuelle (jamais celle du film précédent),
     // l'énergie de chaque scène, le système de design, les coutures entre scènes et les sons des transitions.
-    const plan = planFilm({ brand: ctx.film, scenes: sb.scenes.map((s) => ({ role: s.role, energy: s.energy })), direction: concept?.direction, alternative: concept?.alternative, energy: concept?.energy, previousDirection: filmBrief.previousDirections?.[0], seed });
+    const plan = planFilm({ brand: ctx.film, scenes: sb.scenes.map((s) => ({ role: s.role, energy: s.energy })), direction: concept?.direction ?? sb.direction, alternative: concept?.alternative ?? sb.alternative, energy: concept?.energy, previousDirection: filmBrief.previousDirections?.[0], seed });
     film = {
       ...film,
       design: plan.design,
@@ -1038,8 +1135,13 @@ export class MotionVideoService {
     const mediaJob = (async () => {
       if (!needs.length) return { produced: [] as { plan: ShotPlan; asset: VideoMediaAsset }[], report: null as null | Awaited<ReturnType<typeof sourceShots>>['report'] };
       emit('media', 'running', { planned: needs.length });
+      // L'ANCRE DE COHÉRENCE du film (22/11/2026, idée des « playbooks » d'OpenMontage) : toutes les images d'un film
+      // partagent la même lumière, la même optique et la même ambiance — celles de la DA de la charte, assainies
+      // (jamais de filtre de couleur : design-tools/photo-integrity) — et la même personne quand le film en a une.
+      const daLook = naturalColourModifier([ctx.branding?.artDirection?.imagery?.lighting, ctx.branding?.artDirection?.imagery?.treatment].filter(Boolean).join(', '));
+      const anchor = [spec.look, daLook, 'Same lighting, same lens and same colour mood in every shot of this film', spec.cast ? `the same person in every shot: ${spec.cast}` : ''].filter(Boolean).join('. ').slice(0, 420);
       const res = await sourceShots({
-        direction: { look: spec.look || '', shots: needs, source: 'llm' },
+        direction: { look: anchor, shots: needs, source: 'llm' },
         orientation: orientationOf(scope.formats[0]),
         storage: this.mediaStorage(),
         folder: `users/${userId}/projects/${projectId}/videos/${videoId}/media`,
@@ -1199,7 +1301,7 @@ export class MotionVideoService {
     }
     {
       const htmlJobs = [
-        ...Object.entries(visual).filter(([key, instruction]) => sceneOf(key) && String(instruction || '').trim()).map(([key, instruction]) => ({ key, instruction: String(instruction).slice(0, 800) })),
+        ...Object.entries(visual).filter(([key, instruction]) => sceneOf(key) && String(instruction || '').trim()).map(([key, instruction]) => ({ key, instruction: String(instruction).slice(0, 800), point: patch.points?.[key] })),
         ...(patch.regenerate || []).filter((key) => sceneOf(key)).map((key) => ({ key, instruction: undefined as string | undefined })),
         ...(patch.fix || []).filter((key) => sceneOf(key)?.status === 'error').map((key) => ({ key, instruction: undefined as string | undefined, fix: true })),
       ];
@@ -1219,7 +1321,7 @@ export class MotionVideoService {
           const tried = [...(sc.catalog.tried ?? []), JSON.stringify({ ...sc.catalog, tried: undefined })];
           let next: SceneConfig | null;
           if (job.instruction) {
-            const r = await reviseSceneConfig(input, i, film.catalog.theme, { ...sc.catalog, tried: undefined } as SceneConfig, job.instruction);
+            const r = await reviseSceneConfig(input, i, film.catalog.theme, { ...sc.catalog, tried: undefined } as SceneConfig, job.instruction, 'point' in job ? (job.point as ScenePoint | undefined) : undefined);
             film.agents = [...film.agents, { agent: `video.template:${job.key}:revise`, source: r.trace.source === 'llm' ? 'llm' : 'none', tokens: r.trace.tokens, ms: r.trace.ms, ...(r.trace.failure ? { failure: r.trace.failure.slice(0, 120) } : {}) }];
             next = r.config;
           } else next = await nextSceneConfig(input, i, tried.map((t) => JSON.parse(t) as SceneConfig));

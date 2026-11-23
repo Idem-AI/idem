@@ -25,6 +25,8 @@ export interface HyperFramesRenderInput {
   music?: { file: string; startAt: number; phraseEnd?: boolean };
   sfx?: { files: Partial<Record<SfxKind, string | string[]>>; cues: (SfxCue & { db: number; take?: number })[] };
   voice?: { file: string; at: number }[];
+  /** Les bruitages des clips (serveur MMAudio d'IDEM, facultatif) : mixés bas, à leur instant, sur leur durée. */
+  ambience?: { file: string; at: number; duration: number }[];
   posterAt?: number;
   onProgress?: (ratio: number) => void;
 }
@@ -53,7 +55,25 @@ function producerEntry(): string {
   }
 }
 
+/**
+ * Le navigateur du rendu. Depuis la 0.9.70, HyperFrames ne lance plus qu'un navigateur « vérifié » : celui que nomme
+ * `HYPERFRAMES_BROWSER_PATH`, `PRODUCER_HEADLESS_SHELL_PATH` ou `PUPPETEER_EXECUTABLE_PATH` (la production pose ce
+ * dernier : le Chromium de l'image), sinon une version épinglée téléchargée par `npx hyperframes browser ensure`. À
+ * défaut des deux (poste de développement), le Chrome de Puppeteer — celui des contrôles — est nommé.
+ */
+function ensureBrowserPath(): void {
+  if (process.env.HYPERFRAMES_BROWSER_PATH || process.env.PRODUCER_HEADLESS_SHELL_PATH || process.env.PUPPETEER_EXECUTABLE_PATH) return;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const exe = String(require('puppeteer').executablePath?.() || '');
+    if (exe && fs.existsSync(exe)) process.env.HYPERFRAMES_BROWSER_PATH = exe;
+  } catch {
+    /* le producteur dira lui-même qu'aucun navigateur n'est disponible */
+  }
+}
+
 function loadProducer() {
+  ensureBrowserPath();
   if (!producer) producer = esmImport(pathToFileURL(producerEntry()).href);
   return producer;
 }
@@ -74,7 +94,7 @@ export async function renderHyperFrames(input: HyperFramesRenderInput): Promise<
     await executeRenderJob(job, project, silent, (j) => input.onProgress?.(Math.min(0.9, (Number(j.progress) || 0) / 100 * 0.9)));
     if (job.status && job.status !== 'complete') throw new Error(`hyperframes_render_failed: ${String(job.error || job.status).slice(0, 300)}`);
     const file = path.join(workDir, 'video.mp4');
-    await mixAudio({ silent, file, d: input.durationSec, music: input.music, cues: input.sfx?.cues ?? [], files: input.sfx?.files ?? {}, voice: input.voice ?? [] });
+    await mixAudio({ silent, file, d: input.durationSec, music: input.music, cues: input.sfx?.cues ?? [], files: input.sfx?.files ?? {}, voice: input.voice ?? [], ambience: input.ambience ?? [] });
     const poster = path.join(workDir, 'poster.jpg');
     const posterAt = Math.max(0, Math.min(input.durationSec - 0.1, input.posterAt ?? input.durationSec * 0.2));
     await run(['-y', '-v', 'error', '-ss', posterAt.toFixed(3), '-i', file, '-frames:v', '1', '-q:v', '3', poster]);

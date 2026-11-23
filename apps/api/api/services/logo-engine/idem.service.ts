@@ -28,6 +28,8 @@ import type { ConceptType, LogoDocument } from './ir/logo.schema';
 import { applyPatch } from './ir/patch';
 import { idemFontProvider } from './kernel/fontProviders';
 import { produceLogo } from './pipeline';
+import { OmniSvgClient } from './vector/client';
+import { aiBackend, idemMlApiKey, idemMlOmnisvgBaseUrl } from '../../config/ai-backend.config';
 import { improveLogo } from './improve/improve';
 import { wishWithoutAnalysis } from './improve/reading';
 import type { PlannedLogo } from './planner/planner';
@@ -39,6 +41,35 @@ import type { BuildOptions } from './render/build';
 import type { BrandFonts } from './render/scene';
 import { idemVariations } from './render/variants';
 import type { LogoFingerprint } from './validate/fingerprint';
+
+
+/**
+ * OmniSVG : disponible quand `logo=idem-ml` dans `IDEM_AI_BACKEND`.
+ * Utilise la même passerelle et la même clé que les autres sortes (IDEM_ML_URL / IDEM_ML_API_KEY).
+ * La passerelle proxifie `/v1/text-to-svg` et `/v1/image-to-svg` vers le service OmniSVG interne.
+ * Cache invalidé si l'URL change (bascule à chaud).
+ */
+let omnisvgCache: { url: string; client: OmniSvgClient | null } | undefined;
+
+export function omnisvgModel(): OmniSvgClient | undefined {
+  const url = aiBackend('logo') === 'idem-ml' ? (idemMlOmnisvgBaseUrl() ?? '') : '';
+  if (!omnisvgCache || omnisvgCache.url !== url) {
+    omnisvgCache = {
+      url,
+      client: url
+        ? new OmniSvgClient({
+            url,
+            apiKey: idemMlApiKey(),
+            deadlineMs: Number(process.env.OMNISVG_DEADLINE_MS) || 90_000,
+            maxCandidates: Number(process.env.OMNISVG_CANDIDATES) || undefined,
+            maxTokens: Number(process.env.OMNISVG_MAX_TOKENS) || undefined,
+            log: (message) => logger.warn(message),
+          })
+        : null,
+    };
+  }
+  return omnisvgCache.client ?? undefined;
+}
 
 /** `LOGO_ENGINE=legacy` (ou `off`) rend la main à l'ancien pipeline (SVG dessiné par le modèle). */
 export function logoEngineEnabled(): boolean {
@@ -259,6 +290,7 @@ export async function engineLogoConcepts(req: EngineConceptsRequest): Promise<En
         cache: { get: (k) => cacheService.get(k, { prefix: 'logoreading' }), set: (k, v) => cacheService.set(k, v, { prefix: 'logoreading', ttl: 24 * 3600 }).then(() => undefined) },
         wish: req.reference.wish ?? wishWithoutAnalysis(req.preferences?.customDescription),
         seed: `${req.projectId}:improve${req.fresh ? `:${Date.now()}` : ''}`,
+        vector: omnisvgModel(),
         onStage: (s) => req.onStage?.(s),
       });
       improvedDecisions = made.decisions;
@@ -301,6 +333,7 @@ export async function engineLogoConcepts(req: EngineConceptsRequest): Promise<En
     {
       call,
       vision: async (png, instruction) => idemAnalyzeImage(png.toString('base64'), 'image/png', instruction, { purpose: 'shot-critic', maxOutputTokens: 500 }),
+      vector: omnisvgModel(),
       onStage: req.onStage,
     }
   );

@@ -26,9 +26,20 @@ export interface VideoCatalogEffort {
   params: boolean;
 }
 
-const SAME_EFFORT: VideoCatalogEffort = { chooser: 'model', shortlist: 6, themes: 3, motion: true, params: false };
-export const VIDEO_CATALOG_EFFORT: Record<CreativityLevel, VideoCatalogEffort> = { low: SAME_EFFORT, medium: SAME_EFFORT, high: SAME_EFFORT, ultra: SAME_EFFORT };
-export const videoEffortFor = (level: CreativityLevel): VideoCatalogEffort => VIDEO_CATALOG_EFFORT[level] ?? VIDEO_CATALOG_EFFORT.medium;
+/**
+ * 22/11/2026 : le CODE choisit par défaut (0 jeton). La liste courte est déjà classée par le graphe (rôle, énergie,
+ * DA, variété, mémoire) et les séquences sont posées par le code : l'appel `video.template` n'ajoutait qu'un tirage
+ * parmi des candidats déjà justes, au prix d'un appel par film. `VIDEO_CATALOG_CHOOSER=model` le rétablit. La
+ * RETOUCHE écrite (« plus lent », « plus sobre ») garde son petit appel : elle traduit une consigne du client.
+ */
+const chooser = (): VideoCatalogEffort['chooser'] => (process.env.VIDEO_CATALOG_CHOOSER === 'model' ? 'model' : 'code');
+export const VIDEO_CATALOG_EFFORT: Record<CreativityLevel, VideoCatalogEffort> = {
+  low: { chooser: 'code', shortlist: 6, themes: 3, motion: true, params: false },
+  medium: { chooser: 'code', shortlist: 6, themes: 3, motion: true, params: false },
+  high: { chooser: 'code', shortlist: 6, themes: 3, motion: true, params: false },
+  ultra: { chooser: 'code', shortlist: 6, themes: 3, motion: true, params: false },
+};
+export const videoEffortFor = (level: CreativityLevel): VideoCatalogEffort => ({ ...(VIDEO_CATALOG_EFFORT[level] ?? VIDEO_CATALOG_EFFORT.medium), chooser: chooser() });
 
 export interface ChooseScene {
   key: string;
@@ -52,7 +63,28 @@ export function chooseSystem(): string {
   ].join('\n');
 }
 
-export function chooseUser(cat: LoadedVideoCatalog, o: { brandLine: string; film: { title: string; concept: string; style?: string }; themes: ThemeNode[]; scenes: ChooseScene[]; effort: VideoCatalogEffort; level?: string; direction?: string; revise?: { key: string; current: SceneConfig; instruction: string } }): string {
+/** L'endroit pointé dans l'aperçu (éditeur vidéo) : instant dans la scène, zone du cadre, éléments et textes dessous. */
+export interface RevisePoint {
+  at: number;
+  zone: { x: number; y: number; w: number; h: number };
+  roles: string[];
+  texts?: string[];
+}
+
+/** « at 2.4 s into the scene, top left of the frame, on: title ("Votre marque"), media » — posé par le code. */
+export function pointLine(p?: RevisePoint): string {
+  if (!p) return '';
+  const cx = p.zone.x + p.zone.w / 2;
+  const cy = p.zone.y + p.zone.h / 2;
+  const v = cy < 1 / 3 ? 'top' : cy > 2 / 3 ? 'bottom' : 'middle';
+  const h = cx < 1 / 3 ? 'left' : cx > 2 / 3 ? 'right' : 'centre';
+  const area = p.zone.w * p.zone.h > 0.5 ? 'most of the frame' : `${v === 'middle' && h === 'centre' ? 'centre' : `${v} ${h}`} of the frame`;
+  const on = p.roles.length ? `, on: ${p.roles.join(', ')}` : ', on an empty area (no text or image there)';
+  const texts = p.texts?.length ? ` (${p.texts.map((t) => JSON.stringify(t.slice(0, 60))).join(', ')})` : '';
+  return `at ${Math.round(p.at * 10) / 10} s into the scene, ${area}${on}${texts}`;
+}
+
+export function chooseUser(cat: LoadedVideoCatalog, o: { brandLine: string; film: { title: string; concept: string; style?: string }; themes: ThemeNode[]; scenes: ChooseScene[]; effort: VideoCatalogEffort; level?: string; direction?: string; revise?: { key: string; current: SceneConfig; instruction: string; point?: RevisePoint } }): string {
   // Les animations et transitions proposées : celles de la gamme du cran (au moins 6 et 3, gammes voisines au besoin).
   // … et de la DA de la marque (un glitch n'a rien à faire dans un film « luxe discret »).
   const anims = inTier(inDirection(cat, [...cat.nodes.values()].filter((n): n is AnimationNode => n.kind === 'animation' && !n.id.startsWith('builtin.')), o.direction), o.level, 6);
@@ -75,7 +107,11 @@ export function chooseUser(cat: LoadedVideoCatalog, o: { brandLine: string; film
     lines.push(`${s.key} (${s.role ?? 'scene'}, energy ${s.energy}, ${s.duration.toFixed(1)} s) — ${s.shape}`);
     for (const c of s.candidates) lines.push(`  ${c.ref}. ${docLine((c.gabarit ?? c.layout).doc)}${o.effort.motion ? ` [roles: ${(s.roles[c.ref] ?? []).join(', ')}]` : ''}`);
   }
-  if (o.revise) lines.push(`CURRENT CONFIG OF ${o.revise.key}: ${JSON.stringify(o.revise.current)}`, `CLIENT'S REQUEST FOR ${o.revise.key}: ${o.revise.instruction.slice(0, 600)}`);
+  if (o.revise) {
+    lines.push(`CURRENT CONFIG OF ${o.revise.key}: ${JSON.stringify(o.revise.current)}`, `CLIENT'S REQUEST FOR ${o.revise.key}: ${o.revise.instruction.slice(0, 600)}`);
+    const where = pointLine(o.revise.point);
+    if (where) lines.push(`WHERE THE CLIENT POINTED: ${where}. The request is about these elements first: change what concerns them (their animation, their place, their size), keep the rest of the scene as it is.`);
+  }
   const scene = `{"scene":"${o.scenes[0]?.key ?? 's1'}","pick":"A"${o.effort.motion ? ',"animations":{"title":"anim.x"},"transition":"trans.y"' : ''}${o.effort.params ? ',"pace":1.0' : ''}}`;
   lines.push(`ANSWER: {${o.themes.length > 1 && !o.revise ? '"theme":"A",' : ''}"scenes":[${scene}, …]}${o.revise ? ` — only ${o.revise.key}` : ' — one entry per scene, in order'}`);
   return lines.join('\n');

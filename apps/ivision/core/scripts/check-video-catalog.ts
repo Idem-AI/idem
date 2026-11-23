@@ -25,8 +25,8 @@ import { COMPOSITION } from '../src/video/rendering/formats';
 import { resetVideoCatalog, videoCatalog, buildVideoCatalog } from '../src/video/catalog/registry';
 import { assembleFilm, CatalogScene, composeFilmFromCatalog } from '../src/video/catalog/compose';
 import { animationFor, sceneSlots } from '../src/video/catalog/graph';
-import type { FilmFormatId, GabaritNode, SceneConfig, ThemeNode } from '../src/video/catalog/types';
-import type { RuntimeScene } from '../src/video/catalog/assemble';
+import type { DevelopNode, FilmFormatId, GabaritNode, PrimitiveNode, SceneConfig, SequenceNode, ThemeNode } from '../src/video/catalog/types';
+import { DEVELOP_FREE_MIN, IDLE_MAX, RuntimeScene } from '../src/video/catalog/assemble';
 
 process.env.IDEM_TEMPLATES_DIR = process.env.IDEM_TEMPLATES_DIR || path.resolve(__dirname, '../../../../../idem-templates');
 process.env.IDEM_QUALITY_MEMORY = '0';
@@ -65,9 +65,13 @@ function sceneFor(g: GabaritNode, key: string, duration: number): CatalogScene {
     'vlayout.cta-split': { headline: 'Équipez votre coopérative cette saison', sub: 'Les dix premières installations sont offertes.', cta: 'Écrire sur WhatsApp' },
     'vlayout.signature-lockup': { headline: 'Les intrants à portée de main', cta: 'idem.africa' },
     'vlayout.problem-list': { headline: 'Trois obstacles à chaque saison', text2: 'Le dépôt le plus proche est à douze kilomètres', text3: 'Les prix changent sans prévenir', text4: 'Aucun reçu, aucun recours' },
+    'vlayout.editorial-split': { headline: 'Le marché vient à vous', sub: 'Une borne tactile au cœur de chaque village du Moungo.' },
+    'vlayout.poster-word': { headline: 'Fini la marche', sub: 'Les intrants arrivent au village le lendemain.' },
+    'vlayout.media-band': { headline: 'Les tisserandes de Bafoussam', sub: 'Chaque pagne est teint à la main, motif après motif.' },
+    'vlayout.media-round': { headline: 'Marie, productrice de manioc', sub: 'Elle vend sa récolte depuis la place du village.' },
   };
   const texts = base[layout] ?? { headline: 'Une scène' };
-  const needsMedia = ['vlayout.media-full-caption', 'vlayout.split-media-text', 'vlayout.media-framed', 'vlayout.figure-media'].includes(layout);
+  const needsMedia = ['vlayout.media-full-caption', 'vlayout.split-media-text', 'vlayout.media-framed', 'vlayout.figure-media', 'vlayout.poster-word', 'vlayout.media-band', 'vlayout.media-round'].includes(layout);
   return { key, duration, texts, media: needsMedia ? media : [], role, energy: 3 };
 }
 
@@ -133,6 +137,69 @@ const MEASURE = `(function (key, t, texts) {
   texts.forEach(function (t) { if (shown.indexOf(t.replace(/\\s+/g, '')) < 0) problems.push('texte absent : ' + t.slice(0, 30)); });
   return problems;
 })`;
+
+/**
+ * LE CONTRASTE RÉEL ET LA TAILLE SUR TÉLÉPHONE (22/11/2026, idées de l'audit HyperFrames et d'explainroo) : le texte de
+ * la scène est masqué, l'image prise, puis les pixels DERRIÈRE chaque texte sont comparés à sa couleur (WCAG) — un
+ * texte sur une photo est jugé sur la photo réelle. La taille de chaque texte est ramenée à l'écran d'un téléphone
+ * (390 px de large pour un format vertical ou carré, un lecteur de 854 px pour le paysage).
+ */
+async function audit(page: Page, key: string, compWidth: number, landscape: boolean): Promise<{ contrast: string[]; small: string[]; tiny: string[] }> {
+  const boxes = (await page.evaluate(`(function (key) {
+    var sec = document.getElementById(key), comp = document.getElementById('comp'), cr = comp.getBoundingClientRect();
+    var out = [];
+    sec.querySelectorAll('[data-fit]').forEach(function (el) {
+      var r = el.getBoundingClientRect(), cs = getComputedStyle(el);
+      if (r.width < 2 || r.height < 2) return;
+      out.push({ name: el.getAttribute('data-fit'), x: r.left - cr.left, y: r.top - cr.top, w: r.width, h: r.height, color: cs.color, size: parseFloat(cs.fontSize), text: (el.textContent || '').trim().slice(0, 24) });
+      el.setAttribute('data-ge-audit', JSON.stringify(['color', '-webkit-text-fill-color', '-webkit-text-stroke', 'text-shadow'].map(function (p) { return [p, el.style.getPropertyValue(p)]; })));
+      el.style.setProperty('color', 'transparent', 'important');
+      el.style.setProperty('-webkit-text-fill-color', 'transparent', 'important');
+      el.style.setProperty('-webkit-text-stroke', '0', 'important');
+      el.style.setProperty('text-shadow', 'none', 'important');
+      // Un texte peint par son fond (balayage de lumière, contour) : le fond découpé au texte est masqué lui aussi.
+      if (cs.backgroundClip === 'text' || cs.webkitBackgroundClip === 'text') { el.setAttribute('data-ge-audit-bg', el.style.backgroundImage || ''); el.style.setProperty('background-image', 'none', 'important'); }
+    });
+    return { boxes: out, scale: cr.width / comp.offsetWidth };
+  })(${JSON.stringify(key)})`)) as { boxes: Array<{ name: string; x: number; y: number; w: number; h: number; color: string; size: number; text: string }>; scale: number };
+  const shot = Buffer.from(await page.screenshot({ type: 'png' }));
+  await page.evaluate(`document.querySelectorAll('[data-ge-audit]').forEach(function (el) { JSON.parse(el.getAttribute('data-ge-audit')).forEach(function (kv) { el.style.removeProperty(kv[0]); if (kv[1]) el.style.setProperty(kv[0], kv[1]); }); if (el.hasAttribute('data-ge-audit-bg')) { el.style.removeProperty('background-image'); el.style.backgroundImage = el.getAttribute('data-ge-audit-bg'); el.removeAttribute('data-ge-audit-bg'); } el.removeAttribute('data-ge-audit'); })`);
+  const img = sharp(shot);
+  const meta = await img.metadata();
+  const raw = await img.removeAlpha().raw().toBuffer();
+  const W = meta.width || 1;
+  const H = meta.height || 1;
+  const lum = (r: number, g: number, b: number) => {
+    const c = [r, g, b].map((x) => { x /= 255; return x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4); });
+    return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+  };
+  const contrast: string[] = [];
+  const small: string[] = [];
+  const tiny: string[] = [];
+  const phone = landscape ? 854 : 390;
+  for (const b of boxes.boxes) {
+    const m = /rgba?\(([^)]+)\)/.exec(b.color);
+    if (!m) continue;
+    const [r, g, bl] = m[1].split(/[\s,\/]+/).map(Number);
+    const fg = lum(r, g, bl);
+    const ratios: number[] = [];
+    const x0 = Math.max(0, Math.floor(b.x)), y0 = Math.max(0, Math.floor(b.y)), x1 = Math.min(W, Math.ceil(b.x + b.w)), y1 = Math.min(H, Math.ceil(b.y + b.h));
+    for (let y = y0; y < y1; y += 2) for (let x = x0; x < x1; x += 2) {
+      const k = (y * W + x) * 3;
+      const bg = lum(raw[k], raw[k + 1], raw[k + 2]);
+      ratios.push((Math.max(fg, bg) + 0.05) / (Math.min(fg, bg) + 0.05));
+    }
+    if (!ratios.length) continue;
+    ratios.sort((a, c) => a - c);
+    // Le dixième le moins contrasté du fond (un texte doit se lire sur sa partie la plus difficile, pas en moyenne).
+    const worst = ratios[Math.floor(ratios.length * 0.1)];
+    if (worst < 2.4) contrast.push(`${b.name} « ${b.text} » contraste ${worst.toFixed(2)}:1`);
+    const onPhone = (b.size * phone) / compWidth;
+    if (onPhone < 9) tiny.push(`${b.name} « ${b.text} » ${onPhone.toFixed(1)} px sur téléphone`);
+    else if (onPhone < 12) small.push(`${b.name} ${onPhone.toFixed(1)} px`);
+  }
+  return { contrast, small, tiny };
+}
 
 async function main() {
   fs.rmSync(OUT, { recursive: true, force: true });
@@ -203,10 +270,14 @@ async function main() {
   const filmScenes = gabarits.map((g, i) => sceneFor(g, `s${i + 1}`, 3.4));
   const calls: string[] = [];
   const base = { scenes: filmScenes, film: { title: 'AgriLink', concept: 'Les intrants à portée de main', style: 'corporate', seed: 'check' }, brand: { name: BRAND.name, hasLogo: true, line: 'AgriLink · agriculture' }, formats: ['story'] as FilmFormatId[] };
+  // 22/11/2026 : par défaut, le CODE choisit (0 jeton) à tous les crans ; `VIDEO_CATALOG_CHOOSER=model` rétablit l'appel.
+  const byCode = await composeFilmFromCatalog({ ...base, level: 'medium', call: { level: 'medium', call: async ({ role }) => (calls.push(role), '') } });
+  check(calls.length === 0 && byCode.trace.source === 'code' && byCode.scenes.length === filmScenes.length, 'choix : par défaut le code choisit tout le film, AUCUN appel de modèle', `${calls.length} appel(s)`);
+  process.env.VIDEO_CATALOG_CHOOSER = 'model';
   const low = await composeFilmFromCatalog({ ...base, level: 'low', call: { level: 'low', call: async ({ role }) => (calls.push(role), '') } });
   // 18/11/2026 : le cran ne règle plus la profondeur du choix (il choisit la gamme des gabarits) — Low fait le même
   // appel que les autres ; une réponse vide laisse le choix du code, et le film est entier.
-  check(calls.length === 1 && calls[0] === 'video.template' && low.trace.source === 'code' && low.scenes.length === filmScenes.length, 'choix : au cran Low, le même appel unique ; réponse vide → choix du code, film entier', `${calls.length} appel(s)`);
+  check(calls.length === 1 && calls[0] === 'video.template' && low.trace.source === 'code' && low.scenes.length === filmScenes.length, 'choix (modèle rétabli) : au cran Low, le même appel unique ; réponse vide → choix du code, film entier', `${calls.length} appel(s)`);
   calls.length = 0;
   const med = await composeFilmFromCatalog({ ...base, level: 'medium', call: { level: 'medium', call: async ({ role, user }) => (calls.push(`${role}|${user.length}`), JSON.stringify({ scenes: filmScenes.map((s) => ({ scene: s.key, pick: 'B' })) })) } });
   check(calls.length === 1 && calls[0].startsWith('video.template') && med.trace.source === 'llm', 'choix : au cran Medium, UN appel pour tout le film (rôle video.template)', calls.join(', '));
@@ -217,6 +288,7 @@ async function main() {
   const garbage = await composeFilmFromCatalog({ ...base, level: 'high', call: { level: 'high', call: async () => 'je ne sais pas' } });
   check(garbage.trace.source === 'code' && garbage.scenes.length === filmScenes.length, 'choix : une réponse illisible laisse le choix du code (le film se fait)');
   check(!calls.some((u) => /Le marché vient à vous|Douze kilomètres/.test(u)), 'choix : les mots des scènes ne sont jamais envoyés au modèle (seulement leur forme)');
+  delete process.env.VIDEO_CATALOG_CHOOSER;
 
   // 4. Le rendu : 10 gabarits × thèmes × formats
   const themes = [...cat.nodes.values()].filter((n): n is ThemeNode => n.kind === 'theme' && !n.id.startsWith('builtin.'));
@@ -229,6 +301,10 @@ async function main() {
   const configs: SceneConfig[] = gabarits.map((g) => ({ gabarit: g.id, layout: g.config.layout, animations: { ...g.config.animations }, ...(g.config.transition ? { transition: g.config.transition } : {}) }));
   const picked = fast ? themes.filter((_, i) => i % 3 === 0) : themes;
   const problems: string[] = [];
+  const contrastIssues: string[] = [];
+  const tinyIssues: string[] = [];
+  let smallCount = 0;
+  let textCount = 0;
   let renders = 0;
   let identical = true;
   for (const theme of picked) {
@@ -260,6 +336,11 @@ async function main() {
         const t = s.start + Math.min(outs.length ? Math.min(...outs) - 0.08 : s.duration - 0.3, s.duration - nextHalf - 0.06);
         const found = (await page.evaluate(`${MEASURE}(${JSON.stringify(s.key)}, ${t}, ${JSON.stringify(Object.values(filmScenes[i].texts))})`)) as string[];
         for (const f of found) problems.push(`${theme.id}/${format}/${configs[i].gabarit} : ${f}`);
+        const a = await audit(page, s.key, size.width, format === 'landscape');
+        for (const c of a.contrast) contrastIssues.push(`${theme.id}/${format}/${configs[i].gabarit} : ${c}`);
+        for (const c of a.tiny) tinyIssues.push(`${theme.id}/${format}/${configs[i].gabarit} : ${c}`);
+        smallCount += a.small.length;
+        textCount += 1;
         shots.push(Buffer.from(await page.screenshot({ type: 'jpeg', quality: 70 })));
         renders++;
       }
@@ -272,6 +353,238 @@ async function main() {
         .jpeg({ quality: 80 })
         .toFile(path.join(OUT, `${theme.id}-${format}.jpg`));
     }
+  }
+  // 4b. Les SÉQUENCES, la TRAVERSÉE et les DÉVELOPPEMENTS (22/11/2026), rendus et mesurés dans Chrome.
+  const sequences = [...cat.nodes.values()].filter((n): n is SequenceNode => n.kind === 'sequence');
+  const develops = [...cat.nodes.values()].filter((n): n is DevelopNode => n.kind === 'develop');
+  check(sequences.length >= 6 && develops.length >= 6, 'séquences et développements : le dépôt en sert au moins six de chaque', `${sequences.length} séquences, ${develops.length} développements`);
+  const seqProblems: string[] = [];
+  const theme0 = themes[0];
+  for (const seq of sequences) {
+    for (const format of formats) {
+      const scenes: CatalogScene[] = seq.scenes.map((st, k) => {
+        const s = sceneFor({ roles: [st.roles[0]], config: { layout: st.layout } } as unknown as GabaritNode, `q${k + 1}`, 3.6);
+        // Le même média des deux côtés d'une coupe portée : la continuité qu'on veut vérifier.
+        return { ...s, media: /media|figure-media/.test(st.layout) ? [{ id: 'photo', kind: 'image' as const }] : [] };
+      });
+      const configs = seq.scenes.map((st, k): SceneConfig => ({ layout: st.layout, animations: { ...(st.animations ?? {}) }, sequence: seq.id, step: k, ...(st.carry ? { carry: st.carry } : {}), ...(st.develop ? { develop: st.develop } : {}) }));
+      const assembled = assembleFilm(cat, { ...base, scenes, formats: [format] }, theme0, configs);
+      const carried = assembled.map((a) => a.quality?.carry);
+      if (!carried.some(Boolean)) seqProblems.push(`${seq.id}/${format} : aucune traversée posée`);
+      let start = 0;
+      const film = assembled.map((a, i) => {
+        const s = { key: a.key, start, duration: scenes[i].duration, html: a.html, script: a.script, animation: 'gsap' as const, texts: scenes[i].texts };
+        start += scenes[i].duration;
+        return s;
+      });
+      const size = COMPOSITION[format];
+      const html = await buildComposition({ scenes: film, width: size.width, height: size.height, output: { width: Math.round(size.width / 2), height: Math.round(size.height / 2) }, durationSec: start, brand: { ...BRAND, logo: { light: 'logo.png', width: 480, height: 120 } } as never, media: { photo: { src: 'photo.jpg', kind: 'image' } }, logo: 'logo.png', fontCss: '', mode: 'render' });
+      const errs = await openComposition(page, html, files, { width: Math.round(size.width / 2), height: Math.round(size.height / 2) });
+      const sceneErrors = (await page.evaluate('window.__sceneErrors || []')) as unknown[];
+      if (errs.length || sceneErrors.length) seqProblems.push(`${seq.id}/${format} : erreurs ${JSON.stringify([...errs, ...sceneErrors]).slice(0, 200)}`);
+      for (const [i, a] of assembled.entries()) {
+        const role = a.quality?.carry;
+        if (!role) continue;
+        const spec = JSON.parse(a.script.replace(/^__ge\.scene\(tl, root, D, /, '').replace(/\);$/, '')) as RuntimeScene;
+        // Juste avant la coupe (scène d'avant) et juste après (celle-ci) : l'élément porté est au même endroit, à la
+        // même taille ; une fois glissé, il est à sa place, sans reste de déplacement.
+        const at = (t: number, key: string) => page.evaluate(`(function () {
+          window.__timelines.film.seek(${t}, false);
+          document.querySelectorAll('section.scene').forEach(function (el) { el.style.visibility = el.id === ${JSON.stringify(key)} ? 'visible' : 'hidden'; });
+          var sec = document.getElementById(${JSON.stringify(key)}), el = sec.querySelector('[data-v="${role}"]'), r = el.getBoundingClientRect(), k = r.width / Math.max(1, el.offsetWidth * (r.width / Math.max(1, el.getBoundingClientRect().width)));
+          // La place de l'élément dans la mise en page (sans transformation), en px de l'écran.
+          var x = 0, y = 0; for (var e = el; e && e !== sec; e = e.offsetParent) { x += e.offsetLeft; y += e.offsetTop; }
+          var s = document.getElementById('comp').getBoundingClientRect().width / document.getElementById('comp').offsetWidth, c = document.getElementById('comp').getBoundingClientRect();
+          // Le point d'ancrage d'un texte ou d'un logo : là où il est aligné (sa boîte peut couvrir toute la largeur).
+          var al = getComputedStyle(el).textAlign, f = '${role}' === 'media' ? 0.5 : al === 'center' ? 0.5 : al === 'right' || al === 'end' ? 1 : 0;
+          return { x: r.left + r.width * f, y: r.top + r.height / 2, w: r.width, h: r.height, homeX: c.left + (x + el.offsetWidth * f) * s, homeY: c.top + (y + el.offsetHeight / 2) * s };
+        })()`) as Promise<{ x: number; y: number; w: number; h: number; homeX: number; homeY: number }>;
+        const cut = film[i].start;
+        const before = await at(cut - 0.02, film[i - 1].key);
+        const after = await at(cut + 0.001, film[i].key);
+        const settled = await at(cut + (spec.carry?.duration ?? 0.6) + 0.1, film[i].key);
+        const side = Math.min(size.width, size.height) / 2;
+        const gap = Math.max(Math.abs(before.x - after.x), Math.abs(before.y - after.y), Math.abs(before.w - after.w) * (role === 'media' ? 1 : 0), Math.abs(before.h - after.h)) / side;
+        if (gap > 0.03) seqProblems.push(`${seq.id}/${format} : ${role} saute à la coupe (${(gap * 100).toFixed(1)} % du côté) ${JSON.stringify({ before, after })}`);
+        const home = Math.max(Math.abs(settled.x - settled.homeX), Math.abs(settled.y - settled.homeY)) / side;
+        if (home > 0.01) seqProblems.push(`${seq.id}/${format} : ${role} pas revenu à sa place (${(home * 100).toFixed(1)} %)`);
+      }
+      // Les mesures habituelles, scène par scène, une fois tout posé.
+      for (const [i, s] of film.entries()) {
+        const t = s.start + s.duration - 0.35;
+        const found = (await page.evaluate(`${MEASURE}(${JSON.stringify(s.key)}, ${t}, ${JSON.stringify(Object.values(scenes[i].texts))})`)) as string[];
+        for (const f of found) seqProblems.push(`${seq.id}/${format}/${s.key} : ${f}`);
+      }
+      await page.screenshot({ type: 'jpeg', quality: 70 }).then((b) => fs.writeFileSync(path.join(OUT, `${seq.id}-${format}.jpg`), b));
+    }
+  }
+  check(seqProblems.length === 0, `séquences : ${sequences.length} séquences × ${formats.length} formats rendues — l'élément porté part de sa place d'avant (≤ 3 %), revient à la sienne, textes tenus et visibles`, seqProblems.slice(0, 20).join('\n    '));
+
+  // 4c. Les PRIMITIVES du registre HyperFrames (HeyGen, Apache-2.0 ; source figé, empreinte vérifiée) : chacune montée
+  // dans sa scène IDEM, sur les quatre formats — aucune erreur, sa timeline enregistrée, tous les textes présents.
+  const primitives = [...cat.nodes.values()].filter((n): n is PrimitiveNode => n.kind === 'primitive');
+  check(primitives.length >= 7, 'primitives : les composants de la liste blanche HyperFrames sont chargés (empreinte vérifiée)', primitives.map((p) => p.id).join(', '));
+  const PRIM_TEXTS: Record<string, Record<string, string>> = {
+    'hf.cta-close': { headline: 'Équipez votre village', cta: 'Écrire sur WhatsApp' },
+    'hf.cta-lockup': { headline: 'Équipez votre village', cta: 'Écrire sur WhatsApp', sub: 'Installation offerte cette saison' },
+    'hf.per-word-rise': { headline: 'Le marché vient à vous', sub: 'Une borne tactile au cœur de chaque village.' },
+    'hf.count-up': { figure: '320', label: 'Coopératives équipées', headline: 'Une croissance continue' },
+    'hf.conic-progress-ring': { figure: '98 %', label: 'Des commandes livrées le lendemain' },
+    'hf.browser-device-stage': { headline: 'Commander en trois touches', sub: 'Le tableau de bord de la coopérative.' },
+    'hf.device-frame-stage': { headline: 'L’application des exploitants', sub: 'Commander depuis son téléphone.' },
+  };
+  const primProblems: string[] = [];
+  for (const p of primitives) {
+    for (const format of formats) {
+      const texts = PRIM_TEXTS[p.id] ?? { headline: 'Une scène' };
+      const scene: CatalogScene = { key: 'p1', duration: 4.5, texts, media: p.slots.media ? [{ id: 'photo', kind: 'image' }] : [], role: p.roles[0] as never, energy: 3 };
+      const [a] = assembleFilm(cat, { ...base, scenes: [scene], formats: [format] }, theme0, [{ layout: p.id, animations: {} }]);
+      const size = COMPOSITION[format];
+      const html = await buildComposition({ scenes: [{ key: 'p1', start: 0, duration: 4.5, html: a.html, script: a.script, animation: 'gsap', texts }], width: size.width, height: size.height, output: { width: Math.round(size.width / 2), height: Math.round(size.height / 2) }, durationSec: 4.5, brand: { ...BRAND, logo: { light: 'logo.png', width: 480, height: 120 } } as never, media: { photo: { src: 'photo.jpg', kind: 'image' } }, logo: 'logo.png', fontCss: '', mode: 'render' });
+      const errs = await openComposition(page, html, files, { width: Math.round(size.width / 2), height: Math.round(size.height / 2) });
+      const sceneErrors = (await page.evaluate('window.__sceneErrors || []')) as unknown[];
+      if (errs.length || sceneErrors.length) primProblems.push(`${p.id}/${format} : erreurs ${JSON.stringify([...errs, ...sceneErrors]).slice(0, 240)}`);
+      await page.evaluate('(function(){var tl=window.__timelines.film;tl.pause();tl.progress(0.9);})()');
+      const shown = (await page.evaluate(`(document.getElementById('p1').textContent || '').replace(/\\s+/g, '')`)) as string;
+      for (const t of Object.values(texts)) if (!shown.includes(t.replace(/\s+/g, '')) && !(p.id === 'hf.conic-progress-ring' && t === '98 %' && shown.includes('98'))) primProblems.push(`${p.id}/${format} : texte absent « ${t} »`);
+      const found = (await page.evaluate(`${MEASURE}("p1", 4.0, [])`)) as string[];
+      for (const f of found) primProblems.push(`${p.id}/${format} : ${f}`);
+      await page.screenshot({ type: 'jpeg', quality: 70 }).then((b) => fs.writeFileSync(path.join(OUT, `${p.id}-${format}.jpg`), b));
+    }
+  }
+  check(primProblems.length === 0, `primitives : ${primitives.length} composants × ${formats.length} formats montés dans leur scène — aucune erreur, timeline enregistrée, textes présents et tenus`, primProblems.slice(0, 20).join('\n    '));
+
+  // LA SIGNATURE DESSINÉE : un logo SVG (assaini) est posé dans la page de fin et se trace, puis se remplit.
+  {
+    const { sanitizeLogoSvg } = await import('../src/video/rendering/logo-svg');
+    const dirty = '<?xml version="1.0"?><svg xmlns="http://www.w3.org/2000/svg" width="480" height="120" viewBox="0 0 480 120" onload="alert(1)"><script>alert(2)</script><circle cx="60" cy="60" r="46" fill="#1b7a5a"/><path d="M130 30 L130 90 L200 90" fill="none" stroke="#14211c" stroke-width="10"/><image href="https://x.test/a.png"/></svg>';
+    const clean = sanitizeLogoSvg(dirty) ?? '';
+    check(!!clean && !/script|onload|image|https?:\/\/(?!www\.w3\.org\/)/.test(clean) && /<circle/.test(clean), 'logo SVG assaini : ni script, ni gestionnaire, ni image ou adresse étrangère ; les formes gardées', clean.slice(0, 160));
+    const g = gabarits.find((x) => x.config.layout === 'vlayout.logo-sting')!;
+    const scene: CatalogScene = { key: 'l1', duration: 3.5, texts: { headline: 'Les intrants à portée de main' }, media: [], role: 'signature', energy: 2 };
+    const [a] = assembleFilm(cat, { ...base, scenes: [scene], formats: ['square'] }, theme0, [{ layout: g.config.layout, animations: { ...g.config.animations } }]);
+    const size = COMPOSITION.square;
+    const html = await buildComposition({ scenes: [{ key: 'l1', start: 0, duration: 3.5, html: a.html, script: a.script, animation: 'gsap', texts: scene.texts }], width: size.width, height: size.height, output: { width: 540, height: 540 }, durationSec: 3.5, brand: { ...BRAND, logo: { light: 'logo.png', width: 480, height: 120 } } as never, media: {}, logo: 'logo.png', logoSvg: clean, fontCss: '', mode: 'render' });
+    await openComposition(page, html, files, { width: 540, height: 540 });
+    const at = (p: number) => page.evaluate(`(function(){var tl=window.__timelines.film;tl.pause();tl.progress(${p});var sh=document.querySelector('#l1 [data-v="logo"] svg path');return sh?{off:parseFloat(sh.getAttribute('stroke-dashoffset')||'0'),fill:parseFloat(getComputedStyle(document.querySelector('#l1 [data-v="logo"] svg circle')).fillOpacity)}:null;})()`) as Promise<{ off: number; fill: number } | null>;
+    const mid = await at(0.18);
+    const end = await at(0.98);
+    check(!!mid && !!end && mid.off > 1 && end.off < 0.5 && end.fill > 0.95, 'signature dessinée : le logo se trace (trait en cours à mi-chemin) puis se remplit', JSON.stringify({ mid, end }));
+  }
+
+  // La RETOUCHE POINTÉE : dans l'aperçu, une zone tracée sur le titre revient avec la scène, l'instant et le titre ;
+  // le corps de retouche garde l'endroit (assaini) et la ligne du modèle le dit en clair.
+  {
+    const g = gabarits.find((x) => x.config.layout === 'vlayout.logo-sting')!;
+    const scene: CatalogScene = { key: 'k1', duration: 3.5, texts: { headline: 'Les intrants à portée de main' }, media: [], role: 'signature', energy: 2 };
+    const [a] = assembleFilm(cat, { ...base, scenes: [scene], formats: ['square'] }, theme0, [{ layout: g.config.layout, animations: { ...g.config.animations } }]);
+    const size = COMPOSITION.square;
+    const html = await buildComposition({ scenes: [{ key: 'k1', start: 0, duration: 3.5, html: a.html, script: a.script, animation: 'gsap', texts: scene.texts }], width: size.width, height: size.height, output: { width: 540, height: 540 }, durationSec: 3.5, brand: { ...BRAND, logo: { light: 'logo.png', width: 480, height: 120 } } as never, media: {}, logo: 'logo.png', fontCss: '', mode: 'preview' });
+    await openComposition(page, html, files, { width: 540, height: 540 });
+    const picked = (await page.evaluate(`new Promise(function (done) {
+      setTimeout(function () {
+        window.addEventListener('message', function (e) { if (e.data && e.data.type === 'ivision:picked') done(e.data); });
+        window.__timelines.film.pause(2.6);
+        var el = document.querySelector('#k1 [data-v="title"]'), r = el.getBoundingClientRect();
+        window.postMessage({ type: 'ivision:pick', x: r.left / innerWidth, y: r.top / innerHeight, w: r.width / innerWidth, h: r.height / innerHeight }, '*');
+      }, 400);
+      setTimeout(function () { done(null); }, 4000);
+    })`)) as { key: string; at: number; roles: string[]; texts: string[]; zone: { w: number } } | null;
+    check(!!picked && picked.key === 'k1' && picked.roles[0] === 'title' && picked.texts.some((t) => t.includes('intrants')) && Math.abs(picked.at - 2.6) < 0.05, 'retouche pointée : la zone tracée sur le titre revient avec sa scène, son instant et son texte', JSON.stringify(picked));
+    const { sanitizeVideoPatch } = await import('../src/video/motionVideo.service');
+    const { pointLine } = await import('../src/video/catalog/choose');
+    const patch = sanitizeVideoPatch({ visual: { k1: 'plus gros' }, points: { k1: { at: 2.6, zone: { x: 0.1, y: 0.05, w: 0.8, h: 2 }, roles: ['title', 'DROP TABLE', 'media'], texts: ['Les intrants   à portée'] }, 'bad key!': { zone: {} } } });
+    const p = patch.points?.k1;
+    check(!!p && p.zone.h === 1 && p.roles.join() === 'title,media' && p.texts?.[0] === 'Les intrants à portée' && Object.keys(patch.points!).length === 1, 'retouche pointée : endroit assaini (zone bornée, rôles et clés filtrés, textes nettoyés)', JSON.stringify(patch.points));
+    const line = pointLine(p);
+    check(/at 2\.6 s into the scene, most of the frame, on: title, media/.test(line), 'retouche pointée : la ligne du modèle dit l’instant, la zone et les éléments', line);
+  }
+
+  // La liste qui se RESSERRE : les éléments arrivent de plus en plus vite (écarts décroissants), mesuré dans la page.
+  {
+    const g = gabarits.find((x) => x.config.layout === 'vlayout.problem-list' || x.config.layout === 'vlayout.list-steps')!;
+    const scene = sceneFor(g, 'l1', 4.5);
+    const [a] = assembleFilm(cat, { ...base, scenes: [scene], formats: ['story'] }, theme0, [{ layout: g.config.layout, animations: { ...g.config.animations } }]);
+    const size = COMPOSITION.story;
+    const html = await buildComposition({ scenes: [{ key: 'l1', start: 0, duration: 4.5, html: a.html, script: a.script, animation: 'gsap', texts: scene.texts }], width: size.width, height: size.height, output: { width: 540, height: 960 }, durationSec: 4.5, brand: { ...BRAND, logo: { light: 'logo.png', width: 480, height: 120 } } as never, media: {}, logo: 'logo.png', fontCss: '', mode: 'render' });
+    await openComposition(page, html, files, { width: 540, height: 960 });
+    const firsts = (await page.evaluate(`(function () {
+      var spec = ${a.script.replace(/^__ge\.scene\(tl, root, D, /, '').replace(/\);$/, '')};
+      var r = spec.roles.find(function (x) { return x.role === 'items'; });
+      var items = Array.prototype.slice.call(document.querySelectorAll(r.sel)), seen = items.map(function () { return null; });
+      for (var t = 0; t <= 4.5; t += 0.02) {
+        window.__timelines.film.seek(t, false);
+        items.forEach(function (el, i) { if (seen[i] === null && parseFloat(getComputedStyle(el).opacity) > 0.5) seen[i] = t; });
+      }
+      return seen;
+    })()`)) as Array<number | null>;
+    const gaps = firsts.slice(1).map((t, i) => (t ?? 0) - (firsts[i] ?? 0));
+    check(firsts.every((t) => t !== null) && gaps.length >= 2 && gaps[gaps.length - 1] < gaps[0] - 0.01, 'répétition resserrée : les éléments de la liste arrivent de plus en plus vite (écarts décroissants)', `instants ${JSON.stringify(firsts.map((t) => t?.toFixed(2)))}`);
+  }
+
+  // Le TEMPS MORT, borné par le code : sur le film des gabarits, toute scène qui avait du temps libre a reçu un
+  // développement, et aucune ne reste plus de IDLE_MAX secondes sans mouvement utile après sa lecture.
+  {
+    const longScenes = filmScenes.map((s) => ({ ...s, duration: 5.5 }));
+    process.env.VIDEO_DEVELOP = 'off';
+    const flat = assembleFilm(cat, { ...base, scenes: longScenes, formats: ['story'] }, theme0, configs);
+    delete process.env.VIDEO_DEVELOP;
+    const film = assembleFilm(cat, { ...base, scenes: longScenes, formats: ['story'] }, theme0, configs);
+    const idle = film.map((s) => s.quality?.idle ?? 0);
+    const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
+    const before = sum(flat.map((s) => s.quality?.idle ?? 0));
+    const developed = film.filter((s) => s.quality?.develop).length;
+    const free = film.filter((s) => (s.quality?.free ?? 0) >= DEVELOP_FREE_MIN).length;
+    check(developed >= Math.ceil(free * 0.7) && sum(idle) <= before * 0.7 && idle.every((x) => x <= IDLE_MAX + 0.3), `temps mort : ${developed}/${free} scènes à temps libre développées ; temps mort total ${before.toFixed(1)} s → ${sum(idle).toFixed(1)} s (−30 % au moins), ≤ ${IDLE_MAX + 0.3} s par scène`, `temps morts ${JSON.stringify(idle)} · ${film.map((s) => (s.quality?.develops ?? ['-']).join('+')).join(', ')}`);
+    check(film.every((s, i) => !i || !s.quality?.develop || s.quality.develop !== film[i - 1].quality?.develop), 'développements : jamais le même deux scènes de suite');
+  }
+
+  // Le film entier par le CODE : un film réaliste reçoit au moins une séquence, aucun appel.
+  {
+    const realistic: CatalogScene[] = [
+      { key: 'r1', duration: 3.4, role: 'hook', energy: 4, texts: { headline: 'Marie vend sa récolte depuis la place du village', sub: 'Payée en 24 heures, sans intermédiaire.' }, media: [{ id: 'photo', kind: 'image' }] },
+      { key: 'r2', duration: 3.6, role: 'feature', energy: 3, texts: { headline: 'Trois touches pour commander ses intrants', sub: 'La borne parle la langue de l’exploitant.' }, media: [{ id: 'photo', kind: 'image' }] },
+      { key: 'r3', duration: 3.2, role: 'proof', energy: 4, texts: { figure: '1 200', label: 'Exploitants servis en 2026' }, media: [] },
+      { key: 'r4', duration: 3.4, role: 'cta', energy: 4, texts: { headline: 'Installez une borne dans votre village', cta: 'Écrire sur WhatsApp' }, media: [] },
+      { key: 'r5', duration: 2.6, role: 'signature', energy: 2, texts: { headline: 'Les intrants à portée de main' }, media: [] },
+    ];
+    const n0 = calls.length;
+    const real = await composeFilmFromCatalog({ ...base, scenes: realistic, level: 'medium', call: { level: 'medium', call: async ({ role }) => (calls.push(role), '') } });
+    check(calls.length === n0 && real.scenes.some((s) => s.config.sequence) && real.scenes.some((s) => s.quality?.carry), 'film réaliste : séquences posées par le code (au moins une traversée), aucun appel', real.trace.detail);
+    const m = real.metrics!;
+    check(!!m && m.continuity >= 0.25 && m.simultaneous <= 3 && m.subject >= 0.5, `mesures du film : continuité ${m?.continuity} (≥ 0,25), au plus ${m?.simultaneous} entrées simultanées (≤ 3), sujet à l'écran ${Math.round((m?.subject ?? 0) * 100)} % (≥ 50 %), cadence ${m?.cadence}`, JSON.stringify(m));
+  }
+
+  // LA VOIX D'ABORD : le titre entre quand la voix dit son premier mot porteur, chaque élément d'une liste quand elle le cite.
+  {
+    const g = gabarits.find((x) => x.config.layout === 'vlayout.problem-list')!;
+    const scene: CatalogScene = {
+      ...sceneFor(g, 'v1', 7),
+      spoken: ['Chaque', 'saison', 'trois', 'obstacles', 'reviennent', 'le', 'dépôt', 'est', 'loin', 'les', 'prix', 'changent', 'et', 'aucun', 'reçu'].map((text, k) => ({ text, t: 0.3 + k * 0.4 })),
+    };
+    const [a] = assembleFilm(cat, { ...base, scenes: [scene], formats: ['story'] }, theme0, [{ layout: g.config.layout, animations: { ...g.config.animations } }]);
+    const spec = JSON.parse(a.script.replace(/^__ge\.scene\(tl, root, D, /, '').replace(/\);$/, '')) as RuntimeScene;
+    const title = spec.roles.find((r) => r.role === 'title')!;
+    const items = spec.roles.find((r) => r.role === 'items')!;
+    // « Trois obstacles à chaque saison » : « Chaque » est dit à 0,3 s ; « dépôt » 2,7 s ; « prix » 4,3 s ; « aucun » 5,5 s.
+    check(Math.abs(title.at - 0.18) < 0.03 && JSON.stringify(items.cues) === JSON.stringify([2.58, 4.18, 5.38]), 'voix d’abord : le titre entre sur son mot, chaque élément de la liste quand la voix le cite', JSON.stringify({ title: title.at, cues: items.cues }));
+  }
+
+  // LA CAMÉRA (adaptée d'explainroo) : une scène construite au fil de la voix s'ouvre serrée sur le premier élément,
+  // s'élargit quand les suivants arrivent, et revient au plan large avant la coupe — rien de visible n'est coupé.
+  {
+    const g = gabarits.find((x) => x.config.layout === 'vlayout.big-figure')!;
+    const scene: CatalogScene = { key: 'c1', duration: 6, role: 'proof', energy: 3, media: [], texts: { figure: '1 200', label: 'Exploitants servis en 2026', headline: 'Une croissance mois après mois' }, spoken: ['Mille', 'deux', 'cents', 'exploitants', 'servis', 'cette', 'année', 'et', 'une', 'croissance', 'continue'].map((text, k) => ({ text, t: 0.3 + k * 0.48 })) };
+    // Un thème posé (un thème audacieux agrandit le chiffre à toute la largeur : aucun plan plus serré n'existe alors).
+    const calmTheme = (cat.nodes.get('theme.editorial-calm') as ThemeNode) ?? theme0;
+    const [a] = assembleFilm(cat, { ...base, scenes: [scene], formats: ['story'] }, calmTheme, [{ layout: g.config.layout, animations: {} }]);
+    const size = COMPOSITION.story;
+    const html = await buildComposition({ scenes: [{ key: 'c1', start: 0, duration: 6, html: a.html, script: a.script, animation: 'gsap', texts: scene.texts }], width: size.width, height: size.height, output: { width: 540, height: 960 }, durationSec: 6, brand: { ...BRAND, logo: { light: 'logo.png', width: 480, height: 120 } } as never, media: {}, logo: 'logo.png', fontCss: '', mode: 'render' });
+    await openComposition(page, html, files, { width: 540, height: 960 });
+    const cams = (await page.evaluate('window.__ge.cameras || []')) as Array<{ shots: Array<{ at: number; z: number }> }>;
+    const shots = cams[0]?.shots ?? [];
+    const found = (await page.evaluate(`${MEASURE}("c1", 5.8, ${JSON.stringify(Object.values(scene.texts))})`)) as string[];
+    check(shots.length >= 2 && shots[0].z > 1.05 && shots[shots.length - 1].z === 1 && shots[shots.length - 1].at <= 5.4 && found.length === 0, 'caméra : ouverture serrée sur le premier élément, élargie au fil des entrées, plan large avant la coupe, rien de coupé', JSON.stringify({ shots, found }));
   }
   await browser.close();
   check(identical, 'déterminisme : le même film assemblé deux fois est identique');
@@ -303,6 +616,8 @@ async function main() {
     }
     check(before === 0 && Math.abs(mp4 - 3) < 0.2, 'export : un clip WebM sans durée est remis en conteneur et le MP4 se rend (HyperFrames réel)', `durée du clip avant ${before} s · MP4 ${mp4} s ${error}`);
   }
+  check(contrastIssues.length === 0, `contraste réel : chaque texte se lit sur son fond (photo comprise), 2,4:1 au moins sur sa partie la plus difficile`, `${contrastIssues.length} défaut(s) :\n    ${contrastIssues.slice(0, 20).join('\n    ')}`);
+  check(tinyIssues.length === 0, `lisible sur téléphone : aucun texte sous 9 px une fois la vidéo réduite (${smallCount} sous 12 px sur ${textCount} scènes)`, `${tinyIssues.length} défaut(s) :\n    ${tinyIssues.slice(0, 20).join('\n    ')}`);
   check(problems.length === 0, `rendu : ${renders} scènes (${gabarits.length} gabarits × ${picked.length} thèmes × ${formats.length} formats) sans erreur, textes tenus, dans la zone sûre, visibles, sans chevauchement, tout le texte présent`, `${problems.length} défaut(s) :\n    ${problems.slice(0, 40).join('\n    ')}`);
   console.log(`\nPlanches : ${OUT}`);
   console.log(`\n${failures ? '✗' : '✓'} Catalogue vidéo : ${passed} vérification(s) réussie(s), ${failures} en échec.`);

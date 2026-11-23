@@ -2,9 +2,9 @@
  * Registre du fournisseur de modèles IA : OpenRouter.
  *
  * Une seule famille d'adaptateur — `openai-compatible` (SDK `openai` avec une
- * `baseURL`). Le jour où les modèles sont servis par nos propres machines
- * (vLLM, SGLang, TGI exposent la même API), il suffit de pointer
- * `OPENROUTER_BASE_URL` vers elles : rien d'autre à changer dans le code métier.
+ * `baseURL`). Nos propres machines (passerelle d'idem-ml, mêmes identifiants de
+ * modèles) prennent le relais par un seul réglage, `IDEM_AI_BACKEND=idem-ml`
+ * (`ai-backend.config.ts`) : rien d'autre à changer dans le code métier.
  *
  * Les features déclarent un RÔLE (`mechanical`, `writing`, `reasoning`, `vision`,
  * `image`, `ocr`) ; ce fichier le traduit en modèle OpenRouter, avec la
@@ -27,6 +27,7 @@ import {
   resolveOpenRouterModel,
 } from './openrouter.config';
 import { runtimeModelFor } from './ai-runtime.config';
+import { aiEndpoint, AiBackend } from './ai-backend.config';
 import logger from './logger';
 
 export type ProviderKind = 'openai-compatible';
@@ -76,6 +77,11 @@ export interface ProviderDefinition {
    */
   extraBody?: Record<string, unknown>;
   capabilities: ProviderCapabilities;
+  /**
+   * Qui sert réellement les appels de ce fournisseur logique : OpenRouter, ou nos machines derrière la passerelle
+   * d'idem-ml (`IDEM_AI_BACKEND`, cf. `ai-backend.config.ts`). Résolu à chaque `getProvider`.
+   */
+  servedBy?: AiBackend;
 }
 
 /**
@@ -161,8 +167,13 @@ export const AI_PROVIDERS: Record<LLMProvider, ProviderDefinition> = {
   },
 };
 
-/** Retourne la définition du fournisseur (throw si inconnu), modèles résolus à chaud. */
-export function getProvider(provider: LLMProvider): ProviderDefinition {
+/**
+ * Retourne la définition du fournisseur (throw si inconnu), modèles ET adresse résolus à chaud.
+ *
+ * `kind` : `text` (défaut) suit `IDEM_AI_BACKEND` — OpenRouter ou la passerelle d'idem-ml, mêmes identifiants de
+ * modèles ; `search` (recherche web) reste toujours chez OpenRouter, seul à porter le plugin `web`.
+ */
+export function getProvider(provider: LLMProvider, kind: 'text' | 'search' = 'text'): ProviderDefinition {
   const def = AI_PROVIDERS[provider];
   if (!def) {
     throw new Error(`Fournisseur IA inconnu dans le registre: ${provider}`);
@@ -181,7 +192,21 @@ export function getProvider(provider: LLMProvider): ProviderDefinition {
         ? hot
         : resolveOpenRouterModel(role, (message) => logger.warn(`[OPENROUTER] ${message}`));
   }
-  return { ...def, models };
+  const endpoint = aiEndpoint(kind);
+  if (endpoint.backend === 'openrouter') return { ...def, models, baseUrl: endpoint.baseUrl, servedBy: 'openrouter' };
+  // Nos machines : mêmes modèles (la passerelle sert les identifiants d'OpenRouter), sans le routage d'hébergeurs
+  // d'OpenRouter ni ses en-têtes d'attribution. Le raisonnement reste coupé par défaut (traduit par la passerelle).
+  return {
+    ...def,
+    models,
+    apiKeyEnv: endpoint.apiKeyEnv,
+    baseUrl: endpoint.baseUrl,
+    defaultHeaders: endpoint.headers,
+    extraBody: { thinking: { type: 'disabled' } },
+    concurrency: Number(process.env.IDEM_ML_CONCURRENCY ?? def.concurrency ?? 4),
+    capabilities: { ...def.capabilities, grounding: false },
+    servedBy: 'idem-ml',
+  };
 }
 
 /** Indique si le fournisseur supporte une capacité donnée. */
@@ -195,7 +220,8 @@ export function providerSupports(
 /** Le fournisseur a-t-il de quoi répondre (clé présente) ? */
 export function isProviderConfigured(provider: LLMProvider): boolean {
   if (provider === LLMProvider.SELFHOSTED) return Boolean(selfHostedBaseUrl() && process.env.IDEM_SELFHOSTED_API_KEY);
-  return AI_PROVIDERS[provider] ? Boolean(getOpenRouterApiKey()) : false;
+  if (!AI_PROVIDERS[provider]) return false;
+  return Boolean(aiEndpoint('text').apiKey || getOpenRouterApiKey());
 }
 
 /**
@@ -257,6 +283,7 @@ export function resolveConcurrency(): number {
   const forced = Number(process.env.IDEM_MAX_PARALLEL_STEPS);
   if (Number.isFinite(forced) && forced >= 1) return Math.floor(forced);
 
-  const declared = AI_PROVIDERS[LLMProvider.OPENROUTER].concurrency;
+  // Celle du fournisseur qui sert réellement (nos machines ont leur propre plafond : `IDEM_ML_CONCURRENCY`).
+  const declared = getProvider(LLMProvider.OPENROUTER).concurrency;
   return Number.isFinite(declared) && (declared as number) >= 1 ? Math.floor(declared as number) : 3;
 }

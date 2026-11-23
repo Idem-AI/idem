@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 /**
  * LE CATALOGUE VIDÉO — ses nœuds et ses règles (les mêmes que `idem-templates/scripts/video-rules.mjs`, appliquées une
  * seconde fois au chargement : un nœud qui les enfreint est écarté et dit, jamais exécuté).
@@ -7,10 +8,14 @@
  *   theme       la personnalité du FILM : durées, courbes, décalages, distances, traitement typographique et couleurs ;
  *   animation   l'entrée / la sortie / la tenue d'un rôle : des tweens DÉCLARATIFS (aucun JavaScript publié) ;
  *   transition  le passage d'une scène à la suivante : tweens de sortie, d'entrée, et panneaux de marque ;
- *   gabarit     une recette de scène : mise en page + animation par rôle + transition d'entrée.
+ *   gabarit     une recette de scène : mise en page + animation par rôle + transition d'entrée ;
+ *   develop     (22/11/2026) le DÉVELOPPEMENT d'une scène : ce qui se passe une fois tout posé (l'image se découvre,
+ *               la liste s'accomplit, le problème se barre) — la scène évolue au lieu d'attendre la coupe ;
+ *   sequence    (22/11/2026) 2 ou 3 scènes ENCHAÎNÉES : chacune a sa mise en page, et un élément (média, chiffre,
+ *               logo) traverse la coupe — il glisse de sa place d'avant à sa place d'après (pas de diapositives).
  */
 
-export type VideoNodeKind = 'layout' | 'theme' | 'animation' | 'transition' | 'gabarit';
+export type VideoNodeKind = 'layout' | 'theme' | 'animation' | 'transition' | 'gabarit' | 'develop' | 'sequence' | 'primitive';
 export type SceneRole = 'hook' | 'problem' | 'reveal' | 'feature' | 'benefits' | 'proof' | 'cta' | 'signature' | 'statement' | 'data';
 export type VideoStyle = 'energetic' | 'premium' | 'playful' | 'corporate';
 export type Slot = 'title' | 'body' | 'cta' | 'figure' | 'label' | 'attribution' | 'items' | 'media' | 'logo';
@@ -141,6 +146,10 @@ export interface TransitionNode extends BaseNode {
   steps: { out: TweenStep[]; in: TweenStep[] };
 }
 
+/** Les éléments qui peuvent traverser une coupe (séquence). */
+export type CarryRole = 'media' | 'figure' | 'logo';
+export const CARRY_ROLES: CarryRole[] = ['media', 'figure', 'logo'];
+
 export interface SceneConfig {
   gabarit?: string;
   layout: string;
@@ -151,6 +160,13 @@ export interface SceneConfig {
   vars?: Record<string, string>;
   /** Réglages continus (Ultra) : rythme (0,8–1,25 : plus lent ↔ plus vif). */
   params?: { pace?: number };
+  /** La séquence dont la scène fait partie, et son rang dans la séquence. */
+  sequence?: string;
+  step?: number;
+  /** L'élément qui arrive de la scène d'avant SANS sortir ni rentrer : il glisse de sa place à la sienne. */
+  carry?: CarryRole;
+  /** Le développement choisi par une séquence (sinon, le code en pose un quand la scène a du temps libre). */
+  develop?: string;
 }
 
 export interface GabaritNode extends BaseNode {
@@ -159,7 +175,54 @@ export interface GabaritNode extends BaseNode {
   config: SceneConfig & { gabarit: string };
 }
 
-export type VideoNode = LayoutNode | ThemeNode | AnimationNode | TransitionNode | GabaritNode;
+export interface DevelopNode extends BaseNode {
+  kind: 'develop';
+  /** Le rôle animable visé (titre, liste, média, chiffre, logo…). */
+  role: AnimRole;
+  /** `entered` : dès que son rôle est posé ; `read` : toute la scène posée et en partie lue. */
+  start?: 'entered' | 'read';
+  /** Le temps libre minimal (s) pour que le développement se voie : en dessous, la scène n'en reçoit pas. */
+  minHold: number;
+  split?: 'none' | 'words' | 'chars' | 'lines';
+  sceneRoles?: SceneRole[];
+  steps: TweenStep[];
+}
+
+export interface SequenceStep {
+  roles: SceneRole[];
+  layout: string;
+  animations?: Partial<Record<AnimRole, string>>;
+  carry?: CarryRole;
+  develop?: string;
+}
+
+export interface SequenceNode extends BaseNode {
+  kind: 'sequence';
+  scenes: SequenceStep[];
+}
+
+/**
+ * UNE PRIMITIVE (22/11/2026) — un composant du registre HyperFrames (HeyGen, Apache-2.0), seule source de JavaScript
+ * admise : importé à un commit figé, son empreinte SHA-256 vérifiée ici, relu dans l'interface de revue, exécuté dans
+ * la page du film (sans réseau). Elle se choisit comme une mise en page : `html` est la mise en page IDEM qui l'accueille
+ * (une zone `data-ge-prim-host`, et nos propres textes autour), `primitive.component` le source HeyGen, `bind` la façon
+ * de remplir ses variables avec les textes de la scène.
+ */
+export interface PrimitiveNode extends Omit<LayoutNode, 'kind'> {
+  kind: 'primitive';
+  primitive: {
+    source: { repo: string; commit: string; path: string; sha256: string; license: string };
+    component: string;
+    variables?: Array<{ id: string; type: string; default?: unknown; options?: unknown[] }>;
+    bind: Record<string, string>;
+    fixed?: Record<string, string | number | boolean>;
+    slot?: { template?: string; selector?: string };
+    /** Ce que la scène doit offrir (un chiffre lisible, un pourcentage). */
+    needs?: Array<'figure.number' | 'figure.percent'>;
+  };
+}
+
+export type VideoNode = LayoutNode | ThemeNode | AnimationNode | TransitionNode | GabaritNode | DevelopNode | SequenceNode | PrimitiveNode;
 
 export interface LoadedVideoCatalog {
   version: string;
@@ -312,6 +375,40 @@ export function nodeErrors(node: VideoNode): string[] {
       for (const role of Object.keys(node.config?.animations ?? {})) if (!ANIM_ROLES.has(role)) errors.push(`rôle inconnu « ${role} »`);
       break;
     }
+    case 'primitive': {
+      errors.push(...primitiveErrors(node));
+      if (!node.html || (node.html.match(/\bdata-ge-prim-host\b/g) ?? []).length !== 1) errors.push('une zone de composant (data-ge-prim-host) exactement');
+      if (node.html) {
+        if ((node.html.match(/\bdata-safe\b/g) ?? []).length !== 1) errors.push('une zone sûre (data-safe) exactement');
+        for (const t of htmlTokens(node.html)) if (!TOKEN_FORMS.some((re) => re.test(t))) errors.push(`jeton inconnu [[${t}]]`);
+        for (const [, v] of node.html.matchAll(/data-v="([^"]+)"/g)) if (!ANIM_ROLES.has(v)) errors.push(`rôle animable inconnu « ${v} »`);
+      }
+      if (!node.formats?.length || node.formats.some((f) => !FORMAT_IDS.includes(f))) errors.push('formats invalides');
+      break;
+    }
+    case 'develop': {
+      if (!ANIM_ROLES.has(node.role) || node.role === 'item' || node.role === 'bg') errors.push('rôle visé invalide');
+      if (node.start !== undefined && node.start !== 'entered' && node.start !== 'read') errors.push('début invalide');
+      if (!(typeof node.minHold === 'number' && node.minHold >= 0.6 && node.minHold <= 6)) errors.push('temps libre minimal invalide');
+      if (!['none', 'words', 'chars', 'lines'].includes(node.split ?? 'none')) errors.push('découpage invalide');
+      if (node.sceneRoles !== undefined && (!Array.isArray(node.sceneRoles) || node.sceneRoles.some((r) => !SCENE_ROLES.includes(r)))) errors.push('rôles de scène invalides');
+      if (!node.steps?.length) errors.push('aucun tween');
+      const text = ROLE_TARGET[node.role] === 'text' ? { split: node.split ?? 'none' } : undefined;
+      errors.push(...stepsErrors(node.steps ?? [], (t) => t === 'self' || t === 'inner', false, text));
+      break;
+    }
+    case 'sequence': {
+      const scenes = node.scenes;
+      if (!Array.isArray(scenes) || scenes.length < 2 || scenes.length > 3) errors.push('2 ou 3 scènes attendues');
+      (scenes ?? []).forEach((s, i) => {
+        if (!Array.isArray(s?.roles) || !s.roles.length || s.roles.some((r) => !SCENE_ROLES.includes(r))) errors.push(`scène ${i + 1} : rôles invalides`);
+        if (typeof s?.layout !== 'string') errors.push(`scène ${i + 1} : mise en page manquante`);
+        for (const role of Object.keys(s?.animations ?? {})) if (!ANIM_ROLES.has(role)) errors.push(`scène ${i + 1} : rôle inconnu « ${role} »`);
+        if (s?.carry !== undefined && (!i || !CARRY_ROLES.includes(s.carry))) errors.push(`scène ${i + 1} : élément traversant invalide`);
+      });
+      if ((scenes ?? []).slice(1).every((s) => !s?.carry)) errors.push('aucun élément ne traverse la coupe');
+      break;
+    }
     default:
       errors.push('sorte inconnue');
   }
@@ -336,5 +433,51 @@ export function refErrors(node: VideoNode, nodes: Map<string, VideoNode>): strin
       else if (!a.targets.includes(ROLE_TARGET[role as AnimRole])) errors.push(`${id} ne s’applique pas au rôle ${role}`);
     }
   }
+  if (node.kind === 'sequence') {
+    node.scenes.forEach((s, i) => {
+      const layout = nodes.get(s.layout);
+      if (layout?.kind !== 'layout') return errors.push(`scène ${i + 1} : mise en page inconnue ${s.layout}`);
+      const has = (html: string | undefined, role: string) => new RegExp(`data-v="${role}"`).test(html ?? '');
+      if (s.carry) {
+        const prev = nodes.get(node.scenes[i - 1]?.layout);
+        if (!has(layout.html, s.carry) || prev?.kind !== 'layout' || !has(prev.html, s.carry)) errors.push(`scène ${i + 1} : ${s.carry} absent d’un côté de la coupe`);
+      }
+      for (const [role, id] of Object.entries(s.animations ?? {})) {
+        const a = nodes.get(id as string);
+        if (a?.kind !== 'animation' || !a.targets.includes(ROLE_TARGET[role as AnimRole])) errors.push(`scène ${i + 1} : animation ${id} invalide pour ${role}`);
+      }
+      if (s.develop) {
+        const d = nodes.get(s.develop);
+        if (d?.kind !== 'develop' || !has(layout.html, d.role)) errors.push(`scène ${i + 1} : développement ${s.develop} invalide`);
+      }
+    });
+  }
+  return errors;
+}
+
+// ── Les primitives : la défense en profondeur (les mêmes règles que `idem-templates/scripts/video-rules.mjs`) ──────
+
+export const PRIMITIVE_REPOS = new Set(['heygen-com/hyperframes']);
+const PRIMITIVE_FORBIDDEN: Array<[RegExp, string]> = [
+  [/<script[^>]*\bsrc\s*=/i, 'script externe'],
+  [/<(iframe|object|embed|link|meta|base|form)\b/i, 'balise interdite'],
+  [/https?:\/\/|\/\/[a-z0-9-]+\.[a-z]{2,}\//i, 'adresse étrangère'],
+  [/\bfetch\s*\(|XMLHttpRequest|WebSocket|EventSource|sendBeacon|\bimport\s*\(|\beval\s*\(|new\s+Function|document\.cookie|localStorage|sessionStorage|indexedDB|postMessage|window\.open|\blocation\s*[.=]|navigator\.|Worker\s*\(/, 'API interdite'],
+  [/\son[a-z]+\s*=/i, 'gestionnaire d’événement en attribut'],
+];
+const PRIM_BIND = /^(title|body|cta|figure|label|attribution|figure\.(value|prefix|suffix|percent)|brand\.name|const:[\w .%-]{0,40})$/;
+
+function primitiveErrors(node: PrimitiveNode): string[] {
+  const p = node.primitive;
+  const errors: string[] = [];
+  if (!p || typeof p !== 'object') return ['primitive manquante'];
+  if (!PRIMITIVE_REPOS.has(p.source?.repo)) errors.push('source hors liste');
+  if (p.source?.license !== 'Apache-2.0') errors.push('licence Apache-2.0 attendue');
+  if (!/^[0-9a-f]{40}$/.test(p.source?.commit ?? '')) errors.push('commit figé attendu');
+  if (typeof p.component !== 'string' || !p.component) return [...errors, 'source du composant manquant'];
+  if (crypto.createHash('sha256').update(p.component, 'utf8').digest('hex') !== p.source?.sha256) errors.push('empreinte SHA-256 différente');
+  for (const [re, why] of PRIMITIVE_FORBIDDEN) if (re.test(p.component)) errors.push(why);
+  if (!/<script>/.test(p.component) || !/\bid="root"/.test(p.component)) errors.push('composant sans script ou sans racine #root');
+  for (const [k, v] of Object.entries(p.bind ?? {})) if (!PRIM_BIND.test(String(v))) errors.push(`branchement inconnu ${k}`);
   return errors;
 }

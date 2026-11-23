@@ -14,6 +14,8 @@ export const SECRET_MANIFEST = {
   optional: [
     // OpenRouter : Qwen3 Coder Next, DeepSeek V4 et leur repli (modèles ouverts).
     'OPENROUTER_API_KEY',
+    // Passerelle d'idem-ml (modèles auto-hébergés), active avec IDEM_AI_BACKEND=idem-ml.
+    'IDEM_ML_API_KEY',
     // Autorise POST /api/model/default (changement du modèle par défaut à chaud). Absente = route fermée.
     'MODEL_ADMIN_KEY',
     // Déploiement des applications générées sur le compte Netlify d'IDEM.

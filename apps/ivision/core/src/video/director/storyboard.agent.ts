@@ -1,9 +1,14 @@
 /**
- * LE PLANIFICATEUR — transforme le concept en storyboard que l'auteur codera scène par scène :
- * durée, intention, idée visuelle, idée de mouvement, entrée, textes exacts, médias, voix.
+ * LE PLANIFICATEUR — UN appel pour tout le film (22/11/2026) : l'idée (titre, concept, direction nommée, musique,
+ * narrateur) puis le storyboard (rôle, énergie, intention, sujet montré, textes exacts, médias, voix).
  *
- * Sans concept (directeur en panne), il invente aussi le film dans son appel. Le code ne touche à rien de créatif ;
- * il garantit seulement ce qui est TECHNIQUE ou CONTRACTUEL :
+ * Avant, quatre appels se succédaient en relisant chacun la demande : le directeur de création (`video.brief`), le
+ * concept (`video.concept`), le storyboard, puis le choix dans le catalogue (`video.template`). Le film est assemblé
+ * par le CODE depuis le catalogue (mises en page, animations, séquences, développements) : le modèle ne décrit donc
+ * plus ni positions, ni tailles, ni courbes, ni transitions — une prose que rien ne lisait. Il décide ce que chaque
+ * scène DIT et MONTRE. L'ancien enchaînement reste disponible (`IDEM_VIDEO_CONCEPT=1`, `IDEM_VIDEO_AUTO_BRIEF=1`).
+ *
+ * Le code ne touche à rien de créatif ; il garantit seulement ce qui est TECHNIQUE ou CONTRACTUEL :
  *   - les durées font la durée achetée (mise à l'échelle) ;
  *   - un scénario écrit par l'utilisateur garde ses scènes, ses textes et sa voix mot pour mot ;
  *   - un nombre absent de la demande (prix, date, numéro) ne s'affiche pas — l'écart est DIT ;
@@ -13,7 +18,10 @@ import { callFilmModel, FilmCallContext, ModelRun } from '../agents';
 import { isGrounded, urlInBrief } from '../request/facts';
 import { specConstraints } from '../request/request';
 import { wordBudget } from '../audio/voice';
-import type { FilmConcept } from './concept.agent';
+import { BRIEF_MOODS, BRIEF_PERSONAS, BriefMood, BriefPersona } from '../request/enhance';
+import { directionMenu } from '../../../../../../packages/motion-compiler/src';
+import type { DirectionId } from '../../../../../../packages/motion-compiler/src';
+import { FilmConcept, parseConcept } from './concept.agent';
 import { FilmBrief, formatLine, intentLine, languageLine, mediaLines, sceneRange, scriptLines, skeletonLine } from './brief';
 import { parseFilmPlan, PlannedFilm, PlannedScene } from './film-format';
 
@@ -29,50 +37,61 @@ export interface Storyboard {
   scenes: StoryboardScene[];
   /** Ce qui n'a pas pu suivre la demande (dit à l'utilisateur). */
   fidelity: string[];
+  /** L'idée du film quand le planificateur l'a écrite lui-même (appel unique) : direction nommée, musique, narrateur. */
+  direction?: DirectionId;
+  alternative?: DirectionId;
+  music?: BriefMood;
+  persona?: BriefPersona;
 }
 
 const scripted = (brief: FilmBrief) => !!brief.spec && brief.spec.mode === 'script' && brief.spec.scenes.length > 0;
 
+/** L'appel unique (sans concept donné) : le planificateur écrit aussi l'idée, la direction, la musique et la voix. */
 export function buildPlannerPrompt(brief: FilmBrief, concept: FilmConcept | null): { system: string; user: string } {
   const [min, max] = sceneRange(brief.durationSec);
   const script = scripted(brief);
   const count = script ? `exactly ${brief.spec!.scenes.length} scenes (one per scene of the client's script, same order)` : brief.referenceShots?.length ? `exactly ${brief.referenceShots.length} scenes (one per shot of the client's model, same order)` : concept?.outline.length ? `${Math.min(max, Math.max(min, concept.outline.length))} scenes` : `${min} to ${max} scenes`;
+  const canMedia = brief.newMedia.images || brief.newMedia.clips;
   const system = [
-    'You write the storyboard of a short motion-design film. Each scene is built separately from its scene card alone (a layout, theme and animation picked to fit it) — so each card must be concrete and complete.',
-    !concept ? 'First invent the film: TITLE, CONCEPT (one or two sentences), BIBLE (3 to 6 lines: colour use, typography, graphic language, motion personality). Be original — no template exists, nothing is imposed.' : 'The concept is given: develop it faithfully.',
+    'You plan a short motion-design film for an African business, in ONE answer.',
+    'The film is ASSEMBLED BY CODE from a catalogue of animated scene layouts (text reveals, photo and clip frames, big figures, lists, the brand close). The code picks the layouts, the motion and the transitions, and chains consecutive scenes about the same subject (the photo or the figure stays on screen across the cut). So you never describe positions, sizes, easing or transitions: you decide what each scene SAYS and SHOWS.',
+    !concept ? 'First the idea of the film (TITLE, CONCEPT, DIRECTION, MUSIC, NARRATOR), then its scenes. Be original and serve the message: the viewer understands what is offered and what to do.' : 'The concept is given: develop it faithfully.',
     '',
     'Output format (plain lines, no JSON, no markdown):',
-    'TITLE: …',
-    'CONCEPT: …',
-    'BIBLE: …',
+    'TITLE: a short working title',
+    'CONCEPT: the idea of the film in one or two sentences',
+    !concept ? `DIRECTION: <direction id>, second: <direction id> — one named visual direction for the whole film:\n${directionMenu()}` : '',
+    !concept ? `MUSIC: ${BRIEF_MOODS.join(' | ')}` : '',
+    !concept && brief.voice ? `NARRATOR: ${BRIEF_PERSONAS.join(' | ')} (the voice that fits the brand)` : '',
     'SCENE 1 | <seconds>',
     'role: hook | problem | reveal | feature | benefits | proof | cta | signature | statement | data',
-    'energy: 1 to 5 (follow the director\'s curve when given)',
+    'energy: 1 to 5 — one curve for the film with a single peak (the payoff, around 60–80 % of the film)',
     'purpose: what this scene must make the viewer understand or feel',
-    'visual: what is on screen — elements, their place in the frame, sizes, colours (brand colours by role: primary, secondary, accent, background, text), media used',
-    'motion: how each element enters, moves and leaves, timing and easing, the strongest moment',
-    'transition: how this scene takes over from the previous one (first scene: how the film opens)',
+    'visual: the concrete subject on screen, in one short line (what the photo, the clip or the figure shows)',
     script ? '' : 'text.<key>: an exact on-screen text (key in lowercase: headline, sub, cta, figure, label…) — one line per text',
-    'media: ids of the available media shown in this scene (e.g. m1, m3), or nothing — ONLY a medium whose description shows what this scene says (never one placed just to fill the frame: a scene without a fitting medium asks for a new image or clip)',
-    brief.newMedia.images || brief.newMedia.clips ? 'new image: <what the photo shows, in English> | <2-4 word search query>   (only if no available medium fits)' : '',
-    brief.newMedia.clips ? 'new clip: <what the filmed shot shows, in English> | <2-4 word search query>' : '',
-    'voice: the voice-over line for this scene, as it must be SPOKEN (words + ElevenLabs delivery tags, see rules)',
+    'media: ids of the available media shown in this scene (e.g. m1, m3), or nothing — ONLY a medium whose description shows what this scene says (a scene without a fitting medium asks for a new image or clip)',
+    canMedia ? 'new image: <what the photo shows, in English> | <2-4 word search query>   (only if no available medium fits)' : '',
+    brief.newMedia.clips ? 'new clip: <what the filmed shot shows, in English> | <2-4 word search query>   (only for continuous physical motion, see rules)' : '',
+    'voice: the voice-over line for this scene, as it must be SPOKEN (words + delivery tags, see rules)',
     '',
     'Rules:',
     `- ${count}; durations in seconds add up to ${brief.durationSec}.`,
     script ? '- The on-screen texts are FIXED by the client: do not write text lines, design around them.' : `- On-screen texts in ${languageLine(brief.language)} that SAY something: a headline (up to 8 words) carrying a concrete benefit or fact, and when it helps one supporting line (up to 14 words) with the concrete detail; at most 3 texts per scene. Never an empty slogan ("Discover our brand", "The future is here"). Never invent a price, number, date, address, claim or name that is not in the request.`,
     `- Voice lines in ${languageLine(brief.language)}, natural spoken sentences, about ${Math.round(wordBudget(brief.durationSec / Math.max(1, min + 1), brief.language))} words for a ${Math.round(brief.durationSec / Math.max(1, min + 1))}-second scene. Never invent facts.`,
-    `- Voice delivery (read by ElevenLabs Eleven v4): ONE narrator with ONE steady tone for the whole film — warm, confident, natural, like a person talking to a friend; never shouting, never hype, no sudden change of energy from one scene to the next. At most ONE delivery tag in the whole film, at the start of the first line, among [warmly], [confident], [reassuring], [calmly]. Mark breaths with "…" or [short pause], questions with "?"; no exclamation marks (one at most in the whole film). Never tags in the client's own words (a fixed script line stays word for word). The lines follow one arc: a hook, a build, a confident close.`,
-    `- ONE continuous narration, not one slogan per scene: the lines are read in a single take by one narrator and must flow into each other like a story told to a friend — a line may end on a comma or an open idea that the next scene completes, use connectors (and, but, so, because, then / et, mais, alors, parce que, puis), never restart with the same structure or re-announce the brand in every line. Read all the lines one after the other: they must sound like one natural paragraph. Delivery tags only where the tone really changes (usually on 1 or 2 lines of the film), not on every line.`,
+    `- Voice delivery: ONE narrator with ONE steady tone for the whole film — warm, confident, natural, like a person talking to a friend; never shouting, never hype, no sudden change of energy from one scene to the next. At most ONE delivery tag in the whole film, at the start of the first line, among [warmly], [confident], [reassuring], [calmly]. Mark breaths with "…" or [short pause], questions with "?"; no exclamation marks (one at most in the whole film). Never tags in the client's own words (a fixed script line stays word for word). The lines follow one arc: a hook, a build, a confident close.`,
+    '- When a voice line must SAY a web address, a phone number, a code or a figure differently from how the screen WRITES it, write {written|spoken}, e.g. {kora.sn|kora point S N} — the screen keeps the written form, the narrator says the spoken one.',
+    `- ONE continuous narration, not one slogan per scene: the lines are read in a single take by one narrator and must flow into each other like a story told to a friend — a line may end on a comma or an open idea that the next scene completes, use connectors (and, but, so, because, then / et, mais, alors, parce que, puis), never restart with the same structure or re-announce the brand in every line.`,
     brief.anonymous ? '- No brand name or logo on screen.' : '- The film ends on the brand (its logo or name) and, when the request has one, the call to action.',
-    brief.newMedia.images || brief.newMedia.clips ? `- At most ${brief.newMedia.images} new images and ${brief.newMedia.clips} new clips in the whole film.` : '- No new image or clip can be produced: use the available media, shapes and typography.',
+    canMedia ? `- At most ${brief.newMedia.images} new images and ${brief.newMedia.clips} new clips in the whole film.` : '- No new image or clip can be produced: use the available media, shapes and typography.',
     '- Every new image/clip shows the subject of ITS scene (what the voice line and the texts of that scene talk about), described concretely in the shot — never a generic or decorative picture.',
-    brief.newMedia.images || brief.newMedia.clips || brief.media.length ? '- SHOW, do not only tell: at least two scenes out of three are built around a concrete subject (an available medium, or a new image/clip of the product, the place, the customers, the team, the craft). Typography-only scenes are the exception: a short statement or the call to action.' : '',
-    '- ONE film, not slides: each scene keeps something of the previous one — the subject stays on screen while its text changes, the camera continues its move through the cut, a shape or colour carries over, a match cut on a similar form. Never empty the frame between two scenes; vary the construction (full-frame image with text over it, image beside text, close-up detail, text over moving footage, the product in a device).',
+    // L'échelle des médias (leçon d'OpenMotion) : une image fixe animée par la caméra du code avant un clip généré.
+    brief.newMedia.clips ? '- A new CLIP only when the shot needs continuous physical motion a still photo cannot carry (people acting, hands at work, liquid, fabric, smoke, vehicles moving). Otherwise ask a new IMAGE: the code moves the camera over it. Never a clip just to look richer.' : '',
+    canMedia || brief.media.length ? '- SHOW, do not only tell: at least two scenes out of three are built around a concrete subject (an available medium, or a new image/clip of the product, the place, the customers, the team, the craft). Typography-only scenes are the exception: a short statement or the call to action.' : '',
+    '- ONE film, not slides: when two consecutive scenes talk about the same subject, they show the SAME medium (the code keeps it on screen across the cut while the text changes); a figure that proves the previous scene follows it directly.',
     '- When the REQUEST is a production brief with a flow of beats, follow its beats in order (merge or split them to fit the scene count) and keep its subjects to show, its key message and its narration tone.',
-    '- Visual and motion: specific and buildable (positions, sizes, directions, durations), different from scene to scene, coherent with the bible.',
     brief.skeleton && !script ? `- Product film skeleton (scale it to the duration, merge or skip beats, keep the order): ${skeletonLine()}. The payoff is the biggest visual moment, once, around 60–80 % of the film.` : '',
     '- The first two seconds are the densest: never open on a logo alone or "Welcome to…"; the brand mark lands once, with weight, at the end.',
+    !concept && brief.previousDirections?.length ? `- The previous film of this brand used the direction "${brief.previousDirections[0]}": choose a different one.` : '',
   ]
     .filter((l) => l !== '')
     .join('\n');
@@ -84,17 +103,31 @@ export function buildPlannerPrompt(brief: FilmBrief, concept: FilmConcept | null
     specConstraints(brief.spec),
     script ? `CLIENT SCRIPT:\n${scriptLines(brief.spec!)}` : '',
     `MEDIA AVAILABLE:\n${mediaLines(brief)}`,
-    brief.reference ? `REFERENCE FILM TO REPRODUCE (the client's model — write exactly ${brief.referenceShots?.length || 'its'} scenes, scene n = shot n, same composition and motion; your own texts and media):\n${brief.reference.slice(0, 6000)}` : '',
+    brief.reference ? `REFERENCE FILM TO REPRODUCE (the client's model — write exactly ${brief.referenceShots?.length || 'its'} scenes, scene n = shot n, same role and rhythm; your own texts and media):\n${brief.reference.slice(0, 6000)}` : '',
     concept ? `CONCEPT (from the creative director):\nTITLE: ${concept.title}\nCONCEPT: ${concept.concept}\nBIBLE: ${concept.bible}${concept.direction ? `\nDIRECTION: ${concept.direction}` : ''}${concept.energy?.length ? `\nENERGY: ${concept.energy.join(', ')}` : ''}\n${concept.outline.map((o, i) => `SCENE ${i + 1}: ${o}`).join('\n')}` : '',
     !concept && brief.previous.length ? `FILMS ALREADY MADE FOR THIS BRAND (do something different):\n${brief.previous.slice(0, 6).join('\n')}` : '',
+    // Le point de départ tiré par le code (plan qualité créative) : jamais le même pour la marque.
+    !concept && !script && !brief.reference && brief.axis ? brief.axis.line : '',
   ]
     .filter(Boolean)
     .join('\n\n');
   return { system, user };
 }
 
-/** Une réponse est exploitable si elle porte au moins une scène avec une idée visuelle ou de mouvement. */
-export const usablePlan = (plan: PlannedFilm) => plan.scenes.some((s) => s.visual || s.motion);
+/** Une réponse est exploitable si elle porte au moins une scène qui dit ou montre quelque chose. */
+export const usablePlan = (plan: PlannedFilm) => plan.scenes.some((s) => s.visual || s.motion || Object.keys(s.texts).length || s.voice);
+
+/** L'idée écrite dans l'appel unique : direction (liste fermée), musique, narrateur — un mot inconnu est ignoré. */
+export function parseFilmIdea(raw: string): Pick<Storyboard, 'direction' | 'alternative' | 'music' | 'persona'> {
+  const idea = parseConcept(raw);
+  const word = (key: string, allowed: readonly string[]) => {
+    const line = raw.match(new RegExp(`^[\\s*_#-]*${key}\\s*[:=]\\s*(.+)$`, 'im'))?.[1] ?? '';
+    return allowed.find((a) => new RegExp(`\\b${a}\\b`, 'i').test(line));
+  };
+  const music = word('MUSIC', BRIEF_MOODS) as BriefMood | undefined;
+  const persona = word('NARRATOR', BRIEF_PERSONAS) as BriefPersona | undefined;
+  return { ...(idea?.direction ? { direction: idea.direction } : {}), ...(idea?.alternative ? { alternative: idea.alternative } : {}), ...(music ? { music } : {}), ...(persona ? { persona } : {}) };
+}
 
 /**
  * Le storyboard ramené à ce que le contrat exige (durées, scénario, faits). Ne refuse jamais une
@@ -106,7 +139,7 @@ export function normalizeStoryboard(plan: PlannedFilm, brief: FilmBrief, concept
   const say = (fr: string, en: string) => (brief.language.startsWith('en') ? en : fr);
   const [, max] = sceneRange(brief.durationSec);
   const script = scripted(brief);
-  let scenes = plan.scenes.filter((s) => s.visual || s.motion || Object.keys(s.texts).length);
+  let scenes = plan.scenes.filter((s) => s.visual || s.motion || Object.keys(s.texts).length || s.voice);
 
   if (script) {
     const spec = brief.spec!;
@@ -251,11 +284,11 @@ export async function runPlanner(ctx: FilmCallContext, brief: FilmBrief, concept
   // Une réponse illisible (format) est redemandée une fois, avec le rappel du format : c'est une
   // erreur de forme, pas un jugement sur le contenu.
   for (let attempt = 0; attempt < 2; attempt++) {
-    const reminder = attempt ? '\n\nYOUR PREVIOUS ANSWER COULD NOT BE READ. Use exactly the line format: "SCENE 1 | 3.5" then "visual: …", "motion: …" lines.' : '';
+    const reminder = attempt ? '\n\nYOUR PREVIOUS ANSWER COULD NOT BE READ. Use exactly the line format: "SCENE 1 | 3.5" then "role: …", "visual: …", "text.headline: …" lines.' : '';
     const run = await callFilmModel(ctx, 'video.planner', system, user + reminder, (raw) => usablePlan(parseFilmPlan(raw)));
     runs.push(run);
     const plan = parseFilmPlan(run.raw);
-    if (usablePlan(plan)) return { storyboard: normalizeStoryboard(plan, brief, concept, timeline), runs };
+    if (usablePlan(plan)) return { storyboard: { ...normalizeStoryboard(plan, brief, concept, timeline), ...(concept ? {} : parseFilmIdea(run.raw)) }, runs };
     if (run.failure === 'no_model') break;
   }
   return { storyboard: null, runs };

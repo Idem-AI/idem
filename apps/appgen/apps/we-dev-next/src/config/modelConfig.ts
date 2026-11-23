@@ -34,12 +34,40 @@ export type PublicModelConfig = Omit<
 export interface ModelCredentials {
   apiKey: string;
   apiUrl: string;
+  /** Qui sert l'appel : OpenRouter, ou nos machines (passerelle d'idem-ml). */
+  backend: 'openrouter' | 'idem-ml';
+}
+
+// ── OpenRouter ou nos machines (idem-ml) ────────────────────────────────────
+//
+// Même réglage que l'API (`apps/api/api/config/ai-backend.config.ts`) : `IDEM_AI_BACKEND_TEXT` › `IDEM_AI_BACKEND`.
+// `idem-ml` envoie le code sur la passerelle d'idem-ml (`IDEM_ML_URL`, `IDEM_ML_API_KEY`), qui sert les MÊMES
+// identifiants de modèles ; en panne, l'appel repart chez OpenRouter (`IDEM_AI_FALLBACK=off` pour l'interdire).
+
+/** L'adresse de la passerelle, normalisée en `…/v1`. */
+export function idemMlBaseUrl(): string | undefined {
+  const raw = readEnv('IDEM_ML_URL')?.replace(/\/+$/, '');
+  if (!raw) return undefined;
+  return /\/v1$/.test(raw) ? raw : `${raw}/v1`;
+}
+
+export function textBackend(): 'openrouter' | 'idem-ml' {
+  const raw = (readEnv('IDEM_AI_BACKEND_TEXT') ?? readEnv('IDEM_AI_BACKEND') ?? '').toLowerCase();
+  const wanted = ['idem-ml', 'idem_ml', 'selfhosted', 'self-hosted'].includes(raw);
+  return wanted && idemMlBaseUrl() && readEnv('IDEM_ML_API_KEY') ? 'idem-ml' : 'openrouter';
+}
+
+/** Les identifiants d'OpenRouter (repli de la passerelle), ou `undefined` sans clé ou repli coupé. */
+export function openRouterFallbackCredentials(): ModelCredentials | undefined {
+  const flag = (readEnv('IDEM_AI_FALLBACK') ?? 'openrouter').toLowerCase();
+  const apiKey = readEnv(OPENROUTER_ENDPOINT.apiKeyEnv);
+  if (flag === 'off' || flag === 'none' || !apiKey) return undefined;
+  return { apiKey, apiUrl: readEnv(OPENROUTER_ENDPOINT.apiUrlEnv) ?? OPENROUTER_ENDPOINT.defaultApiUrl, backend: 'openrouter' };
 }
 
 /**
- * Le catalogue exposé à l'interface — modèles OUVERTS, tous servis par OpenRouter
- * (poids publiés : auto-hébergeables plus tard en changeant seulement
- * `OPENROUTER_BASE_URL`). Mêmes identifiants exacts et licences vérifiés côté API
+ * Le catalogue exposé à l'interface — modèles OUVERTS, servis par OpenRouter, ou par
+ * nos machines avec `IDEM_AI_BACKEND=idem-ml` (passerelle d'idem-ml, mêmes identifiants). Mêmes identifiants exacts et licences vérifiés côté API
  * IDEM (`config/openrouter.config.ts`).
  *
  * Ajouter une entrée ici suffit à la faire apparaître — c'est cette liste que sert
@@ -160,7 +188,7 @@ export function setDefaultModelKey(modelKey: string | undefined): boolean {
 
 /** Le modèle a-t-il de quoi répondre (clé présente) ? Un modèle sans clé n'est jamais proposé. */
 function hasCredentials(conf: ModelConfig): boolean {
-  return Boolean(readEnv(conf.apiKeyEnv));
+  return textBackend() === 'idem-ml' || Boolean(readEnv(conf.apiKeyEnv));
 }
 
 /** Le catalogue complet, repli inclus — usage interne (résolution, repli). */
@@ -235,6 +263,10 @@ export function resolveModelCredentials(modelKey: string): ModelCredentials {
     throw new Error(`Model configuration not found for model: ${modelKey}`);
   }
 
+  if (textBackend() === 'idem-ml') {
+    return { apiKey: readEnv('IDEM_ML_API_KEY') as string, apiUrl: idemMlBaseUrl() as string, backend: 'idem-ml' };
+  }
+
   const apiUrl = readEnv(conf.apiUrlEnv) ?? conf.defaultApiUrl ?? '';
   const apiKey = readEnv(conf.apiKeyEnv);
 
@@ -245,7 +277,7 @@ export function resolveModelCredentials(modelKey: string): ModelCredentials {
     );
   }
 
-  return { apiKey, apiUrl };
+  return { apiKey, apiUrl, backend: 'openrouter' };
 }
 
 /**

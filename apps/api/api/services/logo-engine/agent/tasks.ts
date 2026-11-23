@@ -37,6 +37,8 @@ export interface Direction {
   idea: string;
   /** D'où vient l'idée : le nom, une valeur, l'histoire, le lieu, la culture, le public (jamais le produit). */
   source?: IdeaSource;
+  /** Ce que le symbole montre, en anglais simple (demandé seulement quand un modèle vectoriel le dessinera). */
+  drawing?: string;
 }
 
 export const IDEA_SOURCES = ['name', 'value', 'story', 'place', 'culture', 'audience'] as const;
@@ -135,7 +137,10 @@ export function directionMenu(kind: 'icon' | 'name' | 'initial', weights: Map<st
 }
 
 function parseDirection(line: string, menu: DirectionMenu): Direction | null {
-  const parts = line.split('|').map((p) => p.trim());
+  const all = line.split('|').map((p) => p.trim());
+  // Champ facultatif « drawing: … » (pour le modèle vectoriel), où qu'il soit : retiré de l'idée.
+  const drawingPart = all.find((p) => /^drawing\s*:/i.test(p));
+  const parts = all.filter((p) => p !== drawingPart);
   if (parts.length < 2) return null;
   const type = pickOption(parts[0].toLowerCase().replace(/\s+/g, '-'), CONCEPT_TYPES as readonly string[]) as ConceptType | undefined;
   if (!type || !menu.types.includes(type)) return null;
@@ -143,7 +148,8 @@ function parseDirection(line: string, menu: DirectionMenu): Direction | null {
   // « catégorie | générateur | source | idée » (nouveau) ou « catégorie | générateur | idée » (ancien).
   const source = IDEA_SOURCES.find((x) => x === (parts[2] ?? '').toLowerCase().replace(/[^a-z]/g, ''));
   const idea = (source ? parts.slice(3).join(' | ') : parts.slice(2).join(' | ')) || parts[1];
-  const direction: Direction = { type, idea: idea.replace(/\*+/g, '').slice(0, 200), ...(source ? { source } : {}) };
+  const drawing = drawingPart?.replace(/^drawing\s*:\s*/i, '').replace(/\*+/g, '').trim().slice(0, 240);
+  const direction: Direction = { type, idea: idea.replace(/\*+/g, '').slice(0, 200), ...(source ? { source } : {}), ...(drawing ? { drawing } : {}) };
   const gens = menu.generators[type];
   if (gens) {
     // Un générateur hors menu (inventé) est écarté : la direction garde sa catégorie, le planificateur choisit.
@@ -186,7 +192,8 @@ export function directionsTask(
   count: number,
   wish: string | undefined,
   fallback: () => DirectionsVerdict | null,
-  banned: Set<string> = new Set()
+  banned: Set<string> = new Set(),
+  options: { drawing?: boolean } = {}
 ): AgentTask<DirectionsVerdict | null> {
   const catalogLines = Object.entries(menu.catalog).map(([family, ids]) => ` ${family}: ${(ids ?? []).join(', ')}`);
   const lines = menu.types.map((t) => {
@@ -207,7 +214,7 @@ export function directionsTask(
         ...lines,
         'Output ONLY these lines:',
         'cliches: the 3–6 images any designer would draw first for this business (generator ids from the list and/or short words)',
-        `then ${count} lines: N: category | generator-or-variant | source (${IDEA_SOURCES.join('|')}) | the idea in one short sentence (a metaphor tied to that source, no pun that needs explaining)`,
+        `then ${count} lines: N: category | generator-or-variant | source (${IDEA_SOURCES.join('|')}) | the idea in one short sentence (a metaphor tied to that source, no pun that needs explaining)${options.drawing ? ' | drawing: what the symbol literally shows, in plain English, as simple flat shapes (no text, no letters)' : ''}`,
       ].join('\n'),
       user: [sheet, wish ? `CLIENT WISH: ${wish.slice(0, 300)}` : ''].filter(Boolean).join('\n'),
     }),

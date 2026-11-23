@@ -37,6 +37,7 @@ import {
 import { getRequestLanguage } from '../utils/request-language';
 import { logAIEvent, previewValue } from '../utils/ai-trace.util';
 import { guardModelRequest, type ModelProcessor } from './privacy/privacy-guard';
+import { fallbackFetch } from './model-transport';
 import {
   UsageSink,
   estimateUsage,
@@ -50,8 +51,16 @@ import { TEXT_MODEL } from '../config/openrouter.config';
 export { LLMProvider, LLMOptions };
 
 /** Le sous-traitant du registre de gouvernance derrière un fournisseur (cf. privacy-guard). */
-function modelProcessorOf(provider: LLMProvider): ModelProcessor {
-  return provider === LLMProvider.SELFHOSTED ? 'idem_selfhosted' : 'openrouter';
+/** L'étiquette du journal de consommation : `idem_ml` quand le texte est servi par nos machines. */
+function usageProviderOf(provider: LLMProvider): string {
+  return provider === LLMProvider.OPENROUTER && getProvider(provider).servedBy === 'idem-ml' ? 'idem_ml' : provider;
+}
+
+function modelProcessorOf(provider: LLMProvider, kind: 'text' | 'search' = 'text'): ModelProcessor {
+  if (provider === LLMProvider.SELFHOSTED) return 'idem_selfhosted';
+  // Le texte peut partir sur nos machines (`IDEM_AI_BACKEND=idem-ml`) ; en cas de repli, `fallbackFetch` repose
+  // lui-même le garde d'OpenRouter sur le corps rejoué.
+  return getProvider(provider, kind).servedBy === 'idem-ml' ? 'idem_selfhosted' : 'openrouter';
 }
 
 /**
@@ -286,7 +295,7 @@ export interface GroundedResult {
 
 export class PromptService {
   /** Clients OpenAI-compatible mis en cache par fournisseur. */
-  private _openaiClients = new Map<LLMProvider, OpenAI>();
+  private _openaiClients = new Map<string, OpenAI>();
 
   constructor() {
     logger.info('Initializing PromptService...');
@@ -297,13 +306,15 @@ export class PromptService {
    * serveur maison derrière `OPENROUTER_BASE_URL`). La clé, l'URL de base et les en-têtes proviennent du
    * registre `AI_PROVIDERS`. Les clients sont mis en cache par fournisseur.
    */
-  private getOpenAICompatibleClient(provider: LLMProvider): OpenAI {
-    const cached = this._openaiClients.get(provider);
+  private getOpenAICompatibleClient(provider: LLMProvider, kind: 'text' | 'search' = 'text'): OpenAI {
+    // Un client par ADRESSE : la bascule OpenRouter ↔ idem-ml (`IDEM_AI_BACKEND`, à chaud) change l'adresse.
+    const def = getProvider(provider, kind);
+    const cacheKey = `${provider}|${def.baseUrl ?? 'default'}`;
+    const cached = this._openaiClients.get(cacheKey);
     if (cached) {
       return cached;
     }
 
-    const def = getProvider(provider);
     const apiKey = process.env[def.apiKeyEnv];
     if (!apiKey) {
       const message = `${def.apiKeyEnv} is not set — cannot use provider ${provider}.`;
@@ -315,6 +326,8 @@ export class PromptService {
       apiKey,
       ...(def.baseUrl ? { baseURL: def.baseUrl } : {}),
       ...(def.defaultHeaders ? { defaultHeaders: def.defaultHeaders } : {}),
+      // Nos machines : repli vers OpenRouter si la passerelle tombe ou ne sert pas le modèle (`model-transport.ts`).
+      ...(def.servedBy === 'idem-ml' ? { fetch: fallbackFetch('text') } : {}),
       // Le réessai est géré UNE seule fois, par `withRetry`, qui sait distinguer
       // le transitoire réseau (à rejouer) de la saturation (à basculer de
       // modèle). Le défaut du SDK (2 réessais) s'empilait par-dessus, et
@@ -327,7 +340,7 @@ export class PromptService {
       // largement la plus lourde des générations (48 000 tokens de sortie).
       timeout: Number(process.env.LLM_TIMEOUT_MS ?? 180_000),
     });
-    this._openaiClients.set(provider, client);
+    this._openaiClients.set(cacheKey, client);
     logger.info(
       `OpenAI-compatible client initialized for provider=${provider} (baseURL=${def.baseUrl ?? 'default'}).`
     );
@@ -637,7 +650,7 @@ export class PromptService {
       // au journal de consommation, alors qu'elle relit toute la conversation à
       // chaque tour.
       void aiUsageService.record({
-        provider,
+        provider: usageProviderOf(provider),
         modelName: (response as { model?: string })?.model || modelName,
         usage:
           extractOpenAIUsage(response) ??
@@ -757,7 +770,7 @@ export class PromptService {
       }
     }
     void aiUsageService.record({
-      provider,
+      provider: usageProviderOf(provider),
       modelName: modelUsed,
       usage: usage ?? estimateUsage(joinMessagesForEstimate(messages), full),
       durationMs: Date.now() - startedAt,
@@ -832,7 +845,7 @@ export class PromptService {
           : estimateUsage(promptText, succeeded ? (resultText ?? '') : ''));
 
       await aiUsageService.record({
-        provider,
+        provider: usageProviderOf(provider),
         modelName: attempt.sink.modelUsed ?? attempt.model,
         usage,
         status: succeeded ? 'success' : 'error',
@@ -1242,13 +1255,14 @@ export class PromptService {
       queryCount: queries.length,
     });
 
-    const client = this.getOpenAICompatibleClient(provider);
-    const def = getProvider(provider);
+    // La recherche web reste chez OpenRouter (plugin `web`), même quand le texte part sur nos machines.
+    const client = this.getOpenAICompatibleClient(provider, 'search');
+    const def = getProvider(provider, 'search');
     const sink: UsageSink = {};
     const response: any = await withRetry(
       () =>
         client.chat.completions.create(
-          guardModelRequest(modelProcessorOf(provider), translateReasoning({
+          guardModelRequest(modelProcessorOf(provider, 'search'), translateReasoning({
             model: modelName,
             messages: grounded.map((m) => ({ role: m.role, content: m.content })),
             ...(llmOptions.maxOutputTokens && { max_tokens: llmOptions.maxOutputTokens }),

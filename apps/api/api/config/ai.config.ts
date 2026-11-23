@@ -9,8 +9,8 @@ import {
  *
  * Une enum à une valeur, gardée plutôt que supprimée : le registre
  * (`ai-providers.config.ts`), les journaux d'usage et `AI_OVERRIDES` nomment un
- * fournisseur, et un futur serveur auto-hébergé (vLLM/SGLang) se branche en
- * changeant `OPENROUTER_BASE_URL`, pas en ajoutant une valeur.
+ * fournisseur, et nos serveurs auto-hébergés (passerelle d'idem-ml) se branchent par
+ * `IDEM_AI_BACKEND=idem-ml` (`ai-backend.config.ts`), pas en ajoutant une valeur.
  */
 export enum LLMProvider {
   OPENROUTER = 'OPENROUTER',

@@ -3,9 +3,10 @@
  * les scènes sont ASSEMBLÉES depuis le catalogue vidéo (aucun auteur HTML) :
  *
  *   1. l'exploration : quatre pistes lues, la plus éloignée des films déjà faits retenue ;
- *   2. la création (cran Medium) : concept, storyboard, UN appel `video.template` pour tout le film, scènes assemblées,
- *      contrôle dans Chrome (vignettes), film « hyperframes » ; pas d'exploration sous l'Ultra (économie) ; l'axe gardé ;
- *   3. la création au cran Ultra : l'exploration avant le concept, la piste retenue donnée au concept et gardée,
+ *   2. la création (cran Medium) : UN SEUL appel (le storyboard écrit aussi l'idée, la direction, la musique), scènes
+ *      assemblées par le code (aucun appel de choix), contrôle dans Chrome (vignettes), film « hyperframes » ; l'axe gardé ;
+ *   3. l'ancien enchaînement (`IDEM_VIDEO_CONCEPT=1`, `VIDEO_CATALOG_CHOOSER=model`) au cran Ultra : l'exploration avant
+ *      le concept, la piste retenue donnée au concept et gardée,
  *      le point de départ tiré par le code donné à l'exploration ; un deuxième film prend un autre axe ;
  *   4. la correction SANS modèle : une scène en défaut prend le candidat suivant ;
  *   5. l'aperçu, la retouche écrite (configuration actuelle + consigne), la nouvelle version (sans modèle), et un film
@@ -89,7 +90,7 @@ async function main() {
     if (role === 'video.concept-explore') return 'TRACK 1: Morning ritual — the coffee followed from bean to cup in one camera move.\nTRACK 2: Hands — only hands roasting, pouring, giving the cup.\nTRACK 3: Big numbers — one huge figure per beat.\nTRACK 4: City wakes — Dakar wakes up street by street around the café.';
     if (role === 'video.concept') return 'TITLE: Le café qui réveille\nCONCEPT: Une journée qui commence par une tasse.\nBIBLE: fond crème, vert de la marque, gros titres serrés.\nSCENE 1: le titre se pose\nSCENE 2: la photo\nSCENE 3: le chiffre\nSCENE 4: la signature';
     if (role === 'video.planner')
-      return ['TITLE: Le café qui réveille', 'CONCEPT: Une journée qui commence par une tasse.', 'BIBLE: fond crème.', 'SCENE 1 | 4', 'purpose: accrocher', 'visual: titre géant', 'motion: mots qui montent', 'text.headline: Le café qui réveille Dakar', 'text.sub: Torréfié chaque matin', 'SCENE 2 | 4', 'purpose: montrer', 'visual: la photo', 'motion: travelling', 'media: m1', 'text.caption: Grains du Fouta', 'SCENE 3 | 3', 'purpose: prouver', 'visual: un compteur', 'motion: le chiffre monte', 'text.figure: 1 250 clients', 'text.label: chaque semaine', 'SCENE 4 | 4', 'purpose: signer', 'visual: le nom', 'motion: glisse', 'text.cta: Commandez sur WhatsApp'].join('\n');
+      return ['TITLE: Le café qui réveille', 'CONCEPT: Une journée qui commence par une tasse.', 'DIRECTION: organic, second: editorial', 'MUSIC: afro', 'SCENE 1 | 4', 'purpose: accrocher', 'visual: titre géant', 'motion: mots qui montent', 'text.headline: Le café qui réveille Dakar', 'text.sub: Torréfié chaque matin', 'SCENE 2 | 4', 'purpose: montrer', 'visual: la photo', 'motion: travelling', 'media: m1', 'text.caption: Grains du Fouta', 'SCENE 3 | 3', 'purpose: prouver', 'visual: un compteur', 'motion: le chiffre monte', 'text.figure: 1 250 clients', 'text.label: chaque semaine', 'SCENE 4 | 4', 'purpose: signer', 'visual: le nom', 'motion: glisse', 'text.cta: Commandez sur WhatsApp'].join('\n');
     if (role === 'video.reviser') return 'VISUAL s2: le cadre entre plus lentement\nREPLY: C’est fait.';
     if (role === 'video.template') return /CLIENT'S REQUEST FOR/.test(user) ? '{"scenes":[{"scene":"s2","pick":"B"}]}' : JSON.stringify({ theme: 'B', scenes: [1, 2, 3, 4].map((n) => ({ scene: `s${n}`, pick: 'A' })) });
     return '';
@@ -101,15 +102,20 @@ async function main() {
   const film = video.film!;
   check(film.engine === 'hyperframes' && film.scenes.length === 4 && !!film.catalog?.theme, 'création : un film HyperFrames de 4 scènes, assemblé depuis le catalogue', `${film.engine}, ${film.scenes.length} scènes, thème ${film.catalog?.theme}`);
   check(film.scenes.every((s) => !!s.html && /^__ge\.scene\(/.test(s.script || '') && !!s.catalog?.layout), 'chaque scène : HTML de la mise en page + chorégraphie (données), configuration gardée', film.scenes.map((s) => s.catalog?.gabarit ?? s.catalog?.layout).join(', '));
-  check(calls.filter((c) => c.role === 'video.template').length === 1, 'un seul appel de choix (video.template) pour tout le film', calls.map((c) => c.role).join(','));
+  check(calls.map((c) => c.role).join(',') === 'video.planner', 'UN SEUL appel pour tout le film (le storyboard) : ni directeur de création, ni concept, ni choix dans le catalogue', calls.map((c) => c.role).join(','));
+  check(film.direction?.id === 'organic', 'l’idée écrite par le storyboard : la direction nommée reprise par le plan du film', JSON.stringify(film.direction));
   check(film.scenes.every((s) => s.status === 'ready' && !!s.thumbnail), 'contrôle dans Chrome : toutes prêtes, vignettes prises', JSON.stringify(film.scenes.map((s) => [s.status, s.error?.message])));
   check(!calls.some((c) => c.role === 'video.concept-explore'), 'économie : pas d’exploration des idées sous le cran Ultra (l’axe de départ et la mémoire varient les films)');
   check(!!film.axis, 'l’axe de départ est gardé dans le film (jamais deux fois le même pour la marque)', film.axis);
 
   // 3. La création au cran Ultra : l'exploration
   calls.length = 0;
+  process.env.IDEM_VIDEO_CONCEPT = '1';
+  process.env.VIDEO_CATALOG_CHOOSER = 'model';
   const ultra = await create('ultra');
-  check(calls.findIndex((c) => c.role === 'video.concept-explore') >= 0 && calls.findIndex((c) => c.role === 'video.concept-explore') < calls.findIndex((c) => c.role === 'video.concept'), 'Ultra : exploration avant le concept', calls.map((c) => c.role).join(','));
+  delete process.env.IDEM_VIDEO_CONCEPT;
+  delete process.env.VIDEO_CATALOG_CHOOSER;
+  check(calls.findIndex((c) => c.role === 'video.concept-explore') >= 0 && calls.findIndex((c) => c.role === 'video.concept-explore') < calls.findIndex((c) => c.role === 'video.concept'), 'ancien enchaînement (Ultra) : exploration avant le concept', calls.map((c) => c.role).join(','));
   check(/THE FILM IDEA CHOSEN/.test(calls.find((c) => c.role === 'video.concept')?.user || '') && !!ultra.film!.explored?.chosen, 'Ultra : la piste retenue est donnée au concept et gardée dans le film', ultra.film!.explored?.chosen);
   check(/STARTING POINT/.test(calls.find((c) => c.role === 'video.concept-explore')?.user || ''), 'Ultra : le point de départ tiré par le code parvient à l’exploration');
   check(!!ultra.film!.axis && ultra.film!.axis !== film.axis, 'deuxième film de la marque : un autre axe de départ', `${film.axis} → ${ultra.film!.axis}`);
@@ -143,7 +149,7 @@ async function main() {
   videos.set(ultra.id, { ...old, film: { ...old.film!, catalog: undefined, scenes: old.film!.scenes.map((s) => ({ ...s, catalog: undefined, html: '<div class="h-full w-full bg-ground"><p class="t text-[90px] text-ink">{{text.headline}}</p></div>', script: "tl.fromTo(root.querySelector('.t'), { opacity: 0 }, { opacity: 1, duration: 0.5 }, 0);" })) } });
   calls.length = 0;
   const migrated = await service.updateVideo('u1', 'p1', ultra.id, { visual: { s1: 'le titre plus grand' } });
-  check(!!migrated!.film!.catalog && migrated!.film!.scenes.every((s) => !!s.catalog && /^__ge\.scene\(/.test(s.script || '')) && calls.filter((c) => c.role === 'video.template').length === 2, 'un film d’avant le catalogue y passe à sa première retouche (un appel pour le film, un pour la retouche)', calls.map((c) => c.role).join(','));
+  check(!!migrated!.film!.catalog && migrated!.film!.scenes.every((s) => !!s.catalog && /^__ge\.scene\(/.test(s.script || '')) && calls.filter((c) => c.role === 'video.template').length === 1, 'un film d’avant le catalogue y passe à sa première retouche (le code pour le film, un appel pour la retouche)', calls.map((c) => c.role).join(','));
 
   // 6. Un film écrit AVANT le catalogue (HTML libre, Anime.js) se rend toujours tel quel
   const animeHtml = await buildComposition({

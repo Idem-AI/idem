@@ -31,7 +31,7 @@ let configured = false;
  */
 export async function idemAnalyzeImage(base64: string, mimeType: string, instruction: string, options: VisionOptions = {}): Promise<string> {
   const media = await import('../media.service');
-  if (!media.isMediaConfigured()) throw new Error('vision_unavailable');
+  if (!media.isVisionConfigured()) throw new Error('vision_unavailable');
   const sourcing = AI_CONFIG.communication.imageSourcing;
   const { purpose, ...rest } = options;
   return media.analyzeImage(

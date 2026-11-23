@@ -13,6 +13,10 @@
  *   4. COMPARATEUR (vision, High+)  voit original | brouillon côte à côte et répond par un patch ciblé ;
  *                             le patch n'est gardé que s'il améliore la note composite.
  *
+ * Avec un modèle vectoriel (OmniSVG, servi par idem-ml) et un logo SANS texte, l'image de l'original est
+ * aussi vectorisée par ce modèle : un candidat « fidèle » de plus, converti en Logo IR et soumis au même
+ * contrôle (OmniSVG n'écrit pas : un logo à texte reste au seul dessinateur).
+ *
  * Si le modèle est absent ou muet, `improveLogo` rend une liste vide : l'appelant reprend le moteur standard.
  */
 import sharp from 'sharp';
@@ -39,6 +43,9 @@ import type { BuildOptions } from '../render/build';
 import { hueGap, inkMap, measurePalette, mergePalette, OBSERVER_INSTRUCTION, parseReading, readingKey, readingSheet, svgTexts } from './reading';
 import { practiceBrief } from '../validate/practices';
 import type { LogoReading } from './reading';
+import { defaultKernel } from '../kernel/paper.kernel';
+import type { VectorModel } from '../vector/client';
+import { importVectorSymbol } from '../vector/import';
 
 export type Vision = (png: Buffer, instruction: string) => Promise<string>;
 export type Cache = { get(key: string): Promise<unknown | null>; set(key: string, value: unknown): Promise<void> };
@@ -270,6 +277,8 @@ export interface ImproveRequest {
   cache?: Cache;
   wish?: string;
   seed: string;
+  /** Le modèle vectoriel (OmniSVG via idem-ml) : vectorisation fidèle des logos sans texte. */
+  vector?: VectorModel;
   onStage?: (stage: 'observing' | 'redrawing' | 'checking' | 'comparing', detail?: string) => void;
 }
 
@@ -317,6 +326,13 @@ export async function improveLogo(req: ImproveRequest): Promise<ImproveResult> {
     const degree = DEGREES[i % DEGREES.length];
     for (let d = 0; d < perDegree; d++) tasks.push({ degree, task: redrawTask({ reading, brief, degree, wish: req.wish, withName, inkMap: map }, palette, hashSeed(`${req.seed}#improve#${i}#${d}`), `logoRedraw:${i + 1}.${d + 1}`) });
   }
+  // La vectorisation par le modèle vectoriel part en même temps que le dessinateur.
+  const vectorize =
+    req.vector && !withName && reading.layout !== 'wordmark-only'
+      ? convertSvgToPng(req.svg, 448, 448)
+          .then((png) => req.vector!.imageToSvg(png, { candidates: 3, seed: hashSeed(`${req.seed}#vector`) }))
+          .catch(() => [])
+      : null;
   const written = await orchestrator.all(tasks.map((t) => t.task));
 
   // ── 3. Contrôler : pipeline qualité + fidélité à l'original ──
@@ -333,6 +349,30 @@ export async function improveLogo(req: ImproveRequest): Promise<ImproveResult> {
   }
   const written_ok = judged.length;
   decisions.push({ stage: 'redrawer', source: written_ok ? 'llm' : 'code', detail: `${written_ok}/${written.length} brouillon(s) valides ; ressemblance ${judged.map((j) => `${j.degree} ${j.similarity}`).join(' · ')}` });
+  if (vectorize) {
+    const candidates = await vectorize;
+    let kept = 0;
+    for (const [k, candidate] of candidates.entries()) {
+      const imported = importVectorSymbol(candidate.svg, palette, defaultKernel(), { idPrefix: 'v' });
+      if (!imported.ok) continue;
+      const doc = {
+        brief: { brandName: brief.brandName, industry: brief.industry ?? '', audience: brief.audience ?? '', personality: (brief.personality ?? []).slice(0, 6) },
+        concept: { type: reading.conceptType, rationale: 'Vectorisation fidèle de l\'original (OmniSVG)', motifs: ['omnisvg'], recipe: 'improve:omnisvg' },
+        palette,
+        composition: { layout: 'symbol-only' },
+        layers: imported.layers,
+        meta: { seed: hashSeed(`${req.seed}#vector#${k}`), engine: 'logo-engine/1+omnisvg' },
+      };
+      const made = await produceLogo(doc, { ...req.build, allowFreePaths: true }, { skipVariants: true });
+      if (!made.ok || !made.logo) continue;
+      const verdict = await judgeDraft({ ...made.logo, type: reading.conceptType, recipe: 'improve:omnisvg', novelty: 1 }, 'faithful', original);
+      if (verdict) {
+        judged.push(verdict);
+        kept++;
+      }
+    }
+    decisions.push({ stage: 'vector', source: candidates.length ? 'llm' : 'code', detail: candidates.length ? `OmniSVG : ${kept}/${candidates.length} vectorisation(s) fidèle(s) retenue(s)` : 'OmniSVG n\'a rien rendu (absent, occupé ou hors délai)' });
+  }
   if (!judged.length) return { ...empty, reading, decisions, tokens: sum(orchestrator.tokens, observed.tokens) };
 
   // ── 4. Comparer (High+) : original | brouillon, patch ciblé gardé seulement s'il améliore ──

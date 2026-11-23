@@ -20,6 +20,7 @@
  * La voix ne dépend que de la clé de sa scène : une retouche (texte, code, musique) garde la
  * synchronisation.
  */
+import { speakableText, writtenText } from './spoken';
 import { spawn } from 'child_process';
 import crypto from 'crypto';
 import fs from 'fs';
@@ -114,7 +115,7 @@ export const VOICE_TAG = /\[[a-z][a-z ,'-]{1,30}\]/g;
 
 /** Le texte d'une ligne sans ses balises de jeu (sous-titres, minutage, vérification). */
 export function plainSpoken(text: string): string {
-  return String(text || '').replace(VOICE_TAG, ' ').replace(/\s+([,.!?…])/g, '$1').replace(/\s+/g, ' ').trim();
+  return writtenText(String(text || '')).replace(VOICE_TAG, ' ').replace(/\s+([,.!?…])/g, '$1').replace(/\s+/g, ' ').trim();
 }
 
 /**
@@ -351,8 +352,9 @@ export async function synthesizeVoice(opts: {
 }): Promise<{ lines: SaidLine[]; provider: SpeechProvider; model: string; voice: string }> {
   const synth = coreHost().synthesizeSpeech;
   if (!synth) throw new VoiceUnavailableError('no_speech_model');
+  // Ce que la voix PRONONCE (adresses, montants, pourcentages, {écrit|dit}) — l'écrit reste pour l'écran.
   const request = (text: string): SpeechRequest => ({
-    text,
+    text: speakableText(text, opts.language),
     language: langOf(opts.language),
     style: opts.style || opts.persona.character,
     persona: opts.persona.id,

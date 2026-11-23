@@ -1,2 +1,4 @@
 # Sorties des contrôles (MP4, vignettes, aperçus) : `npm run check:motion`.
 /tmp
+# Banque de sons générée localement par build-sfx-bank.sh (reconstruire sur chaque poste)
+/assets/sfx-bank/

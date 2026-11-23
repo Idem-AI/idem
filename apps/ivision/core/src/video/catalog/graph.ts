@@ -5,7 +5,7 @@
  * cette liste courte.
  */
 import crypto from 'crypto';
-import type { AnimRole, FilmFormatId, GabaritNode, LayoutNode, LoadedVideoCatalog, SceneConfig, SceneRole, Slot, ThemeNode, TransitionNode, VideoNode, VideoStyle } from './types';
+import type { AnimRole, FilmFormatId, GabaritNode, LayoutNode, LoadedVideoCatalog, PrimitiveNode, SceneConfig, SceneRole, Slot, ThemeNode, TransitionNode, VideoNode, VideoStyle } from './types';
 import { ROLE_TARGET } from './types';
 import { inTier } from '@idem/graphic-engine';
 
@@ -101,6 +101,29 @@ export interface SceneFacts {
 const ROLE_ENERGY: Partial<Record<SceneRole, number>> = { hook: 4, problem: 2, reveal: 4, feature: 3, benefits: 3, proof: 3, data: 3, statement: 3, cta: 4, signature: 2 };
 export const energyOf = (role?: string, energy?: number): number => (energy && energy >= 1 && energy <= 5 ? energy : ROLE_ENERGY[role as SceneRole] ?? 3);
 
+/** Le chiffre d'une scène, lu : sa valeur, son préfixe, son suffixe, et s'il est un pourcentage. */
+export function figureParts(text: string): { value: number; prefix: string; suffix: string; percent: boolean } | null {
+  const m = /^\s*([^\d\s]*)\s*(\d[\d\s.,\u00a0\u202f]*)\s*(.*)$/.exec(String(text || ''));
+  if (!m) return null;
+  const digits = m[2].trim();
+  // Un séparateur de milliers (espace, point, virgule suivi de trois chiffres) ; une décimale sinon.
+  const normalized = /[.,]\d{1,2}$/.test(digits) && !/[.,]\d{3}$/.test(digits) ? digits.replace(/[\s\u00a0\u202f]/g, '').replace(/[.,](?=\d{1,2}$)/, '.').replace(/[.,](?=\d{3})/g, '') : digits.replace(/[\s.,\u00a0\u202f]/g, '');
+  const value = Number(normalized);
+  if (!Number.isFinite(value) || /[\d]/.test(m[3])) return null;
+  return { value, prefix: m[1], suffix: m[3].trim() ? `${/^%|^[a-z]/i.test(m[3].trim()) && !/^%/.test(m[3].trim()) ? ' ' : ''}${m[3].trim()}` : '', percent: /^%/.test(m[3].trim()) && value >= 0 && value <= 100 };
+}
+
+/** Une primitive ne sert que la scène qui offre ce qu'elle lit (un chiffre lisible, un pourcentage). */
+export function primitiveFits(node: PrimitiveNode, f: SceneFacts): boolean {
+  const needs = node.primitive?.needs ?? [];
+  const fig = f.slots.figure ? figureParts(f.texts[f.slots.figure] ?? '') : null;
+  // Le compteur du registre écrit ses nombres à l'anglaise (« 1,200 ») : il ne sert que des entiers sous mille, qui
+  // s'écrivent pareil dans toutes les langues (le chiffre affiché doit rester celui de la scène, mot pour mot).
+  if (needs.includes('figure.number') && !(fig && Number.isInteger(fig.value) && fig.value < 1000)) return false;
+  if (needs.includes('figure.percent') && !fig?.percent) return false;
+  return true;
+}
+
 /** La mise en page peut-elle montrer TOUTE la scène (aucun texte perdu, chaque emplacement exigé rempli) ? */
 export function layoutFits(layout: LayoutNode, f: SceneFacts): boolean {
   if (!f.formats.every((x) => layout.formats.includes(x))) return false;
@@ -185,7 +208,9 @@ export function videoIndex(cat: LoadedVideoCatalog): Map<string, VideoNode[]> {
 
 export function shortlist(cat: LoadedVideoCatalog, f: SceneFacts, o: { style?: VideoStyle; direction?: string; state: FilmState; seed: string; size: number; level?: string }): SceneCandidate[] {
   const index = videoIndex(cat);
-  const layouts = inDirection(cat, (index.get('layout') ?? []).filter((n): n is LayoutNode => layoutFits(n as LayoutNode, f)), o.direction);
+  // Les primitives (registre HyperFrames) se choisissent comme des mises en page, si la scène offre ce qu'elles lisent.
+  const pool = [...(index.get('layout') ?? []), ...(index.get('primitive') ?? []).filter((n) => primitiveFits(n as PrimitiveNode, f))] as LayoutNode[];
+  const layouts = inDirection(cat, pool.filter((n): n is LayoutNode => layoutFits(n as LayoutNode, f)), o.direction);
   const fitting = new Set(layouts.map((l) => l.id));
   const previous = o.state.layouts[f.index - 1];
   const score = (layout: LayoutNode, node: { roles?: string[]; energy?: [number, number]; tags?: { style?: VideoStyle[] }; weight?: number; id: string }, config: SceneConfig): number => {

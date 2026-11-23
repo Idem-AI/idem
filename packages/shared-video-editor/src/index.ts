@@ -17,14 +17,28 @@ export interface PreviewSceneError {
 export type PreviewToEditor =
   | { type: 'ivision:ready'; duration: number; scenes: { key: string; start: number; end: number }[]; errors: PreviewSceneError[] }
   | { type: 'ivision:time'; t: number; playing: boolean }
-  | { type: 'ivision:errors'; errors: PreviewSceneError[] };
+  | { type: 'ivision:errors'; errors: PreviewSceneError[] }
+  | ({ type: 'ivision:picked'; key: string; t: number } & ScenePoint);
+
+/**
+ * Un endroit POINTÉ dans l'aperçu : l'instant dans la scène (s), la zone (fractions du cadre de la vidéo) et ce
+ * qu'elle couvre, relevé par l'aperçu lui-même (rôles du catalogue : `title`, `media`… ; textes visibles).
+ */
+export interface ScenePoint {
+  at: number;
+  zone: { x: number; y: number; w: number; h: number };
+  roles: string[];
+  texts?: string[];
+}
 
 export type EditorToPreview =
   | { type: 'ivision:edit'; key: string; texts?: Record<string, string>; media?: { id: string; url: string }[]; focus?: boolean }
   | { type: 'ivision:focus'; key: string }
   | { type: 'ivision:seek'; t: number }
   | { type: 'ivision:play' }
-  | { type: 'ivision:pause' };
+  | { type: 'ivision:pause' }
+  /** Une zone tracée sur l'aperçu, en fractions de l'iframe : l'aperçu se met en pause et répond `ivision:picked`. */
+  | { type: 'ivision:pick'; x: number; y: number; w: number; h: number };
 
 /** Une scène telle que l'éditeur la montre (sous-ensemble d'une scène du film). */
 export interface EditorScene {
@@ -46,7 +60,7 @@ export interface EditorScene {
 
 /** Ce que l'éditeur demande à son hôte (l'hôte appelle l'API, puis recharge la vidéo). */
 export type SceneAction =
-  | { kind: 'revise'; key: string; instruction: string }
+  | { kind: 'revise'; key: string; instruction: string; point?: ScenePoint }
   | { kind: 'fix'; key: string }
   | { kind: 'regenerate'; key: string };
 
@@ -85,6 +99,32 @@ export function textLabel(key: string, lang: EditorLang = 'fr'): string {
   if (prop) return `${lang === 'en' ? 'In the screen' : 'Dans l’écran'} ${prop[1]}`;
   const spaced = key.replace(/[_-]+/g, ' ').replace(/([a-z])([A-Z0-9])/g, '$1 $2');
   return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+}
+
+const ROLES: Record<string, [string, string]> = {
+  title: ['le titre', 'the title'],
+  label: ['le surtitre', 'the kicker'],
+  body: ['le texte', 'the text'],
+  figure: ['le chiffre', 'the figure'],
+  items: ['la liste', 'the list'],
+  item: ['un élément de la liste', 'a list item'],
+  media: ['la photo', 'the photo'],
+  logo: ['le logo', 'the logo'],
+  cta: ['le bouton', 'the button'],
+  attribution: ['la signature', 'the attribution'],
+  mark: ['un motif', 'a shape'],
+  bg: ['le fond', 'the background'],
+};
+
+/** Ce que couvre une zone pointée, en clair (« le titre, la photo »). */
+export function pointLabel(point: ScenePoint, lang: EditorLang = 'fr'): string {
+  const names = point.roles.map((r) => ROLES[r]?.[lang === 'en' ? 1 : 0]).filter((n): n is string => !!n);
+  return names.length ? names.join(', ') : lang === 'en' ? 'an empty area' : 'une zone vide';
+}
+
+/** Le corps de retouche d'une action « réécrire » : la consigne, et l'endroit pointé s'il y en a un. */
+export function revisePatch(action: Extract<SceneAction, { kind: 'revise' }>): { visual: Record<string, string>; points?: Record<string, ScenePoint> } {
+  return { visual: { [action.key]: action.instruction }, ...(action.point ? { points: { [action.key]: action.point } } : {}) };
 }
 
 export function formatSeconds(t: number): string {

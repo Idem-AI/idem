@@ -29,6 +29,9 @@ export const SECRET_MANIFEST = {
     'OPENROUTER_API_KEY',
     // Voix off auto-hébergée (Qwen3-TTS / Chatterbox derrière IDEM_TTS_URL) ; facultative.
     'IDEM_TTS_API_KEY',
+    // Modèles auto-hébergés : passerelle d'idem-ml (idem-ml/services/gateway) derrière IDEM_ML_URL, active avec
+    // IDEM_AI_BACKEND=idem-ml (config/ai-backend.config.ts) ; facultative.
+    'IDEM_ML_API_KEY',
     // Intégrations.
     'GITHUB_CLIENT_SECRET',
     'PEXELS_API_KEY',

@@ -128,8 +128,10 @@ export const CATALOG_RUNTIME = String.raw`(function () {
     function content() {
       var top = Infinity, bottom = -Infinity;
       each(safe.children, function (c) { var r = c.getBoundingClientRect(); if (r.height > 0) { top = Math.min(top, r.top); bottom = Math.max(bottom, r.bottom); } });
-      // Les glyphes eux-mêmes : avec un interligne serré, une capitale accentuée (É, Ç) dépasse de sa ligne.
+      // Les glyphes eux-mêmes : avec un interligne serré, une capitale accentuée (É, Ç) dépasse de sa ligne. Seuls les
+      // textes de la zone sûre comptent (un texte posé hors d'elle, en tête de page, a sa propre place).
       each(els, function (el) {
+        if (!safe.contains(el)) return;
         var rg = document.createRange();
         rg.selectNodeContents(el);
         each(rg.getClientRects(), function (q) { if (q.height > 0.5) { top = Math.min(top, q.top); bottom = Math.max(bottom, q.bottom); } });
@@ -480,7 +482,7 @@ export const CATALOG_RUNTIME = String.raw`(function () {
   /** Les effets d'un rôle, préparés sur la scène montée et mesurée (avant tout tween). */
   function prepare(root, r) {
     var resolve = roleTargets(root, r), k = unit();
-    ['in', 'hold', 'out'].forEach(function (phase) {
+    ['in', 'hold', 'develop', 'out'].forEach(function (phase) {
       (r[phase] || []).forEach(function (st) {
         if (!st.fx || !FX[st.fx]) return;
         st.__r = FX[st.fx]({ base: resolve('base'), units: resolve(), opts: st.opts || {}, dur: st.duration, k: k });
@@ -489,8 +491,8 @@ export const CATALOG_RUNTIME = String.raw`(function () {
   }
 
   /** Une suite de tweens à partir de start ; resolve(target, pick) rend les éléments visés. Rend la fin. */
-  function steps(tl, resolve, list, start, prime) {
-    var k = unit(), prevStart = start, end = start;
+  function steps(tl, resolve, list, start, prime, cues) {
+    var k = unit(), k0 = k, prevStart = start, end = start;
     (list || []).forEach(function (st) {
       var at = st.at != null ? prevStart + st.at : end;
       if (st.fx) {
@@ -506,18 +508,301 @@ export const CATALOG_RUNTIME = String.raw`(function () {
       var els = resolve(st.target, st.pick);
       if (!els.length) return;
       if (st.counter) counter(tl, els, st, at);
-      else {
+      else if (cues && cues.length === els.length && els.length > 1) {
+        // Chaque élément entre à SON instant (quand la voix le dit) ; les pas suivants gardent leur écart au premier.
+        els.forEach(function (el, k) {
+          var v = conv(st.to || {}, k0);
+          v.duration = st.duration;
+          v.ease = st.ease || 'none';
+          var when = cues[k] + (at - start);
+          if (st.from) tl.fromTo(el, conv(st.from, k0), v, when);
+          else tl.to(el, v, when);
+          end = Math.max(end, when + st.duration);
+        });
+        prevStart = at;
+        return;
+      } else {
         var vars = conv(st.to || {}, k);
         vars.duration = st.duration;
         vars.ease = st.ease || 'none';
-        if (st.stagger) vars.stagger = st.stagger;
+        // Une répétition resserrée : les départs suivent une courbe (grands écarts d'abord, puis de plus en plus serrés).
+        if (st.stagger) vars.stagger = st.compress && els.length > 2 ? { amount: st.stagger * (els.length - 1) * 0.85, ease: 'power1.out' } : st.stagger;
         if (st.from) tl.fromTo(els, conv(st.from, k), vars, at);
         else tl.to(els, vars, at);
       }
       prevStart = at;
-      end = Math.max(end, at + st.duration + (st.stagger || 0) * (els.length - 1));
+      end = Math.max(end, at + st.duration + (st.stagger || 0) * (els.length - 1) * (st.compress ? 0.85 : 1));
     });
     return end;
+  }
+
+  // ── Le contraste garanti (22/11/2026) ─────────────────────────────────────────────────────
+  /**
+   * Un texte posé sur un fond UNI doit s'y lire (3:1 au moins, le seuil WCAG des grands textes) : une couleur de marque
+   * trop claire sur un fond clair (un orange sur crème) est assombrie DANS SA TEINTE (mêlée à l'encre, pas à pas)
+   * jusqu'à se lire. Un texte posé sur une image n'est pas touché ici (son voile s'en charge).
+   */
+  function guardContrast(root) {
+    var media = Array.prototype.slice.call(root.querySelectorAll('[data-v="media"]')).map(function (m) { return m.getBoundingClientRect(); });
+    var ink = getComputedStyle(comp).getPropertyValue('--color-ink').trim() || '#14211c';
+    each(root.querySelectorAll('[data-fit], [data-v="mark"]'), function (el) {
+      var r = el.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+      if (media.some(function (m) { return cx >= m.left && cx <= m.right && cy >= m.top && cy <= m.bottom; })) return;
+      var g = groundOf(el), base = getComputedStyle(el).color, c = parseRgb(base);
+      if (!c || contrast(c, g) >= 3) return;
+      var inkRgb = rgbOf(ink), light = lum(g) > 0.5;
+      for (var p = 85; p >= 15; p -= 10) {
+        var mix = 'color-mix(in srgb, ' + base + ' ' + p + '%, ' + (light ? ink : '#ffffff') + ')';
+        var v = rgbOf(mix);
+        if (v && contrast(v, g) >= 3) { el.style.color = mix; return; }
+      }
+      el.style.color = light ? (inkRgb ? ink : '#111111') : '#ffffff';
+    });
+  }
+
+  // ── Le directeur de caméra (22/11/2026, adapté d'explainroo — MIT, © 2026 Vincent Schmalbach) ─────────────────
+  /*
+   * La caméra cadre CE QUI EST DÉJÀ VISIBLE, mesuré à sa place. Elle s'ouvre serrée sur le premier élément de la scène ;
+   * quand d'autres arrivent (souvent sur la voix), elle s'élargit pour les accueillir — la scène se construit sous les
+   * yeux au lieu d'être posée d'un bloc — et elle finit en plan large : la coupe part toujours d'une image complète.
+   * Rien de visible n'est jamais coupé (le cadre contient l'union des éléments parus, dans la zone sûre). Deux
+   * mouvements sont séparés d'au moins 1,2 s (les entrées plus rapprochées sont accueillies ensemble) ; un changement
+   * de moins de 8 % ne vaut pas un mouvement. Un mouvement : 0,7 s, accélération puis ralenti, un instant avant
+   * l'entrée. Une scène dont l'image occupe tout le cadre reste en plan large (son image a sa propre caméra).
+   */
+  var CAM = { fill: 0.86, settle: 0.08, gap: 1.2, lead: 0.3, move: 0.7 };
+  function camera(item, cam) {
+    var root = item.root, wrap = root.querySelector('[data-ge-camera]');
+    if (!wrap || !cam || !cam.beats || cam.beats.length < 2) return;
+    var W = comp.offsetWidth, H = comp.offsetHeight;
+    var safeEl = root.querySelector('[data-safe]');
+    var view = shown(root, function () { return safeEl ? layoutBox(safeEl, root) : { x: 0, y: 0, w: W, h: H }; });
+    // L'étendue RÉELLE d'un élément : ses lettres pour un texte (un bloc de texte occupe souvent toute la largeur),
+    // sa boîte pour une image ou un logo. Mesurée avant toute animation (aucune transformation posée).
+    function extentOf(el) {
+      var rr = root.getBoundingClientRect(), sc = rr.width / (root.offsetWidth || rr.width || 1);
+      if (el.querySelector('img, video, svg') || !(el.textContent || '').trim()) return layoutBox(el, root);
+      var rg = document.createRange(), x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+      rg.selectNodeContents(el);
+      each(rg.getClientRects(), function (q) { if (q.width < 1 || q.height < 1) return; x0 = Math.min(x0, q.left); y0 = Math.min(y0, q.top); x1 = Math.max(x1, q.right); y1 = Math.max(y1, q.bottom); });
+      return x1 > x0 ? { x: (x0 - rr.left) / sc, y: (y0 - rr.top) / sc, w: (x1 - x0) / sc, h: (y1 - y0) / sc } : layoutBox(el, root);
+    }
+    function union(boxes) {
+      var x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+      boxes.forEach(function (b) { if (!b || !b.w || !b.h) return; x0 = Math.min(x0, b.x); y0 = Math.min(y0, b.y); x1 = Math.max(x1, b.x + b.w); y1 = Math.max(y1, b.y + b.h); });
+      return x1 > x0 ? { x: x0, y: y0, w: x1 - x0, h: y1 - y0 } : null;
+    }
+    var entries = shown(root, function () {
+      return cam.beats.map(function (b) {
+        var els = Array.prototype.slice.call(root.querySelectorAll(b.role === 'items' ? '[data-v="item"], [data-v="items"] > *' : '[data-v="' + b.role + '"]'));
+        if (b.item != null) els = els.slice(b.item, b.item + 1);
+        return { t: b.t, box: union(els.map(extentOf)) };
+      }).filter(function (e) { return e.box; });
+    });
+    if (entries.length < 2) return;
+    // Une image plein cadre : pas de caméra de scène.
+    if (entries.some(function (e) { return e.box.w >= W * 0.95 && e.box.h >= H * 0.6; })) return;
+    // Les temps : des entrées séparées d'au moins « gap » (les plus proches sont accueillies ensemble).
+    var groups = [];
+    entries.forEach(function (e) {
+      var last = groups[groups.length - 1];
+      if (last && e.t - last.t < CAM.gap) last.boxes.push(e.box);
+      else groups.push({ t: e.t, boxes: [e.box] });
+    });
+    if (groups.length < 2) return;
+    var cx = view.x + view.w / 2, cy = view.y + view.h / 2;
+    function shotFor(box) {
+      var z = Math.max(1, Math.min(cam.max, Math.min((view.w * CAM.fill) / box.w, (view.h * CAM.fill) / box.h)));
+      var X = box.x + box.w / 2, Y = box.y + box.h / 2;
+      X = Math.max(cx / z, Math.min(W - (W - cx) / z, X));
+      Y = Math.max(cy / z, Math.min(H - (H - cy) / z, Y));
+      return { x: X, y: Y, z: z };
+    }
+    var seen = [], plan = [], cur = null;
+    groups.forEach(function (g, k) {
+      seen = seen.concat(g.boxes);
+      var s = shotFor(union(seen));
+      if (!cur) { cur = s; plan.push({ at: 0, s: s, set: true }); return; }
+      if (Math.abs(s.z - cur.z) / cur.z < CAM.settle && Math.abs(s.x - cur.x) < W * 0.03 && Math.abs(s.y - cur.y) < H * 0.03) return;
+      var at = Math.max(plan[plan.length - 1].at + (plan[plan.length - 1].set ? 0 : CAM.move), g.t - CAM.lead);
+      if (at + CAM.move > cam.end) return;
+      plan.push({ at: at, s: s });
+      cur = s;
+    });
+    // Le plan large de la fin (la coupe part d'une image complète).
+    var last = plan[plan.length - 1];
+    if (cur && cur.z > 1.04) plan.push({ at: Math.max(last.at + (last.set ? 0.6 : CAM.move + 0.6), cam.end - CAM.move), s: { x: cx, y: cy, z: 1 } });
+    // Rien ne bouge vraiment (un seul cadre, presque large) : pas de caméra.
+    if (plan.length < 2 || plan.every(function (p) { return p.s.z < 1.06; })) return;
+    var tl = item.tl;
+    var pos = function (s) { return { x: cx - s.x * s.z, y: cy - s.y * s.z, scale: s.z }; };
+    gsap.set(wrap, Object.assign({ transformOrigin: '0 0' }, pos(plan[0].s)));
+    plan.slice(1).forEach(function (p) { tl.to(wrap, Object.assign({ duration: CAM.move, ease: 'power2.inOut' }, pos(p.s)), p.at); });
+    GE.cameras = (GE.cameras || []).concat([{ key: item.spec.key, shots: plan.map(function (p) { return { at: Math.round(p.at * 100) / 100, z: Math.round(p.s.z * 100) / 100 }; }) }]);
+  }
+
+  // ── Les primitives du registre HyperFrames (22/11/2026) ───────────────────────────────────
+  /*
+   * Un composant du registre (HeyGen, Apache-2.0 ; source figé et vérifié au chargement du catalogue) est monté dans la
+   * zone data-ge-prim-host de sa scène, selon son contrat : son #root reçoit sa durée, ses variables sont lues par
+   * window.__hyperframes.getVariables(), il enregistre UNE timeline en pause dans window.__timelines. Pour vivre dans
+   * un film IDEM, le montage :
+   *   - rend ses identifiants propres à ce montage (le CSS #x devient un sélecteur d'attribut), pour qu'un composant
+   *     utilisé deux fois ne se confonde pas avec lui-même ;
+   *   - retire ses marques de plan HyperFrames (class clip, data-start…), sinon le moteur le minuterait sur le film ;
+   *   - lui donne les jetons de la marque (couleurs, polices) par ses variables CSS de thème ;
+   *   - pose l'image de son écran dans l'emplacement qu'il attend, juste le temps de son montage ;
+   *   - récupère sa timeline et l'ajoute à celle de la scène, à son départ.
+   */
+  var PRIM_TOKENS = '--fg:var(--color-ink);--muted:color-mix(in srgb,var(--color-ink) 62%,transparent);' +
+    '--surface:color-mix(in srgb,var(--color-ground) 90%,var(--color-ink));--border:color-mix(in srgb,var(--color-ink) 16%,transparent);' +
+    '--brand:var(--color-brand-primary);--accent:var(--color-brand-secondary);--accent-2:var(--color-brand-accent);' +
+    '--font-mono:ui-monospace,SFMono-Regular,Menlo,monospace;--radius:2.4cqmin;--space-1:max(1.2cqmin,1.6cqw);--space-2:max(2.4cqmin,2.6cqw);--space-3:max(4cqmin,4cqw);' +
+    '--dur-beat:0.5s;--ease-standard:cubic-bezier(0.16,1,0.3,1);--ease-emphasis:cubic-bezier(0.65,0,0.35,1)';
+  function escRe(s) { return s.replace(/[.*+?^$(){}|[\]\\]/g, '\\$&'); }
+  function mountPrimitive(item, p) {
+    var root = item.root, host = root.querySelector('[data-ge-prim-host]'), src = root.querySelector('template[data-ge-prim]');
+    if (!host || !src) return;
+    var k = (GE.primCount = (GE.primCount || 0) + 1), tag = 'gep' + k;
+    var frag = src.content.cloneNode(true);
+    var scripts = Array.prototype.map.call(frag.querySelectorAll('script'), function (s) { var t = s.textContent; s.parentNode.removeChild(s); return t; });
+    var ids = Array.prototype.map.call(frag.querySelectorAll('[id]'), function (e) { return e.id; }).sort(function (a, b) { return b.length - a.length; });
+    each(frag.querySelectorAll('style'), function (st) {
+      var css = st.textContent;
+      ids.forEach(function (id) { css = css.replace(new RegExp('#' + escRe(id) + '(?![\\w-])', 'g'), '[data-gep="' + tag + '-' + id + '"]'); });
+      st.textContent = css;
+    });
+    each(frag.querySelectorAll('[id]'), function (e) { e.setAttribute('data-gep', tag + '-' + e.id); });
+    each(frag.querySelectorAll('.clip, [data-start], [data-track-index], [data-composition-id]'), function (e) {
+      e.classList.remove('clip');
+      ['data-start', 'data-track-index', 'data-composition-id', 'data-width', 'data-height'].forEach(function (a) { e.removeAttribute(a); });
+    });
+    var proot = frag.querySelector('#root');
+    if (!proot) return;
+    proot.setAttribute('data-duration', String(p.duration));
+    // --bg est le fond réel sous le composant (ses textes « sur la marque », un libellé de bouton, s'y accordent).
+    var g = groundOf(host);
+    host.style.cssText += ';' + PRIM_TOKENS + ';--bg:rgb(' + g[0] + ',' + g[1] + ',' + g[2] + ')';
+    var slotSrc = root.querySelector('template[data-ge-prim-slot]'), slotTpl = null;
+    if (p.slot && slotSrc) {
+      if (p.slot.selector) { var target = frag.querySelector(p.slot.selector); if (target) target.appendChild(slotSrc.content.cloneNode(true)); }
+      else if (p.slot.template) { slotTpl = document.createElement('template'); slotTpl.setAttribute('data-slot', p.slot.template); slotTpl.content.appendChild(slotSrc.content.cloneNode(true)); document.body.appendChild(slotTpl); }
+    }
+    host.appendChild(frag);
+    var prev = window.__hyperframes;
+    window.__hyperframes = { getVariables: function () { return p.vars; } };
+    window.__timelines = window.__timelines || {};
+    var before = Object.keys(window.__timelines);
+    try {
+      scripts.forEach(function (text) { var el = document.createElement('script'); el.textContent = text; document.body.appendChild(el); el.parentNode.removeChild(el); });
+    } finally {
+      window.__hyperframes = prev;
+      if (slotTpl && slotTpl.parentNode) slotTpl.parentNode.removeChild(slotTpl);
+    }
+    each(host.querySelectorAll('[id]'), function (e) { e.id = tag + '-' + e.id; });
+    var added = Object.keys(window.__timelines).filter(function (key) { return before.indexOf(key) < 0; });
+    if (!added.length) { window.__sceneErrors.push({ key: item.spec.key, message: 'primitive ' + p.id + ': no timeline registered' }); return; }
+    added.forEach(function (key) {
+      var child = window.__timelines[key];
+      delete window.__timelines[key];
+      if (child && typeof child.paused === 'function') { child.paused(false); item.tl.add(child, p.at); }
+    });
+  }
+
+  // ── La signature dessinée (22/11/2026) ────────────────────────────────────────────────────
+  /*
+   * Le logo SVG de la marque (assaini côté serveur, window.__geLogoSvg) remplace l'image du logo d'une scène de fin.
+   * Chaque forme se trace dans le sens de son chemin (trait de sa propre couleur), l'une après l'autre, puis le logo se
+   * remplit et le trait s'efface : la marque se construit sous les yeux au lieu de glisser.
+   */
+  function inlineLogo(root) {
+    var img = root.querySelector('[data-v="logo"] img[data-ge-logo]');
+    if (!img || !window.__geLogoSvg) return null;
+    var holder = document.createElement('div');
+    holder.innerHTML = window.__geLogoSvg;
+    var svg = holder.querySelector('svg');
+    if (!svg) return null;
+    svg.setAttribute('data-ge-inner', '');
+    svg.style.height = '100%';
+    svg.style.width = 'auto';
+    svg.style.maxWidth = '100%';
+    svg.style.overflow = 'visible';
+    img.parentNode.replaceChild(svg, img);
+    return svg;
+  }
+  function drawLogo(tl, svg, at) {
+    var shapes = Array.prototype.slice.call(svg.querySelectorAll('path, circle, ellipse, rect, polygon, polyline, line'));
+    var texts = Array.prototype.slice.call(svg.querySelectorAll('text'));
+    var vb = (svg.getAttribute('viewBox') || '').split(/[\s,]+/).map(Number);
+    var unitW = vb.length === 4 && vb[2] > 0 ? vb[2] : 100;
+    var brand = getComputedStyle(comp).getPropertyValue('--color-brand-primary').trim() || '#1b7a5a';
+    var n = Math.max(1, shapes.length), each_ = Math.min(0.9, 1.6 / n), drawn = 0;
+    shapes.forEach(function (sh, k) {
+      var len = 0;
+      try { len = sh.getTotalLength(); } catch (e) { len = 0; }
+      if (!(len > 0)) return;
+      var cs = getComputedStyle(sh);
+      var fill = cs.fill && cs.fill !== 'none' ? cs.fill : '';
+      var stroke = cs.stroke && cs.stroke !== 'none' ? cs.stroke : fill || brand;
+      var keepStroke = cs.stroke && cs.stroke !== 'none';
+      gsap.set(sh, { attr: { 'stroke-dasharray': len, 'stroke-dashoffset': len }, stroke: stroke, strokeWidth: keepStroke ? cs.strokeWidth : Math.max(0.6, unitW * 0.006), fillOpacity: 0 });
+      var start = at + Math.min(k * each_ * 0.55, 1.1);
+      tl.to(sh, { attr: { 'stroke-dashoffset': 0 }, duration: Math.max(0.45, each_ * 1.4), ease: 'power2.inOut' }, start);
+      drawn = Math.max(drawn, start + Math.max(0.45, each_ * 1.4));
+    });
+    var fillAt = (drawn || at + 0.6) - 0.15;
+    if (shapes.length) {
+      tl.to(shapes, { fillOpacity: 1, duration: 0.45, ease: 'power1.out' }, fillAt);
+      shapes.forEach(function (sh) { var cs = getComputedStyle(sh); if (!(cs.stroke && cs.stroke !== 'none' && sh.getAttribute('stroke'))) tl.to(sh, { strokeOpacity: 0, duration: 0.4, ease: 'power1.out' }, fillAt + 0.2); });
+    }
+    if (texts.length) tl.fromTo(texts, { opacity: 0 }, { opacity: 1, duration: 0.5, ease: 'power1.out' }, fillAt);
+    return fillAt + 0.5;
+  }
+
+  // ── La traversée d'une coupe (séquence) ────────────────────────────────────────────────────
+  /** La boîte d'un élément dans sa section, en px de la toile, SANS ses transformations (offsets). */
+  function layoutBox(el, sec) {
+    var x = 0, y = 0;
+    for (var e = el; e && e !== sec; e = e.offsetParent) { x += e.offsetLeft; y += e.offsetTop; }
+    return { x: x, y: y, w: el.offsetWidth, h: el.offsetHeight };
+  }
+  /**
+   * L'élément porté part de sa place dans la scène d'avant et glisse vers la sienne (FLIP). Ses transformations passent
+   * par GSAP (quickSetter : x, y, scaleX, scaleY) — des propriétés CSS à part seraient absorbées par GSAP au premier
+   * tween du même élément et comptées deux fois. Pendant la traversée l'élément n'appartient qu'à elle : sa tenue et son
+   * développement commencent après (l'assemblage les y place). Un cadre d'image change de proportions ; son image est
+   * contre-mise à l'échelle et garde les siennes (elle repart du cadrage de la scène d'avant : innerFrom).
+   */
+  function carryIn(item, c) {
+    var prevSec = document.getElementById(c.prevKey), el = item.root.querySelector(c.sel);
+    var before = prevSec && prevSec.querySelector(c.sel);
+    if (!el || !before) return;
+    var a = shown(prevSec, function () { return layoutBox(before, prevSec); });
+    var b = shown(item.root, function () { return layoutBox(el, item.root); });
+    if (!a.w || !a.h || !b.w || !b.h) return;
+    var sx = a.w / b.w, sy = a.h / b.h;
+    if (c.mode !== 'frame') sx = sy = a.h / b.h;
+    // Un texte (chiffre) ou un logo s'ancre là où il est aligné : sa boîte peut occuper toute la largeur alors que le
+    // texte est ferré à gauche. Le point d'ancrage (gauche, centre, droite) de chaque côté, et l'origine au même point.
+    function anchorOf(node) {
+      if (c.mode === 'frame') return 0.5;
+      var al = getComputedStyle(node).textAlign;
+      return al === 'center' ? 0.5 : al === 'right' || al === 'end' ? 1 : 0;
+    }
+    var fa = shown(prevSec, function () { return anchorOf(before); }), fb = shown(item.root, function () { return anchorOf(el); });
+    var dx = (a.x + a.w * fa) - (b.x + b.w * fb), dy = (a.y + a.h / 2) - (b.y + b.h / 2);
+    var inner = c.mode === 'frame' ? el.querySelector('[data-ge-inner]') : null, from = c.innerFrom || 1;
+    gsap.set(el, { transformOrigin: (fb * 100) + '% 50%' });
+    if (inner) gsap.set(inner, { transformOrigin: '50% 50%' });
+    var set = { x: gsap.quickSetter(el, 'x', 'px'), y: gsap.quickSetter(el, 'y', 'px'), sx: gsap.quickSetter(el, 'scaleX'), sy: gsap.quickSetter(el, 'scaleY') };
+    var iset = inner ? { sx: gsap.quickSetter(inner, 'scaleX'), sy: gsap.quickSetter(inner, 'scaleY') } : null;
+    function render(p) {
+      var q = 1 - p, X = 1 + (sx - 1) * q, Y = 1 + (sy - 1) * q;
+      set.x(dx * q); set.y(dy * q); set.sx(X); set.sy(Y);
+      if (iset) { var z = 1 + (from - 1) * q; iset.sx(z / X); iset.sy(z / Y); }
+    }
+    render(0);
+    item.tl.to({}, { geFx: reg(render), duration: c.duration, ease: c.ease || 'power2.inOut' }, 0);
   }
   function roleTargets(root, r) {
     var base = Array.prototype.slice.call(root.querySelectorAll(r.sel));
@@ -584,20 +869,29 @@ export const CATALOG_RUNTIME = String.raw`(function () {
           if (!r.split || r.split === 'none') return;
           each(root.querySelectorAll(r.sel), function (el) { split(el, r.split === 'lines' ? 'lines' : r.split, r.mask && r.split !== 'lines'); });
         });
+        // Le composant du registre se monte d'abord (la mise à la taille de nos textes tient compte de sa place).
+        if (sp.primitive) mountPrimitive(item, sp.primitive);
+        if (sp.logoDraw) item.logoSvg = inlineLogo(root);
         if (!fit(root)) GE.fitIssues.push(sp.key);
+        guardContrast(root);
         (sp.roles || []).forEach(function (r) {
           if (r.split === 'lines') each(root.querySelectorAll(r.sel), function (el) { lines(el, r.mask); });
         });
         // Les effets se préparent sur la scène posée, à sa taille, AVANT les tweens (qui déplacent les unités).
         (sp.roles || []).forEach(function (r) { prepare(root, r); });
+        // La caméra se cadre sur les éléments mesurés à leur place, avant que les entrées ne les déplacent.
+        if (sp.camera) camera(item, sp.camera);
       });
       (sp.roles || []).forEach(function (r) {
         var resolve = roleTargets(root, r);
-        steps(tl, resolve, r['in'], r.at, true);
+        if (r.role === 'logo' && item.logoSvg) drawLogo(tl, item.logoSvg, r.at);
+        else steps(tl, resolve, r['in'], r.at, true, r.cues);
         if (r.hold) steps(tl, resolve, r.hold, r.holdAt);
+        if (r.develop) steps(tl, resolve, r.develop, r.developAt);
         if (r.out) steps(tl, resolve, r.out, r.outAt);
       });
-      if (sp.transition) transition(item, sp.transition);
+      if (sp.carry) carryIn(item, sp.carry);
+      else if (sp.transition) transition(item, sp.transition);
     } catch (e) {
       window.__sceneErrors.push({ key: sp.key, message: String((e && e.message) || e).slice(0, 300) });
     }
