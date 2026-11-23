@@ -153,6 +153,29 @@ const roleMatch = (roles: string[] | undefined, role?: string): number => (!role
 const energyMatch = (range: [number, number] | undefined, e: number): number => (!range ? 0.5 : e >= range[0] && e <= range[1] ? 1 : 1 - Math.min(1, Math.min(Math.abs(e - range[0]), Math.abs(e - range[1])) / 2));
 const jitter = (seed: string): number => (parseInt(stableHash([seed], 6), 16) % 1000) / 1000;
 
+/**
+ * LE TIRAGE PONDÉRÉ (23/11/2026) — avant, le premier du classement gagnait toujours : à rôle et énergie égaux, deux films
+ * différents recevaient la même scène (même mise en page, mêmes animations, même transition). Désormais le code tire au
+ * sort, avec la graine du film (nouvelle à chaque génération, rejouable ensuite), parmi les candidats assez proches du
+ * meilleur (`band`) ; le meilleur reste le plus probable (`temp` : plus petit = plus fidèle au classement).
+ */
+export function pickWeighted<T>(list: Array<{ item: T; score: number }>, seed: string, band = 0.22, temp = 0.09): T | undefined {
+  if (!list.length) return undefined;
+  const top = Math.max(...list.map((x) => x.score));
+  const near = list.filter((x) => x.score >= top - band);
+  const weights = near.map((x) => Math.exp((x.score - top) / temp));
+  const total = weights.reduce((a, b) => a + b, 0);
+  let r = jitter(seed) * total;
+  for (let k = 0; k < near.length; k++) {
+    r -= weights[k];
+    if (r <= 0) return near[k].item;
+  }
+  return near[near.length - 1].item;
+}
+
+/** Un mélange stable d'une liste (graine du film) : l'ordre change d'un film à l'autre, jamais d'un rendu à l'autre. */
+export const seededShuffle = <T extends string>(list: T[], seed: string): T[] => [...list].sort((a, b) => jitter(`${seed}|${a}`) - jitter(`${seed}|${b}`));
+
 export interface SceneCandidate {
   ref: string;
   layout: LayoutNode;
@@ -167,6 +190,8 @@ export interface FilmState {
   use: Map<string, number>;
   /** Les combinaisons déjà livrées à la marque (mémoire). */
   seen: Set<string>;
+  /** Combien de fois chaque mise en page (`L:id`) et chaque gabarit (`G:id`) a été livré à la marque récemment. */
+  delivered?: Map<string, number>;
 }
 
 export const sceneFingerprint = (c: SceneConfig): string => stableHash([c.gabarit ?? '', c.layout, ...Object.entries(c.animations ?? {}).sort().map(([r, a]) => `${r}=${a}`), c.transition ?? ''], 10);
@@ -219,13 +244,17 @@ export function shortlist(cat: LoadedVideoCatalog, f: SceneFacts, o: { style?: V
     if (layout.id === previous) s -= 0.6;
     s -= 0.12 * (o.state.use.get(layout.id) ?? 0);
     if (o.state.seen.has(sceneFingerprint(config))) s -= 0.15;
+    // La mémoire de la marque, par pièce et non plus par combinaison exacte : une mise en page ou un gabarit déjà livrés
+    // reculent un peu à chaque film (au plus 0,3) — la marque voit le catalogue entier défiler, pas les trois mêmes scènes.
+    const worn = (o.state.delivered?.get(`L:${layout.id}`) ?? 0) + (config.gabarit ? o.state.delivered?.get(`G:${config.gabarit}`) ?? 0 : 0);
+    s -= Math.min(0.3, 0.06 * worn);
     // La première scène accroche, la dernière conclut : les rôles du récit le disent déjà ; la position renforce.
     if (f.index === f.count - 1 && layout.roles.includes('cta')) s += 0.08;
-    return s + 0.06 * (node.weight ?? 1) + 0.08 * jitter(`${o.seed}|${f.index}|${node.id}`);
+    return s + 0.06 * (node.weight ?? 1) + 0.16 * jitter(`${o.seed}|${f.index}|${node.id}`);
   };
   const out: SceneCandidate[] = [];
   // LA GAMME DU CRAN (18/11/2026) : le cran choisit des gabarits de scène de plus en plus premium, et rien d'autre.
-  const gabarits = inTier(inDirection(cat, (index.get('gabarit') ?? []) as GabaritNode[], o.direction).filter((g) => fitting.has(g.config.layout) && roleMatch(g.roles, f.role) > 0), o.level, 2);
+  const gabarits = inTier(inDirection(cat, (index.get('gabarit') ?? []) as GabaritNode[], o.direction).filter((g) => fitting.has(g.config.layout) && roleMatch(g.roles, f.role) > 0), o.level, 6);
   for (const g of gabarits) {
     if (!fitting.has(g.config.layout) || roleMatch(g.roles, f.role) === 0) continue;
     const layout = cat.nodes.get(g.config.layout) as LayoutNode;
@@ -233,7 +262,7 @@ export function shortlist(cat: LoadedVideoCatalog, f: SceneFacts, o: { style?: V
     out.push({ ref: '', layout, gabarit: g, config, score: score(layout, g, config) + 0.1 });
   }
   // Les mises en page nues (animations du thème) complètent la liste : plus de combinaisons, jamais moins juste.
-  for (const layout of inTier(layouts, o.level, 3)) {
+  for (const layout of inTier(layouts, o.level, 6)) {
     if (out.some((c) => c.layout.id === layout.id && c.score > 0.5)) continue;
     const config: SceneConfig = { layout: layout.id, animations: {} };
     out.push({ ref: '', layout, config, score: score(layout, layout, config) });
@@ -254,7 +283,7 @@ export function rankThemes(cat: LoadedVideoCatalog, o: { style?: VideoStyle; dir
   const themes = inTier(inDirection(cat, (videoIndex(cat).get('theme') ?? []).filter((n): n is ThemeNode => o.allowDark || !(n as ThemeNode).requiresDark), o.direction), o.level, 2);
   if (!themes.length) return [cat.nodes.get('builtin.plain') as ThemeNode];
   return themes
-    .map((t) => ({ t, s: (o.style && t.tags?.style?.includes(o.style) ? 0.5 : 0) + 0.3 * energyMatch(t.energy, Math.round(o.energy)) - (o.used.includes(t.id) ? 0.25 : 0) + 0.15 * jitter(`${o.seed}|${t.id}`) }))
+    .map((t) => ({ t, s: (o.style && t.tags?.style?.includes(o.style) ? 0.35 : 0) + 0.3 * energyMatch(t.energy, Math.round(o.energy)) - Math.min(0.45, 0.15 * o.used.filter((u) => u === t.id).length) + 0.3 * jitter(`${o.seed}|${t.id}`) }))
     .sort((a, b) => b.s - a.s)
     .map((x) => x.t);
 }

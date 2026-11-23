@@ -507,6 +507,28 @@ export const CATALOG_RUNTIME = String.raw`(function () {
       }
       var els = resolve(st.target, st.pick);
       if (!els.length) return;
+      // Un DÉCOR qui se trace (23/11/2026) : « draw » est la part dessinée des traits de ses formes SVG (0 → 1), posée
+      // par la longueur normalisée de chaque trait (pathLength = 1) ; les autres propriétés suivent le même tween.
+      var hasDraw = (st.to && st.to.draw != null) || (st.from && st.from.draw != null);
+      if (hasDraw) {
+        var shapes = [];
+        els.forEach(function (el) {
+          if (/^(path|circle|ellipse|line|polyline|polygon|rect)$/i.test(el.tagName)) shapes.push(el);
+          else each(el.querySelectorAll('path, circle, ellipse, line, polyline, polygon, rect'), function (sh) { shapes.push(sh); });
+        });
+        shapes.forEach(function (sh) { sh.setAttribute('pathLength', '1'); sh.style.strokeDasharray = '1 1'; });
+        var d0 = st.from && st.from.draw != null ? st.from.draw : 0, d1 = st.to && st.to.draw != null ? st.to.draw : 1;
+        if (shapes.length) tl.fromTo(shapes, { strokeDashoffset: 1 - d0 }, { strokeDashoffset: 1 - d1, duration: st.duration, ease: st.ease || 'none', stagger: st.stagger ? st.stagger / Math.max(1, shapes.length / els.length) : 0 }, at);
+        var rest = Object.assign({}, st, { from: st.from ? Object.assign({}, st.from) : undefined, to: Object.assign({}, st.to || {}) });
+        if (rest.from) delete rest.from.draw;
+        delete rest.to.draw;
+        st = rest;
+        if (!Object.keys(st.to).length && !(st.from && Object.keys(st.from).length)) {
+          prevStart = at;
+          end = Math.max(end, at + st.duration + (st.stagger || 0) * (els.length - 1));
+          return;
+        }
+      }
       if (st.counter) counter(tl, els, st, at);
       else if (cues && cues.length === els.length && els.length > 1) {
         // Chaque élément entre à SON instant (quand la voix le dit) ; les pas suivants gardent leur écart au premier.

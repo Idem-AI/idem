@@ -27,7 +27,7 @@
  *   · MESURE : chaque scène dit son temps mort (le temps qui reste après les entrées, le développement et la
  *     lecture) — le code s'en sert pour choisir les développements, les contrôles pour le borner.
  */
-import type { AnimationNode, AnimRole, CarryRole, DevelopNode, LayoutNode, LoadedVideoCatalog, PrimitiveNode, SceneConfig, ThemeNode, TransitionNode, TweenStep } from './types';
+import type { AnimationNode, AnimRole, CarryRole, DecorNode, DevelopNode, LayoutNode, LoadedVideoCatalog, PrimitiveNode, SceneConfig, ThemeNode, TransitionNode, TweenStep } from './types';
 import { ROLE_TARGET } from './types';
 import { animationFor, figureParts, isFigure, rolesIn, SceneSlots } from './graph';
 
@@ -60,7 +60,11 @@ const escapeHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;')
 
 /** Les classes du thème, avec l'accent choisi (`vars.accent`). */
 function themeClasses(theme: ThemeNode, vars: Record<string, string> = {}): Record<string, string> {
-  const classes = { ...theme.classes };
+  // Les trois couleurs des DÉCORS (23/11/2026), en couleur de texte (les formes s'y peignent en `fill-current`,
+  // `stroke-current`, `bg-current`) : la principale suit l'accent lisible du thème (sur un fond de marque, la couleur
+  // posée dessus), les deux autres la palette de la marque. Un thème peut les fixer lui-même.
+  const deco = theme.ground === 'brand' ? ['text-on-brand', 'text-brand-accent', 'text-brand-secondary'] : theme.ground === 'deep' ? ['text-brand-accent', 'text-brand-primary', 'text-on-deep'] : [theme.classes.accentInk || 'text-brand-primary', 'text-brand-accent', 'text-brand-secondary'];
+  const classes: Record<string, string> = { decoA: deco[0], decoB: deco[1], decoC: deco[2], ...theme.classes };
   const accent = vars.accent;
   if (accent === 'accent' || accent === 'secondary') {
     for (const k of ['accentInk', 'rule', 'button', 'mark']) {
@@ -132,7 +136,7 @@ export const DEVELOP_FREE_MIN = 1.1;
 export const IDLE_MAX = 2.2;
 
 /** Le HTML de la scène : la mise en page dépliée (conditions, liste, emplacements, classes, zone sûre, formats). */
-export function sceneHtml(layout: LayoutNode, theme: ThemeNode, slots: SceneSlots, brand: { name: string; hasLogo: boolean; hasDarkLogo?: boolean }, vars: Record<string, string> = {}): string {
+export function sceneHtml(layout: LayoutNode, theme: ThemeNode, slots: SceneSlots, brand: { name: string; hasLogo: boolean; hasDarkLogo?: boolean }, vars: Record<string, string> = {}, decor?: DecorNode): string {
   let html = layout.html;
   const present = (slot: string): boolean => {
     if (slot === 'items') return slots.items.length > 0;
@@ -171,26 +175,41 @@ export function sceneHtml(layout: LayoutNode, theme: ThemeNode, slots: SceneSlot
   );
   // 5. Les classes du thème, la zone sûre, les variantes de format.
   const classes = themeClasses(theme, vars);
-  html = html.replace(/\[\[t\.([a-zA-Z]+)\]\]/g, (_m, k: string) => classes[k] ?? '');
   html = html.replace(/\[\[safe\]\]/g, safeClasses());
-  html = html.replace(/\[\[(ls|sq|st|po|tall):([^\]]*(?:\[[^\]]*\][^\]]*)*)\]\]/g, (_m, f: string, list: string) =>
-    list
-      .split(/\s+/)
-      .filter(Boolean)
-      .flatMap((cls) => (f === 'tall' ? [variant('st', cls), variant('po', cls)] : [variant(f as 'st', cls)]))
-      .join(' ')
-  );
   // `st` (story) est aussi la base : ses variantes valent pour la story seule.
   // 6. Une position déplacée par la mise en page remplace celle de la zone sûre (même variante).
-  html = dedupePositions(html);
+  html = dedupePositions(themeAndFormats(html, classes));
   // 7. L'échelle typographique du thème (titres et chiffres seulement).
   const scale = theme.type?.scale ?? 1;
   if (scale !== 1) html = html.replace(/data-fit="(title|figure)" data-fk="([\d.]+)"/g, (_m, r: string, k: string) => `data-fit="${r}" data-fk="${(Number(k) * scale).toFixed(4)}"`);
   // Le fond animé (si le thème en porte un) : un calque décoratif, derrière tout, jamais lu par les textes.
   const bg = classes.bgLayer ? `<div data-v="bg" aria-hidden="true" class="pointer-events-none absolute inset-0 -z-10 ${classes.bgLayer}"></div>` : '';
+  // Le DÉCOR animé (23/11/2026) : derrière la scène (`back`, couvert par ses médias), ou sur ses bords (`edge`, posé après
+  // elle : au-dessus d'une photo plein cadre, hors de la zone sûre où vivent les textes).
+  const deco = decor ? `<div data-ge-decor="${decor.place}" aria-hidden="true" class="pointer-events-none absolute inset-0 overflow-hidden">${dedupePositions(themeAndFormats(decor.html, classes))}</div>` : '';
+  const body = html.replace(/\s{2,}/g, ' ').trim();
   // La CAMÉRA (22/11/2026) : tout le contenu de la scène dans une enveloppe que le directeur de caméra du runtime peut
   // cadrer (gros plan sur ce qui arrive, retour au plan large) ; le cadre extérieur coupe ce qui déborde.
-  return `<div class="relative h-full w-full overflow-hidden ${classes.ground ?? 'bg-ground'}"><div data-ge-camera class="absolute inset-0">${bg}${html.replace(/\s{2,}/g, ' ').trim()}</div></div>`;
+  return `<div class="relative h-full w-full overflow-hidden ${classes.ground ?? 'bg-ground'}"><div data-ge-camera class="absolute inset-0">${bg}${decor?.place === 'back' ? deco : ''}${body}${decor?.place === 'edge' ? deco.replace(/\s{2,}/g, ' ') : ''}</div></div>`;
+}
+
+/** Les classes du thème (`[[t.x]]`) et les variantes de format (`[[ls:…]]`…) d'un fragment de scène. */
+function themeAndFormats(html: string, classes: Record<string, string>): string {
+  return html
+    .replace(/\[\[t\.([a-zA-Z]+)\]\]/g, (_m, k: string) => classes[k] ?? '')
+    .replace(/\[\[(ls|sq|st|po|tall):([^\]]*(?:\[[^\]]*\][^\]]*)*)\]\]/g, (_m, f: string, list: string) =>
+      list
+        .split(/\s+/)
+        .filter(Boolean)
+        .flatMap((cls) => (f === 'tall' ? [variant('st', cls), variant('po', cls)] : [variant(f as 'st', cls)]))
+        .join(' ')
+    );
+}
+
+/** Le décor de la scène (sa configuration), s'il existe encore au catalogue et convient à sa mise en page. */
+export function decorOf(cat: LoadedVideoCatalog, config: SceneConfig): DecorNode | undefined {
+  const d = config.decor ? cat.nodes.get(config.decor) : undefined;
+  return d?.kind === 'decor' ? d : undefined;
 }
 
 // ── La chorégraphie ──────────────────────────────────────────────────────────────────────────
@@ -343,7 +362,8 @@ function unitsOf(role: AnimRole, split: string, text: string, items: number): nu
 export function assembleScene(i: AssembleInput): { html: string; script: string; spec: RuntimeScene; quality: SceneQuality } {
   const layout = (i.cat.nodes.get(i.config.layout) ?? i.cat.nodes.get('builtin.stack')) as LayoutNode;
   const prim = (layout as unknown as PrimitiveNode).kind === 'primitive' ? (layout as unknown as PrimitiveNode) : undefined;
-  let html = sceneHtml(layout, i.theme, i.slots, i.brand, { ...(i.vars ?? {}), ...(i.config.vars ?? {}) });
+  const decor = decorOf(i.cat, i.config);
+  let html = sceneHtml(layout, i.theme, i.slots, i.brand, { ...(i.vars ?? {}), ...(i.config.vars ?? {}) }, decor);
   // Une PRIMITIVE : son source (registre HyperFrames, empreinte vérifiée au chargement) voyage, inerte, dans un
   // <template> de la scène ; l'image de son écran aussi (posée par le code depuis le média de la scène).
   if (prim) {
@@ -535,6 +555,25 @@ export function assembleScene(i: AssembleInput): { html: string; script: string;
     } else delete r.out;
   }
 
+  // Le DÉCOR : chaque partie entre dès l'ouverture (sous le panneau de transition s'il y en a un), puis vit pendant toute
+  // la scène (sa tenue) ; dans un film posé, il s'efface avec les éléments avant la coupe. Il ne retarde aucun texte.
+  if (decor) {
+    const open = i.transitionIn && i.transitionIn.duration > 0 ? (i.transitionIn.duration / 2) * 0.6 : 0;
+    for (const [name, part] of Object.entries(decor.parts)) {
+      const entry: RuntimeRole = { role: 'bg', sel: `[data-ge-decor] [data-dp="${name}"]`, split: 'none', mask: false, at: Math.round(open * 1000) / 1000, in: resolveSteps(part.in, pass.tokens) };
+      const n = (html.match(new RegExp(`data-dp="${name}"`, 'g')) ?? []).length;
+      const holdAt = entry.at + stepsSpan(entry.in, Math.max(1, n));
+      if (part.hold?.length && D - holdAt > 0.4) {
+        entry.hold = resolveSteps(part.hold, { ...pass.tokens, hold: Math.round((D - holdAt) * 1000) / 1000 });
+        entry.holdAt = Math.round(holdAt * 1000) / 1000;
+      }
+      if (i.exitAtEnd) {
+        entry.out = [{ to: { opacity: 0 }, duration: m.dOut, ease: m.easeIn }];
+        entry.outAt = Math.max(holdAt, Math.round((D - m.dOut - 0.06) * 1000) / 1000);
+      }
+      roles.push(entry);
+    }
+  }
   const spec: RuntimeScene = { key: i.scene.key, roles };
   if (prim) {
     const text = (slot: string) => {
