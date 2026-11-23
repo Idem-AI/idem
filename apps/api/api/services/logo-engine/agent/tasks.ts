@@ -279,7 +279,7 @@ export const IR_CHEATSHEET = [
   ' {"kind":"shape","id","geometry":{"type":"rect|circle|ellipse|polygon|star|ring|arc|superellipse|line|poly", …},"fill"?}',
   '   rect{x,y,w,h,r} circle{cx,cy,r} ellipse{cx,cy,rx,ry} polygon{cx,cy,r,sides,rotation,cornerRadius} ring{cx,cy,r,thickness} line{x1,y1,x2,y2,width,round} arc{cx,cy,r,thickness,from,to}',
   ' {"kind":"boolean","id","op":"union|subtract|intersect|exclude","operands":[layer,layer,…]}  (first operand is the base)',
-  ' {"kind":"repeat","id","mode":"radial|mirror-x|mirror-y|mirror-xy|linear|grid","count","radius","merge","child":layer}',
+  ' {"kind":"repeat","id","mode":"radial|dihedral|mirror-x|mirror-y|mirror-xy|linear|grid","count","radius","merge","child":layer}',
   ' {"kind":"group","id","children":[layer…]}  (a "paper" child cuts the shapes before it)',
   ' {"kind":"text","id","role":"wordmark|symbol|tagline","content","case":"upper|lower|title|none","tracking":-0.05..0.4,"font":{"role":"display|body","weight":100-900},"effects":[{"type":"dot|underline|bar|slice|ligature|dotReplace|swapRound|cutCorner|accentChar|italic",…}],"fill"?, "size"?, "at"?:{x,y}, "curve"?:{radius,start,side}}',
   '   a text layer with role "wordmark" is placed by the composition; role "symbol" + "at" + "size" lives inside the 0–100 box (monogram letter, curved emblem text).',

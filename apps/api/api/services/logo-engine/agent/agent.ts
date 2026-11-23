@@ -30,6 +30,7 @@ import { produceLogo } from '../pipeline';
 import type { ProducedLogo } from '../pipeline';
 import { assessLogo } from '../validate/assess';
 import { LOGO_SIMILARITY, nearest } from '../validate/fingerprint';
+import { rankScore } from '../validate/perception';
 import type { LogoFingerprint } from '../validate/fingerprint';
 import { renderPng } from '../raster/rasterizer';
 import { briefWeights, inkPalette, traitsOf } from '../planner/brief';
@@ -270,10 +271,10 @@ export async function designLogos(input: AgentInput, build: BuildOptions, deps: 
       if (!drafts.length) return null;
       // Les brouillons qui passent les mesures d'abord ; le jury départage, le code garde la main.
       const sound = drafts.filter((d) => d.report.accepted);
-      const field = (sound.length ? sound : drafts).sort((a, b) => b.report.score - a.report.score);
+      const field = (sound.length ? sound : drafts).sort((a, b) => rankScore(b.report) - rankScore(a.report));
       if (field.length === 1) return field[0];
-      if (field[0].report.score - field[1].report.score >= JURY_DOMINANCE) {
-        decide('jury', 'graph', `direction ${i + 1} : ${field[0].recipe} domine (${field[0].report.score} contre ${field[1].report.score})`);
+      if (rankScore(field[0].report) - rankScore(field[1].report) >= JURY_DOMINANCE) {
+        decide('jury', 'graph', `direction ${i + 1} : ${field[0].recipe} domine (${rankScore(field[0].report)} contre ${rankScore(field[1].report)})`);
         return field[0];
       }
       stage('jury');

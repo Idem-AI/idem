@@ -249,7 +249,8 @@ export type GeneratorLayer = z.infer<typeof GeneratorLayerSchema>;
 
 export const BOOLEAN_OPS = ['union', 'subtract', 'intersect', 'exclude'] as const;
 export type BooleanOp = (typeof BOOLEAN_OPS)[number];
-export const REPEAT_MODES = ['radial', 'mirror-x', 'mirror-y', 'mirror-xy', 'linear', 'grid'] as const;
+/** `radial` = groupe cyclique Cn ; `dihedral` = groupe diédral Dn (n rotations + leurs miroirs, axe vertical). */
+export const REPEAT_MODES = ['radial', 'dihedral', 'mirror-x', 'mirror-y', 'mirror-xy', 'linear', 'grid'] as const;
 
 type LayerBase = {
   id: string;
@@ -361,8 +362,22 @@ export const PaletteSchema = z.object({
 });
 export type LogoPalette = z.infer<typeof PaletteSchema>;
 
+/**
+ * Le style de construction, indépendant du type (archétype) et de la mise en page : un logo peut
+ * être un « combination » horizontal, construit en « geometric » avec un espace négatif.
+ */
+export const CONSTRUCTION_STYLES = ['geometric', 'organic', 'monoline', 'modular', 'typographic', 'negative', 'constructivist'] as const;
+export type ConstructionStyle = (typeof CONSTRUCTION_STYLES)[number];
+
+/** Groupes de symétrie du SYMBOLE (jamais du nom : un mot en miroir ne se lit plus). */
+export const SYMMETRY_GROUPS = ['none', 'mirror', 'C2', 'C3', 'C4', 'C5', 'C6', 'C8', 'D2', 'D3', 'D4', 'D5', 'D6', 'D8'] as const;
+export type SymmetryGroup = (typeof SYMMETRY_GROUPS)[number];
+
 export const ConceptSchema = z.object({
   type: z.enum(CONCEPT_TYPES),
+  style: z.enum(CONSTRUCTION_STYLES).optional(),
+  /** Symétrie promise par la construction : mesurée sur le rendu, un écart est un défaut. */
+  symmetry: z.enum(SYMMETRY_GROUPS).optional(),
   /** L'idée en une ou deux phrases : ce que le logo dit de la marque. */
   rationale: z.string().max(400).default(''),
   /** Les motifs choisis (générateurs, lettres) : sert à mesurer la diversité entre propositions. */

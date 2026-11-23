@@ -18,7 +18,9 @@ import type { ProducedLogo } from '../pipeline';
 import type { BrandFonts } from '../render/scene';
 import type { BuildOptions } from '../render/build';
 import { seeded } from '../render/generators';
-import { fingerprintDistance, LOGO_SIMILARITY, nearest } from '../validate/fingerprint';
+import { diversityCell, fingerprintDistance, LOGO_SIMILARITY, nearest } from '../validate/fingerprint';
+import { rankScore } from '../validate/perception';
+import { refineLogo } from './optimize';
 import type { LogoFingerprint } from '../validate/fingerprint';
 import { briefWeights, CharterPalette, conceptMenu, inkPalette, LogoKind, PlanBrief, traitsOf } from './brief';
 import { recipesFor, RecipeCtx } from './recipes';
@@ -49,6 +51,8 @@ export interface PlanInput {
   usage?: Record<string, number>;
   /** Empreintes des logos récemment proposés aux AUTRES projets : un candidat trop proche est écarté. */
   crowd?: LogoFingerprint[];
+  /** Essais d'affinage par candidat retenu (0 : aucun affinage). */
+  refine?: number;
 }
 
 export interface PlannedLogo extends ProducedLogo {
@@ -132,14 +136,26 @@ export async function buildPool(input: PlanInput, build: BuildOptions, attempts?
     if (!result.ok || !result.logo || !result.logo.fingerprint) continue;
     built.push({ ...result.logo, recipe: candidate.recipe, type: candidate.type, novelty: 1 });
   }
+  // Les meilleurs candidats sont affinés (réglages cherchés par la mesure, plus tirés au sort).
+  const refineBudget = input.refine ?? REFINE.budget;
+  if (refineBudget > 0) {
+    const order = built.map((l, i) => ({ i, r: rankScore(l.report) })).sort((a, b) => b.r - a.r).slice(0, REFINE.top);
+    for (const { i } of order) {
+      const refined = await refineLogo(built[i], build, refineBudget);
+      if (refined.logo !== built[i]) built[i] = { ...built[i], ...refined.logo };
+    }
+  }
   const accepted = built.filter((l) => l.report.accepted);
   return { pool: accepted.length >= (input.count ?? 3) ? accepted : built.filter((l) => l.report.ok), attempted: candidates.length, built: built.length, accepted: accepted.length };
 }
 
+/** L'affinage : combien de candidats (les mieux classés), combien d'essais chacun. */
+export const REFINE = { top: 6, budget: 8 } as const;
+
 /** Retient `count` propositions : la meilleure, puis les plus éloignées des précédentes et de la mémoire. */
 export function selectDistinct(pool: PlannedLogo[], count: number, avoid: LogoFingerprint[] = [], crowd: LogoFingerprint[] = []): PlannedLogo[] {
   const chosen: PlannedLogo[] = [];
-  const remaining = [...pool].sort((a, b) => b.report.score - a.report.score);
+  const remaining = [...pool].sort((a, b) => rankScore(b.report) - rankScore(a.report));
   while (chosen.length < count && remaining.length) {
     let bestIndex = 0;
     let bestValue = -Infinity;
@@ -150,7 +166,10 @@ export function selectDistinct(pool: PlannedLogo[], count: number, avoid: LogoFi
       const tooClose = dist < LOGO_SIMILARITY.tooClose ? 40 : 0;
       // Déjà proposé à un autre projet d'IDEM (même silhouette, mêmes motifs) : un logo n'est pas original s'il est celui d'un autre.
       const crowded = crowd.length && nearest(cand.fingerprint!, crowd) < LOGO_SIMILARITY.tooClose ? 30 : 0;
-      const value = Math.min(dist, LOGO_SIMILARITY.distinct) * 120 + cand.report.score * 0.5 - sameType - tooClose - crowded;
+      // MAP-Elites : une case de diversité (structure × symétrie × rondeur) déjà occupée coûte — trois propositions, trois silhouettes.
+      const cell = diversityCell(cand.fingerprint!);
+      const sameCell = cell && chosen.some((c) => diversityCell(c.fingerprint!) === cell) ? 10 : 0;
+      const value = Math.min(dist, LOGO_SIMILARITY.distinct) * 120 + rankScore(cand.report) * 0.5 - sameType - tooClose - crowded - sameCell;
       if (value > bestValue) {
         bestValue = value;
         bestIndex = i;

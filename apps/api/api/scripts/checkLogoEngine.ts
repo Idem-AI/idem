@@ -16,6 +16,8 @@
  * 13. Budget : tokens de l'agent vs l'ancien pipeline (SVG dessiné par le modèle).
  * 14. Export : fichiers valides, logo.json rouvrable à l'identique, ZIP.
  * 15. Jeu de tests : qualité mesurée sur 8 marques × 3 types.
+ * 16–18. Amélioration d'un logo, bonnes pratiques et originalité, OmniSVG.
+ * 19. Perception par type, symétrie par construction (Cn/Dn), affinage sans token, empreinte Hu/Betti.
  */
 import crypto from 'crypto';
 import fs from 'fs';
@@ -61,6 +63,12 @@ import { colorName, symbolPrompt, vectorDoc } from '../services/logo-engine/vect
 import { OmniSvgClient } from '../services/logo-engine/vector/client';
 import type { VectorModel } from '../services/logo-engine/vector/client';
 import { circlePath, rectPath } from '../services/logo-engine/kernel/primitives';
+import { letterRhythm, symmetryOf, toMask, topologyOf } from '../services/logo-engine/raster/perception';
+import { perceiveLogo, PROFILES, rankScore, SYMMETRY_KEPT } from '../services/logo-engine/validate/perception';
+import { refineLogo, tunablesOf } from '../services/logo-engine/planner/optimize';
+import { ALL_RECIPES } from '../services/logo-engine/planner/recipes';
+import { traitsOf } from '../services/logo-engine/planner/brief';
+import { fingerprintOf } from '../services/logo-engine/validate/fingerprint';
 import { extractFontFileUrl } from '../services/BandIdentity/lockup/fontLoader.service';
 import { estimateTokens } from '../../../ivision/core/src/creativity/orchestrator';
 import type { AgentCall } from '../../../ivision/core/src/creativity/orchestrator';
@@ -796,6 +804,87 @@ async function main(): Promise<void> {
   vectorCalls.length = 0;
   await designLogos({ ...agentInput('high') }, BUILD, { call: simulated(), vector: fakeVector });
   check('agent : OmniSVG réservé à Ultra (dessin libre)', vectorCalls.length === 0);
+
+  // ── 19. Mathématiques : perception par type, symétrie construite, affinage, empreinte ──
+  section('19. Perception par type · symétrie par construction · affinage · empreinte de forme');
+  const maskOf = async (layers: unknown[], extra: Record<string, unknown> = {}) => {
+    const made = await build(baseDoc(layers, { composition: { layout: 'symbol-only' }, ...extra }));
+    const svg = made.session?.render({ layout: 'symbol-only' })?.svg;
+    return svg ? toMask(await raster.render(svg, 160, null)) : null;
+  };
+  const shape = (id: string, geometry: Record<string, unknown>) => ({ kind: 'shape', id, geometry });
+  const ringMask = await maskOf([shape('r', { type: 'ring', cx: 50, cy: 50, r: 40, thickness: 10 })]);
+  const twoMask = await maskOf([shape('a', { type: 'circle', cx: 25, cy: 50, r: 15 }), shape('b', { type: 'circle', cx: 75, cy: 50, r: 15 })]);
+  const ringTopo = ringMask && topologyOf(ringMask);
+  const twoTopo = twoMask && topologyOf(twoMask);
+  check('topologie : un anneau = 1 morceau, 1 trou ; deux disques = 2 morceaux, 0 trou', !!ringTopo && ringTopo.pieces === 1 && ringTopo.holes === 1 && !!twoTopo && twoTopo.pieces === 2 && twoTopo.holes === 0, `${ringTopo?.pieces}/${ringTopo?.holes} · ${twoTopo?.pieces}/${twoTopo?.holes}`);
+  const discSym = ringMask && symmetryOf(ringMask);
+  const skewMask = await maskOf([shape('p', { type: 'poly', points: [[10, 90], [30, 10], [90, 70]] })]);
+  const skewSym = skewMask && symmetryOf(skewMask);
+  check('symétrie : un anneau est D4, un triangle quelconque n\'a aucune symétrie', discSym?.group === 'D4' && !!skewSym && skewSym.best < 0.9, `${discSym?.group} · ${skewSym?.best}`);
+
+  const blade = { kind: 'shape', id: 'unit', geometry: { type: 'poly', points: [[50, 44], [62, 14], [44, 22]] } };
+  const dihedral = await build(baseDoc([{ kind: 'repeat', id: 'rose', mode: 'dihedral', count: 5, radius: 0, merge: true, child: blade }], { concept: { type: 'abstract', symmetry: 'D5' }, composition: { layout: 'symbol-only' } }));
+  const dihedralReport = dihedral.session && dihedral.rendered ? await assessLogo(dihedral.session, dihedral.rendered, { skipVariants: true }) : null;
+  check('symétrie construite : un motif asymétrique répété en D5 tient sa promesse', !!dihedralReport && (dihedralReport.perception?.raw.declaredSymmetry ?? 0) >= SYMMETRY_KEPT && !dihedralReport.defects.some((d) => d.code === 'symmetry_broken'), `${dihedralReport?.perception?.raw.declaredSymmetry}`);
+  const liar = await build(baseDoc([shape('p', { type: 'poly', points: [[10, 90], [30, 10], [90, 70]] })], { concept: { type: 'abstract', symmetry: 'D4' }, composition: { layout: 'symbol-only' } }));
+  const liarReport = liar.session && liar.rendered ? await assessLogo(liar.session, liar.rendered, { skipVariants: true }) : null;
+  check('symétrie promise et non tenue → défaut « symmetry_broken »', !!liarReport?.defects.some((d) => d.code === 'symmetry_broken'));
+
+  const groupRecipe = ALL_RECIPES.find((r) => r.id === 'abstract-group')!;
+  const groupKept: number[] = [];
+  for (let s = 0; s < 10; s++) {
+    const ctx = { brief: kora.brief, palette: PALETTE, rng: seeded(4242 + s * 31), weights: new Map<string, number>(), traits: traitsOf(kora.brief), withName: false, explore: 0.5, used: new Set<string>() };
+    const made = await produceLogo(groupRecipe.build(ctx as never), BUILD, { skipVariants: true });
+    groupKept.push(made.logo?.report.perception?.raw.declaredSymmetry ?? 0);
+  }
+  check('grammaire des groupes : 10 symboles, symétrie déclarée tenue par tous', groupKept.every((v) => v >= SYMMETRY_KEPT), groupKept.join(' '));
+
+  const pool19 = (await buildPool({ brief: kora.brief, palette: kora.pal, fonts: BUILD.fonts, kind: 'icon', seed: 'perception', count: 3, explore: 0.5, refine: 0 }, BUILD, 14)).pool;
+  const aesthetics = pool19.map((l) => l.report.aesthetic ?? 0);
+  check('la note perceptive classe : écart ≥ 15 points dans un même lot (l\'exploitabilité, elle, accepte tout)', Math.max(...aesthetics) - Math.min(...aesthetics) >= 15, `${Math.min(...aesthetics)}–${Math.max(...aesthetics)}`);
+  check('chaque type a son profil (11/11)', CONCEPT_TYPES.every((t) => !!PROFILES[t] && Object.keys(PROFILES[t].weights).length >= 3));
+
+  const comboAt = async (gap: number) => {
+    const made = await build(baseDoc([gen('rosette'), text('Kora')], { concept: { type: 'combination' }, composition: { layout: 'horizontal', gap } }));
+    return made.session && made.rendered ? (await perceiveLogo(made.session, made.rendered)).parts.spacing ?? 0 : 0;
+  };
+  const tight = await comboAt(0.3);
+  const loose = await comboAt(1.2);
+  check('composition : un nom posé loin du symbole perd des points de respiration', tight > loose, `${tight} > ${loose}`);
+
+  const rhythmOf = (xs: number[]) => {
+    const w = 400;
+    const h = 60;
+    const data = new Uint8Array(w * h);
+    for (const x0 of xs) for (let y = 10; y < 50; y++) for (let x = x0; x < x0 + 30; x++) data[y * w + x] = 1;
+    return letterRhythm({ w, h, data }).rhythm;
+  };
+  const even = rhythmOf([10, 60, 110, 160, 210]);
+  const uneven = rhythmOf([10, 45, 130, 168, 260]);
+  check('rythme des lettres : espacement régulier ≈ 1, irrégulier pénalisé', even >= 0.95 && uneven < 0.7, `${even} · ${uneven}`);
+
+  const start19 = pool19.sort((a, b) => rankScore(b.report) - rankScore(a.report))[pool19.length - 1];
+  const refinedA = await refineLogo(start19, BUILD, 8);
+  const refinedB = await refineLogo(start19, BUILD, 8);
+  check('affinage : jamais moins bien classé, jamais moins exploitable', rankScore(refinedA.logo.report) >= rankScore(start19.report) && (!start19.report.accepted || refinedA.logo.report.accepted), `${start19.report.aesthetic} → ${refinedA.logo.report.aesthetic} (${refinedA.changed.join(', ') || 'inchangé'})`);
+  check('affinage : reproductible (même graine ⇒ même logo)', refinedA.logo.rendered.svg === refinedB.logo.rendered.svg);
+  const locked = tunablesOf(structuredClone(dihedral.doc!)).some((t) => t.key.endsWith('.count'));
+  check('affinage : l\'ordre d\'une symétrie déclarée n\'est jamais modifié', !locked);
+
+  // Le rendu « symbole seul » recadre déjà l'encre (position, échelle) : ce que la silhouette ajoute, c'est la rotation.
+  const flag = { kind: 'shape', id: 'f', geometry: { type: 'poly', points: [[20, 85], [32, 12], [84, 40], [44, 52]] } };
+  const roseA = await build(baseDoc([flag], { composition: { layout: 'symbol-only' } }));
+  const roseB = await build(baseDoc([{ ...flag, transform: { rotate: 35 } }], { composition: { layout: 'symbol-only' } }));
+  const fpA = roseA.session ? await fingerprintOf(roseA.session) : null;
+  const fpB = roseB.session ? await fingerprintOf(roseB.session) : null;
+  check('empreinte : silhouette (Hu) et structure (Betti) mesurées', !!fpA?.hu && fpA.hu.length === 7 && !!fpA.topo && !!fpA.sym);
+  if (fpA && fpB) {
+    const withShape = fingerprintDistance(fpA, fpB);
+    const gridOnly = fingerprintDistance({ ...fpA, hu: undefined, topo: undefined }, { ...fpB, hu: undefined, topo: undefined });
+    check('empreinte : un symbole tourné reste reconnu comme le même (la grille seule le croyait différent)', withShape < gridOnly && withShape < LOGO_SIMILARITY.tooClose, `${withShape.toFixed(3)} (grille seule ${gridOnly.toFixed(3)})`);
+    check('empreinte : les empreintes anciennes (sans Hu) restent comparables', Number.isFinite(fingerprintDistance(fpA, { ...fpB, hu: undefined, topo: undefined, sym: undefined, round: undefined })));
+  }
 
   console.log(`\n${passes} vérifications réussies, ${failures} échec(s) — ${((Date.now() - started) / 1000).toFixed(1)} s`);
   if (failures) process.exit(1);

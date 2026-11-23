@@ -228,12 +228,14 @@ export interface LogoEngineMeta {
   recipe: string;
   /** Qualité mesurée (0–100). */
   score: number;
+  /** Note perceptive mesurée selon le profil du type (0–100). */
+  aesthetic?: number;
   /** Distance au plus proche des autres propositions et des logos déjà montrés (1 = rien de commun). */
   novelty: number;
   level?: string;
   /** Les polices de la charte au moment du rendu : de quoi reconstruire le logo (déclinaisons) sans relire la charte. */
   fonts?: { display: { family: string; cssUrl?: string }; body?: { family: string; cssUrl?: string } };
-  fingerprint?: { type: string; layout: string; motifs: string[]; grid: number[] };
+  fingerprint?: { type: string; layout: string; motifs: string[]; grid: number[]; hu?: number[]; topo?: [number, number]; sym?: string; round?: number };
   /** Ce que l'IA a réellement décidé, étape par étape. */
   decisions?: { stage: string; source: 'llm' | 'code'; detail?: string }[];
 }

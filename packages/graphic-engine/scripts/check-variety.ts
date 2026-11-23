@@ -18,12 +18,16 @@ const PALETTE: SectionContent = { id: 'palette', role: 'specimen', title: 'Palet
 const COVER: SectionContent = { id: 'cover', role: 'cover', title: 'Kora', blocks: [{ id: 'c', kind: 'cover', brandName: 'Kora', promise: 'Le crédit simple', documentLabel: 'Pitch deck', dateLabel: 'Novembre 2026' }] } as SectionContent;
 const METRICS: SectionContent = { id: 'market', role: 'data', title: 'Un marché de 40 000 commerçants', blocks: [{ id: 'm', kind: 'metrics', items: [{ value: '40 000', label: 'commerçants' }, { value: '72 %', label: 'paient en mobile money' }, { value: '0', label: 'crédit bancaire' }] }] } as SectionContent;
 
+const FLYER: SectionContent = { id: 'offre', role: 'visual', title: 'Visuel', blocks: [{ id: 'copy', kind: 'copy', headline: 'Vos intrants livrés au village', subhead: 'Commandez par un simple appel', offer: '−20 %', facts: [{ text: 'Livraison en 48 h' }] }] } as SectionContent;
+
 const PAGES: Array<{ name: string; element: CatalogElement; format: keyof typeof FORMATS; section: SectionContent }> = [
   { name: 'palette (charte A4)', element: 'brand-charter', format: 'page-a4', section: PALETTE },
   { name: 'palette (charte paysage)', element: 'brand-charter', format: 'page-a4-landscape', section: PALETTE },
   { name: 'couverture (deck)', element: 'pitch-deck', format: 'slide-16x9', section: COVER },
   { name: 'couverture (charte A4)', element: 'brand-charter', format: 'page-a4', section: COVER },
   { name: 'chiffres (deck)', element: 'pitch-deck', format: 'slide-16x9', section: METRICS },
+  { name: 'flyer carré', element: 'social-visual', format: 'flyer-square', section: FLYER },
+  { name: 'affiche imprimée', element: 'print-flyer', format: 'print-flyer-a4', section: FLYER },
 ];
 
 async function main(): Promise<void> {

@@ -372,6 +372,70 @@ recipe({
   },
 });
 
+// — abstract : grammaire des groupes de symétrie —
+//
+// Un motif fondamental, UN SEUL, dessiné dans la boîte au-dessus du centre ; un groupe de
+// symétrie qui le répète (Cn : rotations, Dn : rotations + miroirs) ; une opération au centre.
+// La symétrie n'est pas vérifiée après coup : elle est garantie par la construction, et déclarée
+// dans le document (`concept.symmetry`) pour que la mesure la confirme.
+// Motif × groupe × ordre × rayon × centre × fusion : plusieurs milliers de symboles distincts.
+const GROUP_MOTIFS = ['petal', 'leaf', 'hook', 'wedge', 'bar', 'dot', 'chevron'] as const;
+type GroupMotif = (typeof GROUP_MOTIFS)[number];
+
+/** Le motif placé à `r` au-dessus du centre ; `tilt` (°) le rend asymétrique (il tourne, la rosace « vire »). */
+function groupMotif(kind: GroupMotif, r: number, size: number, tilt: number): Doc {
+  const cy = 50 - r;
+  const turn = tilt ? { transform: { rotate: tilt, origin: [50, cy] } } : {};
+  switch (kind) {
+    case 'petal':
+      return { kind: 'shape', id: 'unit', geometry: { type: 'ellipse', cx: 50, cy, rx: size * 0.45, ry: size }, ...turn };
+    case 'leaf':
+      return { kind: 'boolean', id: 'unit', op: 'intersect', operands: [{ kind: 'shape', id: 'la', geometry: { type: 'circle', cx: 50 - size * 0.55, cy, r: size } }, { kind: 'shape', id: 'lb', geometry: { type: 'circle', cx: 50 + size * 0.55, cy, r: size } }], ...turn };
+    case 'hook':
+      return { kind: 'shape', id: 'unit', geometry: { type: 'arc', cx: 50, cy, r: size * 0.8, thickness: size * 0.45, from: 200, to: 340 + tilt, round: true } };
+    case 'wedge':
+      return { kind: 'shape', id: 'unit', geometry: { type: 'poly', points: [[50, 50 - r * 0.25], [50 + size * 0.7, cy - size * 0.6], [50 - size * 0.7 * (tilt ? 0.25 : 1), cy - size * 0.6]], cornerRadius: 2 } };
+    case 'bar':
+      return { kind: 'shape', id: 'unit', geometry: { type: 'rect', x: 50 - size * 0.28, y: cy - size, w: size * 0.56, h: size * 1.9, r: size * 0.28 }, ...turn };
+    case 'dot':
+      return { kind: 'shape', id: 'unit', geometry: { type: 'circle', cx: 50, cy, r: size * 0.55 } };
+    default:
+      return { kind: 'shape', id: 'unit', geometry: { type: 'poly', points: [[50 - size, cy + size * 0.5], [50, cy - size * 0.5], [50 + size, cy + size * 0.5], [50 + size * (tilt ? 0.4 : 1), cy + size * 0.95], [50, cy + size * 0.1], [50 - size, cy + size * 0.95]], cornerRadius: 1.5 }, ...turn };
+  }
+}
+
+recipe({
+  id: 'abstract-group',
+  type: 'abstract',
+  weight: () => 1,
+  build: (ctx) => {
+    const motif = (GROUP_MOTIFS as readonly string[]).includes(ctx.force?.variant ?? '') ? (ctx.force!.variant as GroupMotif) : pick(ctx.rng, GROUP_MOTIFS);
+    // Symétrie et stabilité perçue vont ensemble (Wu, PLOS ONE 2025) : marques calmes, luxe → miroirs ; jeunes, tech → rotation.
+    const stable = ctx.traits.calm || ctx.traits.luxury || ctx.traits.classic;
+    const moving = ctx.traits.young || ctx.traits.playful || ctx.traits.tech;
+    const mirrored = stable ? ctx.rng() < 0.75 : moving ? ctx.rng() < 0.3 : ctx.rng() < 0.5;
+    const order = pick(ctx.rng, motif === 'dot' ? [6, 8] : motif === 'wedge' || motif === 'chevron' ? [3, 4, 5, 6] : [3, 4, 5, 6, 8]);
+    // Le crochet est asymétrique par nature : jamais de groupe diédral pour lui.
+    const tilt = mirrored && motif !== 'hook' ? 0 : pick(ctx.rng, [18, 28, 38]);
+    // Le motif est assez large pour toucher ses voisins (corde entre deux copies = 2r·sin(π/n)) :
+    // la rosace se lit d'un seul tenant, pas comme une icône de chargement éclatée.
+    const r = between(ctx.rng, 12, 22);
+    const size = Math.max(7, Math.min(18, r * Math.sin(Math.PI / order) * between(ctx.rng, 1.05, 1.5)));
+    const center = pick(ctx.rng, ['none', 'none', 'hole', 'dot'] as const);
+    const unit = groupMotif(motif, r, size, tilt);
+    // Un motif symétrique répété par rotation donne déjà un groupe diédral ; un motif incliné, un groupe cyclique.
+    const group = `${tilt ? 'C' : 'D'}${order}`;
+    const ring: Doc = { kind: 'repeat', id: 'ring', mode: 'radial', count: order, radius: 0, merge: true, child: unit };
+    let symbol: Doc = ring;
+    if (center === 'hole') symbol = { kind: 'boolean', id: 'sym', op: 'subtract', operands: [{ kind: 'group', id: 'body', children: [ring, { kind: 'shape', id: 'core', geometry: { type: 'circle', cx: 50, cy: 50, r: r * 0.9 } }] }, { kind: 'shape', id: 'eye', geometry: { type: 'circle', cx: 50, cy: 50, r: r * between(ctx.rng, 0.35, 0.55) } }] };
+    const extra: Doc[] = center === 'dot' ? [{ kind: 'shape', id: 'heart', fill: ctx.palette.accent ? 'accent' : 'ink', geometry: { type: 'circle', cx: 50, cy: 50, r: Math.max(4, r * 0.32) } }] : [];
+    const doc = baseDoc(ctx, 'abstract', `abstract:group-${motif}-${group}`, [symbol, ...extra, ...withNameLayers(ctx)], { composition: composition(ctx) }, `Un seul motif (${motif}) répété selon le groupe ${group} : une symétrie exacte, construite et non dessinée, qui dit ${tilt ? 'le mouvement' : 'la stabilité'}.`);
+    (doc.concept as Doc).symmetry = group;
+    (doc.concept as Doc).style = 'geometric';
+    return doc;
+  },
+});
+
 // — mascot —
 recipe({
   id: 'mascot',

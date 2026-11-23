@@ -169,6 +169,13 @@ function resolveRepeat(layer: RepeatLayer, ctx: BuildContext): Resolved {
     case 'radial':
       for (let i = 0; i < n; i++) copies.push(copy(around(rotateBy((360 / n) * i), cx, cy)));
       break;
+    case 'dihedral':
+      // Dn : chaque rotation du motif et de son miroir (axe vertical). Un seul motif dessiné, la symétrie est exacte par construction.
+      for (let i = 0; i < n; i++) {
+        copies.push(copy(around(rotateBy((360 / n) * i), cx, cy)));
+        copies.push(copy(multiply(around(rotateBy((360 / n) * i), cx, cy), around(scaleBy(-1, 1), cx, cy))));
+      }
+      break;
     case 'mirror-x':
       copies.push(child.parts.map((p) => ({ ...p, layerId: layer.id })), copy(around(scaleBy(-1, 1), cx, cy)));
       break;

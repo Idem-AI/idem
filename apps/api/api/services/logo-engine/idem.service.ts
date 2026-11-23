@@ -191,7 +191,8 @@ export function toLogoModel(planned: PlannedLogo, index: number, req: { preferen
       novelty: planned.novelty,
       level: req.level,
       fonts: { display: { family: fonts.display.family, cssUrl: fonts.display.cssUrl }, ...(fonts.body ? { body: { family: fonts.body.family, cssUrl: fonts.body.cssUrl } } : {}) },
-      ...(fp ? { fingerprint: { type: fp.type, layout: fp.layout, motifs: fp.motifs, grid: fp.grid } } : {}),
+      ...(planned.report.aesthetic !== undefined ? { aesthetic: planned.report.aesthetic } : {}),
+      ...(fp ? { fingerprint: { type: fp.type, layout: fp.layout, motifs: fp.motifs, grid: fp.grid, ...(fp.hu ? { hu: fp.hu, topo: fp.topo, sym: fp.sym, round: fp.round } : {}) } } : {}),
       ...(req.decisions ? { decisions: req.decisions.slice(0, 12) } : {}),
     },
   };
