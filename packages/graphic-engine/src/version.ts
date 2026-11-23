@@ -5,7 +5,7 @@
  * version — et les clés de cache qui en dépendent s'invalident d'elles-mêmes.
  */
 // 2.9 : champ `tier` des nœuds du catalogue (le cran choisit la gamme des gabarits, plus le modèle).
-export const ENGINE_VERSION = '2.9.0';
+export const ENGINE_VERSION = '2.10.0';
 /** Les primitives dessinées par le code (graphiques, tableaux, logo, icônes, motifs). */
 export const COMPONENT_LIBRARY_VERSION = '2.0.0';
 

@@ -83,11 +83,18 @@ export function sanitizeHtml(input: string): Sanitized {
  * restent, hors des clés, les signes sans lettre (numéros d'étapes, guillemets, ponctuation). Une boucle de gabarit
  * (`{{#each}}`) n'existe pas ici : elle est signalée pour que l'auteur écrive chaque clé.
  */
+/** Les formes des valeurs calculées par le code : valeurs d'une couleur, ou une initiale. */
+const COMPUTED_TEXT = /^(?:(?:RGB|HSL) \d{1,3} \d{1,3} \d{1,3}|CMYK \d{1,3} \d{1,3} \d{1,3} \d{1,3}|[\p{L}\p{N}])$/u;
+
 export function stripInventedText(html: string): { html: string; removed: string[]; loops: boolean } {
   const removed: string[] = [];
   const loops = /\{\{\s*[#/^]/.test(html);
   const KEY = /(\{\{\s*[\w.:-]+\s*\}\})/;
-  const out = html.replace(/>([^<]+)</g, (_m, text: string) => {
+  const out = html.replace(/>([^<]+)</g, (_m, text: string, at: number) => {
+    // Une valeur CALCULÉE par le code (directives `[[rgb]]`, `[[cmyk]]`, `[[hsl]]`, `[[initial]]`) est marquée
+    // `data-ge-computed` par l'assembleur : gardée si elle a bien la forme d'une telle valeur, jamais au-delà.
+    const open = html.slice(html.lastIndexOf('<', at), at + 1);
+    if (/^<span\b[^>]*\sdata-ge-computed\b/i.test(open) && COMPUTED_TEXT.test(text.trim())) return `>${text}<`;
     const kept = text
       .split(KEY)
       .map((part, i) => {

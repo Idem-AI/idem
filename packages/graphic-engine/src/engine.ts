@@ -180,9 +180,10 @@ export function qualityFrame(section: SectionContent, map: ContentMap, format: F
   // Le NOM de chaque couleur se pose contre son aplat (le code et le rôle suivent le nom, dessous).
   const swatchKeys = section.blocks.flatMap((b) => (b.kind === 'swatches' ? b.items.map((_, i) => [`${b.id}.items.${i}.name`]) : []));
   // Les rôles des textes : le titre, et les textes simples qui ne doivent jamais lui ressembler. Les spécimens
-  // typographiques (leurs échantillons SONT des tailles), la couverture (sa composition est libre) et les faces de carte
+  // typographiques (leurs échantillons SONT des tailles), le nuancier (le nom d'une couleur peut s'écrire en très grand
+  // sur elle, 23/11/2026), la couverture (sa composition est libre) et les faces de carte
   // (sans titre à montrer) en sont exempts.
-  const specimen = section.role === 'cover' || section.role === 'card-face' || section.role === 'visual' || section.blocks.some((b) => b.kind === 'typeScale' || b.kind === 'typeSpecimen' || b.kind === 'cover' || b.kind === 'copy' || b.kind === 'contact');
+  const specimen = section.role === 'cover' || section.role === 'card-face' || section.role === 'visual' || section.blocks.some((b) => b.kind === 'typeScale' || b.kind === 'typeSpecimen' || b.kind === 'swatches' || b.kind === 'cover' || b.kind === 'copy' || b.kind === 'contact');
   const roles: Record<string, 'title' | 'text'> = {};
   if (!specimen) {
     for (const key of map.entries.keys()) {
