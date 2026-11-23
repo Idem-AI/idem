@@ -5,6 +5,8 @@ import {
   allModelConfigs,
   FASTEST_ROUTING,
   getDefaultModelKey,
+  idemMlBaseUrl,
+  openRouterFallbackCredentials,
   resolveModelCredentials,
 } from '../config/modelConfig.js';
 import { Messages, ToolInfo } from '../types/project.js';
@@ -45,8 +47,38 @@ function findModelConfig(modelKey: string) {
  */
 const CONNECT_TIMEOUT_MS = 60_000;
 
+/** Codes de la passerelle d'idem-ml qui justifient de repartir chez OpenRouter (panne, modèle non servi, surcharge). */
+const fallbackWorthy = (status: number) => status === 404 || status === 408 || status === 429 || status >= 500;
+
+/**
+ * Nos machines (`IDEM_AI_BACKEND=idem-ml`) : essaie la passerelle, et sur panne rejoue la requête chez OpenRouter
+ * (sa clé et son routage). Le repli n'a lieu qu'avant le premier octet : un flux commencé chez nous y reste.
+ */
+async function sendWithFallback(input: Parameters<typeof fetch>[0], init: RequestInit | undefined, baseURL: string): Promise<Response> {
+  const fallback = openRouterFallbackCredentials();
+  let reason: string;
+  try {
+    const response = await fetch(input, init);
+    if (response.ok || !fallbackWorthy(response.status) || !fallback) return response;
+    void response.body?.cancel().catch(() => undefined);
+    reason = `HTTP ${response.status}`;
+  } catch (error: any) {
+    if (error?.name === 'AbortError' || init?.signal?.aborted || !fallback) throw error;
+    reason = error?.cause?.code || error?.message || 'network';
+  }
+  const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+  const target = fallback.apiUrl.replace(/\/+$/, '') + url.slice(baseURL.replace(/\/+$/, '').length);
+  const headers = new Headers(init?.headers);
+  headers.set('Authorization', `Bearer ${fallback.apiKey}`);
+  console.warn(`[appgen] idem-ml indisponible (${reason}) — repli OpenRouter`);
+  return fetch(target, { ...init, headers });
+}
+
 export function getOpenAIModel(baseURL: string, apiKey: string, model: string): LanguageModel {
   const zdr = (process.env.OPENROUTER_ZDR ?? 'off').toLowerCase() === 'on';
+  // Sur nos machines, le corps reçoit quand même le routage d'OpenRouter : la passerelle l'ignore, et le repli
+  // vers OpenRouter le trouve déjà posé (politique `data_collection: 'deny'` comprise).
+  const selfHosted = Boolean(idemMlBaseUrl() && baseURL.replace(/\/+$/, '') === idemMlBaseUrl());
   const openrouter = createOpenAI({
     apiKey,
     baseURL,
@@ -72,16 +104,17 @@ export function getOpenAIModel(baseURL: string, apiKey: string, model: string): 
           // Corps non-JSON : rien à injecter, on relaie tel quel.
         }
       }
+      const send = (i: Parameters<typeof fetch>[0], n: RequestInit | undefined) => (selfHosted ? sendWithFallback(i, n, baseURL) : fetch(i, n));
       if (!init?.signal) {
         const controller = new AbortController();
         const timer = setTimeout(() => controller.abort(), CONNECT_TIMEOUT_MS);
         try {
-          return await fetch(input, { ...init, signal: controller.signal });
+          return await send(input, { ...init, signal: controller.signal });
         } finally {
           clearTimeout(timer);
         }
       }
-      return fetch(input, init);
+      return send(input, init);
     },
   });
   return openrouter(model) as LanguageModel;

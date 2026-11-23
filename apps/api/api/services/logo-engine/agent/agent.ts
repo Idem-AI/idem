@@ -6,7 +6,9 @@
  *   high    + le directeur : trois directions (catégorie, générateur, idée) ; le code les construit
  *   ultra   + l'auteur : l'IA écrit le Logo IR de chaque direction (2 brouillons, +1 si aucun ne passe),
  *             le jury départage (sauf brouillon dominant), le critique REGARDE le rendu et répond par
- *             un patch ciblé (jamais un nouveau dessin), dessin libre autorisé
+ *             un patch ciblé (jamais un nouveau dessin), dessin libre autorisé ; avec un modèle
+ *             vectoriel (OmniSVG, servi par idem-ml), chaque direction reçoit aussi des symboles
+ *             DESSINÉS par ce modèle, convertis en Logo IR et départagés avec les brouillons de l'auteur
  *
  * Originalité (`planner/originality.ts`) : le directeur nomme les clichés du métier, le code les
  * bannit à tous les étages. Vitesse : toutes les directions sont dessinées EN PARALLÈLE, les
@@ -39,6 +41,10 @@ import { assembleAuthored, authorTask, CRITIC_INSTRUCTION, critiqueScore, direct
 import type { AuthoredLogo, Direction, DirectionsVerdict } from './tasks';
 import { generatorsOf, literalGenerators, originalityOf } from '../planner/originality';
 import { getGenerator } from '../render/generators';
+import { defaultKernel } from '../kernel/paper.kernel';
+import type { VectorModel } from '../vector/client';
+import { importVectorSymbol } from '../vector/import';
+import { symbolPrompt, VECTOR_CANDIDATES, VECTOR_TYPES, vectorDoc } from '../vector/drafts';
 
 /** Largeur du tirage du planificateur par cran. */
 export const EXPLORATION: Record<CreativityLevel, number> = { low: 0.15, medium: 0.35, high: 0.5, ultra: 0.8 };
@@ -65,6 +71,8 @@ export interface AgentDeps {
   /** Le modèle de vision (Ultra) : une image PNG + une consigne → du texte. */
   vision?: (png: Buffer, instruction: string) => Promise<string>;
   budget?: RunBudgetLike;
+  /** Le modèle vectoriel (OmniSVG via idem-ml), Ultra seulement. Absent ou en panne : rien ne change. */
+  vector?: VectorModel;
   /** Étapes réelles, pour la progression (SSE). */
   onStage?: (stage: AgentStage, detail?: string) => void;
 }
@@ -145,7 +153,8 @@ export async function designLogos(input: AgentInput, build: BuildOptions, deps: 
     const originality = originalityOf(input.brief, { cliches: banned, usage: input.usage });
     const menu = directionMenu(kind, weights, originality);
     const fallbackVerdict = (): DirectionsVerdict => ({ directions: chosen.map(directionOf), cliches: { ids: [...banned], words: [] } });
-    const verdict = await orchestrator.run(directionsTask(input.sheet, menu, count, input.wish, fallbackVerdict, banned));
+    const useVector = level === 'ultra' && !!deps.vector && kind !== 'name' && kind !== 'initial';
+    const verdict = await orchestrator.run(directionsTask(input.sheet, menu, count, input.wish, fallbackVerdict, banned, { drawing: useVector }));
     const { directions, cliches } = verdict.value ?? fallbackVerdict();
     banned = new Set([...banned, ...cliches.ids]);
     avoidWords = [...new Set([...cliches.words, ...[...banned].map((id) => getGenerator(id)?.label ?? id)])].slice(0, 10);
@@ -157,6 +166,47 @@ export async function designLogos(input: AgentInput, build: BuildOptions, deps: 
     const waves = DRAFT_WAVES[level];
     const allowFreePaths = level === 'ultra';
 
+    // Le modèle vectoriel dessine TOUTES les directions en une demande, en parallèle des auteurs.
+    const vectorWanted = useVector ? directions.map((d, i) => ({ d, i })).filter(({ d }) => VECTOR_TYPES.includes(d.type)) : [];
+    const vectorStarted = Date.now();
+    const vectorBatch = vectorWanted.length
+      ? deps.vector!
+          .textToSvg(
+            vectorWanted.map(({ d, i }) => ({ id: `d${i}`, text: symbolPrompt({ type: d.type, idea: d.idea, drawing: d.drawing, palette }) })),
+            { candidates: VECTOR_CANDIDATES, seed: hashSeed(`${input.seed}#vector`) }
+          )
+          .catch(() => new Map<string, { svg: string; paths: number }[]>())
+      : null;
+    const vectorDrafts = new Map<number, Promise<PlannedLogo[]>>();
+    const vectorDraftsFor = (direction: Direction, i: number, base: Record<string, unknown> | null): Promise<PlannedLogo[]> => {
+      if (!vectorBatch || !VECTOR_TYPES.includes(direction.type)) return Promise.resolve([]);
+      if (!vectorDrafts.has(i)) {
+        vectorDrafts.set(
+          i,
+          (async () => {
+            const candidates = (await vectorBatch).get(`d${i}`) ?? [];
+            const made: PlannedLogo[] = [];
+            const refused: string[] = [];
+            for (const [k, candidate] of candidates.entries()) {
+              const imported = importVectorSymbol(candidate.svg, palette, defaultKernel(), { idPrefix: 'v' });
+              if (!imported.ok) {
+                refused.push(imported.reason);
+                continue;
+              }
+              const doc = vectorDoc(base, imported, { brief: input.brief as unknown as Record<string, unknown>, palette, type: direction.type, idea: direction.idea, withName: input.withName ?? kind !== 'initial', seed: hashSeed(`${input.seed}#vector#${i}#${k}`), brandName: input.brief.brandName });
+              const produced = await produceLogo(doc, { ...build, allowFreePaths: true }, { skipVariants: true });
+              if (produced.ok && produced.logo) made.push(toPlanned(produced.logo, direction.type, `omnisvg:${direction.type}`));
+              else refused.push('quality');
+            }
+            if (candidates.length) decide('vector', 'llm', `direction ${i + 1} : OmniSVG ${made.length}/${candidates.length} symbole(s) retenu(s) en ${Date.now() - vectorStarted} ms${refused.length ? ` (écartés : ${refused.join(', ')})` : ''}`);
+            else decide('vector', 'graph', `direction ${i + 1} : OmniSVG n'a rien rendu (absent, occupé ou hors délai)`);
+            return made;
+          })().catch(() => [])
+        );
+      }
+      return vectorDrafts.get(i)!;
+    };
+
     const draftDirection = async (direction: Direction, i: number): Promise<PlannedLogo | null> => {
       const drafts: PlannedLogo[] = [];
       // Le brouillon du planificateur pour cette direction : toujours là, c'est le repli.
@@ -165,6 +215,16 @@ export async function designLogos(input: AgentInput, build: BuildOptions, deps: 
         const made = await produceLogo(planned.doc, build, { skipVariants: true });
         if (made.ok && made.logo) drafts.push(toPlanned(made.logo, direction.type, planned.recipe));
       }
+      // Les symboles du modèle vectoriel pour cette direction (lancés plus haut, attendus au besoin).
+      const vectorTask = vectorDraftsFor(direction, i, (planned?.doc as Record<string, unknown> | undefined) ?? null);
+      let vectorTaken = false;
+      const takeVector = async () => {
+        if (vectorTaken) return 0;
+        vectorTaken = true;
+        const list = await vectorTask;
+        drafts.push(...list);
+        return list.filter((l) => l.report.accepted).length;
+      };
       // Ultra : l'IA écrit le Logo IR, par vagues (la 2de seulement si la 1re n'a rien donné de bon).
       if (waves.length && deps.call) {
         const ctx = { sheet: input.sheet, brief: input.brief, direction, withName: input.withName ?? kind !== 'initial', allowFreePaths, avoid: avoidWords };
@@ -200,10 +260,13 @@ export async function designLogos(input: AgentInput, build: BuildOptions, deps: 
             }
           }
           if (good) break;
+          // Avant une 2de vague d'auteur : si le modèle vectoriel a déjà un bon symbole, pas de jetons de plus.
+          if (vectorBatch && (await takeVector())) break;
         }
         if (llmDrafts) decide('author', 'llm', `direction ${i + 1} : ${llmDrafts} brouillon(s) écrit(s) par l'IA sur ${written}${refusedCliche ? `, ${refusedCliche} cliché(s) refusé(s)` : ''}`);
         else decide('author', 'graph', `direction ${i + 1} : brouillon du planificateur${refusedCliche ? ` (${refusedCliche} cliché(s) refusé(s))` : ''}`);
       }
+      await takeVector();
       if (!drafts.length) return null;
       // Les brouillons qui passent les mesures d'abord ; le jury départage, le code garde la main.
       const sound = drafts.filter((d) => d.report.accepted);

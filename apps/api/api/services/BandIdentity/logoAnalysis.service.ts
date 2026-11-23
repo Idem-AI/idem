@@ -1,6 +1,6 @@
 import logger from '../../config/logger';
 import { AI_CONFIG } from '../../config/ai.config';
-import { analyzeImage, isMediaConfigured } from '../media.service';
+import { analyzeImage, isVisionConfigured } from '../media.service';
 import { cacheService } from '../cache.service';
 import { observeLogo } from '../logo-engine/improve/improve';
 
@@ -30,7 +30,7 @@ export class LogoAnalysisService {
    * depuis cette description (conserver / corriger), sans second appel au modèle.
    */
   async analyzeLogo(svg: string): Promise<LogoAnalysisResult> {
-    if (!isMediaConfigured()) {
+    if (!isVisionConfigured()) {
       throw new Error('OPENROUTER_API_KEY is not configured. Cannot analyse a logo.');
     }
     logger.info(`Logo analysis: observing SVG (${svg.length} chars)`);

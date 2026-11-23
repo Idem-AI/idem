@@ -2,8 +2,9 @@
  * OpenRouter — LISTE BLANCHE des modèles ouverts, et table rôle → modèle.
  *
  * Objectif produit : tourner sur des modèles dont les POIDS sont publiés, pour
- * pouvoir les auto-héberger plus tard (vLLM/SGLang pour le texte, diffusers pour
- * l'image) en ne changeant que `OPENROUTER_BASE_URL`.
+ * pouvoir les auto-héberger (vLLM pour le texte, diffusers pour l'image et la vidéo) :
+ * la passerelle d'idem-ml sert ces MÊMES identifiants, et `IDEM_AI_BACKEND=idem-ml`
+ * y bascule (`ai-backend.config.ts`).
  *
  * ── POURQUOI UNE LISTE BLANCHE ──────────────────────────────────────────────
  *

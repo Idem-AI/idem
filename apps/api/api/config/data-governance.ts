@@ -118,7 +118,7 @@ export const PROCESSORS: Record<string, Processor> = {
     contract: 'terms_only',
     lastVerified: '2026-11-18',
   },
-  idem_selfhosted: { name: 'Serveurs IA IDEM (IDEM_SELFHOSTED_*)', role: 'Inférence auto-hébergée', maxClassification: 'L2', external: false, retention: 'Pas de journal de requêtes à activer côté vLLM', trainsOnData: 'no', contract: 'signed', lastVerified: '2026-11-18' },
+  idem_selfhosted: { name: 'Serveurs IA IDEM (passerelle idem-ml IDEM_ML_URL, IDEM_SELFHOSTED_*)', role: 'Inférence auto-hébergée (texte, image, vidéo)', maxClassification: 'L2', external: false, retention: 'Passerelle idem-ml : journaux sans contenu ; vLLM lancé sans journal de requêtes', trainsOnData: 'no', contract: 'signed', lastVerified: '2026-11-18' },
   supabase_selfhosted: { name: 'Supabase GoTrue (auto-hébergé)', role: 'Authentification', maxClassification: 'L3', external: false, retention: 'Infrastructure IDEM', trainsOnData: 'no', contract: 'signed', lastVerified: '2026-11-18' },
   minio_selfhosted: { name: 'MinIO (auto-hébergé)', role: 'Fichiers des projets', maxClassification: 'L2', external: false, retention: 'Infrastructure IDEM', trainsOnData: 'no', contract: 'signed', lastVerified: '2026-11-18' },
   pawapay: { name: 'pawaPay', role: 'Paiements mobile money', maxClassification: 'L3', external: true, retention: 'Obligations réglementaires du prestataire de paiement', trainsOnData: 'no', contract: 'terms_only', lastVerified: '2026-11-18' },

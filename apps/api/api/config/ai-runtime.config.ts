@@ -28,7 +28,17 @@ import { MODEL_ROLES, ModelRole } from './ai.config';
 export interface AiRuntimeSettings {
   /** Modèles OpenRouter par rôle. */
   models?: Partial<Record<ModelRole, string>>;
+  /**
+   * Où partent les générations par sorte : `openrouter` ou `idem-ml` (cf. `ai-backend.config.ts`). Prime sur
+   * `IDEM_AI_BACKEND`. Document : `{ backend: { text: 'idem-ml', image: 'openrouter', logo: 'idem-ml' } }`.
+   */
+  backend?: Partial<Record<BackendKind, string>>;
 }
+
+/** Les sortes d'appel que nos machines peuvent servir (miroir de `SELF_HOSTABLE_KINDS`, sans import circulaire). */
+export const BACKEND_KINDS = ['text', 'image', 'video', 'logo'] as const;
+export type BackendKind = (typeof BACKEND_KINDS)[number];
+const BACKEND_VALUES = ['openrouter', 'idem-ml'];
 
 const SETTINGS_COLLECTION = 'platform_settings';
 const SETTINGS_ID = 'ai';
@@ -45,7 +55,17 @@ function parseSettings(doc: any): AiRuntimeSettings {
       if (value) models[role] = value;
     }
   }
-  return Object.keys(models).length > 0 ? { models } : {};
+  const backend: Partial<Record<BackendKind, string>> = {};
+  if (doc?.backend && typeof doc.backend === 'object') {
+    for (const kind of BACKEND_KINDS) {
+      const value = typeof doc.backend[kind] === 'string' ? doc.backend[kind].trim().toLowerCase() : '';
+      if (BACKEND_VALUES.includes(value)) backend[kind] = value;
+    }
+  }
+  return {
+    ...(Object.keys(models).length > 0 ? { models } : {}),
+    ...(Object.keys(backend).length > 0 ? { backend } : {}),
+  };
 }
 
 /** Relit le document. Base injoignable : l'instantané précédent est conservé. */
@@ -87,6 +107,7 @@ export function runtimeModelFor(role: ModelRole): string | undefined {
 /** Fusionne des modèles dans le document ; `null` retire un rôle. Effectif ici tout de suite. */
 export async function setAiRuntime(patch: {
   models?: Partial<Record<ModelRole, string | null>>;
+  backend?: Partial<Record<BackendKind, string | null>>;
 }): Promise<AiRuntimeSettings> {
   const $set: Record<string, unknown> = { updatedAt: new Date() };
   const $unset: Record<string, ''> = {};
@@ -94,6 +115,10 @@ export async function setAiRuntime(patch: {
   for (const [role, model] of Object.entries(patch.models ?? {})) {
     if (!(MODEL_ROLES as readonly string[]).includes(role)) continue;
     model ? ($set[`models.${role}`] = model) : ($unset[`models.${role}`] = '');
+  }
+  for (const [kind, value] of Object.entries(patch.backend ?? {})) {
+    if (!(BACKEND_KINDS as readonly string[]).includes(kind)) continue;
+    value && BACKEND_VALUES.includes(value) ? ($set[`backend.${kind}`] = value) : ($unset[`backend.${kind}`] = '');
   }
 
   await mongoose.connection.collection(SETTINGS_COLLECTION).updateOne(

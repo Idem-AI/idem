@@ -158,6 +158,18 @@ On ne régénère jamais un logo pour corriger un détail. Un patch est une list
 
 Utilisé par l'auto-amélioration (sans token), le critique (Ultra) et la **retouche demandée par l'utilisateur** dans le chat (« plus rond », « le nom en capitales » → quelques dizaines de tokens).
 
+## 5 bis. OmniSVG — symboles dessinés par un modèle vectoriel (`vector/`, 23/11/2026)
+
+OmniSVG1.1_8B est servi par **idem-ml** (`idem-ml/services/omnisvg`). L'API ne fait que l'appeler par HTTP (`OMNISVG_URL`, `OMNISVG_API_KEY`).
+
+- **Création, Ultra seulement**, parce que c'est du dessin libre. Le directeur ajoute à chaque direction une ligne `drawing:`, dans le même appel. Cette ligne n'est demandée que si OmniSVG est branché, ce qui laisse le préfixe du prompt inchangé sinon. Le code en tire une phrase anglaise (`vector/drafts.ts` : style par type, couleurs nommées, « no text »). Les directions partent en **une seule** demande groupée, en parallèle de la 1re vague d'auteurs. Une 2de vague d'auteur n'est pas payée si OmniSVG a déjà un symbole accepté.
+- **Conversion** (`vector/import.ts`) : tracés pleins du viewBox 0–200 ramenés en 0–100. Le fond blanc est retiré, un aplat coloré pleine page est gardé comme conteneur. Les teintes proches sont regroupées, puis reçoivent les rôles `ink` → `accent` → `ink2` par surface. Le blanc, ou une teinte claire en trop, devient une **vraie découpe**. Les tracés de même rôle sont fondus et arrondis au dixième. Trop complexe (plus de 16 couches, tracé de plus de 6 000 caractères) : refusé.
+- **Document** : celui du planificateur pour la même direction (nom, police, composition), dont le symbole est remplacé. Il passe ensuite le pipeline qualité, le jury et le critique comme tout brouillon (recette `omnisvg:<type>`, décision `vector`).
+- **Améliorer mon logo** : pour un logo sans texte, l'original est aussi vectorisé (`imageToSvg`, 3 candidats), comme candidat « fidèle » soumis au contrôle de ressemblance.
+- **Panne** : client sans attente. Serveur injoignable ou en erreur : disjoncteur d'une minute. 503 « occupé » : on passe sans couper le service. Sans `OMNISVG_URL`, rien ne change.
+- **Licence** : 8B seulement. La 4B repose sur Qwen2.5-VL-3B, sous licence Qwen Research (usage commercial interdit).
+- Contrôle : section 18 de `check:logo` (faux modèle, hors ligne).
+
 ## 6. L'export — `export/package.ts`
 
 ```

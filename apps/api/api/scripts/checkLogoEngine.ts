@@ -56,6 +56,10 @@ import { enclosedVoidRatio, PRACTICES, practiceBrief } from '../services/logo-en
 import { generatorScore, originalityOf, rarityPenalty } from '../services/logo-engine/planner/originality';
 import { buildPool, selectDistinct } from '../services/logo-engine/planner/planner';
 import { PaperGeometryKernel } from '../services/logo-engine/kernel/paper.kernel';
+import { importVectorSymbol, roundPath } from '../services/logo-engine/vector/import';
+import { colorName, symbolPrompt, vectorDoc } from '../services/logo-engine/vector/drafts';
+import { OmniSvgClient } from '../services/logo-engine/vector/client';
+import type { VectorModel } from '../services/logo-engine/vector/client';
 import { circlePath, rectPath } from '../services/logo-engine/kernel/primitives';
 import { extractFontFileUrl } from '../services/BandIdentity/lockup/fontLoader.service';
 import { estimateTokens } from '../../../ivision/core/src/creativity/orchestrator';
@@ -687,6 +691,111 @@ async function main(): Promise<void> {
   check('jetons : bonnes pratiques du type données à l\'auteur', log.filter((l) => l.role === 'logoAuthor').every((l) => /BEST PRACTICES \(/.test(l.user)));
   const goodFirst = log.filter((l) => l.role === 'logoAuthor').length;
   check('jetons : une 1re vague réussie ne paie pas de 3e brouillon (6 appels au lieu de 9)', goodFirst === 6, `${goodFirst} appels d'auteur`);
+
+  // ── 18. OmniSVG (idem-ml) ───────────────────────────────────────────────
+  section('18. OmniSVG : symboles dessinés par un modèle vectoriel, convertis en Logo IR');
+  // Un SVG au format exact du décodeur d'OmniSVG (deepsvg) : viewBox 0–200, un tracé plein par couleur, peints dans l'ordre.
+  const omni = (paths: string[]) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0.0 0.0 200.0 200.0" height="200px" width="200px">${paths.join('\n')}</svg>`;
+  const p = (fill: string, d: string) => `<path fill="${fill}" fill-opacity="1.0"  filling="0" d="${d}"></path>`;
+  const OMNI_SVG = omni([
+    p('#ffffff', 'M0.0 0.0 L200.0 0.0 L200.0 200.0 L0.0 200.0 Z'),
+    p('#113355', 'M100 30 C138.66 30 170 61.34 170 100 C170 138.66 138.66 170 100 170 C61.34 170 30 138.66 30 100 C30 61.34 61.34 30 100 30 Z'),
+    p('#123456', 'M40 100 L100 100 L100 165 L40 165 Z'),
+    p('#ee7744', 'M100 60 L150 140 L50 140 Z'),
+    p('#ffffff', 'M90 95 L110 95 L110 115 L90 115 Z'),
+    '<path fill="none" fill-opacity="1.0" filling="0" d="M0.0 M.0 Z"></path>',
+  ]);
+  const kernel18 = new PaperGeometryKernel();
+  const imported = importVectorSymbol(OMNI_SVG, PALETTE, kernel18);
+  check('import : fond blanc retiré, tracé vide du décodeur ignoré', imported.ok && imported.stats.background === 'dropped' && imported.stats.paths === 5, imported.ok ? JSON.stringify(imported.stats) : imported.reason);
+  if (imported.ok) {
+    check('import : teintes proches fondues, rôles de la charte par surface (bleu → ink, orange → accent)', imported.layers.length === 2 && imported.layers.map((l) => l.fill).join(',') === 'ink,accent', imported.groups.map((g) => `${g.hex}→${g.role}`).join(' '));
+    check('import : le blanc posé sur le symbole devient une vraie découpe (pas une couche blanche)', imported.stats.knockouts === 1 && imported.layers.every((l) => l.fill !== 'paper'));
+    const inBox = imported.layers.every((l) => {
+      const b = l.kind === 'shape' && l.geometry.type === 'path' ? kernel18.fromPath(l.geometry.d)?.bounds : null;
+      return !!b && b.x >= -0.5 && b.y >= -0.5 && b.x + b.w <= 100.5 && b.y + b.h <= 100.5;
+    });
+    check('import : coordonnées ramenées dans la boîte 0–100 du Logo IR, arrondies au dixième', inBox && imported.layers.every((l) => l.kind === 'shape' && l.geometry.type === 'path' && !/\d\.\d\d/.test(l.geometry.d)));
+    const base = docForDirection({ brief: kora.brief, palette: kora.pal, fonts: BUILD.fonts, kind: 'icon', seed: 'omni', count: 3 }, { type: 'pictorial' }, '0');
+    const vdoc = vectorDoc((base?.doc as Record<string, unknown>) ?? null, imported, { brief: { brandName: 'Kora Bank' }, palette: PALETTE, type: 'pictorial', idea: 'une graine', withName: true, seed: 7, brandName: 'Kora Bank' });
+    const refusedFree = await produceLogo(vdoc, BUILD, { skipVariants: true });
+    const vmade = await produceLogo(vdoc, { ...BUILD, allowFreePaths: true }, { skipVariants: true });
+    check('document : symbole OmniSVG + nom posé par le moteur (OmniSVG n\'écrit pas)', vmade.ok && !!vmade.logo && vmade.logo.doc.layers.some((l) => l.kind === 'text' && l.content === 'Kora Bank'), vmade.errors.join('; '));
+    check('document : il passe le même pipeline qualité que tout logo', !!vmade.logo?.report.ok, `note ${vmade.logo?.report.score}`);
+    check('document : dessin libre refusé hors Ultra (même règle que l\'auteur)', !refusedFree.ok || !!refusedFree.logo?.session.warnings?.some?.((w: { code: string }) => w.code === 'free_path_refused') || refusedFree.logo!.rendered.svg.length < vmade.logo!.rendered.svg.length);
+  }
+  const mono = importVectorSymbol(OMNI_SVG, { ink: '#0f3d5e' }, kernel18);
+  check('charte à une couleur : la teinte claire en trop devient une découpe', mono.ok && mono.layers.length === 1 && mono.layers[0].fill === 'ink', mono.ok ? mono.groups.map((g) => `${g.hex}→${g.role}`).join(' ') : mono.reason);
+  const container = importVectorSymbol(omni([p('#113355', 'M0 0 L200 0 L200 200 L0 200 Z'), p('#ffffff', 'M70 70 L130 70 L130 130 L70 130 Z')]), PALETTE, kernel18);
+  check('aplat de couleur pleine page : gardé comme conteneur, le blanc le creuse', container.ok && container.stats.background === 'container' && container.layers.length === 1 && container.stats.knockouts === 1);
+  const spiky = Array.from({ length: 900 }, (_, i) => {
+    const a = (i / 900) * Math.PI * 2;
+    const r = 60 + (i % 2 ? 9.37 : -8.41);
+    return `${i ? 'L' : 'M'}${(100 + r * Math.cos(a)).toFixed(3)} ${(100 + r * Math.sin(a)).toFixed(3)}`;
+  }).join(' ') + ' Z';
+  const complex = importVectorSymbol(omni([p('#113355', spiky)]), PALETTE, kernel18);
+  check('SVG trop complexe pour un logo : refusé, pas tronqué', !complex.ok && complex.reason === 'too_complex', complex.ok ? 'accepté' : complex.reason);
+  check('rien à garder (fond seul) : refusé', !importVectorSymbol(omni([p('#ffffff', 'M0 0 L200 0 L200 200 L0 200 Z')]), PALETTE, kernel18).ok);
+  check('arrondi des tracés : -0 et décimales superflues nettoyés', roundPath('M10.04 -0.01 L 3.149   2') === 'M10 0 L 3.1 2');
+  const prompt = symbolPrompt({ type: 'pictorial', idea: 'une graine', drawing: 'a seed sprouting into a leaf', palette: PALETTE });
+  check('demande : anglaise, formes simples, couleurs nommées, sans texte', /a seed sprouting/.test(prompt) && /No text/.test(prompt) && /dark blue|blue/.test(prompt) && prompt.length <= 600, prompt);
+  check('noms de couleurs : quelques repères', colorName('#e76f51') === 'orange' && colorName('#111111') === 'black' && colorName('#0f3d5e').includes('blue'), `${colorName('#e76f51')} · ${colorName('#0f3d5e')} · ${colorName('#2a9d8f')}`);
+
+  // Le client HTTP : jamais bloquant.
+  let fetches = 0;
+  const fakeFetch = (status: number, body: unknown) => (async () => {
+    fetches++;
+    return new Response(typeof body === 'string' ? body : JSON.stringify(body), { status });
+  }) as unknown as typeof fetch;
+  const okClient = new OmniSvgClient({ url: 'http://gpu:8090/', apiKey: 'k', fetchImpl: fakeFetch(200, { results: [{ id: 'd0', candidates: [{ svg: OMNI_SVG, paths: 5 }, { svg: 'pas un svg', paths: 0 }] }] }) });
+  const got = await okClient.textToSvg([{ id: 'd0', text: 'a seed' }, { id: 'd1', text: 'a wave' }]);
+  check('client : résultats rangés par demande, réponses non-SVG écartées', got.get('d0')?.length === 1 && got.get('d1')?.length === 0);
+  fetches = 0;
+  const downClient = new OmniSvgClient({ url: 'http://gpu:8090', fetchImpl: (async () => {
+    fetches++;
+    throw new TypeError('fetch failed');
+  }) as unknown as typeof fetch });
+  const down1 = await downClient.textToSvg([{ id: 'd0', text: 'x' }]);
+  const down2 = await downClient.imageToSvg(Buffer.from('png'));
+  check('client : serveur injoignable → liste vide, puis disjoncteur (aucun 2e appel)', down1.get('d0')?.length === 0 && down2.length === 0 && fetches === 1 && !downClient.available);
+  fetches = 0;
+  const busyClient = new OmniSvgClient({ url: 'http://gpu:8090', fetchImpl: fakeFetch(503, '{"detail":"occupé"}') });
+  await busyClient.textToSvg([{ id: 'd0', text: 'x' }]);
+  check('client : GPU occupé (503) → on passe sans couper le service', busyClient.available && fetches === 1);
+
+  // L'agent Ultra avec le modèle vectoriel.
+  const vectorCalls: { id: string; text: string }[][] = [];
+  const fakeVector: VectorModel = {
+    name: 'fake-omnisvg',
+    textToSvg: async (prompts) => {
+      vectorCalls.push(prompts);
+      return new Map(prompts.map((q) => [q.id, [{ svg: OMNI_SVG, paths: 5 }, { svg: OMNI_SVG.replace('#ee7744', '#33aa66'), paths: 5 }]]));
+    },
+    imageToSvg: async () => [],
+  };
+  const withDrawing = simulated({
+    logoDirector: (req) => {
+      const family = (name: string) => (req.system.match(new RegExp(`^ ${name}: (.+)$`, 'm'))?.[1] ?? '').split(', ');
+      return ['cliches: a vault door', `1: pictorial | ${family('pictorial')[0]} | value | une image simple | drawing: a seed with one leaf`, `2: abstract | ${family('abstract')[1]} | story | une construction | drawing: two interlocking arcs`, `3: mascot | ${family('mascot')[0]} | name | un personnage | drawing: a smiling bird head`].join('\n');
+    },
+  });
+  log.length = 0;
+  const vect = await designLogos(agentInput('ultra'), BUILD, { call: withDrawing, vector: fakeVector });
+  const directorSystem = log.find((l) => l.role === 'logoDirector')?.system ?? '';
+  check('agent : avec OmniSVG, le directeur décrit aussi le dessin (même appel, pas un de plus)', /drawing: what the symbol literally shows/.test(directorSystem) && log.filter((l) => l.role === 'logoDirector').length === 1);
+  check('agent : une seule demande groupée pour toutes les directions', vectorCalls.length === 1 && vectorCalls[0].length === 3 && vectorCalls[0].every((q) => /No text/.test(q.text)), vectorCalls[0]?.map((q) => q.text.slice(0, 60)).join(' | '));
+  check('agent : la ligne « drawing » sert à la demande et ne pollue pas l\'idée', vectorCalls[0]?.[0]?.text.includes('a seed with one leaf') && vect.logos.every((l) => !/drawing:/i.test(l.doc.concept.rationale ?? '')));
+  const vecDecisions = vect.decisions.filter((d) => d.stage === 'vector');
+  check('agent : les symboles OmniSVG concourent avec les brouillons de l\'auteur', vecDecisions.length === 3 && vecDecisions.every((d) => d.source === 'llm'), vecDecisions.map((d) => d.detail).join(' | '));
+  check('agent : 3 logos, tous passés par le pipeline qualité', vect.logos.length === 3 && vect.logos.every((l) => l.report.ok), vect.logos.map((l) => `${l.recipe}:${l.report.score}`).join(' '));
+  log.length = 0;
+  await designLogos(agentInput('ultra'), BUILD, { call: simulated() });
+  check('agent : sans OmniSVG, la consigne du directeur est inchangée (cache de prompt préservé)', !/drawing:/.test(log.find((l) => l.role === 'logoDirector')?.system ?? 'drawing:'));
+  const broken = await designLogos(agentInput('ultra'), BUILD, { call: simulated(), vector: { name: 'broken', textToSvg: async () => { throw new Error('boom'); }, imageToSvg: async () => [] } });
+  check('agent : OmniSVG en panne → le moteur fait comme sans lui', broken.logos.length === 3 && broken.logos.every((l) => l.report.ok));
+  vectorCalls.length = 0;
+  await designLogos({ ...agentInput('high') }, BUILD, { call: simulated(), vector: fakeVector });
+  check('agent : OmniSVG réservé à Ultra (dessin libre)', vectorCalls.length === 0);
 
   console.log(`\n${passes} vérifications réussies, ${failures} échec(s) — ${((Date.now() - started) / 1000).toFixed(1)} s`);
   if (failures) process.exit(1);
