@@ -52,9 +52,11 @@ let etag: string | undefined;
 
 /** Les textes d'un nœud qui doivent être sûrs (HTML, classes du thème). */
 function unsafe(node: VideoNode): string[] {
-  const texts = node.kind === 'layout' ? [node.html] : node.kind === 'theme' ? Object.values(node.classes ?? {}) : [];
+  // La mise en page d'une primitive est contrôlée comme une autre ; son composant (registre HyperFrames) a ses propres
+  // règles (`types.ts#primitiveErrors` : source admise, empreinte, aucune API qui sorte de la page).
+  const texts = node.kind === 'layout' || node.kind === 'primitive' ? [node.html] : node.kind === 'theme' ? Object.values(node.classes ?? {}) : [];
   const bad = texts.flatMap((t) => unsafeReasons(String(t ?? '')));
-  if (node.kind === 'layout') {
+  if (node.kind === 'layout' || node.kind === 'primitive') {
     const words = hardcodedWords(node.html.replace(/&[a-z]+;/gi, ' '));
     if (words.length) bad.push(`mots écrits en dur : ${words.join(' ')}`);
   }
@@ -114,7 +116,9 @@ export function readVideoTemplatesDir(dir: string): Array<{ node: Record<string,
           const node = JSON.parse(fs.readFileSync(p, 'utf8')) as Record<string, unknown>;
           const config = path.join(d, 'config.json');
           const html = path.join(d, 'template.html');
+          const component = path.join(d, 'component.html');
           if (fs.existsSync(config)) node.config = JSON.parse(fs.readFileSync(config, 'utf8'));
+          if (fs.existsSync(component) && node.primitive && typeof node.primitive === 'object') (node.primitive as Record<string, unknown>).component = fs.readFileSync(component, 'utf8');
           out.push({ node, ...(fs.existsSync(html) ? { html: fs.readFileSync(html, 'utf8').trim() } : {}) });
         } catch (error) {
           out.push({ node: { id: path.basename(d), invalid: String((error as Error)?.message ?? error).slice(0, 120) } });

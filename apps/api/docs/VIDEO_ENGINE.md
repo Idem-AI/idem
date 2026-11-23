@@ -42,6 +42,33 @@ Banc gratuit : `npm run bench:video` (apps/ivision/core) — jetons de l'ancien 
 simulés : 5 appels → 1 ou 2, −54 à −74 % de jetons envoyés), films figés avant / après (planches dans
 `tmp/bench-video/`), caméra et vision par paquets.
 
+### 22-23 novembre 2026 : ce que les alternatives open source apportent (12 chantiers)
+
+Revue des moteurs vidéo ouverts (HyperFrames, explainroo, Earshot, motlab, OpenMontage, Kinetograph, text-to-lottie…) :
+seul le code sous Apache-2.0 ou MIT est repris ; d'OpenMontage (AGPL), Hypit (usage multi-clients interdit) et onetake
+(non commercial), seules les idées.
+
+| # | Chantier | Où | Ce qui change |
+| --- | --- | --- | --- |
+| 1 | HyperFrames 0.9.70 | `@hyperframes/*`, `render.ts#ensureBrowserPath` | la 0.9.70 n'accepte qu'un navigateur « vérifié » : la production pose `PUPPETEER_EXECUTABLE_PATH` (Chromium de l'image), le poste de développement retombe sur le Chrome de Puppeteer |
+| 2 | Entrées calées sur la voix | `assemble.ts` (`cueOf`, `wordKey`), `runtime.ts#steps` | chaque texte (titre, chiffre, libellé, élément de liste) entre au mot où la voix le prononce (horodatage Whisper/Kokoro), 0,12 s avant, borné par la lecture |
+| 3 | Écrit ≠ dit | `audio/spoken.ts`, `storyboard.agent.ts` | `{kora.sn|kora point S N}` : l'écran montre l'écrit, la voix dit le parlé ; nombres, prix en F CFA, %, heures, téléphones, adresses écrits en toutes lettres par le code (fr/en) — `check:spoken` |
+| 4 | Mesures du film | `catalog/metrics.ts`, `runtime.ts#guardContrast` | continuité, cadence (coefficient de variation), part du sujet, entrées simultanées, temps mort ; une cadence trop régulière est remodelée par rôle (`shapeCadence`) ; contraste ≥ 3:1 des textes sur fond uni garanti dans la page (texte assombri ou éclairci) ; tailles < 9 px refusées |
+| 5 | Caméra | `runtime.ts#camera` (idée d'explainroo, MIT) | le cadre s'ouvre serré sur le premier groupe et s'élargit à mesure que les éléments arrivent (mesure des glyphes, 0,7 s, power2.inOut), finit large ; jamais sur un média plein cadre (`VIDEO_CAMERA=off` la coupe) |
+| 6 | Primitives HyperFrames | nœuds `primitive`, `runtime.ts#mountPrimitive` | 7 composants du registre HeyGen (Apache-2.0) : JavaScript ACCEPTÉ du seul dépôt `heygen-com/hyperframes`, au commit figé, empreinte SHA-256 vérifiée au chargement, relu dans l'interface de revue, exécuté dans la page déjà sans réseau |
+| 7 | Signature dessinée | `rendering/logo-svg.ts`, `runtime.ts#drawLogo` | un logo SVG (assaini : ni script, ni gestionnaire, ni référence externe) est posé dans la page de fin et se trace trait par trait, puis se remplit (`VIDEO_LOGO_DRAW=off`) |
+| 8 | Banque de sons Earshot | `audio/sfx.ts#bankSounds`, `scripts/build-sfx-bank.sh` | sons rendus par le code (MIT), servis avant la synthèse ; à défaut, trois prises de synthèse par son (hauteurs ×1 / ×0,89 / ×1,12) — `check:sfx-bank` |
+| 9 | Règles par DA | `motionVideo.service.ts` (ancre), `compose.ts` (énergie) | toutes les images d'un film partagent lumière, optique et ambiance de la DA (assainies : jamais de filtre de couleur) et la même personne ; l'énergie de la DA tire le choix du thème, une DA posée (≤ 2) n'a qu'un développement par scène |
+| 10 | Retouche pointée | `shared-video-editor` (bouton cible), `composition.ts#pick`, `choose.ts#pointLine` | l'utilisateur trace une zone sur l'aperçu : l'aperçu relève la scène, l'instant et les éléments dessous ; la consigne part avec `points` et le modèle sait sur quoi elle porte (idée de motlab, MIT) |
+| 11 | Banc des moteurs de rendu | `npm run bench:renderers` | le même film rendu par HyperFrames et, s'il est installé, Kinetograph (Apache-2.0, GPU sans navigateur) : temps, images, SSIM, planche ; aucun téléchargement, aucune bascule automatique |
+| 12 | Sons générés (facultatif) | `audio/generated.ts` | musique ACE-Step (`VIDEO_MUSIC_GEN_URL`) et bruitage MMAudio des clips muets (`VIDEO_FOLEY_GEN_URL`) sur un serveur GPU d'IDEM ; ÉTEINTS sans adresse ; un échec rend la main aux banques — `check:generated-audio` |
+
+Les primitives : `idem-templates/scripts/hf-allowlist.json` (dépôt, commit, composants, mise en page IDEM, liaison des
+variables) → `node scripts/import-hyperframes.mjs <clone du dépôt>` écrit `catalog/videos/shared/primitives/hf.*` ;
+`types.ts#primitiveErrors` refuse au chargement un composant dont l'empreinte a changé, venu d'un autre dépôt, ou qui
+appelle le réseau, `eval`, le stockage, `postMessage`, la navigation… Le compteur ne pose `count-up` que pour un entier
+< 1 000 et l'anneau que pour un pourcentage (`graph.ts#primitiveFits`).
+
 - **Bibliothèque** : mises en page de scène, thèmes, animations (dont les fonds animés, rôle `bg`), transitions,
   gabarits ; animations et transitions DÉCLARATIVES (tweens JSON sur liste blanche, aucun JavaScript publié ; ni
   rebond ni élastique).
@@ -166,7 +193,7 @@ le catalogue :
 | Commande | Ce qu'elle prouve |
 | --- | --- |
 | `npm run check:hyperframes` (apps/ivision/core) | création complète par le catalogue, modèles simulés : plan du film, médias préparés, grille musicale, assemblage, correction sans modèle, export MP4 |
-| `npm run check:video-catalog` (apps/ivision/core) | gabarits × thèmes × formats rendus et mesurés dans Chrome ; séquences sur 4 formats (traversée à 3 % près) ; listes resserrées ; temps mort −30 % ; aucun appel par défaut |
+| `npm run check:video-catalog` (apps/ivision/core) | gabarits × thèmes × formats rendus et mesurés dans Chrome (contraste, tailles) ; séquences sur 4 formats (traversée à 3 % près) ; listes resserrées ; temps mort −30 % ; entrées calées sur la voix ; caméra ; 7 primitives × formats ; signature dessinée ; retouche pointée ; aucun appel par défaut |
 | `npm run bench:video` (apps/ivision/core) | jetons avant / après (agents simulés), films figés avant / après (planches), caméra mesurée, vision par paquets |
 | `npm run check:request` (apps/ivision/core) | la demande lue en entier, la langue de la demande, le storyboard tenu au scénario, les médias, une vidéo créée de bout en bout |
 | `npm run check:lottie` (apps/ivision/core) | Lottie → WebM transparent, recoloration, import refusé si ce n'est pas une animation |
@@ -174,6 +201,10 @@ le catalogue :
 | `npm run check:brief` (apps/ivision/core) | directeur de création (agent simulé) : brief lu comme un brief, faits gardés, voix de l'utilisateur ; narration à ton constant |
 | `npm run check:comm` (apps/api) | périodes du calendrier, et le plan des vidéos : nettoyage, mise en forme de la demande |
 | `npm run check:roles` (apps/api) | les échelles de modèles et les nouveaux rôles |
+| `npm run check:spoken` (apps/ivision/core) | l'écrit et le dit : nombres, prix, %, heures, téléphones, adresses en toutes lettres (fr/en), `{écrit|dit}` |
+| `npm run check:sfx-bank` (apps/ivision/core) | la banque Earshot lue si elle existe, trois prises de synthèse sinon |
+| `npm run check:generated-audio` (apps/ivision/core) | adaptateurs ACE-Step / MMAudio contre un faux serveur local : éteints par défaut, cache, refus d'une réponse qui n'est pas un son, bruitage mixé à son instant |
+| `npm run bench:renderers` (apps/ivision/core) | HyperFrames contre Kinetograph (si installé) sur le même film : temps, SSIM, planche dans `tmp/bench-renderers/` |
 | `npm run typecheck` (apps/ivision/core) | Node et navigateur |
 
 ## Catalogue détaillé

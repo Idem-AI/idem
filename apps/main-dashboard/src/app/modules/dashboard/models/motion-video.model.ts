@@ -184,6 +184,8 @@ export interface VideoPatch {
   voiceLines?: Record<string, string>;
   /** Clé de scène → consigne : l'IA réécrit le code de la scène. */
   visual?: Record<string, string>;
+  /** Clé de scène → l'endroit pointé dans l'aperçu (instant, zone, éléments dessous) : la consigne porte d'abord dessus. */
+  points?: Record<string, { at: number; zone: { x: number; y: number; w: number; h: number }; roles: string[]; texts?: string[] }>;
   /** Scènes en erreur à corriger (nouvel appel à l'IA, à la demande). */
   fix?: string[];
   /** Scènes à réécrire de zéro depuis leur fiche. */

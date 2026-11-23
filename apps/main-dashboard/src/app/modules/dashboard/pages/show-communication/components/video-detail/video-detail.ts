@@ -15,7 +15,7 @@ import { FormsModule } from '@angular/forms';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 import { IdemVideoEditorComponent } from '@idem/shared-video-editor/angular';
-import { editorScenes, SceneAction } from '@idem/shared-video-editor';
+import { editorScenes, revisePatch, SceneAction } from '@idem/shared-video-editor';
 import { MotionVideoService } from '../../../../services/ai-agents/motion-video.service';
 import {
   MotionVideo,
@@ -209,7 +209,7 @@ export class VideoDetail {
   protected sceneAction(action: SceneAction): void {
     const v = this.video();
     if (!v || this.rewriting().includes(action.key)) return;
-    const body: VideoPatch = action.kind === 'revise' ? { visual: { [action.key]: action.instruction } } : action.kind === 'fix' ? { fix: [action.key] } : { regenerate: [action.key] };
+    const body: VideoPatch = action.kind === 'revise' ? revisePatch(action) : action.kind === 'fix' ? { fix: [action.key] } : { regenerate: [action.key] };
     this.rewriting.update((keys) => [...keys, action.key]);
     this.videos
       .update(this.projectId(), v.id, body)

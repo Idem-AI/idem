@@ -27,9 +27,9 @@
  *   · MESURE : chaque scène dit son temps mort (le temps qui reste après les entrées, le développement et la
  *     lecture) — le code s'en sert pour choisir les développements, les contrôles pour le borner.
  */
-import type { AnimationNode, AnimRole, CarryRole, DevelopNode, LayoutNode, LoadedVideoCatalog, SceneConfig, ThemeNode, TransitionNode, TweenStep } from './types';
+import type { AnimationNode, AnimRole, CarryRole, DevelopNode, LayoutNode, LoadedVideoCatalog, PrimitiveNode, SceneConfig, ThemeNode, TransitionNode, TweenStep } from './types';
 import { ROLE_TARGET } from './types';
-import { animationFor, isFigure, rolesIn, SceneSlots } from './graph';
+import { animationFor, figureParts, isFigure, rolesIn, SceneSlots } from './graph';
 
 /** L'ordre d'entrée des rôles. */
 const ENTRANCE: AnimRole[] = ['bg', 'media', 'mark', 'figure', 'title', 'rule', 'label', 'body', 'attribution', 'items', 'cta', 'logo'];
@@ -99,7 +99,7 @@ export interface AssembleInput {
   config: SceneConfig;
   slots: SceneSlots;
   texts: Record<string, string>;
-  scene: { key: string; duration: number; energy: number; role?: string; beat?: { bpm: number; first: number } };
+  scene: { key: string; duration: number; energy: number; role?: string; beat?: { bpm: number; first: number }; spoken?: Array<{ text: string; t: number }> };
   brand: { name: string; hasLogo: boolean; hasDarkLogo?: boolean };
   /** La transition par laquelle la scène entre, et la scène d'avant. */
   transitionIn?: TransitionNode;
@@ -167,7 +167,7 @@ export function sceneHtml(layout: LayoutNode, theme: ThemeNode, slots: SceneSlot
         ? '<img src="{{logoDark}}" alt="" data-ge-inner class="h-full w-auto max-w-full object-contain">'
         : deepGround
           ? '<span data-ge-inner class="inline-flex h-full items-center rounded-[1.4cqmin] bg-ground px-[2.2cqmin] py-[1cqmin]"><img src="{{logo}}" alt="" class="h-full w-auto max-w-full object-contain"></span>'
-          : '<img src="{{logo}}" alt="" data-ge-inner class="h-full w-auto max-w-full object-contain">'
+          : '<img src="{{logo}}" alt="" data-ge-inner data-ge-logo class="h-full w-auto max-w-full object-contain">'
   );
   // 5. Les classes du thème, la zone sûre, les variantes de format.
   const classes = themeClasses(theme, vars);
@@ -188,7 +188,9 @@ export function sceneHtml(layout: LayoutNode, theme: ThemeNode, slots: SceneSlot
   if (scale !== 1) html = html.replace(/data-fit="(title|figure)" data-fk="([\d.]+)"/g, (_m, r: string, k: string) => `data-fit="${r}" data-fk="${(Number(k) * scale).toFixed(4)}"`);
   // Le fond animé (si le thème en porte un) : un calque décoratif, derrière tout, jamais lu par les textes.
   const bg = classes.bgLayer ? `<div data-v="bg" aria-hidden="true" class="pointer-events-none absolute inset-0 -z-10 ${classes.bgLayer}"></div>` : '';
-  return `<div class="relative h-full w-full overflow-hidden ${classes.ground ?? 'bg-ground'}">${bg}${html.replace(/\s{2,}/g, ' ').trim()}</div>`;
+  // La CAMÉRA (22/11/2026) : tout le contenu de la scène dans une enveloppe que le directeur de caméra du runtime peut
+  // cadrer (gros plan sur ce qui arrive, retour au plan large) ; le cadre extérieur coupe ce qui déborde.
+  return `<div class="relative h-full w-full overflow-hidden ${classes.ground ?? 'bg-ground'}"><div data-ge-camera class="absolute inset-0">${bg}${html.replace(/\s{2,}/g, ' ').trim()}</div></div>`;
 }
 
 // ── La chorégraphie ──────────────────────────────────────────────────────────────────────────
@@ -222,6 +224,8 @@ export interface RuntimeRole {
   developAt?: number;
   out?: ResolvedStep[];
   outAt?: number;
+  /** Les instants (s, depuis le début de la scène) où chaque élément d'une liste entre : quand la voix le dit. */
+  cues?: number[];
 }
 
 export interface RuntimeCarry {
@@ -246,6 +250,16 @@ export interface RuntimeScene {
    * du mouvement, pas sur son départ. Ignoré par le runtime.
    */
   accents?: Array<{ t: number; kind: 'settle' | 'mark' }>;
+  /**
+   * Le DIRECTEUR DE CAMÉRA (adapté d'explainroo, MIT) : les temps de la scène — quand chaque rôle (ou chaque élément
+   * d'une liste) paraît — que le runtime cadre après mesure ; `end` : l'instant où la caméra doit être revenue au plan
+   * large ; `max` : le zoom le plus serré permis.
+   */
+  camera?: { beats: Array<{ role: AnimRole; t: number; item?: number }>; end: number; max: number };
+  /** Le composant du registre HyperFrames monté dans la zone `data-ge-prim-host` : ses variables, son départ, sa durée. */
+  primitive?: { id: string; vars: Record<string, string | number | boolean>; at: number; duration: number; slot?: { template?: string; selector?: string } };
+  /** Le logo (SVG posé dans la page) se dessine trait par trait au lieu d'entrer comme une image. */
+  logoDraw?: boolean;
 }
 
 type Tokens = Record<string, number | string>;
@@ -276,6 +290,23 @@ function resolveSteps(steps: TweenStep[] | undefined, t: Tokens): ResolvedStep[]
     if (s.pick) out.pick = s.pick;
     return out;
   });
+}
+
+/** Un mot ramené à sa forme de comparaison (minuscules, sans accents ni ponctuation) ; vide pour un mot vide. */
+const STOP = new Set(['les', 'des', 'une', 'pour', 'dans', 'avec', 'sans', 'sur', 'par', 'est', 'sont', 'vous', 'nous', 'votre', 'vos', 'notre', 'nos', 'qui', 'que', 'quoi', 'mais', 'plus', 'aux', 'ces', 'ses', 'son', 'sa', 'leur', 'the', 'and', 'for', 'with', 'your', 'our', 'you', 'are', 'from', 'that', 'this', 'into', 'not', 'all']);
+function wordKey(w: string): string {
+  const k = String(w || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\p{L}\p{N}]+/gu, '');
+  return k.length >= 3 && !STOP.has(k) ? k : '';
+}
+
+/**
+ * L'instant où la voix dit, pour la première fois après `from`, un mot porteur de ce texte (sa racine : les cinq
+ * premières lettres, pour qu'« intrants » réponde à « intrant »). `undefined` : la voix ne le dit pas.
+ */
+export function cueOf(text: string, spoken: Array<{ key: string; t: number }>, from = 0): number | undefined {
+  const stems = new Set(String(text || '').split(/\s+/).map(wordKey).filter(Boolean).map((k) => k.slice(0, 5)));
+  if (!stems.size) return undefined;
+  return spoken.find((w) => w.t >= from && stems.has(w.key.slice(0, 5)))?.t;
 }
 
 /** L'échelle finale de l'image intérieure après une suite de tweens (le dernier `scale` visé sur `inner`). */
@@ -311,7 +342,18 @@ function unitsOf(role: AnimRole, split: string, text: string, items: number): nu
 /** La scène entière : HTML et script (données de la chorégraphie pour le runtime `__ge`), et ce qu'elle mesure. */
 export function assembleScene(i: AssembleInput): { html: string; script: string; spec: RuntimeScene; quality: SceneQuality } {
   const layout = (i.cat.nodes.get(i.config.layout) ?? i.cat.nodes.get('builtin.stack')) as LayoutNode;
-  const html = sceneHtml(layout, i.theme, i.slots, i.brand, { ...(i.vars ?? {}), ...(i.config.vars ?? {}) });
+  const prim = (layout as unknown as PrimitiveNode).kind === 'primitive' ? (layout as unknown as PrimitiveNode) : undefined;
+  let html = sceneHtml(layout, i.theme, i.slots, i.brand, { ...(i.vars ?? {}), ...(i.config.vars ?? {}) });
+  // Une PRIMITIVE : son source (registre HyperFrames, empreinte vérifiée au chargement) voyage, inerte, dans un
+  // <template> de la scène ; l'image de son écran aussi (posée par le code depuis le média de la scène).
+  if (prim) {
+    html += `<template data-ge-prim="${prim.id}">${prim.primitive.component}</template>`;
+    if (prim.primitive.slot && i.slots.media) {
+      const m = i.slots.media;
+      const media = m.kind === 'video' ? `<video src="{{media.${m.id}}}" muted playsinline style="width:100%;height:100%;object-fit:cover"></video>` : `<img src="{{media.${m.id}}}" alt="" style="width:100%;height:100%;object-fit:cover">`;
+      html += `<template data-ge-prim-slot>${media}</template>`;
+    }
+  }
   const m = i.theme.motion;
   const pace = Math.min(1.25, Math.max(0.8, i.config.params?.pace ?? 1));
   const D = i.scene.duration;
@@ -374,6 +416,41 @@ export function assembleScene(i: AssembleInput): { html: string; script: string;
   if (pass.end + read + exitSpan > D) pass = build(Math.max(0.45, Math.min(1, (D - read - exitSpan) / Math.max(0.1, pass.end))));
   const roles = pass.roles;
 
+  // LA VOIX D'ABORD (22/11/2026, leçon d'explainroo et de Hypit : les entrées s'ancrent sur des MOTS, pas sur des
+  // secondes). Le titre, le chiffre et le soutien entrent quand la voix dit leur premier mot porteur ; chaque élément
+  // d'une liste, quand elle le cite. Jamais plus tôt que prévu, jamais au point de rogner le temps de lecture.
+  const spoken = (i.scene.spoken ?? []).map((w) => ({ key: wordKey(w.text), t: w.t })).filter((w) => w.key);
+  if (spoken.length) {
+    const lead = 0.12;
+    // La voix lit le texte en même temps qu'il paraît : il suffit d'une courte tenue après la dernière entrée.
+    const latest = D - exitSpan - Math.min(read, 1) - 0.2;
+    // Chaque texte entre sur SON mot, indépendamment des autres (un libellé dit avant le titre entre avant lui) ; les
+    // éléments décoratifs (filet, marque, fond) gardent leur place.
+    let from = 0;
+    for (const role of ['figure', 'label', 'title', 'body', 'attribution', 'cta'] as AnimRole[]) {
+      const r = roles.find((x) => x.role === role && x.in.length);
+      const t = r ? cueOf(textOf(role), spoken) : undefined;
+      if (!r || t === undefined) continue;
+      from = Math.max(from, t);
+      const at = Math.min(t - lead, latest);
+      if (at - r.at > 0.05) r.at = Math.round(at * 1000) / 1000;
+    }
+    const items = roles.find((x) => x.role === 'items' && x.in.length);
+    if (items && i.slots.items.length >= 2) {
+      let after = Math.max(from, 0);
+      const cues: number[] = [];
+      for (const key of i.slots.items) {
+        const t = cueOf(i.texts[key] ?? '', spoken, after);
+        if (t === undefined) break;
+        cues.push(Math.round(Math.max(items.at, Math.min(t - lead, latest)) * 1000) / 1000);
+        after = t;
+      }
+      // Tous les éléments cités, dans l'ordre et à des instants distincts : chacun entre à son mot (sinon le décalage
+      // resserré garde la main).
+      if (cues.length === i.slots.items.length && cues.every((c, k) => !k || c > cues[k - 1] + 0.15)) items.cues = cues;
+    }
+  }
+
   // Le temps fort : le titre d'une scène énergique se pose sur le battement suivant (au plus 0,3 s plus tard).
   if (i.scene.beat && i.scene.beat.bpm > 0 && i.scene.energy >= 3) {
     const title = roles.find((r) => r.role === 'title');
@@ -390,7 +467,7 @@ export function assembleScene(i: AssembleInput): { html: string; script: string;
   const drift = m.drift ?? 0;
   // La traversée : l'élément porté n'appartient qu'à elle tant qu'elle dure (sa tenue, son développement attendent).
   const carryDur = carried ? Math.round(Math.min(0.95, Math.max(0.5, D * 0.2)) * 1000) / 1000 : 0;
-  const enteredOf = (r: RuntimeRole) => (r.role === carried ? carryDur : r.at + stepsSpan(r.in, unitsOf(r.role, r.split, textOf(r.role), i.slots.items.length)));
+  const enteredOf = (r: RuntimeRole) => (r.role === carried ? carryDur : r.cues?.length ? r.cues[r.cues.length - 1] + stepsSpan(r.in, 1) : r.at + stepsSpan(r.in, unitsOf(r.role, r.split, textOf(r.role), i.slots.items.length)));
   // Le DÉVELOPPEMENT : sur son rôle, une fois posé (`entered`) ou une fois la scène posée et en partie lue (`read`) ;
   // il remplace la tenue de ce rôle. Trop peu de temps : la scène n'en reçoit pas (jamais de mouvement écrasé).
   const allIn = Math.max(0, ...roles.filter((r) => r.role !== 'bg').map(enteredOf));
@@ -459,6 +536,25 @@ export function assembleScene(i: AssembleInput): { html: string; script: string;
   }
 
   const spec: RuntimeScene = { key: i.scene.key, roles };
+  if (prim) {
+    const text = (slot: string) => {
+      const key = (i.slots as unknown as Record<string, string | undefined>)[slot];
+      return key ? i.texts[key] ?? '' : '';
+    };
+    const fig = figureParts(text('figure'));
+    const vars: Record<string, string | number | boolean> = { ...(prim.primitive.fixed ?? {}) };
+    for (const [name, rule] of Object.entries(prim.primitive.bind ?? {})) {
+      if (rule.startsWith('const:')) vars[name] = Number.isFinite(Number(rule.slice(6))) && rule.slice(6).trim() !== '' ? Number(rule.slice(6)) : rule.slice(6);
+      else if (rule === 'figure.value') vars[name] = fig?.value ?? 0;
+      else if (rule === 'figure.prefix') vars[name] = fig?.prefix ?? '';
+      else if (rule === 'figure.suffix') vars[name] = fig?.suffix ?? '';
+      else if (rule === 'figure.percent') vars[name] = fig?.percent ? fig.value : 0;
+      else if (rule === 'brand.name') vars[name] = i.brand.name;
+      else vars[name] = text(rule);
+    }
+    const at = Math.round(Math.max(0.12, i.transitionIn && i.transitionIn.duration > 0 ? i.transitionIn.duration / 2 : 0.12) * 1000) / 1000;
+    spec.primitive = { id: prim.id, vars, at, duration: Math.round(Math.max(0.5, D - at - exitSpan) * 1000) / 1000, ...(prim.primitive.slot ? { slot: prim.primitive.slot } : {}) };
+  }
   // La traversée remplace la transition : le cut, sans panneau, et l'élément qui glisse (mesuré dans la page).
   if (carried && i.carryIn) {
     spec.carry = {
@@ -475,6 +571,23 @@ export function assembleScene(i: AssembleInput): { html: string; script: string;
     const t: Tokens = { half, d: i.transitionIn.duration };
     spec.transition = { prevKey: i.prevKey, half, overlays: i.transitionIn.overlays, out: resolveSteps(i.transitionIn.steps.out, t), in: resolveSteps(i.transitionIn.steps.in, t) };
   }
+  // La caméra : une scène assez longue, dont les éléments paraissent à des instants distincts (souvent sur la voix),
+  // peut recevoir des gros plans — le runtime vérifie, mesures à l'appui, qu'aucun autre élément n'est coupé.
+  if (process.env.VIDEO_CAMERA !== 'off' && D >= 3.6 && !carried) {
+    const FOCUS: AnimRole[] = ['figure', 'title', 'label', 'body', 'items', 'media', 'logo', 'cta', 'attribution'];
+    const beats: NonNullable<RuntimeScene['camera']>['beats'] = [];
+    for (const r of roles) {
+      if (!FOCUS.includes(r.role) || !r.in.length) continue;
+      if (r.role === 'items' && r.cues?.length) r.cues.forEach((t, item) => beats.push({ role: 'items', t, item }));
+      else beats.push({ role: r.role, t: r.at });
+    }
+    beats.sort((a, b) => a.t - b.t);
+    if (beats.length >= 2) spec.camera = { beats, end: Math.round((D - exitSpan - 0.35) * 1000) / 1000, max: i.scene.energy >= 4 ? 1.8 : 1.6 };
+  }
+
+  // La signature dessinée : dans une scène de fin, le logo (s'il est un SVG, posé dans la page) se trace puis se remplit.
+  if ((i.scene.role === 'signature' || i.scene.role === 'cta') && roles.some((r) => r.role === 'logo' && r.in.length) && process.env.VIDEO_LOGO_DRAW !== 'off') spec.logoDraw = true;
+
   // Les temps forts visuels : le rôle principal posé (chiffre, sinon titre), les traits qui se dessinent.
   const lead = roles.find((r) => r.role === 'figure' && r.in.length) ?? roles.find((r) => r.role === 'title' && r.in.length);
   const accents: NonNullable<RuntimeScene['accents']> = [];

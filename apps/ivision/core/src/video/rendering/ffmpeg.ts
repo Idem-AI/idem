@@ -6,6 +6,8 @@ import type { SfxKind, VideoQuality } from '../contracts/model';
 import { MUSIC_GAIN_DB, MUSIC_UNDER_VOICE_DB, SFX_UNDER_VOICE_DB, SfxCue } from '../audio/sfx';
 
 export const FFMPEG = process.env.FFMPEG_PATH || 'ffmpeg';
+/** Le niveau d'un bruitage de clip : une ambiance, sous la musique (dB). */
+export const FOLEY_DB = -16;
 
 /** ffmpeg, en gardant son journal (mesures de `loudnorm`). */
 export function runLog(args: string[]): Promise<string> {
@@ -64,13 +66,16 @@ export async function mixAudio(opts: {
   cues: (SfxCue & { db: number; take?: number })[];
   files: Partial<Record<SfxKind, string | string[]>>;
   voice: { file: string; at: number }[];
+  /** Les bruitages des clips (facultatifs) : sur le bus des effets, bas, avec un fondu à chaque bout. */
+  ambience?: { file: string; at: number; duration: number }[];
 }): Promise<void> {
   const { silent, file, d, music, cues, voice } = opts;
+  const ambience = (opts.ambience ?? []).filter((a) => a.at < d && a.duration > 0.2);
   const fileOf = (kind: SfxKind, take = 0): string | undefined => {
     const f = opts.files[kind];
     return Array.isArray(f) ? f[take % f.length] : f;
   };
-  if (!music && !cues.length && !voice.length) {
+  if (!music && !cues.length && !voice.length && !ambience.length) {
     await run(['-y', '-v', 'error', '-i', silent, '-c', 'copy', '-movflags', '+faststart', file]);
     return;
   }
@@ -100,6 +105,15 @@ export async function mixAudio(opts: {
     const ms = Math.round(cue.t * 1000);
     filters.push(`[${index}:a]aresample=48000,aformat=channel_layouts=stereo,volume=${cue.db + (voice.length ? SFX_UNDER_VOICE_DB : 0)}dB,adelay=${ms}|${ms}[s${index}]`);
     sfxLabels.push(`[s${index}]`);
+    index++;
+  }
+  for (const bed of ambience) {
+    args.push('-i', bed.file);
+    const ms = Math.round(bed.at * 1000);
+    const len = Math.min(bed.duration, d - bed.at);
+    const fade = Math.min(0.3, len / 4);
+    filters.push(`[${index}:a]aresample=48000,aformat=channel_layouts=stereo,atrim=0:${len.toFixed(3)},asetpts=PTS-STARTPTS,afade=t=in:st=0:d=${fade.toFixed(3)},afade=t=out:st=${Math.max(0, len - fade).toFixed(3)}:d=${fade.toFixed(3)},volume=${FOLEY_DB + (voice.length ? SFX_UNDER_VOICE_DB : 0)}dB,adelay=${ms}|${ms}[f${index}]`);
+    sfxLabels.push(`[f${index}]`);
     index++;
   }
   const voiceLabels: string[] = [];

@@ -13,12 +13,14 @@
 import logger from '../../runtime/logger';
 import { coreHost } from '../../runtime/host';
 import type { CreativityLevel } from '../../creativity/levels';
-import { inTier } from '@idem/graphic-engine';
+import { getDirection, inTier } from '@idem/graphic-engine';
+import type { RevisePoint } from './choose';
 import { callFilmModel, FilmCallContext } from '../agents';
 import { assembleScene, DEVELOP_FREE_MIN, finalInnerScale, RuntimeScene, sceneHtml, SceneQuality } from './assemble';
 import { ChooseScene, chooseSystem, chooseUser, parseChoices, videoEffortFor } from './choose';
 import { animationFits, animationFor, energyOf, FilmState, inDirection, layoutFits, rankThemes, rolesIn, sceneFingerprint, sceneSlots, SceneFacts, SceneSlots, shortlist, SceneCandidate, stableHash, transitionFor, videoIndex } from './graph';
 import { videoCatalog } from './registry';
+import { FilmMetrics, filmMetrics } from './metrics';
 import type { AnimationNode, CarryRole, DevelopNode, FilmFormatId, LayoutNode, LoadedVideoCatalog, SceneConfig, SceneRole, SequenceNode, ThemeNode, TransitionNode, VideoStyle } from './types';
 import { ROLE_TARGET, SCENE_ROLES } from './types';
 
@@ -30,6 +32,8 @@ export interface CatalogScene {
   role?: string;
   energy?: number;
   beat?: { bpm: number; first: number };
+  /** Les mots dits par la voix off pendant la scène (s, depuis son début) : les entrées se calent sur eux. */
+  spoken?: Array<{ text: string; t: number }>;
 }
 
 export interface ComposeInput {
@@ -60,6 +64,8 @@ export interface ComposedFilm {
   vars: Record<string, string>;
   scenes: ComposedScene[];
   trace: { source: 'llm' | 'code'; tokens: { input: number; output: number }; ms: number; failure?: string; detail: string };
+  /** Les mesures du film (continuité, cadence, sujet, transitions, retenue, temps mort) : journal et contrôles. */
+  metrics?: FilmMetrics;
 }
 
 const STYLES: VideoStyle[] = ['energetic', 'premium', 'playful', 'corporate'];
@@ -195,7 +201,7 @@ const DEVELOP_RANK: Partial<Record<string, number>> = { media: 1, items: 2, figu
  * aucun développement de séquence en reçoit un : celui de son rôle visé le plus parlant (le problème se barre, l'image
  * se découvre, la liste s'accomplit…). Variété du film : jamais le même deux scènes de suite, deux fois au plus.
  */
-function autoDevelops(cat: LoadedVideoCatalog, facts: SceneFacts[], configs: SceneConfig[], specs: RuntimeScene[], quality: SceneQuality[], seed: string): DevelopNode[][] {
+function autoDevelops(cat: LoadedVideoCatalog, facts: SceneFacts[], configs: SceneConfig[], specs: RuntimeScene[], quality: SceneQuality[], seed: string, perScene = 2): DevelopNode[][] {
   const nodes = [...cat.nodes.values()].filter((n): n is DevelopNode => n.kind === 'develop');
   const count = new Map<string, number>();
   // Un même effet deux fois par film au plus (un peu plus dans un long film : une fois toutes les cinq scènes).
@@ -219,7 +225,7 @@ function autoDevelops(cat: LoadedVideoCatalog, facts: SceneFacts[], configs: Sce
       // caméra sur l'image (effet qui court dès que l'image est posée) ne gêne pas la lecture : elle se juge sur le temps
       // de présence de l'image, pas sur le temps libre après lecture (sinon une photo restait figée pendant que l'on lit).
       const room = (n: DevelopNode) => (n.start === 'entered' && long(n) ? facts[i].duration - 1 : free);
-      while (chosen.length < 2) {
+      while (chosen.length < perScene) {
         const fits = nodes
           .filter((n) => roles.has(n.role) && (!n.sceneRoles?.length || n.sceneRoles.includes(sceneRole as SceneRole)))
           .filter((n) => room(n) >= Math.max(DEVELOP_FREE_MIN, n.minHold * 0.8) && (count.get(n.id) ?? 0) < cap && !out[i - 1]?.some((p) => p.id === n.id))
@@ -268,7 +274,7 @@ export function assembleFilm(cat: LoadedVideoCatalog, input: Pick<ComposeInput, 
       config: configOf(i),
       slots: facts[i].slots,
       texts: s.texts,
-      scene: { key: s.key, duration: s.duration, energy: facts[i].energy, ...(facts[i].role ? { role: facts[i].role } : {}), ...(s.beat ? { beat: s.beat } : {}) },
+      scene: { key: s.key, duration: s.duration, energy: facts[i].energy, ...(facts[i].role ? { role: facts[i].role } : {}), ...(s.beat ? { beat: s.beat } : {}), ...(s.spoken?.length ? { spoken: s.spoken } : {}) },
       brand: input.brand,
       ...(transitions[i] && !carries[i] ? { transitionIn: transitions[i], prevKey: input.scenes[i - 1].key } : {}),
       ...(carries[i] ? { carryIn: { role: carries[i]!, prevKey: input.scenes[i - 1].key, ...(innerFrom ? { innerFrom } : {}) } } : {}),
@@ -283,7 +289,9 @@ export function assembleFilm(cat: LoadedVideoCatalog, input: Pick<ComposeInput, 
   const first = input.scenes.map((_, i) => build(i, explicit[i]));
   // 2. Les développements du film (séquences, puis temps libre), 3. l'assemblage final, scène après scène : une image
   //    portée repart du cadrage où la scène d'avant l'a laissée.
-  const develops = autoDevelops(cat, facts, configs, first.map((a) => a.spec), first.map((a) => a.quality), `${input.brand.name}|${input.scenes.map((s) => s.key).join(',')}`);
+  // Une DA posée (énergie ≤ 2) : un seul développement par scène — la retenue fait partie de son style.
+  const calmDa = (Number(getDirection(input.brand.direction)?.tags?.energy) || 3) <= 2;
+  const develops = autoDevelops(cat, facts, configs, first.map((a) => a.spec), first.map((a) => a.quality), `${input.brand.name}|${input.scenes.map((s) => s.key).join(',')}`, calmDa ? 1 : 2);
   const out: ComposedScene[] = [];
   let previous: RuntimeScene | undefined;
   input.scenes.forEach((s, i) => {
@@ -333,7 +341,10 @@ export async function composeFilmFromCatalog(input: ComposeInput): Promise<Compo
     state.layouts[f.index] = chosen;
     state.use.set(chosen, (state.use.get(chosen) ?? 0) + 1);
   }
-  const avgEnergy = facts.reduce((n, f) => n + f.energy, 0) / Math.max(1, facts.length);
+  // Le rythme de la DA de la marque (22/11/2026) : son énergie (1 posée → 5 vive) tire le choix du thème vers elle.
+  const daEnergy = Number(getDirection(input.brand.direction)?.tags?.energy) || 0;
+  const filmEnergy = facts.reduce((n, f) => n + f.energy, 0) / Math.max(1, facts.length);
+  const avgEnergy = daEnergy >= 1 && daEnergy <= 5 ? (filmEnergy * 2 + daEnergy) / 3 : filmEnergy;
   const themes = rankThemes(cat, { style, direction: input.brand.direction, energy: avgEnergy, allowDark: input.allowDark === true, seed, used: memory.themes, level: input.level });
   let theme = themes[0];
   let configs = lists.map((l, i) => sequences.get(i) ?? l[0].config);
@@ -373,12 +384,13 @@ export async function composeFilmFromCatalog(input: ComposeInput): Promise<Compo
   trace.ms = Date.now() - t0;
   const seqIds = [...new Set(scenes.map((s) => s.config.sequence).filter(Boolean))];
   trace.detail = `catalogue ${cat.version} · thème ${theme.id}${seqIds.length ? ` · séquences ${seqIds.join(', ')}` : ''} · ${scenes.map((s) => `${s.key}=${s.config.sequence ? `${s.config.sequence}#${(s.config.step ?? 0) + 1}` : s.config.gabarit ?? s.config.layout}${s.quality?.carry ? `⇠${s.quality.carry}` : s.config.transition ? `↤${s.config.transition}` : ''}${s.quality?.develop ? `+${s.quality.develop}` : ''}`).join(', ')}`.slice(0, 900);
-  logger.info('video.catalog_film', { event: 'video.catalog_film', level: input.level, by: trace.source, detail: trace.detail, idle: scenes.map((s) => s.quality?.idle ?? 0) });
+  const metrics = filmMetrics(scenes, input.scenes);
+  logger.info('video.catalog_film', { event: 'video.catalog_film', level: input.level, by: trace.source, detail: trace.detail, idle: scenes.map((s) => s.quality?.idle ?? 0), metrics });
   const host = coreHost();
   if (input.memoryKey && host.rememberFingerprints && process.env.IDEM_QUALITY_MEMORY !== '0') {
     await host.rememberFingerprints({ documentType: 'video', key: input.memoryKey }, [`vtheme:${theme.id}`, ...scenes.map((s) => `vtpl:${sceneFingerprint(s.config)}`), ...seqIds.map((id) => `vseq:${id}`)]).catch(() => undefined);
   }
-  return { version: cat.version, theme: theme.id, vars: {}, scenes, trace };
+  return { version: cat.version, theme: theme.id, vars: {}, scenes, trace, metrics };
 }
 
 /** Le film réassemblé depuis ses configurations gardées (texte, durée ou ordre changés) : aucun modèle. */
@@ -420,7 +432,7 @@ export async function nextSceneConfig(input: Pick<ComposeInput, 'scenes' | 'bran
 }
 
 /** La RETOUCHE écrite d'une scène : le modèle repart de sa configuration actuelle et de la consigne (un appel). */
-export async function reviseSceneConfig(input: ComposeInput, index: number, themeId: string, current: SceneConfig, instruction: string): Promise<{ config: SceneConfig; trace: ComposedFilm['trace'] }> {
+export async function reviseSceneConfig(input: ComposeInput, index: number, themeId: string, current: SceneConfig, instruction: string, point?: RevisePoint): Promise<{ config: SceneConfig; trace: ComposedFilm['trace'] }> {
   const cat = await videoCatalog();
   const effort = { ...videoEffortFor(input.level), chooser: 'model' as const, motion: true };
   const facts = factsOf(input.scenes, input.formats, input.brand.hasLogo);
@@ -433,7 +445,7 @@ export async function reviseSceneConfig(input: ComposeInput, index: number, them
   if (layout?.kind === 'layout') list = [{ ref: 'A', layout: layout as LayoutNode, config: current, score: 99 }, ...list.filter((c) => sceneFingerprint(c.config) !== sceneFingerprint(current))].map((c, i) => ({ ...c, ref: String.fromCharCode(65 + i) }));
   const key = input.scenes[index].key;
   const scenes: ChooseScene[] = [{ key, role: f.role, energy: f.energy, duration: f.duration, shape: shapeOf(f.slots, f.texts), candidates: list, roles: Object.fromEntries(list.map((c) => [c.ref, rolesIn(sceneHtml(c.layout, theme, f.slots, input.brand)).filter((r) => r !== 'item')])) }];
-  const user = chooseUser(cat, { brandLine: input.brand.line, film: input.film, themes: [theme], scenes, effort, level: input.level, direction: input.brand.direction, revise: { key, current, instruction } });
+  const user = chooseUser(cat, { brandLine: input.brand.line, film: input.film, themes: [theme], scenes, effort, level: input.level, direction: input.brand.direction, revise: { key, current, instruction, ...(point ? { point } : {}) } });
   const run = await callFilmModel(input.call, 'video.template', chooseSystem(), user, (raw) => (parseChoices(raw, cat, { themes: [theme], scenes, effort })?.scenes.size ?? 0) > 0);
   const parsed = run.raw ? parseChoices(run.raw, cat, { themes: [theme], scenes, effort }) : null;
   const config = parsed?.scenes.get(key)?.config ?? list.find((c) => sceneFingerprint(c.config) !== sceneFingerprint(current))?.config ?? current;

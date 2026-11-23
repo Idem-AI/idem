@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 /**
  * LE CATALOGUE VIDÉO — ses nœuds et ses règles (les mêmes que `idem-templates/scripts/video-rules.mjs`, appliquées une
  * seconde fois au chargement : un nœud qui les enfreint est écarté et dit, jamais exécuté).
@@ -14,7 +15,7 @@
  *               logo) traverse la coupe — il glisse de sa place d'avant à sa place d'après (pas de diapositives).
  */
 
-export type VideoNodeKind = 'layout' | 'theme' | 'animation' | 'transition' | 'gabarit' | 'develop' | 'sequence';
+export type VideoNodeKind = 'layout' | 'theme' | 'animation' | 'transition' | 'gabarit' | 'develop' | 'sequence' | 'primitive';
 export type SceneRole = 'hook' | 'problem' | 'reveal' | 'feature' | 'benefits' | 'proof' | 'cta' | 'signature' | 'statement' | 'data';
 export type VideoStyle = 'energetic' | 'premium' | 'playful' | 'corporate';
 export type Slot = 'title' | 'body' | 'cta' | 'figure' | 'label' | 'attribution' | 'items' | 'media' | 'logo';
@@ -200,7 +201,28 @@ export interface SequenceNode extends BaseNode {
   scenes: SequenceStep[];
 }
 
-export type VideoNode = LayoutNode | ThemeNode | AnimationNode | TransitionNode | GabaritNode | DevelopNode | SequenceNode;
+/**
+ * UNE PRIMITIVE (22/11/2026) — un composant du registre HyperFrames (HeyGen, Apache-2.0), seule source de JavaScript
+ * admise : importé à un commit figé, son empreinte SHA-256 vérifiée ici, relu dans l'interface de revue, exécuté dans
+ * la page du film (sans réseau). Elle se choisit comme une mise en page : `html` est la mise en page IDEM qui l'accueille
+ * (une zone `data-ge-prim-host`, et nos propres textes autour), `primitive.component` le source HeyGen, `bind` la façon
+ * de remplir ses variables avec les textes de la scène.
+ */
+export interface PrimitiveNode extends Omit<LayoutNode, 'kind'> {
+  kind: 'primitive';
+  primitive: {
+    source: { repo: string; commit: string; path: string; sha256: string; license: string };
+    component: string;
+    variables?: Array<{ id: string; type: string; default?: unknown; options?: unknown[] }>;
+    bind: Record<string, string>;
+    fixed?: Record<string, string | number | boolean>;
+    slot?: { template?: string; selector?: string };
+    /** Ce que la scène doit offrir (un chiffre lisible, un pourcentage). */
+    needs?: Array<'figure.number' | 'figure.percent'>;
+  };
+}
+
+export type VideoNode = LayoutNode | ThemeNode | AnimationNode | TransitionNode | GabaritNode | DevelopNode | SequenceNode | PrimitiveNode;
 
 export interface LoadedVideoCatalog {
   version: string;
@@ -353,6 +375,17 @@ export function nodeErrors(node: VideoNode): string[] {
       for (const role of Object.keys(node.config?.animations ?? {})) if (!ANIM_ROLES.has(role)) errors.push(`rôle inconnu « ${role} »`);
       break;
     }
+    case 'primitive': {
+      errors.push(...primitiveErrors(node));
+      if (!node.html || (node.html.match(/\bdata-ge-prim-host\b/g) ?? []).length !== 1) errors.push('une zone de composant (data-ge-prim-host) exactement');
+      if (node.html) {
+        if ((node.html.match(/\bdata-safe\b/g) ?? []).length !== 1) errors.push('une zone sûre (data-safe) exactement');
+        for (const t of htmlTokens(node.html)) if (!TOKEN_FORMS.some((re) => re.test(t))) errors.push(`jeton inconnu [[${t}]]`);
+        for (const [, v] of node.html.matchAll(/data-v="([^"]+)"/g)) if (!ANIM_ROLES.has(v)) errors.push(`rôle animable inconnu « ${v} »`);
+      }
+      if (!node.formats?.length || node.formats.some((f) => !FORMAT_IDS.includes(f))) errors.push('formats invalides');
+      break;
+    }
     case 'develop': {
       if (!ANIM_ROLES.has(node.role) || node.role === 'item' || node.role === 'bg') errors.push('rôle visé invalide');
       if (node.start !== undefined && node.start !== 'entered' && node.start !== 'read') errors.push('début invalide');
@@ -419,5 +452,32 @@ export function refErrors(node: VideoNode, nodes: Map<string, VideoNode>): strin
       }
     });
   }
+  return errors;
+}
+
+// ── Les primitives : la défense en profondeur (les mêmes règles que `idem-templates/scripts/video-rules.mjs`) ──────
+
+export const PRIMITIVE_REPOS = new Set(['heygen-com/hyperframes']);
+const PRIMITIVE_FORBIDDEN: Array<[RegExp, string]> = [
+  [/<script[^>]*\bsrc\s*=/i, 'script externe'],
+  [/<(iframe|object|embed|link|meta|base|form)\b/i, 'balise interdite'],
+  [/https?:\/\/|\/\/[a-z0-9-]+\.[a-z]{2,}\//i, 'adresse étrangère'],
+  [/\bfetch\s*\(|XMLHttpRequest|WebSocket|EventSource|sendBeacon|\bimport\s*\(|\beval\s*\(|new\s+Function|document\.cookie|localStorage|sessionStorage|indexedDB|postMessage|window\.open|\blocation\s*[.=]|navigator\.|Worker\s*\(/, 'API interdite'],
+  [/\son[a-z]+\s*=/i, 'gestionnaire d’événement en attribut'],
+];
+const PRIM_BIND = /^(title|body|cta|figure|label|attribution|figure\.(value|prefix|suffix|percent)|brand\.name|const:[\w .%-]{0,40})$/;
+
+function primitiveErrors(node: PrimitiveNode): string[] {
+  const p = node.primitive;
+  const errors: string[] = [];
+  if (!p || typeof p !== 'object') return ['primitive manquante'];
+  if (!PRIMITIVE_REPOS.has(p.source?.repo)) errors.push('source hors liste');
+  if (p.source?.license !== 'Apache-2.0') errors.push('licence Apache-2.0 attendue');
+  if (!/^[0-9a-f]{40}$/.test(p.source?.commit ?? '')) errors.push('commit figé attendu');
+  if (typeof p.component !== 'string' || !p.component) return [...errors, 'source du composant manquant'];
+  if (crypto.createHash('sha256').update(p.component, 'utf8').digest('hex') !== p.source?.sha256) errors.push('empreinte SHA-256 différente');
+  for (const [re, why] of PRIMITIVE_FORBIDDEN) if (re.test(p.component)) errors.push(why);
+  if (!/<script>/.test(p.component) || !/\bid="root"/.test(p.component)) errors.push('composant sans script ou sans racine #root');
+  for (const [k, v] of Object.entries(p.bind ?? {})) if (!PRIM_BIND.test(String(v))) errors.push(`branchement inconnu ${k}`);
   return errors;
 }

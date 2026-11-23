@@ -3,7 +3,7 @@ import { RouterLink } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 import { IdemVideoEditorComponent } from '@idem/shared-video-editor/angular';
-import { editorScenes, SceneAction } from '@idem/shared-video-editor';
+import { editorScenes, revisePatch, SceneAction } from '@idem/shared-video-editor';
 import { Subscription, timer } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { ApiService } from '../../../core/api.service';
@@ -150,7 +150,7 @@ export class VideoEditPage {
   protected sceneAction(action: SceneAction): void {
     const v = this.video();
     if (!v || this.rewriting().includes(action.key)) return;
-    const patch = action.kind === 'revise' ? { visual: { [action.key]: action.instruction } } : action.kind === 'fix' ? { fix: [action.key] } : { regenerate: [action.key] };
+    const patch = action.kind === 'revise' ? revisePatch(action) : action.kind === 'fix' ? { fix: [action.key] } : { regenerate: [action.key] };
     this.rewriting.update((keys) => [...keys, action.key]);
     this.api.updateVideo(this.brandId(), v.id, patch).subscribe({
       next: (next) => {

@@ -27,7 +27,7 @@ import { isCatalogScript } from '../../catalog/assemble';
 export type AnimationLib = 'gsap' | 'anime';
 
 /** La version du moteur de rendu (servie par `GET …/videos/options`) : celle d'`@hyperframes/producer`. */
-export const HYPERFRAMES_VERSION = '0.9.13';
+export const HYPERFRAMES_VERSION = '0.9.70';
 
 export interface HtmlScene {
   key: string;
@@ -59,6 +59,8 @@ export interface CompositionInput {
   /** Le logo servi (fichier du rendu ou URL d'aperçu), et sa déclinaison pour fond sombre. */
   logo?: string;
   logoDark?: string;
+  /** Le logo SVG assaini (`rendering/logo-svg.ts`) : la signature le dessine trait par trait. */
+  logoSvg?: string;
   /** Les polices embarquées (`embeddedFontCss`). */
   fontCss: string;
   /** Les motifs de la charte, déjà servis (fichier du rendu ou URL d'aperçu) : posés par scène quand elle les gagne. */
@@ -191,6 +193,7 @@ ${needsAnime ? `<script>${libs.anime}</script>` : ''}
 <script>
 window.__sceneErrors = [];
 var master${preview ? '' : ' = gsap.timeline({ paused: true })'};
+${catalog && input.logoSvg ? `window.__geLogoSvg = ${JSON.stringify(input.logoSvg).replace(/</g, '\\u003c')};` : ''}
 ${catalog ? `window.__gePalette = ${JSON.stringify({ primary: input.brand.colors.primary, secondary: input.brand.colors.secondary, accent: input.brand.colors.accent, ground: input.brand.colors.background, ink: input.brand.colors.text }).replace(/</g, '\\u003c')};` : ''}
 </script>
 ${catalog ? `<script>${CATALOG_RUNTIME}</script>` : ''}
@@ -209,7 +212,9 @@ const scriptJson = (value: unknown) => JSON.stringify(value).replace(/</g, '\\u0
  *
  *   → parent  `ivision:ready` (durée, scènes, erreurs) · `ivision:loading` / `ivision:playable` (sons et médias en
  *             mémoire) · `ivision:time` (instant, lecture) · `ivision:errors`
+ *             `ivision:picked {key, at, t, zone, roles, texts}` (réponse à un pointage)
  *   ← parent  `ivision:play` · `ivision:pause` · `ivision:seek {t}` · `ivision:focus {key}` · `ivision:edit {key, texts?, media?}`
+ *             · `ivision:pick {x, y, w, h}` (zone pointée, fractions de l'iframe)
  *
  * La scène (taille de sortie, 1080 px et plus) est mise à l'échelle pour TENIR dans l'iframe, centrée — sans cela
  * l'aperçu n'en montrait que le coin haut-gauche. La mise à l'échelle n'est posée qu'APRÈS la mise à la taille des
@@ -337,6 +342,41 @@ function previewPlayer(input: CompositionInput): string {
     rebuild(at == null ? now() : at);
   }
 
+  // ── Une zone POINTÉE (éditeur) : la scène du moment et les éléments visibles sous la zone, relevés ici ──
+  // La zone arrive en fractions de l'iframe ; elle repart en fractions du cadre de la vidéo (bandes autour retirées).
+  function pick(m) {
+    if (building) return;
+    if (playing) pause();
+    var t = now(), sc = null;
+    for (var i = 0; i < D.scenes.length; i++) if (t >= D.scenes[i].start && t < D.scenes[i].start + D.scenes[i].duration) sc = D.scenes[i];
+    if (!sc) sc = D.scenes[D.scenes.length - 1];
+    var sec = sc && document.getElementById(sc.key);
+    if (!sec) return;
+    var W = window.innerWidth || 1, H = window.innerHeight || 1, f = stage.getBoundingClientRect();
+    var zx = Number(m.x) * W, zy = Number(m.y) * H, zw = Math.max(2, Number(m.w) * W), zh = Math.max(2, Number(m.h) * H);
+    var clamp = function (n) { return Math.max(0, Math.min(1, n)); };
+    var zone = { x: clamp((zx - f.left) / f.width), y: clamp((zy - f.top) / f.height), w: 0, h: 0 };
+    zone.w = clamp((zx + zw - f.left) / f.width) - zone.x;
+    zone.h = clamp((zy + zh - f.top) / f.height) - zone.y;
+    var hits = [], ground = false;
+    Array.prototype.forEach.call(sec.querySelectorAll('[data-v]'), function (el) {
+      if (el.getAttribute('data-v') === 'bg') { ground = true; return; }
+      var r = el.getBoundingClientRect();
+      if (r.width < 2 || r.height < 2) return;
+      var cs = window.getComputedStyle(el);
+      if (cs.visibility === 'hidden' || parseFloat(cs.opacity) < 0.05) return;
+      var ox = Math.max(0, Math.min(r.right, zx + zw) - Math.max(r.left, zx)), oy = Math.max(0, Math.min(r.bottom, zy + zh) - Math.max(r.top, zy));
+      var share = (ox * oy) / Math.min(r.width * r.height, zw * zh);
+      if (share > 0.12) hits.push({ role: el.getAttribute('data-v'), share: share, text: el.getAttribute('data-v') === 'media' ? '' : String(el.textContent || '').replace(/\\s+/g, ' ').trim().slice(0, 80) });
+    });
+    hits.sort(function (a, b) { return b.share - a.share; });
+    var roles = [], texts = [];
+    hits.forEach(function (h) { if (roles.indexOf(h.role) < 0 && roles.length < 6) roles.push(h.role); if (h.text && texts.indexOf(h.text) < 0 && texts.length < 4) texts.push(h.text); });
+    if (!roles.length && ground) roles.push('bg');
+    var r3 = function (n) { return Math.round(n * 1000) / 1000; };
+    post({ type: 'ivision:picked', key: sc.key, at: Math.round((t - sc.start) * 100) / 100, t: r3(t), zone: { x: r3(zone.x), y: r3(zone.y), w: r3(zone.w), h: r3(zone.h) }, roles: roles, texts: texts });
+  }
+
   window.addEventListener('message', function (event) {
     if (event.source !== window.parent) return;
     var m = event.data;
@@ -346,6 +386,7 @@ function previewPlayer(input: CompositionInput): string {
     else if (m.type === 'ivision:seek') { if (!building) seekTo(m.t); }
     else if (m.type === 'ivision:focus') { var t = focusAt(m.key); if (t != null && !building) seekTo(t); }
     else if (m.type === 'ivision:edit') edit(m);
+    else if (m.type === 'ivision:pick') pick(m);
   });
   stage.addEventListener('click', function () { if (building) return; playing ? pause() : play(); });
 

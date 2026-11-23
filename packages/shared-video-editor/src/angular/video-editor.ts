@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, computed, e
 import { DomSanitizer } from '@angular/platform-browser';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
-import { EditorLang, EditorScene, EditorToPreview, PreviewSceneError, PreviewToEditor, SceneAction, formatSeconds, textLabel } from '../index';
+import { EditorLang, EditorScene, EditorToPreview, PreviewSceneError, PreviewToEditor, SceneAction, ScenePoint, formatSeconds, pointLabel, textLabel } from '../index';
 
 type Edits = Record<string, Record<string, string>>;
 
@@ -26,6 +26,10 @@ const TEXT: Record<EditorLang, Record<string, string>> = {
     regenerate: 'Nouvelle version',
     working: 'L’IA réécrit cette scène…',
     last: 'Dernière demande :',
+    point: 'Pointer dans la vidéo',
+    pointHint: 'Tracez une zone sur l’image, ou cliquez : la retouche portera sur ce qui s’y trouve. Échap pour annuler.',
+    pointed: 'Zone pointée à',
+    removePoint: 'Retirer la zone pointée',
   },
   en: {
     preview: 'Video preview',
@@ -46,6 +50,10 @@ const TEXT: Record<EditorLang, Record<string, string>> = {
     regenerate: 'New version',
     working: 'The AI is rewriting this scene…',
     last: 'Last request:',
+    point: 'Point in the video',
+    pointHint: 'Draw a box on the picture, or click: the change will be about what is there. Esc to cancel.',
+    pointed: 'Pointed at',
+    removePoint: 'Remove the pointed area',
   },
 };
 
@@ -77,12 +85,20 @@ let nextId = 0;
   host: {
     class: 'idem-video-editor',
     '(window:message)': 'onMessage($event)',
+    '(document:keydown.escape)': 'pointing() && togglePoint()',
   },
   template: `
     <div class="ve">
       <section class="ve__stage" [attr.aria-label]="t()['preview']">
         <div class="ve__frame" [style.aspect-ratio]="ratio()">
           <iframe #frame class="ve__iframe" sandbox="allow-scripts" allow="autoplay" [attr.title]="t()['preview']" [srcdoc]="safeHtml()"></iframe>
+          @if (pointing()) {
+            <div class="ve__pick" (pointerdown)="pickStart($event)" (pointermove)="pickMove($event)" (pointerup)="pickEnd($event)" (pointercancel)="drag.set(null)">
+              @if (drag(); as d) {
+                <span class="ve__pick-zone" [style.left.%]="min(d.x0, d.x) * 100" [style.top.%]="min(d.y0, d.y) * 100" [style.width.%]="abs(d.x - d.x0) * 100" [style.height.%]="abs(d.y - d.y0) * 100"></span>
+              }
+            </div>
+          }
         </div>
 
         <div class="ve__timeline">
@@ -111,7 +127,13 @@ let nextId = 0;
             <span class="ve__cursor" [style.left.%]="cursor()" aria-hidden="true"></span>
           </div>
           <span class="ve__time">{{ clock() }}</span>
+          <button type="button" class="button-icon ve__play" [class.ve__point--on]="pointing()" [attr.aria-pressed]="pointing()" [attr.aria-label]="t()['point']" [attr.title]="t()['point']" (click)="togglePoint()">
+            <i class="pi pi-bullseye" aria-hidden="true"></i>
+          </button>
         </div>
+        @if (pointing()) {
+          <p class="ve__hint ve__pick-hint" role="status">{{ t()['pointHint'] }}</p>
+        }
       </section>
 
       <section class="ve__fields custom-scrollbar" [attr.aria-label]="t()['scenes']">
@@ -170,8 +192,17 @@ let nextId = 0;
             @if (isBusy(scene.key)) {
               <p class="ve__busy" role="status"><idem-loader size="xs" /> {{ t()['working'] }}</p>
             } @else {
-              <details class="ve__more">
+              <details class="ve__more" [open]="openAsk() === scene.key" (toggle)="onToggle(scene.key, $any($event.target).open)">
                 <summary>{{ t()['change'] }}</summary>
+                @if (pointOf(scene.key); as p) {
+                  <p class="ve__point">
+                    <i class="pi pi-bullseye" aria-hidden="true"></i>
+                    <span>{{ t()['pointed'] }} {{ format(p.at) }} — {{ pointName(p) }}</span>
+                    <button type="button" class="button-icon ve__point-off" [attr.aria-label]="t()['removePoint']" (click)="clearPoint(scene.key)">
+                      <i class="pi pi-times" aria-hidden="true"></i>
+                    </button>
+                  </p>
+                }
                 @if (scene.instruction) {
                   <p class="ve__last">{{ t()['last'] }} « {{ scene.instruction }} »</p>
                 }
@@ -200,7 +231,7 @@ let nextId = 0;
       .ve__stage { position: sticky; top: 1rem; }
       .ve__fields { max-height: calc(100vh - 8rem); overflow-y: auto; padding-right: 0.25rem; }
     }
-    .ve__frame { width: 100%; max-height: 72vh; margin-inline: auto; border-radius: 16px; overflow: hidden; border: 1px solid var(--glass-border-subtle); background: var(--color-surface-1); }
+    .ve__frame { position: relative; width: 100%; max-height: 72vh; margin-inline: auto; border-radius: 16px; overflow: hidden; border: 1px solid var(--glass-border-subtle); background: var(--color-surface-1); }
     .ve__iframe { width: 100%; height: 100%; border: 0; display: block; }
     .ve__timeline { display: flex; align-items: center; gap: 0.75rem; margin-top: 0.75rem; }
     .ve__play { flex: none; width: 2.25rem; height: 2.25rem; padding: 0; }
@@ -235,6 +266,13 @@ let nextId = 0;
     .ve__more[open] summary { margin-bottom: 0.5rem; }
     .ve__last { font-size: 0.75rem; color: var(--color-text-tertiary); margin: 0 0 0.5rem; }
     .ve__actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem; }
+    .ve__pick { position: absolute; inset: 0; cursor: crosshair; touch-action: none; background: color-mix(in oklch, var(--color-primary-500) 6%, transparent); }
+    .ve__pick-zone { position: absolute; border: 2px solid var(--color-primary-500); border-radius: 6px; background: color-mix(in oklch, var(--color-primary-500) 14%, transparent); pointer-events: none; }
+    .ve__pick-hint { margin: 0.5rem 0 0; }
+    .ve__point--on { border-color: var(--color-primary-500); color: var(--color-primary-500); background: color-mix(in oklch, var(--color-primary-500) 14%, transparent); }
+    .ve__point { display: flex; align-items: center; gap: 0.375rem; margin: 0 0 0.5rem; font-size: 0.75rem; color: var(--color-text-secondary); }
+    .ve__point span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ve__point-off { flex: none; width: 1.5rem; height: 1.5rem; padding: 0; margin-left: auto; }
     .ve__busy { display: flex; align-items: center; gap: 0.5rem; margin: 0.75rem 0 0; font-size: 0.8125rem; color: var(--color-text-secondary); }
   `,
 })
@@ -268,6 +306,15 @@ export class IdemVideoEditorComponent {
   protected readonly now = signal(0);
   protected readonly playing = signal(false);
   protected readonly duration = signal(0);
+  /** Le mode « pointer » : une zone se trace sur l'aperçu (en fractions de l'iframe). */
+  protected readonly pointing = signal(false);
+  protected readonly drag = signal<{ x0: number; y0: number; x: number; y: number } | null>(null);
+  /** Les endroits pointés, par scène, en attente de leur consigne. */
+  protected readonly points = signal<Record<string, ScenePoint>>({});
+  /** La scène dont la zone « Changer cette scène » est ouverte par un pointage. */
+  protected readonly openAsk = signal<string | null>(null);
+  protected readonly min = Math.min;
+  protected readonly abs = Math.abs;
   /** Erreurs constatées par l'aperçu lui-même (une scène qui échoue en cours de lecture). */
   private readonly liveErrors = signal<Record<string, PreviewSceneError>>({});
 
@@ -355,8 +402,66 @@ export class IdemVideoEditorComponent {
   protected rewrite(key: string): void {
     const instruction = this.askOf(key).trim();
     if (instruction.length < 3) return;
-    this.act({ kind: 'revise', key, instruction });
+    const point = this.points()[key];
+    this.act({ kind: 'revise', key, instruction, ...(point ? { point } : {}) });
     this.asks.update((all) => ({ ...all, [key]: '' }));
+    this.clearPoint(key);
+  }
+
+  protected pointOf(key: string): ScenePoint | null {
+    return this.points()[key] ?? null;
+  }
+
+  protected pointName(point: ScenePoint): string {
+    return pointLabel(point, this.lang());
+  }
+
+  protected clearPoint(key: string): void {
+    this.points.update((all) => Object.fromEntries(Object.entries(all).filter(([k]) => k !== key)));
+  }
+
+  protected onToggle(key: string, open: boolean): void {
+    if (!open && this.openAsk() === key) this.openAsk.set(null);
+  }
+
+  protected togglePoint(): void {
+    this.drag.set(null);
+    this.pointing.update((on) => !on);
+    if (this.pointing() && this.playing()) this.post({ type: 'ivision:pause' });
+  }
+
+  private fraction(event: PointerEvent): { x: number; y: number } {
+    const box = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    return { x: Math.min(1, Math.max(0, (event.clientX - box.left) / (box.width || 1))), y: Math.min(1, Math.max(0, (event.clientY - box.top) / (box.height || 1))) };
+  }
+
+  protected pickStart(event: PointerEvent): void {
+    (event.currentTarget as HTMLElement).setPointerCapture?.(event.pointerId);
+    const p = this.fraction(event);
+    this.drag.set({ x0: p.x, y0: p.y, x: p.x, y: p.y });
+  }
+
+  protected pickMove(event: PointerEvent): void {
+    const d = this.drag();
+    if (!d) return;
+    const p = this.fraction(event);
+    this.drag.set({ ...d, x: p.x, y: p.y });
+  }
+
+  /** La zone tracée part à l'aperçu ; un simple clic vaut une petite zone autour du point. */
+  protected pickEnd(event: PointerEvent): void {
+    const d = this.drag();
+    this.drag.set(null);
+    if (!d) return;
+    const p = this.fraction(event);
+    let x = Math.min(d.x0, p.x), y = Math.min(d.y0, p.y), w = Math.abs(p.x - d.x0), h = Math.abs(p.y - d.y0);
+    if (w < 0.02 && h < 0.02) {
+      x = Math.max(0, p.x - 0.04);
+      y = Math.max(0, p.y - 0.03);
+      w = 0.08;
+      h = 0.06;
+    }
+    this.post({ type: 'ivision:pick', x, y, w, h });
   }
 
   protected act(action: SceneAction): void {
@@ -411,6 +516,13 @@ export class IdemVideoEditorComponent {
       this.playing.set(m.playing);
     } else if (m?.type === 'ivision:errors') {
       this.recordErrors(m.errors);
+    } else if (m?.type === 'ivision:picked' && this.scenes().some((s) => s.key === m.key)) {
+      // L'aperçu a relevé la scène et ce qui se trouve sous la zone : la consigne de cette scène s'ouvre, prête.
+      this.points.update((all) => ({ ...all, [m.key]: { at: m.at, zone: m.zone, roles: m.roles, ...(m.texts?.length ? { texts: m.texts } : {}) } }));
+      this.pointing.set(false);
+      this.focused = m.key;
+      this.openAsk.set(m.key);
+      setTimeout(() => (document.getElementById(this.fieldId(m.key, '__ask')) as HTMLTextAreaElement | null)?.focus(), 0);
     }
   }
 

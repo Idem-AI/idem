@@ -210,7 +210,7 @@ async function open(page: Page, html: string, files: Record<string, Buffer>, siz
   await page.evaluate('new Promise(function (r) { setTimeout(r, 40); })');
 }
 
-async function sheet(page: Page, composed: ComposedFilm, scenes: CatalogScene[], format: FilmFormatId, files: Record<string, Buffer>): Promise<Buffer> {
+async function sheet(page: Page, composed: ComposedFilm, scenes: CatalogScene[], format: FilmFormatId, files: Record<string, Buffer>, rest?: { share: number; longest: number }[]): Promise<Buffer> {
   const size = COMPOSITION[format];
   const out = { width: Math.round(size.width / 3), height: Math.round(size.height / 3) };
   let start = 0;
@@ -221,6 +221,7 @@ async function sheet(page: Page, composed: ComposedFilm, scenes: CatalogScene[],
   });
   const html = await buildComposition({ scenes: hs, width: size.width, height: size.height, output: out, durationSec: start, brand: { name: 'Kora', colors: BRAND, fonts: { display: 'Fraunces', body: 'Karla' }, logo: { light: 'logo.png', width: 480, height: 120 } } as never, media: { p1: { src: 'p1.jpg', kind: 'image' }, p2: { src: 'p2.jpg', kind: 'image' } }, logo: 'logo.png', fontCss: '', mode: 'render' });
   await open(page, html, files, out);
+  if (rest) rest.push(await restOf(page, start));
   const tiles: Buffer[] = [];
   for (const s of hs) {
     for (const k of [0.25, 0.6, 0.97]) {
@@ -238,6 +239,32 @@ async function sheet(page: Page, composed: ComposedFilm, scenes: CatalogScene[],
 }
 
 const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
+
+/**
+ * LE REPOS, mesuré sur les images (idée d'onetake) : la part des images presque identiques à la précédente (écart
+ * moyen < 0,5 % à 96 px), et le plus long passage calme. Un film sans aucun repos fatigue ; un film fait de repos
+ * est un diaporama. Repère : 15 à 45 % d'images au repos, un passage calme d'au moins 0,8 s.
+ */
+async function restOf(page: Page, duration: number): Promise<{ share: number; longest: number }> {
+  const fps = 8;
+  const frames: Buffer[] = [];
+  for (let t = 0; t < duration - 0.05; t += 1 / fps) {
+    await page.evaluate(`(function () { window.__timelines.film.seek(${t}, false); document.querySelectorAll('section.scene').forEach(function (el) { var a = parseFloat(el.dataset.start), d = parseFloat(el.dataset.duration); el.style.visibility = ${t} >= a && ${t} < a + d ? 'visible' : 'hidden'; }); })()`);
+    frames.push(await sharp(Buffer.from(await page.screenshot({ type: 'jpeg', quality: 60 }))).resize(96, 96, { fit: 'fill' }).greyscale().raw().toBuffer());
+  }
+  let still = 0;
+  let run = 0;
+  let longest = 0;
+  for (let i = 1; i < frames.length; i++) {
+    let d = 0;
+    for (let k = 0; k < frames[i].length; k++) d += Math.abs(frames[i][k] - frames[i - 1][k]);
+    const calm = d / frames[i].length / 255 < 0.005;
+    if (calm) still++;
+    run = calm ? run + 1 : 0;
+    longest = Math.max(longest, run);
+  }
+  return { share: Math.round((still / Math.max(1, frames.length - 1)) * 100) / 100, longest: Math.round((longest / fps) * 10) / 10 };
+}
 
 async function main() {
   fs.rmSync(OUT, { recursive: true, force: true });
@@ -282,7 +309,7 @@ async function main() {
   const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
   const page = await browser.newPage();
   const quality: Record<string, unknown> = {};
-  const qrows: string[] = ['| film | séquences | traversées | développements | temps mort total avant → après | scènes > ' + IDLE_MAX + ' s avant → après |', '| --- | --- | --- | --- | --- | --- |'];
+  const qrows: string[] = ['| film | séquences | traversées | développements | temps mort total avant → après | scènes > ' + IDLE_MAX + ' s avant → après | continuité | cadence | sujet | repos avant → après |', '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |'];
   for (const [name, scenes] of Object.entries(FILMS)) {
     for (const format of fast ? (['story'] as FilmFormatId[]) : (['story', 'square'] as FilmFormatId[])) {
       const input = { scenes, film: { title: name, concept: name, seed: 'bench' }, brand: { name: 'Kora', hasLogo: true, line: 'Kora · café' }, formats: [format], level: 'medium' as const, call: { level: 'medium' as const, call: async () => '' } };
@@ -301,7 +328,12 @@ async function main() {
       qrows.push(`| ${name} (${format}) | ${seqs} | ${carries} | ${develops} | ${sum(idleB).toFixed(1)} s → ${sum(idleA).toFixed(1)} s | ${idleB.filter((x) => x > IDLE_MAX).length} → ${idleA.filter((x) => x > IDLE_MAX).length} |`);
       console.log(`  ${name}/${format} : ${seqs} séquence(s), ${carries} traversée(s), ${develops} développement(s), temps mort ${sum(idleB).toFixed(1)} s → ${sum(idleA).toFixed(1)} s`);
       check(carries >= 1 && sum(idleA) <= sum(idleB) && film.trace.source === 'code', `film ${name}/${format} : au moins une traversée, temps mort qui ne monte pas, choix du code`, film.trace.detail);
-      const [b, a] = [await sheet(page, flat, scenes, format, files), await sheet(page, film, scenes, format, files)];
+      const rests: { share: number; longest: number }[] = [];
+      const [b, a] = [await sheet(page, flat, scenes, format, files, rests), await sheet(page, film, scenes, format, files, rests)];
+      const m = film.metrics;
+      qrows[qrows.length - 1] += ` ${m?.continuity ?? '-'} | ${m?.cadence ?? '-'} | ${Math.round((m?.subject ?? 0) * 100)} % | ${Math.round(rests[0].share * 100)} % → ${Math.round(rests[1].share * 100)} % (calme ${rests[1].longest} s) |`;
+      (quality[`${name}/${format}`] as Record<string, unknown>).rest = rests;
+      (quality[`${name}/${format}`] as Record<string, unknown>).metrics = m;
       fs.writeFileSync(path.join(OUT, `${name}-${format}-avant.jpg`), b);
       fs.writeFileSync(path.join(OUT, `${name}-${format}-apres.jpg`), a);
     }

@@ -210,28 +210,75 @@ const SYNTH: Record<SfxKind, { d: number; expr: string; af?: string }> = {
   riser: { d: 2.0, expr: '(random(0)*2-1)*(t/2.0)^2', af: 'highpass=f=500,lowpass=f=6000,volume=5dB' },
 };
 
-export async function synthSound(kind: SfxKind, dir: string): Promise<LibrarySound> {
+/**
+ * Les PRISES de synthèse (22/11/2026) : la même forme sonore à trois hauteurs (la prise 0 telle quelle, puis un ton
+ * plus grave et plus lent, un ton plus aigu et plus vif) — un film hors ligne ne répète plus le même son à chaque coupe.
+ */
+const SYNTH_TAKES = [1, 0.89, 1.12];
+
+export async function synthSound(kind: SfxKind, dir: string, take = 0): Promise<LibrarySound> {
   const s = SYNTH[kind];
+  const rate = SYNTH_TAKES[take % SYNTH_TAKES.length];
   fs.mkdirSync(dir, { recursive: true });
-  const raw = path.join(dir, `synth-${kind}.raw.wav`);
-  const file = path.join(dir, `synth-${kind}.mp3`);
+  const suffix = take ? `-${take}` : '';
+  const raw = path.join(dir, `synth-${kind}${suffix}.raw.wav`);
+  const file = path.join(dir, `synth-${kind}${suffix}.mp3`);
   if (!fs.existsSync(file)) {
-    await ffmpegRun(['-y', '-v', 'error', '-f', 'lavfi', '-i', `aevalsrc='${s.expr}':s=48000:d=${s.d}`, ...(s.af ? ['-af', s.af] : []), '-ac', '2', raw]);
+    const pitch = rate !== 1 ? `asetrate=48000*${rate},aresample=48000` : '';
+    const af = [s.af, pitch].filter(Boolean).join(',');
+    await ffmpegRun(['-y', '-v', 'error', '-f', 'lavfi', '-i', `aevalsrc='${s.expr}':s=48000:d=${s.d}`, ...(af ? ['-af', af] : []), '-ac', '2', raw]);
     // −8 dBFS (pas −3) : un son de synthèse (ton pur, peu de dynamique) sonne plus fort qu'un
     // son réel à crête égale — ce repli reste discret même quand il tourne en boucle.
     await processSound(raw, file, { ...SFX_SPECS[kind], max: s.d + 0.05 }, -8);
     fs.rmSync(raw, { force: true });
   }
   return {
-    id: `synth:${kind}`,
+    id: `synth:${kind}${suffix}`,
     kind,
-    title: `${kind} (synthèse IDEM)`,
+    title: `${kind} (synthèse IDEM${take ? `, prise ${take + 1}` : ''})`,
     author: 'IDEM',
     license: 'generated',
-    durationSec: s.d,
+    durationSec: Math.round((s.d / rate) * 1000) / 1000,
     file,
-    score: 0,
+    score: -0.01 * take,
   };
+}
+
+/**
+ * LA BANQUE LOCALE (22/11/2026) — des sons fabriqués hors ligne et gardés avec le code (`VIDEO_SFX_BANK`, sinon
+ * `apps/ivision/core/assets/sfx-bank/`) : un `index.json` `{ "<sorte>": [{ "file", "title", "author", "license" }] }`.
+ * Prévue pour Earshot (MIT, des sons rendus par du code, une nouvelle prise à chaque appel ; `scripts/build-sfx-bank.sh`
+ * la construit) : servie EN LIGNE comme HORS LIGNE, avant la synthèse — un serveur sans réseau a ainsi plusieurs vrais
+ * sons par moment sonore au lieu d'un seul son de synthèse.
+ */
+function bankDir(): string | null {
+  const dir = process.env.VIDEO_SFX_BANK || path.resolve(__dirname, '../../../assets/sfx-bank');
+  return fs.existsSync(path.join(dir, 'index.json')) ? dir : null;
+}
+export async function bankSounds(kind: SfxKind, dir: string): Promise<LibrarySound[]> {
+  const bank = bankDir();
+  if (!bank) return [];
+  let index: Partial<Record<SfxKind, Array<{ file: string; title?: string; author?: string; license?: string }>>> = {};
+  try {
+    index = JSON.parse(fs.readFileSync(path.join(bank, 'index.json'), 'utf8'));
+  } catch {
+    return [];
+  }
+  const spec = SFX_SPECS[kind];
+  const out: LibrarySound[] = [];
+  for (const [k, e] of (index[kind] ?? []).entries()) {
+    const src = path.join(bank, path.basename(e.file));
+    if (!fs.existsSync(src)) continue;
+    const file = path.join(dir, `bank-${kind}-${k}.mp3`);
+    try {
+      const processed = fs.existsSync(file) ? { duration: spec.ideal, meanDb: -20 } : await processSound(src, file, spec);
+      if (processed.duration < spec.min || processed.duration > spec.max + 0.05) continue;
+      out.push({ id: `bank:${kind}:${k}`, kind, title: e.title || `${kind} ${k + 1}`, author: e.author || 'earshot', license: (e.license as LibrarySound['license']) || 'generated', durationSec: Math.round(processed.duration * 1000) / 1000, file, score: 0.8 - k * 0.01 });
+    } catch (error: any) {
+      logger.warn('video.sfx.bank_failed', { kind, file: e.file, error: error.message });
+    }
+  }
+  return out;
 }
 
 // ─── Banques ────────────────────────────────────────────────────────────────
@@ -408,11 +455,14 @@ export async function ensureSfxLibrary(opts: { offline?: boolean; force?: boolea
       };
       await Promise.all([worker(), worker(), worker(), worker()]);
     }
+    // La banque locale (Earshot), en ligne comme hors ligne.
+    list.push(...(await bankSounds(kind, dir)));
     list.sort((a, b) => b.score - a.score);
     sounds[kind] = list.slice(0, MAX_PER_KIND);
     if (!sounds[kind].length) {
       if (!opts.offline) logger.warn('video.sfx.kind_fallback_synth', { kind, queries: spec.queries });
-      sounds[kind] = [await synthSound(kind, dir)];
+      // Trois prises de synthèse, jamais une seule (la rotation des transitions a de quoi tourner).
+      sounds[kind] = [await synthSound(kind, dir, 0), await synthSound(kind, dir, 1), await synthSound(kind, dir, 2)];
     }
   }
 
