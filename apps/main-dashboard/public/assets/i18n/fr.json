@@ -318,24 +318,39 @@
         },
         "start": {
           "title": "Par où voulez-vous commencer ?",
-          "lead": "Choisissez la façon qui vous convient. Vous pourrez tout modifier ensuite.",
+          "lead": "Deux façons de démarrer. Vous pourrez tout vérifier et modifier ensuite.",
           "import": {
-            "title": "J'ai déjà mes chiffres",
-            "body": "Collez votre tableau depuis Excel ou une IA, ou envoyez votre fichier. Tout est rangé au bon endroit.",
-            "cta": "Importer un fichier",
-            "paste": "Coller un tableau"
+            "title": "Importer mes fichiers",
+            "body": "Vous avez déjà un tableau ou un document ? Déposez-le : l'IA range chaque chiffre au bon endroit, vous relisez avant d'enregistrer.",
+            "cta": "Choisir un fichier",
+            "paste": "Coller un tableau",
+            "drop": "ou glissez-le ici",
+            "dropActive": "Lâchez le fichier pour l'importer",
+            "formats": "Excel, CSV, PDF, Word ou texte — 15 Mo au plus"
           },
           "ai": {
-            "title": "L'IA propose pour moi",
-            "body": "À partir de votre business plan et des prix réels de votre marché, l'IA prépare un premier prévisionnel que vous ajustez.",
-            "cta": "Lancer la proposition",
+            "title": "Générer avec l'IA",
+            "body": "L'IA lit votre business plan, cherche les prix réels de votre marché et remplit les six étapes pour vous.",
+            "cta": "Générer mon prévisionnel",
             "recommended": "Recommandé",
-            "preparing": "Préparation de la recherche…"
+            "preparing": "Préparation de la recherche…",
+            "running": "Génération en cours…",
+            "bpReady": "Votre business plan est prêt : l'IA s'appuiera dessus.",
+            "bpMissing": "L'IA a besoin de votre business plan. Nous vous guiderons pour le créer d'abord."
           },
           "manual": {
             "title": "Je remplis pas à pas",
             "body": "Six étapes courtes, avec des exemples. Aucune connaissance en comptabilité n'est nécessaire.",
             "cta": "Commencer l'étape 1"
+          },
+          "eyebrow": "Nouveau prévisionnel",
+          "titleStart": "Vos chiffres sur trois ans,",
+          "titleEm": "en quelques minutes",
+          "other": {
+            "label": "Vous préférez saisir vous-même ?",
+            "steps": "Remplir pas à pas",
+            "sheet": "Ouvrir le tableur",
+            "settings": "Régler les paramètres"
           }
         },
         "brief": {
@@ -4422,7 +4437,9 @@
           "delete": "Supprimer la vidéo",
           "deleteAsk": "Supprimer définitivement ?",
           "deleteConfirm": "Supprimer",
-          "broken": "{{count}} scène(s) ne s’exécute(nt) pas : retrouvez-la ci-dessous et appuyez sur « Corriger »."
+          "broken": "{{count}} scène(s) ne s’exécute(nt) pas : retrouvez-la ci-dessous et appuyez sur « Corriger ».",
+          "brokenShort": "{{count}} scène(s) à corriger : touchez la vignette rouge, puis « Corriger ».",
+          "notes": "{{count}} remarque(s) sur votre demande"
         },
         "texts": {
           "title": "Les textes",
@@ -4598,7 +4615,7 @@
         },
         "revise": {
           "title": "Retoucher en écrivant",
-          "placeholder": "Ex. : « la scène 2 plus lente », « le titre en jaune », « sans musique »…",
+          "placeholder": "Que voulez-vous changer ? Ex. : « la scène 2 plus lente », « sans musique »",
           "send": "Appliquer",
           "done": "C’est fait. Regardez la nouvelle version.",
           "notUnderstood": "Je n’ai pas compris ce qu’il faut changer. Dites par exemple « la scène 2 plus dynamique » ou « sans musique ».",
@@ -4622,7 +4639,11 @@
           "saving": "Téléchargement…",
           "savingPercent": "Téléchargement… {{percent}} %",
           "cancelAuto": "Ne pas télécharger",
-          "autoHint": "Le téléchargement démarrera tout seul dès que le fichier sera prêt. Vous pouvez continuer à retoucher la vidéo."
+          "autoHint": "Le téléchargement démarrera tout seul dès que le fichier sera prêt. Vous pouvez continuer à retoucher la vidéo.",
+          "waitingShort": "Préparation {{percent}} % · téléchargement automatique",
+          "workingShort": "Fabrication {{percent}} %",
+          "preparingShort": "Préparation {{percent}} %",
+          "outdatedShort": "MP4 à mettre à jour"
         },
         "tabs": {
           "label": "Retoucher la vidéo",

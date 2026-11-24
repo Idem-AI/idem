@@ -965,7 +965,9 @@
           "delete": "Delete video",
           "deleteAsk": "Delete for good?",
           "deleteConfirm": "Delete",
-          "broken": "{{count}} scene(s) do not run: find it below and press “Fix”."
+          "broken": "{{count}} scene(s) do not run: find it below and press “Fix”.",
+          "brokenShort": "{{count}} scene(s) to fix: tap the red thumbnail, then “Fix”.",
+          "notes": "{{count}} note(s) about your request"
         },
         "texts": {
           "title": "On-screen text",
@@ -1141,7 +1143,7 @@
         },
         "revise": {
           "title": "Edit by writing",
-          "placeholder": "E.g. “scene 2 slower”, “the title in yellow”, “no music”…",
+          "placeholder": "What do you want to change? E.g. “scene 2 slower”, “no music”",
           "send": "Apply",
           "done": "Done. Watch the new version.",
           "notUnderstood": "I did not understand what to change. Say for instance “scene 2 more dynamic” or “no music”.",
@@ -1165,7 +1167,11 @@
           "saving": "Downloading…",
           "savingPercent": "Downloading… {{percent}}%",
           "cancelAuto": "Don’t download",
-          "autoHint": "The download will start by itself as soon as the file is ready. You can keep editing the video."
+          "autoHint": "The download will start by itself as soon as the file is ready. You can keep editing the video.",
+          "waitingShort": "Preparing {{percent}}% · downloads automatically",
+          "workingShort": "Making {{percent}}%",
+          "preparingShort": "Preparing {{percent}}%",
+          "outdatedShort": "MP4 needs updating"
         },
         "tabs": {
           "label": "Edit the video",

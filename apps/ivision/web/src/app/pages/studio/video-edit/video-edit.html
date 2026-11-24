@@ -5,10 +5,42 @@
       <h1 class="min-w-0 flex-1 truncate text-lg font-semibold">{{ video()?.title || ('edit.title' | translate) }}</h1>
       @if (saving()) {
         <span class="flex items-center gap-2 text-sm text-[var(--color-text-secondary)]"><idem-loader size="xs" /> {{ 'edit.saving' | translate }}</span>
-      } @else if (saved()) {
-        <span class="text-sm text-[var(--color-text-tertiary)]"><i class="pi pi-check" aria-hidden="true"></i> {{ 'edit.saved' | translate }}</span>
+      } @else if (video(); as v) {
+        @if (!v.legacy) {
+          <span class="flex items-center gap-1.5 text-sm" [class]="current() === 'ready' ? 'text-[var(--color-success)]' : 'text-[var(--color-text-secondary)]'" role="status" [attr.title]="'edit.dl.why' | translate">
+            @switch (pending() === previewFormat() ? 'waiting' : current()) {
+              @case ('ready') { <i class="pi pi-check-circle" aria-hidden="true"></i> {{ 'edit.dl.readyShort' | translate }} }
+              @case ('waiting') { <idem-loader size="xs" /> {{ 'edit.dl.waitingShort' | translate: { percent: percent(currentRender()?.progress) } }} }
+              @case ('working') { <idem-loader size="xs" /> {{ 'edit.dl.workingShort' | translate: { percent: percent(currentRender()?.progress) } }} }
+              @case ('preparing') { <idem-loader size="xs" /> {{ 'edit.dl.preparingShort' | translate: { percent: percent(currentRender()?.progress) } }} }
+              @case ('outdated') { {{ 'edit.dl.outdatedShort' | translate }} }
+              @default { }
+            }
+          </span>
+        }
+      }
+      @if (video(); as v) {
+        @if (!v.legacy) {
+          @if (downloading()) {
+            <button type="button" class="inner-button button-sm" disabled><idem-loader size="xs" /> {{ 'edit.dl.saving' | translate }}</button>
+          } @else if (pending() === previewFormat()) {
+            <button type="button" class="outer-button button-sm" (click)="cancelPending()">{{ 'edit.dl.cancel' | translate }}</button>
+          } @else {
+            <button type="button" class="inner-button button-sm" [disabled]="broken() > 0 || !!pending()" (click)="download(previewFormat())">
+              <i class="pi pi-download" aria-hidden="true"></i>
+              @if (current() === 'ready' || !prices()[previewFormat()]) {
+                {{ 'edit.dl.cta' | translate }}
+              } @else {
+                {{ 'edit.dl.ctaPaid' | translate: { cost: prices()[previewFormat()] } }}
+              }
+            </button>
+          }
+        }
       }
     </header>
+    @if (current() === 'working' || current() === 'preparing' || pending()) {
+      <progress class="-mt-3 mb-4 block h-1 w-full" max="100" [value]="percent(currentRender()?.progress)" [attr.aria-label]="'edit.dl.progress' | translate"></progress>
+    }
 
     @if (loading()) {
       <idem-loader block [label]="'common.loading' | translate" />
@@ -26,56 +58,6 @@
           <a class="outer-button button-sm mt-4" routerLink="/studio/video">{{ 'common.back' | translate }}</a>
         </div>
       } @else {
-      <!-- Le fichier : où il en est, et un seul bouton pour l'avoir. -->
-      <section class="glass-card mb-5 flex flex-wrap items-center gap-4 p-4" aria-labelledby="ve-dl-title" aria-live="polite">
-        @if (currentRender()?.posterUrl; as poster) {
-          <img class="h-14 w-14 flex-none rounded-lg object-cover" [src]="poster" alt="" width="56" height="56" />
-        } @else {
-          <span class="flex h-14 w-14 flex-none items-center justify-center rounded-lg bg-[var(--glass-bg-light)] text-[var(--color-text-tertiary)]" aria-hidden="true"><i class="pi pi-video"></i></span>
-        }
-        <div class="min-w-0 flex-1">
-          <h2 id="ve-dl-title" class="text-sm font-semibold">
-            @switch (pending() === previewFormat() ? 'waiting' : current()) {
-              @case ('ready') { {{ 'edit.dl.ready' | translate }} }
-              @case ('waiting') { {{ 'edit.dl.waiting' | translate: { percent: percent(currentRender()?.progress) } }} }
-              @case ('working') { {{ 'edit.dl.working' | translate: { percent: percent(currentRender()?.progress) } }} }
-              @case ('preparing') { {{ 'edit.dl.preparing' | translate: { percent: percent(currentRender()?.progress) } }} }
-              @case ('prepared') { {{ 'edit.dl.prepared' | translate }} }
-              @case ('outdated') { {{ 'edit.dl.outdated' | translate }} }
-              @default { {{ 'edit.dl.none' | translate }} }
-            }
-          </h2>
-          <p class="mt-0.5 text-xs text-[var(--color-text-secondary)]">
-            @if (current() === 'ready' && currentRender(); as r) {
-              {{ 'formats.' + r.format | translate }} · MP4 @if (r.width) { · {{ r.width }}×{{ r.height }} } @if (r.sizeBytes) { · {{ size(r.sizeBytes) }} }
-            } @else if (current() === 'working' || current() === 'preparing' || pending()) {
-              {{ 'edit.dl.why' | translate }}
-            } @else {
-              {{ 'formats.' + previewFormat() | translate }} · {{ v.scope.durationSec }} s · {{ 'qualities.' + v.scope.quality | translate }}
-            }
-          </p>
-          @if (current() === 'working' || current() === 'preparing') {
-            <progress class="mt-2 block h-1.5 w-full max-w-sm" max="100" [value]="percent(currentRender()?.progress)" [attr.aria-label]="'edit.dl.progress' | translate"></progress>
-          }
-        </div>
-        @if (downloading()) {
-          <button type="button" class="inner-button w-full sm:w-auto" disabled><idem-loader size="xs" /> {{ 'edit.dl.saving' | translate }}</button>
-        } @else if (pending() === previewFormat()) {
-          <button type="button" class="outer-button w-full sm:w-auto" (click)="cancelPending()">{{ 'edit.dl.cancel' | translate }}</button>
-        } @else {
-          <button type="button" class="inner-button w-full sm:w-auto" [disabled]="broken() > 0 || !!pending()" (click)="download(previewFormat())">
-            <i class="pi pi-download" aria-hidden="true"></i>
-            @if (current() === 'ready' || !prices()[previewFormat()]) {
-              {{ 'edit.dl.cta' | translate }}
-            } @else {
-              {{ 'edit.dl.ctaPaid' | translate: { cost: prices()[previewFormat()] } }}
-            }
-          </button>
-        }
-      </section>
-      @if (pending()) {
-        <p class="-mt-3 mb-4 text-xs text-[var(--color-text-secondary)]"><i class="pi pi-info-circle" aria-hidden="true"></i> {{ 'edit.dl.autoHint' | translate }}</p>
-      }
       @if (needCredits()) {
         <p class="-mt-3 mb-4 text-sm" role="alert">{{ 'chat.payment.short' | translate }} <a class="text-[var(--color-primary-500)] underline" [href]="accountUrl">{{ 'chat.payment.cta' | translate }}</a></p>
       }
@@ -84,7 +66,7 @@
         <p class="mb-3 flex items-center gap-2 text-sm text-[var(--color-danger)]" role="alert"><i class="pi pi-exclamation-triangle" aria-hidden="true"></i> {{ 'edit.broken' | translate: { count: broken() } }}</p>
       }
       @if ((v.scope.formats.length) > 1) {
-        <div class="mb-3 inline-flex flex-wrap gap-1 rounded-full border border-[var(--glass-border)] bg-[var(--glass-bg-light)] p-1" role="group" [attr.aria-label]="'edit.previewFormat' | translate">
+        <div class="mx-auto mb-3 flex w-fit max-w-full flex-wrap gap-1 rounded-full border border-[var(--glass-border)] bg-[var(--glass-bg-light)] p-1" role="group" [attr.aria-label]="'edit.previewFormat' | translate">
           @for (f of v.scope.formats; track f) {
             <button type="button" class="rounded-full px-3 py-1 text-sm font-semibold transition-colors" [class]="previewFormat() === f ? 'bg-[var(--color-surface-1)] text-[var(--color-text-primary)] shadow-sm' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'" [attr.aria-pressed]="previewFormat() === f" (click)="setPreviewFormat(f)">
               {{ 'formats.' + f | translate }}

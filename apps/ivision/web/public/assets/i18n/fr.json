@@ -666,7 +666,11 @@
       "ctaPaid": "Télécharger · {{cost}} crédits",
       "saving": "Téléchargement…",
       "cancel": "Ne pas télécharger",
-      "autoHint": "Le téléchargement démarrera tout seul dès que le fichier sera prêt. Vous pouvez continuer à retoucher la vidéo."
+      "autoHint": "Le téléchargement démarrera tout seul dès que le fichier sera prêt. Vous pouvez continuer à retoucher la vidéo.",
+      "waitingShort": "Préparation {{percent}} % · téléchargement automatique",
+      "workingShort": "Fabrication {{percent}} %",
+      "preparingShort": "Préparation {{percent}} %",
+      "outdatedShort": "MP4 à mettre à jour"
     },
     "tabs": {
       "label": "Retoucher la vidéo",

@@ -8,6 +8,93 @@
   </app-error-state>
 } @else {
   <div class="fo space-y-8 p-4 md:p-2">
+    @if (!hasData()) {
+      <!-- ═════════════ Prévisionnel vide : deux choix, et rien d'autre au-dessus ═════════════ -->
+      <section class="fo-empty" aria-labelledby="fo-start">
+        <header class="fo-empty__head">
+          <p class="fo-eyebrow">{{ 'dashboard.finance.home.start.eyebrow' | translate }}</p>
+          <h1 id="fo-start" class="text-2xl md:text-3xl font-bold text-text-primary">
+            {{ 'dashboard.finance.home.start.titleStart' | translate }}
+            <span class="i-underline">{{ 'dashboard.finance.home.start.titleEm' | translate }}</span>
+          </h1>
+          <p class="text-text-secondary mt-2 text-sm md:text-base">{{ 'dashboard.finance.home.start.lead' | translate }}</p>
+        </header>
+
+        <div class="fo-paths">
+          <!-- L'IA : le choix recommandé. -->
+          <article class="glass-card fo-path fo-path--recommended" aria-labelledby="fo-path-ai">
+            <span class="fo-badge">
+              <i class="pi pi-star-fill text-[10px]" aria-hidden="true"></i>
+              {{ 'dashboard.finance.home.start.ai.recommended' | translate }}
+            </span>
+            <app-finance-illustration scene="ai" class="fo-path__art" />
+            <h2 id="fo-path-ai" class="fo-path__title">{{ 'dashboard.finance.home.start.ai.title' | translate }}</h2>
+            <p class="fo-path__body">{{ 'dashboard.finance.home.start.ai.body' | translate }}</p>
+            @if (bpReady() !== null) {
+              <p class="fo-path__note" [class.fo-path__note--ok]="bpReady()">
+                <i [class]="bpReady() ? 'pi pi-check-circle' : 'pi pi-info-circle'" aria-hidden="true"></i>
+                {{ (bpReady() ? 'dashboard.finance.home.start.ai.bpReady' : 'dashboard.finance.home.start.ai.bpMissing') | translate }}
+              </p>
+            }
+            <button type="button" class="inner-button button-lg fo-path__cta" [disabled]="aiGlobalLoading()" (click)="onAutoFillGlobal()">
+              @if (aiGlobalLoading()) {
+                <idem-loader size="xs" />
+                {{ 'dashboard.finance.home.start.ai.running' | translate }}
+              } @else {
+                <i class="pi pi-sparkles" aria-hidden="true"></i>
+                {{ 'dashboard.finance.home.start.ai.cta' | translate }}
+              }
+            </button>
+          </article>
+
+          <!-- L'import : toute la carte reçoit le fichier qu'on y dépose. -->
+          <article
+            class="glass-card fo-path fo-path--drop"
+            [class.fo-path--dragging]="dragging()"
+            aria-labelledby="fo-path-import"
+            (dragenter)="onDragEnter($event)"
+            (dragover)="onDragOver($event)"
+            (dragleave)="onDragLeave()"
+            (drop)="onDrop($event)"
+          >
+            <app-finance-illustration scene="import" class="fo-path__art" />
+            <h2 id="fo-path-import" class="fo-path__title">{{ 'dashboard.finance.home.start.import.title' | translate }}</h2>
+            <p class="fo-path__body">{{ 'dashboard.finance.home.start.import.body' | translate }}</p>
+            <p class="fo-path__note">
+              <i class="pi pi-file" aria-hidden="true"></i>
+              {{ 'dashboard.finance.home.start.import.formats' | translate }}
+            </p>
+            <div class="fo-path__cta fo-path__actions">
+              <button type="button" class="inner-button button-lg" (click)="filePicker.click()">
+                <i class="pi pi-upload" aria-hidden="true"></i>
+                {{ 'dashboard.finance.home.start.import.cta' | translate }}
+              </button>
+              <span class="text-sm text-text-tertiary" aria-live="polite">
+                {{ (dragging() ? 'dashboard.finance.home.start.import.dropActive' : 'dashboard.finance.home.start.import.drop') | translate }}
+              </span>
+            </div>
+            <input #filePicker type="file" class="sr-only" tabindex="-1" aria-hidden="true" [accept]="importAccept" (change)="onFilePicked($event)" />
+          </article>
+        </div>
+
+        <!-- Saisie à la main : présente, mais en retrait. -->
+        <nav class="fo-other" [attr.aria-label]="'dashboard.finance.home.start.other.label' | translate">
+          <span class="text-text-secondary">{{ 'dashboard.finance.home.start.other.label' | translate }}</span>
+          <a class="fo-other__link" [routerLink]="['/project/finance', firstStepRoute]">
+            <i class="pi pi-list" aria-hidden="true"></i>
+            {{ 'dashboard.finance.home.start.other.steps' | translate }}
+          </a>
+          <a class="fo-other__link" routerLink="/project/finance/sheet">
+            <i class="pi pi-table" aria-hidden="true"></i>
+            {{ 'dashboard.finance.home.start.other.sheet' | translate }}
+          </a>
+          <button type="button" class="fo-other__link" (click)="openSheet()">
+            <i class="pi pi-clipboard" aria-hidden="true"></i>
+            {{ 'dashboard.finance.home.start.import.paste' | translate }}
+          </button>
+        </nav>
+      </section>
+    } @else {
     <app-ownership-bar deliverable="financial_forecast" [projectId]="projectId()" />
     <!-- ═════════════ En-tête ═════════════ -->
     <header class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
@@ -20,22 +107,20 @@
         </p>
         <app-finance-mode-switch mode="steps" class="mt-4" />
       </div>
-      @if (hasData()) {
-        <div class="flex flex-wrap items-center gap-2">
-          <button type="button" class="outer-button button-sm" (click)="openImport()">
-            <i class="pi pi-upload" aria-hidden="true"></i>
-            {{ 'dashboard.finance.home.actions.import' | translate }}
-          </button>
-          <button type="button" class="outer-button button-sm" [disabled]="aiGlobalLoading()" (click)="onAutoFillGlobal()">
-            @if (aiGlobalLoading()) { <idem-loader size="xs" /> } @else { <i class="pi pi-sparkles" aria-hidden="true"></i> }
-            {{ 'dashboard.finance.home.actions.ai' | translate }}
-          </button>
-          <button type="button" class="inner-button button-sm" [disabled]="pdfLoading()" (click)="onDownloadPdf()">
-            @if (pdfLoading()) { <idem-loader size="xs" /> } @else { <i class="pi pi-file-pdf" aria-hidden="true"></i> }
-            {{ 'dashboard.finance.pdf.download' | translate }}
-          </button>
-        </div>
-      }
+      <div class="flex flex-wrap items-center gap-2">
+        <button type="button" class="outer-button button-sm" (click)="openImport()">
+          <i class="pi pi-upload" aria-hidden="true"></i>
+          {{ 'dashboard.finance.home.actions.import' | translate }}
+        </button>
+        <button type="button" class="outer-button button-sm" [disabled]="aiGlobalLoading()" (click)="onAutoFillGlobal()">
+          @if (aiGlobalLoading()) { <idem-loader size="xs" /> } @else { <i class="pi pi-sparkles" aria-hidden="true"></i> }
+          {{ 'dashboard.finance.home.actions.ai' | translate }}
+        </button>
+        <button type="button" class="inner-button button-sm" [disabled]="pdfLoading()" (click)="onDownloadPdf()">
+          @if (pdfLoading()) { <idem-loader size="xs" /> } @else { <i class="pi pi-file-pdf" aria-hidden="true"></i> }
+          {{ 'dashboard.finance.pdf.download' | translate }}
+        </button>
+      </div>
     </header>
 
     @if (importedNotice()) {
@@ -51,61 +136,6 @@
       </div>
     }
 
-    @if (!hasData()) {
-      <!-- ═════════════ Trois façons de commencer ═════════════ -->
-      <section aria-labelledby="fo-start">
-        <h2 id="fo-start" class="text-lg font-semibold text-text-primary">
-          {{ 'dashboard.finance.home.start.title' | translate }}
-        </h2>
-        <p class="text-sm text-text-secondary mt-1">{{ 'dashboard.finance.home.start.lead' | translate }}</p>
-
-        <!-- Import mis en avant : grande carte en tête, deux gestes clairs. -->
-        <div class="glass-card fo-hero mt-5">
-          <app-finance-illustration scene="import" class="w-28 shrink-0" />
-          <div class="flex-1 min-w-0">
-            <span class="fo-choice__title">{{ 'dashboard.finance.home.start.import.title' | translate }}</span>
-            <p class="fo-choice__body mt-1">{{ 'dashboard.finance.home.start.import.body' | translate }}</p>
-          </div>
-          <div class="flex flex-col sm:flex-row md:flex-col gap-2 w-full md:w-auto">
-            <button type="button" class="inner-button" (click)="openImport()">
-              <i class="pi pi-upload" aria-hidden="true"></i>
-              {{ 'dashboard.finance.home.start.import.cta' | translate }}
-            </button>
-            <button type="button" class="outer-button" (click)="openSheet()">
-              <i class="pi pi-table" aria-hidden="true"></i>
-              {{ 'dashboard.finance.home.start.import.paste' | translate }}
-            </button>
-          </div>
-        </div>
-
-        <div class="grid gap-4 md:grid-cols-2 mt-4">
-          <button type="button" class="glass-card fo-choice fo-choice--recommended" [disabled]="aiGlobalLoading()" (click)="onAutoFillGlobal()">
-            <span class="fo-badge">
-              <i class="pi pi-star-fill text-[10px]" aria-hidden="true"></i>
-              {{ 'dashboard.finance.home.start.ai.recommended' | translate }}
-            </span>
-            <app-finance-illustration scene="ai" class="w-24" />
-            <span class="fo-choice__title">{{ 'dashboard.finance.home.start.ai.title' | translate }}</span>
-            <span class="fo-choice__body">{{ 'dashboard.finance.home.start.ai.body' | translate }}</span>
-            <span class="fo-choice__cta">
-              @if (aiGlobalLoading()) { <idem-loader size="xs" /> }
-              {{ 'dashboard.finance.home.start.ai.cta' | translate }}
-              <i class="pi pi-arrow-right text-xs" aria-hidden="true"></i>
-            </span>
-          </button>
-
-          <button type="button" class="glass-card fo-choice" (click)="startManually()">
-            <app-finance-illustration scene="manual" class="w-24" />
-            <span class="fo-choice__title">{{ 'dashboard.finance.home.start.manual.title' | translate }}</span>
-            <span class="fo-choice__body">{{ 'dashboard.finance.home.start.manual.body' | translate }}</span>
-            <span class="fo-choice__cta">
-              {{ 'dashboard.finance.home.start.manual.cta' | translate }}
-              <i class="pi pi-arrow-right text-xs" aria-hidden="true"></i>
-            </span>
-          </button>
-        </div>
-      </section>
-    } @else {
       <!-- ═════════════ En bref ═════════════ -->
       @if (summary(); as s) {
         <section aria-labelledby="fo-brief">
@@ -203,10 +233,8 @@
           </div>
         </section>
       }
-    }
 
     <!-- ═════════════ Les six étapes ═════════════ -->
-    @if (hasData()) {
     <section aria-labelledby="fo-steps">
       <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-4">
         <div>
@@ -217,7 +245,7 @@
             {{ 'dashboard.finance.home.steps.progress' | translate: { done: doneCount(), total: steps().length } }}
           </p>
         </div>
-        @if (hasData() && nextStep(); as next) {
+        @if (nextStep(); as next) {
           <a class="inner-button button-sm self-start" [routerLink]="['/project/finance', next.route]">
             {{ (doneCount() === 0 ? 'dashboard.finance.home.steps.start' : 'dashboard.finance.home.steps.continue') | translate }}
             <i class="pi pi-arrow-right text-xs" aria-hidden="true"></i>
@@ -246,9 +274,7 @@
         }
       </ol>
     </section>
-    }
 
-    @if (hasData()) {
       <!-- ═════════════ Pour la banque ═════════════ -->
       <section aria-labelledby="fo-bank">
         <h2 id="fo-bank" class="text-lg font-semibold text-text-primary">{{ 'dashboard.finance.home.bank.title' | translate }}</h2>
@@ -298,7 +324,6 @@
           }
         </div>
       </section>
-    }
 
     <!-- ═════════════ Réglages ═════════════ -->
     <details class="glass-card fo-settings">
@@ -324,6 +349,7 @@
         }
       </ul>
     </details>
+    }
   </div>
 
   <app-finance-import-dialog
@@ -331,7 +357,8 @@
     [projectId]="projectId()"
     [hasExistingData]="hasData()"
     [currency]="currency()"
-    (closed)="importOpen.set(false)"
+    [initialFile]="pendingFile()"
+    (closed)="closeImport()"
     (imported)="onImported($event)"
   />
 

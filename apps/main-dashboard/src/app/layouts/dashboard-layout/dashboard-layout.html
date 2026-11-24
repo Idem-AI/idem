@@ -39,14 +39,18 @@
         <!-- Fil du parcours assisté : visible uniquement dans le mode Assisté -->
         <app-guided-step-bar />
 
-        <!-- Mode Avancé : l'étape suivante recommandée (carte sur l'accueil, barre fine sur le rendu d'une étape). -->
-        <app-next-step-bar />
-
-        <!-- La campagne en cours (bêta gratuite…) ; rien sans campagne, fermable pour la session. -->
-        <idem-promo-banner class="mb-4 block" />
-
         <router-outlet></router-outlet>
       </div>
+    </div>
+
+    <!--
+      Les rappels FLOTTENT dans le coin bas-droit, au-dessus du dock : l'étape suivante recommandée (mode Avancé)
+      et la campagne en cours (bêta gratuite…, en pastille qui se déplie). En tête de page, ils repoussaient le
+      contenu important vers le bas.
+    -->
+    <div class="float-stack">
+      <idem-promo-banner variant="pill" />
+      <app-next-step-bar />
     </div>
 
     <!-- Les textes juridiques, atteignables sans quitter l'application. -->

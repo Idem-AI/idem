@@ -151,6 +151,18 @@ async function main() {
   const migrated = await service.updateVideo('u1', 'p1', ultra.id, { visual: { s1: 'le titre plus grand' } });
   check(!!migrated!.film!.catalog && migrated!.film!.scenes.every((s) => !!s.catalog && /^__ge\.scene\(/.test(s.script || '')) && calls.filter((c) => c.role === 'video.template').length === 1, 'un film d’avant le catalogue y passe à sa première retouche (le code pour le film, un appel pour la retouche)', calls.map((c) => c.role).join(','));
 
+  // 5 bis. L'aperçu autorise les médias de NOS serveurs, même en http (local : MinIO, sons de l'API) — sinon ni image,
+  // ni clip, ni musique, ni voix, ni effet ne passent ; rien d'autre n'est ouvert.
+  const previewPage = await buildComposition({
+    scenes: [{ key: 's1', start: 0, duration: 2, html: '<div class="h-full w-full"><img src="{{media.m1}}" alt=""></div>', script: 'return null;', animation: 'gsap', texts: {} }],
+    width: 540, height: 540, durationSec: 2,
+    brand: { name: 'Kora', colors: BRAND, fonts: { display: 'Inter', body: 'Inter' } },
+    media: { m1: { src: 'http://localhost:9000/idem/photo.jpg', kind: 'image' } }, fontCss: '', mode: 'preview',
+    audio: { music: { url: 'http://localhost:9000/idem/music.mp3', startAt: 0, gain: 0.5 }, voice: [{ url: 'http://localhost:9000/idem/voice.mp3', at: 0 }], sfx: [{ url: 'http://localhost:3001/project/communication/sfx/whoosh.mp3', at: 0.5, gain: 0.6 }] },
+  });
+  const policy = /Content-Security-Policy" content="([^"]+)"/.exec(previewPage)?.[1] || '';
+  check(/img-src[^;]*http:\/\/localhost:9000/.test(policy) && /media-src[^;]*http:\/\/localhost:3001/.test(policy) && !/http:(?!\/\/localhost)/.test(policy) && /syncClips/.test(previewPage), 'aperçu : médias et sons de nos serveurs autorisés (http local compris), clips calés sur la lecture', policy);
+
   // 6. Un film écrit AVANT le catalogue (HTML libre, Anime.js) se rend toujours tel quel
   const animeHtml = await buildComposition({
     scenes: [{ key: 's1', start: 0, duration: 2, html: '<div class="h-full w-full bg-ground"><p class="t text-[80px] text-brand-primary">{{text.h}}</p></div>', script: "const t = anime.createTimeline({ autoplay: false }); t.add(root.querySelector('.t'), { opacity: [0, 1], translateY: [40, 0], duration: 800 }, 0); return t;", animation: 'anime', texts: { h: 'Anime' } }],

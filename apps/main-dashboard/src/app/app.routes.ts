@@ -375,6 +375,17 @@ export const routes: Routes = [
     data: { layout: 'empty', documentType: 'flyer' },
   },
   {
+    // Une vidéo sur sa propre page : lecteur, retouches, téléchargement.
+    path: 'project/communication/videos/:videoId',
+    title: 'navigation.titles.communication',
+    loadComponent: () =>
+      import('./modules/dashboard/pages/show-communication/video-page/video-page').then(
+        (m) => m.VideoPage,
+      ),
+    canActivate: [translationChunkGuard('communication'), authGuard, surveyGuard, guidedAccessGuard],
+    data: { layout: 'dashboard' },
+  },
+  {
     path: 'project/communication',
     title: 'navigation.titles.communication',
     loadComponent: () =>

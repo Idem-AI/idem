@@ -24,6 +24,7 @@ import { ScreenGuide } from '../screen-guide/screen-guide';
 import { VisualDialog } from '../visual-dialog/visual-dialog';
 import { VisualThumb } from '../visual-thumb/visual-thumb';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
+import { urlParam } from '../../url-state';
 
 const ORIGINS: VisualOrigin[] = ['plan', 'studio', 'occasion'];
 
@@ -83,10 +84,11 @@ export class LibraryPanel {
   protected readonly confirmingId = signal<string | null>(null);
   protected readonly deletingId = signal<string | null>(null);
 
-  protected readonly filterFormat = signal<FlyerFormat | 'all'>('all');
-  protected readonly filterOrigin = signal<VisualOrigin | 'all'>('all');
-  protected readonly filterPlanId = signal<string>('all');
-  protected readonly openVisualId = signal<string | null>(null);
+  // Filtres et visuel ouvert dans l'adresse (`?format=…&origin=…&from=…&visual=…`) : gardés à l'actualisation.
+  protected readonly filterFormat = urlParam<FlyerFormat | 'all'>('format', { fallback: 'all', format: (v) => (v === 'all' ? null : v) });
+  protected readonly filterOrigin = urlParam<VisualOrigin | 'all'>('origin', { fallback: 'all', format: (v) => (v === 'all' ? null : v) });
+  protected readonly filterPlanId = urlParam<string>('from', { fallback: 'all', format: (v) => (v === 'all' ? null : v) });
+  protected readonly openVisualId = urlParam<string | null>('visual', { fallback: null, push: true });
 
   protected readonly openVisual = computed<Flyer | null>(() => {
     const id = this.openVisualId();

@@ -17,6 +17,7 @@ import { FinanceService } from '../../../services/finance.service';
 import { ProjectService } from '../../../services/project.service';
 import { ProjectModel } from '@idem/shared-models';
 import {
+  FINANCE_IMPORT_ACCEPT,
   FINANCE_REPORTS,
   FINANCE_SETTINGS,
   FINANCE_STEPS,
@@ -57,8 +58,11 @@ interface StepVM {
  * Accueil du module finance.
  *
  * Deux visages :
- *  - prévisionnel vide : trois façons de commencer, chacune dite en une
- *    phrase — importer un fichier, laisser l'IA proposer, remplir pas à pas ;
+ *  - prévisionnel vide : deux grands choix, seuls au-dessus de la ligne de
+ *    flottaison — générer avec l'IA (recommandé) ou importer ses fichiers (la
+ *    carte reçoit aussi le fichier déposé). La saisie à la main reste offerte
+ *    en une ligne discrète. Ni barre de propriété, ni interrupteur de saisie,
+ *    ni réglages : rien de tout cela ne sert tant qu'il n'y a aucun chiffre ;
  *  - prévisionnel commencé : quatre réponses en langage courant (combien je
  *    vends, combien je gagne, combien il me reste, quand je deviens rentable),
  *    puis les six étapes, et enfin ce qui sert à la banque.
@@ -97,6 +101,21 @@ export class FinanceOverviewComponent implements OnInit {
   protected readonly bpMissingDialogVisible = signal<boolean>(false);
   protected readonly importOpen = signal<boolean>(false);
   protected readonly importedNotice = signal<boolean>(false);
+  /** Fichier choisi ou déposé sur la carte d'import, transmis à la fenêtre. */
+  protected readonly pendingFile = signal<File | null>(null);
+  protected readonly dragging = signal<boolean>(false);
+  protected readonly importAccept = FINANCE_IMPORT_ACCEPT;
+  /** Profondeur des dragenter/dragleave : les enfants de la carte en émettent aussi. */
+  private dragDepth = 0;
+
+  /**
+   * Le business plan est-il prêt ? `null` tant que le projet n'est pas lu :
+   * on ne dit rien plutôt que de dire faux.
+   */
+  protected readonly bpReady = computed<boolean | null>(() => {
+    const p = this.project();
+    return p ? hasGeneratedDeliverable(p.analysisResultModel, 'businessPlan') : null;
+  });
 
   // Salle de contrôle de l'auto-fill sourcé (équipe d'agents).
   protected readonly researchVisible = signal<boolean>(false);
@@ -124,6 +143,7 @@ export class FinanceOverviewComponent implements OnInit {
   protected readonly pdfLoading = signal<boolean>(false);
 
   protected readonly settings = FINANCE_SETTINGS;
+  protected readonly firstStepRoute = FINANCE_STEPS[0].route;
   protected readonly reports = FINANCE_REPORTS;
 
   protected readonly currency = computed(() => this.finance()?.meta.currency || 'XAF');
@@ -269,9 +289,48 @@ export class FinanceOverviewComponent implements OnInit {
   // Trois façons de commencer
   // -------------------------------------------------------------------
 
-  protected openImport(): void {
+  protected openImport(file: File | null = null): void {
     this.importedNotice.set(false);
+    this.pendingFile.set(file);
     this.importOpen.set(true);
+  }
+
+  protected closeImport(): void {
+    this.importOpen.set(false);
+    this.pendingFile.set(null);
+  }
+
+  protected onFilePicked(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0] ?? null;
+    input.value = '';
+    if (file) this.openImport(file);
+  }
+
+  protected onDragEnter(event: DragEvent): void {
+    if (!event.dataTransfer?.types.includes('Files')) return;
+    event.preventDefault();
+    this.dragDepth++;
+    this.dragging.set(true);
+  }
+
+  protected onDragOver(event: DragEvent): void {
+    if (!event.dataTransfer?.types.includes('Files')) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'copy';
+  }
+
+  protected onDragLeave(): void {
+    this.dragDepth = Math.max(0, this.dragDepth - 1);
+    if (this.dragDepth === 0) this.dragging.set(false);
+  }
+
+  protected onDrop(event: DragEvent): void {
+    event.preventDefault();
+    this.dragDepth = 0;
+    this.dragging.set(false);
+    const file = event.dataTransfer?.files?.[0];
+    if (file) this.openImport(file);
   }
 
   protected openSheet(): void {
@@ -284,9 +343,6 @@ export class FinanceOverviewComponent implements OnInit {
     this.loadSummary();
   }
 
-  protected startManually(): void {
-    this.router.navigate(['/project/finance', FINANCE_STEPS[0].route]);
-  }
 
   protected onAutoFillGlobal(): void {
     const projectId = this.projectId();

@@ -14,18 +14,6 @@
         />
       </div>
     }
-    @case ('detail') {
-      <app-video-detail
-        [projectId]="projectId()"
-        [videoId]="detailId()!"
-        [options]="opts"
-        (back)="toList()"
-        (changed)="onChanged($event)"
-        (deleted)="onDeleted($event)"
-        (failed)="failed.emit($event)"
-        (needsCredits)="needsCredits.emit($event)"
-      />
-    }
     @default {
       <section class="mx-auto max-w-7xl">
         <div class="mb-5 flex flex-wrap items-end justify-between gap-3">

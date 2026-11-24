@@ -83,6 +83,11 @@ export class FinanceImportDialogComponent implements OnDestroy {
    * directement sur sa lecture par l'IA, comme pour un fichier.
    */
   readonly initialText = input<string>('');
+  /**
+   * Fichier déjà choisi — ou déposé — sur la page d'accueil des finances :
+   * la fenêtre s'ouvre directement sur sa lecture, sans redemander le fichier.
+   */
+  readonly initialFile = input<File | null>(null);
 
   readonly closed = output<void>();
   readonly imported = output<FinanceModel>();
@@ -107,8 +112,11 @@ export class FinanceImportDialogComponent implements OnDestroy {
       if (this.open() && !dialog.open) {
         this.reset();
         dialog.showModal();
+        const file = untracked(this.initialFile);
         const text = untracked(this.initialText);
-        if (text) {
+        if (file) {
+          this.read(file);
+        } else if (text) {
           const name = this.translate.instant('dashboard.finance.paste.ai.fileName');
           this.read(new File([text], name, { type: 'text/plain' }));
         }

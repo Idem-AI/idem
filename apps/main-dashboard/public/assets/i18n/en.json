@@ -318,24 +318,39 @@
         },
         "start": {
           "title": "How would you like to start?",
-          "lead": "Pick whatever suits you. You can change everything afterwards.",
+          "lead": "Two ways to get started. You can check and change everything afterwards.",
           "import": {
-            "title": "I already have my figures",
-            "body": "Paste your table from Excel or an AI, or send your file. Everything goes in the right place.",
-            "cta": "Import a file",
-            "paste": "Paste a table"
+            "title": "Import my files",
+            "body": "Already have a spreadsheet or a document? Drop it in: the AI puts each figure in the right place, and you review before saving.",
+            "cta": "Choose a file",
+            "paste": "Paste a table",
+            "drop": "or drag it here",
+            "dropActive": "Release the file to import it",
+            "formats": "Excel, CSV, PDF, Word or text — up to 15 MB"
           },
           "ai": {
-            "title": "Let the AI suggest",
-            "body": "Using your business plan and real prices in your market, the AI prepares a first forecast that you then adjust.",
-            "cta": "Get a suggestion",
+            "title": "Generate with AI",
+            "body": "The AI reads your business plan, looks up real prices in your market and fills in the six steps for you.",
+            "cta": "Generate my forecast",
             "recommended": "Recommended",
-            "preparing": "Preparing the research…"
+            "preparing": "Preparing the research…",
+            "running": "Generating…",
+            "bpReady": "Your business plan is ready: the AI will build on it.",
+            "bpMissing": "The AI needs your business plan. We'll guide you to create it first."
           },
           "manual": {
             "title": "I'll fill it in step by step",
             "body": "Six short steps, with examples. No accounting knowledge needed.",
             "cta": "Start step 1"
+          },
+          "eyebrow": "New forecast",
+          "titleStart": "Your three-year figures,",
+          "titleEm": "in a few minutes",
+          "other": {
+            "label": "Prefer to enter it yourself?",
+            "steps": "Fill in step by step",
+            "sheet": "Open the spreadsheet",
+            "settings": "Adjust the settings"
           }
         },
         "brief": {
@@ -4419,7 +4434,9 @@
           "delete": "Delete video",
           "deleteAsk": "Delete for good?",
           "deleteConfirm": "Delete",
-          "broken": "{{count}} scene(s) do not run: find it below and press “Fix”."
+          "broken": "{{count}} scene(s) do not run: find it below and press “Fix”.",
+          "brokenShort": "{{count}} scene(s) to fix: tap the red thumbnail, then “Fix”.",
+          "notes": "{{count}} note(s) about your request"
         },
         "texts": {
           "title": "On-screen text",
@@ -4595,7 +4612,7 @@
         },
         "revise": {
           "title": "Edit by writing",
-          "placeholder": "E.g. “scene 2 slower”, “the title in yellow”, “no music”…",
+          "placeholder": "What do you want to change? E.g. “scene 2 slower”, “no music”",
           "send": "Apply",
           "done": "Done. Watch the new version.",
           "notUnderstood": "I did not understand what to change. Say for instance “scene 2 more dynamic” or “no music”.",
@@ -4619,7 +4636,11 @@
           "saving": "Downloading…",
           "savingPercent": "Downloading… {{percent}}%",
           "cancelAuto": "Don’t download",
-          "autoHint": "The download will start by itself as soon as the file is ready. You can keep editing the video."
+          "autoHint": "The download will start by itself as soon as the file is ready. You can keep editing the video.",
+          "waitingShort": "Preparing {{percent}}% · downloads automatically",
+          "workingShort": "Making {{percent}}%",
+          "preparingShort": "Preparing {{percent}}%",
+          "outdatedShort": "MP4 needs updating"
         },
         "tabs": {
           "label": "Edit the video",

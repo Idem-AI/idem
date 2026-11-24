@@ -23,6 +23,7 @@ import { VisualBuilder } from '../visual-builder/visual-builder';
 import { VisualDialog } from '../visual-dialog/visual-dialog';
 import { VisualThumb } from '../visual-thumb/visual-thumb';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
+import { urlChoice } from '../../url-state';
 
 /** Amorces proposées sur un fil vide — des phrases, pas des catégories. */
 const STARTERS = ['announce', 'promotion', 'celebration', 'recruitment'] as const;
@@ -88,7 +89,8 @@ export class StudioPanel {
    * Toujours `builder` en arrivant : on vient ici pour créer un visuel, et les
    * échanges précédents restent à un clic.
    */
-  protected readonly mode = signal<'builder' | 'chat'>('builder');
+  /** Formulaire guidé ou conversation : `?mode=chat` le garde à l'actualisation. */
+  protected readonly mode = urlChoice<'builder' | 'chat'>('mode', ['builder', 'chat'], 'builder', { push: true });
 
   /**
    * Format et nombre de propositions en cours de composition.

@@ -668,7 +668,11 @@
       "ctaPaid": "Download · {{cost}} credits",
       "saving": "Downloading…",
       "cancel": "Don’t download",
-      "autoHint": "The download will start by itself as soon as the file is ready. You can keep editing the video."
+      "autoHint": "The download will start by itself as soon as the file is ready. You can keep editing the video.",
+      "waitingShort": "Preparing {{percent}}% · downloads automatically",
+      "workingShort": "Making {{percent}}%",
+      "preparingShort": "Preparing {{percent}}%",
+      "outdatedShort": "MP4 needs updating"
     },
     "tabs": {
       "label": "Edit the video",

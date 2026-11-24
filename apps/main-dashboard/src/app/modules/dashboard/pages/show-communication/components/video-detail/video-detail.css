@@ -15,21 +15,59 @@
   color: var(--color-text-primary);
 }
 
-/* ── La barre du fichier : où en est le MP4, et un seul bouton pour l'avoir ── */
-.vd-dl {
+/* ── L'en-tête : le titre à gauche, l'état du MP4 et « Télécharger » à droite ── */
+.vd-head {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.9rem;
-  padding: 0.85rem 1rem;
+  gap: 0.75rem 1rem;
+  margin: 0.5rem 0 1rem;
 }
 
-.vd-dl-poster {
-  height: 3.5rem;
-  width: 3.5rem;
-  flex: none;
-  border-radius: 0.6rem;
-  object-fit: cover;
+.vd-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-left: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+}
+
+.vd-state--ok {
+  color: var(--color-success);
+}
+
+.vd-head-progress {
+  display: block;
+  width: 100%;
+  height: 0.3rem;
+  margin: -0.5rem 0 1rem;
+}
+
+/* ── Demander un changement : une barre sous la vidéo ── */
+.vd-ask {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  max-width: 44rem;
+  margin-inline: auto;
+  padding: 0.5rem 0.5rem 0.5rem 0.9rem;
+  border-radius: 999px;
+}
+
+.vd-ask textarea {
+  flex: 1;
+  min-height: 0;
+  resize: none;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0.35rem 0 !important;
+  line-height: 1.4;
+}
+
+.vd-ask-icon {
+  color: var(--color-primary-500);
 }
 
 .vd-dl-poster--empty {
@@ -48,9 +86,12 @@
   margin-top: 0.45rem;
 }
 
-/* ── Formats de l'aperçu : un sélecteur segmenté ── */
+/* ── Formats de l'aperçu : un sélecteur segmenté, centré au-dessus du lecteur ── */
 .vd-seg {
-  display: inline-flex;
+  display: flex;
+  width: fit-content;
+  max-width: 100%;
+  margin-inline: auto;
   flex-wrap: wrap;
   gap: 0.25rem;
   padding: 0.25rem;
@@ -199,12 +240,14 @@
 
 /* Ce que la vidéo n'a pas pu suivre de la demande : dit, jamais caché. */
 .vd-notes {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
   font-size: 0.8rem;
   line-height: 1.4;
   color: var(--color-text-secondary);
+}
+
+.vd-notes summary {
+  cursor: pointer;
+  font-weight: 600;
 }
 
 .vd-file {
@@ -262,8 +305,8 @@
 }
 
 @media (max-width: 40rem) {
-  .vd-dl > .inner-button,
-  .vd-dl > .outer-button {
+  .vd-head > .inner-button,
+  .vd-head > .outer-button {
     width: 100%;
   }
 }

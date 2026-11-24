@@ -9,7 +9,7 @@ import {
   signal,
 } from '@angular/core';
 import { TranslateModule } from '@ngx-translate/core';
-import { ActivatedRoute, Router } from '@angular/router';
+import { Router } from '@angular/router';
 import { ProjectModel } from '@idem/shared-models';
 import { CookieService } from '../../../../shared/services/cookie.service';
 import { CommunicationService } from '../../services/ai-agents/communication.service';
@@ -35,6 +35,7 @@ import { PlanIntent, PlanPanel } from './components/plan-panel/plan-panel';
 import { StrategyInputsDialog } from './components/strategy-inputs-dialog/strategy-inputs-dialog';
 import { StudioPanel } from './components/studio-panel/studio-panel';
 import { VideoPanel } from './components/video-panel/video-panel';
+import { CommunicationUrl, SCREEN_PARAMS, urlChoice, urlFlag } from './url-state';
 import { WhatsappPanel } from './components/whatsapp-panel/whatsapp-panel';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 
@@ -88,7 +89,6 @@ const SCREENS: readonly Screen[] = ['home', 'studio', 'videos', 'plans', 'librar
 export class ShowCommunication implements OnInit {
   private readonly communication = inject(CommunicationService);
   private readonly cookies = inject(CookieService);
-  private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly brandingValidation = inject(BrandingValidationService);
   private readonly projectService = inject(ProjectService);
@@ -104,8 +104,10 @@ export class ShowCommunication implements OnInit {
    * calendrier ou la bibliothèque : un lien partagé retrouve l'endroit dont on
    * parlait.
    */
-  protected readonly activeScreen = signal<Screen>(this.initialScreen());
-  protected readonly isVoiceOpen = signal(false);
+  protected readonly activeScreen = urlChoice<Screen>('screen', SCREENS, 'home', { push: true });
+  /** Le panneau « voix de la marque » ouvert : `?voice=1`. */
+  protected readonly isVoiceOpen = urlFlag('voice', { push: true });
+  private readonly url = inject(CommunicationUrl);
 
   protected readonly project = signal<ProjectModel | null>(null);
   protected readonly isBrandingComplete = signal(false);
@@ -170,11 +172,6 @@ export class ShowCommunication implements OnInit {
       fontUrl: branding?.fontUrl,
     };
   });
-
-  private initialScreen(): Screen {
-    const requested = this.route.snapshot.queryParamMap.get('screen') as Screen | null;
-    return requested && SCREENS.includes(requested) ? requested : 'home';
-  }
 
   constructor() {
     // Sur téléphone, les onglets passent en barre fixe en bas de l'écran. Le dock
@@ -242,12 +239,15 @@ export class ShowCommunication implements OnInit {
   /** Vidéo à ouvrir dans l'écran Vidéos (depuis un contenu du calendrier). */
   protected readonly videoToOpen = signal<string | null>(null);
 
+  /** Une vidéo du calendrier s'ouvre sur sa propre page. */
   protected openVideoFromPlan(videoId: string): void {
-    this.videoToOpen.set(videoId);
-    this.setScreen('videos');
+    this.router.navigate(['/project/communication/videos', videoId]);
   }
 
+  /** Un autre écran : l'adresse change (entrée d'historique), les paramètres de l'écran quitté sont vidés. */
   protected setScreen(screen: Screen): void {
+    // L'écran et le ménage des paramètres partent dans la MÊME écriture.
+    if (screen !== this.activeScreen()) this.url.write({ ...Object.fromEntries(SCREEN_PARAMS.map((k) => [k, null])), screen: screen === 'home' ? null : screen }, { push: true });
     this.activeScreen.set(screen);
     this.errorMessage.set('');
   }

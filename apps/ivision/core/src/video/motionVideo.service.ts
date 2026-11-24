@@ -1641,12 +1641,12 @@ export class MotionVideoService {
         }
       })
     );
-    // Les formats sont rendus L'UN APRÈS L'AUTRE, le principal d'abord : le producteur répartit déjà chaque rendu sur
-    // tous les cœurs (plusieurs Chrome), deux rendus côte à côte se disputeraient les mêmes cœurs — et le premier
-    // fichier est téléchargeable bien plus tôt. `VIDEO_RENDER_PARALLEL_FORMATS=1` rétablit le rendu simultané.
+    // Les formats sont rendus L'UN APRÈS L'AUTRE, le principal d'abord : chaque rendu occupe déjà tous les cœurs
+    // (`captureWorkers`), deux rendus côte à côte se disputeraient les mêmes cœurs — et le premier fichier est
+    // téléchargeable bien plus tôt.
     await mapLimit(
       formats,
-      process.env.VIDEO_RENDER_PARALLEL_FORMATS === '1' ? formats.length : 1,
+      1,
       async (format) => {
         liveProgress.set(`${videoId}:${format}`, 0);
         let workDir: string | undefined;

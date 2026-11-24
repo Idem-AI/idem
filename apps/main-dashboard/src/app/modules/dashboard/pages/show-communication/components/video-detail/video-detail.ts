@@ -31,6 +31,7 @@ import {
   VideoRender,
 } from '../../../../models/motion-video.model';
 import { downloadName } from '../../../../../../shared/utils/download-name';
+import { urlChoice, urlParam } from '../../url-state';
 
 const RATIOS: Record<VideoFormat, number> = {
   story: 9 / 16,
@@ -48,8 +49,8 @@ const shape = (v: MotionVideo | null) => (v?.film?.scenes ?? []).map((s) => `${s
 
 type SavingKind = 'texts' | 'photo' | 'music' | 'sfx' | 'voice' | 'captions' | 'revise';
 
-/** Les onglets sous l'aperçu : retoucher en écrivant, le son, les fichiers. */
-type WorkspaceTab = 'revise' | 'sound' | 'files';
+/** Les onglets sous la demande à l'IA : le son, les fichiers. */
+type WorkspaceTab = 'sound' | 'files';
 
 /**
  * Où en est le MP4 d'un format :
@@ -113,7 +114,9 @@ export class VideoDetail {
   protected readonly exporting = signal(false);
   protected readonly confirmDelete = signal(false);
   protected readonly copied = signal(false);
-  protected readonly tab = signal<WorkspaceTab>('revise');
+  /** Onglet et format regardé dans l'adresse (`?tab=files&format=square`) : gardés à l'actualisation. */
+  protected readonly tab = urlChoice<WorkspaceTab>('tab', ['sound', 'files'], 'sound');
+  private readonly formatParam = urlParam<string | null>('format', { fallback: null });
   /** Le format dont l'utilisateur attend le fichier : il s'enregistre tout seul dès qu'il est prêt. */
   protected readonly pendingDownload = signal<VideoFormat | null>(null);
   /** Le fichier en cours d'enregistrement, et sa progression (0–100, null si la taille est inconnue). */
@@ -177,7 +180,8 @@ export class VideoDetail {
         next: (video) => {
           this.apply(video);
           this.resetExportForm(video);
-          this.previewFormat.set(video.scope.formats[0]);
+          const wanted = this.formatParam() as VideoFormat | null;
+          this.previewFormat.set(wanted && video.scope.formats.includes(wanted) ? wanted : video.scope.formats[0]);
           this.loading.set(false);
           if (!video.legacy) this.loadPreview();
         },
@@ -226,6 +230,7 @@ export class VideoDetail {
   protected setPreviewFormat(format: VideoFormat): void {
     if (format === this.previewFormat()) return;
     this.previewFormat.set(format);
+    this.formatParam.set(format === this.video()?.scope.formats[0] ? null : format);
     this.loadPreview();
   }
 

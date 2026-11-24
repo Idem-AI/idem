@@ -965,7 +965,9 @@
           "delete": "Supprimer la vidéo",
           "deleteAsk": "Supprimer définitivement ?",
           "deleteConfirm": "Supprimer",
-          "broken": "{{count}} scène(s) ne s’exécute(nt) pas : retrouvez-la ci-dessous et appuyez sur « Corriger »."
+          "broken": "{{count}} scène(s) ne s’exécute(nt) pas : retrouvez-la ci-dessous et appuyez sur « Corriger ».",
+          "brokenShort": "{{count}} scène(s) à corriger : touchez la vignette rouge, puis « Corriger ».",
+          "notes": "{{count}} remarque(s) sur votre demande"
         },
         "texts": {
           "title": "Les textes",
@@ -1141,7 +1143,7 @@
         },
         "revise": {
           "title": "Retoucher en écrivant",
-          "placeholder": "Ex. : « la scène 2 plus lente », « le titre en jaune », « sans musique »…",
+          "placeholder": "Que voulez-vous changer ? Ex. : « la scène 2 plus lente », « sans musique »",
           "send": "Appliquer",
           "done": "C’est fait. Regardez la nouvelle version.",
           "notUnderstood": "Je n’ai pas compris ce qu’il faut changer. Dites par exemple « la scène 2 plus dynamique » ou « sans musique ».",
@@ -1165,7 +1167,11 @@
           "saving": "Téléchargement…",
           "savingPercent": "Téléchargement… {{percent}} %",
           "cancelAuto": "Ne pas télécharger",
-          "autoHint": "Le téléchargement démarrera tout seul dès que le fichier sera prêt. Vous pouvez continuer à retoucher la vidéo."
+          "autoHint": "Le téléchargement démarrera tout seul dès que le fichier sera prêt. Vous pouvez continuer à retoucher la vidéo.",
+          "waitingShort": "Préparation {{percent}} % · téléchargement automatique",
+          "workingShort": "Fabrication {{percent}} %",
+          "preparingShort": "Préparation {{percent}} %",
+          "outdatedShort": "MP4 à mettre à jour"
         },
         "tabs": {
           "label": "Retoucher la vidéo",
