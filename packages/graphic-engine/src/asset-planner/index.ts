@@ -108,7 +108,7 @@ const IMAGE_SOURCES: AssetSource[] = ['user', 'project', 'generated', 'stock'];
 // ── 1. Le plan ──────────────────────────────────────────────────────────────────────────────
 
 /** Les besoins de médias d'une section, d'après son intention. Une section sans intention n'en a aucun. */
-export function planAssets(section: SectionContent, format: Pick<FormatDef, 'width' | 'height'>): AssetRequirement[] {
+export function planAssets(section: SectionContent, format: Pick<FormatDef, 'width' | 'height'>, o: { level?: CreativityLevel } = {}): AssetRequirement[] {
   const intent = section.intent;
   if (!intent) return [];
   const out: AssetRequirement[] = [];
@@ -150,6 +150,19 @@ export function planAssets(section: SectionContent, format: Pick<FormatDef, 'wid
       break;
   }
 
+  // UNE IMAGE PAR POINT (24/11/2026, « des diapositives vivantes ») : aux crans High et Ultra, sur une page illustrée ou
+  // éditoriale de quatre points au plus, chaque point reçoit une vraie image — de la marque, ou de la banque d'images
+  // (gratuite) —, jamais générée (le plafond de génération reste aux images de page). L'icône reste son repli.
+  const vivid = (o.level === 'high' || o.level === 'ultra') && !['data-visualization', 'diagram', 'product-capture'].includes(intent.visualStrategy);
+  if (vivid) {
+    for (const block of section.blocks) {
+      if (block.kind !== 'points' || block.items.length > 4) continue;
+      block.items.forEach((item, i) => {
+        if (item.media) return;
+        out.push({ assetId: `${block.id}.${i}.photo`.slice(0, 96), role: 'photo', purpose: item.label.slice(0, 240), subject: (item.visual ?? item.label).slice(0, 240), aspectRatio: 0.8, safeArea: 'none', sources: ['user', 'project', 'stock'], fallback: 'skip', target: { blockId: block.id, item: i } });
+      });
+    }
+  }
   // Chaque point sans image reçoit son icône (composition native, sans réseau ni coût).
   for (const block of section.blocks) {
     if (block.kind !== 'points') continue;

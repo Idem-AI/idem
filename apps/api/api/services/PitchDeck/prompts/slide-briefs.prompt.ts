@@ -53,8 +53,10 @@ its EVIDENCE — a figure, a chart, three short labels. ONE or TWO blocks, never
 EXPLAIN goes in "notes" (what the speaker says aloud), never on the slide.
 
 - Title: the conclusion, not the topic. "Le marché double d'ici 2028", never "Analyse du marché".
-- On the slide: about 25 words in total besides the title. At most 3 points; "points" labels of 3 to 6
-  words; a detail line only when it carries a figure.
+- On the slide: about 15 words in total besides the title. At most 3 points; "points" labels of 2 to 5
+  words; a detail line only when it carries a figure. The IMAGE and the FIGURE speak: give every point a concrete
+  "visual" (one or two nouns a photographer could shoot: "market stall", "woman with phone") — it becomes its photo.
+- Make the reader FEEL it: a person, a place, a moment — never an abstraction ("efficiency", "synergy").
 - No lede, no paragraph, no explanation, no filler ("innovative", "unique", "leader").
 - Every figure carries a unit and a period.`;
 
@@ -289,7 +291,7 @@ export const SLIDE_VISUAL_PLANS: Record<string, SlideVisualPlan> = {
   'Business Model': { strategy: 'diagram', budget: 'points', alternatives: ['illustration', 'data-visualization'] },
   Traction: { strategy: 'data-visualization', budget: 'data', alternatives: ['editorial'] },
   Competition: { strategy: 'editorial', budget: 'data', alternatives: ['data-visualization'] },
-  Team: { strategy: 'illustration', budget: 'points', alternatives: ['editorial'] },
+  Team: { strategy: 'illustration', budget: 'statement', alternatives: ['editorial'] },
   Financials: { strategy: 'data-visualization', budget: 'data', alternatives: ['editorial'] },
   Ask: { strategy: 'data-visualization', budget: 'data', alternatives: ['editorial', 'diagram'] },
   'Company Overview': { strategy: 'full-bleed', budget: 'points', alternatives: ['illustration', 'editorial'] },
