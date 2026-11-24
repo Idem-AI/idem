@@ -172,12 +172,30 @@ const PROBE = `(function () {
   // Un texte coupé par le bord ne s'affiche pas (en entier). Page FIXE : les quatre bords. Page de FLUX
   // (business plan) : la hauteur grandit, mais la largeur est celle du papier — un tableau ou une rangée de
   // chiffres plus large que la page sort du PDF par la droite, colonnes décalées et chiffres rognés.
+  // UN FILIGRANE (24/11/2026) : un texte de décor marqué data-ge-watermark, réellement PÂLE (opacité ou alpha de sa
+  // couleur ≤ 25 %) et qui RÉPÈTE un texte lu ailleurs sur la page (le millésime d'une couverture). Il peut passer sous un
+  // texte et sortir par un bord ; tout autre texte reste contrôlé.
+  function isWatermark(el) {
+    var host = el && el.closest ? el.closest('[data-ge-watermark]') : null;
+    if (!host) return false;
+    var cs = getComputedStyle(host);
+    var m = (cs.color || '').match(/rgba?\\(([^)]+)\\)/);
+    var alpha = m && m[1].split(',').length === 4 ? parseFloat(m[1].split(',')[3]) : 1;
+    var slash = (cs.color || '').match(/\\/\\s*([\\d.]+)/);
+    if (slash) alpha = parseFloat(slash[1]);
+    if (Math.min(alpha, parseFloat(cs.opacity)) > 0.25) return false;
+    var text = (host.textContent || '').trim();
+    if (!text) return false;
+    var tw2 = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    for (var x = tw2.nextNode(); x; x = tw2.nextNode()) if (x.parentElement && !x.parentElement.closest('[data-ge-watermark]') && x.textContent.indexOf(text) >= 0) return true;
+    return false;
+  }
   var fixed = root.getAttribute('data-ge-fixed') === '1';
   {
     var cut = [];
     var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
     for (var n = walker.nextNode(); n && cut.length < 4; n = walker.nextNode()) {
-      if (!n.textContent.trim() || !n.parentElement || n.parentElement.closest('svg,template')) continue;
+      if (!n.textContent.trim() || !n.parentElement || n.parentElement.closest('svg,template') || isWatermark(n.parentElement)) continue;
       var cs = getComputedStyle(n.parentElement);
       if (cs.visibility === 'hidden' || cs.display === 'none') continue;
       var range = document.createRange();
@@ -276,6 +294,25 @@ export const QUALITY = (f: QualityFrame) => `(function (f) {
   var pageArea = box.width * box.height;
   var errors = [];
   function short(t) { return '"' + t.trim().replace(/\\s+/g, ' ').slice(0, 36) + '"'; }
+  // UN FILIGRANE (24/11/2026) : un texte de décor marqué data-ge-watermark, réellement PÂLE (opacité ou alpha de sa
+  // couleur ≤ 25 %) et qui RÉPÈTE un texte lu ailleurs sur la page (le millésime d'une couverture). Il peut passer sous un
+  // texte et sortir par un bord ; tout autre texte reste contrôlé.
+  function isWatermark(el) {
+    var host = el && el.closest ? el.closest('[data-ge-watermark]') : null;
+    if (!host) return false;
+    var cs = getComputedStyle(host);
+    var m = (cs.color || '').match(/rgba?\\(([^)]+)\\)/);
+    var alpha = m && m[1].split(',').length === 4 ? parseFloat(m[1].split(',')[3]) : 1;
+    var slash = (cs.color || '').match(/\\/\\s*([\\d.]+)/);
+    if (slash) alpha = parseFloat(slash[1]);
+    if (Math.min(alpha, parseFloat(cs.opacity)) > 0.25) return false;
+    var text = (host.textContent || '').trim();
+    if (!text) return false;
+    var tw2 = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    for (var x = tw2.nextNode(); x; x = tw2.nextNode()) if (x.parentElement && !x.parentElement.closest('[data-ge-watermark]') && x.textContent.indexOf(text) >= 0) return true;
+    return false;
+  }
+
   function visible(el) {
     for (var e = el; e && e !== document.body; e = e.parentElement) {
       var cs = getComputedStyle(e);
@@ -288,7 +325,7 @@ export const QUALITY = (f: QualityFrame) => `(function (f) {
   var tw = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
   for (var t = tw.nextNode(); t && lines.length < 600; t = tw.nextNode()) {
     var host = t.parentElement;
-    if (!t.textContent.trim() || !host || host.closest('svg,template,[data-ge-gallery],[data-ge-chart]') || !visible(host)) continue;
+    if (!t.textContent.trim() || !host || host.closest('svg,template,[data-ge-gallery],[data-ge-chart]') || !visible(host) || isWatermark(host)) continue;
     var rg = document.createRange();
     rg.selectNodeContents(t);
     var rs = rg.getClientRects();

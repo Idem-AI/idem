@@ -45,22 +45,32 @@ export function imageBuffer(url: string): Promise<Buffer | null> {
   return hit;
 }
 
-/** Point d'intérêt (stratégie « attention » de sharp : visages, contrastes, couleurs vives). */
-export async function focalOf(buffer: Buffer): Promise<{ focal: { x: number; y: number }; aspect: number }> {
-  const meta = await sharp(buffer).metadata();
-  const w = meta.width || 1;
-  const h = meta.height || 1;
+/**
+ * Le point d'intérêt (0–1) d'une image, par la stratégie « attention » de sharp (visages, contrastes, couleurs vives).
+ *
+ * Mesuré sur une VIGNETTE décodée en PNG de taille connue : sur un JPEG, sharp décode à échelle réduite (« shrink on
+ * load ») et rend des coordonnées d'attention dans un autre repère — le point tombait au bord de l'image (corrigé le
+ * 24/11/2026 ; toutes les photos de banque, des JPEG, étaient recadrées sur un bord).
+ */
+export async function attentionPoint(buffer: Buffer, w: number, h: number): Promise<{ x: number; y: number }> {
   const side = 256;
   const scale = side / Math.min(w, h);
-  const { info } = await sharp(buffer).resize(side, side, { fit: 'cover', position: sharp.strategy.attention }).toBuffer({ resolveWithObject: true });
+  const tw = Math.max(side, Math.round(w * scale));
+  const th = Math.max(side, Math.round(h * scale));
+  const thumb = await sharp(buffer).rotate().resize(tw, th, { fit: 'fill' }).png().toBuffer();
+  const { info } = await sharp(thumb).resize(side, side, { fit: 'cover', position: sharp.strategy.attention }).toBuffer({ resolveWithObject: true });
   const ax = (info as { attentionX?: number }).attentionX;
   const ay = (info as { attentionY?: number }).attentionY;
-  const sw = w * scale;
-  const sh = h * scale;
-  return {
-    focal: { x: ax != null ? Math.min(0.92, Math.max(0.08, ax / sw)) : 0.5, y: ay != null ? Math.min(0.85, Math.max(0.15, ay / sh)) : 0.42 },
-    aspect: w / h,
-  };
+  return { x: ax != null ? Math.min(0.95, Math.max(0.05, ax / tw)) : 0.5, y: ay != null ? Math.min(0.95, Math.max(0.05, ay / th)) : 0.45 };
+}
+
+/** Point d'intérêt et proportions d'une image (cadrer sans couper le sujet). */
+export async function focalOf(buffer: Buffer): Promise<{ focal: { x: number; y: number }; aspect: number }> {
+  const meta = await sharp(buffer).rotate().metadata();
+  const w = meta.width || 1;
+  const h = meta.height || 1;
+  const p = await attentionPoint(buffer, w, h);
+  return { focal: { x: Math.min(0.92, Math.max(0.08, p.x)), y: Math.min(0.85, Math.max(0.15, p.y)) }, aspect: w / h };
 }
 
 export async function describePhoto(url: string, origin: VisualPhoto['origin']): Promise<VisualPhoto | null> {

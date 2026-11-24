@@ -85,6 +85,7 @@ import { shapeCadence } from './catalog/metrics';
 import { sanitizeLogoSvg } from './rendering/logo-svg';
 import { naturalColourModifier } from '../../../../../packages/design-tools/src';
 import { foleyGenUrl, generatedFoley, generatedMusic, musicGenUrl } from './audio/generated';
+import type { SceneMedia as SceneMediaPrep } from './catalog/graph';
 import { ComposeInput, composeFilmFromCatalog, ComposedScene, nextSceneConfig, reassembleFilm, reviseSceneConfig } from './catalog/compose';
 import type { FilmFormatId, SceneConfig } from './catalog/types';
 import { refineCues } from './audio/sfx';
@@ -699,6 +700,12 @@ export class MotionVideoService {
     const byId = new Map((video.media || []).map((m) => [m.id, m]));
     const beat = video.music?.beat?.bpm ? video.music.beat : undefined;
     const period = beat ? 60 / beat.bpm : 0;
+    // La grille de la musique vue depuis chaque scène (s, depuis son début) : temps, temps forts, phrases — le catalogue
+    // y pose l'instant où le rôle principal se pose (calage hiérarchique, `catalog/rhythm.ts`).
+    const localGrid = (start: number, duration: number) => {
+      const near = (list?: number[]) => (list || []).map((b) => round3(b - start)).filter((t) => t >= -0.5 && t <= duration + 0.5);
+      return beat?.beats?.length ? { beats: near(beat.beats), downbeats: near(beat.downbeats), phrases: near(beat.phrases) } : {};
+    };
     // Les mots de la voix off, datés depuis le début de leur scène : le catalogue y cale les entrées (titre, chiffre,
     // éléments d'une liste entrent quand la voix les dit).
     const spokenOf = (key: string) => {
@@ -710,10 +717,17 @@ export class MotionVideoService {
         key: sc.key,
         duration: sc.duration,
         texts: sc.texts,
-        media: sc.media.map((id) => byId.get(id)).filter((m): m is VideoMediaAsset => !!m && (m.kind === 'image' || m.kind === 'video')).map((m) => ({ id: m.id, kind: m.kind as 'image' | 'video' })),
+        media: sc.media.map((id) => byId.get(id)).filter((m): m is VideoMediaAsset => !!m && (m.kind === 'image' || m.kind === 'video')).map((m) => ({
+            id: m.id,
+            kind: m.kind as 'image' | 'video',
+            // Ce que la préparation a lu (point d'intérêt, zone calme) : le catalogue cadre le sujet hors des textes.
+            ...(m.prep?.focus ? { focus: m.prep.focus as SceneMediaPrep['focus'] } : {}),
+            ...(m.prep?.calm ? { calm: m.prep.calm as SceneMediaPrep['calm'] } : {}),
+            ...(m.width && m.height ? { aspect: Math.round((m.width / m.height) * 1000) / 1000 } : {}),
+          })),
         ...(sc.role ? { role: sc.role } : {}),
         ...(sc.energy ? { energy: sc.energy } : {}),
-        ...(beat ? { beat: { bpm: beat.bpm, first: round3(((((beat.offset || 0) - sc.start) % period) + period) % period) } } : {}),
+        ...(beat ? { beat: { bpm: beat.bpm, first: round3(((((beat.offset || 0) - sc.start) % period) + period) % period), ...localGrid(sc.start, sc.duration) } } : {}),
         ...(spokenOf(sc.key) ? { spoken: spokenOf(sc.key) } : {}),
       })),
       film: { title: film.title, concept: film.concept, style: video.brief.style, seed: film.seed },

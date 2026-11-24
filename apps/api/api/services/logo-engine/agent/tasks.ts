@@ -23,6 +23,7 @@ import type { GeneratorFamily, GeneratorSpec } from '../render/generators';
 import { affinity } from '../planner/brief';
 import type { PlanBrief, Traits } from '../planner/brief';
 import { catalogIdsIn, originalCatalog } from '../planner/originality';
+import { SYMMETRY_VARIANTS } from '../planner/recipes';
 import type { OriginalityContext } from '../planner/originality';
 import { practiceBrief } from '../validate/practices';
 import type { PlannedLogo } from '../planner/planner';
@@ -81,7 +82,7 @@ const TYPE_HINT: Record<ConceptType, string> = {
   lettermark: 'initials in a container',
   letterform: 'one letter worked as the symbol',
   pictorial: 'a recognisable object',
-  abstract: 'a geometric construction',
+  abstract: 'a geometric construction: a generator, or sym-<motif> = one motif repeated by an exact symmetry group',
   mascot: 'a character',
   combination: 'symbol + name',
   emblem: 'a seal: frame + symbol + curved name',
@@ -130,8 +131,10 @@ export function directionMenu(kind: 'icon' | 'name' | 'initial', weights: Map<st
     generators,
     variants: {
       wordmark: ['plain', 'dot', 'underline', 'bar', 'slice', 'ligature', 'dotReplace', 'swapRound', 'accentChar', 'cutCorner', 'italic'],
-      lettermark: ['tile', 'circle', 'squircle', 'ring', 'hexagon', 'diamond', 'underline', 'shield'],
-      letterform: ['plain', 'cut', 'swap', 'slice', 'notch', 'accentDot'],
+      lettermark: ['tile', 'circle', 'squircle', 'ring', 'hexagon', 'diamond', 'underline', 'shield', 'monogram'],
+      letterform: ['plain', 'cut', 'swap', 'slice', 'notch', 'accentDot', 'counter'],
+      // La grammaire des groupes de symétrie : un motif, répété exactement (rotation = mouvement, miroir = stabilité).
+      abstract: [...SYMMETRY_VARIANTS],
     },
   };
 }
@@ -226,7 +229,6 @@ export function directionsTask(
         .filter((d): d is Direction => !!d)
         // Une direction bâtie sur un cliché est refusée, même si le directeur ne l'a pas vu.
         .filter((d) => !d.generator || !forbidden.has(d.generator));
-      if (found.length < count) return undefined;
       // Deux directions de même catégorie ET même générateur ne sont pas deux directions.
       const seen = new Set<string>();
       const distinct = found.filter((d) => {
@@ -235,7 +237,9 @@ export function directionsTask(
         seen.add(key);
         return true;
       });
-      return distinct.length >= count ? { directions: distinct.slice(0, count), cliches: { ids: [...new Set([...banned, ...named.ids])], words: named.words } } : undefined;
+      // Les directions valides sont gardées même si une ligne est hors menu : l'agent complète les manquantes
+      // par celles du planificateur, au lieu de jeter tout le travail du directeur.
+      return distinct.length ? { directions: distinct.slice(0, count), cliches: { ids: [...new Set([...banned, ...named.ids])], words: named.words } } : undefined;
     },
     fallback,
   };
@@ -279,7 +283,7 @@ export const IR_CHEATSHEET = [
   ' {"kind":"shape","id","geometry":{"type":"rect|circle|ellipse|polygon|star|ring|arc|superellipse|line|poly", …},"fill"?}',
   '   rect{x,y,w,h,r} circle{cx,cy,r} ellipse{cx,cy,rx,ry} polygon{cx,cy,r,sides,rotation,cornerRadius} ring{cx,cy,r,thickness} line{x1,y1,x2,y2,width,round} arc{cx,cy,r,thickness,from,to}',
   ' {"kind":"boolean","id","op":"union|subtract|intersect|exclude","operands":[layer,layer,…]}  (first operand is the base)',
-  ' {"kind":"repeat","id","mode":"radial|mirror-x|mirror-y|mirror-xy|linear|grid","count","radius","merge","child":layer}',
+  ' {"kind":"repeat","id","mode":"radial|dihedral|mirror-x|mirror-y|mirror-xy|linear|grid","count","radius","merge","child":layer}',
   ' {"kind":"group","id","children":[layer…]}  (a "paper" child cuts the shapes before it)',
   ' {"kind":"text","id","role":"wordmark|symbol|tagline","content","case":"upper|lower|title|none","tracking":-0.05..0.4,"font":{"role":"display|body","weight":100-900},"effects":[{"type":"dot|underline|bar|slice|ligature|dotReplace|swapRound|cutCorner|accentChar|italic",…}],"fill"?, "size"?, "at"?:{x,y}, "curve"?:{radius,start,side}}',
   '   a text layer with role "wordmark" is placed by the composition; role "symbol" + "at" + "size" lives inside the 0–100 box (monogram letter, curved emblem text).',

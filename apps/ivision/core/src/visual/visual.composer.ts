@@ -24,6 +24,10 @@ import {
   FormatId,
   memoryEnabled,
   pageDocument,
+  PagePlan,
+  PageConfig,
+  PLAN_IMAGE_PLACEHOLDER,
+  planSingle,
   ReferenceComposition,
   renderSingle,
   screenshot,
@@ -42,7 +46,9 @@ import { AgentCall, CreativeOrchestrator } from '../creativity/orchestrator';
 import type { ReferenceImage } from '../reference/reference.analyzer';
 import { imageSourcingService, ImageSourcingPreferences, SourcedImage } from './image.sourcing';
 import { copyTask, CopyBrief, inferCopyIntent, reformulateBriefTask, WrittenCopy } from './visual.copy';
-import { classifyImage, describePhoto, rankByRelevance, VisualPhoto } from './visual.images';
+import { classifyImage, describePhoto, imageBuffer, rankByRelevance, VisualPhoto } from './visual.images';
+import { compositionClause, directionImage, DirectionImage, fitScore, prepareImage, sourceOrder } from './image.fit';
+import type { ImageNeeds } from '@idem/graphic-engine';
 import { FlyerFormat, VisualAuditReport, VisualBrandContext, VisualContent, VisualIntent, VisualMeta } from './visual.model';
 import { chooseVisualConcept, ConceptChoice, conceptText, VisualConcept } from './visual.concept';
 import { COLOUR_FILTER_NEGATIVE, cutout, naturalColourModifier } from '../../../../../packages/design-tools/src';
@@ -249,19 +255,31 @@ export async function composeVisual(
   const subject = `${concept?.imageSubject ? `${concept.imageSubject}. ` : copy.photo ? `${copy.photo.idea}. ` : ''}${copy.headline}. ${message}`.slice(0, 300);
   const highUp = level === 'high' || level === 'ultra';
   const noImage = (skipImage || concept?.image === 'none') && !creative.image?.url;
+  // LE GABARIT D'ABORD (24/11/2026) : la page est planifiée avec une image provisoire, et le gabarit retenu dit ce
+  // qu'il demande à sa photo (cadre, sujet, orientation, taille). La photo est ensuite cherchée ou générée POUR lui,
+  // préparée à son cadre, et la page est rendue épinglée sur ce gabarit.
+  const dirImage = directionImage(context.artDirection?.styleId);
+  const planBase = { level, seed: creative.feedback || creative.avoid?.length ? `${seedKey}:retake:${Date.now().toString(36)}` : seedKey, userId, projectId, allowDark: creative.allowDark, ...scopes };
+  const plan = noImage ? null : await planVisual(context, format, copy, planBase).catch((error) => (logger.warn('visual.plan_failed', { event: 'visual.plan_failed', error: (error as Error)?.message }), null));
+  const needs = plan?.image ?? null;
+  if (plan) logger.info('visual.planned', { event: 'visual.planned', gabarit: plan.config.gabarit ?? plan.config.layout, figure: plan.config.components?.figure, needs });
   const chosenPhoto = noImage
     ? { photo: undefined, sourced: null, unavailable: undefined }
-    : await choosePhoto({ userId, projectId, tag, context, format, copy, subject, sourcing, userPhoto: creative.image?.url, brandPhotos: creative.brandPhotos, preferGenerated: highUp || concept?.image === 'illustration', scene: concept?.imageSubject || copy.photo?.idea });
+    : await choosePhoto({ userId, projectId, tag, context, format, copy, subject, sourcing, userPhoto: creative.image?.url, brandPhotos: creative.brandPhotos, preferGenerated: sourceOrder(needs, dirImage, { level, illustration: concept?.image === 'illustration' }) === 'generate', scene: concept?.imageSubject || copy.photo?.idea, needs, direction: dirImage });
   const { sourced, unavailable } = chosenPhoto;
-  // L'image FAÇONNÉE par l'idée : illustration vectorielle aux couleurs de la marque, sujet détouré, traitement.
-  const shaped = concept && chosenPhoto.photo ? await shapeImage(chosenPhoto.photo, concept, context, tag).catch((error) => (logger.warn('visual.image_shaping_failed', { event: 'visual.image_shaping_failed', role: concept.image, error: (error as Error)?.message }), null)) : null;
-  const photo = shaped?.photo ?? chosenPhoto.photo;
+  // L'image PRÉPARÉE pour le cadre : découpée sur son sujet au format exact ; une photo de BANQUE reçoit aussi les
+  // traitements locaux de la DA (couleurs naturelles, garde mesurée). Puis, si le cadre ou la DA le veut, détourée.
+  const fitted = chosenPhoto.photo ? await fitPhoto(chosenPhoto.photo, sourced?.source, needs, dirImage, tag).catch((error) => (logger.warn('visual.image_fit_failed', { event: 'visual.image_fit_failed', error: (error as Error)?.message }), null)) : null;
+  const ready = fitted ?? chosenPhoto.photo;
+  const wantsCutout = concept?.image === 'cutout' || (!!needs && dirImage.local.cutout !== 'never' && (needs.cutout === true || (dirImage.local.cutout === 'prefer' && (needs.shape === 'circle' || needs.shape === 'blob'))));
+  const shaped = ready && wantsCutout ? await shapeImage(ready, { ...(concept ?? ({} as VisualConcept)), image: 'cutout' } as VisualConcept, context, tag).catch((error) => (logger.warn('visual.image_shaping_failed', { event: 'visual.image_shaping_failed', role: 'cutout', error: (error as Error)?.message }), null)) : null;
+  const photo = shaped?.photo ?? ready;
   stage('photo', 'done');
 
   // 3. La page, écrite par l'auteur du moteur graphique (HTML Tailwind). Un retour (« autre chose ») est un
   // nouveau tirage du modèle ; la mémoire des bibles de la marque l'écarte de ce qui a déjà été fait.
   stage('design', 'running');
-  const seed = creative.feedback || creative.avoid?.length ? `${seedKey}:retake:${Date.now().toString(36)}` : seedKey;
+  const seed = planBase.seed;
   // Le MODÈLE de l'utilisateur : sa composition (description et zones) est donnée à l'auteur, qui la reproduit
   // avec la marque, les mots et la photo — à tous les crans.
   const reference = creative.reference?.description
@@ -276,6 +294,8 @@ export async function composeVisual(
     userId,
     projectId,
     allowDark,
+    // Le gabarit planifié pour cette photo : rendu en premier, sans second choix du modèle.
+    ...(plan?.config ? { pin: plan.config } : {}),
     imageColors: sourced?.analysis?.dominantColors,
     ...(reformulated.styleKeywords.length ? { keywords: reformulated.styleKeywords } : {}),
     ...(concept ? { concept: `${conceptText(concept)}${shaped?.note ? ` ${shaped.note}` : ''}`, ...(chosen?.axis ? { axisId: chosen.axis } : {}) } : {}),
@@ -395,7 +415,7 @@ export async function renderVisual(
   format: FlyerFormat,
   copy: WrittenCopy,
   photo: VisualPhotoRef | undefined,
-  o: { level: CreativityLevel; seed: string; userId?: string; projectId?: string; allowDark?: boolean; imageColors?: string[]; keywords?: string[]; reference?: ReferenceComposition; replay?: SectionSpec; revise?: { spec: SectionSpec; instruction: string }; concept?: string; axisId?: string; memoryScopes?: Array<{ documentType: string; key: string }>; country?: string }
+  o: { level: CreativityLevel; seed: string; userId?: string; projectId?: string; allowDark?: boolean; imageColors?: string[]; keywords?: string[]; reference?: ReferenceComposition; replay?: SectionSpec; revise?: { spec: SectionSpec; instruction: string }; concept?: string; axisId?: string; memoryScopes?: Array<{ documentType: string; key: string }>; country?: string; pin?: PageConfig }
 ): Promise<SectionOutput> {
   const { brand, direction } = engineBrand(context);
   const content = visualContent({
@@ -425,7 +445,54 @@ export async function renderVisual(
     ...(o.reference ? { reference: o.reference } : {}),
     ...(o.replay ? { replay: o.replay } : {}),
     ...(o.revise ? { revise: o.revise } : {}),
+    ...(o.pin ? { pin: o.pin } : {}),
   });
+}
+
+/**
+ * PLANIFIER un visuel (24/11/2026) : le gabarit que le catalogue retient pour ces mots et une image à venir (image
+ * provisoire), avec ce qu'il demande à cette image. Mêmes options que le rendu : le choix est le même.
+ */
+export async function planVisual(
+  context: VisualBrandContext,
+  format: FlyerFormat,
+  copy: WrittenCopy,
+  o: { level: CreativityLevel; seed: string; userId?: string; projectId?: string; allowDark?: boolean; memoryScopes?: Array<{ documentType: string; key: string }>; country?: string }
+): Promise<PagePlan | null> {
+  const { brand, direction } = engineBrand(context);
+  const content = visualContent({ id: 'visual', copy: engineCopy(copy), image: { url: PLAN_IMAGE_PLACEHOLDER, alt: copy.photo?.idea || copy.headline } });
+  if (!content) return null;
+  return planSingle({
+    documentType: 'flyer',
+    format: VISUAL_FORMAT[format] ?? VISUAL_FORMAT.square,
+    brand,
+    direction,
+    creativity: o.level,
+    seed: o.seed,
+    content,
+    allowDark: o.allowDark,
+    locale: (context.language || 'fr').slice(0, 5),
+    user: { userId: o.userId, projectId: o.projectId },
+    memoryScope: o.projectId ? { documentType: 'flyer', key: o.projectId } : undefined,
+    ...(o.memoryScopes?.length ? { memoryScopes: o.memoryScopes } : {}),
+    ...(o.country ? { country: o.country } : {}),
+  });
+}
+
+/**
+ * La photo PRÉPARÉE pour le cadre planifié : découpée au format exact sur son sujet ; une photo de banque reçoit aussi
+ * les traitements locaux de la DA (la garde des couleurs naturelles les annule si la couleur bouge). Une image
+ * générée est seulement découpée : elle a été demandée déjà traitée. Une photo du client ou de la marque aussi.
+ */
+async function fitPhoto(photo: VisualPhotoRef, source: string | undefined, needs: ImageNeeds | null, dir: DirectionImage, tag: string): Promise<VisualPhotoRef | null> {
+  if (!needs) return null;
+  const buffer = await imageBuffer(photo.url);
+  if (!buffer) return null;
+  const prepared = await prepareImage(buffer, needs, dir.local, { treat: source === 'stock', focal: photo.focal });
+  if (!prepared.applied.length) return null;
+  const url = await storeImage(prepared.buffer, `fitted-${Date.now().toString(36)}.jpg`, prepared.contentType, tag);
+  logger.info('visual.image_fitted', { event: 'visual.image_fitted', source, shape: needs.shape, applied: prepared.applied, drift: prepared.drift });
+  return { ...photo, url, focal: prepared.focal };
 }
 
 /** Une photo pour un visuel déjà composé (retouche « change la photo ») : mêmes sources et mêmes contrôles. */
@@ -501,13 +568,15 @@ function engineCopy(copy: WrittenCopy): VisualCopy {
  * une poignée de MOTS-CLÉS, jamais la phrase même du titre : un modèle d'image qui sait écrire lit une
  * phrase complète comme un texte À RENDRE.
  */
-function imageBriefFor(copy: WrittenCopy, context: VisualBrandContext, format: FlyerFormat, subject: string) {
-  const orientation = format === 'story' || format === 'post' || format === 'a4' ? ('portrait' as const) : format === 'banner' ? ('landscape' as const) : ('square' as const);
+function imageBriefFor(copy: WrittenCopy, context: VisualBrandContext, format: FlyerFormat, subject: string, needs?: ImageNeeds | null, dir?: DirectionImage) {
+  const orientation = needs?.orientation ?? (format === 'story' || format === 'post' || format === 'a4' ? ('portrait' as const) : format === 'banner' ? ('landscape' as const) : ('square' as const));
+  // Ce que le CADRE du gabarit planifié impose (sujet centré, fond calme, détourage…) et le traitement de la DA en mots.
+  const frame = dir ? compositionClause(needs ?? null, dir) : '';
   // La scène décrite par le rédacteur (concrète, en anglais) ; à défaut, les mots du message.
   const theme = copy.photo?.idea || subject.replace(/[^\p{L}\p{N}\s]/gu, ' ').split(/\s+/).filter((w) => w.length > 3).slice(0, 8).join(' ') || context.businessType;
   return {
     searchQuery: copy.photo?.query || `${copy.headline} ${context.businessType}`.replace(/[^\p{L}\p{N}\s]/gu, ' ').split(/\s+/).filter((w) => w.length > 3).slice(0, 5).join(' ') || context.businessType,
-    generationPrompt: `Authentic editorial photograph for ${context.brandName} (${context.businessType}). Scene: ${theme}. Natural light, real people and places, African context when people appear, shallow depth of field, generous calm empty area on one side reserved for a graphic overlay added separately afterwards. ${naturalColourModifier(context.artDirection?.imagePromptModifier)}`.slice(0, 900),
+    generationPrompt: `Authentic editorial photograph for ${context.brandName} (${context.businessType}). Scene: ${theme}. Natural light, real people and places, African context when people appear, shallow depth of field${needs ? '' : ', generous calm empty area on one side reserved for a graphic overlay added separately afterwards'}. ${frame ? `Framing: ${frame}. ` : ''}${naturalColourModifier(context.artDirection?.imagePromptModifier)}`.slice(0, 1200),
     negativePrompt: `distorted faces, extra fingers, oversaturated HDR, collage, frame, border, ${COLOUR_FILTER_NEGATIVE}`,
     orientation,
   };
@@ -532,6 +601,9 @@ async function choosePhoto(req: {
   preferGenerated?: boolean;
   /** La scène voulue, en anglais (l'idée retenue, sinon celle du rédacteur) : une des recherches de la banque. */
   scene?: string;
+  /** Ce que le gabarit planifié demande à l'image. */
+  needs?: ImageNeeds | null;
+  direction?: DirectionImage;
 }): Promise<{ photo?: VisualPhotoRef; sourced: SourcedImage | null; unavailable?: 'payment' | 'rejected' }> {
   const ctx = req.context;
   let image: VisualPhoto | undefined;
@@ -556,7 +628,7 @@ async function choosePhoto(req: {
     // (et pour une illustration), l'image faite POUR la scène passe d'abord ; sinon la banque d'abord.
     // PEXELS EST LE REPLI de la génération : si le modèle d'image échoue (crédits, délai, refus, image écrite), la
     // banque prend le relais — plusieurs recherches, plusieurs photos chacune, la plus pertinente retenue.
-    const brief = imageBriefFor(req.copy, ctx, req.format, req.subject);
+    const brief = imageBriefFor(req.copy, ctx, req.format, req.subject, req.needs, req.direction);
     const generate = async (): Promise<boolean> => {
       try {
         const found = await imageSourcingService.generatedImage({ ...brief, preferGenerated: true }, { userId: req.userId, projectId: req.projectId, tag: req.tag, ...req.sourcing });
@@ -578,7 +650,7 @@ async function choosePhoto(req: {
       return false;
     };
     const stock = async (): Promise<boolean> => {
-      const picked = await stockPhoto({ queries: stockQueries(req.copy, ctx, req.scene), orientation: brief.orientation, subject: req.subject, brand: { name: ctx.brandName, business: ctx.businessType } }).catch((error) => {
+      const picked = await stockPhoto({ queries: stockQueries(req.copy, ctx, req.scene), orientation: brief.orientation, subject: req.subject, brand: { name: ctx.brandName, business: ctx.businessType }, needs: req.needs }).catch((error) => {
         logger.warn('visual.stock_failed', { event: 'visual.stock_failed', error: String((error as Error)?.message || error).slice(0, 300) });
         return null;
       });
@@ -629,15 +701,28 @@ const STOP = new Set(['the', 'and', 'with', 'for', 'from', 'into', 'onto', 'over
  * par recherche, classées par la vision ; la
  * première recherche qui donne une photo à 5/10 ou plus l'emporte, sinon la meilleure de toutes si elle atteint 4/10.
  */
-export async function stockPhoto(o: { queries: string[]; orientation?: 'portrait' | 'landscape' | 'square'; subject: string; brand: { name: string; business?: string } }): Promise<{ url: string; attribution: SourcedImage['attribution']; query: string } | null> {
+export async function stockPhoto(o: { queries: string[]; orientation?: 'portrait' | 'landscape' | 'square'; subject: string; brand: { name: string; business?: string }; needs?: ImageNeeds | null }): Promise<{ url: string; attribution: SourcedImage['attribution']; query: string } | null> {
   let best: { url: string; attribution: SourcedImage['attribution']; query: string; score: number } | null = null;
   for (const query of o.queries) {
     const photos = await imageSourcingService.stockPhotos(query, o.orientation, 4);
     if (!photos.length) continue;
-    const ranked = await rankByRelevance(photos.map((p) => p.mediumUrl), o.subject, o.brand);
+    const relevance = await rankByRelevance(photos.map((p) => p.mediumUrl), o.subject, o.brand);
+    // L'ADÉQUATION AU CADRE du gabarit planifié, mesurée sans modèle (recadrage, définition, place du sujet, fond) :
+    // une photo pertinente mais qu'il faudrait amputer pour entrer dans un cercle perd sa place.
+    const ranked = o.needs
+      ? (
+          await Promise.all(
+            relevance.slice(0, 3).map(async (r) => {
+              const buf = await imageBuffer(r.url);
+              const fit = buf ? await fitScore(buf, o.needs!).catch(() => null) : null;
+              return { ...r, score: fit ? Math.round((r.score * (0.7 + 0.3 * fit.score)) * 10) / 10 : r.score, reason: fit?.reasons.length ? `${r.reason ?? ''} · cadre : ${fit.reasons.join(', ')}` : r.reason };
+            })
+          )
+        ).sort((a, b) => b.score - a.score)
+      : relevance;
     const top = ranked[0];
     const photo = photos.find((p) => p.mediumUrl === top?.url);
-    logger.info('visual.stock_ranked', { event: 'visual.stock_ranked', query, candidates: photos.length, best: top?.score, reason: top?.reason });
+    logger.info('visual.stock_ranked', { event: 'visual.stock_ranked', query, candidates: photos.length, best: top?.score, reason: top?.reason, frame: o.needs?.shape });
     if (photo && top && (!best || top.score > best.score)) best = { url: photo.url, attribution: photo.attribution, query, score: top.score };
     if (best && best.score >= 5) break;
   }

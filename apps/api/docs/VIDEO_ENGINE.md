@@ -42,6 +42,24 @@ Banc gratuit : `npm run bench:video` (apps/ivision/core) — jetons de l'ancien 
 simulés : 5 appels → 1 ou 2, −54 à −74 % de jetons envoyés), films figés avant / après (planches dans
 `tmp/bench-video/`), caméra et vision par paquets.
 
+### 24 novembre 2026 : le noyau mathématique (5 chantiers)
+
+Étude d'une proposition de « moteur vidéo mathématique », croisée avec la recherche (Leake et al. 2017, EditIQ 2025,
+Davis & Agrawala 2018, MVAA 2025, Cachelin 2022, Flash & Hogan 1985). Le moteur était déjà « intention par un modèle,
+construction par le code » ; ce qui manquait est ajouté là où il vit, sans nouveau moteur parallèle. Aucun appel de
+modèle de plus. Contrôle : `npm run check:motion-math` (apps/ivision/core, gratuit, rendu Chrome compris).
+
+| # | Chantier | Où | Ce qui change |
+| --- | --- | --- | --- |
+| 1 | **Sujet hors des textes** | `catalog/framing.ts`, `runtime.ts#frameMedia`, `graph.ts#calmFit` | le point d'intérêt et la zone calme de `assets/prepare.ts` étaient calculés puis ignorés par le catalogue. La page mesure les textes posés sur l'image et place l'image (`object-position`) pour sortir le sujet de dessous, sans jamais le pousser hors de la bande des tiers (30-70 % du cadre) ni plus hors cadre qu'au centrage ; gain exigé (8 points et 40 %). Sans texte : le sujet est centré (avant : image centrée, sujet parfois hors champ). Une image portée garde son cadrage d'une scène à l'autre. Une mise en page plein cadre recule devant une image sans zone calme. `VIDEO_FRAMING=off` |
+| 2 | **Chemin du film** | `catalog/film-path.ts`, `compose.ts` | les scènes sont choisies ENSEMBLE : programmation dynamique sur la chaîne (coût de scène + coût d'enchaînement : même mise en page, même gabarit, même entrée de titre, deux textes seuls ou deux pleins cadres de suite + usure dans le film), chemin TIRÉ (filtrage avant, échantillonnage arrière, graine du film) pour garder la variété. Avant : scène par scène, seule la précédente comptait. `VIDEO_FILM_PATH=greedy` rétablit l'ancien choix |
+| 3 | **Calage musical hiérarchique** | `catalog/rhythm.ts`, `assemble.ts`, `motionVideo.service.ts#catalogInput` | c'est la POSE du rôle principal (l'instant où son mouvement s'arrête) qui tombe sur la musique, plus le départ de son tween ; début de phrase pour une révélation, temps fort de mesure pour un titre, simple temps seulement pour une scène vive ; un trait (soulignement, rature) part sur un temps fort proche. La voix passe avant : une scène dite reste calée sur ses mots |
+| 4 | **Courbes cinématiques** | `catalog/kinematics.ts` (même code dans la page) | `geJerk` (jerk minimal) pour la caméra et les traversées ; `geSettle` / `geKin` (dépassement ≤ 4,5 %, anticipation ≤ 3 %) pour le rôle principal des seules DA joueuses (memphis, pop-art, clay…), l'opacité séparée du mouvement. Le catalogue n'accepte que `geJerk` en plus. `VIDEO_KINEMATIC=off` |
+| 5 | **Mesures** | `catalog/metrics.ts` | `beatAlign` (alignement des temps forts visuels sur la musique, σ = 80 ms), `repeats` (enchaînements qui répètent), `kinematic` ; journal `video.catalog_film`. Mesurées, pas encore des seuils : à étalonner sur de vrais films |
+
+Écarté de la proposition : un optimiseur de positions (les mises en page sont fixes et mesurées), le paramétrage par
+longueur d'arc (aucune trajectoire courbe au catalogue), CMA-ES / NSGA-II (la programmation dynamique est exacte ici).
+
 ### 22-23 novembre 2026 : ce que les alternatives open source apportent (12 chantiers)
 
 Revue des moteurs vidéo ouverts (HyperFrames, explainroo, Earshot, motlab, OpenMontage, Kinetograph, text-to-lottie…) :

@@ -33,7 +33,8 @@ import { directLogo } from './runtime/logo-director';
 import { directPattern, patternTiles, QUIET_STYLES } from './runtime/pattern-director';
 import { catalog as loadCatalog, catalogOverrides, ensureHtml } from './catalog/registry';
 import { assemblePage, capPlainText, pageUnits } from './catalog/assemble';
-import { brandTraits, Candidate, CatalogState, comboFingerprint, compatibleComponents, newCatalogState, rankSkins, shortlist } from './catalog/graph';
+import { imageNeedsFor, type ImageNeeds } from './catalog/image-needs';
+import { brandTraits, Candidate, CatalogState, comboFingerprint, compatibleComponents, newCatalogState, nodeMark, rankSkins, readNodeMarks, shortlist } from './catalog/graph';
 import { chooseSystem, chooseUser, parseChoices, parseSkin, skinUser } from './catalog/choose';
 import { CatalogElement, ComponentNode, elementOf, LayoutNode, PageConfig, SkinNode } from './catalog/types';
 import { chunkHtml, fitFigures, flowPieces, measureFlow, packPages, pageTemplate, PieceMetrics } from './catalog/paginate';
@@ -85,6 +86,23 @@ export interface DocumentOptions {
   axisId?: string;
   /** Le nombre de variantes imposé par l'hôte (1 : une seule écriture, quand personne ne choisira). */
   variants?: number;
+  /**
+   * La configuration du catalogue ÉPINGLÉE (24/11/2026) : celle que `planSection` a retenue, et pour laquelle l'hôte a
+   * choisi ou généré l'image. Rendue en premier, sans nouveau choix du modèle (les autres ne servent qu'en repli).
+   */
+  pin?: PageConfig;
+}
+
+/** Ce que la planification d'une page rend : le gabarit retenu et ce qu'il demande à son image. */
+/** Une image provisoire qui réserve la place d'une photo pendant la planification (un pixel transparent). */
+export const PLAN_IMAGE_PLACEHOLDER = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
+
+export interface PagePlan {
+  config: PageConfig;
+  /** `null` : la composition retenue ne pose aucune image (affiche typographique). */
+  image: ImageNeeds | null;
+  /** Les directions de la composition (DA servie) et sa gamme, pour l'hôte. */
+  directions?: string[];
 }
 
 /** Ce que la mémoire de l'hôte rend pour un document : idées déjà faites, axes déjà servis, empreintes de rendus. */
@@ -95,6 +113,8 @@ interface DocumentMemory {
   /** Les combinaisons du catalogue déjà livrées (portée exigée par le cran) et les habillages de la marque. */
   templates: string[];
   skins: string[];
+  /** L'usure des nœuds du catalogue dans les documents récents (marque et compte pleine force, tous les clients moins). */
+  nodes?: Map<string, number>;
 }
 
 /** La portée mondiale de la mémoire du catalogue (Ultra : jamais une combinaison déjà livrée à un autre client). */
@@ -180,9 +200,10 @@ export function qualityFrame(section: SectionContent, map: ContentMap, format: F
   // Le NOM de chaque couleur se pose contre son aplat (le code et le rôle suivent le nom, dessous).
   const swatchKeys = section.blocks.flatMap((b) => (b.kind === 'swatches' ? b.items.map((_, i) => [`${b.id}.items.${i}.name`]) : []));
   // Les rôles des textes : le titre, et les textes simples qui ne doivent jamais lui ressembler. Les spécimens
-  // typographiques (leurs échantillons SONT des tailles), la couverture (sa composition est libre) et les faces de carte
+  // typographiques (leurs échantillons SONT des tailles), le nuancier (le nom d'une couleur peut s'écrire en très grand
+  // sur elle, 23/11/2026), la couverture (sa composition est libre) et les faces de carte
   // (sans titre à montrer) en sont exempts.
-  const specimen = section.role === 'cover' || section.role === 'card-face' || section.role === 'visual' || section.blocks.some((b) => b.kind === 'typeScale' || b.kind === 'typeSpecimen' || b.kind === 'cover' || b.kind === 'copy' || b.kind === 'contact');
+  const specimen = section.role === 'cover' || section.role === 'card-face' || section.role === 'visual' || section.blocks.some((b) => b.kind === 'typeScale' || b.kind === 'typeSpecimen' || b.kind === 'swatches' || b.kind === 'cover' || b.kind === 'copy' || b.kind === 'contact');
   const roles: Record<string, 'title' | 'text'> = {};
   if (!specimen) {
     for (const key of map.entries.keys()) {
@@ -284,9 +305,13 @@ export class GraphicDocument {
     const global = novelty === 'global' && memoryEnabled() && host.recentFingerprints ? await host.recentFingerprints(GLOBAL_CATALOG_SCOPE).catch(() => [] as string[]) : [];
     const templates = [...new Set([...scoped, ...global].filter((r) => r.startsWith('tpl:')).map((r) => r.slice(4)))];
     const skins = [...new Set((lists[0] ?? []).filter((r) => r.startsWith('skin:')).map((r) => r.slice(5)))];
+    // L'usure des nœuds (23/11/2026) : la marque et le compte à pleine force ; tous les clients, à tous les crans, à un
+    // tiers — deux clients d'une même DA ne reçoivent plus la même couverture ni la même page de palette.
+    const everyone = memoryEnabled() && host.recentFingerprints ? (global.length ? global : await host.recentFingerprints(GLOBAL_CATALOG_SCOPE).catch(() => [] as string[])) : [];
+    const nodes = readNodeMarks(everyone, 1 / 3, readNodeMarks(lists.flat()));
     // Ce que la mémoire écarte est dit, pas caché : un résultat contraint s'explique.
     if (ideas.length || axes.length) log().info('graphic.memory', { documentType: options.documentType, ideas: ideas.length, axes: axes.length, renders: renders.length, scopes: GraphicDocument.scopes(options).map((s) => s.key.slice(0, 60)) });
-    return new GraphicDocument(options, { ideas, axes, renders, templates, skins });
+    return new GraphicDocument(options, { ideas, axes, renders, templates, skins, nodes });
   }
 
   /** Les polices de la marque (le `<style>` Tailwind de chaque page est dans son `result.head`). */
@@ -426,6 +451,24 @@ export class GraphicDocument {
    * Compose une page. `replay` : la page déjà écrite, rejouée avec un contenu retouché (aucun modèle) ;
    * `revise` : une retouche ÉCRITE (« le titre plus grand ») — l'auteur réécrit la page avec la consigne.
    */
+  /**
+   * PLANIFIER une page sans la rendre (24/11/2026) : le gabarit que le catalogue retient pour ce contenu, et ce qu'il
+   * demande à son image (cadre, sujet, orientation, taille). Le contenu peut porter une image provisoire (`figure` à
+   * l'adresse `PLAN_IMAGE_PLACEHOLDER`) : elle réserve la place d'une photo que l'hôte cherchera ensuite. Même choix (code ou
+   * modèle) qu'un rendu ; le rendu qui suit passe la configuration en `pin`.
+   */
+  async planSection(content: SectionContent, o: { index?: number; total?: number } = {}): Promise<PagePlan | null> {
+    const checked = validateSectionContent(content);
+    if (!checked.ok || !checked.value) throw new ContentError(checked.issues);
+    const recorder = new TraceRecorder({ generationId: this.generationId, documentType: this.options.documentType, format: this.options.format, level: this.policy.level, sectionId: content.id });
+    const section = checked.value;
+    const pageFormat = this.formatOf(section);
+    const map = buildContentMap(section, this.options.bindings ?? 'values');
+    const quality = { ...qualityFrame(section, map, pageFormat), ...(this.options.allowDark ? { allowDark: true } : {}) };
+    const out = await this.composeFromCatalog(section, map, recorder, { index: o.index ?? 1, total: o.total ?? (this.options.sections?.length || 1), format: pageFormat, quality, planOnly: true });
+    return out && 'plan' in out ? out.plan : null;
+  }
+
   async composeSection(content: SectionContent, o: { index?: number; total?: number; replay?: SectionSpec; revise?: { spec?: SectionSpec; instruction: string } } = {}): Promise<SectionOutput> {
     const checked = validateSectionContent(content);
     if (!checked.ok || !checked.value) throw new ContentError(checked.issues);
@@ -457,6 +500,7 @@ export class GraphicDocument {
     if (!rendered) {
       const quality = { ...qualityFrame(section, map, pageFormat), ...(this.options.allowDark ? { allowDark: true } : {}), ...(this.tokens.brand.logos.onDark ? { logoOnDark: this.tokens.brand.logos.onDark } : {}) };
       const out = await this.composeFromCatalog(section, map, recorder, { index, total, format: pageFormat, quality, revise: o.revise });
+      if (out && 'plan' in out) throw new GraphicRenderError(section.id, 'planification inattendue');
       if (!out) throw new GraphicRenderError(section.id, 'aucune composition du catalogue ne s’affiche');
       rendered = out.page;
       catalogInfo = { version: out.version, config: out.config };
@@ -570,14 +614,14 @@ export class GraphicDocument {
     section: SectionContent,
     map: ContentMap,
     recorder: TraceRecorder,
-    o: { index: number; total: number; format: FormatDef; quality: QualityFrame; revise?: { spec?: SectionSpec; instruction: string } }
-  ): Promise<{ page: Rendered; config: PageConfig; version: string; summary: string } | null> {
+    o: { index: number; total: number; format: FormatDef; quality: QualityFrame; revise?: { spec?: SectionSpec; instruction: string }; planOnly?: boolean }
+  ): Promise<{ page: Rendered; config: PageConfig; version: string; summary: string } | { plan: PagePlan } | null> {
     const level = this.policy.level;
     const effort = catalogEffortFor(level);
     const [cat, overrides] = await Promise.all([loadCatalog(), catalogOverrides()]);
     const element = this.catalogElement(o.format);
     const traits = brandTraits(this.options.direction, this.options.allowDark === true);
-    if (!this.catalogState) this.catalogState = newCatalogState(this.memory.templates, this.memory.skins);
+    if (!this.catalogState) this.catalogState = newCatalogState(this.memory.templates, this.memory.skins, this.memory.nodes);
     const state = this.catalogState;
     const skinId = await this.ensureSkin(element, recorder, cat, overrides);
     // Un habillage retiré du catalogue en cours de document : le minimum intégré prend le relais.
@@ -585,7 +629,8 @@ export class GraphicDocument {
     const units = pageUnits(section);
     const facts = { element, format: o.format, role: section.role, units, index: o.index, total: o.total };
     const seed = `${this.options.brand.name}|${this.options.seed}|${section.id}`;
-    const current = o.revise?.spec?.catalog?.config;
+    const pinned = !o.revise && this.options.pin ? this.options.pin : undefined;
+    const current = o.revise?.spec?.catalog?.config ?? pinned;
     let candidates = shortlist(cat, facts, { level, skin: skin.id, traits, state, seed, overrides });
     // Une retouche écrite part de la configuration actuelle (en tête de liste).
     if (current) {
@@ -600,7 +645,8 @@ export class GraphicDocument {
     let by: 'code' | 'agent' = 'code';
     // LE MODÈLE CHOISIT (Medium et au-delà, ou une retouche écrite) : une réponse JSON vérifiée.
     const call = this.agent();
-    const askModel = call && (effort.chooser === 'model' || o.revise) && (candidates.length > 1 || o.revise);
+    // Une configuration épinglée a déjà été choisie (par le modèle, à la planification) : pas de second choix.
+    const askModel = !pinned && call && (effort.chooser === 'model' || o.revise) && (candidates.length > 1 || o.revise);
     if (askModel) {
       const disabled = new Set(overrides.disabled ?? []);
       const componentOptions = new Map<string, ComponentNode[]>();
@@ -624,6 +670,14 @@ export class GraphicDocument {
         const seen = new Set(parsed.map((c) => c.fingerprint));
         chosen = [...parsed, ...candidates.filter((c) => !seen.has(c.fingerprint))].slice(0, Math.max(picks, parsed.length));
       }
+    }
+    // LA PLANIFICATION s'arrête ici : le gabarit est retenu, l'hôte lit ce qu'il demande à l'image avant de la chercher.
+    if (o.planOnly) {
+      const config = chosen[0]?.config ?? candidates[0]?.config;
+      if (!config) return null;
+      const gab = config.gabarit ? cat.nodes.get(config.gabarit) : undefined;
+      recorder.repair({ code: 'catalog_plan', detail: `page planifiée : ${config.gabarit ?? config.layout}`, by });
+      return { plan: { config, image: imageNeedsFor(cat, config, units, o.format), ...(gab?.directions ? { directions: gab.directions } : {}) } };
     }
     // Le HTML des composants retenus (et des candidats de repli) : téléchargé, vérifié par son empreinte.
     const queue = [...chosen, ...candidates.filter((c) => !chosen.includes(c))].slice(0, chosen.length + 3);
@@ -962,6 +1016,12 @@ export class GraphicDocument {
     if (!marks.length) return;
     // Ultra : les combinaisons livrées vont aussi dans la mémoire de TOUS les clients.
     if (this.templateMarks.length && catalogEffortFor(this.policy.level).novelty === 'global') await host.rememberFingerprints(GLOBAL_CATALOG_SCOPE, this.templateMarks).catch(() => undefined);
+    // Les nœuds servis par ce document : une seule marque, écrite partout (tous les clients compris, à tous les crans).
+    const used = nodeMark(this.catalogState?.use.keys() ?? []);
+    if (used) {
+      marks.push(used);
+      await host.rememberFingerprints(GLOBAL_CATALOG_SCOPE, [used]).catch(() => undefined);
+    }
     // L'idée et l'axe vont dans toutes les portées (marque, utilisateur, secteur) ; les empreintes de rendu, dans la
     // portée principale seulement (elles sont lourdes).
     const scopes = GraphicDocument.scopes(this.options);
@@ -970,6 +1030,12 @@ export class GraphicDocument {
 }
 
 export const createDocument = (options: DocumentOptions): Promise<GraphicDocument> => GraphicDocument.create(options);
+
+/** Planifier une toile d'une seule section (un visuel) : le gabarit retenu et les besoins de son image. */
+export async function planSingle(options: DocumentOptions & { content: SectionContent }): Promise<PagePlan | null> {
+  const doc = await createDocument({ ...options, sections: [{ id: options.content.id, role: options.content.role }] });
+  return doc.planSection(options.content, { index: 1, total: 1 });
+}
 
 /** Une toile d'une seule section (une face de carte, un visuel, une couverture de réseau). */
 export async function renderSingle(options: DocumentOptions & { content: SectionContent; replay?: SectionSpec; revise?: { spec?: SectionSpec; instruction: string } }): Promise<SectionOutput> {

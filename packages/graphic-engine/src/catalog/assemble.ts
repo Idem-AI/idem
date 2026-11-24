@@ -23,6 +23,10 @@
  *   [[logo]] [[logo-sm]] [[logo-lg]]     le logo de la marque, à la taille de la toile
  *   [[size $.step]] [[weight $.weight]] [[family $.family]] [[ground $.background]] [[level $.impact]]
  *   [[focal .]] [[focal $]]              les données de spécimen et le recadrage d'une photo, par le code
+ *   [[on $.hex]] [[on $.hex soft]]       l'encre lisible sur une couleur du nuancier (calculée par contraste)
+ *   [[s.heading on $.hex]]               un rôle d'habillage posé SUR cette couleur (sa couleur remplacée)
+ *   [[rgb $.hex]] [[cmyk $.hex]] [[hsl $.hex]]  les valeurs exactes d'une couleur, calculées par le code
+ *   [[glyphs pair|upper|lower|digits]]   les glyphes d'un spécimen typographique (Aa, alphabet, chiffres)
  *   [[at tl|tr|bl|br]]                   (décor) une position absolue dans la marge de la page
  * Les primitives restent celles du moteur : `<idem-chart data-block="[[id]]">`, `<idem-table>`, `<idem-gallery>`,
  * `<idem-pattern-tile data-block="[[id]]" data-index="[[i0]]">`, `<idem-icon name="{{$.icon}}">`, `<img src="{{$.url}}">`.
@@ -35,7 +39,7 @@ import type { DesignTokens } from '../design-system/tokens';
 import type { ContentMap } from '../runtime/content-map';
 import type { ComponentNode, LayoutNode, LayoutZone, NodeVar, PageConfig, SkinNode, SkinRole, ZoneAccept } from './types';
 import { SKIN_ROLES } from './types';
-import { colorDistance, contrastRatio } from '../foundation/color';
+import { bestContrast, colorDistance, contrastRatio, hexToRgb } from '../foundation/color';
 
 /** La géométrie d'une page : marge et gouttière, d'après le format (des cotes d'impression, pas un gabarit). */
 export function pageGeometry(format: FormatDef): { pad: number; gap: number } {
@@ -379,11 +383,62 @@ function rawOf(scope: Scope, path: string): unknown {
   return lookup(scope, path)?.data;
 }
 
+const HEX_RE = /^#[0-9a-f]{6}$/i;
+
+/**
+ * L'ENCRE D'UN APLAT — le texte posé sur une couleur quelconque du nuancier reste lisible, par le calcul.
+ * L'encre et le fond de la marque d'abord (ils gardent le ton de la charte), le blanc et un quasi-noir sinon. Marquée
+ * importante (`!`) : elle l'emporte sur la couleur qu'un rôle d'habillage apporterait plus loin.
+ */
+function onColor(env: Env, scope: Scope, path: string | undefined, soft: boolean): string {
+  const raw = String(rawOf(scope, path ?? '') ?? '').trim();
+  if (!HEX_RE.test(raw)) return '';
+  const c = env.ctx.tokens.color;
+  const brand = [c.ink, c.ground].filter((h) => HEX_RE.test(h ?? ''));
+  const good = brand.filter((h) => contrastRatio(h, raw) >= 4.5);
+  const ink = (good.length ? bestContrast(raw, good) : bestContrast(raw, [...brand, '#ffffff', '#111111'])).toLowerCase();
+  return `text-[${ink}]${soft ? '/75' : ''}!`;
+}
+
+/** Les classes d'un rôle sans sa couleur de texte (tailles, alignements et retours à la ligne gardés). */
+function stripTextColor(cls: string): string {
+  return cls
+    .split(/\s+/)
+    .filter((c) => !/^(?:[\w-]+:)*text-(?!\[\d|left$|right$|center$|justify$|start$|end$|wrap$|nowrap$|balance$|pretty$|ellipsis$|clip$|xs$|sm$|base$|lg$|\d?xl$)/.test(c))
+    .join(' ');
+}
+
+/** Les valeurs d'une couleur, en clair : `RGB 12 34 56`, `CMYK 0 45 80 10`, `HSL 210 40 32`. */
+export function colorValues(hex: string, kind: 'rgb' | 'cmyk' | 'hsl'): string {
+  const rgb = HEX_RE.test(hex) ? hexToRgb(hex) : null;
+  if (!rgb) return '';
+  // `hexToRgb` rend des canaux de 0 à 1.
+  const [rr, gg, bb] = [rgb.r, rgb.g, rgb.b].map((v) => Math.min(1, Math.max(0, v)));
+  if (kind === 'rgb') return `RGB ${Math.round(rr * 255)} ${Math.round(gg * 255)} ${Math.round(bb * 255)}`;
+  const max = Math.max(rr, gg, bb);
+  const min = Math.min(rr, gg, bb);
+  if (kind === 'cmyk') {
+    const k = 1 - max;
+    const part = (v: number) => (k >= 1 ? 0 : Math.round(((1 - v - k) / (1 - k)) * 100));
+    return `CMYK ${part(rr)} ${part(gg)} ${part(bb)} ${Math.round(k * 100)}`;
+  }
+  const l = (max + min) / 2;
+  const dlt = max - min;
+  const s = dlt === 0 ? 0 : dlt / (1 - Math.abs(2 * l - 1));
+  let h = 0;
+  if (dlt) h = max === rr ? ((gg - bb) / dlt) % 6 : max === gg ? (bb - rr) / dlt + 2 : (rr - gg) / dlt + 4;
+  return `HSL ${Math.round(((h * 60) + 360) % 360)} ${Math.round(s * 100)} ${Math.round(l * 100)}`;
+}
+
 function directive(env: Env, scope: Scope, d: string): string {
   const { ctx } = env;
   const colors = paletteOf(ctx.tokens, scope.surface);
   const resolveColors = (s: string) => s.replace(/\[\[(\w+)\]\]/g, (m, r: string) => ((COLOR_ROLES as readonly string[]).includes(r) ? colors[r as ColorRole] : m));
   if ((COLOR_ROLES as readonly string[]).includes(d)) return colors[d as ColorRole];
+  // Un rôle d'habillage posé SUR une couleur donnée (`[[s.heading on $.hex]]`) : ses classes sans leur couleur, et
+  // l'encre lisible sur cette couleur. C'est ce qui permet d'écrire sur un aplat du nuancier, plein écran compris.
+  const onRole = d.match(/^s\.(\w+)\s+on\s+(\S+)(?:\s+(soft))?$/);
+  if (onRole) return `${stripTextColor(directive(env, scope, `s.${onRole[1]}`))} ${onColor(env, scope, onRole[2], onRole[3] === 'soft')}`.trim();
   if (d.startsWith('s.')) {
     const role = d.slice(2) as SkinRole;
     const base = env.roles[role] ?? '';
@@ -410,8 +465,8 @@ function directive(env: Env, scope: Scope, d: string): string {
   if (d === 'gap-sm') return `gap-[${px(Math.max(4, env.gap / 2))}]`;
   if (d === 'gap-lg') return `gap-[${px(env.gap * 1.75)}]`;
   if (d === 'pad') return `p-[${px(Math.max(gap, pad * 0.6))}]`;
-  if (d === 'logo' || d === 'logo-sm' || d === 'logo-lg') {
-    const k = d === 'logo-sm' ? 0.75 : d === 'logo-lg' ? (ctx.format.family === 'card' ? 2.8 : 1.9) : 1;
+  if (d === 'logo' || d === 'logo-sm' || d === 'logo-lg' || d === 'logo-xl') {
+    const k = d === 'logo-sm' ? 0.75 : d === 'logo-lg' ? (ctx.format.family === 'card' ? 2.8 : 1.9) : d === 'logo-xl' ? 3.6 : 1;
     const variant = scope.surface === 'brand' || scope.surface === 'deep' ? 'onDark' : 'primary';
     return `<idem-logo variant="${variant}" class="h-[${px(logoHeight(ctx) * k)}]"></idem-logo>`;
   }
@@ -446,6 +501,30 @@ function directive(env: Env, scope: Scope, d: string): string {
   if (name === 'ground') {
     const g = String(rawOf(scope, arg) ?? '');
     return g === 'dark' ? 'bg-deep text-on-deep' : g === 'primary' ? 'bg-brand-primary text-on-brand' : g === 'accent' ? 'bg-brand-accent text-on-accent' : g === 'neutral' ? 'bg-brand-soft text-ink' : 'bg-ground text-ink border-[1px] border-rule';
+  }
+  // L'encre lisible sur une couleur de la marque (`[[on $.hex]]`, `[[on $.hex soft]]` : atténuée), et les valeurs
+  // exactes de cette couleur, calculées par le code (`[[rgb $.hex]]`, `[[cmyk $.hex]]`, `[[hsl $.hex]]`).
+  if (name === 'on') return onColor(env, scope, arg, extra === 'soft');
+  // La typographie MONUMENTALE : une taille en part de la toile (`[[vw 16]]` : 16 % de sa largeur, `[[vh 12]]` : de
+  // sa hauteur), plafonnée à 40 %. Le code la ramène à la zone si le nom est long (mesure, `scaleSizes`).
+  if (name === 'vw' || name === 'vh') {
+    const n = Math.min(40, Math.max(1, Number(arg) || 0));
+    return `text-[${px(((name === 'vw' ? ctx.format.width : ctx.format.height) * n) / 100)}]`;
+  }
+  // Les GLYPHES d'un spécimen typographique (`[[glyphs pair|upper|lower|digits]]`) : « Aa », l'alphabet, les chiffres.
+  // Une valeur de spécimen calculée par le code (comme un code couleur), jamais un mot du rédacteur.
+  if (name === 'glyphs') {
+    const g = arg === 'upper' ? 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' : arg === 'lower' ? 'abcdefghijklmnopqrstuvwxyz' : arg === 'digits' ? '0123456789' : 'Aa';
+    return `<span data-ge-computed>${g}</span>`;
+  }
+  // L'initiale d'un texte du contenu (`[[initial .brandName]]`) : une lettrine géante, tirée du nom réel.
+  if (name === 'initial') {
+    const first = [...String(rawOf(scope, arg) ?? '').trim()].find((ch) => /[\p{L}\p{N}]/u.test(ch)) ?? '';
+    return first ? `<span data-ge-computed>${first.toLocaleUpperCase().replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c] as string)}</span>` : '';
+  }
+  if (name === 'rgb' || name === 'cmyk' || name === 'hsl') {
+    const v = colorValues(String(rawOf(scope, arg) ?? ''), name);
+    return v ? `<span data-ge-computed>${v}</span>` : '';
   }
   if (name === 'level') {
     const l = String(rawOf(scope, arg) ?? '');

@@ -30,11 +30,12 @@ import { produceLogo } from '../pipeline';
 import type { ProducedLogo } from '../pipeline';
 import { assessLogo } from '../validate/assess';
 import { LOGO_SIMILARITY, nearest } from '../validate/fingerprint';
+import { rankScore } from '../validate/perception';
 import type { LogoFingerprint } from '../validate/fingerprint';
 import { renderPng } from '../raster/rasterizer';
 import { briefWeights, inkPalette, traitsOf } from '../planner/brief';
 import type { CharterPalette, LogoKind } from '../planner/brief';
-import { buildPool, docForDirection, hashSeed, selectDistinct } from '../planner/planner';
+import { buildPool, docForDirection, hashSeed, searchDirection, selectDistinct } from '../planner/planner';
 import type { PlanInput, PlannedLogo } from '../planner/planner';
 import type { BuildOptions } from '../render/build';
 import { assembleAuthored, authorTask, CRITIC_INSTRUCTION, critiqueScore, directionMenu, directionsTask, juryTask, parseCritique, selectorTask } from './tasks';
@@ -104,7 +105,8 @@ const toPlanned = (logo: ProducedLogo, type: ConceptType, recipe: string): Plann
 /** Une direction de repli, à partir d'un candidat du planificateur (génère le même logo). */
 const directionOf = (c: PlannedLogo): Direction => {
   const first = c.doc.layers.find((l) => l.kind === 'generator');
-  return { type: c.type, generator: first && first.kind === 'generator' ? first.generator : undefined, idea: c.doc.concept.rationale };
+  const motif = /^abstract:group-([a-z]+)-/.exec(c.recipe)?.[1];
+  return { type: c.type, generator: first && first.kind === 'generator' ? first.generator : undefined, ...(motif ? { variant: `sym-${motif}` } : {}), idea: c.doc.concept.rationale };
 };
 
 const usesCliche = (doc: { layers: unknown }, banned: Set<string>) => banned.size > 0 && generatorsOf(doc.layers).some((g) => banned.has(g));
@@ -155,7 +157,13 @@ export async function designLogos(input: AgentInput, build: BuildOptions, deps: 
     const fallbackVerdict = (): DirectionsVerdict => ({ directions: chosen.map(directionOf), cliches: { ids: [...banned], words: [] } });
     const useVector = level === 'ultra' && !!deps.vector && kind !== 'name' && kind !== 'initial';
     const verdict = await orchestrator.run(directionsTask(input.sheet, menu, count, input.wish, fallbackVerdict, banned, { drawing: useVector }));
-    const { directions, cliches } = verdict.value ?? fallbackVerdict();
+    const { directions: given, cliches } = verdict.value ?? fallbackVerdict();
+    // Un directeur qui n'a donné que 1 ou 2 directions valides : le planificateur complète, sans doublon.
+    const directions = [...given];
+    for (const d of chosen.map(directionOf)) {
+      if (directions.length >= count) break;
+      if (!directions.some((x) => x.type === d.type && (x.generator ?? x.variant) === (d.generator ?? d.variant))) directions.push(d);
+    }
     banned = new Set([...banned, ...cliches.ids]);
     avoidWords = [...new Set([...cliches.words, ...[...banned].map((id) => getGenerator(id)?.label ?? id)])].slice(0, 10);
     decide('directions', verdict.source, directions.map((d) => `${d.type}${d.generator ? `/${d.generator}` : d.variant ? `/${d.variant}` : ''}${d.source ? ` ←${d.source}` : ''}`).join(' · '));
@@ -209,12 +217,10 @@ export async function designLogos(input: AgentInput, build: BuildOptions, deps: 
 
     const draftDirection = async (direction: Direction, i: number): Promise<PlannedLogo | null> => {
       const drafts: PlannedLogo[] = [];
-      // Le brouillon du planificateur pour cette direction : toujours là, c'est le repli.
-      const planned = docForDirection(directedInput, direction, String(i));
-      if (planned) {
-        const made = await produceLogo(planned.doc, build, { skipVariants: true });
-        if (made.ok && made.logo) drafts.push(toPlanned(made.logo, direction.type, planned.recipe));
-      }
+      // La meilleure forme que le code trouve pour cette direction (plusieurs constructions mesurées et affinées) : toujours là, c'est le repli.
+      const searched = await searchDirection(directedInput, direction, String(i), build);
+      const planned = searched ? { doc: searched.doc as unknown as Record<string, unknown>, recipe: searched.recipe } : docForDirection(directedInput, direction, String(i));
+      if (searched) drafts.push(searched);
       // Les symboles du modèle vectoriel pour cette direction (lancés plus haut, attendus au besoin).
       const vectorTask = vectorDraftsFor(direction, i, (planned?.doc as Record<string, unknown> | undefined) ?? null);
       let vectorTaken = false;
@@ -270,10 +276,10 @@ export async function designLogos(input: AgentInput, build: BuildOptions, deps: 
       if (!drafts.length) return null;
       // Les brouillons qui passent les mesures d'abord ; le jury départage, le code garde la main.
       const sound = drafts.filter((d) => d.report.accepted);
-      const field = (sound.length ? sound : drafts).sort((a, b) => b.report.score - a.report.score);
+      const field = (sound.length ? sound : drafts).sort((a, b) => rankScore(b.report) - rankScore(a.report));
       if (field.length === 1) return field[0];
-      if (field[0].report.score - field[1].report.score >= JURY_DOMINANCE) {
-        decide('jury', 'graph', `direction ${i + 1} : ${field[0].recipe} domine (${field[0].report.score} contre ${field[1].report.score})`);
+      if (rankScore(field[0].report) - rankScore(field[1].report) >= JURY_DOMINANCE) {
+        decide('jury', 'graph', `direction ${i + 1} : ${field[0].recipe} domine (${rankScore(field[0].report)} contre ${rankScore(field[1].report)})`);
         return field[0];
       }
       stage('jury');

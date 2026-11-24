@@ -12,10 +12,12 @@ import crypto from 'crypto';
  *   develop     (22/11/2026) le DÉVELOPPEMENT d'une scène : ce qui se passe une fois tout posé (l'image se découvre,
  *               la liste s'accomplit, le problème se barre) — la scène évolue au lieu d'attendre la coupe ;
  *   sequence    (22/11/2026) 2 ou 3 scènes ENCHAÎNÉES : chacune a sa mise en page, et un élément (média, chiffre,
- *               logo) traverse la coupe — il glisse de sa place d'avant à sa place d'après (pas de diapositives).
+ *               logo) traverse la coupe — il glisse de sa place d'avant à sa place d'après (pas de diapositives) ;
+ *   decor       (23/11/2026) le DÉCOR animé d'une scène : formes de marque, objets en 3D CSS, illustrations au trait qui
+ *               se dessinent, motifs, lumières — posé par le code derrière la scène ou sur ses bords, jamais sur un texte.
  */
 
-export type VideoNodeKind = 'layout' | 'theme' | 'animation' | 'transition' | 'gabarit' | 'develop' | 'sequence' | 'primitive';
+export type VideoNodeKind = 'layout' | 'theme' | 'animation' | 'transition' | 'gabarit' | 'develop' | 'sequence' | 'primitive' | 'decor';
 export type SceneRole = 'hook' | 'problem' | 'reveal' | 'feature' | 'benefits' | 'proof' | 'cta' | 'signature' | 'statement' | 'data';
 export type VideoStyle = 'energetic' | 'premium' | 'playful' | 'corporate';
 export type Slot = 'title' | 'body' | 'cta' | 'figure' | 'label' | 'attribution' | 'items' | 'media' | 'logo';
@@ -167,6 +169,8 @@ export interface SceneConfig {
   carry?: CarryRole;
   /** Le développement choisi par une séquence (sinon, le code en pose un quand la scène a du temps libre). */
   develop?: string;
+  /** Le décor animé de la scène (23/11/2026), choisi par le code ; absent : aucun. */
+  decor?: string;
 }
 
 export interface GabaritNode extends BaseNode {
@@ -186,6 +190,26 @@ export interface DevelopNode extends BaseNode {
   split?: 'none' | 'words' | 'chars' | 'lines';
   sceneRoles?: SceneRole[];
   steps: TweenStep[];
+}
+
+/**
+ * UN DÉCOR (23/11/2026) — ce qui vit AUTOUR du message : formes de marque qui dérivent, objet 3D (CSS) qui tourne,
+ * illustration au trait qui se dessine, motif qui se déploie, halo de lumière. Le HTML (`template.html`) ne porte
+ * que des formes (SVG en ligne, blocs) aux couleurs du thème ; chaque partie animée est marquée `data-dp="<nom>"` et
+ * reçoit ses tweens (`parts`). `place` : `back` (derrière toute la scène, couvert par ses médias) ou `edge` (sur les
+ * bords, HORS de la zone sûre : il peut passer au-dessus d'une photo plein cadre sans toucher un texte).
+ */
+export interface DecorNode extends BaseNode {
+  kind: 'decor';
+  place: 'back' | 'edge';
+  /** Les scènes servies : sans média (`without`), avec média (`with`), toutes (`any`). */
+  media: 'without' | 'with' | 'any';
+  /** Les seules scènes où il a un sens (absent : toutes). */
+  sceneRoles?: SceneRole[];
+  formats: FilmFormatId[];
+  html: string;
+  /** Les tweens de chaque partie : entrée (dès l'ouverture de la scène) puis tenue (tout le temps qui reste, `$hold`). */
+  parts: Record<string, { in: TweenStep[]; hold?: TweenStep[] }>;
 }
 
 export interface SequenceStep {
@@ -222,7 +246,7 @@ export interface PrimitiveNode extends Omit<LayoutNode, 'kind'> {
   };
 }
 
-export type VideoNode = LayoutNode | ThemeNode | AnimationNode | TransitionNode | GabaritNode | DevelopNode | SequenceNode | PrimitiveNode;
+export type VideoNode = LayoutNode | ThemeNode | AnimationNode | TransitionNode | GabaritNode | DevelopNode | SequenceNode | PrimitiveNode | DecorNode;
 
 export interface LoadedVideoCatalog {
   version: string;
@@ -249,8 +273,11 @@ export const ANIM_ROLES = new Set<string>(['title', 'body', 'cta', 'figure', 'la
 const TARGETS = new Set<string>(['text', 'block', 'items', 'figure', 'logo', 'cta', 'media', 'rule', 'bg']);
 /** La cible que porte chaque rôle : une animation ne s'applique qu'aux rôles de ses cibles. */
 export const ROLE_TARGET: Record<AnimRole, AnimTarget> = { title: 'text', body: 'text', label: 'text', attribution: 'text', items: 'items', item: 'items', figure: 'figure', media: 'media', logo: 'logo', rule: 'rule', cta: 'cta', mark: 'block', bg: 'bg' };
-/** Courbes permises : des décélérations franches. Ni rebond, ni élastique, ni « back ». */
-export const EASE = /^(none|(power[1-4]|sine|expo|circ)\.(in|out|inOut))$/;
+/** Courbes permises : des décélérations franches. Ni rebond, ni élastique, ni « back ».
+ * `geJerk` (24/11/2026) : la trajectoire à jerk minimal, enregistrée par le runtime — elle ne dépasse pas. Les courbes
+ * qui dépassent (`geSettle`, `geKin`) ne sont jamais écrites dans le catalogue : le code les pose pour les DA joueuses.
+ */
+export const EASE = /^(none|geJerk|(power[1-4]|sine|expo|circ)\.(in|out|inOut))$/;
 export const TOKEN = /^-?\$(dIn|dOut|stagger|dist|easeOut|easeIn|easeMove|half|d|hold)(\*\d+(\.\d+)?)?$/;
 const ORIGINS = new Set(['left center', 'right center', 'center center', 'center top', 'center bottom', '50% 50%']);
 export const CLIP = /^(inset\((-?\d+(\.\d+)?%\s*){4}\)|circle\(\d+(\.\d+)?% at \d+(\.\d+)?% \d+(\.\d+)?%\))$/;
@@ -273,17 +300,23 @@ export const PROPS: Record<string, [number, number]> = {
   letterSpacing: [-0.2, 0.6],
 };
 
-function valueError(prop: string, value: unknown): string | null {
+/**
+ * Les bornes propres aux DÉCORS : un objet 3D tourne sur lui-même (un tour entier, lentement), une forme pivote, une
+ * illustration se trace (`draw` : la part dessinée de ses traits, 0 → 1). Jamais sur un texte.
+ */
+export const DECOR_PROPS: Record<string, [number, number]> = { ...PROPS, rotation: [-360, 360], rotationX: [-360, 360], rotationY: [-360, 360], skewX: [-30, 30], draw: [0, 1] };
+
+function valueError(prop: string, value: unknown, props: Record<string, [number, number]> = PROPS): string | null {
   if (prop === 'clip') return typeof value === 'string' && CLIP.test(value) ? null : `découpe invalide « ${String(value)} »`;
   if (prop === 'transformOrigin') return ORIGINS.has(String(value)) ? null : `origine invalide « ${String(value)} »`;
-  const range = PROPS[prop];
+  const range = props[prop];
   if (!range) return `propriété non permise « ${prop} »`;
   if (typeof value === 'string') return TOKEN.test(value) ? null : `valeur invalide « ${value} »`;
   if (typeof value !== 'number' || !Number.isFinite(value) || value < range[0] || value > range[1]) return `${prop} hors bornes`;
   return null;
 }
 
-function stepsErrors(steps: unknown, target: (t: string) => boolean, counter: boolean, fx?: { split: string }): string[] {
+function stepsErrors(steps: unknown, target: (t: string) => boolean, counter: boolean, fx?: { split: string }, props: Record<string, [number, number]> = PROPS): string[] {
   if (!Array.isArray(steps)) return ['liste de tweens attendue'];
   const errors: string[] = [];
   const timing = (v: unknown, lo: number, hi: number) => (typeof v === 'number' && v >= lo && v <= hi) || (typeof v === 'string' && TOKEN.test(v));
@@ -309,7 +342,7 @@ function stepsErrors(steps: unknown, target: (t: string) => boolean, counter: bo
     } else if (step.opts !== undefined) errors.push('réglages sans effet');
     if (!step.counter && !step.fx && (!step.to || typeof step.to !== 'object')) errors.push('« to » manquant');
     for (const part of [step.from, step.to]) for (const [p, v] of Object.entries(part ?? {})) {
-      const e = valueError(p, v);
+      const e = valueError(p, v, props);
       if (e) errors.push(e);
     }
     if (!timing(step.duration, 0, 6)) errors.push('durée invalide');
@@ -397,6 +430,22 @@ export function nodeErrors(node: VideoNode): string[] {
       errors.push(...stepsErrors(node.steps ?? [], (t) => t === 'self' || t === 'inner', false, text));
       break;
     }
+    case 'decor': {
+      if (!node.html) errors.push('HTML manquant');
+      if (!['back', 'edge'].includes(node.place)) errors.push('place : back | edge');
+      if (!['without', 'with', 'any'].includes(node.media)) errors.push('media : without | with | any');
+      if (node.place === 'back' && node.media === 'with') errors.push('un décor de fond est couvert par le média : edge pour les scènes avec média');
+      if (!node.formats?.length || node.formats.some((f) => !FORMAT_IDS.includes(f))) errors.push('formats invalides');
+      if (node.sceneRoles !== undefined && (!Array.isArray(node.sceneRoles) || node.sceneRoles.some((r) => !SCENE_ROLES.includes(r)))) errors.push('rôles de scène invalides');
+      errors.push(...decorHtmlErrors(node.html ?? '', Object.keys(node.parts ?? {})));
+      for (const [name, p] of Object.entries(node.parts ?? {})) {
+        if (!/^[a-z][a-z0-9]{0,11}$/.test(name)) errors.push(`partie invalide « ${name} »`);
+        if (!p?.in?.length) errors.push(`partie ${name} : aucun tween d’entrée`);
+        for (const phase of ['in', 'hold'] as const) if (p?.[phase]) errors.push(...stepsErrors(p[phase], (t) => t === 'self', false, undefined, DECOR_PROPS).map((e) => `partie ${name} : ${e}`));
+      }
+      if (!Object.keys(node.parts ?? {}).length) errors.push('aucune partie animée');
+      break;
+    }
     case 'sequence': {
       const scenes = node.scenes;
       if (!Array.isArray(scenes) || scenes.length < 2 || scenes.length > 3) errors.push('2 ou 3 scènes attendues');
@@ -452,6 +501,20 @@ export function refErrors(node: VideoNode, nodes: Map<string, VideoNode>): strin
       }
     });
   }
+  return errors;
+}
+
+/**
+ * Le HTML d'un décor : des formes seulement. Aucun emplacement de texte, aucun jeton de média ni de zone sûre, aucun
+ * rôle animable de la scène (il ne doit jamais être pris pour un titre) ; chaque partie déclarée existe dans le HTML.
+ */
+export function decorHtmlErrors(html: string, parts: string[]): string[] {
+  const errors: string[] = [];
+  if (/\{\{|data-v=|data-fit|data-safe|\[\[(media|logo|safe|each|if|ifnot)\b/.test(html)) errors.push('un décor ne porte ni texte, ni média, ni zone sûre, ni rôle de scène');
+  for (const t of htmlTokens(html)) if (!/^t\.[a-zA-Z]+$/.test(t) && !/^(ls|sq|st|po|tall):[\s\S]+$/.test(t)) errors.push(`jeton inconnu [[${t}]]`);
+  const marked = new Set([...html.matchAll(/data-dp="([^"]+)"/g)].map((m) => m[1]));
+  for (const p of parts) if (!marked.has(p)) errors.push(`partie ${p} absente du HTML (data-dp)`);
+  for (const m of marked) if (!parts.includes(m)) errors.push(`data-dp="${m}" sans tweens`);
   return errors;
 }
 

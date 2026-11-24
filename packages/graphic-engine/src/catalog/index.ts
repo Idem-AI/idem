@@ -7,3 +7,5 @@ export type { BrandTraits, Candidate, CatalogState, PageFacts } from './graph';
 export { BUILTIN_NODES } from './builtin';
 export { TIERS, tierOf, inTier } from './tier';
 export type { Tier } from './tier';
+export { imageNeedsFor } from './image-needs';
+export type { ImageNeeds } from './image-needs';

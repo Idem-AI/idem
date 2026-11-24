@@ -14,13 +14,21 @@ import type { Defect } from './technical';
 import { validateSvgTechnical } from './technical';
 import { assessVisual } from './visual';
 import { checkPractices } from './practices';
+import { perceiveLogo } from './perception';
+import { countKinks } from './curves';
+import { walkLayers } from '../ir/logo.schema';
+import type { Perception } from './perception';
 
 export interface QualityReport {
   /** Aucun défaut bloquant. */
   ok: boolean;
   /** `ok` et score suffisant : un logo qu'on peut montrer sans retouche. */
   accepted: boolean;
+  /** Exploitabilité (0–100) : défauts techniques et visuels. */
   score: number;
+  /** Note perceptive mesurée selon le profil du type (0–100) : classe les candidats, ne refuse rien. */
+  aesthetic?: number;
+  perception?: Perception;
   defects: Defect[];
   metrics: Record<string, number>;
   variants: { id: string; ok: boolean }[];
@@ -66,6 +74,16 @@ export async function assessLogo(session: LogoSession, rendered: RenderedLogo, o
   defects.push(...practices.defects);
   Object.assign(visual.metrics, practices.metrics, { practiceIssues: practices.defects.length });
 
+  const perception = await perceiveLogo(session, rendered, { rasterizer });
+  defects.push(...perception.defects);
+
+  // Tracés libres : un raccord presque lisse (2–20°) est une bosse involontaire, pas un angle.
+  walkLayers(session.doc.layers, (layer) => {
+    if (layer.kind !== 'shape' || layer.geometry.type !== 'path' || layer.hidden) return;
+    const kinks = countKinks(layer.geometry.d);
+    if (kinks) defects.push({ code: 'curve_kink', severity: 'warn', layerId: layer.id, message: `${kinks} raccord(s) presque lisse(s) dans « ${layer.id} » : la courbe se casse de quelques degrés.` });
+  });
+
   const variants: QualityReport['variants'] = [];
   if (!options.skipVariants) {
     for (const variant of renderVariants(session)) {
@@ -79,7 +97,7 @@ export async function assessLogo(session: LogoSession, rendered: RenderedLogo, o
   const penalty = unique.reduce((sum, d) => sum + PENALTY[d.severity], 0);
   const score = Math.max(0, 100 - penalty);
   const ok = !unique.some((d) => d.severity === 'blocker');
-  return { ok, accepted: ok && score >= ACCEPT_SCORE, score, defects: unique, metrics: { ...visual.metrics, bytes: technical.bytes, paths: technical.paths, nodes: technical.nodes }, variants };
+  return { ok, accepted: ok && score >= ACCEPT_SCORE, score, aesthetic: perception.score, perception, defects: unique, metrics: { ...visual.metrics, bytes: technical.bytes, paths: technical.paths, nodes: technical.nodes }, variants };
 }
 
 function dedupe(defects: Defect[]): Defect[] {

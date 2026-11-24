@@ -27,9 +27,12 @@
  *   · MESURE : chaque scène dit son temps mort (le temps qui reste après les entrées, le développement et la
  *     lecture) — le code s'en sert pour choisir les développements, les contrôles pour le borner.
  */
-import type { AnimationNode, AnimRole, CarryRole, DevelopNode, LayoutNode, LoadedVideoCatalog, PrimitiveNode, SceneConfig, ThemeNode, TransitionNode, TweenStep } from './types';
+import type { AnimationNode, AnimRole, CarryRole, DecorNode, DevelopNode, LayoutNode, LoadedVideoCatalog, PrimitiveNode, SceneConfig, ThemeNode, TransitionNode, TweenStep } from './types';
 import { ROLE_TARGET } from './types';
 import { animationFor, figureParts, isFigure, rolesIn, SceneSlots } from './graph';
+import { landingShift, nearestStrong, SceneGrid } from './rhythm';
+import { PLAYFUL_DIRECTIONS } from './kinematics';
+import { FORMAT_CODE } from './framing';
 
 /** L'ordre d'entrée des rôles. */
 const ENTRANCE: AnimRole[] = ['bg', 'media', 'mark', 'figure', 'title', 'rule', 'label', 'body', 'attribution', 'items', 'cta', 'logo'];
@@ -60,7 +63,11 @@ const escapeHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;')
 
 /** Les classes du thème, avec l'accent choisi (`vars.accent`). */
 function themeClasses(theme: ThemeNode, vars: Record<string, string> = {}): Record<string, string> {
-  const classes = { ...theme.classes };
+  // Les trois couleurs des DÉCORS (23/11/2026), en couleur de texte (les formes s'y peignent en `fill-current`,
+  // `stroke-current`, `bg-current`) : la principale suit l'accent lisible du thème (sur un fond de marque, la couleur
+  // posée dessus), les deux autres la palette de la marque. Un thème peut les fixer lui-même.
+  const deco = theme.ground === 'brand' ? ['text-on-brand', 'text-brand-accent', 'text-brand-secondary'] : theme.ground === 'deep' ? ['text-brand-accent', 'text-brand-primary', 'text-on-deep'] : [theme.classes.accentInk || 'text-brand-primary', 'text-brand-accent', 'text-brand-secondary'];
+  const classes: Record<string, string> = { decoA: deco[0], decoB: deco[1], decoC: deco[2], ...theme.classes };
   const accent = vars.accent;
   if (accent === 'accent' || accent === 'secondary') {
     for (const k of ['accentInk', 'rule', 'button', 'mark']) {
@@ -99,8 +106,8 @@ export interface AssembleInput {
   config: SceneConfig;
   slots: SceneSlots;
   texts: Record<string, string>;
-  scene: { key: string; duration: number; energy: number; role?: string; beat?: { bpm: number; first: number }; spoken?: Array<{ text: string; t: number }> };
-  brand: { name: string; hasLogo: boolean; hasDarkLogo?: boolean };
+  scene: { key: string; duration: number; energy: number; role?: string; beat?: SceneGrid; spoken?: Array<{ text: string; t: number }> };
+  brand: { name: string; hasLogo: boolean; hasDarkLogo?: boolean; /** La DA de la marque : ses lois de mouvement. */ direction?: string };
   /** La transition par laquelle la scène entre, et la scène d'avant. */
   transitionIn?: TransitionNode;
   prevKey?: string;
@@ -132,7 +139,7 @@ export const DEVELOP_FREE_MIN = 1.1;
 export const IDLE_MAX = 2.2;
 
 /** Le HTML de la scène : la mise en page dépliée (conditions, liste, emplacements, classes, zone sûre, formats). */
-export function sceneHtml(layout: LayoutNode, theme: ThemeNode, slots: SceneSlots, brand: { name: string; hasLogo: boolean; hasDarkLogo?: boolean }, vars: Record<string, string> = {}): string {
+export function sceneHtml(layout: LayoutNode, theme: ThemeNode, slots: SceneSlots, brand: { name: string; hasLogo: boolean; hasDarkLogo?: boolean }, vars: Record<string, string> = {}, decor?: DecorNode): string {
   let html = layout.html;
   const present = (slot: string): boolean => {
     if (slot === 'items') return slots.items.length > 0;
@@ -171,26 +178,41 @@ export function sceneHtml(layout: LayoutNode, theme: ThemeNode, slots: SceneSlot
   );
   // 5. Les classes du thème, la zone sûre, les variantes de format.
   const classes = themeClasses(theme, vars);
-  html = html.replace(/\[\[t\.([a-zA-Z]+)\]\]/g, (_m, k: string) => classes[k] ?? '');
   html = html.replace(/\[\[safe\]\]/g, safeClasses());
-  html = html.replace(/\[\[(ls|sq|st|po|tall):([^\]]*(?:\[[^\]]*\][^\]]*)*)\]\]/g, (_m, f: string, list: string) =>
-    list
-      .split(/\s+/)
-      .filter(Boolean)
-      .flatMap((cls) => (f === 'tall' ? [variant('st', cls), variant('po', cls)] : [variant(f as 'st', cls)]))
-      .join(' ')
-  );
   // `st` (story) est aussi la base : ses variantes valent pour la story seule.
   // 6. Une position déplacée par la mise en page remplace celle de la zone sûre (même variante).
-  html = dedupePositions(html);
+  html = dedupePositions(themeAndFormats(html, classes));
   // 7. L'échelle typographique du thème (titres et chiffres seulement).
   const scale = theme.type?.scale ?? 1;
   if (scale !== 1) html = html.replace(/data-fit="(title|figure)" data-fk="([\d.]+)"/g, (_m, r: string, k: string) => `data-fit="${r}" data-fk="${(Number(k) * scale).toFixed(4)}"`);
   // Le fond animé (si le thème en porte un) : un calque décoratif, derrière tout, jamais lu par les textes.
   const bg = classes.bgLayer ? `<div data-v="bg" aria-hidden="true" class="pointer-events-none absolute inset-0 -z-10 ${classes.bgLayer}"></div>` : '';
+  // Le DÉCOR animé (23/11/2026) : derrière la scène (`back`, couvert par ses médias), ou sur ses bords (`edge`, posé après
+  // elle : au-dessus d'une photo plein cadre, hors de la zone sûre où vivent les textes).
+  const deco = decor ? `<div data-ge-decor="${decor.place}" aria-hidden="true" class="pointer-events-none absolute inset-0 overflow-hidden">${dedupePositions(themeAndFormats(decor.html, classes))}</div>` : '';
+  const body = html.replace(/\s{2,}/g, ' ').trim();
   // La CAMÉRA (22/11/2026) : tout le contenu de la scène dans une enveloppe que le directeur de caméra du runtime peut
   // cadrer (gros plan sur ce qui arrive, retour au plan large) ; le cadre extérieur coupe ce qui déborde.
-  return `<div class="relative h-full w-full overflow-hidden ${classes.ground ?? 'bg-ground'}"><div data-ge-camera class="absolute inset-0">${bg}${html.replace(/\s{2,}/g, ' ').trim()}</div></div>`;
+  return `<div class="relative h-full w-full overflow-hidden ${classes.ground ?? 'bg-ground'}"><div data-ge-camera class="absolute inset-0">${bg}${decor?.place === 'back' ? deco : ''}${body}${decor?.place === 'edge' ? deco.replace(/\s{2,}/g, ' ') : ''}</div></div>`;
+}
+
+/** Les classes du thème (`[[t.x]]`) et les variantes de format (`[[ls:…]]`…) d'un fragment de scène. */
+function themeAndFormats(html: string, classes: Record<string, string>): string {
+  return html
+    .replace(/\[\[t\.([a-zA-Z]+)\]\]/g, (_m, k: string) => classes[k] ?? '')
+    .replace(/\[\[(ls|sq|st|po|tall):([^\]]*(?:\[[^\]]*\][^\]]*)*)\]\]/g, (_m, f: string, list: string) =>
+      list
+        .split(/\s+/)
+        .filter(Boolean)
+        .flatMap((cls) => (f === 'tall' ? [variant('st', cls), variant('po', cls)] : [variant(f as 'st', cls)]))
+        .join(' ')
+    );
+}
+
+/** Le décor de la scène (sa configuration), s'il existe encore au catalogue et convient à sa mise en page. */
+export function decorOf(cat: LoadedVideoCatalog, config: SceneConfig): DecorNode | undefined {
+  const d = config.decor ? cat.nodes.get(config.decor) : undefined;
+  return d?.kind === 'decor' ? d : undefined;
 }
 
 // ── La chorégraphie ──────────────────────────────────────────────────────────────────────────
@@ -260,6 +282,35 @@ export interface RuntimeScene {
   primitive?: { id: string; vars: Record<string, string | number | boolean>; at: number; duration: number; slot?: { template?: string; selector?: string } };
   /** Le logo (SVG posé dans la page) se dessine trait par trait au lieu d'entrer comme une image. */
   logoDraw?: boolean;
+  /**
+   * Le média de la scène (24/11/2026) : son point d'intérêt par format (code de page `st`, `po`, `sq`, `ls`) et ses
+   * proportions. Le runtime place l'image (`object-position`) pour garder le sujet hors des textes (`framing.ts`).
+   */
+  media?: { focus: Record<string, { x: number; y: number }>; aspect?: number };
+}
+
+/** Les propriétés de position : ce qu'une courbe qui dépasse peut porter (jamais l'opacité ni un flou). */
+const TRANSFORM_KEYS = new Set(['x', 'y', 'xPercent', 'yPercent', 'scale', 'scaleX', 'scaleY', 'rotation']);
+
+/**
+ * L'ARRIVÉE CINÉMATIQUE (24/11/2026, `kinematics.ts`) : le premier pas d'arrivée (courbe `*.out`) d'une entrée prend
+ * une courbe qui dépasse (`geSettle`, `geKin`). Le mouvement et l'opacité sont séparés : la position suit la nouvelle
+ * courbe, l'opacité (et tout le reste) garde la sienne, partie au même instant — jamais d'opacité au-delà de 1.
+ */
+export function kinematicSteps(steps: ResolvedStep[], ease: string): ResolvedStep[] {
+  const k = steps.findIndex((st) => !st.fx && !st.counter && /\.out$/.test(st.ease) && Object.keys({ ...(st.from ?? {}), ...(st.to ?? {}) }).some((p) => TRANSFORM_KEYS.has(p)));
+  if (k < 0) return steps;
+  const st = steps[k];
+  const part = (o: Record<string, number | string> | undefined, moving: boolean) => (o ? Object.fromEntries(Object.entries(o).filter(([p]) => TRANSFORM_KEYS.has(p) === moving)) : undefined);
+  const nonEmpty = (o?: Record<string, number | string>) => (o && Object.keys(o).length ? o : undefined);
+  const motion: ResolvedStep = { ...st, ease, ...(nonEmpty(part(st.from, true)) ? { from: part(st.from, true) } : {}), ...(nonEmpty(part(st.to, true)) ? { to: part(st.to, true) } : {}) };
+  if (!nonEmpty(part(st.from, true))) delete motion.from;
+  if (!nonEmpty(part(st.to, true))) delete motion.to;
+  const restFrom = nonEmpty(part(st.from, false));
+  const restTo = nonEmpty(part(st.to, false));
+  if (!restFrom && !restTo) return steps.map((x, i) => (i === k ? motion : x));
+  const rest: ResolvedStep = { duration: st.duration, ease: st.ease, at: 0, ...(st.target ? { target: st.target } : {}), ...(restFrom ? { from: restFrom } : {}), ...(restTo ? { to: restTo } : {}), ...(st.stagger !== undefined ? { stagger: st.stagger } : {}), ...(st.pick ? { pick: st.pick } : {}), ...(st.compress ? { compress: st.compress } : {}) };
+  return [...steps.slice(0, k), motion, rest, ...steps.slice(k + 1)];
 }
 
 type Tokens = Record<string, number | string>;
@@ -343,7 +394,8 @@ function unitsOf(role: AnimRole, split: string, text: string, items: number): nu
 export function assembleScene(i: AssembleInput): { html: string; script: string; spec: RuntimeScene; quality: SceneQuality } {
   const layout = (i.cat.nodes.get(i.config.layout) ?? i.cat.nodes.get('builtin.stack')) as LayoutNode;
   const prim = (layout as unknown as PrimitiveNode).kind === 'primitive' ? (layout as unknown as PrimitiveNode) : undefined;
-  let html = sceneHtml(layout, i.theme, i.slots, i.brand, { ...(i.vars ?? {}), ...(i.config.vars ?? {}) });
+  const decor = decorOf(i.cat, i.config);
+  let html = sceneHtml(layout, i.theme, i.slots, i.brand, { ...(i.vars ?? {}), ...(i.config.vars ?? {}) }, decor);
   // Une PRIMITIVE : son source (registre HyperFrames, empreinte vérifiée au chargement) voyage, inerte, dans un
   // <template> de la scène ; l'image de son écran aussi (posée par le code depuis le média de la scène).
   if (prim) {
@@ -415,6 +467,11 @@ export function assembleScene(i: AssembleInput): { html: string; script: string;
   let pass = build(1);
   if (pass.end + read + exitSpan > D) pass = build(Math.max(0.45, Math.min(1, (D - read - exitSpan) / Math.max(0.1, pass.end))));
   const roles = pass.roles;
+  // Les lois de mouvement de la DA : une DA joueuse fait arriver son rôle principal en dépassant à peine sa place
+  // (anticipation en plus dans une scène vive). Les autres DA gardent les courbes du catalogue (ni rebond ni élastique).
+  if (PLAYFUL_DIRECTIONS.has(i.brand.direction ?? '') && process.env.VIDEO_KINEMATIC !== 'off') {
+    for (const r of roles) if ((r.role === 'figure' || r.role === 'cta' || r.role === 'logo') && r.split === 'none') r.in = kinematicSteps(r.in, i.scene.energy >= 4 && r.role !== 'figure' ? 'geKin' : 'geSettle');
+  }
 
   // LA VOIX D'ABORD (22/11/2026, leçon d'explainroo et de Hypit : les entrées s'ancrent sur des MOTS, pas sur des
   // secondes). Le titre, le chiffre et le soutien entrent quand la voix dit leur premier mot porteur ; chaque élément
@@ -451,15 +508,21 @@ export function assembleScene(i: AssembleInput): { html: string; script: string;
     }
   }
 
-  // Le temps fort : le titre d'une scène énergique se pose sur le battement suivant (au plus 0,3 s plus tard).
-  if (i.scene.beat && i.scene.beat.bpm > 0 && i.scene.energy >= 3) {
-    const title = roles.find((r) => r.role === 'title');
-    if (title) {
-      const period = 60 / i.scene.beat.bpm;
-      const k = Math.ceil((title.at - i.scene.beat.first) / period);
-      const beat = i.scene.beat.first + k * period;
-      const delta = beat - title.at;
-      if (delta > 0 && delta <= 0.3) for (const r of roles) if (r.at >= title.at) r.at = Math.round((r.at + delta) * 1000) / 1000;
+  // LE TEMPS FORT (24/11/2026, `rhythm.ts`) : la POSE du rôle principal (chiffre, sinon titre) — l'instant où son
+  // mouvement s'arrête — tombe sur un temps qui compte : début de phrase pour une révélation, temps fort de mesure pour
+  // un titre, simple temps pour une scène vive. La voix passe avant : une scène dite reste calée sur ses mots.
+  if (i.scene.beat && !spoken.length) {
+    const lead = roles.find((r) => r.role === 'figure' && r.in.length) ?? roles.find((r) => r.role === 'title' && r.in.length);
+    if (lead) {
+      const n = unitsOf(lead.role, lead.split, textOf(lead.role), i.slots.items.length);
+      const whole = stepsSpan(lead.in, n);
+      const first = stepsSpan(lead.in, 1);
+      // Une cascade longue se perçoit à la pose de sa première unité ; une entrée d'un bloc, à sa pose entière.
+      const landing = lead.at + (whole - first <= 0.4 ? whole : first);
+      const before = roles.filter((r) => r !== lead && r.role !== 'bg' && r.at < lead.at).map((r) => r.at);
+      const room = D - pass.end - read - exitSpan;
+      const delta = landingShift(landing, i.scene.beat, { energy: i.scene.energy, role: i.scene.role, late: Math.min(0.35, Math.max(0, room)), early: Math.min(0.1, Math.max(0, lead.at - Math.max(0, ...before) - 0.05)) });
+      if (delta) for (const r of roles) if (r.role !== 'bg' && r.at >= lead.at - 1e-6) r.at = Math.round(Math.max(0, r.at + delta) * 1000) / 1000;
     }
   }
 
@@ -499,6 +562,18 @@ export function assembleScene(i: AssembleInput): { html: string; script: string;
         steps = resolveSteps(dev.steps, { ...pass.tokens, hold: Math.round(span * 1000) / 1000 });
       }
     }
+    // Un trait (soulignement, rature, liste qui s'accomplit) part sur un temps fort de la musique s'il y en a un tout
+    // près — sans entamer la lecture ni déborder de la scène.
+    if (dev.start !== 'entered' && i.scene.beat) {
+      const strong = nearestStrong(start, i.scene.beat, 0.3);
+      if (strong !== undefined && strong >= allIn + 0.3) {
+        const s2 = resolveSteps(dev.steps, { ...pass.tokens, hold: Math.round((D - strong - exitSpan - 0.08) * 1000) / 1000 });
+        if (strong + stepsSpan(s2, unitsFor(devRole)) <= D - exitSpan - 0.08) {
+          start = strong;
+          steps = s2;
+        }
+      }
+    }
     devRole.develop = steps;
     devRole.developAt = Math.round(start * 1000) / 1000;
     const end = start + stepsSpan(devRole.develop, unitsFor(devRole));
@@ -535,7 +610,33 @@ export function assembleScene(i: AssembleInput): { html: string; script: string;
     } else delete r.out;
   }
 
+  // Le DÉCOR : chaque partie entre dès l'ouverture (sous le panneau de transition s'il y en a un), puis vit pendant toute
+  // la scène (sa tenue) ; dans un film posé, il s'efface avec les éléments avant la coupe. Il ne retarde aucun texte.
+  if (decor) {
+    const open = i.transitionIn && i.transitionIn.duration > 0 ? (i.transitionIn.duration / 2) * 0.6 : 0;
+    for (const [name, part] of Object.entries(decor.parts)) {
+      const entry: RuntimeRole = { role: 'bg', sel: `[data-ge-decor] [data-dp="${name}"]`, split: 'none', mask: false, at: Math.round(open * 1000) / 1000, in: resolveSteps(part.in, pass.tokens) };
+      const n = (html.match(new RegExp(`data-dp="${name}"`, 'g')) ?? []).length;
+      const holdAt = entry.at + stepsSpan(entry.in, Math.max(1, n));
+      if (part.hold?.length && D - holdAt > 0.4) {
+        entry.hold = resolveSteps(part.hold, { ...pass.tokens, hold: Math.round((D - holdAt) * 1000) / 1000 });
+        entry.holdAt = Math.round(holdAt * 1000) / 1000;
+      }
+      if (i.exitAtEnd) {
+        entry.out = [{ to: { opacity: 0 }, duration: m.dOut, ease: m.easeIn }];
+        entry.outAt = Math.max(holdAt, Math.round((D - m.dOut - 0.06) * 1000) / 1000);
+      }
+      roles.push(entry);
+    }
+  }
   const spec: RuntimeScene = { key: i.scene.key, roles };
+  // Le sujet de l'image hors des textes (24/11/2026) : le point d'intérêt de chaque format, pour le runtime.
+  const media = i.slots.media;
+  if (media?.focus && present.includes('media') && !prim && process.env.VIDEO_FRAMING !== 'off') {
+    const focus: Record<string, { x: number; y: number }> = {};
+    for (const [f, p] of Object.entries(media.focus)) if (FORMAT_CODE[f] && p) focus[FORMAT_CODE[f]] = { x: p.x, y: p.y };
+    if (Object.keys(focus).length) spec.media = { focus, ...(media.aspect ? { aspect: media.aspect } : {}) };
+  }
   if (prim) {
     const text = (slot: string) => {
       const key = (i.slots as unknown as Record<string, string | undefined>)[slot];
@@ -563,7 +664,8 @@ export function assembleScene(i: AssembleInput): { html: string; script: string;
       prevKey: i.carryIn.prevKey,
       mode: carried === 'media' ? 'frame' : 'uniform',
       duration: carryDur,
-      ease: m.easeMove,
+      // Un grand déplacement d'un bout à l'autre du cadre : la trajectoire à jerk minimal (accélération continue).
+      ease: /\.inOut$/.test(m.easeMove) && process.env.VIDEO_KINEMATIC !== 'off' ? 'geJerk' : m.easeMove,
       ...(i.carryIn.innerFrom && i.carryIn.innerFrom !== 1 ? { innerFrom: i.carryIn.innerFrom } : {}),
     };
   } else if (i.transitionIn && i.transitionIn.duration > 0 && i.prevKey) {

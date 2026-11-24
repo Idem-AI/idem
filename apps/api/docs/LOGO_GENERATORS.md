@@ -1,8 +1,8 @@
 # Catalogue des générateurs de symboles
 
-> Généré par `npm run docs:logo` — ne pas éditer. 58 générateurs. Tons : 1 = une encre, 2 = + seconde encre, 3 = + accent ; « découpe » = le fond transparaît.
+> Généré par `npm run docs:logo` — ne pas éditer. 61 générateurs. Tons : 1 = une encre, 2 = + seconde encre, 3 = + accent ; « découpe » = le fond transparaît.
 
-## Abstrait (16)
+## Abstrait (19)
 
 | Id | Nom | Tons | Paramètres (min-max=défaut) | Secteurs / idées |
 |---|---|---|---|---|
@@ -22,6 +22,9 @@
 | `lattice` | Treillis en losanges | 3 | `grid 2-4=3, gap 2-6=3, center accent/knockout/same=accent` | treillis, lattice, tissage, weave, africa, afrique, motif, pattern |
 | `venn` | Cercles entrelacés | 3 | `count 2-3=2, overlap 0.25-0.6=0.42, mid accent/knockout/none=accent` | partenariat, partnership, lien, link, ensemble, together, communauté, community |
 | `fold` | Papier plié | 3 | `tilt -25-25=0, keel bool=true` | message, envoi, send, courrier, mail, voyage, travel, livraison |
+| `lusona` | Sona (courbe-miroir tchokwe) | 2 | `cols 2-6=3, rows 2-6=3, density 0-0.7=0.35, sym d2/c4=d2, thick 0.16-0.34=0.24, dots bool=true` | afrique, africa, culture, tradition, héritage, heritage, récit, story |
+| `phi-arcs` | Arcs en proportion (φ, √2, 2) | 1 | `steps 2-5=3, turn 50-150=100, start 0-360=210, ratio phi/sqrt2/octave=phi` | croissance, growth, harmonie, harmony, nature, équilibre, balance, finance |
+| `tessellation` | Facettes (Delaunay / Voronoï) | 2 | `mode delaunay/voronoi=delaunay, order 3-8=6, points 1-3=2, gap 0.04-0.2=0.1` | cristal, crystal, gemme, gem, bijou, jewel, réseau, network |
 
 ## Figuratif (34)
 

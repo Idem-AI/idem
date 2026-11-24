@@ -2,5 +2,7 @@
 import './abstract';
 import './pictorial';
 import './mascot';
+import './african';
+import './computational';
 
 export * from './registry';

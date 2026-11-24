@@ -18,20 +18,23 @@ import type { RevisePoint } from './choose';
 import { callFilmModel, FilmCallContext } from '../agents';
 import { assembleScene, DEVELOP_FREE_MIN, finalInnerScale, RuntimeScene, sceneHtml, SceneQuality } from './assemble';
 import { ChooseScene, chooseSystem, chooseUser, parseChoices, videoEffortFor } from './choose';
-import { animationFits, animationFor, energyOf, FilmState, inDirection, layoutFits, rankThemes, rolesIn, sceneFingerprint, sceneSlots, SceneFacts, SceneSlots, shortlist, SceneCandidate, stableHash, transitionFor, videoIndex } from './graph';
+import { animationFits, animationFor, energyOf, mediaCover, FilmState, inDirection, layoutFits, pickWeighted, rankThemes, rolesIn, sceneFingerprint, sceneSlots, SceneFacts, SceneMedia, SceneSlots, seededShuffle, shortlist, SceneCandidate, stableHash, transitionFor, videoIndex } from './graph';
 import { videoCatalog } from './registry';
+import type { SceneGrid } from './rhythm';
+import { choosePath, PathCandidate } from './film-path';
 import { FilmMetrics, filmMetrics } from './metrics';
-import type { AnimationNode, CarryRole, DevelopNode, FilmFormatId, LayoutNode, LoadedVideoCatalog, SceneConfig, SceneRole, SequenceNode, ThemeNode, TransitionNode, VideoStyle } from './types';
+import type { AnimationNode, AnimRole, CarryRole, DecorNode, DevelopNode, FilmFormatId, LayoutNode, LoadedVideoCatalog, SceneConfig, SceneRole, SequenceNode, ThemeNode, TransitionNode, VideoStyle } from './types';
 import { ROLE_TARGET, SCENE_ROLES } from './types';
 
 export interface CatalogScene {
   key: string;
   duration: number;
   texts: Record<string, string>;
-  media: Array<{ id: string; kind: 'image' | 'video' }>;
+  media: SceneMedia[];
   role?: string;
   energy?: number;
-  beat?: { bpm: number; first: number };
+  /** La grille de la musique vue depuis la scène (temps, temps forts, phrases ; s, depuis son début). */
+  beat?: SceneGrid;
   /** Les mots dits par la voix off pendant la scène (s, depuis son début) : les entrées se calent sur eux. */
   spoken?: Array<{ text: string; t: number }>;
 }
@@ -105,14 +108,31 @@ function shapeOf(slots: SceneSlots, texts: Record<string, string>): string {
   return parts.join(', ') || 'no text';
 }
 
-async function memoryOf(key?: string): Promise<{ templates: Set<string>; themes: string[]; sequences: Set<string> }> {
+interface FilmMemory {
+  templates: Set<string>;
+  themes: string[];
+  sequences: Set<string>;
+  /** Les pièces déjà livrées à la marque, comptées : `L:<mise en page>`, `G:<gabarit>`, `D:<décor>`, `T:<transition>`, `A:<animation>`. */
+  delivered: Map<string, number>;
+}
+
+async function memoryOf(key?: string): Promise<FilmMemory> {
   const host = coreHost();
-  if (!key || !host.recentFingerprints || process.env.IDEM_QUALITY_MEMORY === '0') return { templates: new Set(), themes: [], sequences: new Set() };
+  const empty: FilmMemory = { templates: new Set(), themes: [], sequences: new Set(), delivered: new Map() };
+  if (!key || !host.recentFingerprints || process.env.IDEM_QUALITY_MEMORY === '0') return empty;
   const marks = await host.recentFingerprints({ documentType: 'video', key }).catch(() => [] as string[]);
+  const delivered = new Map<string, number>();
+  for (const m of marks) {
+    const hit = /^v(lay|gab|dec|tr|an):(.+)$/.exec(m);
+    if (!hit) continue;
+    const k = `${{ lay: 'L', gab: 'G', dec: 'D', tr: 'T', an: 'A' }[hit[1]]}:${hit[2]}`;
+    delivered.set(k, (delivered.get(k) ?? 0) + 1);
+  }
   return {
     templates: new Set(marks.filter((m) => m.startsWith('vtpl:')).map((m) => m.slice(5))),
     themes: marks.filter((m) => m.startsWith('vtheme:')).map((m) => m.slice(7)),
     sequences: new Set(marks.filter((m) => m.startsWith('vseq:')).map((m) => m.slice(5))),
+    delivered,
   };
 }
 
@@ -321,6 +341,115 @@ function varyTitles(cat: LoadedVideoCatalog, theme: ThemeNode, facts: SceneFacts
   return out;
 }
 
+/** Les rôles dont le mouvement se tire au sort, et la cible d'animation de chacun. */
+const REMIX_ROLES: AnimRole[] = ['title', 'body', 'media', 'figure', 'items', 'cta', 'logo', 'label'];
+
+/**
+ * LE MÉLANGE DES MOUVEMENTS (23/11/2026) — une mise en page nue prenait toujours les animations par défaut de son thème,
+ * un gabarit toujours les siennes : d'un film à l'autre, les mêmes entrées revenaient. Le code tire désormais, pour
+ * chaque rôle de chaque scène, une animation parmi celles de la gamme et de la DA qui lui conviennent (cible, longueur
+ * du texte, rôle de la scène) — en gardant une fois sur deux celle du gabarit (une recette pensée), et jamais celle des
+ * deux scènes précédentes pour le même rôle. Les pièces déjà livrées à la marque reculent.
+ */
+function remixAnimations(cat: LoadedVideoCatalog, theme: ThemeNode, facts: SceneFacts[], configs: SceneConfig[], o: { direction?: string; level?: string; seed: string; delivered: Map<string, number> }): SceneConfig[] {
+  if (process.env.VIDEO_REMIX === 'off') return configs;
+  const all = [...cat.nodes.values()].filter((n): n is AnimationNode => n.kind === 'animation' && !n.id.startsWith('builtin.'));
+  const pools = new Map<string, AnimationNode[]>();
+  const poolOf = (target: string) => {
+    if (!pools.has(target)) pools.set(target, inTier(inDirection(cat, all.filter((a) => a.targets.includes(target as never)), o.direction), o.level, 5));
+    return pools.get(target)!;
+  };
+  const out = configs.map((c) => ({ ...c, animations: { ...c.animations } }));
+  const textOf = (f: SceneFacts, role: AnimRole) => {
+    const key = role === 'items' ? undefined : (f.slots as unknown as Record<string, string | undefined>)[role];
+    return key ? f.texts[key] ?? '' : '';
+  };
+  for (let i = 0; i < out.length; i++) {
+    const c = out[i];
+    const layout = cat.nodes.get(c.layout);
+    if (!layout || (layout.kind !== 'layout' && layout.kind !== 'primitive')) continue;
+    const present = new Set(rolesIn(layout.html));
+    for (const role of REMIX_ROLES) {
+      if (!present.has(role)) continue;
+      // Un élément porté par une séquence garde son mouvement ; une recette de gabarit est gardée une fois sur deux.
+      if (c.carry === role) continue;
+      const keep = c.animations[role] && (c.gabarit || c.sequence) && (parseInt(stableHash([o.seed, 'keep', i, role], 4), 16) % 2 === 0);
+      if (keep) continue;
+      const recent = [out[i - 1], out[i - 2]].map((p) => p && animationFor(cat, theme, p, role, textOf(facts[out.indexOf(p)], role), facts[out.indexOf(p)].role));
+      const text = textOf(facts[i], role);
+      const options = poolOf(ROLE_TARGET[role])
+        .filter((a) => animationFits(cat, a.id, role, text, facts[i].role) && !recent.includes(a.id))
+        // Un compteur ne compte qu'un vrai chiffre (sinon l'assemblage le remplace : autant ne pas le tirer).
+        .filter((a) => !(a.steps.in.some((st) => st.counter) && role !== 'figure'))
+        .map((a) => ({ item: a.id, score: 0.4 * (a.energy ? (facts[i].energy >= a.energy[0] && facts[i].energy <= a.energy[1] ? 1 : 0.4) : 0.7) - Math.min(0.3, 0.05 * (o.delivered.get(`A:${a.id}`) ?? 0)) }));
+      const pick = pickWeighted(options, `${o.seed}|anim|${i}|${role}`, 0.3, 0.12);
+      if (pick) c.animations[role] = pick;
+    }
+  }
+  return out;
+}
+
+/**
+ * LES TRANSITIONS DU FILM (23/11/2026) — un film garde deux transitions au plus (au-delà, le montage paraît désordonné),
+ * mais ce ne sont plus toujours les deux premières de son thème : le code tire la paire dans sa palette (les moins
+ * livrées à la marque d'abord), puis l'alterne au fil des coupes.
+ */
+function spreadTransitions(cat: LoadedVideoCatalog, theme: ThemeNode, configs: SceneConfig[], o: { seed: string; delivered: Map<string, number> }): SceneConfig[] {
+  const palette = theme.transitions.filter((id) => cat.nodes.get(id)?.kind === 'transition');
+  if (palette.length < 2) return configs;
+  const ranked = seededShuffle(palette, `${o.seed}|tr`).sort((a, b) => Math.min(2, o.delivered.get(`T:${a}`) ?? 0) - Math.min(2, o.delivered.get(`T:${b}`) ?? 0));
+  const pair = ranked.slice(0, 2);
+  // L'ordre d'alternance : la première coupe prend l'une ou l'autre selon le film, puis une coupe sur trois prend la seconde.
+  return configs.map((c, i) => {
+    if (i === 0) return c;
+    const own = c.transition && pair.includes(c.transition) ? c.transition : undefined;
+    return { ...c, transition: own ?? pair[(i % 3 === 0 ? 1 : 0 + (jitterOf(`${o.seed}|tr|${i}`) < 0.25 ? 1 : 0)) % 2] };
+  });
+}
+
+const jitterOf = (seed: string): number => (parseInt(stableHash([seed], 6), 16) % 1000) / 1000;
+
+/**
+ * LES DÉCORS DU FILM (23/11/2026) — formes animées, objets 3D, illustrations qui se dessinent, motifs, lumières. Le code
+ * tire une PALETTE de trois décors pour le film (DA de la marque, gamme du cran, énergie proche de celle de la DA) —
+ * la cohérence d'un film vient de ce qu'il répète —, puis en pose un sur une partie des scènes : jamais le même deux
+ * scènes de suite, chacun une fois toutes les trois scènes au plus, un décor de bord (`edge`) sur une photo plein cadre,
+ * un décor de fond derrière une scène sans média. Une DA posée en pose moins (la retenue fait partie de son style).
+ */
+function planDecors(cat: LoadedVideoCatalog, facts: SceneFacts[], configs: SceneConfig[], o: { direction?: string; level?: string; seed: string; delivered: Map<string, number>; formats: FilmFormatId[] }): SceneConfig[] {
+  if (process.env.VIDEO_DECOR === 'off') return configs;
+  const pool = inTier(inDirection(cat, ((videoIndex(cat).get('decor') ?? []) as DecorNode[]).filter((d) => o.formats.every((f) => d.formats.includes(f))), o.direction), o.level, 6);
+  if (!pool.length) return configs;
+  const daEnergy = Number(getDirection(o.direction)?.tags?.energy) || 3;
+  const density = daEnergy <= 2 ? 0.45 : daEnergy >= 4 ? 0.8 : 0.65;
+  const near = (d: DecorNode) => (d.energy ? (daEnergy >= d.energy[0] && daEnergy <= d.energy[1] ? 1 : 0.4) : 0.7);
+  const palette: string[] = [];
+  for (let k = 0; k < 3; k++) {
+    const id = pickWeighted(pool.filter((d) => !palette.includes(d.id)).map((d) => ({ item: d.id, score: 0.4 * near(d) - Math.min(0.3, 0.08 * (o.delivered.get(`D:${d.id}`) ?? 0)) + 0.15 * jitterOf(`${o.seed}|dp|${d.id}`) })), `${o.seed}|palette|${k}`, 0.35, 0.15);
+    if (id) palette.push(id);
+  }
+  const count = new Map<string, number>();
+  const cap = Math.max(1, Math.ceil(facts.length / 3));
+  return configs.map((c, i) => {
+    if (c.decor && cat.nodes.get(c.decor)?.kind === 'decor') return c;
+    if (jitterOf(`${o.seed}|density|${i}`) > density) return c;
+    const cover = mediaCover(cat.nodes.get(c.layout) as { html: string } | undefined, Boolean(facts[i].slots.media));
+    const prev = i > 0 ? configs[i - 1].decor : undefined;
+    const fits = pool.filter((d) => {
+      if (d.id === prev || (count.get(d.id) ?? 0) >= cap) return false;
+      if (d.sceneRoles?.length && !d.sceneRoles.includes(facts[i].role as SceneRole)) return false;
+      if (cover === 'full') return d.place === 'edge' && d.media !== 'without';
+      if (cover === 'part') return d.media !== 'without';
+      return d.media !== 'with';
+    });
+    const id = pickWeighted(fits.map((d) => ({ item: d.id, score: (palette.includes(d.id) ? 0.35 : 0) + 0.25 * near(d) })), `${o.seed}|decor|${i}`, 0.3, 0.12);
+    if (!id) return c;
+    count.set(id, (count.get(id) ?? 0) + 1);
+    configs[i] = { ...c, decor: id };
+    return configs[i];
+  });
+}
+
 /** LE FILM : liste courte, choix (code ou modèle), assemblage. Jamais d'exception : au pire, le choix du code. */
 export async function composeFilmFromCatalog(input: ComposeInput): Promise<ComposedFilm> {
   const t0 = Date.now();
@@ -330,23 +459,55 @@ export async function composeFilmFromCatalog(input: ComposeInput): Promise<Compo
   const facts = factsOf(input.scenes, input.formats, input.brand.hasLogo);
   const style = STYLES.includes(input.film.style as VideoStyle) ? (input.film.style as VideoStyle) : undefined;
   const seed = `${input.brand.name}|${input.film.seed}`;
-  const state: FilmState = { layouts: [], use: new Map(), seen: memory.templates };
+  const state: FilmState = { layouts: [], use: new Map(), seen: memory.templates, delivered: memory.delivered };
   // Les SÉQUENCES d'abord (code, 0 jeton) : les scènes enchaînées gardent la configuration de leur séquence.
   const sequences = planSequences(cat, facts, { direction: input.brand.direction, level: input.level, seed, seen: memory.sequences, hasLogo: input.brand.hasLogo, scenes: input.scenes });
   const lists: SceneCandidate[][] = [];
-  for (const f of facts) {
-    const list = shortlist(cat, f, { style, direction: input.brand.direction, state, seed, size: effort.shortlist, level: input.level });
-    lists.push(list);
-    const chosen = sequences.get(f.index)?.layout ?? list[0].layout.id;
-    state.layouts[f.index] = chosen;
-    state.use.set(chosen, (state.use.get(chosen) ?? 0) + 1);
+  if (process.env.VIDEO_FILM_PATH === 'greedy') {
+    // L'ancien choix, scène après scène (rétabli par `VIDEO_FILM_PATH=greedy`).
+    for (const f of facts) {
+      const list = shortlist(cat, f, { style, direction: input.brand.direction, state, seed, size: effort.shortlist, level: input.level });
+      const drawn = pickWeighted(list.map((c) => ({ item: c, score: c.score })), `${seed}|scene|${f.index}`, 0.3, 0.14);
+      if (drawn && drawn !== list[0]) list.splice(0, list.length, drawn, ...list.filter((c) => c !== drawn));
+      lists.push(list);
+      const chosen = sequences.get(f.index)?.layout ?? list[0].layout.id;
+      state.layouts[f.index] = chosen;
+      state.use.set(chosen, (state.use.get(chosen) ?? 0) + 1);
+    }
+  } else {
+    // LE CHEMIN DU FILM (24/11/2026, `film-path.ts`) : les listes courtes sont faites sans regarder les voisines, puis
+    // les scènes sont choisies ENSEMBLE (enchaînements et usure comptés sur tout le film), le chemin tiré avec la graine.
+    // Une liste VARIÉE : trois candidats au plus par mise en page (plusieurs gabarits d'une même mise en page pouvaient
+    // remplir toute la liste — ni le chemin ni la garde ne pouvaient alors éviter une répétition).
+    const size = Math.max(effort.shortlist, 8);
+    for (const f of facts) {
+      const wide = shortlist(cat, f, { style, direction: input.brand.direction, state: { layouts: [], use: new Map(), seen: memory.templates, delivered: memory.delivered }, seed, size: size * 3, level: input.level });
+      const per = new Map<string, number>();
+      const varied = wide.filter((c) => {
+        const n = per.get(c.layout.id) ?? 0;
+        per.set(c.layout.id, n + 1);
+        return n < 3;
+      });
+      lists.push(varied.slice(0, size).map((c, k) => ({ ...c, ref: String.fromCharCode(65 + k) })));
+    }
+    const asPath = (c: SceneConfig, score: number, hasMedia: boolean): PathCandidate => ({ layout: c.layout, ...(c.gabarit ? { gabarit: c.gabarit } : {}), ...(c.animations?.title ? { title: c.animations.title } : {}), cover: mediaCover(cat.nodes.get(c.layout) as { html: string } | undefined, hasMedia), ...(c.sequence ? { sequence: c.sequence } : {}), score });
+    const path = choosePath(
+      lists.map((l, i) => (sequences.has(i) ? [asPath(sequences.get(i)!, 0, Boolean(facts[i].slots.media))] : l.map((c) => asPath(c.config, c.score, Boolean(facts[i].slots.media))))),
+      { seed: `${seed}|film` }
+    );
+    lists.forEach((list, i) => {
+      const chosen = sequences.has(i) ? undefined : list[path[i]];
+      // Le choisi passe en tête de sa liste, qui reste la réserve (candidat suivant, variété).
+      if (chosen && chosen !== list[0]) list.splice(0, list.length, chosen, ...list.filter((c) => c !== chosen));
+    });
   }
   // Le rythme de la DA de la marque (22/11/2026) : son énergie (1 posée → 5 vive) tire le choix du thème vers elle.
   const daEnergy = Number(getDirection(input.brand.direction)?.tags?.energy) || 0;
   const filmEnergy = facts.reduce((n, f) => n + f.energy, 0) / Math.max(1, facts.length);
   const avgEnergy = daEnergy >= 1 && daEnergy <= 5 ? (filmEnergy * 2 + daEnergy) / 3 : filmEnergy;
   const themes = rankThemes(cat, { style, direction: input.brand.direction, energy: avgEnergy, allowDark: input.allowDark === true, seed, used: memory.themes, level: input.level });
-  let theme = themes[0];
+  // Le thème : tiré parmi les mieux classés (le premier reste le plus probable).
+  let theme = pickWeighted(themes.slice(0, 4).map((t, k) => ({ item: t, score: -0.07 * k })), `${seed}|theme`, 0.22, 0.12) ?? themes[0];
   let configs = lists.map((l, i) => sequences.get(i) ?? l[0].config);
   let trace: ComposedFilm['trace'] = { source: 'code', tokens: { input: 0, output: 0 }, ms: 0, detail: '' };
 
@@ -375,20 +536,36 @@ export async function composeFilmFromCatalog(input: ComposeInput): Promise<Compo
   // sauf au sein d'une même séquence (une continuité voulue).
   for (let i = 1; i < configs.length; i++) {
     if (configs[i].layout !== configs[i - 1].layout || (configs[i].sequence && configs[i].sequence === configs[i - 1].sequence)) continue;
-    if (sequences.has(i)) continue;
-    const alt = lists[i].find((c) => c.layout.id !== configs[i - 1].layout);
+    // La scène d'une séquence garde sa mise en page : c'est alors la scène d'avant (isolée) qui en change, sans
+    // reprendre celle de SA voisine d'avant.
+    if (sequences.has(i)) {
+      if (sequences.has(i - 1)) continue;
+      const alt = lists[i - 1].find((c) => c.layout.id !== configs[i].layout && c.layout.id !== configs[i - 2]?.layout);
+      if (alt) configs[i - 1] = alt.config;
+      continue;
+    }
+    const alt = lists[i].find((c) => c.layout.id !== configs[i - 1].layout && c.layout.id !== configs[i + 1]?.layout) ?? lists[i].find((c) => c.layout.id !== configs[i - 1].layout);
     if (alt) configs[i] = alt.config;
+    else if (!sequences.has(i - 1)) {
+      // La scène n'a pas d'autre mise en page : c'est sa voisine d'avant qui change.
+      const before = lists[i - 1].find((c) => c.layout.id !== configs[i].layout && c.layout.id !== configs[i - 2]?.layout);
+      if (before) configs[i - 1] = before.config;
+    }
   }
+  configs = remixAnimations(cat, theme, facts, configs, { direction: input.brand.direction, level: input.level, seed, delivered: memory.delivered });
   configs = varyTitles(cat, theme, facts, configs, { direction: input.brand.direction, level: input.level, seed });
+  configs = spreadTransitions(cat, theme, configs, { seed, delivered: memory.delivered });
+  configs = planDecors(cat, facts, configs, { direction: input.brand.direction, level: input.level, seed, delivered: memory.delivered, formats: input.formats });
   const scenes = assembleFilm(cat, input, theme, configs);
   trace.ms = Date.now() - t0;
   const seqIds = [...new Set(scenes.map((s) => s.config.sequence).filter(Boolean))];
-  trace.detail = `catalogue ${cat.version} · thème ${theme.id}${seqIds.length ? ` · séquences ${seqIds.join(', ')}` : ''} · ${scenes.map((s) => `${s.key}=${s.config.sequence ? `${s.config.sequence}#${(s.config.step ?? 0) + 1}` : s.config.gabarit ?? s.config.layout}${s.quality?.carry ? `⇠${s.quality.carry}` : s.config.transition ? `↤${s.config.transition}` : ''}${s.quality?.develop ? `+${s.quality.develop}` : ''}`).join(', ')}`.slice(0, 900);
+  trace.detail = `catalogue ${cat.version} · thème ${theme.id}${seqIds.length ? ` · séquences ${seqIds.join(', ')}` : ''} · ${scenes.map((s) => `${s.key}=${s.config.sequence ? `${s.config.sequence}#${(s.config.step ?? 0) + 1}` : s.config.gabarit ?? s.config.layout}${s.quality?.carry ? `⇠${s.quality.carry}` : s.config.transition ? `↤${s.config.transition}` : ''}${s.quality?.develop ? `+${s.quality.develop}` : ''}${s.config.decor ? `◇${s.config.decor}` : ''}`).join(', ')}`.slice(0, 1200);
   const metrics = filmMetrics(scenes, input.scenes);
   logger.info('video.catalog_film', { event: 'video.catalog_film', level: input.level, by: trace.source, detail: trace.detail, idle: scenes.map((s) => s.quality?.idle ?? 0), metrics });
   const host = coreHost();
   if (input.memoryKey && host.rememberFingerprints && process.env.IDEM_QUALITY_MEMORY !== '0') {
-    await host.rememberFingerprints({ documentType: 'video', key: input.memoryKey }, [`vtheme:${theme.id}`, ...scenes.map((s) => `vtpl:${sceneFingerprint(s.config)}`), ...seqIds.map((id) => `vseq:${id}`)]).catch(() => undefined);
+    const pieces = scenes.flatMap((s) => [`vlay:${s.config.layout}`, ...(s.config.gabarit ? [`vgab:${s.config.gabarit}`] : []), ...(s.config.decor ? [`vdec:${s.config.decor}`] : []), ...(s.config.transition ? [`vtr:${s.config.transition}`] : []), ...Object.values(s.config.animations ?? {}).map((a) => `van:${a}`)]);
+    await host.rememberFingerprints({ documentType: 'video', key: input.memoryKey }, [`vtheme:${theme.id}`, ...scenes.map((s) => `vtpl:${sceneFingerprint(s.config)}`), ...seqIds.map((id) => `vseq:${id}`), ...new Set(pieces)]).catch(() => undefined);
   }
   return { version: cat.version, theme: theme.id, vars: {}, scenes, trace, metrics };
 }
@@ -413,7 +590,8 @@ export async function nextSceneConfig(input: Pick<ComposeInput, 'scenes' | 'bran
   const list = shortlist(cat, facts[index], { style, direction: input.brand.direction, state: { layouts: [], use: new Map(), seen: new Set() }, seed: `${input.brand.name}|${input.film.seed}`, size: 12 });
   const done = new Set(tried.map(sceneFingerprint));
   const fresh = list.find((c) => !done.has(sceneFingerprint(c.config)));
-  if (fresh) return fresh.config;
+  const lastDecor = tried[tried.length - 1]?.decor;
+  if (fresh) return lastDecor ? { ...fresh.config, decor: lastDecor } : fresh.config;
   // Une seule mise en page montre la scène : une nouvelle version change alors le MOUVEMENT de son rôle principal
   // (une autre animation compatible), dans l'ordre du catalogue — jamais au hasard.
   const base = list[0]?.config;
@@ -448,6 +626,8 @@ export async function reviseSceneConfig(input: ComposeInput, index: number, them
   const user = chooseUser(cat, { brandLine: input.brand.line, film: input.film, themes: [theme], scenes, effort, level: input.level, direction: input.brand.direction, revise: { key, current, instruction, ...(point ? { point } : {}) } });
   const run = await callFilmModel(input.call, 'video.template', chooseSystem(), user, (raw) => (parseChoices(raw, cat, { themes: [theme], scenes, effort })?.scenes.size ?? 0) > 0);
   const parsed = run.raw ? parseChoices(run.raw, cat, { themes: [theme], scenes, effort }) : null;
-  const config = parsed?.scenes.get(key)?.config ?? list.find((c) => sceneFingerprint(c.config) !== sceneFingerprint(current))?.config ?? current;
+  const picked = parsed?.scenes.get(key)?.config ?? list.find((c) => sceneFingerprint(c.config) !== sceneFingerprint(current))?.config ?? current;
+  // Le décor de la scène reste (la retouche vise la mise en page et le mouvement), sauf s'il ne convient plus.
+  const config: SceneConfig = current.decor && !picked.decor ? { ...picked, decor: current.decor } : picked;
   return { config, trace: { source: parsed ? 'llm' : 'code', tokens: run.tokens, ms: run.ms, ...(run.failure ? { failure: run.failure } : {}), detail: `${key}: ${config.gabarit ?? config.layout}` } };
 }

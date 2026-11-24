@@ -24,8 +24,21 @@ export interface SceneSlots {
   attribution?: string;
   /** Les autres textes, dans l'ordre : une liste (jamais perdus). */
   items: string[];
-  media?: { id: string; kind: 'image' | 'video' };
+  media?: SceneMedia;
   logo: boolean;
+}
+
+/**
+ * Un média de scène, et ce que sa préparation en a lu (24/11/2026) : le point d'intérêt et la zone calme de chaque format
+ * (0..1), les proportions de l'image. Absents pour un média non préparé : rien ne change alors.
+ */
+export interface SceneMedia {
+  id: string;
+  kind: 'image' | 'video';
+  focus?: Partial<Record<FilmFormatId, { x: number; y: number }>>;
+  calm?: Partial<Record<FilmFormatId, { x: number; y: number; w: number; h: number; light?: boolean }>>;
+  /** Largeur / hauteur. */
+  aspect?: number;
 }
 
 const KEY_SLOT: Array<[RegExp, Exclude<Slot, 'items' | 'media' | 'logo'>]> = [
@@ -41,7 +54,7 @@ const KEY_SLOT: Array<[RegExp, Exclude<Slot, 'items' | 'media' | 'logo'>]> = [
 export const isFigure = (text: string): boolean => text.length <= 16 && /\d/.test(text) && /^[~≈+\-−]?\s*\d[\d\s.,  ]*\s*(%|[kKmM]|Md|Mds|M\$|FCFA|XAF|€|\$|x|×|h|j|ans?)?\s*$/u.test(text.trim());
 
 /** Les clés de la scène rangées : la clé contractuelle d'abord, puis la forme (un chiffre), puis l'ordre. */
-export function sceneSlots(texts: Record<string, string>, media: Array<{ id: string; kind: 'image' | 'video' }>, hasLogo: boolean, role?: string): SceneSlots {
+export function sceneSlots(texts: Record<string, string>, media: SceneMedia[], hasLogo: boolean, role?: string): SceneSlots {
   const out: SceneSlots = { items: [], logo: hasLogo };
   const rest: string[] = [];
   for (const [key, value] of Object.entries(texts)) {
@@ -73,7 +86,7 @@ export function sceneSlots(texts: Record<string, string>, media: Array<{ id: str
   if (!out.body && rest.length === 1) out.body = rest.shift();
   out.items = rest;
   const m = media.find((x) => x.kind === 'image' || x.kind === 'video');
-  if (m) out.media = { id: m.id, kind: m.kind };
+  if (m) out.media = { id: m.id, kind: m.kind, ...(m.focus ? { focus: m.focus } : {}), ...(m.calm ? { calm: m.calm } : {}), ...(m.aspect ? { aspect: m.aspect } : {}) };
   return out;
 }
 
@@ -149,9 +162,50 @@ export function layoutFits(layout: LayoutNode, f: SceneFacts): boolean {
   return true;
 }
 
+/** La façon dont une mise en page montre son média : plein cadre (rien derrière ne se voit), en partie, ou pas du tout. */
+export function mediaCover(layout: { html: string } | undefined, hasMedia: boolean): 'full' | 'part' | 'none' {
+  if (!layout || !hasMedia || !/data-v="media"/.test(layout.html)) return 'none';
+  return /data-v="media"[^>]*class="[^"]*\babsolute inset-0\b/.test(layout.html) ? 'full' : 'part';
+}
+
+/**
+ * Le texte sur l'image (24/11/2026) : une mise en page plein cadre pose ses textes SUR l'image. Une image préparée sans
+ * zone calme dans un des formats du film (elle est chargée partout) s'y prête mal : la mise en page recule ; une image
+ * calme dans tous les formats avance un peu. Une image non préparée : rien ne change.
+ */
+export function calmFit(layout: { html: string }, f: SceneFacts): number {
+  const m = f.slots.media;
+  if (!m?.calm || mediaCover(layout, true) !== 'full') return 0;
+  const calm = f.formats.filter((x) => m.calm![x]).length;
+  return calm === f.formats.length ? 0.04 : -0.1;
+}
+
 const roleMatch = (roles: string[] | undefined, role?: string): number => (!roles?.length ? 0 : roles.includes(role ?? '') ? 1 : roles.includes('*') ? 0.3 : 0);
 const energyMatch = (range: [number, number] | undefined, e: number): number => (!range ? 0.5 : e >= range[0] && e <= range[1] ? 1 : 1 - Math.min(1, Math.min(Math.abs(e - range[0]), Math.abs(e - range[1])) / 2));
 const jitter = (seed: string): number => (parseInt(stableHash([seed], 6), 16) % 1000) / 1000;
+
+/**
+ * LE TIRAGE PONDÉRÉ (23/11/2026) — avant, le premier du classement gagnait toujours : à rôle et énergie égaux, deux films
+ * différents recevaient la même scène (même mise en page, mêmes animations, même transition). Désormais le code tire au
+ * sort, avec la graine du film (nouvelle à chaque génération, rejouable ensuite), parmi les candidats assez proches du
+ * meilleur (`band`) ; le meilleur reste le plus probable (`temp` : plus petit = plus fidèle au classement).
+ */
+export function pickWeighted<T>(list: Array<{ item: T; score: number }>, seed: string, band = 0.22, temp = 0.09): T | undefined {
+  if (!list.length) return undefined;
+  const top = Math.max(...list.map((x) => x.score));
+  const near = list.filter((x) => x.score >= top - band);
+  const weights = near.map((x) => Math.exp((x.score - top) / temp));
+  const total = weights.reduce((a, b) => a + b, 0);
+  let r = jitter(seed) * total;
+  for (let k = 0; k < near.length; k++) {
+    r -= weights[k];
+    if (r <= 0) return near[k].item;
+  }
+  return near[near.length - 1].item;
+}
+
+/** Un mélange stable d'une liste (graine du film) : l'ordre change d'un film à l'autre, jamais d'un rendu à l'autre. */
+export const seededShuffle = <T extends string>(list: T[], seed: string): T[] => [...list].sort((a, b) => jitter(`${seed}|${a}`) - jitter(`${seed}|${b}`));
 
 export interface SceneCandidate {
   ref: string;
@@ -167,6 +221,8 @@ export interface FilmState {
   use: Map<string, number>;
   /** Les combinaisons déjà livrées à la marque (mémoire). */
   seen: Set<string>;
+  /** Combien de fois chaque mise en page (`L:id`) et chaque gabarit (`G:id`) a été livré à la marque récemment. */
+  delivered?: Map<string, number>;
 }
 
 export const sceneFingerprint = (c: SceneConfig): string => stableHash([c.gabarit ?? '', c.layout, ...Object.entries(c.animations ?? {}).sort().map(([r, a]) => `${r}=${a}`), c.transition ?? ''], 10);
@@ -219,13 +275,18 @@ export function shortlist(cat: LoadedVideoCatalog, f: SceneFacts, o: { style?: V
     if (layout.id === previous) s -= 0.6;
     s -= 0.12 * (o.state.use.get(layout.id) ?? 0);
     if (o.state.seen.has(sceneFingerprint(config))) s -= 0.15;
+    // La mémoire de la marque, par pièce et non plus par combinaison exacte : une mise en page ou un gabarit déjà livrés
+    // reculent un peu à chaque film (au plus 0,3) — la marque voit le catalogue entier défiler, pas les trois mêmes scènes.
+    const worn = (o.state.delivered?.get(`L:${layout.id}`) ?? 0) + (config.gabarit ? o.state.delivered?.get(`G:${config.gabarit}`) ?? 0 : 0);
+    s -= Math.min(0.3, 0.06 * worn);
     // La première scène accroche, la dernière conclut : les rôles du récit le disent déjà ; la position renforce.
     if (f.index === f.count - 1 && layout.roles.includes('cta')) s += 0.08;
-    return s + 0.06 * (node.weight ?? 1) + 0.08 * jitter(`${o.seed}|${f.index}|${node.id}`);
+    s += calmFit(layout, f);
+    return s + 0.06 * (node.weight ?? 1) + 0.16 * jitter(`${o.seed}|${f.index}|${node.id}`);
   };
   const out: SceneCandidate[] = [];
   // LA GAMME DU CRAN (18/11/2026) : le cran choisit des gabarits de scène de plus en plus premium, et rien d'autre.
-  const gabarits = inTier(inDirection(cat, (index.get('gabarit') ?? []) as GabaritNode[], o.direction).filter((g) => fitting.has(g.config.layout) && roleMatch(g.roles, f.role) > 0), o.level, 2);
+  const gabarits = inTier(inDirection(cat, (index.get('gabarit') ?? []) as GabaritNode[], o.direction).filter((g) => fitting.has(g.config.layout) && roleMatch(g.roles, f.role) > 0), o.level, 6);
   for (const g of gabarits) {
     if (!fitting.has(g.config.layout) || roleMatch(g.roles, f.role) === 0) continue;
     const layout = cat.nodes.get(g.config.layout) as LayoutNode;
@@ -233,7 +294,7 @@ export function shortlist(cat: LoadedVideoCatalog, f: SceneFacts, o: { style?: V
     out.push({ ref: '', layout, gabarit: g, config, score: score(layout, g, config) + 0.1 });
   }
   // Les mises en page nues (animations du thème) complètent la liste : plus de combinaisons, jamais moins juste.
-  for (const layout of inTier(layouts, o.level, 3)) {
+  for (const layout of inTier(layouts, o.level, 6)) {
     if (out.some((c) => c.layout.id === layout.id && c.score > 0.5)) continue;
     const config: SceneConfig = { layout: layout.id, animations: {} };
     out.push({ ref: '', layout, config, score: score(layout, layout, config) });
@@ -254,7 +315,7 @@ export function rankThemes(cat: LoadedVideoCatalog, o: { style?: VideoStyle; dir
   const themes = inTier(inDirection(cat, (videoIndex(cat).get('theme') ?? []).filter((n): n is ThemeNode => o.allowDark || !(n as ThemeNode).requiresDark), o.direction), o.level, 2);
   if (!themes.length) return [cat.nodes.get('builtin.plain') as ThemeNode];
   return themes
-    .map((t) => ({ t, s: (o.style && t.tags?.style?.includes(o.style) ? 0.5 : 0) + 0.3 * energyMatch(t.energy, Math.round(o.energy)) - (o.used.includes(t.id) ? 0.25 : 0) + 0.15 * jitter(`${o.seed}|${t.id}`) }))
+    .map((t) => ({ t, s: (o.style && t.tags?.style?.includes(o.style) ? 0.35 : 0) + 0.3 * energyMatch(t.energy, Math.round(o.energy)) - Math.min(0.45, 0.15 * o.used.filter((u) => u === t.id).length) + 0.3 * jitter(`${o.seed}|${t.id}`) }))
     .sort((a, b) => b.s - a.s)
     .map((x) => x.t);
 }

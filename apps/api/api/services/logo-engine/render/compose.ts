@@ -81,6 +81,37 @@ export function resolveLayout(composition: LogoComposition, groups: Groups): Lay
 
 const moveBy = (parts: Part[], m: Matrix, ctx: BuildContext) => parts.map((p) => transformPart(p, m, ctx.kernel));
 
+/** Centre de masse des surfaces pleines d'un groupe (aires pondérées) ; `null` si le noyau ne sait pas le mesurer. */
+function massCenter(parts: Part[], ctx: BuildContext): [number, number] | null {
+  if (!ctx.kernel.centroid) return null;
+  let total = 0;
+  let sx = 0;
+  let sy = 0;
+  for (const part of parts) {
+    if (part.paint === 'paper' || part.paint === 'none') continue;
+    const c = ctx.kernel.centroid(part.shape);
+    const a = ctx.kernel.area(part.shape);
+    if (!c || !a) continue;
+    total += a;
+    sx += a * c[0];
+    sy += a * c[1];
+  }
+  return total ? [sx / total, sy / total] : null;
+}
+
+/**
+ * Correction optique : déplace le symbole pour que son centre de masse — et non sa boîte —
+ * tombe sur l'axe du nom. Bornée à 12 % du symbole : on corrige l'œil, on ne recompose pas.
+ */
+function opticalShift(parts: Part[], axis: 'x' | 'y', target: number, ctx: BuildContext): Part[] {
+  const box = inkOf(parts);
+  const center = massCenter(parts, ctx);
+  if (!box || !center) return parts;
+  const size = axis === 'y' ? box.h : box.w;
+  const delta = Math.max(-0.12 * size, Math.min(0.12 * size, target - center[axis === 'y' ? 1 : 0]));
+  return Math.abs(delta) < 1e-3 ? parts : moveBy(parts, axis === 'y' ? translate(0, delta) : translate(delta, 0), ctx);
+}
+
 /** Empile des lignes de texte (leurs lignes de base séparées de `leading`), alignées à gauche ou au centre. */
 function stackLines(lines: { parts: Part[]; ink: Rect; cap: number }[], align: 'center' | 'start', leading: number, ctx: BuildContext): { parts: Part[]; ink: Rect } | null {
   if (!lines.length) return null;
@@ -141,6 +172,8 @@ export function composeScene(doc: LogoDocument, groups: Groups, ctx: BuildContex
     if (symbolInk.w * f > targetH * 1.9) f = (targetH * 1.9) / symbolInk.w;
     const m = multiply(scaleBy(f), translate(-symbolInk.x, -symbolInk.y - symbolInk.h / 2));
     placed.symbol = moveBy(groups.symbol, m, ctx);
+    // Le nom (une ligne) a le milieu de sa capitale en y = 0 : le centre de masse du symbole s'y aligne.
+    if (comp.optical) placed.symbol = opticalShift(placed.symbol, 'y', 0, ctx);
     const sb = inkOf(placed.symbol)!;
     const gap = comp.gap * sb.h;
     const x0 = sb.x + sb.w + gap;
@@ -156,6 +189,8 @@ export function composeScene(doc: LogoDocument, groups: Groups, ctx: BuildContex
     if (symbolInk.w * f > wordW * 0.95) f = (wordW * 0.95) / symbolInk.w;
     const m = multiply(scaleBy(f), translate(-symbolInk.x - symbolInk.w / 2, -symbolInk.y - symbolInk.h));
     placed.symbol = moveBy(groups.symbol, m, ctx);
+    // Empilé : le nom est centré en x = 0, le centre de masse du symbole s'y aligne.
+    if (comp.optical && comp.align === 'center') placed.symbol = opticalShift(placed.symbol, 'x', 0, ctx);
     const sb = inkOf(placed.symbol)!;
     const gap = Math.max(comp.gap, 0.12) * sb.h;
     // Le nom, centré sous le symbole.

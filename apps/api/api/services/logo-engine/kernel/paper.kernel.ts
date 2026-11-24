@@ -158,6 +158,73 @@ export class PaperGeometryKernel implements GeometryKernel {
     }
     return [shape];
   }
+
+  rowIntervals(shape: Shape, y: number): [number, number][] {
+    const item = itemOf(shape);
+    if (!item) return [];
+    const b = shape.bounds;
+    if (y <= b.y || y >= b.y + b.h) return [];
+    const line = new scope.Path.Line({ from: [b.x - 1, y], to: [b.x + b.w + 1, y], insert: false });
+    let xs: number[];
+    try {
+      xs = item.getIntersections(line).map((loc) => loc.point.x).sort((a, c) => a - c);
+    } catch {
+      return [];
+    }
+    // Les croisements délimitent des intervalles ; on garde ceux dont le milieu est DANS la forme (règle de remplissage).
+    const out: [number, number][] = [];
+    for (let i = 0; i + 1 < xs.length; i++) {
+      if (xs[i + 1] - xs[i] < 1e-6) continue;
+      if (this.contains(shape, (xs[i] + xs[i + 1]) / 2, y)) {
+        const last = out[out.length - 1];
+        if (last && Math.abs(last[1] - xs[i]) < 1e-6) last[1] = xs[i + 1];
+        else out.push([xs[i], xs[i + 1]]);
+      }
+    }
+    return out;
+  }
+
+  contains(shape: Shape, x: number, y: number): boolean {
+    const item = itemOf(shape);
+    if (!item) return false;
+    try {
+      return (item as unknown as { contains(p: paper.Point): boolean }).contains(new scope.Point(x, y));
+    } catch {
+      return false;
+    }
+  }
+
+  distanceToEdge(shape: Shape, x: number, y: number): number {
+    const item = itemOf(shape);
+    if (!item) return 0;
+    try {
+      const p = new scope.Point(x, y);
+      const near = (item as unknown as { getNearestPoint(p: paper.Point): paper.Point }).getNearestPoint(p);
+      return near ? near.getDistance(p) : 0;
+    } catch {
+      return 0;
+    }
+  }
+
+  centroid(shape: Shape): [number, number] | null {
+    // Échantillonnage régulier de la surface (règle de remplissage) : exact à la résolution près, robuste aux trous.
+    const b = shape.bounds;
+    const n = 28;
+    let count = 0;
+    let sx = 0;
+    let sy = 0;
+    for (let j = 0; j < n; j++)
+      for (let i = 0; i < n; i++) {
+        const x = b.x + ((i + 0.5) / n) * b.w;
+        const y = b.y + ((j + 0.5) / n) * b.h;
+        if (this.contains(shape, x, y)) {
+          count++;
+          sx += x;
+          sy += y;
+        }
+      }
+    return count ? [sx / count, sy / count] : null;
+  }
 }
 
 let shared: GeometryKernel | null = null;

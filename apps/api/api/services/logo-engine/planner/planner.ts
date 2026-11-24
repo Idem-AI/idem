@@ -18,10 +18,13 @@ import type { ProducedLogo } from '../pipeline';
 import type { BrandFonts } from '../render/scene';
 import type { BuildOptions } from '../render/build';
 import { seeded } from '../render/generators';
-import { fingerprintDistance, LOGO_SIMILARITY, nearest } from '../validate/fingerprint';
+import { diversityCell, fingerprintDistance, LOGO_SIMILARITY, nearest } from '../validate/fingerprint';
+import { rankScore } from '../validate/perception';
+import { refineLogo } from './optimize';
 import type { LogoFingerprint } from '../validate/fingerprint';
 import { briefWeights, CharterPalette, conceptMenu, inkPalette, LogoKind, PlanBrief, traitsOf } from './brief';
 import { recipesFor, RecipeCtx } from './recipes';
+import type { Recipe } from './recipes';
 import { literalGenerators, originalityOf } from './originality';
 import type { OriginalityContext } from './originality';
 import type { Doc } from './recipes';
@@ -49,6 +52,8 @@ export interface PlanInput {
   usage?: Record<string, number>;
   /** Empreintes des logos récemment proposés aux AUTRES projets : un candidat trop proche est écarté. */
   crowd?: LogoFingerprint[];
+  /** Essais d'affinage par candidat retenu (0 : aucun affinage). */
+  refine?: number;
 }
 
 export interface PlannedLogo extends ProducedLogo {
@@ -89,6 +94,19 @@ function weightedType(menu: Partial<Record<ConceptType, number>>, picked: Concep
   return entries[entries.length - 1][0];
 }
 
+/** Tirage d'une recette proportionnel à son poids (0 : exclue pour ce brief ou cette direction). */
+function pickRecipe(recipes: Recipe[], ctx: RecipeCtx): Recipe | null {
+  const weighted = recipes.map((r) => ({ r, w: Math.max(0, r.weight(ctx)) })).filter((x) => x.w > 0);
+  const total = weighted.reduce((s, x) => s + x.w, 0);
+  if (!total) return null;
+  let roll = ctx.rng() * total;
+  for (const x of weighted) {
+    roll -= x.w;
+    if (roll <= 0) return x.r;
+  }
+  return weighted[weighted.length - 1].r;
+}
+
 /** Génère un lot de documents candidats (sans les construire). */
 export function candidateDocs(input: PlanInput, attempts: number): { doc: Doc; type: ConceptType; recipe: string }[] {
   const palette: LogoPalette = isCharter(input.palette) ? inkPalette(input.palette) : input.palette;
@@ -107,11 +125,9 @@ export function candidateDocs(input: PlanInput, attempts: number): { doc: Doc; t
     const rng = seeded(hashSeed(`${input.seed}#${attempt}`));
     const type = weightedType(menu, picked, rng);
     if (!type) break;
-    const recipes = recipesFor(type);
-    const recipe = recipes[Math.floor(rng() * recipes.length)];
-    if (!recipe) continue;
     const ctx: RecipeCtx = { brief: input.brief, palette, rng, weights, traits, withName, explore: input.explore ?? 0.4, used, originality };
-    if (recipe.weight(ctx) <= 0) continue;
+    const recipe = pickRecipe(recipesFor(type), ctx);
+    if (!recipe) continue;
     const doc = recipe.build(ctx);
     if (!doc) continue;
     picked.push(type);
@@ -132,14 +148,42 @@ export async function buildPool(input: PlanInput, build: BuildOptions, attempts?
     if (!result.ok || !result.logo || !result.logo.fingerprint) continue;
     built.push({ ...result.logo, recipe: candidate.recipe, type: candidate.type, novelty: 1 });
   }
+  // Les meilleurs candidats sont affinés (réglages cherchés par la mesure, plus tirés au sort).
+  const refineBudget = input.refine ?? REFINE.budget;
+  if (refineBudget > 0) {
+    const order = built.map((l, i) => ({ i, r: rankScore(l.report) })).sort((a, b) => b.r - a.r).slice(0, REFINE.top);
+    for (const { i } of order) {
+      const refined = await refineLogo(built[i], build, refineBudget);
+      if (refined.logo !== built[i]) built[i] = { ...built[i], ...refined.logo };
+    }
+  }
   const accepted = built.filter((l) => l.report.accepted);
   return { pool: accepted.length >= (input.count ?? 3) ? accepted : built.filter((l) => l.report.ok), attempted: candidates.length, built: built.length, accepted: accepted.length };
 }
 
+/** L'affinage : combien de candidats (les mieux classés), combien d'essais chacun. */
+export const REFINE = { top: 6, budget: 8 } as const;
+
 /** Retient `count` propositions : la meilleure, puis les plus éloignées des précédentes et de la mémoire. */
+/**
+ * Le front de Pareto du lot sur trois objectifs — exploitabilité, perception, originalité (distance
+ * aux logos des autres projets) : les candidats qu'aucun autre ne bat sur les trois à la fois.
+ * Un score unique écraserait l'originalité sous la simplicité ; le front garde les compromis.
+ */
+export function paretoFront(pool: PlannedLogo[], crowd: LogoFingerprint[] = []): Set<PlannedLogo> {
+  const objectives = pool.map((p) => [p.report.score, p.report.aesthetic ?? 0, crowd.length ? nearest(p.fingerprint!, crowd) : 1]);
+  const front = new Set<PlannedLogo>();
+  pool.forEach((p, i) => {
+    const dominated = objectives.some((o, j) => j !== i && o.every((v, k) => v >= objectives[i][k]) && o.some((v, k) => v > objectives[i][k]));
+    if (!dominated) front.add(p);
+  });
+  return front;
+}
+
 export function selectDistinct(pool: PlannedLogo[], count: number, avoid: LogoFingerprint[] = [], crowd: LogoFingerprint[] = []): PlannedLogo[] {
   const chosen: PlannedLogo[] = [];
-  const remaining = [...pool].sort((a, b) => b.report.score - a.report.score);
+  const front = paretoFront(pool, crowd);
+  const remaining = [...pool].sort((a, b) => rankScore(b.report) - rankScore(a.report));
   while (chosen.length < count && remaining.length) {
     let bestIndex = 0;
     let bestValue = -Infinity;
@@ -150,7 +194,11 @@ export function selectDistinct(pool: PlannedLogo[], count: number, avoid: LogoFi
       const tooClose = dist < LOGO_SIMILARITY.tooClose ? 40 : 0;
       // Déjà proposé à un autre projet d'IDEM (même silhouette, mêmes motifs) : un logo n'est pas original s'il est celui d'un autre.
       const crowded = crowd.length && nearest(cand.fingerprint!, crowd) < LOGO_SIMILARITY.tooClose ? 30 : 0;
-      const value = Math.min(dist, LOGO_SIMILARITY.distinct) * 120 + cand.report.score * 0.5 - sameType - tooClose - crowded;
+      // MAP-Elites : une case de diversité (structure × symétrie × rondeur) déjà occupée coûte — trois propositions, trois silhouettes.
+      const cell = diversityCell(cand.fingerprint!);
+      const sameCell = cell && chosen.some((c) => diversityCell(c.fingerprint!) === cell) ? 10 : 0;
+      const pareto = front.has(cand) ? 6 : 0;
+      const value = Math.min(dist, LOGO_SIMILARITY.distinct) * 120 + rankScore(cand.report) * 0.5 + pareto - sameType - tooClose - crowded - sameCell;
       if (value > bestValue) {
         bestValue = value;
         bestIndex = i;
@@ -170,17 +218,50 @@ export async function planLogos(input: PlanInput, build: BuildOptions): Promise<
   return { logos, stats: { attempted, built, accepted, ms: Date.now() - started } };
 }
 
-/** Un document pour une direction imposée (type + générateur / variante) : le planificateur le construit, l'agent le choisit. */
-export function docForDirection(input: PlanInput, direction: { type: ConceptType; generator?: string; variant?: string }, salt: string): { doc: Doc; recipe: string } | null {
+type DirectionSpec = { type: ConceptType; generator?: string; variant?: string };
+
+/**
+ * Un document pour une direction imposée (type + générateur / variante) : le planificateur le
+ * construit, l'agent le choisit. Seules les recettes qui ACCEPTENT la direction sont tirées (poids
+ * > 0) : un générateur choisi par le directeur n'est jamais remplacé par une autre construction.
+ */
+export function docForDirection(input: PlanInput, direction: DirectionSpec, salt: string): { doc: Doc; recipe: string } | null {
   const palette: LogoPalette = isCharter(input.palette) ? inkPalette(input.palette) : input.palette;
   const traits = traitsOf(input.brief);
-  const recipes = recipesFor(direction.type);
   const rng = seeded(hashSeed(`${input.seed}#dir#${salt}`));
-  const recipe = recipes[Math.floor(rng() * recipes.length)];
-  if (!recipe) return null;
   const ctx: RecipeCtx = { brief: input.brief, palette, rng, weights: briefWeights(input.brief), traits, withName: input.withName ?? input.kind !== 'initial', explore: input.explore ?? 0.4, used: new Set(), force: { generator: direction.generator, variant: direction.variant }, originality: originalityFor(input) };
+  const recipe = pickRecipe(recipesFor(direction.type), ctx);
+  if (!recipe) return null;
   const doc = recipe.build(ctx);
   return doc ? { doc, recipe: String((doc.concept as Doc).recipe ?? recipe.id) } : null;
+}
+
+/** Combien de constructions on essaie pour UNE direction, et combien on affine. */
+export const DIRECTION_SEARCH = { tries: 6, refine: 2 } as const;
+
+/**
+ * La recherche DANS une direction : l'IA a choisi le sens (catégorie, motif, idée), le code
+ * cherche la meilleure forme de ce sens — plusieurs constructions (paramètres, conteneurs,
+ * effets, mises en page), mesurées par le profil du type, les deux meilleures affinées. Aucun
+ * jeton : c'est ce qui fait qu'une direction de 30 jetons donne un logo soigné.
+ */
+export async function searchDirection(input: PlanInput, direction: DirectionSpec, salt: string, build: BuildOptions, tries: number = DIRECTION_SEARCH.tries): Promise<PlannedLogo | null> {
+  const made: PlannedLogo[] = [];
+  for (let k = 0; k < tries; k++) {
+    const planned = docForDirection(input, direction, `${salt}.${k}`);
+    if (!planned) continue;
+    const result = await produceLogo(planned.doc, build, { skipVariants: true });
+    if (result.ok && result.logo?.fingerprint) made.push({ ...result.logo, type: direction.type, recipe: planned.recipe, novelty: 1 });
+  }
+  if (!made.length) return null;
+  made.sort((a, b) => rankScore(b.report) - rankScore(a.report));
+  const budget = input.refine ?? REFINE.budget;
+  for (let k = 0; k < Math.min(DIRECTION_SEARCH.refine, made.length) && budget > 0; k++) {
+    const refined = await refineLogo(made[k], build, budget);
+    if (refined.logo !== made[k]) made[k] = { ...made[k], ...refined.logo };
+  }
+  made.sort((a, b) => rankScore(b.report) - rankScore(a.report));
+  return made[0];
 }
 
 export { fingerprintDistance };

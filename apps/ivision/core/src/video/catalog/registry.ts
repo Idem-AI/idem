@@ -25,7 +25,7 @@ import { LoadedVideoCatalog, nodeErrors, refErrors, VideoNode } from './types';
 /** La version du moteur vidéo par catalogue : un manifeste d'une autre version MAJEURE est refusé. */
 // 2.0 : chaque nœud déclare ses directions artistiques (catalogue `directions` du dépôt).
 // 2.1 (22/11/2026) : sortes « develop » et « sequence » (un moteur 2.0 les ignore, les écarte et le dit).
-export const VIDEO_CATALOG_ENGINE = '2.1.0';
+export const VIDEO_CATALOG_ENGINE = '2.2.0';
 
 interface VideoManifest {
   schema: number;
@@ -54,9 +54,9 @@ let etag: string | undefined;
 function unsafe(node: VideoNode): string[] {
   // La mise en page d'une primitive est contrôlée comme une autre ; son composant (registre HyperFrames) a ses propres
   // règles (`types.ts#primitiveErrors` : source admise, empreinte, aucune API qui sorte de la page).
-  const texts = node.kind === 'layout' || node.kind === 'primitive' ? [node.html] : node.kind === 'theme' ? Object.values(node.classes ?? {}) : [];
+  const texts = node.kind === 'layout' || node.kind === 'primitive' || node.kind === 'decor' ? [node.html] : node.kind === 'theme' ? Object.values(node.classes ?? {}) : [];
   const bad = texts.flatMap((t) => unsafeReasons(String(t ?? '')));
-  if (node.kind === 'layout' || node.kind === 'primitive') {
+  if (node.kind === 'layout' || node.kind === 'primitive' || node.kind === 'decor') {
     const words = hardcodedWords(node.html.replace(/&[a-z]+;/gi, ' '));
     if (words.length) bad.push(`mots écrits en dur : ${words.join(' ')}`);
   }

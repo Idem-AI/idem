@@ -64,8 +64,8 @@ export const chargeBrandSession = requireCredits('business', 'logo_brand', {
 });
 
 /**
- * La session de logos : toujours dessinée au cran Ultra (l'IA crée tout), au prix habituel
- * de la session — le logo n'a pas de jauge, son cran n'est pas facturé en plus.
+ * La session de logos : dessinée au cran High (le sens par l'IA, la forme par le code — voir
+ * `LOGO_LEVEL` dans le contrôleur), au prix habituel de la session — le logo n'a pas de jauge.
  */
 const chargeLogoSession = requireCredits('business', 'logo_brand', {
   resolve: firstThenRevision('business', 'logo_brand', 'logo_relaunch'),

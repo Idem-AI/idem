@@ -26,7 +26,9 @@ export { configureGraphicEngine, engineHost } from './host';
 export type { AgentCall, AgentProfile, EngineHost, EngineLogger, FingerprintScope } from './host';
 
 // ── Les documents ────────────────────────────────────────────────────────────────────────────
-export { ContentError, createDocument, GraphicDocument, GraphicRenderError, MEMORY_MAX, MEMORY_TTL_S, memoryEnabled, mergeMemory, qualityStatus, renderSingle } from './engine';
+export { ContentError, createDocument, GraphicDocument, GraphicRenderError, MEMORY_MAX, MEMORY_TTL_S, memoryEnabled, mergeMemory, PLAN_IMAGE_PLACEHOLDER, planSingle, qualityStatus, renderSingle } from './engine';
+export type { PagePlan } from './engine';
+export type { ImageNeeds, ImageNeedsSpec } from './catalog';
 export type { DocumentOptions, SectionOutput } from './engine';
 export type { ReferenceComposition } from './author/prompts';
 

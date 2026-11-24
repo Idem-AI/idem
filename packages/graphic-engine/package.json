@@ -21,6 +21,7 @@
     "check": "ts-node --transpile-only scripts/check.ts",
     "check:fast": "ts-node --transpile-only scripts/check.ts --fast",
     "check:catalog": "ts-node --transpile-only scripts/check-catalog.ts",
+    "check:variety": "ts-node --transpile-only scripts/check-variety.ts",
     "catalog:snapshot": "ts-node --transpile-only scripts/catalog-snapshot.ts",
     "schemas": "ts-node --transpile-only scripts/generate-schemas.ts",
     "sample:rollup": "ts-node --transpile-only scripts/sample-rollup.ts",
