@@ -11,6 +11,7 @@ import {
   untracked,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Router } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { TranslateModule } from '@ngx-translate/core';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
@@ -18,20 +19,20 @@ import { MotionVideoService } from '../../../../services/ai-agents/motion-video.
 import { ivisionUrl } from '../../../../../../shared/utils/app-redirect';
 import { MotionVideo, VideoOptions } from '../../../../models/motion-video.model';
 import { VideoBuilder } from '../video-builder/video-builder';
-import { VideoDetail } from '../video-detail/video-detail';
 import { VideoKora } from '../video-kora/video-kora';
+import { urlFlag } from '../../url-state';
 
-type View = { kind: 'list' } | { kind: 'create' } | { kind: 'detail'; videoId: string };
+type View = { kind: 'list' } | { kind: 'create' };
 
 /**
  * MES VIDÉOS — vidéos de promotion en motion design, à la charte.
  *
- * Trois vues : la liste, la création en trois questions, et la vidéo (aperçu,
- * retouches gratuites, export MP4).
+ * Deux vues : la liste et la création en trois questions. Une vidéo s'ouvre sur
+ * SA PROPRE PAGE (`/project/communication/videos/:id`, `VideoPage`).
  */
 @Component({
   selector: 'app-video-panel',
-  imports: [TranslateModule, IdemLoaderComponent, VideoBuilder, VideoDetail, VideoKora],
+  imports: [TranslateModule, IdemLoaderComponent, VideoBuilder, VideoKora],
   templateUrl: './video-panel.html',
   styleUrl: './video-panel.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -39,6 +40,7 @@ type View = { kind: 'list' } | { kind: 'create' } | { kind: 'detail'; videoId: s
 export class VideoPanel {
   private readonly service = inject(MotionVideoService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly router = inject(Router);
 
   readonly projectId = input.required<string>();
   /** La même vidéo dans iVision (conversation), avec la charte de ce projet importée. */
@@ -49,7 +51,9 @@ export class VideoPanel {
   readonly failed = output<string>();
   readonly needsCredits = output<{ cost: number; balance: number }>();
 
-  protected readonly view = signal<View>({ kind: 'list' });
+  /** La création en cours : `?new=1` (une actualisation y reste). */
+  private readonly creating = urlFlag('new', { push: true });
+  protected readonly view = computed<View>(() => (this.creating() ? { kind: 'create' } : { kind: 'list' }));
   protected readonly videos = signal<MotionVideo[]>([]);
   protected readonly options = signal<VideoOptions | null>(null);
   protected readonly loading = signal(true);
@@ -64,14 +68,13 @@ export class VideoPanel {
       const id = this.openVideoId();
       if (!id || this.loading()) return;
       untracked(() => {
-        if (this.videos().some((v) => v.id === id)) this.view.set({ kind: 'detail', videoId: id });
-        else this.load(this.projectId(), id);
         this.openHandled.emit();
+        this.openPage(id);
       });
     });
   }
 
-  private load(projectId: string, open?: string): void {
+  private load(projectId: string): void {
     this.loading.set(true);
     forkJoin({ options: this.service.options(projectId), videos: this.service.list(projectId) })
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -80,7 +83,6 @@ export class VideoPanel {
           this.options.set(options);
           this.videos.set(this.sorted(videos));
           this.loading.set(false);
-          if (open && videos.some((v) => v.id === open)) this.view.set({ kind: 'detail', videoId: open });
         },
         error: () => {
           this.loading.set(false);
@@ -94,29 +96,25 @@ export class VideoPanel {
   }
 
   protected open(video: MotionVideo): void {
-    this.view.set({ kind: 'detail', videoId: video.id });
+    this.openPage(video.id);
+  }
+
+  /** Une vidéo s'ouvre sur sa propre page. */
+  private openPage(videoId: string): void {
+    this.router.navigate(['/project/communication/videos', videoId]);
   }
 
   protected create(): void {
-    this.view.set({ kind: 'create' });
+    this.creating.set(true);
   }
 
   protected toList(): void {
-    this.view.set({ kind: 'list' });
+    this.creating.set(false);
   }
 
   protected onCreated(video: MotionVideo): void {
     this.videos.set(this.sorted([video, ...this.videos().filter((v) => v.id !== video.id)]));
-    this.view.set({ kind: 'detail', videoId: video.id });
-  }
-
-  protected onChanged(video: MotionVideo): void {
-    this.videos.update((list) => list.map((v) => (v.id === video.id ? video : v)));
-  }
-
-  protected onDeleted(videoId: string): void {
-    this.videos.update((list) => list.filter((v) => v.id !== videoId));
-    this.view.set({ kind: 'list' });
+    this.openPage(video.id);
   }
 
   /**
@@ -137,10 +135,5 @@ export class VideoPanel {
 
   protected posterFailed(video: MotionVideo): void {
     this.brokenPosters.update((set) => new Set([...set, video.id]));
-  }
-
-  protected detailId(): string | null {
-    const view = this.view();
-    return view.kind === 'detail' ? view.videoId : null;
   }
 }

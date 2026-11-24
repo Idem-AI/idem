@@ -11,7 +11,7 @@
 import { MotionVideo, MUSIC_MOODS, MusicMood } from './contracts/model';
 import type { VideoPatch } from './motionVideo.service';
 
-export type VideoRevisionPatch = Pick<VideoPatch, 'texts' | 'musicMood' | 'sfx' | 'voice' | 'voiceLines' | 'visual' | 'captions'>;
+export type VideoRevisionPatch = Pick<VideoPatch, 'texts' | 'musicMood' | 'sfx' | 'sfxIntensity' | 'voice' | 'voiceLines' | 'visual' | 'captions'>;
 
 export interface VideoRevision {
   newRequest: boolean;
@@ -50,7 +50,7 @@ export function buildVideoRevisionPrompt(video: MotionVideo, feedback: string, l
     'VISUAL s2: <what to change in how scene s2 looks or moves, as a clear instruction for the animator>',
     'VISUAL all: <instruction for every scene>',
     `MUSIC: one of ${MUSIC_MOODS.join(', ')}`,
-    'SFX: on | off',
+    'SFX: on | off | subtle | normal | punchy   (subtle / punchy: the sound effects are too loud / not heard enough — they stay on)',
     'VOICEOVER: on | off',
     'SUBTITLES: on | off',
     `REPLY: one short sentence to the client, in ${language}, saying what you changed`,
@@ -59,7 +59,7 @@ export function buildVideoRevisionPrompt(video: MotionVideo, feedback: string, l
   const user = [
     `VIDEO: ${film.title} — ${film.concept}`,
     ...film.scenes.map((s, i) => `${s.key} (scene ${i + 1}, ${s.duration.toFixed(1)} s${s.status === 'error' ? ', currently broken' : ''}): ${s.purpose} | visual: ${s.visual.slice(0, 200)} | texts: ${Object.entries(s.texts).map(([k, v]) => `${k}=${JSON.stringify(v)}`).join(' ') || 'none'}${s.voiceText ? ` | voice: ${JSON.stringify(s.voiceText)}` : ''}`),
-    `MUSIC: ${video.brief.musicMood} · SFX: ${video.sfx?.enabled ? 'on' : 'off'} · VOICEOVER: ${video.voice?.enabled ? 'on' : 'off'} · SUBTITLES: ${film.captions ? 'on' : 'off'}`,
+    `MUSIC: ${video.brief.musicMood} · SFX: ${video.sfx?.enabled ? video.sfx.intensity || 'normal' : 'off'} · VOICEOVER: ${video.voice?.enabled ? 'on' : 'off'} · SUBTITLES: ${film.captions ? 'on' : 'off'}`,
     `CLIENT: ${feedback.slice(0, 2000)}`,
   ].join('\n');
   return { system, user };
@@ -111,7 +111,11 @@ export function parseVideoRevision(raw: string, video: MotionVideo): VideoRevisi
     } else if (field === 'MUSIC') {
       const mood = value.toLowerCase() as MusicMood;
       if (MUSIC_MOODS.includes(mood)) patch.musicMood = mood;
-    } else if (field === 'SFX') patch.sfx = /^(on|oui|yes)/i.test(value);
+    } else if (field === 'SFX') {
+      const presence = value.toLowerCase().match(/\b(subtle|normal|punchy)\b/)?.[1] as VideoRevisionPatch['sfxIntensity'] | undefined;
+      if (presence) patch.sfxIntensity = presence;
+      else patch.sfx = /^(on|oui|yes)/i.test(value);
+    }
     else if (field === 'VOICEOVER') patch.voice = /^(on|oui|yes)/i.test(value);
     else if (field === 'SUBTITLES') patch.captions = /^(on|oui|yes)/i.test(value);
   }

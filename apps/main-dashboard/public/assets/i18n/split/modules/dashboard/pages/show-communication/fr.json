@@ -965,7 +965,9 @@
           "delete": "Supprimer la vidéo",
           "deleteAsk": "Supprimer définitivement ?",
           "deleteConfirm": "Supprimer",
-          "broken": "{{count}} scène(s) ne s’exécute(nt) pas : retrouvez-la ci-dessous et appuyez sur « Corriger »."
+          "broken": "{{count}} scène(s) ne s’exécute(nt) pas : retrouvez-la ci-dessous et appuyez sur « Corriger ».",
+          "brokenShort": "{{count}} scène(s) à corriger : touchez la vignette rouge, puis « Corriger ».",
+          "notes": "{{count}} remarque(s) sur votre demande"
         },
         "texts": {
           "title": "Les textes",
@@ -1013,7 +1015,8 @@
           "upload": "Le fichier n’a pas pu être envoyé (photo 12 Mo, vidéo 80 Mo).",
           "enhance": "La demande n’a pas pu être améliorée. Réessayez dans un instant.",
           "modelUnavailable": "Le modèle qui conçoit les vidéos est indisponible pour le moment. Vos crédits ont été restitués.",
-          "sceneErrors": "Une scène ne s’exécute pas : corrigez-la avant d’exporter."
+          "sceneErrors": "Une scène ne s’exécute pas : corrigez-la avant d’exporter.",
+          "download": "Le fichier n’a pas pu être téléchargé. Réessayez."
         },
         "types": {
           "kinetic": {
@@ -1140,11 +1143,50 @@
         },
         "revise": {
           "title": "Retoucher en écrivant",
-          "placeholder": "Ex. : « la scène 2 plus lente », « le titre en jaune », « sans musique »…",
+          "placeholder": "Que voulez-vous changer ? Ex. : « la scène 2 plus lente », « sans musique »",
           "send": "Appliquer",
           "done": "C’est fait. Regardez la nouvelle version.",
           "notUnderstood": "Je n’ai pas compris ce qu’il faut changer. Dites par exemple « la scène 2 plus dynamique » ou « sans musique ».",
-          "newRequest": "Cela ressemble à une nouvelle vidéo : créez-la depuis « Nouvelle vidéo »."
+          "newRequest": "Cela ressemble à une nouvelle vidéo : créez-la depuis « Nouvelle vidéo ».",
+          "hint": "Décrivez ce que vous voulez changer, l’IA s’occupe du reste.",
+          "free": "Gratuit · Ctrl + Entrée pour appliquer"
+        },
+        "download": {
+          "ready": "Votre vidéo est prête",
+          "readyShort": "MP4 prêt",
+          "waiting": "Préparation de votre MP4… {{percent}} %",
+          "working": "Fabrication du MP4… {{percent}} %",
+          "preparing": "Nous préparons votre MP4 en avance… {{percent}} %",
+          "prepared": "Votre MP4 est prêt à télécharger",
+          "outdated": "Vos dernières retouches ne sont pas encore dans le MP4",
+          "none": "Téléchargez votre vidéo en MP4",
+          "why": "L’aperçu se joue en direct dans votre navigateur ; le MP4 est filmé image par image sur nos serveurs.",
+          "progress": "Avancement du MP4",
+          "cta": "Télécharger",
+          "ctaPaid": "Télécharger · {{price}} crédits",
+          "saving": "Téléchargement…",
+          "savingPercent": "Téléchargement… {{percent}} %",
+          "cancelAuto": "Ne pas télécharger",
+          "autoHint": "Le téléchargement démarrera tout seul dès que le fichier sera prêt. Vous pouvez continuer à retoucher la vidéo.",
+          "waitingShort": "Préparation {{percent}} % · téléchargement automatique",
+          "workingShort": "Fabrication {{percent}} %",
+          "preparingShort": "Préparation {{percent}} %",
+          "outdatedShort": "MP4 à mettre à jour"
+        },
+        "tabs": {
+          "label": "Retoucher la vidéo",
+          "revise": "Retoucher avec l’IA",
+          "sound": "Musique et voix",
+          "files": "Fichiers"
+        },
+        "files": {
+          "title": "Vos fichiers",
+          "make": "Autres formats et qualité",
+          "preparing": "Préparé d’avance… {{percent}} %",
+          "prepared": "Prêt — cliquez sur « Télécharger »",
+          "outdated": "Ancienne version, sans vos dernières retouches",
+          "none": "Pas encore fabriqué",
+          "premiumSlow": "La qualité Premium filme deux fois plus d’images (60 par seconde) : le fichier met environ deux fois plus de temps à se fabriquer."
         }
       },
       "placement": {

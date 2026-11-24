@@ -10,10 +10,9 @@ import { GuidedJourneyService } from '../../services/guided-journey.service';
  * « Étape suivante recommandée » du mode Avancé.
  *
  * Calculée par le code d'après l'état réel du projet (le même parcours que le mode Assisté, sans le
- * verrouiller). Deux présentations :
- *  - sur l'accueil du projet : une carte qui nomme l'étape et dit pourquoi ;
- *  - sur la page d'une étape déjà faite (le rendu qu'on vient de générer) : une barre fine, fermable,
- *    qui ne gêne pas la lecture. L'utilisateur suit ou non la suggestion.
+ * verrouiller). Une petite carte FLOTTANTE (24/11/2026 : en tête de page, elle repoussait le contenu
+ * important vers le bas), posée par la mise en page dans le coin bas-droit, au-dessus du dock ; fermable.
+ * Le « pourquoi » de l'étape reste en infobulle du titre.
  * Le mode Assisté a sa propre barre : rien ici.
  */
 @Component({
@@ -21,6 +20,13 @@ import { GuidedJourneyService } from '../../services/guided-journey.service';
   standalone: true,
   imports: [TranslateModule],
   templateUrl: './next-step-bar.html',
+  styles: `
+    :host { display: block; }
+    .next-float { display: flex; align-items: center; gap: 0.6rem; width: min(22rem, calc(100vw - 2.5rem)); padding: 0.6rem 0.6rem 0.6rem 0.9rem; }
+    .next-label { margin: 0; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase; color: var(--color-text-tertiary); }
+    .next-title { margin: 0.1rem 0 0; font-size: 0.875rem; font-weight: 600; color: var(--color-text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .next-close { width: 1.9rem; height: 1.9rem; padding: 0; }
+  `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class NextStepBarComponent {
@@ -40,7 +46,6 @@ export class NextStepBarComponent {
   private readonly dismissed = signal<ReadonlySet<string>>(new Set());
 
   protected readonly step = this.journey.currentStep;
-  protected readonly isDashboard = computed(() => this.path() === '/project/dashboard');
 
   private readonly path = computed(() => this.url().split('?')[0].split('#')[0].replace(/\/$/, ''));
 

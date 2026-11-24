@@ -3,7 +3,7 @@
  */
 import { spawn } from 'child_process';
 import type { SfxKind, VideoQuality } from '../contracts/model';
-import { MUSIC_GAIN_DB, MUSIC_UNDER_VOICE_DB, SFX_UNDER_VOICE_DB, SfxCue } from '../audio/sfx';
+import { MUSIC_GAIN_DB, MUSIC_UNDER_VOICE_DB, SFX_UNDER_VOICE_DB, SfxCue, sfxLevelCompDb } from '../audio/sfx';
 
 export const FFMPEG = process.env.FFMPEG_PATH || 'ffmpeg';
 /** Le niveau d'un bruitage de clip : une ambiance, sous la musique (dB). */
@@ -103,7 +103,9 @@ export async function mixAudio(opts: {
     if (!sound) continue;
     args.push('-i', sound);
     const ms = Math.round(cue.t * 1000);
-    filters.push(`[${index}:a]aresample=48000,aformat=channel_layouts=stereo,volume=${cue.db + (voice.length ? SFX_UNDER_VOICE_DB : 0)}dB,adelay=${ms}|${ms}[s${index}]`);
+    // Chaque son ramené à la sonie de référence avant son gain : deux prises d'un même effet sonnent pareil.
+    const db = cue.db + (await sfxLevelCompDb(sound)) + (voice.length ? SFX_UNDER_VOICE_DB : 0);
+    filters.push(`[${index}:a]aresample=48000,aformat=channel_layouts=stereo,volume=${db.toFixed(2)}dB,adelay=${ms}|${ms}[s${index}]`);
     sfxLabels.push(`[s${index}]`);
     index++;
   }

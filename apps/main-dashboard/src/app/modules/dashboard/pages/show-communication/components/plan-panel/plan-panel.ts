@@ -34,6 +34,7 @@ import { PlanWizard, PlanWizardResult } from '../plan-wizard/plan-wizard';
 import { ScreenGuide } from '../screen-guide/screen-guide';
 import { VisualThumb } from '../visual-thumb/visual-thumb';
 import { EMPTY_PLAN_PROGRESS, PlanComposing, PlanProgressState, PlanStage } from '../plan-composing/plan-composing';
+import { urlChoice, urlFlag, urlParam } from '../../url-state';
 
 /**
  * Ce qu'un autre écran demande au planning en y envoyant l'utilisateur :
@@ -123,8 +124,10 @@ export class PlanPanel {
   protected readonly planStatusPillClass = planStatusPillClass;
 
   // ── Sélection et vues ────────────────────────────────────────────────────
-  protected readonly selectedPlanId = signal<string | null>(null);
-  protected readonly view = signal<'weeks' | 'month'>('weeks');
+  // Tout est dans l'adresse (`?plan=…&post=…&cal=month&new=1`) : une actualisation garde le planning, la
+  // publication ouverte, la vue et l'assistant de création.
+  protected readonly selectedPlanId = urlParam<string | null>('plan', { fallback: null, push: true });
+  protected readonly view = urlChoice<'weeks' | 'month'>('cal', ['weeks', 'month'], 'weeks');
   protected readonly isCompact = injectCompactViewport();
 
   /**
@@ -132,10 +135,10 @@ export class PlanPanel {
    * 40rem de large et se lisait en faisant défiler de côté, case par case.
    */
   protected readonly shownView = computed(() => (this.isCompact() ? 'weeks' : this.view()));
-  protected readonly showArchived = signal(false);
-  protected readonly showWizard = signal(false);
+  protected readonly showArchived = urlFlag('archived');
+  protected readonly showWizard = urlFlag('new', { push: true });
   /** Publication ouverte en détail. */
-  protected readonly openItemId = signal<string | null>(null);
+  protected readonly openItemId = urlParam<string | null>('post', { fallback: null, push: true });
 
   protected readonly visiblePlans = computed(() =>
     this.plans().filter((plan) => this.showArchived() || plan.status !== 'archived'),

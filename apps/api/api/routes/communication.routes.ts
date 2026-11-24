@@ -39,6 +39,7 @@ import {
   createVideoController,
   deleteVideoController,
   exportVideoController,
+  videoFileController,
   getVideoController,
   listVideosController,
   motionVideoService,
@@ -927,6 +928,18 @@ communicationRoutes.get(`/${resource}/:projectId/videos/:videoId/preview`, authe
  *     security: [{ bearerAuth: [] }]
  */
 communicationRoutes.get(`/${resource}/:projectId/videos/:videoId/music`, authenticate, videoMusicController);
+
+/**
+ * @openapi
+ * /project/communication/{projectId}/videos/{videoId}/file:
+ *   get:
+ *     tags: [Communication]
+ *     summary: The exported MP4 of one format, sent as an attachment (saved, never opened in a tab).
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { in: query, name: format, schema: { type: string, enum: [story, square, portrait, landscape] } }
+ */
+communicationRoutes.get(`/${resource}/:projectId/videos/:videoId/file`, authenticate, videoFileController);
 
 /**
  * @openapi

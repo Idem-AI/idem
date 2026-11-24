@@ -1,0 +1,25 @@
+
+/* Les rappels flottants (étape suivante, promotion) : empilés au-dessus du dock du mode, coin bas-droit.
+   Seuls leurs contenus captent le pointeur : la page dessous reste cliquable. */
+.float-stack {
+  position: fixed;
+  right: max(1.25rem, env(safe-area-inset-right, 0px));
+  bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
+  z-index: 55;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+  pointer-events: none;
+}
+
+.float-stack > * {
+  pointer-events: auto;
+}
+
+/* Une page à barre d'onglets en bas (Communication) loge le dock dedans : la pile se pose au-dessus. */
+@media (max-width: 640px) {
+  .float-stack {
+    bottom: calc(var(--idem-dock-bottom, 1.25rem) + 4.25rem + env(safe-area-inset-bottom, 0px));
+  }
+}

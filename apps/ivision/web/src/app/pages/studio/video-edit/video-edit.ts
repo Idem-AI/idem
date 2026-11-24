@@ -8,7 +8,7 @@ import { Subscription, timer } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { ApiService } from '../../../core/api.service';
 import { LanguageService } from '../../../core/language.service';
-import { MotionVideo } from '../../../core/models';
+import { MotionVideo, VideoRender } from '../../../core/models';
 import { StudioState } from '../../../core/studio.state';
 import { Illustration } from '../../../shared/components/illustration';
 
@@ -16,6 +16,9 @@ const RATIOS: Record<string, number> = { story: 9 / 16, square: 1, portrait: 4 /
 const FORMATS = ['story', 'square', 'portrait', 'landscape'];
 const QUALITIES = ['standard', 'hd', 'premium'];
 const MOODS = ['auto', 'upbeat', 'afro', 'calm', 'epic', 'corporate', 'none'];
+
+/** Où en est le MP4 d'un format (voir `stateOf`). */
+export type FileState = 'ready' | 'prepared' | 'working' | 'preparing' | 'outdated' | 'none';
 
 /** Ce que l'aperçu montre (minutage, code des scènes) : s'il change après une retouche, l'aperçu est recomposé. */
 const timing = (v: MotionVideo | null) => (v?.film?.scenes ?? []).map((s) => `${s.key}:${s.start}:${s.duration}:${s.code?.length ?? 0}:${s.html?.length ?? 0}:${s.author?.at ?? ''}`).join('|');
@@ -56,7 +59,14 @@ export class VideoEditPage {
   protected readonly exportPrice = signal<number | null>(null);
   protected readonly exporting = signal(false);
   protected readonly needCredits = signal(false);
+  /** L'onglet ouvert sous l'aperçu. */
+  protected readonly tab = signal<'sound' | 'files'>('sound');
+  /** Prix d'un téléchargement par format (0 = inclus), lu sur le serveur. */
+  protected readonly prices = signal<Record<string, number>>({});
+  /** Le format attendu : il s'enregistre tout seul dès qu'il est prêt. */
+  protected readonly pending = signal<string | null>(null);
   private replacing: string | null = null;
+  private waitTimer: Subscription | null = null;
 
   protected readonly formats = FORMATS;
   protected readonly qualities = QUALITIES;
@@ -68,6 +78,10 @@ export class VideoEditPage {
   protected readonly rewriting = signal<string[]>([]);
   protected readonly renders = computed(() => (this.video()?.renders ?? []).filter((r) => r.status === 'done' && r.url && !r.prerender));
   protected readonly rendering = computed(() => this.video()?.status === 'rendering');
+  /** Un export demandé tourne (un rendu fait d'avance ne bloque rien). */
+  protected readonly exportRunning = computed(() => this.rendering() && !this.video()?.preparing);
+  protected readonly current = computed(() => this.stateOf(this.previewFormat()));
+  protected readonly currentRender = computed(() => this.renderOf(this.previewFormat()));
 
   private poll: Subscription | null = null;
 
@@ -84,7 +98,10 @@ export class VideoEditPage {
       if (!v || !scope.formats.length) return;
       untracked(() => this.api.exportQuote(this.brandId(), v.id, scope).subscribe({ next: (q) => this.exportPrice.set(q.cost), error: () => this.exportPrice.set(null) }));
     });
-    this.destroyRef.onDestroy(() => this.poll?.unsubscribe());
+    this.destroyRef.onDestroy(() => {
+      this.poll?.unsubscribe();
+      this.waitTimer?.unsubscribe();
+    });
   }
 
   private load(brandId: string, videoId: string): void {
@@ -108,6 +125,16 @@ export class VideoEditPage {
   private apply(video: MotionVideo): void {
     this.video.set(video);
     if (video.status === 'rendering') this.watchRender();
+    this.loadPrices();
+  }
+
+  private loadPrices(): void {
+    const v = this.video();
+    if (!v || v.legacy) return;
+    this.api.videoDownloads(this.brandId(), v.id).subscribe({
+      next: ({ formats }) => this.prices.set(Object.fromEntries(formats.map((f) => [f.format, f.cost]))),
+      error: () => undefined,
+    });
   }
 
   protected loadPreview(): void {
@@ -134,6 +161,8 @@ export class VideoEditPage {
         this.saving.set(null);
         this.saved.set(true);
         if (moved || reloadAlways) this.loadPreview();
+        // Le serveur prépare le MP4 retouché d'avance : on le suit pour dire quand il est prêt.
+        this.watchRender();
       },
       error: () => {
         this.saving.set(null);
@@ -170,7 +199,66 @@ export class VideoEditPage {
     this.save('music', { musicMood: mood }, true);
   }
 
-  protected downloadMp4(format: string): void {
+  protected renderOf(format: string): VideoRender | undefined {
+    const list = (this.video()?.renders ?? []).filter((r) => r.format === format);
+    return list.find((r) => r.status === 'done' && !r.stale) ?? list.find((r) => r.status === 'rendering' || r.status === 'queued') ?? list.find((r) => r.status === 'done') ?? list[0];
+  }
+
+  /** ready : exporté et à jour · prepared : fait d'avance, repris en une seconde · working / preparing : en cours. */
+  protected stateOf(format: string): FileState {
+    const v = this.video();
+    const r = this.renderOf(format);
+    if (!v || !r) return 'none';
+    if (r.status === 'rendering' || r.status === 'queued') return v.preparing ? 'preparing' : 'working';
+    if (r.status !== 'done' || !r.url) return 'none';
+    if (r.stale) return 'outdated';
+    return r.prerender ? 'prepared' : 'ready';
+  }
+
+  /**
+   * « Télécharger » en un clic : le serveur dit si le fichier est prêt (il s'enregistre), sinon il le fabrique — en
+   * reprenant tout rendu fait d'avance — et la page le redemande jusqu'à ce qu'il soit prêt, puis l'enregistre seule.
+   * Le fichier arrive en pièce jointe par l'API : il est enregistré, jamais ouvert dans un onglet.
+   */
+  protected download(format: string): void {
+    if (this.downloading() || this.broken() > 0) return;
+    this.needCredits.set(false);
+    this.pending.set(format);
+    this.askDownload(format);
+  }
+
+  private askDownload(format: string): void {
+    const v = this.video();
+    if (!v || this.pending() !== format) return;
+    this.api.requestVideoDownload(this.brandId(), v.id, format).subscribe({
+      next: (res) => {
+        if (this.pending() !== format) return;
+        if (res.ready) {
+          this.pending.set(null);
+          this.studio.refreshCredits();
+          this.refresh();
+          this.saveMp4(format);
+          return;
+        }
+        this.refresh();
+        this.waitTimer?.unsubscribe();
+        this.waitTimer = timer(2500).subscribe(() => this.askDownload(format));
+      },
+      error: (err) => {
+        this.pending.set(null);
+        if (err?.status === 402) this.needCredits.set(true);
+        else this.failed.set(true);
+      },
+    });
+  }
+
+  protected cancelPending(): void {
+    this.pending.set(null);
+    this.waitTimer?.unsubscribe();
+    this.waitTimer = null;
+  }
+
+  protected saveMp4(format: string): void {
     this.downloading.set(format);
     this.api.saveFile(`/brands/${this.brandId()}/videos/${this.videoId()}/file?format=${format}`, `ivision-${format}.mp4`).subscribe({
       next: () => this.downloading.set(null),
@@ -181,7 +269,22 @@ export class VideoEditPage {
     });
   }
 
-    protected setSfx(enabled: boolean): void {
+  private refresh(): void {
+    const v = this.video();
+    if (!v) return;
+    this.api.video(this.brandId(), v.id).subscribe({ next: (next) => this.apply(next), error: () => undefined });
+  }
+
+  protected percent(progress?: number): number {
+    return Math.round((progress || 0) * 100);
+  }
+
+  protected size(bytes?: number): string {
+    if (!bytes) return '';
+    return bytes > 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(1)} Mo` : `${Math.round(bytes / 1024)} Ko`;
+  }
+
+  protected setSfx(enabled: boolean): void {
     this.save('sfx', { sfx: enabled }, true);
   }
 
@@ -246,7 +349,7 @@ export class VideoEditPage {
   /** Le rendu tourne sur le serveur : on relit la vidéo jusqu'à ce qu'il soit fini. */
   private watchRender(): void {
     if (this.poll) return;
-    this.poll = timer(3000, 3000).subscribe(() => {
+    this.poll = timer(2500, 2500).subscribe(() => {
       const v = this.video();
       if (!v) return;
       this.api.video(this.brandId(), v.id).subscribe({
@@ -255,6 +358,7 @@ export class VideoEditPage {
           if (next.status !== 'rendering') {
             this.poll?.unsubscribe();
             this.poll = null;
+            this.loadPrices();
           }
         },
         error: () => undefined,

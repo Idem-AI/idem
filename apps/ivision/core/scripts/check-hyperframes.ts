@@ -151,6 +151,18 @@ async function main() {
   const migrated = await service.updateVideo('u1', 'p1', ultra.id, { visual: { s1: 'le titre plus grand' } });
   check(!!migrated!.film!.catalog && migrated!.film!.scenes.every((s) => !!s.catalog && /^__ge\.scene\(/.test(s.script || '')) && calls.filter((c) => c.role === 'video.template').length === 1, 'un film d’avant le catalogue y passe à sa première retouche (le code pour le film, un appel pour la retouche)', calls.map((c) => c.role).join(','));
 
+  // 5 bis. L'aperçu autorise les médias de NOS serveurs, même en http (local : MinIO, sons de l'API) — sinon ni image,
+  // ni clip, ni musique, ni voix, ni effet ne passent ; rien d'autre n'est ouvert.
+  const previewPage = await buildComposition({
+    scenes: [{ key: 's1', start: 0, duration: 2, html: '<div class="h-full w-full"><img src="{{media.m1}}" alt=""></div>', script: 'return null;', animation: 'gsap', texts: {} }],
+    width: 540, height: 540, durationSec: 2,
+    brand: { name: 'Kora', colors: BRAND, fonts: { display: 'Inter', body: 'Inter' } },
+    media: { m1: { src: 'http://localhost:9000/idem/photo.jpg', kind: 'image' } }, fontCss: '', mode: 'preview',
+    audio: { music: { url: 'http://localhost:9000/idem/music.mp3', startAt: 0, gain: 0.5 }, voice: [{ url: 'http://localhost:9000/idem/voice.mp3', at: 0 }], sfx: [{ url: 'http://localhost:3001/project/communication/sfx/whoosh.mp3', at: 0.5, gain: 0.6 }] },
+  });
+  const policy = /Content-Security-Policy" content="([^"]+)"/.exec(previewPage)?.[1] || '';
+  check(/img-src[^;]*http:\/\/localhost:9000/.test(policy) && /media-src[^;]*http:\/\/localhost:3001/.test(policy) && !/http:(?!\/\/localhost)/.test(policy) && /syncClips/.test(previewPage), 'aperçu : médias et sons de nos serveurs autorisés (http local compris), clips calés sur la lecture', policy);
+
   // 6. Un film écrit AVANT le catalogue (HTML libre, Anime.js) se rend toujours tel quel
   const animeHtml = await buildComposition({
     scenes: [{ key: 's1', start: 0, duration: 2, html: '<div class="h-full w-full bg-ground"><p class="t text-[80px] text-brand-primary">{{text.h}}</p></div>', script: "const t = anime.createTimeline({ autoplay: false }); t.add(root.querySelector('.t'), { opacity: [0, 1], translateY: [40, 0], duration: 800 }, 0); return t;", animation: 'anime', texts: { h: 'Anime' } }],
@@ -172,7 +184,32 @@ async function main() {
     const file = done?.url?.replace('file://', '');
     const meta = file && fs.existsSync(file) ? await probe(file) : null;
     check(!!meta && Math.abs(meta.duration - 15) < 0.25 && meta.height === 1280, 'export : MP4 HyperFrames de 15 s en 720 × 1280 (qualité standard)', JSON.stringify({ meta, error: videos.get(video.id)!.renders.map((r) => r.error) }));
-    console.log(`  (rendu : ${Math.round((Date.now() - started) / 1000)} s)`);
+    const renderMs = Date.now() - started;
+    console.log(`  (rendu : ${Math.round(renderMs / 1000)} s)`);
+
+    // 8. Un export déjà à jour n'est pas refait : le même fichier est repris tout de suite.
+    const count = videos.get(video.id)!.exportCount;
+    const again = Date.now();
+    await service.startExport('u1', 'p1', video.id, video.scope);
+    await drainRenderQueue();
+    const reused = videos.get(video.id)!;
+    check(Date.now() - again < 3000 && reused.renders.find((r) => r.format === done?.format)?.url === done?.url && reused.exportCount === count + 1 && reused.status === 'ready', 'export à jour : fichier repris sans nouveau rendu', `${Date.now() - again} ms`);
+
+    // 9. Un export demandé PENDANT le pré-rendu n'est pas refusé : il attend et reprend le fichier préparé (un seul rendu).
+    const worded = video.film!.scenes.find((s) => Object.keys(s.texts).length)!;
+    const edited = await service.updateVideo('u1', 'p1', video.id, { texts: { [worded.key]: { [Object.keys(worded.texts)[0]]: 'Nouveau titre' } } });
+    const prepStart = Date.now();
+    await service.prerender('u1', 'p1', video.id);
+    const preparing = (await service.getVideo('u1', 'p1', video.id))!;
+    check(preparing.status === 'rendering' && preparing.preparing === true, 'pré-rendu : la vidéo se prépare d’avance, signalée « preparing »', JSON.stringify({ status: preparing.status, preparing: preparing.preparing }));
+    let refused = '';
+    await service.startExport('u1', 'p1', video.id, edited!.scope).catch((e) => (refused = e.message));
+    const asked = (await service.getVideo('u1', 'p1', video.id))!;
+    check(!refused && asked.status === 'rendering' && !asked.preparing, 'export pendant le pré-rendu : accepté, il devient l’export demandé', refused);
+    await drainRenderQueue();
+    const claimed = videos.get(video.id)!;
+    const out = claimed.renders.find((r) => r.format === done?.format);
+    check(!!out?.url && out.url !== done?.url && !out.prerender && claimed.status === 'ready' && Date.now() - prepStart < renderMs * 1.6, 'export pendant le pré-rendu : un seul rendu, le fichier préparé est repris', JSON.stringify({ ms: Date.now() - prepStart, renderMs, prerender: out?.prerender }));
   }
 
   await closeFilmBrowser();

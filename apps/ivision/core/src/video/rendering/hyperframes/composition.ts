@@ -69,7 +69,8 @@ export interface CompositionInput {
   styleId?: string;
   mode: 'render' | 'preview';
   /** Aperçu : la musique et la voix jouées en même temps que la timeline (le rendu les mixe avec FFmpeg). */
-  audio?: { music?: { url: string; startAt: number; gain: number }; voice: { url: string; at: number }[] };
+  /** `sfx` : les effets sonores posés à leur instant (gain linéaire déjà calculé, sonie égalisée). */
+  audio?: { music?: { url: string; startAt: number; gain: number }; voice: { url: string; at: number }[]; sfx?: { url: string; at: number; gain: number }[] };
 }
 
 const escapeHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -121,8 +122,37 @@ export function animationLibraries(): { gsap: string; anime: string } {
   return libCache;
 }
 
-function csp(mode: CompositionInput['mode']): string {
-  const remote = mode === 'preview' ? ' https:' : '';
+/**
+ * Les origines des médias de l'APERÇU (photos, clips, logo, motifs, polices, musique, voix, effets). L'aperçu
+ * n'autorisait que `https:` : en local (MinIO en `http://localhost:9000`, sons servis par l'API en http) TOUT était
+ * bloqué — ni image, ni clip, ni son. Chaque origine réellement utilisée est donc nommée, en http comme en https ;
+ * rien d'autre n'est ouvert.
+ */
+export function previewOrigins(input: Pick<CompositionInput, 'media' | 'audio' | 'logo' | 'logoDark' | 'patterns' | 'fontCss'>): string[] {
+  const urls = [
+    ...Object.values(input.media).map((m) => m.src),
+    input.logo,
+    input.logoDark,
+    ...(input.patterns ?? []).map((p) => p.src),
+    input.audio?.music?.url,
+    ...(input.audio?.voice ?? []).map((v) => v.url),
+    ...(input.audio?.sfx ?? []).map((x) => x.url),
+    ...[...input.fontCss.matchAll(/url\(\s*['"]?(https?:\/\/[^'")\s]+)/g)].map((m) => m[1]),
+  ];
+  const origins = new Set<string>();
+  for (const url of urls) {
+    if (!url || !/^https?:\/\//i.test(url)) continue;
+    try {
+      origins.add(new URL(url).origin);
+    } catch {
+      /* adresse illisible : ignorée */
+    }
+  }
+  return [...origins];
+}
+
+function csp(mode: CompositionInput['mode'], origins: string[] = []): string {
+  const remote = mode === 'preview' ? [' https:', ...origins.map((o) => ` ${o}`)].join('') : '';
   return [`default-src 'none'`, `script-src 'unsafe-inline'`, `style-src 'unsafe-inline'`, `img-src 'self' data: blob:${remote}`, `media-src 'self' data: blob:${remote}`, `font-src 'self' data:${remote}`, `connect-src 'none'`].join('; ');
 }
 
@@ -177,7 +207,7 @@ window.__timelines = window.__timelines || {};
 window.__timelines.film = master;`;
   return `<!doctype html>
 <html><head><meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="${csp(input.mode)}">
+<meta http-equiv="Content-Security-Policy" content="${csp(input.mode, preview ? previewOrigins(input) : [])}">
 <style>html,body{margin:0;padding:0;background:${input.brand.colors.background};}#stage{position:relative;overflow:hidden;width:${out.width}px;height:${out.height}px}#comp{position:absolute;left:0;top:0;width:${input.width}px;height:${input.height}px;transform:scale(${scale});transform-origin:0 0}${preview ? 'html,body{width:100%;height:100%;overflow:hidden}#stage{position:absolute;left:0;top:0;transform-origin:0 0;opacity:0;cursor:pointer}' : ''}</style>
 ${input.fontCss}
 <style data-ge-tailwind>${css}</style>
@@ -224,7 +254,7 @@ const scriptJson = (value: unknown) => JSON.stringify(value).replace(/</g, '\\u0
 function previewPlayer(input: CompositionInput): string {
   const out = input.output ?? { width: input.width, height: input.height };
   const audio = input.audio ?? { voice: [] };
-  const tracks = [...(audio.music ? [{ url: audio.music.url, at: 0, offset: audio.music.startAt, gain: audio.music.gain }] : []), ...audio.voice.map((v) => ({ url: v.url, at: v.at, offset: 0, gain: 1 }))];
+  const tracks = [...(audio.music ? [{ url: audio.music.url, at: 0, offset: audio.music.startAt, gain: audio.music.gain }] : []), ...audio.voice.map((v) => ({ url: v.url, at: v.at, offset: 0, gain: 1 })), ...(audio.sfx ?? []).map((x) => ({ url: x.url, at: x.at, offset: 0, gain: x.gain }))];
   const scenes = input.scenes.map((s) => ({ key: s.key, start: s.start, duration: s.duration, html: s.html, texts: s.texts }));
   const data = { width: out.width, height: out.height, duration: input.durationSec, tracks, scenes, media: Object.fromEntries(Object.entries(input.media).map(([k, m]) => [k, m.src])), logo: input.logo ?? '', logoDark: input.logoDark ?? '' };
   return `<script>
@@ -245,7 +275,31 @@ function previewPlayer(input: CompositionInput): string {
 
   // ── La scène du moment (au rendu, HyperFrames s'en charge) ──
   var sections = Array.prototype.slice.call(document.querySelectorAll('section.scene'));
-  function show(t) { sections.forEach(function (s) { var a = parseFloat(s.dataset.start), d = parseFloat(s.dataset.duration); s.style.visibility = t >= a && t < a + d ? 'visible' : 'hidden'; }); }
+  function show(t) {
+    var changed = false;
+    sections.forEach(function (s) {
+      var a = parseFloat(s.dataset.start), d = parseFloat(s.dataset.duration), vis = t >= a && t < a + d ? 'visible' : 'hidden';
+      if (s.style.visibility !== vis) changed = true;
+      s.style.visibility = vis;
+    });
+    if (changed) syncClips(t);
+  }
+  // ── Les CLIPS de la scène du moment, calés sur la timeline (au rendu, HyperFrames les cale image par image) ──
+  // Muets comme au rendu ; un clip plus court que sa scène boucle.
+  function syncClips(t) {
+    sections.forEach(function (s) {
+      var a = parseFloat(s.dataset.start), d = parseFloat(s.dataset.duration), on = t >= a && t < a + d;
+      Array.prototype.forEach.call(s.querySelectorAll('video'), function (v) {
+        v.muted = true;
+        v.loop = true;
+        if (!on) { if (!v.paused) v.pause(); return; }
+        var len = isFinite(v.duration) && v.duration > 0 ? v.duration : 0, want = len ? (t - a) % len : t - a;
+        if (Math.abs((v.currentTime || 0) - want) > 0.3) { try { v.currentTime = want; } catch (e) {} }
+        if (playing) { if (v.paused) v.play().catch(function () {}); }
+        else if (!v.paused) v.pause();
+      });
+    });
+  }
   function film() { return window.__timelines.film; }
   function now() { return film().time(); }
   function report(force) {
@@ -279,12 +333,14 @@ function previewPlayer(input: CompositionInput): string {
     playing = true;
     startAudio(now());
     film().play();
+    syncClips(now());
     report(true);
   }
   function pause() {
     playing = false;
     film().pause();
     stopAudio();
+    syncClips(now());
     report(true);
   }
   function seekTo(t) {
@@ -293,6 +349,7 @@ function previewPlayer(input: CompositionInput): string {
     var at = Math.max(0, Math.min(END, Number(t) || 0));
     film().pause(at === 0 ? 0.001 : at);
     show(at === 0 ? 0.001 : at);
+    syncClips(at === 0 ? 0.001 : at);
     report(true);
     if (was) play();
   }
@@ -337,7 +394,7 @@ function previewPlayer(input: CompositionInput): string {
     for (var i = 0; i < D.scenes.length; i++) if (D.scenes[i].key === msg.key) sc = D.scenes[i];
     if (!sc) return;
     if (msg.texts && typeof msg.texts === 'object') for (var k in msg.texts) sc.texts[k] = String(msg.texts[k]);
-    if (Array.isArray(msg.media)) msg.media.forEach(function (m) { if (m && m.id && /^https:\\/\\//.test(String(m.url))) D.media[m.id] = String(m.url); });
+    if (Array.isArray(msg.media)) msg.media.forEach(function (m) { if (m && m.id && /^https?:\\/\\//.test(String(m.url))) D.media[m.id] = String(m.url); });
     var at = msg.focus === false ? now() : focusAt(sc.key);
     rebuild(at == null ? now() : at);
   }

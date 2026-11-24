@@ -78,6 +78,16 @@ function loadProducer() {
   return producer;
 }
 
+/**
+ * Le nombre de Chrome qui capturent les images EN PARALLÈLE : un par 2,5 cœurs (la mesure du producteur : chaque Chrome
+ * occupe environ 2,5 cœurs entre rendu de page et encodage JPEG), au moins 1, au plus 8 (le plafond d'HyperFrames ;
+ * au-delà, l'encodeur devient le goulot). Mesuré le 24/11/2026 : 6 Chrome sur un Mac Intel 16 fils → 15 s de film en
+ * 15 s. Un seul rendu tourne à la fois par instance : il a toute la machine.
+ */
+export function captureWorkers(cpus = os.cpus().length): number {
+  return Math.max(1, Math.min(8, Math.floor(cpus / 2.5)));
+}
+
 /** La qualité d'IDEM → celle d'HyperFrames. */
 const QUALITY: Record<VideoQuality, 'draft' | 'standard' | 'high'> = { standard: 'standard', hd: 'standard', premium: 'high' };
 
@@ -89,7 +99,7 @@ export async function renderHyperFrames(input: HyperFramesRenderInput): Promise<
     fs.writeFileSync(path.join(project, 'index.html'), input.html);
     for (const f of input.files) fs.writeFileSync(path.join(project, path.basename(f.name)), f.data);
     const { createRenderJob, executeRenderJob } = await loadProducer();
-    const job = createRenderJob({ fps: input.fps, quality: QUALITY[input.quality] ?? 'standard' });
+    const job = createRenderJob({ fps: input.fps, quality: QUALITY[input.quality] ?? 'standard', workers: captureWorkers() });
     const silent = path.join(workDir, 'silent.mp4');
     await executeRenderJob(job, project, silent, (j) => input.onProgress?.(Math.min(0.9, (Number(j.progress) || 0) / 100 * 0.9)));
     if (job.status && job.status !== 'complete') throw new Error(`hyperframes_render_failed: ${String(job.error || job.status).slice(0, 300)}`);

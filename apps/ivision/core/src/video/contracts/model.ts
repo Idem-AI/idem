@@ -328,6 +328,8 @@ export interface MotionVideo {
   /** Ancien moteur (avant octobre 2026) : son storyboard, conservé tel quel, jamais rejoué. */
   storyboard?: unknown;
   /** Lecture seule (vue) : vidéo de l'ancien moteur — ses MP4 se téléchargent, elle ne se retouche plus. */
+  /** Calculé à la lecture : le fichier se prépare d'avance (pré-rendu), aucun export n'est demandé — l'export reste possible et le reprendra. */
+  preparing?: boolean;
   legacy?: boolean;
   music?: VideoMusic;
   renders: VideoRender[];

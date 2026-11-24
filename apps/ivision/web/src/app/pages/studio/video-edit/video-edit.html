@@ -5,10 +5,42 @@
       <h1 class="min-w-0 flex-1 truncate text-lg font-semibold">{{ video()?.title || ('edit.title' | translate) }}</h1>
       @if (saving()) {
         <span class="flex items-center gap-2 text-sm text-[var(--color-text-secondary)]"><idem-loader size="xs" /> {{ 'edit.saving' | translate }}</span>
-      } @else if (saved()) {
-        <span class="text-sm text-[var(--color-text-tertiary)]"><i class="pi pi-check" aria-hidden="true"></i> {{ 'edit.saved' | translate }}</span>
+      } @else if (video(); as v) {
+        @if (!v.legacy) {
+          <span class="flex items-center gap-1.5 text-sm" [class]="current() === 'ready' ? 'text-[var(--color-success)]' : 'text-[var(--color-text-secondary)]'" role="status" [attr.title]="'edit.dl.why' | translate">
+            @switch (pending() === previewFormat() ? 'waiting' : current()) {
+              @case ('ready') { <i class="pi pi-check-circle" aria-hidden="true"></i> {{ 'edit.dl.readyShort' | translate }} }
+              @case ('waiting') { <idem-loader size="xs" /> {{ 'edit.dl.waitingShort' | translate: { percent: percent(currentRender()?.progress) } }} }
+              @case ('working') { <idem-loader size="xs" /> {{ 'edit.dl.workingShort' | translate: { percent: percent(currentRender()?.progress) } }} }
+              @case ('preparing') { <idem-loader size="xs" /> {{ 'edit.dl.preparingShort' | translate: { percent: percent(currentRender()?.progress) } }} }
+              @case ('outdated') { {{ 'edit.dl.outdatedShort' | translate }} }
+              @default { }
+            }
+          </span>
+        }
+      }
+      @if (video(); as v) {
+        @if (!v.legacy) {
+          @if (downloading()) {
+            <button type="button" class="inner-button button-sm" disabled><idem-loader size="xs" /> {{ 'edit.dl.saving' | translate }}</button>
+          } @else if (pending() === previewFormat()) {
+            <button type="button" class="outer-button button-sm" (click)="cancelPending()">{{ 'edit.dl.cancel' | translate }}</button>
+          } @else {
+            <button type="button" class="inner-button button-sm" [disabled]="broken() > 0 || !!pending()" (click)="download(previewFormat())">
+              <i class="pi pi-download" aria-hidden="true"></i>
+              @if (current() === 'ready' || !prices()[previewFormat()]) {
+                {{ 'edit.dl.cta' | translate }}
+              } @else {
+                {{ 'edit.dl.ctaPaid' | translate: { cost: prices()[previewFormat()] } }}
+              }
+            </button>
+          }
+        }
       }
     </header>
+    @if (current() === 'working' || current() === 'preparing' || pending()) {
+      <progress class="-mt-3 mb-4 block h-1 w-full" max="100" [value]="percent(currentRender()?.progress)" [attr.aria-label]="'edit.dl.progress' | translate"></progress>
+    }
 
     @if (loading()) {
       <idem-loader block [label]="'common.loading' | translate" />
@@ -26,13 +58,20 @@
           <a class="outer-button button-sm mt-4" routerLink="/studio/video">{{ 'common.back' | translate }}</a>
         </div>
       } @else {
+      @if (needCredits()) {
+        <p class="-mt-3 mb-4 text-sm" role="alert">{{ 'chat.payment.short' | translate }} <a class="text-[var(--color-primary-500)] underline" [href]="accountUrl">{{ 'chat.payment.cta' | translate }}</a></p>
+      }
+
       @if (broken() > 0) {
         <p class="mb-3 flex items-center gap-2 text-sm text-[var(--color-danger)]" role="alert"><i class="pi pi-exclamation-triangle" aria-hidden="true"></i> {{ 'edit.broken' | translate: { count: broken() } }}</p>
       }
       @if ((v.scope.formats.length) > 1) {
-        <div class="mb-3 flex gap-2" role="group" [attr.aria-label]="'edit.previewFormat' | translate">
+        <div class="mx-auto mb-3 flex w-fit max-w-full flex-wrap gap-1 rounded-full border border-[var(--glass-border)] bg-[var(--glass-bg-light)] p-1" role="group" [attr.aria-label]="'edit.previewFormat' | translate">
           @for (f of v.scope.formats; track f) {
-            <button type="button" class="button-sm" [class]="previewFormat() === f ? 'inner-button' : 'outer-button'" [attr.aria-pressed]="previewFormat() === f" (click)="setPreviewFormat(f)">{{ 'formats.' + f | translate }}</button>
+            <button type="button" class="rounded-full px-3 py-1 text-sm font-semibold transition-colors" [class]="previewFormat() === f ? 'bg-[var(--color-surface-1)] text-[var(--color-text-primary)] shadow-sm' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'" [attr.aria-pressed]="previewFormat() === f" (click)="setPreviewFormat(f)">
+              {{ 'formats.' + f | translate }}
+              @if (stateOf(f) === 'ready') { <i class="pi pi-check-circle text-xs text-[var(--color-success)]" [attr.aria-label]="'edit.dl.readyShort' | translate"></i> }
+            </button>
           }
         </div>
       }
@@ -53,84 +92,120 @@
       }
       <input #photoInput type="file" class="sr-only" accept="image/jpeg,image/png,image/webp" (change)="onPhoto($event)" [attr.aria-label]="'edit.replacePhoto' | translate" />
 
-      <div class="mt-8 grid gap-5 md:grid-cols-2">
-        <!-- Son. -->
-        <section class="glass-card p-5" [attr.aria-label]="'edit.sound' | translate">
-          <h2 class="font-semibold">{{ 'edit.sound' | translate }}</h2>
-          <div class="mt-4 flex flex-col gap-4">
-            <label class="!flex flex-col gap-1 text-sm !mb-0">
-              <span>{{ 'edit.music' | translate }}</span>
-              <select (change)="setMood($any($event.target).value)" [disabled]="!!saving()">
-                @for (m of moods; track m) { <option [value]="m" [selected]="m === v.brief.musicMood">{{ 'moods.' + m | translate }}</option> }
-              </select>
-            </label>
-            @if (v.music) {
-              <p class="text-xs text-[var(--color-text-tertiary)]">{{ v.music.title }} — {{ v.music.artist }}</p>
-            }
-            <label class="!flex items-center gap-2 text-sm !mb-0">
-              <input type="checkbox" [checked]="!!v.sfx?.enabled" (change)="setSfx($any($event.target).checked)" [disabled]="!!saving()" />
-              {{ 'edit.sfx' | translate }}
-            </label>
-            <label class="!flex items-center gap-2 text-sm !mb-0">
-              <input type="checkbox" [checked]="!!v.voice?.enabled" (change)="setVoice($any($event.target).checked)" [disabled]="!!saving()" />
-              {{ 'edit.voice' | translate }}
-            </label>
-            @if (v.voice?.enabled && v.voice?.lines?.length) {
-              <p class="text-xs text-[var(--color-text-tertiary)]">{{ 'edit.voiceLines' | translate: { count: v.voice!.lines.length } }}</p>
-            } @else if (v.voice?.unavailable) {
-              <p class="text-xs text-[var(--color-text-tertiary)]">{{ (languageRefused(v.voice!.unavailable!) ? 'edit.voiceUnavailable' : 'edit.voiceFailed') | translate }}</p>
-            }
-          </div>
-        </section>
-
-        <!-- Export MP4. -->
-        <section class="glass-card p-5" [attr.aria-label]="'edit.export' | translate">
-          <h2 class="font-semibold">{{ 'edit.export' | translate }}</h2>
-          <p class="mt-1 text-sm text-[var(--color-text-secondary)]">{{ (v.exportCount === 0 ? 'edit.firstExport' : 'edit.nextExport') | translate }}</p>
-          <fieldset class="mt-4">
-            <legend class="mb-2 text-sm">{{ 'edit.formats' | translate }}</legend>
-            <div class="flex flex-wrap gap-3">
-              @for (f of formats; track f) {
-                <label class="!flex items-center gap-1.5 text-sm !mb-0">
-                  <input type="checkbox" [checked]="exportFormats().includes(f)" (change)="toggleExportFormat(f, $any($event.target).checked)" />
-                  {{ 'formats.' + f | translate }}
+      <!-- L'atelier : un onglet à la fois. -->
+      <section class="glass-card mt-8 overflow-hidden !p-0">
+        <div class="flex gap-1 overflow-x-auto border-b border-[var(--glass-border)] px-3" role="tablist" [attr.aria-label]="'edit.tabs.label' | translate">
+          <button type="button" role="tab" id="ve-tab-sound" aria-controls="ve-panel" class="-mb-px inline-flex flex-none items-center gap-2 border-b-2 px-3 pb-3 pt-3.5 text-sm font-semibold" [class]="tab() === 'sound' ? 'border-[var(--color-primary-500)] text-[var(--color-text-primary)]' : 'border-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'" [attr.aria-selected]="tab() === 'sound'" (click)="tab.set('sound')">
+            <i class="pi pi-volume-up" aria-hidden="true"></i> {{ 'edit.sound' | translate }}
+          </button>
+          <button type="button" role="tab" id="ve-tab-files" aria-controls="ve-panel" class="-mb-px inline-flex flex-none items-center gap-2 border-b-2 px-3 pb-3 pt-3.5 text-sm font-semibold" [class]="tab() === 'files' ? 'border-[var(--color-primary-500)] text-[var(--color-text-primary)]' : 'border-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'" [attr.aria-selected]="tab() === 'files'" (click)="tab.set('files')">
+            <i class="pi pi-file-export" aria-hidden="true"></i> {{ 'edit.tabs.files' | translate }}
+            @if (renders().length) { <span class="rounded-full bg-[var(--glass-bg-medium)] px-1.5 text-xs">{{ renders().length }}</span> }
+          </button>
+        </div>
+        <div id="ve-panel" class="p-5" role="tabpanel" [attr.aria-labelledby]="'ve-tab-' + tab()">
+          @if (tab() === 'sound') {
+          <div class="flex max-w-md flex-col gap-4">
+              <label class="!flex flex-col gap-1 text-sm !mb-0">
+                <span>{{ 'edit.music' | translate }}</span>
+                <select (change)="setMood($any($event.target).value)" [disabled]="!!saving()">
+                  @for (m of moods; track m) { <option [value]="m" [selected]="m === v.brief.musicMood">{{ 'moods.' + m | translate }}</option> }
+                </select>
+              </label>
+              @if (v.music) {
+                <p class="text-xs text-[var(--color-text-tertiary)]">{{ v.music.title }} — {{ v.music.artist }}</p>
+              }
+              <label class="!flex items-center gap-2 text-sm !mb-0">
+                <input type="checkbox" [checked]="!!v.sfx?.enabled" (change)="setSfx($any($event.target).checked)" [disabled]="!!saving()" />
+                {{ 'edit.sfx' | translate }}
+              </label>
+              <label class="!flex items-center gap-2 text-sm !mb-0">
+                <input type="checkbox" [checked]="!!v.voice?.enabled" (change)="setVoice($any($event.target).checked)" [disabled]="!!saving()" />
+                {{ 'edit.voice' | translate }}
+              </label>
+              @if (v.voice?.enabled && v.voice?.lines?.length) {
+                <p class="text-xs text-[var(--color-text-tertiary)]">{{ 'edit.voiceLines' | translate: { count: v.voice!.lines.length } }}</p>
+              } @else if (v.voice?.unavailable) {
+                <p class="text-xs text-[var(--color-text-tertiary)]">{{ (languageRefused(v.voice!.unavailable!) ? 'edit.voiceUnavailable' : 'edit.voiceFailed') | translate }}</p>
+              }
+            </div>
+          } @else {
+            <div class="grid gap-6 md:grid-cols-2">
+              <div>
+                <h3 class="mb-2 text-xs font-bold uppercase tracking-wide text-[var(--color-text-tertiary)]">{{ 'edit.files.title' | translate }}</h3>
+                <ul class="flex flex-col gap-2">
+                  @for (f of formats; track f) {
+                    <li class="flex items-center gap-3">
+                      @if (renderOf(f)?.posterUrl; as poster) {
+                        <img class="h-12 w-12 flex-none rounded-lg object-cover" [src]="poster" alt="" width="48" height="48" />
+                      } @else {
+                        <span class="flex h-12 w-12 flex-none items-center justify-center rounded-lg bg-[var(--glass-bg-light)] text-[var(--color-text-tertiary)]" aria-hidden="true"><i class="pi pi-video"></i></span>
+                      }
+                      <div class="min-w-0 flex-1">
+                        <p class="text-sm font-semibold">{{ 'formats.' + f | translate }}</p>
+                        <p class="text-xs text-[var(--color-text-tertiary)]">
+                          @switch (stateOf(f)) {
+                            @case ('ready') { MP4 @if (renderOf(f)!.sizeBytes) { · {{ size(renderOf(f)!.sizeBytes) }} } }
+                            @case ('working') { {{ 'edit.files.working' | translate: { percent: percent(renderOf(f)!.progress) } }} }
+                            @case ('preparing') { {{ 'edit.files.preparing' | translate: { percent: percent(renderOf(f)!.progress) } }} }
+                            @case ('prepared') { {{ 'edit.files.prepared' | translate }} }
+                            @case ('outdated') { {{ 'edit.files.outdated' | translate }} }
+                            @default { {{ 'edit.files.none' | translate }} }
+                          }
+                        </p>
+                      </div>
+                      @if (stateOf(f) === 'ready') {
+                        <button type="button" class="outer-button button-sm" [disabled]="!!downloading()" (click)="saveMp4(f)">
+                          @if (downloading() === f) { <idem-loader size="xs" /> } @else { <i class="pi pi-download" aria-hidden="true"></i> }
+                          MP4
+                        </button>
+                      } @else if (stateOf(f) !== 'working') {
+                        <button type="button" class="button-ghost button-sm" [disabled]="!!pending() || broken() > 0" (click)="download(f)">
+                          <i class="pi pi-download" aria-hidden="true"></i>
+                          @if (prices()[f]) { {{ 'edit.price' | translate: { cost: prices()[f] } }} } @else { {{ 'edit.dl.cta' | translate }} }
+                        </button>
+                      }
+                    </li>
+                  }
+                </ul>
+              </div>
+              <div>
+                <h3 class="mb-2 text-xs font-bold uppercase tracking-wide text-[var(--color-text-tertiary)]">{{ 'edit.files.make' | translate }}</h3>
+                <p class="text-sm text-[var(--color-text-secondary)]">{{ (v.exportCount === 0 ? 'edit.firstExport' : 'edit.nextExport') | translate }}</p>
+                <fieldset class="mt-3">
+                  <legend class="sr-only">{{ 'edit.formats' | translate }}</legend>
+                  <div class="flex flex-wrap gap-3">
+                    @for (f of formats; track f) {
+                      <label class="!flex items-center gap-1.5 text-sm !mb-0">
+                        <input type="checkbox" [checked]="exportFormats().includes(f)" (change)="toggleExportFormat(f, $any($event.target).checked)" />
+                        {{ 'formats.' + f | translate }}
+                      </label>
+                    }
+                  </div>
+                </fieldset>
+                <label class="mt-4 !flex flex-col gap-1 text-sm !mb-0">
+                  <span>{{ 'edit.quality' | translate }}</span>
+                  <select (change)="exportQuality.set($any($event.target).value)">
+                    @for (q of qualities; track q) { <option [value]="q" [selected]="q === exportQuality()">{{ 'qualities.' + q | translate }}</option> }
+                  </select>
                 </label>
-              }
-            </div>
-          </fieldset>
-          <label class="mt-4 !flex flex-col gap-1 text-sm !mb-0">
-            <span>{{ 'edit.quality' | translate }}</span>
-            <select (change)="exportQuality.set($any($event.target).value)">
-              @for (q of qualities; track q) { <option [value]="q" [selected]="q === exportQuality()">{{ 'qualities.' + q | translate }}</option> }
-            </select>
-          </label>
-          <div class="mt-4 flex flex-wrap items-center gap-3">
-            <button type="button" class="inner-button button-sm" [disabled]="exporting() || rendering() || !exportFormats().length || broken() > 0" (click)="exportVideo()">
-              @if (exporting()) { <idem-loader size="xs" /> }
-              {{ 'edit.exportCta' | translate }}
-            </button>
-            @if (exportPrice() !== null) {
-              <span class="text-sm text-[var(--color-text-secondary)]">{{ (exportPrice() === 0 ? 'edit.included' : 'edit.price') | translate: { cost: exportPrice() } }}</span>
-            }
-          </div>
-          @if (needCredits()) {
-            <p class="mt-3 text-sm" role="alert">{{ 'chat.payment.short' | translate }} <a class="text-[var(--color-primary-500)] underline" [href]="accountUrl">{{ 'chat.payment.cta' | translate }}</a></p>
-          }
-          @if (rendering()) {
-            <div class="mt-4">
-              <p class="flex items-center gap-2 text-sm"><idem-loader size="xs" /> {{ 'edit.rendering' | translate: { percent: progressOf() } }}</p>
-              <progress class="mt-2 w-full" max="100" [value]="progressOf()"></progress>
+                @if (exportQuality() === 'premium') {
+                  <p class="mt-2 text-xs text-[var(--color-text-secondary)]"><i class="pi pi-clock" aria-hidden="true"></i> {{ 'edit.files.premiumSlow' | translate }}</p>
+                }
+                <div class="mt-4 flex flex-wrap items-center gap-3">
+                  <button type="button" class="outer-button button-sm" [disabled]="exporting() || exportRunning() || !exportFormats().length || broken() > 0" (click)="exportVideo()">
+                    @if (exporting()) { <idem-loader size="xs" /> }
+                    {{ 'edit.exportCta' | translate }}
+                  </button>
+                  @if (exportPrice() !== null) {
+                    <span class="text-sm text-[var(--color-text-secondary)]">{{ (exportPrice() === 0 ? 'edit.included' : 'edit.price') | translate: { cost: exportPrice() } }}</span>
+                  }
+                </div>
+              </div>
             </div>
           }
-          @if (renders().length) {
-            <ul class="mt-4 flex flex-col gap-2">
-              @for (r of renders(); track r.format) {
-                <li><button type="button" class="outer-button button-sm inline-flex" (click)="downloadMp4(r.format)" [disabled]="downloading() === r.format"><i class="pi pi-download" aria-hidden="true"></i> {{ 'formats.' + r.format | translate }} (MP4)</button></li>
-              }
-            </ul>
-          }
-        </section>
-      </div>
+        </div>
+      </section>
       }
     }
   </div>

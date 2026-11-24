@@ -42,7 +42,12 @@ export interface Storyboard {
   alternative?: DirectionId;
   music?: BriefMood;
   persona?: BriefPersona;
+  /** La présence des effets sonores décidée par le planificateur (24/11/2026) : le code en tire tous les niveaux. */
+  sound?: SoundPresence;
 }
+
+export const SOUND_PRESENCES = ['subtle', 'normal', 'punchy'] as const;
+export type SoundPresence = (typeof SOUND_PRESENCES)[number];
 
 const scripted = (brief: FilmBrief) => !!brief.spec && brief.spec.mode === 'script' && brief.spec.scenes.length > 0;
 
@@ -63,6 +68,7 @@ export function buildPlannerPrompt(brief: FilmBrief, concept: FilmConcept | null
     !concept ? `DIRECTION: <direction id>, second: <direction id> — one named visual direction for the whole film:\n${directionMenu()}` : '',
     !concept ? `MUSIC: ${BRIEF_MOODS.join(' | ')}` : '',
     !concept && brief.voice ? `NARRATOR: ${BRIEF_PERSONAS.join(' | ')} (the voice that fits the brand)` : '',
+    `SOUND: ${SOUND_PRESENCES.join(' | ')} — how present the sound effects (whooshes on cuts, hits, pops) are in this film: subtle for a calm, premium, emotional or narrated film; punchy for a fast promo, sport, launch or sale; normal otherwise. Follow what the client says about sound.`,
     'SCENE 1 | <seconds>',
     'role: hook | problem | reveal | feature | benefits | proof | cta | signature | statement | data',
     'energy: 1 to 5 — one curve for the film with a single peak (the payoff, around 60–80 % of the film)',
@@ -118,7 +124,7 @@ export function buildPlannerPrompt(brief: FilmBrief, concept: FilmConcept | null
 export const usablePlan = (plan: PlannedFilm) => plan.scenes.some((s) => s.visual || s.motion || Object.keys(s.texts).length || s.voice);
 
 /** L'idée écrite dans l'appel unique : direction (liste fermée), musique, narrateur — un mot inconnu est ignoré. */
-export function parseFilmIdea(raw: string): Pick<Storyboard, 'direction' | 'alternative' | 'music' | 'persona'> {
+export function parseFilmIdea(raw: string): Pick<Storyboard, 'direction' | 'alternative' | 'music' | 'persona' | 'sound'> {
   const idea = parseConcept(raw);
   const word = (key: string, allowed: readonly string[]) => {
     const line = raw.match(new RegExp(`^[\\s*_#-]*${key}\\s*[:=]\\s*(.+)$`, 'im'))?.[1] ?? '';
@@ -126,7 +132,8 @@ export function parseFilmIdea(raw: string): Pick<Storyboard, 'direction' | 'alte
   };
   const music = word('MUSIC', BRIEF_MOODS) as BriefMood | undefined;
   const persona = word('NARRATOR', BRIEF_PERSONAS) as BriefPersona | undefined;
-  return { ...(idea?.direction ? { direction: idea.direction } : {}), ...(idea?.alternative ? { alternative: idea.alternative } : {}), ...(music ? { music } : {}), ...(persona ? { persona } : {}) };
+  const sound = word('SOUND', SOUND_PRESENCES) as SoundPresence | undefined;
+  return { ...(idea?.direction ? { direction: idea.direction } : {}), ...(idea?.alternative ? { alternative: idea.alternative } : {}), ...(music ? { music } : {}), ...(persona ? { persona } : {}), ...(sound ? { sound } : {}) };
 }
 
 /**
@@ -288,7 +295,7 @@ export async function runPlanner(ctx: FilmCallContext, brief: FilmBrief, concept
     const run = await callFilmModel(ctx, 'video.planner', system, user + reminder, (raw) => usablePlan(parseFilmPlan(raw)));
     runs.push(run);
     const plan = parseFilmPlan(run.raw);
-    if (usablePlan(plan)) return { storyboard: { ...normalizeStoryboard(plan, brief, concept, timeline), ...(concept ? {} : parseFilmIdea(run.raw)) }, runs };
+    if (usablePlan(plan)) return { storyboard: { ...normalizeStoryboard(plan, brief, concept, timeline), ...(concept ? (({ sound }) => (sound ? { sound } : {}))(parseFilmIdea(run.raw)) : parseFilmIdea(run.raw)) }, runs };
     if (run.failure === 'no_model') break;
   }
   return { storyboard: null, runs };

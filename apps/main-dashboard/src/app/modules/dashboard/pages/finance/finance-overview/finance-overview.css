@@ -2,60 +2,6 @@
   display: block;
 }
 
-/* Les trois façons de commencer : des boutons, pour le clavier et le lecteur d'écran. */
-.fo-choice {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.5rem;
-  padding: 1.5rem;
-  text-align: left;
-  cursor: pointer;
-}
-
-.fo-choice:hover,
-.fo-choice:focus-visible {
-  border-color: var(--color-primary-500);
-}
-
-.fo-choice:disabled {
-  cursor: progress;
-  opacity: 0.7;
-}
-
-.fo-choice app-finance-illustration {
-  transition: color 0.3s ease;
-}
-
-.fo-choice:hover app-finance-illustration,
-.fo-choice:focus-visible app-finance-illustration {
-  color: var(--color-text-secondary);
-}
-
-.fo-choice__title {
-  margin-top: 0.5rem;
-  font-size: 1.05rem;
-  font-weight: 600;
-  color: var(--color-text-primary);
-}
-
-.fo-choice__body {
-  font-size: 0.875rem;
-  line-height: 1.5;
-  color: var(--color-text-secondary);
-}
-
-.fo-choice__cta {
-  margin-top: auto;
-  padding-top: 0.75rem;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: var(--color-primary-500);
-}
-
 .fo-alerts {
   border-left: 3px solid var(--color-warning);
 }
@@ -156,27 +102,6 @@
   overflow-y: auto !important;
 }
 
-.fo-hero {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 1.25rem;
-  padding: 1.75rem;
-  border: 1.5px solid var(--color-primary-500);
-}
-
-@media (min-width: 768px) {
-  .fo-hero {
-    flex-direction: row;
-    align-items: center;
-  }
-}
-
-.fo-choice--recommended {
-  position: relative;
-  border: 1.5px solid var(--color-primary-500);
-}
-
 .fo-badge {
   display: inline-flex;
   align-items: center;
@@ -186,5 +111,157 @@
   font-size: 0.7rem;
   font-weight: 600;
   background: var(--color-primary-500);
-  color: #fff;
+  color: var(--color-on-primary);
+}
+
+/* ───────── Prévisionnel vide : deux choix, en tête ───────── */
+
+.fo-empty {
+  max-width: 64rem;
+  margin-inline: auto;
+}
+
+.fo-empty__head {
+  max-width: 40rem;
+}
+
+.fo-eyebrow {
+  margin-bottom: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+}
+
+.fo-paths {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.75rem;
+}
+
+@media (min-width: 768px) {
+  .fo-paths {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.25rem;
+  }
+}
+
+.fo-path {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 1.75rem;
+  border: 1.5px solid var(--glass-border-medium);
+  transition: border-color 150ms ease-out, background-color 150ms ease-out;
+}
+
+/* Le choix recommandé se distingue par son filet, pas par un décor. */
+.fo-path--recommended {
+  border-color: var(--color-primary-500);
+}
+
+.fo-path .fo-badge {
+  position: absolute;
+  top: 1.25rem;
+  right: 1.25rem;
+}
+
+.fo-path--drop {
+  border-style: dashed;
+}
+
+.fo-path--dragging {
+  border-color: var(--color-primary-500);
+  background: var(--glass-bg-light);
+}
+
+.fo-path__art {
+  width: 7rem;
+}
+
+.fo-path__title {
+  margin-top: 0.25rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.fo-path__body {
+  font-size: 0.925rem;
+  line-height: 1.55;
+  color: var(--color-text-secondary);
+}
+
+.fo-path__note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--color-text-tertiary);
+}
+
+.fo-path__note i {
+  margin-top: 0.15rem;
+}
+
+.fo-path__note--ok i {
+  color: var(--color-success);
+}
+
+/* Les boutons s'alignent au pied des deux cartes, quelle que soit la longueur du texte. */
+.fo-path__cta {
+  margin-top: auto;
+  padding-top: 0.75rem;
+}
+
+.fo-path__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+@media (max-width: 480px) {
+  .fo-path {
+    padding: 1.25rem;
+  }
+
+  .fo-path__cta,
+  .fo-path__actions .inner-button {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+.fo-other {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1.25rem;
+  margin-top: 1.5rem;
+  font-size: 0.875rem;
+}
+
+.fo-other__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 500;
+  color: var(--color-primary-500);
+  text-underline-offset: 3px;
+}
+
+.fo-other__link:hover,
+.fo-other__link:focus-visible {
+  text-decoration: underline;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fo-path {
+    transition: none;
+  }
 }

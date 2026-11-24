@@ -18,6 +18,9 @@ export type PreviewToEditor =
   | { type: 'ivision:ready'; duration: number; scenes: { key: string; start: number; end: number }[]; errors: PreviewSceneError[] }
   | { type: 'ivision:time'; t: number; playing: boolean }
   | { type: 'ivision:errors'; errors: PreviewSceneError[] }
+  /** Sons, photos et clips mis en mémoire avant la lecture (une coupure en pleine vidéo serait pire). */
+  | { type: 'ivision:loading'; loaded: number; total: number }
+  | { type: 'ivision:playable' }
   | ({ type: 'ivision:picked'; key: string; t: number } & ScenePoint);
 
 /**
