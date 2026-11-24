@@ -19,7 +19,16 @@ export interface PlannedCue {
   scene: string;
   gain?: number;
   take?: number;
+  /** Énergie de la scène (1..5) : le niveau de l'effet la suit (`placeCues`). */
+  energy?: number;
 }
+
+/**
+ * L'instant VISÉ d'un son de transition, par rapport à la coupe (24/11/2026) : le whoosh frappe juste avant la coupe
+ * (le mouvement de sortie y est le plus rapide), le riser culmine SUR la coupe et l'impact tombe dessus. Le son est
+ * ensuite avancé de son propre pic (`placeCues`) — l'ancien `lead` fixe du compilateur n'est plus utilisé.
+ */
+const HIT_OFFSET: Partial<Record<SfxKind, number>> = { whoosh: -0.04, softwhoosh: -0.06, riser: 0, impact: 0 };
 
 // ─── Le film ─────────────────────────────────────────────────────────────────
 
@@ -61,10 +70,13 @@ export function plannedCues(film: VideoFilm): PlannedCue[] {
     .map((c) => {
       const sc = film.scenes[c.scene];
       if (!sc) return null;
-      return { kind: c.kind, t: Math.max(0, Math.round((sc.start - c.lead) * 1000) / 1000), scene: sc.key, gain: c.gain, take: c.take };
+      return { kind: c.kind, t: Math.max(0, Math.round((sc.start + (HIT_OFFSET[c.kind as SfxKind] ?? -c.lead)) * 1000) / 1000), scene: sc.key, gain: c.gain, take: c.take, ...(sc.energy !== undefined ? { energy: sc.energy } : {}) };
     })
     .filter((x): x is NonNullable<typeof x> => !!x);
   const accents: PlannedCue[] = [];
+  // Les accents tournent eux aussi sur leurs prises : jamais le même « pop » à chaque scène.
+  let pops = 0;
+  let ticks = 0;
   for (const sc of film.scenes) {
     const data = /^__ge\.scene\(tl, root, D, (\{[\s\S]*\})\);$/.exec((sc.script || '').trim())?.[1];
     if (!data) continue;
@@ -79,8 +91,8 @@ export function plannedCues(film: VideoFilm): PlannedCue[] {
       const t = Math.round((sc.start + a.t) * 1000) / 1000;
       // Une coupe sonore tout près : le son de la transition suffit.
       if (transitions.some((c) => Math.abs(c.t - t) < 0.35)) continue;
-      if (a.kind === 'settle' && (sc.energy ?? 3) >= 4) accents.push({ kind: 'pop', t, scene: sc.key, gain: 0.55 });
-      else if (a.kind === 'mark') accents.push({ kind: 'tick', t, scene: sc.key, gain: 0.45 });
+      if (a.kind === 'settle' && (sc.energy ?? 3) >= 4) accents.push({ kind: 'pop', t, scene: sc.key, gain: 0.55, take: pops++, energy: sc.energy });
+      else if (a.kind === 'mark') accents.push({ kind: 'tick', t, scene: sc.key, gain: 0.45, take: ticks++, ...(sc.energy !== undefined ? { energy: sc.energy } : {}) });
     }
   }
   return [...transitions, ...accents].sort((a, b) => a.t - b.t);

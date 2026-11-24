@@ -67,7 +67,7 @@ import { alignWords } from './audio/align';
 import { prepareMedia } from './assets/prepare';
 import { planFilm, plannedCues } from './composition';
 import { fetchTrack, pickTrack, resolveMood, searchMusic, MUSIC_PROVIDERS } from './audio/music';
-import { ensureSfxLibrary, MUSIC_GAIN_DB, MUSIC_UNDER_VOICE_DB, SFX_UNDER_VOICE_DB, pickSounds, pickTakes, previewGain, publicSoundName, SFX_GAIN_DB, sfxLevelCompDb, sfxLibrary, SfxLibrary, soundFile } from './audio/sfx';
+import { ensureSfxLibrary, MUSIC_GAIN_DB, MUSIC_UNDER_VOICE_DB, SFX_UNDER_VOICE_DB, pickSounds, pickTakes, placeCues, previewGain, publicSoundName, SFX_GAIN_DB, SfxCue, sfxLevelCompDb, sfxLibrary, SfxLibrary, soundFile } from './audio/sfx';
 import { cleanSpoken, plainSpoken, fitScenesToVoice, personaById, personaMenu, speakable, speechAvailable, steadyNarration, synthesizeVoice, voiceTimeline, VOICE_PERSONAS } from './audio/voice';
 import { callFilmModel, FilmCallContext, ModelRun, tierFor } from './agents';
 import { FilmBrief, sceneRange } from './director/brief';
@@ -173,6 +173,8 @@ export interface VideoPatch {
   musicMood?: MusicMood;
   musicTrackId?: string;
   sfx?: boolean;
+  /** Présence des effets (agent de retouche ou réglage) : discrète, normale, appuyée — les niveaux en découlent. */
+  sfxIntensity?: 'subtle' | 'normal' | 'punchy';
   voice?: boolean;
   captions?: boolean;
   /** Ligne de voix off d'une scène (clé → ce que dit la voix), dite telle quelle. */
@@ -233,6 +235,7 @@ export function sanitizeVideoPatch(raw: unknown): VideoPatch {
     musicMood: MUSIC_MOODS.includes(b.musicMood as MusicMood) ? (b.musicMood as MusicMood) : undefined,
     musicTrackId: typeof b.musicTrackId === 'string' ? b.musicTrackId.slice(0, 120) : undefined,
     sfx: bool(b.sfx),
+    sfxIntensity: ['subtle', 'normal', 'punchy'].includes(b.sfxIntensity as string) ? (b.sfxIntensity as VideoPatch['sfxIntensity']) : undefined,
     voice: bool(b.voice),
     captions: bool(b.captions),
     voiceLines: strings(b.voiceLines, 400),
@@ -532,9 +535,13 @@ export class MotionVideoService {
     return lib || ensureSfxLibrary({ offline: true });
   }
 
-  private async chooseSfx(seed: number): Promise<VideoSfx> {
+  /**
+   * La palette d'effets d'UNE vidéo : tirée par sa graine dans tout le vivier, en évitant les sons des vidéos récentes
+   * de la marque (`avoid`) ; `intensity` : la présence décidée par l'agent (planificateur ou retouche).
+   */
+  private async chooseSfx(seed: number, opts: { avoid?: string[]; intensity?: VideoSfx['intensity'] } = {}): Promise<VideoSfx> {
     const lib = await this.library();
-    const picked = pickSounds(lib, seed);
+    const picked = pickSounds(lib, seed, opts.avoid);
     const sounds: VideoSfx['sounds'] = {};
     for (const [kind, sound] of Object.entries(picked)) {
       const { file: _file, score: _score, ...rest } = sound;
@@ -542,8 +549,25 @@ export class MotionVideoService {
     }
     // Plusieurs prises par moment sonore : les transitions tournent (jamais le même whoosh à chaque coupe).
     const takes: NonNullable<VideoSfx['takes']> = {};
-    for (const [kind, list] of Object.entries(pickTakes(lib))) takes[kind as SfxKind] = (list || []).map(({ file: _f, score: _s, ...rest }) => rest);
-    return { enabled: true, sounds, ...(Object.keys(takes).length ? { takes } : {}) };
+    for (const [kind, list] of Object.entries(pickTakes(lib, seed, opts.avoid))) takes[kind as SfxKind] = (list || []).map(({ file: _f, score: _s, ...rest }) => rest);
+    return { enabled: true, sounds, ...(Object.keys(takes).length ? { takes } : {}), ...(opts.intensity ? { intensity: opts.intensity } : {}) };
+  }
+
+  /**
+   * Les effets d'un film, placés : moments planifiés → densité et niveau de base (`refineCues`, style + intensité de
+   * l'agent) → synchro sur le pic de chaque son, niveau suivant la musique et l'énergie de la scène (`placeCues`).
+   * Une seule fonction pour l'export et l'aperçu : ce qu'on entend dans l'aperçu est ce qui sera exporté.
+   */
+  private async filmCues(video: MotionVideo, files: Partial<Record<SfxKind, string | string[]>>, musicFile?: string): Promise<(SfxCue & { db: number })[]> {
+    const film = video.film;
+    if (!film || !Object.keys(files).length) return [];
+    const style = (video.brief.style && video.brief.style !== 'auto' ? video.brief.style : 'energetic') as MotionStyle;
+    const base = refineCues(plannedCues(film).map((c) => ({ t: c.t, kind: c.kind as SfxKind, ...(c.gain !== undefined ? { gain: c.gain } : {}), ...(c.take !== undefined ? { take: c.take } : {}), ...(c.energy !== undefined ? { energy: c.energy } : {}) })), style, film.durationSec, video.sfx?.intensity).filter((c) => files[c.kind]);
+    const fileOf = (c: SfxCue) => {
+      const f = files[c.kind];
+      return Array.isArray(f) ? f[(c.take ?? 0) % f.length] : f;
+    };
+    return placeCues(base, fileOf, musicFile && video.music ? { file: musicFile, startAt: video.music.startAt, durationSec: film.durationSec } : null);
   }
 
   /** Les fichiers des effets : un par moment sonore (aperçu), ou toutes ses prises (`withTakes`, rendu). */
@@ -917,8 +941,7 @@ export class MotionVideoService {
   private async renderHtmlFormat(video: MotionVideo, brand: FilmBrand, format: VideoFormat, o: { musicFile?: string; sfxFiles: Partial<Record<SfxKind, string | string[]>>; voiceFiles: { file: string; at: number }[]; onProgress: (r: number) => void }): Promise<{ file: string; poster: string; workDir: string; width: number; height: number; fps: number; sizeBytes: number; errors: { key: string; message: string }[] }> {
     const film = video.film!;
     const project = await this.hyperframesProject(video, brand, format, 'render', video.scope.quality);
-    const style = (video.brief.style && video.brief.style !== 'auto' ? video.brief.style : 'energetic') as MotionStyle;
-    const cues = Object.keys(o.sfxFiles).length ? refineCues(plannedCues(film).map((c) => ({ t: c.t, kind: c.kind as SfxKind, ...(c.gain !== undefined ? { gain: c.gain } : {}), ...(c.take !== undefined ? { take: c.take } : {}) })), style, film.durationSec, video.sfx?.intensity).filter((c) => o.sfxFiles[c.kind]) : [];
+    const cues = await this.filmCues(video, o.sfxFiles, o.musicFile);
     const ambience = await this.foleyBeds(video);
     const out = await renderHyperFrames({
       ...(ambience.length ? { ambience } : {}),
@@ -1182,7 +1205,9 @@ export class MotionVideoService {
       emit('music', 'done', music ? { title: music.title, artist: music.artist, bpm: music.beat?.bpm } : { none: true });
       return music;
     })();
-    const sfxJob = brief.sfx !== false ? this.chooseSfx(seed).catch(() => undefined) : Promise.resolve(undefined);
+    // La palette de cette vidéo évite les sons des vidéos récentes de la marque ; la présence vient du planificateur.
+    const recentSfx = ctx.others.slice(0, 4).flatMap((v) => [...Object.values(v.sfx?.sounds || {}), ...Object.values(v.sfx?.takes || {}).flat()].map((x) => x?.id).filter((id): id is string => !!id));
+    const sfxJob = brief.sfx !== false ? this.chooseSfx(seed, { avoid: recentSfx, ...(sb.sound ? { intensity: sb.sound } : {}) }).catch(() => undefined) : Promise.resolve(undefined);
     const [media, music, sfx] = await Promise.all([mediaJob, musicJob, sfxJob]);
     for (const { plan, asset } of media.produced) {
       const id = `m${assets.length + 1}`;
@@ -1380,6 +1405,8 @@ export class MotionVideoService {
       video.music = mood === 'none' ? undefined : await this.chooseMusic({ mood, style: 'energetic', objective: video.brief.objective, durationSec: film.durationSec, seed: crypto.randomBytes(4).readUInt32BE(0), avoidIds: video.music ? [video.music.id] : [], ...(patch.musicTrackId ? { trackId: String(patch.musicTrackId) } : {}) });
     }
     if (typeof patch.sfx === 'boolean') video.sfx = patch.sfx ? (video.sfx?.sounds && Object.keys(video.sfx.sounds).length ? { ...video.sfx, enabled: true } : await this.chooseSfx(film.seed)) : video.sfx ? { ...video.sfx, enabled: false } : undefined;
+    // Une présence demandée rallume les effets s'ils étaient coupés (« mets des effets plus discrets »).
+    if (patch.sfxIntensity && patch.sfx !== false) video.sfx = video.sfx?.sounds && Object.keys(video.sfx.sounds).length ? { ...video.sfx, enabled: true, intensity: patch.sfxIntensity } : await this.chooseSfx(film.seed, { intensity: patch.sfxIntensity });
     if (patch.scope) {
       const next = normalizeScope({ ...video.scope, ...patch.scope, durationSec: video.scope.durationSec });
       video.scope = { ...next, durationSec: video.scope.durationSec };
@@ -1456,8 +1483,8 @@ export class MotionVideoService {
     try {
       const files = await this.sfxFiles(video.sfx, true);
       if (!Object.keys(files).length) return [];
-      const style = (video.brief.style && video.brief.style !== 'auto' ? video.brief.style : 'energetic') as MotionStyle;
-      const cues = refineCues(plannedCues(film).map((c) => ({ t: c.t, kind: c.kind as SfxKind, ...(c.gain !== undefined ? { gain: c.gain } : {}), ...(c.take !== undefined ? { take: c.take } : {}) })), style, film.durationSec, video.sfx.intensity);
+      const musicFile = video.music ? await fetchTrack(video.music).catch(() => undefined) : undefined;
+      const cues = await this.filmCues(video, files, musicFile);
       const under = video.voice?.enabled ? SFX_UNDER_VOICE_DB : 0;
       const out: { url: string; at: number; gain: number }[] = [];
       for (const cue of cues) {

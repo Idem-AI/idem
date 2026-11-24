@@ -59,7 +59,9 @@ interface KindSpec {
   keywords: RegExp;
 }
 
-const COMMON_EXCLUDE = /\b(voice|vocal|speech|talk|scream|music loop|song|ambience|ambient|field recording|nature|rain|birds|crowd|horror|scary|creepy|fart|burp|cough|mouth|lips|spit)\b/i;
+// Les sons « dessin animé », jouet ou jeu vidéo 8 bits sont écartés (24/11/2026 : « on dirait un sfx de test ») —
+// un film de marque n'a pas une bande-son de cartoon.
+const COMMON_EXCLUDE = /\b(voice|vocal|speech|talk|scream|music loop|song|ambience|ambient|field recording|nature|rain|birds|crowd|horror|scary|creepy|fart|burp|cough|mouth|lips|spit|cartoon|comic|comedy|funny|toy|squeak[a-z]*|8.?bit|chiptune|arcade|retro game|game over|test tone|beep test)\b/i;
 
 export const SFX_SPECS: Record<SfxKind, KindSpec> = {
   whoosh: { queries: ['whoosh', 'swoosh transition', 'swish'], min: 0.25, max: 1.6, ideal: 0.7, exclude: /\b(sword|punch|kick|wind loop)\b/i, keywords: /whoosh|swoosh|swish|swipe|woosh/i },
@@ -156,6 +158,8 @@ export interface LibrarySound extends SfxSound {
 
 export interface SfxLibrary {
   builtAt: string;
+  /** Version de la sonothèque : une sonothèque plus ancienne est reconstruite (24/11/2026 : 10 sons par moment). */
+  version?: number;
   /** Au moins un moment sonore est resté sur la synthèse (aucune source en ligne n'a fourni de candidat). */
   degraded: boolean;
   sounds: Record<SfxKind, LibrarySound[]>;
@@ -407,7 +411,12 @@ function scoreCandidate(c: Candidate, spec: KindSpec, kind: SfxKind, processed: 
   return Math.round((fit + match + level + rating + catalog) * 100) / 100 + (kind === 'tick' && processed.duration < 0.12 ? 0.2 : 0);
 }
 
-const MAX_PER_KIND = 5;
+/**
+ * 10 sons par moment sonore (24/11/2026, retour utilisateur : « un sfx classique qui revient à chaque fois ») : chaque
+ * vidéo tire SA palette dans ce vivier (`pickPalette`) au lieu des trois mêmes meilleurs sons pour toutes.
+ */
+const MAX_PER_KIND = 10;
+const LIBRARY_VERSION = 2;
 
 /** Construit (ou relit) la sonothèque. Une banque en panne n'empêche rien. */
 export async function ensureSfxLibrary(opts: { offline?: boolean; force?: boolean } = {}): Promise<SfxLibrary> {
@@ -418,7 +427,7 @@ export async function ensureSfxLibrary(opts: { offline?: boolean; force?: boolea
       const lib = JSON.parse(fs.readFileSync(manifest, 'utf8')) as SfxLibrary;
       const ok = SFX_KINDS.every((k) => (lib.sounds[k] || []).every((s) => fs.existsSync(s.file)));
       const staleEnoughToRetry = Date.now() - new Date(lib.builtAt).getTime() > DEGRADED_RETRY_MS;
-      if (ok && (opts.offline || !lib.degraded || !staleEnoughToRetry)) return lib;
+      if (ok && (lib.version ?? 1) >= LIBRARY_VERSION && (opts.offline || !lib.degraded || !staleEnoughToRetry)) return lib;
       if (ok && lib.degraded) logger.warn('video.sfx.library_degraded_retry', { builtAt: lib.builtAt });
     } catch {
       /* reconstruit */
@@ -426,6 +435,14 @@ export async function ensureSfxLibrary(opts: { offline?: boolean; force?: boolea
   }
   fs.mkdirSync(path.join(dir, 'raw'), { recursive: true });
   const catalog = loadCatalog();
+  // La sonothèque précédente : ses vrais sons restent candidats (une reconstruction avec un réseau lent ou coupé ne
+  // perd plus les bons sons déjà téléchargés — observé le 24/11/2026 : 3 sons de banque à la place de 5 vrais).
+  let previous: SfxLibrary | null = null;
+  try {
+    previous = fs.existsSync(manifest) ? (JSON.parse(fs.readFileSync(manifest, 'utf8')) as SfxLibrary) : null;
+  } catch {
+    previous = null;
+  }
   const sounds = {} as Record<SfxKind, LibrarySound[]>;
 
   for (const kind of SFX_KINDS) {
@@ -453,7 +470,7 @@ export async function ensureSfxLibrary(opts: { offline?: boolean; force?: boolea
         return c.durationSec === 0 || (c.durationSec >= spec.min && c.durationSec <= spec.max * 4);
       });
       // Téléchargements et traitements en parallèle (4 à la fois).
-      const queue = candidates.slice(0, 12);
+      const queue = candidates.slice(0, 20);
       const worker = async () => {
         for (let c = queue.shift(); c; c = queue.shift()) {
           const key = crypto.createHash('sha1').update(c.id).digest('hex').slice(0, 12);
@@ -484,6 +501,11 @@ export async function ensureSfxLibrary(opts: { offline?: boolean; force?: boolea
       };
       await Promise.all([worker(), worker(), worker(), worker()]);
     }
+    for (const old of previous?.sounds[kind] || []) {
+      if (old.license === 'generated' || list.some((x) => x.id === old.id) || !fs.existsSync(old.file)) continue;
+      if (COMMON_EXCLUDE.test(old.title) || spec.exclude.test(old.title)) continue;
+      list.push(old);
+    }
     // La banque locale (Earshot), en ligne comme hors ligne.
     list.push(...(await bankSounds(kind, dir)));
     list.sort((a, b) => b.score - a.score);
@@ -496,7 +518,7 @@ export async function ensureSfxLibrary(opts: { offline?: boolean; force?: boolea
   }
 
   const degraded = SFX_KINDS.some((k) => sounds[k].every((s) => s.license === 'generated'));
-  const lib: SfxLibrary = { builtAt: new Date().toISOString(), degraded, sounds };
+  const lib: SfxLibrary = { builtAt: new Date().toISOString(), version: LIBRARY_VERSION, degraded, sounds };
   fs.writeFileSync(manifest, JSON.stringify(lib, null, 1));
   return lib;
 }
@@ -531,38 +553,63 @@ export function sfxLibrary(): Promise<SfxLibrary> {
   return libraryPromise;
 }
 
-/** Un son par moment sonore, tiré par la graine parmi les meilleurs. */
-export function pickSounds(lib: SfxLibrary, seed: number): Record<SfxKind, LibrarySound> {
+/**
+ * LA PALETTE D'UNE VIDÉO (24/11/2026) : pour chaque moment sonore, des prises tirées par la graine dans tout le vivier
+ * (les mieux notés plus souvent), jamais un son de synthèse quand un vrai son existe, et en évitant les sons des
+ * vidéos précédentes de la marque (`avoid`) tant qu'il en reste d'autres. Le premier son est le son principal, les
+ * suivants sont les prises de la rotation.
+ */
+export function pickPalette(lib: SfxLibrary, seed: number, opts: { avoid?: Iterable<string>; takes?: number } = {}): Partial<Record<SfxKind, LibrarySound[]>> {
   const r = rng(seed ^ 0x51f15e);
-  const out = {} as Record<SfxKind, LibrarySound>;
+  const avoid = new Set(opts.avoid ?? []);
+  const n = opts.takes ?? 3;
+  const out: Partial<Record<SfxKind, LibrarySound[]>> = {};
   for (const kind of SFX_KINDS) {
-    const pool = (lib.sounds[kind] || []).slice(0, 3);
-    if (pool.length) out[kind] = pool[Math.floor(r() * pool.length)];
+    const all = lib.sounds[kind] || [];
+    const real = all.filter((s) => !s.id.startsWith('synth:'));
+    let pool = real.length ? real : all;
+    const fresh = pool.filter((s) => !avoid.has(s.id));
+    if (fresh.length >= Math.min(n, pool.length)) pool = fresh;
+    // Tirage pondéré sans remise : poids = rang inverse (le meilleur son sort plus souvent, jamais toujours).
+    const left = [...pool];
+    const picked: LibrarySound[] = [];
+    while (left.length && picked.length < n) {
+      const weights = left.map((_, i) => 1 / (1 + i * 0.35));
+      let x = r() * weights.reduce((a, b) => a + b, 0);
+      let i = 0;
+      while (i < left.length - 1 && (x -= weights[i]) > 0) i++;
+      picked.push(left.splice(i, 1)[0]);
+    }
+    if (picked.length) out[kind] = picked;
   }
   return out;
+}
+
+/** Un son par moment sonore (le premier de la palette). */
+export function pickSounds(lib: SfxLibrary, seed: number, avoid?: Iterable<string>): Record<SfxKind, LibrarySound> {
+  const palette = pickPalette(lib, seed, { avoid });
+  return Object.fromEntries(Object.entries(palette).map(([k, v]) => [k, v![0]])) as Record<SfxKind, LibrarySound>;
+}
+
+/** Les prises de la rotation (« the same whoosh on every cut is the most common tell » — HyperFrames, `sound.md`). */
+export function pickTakes(lib: SfxLibrary, seed: number, avoid?: Iterable<string>, n = 3): Partial<Record<SfxKind, LibrarySound[]>> {
+  const palette = pickPalette(lib, seed, { avoid, takes: n });
+  return Object.fromEntries(Object.entries(palette).filter(([, v]) => (v?.length ?? 0) > 1)) as Partial<Record<SfxKind, LibrarySound[]>>;
 }
 
 /**
- * D'autres prises par moment sonore (jusqu'à `n`, les meilleures de la sonothèque) : la rotation des transitions
- * (« the same whoosh on every cut is the most common tell » — HyperFrames, `sound.md`).
+ * Retrouve le fichier d'un son retenu (rendu, aperçu). Un son disparu de la sonothèque (reconstruite depuis) est
+ * remplacé par un son du même moment choisi d'après SON identifiant — avant, c'était toujours le premier : toutes les
+ * prises d'une vidéo retombaient sur le même fichier, le même whoosh à chaque coupe.
  */
-export function pickTakes(lib: SfxLibrary, n = 3): Partial<Record<SfxKind, LibrarySound[]>> {
-  const out: Partial<Record<SfxKind, LibrarySound[]>> = {};
-  for (const kind of SFX_KINDS) {
-    const pool = (lib.sounds[kind] || []).slice(0, n);
-    if (pool.length > 1) out[kind] = pool;
-  }
-  return out;
-}
-
-/** Retrouve le fichier d'un son retenu (rendu, aperçu). */
 export async function soundFile(sound: SfxSound): Promise<string | null> {
   const lib = await sfxLibrary();
-  const found = (lib.sounds[sound.kind] || []).find((s) => s.id === sound.id);
-  if (found && fs.existsSync(found.file)) return found.file;
-  // La sonothèque a changé depuis : le meilleur son du même moment sonore.
-  const fallback = lib.sounds[sound.kind]?.[0];
-  return fallback && fs.existsSync(fallback.file) ? fallback.file : null;
+  const pool = (lib.sounds[sound.kind] || []).filter((s) => fs.existsSync(s.file));
+  const found = pool.find((s) => s.id === sound.id);
+  if (found) return found.file;
+  if (!pool.length) return null;
+  const h = crypto.createHash('sha1').update(sound.id).digest().readUInt32BE(0);
+  return pool[h % pool.length].file;
 }
 
 /** Nom de fichier public d'un son (servi sans authentification : sons CC0). */
@@ -584,6 +631,103 @@ export interface SfxCue {
   gain?: number;
   /** Prise (rotation) quand le moment sonore en a plusieurs. */
   take?: number;
+  /** Énergie (1..5) de la scène qui porte le moment : une scène nerveuse sonne plus fort qu'une scène posée. */
+  energy?: number;
+}
+
+// ─── Placement : synchronisation et niveau adaptés ──────────────────────────
+
+const peakCache = new Map<string, Promise<number>>();
+/**
+ * L'instant (s) où un son frappe le plus fort (fenêtres de 20 ms). Un whoosh culmine de 0,04 à 0,4 s après son début,
+ * un riser de 0,8 à 2,8 s : c'est CET instant qu'on cale sur l'image, pas le début du fichier.
+ */
+export function sfxPeakSec(file: string): Promise<number> {
+  let job = peakCache.get(file);
+  if (!job) {
+    job = new Promise<number>((resolve) => {
+      const ff = spawn(FFMPEG, ['-v', 'error', '-i', file, '-ac', '1', '-ar', '8000', '-f', 's16le', '-'], { stdio: ['ignore', 'pipe', 'ignore'] });
+      const chunks: Buffer[] = [];
+      ff.stdout.on('data', (c: Buffer) => chunks.push(c));
+      ff.on('error', () => resolve(0));
+      ff.on('close', () => {
+        const buf = Buffer.concat(chunks);
+        const w = 160;
+        let best = 0;
+        let bestAt = 0;
+        for (let i = 0; i + w * 2 <= buf.length; i += w * 2) {
+          let e = 0;
+          for (let j = 0; j < w; j++) {
+            const v = buf.readInt16LE(i + j * 2);
+            e += v * v;
+          }
+          if (e > best) {
+            best = e;
+            bestAt = i / 2 / 8000;
+          }
+        }
+        resolve(Math.round(bestAt * 1000) / 1000);
+      });
+    });
+    peakCache.set(file, job);
+  }
+  return job;
+}
+
+/** L'enveloppe d'une musique (dB par fenêtre de 100 ms) sur l'extrait utilisé, et son niveau médian. */
+export async function musicEnvelope(file: string, startAt: number, durationSec: number): Promise<{ at: (t: number, before?: number, after?: number) => number; median: number } | null> {
+  const buf = await new Promise<Buffer>((resolve) => {
+    const ff = spawn(FFMPEG, ['-v', 'error', '-ss', String(Math.max(0, startAt)), '-t', String(durationSec + 0.5), '-i', file, '-ac', '1', '-ar', '8000', '-f', 's16le', '-'], { stdio: ['ignore', 'pipe', 'ignore'] });
+    const chunks: Buffer[] = [];
+    ff.stdout.on('data', (c: Buffer) => chunks.push(c));
+    ff.on('error', () => resolve(Buffer.alloc(0)));
+    ff.on('close', () => resolve(Buffer.concat(chunks)));
+  });
+  const w = 800;
+  const env: number[] = [];
+  for (let i = 0; i + w * 2 <= buf.length; i += w * 2) {
+    let e = 0;
+    for (let j = 0; j < w; j++) {
+      const v = buf.readInt16LE(i + j * 2) / 32768;
+      e += v * v;
+    }
+    env.push(10 * Math.log10(e / w + 1e-10));
+  }
+  const audible = env.filter((x) => x > -60).sort((a, b) => a - b);
+  if (audible.length < 5) return null;
+  const median = audible[Math.floor(audible.length / 2)];
+  const at = (t: number, before = 0.2, after = 0.4) => {
+    const a = Math.max(0, Math.floor((t - before) * 10));
+    const b = Math.min(env.length - 1, Math.ceil((t + after) * 10));
+    let m = -100;
+    for (let i = a; i <= b; i++) m = Math.max(m, env[i]);
+    return m;
+  };
+  return { at, median };
+}
+
+/**
+ * LE PLACEMENT D'UN EFFET (24/11/2026, retour utilisateur : « pas bien synchronisés », « ajuster le volume en fonction
+ * de la vidéo et de la musique ») — calculé par le code, sur des mesures :
+ *   synchro    `t` est l'instant VISÉ (la coupe, le texte qui se pose) : le son démarre `pic` secondes plus tôt pour que
+ *              son point le plus fort tombe dessus (avant : un décalage fixe, un riser pouvait culminer 1,4 s trop tard) ;
+ *   musique    là où la musique monte, l'effet monte d'autant (×0,6) ; dans un passage calme il descend (−5…+4 dB) :
+ *              l'écart effet/musique reste le même d'un bout à l'autre du film ;
+ *   image      l'énergie de la scène (1 posé → 5 nerveux) ajoute ou retire jusqu'à 2 dB.
+ * La sonie propre du fichier est égalisée plus loin (`sfxLevelCompDb`, au mixage et dans l'aperçu).
+ */
+export async function placeCues<C extends SfxCue & { db: number }>(cues: C[], fileOf: (c: C) => string | undefined, music?: { file: string; startAt: number; durationSec: number } | null): Promise<C[]> {
+  const env = music ? await musicEnvelope(music.file, music.startAt, music.durationSec).catch(() => null) : null;
+  const out: C[] = [];
+  for (const cue of cues) {
+    const file = fileOf(cue);
+    if (!file) continue;
+    const peak = await sfxPeakSec(file);
+    const musicDb = env ? Math.max(-5, Math.min(4, 0.6 * (env.at(cue.t) - env.median))) : 0;
+    const energyDb = cue.energy ? Math.max(-2, Math.min(2, cue.energy - 3)) : 0;
+    out.push({ ...cue, t: Math.round(Math.max(0, cue.t - peak) * 1000) / 1000, db: Math.round((cue.db + musicDb + energyDb) * 10) / 10 });
+  }
+  return out;
 }
 
 /**
