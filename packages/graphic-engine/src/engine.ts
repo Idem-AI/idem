@@ -33,6 +33,7 @@ import { directLogo } from './runtime/logo-director';
 import { directPattern, patternTiles, QUIET_STYLES } from './runtime/pattern-director';
 import { catalog as loadCatalog, catalogOverrides, ensureHtml } from './catalog/registry';
 import { assemblePage, capPlainText, pageUnits } from './catalog/assemble';
+import { imageNeedsFor, type ImageNeeds } from './catalog/image-needs';
 import { brandTraits, Candidate, CatalogState, comboFingerprint, compatibleComponents, newCatalogState, nodeMark, rankSkins, readNodeMarks, shortlist } from './catalog/graph';
 import { chooseSystem, chooseUser, parseChoices, parseSkin, skinUser } from './catalog/choose';
 import { CatalogElement, ComponentNode, elementOf, LayoutNode, PageConfig, SkinNode } from './catalog/types';
@@ -85,6 +86,23 @@ export interface DocumentOptions {
   axisId?: string;
   /** Le nombre de variantes imposé par l'hôte (1 : une seule écriture, quand personne ne choisira). */
   variants?: number;
+  /**
+   * La configuration du catalogue ÉPINGLÉE (24/11/2026) : celle que `planSection` a retenue, et pour laquelle l'hôte a
+   * choisi ou généré l'image. Rendue en premier, sans nouveau choix du modèle (les autres ne servent qu'en repli).
+   */
+  pin?: PageConfig;
+}
+
+/** Ce que la planification d'une page rend : le gabarit retenu et ce qu'il demande à son image. */
+/** Une image provisoire qui réserve la place d'une photo pendant la planification (un pixel transparent). */
+export const PLAN_IMAGE_PLACEHOLDER = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
+
+export interface PagePlan {
+  config: PageConfig;
+  /** `null` : la composition retenue ne pose aucune image (affiche typographique). */
+  image: ImageNeeds | null;
+  /** Les directions de la composition (DA servie) et sa gamme, pour l'hôte. */
+  directions?: string[];
 }
 
 /** Ce que la mémoire de l'hôte rend pour un document : idées déjà faites, axes déjà servis, empreintes de rendus. */
@@ -433,6 +451,24 @@ export class GraphicDocument {
    * Compose une page. `replay` : la page déjà écrite, rejouée avec un contenu retouché (aucun modèle) ;
    * `revise` : une retouche ÉCRITE (« le titre plus grand ») — l'auteur réécrit la page avec la consigne.
    */
+  /**
+   * PLANIFIER une page sans la rendre (24/11/2026) : le gabarit que le catalogue retient pour ce contenu, et ce qu'il
+   * demande à son image (cadre, sujet, orientation, taille). Le contenu peut porter une image provisoire (`figure` à
+   * l'adresse `PLAN_IMAGE_PLACEHOLDER`) : elle réserve la place d'une photo que l'hôte cherchera ensuite. Même choix (code ou
+   * modèle) qu'un rendu ; le rendu qui suit passe la configuration en `pin`.
+   */
+  async planSection(content: SectionContent, o: { index?: number; total?: number } = {}): Promise<PagePlan | null> {
+    const checked = validateSectionContent(content);
+    if (!checked.ok || !checked.value) throw new ContentError(checked.issues);
+    const recorder = new TraceRecorder({ generationId: this.generationId, documentType: this.options.documentType, format: this.options.format, level: this.policy.level, sectionId: content.id });
+    const section = checked.value;
+    const pageFormat = this.formatOf(section);
+    const map = buildContentMap(section, this.options.bindings ?? 'values');
+    const quality = { ...qualityFrame(section, map, pageFormat), ...(this.options.allowDark ? { allowDark: true } : {}) };
+    const out = await this.composeFromCatalog(section, map, recorder, { index: o.index ?? 1, total: o.total ?? (this.options.sections?.length || 1), format: pageFormat, quality, planOnly: true });
+    return out && 'plan' in out ? out.plan : null;
+  }
+
   async composeSection(content: SectionContent, o: { index?: number; total?: number; replay?: SectionSpec; revise?: { spec?: SectionSpec; instruction: string } } = {}): Promise<SectionOutput> {
     const checked = validateSectionContent(content);
     if (!checked.ok || !checked.value) throw new ContentError(checked.issues);
@@ -464,6 +500,7 @@ export class GraphicDocument {
     if (!rendered) {
       const quality = { ...qualityFrame(section, map, pageFormat), ...(this.options.allowDark ? { allowDark: true } : {}), ...(this.tokens.brand.logos.onDark ? { logoOnDark: this.tokens.brand.logos.onDark } : {}) };
       const out = await this.composeFromCatalog(section, map, recorder, { index, total, format: pageFormat, quality, revise: o.revise });
+      if (out && 'plan' in out) throw new GraphicRenderError(section.id, 'planification inattendue');
       if (!out) throw new GraphicRenderError(section.id, 'aucune composition du catalogue ne s’affiche');
       rendered = out.page;
       catalogInfo = { version: out.version, config: out.config };
@@ -577,8 +614,8 @@ export class GraphicDocument {
     section: SectionContent,
     map: ContentMap,
     recorder: TraceRecorder,
-    o: { index: number; total: number; format: FormatDef; quality: QualityFrame; revise?: { spec?: SectionSpec; instruction: string } }
-  ): Promise<{ page: Rendered; config: PageConfig; version: string; summary: string } | null> {
+    o: { index: number; total: number; format: FormatDef; quality: QualityFrame; revise?: { spec?: SectionSpec; instruction: string }; planOnly?: boolean }
+  ): Promise<{ page: Rendered; config: PageConfig; version: string; summary: string } | { plan: PagePlan } | null> {
     const level = this.policy.level;
     const effort = catalogEffortFor(level);
     const [cat, overrides] = await Promise.all([loadCatalog(), catalogOverrides()]);
@@ -592,7 +629,8 @@ export class GraphicDocument {
     const units = pageUnits(section);
     const facts = { element, format: o.format, role: section.role, units, index: o.index, total: o.total };
     const seed = `${this.options.brand.name}|${this.options.seed}|${section.id}`;
-    const current = o.revise?.spec?.catalog?.config;
+    const pinned = !o.revise && this.options.pin ? this.options.pin : undefined;
+    const current = o.revise?.spec?.catalog?.config ?? pinned;
     let candidates = shortlist(cat, facts, { level, skin: skin.id, traits, state, seed, overrides });
     // Une retouche écrite part de la configuration actuelle (en tête de liste).
     if (current) {
@@ -607,7 +645,8 @@ export class GraphicDocument {
     let by: 'code' | 'agent' = 'code';
     // LE MODÈLE CHOISIT (Medium et au-delà, ou une retouche écrite) : une réponse JSON vérifiée.
     const call = this.agent();
-    const askModel = call && (effort.chooser === 'model' || o.revise) && (candidates.length > 1 || o.revise);
+    // Une configuration épinglée a déjà été choisie (par le modèle, à la planification) : pas de second choix.
+    const askModel = !pinned && call && (effort.chooser === 'model' || o.revise) && (candidates.length > 1 || o.revise);
     if (askModel) {
       const disabled = new Set(overrides.disabled ?? []);
       const componentOptions = new Map<string, ComponentNode[]>();
@@ -631,6 +670,14 @@ export class GraphicDocument {
         const seen = new Set(parsed.map((c) => c.fingerprint));
         chosen = [...parsed, ...candidates.filter((c) => !seen.has(c.fingerprint))].slice(0, Math.max(picks, parsed.length));
       }
+    }
+    // LA PLANIFICATION s'arrête ici : le gabarit est retenu, l'hôte lit ce qu'il demande à l'image avant de la chercher.
+    if (o.planOnly) {
+      const config = chosen[0]?.config ?? candidates[0]?.config;
+      if (!config) return null;
+      const gab = config.gabarit ? cat.nodes.get(config.gabarit) : undefined;
+      recorder.repair({ code: 'catalog_plan', detail: `page planifiée : ${config.gabarit ?? config.layout}`, by });
+      return { plan: { config, image: imageNeedsFor(cat, config, units, o.format), ...(gab?.directions ? { directions: gab.directions } : {}) } };
     }
     // Le HTML des composants retenus (et des candidats de repli) : téléchargé, vérifié par son empreinte.
     const queue = [...chosen, ...candidates.filter((c) => !chosen.includes(c))].slice(0, chosen.length + 3);
@@ -983,6 +1030,12 @@ export class GraphicDocument {
 }
 
 export const createDocument = (options: DocumentOptions): Promise<GraphicDocument> => GraphicDocument.create(options);
+
+/** Planifier une toile d'une seule section (un visuel) : le gabarit retenu et les besoins de son image. */
+export async function planSingle(options: DocumentOptions & { content: SectionContent }): Promise<PagePlan | null> {
+  const doc = await createDocument({ ...options, sections: [{ id: options.content.id, role: options.content.role }] });
+  return doc.planSection(options.content, { index: 1, total: 1 });
+}
 
 /** Une toile d'une seule section (une face de carte, un visuel, une couverture de réseau). */
 export async function renderSingle(options: DocumentOptions & { content: SectionContent; replay?: SectionSpec; revise?: { spec?: SectionSpec; instruction: string } }): Promise<SectionOutput> {

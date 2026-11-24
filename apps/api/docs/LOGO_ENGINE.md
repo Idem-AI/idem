@@ -204,7 +204,7 @@ Chaque SVG repasse par la validation technique avant d'être écrit (un fichier 
 
 150 vérifications, **sans réseau ni modèle** (police locale Liberation Sans, modèle simulé) : contrat ; Node seul (aucun React/jsdom/canvas chargé) ; noyau remplaçable ; booléens exacts et 58 générateurs × 40 tirages ; typographie ; composition et variantes ; 14 fichiers défectueux détectés ; mesures et auto-amélioration ; patchs ; **les 11 catégories** produisent chacune un logo accepté ; reproductibilité (mêmes octets) ; planificateur (8 marques : aucune paire « trop proche », 24 SVG différents, la mémoire du projet écarte le déjà-vu) ; l'agent à chaque cran, ses replis et ses garde-fous ; budget de tokens contre l'ancien pipeline ; export (relecture à l'identique, ZIP) ; qualité mesurée sur 8 marques × 3 types (72 logos, score moyen ≥ 90).
 
-**Depuis le 23/11/2026 : 223 vérifications**, dont la section 19 (perception par type, symétrie Cn/Dn par construction, affinage, empreinte Hu/Betti). Détail et suite du chantier : [`LOGO_ENGINE_MATHS.md`](./LOGO_ENGINE_MATHS.md).
+**Depuis le 24/11/2026 : 245 vérifications**, dont les sections 19 à 21 (perception par type, symétrie Cn/Dn par construction, affinage, empreinte Hu/Betti, fidélité aux directions, solveurs par type, sona, continuité G1, calibration, Pareto). Le logo est désormais généré au cran **High** (`LOGO_LEVEL`). Détail et suite du chantier : [`LOGO_ENGINE_MATHS.md`](./LOGO_ENGINE_MATHS.md).
 
 ## 9. Limites connues
 

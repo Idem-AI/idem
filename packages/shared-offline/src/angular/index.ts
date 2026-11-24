@@ -1,5 +1,6 @@
-import { inject, provideAppInitializer, type EnvironmentProviders } from '@angular/core';
+import { inject, isDevMode, provideAppInitializer, type EnvironmentProviders } from '@angular/core';
 
+import { unregisterIdemServiceWorker } from '../index';
 import { IdemServiceWorkerService } from './service-worker.service';
 
 export { IdemServiceWorkerService } from './service-worker.service';
@@ -21,6 +22,11 @@ export { IdemNetworkAwarePreloading } from './preload';
  */
 export function provideIdemServiceWorker(): EnvironmentProviders {
   return provideAppInitializer(() => {
+    // `ng serve` : le worker mettrait en cache les modules Vite, qui changent à chaque session.
+    if (isDevMode()) {
+      void unregisterIdemServiceWorker();
+      return;
+    }
     inject(IdemServiceWorkerService).register();
   });
 }

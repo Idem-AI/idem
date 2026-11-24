@@ -24,8 +24,21 @@ export interface SceneSlots {
   attribution?: string;
   /** Les autres textes, dans l'ordre : une liste (jamais perdus). */
   items: string[];
-  media?: { id: string; kind: 'image' | 'video' };
+  media?: SceneMedia;
   logo: boolean;
+}
+
+/**
+ * Un média de scène, et ce que sa préparation en a lu (24/11/2026) : le point d'intérêt et la zone calme de chaque format
+ * (0..1), les proportions de l'image. Absents pour un média non préparé : rien ne change alors.
+ */
+export interface SceneMedia {
+  id: string;
+  kind: 'image' | 'video';
+  focus?: Partial<Record<FilmFormatId, { x: number; y: number }>>;
+  calm?: Partial<Record<FilmFormatId, { x: number; y: number; w: number; h: number; light?: boolean }>>;
+  /** Largeur / hauteur. */
+  aspect?: number;
 }
 
 const KEY_SLOT: Array<[RegExp, Exclude<Slot, 'items' | 'media' | 'logo'>]> = [
@@ -41,7 +54,7 @@ const KEY_SLOT: Array<[RegExp, Exclude<Slot, 'items' | 'media' | 'logo'>]> = [
 export const isFigure = (text: string): boolean => text.length <= 16 && /\d/.test(text) && /^[~≈+\-−]?\s*\d[\d\s.,  ]*\s*(%|[kKmM]|Md|Mds|M\$|FCFA|XAF|€|\$|x|×|h|j|ans?)?\s*$/u.test(text.trim());
 
 /** Les clés de la scène rangées : la clé contractuelle d'abord, puis la forme (un chiffre), puis l'ordre. */
-export function sceneSlots(texts: Record<string, string>, media: Array<{ id: string; kind: 'image' | 'video' }>, hasLogo: boolean, role?: string): SceneSlots {
+export function sceneSlots(texts: Record<string, string>, media: SceneMedia[], hasLogo: boolean, role?: string): SceneSlots {
   const out: SceneSlots = { items: [], logo: hasLogo };
   const rest: string[] = [];
   for (const [key, value] of Object.entries(texts)) {
@@ -73,7 +86,7 @@ export function sceneSlots(texts: Record<string, string>, media: Array<{ id: str
   if (!out.body && rest.length === 1) out.body = rest.shift();
   out.items = rest;
   const m = media.find((x) => x.kind === 'image' || x.kind === 'video');
-  if (m) out.media = { id: m.id, kind: m.kind };
+  if (m) out.media = { id: m.id, kind: m.kind, ...(m.focus ? { focus: m.focus } : {}), ...(m.calm ? { calm: m.calm } : {}), ...(m.aspect ? { aspect: m.aspect } : {}) };
   return out;
 }
 
@@ -147,6 +160,24 @@ export function layoutFits(layout: LayoutNode, f: SceneFacts): boolean {
     }
   }
   return true;
+}
+
+/** La façon dont une mise en page montre son média : plein cadre (rien derrière ne se voit), en partie, ou pas du tout. */
+export function mediaCover(layout: { html: string } | undefined, hasMedia: boolean): 'full' | 'part' | 'none' {
+  if (!layout || !hasMedia || !/data-v="media"/.test(layout.html)) return 'none';
+  return /data-v="media"[^>]*class="[^"]*\babsolute inset-0\b/.test(layout.html) ? 'full' : 'part';
+}
+
+/**
+ * Le texte sur l'image (24/11/2026) : une mise en page plein cadre pose ses textes SUR l'image. Une image préparée sans
+ * zone calme dans un des formats du film (elle est chargée partout) s'y prête mal : la mise en page recule ; une image
+ * calme dans tous les formats avance un peu. Une image non préparée : rien ne change.
+ */
+export function calmFit(layout: { html: string }, f: SceneFacts): number {
+  const m = f.slots.media;
+  if (!m?.calm || mediaCover(layout, true) !== 'full') return 0;
+  const calm = f.formats.filter((x) => m.calm![x]).length;
+  return calm === f.formats.length ? 0.04 : -0.1;
 }
 
 const roleMatch = (roles: string[] | undefined, role?: string): number => (!roles?.length ? 0 : roles.includes(role ?? '') ? 1 : roles.includes('*') ? 0.3 : 0);
@@ -250,6 +281,7 @@ export function shortlist(cat: LoadedVideoCatalog, f: SceneFacts, o: { style?: V
     s -= Math.min(0.3, 0.06 * worn);
     // La première scène accroche, la dernière conclut : les rôles du récit le disent déjà ; la position renforce.
     if (f.index === f.count - 1 && layout.roles.includes('cta')) s += 0.08;
+    s += calmFit(layout, f);
     return s + 0.06 * (node.weight ?? 1) + 0.16 * jitter(`${o.seed}|${f.index}|${node.id}`);
   };
   const out: SceneCandidate[] = [];

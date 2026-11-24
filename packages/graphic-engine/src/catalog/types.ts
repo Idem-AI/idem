@@ -245,6 +245,25 @@ export type SkinNode = z.infer<typeof SkinNode>;
 
 // ── component ───────────────────────────────────────────────────────────────────────────────
 
+/**
+ * CE QUE LE CADRAGE D'UN COMPOSANT D'IMAGE DEMANDE À LA PHOTO (2.11, 24/11/2026) : lu par l'hôte AVANT de chercher ou de
+ * générer l'image, pour qu'elle convienne au gabarit choisi (un cercle veut un sujet centré, un bandeau étroit un sujet
+ * vertical, un fond détouré un sujet isolé). Jamais un traitement de couleur : une photo garde ses couleurs.
+ */
+export const ImageNeedsSpec = z.strictObject({
+  /** La forme du cadre : l'image y est recadrée. */
+  shape: z.enum(['rect', 'circle', 'arch', 'blob', 'torn', 'window', 'polaroid']).default('rect'),
+  /** Le sujet attendu : une personne, un objet, une scène large, une matière, ou indifférent. */
+  subject: z.enum(['person', 'object', 'scene', 'texture', 'any']).default('any'),
+  /** Où le sujet se tient dans le cadre. */
+  framing: z.enum(['centered', 'thirds', 'wide']).default('thirds'),
+  /** Le cadre veut un sujet DÉTOURÉ (fond transparent) quand c'est possible. */
+  cutout: z.boolean().optional(),
+  /** Un fond simple, peu chargé (le texte ou une forme passe à côté). */
+  calm: z.boolean().optional(),
+});
+export type ImageNeedsSpec = z.infer<typeof ImageNeedsSpec>;
+
 export const ComponentNode = z.strictObject({
   ...common,
   kind: z.literal('component'),
@@ -258,6 +277,8 @@ export const ComponentNode = z.strictObject({
   minWidth: z.number().min(0).max(1).optional(),
   /** Le fragment (fichier `template.html` dans le dépôt), chargé à la demande et vérifié par son empreinte. */
   html: z.string().max(20_000).optional(),
+  /** Ce que ce cadrage demande à l'image (composants `figure`). */
+  image: ImageNeedsSpec.optional(),
   vars: z.array(NodeVar).max(4).optional(),
 });
 export type ComponentNode = z.infer<typeof ComponentNode>;

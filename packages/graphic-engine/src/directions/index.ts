@@ -49,7 +49,25 @@ export const DirectionNode = z.object({
   tags: z.object({ mood: z.array(Mood).min(1).max(5), density: Density, energy: z.number().int().min(1).max(5), imagery: z.string().max(20).optional() }),
   neighbors: z.array(Id).min(1).max(6),
   rules: z.object({ layout: Txt(800), color: Txt(800), typography: Txt(800), devices: Txt(800), imagery: Txt(800) }),
-  image: z.object({ modifier: Txt(600), negative: Txt(400) }),
+  image: z.object({
+    modifier: Txt(600),
+    negative: Txt(400),
+    /**
+     * LES TRAITEMENTS LOCAUX d'une photo de banque (24/11/2026), appliqués par le code sans aucun modèle, à COULEURS
+     * NATURELLES (aucune teinte, aucune recoloration) : grain d'impression, contraste, ombres relevées, netteté,
+     * vignetage léger, préférence pour le détourage. Une image générée les reçoit dans sa consigne, pas après coup.
+     */
+    local: z
+      .object({
+        grain: z.number().min(0).max(0.12).optional(),
+        contrast: z.number().min(-0.2).max(0.2).optional(),
+        lift: z.number().min(0).max(0.15).optional(),
+        sharpen: z.number().min(0).max(1).optional(),
+        vignette: z.number().min(0).max(0.3).optional(),
+        cutout: z.enum(['prefer', 'never']).optional(),
+      })
+      .optional(),
+  }),
   bans: z.array(Txt(200)).min(1).max(8),
   engine: z.object({
     strategies: z.array(z.string().max(30)).min(1),

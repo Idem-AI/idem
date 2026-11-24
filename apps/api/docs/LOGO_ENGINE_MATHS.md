@@ -173,6 +173,11 @@ dans la même case : trois propositions, trois silhouettes différentes.
 - **Vocabulaire du directeur** : `abstract | sym-<motif>` (grammaire des symétries),
   `lettermark | monogram`, `letterform | counter`, et le générateur `lusona`.
 - Tirage des recettes **pondéré** (le poids ne servait qu'à exclure).
+- **Réponse partielle du directeur** : une ligne hors menu ou bâtie sur un cliché est écartée
+  SEULE ; les directions valides sont gardées et le planificateur complète les manquantes (avant :
+  toute la réponse partait au repli sans IA).
+- Mesure (directeur simulé, police Liberation Sans) : une session High = **1 appel** de modèle
+  + 7 à 9 s de calcul.
 
 ### Lot 3 — Un solveur par type
 
@@ -186,6 +191,9 @@ dans la même case : trois propositions, trois silhouettes différentes.
 | abstract | grammaire étendue : motif `segment` (anneau interrompu : **fermeture gestaltiste**), centre `orbit` (lunes décalées d'un demi-pas), rayons en **proportion √2, φ ou 2** | `planner/recipes.ts` | symétrie tenue |
 | negative-space | l'affineur règle la taille du motif creusé (échelle 0,35–0,85) | `planner/optimize.ts` | — |
 
+Les profils de lettres sont **mis en cache** par tracé : l'affineur reconstruit le même nom des
+dizaines de fois (lot le plus lent : 8,5 s → 3,4 s).
+
 Le noyau géométrique gagne quatre mesures **facultatives** (`rowIntervals`, `contains`,
 `distanceToEdge`, `centroid`) : un noyau qui ne les fournit pas reste valide, les solveurs se taisent.
 
@@ -196,7 +204,8 @@ Le noyau géométrique gagne quatre mesures **facultatives** (`rowIntervals`, `c
   miroirs placés **par orbites d'un groupe de symétrie** (D2, ou C4 sur grille carrée) ; recherche
   d'une configuration **monolinéaire** (une seule ligne) ; lissage par Bézier quadratiques
   (contrôles aux nœuds, passages aux milieux : continuité G1). Rendu en **tracé** (premier
-  générateur à trait : `GenPart.stroke`), jamais creusé ni contenu. Recette `abstract-lusona`,
+  générateur à trait : `GenPart.stroke`), jamais creusé ni contenu (une mosaïque non plus : elle
+  devient illisible réduite dans une tuile). Recette `abstract-lusona`,
   symétrie et style `monoline` déclarés.
 - **`phi-arcs`** (`render/generators/computational.ts`) : cercles tangents intérieurement, rayons en
   progression φ / √2 / 2, alternativement retirés et ajoutés — l'idée d'Img2Logo sans la photo.

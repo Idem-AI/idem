@@ -18,8 +18,10 @@ import type { RevisePoint } from './choose';
 import { callFilmModel, FilmCallContext } from '../agents';
 import { assembleScene, DEVELOP_FREE_MIN, finalInnerScale, RuntimeScene, sceneHtml, SceneQuality } from './assemble';
 import { ChooseScene, chooseSystem, chooseUser, parseChoices, videoEffortFor } from './choose';
-import { animationFits, animationFor, energyOf, FilmState, inDirection, layoutFits, pickWeighted, rankThemes, rolesIn, sceneFingerprint, sceneSlots, SceneFacts, SceneSlots, seededShuffle, shortlist, SceneCandidate, stableHash, transitionFor, videoIndex } from './graph';
+import { animationFits, animationFor, energyOf, mediaCover, FilmState, inDirection, layoutFits, pickWeighted, rankThemes, rolesIn, sceneFingerprint, sceneSlots, SceneFacts, SceneMedia, SceneSlots, seededShuffle, shortlist, SceneCandidate, stableHash, transitionFor, videoIndex } from './graph';
 import { videoCatalog } from './registry';
+import type { SceneGrid } from './rhythm';
+import { choosePath, PathCandidate } from './film-path';
 import { FilmMetrics, filmMetrics } from './metrics';
 import type { AnimationNode, AnimRole, CarryRole, DecorNode, DevelopNode, FilmFormatId, LayoutNode, LoadedVideoCatalog, SceneConfig, SceneRole, SequenceNode, ThemeNode, TransitionNode, VideoStyle } from './types';
 import { ROLE_TARGET, SCENE_ROLES } from './types';
@@ -28,10 +30,11 @@ export interface CatalogScene {
   key: string;
   duration: number;
   texts: Record<string, string>;
-  media: Array<{ id: string; kind: 'image' | 'video' }>;
+  media: SceneMedia[];
   role?: string;
   energy?: number;
-  beat?: { bpm: number; first: number };
+  /** La grille de la musique vue depuis la scène (temps, temps forts, phrases ; s, depuis son début). */
+  beat?: SceneGrid;
   /** Les mots dits par la voix off pendant la scène (s, depuis son début) : les entrées se calent sur eux. */
   spoken?: Array<{ text: string; t: number }>;
 }
@@ -406,12 +409,6 @@ function spreadTransitions(cat: LoadedVideoCatalog, theme: ThemeNode, configs: S
 
 const jitterOf = (seed: string): number => (parseInt(stableHash([seed], 6), 16) % 1000) / 1000;
 
-/** La façon dont une mise en page montre son média : plein cadre (rien derrière ne se voit), en partie, ou pas du tout. */
-function mediaCover(layout: { html: string } | undefined, hasMedia: boolean): 'full' | 'part' | 'none' {
-  if (!layout || !hasMedia || !/data-v="media"/.test(layout.html)) return 'none';
-  return /data-v="media"[^>]*class="[^"]*\babsolute inset-0\b/.test(layout.html) ? 'full' : 'part';
-}
-
 /**
  * LES DÉCORS DU FILM (23/11/2026) — formes animées, objets 3D, illustrations qui se dessinent, motifs, lumières. Le code
  * tire une PALETTE de trois décors pour le film (DA de la marque, gamme du cran, énergie proche de celle de la DA) —
@@ -466,16 +463,43 @@ export async function composeFilmFromCatalog(input: ComposeInput): Promise<Compo
   // Les SÉQUENCES d'abord (code, 0 jeton) : les scènes enchaînées gardent la configuration de leur séquence.
   const sequences = planSequences(cat, facts, { direction: input.brand.direction, level: input.level, seed, seen: memory.sequences, hasLogo: input.brand.hasLogo, scenes: input.scenes });
   const lists: SceneCandidate[][] = [];
-  for (const f of facts) {
-    const list = shortlist(cat, f, { style, direction: input.brand.direction, state, seed, size: effort.shortlist, level: input.level });
-    // Le tirage parmi les candidats proches du meilleur (graine du film) : le choisi passe en tête de la liste, qui sert
-    // ensuite de réserve (candidat suivant, variété).
-    const drawn = pickWeighted(list.map((c) => ({ item: c, score: c.score })), `${seed}|scene|${f.index}`, 0.3, 0.14);
-    if (drawn && drawn !== list[0]) list.splice(0, list.length, drawn, ...list.filter((c) => c !== drawn));
-    lists.push(list);
-    const chosen = sequences.get(f.index)?.layout ?? list[0].layout.id;
-    state.layouts[f.index] = chosen;
-    state.use.set(chosen, (state.use.get(chosen) ?? 0) + 1);
+  if (process.env.VIDEO_FILM_PATH === 'greedy') {
+    // L'ancien choix, scène après scène (rétabli par `VIDEO_FILM_PATH=greedy`).
+    for (const f of facts) {
+      const list = shortlist(cat, f, { style, direction: input.brand.direction, state, seed, size: effort.shortlist, level: input.level });
+      const drawn = pickWeighted(list.map((c) => ({ item: c, score: c.score })), `${seed}|scene|${f.index}`, 0.3, 0.14);
+      if (drawn && drawn !== list[0]) list.splice(0, list.length, drawn, ...list.filter((c) => c !== drawn));
+      lists.push(list);
+      const chosen = sequences.get(f.index)?.layout ?? list[0].layout.id;
+      state.layouts[f.index] = chosen;
+      state.use.set(chosen, (state.use.get(chosen) ?? 0) + 1);
+    }
+  } else {
+    // LE CHEMIN DU FILM (24/11/2026, `film-path.ts`) : les listes courtes sont faites sans regarder les voisines, puis
+    // les scènes sont choisies ENSEMBLE (enchaînements et usure comptés sur tout le film), le chemin tiré avec la graine.
+    // Une liste VARIÉE : trois candidats au plus par mise en page (plusieurs gabarits d'une même mise en page pouvaient
+    // remplir toute la liste — ni le chemin ni la garde ne pouvaient alors éviter une répétition).
+    const size = Math.max(effort.shortlist, 8);
+    for (const f of facts) {
+      const wide = shortlist(cat, f, { style, direction: input.brand.direction, state: { layouts: [], use: new Map(), seen: memory.templates, delivered: memory.delivered }, seed, size: size * 3, level: input.level });
+      const per = new Map<string, number>();
+      const varied = wide.filter((c) => {
+        const n = per.get(c.layout.id) ?? 0;
+        per.set(c.layout.id, n + 1);
+        return n < 3;
+      });
+      lists.push(varied.slice(0, size).map((c, k) => ({ ...c, ref: String.fromCharCode(65 + k) })));
+    }
+    const asPath = (c: SceneConfig, score: number, hasMedia: boolean): PathCandidate => ({ layout: c.layout, ...(c.gabarit ? { gabarit: c.gabarit } : {}), ...(c.animations?.title ? { title: c.animations.title } : {}), cover: mediaCover(cat.nodes.get(c.layout) as { html: string } | undefined, hasMedia), ...(c.sequence ? { sequence: c.sequence } : {}), score });
+    const path = choosePath(
+      lists.map((l, i) => (sequences.has(i) ? [asPath(sequences.get(i)!, 0, Boolean(facts[i].slots.media))] : l.map((c) => asPath(c.config, c.score, Boolean(facts[i].slots.media))))),
+      { seed: `${seed}|film` }
+    );
+    lists.forEach((list, i) => {
+      const chosen = sequences.has(i) ? undefined : list[path[i]];
+      // Le choisi passe en tête de sa liste, qui reste la réserve (candidat suivant, variété).
+      if (chosen && chosen !== list[0]) list.splice(0, list.length, chosen, ...list.filter((c) => c !== chosen));
+    });
   }
   // Le rythme de la DA de la marque (22/11/2026) : son énergie (1 posée → 5 vive) tire le choix du thème vers elle.
   const daEnergy = Number(getDirection(input.brand.direction)?.tags?.energy) || 0;
@@ -512,9 +536,21 @@ export async function composeFilmFromCatalog(input: ComposeInput): Promise<Compo
   // sauf au sein d'une même séquence (une continuité voulue).
   for (let i = 1; i < configs.length; i++) {
     if (configs[i].layout !== configs[i - 1].layout || (configs[i].sequence && configs[i].sequence === configs[i - 1].sequence)) continue;
-    if (sequences.has(i)) continue;
-    const alt = lists[i].find((c) => c.layout.id !== configs[i - 1].layout);
+    // La scène d'une séquence garde sa mise en page : c'est alors la scène d'avant (isolée) qui en change, sans
+    // reprendre celle de SA voisine d'avant.
+    if (sequences.has(i)) {
+      if (sequences.has(i - 1)) continue;
+      const alt = lists[i - 1].find((c) => c.layout.id !== configs[i].layout && c.layout.id !== configs[i - 2]?.layout);
+      if (alt) configs[i - 1] = alt.config;
+      continue;
+    }
+    const alt = lists[i].find((c) => c.layout.id !== configs[i - 1].layout && c.layout.id !== configs[i + 1]?.layout) ?? lists[i].find((c) => c.layout.id !== configs[i - 1].layout);
     if (alt) configs[i] = alt.config;
+    else if (!sequences.has(i - 1)) {
+      // La scène n'a pas d'autre mise en page : c'est sa voisine d'avant qui change.
+      const before = lists[i - 1].find((c) => c.layout.id !== configs[i].layout && c.layout.id !== configs[i - 2]?.layout);
+      if (before) configs[i - 1] = before.config;
+    }
   }
   configs = remixAnimations(cat, theme, facts, configs, { direction: input.brand.direction, level: input.level, seed, delivered: memory.delivered });
   configs = varyTitles(cat, theme, facts, configs, { direction: input.brand.direction, level: input.level, seed });

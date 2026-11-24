@@ -19,8 +19,14 @@
  * Déterministe : ni hasard, ni horloge, ni réseau ; la même page rend toujours les mêmes images. Une erreur ne coupe
  * que SA scène (`__sceneErrors`).
  */
+import { KINEMATIC_EASES_JS } from './kinematics';
+import { FRAMING_JS } from './framing';
+
 export const CATALOG_RUNTIME = String.raw`(function () {
-  var GE = window.__ge = { pending: [], fitIssues: [], fx: [] };
+  var GE = window.__ge = { pending: [], fitIssues: [], fx: [], framed: [] };
+  window.__geFramed = GE.framed;
+  // Les courbes cinématiques (jerk minimal, pose, anticipation) : kinematics.ts, le même code que le serveur.
+  ${KINEMATIC_EASES_JS}
   // Le plugin des effets : la valeur passée est un NUMÉRO dans le registre (GSAP évaluerait une fonction passée telle quelle).
   if (window.gsap && !window.__geFxPlugin) {
     window.__geFxPlugin = true;
@@ -582,6 +588,47 @@ export const CATALOG_RUNTIME = String.raw`(function () {
     });
   }
 
+  // ── Le sujet hors des textes (24/11/2026, framing.ts) ─────────────────────────────────────
+  /*
+   * L'image plein cadre (ou en partie) est placée dans son cadre (object-position) pour que son SUJET — le point
+   * d'intérêt trouvé à la préparation — reste hors des textes posés dessus, mesurés après leur mise à la taille. Dans
+   * une séquence, l'image portée garde le cadrage de la scène d'avant (aucun saut à la coupe).
+   */
+  ${FRAMING_JS}
+  function frameMedia(item, m) {
+    var root = item.root, el = root.querySelector('[data-v="media"] [data-ge-inner]');
+    if (!el || !m || !m.focus) return;
+    var f = m.focus[comp.getAttribute('data-f')];
+    if (!f) return;
+    var c = item.spec.carry;
+    if (c && c.role === 'media') {
+      var prevSec = document.getElementById(c.prevKey), pe = prevSec && prevSec.querySelector('[data-v="media"] [data-ge-inner]');
+      if (pe && pe.style.objectPosition) { el.style.objectPosition = pe.style.objectPosition; return; }
+    }
+    var aspect = el.naturalWidth && el.naturalHeight ? el.naturalWidth / el.naturalHeight : el.videoWidth && el.videoHeight ? el.videoWidth / el.videoHeight : m.aspect;
+    if (!aspect) {
+      // Proportions inconnues et image pas encore chargée : le cadrage se fait à son chargement.
+      if (!item.framingWait) { item.framingWait = true; el.addEventListener(el.tagName === 'VIDEO' ? 'loadedmetadata' : 'load', function () { shown(root, function () { frameMedia(item, m); }); }, { once: true }); }
+      return;
+    }
+    var box = layoutBox(el, root);
+    if (!box.w || !box.h) return;
+    var rr = root.getBoundingClientRect(), sc = rr.width / (root.offsetWidth || rr.width || 1), obstacles = [];
+    each(root.querySelectorAll('[data-fit], [data-v="cta"], [data-v="label"], [data-v="items"], [data-v="logo"]'), function (t) {
+      var rg = document.createRange(), x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+      rg.selectNodeContents(t);
+      each(rg.getClientRects(), function (q) { if (q.width < 1 || q.height < 1) return; x0 = Math.min(x0, q.left); y0 = Math.min(y0, q.top); x1 = Math.max(x1, q.right); y1 = Math.max(y1, q.bottom); });
+      if (!(x1 > x0)) return;
+      var b = { x: (x0 - rr.left) / sc - box.x, y: (y0 - rr.top) / sc - box.y, w: (x1 - x0) / sc, h: (y1 - y0) / sc };
+      if (b.x + b.w <= 0 || b.y + b.h <= 0 || b.x >= box.w || b.y >= box.h) return;
+      obstacles.push(b);
+    });
+    var r = frameSubject({ w: box.w, h: box.h }, aspect, f, obstacles);
+    if (!r) return;
+    el.style.objectPosition = (r.px * 100).toFixed(1) + '% ' + (r.py * 100).toFixed(1) + '%';
+    GE.framed.push({ key: item.spec.key, before: r.before, after: r.after, px: r.px, py: r.py, cx: r.cx, cy: r.cy, obstacles: obstacles.length });
+  }
+
   // ── Le directeur de caméra (22/11/2026, adapté d'explainroo — MIT, © 2026 Vincent Schmalbach) ─────────────────
   /*
    * La caméra cadre CE QUI EST DÉJÀ VISIBLE, mesuré à sa place. Elle s'ouvre serrée sur le premier élément de la scène ;
@@ -659,7 +706,7 @@ export const CATALOG_RUNTIME = String.raw`(function () {
     var tl = item.tl;
     var pos = function (s) { return { x: cx - s.x * s.z, y: cy - s.y * s.z, scale: s.z }; };
     gsap.set(wrap, Object.assign({ transformOrigin: '0 0' }, pos(plan[0].s)));
-    plan.slice(1).forEach(function (p) { tl.to(wrap, Object.assign({ duration: CAM.move, ease: 'power2.inOut' }, pos(p.s)), p.at); });
+    plan.slice(1).forEach(function (p) { tl.to(wrap, Object.assign({ duration: CAM.move, ease: window.__geKinEases ? 'geJerk' : 'power2.inOut' }, pos(p.s)), p.at); });
     GE.cameras = (GE.cameras || []).concat([{ key: item.spec.key, shots: plan.map(function (p) { return { at: Math.round(p.at * 100) / 100, z: Math.round(p.s.z * 100) / 100 }; }) }]);
   }
 
@@ -896,6 +943,7 @@ export const CATALOG_RUNTIME = String.raw`(function () {
         if (sp.logoDraw) item.logoSvg = inlineLogo(root);
         if (!fit(root)) GE.fitIssues.push(sp.key);
         guardContrast(root);
+        if (sp.media) frameMedia(item, sp.media);
         (sp.roles || []).forEach(function (r) {
           if (r.split === 'lines') each(root.querySelectorAll(r.sel), function (el) { lines(el, r.mask); });
         });

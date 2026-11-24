@@ -249,7 +249,7 @@ L'agent reçoit un brief et un cran de créativité, et retourne des logos.
 | `high`   | ~500      | Le directeur donne 3 directions (type + générateur + idée) |
 | `ultra`  | ~14 500   | L'auteur écrit le Logo IR de chaque direction (2+1 brouillons), jury, critique visuelle |
 
-> **Le logo est toujours généré au cran Ultra** (décision IDEM, `idem.service.ts`).
+> **Depuis le 24/11/2026, le logo est généré au cran High** (`LOGO_LEVEL` dans `controllers/branding.controller.ts`) : le directeur IA choisit le sens, le code cherche la forme. Voir `LOGO_ENGINE_MATHS.md`.
 
 ### Étape 1 — Le planificateur (tous les crans, 0 token)
 

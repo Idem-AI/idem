@@ -61,6 +61,26 @@ export function registerIdemServiceWorker(options: IdemServiceWorkerOptions = {}
 }
 
 /**
+ * Retire le worker et ses caches, puis recharge une fois si la page en venait.
+ *
+ * En développement, le worker servait des modules Vite de sessions précédentes
+ * (`?v=` périmés) : deux instances d'`@angular/core` cohabitaient et `inject()`
+ * échouait (NG0203).
+ */
+export async function unregisterIdemServiceWorker(): Promise<void> {
+  if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
+
+  const registrations = await navigator.serviceWorker.getRegistrations();
+  await Promise.all(registrations.map((r) => r.unregister()));
+  if (typeof caches !== 'undefined') {
+    const names = await caches.keys();
+    await Promise.all(names.filter((n) => n.startsWith('idem-')).map((n) => caches.delete(n)));
+  }
+  // Après désinscription, le rechargement n'a plus de contrôleur : pas de boucle.
+  if (navigator.serviceWorker.controller) window.location.reload();
+}
+
+/**
  * Applique la version en attente et recharge. À n'appeler que sur un geste de
  * l'utilisateur : échanger les fichiers pendant qu'il travaille lui ferait
  * perdre ce qu'il est en train de faire.

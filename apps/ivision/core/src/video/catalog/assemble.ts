@@ -30,6 +30,9 @@
 import type { AnimationNode, AnimRole, CarryRole, DecorNode, DevelopNode, LayoutNode, LoadedVideoCatalog, PrimitiveNode, SceneConfig, ThemeNode, TransitionNode, TweenStep } from './types';
 import { ROLE_TARGET } from './types';
 import { animationFor, figureParts, isFigure, rolesIn, SceneSlots } from './graph';
+import { landingShift, nearestStrong, SceneGrid } from './rhythm';
+import { PLAYFUL_DIRECTIONS } from './kinematics';
+import { FORMAT_CODE } from './framing';
 
 /** L'ordre d'entrée des rôles. */
 const ENTRANCE: AnimRole[] = ['bg', 'media', 'mark', 'figure', 'title', 'rule', 'label', 'body', 'attribution', 'items', 'cta', 'logo'];
@@ -103,8 +106,8 @@ export interface AssembleInput {
   config: SceneConfig;
   slots: SceneSlots;
   texts: Record<string, string>;
-  scene: { key: string; duration: number; energy: number; role?: string; beat?: { bpm: number; first: number }; spoken?: Array<{ text: string; t: number }> };
-  brand: { name: string; hasLogo: boolean; hasDarkLogo?: boolean };
+  scene: { key: string; duration: number; energy: number; role?: string; beat?: SceneGrid; spoken?: Array<{ text: string; t: number }> };
+  brand: { name: string; hasLogo: boolean; hasDarkLogo?: boolean; /** La DA de la marque : ses lois de mouvement. */ direction?: string };
   /** La transition par laquelle la scène entre, et la scène d'avant. */
   transitionIn?: TransitionNode;
   prevKey?: string;
@@ -279,6 +282,35 @@ export interface RuntimeScene {
   primitive?: { id: string; vars: Record<string, string | number | boolean>; at: number; duration: number; slot?: { template?: string; selector?: string } };
   /** Le logo (SVG posé dans la page) se dessine trait par trait au lieu d'entrer comme une image. */
   logoDraw?: boolean;
+  /**
+   * Le média de la scène (24/11/2026) : son point d'intérêt par format (code de page `st`, `po`, `sq`, `ls`) et ses
+   * proportions. Le runtime place l'image (`object-position`) pour garder le sujet hors des textes (`framing.ts`).
+   */
+  media?: { focus: Record<string, { x: number; y: number }>; aspect?: number };
+}
+
+/** Les propriétés de position : ce qu'une courbe qui dépasse peut porter (jamais l'opacité ni un flou). */
+const TRANSFORM_KEYS = new Set(['x', 'y', 'xPercent', 'yPercent', 'scale', 'scaleX', 'scaleY', 'rotation']);
+
+/**
+ * L'ARRIVÉE CINÉMATIQUE (24/11/2026, `kinematics.ts`) : le premier pas d'arrivée (courbe `*.out`) d'une entrée prend
+ * une courbe qui dépasse (`geSettle`, `geKin`). Le mouvement et l'opacité sont séparés : la position suit la nouvelle
+ * courbe, l'opacité (et tout le reste) garde la sienne, partie au même instant — jamais d'opacité au-delà de 1.
+ */
+export function kinematicSteps(steps: ResolvedStep[], ease: string): ResolvedStep[] {
+  const k = steps.findIndex((st) => !st.fx && !st.counter && /\.out$/.test(st.ease) && Object.keys({ ...(st.from ?? {}), ...(st.to ?? {}) }).some((p) => TRANSFORM_KEYS.has(p)));
+  if (k < 0) return steps;
+  const st = steps[k];
+  const part = (o: Record<string, number | string> | undefined, moving: boolean) => (o ? Object.fromEntries(Object.entries(o).filter(([p]) => TRANSFORM_KEYS.has(p) === moving)) : undefined);
+  const nonEmpty = (o?: Record<string, number | string>) => (o && Object.keys(o).length ? o : undefined);
+  const motion: ResolvedStep = { ...st, ease, ...(nonEmpty(part(st.from, true)) ? { from: part(st.from, true) } : {}), ...(nonEmpty(part(st.to, true)) ? { to: part(st.to, true) } : {}) };
+  if (!nonEmpty(part(st.from, true))) delete motion.from;
+  if (!nonEmpty(part(st.to, true))) delete motion.to;
+  const restFrom = nonEmpty(part(st.from, false));
+  const restTo = nonEmpty(part(st.to, false));
+  if (!restFrom && !restTo) return steps.map((x, i) => (i === k ? motion : x));
+  const rest: ResolvedStep = { duration: st.duration, ease: st.ease, at: 0, ...(st.target ? { target: st.target } : {}), ...(restFrom ? { from: restFrom } : {}), ...(restTo ? { to: restTo } : {}), ...(st.stagger !== undefined ? { stagger: st.stagger } : {}), ...(st.pick ? { pick: st.pick } : {}), ...(st.compress ? { compress: st.compress } : {}) };
+  return [...steps.slice(0, k), motion, rest, ...steps.slice(k + 1)];
 }
 
 type Tokens = Record<string, number | string>;
@@ -435,6 +467,11 @@ export function assembleScene(i: AssembleInput): { html: string; script: string;
   let pass = build(1);
   if (pass.end + read + exitSpan > D) pass = build(Math.max(0.45, Math.min(1, (D - read - exitSpan) / Math.max(0.1, pass.end))));
   const roles = pass.roles;
+  // Les lois de mouvement de la DA : une DA joueuse fait arriver son rôle principal en dépassant à peine sa place
+  // (anticipation en plus dans une scène vive). Les autres DA gardent les courbes du catalogue (ni rebond ni élastique).
+  if (PLAYFUL_DIRECTIONS.has(i.brand.direction ?? '') && process.env.VIDEO_KINEMATIC !== 'off') {
+    for (const r of roles) if ((r.role === 'figure' || r.role === 'cta' || r.role === 'logo') && r.split === 'none') r.in = kinematicSteps(r.in, i.scene.energy >= 4 && r.role !== 'figure' ? 'geKin' : 'geSettle');
+  }
 
   // LA VOIX D'ABORD (22/11/2026, leçon d'explainroo et de Hypit : les entrées s'ancrent sur des MOTS, pas sur des
   // secondes). Le titre, le chiffre et le soutien entrent quand la voix dit leur premier mot porteur ; chaque élément
@@ -471,15 +508,21 @@ export function assembleScene(i: AssembleInput): { html: string; script: string;
     }
   }
 
-  // Le temps fort : le titre d'une scène énergique se pose sur le battement suivant (au plus 0,3 s plus tard).
-  if (i.scene.beat && i.scene.beat.bpm > 0 && i.scene.energy >= 3) {
-    const title = roles.find((r) => r.role === 'title');
-    if (title) {
-      const period = 60 / i.scene.beat.bpm;
-      const k = Math.ceil((title.at - i.scene.beat.first) / period);
-      const beat = i.scene.beat.first + k * period;
-      const delta = beat - title.at;
-      if (delta > 0 && delta <= 0.3) for (const r of roles) if (r.at >= title.at) r.at = Math.round((r.at + delta) * 1000) / 1000;
+  // LE TEMPS FORT (24/11/2026, `rhythm.ts`) : la POSE du rôle principal (chiffre, sinon titre) — l'instant où son
+  // mouvement s'arrête — tombe sur un temps qui compte : début de phrase pour une révélation, temps fort de mesure pour
+  // un titre, simple temps pour une scène vive. La voix passe avant : une scène dite reste calée sur ses mots.
+  if (i.scene.beat && !spoken.length) {
+    const lead = roles.find((r) => r.role === 'figure' && r.in.length) ?? roles.find((r) => r.role === 'title' && r.in.length);
+    if (lead) {
+      const n = unitsOf(lead.role, lead.split, textOf(lead.role), i.slots.items.length);
+      const whole = stepsSpan(lead.in, n);
+      const first = stepsSpan(lead.in, 1);
+      // Une cascade longue se perçoit à la pose de sa première unité ; une entrée d'un bloc, à sa pose entière.
+      const landing = lead.at + (whole - first <= 0.4 ? whole : first);
+      const before = roles.filter((r) => r !== lead && r.role !== 'bg' && r.at < lead.at).map((r) => r.at);
+      const room = D - pass.end - read - exitSpan;
+      const delta = landingShift(landing, i.scene.beat, { energy: i.scene.energy, role: i.scene.role, late: Math.min(0.35, Math.max(0, room)), early: Math.min(0.1, Math.max(0, lead.at - Math.max(0, ...before) - 0.05)) });
+      if (delta) for (const r of roles) if (r.role !== 'bg' && r.at >= lead.at - 1e-6) r.at = Math.round(Math.max(0, r.at + delta) * 1000) / 1000;
     }
   }
 
@@ -517,6 +560,18 @@ export function assembleScene(i: AssembleInput): { html: string; script: string;
         start = from + (slack - 1) * 0.5;
         span = D - start - exitSpan - 0.08;
         steps = resolveSteps(dev.steps, { ...pass.tokens, hold: Math.round(span * 1000) / 1000 });
+      }
+    }
+    // Un trait (soulignement, rature, liste qui s'accomplit) part sur un temps fort de la musique s'il y en a un tout
+    // près — sans entamer la lecture ni déborder de la scène.
+    if (dev.start !== 'entered' && i.scene.beat) {
+      const strong = nearestStrong(start, i.scene.beat, 0.3);
+      if (strong !== undefined && strong >= allIn + 0.3) {
+        const s2 = resolveSteps(dev.steps, { ...pass.tokens, hold: Math.round((D - strong - exitSpan - 0.08) * 1000) / 1000 });
+        if (strong + stepsSpan(s2, unitsFor(devRole)) <= D - exitSpan - 0.08) {
+          start = strong;
+          steps = s2;
+        }
       }
     }
     devRole.develop = steps;
@@ -575,6 +630,13 @@ export function assembleScene(i: AssembleInput): { html: string; script: string;
     }
   }
   const spec: RuntimeScene = { key: i.scene.key, roles };
+  // Le sujet de l'image hors des textes (24/11/2026) : le point d'intérêt de chaque format, pour le runtime.
+  const media = i.slots.media;
+  if (media?.focus && present.includes('media') && !prim && process.env.VIDEO_FRAMING !== 'off') {
+    const focus: Record<string, { x: number; y: number }> = {};
+    for (const [f, p] of Object.entries(media.focus)) if (FORMAT_CODE[f] && p) focus[FORMAT_CODE[f]] = { x: p.x, y: p.y };
+    if (Object.keys(focus).length) spec.media = { focus, ...(media.aspect ? { aspect: media.aspect } : {}) };
+  }
   if (prim) {
     const text = (slot: string) => {
       const key = (i.slots as unknown as Record<string, string | undefined>)[slot];
@@ -602,7 +664,8 @@ export function assembleScene(i: AssembleInput): { html: string; script: string;
       prevKey: i.carryIn.prevKey,
       mode: carried === 'media' ? 'frame' : 'uniform',
       duration: carryDur,
-      ease: m.easeMove,
+      // Un grand déplacement d'un bout à l'autre du cadre : la trajectoire à jerk minimal (accélération continue).
+      ease: /\.inOut$/.test(m.easeMove) && process.env.VIDEO_KINEMATIC !== 'off' ? 'geJerk' : m.easeMove,
       ...(i.carryIn.innerFrom && i.carryIn.innerFrom !== 1 ? { innerFrom: i.carryIn.innerFrom } : {}),
     };
   } else if (i.transitionIn && i.transitionIn.duration > 0 && i.prevKey) {

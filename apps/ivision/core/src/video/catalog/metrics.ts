@@ -10,9 +10,16 @@
  *   transitions  les sortes de coupes employées (jamais la même transition à toutes les coupes d'un long film) ;
  *   retenue      le plus grand nombre d'entrées qui se jouent EN MÊME TEMPS dans une scène (motion-anything : ≤ 3) ;
  *   temps mort   le total des tenues sans mouvement utile après lecture (`SceneQuality.idle`).
+ *
+ * Depuis le 24/11/2026 (étude « moteur mathématique ») — mesurées d'abord, seuils plus tard (après des films vus) :
+ *   alignement   le score d'alignement des temps forts visuels (poses, traits) sur la musique (`rhythm.ts`, σ = 80 ms) ;
+ *   répétitions  les enchaînements qui répètent une mise en page, un gabarit ou l'entrée du titre ;
+ *   courbes      les arrivées en courbe cinématique (DA joueuses) et les grands déplacements en jerk minimal.
  */
 import type { CatalogScene, ComposedScene } from './compose';
 import type { RuntimeScene } from './assemble';
+import { beatAlignScore } from './rhythm';
+import { KINEMATIC_EASE_NAMES } from './kinematics';
 
 export interface FilmMetrics {
   continuity: number;
@@ -22,6 +29,12 @@ export interface FilmMetrics {
   transitions: number;
   simultaneous: number;
   idle: number;
+  /** Alignement des temps forts visuels sur la musique (0..1) ; absent sans grille musicale. */
+  beatAlign?: number;
+  /** Enchaînements qui répètent : même mise en page, même gabarit, même animation de titre. */
+  repeats: { layout: number; gabarit: number; title: number };
+  /** Pas posés en courbe cinématique (geJerk, geSettle, geKin). */
+  kinematic: number;
 }
 
 /** Le contrat de scène (données de la chorégraphie) d'une scène assemblée. */
@@ -68,6 +81,16 @@ export function filmMetrics(composed: ComposedScene[], scenes: CatalogScene[]): 
   const total = durations.reduce((a, b) => a + b, 0) || 1;
   const subject = scenes.reduce((a, s) => a + (s.media?.length || Object.keys(s.texts).some((k) => /^(figure|stat|number|metric|price|value)$/i.test(k)) ? s.duration : 0), 0) / total;
   const specs = composed.map((c) => specOf(c.script)).filter((x): x is RuntimeScene => !!x);
+  const beatAlign = beatAlignScore(composed.flatMap((c, i) => (specOf(c.script)?.accents ?? []).map((a) => ({ t: a.t, beats: scenes[i]?.beat?.beats ?? [] }))));
+  const repeats = { layout: 0, gabarit: 0, title: 0 };
+  for (let i = 1; i < composed.length; i++) {
+    const a = composed[i - 1].config;
+    const b = composed[i].config;
+    if (a.sequence && a.sequence === b.sequence) continue;
+    if (a.layout === b.layout) repeats.layout++;
+    if (a.gabarit && a.gabarit === b.gabarit) repeats.gabarit++;
+    if (a.animations?.title && a.animations.title === b.animations?.title) repeats.title++;
+  }
   return {
     continuity: Math.round(((cuts.carried + cuts.anchored * 0.5) / n) * 100) / 100,
     cuts,
@@ -76,6 +99,9 @@ export function filmMetrics(composed: ComposedScene[], scenes: CatalogScene[]): 
     transitions: new Set(composed.slice(1).map((c) => (c.quality?.carry ? 'carry' : c.config.transition ?? 'cut'))).size,
     simultaneous: Math.max(0, ...specs.map(maxSimultaneous)),
     idle: Math.round(composed.reduce((a, c) => a + (c.quality?.idle ?? 0), 0) * 100) / 100,
+    ...(beatAlign !== undefined ? { beatAlign } : {}),
+    repeats,
+    kinematic: specs.reduce((n, sp) => n + sp.roles.reduce((m, r) => m + [...r.in, ...(r.develop ?? [])].filter((st) => KINEMATIC_EASE_NAMES.includes(st.ease)).length, 0) + (sp.carry && KINEMATIC_EASE_NAMES.includes(sp.carry.ease) ? 1 : 0), 0),
   };
 }
 

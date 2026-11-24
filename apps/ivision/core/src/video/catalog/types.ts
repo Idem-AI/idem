@@ -273,8 +273,11 @@ export const ANIM_ROLES = new Set<string>(['title', 'body', 'cta', 'figure', 'la
 const TARGETS = new Set<string>(['text', 'block', 'items', 'figure', 'logo', 'cta', 'media', 'rule', 'bg']);
 /** La cible que porte chaque rôle : une animation ne s'applique qu'aux rôles de ses cibles. */
 export const ROLE_TARGET: Record<AnimRole, AnimTarget> = { title: 'text', body: 'text', label: 'text', attribution: 'text', items: 'items', item: 'items', figure: 'figure', media: 'media', logo: 'logo', rule: 'rule', cta: 'cta', mark: 'block', bg: 'bg' };
-/** Courbes permises : des décélérations franches. Ni rebond, ni élastique, ni « back ». */
-export const EASE = /^(none|(power[1-4]|sine|expo|circ)\.(in|out|inOut))$/;
+/** Courbes permises : des décélérations franches. Ni rebond, ni élastique, ni « back ».
+ * `geJerk` (24/11/2026) : la trajectoire à jerk minimal, enregistrée par le runtime — elle ne dépasse pas. Les courbes
+ * qui dépassent (`geSettle`, `geKin`) ne sont jamais écrites dans le catalogue : le code les pose pour les DA joueuses.
+ */
+export const EASE = /^(none|geJerk|(power[1-4]|sine|expo|circ)\.(in|out|inOut))$/;
 export const TOKEN = /^-?\$(dIn|dOut|stagger|dist|easeOut|easeIn|easeMove|half|d|hold)(\*\d+(\.\d+)?)?$/;
 const ORIGINS = new Set(['left center', 'right center', 'center center', 'center top', 'center bottom', '50% 50%']);
 export const CLIP = /^(inset\((-?\d+(\.\d+)?%\s*){4}\)|circle\(\d+(\.\d+)?% at \d+(\.\d+)?% \d+(\.\d+)?%\))$/;
