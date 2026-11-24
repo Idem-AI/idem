@@ -26,6 +26,7 @@
  *   [[on $.hex]] [[on $.hex soft]]       l'encre lisible sur une couleur du nuancier (calculée par contraste)
  *   [[s.heading on $.hex]]               un rôle d'habillage posé SUR cette couleur (sa couleur remplacée)
  *   [[rgb $.hex]] [[cmyk $.hex]] [[hsl $.hex]]  les valeurs exactes d'une couleur, calculées par le code
+ *   [[glyphs pair|upper|lower|digits]]   les glyphes d'un spécimen typographique (Aa, alphabet, chiffres)
  *   [[at tl|tr|bl|br]]                   (décor) une position absolue dans la marge de la page
  * Les primitives restent celles du moteur : `<idem-chart data-block="[[id]]">`, `<idem-table>`, `<idem-gallery>`,
  * `<idem-pattern-tile data-block="[[id]]" data-index="[[i0]]">`, `<idem-icon name="{{$.icon}}">`, `<img src="{{$.url}}">`.
@@ -509,6 +510,12 @@ function directive(env: Env, scope: Scope, d: string): string {
   if (name === 'vw' || name === 'vh') {
     const n = Math.min(40, Math.max(1, Number(arg) || 0));
     return `text-[${px(((name === 'vw' ? ctx.format.width : ctx.format.height) * n) / 100)}]`;
+  }
+  // Les GLYPHES d'un spécimen typographique (`[[glyphs pair|upper|lower|digits]]`) : « Aa », l'alphabet, les chiffres.
+  // Une valeur de spécimen calculée par le code (comme un code couleur), jamais un mot du rédacteur.
+  if (name === 'glyphs') {
+    const g = arg === 'upper' ? 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' : arg === 'lower' ? 'abcdefghijklmnopqrstuvwxyz' : arg === 'digits' ? '0123456789' : 'Aa';
+    return `<span data-ge-computed>${g}</span>`;
   }
   // L'initiale d'un texte du contenu (`[[initial .brandName]]`) : une lettrine géante, tirée du nom réel.
   if (name === 'initial') {

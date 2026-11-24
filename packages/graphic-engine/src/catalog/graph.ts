@@ -402,7 +402,7 @@ export function pickComponents(cat: LoadedCatalog, layout: LayoutNode, facts: Pa
 }
 
 /** Les unités spécimens : leur composant varie plus librement que celui des blocs rédigés. */
-const SPECIMEN_UNITS = new Set(['swatches', 'logoDisplay', 'typeSpecimen', 'typeScale', 'patternGrid', 'cover']);
+const SPECIMEN_UNITS = new Set(['swatches', 'logoDisplay', 'logoStory', 'typeSpecimen', 'typeScale', 'patternGrid', 'mockupShowcase', 'socialPosts', 'socialBanners', 'artDirectionStance', 'artDirectionRules', 'imageryShowcase', 'cover']);
 
 /** Les réglages discrets tirés par le code (cran Low) : une option par réglage, par la graine. */
 export function drawVars(nodes: Array<{ vars?: Array<{ name: string; options: Array<{ id: string }> }> } | undefined>, seed: string): Record<string, string> {

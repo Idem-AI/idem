@@ -20,12 +20,20 @@ const METRICS: SectionContent = { id: 'market', role: 'data', title: 'Un marché
 
 const FLYER: SectionContent = { id: 'offre', role: 'visual', title: 'Visuel', blocks: [{ id: 'copy', kind: 'copy', headline: 'Vos intrants livrés au village', subhead: 'Commandez par un simple appel', offer: '−20 %', facts: [{ text: 'Livraison en 48 h' }] }] } as SectionContent;
 
+import fs from 'fs';
+import path from 'path';
+const BLOCKS = JSON.parse(fs.readFileSync(path.join(process.env.IDEM_TEMPLATES_DIR ?? '', 'catalog/preview/images/blocks.json'), 'utf8'));
+const charterPage = (kind: string): SectionContent => ({ id: kind, role: 'specimen', title: kind, blocks: [{ ...BLOCKS[kind], id: 'b' }] }) as SectionContent;
+const CHARTER_KINDS = ['logoDisplay', 'logoStory', 'typeSpecimen', 'typeScale', 'patternGrid', 'mockupShowcase', 'socialPosts', 'socialBanners', 'artDirectionStance', 'artDirectionRules', 'imageryShowcase'];
+
 const PAGES: Array<{ name: string; element: CatalogElement; format: keyof typeof FORMATS; section: SectionContent }> = [
   { name: 'palette (charte A4)', element: 'brand-charter', format: 'page-a4', section: PALETTE },
+  // (charte paysage, couvertures, deck, flyers : plus bas)
   { name: 'palette (charte paysage)', element: 'brand-charter', format: 'page-a4-landscape', section: PALETTE },
   { name: 'couverture (deck)', element: 'pitch-deck', format: 'slide-16x9', section: COVER },
   { name: 'couverture (charte A4)', element: 'brand-charter', format: 'page-a4', section: COVER },
   { name: 'chiffres (deck)', element: 'pitch-deck', format: 'slide-16x9', section: METRICS },
+  ...CHARTER_KINDS.map((k) => ({ name: `charte · ${k}`, element: 'brand-charter' as const, format: 'page-a4' as const, section: charterPage(k) })),
   { name: 'flyer carré', element: 'social-visual', format: 'flyer-square', section: FLYER },
   { name: 'affiche imprimée', element: 'print-flyer', format: 'print-flyer-a4', section: FLYER },
 ];
@@ -39,6 +47,7 @@ async function main(): Promise<void> {
     const facts = { element: page.element, format: FORMATS[page.format], role: page.section.role, units, index: 1, total: 12 };
     for (const level of ['low', 'medium', 'high', 'ultra'] as const) {
       const firsts: string[] = [];
+      const looks: string[] = [];
       let renewed = 0;
       let chains = 0;
       for (const da of das) {
@@ -48,6 +57,8 @@ async function main(): Promise<void> {
           const skin = rankSkins(cat, page.element, traits, newCatalogState(), seed, {}, level)[0].id;
           const top = shortlist(cat, facts, { level, skin, traits, state: newCatalogState(), seed, overrides: {} })[0];
           firsts.push(top.config.gabarit ?? top.layout.id);
+          // Ce que le lecteur VOIT : le squelette et le composant de la page (pas le seul nom du gabarit).
+          looks.push(`${top.layout.id}|${Object.values(top.config.components).sort().join(',')}`);
         }
         // Une même marque, 4 documents de suite : la mémoire des nœuds écarte ce qui vient de servir.
         let memory: string[] = [];
@@ -69,9 +80,10 @@ async function main(): Promise<void> {
       const leader = [...counts.entries()].sort((a, b) => b[1] - a[1])[0][0];
       const share = max / firsts.length;
       const renewal = renewed / chains;
+      const distinctLooks = new Set(looks).size;
       const ok = counts.size >= 6 && share <= 0.3 && renewal >= 0.6;
       if (!ok) failed++;
-      console.log(`${ok ? '✓' : '✗'} ${page.name.padEnd(26)} ${level.padEnd(6)} ${String(counts.size).padStart(3)} gabarits en tête · le plus servi ${(share * 100).toFixed(0).padStart(3)} % · renouvellement sur 4 documents ${(renewal * 100).toFixed(0)} % · en tête : ${leader}`);
+      console.log(`${ok ? '✓' : '✗'} ${page.name.padEnd(26)} ${level.padEnd(6)} ${String(counts.size).padStart(3)} gabarits (${String(distinctLooks).padStart(3)} rendus) en tête · le plus servi ${(share * 100).toFixed(0).padStart(3)} % · renouvellement sur 4 documents ${(renewal * 100).toFixed(0)} % · en tête : ${leader}`);
     }
   }
   console.log(failed ? `\n${failed} mesure(s) sous le seuil (≥ 6 gabarits en tête, ≤ 30 % pour le plus servi, ≥ 60 % de renouvellement)` : '\nDiversité suffisante partout.');

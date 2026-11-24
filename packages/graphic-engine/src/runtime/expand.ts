@@ -84,7 +84,7 @@ export function sanitizeHtml(input: string): Sanitized {
  * (`{{#each}}`) n'existe pas ici : elle est signalée pour que l'auteur écrive chaque clé.
  */
 /** Les formes des valeurs calculées par le code : valeurs d'une couleur, ou une initiale. */
-const COMPUTED_TEXT = /^(?:(?:RGB|HSL) \d{1,3} \d{1,3} \d{1,3}|CMYK \d{1,3} \d{1,3} \d{1,3} \d{1,3}|[\p{L}\p{N}])$/u;
+const COMPUTED_TEXT = /^(?:(?:RGB|HSL) \d{1,3} \d{1,3} \d{1,3}|CMYK \d{1,3} \d{1,3} \d{1,3} \d{1,3}|[\p{L}\p{N}]|Aa|ABCDEFGHIJKLMNOPQRSTUVWXYZ|abcdefghijklmnopqrstuvwxyz|0123456789)$/u;
 
 export function stripInventedText(html: string): { html: string; removed: string[]; loops: boolean } {
   const removed: string[] = [];
