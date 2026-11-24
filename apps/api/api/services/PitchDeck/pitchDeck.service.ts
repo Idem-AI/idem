@@ -20,6 +20,7 @@ import { cacheService } from '../cache.service';
 import { composeSlideBrief, SLIDE_VISUAL_PLANS } from './prompts/slide-briefs.prompt';
 import { CoverBriefService } from '../common/coverBrief.service';
 import { buildFinanceBlocks } from '../Finance/finance-blocks';
+import { deckTeamBlock, TEAM_ALREADY_ON_SLIDE } from './deck-team';
 import { composeGraphicPage, coverDateLabel, coverImage, GenerationJournal, openGraphicDocument, pageComposition, pageId, speakerNotesHtml, withProjectArtDirection } from '../graphic/graphic.service';
 import type { PitchDeckAudience } from './deck-types';
 
@@ -316,6 +317,8 @@ export class PitchDeckService extends GenericService {
         .catch((error: any) => logger.warn('[DECK] Enregistrement de génération non gardé', { error: error?.message }));
 
     const deckFinance = deckFinanceBlocks(project.analysisResultModel?.finance, project.additionalInfos?.country);
+    // L'équipe réelle du projet (noms, rôles, photos), posée par le code sur la slide « Team ».
+    const deckTeam = deckTeamBlock(project.additionalInfos?.teamMembers);
     const steps: IPromptStep[] = deckSlides.map((definition, index) => {
       const position = { index: index + 1, total };
       // La couverture est dessinée par le moteur : le modèle n'en écrit que les mots, une fois par
@@ -347,15 +350,22 @@ export class PitchDeckService extends GenericService {
       // Quand le code POSE les chiffres (graphique de trajectoire et chiffres de tête du module Finance), le brief
       // ne doit plus les demander : le rédacteur en écrivait un second jeu, la slide finissait à quatre blocs — deux
       // graphiques à placer sur une toile 16/9 — et la page était refusée à chaque génération (05/11/2026).
-      const posted = definition.name === 'Financials' && deckFinance.length > 0;
-      if (posted) {
+      const teamPosted = definition.name === 'Team' && !!deckTeam;
+      if (teamPosted) brief = `${brief}\n\n${TEAM_ALREADY_ON_SLIDE}`;
+      const posted = (definition.name === 'Financials' && deckFinance.length > 0) || teamPosted;
+      if (definition.name === 'Financials' && deckFinance.length > 0) {
         brief = `${brief}\n\n<already_on_the_slide>The projection CHART and the headline FIGURES are already placed on this slide by the engine, from the project's real financial model. Do NOT write a chart, a metrics row or a table: they would duplicate them. Write only the TITLE (the conclusion those figures support) and the "notes" (the two or three hypotheses that drive the model, the burn and the runway, in the speaker's words).</already_on_the_slide>`;
       }
       // L'INTENTION de la slide : comment elle démontre son message et ce qu'elle peut porter de texte — une
       // indication pour le rédacteur et l'auteur (à tous les crans), jamais un contrôle.
       const plan = SLIDE_VISUAL_PLANS[definition.name];
       const intent = plan
-        ? { visualStrategy: plan.strategy, textBudget: TEXT_BUDGETS[plan.budget], allowStrategies: [plan.strategy, ...plan.alternatives] }
+        ? {
+            // L'équipe réelle posée par le code (portraits) : aucune illustration de page par-dessus.
+            visualStrategy: teamPosted ? ('editorial' as const) : plan.strategy,
+            textBudget: TEXT_BUDGETS[plan.budget],
+            allowStrategies: [plan.strategy, ...plan.alternatives],
+          }
         : undefined;
       return {
         stepName: definition.name,
@@ -371,6 +381,7 @@ export class PitchDeckService extends GenericService {
           // La slide des projections montre les chiffres du module Finance, posés par le code : son graphique et
           // ses trois chiffres de tête (le rédacteur les recopiait mal, ou la slide restait vide).
           ...(definition.name === 'Financials' && deckFinance.length ? { prependBlocks: deckFinance } : {}),
+          ...(teamPosted && deckTeam ? { prependBlocks: [deckTeam] } : {}),
           render: async (written) => {
             // L'essentiel seulement, garanti par le code : ni chapô, deux blocs de preuve, trois points ; le reste
             // part dans les notes de l'orateur (rien n'est perdu).

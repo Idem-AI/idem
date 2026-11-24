@@ -956,7 +956,7 @@ export class GraphicDocument {
   private readonly usedAssetUrls = new Set<string>();
 
   private async prepareAssets(content: SectionContent, recorder: TraceRecorder): Promise<{ section: SectionContent; assets: string[] }> {
-    const requirements = planAssets(content, this.tokens.format);
+    const requirements = planAssets(content, this.tokens.format, { level: this.policy.level });
     if (!requirements.length) return { section: content, assets: [] };
     const t0 = Date.now();
     const host = engineHost();

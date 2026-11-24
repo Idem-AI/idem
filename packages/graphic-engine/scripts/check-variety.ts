@@ -34,6 +34,7 @@ const PAGES: Array<{ name: string; element: CatalogElement; format: keyof typeof
   { name: 'couverture (charte A4)', element: 'brand-charter', format: 'page-a4', section: COVER },
   { name: 'chiffres (deck)', element: 'pitch-deck', format: 'slide-16x9', section: METRICS },
   ...CHARTER_KINDS.map((k) => ({ name: `charte · ${k}`, element: 'brand-charter' as const, format: 'page-a4' as const, section: charterPage(k) })),
+  ...(['team-photos', 'problem-photos', 'vision-photo'] as const).map((label) => ({ name: `deck · ${label}`, element: 'pitch-deck' as const, format: 'slide-16x9' as const, section: JSON.parse(fs.readFileSync(path.join(process.env.IDEM_TEMPLATES_DIR ?? '', 'catalog/preview/images/elements/pitch-deck.json'), 'utf8')).cases.find((c: { label: string }) => c.label === label).content as SectionContent })),
   { name: 'flyer carré', element: 'social-visual', format: 'flyer-square', section: FLYER },
   { name: 'affiche imprimée', element: 'print-flyer', format: 'print-flyer-a4', section: FLYER },
 ];

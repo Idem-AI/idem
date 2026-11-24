@@ -181,7 +181,40 @@ type Mockups = Extract<Block, { kind: 'mockupShowcase' }>;
  * proportion, côte à côte — ou empilés quand ce sont des bannières. Jamais recadrés, pivotés ni recouverts : ils sont
  * la démonstration. `labels: false` : sans légende.
  */
-export function galleryHtml(block: Mockups, o: { className?: string; labels?: boolean }): string {
+/**
+ * La DISPOSITION d'une galerie de mises en situation (`data-layout`, 24/11/2026) — chaque rendu reste ENTIER
+ * (`object-contain`, jamais rogné, incliné ni recouvert) ; seule l'organisation change :
+ *   row (défaut)  côte à côte, à leurs proportions
+ *   hero          la première en grand, les autres en rangée dessous
+ *   stack         une rangée par rendu, sa légende et sa note à côté
+ *   grid          deux colonnes régulières
+ *   stage         côte à côte, sur une grande planche teintée
+ */
+export type GalleryLayout = 'row' | 'hero' | 'stack' | 'grid' | 'stage';
+
+function galleryFigure(item: Mockups['items'][number], labels: boolean, extra = ''): string {
+  return `<figure class="flex min-h-0 min-w-0 flex-col items-center justify-center gap-[10px] ${extra}"><img src="${esc(item.url)}" alt="${esc(item.label)}" class="min-h-0 max-h-full max-w-full flex-1 object-contain">${labels ? `<figcaption class="text-center text-[12px] font-medium uppercase tracking-[0.08em] text-muted">${esc(item.label)}</figcaption>` : ''}</figure>`;
+}
+
+export function galleryHtml(block: Mockups, o: { className?: string; labels?: boolean; layout?: string }): string {
+  const labels = o.labels !== false;
+  const layout = (['hero', 'stack', 'grid', 'stage'].includes(o.layout ?? '') ? o.layout : 'row') as GalleryLayout;
+  const open = (cls: string) => `<div data-ge-gallery data-ge-block="${esc(block.id)}" class="${esc(`${cls} ${o.className ?? 'h-full'}`.trim())}">`;
+  if (layout === 'hero' && block.items.length > 1) {
+    const [first, ...rest] = block.items;
+    return `${open('flex min-h-0 w-full flex-col gap-[24px]')}<div class="flex min-h-0 flex-[2.2_1_0%]">${galleryFigure(first, labels, 'w-full')}</div><div class="flex min-h-0 flex-[1_1_0%] flex-row gap-[24px]">${rest.map((i) => galleryFigure(i, labels, 'flex-1')).join('')}</div></div>`;
+  }
+  if (layout === 'stack') {
+    return `${open('flex min-h-0 w-full flex-col gap-[18px]')}${block.items
+      .map((i, n) => `<div class="flex min-h-0 flex-1 flex-row items-center gap-[24px] border-t border-rule pt-[12px]"><div class="flex h-full min-h-0 w-[58%] items-center justify-center"><img src="${esc(i.url)}" alt="${esc(i.label)}" class="max-h-full max-w-full object-contain"></div><div class="flex min-w-0 flex-1 flex-col gap-[4px]"><p class="text-[13px] font-bold tabular-nums text-muted">${String(n + 1).padStart(2, '0')}</p><p class="font-display text-[18px] font-semibold text-ink">${esc(i.label)}</p>${i.caption ? `<p class="text-[13px] leading-[1.45] text-muted">${esc(i.caption)}</p>` : ''}</div></div>`)
+      .join('')}</div>`;
+  }
+  if (layout === 'grid') {
+    return `${open('grid min-h-0 w-full grid-cols-2 auto-rows-fr gap-[24px]')}${block.items.map((i) => galleryFigure(i, labels)).join('')}</div>`;
+  }
+  if (layout === 'stage') {
+    return `${open('flex min-h-0 w-full flex-row items-stretch justify-center gap-[24px] bg-brand-soft p-[6%]')}${block.items.map((i) => galleryFigure(i, labels, `flex-[${Math.max(0.3, Math.min(6, i.ratio || 1)).toFixed(2)}_1_0%]`)).join('')}</div>`;
+  }
   const wide = block.items.reduce((s, i) => s + (i.ratio || 1), 0) / Math.max(1, block.items.length) > 2.2;
   const items = block.items
     .map((item) => {
