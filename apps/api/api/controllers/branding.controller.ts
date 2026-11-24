@@ -15,9 +15,18 @@ const promptService = new PromptService();
 const brandingService = new BrandingService(promptService);
 
 /**
+ * Le cran des logos : « High » = le sens par l'IA (un seul appel : le directeur choisit trois
+ * directions et nomme les clichés), la forme cherchée par le code (constructions mesurées par le
+ * profil du type, affinées, symétries garanties). Ultra (auteur + jury + critique visuelle,
+ * ~14 500 jetons estimés) reste possible en remettant 'ultra' ici. Voir docs/LOGO_ENGINE_MATHS.md.
+ */
+const LOGO_LEVEL = 'high' as const;
+
+/**
  * Sauvegarde les sections de charte graphique éditées (éditeur WYSIWYG).
  * Body: { sections }. Préserve colors/typography/logo du branding.
  */
+
 export const saveBrandingSectionsController = async (
   req: CustomRequest,
   res: Response
@@ -207,8 +216,7 @@ export const generateLogoConceptsController = async (
       userId,
       projectId as string,
       forceRegenerate,
-      // Le logo est toujours dessiné au cran Ultra (au prix habituel de la session).
-      'ultra'
+      LOGO_LEVEL
     );
 
     if (!logos) {
@@ -316,8 +324,7 @@ export const generateLogoConceptsStreamController = async (
       streamCallback,
       forceRegenerate,
       preferencesOverride,
-      // Le logo est toujours dessiné au cran Ultra (au prix habituel de la session).
-      'ultra'
+      LOGO_LEVEL
     );
 
     // Événement de fin (reconnu par le front comme signal de complétion)

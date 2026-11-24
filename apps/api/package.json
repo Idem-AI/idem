@@ -62,6 +62,7 @@
     "check:promotions": "ts-node --transpile-only -P tsconfig.json api/scripts/checkPromotions.ts",
     "billing:migrate-offer": "ts-node --transpile-only -P tsconfig.json api/scripts/migrateOfferModel.ts",
     "docs:logo": "ts-node --transpile-only -P tsconfig.json api/scripts/docsLogoGenerators.ts",
+    "calibrate:logo": "ts-node --transpile-only -P tsconfig.json api/scripts/calibrateLogo.ts",
     "check:relayout": "ts-node --transpile-only api/scripts/checkRelayout.ts",
     "sample:graphic": "ts-node --transpile-only api/scripts/sampleGraphic.ts",
     "sample:quality": "ts-node --transpile-only api/scripts/sampleQuality.ts",

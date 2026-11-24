@@ -121,9 +121,14 @@ function resolveGenerator(layer: GeneratorLayer, ctx: BuildContext): Resolved {
   // ne reçoive sa couleur : un calque entier peint en `paper` reste une découpe pour son parent.
   const built = spec.build(params, { kernel: ctx.kernel, rng }).flatMap((g) => {
     const shape = ctx.kernel.fromPath(g.d);
-    return shape ? [{ tone: g.tone, shape }] : [];
+    return shape ? [{ tone: g.tone, shape, width: g.stroke }] : [];
   });
-  const parts: Part[] = cutShapes(built, (g) => g.tone === 'knockout', ctx).map((g) => ({ layerId: layer.id, role: layer.role, shape: g.shape, paint: toPaint[g.tone], stroke: layer.stroke, opacity: layer.opacity }));
+  const parts: Part[] = cutShapes(built, (g) => g.tone === 'knockout', ctx).map((g) =>
+    g.width
+      ? // Un tracé : sans remplissage, trait à bouts et jonctions ronds, dans la couleur de son ton.
+        { layerId: layer.id, role: layer.role, shape: g.shape, paint: 'none' as Paint, stroke: { color: toPaint[g.tone] === 'paper' ? 'ink' : toPaint[g.tone], width: g.width, cap: 'round', join: 'round' }, opacity: layer.opacity }
+      : { layerId: layer.id, role: layer.role, shape: g.shape, paint: toPaint[g.tone], stroke: layer.stroke, opacity: layer.opacity }
+  );
   if (!parts.length) {
     ctx.warnings.push({ code: 'empty_layer', layerId: layer.id, message: `Le générateur « ${layer.generator} » n'a produit aucune forme.` });
     return EMPTY;

@@ -1,8 +1,8 @@
 # Moteur de logos — vers une synthèse mathématique, type par type
 
-> Étude du 23/11/2026 : les recommandations reçues d'un autre agent, vérifiées contre le code et
-> contre les publications citées, puis un premier lot implémenté et mesuré.
-> Code : `apps/api/api/services/logo-engine/` · Contrôle : `npm run check:logo` (223 vérifications).
+> Étude du 23/11/2026, lots 2 à 6 réalisés le 24/11/2026 : les recommandations reçues d'un autre
+> agent, vérifiées contre le code et contre les publications citées, puis implémentées et mesurées.
+> Code : `apps/api/api/services/logo-engine/` · Contrôles : `npm run check:logo` · Calibration : `npm run calibrate:logo`.
 
 ---
 
@@ -154,69 +154,90 @@ dans la même case : trois propositions, trois silhouettes différentes.
 
 ---
 
-## 5. La suite, par lots
+## 5. Lots 2 à 6 — réalisés le 24/11/2026
 
-### Lot 2 — Le sens avant la forme (priorité n° 1)
+### Lot 2 — Le sens par l'IA, la forme cherchée par le code
 
-Le défaut le plus visible n'est pas géométrique (§ 1). Proposition : un **agent de sens**,
-court, qui lit le brief en entier (jamais de mots-clés) et rend un JSON fermé :
-métaphores retenues, familles de motifs autorisées, clichés interdits, archétype et style
-conseillés. Le code construit ensuite **toutes** les formes. Concrètement, c'est le directeur
-actuel sans les étapes d'auteur, de jury et de critique.
-
-**Décision à prendre :** garder Ultra forcé pour les logos (≈ 14 500 jetons estimés) ou passer à
-« sens par l'IA, forme par le code » (≈ 500 jetons estimés). La qualité des deux voies ne peut
-pas être comparée sans essais réels ; ces essais ne doivent être lancés qu'avec votre accord
-(règle « pas d'essais payants »).
+- **Le cran des logos passe d'Ultra à High** (`LOGO_LEVEL` dans `controllers/branding.controller.ts`,
+  une constante : remettre `'ultra'` suffit à revenir en arrière). High = **un seul appel** : le
+  directeur lit la fiche marque, nomme les clichés du métier et choisit trois directions (type,
+  motif ou variante, source de l'idée). Tout le reste est fait par le code. Conséquence : OmniSVG,
+  réservé à Ultra, n'intervient plus dans la session de logos.
+- **Recherche dans chaque direction** (`searchDirection`) : 6 constructions de la direction choisie,
+  mesurées par le profil du type, les 2 meilleures affinées. Aucun jeton (le jury n'existe qu'en Ultra).
+- **Fidélité aux directions** : un générateur choisi par le directeur est toujours dessiné. Trois
+  défauts corrigés en route — la recette de symétrie du lot 1 pouvait remplacer le motif choisi ;
+  la variante « répétition » de l'abstrait et les variantes « lettre » et « croissant » de l'espace
+  négatif ignoraient aussi le générateur imposé ; le filtre de tons écartait un motif à deux tons.
+  La variante d'un *letterform* choisie par le directeur était également ignorée.
+- **Vocabulaire du directeur** : `abstract | sym-<motif>` (grammaire des symétries),
+  `lettermark | monogram`, `letterform | counter`, et le générateur `lusona`.
+- Tirage des recettes **pondéré** (le poids ne servait qu'à exclure).
 
 ### Lot 3 — Un solveur par type
 
-| Type | Solveur | Mathématiques |
-|---|---|---|
-| wordmark | **crénage optique** : décaler chaque paire de lettres pour égaliser l'espace optique ; puis signatures (coupe, ligature, terminaison) | le rythme mesuré devient la cible d'une optimisation par paire |
-| lettermark | **monogramme à fût partagé** : chercher le décalage où deux lettres partagent une hampe ; union ou exclusion ; contre-formes préservées | balayage 1D des colonnes d'encre, IoU des fûts |
-| letterform | **accent dans la contre-forme** : placer un point, une feuille, un éclat au centre du plus grand cercle inscrit dans un trou de la lettre | maximum de la transformée de distance d'un trou |
-| combination | **verrouillage symbole/nom** : alignement sur la hauteur de capitale ou d'x, dépassement optique des formes rondes (≈ 2–3 %) | déjà partiellement couvert par l'affineur |
-| emblem | **solveur radial** : rayon du texte courbe tel que longueur d'arc = largeur du texte ; marges concentriques égales ; cadre en Dn | géométrie circulaire, contraintes d'égalité |
-| abstract | grammaire étendue : fermeture (anneaux ouverts), groupes emboîtés, systèmes de proportions (1, √2, φ) en **option** | groupes, booléens |
-| negative-space | motif placé dans le vide par le plus grand cercle inscrit ; cible de vide 10–65 % | transformée de distance |
-| pictorial, mascot | catalogue gardé ; simplification de silhouette par niveaux | la reconnaissance d'un objet demande un modèle : hors mathématiques |
+| Type | Solveur | Où | Mesure |
+|---|---|---|---|
+| wordmark | **espacement optique** : profils gauche/droit ligne par ligne, profondeur bornée à 25 % de la capitale, espaces égalisés (±20 % par paire) — `spacing: 'optical'` | `render/typeSolvers.ts` | rythme « Tawalo » 0,74 → 0,91 ; « AVATAR » 0,88 → 0,99 |
+| lettermark | **fût partagé** : décalage où le dernier trait de l'une coïncide avec le premier de l'autre sur ≥ 45 % de la hauteur ; sinon, contact + fusion — effet `shareStem`, conteneur `monogram` | idem | « HE » : un seul morceau |
+| letterform | **plus grand cercle inscrit** dans le creux de la lettre (grille + affinage, distance au contour) — effet `counterMark`, variante `counter` | idem | forme centrée, creux préservé |
+| emblem | **solveur radial** : hauteur de capitale qui couvre l'angle `sweep`, rayon qui centre le texte dans l'anneau `band` (marges égales cadre/symbole), relation linéaire résolue d'un coup | `render/text.ts` (`fitCurve`) | jamais de débordement |
+| combination | **centrage optique** : le centre de masse du symbole (et non sa boîte) sur l'axe du nom, correction bornée à 12 % — `composition.optical` | `render/compose.ts` | écart optique réduit |
+| abstract | grammaire étendue : motif `segment` (anneau interrompu : **fermeture gestaltiste**), centre `orbit` (lunes décalées d'un demi-pas), rayons en **proportion √2, φ ou 2** | `planner/recipes.ts` | symétrie tenue |
+| negative-space | l'affineur règle la taille du motif creusé (échelle 0,35–0,85) | `planner/optimize.ts` | — |
 
-### Lot 4 — Une grammaire africaine, levier d'originalité propre à IDEM
+Le noyau géométrique gagne quatre mesures **facultatives** (`rowIntervals`, `contains`,
+`distanceToEdge`, `centroid`) : un noyau qui ne les fournit pas reste valide, les solveurs se taisent.
 
-Plusieurs traditions africaines sont des **systèmes de construction mathématiques** :
-les *lusona* (dessins sur sable du nord-est de l'Angola), qui sont des **courbes-miroirs**
-tracées d'un seul trait autour d'une grille de points (P. Gerdes, *Geometry from Africa*, 1999) ;
-les structures fractales de l'architecture et des textiles (R. Eglash, *African Fractals*, 1999) ;
-les symboles adinkra, construits sur des grilles et des symétries.
-Une courbe-miroir est entièrement calculable (grille, miroirs, un seul trait fermé). C'est un
-générateur que personne d'autre n'a, et qui donne des symboles cohérents avec le style des
-illustrations d'IDEM. Règle : s'en servir comme **méthode de construction**, jamais recopier un
-symbole existant.
+### Lot 4 — Géométrie africaine et calculée
 
-### Lot 5 — Courbes
+- **`lusona`** (`render/generators/african.ts`) : les dessins sur sable tchokwe sont des
+  **courbes-miroirs** (Gerdes). Grille de points, trajet diagonal réfléchi par le cadre et par des
+  miroirs placés **par orbites d'un groupe de symétrie** (D2, ou C4 sur grille carrée) ; recherche
+  d'une configuration **monolinéaire** (une seule ligne) ; lissage par Bézier quadratiques
+  (contrôles aux nœuds, passages aux milieux : continuité G1). Rendu en **tracé** (premier
+  générateur à trait : `GenPart.stroke`), jamais creusé ni contenu. Recette `abstract-lusona`,
+  symétrie et style `monoline` déclarés.
+- **`phi-arcs`** (`render/generators/computational.ts`) : cercles tangents intérieurement, rayons en
+  progression φ / √2 / 2, alternativement retirés et ajoutés — l'idée d'Img2Logo sans la photo.
+- **`tessellation`** : Delaunay (Bowyer–Watson) ou Voronoï (son dual) d'un semis **symétrique**
+  d'ordre k, facettes rétrécies vers leur centre. Style `modular`.
+- Le **style de construction** corrige le profil du type (`profileFor`) : un tracé monoligne a des
+  boucles par nature, une mosaïque des facettes — elles ne sont plus comptées comme du désordre.
 
-Une mesure de régularité de courbure (G1/G2) sur les tracés libres de l'auteur Ultra, et un
-lissage avant acceptation. Faible priorité tant que les symboles viennent de primitives.
+### Lot 5 — Continuité des courbes
 
-### Lot 6 — Recaler les seuils sur des jugements humains
+`validate/curves.ts` lit les tracés libres (M L H V C S Q T Z), repère les raccords
+**presque lisses** (cassure de 2° à 20° : la main qui tremble, pas un angle voulu) → défaut
+`curve_kink`, et l'autocorrection les rend **G1** (poignées alignées sur la bissectrice, longueurs
+conservées). Les angles francs ne sont jamais touchés.
 
-Les seuils du § 4.2 sont raisonnés, pas appris. Méthode proposée : une page de comparaison par
-paires (« lequel est le plus réussi ? ») dans l'outil de revue existant, 300 à 500 jugements de
-designers, puis un ajustement des poids par modèle de Bradley-Terry. Aucun modèle payant n'est
-nécessaire.
+### Lot 6 — Calibration humaine
 
----
+`npm run calibrate:logo -- pairs` construit des logos des 11 types et écrit une page locale de
+comparaisons par paires (← / → / =, export `judgments.json`). `npm run calibrate:logo -- fit
+judgments.json` ajuste les poids de chaque profil (Bradley–Terry, poids positifs, rappel vers les
+poids raisonnés), affiche l'accord avant/après et réécrit `validate/calibration.ts`, compilé avec
+le moteur. Un type à moins de 20 jugements garde ses poids raisonnés. **Reste à faire : faire
+remplir la page par des designers** — tant que ce n'est pas fait, les poids restent raisonnés.
 
-## 6. Limites connues de ce lot
+### Recommandations restantes, appliquées
 
-- Les seuils et poids des profils ne sont **pas encore calibrés** sur des jugements humains.
-- Le rythme des lettres mesure l'espacement ; il ne le **corrige** pas encore (lot 3).
-- Le planificateur sans IA choisit encore des motifs hors sujet (§ 1) ; en production, le logo
-  passe par le directeur Ultra, qui choisit les directions.
-- Non vérifié dans le navigateur : la note perceptive n'est pas affichée à l'utilisateur ;
-  elle est enregistrée dans `LogoModel.engine.aesthetic`.
-- Pas testé avec un vrai modèle (aucun appel payant).
+- **Front de Pareto** (exploitabilité × perception × originalité) : bonus à la sélection pour les
+  compromis qu'aucun autre candidat ne domine.
+- **Voronoï / Delaunay** : faits (générateur `tessellation`), en famille facultative.
+
+## 6. Limites connues
+
+- Les poids des profils restent **raisonnés** tant que la calibration humaine n'a pas été faite.
+- **Le passage à High n'a pas été comparé à Ultra avec un vrai modèle** (règle « pas d'essais
+  payants ») : la qualité du sens dépend désormais d'un seul appel au directeur.
+- Le sens d'un pictogramme (un chat pour une joaillerie) reste hors de portée des mesures ; au
+  cran High, c'est le directeur qui choisit les motifs.
+- La note de rythme compte l'espace entre deux mots comme un écart entre lettres (« Wavy Lift »).
+- Le crénage optique ne s'applique qu'aux nouveaux logos (`spacing: 'optical'` posé par les
+  recettes) : un logo déjà enregistré se reconstruit à l'identique.
+- Non vérifié dans le navigateur ; pas testé avec un vrai modèle.
 
 ## 7. Références vérifiées
 

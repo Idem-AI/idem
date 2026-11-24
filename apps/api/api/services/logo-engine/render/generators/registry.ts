@@ -18,6 +18,8 @@ export type Tone = 'a' | 'b' | 'c' | 'knockout';
 export interface GenPart {
   d: string;
   tone: Tone;
+  /** Épaisseur de trait (unités de la boîte) : la partie est un TRACÉ (courbe d'un seul trait), pas un aplat. */
+  stroke?: number;
 }
 
 export type ParamDef =
@@ -38,6 +40,10 @@ export interface GeneratorSpec {
   tags: string[];
   /** Nombre de tons utilisés (1 = une encre ; 2 = + ink2 ; 3 = + accent). */
   tones: 1 | 2 | 3;
+  /** Dessine des tracés (traits) : ni découpe, ni contenant, ni peinture « paper » — seulement posé tel quel. */
+  stroked?: boolean;
+  /** Style de construction qu'impose le générateur (monoline, modular…) : reporté dans le document, il règle le jugement. */
+  style?: 'geometric' | 'organic' | 'monoline' | 'modular' | 'typographic' | 'negative' | 'constructivist';
   params: Record<string, ParamDef>;
   build(p: Params, ctx: GenContext): GenPart[];
 }

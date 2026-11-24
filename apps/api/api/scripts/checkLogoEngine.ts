@@ -18,6 +18,9 @@
  * 15. Jeu de tests : qualité mesurée sur 8 marques × 3 types.
  * 16–18. Amélioration d'un logo, bonnes pratiques et originalité, OmniSVG.
  * 19. Perception par type, symétrie par construction (Cn/Dn), affinage sans token, empreinte Hu/Betti.
+ * 20. Le sens par l'IA, la forme cherchée par le code : fidélité aux directions, recherche par direction.
+ * 21. Solveurs par type (espacement optique, fût partagé, contre-forme, anneau d'emblème, centrage
+ *     optique), sona, arcs φ, facettes, continuité G1, calibration Bradley–Terry, front de Pareto.
  */
 import crypto from 'crypto';
 import fs from 'fs';
@@ -66,6 +69,12 @@ import { circlePath, rectPath } from '../services/logo-engine/kernel/primitives'
 import { letterRhythm, symmetryOf, toMask, topologyOf } from '../services/logo-engine/raster/perception';
 import { perceiveLogo, PROFILES, rankScore, SYMMETRY_KEPT } from '../services/logo-engine/validate/perception';
 import { refineLogo, tunablesOf } from '../services/logo-engine/planner/optimize';
+import { paretoFront, searchDirection } from '../services/logo-engine/planner/planner';
+import { fitCurve } from '../services/logo-engine/render/text';
+import { solveSona } from '../services/logo-engine/render/generators/african';
+import { countKinks, smoothKinks } from '../services/logo-engine/validate/curves';
+import { fitWeights } from '../services/logo-engine/validate/calibrate';
+import { directionMenu, directionsTask } from '../services/logo-engine/agent/tasks';
 import { ALL_RECIPES } from '../services/logo-engine/planner/recipes';
 import { traitsOf } from '../services/logo-engine/planner/brief';
 import { fingerprintOf } from '../services/logo-engine/validate/fingerprint';
@@ -659,7 +668,9 @@ async function main(): Promise<void> {
   check('clichés estimés par le secteur (repli sans modèle)', literalGenerators(SECTORS[0]).some((g) => ['cup', 'fish', 'flame'].includes(g)) && literalGenerators(SECTORS[2]).includes('cross'), `${literalGenerators(SECTORS[0]).join(',')} · ${literalGenerators(SECTORS[2]).join(',')}`);
   const pictorialPick = (raw: string) => raw.match(/^ pictorial: ([\w-]+)/m)?.[1] ?? 'leaf';
   const selfCliche = await run('high', simulated({ logoDirector: (r) => [`cliches: ${pictorialPick(r.system)}, a fork and spoon`, `1: pictorial | ${pictorialPick(r.system)} | value | x`, '2: abstract | orbit | story | y', '3: mascot | fox | name | z'].join('\n') }));
-  check('directeur : une direction qui reprend un cliché qu\'il a nommé est refusée', selfCliche.decisions.find((d) => d.stage === 'directions')?.source === 'code' && selfCliche.logos.length === 3);
+  // Le cliché nommé par le directeur : la direction qui le reprend est écartée seule, les deux autres sont gardées.
+  const namedCliche = pictorialPick(log.find((l) => l.role === 'logoDirector')?.system ?? '');
+  check('directeur : une direction qui reprend un cliché qu\'il a nommé est refusée (les autres sont gardées)', selfCliche.logos.length === 3 && !selfCliche.logos.some((l) => generatorsOf(l.doc.layers).includes(namedCliche)) && selfCliche.logos.some((l) => generatorsOf(l.doc.layers).includes('orbit')), `cliché « ${namedCliche} » · ${selfCliche.logos.map((l) => l.recipe).join(' · ')}`);
   const named = await run('ultra', simulated({ logoDirector: (r) => ['cliches: shield, a vault door', `1: pictorial | ${pictorialPick(r.system)} | value | x`, '2: abstract | orbit | story | y', '3: mascot | fox | name | z'].join('\n') }));
   const authorUsers = log.filter((l) => l.role === 'logoAuthor').map((l) => l.user);
   check('directeur : les clichés nommés sont bannis et interdits aux auteurs (AVOID)', named.originality!.cliches.includes('shield') && authorUsers.length > 0 && authorUsers.every((u) => /AVOID \(clichés of this business\): .*vault door/.test(u)), named.originality!.avoid.join(', '));
@@ -885,6 +896,108 @@ async function main(): Promise<void> {
     check('empreinte : un symbole tourné reste reconnu comme le même (la grille seule le croyait différent)', withShape < gridOnly && withShape < LOGO_SIMILARITY.tooClose, `${withShape.toFixed(3)} (grille seule ${gridOnly.toFixed(3)})`);
     check('empreinte : les empreintes anciennes (sans Hu) restent comparables', Number.isFinite(fingerprintDistance(fpA, { ...fpB, hu: undefined, topo: undefined, sym: undefined, round: undefined })));
   }
+
+  // ── 20. Le sens par l'IA, la forme par le code ──
+  section('20. Le sens par l\'IA, la forme cherchée par le code (fidélité aux directions, recherche par direction)');
+  const dirInput = { brief: kora.brief, palette: kora.pal, fonts: BUILD.fonts, kind: 'icon' as const, seed: 'sens', count: 3, explore: 0.5 };
+  const unfaithful: string[] = [];
+  const directionsToKeep: { type: ConceptType; generator: string }[] = [
+    ...listGenerators('abstract').slice(0, 4).map((g) => ({ type: 'abstract' as ConceptType, generator: g.id })),
+    ...listGenerators('pictorial').slice(0, 3).map((g) => ({ type: 'negative-space' as ConceptType, generator: g.id })),
+  ];
+  for (const d of directionsToKeep)
+    for (let s = 0; s < 8; s++) {
+      const planned = docForDirection(dirInput, d, `fid${s}`);
+      if (!planned || !generatorsOf((planned.doc as { layers: unknown }).layers).includes(d.generator)) unfaithful.push(`${d.type}/${d.generator}#${s}`);
+    }
+  check('fidélité : le générateur choisi par le directeur est toujours dessiné (7 directions × 8 tirages)', !unfaithful.length, unfaithful.slice(0, 4).join(' '));
+  const symRecipes = Array.from({ length: 6 }, (_, s) => docForDirection(dirInput, { type: 'abstract', variant: 'sym-leaf' }, `sym${s}`)?.recipe ?? '');
+  check('fidélité : une direction « sym-leaf » donne toujours la grammaire de symétrie avec ce motif', symRecipes.every((r) => r.startsWith('abstract:group-leaf-')), symRecipes.join(' '));
+
+  const menu20 = directionMenu('icon', new Map(), originalityOf(kora.brief, { cliches: [] }));
+  const parsed20 = directionsTask('fiche', menu20, 3, undefined, () => null).parse('cliches: a vault door\n1: abstract | sym-petal | value | x\n2: pictorial | ' + (menu20.generators.pictorial?.[0] ?? 'leaf') + ' | story | y\n3: mascot | ' + (menu20.generators.mascot?.[0] ?? 'fox') + ' | name | z');
+  check('directeur : la grammaire des symétries est au menu et lue dans sa réponse', !!menu20.variants.abstract?.includes('sym-petal') && parsed20?.directions[0].variant === 'sym-petal');
+
+  const single = docForDirection(dirInput, { type: 'abstract', variant: 'sym-hook' }, 'search.0');
+  const singleMade = single ? await produceLogo(single.doc, BUILD, { skipVariants: true }) : null;
+  const searched = await searchDirection(dirInput, { type: 'abstract', variant: 'sym-hook' }, 'search', BUILD);
+  check('recherche par direction : jamais moins bien que le premier essai, même motif', !!searched && !!singleMade?.logo && rankScore(searched.report) >= rankScore(singleMade.logo.report) && searched.recipe.startsWith('abstract:group-hook-'), `${singleMade?.logo ? rankScore(singleMade.logo.report) : '?'} → ${searched ? rankScore(searched.report) : '?'}`);
+  const searchedAgain = await searchDirection(dirInput, { type: 'abstract', variant: 'sym-hook' }, 'search', BUILD);
+  check('recherche par direction : reproductible', searchedAgain?.rendered.svg === searched?.rendered.svg);
+
+  const highSym = await run('high', simulated({ logoDirector: (r) => ['cliches: a vault door', '1: abstract | sym-leaf | value | la croissance partagée', `2: pictorial | ${(r.system.match(/^ pictorial: (.+)$/m)?.[1] ?? 'leaf').split(', ')[0]} | story | y`, `3: mascot | ${(r.system.match(/^ mascot: (.+)$/m)?.[1] ?? 'fox').split(', ')[0]} | name | z`].join('\n') }));
+  const directorCalls = log.filter((l) => l.role === 'logoDirector').length;
+  const otherCalls = log.filter((l) => l.role !== 'logoDirector').length;
+  check('high : un seul appel (le directeur), la forme entière par le code', directorCalls === 1 && otherCalls === 0, `${directorCalls} directeur, ${otherCalls} autre(s)`);
+  const partial = await run('high', simulated({ logoDirector: () => ['cliches: a vault door', '1: lettermark | monogram | name | hors menu pour une icône', '2: abstract | sym-petal | value | x', '3: abstract | lusona | culture | y'].join('\n') }));
+  check('high : une ligne hors menu est écartée seule — les directions valides du directeur sont gardées, le code complète', partial.logos.length === 3 && partial.logos.some((l) => l.recipe.startsWith('abstract:group-petal-')) && partial.logos.some((l) => l.recipe.includes('lusona')), partial.logos.map((l) => l.recipe).join(' · '));
+  check('high : la direction « sym-leaf » est livrée avec sa symétrie tenue', highSym.logos.some((l) => l.recipe.startsWith('abstract:group-leaf-') && (l.report.perception?.raw.declaredSymmetry ?? 0) >= SYMMETRY_KEPT), highSym.logos.map((l) => l.recipe).join(' · '));
+
+  // ── 21. Solveurs par type, géométrie africaine et calculée, courbes, calibration ──
+  section('21. Solveurs par type · sona · arcs φ · facettes · continuité G1 · calibration · Pareto');
+  const wordDoc = (name: string, spacing: string) => baseDoc([text(name, { spacing })], { concept: { type: 'wordmark' }, composition: { layout: 'wordmark-only' } });
+  const rhythm21 = async (spacing: string) => {
+    const made = await build(wordDoc('Tawalo', spacing));
+    return made.session && made.rendered ? (await perceiveLogo(made.session, made.rendered)).raw.rhythm ?? 0 : 0;
+  };
+  const metricRhythm = await rhythm21('metric');
+  const opticalRhythm = await rhythm21('optical');
+  check('wordmark : l\'espacement optique rend le rythme des lettres plus régulier', opticalRhythm > metricRhythm, `${metricRhythm} → ${opticalRhythm}`);
+
+  const monoHE = await build(baseDoc([text('HE', { role: 'symbol', at: { x: 50, y: 50 }, size: 46, effects: [{ type: 'shareStem' }] })], { concept: { type: 'lettermark' }, composition: { layout: 'symbol-only' } }));
+  const looseHE = await build(baseDoc([text('HE', { role: 'symbol', at: { x: 50, y: 50 }, size: 46 })], { concept: { type: 'lettermark' }, composition: { layout: 'symbol-only' } }));
+  const monoMask = monoHE.session ? toMask(await raster.render(monoHE.session.render({ layout: 'symbol-only' })!.svg, 160, null)) : null;
+  check('lettermark : « HE » partage un fût — une seule forme, plus étroite que les lettres posées côte à côte', !!monoMask && topologyOf(monoMask).pieces === 1 && !!monoHE.rendered && !!looseHE.rendered && monoHE.rendered.scene.boxes.symbol!.w / monoHE.rendered.scene.boxes.symbol!.h < looseHE.rendered.scene.boxes.symbol!.w / looseHE.rendered.scene.boxes.symbol!.h);
+
+  const counter = await build(baseDoc([text('O', { role: 'symbol', at: { x: 50, y: 50 }, size: 66, effects: [{ type: 'counterMark', index: 0, shape: 'circle', scale: 0.6 }] })], { concept: { type: 'letterform' }, composition: { layout: 'symbol-only' } }));
+  const counterMask = counter.session ? toMask(await raster.render(counter.session.render({ layout: 'symbol-only' })!.svg, 160, null)) : null;
+  const counterTopo = counterMask && topologyOf(counterMask);
+  check('letterform : la forme tombe dans la contre-forme (2 morceaux, le creux reste ouvert autour)', !!counterTopo && counterTopo.pieces === 2 && counterTopo.holes === 1, `${counterTopo?.pieces}/${counterTopo?.holes}`);
+
+  const fitTop = fitCurve({ radius: 32, start: 0, side: 'top', sweep: 120, band: [23, 42] }, 5, 8);
+  const arcCovered = ((5 * fitTop.cap) / fitTop.radius) * (180 / Math.PI);
+  check('emblem : le texte courbe tient dans l\'anneau, centré, et couvre l\'angle demandé', fitTop.radius >= 23 && fitTop.radius + fitTop.cap <= 42 + 1e-6 && Math.abs(23 - fitTop.radius - (fitTop.radius + fitTop.cap - 42)) < 1e-6 && Math.abs(arcCovered - 120) < 1, `R ${fitTop.radius.toFixed(1)}, cap ${fitTop.cap.toFixed(1)}, ${arcCovered.toFixed(0)}°`);
+  const fitLong = fitCurve({ radius: 32, start: 0, side: 'top', sweep: 300, band: [23, 42] }, 9, 8);
+  check('emblem : un nom long ne déborde jamais de l\'anneau (taille plafonnée)', fitLong.cap <= (42 - 23) * 0.62 + 1e-6 && fitLong.radius + fitLong.cap <= 42 + 1e-6);
+
+  const opticalAt = async (optical: boolean) => {
+    const made = await build(baseDoc([gen('sunrise'), text('Kora')], { concept: { type: 'combination' }, composition: { layout: 'horizontal', optical } }));
+    return made.session && made.rendered ? (await perceiveLogo(made.session, made.rendered)).raw.alignOffset ?? 1 : 1;
+  };
+  const boxAligned = await opticalAt(false);
+  const massAligned = await opticalAt(true);
+  check('combination : le centrage optique aligne le centre de masse du symbole sur le nom', massAligned <= boxAligned, `${boxAligned} → ${massAligned}`);
+
+  const sona = solveSona(3, 3, 0.4, 'c4', seeded(7));
+  check('sona : grille 3×3 en C4, une seule ligne (monolinéaire)', sona.curves.length === 1, `${sona.curves.length} courbe(s), ${sona.grid.mirrors.size} miroirs`);
+  const lusonaRecipe = ALL_RECIPES.find((r) => r.id === 'abstract-lusona')!;
+  const lusonaKept: number[] = [];
+  for (let s = 0; s < 5; s++) {
+    const made = await produceLogo(lusonaRecipe.build({ brief: kora.brief, palette: PALETTE, rng: seeded(900 + s), weights: new Map(), traits: traitsOf(kora.brief), withName: false, explore: 0.5, used: new Set() } as never), BUILD, { skipVariants: true });
+    lusonaKept.push(made.ok ? made.logo?.report.perception?.raw.declaredSymmetry ?? 0 : 0);
+  }
+  check('sona : symétrie déclarée tenue sur 5 dessins, style monoligne', lusonaKept.every((v) => v >= SYMMETRY_KEPT), lusonaKept.join(' '));
+  for (const [g, p] of [['phi-arcs', { steps: 3 }], ['tessellation', { mode: 'delaunay', order: 6 }], ['tessellation', { mode: 'voronoi', order: 5 }]] as const) {
+    const made = await produceLogo(baseDoc([gen(g, p as Record<string, unknown>)], { concept: { type: 'abstract' }, composition: { layout: 'symbol-only' } }), BUILD, { skipVariants: true });
+    check(`géométrie calculée : ${g}${'mode' in p ? ` (${p.mode})` : ''} construit un symbole exploitable`, made.ok);
+  }
+
+  const kinked = 'M10 50C10 30 30 10 50 10C70 12 88 28 90 50C90 70 70 90 50 90C30 90 10 70 10 50Z';
+  const corner = 'M10 10L90 10L90 90L10 90Z';
+  const smoothed = smoothKinks(kinked);
+  check('courbes : un raccord cassé de quelques degrés est détecté, rendu G1 ; un angle franc est laissé', countKinks(kinked) >= 1 && countKinks(smoothed.d) === 0 && countKinks(corner) === 0, `${countKinks(kinked)} → ${countKinks(smoothed.d)}`);
+
+  const synthetic = Array.from({ length: 60 }, (_, i) => {
+    const r = seeded(i + 1);
+    const a = { symmetry: r(), topology: r(), stroke: r(), compactness: r(), balance: r() };
+    const b = { symmetry: r(), topology: r(), stroke: r(), compactness: r(), balance: r() };
+    return { type: 'abstract' as ConceptType, a, b, winner: (a.symmetry > b.symmetry ? 'a' : 'b') as 'a' | 'b' };
+  });
+  const fitted = fitWeights(synthetic, PROFILES.abstract.weights);
+  check('calibration : des juges qui ne regardent que la symétrie → son poids monte, l\'accord aussi', fitted.weights.symmetry > (PROFILES.abstract.weights.symmetry ?? 0) && fitted.after >= fitted.before, `${PROFILES.abstract.weights.symmetry} → ${fitted.weights.symmetry} · accord ${Math.round(fitted.before * 100)} → ${Math.round(fitted.after * 100)} %`);
+
+  const front = paretoFront(pool19);
+  check('Pareto : le front (exploitabilité × perception × originalité) n\'est jamais vide', front.size >= 1 && front.size <= pool19.length, `${front.size}/${pool19.length}`);
 
   console.log(`\n${passes} vérifications réussies, ${failures} échec(s) — ${((Date.now() - started) / 1000).toFixed(1)} s`);
   if (failures) process.exit(1);

@@ -36,6 +36,18 @@ export interface GeometryKernel {
   area(shape: Shape): number;
   /** Contours distincts d'une forme composée (lettre à contre-forme : corps + trou). */
   contours(shape: Shape): Shape[];
+  /**
+   * Mesures facultatives des solveurs (crénage optique, monogramme, contre-forme, alignement
+   * optique). Un noyau qui ne les fournit pas reste valide : les solveurs se désactivent.
+   */
+  /** Intervalles [x0, x1] d'encre sur la ligne horizontale y, triés. */
+  rowIntervals?(shape: Shape, y: number): [number, number][];
+  /** Le point est-il dans la forme (règle de remplissage de la forme) ? */
+  contains?(shape: Shape, x: number, y: number): boolean;
+  /** Distance du point au contour le plus proche. */
+  distanceToEdge?(shape: Shape, x: number, y: number): number;
+  /** Centre de masse de la surface (trous déduits). */
+  centroid?(shape: Shape): [number, number] | null;
 }
 
 // ─── Matrices ───────────────────────────────────────────────────────────────

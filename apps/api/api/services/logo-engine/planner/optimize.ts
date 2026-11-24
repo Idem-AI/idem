@@ -34,8 +34,13 @@ interface Tunable {
 export function tunablesOf(doc: LogoDocument): Tunable[] {
   const out: Tunable[] = [];
   const lockedOrder = !!doc.concept.symmetry && doc.concept.symmetry !== 'none';
-  walkLayers(doc.layers, (layer) => {
+  walkLayers(doc.layers, (layer, parent) => {
     if (layer.hidden) return;
+    // Un motif creusé ou contenu (espace négatif, tuile, sceau) : sa taille dans le contenant se règle.
+    const scale = layer.transform?.scale;
+    if (parent && typeof scale === 'number') {
+      out.push({ key: `${layer.id}.scale`, min: 0.35, max: 0.85, int: false, get: () => layer.transform!.scale as number, set: (v) => (layer.transform!.scale = v) });
+    }
     if (layer.kind === 'generator') {
       const spec = getGenerator(layer.generator);
       if (!spec) return;

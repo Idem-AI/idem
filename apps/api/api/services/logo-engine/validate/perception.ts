@@ -28,6 +28,7 @@
  * valeurs de départ à recaler sur des jugements humains (voir LOGO_ENGINE_MATHS.md).
  */
 import type { ConceptType } from '../ir/logo.schema';
+import { CALIBRATION } from './calibration';
 import type { LogoSession, RenderedLogo } from '../render/build';
 import type { Rasterizer } from '../raster/rasterizer';
 import { defaultRasterizer } from '../raster/rasterizer';
@@ -89,6 +90,25 @@ export const PROFILES: Record<ConceptType, Profile> = {
   'negative-space': { weights: { void: 0.35, topology: 0.2, balance: 0.25, symmetry: 0.2 }, compactness: [0.1, 1], maxPieces: 3, maxHoles: 3, void: [0.1, 0.65] },
 };
 
+/**
+ * La troisième dimension — le style de construction — corrige le profil du type : un tracé
+ * monoligne (sona) a des boucles par nature, une mosaïque des facettes ; les compter comme du
+ * désordre serait juger la construction contre elle-même.
+ */
+/**
+ * Poids recalés sur des jugements humains (`npm run calibrate:logo -- fit …` réécrit
+ * `calibration.ts`, compilé avec le moteur). Type absent : les poids raisonnés ci-dessus.
+ */
+const CALIBRATED = CALIBRATION.weights as Partial<Record<ConceptType, Partial<Record<PerceptKey, number>>>>;
+
+export function profileFor(type: ConceptType, style?: string): Profile {
+  const calibrated = CALIBRATED[type];
+  const base = calibrated ? { ...PROFILES[type], weights: calibrated } : PROFILES[type];
+  if (style === 'monoline') return { ...base, maxHoles: 99, weights: { ...base.weights, stroke: (base.weights.stroke ?? 0.15) * 2 } };
+  if (style === 'modular') return { ...base, maxPieces: 60, maxHoles: 99, compactness: [0.05, 1] };
+  return base;
+}
+
 /** 1 dans [lo, hi], décroît linéairement jusqu'à 0 à `soft` au-delà. */
 export const band = (v: number, lo: number, hi: number, soft: number) => (v < lo ? Math.max(0, 1 - (lo - v) / soft) : v > hi ? Math.max(0, 1 - (v - hi) / soft) : 1);
 
@@ -122,7 +142,7 @@ export async function perceiveLogo(session: LogoSession, rendered: RenderedLogo,
   const raster = options.rasterizer ?? defaultRasterizer();
   const doc = session.doc;
   const type = doc.concept.type;
-  const profile = PROFILES[type];
+  const profile = profileFor(type, doc.concept.style);
   const parts: Perception['parts'] = {};
   const defects: Defect[] = [];
   const raw: Perception['raw'] = { symmetryGroup: 'none', symmetryBest: 0, pieces: 0, holes: 0, compactness: 0, strokeConsistency: 1, massX: 0, massY: 0 };

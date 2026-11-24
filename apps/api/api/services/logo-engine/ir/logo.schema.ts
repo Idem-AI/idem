@@ -181,6 +181,10 @@ export const TextEffectSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('italic'), angle: num(4, 20).default(10) }),
   /** Remplace une lettre ronde (o, O, 0) par un disque plein ou un anneau. */
   z.object({ type: z.literal('swapRound'), index: int(0, 47), with: z.enum(['disc', 'ring']).default('disc'), color: ColorRef.optional() }),
+  /** Monogramme : les deux premières lettres partagent un même fût (décalage calculé), puis fusionnent. */
+  z.object({ type: z.literal('shareStem') }),
+  /** Une forme posée au centre du plus grand cercle inscrit dans le creux de la lettre `index`. */
+  z.object({ type: z.literal('counterMark'), index: int(0, 47).default(0), shape: z.enum(['circle', 'diamond', 'square', 'leaf']).default('circle'), scale: num(0.3, 0.9).default(0.62), color: ColorRef.optional() }),
 ]);
 export type LogoTextEffect = z.infer<typeof TextEffectSchema>;
 
@@ -217,6 +221,8 @@ export const TextLayerSchema = z.object({
     .default({ role: 'display', weight: 700 }),
   /** Interlettrage en em. */
   tracking: num(-0.1, 0.6).default(0),
+  /** `metric` : crénage de la police ; `optical` : espaces optiques égalisés par le moteur. */
+  spacing: z.enum(['metric', 'optical']).default('metric'),
   case: z.enum(['none', 'upper', 'lower', 'title']).default('none'),
   /** Placement dans la boîte de dessin (centre du texte) : fait du texte une partie du symbole. */
   at: z.object({ x: coord, y: coord }).optional(),
@@ -228,6 +234,10 @@ export const TextLayerSchema = z.object({
       radius: num(5, 200),
       start: num(-360, 360).default(0),
       side: z.enum(['top', 'bottom']).default('top'),
+      /** Angle que le texte doit couvrir (°) : la taille des lettres est calculée pour l'atteindre. */
+      sweep: num(30, 330).optional(),
+      /** Anneau disponible [rayon intérieur, rayon extérieur] : le texte y est centré, marges égales des deux côtés. */
+      band: z.tuple([num(1, 200), num(2, 220)]).optional(),
     })
     .optional(),
   effects: z.array(TextEffectSchema).max(3).optional(),
@@ -314,6 +324,8 @@ export const CompositionSchema = z.object({
   /** Hauteur du symbole ÷ hauteur de capitale du nom. */
   symbolScale: num(1, 6).optional(),
   align: z.enum(['center', 'start']).default('center'),
+  /** Centrage OPTIQUE : le centre de masse du symbole (et non sa boîte) s'aligne sur le nom. */
+  optical: z.boolean().default(false),
   /** Marge autour du logo, en fraction de sa plus petite dimension. */
   padding: num(0.02, 0.4).default(0.1),
   /** Part de la hauteur de capitale du nom occupée par la ligne d'accroche. */

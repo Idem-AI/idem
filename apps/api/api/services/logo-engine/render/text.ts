@@ -15,6 +15,7 @@ import type { Pt } from '../kernel/primitives';
 import { applyCase, layoutText } from '../kernel/typography';
 import type { EngineFont } from '../kernel/typography';
 import { BuildContext, fontKey, Paint, Part } from './scene';
+import { counterCircle, opticalSpacing, sharedStemShift, touchShift } from './typeSolvers';
 
 export interface TextResult {
   parts: Part[];
@@ -110,6 +111,13 @@ function applyGlyphEffects(glyph: GlyphPart, effects: LogoTextEffect[], base: Pa
         glyph.shapes = [{ shape: outer, paint }];
       }
     }
+    if (effect.type === 'counterMark' && effect.index === glyph.index) {
+      const union = unionAll(kernel, glyph.shapes.map((s) => s.shape));
+      const circle = union ? counterCircle(kernel, union) : null;
+      if (!circle) continue;
+      const mark = kernel.fromPath(dotShape(effect.shape, circle.cx, circle.cy, 2 * circle.r * effect.scale));
+      if (mark) glyph.shapes.push({ shape: mark, paint: effect.color ?? 'accent' });
+    }
     if (effect.type === 'dotReplace' && DOT_CHARS.has(glyph.char)) {
       const union = unionAll(kernel, glyph.shapes.map((s) => s.shape));
       if (!union) continue;
@@ -167,7 +175,36 @@ function decorations(effects: LogoTextEffect[], ink: Rect, capHeight: number, ct
  * base en y = 0 — la composition le positionne. Avec `at`, il est centré dans la boîte de dessin ;
  * avec `curve`, il épouse un arc de cercle.
  */
-export function resolveText(layer: TextLayer, ctx: BuildContext, capHeight: number): TextResult | null {
+/**
+ * Texte courbe ajusté à son anneau (sceaux, emblèmes) : la hauteur de capitale qui fait couvrir
+ * au texte l'angle `sweep`, et le rayon qui le centre dans `band` (marges égales vers le cadre et
+ * vers le symbole). Le rayon de la ligne de base dépend de la taille, la taille du rayon : la
+ * relation est linéaire, résolue d'un coup.
+ */
+export function fitCurve(curve: NonNullable<TextLayer['curve']>, widthPerCap: number, requestedCap: number): { cap: number; radius: number } {
+  let cap = requestedCap;
+  let radius = curve.radius;
+  const sweep = curve.sweep ? (curve.sweep * Math.PI) / 180 : null;
+  if (curve.band) {
+    const [inner, outer] = curve.band[0] < curve.band[1] ? curve.band : [curve.band[1], curve.band[0]];
+    const thickness = outer - inner;
+    const mid = inner + thickness / 2;
+    const maxCap = thickness * 0.62;
+    // Haut : les lettres occupent [R, R + cap] ; bas : [R − cap, R]. Centrées dans l'anneau.
+    const sign = curve.side === 'top' ? -1 : 1;
+    if (sweep) {
+      const denom = widthPerCap - (sign * sweep) / 2;
+      cap = denom > 0 ? (sweep * mid) / denom : maxCap;
+    }
+    cap = Math.max(1.5, Math.min(cap, maxCap));
+    radius = mid + (sign * cap) / 2;
+  } else if (sweep) {
+    cap = Math.max(1.5, (sweep * radius) / widthPerCap);
+  }
+  return { cap, radius };
+}
+
+export function resolveText(layer: TextLayer, ctx: BuildContext, requestedCap: number): TextResult | null {
   const font = fontForLayer(layer, ctx);
   if (!font) {
     ctx.warnings.push({ code: 'font_unavailable', layerId: layer.id, message: `Police introuvable pour « ${layer.id} » : le texte ne peut pas être vectorisé.` });
@@ -176,10 +213,21 @@ export function resolveText(layer: TextLayer, ctx: BuildContext, capHeight: numb
   const effects = layer.effects ?? [];
   const ligature = effects.find((e): e is Extract<LogoTextEffect, { type: 'ligature' }> => e.type === 'ligature');
   const content = applyCase(layer.content, layer.case);
-  const laid = layoutText(content, font, capHeight, layer.tracking, ligature ? -ligature.overlap * capHeight : 0);
+  const lay = (cap: number) => layoutText(content, font, cap, layer.tracking, ligature ? -ligature.overlap * cap : 0);
+  let capHeight = requestedCap;
+  let laid = lay(capHeight);
   if (!laid) {
     ctx.warnings.push({ code: 'glyph_missing', layerId: layer.id, message: `Un caractère de « ${content} » n'existe pas dans la police ${font.family}.` });
     return null;
+  }
+  let curveRadius = layer.curve?.radius ?? 0;
+  if (layer.curve && (layer.curve.sweep || layer.curve.band)) {
+    const fit = fitCurve(layer.curve, laid.width / capHeight, capHeight);
+    curveRadius = fit.radius;
+    if (Math.abs(fit.cap - capHeight) > 1e-3) {
+      capHeight = fit.cap;
+      laid = lay(capHeight) ?? laid;
+    }
   }
 
   const { kernel } = ctx;
@@ -190,6 +238,40 @@ export function resolveText(layer: TextLayer, ctx: BuildContext, capHeight: numb
     const shape = kernel.fromPath(g.d);
     if (shape) glyphs.push({ index: g.index, char: g.char, shapes: [{ shape, paint: base }] });
   }
+
+  // Espacement optique : chaque lettre glisse pour égaliser les surfaces blanches entre voisines.
+  const shiftGlyph = (glyph: GlyphPart, dx: number) => {
+    if (dx) glyph.shapes = glyph.shapes.map((s) => ({ ...s, shape: kernel.transform(s.shape, translate(dx, 0)) }));
+  };
+  const offsets = new Array(laid.glyphs.length).fill(0);
+  if (layer.spacing === 'optical' && !ligature) {
+    const byIndex = laid.glyphs.map((g) => glyphs.find((x) => x.index === g.index)?.shapes.map((s) => s.shape) ?? []);
+    const solved = opticalSpacing(kernel, byIndex, capHeight);
+    if (solved) solved.forEach((dx, i) => (offsets[i] += dx));
+  }
+  // Monogramme : la 2e lettre glisse jusqu'à partager le fût de la 1re, puis elles fusionnent.
+  const share = effects.some((e) => e.type === 'shareStem') && glyphs.length >= 2;
+  if (share) {
+    const a = glyphs[0].shapes.map((x) => x.shape);
+    const b = glyphs[1].shapes.map((x) => x.shape);
+    // Un fût commun si les lettres en ont un ; sinon, au contact.
+    const s = sharedStemShift(kernel, a, b, capHeight) ?? touchShift(kernel, a, b, capHeight);
+    if (s !== null) for (let i = 0; i < laid.glyphs.length; i++) if (laid.glyphs[i].index >= glyphs[1].index) offsets[i] -= s;
+  }
+  if (offsets.some((v) => v)) {
+    for (const glyph of glyphs) shiftGlyph(glyph, offsets[laid.glyphs.findIndex((g) => g.index === glyph.index)] ?? 0);
+    const last = offsets[offsets.length - 1];
+    laid = { ...laid, glyphs: laid.glyphs.map((g, i) => ({ ...g, pen: g.pen + offsets[i] })), width: laid.width + last };
+  }
+  if (share) {
+    const [a, b] = glyphs;
+    const union = unionAll(kernel, [...a.shapes, ...b.shapes].filter((s) => s.paint === base).map((s) => s.shape));
+    if (union) {
+      a.shapes = [{ shape: union, paint: base }, ...a.shapes.filter((s) => s.paint !== base), ...b.shapes.filter((s) => s.paint !== base)];
+      b.shapes = [];
+    }
+  }
+
   for (const glyph of glyphs) applyGlyphEffects(glyph, effects, base, ctx, capHeight);
 
   let flat: { shape: Shape; paint: Paint; index: number }[] = glyphs.flatMap((g) => g.shapes.map((s) => ({ ...s, index: g.index })));
@@ -234,7 +316,8 @@ export function resolveText(layer: TextLayer, ctx: BuildContext, capHeight: numb
 
   // Positionnement.
   if (layer.curve) {
-    const { radius, start, side } = layer.curve;
+    const { start, side } = layer.curve;
+    const radius = curveRadius;
     const cx = layer.at?.x ?? 50;
     const cy = layer.at?.y ?? 50;
     const placed: Part[] = [];

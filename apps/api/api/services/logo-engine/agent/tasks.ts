@@ -23,6 +23,7 @@ import type { GeneratorFamily, GeneratorSpec } from '../render/generators';
 import { affinity } from '../planner/brief';
 import type { PlanBrief, Traits } from '../planner/brief';
 import { catalogIdsIn, originalCatalog } from '../planner/originality';
+import { SYMMETRY_VARIANTS } from '../planner/recipes';
 import type { OriginalityContext } from '../planner/originality';
 import { practiceBrief } from '../validate/practices';
 import type { PlannedLogo } from '../planner/planner';
@@ -81,7 +82,7 @@ const TYPE_HINT: Record<ConceptType, string> = {
   lettermark: 'initials in a container',
   letterform: 'one letter worked as the symbol',
   pictorial: 'a recognisable object',
-  abstract: 'a geometric construction',
+  abstract: 'a geometric construction: a generator, or sym-<motif> = one motif repeated by an exact symmetry group',
   mascot: 'a character',
   combination: 'symbol + name',
   emblem: 'a seal: frame + symbol + curved name',
@@ -130,8 +131,10 @@ export function directionMenu(kind: 'icon' | 'name' | 'initial', weights: Map<st
     generators,
     variants: {
       wordmark: ['plain', 'dot', 'underline', 'bar', 'slice', 'ligature', 'dotReplace', 'swapRound', 'accentChar', 'cutCorner', 'italic'],
-      lettermark: ['tile', 'circle', 'squircle', 'ring', 'hexagon', 'diamond', 'underline', 'shield'],
-      letterform: ['plain', 'cut', 'swap', 'slice', 'notch', 'accentDot'],
+      lettermark: ['tile', 'circle', 'squircle', 'ring', 'hexagon', 'diamond', 'underline', 'shield', 'monogram'],
+      letterform: ['plain', 'cut', 'swap', 'slice', 'notch', 'accentDot', 'counter'],
+      // La grammaire des groupes de symétrie : un motif, répété exactement (rotation = mouvement, miroir = stabilité).
+      abstract: [...SYMMETRY_VARIANTS],
     },
   };
 }
@@ -226,7 +229,6 @@ export function directionsTask(
         .filter((d): d is Direction => !!d)
         // Une direction bâtie sur un cliché est refusée, même si le directeur ne l'a pas vu.
         .filter((d) => !d.generator || !forbidden.has(d.generator));
-      if (found.length < count) return undefined;
       // Deux directions de même catégorie ET même générateur ne sont pas deux directions.
       const seen = new Set<string>();
       const distinct = found.filter((d) => {
@@ -235,7 +237,9 @@ export function directionsTask(
         seen.add(key);
         return true;
       });
-      return distinct.length >= count ? { directions: distinct.slice(0, count), cliches: { ids: [...new Set([...banned, ...named.ids])], words: named.words } } : undefined;
+      // Les directions valides sont gardées même si une ligne est hors menu : l'agent complète les manquantes
+      // par celles du planificateur, au lieu de jeter tout le travail du directeur.
+      return distinct.length ? { directions: distinct.slice(0, count), cliches: { ids: [...new Set([...banned, ...named.ids])], words: named.words } } : undefined;
     },
     fallback,
   };

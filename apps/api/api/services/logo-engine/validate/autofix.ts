@@ -15,6 +15,7 @@ import { applyPatch } from '../ir/patch';
 import { getGenerator } from '../render/generators';
 import { LIGHT_BACKGROUND } from '../render/svg';
 import { ensureContrast } from '../util/colors';
+import { smoothKinks } from './curves';
 import type { Defect } from './technical';
 
 /** Paramètres d'épaisseur et de densité, par ordre de pertinence. */
@@ -99,7 +100,24 @@ export function planFixes(doc: LogoDocument, defects: Defect[]): { ops: PatchOp[
 /** Applique les corrections d'un tour. `null` si rien n'est corrigeable. */
 export function fixOnce(doc: LogoDocument, defects: Defect[]): { doc: LogoDocument; log: FixLog[] } | null {
   const { ops, log } = planFixes(doc, defects);
-  if (!ops.length) return null;
-  const result = applyPatch(doc, ops);
+  // Les raccords presque lisses d'un tracé libre : rendus G1 directement (pas d'opération de patch sur un tracé).
+  let base = doc;
+  const kinked = new Set(defects.filter((d) => d.code === 'curve_kink' && d.layerId).map((d) => d.layerId!));
+  if (kinked.size) {
+    base = structuredClone(doc);
+    let fixed = 0;
+    walkLayers(base.layers, (layer) => {
+      if (layer.kind !== 'shape' || layer.geometry.type !== 'path' || !kinked.has(layer.id)) return;
+      const smoothed = smoothKinks(layer.geometry.d);
+      if (smoothed.fixed) {
+        layer.geometry.d = smoothed.d;
+        fixed += smoothed.fixed;
+      }
+    });
+    if (fixed) log.push({ defect: 'curve_kink', action: `${fixed} raccord(s) rendu(s) G1 (poignées alignées)` });
+    else base = doc;
+  }
+  if (!ops.length) return base === doc ? null : { doc: base, log };
+  const result = applyPatch(base, ops);
   return result.ok && result.doc ? { doc: result.doc, log } : null;
 }

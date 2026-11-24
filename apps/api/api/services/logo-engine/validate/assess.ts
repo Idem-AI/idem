@@ -15,6 +15,8 @@ import { validateSvgTechnical } from './technical';
 import { assessVisual } from './visual';
 import { checkPractices } from './practices';
 import { perceiveLogo } from './perception';
+import { countKinks } from './curves';
+import { walkLayers } from '../ir/logo.schema';
 import type { Perception } from './perception';
 
 export interface QualityReport {
@@ -74,6 +76,13 @@ export async function assessLogo(session: LogoSession, rendered: RenderedLogo, o
 
   const perception = await perceiveLogo(session, rendered, { rasterizer });
   defects.push(...perception.defects);
+
+  // Tracés libres : un raccord presque lisse (2–20°) est une bosse involontaire, pas un angle.
+  walkLayers(session.doc.layers, (layer) => {
+    if (layer.kind !== 'shape' || layer.geometry.type !== 'path' || layer.hidden) return;
+    const kinks = countKinks(layer.geometry.d);
+    if (kinks) defects.push({ code: 'curve_kink', severity: 'warn', layerId: layer.id, message: `${kinks} raccord(s) presque lisse(s) dans « ${layer.id} » : la courbe se casse de quelques degrés.` });
+  });
 
   const variants: QualityReport['variants'] = [];
   if (!options.skipVariants) {
