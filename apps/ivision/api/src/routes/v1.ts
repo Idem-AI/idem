@@ -481,9 +481,11 @@ v1.patch(
       const video = await motionVideos.updateVideo(uid(req), req.params.brandId, req.params.videoId, sanitizeVideoPatch(req.body));
       if (!video) throw new HttpError(404, 'video_not_found', 'Vidéo introuvable.');
       res.json(video);
+      // Le MP4 retouché se prépare d'avance (gratuit) : « Télécharger » le trouvera souvent déjà prêt.
+      void motionVideos.prerender(uid(req), req.params.brandId, video.id).catch(() => undefined);
     } catch (error) {
       engineError(error);
-    }
+    } 
   })
 );
 

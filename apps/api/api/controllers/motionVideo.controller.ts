@@ -2,6 +2,8 @@ import { journeyService } from '../services/journey/journey.service';
 import { normalizeCreativity } from '../models/creativity.model';
 import { Response } from 'express';
 import sharp from 'sharp';
+import axios from 'axios';
+import minioConnection from '../config/minio.config';
 import logger from '../config/logger';
 import { CustomRequest } from '../interfaces/express.interface';
 import { MotionStyle, MUSIC_MOODS, MusicMood, VideoFormat } from '../models/motionVideo.model';
@@ -119,6 +121,15 @@ export const videoOptionsController = async (_req: CustomRequest, res: Response)
   res.json(videoOptions());
 };
 
+/**
+ * Le MP4 se PRÉPARE D'AVANCE (gratuit, en arrière-plan, après les exports demandés) dès que la vidéo existe ou change :
+ * quand l'utilisateur clique sur « Télécharger », le fichier est souvent déjà là, et l'export le reprend sans le refaire.
+ * `VIDEO_PRERENDER=0` coupe ce rendu d'avance.
+ */
+function prepareAhead(userId: string, projectId: string, videoId: string): void {
+  void motionVideoService.prerender(userId, projectId, videoId).catch((error) => logger.warn('video.prerender_failed', { videoId, error: error?.message }));
+}
+
 /** GET /project/communication/:projectId/videos */
 export const listVideosController = async (req: CustomRequest, res: Response): Promise<void> => {
   const id = ids(req, res);
@@ -144,6 +155,7 @@ export const createVideoController = async (req: CustomRequest, res: Response): 
       paid
     );
     res.status(201).json(video);
+    prepareAhead(id.userId, id.projectId, video.id);
   } catch (error) {
     fail(res, error, 'createVideoController');
   }
@@ -179,6 +191,7 @@ export const updateVideoController = async (req: CustomRequest, res: Response): 
       return;
     }
     res.json(video);
+    prepareAhead(id.userId, id.projectId, video.id);
   } catch (error) {
     fail(res, error, 'updateVideoController');
   }
@@ -200,6 +213,7 @@ export const reviseVideoController = async (req: CustomRequest, res: Response): 
       return;
     }
     res.json(result);
+    prepareAhead(id.userId, id.projectId, result.video.id);
   } catch (error) {
     fail(res, error, 'reviseVideoController');
   }
@@ -260,6 +274,43 @@ export const exportVideoController = async (req: CustomRequest, res: Response): 
     fail(res, error, 'exportVideoController');
   }
 };
+
+/**
+ * GET /project/communication/:projectId/videos/:videoId/file?format= — le MP4 en PIÈCE JOINTE : le navigateur
+ * l'enregistre au lieu de l'ouvrir dans un onglet (l'attribut `download` d'un lien vers MinIO, autre origine, est
+ * ignoré par les navigateurs). Seul un fichier EXPORTÉ de notre stockage passe : un rendu fait d'avance se réclame
+ * d'abord par l'export (gratuit la première fois).
+ */
+export const videoFileController = async (req: CustomRequest, res: Response): Promise<void> => {
+  const id = ids(req, res);
+  if (!id) return;
+  try {
+    const video = await motionVideoService.getVideo(id.userId, id.projectId, req.params.videoId as string);
+    const format = typeof req.query.format === 'string' ? req.query.format : undefined;
+    const files = (video?.renders || []).filter((r) => r.status === 'done' && r.url && !r.prerender && (!format || r.format === format));
+    const render = files.find((r) => !r.stale) || files[0];
+    const storagePrefix = minioConnection.getPublicUrl('');
+    if (!render?.url || !render.url.startsWith(storagePrefix)) {
+      res.status(404).json({ message: 'Video file not found' });
+      return;
+    }
+    const upstream = await axios.get(render.url, { responseType: 'stream', timeout: 60_000 });
+    const name = `${slug(video!.title) || 'video'}-${render.format}.mp4`;
+    res.setHeader('Content-Type', 'video/mp4');
+    res.setHeader('Content-Disposition', `attachment; filename="${name}"`);
+    res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition, Content-Length');
+    res.setHeader('Cache-Control', 'private, max-age=300');
+    if (upstream.headers['content-length']) res.setHeader('Content-Length', String(upstream.headers['content-length']));
+    upstream.data.on('error', () => res.destroy());
+    upstream.data.pipe(res);
+  } catch (error) {
+    fail(res, error, 'videoFileController');
+  }
+};
+
+function slug(value: string): string {
+  return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60);
+}
 
 /** DELETE /project/communication/:projectId/videos/:videoId */
 export const deleteVideoController = async (req: CustomRequest, res: Response): Promise<void> => {
@@ -370,6 +421,7 @@ export const createVideoStreamController = async (req: CustomRequest, res: Respo
       (event) => send({ type: 'progress', ...event })
     );
     send({ type: 'complete', video });
+    prepareAhead(id.userId, id.projectId, video.id);
     journeyService.signal(id.userId, 'video.created', id.projectId);
   } catch (error: any) {
     logger.error(`createVideoStreamController: ${error?.message}`, { stack: error?.stack });

@@ -1013,7 +1013,8 @@
           "upload": "The file could not be uploaded (photo 12 MB, video 80 MB).",
           "enhance": "The request could not be improved. Try again in a moment.",
           "modelUnavailable": "The model that designs videos is unavailable right now. Your credits were refunded.",
-          "sceneErrors": "A scene does not run: fix it before exporting."
+          "sceneErrors": "A scene does not run: fix it before exporting.",
+          "download": "The file could not be downloaded. Try again."
         },
         "types": {
           "kinetic": {
@@ -1144,7 +1145,42 @@
           "send": "Apply",
           "done": "Done. Watch the new version.",
           "notUnderstood": "I did not understand what to change. Say for instance “scene 2 more dynamic” or “no music”.",
-          "newRequest": "This sounds like a new video: create it from “New video”."
+          "newRequest": "This sounds like a new video: create it from “New video”.",
+          "hint": "Describe what you want to change, the AI does the rest.",
+          "free": "Free · Ctrl + Enter to apply"
+        },
+        "download": {
+          "ready": "Your video is ready",
+          "readyShort": "MP4 ready",
+          "waiting": "Preparing your MP4… {{percent}}%",
+          "working": "Making the MP4… {{percent}}%",
+          "preparing": "We are preparing your MP4 in advance… {{percent}}%",
+          "prepared": "Your MP4 is ready to download",
+          "outdated": "Your latest edits are not in the MP4 yet",
+          "none": "Download your video as MP4",
+          "why": "The preview plays live in your browser; the MP4 is filmed frame by frame on our servers.",
+          "progress": "MP4 progress",
+          "cta": "Download",
+          "ctaPaid": "Download · {{price}} credits",
+          "saving": "Downloading…",
+          "savingPercent": "Downloading… {{percent}}%",
+          "cancelAuto": "Don’t download",
+          "autoHint": "The download will start by itself as soon as the file is ready. You can keep editing the video."
+        },
+        "tabs": {
+          "label": "Edit the video",
+          "revise": "Edit with AI",
+          "sound": "Music and voice",
+          "files": "Files"
+        },
+        "files": {
+          "title": "Your files",
+          "make": "Other formats and quality",
+          "preparing": "Prepared in advance… {{percent}}%",
+          "prepared": "Ready — click “Download”",
+          "outdated": "Older version, without your latest edits",
+          "none": "Not made yet",
+          "premiumSlow": "Premium quality films twice as many frames (60 per second): the file takes about twice as long to make."
         }
       },
       "placement": {

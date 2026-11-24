@@ -69,7 +69,8 @@ export interface CompositionInput {
   styleId?: string;
   mode: 'render' | 'preview';
   /** Aperçu : la musique et la voix jouées en même temps que la timeline (le rendu les mixe avec FFmpeg). */
-  audio?: { music?: { url: string; startAt: number; gain: number }; voice: { url: string; at: number }[] };
+  /** `sfx` : les effets sonores posés à leur instant (gain linéaire déjà calculé, sonie égalisée). */
+  audio?: { music?: { url: string; startAt: number; gain: number }; voice: { url: string; at: number }[]; sfx?: { url: string; at: number; gain: number }[] };
 }
 
 const escapeHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -224,7 +225,7 @@ const scriptJson = (value: unknown) => JSON.stringify(value).replace(/</g, '\\u0
 function previewPlayer(input: CompositionInput): string {
   const out = input.output ?? { width: input.width, height: input.height };
   const audio = input.audio ?? { voice: [] };
-  const tracks = [...(audio.music ? [{ url: audio.music.url, at: 0, offset: audio.music.startAt, gain: audio.music.gain }] : []), ...audio.voice.map((v) => ({ url: v.url, at: v.at, offset: 0, gain: 1 }))];
+  const tracks = [...(audio.music ? [{ url: audio.music.url, at: 0, offset: audio.music.startAt, gain: audio.music.gain }] : []), ...audio.voice.map((v) => ({ url: v.url, at: v.at, offset: 0, gain: 1 })), ...(audio.sfx ?? []).map((x) => ({ url: x.url, at: x.at, offset: 0, gain: x.gain }))];
   const scenes = input.scenes.map((s) => ({ key: s.key, start: s.start, duration: s.duration, html: s.html, texts: s.texts }));
   const data = { width: out.width, height: out.height, duration: input.durationSec, tracks, scenes, media: Object.fromEntries(Object.entries(input.media).map(([k, m]) => [k, m.src])), logo: input.logo ?? '', logoDark: input.logoDark ?? '' };
   return `<script>

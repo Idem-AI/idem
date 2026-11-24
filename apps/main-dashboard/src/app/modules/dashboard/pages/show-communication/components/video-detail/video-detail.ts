@@ -11,6 +11,7 @@ import {
   untracked,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { HttpEventType } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
@@ -27,7 +28,9 @@ import {
   VideoPatch,
   VideoQuality,
   VideoScope,
+  VideoRender,
 } from '../../../../models/motion-video.model';
+import { downloadName } from '../../../../../../shared/utils/download-name';
 
 const RATIOS: Record<VideoFormat, number> = {
   story: 9 / 16,
@@ -44,6 +47,20 @@ type Edits = Record<string, Record<string, string>>;
 const shape = (v: MotionVideo | null) => (v?.film?.scenes ?? []).map((s) => `${s.key}:${s.start}:${s.duration}:${s.code?.length ?? 0}:${s.html?.length ?? 0}:${s.author?.at ?? ''}`).join('|');
 
 type SavingKind = 'texts' | 'photo' | 'music' | 'sfx' | 'voice' | 'captions' | 'revise';
+
+/** Les onglets sous l'aperçu : retoucher en écrivant, le son, les fichiers. */
+type WorkspaceTab = 'revise' | 'sound' | 'files';
+
+/**
+ * Où en est le MP4 d'un format :
+ * - `ready`     : exporté et à jour, il s'enregistre tout de suite ;
+ * - `prepared`  : fait d'avance et à jour, l'export le reprend en une seconde ;
+ * - `working`   : l'export demandé tourne (ou attend son tour) ;
+ * - `preparing` : il se prépare d'avance, rien n'est encore demandé ;
+ * - `outdated`  : un fichier existe, mais sans les dernières retouches ;
+ * - `none`      : rien encore.
+ */
+export type FileState = 'ready' | 'prepared' | 'working' | 'preparing' | 'outdated' | 'none';
 
 /**
  * Une vidéo : l'éditeur partagé avec iVision (`@idem/shared-video-editor` : l'aperçu HyperFrames
@@ -96,6 +113,11 @@ export class VideoDetail {
   protected readonly exporting = signal(false);
   protected readonly confirmDelete = signal(false);
   protected readonly copied = signal(false);
+  protected readonly tab = signal<WorkspaceTab>('revise');
+  /** Le format dont l'utilisateur attend le fichier : il s'enregistre tout seul dès qu'il est prêt. */
+  protected readonly pendingDownload = signal<VideoFormat | null>(null);
+  /** Le fichier en cours d'enregistrement, et sa progression (0–100, null si la taille est inconnue). */
+  protected readonly downloading = signal<{ format: VideoFormat; percent: number | null } | null>(null);
 
   protected readonly ratio = computed(() => RATIOS[this.previewFormat()]);
   protected readonly scenes = computed(() => editorScenes(this.video()));
@@ -106,6 +128,16 @@ export class VideoDetail {
   protected readonly sfxSounds = computed(() => Object.values(this.video()?.sfx?.sounds ?? {}).filter((s) => !!s));
   protected readonly mediaCredits = computed(() => (this.video()?.media ?? []).filter((m) => !!m.credit));
   protected readonly doneRenders = computed(() => (this.video()?.renders ?? []).filter((r) => r.status === 'done'));
+  /** Les fichiers téléchargeables (exportés), à jour d'abord. */
+  protected readonly files = computed(() => this.doneRenders().filter((r) => !!r.url && !r.prerender));
+  /** L'état du fichier du format regardé : ce que dit la barre de téléchargement. */
+  protected readonly current = computed(() => this.stateOf(this.previewFormat()));
+  protected readonly currentRender = computed(() => this.renderOf(this.previewFormat()));
+  /** Le prix d'un clic sur « Télécharger » (périmètre de la vidéo, au même niveau de qualité). */
+  protected readonly downloadPrice = computed(() => {
+    const v = this.video();
+    return v ? priceExport(this.options().pricing, v, { durationSec: v.scope.durationSec, formats: v.scope.formats, quality: v.scope.quality }) : 0;
+  });
 
   protected readonly exportScope = computed<VideoScope | null>(() => {
     const v = this.video();
@@ -144,6 +176,7 @@ export class VideoDetail {
       .subscribe({
         next: (video) => {
           this.apply(video);
+          this.resetExportForm(video);
           this.previewFormat.set(video.scope.formats[0]);
           this.loading.set(false);
           if (!video.legacy) this.loadPreview();
@@ -158,10 +191,15 @@ export class VideoDetail {
   /** Nouvel état de la vidéo : formulaire réaligné, suivi du rendu relancé si besoin. */
   private apply(video: MotionVideo): void {
     this.video.set(video);
-    this.exportFormats.set([...video.scope.formats]);
-    this.exportQuality.set(video.scope.quality);
     this.changed.emit(video);
     if (video.status === 'rendering') this.schedulePoll();
+    this.deliverPending();
+  }
+
+  /** Le formulaire « Formats et qualité » reprend le périmètre de la vidéo. */
+  private resetExportForm(video: MotionVideo): void {
+    this.exportFormats.set([...video.scope.formats]);
+    this.exportQuality.set(video.scope.quality);
   }
 
   protected loadPreview(): void {
@@ -364,6 +402,8 @@ export class VideoDetail {
           // Un texte ou une photo est déjà à l'écran (pont d'édition) : on ne recompose l'aperçu
           // que si le film a changé ; la musique, les effets et la voix, toujours.
           if ((kind !== 'texts' && kind !== 'photo') || moved) this.loadPreview();
+          // Le serveur prépare le MP4 retouché d'avance : on le suit pour montrer quand il est prêt.
+          this.schedulePoll();
           const queued = this.queuedTexts;
           this.queuedTexts = null;
           if (queued) this.saveTexts(queued);
@@ -386,26 +426,117 @@ export class VideoDetail {
     }
   }
 
-  protected startExport(): void {
+  /** Le rendu d'un format (le plus utile d'abord : à jour, puis en cours, puis ancien). */
+  protected renderOf(format: VideoFormat): VideoRender | undefined {
+    const list = (this.video()?.renders ?? []).filter((r) => r.format === format);
+    return list.find((r) => r.status === 'done' && !r.stale) ?? list.find((r) => r.status === 'rendering' || r.status === 'queued') ?? list.find((r) => r.status === 'done') ?? list[0];
+  }
+
+  protected stateOf(format: VideoFormat): FileState {
     const v = this.video();
+    const r = this.renderOf(format);
+    if (!v || !r) return 'none';
+    if (r.status === 'rendering' || r.status === 'queued') return v.preparing ? 'preparing' : 'working';
+    if (r.status !== 'done' || !r.url) return 'none';
+    if (r.stale) return 'outdated';
+    return r.prerender ? 'prepared' : 'ready';
+  }
+
+  /**
+   * « Télécharger » : un seul clic. Fichier prêt → il s'enregistre. Sinon l'export est demandé (il reprend tout fichier
+   * déjà préparé et à jour), et le fichier s'enregistre tout seul dès qu'il est prêt.
+   */
+  protected download(format: VideoFormat): void {
+    if (this.stateOf(format) === 'ready') {
+      this.save(format);
+      return;
+    }
+    const v = this.video();
+    if (!v || this.exporting() || this.broken().length) return;
+    this.pendingDownload.set(format);
+    if (this.stateOf(format) === 'working') return;
+    const formats = v.scope.formats.includes(format) ? v.scope.formats : [...v.scope.formats, format];
+    this.requestExport({ formats, quality: v.scope.quality });
+  }
+
+  /** « Préparer les fichiers » de l'onglet Fichiers : d'autres formats, une autre qualité. */
+  protected startExport(): void {
     const scope = this.exportScope();
-    if (!v || !scope || this.exporting() || this.rendering() || this.broken().length) return;
+    if (!scope || this.broken().length) return;
+    this.requestExport({ formats: scope.formats, quality: scope.quality });
+  }
+
+  private requestExport(scope: Pick<VideoScope, 'formats' | 'quality'>): void {
+    const v = this.video();
+    if (!v || this.exporting()) return;
     this.exporting.set(true);
     this.videos
-      .export(this.projectId(), v.id, { formats: scope.formats, quality: scope.quality })
+      .export(this.projectId(), v.id, scope)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (video) => {
           this.exporting.set(false);
           this.apply(video);
+          this.resetExportForm(video);
+          this.schedulePoll();
         },
         error: (err) => {
           this.exporting.set(false);
+          this.pendingDownload.set(null);
           if (err?.status === 402) {
             this.needsCredits.emit({ cost: err.error?.cost ?? this.exportPrice(), balance: err.error?.balance ?? 0 });
             return;
           }
           this.failed.emit(err?.error?.error === 'scene_errors' ? 'dashboard.showCommunication.video.errors.sceneErrors' : 'dashboard.showCommunication.video.errors.export');
+        },
+      });
+  }
+
+  /** Le fichier attendu est prêt : il s'enregistre ; l'export a échoué : l'attente s'arrête. */
+  private deliverPending(): void {
+    const format = this.pendingDownload();
+    const v = this.video();
+    if (!format || !v) return;
+    const state = this.stateOf(format);
+    if (state === 'ready') {
+      this.pendingDownload.set(null);
+      this.save(format);
+    } else if (v.status !== 'rendering' && state !== 'working') {
+      this.pendingDownload.set(null);
+    }
+  }
+
+  /**
+   * Enregistre le MP4 : l'API l'envoie en pièce jointe (un lien direct vers le stockage, autre origine, ouvrirait la
+   * vidéo dans un onglet au lieu de la télécharger). La progression s'affiche sur le bouton.
+   */
+  protected save(format: VideoFormat): void {
+    const v = this.video();
+    if (!v || this.downloading()) return;
+    this.downloading.set({ format, percent: 0 });
+    const label = this.translate.instant('dashboard.showCommunication.video.formats.' + format + '.label');
+    this.videos
+      .downloadFile(this.projectId(), v.id, format)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (event) => {
+          if (event.type === HttpEventType.DownloadProgress) {
+            this.downloading.set({ format, percent: event.total ? Math.round((event.loaded / event.total) * 100) : null });
+          } else if (event.type === HttpEventType.Response && event.body) {
+            const url = URL.createObjectURL(event.body);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = downloadName({ project: v.title, label: 'video', suffix: label, ext: 'mp4' });
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 2000);
+            this.downloading.set(null);
+          }
+        },
+        error: () => {
+          this.downloading.set(null);
+          this.failed.emit('dashboard.showCommunication.video.errors.download');
         },
       });
   }
@@ -421,8 +552,9 @@ export class VideoDetail {
         .subscribe({
           next: (video) => {
             this.video.set(video);
+            this.deliverPending();
             if (video.status === 'rendering') this.schedulePoll();
-            else this.apply(video);
+            else this.changed.emit(video);
           },
           error: () => this.schedulePoll(),
         });

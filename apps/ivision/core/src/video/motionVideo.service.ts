@@ -67,7 +67,7 @@ import { alignWords } from './audio/align';
 import { prepareMedia } from './assets/prepare';
 import { planFilm, plannedCues } from './composition';
 import { fetchTrack, pickTrack, resolveMood, searchMusic, MUSIC_PROVIDERS } from './audio/music';
-import { ensureSfxLibrary, MUSIC_GAIN_DB, MUSIC_UNDER_VOICE_DB, SFX_UNDER_VOICE_DB, pickSounds, pickTakes, previewGain, publicSoundName, SFX_GAIN_DB, sfxLibrary, SfxLibrary, soundFile } from './audio/sfx';
+import { ensureSfxLibrary, MUSIC_GAIN_DB, MUSIC_UNDER_VOICE_DB, SFX_UNDER_VOICE_DB, pickSounds, pickTakes, previewGain, publicSoundName, SFX_GAIN_DB, sfxLevelCompDb, sfxLibrary, SfxLibrary, soundFile } from './audio/sfx';
 import { cleanSpoken, plainSpoken, fitScenesToVoice, personaById, personaMenu, speakable, speechAvailable, steadyNarration, synthesizeVoice, voiceTimeline, VOICE_PERSONAS } from './audio/voice';
 import { callFilmModel, FilmCallContext, ModelRun, tierFor } from './agents';
 import { FilmBrief, sceneRange } from './director/brief';
@@ -1441,8 +1441,36 @@ export class MotionVideoService {
     const audio: CompositionInput['audio'] = {
       ...(video.music ? { music: { url: await this.previewTrackUrl(video.music), startAt: video.music.startAt, gain: previewGain(video.voice?.enabled ? MUSIC_UNDER_VOICE_DB : MUSIC_GAIN_DB) } } : {}),
       voice: voiceTimeline(video.film.scenes, video.voice, video.film.durationSec).map((l) => ({ url: l.url, at: l.at })),
+      sfx: await this.previewSfx(video),
     };
     return (await this.hyperframesProject(video, ctx.film, target, 'preview', 'hd', audio)).html;
+  }
+
+  /**
+   * Les effets de l'aperçu (24/11/2026 : l'aperçu n'en jouait AUCUN, seul l'export les avait) — les mêmes moments
+   * sonores, prises et niveaux que le rendu (`renderHtmlFormat`), servis par la route publique des sons.
+   */
+  private async previewSfx(video: MotionVideo): Promise<{ url: string; at: number; gain: number }[]> {
+    const film = video.film;
+    if (!film || !video.sfx?.enabled) return [];
+    try {
+      const files = await this.sfxFiles(video.sfx, true);
+      if (!Object.keys(files).length) return [];
+      const style = (video.brief.style && video.brief.style !== 'auto' ? video.brief.style : 'energetic') as MotionStyle;
+      const cues = refineCues(plannedCues(film).map((c) => ({ t: c.t, kind: c.kind as SfxKind, ...(c.gain !== undefined ? { gain: c.gain } : {}), ...(c.take !== undefined ? { take: c.take } : {}) })), style, film.durationSec, video.sfx.intensity);
+      const under = video.voice?.enabled ? SFX_UNDER_VOICE_DB : 0;
+      const out: { url: string; at: number; gain: number }[] = [];
+      for (const cue of cues) {
+        const f = files[cue.kind];
+        const file = Array.isArray(f) ? f[(cue.take ?? 0) % f.length] : f;
+        if (!file) continue;
+        out.push({ url: coreHost().sfxUrl(publicSoundName(file)), at: cue.t, gain: Math.round(previewGain(cue.db + (await sfxLevelCompDb(file)) + under) * 1000) / 1000 });
+      }
+      return out;
+    } catch (error: any) {
+      logger.warn('video.preview_sfx_failed', { id: video.id, error: error?.message || String(error) });
+      return [];
+    }
   }
 
   // ── Lecture, suppression ─────────────────────────────────────────────────
@@ -1498,12 +1526,18 @@ export class MotionVideoService {
     if (!current) return null;
     if (!current.film) throw new VideoInputError('legacy_video');
     if (current.film.scenes.some((s) => s.status === 'error' || !(s.html && s.script))) throw new VideoInputError('scene_errors');
-    if (isJobActive(videoId)) throw new VideoInputError('already_rendering');
+    // Un PRÉ-RENDU en cours ne bloque pas l'export : l'export se met derrière lui et reprend son fichier s'il est à jour
+    // (l'utilisateur voit la progression du pré-rendu comme la sienne). Seul un export déjà demandé est refusé.
+    if (opts.prerender ? isJobActive(videoId) : isExportActive(videoId)) throw new VideoInputError('already_rendering');
+    if (!opts.prerender) dropQueuedPrerenders(videoId);
     const { scope } = this.quoteExport(current, scopeInput);
     const only = opts.only?.filter((f) => scope.formats.includes(f));
     const targets = only?.length ? only : scope.formats;
-    const queued: VideoRender[] = targets.map((format) => ({ format, status: 'queued', progress: 0 }));
-    const renders = (keep: VideoRender[]) => (only?.length ? [...keep.filter((r) => !targets.includes(r.format) && scope.formats.includes(r.format)), ...queued] : queued);
+    // Les fichiers déjà à jour (même contenu, même qualité) restent à l'écran : ils ne seront pas refaits.
+    const scoped = { ...current, scope };
+    const freshOf = (r: VideoRender) => targets.includes(r.format) && isRenderFresh(scoped, r);
+    const queued: VideoRender[] = targets.filter((f) => !current.renders.some((r) => r.format === f && freshOf(r))).map((format) => ({ format, status: 'queued', progress: 0 }));
+    const renders = (keep: VideoRender[]) => [...keep.filter((r) => (only?.length ? !targets.includes(r.format) && scope.formats.includes(r.format) : false) || freshOf(r)), ...queued];
     const updated = await this.store.mutateVideo(userId, projectId, videoId, (v) => ({
       ...v,
       scope,
@@ -1568,7 +1602,7 @@ export class MotionVideoService {
   async markExportFailed(job: Pick<RenderJob, 'userId' | 'projectId' | 'videoId' | 'paidBefore' | 'prerender'>, error = 'render_failed'): Promise<void> {
     await this.store.mutateVideo(job.userId, job.projectId, job.videoId, (v) => ({
       ...v,
-      status: job.prerender ? (v.renders.some((r) => r.status === 'done') ? 'ready' : 'draft') : 'failed',
+      status: job.prerender ? (isExportActive(job.videoId) ? 'rendering' : v.renders.some((r) => r.status === 'done') ? 'ready' : 'draft') : 'failed',
       paidCredits: job.paidBefore,
       renders: v.renders.map((r) => (r.status === 'done' ? r : { ...r, status: 'failed', error })),
     }));
@@ -1579,15 +1613,25 @@ export class MotionVideoService {
     const { userId, projectId, videoId } = job;
     const video = (await this.store.listVideos(userId, projectId)).find((v) => v.id === videoId);
     if (!video?.film) return;
+    const results: VideoRender[] = [];
+    let sceneErrors: { key: string; message: string }[] = [];
+    const wanted = job.formats?.length ? job.formats : video.scope.formats;
+    // Un export reprend tel quel un fichier déjà à jour (pré-rendu fini juste avant, format déjà exporté) : seul ce qui
+    // a changé est refait. Le pré-rendu réclamé perd sa marque : il devient un export.
+    const reused = job.prerender ? [] : video.renders.filter((r) => wanted.includes(r.format) && isRenderFresh(video, r));
+    for (const r of reused) results.push({ ...r, prerender: undefined, status: 'done', progress: 1 });
+    if (reused.length) await this.store.mutateVideo(userId, projectId, videoId, (v) => ({ ...v, renders: v.renders.map((r) => results.find((x) => x.format === r.format) || r) }));
+    const formats = wanted.filter((f) => !reused.some((r) => r.format === f));
     const ctx = await this.brandContext(userId, projectId);
     const film = video.film;
-    const sfxFiles = await this.sfxFiles(video.sfx, true);
+    // Rien à refaire : pas de sons à télécharger.
+    const sfxFiles = formats.length ? await this.sfxFiles(video.sfx, true) : {};
     let musicFile: string | undefined;
-    if (video.music) musicFile = await fetchTrack(video.music).catch((error) => (logger.warn('video.music_download_failed', { videoId, error: error.message }), undefined));
+    if (video.music && formats.length) musicFile = await fetchTrack(video.music).catch((error) => (logger.warn('video.music_download_failed', { videoId, error: error.message }), undefined));
     const voiceDir = fs.mkdtempSync(path.join(os.tmpdir(), 'idem-voice-render-'));
     const voiceFiles: { file: string; at: number }[] = [];
     await Promise.all(
-      voiceTimeline(film.scenes, video.voice, film.durationSec).map(async (line, i) => {
+      (formats.length ? voiceTimeline(film.scenes, video.voice, film.durationSec) : []).map(async (line, i) => {
         try {
           const file = path.join(voiceDir, `line-${i}.mp3`);
           await downloadTo(line.url, file);
@@ -1597,17 +1641,21 @@ export class MotionVideoService {
         }
       })
     );
-    const results: VideoRender[] = [];
-    let sceneErrors: { key: string; message: string }[] = [];
-    const formats = job.formats?.length ? job.formats : video.scope.formats;
-    const share = Math.max(1, Math.floor(renderConcurrency() / formats.length));
-    await Promise.all(
-      formats.map(async (format) => {
+    // Les formats sont rendus L'UN APRÈS L'AUTRE, le principal d'abord : le producteur répartit déjà chaque rendu sur
+    // tous les cœurs (plusieurs Chrome), deux rendus côte à côte se disputeraient les mêmes cœurs — et le premier
+    // fichier est téléchargeable bien plus tôt. `VIDEO_RENDER_PARALLEL_FORMATS=1` rétablit le rendu simultané.
+    await mapLimit(
+      formats,
+      process.env.VIDEO_RENDER_PARALLEL_FORMATS === '1' ? formats.length : 1,
+      async (format) => {
         liveProgress.set(`${videoId}:${format}`, 0);
         let workDir: string | undefined;
         try {
+          const startedAt = Date.now();
           const out = await this.renderHtmlFormat(video, ctx.film, format, { musicFile, sfxFiles, voiceFiles, onProgress: (r) => liveProgress.set(`${videoId}:${format}`, r) });
           workDir = out.workDir;
+          // La durée réelle d'un rendu, par seconde de film : ce qu'il faut suivre pour savoir si l'export reste lent.
+          logger.info('video.render_done', { event: 'video.render_done', videoId, format, quality: video.scope.quality, prerender: !!job.prerender, durationSec: film.durationSec, ms: Date.now() - startedAt, msPerSecond: Math.round((Date.now() - startedAt) / Math.max(1, film.durationSec)) });
           if (out.errors.length) {
             // Une scène a échoué pendant le rendu : le fichier montrerait une erreur, il n'est pas livré.
             sceneErrors = out.errors.map((e) => ({ key: e.key, message: e.message }));
@@ -1642,7 +1690,7 @@ export class MotionVideoService {
           if (workDir) fs.rmSync(workDir, { recursive: true, force: true });
         }
         await this.store.mutateVideo(userId, projectId, videoId, (v) => ({ ...v, renders: v.renders.map((r) => results.find((x) => x.format === r.format) || r) }));
-      })
+      }
     );
     fs.rmSync(voiceDir, { recursive: true, force: true });
 
@@ -1650,7 +1698,9 @@ export class MotionVideoService {
     const markErrors = (v: MotionVideo): MotionVideo =>
       sceneErrors.length && v.film ? { ...v, film: { ...v.film, scenes: v.film.scenes.map((s) => { const e = sceneErrors.find((x) => x.key === s.key); return e ? { ...s, status: 'error' as const, error: { stage: 'runtime' as const, message: e.message.slice(0, 600) } } : s; }) } } : v;
     if (job.prerender) {
-      await this.store.mutateVideo(userId, projectId, videoId, (v) => markErrors({ ...v, status: v.renders.some((r) => r.status === 'done') ? 'ready' : 'draft' }));
+      // Un export demandé pendant ce pré-rendu attend dans la file : la vidéo reste « en rendu » jusqu'à lui.
+      const waiting = isExportActive(videoId);
+      await this.store.mutateVideo(userId, projectId, videoId, (v) => markErrors({ ...v, status: waiting ? 'rendering' : v.renders.some((r) => r.status === 'done') ? 'ready' : 'draft' }));
       return;
     }
     await this.store.mutateVideo(userId, projectId, videoId, (v) =>
@@ -1717,10 +1767,6 @@ export function isRenderFresh(video: MotionVideo, render: VideoRender): boolean 
   return render.key ? render.key === renderSignature(video, render.format, render.quality || video.scope.quality) && (render.quality || video.scope.quality) === video.scope.quality : !video.dirty;
 }
 
-function renderConcurrency(): number {
-  return Math.max(1, Number(process.env.VIDEO_RENDER_CONCURRENCY) || Math.min(6, Math.max(1, Math.floor(os.cpus().length * 0.75))));
-}
-
 async function downloadTo(url: string, file: string): Promise<void> {
   if (url.startsWith('file://') && process.env.VIDEO_ALLOW_FILE_URLS === '1' && process.env.NODE_ENV !== 'production') {
     fs.copyFileSync(url.replace('file://', ''), file);
@@ -1755,18 +1801,33 @@ export interface RenderJob {
 const renderQueue: RenderJob[] = [];
 let runningJobs = 0;
 const runningVideos = new Set<string>();
+const runningExports = new Set<string>();
 const liveProgress = new Map<string, number>();
 
 function isJobActive(videoId: string): boolean {
   return runningVideos.has(videoId) || renderQueue.some((j) => j.videoId === videoId);
 }
 
+/** Un export demandé par l'utilisateur (pas un pré-rendu) est en cours ou en file pour cette vidéo. */
+function isExportActive(videoId: string): boolean {
+  return runningExports.has(videoId) || renderQueue.some((j) => j.videoId === videoId && !j.prerender);
+}
+
+/** Un export prend la place des pré-rendus encore en file pour la même vidéo (il rendra ce qu'il faut). */
+function dropQueuedPrerenders(videoId: string): void {
+  for (let i = renderQueue.length - 1; i >= 0; i--) if (renderQueue[i].videoId === videoId && renderQueue[i].prerender) renderQueue.splice(i, 1);
+}
+
 function pumpQueue(): void {
   const max = Math.max(1, Number(process.env.VIDEO_RENDER_JOBS) || 1);
-  while (runningJobs < max && renderQueue.length) {
-    const job = renderQueue.shift()!;
+  while (runningJobs < max) {
+    // Jamais deux rendus de la même vidéo en même temps : l'export attend la fin du pré-rendu et reprend son fichier.
+    const at = renderQueue.findIndex((j) => !runningVideos.has(j.videoId));
+    if (at < 0) break;
+    const job = renderQueue.splice(at, 1)[0];
     runningJobs++;
     runningVideos.add(job.videoId);
+    if (!job.prerender) runningExports.add(job.videoId);
     job.service
       .runExport(job)
       .catch(async (error) => {
@@ -1777,6 +1838,7 @@ function pumpQueue(): void {
       .finally(() => {
         runningJobs--;
         runningVideos.delete(job.videoId);
+        if (!job.prerender) runningExports.delete(job.videoId);
         if (job.prerender) void job.service.prerender(job.userId, job.projectId, job.videoId).catch(() => undefined);
         pumpQueue();
       });
@@ -1797,6 +1859,7 @@ function withLiveProgress(video: MotionVideo): MotionVideo {
   const queuedAt = renderQueue.findIndex((j) => j.videoId === video.id);
   return {
     ...video,
+    ...(isExportActive(video.id) ? {} : { preparing: true }),
     renders: video.renders.map((r) => {
       const live = liveProgress.get(`${video.id}:${r.format}`);
       if (live !== undefined) return { ...r, status: 'rendering', progress: live };

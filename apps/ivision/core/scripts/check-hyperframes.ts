@@ -172,7 +172,32 @@ async function main() {
     const file = done?.url?.replace('file://', '');
     const meta = file && fs.existsSync(file) ? await probe(file) : null;
     check(!!meta && Math.abs(meta.duration - 15) < 0.25 && meta.height === 1280, 'export : MP4 HyperFrames de 15 s en 720 × 1280 (qualité standard)', JSON.stringify({ meta, error: videos.get(video.id)!.renders.map((r) => r.error) }));
-    console.log(`  (rendu : ${Math.round((Date.now() - started) / 1000)} s)`);
+    const renderMs = Date.now() - started;
+    console.log(`  (rendu : ${Math.round(renderMs / 1000)} s)`);
+
+    // 8. Un export déjà à jour n'est pas refait : le même fichier est repris tout de suite.
+    const count = videos.get(video.id)!.exportCount;
+    const again = Date.now();
+    await service.startExport('u1', 'p1', video.id, video.scope);
+    await drainRenderQueue();
+    const reused = videos.get(video.id)!;
+    check(Date.now() - again < 3000 && reused.renders.find((r) => r.format === done?.format)?.url === done?.url && reused.exportCount === count + 1 && reused.status === 'ready', 'export à jour : fichier repris sans nouveau rendu', `${Date.now() - again} ms`);
+
+    // 9. Un export demandé PENDANT le pré-rendu n'est pas refusé : il attend et reprend le fichier préparé (un seul rendu).
+    const worded = video.film!.scenes.find((s) => Object.keys(s.texts).length)!;
+    const edited = await service.updateVideo('u1', 'p1', video.id, { texts: { [worded.key]: { [Object.keys(worded.texts)[0]]: 'Nouveau titre' } } });
+    const prepStart = Date.now();
+    await service.prerender('u1', 'p1', video.id);
+    const preparing = (await service.getVideo('u1', 'p1', video.id))!;
+    check(preparing.status === 'rendering' && preparing.preparing === true, 'pré-rendu : la vidéo se prépare d’avance, signalée « preparing »', JSON.stringify({ status: preparing.status, preparing: preparing.preparing }));
+    let refused = '';
+    await service.startExport('u1', 'p1', video.id, edited!.scope).catch((e) => (refused = e.message));
+    const asked = (await service.getVideo('u1', 'p1', video.id))!;
+    check(!refused && asked.status === 'rendering' && !asked.preparing, 'export pendant le pré-rendu : accepté, il devient l’export demandé', refused);
+    await drainRenderQueue();
+    const claimed = videos.get(video.id)!;
+    const out = claimed.renders.find((r) => r.format === done?.format);
+    check(!!out?.url && out.url !== done?.url && !out.prerender && claimed.status === 'ready' && Date.now() - prepStart < renderMs * 1.6, 'export pendant le pré-rendu : un seul rendu, le fichier préparé est repris', JSON.stringify({ ms: Date.now() - prepStart, renderMs, prerender: out?.prerender }));
   }
 
   await closeFilmBrowser();

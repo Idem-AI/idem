@@ -184,6 +184,10 @@ export interface VideoRender {
   prerender?: boolean;
   /** Le fichier ne reflète plus la vidéo (retouchée depuis). */
   stale?: boolean;
+  width?: number;
+  height?: number;
+  fps?: number;
+  sizeBytes?: number;
 }
 
 /** Une scène du film : intention, textes (données lues par son code), médias, état technique. */
@@ -225,6 +229,8 @@ export interface MotionVideo {
   };
   /** Vidéo de l'ancien moteur : téléchargeable, plus retouchable. */
   legacy?: boolean;
+  /** Le MP4 se prépare d'avance (aucun export demandé) : « Télécharger » le reprendra. */
+  preparing?: boolean;
   media?: { id: string; kind: string; url: string }[];
   brief: { message: string; musicMood: string; sfx?: boolean; voice?: boolean; language?: string };
   music?: { title: string; artist: string };

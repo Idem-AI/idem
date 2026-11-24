@@ -146,6 +146,9 @@ export interface VideoRender {
   /** `scene_error` : une scène a échoué pendant le rendu (le fichier n'est pas livré). */
   error?: string;
   stale?: boolean;
+  /** Rendu fait d'avance, pas encore exporté : l'export le reprend sans le refaire. */
+  prerender?: boolean;
+  quality?: VideoQuality;
 }
 
 export interface MotionVideo {
@@ -170,6 +173,8 @@ export interface MotionVideo {
   createdAt: string;
   updatedAt: string;
   creativity?: 'low' | 'medium' | 'high' | 'ultra';
+  /** Le MP4 se prépare d'avance (aucun export demandé) : l'export reste possible et le reprendra. */
+  preparing?: boolean;
 }
 
 /** Ce qu'une retouche peut demander (gratuite). */

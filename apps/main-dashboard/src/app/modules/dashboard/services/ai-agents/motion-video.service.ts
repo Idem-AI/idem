@@ -1,5 +1,5 @@
 import { CreativityLevel } from '@idem/shared-models';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpEvent } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable, from, shareReplay, switchMap } from 'rxjs';
 import { SseClient } from 'ngx-sse-client';
@@ -130,6 +130,14 @@ export class MotionVideoService {
 
   export(projectId: string, videoId: string, scope?: Partial<VideoScope>): Observable<MotionVideo> {
     return this.http.post<MotionVideo>(`${this.apiUrl}/${projectId}/videos/${videoId}/export`, { scope });
+  }
+
+  /**
+   * Le MP4 d'un format, reçu en pièce jointe par l'API (jamais ouvert dans un onglet), avec la progression du
+   * téléchargement.
+   */
+  downloadFile(projectId: string, videoId: string, format: VideoFormat): Observable<HttpEvent<Blob>> {
+    return this.http.get(`${this.apiUrl}/${projectId}/videos/${videoId}/file?format=${format}`, { responseType: 'blob', observe: 'events', reportProgress: true });
   }
 
   delete(projectId: string, videoId: string): Observable<void> {

@@ -85,17 +85,45 @@ export const SFX_SPECS: Record<SfxKind, KindSpec> = {
  * plus haut, `degraded`) — un son de synthèse à crête égale sonne nettement plus fort qu'un
  * son réel. Une fois la vraie sonothèque rétablie, whoosh/impact/pop n'ont plus besoin
  * d'être aussi près de 0 dB pour se faire sentir.
+ *
+ * Relevés et posés sur un son ÉGALISÉ (24/11/2026, retour utilisateur : « on n'entend pas les sfx ») : mesurés avant
+ * le master contre la musique effacée, les anciens niveaux laissaient le whoosh 3,5 dB SOUS la musique, le softwhoosh
+ * 11 dB, le pop 18 dB — l'effacement de la musique creusait un trou que l'effet ne remplissait pas. Chaque son est
+ * désormais ramené à une sonie de référence (`SFX_REF_LEVEL_DB`, cf. `sfxLevelCompDb`) avant ce gain : deux prises
+ * d'un même moment sonore (jusqu'à 11 dB d'écart en crête égale) sonnent pareil. Mesuré sur la musique à −7 dB,
+ * effacée (moyenne des 3 prises) : whoosh ≈ +4 dB au-dessus, impact ≈ +4, softwhoosh ≈ +0,5, pop ≈ −1, tick ≈ −4 (un détail).
  */
 export const SFX_GAIN_DB: Record<SfxKind, number> = {
-  whoosh: -4,
-  softwhoosh: -6,
-  pop: -5,
-  click: -8,
-  tick: -10,
-  impact: -3,
+  whoosh: 5,
+  softwhoosh: 5,
+  pop: 1,
+  click: 1,
+  tick: 0,
+  impact: 2,
   shimmer: -5,
-  riser: -6,
+  riser: 1,
 };
+
+/**
+ * Sonie de référence d'un effet (dB, moyenne mesurée sur au moins 0,3 s : un son très court est jugé sur la fenêtre
+ * d'intégration de l'oreille, pas sur sa seule durée). Un son plus faible est relevé, un plus fort abaissé (±8 dB).
+ */
+export const SFX_REF_LEVEL_DB = -20;
+const levelCache = new Map<string, Promise<number>>();
+/** Correction (dB) qui ramène un fichier d'effet à la sonie de référence ; 0 si la mesure échoue. */
+export function sfxLevelCompDb(file: string): Promise<number> {
+  let job = levelCache.get(file);
+  if (!job) {
+    job = ffmpegRun(['-hide_banner', '-i', file, '-af', 'apad=whole_dur=0.3,volumedetect', '-f', 'null', '-'])
+      .then((log) => {
+        const mean = Number(log.match(/mean_volume: (-?[\d.]+) dB/)?.[1]);
+        return Number.isFinite(mean) && mean > -80 ? Math.max(-8, Math.min(8, SFX_REF_LEVEL_DB - mean)) : 0;
+      })
+      .catch(() => 0);
+    levelCache.set(file, job);
+  }
+  return job;
+}
 
 /** Densité par langage de mouvement : un style élégant ne cliquette pas. */
 export const SFX_DENSITY: Record<MotionStyle, Partial<Record<SfxKind, number>>> = {
@@ -113,7 +141,8 @@ export const MUSIC_GAIN_DB = -7;
  * les effets de 8 dB — la voix (−16 LUFS) passe toujours devant, la compression par la voix fait le reste.
  */
 export const MUSIC_UNDER_VOICE_DB = -18;
-export const SFX_UNDER_VOICE_DB = -8;
+// −8 → −4 (24/11/2026) : sous la voix, les effets égalisés restent ≈ 10 dB sous elle — présents, jamais devant un mot.
+export const SFX_UNDER_VOICE_DB = -4;
 
 /** Gain linéaire d'un effet dans l'aperçu (sans normalisation finale : 2 dB de plus qu'au rendu). */
 export const previewGain = (db: number) => Math.min(1, Math.pow(10, (db + 2) / 20));
@@ -542,7 +571,8 @@ export function publicSoundName(file: string): string {
 }
 
 export function resolvePublicSound(name: string): string | null {
-  if (!/^[a-z]+-[a-f0-9]{12}\.mp3$|^synth-[a-z]+\.mp3$/.test(name)) return null;
+  // Sons de banque en ligne, de la banque locale (`bank-<sorte>-<n>`) et prises de synthèse (`synth-<sorte>[-n]`).
+  if (!/^[a-z]+-[a-f0-9]{12}\.mp3$|^bank-[a-z]+-\d+\.mp3$|^synth-[a-z]+(-\d)?\.mp3$/.test(name)) return null;
   const file = path.join(sfxDir(), name);
   return fs.existsSync(file) ? file : null;
 }

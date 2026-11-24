@@ -89,7 +89,10 @@ export async function renderHyperFrames(input: HyperFramesRenderInput): Promise<
     fs.writeFileSync(path.join(project, 'index.html'), input.html);
     for (const f of input.files) fs.writeFileSync(path.join(project, path.basename(f.name)), f.data);
     const { createRenderJob, executeRenderJob } = await loadProducer();
-    const job = createRenderJob({ fps: input.fps, quality: QUALITY[input.quality] ?? 'standard' });
+    // `VIDEO_RENDER_WORKERS` fixe le nombre de Chrome qui capturent en parallèle (sinon le producteur le déduit des
+    // cœurs et de la mémoire). À régler sur la machine de production avec `npx hyperframes benchmark`.
+    const workers = Number(process.env.VIDEO_RENDER_WORKERS) || undefined;
+    const job = createRenderJob({ fps: input.fps, quality: QUALITY[input.quality] ?? 'standard', ...(workers ? { workers } : {}) });
     const silent = path.join(workDir, 'silent.mp4');
     await executeRenderJob(job, project, silent, (j) => input.onProgress?.(Math.min(0.9, (Number(j.progress) || 0) / 100 * 0.9)));
     if (job.status && job.status !== 'complete') throw new Error(`hyperframes_render_failed: ${String(job.error || job.status).slice(0, 300)}`);

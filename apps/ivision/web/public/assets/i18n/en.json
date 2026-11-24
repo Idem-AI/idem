@@ -652,7 +652,38 @@
     "rendering": "Rendering — {{percent}}%",
     "legacyTitle": "Video from the previous engine",
     "legacyBody": "This video was made before the new engine: it can be downloaded from the conversation, but no longer edited. Ask for a new video to change it.",
-    "broken": "{{count}} scene(s) do not run: press “Fix” in the scene before exporting."
+    "broken": "{{count}} scene(s) do not run: press “Fix” in the scene before exporting.",
+    "dl": {
+      "ready": "Your video is ready",
+      "readyShort": "MP4 ready",
+      "waiting": "Preparing your MP4… {{percent}}%",
+      "working": "Making the MP4… {{percent}}%",
+      "preparing": "We are preparing your MP4 in advance… {{percent}}%",
+      "prepared": "Your MP4 is ready to download",
+      "outdated": "Your latest edits are not in the MP4 yet",
+      "none": "Download your video as MP4",
+      "why": "The preview plays live in your browser; the MP4 is filmed frame by frame on our servers.",
+      "progress": "MP4 progress",
+      "cta": "Download",
+      "ctaPaid": "Download · {{cost}} credits",
+      "saving": "Downloading…",
+      "cancel": "Don’t download",
+      "autoHint": "The download will start by itself as soon as the file is ready. You can keep editing the video."
+    },
+    "tabs": {
+      "label": "Edit the video",
+      "files": "Files"
+    },
+    "files": {
+      "title": "Your files",
+      "make": "Other formats and quality",
+      "working": "Making… {{percent}}%",
+      "preparing": "Prepared in advance… {{percent}}%",
+      "prepared": "Ready — click “Download”",
+      "outdated": "Older version, without your latest edits",
+      "none": "Not made yet",
+      "premiumSlow": "Premium quality films twice as many frames (60 per second): the file takes about twice as long to make."
+    }
   },
   "brands": {
     "title": "My brand",
