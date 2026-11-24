@@ -307,6 +307,11 @@ export const GabaritNode = z.strictObject({
   roles: SectionRoles,
   /** La configuration par défaut (`config.json` dans le dépôt). */
   config: PageConfig,
+  /**
+   * Les PAGES pour lesquelles ce gabarit est fait (types de blocs : `logoDisplay`, `patternGrid`…), 24/11/2026. Absent :
+   * gabarit générique. Présent : servi seulement à une page qui porte l'un de ces blocs, et préféré aux génériques.
+   */
+  kinds: z.array(z.string().regex(/^[a-zA-Z]{2,32}$/)).max(12).optional(),
 });
 export type GabaritNode = z.infer<typeof GabaritNode>;
 

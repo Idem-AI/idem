@@ -429,7 +429,7 @@ export function shortlist(cat: LoadedCatalog, facts: PageFacts, o: { level: Crea
   // Les gabarits de la DA de la marque (ou de ses voisines).
   const directGabarits = inDirection(
     cat,
-    (catalogIndex(cat).gabaritsByElement.get(facts.element) ?? []).filter((n) => !disabled.has(n.id) && fitsRole(n.roles, facts.role) && layoutIds.has(n.config.layout)),
+    (catalogIndex(cat).gabaritsByElement.get(facts.element) ?? []).filter((n) => !disabled.has(n.id) && fitsRole(n.roles, facts.role) && layoutIds.has(n.config.layout) && (!n.kinds?.length || facts.units.some((u) => n.kinds!.includes(u.kind)))),
     o.traits.styleId,
     VARIETY_MIN.gabarits
   );
@@ -450,7 +450,10 @@ export function shortlist(cat: LoadedCatalog, facts: PageFacts, o: { level: Crea
     const ids = [layout.id, ...(gabarit ? [gabarit.id] : [])];
     const fit = tagFit(layout, o.traits, hasMedia) + (gabarit ? tagFit(gabarit, o.traits, hasMedia) : 0);
     const content = contentFit(layout, profile) + (gabarit ? contentFit(gabarit, profile) : 0);
-    let score = 1 + fit + content + specialistFit(layout, facts.units) + sequenceScore(ids, gabarit ?? layout, facts, o.state) + 0.6 * jitter(seed, `${ids.join('|')}|${rank}`);
+    // Un gabarit FAIT pour cette page (`kinds`) passe devant les gabarits génériques.
+    const madeFor = gabarit?.kinds?.length && facts.units.some((u) => gabarit.kinds!.includes(u.kind)) ? 0.3 : 0;
+    // Les deux bonus ne s'additionnent pas : un gabarit fait pour la page ET posé sur un squelette spécialiste écrasait le reste.
+    let score = 1 + fit + content + Math.max(madeFor, specialistFit(layout, facts.units)) + sequenceScore(ids, gabarit ?? layout, facts, o.state) + 0.6 * jitter(seed, `${ids.join('|')}|${rank}`);
     if (o.state.seen.has(fingerprint)) score -= 0.6;
     if (o.exclude?.includes(fingerprint) || o.exclude?.includes(layout.id)) score -= 2;
     score *= weightOf(o.overrides, layout.id) * (gabarit ? weightOf(o.overrides, gabarit.id) : 1);
