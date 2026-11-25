@@ -44,11 +44,25 @@
     </div>
 
     <!--
-      Les rappels FLOTTENT en haut au centre, sous la barre du haut : l'étape suivante recommandée (mode Avancé) et
-      la campagne en cours (bêta gratuite…). Ils ne repoussent plus le contenu vers le bas ; chacun se ferme.
+      Les rappels FLOTTENT en haut au centre, sous la barre du haut (pile du design system, `.idem-float-stack`) :
+      l'étape suivante recommandée (mode Avancé), la suite proposée par la boucle IDEM (même carte que dans iCode,
+      iVision et iDeploy) et la campagne en cours. Ils ne repoussent pas le contenu vers le bas ; chacun se ferme.
     -->
-    <div class="float-stack" [class.float-stack--collapsed]="isSidebarCollapsed()">
+    <div class="idem-float-stack float-stack" [class.float-stack--collapsed]="isSidebarCollapsed()">
       <app-next-step-bar />
+      @if (floatingJourney(); as card) {
+        <idem-journey-card
+          variant="float"
+          [recommendation]="card.recommendation"
+          [urls]="card.urls"
+          from="dashboard"
+          [lang]="lang"
+          [client]="journey"
+          [beforeOpen]="card.beforeOpen"
+          [silent]="true"
+          (dismissed)="closeJourney(card)"
+        />
+      }
       <idem-promo-banner variant="toast" />
     </div>
 

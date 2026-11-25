@@ -3,32 +3,17 @@
    barre du haut, bien visibles ; ils flottent par-dessus la page au lieu de la repousser vers le bas, et chacun se
    ferme. Seuls leurs contenus captent le pointeur : la page dessous reste cliquable. */
 .float-stack {
-  position: fixed;
-  top: 88px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 55;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
-  width: min(36rem, calc(100vw - 2rem));
-  pointer-events: none;
-}
-
-.float-stack > * {
-  width: 100%;
-  pointer-events: auto;
+  --idem-float-top: 88px;
 }
 
 /* Centrés sur le CONTENU, pas sur la fenêtre : la barre latérale (16 rem, 5 rem repliée) décale le centre. */
 @media (min-width: 768px) {
   .float-stack {
-    left: calc(50% + 8rem);
+    --idem-float-center: calc(50% + 8rem);
   }
 
   .float-stack--collapsed {
-    left: calc(50% + 2.5rem);
+    --idem-float-center: calc(50% + 2.5rem);
   }
 }
 

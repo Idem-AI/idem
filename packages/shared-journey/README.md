@@ -46,6 +46,28 @@ Angular : `idem-journey-card` (paquet), enveloppé par chaque application :
 
 `beforeOpen` laisse l'hôte finir ce qui doit l'être (enregistrer le code) ou ouvrir la destination sur place (la fenêtre de mise en ligne d'iCode) ; rendre `false` annule la navigation.
 
+## Où la carte s'affiche : dans le fil ET en haut au centre (25/11/2026)
+
+Une recommandation s'affiche à deux endroits :
+
+- **dans le fil**, à sa place habituelle (sous la conversation, sous le livrable, sur la page) ;
+- **en haut au centre de l'écran**, flottante, comme l'« étape suivante » du dashboard. Elle apparaît une fois par session de navigateur (`journeyFloatFirstTime`).
+
+Écarter l'une retire les deux.
+
+- React : `<JourneyFloat … silent top="4.5rem" />`, rendue dans `document.body`.
+- Angular : `<idem-journey-float … [silent]="true" />`, rattachée à `document.body`. Sous une surface en verre, une carte `fixed` serait rognée.
+- Dashboard : la carte entre dans la pile de la mise en page (`JourneyFloatService`), jamais dans une deuxième pile.
+
+`silent` évite de compter deux fois l'affichage.
+
+Le rendu est la brique du design system : `.idem-float-stack` et `.idem-next` / `.idem-next--float` dans `@idem/shared-styles`. Chaque hôte place la pile par deux variables :
+
+- `--idem-float-top` : sous sa barre du haut ;
+- `--idem-float-center` : le centre du contenu, décalé de la barre latérale.
+
+Les dessins suivent la DA : le trait à l'encre du texte, un seul détail en couleur primaire. La flèche et la croix sont écrites dans le paquet (`JOURNEY_ICONS`), aucune police d'icônes n'est exigée.
+
 ## Ajouter une règle
 
 1. La règle dans `JOURNEY_RULES` (identifiant stable : il sert aux textes et à la mémoire).

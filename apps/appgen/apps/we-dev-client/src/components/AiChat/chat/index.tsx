@@ -71,13 +71,13 @@ import {
 import useChatHistoryStore from '@/stores/chatHistoryStore';
 import useRunStatus from '@/stores/runStatusSlice';
 import { IdemLoader } from '@idem/shared-loader/react';
-import { JourneyCard } from '@idem/shared-journey/react';
+import { JourneyCard, JourneyFloat } from '@idem/shared-journey/react';
 import { journeyClient, journeyUrls, useJourney } from '@/hooks/useJourney';
 import { useChatAutoScroll } from '@/hooks/useChatAutoScroll';
 import { ArrowDown } from 'lucide-react';
 import { readChoices, readJourney, readProject } from '@/utils/chatMarkers';
 import { ChatChoices, type ChoicesAnswerEvent } from './components/ChatChoices';
-import { journeyLink } from '@idem/shared-journey';
+import { journeyLink, type Recommendation } from '@idem/shared-journey';
 import { loadCommands, parseCommand } from '@/utils/commands';
 import { hasStartPrompt, onStartPrompt, takeStartPrompt } from '@/utils/startPrompt';
 
@@ -974,6 +974,17 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
 
   // La boucle IDEM : la carte « prochaine étape » (faire connaître le site, le mettre en ligne…).
   const journey = useJourney(projectId, isProjectLoaded && (hasGeneration || realMessages.some((m) => m.role === 'assistant')));
+  /** Avant de suivre une carte de la boucle IDEM (celle du fil comme celle du haut de l'écran). */
+  const journeyBeforeOpen = async (recommendation: Recommendation): Promise<boolean | void> => {
+    // La mise en ligne se fait ici même, dans la fenêtre habituelle.
+    if (recommendation.destination === 'publish-site' || recommendation.destination === 'publish-app' || recommendation.destination === 'domain') {
+      journey.clear();
+      eventEmitter.emit('deploy:open', recommendation.destination === 'domain' ? 'domain' : undefined);
+      return false;
+    }
+    // Le code part au stockage avant de quitter l'atelier.
+    await waitForCodeSync();
+  };
 
   // Une génération du moteur de sites restée inachevée : la carte « Reprendre » s'affiche au-dessus de la saisie.
   const planFile = useFileStore((state) => state.files['.idem/plan.json'] ?? state.files['idem.plan.json']);
@@ -2508,7 +2519,8 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
         </div>
       )}
 
-      {/* La boucle IDEM : l'étape suivante (faire connaître le site, le mettre en ligne…), une seule à la fois. */}
+      {/* La boucle IDEM : l'étape suivante (faire connaître le site, le mettre en ligne…), une seule à la fois. Dans le
+          fil, et — quand elle vient d'une génération — aussi en haut au centre de l'écran (`JourneyFloat`). */}
       {journey.recommendation && !isLoading && (
         <div className="px-3 pb-2">
           <JourneyCard
@@ -2517,19 +2529,26 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
             from="icode"
             lang={i18n.language}
             client={journeyClient}
-            beforeOpen={async (recommendation) => {
-              // La mise en ligne se fait ici même, dans la fenêtre habituelle.
-              if (recommendation.destination === 'publish-site' || recommendation.destination === 'publish-app' || recommendation.destination === 'domain') {
-                journey.clear();
-                eventEmitter.emit('deploy:open', recommendation.destination === 'domain' ? 'domain' : undefined);
-                return false;
-              }
-              // Le code part au stockage avant de quitter l'atelier.
-              await waitForCodeSync();
-            }}
+            beforeOpen={journeyBeforeOpen}
             onDismissed={journey.clear}
           />
         </div>
+      )}
+      {journey.recommendation && journey.floating && !isLoading && (
+        <JourneyFloat
+          recommendation={journey.recommendation}
+          urls={journeyUrls}
+          from="icode"
+          lang={i18n.language}
+          client={journeyClient}
+          beforeOpen={async (recommendation) => {
+            journey.land();
+            return journeyBeforeOpen(recommendation);
+          }}
+          onDismissed={journey.clear}
+          silent
+          top="4.5rem"
+        />
       )}
 
       {/* Hide ChatInput when chat is empty and projectData exists (show only project description + start button) */}

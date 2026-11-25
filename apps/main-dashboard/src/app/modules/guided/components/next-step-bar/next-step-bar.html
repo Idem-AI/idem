@@ -1,17 +1,19 @@
 @if (visible() && step(); as s) {
-  <!-- Carte flottante, en haut au centre (posée par la mise en page) : elle ne repousse pas le contenu. -->
-  <aside class="glass-card next-float" aria-live="polite" [attr.aria-label]="'guided.next.label' | translate">
-    <span class="next-icon" aria-hidden="true"><i class="pi pi-compass"></i></span>
-    <div class="min-w-0 flex-1">
-      <p class="next-label">{{ 'guided.next.label' | translate }}</p>
-      <p class="next-title">{{ 'guided.steps.' + s.id + '.title' | translate }}</p>
-      <p class="next-why">{{ 'guided.steps.' + s.id + '.why' | translate }}</p>
+  <!-- Carte flottante, en haut au centre (posée par la mise en page) : même brique que la boucle IDEM (`.idem-next`). -->
+  <aside class="glass-card idem-next idem-next--float" aria-live="polite" [attr.aria-label]="'guided.next.label' | translate">
+    <span class="idem-next-art" aria-hidden="true"><i class="pi pi-compass next-compass"></i></span>
+    <div class="idem-next-text">
+      <p class="idem-next-label">{{ 'guided.next.label' | translate }}</p>
+      <p class="idem-next-title">{{ 'guided.steps.' + s.id + '.title' | translate }}</p>
+      <p class="idem-next-body">{{ 'guided.steps.' + s.id + '.why' | translate }}</p>
+      <div class="idem-next-actions">
+        <button type="button" class="inner-button button-sm" (click)="open()">
+          {{ 'guided.next.go' | translate }}
+          <i class="pi pi-arrow-right" aria-hidden="true"></i>
+        </button>
+      </div>
     </div>
-    <button type="button" class="inner-button button-sm shrink-0" (click)="open()">
-      {{ 'guided.next.go' | translate }}
-      <i class="pi pi-arrow-right" aria-hidden="true"></i>
-    </button>
-    <button type="button" class="button-icon shrink-0 next-close" [attr.aria-label]="'guided.next.later' | translate" (click)="dismiss()">
+    <button type="button" class="button-icon idem-next-close" [attr.aria-label]="'guided.next.later' | translate" (click)="dismiss()">
       <i class="pi pi-times" aria-hidden="true"></i>
     </button>
   </aside>

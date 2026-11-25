@@ -39,6 +39,8 @@ import { measureImageQuality, type ImageQuality } from '../../../../../packages/
 import { BrandCheck, checkBrandColors } from './brandCheck';
 import { isDefaultFont, replaceBannedFont } from '../../../../ivision/core/src/site/typography';
 import { ensureBrandMark } from './brandMark.service';
+import { readingQueue, readSiteImage, worthReading } from './siteImageReading';
+import type { ImageReading } from '../../../../ivision/core/src/site/site-crawler';
 
 /** Les modèles de l'hôte (passerelle iVision : mêmes étages, même suivi d'usage). */
 export interface SiteImportPorts {
@@ -375,7 +377,7 @@ export async function recordConsent(userId: string, projectId: string, consent?:
  * favicon, l'icône Apple, l'image de partage. Une refonte remplace l'ancien site, souvent à la même adresse : des
  * fichiers laissés chez lui disparaîtraient avec lui. Une image illisible est retirée du relevé.
  */
-async function hostInventory(userId: string, projectId: string, inventory: SiteInventory): Promise<SiteInventory> {
+async function hostInventory(userId: string, projectId: string, inventory: SiteInventory, vision?: SiteImportPorts['vision']): Promise<SiteInventory> {
   const folder = `users/${userId}/projects/${projectId}/site-assets`;
   const stamp = Date.now().toString(36);
   const urls = [
@@ -388,6 +390,12 @@ async function hostInventory(userId: string, projectId: string, inventory: SiteI
   // La grande variante devinée (`originalImageUrl`, plus grand `srcset`) n'existe pas toujours : l'adresse vraiment
   // affichée par l'ancien site sert alors de secours.
   const fallbackOf = new Map(inventory.assets.images.filter((i) => i.fallback).map((i) => [i.url, i.fallback!]));
+  // LE MANIFESTE DES IMAGES : chaque image de contenu est regardée par le modèle de vision (`siteImageReading.ts`), dans
+  // sa propre file — la recopie n'attend pas les lectures. L'agent média de la refonte choisit ensuite, section par
+  // section, l'image qui sert le projet, ou constate qu'aucune ne convient.
+  const contentUrls = new Set(inventory.assets.images.map((i) => i.url));
+  const readings = new Map<string, Promise<ImageReading | null>>();
+  const readQueue = readingQueue(8);
   let next = 0;
   let upgraded = 0;
   const worker = async () => {
@@ -414,6 +422,10 @@ async function hostInventory(userId: string, projectId: string, inventory: SiteI
           measured.set(url, { ...quality, width: Math.round(quality.width * scale), height: Math.round(quality.height * scale) });
         }
         const ext = web.ext ?? (file.mimeType.split('/')[1] || 'jpg').replace('jpeg', 'jpg').replace('svg+xml', 'svg').replace('x-icon', 'ico').replace('vnd.microsoft.icon', 'ico').replace(/[^a-z0-9]/g, '');
+        if (vision && contentUrls.has(url) && quality && readings.size < MAX_READINGS && worthReading(file.mimeType, quality.width, quality.height)) {
+          const original = file.buffer;
+          readings.set(url, readQueue(() => readSiteImage(original, vision)));
+        }
         const upload = await storageService.uploadFile(web.buffer, `site-${stamp}-${index + 1}.${ext}`, folder, web.mimeType ?? file.mimeType);
         hosted.set(url, upload.downloadURL);
       } catch (error: any) {
@@ -422,6 +434,16 @@ async function hostInventory(userId: string, projectId: string, inventory: SiteI
     }
   };
   await Promise.all(Array.from({ length: 6 }, worker));
+  // Les lectures encore en cours ont un délai commun : une image non lue à temps reste sans `vision`.
+  const read = new Map<string, ImageReading>();
+  if (readings.size) {
+    const late = new Promise<null>((resolve) => setTimeout(() => resolve(null), READING_GRACE_MS));
+    await Promise.all([...readings].map(async ([url, reading]) => {
+      const value = await Promise.race([reading, late]);
+      if (value) read.set(url, value);
+    }));
+    logger.info('site_import.image_readings', { event: 'site_import.image_readings', projectId, asked: readings.size, read: read.size });
+  }
   const flagged = [...measured.values()].filter((q) => q.issues.length).length;
   logger.info('site_import.image_quality', { event: 'site_import.image_quality', projectId, images: measured.size, flagged, largerSources: upgraded });
   // Les dimensions mesurées remplacent celles annoncées par la page (souvent celles de la vignette affichée).
@@ -430,7 +452,8 @@ async function hostInventory(userId: string, projectId: string, inventory: SiteI
       .filter((i) => hosted.has(i.url))
       .map(({ fallback: _fallback, ...i }) => {
         const quality = measured.get(i.url);
-        return { ...i, url: hosted.get(i.url)!, ...(quality ? { width: quality.width, height: quality.height, quality } : {}) };
+        const vision = read.get(i.url);
+        return { ...i, url: hosted.get(i.url)!, ...(quality ? { width: quality.width, height: quality.height, quality } : {}), ...(vision ? { vision } : {}) };
       });
   return {
     ...inventory,
@@ -443,6 +466,10 @@ async function hostInventory(userId: string, projectId: string, inventory: SiteI
     },
   };
 }
+
+/** Les images regardées au plus par relevé (les plus grandes d'abord dans l'ordre du relevé), et l'attente finale. */
+const MAX_READINGS = 60;
+const READING_GRACE_MS = 25_000;
 
 /** Le plus grand côté d'une image recopiée. */
 const WEB_IMAGE_SIDE = 2000;
@@ -608,7 +635,7 @@ export async function createProjectFromSite(
       crawlWebsite({ url, vision: ports.vision, onProgress: () => onStep('pages') }),
     ]);
     onStep('assets');
-    const inventory = await hostInventory(userId, existing.id, crawled);
+    const inventory = await hostInventory(userId, existing.id, crawled, ports.vision);
     const content = contentOf(scan, inventory, !!scan.logo.svg || !!scan.logo.url);
     const contentUrl = await saveContent(userId, existing.id, content);
     if (contentUrl) {
@@ -653,6 +680,14 @@ export async function createProjectFromSite(
   const projectId = created.id as string;
   // L'accord d'abord : le projet est utilisable dans IDEM dès sa création.
   await recordConsent(userId, projectId, consent);
+  // La recopie des images et leur lecture par le modèle de vision partent TOUT DE SUITE, pendant le logo, la
+  // typographie, la direction artistique et les motifs (des dizaines de secondes) : la refonte ne les attend pas en plus.
+  const hosting = options.withContent && crawled
+    ? hostInventory(userId, projectId, crawled, ports.vision).catch((error: any) => {
+        logger.warn('site_import.assets_failed', { event: 'site_import.assets_failed', projectId, error: error?.message });
+        return null;
+      })
+    : null;
 
   const brandingService = new BrandingService(new PromptService());
 
@@ -738,7 +773,7 @@ export async function createProjectFromSite(
   let content: SiteContent | undefined;
   if (options.withContent && crawled) {
     onStep('assets');
-    const inventory = await hostInventory(userId, projectId, crawled);
+    const inventory = (await hosting) ?? (await hostInventory(userId, projectId, crawled));
     content = contentOf(scan, inventory, !!scan.logo.svg || !!scan.logo.url, { brandCheck, palettes, typographyCheck });
     const contentUrl = await saveContent(userId, projectId, content);
     if (contentUrl) {
