@@ -15,7 +15,7 @@ import { HttpEventType } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
-import { IdemVideoEditorComponent } from '@idem/shared-video-editor/angular';
+import { IdemVideoEditorComponent, IdemVideoFormatPickerComponent } from '@idem/shared-video-editor/angular';
 import { editorScenes, revisePatch, SceneAction } from '@idem/shared-video-editor';
 import { MotionVideoService } from '../../../../services/ai-agents/motion-video.service';
 import {
@@ -31,7 +31,7 @@ import {
   VideoRender,
 } from '../../../../models/motion-video.model';
 import { downloadName } from '../../../../../../shared/utils/download-name';
-import { urlChoice, urlParam } from '../../url-state';
+import { urlChoice, urlFlag, urlParam } from '../../url-state';
 
 const RATIOS: Record<VideoFormat, number> = {
   story: 9 / 16,
@@ -49,7 +49,7 @@ const shape = (v: MotionVideo | null) => (v?.film?.scenes ?? []).map((s) => `${s
 
 type SavingKind = 'texts' | 'photo' | 'music' | 'sfx' | 'voice' | 'captions' | 'revise';
 
-/** Les onglets sous la demande à l'IA : le son, les fichiers. */
+/** Les onglets du tiroir des réglages : le son, les fichiers. */
 type WorkspaceTab = 'sound' | 'files';
 
 /**
@@ -71,7 +71,7 @@ export type FileState = 'ready' | 'prepared' | 'working' | 'preparing' | 'outdat
  */
 @Component({
   selector: 'app-video-detail',
-  imports: [FormsModule, TranslateModule, IdemLoaderComponent, IdemVideoEditorComponent],
+  imports: [FormsModule, TranslateModule, IdemLoaderComponent, IdemVideoEditorComponent, IdemVideoFormatPickerComponent],
   templateUrl: './video-detail.html',
   styleUrl: './video-detail.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -116,6 +116,10 @@ export class VideoDetail {
   protected readonly copied = signal(false);
   /** Onglet et format regardé dans l'adresse (`?tab=files&format=square`) : gardés à l'actualisation. */
   protected readonly tab = urlChoice<WorkspaceTab>('tab', ['sound', 'files'], 'sound');
+  /** Le tiroir des réglages (musique, voix, fichiers) : `?settings=1`, gardé à l'actualisation. */
+  protected readonly settingsOpen = urlFlag('settings', { push: true });
+  /** Le tiroir glisse hors de l'écran avant de disparaître. */
+  protected readonly drawerLeaving = signal(false);
   private readonly formatParam = urlParam<string | null>('format', { fallback: null });
   /** Le format dont l'utilisateur attend le fichier : il s'enregistre tout seul dès qu'il est prêt. */
   protected readonly pendingDownload = signal<VideoFormat | null>(null);
@@ -135,6 +139,8 @@ export class VideoDetail {
   protected readonly files = computed(() => this.doneRenders().filter((r) => !!r.url && !r.prerender));
   /** L'état du fichier du format regardé : ce que dit la barre de téléchargement. */
   protected readonly current = computed(() => this.stateOf(this.previewFormat()));
+  /** Les formats dont le MP4 à jour est prêt (repérés dans le choix du format). */
+  protected readonly readyFormats = computed(() => this.allFormats.filter((f) => this.stateOf(f) === 'ready'));
   protected readonly currentRender = computed(() => this.renderOf(this.previewFormat()));
   /** Le prix d'un clic sur « Télécharger » (périmètre de la vidéo, au même niveau de qualité). */
   protected readonly downloadPrice = computed(() => {
@@ -169,6 +175,10 @@ export class VideoDetail {
     this.editorLang.set(this.translate.currentLang === 'en' ? 'en' : 'fr');
     this.translate.onLangChange.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((e) => this.editorLang.set(e.lang === 'en' ? 'en' : 'fr'));
     this.destroyRef.onDestroy(() => this.stopPolling());
+    // Le tiroir s'ouvre : le focus va sur sa croix (clavier et lecteurs d'écran y sont).
+    effect(() => {
+      if (this.settingsOpen()) setTimeout(() => document.querySelector<HTMLElement>('#vd-settings .button-icon')?.focus(), 0);
+    });
   }
 
   private load(projectId: string, videoId: string): void {
@@ -181,7 +191,7 @@ export class VideoDetail {
           this.apply(video);
           this.resetExportForm(video);
           const wanted = this.formatParam() as VideoFormat | null;
-          this.previewFormat.set(wanted && video.scope.formats.includes(wanted) ? wanted : video.scope.formats[0]);
+          this.previewFormat.set(wanted && this.allFormats.includes(wanted) ? wanted : video.scope.formats[0]);
           this.loading.set(false);
           if (!video.legacy) this.loadPreview();
         },
@@ -578,6 +588,20 @@ export class VideoDetail {
   protected size(bytes?: number): string {
     if (!bytes) return '';
     return bytes > 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(1)} Mo` : `${Math.round(bytes / 1024)} Ko`;
+  }
+
+  /** Ferme le tiroir après son animation de sortie (aussitôt si l'utilisateur réduit les animations). */
+  protected closeSettings(): void {
+    if (this.drawerLeaving()) return;
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+      this.settingsOpen.set(false);
+      return;
+    }
+    this.drawerLeaving.set(true);
+    setTimeout(() => {
+      this.settingsOpen.set(false);
+      this.drawerLeaving.set(false);
+    }, 300);
   }
 
   // ── Suppression ──────────────────────────────────────────────────────────

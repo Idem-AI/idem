@@ -1,43 +1,40 @@
-<section class="mx-auto max-w-7xl">
-  <button type="button" class="vd-back" (click)="back.emit()">
-    <i class="pi pi-arrow-left" aria-hidden="true"></i>
-    {{ 'dashboard.showCommunication.video.detail.back' | translate }}
-  </button>
-
+<section class="vd-page">
   @if (loading()) {
     <idem-loader block [label]="'common.loading' | translate" />
   } @else if (video(); as v) {
-    <header class="vd-head">
-      <div class="min-w-0 flex-1">
-        <h2 class="truncate text-lg font-bold text-[var(--color-text-primary)]">{{ v.title }}</h2>
-        <p class="mt-0.5 text-sm text-[var(--color-text-secondary)]">
-          {{ v.scope.durationSec }} s · {{ 'dashboard.showCommunication.video.qualities.' + v.scope.quality + '.label' | translate }}
-          @if (!legacy()) {
-            <span class="vd-state" [class.vd-state--ok]="current() === 'ready'" role="status" [attr.title]="'dashboard.showCommunication.video.download.why' | translate">
-              @switch (pendingDownload() === previewFormat() && current() !== 'ready' ? 'waiting' : current()) {
-                @case ('ready') { <i class="pi pi-check-circle" aria-hidden="true"></i> {{ 'dashboard.showCommunication.video.download.readyShort' | translate }} }
-                @case ('waiting') { <idem-loader size="xs" /> {{ 'dashboard.showCommunication.video.download.waitingShort' | translate: { percent: percent(currentRender()?.progress ?? 0) } }} }
-                @case ('working') { <idem-loader size="xs" /> {{ 'dashboard.showCommunication.video.download.workingShort' | translate: { percent: percent(currentRender()?.progress ?? 0) } }} }
-                @case ('preparing') { <idem-loader size="xs" /> {{ 'dashboard.showCommunication.video.download.preparingShort' | translate: { percent: percent(currentRender()?.progress ?? 0) } }} }
-                @case ('outdated') { {{ 'dashboard.showCommunication.video.download.outdatedShort' | translate }} }
-                @default { }
-              }
-            </span>
-          }
-        </p>
-      </div>
+    <!-- Une barre fine : revenir, l'état du MP4, les réglages, télécharger. Aucun texte qui ne sert pas. -->
+    <header class="vd-bar">
+      <button type="button" class="button-ghost button-sm" (click)="back.emit()">
+        <i class="pi pi-arrow-left" aria-hidden="true"></i>
+        <span class="vd-hide-sm">{{ 'dashboard.showCommunication.video.detail.back' | translate }}</span>
+      </button>
+      <span class="flex-1"></span>
       @if (!legacy()) {
+        <span class="vd-state" [class.vd-state--ok]="current() === 'ready'" role="status" [attr.title]="'dashboard.showCommunication.video.download.why' | translate">
+          @switch (pendingDownload() === previewFormat() && current() !== 'ready' ? 'waiting' : current()) {
+            @case ('ready') { <i class="pi pi-check-circle" aria-hidden="true"></i> {{ 'dashboard.showCommunication.video.download.readyShort' | translate }} }
+            @case ('waiting') { <idem-loader size="xs" /> {{ 'dashboard.showCommunication.video.download.waitingShort' | translate: { percent: percent(currentRender()?.progress ?? 0) } }} }
+            @case ('working') { <idem-loader size="xs" /> {{ 'dashboard.showCommunication.video.download.workingShort' | translate: { percent: percent(currentRender()?.progress ?? 0) } }} }
+            @case ('preparing') { <idem-loader size="xs" /> {{ 'dashboard.showCommunication.video.download.preparingShort' | translate: { percent: percent(currentRender()?.progress ?? 0) } }} }
+            @case ('outdated') { {{ 'dashboard.showCommunication.video.download.outdatedShort' | translate }} }
+            @default { }
+          }
+        </span>
+        <button type="button" class="outer-button button-sm" [attr.aria-expanded]="settingsOpen()" aria-controls="vd-settings" (click)="settingsOpen.set(true)">
+          <i class="pi pi-sliders-h" aria-hidden="true"></i>
+          <span class="vd-hide-sm">{{ 'dashboard.showCommunication.video.settings.open' | translate }}</span>
+        </button>
         @if (downloading(); as d) {
-          <button type="button" class="inner-button" disabled>
+          <button type="button" class="inner-button button-sm" disabled>
             <idem-loader size="xs" />
             {{ (d.percent === null ? 'dashboard.showCommunication.video.download.saving' : 'dashboard.showCommunication.video.download.savingPercent') | translate: { percent: d.percent } }}
           </button>
         } @else if (pendingDownload() === previewFormat() && current() !== 'ready') {
-          <button type="button" class="outer-button" (click)="pendingDownload.set(null)">
+          <button type="button" class="outer-button button-sm" (click)="pendingDownload.set(null)">
             {{ 'dashboard.showCommunication.video.download.cancelAuto' | translate }}
           </button>
         } @else {
-          <button type="button" class="inner-button" [disabled]="exporting() || broken().length > 0" (click)="download(previewFormat())">
+          <button type="button" class="inner-button button-sm" [disabled]="exporting() || broken().length > 0" (click)="download(previewFormat())">
             @if (exporting()) { <idem-loader size="xs" /> } @else { <i class="pi pi-download" aria-hidden="true"></i> }
             @if (current() === 'ready' || downloadPrice() === 0) {
               {{ 'dashboard.showCommunication.video.download.cta' | translate }}
@@ -49,7 +46,7 @@
       }
     </header>
     @if (!legacy() && (current() === 'working' || current() === 'preparing' || (pendingDownload() && current() !== 'ready'))) {
-      <progress class="vd-head-progress" max="100" [value]="percent(currentRender()?.progress ?? 0)" [attr.aria-label]="'dashboard.showCommunication.video.download.progress' | translate"></progress>
+      <progress class="vd-bar-progress" max="100" [value]="percent(currentRender()?.progress ?? 0)" [attr.aria-label]="'dashboard.showCommunication.video.download.progress' | translate"></progress>
     }
 
     @if (legacy()) {
@@ -113,20 +110,16 @@
       </details>
     }
 
-    <!-- ═══════════ Aperçu et textes : l'éditeur partagé avec iVision ═══════════ -->
-    <div class="mt-5">
-      @if (v.scope.formats.length > 1) {
-        <div class="vd-seg mb-3" role="group" [attr.aria-label]="'dashboard.showCommunication.video.detail.formats' | translate">
-          @for (f of v.scope.formats; track f) {
-            <button type="button" class="vd-seg-item" [class.vd-seg-item--on]="previewFormat() === f" [attr.aria-pressed]="previewFormat() === f" (click)="setPreviewFormat(f)">
-              {{ 'dashboard.showCommunication.video.formats.' + f + '.label' | translate }}
-              @if (stateOf(f) === 'ready') {
-                <i class="pi pi-check-circle vd-ok" [attr.aria-label]="'dashboard.showCommunication.video.download.readyShort' | translate"></i>
-              }
-            </button>
-          }
-        </div>
-      }
+    <!-- ═══════════ Le format, puis le lecteur : tient dans l'écran, sans défiler ═══════════ -->
+    <div class="vd-stage">
+      <idem-video-format-picker
+        class="mb-3 block"
+        [value]="previewFormat()"
+        [ready]="readyFormats()"
+        [busy]="previewLoading()"
+        [lang]="editorLang()"
+        (change)="setPreviewFormat($event)"
+      />
       <div class="relative">
         @if (previewHtml(); as html) {
           <idem-video-editor
@@ -152,8 +145,12 @@
       </div>
     </div>
 
-    <!-- ═══════════ Demander un changement : sous la vidéo, comme une conversation ═══════════ -->
-    <form class="vd-ask glass-card mt-5" (ngSubmit)="sendInstruction()">
+    <!-- ═══════════ Demander un changement : une barre qui reste collée en bas de l'écran ═══════════ -->
+    <div class="vd-ask-dock">
+    @if (reply(); as r) {
+      <p class="vd-reply glass-card" role="status"><i class="pi pi-check" aria-hidden="true"></i> {{ r }}</p>
+    }
+    <form class="vd-ask glass-card" (ngSubmit)="sendInstruction()">
       <label class="sr-only" for="vd-revise">{{ 'dashboard.showCommunication.video.revise.title' | translate }}</label>
       <i class="pi pi-sparkles vd-ask-icon" aria-hidden="true"></i>
       <textarea
@@ -171,12 +168,19 @@
         {{ 'dashboard.showCommunication.video.revise.send' | translate }}
       </button>
     </form>
-    @if (reply(); as r) {
-      <p class="vd-note mt-2" role="status"><i class="pi pi-check" aria-hidden="true"></i> {{ r }}</p>
-    }
+    </div>
 
-    <!-- ═══════════ Atelier : un onglet à la fois ═══════════ -->
-    <section class="glass-card vd-work mt-6">
+    <!-- ═══════════ Réglages : un tiroir à droite (musique, voix, fichiers, suppression) ═══════════ -->
+    @if (settingsOpen()) {
+    <div class="vd-drawer-wrap" [class.is-leaving]="drawerLeaving()" (keydown.escape)="closeSettings()">
+      <div class="vd-drawer-backdrop" (click)="closeSettings()" aria-hidden="true"></div>
+      <section id="vd-settings" class="vd-drawer modal-drawer" role="dialog" aria-modal="true" aria-labelledby="vd-settings-title">
+      <header class="vd-drawer-head">
+        <h2 id="vd-settings-title" class="text-base font-bold text-[var(--color-text-primary)]">{{ 'dashboard.showCommunication.video.settings.title' | translate }}</h2>
+        <button type="button" class="button-icon" [attr.aria-label]="'common.close' | translate" (click)="closeSettings()">
+          <i class="pi pi-times" aria-hidden="true"></i>
+        </button>
+      </header>
       <div class="vd-tabs" role="tablist" [attr.aria-label]="'dashboard.showCommunication.video.tabs.label' | translate">
         <button type="button" role="tab" id="vd-tab-sound" class="vd-tab" [class.vd-tab--on]="tab() === 'sound'" [attr.aria-selected]="tab() === 'sound'" aria-controls="vd-panel" (click)="tab.set('sound')">
           <i class="pi pi-volume-up" aria-hidden="true"></i> {{ 'dashboard.showCommunication.video.tabs.sound' | translate }}
@@ -192,7 +196,7 @@
       <div id="vd-panel" class="vd-panel" role="tabpanel" [attr.aria-labelledby]="'vd-tab-' + tab()">
         @switch (tab()) {
           @case ('sound') {
-            <div class="vd-cols">
+            <div class="vd-stack-cols">
               <div>
                 <h4 class="vd-label">{{ 'dashboard.showCommunication.video.music.title' | translate }}</h4>
           @if (v.music; as m) {
@@ -338,7 +342,7 @@
           }
 
           @case ('files') {
-            <div class="vd-cols">
+            <div class="vd-stack-cols">
               <div>
                 <h4 class="vd-label">{{ 'dashboard.showCommunication.video.files.title' | translate }}</h4>
                 <ul class="mt-2 space-y-2">
@@ -436,10 +440,8 @@
           }
         }
       </div>
-    </section>
-
-    <!-- Suppression -->
-    <div class="mt-4 flex justify-end">
+      <!-- Suppression -->
+      <div class="vd-drawer-foot">
       @if (confirmDelete()) {
         <div class="flex flex-wrap items-center gap-2 text-sm">
           <span class="text-[var(--color-text-secondary)]">{{ 'dashboard.showCommunication.video.detail.deleteAsk' | translate }}</span>
@@ -457,7 +459,10 @@
           {{ 'dashboard.showCommunication.video.detail.delete' | translate }}
         </button>
       }
+      </div>
+      </section>
     </div>
+    }
     }
   }
 </section>

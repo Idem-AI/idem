@@ -1,25 +1,50 @@
 
-/* Les rappels flottants (étape suivante, promotion) : empilés au-dessus du dock du mode, coin bas-droit.
-   Seuls leurs contenus captent le pointeur : la page dessous reste cliquable. */
+/* Les rappels flottants (étape suivante, promotion) : EN HAUT AU CENTRE de la zone de contenu, juste sous la
+   barre du haut, bien visibles ; ils flottent par-dessus la page au lieu de la repousser vers le bas, et chacun se
+   ferme. Seuls leurs contenus captent le pointeur : la page dessous reste cliquable. */
 .float-stack {
   position: fixed;
-  right: max(1.25rem, env(safe-area-inset-right, 0px));
-  bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
+  top: 88px;
+  left: 50%;
+  transform: translateX(-50%);
   z-index: 55;
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
+  align-items: center;
   gap: 0.5rem;
+  width: min(36rem, calc(100vw - 2rem));
   pointer-events: none;
 }
 
 .float-stack > * {
+  width: 100%;
   pointer-events: auto;
 }
 
-/* Une page à barre d'onglets en bas (Communication) loge le dock dedans : la pile se pose au-dessus. */
-@media (max-width: 640px) {
+/* Centrés sur le CONTENU, pas sur la fenêtre : la barre latérale (16 rem, 5 rem repliée) décale le centre. */
+@media (min-width: 768px) {
   .float-stack {
-    bottom: calc(var(--idem-dock-bottom, 1.25rem) + 4.25rem + env(safe-area-inset-bottom, 0px));
+    left: calc(50% + 8rem);
+  }
+
+  .float-stack--collapsed {
+    left: calc(50% + 2.5rem);
+  }
+}
+
+/* Une page qui veut de la place (la vidéo) pose `idem-flush` sur la racine : une marge réduite, sans cadre. */
+:host-context(html.idem-flush) .layout-pad {
+  padding: 1rem !important;
+}
+
+:host-context(html.idem-flush) .layout-card {
+  padding: 0 !important;
+  border: 0;
+  box-shadow: none;
+}
+
+@media (min-width: 768px) {
+  :host-context(html.idem-flush) .layout-pad {
+    padding: 1.25rem 1.5rem !important;
   }
 }

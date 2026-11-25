@@ -1,9 +1,11 @@
 @if (visible() && step(); as s) {
-  <!-- Une petite carte flottante (coin bas-droit, au-dessus du dock) : elle ne repousse plus le contenu de la page. -->
+  <!-- Carte flottante, en haut au centre (posée par la mise en page) : elle ne repousse pas le contenu. -->
   <aside class="glass-card next-float" aria-live="polite" [attr.aria-label]="'guided.next.label' | translate">
+    <span class="next-icon" aria-hidden="true"><i class="pi pi-compass"></i></span>
     <div class="min-w-0 flex-1">
       <p class="next-label">{{ 'guided.next.label' | translate }}</p>
-      <p class="next-title" [attr.title]="'guided.steps.' + s.id + '.why' | translate">{{ 'guided.steps.' + s.id + '.title' | translate }}</p>
+      <p class="next-title">{{ 'guided.steps.' + s.id + '.title' | translate }}</p>
+      <p class="next-why">{{ 'guided.steps.' + s.id + '.why' | translate }}</p>
     </div>
     <button type="button" class="inner-button button-sm shrink-0" (click)="open()">
       {{ 'guided.next.go' | translate }}

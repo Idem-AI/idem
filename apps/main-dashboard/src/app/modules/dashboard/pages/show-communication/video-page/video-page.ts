@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, DOCUMENT, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
@@ -18,9 +18,9 @@ import { VideoDetail } from '../components/video-detail/video-detail';
   imports: [TranslateModule, IdemLoaderComponent, VideoDetail],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="px-4 py-5 sm:px-6">
+    <div>
       @if (errorMessage()) {
-        <div class="glass mx-auto mb-4 flex max-w-7xl items-start gap-2 rounded-xl border border-[var(--color-danger)]/40 px-3 py-2 text-sm text-[var(--color-danger)]" role="alert">
+        <div class="glass m-3 flex items-start gap-2 rounded-xl border border-[var(--color-danger)]/40 px-3 py-2 text-sm text-[var(--color-danger)]" role="alert">
           <i class="pi pi-exclamation-triangle mt-0.5" aria-hidden="true"></i>
           <div class="flex-1">
             <p>{{ errorMessage() | translate }}</p>
@@ -68,6 +68,10 @@ export class VideoPage {
   protected readonly creditsNeeded = signal<{ cost: number; balance: number } | null>(null);
 
   constructor() {
+    // Toute la place pour la vidéo : la mise en page retire ses marges et son cadre tant que cette page est ouverte.
+    const root = inject(DOCUMENT).documentElement;
+    root.classList.add('idem-flush');
+    this.destroyRef.onDestroy(() => root.classList.remove('idem-flush'));
     this.route.paramMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
       this.videoId.set(params.get('videoId'));
       this.errorMessage.set('');

@@ -1,8 +1,10 @@
-<div class="custom-scrollbar h-full overflow-y-auto">
-  <div class="mx-auto max-w-6xl px-4 py-5">
-    <header class="mb-5 flex flex-wrap items-center gap-3">
+<div class="custom-scrollbar h-full overflow-y-auto" style="--ve-max-h: max(14rem, calc(100dvh - 330px))">
+  <div>
+    <!-- Une barre fine : revenir, l'état du MP4, les réglages, télécharger. -->
+    <header class="sticky top-0 z-20 flex flex-wrap items-center gap-2 border-b border-[var(--glass-border)] px-4 py-2 backdrop-blur md:px-6" style="background: color-mix(in oklch, var(--color-surface-1) 90%, transparent)">
       <a class="button-icon !p-2" routerLink="/studio/video" [attr.aria-label]="'common.back' | translate"><i class="pi pi-arrow-left" aria-hidden="true"></i></a>
-      <h1 class="min-w-0 flex-1 truncate text-lg font-semibold">{{ video()?.title || ('edit.title' | translate) }}</h1>
+      <h1 class="sr-only">{{ video()?.title || ('edit.title' | translate) }}</h1>
+      <span class="flex-1"></span>
       @if (saving()) {
         <span class="flex items-center gap-2 text-sm text-[var(--color-text-secondary)]"><idem-loader size="xs" /> {{ 'edit.saving' | translate }}</span>
       } @else if (video(); as v) {
@@ -21,6 +23,10 @@
       }
       @if (video(); as v) {
         @if (!v.legacy) {
+          <button type="button" class="outer-button button-sm" [attr.aria-expanded]="settingsOpen()" aria-controls="ve-settings" (click)="settingsOpen.set(true)">
+            <i class="pi pi-sliders-h" aria-hidden="true"></i>
+            <span class="hidden sm:inline">{{ 'edit.settings.open' | translate }}</span>
+          </button>
           @if (downloading()) {
             <button type="button" class="inner-button button-sm" disabled><idem-loader size="xs" /> {{ 'edit.dl.saving' | translate }}</button>
           } @else if (pending() === previewFormat()) {
@@ -39,9 +45,10 @@
       }
     </header>
     @if (current() === 'working' || current() === 'preparing' || pending()) {
-      <progress class="-mt-3 mb-4 block h-1 w-full" max="100" [value]="percent(currentRender()?.progress)" [attr.aria-label]="'edit.dl.progress' | translate"></progress>
+      <progress class="block h-1 w-full" max="100" [value]="percent(currentRender()?.progress)" [attr.aria-label]="'edit.dl.progress' | translate"></progress>
     }
 
+    <div class="px-4 pt-4 md:px-6">
     @if (loading()) {
       <idem-loader block [label]="'common.loading' | translate" />
     } @else if (failed() && !video()) {
@@ -59,22 +66,20 @@
         </div>
       } @else {
       @if (needCredits()) {
-        <p class="-mt-3 mb-4 text-sm" role="alert">{{ 'chat.payment.short' | translate }} <a class="text-[var(--color-primary-500)] underline" [href]="accountUrl">{{ 'chat.payment.cta' | translate }}</a></p>
+        <p class="mb-3 text-sm" role="alert">{{ 'chat.payment.short' | translate }} <a class="text-[var(--color-primary-500)] underline" [href]="accountUrl">{{ 'chat.payment.cta' | translate }}</a></p>
       }
 
       @if (broken() > 0) {
         <p class="mb-3 flex items-center gap-2 text-sm text-[var(--color-danger)]" role="alert"><i class="pi pi-exclamation-triangle" aria-hidden="true"></i> {{ 'edit.broken' | translate: { count: broken() } }}</p>
       }
-      @if ((v.scope.formats.length) > 1) {
-        <div class="mx-auto mb-3 flex w-fit max-w-full flex-wrap gap-1 rounded-full border border-[var(--glass-border)] bg-[var(--glass-bg-light)] p-1" role="group" [attr.aria-label]="'edit.previewFormat' | translate">
-          @for (f of v.scope.formats; track f) {
-            <button type="button" class="rounded-full px-3 py-1 text-sm font-semibold transition-colors" [class]="previewFormat() === f ? 'bg-[var(--color-surface-1)] text-[var(--color-text-primary)] shadow-sm' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'" [attr.aria-pressed]="previewFormat() === f" (click)="setPreviewFormat(f)">
-              {{ 'formats.' + f | translate }}
-              @if (stateOf(f) === 'ready') { <i class="pi pi-check-circle text-xs text-[var(--color-success)]" [attr.aria-label]="'edit.dl.readyShort' | translate"></i> }
-            </button>
-          }
-        </div>
-      }
+      <idem-video-format-picker
+        class="mb-3 block"
+        [value]="previewFormat()"
+        [ready]="readyFormats()"
+        [busy]="previewBusy()"
+        [lang]="language.current()"
+        (change)="setPreviewFormat($event)"
+      />
 
       @if (html(); as h) {
         <idem-video-editor
@@ -92,8 +97,15 @@
       }
       <input #photoInput type="file" class="sr-only" accept="image/jpeg,image/png,image/webp" (change)="onPhoto($event)" [attr.aria-label]="'edit.replacePhoto' | translate" />
 
-      <!-- L'atelier : un onglet à la fois. -->
-      <section class="glass-card mt-8 overflow-hidden !p-0">
+      <!-- Réglages : un tiroir à droite (son, fichiers). -->
+      @if (settingsOpen()) {
+      <div class="ve-drawer-wrap fixed inset-0 z-[70] flex justify-end" [class.is-leaving]="drawerLeaving()" (keydown.escape)="closeSettings()">
+        <div class="ve-drawer-backdrop absolute inset-0 bg-[var(--glass-bg-darker)] backdrop-blur-sm" (click)="closeSettings()" aria-hidden="true"></div>
+      <section id="ve-settings" class="ve-drawer modal-drawer relative flex h-full w-full flex-col border-l border-[var(--glass-border)] sm:w-[30rem]" role="dialog" aria-modal="true" aria-labelledby="ve-settings-title">
+        <header class="flex items-center justify-between border-b border-[var(--glass-border)] px-4 py-3">
+          <h2 id="ve-settings-title" class="font-bold">{{ 'edit.settings.title' | translate }}</h2>
+          <button type="button" class="button-icon" [attr.aria-label]="'common.close' | translate" (click)="closeSettings()"><i class="pi pi-times" aria-hidden="true"></i></button>
+        </header>
         <div class="flex gap-1 overflow-x-auto border-b border-[var(--glass-border)] px-3" role="tablist" [attr.aria-label]="'edit.tabs.label' | translate">
           <button type="button" role="tab" id="ve-tab-sound" aria-controls="ve-panel" class="-mb-px inline-flex flex-none items-center gap-2 border-b-2 px-3 pb-3 pt-3.5 text-sm font-semibold" [class]="tab() === 'sound' ? 'border-[var(--color-primary-500)] text-[var(--color-text-primary)]' : 'border-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'" [attr.aria-selected]="tab() === 'sound'" (click)="tab.set('sound')">
             <i class="pi pi-volume-up" aria-hidden="true"></i> {{ 'edit.sound' | translate }}
@@ -103,7 +115,7 @@
             @if (renders().length) { <span class="rounded-full bg-[var(--glass-bg-medium)] px-1.5 text-xs">{{ renders().length }}</span> }
           </button>
         </div>
-        <div id="ve-panel" class="p-5" role="tabpanel" [attr.aria-labelledby]="'ve-tab-' + tab()">
+        <div id="ve-panel" class="flex-1 overflow-y-auto p-5" role="tabpanel" [attr.aria-labelledby]="'ve-tab-' + tab()">
           @if (tab() === 'sound') {
           <div class="flex max-w-md flex-col gap-4">
               <label class="!flex flex-col gap-1 text-sm !mb-0">
@@ -130,7 +142,7 @@
               }
             </div>
           } @else {
-            <div class="grid gap-6 md:grid-cols-2">
+            <div class="flex flex-col gap-6">
               <div>
                 <h3 class="mb-2 text-xs font-bold uppercase tracking-wide text-[var(--color-text-tertiary)]">{{ 'edit.files.title' | translate }}</h3>
                 <ul class="flex flex-col gap-2">
@@ -206,7 +218,10 @@
           }
         </div>
       </section>
+      </div>
+      }
       }
     }
+    </div>
   </div>
 </div>

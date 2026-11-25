@@ -144,6 +144,11 @@ let nextId = 0;
             }
           </div>
           <span class="ve__time">{{ clock() }} / {{ format(total()) }}</span>
+          @if (activeScene(); as a) {
+            <button type="button" class="button-icon ve__btn" [class.ve__btn--on]="editing() === a.key" [attr.aria-pressed]="editing() === a.key" [attr.aria-label]="t()['edit'] + ' ' + (indexOf(a.key) + 1)" [attr.title]="t()['edit'] + ' ' + (indexOf(a.key) + 1)" (click)="editing() === a.key ? closeEdit() : openEdit(a.key)">
+              <i class="pi pi-pencil" aria-hidden="true"></i>
+            </button>
+          }
           <button type="button" class="button-icon ve__btn" [class.ve__btn--on]="pointing()" [attr.aria-pressed]="pointing()" [attr.aria-label]="t()['point']" [attr.title]="t()['point']" (click)="togglePoint()">
             <i class="pi pi-bullseye" aria-hidden="true"></i>
           </button>
@@ -173,15 +178,6 @@ let nextId = 0;
           }
         </div>
 
-        @if (!editingScene()) {
-          <div class="ve__actions-row">
-            @if (activeScene(); as a) {
-              <button type="button" class="outer-button button-sm" (click)="openEdit(a.key)">
-                <i class="pi pi-pencil" aria-hidden="true"></i> {{ t()['edit'] }} {{ indexOf(a.key) + 1 }}
-              </button>
-            }
-          </div>
-        }
       </section>
 
       @if (editingScene(); as scene) {
@@ -270,7 +266,9 @@ let nextId = 0;
       .ve--editing .ve__panel { position: sticky; top: 1rem; }
     }
     /* Le lecteur garde la largeur de la vidéo : une story ne dépasse jamais l'écran en hauteur. */
-    .ve__player { width: min(100%, max(calc(70vh * var(--r, 0.5625)), 21rem)); }
+    /* La hauteur de la vidéo : \`--ve-max-h\` (posée par la page d'après l'espace libre de l'écran) — le cadre entier
+       reste visible sans défiler ; une vidéo paysage est bornée par la largeur. */
+    .ve__player { width: min(100%, max(calc(var(--ve-max-h, 70vh) * var(--r, 0.5625)), 12rem)); }
     .ve__frame { position: relative; width: 100%; border-radius: 16px; overflow: hidden; border: 1px solid var(--glass-border-subtle); background: var(--color-surface-1); }
     .ve__frame:fullscreen { border-radius: 0; border: 0; aspect-ratio: auto !important; width: 100%; height: 100%; }
     .ve__iframe { width: 100%; height: 100%; border: 0; display: block; }
@@ -289,8 +287,8 @@ let nextId = 0;
     .ve__progress-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: inherit; background: var(--color-primary-500); pointer-events: none; }
     .ve__tick { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--color-surface-1); pointer-events: none; }
     .ve__time { flex: none; font-variant-numeric: tabular-nums; font-size: 0.75rem; color: var(--color-text-secondary); }
-    .ve__strip { display: flex; gap: 0.4rem; margin-top: 0.75rem; overflow-x: auto; padding-bottom: 0.25rem; }
-    .ve__shot { position: relative; flex: none; width: 3.5rem; height: 3.5rem; border-radius: 10px; overflow: hidden; border: 2px solid transparent; background: var(--glass-bg-light); padding: 0; transition: border-color 0.15s ease, opacity 0.15s ease; opacity: 0.75; }
+    .ve__strip { display: flex; gap: 0.4rem; margin-top: 0.5rem; overflow-x: auto; padding-bottom: 0.25rem; }
+    .ve__shot { position: relative; flex: none; width: 3rem; height: 3rem; border-radius: 10px; overflow: hidden; border: 2px solid transparent; background: var(--glass-bg-light); padding: 0; transition: border-color 0.15s ease, opacity 0.15s ease; opacity: 0.75; }
     .ve__shot img { width: 100%; height: 100%; object-fit: cover; display: block; }
     .ve__shot:hover { opacity: 1; }
     .ve__shot--active { border-color: var(--color-primary-500); opacity: 1; }
@@ -298,7 +296,6 @@ let nextId = 0;
     .ve__shot:focus-visible { outline: 2px solid var(--color-primary-500); outline-offset: 2px; }
     .ve__shot-num { position: absolute; left: 0.25rem; bottom: 0.2rem; min-width: 1.1rem; padding: 0 0.25rem; border-radius: 6px; background: var(--color-surface-1); color: var(--color-text-primary); font-size: 0.65rem; font-weight: 700; line-height: 1.1rem; text-align: center; }
     .ve__shot--error .ve__shot-num { color: var(--color-danger); }
-    .ve__actions-row { display: flex; justify-content: center; margin-top: 0.75rem; }
     .ve__panel { width: 100%; padding: 1rem; }
     .ve__panel-head { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.75rem; }
     .ve__panel-title { flex: 1; margin: 0; font-size: 0.95rem; font-weight: 700; color: var(--color-text-primary); }
