@@ -17,6 +17,8 @@
  *     rapportent (même choix que l'EmailService historique).
  */
 
+import { EMAIL_LOGO } from './email-logo';
+
 export const BRAND = {
   primary: '#1447e6',
   accent: '#22d3ee',
@@ -25,10 +27,10 @@ export const BRAND = {
   muted: '#6b7280',
   border: '#e5e7eb',
   surface: '#f7fafc',
-  // Les fichiers sont nommés d'après le thème qu'ils servent : `logo_dark` est
-  // la variante du thème sombre, et l'en-tête de tous les modèles l'est.
-  // Servie par la landing, qui héberge idem.africa.
-  logo: 'https://idem.africa/assets/icons/logo_dark.png',
+  // Joint au message (cid:), jamais chargé depuis le web : les messageries
+  // bloquent les images distantes. Variante « EM » blanc, pour l'en-tête
+  // sombre de tous les modèles. Voir email-logo.ts.
+  logo: EMAIL_LOGO.onDark.src,
   console: 'https://console.idem.africa',
   site: 'https://idem.africa',
   fontStack: "'Vilevile', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
@@ -211,7 +213,7 @@ export function renderEmail(options: LayoutOptions): string {
 
           <tr>
             <td style="background:${BRAND.dark};padding:32px 28px;text-align:center;">
-              <img src="${BRAND.logo}" alt="IDEM" width="92" style="display:block;margin:0 auto 14px;width:92px;height:auto;">
+              <img src="${BRAND.logo}" alt="IDEM" width="92" height="40" style="display:block;margin:0 auto 14px;width:92px;height:auto;border:0;outline:none;text-decoration:none;">
               <h1 style="margin:0 0 6px;font-size:21px;font-weight:600;color:#ffffff;line-height:1.35;">${escapeHtml(options.title)}</h1>
               ${
                 options.subtitle

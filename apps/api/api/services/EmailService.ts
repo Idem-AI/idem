@@ -1,5 +1,6 @@
 import nodemailer, { type Transporter } from 'nodemailer';
 import { Contact } from '../models/Contact';
+import { EMAIL_LOGO, emailLogoAttachments } from './email/email-logo';
 
 export class EmailService {
   private transporter: Transporter;
@@ -194,7 +195,7 @@ export class EmailService {
       <body>
         <div class="container">
           <div class="header">
-            <img src="https://idem.africa/assets/icons/logo_dark.png" alt="Idem AI" class="logo">
+            <img src="${EMAIL_LOGO.onDark.src}" alt="Idem AI" class="logo" width="80">
             <h1>Nouveau Message de Contact</h1>
             <p>Un nouveau message a été reçu via le formulaire de contact</p>
           </div>
@@ -254,7 +255,7 @@ export class EmailService {
           </div>
 
           <div class="footer">
-            <img src="https://idem.africa/assets/icons/logo_dark.png" alt="Idem AI" class="footer-logo">
+            <img src="${EMAIL_LOGO.onLight.src}" alt="Idem AI" class="footer-logo" width="60">
             <p>Ce message a été envoyé automatiquement depuis le site web Idem AI</p>
             <p class="brand">Idem AI - L'Intelligence Artificielle Souveraine d'Afrique</p>
           </div>
@@ -285,6 +286,7 @@ Ce message a été envoyé automatiquement depuis le site web Idem AI.
       subject: `[Idem AI Contact] ${subjectText} - ${contact.name}`,
       text: textContent,
       html: htmlContent,
+      attachments: emailLogoAttachments(htmlContent),
       replyTo: contact.email,
     });
   }
@@ -563,7 +565,7 @@ Ce message a été envoyé automatiquement depuis le site web Idem AI.
       <body>
         <div class="container">
           <div class="header">
-            <img src="https://idem.africa/assets/icons/logo_dark.png" alt="Idem AI" class="logo">
+            <img src="${EMAIL_LOGO.onDark.src}" alt="Idem AI" class="logo" width="80">
             <h1>Merci pour votre message</h1>
             <p>Nous avons bien reçu ${subjectText}</p>
           </div>
@@ -619,7 +621,7 @@ Ce message a été envoyé automatiquement depuis le site web Idem AI.
           </div>
 
           <div class="footer">
-            <img src="https://idem.africa/assets/icons/logo_dark.png" alt="Idem AI" class="footer-logo">
+            <img src="${EMAIL_LOGO.onLight.src}" alt="Idem AI" class="footer-logo" width="60">
             <p class="contact-info">contact@idem.africa | idem.africa</p>
             <p>Douala, Cameroun</p>
           </div>
@@ -633,6 +635,7 @@ Ce message a été envoyé automatiquement depuis le site web Idem AI.
       to: contact.email,
       subject: `Confirmation de réception - Idem AI`,
       html: htmlContent,
+      attachments: emailLogoAttachments(htmlContent),
     });
   }
 }

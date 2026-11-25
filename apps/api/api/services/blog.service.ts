@@ -177,6 +177,28 @@ export interface BlogInput {
   event?: BlogEventInput | null;
 }
 
+/** Un article dans ses deux langues : ce qui est commun, puis ce qui est propre à chacune. */
+export interface BlogPairInput {
+  shared?: {
+    slug?: string;
+    kind?: BlogKind;
+    version?: string | null;
+    coverUrl?: string | null;
+    authorName?: string;
+    event?: BlogEventInput | null;
+  };
+  fr?: BlogLanguageInput;
+  en?: BlogLanguageInput;
+}
+
+export interface BlogLanguageInput {
+  title?: string;
+  excerpt?: string;
+  contentMd?: string;
+  coverAlt?: string | null;
+  tags?: string[];
+}
+
 export interface BlogEventInput {
   startsAt?: string | null;
   endsAt?: string | null;
@@ -448,53 +470,106 @@ export const blogService = {
 
   // — Panel admin —
 
+  /**
+   * La liste du panel : UNE ligne par article, avec ses deux versions (même adresse, une par
+   * langue). `translation: 'incomplete'` ne garde que les articles à qui il manque une langue.
+   */
   async listAdmin(query: {
     status?: unknown;
     kind?: unknown;
-    locale?: unknown;
+    translation?: unknown;
     search?: unknown;
     page?: unknown;
     limit?: unknown;
   }) {
     const current = page(query.page, 1, 1000);
     const limit = page(query.limit, 20, 100);
-    const filter: FilterQuery<BlogPostDocument> = {};
 
-    if (query.status === 'draft' || query.status === 'published') filter.status = query.status;
+    // Les conditions portent sur l'article (l'une de ses versions), pas sur un document seul :
+    // chercher un titre anglais doit ramener l'article avec sa version française.
+    const where: Record<string, unknown> = {};
+    if (query.status === 'draft' || query.status === 'published') where['versions.status'] = query.status;
     const kind = toKind(query.kind);
-    if (kind) filter.kind = kind;
-    if ((BLOG_LOCALES as readonly string[]).includes(query.locale as string)) filter.locale = query.locale;
+    if (kind) where['versions.kind'] = kind;
     if (typeof query.search === 'string' && query.search.trim()) {
       const escaped = query.search.trim().slice(0, 80).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      filter.title = { $regex: escaped, $options: 'i' };
+      where['versions.title'] = { $regex: escaped, $options: 'i' };
     }
+    if (query.translation === 'incomplete') where['complete'] = false;
 
-    const [posts, total, counts, kindCounts] = await Promise.all([
-      BlogPost.find(filter)
-        .select(`${SUMMARY_FIELDS} status createdAt updatedAt createdBy updatedBy`)
-        .sort({ updatedAt: -1 })
-        .skip((current - 1) * limit)
-        .limit(limit)
-        .lean(),
-      BlogPost.countDocuments(filter),
-      BlogPost.aggregate<{ _id: BlogStatus; count: number }>([
-        { $group: { _id: '$status', count: { $sum: 1 } } },
-      ]),
-      BlogPost.aggregate<{ _id: BlogKind; count: number }>([
-        { $group: { _id: '$kind', count: { $sum: 1 } } },
-      ]),
+    const grouped = [
+      { $sort: { updatedAt: -1 as const } },
+      {
+        $group: {
+          _id: '$slug',
+          updatedAt: { $max: '$updatedAt' },
+          versions: {
+            $push: {
+              _id: '$_id',
+              locale: '$locale',
+              status: '$status',
+              kind: '$kind',
+              title: '$title',
+              excerpt: '$excerpt',
+              version: '$version',
+              event: '$event',
+              publishedAt: '$publishedAt',
+              updatedAt: '$updatedAt',
+              updatedBy: '$updatedBy',
+            },
+          },
+        },
+      },
+      { $addFields: { complete: { $gte: [{ $size: '$versions' }, BLOG_LOCALES.length] } } },
+    ];
+
+    const [result] = await BlogPost.aggregate<{
+      items: { _id: string; updatedAt: Date; complete: boolean; versions: Record<string, unknown>[] }[];
+      total: { n: number }[];
+      stats: { _id: { published: boolean; kind: BlogKind; complete: boolean }; count: number }[];
+    }>([
+      ...grouped,
+      {
+        $facet: {
+          items: [{ $match: where }, { $sort: { updatedAt: -1 } }, { $skip: (current - 1) * limit }, { $limit: limit }],
+          total: [{ $match: where }, { $count: 'n' }],
+          stats: [
+            {
+              $group: {
+                _id: {
+                  published: { $in: ['published', '$versions.status'] },
+                  kind: { $first: '$versions.kind' },
+                  complete: '$complete',
+                },
+                count: { $sum: 1 },
+              },
+            },
+          ],
+        },
+      },
     ]);
 
+    const total = result?.total[0]?.n ?? 0;
+    const stats = result?.stats ?? [];
+    const sum = (test: (k: { published: boolean; kind: BlogKind; complete: boolean }) => boolean) =>
+      stats.filter((st) => test(st._id)).reduce((n, st) => n + st.count, 0);
+
     return {
-      posts,
+      articles: (result?.items ?? []).map((item) => ({
+        slug: item._id,
+        updatedAt: item.updatedAt,
+        complete: item.complete,
+        versions: Object.fromEntries(item.versions.map((v) => [v.locale as string, v])),
+      })),
       total,
       page: current,
       pages: Math.max(1, Math.ceil(total / limit)),
       counts: {
-        draft: counts.find((c) => c._id === 'draft')?.count ?? 0,
-        published: counts.find((c) => c._id === 'published')?.count ?? 0,
+        draft: sum((k) => !k.published),
+        published: sum((k) => k.published),
+        incomplete: sum((k) => !k.complete),
       },
-      kinds: BLOG_KINDS.map((k) => ({ kind: k, count: kindCounts.find((c) => c._id === k)?.count ?? 0 })),
+      kinds: BLOG_KINDS.map((k) => ({ kind: k, count: sum((st) => st.kind === k) })),
     };
   },
 
@@ -576,32 +651,179 @@ export const blogService = {
     return post.toObject();
   },
 
-  /** Publie (à `publishedAt`, ou maintenant) ou repasse en brouillon. */
-  async setStatus(id: string, status: BlogStatus, adminEmail: string, publishedAt?: unknown) {
+  // — Les deux langues —
+  //
+  // Un article existe en français ET en anglais : deux documents, même adresse (`slug`), une
+  // langue chacun — c'est ce qui permet au sélecteur de langue du site de passer de l'un à
+  // l'autre. Publier, dépublier et supprimer agissent toujours sur les deux.
+
+  /** Les deux versions d'un article, à partir de l'une d'elles. */
+  async getPair(id: string) {
     const post = await BlogPost.findById(id).catch(() => null);
     if (!post) throw new BlogError(404, 'NOT_FOUND', 'Billet introuvable.');
-
-    if (status === 'published') {
-      if (!post.title.trim()) fail('Un billet publié a besoin d’un titre.');
-      if (!post.contentMd.trim()) fail('Un billet publié ne peut pas être vide.');
-      if (!post.excerpt.trim()) fail('Écrivez l’extrait : c’est lui qui s’affiche dans la liste et au partage.');
-      if (post.kind === 'event') {
-        if (!post.event?.startsAt) fail('Un événement publié a besoin de sa date de début.');
-        if (!post.event.online && !post.event.location) fail('Indiquez le lieu de l’événement, ou cochez « En ligne ».');
-      }
-      const date = dateValue(publishedAt);
-      post.publishedAt = date ?? post.publishedAt ?? new Date();
-    }
-
-    post.status = status;
-    post.updatedBy = adminEmail;
-    await post.save();
-    return post.toObject();
+    const docs = await BlogPost.find({ slug: post.slug });
+    const pair: Record<BlogLocale, BlogPostDocument | null> = { fr: null, en: null };
+    for (const doc of docs) pair[doc.locale] = doc;
+    return pair;
   },
 
+  /** Ce qui manque à une version pour être publiée ; vide : elle est prête. */
+  missingFor(post: BlogPostDocument | null): string[] {
+    if (!post) return ['la version entière'];
+    const missing: string[] = [];
+    if (!post.title.trim()) missing.push('le titre');
+    if (!post.excerpt.trim()) missing.push('la description');
+    if (!post.contentMd.trim()) missing.push('le contenu');
+    if (post.kind === 'event') {
+      if (!post.event?.startsAt) missing.push('la date de l’événement');
+      else if (!post.event.online && !post.event.location) missing.push('le lieu de l’événement (ou « en ligne »)');
+    }
+    return missing;
+  },
+
+  /**
+   * Crée ou met à jour les deux versions d'un article en une fois. Les champs communs (type,
+   * adresse, couverture, événement, version, auteur) sont écrits à l'identique dans les deux ;
+   * titre, description, contenu, texte de l'image et étiquettes sont propres à chaque langue.
+   *
+   * Une version sans titre n'est pas créée : un brouillon peut n'avoir encore qu'une langue.
+   * La publication, elle, exige les deux (`publishPair`).
+   */
+  async savePair(id: string | null, input: BlogPairInput, adminEmail: string) {
+    const existing = id ? await this.getPair(id) : { fr: null, en: null };
+    const current = existing.fr ?? existing.en;
+    const shared = input.shared ?? {};
+
+    const firstTitle = (['fr', 'en'] as const).map((l) => input[l]?.title?.trim()).find(Boolean) ?? current?.title ?? '';
+    const slug = slugify(text(shared.slug, 'adresse', 80) || current?.slug || firstTitle);
+    if (!slug) fail('Donnez un titre (ou une adresse) à l’article.');
+    if (current && slug !== current.slug && (existing.fr?.publishedAt || existing.en?.publishedAt)) {
+      throw new BlogError(409, 'SLUG_LOCKED', 'L’adresse d’un article déjà publié ne peut plus changer.');
+    }
+
+    // L'adresse est celle d'un autre article ?
+    const own = [existing.fr?._id, existing.en?._id].filter(Boolean);
+    const clash = await BlogPost.exists({ slug, _id: { $nin: own } });
+    if (clash) throw new BlogError(409, 'SLUG_TAKEN', `L’adresse « ${slug} » est déjà prise par un autre article.`);
+
+    // Tout est validé avant la première écriture : une erreur sur l'anglais n'écrit pas le français.
+    const plans: { locale: BlogLocale; doc: BlogPostDocument | null; fields: BlogInput }[] = [];
+    for (const locale of BLOG_LOCALES) {
+      const lang = input[locale] ?? {};
+      const doc = existing[locale];
+      const title = typeof lang.title === 'string' ? lang.title.trim() : doc?.title ?? '';
+      if (!doc && !title) continue;
+      const fields: BlogInput = {
+        kind: shared.kind,
+        version: shared.version,
+        coverUrl: shared.coverUrl,
+        authorName: shared.authorName,
+        event: shared.kind && shared.kind !== 'event' ? null : shared.event,
+        title: title || doc?.title,
+        excerpt: lang.excerpt,
+        contentMd: lang.contentMd,
+        coverAlt: lang.coverAlt,
+        tags: lang.tags,
+      };
+      text(fields.title, 'titre', LIMITS.title, true);
+      this.buildFields(fields);
+      plans.push({ locale, doc, fields });
+    }
+    if (!plans.length) fail('Écrivez au moins le titre de l’une des deux versions.');
+
+    // Un article en ligne le reste dans les deux langues : on ne peut pas y vider une version.
+    if (existing.fr?.status === 'published' || existing.en?.status === 'published') {
+      for (const locale of BLOG_LOCALES) {
+        const plan = plans.find((p) => p.locale === locale);
+        const doc = existing[locale];
+        const title = plan?.fields.title ?? doc?.title ?? '';
+        const excerpt = plan?.fields.excerpt ?? doc?.excerpt ?? '';
+        const content = plan?.fields.contentMd ?? doc?.contentMd ?? '';
+        if (!title.trim() || !excerpt.trim() || !content.trim()) {
+          fail(
+            `Cet article est en ligne : sa version ${locale === 'fr' ? 'française' : 'anglaise'} doit garder un titre, une description et un contenu. Repassez-le en brouillon pour le remanier.`
+          );
+        }
+      }
+    }
+
+    const created: string[] = [];
+    try {
+      for (const plan of plans) {
+        if (plan.doc) {
+          await this.update(String(plan.doc._id), { ...plan.fields, slug }, adminEmail);
+        } else {
+          const doc = await this.create({ ...plan.fields, slug, locale: plan.locale }, adminEmail);
+          created.push(String(doc._id));
+        }
+      }
+    } catch (error) {
+      // Pas de version orpheline créée à moitié.
+      if (created.length) await BlogPost.deleteMany({ _id: { $in: created } });
+      throw error;
+    }
+
+    const anyId = String(existing.fr?._id ?? existing.en?._id ?? created[0]);
+    return this.pairObject(anyId);
+  },
+
+  /**
+   * Publie les deux versions ensemble, à la même date. Refusé tant qu'une langue manque ou est
+   * incomplète — le message dit laquelle et quoi.
+   */
+  async publishPair(id: string, adminEmail: string, publishedAt?: unknown) {
+    const pair = await this.getPair(id);
+    const problems = BLOG_LOCALES.map((locale) => ({ locale, missing: this.missingFor(pair[locale]) })).filter(
+      (p) => p.missing.length
+    );
+    if (problems.length) {
+      const name = (l: BlogLocale) => (l === 'fr' ? 'française' : 'anglaise');
+      fail(
+        `Un article se publie en français ET en anglais. ${problems
+          .map((p) => `Version ${name(p.locale)} : il manque ${p.missing.join(', ')}.`)
+          .join(' ')}`
+      );
+    }
+
+    const known = [pair.fr!.publishedAt, pair.en!.publishedAt].filter(Boolean) as Date[];
+    const date = dateValue(publishedAt) ?? (known.length ? new Date(Math.min(...known.map((d) => d.getTime()))) : new Date());
+    for (const post of [pair.fr!, pair.en!]) {
+      post.status = 'published';
+      post.publishedAt = date;
+      post.updatedBy = adminEmail;
+      await post.save();
+    }
+    return this.pairObject(id);
+  },
+
+  /** Repasse les deux versions en brouillon. */
+  async unpublishPair(id: string, adminEmail: string) {
+    const pair = await this.getPair(id);
+    for (const post of [pair.fr, pair.en]) {
+      if (!post) continue;
+      post.status = 'draft';
+      post.updatedBy = adminEmail;
+      await post.save();
+    }
+    return this.pairObject(id);
+  },
+
+  /** Publie ou dépublie — toujours les deux langues (voir `publishPair`). */
+  async setStatus(id: string, status: BlogStatus, adminEmail: string, publishedAt?: unknown) {
+    const pair = status === 'published' ? await this.publishPair(id, adminEmail, publishedAt) : await this.unpublishPair(id, adminEmail);
+    const post = await BlogPost.findById(id).lean();
+    return { ...post, pair };
+  },
+
+  /** Supprime l'article : ses deux versions. */
   async remove(id: string) {
-    const post = await BlogPost.findByIdAndDelete(id).catch(() => null);
-    if (!post) throw new BlogError(404, 'NOT_FOUND', 'Billet introuvable.');
+    const pair = await this.getPair(id);
+    await BlogPost.deleteMany({ _id: { $in: [pair.fr?._id, pair.en?._id].filter(Boolean) } });
+  },
+
+  async pairObject(id: string) {
+    const pair = await this.getPair(id);
+    return { fr: pair.fr?.toObject() ?? null, en: pair.en?.toObject() ?? null };
   },
 
   // — Interne —

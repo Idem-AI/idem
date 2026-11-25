@@ -2,6 +2,7 @@ import nodemailer, { Transporter } from 'nodemailer';
 import logger from '../../config/logger';
 import { emailsSentTotal } from '../../config/metrics';
 import { EmailLog } from '../../schemas/emailLog.schema';
+import { emailLogoAttachments } from './email-logo';
 
 /**
  * Envoi des e-mails transactionnels.
@@ -108,6 +109,8 @@ export class TransactionalEmailService {
           html: input.html,
           text: input.text,
           replyTo: input.replyTo,
+          // Le logo voyage avec le message : une image distante est bloquée.
+          attachments: emailLogoAttachments(input.html),
         });
 
         const durationMs = Date.now() - startedAt;
