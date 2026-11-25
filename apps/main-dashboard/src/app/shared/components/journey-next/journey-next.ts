@@ -1,6 +1,7 @@
-import { ChangeDetectionStrategy, Component, effect, inject, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, effect, inject, input, signal, untracked } from '@angular/core';
 import { Router } from '@angular/router';
-import { destinationApp, journeyLink, JourneyDestination, JourneyUrls, Recommendation } from '@idem/shared-journey';
+import { destinationApp, journeyFloatFirstTime, journeyLink, JourneyDestination, JourneyUrls, Recommendation } from '@idem/shared-journey';
+import { JourneyFloatService } from '../../services/journey-float.service';
 import { JourneyCardComponent } from '@idem/shared-journey/angular';
 import { environment } from '../../../../environments/environment';
 import { JourneyService } from '../../services/journey.service';
@@ -13,6 +14,9 @@ import { LanguageService } from '../../services/language.service';
  *
  * `place` : la destination que la page EST déjà (la page Communication ne recommande pas la communication).
  * `ambient` : la page peut montrer la prochaine étape logique même sans geste récent (accueil du projet).
+ *
+ * La carte reste sur la page et flotte AUSSI en haut au centre, une fois par session (`JourneyFloatService` → pile
+ * flottante de la mise en page), comme dans toutes les applications d'IDEM.
  */
 @Component({
   selector: 'app-journey-next',
@@ -27,7 +31,7 @@ import { LanguageService } from '../../services/language.service';
         [lang]="lang"
         [client]="journey"
         [beforeOpen]="beforeOpen"
-        (dismissed)="recommendation.set(null)"
+        (dismissed)="dismiss(rec)"
       />
     }
   `,
@@ -41,6 +45,7 @@ export class JourneyNext {
   readonly place = input<JourneyDestination | undefined>(undefined);
   readonly ambient = input(false);
 
+  private readonly float = inject(JourneyFloatService);
   protected readonly recommendation = signal<Recommendation | null>(null);
   protected readonly urls: JourneyUrls = {
     dashboard: typeof window !== 'undefined' ? window.location.origin : '',
@@ -59,16 +64,45 @@ export class JourneyNext {
     return false;
   };
 
+  protected dismiss(rec: Recommendation): void {
+    this.recommendation.set(null);
+    this.float.clear(rec.id);
+  }
+
+  private shown(rec: Recommendation | null): void {
+    this.recommendation.set(rec);
+    if (!rec || !journeyFloatFirstTime(rec)) return;
+    this.float.show({
+      recommendation: rec,
+      urls: this.urls,
+      beforeOpen: async (r) => {
+        this.float.clear(r.id);
+        return this.beforeOpen(r);
+      },
+      dismissed: () => this.recommendation.set(null),
+    });
+  }
+
   constructor() {
+    // Quittée (autre page), la page emporte sa carte du haut de l'écran.
+    inject(DestroyRef).onDestroy(() => {
+      const rec = this.recommendation();
+      if (rec) this.float.clear(rec.id);
+    });
     effect(() => {
       const projectId = this.projectId();
       const place = this.place();
       const ambient = this.ambient();
+      // Un autre projet : sa carte du haut de l'écran part avec l'ancienne.
+      untracked(() => {
+        const previous = this.recommendation();
+        if (previous) this.float.clear(previous.id);
+      });
       this.recommendation.set(null);
       if (!projectId) return;
       void this.journey.next({ app: 'dashboard', projectId, place, ambient }).then(([next]) => {
         // La page a pu changer de projet pendant l'appel.
-        if (this.projectId() === projectId) this.recommendation.set(next ?? null);
+        if (this.projectId() === projectId) this.shown(next ?? null);
       });
     });
   }

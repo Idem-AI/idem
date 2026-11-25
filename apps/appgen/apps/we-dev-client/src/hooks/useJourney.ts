@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { createJourneyClient, JourneyEventType, JourneyUrls, Recommendation } from '@idem/shared-journey';
+import { createJourneyClient, journeyFloatFirstTime, JourneyEventType, JourneyUrls, Recommendation } from '@idem/shared-journey';
 import { eventEmitter } from '@/components/AiChat/utils/EventEmitter';
 import { currentProduct } from '@/utils/product';
 
@@ -11,6 +11,9 @@ import { currentProduct } from '@/utils/product';
  * Les gestes arrivent par `journey:event` (en-tête, fenêtre de mise en ligne) ou par `record` (fin d'une
  * génération). À l'ouverture d'un projet, la carte du moment est redemandée : une refonte suivie d'un
  * rechargement retrouve sa proposition.
+ *
+ * Toute recommandation est AUSSI annoncée en haut au centre de l'écran (`floating`), une fois par session, comme
+ * l'« étape suivante » du dashboard — la carte du fil reste, pour y revenir.
  */
 export const journeyClient = createJourneyClient({
   apiUrl: process.env.REACT_APP_IDEM_API_BASE_URL || 'http://localhost:3001',
@@ -25,13 +28,17 @@ const place = () => (currentProduct() === 'app' ? 'app' : 'site') as 'app' | 'si
 
 export function useJourney(projectId: string | null, ready: boolean) {
   const [recommendation, setRecommendation] = useState<Recommendation | null>(null);
+  const [floating, setFloating] = useState(false);
   const asked = useRef<string | null>(null);
 
   const record = useCallback(
     async (type: JourneyEventType, forProject: string | null = projectId) => {
       const [next] = await journeyClient.record({ type, app: 'icode', projectId: forProject ?? undefined }, { place: place() });
       // Sans projet, la destination ne saurait pas quel projet ouvrir : pas de carte.
-      if (next && next.projectId) setRecommendation(next);
+      if (next && next.projectId) {
+        setRecommendation(next);
+        setFloating(journeyFloatFirstTime(next));
+      }
     },
     [projectId]
   );
@@ -41,7 +48,10 @@ export function useJourney(projectId: string | null, ready: boolean) {
     if (!projectId || !ready || asked.current === projectId) return;
     asked.current = projectId;
     void journeyClient.next({ app: 'icode', projectId, place: place() }).then(([next]) => {
-      if (next) setRecommendation(next);
+      if (next) {
+        setRecommendation(next);
+        setFloating(journeyFloatFirstTime(next));
+      }
     });
   }, [projectId, ready]);
 
@@ -53,5 +63,15 @@ export function useJourney(projectId: string | null, ready: boolean) {
     [record]
   );
 
-  return { recommendation, record, clear: () => setRecommendation(null) };
+  return {
+    recommendation,
+    floating: floating && !!recommendation,
+    record,
+    clear: () => {
+      setRecommendation(null);
+      setFloating(false);
+    },
+    /** La carte flottante quitte l'écran (on part vers la destination) ; celle du fil reste. */
+    land: () => setFloating(false),
+  };
 }

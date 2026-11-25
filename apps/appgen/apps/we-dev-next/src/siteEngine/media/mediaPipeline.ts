@@ -10,6 +10,13 @@
  * « Banque » : une bibliothèque libre de droit (Pexels, Pixabay, Unsplash — le serveur
  * choisit et ordonne selon le rôle, `/appgen/media/stock`).
  *
+ *   site             l'image de l'ancien site retenue par l'agent (refonte)
+ *
+ * GÉNÉRER SANS FAIRE ATTENDRE : quand l'hôte accepte une mise à jour tardive (`upgrade`), une génération (20 à 120 s)
+ * ne retient jamais la section. Un visuel provisoire est rendu tout de suite — la banque avec une requête plus large,
+ * le dessin composé par le code, une photo à la place d'une vidéo, le motif — et la génération le remplace dans
+ * `media.ts` dès qu'elle arrive (rechargement à chaud, même nombre de visuels : la section n'est pas recomposée).
+ *
  * Un emplacement obligatoire qui reste vide prend le motif de la charte. Un
  * refus de crédits (402), une panne, un délai dépassé : c'est le même repli,
  * jamais un site en échec. Chaque étape longue s'annonce dans la conversation.
@@ -50,6 +57,15 @@ export interface PipelineContext {
   limit<T>(task: () => Promise<T>): Promise<T>;
   /** Les générations payantes encore permises dans ce site (images et vidéos), partagées par tous les emplacements. */
   generations: { left: number };
+  /** Refonte : les images de l'ancien site, par identifiant du manifeste. */
+  siteImages?: Map<string, { url: string; alt: string }>;
+  /**
+   * Une génération finie APRÈS que l'emplacement a reçu son visuel provisoire : elle le remplace. Absent : la
+   * génération est attendue, comme avant.
+   */
+  upgrade?(slotId: string, assets: MediaAsset[]): void;
+  /** Les générations encore en cours en arrière-plan (attendues, bornées, à la fin du site). */
+  late?: Promise<unknown>[];
 }
 
 const orientationOf = (aspect: Aspect): 'landscape' | 'portrait' | 'square' =>
@@ -184,25 +200,61 @@ export async function produceMedia(slot: MediaSlot, decision: AssetDecision, ctx
   const patternAsset = (): MediaAsset[] =>
     ctx.pattern ? [{ kind: 'pattern', src: ctx.pattern.src, ground: ctx.pattern.ground, tile: ctx.pattern.tile, origin: 'pattern' }] : [];
 
+  /**
+   * Le visuel provisoire tout de suite, la génération ensuite (si l'hôte sait remplacer). Sans provisoire, ou sans
+   * remplacement possible, la génération est attendue ; un échec de génération laisse le provisoire.
+   */
+  const standInThen = async (standIn: () => Promise<MediaAsset[]>, generate: () => Promise<MediaAsset[]>): Promise<MediaAsset[]> => {
+    if (!ctx.upgrade) {
+      const generated = await generate();
+      return generated.length ? generated : await standIn();
+    }
+    const shown = await standIn();
+    if (!shown.length) {
+      const generated = await generate();
+      return generated;
+    }
+    const upgrade = ctx.upgrade;
+    const later = generate().then((generated) => {
+      if (generated.length) {
+        upgrade(slot.id, generated);
+        ChatLogger.info('SITE_MEDIA', `${slot.id} : visuel provisoire remplacé`, { by: generated.map((asset) => asset.origin).join(', ') });
+      }
+    });
+    ctx.late?.push(later);
+    return shown;
+  };
+
   let assets: MediaAsset[] = [];
 
   // LA BANQUE D'ABORD, partout : un visuel n'est généré que lorsqu'aucune bibliothèque libre de
   // droit n'a rien qui corresponde à la requête.
+  const generateVideo = async (): Promise<MediaAsset[]> => {
+    if (!takeGeneration()) return [];
+    ctx.note(fr ? `Aucune vidéo en banque : je génère celle de ${place}, le site reste visible pendant ce temps` : `No stock video: generating the one for ${place}, the site stays visible meanwhile`);
+    try {
+      const prompt = await writeGenerationPrompt({ caller: ctx.caller, decision, slot, kind: 'video', facts: ctx.facts, style: ctx.style });
+      const clip = await ctx.limit(() => ctx.client.generateVideo(prompt, tag));
+      return [{ kind: 'video', src: clip.url, origin: 'veo', credit: clip.model }];
+    } catch (error) {
+      fail('génération vidéo', error);
+      return [];
+    }
+  };
+
   switch (decision.kind) {
+    case 'site': {
+      assets = (decision.site ?? [])
+        .map((id) => ctx.siteImages?.get(id))
+        .filter((image): image is { url: string; alt: string } => !!image)
+        .map((image) => ({ kind: 'image' as const, src: image.url, alt: image.alt || alt, origin: 'site' as const }));
+      break;
+    }
+
     case 'video': {
       ctx.note(fr ? `Je cherche une vidéo pour ${place}` : `Finding a video for ${place}`);
       assets = await stockVideo();
-      if (!assets.length && takeGeneration()) {
-        ctx.note(fr ? `Aucune vidéo sur Pexels : je génère celle de ${place} (une à deux minutes)` : `No match on Pexels: generating the video for ${place} (one to two minutes)`);
-        try {
-          const prompt = await writeGenerationPrompt({ caller: ctx.caller, decision, slot, kind: 'video', facts: ctx.facts, style: ctx.style });
-          const clip = await ctx.limit(() => ctx.client.generateVideo(prompt, tag));
-          assets = [{ kind: 'video', src: clip.url, origin: 'veo', credit: clip.model }];
-        } catch (error) {
-          fail('génération vidéo', error);
-        }
-      }
-      if (!assets.length) assets = await stockPhotos(decision.query);
+      if (!assets.length) assets = await standInThen(() => stockPhotos(decision.query), generateVideo);
       break;
     }
 
@@ -210,7 +262,12 @@ export async function produceMedia(slot: MediaSlot, decision: AssetDecision, ctx
       if (slot.role === 'gallery') ctx.note(fr ? 'Je choisis les photos de la galerie' : 'Choosing the gallery photos');
       else ctx.note(fr ? `Je cherche une photo pour ${place}` : `Finding a photo for ${place}`);
       assets = await stockPhotos(decision.query);
-      if (!assets.length && slot.count === 1) assets = await generateImage('photo');
+      // Rien de précis en banque : une photo plus large (ou le motif) tout de suite, la photo générée ensuite.
+      if (!assets.length && slot.count === 1)
+        assets = await standInThen(async () => {
+          const broader = await stockPhotos(decision.query.split(' ').slice(0, 2).join(' '));
+          return broader.length ? broader : patternAsset();
+        }, () => generateImage('photo'));
       // Une galerie sans assez de photos pour la requête précise : une requête plus large.
       if (!assets.length && slot.count > 1) assets = await stockPhotos(decision.query.split(' ').slice(0, 2).join(' '));
       break;
@@ -222,7 +279,7 @@ export async function produceMedia(slot: MediaSlot, decision: AssetDecision, ctx
       // dessin composé par le code n'est qu'un dernier recours (jugé pauvre, 28/10/2026).
       ctx.note(fr ? `Je cherche un visuel pour ${place}` : `Finding a visual for ${place}`);
       assets = await stockPhotos(decision.query, 'illustration');
-      if (!assets.length) assets = await generateImage('illustration');
+      if (!assets.length) assets = await standInThen(drawSvg, () => generateImage('illustration'));
       if (!assets.length) assets = await drawSvg();
       break;
     }
@@ -230,7 +287,7 @@ export async function produceMedia(slot: MediaSlot, decision: AssetDecision, ctx
     case 'illustration-3d': {
       ctx.note(fr ? `Je cherche un visuel pour ${place}` : `Finding a visual for ${place}`);
       assets = await stockPhotos(/\b3d\b/i.test(decision.query) ? decision.query : `${decision.query} 3d`, 'illustration');
-      if (!assets.length) assets = await generateImage('illustration-3d');
+      if (!assets.length) assets = await standInThen(drawSvg, () => generateImage('illustration-3d'));
       if (!assets.length) assets = await drawSvg();
       break;
     }

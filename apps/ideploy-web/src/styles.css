@@ -162,3 +162,10 @@
   padding: 3px 10px; border-radius: 9999px;
   font-size: 9px; font-weight: 700; text-transform: uppercase;
 }
+
+/* La pile flottante (étape suivante, @idem/shared-styles) : sous la barre du haut (4 rem), centrée sur le contenu,
+   à droite de la barre latérale fixe (16 rem). */
+:root {
+  --idem-float-top: 5rem;
+  --idem-float-center: calc(50% + 8rem);
+}

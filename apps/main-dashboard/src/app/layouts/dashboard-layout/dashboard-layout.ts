@@ -1,4 +1,8 @@
-import { Component, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
+import { JourneyCardComponent } from '@idem/shared-journey/angular';
+import { FloatingJourney, JourneyFloatService } from '../../shared/services/journey-float.service';
+import { JourneyService } from '../../shared/services/journey.service';
+import { LanguageService } from '../../shared/services/language.service';
 import { RouterOutlet } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { SidebarDashboard } from '../../modules/dashboard/components/sidebar-dashboard/sidebar-dashboard';
@@ -12,12 +16,25 @@ import { PromoBannerComponent } from '@idem/shared-promotions/angular';
 @Component({
   selector: 'app-dashboard-layout',
   standalone: true,
-  imports: [RouterOutlet, SidebarDashboard, CommonModule, GuidedStepBarComponent, NextStepBarComponent, TopbarComponent, PromoBannerComponent, AppFooterComponent],
+  imports: [RouterOutlet, SidebarDashboard, CommonModule, GuidedStepBarComponent, NextStepBarComponent, TopbarComponent, PromoBannerComponent, AppFooterComponent, JourneyCardComponent],
   templateUrl: './dashboard-layout.html',
   styleUrl: './dashboard-layout.css',
 })
 export class DashboardLayoutComponent {
   protected readonly isSidebarCollapsed = signal(false);
+  private readonly journeyFloat = inject(JourneyFloatService);
+  private readonly language = inject(LanguageService);
+  protected readonly journey = inject(JourneyService);
+  /** La suite proposée par la boucle IDEM, confiée par la page qui l'affiche (`app-journey-next`). */
+  protected readonly floatingJourney = this.journeyFloat.current;
+  protected get lang(): string {
+    return this.language.getCurrentLanguage();
+  }
+
+  protected closeJourney(card: FloatingJourney): void {
+    this.journeyFloat.clear(card.recommendation.id);
+    card.dismissed();
+  }
 
   constructor() {
     // Initialize with saved sidebar state from localStorage to prevent flicker

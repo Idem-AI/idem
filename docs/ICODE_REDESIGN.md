@@ -75,9 +75,32 @@ Le relevé du site note aussi `logo.nameBeside` : le nom écrit en texte à côt
   - il n'écrit plus rien dans l'ancien projet (enregistrement toutes les 20 s, fin de réponse) ;
   - à la fin, il ouvre la conversation du nouveau projet. Elle commence à la réponse de la refonte, sous un nouvel identifiant. L'ancienne reste intacte dans son projet.
 
+### Les images : regardées, choisies, sinon cherchées, sinon générées (25/11/2026)
+
+Avant, chaque section reprenait les images de ses sections d'origine sans que personne ne les regarde. Une photo de plage dans l'ouverture d'un pressing restait dans l'ouverture.
+
+1. **Le manifeste** (API, `SiteImport/siteImageReading.ts`). À la recopie, chaque image de contenu (60 au plus, 160 px au moins) est regardée par le modèle de vision. Il reçoit une vignette de 512 px et rend un JSON court : la description, la nature (photo, illustration, 3D, logo, icône, capture, texte, décor), les personnes, le texte incrusté, l'aspect de photo de banque et les défauts. La lecture reste objective : elle ne dit pas si l'image convient. Elle tourne dans sa propre file (8 à la fois), sans ralentir la recopie. Pour un nouveau projet, recopie et lecture partent dès la création du projet, pendant le logo, la typographie, la DA et les motifs. Elles sont donc cachées derrière des étapes qui existaient déjà. Une image non lue au bout de 25 s reste sans `vision`.
+2. **Le choix** (iCode, `mediaDirector.ts`). L'agent média reçoit le manifeste (`siteImageLibrary`, sans les logos, icônes et captures) dans **le même appel** qu'avant. Pour chaque section, il retient l'image d'origine qui sert le projet, ou aucune. Il dit alors quoi chercher : photo, illustration ou 3D, avec le sujet et la requête. Le code borne ses choix (`castSiteImages`) :
+   - une image ne sert qu'une fois ;
+   - une image fait au moins 400 px ;
+   - une ouverture veut une image en paysage, de 1 000 px au moins, nette, sans texte ni défaut (`opensWell`) ;
+   - un choix refusé reprend le visuel décrit par l'agent.
+
+   Sans réponse de l'agent, les images d'origine restent à leur place, avec les mêmes bornes.
+3. **Ailleurs** (`mediaPipeline.ts`). Les banques configurées viennent d'abord (Pexels, Pixabay, Unsplash ; filtre illustration pour une illustration), puis la génération.
+4. **Sans attente.** Une génération ne retient plus la section. Un visuel provisoire est rendu tout de suite :
+   - une photo : une requête de banque plus large, sinon le motif ;
+   - une illustration : le dessin composé par le code ;
+   - une vidéo : une photo.
+
+   La génération le remplace dans `media.ts` dès qu'elle arrive, par rechargement à chaud. Le nombre de visuels ne change pas, donc la section n'est pas recomposée. À la fin, les générations encore en cours sont attendues au plus 45 s après la dernière section (`LATE_MEDIA_GRACE_MS`), pendant la traduction et la charte. Au-delà, le provisoire reste.
+
+Un relevé antérieur (sans `vision`) ou une vision indisponible : la règle d'avant s'applique (`siteImageLibrary` → `null`).
+
 ## Contrôles
 
 - `npm run check:redesign` (apps/appgen/apps/we-dev-next) : 29 contrôles, sans réseau ni modèle. Ils couvrent les formes, le départ des formes d'avant, les règles des agents, la nouvelle session et la marque (TSX compilé).
+- `npm run check:image-casting` (apps/appgen/apps/we-dev-next) : 28 contrôles à modèle simulé. Ils couvrent le manifeste, les bornes, l'agent, le repli, le provisoire remplacé et la lecture de la réponse de vision.
 - `npm run check:brand-mark` (apps/api) : rognage, logotype/icône, logo clair, fond opaque. `-- <dossier>` mesure en plus les `.svg` d'un dossier et rend une planche à 36 px.
 
 Pas encore vu sur une vraie refonte : aucun essai payant n'a été lancé. Il reste à vérifier dans l'atelier :

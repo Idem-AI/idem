@@ -36,6 +36,27 @@ export interface InventoryImage {
   fallback?: string;
   /** Mesurée à la recopie par le code (`packages/design-tools/src/image-quality.ts`) ; absente des relevés antérieurs au 21/11/2026. */
   quality?: ImageQuality;
+  /** Regardée à la recopie par le modèle de vision (`SiteImport/siteImageReading.ts`) ; absente avant le 25/11/2026. */
+  vision?: ImageReading;
+}
+
+/**
+ * CE QUE MONTRE UNE IMAGE DE L'ANCIEN SITE, lu par le modèle de vision à la recopie : une description objective, sans
+ * juger si elle convient. C'est l'agent média de la refonte qui décide, section par section, si elle sert le projet.
+ */
+export interface ImageReading {
+  /** Ce que montre l'image, en anglais, une à deux phrases (sujet, action, lieu, cadrage). */
+  description: string;
+  /** La nature de l'image : seules `photo`, `illustration` et `3d` peuvent illustrer une section. */
+  kind: 'photo' | 'illustration' | '3d' | 'logo' | 'icon' | 'screenshot' | 'text' | 'decorative';
+  /** Des personnes y sont visibles. */
+  people: boolean;
+  /** Du texte lisible est incrusté (slogan, affiche, prix) : jamais sous un titre du nouveau site. */
+  text: boolean;
+  /** Une photo de banque générique (poignée de main, bureau anonyme, sourire face caméra). */
+  generic: boolean;
+  /** Les défauts visibles : filigrane, collage, sujet coupé, sombre, flou… (vide si aucun). */
+  flaws: string[];
 }
 
 export type { ImageQuality };

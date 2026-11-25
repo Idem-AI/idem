@@ -56,7 +56,7 @@ import { fetchBrandMark, fetchSiteContent, withBrandMark } from './redesign/idem
 import { MANIFEST_PATH, PlanTracker, readSavedDesign, remaining, SavedDesign, SitePlan } from './plan.js';
 import { DESIGN_SYSTEM_PATHS } from './template.js';
 import type { DesignOutcome } from './designConfig.js';
-import { bestFirst, inventoryFacts, inventoryOutline, inventoryText, InventorySection, linkMapper, type SiteInventory, oldShapes, sectionIndex, sourceContent } from './redesign/inventory.js';
+import { bestFirst, siteImageLibrary, inventoryFacts, inventoryOutline, inventoryText, InventorySection, linkMapper, type SiteInventory, oldShapes, sectionIndex, sourceContent } from './redesign/inventory.js';
 import { tierOf, TIERS } from './sectionCatalog/tier.js';
 import { sectionCatalog } from './sectionCatalog/registry.js';
 import { CopyTask, PageCopy, startPageCopy } from './sectionCatalog/copy.js';
@@ -207,6 +207,11 @@ function themeSummary(config: Record<string, any>): string {
 
 /** Ce que la fin d'une refonte attend encore la charte, une fois le site écrit (au-delà, elle finit dans IDEM). */
 const CHARTER_GRACE_MS = Number(process.env.SITE_CHARTER_GRACE_MS) || 3 * 60_000;
+/**
+ * Les visuels générés en arrière-plan (un provisoire est déjà affiché) : attendus au plus ce temps après la dernière
+ * section, pendant la traduction et la charte. Au-delà, le provisoire reste — le site n'attend jamais une image.
+ */
+const LATE_MEDIA_GRACE_MS = 45_000;
 
 export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
   return {
@@ -468,6 +473,10 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
       // section qui reprend des images d'origine en affiche (même si l'architecte n'en demandait pas).
       const sourcesBySection = new Map<string, InventorySection[]>();
       let mapLink = (href: string) => href;
+      // Le manifeste des images de l'ancien site (chacune regardée à la recopie) : l'agent média choisit, section par
+      // section, celle qui sert le projet. `null` pour un relevé non regardé : les images restent à leur place d'origine.
+      const imageLibrary = redesign && inventory && !resuming ? siteImageLibrary(inventory) : null;
+      const libraryUrls = new Set((imageLibrary ?? []).map((image) => image.url));
       if (inventory) {
         const index = sectionIndex(inventory);
         for (const page of manifest.pages) {
@@ -475,7 +484,8 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
             const sources = (section.sources ?? []).map((id) => index.get(id)?.section).filter((x): x is InventorySection => !!x);
             if (!sources.length) continue;
             sourcesBySection.set(mediaKey(page, section), sources);
-            if (section.visual === 'none' && sources.some((x) => x.images.length)) section.visual = 'photo';
+            const illustrated = imageLibrary ? sources.some((x) => x.images.some((image) => libraryUrls.has(image.url))) : sources.some((x) => x.images.length);
+            if (section.visual === 'none' && illustrated) section.visual = 'photo';
           }
         }
         mapLink = linkMapper(inventory, (pageIndex) => (manifest.pages.find((p) => p.source === pageIndex) ?? manifest.pages.find((p) => originPagesOf(p).includes(pageIndex)))?.path);
@@ -541,6 +551,9 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
       const slots = mediaEnabled ? mediaSlotsOf(manifest) : [];
       const produced: Record<string, MediaAsset[]> = {};
       const mediaBySlot = new Map<string, Promise<MediaAsset[]>>();
+      // Les générations parties en arrière-plan, et la fin du site (après elle, plus rien n'est écrit dans `media.ts`).
+      const lateMedia: Promise<unknown>[] = [];
+      let mediaClosed = false;
       // Reprise : les visuels déjà produits restent ; un composant déjà écrit n'en demande pas d'autre.
       if (resuming) {
         const keys = manifest.pages.flatMap((page) => page.sections.map((section) => mediaKey(page, section)));
@@ -554,7 +567,22 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
       // Refonte : chaque section reprend les images de SES sections d'origine (toutes, galeries comprises) ; seules
       // les sections sans image d'origine qui en demandent une passent par l'agent média (banque ou génération,
       // selon la direction artistique et la cible).
-      if (redesign && inventory && !resuming) {
+      // Avec le manifeste : rien n'est posé d'avance. Chaque emplacement connaît les images de ses sections d'origine (le
+      // nombre de visuels prévu en vient, pour composer la section tout de suite) ; l'agent média décide ensuite.
+      const predicted = new Map<string, number>();
+      if (imageLibrary) {
+        const idOf = new Map(imageLibrary.map((image) => [image.url, image.id]));
+        for (const page of manifest.pages)
+          for (const section of page.sections) {
+            const key = mediaKey(page, section);
+            const own = [...new Set(bestFirst((sourcesBySection.get(key) ?? []).flatMap((x) => x.images)).map((image) => idOf.get(image.url)).filter((id): id is string => !!id))];
+            const slot = slots.find((candidate) => candidate.id === key);
+            if (!slot || !own.length) continue;
+            slot.ownImages = own;
+            predicted.set(key, Math.min(own.length, 12));
+          }
+      }
+      if (redesign && inventory && !resuming && !imageLibrary) {
         let reused = 0;
         for (const page of manifest.pages) {
           for (const section of page.sections) {
@@ -584,7 +612,7 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
       const plannedKeys = (page: ManifestPage, section: ManifestSection): string[] => {
         const key = mediaKey(page, section);
         const known = produced[key]?.length ?? 0;
-        return keysFor(key, known || (openSlots.has(key) ? 1 : 0));
+        return keysFor(key, known || (openSlots.has(key) ? predicted.get(key) ?? 1 : 0));
       };
 
       // Les auteurs : un composant par tâche, avec le contrat des composants retenus.
@@ -715,7 +743,20 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
               language,
               hasPattern: !!pattern,
               allowVideo: (process.env.SITE_MEDIA_VIDEO ?? 'on').toLowerCase() !== 'off',
+              ...(imageLibrary ? { library: imageLibrary } : {}),
             });
+            if (imageLibrary) {
+              const kept = decisions.filter((decision) => decision.kind === 'site');
+              const images = kept.reduce((total, decision) => total + (decision.site?.length ?? 0), 0);
+              const elsewhere = decisions.length - kept.length;
+              ChatLogger.info('SITE_MEDIA', 'Images de l’ancien site distribuées', { library: imageLibrary.length, kept: images, sections: kept.length, elsewhere });
+              if (images || elsewhere)
+                stream.note(
+                  fr
+                    ? `${images ? `Je reprends ${images} image${images > 1 ? 's' : ''} de votre site, là où elle${images > 1 ? 's servent' : ' sert'}` : 'Aucune image de votre site ne convient aux nouvelles sections'}${elsewhere ? ` ; ${elsewhere} section${elsewhere > 1 ? 's reçoivent' : ' reçoit'} un nouveau visuel` : ''}`
+                    : `${images ? `Reusing ${images} image${images > 1 ? 's' : ''} from your site where ${images > 1 ? 'they fit' : 'it fits'}` : 'None of your site’s images fits the new sections'}${elsewhere ? `; ${elsewhere} section${elsewhere > 1 ? 's get' : ' gets'} a new visual` : ''}`
+                );
+            }
             const mediaLimit = createLimiter(2);
             const context = {
               client,
@@ -728,6 +769,14 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
               writeFile: (path: string, content: string) => !abort.signal.aborted && stream.file(path, content),
               limit: mediaLimit,
               generations: { left: Number(process.env.SITE_MEDIA_MAX_GENERATED ?? 4) },
+              ...(imageLibrary ? { siteImages: new Map(imageLibrary.map((image) => [image.id, { url: image.url, alt: image.alt || facts.name }])) } : {}),
+              // Une génération arrivée après le visuel provisoire le remplace (rechargement à chaud de `media.ts`).
+              upgrade: (slotId: string, assets: MediaAsset[]) => {
+                if (abort.signal.aborted || mediaClosed) return;
+                produced[slotId] = assets;
+                emit('src/site/media.ts', renderMediaModule(produced));
+              },
+              late: lateMedia,
             };
             for (const slot of open) {
               const decision = decisions.find((item) => item.slot === slot.id);
@@ -907,6 +956,7 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
 
       const [pages] = await Promise.all([Promise.all(pageJobs), header, footer]);
       if (abort.signal.aborted) return;
+      const sectionsDoneAt = Date.now();
 
       // L'assemblage : chaque page importe ses sections écrites, dans l'ordre.
       // Un en-tête ou un pied de page qui ne compile pas n'est pas importé.
@@ -994,6 +1044,22 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
             : 'Your brand guidelines are still being finished in your IDEM project: you will find them there in a few minutes.';
         } else charterProblem = outcome;
       }
+      // Les visuels générés en arrière-plan : le site est déjà complet avec leurs provisoires. Ce qui arrive dans le
+      // délai (compté depuis la dernière section, la traduction et la charte comprises) remplace son provisoire.
+      if (lateMedia.length) {
+        let settled = 0;
+        const all = Promise.all(lateMedia.map((task) => task.catch(() => undefined).finally(() => (settled += 1))));
+        const left = LATE_MEDIA_GRACE_MS - (Date.now() - sectionsDoneAt);
+        if (left > 0 && settled < lateMedia.length) {
+          stream.note(fr ? 'J’affine les derniers visuels' : 'Refining the last visuals');
+          let timer: NodeJS.Timeout | undefined;
+          await Promise.race([all, new Promise((resolve) => (timer = setTimeout(resolve, left)))]);
+          clearTimeout(timer);
+        }
+        if (settled < lateMedia.length) ChatLogger.warn('SITE_MEDIA', 'Visuels générés trop tard : les provisoires restent', { pending: lateMedia.length - settled, graceMs: LATE_MEDIA_GRACE_MS });
+      }
+      mediaClosed = true;
+      if (abort.signal.aborted) return;
       // Tout ce qui pouvait être fait l'est : le plan est clos (un composant en échec reste à « Corriger »).
       tracker.finish();
       stream.text('</boltArtifact>\n');

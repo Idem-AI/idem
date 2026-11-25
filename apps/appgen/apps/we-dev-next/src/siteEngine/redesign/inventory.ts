@@ -18,6 +18,74 @@ export interface InventoryImage {
    * ceux du fichier recopié. Absente des relevés antérieurs au 21/11/2026.
    */
   quality?: { softness: number; blockiness: number; photo: boolean; issues: ('blurry' | 'blocky')[] };
+  /** Regardée à la recopie par le modèle de vision (API `SiteImport/siteImageReading.ts`) ; absente avant le 25/11/2026. */
+  vision?: ImageReading;
+}
+
+/** Ce que montre une image de l'ancien site, lu à la recopie (même forme que `apps/ivision/core/src/site/site-crawler.ts`). */
+export interface ImageReading {
+  description: string;
+  kind: 'photo' | 'illustration' | '3d' | 'logo' | 'icon' | 'screenshot' | 'text' | 'decorative';
+  people: boolean;
+  text: boolean;
+  generic: boolean;
+  flaws: string[];
+}
+
+/**
+ * Une image de l'ancien site telle que l'agent média la voit : un identifiant court (`i3`), ce qu'elle montre, sa
+ * forme et sa netteté (mesurées par le code), les sections qui la montraient. Les logos, icônes, captures et fonds
+ * décoratifs n'y figurent pas : ils n'illustrent jamais une section.
+ */
+export interface LibraryImage {
+  id: string;
+  url: string;
+  alt: string;
+  width: number;
+  height: number;
+  reading: ImageReading;
+  /** Les sections d'origine qui la montraient (`p0.s1`). */
+  from: string[];
+  /** Défaut mesuré par le code (flou, blocs JPEG). */
+  issues: string[];
+}
+
+const ILLUSTRATING: ImageReading['kind'][] = ['photo', 'illustration', '3d'];
+
+/**
+ * LE MANIFESTE DES IMAGES DE L'ANCIEN SITE, ou `null` quand le relevé n'a pas été regardé (relevé antérieur, vision
+ * indisponible) : la refonte reprend alors les images comme avant, chacune dans sa section d'origine.
+ */
+export function siteImageLibrary(inventory: SiteInventory): LibraryImage[] | null {
+  const byUrl = new Map<string, LibraryImage>();
+  let seen = 0;
+  let read = 0;
+  for (const page of inventory.pages)
+    for (const section of page.sections)
+      for (const image of section.images) {
+        const known = byUrl.get(image.url);
+        if (known) {
+          if (!known.from.includes(section.id)) known.from.push(section.id);
+          continue;
+        }
+        seen += 1;
+        if (!image.vision) continue;
+        read += 1;
+        if (!ILLUSTRATING.includes(image.vision.kind)) continue;
+        byUrl.set(image.url, {
+          id: `i${byUrl.size + 1}`,
+          url: image.url,
+          alt: image.alt,
+          width: image.width,
+          height: image.height,
+          reading: image.vision,
+          from: [section.id],
+          issues: image.quality?.issues ?? [],
+        });
+      }
+  // Moins de la moitié des images regardées : le manifeste mentirait sur l'ancien site, la règle d'avant reste.
+  if (!seen || read < seen / 2) return null;
+  return [...byUrl.values()];
 }
 
 /**

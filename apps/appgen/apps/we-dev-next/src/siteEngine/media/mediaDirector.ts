@@ -7,6 +7,10 @@
  *   illustration-3d  un rendu 3D ;
  *   video            un clip court ;
  *
+ * Une REFONTE donne en plus le manifeste des images de l'ancien site (ce que chacune montre, lu par le modèle de
+ * vision à la recopie) : l'agent choisit pour chaque emplacement l'image d'origine qui sert le projet (`site`), ou
+ * constate qu'aucune ne convient et dit quoi chercher. Le code vérifie ses choix (forme, netteté, texte incrusté).
+ *
  * Toujours LA BANQUE D'ABORD : un visuel n'est généré (image, vidéo) que si
  * aucune bibliothèque libre de droit (Pexels, Pixabay, Unsplash — `media/stock`) n'a rien
  * qui corresponde (`produceMedia`).
@@ -24,8 +28,9 @@ import { cleanText } from '../json.js';
 import { ModelCaller, SHAPE_REMINDER, Verdict } from '../modelCaller.js';
 import { SiteFacts } from '../siteFacts.js';
 import { Aspect } from './mediaClient.js';
+import type { LibraryImage } from '../redesign/inventory.js';
 
-export type AssetKind = 'photo' | 'illustration' | 'illustration-3d' | 'video' | 'pattern' | 'none';
+export type AssetKind = 'site' | 'photo' | 'illustration' | 'illustration-3d' | 'video' | 'pattern' | 'none';
 
 /**
  * Le style visuel du site tel que les agents média le lisent : tiré du design
@@ -58,6 +63,8 @@ export interface MediaSlot {
   videoAllowed: boolean;
   /** Le texte se pose sur le média : il lui faut une zone calme. */
   overlay: boolean;
+  /** Refonte : les images (identifiants du manifeste) des sections d'origine que reprend cette section. */
+  ownImages?: string[];
 }
 
 export interface AssetDecision {
@@ -73,6 +80,8 @@ export interface AssetDecision {
   alt: string;
   /** Pour une illustration : l'icône principale puis trois d'appui (lucide), mises en scène par le code. */
   icons?: string[];
+  /** `kind: 'site'` : les images de l'ancien site retenues (identifiants du manifeste), la principale d'abord. */
+  site?: string[];
 }
 
 const KINDS: AssetKind[] = ['photo', 'illustration', 'illustration-3d', 'video', 'pattern', 'none'];
@@ -102,15 +111,47 @@ function ruleDecision(slot: MediaSlot, family: MediaStyle['family'], facts: Site
   return { slot: slot.id, kind, subject, query, queryLanguage: 'fr', alt };
 }
 
-function prompt(slots: MediaSlot[], facts: SiteFacts, style: MediaStyle, language: string): string {
+/** Une ligne du manifeste des images, telle que l'agent la lit. */
+function libraryRow(image: LibraryImage): string {
+  const r = image.reading;
+  const ratio = image.width / Math.max(1, image.height);
+  const shape = ratio >= 1.15 ? 'paysage' : ratio <= 0.87 ? 'portrait' : 'carré';
+  const marks = [
+    r.kind,
+    `${shape} ${image.width}×${image.height}`,
+    r.people ? 'personnes' : '',
+    r.text ? 'texte incrusté' : '',
+    r.generic ? 'photo de banque générique' : '',
+    [...r.flaws, ...image.issues.map((i) => (i === 'blurry' ? 'floue' : 'compressée'))].length ? `défauts : ${[...r.flaws, ...image.issues.map((i) => (i === 'blurry' ? 'floue' : 'compressée'))].join(', ')}` : '',
+    `vue dans ${image.from.slice(0, 3).join(', ')}`,
+  ].filter(Boolean);
+  return `- ${image.id} · ${marks.join(' · ')}\n  « ${r.description.slice(0, 220)} »`;
+}
+
+function prompt(slots: MediaSlot[], facts: SiteFacts, style: MediaStyle, language: string, library?: LibraryImage[]): string {
   const family = style.family;
   const place = [facts.city, facts.country].filter(Boolean).join(', ');
   const rows = slots.map(
     (slot) =>
       `- ${slot.id} · ${slot.role} · format ${slot.aspect}${
         slot.required ? ' · obligatoire' : ''
-      }${slot.videoAllowed ? ' · vidéo possible' : ''}${slot.count > 1 ? ` · ${slot.count} photos` : ''}\n  section : ${slot.brief.slice(0, 160)}`
+      }${slot.videoAllowed ? ' · vidéo possible' : ''}${slot.count > 1 ? ` · ${slot.count} photos` : ''}${
+        library && slot.ownImages?.length ? ` · images de ses sections d'origine : ${slot.ownImages.join(', ')}` : ''
+      }\n  section : ${slot.brief.slice(0, 160)}`
   );
+  const siteImages = library
+    ? `
+# Les images de l'ancien site (regardées une à une)
+${library.length ? library.map(libraryRow).join('\n') : "Aucune image utilisable (seulement des logos, icônes ou captures)."}
+`
+    : '';
+  const siteTask = library
+    ? `
+D'ABORD les images de l'ancien site : pour chaque emplacement, retiens dans "site" l'image (ou, pour une galerie, les images) qui montre vraiment ce que dit la section et ce que fait ${facts.name}. Les images de ses sections d'origine sont un bon point de départ, pas une obligation : une meilleure image d'une autre section peut y aller, une image d'origine hors sujet n'y va pas. Une image ne sert qu'une fois.
+N'en retiens AUCUNE (laisse "site" vide) quand aucune ne convient : sujet sans rapport avec le métier ou la section, photo de banque générique, texte incrusté dans une ouverture, défaut visible, format qui ne tient pas (une ouverture veut une image en paysage, nette et assez grande). Remplis alors "kind", "subject" et "query" pour la chercher ailleurs.
+Remplis TOUJOURS "kind", "subject", "query" et "alt" (ils servent si l'image retenue est refusée).
+`
+    : '';
 
   return `# Le projet
 ${facts.name} : ${facts.description}
@@ -120,11 +161,12 @@ ${facts.audience ? `Clientèle : ${facts.audience}\n` : ''}${place ? `Lieu : ${p
 # La charte
 Style : ${style.name} (${family === 'structured' ? 'sobre et construit' : family === 'expressive' ? 'expressif et coloré' : 'doux et dessiné'}). Signature : ${style.signature}.
 
+${siteImages}
 # Les emplacements visuels
 ${rows.join('\n')}
 
 # Ta tâche
-Pour chaque emplacement, choisis le visuel qui sert le mieux la section :
+${siteTask}Pour chaque emplacement${library ? ' sans image de l’ancien site' : ''}, choisis le visuel qui sert le mieux la section :
 - "photo" : une scène réelle (des personnes au travail, un lieu, un produit, un plat).
 - "illustration" : une illustration composée de pictogrammes (un principal mis en scène, trois d'appui), pour un service, une démarche en étapes ou une idée qu'une photo montrerait mal. Donne ses 4 icônes lucide-react dans "icons" (ex. Truck, Shirt, Clock, CircleCheck).
 - "illustration-3d" : un rendu 3D, pour un produit ou un concept dans un style expressif.
@@ -140,7 +182,8 @@ La requête de banque d'images décrit une SCÈNE visible, pas un lieu ni une ma
 {
   "assets": [
     {
-      "slot": "<id de l'emplacement>",
+      "slot": "<id de l'emplacement>",${library ? `
+      "site": ["identifiants des images de l'ancien site retenues, la principale d'abord ; [] si aucune ne convient"],` : ''}
       "kind": "photo|illustration|illustration-3d|video|pattern|none",
       "subject": "ce que montre le visuel, en anglais, une phrase précise",
       "query": "requête de banque d'images en anglais, 2 à 5 mots",
@@ -149,6 +192,30 @@ La requête de banque d'images décrit une SCÈNE visible, pas un lieu ni une ma
     }
   ]
 }`;
+}
+
+/** Une image qui peut ouvrir une page : en paysage, assez grande, nette, sans texte incrusté ni défaut visible. */
+export function opensWell(image: LibraryImage): boolean {
+  return image.width / Math.max(1, image.height) >= 1.15 && image.width >= 1000 && !image.reading.text && !image.reading.flaws.length && !image.issues.length;
+}
+
+/**
+ * Les images de l'ancien site retenues par l'agent pour un emplacement, après les bornes du code : identifiants connus,
+ * jamais deux fois la même, au moins 400 px, jamais de texte incrusté sous un titre posé dessus. Une ouverture met en
+ * tête une image qui ouvre bien ; sans aucune, le choix est refusé (le visuel est alors cherché ailleurs).
+ */
+export function castSiteImages(slot: MediaSlot, ids: string[], byId: Map<string, LibraryImage>, used: Set<string>): string[] {
+  const picked = [...new Set(ids)]
+    .map((id) => byId.get(id))
+    .filter((image): image is LibraryImage => !!image && !used.has(image.id))
+    .filter((image) => Math.min(image.width, image.height) >= 400 && !(slot.overlay && image.reading.text));
+  if (!picked.length) return [];
+  if (slot.role === 'hero') {
+    const lead = picked.findIndex(opensWell);
+    if (lead < 0) return [];
+    picked.unshift(...picked.splice(lead, 1));
+  }
+  return picked.slice(0, 12).map((image) => image.id);
 }
 
 /**
@@ -163,8 +230,10 @@ export async function directMedia(options: {
   language: string;
   hasPattern: boolean;
   allowVideo: boolean;
+  /** Refonte : le manifeste des images de l'ancien site (`siteImageLibrary`). */
+  library?: LibraryImage[];
 }): Promise<AssetDecision[]> {
-  const { slots, facts, style, caller, language, hasPattern, allowVideo } = options;
+  const { slots, facts, style, caller, language, hasPattern, allowVideo, library } = options;
   const family = style.family;
   if (!slots.length) return [];
 
@@ -173,7 +242,7 @@ export async function directMedia(options: {
     const outcome = await caller.json(
       'media',
       "Tu es directeur artistique. Tu choisis les visuels d'un site vitrine. Réponds UNIQUEMENT par l'objet JSON demandé.",
-      prompt(slots, facts, style, language),
+      prompt(slots, facts, style, language, library),
       (raw): Verdict<Record<string, AssetDecision>> => {
         const assets = (raw as { assets?: unknown[] } | null)?.assets;
         if (!Array.isArray(assets)) return { problem: SHAPE_REMINDER };
@@ -190,11 +259,12 @@ export async function directMedia(options: {
             queryLanguage: 'en',
             alt: cleanText(item.alt, 160),
             icons: Array.isArray(item.icons) ? (item.icons as unknown[]).map((icon) => cleanText(icon, 40)).filter(Boolean).slice(0, 4) : [],
+            ...(library && Array.isArray(item.site) ? { site: (item.site as unknown[]).filter((id): id is string => typeof id === 'string').slice(0, 12) } : {}),
           };
         }
         return Object.keys(byslot).length >= Math.ceil(slots.length / 2) ? { value: byslot } : { problem: SHAPE_REMINDER };
       },
-      1800
+      library ? 2800 : 1800
     );
     answered = outcome.value ?? {};
   } catch (error) {
@@ -207,12 +277,28 @@ export async function directMedia(options: {
   let videos = 0;
   const decisions: AssetDecision[] = [];
 
+  const byId = new Map((library ?? []).map((image) => [image.id, image]));
+  const used = new Set<string>();
+
   for (const slot of slots) {
     const fallback = { ...ruleDecision(slot, family, facts, language), queryLanguage: (language === 'en' ? 'en' : 'fr') as 'en' | 'fr' };
     const decision: AssetDecision = { ...fallback, ...(answered[slot.id] ?? {}) };
     if (!decision.subject) decision.subject = fallback.subject;
     if (!decision.query) decision.query = fallback.query;
     if (!decision.alt) decision.alt = fallback.alt;
+
+    // L'image de l'ancien site retenue, si le code la juge à sa place ; sinon le visuel décrit est cherché ailleurs.
+    const cast = library ? castSiteImages(slot, decision.site ?? [], byId, used) : [];
+    if (cast.length) {
+      cast.forEach((id) => used.add(id));
+      decision.kind = 'site';
+      decision.site = cast;
+      decision.alt = byId.get(cast[0])!.alt || decision.alt;
+      decisions.push(decision);
+      continue;
+    }
+    delete decision.site;
+    if (decision.kind === 'site') decision.kind = fallback.kind;
 
     if (slot.role === 'gallery') decision.kind = 'photo';
     if (decision.kind === 'video' && (!slot.videoAllowed || videos >= 1 || !allowVideo)) decision.kind = 'photo';
@@ -222,6 +308,19 @@ export async function directMedia(options: {
     if (decision.kind === 'video') videos += 1;
 
     decisions.push(decision);
+  }
+
+  // Sans réponse de l'agent, une refonte reprend les images de ses sections d'origine, comme avant le manifeste.
+  if (library && !Object.keys(answered).length) {
+    used.clear();
+    decisions.forEach((decision, index) => {
+      const slot = slots[index];
+      const own = castSiteImages(slot, slot.ownImages ?? [], byId, used);
+      if (!own.length) return;
+      own.forEach((id) => used.add(id));
+      decision.kind = 'site';
+      decision.site = own;
+    });
   }
 
   ChatLogger.info('SITE_MEDIA', Object.keys(answered).length ? 'Visuels choisis par l’agent' : 'Visuels choisis par les règles', {

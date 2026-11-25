@@ -2,8 +2,8 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, effect, inject, input, output, signal } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
 import { firstValueFrom } from 'rxjs';
-import type { JourneyClient, JourneyUrls, Recommendation } from '@idem/shared-journey';
-import { JourneyCardComponent } from '@idem/shared-journey/angular';
+import { journeyFloatFirstTime, type JourneyClient, type JourneyUrls, type Recommendation } from '@idem/shared-journey';
+import { JourneyCardComponent, JourneyFloatComponent } from '@idem/shared-journey/angular';
 import { environment } from '../../../../environments/environment';
 
 /**
@@ -13,14 +13,20 @@ import { environment } from '../../../../environments/environment';
  * projet IDEM, c'est `app-idem-project` qui propose d'en créer un — jamais une carte sur le mauvais projet.
  *
  * « Votre propre nom de domaine » s'ouvre ici même, dans l'onglet Nom de domaine (`openDomain`).
+ *
+ * La carte reste sur la page et flotte AUSSI en haut au centre (`idem-journey-float`), une fois par session, comme
+ * dans toutes les applications d'IDEM.
  */
 @Component({
   selector: 'app-journey-next',
-  imports: [JourneyCardComponent],
+  imports: [JourneyCardComponent, JourneyFloatComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (recommendation(); as rec) {
       <idem-journey-card [recommendation]="rec" [urls]="urls" from="ideploy" [lang]="lang()" [client]="client" [beforeOpen]="beforeOpen" (dismissed)="recommendation.set(null)" />
+      @if (floating()) {
+        <idem-journey-float [recommendation]="rec" [urls]="urls" from="ideploy" [lang]="lang()" [client]="client" [beforeOpen]="floatBeforeOpen" [silent]="true" (dismissed)="recommendation.set(null)" />
+      }
     }
   `,
 })
@@ -36,6 +42,7 @@ export class JourneyNextComponent {
   readonly openDomain = output<void>();
 
   protected readonly recommendation = signal<Recommendation | null>(null);
+  protected readonly floating = signal(false);
   protected readonly lang = () => this.translate.currentLang || 'fr';
   protected readonly urls: JourneyUrls = { dashboard: environment.services.console.url, icode: environment.services.icode.url };
 
@@ -57,16 +64,25 @@ export class JourneyNextComponent {
     return false;
   };
 
+  /** Depuis la carte du haut : elle quitte l'écran, celle de la page reste. */
+  protected readonly floatBeforeOpen = (rec: Recommendation): boolean => {
+    this.floating.set(false);
+    return this.beforeOpen(rec);
+  };
+
   constructor() {
     effect(() => {
       const uuid = this.appUuid();
       this.refresh();
       this.recommendation.set(null);
+      this.floating.set(false);
       if (!uuid) return;
       // On EST sur la mise en ligne : ni « Mettre en ligne » ni son équivalent pour l'application.
       void this.client.next({ app: 'ideploy', place: 'publish-site' }).then((recs) => {
         if (this.appUuid() !== uuid) return;
-        this.recommendation.set(recs.find((rec) => rec.destination !== 'publish-app') ?? null);
+        const rec = recs.find((candidate) => candidate.destination !== 'publish-app') ?? null;
+        this.recommendation.set(rec);
+        this.floating.set(!!rec && journeyFloatFirstTime(rec));
       });
     });
   }

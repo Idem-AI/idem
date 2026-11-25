@@ -22,9 +22,16 @@ export interface JourneyCardOptions {
   beforeOpen?: (recommendation: Recommendation, href: string) => Promise<boolean | void> | boolean | void;
 }
 
+/**
+ * `inline` : la carte dans le fil (sous la conversation, sous un livrable, sur une page).
+ * `float` : la même, posée EN HAUT AU CENTRE dans `.idem-float-stack`, une ligne par texte, une croix pour la fermer.
+ */
+export type JourneyCardVariant = 'inline' | 'float';
+
 export interface JourneyCardView {
   text: RecommendationText;
   dismissLabel: string;
+  closeLabel: string;
   label: string;
   href: string;
 }
@@ -35,6 +42,7 @@ export function journeyCardView(options: JourneyCardOptions): JourneyCardView {
   return {
     text: recommendationText(recommendation.id, recommendation.destination, lang),
     dismissLabel: ui.dismiss,
+    closeLabel: ui.close,
     label: ui.label,
     href: journeyLink(recommendation.destination, { urls, projectId: recommendation.projectId, from }),
   };
@@ -57,4 +65,23 @@ export async function journeyOpen(options: JourneyCardOptions): Promise<void> {
 
 export function journeyDismiss(options: JourneyCardOptions): void {
   void options.client?.feedback(options.recommendation.id, 'dismissed', options.recommendation.projectId);
+}
+
+const FLOAT_SEEN = 'idem.journey.float';
+
+/**
+ * La carte flottante d'une recommandation, une seule fois par session de navigateur : elle annonce la suite au moment
+ * où elle arrive ; la carte du fil reste pour y revenir. Rien n'est retenu si le stockage est refusé (navigation
+ * privée) : la carte s'affiche alors à chaque fois, jamais une erreur.
+ */
+export function journeyFloatFirstTime(recommendation: { id: string; projectId?: string }): boolean {
+  const key = `${recommendation.id}:${recommendation.projectId ?? ''}`;
+  try {
+    const seen = JSON.parse(sessionStorage.getItem(FLOAT_SEEN) ?? '[]') as string[];
+    if (seen.includes(key)) return false;
+    sessionStorage.setItem(FLOAT_SEEN, JSON.stringify([...seen.slice(-40), key]));
+  } catch {
+    /* stockage refusé : la carte s'affiche */
+  }
+  return true;
 }

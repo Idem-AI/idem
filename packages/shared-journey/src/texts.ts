@@ -170,8 +170,8 @@ const generic: Record<JourneyLanguage, Record<JourneyDestination, string>> = {
 };
 
 const ui = {
-  fr: { dismiss: 'Plus tard', label: 'Prochaine étape', newTab: 's’ouvre dans IDEM' },
-  en: { dismiss: 'Later', label: 'Next step', newTab: 'opens in IDEM' },
+  fr: { dismiss: 'Plus tard', close: 'Fermer', label: 'Prochaine étape', newTab: 's’ouvre dans IDEM' },
+  en: { dismiss: 'Later', close: 'Close', label: 'Next step', newTab: 'opens in IDEM' },
 };
 
 export function normalizeJourneyLanguage(language: string | null | undefined): JourneyLanguage {
