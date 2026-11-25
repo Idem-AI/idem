@@ -2,6 +2,7 @@ import { WebContainer } from '@webcontainer/api';
 import { useFileStore } from '../../stores/fileStore';
 import { getWebContainerInstance } from './instance';
 import { debounce } from 'lodash';
+import { isPreviewHeld, markPreviewPending, onPreviewRelease } from '@/utils/previewHold';
 import { LOCAL_ASSETS_DIR, resetLocalAssets, resolveInsecureAssets, rewriteInsecureAssetUrls } from './insecureAssets';
 
 // Définition locale des fichiers masqués pour le mode web. Les copies d'images de l'aperçu (`_idem-assets`) ne
@@ -246,8 +247,17 @@ const debouncedUpdateFileSystem = debounce(async () => {
 // Export debounced version
 export const updateFileSystemNow = debouncedUpdateFileSystem;
 
+/** Émis quand les fichiers retenus sont montés : l'aperçu de la WebContainer se recharge (`EditablePreview`). */
+export const PREVIEW_RESTART_EVENT = 'idem:preview-restart';
+
 // Create debounced version of syncFileSystem
 const debouncedSyncFileSystem = debounce(async (close: boolean = false): Promise<boolean> => {
+  // Modification de l'agent en cours (`utils/previewHold`) : le conteneur garde la version qui tourne. Les empreintes
+  // ne bougent pas, donc tout ce qui a changé sera monté d'un coup à la levée du verrou.
+  if (isPreviewHeld()) {
+    markPreviewPending();
+    return true;
+  }
   console.log('syncFileSystem');
   const instance = await getWebContainerInstance();
   if (!instance) return false;
@@ -258,3 +268,10 @@ const debouncedSyncFileSystem = debounce(async (close: boolean = false): Promise
 
 // Export debounced version
 export const syncFileSystem = debouncedSyncFileSystem;
+
+// Fin de la modification : les fichiers retenus sont montés ensemble (Vite recharge alors l'application).
+onPreviewRelease((changed) => {
+  if (!changed) return;
+  void debouncedSyncFileSystem();
+  void Promise.resolve(debouncedSyncFileSystem.flush()).then(() => window.dispatchEvent(new CustomEvent(PREVIEW_RESTART_EVENT)));
+});

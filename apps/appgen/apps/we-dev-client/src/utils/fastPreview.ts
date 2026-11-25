@@ -16,6 +16,7 @@
 import { create } from 'zustand';
 import { useFileStore } from '@/components/WeIde/stores/fileStore';
 import useRunStatus from '@/stores/runStatusSlice';
+import { isPreviewHeld, markPreviewPending, onPreviewRelease } from '@/utils/previewHold';
 
 const API_BASE = process.env.REACT_APP_NEXT_API_BASE_URL || 'http://localhost:3000';
 const DEBOUNCE_MS = 120;
@@ -59,6 +60,8 @@ let timer: ReturnType<typeof setTimeout> | null = null;
 let running: Promise<void> | null = null;
 let again = false;
 let started = false;
+/** Le prochain envoi suit une modification retenue : l'aperçu repart de zéro (page remontée), pas une simple retouche. */
+let restartNext = false;
 
 /**
  * Une erreur de construction n'est une vraie erreur que si elle DURE. Pendant une génération, le code passe par des
@@ -158,7 +161,16 @@ async function flush(): Promise<void> {
   const removed = Array.from(synced.keys()).filter((path) => !(path in current));
   if (!Object.keys(changed).length && !removed.length) return;
 
-  const response = await request('PATCH', `/sessions/${session.id}`, { files: changed, removed }).catch(() => null);
+  // Modification de l'agent en cours (`utils/previewHold`) : le site affiché reste celui qui fonctionnait. Les
+  // changements sont envoyés ensemble à la fin.
+  if (isPreviewHeld()) {
+    markPreviewPending();
+    return;
+  }
+
+  const restart = restartNext;
+  restartNext = false;
+  const response = await request('PATCH', `/sessions/${session.id}`, { files: changed, removed, restart }).catch(() => null);
   if (response?.status === 404) {
     // Session fermée (serveur redémarré, inactivité) : on en rouvre une avec tout le site.
     session = null;
@@ -167,6 +179,7 @@ async function flush(): Promise<void> {
   }
   if (!response?.ok) {
     // Réseau coupé ou serveur qui redémarre : les changements repartiront au prochain essai.
+    if (restart) restartNext = true;
     retryLater();
     return;
   }
@@ -226,6 +239,12 @@ export function startFastPreview(): void {
     schedule();
   });
   schedule();
+  // Fin d'une modification retenue : tout part en un envoi, et la page de l'aperçu redémarre.
+  onPreviewRelease((changed) => {
+    if (!changed) return;
+    restartNext = true;
+    schedule();
+  });
   addEventListener('pagehide', () => {
     if (session) navigator.sendBeacon?.(`${API_BASE}/api/preview/sessions/${session.id}/close`);
   });

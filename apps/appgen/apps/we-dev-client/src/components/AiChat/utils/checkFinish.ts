@@ -7,6 +7,7 @@ import { ensurePreviewRunning } from "./ensurePreview";
 import { internalMessage } from "@/utils/stepLabels";
 import { getLastServerUrl } from "@/components/WeIde/services";
 import { warmStartLaunched } from "./warmStart";
+import { releasePreview } from "@/utils/previewHold";
 
 
 /**
@@ -49,6 +50,8 @@ const isStart = (command: string) => /\b(run\s+)?(dev|start)\b/.test(command);
  *    list is rebuilt in the same order every time, so this never double-runs.
  */
 export const checkExecList = (messages: Message[]) => {
+  // Les réparations et commandes de fin travaillent sur la version finale : l'aperçu retenu repart d'abord.
+  releasePreview();
   setTimeout(async () => {
     const shellCommandRegex =
       /<boltAction\s+type=["'](shell|start)["']\s*>([\s\S]*?)<\/boltAction>/g;

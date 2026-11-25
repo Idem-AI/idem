@@ -305,6 +305,7 @@
     "errorLoadingProject": "Échec du chargement du projet"
   },
   "preview": {
+    "heldDuringEdit": "L’agent modifie le site. Vous pouvez continuer à tester : l’aperçu se mettra à jour quand il aura fini.",
     "imageQuality": {
       "offerTitle_one": "{{count}} image de votre site manque de netteté",
       "offerTitle_other": "{{count}} images de votre site manquent de netteté",

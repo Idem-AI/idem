@@ -136,6 +136,8 @@ router.patch('/sessions/:id', requireIdemUser, async (req: Request, res: Respons
   const removed = Array.isArray((req.body as { removed?: unknown })?.removed) ? ((req.body as { removed: unknown[] }).removed.filter((p) => typeof p === 'string') as string[]) : [];
   session.apply(files, removed);
   if (sizeOf(Object.fromEntries(session.files)) > MAX_BYTES) return res.status(413).json({ error: 'too_large' });
+  // Fin d'une modification retenue par l'atelier : la page affichée repart de zéro avec la nouvelle version.
+  if ((req.body as { restart?: unknown })?.restart === true) session.restartPending = true;
   res.json({ state: await session.build() });
 });
 
@@ -165,23 +167,34 @@ function pageFor(pages: PreviewPage[], path: string): PreviewPage {
   return pages.find((page) => norm(page.path) === wanted) ?? pages.find((page) => page.path === '/') ?? pages[0];
 }
 
+/** Ce que le moteur de la page sait des pages du site, pour en changer sans recharger. */
+const pageList = (pages: PreviewPage[]) => pages.map(({ path, key, title, lang }) => ({ path, key, title, lang }));
+
 /**
  * Le moteur de la page, dans l'iframe : rend la page avec les mêmes réglages que l'entrée du template (StrictMode,
  * LazyMotion, MotionConfig), puis reprend chaque version annoncée par le flux `events` — style remplacé, module de la
- * page relu, rendu par-dessus (le défilement reste). Les liens internes (`/a-propos/`) mènent à la page de l'aperçu.
- * L'atelier est prévenu (`postMessage`) du chargement, des mises à jour et des erreurs.
+ * page relu, rendu par-dessus (le défilement reste). L'atelier est prévenu (`postMessage`) du chargement, des mises à
+ * jour et des erreurs.
+ *
+ * Les liens internes (`/a-propos/`) changent de page SANS recharger le document. L'iframe est en origine opaque : le
+ * navigateur ne lui garde aucun cache, et chaque rechargement retéléchargeait toutes les dépendances (45 requêtes,
+ * 1,7 Mo mesurés le 25/11) — plusieurs secondes par clic du menu sur une vraie connexion. Ici, React, Motion et les
+ * morceaux communs restent en mémoire : seul le module de la page demandée (quelques Ko) est lu, dès le survol du lien.
  */
-function runtimeScript(prefix: string, page: PreviewPage, version: number, cssVersion: number, ready: boolean): string {
+function runtimeScript(prefix: string, page: PreviewPage, pages: PreviewPage[], version: number, cssVersion: number, ready: boolean): string {
   return `
 import { createElement as h, StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { LazyMotion, MotionConfig, domMax } from 'motion/react';
 
 const BASE = ${scriptJson(prefix)};
-const PAGE = ${scriptJson({ key: page.key, path: page.path })};
+let PAGE = ${scriptJson({ key: page.key, path: page.path, title: page.title, lang: page.lang })};
+let PAGES = ${scriptJson(pageList(pages))};
 let version = ${version};
 let cssVersion = ${cssVersion};
 let shown = false;
+// Change à chaque redémarrage demandé : React remonte toute la page (état, animations, formulaires repartent à zéro).
+let mount = 0;
 const tell = (type, detail = {}) => { try { parent.postMessage({ source: 'idem-preview', type, path: PAGE.path, ...detail }, '*'); } catch {} };
 
 /*
@@ -217,19 +230,23 @@ const waiting = () => {
 };
 
 const root = createRoot(document.getElementById('root'));
+const moduleUrl = (key, v) => BASE + '/app/' + key + '.js?v=' + v;
 async function show(v) {
+  const showing = PAGE;
   let mod;
   try {
-    mod = await import(BASE + '/app/' + PAGE.key + '.js?v=' + v);
+    mod = await import(moduleUrl(showing.key, v));
   } catch (error) {
     // Le module n'existe pas encore (page pas encore construite) : on attend la version suivante.
     if (!shown) waiting();
     return;
   }
+  // Une autre page a été demandée pendant la lecture : c'est elle qui s'affichera.
+  if (showing !== PAGE) return;
   try {
     if (!shown) document.getElementById('root').innerHTML = '';
     const reduced = mod.motionTokens && mod.motionTokens.respectReducedMotion === false ? 'never' : 'user';
-    root.render(h(StrictMode, null, h(LazyMotion, { features: domMax }, h(MotionConfig, { reducedMotion: reduced }, h(mod.default)))));
+    root.render(h(StrictMode, null, h(LazyMotion, { features: domMax }, h(MotionConfig, { reducedMotion: reduced }, h(mod.default, { key: mount })))));
     clearError();
     tell(shown ? 'update' : 'ready', { version: v });
     shown = true;
@@ -246,6 +263,7 @@ events.onmessage = async (message) => {
   if (event.type === 'error') return showError(event.message);
   if (event.type !== 'update' || (shown && event.version <= version)) return;
   version = event.version;
+  if (event.restart) mount += 1;
   if (event.cssVersion !== cssVersion) {
     cssVersion = event.cssVersion;
     const css = await fetch(BASE + '/style.css?v=' + cssVersion).then((r) => r.text()).catch(() => null);
@@ -253,6 +271,53 @@ events.onmessage = async (message) => {
   }
   show(version);
 };
+
+/*
+ * Changer de page sans recharger. La liste des pages peut avoir changé depuis le chargement (génération en cours) :
+ * une adresse inconnue la fait relire ; toujours inconnue, ou en cas d'échec, on recharge comme avant.
+ */
+const normPath = (path) => ((path || '/').split('?')[0].replace(/index\\.html$/, '').replace(/\\/{2,}/g, '/').replace(/\\/?$/, '/'));
+const pageAt = (path) => PAGES.find((p) => normPath(p.path) === normPath(path));
+async function findPage(path) {
+  const known = pageAt(path);
+  if (known) return known;
+  const fresh = await fetch(BASE + '/pages.json', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+  if (Array.isArray(fresh)) PAGES = fresh;
+  return pageAt(path);
+}
+const scrollToHash = (hash) => {
+  const target = hash ? document.getElementById(decodeURIComponent(hash)) : null;
+  if (target) target.scrollIntoView();
+  else scrollTo(0, 0);
+};
+let navigation = 0;
+async function go(href, push) {
+  const [path, hash] = href.split('#');
+  const next = await findPage(path || PAGE.path);
+  if (!next) {
+    location.href = BASE + href;
+    return;
+  }
+  const ticket = ++navigation;
+  try {
+    // Le module d'abord : la page affichée ne change qu'une fois la suivante prête (pas d'écran blanc).
+    await import(moduleUrl(next.key, version));
+  } catch {
+    if (ticket === navigation) location.href = BASE + href;
+    return;
+  }
+  if (ticket !== navigation) return;
+  if (push) {
+    try { history.pushState({ idem: true }, '', BASE + href); } catch {}
+  }
+  PAGE = next;
+  document.title = next.title;
+  document.documentElement.lang = next.lang;
+  document.documentElement.dir = /^(ar|fa|he|ur)$/.test(next.lang) ? 'rtl' : 'ltr';
+  await show(version);
+  scrollToHash(hash);
+  tell('navigate', { version });
+}
 
 // Les liens internes restent dans l'aperçu ; une ancre de la même page défile.
 document.addEventListener('click', (event) => {
@@ -262,8 +327,30 @@ document.addEventListener('click', (event) => {
   if (!href || !href.startsWith('/') || href.startsWith('//')) return;
   event.preventDefault();
   const [path, hash] = href.split('#');
-  if ((path || PAGE.path) === PAGE.path && hash) return document.getElementById(hash)?.scrollIntoView({ behavior: 'smooth' });
-  location.href = BASE + href;
+  if (normPath(path || PAGE.path) === normPath(PAGE.path)) {
+    if (hash) document.getElementById(decodeURIComponent(hash))?.scrollIntoView({ behavior: 'smooth' });
+    else scrollTo({ top: 0, behavior: 'smooth' });
+    return;
+  }
+  void go(href, true);
+});
+
+// Le module d'une page est lu dès le survol (ou le toucher) de son lien : au clic, il est déjà là.
+const warmed = new Set();
+const warm = (event) => {
+  const link = event.target instanceof Element ? event.target.closest('a[href^="/"]') : null;
+  const target = link && pageAt(link.getAttribute('href').split('#')[0]);
+  if (!target || target.key === PAGE.key || warmed.has(target.key + version)) return;
+  warmed.add(target.key + version);
+  import(moduleUrl(target.key, version)).catch(() => warmed.delete(target.key + version));
+};
+document.addEventListener('pointerover', warm, { passive: true });
+document.addEventListener('touchstart', warm, { passive: true });
+
+// Précédent / suivant : la page de l'adresse.
+addEventListener('popstate', () => {
+  const href = location.pathname.slice(BASE.length) || '/';
+  void go(href + location.hash, false);
 });
 `;
 }
@@ -282,7 +369,7 @@ function documentFor(session: PreviewSession, page: PreviewPage, importMap: Reco
   </head>
   <body>
     <div id="root"></div>
-    <script type="module">${runtimeScript(prefix, page, session.goodVersion, session.cssVersion, session.goodVersion > 0 && session.outputs.has(`${page.key}.js`))}</script>
+    <script type="module">${runtimeScript(prefix, page, session.pages(), session.goodVersion, session.cssVersion, session.goodVersion > 0 && session.outputs.has(`${page.key}.js`))}</script>
   </body>
 </html>
 `;
@@ -332,6 +419,11 @@ router.get('/s/:id{/*rest}', async (req: Request, res: Response) => {
     // Les morceaux portent l'empreinte de leur contenu ; l'entrée d'une page change de version à chaque construction.
     res.setHeader('Cache-Control', rest.includes('/chunk-') ? 'public, max-age=31536000, immutable' : 'no-store');
     return res.end(Buffer.from(file));
+  }
+
+  if (rest === '/pages.json') {
+    res.setHeader('Cache-Control', 'no-store');
+    return res.json(pageList(session.pages()));
   }
 
   if (rest === '/style.css') {

@@ -179,6 +179,21 @@ if (hero) {
   console.log(`  section modifiée : reconstruction ${Math.round(rebuildMs)} ms, visible en ${Math.round(hmrMs)} ms`);
 }
 
+// Fin d'une modification retenue par l'atelier (`restart`) : la page est remontée (état remis à zéro), le document
+// reste (pas de dépendances retéléchargées).
+if (hero) {
+  await frame.evaluate(`window.__oldH1 = document.querySelector('h1'); window.__marker = 43;`);
+  opened.session.apply({ [hero]: files[hero].replace(/(<Heading level=\{1\}>|<h1[^>]*>)([^<]*)/, '$1Version finale de la modification') });
+  opened.session.restartPending = true;
+  const built = await opened.session.build();
+  await frame.waitForFunction(`document.querySelector('h1')?.textContent.includes('Version finale de la modification')`, { timeout: 10_000 });
+  const remounted = (await frame.evaluate(`({ fresh: document.querySelector('h1') !== window.__oldH1 && !document.contains(window.__oldH1), marker: window.__marker })`)) as { fresh: boolean; marker: number };
+  check('fin de modification : la page redémarre (remontée)', built.ok && remounted.fresh, remounted);
+  check('… sans recharger le document', remounted.marker === 43, remounted);
+  opened.session.apply({ [hero]: files[hero] });
+  await opened.session.build();
+}
+
 // Une erreur de code : signalée dans l'aperçu et à l'atelier, puis effacée à la correction.
 if (hero) {
   opened.session.apply({ [hero]: `${files[hero]}\nexport const = ;` });
@@ -197,11 +212,36 @@ if (hero) {
 const other = opened.session.pages().find((p) => p.path !== '/');
 if (other) {
   const homeTitle = (await frame.evaluate(`document.querySelector('h1')?.textContent ?? ''`)) as string;
+  // Ce qui transite au changement de page : l'iframe en origine opaque n'a pas de cache, tout rechargement du
+  // document retéléchargeait les dépendances (1,7 Mo, 25/11).
+  const navRequests: string[] = [];
+  const onRequest = (r: { url(): string }) => navRequests.push(r.url());
+  page.on('request', onRequest);
+  await frame.evaluate(`window.__stay = 7`);
+  t = performance.now();
   await frame.evaluate(`(() => { const a = [...document.querySelectorAll('a[href]')].find((x) => x.getAttribute('href') === ${JSON.stringify(other.path)}); if (a) a.click(); else location.href = location.pathname.replace(/\\/$/, '') + ${JSON.stringify(other.path)}; })()`);
-  await new Promise((d) => setTimeout(d, 500));
-  frame = await frameOf();
-  await frame.waitForFunction(`location.pathname.endsWith(${JSON.stringify(other.path)}) && !!document.querySelector('h1')`, { timeout: 15_000 });
+  const arrived = `location.pathname.endsWith(${JSON.stringify(other.path)}) && !!document.querySelector('h1') && document.querySelector('h1').textContent !== ${JSON.stringify(homeTitle)}`;
+  for (let i = 0; i < 600; i++) {
+    frame = await frameOf();
+    if (await frame.evaluate(arrived).catch(() => false)) break;
+    await new Promise((d) => setTimeout(d, 25));
+  }
+  await frame.waitForFunction(arrived, { timeout: 15_000 });
+  const navigationMs = performance.now() - t;
+  console.log(`  changement de page (clic du menu → nouvelle page affichée) : ${Math.round(navigationMs)} ms`);
+  check('changement de page en moins de 1 s (local)', navigationMs < 1000, Math.round(navigationMs));
+  page.off('request', onRequest);
+  const vendorAgain = navRequests.filter((url) => url.includes('/api/preview/vendor/'));
+  console.log(`  requêtes pendant le changement de page : ${navRequests.length} (dépendances : ${vendorAgain.length})`);
+  check('changement de page sans recharger le document', (await frame.evaluate(`window.__stay`)) === 7);
+  check('changement de page sans retélécharger les dépendances', vendorAgain.length === 0, vendorAgain.slice(0, 3));
+  check('l’adresse suit la page', ((await frame.evaluate(`location.pathname`)) as string).endsWith(other.path));
   const otherTitle = (await frame.evaluate(`document.querySelector('h1')?.textContent ?? ''`)) as string;
+  // Précédent : retour à l'accueil, toujours sans recharger (le titre de l'accueil peut être en cours d'animation).
+  await frame.evaluate(`history.back()`);
+  const backHome = `location.pathname.endsWith('/s/' + location.pathname.split('/s/')[1].split('/')[0] + '/') && !!document.querySelector('h1') && document.querySelector('h1').textContent !== ${JSON.stringify(otherTitle)}`;
+  await frame.waitForFunction(backHome, { timeout: 5_000 }).catch(() => undefined);
+  check('« Précédent » ramène à l’accueil sans recharger', (await frame.evaluate(`(${backHome}) && window.__stay === 7`)) === true);
   // Un lien du menu ramenait à l'accueil (19/11) : la page affichée doit être la bonne, pas seulement une page.
   check(`navigation vers ${other.path} : la bonne page, pas l’accueil`, otherTitle !== homeTitle && otherTitle.length > 0, { homeTitle, otherTitle });
 }

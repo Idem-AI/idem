@@ -305,6 +305,7 @@
     "errorLoadingProject": "Failed to load project"
   },
   "preview": {
+    "heldDuringEdit": "The agent is editing the site. Keep testing: the preview will update once it’s done.",
     "imageQuality": {
       "offerTitle_one": "{{count}} image on your site isn't sharp enough",
       "offerTitle_other": "{{count}} images on your site aren't sharp enough",

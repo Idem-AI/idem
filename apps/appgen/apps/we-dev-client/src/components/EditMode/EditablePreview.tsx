@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { startupPageLoaded } from '@/utils/startupTimer';
 import { startFastPreview, useFastPreview } from '@/utils/fastPreview';
+import { usePreviewHold } from '@/utils/previewHold';
+import { PREVIEW_RESTART_EVENT } from '../WeIde/services/webcontainer/filesystem';
 import { getContainerInstance, onServersChange } from '../WeIde/services';
 import useRunStatus, { API_PORT } from '@/stores/runStatusSlice';
 import { eventEmitter } from '../AiChat/utils/EventEmitter';
@@ -271,6 +273,23 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
   const handleRefresh = useCallback(() => {
     if (iframeRef.current) iframeRef.current.src = iframeRef.current.src;
   }, []);
+
+  /** Une modification de l'agent est en cours : l'aperçu garde la version qui tourne (`utils/previewHold`). */
+  const held = usePreviewHold((state) => state.held);
+  /**
+   * Fin de la modification, fichiers montés dans la WebContainer : l'application redémarre (rechargement de la page).
+   * L'aperçu instantané, lui, remonte sa page sans recharger (ses dépendances ne sont pas en cache, voir `preview.ts`).
+   */
+  const showsContainer = url === containerUrl && !!containerUrl;
+  const showsContainerRef = useRef(showsContainer);
+  showsContainerRef.current = showsContainer;
+  useEffect(() => {
+    const restart = () => {
+      if (showsContainerRef.current) handleRefresh();
+    };
+    window.addEventListener(PREVIEW_RESTART_EVENT, restart);
+    return () => window.removeEventListener(PREVIEW_RESTART_EVENT, restart);
+  }, [handleRefresh]);
 
   /* -------- URL du serveur de dev -------- */
   // Une application complète ouvre deux serveurs : l'API (`backend/`, port
@@ -984,6 +1003,14 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
             </a>
           )}
         </div>
+
+        {/* Modification en cours : le site affiché reste celui qui fonctionnait, il se mettra à jour à la fin. */}
+        {held && url && (
+          <div role="status" className="flex items-center gap-2 border-b border-[var(--glass-border)] bg-surface-2 px-3 py-1.5 text-xs text-text-secondary">
+            <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-primary" aria-hidden />
+            {t('preview.heldDuringEdit')}
+          </div>
+        )}
 
         {/* L'erreur qui empêche l'application de tourner, et sa correction en un clic. */}
         <RunErrorBanner onFix={(prompt) => eventEmitter.emit('chat:fixError', prompt)} />
