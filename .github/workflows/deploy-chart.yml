@@ -2,7 +2,7 @@ name: Deploy Chart
 
 on:
   push:
-    branches: [main, dev]
+    branches: [main]
     paths:
       - 'apps/chart/**'
       - 'packages/**'
@@ -12,7 +12,7 @@ on:
       - 'package.json'
       - 'package-lock.json'
   pull_request:
-    branches: [main, dev]
+    branches: [main]
     paths:
       - 'apps/chart/**'
       - 'packages/**'

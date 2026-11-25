@@ -2,7 +2,7 @@ name: Deploy AppGen server
 
 on:
   push:
-    branches: [main, dev]
+    branches: [main]
     paths:
       - 'apps/appgen/**'
       - 'packages/**'
@@ -12,7 +12,7 @@ on:
       - 'package.json'
       - 'package-lock.json'
   pull_request:
-    branches: [main, dev]
+    branches: [main]
     paths:
       - 'apps/appgen/**'
       - 'packages/**'

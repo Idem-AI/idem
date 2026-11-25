@@ -47,9 +47,10 @@ COPY ./apps/appgen/apps/we-dev-client/ ./
 COPY .env .env
 RUN pnpm build
 
-FROM node:22-alpine AS production
+FROM nginx:1.27-alpine AS production
 
 RUN apk add --no-cache gzip && \
+    mkdir -p /var/log/nginx && \
     ln -sf /dev/stdout /var/log/nginx/access.log && \
     ln -sf /dev/stderr /var/log/nginx/error.log
 
