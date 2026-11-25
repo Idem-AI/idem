@@ -1187,6 +1187,10 @@
           "outdated": "Ancienne version, sans vos dernières retouches",
           "none": "Pas encore fabriqué",
           "premiumSlow": "La qualité Premium filme deux fois plus d’images (60 par seconde) : le fichier met environ deux fois plus de temps à se fabriquer."
+        },
+        "settings": {
+          "open": "Réglages",
+          "title": "Réglages de la vidéo"
         }
       },
       "placement": {

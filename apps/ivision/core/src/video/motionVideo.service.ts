@@ -1464,7 +1464,9 @@ export class MotionVideoService {
     if (!video) return null;
     if (!video.film) throw new VideoInputError('legacy_video');
     const ctx = await this.brandContext(userId, projectId);
-    const target = format && video.scope.formats.includes(format) ? format : video.scope.formats[0];
+    // Tous les formats se regardent (story, carré, portrait, paysage) : le film se recompose sur la toile choisie,
+    // comme au rendu d'un format ajouté à l'export.
+    const target = format && VIDEO_FORMATS.includes(format) ? format : video.scope.formats[0];
     const audio: CompositionInput['audio'] = {
       ...(video.music ? { music: { url: await this.previewTrackUrl(video.music), startAt: video.music.startAt, gain: previewGain(video.voice?.enabled ? MUSIC_UNDER_VOICE_DB : MUSIC_GAIN_DB) } } : {}),
       voice: voiceTimeline(video.film.scenes, video.voice, video.film.durationSec).map((l) => ({ url: l.url, at: l.at })),

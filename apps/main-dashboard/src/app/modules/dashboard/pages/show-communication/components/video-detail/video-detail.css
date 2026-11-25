@@ -2,33 +2,35 @@
   display: block;
 }
 
-.vd-back {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--color-text-secondary);
+/* ── La page : pleine largeur, sans marge ; le lecteur tient dans l'écran ── */
+.vd-page {
+  /* La hauteur laissée à la vidéo : l'écran moins la barre du haut (80), la barre d'outils, le choix du format,
+     les commandes du lecteur et la barre de l'IA. */
+  --ve-max-h: max(14rem, calc(100dvh - 440px));
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100dvh - 80px - 2.5rem);
 }
 
-.vd-back:hover {
-  color: var(--color-text-primary);
-}
-
-/* ── L'en-tête : le titre à gauche, l'état du MP4 et « Télécharger » à droite ── */
-.vd-head {
+.vd-bar {
+  position: sticky;
+  top: 80px;
+  z-index: 20;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.75rem 1rem;
-  margin: 0.5rem 0 1rem;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 14px;
+  background: color-mix(in oklch, var(--idem-surface-1, var(--color-bg)) 88%, transparent);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--glass-border-subtle, var(--glass-border));
 }
 
 .vd-state {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  margin-left: 0.5rem;
   font-size: 0.8rem;
   color: var(--color-text-secondary);
 }
@@ -37,22 +39,44 @@
   color: var(--color-success);
 }
 
-.vd-head-progress {
+.vd-bar-progress {
   display: block;
   width: 100%;
-  height: 0.3rem;
-  margin: -0.5rem 0 1rem;
+  height: 0.25rem;
 }
 
-/* ── Demander un changement : une barre sous la vidéo ── */
+.vd-stage {
+  flex: 1;
+  padding-top: 1rem;
+}
+
+@media (max-width: 640px) {
+  .vd-hide-sm {
+    display: none;
+  }
+}
+
+/* ── Demander un changement : collée en bas de l'écran, toujours à portée ── */
+.vd-ask-dock {
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.75rem 0.75rem;
+  background: linear-gradient(to top, var(--idem-surface-1, var(--color-bg)) 55%, transparent);
+}
+
 .vd-ask {
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  max-width: 44rem;
-  margin-inline: auto;
-  padding: 0.5rem 0.5rem 0.5rem 0.9rem;
+  width: min(44rem, 100%);
+  padding: 0.45rem 0.45rem 0.45rem 0.9rem;
   border-radius: 999px;
+  box-shadow: 0 8px 28px color-mix(in oklch, var(--color-text-primary) 14%, transparent);
 }
 
 .vd-ask textarea {
@@ -70,68 +94,113 @@
   color: var(--color-primary-500);
 }
 
-.vd-dl-poster--empty {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--glass-bg-light);
-  color: var(--color-text-tertiary);
-}
-
-.vd-dl-progress {
-  display: block;
-  width: 100%;
-  max-width: 22rem;
-  height: 0.4rem;
-  margin-top: 0.45rem;
-}
-
-/* ── Formats de l'aperçu : un sélecteur segmenté, centré au-dessus du lecteur ── */
-.vd-seg {
+.vd-reply {
   display: flex;
-  width: fit-content;
-  max-width: 100%;
-  margin-inline: auto;
-  flex-wrap: wrap;
-  gap: 0.25rem;
-  padding: 0.25rem;
-  border-radius: 999px;
-  border: 1px solid var(--glass-border);
-  background: var(--glass-bg-light);
-}
-
-.vd-seg-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  border-radius: 999px;
-  padding: 0.3rem 0.85rem;
+  gap: 0.4rem;
+  width: min(44rem, 100%);
+  margin: 0;
+  padding: 0.5rem 0.85rem;
   font-size: 0.8rem;
-  font-weight: 600;
   color: var(--color-text-secondary);
-  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
-.vd-seg-item:hover {
-  color: var(--color-text-primary);
+/* ── Le tiroir des réglages, à droite ── */
+.vd-drawer-wrap {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  justify-content: flex-end;
 }
 
-.vd-seg-item--on {
-  background: var(--color-surface-1, var(--glass-bg-medium));
-  color: var(--color-text-primary);
-  box-shadow: 0 1px 2px color-mix(in srgb, var(--color-text-primary) 12%, transparent);
+.vd-drawer-backdrop {
+  position: absolute;
+  inset: 0;
+  background: var(--glass-bg-darker, color-mix(in oklch, var(--color-text-primary) 30%, transparent));
+  backdrop-filter: blur(3px);
+  animation: vd-fade-in 0.35s ease-out both;
 }
 
-.vd-ok {
-  font-size: 0.75rem;
-  color: var(--color-success);
+/* Ouverture et fermeture : le tiroir glisse sur une courbe douce (lancé vite, posé lentement), le voile se fond. */
+.vd-drawer {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: min(30rem, 100vw);
+  height: 100%;
+  border-left: 1px solid var(--glass-border);
+  animation: vd-slide-in 0.45s cubic-bezier(0.32, 0.72, 0, 1) both;
+  will-change: transform;
+}
+
+.vd-drawer-wrap.is-leaving .vd-drawer {
+  animation: vd-slide-out 0.3s cubic-bezier(0.4, 0, 1, 1) both;
+}
+
+.vd-drawer-wrap.is-leaving .vd-drawer-backdrop {
+  animation: vd-fade-out 0.3s ease-in both;
+}
+
+.vd-drawer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.9rem 1rem;
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.vd-drawer .vd-tabs {
+  flex: none;
+}
+
+.vd-drawer .vd-panel {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.vd-drawer-foot {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0.75rem 1rem;
+  border-top: 1px solid var(--glass-border);
+}
+
+.vd-stack-cols {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+@keyframes vd-slide-in {
+  from { transform: translateX(100%); opacity: 0.6; }
+  to { transform: none; opacity: 1; }
+}
+
+@keyframes vd-slide-out {
+  from { transform: none; opacity: 1; }
+  to { transform: translateX(100%); opacity: 0.6; }
+}
+
+@keyframes vd-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes vd-fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vd-drawer,
+  .vd-drawer-backdrop,
+  .vd-drawer-wrap.is-leaving .vd-drawer,
+  .vd-drawer-wrap.is-leaving .vd-drawer-backdrop {
+    animation-duration: 0.01ms;
+  }
 }
 
 /* ── L'atelier : onglets ── */
-.vd-work {
-  padding: 0;
-  overflow: hidden;
-}
 
 .vd-tabs {
   display: flex;
@@ -164,8 +233,7 @@
   color: var(--color-text-primary);
 }
 
-.vd-tab:focus-visible,
-.vd-seg-item:focus-visible {
+.vd-tab:focus-visible {
   outline: 2px solid var(--color-primary-500);
   outline-offset: 2px;
 }
@@ -183,14 +251,6 @@
 
 .vd-panel {
   padding: 1.1rem 1.25rem 1.25rem;
-}
-
-/* Deux colonnes dans un onglet quand la largeur le permet. */
-.vd-cols {
-  display: grid;
-  gap: 1.5rem;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
-  align-items: start;
 }
 
 .vd-stack {
@@ -304,9 +364,3 @@
   color: color-mix(in srgb, var(--color-primary) 60%, var(--color-text-primary));
 }
 
-@media (max-width: 40rem) {
-  .vd-head > .inner-button,
-  .vd-head > .outer-button {
-    width: 100%;
-  }
-}

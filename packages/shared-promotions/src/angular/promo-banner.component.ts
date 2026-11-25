@@ -7,8 +7,8 @@ import { PromotionsStore } from './promotions.store';
  * La promotion en cours (« Bêta gratuite : tout est gratuit, seule limite vos crédits du jour »). Rien n'est
  * rendu s'il n'y a pas de campagne qui demande un bandeau. Fermable pour la page.
  *
- * Deux présentations : `banner` (bandeau pleine largeur, page des offres) et `pill` (une pastille flottante qui
- * déplie le message au clic : elle ne repousse plus le contenu des pages vers le bas).
+ * Deux présentations : `banner` (bandeau pleine largeur, page des offres) et `toast` (une carte flottante, posée
+ * par la page en haut au centre : bien visible, elle ne repousse pas le contenu vers le bas).
  */
 @Component({
   selector: 'idem-promo-banner',
@@ -19,39 +19,31 @@ import { PromotionsStore } from './promotions.store';
     .promo-text { flex: 1; min-width: 0; margin: 0; line-height: 1.5; }
     .promo-title { font-weight: 600; margin-right: 0.35rem; }
     .promo-until { display: block; font-size: 0.85em; color: var(--color-text-tertiary, inherit); }
-    .pill-wrap { position: relative; display: flex; flex-direction: column; align-items: flex-end; gap: 0.5rem; }
-    .pill { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.35rem 0.4rem 0.35rem 0.5rem; border-radius: 999px; font-size: 0.8rem; font-weight: 600; color: var(--color-text-primary); cursor: pointer; }
-    .pill:focus-visible { outline: 2px solid var(--color-primary-500); outline-offset: 2px; }
-    .pill .pi { font-size: 0.7rem; color: var(--color-text-tertiary); }
-    .pop { width: min(20rem, calc(100vw - 2.5rem)); padding: 0.85rem 1rem; font-size: 0.85rem; line-height: 1.5; }
-    .pop-head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.35rem; }
+    .toast { display: flex; align-items: center; gap: 0.85rem; padding: 0.7rem 0.75rem 0.7rem 1rem; border-left: 4px solid var(--color-accent-500, var(--color-primary-500)); box-shadow: 0 12px 32px color-mix(in oklch, var(--color-text-primary) 16%, transparent); animation: promo-in 0.35s cubic-bezier(0.2, 0.8, 0.2, 1); }
+    .toast-icon { display: flex; flex: none; align-items: center; justify-content: center; width: 2.4rem; height: 2.4rem; border-radius: 999px; background: color-mix(in oklch, var(--color-primary-500) 12%, transparent); color: var(--color-primary-500); }
+    .toast-body { flex: 1; min-width: 0; margin: 0; font-size: 0.85rem; line-height: 1.45; color: var(--color-text-secondary); }
+    .toast-title { display: block; font-size: 0.95rem; font-weight: 700; color: var(--color-text-primary); }
+    @keyframes promo-in { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+    @media (prefers-reduced-motion: reduce) { .toast { animation: none; } }
   `,
   template: `
     @if (texts(); as t) {
-      @if (!closed() && variant() === 'pill') {
-        <div class="pill-wrap">
-          @if (open()) {
-            <aside class="glass-card pop" role="status" [attr.aria-label]="t.title" [id]="popId">
-              <div class="pop-head">
-                <span class="promo-title">{{ shortTitle() }}</span>
-                @if (dismissible()) {
-                  <button type="button" class="button-icon button-sm" [attr.aria-label]="t.hide" (click)="closed.set(true)">
-                    <i class="pi pi-times" aria-hidden="true"></i>
-                  </button>
-                }
-              </div>
-              <p class="promo-text">{{ t.message }}</p>
-              @if (until()) {
-                <span class="promo-until">{{ until() }}</span>
-              }
-            </aside>
+      @if (!closed() && variant() === 'toast') {
+        <aside class="glass-card toast" role="status" [attr.aria-label]="shortTitle()">
+          <span class="toast-icon" aria-hidden="true"><i class="pi pi-gift"></i></span>
+          <p class="toast-body">
+            <span class="toast-title">{{ shortTitle() }} <span class="tag">{{ t.badge || t.fallbackBadge }}</span></span>
+            {{ t.message }}
+            @if (until()) {
+              <span class="promo-until">{{ until() }}</span>
+            }
+          </p>
+          @if (dismissible()) {
+            <button type="button" class="button-icon button-sm" [attr.aria-label]="t.hide" (click)="closed.set(true)">
+              <i class="pi pi-times" aria-hidden="true"></i>
+            </button>
           }
-          <button type="button" class="glass-card pill" [attr.aria-expanded]="open()" [attr.aria-controls]="popId" (click)="open.set(!open())">
-            <span class="tag">{{ t.badge || t.fallbackBadge }}</span>
-            {{ shortTitle() }}
-            <i [class]="open() ? 'pi pi-chevron-down' : 'pi pi-chevron-up'" aria-hidden="true"></i>
-          </button>
-        </div>
+        </aside>
       } @else if (!closed()) {
         <aside class="glass-card promo" role="status" [attr.aria-label]="t.title">
           <span class="tag">{{ t.badge || t.fallbackBadge }}</span>
@@ -74,10 +66,8 @@ import { PromotionsStore } from './promotions.store';
 export class PromoBannerComponent {
   private readonly store = inject(PromotionsStore);
   readonly dismissible = input(true);
-  /** `banner` : bandeau pleine largeur ; `pill` : pastille flottante qui déplie le message. */
-  readonly variant = input<'banner' | 'pill'>('banner');
-  protected readonly open = signal(false);
-  protected readonly popId = `idem-promo-${Math.random().toString(36).slice(2, 8)}`;
+  /** `banner` : bandeau pleine largeur ; `toast` : carte flottante (la page la place). */
+  readonly variant = input<'banner' | 'toast'>('banner');
   /** Langue forcée (sinon celle de la page, `<html lang>`). */
   readonly lang = input<string | null>(null);
   protected readonly closed = signal(false);
@@ -86,7 +76,7 @@ export class PromoBannerComponent {
     const promotion = this.promotion();
     return promotion ? promotionTexts(promotion, pageLang(this.lang())) : null;
   });
-  /** Le titre sans sa ponctuation finale (« Bêta gratuite : » → « Bêta gratuite ») pour la pastille. */
+  /** Le titre sans sa ponctuation finale (« Bêta gratuite : » → « Bêta gratuite »). */
   protected readonly shortTitle = computed(() => (this.texts()?.title ?? '').replace(/[\s:：.—-]+$/u, ''));
   protected readonly until = computed(() => {
     const end = this.promotion()?.endsAt;

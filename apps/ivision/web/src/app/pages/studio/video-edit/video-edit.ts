@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, injec
 import { RouterLink } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
-import { IdemVideoEditorComponent } from '@idem/shared-video-editor/angular';
+import { IdemVideoEditorComponent, IdemVideoFormatPickerComponent } from '@idem/shared-video-editor/angular';
 import { editorScenes, revisePatch, SceneAction } from '@idem/shared-video-editor';
 import { Subscription, timer } from 'rxjs';
 import { environment } from '../../../../environments/environment';
@@ -30,9 +30,21 @@ const timing = (v: MotionVideo | null) => (v?.film?.scenes ?? []).map((s) => `${
  */
 @Component({
   selector: 'iv-video-edit',
-  imports: [RouterLink, TranslateModule, IdemLoaderComponent, IdemVideoEditorComponent, Illustration],
+  imports: [RouterLink, TranslateModule, IdemLoaderComponent, IdemVideoEditorComponent, IdemVideoFormatPickerComponent, Illustration],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './video-edit.html',
+  styles: `
+    /* Le tiroir des réglages glisse sur une courbe douce à l'ouverture comme à la fermeture ; le voile se fond. */
+    .ve-drawer { animation: ve-slide-in 0.45s cubic-bezier(0.32, 0.72, 0, 1) both; will-change: transform; }
+    .ve-drawer-backdrop { animation: ve-fade-in 0.35s ease-out both; }
+    .ve-drawer-wrap.is-leaving .ve-drawer { animation: ve-slide-out 0.3s cubic-bezier(0.4, 0, 1, 1) both; }
+    .ve-drawer-wrap.is-leaving .ve-drawer-backdrop { animation: ve-fade-out 0.3s ease-in both; }
+    @keyframes ve-slide-in { from { transform: translateX(100%); opacity: 0.6; } to { transform: none; opacity: 1; } }
+    @keyframes ve-slide-out { from { transform: none; opacity: 1; } to { transform: translateX(100%); opacity: 0.6; } }
+    @keyframes ve-fade-in { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes ve-fade-out { from { opacity: 1; } to { opacity: 0; } }
+    @media (prefers-reduced-motion: reduce) { .ve-drawer, .ve-drawer-backdrop, .ve-drawer-wrap.is-leaving .ve-drawer, .ve-drawer-wrap.is-leaving .ve-drawer-backdrop { animation-duration: 0.01ms; } }
+  `,
 })
 export class VideoEditPage {
   private readonly api = inject(ApiService);
@@ -61,6 +73,10 @@ export class VideoEditPage {
   protected readonly needCredits = signal(false);
   /** L'onglet ouvert sous l'aperçu. */
   protected readonly tab = signal<'sound' | 'files'>('sound');
+  /** Le tiroir des réglages (son, fichiers). */
+  protected readonly settingsOpen = signal(false);
+  /** Le tiroir glisse hors de l'écran avant de disparaître. */
+  protected readonly drawerLeaving = signal(false);
   /** Prix d'un téléchargement par format (0 = inclus), lu sur le serveur. */
   protected readonly prices = signal<Record<string, number>>({});
   /** Le format attendu : il s'enregistre tout seul dès qu'il est prêt. */
@@ -81,6 +97,9 @@ export class VideoEditPage {
   /** Un export demandé tourne (un rendu fait d'avance ne bloque rien). */
   protected readonly exportRunning = computed(() => this.rendering() && !this.video()?.preparing);
   protected readonly current = computed(() => this.stateOf(this.previewFormat()));
+  protected readonly readyFormats = computed(() => FORMATS.filter((f) => this.stateOf(f) === 'ready'));
+  /** L'aperçu se recompose sur un autre format. */
+  protected readonly previewBusy = signal(false);
   protected readonly currentRender = computed(() => this.renderOf(this.previewFormat()));
 
   private poll: Subscription | null = null;
@@ -97,6 +116,10 @@ export class VideoEditPage {
       const v = untracked(() => this.video());
       if (!v || !scope.formats.length) return;
       untracked(() => this.api.exportQuote(this.brandId(), v.id, scope).subscribe({ next: (q) => this.exportPrice.set(q.cost), error: () => this.exportPrice.set(null) }));
+    });
+    // Le tiroir s'ouvre : le focus va sur sa croix.
+    effect(() => {
+      if (this.settingsOpen()) setTimeout(() => document.querySelector<HTMLElement>('#ve-settings .button-icon')?.focus(), 0);
     });
     this.destroyRef.onDestroy(() => {
       this.poll?.unsubscribe();
@@ -140,10 +163,21 @@ export class VideoEditPage {
   protected loadPreview(): void {
     const v = this.video();
     if (!v) return;
-    this.api.preview(this.brandId(), v.id, this.previewFormat()).subscribe({ next: ({ html }) => this.html.set(html), error: () => this.failed.set(true) });
+    this.previewBusy.set(true);
+    this.api.preview(this.brandId(), v.id, this.previewFormat()).subscribe({
+      next: ({ html }) => {
+        this.html.set(html);
+        this.previewBusy.set(false);
+      },
+      error: () => {
+        this.previewBusy.set(false);
+        this.failed.set(true);
+      },
+    });
   }
 
   protected setPreviewFormat(format: string): void {
+    if (format === this.previewFormat()) return;
     this.previewFormat.set(format);
     this.loadPreview();
   }
@@ -282,6 +316,20 @@ export class VideoEditPage {
   protected size(bytes?: number): string {
     if (!bytes) return '';
     return bytes > 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(1)} Mo` : `${Math.round(bytes / 1024)} Ko`;
+  }
+
+  /** Ferme le tiroir après son animation de sortie (aussitôt si l'utilisateur réduit les animations). */
+  protected closeSettings(): void {
+    if (this.drawerLeaving()) return;
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+      this.settingsOpen.set(false);
+      return;
+    }
+    this.drawerLeaving.set(true);
+    setTimeout(() => {
+      this.settingsOpen.set(false);
+      this.drawerLeaving.set(false);
+    }, 300);
   }
 
   protected setSfx(enabled: boolean): void {

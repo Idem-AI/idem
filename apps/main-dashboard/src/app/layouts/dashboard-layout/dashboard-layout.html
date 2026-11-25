@@ -22,14 +22,14 @@
     [class.md:ml-20]="isSidebarCollapsed()"
   >
     <div
-      class="h-full"
+      class="h-full layout-pad"
       [ngClass]="{
         'p-4': true,
         'md:p-8': true,
       }"
     >
       <div
-        class="relative rounded-xl shadow-xl shadow-primary/5 border border-[var(--glass-border-subtle)] h-full"
+        class="layout-card relative rounded-xl shadow-xl shadow-primary/5 border border-[var(--glass-border-subtle)] h-full"
         [ngClass]="{
           'p-0': true,
           'md:p-6': true,
@@ -44,13 +44,12 @@
     </div>
 
     <!--
-      Les rappels FLOTTENT dans le coin bas-droit, au-dessus du dock : l'étape suivante recommandée (mode Avancé)
-      et la campagne en cours (bêta gratuite…, en pastille qui se déplie). En tête de page, ils repoussaient le
-      contenu important vers le bas.
+      Les rappels FLOTTENT en haut au centre, sous la barre du haut : l'étape suivante recommandée (mode Avancé) et
+      la campagne en cours (bêta gratuite…). Ils ne repoussent plus le contenu vers le bas ; chacun se ferme.
     -->
-    <div class="float-stack">
-      <idem-promo-banner variant="pill" />
+    <div class="float-stack" [class.float-stack--collapsed]="isSidebarCollapsed()">
       <app-next-step-bar />
+      <idem-promo-banner variant="toast" />
     </div>
 
     <!-- Les textes juridiques, atteignables sans quitter l'application. -->

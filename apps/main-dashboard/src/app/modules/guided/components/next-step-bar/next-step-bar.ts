@@ -11,8 +11,7 @@ import { GuidedJourneyService } from '../../services/guided-journey.service';
  *
  * Calculée par le code d'après l'état réel du projet (le même parcours que le mode Assisté, sans le
  * verrouiller). Une petite carte FLOTTANTE (24/11/2026 : en tête de page, elle repoussait le contenu
- * important vers le bas), posée par la mise en page dans le coin bas-droit, au-dessus du dock ; fermable.
- * Le « pourquoi » de l'étape reste en infobulle du titre.
+ * important vers le bas), posée par la mise en page en haut au centre, sous la barre du haut ; fermable.
  * Le mode Assisté a sa propre barre : rien ici.
  */
 @Component({
@@ -22,11 +21,16 @@ import { GuidedJourneyService } from '../../services/guided-journey.service';
   templateUrl: './next-step-bar.html',
   styles: `
     :host { display: block; }
-    .next-float { display: flex; align-items: center; gap: 0.6rem; width: min(22rem, calc(100vw - 2.5rem)); padding: 0.6rem 0.6rem 0.6rem 0.9rem; }
-    .next-label { margin: 0; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase; color: var(--color-text-tertiary); }
-    .next-title { margin: 0.1rem 0 0; font-size: 0.875rem; font-weight: 600; color: var(--color-text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .next-close { width: 1.9rem; height: 1.9rem; padding: 0; }
+    .next-float { display: flex; align-items: center; gap: 0.85rem; padding: 0.75rem 0.75rem 0.75rem 1rem; border-left: 4px solid var(--color-primary-500); box-shadow: 0 12px 32px color-mix(in oklch, var(--color-text-primary) 16%, transparent); animation: next-in 0.35s cubic-bezier(0.2, 0.8, 0.2, 1); }
+    .next-icon { display: flex; flex: none; align-items: center; justify-content: center; width: 2.4rem; height: 2.4rem; border-radius: 999px; background: color-mix(in oklch, var(--color-primary-500) 14%, transparent); color: var(--color-primary-500); }
+    .next-label { margin: 0; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--color-primary-500); }
+    .next-title { margin: 0.1rem 0 0; font-size: 0.95rem; font-weight: 700; color: var(--color-text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .next-why { margin: 0.1rem 0 0; font-size: 0.78rem; color: var(--color-text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .next-close { width: 2rem; height: 2rem; padding: 0; }
+    @keyframes next-in { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+    @media (prefers-reduced-motion: reduce) { .next-float { animation: none; } }
   `,
+
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class NextStepBarComponent {

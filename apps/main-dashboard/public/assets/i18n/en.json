@@ -4656,6 +4656,10 @@
           "outdated": "Older version, without your latest edits",
           "none": "Not made yet",
           "premiumSlow": "Premium quality films twice as many frames (60 per second): the file takes about twice as long to make."
+        },
+        "settings": {
+          "open": "Settings",
+          "title": "Video settings"
         }
       },
       "whatsapp": {
