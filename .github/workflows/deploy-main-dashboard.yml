@@ -2,7 +2,7 @@ name: Deploy Main dashboard
 
 on:
   push:
-    branches: [main, dev]
+    branches: [main]
     paths:
       - 'apps/main-dashboard/**'
       - 'packages/**'
@@ -12,7 +12,7 @@ on:
       - 'package.json'
       - 'package-lock.json'
   pull_request:
-    branches: [main, dev]
+    branches: [main]
     paths:
       - 'apps/main-dashboard/**'
       - 'packages/**'
