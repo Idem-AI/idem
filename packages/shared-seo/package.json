@@ -2,7 +2,6 @@
   "name": "@idem/shared-seo",
   "version": "1.0.0",
   "description": "La source unique du référencement d'IDEM : l'organisation, la promesse, les services et leur place dans le parcours, les graphes JSON-LD qui les relient d'un domaine à l'autre, et l'adresse des images de partage",
-  "type": "module",
   "main": "src/index.ts",
   "types": "src/index.ts",
   "exports": {

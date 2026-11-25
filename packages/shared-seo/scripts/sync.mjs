@@ -128,6 +128,23 @@ for (const locale of seo.SEO_LOCALES) {
   sync(join(landingPublic, `sitemap-${locale}.xml`), seo.renderLandingSitemap(locale));
 }
 
+// nginx du landing : la ligne qui reconnaît les robots (moteurs, IA, aperçus de partage), à qui
+// les billets du blog sont servis en HTML complet. Même liste que le robots.txt.
+{
+  const file = 'apps/landing/nginx.conf';
+  const conf = readFileSync(join(root, file), 'utf8');
+  const marker = '# idem-seo:crawlers';
+  const at = conf.indexOf(marker);
+  if (at < 0) {
+    problems.push(`${file} : repère « ${marker} » absent`);
+  } else {
+    const lineStart = conf.indexOf('\n', at) + 1;
+    const lineEnd = conf.indexOf('\n', lineStart);
+    const indent = /^\s*/.exec(conf.slice(lineStart, lineEnd))[0];
+    sync(file, conf.slice(0, lineStart) + indent + seo.crawlerUserAgentPattern() + conf.slice(lineEnd));
+  }
+}
+
 // Chaque image de partage a ses textes dans chaque langue et son dessin.
 const ogDir = join(root, 'apps', 'api', 'public', 'og');
 for (const locale of seo.SEO_LOCALES) {

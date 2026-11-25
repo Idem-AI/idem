@@ -120,3 +120,103 @@
   gap: 1rem;
   margin-top: 2rem;
 }
+
+/* Le nombre de billets d'un type, discret à côté de son nom. */
+.bl-kind {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.bl-count {
+  font-size: 0.75em;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.7;
+}
+
+/* Ce que contient le type choisi : une phrase, pas un bandeau. */
+.bl-intro {
+  margin: 0;
+  max-width: 40rem;
+  color: var(--color-text-secondary);
+}
+
+/* Le type d'un billet, quand la liste les mélange. */
+.bl-type {
+  color: var(--color-text-secondary);
+}
+
+.bl-upcoming {
+  margin-bottom: clamp(2rem, 4vw, 3rem);
+}
+
+.bl-upcoming-title {
+  margin: 0 0 1rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+}
+
+.bl-events {
+  display: grid;
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 768px) {
+  .bl-events {
+    grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+  }
+}
+
+/* Un événement à venir : la date en pastille, puis le titre, l'heure et le lieu. */
+.bl-event {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  height: 100%;
+  padding: 1rem;
+  border: 1px solid var(--glass-border-subtle);
+  border-radius: 0.75rem;
+}
+
+.bl-event:hover,
+.bl-event:focus-visible {
+  border-color: var(--color-primary-500);
+}
+
+.bl-event:hover .bl-event-title,
+.bl-event:focus-visible .bl-event-title {
+  color: var(--color-primary-500);
+}
+
+.bl-date {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: none;
+  min-width: 3.25rem;
+  padding: 0.4rem 0.5rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--color-primary-500);
+  color: var(--color-primary-500);
+  font-size: 0.75rem;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.bl-date b {
+  font-size: 1.35rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.bl-event-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+}

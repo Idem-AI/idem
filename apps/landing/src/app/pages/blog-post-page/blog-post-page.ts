@@ -17,6 +17,7 @@ import { landingUrl } from '@idem/shared-seo';
 import { BlogPost, BlogPostSummary } from '../../shared/models/blog.model';
 import { BlogService } from '../../shared/services/blog.service';
 import { SeoService } from '../../shared/services/seo.service';
+import { eventPlace, eventWhen, icsHref, isPastEvent, kindLabel } from '../../shared/blog/blog-kinds';
 
 type State = 'loading' | 'ready' | 'notfound' | 'error';
 
@@ -84,6 +85,33 @@ export class BlogPostPage {
   protected readonly linkedinUrl = computed(
     () => `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(this.shareUrl())}`
   );
+
+  protected readonly kind = computed(() => {
+    const post = this.post();
+    return post ? kindLabel(post.kind, this.seo.locale()) : '';
+  });
+
+  protected readonly eventPast = computed(() => isPastEvent(this.post()?.event));
+
+  protected readonly eventWhen = computed(() => {
+    const event = this.post()?.event;
+    return event ? eventWhen(event, this.seo.locale()) : '';
+  });
+
+  protected readonly eventPlace = computed(() => {
+    const event = this.post()?.event;
+    return event ? eventPlace(event, this.seo.locale()) : '';
+  });
+
+  /** L'événement dans l'agenda du visiteur (.ics), tant qu'il n'est pas passé. */
+  protected readonly ics = computed(() => {
+    const post = this.post();
+    return post && !this.eventPast() ? this.sanitizer.bypassSecurityTrustUrl(icsHref(post, this.shareUrl()) ?? '') : null;
+  });
+
+  protected itemKind(item: BlogPostSummary): string {
+    return kindLabel(item.kind, this.seo.locale());
+  }
 
   protected readonly skeletonLines = [0, 1, 2, 3, 4];
 

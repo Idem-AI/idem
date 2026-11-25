@@ -7,4 +7,10 @@
   <sitemap>
     <loc>https://idem.africa/sitemap-en.xml</loc>
   </sitemap>
+  <sitemap>
+    <loc>https://idem.africa/sitemap-blog-fr.xml</loc>
+  </sitemap>
+  <sitemap>
+    <loc>https://idem.africa/sitemap-blog-en.xml</loc>
+  </sitemap>
 </sitemapindex>

@@ -2,6 +2,7 @@ import { NextFunction, Request, Response, Router } from 'express';
 import logger from '../config/logger';
 import { verifyApiKey } from '../middleware/verifyApiKey';
 import { BlogError, blogService } from '../services/blog.service';
+import { blogPublicPagesService } from '../services/blog-public-pages.service';
 
 /**
  * Le blog.
@@ -62,6 +63,81 @@ blogRoutes.get(
   '/posts/:slug',
   handle(async (req, res) => {
     res.set('Cache-Control', PUBLIC_CACHE).json(await blogService.getPublic(req.query.locale, String(req.params.slug)));
+  })
+);
+
+// ── Robots et assistants IA ──────────────────────────────────────────────
+//
+// Servis derrière le landing (même domaine, voir apps/landing/nginx.conf) : les robots reçoivent
+// les billets en HTML complet, les IA leur version Markdown et `llms.txt`. `Vary: User-Agent` :
+// le landing sert la page de l'application aux visiteurs et celle-ci aux robots, sur la même adresse.
+
+const LOCALE = /^(fr|en)$/;
+const SLUG = /^[a-z0-9-]{1,80}$/;
+
+function locale(req: Request): 'fr' | 'en' {
+  const value = String(req.params.locale ?? '');
+  if (!LOCALE.test(value)) throw new BlogError(404, 'NOT_FOUND', 'Langue inconnue.');
+  return value as 'fr' | 'en';
+}
+
+function slug(req: Request): string {
+  const value = String(req.params.slug ?? '');
+  if (!SLUG.test(value)) throw new BlogError(404, 'NOT_FOUND', 'Ce billet n’existe pas.');
+  return value;
+}
+
+blogRoutes.get(
+  '/html/:locale',
+  handle(async (req, res) => {
+    const html = await blogPublicPagesService.listHtml({ ...req.query, locale: locale(req) });
+    res.type('html').vary('User-Agent').set('Cache-Control', PUBLIC_CACHE).send(html);
+  })
+);
+
+blogRoutes.get(
+  '/html/:locale/:slug',
+  handle(async (req, res) => {
+    try {
+      const html = await blogPublicPagesService.postHtml(locale(req), slug(req));
+      res.type('html').vary('User-Agent').set('Cache-Control', PUBLIC_CACHE).send(html);
+    } catch (error) {
+      // Un billet absent est un vrai 404 pour un robot, pas une page vide en 200.
+      if (error instanceof BlogError && error.status === 404) {
+        res.status(404).type('html').set('X-Robots-Tag', 'noindex').send('<!doctype html><title>404</title><h1>404</h1>');
+        return;
+      }
+      throw error;
+    }
+  })
+);
+
+blogRoutes.get(
+  '/md/:locale/:slug',
+  handle(async (req, res) => {
+    const md = await blogPublicPagesService.postMarkdown(locale(req), slug(req));
+    res.type('text/markdown; charset=utf-8').set('Cache-Control', PUBLIC_CACHE).send(md);
+  })
+);
+
+blogRoutes.get(
+  '/sitemap/:locale',
+  handle(async (req, res) => {
+    res.type('application/xml').set('Cache-Control', PUBLIC_CACHE).send(await blogPublicPagesService.sitemap(locale(req)));
+  })
+);
+
+blogRoutes.get(
+  '/llms.txt',
+  handle(async (_req, res) => {
+    res.type('text/plain; charset=utf-8').set('Cache-Control', PUBLIC_CACHE).send(await blogPublicPagesService.llmsTxt(false));
+  })
+);
+
+blogRoutes.get(
+  '/llms-full.txt',
+  handle(async (_req, res) => {
+    res.type('text/plain; charset=utf-8').set('Cache-Control', PUBLIC_CACHE).send(await blogPublicPagesService.llmsTxt(true));
   })
 );
 

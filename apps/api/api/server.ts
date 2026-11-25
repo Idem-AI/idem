@@ -59,6 +59,7 @@ import { ideployRepairRoutes } from './routes/ideploy-repair.routes';
 import { appgenMediaRoutes } from './routes/appgenMedia.routes';
 import { journeyRoutes } from './routes/journey.routes';
 import { appProjectRoutes } from './routes/appProject.routes';
+import { authHooksRoutes } from './routes/authHooks.routes';
 import { authRoutes } from './routes/auth.routes';
 import { promptRoutes } from './routes/prompt.routes';
 import swaggerJsdoc from 'swagger-jsdoc';
@@ -167,7 +168,11 @@ app.use(
   express.json({
     limit: process.env.JSON_BODY_LIMIT || '10mb',
     verify: (req, _res, buf) => {
-      if (req.url?.startsWith('/billing/webhooks/') || req.url?.startsWith('/whatsapp/webhook')) {
+      if (
+        req.url?.startsWith('/billing/webhooks/') ||
+        req.url?.startsWith('/whatsapp/webhook') ||
+        req.url?.startsWith('/auth/hooks/')
+      ) {
         (req as Request & { rawBody?: Buffer }).rawBody = Buffer.from(buf);
       }
     },
@@ -189,6 +194,11 @@ app.use('/internal/idomain', idomainRoutes);
 // derrière la clé interne (`x-api-key`). Avant la limite par IP pour la même raison
 // qu'iVision : tous les appels viennent des workers iDeploy.
 app.use('/internal/ideploy', ideployRepairRoutes);
+
+// E-mails du serveur d'authentification (GoTrue) : envoyés par l'API, avec le même
+// SMTP que tous les autres e-mails IDEM. Signés ; avant la limite par IP, car tous
+// les appels viennent du serveur d'authentification.
+app.use('/auth/hooks', authHooksRoutes);
 
 // Burst protection + global IP rate limit (in addition to per-route limits).
 app.use(burstProtection({ maxBurst: 30, burstWindowMs: 1000 }));

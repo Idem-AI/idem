@@ -28,6 +28,8 @@ COPY ./packages/motion-compiler ./packages/motion-compiler
 # La boucle IDEM (règles de recommandation entre applications) : importée par chemin relatif.
 COPY ./packages/shared-journey ./packages/shared-journey
 COPY ./packages/shared-promotions ./packages/shared-promotions
+# Le blog servi aux robots et llms.txt : la description d'IDEM et le JSON-LD viennent d'ici.
+COPY ./packages/shared-seo ./packages/shared-seo
 
 # Build shared-models first
 WORKDIR /app/packages/shared-models

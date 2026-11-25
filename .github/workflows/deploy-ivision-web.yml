@@ -11,16 +11,6 @@ on:
       - '.github/workflows/_service.yml'
       - 'package.json'
       - 'package-lock.json'
-  pull_request:
-    branches: [main]
-    paths:
-      - 'apps/ivision/web/**'
-      - 'packages/**'
-      - 'Dockerfile/prod/Dockerfile.ivision-web'
-      - '.github/workflows/deploy-ivision-web.yml'
-      - '.github/workflows/_service.yml'
-      - 'package.json'
-      - 'package-lock.json'
   workflow_dispatch:
 
 permissions:

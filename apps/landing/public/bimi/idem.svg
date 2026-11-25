@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.2" baseProfile="tiny-ps" viewBox="0 0 512 512">
+  <title>IDEM</title>
+  <rect width="512" height="512" fill="#1447E6"/>
+  <g transform="translate(51.2 51.2) scale(0.8)" fill="#FFFFFF">
+    <rect x="68" y="69" width="45" height="374"/>
+    <path d="M182 74H261A180 180 0 0 1 261 434H182V400H261A146 146 0 0 0 261 108H182Z"/>
+    <path d="M218 177H274V197H256V312H274V332H218V312H236V197H218Z"/>
+    <path d="M308 225L362 256L308 287" fill="none" stroke="#FFFFFF" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>

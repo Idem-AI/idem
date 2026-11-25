@@ -47,6 +47,26 @@ services:
     image: supabase/gotrue:v2.197.0
     container_name: idem-auth
     restart: unless-stopped
+    # Secret et adresse du hook d'envoi d'e-mails, calculés ici plutôt que
+    # recopiés dans .env :
+    #  - secret : AUTH_JWT_SECRET, déjà partagé avec l'API (SUPABASE_JWT_SECRET),
+    #    mis au format Standard Webhooks (`v1,whsec_<base64>`) ; l'API le vérifie
+    #    dans controllers/authEmailHook.controller.ts ;
+    #  - adresse : https://auth.<domaine> → https://api.<domaine>/auth/hooks/send-email
+    #    (GoTrue n'accepte le http que vers la machine locale) ; ailleurs, l'API
+    #    de développement sur l'hôte (port 3001).
+    # `$$` : évalué dans le conteneur, pas par Compose.
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        export GOTRUE_HOOK_SEND_EMAIL_SECRETS="v1,whsec_$$(printf %s "$$GOTRUE_JWT_SECRET" | base64 | tr -d '\n')"
+        public="$${API_EXTERNAL_URL%/}"
+        case "$$public" in
+          https://auth.*) export GOTRUE_HOOK_SEND_EMAIL_URI="https://api.$${public#https://auth.}/auth/hooks/send-email" ;;
+          *) export GOTRUE_HOOK_SEND_EMAIL_URI="http://host.docker.internal:3001/auth/hooks/send-email" ;;
+        esac
+        exec auth
     depends_on:
       auth-db:
         condition: service_healthy
@@ -96,16 +116,12 @@ services:
       GOTRUE_EXTERNAL_ANONYMOUS_USERS_ENABLED: 'false'
       GOTRUE_SECURITY_REFRESH_TOKEN_ROTATION_ENABLED: 'true'
 
-      GOTRUE_SMTP_HOST: '${AUTH_SMTP_HOST:?AUTH_SMTP_HOST manquant}'
-      GOTRUE_SMTP_PORT: '${AUTH_SMTP_PORT:-587}'
-      GOTRUE_SMTP_USER: '${AUTH_SMTP_USER:-}'
-      GOTRUE_SMTP_PASS: '${AUTH_SMTP_PASS:-}'
-      GOTRUE_SMTP_ADMIN_EMAIL: '${AUTH_SMTP_SENDER:-no-reply@idem.africa}'
-      GOTRUE_SMTP_SENDER_NAME: '${AUTH_SMTP_SENDER_NAME:-IDEM}'
-      GOTRUE_MAILER_SUBJECTS_CONFIRMATION: 'Confirmez votre adresse IDEM'
-      GOTRUE_MAILER_SUBJECTS_RECOVERY: 'Choisissez votre mot de passe IDEM'
-      GOTRUE_MAILER_SUBJECTS_EMAIL_CHANGE: 'Confirmez votre nouvelle adresse IDEM'
-      GOTRUE_MAILER_SUBJECTS_MAGIC_LINK: 'Votre lien de connexion IDEM'
+      # E-mails : GoTrue n'a PAS de SMTP à lui. Son « Send Email Hook » confie
+      # chaque message à l'API IDEM, qui l'envoie avec le SMTP de tous les autres
+      # e-mails (même compte, même expéditeur, même mise en page, journal
+      # email_logs). L'adresse du hook et son secret sont calculés au démarrage,
+      # voir `entrypoint` ci-dessus : aucune variable de plus à tenir à jour.
+      GOTRUE_HOOK_SEND_EMAIL_ENABLED: 'true'
       GOTRUE_RATE_LIMIT_EMAIL_SENT: '${AUTH_RATE_LIMIT_EMAIL_SENT:-60}'
       # Délai minimal entre deux e-mails à la même adresse.
       GOTRUE_SMTP_MAX_FREQUENCY: '${AUTH_SMTP_MAX_FREQUENCY:-60s}'
