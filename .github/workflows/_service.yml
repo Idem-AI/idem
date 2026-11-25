@@ -6,7 +6,7 @@ name: Build & deploy a service (reusable)
 # (builds filled its disk, stopped Redis writes and held the deploy lock for
 # up to 30 minutes).
 #
-#   pull_request → build only (the change is proved to build, nothing pushed)
+#   (deploy-*.yml no longer run on pull requests: ci.yml checks the PR)
 #   push to main → build and push `<sha>`, then deploy
 #   manual run   → same as the branch it runs on
 

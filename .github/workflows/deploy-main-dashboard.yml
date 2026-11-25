@@ -11,16 +11,6 @@ on:
       - '.github/workflows/_service.yml'
       - 'package.json'
       - 'package-lock.json'
-  pull_request:
-    branches: [main]
-    paths:
-      - 'apps/main-dashboard/**'
-      - 'packages/**'
-      - 'Dockerfile/prod/Dockerfile.main-dashboard'
-      - '.github/workflows/deploy-main-dashboard.yml'
-      - '.github/workflows/_service.yml'
-      - 'package.json'
-      - 'package-lock.json'
   workflow_dispatch:
 
 permissions:
