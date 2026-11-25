@@ -29,9 +29,19 @@ On first start, `init/00-auth-roles.sh` creates the roles and the `auth` schema;
 | `AUTH_REDIRECT_ALLOW_LIST` | `https://console.idem.africa/**` (comma-separated, add dev URLs on dev instances only) |
 | `AUTH_DB_PASSWORD`, `AUTH_ADMIN_PASSWORD` | `openssl rand -hex 24` each |
 | `AUTH_JWT_SECRET` | `openssl rand -hex 32`. **Same value** as `SUPABASE_JWT_SECRET` in the API (Infisical, project `api`) |
-| `AUTH_SMTP_*` | SMTP account used for confirmation and password e-mails |
 
 Changing `AUTH_JWT_SECRET` later invalidates every Supabase session (IDEM cookies are not affected: they are signed by `SESSION_SECRET`).
+
+## E-mails
+
+GoTrue has no SMTP account of its own. Its **Send Email Hook** hands every message (sign-up confirmation, password reset, magic link, invite, e-mail change, reauthentication code) to the IDEM API, which sends it with the same SMTP account, sender and layout as every other IDEM e-mail, and records it in `email_logs`. Route: `POST /auth/hooks/send-email` ([controller](../../apps/api/api/controllers/authEmailHook.controller.ts)).
+
+Nothing to configure: the container entrypoint derives both values at start-up.
+
+- **URL**: `https://auth.<domain>` → `https://api.<domain>/auth/hooks/send-email`; any other `AUTH_PUBLIC_URL` (development) → `http://host.docker.internal:3001/...`.
+- **Secret**: `AUTH_JWT_SECRET` (already equal to the API's `SUPABASE_JWT_SECRET`) in Standard Webhooks format.
+
+If the API is unreachable, GoTrue reports the e-mail as not sent and the sign-up or reset fails visibly instead of silently.
 
 ## Reverse proxy and network
 

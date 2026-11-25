@@ -3,6 +3,7 @@ import logger from '../../config/logger';
 import { emailsSentTotal } from '../../config/metrics';
 import { EmailLog } from '../../schemas/emailLog.schema';
 import { emailLogoAttachments } from './email-logo';
+import { senderAddress, senderForTemplate, type EmailSender } from './email-sender';
 
 /**
  * Envoi des e-mails transactionnels.
@@ -39,6 +40,11 @@ export interface SendEmailInput {
   relatedType?: string;
   userId?: string;
   replyTo?: string;
+  /**
+   * Expéditeur imposé. Sans lui, il se déduit du modèle (email-sender.ts) :
+   * `no-reply@` pour ce qui n'attend pas de réponse.
+   */
+  sender?: EmailSender;
 }
 
 export interface SendEmailResult {
@@ -79,10 +85,9 @@ export class TransactionalEmailService {
     return Boolean(process.env.SMTP_USER && process.env.SMTP_PASS);
   }
 
-  /** Expéditeur affiché. */
-  private from(): string {
-    const address = process.env.EMAIL_FROM || process.env.SMTP_USER || 'contact@idem.africa';
-    return `"IDEM" <${address}>`;
+  /** Expéditeur affiché : no-reply@ ou contact, selon le modèle. */
+  private from(sender: EmailSender): string {
+    return `"IDEM" <${senderAddress(sender)}>`;
   }
 
   async send(input: SendEmailInput): Promise<SendEmailResult> {
@@ -100,15 +105,20 @@ export class TransactionalEmailService {
     const startedAt = Date.now();
     let lastError = '';
 
+    let sender: EmailSender = input.sender ?? senderForTemplate(input.template);
+
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
       try {
         const info = await this.getTransporter().sendMail({
-          from: this.from(),
+          from: this.from(sender),
           to: input.to,
           subject: input.subject,
           html: input.html,
           text: input.text,
           replyTo: input.replyTo,
+          // Un message sans réponse attendue le dit aux messageries : les
+          // réponses automatiques (absence, congés) ne partent pas vers no-reply@.
+          headers: sender === 'no-reply' ? { 'Auto-Submitted': 'auto-generated' } : undefined,
           // Le logo voyage avec le message : une image distante est bloquée.
           attachments: emailLogoAttachments(input.html),
         });
@@ -136,6 +146,22 @@ export class TransactionalEmailService {
         return { sent: true, messageId: info.messageId, attempts: attempt };
       } catch (error: any) {
         lastError = error.message;
+
+        // Le serveur refuse l'alias (« not owned by user ») : il n'existe pas
+        // ou n'est plus rattaché au compte SMTP. Le message part alors de
+        // contact@ — une inscription ne doit pas échouer pour une question
+        // d'expéditeur — et l'alerte dit quoi réparer.
+        if (sender !== 'contact' && error.responseCode === 553) {
+          logger.error(`email.sender_rejected: ${error.message}`, {
+            event: 'email.sender_rejected',
+            alert: 'critical',
+            template: input.template,
+            sender: senderAddress(sender),
+            hint: `Rattacher ${senderAddress(sender)} comme alias du compte SMTP chez Private Email.`,
+          });
+          sender = 'contact';
+          continue;
+        }
 
         if (attempt < MAX_ATTEMPTS) {
           // Délai croissant : une limite de débit se lève rarement dans la

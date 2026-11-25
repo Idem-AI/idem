@@ -7,9 +7,9 @@
  *     dans certains contextes, Outlook ignore flexbox et grid. D'où des
  *     tableaux et des styles en ligne — non par goût, par nécessité.
  *  2. **Le message doit être lisible avant d'être beau.** Fond clair, texte
- *     sombre, une seule colonne, un seul bouton. L'en-tête sombre porte
- *     l'identité ; le corps reste blanc, parce qu'un e-mail sombre s'imprime
- *     mal et vieillit mal dans les fils de discussion.
+ *     sombre, une seule colonne, un seul bouton. L'en-tête est blanc lui
+ *     aussi, avec le logo tout bleu ; en mode sombre (messageries qui le
+ *     signalent), carte sombre et logo « EM » blanc. Voir email-logo.ts.
  *  3. **Le design system IDEM sans y toucher** : primaire `#1447e6`, accent
  *     `#22d3ee`, fond sombre `#06080d`, pile de polices Vilevile puis système.
  *     La police n'est pas embarquée — les messageries la retirent presque
@@ -17,7 +17,7 @@
  *     rapportent (même choix que l'EmailService historique).
  */
 
-import { EMAIL_LOGO } from './email-logo';
+import { EMAIL_THEME_HEAD, emailLogoHtml } from './email-logo';
 
 export const BRAND = {
   primary: '#1447e6',
@@ -27,10 +27,6 @@ export const BRAND = {
   muted: '#6b7280',
   border: '#e5e7eb',
   surface: '#f7fafc',
-  // Joint au message (cid:), jamais chargé depuis le web : les messageries
-  // bloquent les images distantes. Variante « EM » blanc, pour l'en-tête
-  // sombre de tous les modèles. Voir email-logo.ts.
-  logo: EMAIL_LOGO.onDark.src,
   console: 'https://console.idem.africa',
   site: 'https://idem.africa',
   fontStack: "'Vilevile', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
@@ -117,7 +113,7 @@ export function panel(title: string, rows: { label: string; value: string }[]): 
     .join('');
 
   return `
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${BRAND.surface};border:1px solid ${BRAND.border};border-left:4px solid ${BRAND.primary};border-radius:8px;margin:0 0 20px;">
+    <table class="em-panel" role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${BRAND.surface};border:1px solid ${BRAND.border};border-left:4px solid ${BRAND.primary};border-radius:8px;margin:0 0 20px;">
       <tr>
         <td style="padding:18px 20px;">
           <p style="margin:0 0 10px;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:${BRAND.primary};">${escapeHtml(title)}</p>
@@ -147,7 +143,7 @@ export function quote(text: string): string {
   return `
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px;">
       <tr>
-        <td style="padding:14px 18px;background:#eef2ff;border-radius:8px;font-size:15px;line-height:1.7;color:${BRAND.text};font-style:italic;">
+        <td class="em-panel" style="padding:14px 18px;background:#eef2ff;border-radius:8px;font-size:15px;line-height:1.7;color:${BRAND.text};font-style:italic;">
           ${escapeHtml(text).replace(/\n/g, '<br>')}
         </td>
       </tr>
@@ -167,7 +163,7 @@ export function choiceButtons(
     <table role="presentation" cellpadding="0" cellspacing="0" style="margin:8px 0 24px;">
       <tr>
         <td style="background:${BRAND.primary};border-radius:8px;">
-          <a href="${escapeHtml(primary.url)}" style="display:inline-block;padding:13px 24px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;">${escapeHtml(primary.label)}</a>
+          <a class="em-btn-a" href="${escapeHtml(primary.url)}" style="display:inline-block;padding:13px 24px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;">${escapeHtml(primary.label)}</a>
         </td>
         <td style="width:12px;"></td>
         <td style="border:1px solid ${BRAND.border};border-radius:8px;">
@@ -189,7 +185,7 @@ export function renderEmail(options: LayoutOptions): string {
       <table role="presentation" cellpadding="0" cellspacing="0" style="margin:8px 0 24px;">
         <tr>
           <td style="background:${BRAND.primary};border-radius:8px;">
-            <a href="${escapeHtml(options.cta.url)}" style="display:inline-block;padding:13px 28px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;letter-spacing:.02em;">${escapeHtml(options.cta.label)}</a>
+            <a class="em-btn-a" href="${escapeHtml(options.cta.url)}" style="display:inline-block;padding:13px 28px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;letter-spacing:.02em;">${escapeHtml(options.cta.label)}</a>
           </td>
         </tr>
       </table>`
@@ -201,23 +197,24 @@ export function renderEmail(options: LayoutOptions): string {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${escapeHtml(options.title)}</title>
+${EMAIL_THEME_HEAD}
 </head>
-<body style="margin:0;padding:0;background:${BRAND.surface};">
+<body class="em-bg" style="margin:0;padding:0;background:${BRAND.surface};">
   <!-- Aperçu : lu par la messagerie, jamais affiché dans le message. -->
   <div style="display:none;max-height:0;overflow:hidden;opacity:0;">${escapeHtml(options.preheader)}</div>
 
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${BRAND.surface};padding:24px 12px;">
+  <table class="em-bg" role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${BRAND.surface};padding:24px 12px;">
     <tr>
       <td align="center">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:#ffffff;border-radius:14px;overflow:hidden;box-shadow:0 8px 24px rgba(15,23,42,.08);font-family:${BRAND.fontStack};">
+        <table class="em-card" role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:#ffffff;border-radius:14px;overflow:hidden;box-shadow:0 8px 24px rgba(15,23,42,.08);font-family:${BRAND.fontStack};">
 
           <tr>
-            <td style="background:${BRAND.dark};padding:32px 28px;text-align:center;">
-              <img src="${BRAND.logo}" alt="IDEM" width="92" height="40" style="display:block;margin:0 auto 14px;width:92px;height:auto;border:0;outline:none;text-decoration:none;">
-              <h1 style="margin:0 0 6px;font-size:21px;font-weight:600;color:#ffffff;line-height:1.35;">${escapeHtml(options.title)}</h1>
+            <td class="em-head" style="background:#ffffff;padding:32px 28px 24px;text-align:center;border-bottom:1px solid ${BRAND.border};">
+              ${emailLogoHtml(92, 'margin:0 auto 16px;')}
+              <h1 style="margin:0 0 6px;font-size:21px;font-weight:600;color:#0f172a;line-height:1.35;">${escapeHtml(options.title)}</h1>
               ${
                 options.subtitle
-                  ? `<p style="margin:0;font-size:14px;color:${BRAND.accent};">${escapeHtml(options.subtitle)}</p>`
+                  ? `<p style="margin:0;font-size:14px;font-weight:600;color:${BRAND.primary};">${escapeHtml(options.subtitle)}</p>`
                   : ''
               }
             </td>
@@ -244,7 +241,7 @@ export function renderEmail(options: LayoutOptions): string {
           </tr>
 
           <tr>
-            <td style="background:${BRAND.surface};padding:20px 28px;text-align:center;border-top:1px solid ${BRAND.border};">
+            <td class="em-band" style="background:${BRAND.surface};padding:20px 28px;text-align:center;border-top:1px solid ${BRAND.border};">
               ${
                 options.footerNote
                   ? `<p style="margin:0 0 8px;font-size:12px;color:${BRAND.muted};line-height:1.6;">${escapeHtml(options.footerNote)}</p>`
