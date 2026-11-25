@@ -118,7 +118,7 @@ export async function lookup(host: string, resolver = publicResolver()): Promise
   return { a, aaaa, cname };
 }
 
-/** An address of the platform domain (`monapp.idem.africa`), which iDeploy writes in DNS itself. */
+/** An address of the platform domain (`monapp.ideploy.site`), which iDeploy writes in DNS itself. */
 export function isPlatformHost(host: string, platformDomain = process.env.IDEPLOY_PLATFORM_DOMAIN || ''): boolean {
   return Boolean(platformDomain) && host.toLowerCase().endsWith(`.${platformDomain.toLowerCase()}`);
 }

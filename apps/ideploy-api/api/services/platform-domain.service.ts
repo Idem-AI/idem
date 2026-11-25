@@ -1,12 +1,16 @@
 /**
- * `monapp.idem.africa` — the address an application published from iCode gets.
+ * `monapp.ideploy.site` — the address an application published from iCode gets.
  *
- * The name comes from the application's name. When it is taken — by another
- * application, by a record already in the zone, or by one of IDEM's own
- * services — a short id is added: `monapp-k3x9p.idem.africa`. The A record is
- * created at Namecheap, pointing at the server the application runs on; it
- * takes precedence over the `*.idem.africa` wildcard (which points at IDEM's
- * own server).
+ * The platform domain is configured via `IDEPLOY_PLATFORM_DOMAIN` (set to
+ * `ideploy.site` in production). The name comes from the application's name.
+ * When it is taken — by another application, by a record already in the zone,
+ * or by one of IDEM's own services — a short id is added:
+ * `monapp-k3x9p.ideploy.site`. The A record is created at Namecheap, pointing
+ * at the server the application runs on.
+ *
+ * Legacy note: applications created before the domain migration may still have
+ * `*.idem.africa` addresses in their `fqdn` column. The startup job in
+ * `domain-migration.service.ts` rewrites them and notifies owners by email.
  *
  * Never blocking: when the platform domain is not configured or Namecheap
  * fails, the caller keeps the automatic address (sslip.io / server wildcard)
@@ -90,7 +94,7 @@ export async function claimPlatformHost(name: string, serverIp: string): Promise
   try {
     return await withZoneLock(async () => {
       const zone = await provider.getZone();
-      // A zone that answers with no record at all is not idem.africa: writing
+      // A zone that answers with no record at all is not ideploy.site: writing
       // it back would erase everything. Refuse.
       if (zone.hosts.length === 0) throw new Error('The DNS zone came back empty; nothing was written.');
 

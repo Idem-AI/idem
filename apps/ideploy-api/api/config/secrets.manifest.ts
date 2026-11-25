@@ -25,7 +25,8 @@ export const SECRET_MANIFEST = {
     'GITLAB_CLIENT_ID',
     'GITLAB_CLIENT_SECRET',
     'STRIPE_SECRET_KEY',
-    // Adresses monapp.idem.africa ; absent = adresse automatique (sslip.io).
+    // Adresses monapp.ideploy.site ; absent = adresse automatique (sslip.io).
+    // Valeur en production : ideploy.site (voir IDEPLOY_PLATFORM_DOMAIN dans .env.example).
     'NAMECHEAP_API_KEY',
     // Clé partagée avec l'API IDEM (même valeur que son INTERNAL_API_KEY) :
     // sans elle, pas de réparation des déploiements par l'IA.

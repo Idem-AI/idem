@@ -138,7 +138,7 @@ export async function listApplications(teamId: number, environmentId?: number): 
 
 export interface CreateApplicationDto {
   name: string;
-  /** `monapp.idem.africa` beside the automatic address; on unless `false`. */
+  /** `monapp.ideploy.site` beside the automatic address; on unless `false`. */
   platform_domain?: boolean;
   description?: string;
   environment_id: number;
@@ -248,7 +248,7 @@ export async function createApplication(
   if (!fqdn && dto.destination_id) {
     const server = await getServerForDestination(dto.destination_id);
     if (server) {
-      // Two addresses: `monapp.idem.africa` first — the one shown and opened
+      // Two addresses: `monapp.ideploy.site` first — the one shown and opened
       // ("Voir le site") — then the automatic one (sslip.io / server
       // wildcard), which works even when the platform DNS could not be updated.
       const platform = dto.platform_domain === false ? null : await claimPlatformHost(dto.name, server.ip);
@@ -496,7 +496,7 @@ export async function deleteApplication(
   });
 
   logger.info('Application deleted', { uuid, teamId, serverCleanup });
-  // Its platform address (`monapp.idem.africa`) goes back to the pool.
+  // Its platform address (`monapp.ideploy.site`) goes back to the pool.
   for (const host of splitDomains(app.fqdn ?? '')) {
     const parsed = toClaim(host);
     if (parsed) await releasePlatformHost(parsed.host);

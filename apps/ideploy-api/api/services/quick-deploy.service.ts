@@ -135,7 +135,7 @@ export interface QuickDeployDto {
   environment_variables?: { key: string; value: string }[];
   /**
    * Give the application an address on the platform domain
-   * (`monapp.idem.africa`, or `monapp-<id>` when taken) instead of the
+   * (`monapp.ideploy.site`, or `monapp-<id>` when taken) instead of the
    * automatic one. On by default for every caller; pass `false` to keep the
    * automatic address.
    */
@@ -322,7 +322,7 @@ export interface FullstackDeployDto {
   deployment_type?: workspaceService.DeploymentType;
   server_uuid?: string;
   region?: string;
-  /** `monapp.idem.africa` for the interface, `monapp-api.idem.africa` for the server. */
+  /** `monapp.ideploy.site` for the interface, `monapp-api.ideploy.site` for the server. */
   platform_domain?: boolean;
 }
 
