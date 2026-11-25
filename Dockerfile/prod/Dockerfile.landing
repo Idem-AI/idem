@@ -37,6 +37,9 @@ WORKDIR /app/apps/landing
 
 # RUN test -f .env || (echo " .env introuvable dans /app/apps/landing — vérifie .dockerignore" && exit 1)
 RUN npm run env:prod
+# L'adresse de l'API, celle que le site appelle déjà : nginx s'en sert pour servir le blog aux
+# robots et `llms.txt` (voir nginx.conf). Lue ici plutôt que redemandée en variable.
+RUN node -e "const s=require('fs').readFileSync('src/environments/environment.ts','utf8');const m=/api:\s*\{\s*url:\s*'([^']+)'/.exec(s);if(!m){console.error('adresse de l API introuvable dans environment.ts');process.exit(1)}require('fs').writeFileSync('/tmp/idem-api-url',m[1].replace(/\/$/,''))"
 
 # --- Builds ---
 
@@ -83,8 +86,11 @@ COPY ./apps/landing/nginx.conf /etc/nginx/nginx.conf
 # une fois par appareil vers `/fr/?r=<version>`, une URL qu'il ne peut pas
 # avoir en cache. Le cookie `idem_fresh` posé au même moment évite que la
 # redirection reste polluée les fois suivantes.
+COPY --from=builder /tmp/idem-api-url /tmp/idem-api-url
 RUN sed -i "s/__IDEM_RELEASE__/$(date +%Y%m%d%H%M%S)/" /etc/nginx/nginx.conf && \
-    grep -q "__IDEM_RELEASE__" /etc/nginx/nginx.conf && exit 1 || true
+    sed -i "s#__IDEM_API_URL__#$(cat /tmp/idem-api-url)#" /etc/nginx/nginx.conf && \
+    rm /tmp/idem-api-url && \
+    (grep -q "__IDEM_RELEASE__\|__IDEM_API_URL__" /etc/nginx/nginx.conf && exit 1 || true)
 
 # Copier les builds des deux locales
 COPY --from=builder /app/apps/landing/dist/landing/browser/fr /usr/share/nginx/html/fr

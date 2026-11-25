@@ -42,7 +42,9 @@
               <a class="bp-back" routerLink="/blog" i18n="@@blog-post-page.back">All posts</a>
 
               <p class="bp-meta">
-                @if (p.kind === 'release') {
+                <!-- Le type mène à tous les billets du même type. -->
+                <a class="tag bp-type" routerLink="/blog" [queryParams]="{ kind: p.kind }">{{ kind() }}</a>
+                @if (p.kind === 'release' && p.version) {
                   <span class="tag">v{{ p.version }}</span>
                 }
                 <time [attr.datetime]="p.publishedAt">{{ p.publishedAt | date: 'longDate' }}</time>
@@ -54,6 +56,30 @@
 
               <h1 class="bp-title">{{ p.title }}</h1>
               <p class="ed-lede ed-lede-wide ed-mt-6">{{ p.excerpt }}</p>
+
+              @if (p.event) {
+                <!-- L'événement en un coup d'œil : quand, où, et ce qu'on peut faire. -->
+                <section class="bp-event" [class.bp-event-past]="eventPast()" aria-labelledby="bp-event-title">
+                  <h2 id="bp-event-title" class="bp-sr" i18n="@@blog-post-page.event.title">Event details</h2>
+                  @if (eventPast()) {
+                    <p class="bp-event-status" i18n="@@blog-post-page.event.past">This event has ended.</p>
+                  }
+                  <p class="bp-event-when">{{ eventWhen() }}</p>
+                  @if (eventPlace(); as where) {
+                    <p class="bp-event-where">{{ where }}</p>
+                  }
+                  @if (!eventPast()) {
+                    <p class="bp-event-actions">
+                      @if (p.event.registrationUrl) {
+                        <a class="inner-button button-sm" [href]="p.event.registrationUrl" target="_blank" rel="noopener noreferrer" i18n="@@blog-post-page.event.register">Register</a>
+                      }
+                      @if (ics(); as href) {
+                        <a class="outer-button button-sm" [href]="href" [attr.download]="p.slug + '.ics'" i18n="@@blog-post-page.event.calendar">Add to calendar</a>
+                      }
+                    </p>
+                  }
+                </section>
+              }
             </header>
 
             @if (p.coverUrl) {
@@ -118,9 +144,10 @@
                 @for (item of related(); track item.slug) {
                   <li class="ed-row">
                     <a class="bp-related-link" [routerLink]="['/blog', item.slug]">
-                      <time class="bp-meta" [attr.datetime]="item.publishedAt">{{
-                        item.publishedAt | date: 'longDate'
-                      }}</time>
+                      <span class="bp-meta">
+                        <span class="tag bp-type">{{ itemKind(item) }}</span>
+                        <time [attr.datetime]="item.publishedAt">{{ item.publishedAt | date: 'longDate' }}</time>
+                      </span>
                       <span class="ed-h3">{{ item.title }}</span>
                     </a>
                   </li>

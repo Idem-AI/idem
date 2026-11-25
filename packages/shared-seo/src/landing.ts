@@ -1,5 +1,6 @@
 import { IDEM, SEO_LOCALES, type SeoLocale, type ServiceId } from './ecosystem';
 import type { OgKey } from './og';
+import { CRAWLERS, LLMS_FULL_TXT_URL, LLMS_TXT_URL, blogSitemapUrl } from './blog';
 
 /**
  * Les pages du landing (idem.africa/<langue>/…). Les titres et descriptions,
@@ -364,6 +365,9 @@ export function renderLandingSitemapIndex(): string {
     ...SEO_LOCALES.map(
       (l) => `  <sitemap>\n    <loc>${IDEM.url}/sitemap-${l}.xml</loc>\n  </sitemap>`
     ),
+    // Les billets du blog, publiés sans nouvelle version du site : leur plan est servi par l'API
+    // (derrière le landing, même domaine), toujours à jour.
+    ...SEO_LOCALES.map((l) => `  <sitemap>\n    <loc>${blogSitemapUrl(l)}</loc>\n  </sitemap>`),
     '</sitemapindex>',
     '',
   ].join('\n');
@@ -378,6 +382,12 @@ export function renderLandingRobots(): string {
     'User-agent: *',
     'Allow: /',
     '',
+    // Les moteurs et les assistants IA sont nommés un par un : IDEM veut être lu, compris et cité.
+    '# Moteurs de recherche, assistants IA et aperçus de partage : bienvenus.',
+    ...CRAWLERS.flatMap((bot) => [`User-agent: ${bot}`]),
+    'Allow: /',
+    '',
+    `# Ce qu'est IDEM, pour les IA : ${LLMS_TXT_URL} (version complète : ${LLMS_FULL_TXT_URL})`,
     `Sitemap: ${IDEM.url}/sitemap.xml`,
     '',
   ].join('\n');

@@ -7,6 +7,7 @@ import {
   BlogKind,
   BlogLocale,
   BlogPost,
+  BlogEvent,
   BlogPostDocument,
   BlogStatus,
   BlogTocEntry,
@@ -153,7 +154,12 @@ const LIMITS = {
   version: 30,
   author: 80,
   alt: 200,
+  location: 120,
+  url: 600,
 } as const;
+
+/** Les fuseaux proposés par le panel ; tout fuseau IANA valide est accepté. */
+const DEFAULT_TIMEZONE = 'Africa/Douala';
 
 export interface BlogInput {
   slug?: string;
@@ -168,6 +174,16 @@ export interface BlogInput {
   version?: string | null;
   authorName?: string;
   publishedAt?: string | null;
+  event?: BlogEventInput | null;
+}
+
+export interface BlogEventInput {
+  startsAt?: string | null;
+  endsAt?: string | null;
+  timezone?: string;
+  online?: boolean;
+  location?: string | null;
+  registrationUrl?: string | null;
 }
 
 function fail(message: string): never {
@@ -220,7 +236,62 @@ function dateValue(value: unknown): Date | null | undefined {
   return date;
 }
 
+function timezoneValue(value: unknown): string {
+  if (value === undefined || value === null || value === '') return DEFAULT_TIMEZONE;
+  if (typeof value !== 'string') fail('Fuseau horaire invalide.');
+  try {
+    new Intl.DateTimeFormat('en', { timeZone: value });
+  } catch {
+    fail(`Fuseau horaire inconnu : « ${value} ».`);
+  }
+  return value;
+}
+
+/** Les informations d'un événement ; `null` les retire. */
+function eventValue(value: unknown): BlogEvent | null | undefined {
+  if (value === undefined) return undefined;
+  if (value === null) return null;
+  if (typeof value !== 'object' || Array.isArray(value)) fail('« event » doit être un objet.');
+  const input = value as BlogEventInput;
+
+  const startsAt = dateValue(input.startsAt);
+  if (!startsAt) fail('Un événement a besoin d’une date de début.');
+  const endsAt = dateValue(input.endsAt) ?? undefined;
+  if (endsAt && endsAt < startsAt) fail('La fin de l’événement est avant son début.');
+
+  const location = text(input.location ?? undefined, 'lieu', LIMITS.location) || undefined;
+  const online = input.online === true;
+  const registration = text(input.registrationUrl ?? undefined, 'lien d’inscription', LIMITS.url) || undefined;
+  if (registration && !/^https:\/\/\S+$/i.test(registration)) fail('Le lien d’inscription doit commencer par https://.');
+
+  return {
+    startsAt,
+    ...(endsAt ? { endsAt } : {}),
+    timezone: timezoneValue(input.timezone),
+    online,
+    ...(location ? { location } : {}),
+    ...(registration ? { registrationUrl: registration } : {}),
+  };
+}
+
 // ── Lecture publique ─────────────────────────────────────────────────────
+
+/**
+ * Un événement sans fin est considéré en cours pendant six heures après son début : un atelier
+ * commencé ce matin est encore « à venir » à midi, pas « passé ».
+ */
+const EVENT_GRACE_MS = 6 * 60 * 60 * 1000;
+
+/** Les événements qui ne sont pas encore terminés. */
+function upcomingEvents(now = new Date()): FilterQuery<BlogPostDocument> {
+  return {
+    kind: 'event',
+    $or: [
+      { 'event.endsAt': { $gte: now } },
+      { 'event.endsAt': null, 'event.startsAt': { $gte: new Date(now.getTime() - EVENT_GRACE_MS) } },
+    ],
+  };
+}
 
 /** Ce qu'un visiteur peut voir : publié, et dont la date de parution est passée. */
 function visible(locale: BlogLocale): FilterQuery<BlogPostDocument> {
@@ -228,7 +299,7 @@ function visible(locale: BlogLocale): FilterQuery<BlogPostDocument> {
 }
 
 const SUMMARY_FIELDS =
-  'slug locale kind title excerpt coverUrl coverAlt tags version authorName readingMinutes publishedAt';
+  'slug locale kind title excerpt coverUrl coverAlt tags version event authorName readingMinutes publishedAt';
 
 export function toLocale(value: unknown): BlogLocale {
   return (BLOG_LOCALES as readonly string[]).includes(value as string) ? (value as BlogLocale) : 'en';
@@ -255,28 +326,54 @@ export const blogService = {
 
   // — Public —
 
+  /**
+   * La page publique du blog.
+   *
+   * - `kinds` : le nombre de billets visibles par type — la page ne propose que les filtres qui
+   *   mènent quelque part.
+   * - `upcoming` : les événements à venir, du plus proche au plus lointain (première page
+   *   seulement). Ils sont alors retirés du fil, pour qu'un billet n'apparaisse jamais deux fois.
+   * - Filtre « Événements » : le fil ne contient que les événements passés, du plus récent au plus
+   *   ancien ; les événements à venir sont tous dans `upcoming`.
+   */
   async listPublic(query: { locale?: unknown; kind?: unknown; tag?: unknown; page?: unknown; limit?: unknown }) {
     const locale = toLocale(query.locale);
     const kind = toKind(query.kind);
     const tag = typeof query.tag === 'string' ? query.tag.trim().toLowerCase() : '';
     const current = page(query.page, 1, 1000);
     const limit = page(query.limit, 12, 24);
+    const now = new Date();
 
+    const base: FilterQuery<BlogPostDocument> = { ...visible(locale), ...(tag && { tags: tag }) };
+    const withUpcoming = !kind || kind === 'event';
+    const upcomingFilter = { ...base, ...upcomingEvents(now) };
     const filter: FilterQuery<BlogPostDocument> = {
-      ...visible(locale),
+      ...base,
       ...(kind && { kind }),
-      ...(tag && { tags: tag }),
+      ...(withUpcoming && { $nor: [upcomingEvents(now)] }),
     };
+    const sort: Record<string, 1 | -1> = kind === 'event' ? { 'event.startsAt': -1 } : { publishedAt: -1 };
 
-    const [posts, total, tags] = await Promise.all([
+    const [posts, total, tags, kinds, upcoming] = await Promise.all([
       BlogPost.find(filter)
         .select(SUMMARY_FIELDS)
-        .sort({ publishedAt: -1 })
+        .sort(sort)
         .skip((current - 1) * limit)
         .limit(limit)
         .lean(),
       BlogPost.countDocuments(filter),
       BlogPost.distinct('tags', visible(locale)),
+      BlogPost.aggregate<{ _id: BlogKind; count: number }>([
+        { $match: visible(locale) },
+        { $group: { _id: '$kind', count: { $sum: 1 } } },
+      ]),
+      withUpcoming && current === 1
+        ? BlogPost.find(upcomingFilter)
+            .select(SUMMARY_FIELDS)
+            .sort({ 'event.startsAt': 1 })
+            .limit(kind === 'event' ? 24 : 3)
+            .lean()
+        : Promise.resolve([]),
     ]);
 
     return {
@@ -285,6 +382,8 @@ export const blogService = {
       page: current,
       pages: Math.max(1, Math.ceil(total / limit)),
       tags: (tags as string[]).sort(),
+      kinds: BLOG_KINDS.map((k) => ({ kind: k, count: kinds.find((c) => c._id === k)?.count ?? 0 })),
+      upcoming,
     };
   },
 
@@ -370,7 +469,7 @@ export const blogService = {
       filter.title = { $regex: escaped, $options: 'i' };
     }
 
-    const [posts, total, counts] = await Promise.all([
+    const [posts, total, counts, kindCounts] = await Promise.all([
       BlogPost.find(filter)
         .select(`${SUMMARY_FIELDS} status createdAt updatedAt createdBy updatedBy`)
         .sort({ updatedAt: -1 })
@@ -380,6 +479,9 @@ export const blogService = {
       BlogPost.countDocuments(filter),
       BlogPost.aggregate<{ _id: BlogStatus; count: number }>([
         { $group: { _id: '$status', count: { $sum: 1 } } },
+      ]),
+      BlogPost.aggregate<{ _id: BlogKind; count: number }>([
+        { $group: { _id: '$kind', count: { $sum: 1 } } },
       ]),
     ]);
 
@@ -392,6 +494,7 @@ export const blogService = {
         draft: counts.find((c) => c._id === 'draft')?.count ?? 0,
         published: counts.find((c) => c._id === 'published')?.count ?? 0,
       },
+      kinds: BLOG_KINDS.map((k) => ({ kind: k, count: kindCounts.find((c) => c._id === k)?.count ?? 0 })),
     };
   },
 
@@ -411,6 +514,7 @@ export const blogService = {
     if (!slug) fail('Impossible de tirer une adresse de ce titre : saisissez-en une.');
 
     const data = this.buildFields(input);
+    if (data.kind !== 'event') delete data.event;
     const post = new BlogPost({
       ...data,
       slug,
@@ -458,6 +562,8 @@ export const blogService = {
     }
 
     Object.assign(post, data);
+    // Les informations d'événement ne survivent pas à un changement de type.
+    if (post.kind !== 'event' && post.event) post.event = undefined;
     // Un billet publié sans date de parution serait invisible partout.
     if (post.status === 'published' && !post.publishedAt) post.publishedAt = new Date();
     post.updatedBy = adminEmail;
@@ -479,6 +585,10 @@ export const blogService = {
       if (!post.title.trim()) fail('Un billet publié a besoin d’un titre.');
       if (!post.contentMd.trim()) fail('Un billet publié ne peut pas être vide.');
       if (!post.excerpt.trim()) fail('Écrivez l’extrait : c’est lui qui s’affiche dans la liste et au partage.');
+      if (post.kind === 'event') {
+        if (!post.event?.startsAt) fail('Un événement publié a besoin de sa date de début.');
+        if (!post.event.online && !post.event.location) fail('Indiquez le lieu de l’événement, ou cochez « En ligne ».');
+      }
       const date = dateValue(publishedAt);
       post.publishedAt = date ?? post.publishedAt ?? new Date();
     }
@@ -522,6 +632,9 @@ export const blogService = {
 
     const tags = tagList(input.tags);
     if (tags) out.tags = tags;
+
+    const event = eventValue(input.event);
+    if (event !== undefined) out.event = event ?? undefined;
 
     const publishedAt = dateValue(input.publishedAt);
     if (publishedAt !== undefined) out.publishedAt = publishedAt ?? undefined;

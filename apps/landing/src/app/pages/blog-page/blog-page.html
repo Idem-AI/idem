@@ -1,4 +1,4 @@
-<!-- Blog — articles et notes de version.
+<!-- Blog — articles, nouveautés, annonces, événements, guides, témoignages, presse.
      Même mise en page éditoriale que les autres pages : le titre donne
      l'échelle, des rangées séparées par un filet, pas de carte autour de chaque
      billet. Le feuillet et son calame (le texte écrit) disent ce que dit la page. -->
@@ -11,8 +11,8 @@
 
     <div class="grid gap-12 ed-mt-12 ed-mt-lg-16 lg:grid-cols-12 lg:gap-16 lg:items-center">
       <div class="lg:col-span-7 ed-rise ed-rise-2">
-        <p class="ed-lede ed-lede-wide" i18n="@@blog-page.hero.lede">
-          Product news, release notes and lessons from the team building IDEM.
+        <p class="ed-lede ed-lede-wide" i18n="@@blog-page.hero.lede.v2">
+          News, releases, events, guides and customer stories from the team building IDEM.
         </p>
         <p class="ed-mt-6">
           <a class="outer-button button-sm" [href]="rssUrl" i18n="@@blog-page.rss">RSS feed</a>
@@ -30,19 +30,23 @@
       <!-- Les filtres : le type d'abord, puis les sujets en usage. -->
       <div class="bl-filters">
         <nav class="bl-kinds" aria-label="Filter posts" i18n-aria-label="@@blog-page.filter.aria">
-          @for (item of kinds; track item.label) {
+          @for (item of kinds(); track item.label) {
             <a
-              class="button-sm"
+              class="button-sm bl-kind"
               [class.inner-button]="kind() === item.value"
               [class.outer-button]="kind() !== item.value"
               [routerLink]="[]"
               [queryParams]="{ kind: item.value, page: null }"
               queryParamsHandling="merge"
               [attr.aria-current]="kind() === item.value ? 'true' : null"
-              >{{ item.label }}</a
+              >{{ item.label }}<span class="bl-count">{{ item.count }}</span></a
             >
           }
         </nav>
+
+        @if (kindIntro(); as intro) {
+          <p class="bl-intro">{{ intro }}</p>
+        }
 
         @if (list()?.tags?.length) {
           <nav class="bl-tags" aria-label="Topics" i18n-aria-label="@@blog-page.tags.aria">
@@ -87,7 +91,39 @@
         }
 
         @case ('ready') {
-          @if (list()!.posts.length === 0) {
+          <!-- Les événements à venir : en tête, du plus proche au plus lointain. Ils ne sont pas
+               répétés dans le fil. -->
+          @if (upcoming().length) {
+            <section class="bl-upcoming" aria-labelledby="bl-upcoming-title">
+              <h2 id="bl-upcoming-title" class="bl-upcoming-title" i18n="@@blog-page.upcoming.title">Upcoming events</h2>
+              <ul class="bl-events">
+                @for (post of upcoming(); track post.slug) {
+                  <li>
+                    <a class="bl-link bl-event" [routerLink]="['/blog', post.slug]">
+                      @if (day(post); as d) {
+                        <span class="bl-date" aria-hidden="true"><b>{{ d.day }}</b>{{ d.month }}</span>
+                      }
+                      <span class="bl-event-text">
+                        <span class="ed-h3 bl-event-title">{{ post.title }}</span>
+                        <span class="bl-foot">{{ when(post) }}</span>
+                        @if (place(post); as where) {
+                          <span class="bl-foot">{{ where }}</span>
+                        }
+                      </span>
+                    </a>
+                  </li>
+                }
+              </ul>
+            </section>
+          }
+
+          @if (eventsOnly() && list()!.posts.length) {
+            <h2 class="bl-upcoming-title" i18n="@@blog-page.past.title">Past events</h2>
+          }
+
+          @if (list()!.posts.length === 0 && upcoming().length) {
+            <!-- Rien d'autre que des événements à venir : le bloc ci-dessus suffit. -->
+          } @else if (list()!.posts.length === 0) {
             <div class="bl-notice">
               @if (filtered()) {
                 <h2 class="ed-h3" i18n="@@blog-page.filtered.title">No post matches this filter</h2>
@@ -100,8 +136,8 @@
                 >
               } @else {
                 <h2 class="ed-h3" i18n="@@blog-page.empty.title">Nothing published yet</h2>
-                <p class="ed-body ed-mt-2" i18n="@@blog-page.empty.body">
-                  The first articles and release notes will appear here.
+                <p class="ed-body ed-mt-2" i18n="@@blog-page.empty.body.v2">
+                  The first news, guides and events will appear here.
                 </p>
               }
             </div>
@@ -121,8 +157,9 @@
                   }
                   <div class="bl-featured-text">
                     <p class="bl-meta">
+                      <span class="tag bl-type">{{ label(post) }}</span>
                       <time [attr.datetime]="post.publishedAt">{{ post.publishedAt | date: 'longDate' }}</time>
-                      @if (post.kind === 'release') {
+                      @if (post.kind === 'release' && post.version) {
                         <span class="tag">v{{ post.version }}</span>
                       }
                     </p>
@@ -139,15 +176,30 @@
                 <li class="ed-row">
                   <a class="bl-link bl-row" [routerLink]="['/blog', post.slug]">
                     <p class="bl-meta">
-                      <time [attr.datetime]="post.publishedAt">{{ post.publishedAt | date: 'longDate' }}</time>
-                      @if (post.kind === 'release') {
+                      <!-- Le type, seulement quand la liste les mélange : sous un filtre, il est déjà dit. -->
+                      @if (!kind()) {
+                        <span class="tag bl-type">{{ label(post) }}</span>
+                      }
+                      @if (post.kind === 'event' && post.event) {
+                        <time [attr.datetime]="post.event.startsAt">{{ post.event.startsAt | date: 'longDate' }}</time>
+                        @if (past(post)) {
+                          <span class="tag" i18n="@@blog-page.event.past">Past event</span>
+                        }
+                      } @else {
+                        <time [attr.datetime]="post.publishedAt">{{ post.publishedAt | date: 'longDate' }}</time>
+                      }
+                      @if (post.kind === 'release' && post.version) {
                         <span class="tag">v{{ post.version }}</span>
                       }
                     </p>
                     <div>
                       <h2 class="ed-h3">{{ post.title }}</h2>
                       <p class="ed-body ed-mt-2">{{ post.excerpt }}</p>
-                      <p class="bl-foot ed-mt-3">{{ readingTime(post.readingMinutes) }}</p>
+                      @if (post.kind === 'event' && place(post)) {
+                        <p class="bl-foot ed-mt-3">{{ place(post) }}</p>
+                      } @else {
+                        <p class="bl-foot ed-mt-3">{{ readingTime(post.readingMinutes) }}</p>
+                      }
                     </div>
                   </a>
                 </li>

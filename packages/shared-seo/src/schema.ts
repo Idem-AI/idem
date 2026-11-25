@@ -40,7 +40,7 @@ const ref = (id: string) => ({ '@id': id });
 
 const LANGS = ['fr', 'en'];
 
-type JsonLdNode = Record<string, unknown>;
+export type JsonLdNode = Record<string, unknown>;
 
 export function organizationNode(locale: SeoLocale): JsonLdNode {
   return {
@@ -195,8 +195,24 @@ export interface PageGraphInput {
   breadcrumbs?: readonly Breadcrumb[];
   faq?: readonly FaqEntry[];
   imageAlt?: string;
-  /** Un billet de blog : ajoute un `BlogPosting` rattaché à la page. */
+  /** Un billet de blog : ajoute un `BlogPosting` (ou `NewsArticle`, `TechArticle`) rattaché à la page. */
   article?: ArticleInput;
+  /** Un événement : ajoute un nœud `Event`, organisé par IDEM. */
+  event?: EventInput;
+  /** Une page qui liste des contenus (le blog) : ajoute un `ItemList` comme contenu principal. */
+  itemList?: readonly { url: string; name: string }[];
+}
+
+export interface EventInput {
+  name: string;
+  /** ISO 8601. */
+  startDate: string;
+  endDate?: string;
+  online: boolean;
+  /** « Douala, Cameroun ». */
+  location?: string;
+  /** Inscription (https). */
+  registrationUrl?: string;
 }
 
 export interface ArticleInput {
@@ -206,6 +222,12 @@ export interface ArticleInput {
   dateModified: string;
   authorName: string;
   tags?: readonly string[];
+  /** Le type schema.org (défaut : `BlogPosting`). */
+  type?: 'BlogPosting' | 'NewsArticle' | 'TechArticle';
+  /** La rubrique (« Annonce », « Guide »…) : `articleSection`. */
+  section?: string;
+  /** La version Markdown du billet, pour les agents IA. */
+  markdownUrl?: string;
 }
 
 /** Le graphe complet d'une page. */
@@ -266,7 +288,7 @@ export function buildPageGraph(input: PageGraphInput): JsonLdNode {
   if (input.article) {
     const a = input.article;
     graph.push({
-      '@type': 'BlogPosting',
+      '@type': a.type ?? 'BlogPosting',
       '@id': `${input.url}#article`,
       headline: a.headline,
       description: input.description,
@@ -278,8 +300,53 @@ export function buildPageGraph(input: PageGraphInput): JsonLdNode {
       publisher: ref(ORGANIZATION_ID),
       mainEntityOfPage: ref(pageId),
       isPartOf: ref(site === 'idem' ? WEBSITE_ID : serviceSiteId(site)),
+      // Le sujet du billet est IDEM : c'est ce lien qui rattache l'actualité au projet.
+      about: ref(ORGANIZATION_ID),
+      ...(a.section ? { articleSection: a.section } : {}),
       ...(a.tags?.length ? { keywords: a.tags.join(', ') } : {}),
+      ...(a.markdownUrl
+        ? { encoding: { '@type': 'MediaObject', contentUrl: a.markdownUrl, encodingFormat: 'text/markdown' } }
+        : {}),
     });
+  }
+
+  if (input.event) {
+    const e = input.event;
+    const virtual = { '@type': 'VirtualLocation', url: e.registrationUrl ?? input.url };
+    const place = e.location ? { '@type': 'Place', name: e.location, address: e.location } : null;
+    graph.push({
+      '@type': 'Event',
+      '@id': `${input.url}#event`,
+      name: e.name,
+      description: input.description,
+      image: input.image,
+      url: input.url,
+      inLanguage: input.locale,
+      startDate: e.startDate,
+      ...(e.endDate ? { endDate: e.endDate } : {}),
+      eventStatus: 'https://schema.org/EventScheduled',
+      eventAttendanceMode: `https://schema.org/${
+        e.online && place ? 'Mixed' : e.online ? 'Online' : 'Offline'
+      }EventAttendanceMode`,
+      location: e.online && place ? [place, virtual] : e.online ? virtual : (place ?? virtual),
+      organizer: ref(ORGANIZATION_ID),
+      ...(e.registrationUrl
+        ? { offers: { '@type': 'Offer', url: e.registrationUrl, availability: 'https://schema.org/InStock' } }
+        : {}),
+      mainEntityOfPage: ref(pageId),
+    });
+  }
+
+  if (input.itemList?.length) {
+    page['mainEntity'] = {
+      '@type': 'ItemList',
+      itemListElement: input.itemList.map((item, i) => ({
+        '@type': 'ListItem',
+        position: i + 1,
+        url: item.url,
+        name: item.name,
+      })),
+    };
   }
 
   graph.push(page);

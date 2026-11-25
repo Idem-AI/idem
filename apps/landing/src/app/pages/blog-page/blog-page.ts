@@ -11,8 +11,19 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { EMPTY, catchError, map, switchMap, tap } from 'rxjs';
-import { BlogKind, BlogList } from '../../shared/models/blog.model';
+import { BlogKind, BlogList, BlogPostSummary } from '../../shared/models/blog.model';
 import { BlogService } from '../../shared/services/blog.service';
+import { SeoService } from '../../shared/services/seo.service';
+import {
+  eventDay,
+  eventPlace,
+  eventWhen,
+  isPastEvent,
+  kindDescription,
+  kindLabel,
+  kindPlural,
+  parseKind,
+} from '../../shared/blog/blog-kinds';
 import { PageArtComponent } from '../../shared/components/page-art/page-art';
 
 type State = 'loading' | 'ready' | 'error';
@@ -20,10 +31,16 @@ type State = 'loading' | 'ready' | 'error';
 interface KindFilter {
   value: BlogKind | null;
   label: string;
+  count: number;
 }
 
 /**
- * Le blog : articles et notes de version.
+ * Le blog : articles, nouveautés, annonces, événements, guides, témoignages, presse.
+ *
+ * **Le type ne doit pas embrouiller.** Seuls les types qui ont des billets sont proposés en
+ * filtre, avec leur nombre ; chaque billet porte son type quand la liste les mélange ; un type
+ * choisi est expliqué en une phrase. Les événements à venir ont leur bloc en tête, avec leur date
+ * en pastille, et ne réapparaissent pas dans le fil ; un événement passé y est marqué comme tel.
  *
  * La liste est lue **dans le navigateur**, pas au prérendu : le landing est un
  * site statique reconstruit à chaque version, et un billet publié ce matin ne
@@ -41,6 +58,8 @@ export class BlogPage {
   private readonly blog = inject(BlogService);
   private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly seo = inject(SeoService);
+  protected readonly locale = this.seo.locale();
   private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
 
   protected readonly rssUrl = this.blog.rssUrl;
@@ -50,11 +69,28 @@ export class BlogPage {
   protected readonly tag = signal<string | null>(null);
   protected readonly page = signal(1);
 
-  protected readonly kinds: KindFilter[] = [
-    { value: null, label: $localize`:@@blog-page.filter.all:All` },
-    { value: 'article', label: $localize`:@@blog-page.filter.article:Articles` },
-    { value: 'release', label: $localize`:@@blog-page.filter.release:Release notes` },
-  ];
+  /** « Tout », puis les types qui ont au moins un billet (et celui choisi, même vide). */
+  protected readonly kinds = computed<KindFilter[]>(() => {
+    const counts = this.list()?.kinds ?? [];
+    const total = counts.reduce((sum, k) => sum + k.count, 0);
+    return [
+      { value: null, label: $localize`:@@blog-page.filter.all:All`, count: total },
+      ...counts
+        .filter((k) => k.count > 0 || k.kind === this.kind())
+        .map((k) => ({ value: k.kind, label: kindPlural(k.kind, this.locale), count: k.count })),
+    ];
+  });
+
+  /** La phrase qui dit ce que contient le type choisi. */
+  protected readonly kindIntro = computed(() => {
+    const kind = this.kind();
+    return kind ? kindDescription(kind, this.locale) : null;
+  });
+
+  protected readonly upcoming = computed(() => this.list()?.upcoming ?? []);
+
+  /** Le filtre Événements : le fil ne contient que les événements passés. */
+  protected readonly eventsOnly = computed(() => this.kind() === 'event');
 
   protected readonly filtered = computed(() => this.kind() !== null || this.tag() !== null);
 
@@ -91,7 +127,7 @@ export class BlogPage {
         map((params) => {
           const kind = params.get('kind');
           return {
-            kind: kind === 'article' || kind === 'release' ? (kind as BlogKind) : null,
+            kind: parseKind(kind),
             tag: params.get('tag'),
             page: Math.max(1, Number.parseInt(params.get('page') ?? '1', 10) || 1),
           };
@@ -134,6 +170,26 @@ export class BlogPage {
         },
         error: () => this.state.set('error'),
       });
+  }
+
+  protected label(post: BlogPostSummary): string {
+    return kindLabel(post.kind, this.locale);
+  }
+
+  protected when(post: BlogPostSummary): string {
+    return post.event ? eventWhen(post.event, this.locale) : '';
+  }
+
+  protected place(post: BlogPostSummary): string {
+    return post.event ? eventPlace(post.event, this.locale) : '';
+  }
+
+  protected day(post: BlogPostSummary): { day: string; month: string } | null {
+    return post.event ? eventDay(post.event, this.locale) : null;
+  }
+
+  protected past(post: BlogPostSummary): boolean {
+    return isPastEvent(post.event);
   }
 
   protected readingTime(minutes: number): string {

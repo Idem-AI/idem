@@ -4,8 +4,10 @@ import { Meta, Title } from '@angular/platform-browser';
 import { ActivatedRouteSnapshot, NavigationEnd, Router } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import {
+  BLOG_KINDS_INFO,
   IDEM,
   LANDING_PAGES,
+  blogMarkdownUrl,
   OG_IMAGE_SIZE,
   OG_LOCALE,
   SEO_LOCALES,
@@ -185,13 +187,31 @@ export class SeoService {
             { name: pageSeoText('blog', locale).crumb, url: landingUrl('/blog', locale) },
             { name: post.title, url },
           ],
+          // Le type schema.org suit le type du billet (annonce → NewsArticle, guide → TechArticle…),
+          // et un événement est aussi décrit comme tel : mêmes règles que les pages servies aux
+          // robots par l'API (`@idem/shared-seo`).
           article: {
             headline: post.title,
             datePublished: post.publishedAt,
             dateModified: post.updatedAt,
             authorName: post.authorName,
             tags: post.tags,
+            type: (BLOG_KINDS_INFO[post.kind] ?? BLOG_KINDS_INFO.article).schemaType,
+            section: (BLOG_KINDS_INFO[post.kind] ?? BLOG_KINDS_INFO.article).label[locale],
+            markdownUrl: blogMarkdownUrl(post.slug, locale),
           },
+          ...(post.event
+            ? {
+                event: {
+                  name: post.title,
+                  startDate: post.event.startsAt,
+                  endDate: post.event.endsAt,
+                  online: post.event.online,
+                  location: post.event.location,
+                  registrationUrl: post.event.registrationUrl,
+                },
+              }
+            : {}),
         }),
       ),
     );
