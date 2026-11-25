@@ -222,6 +222,7 @@
     "themeSystem": "跟随系统"
   },
   "preview": {
+    "heldDuringEdit": "智能体正在修改网站。您可以继续测试：完成后预览将自动更新。",
     "noserver": "暂未有服务运行",
     "wxminiPreview": "可打开微信小程序开发者工具预览"
   },

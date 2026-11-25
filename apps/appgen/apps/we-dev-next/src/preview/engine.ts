@@ -296,6 +296,8 @@ export class PreviewSession {
   outputs = new Map<string, Uint8Array>();
   css = '';
   cssVersion = 0;
+  /** La prochaine version saine fait redémarrer la page affichée (fin d'une modification retenue par l'atelier). */
+  restartPending = false;
   private context: esbuild.BuildContext | null = null;
   private entriesKey = '';
   private running: Promise<BuildState> | null = null;
@@ -395,7 +397,9 @@ export class PreviewSession {
       }
       this.state = { version, ok: true, ms: Date.now() - started };
       this.goodVersion = version;
-      this.emit({ type: 'update', version, cssVersion: this.cssVersion, cssChanged });
+      const restart = this.restartPending;
+      this.restartPending = false;
+      this.emit({ type: 'update', version, cssVersion: this.cssVersion, cssChanged, restart });
     } catch (error) {
       const message = formatError(error);
       this.state = { version, ok: false, error: message, ms: Date.now() - started };

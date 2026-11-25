@@ -14,7 +14,9 @@ import Tips from './components/Tips';
 import { parseMessage } from '../../../utils/messagepParseJson';
 import useUserStore from '../../../stores/userSlice';
 import { useLimitModalStore } from '../../UserModal';
-import { resetFileHashes, resetWebContainer, updateFileSystemNow } from '../../WeIde/services';
+import { getLastServerUrl, resetFileHashes, resetWebContainer, updateFileSystemNow } from '../../WeIde/services';
+import { holdPreview, releasePreview } from '@/utils/previewHold';
+import { useFastPreview } from '@/utils/fastPreview';
 import { parseMessages } from '../useMessageParser';
 import { createMpIcon } from '@/utils/createWtrite';
 import { useTranslation } from 'react-i18next';
@@ -996,6 +998,31 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
   useEffect(() => {
     setIsGenerating(isLoading);
   }, [isLoading, setIsGenerating]);
+
+  /**
+   * Une MODIFICATION (le projet a déjà été généré et son aperçu tourne) ne change pas le site affiché pendant que
+   * l'agent écrit : l'utilisateur continue de tester la version qui fonctionnait, et l'aperçu redémarre une fois
+   * tous les changements arrivés (`utils/previewHold`). La première génération, elle, reste en direct.
+   */
+  const generationCompleteRef = useRef(isGenerationComplete);
+  generationCompleteRef.current = isGenerationComplete;
+  useEffect(() => {
+    if (!isLoading) {
+      releasePreview();
+      return;
+    }
+    const previewRunning = !!useFastPreview.getState().url || !!getLastServerUrl();
+    if (generationCompleteRef.current && previewRunning) holdPreview();
+  }, [isLoading]);
+  // Un atelier vidé pendant la réponse (refonte, « régénérer ») : c'est une nouvelle génération, montrée en direct.
+  useEffect(
+    () =>
+      useFileStore.subscribe((state) => {
+        if (!Object.keys(state.files).length) releasePreview();
+      }),
+    []
+  );
+  useEffect(() => releasePreview, []);
 
   // Et la même chose pour « ce projet attend sa première génération » : c'est
   // ce qui décide du bouton au centre de l'aperçu. Une seule vérité pour les
