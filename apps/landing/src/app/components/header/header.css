@@ -1,21 +1,87 @@
-/* Modern Glass Header Design */
-
-/* Header Container - design-system glass tokens (theme-reactive: white glass in
-   light mode, dark glass in dark mode) */
-.glass-header {
-  background: var(--glass-bg-medium);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-bottom: 1px solid var(--glass-border-subtle);
-  box-shadow: var(--glass-shadow-sm);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+/* La barre : une pilule centrée, posée sur la page à 16 px du haut. Rien ne
+   la relie aux bords de l'écran, si bien que le fond du héros passe derrière
+   et autour d'elle. Surface et bordure viennent des jetons de verre du design
+   system : blanche en thème clair, sombre en thème sombre. */
+.nav-shell {
+  position: fixed;
+  top: 0.875rem;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  display: flex;
+  justify-content: center;
+  padding: 0 0.75rem;
+  pointer-events: none;
 }
 
-/* Navigation Links */
+.nav-pill {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  max-width: 100%;
+  min-height: 3.5rem;
+  padding: 0.4rem 0.45rem 0.4rem 1rem;
+  border-radius: var(--radius-2xl);
+  background: var(--glass-bg-medium);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  transition:
+    background-color 240ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 240ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Une fois la page défilée, le contenu passe sous la pilule : elle s'opacifie
+   pour que ses liens restent lisibles sur n'importe quel fond. */
+.nav-shell.is-scrolled .nav-pill {
+  background: var(--glass-bg-intense);
+  box-shadow: var(--glass-shadow-lg);
+}
+
+.nav-logo {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  margin-right: 0.75rem;
+  border-radius: var(--radius-lg);
+}
+
+.nav-logo-img {
+  width: auto;
+  height: 1.75rem;
+}
+
+.nav-links {
+  display: none;
+  align-items: center;
+  gap: 0.125rem;
+}
+
+@media (min-width: 1024px) {
+  .nav-links {
+    display: flex;
+  }
+}
+
 .glass-nav-link {
   position: relative;
   color: var(--color-text-secondary);
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition:
+    color 160ms ease,
+    background-color 160ms ease;
+}
+
+.nav-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.7rem;
+  border-radius: var(--radius-xl);
+  font-size: 0.875rem;
+  font-weight: 500;
+  white-space: nowrap;
 }
 
 .glass-nav-link:hover {
@@ -28,7 +94,29 @@
   background: var(--glass-bg-light);
 }
 
-/* Dropdown Menu */
+.nav-link:focus-visible,
+.nav-logo:focus-visible,
+.nav-burger:focus-visible,
+.nav-lang:focus-visible {
+  outline: 2px solid var(--color-primary-500);
+  outline-offset: 2px;
+}
+
+.nav-chevron {
+  font-size: 0.625rem;
+  transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.nav-dropdown {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 0.75rem);
+  width: 14rem;
+  overflow: hidden;
+  border-radius: var(--radius-xl);
+  z-index: 1;
+}
+
 .glass-dropdown {
   background: var(--glass-bg-intense);
   backdrop-filter: blur(20px);
@@ -38,15 +126,68 @@
 }
 
 .dropdown-link {
-  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background-color 150ms ease, color 150ms ease;
 }
 
-.dropdown-link:hover {
+.dropdown-link:hover,
+.dropdown-link:focus-visible {
   background: var(--glass-bg-light);
-  color: var(--color-text-primary);
 }
 
-/* Mobile Sidebar */
+/* L'action de la barre. `.inner-button` impose son `display` hors calque :
+   l'espacement se règle ici, pas avec des utilitaires. */
+.nav-cta {
+  margin-left: 0.5rem;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.nav-burger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  margin-left: 0.25rem;
+  border-radius: var(--radius-xl);
+  color: var(--color-text-primary);
+  transition: background-color 150ms ease;
+}
+
+.nav-burger:hover {
+  background: var(--glass-bg-light);
+}
+
+@media (min-width: 1024px) {
+  .nav-burger {
+    display: none;
+  }
+}
+
+/* Sous 380 px, le logo, l'action et le menu ne tiennent pas sur une ligne :
+   l'action passe dans le tiroir, qui la propose en premier. */
+@media (max-width: 379.98px) {
+  .nav-cta {
+    display: none;
+  }
+}
+
+/* Mobile drawer */
+.nav-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(15, 23, 42, 0.28);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  pointer-events: auto;
+}
+
+.nav-drawer {
+  z-index: 61;
+  pointer-events: auto;
+}
+
 .glass-mobile-sidebar {
   background: var(--glass-bg-intense);
   backdrop-filter: blur(24px);
@@ -56,71 +197,35 @@
 }
 
 .mobile-nav-link {
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background-color 160ms ease, color 160ms ease;
 }
 
-.mobile-nav-link:hover {
-  background: var(--glass-bg-light);
-  transform: translateX(4px);
-}
-
+.mobile-nav-link:hover,
 .mobile-nav-link.active-mobile {
   background: var(--glass-bg-light);
   color: var(--color-text-primary);
-  border-left: 3px solid var(--color-primary-500);
-  padding-left: calc(1rem - 3px);
 }
 
 .mobile-nav-group {
   margin-top: 1rem;
 }
 
-/* Glass Button */
-.glass-button {
+.nav-lang {
+  flex: 1;
+  padding: 0.55rem 0.75rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--glass-border-subtle);
   background: var(--glass-bg-subtle);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid var(--glass-border);
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  color: var(--color-text-secondary);
+  font-size: 0.8125rem;
+  font-weight: 500;
 }
 
-.glass-button:hover {
+.nav-lang-on {
   background: var(--glass-bg-light);
   border-color: var(--glass-border-medium);
-  transform: scale(1.05);
-}
-
-/* Logo Animation */
-@keyframes logoPulse {
-  0%,
-  100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.02);
-  }
-}
-
-.logo-pulse {
-  animation: logoPulse 4s infinite ease-in-out;
-}
-
-/* Scrollbar for Mobile Sidebar */
-.glass-mobile-sidebar::-webkit-scrollbar {
-  width: 6px;
-}
-
-.glass-mobile-sidebar::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.02);
-}
-
-.glass-mobile-sidebar::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 3px;
-}
-
-.glass-mobile-sidebar::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
+  color: var(--color-text-primary);
+  font-weight: 600;
 }
 
 /* Badge d'un lien mis en avant (« Nouveau » sur Idem Builders). Les couleurs
@@ -168,11 +273,14 @@
   .nav-badge::before {
     animation: none;
   }
+  .nav-pill,
+  .nav-chevron {
+    transition: none;
+  }
 }
 
-/* Entre 1024 et 1280 px, la barre de bureau n'a pas la place du mot : le badge
-   garde sa pastille et son point, le mot reste lu par les lecteurs d'écran.
-   (Le menu mobile, lui, affiche toujours le badge entier.) */
+/* Entre 1024 et 1280 px, la pilule n'a pas la place du mot : le badge garde
+   sa pastille et son point, le mot reste lu par les lecteurs d'écran. */
 @media (max-width: 1279.98px) {
   .nav-badge-compact {
     padding: 0.3rem;

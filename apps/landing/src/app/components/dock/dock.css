@@ -1,0 +1,123 @@
+/* Le dock : l'arc fixe au bas de l'écran et son bouton, sur toutes les pages.
+   Les partenaires ne s'y montrent que sur l'accueil, en haut de page. Aucune
+   transformation sur ses ancêtres : il est rendu par le gabarit de l'app. */
+
+:host {
+  --hero-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ── Le dock : un arc fixe au bas de l'écran ──────────────────── */
+
+/* Avec les partenaires (haut de page) : le bouton flotte à cheval sur l'arc,
+   dont le bord passe à mi-hauteur du bouton, et les logos suivent juste
+   dessous ; l'ensemble tient en 5.5rem. Replié (page défilée) : l'arc remonte
+   au-dessus du bouton, qui se pose dedans, et le dock descend de 2.1rem. */
+.dock {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  height: 5.5rem;
+  pointer-events: none;
+  transform: translateY(0);
+  transition: transform 520ms var(--hero-ease);
+}
+
+.dock.is-compact {
+  transform: translateY(2.1rem);
+}
+
+.dock.is-away {
+  transform: translateY(calc(100% + 1.5rem));
+}
+
+.dock-arc {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  /* Large et plat : sur les côtés, le bord ne descend que d'une quinzaine de
+     pixels, si bien que toute la rangée de logos reste posée sur l'arc. */
+  width: max(280vw, 140rem);
+  height: 28rem;
+  margin-left: calc(max(280vw, 140rem) / -2);
+  border-radius: 50%;
+  background: var(--color-bg-darker);
+  box-shadow:
+    0 -1px 0 var(--glass-border-subtle),
+    0 -18px 48px -12px rgba(15, 23, 42, 0.12);
+  transform: translateY(1.2rem);
+  transition: transform 520ms var(--hero-ease);
+}
+
+.dock.is-compact .dock-arc {
+  transform: translateY(-1.1rem);
+}
+
+.dock-inner {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+}
+
+.dock-cta {
+  pointer-events: auto;
+  min-width: min(14rem, calc(100vw - 2rem));
+}
+
+.dock-trust {
+  width: 100%;
+  margin-top: 0.55rem;
+  pointer-events: auto;
+  transition:
+    opacity 320ms ease,
+    transform 520ms var(--hero-ease);
+}
+
+.dock.is-compact .dock-trust,
+.dock.is-away .dock-trust {
+  opacity: 0;
+  transform: translateY(1rem);
+  pointer-events: none;
+}
+
+/* Le bandeau partagé est fait pour clore une section : dans le dock, il perd
+   son filet et sa marge, et ses logos se font plus discrets. */
+.dock-trust ::ng-deep .idem-trusted-by {
+  padding: 0;
+  border-top: 0;
+}
+
+.dock-trust ::ng-deep .idem-trusted-by__logo {
+  height: 1.75rem;
+}
+
+.dock-trust ::ng-deep .idem-trusted-by__track {
+  gap: 3.5rem;
+  padding-right: 3.5rem;
+}
+
+@media (max-width: 639.98px) {
+  .dock {
+    height: 5.1rem;
+  }
+  .dock.is-compact {
+    transform: translateY(1.8rem);
+  }
+  .dock-trust ::ng-deep .idem-trusted-by__logo {
+    height: 1.5rem;
+  }
+  .dock-trust ::ng-deep .idem-trusted-by__link {
+    min-width: 96px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dock,
+  .dock-arc,
+  .dock-trust {
+    transition: none;
+  }
+}

@@ -18,10 +18,12 @@ import { PromoTextComponent } from '@idem/shared-promotions/angular';
 interface Stage {
   /** Stable, non-localized path fragment shown in the mock browser bar. */
   readonly path: string;
-  /** Short story beat, used by the rail and by assistive tech. */
-  readonly step: string;
+  /** One or two words naming the step (mobile kicker). */
+  readonly label: string;
   readonly title: string;
   readonly caption: string;
+  /** What the step leaves in hand, concretely. */
+  readonly points: readonly string[];
   /** Product name and price, the only place a product is named. */
   readonly price: string;
   /** Article des promotions et où lire le prix sur l'API (le montant de `price` n'est qu'un secours). */
@@ -29,59 +31,37 @@ interface Stage {
   readonly xaf?: number;
   readonly source?: string;
   readonly ctaLabel: string;
-  readonly link: string;
   readonly images: readonly string[];
   readonly imageAlt: string;
+  /** Screenshot of the IDEM page the film plays in, when a slide is a .mp4. */
+  readonly filmPage?: string;
 }
 
-/* Two dissolve windows, both measured in fractions of one scroll step.
-   Imagery gets the long one: two screenshots blending reads as depth.
-   Copy gets the short one, so the outgoing text is fully gone before the
-   incoming text arrives. Text over text is never legible.
-
-   Copy is readable across 2 x TEXT_IN of the step and absent beyond TEXT_OUT,
-   which leaves a quiet gap between two sections rather than a cross-fade. */
-const SCENE_IN = 0.3;
-const SCENE_OUT = 0.72;
-const TEXT_IN = 0.3;
-const TEXT_OUT = 0.5;
-
-/* Chapter length is set in the stylesheet (--jn-step) rather than here, but
-   it is the one number that decides whether a gesture skips a chapter: one
-   trackpad flick covers roughly 700px, so a chapter shorter than that lands
-   the reader past the next chapter and reads as a double scroll. CSS
-   scroll-snap was tried instead and rejected — with snap areas this size a
-   single wheel notch is pulled straight back to where it started, which is
-   the freezing this section was fixed for in the first place. */
-
-/** Smoothing of the mapped position, in case scroll input is coarse. Short:
- *  the picture has to feel attached to the finger, not towed behind it. */
-const EASE_HALFLIFE_MS = 85;
-/** Below this, the eased position is snapped and the loop goes quiet. */
-const SETTLE_EPSILON = 0.0006;
-/** Auto-advance delay for the screenshot swiper. */
+/** Auto-advance delay for the screenshot swiper of the step being read. */
 const SWIPER_INTERVAL_MS = 5200;
-
-/** Clamped smoothstep: no overshoot, decelerating at both ends. */
-function smoothstep(value: number): number {
-  const t = value <= 0 ? 0 : value >= 1 ? 1 : value;
-  return t * t * (3 - 2 * t);
-}
+/** Volume of the step film: present, never louder than the page reading it. */
+const FILM_VOLUME = 0.4;
+/** Second the step film opens on, the first time only. */
+const FILM_FIRST_START = 40;
+/** Gestures that count as user activation for sound. */
+const GESTURES = ['pointerdown', 'keydown', 'touchstart'] as const;
 
 /**
- * Pinned, scroll-driven story of one entrepreneur going from a sentence to a
- * live company.
+ * Un cas concret, raconté étape par étape : Turo, plateforme agricole lancée
+ * avec IDEM. Les captures sont celles du vrai projet Turo (base de dev), les
+ * mêmes que le film du héros.
  *
- * The page scrolls natively from end to end. Nothing here calls
- * `preventDefault`, and nothing drives `scrollTo` behind the user's back: the
- * section only *reads* the scroll offset and maps it to a position in the
- * story. That is the whole fix for the section feeling stuck — an engine that
- * quantised gestures had to decide which wheel events belonged to which
- * gesture, and every wrong guess showed up as a frozen or late section.
+ * La page défile nativement de bout en bout : rien n'intercepte la molette,
+ * rien n'épingle la section. Sur grand écran, la liste des étapes reste en
+ * place (`position: sticky`) et ouvre l'étape dont l'écran croise le milieu de
+ * la fenêtre ; les écrans passent à côté, et le haut du suivant dépasse déjà
+ * sous celui qu'on lit. L'étape active est l'écran qui couvre le milieu de la
+ * fenêtre, relu au défilement (une image d'animation au plus) ; sur un écran
+ * bas, l'index défile de lui-même pour garder cette étape visible.
  *
- * A single rAF loop reads the offset, eases it, and writes a handful of custom
- * properties on the two or three sections near the reading head. Geometry is
- * measured on resize, never per frame, so the loop never forces layout.
+ * Le mouvement des écrans (arrivée, sortie) est confié au navigateur
+ * (`animation-timeline: view()`), sans JavaScript ; là où ce n'est pas pris en
+ * charge, les écrans sont simplement posés.
  */
 @Component({
   selector: 'app-journey',
@@ -89,185 +69,186 @@ function smoothstep(value: number): number {
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './journey.html',
   styleUrl: './journey.css',
-  host: {
-    '[class.jn-live]': 'live()',
-  },
 })
 export class JourneyComponent implements AfterViewInit, OnDestroy {
   private readonly platformId = inject(PLATFORM_ID);
   private readonly zone = inject(NgZone);
-  private readonly hostEl = inject<ElementRef<HTMLElement>>(ElementRef);
 
-  private readonly stageRef = viewChild.required<ElementRef<HTMLElement>>('stage');
-  private readonly progressRef = viewChild.required<ElementRef<HTMLElement>>('progress');
-  /** Live query, so a re-rendered view never leaves the engine writing to
-   *  detached nodes. Each element carries its own data-index. */
-  private readonly slideRefs = viewChildren<ElementRef<HTMLElement>>('slide');
+  /** One per step, carrying its data-index. */
+  private readonly shotRefs = viewChildren<ElementRef<HTMLElement>>('shot');
+  /** The steps index, which follows the step being read when it is taller than the screen. */
+  private readonly stepsRef = viewChild<ElementRef<HTMLElement>>('steps');
 
-  /** Nearest settled slide: drives the rail, the swiper target and aria state. */
+  /** The step whose screen crosses the middle of the viewport. */
   protected readonly activeIndex = signal(0);
-  /** True once the scroll engine owns the layout (browser only). */
-  protected readonly live = signal(false);
   /** Direction of the last screenshot change, for a direction-aware swipe. */
   protected readonly swipeDir = signal<1 | -1>(1);
-
   protected readonly imageIndices = signal<readonly number[]>([]);
 
-  protected readonly navStart = $localize`:@@journey.nav.start:The idea`;
-  protected readonly navDone = $localize`:@@journey.nav.done:Launched`;
+  /** The step film: its state, shown by its own play and sound buttons. */
+  protected readonly filmPaused = signal(true);
+  protected readonly filmMuted = signal(false);
+  private filmPausedByUser = false;
+  private filmMutedByUser = false;
+  protected readonly playLabel = $localize`:@@journey.turo.film.play:Play the video`;
+  protected readonly pauseLabel = $localize`:@@journey.turo.film.pause:Pause the video`;
+  protected readonly soundOnLabel = $localize`:@@journey.turo.film.soundOn:Turn the sound on`;
+  protected readonly soundOffLabel = $localize`:@@journey.turo.film.soundOff:Turn the sound off`;
+
   protected readonly createProjectUrl = `${environment.services.dashboard.url}/create-project`;
 
-  /* The story is one person, one business, start to finish. Every caption
-     stays in her words: what she gets, not what the product does. */
+  /* One business, start to finish: what IDEM produced for Turo, in the order
+     it was made. Every screenshot is a final render, never a settings screen. */
   protected readonly stages: readonly Stage[] = [
     {
       path: 'marque',
-      step: $localize`:@@journey.step.name:The name`,
-      title: $localize`:@@journey.name.title:Her business has a name: Verda`,
-      caption: $localize`:@@journey.name.caption:A logo, colours, business cards. Enough to introduce herself to a customer on day one.`,
+      label: $localize`:@@journey.turo.brand.label:Identity`,
+      title: $localize`:@@journey.turo.brand.title:Turo gets a brand of its own`,
+      caption: $localize`:@@journey.turo.brand.caption:She gets her logo, her palette, her typefaces and a 20-page brand book: how to place the mark, the art direction, the rules for photos, ready-made posts and banners. From the app to the market stall, she shows up with one look.`,
+      points: [
+        $localize`:@@journey.turo.brand.p1:The logo in 7 versions: light, dark, monochrome, icon`,
+        $localize`:@@journey.turo.brand.p2:A palette of 5 colours with their RGB and CMYK values`,
+        $localize`:@@journey.turo.brand.p3:A 20-page brand book, ready to download`,
+      ],
       price: $localize`:@@journey.name.price:Logo and brand guidelines · 1,500 F`, item: 'deliverable.logo_brand', xaf: 1500,
       ctaLabel: $localize`:@@journey.name.cta:Create my brand`,
-      link: '/pricing',
       images: [
-        'assets/images/journey/01-marque-charte.webp',
-        'assets/images/journey/01-marque-palette.webp',
-        'assets/images/journey/01-marque-mockup.webp',
+        'assets/images/journey/turo/01-marque-charte.webp',
+        'assets/images/journey/turo/01-marque-palette.webp',
+        'assets/images/journey/turo/01-marque-publications.webp',
       ],
-      imageAlt: $localize`:@@journey.name.alt:The Verda brand book: logo, colour palette and typography`,
+      imageAlt: $localize`:@@journey.turo.brand.alt:The Turo brand book in IDEM: cover, colour palette and social posts`,
     },
     {
-      path: 'plan',
-      step: $localize`:@@journey.step.plan:The plan`,
-      title: $localize`:@@journey.plan.title:Her business plan is written`,
-      caption: $localize`:@@journey.plan.caption:What she sells, to whom, at what cost. The document a bank asks for, plus the deck she shows an investor.`,
+      path: 'business-plan',
+      label: $localize`:@@journey.turo.plan.label:Business plan`,
+      title: $localize`:@@journey.turo.plan.title:A business plan a bank can read`,
+      caption: $localize`:@@journey.turo.plan.caption:She gets nine chapters written from her project: the smallholder market in Cameroon, her three tools and their prices, how cooperatives bring her farmers, her funding plan and three years of results. The charts come from her forecast, every figure follows SYSCOHADA, in F CFA.`,
+      points: [
+        $localize`:@@journey.turo.plan.p1:Market, offer, sales plan, funding`,
+        $localize`:@@journey.turo.plan.p2:Charts built from the project's own figures`,
+        $localize`:@@journey.turo.plan.p3:Download as PDF, edit by writing what to change`,
+      ],
       price: $localize`:@@journey.plan.price:Business plan · 2,000 F`, item: 'deliverable.business_plan', xaf: 2000,
       ctaLabel: $localize`:@@journey.plan.cta:Write my plan`,
-      link: '/pricing',
       images: [
-        'assets/images/journey/02-plan-types.webp',
-        'assets/images/journey/02-plan-couverture.webp',
-        'assets/images/journey/02-plan-financier.webp',
-        'assets/images/journey/02-plan-objectifs.webp',
+        'assets/images/journey/turo/02-plan-couverture.webp',
+        'assets/images/journey/turo/02-plan-graphique.webp',
+        'assets/images/journey/turo/02-plan-synthese.webp',
       ],
-      imageAlt: $localize`:@@journey.plan.alt:Verda's business plan and investor pitch deck`,
+      imageAlt: $localize`:@@journey.turo.plan.alt:Turo's business plan: cover, pricing chart and financial summary`,
     },
     {
       path: 'finances',
-      step: $localize`:@@journey.step.numbers:The numbers`,
-      title: $localize`:@@journey.numbers.title:She knows when she starts earning`,
-      caption: $localize`:@@journey.numbers.caption:Price per kilo collected, running costs, the month she breaks even. Three years ahead, updated as the real numbers come in.`,
+      label: $localize`:@@journey.turo.numbers.label:Finances`,
+      title: $localize`:@@journey.turo.numbers.title:Numbers that hold up`,
+      caption: $localize`:@@journey.turo.numbers.caption:She sees her sales, her costs, her cash and the year she turns a profit, over three years: 65 million F CFA of sales in the first year, a launch-year loss covered by her funding, profit from 2027. Her forecast updates as soon as she enters real figures.`,
+      points: [
+        $localize`:@@journey.turo.numbers.p1:Income statement, cash flow and balance sheet`,
+        $localize`:@@journey.turo.numbers.p2:Break-even point and ratios computed for you`,
+        $localize`:@@journey.turo.numbers.p3:The tables a bank asks for, ready to print`,
+      ],
       price: $localize`:@@journey.numbers.price:3-year forecast · 1,000 F`, item: 'deliverable.financial_forecast', xaf: 1000,
-      ctaLabel: $localize`:@@journey.numbers.cta:See the pricing`,
-      link: '/pricing',
-      images: [
-        'assets/images/journey/03-finances-previsions.webp',
-        'assets/images/journey/03-finances-rapport.webp',
-      ],
-      imageAlt: $localize`:@@journey.numbers.alt:Verda's financial projections and three-year forecast`,
+      ctaLabel: $localize`:@@journey.turo.numbers.cta:Build my forecast`,
+      images: ['assets/images/journey/turo/03-finances-apercu.webp'],
+      imageAlt: $localize`:@@journey.turo.numbers.alt:Turo's finances in IDEM: sales, result, cash at year end and monthly sales`,
     },
     {
-      path: 'simulateur',
-      step: $localize`:@@journey.step.test:The test`,
-      title: $localize`:@@journey.test.title:She tests it before spending a franc`,
-      caption: $localize`:@@journey.test.caption:What if the price of plastic drops? What if a competitor opens next door? The simulator plays out the scenarios and shows which ones she survives.`,
-      price: $localize`:@@journey.test.price:iSimulator · 1,500 F`, item: 'isimulate.run', xaf: 1500,
-      ctaLabel: $localize`:@@journey.test.cta:Try the simulator`,
-      link: '/simulator',
-      images: [
-        'assets/images/journey/04-simulateur-accueil.webp',
-        'assets/images/journey/04-simulateur-analyse.webp',
+      path: 'pitch-deck',
+      label: $localize`:@@journey.turo.pitch.label:Fundraising`,
+      title: $localize`:@@journey.turo.pitch.title:A pitch deck ready for investors`,
+      caption: $localize`:@@journey.turo.pitch.caption:She has eleven slides that tell her problem, her product, her market and her ask, in her colours and with her own figures: 1.2 million smallholders targeted first, the size of the market, the cost of serving each farmer. She presents them from IDEM or downloads them.`,
+      points: [
+        $localize`:@@journey.turo.pitch.p1:Problem, solution, market, traction, team`,
+        $localize`:@@journey.turo.pitch.p2:The market sized in charts`,
+        $localize`:@@journey.turo.pitch.p3:PDF export or live presentation`,
       ],
-      imageAlt: $localize`:@@journey.test.alt:iSimulator: business scenarios played out over three years`,
+      price: $localize`:@@journey.funding.price:Pitch deck · 1,000 F`, item: 'deliverable.pitch_deck', xaf: 1000,
+      ctaLabel: $localize`:@@journey.turo.pitch.cta:Prepare my pitch`,
+      images: [
+        'assets/images/journey/turo/04-pitch-couverture.webp',
+        'assets/images/journey/turo/04-pitch-marche.webp',
+        'assets/images/journey/turo/04-pitch-traction.webp',
+      ],
+      imageAlt: $localize`:@@journey.turo.pitch.alt:Turo's pitch deck: cover, market size and pilot results`,
     },
     {
-      path: 'juridique',
-      step: $localize`:@@journey.step.papers:The paperwork`,
-      title: $localize`:@@journey.papers.title:Her company is on the right side of the law`,
-      caption: $localize`:@@journey.papers.caption:Articles of association, shareholder agreement, terms of sale. OHADA-compliant and ready to file.`,
-      price: $localize`:@@journey.papers.price:OHADA legal kit · 1,500 F`, item: 'deliverable.legal_kit', xaf: 1500,
-      ctaLabel: $localize`:@@journey.papers.cta:See the pricing`,
-      link: '/pricing',
-      images: [
-        'assets/images/journey/05-juridique-documents.webp',
-        'assets/images/journey/05-juridique-statuts.webp',
+      path: 'visuels',
+      label: $localize`:@@journey.turo.visuals.label:Communication`,
+      title: $localize`:@@journey.turo.visuals.title:Visuals that go out every week`,
+      caption: $localize`:@@journey.turo.visuals.caption:She gets posters, posts and banners in her colours, each from a single request. One click opens a visual full size, offers it in other formats (square, story, banner, printable poster) and copies its text, ready for her to post on LinkedIn or X.`,
+      points: [
+        $localize`:@@journey.turo.visuals.p1:Visuals in the brand's colours and fonts`,
+        $localize`:@@journey.turo.visuals.p2:Every format from a single visual`,
+        $localize`:@@journey.turo.visuals.p3:A publishing calendar, approval from WhatsApp`,
       ],
-      imageAlt: $localize`:@@journey.papers.alt:OHADA articles of association generated for Verda`,
-    },
-    {
-      path: 'communication',
-      step: $localize`:@@journey.step.clients:The customers`,
-      title: $localize`:@@journey.clients.title:Her first customers find her`,
-      caption: $localize`:@@journey.clients.caption:A month of posts planned, the visuals already designed, and one button to publish them on her networks.`,
       price: $localize`:@@journey.clients.price:Communication · 100 F a visual`, item: 'communication.flyer', xaf: 100,
-      ctaLabel: $localize`:@@journey.clients.cta:See the pricing`,
-      link: '/pricing',
+      ctaLabel: $localize`:@@journey.turo.visuals.cta:Create a visual`,
       images: [
-        'assets/images/journey/06-communication-calendrier.webp',
-        'assets/images/journey/06-communication-visuels.webp',
-        'assets/images/journey/06-communication-post.webp',
+        'assets/images/journey/turo/05-visuels-liste.webp',
+        'assets/images/journey/turo/05-visuels-apercu.webp',
       ],
-      imageAlt: $localize`:@@journey.clients.alt:Verda's editorial calendar and generated social media posts`,
+      imageAlt: $localize`:@@journey.turo.visuals.alt:Turo's visuals in IDEM, and one of them opened full size`,
+    },
+    {
+      path: 'video',
+      label: $localize`:@@journey.turo.video.label:Video`,
+      title: $localize`:@@journey.turo.video.title:A promo film, voice and music included`,
+      caption: $localize`:@@journey.turo.video.caption:She gets a 90-second motion design film written from her project: a damaged leaf photographed at 8:00, a diagnosis at 8:02. Voice-over, royalty-free music, a version for Stories, Instagram, Facebook and YouTube. She changes any scene by writing what to change.`,
+      points: [
+        $localize`:@@journey.turo.video.p1:Motion design in the brand's colours`,
+        $localize`:@@journey.turo.video.p2:Vertical, square and landscape versions`,
+        $localize`:@@journey.turo.video.p3:An MP4 ready to post`,
+      ],
+      price: $localize`:@@journey.turo.video.price:Motion design video, voice and music included`, item: 'communication.motion_video',
+      ctaLabel: $localize`:@@journey.turo.video.cta:Make my video`,
+      images: ['assets/videos/turo-motion.mp4'],
+      filmPage: 'assets/images/journey/turo/06-video-page.webp',
+      imageAlt: $localize`:@@journey.turo.video.alt:Turo's promo video playing in IDEM's video page`,
     },
     {
       path: 'site',
-      step: $localize`:@@journey.step.site:The website`,
-      title: $localize`:@@journey.site.title:Her website builds itself in front of her`,
-      caption: $localize`:@@journey.site.caption:She describes what she wants in one sentence. Companies can book a collection online.`,
+      label: $localize`:@@journey.turo.site.label:Website`,
+      title: $localize`:@@journey.turo.site.title:A website that builds itself`,
+      caption: $localize`:@@journey.turo.site.caption:iCode writes her whole site from her business plan: the offer, the Farmer Pro subscription, the marketplace, the cooperatives, contact by WhatsApp. She changes it by asking in a sentence, or opens the code: nothing is locked.`,
+      points: [
+        $localize`:@@journey.turo.site.p1:Pages, texts and images generated`,
+        $localize`:@@journey.turo.site.p2:Edited in conversation or in the code`,
+        $localize`:@@journey.turo.site.p3:Built for phones and slow connections`,
+      ],
       price: $localize`:@@journey.site.price:iCode · free to generate`,
       ctaLabel: $localize`:@@journey.site.cta:Discover iCode`,
-      link: '/idev',
-      images: ['assets/images/journey/07-site-icode.webp'],
-      imageAlt: $localize`:@@journey.site.alt:The Verda website generated in the iCode editor`,
+      images: [
+        'assets/images/journey/turo/07-site-icode.webp',
+        'assets/images/journey/turo/07-site-accueil.webp',
+      ],
+      imageAlt: $localize`:@@journey.turo.site.alt:The Turo website in the iCode editor, and its home page`,
     },
     {
       path: 'en-ligne',
-      step: $localize`:@@journey.step.online:Online`,
-      title: $localize`:@@journey.online.title:Her website is live`,
-      caption: $localize`:@@journey.online.caption:verda.idem.africa — address, security certificate and hosting on African servers, in one click.`,
-      price: $localize`:@@journey.online.price:iDeploy · always online from 10 F a day`, item: 'ideploy.meter', xaf: 10, source: 'meter:vitrine',
-      ctaLabel: $localize`:@@journey.online.cta:Deploy with iDeploy`,
-      link: '/ideploy',
-      images: [
-        'assets/images/journey/08-ligne-site.webp',
-        'assets/images/journey/08-ligne-ideploy.webp',
+      label: $localize`:@@journey.turo.online.label:Online`,
+      title: $localize`:@@journey.turo.online.title:Online in one click`,
+      caption: $localize`:@@journey.turo.online.caption:She clicks Publish. IDEM builds her site, sends it to servers in Africa and gives her its address with its security certificate, in a few minutes. She can connect her own domain name afterwards, without touching a server.`,
+      points: [
+        $localize`:@@journey.turo.online.p1:Hosted in Africa, HTTPS included`,
+        $localize`:@@journey.turo.online.p2:Every change published again in one click`,
+        $localize`:@@journey.turo.online.p3:Your own domain name with iDomain`,
       ],
-      imageAlt: $localize`:@@journey.online.alt:The Verda website online, hosted in Africa`,
-    },
-    {
-      path: 'conseil',
-      step: $localize`:@@journey.step.funding:The funding`,
-      title: $localize`:@@journey.funding.title:An advisor helps her get funded`,
-      caption: $localize`:@@journey.funding.caption:A certified expert goes through her file with her, then introduces her to banks and investors.`,
-      price: $localize`:@@journey.funding.price:Pitch deck · 1,000 F`, item: 'deliverable.pitch_deck', xaf: 1000,
-      ctaLabel: $localize`:@@journey.funding.cta:Talk to an advisor`,
-      link: '/pricing',
-      images: ['assets/images/journey/09-conseil-accompagnement.webp'],
-      imageAlt: $localize`:@@journey.funding.alt:IDEM Conseil: a certified advisor reviewing the funding file`,
+      price: $localize`:@@journey.online.price:iDeploy · always online from 10 F a day`, item: 'ideploy.meter', xaf: 10, source: 'meter:vitrine',
+      ctaLabel: $localize`:@@journey.turo.online.cta:Put my site online`,
+      images: [
+        'assets/images/journey/turo/08-ligne-modale.webp',
+        'assets/images/journey/turo/08-ligne-navigateur.webp',
+      ],
+      imageAlt: $localize`:@@journey.turo.online.alt:The Turo website put online from iCode, then open at its address`,
     },
   ];
 
-  /** Intro + stages + outro. */
-  protected readonly sectionCount = this.stages.length + 2;
-
-
-  /* ── Scroll engine state ─────────────────────────────────────── */
-  private rafId = 0;
-  private frameStamp = 0;
-  private lastScrollY = -1;
-  private renderPos = 0;
-  private settled = false;
-  private observer?: IntersectionObserver;
-  private resizeObserver?: ResizeObserver;
+  private scrollRaf = 0;
+  private followTimer: ReturnType<typeof setTimeout> | null = null;
   private reduceMotion = false;
   private motionQuery?: MediaQueryList;
 
-  /* ── Geometry, measured on resize rather than every frame ────── */
-  /** Document offset of the host's top edge. */
-  private hostTop = 0;
-  /** Scrollable distance the pinned stage travels across. */
-  private span = 0;
-
-  /* ── Swiper state ────────────────────────────────────────────── */
   private swiperTimerId: ReturnType<typeof setInterval> | null = null;
   private swiperPaused = false;
   private touchStartX = 0;
@@ -279,215 +260,191 @@ export class JourneyComponent implements AfterViewInit, OnDestroy {
     else this.startSwiper();
   };
 
-  private readonly onResize = () => {
-    this.measure();
-    this.settled = false;
-  };
-
   constructor() {
     this.imageIndices.set(this.stages.map(() => 0));
   }
 
-  /* ────────────────────────────────────────────────────────────── */
-  /*  Lifecycle                                                     */
-  /* ────────────────────────────────────────────────────────────── */
-
   ngAfterViewInit(): void {
     if (!isPlatformBrowser(this.platformId)) return;
-
-    // Browser only: the server DOM has no setProperty for custom properties,
-    // and a host style binding would throw there and break prerendering.
-    // The stylesheet carries the same value as its default.
-    this.hostEl.nativeElement.style.setProperty('--jn-count', String(this.sectionCount));
 
     this.motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
     this.reduceMotion = this.motionQuery.matches;
     this.motionQuery.addEventListener('change', this.onMotionChange);
 
-    // Hand layout over to the pinned engine, then sync before the next paint.
-    this.live.set(true);
-
     this.zone.runOutsideAngular(() => {
-      this.measure();
-      this.renderPos = this.readPosition();
-      this.paint(this.renderPos);
-
-      this.observer = new IntersectionObserver(
-        ([entry]) => {
-          if (entry.isIntersecting) this.start();
-          else this.stop();
-        },
-        { rootMargin: '15% 0px 15% 0px' }
-      );
-      this.observer.observe(this.hostEl.nativeElement);
-
-      // Anything that changes the page's height moves the pinned range: the
-      // host's own growth, and the content above it settling (fonts, images).
-      this.resizeObserver = new ResizeObserver(this.onResize);
-      this.resizeObserver.observe(this.hostEl.nativeElement);
-      this.resizeObserver.observe(document.documentElement);
-
-      window.addEventListener('resize', this.onResize, { passive: true });
-      window.addEventListener('orientationchange', this.onResize, { passive: true });
+      window.addEventListener('scroll', this.onScroll, { passive: true });
+      window.addEventListener('resize', this.onScroll, { passive: true });
     });
+    this.readActive();
 
     this.startSwiper();
   }
 
   ngOnDestroy(): void {
-    this.observer?.disconnect();
-    this.resizeObserver?.disconnect();
-    this.motionQuery?.removeEventListener('change', this.onMotionChange);
     if (isPlatformBrowser(this.platformId)) {
-      window.removeEventListener('resize', this.onResize);
-      window.removeEventListener('orientationchange', this.onResize);
+      window.removeEventListener('scroll', this.onScroll);
+      window.removeEventListener('resize', this.onScroll);
+      cancelAnimationFrame(this.scrollRaf);
     }
-    this.stop();
+    if (this.followTimer) clearTimeout(this.followTimer);
+    this.motionQuery?.removeEventListener('change', this.onMotionChange);
     this.stopSwiper();
   }
 
-  /* ────────────────────────────────────────────────────────────── */
-  /*  Scroll engine                                                 */
-  /* ────────────────────────────────────────────────────────────── */
-
-  private start(): void {
-    if (this.rafId) return;
-    this.frameStamp = 0;
-    this.lastScrollY = -1;
-    this.settled = false;
-    this.measure();
-
-    // Explicitly outside Angular: the frame loop should not register as
-    // pending work or trigger change detection.
-    this.zone.runOutsideAngular(() => {
-      this.rafId = requestAnimationFrame(this.tick);
+  private readonly onScroll = () => {
+    if (this.scrollRaf) return;
+    this.scrollRaf = requestAnimationFrame(() => {
+      this.scrollRaf = 0;
+      this.readActive();
     });
-  }
-
-  private stop(): void {
-    if (!this.rafId) return;
-    cancelAnimationFrame(this.rafId);
-    this.rafId = 0;
-  }
-
-  /**
-   * Caches the pinned range. Reading `offsetHeight` forces layout, so it
-   * happens here — on resize — and never inside the frame loop, which only
-   * needs `window.scrollY`.
-   */
-  private measure(): void {
-    const host = this.hostEl.nativeElement;
-    const stage = this.stageRef().nativeElement;
-    this.hostTop = host.getBoundingClientRect().top + window.scrollY;
-    this.span = host.offsetHeight - stage.offsetHeight;
-  }
-
-  private readonly tick = (now: number): void => {
-    this.rafId = requestAnimationFrame(this.tick);
-
-    const scrollY = window.scrollY;
-    const moved = scrollY !== this.lastScrollY;
-    this.lastScrollY = scrollY;
-
-    // Nothing moved and the eased position has caught up: no DOM work at all.
-    if (!moved && this.settled) {
-      this.frameStamp = now;
-      return;
-    }
-
-    const dt = this.frameStamp ? Math.min(80, now - this.frameStamp) : 16.7;
-    this.frameStamp = now;
-
-    const target = this.readPosition();
-    const delta = target - this.renderPos;
-
-    if (this.reduceMotion || Math.abs(delta) < SETTLE_EPSILON) {
-      this.renderPos = target;
-      this.settled = true;
-    } else {
-      // Exponential approach, framerate independent.
-      this.renderPos += delta * (1 - Math.pow(2, -dt / EASE_HALFLIFE_MS));
-      this.settled = false;
-    }
-
-    this.paint(this.renderPos);
   };
 
-  /** Scroll offset inside the pinned range, mapped to a slide position. */
-  private readPosition(): number {
-    if (this.span <= 0) return 0;
-    const progress = (window.scrollY - this.hostTop) / this.span;
-    return Math.min(1, Math.max(0, progress)) * (this.sectionCount - 1);
-  }
-
-  /** Writes the per-slide motion variables. Transforms and opacity only. */
-  private paint(pos: number): void {
-    const slides = this.slideRefs();
-
-    for (const ref of slides) {
-      const el = ref.nativeElement;
-      const index = Number(el.dataset['index']);
-      const signed = pos - index;
-      const distance = Math.abs(signed);
-      const wasNear = el.classList.contains('is-near');
-
-      if (distance >= 1) {
-        if (wasNear) {
-          el.classList.remove('is-near', 'is-current');
-          el.style.setProperty('--e', '0');
-          el.style.setProperty('--w', '1');
-          el.style.setProperty('--t', '0');
-          el.style.setProperty('--tw', '1');
-        }
-        continue;
-      }
-
-      const scene = smoothstep((SCENE_OUT - distance) / (SCENE_OUT - SCENE_IN));
-      const text = smoothstep((TEXT_OUT - distance) / (TEXT_OUT - TEXT_IN));
-
-      if (!wasNear) el.classList.add('is-near');
-
-      // Hysteresis around the halfway mark. `is-current` starts the closing
-      // animation, so a reading head resting exactly on the boundary must not
-      // be able to toggle it on and off frame after frame.
-      const wasCurrent = el.classList.contains('is-current');
-      const isCurrent = distance < (wasCurrent ? 0.55 : 0.45);
-      if (isCurrent !== wasCurrent) el.classList.toggle('is-current', isCurrent);
-
-      el.style.setProperty('--e', scene.toFixed(3));
-      el.style.setProperty('--w', (1 - scene).toFixed(3));
-      el.style.setProperty('--t', text.toFixed(3));
-      el.style.setProperty('--tw', (1 - text).toFixed(3));
-      el.style.setProperty('--s', signed >= 0 ? '1' : '-1');
+  /**
+   * The step being read: the screen that covers the middle of the viewport
+   * (screens touch each other, so one always does inside the section). Eight
+   * rectangles per frame at most, read on scroll only.
+   */
+  private readActive(): void {
+    const middle = window.innerHeight / 2;
+    let index = -1;
+    for (const ref of this.shotRefs()) {
+      const r = ref.nativeElement.getBoundingClientRect();
+      if (r.top <= middle && r.bottom > middle) index = Number(ref.nativeElement.dataset['index']);
     }
-
-    const ratio = this.sectionCount > 1 ? pos / (this.sectionCount - 1) : 0;
-    this.progressRef().nativeElement.style.transform = `scaleX(${ratio.toFixed(4)})`;
-
-    const active = Math.round(pos);
-    if (active !== this.activeIndex()) {
-      this.zone.run(() => this.activeIndex.set(active));
-    }
+    if (index < 0 || index === this.activeIndex()) return;
+    this.zone.run(() => this.activeIndex.set(index));
+    this.followList(index);
+    this.syncFilms();
   }
 
   /**
-   * Rail navigation: an ordinary smooth page scroll to a section's resting
-   * offset. Native, so the user interrupting it just takes the scroll back.
+   * On a short screen the index is taller than the space it has: it scrolls by
+   * itself so the step being read, and the one before it, stay in view. Done
+   * once the step has finished opening, so its height is the final one.
    */
-  protected goTo(index: number): void {
+  private followList(index: number): void {
+    const list = this.stepsRef()?.nativeElement;
+    if (!list || list.scrollHeight <= list.clientHeight) return;
+    if (this.followTimer) clearTimeout(this.followTimer);
+    this.followTimer = setTimeout(() => {
+      const items = list.querySelectorAll<HTMLElement>('.jn-step');
+      const before = items[Math.max(0, index - 1)];
+      list.scrollTo({ top: index === 0 ? 0 : before.offsetTop, behavior: this.reduceMotion ? 'auto' : 'smooth' });
+    }, 260);
+  }
+
+  /** The AV1 + Opus version next to an .mp4 film. */
+  protected webm(src: string): string {
+    return src.replace(/\.mp4$/, '.webm');
+  }
+
+  protected isFilm(src: string): boolean {
+    return src.endsWith('.mp4');
+  }
+
+  /**
+   * Plays the film of the step being read when its slide is showing, pauses
+   * every other one: nothing downloads or decodes off screen.
+   */
+  private syncFilms(): void {
     if (!isPlatformBrowser(this.platformId)) return;
-    this.measure();
-    if (this.span <= 0) return;
-    const ratio = index / (this.sectionCount - 1);
-    window.scrollTo({
-      top: this.hostTop + this.span * ratio,
-      behavior: this.reduceMotion ? 'auto' : 'smooth',
+    const active = this.activeIndex();
+    document.querySelectorAll<HTMLVideoElement>('video.jn-film').forEach((film) => {
+      const stage = Number(film.dataset['stage']);
+      const visible = stage === active && this.imageIndex(stage) === Number(film.dataset['shot']);
+      if (visible && film.paused && !this.filmPausedByUser) this.playFilm(film);
+      else if (!visible && !film.paused) {
+        film.pause();
+        this.filmPaused.set(true);
+      }
     });
   }
 
-  /* ────────────────────────────────────────────────────────────── */
-  /*  Screenshot swiper                                             */
-  /* ────────────────────────────────────────────────────────────── */
+  /**
+   * Plays the film with its sound at 40 %. A browser that refuses sound
+   * without a gesture gets the film muted, and the sound comes back on the
+   * visitor's first click or key press, unless they cut it themselves.
+   */
+  private playFilm(film: HTMLVideoElement): void {
+    film.volume = FILM_VOLUME;
+    film.muted = this.filmMutedByUser;
+    // The first time, the film opens on its strongest part (40 s); the loop
+    // then takes it back to the beginning.
+    if (!film.dataset['started']) {
+      film.dataset['started'] = '1';
+      film.currentTime = FILM_FIRST_START;
+      if (film.readyState < 1) {
+        film.addEventListener('loadedmetadata', () => (film.currentTime = FILM_FIRST_START), { once: true });
+      }
+    }
+    film
+      .play()
+      .then(() => this.zone.run(() => this.reflect(film)))
+      .catch(() => {
+        if (film.muted) return;
+        film.muted = true;
+        void film.play().then(() => this.zone.run(() => this.reflect(film))).catch(() => undefined);
+        this.armSoundGesture(film);
+      });
+  }
+
+  private reflect(film: HTMLVideoElement): void {
+    this.filmPaused.set(film.paused);
+    this.filmMuted.set(film.muted);
+  }
+
+  private armSoundGesture(film: HTMLVideoElement): void {
+    const unmute = () => {
+      for (const type of GESTURES) window.removeEventListener(type, unmute);
+      if (this.filmMutedByUser) return;
+      film.muted = false;
+      film.volume = FILM_VOLUME;
+      this.zone.run(() => this.reflect(film));
+    };
+    for (const type of GESTURES) window.addEventListener(type, unmute, { passive: true });
+  }
+
+  protected toggleFilm(event: Event): void {
+    event.stopPropagation();
+    const film = (event.currentTarget as HTMLElement).closest('.jn-pic')?.querySelector('video');
+    if (!film) return;
+    if (film.paused) {
+      this.filmPausedByUser = false;
+      this.playFilm(film);
+    } else {
+      this.filmPausedByUser = true;
+      film.pause();
+      this.reflect(film);
+    }
+  }
+
+  protected toggleSound(event: Event): void {
+    event.stopPropagation();
+    const film = (event.currentTarget as HTMLElement).closest('.jn-pic')?.querySelector('video');
+    if (!film) return;
+    film.muted = !film.muted;
+    film.volume = FILM_VOLUME;
+    this.filmMutedByUser = film.muted;
+    this.reflect(film);
+  }
+
+  /** "01", "02"… : the steps are a sequence, their order is information. */
+  protected number(index: number): string {
+    return String(index + 1).padStart(2, '0');
+  }
+
+  protected shotLabel(shot: number, total: number): string {
+    return $localize`:@@journey.shot.dot:Screenshot ${shot + 1}:index: of ${total}:total:`;
+  }
+
+  /** From the list: bring that step's screen to the middle of the viewport. */
+  protected goTo(index: number): void {
+    if (!isPlatformBrowser(this.platformId)) return;
+    const el = this.shotRefs().find((ref) => Number(ref.nativeElement.dataset['index']) === index)?.nativeElement;
+    el?.scrollIntoView({ behavior: this.reduceMotion ? 'auto' : 'smooth', block: 'center' });
+  }
+
+  /* ── Screenshot swiper ───────────────────────────────────────── */
 
   protected imageIndex(stageIndex: number): number {
     return this.imageIndices()[stageIndex] ?? 0;
@@ -508,6 +465,7 @@ export class JourneyComponent implements AfterViewInit, OnDestroy {
       copy[stageIndex] = next;
       return copy;
     });
+    this.syncFilms();
     this.startSwiper();
   }
 
@@ -548,7 +506,7 @@ export class JourneyComponent implements AfterViewInit, OnDestroy {
     this.zone.runOutsideAngular(() => {
       this.swiperTimerId = setInterval(() => {
         if (this.swiperPaused || document.hidden) return;
-        const stageIndex = this.activeIndex() - 1;
+        const stageIndex = this.activeIndex();
         const stage = this.stages[stageIndex];
         if (!stage || stage.images.length < 2) return;
         this.zone.run(() => this.nextImage(stageIndex));

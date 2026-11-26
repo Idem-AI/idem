@@ -1,12 +1,12 @@
 <div class="min-h-screen">
-  <!-- Hero Header with Yellow Background -->
-  <div class="bg-accent py-16 px-4 text-white mt-[70px]">
+  <!-- Hero Header -->
+  <div class="py-16 px-4 mt-[70px]">
     <div class="max-w-7xl mx-auto text-center">
-      <h1 class="text-4xl md:text-5xl font-bold text-gray-900 mb-4" [attr.i18n]="titleI18n">
+      <h1 class="text-4xl md:text-5xl font-bold text-text-primary mb-4" [attr.i18n]="titleI18n">
         {{ title }}
       </h1>
       @if (subtitle) {
-        <p class="text-lg text-gray-800 max-w-3xl mx-auto" [attr.i18n]="subtitleI18n">
+        <p class="text-lg text-text-secondary max-w-3xl mx-auto" [attr.i18n]="subtitleI18n">
           {{ subtitle }}
         </p>
       }

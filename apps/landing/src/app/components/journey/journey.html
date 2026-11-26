@@ -1,256 +1,232 @@
-<!-- Pinned story section. The stage is sticky, so slides only ever advance
-     while it is pinned full-screen; the page itself scrolls natively from end
-     to end. Per-slide motion is driven by --e (presence), --w (away-ness) and
-     --s (direction), written by the rAF loop in journey.ts. -->
-
-<div class="jn-stage" #stage>
-  <!-- ═══ Chapter 0 · the context ═══════════════════════════════
-       Deliberately thin: who she is, what she wants, and the same picture
-       the story ends on. Everything else is shown, not announced. -->
-  <article class="jn-slide jn-slide-final" #slide data-index="0">
-    <div class="jn-veil jn-veil-final" aria-hidden="true"></div>
-
-    <div class="jn-inner jn-inner-split">
-      <div class="jn-copy jn-copy-final">
-        <h2 class="jn-intro-title" i18n="@@journey.intro.title">A real example</h2>
-        <p class="jn-caption jn-intro-body" i18n="@@journey.intro.body">
-          Awa wants to collect the plastic waste of Douala and sell it back, recycled. No logo, no
-          plan, no website: here is every step of her launch with IDEM.
-        </p>
-      </div>
-
-      <figure class="jn-final-art">
-        <img
-          src="assets/images/journey/idea.webp"
-          alt="An entrepreneur with a great idea, ready to start her business"
-          i18n-alt="@@journey.intro.alt"
-          width="1100"
-          height="925"
-          decoding="async"
-          class="jn-final-img"
-        />
-      </figure>
+<!-- Un cas concret, raconté étape par étape : Turo. Défilement natif. À gauche,
+     l'index des étapes reste en place et ouvre celle qu'on regarde ; à droite,
+     les écrans du vrai projet passent, et le haut du suivant dépasse déjà. -->
+<section class="jn" aria-labelledby="jn-title">
+  <header class="jn-head">
+    <div class="jn-head-copy">
+      <h2 id="jn-title" class="jn-title">
+        <span class="i-underline" i18n="@@journey.intro.title">A real example</span>
+      </h2>
+      <p class="jn-lede" i18n="@@journey.turo.intro.body">
+        This young woman wants to launch Turo: weather alerts, the diagnosis of a sick leaf from a single photo, and a marketplace so small farmers in Cameroon can sell straight to buyers. She describes it in one sentence. Here is everything she gets with IDEM, captured from her project.
+      </p>
     </div>
+    <img
+      src="assets/images/journey/idea.webp"
+      alt="An entrepreneur with a great idea, ready to start her business"
+      i18n-alt="@@journey.intro.alt"
+      width="1100"
+      height="925"
+      loading="lazy"
+      decoding="async"
+      class="jn-art"
+    />
+  </header>
 
-    <p class="jn-hint">
-      <span i18n="@@journey.scrollHint">Scroll to follow her</span>
-      <svg class="jn-hint-arrow" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path
-          d="M12 5v14m0 0l-6-6m6 6l6-6"
-          stroke="currentColor"
-          stroke-width="1.6"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        />
-      </svg>
-    </p>
-  </article>
+  <div class="jn-body">
+    <!-- L'index des étapes : il reste en place pendant que les écrans passent. -->
+    <nav class="jn-steps" #steps i18n-aria-label="@@journey.rail.label" aria-label="Journey sections">
+      <ol class="jn-step-list">
+        @for (stage of stages; track stage.path; let i = $index) {
+          <li class="jn-step" [class.is-active]="activeIndex() === i" [class.is-past]="activeIndex() > i">
+            <button
+              type="button"
+              class="jn-step-head"
+              [attr.aria-current]="activeIndex() === i ? 'step' : null"
+              [attr.aria-controls]="'jn-shot-' + i"
+              (click)="goTo(i)"
+            >
+              <span class="jn-step-num" aria-hidden="true">{{ number(i) }}</span>
+              <span class="jn-step-title">{{ stage.title }}</span>
+            </button>
+            <div class="jn-step-more" [attr.inert]="activeIndex() === i ? null : ''">
+              <div class="jn-step-more-inner">
+                <p class="jn-step-caption">{{ stage.caption }}</p>
+                <ul class="jn-points">
+                  @for (point of stage.points; track point) {
+                    <li><i class="pi pi-check" aria-hidden="true"></i>{{ point }}</li>
+                  }
+                </ul>
+                <div class="jn-actions">
+                  <a href="{{ createProjectUrl }}" class="inner-button button-sm jn-cta">
+                    {{ stage.ctaLabel }}
+                    <i class="pi pi-arrow-right" aria-hidden="true"></i>
+                  </a>
+                  <idem-promo-text class="jn-price" [text]="stage.price" [item]="stage.item ?? null" [xaf]="stage.xaf ?? null" [source]="stage.source ?? stage.item ?? null" />
+                </div>
+              </div>
+            </div>
+          </li>
+        }
+      </ol>
+    </nav>
 
-  <!-- ═══ Sections 1..N · one step of her launch each ═══ -->
-  @for (stage of stages; track stage.path; let i = $index) {
-    <article class="jn-slide" #slide [attr.data-index]="i + 1">
-      <div class="jn-bg" aria-hidden="true">
-        <img [src]="stage.images[0]" alt="" class="jn-bg-img" />
-      </div>
-      <div class="jn-veil" aria-hidden="true"></div>
-
-      <div class="jn-inner jn-inner-split">
-        <div class="jn-copy">
-          <h3 class="jn-title">{{ stage.title }}</h3>
-          <p class="jn-caption">{{ stage.caption }}</p>
-          <div class="jn-actions">
-            <a href="{{ createProjectUrl }}" class="inner-button button-sm jn-cta">
-              {{ stage.ctaLabel }}
-              <svg class="jn-cta-arrow" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path
-                  d="M4 12h15m0 0l-5.5-5.5M19 12l-5.5 5.5"
-                  stroke="currentColor"
-                  stroke-width="1.8"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
-              </svg>
-            </a>
-            <idem-promo-text class="jn-price" [text]="stage.price" [item]="stage.item ?? null" [xaf]="stage.xaf ?? null" [source]="stage.source ?? stage.item ?? null" />
-          </div>
-        </div>
-
-        <figure
-          class="jn-media"
-          (mouseenter)="pauseSwiper()"
-          (mouseleave)="resumeSwiper()"
-          (focusin)="pauseSwiper()"
-          (focusout)="resumeSwiper()"
+    <!-- Les écrans, un par étape. -->
+    <ol class="jn-shots">
+      @for (stage of stages; track stage.path; let i = $index) {
+        <li
+          #shot
+          class="jn-shot"
+          [id]="'jn-shot-' + i"
+          [attr.data-index]="i"
+          [class.is-active]="activeIndex() === i"
         >
-          <div class="jn-frame">
+          <!-- Sur téléphone, l'index n'est pas là : chaque écran porte son texte. -->
+          <div class="jn-shot-copy">
+            <p class="jn-kicker"><span class="jn-step-num">{{ number(i) }}</span>{{ stage.label }}</p>
+            <h3 class="jn-shot-title">{{ stage.title }}</h3>
+            <p class="jn-step-caption">{{ stage.caption }}</p>
+            <ul class="jn-points">
+              @for (point of stage.points; track point) {
+                <li><i class="pi pi-check" aria-hidden="true"></i>{{ point }}</li>
+              }
+            </ul>
+            <div class="jn-actions">
+              <a href="{{ createProjectUrl }}" class="inner-button button-sm jn-cta">
+                {{ stage.ctaLabel }}
+                <i class="pi pi-arrow-right" aria-hidden="true"></i>
+              </a>
+              <idem-promo-text class="jn-price" [text]="stage.price" [item]="stage.item ?? null" [xaf]="stage.xaf ?? null" [source]="stage.source ?? stage.item ?? null" />
+            </div>
+          </div>
+
+          <figure
+            class="jn-frame"
+            (mouseenter)="pauseSwiper()"
+            (mouseleave)="resumeSwiper()"
+            (focusin)="pauseSwiper()"
+            (focusout)="resumeSwiper()"
+          >
             <div class="jn-frame-bar">
-              <span class="jn-frame-path">app.idem.africa/verda/{{ stage.path }}</span>
+              <span class="jn-frame-path">app.idem.africa/turo/{{ stage.path }}</span>
+              <span class="jn-frame-label">{{ stage.label }}</span>
             </div>
 
             <div
-              class="jn-shots"
+              class="jn-pics"
               [attr.data-dir]="swipeDir()"
               (touchstart)="onShotTouchStart($event)"
               (touchend)="onShotTouchEnd(i, $event)"
             >
               @for (image of stage.images; track image; let shot = $index) {
-                <img
-                  [src]="image"
-                  [alt]="stage.imageAlt"
-                  width="1280"
-                  height="800"
-                  loading="lazy"
-                  decoding="async"
-                  class="jn-shot"
-                  [class.is-active]="imageIndex(i) === shot"
-                />
+                @if (isFilm(image)) {
+                  <!-- Le vrai film de Turo, joué dans la page vidéo d'IDEM : la capture de
+                       la page, et le film posé sur son lecteur. Muet, lu seulement à l'écran. -->
+                  <div class="jn-pic" [class.is-active]="imageIndex(i) === shot">
+                    <img [src]="stage.filmPage" [alt]="stage.imageAlt" width="1600" height="1000" loading="lazy" decoding="async" />
+                    <video
+                      class="jn-film"
+                      [attr.data-stage]="i"
+                      [attr.data-shot]="shot"
+                      aria-hidden="true"
+                      playsinline
+                      loop
+                      preload="none"
+                    >
+                      <!-- AV1 + Opus là où ils se lisent, H.264 + AAC ailleurs ; chacun sous 700 Ko. -->
+                      <source [src]="webm(image)" type="video/webm; codecs=av01.0.05M.08,opus" />
+                      <source [src]="image" type="video/mp4" />
+                    </video>
+                    <!-- En bas à droite du lecteur de la capture (bord droit 87,2 %, bas 80,9 %). -->
+                    <div class="absolute flex gap-2" style="right: calc(12.8% + 0.5rem); bottom: calc(19.1% + 0.5rem)">
+                      <button
+                        type="button"
+                        class="button-icon bg-[var(--glass-bg-intense)] shadow-[var(--glass-shadow)]"
+                        (click)="toggleFilm($event)"
+                        [attr.aria-label]="filmPaused() ? playLabel : pauseLabel"
+                      >
+                        <i class="pi" [class.pi-play]="filmPaused()" [class.pi-pause]="!filmPaused()" aria-hidden="true"></i>
+                      </button>
+                      <button
+                        type="button"
+                        class="button-icon bg-[var(--glass-bg-intense)] shadow-[var(--glass-shadow)]"
+                        (click)="toggleSound($event)"
+                        [attr.aria-label]="filmMuted() ? soundOnLabel : soundOffLabel"
+                      >
+                        <i class="pi" [class.pi-volume-off]="filmMuted()" [class.pi-volume-up]="!filmMuted()" aria-hidden="true"></i>
+                      </button>
+                    </div>
+                  </div>
+                } @else {
+                  <img
+                    [src]="image"
+                    [alt]="stage.imageAlt"
+                    width="1600"
+                    height="1000"
+                    loading="lazy"
+                    decoding="async"
+                    class="jn-pic"
+                    [class.is-active]="imageIndex(i) === shot"
+                  />
+                }
               }
 
               @if (stage.images.length > 1) {
                 <button
                   type="button"
-                  class="jn-shot-nav jn-shot-prev"
+                  class="button-icon jn-pic-nav jn-pic-prev"
                   (click)="prevImage(i, $event)"
                   aria-label="Previous screenshot"
                   i18n-aria-label="@@journey.shot.prev"
                 >
-                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <path
-                      d="M14.5 6.5L9 12l5.5 5.5"
-                      stroke="currentColor"
-                      stroke-width="1.8"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    />
-                  </svg>
+                  <i class="pi pi-chevron-left" aria-hidden="true"></i>
                 </button>
                 <button
                   type="button"
-                  class="jn-shot-nav jn-shot-next"
+                  class="button-icon jn-pic-nav jn-pic-next"
                   (click)="nextImage(i, $event)"
                   aria-label="Next screenshot"
                   i18n-aria-label="@@journey.shot.next"
                 >
-                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <path
-                      d="M9.5 6.5L15 12l-5.5 5.5"
-                      stroke="currentColor"
-                      stroke-width="1.8"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    />
-                  </svg>
+                  <i class="pi pi-chevron-right" aria-hidden="true"></i>
                 </button>
               }
             </div>
-          </div>
 
-          @if (stage.images.length > 1) {
-            <div class="jn-shot-dots">
-              @for (image of stage.images; track image; let shot = $index) {
-                <button
-                  type="button"
-                  class="jn-shot-dot"
-                  [class.is-active]="imageIndex(i) === shot"
-                  [attr.aria-current]="imageIndex(i) === shot ? 'true' : null"
-                  [attr.aria-label]="'Screenshot ' + (shot + 1) + ' of ' + stage.images.length"
-                  (click)="showImage(i, shot, $event)"
-                ></button>
-              }
-            </div>
-          }
-        </figure>
-      </div>
-    </article>
-  }
-
-  <!-- ═══ Last chapter · she made it ═══════════════════════════
-       Stripped back on purpose: one sentence, one call to action, one
-       picture. No backdrop, no tint, no ornament — the illustration is
-       the only thing here that has to be looked at. -->
-  <article class="jn-slide jn-slide-final" #slide [attr.data-index]="stages.length + 1">
-    <div class="jn-veil jn-veil-final" aria-hidden="true"></div>
-
-    <div class="jn-inner jn-inner-split">
-      <div class="jn-copy jn-copy-final">
-        <h3 class="jn-title jn-title-final" i18n="@@journey.end.title">Verda is a real company</h3>
-        <p class="jn-caption jn-caption-final" i18n="@@journey.end.body">
-          Registered, online, and able to walk into a bank with a file that holds up. It all started
-          with one sentence — and Awa never wrote a line of code.
-        </p>
-        <div class="jn-actions">
-          <a href="{{ createProjectUrl }}" class="inner-button jn-cta">
-            <span i18n="@@journey.end.cta">Start mine</span>
-            <svg class="jn-cta-arrow" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path
-                d="M4 12h15m0 0l-5.5-5.5M19 12l-5.5 5.5"
-                stroke="currentColor"
-                stroke-width="1.8"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              />
-            </svg>
-          </a>
-          <span class="jn-price" i18n="@@journey.end.note">Free to start · no card required</span>
-        </div>
-      </div>
-
-      <figure class="jn-final-art">
-        <img
-          src="assets/images/journey/10-reussite.webp"
-          alt="An entrepreneur holding up a trophy, surrounded by the pieces of her business"
-          i18n-alt="@@journey.end.alt"
-          width="1100"
-          height="925"
-          loading="lazy"
-          decoding="async"
-          class="jn-final-img"
-        />
-      </figure>
-    </div>
-  </article>
-
-  <!-- Section rail: also the section navigation -->
-  <nav class="jn-rail" aria-label="Journey sections" i18n-aria-label="@@journey.rail.label">
-    <button
-      type="button"
-      class="jn-rail-item"
-      [class.is-active]="activeIndex() === 0"
-      [class.is-past]="activeIndex() > 0"
-      [attr.aria-current]="activeIndex() === 0 ? 'step' : null"
-      (click)="goTo(0)"
-    >
-      <span class="jn-rail-label">{{ navStart }}</span>
-      <span class="jn-rail-dot" aria-hidden="true"></span>
-    </button>
-
-    @for (stage of stages; track stage.path; let i = $index) {
-      <button
-        type="button"
-        class="jn-rail-item"
-        [class.is-active]="activeIndex() === i + 1"
-        [class.is-past]="activeIndex() > i + 1"
-        [attr.aria-current]="activeIndex() === i + 1 ? 'step' : null"
-        (click)="goTo(i + 1)"
-      >
-        <span class="jn-rail-label">{{ stage.step }}</span>
-        <span class="jn-rail-dot" aria-hidden="true"></span>
-      </button>
-    }
-
-    <button
-      type="button"
-      class="jn-rail-item"
-      [class.is-active]="activeIndex() === stages.length + 1"
-      [attr.aria-current]="activeIndex() === stages.length + 1 ? 'step' : null"
-      (click)="goTo(stages.length + 1)"
-    >
-      <span class="jn-rail-label">{{ navDone }}</span>
-      <span class="jn-rail-dot" aria-hidden="true"></span>
-    </button>
-  </nav>
-
-  <div class="jn-progress" aria-hidden="true">
-    <span class="jn-progress-fill" #progress></span>
+            @if (stage.images.length > 1) {
+              <div class="jn-dots">
+                @for (image of stage.images; track image; let shot = $index) {
+                  <button
+                    type="button"
+                    class="jn-dot"
+                    [class.is-active]="imageIndex(i) === shot"
+                    [attr.aria-current]="imageIndex(i) === shot ? 'true' : null"
+                    [attr.aria-label]="shotLabel(shot, stage.images.length)"
+                    (click)="showImage(i, shot, $event)"
+                  ></button>
+                }
+              </div>
+            }
+          </figure>
+        </li>
+      }
+    </ol>
   </div>
-</div>
+
+  <!-- L'aboutissement : une phrase, une action, une image. -->
+  <div class="jn-end">
+    <div class="jn-end-copy">
+      <h3 class="jn-end-title" i18n="@@journey.turo.end.title">Well done: the business is running and making money</h3>
+      <p class="jn-lede" i18n="@@journey.turo.end.body">
+        She has a brand people recognise, a plan the bank can read, numbers that hold up, a pitch deck, a film, weekly visuals and a website that brings customers in. Turo sells. All from one sentence, without an agency, and she never wrote a line of code.
+      </p>
+      <div class="jn-actions">
+        <a href="{{ createProjectUrl }}" class="inner-button jn-cta">
+          <span i18n="@@journey.end.cta">Start mine</span>
+          <i class="pi pi-arrow-right" aria-hidden="true"></i>
+        </a>
+        <span class="jn-price" i18n="@@journey.end.note">Free to start · no card required</span>
+      </div>
+    </div>
+    <img
+      src="assets/images/journey/10-reussite.webp"
+      alt="An entrepreneur holding up a trophy, surrounded by the pieces of her business"
+      i18n-alt="@@journey.end.alt"
+      width="1100"
+      height="925"
+      loading="lazy"
+      decoding="async"
+      class="jn-art"
+    />
+  </div>
+</section>
