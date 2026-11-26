@@ -10,7 +10,7 @@
  * descriptions suivent la langue de l'interface.
  */
 
-export type CommandName = 'redesign' | 'site' | 'charter' | 'translate' | 'continue' | 'publish' | 'domain' | 'communication' | 'fix' | 'help';
+export type CommandName = 'redesign' | 'rescan' | 'site' | 'charter' | 'translate' | 'continue' | 'publish' | 'domain' | 'communication' | 'fix' | 'help';
 
 export interface CommandSpec {
   name: CommandName;
@@ -35,6 +35,17 @@ export const COMMANDS: readonly CommandSpec[] = [
       en: 'I read your site (logo, colours, fonts, photos, copy) and rebuild it more modern and clearer for your customers.',
     },
     args: { fr: 'adresse du site', en: 'site address' },
+  },
+  {
+    name: 'rescan',
+    aliases: ['reread'],
+    run: 'server',
+    needs: 'project',
+    label: { fr: 'Relire mon site d’origine', en: 'Re-read my original site' },
+    description: {
+      fr: 'Je relis votre ancien site (pages, textes, photos, équipe) tel qu’il est aujourd’hui, puis je refais ce projet à partir de cette lecture.',
+      en: 'I read your old site again (pages, copy, photos, team) as it is today, then rebuild this project from that reading.',
+    },
   },
   {
     name: 'site',

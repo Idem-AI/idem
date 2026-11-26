@@ -23,3 +23,15 @@ export function isPrebuiltStatic(app: PrebuiltFields, hasSourceArchive: boolean)
     !app.start_command
   );
 }
+
+/**
+ * The fast lane: a static site whose code was sent as files (iCode), built on
+ * the server in a bounded container (static-build.ts) or already built. A Git
+ * repository or a start command: the general lane.
+ */
+export function deploysOnFastLaneFields(
+  app: Pick<ApplicationRow, 'git_repository' | 'build_pack' | 'start_command'>,
+  hasSourceArchive: boolean
+): boolean {
+  return hasSourceArchive && !app.git_repository && toBuildPack(app.build_pack) === 'static' && !app.start_command;
+}

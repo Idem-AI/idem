@@ -23,7 +23,7 @@ import {
   saveApplicationSourceDelta,
 } from '../../api/services/application-source.service';
 import { sweepReservations, RESERVATION_TTL_MS } from '../../api/services/address-reservation.service';
-import { createDeployment, deploysAsPrebuiltStatic } from '../../api/services/deployment.service';
+import { createDeployment, deploysOnFastLane } from '../../api/services/deployment.service';
 import { fastDeploymentQueue, deploymentQueue } from '../../api/queue/queues';
 import { quickDeploy, quickDeployFullstack } from '../../api/services/quick-deploy.service';
 import { processDeployment } from '../../api/jobs/deployment.worker';
@@ -159,11 +159,13 @@ describe('quick deploy from files (site, mobile app, simple web app)', () => {
       },
     } as Job<DeploymentJobData>);
 
-    // The archive went up, was unpacked where a clone would have gone, then built.
-    expect(ssh.transfers.some((t) => t.direction === 'upload' && t.remotePath.endsWith('/source.tgz'))).toBe(true);
-    expect(ssh.ranMatching(/tar xzf .*source\.tgz/)).toBe(true);
+    // A site already built (no package.json): the archive went up, was unpacked into a new
+    // release and the link swapped under nginx — no clone, no image (static-fast-path.ts).
+    expect(ssh.transfers.some((t) => t.direction === 'upload' && /\/static\/incoming-[0-9a-f]{8}\.tgz$/.test(t.remotePath))).toBe(true);
+    expect(ssh.ranMatching(/tar xzf .*incoming-[0-9a-f]{8}\.tgz/)).toBe(true);
     expect(ssh.ranMatching(/git clone/)).toBe(false);
-    expect(ssh.ranMatching(/Dockerfile\.ideploy-static/)).toBe(true);
+    expect(ssh.ranMatching(/docker build/)).toBe(false);
+    expect(ssh.ranMatching(/mv -Tf .*current\.next/)).toBe(true);
 
     const read = extract(readFileSync(ssh.uploaded[0]));
     expect(read('dist/index.html').toString()).toContain('Boutique Amara');
@@ -223,8 +225,40 @@ describe('a republish sends only what changed', () => {
   });
 });
 
+describe('a site built on the server from its sources', () => {
+  it('builds in an isolated container, keeps dependencies, and swaps the release', async () => {
+    const team = await makeTeam();
+    await makeManagedServer();
+    const result = await quickDeploy(team.id, {
+      name: 'construit',
+      files: { 'package.json': JSON.stringify({ scripts: { build: 'vite build' } }), 'src/main.tsx': 'export {}', 'index.html': '<div id="root"></div>' },
+      build_pack: 'static',
+      publish_directory: 'dist',
+      ports_exposes: '80',
+    });
+    ssh.on(/\.idem\/build-report\.json/, { stdout: `@@IDEM_BUILD_REPORT ${Buffer.from('{"seo":{"errors":[]}}').toString('base64')}\n` });
+    const app = await appService.getApplication(team.id, result.applicationUuid!);
+    await processDeployment({
+      queueName: 'ideploy-deployments-fast',
+      data: { deploymentUuid: result.deploymentUuid!, applicationId: app!.id, applicationUuid: app!.uuid, teamId: team.id, commit: 'HEAD', forceRebuild: false },
+    } as Job<DeploymentJobData>);
+
+    // Sources unpacked beside the kept dependencies, then built in the bounded container…
+    expect(ssh.ranMatching(/mv "src\/\$d" "next\/\$d"/)).toBe(true);
+    expect(ssh.ranMatching(/docker run --rm --name 'ideploy-build-[0-9a-f]{8}' --user 1000:1000 --cap-drop ALL/)).toBe(true);
+    // …the output copied into the release, and the link swapped: no image built.
+    expect(ssh.ranMatching(/cp -a 'dist' '.*\/static\/releases\/[0-9a-f]{8}\/html'/)).toBe(true);
+    expect(ssh.ranMatching(/mv -Tf .*current\.next/)).toBe(true);
+    expect(ssh.ranMatching(/docker build/)).toBe(false);
+
+    const { rows } = await testPool().query('SELECT status, logs FROM application_deployment_queues WHERE deployment_uuid = $1', [result.deploymentUuid]);
+    expect(rows[0].status).toBe('finished');
+    expect(String(rows[0].logs)).toContain('@@IDEM_BUILD_REPORT');
+  }, 45_000);
+});
+
 describe('the fast lane', () => {
-  it('takes a site already built, and leaves a site to build in the general lane', async () => {
+  it('takes what iCode sends (built or to build), and leaves a site with a server in the general lane', async () => {
     const team = await makeTeam();
     await makeManagedServer();
     const built = await quickDeploy(team.id, { name: 'lane-a', files: { 'dist/index.html': '<h1>a</h1>' }, build_pack: 'static', ports_exposes: '80' });
@@ -232,13 +266,13 @@ describe('the fast lane', () => {
       name: 'lane-b',
       files: { 'package.json': '{}' },
       build_pack: 'static',
-      build_command: 'npm run build',
+      start_command: 'node server.js',
       ports_exposes: '80',
     });
     const a = await appService.getApplication(team.id, built.applicationUuid!);
     const b = await appService.getApplication(team.id, toBuild.applicationUuid!);
-    expect(await deploysAsPrebuiltStatic(a!.id)).toBe(true);
-    expect(await deploysAsPrebuiltStatic(b!.id)).toBe(false);
+    expect(await deploysOnFastLane(a!.id)).toBe(true);
+    expect(await deploysOnFastLane(b!.id)).toBe(false);
     expect(await fastDeploymentQueue.getJob(built.deploymentUuid!)).toBeTruthy();
     expect(await deploymentQueue.getJob(toBuild.deploymentUuid!)).toBeTruthy();
     // A pipeline always goes through the general lane (its image is scanned).
@@ -260,7 +294,7 @@ describe('an address reserved when the publish window opens', () => {
     expect(rows).toHaveLength(0);
 
     await saveApplicationSource(team.id, reserved.applicationUuid!, { 'dist/index.html': '<h1>ok</h1>' });
-    expect(await deploysAsPrebuiltStatic(app!.id)).toBe(true);
+    expect(await deploysOnFastLane(app!.id)).toBe(true);
   });
 
   it('is given back after a day when nothing was published, kept when it was', async () => {

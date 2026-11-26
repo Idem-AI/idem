@@ -8,13 +8,13 @@ import os from 'os';
 import pool from '../config/db.config';
 import { deploymentQueue, fastDeploymentQueue } from '../queue/queues';
 import { notFound, unprocessable } from '../utils/errors';
-import { isPrebuiltStatic, PrebuiltFields } from '../jobs/prebuilt-static';
+import { deploysOnFastLaneFields, PrebuiltFields } from '../jobs/prebuilt-static';
 
 /**
- * Whether the application deploys as a site already built: then its deployment
- * takes the fast lane. Read in one query; any doubt (error) → the general lane.
+ * Whether the application deploys on the fast lane (a site sent as files by
+ * iCode, see prebuilt-static.ts). Read in one query; any doubt → the general lane.
  */
-export async function deploysAsPrebuiltStatic(applicationId: number): Promise<boolean> {
+export async function deploysOnFastLane(applicationId: number): Promise<boolean> {
   try {
     const { rows } = await pool.query<PrebuiltFields & { has_source: boolean }>(
       `SELECT a.git_repository, a.build_pack, a.install_command, a.build_command, a.start_command,
@@ -22,7 +22,7 @@ export async function deploysAsPrebuiltStatic(applicationId: number): Promise<bo
          FROM applications a WHERE a.id = $1`,
       [applicationId]
     );
-    return rows[0] ? isPrebuiltStatic(rows[0], Boolean(rows[0].has_source)) : false;
+    return rows[0] ? deploysOnFastLaneFields(rows[0], Boolean(rows[0].has_source)) : false;
   } catch {
     return false;
   }
@@ -91,7 +91,7 @@ export async function createDeployment(
   // One attempt: a failed build replayed twice more flipped the status back to
   // "in progress" and tripled the wait for an answer that would not change.
   // A pipeline scans its built image: never the fast lane.
-  const fast = !opts.pipelineExecutionId && (opts.fast ?? (await deploysAsPrebuiltStatic(application.id)));
+  const fast = !opts.pipelineExecutionId && (opts.fast ?? (await deploysOnFastLane(application.id)));
   await (fast ? fastDeploymentQueue : deploymentQueue).add('deploy', data, {
     jobId: deploymentUuid,
     attempts: 1,

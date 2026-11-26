@@ -11,7 +11,7 @@ import type { AppDeployment } from '@/api/persistence/db';
 import {
   PublishError,
   buildStaticSite,
-  prepareStaticSite,
+  collectSiteSources,
   getAddressState,
   waitForAddress,
   type AddressState,
@@ -143,11 +143,7 @@ export function DeployModal({ open, onClose, deployment, defaultName, onPublishe
     };
   }, [open, publicAppUuid, phase, domainsVersion]);
 
-  // Le site se construit dès l'ouverture de la fenêtre : le temps de lire et de cliquer, il est souvent prêt.
-  // La même construction est reprise par la publication (rien n'est construit deux fois).
-  useEffect(() => {
-    if (open && phase === 'ready' && mode === 'static') prepareStaticSite().catch(() => undefined);
-  }, [open, phase, mode]);
+  // Le site n'est plus construit dans le navigateur : iDeploy le construit sur son serveur (voir ideployPublish.ts).
 
   // Première mise en ligne d'un site : l'adresse est réservée dès que le nom proposé est posé (2 s sans changement).
   // iDeploy crée le nom et obtient le certificat pendant que l'utilisateur lit et que le site se construit ; sans
@@ -160,7 +156,12 @@ export function DeployModal({ open, onClose, deployment, defaultName, onPublishe
     if (!proposed) return;
     const timer = setTimeout(() => {
       reservedName.current = proposed;
-      void reserveAddress(proposed);
+      // Avec le package.json : les dépendances s'installent sur le serveur pendant que l'utilisateur lit.
+      const current = useFileStore.getState().files as Record<string, string>;
+      const manifests = Object.fromEntries(
+        ['package.json', 'package-lock.json', '.npmrc'].filter((p) => typeof current[p] === 'string').map((p) => [p, current[p]])
+      );
+      void reserveAddress(proposed, manifests);
     }, 2000);
     return () => clearTimeout(timer);
   }, [open, phase, mode, existing, defaultName]);
@@ -195,13 +196,13 @@ export function DeployModal({ open, onClose, deployment, defaultName, onPublishe
       // Ce que la version en ligne contient déjà, lu pendant la construction : seuls les fichiers changés partiront.
       const publishedManifest =
         mode === 'static' && target?.applicationUuid && !reserved ? fetchPublishedManifest(target.applicationUuid) : Promise.resolve(null);
-      const payload = mode === 'fullstack' ? collectSourceFiles() : await buildStaticSite();
-      if (mode === 'static') setBuildReport(await readBuildReport());
+      // Les sources : iDeploy construit le site sur son serveur.
+      const payload = mode === 'fullstack' ? collectSourceFiles() : await collectSiteSources();
       mark('prepare', 'done');
 
       current = mode === 'fullstack' ? 'database' : 'send';
       mark(current, 'active');
-      const result = await publishToIdeploy({
+      let result = await publishToIdeploy({
         name: finalName,
         mode,
         files: payload,
@@ -213,8 +214,22 @@ export function DeployModal({ open, onClose, deployment, defaultName, onPublishe
         mark('send', 'done');
         current = 'live';
         mark('live', 'active');
-        const { status, log } = await waitForDeployment(result.deployments[0].deploymentUuid);
-        if (status !== 'finished') throw new PublishError('deploy_failed', undefined, 'deploy', log);
+        let outcome = await waitForDeployment(result.deployments[0].deploymentUuid);
+        if (outcome.status !== 'finished' && outcome.buildUnavailable && result.ids.applicationUuid) {
+          // L'environnement de construction d'iDeploy manque (pas le site) : construit ici, envoyé tout prêt.
+          const built = await buildStaticSite();
+          setBuildReport(await readBuildReport());
+          result = await publishToIdeploy({
+            name: finalName,
+            mode,
+            files: built,
+            existing: { mode: 'static', applicationUuid: result.ids.applicationUuid },
+          });
+          outcome = await waitForDeployment(result.deployments[0].deploymentUuid);
+        } else if (outcome.buildReport) {
+          setBuildReport(outcome.buildReport);
+        }
+        if (outcome.status !== 'finished') throw new PublishError('deploy_failed', undefined, 'deploy', outcome.log);
         mark('live', 'done');
       } else {
         // La base est créée et démarrée par iDeploy avant même la réponse.

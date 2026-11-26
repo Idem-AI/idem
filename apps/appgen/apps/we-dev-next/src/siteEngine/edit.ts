@@ -61,6 +61,9 @@ import type { LoadedSectionCatalog } from './sectionCatalog/types.js';
 import { estimateTokens } from '../utils/tokens.js';
 import { grounded, lineDiff, reviewEdit } from './editVerify.js';
 import { resolveSiteFont } from './redesign/idemClient.js';
+import { CAPABILITIES, capabilitiesFor, describeCapabilities, type CapabilityId } from '../commands/capabilities.js';
+import { COMMANDS } from '../commands/registry.js';
+import { rescanSource } from './redesign/source.js';
 
 export interface SiteEditInput {
   /** Le projet IDEM ; absent pour un site créé depuis l'accueil ou par refonte : il est alors relu dans le site. */
@@ -187,6 +190,13 @@ export function createSiteEditStream(input: SiteEditInput): ResilientStream {
         }
         ChatLogger.info('SITE_EDIT', 'Retouche aiguillée', { plan, pointed: scope?.parts.map((part) => `${part.id} <${part.element.tag}>`) });
         if (!plan) throw new Error('aiguillage impossible');
+        // Ce n'est pas une retouche : la capacité qui sert la demande est nommée, avec la façon de la lancer.
+        if (plan.elsewhere && !scope) {
+          stream.text(`\n${elsewhereReply(plan.elsewhere.capability, fr, rescanSource(input.projectData, files) !== null)}\n`);
+          ChatLogger.info('SITE_EDIT', 'Demande hors retouche, capacité nommée', { capability: plan.elsewhere.capability, quote: plan.elsewhere.quote });
+          stream.close({ promptTokens: caller.promptTokens, completionTokens: caller.completionTokens });
+          return;
+        }
         const { components } = mapIds(map);
         const judge = createAllowJudge(caller, request, input.recent ?? '', plan.allows);
 
@@ -399,6 +409,22 @@ export function pointedScope(map: SiteMap, pointed: Pointed | undefined): Pointe
   return { parts, ids };
 }
 
+// ── Une demande qui n'est pas une retouche ─────────────────────────────────
+
+/** La réponse quand la demande relève d'une autre capacité d'iCode : laquelle, et comment la lancer. */
+export function elsewhereReply(id: CapabilityId, fr: boolean, hasSiteSource: boolean): string {
+  const capability = CAPABILITIES.find((c) => c.id === id)!;
+  const command = COMMANDS.find((c) => c.name === capability.command)!;
+  const available = capabilitiesFor({ hasProject: true, hasSite: true, hasCharter: false, siteSource: hasSiteSource ? 'known' : undefined, unfinished: true }).some((c) => c.id === id);
+  if (id === 'rescan' && !available)
+    return fr
+      ? 'Ce projet n’a pas de site d’origine connu : je ne peux donc pas le relire. Pour refaire un site existant, tapez « /redesign » suivi de son adresse. Votre site n’a pas changé.'
+      : 'This project has no known original site, so I can’t read it again. To redesign an existing site, type “/redesign” followed by its address. Your site is unchanged.';
+  return fr
+    ? `Ce n’est pas une modification du site : c’est « ${command.label.fr} » (${command.description.fr.charAt(0).toLowerCase()}${command.description.fr.slice(1)}). Tapez « /${command.name} » ou choisissez-la dans le menu « / », et je m’en occupe. Votre site n’a pas changé.`
+    : `This isn’t a change to the site: it’s “${command.label.en}” (${command.description.en.charAt(0).toLowerCase()}${command.description.en.slice(1)}). Type “/${command.name}” or pick it from the “/” menu, and I’ll take care of it. Your site is unchanged.`;
+}
+
 // ── L'aiguillage : la carte du site lue par un agent ───────────────────────
 
 export interface EditPlan {
@@ -422,6 +448,11 @@ export interface EditPlan {
   code?: Array<{ path: string; change: string; quote?: string; expect?: string }>;
   /** Ce que la demande autorise, tel que l'agent l'a compris. */
   allows: EditAllows;
+  /**
+   * La demande n'est pas une modification des fichiers du site mais une autre capacité d'iCode (relire le site
+   * d'origine, traduire, mettre en ligne…) : elle est nommée, rien n'est modifié.
+   */
+  elsewhere?: { capability: CapabilityId; quote?: string };
 }
 
 /** Les fichiers qu'une retouche « code » peut toucher : le site lui-même, jamais les notes du moteur ni le compilé. */
@@ -481,6 +512,7 @@ async function planEdit(
 "order":[{"page":"<page key>","sections":["<every section id of that page, in the new order>"]}],
 "newSection":{"page":"<page key>","name":"<PascalCase component name in English, e.g. Testimonials>","after":"<section name it follows, optional>","quote":"<the person's words>","change":"<what the new section contains>"},
 "code":[{"path":"<a file from 'Other files of the site'>","quote":"<the person's words>","change":"<what to change in it>","expect":"<what will be visible>"}],
+"elsewhere":{"capability":"<an id from 'Not an edit' below>","quote":"<the person's words>"},
 "allows":{"fonts":<true if the request, as you understand it, calls for changing a typeface>,"colors":<true if it calls for changing colours, including implicitly: "more lively", "warmer", "match my logo", "make the button stand out">,"removal":<true if it calls for removing content>,"dark":<true if it calls for a dark look>}}
 Omit the keys you do not use.`,
     `# Rules
@@ -495,7 +527,9 @@ Omit the keys you do not use.`,
 - A change of typeface (font), for headings, text or the whole site, ALWAYS goes to "theme" (IDEM then loads it from its font catalog), never to "code" or a section.
 - Anything else (page titles, translations, a file not in the map) goes to "code" with a file from the list.
 - Choose the FEWEST parts that satisfy the request (at most ${MAX_FILES} per kind). A request about one element touches one part.
-- Never answer with nothing: pick the most likely part. The person expects a visible change.`,
+- Never answer with nothing: pick the most likely part. The person expects a visible change.
+- EXCEPT when the request is not a change to this site's files at all, but one of the iCode capabilities listed under "Not an edit" (for example reading the original website again, translating the whole site, putting it online): then answer ONLY {"elsewhere":{...},"allows":{...}} with nothing else. Never force such a request into an edit of some section or file.`,
+    `# Not an edit: other iCode capabilities (the person will be told how to start them)\n${describeCapabilities(CAPABILITIES)}`,
     catalog ? `# Catalog compositions available (for "restyle")\n${layoutMenuOf(catalog, fr)}` : '',
   ]
     .filter(Boolean)
@@ -524,7 +558,13 @@ Omit the keys you do not use.`,
         order?: unknown;
         code?: unknown;
         allows?: Record<string, unknown>;
+        elsewhere?: { capability?: unknown; quote?: unknown };
       };
+      // Une autre capacité d'iCode, et rien d'autre : la demande est nommée, aucune partie du site n'est touchée.
+      const elsewhereId = o.elsewhere?.capability;
+      if (typeof elsewhereId === 'string' && CAPABILITIES.some((c) => c.id === elsewhereId)) {
+        return { value: { targets: [], allows: { ...NOTHING_ALLOWED }, elsewhere: { capability: elsewhereId as CapabilityId, quote: typeof o.elsewhere?.quote === 'string' ? o.elsewhere.quote : undefined } } };
+      }
       const cleanId = (value: unknown) => String(value ?? '').replace(/^\[|\]$/g, '').trim();
       const list = (value: unknown) => (Array.isArray(value) ? value : []) as Array<Record<string, unknown>>;
       const text = (value: unknown) => (typeof value === 'string' && value.trim() ? value.trim() : undefined);

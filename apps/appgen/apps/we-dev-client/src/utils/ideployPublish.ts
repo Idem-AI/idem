@@ -3,9 +3,12 @@
  *
  * Deux formes, choisies d'après le projet, jamais demandées à l'utilisateur :
  *   - `static`    : site vitrine, application mobile (PWA), application web sans
- *                   serveur. Le site est construit ICI (`npm run build`, dans la
- *                   WebContainer) et le dossier `dist/` est envoyé tel quel : ce
- *                   qui part en ligne est exactement ce que l'aperçu montrait.
+ *                   serveur. Les SOURCES partent ; iDeploy construit le site sur
+ *                   le serveur qui le sert, dans un conteneur Node jetable (comme
+ *                   Lovable ou Replit) : bien plus vite que la WebContainer, et
+ *                   sans charger l'appareil de l'utilisateur. Si cet environnement
+ *                   de construction manque, le site est construit ICI (`npm run
+ *                   build`, dans la WebContainer) et `dist/` part tel quel.
  *   - `fullstack` : `backend/` + `frontend/`. Les sources partent ; iDeploy crée
  *                   la base PostgreSQL, le serveur et l'interface et les relie.
  *
@@ -62,6 +65,40 @@ export function collectSourceFiles(): PublishFiles {
 }
 
 const TEXT_EXTENSIONS = /\.(html?|css|js|mjs|cjs|json|map|svg|txt|xml|webmanifest|md)$/i;
+
+/**
+ * Les sources d'un site, pour qu'iDeploy le construise : le texte de l'atelier, plus les fichiers binaires posés
+ * dans `public/` (favicon, image de partage) que seul le disque de la WebContainer porte. Les copies locales des
+ * images (`public/_idem-assets`, aperçu en développement) ne partent pas : le code garde leurs adresses définitives.
+ */
+export async function collectSiteSources(): Promise<PublishFiles> {
+  const out = collectSourceFiles();
+  try {
+    const container = await Promise.race([
+      getWebContainerInstance(),
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), 1500)),
+    ]);
+    if (!container) return out;
+    const walk = async (dir: string, depth: number): Promise<void> => {
+      if (depth > 6) return;
+      const entries = await container.fs.readdir(dir, { withFileTypes: true }).catch(() => []);
+      await Promise.all(
+        entries.map(async (entry) => {
+          const path = `${dir}/${entry.name}`;
+          if (entry.isDirectory()) {
+            if (entry.name !== '_idem-assets') await walk(path, depth + 1);
+          } else if (!(path in out) && !TEXT_EXTENSIONS.test(entry.name)) {
+            out[path] = { base64: toBase64(await container.fs.readFile(path)) };
+          }
+        })
+      );
+    };
+    await walk('public', 0);
+  } catch {
+    /* sans WebContainer : le texte suffit à la plupart des sites */
+  }
+  return out;
+}
 
 function toBase64(bytes: Uint8Array): string {
   let binary = '';
@@ -271,7 +308,7 @@ export interface AddressReservation {
  */
 const reservations = new Map<string, Promise<AddressReservation | null>>();
 
-export function reserveAddress(name: string): Promise<AddressReservation | null> {
+export function reserveAddress(name: string, manifests?: Record<string, string>): Promise<AddressReservation | null> {
   const key = name.trim().toLowerCase();
   const known = reservations.get(key);
   if (known) return known;
@@ -281,7 +318,8 @@ export function reserveAddress(name: string): Promise<AddressReservation | null>
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name }),
+        // Le package.json du site : iDeploy installe ses dépendances avant que le code n'arrive.
+        body: JSON.stringify({ name, manifests }),
       });
       const data = await response.json().catch(() => null);
       if (!response.ok || !data?.success || !data.applicationUuid) return null;
@@ -379,16 +417,28 @@ async function sendPublish(body: {
 export type DeploymentState = 'queued' | 'in_progress' | 'finished' | 'failed';
 
 /** Où en est un déploiement, et la cause d'un échec. */
-export async function getDeploymentState(
-  deploymentUuid: string
-): Promise<{ status: DeploymentState; log: string | null }> {
+export interface DeploymentOutcome {
+  status: DeploymentState;
+  log: string | null;
+  /** Le bilan du site construit par iDeploy (référencement). */
+  buildReport?: BuildReport | null;
+  /** L'environnement de construction d'iDeploy a manqué (pas le site) : le site se construit alors ici. */
+  buildUnavailable?: boolean;
+}
+
+export async function getDeploymentState(deploymentUuid: string): Promise<DeploymentOutcome> {
   const response = await fetch(`${API_BASE}/api/ideploy/deployments/${encodeURIComponent(deploymentUuid)}`, {
     credentials: 'include',
   });
   const data = await response.json().catch(() => null);
   if (!response.ok || !data?.success) return { status: 'in_progress', log: null };
   const status = ['queued', 'in_progress', 'finished', 'failed'].includes(data.status) ? data.status : 'in_progress';
-  return { status, log: data.log ?? null };
+  return {
+    status,
+    log: data.log ?? null,
+    buildReport: data.buildReport && Array.isArray(data.buildReport.errors) ? data.buildReport : null,
+    buildUnavailable: Boolean(data.buildUnavailable),
+  };
 }
 
 /** Attend la fin d'un déploiement (un build complet prend une à quelques minutes). */
@@ -396,12 +446,12 @@ export async function waitForDeployment(
   deploymentUuid: string,
   onStatus?: (status: DeploymentState) => void,
   timeoutMs = 15 * 60 * 1000
-): Promise<{ status: 'finished' | 'failed'; log: string | null }> {
+): Promise<DeploymentOutcome & { status: 'finished' | 'failed' }> {
   const started = Date.now();
   while (Date.now() - started < timeoutMs) {
-    const { status, log } = await getDeploymentState(deploymentUuid);
-    onStatus?.(status);
-    if (status === 'finished' || status === 'failed') return { status, log };
+    const state = await getDeploymentState(deploymentUuid);
+    onStatus?.(state.status);
+    if (state.status === 'finished' || state.status === 'failed') return { ...state, status: state.status };
     // Une mise en ligne de site se compte en secondes : relue chaque seconde au début, puis plus calmement.
     await new Promise((resolve) => setTimeout(resolve, Date.now() - started < 60_000 ? 1000 : 3000));
   }

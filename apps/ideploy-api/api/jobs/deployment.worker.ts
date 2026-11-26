@@ -33,7 +33,8 @@ import { planBuild, recipePlan, toBuildPack, buildDirectory } from '../docker/bu
 import { loadLabelContext, buildApplicationLabels } from '../services/application-labels.service';
 import { writeFirewallFile } from '../services/firewall-file.service';
 import { applyRoutes, retryPlatformCertificates } from '../services/routes-file.service';
-import { deployPrebuiltStatic, isPrebuiltStatic } from './static-fast-path';
+import { deployPrebuiltStatic } from './static-fast-path';
+import { siteBuildFor } from './static-build';
 import { monorepoHint, monorepoProbeCommand, parseMonorepoProbe } from '../docker/monorepo-hint';
 import { analyzeRepository, describePlan, parseSnapshot, snapshotCommand, BuildPlanResult } from '../build-plan';
 import { joinPath, relativeTo } from '../build-plan/repo-files';
@@ -338,12 +339,12 @@ export async function processDeployment(job: Job<DeploymentJobData>, token?: str
   };
   let heldSlots: HeldSlots | undefined;
 
-  // The fast lane (a site already built, see deployment.service): two SSH
-  // commands and a link swapped, no build. It takes no build slot — those
-  // guard a server's CPU from image builds — and is never sent back to wait
-  // 15 s behind someone else's build. Checked again here: the application's
+  // The fast lane (what iCode sends, see deployment.service): a link swapped
+  // under nginx, after a bounded site build at most. It takes no image-build
+  // slot — the site build has its own places per server (static-build.ts) —
+  // and is never sent back to wait 15 s behind someone else's image build. Checked again here: the application's
   // settings may have changed since it was queued.
-  const fastLane = job.queueName === QUEUE_NAMES.deploymentsFast && (await deploymentService.deploysAsPrebuiltStatic(applicationId));
+  const fastLane = job.queueName === QUEUE_NAMES.deploymentsFast && (await deploymentService.deploysOnFastLane(applicationId));
 
   // Fair share of the workers: a team or a server at its limit, or this
   // application already deploying, sends the job back to the queue for a few
@@ -667,11 +668,13 @@ async function deploy(
   // The release command the build plan read in the code (migrations), run before the switch.
   let planRelease: string | undefined;
 
-  // A site iCode built: files, nothing to build or start. Published in seconds
-  // by swapping a link under a long-lived nginx (static-fast-path.ts).
-  if (useRoutesFile && !trace.overrides && !app.git_repository && toBuildPack(app.build_pack) === 'static') {
+  // What iCode sends: its sources (built here, in a throwaway Node container) or a site its
+  // browser built (served as is). Either way published in seconds by swapping a link under a
+  // long-lived nginx (static-fast-path.ts), without building an image.
+  if (useRoutesFile && !trace.overrides && !app.git_repository && toBuildPack(app.build_pack) === 'static' && !app.start_command) {
     const archive = await getSourceArchive(app.id);
-    if (archive && isPrebuiltStatic(app, true)) {
+    const plan = archive ? siteBuildFor(app, archive, buildEnv) : null;
+    if (archive && plan) {
       await deployPrebuiltStatic({
         deploymentUuid,
         app,
@@ -684,6 +687,7 @@ async function deploy(
         log,
         step: (label, fn) => streamStep(deploymentUuid, label, fn),
         markSwitched,
+        build: plan === 'prebuilt' ? undefined : plan,
       });
       return;
     }

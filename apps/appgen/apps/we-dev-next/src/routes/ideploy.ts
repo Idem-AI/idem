@@ -9,8 +9,11 @@ import { forwardedCredentials } from '../middleware/auth.js';
  * iDeploy). Two shapes, chosen by the client from the project's layout:
  *
  *   - `static`    : a site, a mobile app (PWA) or a web app without a server.
- *                   The client sends the BUILT site (`dist/…`), iDeploy serves
- *                   it as is — what was previewed is exactly what goes live.
+ *                   The client sends the SOURCES; iDeploy builds them on the
+ *                   server that serves them, in a throwaway Node container
+ *                   (much faster than the browser's WebContainer). When that
+ *                   build environment is unavailable, the client builds in the
+ *                   browser and sends `dist/…`, served as is.
  *   - `fullstack` : `backend/` + `frontend/`. The client sends the SOURCES,
  *                   iDeploy creates PostgreSQL, the server and the interface
  *                   and links them (`DATABASE_URL`, `VITE_API_URL`).
@@ -194,6 +197,16 @@ router.post('/publish', async (req: Request, res: Response) => {
 router.post('/reserve', async (req: Request, res: Response) => {
   const appName = slug(String(req.body?.name || 'mon-app'));
   try {
+    // The site's package.json (and .npmrc): iDeploy installs its dependencies before the code arrives.
+    const raw = req.body?.manifests;
+    const manifests =
+      raw && typeof raw === 'object'
+        ? Object.fromEntries(
+            ['package.json', 'package-lock.json', '.npmrc']
+              .filter((path) => typeof raw[path] === 'string' && raw[path].length < 2_000_000)
+              .map((path) => [path, raw[path] as string])
+          )
+        : undefined;
     const reserved = await ideploy<{ applicationUuid: string; url: string | null }>(req, 'POST', '/quick-deploy', {
       name: appName,
       build_pack: 'static',
@@ -201,6 +214,7 @@ router.post('/reserve', async (req: Request, res: Response) => {
       ports_exposes: '80',
       platform_domain: true,
       reserve: true,
+      ...(manifests && Object.keys(manifests).length ? { prepare_files: manifests } : {}),
     });
     return res.json({ success: true, applicationUuid: reserved.applicationUuid, url: reserved.url ?? null });
   } catch (error) {
@@ -277,11 +291,16 @@ router.get('/deployments/:uuid', async (req: Request, res: Response) => {
       application_url?: string | null;
       logs?: string | null;
     }>(req, 'GET', `/deploy/${encodeURIComponent(String(req.params.uuid))}`);
+    const text = logText(deployment.logs);
     return res.json({
       success: true,
       status: deployment.status ?? 'queued',
       url: deployment.application_url ?? null,
-      log: tail(deployment.logs),
+      log: text ? text.split('\n').slice(-40).join('\n') : null,
+      // The site's own build report (SEO checks), now that iDeploy builds it.
+      buildReport: buildReportFrom(text),
+      // The build environment itself failed (not the site): iCode then builds in the browser.
+      buildUnavailable: Boolean(text?.includes('IDEPLOY_BUILD_UNAVAILABLE')),
     });
   } catch (error) {
     const err = error as Error & { status?: number };
@@ -374,18 +393,29 @@ function toUrl(fqdn?: string | null): string | null {
   return /^https?:\/\//.test(first) ? first : `https://${first}`;
 }
 
-/** The last lines of a deployment log, for the « details » of a failure. */
-function tail(logs?: string | null): string | null {
+/** A deployment log as text: iDeploy stores it as JSON entries ({ output }) or as plain text. */
+function logText(logs?: string | null): string | null {
   if (!logs) return null;
-  let text = logs;
   try {
-    // iDeploy stores its log as JSON entries ({ output }) or as plain text.
     const entries = JSON.parse(logs) as Array<{ output?: string }>;
-    if (Array.isArray(entries)) text = entries.map((e) => e.output ?? '').join('\n');
+    if (Array.isArray(entries)) return entries.map((e) => e.output ?? '').join('\n');
   } catch {
     /* plain text */
   }
-  return text.split('\n').slice(-40).join('\n');
+  return logs;
+}
+
+/** `@@IDEM_BUILD_REPORT <base64>`, written by iDeploy after building the site: its errors and warnings. */
+function buildReportFrom(text: string | null): { errors: string[]; warnings: string[] } | null {
+  const line = text?.split('\n').reverse().find((l) => l.includes('@@IDEM_BUILD_REPORT '));
+  if (!line) return null;
+  try {
+    const raw = JSON.parse(Buffer.from(line.split('@@IDEM_BUILD_REPORT ')[1].trim(), 'base64').toString('utf8'));
+    const strings = (list: unknown) => (Array.isArray(list) ? list.filter((x): x is string => typeof x === 'string') : []);
+    return { errors: strings(raw?.seo?.errors), warnings: strings(raw?.seo?.warnings) };
+  } catch {
+    return null;
+  }
 }
 
 export default router;

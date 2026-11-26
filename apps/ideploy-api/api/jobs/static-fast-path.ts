@@ -31,6 +31,7 @@ import { composeDirFile, composeProject, composeServiceName, generateComposeFile
 import { writeFirewallFile } from '../services/firewall-file.service';
 import { applyRoutes, retryPlatformCertificates } from '../services/routes-file.service';
 import { ApplicationRow, PrivateKeyRow, ServerRow } from '../models/ideploy.types';
+import { buildSite, SiteBuild } from './static-build';
 
 /** Versions gardées sur le serveur : la servie et deux d'avant. */
 const STATIC_RELEASES_KEPT = 3;
@@ -53,6 +54,8 @@ export interface FastStaticContext {
   log: (line: string) => Promise<void>;
   step: (label: string, fn: () => Promise<void>) => Promise<void>;
   markSwitched: () => void;
+  /** The archive holds the project's sources: built on this server first (static-build.ts). */
+  build?: SiteBuild;
 }
 
 /** Le compose du conteneur unique : nginx, le dossier du site et sa configuration montés en lecture seule. */
@@ -97,8 +100,43 @@ export async function deployPrebuiltStatic(ctx: FastStaticContext): Promise<void
   })();
   routing.catch(() => undefined);
 
+  // La configuration nginx : réécrite seulement si elle a changé (le dossier est monté, nginx la relit au reload).
+  const conf = Buffer.from(FAST_STATIC_NGINX_CONF, 'utf8').toString('base64');
+  const confScript = [
+    `echo ${conf} | base64 -d > conf/default.conf.new`,
+    'if cmp -s conf/default.conf.new conf/default.conf; then rm -f conf/default.conf.new; echo CONF_SAME; else mv -f conf/default.conf.new conf/default.conf; echo CONF_CHANGED; fi',
+  ];
+
   // 1. Les fichiers, dans une nouvelle version (rien de ce qui est servi ne change encore).
-  await ctx.step('Uploading the site', async () => {
+  if (ctx.build) {
+    const build = ctx.build;
+    await ctx.step('Building the site', async () => {
+      const prepared = await executeRemoteCommand(server, key, `mkdir -p ${q(`${siteDir}/releases`)} ${q(`${siteDir}/conf`)}`, { noRetry: true });
+      if (prepared.exitCode !== 0) throw new Error(`Failed to prepare the site directory: ${prepared.stderr.slice(0, 300)}`);
+      await buildSite({
+        deploymentUuid,
+        app,
+        server,
+        key,
+        workdir,
+        archive: ctx.archive,
+        build,
+        outputDir: `${siteDir}/${release}/html`,
+        publish,
+        log,
+      });
+      const r = await executeRemoteCommand(
+        server,
+        key,
+        ['set -e', `cd ${q(siteDir)}`, ...confScript, `echo FILES=$(find ${q(`${release}/html`)} -type f | wc -l)`].join('\n'),
+        { noRetry: true }
+      );
+      if (r.exitCode !== 0) throw new Error(`Preparing the site failed: ${(r.stderr || r.stdout).slice(0, 300)}`);
+      const files = /FILES=\s*(\d+)/.exec(r.stdout)?.[1];
+      if (files) await log(`${files} files built.`);
+      confChanged = /CONF_CHANGED/.test(r.stdout);
+    });
+  } else await ctx.step('Uploading the site', async () => {
     const localArchive = join(tmpdir(), `ideploy-site-${deploymentUuid}.tgz`);
     const remoteArchive = `${siteDir}/incoming-${id}.tgz`;
     await writeFile(localArchive, ctx.archive);
@@ -110,7 +148,6 @@ export async function deployPrebuiltStatic(ctx: FastStaticContext): Promise<void
       await rm(localArchive, { force: true });
     }
 
-    const conf = Buffer.from(FAST_STATIC_NGINX_CONF, 'utf8').toString('base64');
     const script = [
       'set -e',
       `cd ${q(siteDir)}`,
@@ -121,9 +158,7 @@ export async function deployPrebuiltStatic(ctx: FastStaticContext): Promise<void
       `if [ -f "$R/x/${publish}/index.html" ]; then mv "$R/x/${publish}" "$R/html"; elif [ -f "$R/x/index.html" ]; then mv "$R/x" "$R/html"; else echo "NO_INDEX" >&2; exit 3; fi`,
       'rm -rf "$R/x"',
       'chmod -R a+rX "$R/html"',
-      // La configuration : réécrite seulement si elle a changé (le dossier est monté, nginx la relit au reload).
-      `echo ${conf} | base64 -d > conf/default.conf.new`,
-      'if cmp -s conf/default.conf.new conf/default.conf; then rm -f conf/default.conf.new; echo CONF_SAME; else mv -f conf/default.conf.new conf/default.conf; echo CONF_CHANGED; fi',
+      ...confScript,
       'echo FILES=$(find "$R/html" -type f | wc -l)',
     ].join('\n');
     const r = await executeRemoteCommand(server, key, script, { noRetry: true });

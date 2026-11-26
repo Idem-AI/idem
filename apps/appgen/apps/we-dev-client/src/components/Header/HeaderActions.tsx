@@ -10,17 +10,6 @@ import useBillingStore from '@/stores/billingSlice';
 import { buyProjectPass } from '@/api/billing';
 import { HelpButton } from './HelpButton';
 import { DeployModal } from '../DeployModal/DeployModal';
-import { detectPublishMode, prepareStaticSite } from '@/utils/ideployPublish';
-
-/**
- * Le pointeur sur « Mettre en ligne » (ou le focus clavier) lance déjà la construction du site : les quelques
- * centaines de millisecondes avant le clic sont gagnées, et la même construction est reprise par la fenêtre
- * (empreinte des sources : rien n'est construit deux fois).
- */
-function prewarmPublish(): void {
-  const files = useFileStore.getState().files as Record<string, string>;
-  if (detectPublishMode(files) === 'static') prepareStaticSite().catch(() => undefined);
-}
 import useAppGenContextStore from '@/stores/appgenContextSlice';
 import { deriveAppName } from '@/utils/appName';
 import { UserProfile } from './UserProfile';
@@ -232,8 +221,6 @@ export function HeaderActions() {
             variant="primary"
             size="sm"
             onClick={handleDeployClick}
-            onPointerEnter={prewarmPublish}
-            onFocus={prewarmPublish}
             icon={<Rocket className="w-4 h-4" />}
           >
             {deployment ? t('header.redeploy') : t('header.deploy')}

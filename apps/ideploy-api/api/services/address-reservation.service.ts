@@ -31,10 +31,43 @@ const DNS_WAIT_MS = 10 * 60 * 1000;
 
 const member = (teamId: number, uuid: string) => `${teamId}:${uuid}`;
 
-/** Record the reservation, and route the address as soon as DNS serves it (in the background). */
-export async function reserveAddress(teamId: number, app: ApplicationRow): Promise<void> {
+/**
+ * Record the reservation, and in the background: route the address as soon as
+ * DNS serves it, and get the build ready — the Node image pulled and, given the
+ * site's package.json, its dependencies installed. The first build then only builds.
+ */
+export async function reserveAddress(teamId: number, app: ApplicationRow, manifests?: Record<string, string> | null): Promise<void> {
   await redis.zadd(KEY, Date.now(), member(teamId, app.uuid));
   void prepareRoute(teamId, app);
+  void prepareBuild(teamId, app, manifests ?? null);
+}
+
+async function prepareBuild(teamId: number, app: ApplicationRow, manifests: Record<string, string> | null): Promise<void> {
+  try {
+    const { executionTarget } = await import('./domain-options.service');
+    const target = await executionTarget(teamId, app);
+    if (!target) return;
+    const { ensureBuildImage, prepareDependencies, normalizeBaseDir } = await import('../jobs/static-build');
+    if (!manifests) return ensureBuildImage(target.server, target.key);
+    const { withApplicationLock } = await import('../jobs/deployment.worker');
+    const { appWorkdir } = await import('../docker/compose');
+    const started = Date.now();
+    // Under the application's deployment lock: a publish clicked meanwhile waits for the install, then reuses it.
+    const installed = await withApplicationLock(app.id, `prepare-${app.uuid}`, async () => undefined, () =>
+      prepareDependencies({
+        server: target.server,
+        key: target.key,
+        workdir: appWorkdir(app),
+        baseDir: normalizeBaseDir(app.base_directory),
+        files: manifests,
+        tag: app.uuid.slice(0, 8),
+      }),
+      { pollMs: 500 }
+    );
+    logger.info('address.build_prepared', { event: 'address.build_prepared', uuid: app.uuid, installed, durationMs: Date.now() - started });
+  } catch (err) {
+    logger.warn('address.build_prepare_failed', { uuid: app.uuid, message: (err as Error).message });
+  }
 }
 
 async function prepareRoute(teamId: number, app: ApplicationRow): Promise<void> {

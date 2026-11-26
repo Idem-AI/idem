@@ -148,6 +148,11 @@ export interface QuickDeployDto {
    * (`PUT /applications/:uuid/source`). See address-reservation.service.
    */
   reserve?: boolean;
+  /**
+   * With `reserve`: the site's package.json (and lockfile, .npmrc), so its
+   * dependencies are installed on the server before the code arrives.
+   */
+  prepare_files?: Record<string, string>;
 }
 
 export interface QuickDeployResult {
@@ -265,7 +270,7 @@ export async function quickDeploy(teamId: number, dto: QuickDeployDto): Promise<
   }
 
   if (dto.reserve && !dto.files) {
-    await reserveAddress(teamId, app);
+    await reserveAddress(teamId, app, dto.prepare_files ?? null);
     return {
       kind: 'application',
       applicationUuid: app.uuid,
