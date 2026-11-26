@@ -20,6 +20,8 @@ import { buildSiteMap, mapIds } from '../src/siteEngine/siteMap.js';
 import { renderCheckAvailable } from '../src/siteEngine/renderCheck.js';
 import type { SiteFacts } from '../src/siteEngine/siteFacts.js';
 import type { SiteManifest } from '../src/siteEngine/manifest.js';
+import { applyPatches } from '../src/siteEngine/editPlan.js';
+import { grounded, lineDiff } from '../src/siteEngine/editVerify.js';
 
 let passes = 0;
 let failures = 0;
@@ -316,6 +318,94 @@ export default function HomePage() {
       return [];
     });
     check('retouche « code » qui importe un paquet absent : refusée', !r.files['src/pages/contact.tsx']);
+  }
+
+  // ── 26/11/2026 : « ça générait des éléments sans rapport avec ce que j'ai demandé » ──────────────────────────────
+  const SERVICES = 'src/sections/home/Services.tsx';
+  const addLine = `<<<<<<< SEARCH\n      <Container>\n=======\n      <Container>\n        <Text>Tout est fait maison</Text>\n>>>>>>> REPLACE`;
+  const roomy = `<<<<<<< SEARCH\n    <Section id="services">\n=======\n    <Section id="services" className="py-24">\n>>>>>>> REPLACE`;
+
+  // 12. Une partie que rien dans la demande n'appelle est écartée (l'aiguillage cite les mots de la personne).
+  {
+    const r = await run('Ajoute le sous-titre « Tout est fait maison » dans la partie sur les pains', (label) => {
+      if (label === 'edit:plan')
+        return [json({ targets: [{ id: 'home/Services', quote: 'la partie sur les pains', change: 'ajouter le sous-titre' }, { id: 'home/Hero', quote: 'un look plus moderne', change: 'moderniser' }], allows: {} })];
+      if (label === `edit:${SERVICES}`) return [`${addLine}\nREPLY: J’ai ajouté le sous-titre.`];
+      if (label === 'edit:src/sections/home/Hero.tsx') return [`<<<<<<< SEARCH\n<Button asChild size="lg">\n=======\n<Button asChild size="lg" className="uppercase">\n>>>>>>> REPLACE\nREPLY: x`];
+      return [];
+    });
+    check('partie sans rapport (citation absente de la demande) : écartée', !calls.includes('edit:src/sections/home/Hero.tsx') && !r.files['src/sections/home/Hero.tsx'], calls.join(', '));
+    check('… la partie demandée est bien modifiée', (r.files[SERVICES] ?? '').includes('Tout est fait maison'));
+  }
+
+  // 13. Une même section à la fois retouchée et remise en forme : refusé, l'aiguillage choisit l'une des deux.
+  {
+    const r = await run('Ajoute le sous-titre « Tout est fait maison » dans la partie sur les pains', (label) => {
+      if (label === 'edit:plan')
+        return [
+          json({ targets: [{ id: 'home/Services', quote: 'la partie sur les pains', change: 'sous-titre' }], restyle: [{ id: 'home/Services', quote: 'la partie sur les pains', change: 'en cartes' }] }),
+          json({ targets: [{ id: 'home/Services', quote: 'la partie sur les pains', change: 'sous-titre' }] }),
+        ];
+      if (label === `edit:${SERVICES}`) return [`${addLine}\nREPLY: J’ai ajouté le sous-titre.`];
+      return [];
+    });
+    check('une partie = une sorte de changement (pas retouchée ET remise en forme)', !calls.includes('restyle:home/Services') && (r.files[SERVICES] ?? '').includes('Tout est fait maison'), calls.join(', '));
+  }
+
+  // 14. Des blocs posés à moitié ne passent plus : la retouche entière, ou un nouvel essai.
+  {
+    const r = await run('Ajoute le sous-titre « Tout est fait maison » et espace davantage la partie sur les pains', (label) => {
+      if (label === 'edit:plan') return [json({ targets: [{ id: 'home/Services', quote: 'la partie sur les pains', change: 'sous-titre et plus d’espace' }] })];
+      if (label === `edit:${SERVICES}`) return [`${addLine}\n<<<<<<< SEARCH\n    <Section id="pains">\n=======\n    <Section id="pains" className="py-24">\n>>>>>>> REPLACE\nREPLY: x`, `${addLine}\n${roomy}\nREPLY: J’ai ajouté le sous-titre et de l’espace.`];
+      if (label === 'edit:verify') return [json({ done: true, missing: '', unrelated: [] })];
+      return [];
+    });
+    const code = r.files[SERVICES] ?? '';
+    check('blocs posés à moitié : refusés, le second essai fait TOUTE la demande', code.includes('Tout est fait maison') && code.includes('py-24'), code.slice(0, 200));
+  }
+
+  // 15. La relecture : une demande à moitié faite repart une fois, avec ce qui manque, depuis la version retouchée.
+  {
+    let reviewed = '';
+    const r = await run('Ajoute le sous-titre « Tout est fait maison » et espace davantage la partie sur les pains', (label, prompt) => {
+      if (label === 'edit:plan') return [json({ targets: [{ id: 'home/Services', quote: 'la partie sur les pains', change: 'sous-titre et plus d’espace', expect: 'un sous-titre et une section plus aérée' }] })];
+      if (label === `edit:${SERVICES}`) return prompt.includes('A reviewer checked') ? [`${roomy}\nREPLY: J’ai ajouté de l’espace.`] : [`${addLine}\nREPLY: J’ai ajouté le sous-titre.`];
+      if (label === 'edit:verify') {
+        reviewed = prompt;
+        return [json({ done: false, missing: 'la section n’est pas plus espacée', unrelated: [] })];
+      }
+      return [];
+    });
+    const code = r.files[SERVICES] ?? '';
+    check('relecture : la partie manquante est faite à la seconde passe', code.includes('Tout est fait maison') && code.includes('py-24'), code.slice(0, 200));
+    check('… le juge ne reçoit que les lignes changées (pas le fichier entier)', /\n\+ .*Tout est fait maison/.test(reviewed) && !reviewed.includes('export default function Services'), reviewed.slice(-400));
+    check('… et ce qu’on devait voir (« expect » de l’aiguillage)', reviewed.includes('plus aérée'));
+  }
+
+  // 16. Une partie faite, une autre manquée : la réponse dit les deux (avant, « C'est fait » cachait la seconde).
+  {
+    const r = await run('Ajoute le sous-titre « Tout est fait maison » dans la partie sur les pains et mets le bouton en majuscules', (label) => {
+      if (label === 'edit:plan')
+        return [json({ targets: [{ id: 'home/Services', quote: 'la partie sur les pains', change: 'sous-titre' }, { id: 'home/Hero', quote: 'le bouton en majuscules', change: 'bouton en majuscules' }] })];
+      if (label === `edit:${SERVICES}`) return [`${addLine}\nREPLY: J’ai ajouté le sous-titre.`];
+      return [];
+    });
+    check('échec partiel : dit dans la réponse', (r.files[SERVICES] ?? '').includes('Tout est fait maison') && /pas réussi/.test(r.out), r.out.slice(-300));
+    check('… la réécriture entière n’est tentée que si les blocs n’ont pas pu être posés', calls.filter((c) => c.startsWith('rewrite:')).length <= 1);
+  }
+
+  // 17. Les outils : pose tolérante des blocs, diff compact, citations vérifiées mot pour mot.
+  {
+    const file = 'a\n  <div className="x  y">\n    <p>Un</p>\n    <p>Deux</p>\n    <span>Trois</span>\n  </div>\nz\n';
+    const squashed = applyPatches(file, [{ search: '<div className="x y">', replace: '<div className="x y z">' }]);
+    check('bloc retrouvé aux espaces près à l’intérieur de la ligne', squashed.applied === 1 && squashed.code.includes('x y z'));
+    const oneOff = applyPatches(file, [{ search: '<div className="x  y">\n<p>Un</p>\n<p>Deuxx</p>\n<span>Trois</span>', replace: 'NEW' }]);
+    check('bloc de 4 lignes avec UNE ligne mal recopiée : retrouvé', oneOff.applied === 1 && oneOff.code.includes('NEW'));
+    const far = applyPatches(file, [{ search: '<div className="x  y">\n<p>Autre chose</p>\n<p>Encore</p>\n<span>Trois</span>', replace: 'NEW' }]);
+    check('bloc trop différent : jamais deviné', far.applied === 0);
+    const d = lineDiff('a\nb\nc\nd\ne\nf\ng\nh\n', 'a\nb\nc\nD\ne\nf\ng\nh\n');
+    check('diff compact : la ligne changée et son voisinage seulement', d.added === 1 && d.removed === 1 && d.text.includes('- d') && d.text.includes('+ D') && !d.text.includes('  a'), d.text);
+    check('citation vérifiée mot pour mot (casse, accents, ponctuation)', grounded('la partie sur les PAINS', 'Ajoute un titre à la partie sur les pains !') && !grounded('un look plus moderne', 'Ajoute un titre à la partie sur les pains'));
   }
 
   console.log(`\n${passes} vérifications réussies, ${failures} en échec`);

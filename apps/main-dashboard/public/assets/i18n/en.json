@@ -2486,7 +2486,10 @@
           "site": "Website",
           "files": "{{count}} file(s) updated",
           "siteError": "Not updated, try again",
-          "contrastFixes": "{{count}} text(s) kept legible on the new colors."
+          "contrastFixes": "{{count}} text(s) kept legible on the new colors.",
+          "siteLiveAutomatic": "Your live site will show the new logo within a few minutes, with no redeploy.",
+          "siteLiveRepublish": "Your live site was published with a copy of the old logo. Republish it once: after that, every new logo will appear on it automatically.",
+          "republishSite": "Republish the site"
         },
         "actions": {
           "preview": "See what changes",

@@ -223,19 +223,130 @@ async function gzip(text: string): Promise<Blob | null> {
   }
 }
 
+/** Base64 → octets, pour l'empreinte d'une image. */
+function fromBase64(text: string): Uint8Array {
+  const binary = atob(text);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+
+/** SHA-256 (hex) de chaque fichier, calculée sur ses octets — la même qu'iDeploy. */
+async function digestFiles(files: PublishFiles): Promise<Record<string, string> | null> {
+  if (typeof crypto === 'undefined' || !crypto.subtle) return null;
+  const encoder = new TextEncoder();
+  const entries = await Promise.all(
+    Object.entries(files).map(async ([path, value]) => {
+      const bytes = typeof value === 'string' ? encoder.encode(value) : fromBase64(value.base64);
+      const hash = new Uint8Array(await crypto.subtle.digest('SHA-256', bytes as Uint8Array<ArrayBuffer>));
+      return [path, Array.from(hash, (b) => b.toString(16).padStart(2, '0')).join('')] as const;
+    })
+  );
+  return Object.fromEntries(entries);
+}
+
+/** Ce que la version en ligne contient déjà (chemin → empreinte), ou null si on ne peut pas le savoir. */
+export async function fetchPublishedManifest(applicationUuid: string): Promise<Record<string, string> | null> {
+  try {
+    const response = await fetch(`${API_BASE}/api/ideploy/applications/${encodeURIComponent(applicationUuid)}/source/manifest`, {
+      credentials: 'include',
+    });
+    const data = await response.json().catch(() => null);
+    return response.ok && data?.success && data.manifest && typeof data.manifest === 'object' ? data.manifest : null;
+  } catch {
+    return null;
+  }
+}
+
+export interface AddressReservation {
+  name: string;
+  applicationUuid: string;
+  url: string | null;
+}
+
+/**
+ * L'adresse d'une première mise en ligne, réservée dès l'ouverture de la fenêtre : iDeploy crée l'application et
+ * son nom, et obtient le certificat pendant que le site se construit. Le clic devient une mise à jour. Une réservation
+ * par nom (une fenêtre rouverte la reprend) ; une réservation jamais publiée est rendue par iDeploy après un jour.
+ */
+const reservations = new Map<string, Promise<AddressReservation | null>>();
+
+export function reserveAddress(name: string): Promise<AddressReservation | null> {
+  const key = name.trim().toLowerCase();
+  const known = reservations.get(key);
+  if (known) return known;
+  const pending = (async () => {
+    try {
+      const response = await fetch(`${API_BASE}/api/ideploy/reserve`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok || !data?.success || !data.applicationUuid) return null;
+      return { name: key, applicationUuid: String(data.applicationUuid), url: data.url ?? null };
+    } catch {
+      return null;
+    }
+  })();
+  reservations.set(key, pending);
+  // Un échec n'est pas gardé : la publication passe alors par la création, comme avant.
+  void pending.then((value) => {
+    if (!value) reservations.delete(key);
+  });
+  return pending;
+}
+
+/** La réservation déjà faite pour ce nom (sans en lancer une), puis oubliée : elle devient une application publiée. */
+export async function takeReservation(name: string): Promise<AddressReservation | null> {
+  const key = name.trim().toLowerCase();
+  const pending = reservations.get(key);
+  if (!pending) return null;
+  const value = await pending;
+  reservations.delete(key);
+  return value;
+}
+
 /** Envoie à iDeploy (création, ou mise à jour des mêmes applications). */
 export async function publishToIdeploy(options: {
   name: string;
   mode: PublishMode;
   files: PublishFiles;
   existing?: IdeployRecord | null;
+  /** Ce que la version en ligne contient déjà : seuls les fichiers nouveaux ou modifiés partent. */
+  publishedManifest?: Record<string, string> | null;
 }): Promise<PublishResult> {
-  const json = JSON.stringify({
-    name: options.name,
-    mode: options.mode,
-    files: options.files,
-    existing: options.existing && options.existing.mode === options.mode ? options.existing : null,
-  });
+  const existing = options.existing && options.existing.mode === options.mode ? options.existing : null;
+  // Une mise à jour de site : la liste complète avec les empreintes, et le contenu des seuls fichiers changés
+  // (méthode des « file digests » de Netlify / Cloudflare Pages). Un texte corrigé n'envoie plus les images.
+  if (options.mode === 'static' && existing?.applicationUuid && options.publishedManifest) {
+    const manifest: Record<string, string> | null = await digestFiles(options.files).catch(() => null);
+    if (manifest) {
+      const known = new Set<string>(Object.values(options.publishedManifest));
+      const changed: PublishFiles = {};
+      for (const [path, digest] of Object.entries(manifest)) {
+        if (!known.has(digest)) changed[path] = options.files[path];
+      }
+      try {
+        return await sendPublish({ name: options.name, mode: options.mode, files: changed, existing, manifest });
+      } catch (error) {
+        // iDeploy n'a plus un fichier attendu (version remplacée entre-temps) : tout part, comme avant.
+        if (!(error instanceof PublishError) || error.code !== 'SOURCE_INCOMPLETE') throw error;
+      }
+    }
+  }
+  return sendPublish({ name: options.name, mode: options.mode, files: options.files, existing });
+}
+
+async function sendPublish(body: {
+  name: string;
+  mode: PublishMode;
+  files: PublishFiles;
+  existing: IdeployRecord | null;
+  manifest?: Record<string, string>;
+}): Promise<PublishResult> {
+  const json = JSON.stringify(body);
   const compressed = await gzip(json);
   const send = (body: Blob | string, gzipped: boolean) =>
     fetch(`${API_BASE}/api/ideploy/publish`, {

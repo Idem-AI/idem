@@ -22,6 +22,7 @@ export * from './treat';
 export * from './photo-integrity';
 export * from './image-quality';
 export { faceScore, hasFace } from './faces';
+export { enhanceGraphic, type GraphicEnhanceOptions, type GraphicEnhanceResult } from './graphic-enhance';
 export { enhanceImage, upscaleModelFiles, upscaleModelCached, type EnhanceMethod, type EnhanceOptions, type EnhanceResult } from './upscale';
 
 import { paletteTool, contrastTool } from './color';

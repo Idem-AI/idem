@@ -166,15 +166,43 @@ function locate(code: string, search: string): { start: number; end: number } | 
   while (wanted.length && !wanted[0]) wanted.shift();
   while (wanted.length && !wanted[wanted.length - 1]) wanted.pop();
   if (!wanted.length) return null;
-  const hits: number[] = [];
-  for (let i = 0; i + wanted.length <= lines.length; i++) {
-    if (wanted.every((w, k) => lines[i + k].trim() === w)) hits.push(i);
+  const span = (startLine: number) => {
+    const start = lines.slice(0, startLine).reduce((n, l) => n + l.length + 1, 0);
+    return { start, end: start + lines.slice(startLine, startLine + wanted.length).join('\n').length };
+  };
+  const unique = (same: (line: string, w: string) => boolean): number | null => {
+    const hits: number[] = [];
+    for (let i = 0; i + wanted.length <= lines.length; i++) if (wanted.every((w, k) => same(lines[i + k], w))) hits.push(i);
+    return hits.length === 1 ? hits[0] : null;
+  };
+  // 2. Aux espaces près en début et fin de ligne.
+  const trimmed = unique((line, w) => line.trim() === w);
+  if (trimmed !== null) return span(trimmed);
+  // 3. Aux espaces près partout (le modèle recopie `className="a  b"` en `className="a b"`, ou réindente un JSX).
+  const squash = (s: string) => s.replace(/\s+/g, '');
+  const squashed = unique((line, w) => squash(line) === squash(w));
+  if (squashed !== null) return span(squashed);
+  // 4. Un passage d'au moins 4 lignes dont UNE ligne a été mal recopiée (proche de l'original), passage unique.
+  //    Jamais deviné au-delà : un passage ambigu ou trop différent reste « introuvable » et le modèle le recopie.
+  if (wanted.length >= 4) {
+    // « Proche » : même début et même fin sur au moins 70 % de la ligne (une classe ou un mot changé, pas une autre ligne).
+    const close = (a: string, b: string) => {
+      const x = squash(a);
+      const y = squash(b);
+      if (x === y) return true;
+      let p = 0;
+      while (p < x.length && p < y.length && x[p] === y[p]) p++;
+      let s = 0;
+      while (s < x.length - p && s < y.length - p && x[x.length - 1 - s] === y[y.length - 1 - s]) s++;
+      return (p + s) / Math.max(x.length, y.length) >= 0.7;
+    };
+    const loose = unique((line, w) => close(line, w));
+    if (loose !== null) {
+      const off = wanted.filter((w, k) => squash(lines[loose + k]) !== squash(w)).length;
+      if (off <= 1) return span(loose);
+    }
   }
-  if (hits.length !== 1) return null;
-  const startLine = hits[0];
-  const start = lines.slice(0, startLine).reduce((n, l) => n + l.length + 1, 0);
-  const end = start + lines.slice(startLine, startLine + wanted.length).join('\n').length;
-  return { start, end };
+  return null;
 }
 
 /** Applique les blocs ; un bloc introuvable (ou ambigu) est compté, jamais deviné. */

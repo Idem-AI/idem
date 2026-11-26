@@ -59,6 +59,7 @@ import { elementSnippet, locateElement, Pointed, PointedElement, touchesElement 
 import { layoutMenuOf, loadCatalog, restyleSection, sectionPlanOf } from './editRestyle.js';
 import type { LoadedSectionCatalog } from './sectionCatalog/types.js';
 import { estimateTokens } from '../utils/tokens.js';
+import { grounded, lineDiff, reviewEdit } from './editVerify.js';
 import { resolveSiteFont } from './redesign/idemClient.js';
 
 export interface SiteEditInput {
@@ -157,6 +158,15 @@ export function createSiteEditStream(input: SiteEditInput): ResilientStream {
       const writes: Record<string, string> = {};
       const said: string[] = [];
       let failure = '';
+      /** Ce qui n'a pas pu être fait alors que le reste l'a été : dit dans la réponse, jamais passé sous silence. */
+      const partial: string[] = [];
+      const fail = (message: string | undefined) => {
+        if (!message) return;
+        failure = message;
+        if (!partial.includes(message)) partial.push(message);
+      };
+      /** Les retouches de code (sections, fichiers), relues avant d'être montrées (`editVerify.ts`). */
+      const codeEdits: Array<{ path: string; change: string; expect?: string; focus: PointedElement[]; allows: EditAllows }> = [];
 
       try {
         // 1. Où faire la retouche : la carte du site (calculée par le code) lue par l'agent d'aiguillage. Seul un
@@ -188,7 +198,7 @@ export function createSiteEditStream(input: SiteEditInput): ResilientStream {
             editTheme(caller, `${request}\n${plan.theme}`, files, plan.allows, fr, (family) => findFont(family, input.credentials, abort.signal)).then((outcome) => {
               if (outcome.files) Object.assign(writes, outcome.files);
               if (outcome.reply) said.push(outcome.reply);
-              else failure = outcome.failure || failure;
+              else fail(outcome.failure);
             })
           );
         }
@@ -199,7 +209,7 @@ export function createSiteEditStream(input: SiteEditInput): ResilientStream {
             editData(caller, request, dataTargets.map((target) => ({ field: target.id.slice(5) as DataField, change: target.change })), files, map, fr).then((outcome) => {
               if (outcome.files) Object.assign(writes, outcome.files);
               if (outcome.reply) said.push(outcome.reply);
-              else failure = outcome.failure || failure;
+              else fail(outcome.failure);
             })
           );
         }
@@ -220,11 +230,11 @@ export function createSiteEditStream(input: SiteEditInput): ResilientStream {
                 said.push(plain(outcome.reply) || (fr ? `J’ai changé la mise en page de ${displayOf(component.path, true)}.` : `I changed the layout of ${displayOf(component.path, false)}.`));
                 return;
               }
-              const r = await editFile(caller, request, `${target.change}\n(Change the layout of this section itself: restructure its JSX as needed.)`, component.path, files, review, { ...plan!.allows, removal: true }, fr, [], judge);
+              const r = await editFile(caller, request, `${target.change}\n(Change the layout of this section itself: restructure its JSX as needed.)`, component.path, files, review, { ...plan!.allows, removal: true }, fr, { judge });
               if (r.code && r.code !== files[component.path]) {
                 writes[component.path] = r.code;
                 if (r.reply) said.push(r.reply);
-              } else if (r.failure) failure = r.failure;
+              } else fail(r.failure);
             })()
           );
         }
@@ -232,12 +242,15 @@ export function createSiteEditStream(input: SiteEditInput): ResilientStream {
           const path = components.get(target.id)!.path;
           stream.note(fr ? `Je modifie ${displayOf(path, true)}` : `Editing ${displayOf(path, false)}`);
           jobs.push(
-            editFile(caller, request, target.change, path, files, review, plan.allows, fr, scope?.parts.filter((part) => part.id === target.id).map((part) => part.element), judge).then((r) => {
+            (async () => {
+              const focus = scope?.parts.filter((part) => part.id === target.id).map((part) => part.element) ?? [];
+              const r = await editFile(caller, request, target.change, path, files, review, plan!.allows, fr, { focus, judge });
               if (r.code && r.code !== files[path]) {
                 writes[path] = r.code;
+                codeEdits.push({ path, change: target.change, expect: target.expect, focus, allows: plan!.allows });
                 if (r.reply) said.push(r.reply);
-              } else if (r.failure) failure = r.failure;
-            })
+              } else fail(r.failure);
+            })()
           );
         }
         // Tout autre fichier du site : la demande ne tient dans aucune case, le code est modifié directement.
@@ -245,15 +258,46 @@ export function createSiteEditStream(input: SiteEditInput): ResilientStream {
         for (const target of (plan.code ?? []).filter((t) => editableFile(files, t.path) && !claimed.has(t.path)).slice(0, MAX_FILES)) {
           stream.note(fr ? 'Je modifie le code du site' : 'Editing the site’s code');
           jobs.push(
-            editFile(caller, request, target.change, target.path, files, review, { ...plan.allows }, fr, [], judge).then((r) => {
+            editFile(caller, request, target.change, target.path, files, review, { ...plan.allows }, fr, { judge }).then((r) => {
               if (r.code && r.code !== files[target.path]) {
                 writes[target.path] = r.code;
+                codeEdits.push({ path: target.path, change: target.change, expect: target.expect, focus: [], allows: { ...plan!.allows } });
                 if (r.reply) said.push(r.reply);
-              } else if (r.failure) failure = r.failure;
+              } else fail(r.failure);
             })
           );
         }
         await Promise.all(jobs);
+
+        // Relecture : la demande et SEULEMENT les lignes changées. Incomplète ou débordante, la retouche repart une fois
+        // vers son fichier avec ce retour (blocs seulement, depuis la version déjà retouchée) ; sinon elle reste.
+        if (codeEdits.length && !abort.signal.aborted) {
+          stream.note(fr ? 'Je vérifie que la modification correspond à la demande' : 'Checking the change matches the request');
+          const diffs = codeEdits.map((edit) => ({ path: edit.path, label: fileKind(edit.path).component ? displayOf(edit.path, false) : edit.path, diff: lineDiff(files[edit.path], writes[edit.path]).text }));
+          const verdict = await reviewEdit(caller, request, input.recent ?? '', codeEdits.map((edit) => edit.expect).filter((e): e is string => !!e), diffs);
+          ChatLogger.info('SITE_EDIT', 'Retouche relue', { verdict, files: codeEdits.map((edit) => edit.path) });
+          if (verdict && (!verdict.done || verdict.unrelated.length)) {
+            const redo = codeEdits.filter((edit) => !verdict.done || verdict.unrelated.some((u) => u.path === edit.path));
+            await Promise.all(
+              redo.map(async (edit) => {
+                const undo = verdict.unrelated.filter((u) => u.path === edit.path).map((u) => `- undo, it was not asked: ${u.what}`);
+                const feedback = [
+                  '# A reviewer checked your first change (the file below already contains it)',
+                  !verdict.done && verdict.missing ? `- still missing: ${verdict.missing}` : '',
+                  ...undo,
+                  'Fix only that; keep what is already right.',
+                ]
+                  .filter(Boolean)
+                  .join('\n');
+                const r = await editFile(caller, request, `${edit.change}\n\n${feedback}`, edit.path, files, review, edit.allows, fr, { focus: edit.focus, judge, base: writes[edit.path], rewrite: false });
+                if (r.code && r.code !== writes[edit.path]) {
+                  writes[edit.path] = r.code;
+                  ChatLogger.info('SITE_EDIT', 'Retouche corrigée après relecture', { path: edit.path });
+                }
+              })
+            );
+          }
+        }
 
         // Les pages : sections retirées ou réordonnées par le code (aucun modèle, rien d'autre ne bouge).
         const pageOps = pageOperations(plan, map, { ...files, ...writes });
@@ -265,7 +309,7 @@ export function createSiteEditStream(input: SiteEditInput): ResilientStream {
           if (outcome.files) {
             Object.assign(writes, outcome.files);
             said.push(outcome.reply!);
-          } else failure = outcome.failure || failure;
+          } else fail(outcome.failure);
         }
       } catch (error) {
         ChatLogger.error('SITE_EDIT', 'Retouche en échec', error);
@@ -302,8 +346,10 @@ export function createSiteEditStream(input: SiteEditInput): ResilientStream {
         for (const path of paths) stream.file(path, writes[path]);
         stream.text('</boltArtifact>\n');
       }
+      // Une partie faite, une autre pas : les deux sont dites (avant, « C'est fait » cachait la partie manquée).
+      const missed = partial.filter((message) => !said.includes(message)).slice(0, 2).join(' ');
       const reply = paths.length
-        ? `${said.filter(Boolean).join(' ') || (fr ? 'C’est fait.' : 'Done.')} ${fr ? 'Le reste du site n’a pas changé.' : 'The rest of the site is unchanged.'}`
+        ? `${said.filter(Boolean).join(' ') || (fr ? 'C’est fait.' : 'Done.')}${missed ? ` ${missed}` : ` ${fr ? 'Le reste du site n’a pas changé.' : 'The rest of the site is unchanged.'}`}`
         : failure ||
           (fr
             ? 'Je n’ai pas trouvé de modification à faire pour cette demande : votre site n’a pas changé. Dites-moi ce que vous voulez voir à l’écran (par exemple « le bouton du haut en vert »).'
@@ -356,20 +402,24 @@ export function pointedScope(map: SiteMap, pointed: Pointed | undefined): Pointe
 // ── L'aiguillage : la carte du site lue par un agent ───────────────────────
 
 export interface EditPlan {
-  /** Les parties à modifier (identifiants de la carte : `home/Hero`, `SiteHeader`, `data.navigation`) et quoi y changer. */
-  targets: Array<{ id: string; change: string }>;
+  /**
+   * Les parties à modifier (identifiants de la carte : `home/Hero`, `SiteHeader`, `data.navigation`) et quoi y changer.
+   * `quote` : les mots de la personne que cette partie sert (vérifiés mot pour mot) ; `expect` : ce qu'on verra une
+   * fois la retouche faite (relu par le juge, `editVerify.ts`).
+   */
+  targets: Array<{ id: string; change: string; quote?: string; expect?: string }>;
   /** Un changement de l'apparence de tout le site (design system). */
   theme?: string;
   /** Une section à ajouter : sa page, son nom de composant, la section qu'elle suit. */
   newSection?: { page: string; name: string; after?: string; change: string };
   /** Une section à remettre en forme avec une composition du catalogue (la même dans une autre variante, ou une autre). */
-  restyle?: Array<{ id: string; layout?: string; change: string }>;
+  restyle?: Array<{ id: string; layout?: string; change: string; quote?: string }>;
   /** Des sections à retirer de leur page. */
   remove?: string[];
   /** Le nouvel ordre des sections d'une page (identifiants de la carte). */
   order?: Array<{ page: string; sections: string[] }>;
   /** Tout autre fichier du site, modifié directement (la demande ne tient dans aucune autre case). */
-  code?: Array<{ path: string; change: string }>;
+  code?: Array<{ path: string; change: string; quote?: string; expect?: string }>;
   /** Ce que la demande autorise, tel que l'agent l'a compris. */
   allows: EditAllows;
 }
@@ -418,13 +468,44 @@ async function planEdit(
     .map((section) => [section.id, layoutOf(section)])
     .filter(([, layout]) => layout)
     .map(([id, layout]) => `- [${id}] : ${layout}`);
+  // Ce qui ne change jamais d'une retouche à l'autre (rôle, règles, catalogue, forme de la réponse) vient EN TÊTE, dans
+  // l'invite système : un préfixe identique que l'hébergeur garde en cache (DeepSeek : ~10 fois moins cher relu).
+  // Ce qui dépend du site et de la demande suit, dans le message.
+  const system = [
+    'You decide WHERE and HOW a change requested on a live website must be made, using the map of the site. The change WILL be made: your job is to route it so that the person sees exactly what they asked for — and nothing else changes. You answer with JSON only.',
+    `# Your answer
+{"targets":[{"id":"<an id from the map in square brackets: a section like home/Hero, SiteHeader, SiteFooter, or data.navigation, data.primaryAction, data.contact, data.name, data.description>","quote":"<the person's OWN words this part answers, copied exactly from the request or the recent conversation>","change":"<precise instruction for that part, in the person's language: what to change, and what to keep>","expect":"<what will be visible on screen once done, one short sentence>"}],
+"theme":{"quote":"<the person's words>","change":"<only for a change of the whole site's look (fonts, sizes of all headings, colours, corners, spacing, buttons everywhere)>"},
+"restyle":[{"id":"<section id>","quote":"<the person's words>","layout":"<a catalog composition id, or omit to keep the same composition in another variant>","change":"<what the new layout must show>"}],
+"remove":[{"id":"<section id to delete from its page>","quote":"<the person's words>"}],
+"order":[{"page":"<page key>","sections":["<every section id of that page, in the new order>"]}],
+"newSection":{"page":"<page key>","name":"<PascalCase component name in English, e.g. Testimonials>","after":"<section name it follows, optional>","quote":"<the person's words>","change":"<what the new section contains>"},
+"code":[{"path":"<a file from 'Other files of the site'>","quote":"<the person's words>","change":"<what to change in it>","expect":"<what will be visible>"}],
+"allows":{"fonts":<true if the request, as you understand it, calls for changing a typeface>,"colors":<true if it calls for changing colours, including implicitly: "more lively", "warmer", "match my logo", "make the button stand out">,"removal":<true if it calls for removing content>,"dark":<true if it calls for a dark look>}}
+Omit the keys you do not use.`,
+    `# Rules
+- Understand what the person means, whatever their words: "the bar at the top", "the menu", "where the links are" all mean the header and its menu. Interpret; never look for keywords.
+- The person does not know how the site is built: find the right part yourself from the map (their words, the texts shown, what each part reads, the recent conversation). Never ask them.
+- Every part you list must answer something the person actually said: its "quote" is copied word for word from their request (or the recent conversation). A part that no words of theirs call for must NOT be listed — this is how unrelated changes happen.
+- Data shared by several parts lives in data.* : the menu items are data.navigation (the header and footer only display them), the contact details are data.contact. A duplicated, missing or wrong menu item is fixed in data.navigation, not in the header.
+- A change of texts, sizes, colours, spacing, an added or removed element (button, image, list item, icon, badge) INSIDE a section goes to "targets": its code is edited directly, whatever the change. This includes "more professional", "cleaner", "more modern" for one section: edit it in "targets", do not swap its layout.
+- A different ARRANGEMENT of a whole section, explicitly asked ("in cards", "in two columns", "as a carousel", "another layout for this section") goes to "restyle", with the catalog composition that matches; if no composition matches, put the section in "targets" with a precise instruction.
+- Deleting a whole section goes to "remove"; moving sections goes to "order"; a new section goes to "newSection".
+- Each part goes to ONE kind only: never the same section in both "targets" and "restyle" or "remove".
+- A change of typeface (font), for headings, text or the whole site, ALWAYS goes to "theme" (IDEM then loads it from its font catalog), never to "code" or a section.
+- Anything else (page titles, translations, a file not in the map) goes to "code" with a file from the list.
+- Choose the FEWEST parts that satisfy the request (at most ${MAX_FILES} per kind). A request about one element touches one part.
+- Never answer with nothing: pick the most likely part. The person expects a visible change.`,
+    catalog ? `# Catalog compositions available (for "restyle")\n${layoutMenuOf(catalog, fr)}` : '',
+  ]
+    .filter(Boolean)
+    .join('\n\n');
   const outcome = await caller.json<EditPlan>(
     'edit:plan',
-    'You decide WHERE and HOW a change requested on a live website must be made, using the map of the site. The change WILL be made: your job is to route it so that the person sees exactly what they asked for. You answer with JSON only.',
+    system,
     [
       renderSiteMap(map),
       sectionLayouts.length ? `\n# Current layout of each section (catalog composition)\n${sectionLayouts.join('\n')}` : '',
-      catalog ? `\n# Catalog compositions available (for "restyle")\n${layoutMenuOf(catalog, fr)}` : '',
       others.length ? `\n# Other files of the site (for "code")\n${others.map((path) => `- ${path}`).join('\n')}` : '',
       recent ? `\n# Recent conversation (what was just done)\n${recent.slice(0, 2500)}` : '',
       quoted.length ? `\n# Texts quoted in the request, found word for word in\n${quoted.map((q) => `- « ${q.quote} » : ${q.paths.map(idOf).join(', ')}`).join('\n')}` : '',
@@ -432,27 +513,6 @@ async function planEdit(
         ? `\n# What the person POINTED AT in the preview (binding)\n${scope.parts.map((part) => `- [${part.id}] the ${part.element.kind || part.element.tag} <${part.element.tag}>${part.element.text ? ` « ${part.element.text.slice(0, 100)} »` : ''}`).join('\n')}\nThe change applies to what was pointed at: use ONLY these ids: ${[...scope.ids].join(', ')}. "This", "here", "it" mean the pointed element. No theme change, no other section.`
         : '',
       `\n# The request\n${request.slice(0, 1500)}`,
-      `\n# Your answer
-{"targets":[{"id":"<an id from the map in square brackets: a section like home/Hero, SiteHeader, SiteFooter, or data.navigation, data.primaryAction, data.contact, data.name, data.description>","change":"<precise instruction for that part, in ${fr ? 'French' : 'English'}: what to change, and what to keep>"}],
-"theme":"<only for a change of the whole site's look (fonts, sizes of all headings, colours, corners, spacing, buttons everywhere), else omit>",
-"restyle":[{"id":"<section id>","layout":"<a catalog composition id, or omit to keep the same composition in another variant>","change":"<what the new layout must show>"}],
-"remove":["<section ids to delete from their page>"],
-"order":[{"page":"<page key>","sections":["<every section id of that page, in the new order>"]}],
-"newSection":{"page":"<page key>","name":"<PascalCase component name in English, e.g. Testimonials>","after":"<section name it follows, optional>","change":"<what the new section contains>"},
-"code":[{"path":"<a file from 'Other files of the site'>","change":"<what to change in it>"}],
-"allows":{"fonts":<true if the request, as you understand it, calls for changing a typeface>,"colors":<true if it calls for changing colours, including implicitly: "more lively", "warmer", "match my logo", "make the button stand out">,"removal":<true if it calls for removing content>,"dark":<true if it calls for a dark look>}}
-Omit the keys you do not use.
-Rules:
-- Understand what the person means, whatever their words: "the bar at the top", "the menu", "where the links are" all mean the header and its menu. Interpret; never look for keywords.
-- The person does not know how the site is built: find the right part yourself from the map (their words, the texts shown, what each part reads, the recent conversation). Never ask them.
-- Data shared by several parts lives in data.* : the menu items are data.navigation (the header and footer only display them), the contact details are data.contact. A duplicated, missing or wrong menu item is fixed in data.navigation, not in the header.
-- A change of texts, sizes, colours, spacing, an added or removed element (button, image, list item, icon, badge) INSIDE a section goes to "targets": its code is edited directly, whatever the change.
-- A different arrangement of a whole section ("in cards", "in two columns", "as a carousel", "another style for this section", "make the top of the page look different") goes to "restyle", with the catalog composition that matches; if no composition matches, put the section in "targets" with a precise instruction and its code is rewritten.
-- Deleting a whole section goes to "remove"; moving sections goes to "order"; a new section goes to "newSection".
-- A change of typeface (font), for headings, text or the whole site, ALWAYS goes to "theme" (IDEM then loads it from its font catalog), never to "code" or a section.
-- Anything else (page titles, translations, a file not in the map) goes to "code" with a file from the list.
-- Choose the FEWEST parts that satisfy the request (at most ${MAX_FILES} per kind). A request about one element touches one part.
-- Never answer with nothing: pick the most likely part. The person expects a visible change.`,
     ].join('\n'),
     (raw): Verdict<EditPlan> => {
       const o = (raw ?? {}) as {
@@ -467,18 +527,21 @@ Rules:
       };
       const cleanId = (value: unknown) => String(value ?? '').replace(/^\[|\]$/g, '').trim();
       const list = (value: unknown) => (Array.isArray(value) ? value : []) as Array<Record<string, unknown>>;
+      const text = (value: unknown) => (typeof value === 'string' && value.trim() ? value.trim() : undefined);
       const targets = list(o.targets)
-        .map((t) => ({ id: cleanId(t?.id), change: String(t?.change ?? '').trim() }))
+        .map((t) => ({ id: cleanId(t?.id), change: String(t?.change ?? '').trim(), quote: text(t?.quote), expect: text(t?.expect) }))
         .filter((t) => t.id);
       const restyle = list(o.restyle)
-        .map((t) => ({ id: cleanId(t?.id), layout: typeof t?.layout === 'string' && layouts.has(t.layout) ? t.layout : undefined, change: String(t?.change ?? '').trim() || request }))
+        .map((t) => ({ id: cleanId(t?.id), layout: typeof t?.layout === 'string' && layouts.has(t.layout) ? t.layout : undefined, change: String(t?.change ?? '').trim() || request, quote: text(t?.quote) }))
         .filter((t) => t.id);
-      const remove = (Array.isArray(o.remove) ? o.remove : []).map(cleanId).filter(Boolean);
+      // `remove` : des identifiants, ou des objets {id, quote}.
+      const removals = (Array.isArray(o.remove) ? o.remove : []).map((r) => (typeof r === 'object' && r ? { id: cleanId((r as { id?: unknown }).id), quote: text((r as { quote?: unknown }).quote) } : { id: cleanId(r), quote: undefined })).filter((r) => r.id);
+      const remove = removals.map((r) => r.id);
       const order = list(o.order)
         .map((t) => ({ page: String(t?.page ?? ''), sections: (Array.isArray(t?.sections) ? (t.sections as unknown[]) : []).map(cleanId).filter(Boolean) }))
         .filter((t) => t.page && t.sections.length);
       const code = list(o.code)
-        .map((t) => ({ path: String(t?.path ?? '').trim(), change: String(t?.change ?? '').trim() || request }))
+        .map((t) => ({ path: String(t?.path ?? '').trim(), change: String(t?.change ?? '').trim() || request, quote: text(t?.quote), expect: text(t?.expect) }))
         .filter((t) => t.path);
       const sectionIds = new Set(map.pages.flatMap((page) => page.sections.map((s) => s.id)));
       const unknown = [
@@ -489,6 +552,13 @@ Rules:
         ...code.filter((t) => !editableFile(files, t.path)).map((t) => t.path),
       ];
       if (unknown.length) return { problem: `Unknown ids or files: ${unknown.join(', ')}. Use only ids written in square brackets in the map, and files from the list.` };
+      // Une partie, une sorte de changement : une section à la fois réécrite et remise en forme perdait l'une des deux.
+      const kinds = new Map<string, number>();
+      for (const id of new Set(targets.map((t) => t.id))) kinds.set(id, (kinds.get(id) ?? 0) + 1);
+      for (const id of new Set(restyle.map((t) => t.id))) kinds.set(id, (kinds.get(id) ?? 0) + 1);
+      for (const id of new Set(remove)) kinds.set(id, (kinds.get(id) ?? 0) + 1);
+      const twice = [...kinds].filter(([, n]) => n > 1).map(([id]) => id);
+      if (twice.length) return { problem: `Each part goes to ONE kind of change: ${twice.join(', ')} is listed in several ("targets", "restyle", "remove"). Keep the one that answers the request.` };
       const newSection =
         o.newSection && typeof o.newSection.page === 'string' && pages.includes(o.newSection.page)
           ? {
@@ -500,7 +570,10 @@ Rules:
           : undefined;
       const allows: EditAllows = { ...NOTHING_ALLOWED, ...Object.fromEntries(Object.keys(NOTHING_ALLOWED).map((key) => [key, o.allows?.[key] === true])) };
       if (remove.length) allows.removal = true;
-      const theme = typeof o.theme === 'string' && o.theme.trim() ? o.theme.trim() : undefined;
+      const themeRaw = o.theme as unknown;
+      const theme = typeof themeRaw === 'string' ? text(themeRaw) : themeRaw && typeof themeRaw === 'object' ? text((themeRaw as { change?: unknown }).change) : undefined;
+      const themeQuote = themeRaw && typeof themeRaw === 'object' ? text((themeRaw as { quote?: unknown }).quote) : undefined;
+      const newSectionQuote = text((o.newSection as { quote?: unknown } | undefined)?.quote);
       if (!targets.length && !theme && !newSection && !restyle.length && !remove.length && !order.length && !code.length)
         return { problem: 'Choose at least one part of the site: the most likely one given the request and the map. Never answer with nothing.' };
       if (scope) {
@@ -509,15 +582,36 @@ Rules:
         const pointedPages = new Set(scope.parts.map((part) => components.get(part.id)?.page).filter(Boolean));
         if (newSection && !pointedPages.has(newSection.page)) return { problem: `A new section goes on the page that was pointed at (${[...pointedPages].join(', ') || 'none'}).` };
       }
+      // Chaque partie doit servir des mots de la personne. Dès qu'au moins une partie cite la demande mot pour mot, celles
+      // qui ne citent rien de ce qu'elle a dit sont écartées : ce sont elles qui ajoutaient des éléments sans rapport.
+      // (Aucune citation exacte : l'aiguillage est gardé tel quel, la retouche se fait quand même.)
+      const said = `${request}\n${recent}`;
+      const quotes = [...targets.map((t) => t.quote), ...restyle.map((t) => t.quote), ...removals.map((r) => r.quote), ...code.map((t) => t.quote), themeQuote, newSectionQuote];
+      const strict = quotes.some((q) => grounded(q, said));
+      const keep = (quote: string | undefined) => !strict || grounded(quote, said);
+      const dropped = [
+        ...targets.filter((t) => !keep(t.quote)).map((t) => t.id),
+        ...restyle.filter((t) => !keep(t.quote)).map((t) => `restyle:${t.id}`),
+        ...removals.filter((r) => !keep(r.quote)).map((r) => `remove:${r.id}`),
+        ...code.filter((t) => !keep(t.quote)).map((t) => t.path),
+        ...(theme && themeRaw && typeof themeRaw === 'object' && !keep(themeQuote) ? ['theme'] : []),
+        ...(newSection && !keep(newSectionQuote) ? ['newSection'] : []),
+      ];
+      if (dropped.length) ChatLogger.info('SITE_EDIT', 'Parties écartées : aucun mot de la demande ne les appelle', { dropped });
+      const keptRemove = removals.filter((r) => keep(r.quote)).map((r) => r.id);
+      const keptRestyle = restyle.filter((t) => keep(t.quote));
+      const keptCode = code.filter((t) => keep(t.quote));
+      // Un thème donné en simple texte (sans citation) reste : il est relu par ses propres garde-fous.
+      const keptTheme = theme && (typeof themeRaw === 'string' || keep(themeQuote)) ? theme : undefined;
       return {
         value: {
-          targets: targets.map((t) => ({ id: t.id, change: t.change || request })),
-          theme,
-          newSection,
-          ...(restyle.length ? { restyle } : {}),
-          ...(remove.length ? { remove } : {}),
+          targets: targets.filter((t) => keep(t.quote)).map((t) => ({ id: t.id, change: t.change || request, quote: t.quote, expect: t.expect })),
+          theme: keptTheme,
+          newSection: newSection && keep(newSectionQuote) ? newSection : undefined,
+          ...(keptRestyle.length ? { restyle: keptRestyle } : {}),
+          ...(keptRemove.length ? { remove: keptRemove } : {}),
           ...(order.length ? { order } : {}),
-          ...(code.length ? { code } : {}),
+          ...(keptCode.length ? { code: keptCode } : {}),
           allows,
         },
       };
@@ -912,6 +1006,16 @@ async function judgedProblems(before: string, after: string, allows: EditAllows,
 
 const sameCode = (a: string, b: string) => a.replace(/\s+/g, ' ').trim() === b.replace(/\s+/g, ' ').trim();
 
+interface EditFileOptions {
+  /** Les éléments désignés dans l'aperçu (outil Dessin ou Sélectionner). */
+  focus?: PointedElement[];
+  judge?: AllowJudge;
+  /** Le code de départ, quand il diffère du site (seconde passe après relecture) ; les garde-fous comparent à l'original. */
+  base?: string;
+  /** Faux : pas de réécriture du fichier entier en repli (seconde passe : la première version reste). */
+  rewrite?: boolean;
+}
+
 async function editFile(
   caller: ModelCaller,
   request: string,
@@ -921,10 +1025,17 @@ async function editFile(
   review: ReviewContext,
   allows: EditAllows,
   fr: boolean,
-  focus: PointedElement[] = [],
-  judge?: AllowJudge
+  options: EditFileOptions = {}
 ): Promise<{ code?: string; reply?: string; failure?: string }> {
-  const before = files[path];
+  const { focus = [], judge } = options;
+  const original = files[path];
+  const before = options.base ?? original;
+  /**
+   * Pourquoi le dernier essai a été refusé : `format` (blocs introuvables, rien de changé, code qui ne se monte pas) —
+   * réécrire le fichier entier peut aider ; `content` (police, couleurs, retrait non demandés, fait inventé, autre
+   * élément que celui désigné) — réécrire coûterait un fichier entier de jetons pour heurter la même règle.
+   */
+  const last: { refusal: 'format' | 'content' } = { refusal: 'format' };
   const kind = fileKind(path);
   // Les éléments désignés dans ce fichier : leur code exact, et l'étendue que la retouche doit toucher.
   const spans = focus.map((element) => ({ element, span: locateElement(before, path, element) })).filter((f): f is { element: PointedElement; span: { start: number; end: number; tag: string } } => !!f.span);
@@ -946,16 +1057,22 @@ async function editFile(
     return verdict;
   };
   const acceptRaw = async (code: string, text: string): Promise<Verdict<{ code: string; reply: string }>> => {
+    last.refusal = 'format';
     if (sameCode(code, before)) return { problem: 'Your answer changes nothing visible. Make the change the person asked for.' };
     let keepColors = allows.colors;
     if (kind.component) {
-      const guard = await judgedProblems(before, code, allows, judge);
-      if (guard.problems.length) return { problem: guard.problems.join('\n') };
+      const guard = await judgedProblems(original, code, allows, judge);
+      if (guard.problems.length) {
+        last.refusal = 'content';
+        return { problem: guard.problems.join('\n') };
+      }
       keepColors = guard.granted.has('colors');
     }
     // Une demande dessinée : la retouche doit toucher l'élément désigné, pas un autre endroit du fichier.
-    if (spans.length && !spans.some(({ span }) => touchesElement(before, code, span)))
+    if (spans.length && !spans.some(({ span }) => touchesElement(before, code, span))) {
+      last.refusal = 'content';
       return { problem: `Your change does not touch the element the person pointed at (${spans.map(({ span }) => `<${span.tag}> line ${elementSnippet(before, span).line}`).join(', ')}). Make the change on that element.` };
+    }
     const reply = text.match(/^\s*REPLY:\s*(.+)$/m)?.[1] ?? '';
     if (!kind.component) {
       const problems = await checkPlainFile(code, kind.lang);
@@ -963,7 +1080,10 @@ async function editFile(
     }
     const checked = await reviewComponent(code, keepColors ? { ...review, keepColors: true } : review, target);
     if (checked.problems.length) return { problem: `Your edit breaks the component:\n${checked.problems.map((p) => `- ${p}`).join('\n')}\nFix it.` };
-    if (checked.invented.length) return { problem: `Do not add facts that are not in the request or the project: ${checked.invented.join(', ')}.` };
+    if (checked.invented.length) {
+      last.refusal = 'content';
+      return { problem: `Do not add facts that are not in the request or the project: ${checked.invented.join(', ')}.` };
+    }
     return { value: { code: checked.code, reply } };
   };
 
@@ -977,6 +1097,8 @@ async function editFile(
       if (!patches.length) return { problem: 'Answer with SEARCH/REPLACE blocks only, then the REPLY line.' };
       const applied = applyPatches(before, patches);
       if (!applied.applied) return { problem: `None of your SEARCH passages is in the file (copy them exactly): ${applied.missed.join(' | ')}` };
+      // Une partie des blocs seulement : la retouche serait faite à moitié (avant, elle passait ainsi, sans le dire).
+      if (applied.missed.length) return { problem: `${applied.missed.length} of your SEARCH passages are not in the file, so the change would be incomplete. Copy them exactly from the file (a few unique lines each): ${applied.missed.join(' | ')}` };
       return accept(applied.code, text);
     },
     4000,
@@ -985,6 +1107,12 @@ async function editFile(
   );
   if (patched.value) return { code: patched.value.code, reply: plain(patched.value.reply) };
   if (caller.accountLimit) return { failure: accountLimitMessage(fr) };
+  const unchanged = {
+    failure: fr
+      ? `Je n’ai pas réussi à modifier ${kind.component ? displayOf(path, true) : 'ce fichier'} comme demandé sans casser l’affichage ni toucher à ce que vous n’avez pas demandé : je l’ai laissé tel quel. Reformulez en décrivant ce que vous voulez voir.`
+      : `I could not change ${kind.component ? displayOf(path, false) : 'this file'} as asked without breaking the display or touching what you did not ask for, so I left it as it was. Rephrase by describing what you want to see.`,
+  };
+  if (options.rewrite === false || last.refusal === 'content') return unchanged;
 
   // 2. Les blocs n'ont pas pu être posés : le fichier est réécrit en entier, avec les mêmes vérifications.
   ChatLogger.info('SITE_EDIT', 'Retouche par blocs impossible : fichier réécrit', { path });
@@ -1004,13 +1132,7 @@ async function editFile(
     2
   );
   if (rewritten.value) return { code: rewritten.value.code, reply: plain(rewritten.value.reply) };
-  return {
-    failure: caller.accountLimit
-      ? accountLimitMessage(fr)
-      : fr
-        ? `Je n’ai pas réussi à modifier ${kind.component ? displayOf(path, true) : 'ce fichier'} sans casser l’affichage : je l’ai laissé tel quel. Reformulez en décrivant ce que vous voulez voir.`
-        : `I could not change ${kind.component ? displayOf(path, false) : 'this file'} without breaking the display, so I left it as it was. Rephrase by describing what you want to see.`,
-  };
+  return caller.accountLimit ? { failure: accountLimitMessage(fr) } : unchanged;
 }
 
 /** Le contenu du (plus long) bloc de code d'une réponse. */

@@ -112,6 +112,7 @@ import appgenRoutes from './routes/appgen.routes';
 import ivisionRoutes from './routes/ivision.routes';
 import idomainRoutes from './routes/idomain.routes';
 import ogRoutes from './routes/og.routes';
+import brandLogoRoutes from './routes/brandLogo.routes';
 import { communicationRoutes } from './routes/communication.routes';
 import { financeRoutes } from './routes/finance.routes';
 import { simulationRoutes } from './routes/simulation.routes';
@@ -280,6 +281,8 @@ app.use('/appgen', appgenRoutes);
 
 // Images de partage (Open Graph), publiques : voir public/og/README.md
 app.use('/og', ogRoutes);
+// Logo des sites générés, à adresse fixe : changer le logo de la charte le change sur le site en ligne.
+app.use('/brand', brandLogoRoutes);
 // Blog : lecture publique pour le landing, écriture par clé de service pour le panel admin.
 app.use('/blog', blogRoutes);
 app.use('/internal/blog', blogInternalRoutes);

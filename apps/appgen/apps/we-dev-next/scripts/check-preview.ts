@@ -4,7 +4,9 @@
  *   - un site (dossier `--site`, par exemple celui du banc `bench:site`) envoyé au moteur, regroupé, servi ;
  *   - affiché dans une page parente isolée comme l'atelier (COEP credentialless), dans un iframe `sandbox` ;
  *   - premier affichage (h1 visible), mise à jour à chaud d'une section SANS recharger (le défilement reste),
- *     navigation vers une autre page, aucune erreur ; l'iframe n'a pas d'origine (ni cookie ni stockage du domaine).
+ *     navigation vers une autre page, aucune erreur ; l'iframe n'a pas d'origine (ni cookie ni stockage du domaine) ;
+ *   - mode Édition SUR l'aperçu instantané : repères `data-idem-id` justes, agent envoyé par l'atelier, « Sélectionner »
+ *     sans recharger ni changer de page ni perdre le défilement, changement de page en mode Sélection.
  *
  *   PREVIEW_RUNTIME_DIR=<node_modules avec tailwindcss 3…> npm run check:preview -- --site <dossier du site> [--cold]
  */
@@ -83,7 +85,7 @@ app.get('/parent', (req, res) => {
   res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
   res.type('html').send(`<!doctype html><html><body style="margin:0">
 <iframe id="f" src="${typeof req.query.src === 'string' ? req.query.src : opened.url}" style="width:412px;height:823px;border:0" sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-downloads"></iframe>
-<script>window.messages=[];addEventListener('message',(e)=>{if(e.data&&e.data.source==='idem-preview')window.messages.push(e.data)});</script>
+<script>window.messages=[];addEventListener('message',(e)=>{if(e.data&&(e.data.source==='idem-preview'||e.data.source==='idem-edit'))window.messages.push(e.data)});</script>
 </body></html>`);
 });
 const server = app.listen(0, '127.0.0.1');
@@ -244,6 +246,71 @@ if (other) {
   check('« Précédent » ramène à l’accueil sans recharger', (await frame.evaluate(`(${backHome}) && window.__stay === 7`)) === true);
   // Un lien du menu ramenait à l'accueil (19/11) : la page affichée doit être la bonne, pas seulement une page.
   check(`navigation vers ${other.path} : la bonne page, pas l’accueil`, otherTitle !== homeTitle && otherTitle.length > 0, { homeTitle, otherTitle });
+}
+
+// MODE ÉDITION sur l'aperçu instantané (26/11 : « Sélectionner » repartait sur l'accueil, « Dessiner » redémarrait
+// l'application). Les repères sont posés au regroupement, l'agent part de l'atelier : allumer un mode = un message.
+{
+  const { AGENT_SOURCE } = (await import('../../we-dev-client/src/components/EditMode/instrumentation.ts')) as { AGENT_SOURCE: string };
+  frame = await frameOf();
+  const ids = (await frame.evaluate(`[...document.querySelectorAll('[data-idem-id]')].slice(0, 400).map((el) => el.getAttribute('data-idem-id'))`)) as string[];
+  const wrong = ids.filter((id) => {
+    const cut = id.lastIndexOf('|');
+    const file = files[id.slice(0, cut)];
+    return !file || file[Number(id.slice(cut + 1))] !== '<';
+  });
+  check('repères du mode Édition posés au regroupement', ids.length > 20, ids.length);
+  check('… chacun désigne le « < » de sa balise dans le source propre', wrong.length === 0, wrong.slice(0, 5));
+
+  const post = (msg: object) => page.evaluate(`document.getElementById('f').contentWindow.postMessage(${JSON.stringify(msg)}, '*')`);
+  const waitFor = async (test: string, ms = 3000) => {
+    for (let i = 0; i < ms / 20; i++) {
+      if (await page.evaluate(test)) return true;
+      await new Promise((d) => setTimeout(d, 20));
+    }
+    return false;
+  };
+  await page.evaluate(`window.messages = []`);
+  t = performance.now();
+  await post({ source: 'idem-preview-parent', type: 'LOAD_AGENT', code: AGENT_SOURCE });
+  const agentReady = await waitFor(`window.messages.some((m) => m.type === 'AGENT_READY')`);
+  console.log(`  agent d’édition installé en ${Math.round(performance.now() - t)} ms`);
+  check('agent d’édition envoyé par l’atelier : prêt', agentReady);
+
+  await frame.evaluate(`(window.__stay = 11, scrollTo(0, 600))`);
+  const pathBefore = (await frame.evaluate(`location.pathname`)) as string;
+  const yBefore = (await frame.evaluate(`scrollY`)) as number;
+  t = performance.now();
+  await post({ source: 'idem-edit', type: 'ENABLE_EDIT', enabled: true, mode: 'select' });
+  const treeOk = await waitFor(`window.messages.some((m) => m.type === 'TREE' && m.nodes.length > 0)`);
+  console.log(`  « Sélectionner » actif (arbre des calques reçu) en ${Math.round(performance.now() - t)} ms`);
+  check('« Sélectionner » actif en moins de 300 ms (local)', treeOk && performance.now() - t < 300, Math.round(performance.now() - t));
+  check('… sans recharger le document', (await frame.evaluate(`window.__stay`)) === 11);
+  check('… sur la même page', (await frame.evaluate(`location.pathname`)) === pathBefore, pathBefore);
+  check('… au même endroit (défilement)', Math.abs(((await frame.evaluate(`scrollY`)) as number) - yBefore) < 5, yBefore);
+
+  // Un clic désigne un élément (et ne suit pas les liens).
+  const box = (await frame.evaluate(`(() => { const el = [...document.querySelectorAll('[data-idem-id]')].find((x) => { const r = x.getBoundingClientRect(); return r.top > 40 && r.bottom < innerHeight - 40 && r.width > 40 && r.height > 16; }); if (!el) return null; const r = el.getBoundingClientRect(); return { x: r.left + Math.min(20, r.width / 2), y: r.top + Math.min(10, r.height / 2) }; })()`)) as { x: number; y: number } | null;
+  if (box) {
+    const frameBox = await (await page.$('#f')).boundingBox();
+    await page.mouse.click(frameBox.x + box.x, frameBox.y + box.y);
+    const picked = await waitFor(`window.messages.some((m) => m.type === 'SELECTED' && m.elements.length === 1)`);
+    check('un clic sélectionne un élément', picked);
+  }
+
+  // Changer de page EN mode Sélection (menu des pages de l'atelier) : la page change, l'agent reste.
+  if (other) {
+    await page.evaluate(`window.messages = []`);
+    await post({ source: 'idem-preview-parent', type: 'NAVIGATE', href: other.path });
+    const moved = await waitFor(`window.messages.some((m) => m.type === 'navigate')`, 5000);
+    check(`en mode Sélection, l’atelier change de page (${other.path})`, moved && ((await frame.evaluate(`location.pathname`)) as string).endsWith(other.path));
+    check('… sans recharger, agent toujours là', (await frame.evaluate(`window.__stay === 11 && window.__IDEM_AGENT__ === true`)) === true);
+    const deselected = await waitFor(`window.messages.some((m) => m.type === 'SELECTED' && m.elements.length === 0)`);
+    check('… la sélection de l’ancienne page est retirée', deselected);
+    const fresh = await waitFor(`window.messages.some((m) => m.type === 'TREE' && m.nodes.length > 0)`);
+    check('… les calques de la nouvelle page arrivent', fresh);
+  }
+  await post({ source: 'idem-edit', type: 'ENABLE_EDIT', enabled: false, mode: 'off' });
 }
 
 check('aucune erreur dans la page', errors.length === 0, errors.slice(0, 5));

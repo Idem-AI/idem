@@ -13,8 +13,18 @@ import { tmpdir } from 'os';
 import { join } from 'path';
 import type { Job } from 'bullmq';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { createTarGz } from '../../api/utils/tar';
-import { getSourceArchive, packSource, saveApplicationSource } from '../../api/services/application-source.service';
+import { createTarGz, readTarGz } from '../../api/utils/tar';
+import {
+  fileDigest,
+  getSourceArchive,
+  getSourceManifest,
+  packSource,
+  saveApplicationSource,
+  saveApplicationSourceDelta,
+} from '../../api/services/application-source.service';
+import { sweepReservations, RESERVATION_TTL_MS } from '../../api/services/address-reservation.service';
+import { createDeployment, deploysAsPrebuiltStatic } from '../../api/services/deployment.service';
+import { fastDeploymentQueue, deploymentQueue } from '../../api/queue/queues';
 import { quickDeploy, quickDeployFullstack } from '../../api/services/quick-deploy.service';
 import { processDeployment } from '../../api/jobs/deployment.worker';
 import * as appService from '../../api/services/application.service';
@@ -98,6 +108,16 @@ describe('the archive iCode files travel in', () => {
     expect(read('texte-accentué.md').toString()).toBe('Été à Dakar');
   });
 
+  it('is read back by readTarGz exactly as written', () => {
+    const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x00, 0xff]);
+    const longPath = `dist/${'assets/'.repeat(16)}index-abc.js`;
+    const files = readTarGz(createTarGz({ 'dist/index.html': '<h1>Été</h1>', 'dist/logo.png': png, [longPath]: 'x'.repeat(1300) }));
+    expect(Object.keys(files).sort()).toEqual(['dist/index.html', 'dist/logo.png', longPath].sort());
+    expect(files['dist/index.html'].toString()).toBe('<h1>Été</h1>');
+    expect(files['dist/logo.png'].equals(png)).toBe(true);
+    expect(files[longPath].length).toBe(1300);
+  });
+
   it('refuses a path that would escape the project, and leaves dependencies behind', () => {
     expect(() => packSource({ '../etc/passwd': 'x' })).toThrow(/not allowed/);
     const { fileCount } = packSource({
@@ -162,6 +182,97 @@ describe('quick deploy from files (site, mobile app, simple web app)', () => {
     await makeManagedServer();
     const attempt = quickDeploy(team.id, { name: 'vide' });
     await expect(attempt).rejects.toSatisfy((err: unknown) => isDomainError(err) && err.code === 'SOURCE_REQUIRED');
+  });
+});
+
+describe('a republish sends only what changed', () => {
+  const site = {
+    'dist/index.html': '<!doctype html><h1>Version 1</h1>',
+    'dist/logo.png': { base64: Buffer.from('a heavy image').toString('base64') },
+  };
+
+  it('keeps the unchanged files from the previous version and takes the changed ones', async () => {
+    const team = await makeTeam();
+    await makeManagedServer();
+    const created = await quickDeploy(team.id, { name: 'delta', files: site, build_pack: 'static', ports_exposes: '80' });
+    const manifest = await getSourceManifest(team.id, created.applicationUuid!);
+    expect(manifest['dist/logo.png']).toBe(fileDigest(Buffer.from('a heavy image')));
+
+    const html = '<!doctype html><h1>Version 2</h1>';
+    const saved = await saveApplicationSourceDelta(
+      team.id,
+      created.applicationUuid!,
+      { ...manifest, 'dist/index.html': fileDigest(Buffer.from(html)), 'dist/moved.png': manifest['dist/logo.png'] },
+      { 'dist/index.html': html }
+    );
+    expect(saved.reused).toBe(2);
+
+    const app = await appService.getApplication(team.id, created.applicationUuid!);
+    const files = readTarGz((await getSourceArchive(app!.id))!);
+    expect(files['dist/index.html'].toString()).toContain('Version 2');
+    expect(files['dist/logo.png'].toString()).toBe('a heavy image');
+    expect(files['dist/moved.png'].toString()).toBe('a heavy image');
+  });
+
+  it('says SOURCE_INCOMPLETE when a listed file is neither sent nor known (the client then sends all)', async () => {
+    const team = await makeTeam();
+    await makeManagedServer();
+    const created = await quickDeploy(team.id, { name: 'delta-miss', files: site, build_pack: 'static', ports_exposes: '80' });
+    const attempt = saveApplicationSourceDelta(team.id, created.applicationUuid!, { 'dist/new.png': 'f'.repeat(64) }, {});
+    await expect(attempt).rejects.toSatisfy((err: unknown) => isDomainError(err) && err.code === 'SOURCE_INCOMPLETE');
+  });
+});
+
+describe('the fast lane', () => {
+  it('takes a site already built, and leaves a site to build in the general lane', async () => {
+    const team = await makeTeam();
+    await makeManagedServer();
+    const built = await quickDeploy(team.id, { name: 'lane-a', files: { 'dist/index.html': '<h1>a</h1>' }, build_pack: 'static', ports_exposes: '80' });
+    const toBuild = await quickDeploy(team.id, {
+      name: 'lane-b',
+      files: { 'package.json': '{}' },
+      build_pack: 'static',
+      build_command: 'npm run build',
+      ports_exposes: '80',
+    });
+    const a = await appService.getApplication(team.id, built.applicationUuid!);
+    const b = await appService.getApplication(team.id, toBuild.applicationUuid!);
+    expect(await deploysAsPrebuiltStatic(a!.id)).toBe(true);
+    expect(await deploysAsPrebuiltStatic(b!.id)).toBe(false);
+    expect(await fastDeploymentQueue.getJob(built.deploymentUuid!)).toBeTruthy();
+    expect(await deploymentQueue.getJob(toBuild.deploymentUuid!)).toBeTruthy();
+    // A pipeline always goes through the general lane (its image is scanned).
+    const piped = await createDeployment(a!, team.id, { pipelineExecutionId: 1 });
+    expect(await deploymentQueue.getJob(piped.deploymentUuid)).toBeTruthy();
+  });
+});
+
+describe('an address reserved when the publish window opens', () => {
+  it('creates the application without deploying, then takes the code like any update', async () => {
+    const team = await makeTeam();
+    await makeManagedServer();
+    const reserved = await quickDeploy(team.id, { name: 'reserve', build_pack: 'static', publish_directory: 'dist', ports_exposes: '80', reserve: true });
+    expect(reserved.deploymentUuid).toBeUndefined();
+    expect(reserved.applicationUuid).toBeTruthy();
+    const app = await appService.getApplication(team.id, reserved.applicationUuid!);
+    expect(await getSourceArchive(app!.id)).toBeNull();
+    const { rows } = await testPool().query('SELECT 1 FROM application_deployment_queues WHERE application_id = $1', [String(app!.id)]);
+    expect(rows).toHaveLength(0);
+
+    await saveApplicationSource(team.id, reserved.applicationUuid!, { 'dist/index.html': '<h1>ok</h1>' });
+    expect(await deploysAsPrebuiltStatic(app!.id)).toBe(true);
+  });
+
+  it('is given back after a day when nothing was published, kept when it was', async () => {
+    const team = await makeTeam();
+    await makeManagedServer();
+    const left = await quickDeploy(team.id, { name: 'abandon', build_pack: 'static', ports_exposes: '80', reserve: true });
+    const used = await quickDeploy(team.id, { name: 'publie', build_pack: 'static', ports_exposes: '80', reserve: true });
+    await saveApplicationSource(team.id, used.applicationUuid!, { 'dist/index.html': '<h1>ok</h1>' });
+
+    expect(await sweepReservations(Date.now() + RESERVATION_TTL_MS + 1000)).toBe(1);
+    expect(await appService.getApplication(team.id, left.applicationUuid!)).toBeNull();
+    expect(await appService.getApplication(team.id, used.applicationUuid!)).toBeTruthy();
   });
 });
 

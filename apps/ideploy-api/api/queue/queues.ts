@@ -13,6 +13,9 @@ import { redisOptions } from '../config/redis.config';
 // Use hyphens; a shared key prefix is set via QueueOptions.prefix instead.
 export const QUEUE_NAMES = {
   deployments: 'ideploy-deployments',
+  // Sites already built (iCode): files swapped under a running nginx in a few
+  // seconds. Their own lane, so they never wait behind a 10-minute image build.
+  deploymentsFast: 'ideploy-deployments-fast',
   pipelines: 'ideploy-pipelines',
   servers: 'ideploy-servers',
   databases: 'ideploy-databases',
@@ -69,6 +72,7 @@ function withTracePropagation(queue: Queue): Queue {
 }
 
 export const deploymentQueue = getQueue(QUEUE_NAMES.deployments);
+export const fastDeploymentQueue = getQueue(QUEUE_NAMES.deploymentsFast);
 export const serverQueue = getQueue(QUEUE_NAMES.servers);
 export const databaseQueue = getQueue(QUEUE_NAMES.databases);
 export const notificationQueue = getQueue(QUEUE_NAMES.notifications);

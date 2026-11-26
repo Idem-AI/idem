@@ -19,7 +19,10 @@ import {
   type BuildReport,
   collectSourceFiles,
   detectPublishMode,
+  fetchPublishedManifest,
   publishToIdeploy,
+  reserveAddress,
+  takeReservation,
   toDeploymentRecord,
   waitForDeployment,
   type PublishMode,
@@ -146,6 +149,22 @@ export function DeployModal({ open, onClose, deployment, defaultName, onPublishe
     if (open && phase === 'ready' && mode === 'static') prepareStaticSite().catch(() => undefined);
   }, [open, phase, mode]);
 
+  // Première mise en ligne d'un site : l'adresse est réservée dès que le nom proposé est posé (2 s sans changement).
+  // iDeploy crée le nom et obtient le certificat pendant que l'utilisateur lit et que le site se construit ; sans
+  // cela, le clic attendait le DNS (jusqu'à 90 s) puis le certificat. Le nom tapé à la main n'est pas réservé :
+  // chaque frappe créerait une adresse.
+  const reservedName = useRef<string | null>(null);
+  useEffect(() => {
+    if (!open || phase !== 'ready' || mode !== 'static' || existing || nameEdited.current || reservedName.current) return;
+    const proposed = defaultName.trim();
+    if (!proposed) return;
+    const timer = setTimeout(() => {
+      reservedName.current = proposed;
+      void reserveAddress(proposed);
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [open, phase, mode, existing, defaultName]);
+
   const mark = (id: StepId, state: StepState) => setSteps((current) => ({ ...current, [id]: state }));
 
   const publish = useCallback(async () => {
@@ -159,13 +178,36 @@ export function DeployModal({ open, onClose, deployment, defaultName, onPublishe
 
     try {
       mark('prepare', 'active');
+      const finalName = name.trim() || defaultName;
+      // L'adresse réservée à l'ouverture, si le nom n'a pas changé ; sinon elle est rendue tout de suite.
+      const reservation = mode === 'static' && !existing && reservedName.current ? await takeReservation(reservedName.current) : null;
+      const reserved = reservation && reservation.name === finalName.trim().toLowerCase() ? reservation : null;
+      if (reservation && !reserved) {
+        void fetch(`${process.env.REACT_APP_NEXT_API_BASE_URL || 'http://localhost:3000'}/api/ideploy/site/delete`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ideploy: { applicationUuid: reservation.applicationUuid } }),
+        }).catch(() => undefined);
+      }
+      reservedName.current = null;
+      const target = existing ?? (reserved ? { mode: 'static' as const, applicationUuid: reserved.applicationUuid } : null);
+      // Ce que la version en ligne contient déjà, lu pendant la construction : seuls les fichiers changés partiront.
+      const publishedManifest =
+        mode === 'static' && target?.applicationUuid && !reserved ? fetchPublishedManifest(target.applicationUuid) : Promise.resolve(null);
       const payload = mode === 'fullstack' ? collectSourceFiles() : await buildStaticSite();
       if (mode === 'static') setBuildReport(await readBuildReport());
       mark('prepare', 'done');
 
       current = mode === 'fullstack' ? 'database' : 'send';
       mark(current, 'active');
-      const result = await publishToIdeploy({ name: name.trim() || defaultName, mode, files: payload, existing });
+      const result = await publishToIdeploy({
+        name: finalName,
+        mode,
+        files: payload,
+        existing: target,
+        publishedManifest: await publishedManifest,
+      });
 
       if (mode === 'static') {
         mark('send', 'done');

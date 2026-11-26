@@ -30,6 +30,11 @@ interface PublishBody {
   files?: Files;
   /** What a previous publish created, kept by the client with the deployment record. */
   existing?: { applicationUuid?: string; backendUuid?: string; frontendUuid?: string } | null;
+  /**
+   * Update of a site: every file with its SHA-256; `files` then holds only
+   * those iDeploy does not already have (see `/applications/:uuid/source/manifest`).
+   */
+  manifest?: Record<string, string> | null;
 }
 
 export interface PublishedDeployment {
@@ -73,8 +78,9 @@ function slug(name: string): string {
 }
 
 router.post('/publish', async (req: Request, res: Response) => {
-  const { name, mode, files, existing } = (req.body ?? {}) as PublishBody;
-  if (!files || typeof files !== 'object' || Object.keys(files).length === 0) {
+  const { name, mode, files, existing, manifest } = (req.body ?? {}) as PublishBody;
+  const delta = mode !== 'fullstack' && Boolean(existing?.applicationUuid) && Boolean(manifest) && typeof manifest === 'object';
+  if (!files || typeof files !== 'object' || (!delta && Object.keys(files).length === 0)) {
     return res.status(422).json({ success: false, message: 'Aucun fichier à publier.' });
   }
   const appName = slug(name || 'mon-app');
@@ -131,10 +137,13 @@ router.post('/publish', async (req: Request, res: Response) => {
 
     // Static: the built site.
     if (existing?.applicationUuid) {
-      const updated = await ideploy<{ deploymentUuid: string }>(
-        req, 'PUT', `/applications/${existing.applicationUuid}/source`, { files, deploy: true }
-      );
-      const app = await ideploy<{ fqdn?: string | null }>(req, 'GET', `/applications/${existing.applicationUuid}`);
+      // The address is read while the code is saved: one round trip less.
+      const [updated, app] = await Promise.all([
+        ideploy<{ deploymentUuid: string }>(
+          req, 'PUT', `/applications/${existing.applicationUuid}/source`, delta ? { manifest, files, deploy: true } : { files, deploy: true }
+        ),
+        ideploy<{ fqdn?: string | null }>(req, 'GET', `/applications/${existing.applicationUuid}`),
+      ]);
       return res.json({
         success: true,
         mode: 'static',
@@ -173,6 +182,43 @@ router.post('/publish', async (req: Request, res: Response) => {
     return res
       .status(err.status && err.status >= 400 && err.status < 600 ? err.status : 502)
       .json({ success: false, code: err.code, message: err.message });
+  }
+});
+
+/**
+ * The address of a first publish, prepared when the publish window opens:
+ * iDeploy creates the application and its `monapp.ideploy.site`, deploys
+ * nothing, and routes the name as soon as DNS serves it — the certificate is
+ * then obtained while the site builds. The click becomes an update of it.
+ */
+router.post('/reserve', async (req: Request, res: Response) => {
+  const appName = slug(String(req.body?.name || 'mon-app'));
+  try {
+    const reserved = await ideploy<{ applicationUuid: string; url: string | null }>(req, 'POST', '/quick-deploy', {
+      name: appName,
+      build_pack: 'static',
+      publish_directory: 'dist',
+      ports_exposes: '80',
+      platform_domain: true,
+      reserve: true,
+    });
+    return res.json({ success: true, applicationUuid: reserved.applicationUuid, url: reserved.url ?? null });
+  } catch (error) {
+    const err = error as Error & { status?: number; code?: string };
+    return res.status(err.status && err.status >= 400 && err.status < 600 ? err.status : 502).json({ success: false, code: err.code, message: err.message });
+  }
+});
+
+/** Each file of the published site with its SHA-256: the client then sends only what changed. */
+router.get('/applications/:uuid/source/manifest', async (req: Request, res: Response) => {
+  try {
+    const data = await ideploy<{ manifest: Record<string, string> }>(
+      req, 'GET', `/applications/${encodeURIComponent(String(req.params.uuid))}/source/manifest`
+    );
+    return res.json({ success: true, manifest: data?.manifest ?? {} });
+  } catch (error) {
+    const err = error as Error & { status?: number };
+    return res.status(err.status ?? 502).json({ success: false, message: err.message });
   }
 });
 

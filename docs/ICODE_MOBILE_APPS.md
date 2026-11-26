@@ -111,6 +111,16 @@ The mockups are drawn in CSS (`PhoneMockup.tsx`). The system status bar and navi
 
 What is published is exactly what the preview showed. The application then **installs on a phone from its address** (« Ajouter à l'écran d'accueil »), with its own icon, full screen.
 
+### Publish speed (static sites)
+
+What makes a publish from iCode take seconds rather than minutes:
+
+- **Build starts early.** The build starts when the pointer reaches "Publish", and again when the window opens. A build is reused when the source fingerprint has not changed.
+- **Address reserved early (first publish).** About 2 s after the window opens, iCode calls `POST /api/ideploy/reserve`, which runs `quick-deploy` with `reserve: true`. iDeploy creates the application and its `name.ideploy.site` record, but deploys nothing. As soon as the zone serves the name, it writes the route, so Traefik obtains the certificate while the site builds (`address-reservation.service.ts`). The click then becomes an update of that application. A reservation that is never published is deleted after 24 h by the 5-minute domain sweep. If the user renamed the site, the reservation is released at once.
+- **Only changed files are sent (republish).** This is the file-digest method used by Netlify and Cloudflare Pages. While the site builds, the client reads `GET /applications/:uuid/source/manifest`, which maps each path to its SHA-256. It then sends the full manifest, plus the contents of only the files that iDeploy lacks. iDeploy rebuilds the archive from the previous version (`saveApplicationSourceDelta`). If a listed file can be found nowhere, iDeploy answers `409 SOURCE_INCOMPLETE` and the client sends everything.
+- **Fast lane.** A deployment of a site that is already built goes to the `ideploy-deployments-fast` queue (concurrency 10). It takes no build slot and is never re-queued for 15 s behind another team's image build. While a previous publish of the same application finishes, it waits with a poll every 0.5 s.
+- **Fewer sequential steps.** On the server, the firewall file and the routes are written while the archive uploads. The deployment then swaps a link under a long-lived nginx (`static-fast-path.ts`).
+
 ### Store packaging (Android / iOS)
 
 Not automated yet: it needs Android Studio / Xcode, which cannot run in the browser. From the downloaded project:

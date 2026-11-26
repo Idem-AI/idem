@@ -67,9 +67,25 @@ Tant que ce n'est pas fait, `GET /api/preview/status` répond `available: false`
 
 Ces deux leviers sont vérifiés sans appel payant (modèles simulés du SDK). Le gain réel en génération n'est pas mesuré : il faut une vraie génération.
 
+## Mode Édition sur l'aperçu instantané (26/11/2026)
+
+Avant, cliquer sur « Sélectionner », « Texte » ou « Dessiner » quittait l'aperçu instantané pour revenir à la WebContainer. L'atelier réécrivait aussi `vite.config` pour y poser le plugin de repères, ce qui redémarrait Vite. Conséquences : une longue attente, parfois sans fin quand le serveur de la WebContainer ne tournait pas (« l'application redémarre »), un retour à l'accueil et le défilement perdu.
+
+Maintenant :
+
+| Pièce | Où | Rôle |
+| --- | --- | --- |
+| Repères posés au regroupement | `we-dev-next/src/preview/tagger.ts` | Chaque balise JSX reçoit `data-idem-id="fichier\|position du <"`. La marque est la même que celle du plugin Vite et elle est calculée sur le source propre. Le résultat est mis en cache par contenu : 64 ms à froid pour 45 fichiers, 0,5 ms ensuite. |
+| Agent envoyé par l'atelier | `EditablePreview` → `LOAD_AGENT` | Dès que la page est chargée, `AGENT_SOURCE` (`instrumentation.ts`) part par `postMessage`. Le moteur de la page l'exécute une seule fois et n'accepte que les messages de `parent`. Il n'y a qu'une copie de l'agent, celle du client. |
+| Allumer un mode | `ENABLE_EDIT` | Un message suffit, sans rechargement. La page et l'endroit où se trouve la personne sont gardés. Mesuré : 32 ms. |
+| Changer de page en mode Édition | menu des pages dans la barre d'adresse, bouton « Ouvrir cette page » d'un lien sélectionné, Alt + clic sur un lien | `NAVIGATE` → `go()`, sans rechargement. La sélection de l'ancienne page est retirée et les calques de la nouvelle arrivent. |
+| Agent économe | `AGENT_SOURCE` | L'arbre des calques n'est construit qu'en mode Édition. Hors de ce mode, l'agent reste inerte. |
+
+La WebContainer (instrumentation dans `vite.config`) ne sert plus qu'aux projets sans aperçu instantané : applications web et mobiles.
+
 ## Contrôles
 
 | Commande (we-dev-next) | Ce qu'elle prouve |
 | --- | --- |
 | `npm run check:site-speed` | 18 vérifications : relance (gagnante, jamais quand tout va bien, échec qui attend la relance, flux déjà commencé non relancé), lecture des sections complètes, livraison au fil du flux |
-| `PREVIEW_RUNTIME_DIR=… npm run check:preview -- --site <dossier> [--cold]` | 13 vérifications de bout en bout dans Chrome : affichage, origine opaque, mise à jour à chaud sans rechargement, erreur signalée puis effacée, navigation, aucune erreur |
+| `PREVIEW_RUNTIME_DIR=… npm run check:preview -- --site <dossier> [--cold]` | Vérifications de bout en bout dans Chrome : affichage, origine opaque, mise à jour à chaud sans rechargement, erreur signalée puis effacée, navigation, mode Édition (repères justes, agent prêt, « Sélectionner » sans recharger ni changer de page ni perdre le défilement, changement de page en mode Sélection), aucune erreur |

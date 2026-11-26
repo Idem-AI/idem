@@ -6,8 +6,27 @@
 import { randomUUID } from 'crypto';
 import os from 'os';
 import pool from '../config/db.config';
-import { deploymentQueue } from '../queue/queues';
+import { deploymentQueue, fastDeploymentQueue } from '../queue/queues';
 import { notFound, unprocessable } from '../utils/errors';
+import { isPrebuiltStatic, PrebuiltFields } from '../jobs/prebuilt-static';
+
+/**
+ * Whether the application deploys as a site already built: then its deployment
+ * takes the fast lane. Read in one query; any doubt (error) → the general lane.
+ */
+export async function deploysAsPrebuiltStatic(applicationId: number): Promise<boolean> {
+  try {
+    const { rows } = await pool.query<PrebuiltFields & { has_source: boolean }>(
+      `SELECT a.git_repository, a.build_pack, a.install_command, a.build_command, a.start_command,
+              EXISTS (SELECT 1 FROM application_sources s WHERE s.application_id = a.id) AS has_source
+         FROM applications a WHERE a.id = $1`,
+      [applicationId]
+    );
+    return rows[0] ? isPrebuiltStatic(rows[0], Boolean(rows[0].has_source)) : false;
+  } catch {
+    return false;
+  }
+}
 
 export interface DeploymentJobData {
   deploymentUuid: string;
@@ -29,7 +48,20 @@ export interface DeploymentJobData {
 export async function createDeployment(
   application: { id: number; uuid: string },
   teamId: number,
-  opts: { commit?: string; forceRebuild?: boolean; isWebhook?: boolean; rollback?: boolean; pipelineExecutionId?: number; trivyFailOn?: string } = {}
+  opts: {
+    commit?: string;
+    forceRebuild?: boolean;
+    isWebhook?: boolean;
+    rollback?: boolean;
+    pipelineExecutionId?: number;
+    trivyFailOn?: string;
+    /**
+     * A site sent already built (iCode): no image, a few seconds of work. It goes
+     * to the fast lane, which never waits behind the builds of other teams.
+     * Read from the application when not given.
+     */
+    fast?: boolean;
+  } = {}
 ): Promise<{ deploymentUuid: string }> {
   const deploymentUuid = randomUUID();
   await pool.query(
@@ -58,7 +90,12 @@ export async function createDeployment(
   };
   // One attempt: a failed build replayed twice more flipped the status back to
   // "in progress" and tripled the wait for an answer that would not change.
-  await deploymentQueue.add('deploy', data, { jobId: deploymentUuid, attempts: 1 });
+  // A pipeline scans its built image: never the fast lane.
+  const fast = !opts.pipelineExecutionId && (opts.fast ?? (await deploysAsPrebuiltStatic(application.id)));
+  await (fast ? fastDeploymentQueue : deploymentQueue).add('deploy', data, {
+    jobId: deploymentUuid,
+    attempts: 1,
+  });
 
   return { deploymentUuid };
 }

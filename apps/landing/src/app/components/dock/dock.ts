@@ -35,7 +35,6 @@ import { environment } from '../../../environments/environment';
       <div class="dock-inner">
         <a href="{{ dashboardUrl }}/create-project" class="inner-button button-sm dock-cta">
           <ng-container i18n="@@hero.tryForFree">Try for free</ng-container>
-          <i class="pi pi-arrow-right" aria-hidden="true"></i>
         </a>
         @if (trust()) {
           <div class="dock-trust" [attr.aria-hidden]="compact() ? 'true' : null" [attr.inert]="compact() ? '' : null">

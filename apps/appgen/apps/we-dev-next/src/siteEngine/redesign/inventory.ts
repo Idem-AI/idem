@@ -20,6 +20,8 @@ export interface InventoryImage {
   quality?: { softness: number; blockiness: number; photo: boolean; issues: ('blurry' | 'blocky')[] };
   /** Regardée à la recopie par le modèle de vision (API `SiteImport/siteImageReading.ts`) ; absente avant le 25/11/2026. */
   vision?: ImageReading;
+  /** Le texte qui appartient à cette image sur l'ancien site (légende, carte) : voir `binding.ts`. Depuis le 26/11/2026. */
+  caption?: string;
 }
 
 /** Ce que montre une image de l'ancien site, lu à la recopie (même forme que `apps/ivision/core/src/site/site-crawler.ts`). */
@@ -48,6 +50,17 @@ export interface LibraryImage {
   from: string[];
   /** Défaut mesuré par le code (flou, blocs JPEG). */
   issues: string[];
+  /** Le texte qui l'accompagnait (nom sous une photo d'équipe, titre d'un projet) : elle va avec cet élément-là. */
+  caption?: string;
+}
+
+/**
+ * Les images LIÉES d'une section : au moins deux images, chacune avec sa propre légende (photos d'équipe sous leur
+ * nom, projets sous leur titre). Elles vont avec leur élément : jamais triées, jamais prêtées à une autre section.
+ */
+export function boundImages<T extends InventoryImage>(images: T[]): T[] {
+  const captioned = images.filter((image) => image.caption);
+  return captioned.length >= 2 && new Set(captioned.map((image) => image.caption)).size === captioned.length ? captioned : [];
 }
 
 const ILLUSTRATING: ImageReading['kind'][] = ['photo', 'illustration', '3d'];
@@ -69,18 +82,23 @@ export function siteImageLibrary(inventory: SiteInventory): LibraryImage[] | nul
           continue;
         }
         seen += 1;
-        if (!image.vision) continue;
-        read += 1;
-        if (!ILLUSTRATING.includes(image.vision.kind)) continue;
+        const bound = boundImages(section.images).includes(image);
+        if (image.vision) read += 1;
+        // Une image liée (photo d'équipe de 100 px, trop petite pour être regardée) reste dans le manifeste : sa
+        // légende dit ce qu'elle montre, et elle doit rester avec son élément.
+        if (!image.vision && !bound) continue;
+        if (image.vision && !ILLUSTRATING.includes(image.vision.kind) && !bound) continue;
+        const reading: ImageReading = image.vision ?? { description: `Image shown with « ${image.caption} » on the old site`, kind: 'photo', people: false, text: false, generic: false, flaws: [] };
         byUrl.set(image.url, {
           id: `i${byUrl.size + 1}`,
           url: image.url,
           alt: image.alt,
           width: image.width,
           height: image.height,
-          reading: image.vision,
+          reading,
           from: [section.id],
           issues: image.quality?.issues ?? [],
+          ...(image.caption ? { caption: image.caption } : {}),
         });
       }
   // Moins de la moitié des images regardées : le manifeste mentirait sur l'ancien site, la règle d'avant reste.
@@ -98,8 +116,13 @@ export function imageRank(image: InventoryImage): number {
   return pixels - (image.quality?.issues.length ?? 0) * 0.25;
 }
 
-/** Les images d'une section, de la meilleure à la moins bonne (tri stable). */
+/**
+ * Les images d'une section, de la meilleure à la moins bonne (tri stable). Des images LIÉES (`boundImages`) gardent
+ * l'ordre de l'ancien site : chacune va avec son élément, la plus nette n'a pas à passer devant.
+ */
 export function bestFirst<T extends InventoryImage>(images: T[]): T[] {
+  const bound = boundImages(images);
+  if (bound.length) return [...bound, ...images.filter((image) => !bound.includes(image))];
   return images
     .map((image, index) => ({ image, index, rank: imageRank(image) }))
     .sort((a, b) => b.rank - a.rank || a.index - b.index)

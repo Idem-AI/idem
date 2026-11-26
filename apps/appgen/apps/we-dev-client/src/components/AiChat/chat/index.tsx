@@ -74,7 +74,7 @@ import { IdemLoader } from '@idem/shared-loader/react';
 import { JourneyCard, JourneyFloat } from '@idem/shared-journey/react';
 import { journeyClient, journeyUrls, useJourney } from '@/hooks/useJourney';
 import { useChatAutoScroll } from '@/hooks/useChatAutoScroll';
-import { ArrowDown } from 'lucide-react';
+import { ArrowDown, Crosshair, X } from 'lucide-react';
 import { readChoices, readJourney, readProject } from '@/utils/chatMarkers';
 import { ChatChoices, type ChoicesAnswerEvent } from './components/ChatChoices';
 import { journeyLink, type Recommendation } from '@idem/shared-journey';
@@ -1314,6 +1314,19 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
     [isLoading, append, t]
   );
 
+  // Une sélection (outil Sélectionner → « Demander à l'IA ») : la cible du PROCHAIN message. La personne écrit ensuite ce
+  // qu'il faut changer ; la désignation exacte part avec (le serveur ne modifie que cet élément et sa section).
+  const [target, setTarget] = useState<{ pointed: unknown[]; summary: string } | null>(null);
+  useEffect(
+    () =>
+      eventEmitter.on('chat:target', (next: { pointed: unknown[]; summary: string }) => {
+        if (!next?.pointed?.length) return;
+        setTarget(next);
+        eventEmitter.emit('chat:focusInput');
+      }),
+    []
+  );
+
   // Contexte poussé depuis l'espace de travail : sélection d'un élément,
   // annotation dessinée, thème à appliquer. On préremplit la saisie au lieu
   // d'envoyer directement — l'utilisateur a désigné *quoi*, il lui reste à dire
@@ -1891,13 +1904,17 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       // clear images state
       clearImages();
 
+      // Un élément ciblé : ce que la personne lit dans la conversation dit lequel (en mots), la désignation part à côté.
+      const aimed = target;
+      setTarget(null);
       append(
         {
           role: 'user',
-          content: text || input,
+          content: aimed ? `${text || input}\n\n${t('editMode.pointedIntro')}\n- ${aimed.summary}` : text || input,
         },
         {
           experimental_attachments: currentAttachments,
+          ...(aimed ? { body: { pointed: { elements: aimed.pointed } } } : {}),
         }
       );
       setInput('');
@@ -2552,6 +2569,24 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       )}
 
       {/* Hide ChatInput when chat is empty and projectData exists (show only project description + start button) */}
+      {target && !(projectData && filterMessages.length === 0) && (
+        <div role="status" className="mx-3 mb-1 flex items-center gap-2 rounded-lg border border-[var(--glass-border)] bg-surface-2 px-3 py-1.5 text-xs text-text-secondary">
+          <Crosshair size={13} className="shrink-0 text-primary" aria-hidden="true" />
+          <span className="shrink-0 font-medium text-text-primary">{t('editMode.targetChip')}</span>
+          <span className="min-w-0 truncate" title={t('editMode.targetHint')}>
+            {target.summary}
+          </span>
+          <button
+            type="button"
+            onClick={() => setTarget(null)}
+            className="ml-auto grid h-6 w-6 shrink-0 place-items-center rounded-md text-text-tertiary hover:bg-surface-3 hover:text-text-primary"
+            aria-label={t('editMode.targetClear')}
+            title={t('editMode.targetClear')}
+          >
+            <X size={13} />
+          </button>
+        </div>
+      )}
       {!(projectData && filterMessages.length === 0) && (
         <ChatInput
           input={input}

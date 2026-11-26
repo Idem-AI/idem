@@ -28,7 +28,18 @@ Answer ONLY with this JSON object:
   "generic": true|false (a generic stock photo: handshake, anonymous office, people smiling at the camera),
   "flaws": ["visible problems only: watermark, collage, cropped subject, too dark, blurry, low resolution"]
 }
-"kind": "logo" for a brand mark, "icon" for a pictogram, "screenshot" for a software or website capture, "text" when the image is mostly words, "decorative" for a background texture, pattern or plain shape.`;
+"kind": "logo" for a brand mark, "icon" for a pictogram, "screenshot" for a software or website capture, "text" when the image is mostly words, "decorative" for a background texture, pattern or plain shape.
+When people are visible, say how many and describe each one so they can be told apart from other photos: apparent gender, apparent age range, skin tone, hair, clothing, pose (portrait, at work, group), background. Never guess a name.`;
+
+/**
+ * Le texte qui accompagnait l'image sur l'ancien site (nom et rôle sous une photo d'équipe, titre d'un projet) : dit au
+ * modèle pour qu'il comprenne le RÔLE de l'image (portrait de ce membre, photo de ce projet), pas pour qu'il le décrive.
+ */
+export function readingInstruction(caption?: string): string {
+  if (!caption) return READING_INSTRUCTION;
+  return `${READING_INSTRUCTION}
+On the website, this image is shown next to this text: "${caption.replace(/"/g, "'").slice(0, 200)}". It tells you what the image stands for (for example the portrait of the person named there, or the project titled there): start the description with that role (e.g. "Portrait of the team member captioned '…': …"). This text is NOT embedded in the image: do not set "text" because of it.`;
+}
 
 /** La réponse du modèle, vérifiée champ par champ ; `null` si elle n'est pas lisible. */
 export function parseReading(raw: string): ImageReading | null {
@@ -41,7 +52,7 @@ export function parseReading(raw: string): ImageReading | null {
   } catch {
     return null;
   }
-  const description = typeof value.description === 'string' ? value.description.replace(/\s+/g, ' ').trim().slice(0, 320) : '';
+  const description = typeof value.description === 'string' ? value.description.replace(/\s+/g, ' ').trim().slice(0, 480) : '';
   const kind = KINDS.includes(value.kind as ImageReading['kind']) ? (value.kind as ImageReading['kind']) : null;
   if (description.length < 8 || !kind) return null;
   return {
@@ -65,7 +76,8 @@ export function worthReading(mimeType: string, width: number, height: number): b
 export async function readSiteImage(
   buffer: Buffer,
   vision: (base64: string, mimeType: string, instruction: string) => Promise<string>,
-  timeoutMs = 20_000
+  timeoutMs = 20_000,
+  caption?: string
 ): Promise<ImageReading | null> {
   let thumb: Buffer;
   try {
@@ -81,7 +93,7 @@ export async function readSiteImage(
   let timer: NodeJS.Timeout | undefined;
   try {
     const answer = await Promise.race([
-      vision(thumb.toString('base64'), 'image/jpeg', READING_INSTRUCTION),
+      vision(thumb.toString('base64'), 'image/jpeg', readingInstruction(caption)),
       new Promise<string>((_, reject) => (timer = setTimeout(() => reject(new Error('timeout')), timeoutMs))),
     ]);
     return parseReading(answer);

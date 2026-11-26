@@ -129,8 +129,8 @@ export function renderMediaModule(media: Record<string, MediaAsset[]>): string {
       .filter(([, assets]) => assets.length)
       .map(([key, assets]) => {
         const [first, ...rest] = assets;
-        // L'origine sert aux journaux, pas au site.
-        const clean = (asset: MediaAsset) => Object.fromEntries(Object.entries(asset).filter(([name]) => name !== 'origin'));
+        // L'origine sert aux journaux, la légende à placer l'image : ni l'une ni l'autre n'est écrite dans le site.
+        const clean = (asset: MediaAsset) => Object.fromEntries(Object.entries(asset).filter(([name]) => name !== 'origin' && name !== 'caption'));
         return rest.length ? [[key, clean(first)], ...rest.map((asset, index) => [`${key}-${index + 2}`, clean(asset)])] : [[key, clean(first)]];
       })
       .flat()
@@ -180,6 +180,8 @@ export function renderSeo(facts: SiteFacts, manifest: SiteManifest | null, langu
  */
 export interface HeaderBrandMark {
   src: string;
+  /** L'adresse FIXE du logo (`/brand/<projet>/logo` de l'API) : toujours le logo actuel, sans redéploiement. */
+  publicSrc?: string;
   kind: 'wordmark' | 'icon';
   aspect?: number;
   light?: boolean;
@@ -188,7 +190,8 @@ export interface HeaderBrandMark {
 export function headerBrandMarkOf(projectData: ProjectModel | undefined): HeaderBrandMark | null {
   const header = (projectData?.analysisResultModel?.branding?.logo as { header?: Partial<HeaderBrandMark> } | undefined)?.header;
   if (!header || typeof header.src !== 'string' || !/^https?:\/\//.test(header.src)) return null;
-  return { src: header.src, kind: header.kind === 'icon' ? 'icon' : 'wordmark', ...(header.aspect ? { aspect: header.aspect } : {}), ...(header.light ? { light: true } : {}) };
+  const publicSrc = typeof header.publicSrc === 'string' && /^https?:\/\//.test(header.publicSrc) ? header.publicSrc : undefined;
+  return { src: header.src, ...(publicSrc ? { publicSrc } : {}), kind: header.kind === 'icon' ? 'icon' : 'wordmark', ...(header.aspect ? { aspect: header.aspect } : {}), ...(header.light ? { light: true } : {}) };
 }
 
 /**
@@ -199,7 +202,9 @@ export function renderBrandModule(projectData: ProjectModel | undefined, name: s
   const header = headerBrandMarkOf(projectData);
   const declared = header?.src || resolveHeaderLogo(projectData?.analysisResultModel?.branding?.logo as unknown);
   const src = source ?? (declared ? (declared.startsWith('<') ? { inlineSvg: declared } : { remote: declared }) : {});
-  const url = src.path ?? src.dataUri ?? src.remote;
+  // L'adresse fixe d'abord : le site en ligne affiche alors le logo ACTUEL de la charte, même changé après la
+  // mise en ligne. Une copie (fichier déposé, data URI, fichier horodaté) ne vaut que pour un projet sans elle.
+  const url = header?.publicSrc ?? src.path ?? src.dataUri ?? src.remote;
   const kind = header?.kind ?? 'wordmark';
   const chip = header?.light ? ' rounded-md bg-foreground px-2 py-1' : '';
 

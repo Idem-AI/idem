@@ -38,6 +38,13 @@ export interface InventoryImage {
   quality?: ImageQuality;
   /** Regardée à la recopie par le modèle de vision (`SiteImport/siteImageReading.ts`) ; absente avant le 25/11/2026. */
   vision?: ImageReading;
+  /**
+   * LE TEXTE QUI APPARTIENT À CETTE IMAGE sur l'ancien site : la légende (`<figcaption>`) ou le texte de la carte qui
+   * ne contient qu'elle (le nom et le rôle sous une photo d'équipe, le titre d'un projet, d'un produit). Relevé
+   * seulement quand la section a plusieurs images (relevés depuis le 26/11/2026). C'est ce lien, et non ce que montre
+   * l'image, qui dit quelle photo va avec quel élément : un visage ne dit pas son nom.
+   */
+  caption?: string;
 }
 
 /**
@@ -314,6 +321,8 @@ function readStructure(): PageRead {
       ctas.push({ label: label, href: href, kind: href ? ctaKind(href) : 'anchor' });
     });
     var images: any[] = [];
+    // Le nœud de chaque image (même rang que `images`) : sa légende se lit une fois toutes les images connues.
+    var imageNodes: any[] = [];
     var own = bg(el);
     if (own) images.push({ url: own, alt: '', width: Math.round(el.getBoundingClientRect().width), height: Math.round(el.getBoundingClientRect().height), kind: 'background' });
     within(el, 'img, picture source, *').slice(0, 1500).forEach(function (node: any) {
@@ -356,6 +365,7 @@ function readStructure(): PageRead {
         // L'image vraiment affichée : le secours si la grande variante ne se télécharge pas.
         if (shownSrc && shownSrc !== src && shownSrc.indexOf('data:') !== 0) entry.fallback = shownSrc;
         images.push(entry);
+        imageNodes[images.length - 1] = node;
         return;
       }
       if (tag === 'source' || tag === 'picture') return;
@@ -364,7 +374,35 @@ function readStructure(): PageRead {
       var r = node.getBoundingClientRect();
       if (r.width < 120 || r.height < 80) return;
       images.push({ url: b, alt: '', width: Math.round(r.width), height: Math.round(r.height), kind: 'background' });
+      imageNodes[images.length - 1] = node;
     });
+    // LA LÉGENDE DE CHAQUE IMAGE (section à plusieurs images seulement) : sa <figcaption>, sinon le texte du plus grand
+    // bloc qui la contient SANS contenir une autre image de la section — la carte d'un membre d'équipe, d'un projet,
+    // d'un produit. Un bloc trop bavard (plus de 320 signes) n'est plus une carte : on garde le précédent.
+    if (images.length >= 2) {
+      var others = imageNodes.filter(Boolean);
+      images.forEach(function (entry: any, index: number) {
+        var node = imageNodes[index];
+        if (!node) return;
+        var figure = node.closest && node.closest('figure');
+        var figcaption = figure && el.contains(figure) ? figure.querySelector('figcaption') : null;
+        var caption = figcaption ? clean(figcaption.textContent) : '';
+        if (!caption) {
+          var card = node;
+          while (card.parentElement && card !== el && card.parentElement !== el.parentElement) {
+            var up = card.parentElement;
+            var holdsOther = others.some(function (o: any) { return o !== node && (up === o || up.contains(o)); });
+            if (holdsOther) break;
+            var said = clean(up.innerText || up.textContent);
+            if (said.length > 320) break;
+            if (said) caption = said;
+            card = up;
+            if (up === el) break;
+          }
+        }
+        if (caption) entry.caption = caption.slice(0, 200);
+      });
+    }
     var form = uniq(
       within(el, 'input, textarea, select').filter(function (f: any) {
         return f.type !== 'hidden' && f.type !== 'submit';

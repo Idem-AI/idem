@@ -28,6 +28,7 @@ import { dirname, join, posix } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import * as esbuild from 'esbuild';
 import { compiler } from '../siteEngine/template.js';
+import { isTaggable, tagJsx } from './tagger.js';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const APP_ROOT = join(HERE, '..', '..');
@@ -469,6 +470,9 @@ export class PreviewSession {
               // Les feuilles de style passent par Tailwind, à part : rien à regrouper ici.
               if (ext === '.css') return { contents: '', loader: 'js' };
               let contents = session.files.get(path) ?? '';
+              // Les repères du mode Édition (`tagger.ts`), posés sur le source propre AVANT toute autre réécriture : leurs
+              // positions sont celles du fichier que l'atelier modifie.
+              if (isTaggable(path)) contents = tagJsx(path, contents);
               // Les fichiers de `public/` cités par leur adresse (`/brand/pattern.svg`) : servis sous l'aperçu.
               const paths = publicPaths();
               if (paths.length && /\.(tsx?|jsx?|mjs)$/.test(ext)) {

@@ -26,7 +26,7 @@ import { writeFile, rm } from 'fs/promises';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { executeRemoteCommand, shellQuote, uploadRemoteFile } from '../ssh/ssh';
-import { STATIC_NGINX_CONF, toBuildPack } from '../docker/build-packs';
+import { STATIC_NGINX_CONF } from '../docker/build-packs';
 import { composeDirFile, composeProject, composeServiceName, generateComposeFile } from '../docker/compose';
 import { writeFirewallFile } from '../services/firewall-file.service';
 import { applyRoutes, retryPlatformCertificates } from '../services/routes-file.service';
@@ -39,21 +39,7 @@ const STATIC_IMAGE = 'nginx:alpine';
 /** La configuration du chemin général, servie depuis le dossier monté. */
 export const FAST_STATIC_NGINX_CONF = STATIC_NGINX_CONF.replace('root /usr/share/nginx/html;', 'root /site/current/html;');
 
-/**
- * Le site arrive tout construit (iCode) : des fichiers, pas de commande à
- * lancer. Un dépôt Git, une commande d'installation ou de build, une image :
- * le chemin général.
- */
-export function isPrebuiltStatic(app: ApplicationRow, hasSourceArchive: boolean): boolean {
-  return (
-    hasSourceArchive &&
-    !app.git_repository &&
-    toBuildPack(app.build_pack) === 'static' &&
-    !app.install_command &&
-    !app.build_command &&
-    !app.start_command
-  );
-}
+export { isPrebuiltStatic } from './prebuilt-static';
 
 export interface FastStaticContext {
   deploymentUuid: string;
@@ -101,6 +87,16 @@ export async function deployPrebuiltStatic(ctx: FastStaticContext): Promise<void
   await log('Prebuilt site: published as files, without building an image.');
   let confChanged = false;
 
+  // The firewall file and the routes do not depend on the files: written while
+  // the archive travels, not after. On a first publish the address was usually
+  // prepared when iCode's window opened (address-reservation.service), so the
+  // DNS wait returns at once. Awaited before the switch; a failure surfaces there.
+  const routing = (async () => {
+    await writeFirewallFile(server, key, app);
+    return applyRoutes(server, key, app, { port: 80, waitForPlatformDnsMs: 90_000 });
+  })();
+  routing.catch(() => undefined);
+
   // 1. Les fichiers, dans une nouvelle version (rien de ce qui est servi ne change encore).
   await ctx.step('Uploading the site', async () => {
     const localArchive = join(tmpdir(), `ideploy-site-${deploymentUuid}.tgz`);
@@ -143,8 +139,7 @@ export async function deployPrebuiltStatic(ctx: FastStaticContext): Promise<void
   // 2. Le conteneur unique : créé s'il n'existe pas (ou si son compose a changé), sinon laissé tel quel.
   ctx.markSwitched();
   await ctx.step('Switching to the new version', async () => {
-    await writeFirewallFile(server, key, app);
-    const { routed, waiting } = await applyRoutes(server, key, app, { port: 80, waitForPlatformDnsMs: 90_000 });
+    const { routed, waiting } = await routing;
     if (routed.length) await log(`Routes: ${routed.join(', ')}`);
     if (waiting.length) await log(`Waiting for DNS (not routed yet): ${waiting.join(', ')} — see Settings › domain.`);
 

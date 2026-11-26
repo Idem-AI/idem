@@ -44,15 +44,14 @@
                 <p class="jn-step-caption">{{ stage.caption }}</p>
                 <ul class="jn-points">
                   @for (point of stage.points; track point) {
-                    <li><i class="pi pi-check" aria-hidden="true"></i>{{ point }}</li>
+                    <li><svg class="jn-check" viewBox="0 0 12 12" aria-hidden="true"><path d="M6 .5 8.2 3.8 11.5 6 8.2 8.2 6 11.5 3.8 8.2.5 6 3.8 3.8Z"/></svg>{{ point }}</li>
                   }
                 </ul>
                 <div class="jn-actions">
                   <a href="{{ createProjectUrl }}" class="inner-button button-sm jn-cta">
                     {{ stage.ctaLabel }}
-                    <i class="pi pi-arrow-right" aria-hidden="true"></i>
+                    
                   </a>
-                  <idem-promo-text class="jn-price" [text]="stage.price" [item]="stage.item ?? null" [xaf]="stage.xaf ?? null" [source]="stage.source ?? stage.item ?? null" />
                 </div>
               </div>
             </div>
@@ -73,20 +72,18 @@
         >
           <!-- Sur téléphone, l'index n'est pas là : chaque écran porte son texte. -->
           <div class="jn-shot-copy">
-            <p class="jn-kicker"><span class="jn-step-num">{{ number(i) }}</span>{{ stage.label }}</p>
-            <h3 class="jn-shot-title">{{ stage.title }}</h3>
+            <h3 class="jn-shot-title"><span class="jn-step-num" aria-hidden="true">{{ number(i) }}</span>{{ stage.title }}</h3>
             <p class="jn-step-caption">{{ stage.caption }}</p>
             <ul class="jn-points">
               @for (point of stage.points; track point) {
-                <li><i class="pi pi-check" aria-hidden="true"></i>{{ point }}</li>
+                <li><svg class="jn-check" viewBox="0 0 12 12" aria-hidden="true"><path d="M6 .5 8.2 3.8 11.5 6 8.2 8.2 6 11.5 3.8 8.2.5 6 3.8 3.8Z"/></svg>{{ point }}</li>
               }
             </ul>
             <div class="jn-actions">
               <a href="{{ createProjectUrl }}" class="inner-button button-sm jn-cta">
                 {{ stage.ctaLabel }}
-                <i class="pi pi-arrow-right" aria-hidden="true"></i>
+                
               </a>
-              <idem-promo-text class="jn-price" [text]="stage.price" [item]="stage.item ?? null" [xaf]="stage.xaf ?? null" [source]="stage.source ?? stage.item ?? null" />
             </div>
           </div>
 
@@ -213,7 +210,7 @@
       <div class="jn-actions">
         <a href="{{ createProjectUrl }}" class="inner-button jn-cta">
           <span i18n="@@journey.end.cta">Start mine</span>
-          <i class="pi pi-arrow-right" aria-hidden="true"></i>
+          
         </a>
         <span class="jn-price" i18n="@@journey.end.note">Free to start · no card required</span>
       </div>

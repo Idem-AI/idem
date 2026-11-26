@@ -9,7 +9,7 @@ import * as appService from '../services/application.service';
 import { checkDomains, getServerForDestination } from '../services/domain.service';
 import * as envVarService from '../services/env-var.service';
 import * as deploymentService from '../services/deployment.service';
-import { saveApplicationSource } from '../services/application-source.service';
+import { getSourceManifest, saveApplicationSource, saveApplicationSourceDelta } from '../services/application-source.service';
 import * as taskService from '../services/scheduled-task.service';
 import * as volumeService from '../services/volume.service';
 import { resolveWorkspaceDestination, STANDALONE_DOCKER_TYPE } from '../services/workspace.service';
@@ -386,12 +386,15 @@ export async function exec(req: CustomRequest, res: Response): Promise<void> {
  * redeploy it unless `deploy: false`. How a published site gets its updates.
  */
 export async function replaceSource(req: CustomRequest, res: Response): Promise<void> {
-  const files = req.body?.files;
+  const files = req.body?.files ?? (req.body?.manifest ? {} : undefined);
   if (!files || typeof files !== 'object') return fail(res, 'files is required', 422, 'VALIDATION');
   try {
     const teamId = req.user!.currentTeamId!;
     const uuid = String(req.params.uuid);
-    const saved = await saveApplicationSource(teamId, uuid, files);
+    // `manifest`: every file with its digest, `files` holding only those that changed.
+    const saved = req.body?.manifest
+      ? await saveApplicationSourceDelta(teamId, uuid, req.body.manifest, files)
+      : await saveApplicationSource(teamId, uuid, files);
     let deploymentUuid: string | null = null;
     if (req.body?.deploy !== false) {
       const app = await appService.getApplication(teamId, uuid);
@@ -401,6 +404,15 @@ export async function replaceSource(req: CustomRequest, res: Response): Promise<
     ok(res, { ...saved, deploymentUuid }, deploymentUuid ? 202 : 200);
   } catch (err) {
     respondWithError(res, err, 'Replacing the code of the application');
+  }
+}
+
+/** Each file of the stored code with its SHA-256: the client then sends only what changed. */
+export async function sourceManifest(req: CustomRequest, res: Response): Promise<void> {
+  try {
+    ok(res, { manifest: await getSourceManifest(req.user!.currentTeamId!, String(req.params.uuid)) });
+  } catch (err) {
+    respondWithError(res, err, 'Reading the code of the application');
   }
 }
 

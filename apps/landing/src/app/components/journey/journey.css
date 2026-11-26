@@ -139,8 +139,13 @@
   transition: color 300ms ease;
 }
 
+.jn-shot-title .jn-step-num,
 .jn-step.is-active .jn-step-num {
   color: var(--color-primary-500);
+}
+
+.jn-shot-title .jn-step-num {
+  font-size: inherit;
 }
 
 .jn-step.is-active .jn-step-title {
@@ -196,9 +201,13 @@
   color: var(--color-text-primary);
 }
 
-.jn-points .pi {
-  font-size: 0.75rem;
-  color: var(--color-primary-500);
+/* Tabono-inspired 4-pointed star: strength and perseverance (Adinkra, Ghana). */
+.jn-check {
+  width: 0.75rem;
+  height: 0.75rem;
+  fill: var(--color-primary-500);
+  flex-shrink: 0;
+  align-self: center;
 }
 
 .jn-actions {
@@ -241,21 +250,12 @@
   margin-bottom: 1.5rem;
 }
 
-.jn-kicker {
-  display: flex;
-  gap: 0.6rem;
-  margin: 0;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--color-text-secondary);
-}
-
-.jn-kicker .jn-step-num {
-  color: var(--color-primary-500);
-}
-
+/* Le numéro dans sa colonne, à gauche du titre, comme dans l'index du bureau. */
 .jn-shot-title {
-  margin: 0.35rem 0 0.75rem;
+  display: grid;
+  grid-template-columns: 2.5rem minmax(0, 1fr);
+  align-items: baseline;
+  margin: 0 0 0.75rem;
   font-size: clamp(1.4rem, 1.15rem + 1vw, 1.85rem);
   font-weight: 800;
   line-height: 1.15;

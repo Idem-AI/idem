@@ -39,6 +39,7 @@ import { measureImageQuality, type ImageQuality } from '../../../../../packages/
 import { BrandCheck, checkBrandColors } from './brandCheck';
 import { isDefaultFont, replaceBannedFont } from '../../../../ivision/core/src/site/typography';
 import { ensureBrandMark } from './brandMark.service';
+import { sharpenBrandAsset } from './brandAssetQuality';
 import { readingQueue, readSiteImage, worthReading } from './siteImageReading';
 import type { ImageReading } from '../../../../ivision/core/src/site/site-crawler';
 
@@ -259,6 +260,14 @@ async function importLogo(userId: string, projectId: string, scan: SiteScanResul
     }
   }
   if (!buffer) return null;
+  // Un logo en image est d'abord rendu net (agrandi, contours reconstruits) : la charte et les déclinaisons en partent.
+  if (!name.endsWith('.svg')) {
+    const sharp = await sharpenBrandAsset(buffer, `image/${name.split('.').pop() || 'png'}`, 'logo', { projectId, what: 'logo' });
+    if (sharp.enhanced) {
+      buffer = sharp.buffer;
+      name = 'logo.png';
+    }
+  }
   const imported = await processLogoImport(buffer, name);
   const variations = await generateLogoVariations(imported.svg);
   const folder = `users/${userId}/projects/${projectId}/logos`;
@@ -394,6 +403,8 @@ async function hostInventory(userId: string, projectId: string, inventory: SiteI
   // sa propre file — la recopie n'attend pas les lectures. L'agent média de la refonte choisit ensuite, section par
   // section, l'image qui sert le projet, ou constate qu'aucune ne convient.
   const contentUrls = new Set(inventory.assets.images.map((i) => i.url));
+  // La légende de chaque image (nom sous une photo d'équipe…) : le modèle de vision comprend ainsi son rôle.
+  const captionOf = new Map(inventory.pages.flatMap((page) => page.sections.flatMap((section) => section.images.filter((i) => i.caption).map((i) => [i.url, i.caption!] as const))));
   const readings = new Map<string, Promise<ImageReading | null>>();
   const readQueue = readingQueue(8);
   let next = 0;
@@ -414,19 +425,29 @@ async function hostInventory(userId: string, projectId: string, inventory: SiteI
         // Prête pour le web : une photo de 1,6 Mo (PNG d'origine) ralentissait le site et dépassait ce que l'aperçu
         // de développement sait afficher. Redimensionnée (2 000 px au plus) et recompressée en WebP ; les SVG, les
         // icônes et les GIF animés restent tels quels.
-        const web = await webImage(file.buffer, file.mimeType);
+        // Favicon, icône Apple et petits pictogrammes (aplats de moins de 320 px) : rendus nets avant d'être utilisés.
+        const isIcon = url === inventory.assets.favicon || url === inventory.assets.appleIcon;
+        let source = { buffer: file.buffer, mimeType: file.mimeType };
+        if (RASTER_MIME.test(file.mimeType)) {
+          const probe = isIcon ? null : await measureImageQuality(file.buffer);
+          if (isIcon || (probe && !probe.photo && Math.max(probe.width, probe.height) <= 320)) {
+            const sharpened = await sharpenBrandAsset(file.buffer, file.mimeType, 'icon', { projectId, what: isIcon ? 'icon' : 'pictogram' });
+            if (sharpened.enhanced) source = { buffer: sharpened.buffer, mimeType: sharpened.mimeType };
+          }
+        }
+        const web = await webImage(source.buffer, source.mimeType);
         // Mesurée sur le fichier d'origine (les blocs JPEG ne se lisent que là), aux dimensions du fichier recopié.
-        const quality = /^image\/(png|jpe?g|webp|avif|tiff)$/i.test(file.mimeType) ? await measureImageQuality(file.buffer) : null;
+        const quality = /^image\/(png|jpe?g|webp|avif|tiff)$/i.test(file.mimeType) ? await measureImageQuality(source.buffer) : null;
         if (quality) {
           const scale = Math.min(1, WEB_IMAGE_SIDE / Math.max(quality.width, quality.height));
           measured.set(url, { ...quality, width: Math.round(quality.width * scale), height: Math.round(quality.height * scale) });
         }
-        const ext = web.ext ?? (file.mimeType.split('/')[1] || 'jpg').replace('jpeg', 'jpg').replace('svg+xml', 'svg').replace('x-icon', 'ico').replace('vnd.microsoft.icon', 'ico').replace(/[^a-z0-9]/g, '');
+        const ext = web.ext ?? (source.mimeType.split('/')[1] || 'jpg').replace('jpeg', 'jpg').replace('svg+xml', 'svg').replace('x-icon', 'ico').replace('vnd.microsoft.icon', 'ico').replace(/[^a-z0-9]/g, '');
         if (vision && contentUrls.has(url) && quality && readings.size < MAX_READINGS && worthReading(file.mimeType, quality.width, quality.height)) {
           const original = file.buffer;
-          readings.set(url, readQueue(() => readSiteImage(original, vision)));
+          readings.set(url, readQueue(() => readSiteImage(original, vision, undefined, captionOf.get(url))));
         }
-        const upload = await storageService.uploadFile(web.buffer, `site-${stamp}-${index + 1}.${ext}`, folder, web.mimeType ?? file.mimeType);
+        const upload = await storageService.uploadFile(web.buffer, `site-${stamp}-${index + 1}.${ext}`, folder, web.mimeType ?? source.mimeType);
         hosted.set(url, upload.downloadURL);
       } catch (error: any) {
         logger.warn('site_import.asset_copy_failed', { event: 'site_import.asset_copy_failed', projectId, url, error: error?.message });
@@ -473,6 +494,7 @@ const READING_GRACE_MS = 25_000;
 
 /** Le plus grand côté d'une image recopiée. */
 const WEB_IMAGE_SIDE = 2000;
+const RASTER_MIME = /^image\/(png|jpe?g|webp|avif|tiff)$/i;
 
 /** Une image de contenu, prête pour le web (au plus 2 000 px, WebP qualité 82) ; le reste est rendu tel quel. */
 async function webImage(buffer: Buffer, mimeType: string): Promise<{ buffer: Buffer; mimeType?: string; ext?: string }> {
@@ -496,7 +518,8 @@ async function originalLogo(userId: string, projectId: string, scan: SiteScanRes
     const file = await safeFetch(scan.logo.url, { accept: ['image/'], maxBytes: 8 * 1024 * 1024, timeoutMs: 20_000 });
     if (file.mimeType === 'image/svg+xml') return (await storageService.uploadFile(file.buffer, `logo-original-${Date.now().toString(36)}.svg`, `users/${userId}/projects/${projectId}/logos`, 'image/svg+xml')).downloadURL;
     // Fond uni autour du logo retiré (blanc ou transparent), puis PNG (transparence gardée).
-    const trimmed = await sharp(file.buffer, { failOn: 'none' }).trim({ threshold: 18 }).resize({ height: 400, withoutEnlargement: true }).png().toBuffer();
+    const sharpened = await sharpenBrandAsset(file.buffer, file.mimeType, 'logo', { projectId, what: 'logo-original' });
+    const trimmed = await sharp(sharpened.buffer, { failOn: 'none' }).trim({ threshold: 18 }).resize({ height: sharpened.enhanced ? 512 : 400, withoutEnlargement: true }).png().toBuffer();
     return (await storageService.uploadFile(trimmed, `logo-original-${Date.now().toString(36)}.png`, `users/${userId}/projects/${projectId}/logos`, 'image/png')).downloadURL;
   } catch (error: any) {
     logger.warn('site_import.logo_original_failed', { event: 'site_import.logo_original_failed', projectId, error: error?.message });

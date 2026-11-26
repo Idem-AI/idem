@@ -20,6 +20,7 @@ router.get('/:uuid', ctrl.getApplication);
 router.patch('/:uuid', ctrl.updateApplication);
 // Code sent directly (iCode): replace it and redeploy.
 router.put('/:uuid/source', ctrl.replaceSource);
+router.get('/:uuid/source/manifest', ctrl.sourceManifest);
 
 /**
  * @swagger

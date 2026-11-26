@@ -66,7 +66,7 @@ import {
   deleteElement,
   type EditResult,
 } from './astEdit';
-import { buildInjectPlan, buildRemovePlan, type InstrumentationPlan } from './instrumentation';
+import { AGENT_SOURCE, buildInjectPlan, buildRemovePlan, type InstrumentationPlan } from './instrumentation';
 import { isMobileApp } from '@/utils/product';
 import useChatStore from '@/stores/chatSlice';
 import { startProject } from '../AiChat/utils/warmStart';
@@ -152,6 +152,8 @@ function extractBgUrl(v: string | undefined): string {
   return m ? m[2] : '';
 }
 const cval = (info: SelectedElementInfo | null, key: string) => info?.computed?.[key];
+/** Deux chemins de page égaux à la barre finale près (`/a-propos` et `/a-propos/`). */
+const samePath = (a: string, b: string) => (a || '/').replace(/\/?$/, '/') === (b || '/').replace(/\/?$/, '/');
 
 const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }) => {
   const { t } = useTranslation();
@@ -222,22 +224,27 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
     }
   }, [running, t]);
 
-  /**
-   * L'instrumentation réécrit des fichiers du projet et fait redémarrer le
-   * serveur de dev : on ne la pose donc qu'à la première entrée dans un mode
-   * d'édition, et on la retire au retour en navigation. Basculer entre
-   * sélection, texte et dessin ne coûte qu'un message à l'agent.
-   */
   const editing = toolMode !== 'off';
 
   /**
    * L'aperçu instantané d'un site vitrine (`utils/fastPreview.ts`) : affiché dès qu'il existe, en moins d'une seconde,
-   * au lieu d'attendre le serveur de la WebContainer. Le mode Édition garde la WebContainer (son instrumentation est
-   * un plugin Vite) ; si l'aperçu instantané est indisponible, rien ne change.
+   * au lieu d'attendre le serveur de la WebContainer — y compris en mode Édition. Son code porte déjà les repères
+   * `data-idem-id` (posés au regroupement, `we-dev-next/src/preview/tagger.ts`) et l'agent d'édition y est envoyé dès
+   * le chargement : « Sélectionner », « Texte » et « Dessiner » s'allument par un message, sans recharger, sur la page
+   * et à l'endroit où se trouve la personne.
+   *
+   * Sans aperçu instantané (application, application mobile), la WebContainer : l'instrumentation y réécrit
+   * `vite.config` et fait redémarrer Vite, posée à la première entrée dans un mode d'édition, retirée au retour.
    */
   useEffect(() => startFastPreview(), []);
   const fastUrl = useFastPreview((state) => state.url);
-  const url = !editing && fastUrl ? fastUrl : containerUrl;
+  const fastActive = !!fastUrl;
+  const url = fastUrl || containerUrl;
+  const fastActiveRef = useRef(fastActive);
+  fastActiveRef.current = fastActive;
+  /** Les pages du site et celle affichée, annoncées par l'aperçu instantané (menu des pages). */
+  const [sitePages, setSitePages] = useState<Array<{ path: string; title: string; lang: string }>>([]);
+  const [currentPath, setCurrentPath] = useState('/');
 
   const { updateContent, addFile, deleteFile, getContent } = useFileStore();
 
@@ -271,8 +278,60 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
   }, []);
 
   const handleRefresh = useCallback(() => {
+    setAgentReady(false);
     if (iframeRef.current) iframeRef.current.src = iframeRef.current.src;
   }, []);
+
+  /** Un ordre au moteur de l'aperçu instantané (`we-dev-next/src/routes/preview.ts`). */
+  const sendToPreview = useCallback((msg: Record<string, unknown>) => {
+    iframeRef.current?.contentWindow?.postMessage({ source: 'idem-preview-parent', ...msg }, '*');
+  }, []);
+  /** L'agent d'édition, envoyé à l'aperçu instantané dès qu'il est chargé (idempotent : il ne s'installe qu'une fois). */
+  const loadAgent = useCallback(() => {
+    if (fastActiveRef.current) sendToPreview({ type: 'LOAD_AGENT', code: AGENT_SOURCE });
+  }, [sendToPreview]);
+  const handleFrameLoad = useCallback(() => {
+    startupPageLoaded();
+    loadAgent();
+  }, [loadAgent]);
+
+  /** Changer de page, en mode Édition compris : l'aperçu instantané change sans recharger ; la WebContainer recharge. */
+  const navigateTo = useCallback(
+    (href: string) => {
+      if (!href.startsWith('/') || href.startsWith('//')) return;
+      setSelected([]);
+      if (fastActiveRef.current) {
+        sendToPreview({ type: 'NAVIGATE', href });
+        return;
+      }
+      if (iframeRef.current && containerUrl) {
+        setAgentReady(false);
+        iframeRef.current.src = new URL(href, containerUrl).toString();
+      }
+    },
+    [sendToPreview, containerUrl]
+  );
+
+  // Ce que dit l'aperçu instantané : page affichée, liste des pages, agent installé.
+  useEffect(() => {
+    const onMessage = (event: MessageEvent) => {
+      if (event.source !== iframeRef.current?.contentWindow) return;
+      const data = event.data as { source?: string; type?: string; path?: string; pages?: Array<{ path: string; title: string; lang: string }> };
+      if (data?.source !== 'idem-preview') return;
+      if (typeof data.path === 'string') setCurrentPath(data.path);
+      if (Array.isArray(data.pages)) setSitePages(data.pages);
+      // Première version affichée (ou page rechargée) : l'agent part tout de suite, avant même un clic sur « Sélectionner ».
+      if (data.type === 'ready') loadAgent();
+    };
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
+  }, [loadAgent]);
+
+  // Nouvelle adresse d'aperçu (aperçu instantané ouvert, ou WebContainer à la place) : l'agent est à réinstaller.
+  useEffect(() => {
+    setAgentReady(false);
+    setSelected([]);
+  }, [url]);
 
   /** Une modification de l'agent est en cours : l'aperçu garde la version qui tourne (`utils/previewHold`). */
   const held = usePreviewHold((state) => state.held);
@@ -407,7 +466,8 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
     redoStackRef.current = [];
     bumpHist();
 
-    if (editing) {
+    // L'aperçu instantané porte déjà ses repères : rien à écrire dans le projet, rien à redémarrer.
+    if (editing && !fastActive) {
       const plan = buildInjectPlan(useFileStore.getState().files);
       if (!plan.ok) {
         toast.error(t('editMode.injectFailed', { reason: plan.reason ?? '' }));
@@ -417,14 +477,26 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
       applyPlan(plan);
     } else if (injectedRef.current) {
       injectedRef.current = false;
-      setAgentReady(false);
+      if (!fastActive) setAgentReady(false);
       setSelected([]);
       setTree([]);
       setExpanded(new Set());
       applyPlan(buildRemovePlan(useFileStore.getState().files));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editing]);
+  }, [editing, fastActive]);
+
+  // Entrée en mode Édition sans agent connu (aperçu juste rouvert, message perdu) : on le réinstalle / le réveille.
+  useEffect(() => {
+    if (!editing || agentReady) return;
+    loadAgent();
+    sendToAgent({ source: IDEM_SOURCE, type: 'PING' });
+    const timer = setInterval(() => {
+      loadAgent();
+      sendToAgent({ source: IDEM_SOURCE, type: 'PING' });
+    }, 700);
+    return () => clearInterval(timer);
+  }, [editing, agentReady, loadAgent, sendToAgent]);
 
   /* -------- Historique (undo / redo) -------- */
   const commit = useCallback(
@@ -808,6 +880,7 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
     onUpload: uploadImage,
     onEnhance: enhanceImageQuality,
     enhancing: !!enhancingId && enhancingId === primary?.id,
+    onOpenPage: navigateTo,
   };
 
 
@@ -873,7 +946,17 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
   /* -------- Remontée de la sélection vers la conversation (P1.4) -------- */
   const askAboutSelection = useCallback(() => {
     if (!selected.length) return;
+    // La désignation exacte, comme celle de l'outil Dessin : le serveur limite la retouche à ces éléments et à la
+    // partie qui les porte (avant, seul un texte « fichier@position » partait dans le chat, sans valeur pour lui).
+    const pointed: PointedElement[] = selected.flatMap((element) => {
+      const self = decodeIdemId(element.id);
+      if (!self) return [];
+      const chain = [self, ...(element.ancestors ?? []).map((id) => decodeIdemId(id)).filter((ref): ref is IdemNodeRef => !!ref)];
+      const owner = ownerOf(chain);
+      return [{ tag: element.tag, kind: element.kind, text: element.text.replace(/\s+/g, ' ').trim().slice(0, 160), filePath: self.filePath, start: self.start, owner: owner.filePath, ownerStart: owner.start, how: 'point' as const }];
+    });
     onAskAboutSelection?.({
+      pointed,
       count: selected.length,
       elements: selected.flatMap((element) => {
         const ref = decodeIdemId(element.id);
@@ -930,11 +1013,34 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
                   : t('preview.run')}
           </button>
 
-          <div className="flex-1 min-w-0 h-7 px-3 flex items-center rounded-md bg-surface-2 border border-[var(--glass-border)]">
-            <span className="text-xs text-text-secondary truncate" data-mono>
-              {displayUrl}
-            </span>
-          </div>
+          {/* Les pages du site : on en change d'ici dans tous les modes (en « Sélectionner », les clics de la page
+              désignent des éléments au lieu de suivre les liens). */}
+          {fastActive && sitePages.length > 1 ? (
+            <label className="flex-1 min-w-0 h-7 flex items-center rounded-md bg-surface-2 border border-[var(--glass-border)]">
+              <span className="sr-only">{t('editMode.pageMenu')}</span>
+              <select
+                value={sitePages.find((page) => samePath(page.path, currentPath))?.path ?? ''}
+                onChange={(event) => navigateTo(event.target.value)}
+                className="w-full h-full px-2 bg-transparent text-xs text-text-secondary truncate cursor-pointer outline-none"
+                title={t('editMode.pageMenu')}
+                data-mono
+              >
+                {!sitePages.some((page) => samePath(page.path, currentPath)) && <option value="">{currentPath}</option>}
+                {sitePages.map((page) => (
+                  <option key={page.path} value={page.path}>
+                    {page.path}
+                    {page.title ? ` — ${page.title}` : ''}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : (
+            <div className="flex-1 min-w-0 h-7 px-3 flex items-center rounded-md bg-surface-2 border border-[var(--glass-border)]">
+              <span className="text-xs text-text-secondary truncate" data-mono>
+                {displayUrl}
+              </span>
+            </div>
+          )}
 
           {mobileApp ? (
             <div
@@ -1041,7 +1147,7 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
                   <iframe
                     ref={iframeRef}
                     src={url}
-                    onLoad={startupPageLoaded}
+                    onLoad={handleFrameLoad}
                     className="w-full h-full border-none bg-white block"
                     title="preview"
                     sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-downloads"
@@ -1095,7 +1201,7 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
               <iframe
                 ref={iframeRef}
                 src={url}
-                onLoad={startupPageLoaded}
+                onLoad={handleFrameLoad}
                 className="w-full h-full border-none bg-white block"
                 title="preview"
                 sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-downloads"
@@ -1146,6 +1252,11 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
           {editing && url && !agentReady && toolMode !== 'draw' && (
             <div className="absolute top-3 left-1/2 -translate-x-1/2 text-[11px] px-2.5 py-1 rounded-full glass text-text-secondary">
               {t('editMode.loadingAgent')}
+            </div>
+          )}
+          {toolMode === 'select' && url && agentReady && !selected.length && (
+            <div className="absolute top-3 left-1/2 -translate-x-1/2 text-[11px] px-2.5 py-1 rounded-full glass text-text-secondary pointer-events-none">
+              {t('editMode.altClickHint')}
             </div>
           )}
 
@@ -1280,6 +1391,8 @@ interface Handlers {
   /** Rend l'image sélectionnée nette à sa taille affichée (sans IA payante). */
   onEnhance: () => void;
   enhancing: boolean;
+  /** Aller à la page d'un lien interne (`/a-propos/`) sans quitter le mode. */
+  onOpenPage: (href: string) => void;
 }
 
 const CONTAINERS = ['container', 'list', 'generic'];
@@ -1306,7 +1419,7 @@ const SingleControls: React.FC<{ info: SelectedElementInfo; handlers: Handlers }
 
       {/* Lien */}
       {(kind === 'link' || (kind === 'button' && info.attrs.href !== undefined)) && (
-        <LinkSection info={info} onAttr={onAttr} />
+        <LinkSection info={info} onAttr={onAttr} onOpenPage={handlers.onOpenPage} />
       )}
 
       {/* Champ de saisie */}
@@ -1541,12 +1654,25 @@ const ImageSection: React.FC<{
 const LinkSection: React.FC<{
   info: SelectedElementInfo;
   onAttr: (n: string, v: string | null) => void;
-}> = ({ info, onAttr }) => {
+  onOpenPage: (href: string) => void;
+}> = ({ info, onAttr, onOpenPage }) => {
   const { t } = useTranslation();
   const newTab = info.attrs.target === '_blank';
+  const href = info.attrs.href ?? '';
+  const internal = href.startsWith('/') && !href.startsWith('//');
   return (
     <Section icon={<LinkIcon size={14} />} title={t('editMode.link')}>
       <AttrInput info={info} name="href" onAttr={onAttr} placeholder="https://… or /page" />
+      {internal && (
+        <button
+          type="button"
+          onClick={() => onOpenPage(href)}
+          className="mt-2 w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--glass-border)] text-xs text-text-secondary hover:text-text-primary hover:bg-surface-3 transition-colors"
+        >
+          <ExternalLink size={13} aria-hidden="true" />
+          {t('editMode.openLinkedPage')}
+        </button>
+      )}
       <label className="flex items-center gap-2 mt-2 text-sm text-text-tertiary cursor-pointer">
         <input
           type="checkbox"

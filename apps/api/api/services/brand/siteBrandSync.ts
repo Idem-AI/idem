@@ -31,6 +31,9 @@ import {
 } from './brandRewrite';
 import { resolveLogoSlot } from './brandTokens';
 import { traceHeaders } from '../../utils/trace.util';
+import { ensureBrandMark } from '../SiteImport/brandMark.service';
+import { projectService } from '../project.service';
+import { PUBLIC_LOGO_URL } from './publicLogoUrl';
 
 const FORGE_TIMEOUT_MS = 5_000;
 
@@ -176,18 +179,41 @@ export interface SiteSyncResult {
   filesChanged: number;
   forged: boolean;
   stats: RewriteStats;
+  /**
+   * Le site en ligne, quand le logo a changé :
+   *   automatic  il affiche le logo par son adresse fixe — le nouveau logo y paraît seul, en quelques minutes ;
+   *   republish  il a été publié avec une COPIE de l'ancien logo : son code pointe désormais vers l'adresse fixe,
+   *              une seule republication l'y fait passer (les changements suivants n'en demanderont plus).
+   */
+  live?: { url: string; logo: 'automatic' | 'republish' };
+}
+
+/** La constante du logo posée par IDEM dans la marque du site (`src/site/brand.tsx`, scaffold). */
+const LOGO_SRC_CONSTANT = /(const\s+LOGO_SRC\s*=\s*)(["'`])((?:\\.|(?!\2)[^\\])*)\2/g;
+
+/** Fait pointer la marque vers l'adresse fixe du logo ; rend le contenu inchangé s'il y pointe déjà. */
+export function pointLogoToFixedAddress(content: string, fixed: string): string {
+  if (!content.includes('LOGO_SRC')) return content;
+  return content.replace(LOGO_SRC_CONSTANT, (whole, head: string, _quote: string, value: string) =>
+    value === fixed ? whole : `${head}${JSON.stringify(fixed)}`
+  );
 }
 
 /**
  * Réécrit les fichiers du site dans le stockage. iCode recharge le code depuis
  * le stockage à l'ouverture : la nouvelle marque y est donc dès la prochaine
  * visite, sans régénération.
+ *
+ * Le logo, lui, n'est plus recopié : la marque du site pointe vers l'adresse
+ * fixe du logo du projet (`/brand/<projet>/logo`), qui sert toujours le logo
+ * actuel. Le site EN LIGNE change donc de logo sans redéploiement.
  */
 export async function syncSiteBrand(
   userId: string,
   project: ProjectModel,
   before: Partial<BrandIdentityModel>,
-  after: Partial<BrandIdentityModel>
+  after: Partial<BrandIdentityModel>,
+  options: { logoChanged?: boolean } = {}
 ): Promise<SiteSyncResult> {
   const stats = emptyStats();
   const projectId = project.id!;
@@ -197,23 +223,39 @@ export async function syncSiteBrand(
     return { hasSite: false, filesChanged: 0, forged: false, stats };
   }
 
+  // La marque d'en-tête du NOUVEAU logo, calculée tout de suite (le logo est déjà enregistré) : l'adresse fixe sert
+  // le nouveau logo dès la première visite, sans attendre qu'un visiteur en déclenche le calcul.
+  const mark = options.logoChanged
+    ? await ensureBrandMark(userId, projectId).catch((error: any) => {
+        logger.warn(`Marque d'en-tête du nouveau logo non calculée (${projectId}) : ${error.message}`);
+        return null;
+      })
+    : null;
+  const fixed = mark?.publicSrc;
+
   const { map, forged } = await buildSiteRewriteMap(project, before, after);
-  if (isEmptyRewrite(map)) return { hasSite: true, filesChanged: 0, forged, stats };
+  const rewrite = !isEmptyRewrite(map);
+  if (!rewrite && !fixed) return { hasSite: true, filesChanged: 0, forged, stats };
 
   const files = (await storageService.downloadProjectCodeFiles(projectId, userId)) ?? {};
   const upserts: Record<string, string> = {};
+  let followedFixedAddress = false;
 
   for (const [path, content] of Object.entries(files)) {
     if (!TEXT_FILE.test(path) || typeof content !== 'string') continue;
     // Les dépendances figées ne portent jamais la marque ; les réécrire ne
     // ferait que risquer d'altérer une empreinte d'intégrité.
     if (/(^|\/)(package-lock\.json|yarn\.lock|pnpm-lock\.yaml)$/.test(path)) continue;
-    const next = rewriteBrandString(content, map, stats);
+    if (PUBLIC_LOGO_URL.test(content)) followedFixedAddress = true;
+    let next = rewrite ? rewriteBrandString(content, map, stats) : content;
+    if (fixed) next = pointLogoToFixedAddress(next, fixed);
     if (next !== content) upserts[path] = next;
   }
 
+  const live = options.logoChanged ? await liveSite(userId, projectId, followedFixedAddress) : undefined;
+
   const changed = Object.keys(upserts).length;
-  if (changed === 0) return { hasSite: true, filesChanged: 0, forged, stats };
+  if (changed === 0) return { hasSite: true, filesChanged: 0, forged, stats, ...(live ? { live } : {}) };
 
   const nextManifest = { ...manifest.files };
   for (const [path, content] of Object.entries(upserts)) nextManifest[path] = hashContent(content);
@@ -221,8 +263,18 @@ export async function syncSiteBrand(
   await storageService.syncProjectCodeFiles(projectId, userId, upserts, [], nextManifest);
   logger.info(`Site du projet ${projectId} aligné sur la nouvelle marque : ${changed} fichier(s)`, {
     forged,
+    fixedLogo: !!fixed,
+    live: live?.logo,
     ...stats,
   });
 
-  return { hasSite: true, filesChanged: changed, forged, stats };
+  return { hasSite: true, filesChanged: changed, forged, stats, ...(live ? { live } : {}) };
+}
+
+/** Le site en ligne du projet, et s'il suivra seul le nouveau logo. `undefined` s'il n'est pas en ligne. */
+async function liveSite(userId: string, projectId: string, followsFixedAddress: boolean): Promise<SiteSyncResult['live']> {
+  const deployment = await projectService.getAppDeployment(userId, projectId, 'site').catch(() => null);
+  const url = typeof deployment?.url === 'string' ? deployment.url : '';
+  if (!url) return undefined;
+  return { url, logo: followsFixedAddress ? 'automatic' : 'republish' };
 }

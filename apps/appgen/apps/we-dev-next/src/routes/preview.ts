@@ -248,7 +248,7 @@ async function show(v) {
     const reduced = mod.motionTokens && mod.motionTokens.respectReducedMotion === false ? 'never' : 'user';
     root.render(h(StrictMode, null, h(LazyMotion, { features: domMax }, h(MotionConfig, { reducedMotion: reduced }, h(mod.default, { key: mount })))));
     clearError();
-    tell(shown ? 'update' : 'ready', { version: v });
+    tell(shown ? 'update' : 'ready', { version: v, pages: PAGES });
     shown = true;
   } catch (error) {
     showError(String(error && (error.stack || error.message) || error));
@@ -316,7 +316,7 @@ async function go(href, push) {
   document.documentElement.dir = /^(ar|fa|he|ur)$/.test(next.lang) ? 'rtl' : 'ltr';
   await show(version);
   scrollToHash(hash);
-  tell('navigate', { version });
+  tell('navigate', { version, pages: PAGES });
 }
 
 // Les liens internes restent dans l'aperçu ; une ancre de la même page défile.
@@ -351,6 +351,37 @@ document.addEventListener('touchstart', warm, { passive: true });
 addEventListener('popstate', () => {
   const href = location.pathname.slice(BASE.length) || '/';
   void go(href + location.hash, false);
+});
+
+/*
+ * Les ordres de l'atelier (seulement de la page qui affiche l'aperçu) :
+ *   LOAD_AGENT  l'agent du mode Édition (sélection, texte, dessin), envoyé dès le chargement. Le code de la page porte
+ *               déjà ses repères (\`data-idem-id\`, voir \`preview/tagger.ts\`) : passer en « Sélectionner » ne recharge
+ *               rien, la page et le défilement restent.
+ *   NAVIGATE    changer de page (menu des pages de l'atelier), y compris quand le mode Édition retient les clics.
+ */
+let agentLoaded = false;
+addEventListener('message', (event) => {
+  if (event.source !== parent) return;
+  const data = event.data;
+  if (!data || data.source !== 'idem-preview-parent') return;
+  if (data.type === 'LOAD_AGENT' && typeof data.code === 'string') {
+    if (agentLoaded) return tell('agent', { loaded: true });
+    agentLoaded = true;
+    try { new Function(data.code)(); } catch (error) { agentLoaded = false; console.warn('[aperçu] agent d’édition', error); }
+    tell('agent', { loaded: agentLoaded });
+  } else if (data.type === 'NAVIGATE' && typeof data.href === 'string' && data.href.startsWith('/') && !data.href.startsWith('//')) {
+    const [path, hash] = data.href.split('#');
+    if (normPath(path || PAGE.path) === normPath(PAGE.path)) {
+      if (hash) document.getElementById(decodeURIComponent(hash))?.scrollIntoView({ behavior: 'smooth' });
+      else scrollTo({ top: 0, behavior: 'smooth' });
+      tell('navigate', { version, pages: PAGES });
+      return;
+    }
+    void go(data.href, true);
+  } else if (data.type === 'HELLO') {
+    tell('hello', { version, pages: PAGES });
+  }
 });
 `;
 }

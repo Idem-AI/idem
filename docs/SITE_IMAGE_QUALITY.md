@@ -123,3 +123,24 @@ depuis MinIO.
 `npm run check:image-quality` dans `packages/design-tools` lance 34 vérifications sur 3 photos Kodak versionnées
 (`scripts/fixtures`). Ajouter `--model` pour inclure le palier modèle (téléchargement gratuit). Ce contrôle est à
 relancer après tout changement de seuil.
+
+## Logos et icônes : nets avant la charte (26/11/2026)
+
+Un logo ou une icône d'ancien site est presque toujours petit, en JPEG ou déjà agrandi. Il est désormais rendu net
+**dès la recopie**, avant de servir à la charte, à l'en-tête ou au favicon (`SiteImport/brandAssetQuality.ts` →
+`packages/design-tools/src/graphic-enhance.ts`) :
+
+1. agrandissement Lanczos ×2 à ×4 (plus grand côté visé : 1 024 px pour un logo, 512 px pour une icône), filtre médian ;
+2. palette réelle de l'image (les teintes de halo JPEG et les mélanges de bord en sont exclus), pixels ramenés à cette
+   palette — un pixel de bord rejoint l'une des deux teintes qu'il mélange ;
+3. vectorisation vtracer, rendu à la taille visée, **garde de fidélité** (écart moyen ≤ 16/255, ≤ 5 % de pixels très
+   éloignés, ≤ 700 tracés, teinte moyenne inchangée) ;
+4. repli « nettoyé » (alpha raidi, contours accentués) si le tracé est refusé (dégradé, photo).
+
+Usage : `importLogo` (la charte et les déclinaisons partent de l'image nette), `originalLogo` (en-tête), favicon, icône
+Apple et pictogrammes de moins de 320 px sans photo dans `hostInventory`. `enhanceImage` (bouton « Améliorer la
+qualité », bandeau) y passe aussi pour toute image non photographique (méthode `graphic`, PNG). Pour les photos, le
+modèle Real-ESRGAN est maintenant retenu dès qu'il manque 30 % de pixels (avant : 50 %).
+
+Banc : `npm run check:graphic-enhance` (logos synthétiques réduits + JPEG q25 → l'erreur par rapport au rendu de
+référence baisse de 20 à 45 % ; transparence conservée ; grand logo propre laissé tel quel).

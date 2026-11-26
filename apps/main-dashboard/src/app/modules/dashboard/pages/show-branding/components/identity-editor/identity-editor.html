@@ -719,6 +719,28 @@
       </li>
     }
   </ul>
+  @if (report.site?.live; as live) {
+    <div class="glass-card p-3 mt-2 flex flex-wrap items-center gap-3">
+      <p class="flex-1 min-w-48 text-sm text-text-secondary">
+        {{
+          (live.logo === 'automatic'
+            ? 'dashboard.showBranding.identityEditor.preview.siteLiveAutomatic'
+            : 'dashboard.showBranding.identityEditor.preview.siteLiveRepublish'
+          ) | translate
+        }}
+      </p>
+      @if (live.logo === 'republish') {
+        <a
+          class="outer-button button-sm"
+          [href]="republishSiteUrl()"
+          target="_blank"
+          rel="noopener"
+        >
+          {{ 'dashboard.showBranding.identityEditor.preview.republishSite' | translate }}
+        </a>
+      }
+    </div>
+  }
   @if (report.stats.contrastFixes > 0) {
     <p class="text-xs text-text-tertiary mt-2">
       {{ 'dashboard.showBranding.identityEditor.preview.contrastFixes' | translate: { count: report.stats.contrastFixes } }}

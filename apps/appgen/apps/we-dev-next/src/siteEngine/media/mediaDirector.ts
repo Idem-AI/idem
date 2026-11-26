@@ -65,6 +65,12 @@ export interface MediaSlot {
   overlay: boolean;
   /** Refonte : les images (identifiants du manifeste) des sections d'origine que reprend cette section. */
   ownImages?: string[];
+  /**
+   * Refonte : les images LIÉES de ses sections d'origine (chacune sous le nom ou le titre d'un élément : photos
+   * d'équipe, projets). Elles sont reprises toutes, dans l'ordre de l'ancien site, sans passer par le choix de l'agent :
+   * une photo ne change jamais de personne.
+   */
+  boundImages?: string[];
 }
 
 export interface AssetDecision {
@@ -124,6 +130,7 @@ function libraryRow(image: LibraryImage): string {
     r.generic ? 'photo de banque générique' : '',
     [...r.flaws, ...image.issues.map((i) => (i === 'blurry' ? 'floue' : 'compressée'))].length ? `défauts : ${[...r.flaws, ...image.issues.map((i) => (i === 'blurry' ? 'floue' : 'compressée'))].join(', ')}` : '',
     `vue dans ${image.from.slice(0, 3).join(', ')}`,
+    image.caption ? `légende sur l'ancien site : « ${image.caption.slice(0, 90)} »` : '',
   ].filter(Boolean);
   return `- ${image.id} · ${marks.join(' · ')}\n  « ${r.description.slice(0, 220)} »`;
 }
@@ -136,7 +143,11 @@ function prompt(slots: MediaSlot[], facts: SiteFacts, style: MediaStyle, languag
       `- ${slot.id} · ${slot.role} · format ${slot.aspect}${
         slot.required ? ' · obligatoire' : ''
       }${slot.videoAllowed ? ' · vidéo possible' : ''}${slot.count > 1 ? ` · ${slot.count} photos` : ''}${
-        library && slot.ownImages?.length ? ` · images de ses sections d'origine : ${slot.ownImages.join(', ')}` : ''
+        library && slot.boundImages?.length
+          ? ` · DÉJÀ POURVU : ${slot.boundImages.join(', ')} (chaque image va avec son élément, ne les déplace pas)`
+          : library && slot.ownImages?.length
+            ? ` · images de ses sections d'origine : ${slot.ownImages.join(', ')}`
+            : ''
       }\n  section : ${slot.brief.slice(0, 160)}`
   );
   const siteImages = library
@@ -147,6 +158,7 @@ ${library.length ? library.map(libraryRow).join('\n') : "Aucune image utilisable
     : '';
   const siteTask = library
     ? `
+Une image qui porte une « légende sur l'ancien site » (le nom d'une personne, le titre d'un projet, d'un produit) MONTRE cet élément-là : elle ne va que dans une section qui parle de lui, jamais pour illustrer autre chose ou quelqu'un d'autre. Les emplacements « DÉJÀ POURVU » gardent leurs images : n'en retiens aucune ailleurs.
 D'ABORD les images de l'ancien site : pour chaque emplacement, retiens dans "site" l'image (ou, pour une galerie, les images) qui montre vraiment ce que dit la section et ce que fait ${facts.name}. Les images de ses sections d'origine sont un bon point de départ, pas une obligation : une meilleure image d'une autre section peut y aller, une image d'origine hors sujet n'y va pas. Une image ne sert qu'une fois.
 N'en retiens AUCUNE (laisse "site" vide) quand aucune ne convient : sujet sans rapport avec le métier ou la section, photo de banque générique, texte incrusté dans une ouverture, défaut visible, format qui ne tient pas (une ouverture veut une image en paysage, nette et assez grande). Remplis alors "kind", "subject" et "query" pour la chercher ailleurs.
 Remplis TOUJOURS "kind", "subject", "query" et "alt" (ils servent si l'image retenue est refusée).
@@ -279,6 +291,8 @@ export async function directMedia(options: {
 
   const byId = new Map((library ?? []).map((image) => [image.id, image]));
   const used = new Set<string>();
+  // Les images liées sont réservées à leur emplacement avant toute distribution.
+  const reserved = new Set(slots.flatMap((slot) => slot.boundImages ?? []));
 
   for (const slot of slots) {
     const fallback = { ...ruleDecision(slot, family, facts, language), queryLanguage: (language === 'en' ? 'en' : 'fr') as 'en' | 'fr' };
@@ -287,8 +301,19 @@ export async function directMedia(options: {
     if (!decision.query) decision.query = fallback.query;
     if (!decision.alt) decision.alt = fallback.alt;
 
+    // Des images liées : toutes, dans l'ordre de l'ancien site, quelle que soit leur taille (une photo d'équipe fait
+    // souvent 100 px) — l'agent ne les choisit pas.
+    const bound = (slot.boundImages ?? []).filter((id) => byId.has(id) && !used.has(id));
+    if (library && bound.length) {
+      bound.forEach((id) => used.add(id));
+      decision.kind = 'site';
+      decision.site = bound;
+      decision.alt = byId.get(bound[0])!.caption || decision.alt;
+      decisions.push(decision);
+      continue;
+    }
     // L'image de l'ancien site retenue, si le code la juge à sa place ; sinon le visuel décrit est cherché ailleurs.
-    const cast = library ? castSiteImages(slot, decision.site ?? [], byId, used) : [];
+    const cast = library ? castSiteImages(slot, (decision.site ?? []).filter((id) => !reserved.has(id)), byId, used) : [];
     if (cast.length) {
       cast.forEach((id) => used.add(id));
       decision.kind = 'site';
@@ -315,7 +340,8 @@ export async function directMedia(options: {
     used.clear();
     decisions.forEach((decision, index) => {
       const slot = slots[index];
-      const own = castSiteImages(slot, slot.ownImages ?? [], byId, used);
+      const bound = (slot.boundImages ?? []).filter((id) => byId.has(id) && !used.has(id));
+      const own = bound.length ? bound : castSiteImages(slot, (slot.ownImages ?? []).filter((id) => !reserved.has(id)), byId, used);
       if (!own.length) return;
       own.forEach((id) => used.add(id));
       decision.kind = 'site';

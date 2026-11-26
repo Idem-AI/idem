@@ -56,7 +56,9 @@ import { fetchBrandMark, fetchSiteContent, withBrandMark } from './redesign/idem
 import { MANIFEST_PATH, PlanTracker, readSavedDesign, remaining, SavedDesign, SitePlan } from './plan.js';
 import { DESIGN_SYSTEM_PATHS } from './template.js';
 import type { DesignOutcome } from './designConfig.js';
-import { bestFirst, siteImageLibrary, inventoryFacts, inventoryOutline, inventoryText, InventorySection, linkMapper, type SiteInventory, oldShapes, sectionIndex, sourceContent } from './redesign/inventory.js';
+import { bindMediaToItems } from './redesign/binding.js';
+import type { SectionContent } from './sectionCatalog/copy.js';
+import { bestFirst, boundImages, siteImageLibrary, inventoryFacts, inventoryOutline, inventoryText, InventorySection, linkMapper, type SiteInventory, oldShapes, sectionIndex, sourceContent } from './redesign/inventory.js';
 import { tierOf, TIERS } from './sectionCatalog/tier.js';
 import { sectionCatalog } from './sectionCatalog/registry.js';
 import { CopyTask, PageCopy, startPageCopy } from './sectionCatalog/copy.js';
@@ -272,7 +274,7 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
         projectData = prepared.projectData;
         // La marque d'en-tête (logo rogné ; logotype seul ou icône + nom) est préparée par l'import ; un import
         // antérieur ne l'a pas encore : elle est calculée maintenant, avant que le socle ne l'écrive.
-        if (projectData.id && !headerBrandMarkOf(projectData)) {
+        if (projectData.id && !headerBrandMarkOf(projectData)?.publicSrc) {
           projectData = withBrandMark(projectData, await fetchBrandMark(projectData.id, input.credentials ?? {}, { signal: abort.signal }));
         }
         redesign = prepared.redesign;
@@ -372,6 +374,11 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
 
       // Socle absent (l'atelier n'a pas pu le monter) : il part dans le flux. Une refonte l'y met toujours :
       // celui de l'atelier a été monté avant que le projet (et son logo) n'existe.
+      // L'adresse fixe du logo (`publicSrc`) : un projet lu avant qu'elle n'existe la reçoit de l'API. Sans elle le
+      // site garderait une copie du logo, et un nouveau logo de la charte n'y paraîtrait qu'après redéploiement.
+      if (!redesign && projectData?.id && !headerBrandMarkOf(projectData)?.publicSrc) {
+        projectData = withBrandMark(projectData, await fetchBrandMark(projectData.id, input.credentials ?? {}, { signal: abort.signal, timeoutMs: 4000 }));
+      }
       const scaffoldMounted = input.scaffoldMounted && !redesign;
       if (resuming) {
         // Les fichiers du site déjà écrits servent au montage de contrôle des composants qui restent.
@@ -550,6 +557,10 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
       const mediaEnabled = (process.env.SITE_MEDIA ?? 'on').toLowerCase() !== 'off';
       const slots = mediaEnabled ? mediaSlotsOf(manifest) : [];
       const produced: Record<string, MediaAsset[]> = {};
+      // Les sections aux images LIÉES (photos d'équipe sous leur nom, projets sous leur titre) : leurs visuels n'entrent
+      // dans `media.ts` qu'une fois posés avec leur élément (`bindMediaToItems`), jamais un instant sous le mauvais nom.
+      const heldForBinding = new Set<string>();
+      const emitMedia = () => emit('src/site/media.ts', renderMediaModule(Object.fromEntries(Object.entries(produced).filter(([key]) => !heldForBinding.has(key)))));
       const mediaBySlot = new Map<string, Promise<MediaAsset[]>>();
       // Les générations parties en arrière-plan, et la fin du site (après elle, plus rien n'est écrit dans `media.ts`).
       const lateMedia: Promise<unknown>[] = [];
@@ -575,10 +586,16 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
         for (const page of manifest.pages)
           for (const section of page.sections) {
             const key = mediaKey(page, section);
-            const own = [...new Set(bestFirst((sourcesBySection.get(key) ?? []).flatMap((x) => x.images)).map((image) => idOf.get(image.url)).filter((id): id is string => !!id))];
+            const sourceImages = (sourcesBySection.get(key) ?? []).flatMap((x) => x.images);
+            const own = [...new Set(bestFirst(sourceImages).map((image) => idOf.get(image.url)).filter((id): id is string => !!id))];
             const slot = slots.find((candidate) => candidate.id === key);
             if (!slot || !own.length) continue;
             slot.ownImages = own;
+            const bound = [...new Set(boundImages(sourceImages).map((image) => idOf.get(image.url)).filter((id): id is string => !!id))];
+            if (bound.length >= 2) {
+              slot.boundImages = bound;
+              heldForBinding.add(key);
+            }
             predicted.set(key, Math.min(own.length, 12));
           }
       }
@@ -589,14 +606,15 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
             // La meilleure image d'abord : c'est la première qui s'affiche en grand (relevé mesuré à la recopie).
             const images = bestFirst((sourcesBySection.get(mediaKey(page, section)) ?? []).flatMap((s) => s.images)).slice(0, 12);
             if (!images.length) continue;
-            const assets: MediaAsset[] = images.map((image) => ({ kind: 'image', src: image.url, alt: image.alt || facts.name, origin: 'site' }));
+            if (boundImages(images).length) heldForBinding.add(mediaKey(page, section));
+            const assets: MediaAsset[] = images.map((image) => ({ kind: 'image', src: image.url, alt: image.caption || image.alt || facts.name, origin: 'site', ...(image.caption ? { caption: image.caption } : {}) }));
             produced[mediaKey(page, section)] = assets;
             mediaBySlot.set(mediaKey(page, section), Promise.resolve(assets));
             reused += assets.length;
           }
         }
         if (reused) {
-          emit('src/site/media.ts', renderMediaModule(produced));
+          emitMedia();
           stream.note(fr ? `Je reprends ${reused} image${reused > 1 ? 's' : ''} de votre site, chacune à sa place` : `Reusing ${reused} image${reused > 1 ? 's' : ''} from your site, each in its place`);
         }
       }
@@ -769,12 +787,12 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
               writeFile: (path: string, content: string) => !abort.signal.aborted && stream.file(path, content),
               limit: mediaLimit,
               generations: { left: Number(process.env.SITE_MEDIA_MAX_GENERATED ?? 4) },
-              ...(imageLibrary ? { siteImages: new Map(imageLibrary.map((image) => [image.id, { url: image.url, alt: image.alt || facts.name }])) } : {}),
+              ...(imageLibrary ? { siteImages: new Map(imageLibrary.map((image) => [image.id, { url: image.url, alt: image.caption || image.alt || facts.name, ...(image.caption ? { caption: image.caption } : {}) }])) } : {}),
               // Une génération arrivée après le visuel provisoire le remplace (rechargement à chaud de `media.ts`).
               upgrade: (slotId: string, assets: MediaAsset[]) => {
                 if (abort.signal.aborted || mediaClosed) return;
                 produced[slotId] = assets;
-                emit('src/site/media.ts', renderMediaModule(produced));
+                emitMedia();
               },
               late: lateMedia,
             };
@@ -791,7 +809,7 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
                   .then((assets) => {
                     if (assets.length && !abort.signal.aborted) {
                       produced[slot.id] = assets;
-                      emit('src/site/media.ts', renderMediaModule(produced));
+                      emitMedia();
                     }
                     return assets;
                   })
@@ -894,7 +912,7 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
             const label = `${page.key}/${section.id}`;
             // Les textes de CETTE section, dès qu'ils sont justes (pas ceux de toute la page).
             const content = copies.has(page.key) ? await copies.get(page.key)!.section(section.id) : undefined;
-            const compose = (mediaKeys: string[]) => async () =>
+            const compose = (mediaKeys: string[], sectionContent: SectionContent | undefined = content) => async () =>
               (
                 await composeSection({
                   catalog: catalog!,
@@ -904,7 +922,7 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
                   id: section.id,
                   layout: section.layout!,
                   opening: index === 0,
-                  content: content!,
+                  content: sectionContent!,
                   mediaKeys,
                   resolveHref: resolverOf(page),
                   used: usedVariants,
@@ -926,7 +944,7 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
                   ...(assets.length
                     ? { mediaKey: key, mediaKind: KIND_LABEL[assets[0].kind], mediaAspect: index === 0 ? '16:9' : '4:3' }
                     : {}),
-                  ...(assets.length > 1 ? { mediaList: assets.map((asset, i) => ({ key: i ? `${key}-${i + 1}` : key, alt: asset.alt ?? '' })) } : {}),
+                  ...(assets.length > 1 ? { mediaList: assets.map((asset, i) => ({ key: i ? `${key}-${i + 1}` : key, alt: asset.alt ?? '', ...(asset.caption ? { caption: asset.caption } : {}) })) } : {}),
                   ...(sourcesBySection.has(key) ? { source: sourceContent(sourcesBySection.get(key)!, mapLink, fr) } : {}),
                 },
                 request
@@ -940,13 +958,30 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
             const ok = await limit(() => write(path, label, display, prompt, undefined, fromCatalog));
             // Composée avant ses visuels : s'ils ne sont pas venus comme prévu (échec, aucun choisi), la section est
             // recomposée par le code avec ceux qui existent — aucun appel de modèle, et jamais un cadre d'image vide.
-            if (ok && composedFromCatalog.has(path) && planned.length) {
-              const assets = await assetsOf(key);
-              if (assets.length !== planned.length && !abort.signal.aborted) {
-                const code = await limit(compose(keysFor(key, assets.length))).catch(() => null);
+            // Des images liées (équipe, projets) : chacune rejoint l'élément que nomme sa légende, puis la section est
+            // recomposée si l'ordre a bougé — jamais une photo sous le nom d'un autre.
+            const held = heldForBinding.has(key);
+            if (ok && composedFromCatalog.has(path) && (planned.length || held)) {
+              let assets = await assetsOf(key);
+              const bound = content ? bindMediaToItems(content, assets) : null;
+              if (bound) {
+                assets = bound.assets;
+                produced[key] = assets;
+                ChatLogger.info('SITE_MEDIA', `${label} : images posées avec leur élément`, { list: bound.list, matched: bound.matched, dropped: bound.dropped, changed: bound.changed });
+              }
+              if (held) {
+                heldForBinding.delete(key);
+                if (!abort.signal.aborted) emitMedia();
+              }
+              if ((assets.length !== planned.length || bound?.changed) && !abort.signal.aborted) {
+                const code = await limit(compose(keysFor(key, assets.length), bound?.content ?? content)).catch(() => null);
                 if (code) await publish(path, label, code);
                 else ChatLogger.warn('SITE_CATALOG', `${label} : visuel absent, section gardée telle quelle`, { planned: planned.length, produced: assets.length });
               }
+            } else if (held) {
+              // Écrite par l'auteur de code, qui a reçu chaque visuel avec sa légende : ses visuels peuvent paraître.
+              heldForBinding.delete(key);
+              if (!abort.signal.aborted) emitMedia();
             }
             return { name: section.component, ok };
           })

@@ -35,6 +35,10 @@ async function resolveBrandLogo(
   const logo = projectData?.analysisResultModel?.branding?.logo;
   if (!logo) return undefined;
 
+  // L'adresse fixe du logo : rien à déposer, le site affichera toujours le logo actuel de la charte.
+  const fixed = headerBrandMarkOf(projectData)?.publicSrc;
+  if (fixed) return { source: { remote: fixed } };
+
   // La marque d'en-tête (logo rogné au plus juste) d'abord : le logo enregistré garde souvent la toile vide de
   // l'image d'origine, et tient alors en quelques pixels dans un en-tête de 36 px.
   const header = headerBrandMarkOf(projectData)?.src;
@@ -69,7 +73,7 @@ router.post('/', async (req: Request, res: Response) => {
     const target = resolveBuildTarget(product, platform, projectData);
     // Site vitrine : la marque d'en-tête du projet (logotype seul, ou icône + nom), calculée une fois par l'API puis
     // gardée. Bornée : le socle doit arriver avant que l'atelier ne lance la génération sans lui.
-    const mark = target === 'site' && projectData?.id && !headerBrandMarkOf(projectData) ? await fetchBrandMark(projectData.id, forwardedCredentials(req), { timeoutMs: 4000 }) : null;
+    const mark = target === 'site' && projectData?.id && !headerBrandMarkOf(projectData)?.publicSrc ? await fetchBrandMark(projectData.id, forwardedCredentials(req), { timeoutMs: 4000 }) : null;
     const project = withBrandMark(projectData, mark);
     const brand = target === 'site' ? await resolveBrandLogo(project) : undefined;
     const scaffold = buildScaffold({ target, projectData: project, language, brand });

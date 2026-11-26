@@ -105,6 +105,8 @@ export const LOCK_TTL_MS = 60 * 1000;
 const LOCK_RENEW_MS = 20 * 1000;
 const LOCK_WAIT_MS = 30 * 60 * 1000;
 const LOCK_POLL_MS = 5000;
+/** The fast lane waits for the application's previous publish (seconds long) at this pace. */
+const FAST_LANE_LOCK_POLL_MS = 500;
 
 /** Lines a server prints once it is ready: the start check stops waiting on one. */
 const READY_LOG_PHRASES = [
@@ -225,7 +227,7 @@ export async function withApplicationLock<T>(
   deploymentUuid: string,
   log: (line: string) => Promise<void>,
   work: () => Promise<T>,
-  opts: { onBusy?: () => Promise<never> } = {}
+  opts: { onBusy?: () => Promise<never>; pollMs?: number } = {}
 ): Promise<T> {
   const key = `ideploy:deploy-lock:${applicationId}`;
   const started = Date.now();
@@ -244,7 +246,7 @@ export async function withApplicationLock<T>(
       announced = true;
     }
     if (opts.onBusy) await opts.onBusy();
-    await new Promise((resolve) => setTimeout(resolve, LOCK_POLL_MS));
+    await new Promise((resolve) => setTimeout(resolve, opts.pollMs ?? LOCK_POLL_MS));
   }
 
   // Renewed while this deployment is alive; dies with it.
@@ -336,11 +338,18 @@ export async function processDeployment(job: Job<DeploymentJobData>, token?: str
   };
   let heldSlots: HeldSlots | undefined;
 
+  // The fast lane (a site already built, see deployment.service): two SSH
+  // commands and a link swapped, no build. It takes no build slot — those
+  // guard a server's CPU from image builds — and is never sent back to wait
+  // 15 s behind someone else's build. Checked again here: the application's
+  // settings may have changed since it was queued.
+  const fastLane = job.queueName === QUEUE_NAMES.deploymentsFast && (await deploymentService.deploysAsPrebuiltStatic(applicationId));
+
   // Fair share of the workers: a team or a server at its limit, or this
   // application already deploying, sends the job back to the queue for a few
   // seconds instead of holding a worker while it waits.
-  const serverRef = await appService.getApplicationServer(applicationId).catch(() => null);
-  for (;;) {
+  const serverRef = fastLane ? null : await appService.getApplicationServer(applicationId).catch(() => null);
+  for (; !fastLane; ) {
     const slots = await acquireSlots(deploymentUuid, teamId, serverRef?.serverId ?? null);
     if ('held' in slots) {
       heldSlots = slots.held;
@@ -355,7 +364,7 @@ export async function processDeployment(job: Job<DeploymentJobData>, token?: str
   }
 
   try {
-    await runDeployment(job, token, log, saveLog);
+    await runDeployment(job, fastLane ? undefined : token, log, saveLog);
   } finally {
     // The final log (or the failure) is already written: no late flush over it.
     if (flushTimer) clearTimeout(flushTimer);
@@ -382,6 +391,8 @@ async function runDeployment(
       // Behind another deployment of the same application: back to the queue,
       // the worker goes to someone else meanwhile.
       onBusy: token ? () => retryLater(job, token) as Promise<never> : undefined,
+      // Fast lane: the deployment ahead is a few seconds long too; waited for closely.
+      pollMs: token ? undefined : FAST_LANE_LOCK_POLL_MS,
     });
     const app = await appService.getApplication(teamId, applicationUuid);
     if (app) await finalize(app, deploymentUuid, teamId, true);
@@ -1640,5 +1651,7 @@ async function finalize(
 
 export function registerDeploymentWorker(): void {
   registerWorker<DeploymentJobData>(QUEUE_NAMES.deployments, processDeployment, 3);
+  // Mostly waiting on SSH (a few seconds each): many at once cost the worker nothing.
+  registerWorker<DeploymentJobData>(QUEUE_NAMES.deploymentsFast, processDeployment, 10);
   logger.info('Deployment worker registered');
 }
