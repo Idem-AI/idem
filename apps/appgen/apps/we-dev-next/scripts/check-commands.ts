@@ -286,7 +286,7 @@ async function main() {
     check('capacités : relecture proposée seulement avec un site d’origine', capabilitiesFor({ hasProject: true, hasSite: true, hasCharter: true, siteSource: 'https://a.cm' }).some((c) => c.id === 'rescan') && !capabilitiesFor({ hasProject: true, hasSite: true, hasCharter: true }).some((c) => c.id === 'rescan'));
     check('capacités : chacune a sa commande « / »', CAPABILITIES.every((c) => COMMANDS.some((command) => command.name === c.command)));
     check('source : marque du projet', rescanSource(born)?.url === 'https://ek.example.cm/');
-    check('source : plan du site, sans projet joint', JSON.stringify(rescanSource(undefined, { '.idem/plan.json': JSON.stringify({ status: 'done', steps: [], redesign: { projectId: 'p9', url: 'ek.example.cm', choice: 'direct', focus: 'all' } }) })) === JSON.stringify({ url: 'https://ek.example.cm/', projectId: 'p9' }));
+    check('source : plan du site, sans projet joint', JSON.stringify(rescanSource(undefined, { '.idem/plan.json': JSON.stringify({ kind: 'site-engine', status: 'done', steps: [], redesign: { projectId: 'p9', url: 'ek.example.cm', choice: 'direct', focus: 'all' } }) })) === JSON.stringify({ url: 'https://ek.example.cm/', projectId: 'p9' }));
     const asked = await run(await dispatch(base({ text: '/rescan', projectData: born, hasSite: true })));
     check('/rescan : question posée, projet gardé', asked.choices?.purpose === 'rescan' && asked.choices.prepare === 'site-reset' && asked.choices.context?.projectId === 'p-born' && /ek\.example\.cm/.test(asked.text), asked);
     check('/rescan : dit qu’une génération est décomptée', /nouvelle génération/.test(asked.text));
