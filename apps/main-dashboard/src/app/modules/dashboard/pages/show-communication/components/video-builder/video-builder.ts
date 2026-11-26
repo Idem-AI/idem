@@ -75,7 +75,7 @@ const EXAMPLES = ['ex1', 'ex2', 'ex3'];
   selector: 'app-video-builder',
   imports: [FormsModule, TranslateModule, IdemLoaderComponent, VideoComposing, CreativityGateDirective],
   templateUrl: './video-builder.html',
-  styleUrls: ['../visual-builder/visual-builder.css', './video-builder.css'],
+  styleUrl: './video-builder.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class VideoBuilder {

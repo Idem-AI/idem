@@ -28,41 +28,16 @@
     </div>
   } @else {
     <!-- ═══════════════ En-tête ═══════════════ -->
-    <header class="mx-auto mb-6 max-w-7xl">
-      <div class="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p
-            class="hidden text-[10px] font-semibold uppercase tracking-wide text-[var(--color-accent-500)] sm:block"
-          >
-            {{ 'dashboard.showCommunication.eyebrow' | translate }}
-          </p>
-          <h1 class="text-2xl font-bold text-[var(--color-text-primary)] sm:mt-1 sm:text-3xl">
-            {{ 'dashboard.showCommunication.title' | translate }}
-          </h1>
-          <!-- Sur téléphone, l'accueil dit déjà tout cela : on garde l'écran pour le contenu. -->
-          <p class="mt-1 hidden max-w-2xl text-sm text-[var(--color-text-secondary)] sm:block">
-            {{ 'dashboard.showCommunication.subtitle' | translate }}
-          </p>
-        </div>
+    <header class="mx-auto mb-6 max-w-5xl">
+      <h1 class="text-2xl font-bold text-[var(--color-text-primary)] sm:text-3xl">
+        {{ 'dashboard.showCommunication.title' | translate }}
+      </h1>
+      <p class="mt-1 text-sm text-[var(--color-text-secondary)]">
+        {{ 'dashboard.showCommunication.subtitle' | translate }}
+      </p>
 
-        <!-- « Ma façon de communiquer » vit ici : accessible, jamais sur le chemin.
-             Sur téléphone, c'est l'étape 1 de l'accueil qui l'ouvre. -->
-        <button type="button" class="outer-button sc-voice" (click)="openVoice()">
-          <i class="pi pi-user-edit" aria-hidden="true"></i>
-          {{ 'dashboard.showCommunication.voice.open' | translate }}
-          @if (!strategy()) {
-            <span class="sc-todo">
-              {{ 'dashboard.showCommunication.voice.todo' | translate }}
-            </span>
-          }
-        </button>
-      </div>
-
-      <!--
-        Quatre écrans, chacun avec une ligne qui dit à quoi il sert : un nom seul
-        (« Créer », « Mon planning ») laissait deviner ce qu'on trouverait derrière.
-      -->
-      <nav class="mt-5" [attr.aria-label]="'dashboard.showCommunication.title' | translate">
+      <!-- Un mot par onglet : l'accueil explique le reste. -->
+      <nav class="sc-tabs-nav" [attr.aria-label]="'dashboard.showCommunication.title' | translate">
         <ul class="sc-tabs" role="tablist">
           @for (screen of screens; track screen.id) {
             <li>
@@ -70,30 +45,19 @@
                 type="button"
                 role="tab"
                 class="sc-tab"
-                [class.sc-tab-active]="activeScreen() === screen.id"
-                [attr.aria-selected]="activeScreen() === screen.id"
+                [class.sc-tab-active]="activeTab() === screen.id"
+                [attr.aria-selected]="activeTab() === screen.id"
                 (click)="setScreen(screen.id)"
               >
-                <i [class]="screen.icon" class="sc-tab-icon" aria-hidden="true"></i>
-                <span class="sc-tab-text">
-                  <span class="sc-tab-label">
-                    {{ 'dashboard.showCommunication.nav.' + screen.id + '.label' | translate }}
-                  </span>
-                  <span class="sc-tab-hint">
-                    {{ 'dashboard.showCommunication.nav.' + screen.id + '.hint' | translate }}
-                  </span>
-                </span>
+                <i [class]="screen.icon" aria-hidden="true"></i>
+                {{ 'dashboard.showCommunication.nav.' + screen.id | translate }}
               </button>
             </li>
           }
         </ul>
       </nav>
 
-      <!--
-        Sur téléphone : les mêmes écrans en barre fixe sous le pouce, comme dans
-        les applications qu'on utilise tous les jours (WhatsApp, Instagram). Un
-        mot par onglet ; l'explication vit sur l'accueil.
-      -->
+      <!-- Sur téléphone : les mêmes onglets en barre fixe sous le pouce. -->
       <nav class="sc-bottom" [attr.aria-label]="'dashboard.showCommunication.title' | translate">
         <ul class="sc-bottom-list" role="tablist">
           @for (screen of screens; track screen.id) {
@@ -102,13 +66,13 @@
                 type="button"
                 role="tab"
                 class="sc-bottom-tab"
-                [class.sc-bottom-active]="activeScreen() === screen.id"
-                [attr.aria-selected]="activeScreen() === screen.id"
+                [class.sc-bottom-active]="activeTab() === screen.id"
+                [attr.aria-selected]="activeTab() === screen.id"
                 (click)="setScreen(screen.id)"
               >
                 <i [class]="screen.icon" class="sc-bottom-icon" aria-hidden="true"></i>
                 <span class="sc-bottom-label">
-                  {{ 'dashboard.showCommunication.nav.' + screen.id + '.short' | translate }}
+                  {{ 'dashboard.showCommunication.nav.' + screen.id | translate }}
                 </span>
               </button>
             </li>
@@ -155,7 +119,6 @@
         [strategy]="strategy()"
         [plans]="plans()"
         [visuals]="visuals()"
-        [publications]="publications()"
         (action)="onHomeAction($event)"
       />
     } @else if (activeScreen() === 'studio') {
@@ -164,6 +127,8 @@
         [visuals]="visuals()"
         [plans]="plans()"
         [fonts]="fonts()"
+        [prompt]="pendingPrompt()"
+        (promptHandled)="pendingPrompt.set(null)"
         (visualCreated)="onVisualCreated($event)"
         (failed)="onError($event)"
         (needsCredits)="onNeedsCredits($event)"

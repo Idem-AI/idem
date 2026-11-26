@@ -8,7 +8,6 @@ import {
   output,
   signal,
 } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { CommunicationService } from '../../../../services/ai-agents/communication.service';
 import {
@@ -19,14 +18,10 @@ import {
 } from '../../../../models/communication.model';
 import { FontHints } from '@idem/shared-document-editor/angular';
 import { VisualComposing } from '../visual-composing/visual-composing';
-import { VisualBuilder } from '../visual-builder/visual-builder';
+import { PromptBox } from '../prompt-box/prompt-box';
 import { VisualDialog } from '../visual-dialog/visual-dialog';
 import { VisualThumb } from '../visual-thumb/visual-thumb';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
-import { urlChoice } from '../../url-state';
-
-/** Amorces proposées sur un fil vide — des phrases, pas des catégories. */
-const STARTERS = ['announce', 'promotion', 'celebration', 'recruitment'] as const;
 
 /**
  * Retouches proposées sous le dernier visuel.
@@ -47,16 +42,15 @@ const FOLLOW_UPS = ['simpler', 'bigger', 'story', 'caption'] as const;
  * Converser ne coûte rien ; produire un visuel se facture. L'interface le dit
  * avant, pas après.
  *
- * L'écran s'ouvre sur TROIS QUESTIONS (le formulaire guidé), jamais sur un fil
- * vide : face à une zone de saisie, quelqu'un qui ne vient pas de la tech ne
- * sait pas quoi écrire. Le fil sert ensuite à retoucher ce qui vient de sortir.
+ * On y arrive le plus souvent depuis l'accueil, où la demande a été tapée :
+ * elle arrive par `prompt` et part dès que le fil est chargé. Le fil sert
+ * ensuite à retoucher ce qui vient de sortir.
  */
 @Component({
   selector: 'app-studio-panel',
   imports: [
-    FormsModule,
     TranslateModule,
-    VisualBuilder,
+    PromptBox,
     VisualComposing,
     VisualDialog,
     VisualThumb,
@@ -75,22 +69,20 @@ export class StudioPanel {
   readonly visuals = input<Flyer[]>([]);
   readonly plans = input<CommunicationPlan[]>([]);
   readonly fonts = input<FontHints>({});
+  /**
+   * Demande tapée sur l'accueil, à envoyer dès l'arrivée.
+   *
+   * Jamais dans l'adresse : une actualisation ne doit pas refacturer le visuel.
+   */
+  readonly prompt = input<string | null>(null);
+  readonly promptHandled = output<void>();
 
   readonly visualCreated = output<Flyer>();
   readonly failed = output<string>();
   readonly needsCredits = output<{ cost: number; balance: number }>();
 
-  protected readonly starters = STARTERS;
   protected readonly followUps = FOLLOW_UPS;
 
-  /**
-   * `builder` : les questions guidées · `chat` : le fil et la saisie libre.
-   *
-   * Toujours `builder` en arrivant : on vient ici pour créer un visuel, et les
-   * échanges précédents restent à un clic.
-   */
-  /** Formulaire guidé ou conversation : `?mode=chat` le garde à l'actualisation. */
-  protected readonly mode = urlChoice<'builder' | 'chat'>('mode', ['builder', 'chat'], 'builder', { push: true });
 
   /**
    * Format et nombre de propositions en cours de composition.
@@ -158,13 +150,23 @@ export class StudioPanel {
       next: (conversation) => {
         this.messages.set(conversation.messages || []);
         this.isLoading.set(false);
+        this.sendPendingPrompt();
       },
       error: () => {
         // Un fil illisible ne doit pas bloquer l'atelier : on repart d'un fil vide.
         this.messages.set([]);
         this.isLoading.set(false);
+        this.sendPendingPrompt();
       },
     });
+  }
+
+  /** Après le chargement du fil : la demande de l'accueil s'affiche à la suite. */
+  private sendPendingPrompt(): void {
+    const prompt = this.prompt();
+    if (!prompt) return;
+    this.promptHandled.emit();
+    this.sendText(prompt);
   }
 
   protected visualsOf(message: StudioMessage): Flyer[] {
@@ -175,61 +177,13 @@ export class StudioPanel {
       .filter((visual): visual is Flyer => !!visual);
   }
 
-  /**
-   * Remplit la saisie avec une amorce traduite, SANS l'envoyer.
-   *
-   * Ne pas envoyer d'emblée est délibéré : une amorce est un point de départ à
-   * compléter (« …pour dire qu'on ouvre le samedi »), et un envoi immédiat
-   * facturerait un visuel que l'utilisateur n'a pas fini de décrire.
-   */
-  protected useStarter(key: string): void {
-    this.draft.set(
-      this.translate.instant(`dashboard.showCommunication.studio.starters.${key}`) as string,
-    );
-  }
-
   protected useFollowUp(key: string): void {
     this.draft.set(
       this.translate.instant(`dashboard.showCommunication.studio.followUps.${key}.text`) as string,
     );
   }
 
-  protected showBuilder(): void {
-    this.mode.set('builder');
-  }
-
-  protected showChat(): void {
-    this.mode.set('chat');
-  }
-
-  /** Le formulaire guidé a rédigé la demande : elle part comme une phrase tapée. */
-  protected sendFromBuilder(content: string): void {
-    this.mode.set('chat');
-    this.sendText(content);
-  }
-
-  /**
-   * Entrée = envoyer, Maj+Entrée = retour à la ligne.
-   *
-   * Un visuel se décrit parfois en deux phrases : interdire le retour à la ligne
-   * forcerait à tout écrire d'un trait, et envoyer sur Maj+Entrée enverrait des
-   * messages incomplets — donc facturerait des visuels à moitié décrits.
-   */
-  protected onEnter(event: Event): void {
-    const keyboard = event as KeyboardEvent;
-    if (keyboard.shiftKey) return;
-    event.preventDefault();
-    this.send();
-  }
-
-  protected send(): void {
-    const content = this.draft().trim();
-    if (!content || this.isSending()) return;
-    this.draft.set('');
-    this.sendText(content);
-  }
-
-  private sendText(content: string): void {
+  protected sendText(content: string): void {
     if (!content || this.isSending()) return;
 
     const projectId = this.projectId();

@@ -1,0 +1,161 @@
+:host {
+  display: block;
+}
+
+.pb-box {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+  padding: 0.5rem;
+}
+
+.pb-box:focus-within {
+  border-color: var(--color-primary-500);
+}
+
+/* Le champ se fond dans sa carte : c'est la carte qui porte le cadre. */
+.pb-input {
+  flex: 1;
+  resize: none;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0.5rem 0.6rem;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: var(--color-text-primary);
+  outline: none;
+}
+
+.pb-send {
+  flex-shrink: 0;
+}
+
+.pb-foot {
+  margin-top: 0.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.25rem 1rem;
+  padding: 0 0.25rem;
+}
+
+.pb-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.pb-toggle:hover {
+  color: var(--color-text-primary);
+}
+
+.pb-toggle .pi {
+  font-size: 0.65rem;
+}
+
+.pb-summary {
+  font-weight: 500;
+  color: var(--color-primary-500);
+}
+
+.pb-price {
+  font-size: 0.75rem;
+  color: var(--color-text-tertiary);
+}
+
+/* ── Réglages avancés ─────────────────────────────────────────────────────── */
+
+.pb-advanced {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  border-top: 1px solid var(--glass-border);
+  padding: 0.9rem 0.25rem 0;
+}
+
+.pb-fieldset {
+  margin: 0;
+  border: none;
+  padding: 0;
+}
+
+.pb-legend {
+  margin-bottom: 0.5rem;
+  padding: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.pb-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.pb-option {
+  cursor: pointer;
+  border-radius: 999px;
+  border: 1px solid var(--glass-border-medium);
+  padding: 0.35rem 0.8rem;
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.pb-option:hover {
+  border-color: var(--glass-border-strong);
+  color: var(--color-text-primary);
+}
+
+.pb-option-on {
+  border-color: var(--color-primary-500);
+  color: var(--color-primary-500);
+  font-weight: 600;
+}
+
+.pb-option:has(input:focus-visible) {
+  outline: 2px solid var(--color-primary-500);
+  outline-offset: 2px;
+}
+
+.pb-check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--color-text-primary);
+}
+
+/* ── Téléphone ────────────────────────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  /* Une flèche suffit sous le pouce ; le mot reste lu par les lecteurs d'écran. */
+  .pb-send-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .pb-send {
+    min-height: 2.75rem;
+    min-width: 2.75rem;
+    justify-content: center;
+  }
+
+  /* 16 px au moins : en dessous, iOS zoome la page à chaque appui sur le champ. */
+  .pb-input {
+    font-size: 1rem;
+  }
+}

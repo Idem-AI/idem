@@ -17,96 +17,51 @@
   overflow: hidden;
 }
 
-/*
- * Pastille « à définir » sur « Ma façon de communiquer ».
- *
- * En CSS et non en classes Tailwind à valeur arbitraire : dans une liaison
- * échappée, le scanner de Tailwind ne voit pas toujours la classe, et le style
- * disparaît sans bruit en production.
- */
-.sc-todo {
-  margin-left: 0.3rem;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--color-accent-500) 20%, transparent);
-  padding: 0.1rem 0.4rem;
-  font-size: 0.56rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: var(--color-accent-500);
-}
+/* ── Onglets : un mot chacun, un trait sous l'actif ────────────────────────── */
 
-/* ── Onglets : un nom, et ce qu'on y fait ─────────────────────────────────── */
+.sc-tabs-nav {
+  margin-top: 1.25rem;
+  border-bottom: 1px solid var(--glass-border);
+}
 
 .sc-tabs {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.5rem;
-}
-
-@media (min-width: 40rem) {
-  .sc-tabs {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
-@media (min-width: 64rem) {
-  .sc-tabs {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-  }
+  display: flex;
+  gap: 0.25rem;
+  overflow-x: auto;
 }
 
 .sc-tab {
-  display: flex;
-  height: 100%;
-  width: 100%;
-  align-items: flex-start;
-  gap: 0.65rem;
-  border-radius: 0.9rem;
-  border: 1.5px solid var(--glass-border);
-  background: var(--glass-bg-subtle);
-  padding: 0.7rem 0.85rem;
-  text-align: left;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-bottom: -1px;
+  border-bottom: 2px solid transparent;
+  padding: 0.65rem 0.9rem;
+  white-space: nowrap;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
   transition:
-    border-color 0.15s ease,
-    background-color 0.15s ease;
+    color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.sc-tab .pi {
+  font-size: 0.9rem;
 }
 
 .sc-tab:hover {
-  border-color: var(--glass-border-strong);
-}
-
-.sc-tab-active {
-  border-color: var(--color-primary-500);
-  background: color-mix(in srgb, var(--color-primary-500) 10%, var(--glass-bg-subtle));
-}
-
-.sc-tab-icon {
-  margin-top: 0.15rem;
-  font-size: 1rem;
-  color: var(--color-text-tertiary);
-}
-
-.sc-tab-active .sc-tab-icon {
-  color: var(--color-primary-500);
-}
-
-.sc-tab-text {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-}
-
-.sc-tab-label {
-  font-size: 0.88rem;
-  font-weight: 700;
   color: var(--color-text-primary);
 }
 
-.sc-tab-hint {
-  margin-top: 0.1rem;
-  font-size: 0.72rem;
-  line-height: 1.35;
-  color: var(--color-text-tertiary);
+.sc-tab-active {
+  border-bottom-color: var(--color-primary-500);
+  color: var(--color-primary-500);
+}
+
+.sc-tab:focus-visible {
+  outline: 2px solid var(--color-primary-500);
+  outline-offset: -2px;
 }
 
 /* ── Téléphone : barre d'onglets en bas ───────────────────────────────────── */
@@ -131,8 +86,7 @@
     padding-bottom: calc(var(--sc-bottom-gap) + 1rem);
   }
 
-  .sc-tabs,
-  .sc-voice {
+  .sc-tabs-nav {
     display: none;
   }
 

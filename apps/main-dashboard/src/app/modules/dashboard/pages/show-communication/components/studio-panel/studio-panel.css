@@ -28,11 +28,6 @@
   text-align: center;
 }
 
-.sp-empty-icon {
-  font-size: 2.25rem;
-  color: var(--color-accent-500);
-}
-
 .sp-empty-title {
   margin-top: 1rem;
   font-size: 1.4rem;
@@ -46,15 +41,6 @@
   font-size: 0.9rem;
   line-height: 1.55;
   color: var(--color-text-secondary);
-}
-
-/* Un exemple concret vaut mieux qu'une consigne : on voit la forme attendue. */
-.sp-empty-example {
-  margin: 0.75rem auto 0;
-  max-width: 28rem;
-  font-size: 0.85rem;
-  font-style: italic;
-  color: var(--color-text-tertiary);
 }
 
 .sp-starters {
@@ -88,11 +74,6 @@
 .sp-starter:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
-}
-
-.sp-starter-icon {
-  font-size: 0.65rem;
-  color: var(--color-text-tertiary);
 }
 
 /* ── Messages ─────────────────────────────────────────────────────────────── */
@@ -248,44 +229,13 @@
   position: sticky;
   bottom: 0;
   margin-top: 1.5rem;
-  padding-top: 0.5rem;
+  padding: 0.5rem 0;
 }
 
-.sp-composer-box {
-  display: flex;
-  align-items: flex-end;
-  gap: 0.5rem;
-  padding: 0.5rem;
-}
-
-.sp-input {
-  flex: 1;
-  resize: none;
-  border: none;
-  background: transparent;
-  padding: 0.4rem 0.5rem;
-  font-size: 0.9rem;
-  line-height: 1.5;
-  color: var(--color-text-primary);
-  outline: none;
-}
-
-.sp-composer-foot {
-  margin-top: 0.4rem;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0 0.25rem;
-}
-
-.sp-hint,
 .sp-clear {
-  font-size: 0.65rem;
+  flex-shrink: 0;
+  font-size: 0.75rem;
   color: var(--color-text-tertiary);
-}
-
-.sp-clear {
   text-decoration: underline;
 }
 
@@ -297,41 +247,6 @@
 .sp-composing {
   margin-top: 1.25rem;
   padding: 1.1rem;
-}
-
-/* ── Questions guidées ────────────────────────────────────────────────────── */
-
-.sp-builder-head {
-  margin-bottom: 0.9rem;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem 1rem;
-}
-
-.sp-builder-intro {
-  font-size: 0.9rem;
-  color: var(--color-text-secondary);
-}
-
-.sp-switch {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: var(--color-primary-500);
-}
-
-.sp-switch:hover {
-  text-decoration: underline;
-}
-
-.sp-builder-foot {
-  margin-top: 0.75rem;
-  text-align: center;
-  font-size: 0.75rem;
 }
 
 /* ── Fil : barre du haut ──────────────────────────────────────────────────── */
@@ -387,20 +302,6 @@
     min-height: 0;
   }
 
-  .sp-builder-head {
-    margin-bottom: 0.75rem;
-  }
-
-  .sp-builder-intro {
-    font-size: 0.85rem;
-  }
-
-  .sp-toolbar .inner-button {
-    width: 100%;
-    justify-content: center;
-    min-height: 2.75rem;
-  }
-
   .sp-toolbar-hint {
     min-width: 0;
   }
@@ -420,25 +321,7 @@
     z-index: 5;
     margin-inline: -0.25rem;
     padding: 0.5rem 0.25rem 0.25rem;
-  }
-
-  .sp-composer-box {
     background: var(--glass-bg-intense);
   }
 
-  .sp-composer-box .inner-button {
-    min-height: 2.75rem;
-    min-width: 2.75rem;
-    justify-content: center;
-  }
-
-  /* 16 px au moins : en dessous, iOS zoome la page à chaque appui sur le champ. */
-  .sp-input {
-    font-size: 1rem;
-  }
-
-  .sp-hint,
-  .sp-clear {
-    font-size: 0.7rem;
-  }
 }
