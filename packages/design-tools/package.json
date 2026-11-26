@@ -9,6 +9,7 @@
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "check": "ts-node --transpile-only scripts/check.ts",
+    "check:graphic-enhance": "ts-node --transpile-only scripts/check-graphic-enhance.ts",
     "check:image-quality": "ts-node --transpile-only scripts/check-image-quality.ts"
   },
   "dependencies": {

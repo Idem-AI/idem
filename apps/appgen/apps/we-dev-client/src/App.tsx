@@ -149,6 +149,7 @@ function App() {
             <Workspace
               onSendToChat={(text) => eventEmitter.emit('chat:prefill', text)}
               onRunInChat={(text, pointed) => eventEmitter.emit('chat:run', { text, pointed })}
+              onTargetInChat={(pointed, summary) => eventEmitter.emit('chat:target', { pointed, summary })}
             />
           }
         />

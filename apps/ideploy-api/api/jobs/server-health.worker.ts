@@ -43,6 +43,9 @@ async function processDomainSweep(): Promise<void> {
     if (target) await applyRoutes(target.server, target.key, app);
   });
   if (checked > 0) logger.info('domains.swept', { event: 'domains.swept', applications: checked });
+  // Addresses reserved by an iCode publish window that never published: given back after a day.
+  const { sweepReservations } = await import('../services/address-reservation.service');
+  await sweepReservations().catch((err) => logger.warn('address.reservation_sweep_failed', { message: (err as Error).message }));
 }
 
 async function processMeterSweep(): Promise<void> {

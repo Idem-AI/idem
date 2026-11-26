@@ -15,6 +15,7 @@
         "check:site-style": "tsx scripts/check-site-style.ts",
         "check:redesign": "tsx scripts/check-redesign.ts",
         "check:image-casting": "tsx scripts/check-image-casting.ts",
+        "check:image-binding": "tsx scripts/check-image-binding.ts",
         "check:site-delete": "tsx scripts/check-site-delete.ts",
         "gallery:site-style": "tsx scripts/gallery-site-style.ts",
         "check:site-speed": "tsx scripts/check-site-speed.ts",

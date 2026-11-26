@@ -6,7 +6,7 @@
  * plain POSIX `ustar` the `tar` of every Linux server reads: 512-byte header
  * blocks, contents padded to 512 bytes, two empty blocks at the end.
  */
-import { gzipSync } from 'zlib';
+import { gunzipSync, gzipSync } from 'zlib';
 
 const BLOCK = 512;
 
@@ -64,4 +64,32 @@ export function createTarGz(files: ArchiveFiles): Buffer {
   }
   parts.push(Buffer.alloc(BLOCK * 2, 0));
   return gzipSync(Buffer.concat(parts));
+}
+
+/**
+ * Read back a `.tar.gz` made by `createTarGz` (or any plain ustar archive):
+ * regular files only, with their full paths. A malformed archive throws.
+ */
+export function readTarGz(archive: Buffer): Record<string, Buffer> {
+  const tar = gunzipSync(archive);
+  const files: Record<string, Buffer> = {};
+  const field = (block: Buffer, start: number, length: number) => {
+    const raw = block.subarray(start, start + length);
+    const end = raw.indexOf(0);
+    return raw.subarray(0, end === -1 ? length : end).toString('utf8');
+  };
+  for (let offset = 0; offset + BLOCK <= tar.length; ) {
+    const block = tar.subarray(offset, offset + BLOCK);
+    if (block.every((byte) => byte === 0)) break;
+    const size = parseInt(field(block, 124, 12).trim() || '0', 8);
+    if (!Number.isFinite(size) || size < 0) throw new Error('Malformed archive');
+    const type = field(block, 156, 1) || '0';
+    const name = field(block, 0, 100);
+    const prefix = field(block, 345, 155);
+    const start = offset + BLOCK;
+    if (start + size > tar.length) throw new Error('Truncated archive');
+    if (type === '0') files[prefix ? `${prefix}/${name}` : name] = Buffer.from(tar.subarray(start, start + size));
+    offset = start + Math.ceil(size / BLOCK) * BLOCK;
+  }
+  return files;
 }

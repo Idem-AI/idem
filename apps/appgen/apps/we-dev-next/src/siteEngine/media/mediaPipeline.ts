@@ -40,6 +40,8 @@ export interface MediaAsset {
   /** D'où il vient : utile à qui reprendra le site, jamais affiché. */
   origin: 'pexels' | 'pixabay' | 'unsplash' | 'gemini' | 'veo' | 'svg' | 'pattern' | 'site';
   credit?: string;
+  /** Refonte : le texte qui accompagnait l'image sur l'ancien site (nom, titre). Jamais écrit dans le site : il sert à la poser avec son élément (`redesign/binding.ts`). */
+  caption?: string;
 }
 
 export interface PipelineContext {
@@ -58,7 +60,7 @@ export interface PipelineContext {
   /** Les générations payantes encore permises dans ce site (images et vidéos), partagées par tous les emplacements. */
   generations: { left: number };
   /** Refonte : les images de l'ancien site, par identifiant du manifeste. */
-  siteImages?: Map<string, { url: string; alt: string }>;
+  siteImages?: Map<string, { url: string; alt: string; caption?: string }>;
   /**
    * Une génération finie APRÈS que l'emplacement a reçu son visuel provisoire : elle le remplace. Absent : la
    * génération est attendue, comme avant.
@@ -246,8 +248,8 @@ export async function produceMedia(slot: MediaSlot, decision: AssetDecision, ctx
     case 'site': {
       assets = (decision.site ?? [])
         .map((id) => ctx.siteImages?.get(id))
-        .filter((image): image is { url: string; alt: string } => !!image)
-        .map((image) => ({ kind: 'image' as const, src: image.url, alt: image.alt || alt, origin: 'site' as const }));
+        .filter((image): image is { url: string; alt: string; caption?: string } => !!image)
+        .map((image) => ({ kind: 'image' as const, src: image.url, alt: image.alt || alt, origin: 'site' as const, ...(image.caption ? { caption: image.caption } : {}) }));
       break;
     }
 

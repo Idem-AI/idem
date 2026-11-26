@@ -23,6 +23,8 @@ interface WorkspaceProps {
    * écrite dans le calque, rien ne reste à compléter.
    */
   onRunInChat?: (message: string, pointed: PointedElement[]) => void;
+  /** Une sélection (outil Sélectionner) : la cible du prochain message, que la personne écrit ensuite. */
+  onTargetInChat?: (pointed: PointedElement[], summary: string) => void;
 }
 
 /**
@@ -32,7 +34,7 @@ interface WorkspaceProps {
  * version ouvrait sur l'IDE : un utilisateur non technique atterrissait sur un
  * explorateur de fichiers. Ici l'aperçu est premier et le code se demande.
  */
-export function Workspace({ onSendToChat, onRunInChat }: WorkspaceProps) {
+export function Workspace({ onSendToChat, onRunInChat, onTargetInChat }: WorkspaceProps) {
   const { t } = useTranslation();
   const [projectData, setProjectData] = useState<ProjectModel | null>(null);
 
@@ -97,10 +99,11 @@ export function Workspace({ onSendToChat, onRunInChat }: WorkspaceProps) {
   const handleSelection = useCallback(
     (context: SelectionContext) => {
       if (context.annotation && onRunInChat) return onRunInChat(describeSelection(context, t), context.pointed ?? []);
+      if (context.pointed?.length && onTargetInChat) return onTargetInChat(context.pointed, describePointed(context.pointed, t));
       if (!onSendToChat) return;
       onSendToChat(describeSelection(context, t));
     },
-    [onSendToChat, onRunInChat, t]
+    [onSendToChat, onRunInChat, onTargetInChat, t]
   );
 
   const handleApplyTheme = useCallback(
@@ -174,7 +177,7 @@ export function Workspace({ onSendToChat, onRunInChat }: WorkspaceProps) {
           de dev et l'instrumentation d'édition à chaque aller-retour. */}
       <div className="flex-1 min-h-0 relative">
         <ViewSlot active={view === 'preview'}>
-          <EditablePreview onAskAboutSelection={onSendToChat || onRunInChat ? handleSelection : undefined} />
+          <EditablePreview onAskAboutSelection={onSendToChat || onRunInChat || onTargetInChat ? handleSelection : undefined} />
         </ViewSlot>
         <ViewSlot active={view === 'code'}>
           <WeIde detail={ideDetail} />
@@ -220,6 +223,11 @@ function ViewSlot({
       {children}
     </div>
   );
+}
+
+/** Ce que la personne a désigné, en mots (sans chemin de fichier) : « le bouton « Commander » ». */
+function describePointed(pointed: PointedElement[], t: (key: string, options?: Record<string, unknown>) => string): string {
+  return pointed.map((element) => `${t(`editMode.kind.${element.kind}`, { defaultValue: element.tag })}${element.text ? ` « ${element.text.slice(0, 60)} »` : ''}`).join(', ');
 }
 
 /**

@@ -24,6 +24,7 @@ import { randomBytes } from 'crypto';
 import * as databaseService from './database.service';
 import { LinkTargets, LinkedVariable, applicationDefaults, linkVariables, targetKindOf } from './resource-links';
 import { IncomingFiles, saveSourceForApplication } from './application-source.service';
+import { reserveAddress } from './address-reservation.service';
 
 /**
  * Resolve the workspace this deployment belongs to, creating one if needed.
@@ -140,6 +141,18 @@ export interface QuickDeployDto {
    * automatic address.
    */
   platform_domain?: boolean;
+  /**
+   * Create the application and its address, deploy nothing yet (iCode, when
+   * its publish window opens). The address is routed as soon as DNS serves
+   * it, so its certificate is ready by the time the code arrives
+   * (`PUT /applications/:uuid/source`). See address-reservation.service.
+   */
+  reserve?: boolean;
+  /**
+   * With `reserve`: the site's package.json (and lockfile, .npmrc), so its
+   * dependencies are installed on the server before the code arrives.
+   */
+  prepare_files?: Record<string, string>;
 }
 
 export interface QuickDeployResult {
@@ -196,7 +209,7 @@ export async function quickDeploy(teamId: number, dto: QuickDeployDto): Promise<
   if (isImage && !dto.docker_image) {
     throw unprocessable('SOURCE_REQUIRED', 'Provide the image to run, e.g. registry.example.com/organisation/app.');
   }
-  if (!isImage && !dto.git_repository && !dto.files) {
+  if (!isImage && !dto.git_repository && !dto.files && !dto.reserve) {
     throw unprocessable(
       'SOURCE_REQUIRED',
       'Provide a Git repository URL, the files of the project, or pick a one-click template.'
@@ -254,6 +267,18 @@ export async function quickDeploy(teamId: number, dto: QuickDeployDto): Promise<
       is_runtime: true,
       is_buildtime: true,
     });
+  }
+
+  if (dto.reserve && !dto.files) {
+    await reserveAddress(teamId, app, dto.prepare_files ?? null);
+    return {
+      kind: 'application',
+      applicationUuid: app.uuid,
+      url: appService.computeAppLink(app),
+      workspace,
+      internalHostname: workspaceService.internalHostname(app.name, app.uuid),
+      linkedVariables: linked.filter((l) => l.linkedTo).map((l) => ({ key: l.key, resource: l.linkedTo as string })),
+    };
   }
 
   const { deploymentUuid } = await deploymentService.createDeployment(app, teamId, {});

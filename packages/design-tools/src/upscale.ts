@@ -27,6 +27,7 @@ import { Worker } from 'worker_threads';
 import sharp, { type Sharp } from 'sharp';
 import { modelsDir } from './embed';
 import { hasFace } from './faces';
+import { enhanceGraphic } from './graphic-enhance';
 import { gridBlockiness, ImageQuality, measureImageQuality, needsEnhancement, THRESHOLDS } from './image-quality';
 
 const MODEL_ZIP_URL = 'https://qaihub-public-assets.s3.us-west-2.amazonaws.com/qai-hub-models/models/real_esrgan_general_x4v3/releases/v0.67.0/real_esrgan_general_x4v3-onnx-float.zip';
@@ -48,24 +49,28 @@ const DEFAULT_BUDGET_MS = 25_000;
 /** Temps d'une tuile retenu pour le budget, avant la première mesure sur la machine. */
 let msPerTile = 450;
 
-export type EnhanceMethod = 'model' | 'sharp';
+export type EnhanceMethod = 'model' | 'sharp' | 'graphic';
 
 export interface EnhanceOptions {
   /** La largeur visée en pixels (voir `targetWidthFor`) ; à défaut, ×2 bornée. */
   targetWidth?: number;
   /** `false` : sharp seulement. */
   allowModel?: boolean;
+  /** `false` : pas de reconstruction des contours pour un logo ou une icône. */
+  graphic?: boolean;
   /** Temps maximal accordé au modèle pour cette image. */
   budgetMs?: number;
 }
 
 export interface EnhanceResult {
   buffer: Buffer;
-  mimeType: 'image/webp';
+  mimeType: 'image/webp' | 'image/png';
   width: number;
   height: number;
   method: EnhanceMethod;
   before: ImageQuality;
+  /** Le tracé vectoriel d'un logo ou d'une icône (méthode `graphic` avec vectorisation). */
+  svg?: string;
   /** La netteté à la taille visée : l'image simplement agrandie, puis l'image améliorée. */
   sharpness: { plain: number; enhanced: number };
   ms: number;
@@ -326,13 +331,22 @@ export async function enhanceImage(buffer: Buffer, options: EnhanceOptions = {})
   const issues = needsEnhancement(before, { displayWidth: width / 2, displayHeight: 0 });
   if (!issues.length) return null;
 
+  // Un logo, une icône, un aplat : ni sharp ni le modèle (entraîné sur des photos, il déforme les lettres) — les contours
+  // sont reconstruits (`graphic-enhance.ts`). Si cette voie ne fait pas mieux, on retombe sur sharp.
+  if (!before.photo && options.graphic !== false) {
+    const graphic = await enhanceGraphic(buffer, { targetSide: Math.max(width, 800) }).catch(() => null);
+    if (graphic) {
+      return { buffer: graphic.buffer, mimeType: graphic.mimeType, width: graphic.width, height: graphic.height, method: 'graphic', before, svg: graphic.svg, sharpness: { plain: 0, enhanced: 0 }, ms: Date.now() - started };
+    }
+  }
+
   const plain = await sharp(buffer, { failOn: 'none' }).rotate().resize({ width, kernel: 'lanczos3' }).png().toBuffer();
   const plainSharpness = await sharpnessAt(plain, width);
   const colour = await meanColour(buffer);
 
   // Défaut fort : il manque plus de la moitié des pixels, l'image est floue, ou la compression est lourde — sharp
   // seul ne recrée rien (le modèle est entraîné sur ces dégradations).
-  const strong = before.width / width < 0.5 || issues.includes('blurry') || before.blockiness > 1.8;
+  const strong = before.width / width < 0.7 || issues.includes('blurry') || before.blockiness > 1.8;
   // Le modèle : photos seulement (un aplat, un texte se déformeraient), jamais un visage (il le lisserait).
   const modelAllowed = options.allowModel !== false && !modelOff() && before.photo && strong && !(await hasFace(buffer));
   const attempts: EnhanceMethod[] = modelAllowed ? ['model', 'sharp'] : ['sharp'];

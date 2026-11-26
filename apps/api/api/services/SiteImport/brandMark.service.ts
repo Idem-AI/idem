@@ -24,6 +24,7 @@ import type { ProjectModel } from '../../models/project.model';
 import { projectService } from '../project.service';
 import { storageService } from '../storage.service';
 import { safeFetch } from '../../../../ivision/core/src/render/safe-fetch';
+import { publicLogoUrl } from '../brand/publicLogoUrl';
 
 export interface HeaderBrandMark {
   /** Le logo rogné, prêt pour l'en-tête. */
@@ -33,6 +34,11 @@ export interface HeaderBrandMark {
   aspect: number;
   /** Clair sur transparent : à poser sur une pastille sombre. */
   light?: boolean;
+  /**
+   * L'adresse FIXE du logo (`/brand/<projet>/logo`), qui sert toujours la marque actuelle : c'est elle que les sites
+   * affichent, pour qu'un nouveau logo y paraisse sans redéploiement. `src` change à chaque logo.
+   */
+  publicSrc?: string;
   /** Empreinte des emplacements du logo au moment du calcul. */
   from: string;
   v: number;
@@ -224,7 +230,7 @@ export async function computeBrandMark(userId: string, projectId: string, logo: 
   // (« Accueil » pour les lecteurs d'écran), jamais un nom à répéter.
   const kind: HeaderBrandMark['kind'] =
     l.type === 'name' ? 'wordmark' : (l.nameBeside && chosen.m.aspect < 2.6) || fromIconSlot ? 'icon' : chosen.m.aspect >= WORDMARK_ASPECT ? 'wordmark' : 'icon';
-  return { src, kind, aspect: Math.round(chosen.m.aspect * 100) / 100, ...(chosen.m.light ? { light: true } : {}), from, v: VERSION };
+  return { src, publicSrc: publicLogoUrl(projectId), kind, aspect: Math.round(chosen.m.aspect * 100) / 100, ...(chosen.m.light ? { light: true } : {}), from, v: VERSION };
 }
 
 /**
@@ -237,7 +243,8 @@ export async function ensureBrandMark(userId: string, projectId: string, project
   if (!current || !logo) return null;
   const values = candidatesOf(logo);
   if (!values.length) return null;
-  if (logo.header?.src && logo.header.v === VERSION && logo.header.from === fingerprint(values)) return logo.header;
+  // Une marque rangée avant l'adresse fixe la reçoit à la lecture : elle ne dépend que du projet.
+  if (logo.header?.src && logo.header.v === VERSION && logo.header.from === fingerprint(values)) return { ...logo.header, publicSrc: publicLogoUrl(projectId) };
 
   const header = await computeBrandMark(userId, projectId, logo);
   if (!header) return null;

@@ -6,6 +6,9 @@
 import { dispatch, DispatchInput } from '../src/commands/dispatch.js';
 import { marker, withRecommendedFirst, ChatChoices } from '../src/commands/choices.js';
 import { readIntent } from '../src/commands/intent.js';
+import { capabilitiesFor, CAPABILITIES } from '../src/commands/capabilities.js';
+import { rescanSource } from '../src/siteEngine/redesign/source.js';
+import { elsewhereReply } from '../src/siteEngine/edit.js';
 import { COMMANDS, parseCommand } from '../src/commands/registry.js';
 import { siteRequest } from '../src/commands/workflows/site.js';
 import { findSiteUrl } from '../src/siteEngine/redesign/intent.js';
@@ -274,6 +277,24 @@ async function main() {
     const incomplete = { '.idem/plan.json': JSON.stringify(last), 'src/site/pages.json': '{}' };
     const resumed = await run(await dispatch(base({ text: '/continue', projectData: undefined, siteFiles: incomplete, hasSite: true })));
     check('/continue sans projet : on dit d’ouvrir le projet', /ouvrez iCode depuis votre projet/.test(resumed.text), resumed.text);
+  }
+
+  // Relire le site d'origine (/rescan) et le catalogue des capacités lu par les agents.
+  {
+    const born = { id: 'p-born', name: 'EK', analysisResultModel: { branding: { siteSource: { url: 'https://ek.example.cm/' } } } } as unknown as DispatchInput['projectData'];
+    check('agent : relecture reconnue', readIntent({ intent: 'rescan', confidence: 0.9 })?.intent === 'rescan');
+    check('capacités : relecture proposée seulement avec un site d’origine', capabilitiesFor({ hasProject: true, hasSite: true, hasCharter: true, siteSource: 'https://a.cm' }).some((c) => c.id === 'rescan') && !capabilitiesFor({ hasProject: true, hasSite: true, hasCharter: true }).some((c) => c.id === 'rescan'));
+    check('capacités : chacune a sa commande « / »', CAPABILITIES.every((c) => COMMANDS.some((command) => command.name === c.command)));
+    check('source : marque du projet', rescanSource(born)?.url === 'https://ek.example.cm/');
+    check('source : plan du site, sans projet joint', JSON.stringify(rescanSource(undefined, { '.idem/plan.json': JSON.stringify({ status: 'done', steps: [], redesign: { projectId: 'p9', url: 'ek.example.cm', choice: 'direct', focus: 'all' } }) })) === JSON.stringify({ url: 'https://ek.example.cm/', projectId: 'p9' }));
+    const asked = await run(await dispatch(base({ text: '/rescan', projectData: born, hasSite: true })));
+    check('/rescan : question posée, projet gardé', asked.choices?.purpose === 'rescan' && asked.choices.prepare === 'site-reset' && asked.choices.context?.projectId === 'p-born' && /ek\.example\.cm/.test(asked.text), asked);
+    check('/rescan : dit qu’une génération est décomptée', /nouvelle génération/.test(asked.text));
+    const noSource = await run(await dispatch(base({ text: '/rescan', projectData: { id: 'p1', name: 'X', analysisResultModel: {} } as unknown as DispatchInput['projectData'], hasSite: true })));
+    check('/rescan sans site d’origine : refonte, adresse demandée', noSource.choices?.purpose === 'redesign' && noSource.choices.questions.some((q) => q.id === 'url'), noSource.choices);
+    check('retouche : relecture nommée avec sa commande', /\/rescan/.test(elsewhereReply('rescan', true, true)) && /n’a pas changé/.test(elsewhereReply('rescan', true, true)));
+    check('retouche : relecture impossible sans site d’origine → /redesign', /\/redesign/.test(elsewhereReply('rescan', true, false)));
+    check('retouche : mise en ligne nommée', /\/publish/.test(elsewhereReply('publish', true, false)));
   }
 
   console.log(`${passed} contrôles réussis, ${failed} en échec`);

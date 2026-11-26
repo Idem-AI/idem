@@ -13,7 +13,6 @@ import {
 } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { environment } from '../../../environments/environment';
-import { PromoTextComponent } from '@idem/shared-promotions/angular';
 
 interface Stage {
   /** Stable, non-localized path fragment shown in the mock browser bar. */
@@ -65,7 +64,7 @@ const GESTURES = ['pointerdown', 'keydown', 'touchstart'] as const;
  */
 @Component({
   selector: 'app-journey',
-  imports: [PromoTextComponent],
+  imports: [],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './journey.html',
   styleUrl: './journey.css',
@@ -305,11 +304,21 @@ export class JourneyComponent implements AfterViewInit, OnDestroy {
    * rectangles per frame at most, read on scroll only.
    */
   private readActive(): void {
-    const middle = window.innerHeight / 2;
+    // The step read is the one whose screen sits closest to the reading line
+    // (45 % of the viewport, level with the open step of the index): what the
+    // text says and what the screen shows change at the same moment.
+    const line = window.innerHeight * 0.45;
     let index = -1;
+    let best = Infinity;
     for (const ref of this.shotRefs()) {
-      const r = ref.nativeElement.getBoundingClientRect();
-      if (r.top <= middle && r.bottom > middle) index = Number(ref.nativeElement.dataset['index']);
+      const frame = ref.nativeElement.querySelector('.jn-frame') ?? ref.nativeElement;
+      const r = frame.getBoundingClientRect();
+      if (r.bottom < 0 || r.top > window.innerHeight) continue;
+      const distance = Math.abs(r.top + r.height / 2 - line);
+      if (distance < best) {
+        best = distance;
+        index = Number(ref.nativeElement.dataset['index']);
+      }
     }
     if (index < 0 || index === this.activeIndex()) return;
     this.zone.run(() => this.activeIndex.set(index));

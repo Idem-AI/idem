@@ -65,7 +65,17 @@ export interface IdentityUpdateReport {
   palette?: HarmonizeResult;
   branding: { logo: LogoModel; colors: ColorModel; typography: TypographyModel };
   supports: SupportReport[];
-  site?: { hasSite: boolean; filesChanged: number; forged: boolean; error?: string };
+  site?: {
+    hasSite: boolean;
+    filesChanged: number;
+    forged: boolean;
+    error?: string;
+    /**
+     * Le site en ligne quand le logo a changé : `automatic`, il affiche le logo par son adresse fixe (le nouveau y
+     * paraît seul) ; `republish`, il a été publié avec une copie de l'ancien logo et doit être republié une fois.
+     */
+    live?: { url: string; logo: 'automatic' | 'republish' };
+  };
   stats: { colors: number; fonts: number; logos: number; contrastFixes: number };
   logoAdaptation?: { recolored: boolean; retypeset: boolean; previewSvg?: string };
 }

@@ -18,6 +18,7 @@ import { IdemLoaderComponent } from '@idem/shared-loader/angular';
 import { Subject, debounceTime, switchMap, of, catchError } from 'rxjs';
 
 import { ProjectModel } from '@idem/shared-models';
+import { environment } from '../../../../../../../environments/environment';
 
 import {
   BrandFont,
@@ -94,6 +95,14 @@ export class IdentityEditorComponent {
   readonly project = input.required<ProjectModel>();
 
   readonly closed = output<void>();
+
+  /**
+   * Un site publié avant l'adresse fixe du logo garde une copie de l'ancien : sa fenêtre de mise en ligne s'ouvre
+   * dans un nouvel onglet, la charte reste ouverte ici.
+   */
+  protected republishSiteUrl(): string {
+    return `${environment.services.webgen.url}?projectId=${encodeURIComponent(this.projectId())}&product=site&publish=1`;
+  }
   readonly applied = output<IdentityUpdateReport>();
 
   protected readonly roles = PALETTE_ROLES;

@@ -9,8 +9,11 @@ import { forwardedCredentials } from '../middleware/auth.js';
  * iDeploy). Two shapes, chosen by the client from the project's layout:
  *
  *   - `static`    : a site, a mobile app (PWA) or a web app without a server.
- *                   The client sends the BUILT site (`dist/…`), iDeploy serves
- *                   it as is — what was previewed is exactly what goes live.
+ *                   The client sends the SOURCES; iDeploy builds them on the
+ *                   server that serves them, in a throwaway Node container
+ *                   (much faster than the browser's WebContainer). When that
+ *                   build environment is unavailable, the client builds in the
+ *                   browser and sends `dist/…`, served as is.
  *   - `fullstack` : `backend/` + `frontend/`. The client sends the SOURCES,
  *                   iDeploy creates PostgreSQL, the server and the interface
  *                   and links them (`DATABASE_URL`, `VITE_API_URL`).
@@ -30,6 +33,11 @@ interface PublishBody {
   files?: Files;
   /** What a previous publish created, kept by the client with the deployment record. */
   existing?: { applicationUuid?: string; backendUuid?: string; frontendUuid?: string } | null;
+  /**
+   * Update of a site: every file with its SHA-256; `files` then holds only
+   * those iDeploy does not already have (see `/applications/:uuid/source/manifest`).
+   */
+  manifest?: Record<string, string> | null;
 }
 
 export interface PublishedDeployment {
@@ -73,8 +81,9 @@ function slug(name: string): string {
 }
 
 router.post('/publish', async (req: Request, res: Response) => {
-  const { name, mode, files, existing } = (req.body ?? {}) as PublishBody;
-  if (!files || typeof files !== 'object' || Object.keys(files).length === 0) {
+  const { name, mode, files, existing, manifest } = (req.body ?? {}) as PublishBody;
+  const delta = mode !== 'fullstack' && Boolean(existing?.applicationUuid) && Boolean(manifest) && typeof manifest === 'object';
+  if (!files || typeof files !== 'object' || (!delta && Object.keys(files).length === 0)) {
     return res.status(422).json({ success: false, message: 'Aucun fichier à publier.' });
   }
   const appName = slug(name || 'mon-app');
@@ -131,10 +140,13 @@ router.post('/publish', async (req: Request, res: Response) => {
 
     // Static: the built site.
     if (existing?.applicationUuid) {
-      const updated = await ideploy<{ deploymentUuid: string }>(
-        req, 'PUT', `/applications/${existing.applicationUuid}/source`, { files, deploy: true }
-      );
-      const app = await ideploy<{ fqdn?: string | null }>(req, 'GET', `/applications/${existing.applicationUuid}`);
+      // The address is read while the code is saved: one round trip less.
+      const [updated, app] = await Promise.all([
+        ideploy<{ deploymentUuid: string }>(
+          req, 'PUT', `/applications/${existing.applicationUuid}/source`, delta ? { manifest, files, deploy: true } : { files, deploy: true }
+        ),
+        ideploy<{ fqdn?: string | null }>(req, 'GET', `/applications/${existing.applicationUuid}`),
+      ]);
       return res.json({
         success: true,
         mode: 'static',
@@ -173,6 +185,54 @@ router.post('/publish', async (req: Request, res: Response) => {
     return res
       .status(err.status && err.status >= 400 && err.status < 600 ? err.status : 502)
       .json({ success: false, code: err.code, message: err.message });
+  }
+});
+
+/**
+ * The address of a first publish, prepared when the publish window opens:
+ * iDeploy creates the application and its `monapp.ideploy.site`, deploys
+ * nothing, and routes the name as soon as DNS serves it — the certificate is
+ * then obtained while the site builds. The click becomes an update of it.
+ */
+router.post('/reserve', async (req: Request, res: Response) => {
+  const appName = slug(String(req.body?.name || 'mon-app'));
+  try {
+    // The site's package.json (and .npmrc): iDeploy installs its dependencies before the code arrives.
+    const raw = req.body?.manifests;
+    const manifests =
+      raw && typeof raw === 'object'
+        ? Object.fromEntries(
+            ['package.json', 'package-lock.json', '.npmrc']
+              .filter((path) => typeof raw[path] === 'string' && raw[path].length < 2_000_000)
+              .map((path) => [path, raw[path] as string])
+          )
+        : undefined;
+    const reserved = await ideploy<{ applicationUuid: string; url: string | null }>(req, 'POST', '/quick-deploy', {
+      name: appName,
+      build_pack: 'static',
+      publish_directory: 'dist',
+      ports_exposes: '80',
+      platform_domain: true,
+      reserve: true,
+      ...(manifests && Object.keys(manifests).length ? { prepare_files: manifests } : {}),
+    });
+    return res.json({ success: true, applicationUuid: reserved.applicationUuid, url: reserved.url ?? null });
+  } catch (error) {
+    const err = error as Error & { status?: number; code?: string };
+    return res.status(err.status && err.status >= 400 && err.status < 600 ? err.status : 502).json({ success: false, code: err.code, message: err.message });
+  }
+});
+
+/** Each file of the published site with its SHA-256: the client then sends only what changed. */
+router.get('/applications/:uuid/source/manifest', async (req: Request, res: Response) => {
+  try {
+    const data = await ideploy<{ manifest: Record<string, string> }>(
+      req, 'GET', `/applications/${encodeURIComponent(String(req.params.uuid))}/source/manifest`
+    );
+    return res.json({ success: true, manifest: data?.manifest ?? {} });
+  } catch (error) {
+    const err = error as Error & { status?: number };
+    return res.status(err.status ?? 502).json({ success: false, message: err.message });
   }
 });
 
@@ -231,11 +291,16 @@ router.get('/deployments/:uuid', async (req: Request, res: Response) => {
       application_url?: string | null;
       logs?: string | null;
     }>(req, 'GET', `/deploy/${encodeURIComponent(String(req.params.uuid))}`);
+    const text = logText(deployment.logs);
     return res.json({
       success: true,
       status: deployment.status ?? 'queued',
       url: deployment.application_url ?? null,
-      log: tail(deployment.logs),
+      log: text ? text.split('\n').slice(-40).join('\n') : null,
+      // The site's own build report (SEO checks), now that iDeploy builds it.
+      buildReport: buildReportFrom(text),
+      // The build environment itself failed (not the site): iCode then builds in the browser.
+      buildUnavailable: Boolean(text?.includes('IDEPLOY_BUILD_UNAVAILABLE')),
     });
   } catch (error) {
     const err = error as Error & { status?: number };
@@ -328,18 +393,29 @@ function toUrl(fqdn?: string | null): string | null {
   return /^https?:\/\//.test(first) ? first : `https://${first}`;
 }
 
-/** The last lines of a deployment log, for the « details » of a failure. */
-function tail(logs?: string | null): string | null {
+/** A deployment log as text: iDeploy stores it as JSON entries ({ output }) or as plain text. */
+function logText(logs?: string | null): string | null {
   if (!logs) return null;
-  let text = logs;
   try {
-    // iDeploy stores its log as JSON entries ({ output }) or as plain text.
     const entries = JSON.parse(logs) as Array<{ output?: string }>;
-    if (Array.isArray(entries)) text = entries.map((e) => e.output ?? '').join('\n');
+    if (Array.isArray(entries)) return entries.map((e) => e.output ?? '').join('\n');
   } catch {
     /* plain text */
   }
-  return text.split('\n').slice(-40).join('\n');
+  return logs;
+}
+
+/** `@@IDEM_BUILD_REPORT <base64>`, written by iDeploy after building the site: its errors and warnings. */
+function buildReportFrom(text: string | null): { errors: string[]; warnings: string[] } | null {
+  const line = text?.split('\n').reverse().find((l) => l.includes('@@IDEM_BUILD_REPORT '));
+  if (!line) return null;
+  try {
+    const raw = JSON.parse(Buffer.from(line.split('@@IDEM_BUILD_REPORT ')[1].trim(), 'base64').toString('utf8'));
+    const strings = (list: unknown) => (Array.isArray(list) ? list.filter((x): x is string => typeof x === 'string') : []);
+    return { errors: strings(raw?.seo?.errors), warnings: strings(raw?.seo?.warnings) };
+  } catch {
+    return null;
+  }
 }
 
 export default router;

@@ -26,11 +26,12 @@ import { writeFile, rm } from 'fs/promises';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { executeRemoteCommand, shellQuote, uploadRemoteFile } from '../ssh/ssh';
-import { STATIC_NGINX_CONF, toBuildPack } from '../docker/build-packs';
+import { STATIC_NGINX_CONF } from '../docker/build-packs';
 import { composeDirFile, composeProject, composeServiceName, generateComposeFile } from '../docker/compose';
 import { writeFirewallFile } from '../services/firewall-file.service';
 import { applyRoutes, retryPlatformCertificates } from '../services/routes-file.service';
 import { ApplicationRow, PrivateKeyRow, ServerRow } from '../models/ideploy.types';
+import { buildSite, SiteBuild } from './static-build';
 
 /** Versions gardées sur le serveur : la servie et deux d'avant. */
 const STATIC_RELEASES_KEPT = 3;
@@ -39,21 +40,7 @@ const STATIC_IMAGE = 'nginx:alpine';
 /** La configuration du chemin général, servie depuis le dossier monté. */
 export const FAST_STATIC_NGINX_CONF = STATIC_NGINX_CONF.replace('root /usr/share/nginx/html;', 'root /site/current/html;');
 
-/**
- * Le site arrive tout construit (iCode) : des fichiers, pas de commande à
- * lancer. Un dépôt Git, une commande d'installation ou de build, une image :
- * le chemin général.
- */
-export function isPrebuiltStatic(app: ApplicationRow, hasSourceArchive: boolean): boolean {
-  return (
-    hasSourceArchive &&
-    !app.git_repository &&
-    toBuildPack(app.build_pack) === 'static' &&
-    !app.install_command &&
-    !app.build_command &&
-    !app.start_command
-  );
-}
+export { isPrebuiltStatic } from './prebuilt-static';
 
 export interface FastStaticContext {
   deploymentUuid: string;
@@ -67,6 +54,8 @@ export interface FastStaticContext {
   log: (line: string) => Promise<void>;
   step: (label: string, fn: () => Promise<void>) => Promise<void>;
   markSwitched: () => void;
+  /** The archive holds the project's sources: built on this server first (static-build.ts). */
+  build?: SiteBuild;
 }
 
 /** Le compose du conteneur unique : nginx, le dossier du site et sa configuration montés en lecture seule. */
@@ -101,8 +90,53 @@ export async function deployPrebuiltStatic(ctx: FastStaticContext): Promise<void
   await log('Prebuilt site: published as files, without building an image.');
   let confChanged = false;
 
+  // The firewall file and the routes do not depend on the files: written while
+  // the archive travels, not after. On a first publish the address was usually
+  // prepared when iCode's window opened (address-reservation.service), so the
+  // DNS wait returns at once. Awaited before the switch; a failure surfaces there.
+  const routing = (async () => {
+    await writeFirewallFile(server, key, app);
+    return applyRoutes(server, key, app, { port: 80, waitForPlatformDnsMs: 90_000 });
+  })();
+  routing.catch(() => undefined);
+
+  // La configuration nginx : réécrite seulement si elle a changé (le dossier est monté, nginx la relit au reload).
+  const conf = Buffer.from(FAST_STATIC_NGINX_CONF, 'utf8').toString('base64');
+  const confScript = [
+    `echo ${conf} | base64 -d > conf/default.conf.new`,
+    'if cmp -s conf/default.conf.new conf/default.conf; then rm -f conf/default.conf.new; echo CONF_SAME; else mv -f conf/default.conf.new conf/default.conf; echo CONF_CHANGED; fi',
+  ];
+
   // 1. Les fichiers, dans une nouvelle version (rien de ce qui est servi ne change encore).
-  await ctx.step('Uploading the site', async () => {
+  if (ctx.build) {
+    const build = ctx.build;
+    await ctx.step('Building the site', async () => {
+      const prepared = await executeRemoteCommand(server, key, `mkdir -p ${q(`${siteDir}/releases`)} ${q(`${siteDir}/conf`)}`, { noRetry: true });
+      if (prepared.exitCode !== 0) throw new Error(`Failed to prepare the site directory: ${prepared.stderr.slice(0, 300)}`);
+      await buildSite({
+        deploymentUuid,
+        app,
+        server,
+        key,
+        workdir,
+        archive: ctx.archive,
+        build,
+        outputDir: `${siteDir}/${release}/html`,
+        publish,
+        log,
+      });
+      const r = await executeRemoteCommand(
+        server,
+        key,
+        ['set -e', `cd ${q(siteDir)}`, ...confScript, `echo FILES=$(find ${q(`${release}/html`)} -type f | wc -l)`].join('\n'),
+        { noRetry: true }
+      );
+      if (r.exitCode !== 0) throw new Error(`Preparing the site failed: ${(r.stderr || r.stdout).slice(0, 300)}`);
+      const files = /FILES=\s*(\d+)/.exec(r.stdout)?.[1];
+      if (files) await log(`${files} files built.`);
+      confChanged = /CONF_CHANGED/.test(r.stdout);
+    });
+  } else await ctx.step('Uploading the site', async () => {
     const localArchive = join(tmpdir(), `ideploy-site-${deploymentUuid}.tgz`);
     const remoteArchive = `${siteDir}/incoming-${id}.tgz`;
     await writeFile(localArchive, ctx.archive);
@@ -114,7 +148,6 @@ export async function deployPrebuiltStatic(ctx: FastStaticContext): Promise<void
       await rm(localArchive, { force: true });
     }
 
-    const conf = Buffer.from(FAST_STATIC_NGINX_CONF, 'utf8').toString('base64');
     const script = [
       'set -e',
       `cd ${q(siteDir)}`,
@@ -125,9 +158,7 @@ export async function deployPrebuiltStatic(ctx: FastStaticContext): Promise<void
       `if [ -f "$R/x/${publish}/index.html" ]; then mv "$R/x/${publish}" "$R/html"; elif [ -f "$R/x/index.html" ]; then mv "$R/x" "$R/html"; else echo "NO_INDEX" >&2; exit 3; fi`,
       'rm -rf "$R/x"',
       'chmod -R a+rX "$R/html"',
-      // La configuration : réécrite seulement si elle a changé (le dossier est monté, nginx la relit au reload).
-      `echo ${conf} | base64 -d > conf/default.conf.new`,
-      'if cmp -s conf/default.conf.new conf/default.conf; then rm -f conf/default.conf.new; echo CONF_SAME; else mv -f conf/default.conf.new conf/default.conf; echo CONF_CHANGED; fi',
+      ...confScript,
       'echo FILES=$(find "$R/html" -type f | wc -l)',
     ].join('\n');
     const r = await executeRemoteCommand(server, key, script, { noRetry: true });
@@ -143,8 +174,7 @@ export async function deployPrebuiltStatic(ctx: FastStaticContext): Promise<void
   // 2. Le conteneur unique : créé s'il n'existe pas (ou si son compose a changé), sinon laissé tel quel.
   ctx.markSwitched();
   await ctx.step('Switching to the new version', async () => {
-    await writeFirewallFile(server, key, app);
-    const { routed, waiting } = await applyRoutes(server, key, app, { port: 80, waitForPlatformDnsMs: 90_000 });
+    const { routed, waiting } = await routing;
     if (routed.length) await log(`Routes: ${routed.join(', ')}`);
     if (waiting.length) await log(`Waiting for DNS (not routed yet): ${waiting.join(', ')} — see Settings › domain.`);
 

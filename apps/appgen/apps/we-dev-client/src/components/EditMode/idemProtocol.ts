@@ -89,7 +89,13 @@ export interface MsgHitTest {
   marks: DrawMark[];
 }
 
-export type ParentToAgentMessage = MsgEnableEdit | MsgSetSelection | MsgRequestTree | MsgHitTest;
+/** Le parent demande à l'agent de redire qu'il est là (aperçu rouvert, AGENT_READY perdu). */
+export interface MsgPing {
+  source: typeof IDEM_SOURCE;
+  type: 'PING';
+}
+
+export type ParentToAgentMessage = MsgEnableEdit | MsgSetSelection | MsgRequestTree | MsgHitTest | MsgPing;
 
 /* ------------------------------------------------------------------ */
 /* Messages agent (iframe) -> parent                                   */
@@ -137,6 +143,8 @@ export interface SelectedElementInfo {
   computed: Record<string, string>;
   /** Rectangle dans le repère de l'iframe (pour positionner la barre d'outils). */
   rect: { top: number; left: number; width: number; height: number };
+  /** Les ancêtres instrumentés, du plus proche au plus lointain (la section qui porte l'élément). */
+  ancestors?: string[];
 }
 
 /** Un calque de la pile d'éléments empilés sous le curseur au moment du clic. */

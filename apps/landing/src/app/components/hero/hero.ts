@@ -96,6 +96,13 @@ export class Hero implements AfterViewInit, OnDestroy {
 
     this.zone.runOutsideAngular(() => {
       film.addEventListener('play', this.onPlay);
+      // The sidebar follows the film's own clock: every jump, loop and
+      // buffering stop repaints it, not only the frames while playing.
+      film.addEventListener('timeupdate', this.onTime);
+      film.addEventListener('seeked', this.onTime);
+      // The film can start before this code runs (`autoplay` in the
+      // prerendered page): the `play` event is then already gone.
+      if (!film.paused) this.onPlay();
       film.addEventListener('pause', this.onPause);
       // Each moment the film becomes playable is another chance to start it.
       film.addEventListener('loadedmetadata', this.tryPlay);
@@ -132,6 +139,8 @@ export class Hero implements AfterViewInit, OnDestroy {
     if (!isPlatformBrowser(this.platformId)) return;
     const film = this.filmRef().nativeElement;
     film.removeEventListener('play', this.onPlay);
+    film.removeEventListener('timeupdate', this.onTime);
+    film.removeEventListener('seeked', this.onTime);
     film.removeEventListener('pause', this.onPause);
     window.removeEventListener('load', this.startFilm);
     film.removeEventListener('loadedmetadata', this.tryPlay);
@@ -192,6 +201,8 @@ export class Hero implements AfterViewInit, OnDestroy {
     this.gestureArmed = false;
     for (const type of GESTURES) window.removeEventListener(type, this.onGesture);
   }
+
+  private readonly onTime = () => this.paintProgress();
 
   private readonly onPlay = () => {
     this.zone.run(() => this.playing.set(true));

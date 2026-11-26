@@ -2489,7 +2489,10 @@
           "site": "Site internet",
           "files": "{{count}} fichier(s) mis à jour",
           "siteError": "Non mis à jour, réessayez",
-          "contrastFixes": "{{count}} texte(s) rendu(s) lisible(s) sur les nouvelles couleurs."
+          "contrastFixes": "{{count}} texte(s) rendu(s) lisible(s) sur les nouvelles couleurs.",
+          "siteLiveAutomatic": "Votre site en ligne affichera le nouveau logo d’ici quelques minutes, sans redéploiement.",
+          "siteLiveRepublish": "Votre site en ligne a été publié avec une copie de l’ancien logo. Republiez-le une fois : ensuite, chaque nouveau logo y paraîtra tout seul.",
+          "republishSite": "Republier le site"
         },
         "actions": {
           "preview": "Voir ce qui change",

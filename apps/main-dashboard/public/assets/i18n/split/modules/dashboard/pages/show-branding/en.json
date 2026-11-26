@@ -262,6 +262,9 @@
           "site": "Website",
           "files": "{{count}} file(s) updated",
           "siteError": "Not updated, try again",
+          "siteLiveAutomatic": "Your live site will show the new logo within a few minutes, with no redeploy.",
+          "siteLiveRepublish": "Your live site was published with a copy of the old logo. Republish it once: after that, every new logo will appear on it automatically.",
+          "republishSite": "Republish the site",
           "contrastFixes": "{{count}} text(s) kept legible on the new colors."
         },
         "actions": {

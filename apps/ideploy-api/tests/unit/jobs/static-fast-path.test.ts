@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import YAML from 'yaml';
 import { FAST_STATIC_NGINX_CONF, fastStaticCompose, isPrebuiltStatic } from '../../../api/jobs/static-fast-path';
+import { deploysOnFastLaneFields } from '../../../api/jobs/prebuilt-static';
 import type { ApplicationRow } from '../../../api/models/ideploy.types';
 
 const app = {
@@ -24,6 +25,14 @@ describe('prebuilt static sites (iCode)', () => {
     expect(isPrebuiltStatic({ ...app, git_repository: 'https://github.com/a/b' } as ApplicationRow, true)).toBe(false);
     expect(isPrebuiltStatic({ ...app, build_command: 'npm run build' } as ApplicationRow, true)).toBe(false);
     expect(isPrebuiltStatic({ ...app, build_pack: 'nixpacks' } as ApplicationRow, true)).toBe(false);
+  });
+
+  it('sends every static site sent as files to the fast lane, built or not', () => {
+    expect(deploysOnFastLaneFields(app, true)).toBe(true);
+    expect(deploysOnFastLaneFields({ ...app, build_command: 'npm run build' } as ApplicationRow, true)).toBe(true);
+    expect(deploysOnFastLaneFields({ ...app, start_command: 'node server.js' } as ApplicationRow, true)).toBe(false);
+    expect(deploysOnFastLaneFields({ ...app, git_repository: 'https://github.com/a/b' } as ApplicationRow, true)).toBe(false);
+    expect(deploysOnFastLaneFields(app, false)).toBe(false);
   });
 
   it('serves the current release from the mounted site directory', () => {

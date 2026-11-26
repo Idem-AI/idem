@@ -136,7 +136,7 @@ export async function enhanceOneImage(userId: string, projectId: string, url: st
     const result = await enhanceImage(buffer, { targetWidth: Math.max(quality.width, targetWidthFor(quality, place)) });
     if (!result) return { status: 'skipped', reason: 'no_gain' };
     const safeName = name.replace(/[^\w.-]+/g, '-').slice(0, 60) || 'image';
-    const upload = await storageService.uploadFile(result.buffer, `${safeName}-hd-${Date.now().toString(36)}.webp`, assetFolder(userId, projectId).replace(/\/$/, ''), result.mimeType);
+    const upload = await storageService.uploadFile(result.buffer, `${safeName}-hd-${Date.now().toString(36)}.${result.mimeType === 'image/png' ? 'png' : 'webp'}`, assetFolder(userId, projectId).replace(/\/$/, ''), result.mimeType);
     logger.info('site_images.enhanced', { event: 'site_images.enhanced', userId, projectId, source: objectPath ? 'storage' : 'external', method: result.method, from: `${quality.width}x${quality.height}`, to: `${result.width}x${result.height}`, ms: result.ms });
     return { status: 'done', enhancedUrl: upload.downloadURL, method: result.method, width: result.width, height: result.height, ms: result.ms };
   } finally {
@@ -185,7 +185,7 @@ export async function enhanceSiteImages(
           continue;
         }
         const name = slot.objectPath.slice(slot.objectPath.lastIndexOf('/') + 1).replace(/\.[a-z0-9]+$/i, '');
-        const upload = await storageService.uploadFile(result.buffer, `${name}-hd-${stamp}.webp`, assetFolder(userId, projectId).replace(/\/$/, ''), result.mimeType);
+        const upload = await storageService.uploadFile(result.buffer, `${name}-hd-${stamp}.${result.mimeType === 'image/png' ? 'png' : 'webp'}`, assetFolder(userId, projectId).replace(/\/$/, ''), result.mimeType);
         improved++;
         emit({ type: 'image', url: slot.url, status: 'done', enhancedUrl: upload.downloadURL, method: result.method, width: result.width, height: result.height, ms: result.ms });
         logger.info('site_images.enhanced', {

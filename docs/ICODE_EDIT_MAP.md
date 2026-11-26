@@ -92,12 +92,42 @@ Une réponse qui ne change rien n'est jamais acceptée. Quand rien n'a pu être 
 
 `npm run check:site-edit` enchaîne `check-site-edit.ts` (46 contrôles) et `check-site-edit-flow.ts` (18). Le second rejoue une retouche de bout en bout avec un modèle scripté : blocs faux puis réécriture, juge des couleurs, réponse sans effet, retrait, ordre, catalogue, repli hors catalogue, fichier hors carte, aiguillage sans projet.
 
+## Retouche fidèle et économe (26/11/2026)
+
+**Le problème.** La première génération se passe bien, mais les retouches suivantes peinent à faire ce que la personne demande, et ajoutent parfois des éléments sans rapport.
+
+**Ce que montrent les journaux du 22/11 :**
+- une même section a été à la fois retouchée et remise en forme depuis le catalogue ;
+- une retouche du héros a échoué, alors que la réponse disait « c'est fait » ;
+- un changement de police est parti dans du code ;
+- des blocs posés à moitié passaient sans que personne le dise.
+
+**Ce que dit la recherche.** Les travaux convergent vers trois étapes :
+
+1. **Localiser** d'abord, en descendant : fichier, puis élément, puis lignes (Agentless, carte du dépôt d'Aider).
+2. **Modifier peu**, par blocs RECHERCHER / REMPLACER. C'est le format le plus fiable pour un changement localisé (Diff-XYZ). La réécriture complète d'un fichier est plus robuste mais coûteuse, et sujette à l'« over-editing » (CanItEdit, « When Models Edit Too Much »).
+3. **Relire** le changement par rapport à la demande. Dans FronTalk, l'étape de critique du code (AceCoder) ramène le taux d'oubli près de zéro.
+
+| Mécanisme | Où | Effet |
+| --- | --- | --- |
+| Citation obligatoire | `planEdit` + `editVerify.grounded` | Chaque partie visée donne les mots de la personne qu'elle sert (`quote`), vérifiés mot pour mot par le code (casse, accents et ponctuation ignorés). Dès qu'une partie cite la demande, celles qui ne citent rien sont écartées. Sans aucune citation exacte, l'aiguillage est gardé tel quel. |
+| Une partie, une sorte de changement | `planEdit` | La même section ne peut plus être à la fois dans `targets`, `restyle` et `remove`. « Plus professionnel » pour une section relève de `targets`, pas d'une remise en forme. |
+| Ce qu'on doit voir | `expect` | L'aiguillage décrit ce qui sera visible une fois la retouche faite. Le juge relit avec. |
+| Blocs entiers ou rien | `editFile` | Un bloc introuvable parmi d'autres déclenche un nouvel essai au lieu d'une retouche faite à moitié. |
+| Pose tolérante, jamais devinée | `editPlan.locate` | Les blocs sont retrouvés aux espaces près, y compris à l'intérieur d'une ligne. Un passage de 4 lignes ou plus peut avoir une ligne mal recopiée, à condition qu'elle reste proche à 70 % et que le passage soit unique. Au-delà, le bloc reste « introuvable ». |
+| Réécriture complète réservée | `editFile` | Le fichier entier n'est réécrit que si les blocs n'ont pas pu être posés (format). Un refus de contenu (police, couleurs, fait inventé, mauvais élément) ne déclenche plus une réécriture qui heurterait la même règle. |
+| Relecture du diff | `editVerify.reviewEdit` (`edit:verify`) | Le juge reçoit la demande et seulement les lignes changées, en diff compact de quelques centaines de jetons, jamais le fichier. Il répond fait ou pas fait, ce qui manque et ce qui est sans rapport. Si besoin, une seule seconde passe, par blocs, part de la version déjà retouchée. Sans réponse du juge, la retouche passe. |
+| Échec partiel dit | `createSiteEditStream` | Si une partie est faite et une autre non, la réponse dit les deux. |
+| Préfixe en cache | `planEdit` | Le rôle, les règles, la forme de la réponse et le catalogue (environ 2 350 jetons) passent dans l'invite système, en tête. La carte et la demande suivent. DeepSeek facture un préfixe relu environ dix fois moins cher, à condition que l'hébergeur reste le même (non mesuré). |
+| Sélectionner, puis « Demander à l'IA » | client (`chat:target`) | La sélection part comme désignation exacte (`pointed`), avec la section qui la porte, à la place d'un texte « fichier@position ». Une pastille « Modification limitée à : … » s'affiche au-dessus de la saisie, et le message suivant ne touche que cet élément. |
+
 ## Contrôles
 
-`npm run check:site-edit` (42) couvre :
+`npm run check:site-edit` (46 + 40 dans le parcours scripté) couvre :
 
 - l'indice du texte cité, et l'absence de mots-clés (autorisations décidées par l'agent) ;
 - la désignation : portée (en-tête et menu, rien d'autre), chemins refusés, élément retrouvé (position, texte), retouche hors de l'élément refusée ;
 - la carte : menu et doublons, en-tête qui lit le menu, ordre des sections, identifiants ;
 - les données : relecture et réécriture, dédoublonnage, libellés trop longs, coordonnées inventées ;
-- la carte d'une application.
+- la carte d'une application ;
+- (26/11) la citation qui écarte une partie sans rapport, une partie pour une seule sorte de changement, les blocs posés à moitié refusés, la relecture qui fait la partie manquante, le juge qui ne reçoit que le diff, l'échec partiel dit, la pose tolérante des blocs et le diff compact.

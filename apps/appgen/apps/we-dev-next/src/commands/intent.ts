@@ -11,10 +11,12 @@ import { modelForCreativity } from '../config/modelConfig.js';
 import { ChatLogger } from '../utils/logger.js';
 import { ModelCaller, Verdict } from '../siteEngine/modelCaller.js';
 import { findSiteUrl } from '../siteEngine/redesign/intent.js';
+import { capabilitiesFor, CAPABILITIES, describeCapabilities, type CapabilityId } from './capabilities.js';
 
-export type Intent = 'redesign' | 'charter' | 'publish' | 'domain' | 'communication' | 'translate' | 'resume' | 'none';
+export type Intent = Exclude<CapabilityId, 'fix'> | 'none';
 
-const INTENTS: Intent[] = ['redesign', 'charter', 'publish', 'domain', 'communication', 'translate', 'resume', 'none'];
+/** Les déroulés que l'agent peut choisir : toutes les capacités, sauf la correction d'erreurs (bouton de l'aperçu). */
+const INTENTS: Intent[] = [...CAPABILITIES.map((c) => c.id).filter((id): id is Exclude<CapabilityId, 'fix'> => id !== 'fix'), 'none'];
 
 export interface IntentResult {
   intent: Intent;
@@ -34,23 +36,27 @@ export interface IntentContext {
   unfinished?: boolean;
   /** Les langues du site déjà construit. */
   languages?: string[];
+  /** L'adresse du site d'origine, quand le projet est né d'une refonte (rend « relire le site » possible). */
+  siteSource?: string;
 }
 
 /** En dessous, la demande suit son chemin habituel : mieux vaut construire que poser une question à tort. */
 export const INTENT_THRESHOLD = 0.7;
 const TIMEOUT_MS = 8_000;
 
-const SYSTEM = `You classify ONE message sent to iCode, a tool that builds websites and apps by chat, into a workflow. Answer ONLY JSON: {"intent": "...", "url": "... or null", "languages": [], "confidence": 0..1}.
-Workflows:
-- "redesign": the user wants an EXISTING website of theirs rebuilt, modernised or improved as a whole (a new version of their current site). The address may or may not be given. Not: copying another site's style, editing one part of the site being built here.
-- "charter": the user wants brand guidelines / a visual identity document (charte graphique) for their business.
-- "publish": the user wants the site or app put online / deployed now.
-- "domain": the user wants their own domain name (example.com) bought or connected.
-- "communication": the user wants to promote the site on social networks, plan posts, marketing.
-- "translate": the user wants the site built here available in another language (or several): "en anglais aussi", "add Spanish", "make it bilingual". Not: rewriting one text in another language, a question about languages.
-- "resume": a generation was interrupted (context says so) and the user wants it to go on: "continue", "vas-y", "termine", "reprends". Only when the context says a generation is unfinished; otherwise "none".
-- "none": anything else — building or editing a site or an app, a question, a bug, a style change. When in doubt: "none".
+/**
+ * La consigne de l'agent, écrite à partir du catalogue (`capabilities.ts`) : seules les capacités disponibles dans ce
+ * contexte lui sont proposées (pas de « relire le site » sans site d'origine, pas de reprise sans génération coupée).
+ */
+function systemFor(context: IntentContext): string {
+  const available = capabilitiesFor({ ...context, unfinished: !!context.unfinished }).filter((c) => c.id !== 'fix');
+  return `You classify ONE message sent to iCode, a tool that builds websites and apps by chat, into the workflow that serves it. Answer ONLY JSON: {"intent": "...", "url": "... or null", "languages": [], "confidence": 0..1}.
+Workflows available now:
+${describeCapabilities(available)}
+- "none": anything else — building or editing a site or an app (texts, images, sections, colours, layout), a question, a bug. When in doubt: "none".
+Judge what the person wants to obtain, whatever their words; never look for keywords.
 "url": the address of the site to redesign if the message contains it, else null. "languages": for "translate", the ISO 639-1 codes asked (["en", "es"]), else []. "confidence": how sure you are.`;
+}
 
 /** La réponse de l'agent, lue et bornée (exportée pour le contrôle sans modèle). */
 export function readIntent(raw: unknown): IntentResult | null {
@@ -77,12 +83,12 @@ export async function analyzeIntent(options: { text: string; context: IntentCont
     const caller = new ModelCaller(model, options.userId, controller.signal);
     const { context } = options;
     const prompt = [
-      `Context: ${context.hasProject ? 'an IDEM project is open' : 'no project yet'}; ${context.hasSite ? 'a site is already built here' : 'nothing built yet'}${context.languages?.length ? ` (languages: ${context.languages.join(', ')})` : ''}; ${context.hasCharter ? 'brand guidelines exist' : 'no brand guidelines'}; building ${context.product ?? 'unspecified'}; ${context.unfinished ? 'the last generation was INTERRUPTED before the end' : 'no interrupted generation'}.`,
+      `Context: ${context.hasProject ? 'an IDEM project is open' : 'no project yet'}; ${context.hasSite ? 'a site is already built here' : 'nothing built yet'}${context.siteSource ? `; this project was rebuilt from the website ${context.siteSource}` : ''}${context.languages?.length ? ` (languages: ${context.languages.join(', ')})` : ''}; ${context.hasCharter ? 'brand guidelines exist' : 'no brand guidelines'}; building ${context.product ?? 'unspecified'}; ${context.unfinished ? 'the last generation was INTERRUPTED before the end' : 'no interrupted generation'}.`,
       `Message: """${text.slice(0, 1500)}"""`,
     ].join('\n');
     const outcome = await caller.call(
       'intent',
-      SYSTEM,
+      systemFor(context),
       prompt,
       (answer): Verdict<IntentResult> => {
         const match = answer.replace(/```[a-z]*\n?/gi, '').match(/\{[\s\S]*\}/);

@@ -3,9 +3,12 @@
  *
  * Deux formes, choisies d'après le projet, jamais demandées à l'utilisateur :
  *   - `static`    : site vitrine, application mobile (PWA), application web sans
- *                   serveur. Le site est construit ICI (`npm run build`, dans la
- *                   WebContainer) et le dossier `dist/` est envoyé tel quel : ce
- *                   qui part en ligne est exactement ce que l'aperçu montrait.
+ *                   serveur. Les SOURCES partent ; iDeploy construit le site sur
+ *                   le serveur qui le sert, dans un conteneur Node jetable (comme
+ *                   Lovable ou Replit) : bien plus vite que la WebContainer, et
+ *                   sans charger l'appareil de l'utilisateur. Si cet environnement
+ *                   de construction manque, le site est construit ICI (`npm run
+ *                   build`, dans la WebContainer) et `dist/` part tel quel.
  *   - `fullstack` : `backend/` + `frontend/`. Les sources partent ; iDeploy crée
  *                   la base PostgreSQL, le serveur et l'interface et les relie.
  *
@@ -62,6 +65,40 @@ export function collectSourceFiles(): PublishFiles {
 }
 
 const TEXT_EXTENSIONS = /\.(html?|css|js|mjs|cjs|json|map|svg|txt|xml|webmanifest|md)$/i;
+
+/**
+ * Les sources d'un site, pour qu'iDeploy le construise : le texte de l'atelier, plus les fichiers binaires posés
+ * dans `public/` (favicon, image de partage) que seul le disque de la WebContainer porte. Les copies locales des
+ * images (`public/_idem-assets`, aperçu en développement) ne partent pas : le code garde leurs adresses définitives.
+ */
+export async function collectSiteSources(): Promise<PublishFiles> {
+  const out = collectSourceFiles();
+  try {
+    const container = await Promise.race([
+      getWebContainerInstance(),
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), 1500)),
+    ]);
+    if (!container) return out;
+    const walk = async (dir: string, depth: number): Promise<void> => {
+      if (depth > 6) return;
+      const entries = await container.fs.readdir(dir, { withFileTypes: true }).catch(() => []);
+      await Promise.all(
+        entries.map(async (entry) => {
+          const path = `${dir}/${entry.name}`;
+          if (entry.isDirectory()) {
+            if (entry.name !== '_idem-assets') await walk(path, depth + 1);
+          } else if (!(path in out) && !TEXT_EXTENSIONS.test(entry.name)) {
+            out[path] = { base64: toBase64(await container.fs.readFile(path)) };
+          }
+        })
+      );
+    };
+    await walk('public', 0);
+  } catch {
+    /* sans WebContainer : le texte suffit à la plupart des sites */
+  }
+  return out;
+}
 
 function toBase64(bytes: Uint8Array): string {
   let binary = '';
@@ -223,19 +260,131 @@ async function gzip(text: string): Promise<Blob | null> {
   }
 }
 
+/** Base64 → octets, pour l'empreinte d'une image. */
+function fromBase64(text: string): Uint8Array {
+  const binary = atob(text);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+
+/** SHA-256 (hex) de chaque fichier, calculée sur ses octets — la même qu'iDeploy. */
+async function digestFiles(files: PublishFiles): Promise<Record<string, string> | null> {
+  if (typeof crypto === 'undefined' || !crypto.subtle) return null;
+  const encoder = new TextEncoder();
+  const entries = await Promise.all(
+    Object.entries(files).map(async ([path, value]) => {
+      const bytes = typeof value === 'string' ? encoder.encode(value) : fromBase64(value.base64);
+      const hash = new Uint8Array(await crypto.subtle.digest('SHA-256', bytes as Uint8Array<ArrayBuffer>));
+      return [path, Array.from(hash, (b) => b.toString(16).padStart(2, '0')).join('')] as const;
+    })
+  );
+  return Object.fromEntries(entries);
+}
+
+/** Ce que la version en ligne contient déjà (chemin → empreinte), ou null si on ne peut pas le savoir. */
+export async function fetchPublishedManifest(applicationUuid: string): Promise<Record<string, string> | null> {
+  try {
+    const response = await fetch(`${API_BASE}/api/ideploy/applications/${encodeURIComponent(applicationUuid)}/source/manifest`, {
+      credentials: 'include',
+    });
+    const data = await response.json().catch(() => null);
+    return response.ok && data?.success && data.manifest && typeof data.manifest === 'object' ? data.manifest : null;
+  } catch {
+    return null;
+  }
+}
+
+export interface AddressReservation {
+  name: string;
+  applicationUuid: string;
+  url: string | null;
+}
+
+/**
+ * L'adresse d'une première mise en ligne, réservée dès l'ouverture de la fenêtre : iDeploy crée l'application et
+ * son nom, et obtient le certificat pendant que le site se construit. Le clic devient une mise à jour. Une réservation
+ * par nom (une fenêtre rouverte la reprend) ; une réservation jamais publiée est rendue par iDeploy après un jour.
+ */
+const reservations = new Map<string, Promise<AddressReservation | null>>();
+
+export function reserveAddress(name: string, manifests?: Record<string, string>): Promise<AddressReservation | null> {
+  const key = name.trim().toLowerCase();
+  const known = reservations.get(key);
+  if (known) return known;
+  const pending = (async () => {
+    try {
+      const response = await fetch(`${API_BASE}/api/ideploy/reserve`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        // Le package.json du site : iDeploy installe ses dépendances avant que le code n'arrive.
+        body: JSON.stringify({ name, manifests }),
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok || !data?.success || !data.applicationUuid) return null;
+      return { name: key, applicationUuid: String(data.applicationUuid), url: data.url ?? null };
+    } catch {
+      return null;
+    }
+  })();
+  reservations.set(key, pending);
+  // Un échec n'est pas gardé : la publication passe alors par la création, comme avant.
+  void pending.then((value) => {
+    if (!value) reservations.delete(key);
+  });
+  return pending;
+}
+
+/** La réservation déjà faite pour ce nom (sans en lancer une), puis oubliée : elle devient une application publiée. */
+export async function takeReservation(name: string): Promise<AddressReservation | null> {
+  const key = name.trim().toLowerCase();
+  const pending = reservations.get(key);
+  if (!pending) return null;
+  const value = await pending;
+  reservations.delete(key);
+  return value;
+}
+
 /** Envoie à iDeploy (création, ou mise à jour des mêmes applications). */
 export async function publishToIdeploy(options: {
   name: string;
   mode: PublishMode;
   files: PublishFiles;
   existing?: IdeployRecord | null;
+  /** Ce que la version en ligne contient déjà : seuls les fichiers nouveaux ou modifiés partent. */
+  publishedManifest?: Record<string, string> | null;
 }): Promise<PublishResult> {
-  const json = JSON.stringify({
-    name: options.name,
-    mode: options.mode,
-    files: options.files,
-    existing: options.existing && options.existing.mode === options.mode ? options.existing : null,
-  });
+  const existing = options.existing && options.existing.mode === options.mode ? options.existing : null;
+  // Une mise à jour de site : la liste complète avec les empreintes, et le contenu des seuls fichiers changés
+  // (méthode des « file digests » de Netlify / Cloudflare Pages). Un texte corrigé n'envoie plus les images.
+  if (options.mode === 'static' && existing?.applicationUuid && options.publishedManifest) {
+    const manifest: Record<string, string> | null = await digestFiles(options.files).catch(() => null);
+    if (manifest) {
+      const known = new Set<string>(Object.values(options.publishedManifest));
+      const changed: PublishFiles = {};
+      for (const [path, digest] of Object.entries(manifest)) {
+        if (!known.has(digest)) changed[path] = options.files[path];
+      }
+      try {
+        return await sendPublish({ name: options.name, mode: options.mode, files: changed, existing, manifest });
+      } catch (error) {
+        // iDeploy n'a plus un fichier attendu (version remplacée entre-temps) : tout part, comme avant.
+        if (!(error instanceof PublishError) || error.code !== 'SOURCE_INCOMPLETE') throw error;
+      }
+    }
+  }
+  return sendPublish({ name: options.name, mode: options.mode, files: options.files, existing });
+}
+
+async function sendPublish(body: {
+  name: string;
+  mode: PublishMode;
+  files: PublishFiles;
+  existing: IdeployRecord | null;
+  manifest?: Record<string, string>;
+}): Promise<PublishResult> {
+  const json = JSON.stringify(body);
   const compressed = await gzip(json);
   const send = (body: Blob | string, gzipped: boolean) =>
     fetch(`${API_BASE}/api/ideploy/publish`, {
@@ -268,16 +417,28 @@ export async function publishToIdeploy(options: {
 export type DeploymentState = 'queued' | 'in_progress' | 'finished' | 'failed';
 
 /** Où en est un déploiement, et la cause d'un échec. */
-export async function getDeploymentState(
-  deploymentUuid: string
-): Promise<{ status: DeploymentState; log: string | null }> {
+export interface DeploymentOutcome {
+  status: DeploymentState;
+  log: string | null;
+  /** Le bilan du site construit par iDeploy (référencement). */
+  buildReport?: BuildReport | null;
+  /** L'environnement de construction d'iDeploy a manqué (pas le site) : le site se construit alors ici. */
+  buildUnavailable?: boolean;
+}
+
+export async function getDeploymentState(deploymentUuid: string): Promise<DeploymentOutcome> {
   const response = await fetch(`${API_BASE}/api/ideploy/deployments/${encodeURIComponent(deploymentUuid)}`, {
     credentials: 'include',
   });
   const data = await response.json().catch(() => null);
   if (!response.ok || !data?.success) return { status: 'in_progress', log: null };
   const status = ['queued', 'in_progress', 'finished', 'failed'].includes(data.status) ? data.status : 'in_progress';
-  return { status, log: data.log ?? null };
+  return {
+    status,
+    log: data.log ?? null,
+    buildReport: data.buildReport && Array.isArray(data.buildReport.errors) ? data.buildReport : null,
+    buildUnavailable: Boolean(data.buildUnavailable),
+  };
 }
 
 /** Attend la fin d'un déploiement (un build complet prend une à quelques minutes). */
@@ -285,12 +446,12 @@ export async function waitForDeployment(
   deploymentUuid: string,
   onStatus?: (status: DeploymentState) => void,
   timeoutMs = 15 * 60 * 1000
-): Promise<{ status: 'finished' | 'failed'; log: string | null }> {
+): Promise<DeploymentOutcome & { status: 'finished' | 'failed' }> {
   const started = Date.now();
   while (Date.now() - started < timeoutMs) {
-    const { status, log } = await getDeploymentState(deploymentUuid);
-    onStatus?.(status);
-    if (status === 'finished' || status === 'failed') return { status, log };
+    const state = await getDeploymentState(deploymentUuid);
+    onStatus?.(state.status);
+    if (state.status === 'finished' || state.status === 'failed') return { ...state, status: state.status };
     // Une mise en ligne de site se compte en secondes : relue chaque seconde au début, puis plus calmement.
     await new Promise((resolve) => setTimeout(resolve, Date.now() - started < 60_000 ? 1000 : 3000));
   }

@@ -634,7 +634,7 @@ export class BrandSyncService {
     await this.invalidateVisualImages(projectId, analysis, writes);
 
     try {
-      report.site = await syncSiteBrand(userId, project, before, next);
+      report.site = await syncSiteBrand(userId, project, before, next, { logoChanged: changed.logo });
       addStats(stats, report.site.stats);
     } catch (error: any) {
       // Le site est un support parmi d'autres : son échec est rapporté, il

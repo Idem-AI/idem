@@ -108,3 +108,31 @@ Pas encore vu sur une vraie refonte : aucun essai payant n'a été lancé. Il re
 - le passage au nouveau projet et à sa conversation ;
 - l'en-tête avec une icône + le nom ;
 - la typographie annoncée.
+
+### Chaque image avec son élément (26/11/2026)
+
+Sur une page d'équipe refaite, les visages ne correspondaient plus aux noms. Cause générale : les sections du
+catalogue qui illustrent une liste (équipe, projets, services, cartes, articles : 15 gabarits) posent le visuel n°i
+sur l'élément n°i, alors que l'ordre des éléments vient du rédacteur et celui des visuels du relevé, du tri par
+netteté et de l'agent média. Le relevé, lui, rangeait images et textes dans deux listes séparées : le lien « cette
+photo ↔ ce nom » était perdu dès le départ, et aucune description visuelle ne peut le retrouver (un visage ne dit pas
+son nom).
+
+- **Relevé** (`site-crawler.ts`) : dans une section à plusieurs images, chaque image garde sa `caption` : sa
+  `<figcaption>`, sinon le texte du plus grand bloc qui la contient sans contenir une autre image (la carte), 320 signes
+  au plus.
+- **Lecture** (`siteImageReading.ts`) : la légende est donnée au modèle de vision pour qu'il dise le rôle de l'image
+  (« portrait du membre … ») ; les personnes sont décrites de façon à être distinguées.
+- **Images liées** (`boundImages`, `redesign/inventory.ts`) : au moins deux images d'une section, chacune avec sa
+  propre légende. Elles gardent l'ordre de l'ancien site (`bestFirst` ne les trie plus), restent dans le manifeste même
+  trop petites pour être lues, sont réservées à leur emplacement (`boundImages` du `MediaSlot`) : l'agent média ne les
+  déplace pas, ne les prête à aucune autre section, et le seuil de 400 px ne s'y applique pas.
+- **Appariement** (`redesign/binding.ts`, `bindMediaToItems`) : une fois les textes rédigés, chaque image rejoint
+  l'élément qui reprend un mot distinctif de sa légende (un mot partagé par deux légendes, comme « co-founder », ne
+  compte qu'à moitié). Les éléments appariés passent en tête ; un élément sans image n'en reçoit qu'une sans légende ;
+  une image légendée sans élément n'est posée nulle part. La section est recomposée si l'ordre a bougé, et ses visuels
+  n'entrent dans `media.ts` qu'après (`heldForBinding`) : jamais, même un instant, une photo sous le mauvais nom.
+- **Auteur de code** (section hors catalogue) : chaque visuel lui est donné avec sa légende, et la consigne de le poser
+  dans la carte de cet élément-là.
+
+Banc : `npm run check:image-binding` (we-dev-next, 27 vérifications, sans modèle).

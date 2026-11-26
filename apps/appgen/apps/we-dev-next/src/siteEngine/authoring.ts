@@ -369,7 +369,7 @@ export interface SectionTask {
   mediaKind?: string;
   mediaAspect?: string;
   /** Plusieurs visuels prêts (galerie, cartes illustrées) : leurs clés et leur texte alternatif. */
-  mediaList?: { key: string; alt: string }[];
+  mediaList?: { key: string; alt: string; caption?: string }[];
   /** Refonte : le contenu intégral des sections de l'ancien site que celle-ci reprend. */
   source?: string;
   /** Première section de l'accueil ou d'une page : porte le h1. */
@@ -387,7 +387,7 @@ export function sectionPrompt(ctx: AuthoringContext, task: SectionTask, request:
   const others = page.sections.filter((item) => item !== section).map((item) => `- ${item.id} : ${item.brief}`);
   const visual =
     task.mediaList && task.mediaList.length > 1
-      ? `Visuels prêts pour cette section (les images de l'ancien site, à réutiliser toutes, mieux mises en valeur) :\n${task.mediaList.map((m) => `- \`media['${m.key}']\`${m.alt ? ` — ${m.alt}` : ''}`).join('\n')}\nAffiche-les avec <Media asset={media['…']} … /> (grille, galerie, cartes illustrées : selon le contenu).`
+      ? `Visuels prêts pour cette section (les images de l'ancien site, à réutiliser toutes, mieux mises en valeur) :\n${task.mediaList.map((m) => `- \`media['${m.key}']\`${m.caption ? ` — montre « ${m.caption} » sur l'ancien site` : m.alt ? ` — ${m.alt}` : ''}`).join('\n')}\nAffiche-les avec <Media asset={media['…']} … /> (grille, galerie, cartes illustrées : selon le contenu).${task.mediaList.some((m) => m.caption) ? "\nUn visuel qui « montre » une personne, un projet ou un produit se pose dans la carte de CET élément-là, nulle part ailleurs : une photo sous le nom d'un autre est une faute grave. Un élément sans visuel reste sans visuel." : ''}`
       : task.mediaKey
         ? `Un visuel est prêt pour cette section : \`media['${task.mediaKey}']\` (${task.mediaKind}${task.mediaAspect ? `, format ${task.mediaAspect}` : ''}). Affiche-le avec <Media asset={media['${task.mediaKey}']} … />.`
         : "Aucune image pour cette section : compose avec la typographie, l'espace, les couleurs du thème et les composants. N'affiche pas de cadre vide ni d'image factice.";
