@@ -3,7 +3,17 @@
   "translations": {
     "hero.title": "{$START_TAG_SPAN}L'IA AFRICAINE QUI {$CLOSE_TAG_SPAN}{$START_TAG_SPAN}{$START_TAG_SPAN_1}CRÉE DES ENTREPRISES{$CLOSE_TAG_SPAN}{$CLOSE_TAG_SPAN}",
     "hero.description": "À partir d'une simple idée, IDEM construit une entreprise complète. {$START_TAG_SPAN}Stratégie, marque, produit, finances, site internet et le déploie sur des serveurs en Afrique, tout{$CLOSE_TAG_SPAN}. Conçu pour l'Afrique.",
-    "hero.tryForFree": "Essayez gratuitement",
-    "hero.viewOnGithub": "Voir sur GitHub"
+    "hero.tryForFree": "Essayer gratuitement",
+    "hero.viewOnGithub": "Voir sur GitHub",
+    "hero.demo.chapters": "Ce qu'IDEM a produit pour Turo",
+    "hero.demo.film": "IDEM au travail pour Turo : charte graphique, business plan, vidéo promo, visuels pour les réseaux, site internet, puis la mise en ligne du site sur myapp.com",
+    "hero.demo.brand": "Charte graphique",
+    "hero.demo.plan": "Business plan",
+    "hero.demo.motion": "Vidéo promo",
+    "hero.demo.visuals": "Visuels réseaux",
+    "hero.demo.site": "Site internet",
+    "hero.demo.online": "En ligne en un clic",
+    "hero.demo.play": "Lire la démo",
+    "hero.demo.pause": "Mettre la démo en pause"
   }
 }

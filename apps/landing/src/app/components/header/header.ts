@@ -1,86 +1,72 @@
 import {
+  ChangeDetectionStrategy,
   Component,
   ElementRef,
-  HostListener,
-  inject,
-  OnInit,
-  ViewChild,
-  signal,
-  computed,
   LOCALE_ID,
+  PLATFORM_ID,
+  inject,
+  signal,
+  viewChild,
 } from '@angular/core';
+import { DOCUMENT, isPlatformBrowser } from '@angular/common';
 import { trigger, transition, style, animate } from '@angular/animations';
-import { Router, RouterLink, RouterLinkActive } from '@angular/router';
-import { AuthService } from '../../services/auth.service';
-import { BadgeModule } from 'primeng/badge';
-import { AvatarModule } from 'primeng/avatar';
-import { InputTextModule } from 'primeng/inputtext';
-import { CommonModule } from '@angular/common';
-import { ButtonModule } from 'primeng/button';
-import { DOCUMENT } from '@angular/common';
+import { RouterLink, RouterLinkActive } from '@angular/router';
 import { environment } from '../../../environments/environment';
 import { isSupportedLocale, writeLocaleCookie } from '../../shared/utils/locale-cookie';
+
+/**
+ * La barre de navigation : une pilule centrée qui flotte au-dessus de la page,
+ * pour que le fond du héros occupe tout l'écran derrière elle. Une seule
+ * action à droite, « Essayer gratuitement » : la connexion, le tableau de bord
+ * et GitHub ne sont plus dans la barre (la création de projet mène à la
+ * connexion quand il le faut).
+ */
 @Component({
   selector: 'app-header',
-  standalone: true,
-  imports: [
-    RouterLinkActive,
-    RouterLink,
-    BadgeModule,
-    AvatarModule,
-    InputTextModule,
-    CommonModule,
-    ButtonModule,
-  ],
+  imports: [RouterLinkActive, RouterLink],
   templateUrl: './header.html',
   styleUrl: './header.css',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  host: {
+    '(window:scroll)': 'onScroll()',
+    '(document:click)': 'onDocumentClick($event)',
+    '(document:keydown.escape)': 'closeAll()',
+  },
   animations: [
     trigger('slideInOut', [
       transition(':enter', [
         style({ transform: 'translateX(-100%)', opacity: 0 }),
-        animate(
-          '400ms cubic-bezier(0.25, 0.46, 0.45, 0.94)',
-          style({ transform: 'translateX(0)', opacity: 1 }),
-        ),
+        animate('360ms cubic-bezier(0.22, 1, 0.36, 1)', style({ transform: 'translateX(0)', opacity: 1 })),
       ]),
       transition(':leave', [
-        animate(
-          '350ms cubic-bezier(0.55, 0.055, 0.675, 0.19)',
-          style({ transform: 'translateX(-100%)', opacity: 0 }),
-        ),
+        animate('260ms cubic-bezier(0.55, 0.055, 0.675, 0.19)', style({ transform: 'translateX(-100%)', opacity: 0 })),
       ]),
     ]),
     trigger('fadeIn', [
       transition(':enter', [
-        style({ opacity: 0 }),
-        animate('300ms cubic-bezier(0.4, 0, 0.2, 1)', style({ opacity: 1 })),
+        style({ opacity: 0, transform: 'translateY(-4px)' }),
+        animate('200ms cubic-bezier(0.22, 1, 0.36, 1)', style({ opacity: 1, transform: 'translateY(0)' })),
       ]),
-      transition(':leave', [animate('250ms cubic-bezier(0.4, 0, 0.2, 1)', style({ opacity: 0 }))]),
+      transition(':leave', [animate('150ms ease-in', style({ opacity: 0 }))]),
     ]),
   ],
 })
-export class Header implements OnInit {
-  // Services
-  private readonly auth = inject(AuthService);
-  private readonly router = inject(Router);
+export class Header {
   private readonly document = inject(DOCUMENT);
+  private readonly platformId = inject(PLATFORM_ID);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   protected readonly locale = inject(LOCALE_ID);
 
   protected readonly dashboardUrl = environment.services.dashboard.url;
-  // UI State Signals
+
   protected readonly isMenuOpen = signal(false);
-  protected readonly isDropdownOpen = signal(false);
-  protected readonly isLangDropdownOpen = signal(false);
-  protected readonly userRefresh = signal(0);
   protected readonly activeDropdown = signal<string | null>(null);
+  /** La page a quitté son tout début : la pilule prend une surface plus nette. */
+  protected readonly scrolled = signal(false);
 
-  // User Data - Computed signal basé sur les cookies
-  protected readonly user = computed(() => {
-    this.userRefresh(); // Trigger reactivity
-    return this.auth.getCurrentUser();
-  });
+  private readonly menuRef = viewChild<ElementRef<HTMLElement>>('menu');
 
-  // Navigation structure optimisée
+  // L'accueil n'a plus d'entrée : le logo y mène.
   protected readonly navItems: Array<{
     id: string;
     label: string;
@@ -89,12 +75,6 @@ export class Header implements OnInit {
     badge?: string;
     items?: Array<{ label: string; route: string }>;
   }> = [
-    {
-      id: 'home',
-      label: $localize`:@@header.nav.home:Home`,
-      route: '/home',
-      type: 'link',
-    },
     {
       id: 'product',
       label: $localize`:@@header.menu.product:Product`,
@@ -118,8 +98,7 @@ export class Header implements OnInit {
       type: 'link',
     },
     {
-      // Idem Builders est mis en avant au premier niveau, badge compris : un
-      // programme qu'on lance se cherche, il ne se trouve pas dans un sous-menu.
+      // Idem Builders est mis en avant au premier niveau, badge compris.
       // Retirer le badge quand le programme n'est plus une nouveauté.
       id: 'builders',
       label: 'Idem Builders',
@@ -137,9 +116,6 @@ export class Header implements OnInit {
         { label: $localize`:@@header.menu.about:About`, route: '/about' },
       ],
     },
-    // « À propos » n'a plus de lien de premier niveau : il est déjà dans le
-    // menu « Entreprise », et la place libérée tient Idem Builders et son badge
-    // sur une ligne dès 1024 px.
     {
       id: 'blog',
       label: $localize`:@@header.menu.blog:Blog`,
@@ -154,161 +130,61 @@ export class Header implements OnInit {
     },
   ];
 
-  @ViewChild('menu') menuRef!: ElementRef;
-
-  async ngOnInit(): Promise<void> {
-    // Récupérer l'utilisateur depuis l'API et forcer le refresh
-    await this.auth.fetchCurrentUser();
-    this.userRefresh.update((v: number) => v + 1);
-
-    // Check authentication status
-    const user = this.user();
-    console.log('Header authentication status:', user ? 'Logged in' : 'Not logged in');
+  protected onScroll(): void {
+    if (!isPlatformBrowser(this.platformId)) return;
+    const past = window.scrollY > 12;
+    if (past !== this.scrolled()) this.scrolled.set(past);
   }
 
-  /**
-   * Toggle mobile menu visibility
-   */
   protected toggleMenu(): void {
     this.isMenuOpen.update((open) => !open);
   }
 
-  /**
-   * Toggle user dropdown visibility
-   */
-  protected toggleDropdown(): void {
-    this.isDropdownOpen.update((open) => !open);
-  }
-
-  /**
-   * Toggle menu group dropdown
-   */
   protected toggleMenuDropdown(groupName: string): void {
     this.activeDropdown.update((current) => (current === groupName ? null : groupName));
   }
 
-  /**
-   * Close all dropdowns
-   */
   protected closeAllDropdowns(): void {
     this.activeDropdown.set(null);
   }
 
-  /**
-   * Navigate to route and close menus
-   */
-  protected navigateToRoute(route: string): void {
-    this.closeAllDropdowns();
+  protected closeAll(): void {
+    this.activeDropdown.set(null);
     this.isMenuOpen.set(false);
-    this.router.navigate([route]);
   }
 
-  /**
-   * Navigate to specified path
-   */
-  protected navigateTo(path: string): void {
-    this.isDropdownOpen.set(false);
-    this.isMenuOpen.set(false);
-    this.router.navigate([path]);
-  }
-
-  /**
-   * Navigate to dashboard with current language
-   */
-  protected navigateToDashboard(): void {
-    this.isDropdownOpen.set(false);
-    this.isMenuOpen.set(false);
-
-    // Store auth state in localStorage for cross-app sync
-    const user = this.user();
-    if (user) {
-      localStorage.setItem(
-        'idem_auth_sync',
-        JSON.stringify({
-          timestamp: Date.now(),
-          userId: user.uid,
-          email: user.email,
-        }),
-      );
+  /** Un clic hors de la barre ferme ses menus ; hors du tiroir, le tiroir. */
+  protected onDocumentClick(event: Event): void {
+    const target = event.target as Node | null;
+    if (!target) return;
+    if (this.activeDropdown() && !this.host.nativeElement.querySelector('.nav-pill')?.contains(target)) {
+      this.activeDropdown.set(null);
     }
-
-    // Redirect to dashboard with language parameter
-    const dashboardUrl = `${environment.services.dashboard.url}`;
-    window.location.href = dashboardUrl;
-  }
-
-  /**
-   * Log out the current user
-   */
-  protected async logout(): Promise<void> {
-    this.isDropdownOpen.set(false);
-    await this.auth.logout();
-    this.userRefresh.update((v: number) => v + 1);
-    this.navigateToDashboard();
-  }
-
-  @HostListener('document:click', ['$event'])
-  protected onClickOutside(event: Event): void {
-    if (this.isMenuOpen() && this.menuRef && !this.menuRef.nativeElement.contains(event.target)) {
+    const menu = this.menuRef()?.nativeElement;
+    const burger = this.host.nativeElement.querySelector('.nav-burger');
+    if (this.isMenuOpen() && menu && !menu.contains(target) && !burger?.contains(target)) {
       this.isMenuOpen.set(false);
     }
   }
 
-  @HostListener('document:click', ['$event.target'!])
-  protected onClickOutsideDropdown(targetElement: HTMLElement): void {
-    const dropdownButton = targetElement.closest('button.flex.items-center');
-    const dropdownMenu = targetElement.closest('.fixed.right-0.mt-2');
-
-    if (this.isDropdownOpen() && !dropdownButton && !dropdownMenu) {
-      this.isDropdownOpen.set(false);
-    }
-
-    const langButton = targetElement.closest('.lang-selector-btn');
-    const langMenu = targetElement.closest('.lang-selector-menu');
-
-    if (this.isLangDropdownOpen() && !langButton && !langMenu) {
-      this.isLangDropdownOpen.set(false);
-    }
-  }
-
-  /**
-   * Toggle language dropdown
-   */
-  protected toggleLangDropdown(): void {
-    this.isLangDropdownOpen.update((open) => !open);
-  }
-
-  /**
-   * Switch the application language
-   */
+  /** Change de langue : le cookie partagé fait foi, l'URL suit (/fr, /en). */
   protected switchLanguage(targetLang: string): void {
-    if (this.locale === targetLang) {
-      this.isLangDropdownOpen.set(false);
-      return;
-    }
+    if (this.locale === targetLang) return;
 
-    // Persist to the shared cross-app cookie (source of truth) + localStorage.
     if (isSupportedLocale(targetLang)) {
       writeLocaleCookie(targetLang);
     }
     localStorage.setItem('idem_lang', targetLang);
 
     const pathname = this.document.location.pathname;
-    let newPath = pathname;
-
-    // Check if the current URL has /fr/ or /fr or /en/ or /en prefix
-    const hasFr = pathname.startsWith('/fr/') || pathname === '/fr';
-    const hasEn = pathname.startsWith('/en/') || pathname === '/en';
-
-    if (hasFr) {
+    let newPath: string;
+    if (pathname.startsWith('/fr/') || pathname === '/fr') {
       newPath = pathname.replace(/^\/fr(\/|$)/, `/${targetLang}$1`);
-    } else if (hasEn) {
+    } else if (pathname.startsWith('/en/') || pathname === '/en') {
       newPath = pathname.replace(/^\/en(\/|$)/, `/${targetLang}$1`);
     } else {
       newPath = `/${targetLang}${pathname.startsWith('/') ? pathname : '/' + pathname}`;
     }
-
-    this.isLangDropdownOpen.set(false);
     this.document.location.href = `${this.document.location.origin}${newPath}`;
   }
 }

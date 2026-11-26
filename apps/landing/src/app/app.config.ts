@@ -10,9 +10,7 @@ import { provideRouter, withPreloading } from '@angular/router';
 import { provideHttpClient, withFetch } from '@angular/common/http';
 
 import { routes } from './app.routes';
-import { provideClientHydration, withEventReplay } from '@angular/platform-browser';
-import { providePrimeNG } from 'primeng/config';
-import { MyPreset } from './my-preset';
+import { provideClientHydration, withEventReplay, withIncrementalHydration } from '@angular/platform-browser';
 import { SeoService } from './shared/services/seo.service';
 import { provideIdemPromotions } from '@idem/shared-promotions/angular';
 import { environment } from '../environments/environment';
@@ -42,15 +40,9 @@ export const appConfig: ApplicationConfig = {
     // Titre, balises de partage et JSON-LD suivent la route (data.seo),
     // y compris au prérendu.
     provideAppInitializer(() => inject(SeoService).init()),
-    provideClientHydration(withEventReplay()),
-    providePrimeNG({
-      theme: {
-        preset: MyPreset,
-        options: {
-          // Dual color scheme driven by the `.dark` class (shared idem_theme cookie)
-          darkModeSelector: '.dark',
-        },
-      },
-    }),
+    // Hydratation incrémentale : les sections sous le héros restent dans le HTML
+    // prérendu, mais leur JavaScript ne s'exécute qu'en arrivant à l'écran.
+    provideClientHydration(withEventReplay(), withIncrementalHydration()),
+    // Aucun composant PrimeNG sur la landing : son thème (Aura) n'est plus chargé.
   ],
 };

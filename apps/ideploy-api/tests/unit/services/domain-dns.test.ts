@@ -19,8 +19,8 @@ describe('domain DNS guide', () => {
 
   it('needs no DNS for the hostnames iDeploy manages itself', () => {
     expect(isAutomatic('x-1.159.69.185.176.sslip.io')).toBe(true);
-    expect(isAutomatic('monapp.idem.africa', 'idem.africa')).toBe(true);
-    expect(isAutomatic('boutique.com', 'idem.africa')).toBe(false);
+    expect(isAutomatic('monapp.ideploy.site', 'ideploy.site')).toBe(true);
+    expect(isAutomatic('boutique.com', 'ideploy.site')).toBe(false);
   });
 
   it('says what is wrong with what public DNS answers', () => {

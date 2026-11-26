@@ -78,6 +78,19 @@ async function bootstrap(): Promise<void> {
     onShutdown('autoscaler', async () => stopAutoscaler());
   }
 
+  // ── Domain migration (idem.africa → ideploy.site) ────────────────────────
+  // Run before workers start queueing new deployments so that the new FQDN is
+  // already in the database when a deployment worker reads it. Never throws.
+  {
+    const { runDomainMigration } = await import('./services/domain-migration.service');
+    runDomainMigration().catch((err) =>
+      logger.error('Domain migration crashed unexpectedly', {
+        event: 'domain_migration.crash',
+        reason: (err as Error).message,
+      })
+    );
+  }
+
   if (runsWorkers(role)) {
     registerDeploymentWorker();
     registerBackupWorker();
@@ -105,3 +118,4 @@ bootstrap().catch((err) => {
   console.error('Bootstrap failed', { message: (err as Error).message });
   process.exit(1);
 });
+

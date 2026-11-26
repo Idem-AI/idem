@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, PLATFORM_ID, Inject } from '@angular/core';
+import { Component, inject, OnInit, PLATFORM_ID, Inject, signal } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { RouterOutlet, Router, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs/operators';
@@ -7,17 +7,21 @@ import { AnalyticsService } from './shared/services/analytics.service';
 import { ThemeService } from './shared/services/theme.service';
 import { Header } from './components/header/header';
 import { Footer } from './components/footer/footer';
+import { DockComponent } from './components/dock/dock';
 import { IdemUpdateBannerComponent } from '@idem/shared-offline/angular';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, Header, Footer, IdemUpdateBannerComponent],
+  imports: [RouterOutlet, Header, Footer, IdemUpdateBannerComponent, DockComponent],
   templateUrl: './app.html',
   styleUrl: './app.css',
 })
 export class App implements OnInit {
   protected readonly router = inject(Router);
+
+  /** The home page (/fr/, /en/, /home): the only one whose dock shows the partners. */
+  protected readonly isHome = signal(this.homeUrl(this.router.url));
 
   protected readonly updateLabel = $localize`:@@appUpdateMessage:Une nouvelle version est disponible.`;
   protected readonly updateAction = $localize`:@@appUpdateReload:Actualiser`;
@@ -33,13 +37,19 @@ export class App implements OnInit {
   constructor(@Inject(PLATFORM_ID) private platformId: Object) {}
 
   ngOnInit(): void {
-    this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe(() => {
+    this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe((event) => {
+      this.isHome.set(this.homeUrl((event as NavigationEnd).urlAfterRedirects));
       if (isPlatformBrowser(this.platformId)) {
         setTimeout(() => {
           window.scrollTo({ top: 0, behavior: 'auto' });
         }, 0);
       }
     });
+  }
+
+  private homeUrl(url: string): boolean {
+    const path = url.split(/[?#]/)[0];
+    return path === '/' || path === '' || path === '/home';
   }
 
   protected resetPosition() {

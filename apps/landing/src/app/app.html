@@ -5,6 +5,9 @@
 <router-outlet (activate)="resetPosition()"></router-outlet>
 <app-footer />
 
+<!-- L'arc fixe et son bouton, sur toutes les pages ; les partenaires sur l'accueil seulement. -->
+<app-dock [trust]="isHome()" />
+
 <!--
   « Une nouvelle version est disponible. » Le service worker sert la page
   depuis le cache pour qu'elle s'affiche tout de suite, même à bas débit.

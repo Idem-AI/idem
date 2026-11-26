@@ -83,6 +83,11 @@ self.addEventListener('fetch', (event) => {
   if (url.origin !== self.location.origin) return;
   if (isLive(url)) return;
 
+  // Vidéo et son : le navigateur les lit par plages (réponses 206), que l'API
+  // Cache refuse, et un film de plusieurs Mo remplirait le quota d'un petit
+  // téléphone. Ils vont au réseau, le cache HTTP du navigateur suffit.
+  if (request.destination === 'video' || request.destination === 'audio' || request.headers.has('range')) return;
+
   // Navigation (la coquille HTML) : réseau d'abord, mais avec une limite de
   // patience. Au-delà, ou hors ligne, la dernière version connue s'affiche.
   if (request.mode === 'navigate') {

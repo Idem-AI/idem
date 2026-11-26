@@ -1,7 +1,7 @@
 <!-- Main container with animated gradient background.
      overflow-clip (not overflow-hidden): clipping without creating a scroll
      container, so the journey section's sticky pinning keeps working. -->
-<div class="relative mt-24 sm:mt-0 min-h-screen overflow-clip bg-grid">
+<div class="relative min-h-screen overflow-clip bg-grid">
   <!-- Content container -->
   <div class="relative">
     <!-- Hero -->
@@ -9,46 +9,48 @@
       <app-hero></app-hero>
     </section>
 
-    <!-- Product in action (video) -->
-    <section class="relative z-10">
-      <app-video-trailer></app-video-trailer>
-    </section>
-
     <!-- What is IDEM: the promise, told as an illustrated journey -->
     <section class="relative z-10">
-      <app-journey></app-journey>
+      @defer (hydrate on viewport) {
+        <app-journey></app-journey>
+      }
     </section>
 
     <!-- Les offres, par besoin (même bloc que la page Tarifs) -->
-    <section class="relative z-10 border-y border-[var(--glass-border-subtle)] py-24 lg:py-32">
+    <section class="relative z-10 border-y border-[var(--glass-border-subtle)] py-14 lg:py-20">
       <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-        <app-offer-picker [summary]="true" />
+        @defer (hydrate on viewport) {
+          <app-offer-picker [summary]="true" />
+        }
       </div>
     </section>
 
     <!-- Payer par mobile money, sans abonnement (même section que sur toutes les landings) -->
-    <section class="relative z-10 py-16 lg:py-24">
+    <section class="relative z-10 py-10 lg:py-14">
       <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-        <idem-pay-section [ctaHref]="startUrl" />
+        @defer (hydrate on viewport) {
+          <idem-pay-section [ctaHref]="startUrl" />
+        }
       </div>
-    </section>
-
-    <!-- Technology & sovereignty: the ambition -->
-    <section class="relative z-10">
-      <app-technology-sovereignty></app-technology-sovereignty>
     </section>
 
     <!-- Premium beta programme: try every plan free while the beta lasts -->
     <section class="relative z-10">
-      <app-beta-program></app-beta-program>
+      @defer (hydrate on viewport) {
+        <app-beta-program></app-beta-program>
+      }
     </section>
 
     <!-- Idem Builders : les projets africains gérés avec IDEM, mis en avant -->
     <section class="relative z-10">
-      <app-builders-program></app-builders-program>
+      @defer (hydrate on viewport) {
+        <app-builders-program></app-builders-program>
+      }
     </section>
 
     <!-- Final call to action -->
-    <app-cta></app-cta>
+    @defer (hydrate on viewport) {
+      <app-cta></app-cta>
+    }
   </div>
 </div>

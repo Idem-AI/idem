@@ -5,7 +5,7 @@
 .cta-band {
   position: relative;
   border-top: 1px solid var(--glass-border-subtle);
-  padding-block: clamp(4rem, 8vw, 6rem);
+  padding-block: clamp(3rem, 6vw, 4.5rem);
 }
 
 /* Le couple texte + image, centré. Sur téléphone il s'empile, image dessous. */
