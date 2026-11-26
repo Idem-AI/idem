@@ -81,6 +81,11 @@ Maintenant :
 | Changer de page en mode Édition | menu des pages dans la barre d'adresse, bouton « Ouvrir cette page » d'un lien sélectionné, Alt + clic sur un lien | `NAVIGATE` → `go()`, sans rechargement. La sélection de l'ancienne page est retirée et les calques de la nouvelle arrivent. |
 | Agent économe | `AGENT_SOURCE` | L'arbre des calques n'est construit qu'en mode Édition. Hors de ce mode, l'agent reste inerte. |
 
+**Pour les non-techniciens (26/11) :**
+- En mode Sélection, un clic sur un lien ouvre une petite fenêtre collée à l'élément, avec « Modifier » et « Ouvrir le lien » (`LinkPopover.tsx`).
+- Le panneau de l'élément (`SimpleInspector.tsx`) demande d'abord « Que voulez-vous changer ? », puis propose quelques actions sans nombres.
+- Les réglages fins sont repliés sous « Plus de réglages », avec des mots simples.
+
 La WebContainer (instrumentation dans `vite.config`) ne sert plus qu'aux projets sans aperçu instantané : applications web et mobiles.
 
 ## Contrôles

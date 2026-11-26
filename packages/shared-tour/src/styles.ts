@@ -10,46 +10,29 @@ export const TOUR_STYLES = `
   position: fixed;
   inset: 0;
   z-index: 2147483000;
+  /* Aucun voile, aucun flou : la page reste visible et utilisable. */
   pointer-events: none;
   font-family: inherit;
 }
 
-/*
- * Le trou de lumière.
- *
- * La zone visée n'est **pas** filtrée : elle doit s'afficher exactement comme
- * l'application l'a dessinée, sinon le texte perd son contraste et devient
- * moins lisible que le reste — l'inverse du but recherché. C'est le voile
- * alentour, volontairement dense, qui crée la mise en avant.
- */
+/* Un simple liseré autour de l'élément expliqué. Rien n'est assombri. */
 .idem-tour-spotlight {
   position: absolute;
-  border-radius: 14px;
-  /* Pas de color-mix() ici : une valeur non comprise invaliderait toute la
-     déclaration, et le voile disparaîtrait avec elle. On s'en tient à var()
-     avec repli, universellement supporté. */
-  box-shadow:
-    0 0 0 9999px rgba(2, 6, 23, 0.86),
-    0 0 0 2px var(--color-primary, #1447e6),
-    0 0 26px 0 var(--color-primary, #1447e6);
+  border-radius: 12px;
+  box-shadow: 0 0 0 2px var(--color-primary, #1447e6);
   transition:
-    top 0.35s cubic-bezier(0.16, 1, 0.3, 1),
-    left 0.35s cubic-bezier(0.16, 1, 0.3, 1),
-    width 0.35s cubic-bezier(0.16, 1, 0.3, 1),
-    height 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    top 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+    left 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+    width 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+    height 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   pointer-events: none;
 }
+.idem-tour-spotlight.is-hidden { display: none; }
 
-/* Sans cible, on assombrit l'écran entier sans découpe. */
-.idem-tour-spotlight.is-centered {
-  box-shadow: 0 0 0 9999px rgba(2, 6, 23, 0.86);
-  border-radius: 0;
-}
-
-/* L'anneau qui respire : discret, mais il attire l'œil au bon endroit. */
+/* Le repère qui respire : il attire l'œil sans bloquer quoi que ce soit. */
 .idem-tour-halo {
   position: absolute;
-  border-radius: 18px;
+  border-radius: 16px;
   border: 2px solid var(--color-primary, #1447e6);
   opacity: 0;
   pointer-events: none;
@@ -57,177 +40,146 @@ export const TOUR_STYLES = `
 }
 
 @keyframes idem-tour-breathe {
-  0% { transform: scale(0.98); opacity: 0.55; }
-  70% { transform: scale(1.06); opacity: 0; }
-  100% { transform: scale(1.06); opacity: 0; }
+  0% { transform: scale(0.99); opacity: 0.5; }
+  70% { transform: scale(1.05); opacity: 0; }
+  100% { transform: scale(1.05); opacity: 0; }
 }
 
 .idem-tour-card {
   position: absolute;
-  width: min(360px, calc(100vw - 32px));
+  width: min(300px, calc(100vw - 24px));
   box-sizing: border-box;
-  padding: 20px;
-  border-radius: 18px;
+  padding: 14px 16px 14px;
+  border-radius: 14px;
   background: var(--color-surface-1, #ffffff);
   color: var(--color-text-primary, #0f172a);
   border: 1px solid var(--glass-border, rgba(15, 23, 42, 0.12));
-  box-shadow: 0 24px 60px rgba(2, 6, 23, 0.35);
+  box-shadow: 0 10px 30px rgba(2, 6, 23, 0.14);
   pointer-events: auto;
-  /* Pas de fill-mode "both" ici : la carte doit rester visible même si
-     l'animation ne tourne pas (capture, extension, moteur exotique). */
-  animation: idem-tour-pop 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: idem-tour-pop 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* La pointe désigne l'élément ; sa position est fixée par le moteur. */
+.idem-tour-arrow {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: var(--color-surface-1, #ffffff);
+  border: 1px solid var(--glass-border, rgba(15, 23, 42, 0.12));
+  transform: rotate(45deg);
+}
+.idem-tour-card[data-side="bottom"] .idem-tour-arrow { top: -6px; border-right: 0; border-bottom: 0; }
+.idem-tour-card[data-side="top"] .idem-tour-arrow { bottom: -6px; border-left: 0; border-top: 0; }
+.idem-tour-card[data-side="right"] .idem-tour-arrow { left: -6px; border-right: 0; border-top: 0; }
+.idem-tour-card[data-side="left"] .idem-tour-arrow { right: -6px; border-left: 0; border-bottom: 0; }
+.idem-tour-card[data-side="dock"] .idem-tour-arrow { display: none; }
+
 @keyframes idem-tour-pop {
-  from { opacity: 0; transform: translateY(10px) scale(0.97); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.idem-tour-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 0 6px;
 }
 
 .idem-tour-counter {
-  position: relative;
   font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: var(--color-primary, #1447e6);
-  margin: 0 0 10px;
+  font-weight: 600;
+  color: var(--color-text-tertiary, rgba(15, 23, 42, 0.55));
+  margin: 0;
 }
 
+.idem-tour-close {
+  appearance: none;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  margin: -4px -6px -4px 0;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-text-tertiary, rgba(15, 23, 42, 0.55));
+  cursor: pointer;
+}
+.idem-tour-close:hover { background: var(--glass-bg-subtle, rgba(15, 23, 42, 0.06)); color: inherit; }
+.idem-tour-close:focus-visible { outline: 2px solid var(--color-primary, #1447e6); outline-offset: 1px; }
+
 .idem-tour-title {
-  position: relative;
-  font-size: 19px;
+  font-size: 15px;
   font-weight: 700;
-  line-height: 1.25;
-  margin: 0 0 8px;
+  line-height: 1.3;
+  margin: 0 0 4px;
 }
 
 .idem-tour-body {
-  position: relative;
-  font-size: 14px;
-  line-height: 1.6;
-  margin: 0 0 18px;
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0 0 12px;
   opacity: 0.75;
 }
 
-.idem-tour-dots {
+/* Illustration : une vignette, jamais une bande qui écrase le texte. */
+.idem-tour-illustration {
+  display: grid;
+  place-items: center;
+  height: 64px;
+  margin: 0 0 10px;
+  color: var(--color-text-tertiary, rgba(15, 23, 42, 0.55));
+}
+.idem-tour-illustration svg {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  height: auto;
+  width: auto;
+}
+
+.idem-tour-foot {
   display: flex;
-  gap: 5px;
   align-items: center;
-  flex: 1;
-}
-
-.idem-tour-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 999px;
-  background: currentColor;
-  opacity: 0.22;
-  transition: width 0.25s ease, opacity 0.25s ease;
-}
-
-.idem-tour-dot.is-active {
-  width: 20px;
-  opacity: 1;
-  background: var(--color-primary, #1447e6);
+  justify-content: space-between;
+  gap: 8px;
 }
 
 .idem-tour-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  margin-left: auto;
 }
 
-/* Les boutons de la visite portent les classes du design system Idem
-   ('inner-button', 'outer-button', 'button-ghost', 'button-sm'). Ce bloc ne
-   garde donc que ce qui relève de la disposition dans la bulle : aucune
-   couleur, aucun rayon, aucune typographie — sans quoi il gagnerait la cascade
-   sur le design system, injecté plus tôt dans le document. */
-.idem-tour-btn {
-  white-space: nowrap;
-  flex-shrink: 0;
-}
+/* Les boutons portent les classes du design system Idem : ici, seulement la
+   disposition. */
+.idem-tour-btn { white-space: nowrap; flex-shrink: 0; }
 
-/* Repli si l'hôte n'a pas chargé le design system : un bouton reste cliquable
-   et lisible plutôt que transparent. */
 .idem-tour-btn:not(.inner-button):not(.outer-button):not(.button-ghost) {
   font: inherit;
   font-size: 13px;
   font-weight: 600;
   border-radius: 10px;
-  padding: 9px 16px;
+  padding: 7px 14px;
   cursor: pointer;
   border: 1px solid var(--glass-border, rgba(15, 23, 42, 0.12));
   background: transparent;
   color: inherit;
 }
 
-.idem-tour-btn--quiet {
-  opacity: 0.7;
-}
-
-.idem-tour-btn--quiet:hover {
-  opacity: 1;
-}
-
-/* Illustration de l'étape : une bande en tête de bulle, sur un fond neutre qui
-   la détache du texte sans l'encadrer. */
-.idem-tour-illustration {
-  position: relative;
-  display: grid;
-  place-items: center;
-  margin: -20px -20px 16px;
-  padding: 18px 20px;
-  background: var(--glass-bg-subtle, rgba(15, 23, 42, 0.04));
-  border-bottom: 1px solid var(--glass-border, rgba(15, 23, 42, 0.1));
-  border-radius: 18px 18px 0 0;
-  color: var(--color-text-tertiary, rgba(15, 23, 42, 0.55));
-}
-
-.idem-tour-illustration svg {
-  display: block;
-  max-width: 100%;
-  height: auto;
-}
-
-.idem-tour-foot {
-  position: relative;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px 12px;
-  margin-top: 4px;
-}
-
-/* Petite fête de fin : quelques confettis, et rien de plus. */
-.idem-tour-confetti {
-  position: absolute;
-  inset: -10px -10px auto -10px;
-  height: 68px;
-  overflow: hidden;
-  pointer-events: none;
-  border-radius: 18px 18px 0 0;
-}
-
-.idem-tour-confetti i {
-  position: absolute;
-  top: -12px;
-  width: 7px;
-  height: 11px;
-  border-radius: 2px;
-  opacity: 0;
-  animation: idem-tour-fall 1.5s ease-in forwards;
-}
-
-@keyframes idem-tour-fall {
-  0% { transform: translateY(-14px) rotate(0deg); opacity: 0; }
-  15% { opacity: 1; }
-  100% { transform: translateY(104px) rotate(220deg); opacity: 0; }
+/* Petit écran : la bulle se pose en bas, hors du chemin du contenu. */
+@media (max-width: 560px) {
+  .idem-tour-card { width: calc(100vw - 24px); }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .idem-tour-spotlight,
   .idem-tour-card,
-  .idem-tour-halo,
-  .idem-tour-confetti i {
+  .idem-tour-halo {
     animation: none !important;
     transition: none !important;
   }

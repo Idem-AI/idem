@@ -161,6 +161,21 @@ export function chooseSitePalette(projectId: string, source: 'site' | 'logo', cr
   return request(`/appgen/site-import/project/${encodeURIComponent(projectId)}/palette`, credentials, { method: 'POST', body: JSON.stringify({ source }), signal });
 }
 
+/** Le projet IDEM d'une demande de site écrite sans projet (fiche rédigée par l'API), l'accord donné dans le chat. */
+export function createPromptProject(request_: string, language: 'fr' | 'en', credentials: Record<string, string>, signal: AbortSignal): Promise<ProjectModel> {
+  return request<ProjectModel>('/appgen/projects/from-prompt', credentials, {
+    method: 'POST',
+    body: JSON.stringify({ request: request_, language, consent: { privacy: true, terms: true, beta: true } }),
+    signal,
+    timeoutMs: 60_000,
+  });
+}
+
+/** Palette, typographie et direction artistique du projet s'il n'en a pas ; rend le projet complet. */
+export function ensureProjectIdentity(projectId: string, credentials: Record<string, string>, signal: AbortSignal): Promise<ProjectModel> {
+  return request<ProjectModel>(`/appgen/projects/${encodeURIComponent(projectId)}/identity`, credentials, { method: 'POST', body: '{}', signal, timeoutMs: 180_000 });
+}
+
 /** Le projet tel que l'atelier le charge (même route que le client). */
 export function fetchProject(projectId: string, credentials: Record<string, string>, signal: AbortSignal): Promise<ProjectModel> {
   return request<ProjectModel>(`/projects/${encodeURIComponent(projectId)}`, credentials, { signal });

@@ -11,6 +11,7 @@ import { idemAnalyzeImage } from '../services/ivision/host';
 import { PromptService } from '../services/prompt.service';
 import { applyRedesignTypography, chooseSitePalette, SiteConsent, siteContentOf, siteImportJobs } from '../services/SiteImport/siteProject.service';
 import { ensureBrandMark } from '../services/SiteImport/brandMark.service';
+import { createProjectFromPrompt, ensurePromptIdentity } from '../services/SiteImport/promptProject.service';
 import { resolveSiteFont } from '../services/SiteImport/siteFont.service';
 import { runWithAiUsageContext } from '../utils/ai-usage-context.util';
 import { startSseHeartbeat } from '../utils/sse-heartbeat.util';
@@ -150,6 +151,74 @@ router.post('/site-import', authenticate, async (req: CustomRequest, res) => {
   } catch (error: any) {
     logger.error('appgen.site_import_failed', { event: 'appgen.site_import_failed', userId, error: error?.message });
     res.status(502).json({ error: 'upstream_failed' });
+  }
+});
+
+/**
+ * UN SITE DEMANDÉ SUR L'ACCUEIL D'iCODE, sans projet : la demande devient un projet IDEM (fiche rédigée depuis la
+ * demande), avec l'accord de l'utilisateur coché dans iCode. Corps : `{ request, language, consent }`. Borné par le
+ * quota « Aides IA » ; le site lui-même est facturé par iCode, comme une première génération.
+ */
+router.post('/projects/from-prompt', authenticate, async (req: CustomRequest, res) => {
+  const userId = req.user?.uid;
+  if (!userId) {
+    res.status(401).json({ error: 'authentication_required' });
+    return;
+  }
+  const body = (req.body ?? {}) as Record<string, any>;
+  const request = typeof body.request === 'string' ? body.request.trim().slice(0, 4000) : '';
+  const language = body.language === 'en' ? 'en' : 'fr';
+  const c = body.consent;
+  if (!request) {
+    res.status(400).json({ error: 'invalid_input' });
+    return;
+  }
+  if (!(c && c.privacy === true && c.terms === true && c.beta === true)) {
+    res.status(403).json({ error: 'consent_required', message: 'Acceptez d’abord la politique de confidentialité, les conditions d’utilisation et les conditions du programme bêta.' });
+    return;
+  }
+  const consent: SiteConsent = { privacyPolicyAccepted: true, termsOfServiceAccepted: true, betaPolicyAccepted: true, ipAddress: req.ip, userAgent: String(req.headers['user-agent'] || '').slice(0, 400) || undefined };
+  try {
+    const quota = await usageQuotaService.reserve(userId, 'assist');
+    if (!quota.allowed) {
+      sendQuotaRefusal(res, quota.refusal);
+      return;
+    }
+    const project = await runWithAiUsageContext({ userId, feature: 'branding', operation: 'generate', source: 'appgen POST /appgen/projects/from-prompt' }, () =>
+      createProjectFromPrompt(userId, request, language, consent, {
+        text: (system, user, tier) => communicationService.runVideoTieredPrompt(userId, system, user, tier, 'copy'),
+      })
+    );
+    res.status(201).json(project);
+  } catch (error: any) {
+    logger.error('appgen.prompt_project_failed', { event: 'appgen.prompt_project_failed', userId, error: error?.message });
+    res.status(502).json({ error: 'upstream_failed' });
+  }
+});
+
+/** La palette, la typographie et la direction artistique d'un projet qui n'en a pas (mêmes générateurs qu'IDEM). */
+router.post('/projects/:projectId/identity', authenticate, async (req: CustomRequest, res) => {
+  const userId = req.user?.uid;
+  const projectId = String(req.params.projectId);
+  if (!userId || !/^[\w.-]{1,128}$/.test(projectId)) {
+    res.status(400).json({ error: 'invalid_input' });
+    return;
+  }
+  try {
+    const quota = await usageQuotaService.reserve(userId, 'assist');
+    if (!quota.allowed) {
+      sendQuotaRefusal(res, quota.refusal);
+      return;
+    }
+    const project = await runWithAiUsageContext({ userId, projectId, feature: 'branding', operation: 'generate', source: 'appgen POST /appgen/projects/:id/identity' }, () => ensurePromptIdentity(userId, projectId));
+    if (!project) {
+      res.status(404).json({ error: 'project_not_found' });
+      return;
+    }
+    res.json(project);
+  } catch (error: any) {
+    logger.error('appgen.prompt_identity_failed', { event: 'appgen.prompt_identity_failed', projectId, error: error?.message });
+    res.status(502).json({ error: 'identity_failed' });
   }
 });
 

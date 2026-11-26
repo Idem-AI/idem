@@ -145,6 +145,8 @@ export interface SelectedElementInfo {
   rect: { top: number; left: number; width: number; height: number };
   /** Les ancêtres instrumentés, du plus proche au plus lointain (la section qui porte l'élément). */
   ancestors?: string[];
+  /** L'adresse du lien qui porte l'élément (lui-même ou un parent `<a href>`), s'il y en a un. */
+  linkHref?: string;
 }
 
 /** Un calque de la pile d'éléments empilés sous le curseur au moment du clic. */
@@ -161,6 +163,8 @@ export interface MsgSelected {
   elements: SelectedElementInfo[];
   /** Éléments empilés sous le point cliqué (navigateur de calques). Vide si non pertinent. */
   stack?: StackItem[];
+  /** `click` : la personne a cliqué ; `refresh` : la page a changé sous la sélection ; `program` : demandé par l'atelier. */
+  reason?: 'click' | 'refresh' | 'program';
 }
 
 /** Édition de texte en place validée. */
@@ -237,7 +241,15 @@ export interface MsgHitResult {
   hits: PointedHit[];
 }
 
+/** La page a défilé : les nouvelles positions des éléments sélectionnés. */
+export interface MsgSelectionRects {
+  source: typeof IDEM_SOURCE;
+  type: 'SELECTION_RECTS';
+  rects: Array<{ id: string; rect: { top: number; left: number; width: number; height: number } }>;
+}
+
 export type AgentToParentMessage =
+  | MsgSelectionRects
   | MsgHitResult
   | MsgAgentReady
   | MsgSelected

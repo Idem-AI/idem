@@ -297,6 +297,25 @@ async function main() {
     check('retouche : mise en ligne nommée', /\/publish/.test(elsewhereReply('publish', true, false)));
   }
 
+  // Un site demandé sur l'accueil, sans projet : le projet IDEM naît d'abord, avec l'accord.
+  {
+    const asked = await run(await dispatch(base({ text: 'Je veux un site de vente de poulet, ça s’appelle Rocky', product: 'site' })));
+    check('nouveau site : question posée avec l’accord', asked.choices?.purpose === 'new-site' && asked.choices.consent === true, asked.choices);
+    check('nouveau site : « Un nouveau site » recommandé en tête', asked.choices?.questions[0]?.options?.[0]?.value === 'new' && asked.choices.questions[0].options[0].recommended === true);
+    check('nouveau site : la refonte est expliquée', /\/redesign/.test(asked.text) && asked.choices?.questions[0]?.options?.some((o) => o.value === 'redesign'));
+    check('nouveau site : la demande d’origine est gardée', /Rocky/.test(String(asked.choices?.context?.original ?? '')));
+    const app = await run(await dispatch(base({ text: 'Une application de gestion de stock', product: 'app' })));
+    check('nouveau site : rien pour une application', app.choices === null);
+    const withProject = await run(await dispatch(base({ text: 'Un site pour Rocky', product: 'site', projectData: { id: 'p1', name: 'Rocky', analysisResultModel: {} } as unknown as DispatchInput['projectData'] })));
+    check('nouveau site : rien quand un projet est ouvert', withProject.choices?.purpose !== 'new-site');
+    const later = await run(await dispatch(base({ text: 'Change le titre', product: 'site', messages: [{ id: '1', role: 'user', content: 'Un site' }, { id: '2', role: 'assistant', content: 'ok' }, { id: '3', role: 'user', content: 'Change le titre' }] as DispatchInput['messages'] })));
+    check('nouveau site : seulement à la première demande', later.choices?.purpose !== 'new-site');
+    const noConsent = await run(await dispatch(base({ text: '', answers: { purpose: 'new-site', values: { start: 'new' }, consent: false, context: { original: 'Un site pour Rocky' } } })));
+    check('nouveau site : sans accord, la question revient', noConsent.choices?.purpose === 'new-site' && noConsent.choices.consent === true, noConsent.choices);
+    const toRedesign = await run(await dispatch(base({ text: '', answers: { purpose: 'new-site', values: { start: 'redesign' }, consent: true, context: { original: 'Refaire rocky.cm' , url: 'https://rocky.cm/' } } })));
+    check('nouveau site → refonte : l’accord n’est pas redemandé', toRedesign.choices?.purpose === 'redesign' && !toRedesign.choices.consent && toRedesign.choices.context?.consented === true, toRedesign.choices);
+  }
+
   console.log(`${passed} contrôles réussis, ${failed} en échec`);
   if (failed) process.exit(1);
 }

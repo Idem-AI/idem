@@ -1,6 +1,6 @@
 # @idem/shared-tour
 
-A framework-agnostic guided-tour engine shared by the IDEM applications (dashboard, simulator, iDeploy web). It builds plain DOM; the host application supplies translated texts and the selectors of its own elements.
+A non-intrusive (no overlay, no blur, page stays usable), framework-agnostic guided-tour engine shared by the IDEM applications (dashboard, simulator, iDeploy web). It builds plain DOM; the host application supplies translated texts and the selectors of its own elements.
 
 ## Usage
 
@@ -12,7 +12,7 @@ const handle = startTour({
   labels: { next, back, skip, finish, stepOf: 'Step {current} of {total}', dialogLabel },
   steps: [
     { target: '#new-project', title: 'Create a project', body: '…', placement: 'bottom' },
-    { title: 'You are ready', body: '…' }, // no target: centred on screen
+    { title: 'You are ready', body: '…' }, // no target: docked in a corner
   ],
   onFinish: (completed) => { /* false when skipped or closed */ },
 });
@@ -20,11 +20,11 @@ const handle = startTour({
 
 | Step field | Meaning |
 | --- | --- |
-| `target` | CSS selector of the element to highlight. Missing or not found: the step is centred |
+| `target` | CSS selector of the element to highlight. Missing or not found: the bubble docks in a corner |
 | `title`, `body` | Texts, already translated |
 | `placement` | `top`, `bottom`, `left`, `right` or `auto` |
 | `illustration` | SVG markup inserted above the title. It is set with `innerHTML`: it must come from the application's code, never from user input |
-| `celebrate` | Adds a small confetti burst to the bubble (e.g. the last step) |
+| `celebrate` | Kept for compatibility, no effect |
 | `before` | Hook run before the step is shown (open a panel, scroll…) |
 
 `startTour` returns a handle with `stop()`, `next()`, `back()` and `currentIndex()`. `isTourActive()` tells whether a tour is running. The styles are injected by the package (`TOUR_STYLES`).

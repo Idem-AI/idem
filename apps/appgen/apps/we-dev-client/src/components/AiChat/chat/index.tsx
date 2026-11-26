@@ -543,6 +543,30 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
 
   // Get projectId from URL - must be declared before useChat hook
   const [projectId, setProjectId] = useState<string | null>(() => new URLSearchParams(window.location.search).get('projectId'));
+  // Sans projet, la conversation est désignée par l'adresse (`?chat=`) : une actualisation la rouvre au lieu de
+  // renvoyer sur l'accueil. Avec un projet, c'est `?projectId=` qui la porte (conversation enregistrée dans IDEM).
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('projectId')) return;
+    const stored = params.get('chat');
+    if (stored && /^[0-9a-f-]{36}$/i.test(stored) && stored !== chatUuid) {
+      setChatUuid(stored);
+      loadChatHistory(stored);
+    }
+  }, []);
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (projectId || url.searchParams.get('projectId')) {
+      if (!url.searchParams.has('chat')) return;
+      url.searchParams.delete('chat');
+    } else {
+      if (url.searchParams.get('chat') === chatUuid) return;
+      url.searchParams.set('chat', chatUuid);
+    }
+    url.searchParams.delete('from');
+    window.history.replaceState(window.history.state, '', url.toString());
+  }, [chatUuid, projectId]);
+
 
   // Project data state - must be declared before useChat hook
   const [projectData, setProjectData] = useState<ProjectModel | null>(null);
@@ -1761,7 +1785,8 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
   const persistNow = (keepalive = false) => {
     // Le projet annoncé par la réponse d'abord : une refonte qui a créé SON projet n'écrit plus dans celui d'avant.
     const target = liveProjectRef.current ?? projectId;
-    if (!target || !isProjectLoaded) return;
+    // Un projet né pendant la génération (refonte, site demandé sur l'accueil) n'est pas « chargé » : on y enregistre.
+    if (!target || (!liveProjectRef.current && !isProjectLoaded)) return;
     if (pendingSessionRef.current) return;
     const all = realMessagesRef.current;
     if (!all.length) return;

@@ -22,6 +22,7 @@ import { runRescan, siteSourceOf, startRescan } from './workflows/rescan.js';
 import { runSite, startSite } from './workflows/site.js';
 import { runTranslate, startTranslate } from './workflows/translate.js';
 import { hasUnfinishedGeneration, startResume } from './workflows/resume.js';
+import { isNewSiteRequest, runNewSite, startNewSite } from './workflows/newSite.js';
 
 export interface DispatchInput extends CommandContext {
   answers?: ChoicesAnswer;
@@ -49,6 +50,7 @@ export async function dispatch(input: DispatchInput): Promise<Responder | null> 
     if (answer.purpose === 'redesign-colors') return runRedesignColors(input, clean);
     if (answer.purpose === 'rescan') return runRescan(input, clean);
     if (answer.purpose === 'site') return runSite(input, clean);
+    if (answer.purpose === 'new-site') return runNewSite(input, clean);
     if (answer.purpose === 'charter') return runCharter(input, clean);
     if (answer.purpose === 'translate') return runTranslate(input, clean);
     // « Reprendre la génération » (proposé par l'atelier quand il trouve un plan inachevé).
@@ -94,7 +96,8 @@ export async function dispatch(input: DispatchInput): Promise<Responder | null> 
       siteSource: siteSourceOf(input.projectData, input.siteFiles),
     },
   });
-  if (intent.intent === 'none' || intent.confidence < INTENT_THRESHOLD) return null;
+  // Rien de particulier, et c'est la première demande d'un site sans projet : le projet IDEM naît d'abord (accord).
+  if (intent.intent === 'none' || intent.confidence < INTENT_THRESHOLD) return isNewSiteRequest(input) ? startNewSite(input) : null;
   if (intent.intent === 'resume') return hasUnfinishedGeneration(input.siteFiles) ? startResume(input) : null;
   if (intent.intent === 'translate') return input.hasSite ? startTranslate(input, (intent.languages ?? []).join(' ')) : null;
   if (intent.intent === 'rescan') return startRescan(input, text);
