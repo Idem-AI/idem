@@ -1706,7 +1706,7 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
       pushProjectCode(projectId, files).catch((error) =>
         console.error('Incremental code sync failed:', error)
       );
-    }, 5000);
+    }, 1500);
 
     return () => clearTimeout(timer);
   }, [files, isLoading, projectId, isProjectLoaded]);
@@ -1754,39 +1754,72 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
   }, [realMessages, isLoading, projectId]);
 
   /**
-   * Enregistré PENDANT la génération, pas seulement à la fin. Une refonte dure plusieurs minutes : tout ne partait
-   * qu'en fin de réponse, si bien qu'une actualisation, une coupure ou une réponse finie en erreur faisait tout perdre
-   * (les fichiers, et le plan dont « Reprendre » a besoin). Toutes les 20 s, dès que la réponse a écrit un fichier :
-   * le code (seul ce qui a changé part) et la conversation ; une dernière fois quand la réponse s'arrête, quelle
-   * qu'en soit l'issue.
+   * Enregistre la conversation (et le code, dont seul ce qui a changé part) dans le projet. Une réponse qui ne
+   * modifie rien — une explication, une question — est une vraie réponse : elle est enregistrée comme les autres,
+   * de même que la demande de l'utilisateur dès qu'elle part.
    */
-  useEffect(() => {
-    if (!isLoading) return;
-    const save = () => {
-      // Le projet annoncé par la réponse d'abord : une refonte qui a créé SON projet n'écrit plus dans celui d'avant.
-      const target = liveProjectRef.current ?? projectId;
-      if (!target) return;
-      const all = realMessagesRef.current;
-      const last = all[all.length - 1];
-      if (last?.role !== 'assistant' || !/<boltAction\s+type="file"[\s\S]*?<\/boltAction>/.test(last.content)) return;
-      const workspace = useFileStore.getState().files;
-      if (Object.keys(workspace).length) {
-        pushProjectCode(target, workspace).catch((error) => console.warn('[enregistrement] code non envoyé', error));
-      }
-      const moved = !!projectId && target !== projectId && !!redesignSessionRef.current;
-      const messages = moved ? redesignMessages(all as Message[]) : (all as Message[]);
-      saveProjectChatSession(target, {
+  const persistNow = (keepalive = false) => {
+    // Le projet annoncé par la réponse d'abord : une refonte qui a créé SON projet n'écrit plus dans celui d'avant.
+    const target = liveProjectRef.current ?? projectId;
+    if (!target || !isProjectLoaded) return;
+    if (pendingSessionRef.current) return;
+    const all = realMessagesRef.current;
+    if (!all.length) return;
+    const workspace = useFileStore.getState().files;
+    if (Object.keys(workspace).length) {
+      pushProjectCode(target, workspace).catch((error) => console.warn('[enregistrement] code non envoyé', error));
+    }
+    const moved = !!projectId && target !== projectId && !!redesignSessionRef.current;
+    const messages = moved ? redesignMessages(all as Message[]) : (all as Message[]);
+    const stored = compactMessagesForStorage(messages);
+    if (!stored.length) return;
+    saveProjectChatSession(
+      target,
+      {
         sessionId: moved ? redesignSessionRef.current!.sessionId : chatUuid,
         title: deriveSessionTitle(messages, projectData?.name || 'Nouvelle conversation'),
-        messages: compactMessagesForStorage(messages),
-      }).catch((error) => console.warn('[enregistrement] conversation non envoyée', error));
-    };
-    const timer = setInterval(save, 20_000);
+        messages: stored,
+      },
+      { keepalive }
+    ).catch((error) => console.warn('[enregistrement] conversation non envoyée', error));
+  };
+  const persistNowRef = useRef(persistNow);
+  persistNowRef.current = persistNow;
+
+  // PENDANT la génération, pas seulement à la fin : une refonte dure plusieurs minutes, et une actualisation, une
+  // coupure ou une réponse finie en erreur faisait tout perdre. Dès l'envoi (la demande), toutes les 10 s, puis une
+  // dernière fois quand la réponse s'arrête, quelle qu'en soit l'issue.
+  useEffect(() => {
+    if (!isLoading) return;
+    const first = setTimeout(() => persistNowRef.current(), 500);
+    const timer = setInterval(() => persistNowRef.current(), 10_000);
     return () => {
+      clearTimeout(first);
       clearInterval(timer);
-      save();
+      persistNowRef.current();
     };
   }, [isLoading, projectId, chatUuid, projectData?.name]);
+
+  // Hors génération : tout changement de la conversation (réponse reçue, message modifié ou supprimé) part 1,5 s après.
+  useEffect(() => {
+    if (isLoading || !projectId || !isProjectLoaded) return;
+    const timer = setTimeout(() => persistNowRef.current(), 1500);
+    return () => clearTimeout(timer);
+  }, [realMessages, isLoading, projectId, isProjectLoaded]);
+
+  // Fermeture, actualisation ou onglet qui passe en arrière-plan : on vide ce qui attend encore.
+  useEffect(() => {
+    const flush = () => persistNowRef.current(true);
+    const onHide = () => {
+      if (document.visibilityState === 'hidden') flush();
+    };
+    window.addEventListener('pagehide', flush);
+    document.addEventListener('visibilitychange', onHide);
+    return () => {
+      window.removeEventListener('pagehide', flush);
+      document.removeEventListener('visibilitychange', onHide);
+    };
+  }, []);
 
   // Le fil suit ce qui s'écrit, laisse lire plus haut, et ramène en bas quand une réponse finit ou demande
   // d'agir (voir le hook).
