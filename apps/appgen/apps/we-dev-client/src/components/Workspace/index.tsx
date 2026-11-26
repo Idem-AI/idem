@@ -99,6 +99,9 @@ export function Workspace({ onSendToChat, onRunInChat, onTargetInChat }: Workspa
   const handleSelection = useCallback(
     (context: SelectionContext) => {
       if (context.annotation && onRunInChat) return onRunInChat(describeSelection(context, t), context.pointed ?? []);
+      // Écrit dans le panneau de l'élément : part tout de suite, limité à cet élément (la conversation dit lequel).
+      if (context.instruction && context.pointed?.length && onRunInChat)
+        return onRunInChat(`${context.instruction}\n\n${t('editMode.pointedIntro')}\n- ${describePointed(context.pointed, t)}`, context.pointed);
       if (context.pointed?.length && onTargetInChat) return onTargetInChat(context.pointed, describePointed(context.pointed, t));
       if (!onSendToChat) return;
       onSendToChat(describeSelection(context, t));

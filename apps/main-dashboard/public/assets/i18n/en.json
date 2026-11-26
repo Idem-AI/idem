@@ -3274,9 +3274,8 @@
       }
     },
     "showCommunication": {
-      "eyebrow": "Communication",
       "title": "My communication",
-      "subtitle": "IDEM guides you step by step: say who you are, plan what to post, create the visuals, then publish them.",
+      "subtitle": "Create a visual in one sentence, or let IDEM prepare all of your communication.",
       "loading": "Loading…",
       "comingSoon": "Soon",
       "tabs": {
@@ -3611,16 +3610,8 @@
       },
       "studio": {
         "empty": {
-          "title": "What do you have to announce?",
-          "body": "Say it in one sentence. The visual comes out with your colours, your font and your logo.",
-          "body2": "For instance: “a visual to say we are now open on Saturdays”",
-          "example": "“a visual to say we are now open on Saturdays”"
-        },
-        "starters": {
-          "announce": "Announce something",
-          "promotion": "A promotion",
-          "celebration": "Wish a holiday",
-          "recruitment": "Say I'm hiring"
+          "title": "What visual do you want?",
+          "body": "Describe it just below, in one sentence."
         },
         "thinking": "Thinking…",
         "composing": "Composing the visual…",
@@ -3632,20 +3623,13 @@
         "copy": "Copy",
         "copied": "Copied",
         "creditsSpent": "{{count}} credits used",
-        "inputLabel": "Describe what you want to announce",
-        "placeholder": "Say what you want to announce…",
-        "send": "Send",
         "clear": "Clear the conversation",
-        "pricingHint": "Chatting is free. A visual costs 2 credits, a retouch 1 credit.",
         "schedule": "Add to calendar",
         "toStory": "As a story",
         "noPlan": "Create a calendar first to add this visual to it.",
         "planLabel": "Which calendar",
         "dateLabel": "On which date",
         "openVisual": "See it large",
-        "builderIntro": "Answer 3 questions: IDEM composes the visual with your logo, colours and font.",
-        "history": "See my previous exchanges",
-        "newVisual": "Create a new visual",
         "chatHint": "Here, ask for a change in a few words: “simpler”, “bigger price”…",
         "followUpsLabel": "You can ask for example:",
         "followUps": {
@@ -3707,7 +3691,6 @@
         "title": "How I communicate",
         "subtitle": "Who you talk to, in which tone, on which networks.",
         "open": "How I communicate",
-        "todo": "to fill in",
         "summaryLabel": "In two sentences",
         "edit": "Edit",
         "save": "Save",
@@ -3930,221 +3913,43 @@
         }
       },
       "nav": {
-        "home": {
-          "label": "Home",
-          "hint": "Where I stand, what to do next",
-          "short": "Home"
-        },
-        "studio": {
-          "label": "Create a visual",
-          "hint": "An image in your colours, in 3 questions",
-          "short": "Create"
-        },
-        "plans": {
-          "label": "My calendar",
-          "hint": "What to post, and on which day",
-          "short": "Calendar"
-        },
-        "library": {
-          "label": "My visuals",
-          "hint": "Everything you have already created",
-          "short": "Visuals"
-        },
-        "videos": {
-          "label": "My videos",
-          "hint": "An animated video in your colours",
-          "short": "Videos"
-        },
-        "whatsapp": {
-          "label": "WhatsApp",
-          "hint": "Approve and publish from WhatsApp",
-          "short": "WhatsApp"
-        }
+        "home": "Home",
+        "plans": "Calendar",
+        "videos": "Videos",
+        "library": "Visuals",
+        "whatsapp": "WhatsApp"
       },
       "home": {
-        "progress": "{{done}} of 4 steps done",
-        "next": {
-          "voice": {
-            "title": "Start by saying who you are",
-            "body": "IDEM needs to know who you talk to and in which tone. You do it only once: the calendar, the visuals and the texts then draw on it."
-          },
-          "plan": {
-            "title": "Prepare your posting calendar",
-            "body": "Pick a period, next month for instance. IDEM plans every post: the topic, the day, the network and the text to publish."
-          },
-          "visuals": {
-            "title": "Create the visuals for your posts",
-            "body": "{{count}} post(s) still need their image. Open one in your calendar: one click and the visual comes out in your colours."
-          },
-          "publish": {
-            "title": "Publish on your networks",
-            "body": "Your posts are ready. Open one: the text is copied and the network opens, all that's left is to paste."
-          }
+        "ask": {
+          "title": "Need a visual?",
+          "body": "Describe it in one sentence. IDEM creates it in your colours, with your logo."
         },
-        "allDone": {
-          "title": "Everything is up to date",
-          "body": "Every post in your calendar is online. Prepare the next period to keep the pace.",
-          "cta": "Prepare what's next"
+        "plan": {
+          "title": "Or plan all of your communication",
+          "body": "Three steps, in order. IDEM prepares, you approve."
         },
-        "quickVisualLink": "Just need a visual? Create it now",
-        "journeyTitle": "Your communication in 4 steps",
-        "journeyHelp": "Follow them in order the first time. You can come back to any of them at any time.",
-        "state": {
-          "done": "Done",
-          "next": "Next step",
-          "todo": "To do"
-        },
+        "done": "Done",
         "steps": {
-          "voice": {
-            "title": "Say who you are",
-            "why": "Who you talk to, in which tone, on which networks. Done only once.",
-            "price": "40 credits, only once",
-            "cta": "Start",
-            "ctaDone": "Review"
+          "strategy": {
+            "title": "Your communication strategy",
+            "why": "Who you speak to, in what tone, on which networks.",
+            "cta": "Create my strategy",
+            "ctaDone": "View"
           },
-          "plan": {
-            "title": "Prepare your calendar",
-            "why": "IDEM plans what to post and on which day, for the period you choose.",
-            "price": "15 credits per period",
+          "calendar": {
+            "title": "Your editorial calendar",
+            "why": "What to post, and on which day, for the period you choose.",
             "cta": "Create my calendar",
-            "ctaDone": "See my calendar"
+            "ctaDone": "Open"
           },
-          "visuals": {
-            "title": "Create your visuals",
-            "why": "An image with your colours and logo for every post in the calendar.",
-            "price": "2 credits per visual",
-            "cta": "Create the visuals",
-            "ctaDone": "See the calendar",
+          "content": {
+            "title": "Your visuals and videos",
+            "why": "Generated from each post in the calendar.",
+            "cta": "Open the calendar",
+            "ctaDone": "Open the calendar",
             "progress": "{{done}} of {{total}} ready"
-          },
-          "publish": {
-            "title": "Publish",
-            "why": "The text is ready: copy it, paste it on your network, it's online.",
-            "price": "Free",
-            "cta": "See what to post",
-            "ctaDone": "See the calendar",
-            "progress": "{{done}} of {{total}} published"
           }
-        },
-        "quick": {
-          "title": "A visual, right now",
-          "body": "No calendar needed for a one-off announcement: answer 3 questions, the visual comes out in your colours.",
-          "cta": "Create a visual"
-        },
-        "upcoming": {
-          "title": "Coming up",
-          "empty": "Nothing planned yet. Your calendar will tell you what to post every day.",
-          "today": "Today",
-          "tomorrow": "Tomorrow",
-          "ready": "Visual ready",
-          "all": "See the whole calendar"
-        },
-        "recent": {
-          "title": "Your latest visuals",
-          "all": "See all my visuals"
         }
-      },
-      "builder": {
-        "stepLabels": {
-          "1": "What?",
-          "2": "The details",
-          "3": "Where?"
-        },
-        "what": {
-          "question": "What do you want to announce?",
-          "help": "Pick the closest one. You will add the details right after."
-        },
-        "kinds": {
-          "announce": {
-            "label": "An announcement",
-            "hint": "New hours, opening, news",
-            "placeholder": "E.g. from November 1st we are also open on Saturdays, 9am to 2pm.",
-            "prompt": "make an announcement"
-          },
-          "promotion": {
-            "label": "A promotion",
-            "hint": "Discount, special offer, sale",
-            "placeholder": "E.g. 20% off all fabrics until October 15th, Cocody shop.",
-            "prompt": "a promotion"
-          },
-          "product": {
-            "label": "A product or service",
-            "hint": "Present it, highlight it",
-            "placeholder": "E.g. our new 100% natural hibiscus juice, 500 CFA francs a bottle.",
-            "prompt": "present a product or a service"
-          },
-          "event": {
-            "label": "An event",
-            "hint": "Opening, workshop, fair",
-            "placeholder": "E.g. open day on Saturday October 12th, 10am to 6pm, free tasting.",
-            "prompt": "an event"
-          },
-          "celebration": {
-            "label": "Holiday wishes",
-            "hint": "Eid, Christmas, national day…",
-            "placeholder": "E.g. wish our customers a happy Independence Day.",
-            "prompt": "send holiday wishes to our customers"
-          },
-          "recruitment": {
-            "label": "I'm hiring",
-            "hint": "Announce an open position",
-            "placeholder": "E.g. we are hiring a full-time salesperson in Dakar, CV via WhatsApp.",
-            "prompt": "announce a job opening"
-          },
-          "other": {
-            "label": "Something else",
-            "hint": "I describe it myself",
-            "placeholder": "Describe what the visual should say.",
-            "prompt": "communicate"
-          }
-        },
-        "details": {
-          "question": "What should the visual say?",
-          "help": "Write it as you would tell a customer. IDEM takes care of the layout.",
-          "tips": {
-            "when": "The date or duration",
-            "price": "The price or discount",
-            "where": "The place or contact"
-          }
-        },
-        "where": {
-          "question": "Where will you publish it?",
-          "help": "This decides the shape of the image. You can get it in another format afterwards."
-        },
-        "places": {
-          "square": {
-            "label": "Post",
-            "hint": "Instagram, Facebook, LinkedIn feed",
-            "prompt": "in square format, for an Instagram or Facebook post"
-          },
-          "story": {
-            "label": "Story or status",
-            "hint": "WhatsApp status, Instagram story, TikTok",
-            "prompt": "in vertical story format, for a WhatsApp status or a story"
-          },
-          "banner": {
-            "label": "Banner",
-            "hint": "Facebook or LinkedIn cover, website",
-            "prompt": "in wide banner format, for a cover or a website"
-          },
-          "a4": {
-            "label": "Printed poster",
-            "hint": "A4 format, for the shop or the street",
-            "prompt": "as a printable A4 poster"
-          }
-        },
-        "variants": {
-          "label": "Show me 3 different versions",
-          "hint": "To pick the one you prefer — 5 credits instead of 2."
-        },
-        "prompt": {
-          "intro": "Create a visual to {{kind}},",
-          "format": "{{format}}.",
-          "details": "Here is what it should say: {{details}}",
-          "variants": "Give me 3 different versions."
-        },
-        "submit": "Create my visual — {{price}} credits",
-        "freeText": "I'd rather write it myself"
       },
       "guide": {
         "show": "How does it work?",
@@ -4761,6 +4566,31 @@
         "notes": {
           "youtube": "A YouTube thumbnail is 16:9: this 1.91:1 visual will be slightly cropped."
         }
+      },
+      "prompt": {
+        "label": "Describe the visual you want",
+        "placeholder": "E.g. a visual to wish our customers a happy new year",
+        "send": "Create",
+        "advanced": "Advanced options",
+        "price": "A visual: 2 credits · a change: 1 credit",
+        "format": "Format",
+        "formats": {
+          "auto": "Automatic",
+          "square": "Square post",
+          "story": "Story / status",
+          "banner": "Banner",
+          "a4": "A4 poster"
+        },
+        "formatPrompts": {
+          "square": "in square format, for an Instagram or Facebook post",
+          "story": "in vertical story format, for a WhatsApp status or a story",
+          "banner": "in wide banner format, for a cover or a website",
+          "a4": "as a printable A4 poster"
+        },
+        "asFormat": "The visual must be {{format}}.",
+        "variants": "Give me 3 versions (5 credits instead of 2)",
+        "variantsShort": "3 versions",
+        "variantsPrompt": "Give me 3 different versions."
       }
     },
     "businessCards": {

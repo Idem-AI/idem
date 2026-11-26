@@ -136,3 +136,25 @@ son nom).
   dans la carte de cet élément-là.
 
 Banc : `npm run check:image-binding` (we-dev-next, 27 vérifications, sans modèle).
+
+### Relire le site d'origine, et ce que savent les agents (26/11/2026)
+
+« Rescanne mon site » n'aboutissait pas : l'agent qui lit la demande ne connaissait que sept déroulés, la relecture
+n'en faisait pas partie, et la demande tombait chez l'agent de retouche, qui a pour consigne de toujours modifier une
+partie du site.
+
+- **Catalogue des capacités** (`we-dev-next/src/commands/capabilities.ts`) : ce qu'iCode sait faire sur un projet,
+  chaque capacité avec ce qu'elle fait, ce qu'elle n'est pas, quand elle est disponible et sa commande « / ». L'agent
+  qui lit la demande (`intent.ts`, gratuit, avant toute facturation) reçoit les capacités disponibles dans le
+  contexte ; l'agent de retouche (`edit.ts`) reçoit le catalogue entier. **Une capacité ajoutée à iCode s'écrit là** :
+  les deux agents la connaissent aussitôt.
+- **`/rescan`** (`commands/workflows/rescan.ts`) : relit le site d'origine DANS le projet ouvert (l'API relève toutes
+  les pages, recopie les images avec leurs légendes, garde la marque du projet), puis refait le site. Une question
+  (priorité : tout, design, textes) dit qu'une génération sera décomptée ; le client garde un point de restauration.
+  Le site d'origine vient de `branding.siteSource`, sinon de `.idem/plan.json` (projet relu dans IDEM s'il n'est pas
+  joint). Sans site d'origine : refonte ordinaire, adresse demandée.
+- **Filet de la retouche** : une demande qui n'est pas une modification des fichiers (relire le site, traduire, mettre
+  en ligne…) est nommée (`elsewhere`), avec sa commande ; rien n'est modifié. La retouche étant facturée avant
+  l'aiguillage, c'est l'agent qui lit la demande qui doit la reconnaître d'abord.
+
+Banc : `npm run check:commands` (85 vérifications, dont 11 sur la relecture et le catalogue).

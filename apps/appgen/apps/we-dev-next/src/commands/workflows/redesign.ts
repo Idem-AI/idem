@@ -93,7 +93,7 @@ function questions(ctx: CommandContext, url: string | null): ChoiceQuestion[] {
   return list;
 }
 
-export function startRedesign(ctx: CommandContext, options: { url?: string | null; original?: string }): Responder {
+export function startRedesign(ctx: CommandContext, options: { url?: string | null; original?: string; consented?: boolean }): Responder {
   const site = options.url ? findSiteUrl(options.url) : null;
   const { fr } = ctx;
   const intro = site
@@ -107,9 +107,10 @@ export function startRedesign(ctx: CommandContext, options: { url?: string | nul
     purpose: 'redesign',
     questions: questions(ctx, site?.url ?? null),
     // Un nouveau projet peut naître (aucun projet ouvert, ou un projet qui porte déjà une refonte) : son accord.
-    consent: !ctx.projectData?.id || bornFromSite(ctx.projectData),
+    // L'accord déjà donné à la question précédente (`newSite.ts`) n'est pas redemandé.
+    consent: (!ctx.projectData?.id || bornFromSite(ctx.projectData)) && !options.consented,
     prepare: 'site-reset',
-    context: { url: site?.url, original: options.original },
+    context: { url: site?.url, original: options.original, ...(options.consented ? { consented: true } : {}) },
     submitLabel: fr ? 'Refaire mon site' : 'Redesign my site',
   };
   return createTextStream(intro, choices);
@@ -164,11 +165,12 @@ export function runRedesign(ctx: CommandContext, answer: ChoicesAnswer): Respond
   const site = findSiteUrl(String(answer.values.url || answer.context?.url || ''));
   if (!site) {
     // Une adresse illisible : la question revient, rien n'est lancé ni facturé.
-    return startRedesign(ctx, { original: typeof answer.context?.original === 'string' ? answer.context.original : undefined });
+    return startRedesign(ctx, { original: typeof answer.context?.original === 'string' ? answer.context.original : undefined, consented: answer.context?.consented === true });
   }
   const target = redesignTarget(ctx.projectData, answer.context?.workspace);
+  const consented = answer.consent === true || answer.context?.consented === true;
   // Sans projet à compléter ni accord, aucun projet ne peut naître : la question revient (l'atelier l'exige déjà).
-  if (!target && answer.consent !== true) {
+  if (!target && !consented) {
     return startRedesign(ctx, { url: site.url, original: typeof answer.context?.original === 'string' ? answer.context.original : undefined });
   }
   const focus: RedesignFocus = answer.values.focus === 'design' || answer.values.focus === 'copy' ? answer.values.focus : 'all';
@@ -181,6 +183,6 @@ export function runRedesign(ctx: CommandContext, answer: ChoicesAnswer): Respond
     userId: ctx.userId,
     scaffoldMounted: false,
     credentials: ctx.credentials,
-    redesign: { url: site.url, choice: answer.values.path === 'identity' ? 'identity' : 'direct', focus, consent: answer.consent === true, creativity: ctx.creativity },
+    redesign: { url: site.url, choice: answer.values.path === 'identity' ? 'identity' : 'direct', focus, consent: consented, creativity: ctx.creativity },
   });
 }

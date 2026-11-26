@@ -11,7 +11,7 @@ export type TourPlacement = 'top' | 'bottom' | 'left' | 'right' | 'auto';
 export interface TourStep {
   /**
    * Sélecteur CSS de l'élément à mettre en lumière.
-   * Absent — ou introuvable — l'étape s'affiche centrée à l'écran.
+   * Absent — ou introuvable — la bulle se pose dans un coin de l'écran.
    */
   target?: string;
   title: string;
@@ -29,8 +29,8 @@ export interface TourStep {
    */
   illustration?: string;
   /**
-   * Étape de célébration : la bulle s'orne d'une petite pluie de confettis.
-   * Réservée à la dernière étape.
+   * Conservé pour compatibilité : n'a plus d'effet. Le guide est discret,
+   * sans confettis.
    */
   celebrate?: boolean;
   /**

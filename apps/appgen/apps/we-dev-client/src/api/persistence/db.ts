@@ -311,14 +311,18 @@ export async function getProjectChatSession(
 
 export async function saveProjectChatSession(
   projectId: string,
-  session: ProjectChatSession
+  session: ProjectChatSession,
+  options: { keepalive?: boolean } = {}
 ): Promise<void> {
   try {
+    const body = JSON.stringify(session);
     const response = await fetch(`${API_BASE_URL}/projects/${projectId}/chat-session${productQuery()}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
-      body: JSON.stringify(session),
+      body,
+      // Une requête « keepalive » survit à l'actualisation, mais le navigateur la refuse au-delà de 64 Ko.
+      keepalive: !!options.keepalive && body.length < 60_000,
     });
 
     if (!response.ok) {

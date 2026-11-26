@@ -247,6 +247,8 @@ export interface ForgeOverrides {
   directionId?: string;
   /** Police d'affichage d'un appariement du catalogue. */
   fontPairingDisplay?: string;
+  /** Le registre imposé : un site vitrine est toujours « marketing », quelle que soit la config du projet. */
+  register?: Register;
 }
 
 export function forgeDesignSystem(
@@ -257,7 +259,7 @@ export function forgeDesignSystem(
   const seed = hashSeed(seedSource);
   const random = createRandom(seed);
 
-  const register = resolveRegister(projectData);
+  const register = overrides?.register ?? resolveRegister(projectData);
   const brandColors = projectData?.analysisResultModel?.branding?.colors?.colors;
 
   // A project that already has brand guidelines has already made these choices.

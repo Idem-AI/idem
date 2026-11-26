@@ -3,6 +3,7 @@ import { HeaderActions } from './HeaderActions';
 import { ModeToggle } from './ModeToggle';
 import { CreditsBadge } from './CreditsBadge';
 import { Brand } from '@/components/Brand';
+import { useTranslation } from 'react-i18next';
 
 /**
  * En-tête du builder.
@@ -18,14 +19,16 @@ import { Brand } from '@/components/Brand';
  * des informations à garder sous les yeux.
  */
 function Header() {
+  const { t } = useTranslation();
   return (
     <header
       data-tour="appgen-header"
       className="h-14 shrink-0 flex items-center gap-3 px-3 border-b border-[var(--glass-border)] bg-surface-1"
     >
-      <div className="shrink-0 flex items-center">
+      {/* Retour à l'accueil d'iCode : la conversation et le code sont enregistrés en quittant la page. */}
+      <a href="/" aria-label={t('header.home')} title={t('header.home')} className="shrink-0 flex items-center rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2">
         <Brand size="sm" />
-      </div>
+      </a>
 
       <div className="w-px h-6 bg-[var(--glass-border)] shrink-0" aria-hidden />
 

@@ -52,7 +52,8 @@ import { SITE_ENGINE_ID, templateFiles } from './template.js';
 import { marker } from '../commands/choices.js';
 import { redesignArchitect, redesignDesign, redesignFacts, RedesignFocus } from './redesign/brief.js';
 import { prepareRedesign, RedesignContext } from './redesign/flow.js';
-import { fetchBrandMark, fetchSiteContent, withBrandMark } from './redesign/idemClient.js';
+import { createPromptProject, ensureProjectIdentity, fetchBrandMark, fetchSiteContent, withBrandMark } from './redesign/idemClient.js';
+import { draftSiteProject } from '../commands/buildKind.js';
 import { MANIFEST_PATH, PlanTracker, readSavedDesign, remaining, SavedDesign, SitePlan } from './plan.js';
 import { DESIGN_SYSTEM_PATHS } from './template.js';
 import type { DesignOutcome } from './designConfig.js';
@@ -105,6 +106,11 @@ export interface SiteBuildInput {
    * n'est ni refait ni refacturé ; sans manifeste enregistré, la génération repart de la demande du plan.
    */
   resume?: { plan: SitePlan; files: Record<string, string> };
+  /**
+   * Un site demandé sans projet, l'accord aux politiques donné (`commands/workflows/newSite.ts`) : la demande devient
+   * un projet IDEM avec sa palette, sa typographie et sa direction artistique, AVANT que le site ne se conçoive.
+   */
+  newProject?: boolean;
 }
 
 /** Le design system tel que la génération interrompue l'avait posé, relu dans ses fichiers. */
@@ -282,6 +288,36 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
         // pendant qu'il s'écrit (annoncé à la fin seulement, une actualisation en cours de route perdait tout).
         if (redesign.created && projectData.id) stream.text(marker('project', { id: projectData.id, name: projectData.name }));
       }
+      // Un site sans projet : le projet IDEM naît de la demande, avec son identité, puis le site se conçoit avec elle
+      // comme pour un projet créé dans IDEM. L'API injoignable : le site se fait quand même, sur un projet tiré de la
+      // demande (jamais enregistré), plutôt que rien.
+      let bornHere = false;
+      if (input.newProject && !projectData?.id && !redesign) {
+        const asked = input.language !== 'en';
+        stream.text(
+          asked
+            ? 'Je crée votre projet IDEM et son identité visuelle (couleurs, polices, direction artistique), puis je conçois votre site avec.\n\n'
+            : 'Creating your IDEM project and its visual identity (colours, fonts, art direction), then designing your site with it.\n\n'
+        );
+        stream.text('<boltArtifact id="idem-site" title="Site">\n');
+        bornHere = true;
+        stream.note(asked ? 'Je crée votre projet IDEM' : 'Creating your IDEM project');
+        try {
+          const created = await createPromptProject(request, asked ? 'fr' : 'en', input.credentials ?? {}, abort.signal);
+          projectData = created;
+          if (created.id) stream.text(marker('project', { id: created.id, name: created.name }));
+          stream.note(asked ? 'Je choisis vos couleurs, vos polices et votre direction artistique' : 'Choosing your colours, fonts and art direction');
+          try {
+            projectData = (await ensureProjectIdentity(created.id!, input.credentials ?? {}, abort.signal)) ?? created;
+          } catch (error) {
+            ChatLogger.warn('SITE_ENGINE', 'Identité du nouveau projet indisponible', { message: (error as Error).message });
+          }
+        } catch (error) {
+          ChatLogger.warn('SITE_ENGINE', 'Projet IDEM non créé : site sur la demande seule', { message: (error as Error).message });
+          projectData = (await draftSiteProject({ text: request, userId, language: asked ? 'fr' : 'en' })) ?? ({ name: asked ? 'Mon site' : 'My site', description: request.slice(0, 190) } as ProjectModel);
+        }
+        if (abort.signal.aborted) return;
+      }
       // Reprise : le manifeste et le design system sont relus dans le projet ; une refonte retrouve le relevé de
       // l'ancien site dans IDEM (rien n'est relu sur le site lui-même, rien n'est refacturé).
       const saved = input.resume ? readSavedDesign(input.resume.files) : null;
@@ -342,7 +378,7 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
             : `Resuming the ${facts.name} generation where it stopped: ${left} of ${resuming.plan.steps.length} step${resuming.plan.steps.length > 1 ? 's' : ''} left, everything else is kept as is.\n\n`
         );
         stream.text(`<boltArtifact id="idem-site-resume-${Date.now().toString(36)}" title="${facts.name.replace(/["<>]/g, '')}">\n`);
-      } else if (!redesign) {
+      } else if (!redesign && !bornHere) {
         stream.text(
           fr
             ? `Je conçois le site de ${facts.name} : son architecture et son identité visuelle, puis chaque section.\n\n`
@@ -379,7 +415,7 @@ export function createSiteEngineStream(input: SiteBuildInput): ResilientStream {
       if (!redesign && projectData?.id && !headerBrandMarkOf(projectData)?.publicSrc) {
         projectData = withBrandMark(projectData, await fetchBrandMark(projectData.id, input.credentials ?? {}, { signal: abort.signal, timeoutMs: 4000 }));
       }
-      const scaffoldMounted = input.scaffoldMounted && !redesign;
+      const scaffoldMounted = input.scaffoldMounted && !redesign && !bornHere;
       if (resuming) {
         // Les fichiers du site déjà écrits servent au montage de contrôle des composants qui restent.
         for (const [path, content] of Object.entries(resuming.files)) if (/^src\/(site|design-system|i18n)\//.test(path)) siteFiles[path] = content;

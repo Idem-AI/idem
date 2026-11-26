@@ -272,7 +272,10 @@ export function describeStyle(p: Personality): string {
   return `${p.id} : bouton ${p.button.shape}/${p.button.hover}, carte ${p.card.shape}/${p.card.hover}${p.card.accent !== 'none' ? `/trait ${p.card.accent}` : ''}, bordure ${p.borders.width} ${p.borders.tone} ${p.borders.style}, titres ${p.heading.weight}, champ ${p.input}`;
 }
 
-export function seedConfig(projectData: ProjectModel | undefined, system: DesignSystem = forgeDesignSystem(projectData)): Json {
+/** Le moteur ne construit que des sites vitrines : directions artistiques du registre « marketing ». */
+const forgeSite = (projectData?: ProjectModel) => forgeDesignSystem(projectData, { register: 'marketing' });
+
+export function seedConfig(projectData: ProjectModel | undefined, system: DesignSystem = forgeSite(projectData)): Json {
   const branding = (projectData?.analysisResultModel?.branding ?? {}) as Json;
   const fonts = readFonts(branding);
   const { direction, colors } = system;
@@ -502,7 +505,7 @@ export async function configureDesignSystem(options: {
   redesign?: string;
 }): Promise<DesignOutcome> {
   const { projectData, facts, request, caller, redesign } = options;
-  const system = forgeDesignSystem(projectData);
+  const system = forgeSite(projectData);
   const seed = seedConfig(projectData, system);
   const locks = charterLocks(projectData, seed, !!redesign);
   const { parseColor } = compiler;

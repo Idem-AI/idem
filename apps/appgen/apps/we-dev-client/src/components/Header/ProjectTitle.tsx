@@ -6,7 +6,7 @@ import ChatHistoryPanel from '@/components/ChatHistory/ChatHistoryPanel';
 import { ProjectLogo } from '@/components/ProjectLogo';
 import useChatHistoryStore from '@/stores/chatHistoryStore';
 import { useTranslation } from 'react-i18next';
-import { Globe, Monitor, Smartphone } from 'lucide-react';
+import { ChevronDown, Globe, Monitor, Smartphone } from 'lucide-react';
 import { currentBuildKind } from '@/utils/product';
 
 /** Le type de ce qui se construit, avec son icône : dit en haut de l'atelier. */
@@ -33,10 +33,18 @@ export function ProjectTitle() {
     : null;
   const KindIcon = kind ? KIND_ICON[kind] : null;
 
-  // Project mode: show project info
+  // Project mode: show project info — un clic ouvre l'historique (autres projets, brouillons).
   if (projectId) {
     return (
-      <div className="flex items-center gap-2.5 px-1 py-1">
+      <div className="relative flex items-center">
+      <button
+        type="button"
+        onClick={() => setHistoryOpen((v) => !v)}
+        aria-expanded={historyOpen}
+        aria-haspopup="dialog"
+        title={t('history.button')}
+        className="flex items-center gap-2.5 px-1 py-1 rounded-lg text-left transition-smooth hover:bg-[var(--glass-bg-light)]"
+      >
         <ProjectLogo
           logo={projectData?.analysisResultModel?.branding?.logo}
           name={projectData?.name}
@@ -57,6 +65,9 @@ export function ProjectTitle() {
             </div>
           )}
         </div>
+        <ChevronDown size={14} aria-hidden className="text-text-tertiary" />
+      </button>
+      <ChatHistoryPanel open={historyOpen} onClose={() => setHistoryOpen(false)} currentProjectId={projectId} />
       </div>
     );
   }
@@ -65,8 +76,11 @@ export function ProjectTitle() {
   return (
     <div className="relative flex items-center px-2 py-1">
       <button
+        type="button"
         onClick={() => setHistoryOpen((v) => !v)}
-        className="flex items-center gap-2 rounded-lg px-3 py-1.5 hover:bg-surface-2/10 transition-colors group"
+        aria-expanded={historyOpen}
+        aria-haspopup="dialog"
+        className="flex items-center gap-2 rounded-lg px-3 py-1.5 transition-smooth hover:bg-[var(--glass-bg-light)] group"
       >
         <svg
           className="w-4 h-4 text-text-tertiary group-hover:text-text-primary transition-colors"
@@ -83,22 +97,11 @@ export function ProjectTitle() {
         </svg>
         <div className="text-left">
           <div className="text-sm font-medium text-text-secondary truncate max-w-[160px]">
-            {activeSession?.title || 'Nouvelle conversation'}
+            {activeSession?.title || t('history.untitled')}
           </div>
-          <div className="text-xs text-text-tertiary">
-            {sessions.length > 0
-              ? `${sessions.length} chat${sessions.length > 1 ? 's' : ''}`
-              : 'Historique vide'}
-          </div>
+          <div className="text-xs text-text-tertiary">{t('history.button')}</div>
         </div>
-        <svg
-          className="w-3 h-3 text-gray-400"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
+        <ChevronDown size={14} aria-hidden className="text-text-tertiary" />
       </button>
 
       <ChatHistoryPanel open={historyOpen} onClose={() => setHistoryOpen(false)} />

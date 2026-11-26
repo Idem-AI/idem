@@ -46,24 +46,17 @@ const SCREENS: readonly Screen[] = ['home', 'studio', 'videos', 'plans', 'librar
 /**
  * Module Communication — la coquille.
  *
- * Quatre écrans nommés par ce qu'on y fait, chacun sous-titré d'une ligne qui
- * dit à quoi il sert :
+ * Cinq onglets, un mot chacun : Accueil · Calendrier · Vidéos · Visuels · WhatsApp.
  *
- *   ACCUEIL          où j'en suis, et quoi faire ensuite (le parcours guidé)
- *   CRÉER UN VISUEL  trois questions, le visuel sort à la charte
- *   VIDÉOS           vidéos de promotion en motion design, à la charte
- *   MON CALENDRIER   ce qu'il y a à publier, et quel jour — avec des dates réelles
- *   MES VISUELS      tout ce qui a été produit, atteignable quoi qu'il arrive
- *   + MA FAÇON DE COMMUNIQUER, en panneau : définie une fois, relue rarement
+ * L'ACCUEIL dit tout ce qu'il y a à comprendre, et rien de plus :
+ *   - un champ pour une demande ponctuelle (« un visuel pour la bonne année ») ;
+ *   - le parcours complet : stratégie → calendrier éditorial → visuels et
+ *     vidéos, générés depuis le calendrier.
+ * La demande tapée ouvre la conversation (`studio`), qui n'est pas un onglet :
+ * elle prolonge l'accueil, dont l'onglet reste allumé.
  *
- * L'ACCUEIL est l'écran par défaut. On arrivait auparavant directement dans le
- * fil de l'atelier : face à une zone de saisie, quelqu'un qui ne vient pas de la
- * tech tape au hasard, et « Créer / Mon planning / Mes visuels » ne disait pas
- * dans quel ordre s'en servir. L'accueil répond d'abord à « qu'est-ce que je
- * fais maintenant ? », sans rien imposer : un visuel reste à un clic, sans
- * stratégie ni calendrier — l'ordre imposé par la V1 (55 crédits avant de voir
- * quoi que ce soit) était la première raison pour laquelle le module n'était
- * pas utilisé.
+ * La stratégie (« Ma façon de communiquer ») s'ouvre en panneau depuis
+ * l'étape 1 de l'accueil.
  *
  * Cette coquille détient le modèle et le distribue ; les écrans lui renvoient
  * leurs modifications. Un seul chargement, une seule source de vérité.
@@ -145,15 +138,25 @@ export class ShowCommunication implements OnInit {
     toChannels(this.model()?.context?.channels),
   );
 
-  /** Chaque onglet dit ce qu'il fait : un nom seul (« Créer ») ne suffisait pas. */
+  /** Les onglets, dans l'ordre du parcours. La conversation n'en est pas un. */
   protected readonly screens: { id: Screen; icon: string }[] = [
     { id: 'home', icon: 'pi pi-home' },
-    { id: 'studio', icon: 'pi pi-image' },
-    { id: 'videos', icon: 'pi pi-video' },
     { id: 'plans', icon: 'pi pi-calendar' },
+    { id: 'videos', icon: 'pi pi-video' },
     { id: 'library', icon: 'pi pi-images' },
     { id: 'whatsapp', icon: 'pi pi-whatsapp' },
   ];
+
+  /** L'onglet allumé : la conversation prolonge l'accueil. */
+  protected readonly activeTab = computed<Screen>(() =>
+    this.activeScreen() === 'studio' ? 'home' : this.activeScreen(),
+  );
+
+  /**
+   * Demande tapée sur l'accueil, remise à la conversation à son ouverture.
+   * En mémoire seulement : une actualisation ne la renvoie pas (ni ne la refacture).
+   */
+  protected readonly pendingPrompt = signal<string | null>(null);
 
   /** Demande transmise au calendrier quand on y arrive depuis l'accueil. */
   protected readonly planIntent = signal<PlanIntent | null>(null);
@@ -262,9 +265,9 @@ export class ShowCommunication implements OnInit {
         this.planIntent.set({ kind: 'create' });
         this.setScreen('plans');
         return;
-      case 'openPost':
-        this.planIntent.set({ kind: 'open', planId: action.planId, itemId: action.itemId });
-        this.setScreen('plans');
+      case 'prompt':
+        this.pendingPrompt.set(action.text);
+        this.setScreen('studio');
         return;
       default:
         this.setScreen(action.kind);

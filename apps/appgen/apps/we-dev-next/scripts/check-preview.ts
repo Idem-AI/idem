@@ -298,6 +298,43 @@ if (other) {
     check('un clic sélectionne un élément', picked);
   }
 
+  // Un clic sur un LIEN : l'atelier reçoit son adresse (pour la petite fenêtre « Modifier / Ouvrir le lien »), et la
+  // position suit quand la page défile (la fenêtre reste collée à l'élément).
+  await frame.evaluate(`scrollTo(0, 0)`);
+  await new Promise((d) => setTimeout(d, 300));
+  const linkBox = (await frame.evaluate(`(() => { const a = [...document.querySelectorAll('a[href]')].find((x) => { const r = x.getBoundingClientRect(); return (x.hasAttribute('data-idem-id') || x.querySelector('[data-idem-id]')) && r.top > 20 && r.bottom < innerHeight - 20 && r.width > 10; }); if (!a) return null; const r = a.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2, href: a.getAttribute('href') }; })()`)) as { x: number; y: number; href: string } | null;
+  if (linkBox) {
+    await page.evaluate(`window.messages = []`);
+    const frameBox = await (await page.$('#f')).boundingBox();
+    await page.mouse.click(frameBox.x + linkBox.x, frameBox.y + linkBox.y);
+    const linked = await waitFor(`window.messages.some((m) => m.type === 'SELECTED' && m.reason === 'click' && m.elements[0] && m.elements[0].linkHref === ${JSON.stringify(linkBox.href)})`);
+    check('clic sur un lien : son adresse est annoncée (fenêtre « Modifier / Ouvrir le lien »)', linked, linkBox.href);
+    check('… le lien n’est pas suivi en mode Sélection', ((await frame.evaluate(`location.pathname`)) as string) === pathBefore);
+    await frame.evaluate(`scrollBy(0, 120)`);
+    const moved = await waitFor(`window.messages.some((m) => m.type === 'SELECTION_RECTS' && m.rects.length === 1)`);
+    check('… sa position suit le défilement', moved);
+
+    // Une retouche depuis le panneau (« Plus petit ») recharge le module de la page : React remplace les éléments. La
+    // sélection doit rester sur le même élément (26/11 : le panneau se fermait à chaque clic).
+    const sel = (await page.evaluate(`[...window.messages].reverse().find((m) => m.type === 'SELECTED' && m.elements.length)?.elements[0]?.id`)) as string | undefined;
+    if (sel) {
+      const cut = sel.lastIndexOf('|');
+      const file = sel.slice(0, cut);
+      const start = Number(sel.slice(cut + 1));
+      const code = opened.session.files.get(file)!;
+      const nameEnd = start + 1 + (code.slice(start + 1).match(/^[\w.]+/)?.[0].length ?? 0);
+      await page.evaluate(`window.messages = []`);
+      opened.session.apply({ [file]: `${code.slice(0, nameEnd)} style={{ fontSize: '13px' }}${code.slice(nameEnd)}` });
+      await opened.session.build();
+      const kept = await waitFor(`window.messages.some((m) => m.type === 'SELECTED' && m.reason === 'refresh')`, 4000);
+      const last = (await page.evaluate(`[...window.messages].reverse().find((m) => m.type === 'SELECTED')`)) as { elements: Array<{ id: string; computed: { fontSize: string } }> } | undefined;
+      check('retouche depuis le panneau : la sélection reste (le panneau ne se ferme pas)', kept && !!last && last.elements.length === 1, JSON.stringify(last?.elements.map((e) => e.id)));
+      check('… et montre la nouvelle valeur', kept && last?.elements[0]?.computed.fontSize === '13px', last?.elements[0]?.computed.fontSize);
+      opened.session.apply({ [file]: code });
+      await opened.session.build();
+    }
+  } else console.log('  (aucun lien visible dans le premier écran : cas du lien non vérifié)');
+
   // Changer de page EN mode Sélection (menu des pages de l'atelier) : la page change, l'agent reste.
   if (other) {
     await page.evaluate(`window.messages = []`);

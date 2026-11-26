@@ -53,6 +53,8 @@ function App() {
     const urlParams = new URLSearchParams(window.location.search);
     const projectId = urlParams.get('projectId');
     const fromParam = urlParams.get('from');
+    // Une conversation sans projet, ouverte avant l'actualisation (voir le chat).
+    const chatParam = urlParams.get('chat');
     // Lue et retirée de l'adresse : elle part au chat dès qu'il est prêt, une seule fois.
     const promptParam = consumePromptParam();
     if (promptParam) setStartPrompt(promptParam);
@@ -84,6 +86,7 @@ function App() {
 
     if (
       projectId ||
+      chatParam ||
       promptParam ||
       fromParam === 'dashboard' ||
       fromParam === 'appgen' ||
@@ -105,6 +108,10 @@ function App() {
   const handleLandingStart = (prompt?: string) => {
     updateDraftMetadata({});
     setStartPrompt(prompt);
+    // L'atelier dans l'adresse dès maintenant : une actualisation y reste (le chat y ajoute sa conversation).
+    const url = new URL(window.location.href);
+    url.searchParams.set('from', 'appgen');
+    window.history.pushState(window.history.state, '', url.toString());
     setView('chat');
   };
 

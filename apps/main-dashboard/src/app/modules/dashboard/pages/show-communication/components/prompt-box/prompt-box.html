@@ -1,0 +1,80 @@
+<form class="pb" (ngSubmit)="submit()">
+  <div class="pb-box glass-card">
+    <label class="sr-only" [attr.for]="id + '-text'">
+      {{ 'dashboard.showCommunication.prompt.label' | translate }}
+    </label>
+    <textarea
+      [id]="id + '-text'"
+      class="pb-input"
+      [rows]="rows()"
+      [attr.placeholder]="placeholder() | translate"
+      [ngModel]="text()"
+      (ngModelChange)="text.set($event)"
+      name="promptText"
+      (keydown.enter)="onEnter($event)"
+    ></textarea>
+    <button type="submit" class="inner-button pb-send" [disabled]="!canSend()">
+      @if (busy()) {
+        <idem-loader size="xs" />
+      } @else {
+        <i class="pi pi-arrow-up" aria-hidden="true"></i>
+      }
+      <span class="pb-send-label">{{ 'dashboard.showCommunication.prompt.send' | translate }}</span>
+    </button>
+  </div>
+
+  <div class="pb-foot">
+    <button
+      type="button"
+      class="pb-toggle"
+      [attr.aria-expanded]="advancedOpen()"
+      [attr.aria-controls]="id + '-advanced'"
+      (click)="toggleAdvanced()"
+    >
+      <i
+        class="pi"
+        [class.pi-chevron-down]="!advancedOpen()"
+        [class.pi-chevron-up]="advancedOpen()"
+        aria-hidden="true"
+      ></i>
+      {{ 'dashboard.showCommunication.prompt.advanced' | translate }}
+      @if (!advancedOpen() && summary()) {
+        <span class="pb-summary">· {{ summary() }}</span>
+      }
+    </button>
+    <p class="pb-price">{{ 'dashboard.showCommunication.prompt.price' | translate }}</p>
+  </div>
+
+  @if (advancedOpen()) {
+    <div [id]="id + '-advanced'" class="pb-advanced">
+      <fieldset class="pb-fieldset">
+        <legend class="pb-legend">{{ 'dashboard.showCommunication.prompt.format' | translate }}</legend>
+        <div class="pb-options">
+          @for (option of formats; track option) {
+            <label class="pb-option" [class.pb-option-on]="format() === option">
+              <input
+                type="radio"
+                class="sr-only"
+                [name]="id + '-format'"
+                [value]="option"
+                [checked]="format() === option"
+                (change)="format.set(option)"
+              />
+              {{ 'dashboard.showCommunication.prompt.formats.' + option | translate }}
+            </label>
+          }
+        </div>
+      </fieldset>
+
+      <label class="pb-check">
+        <input
+          type="checkbox"
+          [ngModel]="variants()"
+          (ngModelChange)="variants.set($event)"
+          name="promptVariants"
+        />
+        {{ 'dashboard.showCommunication.prompt.variants' | translate }}
+      </label>
+    </div>
+  }
+</form>

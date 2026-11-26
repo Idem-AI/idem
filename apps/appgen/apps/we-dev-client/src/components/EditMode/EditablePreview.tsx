@@ -22,7 +22,6 @@ import {
   Type,
   Image as ImageIcon,
   Link as LinkIcon,
-  Trash2,
   RefreshCw,
   Upload,
   Sparkles,
@@ -37,7 +36,6 @@ import {
   Smartphone,
   Plus,
   ExternalLink,
-  MessageSquarePlus,
   Play,
 } from 'lucide-react';
 import {
@@ -53,6 +51,8 @@ import {
   type PointedHit,
 } from './idemProtocol';
 import { EditToolbar } from './EditToolbar';
+import { LinkPopover } from './LinkPopover';
+import { SimpleInspector } from './SimpleInspector';
 import Button from '@/components/ui/Button';
 import { IdemLoader } from '@idem/shared-loader/react';
 import { EmptyPreviewIllustration } from '@/components/ui/Illustrations';
@@ -97,6 +97,8 @@ export interface SelectionContext {
   }>;
   /** Présent quand la demande vient du mode dessin plutôt que d'une sélection. */
   annotation?: Annotation;
+  /** La demande écrite dans le panneau de l'élément : envoyée tout de suite, limitée à cet élément. */
+  instruction?: string;
   /**
    * Ce que les tracés désignent, résolu dans l'aperçu : chaque élément, et la partie du code qui le porte (la section
    * ou l'en-tête d'un site, le composant d'une application). Vide si l'aperçu n'a pas pu répondre.
@@ -161,9 +163,16 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
   /** L'adresse du serveur de la WebContainer (aperçu classique, mode Édition, applications). */
   const [containerUrl, setUrl] = useState('');
   const [selected, setSelected] = useState<SelectedElementInfo[]>([]);
+  /**
+   * Le panneau de l'élément s'ouvre au clic sur un élément ; sur un LIEN, une petite fenêtre propose d'abord
+   * « Modifier » ou « Ouvrir le lien » (`linkFor`), posée sur l'élément (`anchor`, repère de l'iframe).
+   */
+  const [panelOpen, setPanelOpen] = useState(false);
+  const [linkFor, setLinkFor] = useState<string | null>(null);
+  const [anchor, setAnchor] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
   const [tree, setTree] = useState<TreeNode[]>([]);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
-  const [layersOpen, setLayersOpen] = useState(true);
+  const [layersOpen, setLayersOpen] = useState(false);
   const [agentReady, setAgentReady] = useState(false);
   const [size, setSize] = useState<WindowSize>(WINDOW_SIZES[0]);
 
@@ -300,6 +309,8 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
     (href: string) => {
       if (!href.startsWith('/') || href.startsWith('//')) return;
       setSelected([]);
+      setLinkFor(null);
+      setPanelOpen(false);
       if (fastActiveRef.current) {
         sendToPreview({ type: 'NAVIGATE', href });
         return;
@@ -614,6 +625,10 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
       mode: toolMode,
     });
     if (toolMode === 'off') setSelected([]);
+    if (toolMode !== 'select') {
+      setLinkFor(null);
+      setPanelOpen(false);
+    }
   }, [toolMode, agentReady, sendToAgent]);
 
   /* -------- Messages de l'agent -------- */
@@ -644,8 +659,30 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
           if (selectedIdsRef.current.length)
             sendToAgent({ source: IDEM_SOURCE, type: 'SET_SELECTION', ids: selectedIdsRef.current });
           break;
-        case 'SELECTED':
+        case 'SELECTED': {
           setSelected(msg.elements);
+          const only = msg.elements.length === 1 ? msg.elements[0] : null;
+          if (only) setAnchor(only.rect);
+          // La page a changé sous la sélection (texte retouché, nouvelle version) : rien ne s'ouvre ni ne se ferme.
+          if (msg.reason === 'refresh') {
+            if (!msg.elements.length) {
+              setLinkFor(null);
+              setPanelOpen(false);
+            }
+            break;
+          }
+          const href = only ? only.linkHref ?? only.attrs.href : undefined;
+          if (only && href && msg.reason !== 'program' && toolModeRef.current === 'select') {
+            setLinkFor(only.id);
+            setPanelOpen(false);
+          } else {
+            setLinkFor(null);
+            setPanelOpen(msg.elements.length > 0);
+          }
+          break;
+        }
+        case 'SELECTION_RECTS':
+          if (msg.rects[0]) setAnchor(msg.rects[0].rect);
           break;
         case 'TREE':
           setTree(msg.nodes);
@@ -832,6 +869,8 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
 
   const deselect = useCallback(() => {
     setSelected([]);
+    setLinkFor(null);
+    setPanelOpen(false);
     sendToAgent({ source: IDEM_SOURCE, type: 'SET_SELECTION', ids: [] });
   }, [sendToAgent]);
 
@@ -944,7 +983,7 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
   );
 
   /* -------- Remontée de la sélection vers la conversation (P1.4) -------- */
-  const askAboutSelection = useCallback(() => {
+  const askAboutSelection = useCallback((instruction?: string) => {
     if (!selected.length) return;
     // La désignation exacte, comme celle de l'outil Dessin : le serveur limite la retouche à ces éléments et à la
     // partie qui les porte (avant, seul un texte « fichier@position » partait dans le chat, sans valeur pour lui).
@@ -957,6 +996,7 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
     });
     onAskAboutSelection?.({
       pointed,
+      instruction,
       count: selected.length,
       elements: selected.flatMap((element) => {
         const ref = decodeIdemId(element.id);
@@ -976,7 +1016,73 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
   }, [selected, onAskAboutSelection]);
 
   const displayUrl = url || t('preview.noserver');
-  const showInspector = toolMode === 'select' && selected.length > 0;
+  const showInspector = toolMode === 'select' && selected.length > 0 && panelOpen;
+
+  /** Les couleurs du site (design system), proposées en pastilles dans le panneau. */
+  const designSource = useFileStore((state) => state.files['src/design-system/design-system.json']);
+  const siteColors = (() => {
+    const out: Array<{ value: string; label: string }> = [];
+    let tokens: Record<string, string> = {};
+    try {
+      tokens = (JSON.parse(String(designSource ?? '{}'))?.tokens?.colors ?? {}) as Record<string, string>;
+    } catch {
+      tokens = {};
+    }
+    const add = (value: string | undefined, key: string) => {
+      if (typeof value === 'string' && /^#[0-9a-f]{3,8}$/i.test(value) && !out.some((c) => c.value.toLowerCase() === value.toLowerCase())) out.push({ value, label: t(`editMode.simple.colors.${key}`) });
+    };
+    add(tokens.primary, 'primary');
+    add(tokens.secondary, 'secondary');
+    add(tokens.accent, 'accent');
+    add(tokens.foreground, 'text');
+    add(tokens.mutedForeground, 'muted');
+    add(tokens.background, 'background');
+    add('#ffffff', 'white');
+    add('#000000', 'black');
+    return out;
+  })();
+
+  /** Le lien de la petite fenêtre : où il mène, en mots, et comment l'ouvrir. */
+  const linkElement = linkFor ? selected.find((element) => element.id === linkFor) : undefined;
+  const linkHref = linkElement ? linkElement.linkHref ?? linkElement.attrs.href ?? '' : '';
+  const linkExternal = !!linkHref && !linkHref.startsWith('/') && !linkHref.startsWith('#');
+  const linkDestination = (() => {
+    if (!linkHref) return '';
+    if (linkHref.startsWith('#')) return t('editMode.linkPopover.samePage');
+    if (linkHref.startsWith('mailto:')) return t('editMode.linkPopover.email', { to: linkHref.slice(7).split('?')[0] });
+    if (linkHref.startsWith('tel:')) return t('editMode.linkPopover.phone', { to: linkHref.slice(4) });
+    if (!linkExternal) {
+      const page = sitePages.find((p) => samePath(p.path, linkHref.split('#')[0]));
+      return page?.title ? t('editMode.linkPopover.page', { title: page.title }) : linkHref;
+    }
+    try {
+      return new URL(linkHref).hostname.replace(/^www\./, '');
+    } catch {
+      return linkHref;
+    }
+  })();
+  const openLink = useCallback(
+    (href: string) => {
+      setLinkFor(null);
+      if (href.startsWith('#')) return navigateTo(`${currentPath}${href}`);
+      if (href.startsWith('/') && !href.startsWith('//')) return navigateTo(href);
+      if (/^(https?:|mailto:|tel:)/i.test(href)) window.open(href, '_blank', 'noopener,noreferrer');
+    },
+    [navigateTo, currentPath]
+  );
+  /** La position de l'élément dans la surface d'aperçu (zoom et défilement compris), pour y poser la petite fenêtre. */
+  const popoverPlace = (() => {
+    const frame = iframeRef.current;
+    const surface = surfaceRef.current;
+    if (!linkElement || !anchor || !frame || !surface) return null;
+    const f = frame.getBoundingClientRect();
+    const s = surface.getBoundingClientRect();
+    const scale = frame.clientWidth ? f.width / frame.clientWidth : 1;
+    return {
+      anchor: { top: f.top - s.top + surface.scrollTop + anchor.top * scale, left: f.left - s.left + surface.scrollLeft + anchor.left * scale, width: anchor.width * scale, height: anchor.height * scale },
+      bounds: { width: surface.scrollWidth, height: surface.scrollHeight },
+    };
+  })();
 
   return (
     <div className="w-full h-full flex overflow-hidden motif-pass-through">
@@ -1254,9 +1360,24 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
               {t('editMode.loadingAgent')}
             </div>
           )}
+          {toolMode === 'select' && url && agentReady && popoverPlace && linkElement && (
+            <LinkPopover
+              anchor={popoverPlace.anchor}
+              bounds={popoverPlace.bounds}
+              destination={linkDestination}
+              external={linkExternal}
+              onEdit={() => {
+                setLinkFor(null);
+                setPanelOpen(true);
+              }}
+              onOpen={() => openLink(linkHref)}
+              onClose={deselect}
+            />
+          )}
+
           {toolMode === 'select' && url && agentReady && !selected.length && (
             <div className="absolute top-3 left-1/2 -translate-x-1/2 text-[11px] px-2.5 py-1 rounded-full glass text-text-secondary pointer-events-none">
-              {t('editMode.altClickHint')}
+              {t('editMode.simple.selectHint')}
             </div>
           )}
 
@@ -1282,96 +1403,47 @@ const EditablePreview: React.FC<EditablePreviewProps> = ({ onAskAboutSelection }
           sélectionné. Un panneau vide en permanence prenait 288 px pour ne
           rien dire. */}
       {showInspector && (
-        <aside className="w-72 shrink-0 border-l border-[var(--glass-border)] bg-surface-2 flex flex-col overflow-hidden">
-          <div className="shrink-0 flex items-center justify-between gap-2 px-3 h-10 border-b border-[var(--glass-border)]">
-            <span className="text-xs font-medium px-2 py-0.5 rounded bg-primary text-white uppercase truncate">
-              {multi ? t('editMode.multiSelected', { count: selected.length }) : primary?.kind}
-            </span>
-            <button
-              type="button"
-              className="text-xs text-text-tertiary hover:text-text-primary shrink-0"
-              onClick={deselect}
-            >
-              {t('editMode.deselect')}
-            </button>
-          </div>
-
-          {/* Passer la main au modèle : les réglages du panneau couvrent les
-              propriétés connues, le prompt couvre tout le reste. */}
-          {onAskAboutSelection && (
-            <div className="shrink-0 p-3 border-b border-[var(--glass-border)]">
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={askAboutSelection}
-                className="w-full"
-                icon={<MessageSquarePlus size={15} />}
-              >
-                {t('editMode.askAI')}
-              </Button>
-            </div>
-          )}
-
-          <div className="flex-1 overflow-y-auto">
-            <div className="p-3 space-y-4">
-              {multi ? (
-                <MultiControls onStyle={applyStyle} />
-              ) : (
-                primary && <SingleControls info={primary} handlers={handlers} />
-              )}
-
-              <button
-                type="button"
-                className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-danger/40 text-danger hover:bg-danger/10 text-sm font-medium transition-colors"
-                onClick={() => deleteIds(selected.map((e) => e.id))}
-              >
-                <Trash2 size={14} />
-                {multi
-                  ? t('editMode.deleteSelection', { count: selected.length })
-                  : t('editMode.delete')}
-              </button>
-              <p className="text-[11px] text-text-disabled -mt-2">{t('editMode.deleteHint')}</p>
-            </div>
-          </div>
-
-          {/* Navigateur de calques, replié par défaut : utile pour atteindre un
-              conteneur parent difficile à cliquer, inutile le reste du temps. */}
-          <div className="shrink-0 border-t border-[var(--glass-border)]">
-            <button
-              type="button"
-              className="w-full flex items-center gap-1.5 px-3 py-2 text-xs font-semibold uppercase text-text-secondary hover:bg-surface-3"
-              onClick={() => setLayersOpen((o) => !o)}
-              aria-expanded={layersOpen}
-            >
-              {layersOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-              <Layers size={14} />
-              {t('editMode.layers')}
-              {tree.length > 0 && (
-                <span className="ml-auto text-[10px] font-normal text-text-disabled normal-case">
-                  {tree.length}
-                </span>
-              )}
-            </button>
-            {layersOpen && (
-              <div className="max-h-[32vh] overflow-auto px-1 pb-2">
-                {tree.length > 0 ? (
-                  <LayersTree
-                    nodes={tree}
-                    depth={0}
-                    selectedId={multi ? null : primary?.id ?? null}
-                    expanded={expanded}
-                    onToggle={toggleExpand}
-                    onSelect={selectLayer}
-                  />
-                ) : (
-                  <p className="px-3 py-2 text-[11px] text-text-disabled">
-                    {t('editMode.layersLoading')}
-                  </p>
+        <SimpleInspector
+          selected={selected}
+          colors={siteColors}
+          pages={sitePages.map((page) => ({ path: page.path, title: page.title }))}
+          onClose={deselect}
+          onAsk={onAskAboutSelection ? (instruction) => askAboutSelection(instruction) : undefined}
+          onStyle={applyStyle}
+          onText={applyText}
+          onAttr={applyAttr}
+          onUpload={uploadImage}
+          onEnhance={enhanceImageQuality}
+          enhancing={!!enhancingId && enhancingId === primary?.id}
+          onDelete={() => deleteIds(selected.map((e) => e.id))}
+          advanced={
+            <>
+              {multi ? <MultiControls onStyle={applyStyle} /> : primary && <SingleControls info={primary} handlers={handlers} />}
+              {/* La structure de la page : pour atteindre un bloc difficile à cliquer. */}
+              <div className="border-t border-[var(--glass-border)] pt-3">
+                <button
+                  type="button"
+                  className="w-full flex items-center gap-1.5 text-xs font-medium text-text-secondary hover:text-text-primary"
+                  onClick={() => setLayersOpen((o) => !o)}
+                  aria-expanded={layersOpen}
+                >
+                  {layersOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                  <Layers size={14} />
+                  {t('editMode.layers')}
+                </button>
+                {layersOpen && (
+                  <div className="mt-2 max-h-[32vh] overflow-auto">
+                    {tree.length > 0 ? (
+                      <LayersTree nodes={tree} depth={0} selectedId={multi ? null : primary?.id ?? null} expanded={expanded} onToggle={toggleExpand} onSelect={selectLayer} />
+                    ) : (
+                      <p className="py-2 text-[11px] text-text-disabled">{t('editMode.layersLoading')}</p>
+                    )}
+                  </div>
                 )}
               </div>
-            )}
-          </div>
-        </aside>
+            </>
+          }
+        />
       )}
     </div>
   );
@@ -1984,9 +2056,10 @@ const SelectRow: React.FC<{
       >
         {options.map((o) => {
           const [value, label] = Array.isArray(o) ? o : [o, o];
+          // Des mots, jamais le nom CSS (« Remplir le cadre », pas « cover »).
           return (
             <option key={value} value={value}>
-              {label}
+              {t(`editMode.opt.${/^\d+$/.test(value) ? `w${value}` : value}`, { defaultValue: label })}
             </option>
           );
         })}
