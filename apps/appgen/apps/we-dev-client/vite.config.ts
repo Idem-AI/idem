@@ -89,7 +89,7 @@ export default defineConfig(async ({ mode, command }) => {
     preview: {
       host: '0.0.0.0', // permet l’accès depuis l’extérieur
       port: 4173, // port de preview
-      allowedHosts: ['appgen.idem.africa', 'appgen.idem-ai.com'], // domaine autorisé
+      allowedHosts: ['code.idem.africa', 'appgen.idem.africa', 'appgen.idem-ai.com'], // domaine autorisé
     },
 
     // La chaîne PostCSS est déclarée dans `postcss.config.mjs`. La redéclarer

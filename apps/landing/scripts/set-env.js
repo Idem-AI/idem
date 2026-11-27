@@ -54,10 +54,10 @@ export const environment = {
       llmModel: 'gpt-3.5-turbo',
     },
     webgen: {
-      url: '${isProduction ? 'https://appgen.idem.africa' : 'http://localhost:5173'}',
+      url: '${isProduction ? 'https://code.idem.africa' : 'http://localhost:5173'}',
     },
     idev: {
-      url: '${isProduction ? 'https://appgen.idem.africa' : 'http://localhost:5173'}',
+      url: '${isProduction ? 'https://code.idem.africa' : 'http://localhost:5173'}',
     },
     ideploy: {
       url: '${isProduction ? 'https://deploy.idem.africa' : 'http://localhost:8000'}',
@@ -69,7 +69,7 @@ export const environment = {
       url: '${isProduction ? 'https://ivision.idem.africa' : 'http://localhost:4204'}',
     },
     idomain: {
-      url: '${isProduction ? 'https://idomain.idem.africa' : 'http://localhost:4205'}',
+      url: '${isProduction ? 'https://domain.idem.africa' : 'http://localhost:4205'}',
     },
   },
 };

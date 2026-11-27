@@ -1,4 +1,4 @@
-# iDeploy — https://ideploy.idem.africa
+# iDeploy — https://deploy.idem.africa
 # Généré par packages/shared-seo (npm run seo:sync), ne pas éditer à la main.
 # Seule l’entrée publique est indexée : le reste est l’espace privé des utilisateurs.
 
@@ -11,4 +11,4 @@ Allow: /sitemap.xml$
 Allow: /favicon.ico$
 Disallow: /
 
-Sitemap: https://ideploy.idem.africa/sitemap.xml
+Sitemap: https://deploy.idem.africa/sitemap.xml

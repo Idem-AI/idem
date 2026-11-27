@@ -1,0 +1,30 @@
+name: Deploy iDomain web
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/idomain/web/**'
+      - 'packages/**'
+      - 'Dockerfile/prod/Dockerfile.idomain-web'
+      - '.github/workflows/deploy-idomain-web.yml'
+      - '.github/workflows/_service.yml'
+      - 'package.json'
+      - 'package-lock.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  service:
+    uses: ./.github/workflows/_service.yml
+    with:
+      image: idomain-web
+      dockerfile: Dockerfile/prod/Dockerfile.idomain-web
+      service: idomain-web
+      build-env: true
+      deploy: true
+      free-disk: false
+    secrets: inherit

@@ -5,7 +5,7 @@ name: Bake iCode deps
 # workshop in headless Chrome and uploads to appgen-server. Already-baked fingerprints are skipped.
 #
 # Secret: APPGEN_DEPS_BAKE_TOKEN (same value as appgen-server, Infisical project appgen).
-# Variable (optional): ICODE_URL, default https://appgen.idem.africa
+# Variable (optional): ICODE_URL, default https://code.idem.africa
 
 on:
   workflow_run:
@@ -36,7 +36,7 @@ jobs:
       - name: Bake
         working-directory: apps/appgen/apps/we-dev-next
         env:
-          ICODE_URL: ${{ vars.ICODE_URL || 'https://appgen.idem.africa' }}
+          ICODE_URL: ${{ vars.ICODE_URL || 'https://code.idem.africa' }}
           APPGEN_DEPS_BAKE_TOKEN: ${{ secrets.APPGEN_DEPS_BAKE_TOKEN }}
           DEPS_BAKE_TIMEOUT_MIN: 40
         run: npm run deps:bake

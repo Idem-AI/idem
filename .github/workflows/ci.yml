@@ -35,6 +35,7 @@ jobs:
       ideploy-api: ${{ steps.filter.outputs.ideploy-api }}
       ideploy-web: ${{ steps.filter.outputs.ideploy-web }}
       ivision: ${{ steps.filter.outputs.ivision }}
+      idomain: ${{ steps.filter.outputs.idomain }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -76,6 +77,9 @@ jobs:
               - 'apps/ivision/**'
               - 'packages/shared-video-editor/**'
               - 'packages/shared-models/**'
+            idomain:
+              - 'apps/idomain/**'
+              - 'packages/**'
 
   # ==========================
   # Quality checks
@@ -94,7 +98,8 @@ jobs:
       needs.detect-changes.outputs.packages == 'true' ||
       needs.detect-changes.outputs.ideploy-api == 'true' ||
       needs.detect-changes.outputs.ideploy-web == 'true' ||
-      needs.detect-changes.outputs.ivision == 'true'
+      needs.detect-changes.outputs.ivision == 'true' ||
+      needs.detect-changes.outputs.idomain == 'true'
     steps:
       - name: Checkout repository
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -138,6 +143,14 @@ jobs:
         if: needs.detect-changes.outputs.ivision == 'true'
         run: npm run typecheck:ivision
 
+      # Hors espaces de travail : l'API installe ses dépendances, comme dans son Dockerfile.
+      - name: Build iDomain (API, web)
+        if: needs.detect-changes.outputs.idomain == 'true'
+        run: |
+          npm install --prefix apps/idomain/api --legacy-peer-deps --no-package-lock
+          npm run build --prefix apps/idomain/api
+          npm run typecheck --prefix apps/idomain/web
+
   # ==========================
   # Summary
   # ==========================
@@ -161,6 +174,7 @@ jobs:
           echo "- **Packages**: ${{ needs.detect-changes.outputs.packages == 'true' && '✅ Changed' || '⏭️ No changes' }}" >> $GITHUB_STEP_SUMMARY
           echo "- **iDeploy API**: ${{ needs.detect-changes.outputs.ideploy-api == 'true' && '✅ Changed' || '⏭️ No changes' }}" >> $GITHUB_STEP_SUMMARY
           echo "- **iDeploy Web**: ${{ needs.detect-changes.outputs.ideploy-web == 'true' && '✅ Changed' || '⏭️ No changes' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **iDomain**: ${{ needs.detect-changes.outputs.idomain == 'true' && '✅ Changed' || '⏭️ No changes' }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Quality Checks Status:" >> $GITHUB_STEP_SUMMARY
           echo "- **Status**: ${{ needs.quality.result == 'success' && '✅ Passed' || (needs.quality.result == 'skipped' && '⏭️ Skipped' || '❌ Failed') }}" >> $GITHUB_STEP_SUMMARY

@@ -42,7 +42,7 @@ export const environment = {
       llmModel: '${process.env.API_LLM_MODEL || ''}',
     },
     ideploy: {
-      url: '${process.env.SERVICES_IDEPLOY_URL || (isProduction ? 'https://ideploy.idem.africa' : 'http://localhost:8000')}',
+      url: '${process.env.SERVICES_IDEPLOY_URL || (isProduction ? 'https://deploy.idem.africa' : 'http://localhost:8000')}',
     },
     simulation: {
       url: '${process.env.SERVICES_SIMULATION_URL || (isProduction ? 'https://simulator.idem.africa' : 'http://localhost:4203')}',
@@ -52,7 +52,7 @@ export const environment = {
       url: '${process.env.SERVICES_IVISION_URL || (isProduction ? 'https://ivision.idem.africa' : 'http://localhost:4204')}',
     },
     idomain: {
-      url: '${process.env.SERVICES_IDOMAIN_URL || (isProduction ? 'https://idomain.idem.africa' : 'http://localhost:4205')}',
+      url: '${process.env.SERVICES_IDOMAIN_URL || (isProduction ? 'https://domain.idem.africa' : 'http://localhost:4205')}',
     },
     webgen: {
       url: '${process.env.SERVICES_WEBGEN_URL || process.env.WEBGEN_URL || (isProduction ? 'https://webgen.idem.africa' : 'http://localhost:3003')}',

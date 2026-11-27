@@ -1,0 +1,30 @@
+name: Deploy iDomain API
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/idomain/api/**'
+      - 'packages/**'
+      - 'Dockerfile/prod/Dockerfile.idomain-api'
+      - '.github/workflows/deploy-idomain-api.yml'
+      - '.github/workflows/_service.yml'
+      - 'package.json'
+      - 'package-lock.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  service:
+    uses: ./.github/workflows/_service.yml
+    with:
+      image: idomain-api
+      dockerfile: Dockerfile/prod/Dockerfile.idomain-api
+      service: idomain-api
+      build-env: false
+      deploy: true
+      free-disk: false
+    secrets: inherit
