@@ -40,7 +40,32 @@ export const MIGRATION_REPORT_TO = 'beta@idem.africa';
 
 /** Several processes start together (API, workers): one of them runs the migration. */
 const RUN_LOCK_KEY = 'ideploy:domain-migration:run';
-const RUN_LOCK_TTL_MS = 10 * 60 * 1000;
+// Covers the migration and every retry of the emails below.
+const RUN_LOCK_TTL_MS = 30 * 60 * 1000;
+
+/**
+ * Waits between two tries of an email: 30 s, 1, 2, 4, 8 min (about 15 min in all).
+ *
+ * iDeploy and the IDEM API are deployed by the same push: iDeploy often starts
+ * while the API it sends its emails through is restarting. The first report
+ * (27/11/2026) was tried once, at that moment, and lost.
+ */
+const EMAIL_RETRY_DELAYS_MS = [30_000, 60_000, 120_000, 240_000, 480_000];
+
+/** Send, and try again while the IDEM API does not accept it. */
+export async function sendWithRetry(payload: EmailPayload, delays: number[] = EMAIL_RETRY_DELAYS_MS): Promise<boolean> {
+  for (let attempt = 0; ; attempt++) {
+    if (await sendEmail(payload)) return true;
+    if (attempt >= delays.length) return false;
+    logger.warn('Domain migration: email not accepted yet, trying again', {
+      event: 'domain_migration.email_retry',
+      to: payload.to,
+      attempt: attempt + 1,
+      inMs: delays[attempt],
+    });
+    await new Promise((resolve) => setTimeout(resolve, delays[attempt]));
+  }
+}
 
 export interface AppToMigrate {
   id: number;
@@ -354,7 +379,7 @@ export async function migrateAll(): Promise<MigrationReport> {
   }
   for (const group of byOwner.values()) {
     const moved = group.map((e) => ({ app: e.app, newHost: (e.outcome as { newHost: string }).newHost }));
-    const sent = await sendEmail(ownerEmail(group[0].app.ownerEmail as string, group[0].app.ownerName, moved));
+    const sent = await sendWithRetry(ownerEmail(group[0].app.ownerEmail as string, group[0].app.ownerName, moved));
     for (const e of group) e.ownerNotified = sent;
   }
 
@@ -390,6 +415,7 @@ export async function runDomainMigration(): Promise<void> {
   if (report.state === 'nothing_to_do') {
     logger.info('Domain migration: nothing to migrate — already done.', { event: 'domain_migration.nothing_to_do' });
   }
-  const sent = await sendEmail(reportEmail(report));
-  if (!sent) logger.warn('Domain migration: report not sent', { event: 'domain_migration.report_failed', to: MIGRATION_REPORT_TO });
+  const sent = await sendWithRetry(reportEmail(report));
+  if (sent) logger.info('Domain migration: report sent', { event: 'domain_migration.report_sent', to: MIGRATION_REPORT_TO, state: report.state });
+  else logger.error('Domain migration: report not sent', { event: 'domain_migration.report_failed', to: MIGRATION_REPORT_TO, state: report.state, alert: 'critical' });
 }

@@ -1,44 +1,57 @@
-import { DestroyRef, Injectable, inject, signal } from '@angular/core';
-import { NavigationError, Router } from '@angular/router';
+import { DestroyRef, Injectable, inject } from '@angular/core';
+import { NavigationError, NavigationStart, Router } from '@angular/router';
 
-import { applyIdemServiceWorkerUpdate, registerIdemServiceWorker } from '../index';
+import { registerIdemServiceWorker } from '../index';
 
 /** À quelle fréquence un onglet ouvert demande si une version a été déployée. */
 const CHECK_EVERY_MS = 5 * 60 * 1000;
 /** Une navigation vérifie aussi, au plus à cette cadence. */
 const NAVIGATION_CHECK_MS = 60 * 1000;
+/**
+ * Un onglet resté caché au moins aussi longtemps est, pour l'utilisateur, un
+ * site qu'il « rouvre » (les navigateurs mobiles reprennent l'onglet au lieu
+ * de recharger la page) : il doit retrouver la dernière version.
+ */
+const REOPEN_AFTER_HIDDEN_MS = 30 * 60 * 1000;
 const RELOADED_FOR_CHUNK = 'idem_reloaded_for_chunk';
 
 /**
- * « Cet onglet tourne-t-il sur la version déployée ? »
+ * Garder chaque onglet sur la version déployée, SANS RIEN DEMANDER.
  *
- * Deux sources, un seul signal :
+ * Il n'y a plus de bannière « Une nouvelle version est disponible » : elle
+ * s'affichait à chaque mise en production et agaçait. La mise à jour est
+ * appliquée en silence, à un moment où elle ne coûte rien :
  *
- * 1. **Le service worker**, qui prévient quand il a récupéré une version plus
- *    récente en arrière-plan.
- * 2. **L'ETag de `index.html`**, interrogé de temps en temps. Une application
- *    d'une seule page garde le code qu'elle a chargé : un onglet ouvert avant
- *    une mise en production continuait des heures sur l'ancien — correctifs
- *    déployés, rien ne changeait à l'écran. La requête est un `HEAD`, donc
- *    quelques octets, ce qui reste acceptable à bas débit.
+ * - **Ouverture du site** : le service worker va au réseau d'abord pour la
+ *   page HTML (voir `sw.js`), nginx la sert en `no-cache` — on reçoit donc la
+ *   dernière version sans actualiser.
+ * - **Onglet déjà ouvert** : une version détectée est appliquée au prochain
+ *   changement de page — la navigation se fait en chargement complet au lieu
+ *   d'une navigation interne. L'utilisateur quittait la page de toute façon :
+ *   rien de ce qu'il écrivait n'est perdu.
+ * - **Onglet repris après une longue absence** (30 min cachée) : rechargé à son
+ *   retour, sauf si un champ a été rempli.
+ *
+ * Détection, deux sources :
+ *
+ * 1. **Le service worker**, qui prévient quand il a servi la coquille depuis
+ *    le cache (réseau trop lent) et qu'une version plus fraîche est arrivée.
+ * 2. **L'ETag de `index.html`**, interrogé de temps en temps par un `HEAD`
+ *    (quelques octets, acceptable à bas débit).
  *
  * Une page paresseuse dont le fichier n'existe plus après une mise en
- * production recharge d'elle-même, une fois par session : un fichier toujours
- * manquant après rechargement est une vraie erreur, pas une nouvelle version.
- *
- * (Mécanisme d'origine : `AppVersionService` d'iDeploy, généralisé ici pour
- * que les six applications en bénéficient et qu'il n'y ait qu'une bannière.)
+ * production recharge d'elle-même, une fois par session.
  */
 @Injectable({ providedIn: 'root' })
 export class IdemServiceWorkerService {
   private readonly router = inject(Router, { optional: true });
   private readonly destroyRef = inject(DestroyRef);
 
-  /** Vrai quand une version plus récente attend d'être appliquée. */
-  readonly updateAvailable = signal(false);
-
+  /** Une version plus récente est déployée : la prochaine occasion l'applique. */
+  private pending = false;
   private loaded: string | null = null;
   private lastCheck = 0;
+  private hiddenSince: number | null = null;
   private started = false;
 
   /** Appelé une fois, par `provideIdemServiceWorker()`. */
@@ -46,21 +59,8 @@ export class IdemServiceWorkerService {
     if (this.started) return;
     this.started = true;
 
-    registerIdemServiceWorker({ onUpdate: () => this.updateAvailable.set(true) });
+    registerIdemServiceWorker({ onUpdate: () => (this.pending = true) });
     this.watchDeployedVersion();
-  }
-
-  /** Applique la version en attente et recharge. Geste de l'utilisateur. */
-  applyUpdate(): void {
-    // `applyIdemServiceWorkerUpdate` recharge de lui-même, après avoir fait
-    // passer le nouveau worker aux commandes — un simple `reload()` repartirait
-    // sur l'ancienne version, servie par le worker encore actif.
-    void applyIdemServiceWorkerUpdate();
-  }
-
-  /** « Plus tard » : la barre disparaît, la version suivante s'appliquera seule. */
-  dismissUpdate(): void {
-    this.updateAvailable.set(false);
   }
 
   private watchDeployedVersion(): void {
@@ -72,10 +72,28 @@ export class IdemServiceWorkerService {
     this.destroyRef.onDestroy(() => clearInterval(timer));
 
     document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') void this.check();
+      if (document.visibilityState === 'hidden') {
+        this.hiddenSince = Date.now();
+        return;
+      }
+      const away = this.hiddenSince === null ? 0 : Date.now() - this.hiddenSince;
+      this.hiddenSince = null;
+      void this.check().then(() => {
+        if (this.pending && away >= REOPEN_AFTER_HIDDEN_MS && !this.hasUserInput()) {
+          window.location.reload();
+        }
+      });
     });
 
     this.router?.events.subscribe((event) => {
+      if (event instanceof NavigationStart && this.pending) {
+        // Chargement complet de la page demandée : elle arrive dans la
+        // nouvelle version. Sur « précédent / suivant », l'adresse est déjà
+        // celle de destination, un rechargement suffit.
+        if (event.navigationTrigger === 'popstate') window.location.reload();
+        else window.location.assign(new URL(event.url.replace(/^\//, ''), document.baseURI).toString());
+        return;
+      }
       if (event instanceof NavigationError && this.isMissingChunk(event.error)) {
         this.reloadOnceForChunk();
         return;
@@ -85,7 +103,7 @@ export class IdemServiceWorkerService {
   }
 
   private async check(): Promise<void> {
-    if (this.updateAvailable()) return;
+    if (this.pending) return;
     this.lastCheck = Date.now();
     try {
       const response = await fetch(new URL('index.html', document.baseURI).toString(), {
@@ -95,10 +113,25 @@ export class IdemServiceWorkerService {
       const version = response.headers.get('etag') ?? response.headers.get('last-modified');
       if (!response.ok || !version) return;
       if (this.loaded === null) this.loaded = version;
-      else if (version !== this.loaded) this.updateAvailable.set(true);
+      else if (version !== this.loaded) this.pending = true;
     } catch {
       /* hors ligne : on redemandera */
     }
+  }
+
+  /** Un champ rempli ou en cours d'édition : ne jamais recharger sous ses doigts. */
+  private hasUserInput(): boolean {
+    const active = document.activeElement as HTMLElement | null;
+    if (active && (active.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(active.tagName))) {
+      return true;
+    }
+    const fields = document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(
+      'textarea, input:not([type=hidden]):not([type=checkbox]):not([type=radio]):not([type=submit]):not([type=button])',
+    );
+    for (const field of Array.from(fields)) {
+      if (field.value && field.value !== field.defaultValue) return true;
+    }
+    return false;
   }
 
   private isMissingChunk(error: unknown): boolean {
@@ -110,10 +143,7 @@ export class IdemServiceWorkerService {
 
   private reloadOnceForChunk(): void {
     try {
-      if (sessionStorage.getItem(RELOADED_FOR_CHUNK)) {
-        this.updateAvailable.set(true);
-        return;
-      }
+      if (sessionStorage.getItem(RELOADED_FOR_CHUNK)) return;
       sessionStorage.setItem(RELOADED_FOR_CHUNK, '1');
     } catch {
       /* stockage bloqué : on recharge quand même */

@@ -26,9 +26,7 @@ s'affiche tout de suite, et la mise à jour arrive au chargement suivant.
 2. `app.config.ts` — enregistrer après le premier rendu :
 
    ```ts
-   provideAppInitializer(() => {
-     registerIdemServiceWorker({ onUpdate: () => inject(UpdateBanner).show() });
-   });
+   providers: [provideIdemServiceWorker()]
    ```
 
 3. nginx — `/sw.js` doit être servi en `no-cache`. C'est déjà le cas dans les
@@ -39,8 +37,11 @@ s'affiche tout de suite, et la mise à jour arrive au chargement suivant.
 - **Aucun précache à l'installation.** Précharger la coquille au premier
   passage doublerait le coût de la première visite, exactement ce qu'on cherche
   à éviter.
-- **Aucun `skipWaiting()` automatique.** Remplacer le worker pendant que
-  l'utilisateur travaille échangerait les fichiers sous ses pieds : c'est la
-  page qui décide, via `applyIdemServiceWorkerUpdate()`.
+- **Aucune bannière « nouvelle version ».** Le nouveau worker prend la main
+  tout de suite (`skipWaiting()`), la page HTML vient du réseau d'abord : à
+  l'ouverture, on a la dernière version. Un onglet déjà ouvert passe à la
+  nouvelle version au changement de page suivant (chargement complet), ou à
+  son retour après 30 min caché si aucun champ n'est rempli
+  (`IdemServiceWorkerService`).
 - **Aucune mise en cache des appels d'API.** Un solde de portefeuille ou une
   génération en cours servis depuis un cache seraient faux.

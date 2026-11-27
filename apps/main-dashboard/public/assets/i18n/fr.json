@@ -6203,10 +6203,5 @@
         "COVER_GENERIC": "La couverture n’est pas partie. Réessayez."
       }
     }
-  },
-  "appUpdate": {
-    "message": "Une nouvelle version est disponible.",
-    "reload": "Actualiser",
-    "later": "Plus tard"
   }
 }

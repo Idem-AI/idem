@@ -18,9 +18,12 @@
  *   passage doublerait le coût de la première visite — exactement ce qu'on
  *   cherche à éviter sur un lien faible. Le cache se remplit de ce qui a
  *   réellement servi.
- * - PAS DE `skipWaiting()` AUTOMATIQUE. Remplacer le worker pendant que
- *   l'utilisateur travaille échangerait les fichiers sous ses pieds. La page
- *   décide (message `idem-sw:skip-waiting`).
+ * - LE NOUVEAU WORKER PREND LA MAIN TOUT DE SUITE (`skipWaiting()`). Il n'y a
+ *   plus de version « en attente » ni de bannière à cliquer : la page HTML
+ *   vient du réseau d'abord, et un onglet déjà ouvert passe à la nouvelle
+ *   version au changement de page suivant (voir `IdemServiceWorkerService`).
+ *   Les fichiers hachés de l'ancienne version restent en cache : un onglet
+ *   ancien continue de fonctionner jusque-là.
  * - LES REQUÊTES D'API NE SONT JAMAIS MISES EN CACHE. Un solde de portefeuille
  *   ou une génération en cours servis depuis un cache seraient faux.
  */
@@ -51,8 +54,9 @@ function isLive(url) {
 }
 
 self.addEventListener('install', () => {
-  // Rien à précharger : voir l'en-tête. Le worker devient « en attente » et
-  // n'écrase pas l'actuel tant que la page ne le demande pas.
+  // Rien à précharger : voir l'en-tête. Pas d'attente non plus : le nouveau
+  // worker remplace l'ancien sans que l'utilisateur ait à recharger.
+  self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
@@ -129,7 +133,8 @@ async function navigationStrategy(request) {
   const cached = (await cache.match(request)) || (await cache.match('/index.html'));
   if (cached) {
     // Le réseau continue en arrière-plan : la version suivante sera à jour, et
-    // la page est prévenue pour pouvoir proposer de recharger.
+    // la page est prévenue pour passer à la nouvelle version au prochain
+    // changement de page, sans rien demander.
     void network.then((response) => {
       if (response && response.ok) notify('idem-sw:update');
     });

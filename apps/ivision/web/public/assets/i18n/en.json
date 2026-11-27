@@ -1156,10 +1156,5 @@
       "title": "Create tonight, pay only for what you publish.",
       "cta": "Start for free"
     }
-  },
-  "appUpdate": {
-    "message": "A new version is available.",
-    "reload": "Refresh",
-    "later": "Later"
   }
 }

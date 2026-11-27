@@ -1,19 +1,14 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
-import { IdemUpdateBannerComponent } from '@idem/shared-offline/angular';
 import { LanguageService } from './shared/services/language.service';
 import { ThemeService } from './shared/services/theme.service';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, TranslateModule, IdemUpdateBannerComponent],
+  imports: [RouterOutlet, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <idem-update-banner
-      [label]="t.instant('appUpdate.message')"
-      [actionLabel]="t.instant('appUpdate.reload')"
-    />
     <router-outlet />
   `,
 })

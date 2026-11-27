@@ -16,7 +16,6 @@ import { PolicyConsentHostComponent } from './shared/components/policy-consent-h
 import { BetaInviteComponent } from './shared/components/beta-invite/beta-invite';
 import { ModeDockComponent } from './shared/components/mode-dock/mode-dock';
 import { TranslateService } from '@ngx-translate/core';
-import { IdemUpdateBannerComponent } from '@idem/shared-offline/angular';
 
 @Component({
   selector: 'app-root',
@@ -31,7 +30,6 @@ import { IdemUpdateBannerComponent } from '@idem/shared-offline/angular';
     PolicyConsentHostComponent,
     BetaInviteComponent,
     ModeDockComponent,
-    IdemUpdateBannerComponent,
     AsyncPipe,
   ],
   templateUrl: './app.html',
