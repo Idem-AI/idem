@@ -80,12 +80,21 @@ jobs:
         if: inputs.build-env
         env:
           PROD_BUILD_ENV: ${{ secrets.PROD_BUILD_ENV }}
+          # Public values added to the secret above, or replacing its lines
+          # (repository variable: readable and editable, never a password).
+          PROD_BUILD_ENV_OVERRIDES: ${{ vars.PROD_BUILD_ENV_OVERRIDES }}
         run: |
           if [ -z "$PROD_BUILD_ENV" ]; then
             echo "::error::The PROD_BUILD_ENV secret is empty; this front end cannot be built without its addresses."
             exit 1
           fi
           printf '%s\n' "$PROD_BUILD_ENV" > .env
+          overrides=$(printf '%s\n' "$PROD_BUILD_ENV_OVERRIDES" | tr -d '\r' | grep -E '^[A-Za-z_][A-Za-z0-9_]*=' || true)
+          if [ -n "$overrides" ]; then
+            keys=$(printf '%s\n' "$overrides" | cut -d= -f1 | paste -sd'|' -)
+            sed -i -E "/^[[:space:]]*(export[[:space:]]+)?($keys)[[:space:]]*=/d" .env
+            printf '%s\n' "$overrides" >> .env
+          fi
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
