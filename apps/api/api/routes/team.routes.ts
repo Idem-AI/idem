@@ -3,7 +3,7 @@ import logger from '../config/logger';
 import { CustomRequest } from '../interfaces/express.interface';
 import { authenticate } from '../services/auth.service';
 import { findProjectOwner, resolveProjectAccess } from '../services/team/project-access.service';
-import { TeamError, teamService } from '../services/team/team.service';
+import { consoleUrlFor, TeamError, teamService } from '../services/team/team.service';
 import type { MemberRoleInput } from '../../../../packages/shared-models/src/projects/project-access.model';
 
 /**
@@ -88,7 +88,7 @@ teamRoutes.post(
   authenticate,
   handle(async (req, res, uid) => {
     const body = (req.body ?? {}) as Record<string, unknown>;
-    res.status(201).json(await teamService.invite(param(req, 'projectId'), uid, body.email, roleOf(body.role)));
+    res.status(201).json(await teamService.invite(param(req, 'projectId'), uid, body.email, roleOf(body.role), consoleUrlFor(req.get('origin'))));
   })
 );
 
@@ -96,7 +96,7 @@ teamRoutes.post(
   '/projects/:projectId/members/:memberId/resend',
   authenticate,
   handle(async (req, res, uid) => {
-    res.json(await teamService.resend(param(req, 'projectId'), uid, param(req, 'memberId')));
+    res.json(await teamService.resend(param(req, 'projectId'), uid, param(req, 'memberId'), consoleUrlFor(req.get('origin'))));
   })
 );
 

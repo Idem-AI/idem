@@ -49,7 +49,25 @@ export class TeamError extends Error {
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const users = () => mongoose.connection.collection('users');
-const CONSOLE_URL = (process.env.IDEM_FRONTEND_URL || 'https://console.idem.africa').replace(/\/+$/, '');
+/**
+ * L'adresse du tableau de bord à mettre dans l'e-mail : celle d'où part
+ * l'invitation. Le propriétaire invite depuis son navigateur, donc l'origine de
+ * la requête est la bonne console — `http://localhost:4200` en local, la console
+ * de production en ligne — sans variable à régler. Seules une adresse locale ou
+ * une adresse `https` d'idem.africa sont reprises ; sinon, la console publique.
+ */
+export function consoleUrlFor(origin: string | undefined): string {
+  const fallback = (process.env.IDEM_FRONTEND_URL || 'https://console.idem.africa').replace(/\/+$/, '');
+  if (!origin) return fallback;
+  try {
+    const url = new URL(origin);
+    const local = (url.protocol === 'http:' || url.protocol === 'https:') && ['localhost', '127.0.0.1'].includes(url.hostname);
+    const idem = url.protocol === 'https:' && (url.hostname === 'idem.africa' || url.hostname.endsWith('.idem.africa'));
+    return local || idem ? url.origin : fallback;
+  } catch {
+    return fallback;
+  }
+}
 
 const SPACE_LABELS_FR: Record<ProjectSpace, string> = {
   branding: 'Identité visuelle',
@@ -191,7 +209,7 @@ class TeamService {
 
   // ─── Invitations (propriétaire) ──────────────────────────────────────────
 
-  async invite(projectId: string, uid: string, rawEmail: unknown, role: MemberRoleInput | undefined): Promise<ProjectTeamView> {
+  async invite(projectId: string, uid: string, rawEmail: unknown, role: MemberRoleInput | undefined, consoleUrl: string): Promise<ProjectTeamView> {
     const project = await this.ownedProject(projectId, uid);
     const email = typeof rawEmail === 'string' ? rawEmail.trim().toLowerCase() : '';
     if (!EMAIL_RE.test(email) || email.length > 254) throw new TeamError('invalid_email');
@@ -231,12 +249,12 @@ class TeamService {
     if (existing) await ProjectMember.updateOne({ _id: existing._id }, { $set: fields });
     else await ProjectMember.create(fields);
 
-    await this.sendInvitationEmail(project, uid, invitee, validated.permissions, token, fields.expiresAt);
+    await this.sendInvitationEmail(project, uid, invitee, validated.permissions, token, fields.expiresAt, consoleUrl);
     logger.info('team.invited', { event: 'team.invited', projectId, roleKey: validated.roleKey });
     return this.getTeam(projectId, uid);
   }
 
-  async resend(projectId: string, uid: string, memberId: string): Promise<ProjectTeamView> {
+  async resend(projectId: string, uid: string, memberId: string, consoleUrl: string): Promise<ProjectTeamView> {
     const project = await this.ownedProject(projectId, uid);
     const member = await this.memberOf(projectId, memberId);
     if (member.status === 'active') throw new TeamError('already_member', 409);
@@ -249,7 +267,7 @@ class TeamService {
     );
     const group = member.groupId ? await ProjectGroup.findById(member.groupId).lean() : null;
     const invitee = (await usersByUid([member.userId])).get(member.userId) ?? { uid: member.userId, email: member.email };
-    await this.sendInvitationEmail(project, uid, invitee, effectivePermissions(member, group?.permissions), token, expiresAt);
+    await this.sendInvitationEmail(project, uid, invitee, effectivePermissions(member, group?.permissions), token, expiresAt, consoleUrl);
     return this.getTeam(projectId, uid);
   }
 
@@ -259,11 +277,12 @@ class TeamService {
     invitee: UserCard,
     permissions: ProjectPermissions,
     token: string,
-    expiresAt: Date
+    expiresAt: Date,
+    consoleUrl: string
   ): Promise<void> {
     const owner = (await usersByUid([ownerUid])).get(ownerUid);
     const inviterName = owner?.displayName || owner?.email || 'Un utilisateur IDEM';
-    const base = `${CONSOLE_URL}/invitations/${encodeURIComponent(token)}`;
+    const base = `${consoleUrl}/invitations/${encodeURIComponent(token)}`;
     const email = projectInvitation({
       firstName: firstNameOf(invitee.displayName, invitee.email) || undefined,
       inviterName,

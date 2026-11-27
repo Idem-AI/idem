@@ -8,79 +8,135 @@ import {
   ProjectSpace,
   uniformPermissions,
 } from '@idem/shared-models';
-import { SPACE_ICONS } from '../../team-spaces';
+import { LEVEL_ICONS, SPACE_ICONS } from '../../team-spaces';
 
 let nextEditorId = 0;
 
 /**
- * Le réglage détaillé : une ligne par espace du projet, trois choix par ligne.
+ * Le réglage espace par espace : une ligne par espace, un sélecteur à trois
+ * crans — « Aucun », « Voir », « Modifier » — qu'on lit d'un coup d'œil.
  *
- * Trois mots que tout le monde comprend — « Pas d'accès », « Voir »,
- * « Modifier » — plutôt qu'une grille de cases « lecture/écriture ». Chaque
- * ligne est un groupe de boutons radio natifs : flèches au clavier, annonce
- * correcte par les lecteurs d'écran, sans code à nous.
+ * Chaque sélecteur est un groupe de boutons radio natifs (flèches au clavier,
+ * annonce correcte), habillés en pilule : le cran choisi se remplit de la
+ * couleur primaire. Une ligne ouverte (voir ou modifier) se distingue d'une
+ * ligne fermée, estompée : la liste dit d'elle-même ce qui est partagé.
  */
 @Component({
   selector: 'app-permissions-editor',
   imports: [TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: `
-    .levels {
-      display: inline-flex;
-      border: 1px solid var(--glass-border-subtle);
-      border-radius: 0.6rem;
-      overflow: hidden;
+    .pe-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.75rem 1rem;
+      padding: 0.75rem;
+      border: 1px solid var(--glass-border);
+      border-radius: 0.9rem;
+      transition: border-color 0.15s ease, opacity 0.15s ease;
     }
-    .levels label {
+    .pe-row--off {
+      opacity: 0.72;
+    }
+    .pe-row--write {
+      border-color: color-mix(in oklab, var(--color-primary-500) 45%, var(--glass-border));
+    }
+    .pe-icon {
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+      width: 2.25rem;
+      height: 2.25rem;
+      border-radius: 0.7rem;
+      background: var(--glass-bg-light);
+      color: var(--color-text-secondary);
+    }
+    .pe-row--write .pe-icon,
+    .pe-row--read .pe-icon {
+      background: color-mix(in oklab, var(--color-primary-500) 14%, transparent);
+      color: var(--color-primary-500);
+    }
+    .pe-seg {
+      display: inline-flex;
+      gap: 0.2rem;
+      padding: 0.2rem;
+      margin-left: auto;
+      border-radius: 999px;
+      background: var(--glass-bg-light);
+      border: 1px solid var(--glass-border);
+    }
+    .pe-seg label {
       position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
       margin: 0;
       padding: 0.35rem 0.75rem;
+      border-radius: 999px;
       font-size: 0.8rem;
-      cursor: pointer;
+      font-weight: 500;
       color: var(--color-text-secondary);
+      cursor: pointer;
       white-space: nowrap;
+      transition: background 0.15s ease, color 0.15s ease;
     }
-    .levels label + label {
-      border-left: 1px solid var(--glass-border-subtle);
+    .pe-seg label:hover {
+      color: var(--color-text-primary);
     }
-    .levels input[type='radio'] {
+    .pe-seg input[type='radio'] {
       position: absolute;
-      opacity: 0;
       inset: 0;
       margin: 0;
+      opacity: 0;
       cursor: pointer;
     }
-    .levels label:has(input:checked) {
+    .pe-seg label:has(input:checked) {
       background: var(--color-primary-500);
       color: var(--color-on-primary);
-      font-weight: 600;
     }
-    .levels label:has(input:focus-visible) {
+    .pe-seg label:has(input:focus-visible) {
       outline: 2px solid var(--color-primary-500);
-      outline-offset: -2px;
+      outline-offset: 2px;
+    }
+    .pe-seg label:has(input:disabled) {
+      cursor: not-allowed;
+    }
+    @media (max-width: 30rem) {
+      .pe-seg {
+        width: 100%;
+        margin-left: 0;
+      }
+      .pe-seg label {
+        flex: 1;
+        justify-content: center;
+      }
     }
   `,
   template: `
-    <div class="flex flex-wrap items-center gap-2 pb-3">
-      <span class="text-xs text-text-tertiary">{{ 'team.editor.quick' | translate }}</span>
-      <button type="button" class="button-ghost button-sm" (click)="setAll('read')">{{ 'team.editor.allRead' | translate }}</button>
-      <button type="button" class="button-ghost button-sm" (click)="setAll('write')">{{ 'team.editor.allWrite' | translate }}</button>
-      <button type="button" class="button-ghost button-sm" (click)="setAll('none')">{{ 'team.editor.allNone' | translate }}</button>
+    <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+      <p class="text-xs text-text-tertiary">{{ 'team.editor.quick' | translate }}</p>
+      <div class="flex gap-1">
+        @for (level of levels; track level) {
+          <button type="button" class="tag" [disabled]="disabled()" (click)="setAll(level)">
+            <i [class]="levelIcons[level]" aria-hidden="true"></i>
+            {{ 'team.levels.' + level | translate }}
+          </button>
+        }
+      </div>
     </div>
 
-    <ul class="divide-y divide-[var(--glass-border-subtle)]">
+    <ul class="flex flex-col gap-2">
       @for (space of spaces; track space) {
-        <li class="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
-          <div class="flex min-w-0 items-start gap-3">
-            <i [class]="icons[space] + ' mt-0.5 text-text-tertiary'" aria-hidden="true"></i>
-            <div class="min-w-0">
-              <p [id]="uid + '-' + space" class="text-sm font-medium text-text-primary">
-                {{ 'team.spaces.' + space + '.label' | translate }}
-              </p>
-              <p class="text-xs text-text-tertiary">{{ 'team.spaces.' + space + '.hint' | translate }}</p>
-            </div>
+        <li class="pe-row" [class]="'pe-row--' + (value()[space] === 'none' ? 'off' : value()[space])">
+          <span class="pe-icon" aria-hidden="true"><i [class]="icons[space]"></i></span>
+          <div class="min-w-0 flex-1">
+            <p [id]="uid + '-' + space" class="text-sm font-medium text-text-primary">
+              {{ 'team.spaces.' + space + '.label' | translate }}
+            </p>
+            <p class="text-xs text-text-tertiary">{{ 'team.spaces.' + space + '.hint' | translate }}</p>
           </div>
-          <div class="levels shrink-0" role="radiogroup" [attr.aria-labelledby]="uid + '-' + space">
+          <div class="pe-seg" role="radiogroup" [attr.aria-labelledby]="uid + '-' + space">
             @for (level of levels; track level) {
               <label>
                 <input
@@ -91,6 +147,7 @@ let nextEditorId = 0;
                   [disabled]="disabled()"
                   (change)="set(space, level)"
                 />
+                <i [class]="levelIcons[level] + ' text-xs'" aria-hidden="true"></i>
                 {{ 'team.levels.' + level | translate }}
               </label>
             }
@@ -109,6 +166,7 @@ export class PermissionsEditorComponent {
   protected readonly spaces = PROJECT_SPACES;
   protected readonly levels = ACCESS_LEVELS;
   protected readonly icons = SPACE_ICONS;
+  protected readonly levelIcons = LEVEL_ICONS;
 
   protected set(space: ProjectSpace, level: AccessLevel): void {
     this.valueChange.emit({ ...this.value(), [space]: level });

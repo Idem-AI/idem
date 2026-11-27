@@ -18,9 +18,11 @@ import { TeamService } from '../../services/team.service';
 import { PermissionsEditorComponent } from '../../components/permissions-editor/permissions-editor';
 import { RolePickerComponent } from '../../components/role-picker/role-picker';
 import { AccessSummaryComponent } from '../../components/access-summary/access-summary';
+import { TeamDrawerComponent } from '../../components/team-drawer/team-drawer';
 import { RoleOption, optionKeyOf, roleInputOf, roleOptions } from '../../team-spaces';
 
 type MemberState = 'active' | 'pending' | 'declined' | 'expired';
+type Tab = 'members' | 'groups';
 
 interface GroupDraft {
   id: string | null;
@@ -28,14 +30,22 @@ interface GroupDraft {
   permissions: ProjectPermissions;
 }
 
+type Drawer =
+  | { kind: 'invite' }
+  | { kind: 'member'; member: ProjectMemberView }
+  | { kind: 'group'; draft: GroupDraft };
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 /**
- * L'équipe d'un projet : inviter, régler les accès, regrouper.
+ * L'équipe d'un projet.
  *
- * Trois blocs, dans l'ordre où on en a besoin : inviter quelqu'un (le geste
- * principal), voir qui a accès à quoi, et — pour qui a plusieurs personnes aux
- * mêmes droits — les groupes. Chaque choix se fait par des mots (« Voir »,
- * « Modifier ») et des rôles nommés, jamais par une grille technique ; le
- * réglage espace par espace n'apparaît que si on le demande (« Sur mesure »).
+ * La page ne montre que deux choses : qui a accès, et à quoi — en pastilles
+ * lisibles (« ✎ Communication », « 👁 Identité visuelle »). Tout geste
+ * (inviter, changer les accès d'une personne, composer un groupe) se fait dans
+ * un tiroir latéral, la liste restant visible derrière. Inviter se fait en
+ * deux temps : « Qui ? » puis « Que pourra-t-elle faire ? », avec des rôles
+ * nommés ; le réglage espace par espace n'apparaît que sur « Sur mesure ».
  */
 @Component({
   selector: 'app-team-page',
@@ -46,8 +56,10 @@ interface GroupDraft {
     PermissionsEditorComponent,
     RolePickerComponent,
     AccessSummaryComponent,
+    TeamDrawerComponent,
   ],
   templateUrl: './team-page.html',
+  styleUrl: './team-page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TeamPage {
@@ -60,38 +72,31 @@ export class TeamPage {
   protected readonly team = signal<ProjectTeamView | null>(null);
   protected readonly loading = signal(true);
   protected readonly loadFailed = signal(false);
+  protected readonly tab = signal<Tab>('members');
+  protected readonly drawer = signal<Drawer | null>(null);
+  protected readonly saving = signal(false);
+  protected readonly busyMemberId = signal<string | null>(null);
 
   protected readonly options = computed<RoleOption[]>(() => roleOptions(this.team()?.groups ?? []));
+  protected readonly memberCount = computed(() => (this.team()?.members.length ?? 0) + 1);
 
-  // ─── Inviter ──────────────────────────────────────────────────────────────
+  // ─── Tiroir « Inviter » ──────────────────────────────────────────────────
+  protected readonly inviteStep = signal<1 | 2>(1);
   protected readonly email = signal('');
-  // Par défaut, le rôle le plus prudent : on ouvre plus ensuite si besoin.
-  protected readonly inviteKey = signal('viewer');
-  protected readonly inviteCustom = signal<ProjectPermissions>(uniformPermissions('none'));
-  protected readonly inviting = signal(false);
-  protected readonly inviteError = signal<string | null>(null);
+  // Par défaut le rôle le plus prudent : on ouvre plus ensuite si besoin.
+  protected readonly roleKey = signal('viewer');
+  protected readonly custom = signal<ProjectPermissions>(uniformPermissions('none'));
+  protected readonly error = signal<string | null>(null);
 
-  protected readonly inviteOption = computed(() => this.optionOf(this.inviteKey()));
-  protected readonly canInvite = computed(() => {
-    const option = this.inviteOption();
-    if (!this.email().trim() || !option || this.inviting()) return false;
-    return option.roleKey !== 'custom' || hasAnySpace(this.inviteCustom());
+  protected readonly roleOption = computed(() => this.options().find((option) => option.key === this.roleKey()));
+  protected readonly emailValid = computed(() => EMAIL_RE.test(this.email().trim()));
+  protected readonly roleReady = computed(() => {
+    const option = this.roleOption();
+    return !!option && (option.roleKey !== 'custom' || hasAnySpace(this.custom()));
   });
 
-  // ─── Modifier un membre ──────────────────────────────────────────────────
-  protected readonly editingId = signal<string | null>(null);
-  protected readonly editKey = signal('viewer');
-  protected readonly editCustom = signal<ProjectPermissions>(uniformPermissions('none'));
-  protected readonly savingMember = signal(false);
-  protected readonly busyMemberId = signal<string | null>(null);
+  // ─── Confirmations ───────────────────────────────────────────────────────
   protected readonly toRemove = signal<ProjectMemberView | null>(null);
-
-  protected readonly editOption = computed(() => this.optionOf(this.editKey()));
-
-  // ─── Groupes ──────────────────────────────────────────────────────────────
-  protected readonly groupDraft = signal<GroupDraft | null>(null);
-  protected readonly savingGroup = signal(false);
-  protected readonly groupError = signal<string | null>(null);
   protected readonly toDeleteGroup = signal<ProjectGroupView | null>(null);
 
   constructor() {
@@ -106,14 +111,11 @@ export class TeamPage {
     return this.projects.selectedId() ?? '';
   }
 
-  private optionOf(key: string): RoleOption | undefined {
-    return this.options().find((option) => option.key === key);
-  }
-
   private load(projectId: string | null): void {
     if (!projectId) return;
     this.loading.set(true);
     this.loadFailed.set(false);
+    this.drawer.set(null);
     this.teamService.team(projectId).subscribe({
       next: (team) => {
         this.team.set(team);
@@ -149,8 +151,11 @@ export class TeamPage {
     return age > INVITATION_TTL_DAYS * 24 * 3600 * 1000 ? 'expired' : 'pending';
   }
 
-  protected roleLabel(member: ProjectMemberView): string {
-    const option = this.optionOf(optionKeyOf(member.roleKey, member.groupId));
+  protected roleOf(member: ProjectMemberView): RoleOption | undefined {
+    return this.options().find((option) => option.key === optionKeyOf(member.roleKey, member.groupId));
+  }
+
+  protected roleLabel(option: RoleOption | undefined): string {
     if (!option) return this.translate.instant('team.roles.custom.label');
     return option.label ?? this.translate.instant(option.labelKey ?? '');
   }
@@ -161,82 +166,119 @@ export class TeamPage {
     return text === key ? this.translate.instant('team.errors.generic') : text;
   }
 
+  private fail(error: unknown): void {
+    this.saving.set(false);
+    this.busyMemberId.set(null);
+    this.error.set(TeamService.errorCode(error));
+  }
+
+  private done(team: ProjectTeamView): void {
+    this.team.set(team);
+    this.saving.set(false);
+    this.busyMemberId.set(null);
+    this.drawer.set(null);
+  }
+
+  // ─── Tiroirs ──────────────────────────────────────────────────────────────
+
+  protected openInvite(): void {
+    this.inviteStep.set(1);
+    this.email.set('');
+    this.roleKey.set('viewer');
+    this.custom.set(uniformPermissions('none'));
+    this.error.set(null);
+    this.drawer.set({ kind: 'invite' });
+  }
+
+  protected openMember(member: ProjectMemberView): void {
+    this.roleKey.set(optionKeyOf(member.roleKey, member.groupId));
+    this.custom.set({ ...member.permissions });
+    this.error.set(null);
+    this.drawer.set({ kind: 'member', member });
+  }
+
+  protected openGroup(group?: ProjectGroupView): void {
+    this.error.set(null);
+    this.drawer.set({
+      kind: 'group',
+      draft: group
+        ? { id: group.id, name: group.name, permissions: { ...group.permissions } }
+        : { id: null, name: '', permissions: uniformPermissions('none') },
+    });
+  }
+
+  protected closeDrawer(): void {
+    if (!this.saving()) this.drawer.set(null);
+  }
+
+  /** Changer de carte de rôle. Passer à « Sur mesure » part des droits du rôle quitté. */
+  protected chooseRole(key: string): void {
+    if (key === 'custom') {
+      const previous = this.roleOption()?.permissions;
+      if (previous) this.custom.set({ ...previous });
+    }
+    this.roleKey.set(key);
+    this.error.set(null);
+  }
+
   // ─── Inviter ──────────────────────────────────────────────────────────────
 
   protected onEmail(event: Event): void {
     this.email.set((event.target as HTMLInputElement).value);
-    this.inviteError.set(null);
+    this.error.set(null);
   }
 
-  protected invite(event: Event): void {
-    event.preventDefault();
-    const option = this.inviteOption();
-    if (!option || !this.canInvite()) return;
+  protected nextStep(event?: Event): void {
+    event?.preventDefault();
+    if (!this.emailValid()) {
+      this.error.set('invalid_email');
+      return;
+    }
+    this.error.set(null);
+    this.inviteStep.set(2);
+  }
+
+  protected sendInvite(): void {
+    const option = this.roleOption();
+    if (!option || !this.roleReady() || this.saving()) return;
     const email = this.email().trim();
-    this.inviting.set(true);
-    this.inviteError.set(null);
-    this.teamService.invite(this.projectId(), email, roleInputOf(option, this.inviteCustom())).subscribe({
+    this.saving.set(true);
+    this.error.set(null);
+    this.teamService.invite(this.projectId(), email, roleInputOf(option, this.custom())).subscribe({
       next: (team) => {
-        this.team.set(team);
-        this.inviting.set(false);
-        this.email.set('');
+        this.done(team);
+        this.tab.set('members');
         this.notifications.showSuccess({
           title: this.translate.instant('team.invite.sentTitle'),
           message: this.translate.instant('team.invite.sentBody', { email }),
         });
       },
       error: (error) => {
-        this.inviting.set(false);
-        this.inviteError.set(TeamService.errorCode(error));
+        this.fail(error);
+        // Une erreur d'adresse se corrige à l'étape de l'adresse.
+        const code = TeamService.errorCode(error);
+        if (['no_account', 'invalid_email', 'self_invite', 'already_member', 'already_invited'].includes(code)) {
+          this.inviteStep.set(1);
+        }
       },
     });
   }
 
-  // ─── Membres ──────────────────────────────────────────────────────────────
-
-  protected startEdit(member: ProjectMemberView): void {
-    this.editingId.set(member.id);
-    this.editKey.set(optionKeyOf(member.roleKey, member.groupId));
-    this.editCustom.set({ ...member.permissions });
-  }
-
-  protected cancelEdit(): void {
-    this.editingId.set(null);
-  }
-
-  protected onEditKey(key: string): void {
-    // Passer à « Sur mesure » part des droits actuels du rôle choisi avant.
-    if (key === 'custom') {
-      const previous = this.editOption()?.permissions;
-      if (previous) this.editCustom.set({ ...previous });
-    }
-    this.editKey.set(key);
-  }
-
-  protected onInviteKey(key: string): void {
-    if (key === 'custom') {
-      const previous = this.inviteOption()?.permissions;
-      if (previous) this.inviteCustom.set({ ...previous });
-    }
-    this.inviteKey.set(key);
-  }
+  // ─── Une personne ────────────────────────────────────────────────────────
 
   protected saveMember(member: ProjectMemberView): void {
-    const option = this.editOption();
-    if (!option || this.savingMember()) return;
-    if (option.roleKey === 'custom' && !hasAnySpace(this.editCustom())) return;
-    this.savingMember.set(true);
-    this.teamService.updateMember(this.projectId(), member.id, roleInputOf(option, this.editCustom())).subscribe({
+    const option = this.roleOption();
+    if (!option || !this.roleReady() || this.saving()) return;
+    this.saving.set(true);
+    this.teamService.updateMember(this.projectId(), member.id, roleInputOf(option, this.custom())).subscribe({
       next: (team) => {
-        this.team.set(team);
-        this.savingMember.set(false);
-        this.editingId.set(null);
-        this.notifications.showSuccess({ title: this.translate.instant('team.members.savedTitle'), message: this.translate.instant('team.members.savedBody') });
+        this.done(team);
+        this.notifications.showSuccess({
+          title: this.translate.instant('team.members.savedTitle'),
+          message: this.translate.instant('team.members.savedBody'),
+        });
       },
-      error: (error) => {
-        this.savingMember.set(false);
-        this.notifications.showError({ title: this.translate.instant('team.errors.title'), message: this.errorText(TeamService.errorCode(error)) });
-      },
+      error: (error) => this.fail(error),
     });
   }
 
@@ -264,8 +306,7 @@ export class TeamPage {
     this.busyMemberId.set(member.id);
     this.teamService.removeMember(this.projectId(), member.id).subscribe({
       next: (team) => {
-        this.team.set(team);
-        this.busyMemberId.set(null);
+        this.done(team);
         this.toRemove.set(null);
       },
       error: (error) => {
@@ -277,68 +318,41 @@ export class TeamPage {
 
   // ─── Groupes ──────────────────────────────────────────────────────────────
 
-  protected newGroup(): void {
-    this.groupError.set(null);
-    this.groupDraft.set({ id: null, name: '', permissions: uniformPermissions('none') });
+  protected onGroupName(draft: GroupDraft, event: Event): void {
+    this.drawer.set({ kind: 'group', draft: { ...draft, name: (event.target as HTMLInputElement).value } });
+    this.error.set(null);
   }
 
-  protected editGroup(group: ProjectGroupView): void {
-    this.groupError.set(null);
-    this.groupDraft.set({ id: group.id, name: group.name, permissions: { ...group.permissions } });
+  protected onGroupPermissions(draft: GroupDraft, permissions: ProjectPermissions): void {
+    this.drawer.set({ kind: 'group', draft: { ...draft, permissions } });
+    this.error.set(null);
   }
 
-  protected onGroupName(event: Event): void {
-    const name = (event.target as HTMLInputElement).value;
-    this.groupDraft.update((draft) => (draft ? { ...draft, name } : draft));
-    this.groupError.set(null);
-  }
-
-  protected onGroupPermissions(permissions: ProjectPermissions): void {
-    this.groupDraft.update((draft) => (draft ? { ...draft, permissions } : draft));
-    this.groupError.set(null);
-  }
-
-  protected saveGroup(event: Event): void {
-    event.preventDefault();
-    const draft = this.groupDraft();
-    if (!draft || this.savingGroup()) return;
-    if (!draft.name.trim()) {
-      this.groupError.set('invalid_name');
-      return;
-    }
-    if (!hasAnySpace(draft.permissions)) {
-      this.groupError.set('empty_permissions');
-      return;
-    }
-    this.savingGroup.set(true);
+  protected saveGroup(draft: GroupDraft): void {
+    if (this.saving()) return;
+    if (!draft.name.trim()) return this.error.set('invalid_name');
+    if (!hasAnySpace(draft.permissions)) return this.error.set('empty_permissions');
+    this.saving.set(true);
     const request = draft.id
       ? this.teamService.updateGroup(this.projectId(), draft.id, { name: draft.name.trim(), permissions: draft.permissions })
       : this.teamService.createGroup(this.projectId(), draft.name.trim(), draft.permissions);
     request.subscribe({
-      next: (team) => {
-        this.team.set(team);
-        this.savingGroup.set(false);
-        this.groupDraft.set(null);
-      },
-      error: (error) => {
-        this.savingGroup.set(false);
-        this.groupError.set(TeamService.errorCode(error));
-      },
+      next: (team) => this.done(team),
+      error: (error) => this.fail(error),
     });
   }
 
   protected confirmDeleteGroup(): void {
     const group = this.toDeleteGroup();
     if (!group) return;
-    this.savingGroup.set(true);
+    this.saving.set(true);
     this.teamService.deleteGroup(this.projectId(), group.id).subscribe({
       next: (team) => {
-        this.team.set(team);
-        this.savingGroup.set(false);
+        this.done(team);
         this.toDeleteGroup.set(null);
       },
       error: (error) => {
-        this.savingGroup.set(false);
+        this.saving.set(false);
         this.notifications.showError({ title: this.translate.instant('team.errors.title'), message: this.errorText(TeamService.errorCode(error)) });
       },
     });

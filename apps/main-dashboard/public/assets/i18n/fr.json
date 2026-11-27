@@ -6220,7 +6220,7 @@
       "save": "Enregistrer"
     },
     "levels": {
-      "none": "Pas d'accès",
+      "none": "Aucun",
       "read": "Voir",
       "write": "Modifier"
     },
@@ -6291,12 +6291,14 @@
         "label": "Sur mesure",
         "hint": "Choisissez vous-même, espace par espace"
       },
-      "groupHint": "Groupe de ce projet"
+      "groupHint": "Groupe de ce projet",
+      "counts": "Modifie {{write}} · voit {{read}}"
     },
     "summary": {
-      "write": "Peut modifier : ",
-      "read": "Peut voir : ",
-      "nothing": "Aucun accès"
+      "write": "Modifie",
+      "read": "Voit",
+      "nothing": "Aucun accès",
+      "label": "Accès"
     },
     "editor": {
       "quick": "Tout mettre à :",
@@ -6314,7 +6316,14 @@
       "send": "Envoyer l'invitation",
       "after": "Vous pourrez changer ses accès à tout moment.",
       "sentTitle": "Invitation envoyée",
-      "sentBody": "Un e-mail est parti à {{email}}. L'invitation reste valable 14 jours."
+      "sentBody": "Un e-mail est parti à {{email}}. L'invitation reste valable 14 jours.",
+      "open": "Inviter",
+      "stepOf": "Étape {{step}} sur 2",
+      "step1": "Qui voulez-vous inviter ?",
+      "step2": "Que pourra-t-elle faire ?",
+      "next": "Continuer",
+      "back": "Retour",
+      "preview": "Elle aura accès à"
     },
     "members": {
       "title": "Personnes qui ont accès",
@@ -6334,7 +6343,11 @@
       "savedTitle": "Accès mis à jour",
       "savedBody": "Les nouveaux accès s'appliquent tout de suite.",
       "emptyTitle": "Vous êtes seul sur ce projet pour l'instant",
-      "emptyBody": "Invitez un associé, la personne qui gère votre communication ou celle qui construit votre site : chacun ne verra que ce que vous lui ouvrez."
+      "emptyBody": "Invitez un associé, la personne qui gère votre communication ou celle qui construit votre site : chacun ne verra que ce que vous lui ouvrez.",
+      "emptyCta": "Inviter une personne",
+      "resendAria": "Renvoyer l'invitation à {{name}}",
+      "drawerEyebrow": "Accès",
+      "preview": "Accès avec ce rôle"
     },
     "status": {
       "pending": "En attente de réponse",
@@ -6356,7 +6369,9 @@
       "delete": "Supprimer",
       "deleteTitle": "Supprimer le groupe « {{name}} » ?",
       "deleteBody": "Ses membres gardent exactement les mêmes accès, réglés désormais un par un.",
-      "empty": "Aucun groupe. Une fois créé, il apparaît dans les rôles proposés à l'invitation."
+      "empty": "Aucun groupe. Une fois créé, il apparaît dans les rôles proposés à l'invitation.",
+      "createHint": "Des accès communs, réglés une fois",
+      "deleteAria": "Supprimer le groupe {{name}}"
     },
     "errors": {
       "title": "Action impossible",
@@ -6413,6 +6428,10 @@
       "title": "Lecture seule",
       "body": "Vous pouvez consulter « {{space}} » sans le modifier. Pour plus d'accès, demandez à {{owner}}.",
       "blocked": "Vous avez accès à cet espace en lecture seule. Le propriétaire du projet peut vous donner le droit de modifier."
+    },
+    "tabs": {
+      "members": "Membres",
+      "groups": "Groupes"
     }
   }
 }

@@ -24,6 +24,24 @@ export const SPACE_ICONS: Record<ProjectSpace, string> = {
   advisor: 'pi pi-comments',
 };
 
+/** Les trois niveaux, chacun avec son pictogramme : on lit « 👁 Voir », « ✎ Modifier ». */
+export const LEVEL_ICONS: Record<'none' | 'read' | 'write', string> = {
+  none: 'pi pi-ban',
+  read: 'pi pi-eye',
+  write: 'pi pi-pencil',
+};
+
+/** Un pictogramme par rôle : on reconnaît la carte avant de la lire. */
+export const ROLE_ICONS: Record<string, string> = {
+  partner: 'pi pi-star',
+  viewer: 'pi pi-eye',
+  marketing: 'pi pi-megaphone',
+  web: 'pi pi-globe',
+  finance: 'pi pi-chart-line',
+  group: 'pi pi-users',
+  custom: 'pi pi-sliders-h',
+};
+
 /**
  * Un choix de rôle tel que l'écran le propose : rôle prêt à l'emploi, groupe
  * du projet, ou réglage sur mesure. `key` est unique dans la liste.
@@ -36,6 +54,7 @@ export interface RoleOption {
   labelKey?: string;
   label?: string;
   hintKey?: string;
+  icon: string;
   permissions: ProjectPermissions | null;
 }
 
@@ -45,6 +64,7 @@ export function roleOptions(groups: ProjectGroupView[]): RoleOption[] {
     roleKey: preset,
     labelKey: `team.roles.${preset}.label`,
     hintKey: `team.roles.${preset}.hint`,
+    icon: ROLE_ICONS[preset],
     permissions: ROLE_PRESET_PERMISSIONS[preset],
   }));
   const groupOptions: RoleOption[] = groups.map((group) => ({
@@ -53,12 +73,13 @@ export function roleOptions(groups: ProjectGroupView[]): RoleOption[] {
     groupId: group.id,
     label: group.name,
     hintKey: 'team.roles.groupHint',
+    icon: ROLE_ICONS['group'],
     permissions: group.permissions,
   }));
   return [
     ...presets,
     ...groupOptions,
-    { key: 'custom', roleKey: 'custom', labelKey: 'team.roles.custom.label', hintKey: 'team.roles.custom.hint', permissions: null },
+    { key: 'custom', roleKey: 'custom', labelKey: 'team.roles.custom.label', hintKey: 'team.roles.custom.hint', icon: ROLE_ICONS['custom'], permissions: null },
   ];
 }
 

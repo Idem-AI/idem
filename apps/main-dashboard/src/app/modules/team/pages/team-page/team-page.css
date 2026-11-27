@@ -1,0 +1,260 @@
+/*
+ * Page « Équipe ». Même vocabulaire que Communication et Mise en ligne :
+ * onglets soulignés d'un mot, cartes `.glass-card`, couleurs par jetons
+ * (aucune valeur en dur, les deux thèmes suivent).
+ */
+
+/* ── Onglets ─────────────────────────────────────────────────────────────── */
+.tm-tabs-nav {
+  margin-top: 1.5rem;
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.tm-tabs {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.tm-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-bottom: -1px;
+  padding: 0.65rem 0.9rem;
+  border-bottom: 2px solid transparent;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.tm-tab:hover {
+  color: var(--color-text-primary);
+}
+
+.tm-tab-active {
+  border-bottom-color: var(--color-primary-500);
+  color: var(--color-primary-500);
+}
+
+.tm-tab:focus-visible {
+  outline: 2px solid var(--color-primary-500);
+  outline-offset: -2px;
+}
+
+.tm-count {
+  min-width: 1.4rem;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  background: var(--glass-bg-light);
+  border: 1px solid var(--glass-border);
+  font-size: 0.7rem;
+  line-height: 1.3rem;
+  text-align: center;
+  color: var(--color-text-secondary);
+}
+
+.tm-tab-active .tm-count {
+  background: color-mix(in oklab, var(--color-primary-500) 14%, transparent);
+  border-color: transparent;
+  color: var(--color-primary-500);
+}
+
+/* ── Lignes de membres ───────────────────────────────────────────────────── */
+.tm-row {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--glass-border);
+  border-radius: 1.1rem;
+  background: var(--glass-bg);
+  transition: border-color 0.15s ease;
+}
+
+.tm-row:hover {
+  border-color: var(--glass-border-medium);
+}
+
+.tm-row--member {
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.tm-row--member > :first-child {
+  flex: 1 1 14rem;
+}
+
+.tm-row-access {
+  flex: 2 1 18rem;
+  min-width: 0;
+}
+
+.tm-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.tm-avatar {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: 999px;
+  background: var(--glass-bg-light);
+  border: 1px solid var(--glass-border);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+}
+
+.tm-avatar--owner {
+  background: var(--color-primary-500);
+  border-color: transparent;
+  color: var(--color-on-primary);
+}
+
+.tm-avatar--new {
+  border-style: dashed;
+  color: var(--color-primary-500);
+}
+
+/* Rôle : une pilule nommée */
+.tm-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.7rem;
+  border-radius: 999px;
+  background: var(--glass-bg-light);
+  border: 1px solid var(--glass-border);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.tm-pill--owner {
+  background: color-mix(in oklab, var(--color-primary-500) 14%, transparent);
+  border-color: transparent;
+  color: var(--color-primary-500);
+}
+
+/* État d'une invitation : un point de couleur et un mot */
+.tm-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+.tm-state::before {
+  content: '';
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.tm-state--pending::before {
+  background: var(--color-warning);
+}
+
+.tm-state--declined::before {
+  background: var(--color-danger);
+}
+
+.tm-state--expired::before {
+  background: var(--color-text-tertiary);
+}
+
+.tm-danger:hover {
+  color: var(--color-danger);
+  border-color: color-mix(in oklab, var(--color-danger) 40%, transparent);
+}
+
+/* ── Groupes ─────────────────────────────────────────────────────────────── */
+.tm-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  padding: 1.1rem;
+  border: 1px solid var(--glass-border);
+  border-radius: 1.1rem;
+  background: var(--glass-bg);
+  text-align: left;
+}
+
+.tm-group--new {
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 10rem;
+  border-style: dashed;
+  background: transparent;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.tm-group--new:hover {
+  border-color: var(--color-primary-500);
+  background: color-mix(in oklab, var(--color-primary-500) 5%, transparent);
+}
+
+.tm-group--new:focus-visible {
+  outline: 2px solid var(--color-primary-500);
+  outline-offset: 2px;
+}
+
+/* ── Tiroirs ─────────────────────────────────────────────────────────────── */
+.tm-steps {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem;
+}
+
+.tm-step {
+  height: 0.25rem;
+  border-radius: 999px;
+  background: var(--glass-border);
+  transition: background 0.2s ease;
+}
+
+.tm-step--on {
+  background: var(--color-primary-500);
+}
+
+.tm-preview {
+  padding: 0.9rem;
+  border-radius: 0.9rem;
+  background: var(--glass-bg-light);
+  border: 1px solid var(--glass-border);
+}
+
+.tm-alert {
+  display: flex;
+  gap: 0.6rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: 0.8rem;
+  border: 1px solid color-mix(in oklab, var(--color-danger) 30%, transparent);
+  background: color-mix(in oklab, var(--color-danger) 10%, transparent);
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: var(--color-text-secondary);
+}
+
+.tm-alert .pi {
+  color: var(--color-danger);
+}
+
+@media (max-width: 40rem) {
+  .tm-row-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}

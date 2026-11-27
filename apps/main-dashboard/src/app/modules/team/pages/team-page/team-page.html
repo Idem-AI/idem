@@ -1,30 +1,211 @@
-<div class="mx-auto flex w-full max-w-5xl flex-col gap-8 p-4 pb-12 md:p-0">
-  <header class="flex flex-col gap-2">
-    <h1 class="text-2xl font-bold text-text-primary sm:text-3xl">
-      <span class="i-underline">{{ 'team.page.title' | translate }}</span>
-    </h1>
-    <p class="max-w-2xl text-sm text-text-secondary">
-      {{ 'team.page.subtitle' | translate: { project: team()?.projectName ?? '' } }}
-    </p>
+<div class="tm-root mx-auto w-full max-w-5xl p-4 pb-12 md:p-2">
+  <!-- ═══════════════ En-tête ═══════════════ -->
+  <header class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+    <div class="min-w-0">
+      <h1 class="text-2xl font-bold text-text-primary md:text-3xl">{{ 'team.page.title' | translate }}</h1>
+      <p class="mt-1 max-w-2xl text-sm text-text-secondary">
+        {{ 'team.page.subtitle' | translate: { project: team()?.projectName ?? '' } }}
+      </p>
+    </div>
+    @if (team()) {
+      <button type="button" class="inner-button shrink-0" (click)="openInvite()">
+        <i class="pi pi-user-plus" aria-hidden="true"></i>
+        <span>{{ 'team.invite.open' | translate }}</span>
+      </button>
+    }
   </header>
 
   @if (loading()) {
-    <idem-loader block [label]="'team.page.loading' | translate" />
-  } @else if (loadFailed()) {
-    <div class="glass-card flex flex-col items-start gap-3 p-6">
-      <p class="text-sm text-text-primary">{{ 'team.page.loadFailed' | translate }}</p>
-      <button type="button" class="outer-button button-sm" (click)="retry()">{{ 'team.page.retry' | translate }}</button>
+    <!-- La forme de ce qui arrive -->
+    <div class="mt-8 space-y-3" aria-hidden="true">
+      <div class="skeleton h-10 w-56 rounded-xl"></div>
+      @for (i of [1, 2, 3]; track i) {
+        <div class="skeleton h-20 rounded-2xl"></div>
+      }
     </div>
+    <span class="sr-only" role="status">{{ 'team.page.loading' | translate }}</span>
+  } @else if (loadFailed()) {
+    <section class="glass-card mt-8 flex flex-col items-start gap-3 p-6">
+      <p class="text-sm text-text-primary">{{ 'team.page.loadFailed' | translate }}</p>
+      <button type="button" class="outer-button button-sm" (click)="retry()">
+        <i class="pi pi-refresh" aria-hidden="true"></i>
+        {{ 'team.page.retry' | translate }}
+      </button>
+    </section>
   } @else if (team(); as t) {
-    <!-- ─── 1. Inviter ───────────────────────────────────────────────────── -->
-    <section class="glass-card flex flex-col gap-5 p-5 md:p-6" aria-labelledby="invite-title">
-      <div>
-        <h2 id="invite-title" class="text-lg font-semibold text-text-primary">{{ 'team.invite.title' | translate }}</h2>
-        <p class="text-sm text-text-secondary">{{ 'team.invite.subtitle' | translate }}</p>
+    <!-- ═══════════════ Onglets : un mot chacun ═══════════════ -->
+    <nav class="tm-tabs-nav" [attr.aria-label]="'team.page.title' | translate">
+      <ul class="tm-tabs" role="tablist">
+        <li>
+          <button type="button" role="tab" class="tm-tab" [class.tm-tab-active]="tab() === 'members'" [attr.aria-selected]="tab() === 'members'" (click)="tab.set('members')">
+            <i class="pi pi-user" aria-hidden="true"></i>
+            {{ 'team.tabs.members' | translate }}
+            <span class="tm-count">{{ memberCount() }}</span>
+          </button>
+        </li>
+        <li>
+          <button type="button" role="tab" class="tm-tab" [class.tm-tab-active]="tab() === 'groups'" [attr.aria-selected]="tab() === 'groups'" (click)="tab.set('groups')">
+            <i class="pi pi-users" aria-hidden="true"></i>
+            {{ 'team.tabs.groups' | translate }}
+            <span class="tm-count">{{ t.groups.length }}</span>
+          </button>
+        </li>
+      </ul>
+    </nav>
+
+    @if (tab() === 'members') {
+      <!-- ═══════════════ Membres ═══════════════ -->
+      <section class="mt-6 flex flex-col gap-3" role="tabpanel">
+        @if (t.members.length === 0) {
+          <!-- Personne encore : l'illustration et le seul geste utile -->
+          <div class="glass-card flex flex-col items-center gap-6 p-6 text-center md:flex-row md:p-8 md:text-left">
+            <app-palaver-tree-illustration class="h-28 w-36 shrink-0 text-text-secondary md:h-32 md:w-44" />
+            <div class="flex flex-col items-center gap-2 md:items-start">
+              <h2 class="text-lg font-semibold text-text-primary">{{ 'team.members.emptyTitle' | translate }}</h2>
+              <p class="max-w-lg text-sm text-text-secondary">{{ 'team.members.emptyBody' | translate }}</p>
+              <button type="button" class="inner-button mt-2" (click)="openInvite()">
+                <i class="pi pi-user-plus" aria-hidden="true"></i>
+                <span>{{ 'team.members.emptyCta' | translate }}</span>
+              </button>
+            </div>
+          </div>
+        }
+
+        <ul class="flex flex-col gap-3">
+          <!-- Le propriétaire, toujours en tête -->
+          <li class="tm-row">
+            <span class="tm-avatar tm-avatar--owner" aria-hidden="true">{{ initials(t.owner) }}</span>
+            <div class="min-w-0 flex-1">
+              <p class="truncate text-sm font-semibold text-text-primary">
+                {{ t.owner.displayName || t.owner.email }}
+                <span class="font-normal text-text-tertiary">({{ 'team.members.you' | translate }})</span>
+              </p>
+              <p class="truncate text-xs text-text-tertiary">{{ t.owner.email }}</p>
+            </div>
+            <span class="tm-pill tm-pill--owner">
+              <i class="pi pi-shield text-xs" aria-hidden="true"></i>
+              {{ 'team.members.owner' | translate }}
+            </span>
+          </li>
+
+          @for (member of t.members; track member.id) {
+            <li class="tm-row tm-row--member">
+              <div class="flex min-w-0 flex-1 items-center gap-3">
+                <span class="tm-avatar" aria-hidden="true">{{ initials(member) }}</span>
+                <div class="min-w-0">
+                  <p class="truncate text-sm font-semibold text-text-primary">{{ member.displayName || member.email }}</p>
+                  <p class="truncate text-xs text-text-tertiary">{{ member.email }}</p>
+                </div>
+              </div>
+
+              <div class="tm-row-access">
+                <div class="flex flex-wrap items-center gap-2">
+                  @if (roleOf(member); as role) {
+                    <span class="tm-pill"><i [class]="role.icon + ' text-xs'" aria-hidden="true"></i>{{ roleLabel(role) }}</span>
+                  } @else {
+                    <span class="tm-pill"><i class="pi pi-sliders-h text-xs" aria-hidden="true"></i>{{ roleLabel(undefined) }}</span>
+                  }
+                  @switch (stateOf(member)) {
+                    @case ('pending') {
+                      <span class="tm-state tm-state--pending">{{ 'team.status.pending' | translate }}</span>
+                    }
+                    @case ('declined') {
+                      <span class="tm-state tm-state--declined">{{ 'team.status.declined' | translate }}</span>
+                    }
+                    @case ('expired') {
+                      <span class="tm-state tm-state--expired">{{ 'team.status.expired' | translate }}</span>
+                    }
+                  }
+                </div>
+                <app-access-summary class="mt-2 block" [permissions]="member.permissions" />
+              </div>
+
+              <div class="tm-row-actions">
+                @if (stateOf(member) !== 'active') {
+                  <button
+                    type="button"
+                    class="button-icon"
+                    [disabled]="busyMemberId() === member.id"
+                    [attr.aria-label]="'team.members.resendAria' | translate: { name: member.email }"
+                    [title]="'team.members.resend' | translate"
+                    (click)="resend(member)"
+                  >
+                    @if (busyMemberId() === member.id) { <idem-loader size="xs" /> } @else { <i class="pi pi-replay text-sm" aria-hidden="true"></i> }
+                  </button>
+                }
+                <button type="button" class="outer-button button-sm" (click)="openMember(member)">
+                  <i class="pi pi-sliders-h" aria-hidden="true"></i>
+                  <span>{{ 'team.members.edit' | translate }}</span>
+                </button>
+                <button
+                  type="button"
+                  class="button-icon tm-danger"
+                  [attr.aria-label]="(stateOf(member) === 'active' ? 'team.members.removeAria' : 'team.members.cancelInviteAria') | translate: { name: member.displayName || member.email }"
+                  [title]="(stateOf(member) === 'active' ? 'team.members.remove' : 'team.members.cancelInvite') | translate"
+                  (click)="toRemove.set(member)"
+                >
+                  <i class="pi pi-trash text-sm" aria-hidden="true"></i>
+                </button>
+              </div>
+            </li>
+          }
+        </ul>
+      </section>
+    } @else {
+      <!-- ═══════════════ Groupes ═══════════════ -->
+      <section class="mt-6 flex flex-col gap-4" role="tabpanel">
+        <p class="max-w-2xl text-sm text-text-secondary">{{ 'team.groups.subtitle' | translate }}</p>
+
+        <div class="grid gap-3 sm:grid-cols-2">
+          @for (group of t.groups; track group.id) {
+            <article class="tm-group">
+              <div class="flex items-start gap-3">
+                <span class="tm-avatar" aria-hidden="true"><i class="pi pi-users text-sm"></i></span>
+                <div class="min-w-0 flex-1">
+                  <h3 class="truncate text-sm font-semibold text-text-primary">{{ group.name }}</h3>
+                  <p class="text-xs text-text-tertiary">{{ 'team.groups.memberCount' | translate: { count: group.memberCount } }}</p>
+                </div>
+                <button type="button" class="button-icon tm-danger" [attr.aria-label]="'team.groups.deleteAria' | translate: { name: group.name }" (click)="toDeleteGroup.set(group)">
+                  <i class="pi pi-trash text-sm" aria-hidden="true"></i>
+                </button>
+              </div>
+              <app-access-summary class="block" [permissions]="group.permissions" />
+              <button type="button" class="outer-button button-sm self-start" (click)="openGroup(group)">
+                <i class="pi pi-sliders-h" aria-hidden="true"></i>
+                <span>{{ 'team.groups.edit' | translate }}</span>
+              </button>
+            </article>
+          }
+
+          <!-- Nouveau groupe : la même forme qu'un groupe, en pointillés -->
+          <button type="button" class="tm-group tm-group--new" (click)="openGroup()">
+            <span class="tm-avatar tm-avatar--new" aria-hidden="true"><i class="pi pi-plus text-sm"></i></span>
+            <span class="text-sm font-semibold text-text-primary">{{ 'team.groups.create' | translate }}</span>
+            <span class="text-xs text-text-tertiary">{{ 'team.groups.createHint' | translate }}</span>
+          </button>
+        </div>
+      </section>
+    }
+  }
+</div>
+
+<!-- ═══════════════ Tiroirs ═══════════════ -->
+@switch (drawer()?.kind) {
+  @case ('invite') {
+    <app-team-drawer
+      [eyebrow]="'team.invite.stepOf' | translate: { step: inviteStep() }"
+      [heading]="(inviteStep() === 1 ? 'team.invite.step1' : 'team.invite.step2') | translate"
+      [subheading]="inviteStep() === 2 ? email() : ''"
+      (closed)="closeDrawer()"
+    >
+      <!-- Deux traits : où l'on en est -->
+      <div class="tm-steps mb-6" aria-hidden="true">
+        <span class="tm-step tm-step--on"></span>
+        <span class="tm-step" [class.tm-step--on]="inviteStep() === 2"></span>
       </div>
 
-      <form class="flex flex-col gap-5" (submit)="invite($event)" novalidate>
-        <div class="flex flex-col gap-1.5">
+      @if (inviteStep() === 1) {
+        <form class="flex flex-col gap-2" (submit)="nextStep($event)" novalidate>
           <label for="invite-email" class="text-sm font-medium text-text-primary">{{ 'team.invite.emailLabel' | translate }}</label>
           <input
             id="invite-email"
@@ -34,278 +215,150 @@
             [placeholder]="'team.invite.emailPlaceholder' | translate"
             [value]="email()"
             (input)="onEmail($event)"
-            [disabled]="inviting()"
-            [attr.aria-invalid]="inviteError() ? 'true' : null"
-            [attr.aria-describedby]="inviteError() ? 'invite-error' : 'invite-email-hint'"
+            [attr.aria-invalid]="error() ? 'true' : null"
+            [attr.aria-describedby]="error() ? 'invite-error' : 'invite-email-hint'"
           />
-          @if (inviteError(); as code) {
-            <p id="invite-error" role="alert" class="rounded-lg border border-danger/20 bg-danger/10 p-3 text-sm text-text-primary">
-              @if (code === 'no_account') {
-                <strong class="block">{{ 'team.errors.no_account_title' | translate }}</strong>
-              }
-              {{ errorText(code) }}
-            </p>
+          @if (error(); as code) {
+            <div id="invite-error" role="alert" class="tm-alert">
+              <i class="pi pi-exclamation-circle mt-0.5" aria-hidden="true"></i>
+              <p>
+                @if (code === 'no_account') {
+                  <strong class="block text-text-primary">{{ 'team.errors.no_account_title' | translate }}</strong>
+                }
+                {{ errorText(code) }}
+              </p>
+            </div>
           } @else {
             <p id="invite-email-hint" class="text-xs text-text-tertiary">{{ 'team.invite.emailHint' | translate }}</p>
           }
-        </div>
-
-        <app-role-picker
-          [options]="options()"
-          [selected]="inviteKey()"
-          [disabled]="inviting()"
-          (selectedChange)="onInviteKey($event)"
-        />
-
-        @if (inviteOption(); as option) {
-          @if (option.roleKey === 'custom') {
-            <app-permissions-editor [value]="inviteCustom()" [disabled]="inviting()" (valueChange)="inviteCustom.set($event)" />
-          } @else if (option.permissions) {
-            <div class="rounded-xl border border-[var(--glass-border-subtle)] p-3">
-              <app-access-summary [permissions]="option.permissions" />
-            </div>
-          }
-        }
-
-        <div class="flex flex-wrap items-center gap-3">
-          <button type="submit" class="inner-button" [disabled]="!canInvite()">
-            @if (inviting()) {
-              <idem-loader size="xs" />
-            } @else {
-              <i class="pi pi-send" aria-hidden="true"></i>
+          <!-- Entrée valide l'étape ; le bouton du bas fait de même. -->
+          <button type="submit" class="sr-only">{{ 'team.invite.next' | translate }}</button>
+        </form>
+      } @else {
+        <div class="flex flex-col gap-5">
+          <app-role-picker legendKey="team.invite.roleLegend" [options]="options()" [selected]="roleKey()" [disabled]="saving()" (selectedChange)="chooseRole($event)" />
+          @if (roleOption(); as option) {
+            @if (option.roleKey === 'custom') {
+              <app-permissions-editor [value]="custom()" [disabled]="saving()" (valueChange)="custom.set($event)" />
+            } @else if (option.permissions) {
+              <div class="tm-preview">
+                <p class="mb-2 text-xs font-medium uppercase tracking-wide text-text-tertiary">{{ 'team.invite.preview' | translate }}</p>
+                <app-access-summary [permissions]="option.permissions" />
+              </div>
             }
+          }
+          @if (error(); as code) {
+            <div role="alert" class="tm-alert"><i class="pi pi-exclamation-circle mt-0.5" aria-hidden="true"></i><p>{{ errorText(code) }}</p></div>
+          }
+        </div>
+      }
+
+      <ng-container drawer-actions>
+        @if (inviteStep() === 1) {
+          <button type="button" class="button-ghost button-sm" (click)="closeDrawer()">{{ 'team.common.cancel' | translate }}</button>
+          <button type="button" class="inner-button button-sm" [disabled]="!email().trim()" (click)="nextStep()">
+            <span>{{ 'team.invite.next' | translate }}</span>
+            <i class="pi pi-arrow-right" aria-hidden="true"></i>
+          </button>
+        } @else {
+          <button type="button" class="button-ghost button-sm mr-auto" [disabled]="saving()" (click)="inviteStep.set(1)">
+            <i class="pi pi-arrow-left" aria-hidden="true"></i>
+            <span>{{ 'team.invite.back' | translate }}</span>
+          </button>
+          <button type="button" class="inner-button button-sm" [disabled]="!roleReady() || saving()" (click)="sendInvite()">
+            @if (saving()) { <idem-loader size="xs" /> } @else { <i class="pi pi-send" aria-hidden="true"></i> }
             <span>{{ 'team.invite.send' | translate }}</span>
           </button>
-          <p class="text-xs text-text-tertiary">{{ 'team.invite.after' | translate }}</p>
-        </div>
-      </form>
-    </section>
-
-    <!-- ─── 2. Membres ───────────────────────────────────────────────────── -->
-    <section class="flex flex-col gap-3" aria-labelledby="members-title">
-      <h2 id="members-title" class="text-lg font-semibold text-text-primary">
-        {{ 'team.members.title' | translate }}
-        <span class="text-sm font-normal text-text-tertiary">({{ t.members.length + 1 }})</span>
-      </h2>
-
-      <ul class="glass-card divide-y divide-[var(--glass-border-subtle)] p-0">
-        <!-- Le propriétaire, toujours en tête -->
-        <li class="flex items-center gap-3 p-4">
-          <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary-500" aria-hidden="true">
-            {{ initials(t.owner) }}
-          </span>
-          <div class="min-w-0 flex-1">
-            <p class="truncate text-sm font-medium text-text-primary">
-              {{ t.owner.displayName || t.owner.email }}
-              <span class="text-text-tertiary">· {{ 'team.members.you' | translate }}</span>
-            </p>
-            <p class="truncate text-xs text-text-tertiary">{{ t.owner.email }}</p>
-          </div>
-          <span class="tag">{{ 'team.members.owner' | translate }}</span>
-        </li>
-
-        @for (member of t.members; track member.id) {
-          <li class="flex flex-col gap-3 p-4">
-            <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <div class="flex min-w-0 flex-1 items-center gap-3">
-                <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--glass-bg-light)] text-sm font-semibold text-text-secondary" aria-hidden="true">
-                  {{ initials(member) }}
-                </span>
-                <div class="min-w-0">
-                  <p class="truncate text-sm font-medium text-text-primary">{{ member.displayName || member.email }}</p>
-                  <p class="truncate text-xs text-text-tertiary">{{ member.email }}</p>
-                </div>
-              </div>
-
-              <div class="flex flex-wrap items-center gap-2">
-                @switch (stateOf(member)) {
-                  @case ('pending') {
-                    <span class="tag"><span class="status-dot" aria-hidden="true"></span>{{ 'team.status.pending' | translate }}</span>
-                  }
-                  @case ('declined') {
-                    <span class="tag">{{ 'team.status.declined' | translate }}</span>
-                  }
-                  @case ('expired') {
-                    <span class="tag">{{ 'team.status.expired' | translate }}</span>
-                  }
-                }
-                <span class="tag">{{ roleLabel(member) }}</span>
-              </div>
-            </div>
-
-            @if (editingId() === member.id) {
-              <div class="flex flex-col gap-4 rounded-xl border border-[var(--glass-border-subtle)] p-4">
-                <app-role-picker
-                  legendKey="team.members.changeLegend"
-                  [options]="options()"
-                  [selected]="editKey()"
-                  [disabled]="savingMember()"
-                  (selectedChange)="onEditKey($event)"
-                />
-                @if (editOption(); as option) {
-                  @if (option.roleKey === 'custom') {
-                    <app-permissions-editor [value]="editCustom()" [disabled]="savingMember()" (valueChange)="editCustom.set($event)" />
-                  } @else if (option.permissions) {
-                    <app-access-summary [permissions]="option.permissions" />
-                  }
-                }
-                <div class="flex justify-end gap-2">
-                  <button type="button" class="button-ghost button-sm" [disabled]="savingMember()" (click)="cancelEdit()">
-                    {{ 'team.common.cancel' | translate }}
-                  </button>
-                  <button type="button" class="inner-button button-sm" [disabled]="savingMember()" (click)="saveMember(member)">
-                    @if (savingMember()) {
-                      <idem-loader size="xs" />
-                    }
-                    <span>{{ 'team.common.save' | translate }}</span>
-                  </button>
-                </div>
-              </div>
-            } @else {
-              <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:pl-13">
-                <app-access-summary [permissions]="member.permissions" />
-                <div class="flex flex-wrap gap-2">
-                  @if (stateOf(member) !== 'active') {
-                    <button type="button" class="outer-button button-sm" [disabled]="busyMemberId() === member.id" (click)="resend(member)">
-                      @if (busyMemberId() === member.id) {
-                        <idem-loader size="xs" />
-                      }
-                      <span>{{ 'team.members.resend' | translate }}</span>
-                    </button>
-                  }
-                  <button type="button" class="outer-button button-sm" (click)="startEdit(member)">
-                    <i class="pi pi-sliders-h" aria-hidden="true"></i>
-                    <span>{{ 'team.members.edit' | translate }}</span>
-                  </button>
-                  <button
-                    type="button"
-                    class="button-ghost button-sm"
-                    [attr.aria-label]="(stateOf(member) === 'active' ? 'team.members.removeAria' : 'team.members.cancelInviteAria') | translate: { name: member.displayName || member.email }"
-                    (click)="toRemove.set(member)"
-                  >
-                    {{ (stateOf(member) === 'active' ? 'team.members.remove' : 'team.members.cancelInvite') | translate }}
-                  </button>
-                </div>
-              </div>
-            }
-          </li>
         }
-      </ul>
-
-      @if (t.members.length === 0) {
-        <div class="flex flex-col items-center gap-3 px-6 py-8 text-center">
-          <app-palaver-tree-illustration class="h-24 w-32 text-text-tertiary" />
-          <p class="text-sm font-medium text-text-primary">{{ 'team.members.emptyTitle' | translate }}</p>
-          <p class="max-w-md text-xs text-text-tertiary">{{ 'team.members.emptyBody' | translate }}</p>
-        </div>
-      }
-    </section>
-
-    <!-- ─── 3. Groupes ───────────────────────────────────────────────────── -->
-    <section class="flex flex-col gap-3" aria-labelledby="groups-title">
-      <div class="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h2 id="groups-title" class="text-lg font-semibold text-text-primary">{{ 'team.groups.title' | translate }}</h2>
-          <p class="max-w-2xl text-sm text-text-secondary">{{ 'team.groups.subtitle' | translate }}</p>
-        </div>
-        @if (!groupDraft()) {
-          <button type="button" class="outer-button button-sm shrink-0" (click)="newGroup()">
-            <i class="pi pi-plus" aria-hidden="true"></i>
-            <span>{{ 'team.groups.create' | translate }}</span>
-          </button>
-        }
-      </div>
-
-      @if (groupDraft(); as draft) {
-        <form class="glass-card flex flex-col gap-4 p-5" (submit)="saveGroup($event)" novalidate>
-          <h3 class="text-base font-semibold text-text-primary">
-            {{ (draft.id ? 'team.groups.editTitle' : 'team.groups.newTitle') | translate }}
-          </h3>
-          <div class="flex flex-col gap-1.5">
-            <label for="group-name" class="text-sm font-medium text-text-primary">{{ 'team.groups.nameLabel' | translate }}</label>
-            <input
-              id="group-name"
-              type="text"
-              maxlength="60"
-              [placeholder]="'team.groups.namePlaceholder' | translate"
-              [value]="draft.name"
-              (input)="onGroupName($event)"
-              [disabled]="savingGroup()"
-            />
-          </div>
-          <div>
-            <p class="mb-2 text-sm font-medium text-text-primary">{{ 'team.groups.accessLabel' | translate }}</p>
-            <app-permissions-editor [value]="draft.permissions" [disabled]="savingGroup()" (valueChange)="onGroupPermissions($event)" />
-          </div>
-          @if (groupError(); as code) {
-            <p role="alert" class="rounded-lg border border-danger/20 bg-danger/10 p-3 text-sm text-text-primary">{{ errorText(code) }}</p>
-          }
-          <div class="flex justify-end gap-2">
-            <button type="button" class="button-ghost button-sm" [disabled]="savingGroup()" (click)="groupDraft.set(null)">
-              {{ 'team.common.cancel' | translate }}
-            </button>
-            <button type="submit" class="inner-button button-sm" [disabled]="savingGroup()">
-              @if (savingGroup()) {
-                <idem-loader size="xs" />
-              }
-              <span>{{ (draft.id ? 'team.common.save' : 'team.groups.createConfirm') | translate }}</span>
-            </button>
-          </div>
-        </form>
-      }
-
-      @if (t.groups.length > 0) {
-        <ul class="glass-card divide-y divide-[var(--glass-border-subtle)] p-0">
-          @for (group of t.groups; track group.id) {
-            <li class="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-              <div class="flex min-w-0 flex-col gap-1">
-                <p class="text-sm font-medium text-text-primary">
-                  <i class="pi pi-users mr-1 text-xs text-text-tertiary" aria-hidden="true"></i>
-                  {{ group.name }}
-                  <span class="text-xs font-normal text-text-tertiary">
-                    · {{ 'team.groups.memberCount' | translate: { count: group.memberCount } }}
-                  </span>
-                </p>
-                <app-access-summary [permissions]="group.permissions" />
-              </div>
-              <div class="flex gap-2">
-                <button type="button" class="outer-button button-sm" (click)="editGroup(group)">{{ 'team.groups.edit' | translate }}</button>
-                <button type="button" class="button-ghost button-sm" (click)="toDeleteGroup.set(group)">{{ 'team.groups.delete' | translate }}</button>
-              </div>
-            </li>
-          }
-        </ul>
-      } @else if (!groupDraft()) {
-        <p class="text-xs text-text-tertiary">{{ 'team.groups.empty' | translate }}</p>
-      }
-    </section>
+      </ng-container>
+    </app-team-drawer>
   }
-</div>
 
-<!-- Retirer un membre / annuler une invitation -->
+  @case ('member') {
+    @if (drawer(); as d) {
+      @if (d.kind === 'member') {
+        <app-team-drawer
+          [eyebrow]="'team.members.drawerEyebrow' | translate"
+          [heading]="d.member.displayName || d.member.email"
+          [subheading]="d.member.email"
+          (closed)="closeDrawer()"
+        >
+          <div class="flex flex-col gap-5">
+            <app-role-picker legendKey="team.members.changeLegend" [options]="options()" [selected]="roleKey()" [disabled]="saving()" (selectedChange)="chooseRole($event)" />
+            @if (roleOption(); as option) {
+              @if (option.roleKey === 'custom') {
+                <app-permissions-editor [value]="custom()" [disabled]="saving()" (valueChange)="custom.set($event)" />
+              } @else if (option.permissions) {
+                <div class="tm-preview">
+                  <p class="mb-2 text-xs font-medium uppercase tracking-wide text-text-tertiary">{{ 'team.members.preview' | translate }}</p>
+                  <app-access-summary [permissions]="option.permissions" />
+                </div>
+              }
+            }
+            @if (error(); as code) {
+              <div role="alert" class="tm-alert"><i class="pi pi-exclamation-circle mt-0.5" aria-hidden="true"></i><p>{{ errorText(code) }}</p></div>
+            }
+          </div>
+          <ng-container drawer-actions>
+            <button type="button" class="button-ghost button-sm" [disabled]="saving()" (click)="closeDrawer()">{{ 'team.common.cancel' | translate }}</button>
+            <button type="button" class="inner-button button-sm" [disabled]="!roleReady() || saving()" (click)="saveMember(d.member)">
+              @if (saving()) { <idem-loader size="xs" /> }
+              <span>{{ 'team.common.save' | translate }}</span>
+            </button>
+          </ng-container>
+        </app-team-drawer>
+      }
+    }
+  }
+
+  @case ('group') {
+    @if (drawer(); as d) {
+      @if (d.kind === 'group') {
+        <app-team-drawer
+          [eyebrow]="'team.tabs.groups' | translate"
+          [heading]="(d.draft.id ? 'team.groups.editTitle' : 'team.groups.newTitle') | translate"
+          (closed)="closeDrawer()"
+        >
+          <div class="flex flex-col gap-5">
+            <div class="flex flex-col gap-1.5">
+              <label for="group-name" class="text-sm font-medium text-text-primary">{{ 'team.groups.nameLabel' | translate }}</label>
+              <input id="group-name" type="text" maxlength="60" [placeholder]="'team.groups.namePlaceholder' | translate" [value]="d.draft.name" (input)="onGroupName(d.draft, $event)" [disabled]="saving()" />
+            </div>
+            <div>
+              <p class="mb-3 text-sm font-semibold text-text-primary">{{ 'team.groups.accessLabel' | translate }}</p>
+              <app-permissions-editor [value]="d.draft.permissions" [disabled]="saving()" (valueChange)="onGroupPermissions(d.draft, $event)" />
+            </div>
+            @if (error(); as code) {
+              <div role="alert" class="tm-alert"><i class="pi pi-exclamation-circle mt-0.5" aria-hidden="true"></i><p>{{ errorText(code) }}</p></div>
+            }
+          </div>
+          <ng-container drawer-actions>
+            <button type="button" class="button-ghost button-sm" [disabled]="saving()" (click)="closeDrawer()">{{ 'team.common.cancel' | translate }}</button>
+            <button type="button" class="inner-button button-sm" [disabled]="saving()" (click)="saveGroup(d.draft)">
+              @if (saving()) { <idem-loader size="xs" /> }
+              <span>{{ (d.draft.id ? 'team.common.save' : 'team.groups.createConfirm') | translate }}</span>
+            </button>
+          </ng-container>
+        </app-team-drawer>
+      }
+    }
+  }
+}
+
+<!-- ═══════════════ Confirmations ═══════════════ -->
 @if (toRemove(); as member) {
-  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" (click)="toRemove.set(null)">
-    <div
-      class="modal-panel w-full max-w-md space-y-5 p-6"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="remove-title"
-      (click)="$event.stopPropagation()"
-    >
-      <h3 id="remove-title" class="text-lg font-bold text-text-primary">
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" (click)="toRemove.set(null)">
+    <div class="modal-panel w-full max-w-md space-y-4 p-6" role="dialog" aria-modal="true" aria-labelledby="remove-title" (click)="$event.stopPropagation()">
+      <h2 id="remove-title" class="text-lg font-semibold text-text-primary">
         {{ (stateOf(member) === 'active' ? 'team.members.removeTitle' : 'team.members.cancelInviteTitle') | translate }}
-      </h3>
+      </h2>
       <p class="text-sm text-text-secondary">
         {{ (stateOf(member) === 'active' ? 'team.members.removeBody' : 'team.members.cancelInviteBody') | translate: { name: member.displayName || member.email } }}
       </p>
-      <div class="flex justify-end gap-3">
-        <button type="button" class="button-ghost button-sm" [disabled]="busyMemberId() === member.id" (click)="toRemove.set(null)">
-          {{ 'team.common.cancel' | translate }}
-        </button>
+      <div class="flex justify-end gap-3 pt-2">
+        <button type="button" class="button-ghost button-sm" [disabled]="busyMemberId() === member.id" (click)="toRemove.set(null)">{{ 'team.common.cancel' | translate }}</button>
         <button type="button" class="inner-button button-sm bg-danger" [disabled]="busyMemberId() === member.id" (click)="confirmRemove()">
-          @if (busyMemberId() === member.id) {
-            <idem-loader size="xs" />
-          }
+          @if (busyMemberId() === member.id) { <idem-loader size="xs" /> }
           <span>{{ (stateOf(member) === 'active' ? 'team.members.remove' : 'team.members.cancelInvite') | translate }}</span>
         </button>
       </div>
@@ -313,26 +366,15 @@
   </div>
 }
 
-<!-- Supprimer un groupe -->
 @if (toDeleteGroup(); as group) {
-  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" (click)="toDeleteGroup.set(null)">
-    <div
-      class="modal-panel w-full max-w-md space-y-5 p-6"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="delete-group-title"
-      (click)="$event.stopPropagation()"
-    >
-      <h3 id="delete-group-title" class="text-lg font-bold text-text-primary">{{ 'team.groups.deleteTitle' | translate: { name: group.name } }}</h3>
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" (click)="toDeleteGroup.set(null)">
+    <div class="modal-panel w-full max-w-md space-y-4 p-6" role="dialog" aria-modal="true" aria-labelledby="delete-group-title" (click)="$event.stopPropagation()">
+      <h2 id="delete-group-title" class="text-lg font-semibold text-text-primary">{{ 'team.groups.deleteTitle' | translate: { name: group.name } }}</h2>
       <p class="text-sm text-text-secondary">{{ 'team.groups.deleteBody' | translate }}</p>
-      <div class="flex justify-end gap-3">
-        <button type="button" class="button-ghost button-sm" [disabled]="savingGroup()" (click)="toDeleteGroup.set(null)">
-          {{ 'team.common.cancel' | translate }}
-        </button>
-        <button type="button" class="inner-button button-sm bg-danger" [disabled]="savingGroup()" (click)="confirmDeleteGroup()">
-          @if (savingGroup()) {
-            <idem-loader size="xs" />
-          }
+      <div class="flex justify-end gap-3 pt-2">
+        <button type="button" class="button-ghost button-sm" [disabled]="saving()" (click)="toDeleteGroup.set(null)">{{ 'team.common.cancel' | translate }}</button>
+        <button type="button" class="inner-button button-sm bg-danger" [disabled]="saving()" (click)="confirmDeleteGroup()">
+          @if (saving()) { <idem-loader size="xs" /> }
           <span>{{ 'team.groups.delete' | translate }}</span>
         </button>
       </div>

@@ -1,59 +1,84 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { TranslateModule } from '@ngx-translate/core';
-import { RoleOption } from '../../team-spaces';
+import { RoleOption, summarize } from '../../team-spaces';
 
 let nextPickerId = 0;
 
 /**
- * « Ce qu'elle pourra faire » : des cartes à choisir, une seule à la fois.
+ * « Que pourra-t-elle faire ? » : des cartes, une seule choisie.
  *
- * La plupart des propriétaires pensent en rôles (« mon associé », « ma
- * communication ») ; les groupes du projet viennent ensuite, puis « Sur
- * mesure » pour régler espace par espace. Boutons radio natifs sous des
- * cartes : sélection au clavier et annonce correcte sans code à nous.
+ * Chaque carte porte un pictogramme, un nom que l'on comprend (« Associé »,
+ * « Communication »), une phrase, et le compte de ce qu'elle ouvre
+ * (« modifie 3 · voit 2 ») : on choisit sans ouvrir de réglage. Les groupes
+ * du projet viennent après les rôles ; « Sur mesure » ouvre le réglage détaillé.
+ * Boutons radio natifs sous les cartes : clavier et lecteurs d'écran inclus.
  */
 @Component({
   selector: 'app-role-picker',
   imports: [TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: `
-    .role-card {
+    .rp-card {
       position: relative;
       display: flex;
-      flex-direction: column;
-      gap: 0.2rem;
+      gap: 0.75rem;
       margin: 0;
-      padding: 0.75rem 0.9rem;
-      border: 1px solid var(--glass-border-subtle);
-      border-radius: 0.75rem;
+      padding: 0.85rem;
+      border: 1px solid var(--glass-border);
+      border-radius: 1rem;
+      background: var(--glass-bg-light);
       cursor: pointer;
-      transition: border-color 0.15s ease;
+      transition: border-color 0.15s ease, background 0.15s ease;
     }
-    .role-card:hover {
+    .rp-card:hover {
+      border-color: var(--glass-border-medium);
+    }
+    .rp-card:has(input:checked) {
       border-color: var(--color-primary-500);
+      background: color-mix(in oklab, var(--color-primary-500) 8%, transparent);
     }
-    .role-card:has(input:checked) {
-      border-color: var(--color-primary-500);
-      box-shadow: inset 0 0 0 1px var(--color-primary-500);
-    }
-    .role-card:has(input:focus-visible) {
+    .rp-card:has(input:focus-visible) {
       outline: 2px solid var(--color-primary-500);
       outline-offset: 2px;
     }
-    .role-card input[type='radio'] {
+    .rp-card input[type='radio'] {
       position: absolute;
-      opacity: 0;
       inset: 0;
       margin: 0;
+      opacity: 0;
       cursor: pointer;
+    }
+    .rp-icon {
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+      width: 2.25rem;
+      height: 2.25rem;
+      border-radius: 0.7rem;
+      background: var(--glass-bg-medium);
+      color: var(--color-text-secondary);
+    }
+    .rp-card:has(input:checked) .rp-icon {
+      background: var(--color-primary-500);
+      color: var(--color-on-primary);
+    }
+    .rp-check {
+      position: absolute;
+      top: 0.6rem;
+      right: 0.6rem;
+      color: var(--color-primary-500);
+      opacity: 0;
+    }
+    .rp-card:has(input:checked) .rp-check {
+      opacity: 1;
     }
   `,
   template: `
     <fieldset class="m-0 border-0 p-0">
-      <legend class="mb-2 text-sm font-medium text-text-primary">{{ legendKey() | translate }}</legend>
-      <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+      <legend class="mb-3 text-sm font-semibold text-text-primary">{{ legendKey() | translate }}</legend>
+      <div class="grid gap-2 sm:grid-cols-2">
         @for (option of options(); track option.key) {
-          <label class="role-card">
+          <label class="rp-card">
             <input
               type="radio"
               [name]="uid"
@@ -62,15 +87,19 @@ let nextPickerId = 0;
               [disabled]="disabled()"
               (change)="selectedChange.emit(option.key)"
             />
-            <span class="flex items-center gap-2 text-sm font-semibold text-text-primary">
-              @if (option.roleKey === 'group') {
-                <i class="pi pi-users text-xs text-text-tertiary" aria-hidden="true"></i>
+            <span class="rp-icon" aria-hidden="true"><i [class]="option.icon"></i></span>
+            <span class="flex min-w-0 flex-col gap-0.5 pr-4">
+              <span class="text-sm font-semibold text-text-primary">{{ option.label ?? (option.labelKey! | translate) }}</span>
+              @if (option.hintKey) {
+                <span class="text-xs leading-snug text-text-tertiary">{{ option.hintKey | translate }}</span>
               }
-              {{ option.label ?? (option.labelKey! | translate) }}
+              @if (option.permissions; as permissions) {
+                <span class="mt-1 text-[0.7rem] font-medium text-text-secondary">
+                  {{ 'team.roles.counts' | translate: { write: count(permissions).write, read: count(permissions).read } }}
+                </span>
+              }
             </span>
-            @if (option.hintKey) {
-              <span class="text-xs text-text-tertiary">{{ option.hintKey | translate }}</span>
-            }
+            <i class="pi pi-check-circle rp-check" aria-hidden="true"></i>
           </label>
         }
       </div>
@@ -85,4 +114,9 @@ export class RolePickerComponent {
   readonly selectedChange = output<string>();
 
   protected readonly uid = `role-${++nextPickerId}`;
+
+  protected count(permissions: Parameters<typeof summarize>[0]): { write: number; read: number } {
+    const { write, read } = summarize(permissions);
+    return { write: write.length, read: read.length };
+  }
 }

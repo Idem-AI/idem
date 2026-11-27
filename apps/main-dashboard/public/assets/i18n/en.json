@@ -6254,7 +6254,7 @@
       "save": "Save"
     },
     "levels": {
-      "none": "No access",
+      "none": "None",
       "read": "View",
       "write": "Edit"
     },
@@ -6325,12 +6325,14 @@
         "label": "Custom",
         "hint": "Choose yourself, space by space"
       },
-      "groupHint": "Group of this project"
+      "groupHint": "Group of this project",
+      "counts": "Edits {{write}} · views {{read}}"
     },
     "summary": {
-      "write": "Can edit: ",
-      "read": "Can view: ",
-      "nothing": "No access"
+      "write": "Edits",
+      "read": "Views",
+      "nothing": "No access",
+      "label": "Access"
     },
     "editor": {
       "quick": "Set everything to:",
@@ -6348,7 +6350,14 @@
       "send": "Send invitation",
       "after": "You can change their access at any time.",
       "sentTitle": "Invitation sent",
-      "sentBody": "An email was sent to {{email}}. The invitation is valid for 14 days."
+      "sentBody": "An email was sent to {{email}}. The invitation is valid for 14 days.",
+      "open": "Invite",
+      "stepOf": "Step {{step}} of 2",
+      "step1": "Who do you want to invite?",
+      "step2": "What will they be able to do?",
+      "next": "Continue",
+      "back": "Back",
+      "preview": "They will have access to"
     },
     "members": {
       "title": "People with access",
@@ -6368,7 +6377,11 @@
       "savedTitle": "Access updated",
       "savedBody": "The new access applies right away.",
       "emptyTitle": "You are alone on this project for now",
-      "emptyBody": "Invite a partner, the person who runs your communication or the one building your site: each will only see what you open to them."
+      "emptyBody": "Invite a partner, the person who runs your communication or the one building your site: each will only see what you open to them.",
+      "emptyCta": "Invite someone",
+      "resendAria": "Resend the invitation to {{name}}",
+      "drawerEyebrow": "Access",
+      "preview": "Access with this role"
     },
     "status": {
       "pending": "Waiting for an answer",
@@ -6390,7 +6403,9 @@
       "delete": "Delete",
       "deleteTitle": "Delete the group “{{name}}”?",
       "deleteBody": "Its members keep exactly the same access, now set one by one.",
-      "empty": "No groups yet. Once created, a group appears among the roles offered when inviting."
+      "empty": "No groups yet. Once created, a group appears among the roles offered when inviting.",
+      "createHint": "Shared access, set once",
+      "deleteAria": "Delete the group {{name}}"
     },
     "errors": {
       "title": "Action not possible",
@@ -6447,6 +6462,10 @@
       "title": "View only",
       "body": "You can view “{{space}}” without changing it. For more access, ask {{owner}}.",
       "blocked": "You have view-only access to this space. The project owner can give you edit rights."
+    },
+    "tabs": {
+      "members": "Members",
+      "groups": "Groups"
     }
   }
 }
