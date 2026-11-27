@@ -35,8 +35,9 @@ export function registerIdemServiceWorker(options: IdemServiceWorkerOptions = {}
 
   const start = (): void => {
     void navigator.serviceWorker.register(url).then((registration) => {
-      // Une version déjà en attente : prévenir tout de suite.
-      if (registration.waiting) options.onUpdate?.();
+      // Une version restée en attente (ancien worker sans `skipWaiting`) :
+      // la faire passer aux commandes, sans rechargement.
+      registration.waiting?.postMessage('idem-sw:skip-waiting');
 
       registration.addEventListener('updatefound', () => {
         const installing = registration.installing;
@@ -78,29 +79,4 @@ export async function unregisterIdemServiceWorker(): Promise<void> {
   }
   // Après désinscription, le rechargement n'a plus de contrôleur : pas de boucle.
   if (navigator.serviceWorker.controller) window.location.reload();
-}
-
-/**
- * Applique la version en attente et recharge. À n'appeler que sur un geste de
- * l'utilisateur : échanger les fichiers pendant qu'il travaille lui ferait
- * perdre ce qu'il est en train de faire.
- */
-export async function applyIdemServiceWorkerUpdate(): Promise<void> {
-  if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
-
-  const registration = await navigator.serviceWorker.getRegistration();
-  const waiting = registration?.waiting;
-  if (!waiting) {
-    window.location.reload();
-    return;
-  }
-
-  // Recharger seulement une fois le nouveau worker aux commandes, sinon la
-  // page repartirait sur l'ancienne version.
-  navigator.serviceWorker.addEventListener(
-    'controllerchange',
-    () => window.location.reload(),
-    { once: true },
-  );
-  waiting.postMessage('idem-sw:skip-waiting');
 }

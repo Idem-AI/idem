@@ -8,12 +8,11 @@ import { ThemeService } from './shared/services/theme.service';
 import { Header } from './components/header/header';
 import { Footer } from './components/footer/footer';
 import { DockComponent } from './components/dock/dock';
-import { IdemUpdateBannerComponent } from '@idem/shared-offline/angular';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, Header, Footer, IdemUpdateBannerComponent, DockComponent],
+  imports: [RouterOutlet, Header, Footer, DockComponent],
   templateUrl: './app.html',
   styleUrl: './app.css',
 })
@@ -23,9 +22,6 @@ export class App implements OnInit {
   /** The home page (/fr/, /en/, /home): the only one whose dock shows the partners. */
   protected readonly isHome = signal(this.homeUrl(this.router.url));
 
-  protected readonly updateLabel = $localize`:@@appUpdateMessage:Une nouvelle version est disponible.`;
-  protected readonly updateAction = $localize`:@@appUpdateReload:Actualiser`;
-  protected readonly updateDismiss = $localize`:@@appUpdateLater:Plus tard`;
 
   // Force Analytics service initialization
   private readonly analytics = inject(AnalyticsService);

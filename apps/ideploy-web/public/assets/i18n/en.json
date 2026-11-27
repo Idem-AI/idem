@@ -2346,11 +2346,6 @@
     "loading": "Loading meters…",
     "chip": "{{amount}} F"
   },
-  "appUpdate": {
-    "message": "A new version of iDeploy is available. Your progress in a guide is kept.",
-    "reload": "Reload",
-    "later": "Later"
-  },
   "cli": {
     "authorize": {
       "title": "Sign in the iDeploy CLI",

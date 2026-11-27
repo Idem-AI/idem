@@ -2346,11 +2346,6 @@
     "loading": "Chargement des compteurs…",
     "chip": "{{amount}} F"
   },
-  "appUpdate": {
-    "message": "Une nouvelle version d'iDeploy est disponible. Votre progression dans un guide est conservée.",
-    "reload": "Recharger",
-    "later": "Plus tard"
-  },
   "cli": {
     "authorize": {
       "title": "Connecter la CLI iDeploy",

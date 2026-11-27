@@ -4,7 +4,6 @@ import { unregisterIdemServiceWorker } from '../index';
 import { IdemServiceWorkerService } from './service-worker.service';
 
 export { IdemServiceWorkerService } from './service-worker.service';
-export { IdemUpdateBannerComponent } from './update-banner';
 export { IdemNetworkAwarePreloading } from './preload';
 
 /**

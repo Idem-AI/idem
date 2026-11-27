@@ -6237,10 +6237,5 @@
         "COVER_GENERIC": "The cover did not upload. Try again."
       }
     }
-  },
-  "appUpdate": {
-    "message": "A new version is available.",
-    "reload": "Refresh",
-    "later": "Later"
   }
 }

@@ -910,10 +910,5 @@
       "title": "Testez ce soir, décidez demain en connaissance de cause.",
       "cta": "Tester mon projet"
     }
-  },
-  "appUpdate": {
-    "message": "Une nouvelle version est disponible.",
-    "reload": "Actualiser",
-    "later": "Plus tard"
   }
 }
