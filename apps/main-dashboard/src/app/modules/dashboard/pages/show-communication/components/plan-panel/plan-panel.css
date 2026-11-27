@@ -1,102 +1,734 @@
+/*
+ * Calendrier — une barre (la période, ses actions), puis le calendrier ou les semaines.
+ *
+ * L'idée de la période vit dans un panneau de droite, ouvert à la demande : elle prenait la moitié de
+ * l'écran pour un texte qu'on lit une fois. Les couleurs viennent des jetons du design system ; le
+ * calendrier est une grille CSS (pas un tableau) pour que les cases restent hautes et égales.
+ */
+
 :host {
   display: block;
   width: 100%;
 }
 
-/*
- * Sélection d'un planning et jour courant.
- *
- * Posés en CSS plutôt qu'en classes Tailwind à valeur arbitraire : une classe
- * comme `ring-[var(--color-accent-500)]` doit être vue par le scanner de Tailwind
- * pour exister, et dans une liaison `[class.…]` échappée elle ne l'est pas
- * toujours — le style disparaîtrait alors silencieusement en production.
- */
-.is-selected {
-  outline: 2px solid var(--color-accent-500);
-  outline-offset: 0;
+.pp {
+  margin: 0 auto;
+  max-width: 80rem;
 }
 
-.is-today {
-  font-weight: 700;
-  color: var(--color-accent-500);
+.pp-composing {
+  display: block;
+  margin-bottom: 1rem;
 }
 
-.pp-label {
-  font-size: 0.68rem;
+.pp-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8rem;
   font-weight: 600;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
+  color: var(--color-primary-500);
+}
+
+.pp-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* ── Vide ─────────────────────────────────────────────────────────────────── */
+
+.pp-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 3rem 1.5rem;
+  text-align: center;
+}
+
+.pp-empty-icon {
+  font-size: 2.5rem;
   color: var(--color-text-tertiary);
 }
 
-/* ── Carte d'une publication ─────────────────────────────────────────────── */
+.pp-empty-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
 
-/*
- * La carte ENTIÈRE est cliquable. Un bouton plutôt qu'un div avec un
- * `(click)` : le clavier y accède, le lecteur d'écran l'annonce comme une
- * action, et le focus est visible sans rien ajouter.
- */
-.pp-card {
+.pp-empty-body {
+  max-width: 28rem;
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: var(--color-text-secondary);
+}
+
+/* ═══════════════ Barre de la période ═══════════════ */
+
+.pp-bar {
   display: flex;
-  width: 100%;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+}
+
+.pp-period {
+  position: relative;
+  min-width: 0;
+}
+
+.pp-period-button {
+  display: flex;
+  max-width: 100%;
+  align-items: center;
   gap: 0.75rem;
   border-radius: 1rem;
   border: 1px solid var(--glass-border);
-  background: var(--glass-bg-subtle);
-  padding: 0.7rem;
+  background: var(--glass-bg-light);
+  padding: 0.5rem 0.85rem 0.5rem 0.5rem;
   text-align: left;
+  transition: border-color 0.15s ease;
+}
+
+.pp-period-button:hover,
+.pp-period-button[aria-expanded='true'] {
+  border-color: var(--glass-border-strong);
+}
+
+.pp-period-icon {
+  display: inline-flex;
+  width: 2.5rem;
+  height: 2.5rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, var(--color-primary-500) 12%, transparent);
+  color: var(--color-primary-500);
+}
+
+.pp-period-text {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.pp-period-name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.pp-period-range {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+.pp-period-status {
+  font-size: 0.65rem;
+  text-transform: none;
+}
+
+.pp-period-chevron {
+  margin-left: 0.25rem;
+  font-size: 0.75rem;
+  color: var(--color-text-tertiary);
+  transition: transform 0.15s ease;
+}
+
+.pp-rotated {
+  transform: rotate(180deg);
+}
+
+/* « En cours » : un point vivant, la seule période active. */
+.pp-live {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-success) 12%, transparent);
+  padding: 0.1rem 0.55rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: none;
+  color: var(--color-success);
+}
+
+.pp-live-dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 999px;
+  background: var(--color-success);
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-success) 60%, transparent);
+  animation: pp-pulse 2s ease-out infinite;
+}
+
+@keyframes pp-pulse {
+  to {
+    box-shadow: 0 0 0 0.4rem transparent;
+  }
+}
+
+/* Le menu des périodes. */
+.pp-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  cursor: default;
+}
+
+.pp-menu {
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  left: 0;
+  z-index: 31;
+  width: min(24rem, 90vw);
+  padding: 0.5rem;
+  border-radius: 1rem;
+  background: var(--idem-surface-1);
+  box-shadow: var(--glass-shadow-xl);
+}
+
+.pp-menu-title {
+  padding: 0.4rem 0.6rem 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--color-text-tertiary);
+}
+
+.pp-menu-list {
+  display: flex;
+  max-height: 18rem;
+  flex-direction: column;
+  gap: 0.15rem;
+  overflow-y: auto;
+}
+
+.pp-menu-item {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border-radius: 0.7rem;
+  padding: 0.55rem 0.6rem;
+  text-align: left;
+}
+
+.pp-menu-item:hover {
+  background: var(--idem-surface-2);
+}
+
+.pp-menu-item-on {
+  background: color-mix(in srgb, var(--color-primary-500) 9%, transparent);
+}
+
+.pp-menu-item-text {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.pp-menu-item-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.pp-menu-item-meta {
+  font-size: 0.72rem;
+  color: var(--color-text-secondary);
+}
+
+.pp-menu-item-status {
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  color: var(--color-text-tertiary);
+}
+
+.pp-menu-foot {
+  margin-top: 0.4rem;
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border-top: 1px solid var(--glass-border);
+  padding: 0.6rem 0.6rem 0.3rem;
+}
+
+.pp-bar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Les deux vues : un contrôle segmenté. */
+.pp-views {
+  display: inline-flex;
+  gap: 0.2rem;
+  border-radius: 0.8rem;
+  background: var(--idem-surface-3);
+  padding: 0.2rem;
+}
+
+.pp-view {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 0.6rem;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.pp-view:hover {
+  color: var(--color-text-primary);
+}
+
+.pp-view .pi {
+  font-size: 0.75rem;
+}
+
+.pp-view-on,
+.pp-view-on:hover {
+  background: var(--idem-surface-1);
+  box-shadow:
+    var(--shadow-sm),
+    0 0 0 1px var(--glass-border-medium);
+  color: var(--color-primary-500);
+}
+
+/* Où en est la période. */
+.pp-progress {
+  margin: 1rem 0 1.25rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+}
+
+.pp-progress-text {
+  display: inline-flex;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+}
+
+.pp-progress-text strong {
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.pp-progress-track {
+  position: relative;
+  height: 0.35rem;
+  min-width: 8rem;
+  flex: 1;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--idem-surface-3);
+}
+
+.pp-progress-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 999px;
+  background: var(--color-primary-500);
+  transition: width 0.3s ease;
+}
+
+/* ═══════════════ Calendrier ═══════════════ */
+
+.pp-cal {
+  padding: 1.25rem;
+}
+
+.pp-cal-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.pp-cal-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  text-transform: capitalize;
+  color: var(--color-text-primary);
+}
+
+.pp-cal-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.pp-cal-arrow {
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  color: var(--color-text-primary);
+}
+
+.pp-cal-arrow:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.pp-cal-hint {
+  margin: 0.25rem 0 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  color: var(--color-text-tertiary);
+}
+
+.pp-cal-hint .pi {
+  font-size: 0.7rem;
+}
+
+.pp-grid {
+  overflow: hidden;
+  border-radius: 1rem;
+  border: 1px solid var(--glass-border);
+}
+
+.pp-grid-row {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.pp-grid-row + .pp-grid-row {
+  border-top: 1px solid var(--glass-border);
+}
+
+.pp-grid-weekdays {
+  background: var(--idem-surface-2);
+}
+
+.pp-weekday {
+  padding: 0.6rem 0.75rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+}
+
+.pp-day {
+  position: relative;
+  display: flex;
+  min-height: 8.5rem;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.5rem;
+  transition:
+    background-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.pp-day + .pp-day {
+  border-left: 1px solid var(--glass-border);
+}
+
+/* Hors de la période : on voit le jour, on ne peut rien y poser. */
+.pp-day-off {
+  background: repeating-linear-gradient(
+    135deg,
+    transparent 0 8px,
+    color-mix(in srgb, var(--color-text-tertiary) 6%, transparent) 8px 9px
+  );
+}
+
+.pp-day-out .pp-day-num {
+  opacity: 0.4;
+}
+
+.pp-day-num {
+  display: inline-flex;
+  width: 1.75rem;
+  height: 1.75rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.pp-day-past:not(.pp-day-today) .pp-day-num {
+  color: var(--color-text-tertiary);
+}
+
+.pp-day-today .pp-day-num {
+  background: var(--color-primary-500);
+  color: var(--color-on-primary);
+}
+
+.pp-day-today {
+  background: color-mix(in srgb, var(--color-primary-500) 5%, transparent);
+}
+
+/* La case visée pendant un glisser-déposer. */
+.pp-day-drop {
+  background: color-mix(in srgb, var(--color-primary-500) 10%, transparent);
+  box-shadow: inset 0 0 0 2px var(--color-primary-500);
+}
+
+.pp-day-open {
+  z-index: 2;
+}
+
+.pp-day-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+/* Une publication dans sa case : vignette, titre, réseau. Elle se glisse. */
+.pp-chip {
+  display: flex;
+  width: 100%;
+  align-items: flex-start;
+  gap: 0.4rem;
+  border-radius: 0.55rem;
+  border: 1px solid var(--glass-border);
+  border-left: 3px solid var(--glass-border-strong);
+  background: var(--idem-surface-1);
+  padding: 0.25rem 0.4rem 0.25rem 0.3rem;
+  text-align: left;
+  cursor: grab;
   transition:
     border-color 0.15s ease,
-    background-color 0.15s ease,
+    box-shadow 0.15s ease,
     transform 0.15s ease;
 }
 
-.pp-card:hover {
-  border-color: var(--color-primary);
-  background: var(--glass-bg-medium);
+.pp-chip:hover {
+  border-color: var(--glass-border-strong);
+  box-shadow: var(--shadow-sm);
   transform: translateY(-1px);
 }
 
-.pp-card:focus-visible {
-  outline: 2px solid var(--color-primary);
+.pp-chip:active {
+  cursor: grabbing;
+}
+
+/* Le liseré dit l'état : prêt (visuel ou vidéo faits) ou à créer. */
+.pp-chip-ready {
+  border-left-color: var(--color-success);
+}
+
+.pp-chip-dragging {
+  opacity: 0.45;
+}
+
+.pp-chip:focus-visible,
+.pp-day-more:focus-visible,
+.pp-card:focus-visible,
+.pp-period-button:focus-visible,
+.pp-menu-item:focus-visible,
+.pp-view:focus-visible {
+  outline: 2px solid var(--color-primary-500);
   outline-offset: 2px;
 }
 
-.pp-card-thumb {
-  display: block;
-  width: 4.5rem;
+.pp-chip-img,
+.pp-chip-icon {
+  width: 1.6rem;
+  height: 1.6rem;
   flex-shrink: 0;
-  overflow: hidden;
-  border-radius: 0.6rem;
+  border-radius: 0.35rem;
 }
 
-.pp-card-thumb app-visual-thumb {
-  display: block;
+.pp-chip-img {
+  object-fit: cover;
 }
 
-.pp-card-noimg {
-  display: flex;
-  aspect-ratio: 1 / 1;
+.pp-chip-icon {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1px dashed var(--glass-border-medium);
-  border-radius: 0.6rem;
+  background: var(--idem-surface-3);
   color: var(--color-text-tertiary);
+}
+
+.pp-chip-icon .pi {
+  font-size: 0.65rem;
+}
+
+.pp-chip-video .pp-chip-icon {
+  color: var(--color-accent-500);
+}
+
+.pp-chip-title {
+  display: -webkit-box;
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--color-text-primary);
+}
+
+.pp-chip-net {
+  margin-top: 0.15rem;
+  flex-shrink: 0;
+  font-size: 0.68rem;
+  color: var(--color-text-tertiary);
+}
+
+.pp-day-more {
+  align-self: flex-start;
+  border-radius: 999px;
+  padding: 0.1rem 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--color-primary-500);
+}
+
+.pp-day-more:hover {
+  background: color-mix(in srgb, var(--color-primary-500) 10%, transparent);
+}
+
+/* ═══════════════ Par semaine ═══════════════ */
+
+.pp-week + .pp-week {
+  margin-top: 1.75rem;
+}
+
+.pp-week-title {
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.pp-week-range {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--color-text-tertiary);
+}
+
+.pp-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(12.5rem, 1fr));
+  gap: 1rem;
+}
+
+/* La carte : l'aperçu d'abord, puis le titre et la plateforme. Rien d'autre. */
+.pp-card {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 1rem;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg-light);
+  text-align: left;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+.pp-card:hover {
+  border-color: var(--glass-border-strong);
+  box-shadow: var(--glass-shadow-xl);
+  transform: translateY(-3px);
+}
+
+.pp-card-preview {
+  position: relative;
+  display: flex;
+  aspect-ratio: 4 / 5;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: var(--idem-surface-3);
+}
+
+.pp-card-thumb {
+  width: 100%;
+  transition: transform 0.4s ease;
+}
+
+.pp-card:hover .pp-card-thumb {
+  transform: scale(1.03);
+}
+
+.pp-card-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-tertiary);
+}
+
+.pp-card-empty .pi {
+  font-size: 1.5rem;
+}
+
+/* Date et durée posées sur l'aperçu, lisibles sur n'importe quelle image. */
+.pp-card-date,
+.pp-card-duration {
+  position: absolute;
+  top: 0.6rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.72);
+  padding: 0.2rem 0.6rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--color-on-primary);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.pp-card-date {
+  left: 0.6rem;
+}
+
+.pp-card-duration {
+  right: 0.6rem;
+}
+
+.pp-card-duration .pi {
+  font-size: 0.55rem;
 }
 
 .pp-card-body {
   display: flex;
-  min-width: 0;
   flex: 1;
   flex-direction: column;
-  gap: 0.25rem;
-}
-
-.pp-card-top {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
   gap: 0.5rem;
+  padding: 0.75rem 0.85rem 0.85rem;
 }
 
 .pp-card-title {
@@ -104,130 +736,178 @@
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  font-size: 0.875rem;
-  font-weight: 600;
+  font-size: 0.88rem;
+  font-weight: 700;
   line-height: 1.35;
   color: var(--color-text-primary);
 }
 
-.pp-card-status {
-  flex-shrink: 0;
-  border-radius: 999px;
-  border-width: 1px;
-  padding: 0.1rem 0.45rem;
-  font-size: 0.6rem;
-  text-transform: uppercase;
-}
-
-.pp-card-occasion {
-  display: flex;
+.pp-card-net {
+  margin-top: auto;
+  display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
-  font-size: 0.7rem;
-  font-weight: 600;
-  color: var(--color-accent-500);
-}
-
-.pp-card-hook {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+  gap: 0.4rem;
   font-size: 0.75rem;
-  line-height: 1.4;
+  font-weight: 600;
   color: var(--color-text-secondary);
 }
 
-.pp-card-meta {
-  margin-top: auto;
+/* ═══════════════ Panneau de droite : l'idée de la période ═══════════════ */
+
+.pp-drawer-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(15, 23, 42, 0.45);
+  animation: pp-fade 0.2s ease;
+}
+
+.pp-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 51;
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 0.7rem;
-  color: var(--color-text-tertiary);
+  width: min(30rem, 100vw);
+  flex-direction: column;
+  border-left: 1px solid var(--glass-border);
+  animation: pp-slide 0.25s ease;
 }
 
-/* « Visuel à créer » : ce qui reste à faire se lit sur la carte, sans l'ouvrir. */
-.pp-card-todo {
-  border-radius: 999px;
-  border: 1px solid var(--color-accent-500);
-  padding: 0.05rem 0.4rem;
-  font-size: 0.6rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  color: var(--color-accent-500);
+@keyframes pp-fade {
+  from {
+    opacity: 0;
+  }
 }
 
-/* ── Calendrier ──────────────────────────────────────────────────────────── */
-
-.pp-weekday {
-  padding-bottom: 0.5rem;
-  text-align: center;
-  font-size: 0.6rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  color: var(--color-text-tertiary);
+@keyframes pp-slide {
+  from {
+    transform: translateX(100%);
+  }
 }
 
-.pp-day {
-  height: 6rem;
-  width: 14.28%;
-  border: 1px solid var(--glass-border);
-  padding: 0.25rem;
-  vertical-align: top;
+.pp-drawer-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid var(--glass-border);
+  padding: 1.25rem 1.25rem 1rem;
 }
 
-.pp-day-out {
-  opacity: 0.4;
+.pp-drawer-eyebrow {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--color-primary-500);
 }
 
-.pp-day-num {
-  display: block;
-  text-align: right;
-  font-size: 0.65rem;
-  color: var(--color-text-tertiary);
-}
-
-.pp-day-item {
-  margin-top: 0.25rem;
-  display: block;
-  width: 100%;
-  overflow: hidden;
-  border-radius: 0.3rem;
-  background: var(--glass-bg-medium);
-  padding: 0.1rem 0.25rem;
-  text-align: left;
-  font-size: 0.65rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.pp-drawer-title {
+  margin-top: 0.15rem;
+  font-size: 1.2rem;
+  font-weight: 700;
   color: var(--color-text-primary);
 }
 
-.pp-day-item:hover {
-  background: color-mix(in srgb, var(--color-primary) 14%, transparent);
+.pp-drawer-range {
+  font-size: 0.78rem;
+  color: var(--color-text-secondary);
 }
 
-.pp-day-item:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 1px;
+.pp-drawer-close {
+  width: 2.25rem;
+  height: 2.25rem;
+  flex-shrink: 0;
+  padding: 0;
 }
 
-/* ── Idée du calendrier (repliable) ──────────────────────────────────────── */
-
-/* Au-delà du téléphone, le résumé est toujours ouvert : son titre est inutile. */
-.pp-brief-summary {
-  display: none;
+.pp-drawer-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 1.4rem;
+  overflow-y: auto;
+  padding: 1.25rem;
 }
 
-.pp-card-day {
-  text-transform: capitalize;
+.pp-drawer-label {
+  margin-bottom: 0.4rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-text-tertiary);
+}
+
+.pp-drawer-text {
+  font-size: 0.88rem;
+  line-height: 1.6;
+  color: var(--color-text-primary);
+}
+
+/* Le message à retenir : la phrase la plus importante, mise en avant. */
+.pp-drawer-quote {
+  border-left: 3px solid var(--color-primary-500);
+  padding: 0.2rem 0 0.2rem 0.85rem;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--color-text-primary);
+}
+
+.pp-drawer-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.pp-drawer-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--color-text-primary);
+}
+
+.pp-drawer-list li {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.pp-drawer-list .pi {
+  margin-top: 0.25rem;
+  font-size: 0.65rem;
+  color: var(--color-success);
+}
+
+.pp-drawer-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  border-top: 1px solid var(--glass-border);
+  padding: 1rem 1.25rem calc(1rem + env(safe-area-inset-bottom, 0px));
+}
+
+/* ── Mouvement réduit ─────────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .pp-live-dot,
+  .pp-drawer,
+  .pp-drawer-scrim {
+    animation: none;
+  }
+
+  .pp-card,
+  .pp-card-thumb,
+  .pp-chip {
+    transition: none;
+  }
 }
 
 /* ── Écrans tactiles : pas de survol ─────────────────────────────────────── */
 
 @media (hover: none) {
-  .pp-card:hover {
+  .pp-card:hover,
+  .pp-chip:hover {
     transform: none;
   }
 }
@@ -235,84 +915,38 @@
 /* ── Téléphone ────────────────────────────────────────────────────────────── */
 
 @media (max-width: 640px) {
-  .pp-brief-summary {
-    margin-top: 0.75rem;
-    display: flex;
-    min-height: 2.75rem;
-    cursor: pointer;
-    list-style: none;
-    align-items: center;
-    gap: 0.5rem;
-    border-top: 1px solid var(--glass-border);
-    padding-top: 0.75rem;
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--color-text-primary);
+  .pp-bar {
+    align-items: stretch;
   }
 
-  .pp-brief-summary::-webkit-details-marker {
-    display: none;
+  .pp-period,
+  .pp-period-button {
+    width: 100%;
   }
 
-  .pp-brief-summary .pi-lightbulb {
-    color: var(--color-primary-500);
-  }
-
-  .pp-brief-chevron {
+  .pp-period-chevron {
     margin-left: auto;
-    font-size: 0.75rem;
-    color: var(--color-text-tertiary);
-    transition: transform 0.15s ease;
   }
 
-  .pp-brief[open] .pp-brief-chevron {
-    transform: rotate(180deg);
+  .pp-bar-actions {
+    width: 100%;
   }
 
-  /*
-   * Les calendriers défilent de côté, sur une ligne, comme des stories : empilés,
-   * trois calendriers repoussaient les publications sous la ligne de flottaison.
-   */
-  .pp-strip {
-    flex-wrap: nowrap;
-    margin-inline: -1rem;
-    overflow-x: auto;
-    padding: 0.25rem 1rem 0.5rem;
-    scroll-snap-type: x mandatory;
-    scrollbar-width: none;
+  .pp-bar-actions > * {
+    flex: 1;
+    justify-content: center;
   }
 
-  .pp-strip::-webkit-scrollbar {
-    display: none;
+  .pp-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.6rem;
   }
 
-  .pp-strip > li {
-    flex-shrink: 0;
-    scroll-snap-align: start;
+  .pp-card-body {
+    padding: 0.6rem;
   }
 
-  .pp-strip > li > button {
-    min-width: 11.5rem;
+  .pp-card-title {
+    font-size: 0.8rem;
   }
-
-  .pp-card {
-    min-height: 5.5rem;
-  }
-
-  .pp-card-thumb {
-    width: 4rem;
-  }
-}
-
-/* Vidéo : le type, dit sur la carte. */
-.pp-card-video {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  border-radius: 999px;
-  background: var(--glass-bg-subtle);
-  padding: 0.1rem 0.5rem;
-  font-size: 0.7rem;
-  font-weight: 600;
-  color: var(--color-text-primary);
 }

@@ -449,7 +449,6 @@
 .sp-caption-label {
   font-size: 0.65rem;
   font-weight: 600;
-  letter-spacing: 0.03em;
   text-transform: uppercase;
   color: var(--color-text-tertiary);
 }

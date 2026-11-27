@@ -1,8 +1,10 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  ElementRef,
   computed,
   effect,
+  viewChild,
   inject,
   input,
   output,
@@ -21,17 +23,16 @@ import {
 } from '../../../../models/communication.model';
 import { injectCompactViewport } from '../../compact-viewport';
 import {
+  addDaysIso,
   channelIcon,
+  channelLabelKey,
   formatDay,
   formatRange,
   groupByWeek,
-  planStatusPillClass,
-  statusPillClass,
   todayIso,
 } from '../../communication-ui';
 import { ContentDetail } from '../content-detail/content-detail';
 import { PlanWizard, PlanWizardResult } from '../plan-wizard/plan-wizard';
-import { ScreenGuide } from '../screen-guide/screen-guide';
 import { VisualThumb } from '../visual-thumb/visual-thumb';
 import { EMPTY_PLAN_PROGRESS, PlanComposing, PlanProgressState, PlanStage } from '../plan-composing/plan-composing';
 import { urlChoice, urlFlag, urlParam } from '../../url-state';
@@ -45,19 +46,28 @@ export type PlanIntent =
   | { kind: 'create' }
   | { kind: 'open'; planId: string; itemId: string };
 
-/** Une case du calendrier mensuel. */
+/** Une case du calendrier mensuel (les jours des mois voisins complètent la grille). */
 interface DayCell {
   iso: string;
   day: number;
+  inMonth: boolean;
   inPeriod: boolean;
   isToday: boolean;
+  isPast: boolean;
   items: ContentIdea[];
 }
 
 interface MonthView {
+  /** `AAAA-MM` : la clé de l'adresse (`?m=`). */
+  key: string;
   label: string;
   weeks: DayCell[][];
 }
+
+/** Au-delà, une case du calendrier se replie sur « +N ». */
+const DAY_PREVIEW = 3;
+
+const WEEKDAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const;
 
 /**
  * MON PLANNING — ce qu'il y a à publier, et quand.
@@ -79,13 +89,13 @@ interface MonthView {
     TranslateModule,
     ContentDetail,
     PlanWizard,
-    ScreenGuide,
     VisualThumb,
     PlanComposing,
   ],
   templateUrl: './plan-panel.html',
   styleUrls: ['./plan-panel.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { '(document:keydown.escape)': 'onEscape()' },
 })
 export class PlanPanel {
   private readonly communication = inject(CommunicationService);
@@ -120,15 +130,22 @@ export class PlanPanel {
     return s ? `${m} min ${s}` : `${m} min`;
   }
 
+  /** « 0:30 », « 1:15 » : la durée d'une vidéo sur sa carte. */
+  protected clock(sec: number): string {
+    return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+  }
+
   protected readonly channelIcon = channelIcon;
-  protected readonly statusPillClass = statusPillClass;
-  protected readonly planStatusPillClass = planStatusPillClass;
+  protected readonly channelLabelKey = channelLabelKey;
+  protected readonly weekdays = WEEKDAYS;
+  protected readonly dayPreview = DAY_PREVIEW;
+  protected readonly today = todayIso();
 
   // ── Sélection et vues ────────────────────────────────────────────────────
   // Tout est dans l'adresse (`?plan=…&post=…&cal=month&new=1`) : une actualisation garde le planning, la
   // publication ouverte, la vue et l'assistant de création.
   protected readonly selectedPlanId = urlParam<string | null>('plan', { fallback: null, push: true });
-  protected readonly view = urlChoice<'weeks' | 'month'>('cal', ['weeks', 'month'], 'weeks');
+  protected readonly view = urlChoice<'weeks' | 'month'>('cal', ['weeks', 'month'], 'month');
   protected readonly isCompact = injectCompactViewport();
 
   /**
@@ -164,7 +181,169 @@ export class PlanPanel {
     return this.selectedPlan()?.items.find((item) => item.id === id) ?? null;
   });
 
-  protected readonly weeks = computed(() => groupByWeek(this.selectedPlan()?.items ?? []));
+  /** Les semaines de la période, chacune avec ses dates en clair (« 1 – 7 déc. »). */
+  protected readonly weeks = computed(() => {
+    const plan = this.selectedPlan();
+    if (!plan) return [];
+    return groupByWeek(plan.items).map((group) => {
+      const from = addDaysIso(plan.period.start, (group.week - 1) * 7);
+      const end = addDaysIso(from, 6);
+      const to = end > plan.period.end ? plan.period.end : end;
+      return { ...group, range: this.shortRange(from, to) };
+    });
+  });
+
+  // ── Période : sélecteur, idée de la période ──────────────────────────────
+
+  /** Le menu des périodes (un menu passager : il n'a pas sa place dans l'adresse). */
+  protected readonly periodMenuOpen = signal(false);
+  /** Le panneau de droite « L'idée de la période » : `?brief=1`. */
+  protected readonly briefOpen = urlFlag('brief', { push: true });
+
+  private readonly drawerClose = viewChild<ElementRef<HTMLButtonElement>>('drawerClose');
+
+  /** Échap referme le menu ou le panneau — pas la publication ouverte, qui gère le sien. */
+  protected onEscape(): void {
+    if (this.openItemId()) return;
+    if (this.periodMenuOpen()) this.periodMenuOpen.set(false);
+    else if (this.briefOpen()) this.briefOpen.set(false);
+  }
+
+  protected togglePeriodMenu(): void {
+    this.periodMenuOpen.update((open) => !open);
+  }
+
+  protected closePeriodMenu(): void {
+    this.periodMenuOpen.set(false);
+  }
+
+  /** « 1 déc. → 31 déc. » */
+  protected planRange(plan: CommunicationPlan): string {
+    return this.shortRange(plan.period.start, plan.period.end);
+  }
+
+  private shortRange(from: string, to: string): string {
+    const format = (iso: string) =>
+      new Date(`${iso}T00:00:00Z`).toLocaleDateString(this.translate.currentLang, {
+        day: 'numeric',
+        month: 'short',
+        timeZone: 'UTC',
+      });
+    return `${format(from)} – ${format(to)}`;
+  }
+
+  /** Où en est la période : combien de publications ont leur visuel ou leur vidéo. */
+  protected readonly stats = computed(() => {
+    const items = this.selectedPlan()?.items ?? [];
+    const ready = items.filter((item) => this.isReady(item)).length;
+    return {
+      total: items.length,
+      ready,
+      videos: items.filter((item) => this.isVideo(item)).length,
+      percent: items.length ? Math.round((ready / items.length) * 100) : 0,
+    };
+  });
+
+  /** Une publication est prête quand son visuel (ou sa vidéo) existe. */
+  protected isReady(item: ContentIdea): boolean {
+    return this.isVideo(item) ? !!item.videoIds?.length : !!this.visualOf(item);
+  }
+
+  // ── Calendrier : mois affiché, jours dépliés, glisser-déposer ────────────
+
+  /** Le mois affiché : `?m=AAAA-MM`, sinon celui d'aujourd'hui, sinon le premier de la période. */
+  protected readonly monthKey = urlParam<string | null>('m', { fallback: null });
+  protected readonly expandedDay = signal<string | null>(null);
+  protected readonly dragItemId = signal<string | null>(null);
+  protected readonly dropIso = signal<string | null>(null);
+
+  protected readonly shownMonthIndex = computed(() => {
+    const months = this.months();
+    const wanted = this.monthKey() ?? this.today.slice(0, 7);
+    const index = months.findIndex((month) => month.key === wanted);
+    return index >= 0 ? index : 0;
+  });
+
+  protected readonly shownMonth = computed<MonthView | null>(
+    () => this.months()[this.shownMonthIndex()] ?? null,
+  );
+
+  protected readonly todayInPlan = computed(() => {
+    const plan = this.selectedPlan();
+    return !!plan && this.today >= plan.period.start && this.today <= plan.period.end;
+  });
+
+  protected stepMonth(delta: number): void {
+    const month = this.months()[this.shownMonthIndex() + delta];
+    if (month) {
+      this.monthKey.set(month.key);
+      this.expandedDay.set(null);
+    }
+  }
+
+  protected goToday(): void {
+    this.monthKey.set(this.today.slice(0, 7));
+  }
+
+  protected toggleDay(iso: string): void {
+    this.expandedDay.update((current) => (current === iso ? null : iso));
+  }
+
+  protected onDragStart(item: ContentIdea, event: DragEvent): void {
+    this.dragItemId.set(item.id);
+    if (event.dataTransfer) {
+      event.dataTransfer.setData('text/plain', item.id);
+      event.dataTransfer.effectAllowed = 'move';
+    }
+  }
+
+  protected onDragEnd(): void {
+    this.dragItemId.set(null);
+    this.dropIso.set(null);
+  }
+
+  protected onDragOver(cell: DayCell, event: DragEvent): void {
+    if (!this.dragItemId() || !cell.inPeriod) return;
+    event.preventDefault();
+    if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+    this.dropIso.set(cell.iso);
+  }
+
+  protected onDragLeave(cell: DayCell): void {
+    if (this.dropIso() === cell.iso) this.dropIso.set(null);
+  }
+
+  protected onDrop(cell: DayCell, event: DragEvent): void {
+    event.preventDefault();
+    const itemId = this.dragItemId();
+    this.onDragEnd();
+    if (itemId && cell.inPeriod) this.moveItem(itemId, cell.iso);
+  }
+
+  /**
+   * Une publication change de jour : affichée tout de suite à sa nouvelle place,
+   * enregistrée ensuite, remise à l'ancienne si l'enregistrement échoue.
+   */
+  private moveItem(itemId: string, iso: string): void {
+    const plan = this.selectedPlan();
+    const item = plan?.items.find((candidate) => candidate.id === itemId);
+    if (!plan || !item || (item.scheduledFor || '').slice(0, 10) === iso) return;
+    // L'heure éventuelle est gardée : seul le jour change.
+    const scheduledFor = `${iso}${(item.scheduledFor || '').slice(10)}`;
+    this.replacePlan({
+      ...plan,
+      items: plan.items.map((candidate) =>
+        candidate.id === itemId ? { ...candidate, scheduledFor } : candidate,
+      ),
+    });
+    this.communication.updatePlanItem(this.projectId(), plan.id, itemId, { scheduledFor }).subscribe({
+      next: (saved) => this.replacePlan(saved),
+      error: (err) => {
+        this.replacePlan(plan);
+        this.failed.emit(err?.error?.message || 'content-update');
+      },
+    });
+  }
 
   /** Dates du planning ouvert, écrites en clair. */
   protected readonly selectedRange = computed(() => {
@@ -172,7 +351,7 @@ export class PlanPanel {
     return plan ? formatRange(plan.period.start, plan.period.end, this.translate.currentLang) : '';
   });
 
-  /** Le calendrier, mois par mois, sur l'étendue du planning. */
+  /** Le calendrier, mois par mois, sur l'étendue de la période. */
   protected readonly months = computed<MonthView[]>(() => {
     const plan = this.selectedPlan();
     if (!plan) return [];
@@ -185,7 +364,7 @@ export class PlanPanel {
       byDate.set(key, list);
     }
 
-    const today = todayIso();
+    const today = this.today;
     const start = new Date(`${plan.period.start}T00:00:00Z`);
     const end = new Date(`${plan.period.end}T00:00:00Z`);
     const months: MonthView[] = [];
@@ -195,28 +374,24 @@ export class PlanPanel {
       const year = cursor.getUTCFullYear();
       const month = cursor.getUTCMonth();
       const daysInMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
-
-      // Semaine commençant le lundi : `getUTCDay()` rend 0 pour dimanche, d'où le
-      // décalage. Sans lui, la grille commencerait un dimanche — pas la
-      // convention des pays où Idem est utilisé.
+      // Semaine commençant le lundi : `getUTCDay()` rend 0 pour dimanche, d'où le décalage.
       const firstWeekday = (new Date(Date.UTC(year, month, 1)).getUTCDay() + 6) % 7;
+      const count = Math.ceil((firstWeekday + daysInMonth) / 7) * 7;
 
       const cells: DayCell[] = [];
-      for (let blank = 0; blank < firstWeekday; blank++) {
-        cells.push({ iso: '', day: 0, inPeriod: false, isToday: false, items: [] });
-      }
-      for (let day = 1; day <= daysInMonth; day++) {
-        const iso = new Date(Date.UTC(year, month, day)).toISOString().slice(0, 10);
+      for (let index = 0; index < count; index++) {
+        const date = new Date(Date.UTC(year, month, 1 - firstWeekday + index));
+        const iso = date.toISOString().slice(0, 10);
+        const inPeriod = iso >= plan.period.start && iso <= plan.period.end;
         cells.push({
           iso,
-          day,
-          inPeriod: iso >= plan.period.start && iso <= plan.period.end,
+          day: date.getUTCDate(),
+          inMonth: date.getUTCMonth() === month,
+          inPeriod,
           isToday: iso === today,
-          items: byDate.get(iso) ?? [],
+          isPast: iso < today,
+          items: inPeriod ? (byDate.get(iso) ?? []) : [],
         });
-      }
-      while (cells.length % 7 !== 0) {
-        cells.push({ iso: '', day: 0, inPeriod: false, isToday: false, items: [] });
       }
 
       const weeks: DayCell[][] = [];
@@ -225,6 +400,7 @@ export class PlanPanel {
       }
 
       months.push({
+        key: `${year}-${String(month + 1).padStart(2, '0')}`,
         label: cursor.toLocaleDateString(this.translate.currentLang, {
           month: 'long',
           year: 'numeric',
@@ -280,6 +456,9 @@ export class PlanPanel {
   }
 
   constructor() {
+    // Le panneau s'ouvre : le focus y entre (clavier, lecteur d'écran).
+    effect(() => this.drawerClose()?.nativeElement.focus());
+
     // Une demande de l'accueil (« Créer mon calendrier », une publication
     // cliquée) arrive par une entrée : on l'exécute, puis on le dit au parent
     // pour qu'elle ne rejoue pas au prochain passage sur l'écran.
@@ -302,14 +481,22 @@ export class PlanPanel {
   // Navigation
   // ==========================================================================
 
-  /** « lun. 12 oct. » plutôt que la date ISO. */
+  /** « Lun. 12 oct. » plutôt que la date ISO (majuscule à la première lettre seulement). */
   protected day(iso: string): string {
-    return formatDay(iso, this.translate.currentLang);
+    return this.cap(formatDay(iso, this.translate.currentLang));
+  }
+
+  /** « décembre 2026 » → « Décembre 2026 », sans toucher aux autres mots (« Lancement boutique »). */
+  protected cap(text: string): string {
+    return text ? text.charAt(0).toLocaleUpperCase(this.translate.currentLang) + text.slice(1) : text;
   }
 
   protected selectPlan(planId: string): void {
     this.selectedPlanId.set(planId);
     this.openItemId.set(null);
+    this.monthKey.set(null);
+    this.expandedDay.set(null);
+    this.periodMenuOpen.set(false);
   }
 
   protected setView(view: 'weeks' | 'month'): void {

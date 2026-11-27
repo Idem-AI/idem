@@ -3607,6 +3607,27 @@
             "content": "{{done}} of {{total}}",
             "videos": "{{done}} of {{total}} plans"
           }
+        },
+        "periods": {
+          "title": "Your periods"
+        },
+        "briefOpen": "The idea of this period",
+        "viewLabel": "View",
+        "stats": {
+          "ready": "{{ready}} of {{total}} posts ready",
+          "videos": "{{count}} videos",
+          "label": "Posts ready"
+        },
+        "calendar": {
+          "today": "Today",
+          "prev": "Previous month",
+          "next": "Next month",
+          "dragHint": "Drag a post onto another day to change its date.",
+          "more": "+{{count}} more",
+          "less": "Show less"
+        },
+        "card": {
+          "videoReady": "Video ready"
         }
       },
       "studio": {
@@ -3968,26 +3989,6 @@
         },
         "conversations": "Resume a conversation ({{count}})"
       },
-      "guide": {
-        "show": "How does it work?",
-        "hide": "Hide",
-        "plans": {
-          "title": "How does it work?",
-          "steps": {
-            "1": "Pick a period: IDEM plans your posts day by day, with the text ready to publish.",
-            "2": "Click a post to read it, edit it and create its visual in one click.",
-            "3": "On the day, open it and publish: the text is copied, the network opens."
-          }
-        },
-        "library": {
-          "title": "How does it work?",
-          "steps": {
-            "1": "Click a visual to see it full size.",
-            "2": "Download it, or get it in another format (story, banner…).",
-            "3": "Publish it: the text is copied and the network opens, all that's left is to paste."
-          }
-        }
-      },
       "video": {
         "list": {
           "title": "My videos",
@@ -4165,7 +4166,7 @@
           },
           "steps2": {
             "1": "Describe",
-            "2": "Configure"
+            "2": "Set up"
           },
           "chat": {
             "question": "Describe the video you want",
@@ -4174,7 +4175,7 @@
             "attached": "Attached files",
             "attach": "Attach files",
             "uploading": "Uploading…",
-            "attachHint": "Photos, videos, 3D model (.glb), Lottie or Rive animation: up to 8 files.",
+            "attachHint": "Photos and videos: 8 files at most.",
             "examplesTitle": "To get started",
             "examples": {
               "ex1": "Announce our end-of-year sale: 30% off the whole shop until December 31.",
@@ -4192,7 +4193,7 @@
             "restore": "Back to my version"
           },
           "config": {
-            "question": "Configure your video",
+            "question": "Set up your video",
             "help": "Four settings and you're done. Everything else already follows your brand guidelines.",
             "where": "Where will you post it?",
             "whereHint": "Pick one or more formats: each is delivered in its real shape.",
@@ -4209,7 +4210,7 @@
             "hint": "A voice tells the message, scene by scene, in your language. The scenes follow it."
           },
           "intent": {
-            "title": "How I read your request",
+            "title": "What the AI understood",
             "proposal": "AI proposal",
             "correct": "Adjust",
             "done": "Done",
@@ -4249,7 +4250,15 @@
               "minimal-broadcast": "Minimal"
             },
             "fieldsHint": "Add these details to your request (step 1), then come back."
-          }
+          },
+          "summary": {
+            "formats": "Formats",
+            "duration": "Length",
+            "quality": "Quality",
+            "media": "Attached files"
+          },
+          "launch": "Create the video",
+          "editRequest": "Edit my request"
         },
         "detail": {
           "back": "My videos",

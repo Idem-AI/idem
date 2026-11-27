@@ -3610,6 +3610,27 @@
             "content": "{{done}} sur {{total}}",
             "videos": "{{done}} sur {{total}} déroulés"
           }
+        },
+        "periods": {
+          "title": "Vos périodes"
+        },
+        "briefOpen": "L'idée de la période",
+        "viewLabel": "Affichage",
+        "stats": {
+          "ready": "{{ready}} sur {{total}} publications prêtes",
+          "videos": "{{count}} vidéos",
+          "label": "Publications prêtes"
+        },
+        "calendar": {
+          "today": "Aujourd'hui",
+          "prev": "Mois précédent",
+          "next": "Mois suivant",
+          "dragHint": "Glissez une publication sur un autre jour pour changer sa date.",
+          "more": "+{{count}} autres",
+          "less": "Réduire"
+        },
+        "card": {
+          "videoReady": "Vidéo prête"
         }
       },
       "studio": {
@@ -3971,26 +3992,6 @@
         },
         "conversations": "Reprendre une conversation ({{count}})"
       },
-      "guide": {
-        "show": "Comment ça marche ?",
-        "hide": "Masquer",
-        "plans": {
-          "title": "Comment ça marche ?",
-          "steps": {
-            "1": "Choisissez une période : IDEM prévoit vos publications, jour par jour, avec le texte prêt à poster.",
-            "2": "Cliquez sur une publication pour la lire, la modifier et créer son visuel en un clic.",
-            "3": "Le jour venu, ouvrez-la et publiez : le texte est copié, le réseau s'ouvre."
-          }
-        },
-        "library": {
-          "title": "Comment ça marche ?",
-          "steps": {
-            "1": "Cliquez sur un visuel pour le voir en grand.",
-            "2": "Téléchargez-le, ou obtenez-le dans un autre format (story, bannière…).",
-            "3": "Publiez-le : le texte est copié et le réseau s'ouvre, il ne reste qu'à coller."
-          }
-        }
-      },
       "video": {
         "list": {
           "title": "Mes vidéos",
@@ -4168,7 +4169,7 @@
           },
           "steps2": {
             "1": "Décrire",
-            "2": "Configurer"
+            "2": "Régler"
           },
           "chat": {
             "question": "Décrivez la vidéo que vous voulez",
@@ -4177,7 +4178,7 @@
             "attached": "Fichiers joints",
             "attach": "Joindre des fichiers",
             "uploading": "Envoi…",
-            "attachHint": "Photos, vidéos, modèle 3D (.glb), animation Lottie ou Rive : 8 fichiers au plus.",
+            "attachHint": "Photos et vidéos : 8 fichiers au plus.",
             "examplesTitle": "Pour vous lancer",
             "examples": {
               "ex1": "Annoncer nos soldes de fin d’année : −30 % sur toute la boutique jusqu’au 31 décembre.",
@@ -4195,7 +4196,7 @@
             "restore": "Revenir à ma version"
           },
           "config": {
-            "question": "Configurez votre vidéo",
+            "question": "Réglez votre vidéo",
             "help": "Quatre réglages, et c’est parti. Le reste est déjà réglé selon votre charte graphique.",
             "where": "Où allez-vous la publier ?",
             "whereHint": "Choisissez un ou plusieurs formats : chacun est livré dans sa vraie forme.",
@@ -4212,11 +4213,11 @@
             "hint": "Une voix dit le message, scène par scène, dans votre langue. Les scènes se calent sur elle."
           },
           "intent": {
-            "title": "Interprétation de la demande",
+            "title": "Ce que l'IA a compris",
             "proposal": "Proposition de l'IA",
             "correct": "Corriger",
             "done": "Valider",
-            "loading": "Je lis ta demande…",
+            "loading": "Je lis votre demande…",
             "objective": "Objectif",
             "mode": "Matière",
             "motion": "Mouvement",
@@ -4252,7 +4253,15 @@
               "minimal-broadcast": "Minimal"
             },
             "fieldsHint": "Ajoute ces informations à ta demande (étape 1), puis reviens ici."
-          }
+          },
+          "summary": {
+            "formats": "Formats",
+            "duration": "Durée",
+            "quality": "Qualité",
+            "media": "Fichiers joints"
+          },
+          "launch": "Créer la vidéo",
+          "editRequest": "Modifier ma demande"
         },
         "detail": {
           "back": "Mes vidéos",

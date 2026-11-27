@@ -3,7 +3,7 @@
 } @else if (options(); as opts) {
   @switch (view().kind) {
     @case ('create') {
-      <div class="mx-auto max-w-4xl">
+      <div>
         <app-video-builder
           [projectId]="projectId()"
           [options]="opts"
