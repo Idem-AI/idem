@@ -83,6 +83,7 @@ function checkAuthConfig(): void {
 
 
 import { projectRoutes } from './routes/project.routes';
+import { teamRoutes } from './routes/team.routes';
 import { contextRoutes } from './routes/context.routes';
 import { coherenceRoutes } from './routes/coherence.routes';
 import { brandingRoutes } from './routes/branding.routes';
@@ -231,6 +232,8 @@ app.use(revisionContextMiddleware);
 app.use(aiUsageContextMiddleware);
 
 app.use('/projects', projectRoutes);
+// L'équipe d'un projet : invitations, rôles, groupes (routes/team.routes.ts).
+app.use('/team', teamRoutes);
 app.use('/project', contextRoutes);
 app.use('/project', coherenceRoutes);
 app.use('/project', brandingRoutes);

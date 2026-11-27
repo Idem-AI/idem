@@ -7,6 +7,7 @@ import {
   verifySessionForRequest,
 } from './sessionCookie.service';
 import { setTraceUserId } from '../utils/trace.util';
+import { applyProjectAccess } from '../middleware/project-access.middleware';
 import { IdemAuthUser, identityService } from './identity/identity.service';
 import { verifySupabaseAccessToken } from './identity/supabaseAuth.client';
 import {
@@ -58,6 +59,18 @@ function refuseSuspiciousDevice(res: Response): void {
 }
 
 /**
+ * Identité établie : on vérifie, si la requête vise un projet, que la personne
+ * y a accès (propriétaire, ou membre de l'équipe avec le bon niveau).
+ */
+async function proceed(req: CustomRequest, res: Response, next: NextFunction): Promise<void> {
+  try {
+    if (await applyProjectAccess(req, res)) next();
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
  * Middleware d'authentification.
  *
  * 1. cookie `session` (émis par l'API, vérifié et contrôlé contre la révocation) ;
@@ -84,7 +97,7 @@ export async function authenticate(
     try {
       req.user = await verifySessionForRequest(req, sessionCookie);
       setTraceUserId(req.user.uid);
-      return next();
+      return proceed(req, res, next);
     } catch (error: any) {
       if (error instanceof SuspiciousDeviceError) return refuseSuspiciousDevice(res);
       logger.info(`Session cookie rejected: ${error.message}`);
@@ -105,7 +118,7 @@ export async function authenticate(
       try {
         req.user = await verifySessionForRequest(req, newSessionCookie);
         setTraceUserId(req.user.uid);
-        return next();
+        return proceed(req, res, next);
       } catch (refreshError: any) {
         logger.error(`Error during auto-refresh: ${refreshError.message}`);
       }
@@ -118,7 +131,7 @@ export async function authenticate(
     try {
       req.user = await authenticateBearer(req, token);
       setTraceUserId(req.user.uid);
-      return next();
+      return proceed(req, res, next);
     } catch (error: any) {
       if (error instanceof SuspiciousDeviceError) return refuseSuspiciousDevice(res);
       logger.warn(`Bearer token rejected: ${error.message}`, {

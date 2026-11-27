@@ -952,7 +952,8 @@
         "projectNotFound": "Project ID '{{cookieId}}' from cookie not found. Using first project instead.",
         "initialProjectNotFound": "Initial project ID '{{initialCookieId}}' not found. Navigating to global dashboard."
       },
-      "simulations": "Simulations"
+      "simulations": "Simulations",
+      "team": "Team"
     },
     "colorCustomizer": {
       "title": "Adjust colours",
@@ -5397,7 +5398,9 @@
       "pitchDeckNew": "New pitch deck",
       "legalDoc": "Legal document",
       "legalDocEdit": "Legal document editing",
-      "builders": "Idem Builders"
+      "builders": "Idem Builders",
+      "team": "Team",
+      "invitation": "Invitation"
     }
   },
   "notFound": {
@@ -6236,6 +6239,214 @@
         "COVER_UNREADABLE": "This image could not be read.",
         "COVER_GENERIC": "The cover did not upload. Try again."
       }
+    }
+  },
+  "team": {
+    "page": {
+      "title": "Team",
+      "subtitle": "Invite the people who work with you on “{{project}}”, and choose what each of them can see or change.",
+      "loading": "Loading the team…",
+      "loadFailed": "The team could not be loaded.",
+      "retry": "Try again"
+    },
+    "common": {
+      "cancel": "Cancel",
+      "save": "Save"
+    },
+    "levels": {
+      "none": "No access",
+      "read": "View",
+      "write": "Edit"
+    },
+    "spaces": {
+      "branding": {
+        "label": "Visual identity",
+        "hint": "Logo, brand guidelines, business cards"
+      },
+      "businessPlan": {
+        "label": "Business plan",
+        "hint": "The document and its versions"
+      },
+      "pitchDeck": {
+        "label": "Pitch deck",
+        "hint": "Investor presentations"
+      },
+      "finance": {
+        "label": "Finances",
+        "hint": "Sales, costs, forecasts, reports"
+      },
+      "legal": {
+        "label": "Legal documents",
+        "hint": "Articles, contracts, legal paperwork"
+      },
+      "communication": {
+        "label": "Communication",
+        "hint": "Posts, visuals, videos, calendar"
+      },
+      "website": {
+        "label": "Website and app",
+        "hint": "iCode: view or edit the site"
+      },
+      "deployment": {
+        "label": "Going live and domain name",
+        "hint": "iDeploy: publish the site, its address"
+      },
+      "simulation": {
+        "label": "Simulator",
+        "hint": "Simulations and reports"
+      },
+      "advisor": {
+        "label": "Advisor",
+        "hint": "Conversations with the AI advisor"
+      }
+    },
+    "roles": {
+      "partner": {
+        "label": "Partner",
+        "hint": "Sees and edits the whole project"
+      },
+      "viewer": {
+        "label": "Observer",
+        "hint": "Sees everything, changes nothing. For a mentor, an investor"
+      },
+      "marketing": {
+        "label": "Communication",
+        "hint": "Runs communication, sees the brand and the site"
+      },
+      "web": {
+        "label": "Website",
+        "hint": "Edits the site and puts it online"
+      },
+      "finance": {
+        "label": "Finances",
+        "hint": "Business plan, finances, pitch deck, simulator"
+      },
+      "custom": {
+        "label": "Custom",
+        "hint": "Choose yourself, space by space"
+      },
+      "groupHint": "Group of this project"
+    },
+    "summary": {
+      "write": "Can edit: ",
+      "read": "Can view: ",
+      "nothing": "No access"
+    },
+    "editor": {
+      "quick": "Set everything to:",
+      "allRead": "View",
+      "allWrite": "Edit",
+      "allNone": "No access"
+    },
+    "invite": {
+      "title": "Invite someone",
+      "subtitle": "They receive an email and join the project when they accept.",
+      "emailLabel": "Email address",
+      "emailPlaceholder": "name@example.com",
+      "emailHint": "The address of their IDEM account.",
+      "roleLegend": "What they will be able to do",
+      "send": "Send invitation",
+      "after": "You can change their access at any time.",
+      "sentTitle": "Invitation sent",
+      "sentBody": "An email was sent to {{email}}. The invitation is valid for 14 days."
+    },
+    "members": {
+      "title": "People with access",
+      "you": "you",
+      "owner": "Owner",
+      "edit": "Change access",
+      "changeLegend": "New role",
+      "resend": "Resend invitation",
+      "remove": "Remove",
+      "removeAria": "Remove {{name}} from the project",
+      "removeTitle": "Remove this person from the project?",
+      "removeBody": "{{name}} will no longer have access to the project. Their work stays in the project.",
+      "cancelInvite": "Cancel invitation",
+      "cancelInviteAria": "Cancel the invitation of {{name}}",
+      "cancelInviteTitle": "Cancel the invitation?",
+      "cancelInviteBody": "The link {{name}} received will stop working.",
+      "savedTitle": "Access updated",
+      "savedBody": "The new access applies right away.",
+      "emptyTitle": "You are alone on this project for now",
+      "emptyBody": "Invite a partner, the person who runs your communication or the one building your site: each will only see what you open to them."
+    },
+    "status": {
+      "pending": "Waiting for an answer",
+      "declined": "Declined",
+      "expired": "Invitation expired"
+    },
+    "groups": {
+      "title": "Groups",
+      "subtitle": "A group brings together people with the same access, for example “Marketing team”. Change the group and all its members follow.",
+      "create": "Create a group",
+      "createConfirm": "Create group",
+      "newTitle": "New group",
+      "editTitle": "Edit group",
+      "nameLabel": "Group name",
+      "namePlaceholder": "Marketing team",
+      "accessLabel": "Access for group members",
+      "memberCount": "{{count}} person(s)",
+      "edit": "Edit",
+      "delete": "Delete",
+      "deleteTitle": "Delete the group “{{name}}”?",
+      "deleteBody": "Its members keep exactly the same access, now set one by one.",
+      "empty": "No groups yet. Once created, a group appears among the roles offered when inviting."
+    },
+    "errors": {
+      "title": "Action not possible",
+      "generic": "Something went wrong. Please try again in a moment.",
+      "no_account_title": "No IDEM account is linked to this address.",
+      "no_account": "Check the email address, or ask this person to create their IDEM account with this address, then invite them again.",
+      "invalid_email": "This email address is not valid.",
+      "self_invite": "That is your own address: you already have full access.",
+      "already_member": "This person is already on the team. Change their access in the list.",
+      "already_invited": "An invitation is already waiting for this address. You can resend it from the list.",
+      "not_owner": "Only the project owner manages its team.",
+      "member_not_found": "This person is no longer on the team.",
+      "group_not_found": "This group no longer exists.",
+      "invalid_role": "Choose what the person will be able to do.",
+      "empty_permissions": "Open at least one space, with “View” or “Edit”.",
+      "invitation_not_found": "This invitation no longer exists: it may have been cancelled.",
+      "invitation_expired": "This invitation has expired. Ask the person who invited you to send it again.",
+      "invitation_wrong_account": "This invitation is meant for another account. Sign in with the email address that received it.",
+      "team_full": "This project has reached its limit.",
+      "invalid_name": "Give the group a name (60 characters at most)."
+    },
+    "invitation": {
+      "loading": "Opening the invitation…",
+      "title": "Join the project “{{project}}”",
+      "from": "{{name}} invites you to this project's team.",
+      "accessLabel": "You will have access to:",
+      "accept": "Accept",
+      "decline": "Decline",
+      "declinedDone": "You declined this invitation.",
+      "open": "Open the project",
+      "toProjects": "See my projects",
+      "errorTitle": "Invitation unavailable"
+    },
+    "received": {
+      "title": "Invitations received ({{count}})",
+      "line": "{{name}} invites you to the project “{{project}}”.",
+      "joinedTitle": "Welcome to the team",
+      "joinedBody": "“{{project}}” is now in your projects."
+    },
+    "card": {
+      "sharedBy": "Shared by {{name}}",
+      "someone": "a member",
+      "leave": "Leave this project",
+      "leaveAria": "Leave the project {{name}}"
+    },
+    "leave": {
+      "title": "Leave “{{project}}”?",
+      "body": "You will no longer have access. The owner can invite you again.",
+      "confirm": "Leave project",
+      "doneTitle": "Project left",
+      "doneBody": "You are no longer on the team of “{{project}}”."
+    },
+    "readOnly": {
+      "title": "View only",
+      "body": "You can view “{{space}}” without changing it. For more access, ask {{owner}}.",
+      "blocked": "You have view-only access to this space. The project owner can give you edit rights."
     }
   }
 }

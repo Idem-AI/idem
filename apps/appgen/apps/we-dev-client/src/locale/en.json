@@ -1506,5 +1506,9 @@
       "older": "Older"
     },
     "button": "History"
+  },
+  "projectAccess": {
+    "readOnlyTitle": "View only",
+    "readOnlyBody": "You can view this site without changing it. The project owner can give you edit rights from the “Team” page."
   }
 }

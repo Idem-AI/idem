@@ -101,3 +101,47 @@ export async function requireIdemUser(req: Request, res: Response, next: NextFun
   setTraceUserId(user.uid);
   next();
 }
+
+/**
+ * Les droits de l'appelant sur un projet IDEM (équipe du projet), demandés à
+ * l'API centrale : `owner`, ou `member` avec ses permissions par espace.
+ *
+ *   null           le projet n'existe pas pour lui (ni propriétaire ni membre) ;
+ *   'unavailable'  pas de réponse utile (API muette, ou brouillon qui n'est pas
+ *                  un projet IDEM) — l'appelant décide ; les écritures
+ *                  passent de toute façon par l'API, qui refuse d'elle-même.
+ */
+export interface ProjectAccessAnswer {
+  role: 'owner' | 'member';
+  permissions: Record<string, 'none' | 'read' | 'write'>;
+}
+
+export async function projectAccessOf(
+  req: Request,
+  projectId: string
+): Promise<ProjectAccessAnswer | null | 'unavailable'> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  try {
+    const response = await fetch(`${IDEM_API_URL}/team/projects/${encodeURIComponent(projectId)}/access`, {
+      headers: { ...forwardedCredentials(req), ...traceHeaders() },
+      signal: controller.signal,
+    });
+    if (response.status === 404) {
+      // Un brouillon iCode n'est pas un projet IDEM : rien à protéger.
+      const body = (await response.json().catch(() => ({}))) as { error?: string };
+      return body.error === 'unknown_project' ? 'unavailable' : null;
+    }
+    if (!response.ok) return 'unavailable';
+    return (await response.json()) as ProjectAccessAnswer;
+  } catch {
+    return 'unavailable';
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+/** Le site d'un projet se modifie avec l'espace « Site internet » en écriture. */
+export function canEditWebsite(access: ProjectAccessAnswer): boolean {
+  return access.role === 'owner' || access.permissions?.website === 'write';
+}

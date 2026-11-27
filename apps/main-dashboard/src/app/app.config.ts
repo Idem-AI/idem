@@ -16,6 +16,7 @@ import { routes } from './app.routes';
 import { authInterceptor } from './shared/interceptors/auth.interceptor';
 import { policyRequiredInterceptor } from './shared/interceptors/policy-required.interceptor';
 import { paymentRequiredInterceptor } from './shared/interceptors/payment-required.interceptor';
+import { readOnlyInterceptor } from './shared/interceptors/read-only.interceptor';
 import { MyPreset } from './my-preset';
 import { provideMarkdown, MARKED_OPTIONS, MERMAID_OPTIONS } from 'ngx-markdown';
 import { CustomTitleStrategy } from './shared/services/custom-title-strategy';
@@ -57,7 +58,7 @@ export const appConfig: ApplicationConfig = {
     // lit `partialText` des événements de progression. Le transport `fetch`
     // les livre autrement, et ces flux lancent de vraies générations
     // facturées — on ne change pas leur transport sans les avoir rejouées.
-    provideHttpClient(withInterceptors([authInterceptor, paymentRequiredInterceptor, policyRequiredInterceptor])),
+    provideHttpClient(withInterceptors([authInterceptor, paymentRequiredInterceptor, policyRequiredInterceptor, readOnlyInterceptor])),
     provideAnimations(),
     providePrimeNG({
       theme: {

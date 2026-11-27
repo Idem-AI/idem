@@ -50,6 +50,8 @@
     -->
     <div class="idem-float-stack float-stack" [class.float-stack--collapsed]="isSidebarCollapsed()">
       <app-next-step-bar />
+      <!-- Membre d'équipe sur un espace en lecture seule. -->
+      <app-read-only-notice />
       @if (floatingJourney(); as card) {
         <idem-journey-card
           variant="float"

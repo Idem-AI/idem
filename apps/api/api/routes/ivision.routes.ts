@@ -29,6 +29,8 @@ import { AgentProfile, runtimeCall } from '../services/creativity/orchestrator';
 import { idemAnalyzeImage, idemGenerateImage, idemGenerateVideo, idemSynthesizeSpeech } from '../services/ivision/host';
 import { PromptService } from '../services/prompt.service';
 import { projectService } from '../services/project.service';
+import { findProjectOwner, listSharedProjectAccess, resolveProjectAccess } from '../services/team/project-access.service';
+import { canAccess, ProjectAccess } from '../../../../packages/shared-models/src/projects/project-access.model';
 import { runWithAiUsageContext } from '../utils/ai-usage-context.util';
 import { setTraceUserId } from '../utils/trace.util';
 import { safeEqual } from '../utils/safe-equal.util';
@@ -99,6 +101,34 @@ const route =
       if (!res.headersSent) res.status(error.message === 'billing_unavailable' ? 503 : 502).json({ error: error.message === 'billing_unavailable' ? 'billing_unavailable' : 'upstream_failed', message: error.message });
     });
   };
+
+
+// ─── Projets partagés ───────────────────────────────────────────────────────
+
+/** Ce qu'un membre d'équipe peut importer dans iVision : la charte, s'il lit l'identité ou la communication. */
+const readsBrand = (access: ProjectAccess): boolean => canAccess(access, 'branding') || canAccess(access, 'communication');
+
+/** Le projet, à soi ou partagé avec soi en lecture de la charte. */
+async function readableProject(userId: string, projectId: string) {
+  const own = await projectService.getUserProjectById(userId, projectId);
+  if (own) return own;
+  const resolved = await resolveProjectAccess(projectId, userId);
+  if (!resolved || resolved.access.role !== 'member' || !readsBrand(resolved.access)) return null;
+  return projectService.getUserProjectById(resolved.project.ownerId, projectId);
+}
+
+async function sharedBrandProjects(userId: string) {
+  const accesses = await listSharedProjectAccess(userId).catch(() => new Map<string, ProjectAccess>());
+  const loaded = await Promise.all(
+    [...accesses.entries()]
+      .filter(([, access]) => readsBrand(access))
+      .map(async ([projectId]) => {
+        const owner = await findProjectOwner(projectId);
+        return owner ? projectService.getUserProjectById(owner.ownerId, projectId) : null;
+      })
+  );
+  return loaded.filter((project): project is NonNullable<typeof project> => project !== null);
+}
 
 router.use(requireIvisionKey);
 
@@ -373,7 +403,8 @@ router.get(
       res.status(400).json({ error: 'user_required' });
       return;
     }
-    const projects = await projectService.getAllUserProjects(userId);
+    // Les siens, puis ceux d'une équipe dont il peut lire la charte ou la communication.
+    const projects = [...(await projectService.getAllUserProjects(userId)), ...(await sharedBrandProjects(userId))];
     res.json({
       projects: projects.map((p) => {
         const palette: Partial<Record<string, string>> | undefined = (p.analysisResultModel?.branding as BrandKit | undefined)?.colors?.colors ?? undefined;
@@ -387,7 +418,7 @@ router.get(
   '/projects/:projectId/brand',
   route(async (req, res) => {
     const userId = userIdOf(req);
-    const project = userId ? await projectService.getUserProjectById(userId, String(req.params.projectId)) : null;
+    const project = userId ? await readableProject(userId, String(req.params.projectId)) : null;
     if (!project) {
       res.status(404).json({ error: 'project_not_found' });
       return;
@@ -528,7 +559,7 @@ router.get(
   '/projects/:projectId/branding',
   route(async (req, res) => {
     const userId = userIdOf(req);
-    const project = userId ? await projectService.getUserProjectById(userId, String(req.params.projectId)) : null;
+    const project = userId ? await readableProject(userId, String(req.params.projectId)) : null;
     if (!project) {
       res.status(404).json({ error: 'project_not_found' });
       return;

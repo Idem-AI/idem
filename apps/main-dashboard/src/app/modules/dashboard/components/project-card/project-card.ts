@@ -17,6 +17,11 @@ import { MODE_HOME_ROUTE, UiModeService } from '../../../../shared/services/ui-m
 export class ProjectCard {
   project = input<ProjectModel>();
   readonly deleteProject = output<ProjectModel>();
+  /** Quitter un projet partagé : émis seulement pour un projet dont on est membre. */
+  readonly leaveProject = output<ProjectModel>();
+
+  /** Projet d'un autre, ouvert par son équipe. */
+  readonly isShared = computed(() => this.project()?.access?.role === 'member');
   router = inject(Router);
   cookieService = inject(CookieService);
   private readonly uiModeService = inject(UiModeService);
@@ -100,5 +105,12 @@ export class ProjectCard {
     if (proj) {
       this.deleteProject.emit(proj);
     }
+  }
+
+  onLeave(event: MouseEvent) {
+    event.stopPropagation();
+    event.preventDefault();
+    const proj = this.project();
+    if (proj) this.leaveProject.emit(proj);
   }
 }

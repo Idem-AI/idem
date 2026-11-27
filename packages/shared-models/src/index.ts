@@ -6,6 +6,7 @@ export * from './auth/invitation.model';
 
 // Project models
 export * from './projects/project.model';
+export * from './projects/project-access.model';
 
 // Tarification : règles de résolution partagées par l'API et le dashboard,
 // et valeurs par défaut embarquées pour l'affichage hors ligne.

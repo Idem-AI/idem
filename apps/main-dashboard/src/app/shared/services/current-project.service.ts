@@ -2,7 +2,7 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { Observable, of } from 'rxjs';
 import { catchError, tap } from 'rxjs/operators';
-import { ProjectModel } from '@idem/shared-models';
+import { OWNER_ACCESS, ProjectAccess, ProjectModel } from '@idem/shared-models';
 import { ProjectService } from '../../modules/dashboard/services/project.service';
 import { CookieService } from './cookie.service';
 
@@ -45,6 +45,18 @@ export class CurrentProjectService {
   });
 
   readonly hasProjects = computed(() => this._projects().length > 0);
+
+  /**
+   * Les droits de la personne connectée sur le projet ouvert. Une réponse
+   * ancienne sans `access` est un projet à soi : propriétaire.
+   */
+  readonly access = computed<ProjectAccess | null>(() => {
+    const project = this.selected();
+    if (!project) return null;
+    return project.access ?? OWNER_ACCESS;
+  });
+
+  readonly isOwner = computed(() => this.access()?.role === 'owner');
 
   constructor() {
     // Le cookie est lu d'emblée : l'écran peut afficher le bon nom dès que la

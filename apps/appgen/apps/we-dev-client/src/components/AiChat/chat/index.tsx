@@ -74,7 +74,8 @@ import { IdemLoader } from '@idem/shared-loader/react';
 import { JourneyCard, JourneyFloat } from '@idem/shared-journey/react';
 import { journeyClient, journeyUrls, useJourney } from '@/hooks/useJourney';
 import { useChatAutoScroll } from '@/hooks/useChatAutoScroll';
-import { ArrowDown, Crosshair, X } from 'lucide-react';
+import { ArrowDown, Crosshair, Eye, X } from 'lucide-react';
+import useProjectAccessStore from '@/stores/projectAccessSlice';
 import { readChoices, readJourney, readProject } from '@/utils/chatMarkers';
 import { ChatChoices, type ChoicesAnswerEvent } from './components/ChatChoices';
 import { journeyLink, type Recommendation } from '@idem/shared-journey';
@@ -271,6 +272,8 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { otherConfig, creativity: chatCreativity } = useChatStore();
   const { t, i18n } = useTranslation();
+  // Membre d'équipe en lecture seule : le site se voit, la saisie disparaît.
+  const accessStatus = useProjectAccessStore((state) => state.status);
   const [checkCount, setCheckCount] = useState(0);
   const [visible, setVisible] = useState(false);
   const [baseModal, setBaseModal] = useState<IModelOption>({
@@ -2645,7 +2648,17 @@ export const BaseChat = ({ uuid: propUuid }: { uuid?: string }) => {
           </button>
         </div>
       )}
-      {!(projectData && filterMessages.length === 0) && (
+      {accessStatus === 'readOnly' && (
+        <div role="status" className="mx-3 mb-3 flex items-start gap-2 rounded-lg border border-[var(--glass-border)] bg-surface-2 px-3 py-2.5 text-xs text-text-secondary">
+          <Eye size={14} className="mt-0.5 shrink-0 text-primary" aria-hidden="true" />
+          <p>
+            <span className="font-semibold text-text-primary">{t('projectAccess.readOnlyTitle')}</span>
+            {' · '}
+            {t('projectAccess.readOnlyBody')}
+          </p>
+        </div>
+      )}
+      {accessStatus !== 'readOnly' && !(projectData && filterMessages.length === 0) && (
         <ChatInput
           input={input}
           setMessages={setMessages}

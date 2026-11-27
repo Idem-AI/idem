@@ -25,6 +25,8 @@ import { NotificationService } from '../../../../shared/services/notification.se
 import { AnalyticsService } from '../../../../shared/services/analytics.service';
 import { UiModeService } from '../../../../shared/services/ui-mode.service';
 import { IdemLoaderComponent } from '@idem/shared-loader/angular';
+import { TeamService } from '../../../team/services/team.service';
+import { ReceivedInvitationsComponent } from '../../../team/components/received-invitations/received-invitations';
 
 /** Types de projet traduits, tels que proposés à la création. */
 const KNOWN_PROJECT_TYPES = new Set([
@@ -42,7 +44,7 @@ const KNOWN_PROJECT_TYPES = new Set([
 
 @Component({
   selector: 'app-projects-list',
-  imports: [ProjectCard, TranslateModule, IdemLoaderComponent],
+  imports: [ProjectCard, TranslateModule, IdemLoaderComponent, ReceivedInvitationsComponent],
   templateUrl: './projects-list.html',
   styleUrl: './projects-list.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -57,6 +59,7 @@ export class ProjectsList implements OnInit {
   private readonly analyticsService = inject(AnalyticsService);
   private readonly uiModeService = inject(UiModeService);
   private readonly currentProject = inject(CurrentProjectService);
+  private readonly teamService = inject(TeamService);
 
   // Data signals and state
   userProjects$!: Observable<ProjectModel[]>;
@@ -193,39 +196,82 @@ export class ProjectsList implements OnInit {
       .sort((a, b) => this.lastTouched(b) - this.lastTouched(a));
   });
 
+  /** Charge la liste : les projets à soi, puis ceux partagés par une équipe. */
+  private fetchProjects(): void {
+    this.isLoading.set(true);
+    this.userProjects$ = this.projectService.getProjects();
+    this.userProjects$.subscribe({
+      next: (projects) => {
+        this.allProjects.set(projects);
+        this.currentProject.replaceAll(projects);
+        this.projectCount.set(projects.length);
+        this.recentProjects.set(
+          projects
+            .slice()
+            .sort((a, b) => {
+              const dateA = a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt);
+              const dateB = b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt);
+              return dateB.getTime() - dateA.getTime();
+            })
+            .slice(0, 3),
+        );
+        this.isLoading.set(false);
+      },
+      error: (error) => {
+        console.error('Error fetching projects:', error);
+        this.isLoading.set(false);
+        // If there's an auth error, redirect to login
+        if (error.status === 401 || error.status === 403) {
+          console.log('Authentication error, redirecting to login');
+          this.router.navigate(['/login']);
+        }
+      },
+    });
+  }
+
+  /** Une invitation acceptée depuis le bandeau : le projet rejoint apparaît dans la liste. */
+  protected onJoined(): void {
+    this.fetchProjects();
+  }
+
+  // ─── Quitter un projet partagé ───────────────────────────────────────────
+  protected readonly projectToLeave = signal<ProjectModel | null>(null);
+  protected readonly isLeaving = signal(false);
+
+  protected confirmLeaveProject(): void {
+    const project = this.projectToLeave();
+    if (!project?.id || this.isLeaving()) return;
+    const leftId = project.id;
+    this.isLeaving.set(true);
+    this.teamService.leave(leftId).subscribe({
+      next: () => {
+        this.allProjects.update((projects) => projects.filter((p) => p.id !== leftId));
+        this.currentProject.replaceAll(this.allProjects());
+        this.projectCount.update((count) => Math.max(0, count - 1));
+        this.recentProjects.update((recent) => recent.filter((p) => p.id !== leftId));
+        if (this.cookieService.get('projectId') === leftId) this.cookieService.remove('projectId');
+        this.notificationService.showSuccess({
+          title: this.translate.instant('team.leave.doneTitle'),
+          message: this.translate.instant('team.leave.doneBody', { project: project.name }),
+        });
+        this.isLeaving.set(false);
+        this.projectToLeave.set(null);
+      },
+      error: () => {
+        this.notificationService.showError({
+          title: this.translate.instant('team.errors.title'),
+          message: this.translate.instant('team.errors.generic'),
+        });
+        this.isLeaving.set(false);
+      },
+    });
+  }
+
   ngOnInit() {
     try {
       this.user$.pipe(first()).subscribe((user) => {
         if (user) {
-          this.isLoading.set(true);
-          this.userProjects$ = this.projectService.getProjects();
-          this.userProjects$.subscribe({
-            next: (projects) => {
-              this.allProjects.set(projects);
-              this.currentProject.replaceAll(projects);
-              this.projectCount.set(projects.length);
-              this.recentProjects.set(
-                projects
-                  .slice()
-                  .sort((a, b) => {
-                    const dateA = a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt);
-                    const dateB = b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt);
-                    return dateB.getTime() - dateA.getTime();
-                  })
-                  .slice(0, 3),
-              );
-              this.isLoading.set(false);
-            },
-            error: (error) => {
-              console.error('Error fetching projects:', error);
-              this.isLoading.set(false);
-              // If there's an auth error, redirect to login
-              if (error.status === 401 || error.status === 403) {
-                console.log('Authentication error, redirecting to login');
-                this.router.navigate(['/login']);
-              }
-            },
-          });
+          this.fetchProjects();
         } else {
           console.log('User not authenticated, redirecting to login');
           this.isLoading.set(false);

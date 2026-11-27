@@ -12,11 +12,12 @@ import { TopbarComponent } from '../../shared/components/topbar/topbar';
 import { AppFooterComponent } from '../../shared/components/app-footer/app-footer';
 
 import { PromoBannerComponent } from '@idem/shared-promotions/angular';
+import { ReadOnlyNoticeComponent } from '../../modules/team/components/read-only-notice/read-only-notice';
 
 @Component({
   selector: 'app-dashboard-layout',
   standalone: true,
-  imports: [RouterOutlet, SidebarDashboard, CommonModule, GuidedStepBarComponent, NextStepBarComponent, TopbarComponent, PromoBannerComponent, AppFooterComponent, JourneyCardComponent],
+  imports: [RouterOutlet, SidebarDashboard, CommonModule, GuidedStepBarComponent, NextStepBarComponent, TopbarComponent, PromoBannerComponent, AppFooterComponent, JourneyCardComponent, ReadOnlyNoticeComponent],
   templateUrl: './dashboard-layout.html',
   styleUrl: './dashboard-layout.css',
 })

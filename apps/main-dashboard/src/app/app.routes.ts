@@ -3,8 +3,9 @@ import { authGuard, publicGuard } from './guards/auth.guard';
 import { surveyGuard } from './guards/survey.guard';
 import { guidedAccessGuard } from './guards/guided-access.guard';
 import { translationChunkGuard } from './shared/i18n/translation-chunks';
+import { withProjectAccess } from './guards/project-access.guard';
 
-export const routes: Routes = [
+export const routes: Routes = withProjectAccess([
   // Redirect root to console
   {
     path: '',
@@ -714,6 +715,30 @@ export const routes: Routes = [
     data: { layout: 'dashboard', sectionKey: 'ratios' },
   },
 
+  // ============================================
+  // ÉQUIPE DU PROJET
+  //
+  // Le propriétaire invite, règle les accès, crée des groupes. Réservée au
+  // propriétaire (`project-space-routes.ts`) : un membre reçoit la 404.
+  // ============================================
+  {
+    path: 'project/team',
+    title: 'navigation.titles.team',
+    loadComponent: () => import('./modules/team/pages/team-page/team-page').then((m) => m.TeamPage),
+    canActivate: [authGuard, surveyGuard],
+    data: { layout: 'dashboard' },
+  },
+  {
+    // Lien de l'e-mail d'invitation. Hors de tout projet : on n'en fait pas
+    // encore partie. Un visiteur déconnecté passe par la connexion et revient.
+    path: 'invitations/:token',
+    title: 'navigation.titles.invitation',
+    loadComponent: () =>
+      import('./modules/team/pages/invitation-page/invitation-page').then((m) => m.InvitationPage),
+    canActivate: [authGuard],
+    data: { layout: 'empty' },
+  },
+
   // Project creation route
   {
     path: 'create-project',
@@ -737,4 +762,4 @@ export const routes: Routes = [
 
   // Catch all unknown routes and redirect to 404
   { path: '**', redirectTo: 'not-found' },
-];
+]);

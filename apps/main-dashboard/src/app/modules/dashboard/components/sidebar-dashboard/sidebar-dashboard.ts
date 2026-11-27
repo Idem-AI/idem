@@ -20,6 +20,7 @@ import { BillingService } from '../../../billing/services/billing.service';
 import { CurrentProjectService } from '../../../../shared/services/current-project.service';
 import { LanguageSelectorComponent } from '../../../../shared/components/language-selector/language-selector';
 import { ThemeToggleComponent } from '../../../../shared/components/theme-toggle/theme-toggle';
+import { canOpenRoute } from '../../../../shared/utils/project-space-routes';
 
 @Component({
   selector: 'app-sidebar-dashboard',
@@ -202,6 +203,13 @@ export class SidebarDashboard implements OnInit {
       route: 'project/ideploy',
       isActive: false,
     },
+    {
+      // Réservée au propriétaire : masquée pour un membre (project-space-routes.ts).
+      labelKey: 'dashboard.sidebar.team',
+      icon: 'pi pi-users',
+      route: 'project/team',
+      isActive: false,
+    },
   ]);
 
   // ─────────────────────────────────────────── Navigation du mode Assisté
@@ -216,8 +224,16 @@ export class SidebarDashboard implements OnInit {
    */
   protected readonly displayedNavItems = computed(() => {
     const guided = this.isGuidedMode();
-    return this.navigationItems().map((item) => {
-      const locked = guided && !this.journey.isRouteAllowed(`/${item.route}`);
+    // Un membre d'équipe ne voit que les espaces qui lui sont ouverts. Tant que
+    // les droits ne sont pas connus (aucun projet chargé), le menu reste entier.
+    const access = this.projects.access();
+    const visible = (route: string) => !access || canOpenRoute(access, route, 'read');
+    return this.navigationItems()
+      .filter((item) => visible(item.route))
+      .map((item) => ({ ...item, children: item.children?.filter((child) => visible(child.route)) }))
+      .map((item) => {
+      // L'équipe ne fait pas partie du parcours : elle reste ouverte en mode Assisté.
+      const locked = guided && item.route !== 'project/team' && !this.journey.isRouteAllowed(`/${item.route}`);
       return {
         ...item,
         locked,

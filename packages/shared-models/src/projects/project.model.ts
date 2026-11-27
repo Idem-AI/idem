@@ -81,6 +81,11 @@ export interface ProjectModel {
   // Propriétaire et équipes
   userId: string; // Propriétaire du projet
   teams?: ProjectTeam[]; // Équipes associées avec leurs rôles (optionnel)
+  /**
+   * Droits de l'utilisateur connecté sur ce projet, joints par l'API à la
+   * liste et au détail. Absent sur une ancienne réponse : propriétaire.
+   */
+  access?: import('./project-access.model').ProjectAccess;
 
   // Phases et analyse
   selectedPhases: string[];
