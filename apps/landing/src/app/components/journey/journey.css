@@ -18,6 +18,18 @@
   padding: clamp(3rem, 6vw, 5.5rem) 1.25rem clamp(3rem, 6vw, 5rem);
 }
 
+@media (min-width: 1440px) {
+  .jn {
+    max-width: min(88rem, calc(100% - 4rem));
+  }
+}
+
+@media (min-width: 1680px) {
+  .jn {
+    max-width: min(94rem, calc(100% - 6rem));
+  }
+}
+
 /* ── Ouverture ───────────────────────────────────────────────── */
 
 .jn-head {
@@ -27,36 +39,73 @@
 }
 
 @media (min-width: 1024px) {
+  .jn {
+    padding-top: 0;
+  }
+
   .jn-head {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: 4rem;
+    min-height: 100svh;
+    align-content: center;
+    padding-block: clamp(4.5rem, 9vh, 6.5rem);
+    /* L'image prend plus de place que la colonne de texte pour que la femme
+       paraisse vraiment grandiose à l'arrivée sur la section. */
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.45fr);
+    gap: clamp(3rem, 5vw, 5.5rem);
   }
 }
 
 .jn-title {
   margin: 0;
-  font-size: clamp(2.5rem, 1.6rem + 4.2vw, 5rem);
+  font-size: clamp(2.5rem, 1.6rem + 4.2vw, 5.25rem);
   font-weight: 900;
   line-height: 1.02;
   text-wrap: balance;
 }
 
 .jn-lede {
-  max-width: 42rem;
+  max-width: 44rem;
   margin: 1.5rem 0 0;
-  font-size: clamp(1.0625rem, 1rem + 0.35vw, 1.25rem);
+  font-size: clamp(1.0625rem, 1rem + 0.35vw, 1.3rem);
   line-height: 1.65;
   color: var(--color-text-secondary);
 }
 
 /* Les dessins (échelle dogon à l'ouverture, grenier plein à la fin) : au
    trait, deux encres, la couleur du texte suit le thème. */
-/* La femme de l'histoire, en grand : l'idée au début, le trophée à la fin. */
+/* La femme de l'histoire, en grand : l'idée au début, le trophée à la fin.
+   Le plafond monte à 48rem pour qu'elle prenne toute sa colonne et impose
+   visuellement l'arrivée sur la section. */
 .jn-art {
   width: 100%;
-  max-width: 36rem;
+  max-width: 48rem;
   height: auto;
   justify-self: center;
+}
+
+/* Sur grand écran, l'image d'ouverture de « A real example » s'agrandit pour
+   occuper majestueusement toute la hauteur de la page. */
+@media (min-width: 1024px) {
+  .jn-head .jn-art {
+    max-width: min(58rem, 100%);
+    max-height: min(78svh, 48rem);
+    width: 100%;
+    height: auto;
+    object-fit: contain;
+  }
+}
+
+@media (min-width: 1440px) {
+  .jn-head .jn-art {
+    max-width: min(66rem, 100%);
+    max-height: min(82svh, 54rem);
+  }
+}
+
+@media (min-width: 1680px) {
+  .jn-head .jn-art {
+    max-width: min(74rem, 100%);
+    max-height: min(85svh, 60rem);
+  }
 }
 
 /* ── Corps : l'index et les écrans ───────────────────────────── */
@@ -451,7 +500,8 @@
 
 @media (min-width: 1024px) {
   .jn-end {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    /* Même partage qu'à l'ouverture : l'image porte la section. */
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
     gap: 4rem;
   }
 }

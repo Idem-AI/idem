@@ -6036,6 +6036,7 @@
     "forgotTitle": "Choisir un mot de passe",
     "recoveryTitle": "Nouveau mot de passe",
     "continueWith": "Continuer avec {{provider}}",
+    "providerUnavailable": "Indisponible pour le moment",
     "or": "ou",
     "name": "Nom",
     "email": "Adresse e-mail",

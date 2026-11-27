@@ -6070,6 +6070,7 @@
     "forgotTitle": "Choose a password",
     "recoveryTitle": "New password",
     "continueWith": "Continue with {{provider}}",
+    "providerUnavailable": "Temporarily unavailable",
     "or": "or",
     "name": "Name",
     "email": "Email address",

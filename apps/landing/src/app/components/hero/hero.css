@@ -61,6 +61,15 @@
   animation: hero-window 1.1s var(--hero-ease) 0.25s both;
 }
 
+/* Sur les très grands écrans, le cadre respire un peu plus : le plafond de
+   74 rem laissait trop de vide à gauche et à droite, sans aller jusqu'à
+   remplir la page. */
+@media (min-width: 1600px) {
+  .demo {
+    width: min(84rem, calc(100% - 4rem));
+  }
+}
+
 .demo-window {
   overflow: hidden;
   text-align: left;
@@ -231,6 +240,15 @@
   position: relative;
   aspect-ratio: 16 / 9;
   background: var(--color-surface-2);
+}
+
+/* Sur un écran haut, l'aspect 16/9 laisse un vide sous la fenêtre avant la
+   section suivante. On impose une hauteur minimale liée à la hauteur de
+   l'écran — le film garde sa largeur et se recadre en « cover ». */
+@media (min-width: 900px) {
+  .demo-stage {
+    min-height: min(58svh, 44rem);
+  }
 }
 
 .demo-film {
