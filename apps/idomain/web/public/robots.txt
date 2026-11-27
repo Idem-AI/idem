@@ -1,4 +1,4 @@
-# iDomain — https://idomain.idem.africa
+# iDomain — https://domain.idem.africa
 # Seule l'entrée publique (recherche et prix) est indexée : le reste est l'espace privé des utilisateurs.
 
 User-agent: *

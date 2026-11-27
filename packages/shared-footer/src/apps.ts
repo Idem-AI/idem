@@ -44,10 +44,10 @@ export interface FooterServices {
 export const DEFAULT_SERVICES: Required<FooterServices> = {
   landing: 'https://idem.africa',
   dashboard: 'https://console.idem.africa',
-  icode: 'https://appgen.idem.africa',
-  ideploy: 'https://ideploy.idem.africa',
+  icode: 'https://code.idem.africa',
+  ideploy: 'https://deploy.idem.africa',
   ivision: 'https://ivision.idem.africa',
-  idomain: 'https://idomain.idem.africa',
+  idomain: 'https://domain.idem.africa',
   simulator: 'https://simulator.idem.africa',
 };
 

@@ -187,7 +187,7 @@ export const SERVICES: Record<ServiceId, EcosystemService> = {
   icode: {
     id: 'icode',
     name: 'iCode',
-    url: 'https://appgen.idem.africa',
+    url: 'https://code.idem.africa',
     landingPath: '/idev',
     step: 3,
     category: 'DeveloperApplication',
@@ -220,7 +220,7 @@ export const SERVICES: Record<ServiceId, EcosystemService> = {
   ideploy: {
     id: 'ideploy',
     name: 'iDeploy',
-    url: 'https://ideploy.idem.africa',
+    url: 'https://deploy.idem.africa',
     landingPath: '/ideploy',
     step: 4,
     category: 'DeveloperApplication',
@@ -253,7 +253,7 @@ export const SERVICES: Record<ServiceId, EcosystemService> = {
   idomain: {
     id: 'idomain',
     name: 'iDomain',
-    url: 'https://idomain.idem.africa',
+    url: 'https://domain.idem.africa',
     landingPath: '/idomain',
     step: 5,
     category: 'BusinessApplication',

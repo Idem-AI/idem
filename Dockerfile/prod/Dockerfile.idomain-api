@@ -1,0 +1,35 @@
+# iDomain API — Express + TypeScript (PostgreSQL + Redis). Le worker (src/worker.ts) n'est pas déployé.
+ARG BUILD_ENV=production
+
+FROM node:22-alpine AS builder
+
+# iDomain n'est pas un espace de travail du monorepo : il installe ses propres dépendances.
+WORKDIR /app/apps/idomain/api
+COPY ./apps/idomain/api ./
+
+RUN npm install --legacy-peer-deps && npm run build && npm prune --omit=dev --legacy-peer-deps && npm cache clean --force
+
+FROM node:22-alpine AS production
+ARG BUILD_ENV
+
+RUN apk update && apk upgrade && apk add --no-cache dumb-init && rm -rf /var/cache/apk/*
+
+RUN addgroup -g 1001 -S nodejs && adduser -S idomain -u 1001
+
+ENV NODE_ENV=${BUILD_ENV:-production}
+ENV PORT=3007
+
+WORKDIR /app
+COPY --from=builder --chown=idomain:nodejs /app/apps/idomain/api/package.json ./package.json
+COPY --from=builder --chown=idomain:nodejs /app/apps/idomain/api/node_modules ./node_modules
+COPY --from=builder --chown=idomain:nodejs /app/apps/idomain/api/dist ./dist
+COPY --from=builder --chown=idomain:nodejs /app/apps/idomain/api/migrations ./migrations
+# Secrets (Infisical) puis migrations, avant le démarrage de l'API.
+COPY --from=builder --chown=idomain:nodejs /app/apps/idomain/api/scripts/start-provisioned.js ./scripts/start-provisioned.js
+
+RUN mkdir -p /app/logs && chown -R idomain:nodejs /app/logs
+USER idomain
+
+EXPOSE 3007
+ENTRYPOINT ["dumb-init", "--"]
+CMD ["node", "scripts/start-provisioned.js"]

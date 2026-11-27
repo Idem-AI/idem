@@ -48,7 +48,7 @@ export const idomainClient = {
 
   /** Où envoyer l'utilisateur pour chercher, acheter et brancher un domaine. */
   webUrl(): string {
-    return (process.env.IDOMAIN_WEB_URL || 'https://idomain.idem.africa').replace(/\/+$/, '');
+    return (process.env.IDOMAIN_WEB_URL || 'https://domain.idem.africa').replace(/\/+$/, '');
   },
 };
 

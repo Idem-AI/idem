@@ -14,7 +14,7 @@ export function missingProductionConfig(env: NodeJS.ProcessEnv = process.env): s
   const problems: string[] = [];
   const origins = (env.CORS_ALLOWED_ORIGINS || '').split(',').map((o) => o.trim()).filter(Boolean);
   if (origins.length === 0) {
-    problems.push('CORS_ALLOWED_ORIGINS (the iCode front origins, comma-separated, e.g. https://appgen.idem.africa)');
+    problems.push('CORS_ALLOWED_ORIGINS (the iCode front origins, comma-separated, e.g. https://code.idem.africa)');
   }
   for (const key of ['IDEM_API_URL', 'IDEPLOY_API_URL']) {
     const value = env[key];

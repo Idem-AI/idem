@@ -23,7 +23,7 @@ export function ivisionUrl(): string {
 /** L'adresse d'iDomain (noms de domaine), avec le même repli qu'iVision pour un `environment.ts` ancien. */
 export function idomainUrl(): string {
   const services = environment.services as typeof environment.services & { idomain?: { url: string } };
-  return services.idomain?.url || (environment.environment === 'dev' ? 'http://localhost:4205' : 'https://idomain.idem.africa');
+  return services.idomain?.url || (environment.environment === 'dev' ? 'http://localhost:4205' : 'https://domain.idem.africa');
 }
 
 /** Base autorisée pour chaque application acceptant un retour après login. */
