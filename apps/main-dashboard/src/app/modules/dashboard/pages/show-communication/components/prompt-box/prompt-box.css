@@ -4,13 +4,25 @@
 
 .pb-box {
   display: flex;
-  align-items: flex-end;
-  gap: 0.5rem;
-  padding: 0.5rem;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.4rem;
 }
 
 .pb-box:focus-within {
   border-color: var(--color-primary-500);
+}
+
+/* Une image tirée au-dessus de la saisie : le cadre le dit. */
+.pb-box-drop {
+  border-style: dashed;
+  border-color: var(--color-primary-500);
+}
+
+.pb-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.4rem;
 }
 
 /* Le champ se fond dans sa carte : c'est la carte qui porte le cadre. */
@@ -20,19 +32,130 @@
   border: none !important;
   background: transparent !important;
   box-shadow: none !important;
-  padding: 0.5rem 0.6rem;
+  padding: 0.45rem 0.3rem;
   font-size: 0.95rem;
   line-height: 1.5;
   color: var(--color-text-primary);
   outline: none;
 }
 
+/* Joindre et envoyer : deux ronds de même taille, de part et d'autre du champ. */
+.pb-attach,
 .pb-send {
   flex-shrink: 0;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pb-attach {
+  color: var(--color-text-secondary);
+}
+
+.pb-attach:hover:not(:disabled) {
+  color: var(--color-text-primary);
+}
+
+.pb-attach:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.pb-send .pi {
+  font-size: 0.85rem;
+}
+
+/* ── Images jointes ───────────────────────────────────────────────────────── */
+
+.pb-attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  padding: 0.2rem 0.2rem 0;
+}
+
+.pb-attachment {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: 17rem;
+  border-radius: 0.7rem;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg-subtle);
+  padding: 0.3rem 0.35rem 0.3rem 0.3rem;
+}
+
+.pb-attachment-thumb {
+  width: 2.6rem;
+  height: 2.6rem;
+  flex-shrink: 0;
+  border-radius: 0.45rem;
+  object-fit: cover;
+}
+
+.pb-attachment-text {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.pb-attachment-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+/* Le menu natif du design system, ramené à la taille d'une étiquette. */
+.pb-attachment-role {
+  width: auto !important;
+  min-height: 0 !important;
+  padding: 0.1rem 1.6rem 0.1rem 0.4rem !important;
+  font-size: 0.72rem !important;
+}
+
+.pb-attachment-remove {
+  flex-shrink: 0;
+  display: inline-flex;
+  width: 1.5rem;
+  height: 1.5rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  color: var(--color-text-tertiary);
+}
+
+.pb-attachment-remove:hover {
+  background: var(--glass-bg-medium);
+  color: var(--color-text-primary);
+}
+
+.pb-attachment-remove .pi {
+  font-size: 0.65rem;
+}
+
+.pb-attachment-loading {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  padding: 0.55rem 0.7rem;
+}
+
+.pb-error {
+  margin-top: 0.4rem;
+  padding: 0 0.25rem;
+  font-size: 0.78rem;
+  color: var(--color-danger);
 }
 
 .pb-foot {
-  margin-top: 0.5rem;
+  margin-top: 0.4rem;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -138,20 +261,15 @@
 /* ── Téléphone ────────────────────────────────────────────────────────────── */
 
 @media (max-width: 640px) {
-  /* Une flèche suffit sous le pouce ; le mot reste lu par les lecteurs d'écran. */
-  .pb-send-label {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip: rect(0 0 0 0);
-    white-space: nowrap;
+  /* 44 px sous le pouce. */
+  .pb-attach,
+  .pb-send {
+    width: 2.75rem;
+    height: 2.75rem;
   }
 
-  .pb-send {
-    min-height: 2.75rem;
-    min-width: 2.75rem;
-    justify-content: center;
+  .pb-attachment {
+    max-width: 100%;
   }
 
   /* 16 px au moins : en dessous, iOS zoome la page à chaque appui sur le champ. */

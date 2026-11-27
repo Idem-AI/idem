@@ -3651,7 +3651,22 @@
             "text": "Write me the text to publish with this visual."
           }
         },
-        "retouchPlaceholder": "Ask for a change…"
+        "retouchPlaceholder": "Ask for a change…",
+        "threads": {
+          "title": "Conversations",
+          "new": "New conversation",
+          "empty": "Your conversations will appear here.",
+          "delete": "Delete",
+          "deleteLabel": "Delete the conversation “{{title}}”",
+          "confirmDelete": "Delete? The visuals are kept.",
+          "busyElsewhere": "A visual is being made in another conversation. You can write as soon as it is ready."
+        },
+        "proposals": {
+          "kept": "Selected",
+          "other": "Other proposal",
+          "keep": "Keep this one",
+          "keepLabel": "Keep this proposal instead"
+        }
       },
       "library": {
         "title": "My visuals",
@@ -3950,7 +3965,8 @@
             "ctaDone": "Open the calendar",
             "progress": "{{done}} of {{total}} ready"
           }
-        }
+        },
+        "conversations": "Resume a conversation ({{count}})"
       },
       "guide": {
         "show": "How does it work?",
@@ -4570,7 +4586,7 @@
       },
       "prompt": {
         "label": "Describe the visual you want",
-        "placeholder": "E.g. a visual to wish our customers a happy new year",
+        "placeholder": "E.g. a visual to wish our customers a happy new year — you can attach a photo",
         "send": "Create",
         "advanced": "Advanced options",
         "price": "A visual: 2 credits · a change: 1 credit",
@@ -4591,7 +4607,26 @@
         "asFormat": "The visual must be {{format}}.",
         "variants": "Give me 3 versions (5 credits instead of 2)",
         "variantsShort": "3 versions",
-        "variantsPrompt": "Give me 3 different versions."
+        "variantsPrompt": "Give me 3 different versions.",
+        "attach": {
+          "add": "Attach an image",
+          "list": "Attached images",
+          "uploading": "Uploading…",
+          "remove": "Remove {{name}}",
+          "roleLabel": "What the AI does with {{name}}",
+          "roles": {
+            "auto": "AI decides",
+            "use": "Put it in the visual",
+            "reference": "Model to imitate"
+          },
+          "errors": {
+            "video": "This creates still visuals: for a video, open the Videos tab.",
+            "type": "Only JPEG, PNG, WebP or HEIC images are accepted.",
+            "size": "An image is over 10 MB: it was not attached.",
+            "count": "4 images at most per message.",
+            "upload": "The image could not be uploaded. Try again."
+          }
+        }
       }
     },
     "businessCards": {

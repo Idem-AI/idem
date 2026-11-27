@@ -31,11 +31,21 @@ import {
   ContentChannel,
   Flyer,
   FlyerFormat,
+  StudioAttachment,
+  StudioAttachmentRole,
   StudioConversation,
   StudioMessage,
   StudioPendingAction,
+  StudioThread,
+  StudioThreadSummary,
   VisualIntent,
 } from '../../models/communication.model';
+import { CreativityLevel, normalizeCreativity } from '../../models/creativity.model';
+import axios from 'axios';
+import { analyzeReferenceImage, visualFormatOfRatio } from '../../../../ivision/core/src/reference/reference.analyzer';
+import { idemAnalyzeImage } from '../ivision/host';
+import minioConnection from '../../config/minio.config';
+import { MAX_THREADS, studioThreadsOf, threadSummary, threadTitle } from './studio-threads';
 import { BUSINESS_CREDIT_COSTS } from '../../models/billing.model';
 import { AIChatMessage } from '../prompt.service';
 import { runAgent } from '../agents/agent-runtime';
@@ -71,7 +81,25 @@ export class InsufficientCreditsError extends Error {
   }
 }
 
+/** Au plus, par message : au-delà, l'agent ne sait plus laquelle est laquelle. */
+export const MAX_STUDIO_ATTACHMENTS = 4;
+
+/** Le dossier des images importées dans l'atelier d'un projet. */
+export function studioAttachmentFolder(userId: string, projectId: string): string {
+  return `users/${userId}/projects/${projectId}/studio/attachments`;
+}
+
+/** Ce qui accompagne la phrase d'un tour. */
+export interface StudioTurnOptions {
+  /** Absent : une nouvelle conversation commence. */
+  threadId?: string;
+  creativity?: CreativityLevel;
+  attachments?: Array<Partial<StudioAttachment>>;
+}
+
 export interface StudioReply {
+  /** La conversation du tour (créée pour lui si besoin). */
+  thread: StudioThreadSummary;
   userMessage: StudioMessage;
   assistantMessage: StudioMessage;
   /** Visuels produits pendant ce tour, prêts à être affichés. */
@@ -80,6 +108,7 @@ export interface StudioReply {
 }
 
 export type StudioStreamEvent =
+  | { type: 'thread'; thread: StudioThreadSummary }
   | { type: 'thinking'; label: string }
   | { type: 'visual'; visual: Flyer }
   | { type: 'message'; message: StudioMessage }
@@ -92,16 +121,36 @@ export class StudioService {
   // Conversation
   // --------------------------------------------------------------------------
 
-  async getConversation(userId: string, projectId: string): Promise<StudioConversation> {
+  /** L'historique : chaque conversation sans ses messages, la plus récente en premier. */
+  async listThreads(userId: string, projectId: string): Promise<StudioThreadSummary[]> {
     const model = await this.communication.getCommunication(userId, projectId);
-    return model?.studio || { messages: [], updatedAt: new Date() };
+    return studioThreadsOf(model).map(threadSummary);
   }
 
+  async getThread(userId: string, projectId: string, threadId: string): Promise<StudioThread | null> {
+    const model = await this.communication.getCommunication(userId, projectId);
+    return studioThreadsOf(model).find((thread) => thread.id === threadId) ?? null;
+  }
+
+  /** Supprime une conversation ; les visuels qu'elle a produits restent dans la bibliothèque. */
+  async deleteThread(userId: string, projectId: string, threadId: string): Promise<void> {
+    await this.communication.patchStudioThreads(userId, projectId, (threads) =>
+      threads.filter((thread) => thread.id !== threadId)
+    );
+  }
+
+  /** Ancienne route du fil unique : la conversation la plus récente. */
+  async getConversation(userId: string, projectId: string): Promise<StudioConversation> {
+    const model = await this.communication.getCommunication(userId, projectId);
+    const latest = studioThreadsOf(model)[0];
+    return latest ? { messages: latest.messages, updatedAt: latest.updatedAt } : { messages: [], updatedAt: new Date() };
+  }
+
+  /** Ancienne route du fil unique : vide la conversation la plus récente. */
   async clearConversation(userId: string, projectId: string): Promise<void> {
-    await this.communication.patchStudio(userId, projectId, {
-      messages: [],
-      updatedAt: new Date(),
-    });
+    const model = await this.communication.getCommunication(userId, projectId);
+    const latest = studioThreadsOf(model)[0];
+    if (latest) await this.deleteThread(userId, projectId, latest.id);
   }
 
   /**
@@ -115,19 +164,43 @@ export class StudioService {
     userId: string,
     projectId: string,
     content: string,
+    options: StudioTurnOptions = {},
     onEvent?: (event: StudioStreamEvent) => Promise<void>
   ): Promise<StudioReply> {
     setTraceProjectId(projectId);
+    const attachments = this.acceptAttachments(userId, projectId, options.attachments);
+    // Une image seule est une demande : « fais-moi un visuel avec ça ».
     const trimmed = (content || '').trim();
-    if (!trimmed) throw new Error('Empty message');
+    if (!trimmed && !attachments.length) throw new Error('Empty message');
+    const creativity = options.creativity ? normalizeCreativity(options.creativity) : undefined;
 
-    const conversation = await this.getConversation(userId, projectId);
+    const existing = options.threadId ? await this.getThread(userId, projectId, options.threadId) : null;
+    const now = new Date();
+    const thread: StudioThread = existing ?? {
+      id: this.newId('chat'),
+      title: threadTitle(trimmed) || attachments[0]?.name || 'Visuel',
+      messages: [],
+      createdAt: now,
+      updatedAt: now,
+    };
+    // La conversation est connue AVANT la réponse : l'adresse de la page la désigne tout de suite.
+    if (!existing) await onEvent?.({ type: 'thread', thread: threadSummary(thread) });
+
+    const conversation = thread;
     const userMessage: StudioMessage = {
       id: this.newId('msg'),
       role: 'user',
       content: trimmed,
-      createdAt: new Date(),
+      ...(attachments.length ? { attachments } : {}),
+      createdAt: now,
     };
+
+    /** Toutes les images du fil, celles de ce tour comprises : « avec la même photo » doit trouver la sienne. */
+    const knownAttachments = new Map<string, StudioAttachment>();
+    for (const message of conversation.messages) {
+      for (const attachment of message.attachments ?? []) knownAttachments.set(attachment.id, attachment);
+    }
+    for (const attachment of attachments) knownAttachments.set(attachment.id, attachment);
 
     // ── Ce que l'agent produit pendant le tour, collecté par l'exécuteur ─────
     const produced: Flyer[] = [];
@@ -176,18 +249,27 @@ export class StudioService {
         role: message.role as 'user' | 'assistant',
         content: this.replayContent(message),
       })),
-      { role: 'user', content: trimmed },
+      { role: 'user', content: this.replayContent(userMessage) },
     ];
 
     const executor = async (name: string, args: Record<string, unknown>): Promise<unknown> => {
       logger.info('[Studio] tool call', { projectId, tool: name });
       switch (name) {
         case 'create_visual': {
-          const brief = String(args.brief || trimmed);
-          const format = this.asFormat(args.format);
+          const brief = String(args.brief || trimmed || 'Un visuel à partir de cette image');
           const intent = this.asIntent(args.intent);
           const withPhoto = args.withPhoto !== false;
           const variants = Math.min(3, Math.max(1, Number(args.variants) || 1));
+          const { photo, model } = this.pickAttachments(args, attachments, knownAttachments);
+          const reference = model ? await this.referenceOf(userId, model) : undefined;
+          // Sans format demandé, un modèle donne le sien (ses proportions).
+          const format = args.format
+            ? this.asFormat(args.format)
+            : (reference && visualFormatOfRatio(reference.width, reference.height)) || 'square';
+          const imageInput = {
+            ...(photo ? { photoUrl: photo.url } : {}),
+            ...(reference && model ? { reference: { ...reference, url: model.url } } : {}),
+          };
 
           await onEvent?.({
             type: 'thinking',
@@ -211,6 +293,8 @@ export class StudioService {
                     intent,
                     withPhoto,
                     count: variants,
+                    creativity,
+                    ...imageInput,
                   })
                 : [
                     await this.communication.createVisualFromBrief(userId, projectId, {
@@ -218,6 +302,8 @@ export class StudioService {
                       format,
                       intent,
                       withPhoto,
+                      creativity,
+                      ...imageInput,
                     }),
                   ];
 
@@ -447,19 +533,44 @@ export class StudioService {
       createdAt: new Date(),
     };
 
-    const next: StudioConversation = {
-      messages: [...conversation.messages, userMessage, assistantMessage],
-      updatedAt: new Date(),
-    };
-    await this.communication.patchStudio(userId, projectId, next);
+    // Les analyses de modèle faites pendant le tour sont gardées sur leur image : pas une seconde fois.
+    const analysed = (message: StudioMessage): StudioMessage =>
+      message.attachments?.length
+        ? { ...message, attachments: message.attachments.map((a) => knownAttachments.get(a.id) ?? a) }
+        : message;
+    const savedUser = analysed(userMessage);
+    const updatedAt = new Date();
+    let saved: StudioThread = { ...thread, messages: [...thread.messages, savedUser, assistantMessage], updatedAt };
+    // Écrit sur la version FRAÎCHE des conversations : un autre onglet a pu en créer ou en supprimer une
+    // pendant les deux minutes du tour.
+    await this.communication.patchStudioThreads(userId, projectId, (threads) => {
+      const current = threads.find((item) => item.id === thread.id);
+      saved = current
+        ? {
+            ...current,
+            messages: [...current.messages.map(analysed), savedUser, assistantMessage],
+            updatedAt,
+          }
+        : saved;
+      return [saved, ...threads.filter((item) => item.id !== thread.id)].slice(0, MAX_THREADS);
+    });
     await onEvent?.({ type: 'message', message: assistantMessage });
 
     logger.info('[Studio] turn done', {
       projectId,
+      threadId: thread.id,
       visuals: produced.length,
+      attachments: attachments.length,
+      creativity,
       creditsSpent,
     });
-    return { userMessage, assistantMessage, visuals: produced, conversation: next };
+    return {
+      thread: threadSummary(saved),
+      userMessage: savedUser,
+      assistantMessage,
+      visuals: produced,
+      conversation: { messages: saved.messages, updatedAt },
+    };
   }
 
   // --------------------------------------------------------------------------
@@ -527,12 +638,96 @@ export class StudioService {
    * retoucher — ce qui coûte 2 crédits au lieu de 1.
    */
   private replayContent(message: StudioMessage): string {
-    if (message.role === 'user') return message.content;
+    if (message.role === 'user') {
+      if (!message.attachments?.length) return message.content;
+      const roles: Record<StudioAttachmentRole, string> = {
+        auto: 'role not stated — infer it from the message',
+        use: 'the user wants it IN the visual',
+        reference: 'the user wants its layout imitated',
+      };
+      const list = message.attachments
+        .map((a) => `- ${a.id} · "${a.name}" (${roles[a.role] ?? roles.auto})`)
+        .join('\n');
+      return `${message.content || '(no text — only images)'}\n[images attached:\n${list}]`;
+    }
     const parts = [message.content];
     if (message.visualIds?.length) {
       parts.push(`[visuals produced: ${message.visualIds.join(', ')}]`);
     }
     return parts.join('\n');
+  }
+
+  // ---- Images jointes -----------------------------------------------------
+
+  /**
+   * Les images annoncées par le client, gardées seulement si elles viennent du dossier d'atelier
+   * de CE projet : une adresse arbitraire ferait télécharger n'importe quoi au compositeur.
+   */
+  private acceptAttachments(
+    userId: string,
+    projectId: string,
+    raw: StudioTurnOptions['attachments']
+  ): StudioAttachment[] {
+    const prefix = minioConnection.getPublicUrl(`${studioAttachmentFolder(userId, projectId)}/`);
+    const roles: StudioAttachmentRole[] = ['auto', 'use', 'reference'];
+    return (Array.isArray(raw) ? raw : [])
+      .filter(
+        (a): a is Partial<StudioAttachment> & { url: string } =>
+          typeof a?.url === 'string' && a.url.startsWith(prefix) && !a.url.includes('..') && a.url.length < 600
+      )
+      .slice(0, MAX_STUDIO_ATTACHMENTS)
+      .map((a) => ({
+        id: typeof a.id === 'string' && /^img-[\w-]{4,60}$/.test(a.id) ? a.id : this.newId('img'),
+        url: a.url,
+        name: String(a.name || 'image').slice(0, 120),
+        mimeType: String(a.mimeType || 'image/jpeg').slice(0, 40),
+        role: roles.includes(a.role as StudioAttachmentRole) ? (a.role as StudioAttachmentRole) : 'auto',
+        ...(Number(a.width) > 0 ? { width: Math.round(Number(a.width)) } : {}),
+        ...(Number(a.height) > 0 ? { height: Math.round(Number(a.height)) } : {}),
+      }));
+  }
+
+  /**
+   * La photo à poser et le modèle à imiter pour `create_visual`.
+   *
+   * L'agent les désigne d'après la phrase ; ce que l'utilisateur a réglé lui-même sur une image
+   * (« à utiliser », « modèle ») s'impose s'il l'a oublié. Une image de ce tour laissée sans rôle
+   * et sans désignation est une photo à utiliser : c'est le cas le plus courant (« un visuel avec
+   * ma photo »).
+   */
+  private pickAttachments(
+    args: Record<string, unknown>,
+    turn: StudioAttachment[],
+    known: Map<string, StudioAttachment>
+  ): { photo?: StudioAttachment; model?: StudioAttachment } {
+    let photo = known.get(String(args.photoId || ''));
+    let model = known.get(String(args.referenceId || ''));
+    photo ??= turn.find((a) => a.role === 'use' && a.id !== model?.id);
+    model ??= turn.find((a) => a.role === 'reference' && a.id !== photo?.id);
+    if (!photo && !model) photo = turn.find((a) => a.role === 'auto');
+    return { ...(photo ? { photo } : {}), ...(model ? { model } : {}) };
+  }
+
+  /** L'analyse de mise en page d'un modèle : faite une fois, puis relue sur l'image. */
+  private async referenceOf(userId: string, attachment: StudioAttachment) {
+    if (attachment.reference) return attachment.reference;
+    try {
+      const res = await axios.get<ArrayBuffer>(attachment.url, {
+        responseType: 'arraybuffer',
+        timeout: 20_000,
+        maxContentLength: 15 * 1024 * 1024,
+      });
+      const vision = (base64: string, mimeType: string, instruction: string) =>
+        idemAnalyzeImage(base64, mimeType, instruction, { maxOutputTokens: 1500, temperature: 0.2, purpose: 'reference' });
+      const reference = await analyzeReferenceImage(Buffer.from(res.data), attachment.mimeType, vision);
+      attachment.reference = reference;
+      logger.info('[Studio] reference analysed', { userId, attachmentId: attachment.id, layout: reference.layout, source: reference.source });
+      return reference;
+    } catch (err: any) {
+      // Un modèle illisible ne bloque pas le visuel : il sort sans ressemblance imposée.
+      logger.warn('[Studio] reference analysis failed', { attachmentId: attachment.id, error: err?.message });
+      return undefined;
+    }
   }
 
   private fallbackReply(produced: Flyer[]): string {
@@ -726,6 +921,16 @@ export const STUDIO_TOOL_DECLARATIONS: FunctionDeclaration[] = [
           type: Type.NUMBER,
           description:
             'How many different compositions of the same brief (1 to 3). Use more than 1 ONLY when the user explicitly wants options.',
+        },
+        photoId: {
+          type: Type.STRING,
+          description:
+            'Id of an attached image (img-…) to place INSIDE the visual: their product, their shop, their team, their own photo. Never a stock photo replaces it.',
+        },
+        referenceId: {
+          type: Type.STRING,
+          description:
+            'Id of an attached image (img-…) whose LAYOUT the visual should reproduce with this brand: a poster they like, a competitor flyer, "dans ce style". Its texts and images are never reused.',
         },
       },
       required: ['brief'],

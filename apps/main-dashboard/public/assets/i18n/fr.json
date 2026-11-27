@@ -3654,7 +3654,22 @@
             "text": "Écris-moi le texte à publier avec ce visuel."
           }
         },
-        "retouchPlaceholder": "Demandez une modification…"
+        "retouchPlaceholder": "Demandez une modification…",
+        "threads": {
+          "title": "Conversations",
+          "new": "Nouvelle conversation",
+          "empty": "Vos conversations apparaîtront ici.",
+          "delete": "Supprimer",
+          "deleteLabel": "Supprimer la conversation « {{title}} »",
+          "confirmDelete": "Supprimer ? Les visuels restent.",
+          "busyElsewhere": "Un visuel est en cours dans une autre conversation. Vous pourrez écrire dès qu'il sera prêt."
+        },
+        "proposals": {
+          "kept": "Retenue",
+          "other": "Autre proposition",
+          "keep": "Garder celle-ci",
+          "keepLabel": "Garder cette proposition à la place"
+        }
       },
       "library": {
         "title": "Mes visuels",
@@ -3953,7 +3968,8 @@
             "ctaDone": "Ouvrir le calendrier",
             "progress": "{{done}} sur {{total}} prêts"
           }
-        }
+        },
+        "conversations": "Reprendre une conversation ({{count}})"
       },
       "guide": {
         "show": "Comment ça marche ?",
@@ -4573,7 +4589,7 @@
       },
       "prompt": {
         "label": "Décrivez le visuel que vous voulez",
-        "placeholder": "Ex. : un visuel pour souhaiter une bonne année à nos clients",
+        "placeholder": "Ex. : un visuel pour souhaiter une bonne année à nos clients — vous pouvez joindre une photo",
         "send": "Créer",
         "advanced": "Options avancées",
         "price": "Un visuel : 2 crédits · une retouche : 1 crédit",
@@ -4594,7 +4610,26 @@
         "asFormat": "Le visuel doit être {{format}}.",
         "variants": "Me proposer 3 versions (5 crédits au lieu de 2)",
         "variantsShort": "3 versions",
-        "variantsPrompt": "Propose-moi 3 versions différentes."
+        "variantsPrompt": "Propose-moi 3 versions différentes.",
+        "attach": {
+          "add": "Joindre une image",
+          "list": "Images jointes",
+          "uploading": "Envoi…",
+          "remove": "Retirer {{name}}",
+          "roleLabel": "Ce que l'IA fait de {{name}}",
+          "roles": {
+            "auto": "L'IA décide",
+            "use": "À mettre dans le visuel",
+            "reference": "Modèle à imiter"
+          },
+          "errors": {
+            "video": "Ici, on crée des visuels fixes : pour une vidéo, ouvrez l'onglet Vidéos.",
+            "type": "Seules les images JPEG, PNG, WebP ou HEIC sont acceptées.",
+            "size": "Une image dépasse 10 Mo : elle n'a pas été jointe.",
+            "count": "4 images au plus par message.",
+            "upload": "L'image n'a pas pu être envoyée. Réessayez."
+          }
+        }
       }
     },
     "businessCards": {

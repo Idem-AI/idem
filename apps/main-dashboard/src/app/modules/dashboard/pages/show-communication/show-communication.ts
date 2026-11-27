@@ -21,6 +21,7 @@ import {
   Flyer,
   Publication,
   StrategyInputKey,
+  StudioRequest,
 } from '../../models/communication.model';
 import { BrandingValidationService } from '../../services/branding-validation.service';
 import { FontHints } from '@idem/shared-document-editor/angular';
@@ -156,7 +157,7 @@ export class ShowCommunication implements OnInit {
    * Demande tapée sur l'accueil, remise à la conversation à son ouverture.
    * En mémoire seulement : une actualisation ne la renvoie pas (ni ne la refacture).
    */
-  protected readonly pendingPrompt = signal<string | null>(null);
+  protected readonly pendingPrompt = signal<StudioRequest | null>(null);
 
   /** Demande transmise au calendrier quand on y arrive depuis l'accueil. */
   protected readonly planIntent = signal<PlanIntent | null>(null);
@@ -266,8 +267,13 @@ export class ShowCommunication implements OnInit {
         this.setScreen('plans');
         return;
       case 'prompt':
-        this.pendingPrompt.set(action.text);
+        this.pendingPrompt.set(action.request);
         this.setScreen('studio');
+        return;
+      case 'conversations':
+        // Sur grand écran l'historique est toujours là ; sur téléphone, son panneau s'ouvre.
+        this.setScreen('studio');
+        this.url.write({ history: '1' });
         return;
       default:
         this.setScreen(action.kind);

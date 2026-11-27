@@ -3,7 +3,13 @@
   <div class="ch-ask">
     <h2 class="ch-ask-title">{{ 'dashboard.showCommunication.home.ask.title' | translate }}</h2>
     <p class="ch-ask-body">{{ 'dashboard.showCommunication.home.ask.body' | translate }}</p>
-    <app-prompt-box class="ch-ask-box" (submitted)="ask($event)" />
+    <app-prompt-box class="ch-ask-box" [projectId]="projectId()" (submitted)="ask($event)" />
+    @if (conversationCount() > 0) {
+      <button type="button" class="ch-resume" (click)="openConversations()">
+        <i class="pi pi-history" aria-hidden="true"></i>
+        {{ 'dashboard.showCommunication.home.conversations' | translate: { count: conversationCount() } }}
+      </button>
+    }
   </div>
 
   <!-- ═══════════════ Le parcours complet ═══════════════ -->

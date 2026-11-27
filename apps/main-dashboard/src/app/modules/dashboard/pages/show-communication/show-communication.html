@@ -1,4 +1,4 @@
-<div class="sc-root relative w-full min-h-screen md:p-6">
+<div class="sc-root relative w-full min-h-screen">
   @if (isLoading()) {
     <div class="mx-auto max-w-6xl py-20 text-center">
       <idem-loader size="lg" />
@@ -28,7 +28,7 @@
     </div>
   } @else {
     <!-- ═══════════════ En-tête ═══════════════ -->
-    <header class="mx-auto mb-6 max-w-5xl">
+    <header class="mx-auto mb-4 max-w-5xl">
       <h1 class="text-2xl font-bold text-[var(--color-text-primary)] sm:text-3xl">
         {{ 'dashboard.showCommunication.title' | translate }}
       </h1>
@@ -116,6 +116,7 @@
     <!-- ═══════════════ Écrans ═══════════════ -->
     @if (activeScreen() === 'home') {
       <app-communication-home
+        [projectId]="projectId()!"
         [strategy]="strategy()"
         [plans]="plans()"
         [visuals]="visuals()"

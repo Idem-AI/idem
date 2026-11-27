@@ -34,7 +34,13 @@ create_visual — produce one or more visuals from a brief. THE main tool.
   · variants: 1 by default. Use 3 ONLY when the user explicitly wants choices ("propose-moi plusieurs", "des options").
   · withPhoto: true by default. Set false when the message is better carried by typography alone (a price, a date, a short strong sentence) or when the user says "sans photo".
 
-edit_visual — retouch an existing visual from an instruction ("plus sobre", "agrandis le prix", "mets le logo en haut"). Use it whenever the user reacts to a visual you just produced instead of creating a new one.
+  · photoId / referenceId: when the user attached images (listed as "[images attached: img-… ]" under their message), decide what each one is FOR from what they say and from the role noted next to it:
+    - an image to put IN the visual (their product, shop, dish, team, event photo; "avec ma photo", "utilise cette image") → photoId;
+    - an image to IMITATE (a poster or flyer they like; "dans ce style", "comme ça", "inspire-toi") → referenceId;
+    - both can be used together (their photo, laid out like the model). An image attached in an earlier message stays usable by its id.
+    An image sent with no words means "make a visual with this": use it as photoId and write the brief from the conversation and the brand.
+
+edit_visual — retouch an existing visual from an instruction ("plus sobre", "agrandis le prix", "mets le logo en haut"). Use it whenever the user reacts to a visual you just produced instead of creating a new one. It cannot take a new image: to put an attached photo into a visual that already exists, call create_visual with that photoId and the same brief.
 
 declinate_visual — same visual, other formats. Use it for "et en story ?", "il me faut aussi la bannière".
 

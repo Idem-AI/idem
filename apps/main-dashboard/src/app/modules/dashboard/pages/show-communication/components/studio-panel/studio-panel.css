@@ -2,12 +2,209 @@
   display: block;
 }
 
-.sp-wrap {
+/* L'historique à gauche, la conversation à droite — comme une messagerie. */
+.sp {
   margin: 0 auto;
+  display: grid;
+  max-width: 64rem;
+  grid-template-columns: 14rem minmax(0, 1fr);
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.sp-wrap {
   display: flex;
+  min-width: 0;
   min-height: 60vh;
   max-width: 48rem;
+  width: 100%;
+  margin: 0 auto;
   flex-direction: column;
+}
+
+/* ── Historique ───────────────────────────────────────────────────────────── */
+
+.sp-history {
+  position: sticky;
+  top: 0.75rem;
+  display: flex;
+  max-height: calc(100vh - 1.5rem);
+  flex-direction: column;
+  gap: 0.6rem;
+  border-right: 1px solid var(--glass-border);
+  padding-right: 1rem;
+}
+
+.sp-history-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sp-history-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+}
+
+.sp-history-close,
+.sp-history-toggle,
+.sp-history-scrim {
+  display: none;
+}
+
+.sp-new {
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+.sp-history-loading {
+  padding: 1rem 0;
+  text-align: center;
+}
+
+.sp-history-empty {
+  padding: 0.5rem 0.25rem;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--color-text-tertiary);
+}
+
+.sp-threads {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  gap: 0.15rem;
+  overflow-y: auto;
+  margin-right: -0.4rem;
+  padding-right: 0.4rem;
+}
+
+.sp-thread-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  border-radius: 0.6rem;
+  transition: background-color 0.15s ease;
+}
+
+.sp-thread-item:hover,
+.sp-thread-active {
+  background: var(--glass-bg-medium);
+}
+
+.sp-thread-open {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: 0.55rem;
+  border-radius: 0.6rem;
+  padding: 0.4rem;
+  text-align: left;
+}
+
+.sp-thread-open:focus-visible,
+.sp-thread-delete:focus-visible {
+  outline: 2px solid var(--color-primary-500);
+  outline-offset: -2px;
+}
+
+.sp-thread-cover {
+  display: flex;
+  width: 2.1rem;
+  height: 2.1rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 0.4rem;
+  background: var(--glass-bg-subtle);
+  color: var(--color-text-tertiary);
+}
+
+.sp-thread-cover app-visual-thumb {
+  width: 100%;
+}
+
+.sp-thread-cover-empty .pi {
+  font-size: 0.8rem;
+}
+
+.sp-thread-text {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.sp-thread-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.sp-thread-active .sp-thread-title {
+  color: var(--color-primary-500);
+}
+
+.sp-thread-date {
+  font-size: 0.68rem;
+  color: var(--color-text-tertiary);
+}
+
+/* La corbeille n'apparaît qu'au survol ou au focus : l'historique reste une liste de titres. */
+.sp-thread-delete {
+  flex-shrink: 0;
+  display: inline-flex;
+  width: 1.75rem;
+  height: 1.75rem;
+  margin-right: 0.2rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  color: var(--color-text-tertiary);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.sp-thread-item:hover .sp-thread-delete,
+.sp-thread-delete:focus-visible {
+  opacity: 1;
+}
+
+.sp-thread-delete:hover {
+  color: var(--color-danger);
+}
+
+.sp-thread-delete .pi {
+  font-size: 0.75rem;
+}
+
+.sp-thread-confirm {
+  display: flex;
+  width: 100%;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem 0.6rem;
+  padding: 0.45rem 0.5rem;
+  font-size: 0.75rem;
+}
+
+.sp-thread-confirm-text {
+  width: 100%;
+  color: var(--color-text-secondary);
+}
+
+.sp-thread-confirm-yes {
+  font-weight: 700;
+  color: var(--color-danger);
+}
+
+.sp-thread-confirm-no {
+  color: var(--color-text-secondary);
 }
 
 .sp-thread {
@@ -24,7 +221,7 @@
 /* ── Fil vide ─────────────────────────────────────────────────────────────── */
 
 .sp-empty {
-  padding: 2.5rem 0;
+  padding: 1.75rem 0;
   text-align: center;
 }
 
@@ -84,6 +281,45 @@
   gap: 1.25rem;
 }
 
+.sp-user {
+  display: flex;
+  max-width: 85%;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.4rem;
+}
+
+.sp-user-images {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.4rem;
+}
+
+.sp-user-image {
+  position: relative;
+}
+
+.sp-user-image img {
+  display: block;
+  width: 6rem;
+  height: 6rem;
+  border-radius: 0.7rem;
+  border: 1px solid var(--glass-border);
+  object-fit: cover;
+}
+
+.sp-user-image-role {
+  position: absolute;
+  left: 0.3rem;
+  bottom: 0.3rem;
+  max-width: calc(100% - 0.6rem);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.6rem;
+}
+
 .sp-bubble-user {
   margin-left: auto;
   display: inline-block;
@@ -96,7 +332,7 @@
   color: var(--color-text-primary);
 }
 
-.sp-messages > li:has(.sp-bubble-user) {
+.sp-messages > li:has(.sp-user) {
   display: flex;
   justify-content: flex-end;
 }
@@ -115,13 +351,19 @@
 /* ── Visuels produits ─────────────────────────────────────────────────────── */
 
 .sp-visuals {
-  margin-top: 0.75rem;
+  margin-top: 0.6rem;
   display: grid;
   gap: 0.6rem;
   max-width: 22rem;
 }
 
+/* Deux propositions : deux colonnes ; trois et plus : trois. */
 .sp-visuals-multi {
+  max-width: 34rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.sp-visuals-multi:has(> li:nth-child(3)) {
   max-width: none;
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
@@ -151,6 +393,22 @@
 .sp-visual:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
+}
+
+.sp-visual:disabled {
+  cursor: progress;
+}
+
+/* La proposition retenue porte le cadre de la marque ; l'autre attend qu'on la choisisse. */
+.sp-visual-kept {
+  border-color: var(--color-primary-500);
+}
+
+.sp-card-label {
+  margin-top: 0.3rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
 }
 
 .sp-visual app-visual-thumb {
@@ -228,15 +486,22 @@
 .sp-composer {
   position: sticky;
   bottom: 0;
-  margin-top: 1.5rem;
-  padding: 0.5rem 0;
+  margin-top: 1.25rem;
+  padding: 0.4rem 0;
 }
 
 .sp-clear {
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
   font-size: 0.75rem;
-  color: var(--color-text-tertiary);
-  text-decoration: underline;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.sp-clear .pi {
+  font-size: 0.65rem;
 }
 
 .sp-clear:hover {
@@ -252,13 +517,18 @@
 /* ── Fil : barre du haut ──────────────────────────────────────────────────── */
 
 .sp-toolbar {
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem 1rem;
   border-bottom: 1px solid var(--glass-border);
-  padding-bottom: 0.9rem;
+  padding-bottom: 0.6rem;
+}
+
+/* Sur grand écran, la barre ne sert qu'au fil en cours : vide, elle disparaît. */
+.sp-toolbar:not(:has(.sp-toolbar-hint)) {
+  display: none;
 }
 
 .sp-toolbar-hint {
@@ -295,6 +565,75 @@
   }
 }
 
+/* ── Tablette et téléphone : l'historique devient un panneau latéral ─────── */
+
+@media (max-width: 1023px) {
+  .sp {
+    display: block;
+  }
+
+  .sp-toolbar,
+  .sp-toolbar:not(:has(.sp-toolbar-hint)) {
+    display: flex;
+  }
+
+  .sp-history-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .sp-history-close {
+    display: inline-flex;
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+  }
+
+  .sp-history {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 60;
+    width: min(20rem, 86vw);
+    max-height: none;
+    border-right: 1px solid var(--glass-border);
+    background: var(--idem-surface-1);
+    box-shadow: var(--glass-shadow-xl);
+    padding: 1rem;
+    transform: translateX(-105%);
+    visibility: hidden;
+    transition:
+      transform 0.2s ease,
+      visibility 0.2s;
+  }
+
+  .sp-history-shown .sp-history {
+    transform: none;
+    visibility: visible;
+  }
+
+  .sp-history-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 59;
+    display: block;
+    background: rgba(15, 23, 42, 0.5);
+  }
+
+  /* Sans survol, la corbeille reste visible. */
+  .sp-thread-delete {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sp-history {
+    transition: none;
+  }
+}
+
 /* ── Téléphone ────────────────────────────────────────────────────────────── */
 
 @media (max-width: 640px) {
@@ -306,12 +645,13 @@
     min-width: 0;
   }
 
-  .sp-bubble-user {
+  .sp-user {
     max-width: 92%;
   }
 
   /* Trois propositions côte à côte font des timbres-poste : deux par ligne. */
-  .sp-visuals-multi {
+  .sp-visuals-multi,
+  .sp-visuals-multi:has(> li:nth-child(3)) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 

@@ -1,4 +1,5 @@
 import { VideoType } from './motion-video.model';
+import type { CreativityLevel } from '@idem/shared-models';
 /**
  * Frontend mirror of the backend Communication model.
  * Kept in sync with `apps/api/api/models/communication.model.ts`.
@@ -344,10 +345,25 @@ export interface StudioPendingAction {
   formats?: FlyerFormat[];
 }
 
+/** Ce que l'utilisateur fait d'une image jointe : `auto` laisse l'agent le lire dans la phrase. */
+export type StudioAttachmentRole = 'auto' | 'use' | 'reference';
+
+/** Une image jointe au fil (photo à poser dans le visuel, ou modèle à imiter). */
+export interface StudioAttachment {
+  id: string;
+  url: string;
+  name: string;
+  mimeType: string;
+  role: StudioAttachmentRole;
+  width?: number;
+  height?: number;
+}
+
 export interface StudioMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  attachments?: StudioAttachment[];
   /** Visuels produits par ce tour — affichés en cartes dans le fil. */
   visualIds?: string[];
   caption?: string;
@@ -363,14 +379,44 @@ export interface StudioConversation {
   updatedAt?: string | Date;
 }
 
+/** Une conversation de l'atelier, avec ses messages. */
+export interface StudioThread extends StudioConversation {
+  id: string;
+  title: string;
+  createdAt: string | Date;
+}
+
+/** Une ligne de l'historique des conversations. */
+export interface StudioThreadSummary {
+  id: string;
+  title: string;
+  createdAt: string | Date;
+  updatedAt: string | Date;
+  messageCount: number;
+  coverVisualId?: string;
+}
+
+/** Ce que la saisie envoie : la phrase, les images jointes, le cran choisi sur le bouton. */
+export interface StudioRequest {
+  text: string;
+  attachments: StudioAttachment[];
+  creativity: CreativityLevel;
+}
+
 /** Événements du flux de l'atelier. */
 export type StudioStreamEvent =
+  | { type: 'thread'; thread: StudioThreadSummary }
   | { type: 'thinking'; label: string }
   | { type: 'visual'; visual: Flyer }
   | { type: 'message'; message: StudioMessage }
   | {
       type: 'complete';
-      payload: { userMessage: StudioMessage; assistantMessage: StudioMessage; visuals: Flyer[] };
+      payload: {
+        thread?: StudioThreadSummary;
+        userMessage: StudioMessage;
+        assistantMessage: StudioMessage;
+        visuals: Flyer[];
+      };
     }
   | { type: 'error'; message: string; code?: string; cost?: number; balance?: number };
 
